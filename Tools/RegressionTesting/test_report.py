@@ -710,6 +710,8 @@ def report_this_test_run(suite, make_benchmarks, note, update_time,
             special_cols.append(suite.summary_job_info_field1)
         if suite.summary_job_info_field2 is not "":
             special_cols.append(suite.summary_job_info_field2)
+        if suite.summary_job_info_field3 is not "":
+            special_cols.append(suite.summary_job_info_field3)
 
         cols = ["test name", "dim", "compare plotfile",
                 "# levels", "MPI procs", "OMP threads", "debug",
@@ -790,6 +792,9 @@ def report_this_test_run(suite, make_benchmarks, note, update_time,
             if suite.summary_job_info_field2 is not "":
                 row_info.append("<div class='small'>{}</div>".format(test.job_info_field2))
 
+            if suite.summary_job_info_field3 is not "":
+                row_info.append("<div class='small'>{}</div>".format(test.job_info_field3))
+
 
             # wallclock time
             row_info.append("{:.3f}&nbsp;s".format(test.wall_time))
@@ -863,7 +868,7 @@ def report_this_test_run(suite, make_benchmarks, note, update_time,
 
 def report_all_runs(suite, active_test_list):
 
-    table_height = min(max(suite.lenTestName, 4), 16)
+    table_height = min(max(suite.lenTestName, 4), 18)
 
     os.chdir(suite.webTopDir)
 
@@ -918,16 +923,23 @@ def report_all_runs(suite, active_test_list):
         # otherwise we don't do anything for this date
         valid = 0
         for test in all_tests:
-            status_file = "%s/%s/%s.status" % (suite.webTopDir, tdir, test)
+            status_file = "{}/{}/{}.status".format(suite.webTopDir, tdir, test)
             if os.path.isfile(status_file):
                 valid = 1
                 break
 
         if not valid: continue
 
+        # did we run on a non-default branch?
+        try: bf = open("{}/{}/branch.status".format(suite.webTopDir, tdir), "r")
+        except:
+            branch_mark = ""
+        else:
+            branch_mark = r"&lowast;"
+            bf.close()
+            
         # write out the directory (date)
-        hf.write("<TR><TD class='date'><SPAN CLASS='nobreak'><A class='main' HREF=\"%s/index.html\">%s&nbsp;</A></SPAN></TD>\n" %
-                 (tdir, tdir) )
+        hf.write("<TR><TD class='date'><SPAN CLASS='nobreak'><A class='main' HREF=\"{}/index.html\">{}&nbsp;</A>{}</SPAN></TD>\n".format(tdir, tdir, branch_mark) )
 
         for test in all_tests:
 

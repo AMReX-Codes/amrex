@@ -9,12 +9,14 @@ end program fdata
 ! Various statistical properties of the flow
 
 subroutine fturbkin
-  use f2kcli
+
   use bl_space
   use bl_IO_module
   use filler_module
   use plotfile_module
+
   implicit none
+
   integer :: f, level
   integer :: plo(2), phi(2), Nx(2)
   type(plotfile) pf

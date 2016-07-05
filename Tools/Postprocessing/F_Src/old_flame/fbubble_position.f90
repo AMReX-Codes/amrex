@@ -15,7 +15,6 @@ subroutine process_snapshots
   use filler_module
 !  use utility_module
   use bl_parmparse_module
-  use f2kcli
   use bl_IO_module
 
   implicit none

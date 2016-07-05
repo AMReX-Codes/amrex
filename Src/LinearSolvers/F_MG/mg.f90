@@ -779,7 +779,7 @@ contains
     integer, intent(in) :: lev
     real(dp_t), intent(in), optional :: eps_in
 
-    integer             :: i,stat,communicator
+    integer             :: i,stat,communicator,tag
     logical             :: singular_test,do_diag
     real(dp_t)          :: nrm, eps
 
@@ -886,6 +886,10 @@ contains
        call bl_error("MG_TOWER_BOTTOM_SOLVE: no such solver: ", mgt%bottom_solver)
     end select
 
+    if (associated(mgt%bottom_comm)) then
+       tag = parallel_tag(reset=.true.)
+    end if
+
     if ( stat /= 0 ) then
        if ( parallel_IOProcessor() .and. mgt%verbose > 0 ) then
           call bl_warn("BREAKDOWN in bottom_solver: trying smoother")
@@ -934,6 +938,10 @@ contains
 
     integer :: mg_restriction_mode, ng
     type(bl_prof_timer), save :: bpt
+    type(mfiter) :: mfi
+    integer :: tlo(mgt%dim), thi(mgt%dim)
+    type(box) :: tilebox
+    logical :: do_tiling
 
     call bl_proffortfuncstart("mg_tower_restriction")
     call build(bpt, "mgt_restriction")
@@ -968,8 +976,17 @@ contains
        !$omp end parallel do
     end if
 
-    !$OMP PARALLEL DO PRIVATE(i,n,cp,fp,mp_fine,mp_crse,loc,lof,lom_fine,lom_crse,lo,hi,vlo,vhi)
-    do i = 1, nfabs(crse)
+    do_tiling = mgt%dim.eq.3 .and. .not.nodal_flag
+
+    !$omp parallel default(none) &
+    !$omp  private(i,mfi,tilebox,tlo,thi,cp,fp,mp_fine,mp_crse,loc,lof,lom_fine,lom_crse,lo,hi,vlo,vhi) &
+    !$omp  shared(crse,fine,mm_fine,mm_crse,mgt,nodal_flag,ir,mg_restriction_mode,do_tiling)
+    call mfiter_build(mfi, crse, tiling=do_tiling)
+    do while(next_tile(mfi,i))
+
+       tilebox = get_tilebox(mfi)
+       tlo = lwb(tilebox)
+       thi = upb(tilebox)
 
        cp       => dataptr(crse, i)
        fp       => dataptr(fine, i)
@@ -1007,7 +1024,7 @@ contains
              end if
           case (3)
              if ( .not. nodal_flag ) then
-                call cc_restriction_3d(cp(:,:,:,n), loc, fp(:,:,:,n), lof, lo, hi, ir)
+                call cc_restriction_3d(cp(:,:,:,n), loc, fp(:,:,:,n), lof, lo, hi, tlo, thi, ir)
              else
                 call nodal_restriction_3d(cp(:,:,:,n), loc, fp(:,:,:,n), lof, &
                                           mp_fine(:,:,:,1), lom_fine, &
@@ -1017,7 +1034,7 @@ contains
           end select
        end do
     end do
-    !$OMP END PARALLEL DO
+    !$OMP END PARALLEL
 
     call destroy(bpt)
     call bl_proffortfuncstop("mg_tower_restriction")

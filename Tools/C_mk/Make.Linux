@@ -27,6 +27,8 @@ ifeq ($(COMP),Cray)
   CXX = CC
   CC  = cc
 
+  COMP_VERSION := $(shell $(CXX) -V 2>&1 | grep 'Version')
+
   CXXOPTF += -O2 -h nomessage=7221 -hlist=a
   CXXDEBF += -g -O0
 
@@ -155,6 +157,9 @@ ifeq ($(FCOMP),Cray)
   FC  = ftn
   fC  = ftn
   F90 = ftn 
+
+  FCOMP_VERSION := $(shell $(FC) -V 2>&1 | grep 'Version')
+
   FFLAGS += -hlist=a
   fFLAGS += -N 132 -I$(objEXETempDir) -J $(objEXETempDir) -em -hlist=a
   F90FLAGS += -hlist=a

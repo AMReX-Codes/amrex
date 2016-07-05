@@ -2648,6 +2648,7 @@ ParticleContainer<N>::AssignCellDensitySingleLevel (MultiFab& mf_to_be_filled,
     // way no thread will step on any other.  If there's only one grid per CPU,
     // then oh well ....
     //
+    // TODO: implement tiling with OpenMP in this grid loop.
     Array<int>         pgrd(ngrids);
     Array<const PBox*> pbxs(ngrids);
 
@@ -2660,9 +2661,6 @@ ParticleContainer<N>::AssignCellDensitySingleLevel (MultiFab& mf_to_be_filled,
         pbxs[j] = &(pmap_it->second);
     }
 
-#ifdef _OPENMP
-#pragma omp parallel for schedule(dynamic,1)
-#endif
     for (int j = 0; j < ngrids; j++)
     {
         const PBox& pbx = *pbxs[j];
@@ -2671,9 +2669,10 @@ ParticleContainer<N>::AssignCellDensitySingleLevel (MultiFab& mf_to_be_filled,
         Array<Real>    fracs;
         Array<IntVect> cells;
 
-        for (typename PBox::const_iterator it = pbx.begin(), End = pbx.end();
-             it != End;
-             ++it)
+#ifdef _OPENMP
+#pragma omp parallel for default(none) private(fracs,cells) shared(plo,dx,dx_particle,gm,fab,ncomp,pbx)
+#endif
+        for (typename PBox::const_iterator it = pbx.begin(); it < pbx.end(); ++it)
         {
             const ParticleType& p = *it;
 
@@ -2709,17 +2708,26 @@ ParticleContainer<N>::AssignCellDensitySingleLevel (MultiFab& mf_to_be_filled,
                     for (int n = 1; n < ncomp; n++)
                        vsq += p.m_data[n] * p.m_data[n];
                     Real gamma = 1.0 / sqrt(1.0 - vsq / m_csq);
+#ifdef _OPENMP
+#pragma omp atomic
+#endif
                     fab(cells[i],0) += p.m_data[0] * fracs[i] * gamma;
                 }
                 else 
-#endif
+#endif /* NEUTRINO_PARTICLES */
                 {
+#ifdef _OPENMP
+#pragma omp atomic
+#endif
                     fab(cells[i],0) += p.m_data[0] * fracs[i];
                 }
                 // 
                 // Sum up momenta in next components.
                 //
                 for (int n = 1; n < ncomp; n++)
+#ifdef _OPENMP
+#pragma omp atomic
+#endif
                    fab(cells[i],n) += p.m_data[n] * p.m_data[0] * fracs[i];
             }
         }

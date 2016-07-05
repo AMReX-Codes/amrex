@@ -8,7 +8,6 @@ program fcoarsen
 
   use BoxLib
   use parallel
-  use f2kcli
   use bl_space
   use bl_error_module
   use bl_IO_module

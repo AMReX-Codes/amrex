@@ -47,26 +47,27 @@ contains
     do_tiling = .true.
 
     if(do_tiling) then
-    !$omp parallel private(i,mfi,tilebox,tlo,thi,pp_old,pp_new,lo,hi)
+
+       !$omp parallel private(i,mfi,tilebox,tlo,thi,pp_old,pp_new,lo,hi)
     
-    call mfiter_build(mfi, phi_old, tiling= .true., tilesize= tsize)
-
-    do while(next_tile(mfi,i))
-
-       tilebox = get_tilebox(mfi)
-       tlo = lwb(tilebox)
-       thi = upb(tilebox)
-
-       pp_old => dataptr(phi_old,i)
-       pp_new => dataptr(phi_new,i)
-       lo = lwb(get_box(phi_old,i))
-       hi = upb(get_box(phi_old,i))
-
-       call advance_phi(pp_old(:,:,:,1), pp_new(:,:,:,1), &
-            ng_p, lo, hi, dx, dt, tlo, thi)
-
-    end do
-    !$omp end parallel
+       call mfiter_build(mfi, phi_old, tiling= .true., tilesize= tsize)
+       
+       do while(next_tile(mfi,i))
+          
+          tilebox = get_tilebox(mfi)
+          tlo = lwb(tilebox)
+          thi = upb(tilebox)
+          
+          pp_old => dataptr(phi_old,i)
+          pp_new => dataptr(phi_new,i)
+          lo = lwb(get_box(phi_old,i))
+          hi = upb(get_box(phi_old,i))
+          
+          call advance_phi(pp_old(:,:,:,1), pp_new(:,:,:,1), &
+               ng_p, lo, hi, dx, dt, tlo, thi)
+          
+       end do
+       !$omp end parallel
 
     else 
        do i=1,nfabs(phi_old)

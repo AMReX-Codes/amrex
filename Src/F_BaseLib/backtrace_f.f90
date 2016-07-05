@@ -8,7 +8,7 @@ module backtrace_module
 
   private
 
-  public :: backtrace_init, abort_fortranboxlib, fpe_trap, quiet_nan
+  public :: backtrace_init, abort_fortranboxlib, fpe_trap, quiet_nan, set_fpe_trap
 
 contains
 
@@ -56,6 +56,33 @@ contains
     double precision :: q
     q = get_quiet_nan()
   end function quiet_nan
+
+  subroutine set_fpe_trap (trap_invalid, trap_zero, trap_overflow)
+    logical, intent(in) :: trap_invalid, trap_zero, trap_overflow
+    interface
+       subroutine set_fpe_trap_c (invalid, zero, overflow) bind(c)
+         use  iso_c_binding, only : c_int
+         integer(c_int), intent(in), value :: invalid, zero, overflow
+       end subroutine set_fpe_trap_c
+    end interface
+    integer(c_int) :: iinvalid, izero, ioverflow
+    if (trap_invalid) then
+       iinvalid = 1
+    else
+       iinvalid = 0
+    end if
+    if (trap_zero) then
+       izero = 1
+    else
+       izero = 0
+    end if
+    if (trap_overflow) then
+       ioverflow = 1
+    else
+       ioverflow = 0
+    end if
+    call set_fpe_trap_c(iinvalid, izero, ioverflow)
+  end subroutine set_fpe_trap
 
 end module backtrace_module
 

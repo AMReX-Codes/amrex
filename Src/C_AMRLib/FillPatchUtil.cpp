@@ -138,7 +138,7 @@ namespace BoxLib
 		}
 	    }
 	    
-	    const FabArrayBase::FPC& fpc = FabArrayBase::TheFPC(fmf[0], mf, fdomain_g, ngrow, coarsener);
+	    const FabArrayBase::FPinfo& fpc = FabArrayBase::TheFPinfo(fmf[0], mf, fdomain_g, ngrow, coarsener);
 
 	    if (!fpc.ba_crse_patch.empty())
 	    {

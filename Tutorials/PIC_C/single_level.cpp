@@ -193,9 +193,9 @@ int single_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int nppc,
     ParallelDescriptor::ReduceRealMax(end_mK   ,IOProc);
     if (verbose && ParallelDescriptor::IOProcessor())
     {
-           std::cout << "Time in InitRandom   : " << end_init << '\n';
-           std::cout << "Time in AssignDensity: " << end_assd << '\n';
-           std::cout << "Time in Solve        : " << end_init << '\n';
-           std::cout << "Time in moveKick     : " << end_init << '\n';
+           std::cout << "Time in InitRandom   : " << end_init  << '\n';
+           std::cout << "Time in AssignDensity: " << end_assd  << '\n';
+           std::cout << "Time in Solve        : " << end_solve << '\n';
+           std::cout << "Time in moveKick     : " << end_mK    << '\n';
     }
 }

@@ -6,12 +6,14 @@ program fdata
 end program fdata
 
 subroutine process
-  use f2kcli
+
   use bl_space
   use bl_IO_module
   use plotfile_module
   use filler_module
+
   implicit none
+
   integer :: comps(2), f
   real(kind=dp_t), pointer :: fb(:,:,:,:)
   integer :: lo(2), hi(2), plo(2), phi(2), tlo(2), thi(2)

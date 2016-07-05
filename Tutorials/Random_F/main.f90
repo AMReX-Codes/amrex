@@ -10,56 +10,66 @@ program main
   integer :: i
   double precision :: ra, rb, r(2)
   integer :: ia, ib, ir(2)
-  type(bl_rng_uniform_real) :: ur_orig, ur_restore
-  type(bl_rng_normal) :: nm_orig, nm_restore
-  type(bl_rng_poisson) :: ps_orig, ps_restore
-  type(bl_rng_binomial) :: bi_orig, bi_restore
+  type(bl_rng_engine) :: eng1, eng2, eng1_r, eng2_r
+  type(bl_rng_uniform_real) :: ur, ur_r
+  type(bl_rng_normal) :: nm, nm_r
+  type(bl_rng_poisson) :: ps, ps_r
+  type(bl_rng_binomial) :: bi, bi_r
 
   call boxlib_initialize()
 
-  ! uniform real distribution: [0.0d0, 1.0d0), seed is 42.
-  call bl_rng_build(ur_orig, 42, 0.0d0, 1.0d0)
+  call bl_rng_build_engine(eng1, 42)
+  call bl_rng_build_engine(eng2, 0)
 
-  ! normal distribution with mean=0.d0, stddev=1.0d0, seed is 549
-  call bl_rng_build(nm_orig, 549, 0.0d0, 1.0d0)
+  ! uniform real distribution: [0.0d0, 1.0d0)
+  call bl_rng_build_distro(ur, 0.0d0, 1.0d0)
 
-  ! poisson distribution with mean=100.d0, seed is 342
-  call bl_rng_build(ps_orig, 342, 100.0d0)
+  ! normal distribution with mean=0.d0, stddev=1.0d0
+  call bl_rng_build_distro(nm, 0.0d0, 1.0d0)
 
-  ! binomial distribution with t=160 (number of trials), p=0.6d0, seed is 8856
-  call bl_rng_build(bi_orig, 8856, 160, 0.6d0)
+  ! poisson distribution with mean=100.d0
+  call bl_rng_build_distro(ps, 100.0d0)
+
+  ! binomial distribution with t=160 (number of trials), p=0.6d0
+  call bl_rng_build_distro(bi, 160, 0.6d0)
 
   if (parallel_myproc() .eq. 0) then
      print *, 'uniform real, normal, poisson, binomial'
   end if
   do i = 1, 10
-     r(1)  = bl_rng_get(ur_orig)
-     r(2)  = bl_rng_get(nm_orig)
-     ir(1) = bl_rng_get(ps_orig)
-     ir(2) = bl_rng_get(bi_orig)
+     r(1)  = bl_rng_get(ur, eng1)
+     r(2)  = bl_rng_get(nm, eng2)
+     ir(1) = bl_rng_get(ps, eng2)
+     ir(2) = bl_rng_get(bi, eng2)
 
      if (parallel_myproc() .eq. 0) &
           print *, r(1), r(2), ir(1), ir(2)
   end do
 
-  call bl_rng_save   (ur_orig   , "rng_state_uniform_real")
-  call bl_rng_restore(ur_restore, "rng_state_uniform_real")
+  call bl_rng_save_engine   (eng1  , "eng1")
+  call bl_rng_restore_engine(eng1_r, "eng1")
 
-  call bl_rng_save   (nm_orig   , "rng_state_normal")
-  call bl_rng_restore(nm_restore, "rng_state_normal")
+  call bl_rng_save_engine   (eng2  , "eng2")
+  call bl_rng_restore_engine(eng2_r, "eng2")
 
-  call bl_rng_save   (ps_orig   , "rng_state_poisson")
-  call bl_rng_restore(ps_restore, "rng_state_poisson")
+  call bl_rng_save_distro   (nm  , "normal")
+  call bl_rng_restore_distro(nm_r, "normal")
 
-  call bl_rng_save   (bi_orig   , "rng_state_binomial")
-  call bl_rng_restore(bi_restore, "rng_state_binomial")
+  call bl_rng_save_distro   (ur  , "uniform")
+  call bl_rng_restore_distro(ur_r, "uniform")
+
+  call bl_rng_save_distro   (ps  , "poisson")
+  call bl_rng_restore_distro(ps_r, "poisson")
+
+  call bl_rng_save_distro   (bi  , "binomial")
+  call bl_rng_restore_distro(bi_r, "binomial")
 
   if (parallel_myproc() .eq. 0) then
      print *, 'uniform real: original, restart, difference'
   end if
   do i = 1, 10
-     ra = bl_rng_get(ur_orig)
-     rb = bl_rng_get(ur_restore)
+     ra = bl_rng_get(ur  , eng2)
+     rb = bl_rng_get(ur_r, eng2_r)
      if (parallel_myproc() .eq. 0) then
         print *, ra, rb, ra-rb
      else if (ra .ne. rb) then
@@ -71,8 +81,8 @@ program main
      print *, 'normal: original, restart, difference'
   end if
   do i = 1, 10
-     ra = bl_rng_get(nm_orig)
-     rb = bl_rng_get(nm_restore)
+     ra = bl_rng_get(nm  , eng2)
+     rb = bl_rng_get(nm_r, eng2_r)
      if (parallel_myproc() .eq. 0) then
         print *, ra, rb, ra-rb
      else if (ra .ne. rb) then
@@ -84,8 +94,8 @@ program main
      print *, 'poisson: original, restart, difference'
   end if
   do i = 1, 10
-     ia = bl_rng_get(ps_orig)
-     ib = bl_rng_get(ps_restore)
+     ia = bl_rng_get(ps  , eng1)
+     ib = bl_rng_get(ps_r, eng1_r)
      if (parallel_myproc() .eq. 0) then
         print *, ia, ib, ia-ib
      else if (ia .ne. ib) then
@@ -97,8 +107,8 @@ program main
      print *, 'binomial: original, restart, difference'
   end if
   do i = 1, 10
-     ia = bl_rng_get(bi_orig)
-     ib = bl_rng_get(bi_restore)
+     ia = bl_rng_get(bi  , eng2)
+     ib = bl_rng_get(bi_r, eng2_r)
      if (parallel_myproc() .eq. 0) then
         print *, ia, ib, ia-ib
      else if (ia .ne. ib) then
@@ -111,8 +121,8 @@ program main
   end if
   do i = 0, parallel_nprocs()
      if (i .eq. parallel_myproc()) then
-        print *, parallel_myproc(), bl_rng_get(ur_orig), bl_rng_get(nm_orig), &
-             bl_rng_get(ps_orig), bl_rng_get(bi_orig) 
+        print *, parallel_myproc(), bl_rng_get(ur,eng1), bl_rng_get(nm,eng2), &
+             bl_rng_get(ps,eng2), bl_rng_get(bi,eng1) 
         call flush(6)
      end if
      call parallel_barrier()
@@ -120,30 +130,37 @@ program main
 
   if (parallel_myproc() .eq. 0) then
      print *, "we now change the change Poisson mean from 100.d0 to 30000.54d0"
-     call bl_rng_change_distribution(ps_orig, 30000.54d0)
+     call bl_rng_destroy_distro(ps)
+     call bl_rng_build_distro(ps, 30000.54d0)
      print *, "Poisson old and new"
      do i = 1, 5
-        print *, bl_rng_get(ps_restore), bl_rng_get(ps_orig)
+        print *, bl_rng_get(ps_r, eng1), bl_rng_get(ps, eng2)
      end do
   end if
   
   if (parallel_myproc() .eq. 0) then
      print *, "we now change the change Binomial mean from 160, 0.6d0 to 1000, 0.3d0"
-     call bl_rng_change_distribution(bi_orig, 1000, 0.3d0)
+     call bl_rng_destroy_distro(bi)
+     call bl_rng_build_distro(bi, 1000, 0.3d0)
      print *, "Binomial old and new"
      do i = 1, 5
-        print *, bl_rng_get(bi_restore), bl_rng_get(bi_orig)
+        print *, bl_rng_get(bi_r, eng1), bl_rng_get(bi, eng2)
      end do
   end if
   
-  call bl_rng_destroy(ur_orig)
-  call bl_rng_destroy(ur_restore)
-  call bl_rng_destroy(nm_orig)
-  call bl_rng_destroy(nm_restore)
-  call bl_rng_destroy(ps_orig)
-  call bl_rng_destroy(ps_restore)
-  call bl_rng_destroy(bi_orig)
-  call bl_rng_destroy(bi_restore)
+  call bl_rng_destroy_distro(ur)
+  call bl_rng_destroy_distro(nm)
+  call bl_rng_destroy_distro(ps)
+  call bl_rng_destroy_distro(bi)
+  call bl_rng_destroy_distro(ur_r)
+  call bl_rng_destroy_distro(nm_r)
+  call bl_rng_destroy_distro(ps_r)
+  call bl_rng_destroy_distro(bi_r)
+
+  call bl_rng_destroy_engine(eng1)
+  call bl_rng_destroy_engine(eng2)
+  call bl_rng_destroy_engine(eng1_r)
+  call bl_rng_destroy_engine(eng2_r)
 
   call boxlib_finalize()
 
