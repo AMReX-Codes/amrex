@@ -2196,7 +2196,7 @@ Amr::coarseTimeStep (Real stop_time)
     }
 
 
-    if (writePlotNow() || to_checkpoint)
+    if (writePlotNow() || (to_checkpoint && write_plotfile_with_checkpoint))
     {
         writePlotFile();
     }
@@ -3448,6 +3448,9 @@ Amr::initPltAndChk ()
         if (ParallelDescriptor::IOProcessor())
             BoxLib::Warning("Warning: both amr.small_plot_int and amr.small_plot_per are > 0.");
     }
+
+    write_plotfile_with_checkpoint = 1;
+    pp.query("write_plotfile_with_checkpoint",write_plotfile_with_checkpoint);
 
     stream_max_tries = 4;
     pp.query("stream_max_tries",stream_max_tries);

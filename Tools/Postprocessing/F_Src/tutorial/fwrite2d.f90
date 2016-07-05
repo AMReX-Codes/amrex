@@ -6,13 +6,13 @@
 
 program fwrite2d
 
-  use f2kcli
   use bl_space, only: MAX_SPACEDIM
   use bl_constants_module, only: ZERO, HALF
   use bl_IO_module
   use bl_error_module
   use plotfile_module
   use multifab_module
+
   implicit none
 
   ! pf is a plotfile object that will contain both the meta-data

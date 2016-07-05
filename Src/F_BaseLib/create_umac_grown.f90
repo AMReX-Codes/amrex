@@ -210,6 +210,8 @@ contains
           end select
        end do
        !$OMP END PARALLEL DO
+       else
+          call bl_error("We don't currently support factor 4 refinement in create_umac_grown")
        end if
 
        if (fill_fine_boundary) call multifab_fill_boundary(fine(i))

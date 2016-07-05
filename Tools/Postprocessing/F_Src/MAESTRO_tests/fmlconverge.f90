@@ -18,7 +18,6 @@
 
 program fmlcompare
 
-  use f2kcli
   use bl_space
   use bl_error_module
   use bl_constants_module

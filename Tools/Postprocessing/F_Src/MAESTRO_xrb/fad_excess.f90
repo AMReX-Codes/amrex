@@ -5,7 +5,6 @@
 
 program fad_excess
 
-  use f2kcli
   use bl_space, only: MAX_SPACEDIM
   use bl_error_module
   use bl_constants_module, only: ZERO

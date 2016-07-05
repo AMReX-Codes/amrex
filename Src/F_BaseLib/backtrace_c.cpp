@@ -31,6 +31,7 @@ namespace
 {
     static std::string fexename;
     static int myproc;
+    static int fpe_trap_flags;
 
     void fflush_and_stderr (const char* str)
     {
@@ -146,36 +147,29 @@ extern "C"
 	
 	signal(SIGSEGV, backtrace_handler); // catch seg falult
 	signal(SIGINT,  backtrace_handler);
-#if 0
-#if (defined(BL_TESTING) || defined(DEBUG)) && defined(__linux__)
-#if !defined(__PGI) || (__PGIC__ >= 16)
-        // trap floating point exceptions
-	feenableexcept(FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW);
-	signal(SIGFPE, backtrace_handler);
-#endif
-#endif
-#endif
+
+	fpe_trap_flags = 0;
 
 	myproc = rank;
     }
 
+    void set_fpe_trap_c (int trap_invalid, int trap_zero, int trap_overflow)
+    {
+	fpe_trap_flags = 0;
+#if defined(__linux__)
+#if !defined(__PGI) || (__PGIC__ >= 16)
+	if (trap_invalid ) fpe_trap_flags |= FE_INVALID;
+	if (trap_zero    ) fpe_trap_flags |= FE_DIVBYZERO;
+	if (trap_overflow) fpe_trap_flags |= FE_OVERFLOW;
+	feenableexcept(fpe_trap_flags);  // trap floating point exceptions
+	signal(SIGFPE,  backtrace_handler);
+#endif
+#endif
+    }
+
     int get_fpe_trap ()
     {
-#if defined(__linux__) && (!defined(__PGI) || (__PGIC__ >= 16))
-	static bool first = true;
-	static int flags;
-	if (first) {
-	    first = false;
-	    int all_enabled_exceptions = fegetexcept();
-	    flags = (all_enabled_exceptions & FE_INVALID) 
-		||  (all_enabled_exceptions & FE_DIVBYZERO) 
-		||  (all_enabled_exceptions & FE_OVERFLOW);
-		
-	}
-	return flags;
-#else
-	return 0;
-#endif
+	return fpe_trap_flags;
     }
 
     double get_quiet_nan ()
