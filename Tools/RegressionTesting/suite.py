@@ -117,9 +117,9 @@ class Test(object):
             output_dir = self.output_dir   # not yet implemented
 
         plts = [d for d in os.listdir(output_dir) if \
-                (os.path.isdir(d) and 
+                (os.path.isdir(d) and
                  d.startswith("{}_plt".format(self.name))) or \
-                (os.path.isfile(d) and 
+                (os.path.isfile(d) and
                  d.startswith("{}_plt".format(self.name)) and d.endswith(".tgz"))]
 
         if len(plts) == 0:
@@ -193,7 +193,7 @@ class Suite(object):
 
         self.globalAddToExecString = ""
 
-        # this will be automatically filled 
+        # this will be automatically filled
         self.extra_src_comp_string = ""
 
         # delete all plot/checkfiles but the plotfile used for comparison upon
@@ -208,7 +208,7 @@ class Suite(object):
         # if the test was run on a branch other than the default, then
         # an asterisk will appear next to the date in the main page
         self.default_branch = "master"
-        
+
     def check_test_dir(self, dir_name):
         """ given a string representing a directory, check if it points to
             a valid directory.  If so, return the directory name """
@@ -534,7 +534,7 @@ class Suite(object):
     def build_c(self, test=None, opts="", outfile=None):
 
         build_opts = ""
-        
+
         if test is not None:
             build_opts += "DEBUG={} ".format(c_flag(test.debug))
             build_opts += "USE_MPI={} ".format(c_flag(test.useMPI))
