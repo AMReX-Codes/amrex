@@ -923,16 +923,23 @@ def report_all_runs(suite, active_test_list):
         # otherwise we don't do anything for this date
         valid = 0
         for test in all_tests:
-            status_file = "%s/%s/%s.status" % (suite.webTopDir, tdir, test)
+            status_file = "{}/{}/{}.status".format(suite.webTopDir, tdir, test)
             if os.path.isfile(status_file):
                 valid = 1
                 break
 
         if not valid: continue
 
+        # did we run on a non-default branch?
+        try: bf = open("{}/{}/branch.status".format(suite.webTopDir, tdir), "r")
+        except:
+            branch_mark = ""
+        else:
+            branch_mark = r"&lowast;"
+            bf.close()
+            
         # write out the directory (date)
-        hf.write("<TR><TD class='date'><SPAN CLASS='nobreak'><A class='main' HREF=\"%s/index.html\">%s&nbsp;</A></SPAN></TD>\n" %
-                 (tdir, tdir) )
+        hf.write("<TR><TD class='date'><SPAN CLASS='nobreak'><A class='main' HREF=\"{}/index.html\">{}&nbsp;</A>{}</SPAN></TD>\n".format(tdir, tdir, branch_mark) )
 
         for test in all_tests:
 
