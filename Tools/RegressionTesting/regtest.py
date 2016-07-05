@@ -271,12 +271,11 @@ def test_suite(argv):
     # keep track if we are running on any branch that is not the suite
     # default
     branches = [suite.repos[r].branch_wanted for r in suite.repos]
-
     if not all(suite.default_branch == b for b in branches):
+        suite.log.warn("some git repos are not on the default branch")
         bf = open("{}/branch.status".format(suite.full_web_dir), "w")
         bf.write("branch different than suite default")
         bf.close()
-
     
     #--------------------------------------------------------------------------
     # build the tools and do a make clean, only once per build directory
