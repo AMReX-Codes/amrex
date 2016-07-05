@@ -1,0 +1,37 @@
+#-*- mode: org -*-
+#+STARTUP: showall
+
+        Release Notes for BoxLib 16.07
+
+The development branch was merged into master on July 5, 2016.
+
+* Bug Fixes
+** Fortran BoxLib ml_layout
+In subroutine ml_layout_build that takes a layout array as input, set
+the pmask flag in ml_layout to that of the input layout array.
+** C++ IArrayBox
+IArrayBox::Initialize should return immediately if it has been called
+already. 
+
+* Backward Incompatible Changes
+** Fortran bl_random_module
+Separate engine from distribution following C++ standard.  This makes
+the module more flexible. 
+
+* Other Changes
+** Tiling in Fortran linear solvers
+The cell-centered non-skewed GSRB and restriction are tiled.
+** Floating point exceptions trapping
+The backtrace module in Fortran BoxLib has a new subroutine
+set_fpe_trap that can be used to turn on floating point exceptions
+trapping. The exceptions include NaNs, divided by zero, and overflow.
+** Tools/Postprocessing/F_Src/fcompare.f90
+It now has the ability to inspect the zone where the largest error
+(for a given variable) is set.
+
+* Compiler Issues
+** GCC 6.1.1
+GCC 6.1.1 has a bug that affects Fortran BoxLib's function
+init_layout_tilearray.  By changing it from function to subroutine
+fixes the issue.
+
