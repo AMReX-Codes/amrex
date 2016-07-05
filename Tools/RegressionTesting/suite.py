@@ -204,6 +204,11 @@ class Suite(object):
 
         self.do_timings_plots = DO_TIMINGS_PLOTS
 
+        # default branch -- we use this only for display purposes --
+        # if the test was run on a branch other than the default, then
+        # an asterisk will appear next to the date in the main page
+        self.default_branch = "master"
+        
     def check_test_dir(self, dir_name):
         """ given a string representing a directory, check if it points to
             a valid directory.  If so, return the directory name """
@@ -269,7 +274,7 @@ class Suite(object):
             if not self.args.make_benchmarks == None:
                 os.mkdir(bench_dir)
             else:
-                self.log.fail("ERROR: benchmark directory, %s, does not exist" % (bench_dir))
+                self.log.fail("ERROR: benchmark directory, {}, does not exist".format(bench_dir))
         return bench_dir
 
     def make_test_dirs(self):
@@ -307,7 +312,7 @@ class Suite(object):
 
         # make the web directory -- this is where all the output and HTML will be
         # put, so it is easy to move the entire test website to a different disk
-        full_web_dir = "%s/%s/"  % (self.webTopDir, test_dir)
+        full_web_dir = "{}/{}/".format(self.webTopDir, test_dir)
 
         if self.args.do_temp_run:
             if os.path.isdir(full_web_dir):
