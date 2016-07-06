@@ -376,7 +376,8 @@ def test_suite(argv):
         #----------------------------------------------------------------------
         suite.log.log("copying files to run directory...")
 
-        try: shutil.copy(executable, output_dir)
+        # move (not copy) the executable to be save when we have multiple builds
+        try: shutil.move(executable, output_dir)
         except (IOError, AttributeError):
 
             # compilation failed.  First copy the make.out into the
