@@ -501,6 +501,9 @@ def test_suite(argv):
                 # copy what we can
                 test.wall_time = time.time() - test.wall_time
                 shutil.copy("{}.run.out".format(test.name), suite.full_web_dir)
+                if os.path.isfile("{}.err.out".format(test.name)):
+                    shutil.copy("{}.err.out".format(test.name), suite.full_web_dir)
+                    test.has_stderr = True
                 shutil.copy("{}.make.out".format(test.name), suite.full_web_dir)
                 suite.copy_backtrace(test)
                 report.report_single_test(suite, test, test_list, failure_msg=error_msg)
@@ -646,6 +649,9 @@ def test_suite(argv):
 
                     # copy what we can
                     shutil.copy("{}.run.out".format(test.name), suite.full_web_dir)
+                    if os.path.isfile("{}.err.out".format(test.name)):
+                        shutil.copy("{}.err.out".format(test.name), suite.full_web_dir)
+                        test.has_stderr = True
                     shutil.copy("{}.make.out".format(test.name), suite.full_web_dir)
                     suite.copy_backtrace(test)
                     error_msg = "ERROR: runtime failure during benchmark creation"
@@ -777,6 +783,9 @@ def test_suite(argv):
         #----------------------------------------------------------------------
         if args.make_benchmarks == None:
             shutil.copy("{}.run.out".format(test.name), suite.full_web_dir)
+            if os.path.isfile("{}.err.out".format(test.name)):
+                shutil.copy("{}.err.out".format(test.name), suite.full_web_dir)
+                test.has_stderr = True
             shutil.copy("{}.make.out".format(test.name), suite.full_web_dir)
             shutil.copy("{}.compare.out".format(test.name), suite.full_web_dir)
 

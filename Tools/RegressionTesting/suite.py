@@ -95,6 +95,7 @@ class Test(object):
 
         self.backtrace = []   # filled automatically
 
+        self.has_stderr = False # filled automatically
 
     def __lt__(self, other):
         return self.value() < other.value()
@@ -572,7 +573,9 @@ class Suite(object):
 
         self.log.log(test_run_command)
         sout, serr, ierr = test_util.run(test_run_command, stdin=True,
-                                         outfile="{}.run.out".format(test.name), env=test_env)
+                                         outfile="{}.run.out".format(test.name),
+                                         errfile="{}.err.out".format(test.name),
+                                         env=test_env)
         test.run_command = test_run_command
 
     def copy_backtrace(self, test):
