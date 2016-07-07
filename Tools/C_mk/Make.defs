@@ -1075,3 +1075,17 @@ ifeq ($(WHICHLINUX),MIRA)
     CPPFLAGS += -DBL_FORT_USE_LOWERCASE
   endif
 endif
+
+ifeq ($(USE_CCACHE),TRUE)
+  CCACHE = ccache
+else
+  CCACHE =
+endif
+
+ifeq ($(USE_F90CACHE),TRUE)
+  F90CACHE = f90cache
+else
+  F90CACHE =
+endif
+
+-include $(BOXLIB_HOME)/Tools/C_mk/Make.local
