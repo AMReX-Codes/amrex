@@ -498,6 +498,8 @@ def report_single_test(suite, test, tests, failure_msg=None):
         ll.item("Execution time: {:.3f} s".format(test.wall_time))
         ll.item("Execution command:<br><tt>{}</tt>".format(test.run_command))
         ll.item("<a href=\"{}.run.out\">execution output</a>".format(test.name))
+        if test.has_stderr:
+            ll.item("<a href=\"{}.err.out\">execution stderr</a>".format(test.name))
         if test.has_jobinfo:
             ll.item("<a href=\"{}.job_info\">job_info</a>".format(test.name))
         ll.outdent()
