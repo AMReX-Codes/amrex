@@ -558,4 +558,15 @@ program fcompare
   call destroy(pf_a)
   call destroy(pf_b)
 
+  deallocate(plot_names)
+
+  deallocate(aerror)
+  deallocate(rerror)
+  deallocate(rerror_denom)
+
+  deallocate(has_nan_a)
+  deallocate(has_nan_b)
+
+  deallocate(ivar_b)
+
 end program fcompare
