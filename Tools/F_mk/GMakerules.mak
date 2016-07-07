@@ -1,9 +1,21 @@
+-include $(BOXLIB_HOME)/Tools/F_mk/Make.local
+
 vpath %.f   . $(VPATH_LOCATIONS)
 vpath %.c   . $(VPATH_LOCATIONS)
 vpath %.cpp . $(VPATH_LOCATIONS)
 vpath %.h   . $(VPATH_LOCATIONS)
 vpath %.f90 . $(VPATH_LOCATIONS)
 vpath %.F90 . $(VPATH_LOCATIONS)
+
+# Default is the first rule
+%.$(suf).exe: $(objects)
+ifdef MKVERBOSE
+	$(LINK.f90) -o $@ $(objects) $(libraries)
+else
+	@echo "Linking $@ ..."
+	@$(LINK.f90) -o $@ $(objects) $(libraries)
+endif
+
 
 doc:	$(html_sources)
 	mv *.html $(hdir)
@@ -31,15 +43,6 @@ tags:	$(sources)
 
 # should prevent deletion of .o files
 .SECONDARY: $(objects)
-
-
-%.$(suf).exe:%.f90 $(objects)
-ifdef MKVERBOSE
-	$(LINK.f90) -o main.$(suf).exe $< $(objects) $(libraries)
-else
-	@echo "Linking $@ ..."
-	@$(LINK.f90) -o main.$(suf).exe $< $(objects) $(libraries)
-endif
 
 ${odir}/%.o: %.f
 	@if [ ! -d $(odir) ]; then mkdir -p $(odir); fi
@@ -137,6 +140,9 @@ endif
 endif
 endif
 
-
-
+#-----------------------------------------------------------------------------
+# for debugging.  To see the value of a Makefile variable,
+# e.g. Fmlocs, simply do "make echo-Fmlocs".  This will
+# print out the value.
+echo-%: ; @echo $* is $($*)
 

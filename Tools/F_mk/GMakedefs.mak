@@ -273,4 +273,3 @@ LINK.f90    = $(F90) $(F90FLAGS) $(FPPFLAGS) $(LDFLAGS) $(TARGET_ARCH)
 bold=`tput bold`
 normal=`tput sgr0`
 
--include $(BOXLIB_HOME)/Tools/F_mk/Make.local
