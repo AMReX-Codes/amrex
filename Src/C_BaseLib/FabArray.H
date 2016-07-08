@@ -1754,7 +1754,6 @@ FabArray<FAB>::defineDoit (const BoxArray&            bxs,
 {
     BL_ASSERT(ngrow >= 0);
     BL_ASSERT(boxarray.size() == 0);
-
     n_grow = ngrow;
     n_comp = nvar;
 
@@ -1783,13 +1782,13 @@ FabArray<FAB>::defineDoit (const BoxArray&            bxs,
         distributionMap = *dm;
     }
 
-    int myproc = ParallelDescriptor::MyProc();
+    int myProc = ParallelDescriptor::MyProc();
 
     for(int i = 0, N = boxarray.size(); i < N; ++i) {
 	if (ParallelDescriptor::sameTeam(distributionMap[i])) {
-	// If Team is not used (i.e., team size == 1), distributionMap[i] == MyProc
+	// If Team is not used (i.e., team size == 1), distributionMap[i] == myProc
 	    indexArray.push_back(i);
-	    ownership.push_back(myproc == distributionMap[i]);
+	    ownership.push_back(myProc == distributionMap[i]);
 	}
     }
 
@@ -2877,6 +2876,7 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
         // Do the local work.  Hope for a bit of communication/computation overlap.
         //
 	int N_loc = (*thecpc.m_LocTags).size();
+
 #ifdef _OPENMP
 #pragma omp parallel for if (thecpc.m_threadsafe_loc)
 #endif
@@ -3636,7 +3636,7 @@ FabArrayCopyDescriptor<FAB>::AddBoxDoIt (FabArrayId fabarrayid,
                                          bool       bUseValidBox,
                                          BoxDomain& unfilledBoxDomain)
 {
-    const int MyProc = ParallelDescriptor::MyProc();
+    const int myProc = ParallelDescriptor::MyProc();
 
     FabArray<FAB>* fabArray = fabArrays[fabarrayid.Id()];
 
@@ -3667,7 +3667,7 @@ FabArrayCopyDescriptor<FAB>::AddBoxDoIt (FabArrayId fabarrayid,
 	}
         fcd->fillBoxId     = nextFillBoxId;
         fcd->subBox        = intersect;
-        fcd->myProc        = MyProc;
+        fcd->myProc        = myProc;
         fcd->copyFromProc  = remoteProc;
         fcd->copyFromIndex = faindex;
         fcd->srcComp       = srccomp;
@@ -3696,7 +3696,7 @@ FabArrayCopyDescriptor<FAB>::AddBoxDoIt (FabArrayId fabarrayid,
             fabComTag.fabArrayId        = fabarrayid.Id();
             fabComTag.fillBoxId         = nextFillBoxId;
             fabComTag.fabIndex          = faindex;
-            fabComTag.procThatNeedsData = MyProc;
+            fabComTag.procThatNeedsData = myProc;
             fabComTag.procThatHasData   = remoteProc;
             fabComTag.box               = intersect;
             fabComTag.srcComp           = srccomp;

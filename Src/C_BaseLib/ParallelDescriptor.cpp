@@ -323,6 +323,8 @@ ParallelDescriptor::SetNProcsSidecars (const Array<int> &compRanksInAll,
     bool inComp(false);
     nSidecars = sidecarRanksInAll.size();
 
+    MPI_Comm commTemp = Communicator();  // ---- save to compare later
+
     // ---- check validity of the rank arrays and set inComp
     if(compRanksInAll[0] != 0) {  // ---- we require this for now
       BoxLib::Abort("**** Error in SetNProcsSidecars:  compRanksInAll[0] != 0");
@@ -448,7 +450,7 @@ ParallelDescriptor::SetNProcsSidecars (const Array<int> &compRanksInAll,
     }
     m_comm_both.clear();
 
-    if(m_comm_sub != MPI_COMM_NULL && m_comm_sub != Communicator()) {
+    if(m_comm_sub != MPI_COMM_NULL && m_comm_sub != commTemp) {
       BL_MPI_REQUIRE( MPI_Comm_free(&m_comm_sub) );
       m_comm_sub = MPI_COMM_NULL;
     }
@@ -551,6 +553,26 @@ ParallelDescriptor::SetNProcsSidecars (const Array<int> &compRanksInAll,
       }
     }
 
+    // ---- recreate the color sub communicator
+    if(m_nCommColors > 1) {
+      m_nProcs_sub = m_nProcs_comp / m_nCommColors;
+      if (m_nProcs_sub * m_nCommColors != m_nProcs_comp) {
+        BoxLib::Abort("# of processors is not divisible by boxlib.ncolors");
+      }
+      m_MyCommSubColor  = Color(MyProc()/m_nProcs_sub);
+      m_MyCommCompColor = Color(m_nCommColors);  // special color for CommComp color
+
+      BL_MPI_REQUIRE( MPI_Comm_split(Communicator(), m_MyCommSubColor.to_int(), MyProc(), &m_comm_sub) );
+      BL_MPI_REQUIRE( MPI_Comm_rank(m_comm_sub, &m_MyId_sub) );
+    } else {
+      m_nProcs_sub  = NProcs();
+      m_MyCommSubColor = Color(0);
+      m_MyCommCompColor = Color(0);
+      m_comm_sub    = Communicator();
+      m_MyId_sub    = MyProc();
+    }
+
+
     // ---- more error checking
     if(m_MyId_all     == myId_undefined ||
        m_MyId_comp    == myId_undefined ||
@@ -603,12 +625,20 @@ if(nSidecars > 0) {
 }
 #endif
 
+    ParallelDescriptor::EndTeams();
+    ParallelDescriptor::EndSubCommunicator();
+
+    ParallelDescriptor::StartTeams();
+    ParallelDescriptor::StartSubCommunicator();
+
+
 }
 
 void
 ParallelDescriptor::SetNProcsSidecars (int nscp)
 {
     BL_ASSERT(nscp >= 0);
+    BL_ASSERT(nscp < m_nProcs_all);
     int nSidecarProcs(nscp);
 
     Array<int> compRanksInAll(m_nProcs_all - nSidecarProcs, nProcs_undefined);

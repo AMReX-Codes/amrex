@@ -321,7 +321,7 @@ FabArrayBase::TheCPC (const CPC&          cpc,
                       const FabArrayBase& src,
 		      const int MyProc)
 {
-  return FabArrayBase::TheCPC(cpc, dst.IndexArray(), src.IndexArray());
+  return FabArrayBase::TheCPC(cpc, dst.IndexArray(), src.IndexArray(), MyProc);
 }
 
 FabArrayBase::CPCCacheIter
@@ -503,7 +503,7 @@ FabArrayBase::TheCPC (const CPC        &cpc,
 	    const Box& bx       = isects[j].second;
 	    const int src_owner = dm_src[k_src];
 
-	    if (ParallelDescriptor::sameTeam(src_owner)) { // local copy
+	    if (ParallelDescriptor::sameTeam(src_owner, MyProc)) { // local copy
 		const BoxList tilelist(bx, FabArrayBase::comm_tile_size);
 		for (BoxList::const_iterator
 			 it_tile  = tilelist.begin(),
