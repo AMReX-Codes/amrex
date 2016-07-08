@@ -2,13 +2,13 @@ NDEBUG := t
 MPI    :=
 OMP    :=
 
-MKVERBOSE :=t 
+MKVERBOSE :=t
 
 COMP := gfortran
 
-# some routines need an eos/network (i.e. to compute thermodynamic 
+# some routines need an eos/network (i.e. to compute thermodynamic
 # quantities.  If that is the case, set NEED_EOS_NETWORK := t
-NEED_EOS_NETWORK := 
+NEED_EOS_NETWORK :=
 
 # define the location of the MAESTRO root directory
 MAESTRO_TOP_DIR := $(MAESTRO_HOME)
@@ -22,11 +22,11 @@ include $(BOXLIB_HOME)/Tools/F_mk/GMakedefs.mak
 BOXLIB_CORE := Src/F_BaseLib
 
 # other packages needed for data_processing
-Fmdirs := 
+Fmdirs :=
 
 
 # directories containing files that are 'include'-d via Fortran
-Fmincludes := 
+Fmincludes :=
 
 ifdef NEED_EOS_NETWORK
   EOS_TOP_DIR := $(MAESTRO_TOP_DIR)/Microphysics/EOS
@@ -102,11 +102,13 @@ all: $(pnames)
 
 
 # probin stuff
-PROBIN_PARAMETER_DIRS :=
-EXTERN_PARAMETER_DIRS += $(MICROPHYS_CORE)
-EXTERN_PARAMETERS := $(shell $(BOXLIB_HOME)/Tools/F_scripts/findparams.py $(EXTERN_PARAMETER_DIRS))
+ifdef NEED_EOS_NETWORK
+  PROBIN_PARAMETER_DIRS :=
+  EXTERN_PARAMETER_DIRS += $(MICROPHYS_CORE)
+  EXTERN_PARAMETERS := $(shell $(BOXLIB_HOME)/Tools/F_scripts/findparams.py $(EXTERN_PARAMETER_DIRS))
 
-PROBIN_TEMPLATE := $(MAESTRO_TOP_DIR)/Util/parameters/dummy.probin.template
+  PROBIN_TEMPLATE := $(MAESTRO_TOP_DIR)/Util/parameters/dummy.probin.template
+endif
 
 probin.f90: $(PROBIN_PARAMETERS) $(EXTERN_PARAMETERS) $(PROBIN_TEMPLATE)
 	@echo " "
@@ -121,16 +123,13 @@ include $(BOXLIB_HOME)/Tools/F_mk/GMakerules.mak
 %.$(suf).exe:%.f90 $(objects)
 ifdef MKVERBOSE
 	$(LINK.f90) -o $@ $< $(objects) $(libraries)
-else	
+else
 	@echo "Linking $@ ... "
 	@$(LINK.f90) -o $@ $< $(objects) $(libraries)
 endif
 
 
-# for debugging.  To see the value of a Makefile variable,                                                          
-# e.g. Fmlocs, simply do "make print-Fmlocs".  This will                                                            
-# print out the value.                                                                                              
+# for debugging.  To see the value of a Makefile variable,
+# e.g. Fmlocs, simply do "make print-Fmlocs".  This will
+# print out the value.
 print-%: ; @echo $* is $($*)
-
-
-
