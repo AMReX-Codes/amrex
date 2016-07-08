@@ -242,11 +242,25 @@ html_sources = $(addprefix $(hdir)/,     \
 
 pnames = $(addsuffix .$(suf).exe, $(basename $(programs)))
 
-ifndef ROSE
-   COMPILE.f   = $(FC)  $(FFLAGS) $(FPPFLAGS) $(TARGET_ARCH) -c
-   COMPILE.f90 = $(F90) $(F90FLAGS) $(FPPFLAGS) $(TARGET_ARCH) -c
+ifeq ($(USE_CCACHE),TRUE)
+  CCACHE = ccache
 else
-   COMPILE.cxx = $(ROSECOMP) $(CXXFLAGS) $(ROSEFLAGS) $(CPPFLAGS) -c
+  CCACHE =
+endif
+
+ifeq ($(USE_F90CACHE),TRUE)
+  F90CACHE = f90cache
+else
+  F90CACHE =
+endif
+
+ifndef ROSE
+   COMPILE.f   = $(F90CACHE) $(FC)  $(FFLAGS)   $(FPPFLAGS) $(TARGET_ARCH) -c
+   COMPILE.f90 = $(F90CACHE) $(F90) $(F90FLAGS) $(FPPFLAGS) $(TARGET_ARCH) -c
+   COMPILE.c   = $(CCACHE)   $(CC)  $(CFLAGS)   $(CPPFLAGS) $(TARGET_ARCH) -c
+   COMPILE.cc  = $(CCACHE)   $(CXX) $(CXXFLAGS) $(CPPFLAGS) $(TARGET_ARCH) -c
+else
+   COMPILE.cc  = $(ROSECOMP) $(CXXFLAGS) $(ROSEFLAGS) $(CPPFLAGS) -c
    COMPILE.c   = $(ROSECOMP) $(CFLAGS)   $(ROSEFLAGS) $(CPPFLAGS) -c
    COMPILE.f   = $(ROSECOMP) $(FFLAGS)   $(ROSEFLAGS) $(FPPFLAGS) -c
    COMPILE.f90 = $(ROSECOMP) $(F90FLAGS) $(ROSEFLAGS) $(FPPFLAGS) -c
@@ -255,7 +269,7 @@ endif
 LINK.f      = $(FC)  $(FFLAGS) $(FPPFLAGS) $(LDFLAGS) $(TARGET_ARCH)
 LINK.f90    = $(F90) $(F90FLAGS) $(FPPFLAGS) $(LDFLAGS) $(TARGET_ARCH)
 
-
 # some pretty printing stuff
 bold=`tput bold`
 normal=`tput sgr0`
+
