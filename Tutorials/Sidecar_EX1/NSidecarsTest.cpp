@@ -74,8 +74,6 @@ namespace
       VisMF::Write(*mfDest, css.str() + "mfDest_before");
     }
 
-
-
     MultiFab::copyInter(mfSource, mfDest, srcComp, destComp, numComp,
                         srcNGhost, destNGhost,
                         commSrc, commDest, commInter, commBoth,
@@ -307,6 +305,7 @@ int main(int argc, char *argv[]) {
     int nSidecars(0), sidecarSignal(S_SendBoxArray);
     int maxGrid(32), maxSize(16);
     int ts(0), nSteps(5);
+    bool useSequential(false);
     ParmParse pp;
 
     if(nProcs < 8) {
@@ -318,6 +317,7 @@ int main(int argc, char *argv[]) {
     pp.query("nGhost", nGhost);
     pp.query("maxSize", maxSize);
     pp.query("nSteps", nSteps);
+    pp.query("useSequential", useSequential);
 
     nSidecars = 3;
 
@@ -331,7 +331,8 @@ int main(int argc, char *argv[]) {
 
     Array<int> randomRanks;
     if(ParallelDescriptor::IOProcessor()) {
-      BoxLib::UniqueRandomSubset(randomRanks, nProcs, nProcs);
+      bool printSet(true);
+      BoxLib::UniqueRandomSubset(randomRanks, nProcs, nProcs, printSet);
       for(int i(0); i < randomRanks.size(); ++i) {
         if(randomRanks[i] == 0) {  // ---- comprank[0] must be 0
 	  randomRanks[i] = randomRanks[0];
@@ -340,6 +341,12 @@ int main(int argc, char *argv[]) {
       }
     }
     BoxLib::BroadcastArray(randomRanks, myProcAll, ioProcNum, ParallelDescriptor::Communicator());
+
+    if(useSequential) {
+      for(int i(0); i < randomRanks.size(); ++i) {
+	  randomRanks[i] = i;
+      }
+    }
 
     int totalSidecarProcs(6);
     Array<int> compProcsInAll;
@@ -361,7 +368,8 @@ int main(int argc, char *argv[]) {
 
 
 
-    ParallelDescriptor::SetNProcsSidecars(compProcsInAll, sidecarProcsInAll);
+    bool printRanks(false);
+    ParallelDescriptor::SetNProcsSidecars(compProcsInAll, sidecarProcsInAll, printRanks);
 
     MPI_IntraGroup_Broadcast_Rank = ParallelDescriptor::IOProcessor() ? MPI_ROOT : MPI_PROC_NULL;
 
@@ -369,9 +377,6 @@ int main(int argc, char *argv[]) {
     if(ParallelDescriptor::InSidecarGroup()) {
 
       int inWhichSidecar(ParallelDescriptor::InWhichSidecar());
-      BoxLib::USleep(myProcAll);
-      std::cout << myProcAll << ":: Calling SidecarEventLoop" << inWhichSidecar
-                << "()." << std::endl;
       switch(inWhichSidecar) {
 	case 0:
           SidecarEventLoop0();
