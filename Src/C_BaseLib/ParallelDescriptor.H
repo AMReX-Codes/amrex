@@ -216,7 +216,8 @@ namespace ParallelDescriptor
                        const Array<Array<int> > &sidecarRanksInAll,
 		       bool printRanks = false); 
     //
-    // This version makes one sidecar (number zero)
+    // This version makes one sidecar (number zero in the sidecar array)
+    // Sidecar ranks are set to the high end of the range [0, m_nProcs_all)
     //
     void
     SetNProcsSidecars (int nscp); 
@@ -409,6 +410,11 @@ namespace ParallelDescriptor
     sameTeam (int rank)
     {
 	return MyTeamLead() == TeamLead(rank);
+    }
+    inline bool
+    sameTeam (int rankA, int rankB)
+    {
+	return TeamLead(rankA) == TeamLead(rankB);
     }
     inline int
     RankInLeadComm (int rank)

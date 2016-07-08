@@ -246,7 +246,8 @@ namespace BoxLib
     //   if you want all processors to have the same set,
     //   call this on one processor and broadcast the array
     //
-    void UniqueRandomSubset (Array<int> &uSet, int setSize, int poolSize);
+    void UniqueRandomSubset (Array<int> &uSet, int setSize, int poolSize,
+                             bool printSet = false);
     //
     // Helper class for Times, used in Threads, Profiling, and Timers.
     //
