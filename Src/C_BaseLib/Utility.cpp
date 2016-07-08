@@ -883,7 +883,8 @@ BoxLib::RestoreRandomState (const Array<unsigned long>& state)
 }
 
 void
-BoxLib::UniqueRandomSubset (Array<int> &uSet, int setSize, int poolSize)
+BoxLib::UniqueRandomSubset (Array<int> &uSet, int setSize, int poolSize,
+                            bool printSet)
 {
   if(setSize > poolSize) {
     BoxLib::Abort("**** Error in UniqueRandomSubset:  setSize > poolSize.");
@@ -898,8 +899,10 @@ BoxLib::UniqueRandomSubset (Array<int> &uSet, int setSize, int poolSize)
     }
   }
   uSet = uSetTemp;
-  for(int i(0); i < uSet.size(); ++i) {
-    std::cout << "uSet[" << i << "]  = " << uSet[i] << std::endl;
+  if(printSet) {
+    for(int i(0); i < uSet.size(); ++i) {
+      std::cout << "uSet[" << i << "]  = " << uSet[i] << std::endl;
+    }
   }
 }
 

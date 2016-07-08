@@ -694,7 +694,6 @@ void
 TagBoxArray::AddProcsToComp (int ioProcNumSCS, int ioProcNumAll,
                              int scsMyId, MPI_Comm scsComm)
 {
-  ParallelDescriptor::Bcast(&m_border, 1, ioProcNumAll, scsComm);
   FabArray::AddProcsToComp(ioProcNumSCS, ioProcNumAll,
                            scsMyId, scsComm);
 }
