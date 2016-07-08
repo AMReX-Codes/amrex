@@ -251,7 +251,7 @@ endif
 ifeq ($(USE_F90CACHE),TRUE)
   F90CACHE = f90cache
 else
-  F90CACHE = f1
+  F90CACHE =
 endif
 
 ifndef ROSE
