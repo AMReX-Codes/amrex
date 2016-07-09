@@ -17,5 +17,5 @@ TAGS
 *-eps-converted-to.pdf
 
 # python
-.pyc
+*.pyc
 
