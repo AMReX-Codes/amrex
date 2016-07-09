@@ -22,11 +22,14 @@
 
 namespace ParallelDescriptor
 {
+    const int myId_undefined   = -11;
+    const int myId_notInGroup  = -22;
+    const int nProcs_undefined = -33;
+
+#ifdef BL_USE_MPI
     //
     // My processor IDs.
     //
-    const int myId_undefined  = -11;
-    const int myId_notInGroup = -22;
     int m_MyId_all         = myId_undefined;
     int m_MyId_comp        = myId_undefined;
     int m_MyId_sub         = myId_undefined;
@@ -34,7 +37,6 @@ namespace ParallelDescriptor
     //
     // The number of processors.
     //
-    const int nProcs_undefined  = -33;
     int m_nProcs_all     = nProcs_undefined;
     int m_nProcs_comp    = nProcs_undefined;
     int m_nProcs_sub     = nProcs_undefined;
@@ -58,6 +60,33 @@ namespace ParallelDescriptor
     MPI_Group m_group_all     = MPI_GROUP_NULL;
     MPI_Group m_group_comp    = MPI_GROUP_NULL;
     MPI_Group m_group_sidecar = MPI_GROUP_NULL;
+#else
+    //  Set these for non-mpi codes that do not call BoxLib::Initialize(...)
+    int m_MyId_all         = 0;
+    int m_MyId_comp        = 0;
+    int m_MyId_sub         = 0;
+    int m_MyId_sidecar     = myId_notInGroup;
+    //
+    int m_nProcs_all     = 1;
+    int m_nProcs_comp    = 1;
+    int m_nProcs_sub     = 1;
+    int m_nProcs_sidecar = 0;
+    int nSidecarProcs    = 0;
+    //
+    ProcessTeam m_Team;
+    //
+    MPI_Comm m_comm_all     = 0;
+    MPI_Comm m_comm_comp    = 0;
+    MPI_Comm m_comm_sub     = 0;
+    MPI_Comm m_comm_sidecar = 0;
+    MPI_Comm m_comm_inter   = 0;
+    //
+    // BoxLib's Groups
+    //
+    MPI_Group m_group_all     = 0;
+    MPI_Group m_group_comp    = 0;
+    MPI_Group m_group_sidecar = 0;
+#endif
 
     int m_nCommColors = 1;
     Color m_MyCommSubColor;
