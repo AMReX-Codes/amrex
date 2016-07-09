@@ -349,12 +349,12 @@ def test_suite(argv):
 
         if suite.sourceTree == "C_Src" or test.testSrcTree == "C_Src":
 
-            comp_string = suite.build_c(test=test, outfile=coutfile)
+            comp_string, rc = suite.build_c(test=test, outfile=coutfile)
             executable = test_util.get_recent_filename(bdir, "", ".ex")
 
         elif suite.sourceTree == "F_Src" or test.testSrcTree == "F_Src":
 
-            comp_string = suite.build_f(test=test, outfile=coutfile)
+            comp_string, rc = suite.build_f(test=test, outfile=coutfile)
             executable = test_util.get_recent_filename(bdir, "main", ".exe")
 
         test.comp_string = comp_string
