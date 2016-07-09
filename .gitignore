@@ -15,3 +15,7 @@ TAGS
 *.toc
 *.dvi
 *-eps-converted-to.pdf
+
+# python
+.pyc
+
