@@ -529,8 +529,13 @@ class Suite(object):
             self.FCOMP, self.add_to_f_make_command, all_opts, target)
 
         self.log.log(comp_string)
-        test_util.run(comp_string, outfile=outfile)
-        return comp_string
+        stdout, stderr, rc = test_util.run(comp_string, outfile=outfile)
+
+        # make returns 0 if everything was good
+        if not rc == 0:
+            self.log.warn("build failed")
+            
+        return comp_string, rc
 
     def build_c(self, test=None, opts="", outfile=None):
 
@@ -555,8 +560,13 @@ class Suite(object):
             all_opts, self.COMP, self.FCOMP, self.add_to_c_make_command)
 
         self.log.log(comp_string)
-        test_util.run(comp_string, outfile=outfile)
-        return comp_string
+        stdout, stderr, rc = test_util.run(comp_string, outfile=outfile)
+
+        # make returns 0 if everything was good
+        if not rc == 0:
+            self.log.warn("build failed")
+
+        return comp_string, rc
 
     def run_test(self, test, base_command):
         test_env = None
@@ -612,7 +622,10 @@ class Suite(object):
 
         for t in tools:
             self.log.log("building {}...".format(t))
-            self.build_f(target="programs={}".format(t), opts="NDEBUG=t MPI= ")
+            comp_string, rc = self.build_f(target="programs={}".format(t), opts="NDEBUG=t MPI= ")
+            if not rc == 0:
+                self.log.fail("unable to continue, tools not able to be built")
+                
             exe = test_util.get_recent_filename(self.compare_tool_dir, t, ".exe")
             self.tools[t] = "{}/{}".format(self.compare_tool_dir, exe)
 
