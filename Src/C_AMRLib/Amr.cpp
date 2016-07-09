@@ -3731,6 +3731,7 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
       int dt_level_Size(dt_level.size()), dt_min_Size(dt_min.size());
       int ref_ratio_Size(ref_ratio.size()), amr_level_Size(amr_level.size()), geom_Size(geom.size());
       int state_plot_vars_Size(state_plot_vars.size()), derive_plot_vars_Size(derive_plot_vars.size());
+      int state_small_plot_vars_Size(state_small_plot_vars.size());
       if(scsMyId == ioProcNumSCS) {
         allInts.push_back(max_level);
         allInts.push_back(finest_level);
@@ -3738,7 +3739,10 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
         allInts.push_back(last_checkpoint); 
         allInts.push_back(check_int);
         allInts.push_back(last_plotfile);   
+        allInts.push_back(last_smallplotfile);   
         allInts.push_back(plot_int);
+        allInts.push_back(small_plot_int);
+        allInts.push_back(write_plotfile_with_checkpoint);
         allInts.push_back(file_name_digits);
         allInts.push_back(message_int);
         allInts.push_back(which_level_being_advanced);
@@ -3784,6 +3788,7 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
         allInts.push_back(amr_level.size());
         allInts.push_back(geom.size());
         allInts.push_back(state_plot_vars.size());
+        allInts.push_back(state_small_plot_vars.size());
         allInts.push_back(derive_plot_vars.size());
 
         allIntsSize = allInts.size();
@@ -3798,9 +3803,13 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
         finest_level               = allInts[count++];
         n_proper                   = allInts[count++];
         last_checkpoint            = allInts[count++]; 
+        last_checkpoint            = allInts[count++]; 
         check_int                  = allInts[count++];
         last_plotfile              = allInts[count++];   
+        last_smallplotfile         = allInts[count++];   
         plot_int                   = allInts[count++];
+        small_plot_int             = allInts[count++];
+        write_plotfile_with_checkpoint = allInts[count++];
         file_name_digits           = allInts[count++];
         message_int                = allInts[count++];
         which_level_being_advanced = allInts[count++];
@@ -3851,6 +3860,7 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
         amr_level_Size             = allInts[count++];
         geom_Size                  = allInts[count++];
         state_plot_vars_Size       = allInts[count++];
+        state_small_plot_vars_Size = allInts[count++];
         derive_plot_vars_Size      = allInts[count++];
 
 	BL_ASSERT(count == allInts.size());
@@ -3866,6 +3876,7 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
         allReals.push_back(grid_eff);
         allReals.push_back(check_per);
         allReals.push_back(plot_per);
+        allReals.push_back(small_plot_per);
 
         for(int i(0); i < dt_level.size(); ++i)   { allReals.push_back(dt_level[i]); }
         for(int i(0); i < dt_min.size(); ++i)     { allReals.push_back(dt_min[i]); }
@@ -3883,6 +3894,7 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
         grid_eff   = allReals[count++];
         check_per  = allReals[count++];
         plot_per   = allReals[count++];
+        small_plot_per = allReals[count++];
 
 	dt_level.resize(dt_level_Size);
         for(int i(0); i < dt_level.size(); ++i)  { dt_level[i] = allReals[count++]; }
@@ -3905,6 +3917,7 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
         allBools.push_back(checkpoint_files_output);
         allBools.push_back(initialized);
         allBools.push_back(useFixedCoarseGrids);
+        allBools.push_back(first_smallplotfile);
 
 	allBoolsSize = allBools.size();
       }
@@ -3925,6 +3938,7 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
         checkpoint_files_output       = allBools[count++];
         initialized                   = allBools[count++];
         useFixedCoarseGrids           = allBools[count++];
+        first_smallplotfile           = allBools[count++];
       }
 
 
@@ -3938,12 +3952,16 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
         allStrings.push_back(check_file_root);
         allStrings.push_back(subcycling_mode);
         allStrings.push_back(plot_file_root);
+        allStrings.push_back(small_plot_file_root);
         allStrings.push_back(restart_chkfile);
         allStrings.push_back(restart_pltfile);
         allStrings.push_back(probin_file);
 
         std::list<std::string>::iterator lit;
 	for( lit = state_plot_vars.begin(); lit != state_plot_vars.end(); ++lit) {
+          allStrings.push_back(*lit);
+	}
+	for( lit = state_small_plot_vars.begin(); lit != state_small_plot_vars.end(); ++lit) {
           allStrings.push_back(*lit);
 	}
 	for( lit = derive_plot_vars.begin(); lit != derive_plot_vars.end(); ++lit) {
@@ -3966,12 +3984,16 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
         check_file_root    = allStrings[count++];
         subcycling_mode    = allStrings[count++];
         plot_file_root     = allStrings[count++];
+        small_plot_file_root = allStrings[count++];
         restart_chkfile    = allStrings[count++];
         restart_pltfile    = allStrings[count++];
         probin_file        = allStrings[count++];
 
         for(int i(0); i < state_plot_vars_Size; ++i) {
           state_plot_vars.push_back(allStrings[count++]);
+	}
+        for(int i(0); i < state_small_plot_vars_Size; ++i) {
+          state_small_plot_vars.push_back(allStrings[count++]);
 	}
         for(int i(0); i < derive_plot_vars_Size; ++i) {
           derive_plot_vars.push_back(allStrings[count++]);
