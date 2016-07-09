@@ -142,7 +142,7 @@ public:
     // Set values in ba to val. 
     //
     void setVal (const BoxArray& ba, TagBox::TagVal val);
-    using FabArray::setVal;
+    using FabArray<TagBox>::setVal;
     //
     // Calls coarsen() on all contained TagBoxes.
     //
