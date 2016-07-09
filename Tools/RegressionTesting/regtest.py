@@ -359,15 +359,20 @@ def test_suite(argv):
 
         test.comp_string = comp_string
 
+        # make return code is 0 if build was successful
+        if rc == 0: test.compile_successful = True
+
+        # copy the make.out into the web directory
+        shutil.copy("{}/{}.make.out".format(output_dir, test.name), suite.full_web_dir)
+
+        if not test.compile_successful:
+            error_msg = "ERROR: compilation failed"
+            report.report_single_test(suite, test, test_list, failure_msg=error_msg)
+            continue
+            
         if test.compileTest:
-
-            # compilation tests are done now -- just make the report and ...
-            shutil.copy("{}/{}.make.out".format(output_dir, test.name), suite.full_web_dir)
-
             suite.log.log("creating problem test report ...")
             report.report_single_test(suite, test, test_list)
-
-            # ... skip to the next test in the loop
             continue
 
 
@@ -376,55 +381,40 @@ def test_suite(argv):
         #----------------------------------------------------------------------
         suite.log.log("copying files to run directory...")
 
-        # move (not copy) the executable to be save when we have multiple builds
-        try: shutil.move(executable, output_dir)
-        except (IOError, AttributeError):
+        needed_files = []
+        needed_files.append((executable, "move"))
 
-            # compilation failed.  First copy the make.out into the
-            # web directory and then report
-            shutil.copy("{}/{}.make.out".format(output_dir, test.name), suite.full_web_dir)
-
-            error_msg = "ERROR: compilation failed"
-            report.report_single_test(suite, test, test_list, failure_msg=error_msg)
-            continue
-
-        try: shutil.copy(test.inputFile, output_dir)
-        except IOError:
-            error_msg = "ERROR: unable to copy input file: {}".format(test.inputFile)
-            report.report_single_test(suite, test, test_list, failure_msg=error_msg)
-            continue
-
+        needed_files.append((test.inputFile, "copy"))
         # strip out any sub-directory from the build dir
         test.inputFile = os.path.basename(test.inputFile)
 
-        # if we are a "C_Src" build, we need the probin file
         if test.probinFile != "":
-            try: shutil.copy(test.probinFile, output_dir)
-            except IOError:
-                error_msg = "ERROR: unable to copy probin file: {}".format(test.probinFile)
-                report.report_single_test(suite, test, test_list, failure_msg=error_msg)
-                continue
-
+            needed_files.append((test.probinFile, "copy"))
             # strip out any sub-directory from the build dir
             test.probinFile = os.path.basename(test.probinFile)
 
-        # python doesn't allow labelled continue statements, so we
-        # use skip_to_next_test to decide if we need to skip to
-        # the next test
+        for auxf in test.auxFiles:
+            needed_files.append((auxf, "copy"))
+
+        # if any copy/move fail, we move onto the next test
         skip_to_next_test = 0
-        for file in test.auxFiles:
-            try: shutil.copy(file, output_dir)
+        for nfile, action in needed_files:
+            if action == "copy":
+                act = shutil.copy
+            elif action == "move":
+                act = shutil.move
+            else:
+                suite.log.fail("invalid action")
+                
+            try: act(nfile, output_dir)
             except IOError:
-                error_msg = "ERROR: unable to copy aux file: {}".format(file)
+                error_msg = "ERROR: unable to {} file {}".format(action, nfile)
                 report.report_single_test(suite, test, test_list, failure_msg=error_msg)
                 skip_to_next_test = 1
                 break
 
         if skip_to_next_test: continue
 
-        # python doesn't allow labelled continue statements, so we
-        # use skip_to_next_test to decide if we need to skip to
-        # the next test
         skip_to_next_test = 0
         for file in test.linkFiles:
             if not os.path.exists(file):
@@ -505,7 +495,6 @@ def test_suite(argv):
                 if os.path.isfile("{}.err.out".format(test.name)):
                     shutil.copy("{}.err.out".format(test.name), suite.full_web_dir)
                     test.has_stderr = True
-                shutil.copy("{}.make.out".format(test.name), suite.full_web_dir)
                 suite.copy_backtrace(test)
                 report.report_single_test(suite, test, test_list, failure_msg=error_msg)
                 continue
@@ -653,7 +642,6 @@ def test_suite(argv):
                     if os.path.isfile("{}.err.out".format(test.name)):
                         shutil.copy("{}.err.out".format(test.name), suite.full_web_dir)
                         test.has_stderr = True
-                    shutil.copy("{}.make.out".format(test.name), suite.full_web_dir)
                     suite.copy_backtrace(test)
                     error_msg = "ERROR: runtime failure during benchmark creation"
                     report.report_single_test(suite, test, test_list, failure_msg=error_msg)
@@ -787,7 +775,6 @@ def test_suite(argv):
             if os.path.isfile("{}.err.out".format(test.name)):
                 shutil.copy("{}.err.out".format(test.name), suite.full_web_dir)
                 test.has_stderr = True
-            shutil.copy("{}.make.out".format(test.name), suite.full_web_dir)
             shutil.copy("{}.compare.out".format(test.name), suite.full_web_dir)
 
             shutil.copy(test.inputFile, "{}/{}.{}".format(

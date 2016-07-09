@@ -298,28 +298,11 @@ def report_single_test(suite, test, tests, failure_msg=None):
     os.chdir(suite.full_web_dir)
 
     #--------------------------------------------------------------------------
-    # parse the compilation report and determine if we compiled
+    # we stored compilation success in the test object
     #--------------------------------------------------------------------------
-    compileFile = "%s.make.out" % (test.name)
+    compile_successful = test.compile_successful
 
-    try: cf = open(compileFile, 'r')
-    except IOError:
-        suite.log.warn("WARNING: no compilation file found")
-        compile_successful = 0
-    else:
-        # successful compilation be indicated by SUCCESS or
-        # Nothing to be done for `all'.  Look for both
-        compile_successful = 0
-
-        for line in cf:
-            if any(sstr in line for sstr in ["SUCCESS", "is up to date.",
-                                             "Nothing to be done"]):
-                compile_successful = 1
-                break
-
-        cf.close()
-
-
+    
     #--------------------------------------------------------------------------
     # parse the compare report and determine if we passed
     #--------------------------------------------------------------------------
