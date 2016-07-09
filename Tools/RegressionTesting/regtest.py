@@ -568,11 +568,10 @@ def test_suite(argv):
                 if not os.path.isdir(bench_file):
                     suite.log.warn("no corresponding benchmark found")
                     bench_file = ""
-
-                    cf = open("{}.compare.out".format(test.name), 'w')
-                    cf.write("WARNING: no corresponding benchmark found\n")
-                    cf.write("         unable to do a comparison\n")
-                    cf.close()
+                    
+                    with open("{}.compare.out".format(test.name), 'w') as cf:
+                        cf.write("WARNING: no corresponding benchmark found\n")
+                        cf.write("         unable to do a comparison\n")
 
                 else:
                     if not compare_file == "":
@@ -584,13 +583,15 @@ def test_suite(argv):
                         sout, serr, ierr = test_util.run(command,
                                                          outfile="{}.compare.out".format(test.name), store_command=True)
 
+                        if ierr == 0:
+                            test.compare_successful = True
+                        
                     else:
                         suite.log.warn("unable to do a comparison")
 
-                        cf = open("{}.compare.out".format(test.name), 'w')
-                        cf.write("WARNING: run did not produce any output\n")
-                        cf.write("         unable to do a comparison\n")
-                        cf.close()
+                        with open("{}.compare.out".format(test.name), 'w') as cf:
+                            cf.write("WARNING: run did not produce any output\n")
+                            cf.write("         unable to do a comparison\n")
 
                 suite.log.outdent()
 
@@ -610,8 +611,13 @@ def test_suite(argv):
                     sout, serr, diff_status = test_util.run(command, outfile=outfile, store_command=True)
 
                     if diff_status == 0:
+                        diff_successful = True
                         with open("{}.compare.out".format(test.name), 'a') as cf:
                             cf.write("\ndiff was SUCCESSFUL\n")
+                    else:
+                        diff_successful = False
+
+                    test.compare_successful = test.compare_successful and diff_successful
 
             else:   # make_benchmarks
 
@@ -665,23 +671,21 @@ def test_suite(argv):
                 try: of = open("{}.run.out".format(test.name), 'r')
                 except IOError:
                     suite.log.warn("no output file found")
-                    compare_successful = 0
                     out_lines = ['']
                 else:
                     out_lines = of.readlines()
 
-                    # successful comparison is indicated by PLOTFILES AGREE
-                    compare_successful = 0
-
+                    # successful comparison is indicated by presence
+                    # of success string
                     for line in out_lines:
                         if line.find(test.stSuccessString) >= 0:
-                            compare_successful = 1
+                            test.compare_successful = True
                             break
 
                     of.close()
 
                 with open("{}.compare.out".format(test.name), 'w') as cf:
-                    if compare_successful:
+                    if test.compare_successful:
                         cf.write("SELF TEST SUCCESSFUL\n")
                     else:
                         cf.write("SELF TEST FAILED\n")

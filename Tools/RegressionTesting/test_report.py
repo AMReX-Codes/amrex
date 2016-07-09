@@ -297,47 +297,27 @@ def report_single_test(suite, test, tests, failure_msg=None):
     # switch to the web directory and open the report file
     os.chdir(suite.full_web_dir)
 
-    #--------------------------------------------------------------------------
     # we stored compilation success in the test object
-    #--------------------------------------------------------------------------
     compile_successful = test.compile_successful
 
     
-    #--------------------------------------------------------------------------
-    # parse the compare report and determine if we passed
-    #--------------------------------------------------------------------------
+    # we store comparison success in the test object but also read
+    # in the comparison report for displaying
     if failure_msg is None:
         if not test.compileTest:
-            compare_file = "{}.compare.out".format(test.name)
+            compare_successful = test.compare_successful
 
+            compare_file = "{}.compare.out".format(test.name)
             try: cf = open(compare_file, 'r')
             except IOError:
                 suite.log.warn("WARNING: no comparison file found")
-                compare_successful = 0
                 diff_lines = ['']
             else:
                 diff_lines = cf.readlines()
-
-                # successful comparison is indicated by PLOTFILES AGREE
-                compare_successful = 0
-                for line in diff_lines:
-                    if (line.find("PLOTFILES AGREE") >= 0 or
-                        line.find("SELF TEST SUCCESSFUL") >= 0):
-                        compare_successful = 1
-                        break
-
-                if compare_successful:
-                    if not test.diffDir == "":
-                        compare_successful = 0
-                        for line in diff_lines:
-                            if line.find("diff was SUCCESSFUL") >= 0:
-                                compare_successful = 1
-                                break
-
                 cf.close()
 
                 # last check: did we produce any backtrace files?
-                if len(test.backtrace) > 0: compare_successful = 0
+                if len(test.backtrace) > 0: compare_successful = False
 
         # write out the status file for this problem, with either
         # PASSED or FAILED
