@@ -97,6 +97,8 @@ class Test(object):
 
         self.has_stderr = False # filled automatically
 
+        self.compile_successful = False  # filled automatically
+        
     def __lt__(self, other):
         return self.value() < other.value()
 
