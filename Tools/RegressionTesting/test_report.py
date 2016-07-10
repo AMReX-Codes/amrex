@@ -291,15 +291,11 @@ def report_single_test(suite, test, tests, failure_msg=None):
         suite.log.testfail("aborting test")
         suite.log.testfail(failure_msg)
 
-    # get the current directory
     current_dir = os.getcwd()
-
-    # switch to the web directory and open the report file
     os.chdir(suite.full_web_dir)
 
     # we stored compilation success in the test object
     compile_successful = test.compile_successful
-
     
     # we store comparison success in the test object but also read
     # in the comparison report for displaying
