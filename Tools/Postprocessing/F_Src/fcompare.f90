@@ -526,6 +526,9 @@ program fcompare
 
   if (global_error == ZERO .and. .not. any_nans) then
      print *, "PLOTFILES AGREE"
+     call send_success_return_code()
+  else
+     call send_fail_return_code()     
   endif
 
   if (save_var_a > 0) then
