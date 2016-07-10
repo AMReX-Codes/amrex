@@ -369,7 +369,7 @@ def test_suite(argv):
             error_msg = "ERROR: compilation failed"
             report.report_single_test(suite, test, test_list, failure_msg=error_msg)
             continue
-            
+
         if test.compileTest:
             suite.log.log("creating problem test report ...")
             report.report_single_test(suite, test, test_list)
@@ -405,7 +405,7 @@ def test_suite(argv):
                 act = shutil.move
             else:
                 suite.log.fail("invalid action")
-                
+
             try: act(nfile, output_dir)
             except IOError:
                 error_msg = "ERROR: unable to {} file {}".format(action, nfile)
@@ -540,7 +540,7 @@ def test_suite(argv):
                     compare_file = test.compareFile
                     if not os.path.isdir(compare_file):
                         compare_file = ""
-                        
+
                 output_file = compare_file
             else:
                 output_file = test.outputFile
@@ -573,7 +573,7 @@ def test_suite(argv):
                 if not os.path.isdir(bench_file):
                     suite.log.warn("no corresponding benchmark found")
                     bench_file = ""
-                    
+
                     with open("{}.compare.out".format(test.name), 'w') as cf:
                         cf.write("WARNING: no corresponding benchmark found\n")
                         cf.write("         unable to do a comparison\n")
@@ -590,7 +590,7 @@ def test_suite(argv):
 
                         if ierr == 0:
                             test.compare_successful = True
-                        
+
                     else:
                         suite.log.warn("unable to do a comparison")
 

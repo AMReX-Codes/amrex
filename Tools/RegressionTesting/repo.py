@@ -42,7 +42,7 @@ class Repo(object):
         else:
             self.branch_wanted = self.branch_orig
 
-        if self.hash_wanted == "" or self.hash_wanted == None:
+        if self.hash_wanted == "" or self.hash_wanted is None:
             self.suite.log.log("'git pull' in {}".format(self.dir))
 
             # we need to be tricky here to make sure that the stdin is
@@ -79,7 +79,7 @@ class Repo(object):
 
         self.suite.log.log("generating ChangeLog for {}/".format(self.name))
 
-        test_util.run("git log --name-only", 
+        test_util.run("git log --name-only",
                       outfile="ChangeLog.{}".format(self.name), outfile_mode="w")
         shutil.copy("ChangeLog.{}".format(self.name), self.suite.full_web_dir)
 
@@ -92,6 +92,6 @@ class Repo(object):
         stdout, stderr, rc = test_util.run("git checkout {}".format(self.branch_orig),
                                            stdin=True,
                                            outfile="git.{}.out".format(self.name))
-        
+
         if not rc == 0:
             self.suite.log.fail("ERROR: git checkout was unsuccessful")

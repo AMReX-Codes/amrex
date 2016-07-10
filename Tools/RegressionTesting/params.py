@@ -14,7 +14,7 @@ def convert_type(string):
     """ return an integer, float, or string from the input string """
     if string is None:
         return None
-        
+
     try: int(string)
     except: pass
     else: return int(string)
@@ -298,5 +298,3 @@ def load_params(args):
     test_list.sort()
 
     return mysuite, test_list
-
-
