@@ -226,7 +226,7 @@ class HTMLTable(object):
     """ a simple class for creating an HTML table """
 
     def __init__(self, out_file, columns=1, divs=None):
-        """ create the table object.  Here divs is the name of 
+        """ create the table object.  Here divs is the name of
             any HTML div(s) we want to wrap the table with """
 
         self.hf = out_file
@@ -300,7 +300,7 @@ def report_single_test(suite, test, tests, failure_msg=None):
     # we stored compilation success in the test object
     compile_successful = test.compile_successful
 
-    
+
     # we store comparison success in the test object but also read
     # in the comparison report for displaying
     if failure_msg is None:
@@ -637,7 +637,7 @@ def report_this_test_run(suite, make_benchmarks, note, update_time,
     if not note == "":
        hf.write("<p><b>Test run note:</b><br><font color=\"gray\">%s</font>\n" % (note) )
 
-    if not make_benchmarks == None:
+    if not make_benchmarks is None:
        hf.write("<p><b>Benchmarks updated</b><br>comment: <font color=\"gray\">{}</font>\n".format(make_benchmarks) )
        hf.write("<p>&nbsp;\n")
 
@@ -669,7 +669,7 @@ def report_this_test_run(suite, make_benchmarks, note, update_time,
     hf.write("<p>&nbsp;\n")
 
     # summary table
-    if make_benchmarks == None:
+    if make_benchmarks is None:
         special_cols = []
         if suite.summary_job_info_field1 is not "":
             special_cols.append(suite.summary_job_info_field1)
@@ -693,7 +693,7 @@ def report_this_test_run(suite, make_benchmarks, note, update_time,
     # loop over the tests and add a line for each
     for test in test_list:
 
-        if make_benchmarks == None:
+        if make_benchmarks is None:
 
             # check if it passed or failed
             status_file = "%s.status" % (test.name)
@@ -715,7 +715,7 @@ def report_this_test_run(suite, make_benchmarks, note, update_time,
             row_info.append(test.dim)
             row_info.append("<div class='small'>{}</div>".format(test.compare_file_used))
 
-            if not test.nlevels == None:
+            if not test.nlevels is None:
                 row_info.append(test.nlevels)
             else:
                 row_info.append("")
@@ -814,7 +814,7 @@ def report_this_test_run(suite, make_benchmarks, note, update_time,
     status_file = os.path.normpath(suite.test_dir) + ".status"
     with open(status_file, 'w') as sf:
 
-        if make_benchmarks == None:
+        if make_benchmarks is None:
             if num_failed == 0:
                 sf.write("ALL PASSED\n")
             elif num_failed > 0 and numPassed > 0:
@@ -902,7 +902,7 @@ def report_all_runs(suite, active_test_list):
         else:
             branch_mark = r"&lowast;"
             bf.close()
-            
+
         # write out the directory (date)
         hf.write("<TR><TD class='date'><SPAN CLASS='nobreak'><A class='main' HREF=\"{}/index.html\">{}&nbsp;</A>{}</SPAN></TD>\n".format(tdir, tdir, branch_mark) )
 
