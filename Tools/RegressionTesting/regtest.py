@@ -535,7 +535,12 @@ def test_suite(argv):
                 if test.compareFile == "":
                     compare_file = test.get_last_plotfile(output_dir=output_dir)
                 else:
+                    # we specified the name of the file we want to
+                    # compare to -- make sure it exists
                     compare_file = test.compareFile
+                    if not os.path.isdir(compare_file):
+                        compare_file = ""
+                        
                 output_file = compare_file
             else:
                 output_file = test.outputFile
