@@ -276,7 +276,7 @@ def test_suite(argv):
         bf = open("{}/branch.status".format(suite.full_web_dir), "w")
         bf.write("branch different than suite default")
         bf.close()
-    
+
     #--------------------------------------------------------------------------
     # build the tools and do a make clean, only once per build directory
     #--------------------------------------------------------------------------
@@ -314,7 +314,7 @@ def test_suite(argv):
         suite.log.bold("working on test: {}".format(test.name))
         suite.log.indent()
 
-        if not args.make_benchmarks == None and (test.restartTest or test.compileTest or
+        if not args.make_benchmarks is None and (test.restartTest or test.compileTest or
                                                  test.selfTest):
             suite.log.warn("benchmarks not needed for test {}".format(test.name))
             continue
@@ -369,7 +369,7 @@ def test_suite(argv):
             error_msg = "ERROR: compilation failed"
             report.report_single_test(suite, test, test_list, failure_msg=error_msg)
             continue
-            
+
         if test.compileTest:
             suite.log.log("creating problem test report ...")
             report.report_single_test(suite, test, test_list)
@@ -405,7 +405,7 @@ def test_suite(argv):
                 act = shutil.move
             else:
                 suite.log.fail("invalid action")
-                
+
             try: act(nfile, output_dir)
             except IOError:
                 error_msg = "ERROR: unable to {} file {}".format(action, nfile)
@@ -535,7 +535,12 @@ def test_suite(argv):
                 if test.compareFile == "":
                     compare_file = test.get_last_plotfile(output_dir=output_dir)
                 else:
+                    # we specified the name of the file we want to
+                    # compare to -- make sure it exists
                     compare_file = test.compareFile
+                    if not os.path.isdir(compare_file):
+                        compare_file = ""
+
                 output_file = compare_file
             else:
                 output_file = test.outputFile
@@ -549,7 +554,7 @@ def test_suite(argv):
             if not type(params.convert_type(test.nlevels)) is int:
                 test.nlevels = ""
 
-            if args.make_benchmarks == None:
+            if args.make_benchmarks is None:
 
                 suite.log.log("doing the comparison...")
                 suite.log.indent()
@@ -568,7 +573,7 @@ def test_suite(argv):
                 if not os.path.isdir(bench_file):
                     suite.log.warn("no corresponding benchmark found")
                     bench_file = ""
-                    
+
                     with open("{}.compare.out".format(test.name), 'w') as cf:
                         cf.write("WARNING: no corresponding benchmark found\n")
                         cf.write("         unable to do a comparison\n")
@@ -585,7 +590,7 @@ def test_suite(argv):
 
                         if ierr == 0:
                             test.compare_successful = True
-                        
+
                     else:
                         suite.log.warn("unable to do a comparison")
 
@@ -664,7 +669,7 @@ def test_suite(argv):
 
         else:   # selfTest
 
-            if args.make_benchmarks == None:
+            if args.make_benchmarks is None:
 
                 suite.log.log("looking for selfTest success string: {} ...".format(test.stSuccessString))
 
@@ -696,7 +701,7 @@ def test_suite(argv):
         #----------------------------------------------------------------------
         if not test.selfTest:
             if output_file != "":
-                if args.make_benchmarks == None:
+                if args.make_benchmarks is None:
 
                     # get any parameters for the summary table
                     job_info_file = "{}/job_info".format(output_file)
@@ -774,7 +779,7 @@ def test_suite(argv):
         #----------------------------------------------------------------------
         # move the output files into the web directory
         #----------------------------------------------------------------------
-        if args.make_benchmarks == None:
+        if args.make_benchmarks is None:
             shutil.copy("{}.run.out".format(test.name), suite.full_web_dir)
             if os.path.isfile("{}.err.out".format(test.name)):
                 shutil.copy("{}.err.out".format(test.name), suite.full_web_dir)
@@ -852,7 +857,7 @@ def test_suite(argv):
         #----------------------------------------------------------------------
         # write the report for this test
         #----------------------------------------------------------------------
-        if args.make_benchmarks == None:
+        if args.make_benchmarks is None:
             suite.log.log("creating problem test report ...")
             report.report_single_test(suite, test, test_list)
 
