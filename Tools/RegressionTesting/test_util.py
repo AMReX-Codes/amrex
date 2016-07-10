@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import argparse
 import os
 import shlex
@@ -186,7 +188,7 @@ class Log(object):
         print("{}{}".format(self.indent_str, nstr))
 
     def warn(self, warn_msg):
-        """ 
+        """
         output a warning.  It is always prefix with 'WARNING:'
         For multi-line warnings, send in a list of strings
         """
@@ -283,7 +285,7 @@ def run(string, stdin=False, outfile=None, store_command=False, env=None,
     rc = p0.returncode
     p0.stdout.close()
     p0.stderr.close()
-    
+
     if not outfile is None:
         try: cf = open(outfile, outfile_mode)
         except IOError:
@@ -313,7 +315,7 @@ def run(string, stdin=False, outfile=None, store_command=False, env=None,
                 for line in stderr0:
                     cf.write(line)
                 cf.close()
-            
+
     return stdout0, stderr0, rc
 
 
@@ -327,4 +329,3 @@ def get_recent_filename(dir, base, extension):
 
     try: return files.pop()
     except: return None
-

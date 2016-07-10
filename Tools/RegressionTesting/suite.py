@@ -99,7 +99,7 @@ class Test(object):
 
         self.compile_successful = False  # filled automatically
         self.compare_successful = False  # filled automatically
-        
+
     def __lt__(self, other):
         return self.value() < other.value()
 
@@ -275,7 +275,7 @@ class Suite(object):
     def get_bench_dir(self):
         bench_dir = self.testTopDir + self.suiteName + "-benchmarks/"
         if not os.path.isdir(bench_dir):
-            if not self.args.make_benchmarks == None:
+            if not self.args.make_benchmarks is None:
                 os.mkdir(bench_dir)
             else:
                 self.log.fail("ERROR: benchmark directory, {}, does not exist".format(bench_dir))
@@ -537,7 +537,7 @@ class Suite(object):
         # make returns 0 if everything was good
         if not rc == 0:
             self.log.warn("build failed")
-            
+
         return comp_string, rc
 
     def build_c(self, test=None, opts="", outfile=None):
@@ -628,7 +628,7 @@ class Suite(object):
             comp_string, rc = self.build_f(target="programs={}".format(t), opts="NDEBUG=t MPI= ")
             if not rc == 0:
                 self.log.fail("unable to continue, tools not able to be built")
-                
+
             exe = test_util.get_recent_filename(self.compare_tool_dir, t, ".exe")
             self.tools[t] = "{}/{}".format(self.compare_tool_dir, exe)
 
