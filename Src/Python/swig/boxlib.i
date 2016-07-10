@@ -611,9 +611,9 @@ public:
 		    std::string str(name);
 		    VisMF::Write(*self,str,VisMF::OneFilePerCPU);
 		}
-		void copyToFab(FArrayBox &dest){
-		    self->copy(dest);
-		}
+		//void copyToFab(FArrayBox &dest){
+		//    self->copy(dest);
+		//}
 		void copyComp(MultiFab*src,int src_comp,int dest_comp,
 				int num_comp){
 		    self->copy(*src,src_comp,dest_comp,num_comp);

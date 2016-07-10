@@ -2153,6 +2153,7 @@ Amr::coarseTimeStep (Real stop_time)
 
     int to_stop       = 0;    
     int to_checkpoint = 0;
+    int to_plot       = 0;
     if (message_int > 0 && level_steps[0] % message_int == 0) {
 	if (ParallelDescriptor::IOProcessor())
 	{
@@ -2176,6 +2177,13 @@ Amr::coarseTimeStep (Real stop_time)
 		to_stop = 1;
 		fclose(fp);
 	    }
+
+	    if ((fp=fopen("plot_and_continue","r")) != 0)
+	    {
+		remove("plot_and_continue");
+		to_plot = 1;
+		fclose(fp);
+	    }
 	}
 	int packed_data[2];
 	packed_data[0] = to_stop;
@@ -2183,12 +2191,17 @@ Amr::coarseTimeStep (Real stop_time)
 	ParallelDescriptor::Bcast(packed_data, 2, ParallelDescriptor::IOProcessorNumber());
 	to_stop = packed_data[0];
 	to_checkpoint = packed_data[1];
+
     }
 
     if(to_stop == 1 && to_checkpoint == 0) {  // prevent main from writing files
       last_checkpoint = level_steps[0];
       last_plotfile   = level_steps[0];
     }
+
+    if (to_checkpoint && write_plotfile_with_checkpoint)
+      to_plot = 1;
+
     if ((check_int > 0 && level_steps[0] % check_int == 0) || check_test == 1
 	|| to_checkpoint)
     {
@@ -2196,7 +2209,7 @@ Amr::coarseTimeStep (Real stop_time)
     }
 
 
-    if (writePlotNow() || (to_checkpoint && write_plotfile_with_checkpoint))
+    if (writePlotNow() || to_plot)
     {
         writePlotFile();
     }

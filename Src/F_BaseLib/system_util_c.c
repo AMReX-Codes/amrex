@@ -13,6 +13,24 @@
 #endif
 
 
+#if defined(BL_FORT_USE_UNDERSCORE)
+#define SEND_FAIL_RETURN_CODE send_fail_return_code_
+#elif defined(BL_FORT_USE_DBL_UNDERSCORE)
+#define SEND_FAIL_RETURN_CODE send_fail_return_code__
+#elif defined(BL_FORT_USE_LOWERCASE)
+#define SEND_FAIL_RETURN_CODE send_fail_return_code
+#endif
+
+
+#if defined(BL_FORT_USE_UNDERSCORE)
+#define SEND_SUCCESS_RETURN_CODE send_success_return_code_
+#elif defined(BL_FORT_USE_DBL_UNDERSCORE)
+#define SEND_SUCCESS_RETURN_CODE send_success_return_code__
+#elif defined(BL_FORT_USE_LOWERCASE)
+#define SEND_SUCCESS_RETURN_CODE send_success_return_code
+#endif
+
+
 /* icwd is a Fortran integer array of length size.  This will be
    converted into a Fortran string using the boxlib bl_string_module
    routines */
@@ -43,3 +61,19 @@ void GET_PRESENT_DIR (int* icwd, const int *size) {
   free (cwd);
 }
 
+
+void SEND_FAIL_RETURN_CODE () {
+  /* this function would not be needed if all Fortran compilers
+     supported 'error stop' */
+ 
+  exit(EXIT_FAILURE);
+
+}
+
+void SEND_SUCCESS_RETURN_CODE () {
+  /* this function would not be needed if all Fortran compilers
+     supported 'error stop' */
+ 
+  exit(EXIT_SUCCESS);
+
+}
