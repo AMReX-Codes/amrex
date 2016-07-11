@@ -22,6 +22,28 @@ For other timers within an already instrumented function, add:
         FORT_FLATENX(arg1, arg2);
       BL_PROFILE_VAR_STOP(anyname);   // add this after, using the same name
 
+if you want to use the same name within the same scope, you can use:
+
+      BL_PROFILE_VAR("MyFuncs()", myfuncs);  // the first one
+        MyFunc_0(arg);
+      BL_PROFILE_VAR_STOP(myfuncs);
+      ...
+      BL_PROFILE_VAR_START(myfuncs);
+        MyFunc_1(arg);
+      BL_PROFILE_VAR_STOP(myfuncs);
+
+or create a profiling variable without starting, then start/stop:
+
+      BL_PROFILE_VAR_NS("MyFuncs()", myfuncs);  // dont start the timer
+      ...
+      BL_PROFILE_VAR_START(myfuncs);
+        MyFunc_0(arg);
+      BL_PROFILE_VAR_STOP(myfuncs);
+      ...
+      BL_PROFILE_VAR_START(myfuncs);
+        MyFunc_1(arg);
+      BL_PROFILE_VAR_STOP(myfuncs);
+
 
 For main, add these:
 

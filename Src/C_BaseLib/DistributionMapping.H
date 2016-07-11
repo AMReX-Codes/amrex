@@ -34,7 +34,7 @@ class DistributionMapping
     //
     // The distribution strategies
     //
-    enum Strategy { ROUNDROBIN, KNAPSACK, SFC, PFC, RRSFC };
+    enum Strategy { UNDEFINED = -1, ROUNDROBIN, KNAPSACK, SFC, PFC, RRSFC };
     //
     // The default constructor.
     //
@@ -83,6 +83,7 @@ class DistributionMapping
     // built your DistributionMapping with the default constructor.
     //
     void define (const Array<int>& pmap);
+    void define (const Array<int>& pmap, bool put_in_cache);
     //
     // Returns a constant reference to the mapping of boxes in the
     // underlying BoxArray to the CPU that holds the FAB on that Box.
@@ -130,13 +131,17 @@ class DistributionMapping
     //
     static void FlushCache ();
     //
+    // Delete the cache.  This is to support dynamic sidecars.
+    //
+    static void DeleteCache ();
+    //
     // The size of the cache.
     //
     static int CacheSize ();
     //
     // Output some simple cache statistics.
     //
-    static void CacheStats (std::ostream& os);
+    static void CacheStats (std::ostream& os, int whichProc = 0);
     //
     // Put in cache
     //
@@ -182,7 +187,7 @@ class DistributionMapping
     //
     // Initialize the topological proximity map
     //
-    static void InitProximityMap();
+    static void InitProximityMap(bool makeMap = false, bool reinit = false);
     static int NHops(const Box &tbox, const IntVect &ivfrom, const IntVect &ivto);
     static int ProcNumberFromRank(const int rank);
     static std::vector<int> RanksFromProcNumber(const int procnum);
@@ -208,13 +213,18 @@ class DistributionMapping
 					       int maxgrid);
     static Array<Array<int> > MultiLevelMapRandom(const Array<IntVect>  &refRatio,
                                                   const Array<BoxArray> &allBoxes,
-						  int maxgrid);
+						  int maxgrid,
+						  int maxRank = -1, int minRank = 0);
     static Array<Array<int> > MultiLevelMapKnapSack(const Array<IntVect>  &refRatio,
                                                     const Array<BoxArray> &allBoxes,
 						    int maxgrid);
 
     static int NDistMaps() { return nDistMaps; }
+    static void SetNDistMaps(int ndm) { nDistMaps = ndm; }
     int DistMapID() const { return dmID; }
+    void SetDistMapID(int dmid) { dmID = dmid; }
+
+    bool Check() const;
 
     //
     // This gives a unique ID of the reference, which is different from dmID above.
@@ -222,7 +232,7 @@ class DistributionMapping
     ptrdiff_t getRefID () const;
 
 #ifdef BL_USE_MPI
-    static void SendDistributionMappingToSidecars(DistributionMapping *dm);
+    static Array<int> TranslateProcMap(const Array<int> &pm_old, const MPI_Group group_new, const MPI_Group group_old);
 #endif
 
 private:
@@ -296,6 +306,7 @@ private:
     // Look for a cached processor map.
     //
     bool GetMap (const BoxArray& boxes);
+    bool GetMap (int nBoxes);
     //
     // A useful typedef.
     //

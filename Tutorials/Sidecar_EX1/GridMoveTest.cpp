@@ -9,6 +9,7 @@
 #include <cstring>
 #include <cmath>
 #include <sstream>
+#include <unistd.h>
 
 #include <Geometry.H>
 #include <ParallelDescriptor.H>
@@ -61,7 +62,7 @@ namespace
     else if (in_signal != ParallelDescriptor::SidecarQuitSignal)
     {
       std::ostringstream ss_error_msg;
-      ss_error_msg << "Unknown signal sent to sidecars: -----> " << signal << " <-----" << std::endl;
+      ss_error_msg << "Unknown signal sent to sidecars: -----> " << in_signal << " <-----" << std::endl;
       BoxLib::Error(const_cast<const char*>(ss_error_msg.str().c_str()));
     }
 
@@ -69,12 +70,14 @@ namespace
   }
 
   static void STATIC_INIT () {
+    std::cout << "_in STATIC_INIT" << std::endl;
     if (ParallelDescriptor::InSidecarGroup() && ParallelDescriptor::IOProcessor())
         std::cout << "This is where the signal handler would initialize a bunch of stuff ..." << std::endl;
     ParallelDescriptor::AddSignalHandler(STATIC_SIGNAL_HANDLER);
   }
 
   static void STATIC_CLEAN () {
+    std::cout << "_in STATIC_CLEAN" << std::endl;
     if (ParallelDescriptor::InSidecarGroup() && ParallelDescriptor::IOProcessor())
         std::cout << "This is where the signal handler would clean stuff up ..." << std::endl;
   }
@@ -101,26 +104,41 @@ int main(int argc, char *argv[]) {
     // inputs file.
 
 #ifdef IN_TRANSIT
-    const int nSidecarProcs(2);
-    ParallelDescriptor::SetNProcsSidecar(nSidecarProcs);
+    //const int nSidecarProcs(2);
+    //ParallelDescriptor::SetNProcsSidecar(nSidecarProcs);
 #endif
 
     BoxLib::Initialize(argc,argv);
 
+    int myProcAll(ParallelDescriptor::MyProcAll());
+
+std::cout << myProcAll << "::_here 0." << std::endl;
+#ifdef IN_TRANSIT
+    const int nSidecarProcs(2);
+    ParallelDescriptor::SetNProcsSidecar(nSidecarProcs);
+#endif
+
+std::cout << myProcAll << "::_here 1." << std::endl;
     // The sidecar group has already called BoxLib::Finalize() by the time we
     // are out of BoxLib::Initialize(), so make them quit immediately.
     // Everything below this point is done on the compute group only.
 #ifdef IN_TRANSIT
-    if (ParallelDescriptor::InSidecarGroup())
+    if (ParallelDescriptor::InSidecarGroup()) {
+	std::cout << myProcAll << "::**** returning from sidecar group." << std::endl;
+	sleep(4);
         return 0;
+    }
 #endif
 
+std::cout << myProcAll << "::_here 2." << std::endl;
     // A flag you need for broadcasting across MPI groups. We always broadcast
     // the data to the sidecar group from the IOProcessor on the compute group.
 #ifdef IN_TRANSIT
     const int MPI_IntraGroup_Broadcast_Rank = ParallelDescriptor::IOProcessor() ? MPI_ROOT : MPI_PROC_NULL;
 #endif
 
+std::cout << myProcAll << "::_here 3." << std::endl;
+ParallelDescriptor::Barrier();
     int maxGrid;
     int nComp;
     int nGhost;
@@ -166,29 +184,38 @@ int main(int argc, char *argv[]) {
 
 #ifdef IN_TRANSIT
     // The signal for telling the sidecars what to do.
-    int signal;
+    int sidecarSignal;
 
     // Pretend we're doing a halo-finding analysis for Nyx.
-    signal = MySignal;
+    sidecarSignal = MySignal;
 
+std::cout << myProcAll << "::_here 4." << std::endl;
+ParallelDescriptor::Barrier();
     // Pretend we're looping over time steps.
     for (unsigned int i = 0; i < 20; ++i)
     {
-        ParallelDescriptor::Bcast(&signal, 1, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
+std::cout << myProcAll << "::_here 5 i = " << i << std::endl;
+ParallelDescriptor::Barrier();
+        ParallelDescriptor::Bcast(&sidecarSignal, 1, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
         // For this particular analysis we need to send a MultiFab, a Geometry,
         // and a time step index to the sidecars. For other analyses you will
         // need to send different data.
+std::cout << myProcAll << "::_here 6 i = " << i << std::endl;
+ParallelDescriptor::Barrier();
         MultiFab::SendMultiFabToSidecars(&mf);
+std::cout << myProcAll << "::_here 7 i = " << i << std::endl;
+ParallelDescriptor::Barrier();
         Geometry::SendGeometryToSidecars(&geom);
         ParallelDescriptor::Bcast(&i, 1, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
     }
 
     // Don't forget to tell the sidecars to quit! Otherwise they'll keep
     // waiting for signals for more work to do.
-    signal = ParallelDescriptor::SidecarQuitSignal;
-    ParallelDescriptor::Bcast(&signal, 1, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
+    sidecarSignal = ParallelDescriptor::SidecarQuitSignal;
+    ParallelDescriptor::Bcast(&sidecarSignal, 1, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
 #endif
 
+    std::cout << "_calling Finalize()" << std::endl;
     BoxLib::Finalize();
     return 0;
 }

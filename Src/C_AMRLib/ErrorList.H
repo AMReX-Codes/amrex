@@ -228,7 +228,7 @@ public:
     //
     const ErrorRec& operator[] (int k) const;
 
-    void clear () { vec.clear(); }
+    void clear (bool rs0 = false) { vec.clear(); if(rs0) { vec.resize(0); } }
 
 private:
 
