@@ -3808,14 +3808,14 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
       }
 
       BoxLib::BroadcastArray(allInts, scsMyId, ioProcNumAll, scsComm);
-
+BoxLib::USleep(ParallelDescriptor::MyProcAll());
+std::cout << ParallelDescriptor::MyProcAll() << ":: allIntsSize = " << allIntsSize << std::endl;
       // ---- unpack the ints
       if(scsMyId != ioProcNumSCS) {
 	int count(0), aSize(-1);
         max_level                  = allInts[count++];
         finest_level               = allInts[count++];
         n_proper                   = allInts[count++];
-        last_checkpoint            = allInts[count++]; 
         last_checkpoint            = allInts[count++]; 
         check_int                  = allInts[count++];
         last_plotfile              = allInts[count++];   
