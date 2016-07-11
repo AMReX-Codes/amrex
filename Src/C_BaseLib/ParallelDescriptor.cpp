@@ -38,6 +38,7 @@ namespace ParallelDescriptor
     const int myId_undefined   = -11;
     const int myId_notInGroup  = -22;
     const int nProcs_undefined = -33;
+    const int notInSidecar  = -44;
 
 #ifdef BL_USE_MPI
     //
@@ -55,7 +56,6 @@ namespace ParallelDescriptor
     int m_nProcs_sub     = nProcs_undefined;
     Array<int> m_nProcs_sidecar;
     int nSidecars = 0;
-    const int notInSidecar  = -44;
     int inWhichSidecar = notInSidecar;
     //
     // Team
@@ -86,16 +86,17 @@ namespace ParallelDescriptor
     int m_nProcs_all     = 1;
     int m_nProcs_comp    = 1;
     int m_nProcs_sub     = 1;
-    int m_nProcs_sidecar = 0;
-    int nSidecarProcs    = 0;
+    Array<int> m_nProcs_sidecar;
+    int nSidecars = 0;
+    int inWhichSidecar = notInSidecar;
     //
     ProcessTeam m_Team;
     //
     MPI_Comm m_comm_all     = 0;
     MPI_Comm m_comm_comp    = 0;
     MPI_Comm m_comm_sub     = 0;
-    MPI_Comm m_comm_sidecar = 0;
-    MPI_Comm m_comm_inter   = 0;
+    Array<MPI_Comm> m_comm_sidecar;
+    Array<MPI_Comm> m_comm_inter;
     //
     // BoxLib's Groups
     //
