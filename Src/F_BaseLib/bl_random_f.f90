@@ -17,23 +17,23 @@ module bl_random_module
        bl_rng_engine, bl_rng_uniform_real, bl_rng_normal, bl_rng_poisson, bl_rng_binomial       
 
   type bl_rng_engine
-     type(c_ptr), private :: p = c_null_ptr
+     type(c_ptr) :: p = c_null_ptr
   end type bl_rng_engine
 
   type bl_rng_uniform_real
-     type(c_ptr), private :: p = c_null_ptr
+     type(c_ptr) :: p = c_null_ptr
   end type bl_rng_uniform_real
 
   type bl_rng_normal
-     type(c_ptr), private :: p = c_null_ptr
+     type(c_ptr) :: p = c_null_ptr
   end type bl_rng_normal
 
   type bl_rng_poisson
-     type(c_ptr), private :: p = c_null_ptr
+     type(c_ptr) :: p = c_null_ptr
   end type bl_rng_poisson
 
   type bl_rng_binomial
-     type(c_ptr), private :: p = c_null_ptr
+     type(c_ptr) :: p = c_null_ptr
   end type bl_rng_binomial
 
   interface bl_rng_build_distro
@@ -305,7 +305,7 @@ contains
   !
   subroutine bl_rng_destroy_engine(eng)
     type(bl_rng_engine), intent(inout) :: eng
-    call bl_rng_delete_engine_c(eng%p)
+    if (c_associated(eng%p)) call bl_rng_delete_engine_c(eng%p)
     eng%p = c_null_ptr
   end subroutine bl_rng_destroy_engine
   !
@@ -343,7 +343,7 @@ contains
   !
   subroutine bl_rng_destroy_uniform_real(rng)
     type(bl_rng_uniform_real), intent(inout) :: rng
-    call bl_rng_delete_uniform_real_c(rng%p)
+    if (c_associated(rng%p)) call bl_rng_delete_uniform_real_c(rng%p)
     rng%p = c_null_ptr
   end subroutine bl_rng_destroy_uniform_real
   !
@@ -388,7 +388,7 @@ contains
   !
   subroutine bl_rng_destroy_normal(rng)
     type(bl_rng_normal), intent(inout) :: rng
-    call bl_rng_delete_normal_c(rng%p)
+    if (c_associated(rng%p)) call bl_rng_delete_normal_c(rng%p)
     rng%p = c_null_ptr
   end subroutine bl_rng_destroy_normal
   !
@@ -433,7 +433,7 @@ contains
   !
   subroutine bl_rng_destroy_poisson(rng)
     type(bl_rng_poisson), intent(inout) :: rng
-    call bl_rng_delete_poisson_c(rng%p)
+    if (c_associated(rng%p)) call bl_rng_delete_poisson_c(rng%p)
     rng%p = c_null_ptr
   end subroutine bl_rng_destroy_poisson
   !
@@ -479,7 +479,7 @@ contains
   !
   subroutine bl_rng_destroy_binomial(rng)
     type(bl_rng_binomial), intent(inout) :: rng
-    call bl_rng_delete_binomial_c(rng%p)
+    if (c_associated(rng%p)) call bl_rng_delete_binomial_c(rng%p)
     rng%p = c_null_ptr
   end subroutine bl_rng_destroy_binomial
   !
