@@ -416,19 +416,19 @@ def test_suite(argv):
         if skip_to_next_test: continue
 
         skip_to_next_test = 0
-        for file in test.linkFiles:
-            if not os.path.exists(file):
-                error_msg = "ERROR: link file {} does not exist".format(file)
+        for lfile in test.linkFiles:
+            if not os.path.exists(lfile):
+                error_msg = "ERROR: link file {} does not exist".format(lfile)
                 report.report_single_test(suite, test, test_list, failure_msg=error_msg)
                 skip_to_next_test = 1
                 break
 
             else:
-                link_source = os.path.abspath(file)
-                link_name = os.path.join(output_dir, os.path.basename(file))
+                link_source = os.path.abspath(lfile)
+                link_name = os.path.join(output_dir, os.path.basename(lfile))
                 try: os.symlink(link_source, link_name)
                 except IOError:
-                    error_msg = "ERROR: unable to symlink link file: {}".format(file)
+                    error_msg = "ERROR: unable to symlink link file: {}".format(lfile)
                     report.report_single_test(suite, test, test_list, failure_msg=error_msg)
                     skip_to_next_test = 1
                     break
