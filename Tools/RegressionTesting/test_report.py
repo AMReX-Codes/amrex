@@ -526,7 +526,8 @@ def report_single_test(suite, test, tests, failure_msg=None):
                     continue
 
                 if line.strip().startswith("<<<"):
-                    ht.print_single_row(line.strip().replace('<','&lt;').replace('>','&gt;'))
+                    ht.print_single_row(
+                        line.strip().replace('<', '&lt;').replace('>', '&gt;'))
                     continue
 
                 fields = [q.strip() for q in line.split("  ") if not q == ""]
@@ -649,7 +650,9 @@ def report_this_test_run(suite, make_benchmarks, note, update_time,
         hf.write("<p><b>Git update was done at: </b>%s\n" % (update_time) )
 
         hf.write("<ul>\n")
-        code_str = "<li><b>{}</b><ul><li><b>branch:</b> {}; <b>hash:</b> {}</li><li><b>changelog:</b> <a href=\"{}\">{}</a></li></ul></li>"
+        code_str = "<li><b>{}</b><ul>" + \
+                   "<li><b>branch:</b> {}; <b>hash:</b> {}</li>" + \
+                   "<li><b>changelog:</b> <a href=\"{}\">{}</a></li></ul></li>"
 
         for k, r in suite.repos.items():
             if r.update:

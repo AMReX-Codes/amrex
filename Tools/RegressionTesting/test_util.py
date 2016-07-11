@@ -276,7 +276,7 @@ def run(string, stdin=False, outfile=None, store_command=False, env=None,
     # shlex.split will preserve inner quotes
     prog = shlex.split(string)
     sin = None
-    if stdin: sin=subprocess.PIPE
+    if stdin: sin = subprocess.PIPE
     p0 = subprocess.Popen(prog, stdin=sin, stdout=subprocess.PIPE,
                           stderr=subprocess.PIPE, env=env)
 
@@ -319,11 +319,11 @@ def run(string, stdin=False, outfile=None, store_command=False, env=None,
     return stdout0, stderr0, rc
 
 
-def get_recent_filename(dir, base, extension):
+def get_recent_filename(fdir, base, extension):
     """ find the most recent file matching the base and extension """
 
-    files = [f for f in os.listdir(dir) if (f.startswith(base) and
-                                            f.endswith(extension))]
+    files = [f for f in os.listdir(fdir) if (f.startswith(base) and
+                                             f.endswith(extension))]
 
     files.sort(key=lambda x: os.path.getmtime(x))
 
