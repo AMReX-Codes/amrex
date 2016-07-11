@@ -167,6 +167,11 @@ public:
     //
     void read (const std::string& name);
 
+    //
+    // Promote AddProcsToComp() back to public.
+    //
+    using MultiFab::AddProcsToComp;
+
 protected:
     //
     // copyFrom(MultiFab) and plusFrom(MultiFab) use common function.

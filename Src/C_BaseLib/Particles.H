@@ -686,6 +686,7 @@ ParticleContainer<N>::addOneParticle (int                  id_in,
                                       std::vector<double>& xloc, 
  				      std::vector<double>& attributes)
 {
+    BL_PROFILE("ParticleContainer<N>::addOneParticle()");
     if (m_particles.size() == 0)
     {
        m_particles.reserve(15);  // So we don't ever have to do any copying on a resize.
@@ -753,6 +754,7 @@ template <int N>
 void
 ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata, const IntVect* Nrep)
 {
+    BL_PROFILE("ParticleContainer<N>::InitFromAsciiFile()");
     BL_ASSERT(!file.empty());
     BL_ASSERT(extradata <= N);
 
@@ -1098,6 +1100,7 @@ void
 ParticleContainer<N>::InitFromBinaryFile (const std::string& file,
                                           int                extradata)
 {
+    BL_PROFILE("ParticleContainer<N>::InitFromBinaryFile()");
     BL_ASSERT(!file.empty());
     BL_ASSERT(extradata <= N);
 
@@ -1523,6 +1526,7 @@ void
 ParticleContainer<N>::InitFromBinaryMetaFile (const std::string& metafile,
                                               int                extradata)
 {
+    BL_PROFILE("ParticleContainer<N>::InitFromBinaryMetaFile()");
     const Real strttime = ParallelDescriptor::second();
 
     std::ifstream ifs(metafile.c_str(), std::ios::in);
@@ -1560,6 +1564,7 @@ ParticleContainer<N>::InitCosmo1ppcMultiLevel(MultiFab& mf, const Real disp_fac[
                                               const Real particleMass, int disp_idx, int vel_idx, 
                                               BoxArray &baWhereNot, int lev)
 {
+    BL_PROFILE("ParticleContainer<N>::InitCosmo1ppcMultiLevel()");
     const int       MyProc   = ParallelDescriptor::MyProc();
     const Geometry& geom     = m_gdb->Geom(lev);
     const Real*     dx       = geom.CellSize();
@@ -1694,6 +1699,7 @@ template <int N>
 void
 ParticleContainer<N>::InitCosmo1ppc (MultiFab& mf, const Real vel_fac[], const Real particleMass)
 {
+    BL_PROFILE("ParticleContainer<N>::InitCosmo1ppc()");
     const int       MyProc   = ParallelDescriptor::MyProc();
     const Geometry& geom     = m_gdb->Geom(0);
     const Real*     dx       = geom.CellSize();
@@ -1782,6 +1788,7 @@ template <int N>
 void
 ParticleContainer<N>::InitCosmo  (MultiFab& mf, const Real vel_fac[], const Array<int> n_part, const Real particleMass, const Real shift[])
 {
+    BL_PROFILE("ParticleContainer<N>::InitCosmo()");
     const int       MyProc   = ParallelDescriptor::MyProc();
     const int       IOProc   = ParallelDescriptor::IOProcessorNumber();
     const Real      strttime = ParallelDescriptor::second();
@@ -2001,6 +2008,7 @@ ParticleContainer<N>::InitRandom (long          icount,
                                   bool          serialize,
                                   RealBox       containing_bx)
 {
+    BL_PROFILE("ParticleContainer<N>::InitRandom()");
     BL_ASSERT(iseed  > 0);
     BL_ASSERT(icount > 0);
 
@@ -2210,6 +2218,7 @@ template <int N>
 void
 ParticleContainer<N>::MoveRandom (int lev)
 {
+    BL_PROFILE("ParticleContainer<N>::MoveRandom(lev)");
     BL_ASSERT(OK());
     BL_ASSERT(m_gdb != 0);
     // 
@@ -2293,6 +2302,7 @@ long
 ParticleContainer<N>::IncrementWithTotal (MultiFab& mf,
                                           int       lev)
 {
+    BL_PROFILE("ParticleContainer<N>::IncrementWithTotal(lev)");
     BL_ASSERT(OK());
 
     if (m_particles.empty()) return 0;
@@ -2367,6 +2377,7 @@ ParticleContainer<N>::estTimestep (MultiFab& gv,
                                    int             lev,
                                    Real            cfl) const
 {
+    BL_PROFILE("ParticleContainer<N>::estTimestep(lev)");
     Real            dt               = 1e50;
     BL_ASSERT(N >= BL_SPACEDIM+1);
     BL_ASSERT(lev >= 0);
@@ -2491,6 +2502,7 @@ template <int N>
 Real
 ParticleContainer<N>::sumParticleMass (int lev) const
 {
+    BL_PROFILE("ParticleContainer<N>::sumParticleMass(lev)");
     BL_ASSERT(N >= 1);
     BL_ASSERT(lev >= 0 && lev < m_particles.size());
 
@@ -2526,6 +2538,7 @@ void
 ParticleContainer<N>::sumParticleMomentum (int   lev,
                                            Real* mom) const
 {
+    BL_PROFILE("ParticleContainer<N>::sumParticleMomentum()");
     BL_ASSERT(N >= BL_SPACEDIM+1);
     BL_ASSERT(lev >= 0 && lev < m_particles.size());
 
@@ -2571,6 +2584,7 @@ ParticleContainer<N>::AssignDensitySingleLevel (MultiFab& mf_to_be_filled,
                                                 int       ncomp,
                                                 int       particle_lvl_offset) const
 {
+    BL_PROFILE("ParticleContainer<N>::AssignDensitySingleLevel()");
     BL_ASSERT(N >= 1);
     BL_ASSERT(ncomp == 1 || ncomp == BL_SPACEDIM+1);
 
@@ -2637,11 +2651,13 @@ ParticleContainer<N>::AssignCellDensitySingleLevel (MultiFab& mf_to_be_filled,
     const PMap&     pmap        = m_particles[lev];
     const int       ngrids      = pmap.size();
 
-    if (gm.isAnyPeriodic() && !gm.isAllPeriodic())
+    if (gm.isAnyPeriodic() && ! gm.isAllPeriodic()) {
         BoxLib::Error("AssignDensity: problem must be periodic in no or all directions");
+    }
 
-    for (MFIter mfi(*mf_pointer); mfi.isValid(); ++mfi)
+    for (MFIter mfi(*mf_pointer); mfi.isValid(); ++mfi) {
         (*mf_pointer)[mfi].setVal(0);
+    }
     //
     // This is a little funky.  What in effect this'll do is force
     // each thread to work on a single (separate) grid at a time.  That
@@ -2676,7 +2692,9 @@ ParticleContainer<N>::AssignCellDensitySingleLevel (MultiFab& mf_to_be_filled,
         {
             const ParticleType& p = *it;
 
-            if (p.m_id <= 0) continue;
+            if (p.m_id <= 0) {
+	      continue;
+	    }
 
             const int M = ParticleBase::CIC_Cells_Fracs(p, plo, dx, dx_particle, fracs, cells);
             //
@@ -2685,19 +2703,24 @@ ParticleContainer<N>::AssignCellDensitySingleLevel (MultiFab& mf_to_be_filled,
             // any contribution outside the boundary (i.e. if allow_particles_near_boundary = true). 
             // We test this by checking the low and high corners respectively.
             //
-            if (!gm.isAllPeriodic() && !allow_particles_near_boundary)
-                if (!gm.Domain().contains(cells[0]) || !gm.Domain().contains(cells[M-1]))
+            if ( ! gm.isAllPeriodic() && ! allow_particles_near_boundary) {
+                if ( ! gm.Domain().contains(cells[0]) || ! gm.Domain().contains(cells[M-1])) {
                     BoxLib::Error("AssignDensity: if not periodic, all particles must stay away from the domain boundary");
+		}
+	    }
 
             for (int i = 0; i < M; i++)
             {
-                if (!fab.box().contains(cells[i])) continue;
+                if ( ! fab.box().contains(cells[i])) {
+		  continue;
+		}
 
                 // If the domain is not periodic and we want to let particles
                 //    live near the boundary but "throw away" the contribution that 
                 //    does not fall into the domain ...
-                if (!gm.isAllPeriodic() && allow_particles_near_boundary 
-                                        && !gm.Domain().contains(cells[i])) continue;
+                if ( ! gm.isAllPeriodic() && allow_particles_near_boundary && ! gm.Domain().contains(cells[i])) {
+		  continue;
+		}
                 //
                 // Sum up mass in first component.
                 //
@@ -2705,8 +2728,9 @@ ParticleContainer<N>::AssignCellDensitySingleLevel (MultiFab& mf_to_be_filled,
                 if (m_relativistic)
                 {
                     Real vsq = 0.0;
-                    for (int n = 1; n < ncomp; n++)
+                    for (int n = 1; n < ncomp; n++) {
                        vsq += p.m_data[n] * p.m_data[n];
+		    }
                     Real gamma = 1.0 / sqrt(1.0 - vsq / m_csq);
 #ifdef _OPENMP
 #pragma omp atomic
@@ -2816,12 +2840,13 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
                                      int               ncomp,
                                      int               finest_level) const
 {
+    BL_PROFILE("ParticleContainer<N>::AssignDensity()");
     BL_ASSERT(N >= 1);
     BL_ASSERT(N >= ncomp);
     BL_ASSERT(ncomp == 1 || ncomp == BL_SPACEDIM+1);
 
 #ifdef NEUTRINO_PARTICLES
-    BL_ASSERT(m_csq > 0.);
+    BL_ASSERT(m_csq > 0.0);
 #endif
 
     if (finest_level == -1)
@@ -2847,8 +2872,9 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
         const int lev_index = lev - lev_min;
         mf_to_be_filled.set(lev_index, new MultiFab(m_gdb->boxArray(lev), ncomp, 1));
 
-        for (MFIter mfi(mf_to_be_filled[lev_index]); mfi.isValid(); ++mfi)
+        for (MFIter mfi(mf_to_be_filled[lev_index]); mfi.isValid(); ++mfi) {
             mf_to_be_filled[lev_index][mfi].setVal(0);
+	}
     }
 
     // Test whether the grid structure of the boxArray is the same
@@ -2875,8 +2901,9 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
             mf_part.set(lev_index, new MultiFab(m_gdb->ParticleBoxArray(lev), ncomp, 1,
 						m_gdb->ParticleDistributionMap(lev)));
     
-            for (MFIter mfi(mf_to_be_filled[lev_index]); mfi.isValid(); ++mfi)
+            for (MFIter mfi(mf_to_be_filled[lev_index]); mfi.isValid(); ++mfi) {
                 mf_part[lev_index][mfi].setVal(0);
+	    }
         }
 
         mf = &mf_part;
@@ -2891,8 +2918,9 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
         //
         // I believe that we don't need any information in ghost cells so we don't copy those.
         //
-        if (!all_grids_the_same)
+        if ( ! all_grids_the_same) {
             mf_to_be_filled[0].copy((*mf)[0],0,0,ncomp);
+	}
         return;
     }
     
@@ -2960,7 +2988,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
             {
                 const Box& dest = BoxLib::grow(grids[i],dgrow);
 
-                if (!dm.contains(dest))
+                if ( ! dm.contains(dest))
                 {
                     for (int j = 0; j < grids.size(); j++)
                     {
@@ -2987,8 +3015,9 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
             // We've got some Fine->Crse periodic overlap.
             // Don't forget to add the valid boxes too.
             //
-            for (int i = 0; i < grids.size(); i++)
+            for (int i = 0; i < grids.size(); i++) {
                 valid.push_back(grids[i]);
+	    }
             fvalid = BoxArray(valid);
             fvalid.removeOverlap();
         }
@@ -3027,7 +3056,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
                 {
                     const Box& dest = BoxLib::grow(cfba[i],(*mf)[lev_index].nGrow());
 
-                    if (!dm.contains(dest))
+                    if ( ! dm.contains(dest))
                     {
                         for (int j = 0; j < cgrids.size(); j++)
                         {
@@ -3051,8 +3080,9 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
                 // We've got some Fine->Crse periodic overlap.
                 // Don't forget to add the valid boxes too.
                 //
-                for (int i = 0; i < cfba.size(); i++)
+                for (int i = 0; i < cfba.size(); i++) {
                     cvalid.push_back(cfba[i]);
+		}
                 cfvalid = BoxArray(cvalid);
                 cfvalid.removeOverlap();
             }
@@ -3067,7 +3097,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
         compfvalid_grown.grow(1);
         compfvalid_grown.removeOverlap();
             
-        if (gm.isAnyPeriodic() && !gm.isAllPeriodic())
+        if (gm.isAnyPeriodic() && ! gm.isAllPeriodic())
         {
             BoxLib::Error("AssignDensity: problem must be periodic in no or all directions");
         }
@@ -3101,7 +3131,9 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
             {
                 const ParticleType& p = *it;
 
-                if (p.m_id <= 0) continue;
+                if (p.m_id <= 0) {
+		  continue;
+		}
                 //
                 // Get "fracs" and "cells" for the particle "p" at this level.
                 //
@@ -3111,9 +3143,11 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
                 // particle's support leaves the domain. We test this by checking the low
                 // and high corners respectively.
                 //
-                if (!gm.isAllPeriodic() && !allow_particles_near_boundary)
-                    if (!gm.Domain().contains(cells[0]) || !gm.Domain().contains(cells[M-1]))
+                if ( ! gm.isAllPeriodic() && ! allow_particles_near_boundary) {
+                    if ( ! gm.Domain().contains(cells[0]) || ! gm.Domain().contains(cells[M-1])) {
                         BoxLib::Error("AssignDensity: if not periodic, all particles must stay away from the domain boundary");
+		    }
+		}
                 //
                 // This section differs based on whether we subcycle.
                 // Without subcycling we use the "stretchy" support for particles.
@@ -3139,7 +3173,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
                             isBoundary = true;
                             continue;
                         }
-                        if (!fvalid.contains(cells[i]))
+                        if ( ! fvalid.contains(cells[i]))
                         {
                             //
                             // We're out of the valid region.
@@ -3154,8 +3188,9 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
                         if (m_relativistic)
                         {
                             Real vsq = 0.0;
-                            for (int n = 1; n < ncomp; n++)
+                            for (int n = 1; n < ncomp; n++) {
                                vsq += p.m_data[n] * p.m_data[n];
+			    }
                             Real gamma = 1.0 / sqrt(1.0 - vsq / m_csq);
                             fab(cells[i],0) += p.m_data[0] * fracs[i] * gamma;
                         }
@@ -3171,11 +3206,15 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
                         // If the domain is not periodic and we want to let particles
                         //    live near the boundary but "throw away" the contribution that 
                         //    does not fall into the domain ...
-                        if (!gm.isAllPeriodic() && allow_particles_near_boundary 
-                                                && !gm.Domain().contains(cells[i])) continue;
+                        if ( ! gm.isAllPeriodic() && allow_particles_near_boundary &&
+			     ! gm.Domain().contains(cells[i]))
+			{
+			  continue;
+			}
 
-                        for (int n = 1; n < ncomp; n++)
+                        for (int n = 1; n < ncomp; n++) {
                             fab(cells[i],n) += p.m_data[n] * p.m_data[0] * fracs[i];
+			}
                     }
                     //
                     // Deal with mass that doesn't belong at this level.
@@ -3201,14 +3240,15 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
                                 //
                                 const Box bx(fcells[j],fcells[j]);
                                 gm_fine.periodicShift(bx, gm_fine.Domain(), pshifts);
-                                if (!pshifts.empty())
+                                if ( ! pshifts.empty())
                                 {
                                     BL_ASSERT(pshifts.size() == 1);
                                     fcells[j] = fcells[j] - pshifts[0];
                                 }
                                 (*mf)[lev_index + 1].boxArray().intersections(Box(fcells[j],fcells[j]),isects,true);
-                                if (isects.size() == 0)
+                                if (isects.size() == 0) {
                                     continue;
+				}
                                 const int grid = isects[0].first; 
                                 const int who  = (*mf)[lev_index+1].DistributionMap()[grid];
 
@@ -3221,8 +3261,9 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
                                     if (m_relativistic)
                                     {
                                         Real vsq = 0.0;
-                                        for (int n = 1; n < ncomp; n++)
+                                        for (int n = 1; n < ncomp; n++) {
                                            vsq += p.m_data[n] * p.m_data[n];
+					}
                                         Real gamma = 1.0 / sqrt(1.0 - vsq / m_csq);
                                         (*mf)[lev_index+1][grid](fcells[j],0) += p.m_data[0] * ffracs[j] * gamma;
                                     }
@@ -3234,8 +3275,9 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
                                     //
                                     // Sum up momenta in next components.
                                     //
-                                    for (int n = 1; n < ncomp; n++)
+                                    for (int n = 1; n < ncomp; n++) {
                                         (*mf)[lev_index+1][grid](fcells[j],n) += p.m_data[n] * p.m_data[0] * ffracs[j];
+				    }
                                 }
                                 else
                                 {
@@ -3249,8 +3291,9 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
                                     if (m_relativistic)
                                     {
                                         Real vsq = 0.0;
-                                        for (int n = 1; n < ncomp; n++)
+                                        for (int n = 1; n < ncomp; n++) {
                                            vsq += p.m_data[n] * p.m_data[n];
+					}
                                         Real gamma = 1.0 / sqrt(1.0 - vsq / m_csq);
                                         pb.m_data[0] = p.m_data[0] *  ffracs[j] * gamma;
                                     }
@@ -3262,9 +3305,9 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
                                     //
                                     // Sum up momenta in next components.
                                     //
-                                    for (int n = 1; n < ncomp; n++)
+                                    for (int n = 1; n < ncomp; n++) {
                                         pb.m_data[n] = p.m_data[n] * p.m_data[0] * ffracs[j];
-
+				    }
                                     data[who].push_back(pb);
                                 }
                             }
@@ -3289,7 +3332,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
                                 const Box bx(ccells[j],ccells[j]);
                                 gm_coarse.periodicShift(bx, gm_coarse.Domain(), pshifts);
 
-                                if (!pshifts.empty())
+                                if ( ! pshifts.empty())
                                 {
                                     BL_ASSERT(pshifts.size() == 1);
                                     ccells[j] = ccells[j] - pshifts[0]; 
@@ -3298,8 +3341,9 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
                                 // Find its resident grid.
                                 //
                                 (*mf)[lev_index - 1].boxArray().intersections(Box(ccells[j],ccells[j]),isects,true);
-                                if (isects.size() == 0)
+                                if (isects.size() == 0) {
                                     continue;
+				}
                                 const int grid = isects[0].first;
                                 const int who  = (*mf)[lev_index-1].DistributionMap()[grid];
                                 if (who == ParallelDescriptor::MyProc())
@@ -3311,8 +3355,9 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
                                     if (m_relativistic)
                                     {
                                         Real vsq = 0.0;
-                                        for (int n = 1; n < ncomp; n++)
+                                        for (int n = 1; n < ncomp; n++) {
                                            vsq += p.m_data[n] * p.m_data[n];
+					}
                                         Real gamma = 1.0 / sqrt(1.0 - vsq / m_csq);
                                         (*mf)[lev_index-1][grid](ccells[j],0) += p.m_data[0] * cfracs[j] * gamma;
                                     }
@@ -3324,8 +3369,9 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
                                     //
                                     // Sum up momenta in next components.
                                     //
-                                    for (int n = 1; n < ncomp; n++)
+                                    for (int n = 1; n < ncomp; n++) {
                                         (*mf)[lev_index-1][grid](ccells[j],n) += p.m_data[n] * p.m_data[0] * cfracs[j];
+				    }
                                 }
                                 else
                                 {
@@ -3339,8 +3385,9 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
                                     if (m_relativistic)
                                     {
                                         Real vsq = 0.0;
-                                        for (int n = 1; n < ncomp; n++)
+                                        for (int n = 1; n < ncomp; n++) {
                                            vsq += p.m_data[n] * p.m_data[n];
+					}
                                         Real gamma = 1.0 / sqrt(1.0 - vsq / m_csq);
                                         pb.m_data[0] = p.m_data[0] * cfracs[j] * gamma;
                                     }
@@ -3352,8 +3399,9 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
                                     //
                                     // Sum up momenta in next components.
                                     //
-                                    for (int n = 1; n < ncomp; n++)
+                                    for (int n = 1; n < ncomp; n++) {
                                         pb.m_data[n] = p.m_data[n] * p.m_data[0] * cfracs[j];
+				    }
 
                                     data[who].push_back(pb);
                                 }
@@ -3368,8 +3416,9 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
                 else 
                 {
                     bool AnyCrseToFine = false;
-                    if (lev < finest_level)
+                    if (lev < finest_level) {
                         AnyCrseToFine = ParticleBase::CrseToFine(cfba,cells,cfshifts,gm,cwhich,pshifts);
+		    }
                     //
                     // lev_index > 0 means that we don't do F->C for lower levels
                     // This may mean that the mass fraction is off.
@@ -3380,7 +3429,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
 
                     BL_ASSERT(!(AnyCrseToFine && AnyFineToCrse));
 
-                    if (!AnyCrseToFine && !AnyFineToCrse)
+                    if ( ! AnyCrseToFine && ! AnyFineToCrse)
                     {
                         //
                         // By far the most common case.  Just do it!
@@ -3391,8 +3440,10 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
                             // If the domain is not periodic and we want to let particles
                             //    live near the boundary but "throw away" the contribution that 
                             //    does not fall into the domain ...
-                            if (!gm.isAllPeriodic() && allow_particles_near_boundary 
-                                                    && !gm.Domain().contains(cells[i])) continue;
+                            if (! gm.isAllPeriodic() && allow_particles_near_boundary && ! gm.Domain().contains(cells[i]))
+			    {
+			      continue;
+			    }
                             //
                             // Sum up mass in first component.
                             //
@@ -3400,8 +3451,9 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
                             if (m_relativistic)
                             {
                                 Real vsq = 0.0;
-                                for (int n = 1; n < ncomp; n++)
+                                for (int n = 1; n < ncomp; n++) {
                                    vsq += p.m_data[n] * p.m_data[n];
+				}
                                 Real gamma = 1.0 / sqrt(1.0 - vsq / m_csq);
                                 fab(cells[i],0) += p.m_data[0] * fracs[i] * gamma;
                             }
@@ -3413,8 +3465,9 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
                             //
                             // Sum up momenta in next components.
                             //
-                            for (int n = 1; n < ncomp; n++)
+                            for (int n = 1; n < ncomp; n++) {
                                 fab(cells[i],n) += p.m_data[n] * p.m_data[0] * fracs[i];
+			    }
                         }
                     }
                     else if (AnyFineToCrse)
@@ -3439,13 +3492,18 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
 
                                 if (who == ParallelDescriptor::MyProc())
                                 {
-                                    if (!(*mf)[lev_index-1][cgrid[i]].box().contains(ccells[i])) continue;
+                                    if ( ! (*mf)[lev_index-1][cgrid[i]].box().contains(ccells[i])) {
+				      continue;
+				    }
 
                                     // If the domain is not periodic and we want to let particles
                                     //    live near the boundary but "throw away" the contribution that 
                                     //    does not fall into the domain ...
-                                    if (!gm_coarse.isAllPeriodic() && allow_particles_near_boundary 
-                                                                   && !gm_coarse.Domain().contains(ccells[i])) continue;
+                                    if (! gm_coarse.isAllPeriodic() && allow_particles_near_boundary &&
+				        ! gm_coarse.Domain().contains(ccells[i]))
+				    {
+				      continue;
+				    }
 
                                     //
                                     // Sum up mass in first component.
@@ -3454,8 +3512,9 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
                                     if (m_relativistic)
                                     {
                                         Real vsq = 0.0;
-                                        for (int n = 1; n < ncomp; n++)
+                                        for (int n = 1; n < ncomp; n++) {
                                            vsq += p.m_data[n] * p.m_data[n];
+					}
                                         Real gamma = 1.0 / sqrt(1.0 - vsq / m_csq);
                                         (*mf)[lev_index-1][cgrid[i]](ccells[i],0) += p.m_data[0] * cfracs[i] * gamma;
                                     }
@@ -3467,8 +3526,9 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
                                     //
                                     // Sum up momenta in next components.
                                     //
-                                    for (int n = 1; n < ncomp; n++)
+                                    for (int n = 1; n < ncomp; n++) {
                                         (*mf)[lev_index-1][cgrid[i]](ccells[i],n) += p.m_data[n] * p.m_data[0] * cfracs[i];
+				    }
                                 }
                                 else
                                 {
@@ -3482,8 +3542,9 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
                                     if (m_relativistic)
                                     {
                                         Real vsq = 0.0;
-                                        for (int n = 1; n < ncomp; n++)
+                                        for (int n = 1; n < ncomp; n++) {
                                            vsq += p.m_data[n] * p.m_data[n];
+					}
                                         Real gamma = 1.0 / sqrt(1.0 - vsq / m_csq);
                                         pb.m_data[0] = p.m_data[0] * cfracs[i] * gamma;
                                     }
@@ -3495,9 +3556,9 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
                                     //
                                     // Sum up momenta in next components.
                                     //
-                                    for (int n = 1; n < ncomp; n++)
+                                    for (int n = 1; n < ncomp; n++) {
                                         pb.m_data[n] = p.m_data[n] * p.m_data[0] * cfracs[i];
-
+				    }
                                     data[who].push_back(pb);
                                 }
 
@@ -3521,7 +3582,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
                             //
                             fwhich[i] = true;
 
-                            if (!compfvalid_grown.contains(cells[i]))
+                            if ( ! compfvalid_grown.contains(cells[i]))
                             {
                                 //
                                 // Go ahead and add the full correct amount to these cells.
@@ -3535,8 +3596,9 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
                                 if (m_relativistic)
                                 {
                                     Real vsq = 0.0;
-                                    for (int n = 1; n < ncomp; n++)
+                                    for (int n = 1; n < ncomp; n++) {
                                        vsq += p.m_data[n] * p.m_data[n];
+				    }
                                     Real gamma = 1.0 / sqrt(1.0 - vsq / m_csq);
                                     fab(cells[i],0) += p.m_data[0] * fracs[i] * gamma;
                                 }
@@ -3548,9 +3610,9 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
                                 //
                                 // Sum up momenta in next components.
                                 //
-                                for (int n = 1; n < ncomp; n++)
+                                for (int n = 1; n < ncomp; n++) {
                                     fab(cells[i],n) += p.m_data[n] * p.m_data[0] * fracs[i];
-
+				}
                                 fwhich[i] = false;
                             }
                             else if (compfvalid.contains(cells[i]))
@@ -3590,8 +3652,9 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
                                 if (m_relativistic)
                                 {
                                     Real vsq = 0.0;
-                                    for (int n = 1; n < ncomp; n++)
+                                    for (int n = 1; n < ncomp; n++) {
                                        vsq += p.m_data[n] * p.m_data[n];
+				    }
                                     Real gamma = 1.0 / sqrt(1.0 - vsq / m_csq);
                                     fab(cells[i],0) += p.m_data[0] * fracs[i] * mult * gamma;
                                 }
@@ -3603,8 +3666,9 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
                                 //
                                 // Sum up momenta in next components.
                                 //
-                                for (int n = 1; n < ncomp; n++)
+                                for (int n = 1; n < ncomp; n++) {
                                     fab(cells[i],n) += p.m_data[n] * p.m_data[0] * fracs[i] * mult;
+				}
 
                                 sum_fine += fracs[i] * mult;
                             }
@@ -3623,8 +3687,11 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
                                 // If the domain is not periodic and we want to let particles
                                 //    live near the boundary but "throw away" the contribution that 
                                 //    does not fall into the domain ...
-                                if (!gm.isAllPeriodic() && allow_particles_near_boundary 
-                                                        && !gm.Domain().contains(ccells[i])) continue;
+                                if ( ! gm.isAllPeriodic() && allow_particles_near_boundary &&
+				     ! gm.Domain().contains(ccells[i]))
+				{
+				  continue;
+				}
                                 //
                                 // Sum up mass in first component.
                                 //
@@ -3632,8 +3699,9 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
                                 if (m_relativistic)
                                 {
                                     Real vsq = 0.0;
-                                    for (int n = 1; n < ncomp; n++)
+                                    for (int n = 1; n < ncomp; n++) {
                                        vsq += p.m_data[n] * p.m_data[n];
+				    }
                                     Real gamma = 1.0 / sqrt(1.0 - vsq / m_csq);
                                     fab(cells[i],0) += p.m_data[0] * fracs[i] * gamma;
                                 }
@@ -3645,8 +3713,9 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
                                 //
                                 // Sum up momenta in next components.
                                 //
-                                for (int n = 1; n < ncomp; n++)
+                                for (int n = 1; n < ncomp; n++) {
                                     fab(cells[i],n) += p.m_data[n] * p.m_data[0] * fracs[i];
+				}
 
                                 sum += fracs[i];
                             }
@@ -3670,8 +3739,9 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
                                         if (m_relativistic)
                                         {
                                             Real vsq = 0.0;
-                                            for (int n = 1; n < ncomp; n++)
+                                            for (int n = 1; n < ncomp; n++) {
                                                vsq += p.m_data[n] * p.m_data[n];
+					    }
                                             Real gamma = 1.0 / sqrt(1.0 - vsq / m_csq);
                                             (*mf)[lev_index+1][fgrid[j]](fcells[j],0) += p.m_data[0] * fracs[i] * ffracs[j] * gamma;
                                         }
@@ -3683,8 +3753,9 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
                                         //
                                         // Sum up momenta in next components.
                                         //
-                                        for (int n = 1; n < ncomp; n++)
+                                        for (int n = 1; n < ncomp; n++) {
                                             (*mf)[lev_index+1][fgrid[j]](fcells[j],n) += p.m_data[n] * p.m_data[0] * fracs[i] * ffracs[j];
+					}
                                     }
                                     else
                                     {
@@ -3698,8 +3769,9 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
                                         if (m_relativistic)
                                         {
                                             Real vsq = 0.0;
-                                            for (int n = 1; n < ncomp; n++)
+                                            for (int n = 1; n < ncomp; n++) {
                                                vsq += p.m_data[n] * p.m_data[n];
+					    }
                                             Real gamma = 1.0 / sqrt(1.0 - vsq / m_csq);
                                             pb.m_data[0] = p.m_data[0] * fracs[i] * ffracs[j] * gamma;
                                         }
@@ -3711,8 +3783,9 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
                                         //
                                         // Sum up momenta in next components.
                                         //
-                                        for (int n = 1; n < ncomp; n++)
+                                        for (int n = 1; n < ncomp; n++) {
                                             pb.m_data[n] = p.m_data[n] * p.m_data[0] * fracs[i] * ffracs[j];
+					}
 
                                         data[who].push_back(pb);
                                     }
@@ -3771,7 +3844,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
     //
     // I believe that we don't need any information in ghost cells so we don't copy those.
     //
-    if (!all_grids_the_same)
+    if ( ! all_grids_the_same)
         for (int lev = lev_min; lev <= finest_level; lev++)
         {
             const int lev_index = lev - lev_min;
@@ -3811,6 +3884,7 @@ ParticleContainer<N>::AssignDensityDoit (PArray<MultiFab>* mf,
                                          int               ncomp,
                                          int               lev_min) const
 {
+    BL_PROFILE("ParticleContainer<N>::AssignDensityDoit()");
     BL_ASSERT(N >= ncomp);
 
     const int NProcs = ParallelDescriptor::NProcs();
@@ -3839,11 +3913,12 @@ ParticleContainer<N>::AssignDensityDoit (PArray<MultiFab>* mf,
 
     ParallelDescriptor::ReduceIntMax(NumSnds);
 
-    if (NumSnds == 0)
+    if (NumSnds == 0) {
         //
         // There's no parallel work to do.
         //
         return;
+    }
 
     BL_COMM_PROFILE(BLProfiler::Alltoall, sizeof(int),
                     ParallelDescriptor::MyProc(), BLProfiler::BeforeCall());
@@ -3864,9 +3939,11 @@ ParticleContainer<N>::AssignDensityDoit (PArray<MultiFab>* mf,
 
     IntIntMap SndCnts, RcvCnts, rOffset;
 
-    for (int i = 0; i < NProcs; i++)
-        if (Snds[i] > 0)
+    for (int i = 0; i < NProcs; i++) {
+        if (Snds[i] > 0) {
             SndCnts[i] = Snds[i];
+	}
+    }
 
     for (int i = 0; i < NProcs; i++)
     {
@@ -3957,8 +4034,9 @@ ParticleContainer<N>::AssignDensityDoit (PArray<MultiFab>* mf,
 
             ioff += iChunkSize;
 
-            for (int n = 0; n < ncomp; n++)
+            for (int n = 0; n < ncomp; n++) {
                 rsenddata[roff+n] = p.m_data[n];
+	    }
 
             roff += ncomp;
         }
@@ -3992,8 +4070,9 @@ ParticleContainer<N>::AssignDensityDoit (PArray<MultiFab>* mf,
             BL_ASSERT((*mf)[lev].DistributionMap()[grd] == MyProc);
             BL_ASSERT((*mf)[lev][grd].box().contains(cell));
 
-            for (int n = 0; n < ncomp; n++)
+            for (int n = 0; n < ncomp; n++) {
                 (*mf)[lev][grd](cell,n) += rdata[n];
+	    }
 
             idata += iChunkSize;
             rdata += rChunkSize;
@@ -4007,6 +4086,7 @@ template <int N>
 void
 ParticleContainer<N>::GetParticleIDs (Array<int>& part_ids)
 {
+    BL_PROFILE("ParticleContainer<N>::GetParticleIDs()");
     //
     // This gives us the starting point into the part_ids array
     // If only one processor (or no MPI), then that's all we need.
@@ -4030,8 +4110,9 @@ ParticleContainer<N>::GetParticleIDs (Array<int>& part_ids)
 
     ParallelDescriptor::Bcast(cnts.dataPtr(), cnts.size(), ParallelDescriptor::IOProcessorNumber());
 
-    for (int iproc = 0; iproc < ParallelDescriptor::MyProc(); iproc++)
+    for (int iproc = 0; iproc < ParallelDescriptor::MyProc(); iproc++) {
         cnt += cnts[iproc];
+    }
 
     std::cout << "PROC CNT " << ParallelDescriptor::MyProc() << " " << cnt << std::endl;
 
@@ -4075,6 +4156,7 @@ template <int N>
 void
 ParticleContainer<N>::GetParticleCPU (Array<int>& part_cpu)
 {
+    BL_PROFILE("ParticleContainer<N>::GetParticleCPU()");
     //
     // This gives us the starting point into the part_cpu array
     // If only one processor (or no MPI), then that's all we need.
@@ -4141,6 +4223,7 @@ template <int N>
 void
 ParticleContainer<N>::GetParticleLocations (Array<Real>& part_data)
 {
+    BL_PROFILE("ParticleContainer<N>::GetParticleLocations()");
     //
     // This gives us the starting point into the part_data array
     // If only one processor (or no MPI), then that's all we need.
@@ -4209,6 +4292,7 @@ template <int N>
 void
 ParticleContainer<N>::GetParticleVelocities (Array<Real>& part_data)
 {
+    BL_PROFILE("ParticleContainer<N>::GetParticleVelocities()");
     // This assumes that the mass/charge is stored in the first position 
     //      in the particle data, followed by the velocity components
     int start_comp = 1;
@@ -4220,6 +4304,7 @@ template <int N>
 void
 ParticleContainer<N>::GetParticleData (Array<Real>& part_data, int start_comp, int num_comp)
 {
+    BL_PROFILE("ParticleContainer<N>::GetParticleData()");
     //
     // This gives us the starting point into the part_data array
     // If only one processor (or no MPI), then that's all we need.
@@ -4300,6 +4385,7 @@ template <int N>
 void
 ParticleContainer<N>::SetParticleLocations (Array<Real>& part_data)
 {
+    BL_PROFILE("ParticleContainer<N>::SetParticleLocations()");
    // This gives us the starting point into the part_data array
    // If only one processor (or no MPI), then that's all we need
    int cnt = 0;
@@ -4365,6 +4451,7 @@ template <int N>
 void
 ParticleContainer<N>::SetParticleVelocities (Array<Real>& part_data)
 {
+    BL_PROFILE("ParticleContainer<N>::SetParticleVelocities()");
    // This gives us the starting point into the part_data array
    // If only one processor (or no MPI), then that's all we need
    int cnt = 0;
@@ -4430,6 +4517,7 @@ template <int N>
 void
 ParticleContainer<N>::MultiplyParticleMass (int lev, Real mult)
 {
+    BL_PROFILE("ParticleContainer<N>::MultiplyParticleMass()");
    BL_ASSERT(lev == 0);
 
    PMap& pmap = m_particles[lev];
@@ -4462,6 +4550,7 @@ ParticleContainer<N>::movePredict (const MultiFab& gv,
                                    int             lev,
                                    Real            dt)
 {
+    BL_PROFILE("ParticleContainer<N>::movePredict()");
     BL_ASSERT(OK());
     BL_ASSERT(N >= BL_SPACEDIM+1);
     BL_ASSERT(lev >= 0 && lev < m_particles.size());
@@ -4540,6 +4629,7 @@ ParticleContainer<N>::moveCorrect (const MultiFab& gv_old,
                                    int             lev,
                                    Real            dt)
 {
+    BL_PROFILE("ParticleContainer<N>::moveCorrect()");
     BL_ASSERT(OK());
     BL_ASSERT(N >= BL_SPACEDIM+1);
     BL_ASSERT(lev >= 0 && lev < m_particles.size());
@@ -5148,6 +5238,7 @@ template <int N>
 void
 ParticleContainer<N>::RemoveParticlesNotAtFinestLevel ()
 {
+    BL_PROFILE("ParticleContainer<N>::RemoveParticlesNotAtFinestLevel()");
     BL_ASSERT(m_gdb->finestLevel()+1 == m_particles.size());
 
     int cnt = 0;
@@ -5210,6 +5301,7 @@ template <int N>
 void
 ParticleContainer<N>::RemoveParticlesAtLevel (int level)
 {
+    BL_PROFILE("ParticleContainer<N>::RemoveParticlesAtLevel()");
     if (level >= m_particles.size())
         return;
 
@@ -5227,6 +5319,7 @@ ParticleContainer<N>::AddParticlesAtLevel (int   level,
                                            PBox& virts,
                                            bool  where_already_called)
 {
+    BL_PROFILE("ParticleContainer<N>::AddParticlesAtLevel()");
     if (m_particles.size() < level+1)
     {
         if (ParallelDescriptor::IOProcessor())
@@ -5299,6 +5392,7 @@ void
 ParticleContainer<N>::CreateVirtualParticles (int   level,
                                               PBox& virts) const
 {
+    BL_PROFILE("ParticleContainer<N>::CreateVirtualParticles()");
     BL_ASSERT(level > 0);
     BL_ASSERT(virts.empty());
 
@@ -5443,6 +5537,7 @@ ParticleContainer<N>::CreateGhostParticles (int   level,
                                             int   ngrow,
                                             PBox& ghosts) const
 {
+    BL_PROFILE("ParticleContainer<N>::CreateGhostParticles()");
     BL_ASSERT(ghosts.empty());
     BL_ASSERT(level < m_gdb->finestLevel());
 
@@ -5515,6 +5610,7 @@ ParticleContainer<N>::AdvectWithUmac (MultiFab* umac,
                                       Real      dt,
                                       int       vcomp)
 {
+    BL_PROFILE("ParticleContainer<N>::AdvectWithUmac()");
     BL_ASSERT(OK(true, lev, umac[0].nGrow()-1));
     BL_ASSERT(vcomp >= 0);
     BL_ASSERT(N >= vcomp + BL_SPACEDIM);
@@ -5950,6 +6046,7 @@ template <int N>
 void
 ParticleContainer<N>::RedistributeMPI (PMap& not_ours)
 {
+    BL_PROFILE("ParticleContainer<N>::RedistributeMPI()");
 #if BL_USE_MPI
     const int MyProc = ParallelDescriptor::MyProc();
     const int NProcs = ParallelDescriptor::NProcs();
@@ -6253,6 +6350,7 @@ ParticleContainer<N>::OK (bool full_where,
                           int  ngrow,
                           int  finest_level) const
 {
+    BL_PROFILE("ParticleContainer<N>::OK()");
     if (finest_level == -1)
         finest_level = m_gdb->finestLevel();
 
@@ -6335,6 +6433,7 @@ ParticleContainer<N>::Checkpoint (const std::string& dir,
                                   const std::string& name,
                                   bool               is_checkpoint) const
 {
+    BL_PROFILE("ParticleContainer<N>::Checkpoint()");
     BL_ASSERT(OK());
 
     BL_ASSERT(sizeof(ParticleBase::RealType) == 4 || sizeof(ParticleBase::RealType) == 8);
@@ -6643,6 +6742,7 @@ void
 ParticleContainer<N>::WritePlotFile (const std::string& dir,
                                      const std::string& name) const
 {
+    BL_PROFILE("ParticleContainer<N>::WritePlotFile()");
     BL_ASSERT(OK());
     bool is_checkpoint = false;
 
@@ -6663,6 +6763,7 @@ ParticleContainer<N>::WriteParticles (int            lev,
                                       Array<long>&   where,
                                       bool           is_checkpoint) const
 {
+    BL_PROFILE("ParticleContainer<N>::WriteParticles()");
     const PMap&     pmap  = m_particles[lev];
 
     MultiFab state(m_gdb->boxArray(lev),1,0,Fab_noallocate);
@@ -6830,6 +6931,7 @@ ParticleContainer<N>::Restart (const std::string& dir,
                                const std::string& file,
                                bool is_checkpoint)
 {
+    BL_PROFILE("ParticleContainer<N>::Restart()");
     BL_ASSERT(!dir.empty());
     BL_ASSERT(!file.empty());
 
@@ -6943,6 +7045,7 @@ ParticleContainer<N>::Restart_Doit (const std::string& fullname,
                                     const std::string& how,
                                     bool is_checkpoint)
 {
+    BL_PROFILE("ParticleContainer<N>::RestartDoit()");
     BL_ASSERT(!fullname.empty());
 
     const int IOProc = ParallelDescriptor::IOProcessorNumber();
@@ -7132,6 +7235,7 @@ ParticleContainer<N>::ReadParticles_DoublePrecision (int            cnt,
                                                      bool           is_checkpoint,
                                                      std::ifstream& ifs)
 {
+    BL_PROFILE("ParticleContainer<N>::ReadParticles_DoublePrecision()");
     BL_ASSERT(cnt > 0);
     BL_ASSERT(lev < m_particles.size());
     BL_ASSERT(lev >= 0 && lev <= m_gdb->finestLevel());
@@ -7255,6 +7359,7 @@ ParticleContainer<N>::ReadParticles_SinglePrecision (int            cnt,
                                                      bool           is_checkpoint,
                                                      std::ifstream& ifs)
 {
+    BL_PROFILE("ParticleContainer<N>::ReadParticles_SinglePrecision()");
     BL_ASSERT(cnt > 0);
     BL_ASSERT(lev < m_particles.size());
     BL_ASSERT(lev >= 0 && lev <= m_gdb->finestLevel());
@@ -7364,6 +7469,7 @@ ParticleContainer<N>::Timestamp (const std::string&      basename,
                                  const std::vector<int>& indices,
                                  const int               vcomp)
 {
+    BL_PROFILE("ParticleContainer<N>::Timestamp()");
     //
     // basename -> base filename for the output file
     // mf       -> the multifab
@@ -7544,6 +7650,7 @@ template <int N>
 void
 ParticleContainer<N>::WriteAsciiFile (const std::string& filename)
 {
+    BL_PROFILE("ParticleContainer<N>::WriteAsciiFile()");
     BL_ASSERT(!filename.empty());
 
     const Real strttime = ParallelDescriptor::second();
@@ -7677,6 +7784,7 @@ template <int N>
 void
 ParticleContainer<N>::WriteCoarsenedAsciiFile (const std::string& filename)
 {
+    BL_PROFILE("ParticleContainer<N>::WriteCoarsenedAsciiFile()");
     BL_ASSERT(!filename.empty());
 
     const Real strttime = ParallelDescriptor::second();

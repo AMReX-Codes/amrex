@@ -12,6 +12,19 @@
 #include <BLProfiler.H>
 #include <ParallelDescriptor.H>
 
+#ifdef BL_USE_FORTRAN_MPI
+extern "C" {
+    void bl_fortran_mpi_comm_init (int fcomm);
+    void bl_fortran_mpi_comm_free ();
+    void bl_fortran_sidecar_mpi_comm_free (int fcomm);
+    void bl_fortran_set_nprocs_sidecar(int nSidecarProcs, int inWhichSidecar,
+                    int m_nProcs_all, int m_nProcs_comp, int *m_nProcs_sidecar,
+                    int fcomma, int fcommc, int *fcomms,
+                    int fgrpa, int fgrpc, int *fgrps,
+                    int m_MyId_all, int m_MyId_comp, int m_MyId_sidecar);
+}
+#endif
+
 #ifndef BL_AMRPROF
 #include <ParmParse.H>
 #endif
@@ -40,8 +53,10 @@ namespace ParallelDescriptor
     int m_nProcs_all     = nProcs_undefined;
     int m_nProcs_comp    = nProcs_undefined;
     int m_nProcs_sub     = nProcs_undefined;
-    int m_nProcs_sidecar = nProcs_undefined;
-    int nSidecarProcs    = 0;
+    Array<int> m_nProcs_sidecar;
+    int nSidecars = 0;
+    const int notInSidecar  = -44;
+    int inWhichSidecar = notInSidecar;
     //
     // Team
     //
@@ -49,17 +64,18 @@ namespace ParallelDescriptor
     //
     // BoxLib's Communicators
     //
-    MPI_Comm m_comm_all     = MPI_COMM_NULL;    // for all procs, probably MPI_COMM_WORLD
-    MPI_Comm m_comm_comp    = MPI_COMM_NULL;    // for the computation procs
+    MPI_Comm m_comm_all     = MPI_COMM_NULL;    // for all ranks, probably MPI_COMM_WORLD
+    MPI_Comm m_comm_comp    = MPI_COMM_NULL;    // for the ranks doing computations
     MPI_Comm m_comm_sub     = MPI_COMM_NULL;    // for sub computation procs
-    MPI_Comm m_comm_sidecar = MPI_COMM_NULL;    // for the in-situ performance monitor
-    MPI_Comm m_comm_inter   = MPI_COMM_NULL;    // for communicating between comp and sidecar
+    Array<MPI_Comm> m_comm_sidecar;             // for the ranks in the sidecar
+    Array<MPI_Comm> m_comm_inter;               // for communicating between comp and sidecar
+    Array<MPI_Comm> m_comm_both;                // for communicating within comp and a sidecar
     //
     // BoxLib's Groups
     //
     MPI_Group m_group_all     = MPI_GROUP_NULL;
     MPI_Group m_group_comp    = MPI_GROUP_NULL;
-    MPI_Group m_group_sidecar = MPI_GROUP_NULL;
+    Array<MPI_Group> m_group_sidecar;
 #else
     //  Set these for non-mpi codes that do not call BoxLib::Initialize(...)
     int m_MyId_all         = 0;
@@ -92,7 +108,7 @@ namespace ParallelDescriptor
     Color m_MyCommSubColor;
     Color m_MyCommCompColor;
 
-    int m_MinTag = 1000, m_MaxTag = -1;
+    int m_MinTag = 1000, m_MaxTag = -1, m_MaxTag_MPI = -1, tagBuffer = 32;
 
     const int ioProcessor = 0;
 
@@ -109,7 +125,7 @@ namespace ParallelDescriptor
     namespace util
     {
 	//
-	// Reduce helper functons.
+	// Reduce helper functions.
 	//
 	void DoAllReduceReal     (Real&      r, MPI_Op op, Color color = DefaultColor());
 	void DoAllReduceLong     (long&      r, MPI_Op op, Color color = DefaultColor());
@@ -261,8 +277,6 @@ ParallelDescriptor::StartParallel (int*    argc,
                                    char*** argv,
                                    MPI_Comm mpi_comm)
 {
-    m_comm_all = mpi_comm;
-
     int sflag(0);
 
     BL_MPI_REQUIRE( MPI_Initialized(&sflag) );
@@ -271,8 +285,24 @@ ParallelDescriptor::StartParallel (int*    argc,
 	BL_MPI_REQUIRE( MPI_Init(argc, argv) );
     }
     
+    BL_MPI_REQUIRE( MPI_Comm_dup(mpi_comm, &m_comm_all) );
+
+    // ---- find the maximum value for a tag
+    int flag(0), *attrVal;
+    BL_MPI_REQUIRE( MPI_Attr_get(m_comm_all, MPI_TAG_UB, &attrVal, &flag) );
+    if(flag) {
+      m_MaxTag_MPI = *attrVal;
+      m_MaxTag = m_MaxTag_MPI - tagBuffer;  // ---- buffer for sidecar tags
+      m_MaxTag = std::max(m_MaxTag, 9000);
+    } else {
+      m_MaxTag = 9000;
+      m_MaxTag_MPI = m_MaxTag;
+    }
+    BL_COMM_PROFILE_TAGRANGE(m_MinTag, m_MaxTag);
+
     BL_MPI_REQUIRE( MPI_Comm_size(CommunicatorAll(), &m_nProcs_all) );
     BL_MPI_REQUIRE( MPI_Comm_rank(CommunicatorAll(), &m_MyId_all) );
+    BL_MPI_REQUIRE( MPI_Comm_group(CommunicatorAll(), &m_group_all) );
 
 #ifdef BL_USE_MPI3
     int mpi_version, mpi_subversion;
@@ -280,104 +310,383 @@ ParallelDescriptor::StartParallel (int*    argc,
     if (mpi_version < 3) BoxLib::Abort("MPI 3 is needed because USE_MPI3=TRUE");
 #endif
 
-    if(m_MyId_all == 0 && nSidecarProcs > 0) {
-      std::cout << "**** nSidecarProcs = " << nSidecarProcs << std::endl;
-    }
-    if(nSidecarProcs >= m_nProcs_all) {
-      std::cerr << "**** nSidecarProcs >= m_nProcs_all:  " << nSidecarProcs
-                << " >= " << m_nProcs_all << std::endl;
-      BoxLib::Abort("Error in StartParallel:  bad nSidecarProcs.");
-    }
-
-    MPI_Comm_group(m_comm_all, &m_group_all);
-
-    if(nSidecarProcs > 0) {
-      Array<int> sidecarRanksInAll(nSidecarProcs, nProcs_undefined);
-      for(int ip(0); ip < nSidecarProcs; ++ip) {
-        sidecarRanksInAll[ip] = m_nProcs_all - nSidecarProcs + ip;
-      }
-      MPI_Group_excl(m_group_all, nSidecarProcs, sidecarRanksInAll.dataPtr(), &m_group_comp);
-      MPI_Comm_create(m_comm_all, m_group_comp, &m_comm_comp);
-
-      MPI_Group_incl(m_group_all, nSidecarProcs, sidecarRanksInAll.dataPtr(), &m_group_sidecar);
-      MPI_Comm_create(m_comm_all, m_group_sidecar, &m_comm_sidecar);
-
-      MPI_Group_size(m_group_sidecar, &m_nProcs_sidecar);
-      MPI_Group_size(m_group_comp, &m_nProcs_comp);
-    } else {
-      m_comm_comp  = m_comm_all;
-      m_group_comp = m_group_all;
-
-      m_nProcs_comp = m_nProcs_all;
-      m_nProcs_sidecar = 0;
-    }
-
-    // ---- find the maximum value for a tag
-    int flag(0), *attrVal;
-    BL_MPI_REQUIRE( MPI_Attr_get(m_comm_all, MPI_TAG_UB, &attrVal, &flag) );
-    if(flag) {
-      m_MaxTag = *attrVal;
-      m_MaxTag -= 4;  // so we dont wrap if maxint
-      m_MaxTag = std::max(m_MaxTag, 9000);
-    } else {
-      m_MaxTag = 9000;
-    }
-    BL_COMM_PROFILE_TAGRANGE(m_MinTag, m_MaxTag);
-
-    if(nSidecarProcs > 0) {
-      int tag(m_MaxTag + 1);
-
-
-      if(m_MyId_all >= m_nProcs_all - nSidecarProcs) {  // ---- sidecar group
-        MPI_Group_rank(m_group_sidecar, &m_MyId_sidecar);
-        MPI_Intercomm_create(m_comm_sidecar, 0, m_comm_all, 0, tag, &m_comm_inter);
-	m_MyId_comp = myId_notInGroup;
-
-      } else {                        // ---- in computation group
-        MPI_Group_rank(m_group_comp, &m_MyId_comp);
-        MPI_Intercomm_create(m_comm_comp, 0, m_comm_all, m_nProcs_all - nSidecarProcs,
-	                     tag, &m_comm_inter);
-	m_MyId_sidecar = myId_notInGroup;
-      }
-
-    } else {
-      m_MyId_comp   = m_MyId_all;
-      m_MyId_sidecar   = myId_notInGroup;
-    }
+    SetNProcsSidecars(0);  // ---- users resize these later
 
     //
     // Wait until all other processes are properly started.
     //
     BL_MPI_REQUIRE( MPI_Barrier(CommunicatorAll()) );
+}
 
+void
+ParallelDescriptor::EndParallel ()
+{
+    BL_ASSERT(m_MyId_all   != myId_undefined);
+    BL_ASSERT(m_nProcs_all != nProcs_undefined);
+
+    if(m_group_comp != MPI_GROUP_NULL && m_group_comp != m_group_all) {
+      BL_MPI_REQUIRE( MPI_Group_free(&m_group_comp) );
+    }
+    if(m_comm_comp != MPI_COMM_NULL && m_comm_comp != m_comm_all) {
+      BL_MPI_REQUIRE( MPI_Comm_free(&m_comm_comp) );
+    }
+    if(m_group_all != MPI_GROUP_NULL) {
+      BL_MPI_REQUIRE( MPI_Group_free(&m_group_all) );
+    }
+    if(m_comm_all != MPI_COMM_NULL) {
+      BL_MPI_REQUIRE( MPI_Comm_free(&m_comm_all) );
+    }
+
+    BL_MPI_REQUIRE( MPI_Finalize() );
+}
+
+void
+ParallelDescriptor::SetNProcsSidecars (const Array<int> &compRanksInAll,
+                                       const Array<Array<int> > &sidecarRanksInAll, bool printRanks)
+{
+    BL_PROFILE("PD::SetNProcsSidecars()");
+
+    BL_ASSERT(compRanksInAll.size() > 0);
+    BL_ASSERT(m_MyId_all != myId_undefined);
+
+    bool inComp(false);
+    nSidecars = sidecarRanksInAll.size();
+
+    MPI_Comm commTemp = Communicator();  // ---- save to compare later
+
+    // ---- check validity of the rank arrays and set inComp
+    if(compRanksInAll[0] != 0) {  // ---- we require this for now
+      BoxLib::Abort("**** Error in SetNProcsSidecars:  compRanksInAll[0] != 0");
+    }
+    std::set<int> rankSet;
+    for(int i(0); i < compRanksInAll.size(); ++i) {
+      rankSet.insert(compRanksInAll[i]);
+      if(m_MyId_all == compRanksInAll[i]) {
+        inComp = true;
+      }
+    }
+    inWhichSidecar = notInSidecar;
+    for(int i(0); i < sidecarRanksInAll.size(); ++i) {
+      for(int j(0); j < sidecarRanksInAll[i].size(); ++j) {
+        rankSet.insert(sidecarRanksInAll[i][j]);
+	if(m_MyId_all == sidecarRanksInAll[i][j]) {
+	  inWhichSidecar = i;
+	}
+      }
+    }
+
+    if(rankSet.size() != m_nProcs_all) {
+      std::cerr << "**** rankSet.size() != m_nProcs_all:  " << rankSet.size()
+                << " != " << m_nProcs_all << std::endl;
+      BoxLib::Abort("**** Error in SetNProcsSidecars:  rankSet.size() != m_nProcs_all.");
+    }
+    int rankCheck(0);
+    std::set<int>::const_iterator cit;
+    for(cit = rankSet.begin(); cit != rankSet.end(); ++cit) {
+      if(*cit != rankCheck) {
+        BoxLib::Abort("**** Error in SetNProcsSidecars:  rankSet is not correct.");
+      }
+      ++rankCheck;
+    }
+
+    // ---- check to ensure ranks are only removed from comp or added to comp but not both
+    // ---- during one call to this function.  this is currently disallowed because of
+    // ---- data movement issues into and out of the computation, it is not a communicator problem
+    // ---- this resctriction could be removed if there is a valid use case
+    if(m_MyId_all == 0 && m_nProcs_comp > 0) {
+      Array<int> oldCompRanks(m_nProcs_comp), oldCompRanksInAll(m_nProcs_comp);
+      for(int i(0); i < oldCompRanksInAll.size(); ++i) {
+        oldCompRanks[i] = i;
+      }
+      if(m_group_comp != MPI_GROUP_NULL && m_group_comp != m_group_all) {
+        BL_MPI_REQUIRE( MPI_Group_translate_ranks(m_group_comp, oldCompRanks.size(), oldCompRanks.dataPtr(),
+                                                  m_group_all,  oldCompRanksInAll.dataPtr()) );
+      }
+      std::set<int> ocrSet, criaSet;
+      for(int i(0); i < oldCompRanksInAll.size(); ++i) {
+	ocrSet.insert(oldCompRanksInAll[i]);
+        if(printRanks) {
+          std::cout << "oooo i oldCompRanks[i] oldCompRanksInAll[i] = " << i << "  "
+                    << oldCompRanks[i] << "  " << oldCompRanksInAll[i] << std::endl;
+	}
+      }
+      for(int i(0); i < compRanksInAll.size(); ++i) {
+	criaSet.insert(compRanksInAll[i]);
+      }
+
+      for(int i(0); i < oldCompRanksInAll.size(); ++i) {
+        if(criaSet.find(oldCompRanksInAll[i]) != criaSet.end()) {  // ---- erase from both sets
+	  criaSet.erase(oldCompRanksInAll[i]);
+	  ocrSet.erase(oldCompRanksInAll[i]);
+	}
+      }
+      if(printRanks) {
+        std::cout << "criaSet.size() ocrSet.size() = " << criaSet.size() << "  " << ocrSet.size() << std::endl;
+        std::set<int>::iterator it;
+        for(it = criaSet.begin(); it != criaSet.end(); ++it) {
+          std::cout << "criaSet = " << *it << std::endl;
+        }
+        for(it = ocrSet.begin(); it != ocrSet.end(); ++it) {
+          std::cout << "ocrSet = " << *it << std::endl;
+        }
+      }
+      if(ocrSet.size() > 0 && criaSet.size() > 0) {  // ---- this is currently not allowed
+        BoxLib::Abort("**** Error in SetNProcsSidecars:  adding and removing ranks from comp not supported.");
+      }
+    }
+
+    // ---- print the ranks
+    if(m_MyId_all == 0 && printRanks) {
+      std::cout << "cccc nCompProcs = " << compRanksInAll.size() << std::endl;
+      for(int i(0); i < compRanksInAll.size(); ++i) {
+        std::cout << "cccc cccc compRanksInAll[" << i << "] = " << compRanksInAll[i] << std::endl;
+      }
+      std::cout << "ssss nSidecars = " << sidecarRanksInAll.size() << std::endl;
+      for(int i(0); i < sidecarRanksInAll.size(); ++i) {
+        std::cout << "ssss ssss sidecar[" << i << "].size() = " << sidecarRanksInAll[i].size() << std::endl;
+        for(int j(0); j < sidecarRanksInAll[i].size(); ++j) {
+          std::cout << "ssss ssss ssss sidecarRanksInAll[" << i << "][" << j << "] = "
+	            << sidecarRanksInAll[i][j] << std::endl;
+        }
+      }
+    }
+
+
+    // ---- free existing groups and communicators and reinitialize values
+    if(m_comm_comp != MPI_COMM_NULL && m_comm_comp != m_comm_all) {
+      BL_MPI_REQUIRE( MPI_Comm_free(&m_comm_comp) );
+      m_comm_comp = MPI_COMM_NULL;
+    }
+    for(int i(0); i < m_comm_sidecar.size(); ++i) {
+      if(m_comm_sidecar[i] != MPI_COMM_NULL) {
+        BL_MPI_REQUIRE( MPI_Comm_free(&m_comm_sidecar[i]) );
+        m_comm_sidecar[i] = MPI_COMM_NULL;
+      }
+    }
+    m_comm_sidecar.clear();
+
+    for(int i(0); i < m_comm_inter.size(); ++i) {
+      if(m_comm_inter[i] != MPI_COMM_NULL) {
+        BL_MPI_REQUIRE( MPI_Comm_free(&m_comm_inter[i]) );
+      }
+    }
+    m_comm_inter.clear();
+
+    for(int i(0); i < m_comm_both.size(); ++i) {
+      if(m_comm_both[i] != MPI_COMM_NULL) {
+        BL_MPI_REQUIRE( MPI_Comm_free(&m_comm_both[i]) );
+      }
+    }
+    m_comm_both.clear();
+
+    if(m_comm_sub != MPI_COMM_NULL && m_comm_sub != commTemp) {
+      BL_MPI_REQUIRE( MPI_Comm_free(&m_comm_sub) );
+      m_comm_sub = MPI_COMM_NULL;
+    }
+
+    if(m_group_comp != MPI_GROUP_NULL && m_group_comp != m_group_all) {
+      BL_MPI_REQUIRE( MPI_Group_free(&m_group_comp) );
+      m_group_comp = MPI_GROUP_NULL;
+    }
+    for(int i(0); i < m_group_sidecar.size(); ++i) {
+      if(m_group_sidecar[i] != MPI_GROUP_NULL) {
+        BL_MPI_REQUIRE( MPI_Group_free(&m_group_sidecar[i]) );
+      }
+    }
+    m_group_sidecar.clear();
+
+    m_nProcs_comp = nProcs_undefined;
+    m_MyId_comp   = myId_undefined;
+    m_nProcs_sidecar.clear();
+    m_MyId_sidecar = myId_undefined;
+
+
+    // ---- now create new groups and communicators
+    if(nSidecars > 0) {
+      m_nProcs_sidecar.resize(nSidecars, nProcs_undefined);
+      m_group_sidecar.resize(nSidecars, MPI_GROUP_NULL);
+      m_comm_sidecar.resize(nSidecars, MPI_COMM_NULL);
+
+      BL_MPI_REQUIRE( MPI_Group_incl(m_group_all, compRanksInAll.size(), compRanksInAll.dataPtr(), &m_group_comp) );
+      BL_MPI_REQUIRE( MPI_Comm_create(m_comm_all, m_group_comp, &m_comm_comp) );
+
+      for(int i(0); i < sidecarRanksInAll.size(); ++i) {
+	if(sidecarRanksInAll[i].size() > 0) {
+          BL_MPI_REQUIRE( MPI_Group_incl(m_group_all, sidecarRanksInAll[i].size(), sidecarRanksInAll[i].dataPtr(),
+	                                 &m_group_sidecar[i]) );
+          BL_MPI_REQUIRE( MPI_Comm_create(m_comm_all, m_group_sidecar[i], &m_comm_sidecar[i]) );
+          BL_MPI_REQUIRE( MPI_Group_size(m_group_sidecar[i], &m_nProcs_sidecar[i]) );
+	  BL_ASSERT(m_nProcs_sidecar[i] == sidecarRanksInAll[i].size());
+	} else {
+          m_nProcs_sidecar[i] = 0;
+	}
+      }
+      BL_MPI_REQUIRE( MPI_Group_size(m_group_comp, &m_nProcs_comp) );
+    } else {
+      m_comm_comp   = m_comm_all;
+      m_group_comp  = m_group_all;
+      m_nProcs_comp = m_nProcs_all;
+    }
+
+    if(nSidecars > tagBuffer) {
+      tagBuffer = nSidecars;
+      m_MaxTag = m_MaxTag_MPI - tagBuffer;
+      m_MaxTag = std::max(m_MaxTag, 9000);
+      BL_COMM_PROFILE_TAGRANGE(m_MinTag, m_MaxTag);
+    }
+
+    // ---- create the inter communicators, but only between comp and each sidecar
+    // ---- the user will have to create any sidecar to sidecar communicators
+    if(nSidecars > 0) {
+      m_comm_inter.resize(nSidecars, MPI_COMM_NULL);
+      for(int i(0); i < sidecarRanksInAll.size(); ++i) {
+	if(sidecarRanksInAll[i].size() > 0) {
+          int tag(m_MaxTag + 1 + i);
+
+          if(inComp) {                          // ---- in the computation group
+	    if(inWhichSidecar >= 0) {
+              BoxLib::Abort("**** Error 0:  bad inWhichSidecar in SetNProcsSidecars()");
+	    }
+            BL_MPI_REQUIRE( MPI_Group_rank(m_group_comp, &m_MyId_comp) );
+            BL_MPI_REQUIRE( MPI_Intercomm_create(m_comm_comp, 0, m_comm_all, sidecarRanksInAll[i][0],
+	                         tag, &m_comm_inter[i]) );
+	    m_MyId_sidecar = myId_notInGroup;
+          } else {                              // ---- in a sidecar group
+	    if(inWhichSidecar < 0) {
+              BoxLib::Abort("**** Error 1:  bad inWhichSidecar in SetNProcsSidecars()");
+	    }
+	    if(inWhichSidecar == i) {
+              BL_MPI_REQUIRE( MPI_Group_rank(m_group_sidecar[i], &m_MyId_sidecar) );
+              BL_MPI_REQUIRE( MPI_Intercomm_create(m_comm_sidecar[i], 0, m_comm_all, 0, tag, &m_comm_inter[i]) );
+	    } else {
+              if(m_MyId_sidecar == myId_undefined) {
+	        m_MyId_sidecar = myId_notInGroup;
+	      }
+	    }
+	    m_MyId_comp = myId_notInGroup;
+          }
+	}
+      }
+    } else {
+      m_MyId_comp = m_MyId_all;
+      m_MyId_sidecar = myId_notInGroup;
+    }
+
+    // ---- create communicator spanning comp and each sidecar
+    if(nSidecars > 0) {
+      m_comm_both.resize(nSidecars, MPI_COMM_NULL);
+      for(int i(0); i < m_group_sidecar.size(); ++i) {
+	MPI_Group groupBoth;
+        BL_MPI_REQUIRE( MPI_Group_union(m_group_comp, m_group_sidecar[i], &groupBoth) );
+        BL_MPI_REQUIRE( MPI_Comm_create(m_comm_all, groupBoth, &m_comm_both[i]) );
+      }
+    }
+
+    // ---- recreate the color sub communicator
+    if(m_nCommColors > 1) {
+      m_nProcs_sub = m_nProcs_comp / m_nCommColors;
+      if (m_nProcs_sub * m_nCommColors != m_nProcs_comp) {
+        BoxLib::Abort("# of processors is not divisible by boxlib.ncolors");
+      }
+      m_MyCommSubColor  = Color(MyProc()/m_nProcs_sub);
+      m_MyCommCompColor = Color(m_nCommColors);  // special color for CommComp color
+
+      BL_MPI_REQUIRE( MPI_Comm_split(Communicator(), m_MyCommSubColor.to_int(), MyProc(), &m_comm_sub) );
+      BL_MPI_REQUIRE( MPI_Comm_rank(m_comm_sub, &m_MyId_sub) );
+    } else {
+      m_nProcs_sub  = NProcs();
+      m_MyCommSubColor = Color(0);
+      m_MyCommCompColor = Color(0);
+      m_comm_sub    = Communicator();
+      m_MyId_sub    = MyProc();
+    }
+
+
+    // ---- more error checking
     if(m_MyId_all     == myId_undefined ||
        m_MyId_comp    == myId_undefined ||
        m_MyId_sidecar == myId_undefined)
     {
       std::cerr << "m_MyId_all m_MyId_comp m_MyId_sidecar = " << m_MyId_all << "  "
 	          << m_MyId_comp << "  " << m_MyId_sidecar << std::endl;
-      BoxLib::Abort("**** Error:  bad MyId in ParallelDescriptor::StartParallel()");
+      BoxLib::Abort("**** Error 2:  bad MyId in ParallelDescriptor::SetNProcsSidecars()");
     }
-    if(m_nProcs_all     == nProcs_undefined ||
-       m_nProcs_comp    == nProcs_undefined ||
-       m_nProcs_sidecar == nProcs_undefined ||
-       (m_nProcs_comp + m_nProcs_sidecar != m_nProcs_all))
+    if(m_nProcs_all  == nProcs_undefined ||
+       m_nProcs_comp == nProcs_undefined)
     {
-      std::cerr << "m_nProcs_all m_nProcs_comp m_nProcs_sidecar = " << m_nProcs_all << "  "
-	          << m_nProcs_comp << "  " << m_nProcs_sidecar << std::endl;
-      BoxLib::Abort("**** Error:  bad nProcs in ParallelDescriptor::StartParallel()");
+      std::cerr << "m_nProcs_all m_nProcs_comp = " << m_nProcs_all << "  "
+	          << m_nProcs_comp << std::endl;
+      BoxLib::Abort("**** Error 3:  bad nProcs in ParallelDescriptor::SetNProcsSidecars()");
     }
+    int nSCSum(0);
+    for(int i(0); i < sidecarRanksInAll.size(); ++i) {
+      nSCSum += sidecarRanksInAll[i].size();
+      if(m_nProcs_sidecar[i] == nProcs_undefined) {
+        std::cerr << "m_nProcs_sidecar[" << i << "] = " << m_nProcs_sidecar[i] << std::endl;
+        BoxLib::Abort("**** Error 4:  bad m_nProcs_sidecar in ParallelDescriptor::SetNProcsSidecars()");
+      }
+    }
+    if(m_nProcs_comp + nSCSum != m_nProcs_all) {
+      std::cerr << "m_nProcs_all m_nProcs_comp + nSCSum = " << m_nProcs_all << "  "
+                << m_nProcs_comp + nSCSum << std::endl;
+      BoxLib::Abort("**** Error 5:  bad nProcs in ParallelDescriptor::SetNProcsSidecars()");
+    }
+
+#ifdef BL_USE_FORTRAN_MPI
+if(nSidecars > 0) {
+    int fcomma = MPI_Comm_c2f(m_comm_all);
+    int fcommc = MPI_Comm_c2f(m_comm_comp);
+    Array<int> fcomms(nSidecars, -1);
+    for(int i(0); i < fcomms.size(); ++i) {
+      fcomms[i] = MPI_Comm_c2f(m_comm_sidecar[i]);
+    }
+    int fgrpa  = MPI_Group_c2f(m_group_all);
+    int fgrpc  = MPI_Group_c2f(m_group_comp);
+    Array<int> fgrps(nSidecars, -2);
+    for(int i(0); i < fgrps.size(); ++i) {
+      fgrps[i] = MPI_Group_c2f(m_group_sidecar[i]);
+    }
+    bl_fortran_set_nprocs_sidecar(nSidecars, inWhichSidecar,
+                                  m_nProcs_all, m_nProcs_comp, m_nProcs_sidecar.dataPtr(),
+                                  fcomma, fcommc, fcomms.dataPtr(),
+                                  fgrpa, fgrpc, fgrps.dataPtr(),
+                                  m_MyId_all, m_MyId_comp, m_MyId_sidecar);
+}
+#endif
+
+    ParallelDescriptor::EndTeams();
+    ParallelDescriptor::EndSubCommunicator();
+
+    ParallelDescriptor::StartTeams();
+    ParallelDescriptor::StartSubCommunicator();
+
+
 }
 
 void
-ParallelDescriptor::EndParallel ()
+ParallelDescriptor::SetNProcsSidecars (int nscp)
 {
-    BL_ASSERT(m_MyId_all != -1);
-    BL_ASSERT(m_nProcs_all != -1);
+    BL_ASSERT(nscp >= 0);
+    BL_ASSERT(nscp < m_nProcs_all);
+    int nSidecarProcs(nscp);
 
-    MPI_Group_free(&m_group_all);
+    Array<int> compRanksInAll(m_nProcs_all - nSidecarProcs, nProcs_undefined);
+    Array<Array<int> >sidecarRanksInAll;
 
-    BL_MPI_REQUIRE( MPI_Finalize() );
+    for(int ip(0); ip < compRanksInAll.size(); ++ip) {
+      compRanksInAll[ip] = ip;
+    }
+
+    if(nSidecarProcs > 0) {
+      int whichSidecar(0);
+      sidecarRanksInAll.resize(1);
+      sidecarRanksInAll[whichSidecar].resize(nSidecarProcs, nProcs_undefined);
+      for(int ip(0); ip < nSidecarProcs; ++ip) {
+        sidecarRanksInAll[whichSidecar][ip] = m_nProcs_all - nSidecarProcs + ip;
+      }
+    }
+
+    SetNProcsSidecars(compRanksInAll, sidecarRanksInAll);
 }
 
 void
@@ -422,7 +731,10 @@ void
 ParallelDescriptor::EndSubCommunicator ()
 {
     if (m_nCommColors > 1) {
-	MPI_Comm_free(&m_comm_sub);
+      if(m_comm_sub != MPI_COMM_NULL && m_comm_sub != Communicator()) {
+	BL_MPI_REQUIRE( MPI_Comm_free(&m_comm_sub) );
+        m_comm_sub = MPI_COMM_NULL;
+      }
     }
 }
 
@@ -448,7 +760,7 @@ ParallelDescriptor::Barrier (const std::string &message)
 }
 
 void
-ParallelDescriptor::Barrier (MPI_Comm comm, const std::string &message)
+ParallelDescriptor::Barrier (const MPI_Comm &comm, const std::string &message)
 {
 #ifdef BL_LAZY
     int r;
@@ -1579,8 +1891,6 @@ ParallelDescriptor::StartParallel (int*    argc,
 {
     m_nProcs_all     = 1;
     m_nProcs_comp    = 1;
-    m_nProcs_sidecar = 0;
-    nSidecarProcs    = 0;
 
     m_MyId_all     = 0;
     m_MyId_comp    = 0;
@@ -1588,8 +1898,6 @@ ParallelDescriptor::StartParallel (int*    argc,
 
     m_comm_all     = 0;
     m_comm_comp    = 0;
-    m_comm_sidecar = 0;
-    m_comm_inter   = 0;
 
     m_MaxTag    = 9000;
 }
@@ -1654,7 +1962,7 @@ void ParallelDescriptor::Abort (int)
 const char* ParallelDescriptor::ErrorString (int) { return ""; }
 
 void ParallelDescriptor::Barrier (const std::string &message) {}
-void ParallelDescriptor::Barrier (MPI_Comm, const std::string &message) {}
+void ParallelDescriptor::Barrier (const MPI_Comm &comm, const std::string &message) {}
 
 void ParallelDescriptor::Test (MPI_Request&, int&, MPI_Status&) {}
 void ParallelDescriptor::IProbe (int, int, int&, MPI_Status&) {}
@@ -1743,16 +2051,38 @@ ParallelDescriptor::Waitsome (Array<MPI_Request>& reqs,
 // This function is the same whether or not we're using MPI.
 //
 int
-ParallelDescriptor::SeqNum ()
+ParallelDescriptor::SeqNum (int getsetinc, int newvalue)
 {
     static int seqno = m_MinTag;
     int result = seqno;
 
-    if (NColors() == 1) { 
-	++seqno;
-    } else {
-	seqno += 2;
-    } 
+    switch(getsetinc) {
+      case 0:  // ---- increment and return result
+      {
+        if (NColors() == 1) { 
+	    ++seqno;
+        } else {
+	    seqno += 2;
+        } 
+      }
+      break;
+      case 1:  // ---- get current seqno
+      {
+        result = seqno;
+      }
+      break;
+      case 2:  // ---- set current seqno
+      {
+	seqno = newvalue;
+        result = seqno;
+      }
+      break;
+      default:  // ---- error
+      {
+	BoxLib::Abort("**** Error in ParallelDescriptor::SeqNum:  bad getsetinc.");
+        result = -1;
+      }
+    }
 
     if (seqno > m_MaxTag) {
 	seqno = m_MinTag;
@@ -1762,18 +2092,39 @@ ParallelDescriptor::SeqNum ()
     return result;
 }
 
-// FIXME: Does COMM_PROFILE work with these two SeqNum functions?
 
 int
-ParallelDescriptor::SubSeqNum ()
+ParallelDescriptor::SubSeqNum (int getsetinc, int newvalue)
 {
-    static int seqno = m_MinTag+1;    
+    static int seqno = m_MinTag + 1;    
     int result = seqno;
 
-    seqno += 2;
+    switch(getsetinc) {
+      case 0:  // ---- increment and return result
+      {
+	seqno += 2;
+      }
+      break;
+      case 1:  // ---- get current seqno
+      {
+        result = seqno;
+      }
+      break;
+      case 2:  // ---- set current seqno
+      {
+	seqno = newvalue;
+        result = seqno;
+      }
+      break;
+      default:  // ---- error
+      {
+	BoxLib::Abort("**** Error in ParallelDescriptor::SeqNum:  bad getsetinc.");
+        result = -1;
+      }
+    }
 
     if (seqno > m_MaxTag) {
-	seqno = m_MinTag+1;
+	seqno = m_MinTag + 1;
 	BL_COMM_PROFILE_TAGWRAP();
     }
 
@@ -1991,41 +2342,6 @@ ParallelDescriptor::ReadAndBcastFile (const std::string& filename,
     ParallelDescriptor::Bcast(charBuf.dataPtr(), fileLengthPadded,
                               ParallelDescriptor::IOProcessorNumber(), comm);
     charBuf[fileLength] = '\0';
-}
-
-
-void
-ParallelDescriptor::SidecarProcess ()
-{
-#ifdef IN_TRANSIT
-#ifdef BL_USE_MPI
-    bool finished(false);
-    int signal(-1);
-    while (!finished)
-    {
-        // Receive the signal from the compute group.
-        ParallelDescriptor::Bcast(&signal, 1, 0, ParallelDescriptor::CommunicatorInter());
-
-        // Process the  signal with the set of user-provided signal handlers
-        for (ParallelDescriptor::SH_LIST::iterator it=The_Signal_Handler_List.begin();
-             it != The_Signal_Handler_List.end() && signal != ParallelDescriptor::SidecarQuitSignal;
-             ++it)
-        {
-          signal = (* *it)(signal);
-        }
-
-        if (signal == ParallelDescriptor::SidecarQuitSignal)
-        {
-            if (ParallelDescriptor::IOProcessor())
-                std::cout << "Sidecars received the quit signal." << std::endl;
-            finished = true;
-            break;
-        }
-    }
-    if (ParallelDescriptor::IOProcessor())
-      std::cout << "===== SIDECARS DONE. EXITING ... =====" << std::endl;
-#endif
-#endif
 }
 
 

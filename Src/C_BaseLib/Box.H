@@ -9,6 +9,7 @@
 #include <IndexType.H>
 #include <Orientation.H>
 #include <SPACE.H>
+#include <Array.H>
 //
 // Forward declaration.
 //
@@ -136,6 +137,10 @@ namespace BoxLib
     // Both Boxes must have identical type.
     //
     Box minBox (const Box& b1, const Box& b2);
+
+    Array<int> SerializeBox(const Box &b);
+    int SerializeBoxSize();
+    Box UnSerializeBox(const Array<int> &serarray);
 }
 
 //

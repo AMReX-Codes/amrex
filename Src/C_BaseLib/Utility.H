@@ -10,6 +10,7 @@
 
 #ifndef WIN32
 #include <sys/types.h>
+#include <unistd.h>
 #if !defined(COLUMBIA)
 #include <sys/wait.h>
 #endif
@@ -18,6 +19,10 @@
 #include <BLassert.H>
 #include <REAL.H>
 #include <Array.H>
+#include <Box.H>
+#include <BoxArray.H>
+#include <DistributionMapping.H>
+#include <ParallelDescriptor.H>
 
 //
 // Useful C++ Utility Functions
@@ -233,10 +238,16 @@ namespace BoxLib
 
     void RestoreRandomState (const Array<unsigned long>& state);
     //
-    // Create a unique subset or random numbers from a pool
+    // Create a unique subset of random numbers from a pool
+    //   of integers in the range [0, poolSize - 1]
+    //   the set will be in the order they are found
     //   setSize must be <= poolSize
+    //   uSet will be resized to setSize
+    //   if you want all processors to have the same set,
+    //   call this on one processor and broadcast the array
     //
-    void UniqueRandomSubset (Array<int> &uSet, int setSize, int poolSize);
+    void UniqueRandomSubset (Array<int> &uSet, int setSize, int poolSize,
+                             bool printSet = false);
     //
     // Helper class for Times, used in Threads, Profiling, and Timers.
     //
@@ -365,6 +376,8 @@ namespace BoxLib
 	static int nStreamErrors;
     };
 
+    Array<char> SerializeStringArray(const Array<std::string> &stringArray);
+    Array<std::string> UnSerializeStringArray(const Array<char> &charArray);
     void SyncStrings(const Array<std::string> &localStrings,
                      Array<std::string> &syncedStrings, bool &alreadySynced);
 
@@ -376,7 +389,34 @@ namespace BoxLib
     static const long gcc_map_node_extra_bytes = 32L;
     template <typename T> long bytesOf (const std::vector<T>& v);
     template <typename Key, typename T, class Compare> long bytesOf (const std::map<Key,T,Compare>& m);
+
+    template<class T> void BroadcastArray(Array<T> &aT, int myLocalId, int rootId, const MPI_Comm &localComm);
+    void BroadcastBox(Box &bB, int myLocalId, int rootId, const MPI_Comm &localComm);
+    void BroadcastBoxArray(BoxArray &bBA, int myLocalId, int rootId, const MPI_Comm &localComm);
+    void BroadcastDistributionMapping(DistributionMapping &dM, int sentinelProc,
+                                      int myLocalId, int rootId, const MPI_Comm &localComm,
+				      bool addToCache);
+    const unsigned int msps(1000000);
+    void USleep(double sleepsec);
+
 }
+
+template<class T> void BoxLib::BroadcastArray(Array<T> &aT, int myLocalId, int rootId, const MPI_Comm &localComm)
+{
+  int aT_Size(-2);
+  if(myLocalId == rootId) {
+    aT_Size = aT.size();
+  }
+  ParallelDescriptor::Bcast(&aT_Size, 1, rootId, localComm);
+  BL_ASSERT(aT_Size >= 0);
+  if(myLocalId != rootId) {
+    aT.resize(aT_Size);
+  }
+  if(aT_Size > 0) {
+    ParallelDescriptor::Bcast(aT.dataPtr(), aT.size(), rootId, localComm);
+  }
+}
+
 
 //
 // I'm going to document right here all the BL macros that aren't documented

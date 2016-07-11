@@ -31,6 +31,8 @@ IntVect FabArrayBase::comm_tile_size(D_DECL(1024000, 8, 8));
 IntVect FabArrayBase::mfghostiter_tile_size(D_DECL(1024000, 8, 8));
 
 int FabArrayBase::nFabArrays(0);
+int FabArrayBase::fb_cache_max_size(0);
+int FabArrayBase::copy_cache_max_size(0);
 
 FabArrayBase::TACache              FabArrayBase::m_TheTileArrayCache;
 FabArrayBase::FBCache              FabArrayBase::m_TheFBCache;
@@ -49,11 +51,19 @@ FabArrayBase::FabArrayStats        FabArrayBase::m_FA_stats;
 namespace
 {
     bool initialized = false;
-    //
-    // Set default values in Initialize()!!!
-    //
-    int fb_cache_max_size;
-    int copy_cache_max_size;
+}
+
+
+bool
+FabArrayBase::IsInitialized () const
+{
+  return initialized;
+}
+
+void
+FabArrayBase::SetInitialized (bool binit)
+{
+  initialized = binit;
 }
 
 void
@@ -127,7 +137,8 @@ FabArrayBase::Initialize ()
 FabArrayBase::FabArrayBase ()
 {
     Initialize();
-    faID = nFabArrays++;
+    aFAPId = nFabArrays++;
+    aFAPIdLock = 0;  // ---- not locked
 }
 
 FabArrayBase::~FabArrayBase () {}
@@ -307,7 +318,17 @@ FabArrayBase::CPC::operator== (const CPC& rhs) const
 FabArrayBase::CPCCacheIter
 FabArrayBase::TheCPC (const CPC&          cpc,
                       const FabArrayBase& dst,
-                      const FabArrayBase& src)
+                      const FabArrayBase& src,
+		      const int MyProc)
+{
+  return FabArrayBase::TheCPC(cpc, dst.IndexArray(), src.IndexArray(), MyProc);
+}
+
+FabArrayBase::CPCCacheIter
+FabArrayBase::TheCPC (const CPC        &cpc,
+                      const Array<int> &dstIndexArray,
+                      const Array<int> &srcIndexArray,
+		      const int MyProc)
 {
     BL_PROFILE("FabArrayBase::TheCPC()");
 
@@ -379,7 +400,6 @@ FabArrayBase::TheCPC (const CPC&          cpc,
     //
     CPCCacheIter cache_it = TheCopyCache.insert(CPCCache::value_type(Key,cpc));
     CPC&         TheCPC   = cache_it->second;
-    const int    MyProc   = ParallelDescriptor::MyProc();
     //
     // Here's where we allocate memory for the cache innards.
     // We do this so we don't have to build objects of these types
@@ -397,7 +417,7 @@ FabArrayBase::TheCPC (const CPC&          cpc,
     m_CPC_stats.recordBuild();
     m_CPC_stats.recordUse();
 
-    if (dst.IndexMap().empty() && src.IndexMap().empty()) {
+    if (dstIndexArray.empty() && srcIndexArray.empty()) {
         //
         // We don't own any of the relevant FABs so can't possibly have any work to do.
         //
@@ -410,14 +430,14 @@ FabArrayBase::TheCPC (const CPC&          cpc,
 
     const BoxArray& ba_src = TheCPC.m_srcba;
     const DistributionMapping& dm_src = TheCPC.m_srcdm;
-    const Array<int>& imap_src = src.IndexMap();
+    const Array<int>& imap_src = srcIndexArray;
     const int nlocal_src = imap_src.size();
     const int ng_src = TheCPC.m_srcng;
 
     const BoxArray& ba_dst = TheCPC.m_dstba;
     const DistributionMapping& dm_dst = TheCPC.m_dstdm;
-    const Array<int>& imap_dst = dst.IndexMap();
-    const int nlocal_dst = dst.IndexMap().size();
+    const Array<int>& imap_dst = dstIndexArray;
+    const int nlocal_dst = imap_dst.size();
     const int ng_dst = TheCPC.m_dstng;
 
     std::vector< std::pair<int,Box> > isects;
@@ -483,7 +503,7 @@ FabArrayBase::TheCPC (const CPC&          cpc,
 	    const Box& bx       = isects[j].second;
 	    const int src_owner = dm_src[k_src];
 
-	    if (ParallelDescriptor::sameTeam(src_owner)) { // local copy
+	    if (ParallelDescriptor::sameTeam(src_owner, MyProc)) { // local copy
 		const BoxList tilelist(bx, FabArrayBase::comm_tile_size);
 		for (BoxList::const_iterator
 			 it_tile  = tilelist.begin(),
@@ -732,7 +752,7 @@ FabArrayBase::TheFB (bool                cross,
     const int                  MyProc   = ParallelDescriptor::MyProc();
     const BoxArray&            ba       = mf.boxArray();
     const DistributionMapping& dm       = mf.DistributionMap();
-    const Array<int>&          imap     = mf.IndexMap();
+    const Array<int>&          imap     = mf.IndexArray();
     //
     // Here's where we allocate memory for the cache innards.
     // We do this so we don't have to build objects of these types
@@ -1240,7 +1260,7 @@ void
 FabArrayBase::buildTileArray (const IntVect& tileSize, TileArray& ta) const
 {
     // Note that we store Tiles always as cell-centered boxes, even if the boxarray is nodal.
-    const int N = indexMap.size();
+    const int N = indexArray.size();
 
     if (tileSize == IntVect::TheZeroVector())
     {
@@ -1248,7 +1268,7 @@ FabArrayBase::buildTileArray (const IntVect& tileSize, TileArray& ta) const
 	{
 	    if (isOwner(i))
 	    {
-		const int K = indexMap[i]; 
+		const int K = indexArray[i]; 
 		const Box& bx = boxarray.getCellCenteredBox(K);
 		ta.indexMap.push_back(K);
 		ta.localIndexMap.push_back(i);
@@ -1280,7 +1300,7 @@ FabArrayBase::buildTileArray (const IntVect& tileSize, TileArray& ta) const
 	for (std::vector<int>::const_iterator it = local_idxs.begin(); it != local_idxs.end(); ++it)
 	{
 	    const int i = *it;         // local index 
-	    const int K = indexMap[i]; // global index
+	    const int K = indexArray[i]; // global index
 	    const Box& bx = boxarray.getCellCenteredBox(K);
 	    
 	    IntVect nt_in_fab, tsize, nleft;
@@ -1482,7 +1502,7 @@ MFIter::Initialize ()
     }
     else if (flags & AllBoxes)  // a very special case
     {
-	index_map    = &(fabArray.IndexMap());
+	index_map    = &(fabArray.IndexArray());
 	currentIndex = 0;
 	beginIndex   = 0;
 	endIndex     = index_map->size();
@@ -1686,8 +1706,8 @@ MFGhostIter::Initialize ()
     Array<int> allindex;
     Array<int> alllocalindex;
 
-    for (int i=0; i < fabArray.IndexMap().size(); ++i) {
-	int K = fabArray.IndexMap()[i];
+    for (int i=0; i < fabArray.IndexArray().size(); ++i) {
+	int K = fabArray.IndexArray()[i];
 	const Box& vbx = fabArray.box(K);
 	const Box& fbx = fabArray.fabbox(K);
 

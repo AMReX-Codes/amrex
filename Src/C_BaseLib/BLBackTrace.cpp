@@ -32,7 +32,9 @@ BLBackTrace::handler(int s)
     std::string errfilename;
     {
 	std::ostringstream ss;
-	ss << "Backtrace." << ParallelDescriptor::MyProc();
+	// ---- rank global (rg) and rank local (rl)
+	ss << "Backtrace.rg_" << ParallelDescriptor::MyProcAll()
+	   << "_rl_" << ParallelDescriptor::MyProc();
 #ifdef _OPENMP
  	ss << "." << omp_get_thread_num();
 #endif

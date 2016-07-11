@@ -1139,59 +1139,60 @@ BoxArray::getRefID () const
 
 #ifdef BL_USE_MPI
 void
-BoxArray::SendBoxArrayToSidecars(BoxArray *ba)
+BoxArray::SendBoxArray(const BoxArray &ba, int whichSidecar)
 {
     const int MPI_IntraGroup_Broadcast_Rank = ParallelDescriptor::IOProcessor() ? MPI_ROOT : MPI_PROC_NULL;
+    Array<int> ba_serial = BoxLib::SerializeBoxArray(ba);
+    int ba_serial_size = ba_serial.size();
+    ParallelDescriptor::Bcast(&ba_serial_size, 1, MPI_IntraGroup_Broadcast_Rank,
+                              ParallelDescriptor::CommunicatorInter(whichSidecar));
+    ParallelDescriptor::Bcast(ba_serial.dataPtr(), ba_serial_size, MPI_IntraGroup_Broadcast_Rank,
+                              ParallelDescriptor::CommunicatorInter(whichSidecar));
+}
 
-    if (ParallelDescriptor::InCompGroup())
-    {
-        int ba_size = ba->size();
-        ParallelDescriptor::Bcast(&ba_size, 1, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
-
-	const IntVect& index_type = ba->ixType().ixType();
-	ParallelDescriptor::Bcast(const_cast<int*>(index_type.getVect()), BL_SPACEDIM, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());	
-
-	for (int i = 0; i < ba_size; ++i)
-        {
-	    const Box& bx = ba->getCellCenteredBox(i);
-            const int *smallEnd =bx.smallEnd().getVect();
-            const int *bigEnd = bx.bigEnd().getVect();
-
-            // getVect() requires a constant pointer, but MPI buffers require
-            // non-constant pointers. Sorry this is awful.
-            ParallelDescriptor::Bcast(const_cast<int*>(smallEnd)        , BL_SPACEDIM, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
-            ParallelDescriptor::Bcast(const_cast<int*>(bigEnd)          , BL_SPACEDIM, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
-        }
-    }
-    else
-    {
-        BoxList bl;
-        int ba_size;
-        ParallelDescriptor::Bcast(&ba_size, 1, 0, ParallelDescriptor::CommunicatorInter());
-        if (ParallelDescriptor::IOProcessor()) std::cout << "receiving " << ba_size << " boxes ... ";
-
-        int box_index_type[BL_SPACEDIM];
-	ParallelDescriptor::Bcast(box_index_type, BL_SPACEDIM, 0, ParallelDescriptor::CommunicatorInter());
-	const IntVect box_index_type_IV(box_index_type);
-
-        int smallEnd[BL_SPACEDIM];
-        int bigEnd[BL_SPACEDIM];
-        for (unsigned int i=0; i<ba_size; ++i)
-        {
-            ParallelDescriptor::Bcast(smallEnd      , BL_SPACEDIM, 0, ParallelDescriptor::CommunicatorInter());
-            ParallelDescriptor::Bcast(bigEnd        , BL_SPACEDIM, 0, ParallelDescriptor::CommunicatorInter());
-
-            const IntVect smallEnd_IV(smallEnd);
-            const IntVect bigEnd_IV(bigEnd);
-
-            Box tmp_box(smallEnd_IV, bigEnd_IV, box_index_type_IV);
-            bl.push_back(tmp_box);
-        }
-        ba->define(bl);
-        if (ParallelDescriptor::IOProcessor()) std::cout << "done!" << std::endl;
-    }
+void
+BoxArray::RecvBoxArray(BoxArray &ba, int whichSidecar)
+{
+    int ba_serial_size;
+    ParallelDescriptor::Bcast(&ba_serial_size, 1, 0,
+                              ParallelDescriptor::CommunicatorInter(whichSidecar));
+    Array<int> ba_serial(ba_serial_size);
+    ParallelDescriptor::Bcast(ba_serial.dataPtr(), ba_serial_size, 0,
+                              ParallelDescriptor::CommunicatorInter(whichSidecar));
+    ba = BoxLib::UnSerializeBoxArray(ba_serial);
 }
 #endif
+
+
+Array<int> BoxLib::SerializeBoxArray(const BoxArray &ba)
+{
+  int nIntsInBox(3 * BL_SPACEDIM);
+  Array<int> retArray(ba.size() * nIntsInBox, -1);
+  for(int i(0); i < ba.size(); ++i) {
+    Array<int> aiBox(BoxLib::SerializeBox(ba[i]));
+    BL_ASSERT(aiBox.size() == nIntsInBox);
+    for(int j(0); j < aiBox.size(); ++j) {
+      retArray[i * aiBox.size() + j] = aiBox[j];
+    }
+  }
+  return retArray;
+}
+
+
+BoxArray BoxLib::UnSerializeBoxArray(const Array<int> &serarray)
+{
+  int nIntsInBox(3 * BL_SPACEDIM);
+  int nBoxes(serarray.size() / nIntsInBox);
+  BoxArray ba(nBoxes);
+  for(int i(0); i < nBoxes; ++i) {
+    Array<int> aiBox(nIntsInBox);
+    for(int j(0); j < nIntsInBox; ++j) {
+      aiBox[j] = serarray[i * nIntsInBox + j];
+    }
+    ba.set(i, BoxLib::UnSerializeBox(aiBox));
+  }
+  return ba;
+}
 
 
 void

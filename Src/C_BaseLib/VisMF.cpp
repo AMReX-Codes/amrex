@@ -742,8 +742,9 @@ VisMF::Write (const MultiFab&    mf,
                     //
                     FabFile.seekp(0, std::ios::end);
                 }
-                if (!FabFile.good())
+                if ( ! FabFile.good()) {
                     BoxLib::FileOpenFailed(FullName);
+		}
 
                 for (MFIter mfi(mf); mfi.isValid(); ++mfi)
                 {
@@ -758,8 +759,9 @@ VisMF::Write (const MultiFab&    mf,
             int iBuff     = 0;
             int wakeUpPID = (MyProc + nOutFiles);
             int tag       = (MyProc % nOutFiles);
-            if (wakeUpPID < NProcs)
+            if (wakeUpPID < NProcs) {
                 ParallelDescriptor::Send(&iBuff, 1, wakeUpPID, tag);
+	    }
         }
         if (MySet == (iSet + 1))
         {
