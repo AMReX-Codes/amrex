@@ -191,4 +191,14 @@ extern "C"
 	distro = new BLRngBinomial();
 	BLRng_restore(*distro, name);
     }
+
+    typedef struct {
+	BLRngEngine * eng;
+	BLRngUniformReal * dis;
+    } hg_rng_engine_t;
+    
+    void hg_genrand (double* rn, hg_rng_engine_t* rng)
+    {
+	*rn = BLRng_get<double>(*(rng->dis), *(rng->eng));
+    }
 }
