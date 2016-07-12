@@ -1404,7 +1404,7 @@ FabArrayBase::flushTileArrayCache ()
 void
 FabArrayBase::clearThisBD (bool no_assertion)
 {
-    if (! boxarray.empty() ) 
+    if ( ! boxarray.empty() ) 
     {
 	BL_ASSERT(no_assertion || getBDKey() == m_bdkey);
 
