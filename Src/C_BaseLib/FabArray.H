@@ -120,6 +120,23 @@ public:
     //
     int local_size () const { return indexMap.size(); }
     //
+    // Returns constant reference to indices in the FabArray that we have access
+    //
+    const Array<int>& IndexMap () const { return indexMap; }
+    //
+    // Returns local index in the vector of FABs.
+    //
+    int localindex (int K) const { 
+	std::vector<int>::const_iterator low
+	    = std::lower_bound(indexMap.begin(), indexMap.end(), K);
+	if (low != indexMap.end() && *low == K) {
+	    return low - indexMap.begin();
+	}
+	else {
+	    return -1;
+	}
+    }
+    //
     // Returns constant reference to associated DistributionMapping.
     //
     const DistributionMapping& DistributionMap () const { return distributionMap; }
@@ -518,29 +535,12 @@ protected:
     DistributionMapping& ModifyDistributionMap () { return distributionMap; }
 
     //
-    // Returns constant reference to indices in the FabArray that we have access
-    //
-    const Array<int>& IndexMap () const { return indexMap; }
-    //
     // Returns owenership of fabs. The concept of ownership only applies when UPC++
     // team is used. In that case, each fab is shared by team workers, with one
     // taking the ownership.
     //
     const std::vector<bool>& OwnerShip () const { return ownership; }
     bool isOwner (int li) const { return ownership[li]; }
-    //
-    // Returns local index in the vector of FABs.
-    //
-    int localindex (int K) const { 
-	std::vector<int>::const_iterator low
-	    = std::lower_bound(indexMap.begin(), indexMap.end(), K);
-	if (low != indexMap.end() && *low == K) {
-	    return low - indexMap.begin();
-	}
-	else {
-	    return -1;
-	}
-    }
 
     //
     // The data ...
