@@ -2486,7 +2486,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 		    BoxLib::The_Arena()->free(send_data[i]);
 #endif
 	    } else {
-		if (FabArrayBase::do_async_sends && !thecpc.m_SndTags->empty()) {
+		if (FabArrayBase::do_async_sends && ! thecpc.m_SndTags->empty()) {
 		    Array<MPI_Status> stats;
 		    FabArrayBase::GrokAsyncSends(thecpc.m_SndTags->size(),send_reqs,send_data,stats);
 		}
