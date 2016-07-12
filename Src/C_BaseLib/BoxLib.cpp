@@ -468,7 +468,7 @@ BoxLib::Finalize (bool finalize_parallel)
 #if defined(BL_USE_FORTRAN_MPI) || defined(BL_USE_F_INTERFACES)
 #ifdef IN_TRANSIT
 	int fcomm = MPI_Comm_c2f(ParallelDescriptor::Communicator());
-	bl_fortran_sidecar_mpi_comm_free(fcomm);
+	//bl_fortran_sidecar_mpi_comm_free(fcomm);
 	std::cout << "******** BoxLib::Finalize:  check bl_fortran_sidecar_mpi_comm_free" << std::endl;
 #else
 	bl_fortran_mpi_comm_free();
