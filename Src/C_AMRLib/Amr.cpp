@@ -3808,8 +3808,7 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
       }
 
       BoxLib::BroadcastArray(allInts, scsMyId, ioProcNumAll, scsComm);
-BoxLib::USleep(ParallelDescriptor::MyProcAll());
-std::cout << ParallelDescriptor::MyProcAll() << ":: allIntsSize = " << allIntsSize << std::endl;
+
       // ---- unpack the ints
       if(scsMyId != ioProcNumSCS) {
 	int count(0), aSize(-1);
