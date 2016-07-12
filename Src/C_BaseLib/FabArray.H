@@ -1754,6 +1754,8 @@ FabArray<FAB>::defineDoit (const BoxArray&            bxs,
 {
     BL_ASSERT(ngrow >= 0);
     BL_ASSERT(boxarray.size() == 0);
+    indexArray.clear();
+    ownership.clear();
     n_grow = ngrow;
     n_comp = nvar;
 
@@ -3387,6 +3389,7 @@ FabArray<FAB>::MoveAllFabs (const Array<int> &newDistMapArray)
         BoxLib::Abort("**** Error 0 in MoveAllFabs:  faPtr not ok");
       }
 
+      faPtr->flushFPinfo();
       nFabsMoved = faPtr->MoveFabs(newDistMapArray);  // ---- just use the last return value
 
       lastFAPtr = faPtr;
@@ -3582,9 +3585,11 @@ FabArray<FAB>::MoveFabs (const Array<int> &newDistMapArray)
 
   // ---- reconstruct the index and fab vectors
   indexArray.clear();
+  ownership.clear();
   m_fabs_v.clear();
   for(tIFiter = tempIndexFABs.begin(); tIFiter != tempIndexFABs.end(); ++tIFiter) {
     indexArray.push_back(tIFiter->first);
+    ownership.push_back(myProc == newDistMapArray[tIFiter->first]);
     m_fabs_v.push_back(tIFiter->second);
   }
 
