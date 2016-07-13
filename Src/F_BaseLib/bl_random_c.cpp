@@ -192,13 +192,27 @@ extern "C"
 	BLRng_restore(*distro, name);
     }
 
-    typedef struct {
-	BLRngEngine * eng;
-	BLRngUniformReal * dis;
-    } hg_rng_engine_t;
-    
-    void hg_genrand (double* rn, hg_rng_engine_t* rng)
+    void hg_genrand (double* rn, BLRngEngine* rng)
     {
-	*rn = BLRng_get<double>(*(rng->dis), *(rng->eng));
+	constexpr double fac = (1.0 - std::numeric_limits<double>::epsilon()) / std::mt19937::max();
+
+	// compile time check!
+	static_assert(std::mt19937::min() == 0, "hg_genrand: std::mt19937::min() != 0");
+	static_assert((double)std::mt19937::max() * fac < 1.0, "hg_genrand: < 1 failed");
+
+	auto y = (*rng)();
+	*rn = (double)y * fac; /* reals: [0,1)-interval */    
+    }
+
+    void hg_genrand_sp (float* rn, BLRngEngine* rng)
+    {    
+	constexpr float fac = (1.0f - std::numeric_limits<float>::epsilon()) / std::mt19937::max();
+
+	// compile time check!
+	static_assert(std::mt19937::min() == 0, "hg_genrand_sp: std::mt19937::min() != 0");
+	static_assert((float)std::mt19937::max() * fac < 1.0f, "hg_genrand_sp: < 1 failed");
+
+	auto y = (*rng)();
+	*rn = (float)y * fac; /* reals: [0,1)-interval */
     }
 }
