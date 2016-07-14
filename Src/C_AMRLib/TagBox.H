@@ -157,6 +157,9 @@ public:
     //
     IntVect* collate (long& numtags) const;
 
+    virtual void AddProcsToComp (int ioProcNumSCS, int ioProcNumAll,
+                                 int scsMyId, MPI_Comm scsComm);
+
 private:
     //
     // Disallowed.

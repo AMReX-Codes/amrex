@@ -102,6 +102,9 @@ public:
               int             ngrow,
 	      ParallelDescriptor::Color color);
 
+    virtual ~MultiFab() { }
+
+
     void operator= (const Real& r);
     //
     // Initialize FArrayBoxes
@@ -516,17 +519,9 @@ public:
 
     static void Initialize ();
     static void Finalize ();
-    //
-    // Send a MultiFab from Compute MPI group to Sidecar MPI group.
-    // The pointer to the MultiFab on the sidecars will be null on the compute
-    // processes, and vice versa. So be mindful of which MPI processes you're
-    // on when you access these pointers.
-    //
-    // TODO: allow it to send only selected components
-    //
-#ifdef BL_USE_MPI
-    static void SendMultiFabToSidecars(MultiFab *mf);
-#endif
+
+    virtual void AddProcsToComp (int ioProcNumSCS, int ioProcNumAll,
+                                 int scsMyId, MPI_Comm scsComm);
 
 private:
     //

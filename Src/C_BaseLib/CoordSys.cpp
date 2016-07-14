@@ -5,6 +5,7 @@
 #include <CoordSys.H>
 #include <COORDSYS_F.H>
 #include <FArrayBox.H>
+#include <ParallelDescriptor.H>
 
 #if (BL_SPACEDIM==2)
 const double RZFACTOR = 2*3.14159265358979323846264338327950288;
@@ -31,6 +32,24 @@ CoordSys::CoordType
 CoordSys::Coord ()
 {
     return c_sys;
+}
+
+int
+CoordSys::CoordInt ()
+{
+    switch (c_sys)
+    {
+        case undef:
+            return -1;
+        case cartesian:
+            return 0;
+        case RZ:
+            return 1;
+        case SPHERICAL:
+            return 2;
+        default:
+            return -1;
+    }
 }
 
 void
@@ -571,3 +590,38 @@ CoordSys::AreaHi (const IntVect& point,
 #endif
     return 0;
 }
+
+
+#ifdef BL_USE_MPI
+
+void
+CoordSys::BroadcastCoordSys (CoordSys &cSys, int fromProc, MPI_Comm comm)
+{
+  bool bcastSource(ParallelDescriptor::MyProc() == fromProc);
+  CoordSys::BroadcastCoordSys(cSys, fromProc, comm, bcastSource);
+}
+
+
+
+void
+CoordSys::BroadcastCoordSys (CoordSys &cSys, int fromProc, MPI_Comm comm, bool bcastSource)
+{
+  int coord, iOK;
+
+  if(bcastSource) {  // ---- initialize the source data
+    coord = cSys.CoordInt();
+    iOK = cSys.ok;
+  }
+
+  ParallelDescriptor::Bcast(&coord, 1, fromProc, comm);
+  ParallelDescriptor::Bcast(cSys.offset, BL_SPACEDIM, fromProc, comm);
+  ParallelDescriptor::Bcast(cSys.dx, BL_SPACEDIM, fromProc, comm);
+  ParallelDescriptor::Bcast(&iOK, 1, fromProc, comm);
+
+  if( ! bcastSource) {
+    cSys.c_sys = (CoordSys::CoordType) coord;
+    cSys.ok = iOK;
+  }
+}
+#endif
+
