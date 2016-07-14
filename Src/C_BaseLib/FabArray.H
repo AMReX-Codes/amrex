@@ -30,6 +30,7 @@
 #include <FArrayBox.H>
 #include <DistributionMapping.H>
 #include <ParallelDescriptor.H>
+#include <Utility.H>
 #include <ccse-mpi.H>
 #include <BLProfiler.H>
 
@@ -118,7 +119,24 @@ public:
     //
     // Returns the number of local FABs in the FabArray..
     //
-    int local_size () const { return indexMap.size(); }
+    int local_size () const { return indexArray.size(); }
+    //
+    // Returns constant reference to indices in the FabArray that we have access
+    //
+    const Array<int> &IndexArray () const { return indexArray; }
+    //
+    // Returns local index in the vector of FABs.
+    //
+    int localindex (int K) const { 
+	std::vector<int>::const_iterator low
+	    = std::lower_bound(indexArray.begin(), indexArray.end(), K);
+	if (low != indexArray.end() && *low == K) {
+	    return low - indexArray.begin();
+	}
+	else {
+	    return -1;
+	}
+    }
     //
     // Returns constant reference to associated DistributionMapping.
     //
@@ -169,7 +187,8 @@ public:
                           Array<int>&                            recv_from,
                           Array<MPI_Request>&                    recv_reqs,
                           int                                    ncomp,
-                          int                                    SeqNum);
+                          int                                    SeqNum,
+			  MPI_Comm   comm = ParallelDescriptor::Communicator());
 
 #ifdef BL_USE_MPI3
     template<typename T>
@@ -366,13 +385,18 @@ public:
 
     static CPCCache m_TheCopyCache;
 
+    static CPCCacheIter TheCPC (const CPC          &cpc,
+                                const FabArrayBase &dst,
+                                const FabArrayBase &src,
+				const int MyProc = ParallelDescriptor::MyProc());
+    static CPCCacheIter TheCPC (const CPC          &cpc,
+                                const Array<int>   &dstIndexArray,
+                                const Array<int>   &srcIndexArray,
+				const int MyProc = ParallelDescriptor::MyProc());
     static CacheStats m_CPC_stats;
 
     static long bytesOfCPCCache ();
 
-    static CPCCacheIter TheCPC (const CPC&          cpc,
-                                const FabArrayBase& dst,
-                                const FabArrayBase& src);
 
     //
     // Used for collecting information used in communicating FABs.
@@ -437,6 +461,8 @@ public:
     //
     static void Initialize ();
     static void Finalize ();
+    bool IsInitialized() const;
+    void SetInitialized(bool binit);
     //
     // To maximize thread efficiency we now can decompose things like
     // intersections among boxes into smaller tiles. This sets
@@ -444,11 +470,11 @@ public:
     //
     static IntVect comm_tile_size;  // communication tile size
     //
-    // The number of FabArrays defined
+    // The number of FabArrays that have been defined during this run
     //
     static int nFabArrays;
     static int NFabArrays() { return nFabArrays; }
-    int FabArrayID() const  { return faID; }
+    int AllocatedFAPtrID() const  { return aFAPId; }
 
     struct TileArray
     {
@@ -518,40 +544,27 @@ protected:
     DistributionMapping& ModifyDistributionMap () { return distributionMap; }
 
     //
-    // Returns constant reference to indices in the FabArray that we have access
-    //
-    const Array<int>& IndexMap () const { return indexMap; }
-    //
     // Returns owenership of fabs. The concept of ownership only applies when UPC++
     // team is used. In that case, each fab is shared by team workers, with one
     // taking the ownership.
     //
     const std::vector<bool>& OwnerShip () const { return ownership; }
     bool isOwner (int li) const { return ownership[li]; }
-    //
-    // Returns local index in the vector of FABs.
-    //
-    int localindex (int K) const { 
-	std::vector<int>::const_iterator low
-	    = std::lower_bound(indexMap.begin(), indexMap.end(), K);
-	if (low != indexMap.end() && *low == K) {
-	    return low - indexMap.begin();
-	}
-	else {
-	    return -1;
-	}
-    }
 
     //
     // The data ...
     //
     mutable BoxArray    boxarray;
     DistributionMapping distributionMap;
-    Array<int>          indexMap;
+    Array<int>          indexArray;
     std::vector<bool>   ownership;
     int                 n_grow;
     int                 n_comp;
-    int                 faID;
+    int                 aFAPId;      // ---- id of currently allocated fab array pointers
+    int                 aFAPIdLock;  // ---- lock for resizing sidecars
+
+    static int fb_cache_max_size;
+    static int copy_cache_max_size;
 
     mutable BDKey m_bdkey;
 
@@ -572,7 +585,6 @@ protected:
     void flushTileArray (const IntVect& tilesize = IntVect::TheZeroVector()) const;
     // This flushes the entire cache.
     static void flushTileArrayCache ();
-
     //
     // Keep track of how many FabArrays are built with the same BDKey.
     //
@@ -1051,6 +1063,25 @@ public:
 
     int MoveFabs (const Array<int> &newDistMapArray);
     static void MoveAllFabs (const Array<int> &newDistMapArray);
+    static void LockAllFAPointers ();
+    static void CheckFAPointers (bool abortOnError = true);
+    static void PrintFAPointers ();
+    virtual void AddProcsToComp (int ioProcNumSCS, int ioProcNumAll,
+                                 int scsMyId, MPI_Comm scsComm);
+
+    static void copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
+                           int        src_comp,
+                           int        dest_comp,
+                           int        num_comp,
+                           int        src_nghost,
+                           int        dst_nghost,
+                           const MPI_Comm &commSrc,
+                           const MPI_Comm &commDest,
+                           const MPI_Comm &commInter,
+                           const MPI_Comm &commBoth,
+                           bool       isSrc,
+                           CpOp       op = FabArrayBase::COPY);
+
 
 protected:
     //
@@ -1068,8 +1099,11 @@ protected:
     //
     std::vector<FAB*> m_fabs_v;
 
+    // ---- currently active fabarrays:  <ngrids to find distmap, <aFAPId, FabArray *> >
     static std::map<int, std::map<int, FabArray<FAB> *> > allocatedFAPointers;
-           // <ngrids to find distmap, <FabArrayID, FabArray *> >
+
+    // ---- set of ids of fabarrays created with Fab_noalloc
+    static std::set<int> noallocFAPIds;
 
     // for shared memory
     struct ShMem {
@@ -1296,7 +1330,7 @@ class FabArrayCopyDescriptor
 
     void clear ();
 
-    int nFabArrays () const { return fabArrays.size(); }
+    int CurrentNFabArrays () const { return fabArrays.size(); }
 
     int nFabComTags () const { return fabComTagList.size(); }
 
@@ -1393,7 +1427,8 @@ FabArrayBase::PostRcvs (const std::map<int,int>&               m_RcvVols,
                         Array<int>&                            recv_from,
                         Array<MPI_Request>&                    recv_reqs,
                         int                                    ncomp,
-                        int                                    SeqNum)
+                        int                                    SeqNum,
+			MPI_Comm                               comm)
 {
     int TotalRcvsVolume = 0;
 
@@ -1424,7 +1459,7 @@ FabArrayBase::PostRcvs (const std::map<int,int>&               m_RcvVols,
 
         recv_data.push_back(&the_recv_data[Offset]);
         recv_from.push_back(it->first);
-        recv_reqs.push_back(ParallelDescriptor::Arecv(recv_data.back(),N,it->first,SeqNum).req());
+        recv_reqs.push_back(ParallelDescriptor::Arecv(recv_data.back(),N,it->first,SeqNum,comm).req());
 
         Offset += N;
     }
@@ -1544,7 +1579,7 @@ template <class FAB>
 const FAB&
 FabArray<FAB>::operator[] (const MFIter& mfi) const
 {
-    BL_ASSERT(mfi.LocalIndex() < indexMap.size());
+    BL_ASSERT(mfi.LocalIndex() < indexArray.size());
     return *m_fabs_v[mfi.LocalIndex()];
 }
 
@@ -1552,7 +1587,7 @@ template <class FAB>
 FAB&
 FabArray<FAB>::operator[] (const MFIter& mfi)
 {
-    BL_ASSERT(mfi.LocalIndex() < indexMap.size());
+    BL_ASSERT(mfi.LocalIndex() < indexArray.size());
     return *m_fabs_v[mfi.LocalIndex()];
 }
 
@@ -1561,7 +1596,7 @@ const FAB&
 FabArray<FAB>::operator[] (int K) const
 {
     int li = localindex(K);
-    BL_ASSERT(li >=0 && li < indexMap.size());
+    BL_ASSERT(li >=0 && li < indexArray.size());
     return *m_fabs_v[li];
 }
 
@@ -1570,7 +1605,7 @@ FAB&
 FabArray<FAB>::operator[] (int K)
 {
     int li = localindex(K);
-    BL_ASSERT(li >=0 && li < indexMap.size());
+    BL_ASSERT(li >=0 && li < indexArray.size());
     return *m_fabs_v[li];
 }
 
@@ -1579,20 +1614,6 @@ void
 FabArray<FAB>::clear ()
 {
     clearThisBD();
-
-    typename std::map<int, std::map<int, FabArray<FAB> *> >::iterator afapIter = 
-                 FabArray<FAB>::allocatedFAPointers.find(distributionMap.size());
-    if(afapIter == FabArray<FAB>::allocatedFAPointers.end()) {
-#ifdef DEBUG_AFAP
-    if(ParallelDescriptor::IOProcessor(this->color()) && distributionMap.size() > 0) {
-        std::cout << "**** In FabArray::clear():: map not found:  size = "
-                  << distributionMap.size() << std::endl;
-      }
-#endif
-    } else {
-      std::map<int, FabArray<FAB> *> &faPtrCachedMap = afapIter->second;
-      faPtrCachedMap.erase(faID);
-    }
 
     for(Iterator it = m_fabs_v.begin(); it != m_fabs_v.end(); ++it) {
 	delete *it;
@@ -1666,6 +1687,32 @@ template <class FAB>
 FabArray<FAB>::~FabArray ()
 {
     m_FA_stats.recordDelete();
+
+    typename std::map<int, std::map<int, FabArray<FAB> *> >::iterator afapIter = 
+                 FabArray<FAB>::allocatedFAPointers.find(distributionMap.size());
+    if(afapIter == FabArray<FAB>::allocatedFAPointers.end()) {
+#ifdef DEBUG_AFAP
+      if(ParallelDescriptor::IOProcessor(this->color()) && distributionMap.size() > 0) {
+        std::cout << "**** In FabArray::clear():: map not found:  size = "
+                  << distributionMap.size() << std::endl;
+      }
+#endif
+    } else {
+      std::map<int, FabArray<FAB> *> &faPtrCachedMap = afapIter->second;
+      faPtrCachedMap.erase(aFAPId);
+#ifdef DEBUG_AFAP
+      if(ParallelDescriptor::IOProcessor() && faPtrCachedMap.size() == 0) {
+        std::cout << "**** In FabArray::~FabArray()::  size distmapngrids = "
+                  << faPtrCachedMap.size() << "  " << afapIter-> first << std::endl;
+      }
+#endif
+      if(faPtrCachedMap.size() == 0) {  //---- delete unused maps
+        FabArray<FAB>::allocatedFAPointers.erase(afapIter);
+      }
+    }
+
+    noallocFAPIds.erase(aFAPId);
+
     clear();
 }
 
@@ -1707,7 +1754,8 @@ FabArray<FAB>::defineDoit (const BoxArray&            bxs,
 {
     BL_ASSERT(ngrow >= 0);
     BL_ASSERT(boxarray.size() == 0);
-
+    indexArray.clear();
+    ownership.clear();
     n_grow = ngrow;
     n_comp = nvar;
 
@@ -1736,13 +1784,13 @@ FabArray<FAB>::defineDoit (const BoxArray&            bxs,
         distributionMap = *dm;
     }
 
-    int myproc = ParallelDescriptor::MyProc();
+    int myProc = ParallelDescriptor::MyProc();
 
     for(int i = 0, N = boxarray.size(); i < N; ++i) {
 	if (ParallelDescriptor::sameTeam(distributionMap[i])) {
-	// If Team is not used (i.e., team size == 1), distributionMap[i] == MyProc
-	    indexMap.push_back(i);
-	    ownership.push_back(myproc == distributionMap[i]);
+	// If Team is not used (i.e., team size == 1), distributionMap[i] == myProc
+	    indexArray.push_back(i);
+	    ownership.push_back(myProc == distributionMap[i]);
 	}
     }
 
@@ -1750,19 +1798,25 @@ FabArray<FAB>::defineDoit (const BoxArray&            bxs,
 
     if(alloc == Fab_allocate) {
       AllocFabs();
+    }
 
-      typename std::map<int, std::map<int, FabArray<FAB> *> >::iterator afapIter = 
-                   FabArray<FAB>::allocatedFAPointers.find(distributionMap.size());
-      if(afapIter == FabArray<FAB>::allocatedFAPointers.end()) {
-	int dmapSize(distributionMap.size());
-	std::map<int, FabArray<FAB> *> tempMap;
-	tempMap.insert(std::make_pair(faID, this));
-        FabArray<FAB>::allocatedFAPointers.insert(std::make_pair(dmapSize, tempMap));
+    typename std::map<int, std::map<int, FabArray<FAB> *> >::iterator afapIter = 
+                 FabArray<FAB>::allocatedFAPointers.find(distributionMap.size());
+    if(afapIter == FabArray<FAB>::allocatedFAPointers.end()) {
+      int dmapSize(distributionMap.size());
+      std::map<int, FabArray<FAB> *> tempMap;
+      tempMap.insert(std::make_pair(aFAPId, this));
+      FabArray<FAB>::allocatedFAPointers.insert(std::make_pair(dmapSize, tempMap));
 
-      } else {
-        std::map<int, FabArray<FAB> *> &faPtrCachedMap = afapIter->second;
-        faPtrCachedMap.insert(std::make_pair(faID, this));
-      }
+    } else {
+      std::map<int, FabArray<FAB> *> &faPtrCachedMap = afapIter->second;
+      faPtrCachedMap.insert(std::make_pair(aFAPId, this));
+    }
+
+    if(alloc == Fab_allocate) {
+      noallocFAPIds.erase(aFAPId);
+    } else {
+      noallocFAPIds.insert(aFAPId);
     }
 
 #ifdef BL_USE_TEAM
@@ -1798,7 +1852,7 @@ template <class FAB>
 void
 FabArray<FAB>::AllocFabs ()
 {
-    const int n = indexMap.size();
+    const int n = indexArray.size();
     const int nworkers = ParallelDescriptor::TeamSize();
     shmem.alloc = (nworkers > 1);
 
@@ -1806,7 +1860,7 @@ FabArray<FAB>::AllocFabs ()
 
     for (int i = 0; i < n; ++i)
     {
-	int K = indexMap[i];
+	int K = indexArray[i];
         const Box& tmp = BoxLib::grow(box(K), n_grow);
 	bool alloc = !shmem.alloc;
 	m_fabs_v.push_back(new FAB(tmp, n_comp, alloc, shmem.alloc));
@@ -1822,7 +1876,7 @@ FabArray<FAB>::AllocFabs ()
 	Array<long> offset(n,0);
 	Array<long> nextoffset(nworkers,-1);
 	for (int i = 0; i < n; ++i) {
-	    int K = indexMap[i];
+	    int K = indexArray[i];
 	    int owner = distributionMap[K] - teamlead;
 	    long s = m_fabs_v[i]->size();
 	    if (ownership[i]) {
@@ -1888,7 +1942,7 @@ FabArray<FAB>::AllocFabs ()
 #endif
 
 	for (int i = 0; i < n; ++i) {
-	    int K = indexMap[i];
+	    int K = indexArray[i];
 	    int owner = distributionMap[K] - teamlead;
 	    value_type *p = dps[owner] + offset[i];
 	    m_fabs_v[i]->setPtr(p, m_fabs_v[i]->size());
@@ -1921,7 +1975,7 @@ FabArray<FAB>::setFab (int  boxno,
     BL_ASSERT(distributionMap[boxno] == ParallelDescriptor::MyProc());
 
     if (m_fabs_v.size() == 0) {
-	m_fabs_v.resize(indexMap.size());
+	m_fabs_v.resize(indexArray.size());
     }
 
     m_fabs_v[localindex(boxno)] = elem;
@@ -1945,7 +1999,7 @@ FabArray<FAB>::setFab (const MFIter& mfi,
     BL_ASSERT(distributionMap[mfi.index()] == ParallelDescriptor::MyProc());
 
     if (m_fabs_v.size() == 0) {
-	m_fabs_v.resize(indexMap.size());
+	m_fabs_v.resize(indexArray.size());
     }
 
     m_fabs_v[mfi.LocalIndex()] = elem;
@@ -2432,7 +2486,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 		    BoxLib::The_Arena()->free(send_data[i]);
 #endif
 	    } else {
-		if (FabArrayBase::do_async_sends && !thecpc.m_SndTags->empty()) {
+		if (FabArrayBase::do_async_sends && ! thecpc.m_SndTags->empty()) {
 		    Array<MPI_Status> stats;
 		    FabArrayBase::GrokAsyncSends(thecpc.m_SndTags->size(),send_reqs,send_data,stats);
 		}
@@ -2581,6 +2635,348 @@ FabArray<FAB>::copyTo (FAB&       dest,
     }
 }
 
+
+
+
+template <class FAB>
+void
+FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
+                          int                  scomp,
+                          int                  dcomp,
+                          int                  ncomp,
+                          int                  snghost,
+                          int                  dnghost,
+                          const MPI_Comm      &commSrc,
+                          const MPI_Comm      &commDest,
+                          const MPI_Comm      &commInter,
+                          const MPI_Comm      &commBoth,
+                	  bool                 isSrc,
+                          CpOp                 op)
+{
+#ifdef BL_USE_MPI
+    BL_PROFILE("FabArray::copyInter()");
+
+    bool isDest( ! isSrc);
+    if(isSrc) {
+      BL_ASSERT(src  != 0);
+      BL_ASSERT(dest == 0);
+    }
+    if(isDest) {
+      BL_ASSERT(src  == 0);
+      BL_ASSERT(dest != 0);
+    }
+
+    if ((isDest && dest->size() == 0) || (isSrc && src->size() == 0)) return;
+
+    BL_ASSERT(op == FabArrayBase::COPY || op == FabArrayBase::ADD);
+
+    if(isSrc)  { BL_ASSERT(src->nGrow() >= snghost);  }
+    if(isDest) { BL_ASSERT(dest->nGrow() >= dnghost); }
+
+    bool putInCache(false);
+    MPI_Group groupSrc(MPI_GROUP_NULL), groupDest(MPI_GROUP_NULL), groupBoth(MPI_GROUP_NULL);
+    MPI_Group groupAll(MPI_GROUP_NULL);
+    int myProcAll(ParallelDescriptor::MyProcAll()), myProcBoth(MPI_UNDEFINED);
+    int iopN(ParallelDescriptor::IOProcessorNumber()), iopNInBoth(MPI_UNDEFINED);
+    int bcastRootSrc(MPI_UNDEFINED), bcastRootDest(MPI_UNDEFINED);
+    size_t sizeOne(1);
+    int tagOne(1), tagTwo(2);
+
+    BL_MPI_REQUIRE( MPI_Comm_group(ParallelDescriptor::CommunicatorAll(), &groupAll) );
+    BL_MPI_REQUIRE( MPI_Comm_group(commBoth, &groupBoth) );
+
+    BL_MPI_REQUIRE( MPI_Group_translate_ranks(groupAll, sizeOne, &myProcAll, groupBoth, &myProcBoth) );
+
+    if(isSrc) {
+      BL_MPI_REQUIRE( MPI_Comm_group(commSrc, &groupSrc) );
+      BL_MPI_REQUIRE( MPI_Group_translate_ranks(groupSrc, sizeOne, &iopN, groupBoth, &iopNInBoth) );
+      if(ParallelDescriptor::IOProcessor()) {
+        ParallelDescriptor::Asend(&iopNInBoth, sizeOne, iopN, tagOne, commBoth);
+      }
+    }
+    if(isDest) {
+      BL_MPI_REQUIRE( MPI_Comm_group(commDest, &groupDest) );
+      BL_MPI_REQUIRE( MPI_Group_translate_ranks(groupDest, sizeOne, &iopN, groupBoth, &iopNInBoth) );
+      if(ParallelDescriptor::IOProcessor()) {
+        ParallelDescriptor::Asend(&iopNInBoth, sizeOne, iopN, tagTwo, commBoth);
+      }
+    }
+    if(myProcBoth == iopN) {
+      ParallelDescriptor::Recv(&bcastRootSrc,  sizeOne, MPI_ANY_SOURCE, tagOne, commBoth);
+      ParallelDescriptor::Recv(&bcastRootDest, sizeOne, MPI_ANY_SOURCE, tagTwo, commBoth);
+    }
+    ParallelDescriptor::Bcast(&bcastRootSrc,  sizeOne, iopN, commBoth);
+    ParallelDescriptor::Bcast(&bcastRootDest, sizeOne, iopN, commBoth);
+
+
+    // ---- give all procs in commBoth source and dest boxarrays and distribution maps
+    BoxArray srcBoxArray, destBoxArray;
+    Array<int> srcPMap, destPMap, srcPMapAll, destPMapAll;
+    DistributionMapping srcDM, destDM, srcDMAll, destDMAll;
+    Array<int> srcIndexArray, destIndexArray;
+    if(isSrc) {
+      srcIndexArray = src->IndexArray();
+    }
+    if(isDest) {
+      destIndexArray = dest->IndexArray();
+    }
+
+
+    if(isSrc && myProcBoth == bcastRootSrc) {
+      srcBoxArray = src->boxArray();
+      srcDM = src->DistributionMap();
+      srcPMap = srcDM.ProcessorMap();
+      srcPMapAll = DistributionMapping::TranslateProcMap(srcPMap, groupBoth, groupSrc);
+      srcPMapAll[srcPMapAll.size()-1] = myProcBoth;  // ---- set the sentinel
+    }
+    if(isDest && myProcBoth == bcastRootDest) {
+      destBoxArray = dest->boxArray();
+      destDM = dest->DistributionMap();
+      destPMap = destDM.ProcessorMap();
+      destPMapAll = DistributionMapping::TranslateProcMap(destPMap, groupBoth, groupDest);
+      destPMapAll[destPMapAll.size()-1] = myProcBoth;  // ---- set the sentinel
+    }
+
+    BoxLib::BroadcastBoxArray(srcBoxArray,  myProcBoth, bcastRootSrc,  commBoth);
+
+    BoxLib::BroadcastBoxArray(destBoxArray, myProcBoth, bcastRootDest, commBoth);
+    BL_ASSERT(destBoxArray[0].ixType() == srcBoxArray[0].ixType());
+
+
+    BoxLib::BroadcastArray(srcPMapAll,  myProcBoth, bcastRootSrc,  commBoth);
+    BoxLib::BroadcastArray(destPMapAll, myProcBoth, bcastRootDest, commBoth);
+
+    srcDMAll.define(srcPMapAll, putInCache);
+    destDMAll.define(destPMapAll, putInCache);
+
+    const CPC cpc(destBoxArray, srcBoxArray, destDMAll, srcDMAll, dnghost, snghost);
+
+    FabArrayBase::CPCCacheIter cache_it = FabArrayBase::TheCPC(cpc, destIndexArray, srcIndexArray, myProcBoth);
+
+    BL_ASSERT(cache_it != FabArrayBase::m_TheCopyCache.end());
+
+    const CPC& thecpc = cache_it->second;
+
+    if (ParallelDescriptor::NProcsAll() == 1) {
+        return;
+    }
+
+    // ---- syncronize sequence numbers across groups
+    int currentSeqNumber(-4);
+    if(isSrc && myProcBoth == bcastRootSrc) {
+      currentSeqNumber = ParallelDescriptor::SeqNum(1);
+    }
+    ParallelDescriptor::Bcast(&currentSeqNumber, sizeOne, bcastRootSrc, commBoth);
+    ParallelDescriptor::SeqNum(2, currentSeqNumber);
+
+    // Do this before prematurely exiting if running in parallel.
+    // Otherwise sequence numbers will not match across MPI processes.
+    const int SeqNum = ParallelDescriptor::SeqNum();
+
+    if (thecpc.m_LocTags->empty() && thecpc.m_RcvTags->empty() && thecpc.m_SndTags->empty()) {
+        //
+        // No work to do.
+        //
+        return;
+    }
+    //
+    // Send/Recv at most MaxComp components at a time to cut down memory usage.
+    //
+    int NCompLeft = ncomp;
+
+    for (int ipass = 0, SC = scomp, DC = dcomp; ipass < ncomp; )
+    {
+        const int NC = std::min(NCompLeft,FabArrayBase::MaxComp);
+
+        Array<MPI_Status>  stats;
+        Array<int>         recv_from;
+        Array<value_type*> recv_data;
+        Array<MPI_Request> recv_reqs;
+        //
+        // Post rcvs. Allocate one chunk of space to hold'm all.
+        //
+        value_type* the_recv_data = 0;
+
+        FabArrayBase::PostRcvs(*thecpc.m_RcvVols, the_recv_data, recv_data,
+	                       recv_from, recv_reqs, NC, SeqNum, commBoth);
+
+	//
+	// Post sends
+	// 
+	const int N_snds = thecpc.m_SndTags->size();
+
+	Array<value_type*>                 send_data;
+	Array<int>                         send_N;
+	Array<int>                         send_rank;
+	Array<const CopyComTagsContainer*> send_cctc;
+
+	send_data.reserve(N_snds);
+	send_N   .reserve(N_snds);
+	send_rank.reserve(N_snds);
+	send_cctc.reserve(N_snds);
+
+        for (MapOfCopyComTagContainers::const_iterator m_it = thecpc.m_SndTags->begin(),
+                 m_End = thecpc.m_SndTags->end();
+             m_it != m_End;
+             ++m_it)
+        {
+            std::map<int,int>::const_iterator vol_it = thecpc.m_SndVols->find(m_it->first);
+
+            BL_ASSERT(vol_it != thecpc.m_SndVols->end());
+
+            const int N = vol_it->second*NC;
+
+            BL_ASSERT(N < std::numeric_limits<int>::max());
+
+            value_type* data = static_cast<value_type*>(BoxLib::The_Arena()->alloc(N*sizeof(value_type)));
+ 
+	    send_data.push_back(data);
+	    send_N   .push_back(N);
+	    send_rank.push_back(m_it->first);
+	    send_cctc.push_back(&(m_it->second));
+	}
+
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+	for (int j=0; j<N_snds; ++j)
+	{
+	    value_type* dptr = send_data[j];
+	    BL_ASSERT(dptr != 0);
+
+	    const CopyComTagsContainer& cctc = *send_cctc[j];
+
+            for (CopyComTagsContainer::const_iterator it = cctc.begin();
+                 it != cctc.end(); ++it)
+            {
+                const Box& bx = it->box;
+                (*src)[it->srcIndex].copyToMem(bx,SC,NC,dptr);
+                const int Cnt = bx.numPts()*NC;
+                dptr += Cnt;
+            }
+	}
+
+	Array<MPI_Request> send_reqs;
+
+	if (FabArrayBase::do_async_sends)
+	{
+	    send_reqs.reserve(N_snds);
+	    for (int j=0; j<N_snds; ++j)
+	    {
+                send_reqs.push_back(ParallelDescriptor::Asend
+				    (send_data[j],send_N[j],send_rank[j],SeqNum, commBoth).req());
+            }
+	} else {
+	    for (int j=0; j<N_snds; ++j)
+	    {
+                ParallelDescriptor::Send(send_data[j],send_N[j],send_rank[j],SeqNum, commBoth);
+                BoxLib::The_Arena()->free(send_data[j]);
+            }
+        }
+
+        //
+        // Do the local work.  Hope for a bit of communication/computation overlap.
+        //
+	int N_loc = (*thecpc.m_LocTags).size();
+
+#ifdef _OPENMP
+#pragma omp parallel for if (thecpc.m_threadsafe_loc)
+#endif
+	for (int j=0; j<N_loc; ++j)
+        {
+            const CopyComTag& tag = (*thecpc.m_LocTags)[j];
+
+            if (op == FabArrayBase::COPY)
+            {
+                dest->get(tag.fabIndex).copy((*src)[tag.srcIndex],tag.box,SC,tag.box,DC,NC);
+            }
+            else
+            {
+                dest->get(tag.fabIndex).plus((*src)[tag.srcIndex],tag.box,tag.box,SC,DC,NC);
+            }
+        }
+
+	//
+	//  wait and unpack
+	//
+
+        const int N_rcvs = thecpc.m_RcvTags->size();
+
+	if (N_rcvs > 0)
+	{
+	    Array<const CopyComTagsContainer*> recv_cctc;
+	    recv_cctc.reserve(N_rcvs);
+
+	    for (int k = 0; k < N_rcvs; k++)
+	    {
+		MapOfCopyComTagContainers::const_iterator m_it = thecpc.m_RcvTags->find(recv_from[k]);
+		BL_ASSERT(m_it != thecpc.m_RcvTags->end());
+	    
+		recv_cctc.push_back(&(m_it->second));
+	    }
+
+	    stats.resize(N_rcvs);
+	    BL_MPI_REQUIRE( MPI_Waitall(N_rcvs, recv_reqs.dataPtr(), stats.dataPtr()) );
+	    
+#ifdef _OPENMP
+#pragma omp parallel if (thecpc.m_threadsafe_rcv)
+#endif
+        {
+	    FAB fab;
+
+#ifdef _OPENMP
+#pragma omp for
+#endif
+	    for (int k = 0; k < N_rcvs; k++)
+	    {
+		const value_type* dptr = recv_data[k];
+		BL_ASSERT(dptr != 0);
+		
+		const CopyComTagsContainer& cctc = *recv_cctc[k];
+		
+		for (CopyComTagsContainer::const_iterator it = cctc.begin();
+		     it != cctc.end(); ++it)
+		{
+		    const Box& bx  = it->box;
+		    const int  Cnt = bx.numPts()*NC;
+		    
+		    if (op == FabArrayBase::COPY)
+		    {
+			dest->get(it->fabIndex).copyFromMem(bx,DC,NC,dptr);
+		    }
+		    else
+		    {
+			fab.resize(bx,NC);
+			memcpy(fab.dataPtr(), dptr, Cnt*sizeof(value_type));
+			
+			dest->get(it->fabIndex).plus(fab,bx,bx,0,DC,NC);
+		    }
+		    
+		    dptr += Cnt;
+		}
+	    }
+	}
+	}
+	
+        BoxLib::The_Arena()->free(the_recv_data);
+	
+        if (FabArrayBase::do_async_sends && ! thecpc.m_SndTags->empty()) {
+            FabArrayBase::GrokAsyncSends(thecpc.m_SndTags->size(),send_reqs,send_data,stats);
+	}
+
+        ipass     += NC;
+        SC        += NC;
+        DC        += NC;
+        NCompLeft -= NC;
+    }
+
+    return;
+#endif /*BL_USE_MPI*/
+}
+
+
+
+
 template <class FAB>
 void
 FabArray<FAB>::setVal (value_type val)
@@ -2667,6 +3063,301 @@ FabArray<FAB>::shift (const IntVect& v)
 
 template <class FAB>
 void
+FabArray<FAB>::LockAllFAPointers ()
+{
+  typename std::map<int, std::map<int, FabArray<FAB> *> >::iterator afapIter;
+  for(afapIter = FabArray<FAB>::allocatedFAPointers.begin();
+      afapIter != FabArray<FAB>::allocatedFAPointers.end(); ++afapIter)
+  {
+    std::map<int, FabArray<FAB> *> &faPtrCachedMap = afapIter->second;
+    for(typename std::map<int, FabArray<FAB> *>::iterator it = faPtrCachedMap.begin();
+        it != faPtrCachedMap.end(); ++it)
+    {
+      FabArray<FAB> *faPtr = it->second;
+      faPtr->aFAPIdLock = 1;
+    }
+  }
+}
+
+
+template <class FAB>
+void
+FabArray<FAB>::CheckFAPointers (bool abortOnError)
+{
+  int pLocked(0), pUnlocked(0);
+  int allocFAPSize(FabArray<FAB>::allocatedFAPointers.size());
+  int iopNumber(ParallelDescriptor::IOProcessorNumber());
+  ParallelDescriptor::Bcast(&allocFAPSize, 1, iopNumber);
+
+  if(allocFAPSize != FabArray<FAB>::allocatedFAPointers.size()) {
+    if(abortOnError) {
+      BoxLib::USleep(ParallelDescriptor::MyProcAll());
+      std::cout << ParallelDescriptor::MyProcAll() << ":: **** ERROR:  allocFAPSize != "
+                << "FabArray<FAB>::allocatedFAPointers.size() : " << allocFAPSize
+	        << "  " << FabArray<FAB>::allocatedFAPointers.size() << std::endl;
+      BoxLib::Abort("**** Error in FabArray<FAB>::CheckFAPointers():  bad allocFAPSize.");
+    }
+  }
+
+  typename std::map<int, std::map<int, FabArray<FAB> *> >::iterator afapIter;
+  for(afapIter = FabArray<FAB>::allocatedFAPointers.begin();
+      afapIter != FabArray<FAB>::allocatedFAPointers.end(); ++afapIter)
+  {
+    std::map<int, FabArray<FAB> *> &faPtrCachedMap = afapIter->second;
+    int fapCMapSize(faPtrCachedMap.size());
+    ParallelDescriptor::Bcast(&fapCMapSize, 1, iopNumber);
+    if(fapCMapSize != faPtrCachedMap.size()) {
+      if(abortOnError) {
+        BoxLib::USleep(ParallelDescriptor::MyProcAll());
+        std::cout << ParallelDescriptor::MyProcAll() << ":: **** ERROR:  fapCMapSize != "
+	          << "faPtrCachedMap.size() : " << fapCMapSize << "  "
+		  << faPtrCachedMap.size() << std::endl;
+        BoxLib::Abort("**** Error in FabArray<FAB>::CheckFAPointers():  bad fapCMapSize.");
+      }
+    }
+
+    int distmapNGrids(afapIter->first-1);
+    ParallelDescriptor::Bcast(&distmapNGrids, 1, iopNumber);
+    if(distmapNGrids != afapIter->first-1) {
+      if(abortOnError) {
+        BoxLib::USleep(ParallelDescriptor::MyProcAll());
+        std::cout << ParallelDescriptor::MyProcAll() << ":: **** ERROR:  distmapNGrids != "
+	          << "afapIter->first-1 : " << distmapNGrids << "  " << afapIter->first-1 << std::endl;
+        BoxLib::Abort("**** Error in FabArray<FAB>::CheckFAPointers():  bad distmapNGrids.");
+      }
+    }
+
+    Array<int> fapId(faPtrCachedMap.size()), dmId(faPtrCachedMap.size());
+    Array<int> nDM(faPtrCachedMap.size()), fabsAlloced(faPtrCachedMap.size());
+    for(typename std::map<int, FabArray<FAB> *>::iterator it = faPtrCachedMap.begin();
+        it != faPtrCachedMap.end(); ++it)
+    {
+      FabArray<FAB> *faPtr = it->second;
+      fapId.push_back(faPtr->AllocatedFAPtrID());
+      dmId.push_back(faPtr->DistributionMap().DistMapID());
+      nDM.push_back(faPtr->DistributionMap().NDistMaps());
+      std::set<int>::iterator nait = noallocFAPIds.find(faPtr->AllocatedFAPtrID());
+      bool fabsAllocated(nait == noallocFAPIds.end());
+      fabsAlloced.push_back(fabsAllocated);
+
+      if(faPtr->aFAPIdLock) {
+        ++pLocked;
+      } else {
+        ++pUnlocked;
+      }
+    }
+    Array<int> fapIdCheck, dmIdCheck, nDMCheck, fabsAllocedCheck;
+    if(ParallelDescriptor::IOProcessor()) {
+      fapIdCheck = fapId;
+      dmIdCheck = dmId;
+      nDMCheck = nDM;
+      fabsAllocedCheck = fabsAlloced;
+    }
+    BoxLib::BroadcastArray(fapIdCheck, ParallelDescriptor::MyProc(), iopNumber,
+                           ParallelDescriptor::Communicator());
+    BoxLib::BroadcastArray(dmIdCheck, ParallelDescriptor::MyProc(), iopNumber,
+                           ParallelDescriptor::Communicator());
+    BoxLib::BroadcastArray(nDMCheck, ParallelDescriptor::MyProc(), iopNumber,
+                           ParallelDescriptor::Communicator());
+    BoxLib::BroadcastArray(fabsAllocedCheck, ParallelDescriptor::MyProc(), iopNumber,
+                           ParallelDescriptor::Communicator());
+    for(int i(0); i < fapId.size(); ++i) {
+      if(fapId[i] != fapIdCheck[i]) {
+        if(abortOnError) {
+          std::cout << ParallelDescriptor::MyProcAll() << ":: **** ERROR:  fapId[" << i
+	            << "] != fapIdCheck[" << i << "] : "
+                    << fapId[i] << "  " << fapIdCheck[i] << std::endl;
+          BoxLib::Abort("**** Error in FabArray<FAB>::CheckFAPointers():  bad fapId.");
+        }
+      }
+    }
+    for(int i(0); i < dmId.size(); ++i) {
+      if(dmId[i] != dmIdCheck[i]) {
+        if(abortOnError) {
+          std::cout << ParallelDescriptor::MyProcAll() << ":: **** ERROR:  dmId[" << i
+	            << "] != dmIdCheck[" << i << "] : "
+                    << dmId[i] << "  " << dmIdCheck[i] << std::endl;
+          BoxLib::Abort("**** Error in FabArray<FAB>::CheckFAPointers():  bad dmId.");
+        }
+      }
+    }
+    for(int i(0); i < nDM.size(); ++i) {
+      if(nDM[i] != nDMCheck[i]) {
+        if(abortOnError) {
+          std::cout << ParallelDescriptor::MyProcAll() << ":: **** ERROR:  nDM[" << i
+	            << "] != nDMCheck[" << i << "] : "
+                    << nDM[i] << "  " << nDMCheck[i] << std::endl;
+          BoxLib::Abort("**** Error in FabArray<FAB>::CheckFAPointers():  bad nDM.");
+        }
+      }
+    }
+    for(int i(0); i < fabsAlloced.size(); ++i) {
+      if(fabsAlloced[i] != fabsAllocedCheck[i]) {
+        if(abortOnError) {
+          std::cout << ParallelDescriptor::MyProcAll() << ":: **** ERROR:  fabsAlloced[" << i
+	            << "] != fabsAllocedCheck[" << i << "] : "
+                    << fabsAlloced[i] << "  " << fabsAllocedCheck[i] << std::endl;
+          BoxLib::Abort("**** Error in FabArray<FAB>::CheckFAPointers():  bad fabsAlloced.");
+        }
+      }
+    }
+  }
+  int pLockedCheck(pLocked);
+  ParallelDescriptor::Bcast(&pLockedCheck, 1, iopNumber);
+  if(pLocked != pLockedCheck) {
+    if(abortOnError) {
+      std::cout << ParallelDescriptor::MyProcAll() << ":: **** ERROR:  "
+                << "pLocked != pLockedCheck : " << pLocked << "  " << pLockedCheck << std::endl;
+      BoxLib::Abort("**** Error in FabArray<FAB>::CheckFAPointers():  bad pLocked.");
+    }
+  }
+}
+
+
+template <class FAB>
+void
+FabArray<FAB>::PrintFAPointers ()
+{
+  std::cout << "|||| _in PrintFAPointers:  allocatedFAPointers.size() = "
+            << FabArray<FAB>::allocatedFAPointers.size() << std::endl;
+  typename std::map<int, std::map<int, FabArray<FAB> *> >::iterator afapIter;
+  for(afapIter = FabArray<FAB>::allocatedFAPointers.begin();
+      afapIter != FabArray<FAB>::allocatedFAPointers.end(); ++afapIter)
+  {
+    std::map<int, FabArray<FAB> *> &faPtrCachedMap = afapIter->second;
+    std::cout << "|||| |||| _in PrintFAPointers:  faPtrCachedMap.size() distmapngrids = "
+              << faPtrCachedMap.size() << "  " << afapIter->first-1 << std::endl;
+    for(typename std::map<int, FabArray<FAB> *>::iterator it = faPtrCachedMap.begin();
+        it != faPtrCachedMap.end(); ++it)
+    {
+      FabArray<FAB> *faPtr = it->second;
+      std::set<int>::iterator nait = noallocFAPIds.find(faPtr->AllocatedFAPtrID());
+      bool fabsAllocated(nait == noallocFAPIds.end());
+      std::cout << "|||| |||| |||| _in PrintFAPointers:  FAPtrId  idLock dmID nDM fabsAlloced = " 
+                << faPtr->AllocatedFAPtrID() << "  " << faPtr->aFAPIdLock
+		<< "  " << faPtr->DistributionMap().DistMapID()
+		<< "  " << faPtr->DistributionMap().NDistMaps()
+		<< "  " << fabsAllocated << std::endl;
+    }
+  }
+  DistributionMapping::CacheStats(std::cout, ParallelDescriptor::MyProcAll());
+  std::cout << "|||| |||| |||| _out PrintFAPointers: ================ " << std::endl;
+}
+
+
+template <class FAB>
+void
+FabArray<FAB>::AddProcsToComp (int ioProcNumSCS, int ioProcNumAll,
+                               int scsMyId, MPI_Comm scsComm)
+{
+  flushTileArrayCache();
+
+  // ---- BoxArrays
+  BoxLib::BroadcastBoxArray(boxarray, scsMyId, ioProcNumSCS, scsComm);
+
+  // ---- DistributionMapping
+  int sentinelProc(ParallelDescriptor::MyProcComp());
+  BoxLib::BroadcastDistributionMapping(distributionMap, sentinelProc,
+                                       scsMyId, ioProcNumSCS, scsComm, true);
+
+  // ---- ints
+  ParallelDescriptor::Bcast(&n_grow, 1, ioProcNumSCS, scsComm);
+  ParallelDescriptor::Bcast(&n_comp, 1, ioProcNumSCS, scsComm);
+  ParallelDescriptor::Bcast(&aFAPId, 1, ioProcNumSCS, scsComm);
+  ParallelDescriptor::Bcast(&nFabArrays, 1, ioProcNumSCS, scsComm);
+  ParallelDescriptor::Bcast(&fb_cache_max_size, 1, ioProcNumSCS, scsComm);
+  ParallelDescriptor::Bcast(&copy_cache_max_size, 1, ioProcNumSCS, scsComm);
+
+  // ---- bools
+  bool bii(IsInitialized());
+  int bInit(bii), bDAS(do_async_sends);
+  ParallelDescriptor::Bcast(&bInit, 1, ioProcNumSCS, scsComm);
+  ParallelDescriptor::Bcast(&bDAS, 1, ioProcNumSCS, scsComm);
+  if(scsMyId != ioProcNumSCS) {
+    SetInitialized(bInit);
+    do_async_sends = bDAS;
+  }
+  ParallelDescriptor::Bcast(&fb_cache_max_size, 1, ioProcNumSCS, scsComm);
+  ParallelDescriptor::Bcast(&copy_cache_max_size, 1, ioProcNumSCS, scsComm);
+
+  // ---- IntVects
+  Array<int> allIntVects;
+  if(scsMyId == ioProcNumSCS) {
+    for(int i(0); i < BL_SPACEDIM; ++i)    { allIntVects.push_back(mfiter_tile_size[i]); }
+    for(int i(0); i < BL_SPACEDIM; ++i)    { allIntVects.push_back(comm_tile_size[i]); }
+  }
+  BoxLib::BroadcastArray(allIntVects, scsMyId, ioProcNumSCS, scsComm);
+  if(scsMyId != ioProcNumSCS) {
+    int count(0);
+    for(int i(0); i < BL_SPACEDIM; ++i)    { mfiter_tile_size[i] = allIntVects[count++]; }
+    for(int i(0); i < BL_SPACEDIM; ++i)    { comm_tile_size[i] = allIntVects[count++]; }
+  }
+
+  // ---- add to allocatedFAPointers
+  int isAllocated(0);
+  if(scsMyId == ioProcNumSCS) {
+    typename std::map<int, std::map<int, FabArray<FAB> *> >::iterator afapIter =
+                 FabArray<FAB>::allocatedFAPointers.find(distributionMap.size());
+    if(afapIter == FabArray<FAB>::allocatedFAPointers.end()) {  // ---- not found
+      isAllocated = 0;
+    } else {  // ---- now look for the fapid
+      std::map<int, FabArray<FAB> *> &faPtrCachedMap = afapIter->second;
+      if(faPtrCachedMap.find(aFAPId) != faPtrCachedMap.end()) {
+        isAllocated = 1;
+      }
+    }
+  }
+  ParallelDescriptor::Bcast(&isAllocated, 1, ioProcNumSCS, scsComm);
+  if(scsMyId != ioProcNumSCS) {
+    if(isAllocated) {  // ---- insert into the maps
+      typename std::map<int, std::map<int, FabArray<FAB> *> >::iterator afapIter =
+                   FabArray<FAB>::allocatedFAPointers.find(distributionMap.size());
+      if(afapIter == FabArray<FAB>::allocatedFAPointers.end()) {
+        int dmapSize(distributionMap.size());
+        std::map<int, FabArray<FAB> *> tempMap;
+        tempMap.insert(std::make_pair(aFAPId, this));
+        FabArray<FAB>::allocatedFAPointers.insert(std::make_pair(dmapSize, tempMap));
+
+      } else {
+        std::map<int, FabArray<FAB> *> &faPtrCachedMap = afapIter->second;
+        faPtrCachedMap.insert(std::make_pair(aFAPId, this));
+      }
+    }
+  }
+
+  // ---- noallocFAPIds
+  Array<int> setArray;
+  if(scsMyId == ioProcNumSCS) {
+    std::set<int>::iterator it;
+    for(it = noallocFAPIds.begin(); it != noallocFAPIds.end(); ++it) {
+      setArray.push_back(*it);
+    }
+  }
+  BoxLib::BroadcastArray(setArray, scsMyId, ioProcNumSCS, scsComm);
+  if(scsMyId != ioProcNumSCS) {
+    for(int i(0); i < setArray.size(); ++i) {
+      noallocFAPIds.insert(setArray[i]);
+    }
+  }
+
+  // ---- m_bdkey
+  if(scsMyId != ioProcNumSCS) {
+    m_bdkey =  getBDKey();
+  }
+
+  // ---- static TACache     m_TheTileArrayCache;     // ---- cleared with flushTileArrayCache();
+  // ---- static CacheStats  m_TAC_stats;             // ---- leave as is for now
+  // ---- m_BD_count                                  // ---- leave as is for now
+  // ---- m_FA_stats                                  // ---- leave as is for now
+
+
+  // ---- unlock
+  aFAPIdLock = 0;
+}
+
+
+template <class FAB>
+void
 FabArray<FAB>::MoveAllFabs (const Array<int> &newDistMapArray)
 {
   if(ParallelDescriptor::IOProcessor()) {
@@ -2693,15 +3384,20 @@ FabArray<FAB>::MoveAllFabs (const Array<int> &newDistMapArray)
     for(typename std::map<int, FabArray<FAB> *>::iterator it = faPtrCachedMap.begin();
         it != faPtrCachedMap.end(); ++it)
     {
-      if(it->second->ok() == false) {
-        BoxLib::Abort("it not ok");
+      FabArray<FAB> *faPtr = it->second;
+      if(faPtr->ok() == false) {
+        BoxLib::Abort("**** Error 0 in MoveAllFabs:  faPtr not ok");
       }
-      nFabsMoved = it->second->MoveFabs(newDistMapArray);  // just keep the last one
-      if( ! it->second->ok()) {
-        BoxLib::Abort("_here 00:  it not ok");
-      }
-      lastFAPtr = it->second;
+
+      faPtr->flushFPinfo();
+      nFabsMoved = faPtr->MoveFabs(newDistMapArray);  // ---- just use the last return value
+
+      lastFAPtr = faPtr;
+
     }
+
+    ParallelDescriptor::ReduceIntSum(nFabsMoved);
+
     if(ParallelDescriptor::IOProcessor()) {
       std::cout << "FabArray<FAB>::MoveAllFabs:  moved " << nFabsMoved
 	        << " FAB(s) for each FabArray." << std::endl;
@@ -2712,9 +3408,30 @@ FabArray<FAB>::MoveAllFabs (const Array<int> &newDistMapArray)
     FabArrayBase::FlushSICache();
     FabArrayBase::CPC::FlushCache();
     //Geometry::FlushPIRMCache();  // ---- needs to be done externally
+    flushTileArrayCache();
 
     if(lastFAPtr != 0) {
       lastFAPtr->ModifyDistributionMap().ReplaceCachedProcessorMap(newDistMapArray);
+    }
+
+
+    // ---- check the moved fabarray
+    for(typename std::map<int, FabArray<FAB> *>::iterator it = faPtrCachedMap.begin();
+        it != faPtrCachedMap.end(); ++it)
+    {
+      FabArray<FAB> *faPtr = it->second;
+      if(faPtr->ok() == false) {
+        BoxLib::Abort("**** Error 2 in MoveAllFabs:  faPtr not ok");
+      }
+    }
+
+  }
+
+  if(ParallelDescriptor::IOProcessor()) {
+    std::cout << "FabArray<FAB>::MoveAllFabs:  noallocFAPIds.size() = " << noallocFAPIds.size() << std::endl;
+    std::set<int>::iterator nait;
+    for(nait = noallocFAPIds.begin(); nait != noallocFAPIds.end(); ++nait) {
+        std::cout << "FabArray<FAB>::MoveAllFabs:  noallocFAPIds = " << *nait << std::endl;
     }
   }
 }
@@ -2742,11 +3459,26 @@ FabArray<FAB>::MoveFabs (const Array<int> &newDistMapArray)
     if(newDistMapArray[idm] < 0 ||
        newDistMapArray[idm] > ParallelDescriptor::NProcs() - 1)
     {
+      std::cout << "**** idm ndm[idm] np = " << newDistMapArray[idm] << "  "
+                << ParallelDescriptor::NProcs() << std::endl;
       BoxLib::Abort("**** Error:  bad newDistMap:2");
     }
   }
   if(newDistMapArray == distributionMap.ProcessorMap()) {
     return 0;
+  }
+
+  // ---- try to resolve fabarrays that were created with Fab_noallocate
+  std::set<int>::iterator it = noallocFAPIds.find(aFAPId);
+  bool fabsNotAllocated(it != noallocFAPIds.end());
+  if(fabsNotAllocated) {
+    if(ok()) {  // ---- this fabarray was created with Fab_noallocate then allocated later
+      noallocFAPIds.erase(aFAPId);
+    } else {
+      return 0;
+    }
+  } else {
+    BL_ASSERT(ok());
   }
 
   // ---- determine which fabs to move
@@ -2766,15 +3498,15 @@ FabArray<FAB>::MoveFabs (const Array<int> &newDistMapArray)
   std::map<int, FAB *> tempIndexFABs;
   typename std::map<int, FAB *>::iterator tIFiter;
   if(fabMoves.size() > 0) {  // ---- there are fabs on this proc to send || recv | both
-    if(indexMap.size() != m_fabs_v.size()) {
-      BoxLib::Abort("**** Error:  indexMap size != m_fabs_v.size()");
+    if(indexArray.size() != m_fabs_v.size()) {
+      BoxLib::Abort("**** Error:  indexArray size != m_fabs_v.size()");
     }
-    for(int iim(0); iim < indexMap.size(); ++iim) {
-      tIFiter = tempIndexFABs.find(indexMap[iim]);
+    for(int iim(0); iim < indexArray.size(); ++iim) {
+      tIFiter = tempIndexFABs.find(indexArray[iim]);
       if(tIFiter == tempIndexFABs.end()) {
-	tempIndexFABs.insert(std::pair<int, FAB *>(indexMap[iim], m_fabs_v[iim]));
+	tempIndexFABs.insert(std::pair<int, FAB *>(indexArray[iim], m_fabs_v[iim]));
       } else {
-        BoxLib::Abort("**** Error:  index not in indexMap.");
+        BoxLib::Abort("**** Error:  index not in indexArray.");
       }
     }
   }
@@ -2823,10 +3555,6 @@ FabArray<FAB>::MoveFabs (const Array<int> &newDistMapArray)
     }
   }
 
-  // ---- we could defer this, not do it, or just do it the first time through
-  ParallelDescriptor::ReduceIntSum(nFabsSent);
-
-
   // ---- wait for all the data to move
   // ---- we could defer Waitall for multiple calls to MoveFabs with a multi-step process
   Array<MPI_Status>  recvStats(recvReqs.size()), sendStats(sendReqs.size());
@@ -2856,10 +3584,12 @@ FabArray<FAB>::MoveFabs (const Array<int> &newDistMapArray)
   }
 
   // ---- reconstruct the index and fab vectors
-  indexMap.clear();
+  indexArray.clear();
+  ownership.clear();
   m_fabs_v.clear();
-  for(tIFiter = tempIndexFABs.begin(); tIFiter != tempIndexFABs.end(); ++ tIFiter) {
-    indexMap.push_back(tIFiter->first);
+  for(tIFiter = tempIndexFABs.begin(); tIFiter != tempIndexFABs.end(); ++tIFiter) {
+    indexArray.push_back(tIFiter->first);
+    ownership.push_back(myProc == newDistMapArray[tIFiter->first]);
     m_fabs_v.push_back(tIFiter->second);
   }
 
@@ -2883,6 +3613,13 @@ FabArrayCopyDescriptor<FAB>::RegisterFabArray(FabArray<FAB>* fabarray)
 {
     BL_ASSERT(fabArrays.size() == fabCopyDescList.size());
 
+    {  // ---- check distmap
+      const DistributionMapping &dm = fabarray->DistributionMap();
+      if(fabarray != 0) {
+        dm.Check();
+      }
+    }
+
     FabArrayId result(fabArrays.size());
 
     fabArrays.push_back(fabarray);  /* Bump size() by one */
@@ -2904,9 +3641,11 @@ FabArrayCopyDescriptor<FAB>::AddBoxDoIt (FabArrayId fabarrayid,
                                          bool       bUseValidBox,
                                          BoxDomain& unfilledBoxDomain)
 {
-    const int MyProc = ParallelDescriptor::MyProc();
+    const int myProc = ParallelDescriptor::MyProc();
 
     FabArray<FAB>* fabArray = fabArrays[fabarrayid.Id()];
+
+    fabArray->DistributionMap().Check();
 
     BL_ASSERT(faindex >= 0 && faindex < fabArray->size());
 
@@ -2926,9 +3665,14 @@ FabArrayCopyDescriptor<FAB>::AddBoxDoIt (FabArrayId fabarrayid,
         FabCopyDescriptor<FAB>* fcd = new FabCopyDescriptor<FAB>;
 
         int remoteProc     = fabArray->DistributionMap()[faindex];
+	if(remoteProc >= ParallelDescriptor::NProcs()) {
+	  std::cout << ParallelDescriptor::MyProcAll() << ":: _in AddBoxDoIt:  nProcs remoteProc = "
+	            << ParallelDescriptor::NProcs() << "  " << remoteProc << std::endl;
+	  BoxLib::Abort("Bad remoteProc");
+	}
         fcd->fillBoxId     = nextFillBoxId;
         fcd->subBox        = intersect;
-        fcd->myProc        = MyProc;
+        fcd->myProc        = myProc;
         fcd->copyFromProc  = remoteProc;
         fcd->copyFromIndex = faindex;
         fcd->srcComp       = srccomp;
@@ -2957,7 +3701,7 @@ FabArrayCopyDescriptor<FAB>::AddBoxDoIt (FabArrayId fabarrayid,
             fabComTag.fabArrayId        = fabarrayid.Id();
             fabComTag.fillBoxId         = nextFillBoxId;
             fabComTag.fabIndex          = faindex;
-            fabComTag.procThatNeedsData = MyProc;
+            fabComTag.procThatNeedsData = myProc;
             fabComTag.procThatHasData   = remoteProc;
             fabComTag.box               = intersect;
             fabComTag.srcComp           = srccomp;
@@ -3653,7 +4397,7 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
     {
 	Array<MPI_Status> stats(N_rcvs);
 
-	MPI_Waitall(N_rcvs, md_send_reqs.dataPtr(), stats.dataPtr());
+	BL_MPI_REQUIRE (MPI_Waitall(N_rcvs, md_send_reqs.dataPtr(), stats.dataPtr()) );
 	for (int i = 0; i < N_rcvs; ++i) {
             BoxLib::The_Arena()->free(md_send_data[i]);	    
 	}
@@ -3712,7 +4456,9 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
     if (N_snds > 0)
     {
 	Array<MPI_Status> stats(N_snds);
+        BL_COMM_PROFILE(BLProfiler::Waitall, sizeof(value_type), BLProfiler::BeforeCall(), N_snds);
 	BL_MPI_REQUIRE( MPI_Waitall(N_snds, data_send_reqs.dataPtr(), stats.dataPtr()) );
+        BL_COMM_PROFILE(BLProfiler::Waitall, sizeof(value_type), BLProfiler::AfterCall(), N_snds);
 
 	for (int i = 0; i < N_snds; ++i) {
             BoxLib::The_Arena()->free(send_data[i]);
@@ -4291,5 +5037,6 @@ FabArrayBase::GrokAsyncSends_PGAS (int                 N_snds,
 #endif /* BL_USE_UPCXX */
 
 template <typename FAB> std::map<int, std::map<int, FabArray<FAB> *> > FabArray<FAB>::allocatedFAPointers;
+template <typename FAB> std::set<int> FabArray<FAB>::noallocFAPIds;
 
 #endif /*BL_FABARRAY_H*/

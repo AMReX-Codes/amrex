@@ -40,6 +40,9 @@ namespace BoxLib
     //   read in a special way
     //
     void readBoxArray (BoxArray& ba, std::istream& s, bool b);
+
+    Array<int> SerializeBoxArray(const BoxArray &ba);
+    BoxArray UnSerializeBoxArray(const Array<int> &serarray);
 }
 
 //
@@ -345,7 +348,8 @@ public:
     const IndexType& ixType () const { return m_typ; }
 
 #ifdef BL_USE_MPI
-    static void SendBoxArrayToSidecars(BoxArray *ba);
+    static void SendBoxArray(const BoxArray &ba, int whichSidecar);
+    static void RecvBoxArray(BoxArray &ba, int whichSidecar);
 #endif
 
 private:

@@ -31,11 +31,10 @@
 #include <string>
 #include <typeinfo>
 #include <algorithm>
+#include <iostream>
 
 namespace ParallelDescriptor
 {
-    const int SidecarQuitSignal = -1;
-
 #ifdef BL_USE_UPCXX
     struct UPCXX_MPI_Mode {
 	unsigned short upcxx_cnt;
@@ -118,18 +117,28 @@ namespace ParallelDescriptor
     // last routine in this class called from within a program.
     //
     void EndParallel ();
-    //
-    // Returns processor number of calling program.
-    //
+
     extern const int myId_undefined;
     extern const int myId_notInGroup;
     extern int m_MyId_all;
     extern int m_MyId_comp;
     extern int m_MyId_sub;
     extern int m_MyId_sidecar;
+    extern const int notInSidecar;
 
+    extern const int nProcs_undefined;
+    extern int m_nProcs_all;
+    extern int m_nProcs_comp;
+    extern int m_nProcs_sub;
+    extern Array<int> m_nProcs_sidecar;
+    extern int nSidecars;
+    extern int inWhichSidecar;
+
+    //
+    // return the rank number local to the comp or sidecar groups
+    //
     inline int
-    MyProc ()  // return the "local" process number
+    MyProc ()
     {
         if (m_MyId_comp != myId_notInGroup)
         {
@@ -142,6 +151,9 @@ namespace ParallelDescriptor
             return m_MyId_sidecar;
         }
     }
+    //
+    // return the rank number for the global group
+    //
     inline int
     MyProcAll ()
     {
@@ -164,7 +176,19 @@ namespace ParallelDescriptor
     InSidecarGroup ()
     {
         BL_ASSERT(m_MyId_sidecar != myId_undefined);
+        BL_ASSERT( ( (inWhichSidecar == notInSidecar) &&
+	             (m_MyId_sidecar == myId_notInGroup)
+		   ) || (
+		     (inWhichSidecar >= 0) &&
+	             (m_MyId_sidecar != myId_notInGroup)
+		   )
+		);
         return (m_MyId_sidecar >= 0);
+    }
+    inline int
+    InWhichSidecar ()
+    {
+        return inWhichSidecar;
     }
     inline bool
     InCompGroup ()
@@ -172,15 +196,32 @@ namespace ParallelDescriptor
         BL_ASSERT(m_MyId_comp != myId_undefined);
         return (m_MyId_comp >= 0);
     }
+
     //
-    // Returns number of CPUs involved in the computation.
+    // This sets the number of MPI ranks in the sidecar and
+    // initializes nProcs, MyId, groups, and communicators
+    // for the comp and sidecar sets of ranks.
+    // The user will need to handle any consequences of changing
+    // the numbers of processors in each group (such as changing
+    // distribution maps and moving data in FabArrays).
     //
-    extern const int nProcs_undefined;
-    extern int m_nProcs_all;
-    extern int m_nProcs_comp;
-    extern int m_nProcs_sub;
-    extern int m_nProcs_sidecar;
-    extern int nSidecarProcs;
+    // The union of ranks in the comp and sidecar arrays must be
+    // equal to the set of ranks in 'all' (the boxlib global
+    // communicator).  The sets must be disjoint.
+    // Global rank zero is required to be in compRanksInAll[0],
+    // this restriction may be removed in the future.
+    //
+    void
+    SetNProcsSidecars (const Array<int> &compRanksInAll,
+                       const Array<Array<int> > &sidecarRanksInAll,
+		       bool printRanks = false); 
+    //
+    // This version makes one sidecar (number zero in the sidecar array)
+    // Sidecar ranks are set to the high end of the range [0, m_nProcs_all)
+    //
+    void
+    SetNProcsSidecars (int nscp); 
+
     //
     // Team
     //
@@ -257,25 +298,26 @@ namespace ParallelDescriptor
 
     extern ProcessTeam m_Team;
 
-    inline void
-    SetNProcsSidecar (int npmp)  // ---- set this before calling BoxLib::Initialize()
-    {
-        BL_ASSERT(npmp >= 0);
-        nSidecarProcs = npmp;
-    }
+    //
+    // return the number of MPI ranks local to the comp or sidecar groups
+    //
     inline int
-    NProcs ()  // return the "local" number of processes
+    NProcs ()
     {
         if (m_MyId_comp != myId_notInGroup)
         {
             BL_ASSERT(m_nProcs_comp != nProcs_undefined);
             return m_nProcs_comp;
         }
-        else
+        else if(inWhichSidecar != notInSidecar)
         {
-            BL_ASSERT(m_nProcs_sidecar != nProcs_undefined);
-            return m_nProcs_sidecar;
+            BL_ASSERT(m_nProcs_sidecar[inWhichSidecar] != nProcs_undefined);
+            return m_nProcs_sidecar[inWhichSidecar];
         }
+	else
+	{
+            return nProcs_undefined;
+	}
     }
     inline int
     NProcsAll ()
@@ -290,14 +332,18 @@ namespace ParallelDescriptor
         return m_nProcs_comp;
     }
     inline int
-    NProcsSidecar ()
+    NProcsSidecar (int whichSidecar)
     {
-        BL_ASSERT(m_nProcs_sidecar != nProcs_undefined);
-        BL_ASSERT(m_nProcs_sidecar == nSidecarProcs);
-        return m_nProcs_sidecar;
+	if(nSidecars == 0) {
+	  return 0;
+	}
+        BL_ASSERT(whichSidecar >= 0 && whichSidecar < m_nProcs_sidecar.size());
+        BL_ASSERT(m_nProcs_sidecar[whichSidecar] != nProcs_undefined);
+        return m_nProcs_sidecar[whichSidecar];
     }
     //
-    // The CPU number of the I/O Processor.
+    // The MPI rank number of the I/O Processor (probably rank 0).
+    // This rank is usually used to write to stdout.
     //
     extern const int ioProcessor;
     inline int
@@ -305,13 +351,24 @@ namespace ParallelDescriptor
     {
         return ioProcessor;
     }
+    inline int
+    IOProcessorNumberAll ()
+    {
+        return ioProcessor;
+    }
     //
     // Is this CPU the I/O Processor?
+    // To get the rank number, call IOProcessorNumber()
     //
     inline bool
     IOProcessor ()
     {
          return MyProc() == IOProcessorNumber();
+    }
+    inline bool
+    IOProcessorAll ()
+    {
+         return MyProcAll() == IOProcessorNumberAll();
     }
     //
     inline int
@@ -353,6 +410,11 @@ namespace ParallelDescriptor
     sameTeam (int rank)
     {
 	return MyTeamLead() == TeamLead(rank);
+    }
+    inline bool
+    sameTeam (int rankA, int rankB)
+    {
+	return TeamLead(rankA) == TeamLead(rankB);
     }
     inline int
     RankInLeadComm (int rank)
@@ -441,16 +503,22 @@ namespace ParallelDescriptor
 #endif
     //
     // BoxLib's Parallel Communicators
-    //    m_comm_all     is for all procs, probably MPI_COMM_WORLD
-    //    m_comm_comp    is for the nodes doing computations
-    //    m_comm_sub     m_comm_comp is split into sub communicators
-    //    m_comm_sidecar is for the in-situ performance monitor
+    //    m_comm_all       is for all ranks, probably MPI_COMM_WORLD
+    //    m_comm_comp      is for the ranks doing computations
+    //    m_comm_sub       m_comm_comp is split into sub communicators
+    //    m_comm_sidecar[] is for the ranks in the sidecar
+    //    m_comm_inter[]   is for communicating between comp and sidecars
+    //                     the user must create any sidecar to sidecar communicators
+    //    m_comm_both[]    is for communicating within a group made from comp and
+    //                     one of the sidecars
     //
     extern MPI_Comm m_comm_all;
     extern MPI_Comm m_comm_comp;
     extern MPI_Comm m_comm_sub;
-    extern MPI_Comm m_comm_sidecar;
-    extern MPI_Comm m_comm_inter;
+    extern Array<MPI_Comm> m_comm_sidecar;  // ---- [whichsidecar]
+    extern Array<MPI_Comm> m_comm_inter;    // ---- [whichsidecar]
+    extern Array<MPI_Comm> m_comm_both;     // ---- [whichsidecar]
+
 
     extern int m_nCommColors;
 
@@ -488,7 +556,7 @@ namespace ParallelDescriptor
     void StartSubCommunicator ();
     void EndSubCommunicator ();
 
-    inline MPI_Comm Communicator ()  // return the "local" communicator
+    inline MPI_Comm Communicator ()         // ---- return the "local" communicator
     {
         if (m_MyId_comp != myId_notInGroup)
         {
@@ -496,7 +564,8 @@ namespace ParallelDescriptor
         }
         else
         {
-            return m_comm_sidecar;
+            BL_ASSERT(inWhichSidecar != notInSidecar && inWhichSidecar < m_comm_sidecar.size());
+            return m_comm_sidecar[inWhichSidecar];
         }
     }
     inline MPI_Comm CommunicatorAll ()
@@ -509,11 +578,20 @@ namespace ParallelDescriptor
     }
     inline MPI_Comm CommunicatorSidecar ()
     {
-        return m_comm_sidecar;
+	if(inWhichSidecar == notInSidecar) {
+          return MPI_COMM_NULL;
+	} else {
+          return m_comm_sidecar[inWhichSidecar];
+	}
     }
-    inline MPI_Comm CommunicatorInter ()
+    inline MPI_Comm CommunicatorInter (int whichSidecar)
     {
-        return m_comm_inter;
+        return m_comm_inter[whichSidecar];
+    }
+
+    inline MPI_Comm CommunicatorBoth (int whichSidecar)
+    {
+        return m_comm_both[whichSidecar];
     }
 
     inline int NColors () { return m_nCommColors; }
@@ -576,7 +654,7 @@ namespace ParallelDescriptor
     }
 
     void Barrier (const std::string& message = Unnamed);
-    void Barrier (MPI_Comm comm, const std::string& message = Unnamed);
+    void Barrier (const MPI_Comm &comm, const std::string& message = Unnamed);
 
     void Test (MPI_Request& request, int& flag, MPI_Status& status);
 
@@ -743,8 +821,8 @@ namespace ParallelDescriptor
     //
     // Returns sequential message sequence numbers in range 1000-9000.
     //
-    int SeqNum ();
-    int SubSeqNum ();
+    int SeqNum (int getsetinc = 0, int newvalue = 0);
+    int SubSeqNum (int getsetinc = 0, int newvalue = 0);
 
     template <class T> Message Asend(const T*, size_t n, int pid, int tag);
     template <class T> Message Asend(const T*, size_t n, int pid, int tag, MPI_Comm comm);
@@ -780,10 +858,6 @@ namespace ParallelDescriptor
 			  const MPI_Comm &comm = Communicator() );
     void IProbe(int src_pid, int tag, int &mflag, MPI_Status &status);
     void IProbe(int src_pid, int tag, MPI_Comm comm, int &mflag, MPI_Status &status);
-    //
-    // Starts sidecar processes for doing on-the-fly simulation analysis.
-    //
-    void SidecarProcess ();
 }
 
 #define BL_MPI_REQUIRE(x)						\

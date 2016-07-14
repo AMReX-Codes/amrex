@@ -117,15 +117,6 @@ probin.f90: $(PROBIN_PARAMETERS) $(EXTERN_PARAMETERS) $(PROBIN_TEMPLATE)
            --pa "$(PROBIN_PARAMETERS)" --pb "$(EXTERN_PARAMETERS)"
 
 
-%.$(suf).exe:%.f90 $(objects)
-ifdef MKVERBOSE
-	$(LINK.f90) -o $@ $< $(objects) $(libraries)
-else
-	@echo "Linking $@ ... "
-	@$(LINK.f90) -o $@ $< $(objects) $(libraries)
-endif
-
-
 include $(BOXLIB_HOME)/Tools/F_mk/GMakerules.mak
 
 

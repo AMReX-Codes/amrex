@@ -9,6 +9,7 @@ ParticleBase::CIC_Cells_Fracs_Basic (const ParticleBase& p,
                                      Real*               fracs,
                                      IntVect*            cells)
 {
+    BL_PROFILE("ParticleBase::CIC_Cells_Fracs_B()");
     //
     // "fracs" should be dimensioned: Real    fracs[D_TERM(2,+2,+4)]
     //
@@ -34,6 +35,7 @@ ParticleBase::CIC_Cells_Fracs (const ParticleBase& p,
                                Array<Real>&        fracs,
                                Array<IntVect>&     cells)
 {
+    BL_PROFILE("ParticleBase::CIC_Cells_Fracs()");
     if (dx_geom == dx_part)
     {
         const int M = D_TERM(2,+2,+4);
@@ -116,6 +118,7 @@ ParticleBase::CrseToFine (const BoxArray&       cfba,
                           Array<int>&           which,
                           Array<IntVect>&       pshifts)
 {
+    BL_PROFILE("ParticleBase::CrseToFine()");
     //
     // We're in AssignDensity(). We want to know whether or not updating
     // with a particle, will we cross a  crse->fine boundary of the level
@@ -190,6 +193,7 @@ ParticleBase::FineToCrse (const ParticleBase&                p,
                           Array<IntVect>&                    pshifts,
                           std::vector< std::pair<int,Box> >& isects)
 {
+    BL_PROFILE("ParticleBase::FineToCrse()");
     BL_ASSERT(gdb != 0);
     BL_ASSERT(flev > 0);
     //
@@ -301,6 +305,7 @@ ParticleBase::FineCellsToUpdateFromCrse (const ParticleBase&                p,
                                          Array<IntVect>&                    fcells,
                                          std::vector< std::pair<int,Box> >& isects)
 {
+    BL_PROFILE("ParticleBase::FineCellsToUpdateFromCrse()");
     BL_ASSERT(lev >= 0);
     BL_ASSERT(lev < gdb->finestLevel());
 
@@ -678,6 +683,7 @@ bool
 ParticleBase::PeriodicShift (ParticleBase& p,
                              const ParGDBBase*    gdb)
 {
+    BL_PROFILE("ParticleBase::PeriodicShift()");
     //
     // This routine should only be called when Where() returns false.
     //
@@ -752,6 +758,7 @@ ParticleBase::Reset (ParticleBase& p,
                      bool          update,
 		     bool          verbose)
 {
+    BL_PROFILE("ParticleBase::Reset()");
     BL_ASSERT(gdb != 0);
 
     bool ok = ParticleBase::Where(p,gdb);
@@ -787,6 +794,7 @@ ParticleBase::InterpDoit (const FArrayBox& fab,
                           const Real*      frac,
                           int              comp)
 {
+    BL_PROFILE("ParticleBase::InterpDoit(fcfc)");
     const int M = D_TERM(2,+2,+4);
 
     Real    fracs[M];
@@ -806,6 +814,7 @@ ParticleBase::InterpDoit (const FArrayBox& fab,
                           const IntVect*   cells,
                           int              comp)
 {
+    BL_PROFILE("ParticleBase::InterpDoit(ffcc)");
     const int M = D_TERM(2,+2,+4);
 
     Real val = 0;
@@ -826,6 +835,7 @@ ParticleBase::Interp (const ParticleBase& prt,
                       Real*               val,
                       int                 cnt)
 {
+    BL_PROFILE("ParticleBase::Interp()");
     BL_ASSERT(idx != 0);
     BL_ASSERT(val != 0);
 
@@ -854,6 +864,7 @@ ParticleBase::GetGravity (const FArrayBox&    gfab,
                           const ParticleBase& p,
                           Real*               grav)
 {
+    BL_PROFILE("ParticleBase::GetGravity()");
     BL_ASSERT(grav != 0);
 
     int idx[BL_SPACEDIM] = { D_DECL(0,1,2) };

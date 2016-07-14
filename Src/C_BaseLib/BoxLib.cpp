@@ -91,7 +91,11 @@ BoxLib::write_to_stderr_without_buffering (const char* str)
 
     if (str)
     {
+	std::ostringstream procall;
+	procall << ParallelDescriptor::MyProcAll() << "::";
+	const char *cprocall = procall.str().c_str();
         const char * const end = " !!!\n";
+	fwrite(cprocall, strlen(cprocall), 1, stderr);
         fwrite(str, strlen(str), 1, stderr);
         fwrite(end, strlen(end), 1, stderr);
     }
@@ -257,8 +261,12 @@ BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi
     std::set_new_handler(BoxLib::OutOfMemory);
 
     if (argv[0][0] != '/') {
-	char temp[1024];
-	getcwd(temp,1024);
+	int bufSize(1024);
+	char temp[bufSize];
+	char *rCheck = getcwd(temp, bufSize);
+	if(rCheck == 0) {
+	  BoxLib::Abort("**** Error:  getcwd buffer too small.");
+	}
 	exename = temp;
 	exename += "/";
     }
@@ -272,12 +280,12 @@ BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi
 #endif
 
 #ifdef BL_USE_MPI3
-    MPI_Win_create_dynamic(MPI_INFO_NULL, MPI_COMM_WORLD, &ParallelDescriptor::cp_win);
-    MPI_Win_create_dynamic(MPI_INFO_NULL, MPI_COMM_WORLD, &ParallelDescriptor::fb_win);
-    MPI_Win_create_dynamic(MPI_INFO_NULL, MPI_COMM_WORLD, &ParallelDescriptor::fpb_win);
+    BL_MPI_REQUIRE( MPI_Win_create_dynamic(MPI_INFO_NULL, MPI_COMM_WORLD, &ParallelDescriptor::cp_win) );
+    BL_MPI_REQUIRE( MPI_Win_create_dynamic(MPI_INFO_NULL, MPI_COMM_WORLD, &ParallelDescriptor::fb_win) );
+    BL_MPI_REQUIRE( MPI_Win_create_dynamic(MPI_INFO_NULL, MPI_COMM_WORLD, &ParallelDescriptor::fpb_win) );
 #endif
 
-    while (!The_Initialize_Function_Stack.empty())
+    while ( ! The_Initialize_Function_Stack.empty())
     {
         //
         // Call the registered function.
@@ -287,16 +295,6 @@ BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi
         // And then remove it from the stack.
         //
         The_Initialize_Function_Stack.pop();
-    }
-
-    if(ParallelDescriptor::NProcsSidecar() > 0) {
-      if(ParallelDescriptor::InSidecarGroup()) {
-        if (ParallelDescriptor::IOProcessor())
-          std::cout << "===== SIDECARS INITIALIZED =====" << std::endl;
-        ParallelDescriptor::SidecarProcess();
-        BoxLib::Finalize();
-        return;
-      }
     }
 
     BL_PROFILE_INITIALIZE();
@@ -470,7 +468,8 @@ BoxLib::Finalize (bool finalize_parallel)
 #if defined(BL_USE_FORTRAN_MPI) || defined(BL_USE_F_INTERFACES)
 #ifdef IN_TRANSIT
 	int fcomm = MPI_Comm_c2f(ParallelDescriptor::Communicator());
-	bl_fortran_sidecar_mpi_comm_free(fcomm);
+	//bl_fortran_sidecar_mpi_comm_free(fcomm);
+	std::cout << "******** BoxLib::Finalize:  check bl_fortran_sidecar_mpi_comm_free" << std::endl;
 #else
 	bl_fortran_mpi_comm_free();
 #endif
