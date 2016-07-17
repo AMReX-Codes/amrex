@@ -49,7 +49,7 @@ program fcompare
   real(kind=dp_t), allocatable :: aerror(:), rerror(:), rerror_denom(:)
 
   logical, allocatable :: has_nan_a(:), has_nan_b(:)
-  logical :: any_nans
+  logical :: any_nans, all_variables_found
 
   integer :: norm
 
@@ -103,7 +103,7 @@ program fcompare
   farg = 1
   do while (farg <= narg)
      call get_command_argument(farg, value = fname)
-     
+
      select case (fname)
 
      case ('--infile1')
@@ -173,7 +173,7 @@ program fcompare
   !---------------------------------------------------------------------------
   ! build the plotfiles and do initial comparisons
   !---------------------------------------------------------------------------
-  
+
   unit_a = unit_new()
   call build(pf_a, plotfile_a, unit_a)
 
@@ -181,7 +181,7 @@ program fcompare
   call build(pf_b, plotfile_b, unit_b)
 
   dm = pf_a%dim
-  
+
   ! check if they are the same dimensionality
   if (pf_a%dim /= pf_b%dim) then
      call bl_error("ERROR: plotfiles have different numbers of spatial dimensions")
@@ -200,7 +200,7 @@ program fcompare
   if (.not. box_equal(bx_a, bx_b)) then
      call bl_error("ERROR: grids do not match")
   endif
-  
+
   ! check if they have the same number of variables
   if (pf_a%nvars /= pf_b%nvars) then
      print *, " "
@@ -215,6 +215,7 @@ program fcompare
   allocate(has_nan_b(pf_a%nvars))
 
   any_nans = .false.
+  all_variables_found = .true.
 
   save_var_a = -1
   zone_info_var_a = -1
@@ -238,6 +239,7 @@ program fcompare
      if (ivar_b(n_a) == -1) then
         print *, "WARNING: variable ", trim(pf_a%names(n_a)), &
                  " not found in plotfile 2"
+        all_variables_found = .false.
      endif
 
      if (.not. diffvar == "") then
@@ -271,6 +273,7 @@ program fcompare
      if (itest == -1) then
         print *, "WARNING: variable ", trim(pf_b%names(n_b)), &
                  " not found in plotfile 1"
+        all_variables_found = .false.
      endif
 
   enddo
@@ -309,13 +312,13 @@ program fcompare
         call multifab_build(mf_array(i),la,1,0)
 
      enddo
-  
+
   endif
 
   !---------------------------------------------------------------------------
   ! go level-by-level and patch-by-patch and compare the data
   !---------------------------------------------------------------------------
-  
+
 998 format(1x,a24,2x,a24,   2x,a24)
 999 format(1x,70("-"))
 
@@ -341,7 +344,7 @@ program fcompare
      dx_a = 0.0_dp_t
      dx_b = 0.0_dp_t
      dx_a(1:dm) = plotfile_get_dx(pf_a, i)
-     dx_b(1:dm) = plotfile_get_dx(pf_b, i)  
+     dx_b(1:dm) = plotfile_get_dx(pf_b, i)
 
      if ((dx_a(1) /= dx_b(1)) .OR. &
          (pf_a%dim >= 2 .AND. dx_a(2) /= dx_b(2)) .OR. &
@@ -352,7 +355,7 @@ program fcompare
      ! make sure the number of boxes agree
      nboxes_a = nboxes(pf_a, i)
      nboxes_b = nboxes(pf_b, i)
-     
+
      if (nboxes_a /= nboxes_b) then
         call bl_error("ERROR: number of boxes do not match")
      endif
@@ -396,7 +399,7 @@ program fcompare
            n_b = ivar_b(n_a)
            if (n_b == -1) cycle
 
-           call fab_bind_comp_vec(pf_a, i, j, (/ n_a /) )           
+           call fab_bind_comp_vec(pf_a, i, j, (/ n_a /) )
            call fab_bind_comp_vec(pf_b, i, j, (/ n_b /) )
 
            p_a => dataptr(pf_a, i, j)
@@ -471,7 +474,7 @@ program fcompare
            ! is needed
            rerror(n_a) = (rerror(n_a)/rerror_denom(n_a))**(ONE/real(norm,dp_t))
         enddo
-        
+
      else
 
         do n_a = 1, pf_a%nvars
@@ -484,7 +487,7 @@ program fcompare
      !------------------------------------------------------------------------
      ! print out the comparison report for this level
      !------------------------------------------------------------------------
-     
+
 1000 format(1x,"level = ", i2)
 1001 format(1x,a24,2x,g24.10,2x,g24.10)
 1002 format(1x,a24,2x,a50)
@@ -495,8 +498,10 @@ program fcompare
      do n_a = 1, pf_a%nvars
         if (ivar_b(n_a) == -1) then
            write (*,1002) pf_a%names(n_a), "< variable not present in both files > "
+
         else if (has_nan_a(n_a) .or. has_nan_b(n_a)) then
            write (*,1002) pf_a%names(n_a), "< NaN present > "
+
         else
            if (aerror(n_a) > 0.0d0) then
               aerr = min(max(aerror(n_a), 1.d-99), 1.d98)
@@ -524,11 +529,11 @@ program fcompare
 
   enddo  ! level loop
 
-  if (global_error == ZERO .and. .not. any_nans) then
+  if (global_error == ZERO .and. .not. any_nans .and. all_variables_found) then
      print *, "PLOTFILES AGREE"
      call send_success_return_code()
   else
-     call send_fail_return_code()     
+     call send_fail_return_code()
   endif
 
   if (save_var_a > 0) then
@@ -545,8 +550,8 @@ program fcompare
   ! print out the zone info for max abs error (if desired)
   !------------------------------------------------------------------------
   if (zone_info) then
-        
-     call fab_bind(pf_a, err_zone % level, err_zone % box)        
+
+     call fab_bind(pf_a, err_zone % level, err_zone % box)
      p => dataptr(pf_a, err_zone % level, err_zone % box)
 
      print *, " "
@@ -555,7 +560,7 @@ program fcompare
         write (*, 1003) trim(pf_a%names(n_a)), &
              p(err_zone % i, err_zone % j, err_zone % k, n_a)
      enddo
-     
+
   endif
 
   call destroy(pf_a)
