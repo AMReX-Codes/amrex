@@ -167,17 +167,17 @@ public:
                             const Box&                      bx);
 
     template<typename T>
-    static void GrokAsyncSends (int                 N_snds,
-                                Array<MPI_Request>& send_reqs,
-                                Array<T*>&          send_data,
-                                Array<MPI_Status>&  stats);
+    static void WaitForAsyncSends (int                 N_snds,
+                                   Array<MPI_Request>& send_reqs,
+                                   Array<T*>&          send_data,
+                                   Array<MPI_Status>&  stats);
 
 #ifdef BL_USE_UPCXX
     template<typename T>
-    static void GrokAsyncSends_PGAS (int                 N_snds,
-                                     Array<T*>&          send_data,
-                                     upcxx::event*       send_event,
-                                     volatile int*       send_counter);
+    static void WaitForAsyncSends_PGAS (int                 N_snds,
+                                        Array<T*>&          send_data,
+                                        upcxx::event*       send_event,
+                                        volatile int*       send_counter);
 #endif
 
     template<typename T>
@@ -1524,10 +1524,10 @@ FabArrayBase::PostRcvs_MPI_Onesided (
 
 template<typename T>
 void
-FabArrayBase::GrokAsyncSends (int                 N_snds,
-                              Array<MPI_Request>& send_reqs,
-                              Array<T*>&          send_data,
-                              Array<MPI_Status>&  stats)
+FabArrayBase::WaitForAsyncSends (int                 N_snds,
+                                 Array<MPI_Request>& send_reqs,
+                                 Array<T*>&          send_data,
+                                 Array<MPI_Status>&  stats)
 {
 #ifdef BL_USE_MPI
     BL_ASSERT(FabArrayBase::do_async_sends && N_snds > 0);
@@ -2476,9 +2476,9 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 	
         if (N_snds > 0) {
 #ifdef  BL_USE_UPCXX
-	    FabArrayBase::GrokAsyncSends_PGAS(N_snds,send_data,
-					      &BLPgas::cp_send_event,
-					      &BLPgas::cp_send_counter);
+	    FabArrayBase::WaitForAsyncSends_PGAS(N_snds,send_data,
+					         &BLPgas::cp_send_event,
+					         &BLPgas::cp_send_counter);
 #else
 	    if (ParallelDescriptor::MPIOneSided()) {
 #if defined(BL_USE_MPI3)
@@ -2488,7 +2488,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 	    } else {
 		if (FabArrayBase::do_async_sends && ! thecpc.m_SndTags->empty()) {
 		    Array<MPI_Status> stats;
-		    FabArrayBase::GrokAsyncSends(thecpc.m_SndTags->size(),send_reqs,send_data,stats);
+		    FabArrayBase::WaitForAsyncSends(thecpc.m_SndTags->size(),send_reqs,send_data,stats);
 		}
 	    }
 #endif
@@ -2961,7 +2961,7 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
         BoxLib::The_Arena()->free(the_recv_data);
 	
         if (FabArrayBase::do_async_sends && ! thecpc.m_SndTags->empty()) {
-            FabArrayBase::GrokAsyncSends(thecpc.m_SndTags->size(),send_reqs,send_data,stats);
+            FabArrayBase::WaitForAsyncSends(thecpc.m_SndTags->size(),send_reqs,send_data,stats);
 	}
 
         ipass     += NC;
@@ -4943,9 +4943,9 @@ FabArray<FAB>::FillBoundary_finish ()
 
     if (N_snds > 0) {
 #ifdef BL_USE_UPCXX
-        FabArrayBase::GrokAsyncSends_PGAS(N_snds,fb_send_data,
-					  &BLPgas::fb_send_event,
-					  &BLPgas::fb_send_counter);
+        FabArrayBase::WaitForAsyncSends_PGAS(N_snds,fb_send_data,
+					     &BLPgas::fb_send_event,
+					     &BLPgas::fb_send_counter);
 #else
 	if (ParallelDescriptor::MPIOneSided()) {
 #if defined(BL_USE_MPI3)
@@ -4954,7 +4954,7 @@ FabArray<FAB>::FillBoundary_finish ()
 #endif
 	} else {
 	    Array<MPI_Status> stats;
-	    FabArrayBase::GrokAsyncSends(N_snds,fb_send_reqs,fb_send_data,stats);
+	    FabArrayBase::WaitForAsyncSends(N_snds,fb_send_reqs,fb_send_data,stats);
 	}
 #endif
 	fb_send_data.clear();
@@ -5020,10 +5020,10 @@ FabArrayBase::PostRcvs_PGAS (const std::map<int,int>&               m_RcvVols,
 
 template<typename T>
 void
-FabArrayBase::GrokAsyncSends_PGAS (int                 N_snds,
-                                   Array<T*>&          send_data,
-                                   upcxx::event*       send_event,
-                                   volatile int*       send_counter)
+FabArrayBase::WaitForAsyncSends_PGAS (int                 N_snds,
+                                      Array<T*>&          send_data,
+                                      upcxx::event*       send_event,
+                                      volatile int*       send_counter)
 {
   BL_ASSERT(N_snds > 0);
   BL_ASSERT(send_data.size() == N_snds);
