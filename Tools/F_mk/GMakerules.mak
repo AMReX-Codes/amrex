@@ -7,13 +7,27 @@ vpath %.h   . $(VPATH_LOCATIONS)
 vpath %.f90 . $(VPATH_LOCATIONS)
 vpath %.F90 . $(VPATH_LOCATIONS)
 
-# Default is the first rule
+
+ifeq ($(pnames),)
+
 %.$(suf).exe: $(objects)
 ifdef MKVERBOSE
 	$(LINK.f90) -o $@ $(objects) $(libraries)
 else
 	@echo "Linking $@ ..."
 	@$(LINK.f90) -o $@ $(objects) $(libraries)
+endif
+
+else
+
+%.$(suf).exe:%.f90 $(objects)
+ifdef MKVERBOSE
+	$(LINK.f90) -o $@ $< $(objects) $(libraries)
+else
+	@echo "Linking $@ ... "
+	@$(LINK.f90) -o $@ $< $(objects) $(libraries)
+endif
+
 endif
 
 
