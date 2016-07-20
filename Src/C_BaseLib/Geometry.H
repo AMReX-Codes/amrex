@@ -754,9 +754,9 @@ namespace BoxLib
 
 	if (N_snds > 0) {
 #ifdef BL_USE_UPCXX
-	    FabArrayBase::GrokAsyncSends_PGAS(N_snds,mf.fpb_send_data,
-					      &BLPgas::fpb_send_event,
-					      &BLPgas::fpb_send_counter);
+	    FabArrayBase::WaitForAsyncSends_PGAS(N_snds,mf.fpb_send_data,
+					         &BLPgas::fpb_send_event,
+					         &BLPgas::fpb_send_counter);
 #else
 	    if (ParallelDescriptor::MPIOneSided()) {
 #if defined(BL_USE_MPI3)
@@ -765,7 +765,7 @@ namespace BoxLib
 #endif
 	    } else {
 		Array<MPI_Status> stats;
-		FabArrayBase::GrokAsyncSends(N_snds,mf.fpb_send_reqs,mf.fpb_send_data,stats);
+		FabArrayBase::WaitForAsyncSends(N_snds,mf.fpb_send_reqs,mf.fpb_send_data,stats);
 	    }
 #endif
 	    mf.fpb_send_data.clear();

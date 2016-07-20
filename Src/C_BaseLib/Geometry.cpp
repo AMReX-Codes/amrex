@@ -508,7 +508,7 @@ Geometry::SumPeriodicBoundary (MultiFab& mf,
     BoxLib::The_Arena()->free(the_recv_data);
 
     if (FabArrayBase::do_async_sends && !SndTags.empty())
-        FabArrayBase::GrokAsyncSends(N_snds,send_reqs,send_data,stats);
+        FabArrayBase::WaitForAsyncSends(N_snds,send_reqs,send_data,stats);
 
 #endif
 
