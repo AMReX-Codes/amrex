@@ -345,8 +345,6 @@ void
 ParallelDescriptor::SetNProcsSidecars (const Array<int> &compRanksInAll,
                                        const Array<Array<int> > &sidecarRanksInAll, bool printRanks)
 {
-    BL_PROFILE("PD::SetNProcsSidecars()");
-
     BL_ASSERT(compRanksInAll.size() > 0);
     BL_ASSERT(m_MyId_all != myId_undefined);
 
