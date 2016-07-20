@@ -492,6 +492,7 @@ def report_single_test(suite, test, tests, failure_msg=None):
 
         box_error = False
         grid_error = False
+        variables_error = False
 
         for line in diff_lines:
 
@@ -502,6 +503,9 @@ def report_single_test(suite, test, tests, failure_msg=None):
             if "grids do not match" in line:
                 grid_error = True
                 break
+
+            if "number of variables do not match" in line:
+                variables_error = True
 
             if not in_diff_region:
                 if line.find("fcompare") > 1:
@@ -572,6 +576,9 @@ def report_single_test(suite, test, tests, failure_msg=None):
 
         if grid_error:
             hf.write("<p>grids do not match</p>\n")
+
+        if variables_error:
+            hf.write("<p>variables differ in files</p>\n")
 
         # show any visualizations
         if test.doVis:
