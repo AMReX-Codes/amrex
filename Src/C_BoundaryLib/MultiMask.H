@@ -10,6 +10,9 @@ class MultiMask
 {
 public:
     MultiMask ();
+    MultiMask (const BoxArray&            ba,
+	       const DistributionMapping& dm,
+	       int                        ncomp);
 
 private:
     //
