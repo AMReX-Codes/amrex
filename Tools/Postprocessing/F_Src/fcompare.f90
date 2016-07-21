@@ -529,13 +529,6 @@ program fcompare
 
   enddo  ! level loop
 
-  if (global_error == ZERO .and. .not. any_nans .and. all_variables_found) then
-     print *, "PLOTFILES AGREE"
-     call send_success_return_code()
-  else
-     call send_fail_return_code()
-  endif
-
   if (save_var_a > 0) then
      call fabio_ml_multifab_write_d(mf_array, ref_ratio, &
                                     "diffs", plot_names, &
@@ -576,5 +569,12 @@ program fcompare
   deallocate(has_nan_b)
 
   deallocate(ivar_b)
+
+  if (global_error == ZERO .and. .not. any_nans .and. all_variables_found) then
+     print *, "PLOTFILES AGREE"
+     call send_success_return_code()
+  else
+     call send_fail_return_code()
+  endif
 
 end program fcompare
