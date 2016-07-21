@@ -32,7 +32,6 @@ f90EXE_sources += cc_mg_cpp.f90
 f90EXE_sources += cc_applyop.f90
 f90EXE_sources += cc_ml_resid.f90
 f90EXE_sources += cc_smoothers.f90
-f90EXE_sources += cc_restriction.f90
 f90EXE_sources += cc_stencil.f90
 f90EXE_sources += cc_stencil_apply.f90
 f90EXE_sources += cc_stencil_fill.f90
@@ -45,7 +44,6 @@ f90EXE_sources += ml_cc.f90
 f90EXE_sources += ml_nd.f90
 f90EXE_sources += ml_norm.f90
 
-f90EXE_sources += edge_restriction.f90
 f90EXE_sources += tridiag.f90
 
 f90EXE_sources += nodal_mg_cpp.f90
@@ -66,8 +64,5 @@ f90EXE_sources += stencil_types.f90
 f90EXE_sources += nodal_mg_cpp.f90
 f90EXE_sources += nodal_sync_resid.f90
 cEXE_headers   += mg_cpp_f.h
-
-cEXE_sources   += fabio_c.c
-cEXE_sources   += timer_c.c
 
 f90EXE_sources += stencil_util.f90
