@@ -38,6 +38,8 @@ namespace
 void
 VisMF::Initialize ()
 {
+    BL_PROFILE("VisMF::Initialize");
+
     if (initialized) return;
     //
     // Use the same defaults as in Amr.cpp.
@@ -84,8 +86,9 @@ operator<< (std::ostream&           os,
 {
     os << TheFabOnDiskPrefix << ' ' << fod.m_name << ' ' << fod.m_head;
 
-    if (!os.good())
+    if( ! os.good()) {
         BoxLib::Error("Write of VisMF::FabOnDisk failed");
+    }
 
     return os;
 }
@@ -102,8 +105,9 @@ operator>> (std::istream&     is,
     is >> fod.m_name;
     is >> fod.m_head;
 
-    if (!is.good())
+    if( ! is.good()) {
         BoxLib::Error("Read of VisMF::FabOnDisk failed");
+    }
 
     return is;
 }
@@ -116,13 +120,13 @@ operator<< (std::ostream&                  os,
 
     os << N << '\n';
 
-    for ( ; i < N; i++)
-    {
+    for( ; i < N; ++i) {
         os << fa[i] << '\n';
     }
 
-    if (!os.good())
+    if( ! os.good()) {
         BoxLib::Error("Write of Array<VisMF::FabOnDisk> failed");
+    }
 
     return os;
 }
@@ -138,13 +142,13 @@ operator>> (std::istream&            is,
 
     fa.resize(N);
 
-    for ( ; i < N; i++)
-    {
+    for ( ; i < N; ++i) {
         is >> fa[i];
     }
 
-    if (!is.good())
+    if( ! is.good()) {
         BoxLib::Error("Read of Array<VisMF::FabOnDisk> failed");
+    }
 
     return is;
 }
@@ -158,19 +162,18 @@ operator<< (std::ostream&               os,
 
     os << N << ',' << M << '\n';
 
-    for ( ; i < N; i++)
-    {
+    for( ; i < N; ++i) {
         BL_ASSERT(ar[i].size() == M);
 
-        for (long j = 0; j < M; j++)
-        {
+        for(long j(0); j < M; ++j) {
             os << ar[i][j] << ',';
         }
         os << '\n';
     }
 
-    if (!os.good())
+    if( ! os.good()) {
         BoxLib::Error("Write of Array<Array<Real>> failed");
+    }
 
     return os;
 }
@@ -188,34 +191,37 @@ operator>> (std::istream&         is,
 
     is >> N >> ch >> M;
 
-    if ( N < 0 ) 
+    if( N < 0 ) {
       BoxLib::Error("Expected a positive integer, N, got something else");
-    if ( M < 0 ) 
+    }
+    if( M < 0 ) {
       BoxLib::Error("Expected a positive integer, M, got something else");
-    if ( ch != ',' ) 
+    }
+    if( ch != ',' ) {
       BoxLib::Error("Expected a ',' got something else");
+    }
 
     ar.resize(N);
     
-    for ( ; i < N; i++)
-    {
+    for( ; i < N; ++i) {
         ar[i].resize(M);
 
-        for (long j = 0; j < M; j++)
-        {
+        for(long j = 0; j < M; ++j) {
 #ifdef BL_USE_FLOAT
             is >> dtemp >> ch;
             ar[i][j] = static_cast<Real>(dtemp);
 #else
             is >> ar[i][j] >> ch;
 #endif
-	    if ( ch != ',' ) 
+	    if( ch != ',' ) {
 	      BoxLib::Error("Expected a ',' got something else");
+	    }
         }
     }
 
-    if (!is.good())
+    if( ! is.good()) {
         BoxLib::Error("Read of Array<Array<Real>> failed");
+    }
 
     return is;
 }
@@ -246,8 +252,9 @@ operator<< (std::ostream&        os,
     os.flags(oflags);
     os.precision(old_prec);
 
-    if (!os.good())
+    if( ! os.good()) {
         BoxLib::Error("Write of VisMF::Header failed");
+    }
 
     return os;
 }
@@ -288,8 +295,9 @@ operator>> (std::istream&  is,
     BL_ASSERT(hd.m_ba.size() == hd.m_min.size());
     BL_ASSERT(hd.m_ba.size() == hd.m_max.size());
 
-    if (!is.good())
+    if( ! is.good()) {
         BoxLib::Error("Read of VisMF::Header failed");
+    }
 
     return is;
 }
@@ -457,6 +465,7 @@ VisMF::Write (const FArrayBox&   fab,
               std::ostream&      os,
               long&              bytes)
 {
+    BL_PROFILE("VisMF::Write_fab");
     VisMF::FabOnDisk fab_on_disk(filename, VisMF::FileOffset(os));
 
     fab.writeOn(os);
@@ -493,13 +502,14 @@ VisMF::Header::Header (const MultiFab& mf,
     m_min(m_ba.size()),
     m_max(m_ba.size())
 {
+    BL_PROFILE("VisMF::Header");
+
 #ifdef BL_USE_MPI
-    const int IOProc = ParallelDescriptor::IOProcessorNumber();
+    const int IOProcNumber = ParallelDescriptor::IOProcessorNumber();
     //
     // Calculate m_min and m_max on the CPU owning the fab.
     //
-    for (MFIter mfi(mf); mfi.isValid(); ++mfi)
-    {
+    for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
         const int idx = mfi.index();
 
         m_min[idx].resize(m_ncomp);
@@ -507,8 +517,7 @@ VisMF::Header::Header (const MultiFab& mf,
 
         BL_ASSERT(mf[mfi].box().contains(m_ba[idx]));
 
-        for (long j = 0; j < m_ncomp; j++)
-        {
+        for(long j(0); j < m_ncomp; ++j) {
             m_min[idx][j] = mf[mfi].min(m_ba[idx],j);
             m_max[idx][j] = mf[mfi].max(m_ba[idx],j);
         }
@@ -519,38 +528,38 @@ VisMF::Header::Header (const MultiFab& mf,
 
     const Array<int>& pmap = mf.DistributionMap().ProcessorMap();
 
-    for (int i = 0, N = mf.size(); i < N; i++)
-        nmtags[pmap[i]]++;
+    for(int i(0), N = mf.size(); i < N; ++i) {
+        ++nmtags[pmap[i]];
+    }
 
-    for (int i = 0, N = nmtags.size(); i < N; i++)
+    for(int i(0), N(nmtags.size()); i < N; ++i) {
         //
         // Each Fab corresponds to 2*m_ncomp Reals.
         //
         nmtags[i] *= 2*m_ncomp;
+    }
 
-    for (int i = 1, N = offset.size(); i < N; i++)
+    for(int i(1), N(offset.size()); i < N; ++i) {
         offset[i] = offset[i-1] + nmtags[i-1];
+    }
 
     Array<Real> senddata(nmtags[ParallelDescriptor::MyProc()]);
 
-    if (senddata.empty())
+    if(senddata.empty()) {
         //
         // Can't let senddata be empty as senddata.dataPtr() will fail.
         //
         senddata.resize(1);
+    }
 
     int ioffset = 0;
 
-    for (MFIter mfi(mf); mfi.isValid(); ++mfi)
-    {
+    for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
         const int idx = mfi.index();
-
-        for (int i = 0; i < m_ncomp; i++)
-        {
+        for(int i(0); i < m_ncomp; ++i) {
             senddata[ioffset+i]         = m_min[idx][i];
             senddata[ioffset+m_ncomp+i] = m_max[idx][i];
         }
-
         ioffset += 2*m_ncomp;
     }
 
@@ -568,29 +577,23 @@ VisMF::Header::Header (const MultiFab& mf,
                                 nmtags.dataPtr(),
                                 offset.dataPtr(),
                                 ParallelDescriptor::Mpi_typemap<Real>::type(),
-                                IOProc,
+                                IOProcNumber,
                                 ParallelDescriptor::Communicator()) );
 
     BL_COMM_PROFILE(BLProfiler::Gatherv, recvdata.size() * sizeof(Real),
                     ParallelDescriptor::MyProc(), BLProfiler::AfterCall());
 
-    if (ParallelDescriptor::IOProcessor())
-    {
-        for (int i = 0, N = mf.size(); i < N; i++)
-        {
-            if (pmap[i] != IOProc)
-            {
+    if(ParallelDescriptor::IOProcessor()) {
+        for(int i(0), N(mf.size()); i < N; ++i) {
+            if(pmap[i] != IOProcNumber) {
                 m_min[i].resize(m_ncomp);
                 m_max[i].resize(m_ncomp);
             }
         }
 
-        for (int j = 0, N = mf.size(); j < N; j++)
-        {
-            if (pmap[j] != IOProc)
-            {
-                for (int k = 0; k < m_ncomp; k++)
-                {
+        for(int j(0), N(mf.size()); j < N; ++j) {
+            if(pmap[j] != IOProcNumber) {
+                for(int k(0); k < m_ncomp; ++k) {
                     m_min[j][k] = recvdata[offset[pmap[j]]+k];
                     m_max[j][k] = recvdata[offset[pmap[j]]+k+m_ncomp];
                 }
@@ -600,8 +603,7 @@ VisMF::Header::Header (const MultiFab& mf,
         }
     }
 #else
-    for (MFIter mfi(mf); mfi.isValid(); ++mfi)
-    {
+    for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
         const int idx = mfi.index();
 
         m_min[idx].resize(m_ncomp);
@@ -609,8 +611,7 @@ VisMF::Header::Header (const MultiFab& mf,
 
         BL_ASSERT(mf[mfi].box().contains(m_ba[idx]));
 
-        for (long j = 0; j < m_ncomp; j++)
-        {
+        for(long j(0); j < m_ncomp; ++j) {
             m_min[idx][j] = mf[mfi].min(m_ba[idx],j);
             m_max[idx][j] = mf[mfi].max(m_ba[idx],j);
         }
@@ -618,14 +619,10 @@ VisMF::Header::Header (const MultiFab& mf,
 #endif /*BL_USE_MPI*/
 
 #ifdef BL_FIXHEADERDENORMS
-    if (ParallelDescriptor::IOProcessor())
-    {
-        for(int i = 0; i < m_min.size(); ++i)
-        {
-            for(int j = 0; j < m_min[i].size(); ++j)
-            {
-                if (std::abs(m_min[i][j]) < 1.0e-300)
-                {
+    if(ParallelDescriptor::IOProcessor()) {
+        for(int i(0); i < m_min.size(); ++i) {
+            for(int j(0); j < m_min[i].size(); ++j) {
+                if(std::abs(m_min[i][j]) < 1.0e-300) {
                     m_min[i][j] = 0.0;
                 }
             }
@@ -638,12 +635,12 @@ long
 VisMF::WriteHeader (const std::string& mf_name,
                     VisMF::Header&     hdr)
 {
+    BL_PROFILE("VisMF::WriteHeader");
     long bytes = 0;
     //
     // When running in parallel only one processor should do this I/O.
     //
-    if (ParallelDescriptor::IOProcessor())
-    {
+    if(ParallelDescriptor::IOProcessor()) {
         std::string MFHdrFileName = mf_name;
 
         MFHdrFileName += TheMultiFabHdrFileSuffix;
@@ -656,8 +653,9 @@ VisMF::WriteHeader (const std::string& mf_name,
 
         MFHdrFile.open(MFHdrFileName.c_str(), std::ios::out|std::ios::trunc);
 
-        if (!MFHdrFile.good())
+        if( ! MFHdrFile.good()) {
             BoxLib::FileOpenFailed(MFHdrFileName);
+	}
 
         MFHdrFile << hdr;
         //
@@ -676,6 +674,7 @@ VisMF::Write (const MultiFab&    mf,
               VisMF::How         how,
               bool               set_ghost)
 {
+    BL_PROFILE("VisMF::Write_mf");
     BL_ASSERT(mf_name[mf_name.length() - 1] != '/');
 
     static const char* FabFileSuffix = "_D_";
@@ -684,20 +683,18 @@ VisMF::Write (const MultiFab&    mf,
 
     VisMF::Header hdr(mf, how);
 
-    if (set_ghost)
-    {
-        MultiFab* the_mf = const_cast<MultiFab*>(&mf);
+    if(set_ghost) {
+        BL_PROFILE("VisMF::Write_mf_set_ghost");
+        MultiFab *the_mf = const_cast<MultiFab*>(&mf);
 
-        BL_ASSERT(!(the_mf == 0));
+        BL_ASSERT( ! (the_mf == 0));
         BL_ASSERT(hdr.m_ba == mf.boxArray());
         BL_ASSERT(hdr.m_ncomp == mf.nComp());
 
-        for (MFIter mfi(*the_mf); mfi.isValid(); ++mfi)
-        {
+        for(MFIter mfi(*the_mf); mfi.isValid(); ++mfi) {
             const int idx = mfi.index();
 
-            for (int j = 0; j < hdr.m_ncomp; j++)
-            {
+            for(int j(0); j < hdr.m_ncomp; ++j) {
                 const Real val = (hdr.m_min[idx][j] + hdr.m_max[idx][j]) / 2;
 
                 the_mf->get(mfi).setComplement(val, hdr.m_ba[idx], j, 1);
@@ -714,46 +711,56 @@ VisMF::Write (const MultiFab&    mf,
 
     const std::string BName = VisMF::BaseName(FullName);
 
-    for (int iSet = 0; iSet < NSets; ++iSet)
-    {
-        if (MySet == iSet)
-        {
+    BL_PROFILE_VAR_NS("VisMF::Write_filemeta_open", filemetaopen);
+    BL_PROFILE_VAR_NS("VisMF::Write_filemeta_flush", filemetaflush);
+    BL_PROFILE_VAR_NS("VisMF::Write_filemeta_close", filemetaclose);
+    for(int iSet(0); iSet < NSets; ++iSet) {
+        if(MySet == iSet) {
             {
+                BL_PROFILE_VAR_START(filemetaopen);
                 VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
     
                 std::ofstream FabFile;
 
                 FabFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
 
-                if (iSet == 0)
-                {
-                    //
-                    // First set.
-                    //
+                if(iSet == 0) {  // ---- First set.
                     FabFile.open(FullName.c_str(),
                                  std::ios::out|std::ios::trunc|std::ios::binary);
-                }
-                else
-                {
+                } else {
                     FabFile.open(FullName.c_str(),
                                  std::ios::out|std::ios::app|std::ios::binary);
-                    //
-                    // Set to the end of the file.
-                    //
-                    FabFile.seekp(0, std::ios::end);
+                    FabFile.seekp(0, std::ios::end);  // ---- Set to the end of the file.
                 }
-                if ( ! FabFile.good()) {
+                if( ! FabFile.good()) {
                     BoxLib::FileOpenFailed(FullName);
 		}
+                BL_PROFILE_VAR_STOP(filemetaopen);
 
-                for (MFIter mfi(mf); mfi.isValid(); ++mfi)
-                {
-                    hdr.m_fod[mfi.index()] = VisMF::Write(mf[mfi],BName,FabFile,bytes);
+                for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
+                    //hdr.m_fod[mfi.index()] = VisMF::Write(mf[mfi],BName,FabFile,bytes);
+// ================
+{
+    VisMF::FabOnDisk fab_on_disk(BName, VisMF::FileOffset(FabFile));
+
+    mf[mfi].writeOn(FabFile);
+    //
+    // Add in the number of bytes in the FAB including the FAB header.
+    //
+    bytes += (VisMF::FileOffset(FabFile) - fab_on_disk.m_head);
+    
+////    return fab_on_disk;
+                    hdr.m_fod[mfi.index()] = fab_on_disk;
+}
+// ================
                 }
 
+                BL_PROFILE_VAR_START(filemetaflush);
                 FabFile.flush();
-
+                BL_PROFILE_VAR_STOP(filemetaflush);
+                BL_PROFILE_VAR_START(filemetaclose);
                 FabFile.close();
+                BL_PROFILE_VAR_STOP(filemetaclose);
             }
 
             int iBuff     = 0;
@@ -763,11 +770,7 @@ VisMF::Write (const MultiFab&    mf,
                 ParallelDescriptor::Send(&iBuff, 1, wakeUpPID, tag);
 	    }
         }
-        if (MySet == (iSet + 1))
-        {
-            //
-            // Next set waits.
-            //
+        if(MySet == (iSet + 1)) {  // ---- Next set waits.
             int iBuff;
             int waitForPID = (MyProc - nOutFiles);
             int tag        = (MyProc % nOutFiles);
@@ -776,6 +779,7 @@ VisMF::Write (const MultiFab&    mf,
     }
 
 #ifdef BL_USE_MPI
+    BL_PROFILE_VAR("VisMF::Write_mf_part2", vmfp2);
     ParallelDescriptor::Barrier("VisMF::Write");
 
     const int IOProc = ParallelDescriptor::IOProcessorNumber();
@@ -785,24 +789,26 @@ VisMF::Write (const MultiFab&    mf,
 
     const Array<int>& pmap = mf.DistributionMap().ProcessorMap();
 
-    for (int i = 0, N = mf.size(); i < N; i++)
-        nmtags[pmap[i]]++;
+    for(int i(0), N(mf.size()); i < N; ++i) {
+        ++nmtags[pmap[i]];
+    }
 
-    for (int i = 1, N = offset.size(); i < N; i++)
+    for(int i = 1, N = offset.size(); i < N; ++i) {
         offset[i] = offset[i-1] + nmtags[i-1];
+    }
 
     Array<long> senddata(nmtags[ParallelDescriptor::MyProc()]);
 
-    if (senddata.empty())
-        //
-        // Can't let senddata be empty as senddata.dataPtr() will fail.
-        //
-        senddata.resize(1);
+    if(senddata.empty()) {
+      // Can't let senddata be empty as senddata.dataPtr() will fail.
+      senddata.resize(1);
+    }
 
-    int ioffset = 0;
+    int ioffset(0);
 
-    for (MFIter mfi(mf); mfi.isValid(); ++mfi)
-        senddata[ioffset++] = hdr.m_fod[mfi.index()].m_head;
+    for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
+      senddata[ioffset++] = hdr.m_fod[mfi.index()].m_head;
+    }
 
     BL_ASSERT(ioffset == nmtags[ParallelDescriptor::MyProc()]);
 
@@ -824,23 +830,21 @@ VisMF::Write (const MultiFab&    mf,
     BL_COMM_PROFILE(BLProfiler::Gatherv, recvdata.size() * sizeof(long),
                     ParallelDescriptor::MyProc(), BLProfiler::AfterCall());
 
-    if (ParallelDescriptor::IOProcessor())
-    {
+    if(ParallelDescriptor::IOProcessor()) {
         Array<int> cnt(NProcs,0);
 
-        for (int j = 0, N = mf.size(); j < N; ++j)
-        {
-            const int i = pmap[j];
-
+        for(int j(0), N(mf.size()); j < N; ++j) {
+            const int i(pmap[j]);
             hdr.m_fod[j].m_head = recvdata[offset[i]+cnt[i]];
 
             std::string name = BoxLib::Concatenate(mf_name + FabFileSuffix, i % nOutFiles, 4);
 
             hdr.m_fod[j].m_name = VisMF::BaseName(name);
 
-            cnt[i]++;
+            ++cnt[i];
         }
     }
+    BL_PROFILE_VAR_STOP(vmfp2);
 #endif /*BL_USE_MPI*/
 
     bytes += VisMF::WriteHeader(mf_name, hdr);
@@ -882,6 +886,7 @@ VisMF::readFAB (int                  idx,
                 const VisMF::Header& hdr,
 		int                  ncomp)
 {
+    BL_PROFILE("VisMF::readFAB_idx");
     Box fab_box = hdr.m_ba[idx];
 
     if (hdr.m_ngrow)
@@ -901,18 +906,17 @@ VisMF::readFAB (int                  idx,
 
     ifs.open(FullName.c_str(), std::ios::in|std::ios::binary);
 
-    if (!ifs.good())
+    if( ! ifs.good()) {
         BoxLib::FileOpenFailed(FullName);
-
-    if (hdr.m_fod[idx].m_head)
-        ifs.seekg(hdr.m_fod[idx].m_head, std::ios::beg);
-
-    if (ncomp == -1)
-    {
-        fab->readFrom(ifs);
     }
-    else
-    {
+
+    if(hdr.m_fod[idx].m_head) {
+        ifs.seekg(hdr.m_fod[idx].m_head, std::ios::beg);
+    }
+
+    if(ncomp == -1) {
+        fab->readFrom(ifs);
+    } else {
         fab->readFrom(ifs, ncomp);
     }
 
@@ -927,6 +931,7 @@ VisMF::readFAB (MultiFab&            mf,
                 const std::string&   mf_name,
                 const VisMF::Header& hdr)
 {
+    BL_PROFILE("VisMF::readFAB_mf");
     FArrayBox& fab = mf[idx];
 
     std::string FullName = VisMF::DirName(mf_name);
@@ -941,11 +946,13 @@ VisMF::readFAB (MultiFab&            mf,
 
     ifs.open(FullName.c_str(), std::ios::in|std::ios::binary);
 
-    if (!ifs.good())
+    if( ! ifs.good()) {
         BoxLib::FileOpenFailed(FullName);
+    }
 
-    if (hdr.m_fod[idx].m_head)
+    if(hdr.m_fod[idx].m_head) {
         ifs.seekg(hdr.m_fod[idx].m_head, std::ios::beg);
+    }
 
     fab.readFrom(ifs);
 
