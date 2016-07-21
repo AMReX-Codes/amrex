@@ -7,7 +7,7 @@
 #include <FArrayBox.H>
 #include <Orientation.H>
 #include <BndryRegister.H>
-#include <Mask.H>
+#include <MultiMask.H>
 #include <BoundCond.H>
 #include <Geometry.H>
 #include <Tuple.H>
@@ -101,7 +101,7 @@ public:
     //
     typedef Tuple<Real,2*BL_SPACEDIM> RealTuple;
 
-    typedef Tuple<Mask*,2*BL_SPACEDIM> MaskTuple;
+//xxxxx    typedef Tuple<Mask*,2*BL_SPACEDIM> MaskTuple;
     //
     // Return boundary location on given face for grids we own.
     // It's an error if we don't own that grid.
@@ -117,7 +117,7 @@ public:
     // Return boundary masks for grids we own.
     // It's an error if we don't own that grid.
     //
-    const MaskTuple& bndryMasks (int igrid) const;
+//xxxxx    const MaskTuple& bndryMasks (int igrid) const;
     //
     // return number of components for which this object is intended
     //
@@ -193,9 +193,9 @@ protected:
 
     std::map<int,RealTuple> bcloc;
     //
-    // Map boundary condition mask arrays (FAB-like).
+    // Boundary condition mask
     //
-    std::map<int,MaskTuple> masks;
+    MultiMask masks[2*BL_SPACEDIM];
     //
     // Domain used for mask definitions.
     //
@@ -204,11 +204,6 @@ protected:
     bool     m_defined;
 
 private:
-    //
-    // Free memory taken by masks for this BndryData object.
-    //
-    void clear_masks ();
-
     static int NTangHalfWidth;
 };
 

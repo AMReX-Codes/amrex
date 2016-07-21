@@ -32,7 +32,7 @@ BndryData::setMaskValue (Orientation _face,
                          int         _n,
                          int         _val)
 {
-    masks[_n][_face]->setVal(_val);
+    masks[_face][_n].setVal(_val);
 }
 
 void
@@ -68,6 +68,7 @@ BndryData::bndryLocs (int igrid) const
     return it->second;
 }
 
+#if 0
 const BndryData::MaskTuple&
 BndryData::bndryMasks (int igrid) const
 {
@@ -75,6 +76,7 @@ BndryData::bndryMasks (int igrid) const
     BL_ASSERT(it != masks.end());
     return it->second;
 }
+#endif
 
 void
 BndryData::init (const BndryData& src)
@@ -84,36 +86,12 @@ BndryData::init (const BndryData& src)
     m_defined = src.m_defined;
     bcloc     = src.bcloc;
     bcond     = src.bcond;
-    //
-    // Define "masks".
-    //
-    // We note that all orientations of the FabSets have the same distribution.
-    // We'll use the low 0 side as the model.
-    //
-    for (FabSetIter bfsi(bndry[Orientation(0,Orientation::low)]);
-         bfsi.isValid();
-         ++bfsi)
+
+    for (int i = 0; i < 2*BL_SPACEDIM; i++)
     {
-        const int idx = bfsi.index();
-
-        std::map<int,MaskTuple>::const_iterator sit = src.masks.find(idx);
-        BL_ASSERT(sit != src.masks.end());
-        const MaskTuple& smask = sit->second;
-        //
-        // Insert with a hint since we know the indices are increasing.
-        //
-        std::map<int,MaskTuple>::value_type v(idx,MaskTuple());
-
-        MaskTuple& dmask = masks.insert(masks.end(),v)->second;
-
-        for (OrientationIter fi; fi; ++fi)
-        {
-            const Orientation face = fi();
-            const Mask* src_mask = smask[face];
-            Mask* m = new Mask(src_mask->box(),src_mask->nComp());
-            m->copy(*src_mask);
-            dmask[face] = m;
-        }
+	const MultiMask& smasks = src.masks[i];
+	masks[i].define(smasks.boxArray(), smasks.DistributionMap(), smasks.nComp());
+	masks[i].copy(smasks);
     }
 }
 
@@ -131,7 +109,9 @@ BndryData::operator= (const BndryData& src)
     if (this != &src)
     {
         BndryRegister::operator=(src);
-        clear_masks();
+	for (int i = 0; i < 2*BL_SPACEDIM; i++) {
+	    bndry[i].clear();
+	}
         init(src);
     }
     return *this;
@@ -139,24 +119,6 @@ BndryData::operator= (const BndryData& src)
 
 BndryData::~BndryData ()
 {
-    //
-    // Masks was not allocated with PArrayManage -- manually dealloc.
-    //
-    clear_masks();
-}
-
-void
-BndryData::clear_masks ()
-{
-    for (std::map<int,MaskTuple>::iterator it = masks.begin(), End = masks.end();
-         it != End;
-         ++it)
-    {
-        MaskTuple& m = it->second;
-        for (int i = 0; i < 2*BL_SPACEDIM; i++)
-            delete m[i];
-    }
-    masks.clear();
 }
 
 void
@@ -194,8 +156,11 @@ BndryData::define (const BoxArray& _grids,
         const int         cdir = face.coordDir();
 
         BndryRegister::define(face,IndexType::TheCellType(),0,1,1,_ncomp,color);
+
+	masks[face].define(bndry[face].boxArray(), 1, 0, Fab_allocate,IntVect::TheZeroVector(),color);
+
         //
-        // Alloc mask and set to quad_interp value.
+        // Set masks to quad_interp value.
         //
         for (FabSetIter bfsi(bndry[face]); bfsi.isValid(); ++bfsi)
         {
