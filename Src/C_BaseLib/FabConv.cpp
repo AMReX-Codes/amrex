@@ -12,6 +12,8 @@
 #include <Utility.H>
 
 bool RealDescriptor::bAlwaysFixDenormals (false);
+int  RealDescriptor::writeBufferSize(8192);
+int  RealDescriptor::readBufferSize(8192);
 
 IntDescriptor::IntDescriptor () {}
 
@@ -106,6 +108,20 @@ void
 RealDescriptor::SetFixDenormals()
 {
     bAlwaysFixDenormals = true;
+}
+
+void
+RealDescriptor::SetReadBufferSize(int rbs)
+{
+    BL_ASSERT(rbs > 0);
+    readBufferSize = rbs;
+}
+
+void
+RealDescriptor::SetWriteBufferSize(int wbs)
+{
+    BL_ASSERT(wbs > 0);
+    writeBufferSize = wbs;
 }
 
 RealDescriptor*
@@ -855,6 +871,7 @@ PD_convert (void*                 out,
             const IntDescriptor&  iid,
             int                   onescmp = 0)
 {
+    BL_PROFILE("PD_convert");
     if (ord == ird && boffs == 0)
     {
         size_t n = size_t(nitems);
@@ -890,6 +907,7 @@ RealDescriptor::convertToNativeFormat (Real*                 out,
                                        void*                 in,
                                        const RealDescriptor& id)
 {
+    BL_PROFILE("RD:convertToNativeFormat_vp");
 
     PD_convert(out,
                in,
@@ -915,13 +933,13 @@ RealDescriptor::convertToNativeFormat (Real*                 out,
                                        std::istream&         is,
                                        const RealDescriptor& id)
 {
-    const int SHOULDREAD = 8192;
+    BL_PROFILE("RD:convertToNativeFormat_is");
 
-    char* bufr = new char[SHOULDREAD * id.numBytes()];
+    char *bufr = new char[readBufferSize * id.numBytes()];
 
     while (nitems > 0)
     {
-        int get = int(nitems) > SHOULDREAD ? SHOULDREAD : int(nitems);
+        int get = int(nitems) > readBufferSize ? readBufferSize : int(nitems);
         is.read(bufr, id.numBytes()*get);
         PD_convert(out,
                    bufr,
@@ -939,8 +957,9 @@ RealDescriptor::convertToNativeFormat (Real*                 out,
         out    += get;
     }
 
-    if (is.fail())
-        BoxLib::Error("convert(Real*,long,istream&,RealDescriptor&) failed");
+    if(is.fail()) {
+      BoxLib::Error("convert(Real*,long,istream&,RealDescriptor&) failed");
+    }
 
     delete [] bufr;
 }
@@ -955,6 +974,7 @@ RealDescriptor::convertFromNativeFormat (void*                 out,
                                          Real*                 in,
                                          const RealDescriptor& od)
 {
+    BL_PROFILE("RD:convertFromNativeFormat_vp");
     PD_convert(out,
                in,
                nitems,
@@ -975,6 +995,7 @@ RealDescriptor::convertFromNativeFormat (std::ostream&         os,
                                          const Real*           in,
                                          const RealDescriptor& od)
 {
+  BL_PROFILE("RD:convertFromNativeFormat_os");
   long nitemsSave(nitems);
   const Real *inSave(in);
   BoxLib::StreamRetry sr(os, "RD_cFNF", 4);
@@ -982,13 +1003,12 @@ RealDescriptor::convertFromNativeFormat (std::ostream&         os,
   while(sr.TryOutput()) {
     nitems = nitemsSave;
     in = inSave;
-    const int SHOULDWRITE = 8192;
 
-    char* bufr = new char[SHOULDWRITE * od.numBytes()];
+    char *bufr = new char[writeBufferSize * od.numBytes()];
 
     while (nitems > 0)
     {
-        int put = int(nitems) > SHOULDWRITE ? SHOULDWRITE : int(nitems);
+        int put = int(nitems) > writeBufferSize ? writeBufferSize : int(nitems);
         PD_convert(bufr,
                    in,
                    put,
