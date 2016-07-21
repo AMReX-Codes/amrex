@@ -43,7 +43,6 @@ f90sources += ml_multifab.f90
 f90sources += ml_restrict_fill.f90
 
 f90sources +=    cc_restriction.f90
-f90sources +=  edge_restriction.f90
 f90sources += nodal_restriction.f90
 f90sources += ml_cc_restriction.f90
 f90sources += ml_nd_restriction.f90
