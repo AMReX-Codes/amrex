@@ -10,6 +10,8 @@
 #include <sstream>
 #include <cstdio>
 #include <cstdlib>
+#include <sys/stat.h>
+#include <string.h>
 
 #include <ParallelDescriptor.H>
 #include <Utility.H>
@@ -23,30 +25,41 @@ int main(int argc, char *argv[]) {
 
     int ndirs(256), nlevels(4);
 
+    if(ParallelDescriptor::IOProcessor()) {
+      errno = 0;
+      mkdir("testdir", 0755);
+      std::cout << "_here 0:  errno = " << strerror(errno) << std::endl;
+      errno = 0;
+      rmdir("testdir");
+      std::cout << "_here 1:  errno = " << strerror(errno) << std::endl;
+      errno = 0;
+      mkdir("testnest/n0/n1", 0755);
+      std::cout << "_here 2:  errno = " << strerror(errno) << std::endl;
+      errno = 0;
+    }
+
+    BL_PROFILE_VAR("mkdirs", mkdirs);
     for(int i(0); i < ndirs; ++i) {
       std::stringstream dirname;
       dirname << "dir" << i;
       if(ParallelDescriptor::IOProcessor()) {
-        BL_PROFILE_VAR("mkdirs", mkdirs);
         if( ! BoxLib::UtilCreateDirectory(dirname.str(), 0755)) {
           BoxLib::CreateDirectoryFailed(dirname.str());
         }
-        BL_PROFILE_VAR_STOP(mkdirs);
         for(int level(0); level < nlevels; ++level) {
           std::stringstream dirname;
           dirname << "dir" << i << "/Level_" << level;
-          BL_PROFILE_VAR("mkdirs", mkdirs);
           if( ! BoxLib::UtilCreateDirectory(dirname.str(), 0755)) {
             BoxLib::CreateDirectoryFailed(dirname.str());
           }
-          BL_PROFILE_VAR_STOP(mkdirs);
         }
       }
-      ParallelDescriptor::Barrier("waitfordir");
     }
+    ParallelDescriptor::Barrier("waitfordir");
+    BL_PROFILE_VAR_STOP(mkdirs);
 
+    BL_PROFILE_VAR("renamedirs", renamedirs);
     for(int i(0); i < ndirs; ++i) {
-      BL_PROFILE_VAR("renamedirs", renamedirs);
       if(ParallelDescriptor::IOProcessor()) {
         std::stringstream dirname;
         dirname << "dir" << i;
@@ -54,8 +67,9 @@ int main(int argc, char *argv[]) {
         newdirname = dirname.str() + ".old";
 	std::rename(dirname.str().c_str(), newdirname.c_str());
       }
-      BL_PROFILE_VAR_STOP(renamedirs);
     }
+    ParallelDescriptor::Barrier("renamedirs");
+    BL_PROFILE_VAR_STOP(renamedirs);
 
 
     Real runTime(ParallelDescriptor::second() - tStart);
