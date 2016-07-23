@@ -216,15 +216,6 @@ BoxArray::Ref::define (const BoxList& bl)
 }
 
 void
-BoxArray::define (const BoxArray& bs)
-{
-    BL_ASSERT(size() == 0);
-    decrementCounters();
-    m_typ = bs.m_typ;
-    m_ref = bs.m_ref;
-}
-
-void
 BoxArray::type_update ()
 {
     if (!empty())

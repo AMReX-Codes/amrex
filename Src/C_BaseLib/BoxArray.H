@@ -105,11 +105,6 @@ public:
     //
     void define (const BoxList& bl);
     //
-    // Initialize the BoxArray from the supplied BoxArray.
-    // It is an error if the BoxArray has already been initialized.
-    //
-    void define (const BoxArray& bs);
-    //
     // Remove all Boxes from the BoxArray.
     //
     void clear ();
