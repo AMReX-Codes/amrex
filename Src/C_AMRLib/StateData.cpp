@@ -71,7 +71,7 @@ StateData::define (const Box&             p_domain,
     BL_PROFILE("StateData::define()");
     domain = p_domain;
     desc = &d;
-    grids.define(grds);
+    grids = grds;
     //
     // Convert to proper type.
     //
@@ -112,7 +112,7 @@ StateData::define (const Box&             p_domain,
     BL_PROFILE("StateData::define()");
     domain = p_domain;
     desc = &d;
-    grids.define(grds);
+    grids = grds;
     //
     // Convert to proper type.
     //

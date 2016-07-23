@@ -1759,7 +1759,7 @@ FabArray<FAB>::defineDoit (const BoxArray&            bxs,
     n_grow = ngrow;
     n_comp = nvar;
 
-    boxarray.define(bxs);
+    boxarray = bxs;
 
     if (nodal != IntVect::TheZeroVector()) {
 	if (nodal == IntVect::TheUnitVector()) {

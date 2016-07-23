@@ -34,7 +34,7 @@ BndryRegister::BndryRegister (const BoxArray& grids,
 void
 BndryRegister::init (const BndryRegister& src)
 {
-    grids.define(src.grids);
+    grids = src.grids;
 
     for (int i = 0; i < 2*BL_SPACEDIM; i++)
     {
@@ -206,7 +206,7 @@ BndryRegister::setBoxes (const BoxArray& _grids)
     BL_ASSERT(_grids.size() > 0);
     BL_ASSERT(_grids[0].cellCentered());
 
-    grids.define(_grids);
+    grids = _grids;
     //
     // Check that bndry regions are not allocated.
     //
