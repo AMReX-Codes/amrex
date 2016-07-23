@@ -111,7 +111,7 @@ public:
     // Returns the Kth FABs Box in the FabArray.
     // That is, the region the Kth fab is actually defined on.
     //
-    Box fabbox (int K) const;
+    virtual Box fabbox (int K) const;
     //
     // Returns the number of FABs in the FabArray..
     //
@@ -852,26 +852,26 @@ public:
     //
     // The destructor -- deletes all FABs in the array.
     //
-    ~FabArray ();
+    virtual ~FabArray ();
     //
     // Define this FabArray identically to that performed by
     // the constructor having an analogous function signature.
     // This is only valid if this FabArray was defined using
     // the default constructor.
     //
-    void define (const BoxArray& bxs,
-                 int             nvar,
-                 int             ngrow,
-                 FabAlloc        mem_mode,
-		 const IntVect&  nodal = IntVect::TheZeroVector(),
-		 ParallelDescriptor::Color color = ParallelDescriptor::DefaultColor());
+    virtual void define (const BoxArray& bxs,
+			 int             nvar,
+			 int             ngrow,
+			 FabAlloc        mem_mode,
+			 const IntVect&  nodal = IntVect::TheZeroVector(),
+			 ParallelDescriptor::Color color = ParallelDescriptor::DefaultColor());
 
-    void define (const BoxArray&            bxs,
-                 int                        nvar,
-                 int                        ngrow,
-		 const DistributionMapping& dm,
-                 FabAlloc                   mem_mode,
-		 const IntVect&             nodal = IntVect::TheZeroVector());
+    virtual void define (const BoxArray&            bxs,
+			 int                        nvar,
+			 int                        ngrow,
+			 const DistributionMapping& dm,
+			 FabAlloc                   mem_mode,
+			 const IntVect&             nodal = IntVect::TheZeroVector());
     //
     // Returns true if the FabArray is well-defined.  That is,
     // if FABs are allocated for each Box in the BoxArray and the
@@ -1726,7 +1726,7 @@ FabArray<FAB>::ok () const
     {
         if (defined(fai))
         {
-            if (get(fai).box() != BoxLib::grow(box(fai.index()),n_grow))
+            if (get(fai).box() != fabbox(fai.index()))
             {
                 isok = false;
             }
@@ -1820,7 +1820,7 @@ FabArray<FAB>::defineDoit (const BoxArray&            bxs,
     }
 
 #ifdef BL_USE_TEAM
-    ParallelDescriptor::MyTeam().MemoryBarrier();
+    if (alloc == Fab_allocate) ParallelDescriptor::MyTeam().MemoryBarrier();
 #endif
 }
 
@@ -1861,7 +1861,7 @@ FabArray<FAB>::AllocFabs ()
     for (int i = 0; i < n; ++i)
     {
 	int K = indexArray[i];
-        const Box& tmp = BoxLib::grow(box(K), n_grow);
+        const Box& tmp = fabbox(K);
 	bool alloc = !shmem.alloc;
 	m_fabs_v.push_back(new FAB(tmp, n_comp, alloc, shmem.alloc));
     }
@@ -1970,7 +1970,7 @@ FabArray<FAB>::setFab (int  boxno,
 
     BL_ASSERT(n_comp == elem->nComp());
     BL_ASSERT(boxarray.size() > 0);
-    BL_ASSERT(elem->box() == BoxLib::grow(boxarray[boxno],n_grow));
+    BL_ASSERT(elem->box() == fabbox(boxno));
     BL_ASSERT(!this->defined(boxno));
     BL_ASSERT(distributionMap[boxno] == ParallelDescriptor::MyProc());
 
@@ -1994,7 +1994,7 @@ FabArray<FAB>::setFab (const MFIter& mfi,
 
     BL_ASSERT(n_comp == elem->nComp());
     BL_ASSERT(boxarray.size() > 0);
-    BL_ASSERT(elem->box() == BoxLib::grow(boxarray[mfi.index()],n_grow));
+    BL_ASSERT(elem->box() == fabbox(mfi.index()));
     BL_ASSERT(!this->defined(mfi));
     BL_ASSERT(distributionMap[mfi.index()] == ParallelDescriptor::MyProc());
 
@@ -3520,7 +3520,7 @@ FabArray<FAB>::MoveFabs (const Array<int> &newDistMapArray)
     int dmi(moveThisFab.distMapIndex);
 
     if(myProc == moveThisFab.toRank) {   // ---- receive fab(s)
-      const Box &tmpbox = BoxLib::grow(boxarray[dmi], n_grow);
+      const Box &tmpbox = fabbox(dmi);
       FAB *fabPtr = new FAB(tmpbox, n_comp);
       tempIndexFABs[dmi] = fabPtr;  // ---- add to map
 

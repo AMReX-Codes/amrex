@@ -406,22 +406,6 @@ MultiFab::is_nodal () const
 }
 
 
-const FArrayBox&
-MultiFab::operator[] (int K) const
-{
-    BL_ASSERT(defined(K));
-    const FArrayBox& fab = this->FabArray<FArrayBox>::get(K);
-    return fab;
-}
-
-FArrayBox&
-MultiFab::operator[] (int K)
-{
-    BL_ASSERT(defined(K));
-    FArrayBox& fab = this->FabArray<FArrayBox>::get(K);
-    return fab;
-}
-
 Real
 MultiFab::min (int comp,
                int nghost,
