@@ -84,7 +84,7 @@ public:
 
     FabArrayBase ();
 
-    ~FabArrayBase();
+    virtual ~FabArrayBase();
     //
     // Returns the grow factor that defines the region of definition.
     //
