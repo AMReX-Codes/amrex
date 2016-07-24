@@ -46,6 +46,9 @@ realclean:: clean
 	$(RM) -fr t
 	$(RM) *.exe
 
+file_locations:
+	$(BOXLIB_HOME)/Tools/F_scripts/find_files_vpath.py --vpath "$(VPATH_LOCATIONS)" --files "$(sources)"
+
 deppairs: $(f90sources) $(F90sources) $(fsources)
 	perl $(MODDEP) --tsort $^ > deppairs
 
