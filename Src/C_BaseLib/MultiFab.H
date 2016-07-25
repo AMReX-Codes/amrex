@@ -102,7 +102,7 @@ public:
               int             ngrow,
 	      ParallelDescriptor::Color color);
 
-    virtual ~MultiFab() { }
+    virtual ~MultiFab() BL_OVERRIDE;
 
 
     void operator= (const Real& r);

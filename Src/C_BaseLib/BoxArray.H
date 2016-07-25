@@ -450,6 +450,8 @@ private:
 
         mutable BoxHashMapType hash;
 
+	static int  numboxarrays;
+	static int  numboxarrays_hwm;
 	static long total_box_bytes;
 	static long total_box_bytes_hwm;
 	static long total_hash_bytes;
