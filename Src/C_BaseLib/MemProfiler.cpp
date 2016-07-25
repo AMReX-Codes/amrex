@@ -318,9 +318,9 @@ MemProfiler::report_ (const std::string& prefix, const std::string& memory_log_n
 std::ostream& 
 operator<< (std::ostream& os, const MemProfiler::Bytes& bytes)
 {
-    static const long G = 1024L*1024L*1024L;
-    static const long M = 1024L*1024L;
-    static const long K = 1024L;
+    constexpr long G = 1024L*1024L*1024L;
+    constexpr long M = 1024L*1024L;
+    constexpr long K = 1024L;
 
     long fac;
     std::string unit;
