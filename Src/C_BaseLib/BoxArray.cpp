@@ -7,6 +7,8 @@
 #ifdef BL_MEM_PROFILING
 #include <MemProfiler.H>
 bool BoxArrayRef::initialized          = false;
+int  BoxArrayRef::numboxarrays         = 0;
+int  BoxArrayRef::numboxarrays_hwm     = 0;
 long BoxArrayRef::total_box_bytes      = 0L;
 long BoxArrayRef::total_box_bytes_hwm  = 0L;
 long BoxArrayRef::total_hash_bytes     = 0L;
@@ -141,8 +143,11 @@ BoxArrayRef::updateMemoryUsage_box (int s)
 	if (s > 0) {
 	    total_box_bytes += b;
 	    total_box_bytes_hwm = std::max(total_box_bytes_hwm, total_box_bytes);
+	    ++numboxarrays;
+	    numboxarrays_hwm = std::max(numboxarrays_hwm, numboxarrays);
 	} else {
 	    total_box_bytes -= b;
+	    --numboxarrays;
 	}
     }
 }
@@ -175,6 +180,9 @@ BoxArrayRef::Initialize ()
 	    });
 	MemProfiler::add("BoxArrayHash", [] () -> MemProfiler::MemInfo {
 		return {total_hash_bytes, total_hash_bytes_hwm};
+	    });
+	MemProfiler::add("BoxArray Innard", [] () -> MemProfiler::NBuildsInfo {
+		return {numboxarrays, numboxarrays_hwm};
 	    });
     }
 }
