@@ -18,7 +18,13 @@ public:
 	long hwm_bytes;
     };
 
+    struct NBuildsInfo {
+	int  current_builds;
+	int  hwm_builds;
+    };
+
     static void add (const std::string& name, std::function<MemInfo()>&& f);
+    static void add (const std::string& name, std::function<NBuildsInfo()>&& f);
 
     static void report (const std::string& prefix = std::string());
 
@@ -39,10 +45,20 @@ private:
     friend std::ostream& operator<< (std::ostream& os, 
 				     const MemProfiler::Bytes& bytes);
 
+    struct Builds {
+	int mn;
+	int mx;
+    };
+    friend std::ostream& operator<< (std::ostream& os, 
+				     const MemProfiler::Builds& builds);
+
     static MemProfiler& getInstance ();
 
     std::vector<std::string>               the_names;
     std::vector<std::function<MemInfo()> > the_funcs;
+
+    std::vector<std::string>                   the_names_builds;
+    std::vector<std::function<NBuildsInfo()> > the_funcs_builds;
 };
 
 #endif

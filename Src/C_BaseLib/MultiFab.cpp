@@ -14,9 +14,15 @@
 #include <ParmParse.H>
 #include <PArray.H>
 
+#ifdef BL_MEM_PROFILING
+#include <MemProfiler.H>
+#endif
+
 namespace
 {
     bool initialized = false;
+    int num_multifabs     = 0;
+    int num_multifabs_hwm = 0;
 }
 
 MultiFabCopyDescriptor::MultiFabCopyDescriptor ()
@@ -235,6 +241,12 @@ MultiFab::Initialize ()
 
     BoxLib::ExecOnFinalize(MultiFab::Finalize);
 
+#ifdef BL_MEM_PROFILING
+    MemProfiler::add("MultiFab", [] () -> MemProfiler::NBuildsInfo {
+            return {num_multifabs, num_multifabs_hwm};
+        });
+#endif
+
     initialized = true;
 }
 
@@ -247,6 +259,10 @@ MultiFab::Finalize ()
 MultiFab::MultiFab ()
 {
     Initialize();
+#ifdef BL_MEM_PROFILING
+    ++num_multifabs;
+    num_multifabs_hwm = std::max(num_multifabs_hwm, num_multifabs);
+#endif
 }
 
 MultiFab::MultiFab (const BoxArray& bxs,
@@ -259,6 +275,10 @@ MultiFab::MultiFab (const BoxArray& bxs,
 {
     Initialize();
     if (SharedMemory() && alloc == Fab_allocate) initVal();  // else already done in FArrayBox
+#ifdef BL_MEM_PROFILING
+    ++num_multifabs;
+    num_multifabs_hwm = std::max(num_multifabs_hwm, num_multifabs);
+#endif
 }
 
 MultiFab::MultiFab (const BoxArray&            bxs,
@@ -272,6 +292,10 @@ MultiFab::MultiFab (const BoxArray&            bxs,
 {
     Initialize();
     if (SharedMemory() && alloc == Fab_allocate) initVal();  // else already done in FArrayBox
+#ifdef BL_MEM_PROFILING
+    ++num_multifabs;
+    num_multifabs_hwm = std::max(num_multifabs_hwm, num_multifabs);
+#endif
 }
 
 MultiFab::MultiFab (const BoxArray& bxs,
@@ -283,6 +307,17 @@ MultiFab::MultiFab (const BoxArray& bxs,
 {
     Initialize();
     if (SharedMemory()) initVal();  // else already done in FArrayBox
+#ifdef BL_MEM_PROFILING
+    ++num_multifabs;
+    num_multifabs_hwm = std::max(num_multifabs_hwm, num_multifabs);
+#endif
+}
+
+MultiFab::~MultiFab()
+{
+#ifdef BL_MEM_PROFILING
+    --num_multifabs;
+#endif    
 }
 
 void

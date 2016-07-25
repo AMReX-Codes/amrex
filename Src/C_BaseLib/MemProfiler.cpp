@@ -17,16 +17,29 @@
 #include <ParmParse.H>
 
 void 
-MemProfiler::add(const std::string& name, std::function<MemInfo()>&& f)
+MemProfiler::add (const std::string& name, std::function<MemInfo()>&& f)
 {
     MemProfiler& mprofiler = getInstance();
     auto it = std::find(mprofiler.the_names.begin(), mprofiler.the_names.end(), name);
     if (it != mprofiler.the_names.end()) {
-        std::string s = "MemProfiler::add failed because " + name + " already existed";
+        std::string s = "MemProfiler::add (MemInfo) failed because " + name + " already existed";
         BoxLib::Abort(s.c_str());
     }
     mprofiler.the_names.push_back(name);
     mprofiler.the_funcs.push_back(std::forward<std::function<MemInfo()> >(f));
+}
+
+void 
+MemProfiler::add (const std::string& name, std::function<NBuildsInfo()>&& f)
+{
+    MemProfiler& mprofiler = getInstance();
+    auto it = std::find(mprofiler.the_names_builds.begin(), mprofiler.the_names_builds.end(), name);
+    if (it != mprofiler.the_names_builds.end()) {
+        std::string s = "MemProfiler::add (NBuildsInfo) failed because " + name + " already existed";
+        BoxLib::Abort(s.c_str());
+    }
+    mprofiler.the_names_builds.push_back(name);
+    mprofiler.the_funcs_builds.push_back(std::forward<std::function<NBuildsInfo()> >(f));
 }
 
 MemProfiler& 
@@ -60,9 +73,18 @@ MemProfiler::report_ (const std::string& prefix, const std::string& memory_log_n
 	cur_min.push_back(minfo.current_bytes);
 	hwm_min.push_back(minfo.hwm_bytes);
     }
-
     std::vector<long> cur_max = cur_min;
     std::vector<long> hwm_max = hwm_min;
+
+    std::vector<int>  num_builds_min;
+    std::vector<int>  hwm_builds_min;
+    for (auto&& f: the_funcs_builds) {
+	const NBuildsInfo& binfo = f();
+	num_builds_min.push_back(binfo.current_builds);
+	hwm_builds_min.push_back(binfo.hwm_builds);
+    }
+    std::vector<int>  num_builds_max = num_builds_min;
+    std::vector<int>  hwm_builds_max = hwm_builds_min;
 
 #ifdef __linux
     const int N = 9;
@@ -174,6 +196,11 @@ MemProfiler::report_ (const std::string& prefix, const std::string& memory_log_n
     ParallelDescriptor::ReduceLongMin(&mymin[0], N, IOProc);
     ParallelDescriptor::ReduceLongMax(&mymax[0], N, IOProc);
 
+    ParallelDescriptor::ReduceIntMin (&num_builds_min[0], num_builds_min.size(), IOProc);
+    ParallelDescriptor::ReduceIntMax (&num_builds_max[0], num_builds_max.size(), IOProc);
+    ParallelDescriptor::ReduceIntMin (&hwm_builds_min[0], hwm_builds_min.size(), IOProc);
+    ParallelDescriptor::ReduceIntMax (&hwm_builds_max[0], hwm_builds_max.size(), IOProc);
+
     if (ParallelDescriptor::IOProcessor()) {
 
 	std::ofstream memlog(memory_log_name.c_str(), 
@@ -183,6 +210,8 @@ MemProfiler::report_ (const std::string& prefix, const std::string& memory_log_n
 	static int width_name = 0;
 	if (width_name == 0) {
 	    for (auto& x: the_names)
+		width_name = std::max(width_name, int(x.size()));
+	    for (auto& x: the_names_builds)
 		width_name = std::max(width_name, int(x.size()));
 	}
 	const int width_bytes = 18;
@@ -228,6 +257,28 @@ MemProfiler::report_ (const std::string& prefix, const std::string& memory_log_n
 	memlog << "| " << std::setw(width_name) << std::left << "Total" << " | ";
 	memlog << Bytes{mymin[0],mymax[0]} << " | " << std::setw(width_bytes) << " " << " |\n";
 	memlog << std::setw(0);
+
+	// Number of builds
+	{
+	    memlog << "\n";
+	    memlog << ident;
+	    memlog << "| " << std::setw(width_name) << std::left << "Name" << " | "
+		   << std::setw(width_bytes) << std::right << "Current #    " << " | "
+		   << std::setw(width_bytes) << "High Water Mark #" << " |\n";
+	    std::setw(0);
+	    
+	    memlog << ident;
+	    memlog << "|-" << dash_name << "-+-" << dash_bytes << "-+-" << dash_bytes << "-|\n";
+	    
+	    for (int i = 0; i < the_names_builds.size(); ++i) {
+		if (hwm_builds_max[i] > 0) {
+		    memlog << ident;
+		    memlog << "| " << std::setw(width_name) << std::left << the_names_builds[i] << " | ";
+		    memlog << Builds{num_builds_min[i],num_builds_max[i]} << " | ";
+		    memlog << Builds{hwm_builds_min[i],hwm_builds_max[i]} << " |\n";
+		}
+	    }
+	}
 
 #ifdef __linux
 	if (ierr_proc_status == 0) {
@@ -290,6 +341,15 @@ operator<< (std::ostream& os, const MemProfiler::Bytes& bytes)
     os << std::setw(5) << std::right << bytes.mn/fac << " ... "
        << std::setw(5) << std::left  << bytes.mx/fac << " " 
        << std::setw(2) << std::right << unit;
+    os << std::setw(0);
+    return os;
+}
+
+std::ostream& 
+operator<< (std::ostream& os, const MemProfiler::Builds& builds)
+{
+    os << std::setw(6) << std::right << builds.mn << " ... "
+       << std::setw(7) << std::left  << builds.mx; 
     os << std::setw(0);
     return os;
 }
