@@ -7,20 +7,25 @@
 #include <BoxArray.H>
 #include <FArrayBox.H>
 #include <MultiFab.H>
-#include <ParallelDescriptor.H>
 #include <VisMF.H>
+#include <ParallelDescriptor.H>
 #include <Utility.H>
+
 #include <iostream>
-#include <strstream>
+#include <sstream>
+#include <cstdio>
+#include <cstdlib>
 #include <fstream>
 #include <iomanip>
+#include <cerrno>
 
 #include <unistd.h>
+#include <string.h>
+#include <sys/stat.h>
 
 using std::cout;
 using std::endl;
 using std::ends;
-using std::ostrstream;
 using std::ofstream;
 using std::streamoff;
 
@@ -28,6 +33,109 @@ const int XDIR(0);
 const int YDIR(1);
 const int ZDIR(2);
 Real bytesPerMB(1.0e+06);
+const bool verboseDir(true);
+
+
+// -------------------------------------------------------------
+void DirectoryTests() {
+    int ndirs(256), nlevels(4);
+
+    if(ParallelDescriptor::IOProcessor()) { 
+      errno = 0;
+      mkdir("testdir", 0755);
+      std::cout << "_here 0:  errno = " << strerror(errno) << std::endl;
+      errno = 0;
+      rmdir("testdir");
+      std::cout << "_here 1:  errno = " << strerror(errno) << std::endl;
+      errno = 0;
+      mkdir("testnest/n0/n1", 0755);
+      std::cout << "_here 2:  errno = " << strerror(errno) << std::endl;
+      errno = 0;
+    }
+
+    BL_PROFILE_VAR("mkdirs", mkdirs);
+    for(int i(0); i < ndirs; ++i) {
+      std::stringstream dirname;
+      dirname << "dir" << i;
+      if(ParallelDescriptor::IOProcessor()) {
+        if( ! BoxLib::UtilCreateDirectory(dirname.str(), 0755, verboseDir)) {
+          BoxLib::CreateDirectoryFailed(dirname.str());
+        }
+        for(int level(0); level < nlevels; ++level) {
+          std::stringstream dirname;
+          dirname << "dir" << i << "/Level_" << level;
+          if( ! BoxLib::UtilCreateDirectory(dirname.str(), 0755, verboseDir)) {
+            BoxLib::CreateDirectoryFailed(dirname.str());
+          }
+        }
+      }
+    }
+    ParallelDescriptor::Barrier("waitfordir");
+    BL_PROFILE_VAR_STOP(mkdirs);
+
+    BL_PROFILE_VAR("renamedirs", renamedirs);
+    for(int i(0); i < ndirs; ++i) {
+      if(ParallelDescriptor::IOProcessor()) {
+        std::stringstream dirname;
+        dirname << "dir" << i;
+        std::string newdirname;
+        newdirname = dirname.str() + ".old";
+        std::rename(dirname.str().c_str(), newdirname.c_str());
+      }
+    }
+    ParallelDescriptor::Barrier("renamedirs");
+    BL_PROFILE_VAR_STOP(renamedirs);
+}
+
+
+// -------------------------------------------------------------
+void FileTests() {
+  Array<int> myInts(4096 * 4096);
+  for(int i(0); i < myInts.size(); ++i) {
+    myInts[i] = i;
+  }
+
+  std::fstream myFile;
+
+  BL_PROFILE_VAR("makefile", makefile);
+  myFile.open("myFile", std::ios::out|std::ios::trunc|std::ios::binary);
+  myFile.write((char*)myInts.dataPtr(), myInts.size() * sizeof(int));
+  myFile.close();
+  BL_PROFILE_VAR_STOP(makefile);
+
+  BL_PROFILE_VAR_NS("seektests", seektests);
+  myFile.open("myFile", std::ios::in|std::ios::binary);
+  myFile.seekg(0, std::ios::end);
+  myFile.seekg(0, std::ios::beg);
+  for(int i(0); i < myInts.size()/10; ++i) {
+    BL_PROFILE_VAR_START(seektests);
+    myFile.seekg(1, std::ios::cur);
+    BL_PROFILE_VAR_STOP(seektests);
+  }
+  myFile.close();
+
+
+  std::string dirname("/home/vince/Development/BoxLib/Tests/IOBenchmark/a/b/c/d");
+  if(ParallelDescriptor::IOProcessor()) {
+    if( ! BoxLib::UtilCreateDirectory(dirname, 0755, verboseDir)) {
+      BoxLib::CreateDirectoryFailed(dirname);
+    }
+  }
+  std::string rdirname("relative/e/f/g");
+  if(ParallelDescriptor::IOProcessor()) {
+    if( ! BoxLib::UtilCreateDirectory(rdirname, 0755, verboseDir)) {
+      BoxLib::CreateDirectoryFailed(rdirname);
+    }
+  }
+  std::string nsdirname("noslash");
+  if(ParallelDescriptor::IOProcessor()) {
+    if( ! BoxLib::UtilCreateDirectory(nsdirname, 0755, verboseDir)) {
+      BoxLib::CreateDirectoryFailed(nsdirname);
+    }
+  }
+
+}
+
 
 // -------------------------------------------------------------
 BoxArray MakeBoxArray(int maxgrid,  int nboxes) {
@@ -68,8 +176,6 @@ BoxArray MakeBoxArray(int maxgrid,  int nboxes) {
 void TestWriteNFiles(int nfiles, int maxgrid, int ncomps, int nboxes,
                      bool raninit, bool mb2)
 {
-  int myProc(ParallelDescriptor::MyProc());
-
   VisMF::SetNOutFiles(nfiles);
   if(mb2) {
     bytesPerMB = pow(2.0, 20);
@@ -126,8 +232,6 @@ void TestWriteNFiles(int nfiles, int maxgrid, int ncomps, int nboxes,
 
 // -------------------------------------------------------------
 void TestReadMF() {
-  int myProc(ParallelDescriptor::MyProc());
-
   MultiFab mfin;
   std::string mfName("TestMF");
 
