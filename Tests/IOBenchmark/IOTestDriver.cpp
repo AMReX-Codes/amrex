@@ -15,12 +15,15 @@ using std::ios;
 #include <ParmParse.H>
 #include <MultiFab.H>
 #include <VisMF.H>
+#include <FabConv.H>
 
 using std::cout;
 using std::cerr;
 using std::endl;
 
 
+void DirectoryTests();
+void FileTests();
 void TestWriteNFiles(int nfiles, int maxgrid, int ncomps, int nboxes,
                      bool raninit, bool mb2);
 void TestReadMF();
@@ -40,6 +43,8 @@ static void PrintUsage(const char *progName) {
     cout << "   [ntimes = ntimes]" << '\n';
     cout << "   [raninit = tf]" << '\n';
     cout << "   [mb2    = tf]" << '\n';
+    cout << "   [rbuffsize = rbs]" << '\n';
+    cout << "   [wbuffsize = wbs]" << '\n';
     cout << '\n';
     cout << "Running with default values." << '\n';
     cout << '\n';
@@ -63,6 +68,7 @@ int main(int argc, char *argv[]) {
   int nprocs(ParallelDescriptor::NProcs());
   int nsleep(0), nfiles(std::min(nprocs, 128));  // limit default to max of 128
   int maxgrid(32), ncomps(4), nboxes(nprocs), ntimes(1);
+  int rbs(8912), wbs(8192);
   bool raninit(false), mb2(false);
 
   pp.query("nfiles", nfiles);
@@ -83,6 +89,11 @@ int main(int argc, char *argv[]) {
   pp.query("raninit", raninit);
   pp.query("mb2", mb2);
 
+  pp.query("rbuffsize", rbs);
+  pp.query("wbuffsize", wbs);
+  RealDescriptor::SetReadBufferSize(rbs);
+  RealDescriptor::SetWriteBufferSize(wbs);
+
   if(ParallelDescriptor::IOProcessor()) {
     cout << endl;
     cout << "**************************************************" << endl;
@@ -94,6 +105,15 @@ int main(int argc, char *argv[]) {
     cout << "ntimes = " << ntimes << endl;
     cout << "raninit = " << raninit << endl;
     cout << "mb2 = " << mb2 << endl;
+    cout << "rbuffsize = " << rbs << endl;
+    cout << "wbuffsize = " << wbs << endl;
+    cout << "sizeof(int) = " << sizeof(int) << endl;
+    cout << "sizeof(size_t) = " << sizeof(size_t) << endl;
+    cout << "sizeof(long) = " << sizeof(long) << endl;
+    cout << "sizeof(long long) = " << sizeof(long long) << endl;
+    cout << "sizeof(std::streampos) = " << sizeof(std::streampos) << endl;
+    cout << "sizeof(std::streamoff) = " << sizeof(std::streamoff) << endl;
+    cout << "sizeof(std::streamsize) = " << sizeof(std::streamsize) << endl;
   }
 
   pp.query("nsleep", nsleep);
@@ -110,6 +130,38 @@ int main(int argc, char *argv[]) {
   for(int itimes(0); itimes < ntimes; ++itimes) {
     if(ParallelDescriptor::IOProcessor()) {
       cout << endl << "--------------------------------------------------" << endl;
+      cout << "Testing File Operations" << endl;
+    }
+
+    FileTests();
+
+    if(ParallelDescriptor::IOProcessor()) {
+      cout << "==================================================" << endl;
+      cout << endl;
+    }
+  }
+
+
+/*
+  for(int itimes(0); itimes < ntimes; ++itimes) {
+    if(ParallelDescriptor::IOProcessor()) {
+      cout << endl << "--------------------------------------------------" << endl;
+      cout << "Testing Directory Operations" << endl;
+    }
+
+    DirectoryTests();
+
+    if(ParallelDescriptor::IOProcessor()) {
+      cout << "==================================================" << endl;
+      cout << endl;
+    }
+  }
+*/
+
+
+  for(int itimes(0); itimes < ntimes; ++itimes) {
+    if(ParallelDescriptor::IOProcessor()) {
+      cout << endl << "--------------------------------------------------" << endl;
       cout << "Testing NFiles Write" << endl;
     }
 
@@ -121,6 +173,7 @@ int main(int argc, char *argv[]) {
     }
   }
 
+  /*
   for(int itimes(0); itimes < ntimes; ++itimes) {
     if(ParallelDescriptor::IOProcessor()) {
       cout << endl << "++++++++++++++++++++++++++++++++++++++++++++++++++" << endl;
@@ -134,6 +187,7 @@ int main(int argc, char *argv[]) {
       cout << endl;
     }
   }
+  */
 
 
   BoxLib::Finalize();
