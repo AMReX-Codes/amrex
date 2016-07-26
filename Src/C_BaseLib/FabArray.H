@@ -304,69 +304,6 @@ public:
     };
 
     //
-    // When copy()ing from one FabArray to another we can do a copy or an add.
-    //
-    enum CpOp { COPY = 0, ADD = 1 };
-
-    struct CPC
-    {
-        CPC (const BoxArray&            dstba,
-             const BoxArray&            srcba,
-             const DistributionMapping& dstdm,
-             const DistributionMapping& srcdm,
-	     int                        dstng,
-	     int                        srcng);
-
-        ~CPC ();
-
-        bool operator== (const CPC& rhs) const;
-        bool operator!= (const CPC& rhs) const { return !operator==(rhs); }
-
-        long bytes () const;
-
-        static void FlushCache ();
-
-        BoxArray            m_dstba;
-        BoxArray            m_srcba;
-        DistributionMapping m_dstdm;
-        DistributionMapping m_srcdm;
-	int                 m_dstng;
-	int                 m_srcng;
-        int                 m_nuse;
-	bool                m_threadsafe_loc;
-	bool                m_threadsafe_rcv;
-        //
-        // The cache of local and send/recv info per FabArray::copy().
-        //
-        CopyComTagsContainer*      m_LocTags;
-        MapOfCopyComTagContainers* m_SndTags;
-        MapOfCopyComTagContainers* m_RcvTags;
-        std::map<int,int>*         m_SndVols;
-        std::map<int,int>*         m_RcvVols;
-    };
-    //
-    // Some useful typedefs for the copy() cache.
-    //
-    typedef std::multimap<int,FabArrayBase::CPC> CPCCache;
-
-    typedef CPCCache::iterator CPCCacheIter;
-
-    static CPCCache m_TheCopyCache;
-
-    static CPCCacheIter TheCPC (const CPC          &cpc,
-                                const FabArrayBase &dst,
-                                const FabArrayBase &src,
-				const int MyProc = ParallelDescriptor::MyProc());
-    static CPCCacheIter TheCPC (const CPC          &cpc,
-                                const Array<int>   &dstIndexArray,
-                                const Array<int>   &srcIndexArray,
-				const int MyProc = ParallelDescriptor::MyProc());
-    static CacheStats m_CPC_stats;
-
-    static long bytesOfCPCCache ();
-
-
-    //
     // Used for collecting information used in communicating FABs.
     //
     struct FabComTag
@@ -504,9 +441,6 @@ protected:
     int                 aFAPId;      // ---- id of currently allocated fab array pointers
     int                 aFAPIdLock;  // ---- lock for resizing sidecars
 
-    static int fb_cache_max_size;
-    static int copy_cache_max_size;
-
     mutable BDKey m_bdkey;
 
     //
@@ -538,17 +472,18 @@ protected:
 	IndexType           m_typ;
         int                 m_ngrow;
         bool                m_cross;
-	int                 m_nuse;
-	bool                m_threadsafe_loc;
-	bool                m_threadsafe_rcv;
         //
         // The cache of local and send/recv per FillBoundary().
         //
+	bool                m_threadsafe_loc;
+	bool                m_threadsafe_rcv;
         CopyComTagsContainer*      m_LocTags;
         MapOfCopyComTagContainers* m_SndTags;
         MapOfCopyComTagContainers* m_RcvTags;
         std::map<int,int>*         m_SndVols;
         std::map<int,int>*         m_RcvVols;
+	//
+	int                 m_nuse;
     };
     //
     typedef std::multimap<BDKey,FabArrayBase::FB*> FBCache;
@@ -562,6 +497,60 @@ protected:
     //
     void flushFB () const;       // This flushes its own FB.
     static void flushFBCache (); // This flushes the entire cache.
+
+    //
+    // parallel copy or add
+    //
+    enum CpOp { COPY = 0, ADD = 1 };
+
+    struct CPC
+    {
+	CPC (const FabArrayBase& dstfa, int dstng, const FabArrayBase& srcfa, int srcng);
+	CPC (const BoxArray& dstba, const DistributionMapping& dstdm, 
+	     const Array<int>& dstidx, int dstng,
+	     const BoxArray& srcba, const DistributionMapping& srcdm, 
+	     const Array<int>& srcidx, int srcng,
+	     int myproc);
+        ~CPC ();
+
+        long bytes () const;	
+
+	BDKey       m_srcbdk;
+	BDKey       m_dstbdk;
+	IndexType   m_typ;
+	int         m_srcng;
+	int         m_dstng;
+        //
+        // The cache of local and send/recv info per FabArray::copy().
+        //
+	bool        m_threadsafe_loc;
+	bool        m_threadsafe_rcv;
+        CopyComTagsContainer*      m_LocTags;
+        MapOfCopyComTagContainers* m_SndTags;
+        MapOfCopyComTagContainers* m_RcvTags;
+        std::map<int,int>*         m_SndVols;
+        std::map<int,int>*         m_RcvVols;
+	//
+        int         m_nuse;
+
+    private:
+	void define (const BoxArray& ba_dst, const DistributionMapping& dm_dst,
+		     const Array<int>& imap_dst,
+		     const BoxArray& ba_src, const DistributionMapping& dm_src,
+		     const Array<int>& imap_src,
+		     int MyProc = ParallelDescriptor::MyProc());
+    };
+    //
+    typedef std::multimap<BDKey,FabArrayBase::CPC*> CPCache;
+    typedef CPCache::iterator CPCacheIter;
+    //
+    static CPCache    m_TheCPCache;
+    static CacheStats m_CPC_stats;
+    //
+    const CPC& getCPC (int dstng, const FabArrayBase& src, int srcng) const;
+    // 
+    void flushCPC () const;      // This flushes its own CPC.
+    static void flushCPCache (); // This flusheds the entire cache.
 
     //
     // Keep track of how many FabArrays are built with the same BDKey.
@@ -2057,13 +2046,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
         return;
     }
 
-    const CPC cpc(boxarray, src.boxarray, distributionMap, src.distributionMap, dnghost, snghost);
-
-    FabArrayBase::CPCCacheIter cache_it = FabArrayBase::TheCPC(cpc, *this, src);
-
-    BL_ASSERT(cache_it != FabArrayBase::m_TheCopyCache.end());
-
-    const CPC& thecpc = cache_it->second;
+    const CPC& thecpc = getCPC(dnghost, src, snghost);
 
     if (ParallelDescriptor::NProcs() == 1)
     {
@@ -2727,13 +2710,8 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
     srcDMAll.define(srcPMapAll, putInCache);
     destDMAll.define(destPMapAll, putInCache);
 
-    const CPC cpc(destBoxArray, srcBoxArray, destDMAll, srcDMAll, dnghost, snghost);
-
-    FabArrayBase::CPCCacheIter cache_it = FabArrayBase::TheCPC(cpc, destIndexArray, srcIndexArray, myProcBoth);
-
-    BL_ASSERT(cache_it != FabArrayBase::m_TheCopyCache.end());
-
-    const CPC& thecpc = cache_it->second;
+    CPC thecpc(destBoxArray, destDMAll, destIndexArray, dnghost,
+	       srcBoxArray ,  srcDMAll,  srcIndexArray, dnghost, myProcBoth);
 
     if (ParallelDescriptor::NProcsAll() == 1) {
         return;
@@ -3243,8 +3221,6 @@ FabArray<FAB>::AddProcsToComp (int ioProcNumSCS, int ioProcNumAll,
   ParallelDescriptor::Bcast(&n_comp, 1, ioProcNumSCS, scsComm);
   ParallelDescriptor::Bcast(&aFAPId, 1, ioProcNumSCS, scsComm);
   ParallelDescriptor::Bcast(&nFabArrays, 1, ioProcNumSCS, scsComm);
-  ParallelDescriptor::Bcast(&fb_cache_max_size, 1, ioProcNumSCS, scsComm);
-  ParallelDescriptor::Bcast(&copy_cache_max_size, 1, ioProcNumSCS, scsComm);
 
   // ---- bools
   bool bii(IsInitialized());
@@ -3255,8 +3231,6 @@ FabArray<FAB>::AddProcsToComp (int ioProcNumSCS, int ioProcNumAll,
     SetInitialized(bInit);
     do_async_sends = bDAS;
   }
-  ParallelDescriptor::Bcast(&fb_cache_max_size, 1, ioProcNumSCS, scsComm);
-  ParallelDescriptor::Bcast(&copy_cache_max_size, 1, ioProcNumSCS, scsComm);
 
   // ---- IntVects
   Array<int> allIntVects;
@@ -3383,7 +3357,7 @@ FabArray<FAB>::MoveAllFabs (const Array<int> &newDistMapArray)
 
     // ---- flush caches
     DistributionMapping::FlushCache();
-    FabArrayBase::CPC::FlushCache();
+    flushCPCache();
     //Geometry::FlushPIRMCache();  // ---- needs to be done externally
     flushFBCache();
     flushTileArrayCache();

@@ -2440,12 +2440,10 @@ Amr::regrid (int  lbase,
     finest_level = new_finest;
     //
     // Flush the caches.
-    // We're most interesting in flushing cached stuff from the finer levels.
-    // Lower level stuff that could be reused is just as easily rebuilt.
     //
-//    MultiFab::flushFBCache();
+//    MultiFab::flushFBCache();  no need to flush these
     Geometry::FlushPIRMCache();
-    FabArrayBase::CPC::FlushCache();
+//    FabArrayBase::flushCPCache();
     DistributionMapping::FlushCache();
 #ifdef MG_USE_FBOXLIB
     mgt_flush_copyassoc_cache();
@@ -3645,7 +3643,7 @@ Amr::AddProcsToSidecar(int nSidecarProcs, int prevSidecarProcs) {
 
 //    MultiFab::flushFBCache();
     Geometry::FlushPIRMCache();
-    FabArrayBase::CPC::FlushCache();
+//    FabArrayBase::flushCPCache();
     DistributionMapping::FlushCache();
 
     Array<BoxArray> allBoxes(finest_level + 1);
@@ -3691,7 +3689,7 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
 #if BL_USE_MPI
 //    MultiFab::flushFBCache();
     Geometry::FlushPIRMCache();
-    FabArrayBase::CPC::FlushCache();
+//    FabArrayBase::CPC::flushCPCache();
     //FabArrayBase::flushTileArrayCache();
     DistributionMapping::FlushCache();
 
@@ -4146,7 +4144,7 @@ void
 Amr::RedistributeGrids(int how) {
 //    MultiFab::flushFBCache();
     Geometry::FlushPIRMCache();
-    FabArrayBase::CPC::FlushCache();
+//    FabArrayBase::CPC::flushCPCache();
     DistributionMapping::FlushCache();
     if( ! ParallelDescriptor::InCompGroup()) {
       return;
