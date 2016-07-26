@@ -1085,11 +1085,8 @@ FABio_binary::write (std::ostream&    os,
     const long base_siz  = f.box().numPts();
     const Real* comp_ptr = f.dataPtr(comp);
     const long siz       = base_siz*num_comp;
-    //if(*rd == FPC::NativeRealDescriptor()) {
-      //os.write((const char*)(comp_ptr), int(siz * rd->numBytes()));
-    //} else {
-      RealDescriptor::convertFromNativeFormat(os, siz, comp_ptr, *rd);
-    //}
+
+    RealDescriptor::convertFromNativeFormat(os, siz, comp_ptr, *rd);
 
     if(os.fail()) {
         BoxLib::Error("FABio_binary::write() failed");
@@ -1136,7 +1133,7 @@ std::istream&
 operator>> (std::istream& is,
             FArrayBox&    f)
 {
-    FABio* fabrd = FABio::read_header(is,f);
+    FABio *fabrd = FABio::read_header(is,f);
     fabrd->read(is,f);
     delete fabrd;
     return is;

@@ -935,7 +935,8 @@ RealDescriptor::convertToNativeFormat (Real*                 out,
 {
     BL_PROFILE("RD:convertToNativeFormat_is");
 
-    char *bufr = new char[readBufferSize * id.numBytes()];
+    long buffSize(std::min(long(readBufferSize), nitems));
+    char *bufr = new char[buffSize * id.numBytes()];
 
     while (nitems > 0)
     {
@@ -997,6 +998,7 @@ RealDescriptor::convertFromNativeFormat (std::ostream&         os,
 {
   BL_PROFILE("RD:convertFromNativeFormat_os");
   long nitemsSave(nitems);
+  long buffSize(std::min(long(writeBufferSize), nitems));
   const Real *inSave(in);
   BoxLib::StreamRetry sr(os, "RD_cFNF", 4);
 
@@ -1004,7 +1006,7 @@ RealDescriptor::convertFromNativeFormat (std::ostream&         os,
     nitems = nitemsSave;
     in = inSave;
 
-    char *bufr = new char[writeBufferSize * od.numBytes()];
+    char *bufr = new char[buffSize * od.numBytes()];
 
     while (nitems > 0)
     {
