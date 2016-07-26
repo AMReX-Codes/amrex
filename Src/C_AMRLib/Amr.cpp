@@ -2443,7 +2443,7 @@ Amr::regrid (int  lbase,
     // We're most interesting in flushing cached stuff from the finer levels.
     // Lower level stuff that could be reused is just as easily rebuilt.
     //
-    MultiFab::FlushSICache();
+//    MultiFab::flushFBCache();
     Geometry::FlushPIRMCache();
     FabArrayBase::CPC::FlushCache();
     DistributionMapping::FlushCache();
@@ -3643,7 +3643,7 @@ Amr::GetParticleData (Array<Real>& part_data, int start_comp, int num_comp)
 void
 Amr::AddProcsToSidecar(int nSidecarProcs, int prevSidecarProcs) {
 
-    MultiFab::FlushSICache();
+//    MultiFab::flushFBCache();
     Geometry::FlushPIRMCache();
     FabArrayBase::CPC::FlushCache();
     DistributionMapping::FlushCache();
@@ -3689,7 +3689,7 @@ Amr::AddProcsToSidecar(int nSidecarProcs, int prevSidecarProcs) {
 void
 Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
 #if BL_USE_MPI
-    MultiFab::FlushSICache();
+//    MultiFab::flushFBCache();
     Geometry::FlushPIRMCache();
     FabArrayBase::CPC::FlushCache();
     //FabArrayBase::flushTileArrayCache();
@@ -4144,7 +4144,7 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
 
 void
 Amr::RedistributeGrids(int how) {
-    MultiFab::FlushSICache();
+//    MultiFab::flushFBCache();
     Geometry::FlushPIRMCache();
     FabArrayBase::CPC::FlushCache();
     DistributionMapping::FlushCache();
