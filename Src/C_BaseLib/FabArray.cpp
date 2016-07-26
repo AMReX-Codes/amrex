@@ -513,10 +513,231 @@ FabArrayBase::getCPC (int dstng, const FabArrayBase& src, int srcng) const
 // Some stuff for fill boundary
 //
 
-FabArrayBase::FB::FB ()
-    : m_typ(), m_ngrow(-1), m_cross(false), m_threadsafe_loc(false), m_threadsafe_rcv(false),
-      m_LocTags(0), m_SndTags(0), m_RcvTags(0), m_SndVols(0), m_RcvVols(0), m_nuse(0)
-{}
+FabArrayBase::FB::FB (const FabArrayBase& fa, bool cross)
+    : m_typ(fa.boxArray().ixType()), m_ngrow(fa.nGrow()), m_cross(cross), 
+      m_threadsafe_loc(false), m_threadsafe_rcv(false),
+      m_LocTags(0), m_SndTags(0), m_RcvTags(0), m_SndVols(0), m_RcvVols(0), 
+      m_nuse(0)
+{
+    BL_PROFILE("FabArrayBase::FB::FB()");
+
+    const int                  MyProc   = ParallelDescriptor::MyProc();
+    const BoxArray&            ba       = fa.boxArray();
+    const DistributionMapping& dm       = fa.DistributionMap();
+    const Array<int>&          imap     = fa.IndexArray();
+
+    m_LocTags = new CopyComTag::CopyComTagsContainer;
+    m_SndTags = new CopyComTag::MapOfCopyComTagContainers;
+    m_RcvTags = new CopyComTag::MapOfCopyComTagContainers;
+    m_SndVols = new std::map<int,int>;
+    m_RcvVols = new std::map<int,int>;
+
+    if (!imap.empty()) 
+    {	
+	// For local copy, all workers in the same team will have the identical copy of tags
+	// so that they can share work.  But for remote communication, they are all different.
+	
+	const int nlocal = imap.size();
+	const int ng = m_ngrow;
+	std::vector< std::pair<int,Box> > isects;
+
+	CopyComTag::MapOfCopyComTagContainers send_tags; // temp copy
+
+	for (int i = 0; i < nlocal; ++i)
+	{
+	    const int ksnd = imap[i];
+	    const Box& vbx = ba[ksnd];
+
+	    ba.intersections(vbx, isects, ng);
+
+	    for (int j = 0, M = isects.size(); j < M; ++j)
+            {
+		const int krcv      = isects[j].first;
+		const Box& bx       = isects[j].second;
+		const int dst_owner = dm[krcv];
+
+		if (krcv == ksnd) continue;  // same box
+
+		if (ParallelDescriptor::sameTeam(dst_owner)) {
+		    continue;  // local copy will be dealt with later
+		} else if (MyProc == dm[ksnd]) {
+		    const BoxList& bl = BoxLib::boxDiff(bx, ba[krcv]);
+		    for (BoxList::const_iterator lit = bl.begin(); lit != bl.end(); ++lit)
+			send_tags[dst_owner].push_back(CopyComTag(*lit, krcv, ksnd));
+		}
+	    }
+	}
+
+	CopyComTag::MapOfCopyComTagContainers recv_tags; // temp copy
+
+	BaseFab<int> localtouch, remotetouch;
+	bool check_local = false, check_remote = false;
+#ifdef _OPENMP
+	if (omp_get_max_threads() > 1) {
+	    check_local = true;
+	    check_remote = true;
+	}
+#endif
+
+	if (ParallelDescriptor::TeamSize() > 1) {
+	    check_local = true;
+	}
+
+	if (ba.ixType().cellCentered()) {
+	    m_threadsafe_loc = true;
+	    m_threadsafe_rcv = true;
+	    check_local = false;
+	    check_remote = false;
+	}
+
+	for (int i = 0; i < nlocal; ++i)
+	{
+	    const int   krcv = imap[i];
+	    const Box& vbx   = ba[krcv];
+	    const Box& bxrcv = BoxLib::grow(vbx, ng);
+	    
+	    if (check_local) {
+		localtouch.resize(bxrcv);
+		localtouch.setVal(0);
+	    }
+	    
+	    if (check_remote) {
+		remotetouch.resize(bxrcv);
+		remotetouch.setVal(0);
+	    }
+
+	    ba.intersections(bxrcv, isects);
+
+	    for (int j = 0, M = isects.size(); j < M; ++j)
+	    {
+		const int ksnd      = isects[j].first;
+		const Box& bx       = isects[j].second;
+		const int src_owner = dm[ksnd];
+		
+		if (krcv == ksnd) continue;  // same box
+		
+		const BoxList& bl = BoxLib::boxDiff(bx, vbx);
+		for (BoxList::const_iterator lit = bl.begin(); lit != bl.end(); ++lit)
+		{
+		    const Box& blbx = *lit;
+			
+		    if (ParallelDescriptor::sameTeam(src_owner)) { // local copy
+			const BoxList tilelist(blbx, FabArrayBase::comm_tile_size);
+			for (BoxList::const_iterator
+				 it_tile  = tilelist.begin(),
+				 End_tile = tilelist.end();   it_tile != End_tile; ++it_tile)
+			{
+			    m_LocTags->push_back(CopyComTag(*it_tile, krcv, ksnd));
+			}
+			if (check_local) {
+			    localtouch.plus(1, blbx);
+			}
+		    } else if (MyProc == dm[krcv]) {
+			recv_tags[src_owner].push_back(CopyComTag(blbx, krcv, ksnd));
+			if (check_remote) {
+			    remotetouch.plus(1, blbx);
+			}
+		    }
+		}
+	    }
+
+	    if (check_local) {  
+		// safe if a cell is touched no more than once 
+		// keep checking thread safety if it is safe so far
+		check_local = m_threadsafe_loc = localtouch.max() <= 1;
+	    }
+
+	    if (check_remote) {
+		check_remote = m_threadsafe_rcv = remotetouch.max() <= 1;
+	    }
+	}
+
+	//    ba.clear_hash_bin();
+
+	for (int ipass = 0; ipass < 2; ++ipass) // pass 0: send; pass 1: recv
+	{
+	    CopyComTag::MapOfCopyComTagContainers & Tags
+		= (ipass == 0) ? *m_SndTags : *m_RcvTags;
+	    CopyComTag::MapOfCopyComTagContainers & tmpTags
+		= (ipass == 0) ?        send_tags :        recv_tags;
+	    std::map<int,int> & Vols
+		= (ipass == 0) ? *m_SndVols : *m_RcvVols;
+	    
+	    for (CopyComTag::MapOfCopyComTagContainers::iterator 
+		     it  = tmpTags.begin(), 
+		     End = tmpTags.end();   it != End; ++it)
+	    {
+		const int key = it->first;
+		std::vector<CopyComTag>& cctv = it->second;
+		
+		// We need to fix the order so that the send and recv processes match.
+		std::sort(cctv.begin(), cctv.end());
+		
+		std::vector<CopyComTag> new_cctv;
+		new_cctv.reserve(cctv.size());
+		
+		for (std::vector<CopyComTag>::const_iterator 
+			 it2  = cctv.begin(),
+			 End2 = cctv.end();   it2 != End2; ++it2)
+		{
+		    const Box& bx = it2->box;
+
+		    std::vector<Box> boxes;
+		    int vol = 0;
+		    
+		    if (m_cross) {
+			const Box& dstfabbx = ba[it2->fabIndex];
+			for (int dir = 0; dir < BL_SPACEDIM; dir++)
+			{
+			    Box lo = dstfabbx;
+			    lo.setSmall(dir, dstfabbx.smallEnd(dir) - ng);
+			    lo.setBig  (dir, dstfabbx.smallEnd(dir) - 1);
+			    lo &= bx;
+			    if (lo.ok()) {
+				boxes.push_back(lo);
+				vol += lo.numPts();
+			    }
+			    
+			    Box hi = dstfabbx;
+			    hi.setSmall(dir, dstfabbx.bigEnd(dir) + 1);
+			    hi.setBig  (dir, dstfabbx.bigEnd(dir) + ng);
+			    hi &= bx;
+			    if (hi.ok()) {
+				boxes.push_back(hi);
+				vol += hi.numPts();
+			    }
+			}
+		    } else {
+			boxes.push_back(bx);
+			vol += bx.numPts();
+		    }
+
+		    if (vol > 0) 
+		    {
+			Vols[key] += vol;
+
+			for (std::vector<Box>::const_iterator 
+				 it_bx  = boxes.begin(),
+				 End_bx = boxes.end();    it_bx != End_bx; ++it_bx)
+			{
+			    const BoxList tilelist(*it_bx, FabArrayBase::comm_tile_size);
+			    for (BoxList::const_iterator 
+				     it_tile  = tilelist.begin(), 
+				     End_tile = tilelist.end();   it_tile != End_tile; ++it_tile)
+			    {
+				new_cctv.push_back(CopyComTag(*it_tile, it2->fabIndex, it2->srcIndex));
+			    }
+			}
+		    }
+		}
+		
+		if (!new_cctv.empty())
+		    Tags[key].swap(new_cctv);
+	    }
+	}
+	
+    }
+}
 
 FabArrayBase::FB::~FB ()
 {
@@ -577,249 +798,20 @@ FabArrayBase::getFB (bool cross) const
     }
 
     // Have to build a new one
-    FB* new_fb = buildFB(cross);
-    m_TheFBCache.insert(er_it.second, FBCache::value_type(m_bdkey,new_fb));
-    return *new_fb;
-}
+    FB* new_fb = new FB(*this, cross);
 
-FabArrayBase::FB*
-FabArrayBase::buildFB (bool cross) const
-{
-    BL_PROFILE("FabArrayBase::buildFB()");
-
-    FB* fb = new FB();
-
-    const int                  MyProc   = ParallelDescriptor::MyProc();
-    const BoxArray&            ba       = boxArray();
-    const DistributionMapping& dm       = DistributionMap();
-    const Array<int>&          imap     = IndexArray();
-
-    fb->m_typ   = ba.ixType();
-    fb->m_ngrow = nGrow();
-    fb->m_cross = cross;
-    fb->m_nuse  = 1;
-
-    fb->m_LocTags = new CopyComTag::CopyComTagsContainer;
-    fb->m_SndTags = new CopyComTag::MapOfCopyComTagContainers;
-    fb->m_RcvTags = new CopyComTag::MapOfCopyComTagContainers;
-    fb->m_SndVols = new std::map<int,int>;
-    fb->m_RcvVols = new std::map<int,int>;
-
-    m_FBC_stats.recordBuild();
-    m_FBC_stats.recordUse();
-
-    if (!imap.empty()) 
-    {	
-	// For local copy, all workers in the same team will have the identical copy of tags
-	// so that they can share work.  But for remote communication, they are all different.
-	
-	const int nlocal = imap.size();
-	const int ng = fb->m_ngrow;
-	std::vector< std::pair<int,Box> > isects;
-
-	CopyComTag::MapOfCopyComTagContainers send_tags; // temp copy
-
-	for (int i = 0; i < nlocal; ++i)
-	{
-	    const int ksnd = imap[i];
-	    const Box& vbx = ba[ksnd];
-
-	    ba.intersections(vbx, isects, ng);
-
-	    for (int j = 0, M = isects.size(); j < M; ++j)
-            {
-		const int krcv      = isects[j].first;
-		const Box& bx       = isects[j].second;
-		const int dst_owner = dm[krcv];
-
-		if (krcv == ksnd) continue;  // same box
-
-		if (ParallelDescriptor::sameTeam(dst_owner)) {
-		    continue;  // local copy will be dealt with later
-		} else if (MyProc == dm[ksnd]) {
-		    const BoxList& bl = BoxLib::boxDiff(bx, ba[krcv]);
-		    for (BoxList::const_iterator lit = bl.begin(); lit != bl.end(); ++lit)
-			send_tags[dst_owner].push_back(CopyComTag(*lit, krcv, ksnd));
-		}
-	    }
-	}
-
-	CopyComTag::MapOfCopyComTagContainers recv_tags; // temp copy
-
-	BaseFab<int> localtouch, remotetouch;
-	bool check_local = false, check_remote = false;
-#ifdef _OPENMP
-	if (omp_get_max_threads() > 1) {
-	    check_local = true;
-	    check_remote = true;
-	}
-#endif
-
-	if (ParallelDescriptor::TeamSize() > 1) {
-	    check_local = true;
-	}
-
-	if (ba.ixType().cellCentered()) {
-	    fb->m_threadsafe_loc = true;
-	    fb->m_threadsafe_rcv = true;
-	    check_local = false;
-	    check_remote = false;
-	}
-
-	for (int i = 0; i < nlocal; ++i)
-	{
-	    const int   krcv = imap[i];
-	    const Box& vbx   = ba[krcv];
-	    const Box& bxrcv = BoxLib::grow(vbx, ng);
-	    
-	    if (check_local) {
-		localtouch.resize(bxrcv);
-		localtouch.setVal(0);
-	    }
-	    
-	    if (check_remote) {
-		remotetouch.resize(bxrcv);
-		remotetouch.setVal(0);
-	    }
-
-	    ba.intersections(bxrcv, isects);
-
-	    for (int j = 0, M = isects.size(); j < M; ++j)
-	    {
-		const int ksnd      = isects[j].first;
-		const Box& bx       = isects[j].second;
-		const int src_owner = dm[ksnd];
-		
-		if (krcv == ksnd) continue;  // same box
-		
-		const BoxList& bl = BoxLib::boxDiff(bx, vbx);
-		for (BoxList::const_iterator lit = bl.begin(); lit != bl.end(); ++lit)
-		{
-		    const Box& blbx = *lit;
-			
-		    if (ParallelDescriptor::sameTeam(src_owner)) { // local copy
-			const BoxList tilelist(blbx, FabArrayBase::comm_tile_size);
-			for (BoxList::const_iterator
-				 it_tile  = tilelist.begin(),
-				 End_tile = tilelist.end();   it_tile != End_tile; ++it_tile)
-			{
-			    fb->m_LocTags->push_back(CopyComTag(*it_tile, krcv, ksnd));
-			}
-			if (check_local) {
-			    localtouch.plus(1, blbx);
-			}
-		    } else if (MyProc == dm[krcv]) {
-			recv_tags[src_owner].push_back(CopyComTag(blbx, krcv, ksnd));
-			if (check_remote) {
-			    remotetouch.plus(1, blbx);
-			}
-		    }
-		}
-	    }
-
-	    if (check_local) {  
-		// safe if a cell is touched no more than once 
-		// keep checking thread safety if it is safe so far
-		check_local = fb->m_threadsafe_loc = localtouch.max() <= 1;
-	    }
-
-	    if (check_remote) {
-		check_remote = fb->m_threadsafe_rcv = remotetouch.max() <= 1;
-	    }
-	}
-
-	//    ba.clear_hash_bin();
-
-	for (int ipass = 0; ipass < 2; ++ipass) // pass 0: send; pass 1: recv
-	{
-	    CopyComTag::MapOfCopyComTagContainers & Tags
-		= (ipass == 0) ? *fb->m_SndTags : *fb->m_RcvTags;
-	    CopyComTag::MapOfCopyComTagContainers & tmpTags
-		= (ipass == 0) ?        send_tags :        recv_tags;
-	    std::map<int,int> & Vols
-		= (ipass == 0) ? *fb->m_SndVols : *fb->m_RcvVols;
-	    
-	    for (CopyComTag::MapOfCopyComTagContainers::iterator 
-		     it  = tmpTags.begin(), 
-		     End = tmpTags.end();   it != End; ++it)
-	    {
-		const int key = it->first;
-		std::vector<CopyComTag>& cctv = it->second;
-		
-		// We need to fix the order so that the send and recv processes match.
-		std::sort(cctv.begin(), cctv.end());
-		
-		std::vector<CopyComTag> new_cctv;
-		new_cctv.reserve(cctv.size());
-		
-		for (std::vector<CopyComTag>::const_iterator 
-			 it2  = cctv.begin(),
-			 End2 = cctv.end();   it2 != End2; ++it2)
-		{
-		    const Box& bx = it2->box;
-
-		    std::vector<Box> boxes;
-		    int vol = 0;
-		    
-		    if (fb->m_cross) {
-			const Box& dstfabbx = ba[it2->fabIndex];
-			for (int dir = 0; dir < BL_SPACEDIM; dir++)
-			{
-			    Box lo = dstfabbx;
-			    lo.setSmall(dir, dstfabbx.smallEnd(dir) - ng);
-			    lo.setBig  (dir, dstfabbx.smallEnd(dir) - 1);
-			    lo &= bx;
-			    if (lo.ok()) {
-				boxes.push_back(lo);
-				vol += lo.numPts();
-			    }
-			    
-			    Box hi = dstfabbx;
-			    hi.setSmall(dir, dstfabbx.bigEnd(dir) + 1);
-			    hi.setBig  (dir, dstfabbx.bigEnd(dir) + ng);
-			    hi &= bx;
-			    if (hi.ok()) {
-				boxes.push_back(hi);
-				vol += hi.numPts();
-			    }
-			}
-		    } else {
-			boxes.push_back(bx);
-			vol += bx.numPts();
-		    }
-
-		    if (vol > 0) 
-		    {
-			Vols[key] += vol;
-
-			for (std::vector<Box>::const_iterator 
-				 it_bx  = boxes.begin(),
-				 End_bx = boxes.end();    it_bx != End_bx; ++it_bx)
-			{
-			    const BoxList tilelist(*it_bx, FabArrayBase::comm_tile_size);
-			    for (BoxList::const_iterator 
-				     it_tile  = tilelist.begin(), 
-				     End_tile = tilelist.end();   it_tile != End_tile; ++it_tile)
-			    {
-				new_cctv.push_back(CopyComTag(*it_tile, it2->fabIndex, it2->srcIndex));
-			    }
-			}
-		    }
-		}
-		
-		if (!new_cctv.empty())
-		    Tags[key].swap(new_cctv);
-	    }
-	}
-	
-    }
-    
-#ifdef BL_MEM_PROFILING
-    m_FBC_stats.bytes += fb->bytes();
+#ifdef BL_PROFILE
+    m_FBC_stats.bytes += new_fb->bytes();
     m_FBC_stats.bytes_hwm = std::max(m_FBC_stats.bytes_hwm, m_FBC_stats.bytes);
 #endif
 
-    return fb;
+    new_fb->m_nuse = 1;
+    m_FBC_stats.recordBuild();
+    m_FBC_stats.recordUse();
+
+    m_TheFBCache.insert(er_it.second, FBCache::value_type(m_bdkey,new_fb));
+
+    return *new_fb;
 }
 
 FabArrayBase::FPinfo::FPinfo (const FabArrayBase& srcfa,

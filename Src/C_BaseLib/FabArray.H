@@ -464,7 +464,7 @@ protected:
     //
     struct FB
     {
-        FB ();
+        FB (const FabArrayBase& fa, bool cross);
         ~FB ();
 
         long bytes () const;
@@ -492,8 +492,7 @@ protected:
     static FBCache    m_TheFBCache;
     static CacheStats m_FBC_stats;
     //
-    const FB& getFB (bool cross) const;
-    FB* buildFB (bool cross) const;
+    const FB& getFB (bool cross = false) const;
     //
     void flushFB () const;       // This flushes its own FB.
     static void flushFBCache (); // This flushes the entire cache.
