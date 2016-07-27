@@ -3357,7 +3357,7 @@ FabArray<FAB>::MoveAllFabs (const Array<int> &newDistMapArray)
     // ---- flush caches
     DistributionMapping::FlushCache();
     flushCPCache();
-    //Geometry::FlushPIRMCache();  // ---- needs to be done externally
+    //Geometry::flushFPBCache();  // ---- needs to be done externally
     flushFBCache();
     flushTileArrayCache();
 

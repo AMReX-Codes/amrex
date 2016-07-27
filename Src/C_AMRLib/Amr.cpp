@@ -2442,7 +2442,7 @@ Amr::regrid (int  lbase,
     // Flush the caches.
     //
 //    MultiFab::flushFBCache();  no need to flush these
-    Geometry::FlushPIRMCache();
+//    Geometry::flushFPBCache();
 //    FabArrayBase::flushCPCache();
     DistributionMapping::FlushCache();
 #ifdef MG_USE_FBOXLIB
@@ -2521,7 +2521,7 @@ Amr::regrid (int  lbase,
         for(int iMap(0); iMap < mLDM.size(); ++iMap) {
           MultiFab::MoveAllFabs(mLDM[iMap]);
         }
-      Geometry::FlushPIRMCache();
+	Geometry::flushFPBCache();
     }
 
 #ifdef USE_STATIONDATA
@@ -3642,7 +3642,7 @@ void
 Amr::AddProcsToSidecar(int nSidecarProcs, int prevSidecarProcs) {
 
 //    MultiFab::flushFBCache();
-    Geometry::FlushPIRMCache();
+//    Geometry::flushFPBCache();
 //    FabArrayBase::flushCPCache();
     DistributionMapping::FlushCache();
 
@@ -3670,7 +3670,7 @@ Amr::AddProcsToSidecar(int nSidecarProcs, int prevSidecarProcs) {
         std::cout << "_in Amr::AddProcsToSidecar:  after calling MoveAllFabs:" << std::endl;
       }
     }
-    Geometry::FlushPIRMCache();
+    Geometry::flushFPBCache();
     VisMF::SetNOutFiles(checkpoint_nfiles);
 
 #ifdef USE_PARTICLES
@@ -3688,7 +3688,7 @@ void
 Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
 #if BL_USE_MPI
 //    MultiFab::flushFBCache();
-    Geometry::FlushPIRMCache();
+//    Geometry::flushFPBCache();
 //    FabArrayBase::CPC::flushCPCache();
     //FabArrayBase::flushTileArrayCache();
     DistributionMapping::FlushCache();
@@ -4143,7 +4143,7 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
 void
 Amr::RedistributeGrids(int how) {
 //    MultiFab::flushFBCache();
-    Geometry::FlushPIRMCache();
+//    Geometry::flushFPBCache();
 //    FabArrayBase::CPC::flushCPCache();
     DistributionMapping::FlushCache();
     if( ! ParallelDescriptor::InCompGroup()) {
@@ -4184,7 +4184,7 @@ Amr::RedistributeGrids(int how) {
         for(int iMap(0); iMap < mLDM.size(); ++iMap) {
           MultiFab::MoveAllFabs(mLDM[iMap]);
         }
-      Geometry::FlushPIRMCache();
+	Geometry::flushFPBCache();
     }
 #ifdef USE_PARTICLES
     RedistributeParticles();
