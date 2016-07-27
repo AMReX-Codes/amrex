@@ -10,6 +10,7 @@
 #include <VisMF.H>
 #include <ParallelDescriptor.H>
 #include <Utility.H>
+#include <NFiles.H>
 
 #include <iostream>
 #include <sstream>
@@ -86,6 +87,22 @@ void DirectoryTests() {
     ParallelDescriptor::Barrier("renamedirs");
     BL_PROFILE_VAR_STOP(renamedirs);
 }
+
+
+// -------------------------------------------------------------
+void NFileTests(int nOutFiles, const std::string &filePrefix) {
+  int myProc(ParallelDescriptor::MyProc());
+  Array<int> data(32);
+
+  for(int i(0); i < data.size(); ++i) {
+    data[i] = (100 * myProc) + i;
+  }
+
+  for(NFilesIter nfi(nOutFiles, filePrefix); nfi.ReadyToWrite(); ++nfi) {
+    nfi.Stream().write((char *) data.dataPtr(), data.size() * sizeof(int));
+  }
+}
+
 
 
 // -------------------------------------------------------------

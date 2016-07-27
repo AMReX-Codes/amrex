@@ -30,6 +30,9 @@ C$(BOXLIB_BASE)_headers += BLBackTrace.H
 
 C$(BOXLIB_BASE)_headers += BLFort.H
 
+C$(BOXLIB_BASE)_sources += NFiles.cpp
+C$(BOXLIB_BASE)_headers += NFiles.H
+
 #
 # Container classes.
 #
