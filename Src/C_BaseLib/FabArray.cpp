@@ -10,6 +10,7 @@
 #include <Utility.H>
 #include <FabArray.H>
 #include <ParmParse.H>
+#include <Geometry.H>
 
 #ifdef BL_MEM_PROFILING
 #include <MemProfiler.H>
@@ -359,12 +360,9 @@ FabArrayBase::CPC::define (const BoxArray& ba_dst, const DistributionMapping& dm
 	
 	for (int ipass = 0; ipass < 2; ++ipass) // pass 0: send; pass 1: recv
 	{
-	    CopyComTag::MapOfCopyComTagContainers & Tags
-		= (ipass == 0) ? *m_SndTags : *m_RcvTags;
-	    CopyComTag::MapOfCopyComTagContainers & tmpTags
-		= (ipass == 0) ?         send_tags :         recv_tags;
-	    std::map<int,int> & Vols
-		= (ipass == 0) ? *m_SndVols : *m_RcvVols;
+	    CopyComTag::MapOfCopyComTagContainers & Tags    = (ipass == 0) ? *m_SndTags : *m_RcvTags;
+	    CopyComTag::MapOfCopyComTagContainers & tmpTags = (ipass == 0) ?  send_tags :  recv_tags;
+	    std::map<int,int>                     & Vols    = (ipass == 0) ? *m_SndVols : *m_RcvVols;
 	    
 	    for (CopyComTag::MapOfCopyComTagContainers::iterator 
 		     it  = tmpTags.begin(), 
@@ -656,12 +654,9 @@ FabArrayBase::FB::FB (const FabArrayBase& fa, bool cross)
 
 	for (int ipass = 0; ipass < 2; ++ipass) // pass 0: send; pass 1: recv
 	{
-	    CopyComTag::MapOfCopyComTagContainers & Tags
-		= (ipass == 0) ? *m_SndTags : *m_RcvTags;
-	    CopyComTag::MapOfCopyComTagContainers & tmpTags
-		= (ipass == 0) ?        send_tags :        recv_tags;
-	    std::map<int,int> & Vols
-		= (ipass == 0) ? *m_SndVols : *m_RcvVols;
+	    CopyComTag::MapOfCopyComTagContainers & Tags    = (ipass == 0) ? *m_SndTags : *m_RcvTags;
+	    CopyComTag::MapOfCopyComTagContainers & tmpTags = (ipass == 0) ?  send_tags :  recv_tags;
+	    std::map<int,int>                     & Vols    = (ipass == 0) ? *m_SndVols : *m_RcvVols;
 	    
 	    for (CopyComTag::MapOfCopyComTagContainers::iterator 
 		     it  = tmpTags.begin(), 
@@ -791,7 +786,7 @@ FabArrayBase::getFB (bool cross) const
 	    it->second->m_ngrow == nGrow()             &&
 	    it->second->m_cross == cross)
 	{
-	    ++it->second->m_nuse;
+	    ++(it->second->m_nuse);
 	    m_FBC_stats.recordUse();
 	    return *(it->second);
 	}
@@ -1195,6 +1190,7 @@ FabArrayBase::clearThisBD (bool no_assertion)
 		flushFPinfo();
 		flushFB();
 		flushCPC();
+		Geometry::flushFPB(m_bdkey);
 	    }
 	}
     }
