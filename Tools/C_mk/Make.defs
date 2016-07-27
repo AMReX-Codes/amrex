@@ -732,6 +732,46 @@ ifeq ($(COMP),Intel)
   endif
 endif
 
+# Add more debugging output if we want to profile with Intel VTune. These flags
+# probably do not slow down code execution, but we don't need this much
+# debugging information in production runs.
+ifeq ($(COMP),Intel)
+  ifeq ($(FCOMP),Intel)
+    ifeq ($(USE_VTUNE),TRUE)
+
+      CXXFLAGS += -debug inline-debug-info
+      FFLAGS += -debug inline-debug-info
+      fFLAGS += -debug inline-debug-info
+      CFLAGS += -debug inline-debug-info
+
+      # On the Crays at NERSC, VTune can't resolve debug symbols unless we
+      # compile and link dynamically using the "-dynamic" flag with the Cray
+      # compiler wrappers.
+      ifeq ($(WHICHLINUX), $(filter $(WHICHLINUX), EDISON CORI))
+        CXXFLAGS += -dynamic
+        FFLAGS += -dynamic
+        fFLAGS += -dynamic
+        CFLAGS += -dynamic
+      endif
+
+      # VTune allows you to instrument your code with calls to __itt_resume()
+      # and __itt_pause() so that you can profile only certain regions, rather
+      # than profiling the entire code (which is the default behavior). Using
+      # these requires access to certain VTune header files and libraries. The
+      # "vtune" module on the Crays at NERSC defines the necessary include and
+      # library directories. Unfortunately the names of the defined environment
+      # variables change with VTune versions so these will need to be updated
+      # periodically.
+      ifeq ($(USE_ITTNOTIFY),TRUE)
+        INCLUDE_LOCATIONS += $(VTUNE_AMPLIFIER_XE_2016_DIR)/include
+        LIBRARIES += -L$(VTUNE_AMPLIFIER_XE_2016_DIR)/lib64 -littnotify
+      endif
+
+    endif
+  endif
+endif
+
+
 ifeq ($(TEST),TRUE)
     CPPFLAGS += -DBL_TESTING
     ifneq ($(DEBUG),TRUE)
