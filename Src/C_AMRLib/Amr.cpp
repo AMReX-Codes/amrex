@@ -4171,14 +4171,6 @@ Amr::RedistributeGrids(int how) {
 	  int minRank(0), maxRank(0);
           mLDM = DistributionMapping::MultiLevelMapRandom(ref_ratio, allBoxes, maxGridSize(0),
 	                                                  maxRank, minRank);
-        } else if(how == 8) {   // ---- move all grids to proc 8
-	  int minRank(8), maxRank(8);
-          mLDM = DistributionMapping::MultiLevelMapRandom(ref_ratio, allBoxes, maxGridSize(0),
-	                                                  maxRank, minRank);
-        } else if(how == 13) {  // ---- move all grids to proc 13
-	  int minRank(13), maxRank(13);
-          mLDM = DistributionMapping::MultiLevelMapRandom(ref_ratio, allBoxes, maxGridSize(0),
-	                                                  maxRank, minRank);
         } else {
 	  return;
         }
