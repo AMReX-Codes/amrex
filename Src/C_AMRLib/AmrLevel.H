@@ -62,7 +62,7 @@ public:
     //
     virtual void writePlotFile (const std::string& dir,
                                 std::ostream&      os,
-                                VisMF::How         how = VisMF::OneFilePerCPU) = 0;
+                                VisMF::How         how = VisMF::NFiles) = 0;
     //
     // Write small plot file stuff to specified directory.  
     // Unlike writePlotFile, this is NOT a pure virtual function 
@@ -70,13 +70,13 @@ public:
     //
     virtual void writeSmallPlotFile (const std::string& dir,
                                      std::ostream&      os,
-				     VisMF::How         how = VisMF::OneFilePerCPU) {};
+				     VisMF::How         how = VisMF::NFiles) {};
     //
     // Write current state to checkpoint file.
     //
     virtual void checkPoint (const std::string& dir,
                              std::ostream&      os,
-                             VisMF::How         how = VisMF::OneFilePerCPU,
+                             VisMF::How         how = VisMF::NFiles,
                              bool               dump_old = true);
     //
     // Restart from a checkpoint file.
