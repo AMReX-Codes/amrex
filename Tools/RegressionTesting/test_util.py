@@ -224,7 +224,7 @@ def get_args(arg_string=None):
     """ parse the commandline arguments.  If arg_string is present, we
         parse from there, otherwise we use the default (sys.argv) """
 
-    parser = argparse.ArgumentParser(description=usage, 
+    parser = argparse.ArgumentParser(description=usage,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
 
     parser.add_argument("-d", type=int, default=-1,

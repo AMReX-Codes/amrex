@@ -329,7 +329,7 @@ def report_single_test(suite, test, tests, failure_msg=None):
                 suite.log.success("{} PASSED".format(test.name))
             elif not compile_successful:
                 sf.write("COMPILE FAILED\n")
-                suite.log.testfail("{} COMPILE FAILED".format(test.name))                
+                suite.log.testfail("{} COMPILE FAILED".format(test.name))
             else:
                 sf.write("FAILED\n")
                 suite.log.testfail("{} FAILED".format(test.name))
@@ -340,7 +340,7 @@ def report_single_test(suite, test, tests, failure_msg=None):
             msg = "COMPILE FAILED"
         else:
             msg = "FAILED"
-            
+
         status_file = "{}.status".format(test.name)
         with open(status_file, 'w') as sf:
             sf.write("{}\n".format(msg))
@@ -628,7 +628,7 @@ def report_this_test_run(suite, make_benchmarks, note, update_time,
 
     # keep track of the number of tests that passed and the number that failed
     num_failed = 0
-    numPassed = 0
+    num_passed = 0
 
 
     #--------------------------------------------------------------------------
@@ -638,10 +638,8 @@ def report_this_test_run(suite, make_benchmarks, note, update_time,
     # always create the css (in case it changes)
     create_css()
 
-    # create the master filename
-    htmlFile = "index.html"
-
-    hf = open(htmlFile, 'w')
+    # create the master web page
+    hf = open("index.html", 'w')
 
     new_head = HTML_HEADER + r"""<CENTER><H1><A HREF="../">@TESTDIR@</A> / @TESTNAME@</H1></CENTER>"""
 
@@ -651,11 +649,11 @@ def report_this_test_run(suite, make_benchmarks, note, update_time,
     hf.write(new_head)
 
     if not note == "":
-       hf.write("<p><b>Test run note:</b><br><font color=\"gray\">%s</font>\n" % (note) )
+        hf.write("<p><b>Test run note:</b><br><font color=\"gray\">%s</font>\n" % (note) )
 
     if not make_benchmarks is None:
-       hf.write("<p><b>Benchmarks updated</b><br>comment: <font color=\"gray\">{}</font>\n".format(make_benchmarks) )
-       hf.write("<p>&nbsp;\n")
+        hf.write("<p><b>Benchmarks updated</b><br>comment: <font color=\"gray\">{}</font>\n".format(make_benchmarks) )
+        hf.write("<p>&nbsp;\n")
 
 
     hf.write("<p><b>test input parameter file:</b> <A HREF=\"%s\">%s</A>\n" %
@@ -716,16 +714,16 @@ def report_this_test_run(suite, make_benchmarks, note, update_time,
             # check if it passed or failed
             status_file = "%s.status" % (test.name)
 
-            testPassed = 0
+            test_passed = 0
 
             with open(status_file, 'r') as sf:
                 for line in sf:
                     if line.find("PASSED") >= 0:
-                        testPassed = 1
-                        numPassed += 1
+                        test_passed = 1
+                        num_passed += 1
                         break
 
-                if not testPassed:
+                if not test_passed:
                     num_failed += 1
 
             row_info = []
@@ -782,7 +780,7 @@ def report_this_test_run(suite, make_benchmarks, note, update_time,
             # wallclock time
             row_info.append("{:.3f}&nbsp;s".format(test.wall_time))
 
-            if testPassed:
+            if test_passed:
                 row_info.append(("PASSED", "class='passed'"))
             else:
                 row_info.append(("FAILED", "class='failed'"))
@@ -835,7 +833,7 @@ def report_this_test_run(suite, make_benchmarks, note, update_time,
         if make_benchmarks is None:
             if num_failed == 0:
                 sf.write("ALL PASSED\n")
-            elif num_failed > 0 and numPassed > 0:
+            elif num_failed > 0 and num_passed > 0:
                 sf.write("SOME FAILED\n")
             else:
                 sf.write("ALL FAILED\n")
@@ -864,11 +862,9 @@ def report_all_runs(suite, active_test_list):
     #--------------------------------------------------------------------------
     # generate the HTML
     #--------------------------------------------------------------------------
-    htmlFile = "index.html"
-
     title = "%s regression tests" % (suite.suiteName)
 
-    hf = open(htmlFile, 'w')
+    hf = open("index.html", "w")
 
     header = MAIN_HEADER.replace("@TITLE@", title).replace("@SUBTITLE@", suite.sub_title)
 
@@ -930,7 +926,7 @@ def report_all_runs(suite, active_test_list):
             status_file = "{}/{}/{}.status".format(suite.webTopDir, tdir, test)
 
             status = None
-            
+
             if os.path.isfile(status_file):
 
                 with open(status_file, 'r') as sf:
@@ -948,10 +944,10 @@ def report_all_runs(suite, active_test_list):
                         elif line.find("benchmarks updated") >= 0:
                             status = "benchmade"
                             emoji = "U"
-                            
+
                         if status is not None:
                             break
-                        
+
             # write out this test's status
             if status is None:
                 hf.write("<td>&nbsp;</td>\n")
