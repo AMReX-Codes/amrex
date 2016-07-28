@@ -248,6 +248,64 @@ void TestWriteNFiles(int nfiles, int maxgrid, int ncomps, int nboxes,
 
 
 // -------------------------------------------------------------
+void TestWriteNFilesRawNative(int nfiles, int maxgrid, int ncomps,
+                              int nboxes, bool raninit, bool mb2)
+{
+  VisMF::SetNOutFiles(nfiles);
+  if(mb2) {
+    bytesPerMB = pow(2.0, 20);
+  }
+
+  BoxArray bArray(MakeBoxArray(maxgrid, nboxes));
+  if(ParallelDescriptor::IOProcessor()) {
+    cout << "  Timings for writing to " << nfiles << " files:" << endl;
+  }
+
+  // make a MultiFab
+  MultiFab mfout(bArray, ncomps, 0);
+  for(MFIter mfiset(mfout); mfiset.isValid(); ++mfiset) {
+    for(int invar(0); invar < ncomps; ++invar) {
+      if(raninit) {
+        Real *dp = mfout[mfiset].dataPtr(invar);
+	for(int i(0); i < mfout[mfiset].box().numPts(); ++i) {
+	  dp[i] = BoxLib::Random() + (1.0 + static_cast<Real> (invar));
+	}
+      } else {
+        mfout[mfiset].setVal((100.0 * mfiset.index()) + invar, invar);
+      }
+    }
+  }
+
+  long npts(bArray[0].numPts());
+  long totalNBytes(npts * ncomps * nboxes *sizeof(Real));
+  std::string mfName("TestMFRawNative");
+
+  ParallelDescriptor::Barrier();
+  double wallTimeStart(ParallelDescriptor::second());
+
+  VisMF::WriteRawNative(mfout, mfName); 
+
+  double wallTime(ParallelDescriptor::second() - wallTimeStart);
+
+  double wallTimeMax(wallTime);
+  double wallTimeMin(wallTime);
+
+  ParallelDescriptor::ReduceRealMin(wallTimeMin);
+  ParallelDescriptor::ReduceRealMax(wallTimeMax);
+  Real megabytes((static_cast<Real> (totalNBytes)) / bytesPerMB);
+
+  if(ParallelDescriptor::IOProcessor()) {
+    cout << std::setprecision(5);
+    cout << "  Total megabytes = " << megabytes << endl;
+    cout << "  Write:  Megabytes/sec   = " << megabytes/wallTimeMax << endl;
+    cout << "  Wall clock time = " << wallTimeMax << endl;
+    cout << "  Min wall clock time = " << wallTimeMin << endl;
+    cout << "  Max wall clock time = " << wallTimeMax << endl;
+  }
+}
+
+
+// -------------------------------------------------------------
 void TestReadMF() {
   MultiFab mfin;
   std::string mfName("TestMF");
