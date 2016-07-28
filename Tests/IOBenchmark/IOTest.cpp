@@ -283,7 +283,8 @@ void TestWriteNFilesRawNative(int nfiles, int maxgrid, int ncomps,
   ParallelDescriptor::Barrier();
   double wallTimeStart(ParallelDescriptor::second());
 
-  VisMF::WriteRawNative(mfout, mfName); 
+  bool writeMinMax(true);
+  VisMF::WriteRawNative(mfout, mfName, writeMinMax); 
 
   double wallTime(ParallelDescriptor::second() - wallTimeStart);
 
