@@ -26,6 +26,8 @@ void DirectoryTests();
 void FileTests();
 void TestWriteNFiles(int nfiles, int maxgrid, int ncomps, int nboxes,
                      bool raninit, bool mb2);
+void TestWriteNFilesRawNative(int nfiles, int maxgrid, int ncomps,
+                              int nboxes, bool raninit, bool mb2);
 void TestReadMF();
 void NFileTests(int nOutFiles, const std::string &filePrefix);
 
@@ -128,10 +130,11 @@ int main(int argc, char *argv[]) {
 
   ParallelDescriptor::Barrier();
 
+/*
   for(int itimes(0); itimes < ntimes; ++itimes) {
     if(ParallelDescriptor::IOProcessor()) {
       cout << endl << "--------------------------------------------------" << endl;
-      cout << "Testing File Operations" << endl;
+      cout << "Testing NFile Operations" << endl;
     }
 
     int nOutFiles(5);
@@ -143,8 +146,10 @@ int main(int argc, char *argv[]) {
       cout << endl;
     }
   }
+*/
 
 
+/*
   for(int itimes(0); itimes < ntimes; ++itimes) {
     if(ParallelDescriptor::IOProcessor()) {
       cout << endl << "--------------------------------------------------" << endl;
@@ -158,6 +163,7 @@ int main(int argc, char *argv[]) {
       cout << endl;
     }
   }
+*/
 
 
 /*
@@ -184,6 +190,20 @@ int main(int argc, char *argv[]) {
     }
 
     TestWriteNFiles(nfiles, maxgrid, ncomps, nboxes, raninit, mb2);
+
+    if(ParallelDescriptor::IOProcessor()) {
+      cout << "==================================================" << endl;
+      cout << endl;
+    }
+  }
+
+  for(int itimes(0); itimes < ntimes; ++itimes) {
+    if(ParallelDescriptor::IOProcessor()) {
+      cout << endl << "--------------------------------------------------" << endl;
+      cout << "Testing NFiles Raw Native Write" << endl;
+    }
+
+    TestWriteNFilesRawNative(nfiles, maxgrid, ncomps, nboxes, raninit, mb2);
 
     if(ParallelDescriptor::IOProcessor()) {
       cout << "==================================================" << endl;
