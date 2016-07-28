@@ -26,6 +26,18 @@ class NFilesIter
     std::ofstream &Stream() { return fileStream; }
     std::streampos SeekPos();
 
+    static int FileNumber(int nOutFiles, int whichProc)
+    {
+      return(whichProc % nOutFiles);
+    }
+
+    static std::string FileName(int nOutFiles,
+                                const std::string &filePrefix,
+				int whichProc)
+    {
+      return BoxLib::Concatenate(filePrefix, FileNumber(nOutFiles, whichProc), 5);
+    }
+
 
   private:
 
@@ -34,7 +46,6 @@ class NFilesIter
     int nOutFiles;
     int nSets;
     int mySet;
-    int whichSet;
     std::string fullFileName;
     std::ofstream fileStream;
     bool finishedWriting;

@@ -8,10 +8,8 @@ NFilesIter::NFilesIter(int noutfiles, const std::string &filePrefix) {
   nOutFiles = std::max(1, std::min(nProcs, noutfiles));
   nSets     = (nProcs + (nOutFiles - 1)) / nOutFiles;
   mySet     = myProc / nOutFiles;
-  whichSet  = 0;
 
-  std::string cFileName(filePrefix);
-  fullFileName  = BoxLib::Concatenate(cFileName, myProc % nOutFiles, 4);
+  fullFileName  = BoxLib::Concatenate(filePrefix, myProc % nOutFiles, 5);
 
   finishedWriting = false;
 
