@@ -53,7 +53,7 @@ public:
         //
         // The current version of the MultiFab Header code.
         //
-        enum { Version = 1, RawNative = 2 };
+        enum { Version = 1, RawNative = 2, RawNativeMinMax = 3 };
         //
         // The default constructor.
         //
@@ -135,7 +135,8 @@ public:
     // Write in a raw and native format without min or max values
     //
     static long WriteRawNative (const MultiFab&    mf,
-                                const std::string& name);
+                                const std::string& name,
+				bool writeMinMax = false);
     //
     // Read a MultiFab from disk written using VisMF::Write().
     // The MultiFab mf must have been defined using the default

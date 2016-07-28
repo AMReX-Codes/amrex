@@ -856,10 +856,15 @@ VisMF::Write (const MultiFab&    mf,
 
 long
 VisMF::WriteRawNative (const MultiFab    &mf,
-                       const std::string &mf_name)
+                       const std::string &mf_name,
+		       bool writeMinMax)
 {
     BL_PROFILE("VisMF::Write_rawnative_mf");
     BL_ASSERT(mf_name[mf_name.length() - 1] != '/');
+
+    // ---- add stream retry
+
+    // ---- add stream buffer
 
     static const char *FabFileSuffix = "_D_";
 
@@ -878,6 +883,16 @@ VisMF::WriteRawNative (const MultiFab    &mf,
         fabBytes = fab.box().numPts() * fab.nComp() * nrd.numBytes();
         nfi.Stream().write((char *) fab.dataPtr(), fabBytes);
         bytesWritten += fabBytes;
+        if(writeMinMax) {
+	  Array<Real> minmax(2 * fab.nComp());
+	  for(int i(0); i < fab.nComp(); ++i) {
+	    minmax[i]   = fab.min(i);
+	    minmax[i+1] = fab.max(i);
+	  }
+          long mmSize(minmax.size() * sizeof(Real));
+          nfi.Stream().write((char *) minmax.dataPtr(), mmSize);
+          bytesWritten += mmSize;
+        }
       }
     }
 
@@ -895,11 +910,17 @@ VisMF::WriteRawNative (const MultiFab    &mf,
             BoxLib::FileOpenFailed(MFHdrFileName);
 	}
 
-        MFHdrFile << VisMF::Header::RawNative << '\n';;
+	if(writeMinMax) {
+          MFHdrFile << VisMF::Header::RawNativeMinMax << '\n';;
+	} else {
+          MFHdrFile << VisMF::Header::RawNative << '\n';;
+	}
         MFHdrFile << mf.nComp() << '\n';;
         MFHdrFile << mf.nGrow() << '\n';;
         MFHdrFile << nrd << '\n';;
         mf.boxArray().writeOn(MFHdrFile); MFHdrFile << '\n';;
+
+	// ---- calculate offsets
 
         bytesWritten += VisMF::FileOffset(MFHdrFile);
 
