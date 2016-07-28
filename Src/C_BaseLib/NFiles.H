@@ -10,7 +10,16 @@
 class OrientationIter;
 
 //
-// Iterate over nfiles
+// This class encapsulates writing to nfiles with
+// static set selection.
+//
+// an example:
+// 
+// for(NFilesIter nfi(nOutFiles, filePrefix); nfi.ReadyToWrite(); ++nfi) {
+//   // ---- do your writing here
+//   nfi.Stream().write((char *) data.dataPtr(), data.size() * sizeof(int));
+// }
+
 //
 
 class NFilesIter
@@ -18,12 +27,17 @@ class NFilesIter
 
   public:
 
+    // ---- the nfiles will be named filePrefix00000 through
+    // ---- filePrefixnoutfile-1
+    // ---- the range [1, nProcs-1] for noutfiles is enforced
     NFilesIter(int noutfiles, const std::string &filePrefix);
     ~NFilesIter();
     bool ReadyToWrite();
     NFilesIter &operator++();
 
     std::ofstream &Stream() { return fileStream; }
+
+    // ---- get the current Stream()'s seek position
     std::streampos SeekPos();
 
     static int FileNumber(int nOutFiles, int whichProc)
