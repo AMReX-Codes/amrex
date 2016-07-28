@@ -48,21 +48,16 @@ namespace BoxLib
     BoxArray UnSerializeBoxArray(const Array<int> &serarray);
 }
 
-//
-// Write a BoxArray to an ostream in ASCII format.
-//
-std::ostream& operator<< (std::ostream& os, const BoxArray& ba);
-
-class BoxArrayRef
+class BARef
 {
 public:
-    BoxArrayRef ();
-    explicit BoxArrayRef (size_t size);
-    BoxArrayRef (const BoxList& bl);
-    BoxArrayRef (std::istream& is);
-    BoxArrayRef (const BoxArrayRef& rhs);
+    BARef ();
+    explicit BARef (size_t size);
+    BARef (const BoxList& bl);
+    BARef (std::istream& is);
+    BARef (const BARef& rhs);
 
-    ~BoxArrayRef ();
+    ~BARef ();
 
     // This gives a unique ID of the reference
     ptrdiff_t getRefID () const;
@@ -100,7 +95,7 @@ public:
     static long total_hash_bytes_hwm;
     
 private:
-    BoxArrayRef& operator= (const BoxArrayRef&); // disallowed
+    BARef& operator= (const BARef&); // disallowed
     
 #ifdef BL_MEM_PROFILING
     static void Initialize ();
@@ -110,14 +105,74 @@ private:
 
 
 template<>
-struct LnClassPtrCallBack<BoxArrayRef> 
+struct LnClassPtrCallBack<BARef> 
 {
     // This will be called when a unique ref is about to be deleted.
-    void operator() (BoxArrayRef* ref) {
+    void operator() (BARef* ref) {
 	BoxLib::clearCoarseBoxArrayCache(ref->getRefID());
     }
 };
 
+
+//
+// Thess classes are used to transform from cell-centered boxes stored in BARef
+// (and hidden from the users) to the public boxes BoxArray is supposed to hold.
+//
+struct BATransformer
+{
+    virtual ~BATransformer () {}
+
+    virtual BATransformer* clone () const = 0;
+    virtual bool equal (const BATransformer& rhs) const = 0;
+
+    virtual IndexType ixType () const = 0;
+    virtual void setIxType (IndexType typ) = 0;
+
+    virtual Box operator() (const Box& bx) const = 0;
+};
+
+template <class T>
+struct BATBase
+    : public BATransformer
+{
+    BATBase (IndexType typ) : m_typ(typ) {}
+    virtual ~BATBase () { }
+
+    virtual BATransformer* clone () const BL_OVERRIDE {
+	return new T(dynamic_cast<const T&>(*this));
+    }
+
+    virtual bool equal (const BATransformer& rhs) const BL_OVERRIDE {
+	const T* p = dynamic_cast<const T*>(&rhs);
+	return p && (*p) == (dynamic_cast<const T&>(*this));
+    }
+
+    virtual IndexType ixType () const BL_OVERRIDE {
+	return m_typ;
+    }
+
+    virtual void setIxType (IndexType typ) BL_OVERRIDE {
+	m_typ = typ;
+    }
+
+protected:
+    IndexType m_typ;
+};
+
+struct BATypeTransformer
+    : public BATBase<BATypeTransformer>
+{
+    explicit BATypeTransformer (IndexType typ = IndexType())
+	: BATBase(typ) {}
+
+    virtual ~BATypeTransformer () BL_OVERRIDE {}
+
+    virtual Box operator() (const Box& bx) const BL_OVERRIDE
+        { return BoxLib::convert(bx, m_typ); }
+
+    bool operator== (const BATypeTransformer& rhs) const
+	{ return m_typ == rhs.m_typ; }
+};
 
 //
 // An Array of Boxes
@@ -311,25 +366,15 @@ public:
     //
     // Returns element index of this BoxArray.
     //
-    Box operator[] (int index) const {
-	Box b = m_ref->m_abox[index];
-	b.convert(m_typ); 
-	return b;
-    }
-    //
-    // Returns element index of this BoxArray.
-    //
-    Box get (int index) const {
-	Box b = m_ref->m_abox[index];
-	b.convert(m_typ); 
-	return b;
-    }
+    Box operator[] (int index) const 
+	{ return (*m_transformer)(m_ref->m_abox[index]); }
+    Box get        (int index) const 
+	{ return (*m_transformer)(m_ref->m_abox[index]); }
     //
     // Returns cell-centered box at element index of this BoxArray.
     //
-    const Box& getCellCenteredBox (int index) const {
-	return m_ref->m_abox[index];
-    }    
+    const Box& getCellCenteredBox (int index) const
+	{ return m_ref->m_abox[index]; }    
     //
     // Returns true if Box is valid and they all have the same
     // IndexType.  Is true by default if the BoxArray is empty.
@@ -408,7 +453,7 @@ public:
     //
     // Returns index type of this BoxArray
     //
-    const IndexType& ixType () const { return m_typ; }
+    IndexType ixType () const { return m_transformer->ixType(); }
 
 #ifdef BL_USE_MPI
     static void SendBoxArray(const BoxArray &ba, int whichSidecar);
@@ -426,18 +471,25 @@ private:
     //
     void type_update ();
 
-    IndexType m_typ;
-
-    BoxArrayRef::HashType& getHashMap () const;
+    BARef::HashType& getHashMap () const;
 
     //
     // Make ourselves unique.
     //
     void uniqify ();
+
+    // When we move to C++11, we will switch to unique pointer
+    BATransformer* m_transformer;
+
     //
     // The data -- a reference-counted pointer to a Ref.
     //
-    LnClassPtr<BoxArrayRef> m_ref;
+    LnClassPtr<BARef> m_ref;    
 };
+
+//
+// Write a BoxArray to an ostream in ASCII format.
+//
+std::ostream& operator<< (std::ostream& os, const BoxArray& ba);
 
 #endif /*BL_BOXARRAY_H*/
