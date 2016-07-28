@@ -17,6 +17,9 @@
 #include <Utility.H>
 #include <VisMF.H>
 #include <ParmParse.H>
+#include <NFiles.H>
+#include <FPC.H>
+#include <FabConv.H>
 
 static const char* TheMultiFabHdrFileSuffix = "_H";
 
@@ -780,14 +783,13 @@ VisMF::Write (const MultiFab&    mf,
 
 #ifdef BL_USE_MPI
     BL_PROFILE_VAR("VisMF::Write_mf_part2", vmfp2);
-    ParallelDescriptor::Barrier("VisMF::Write");
 
-    const int IOProc = ParallelDescriptor::IOProcessorNumber();
+    const int IOProcNumber(ParallelDescriptor::IOProcessorNumber());
 
     Array<int> nmtags(NProcs,0);
     Array<int> offset(NProcs,0);
 
-    const Array<int>& pmap = mf.DistributionMap().ProcessorMap();
+    const Array<int> &pmap = mf.DistributionMap().ProcessorMap();
 
     for(int i(0), N(mf.size()); i < N; ++i) {
         ++nmtags[pmap[i]];
@@ -824,7 +826,7 @@ VisMF::Write (const MultiFab&    mf,
                                 nmtags.dataPtr(),
                                 offset.dataPtr(),
                                 ParallelDescriptor::Mpi_typemap<long>::type(),
-                                IOProc,
+                                IOProcNumber,
                                 ParallelDescriptor::Communicator()) );
 
     BL_COMM_PROFILE(BLProfiler::Gatherv, recvdata.size() * sizeof(long),
@@ -851,6 +853,62 @@ VisMF::Write (const MultiFab&    mf,
 
     return bytes;
 }
+
+long
+VisMF::WriteRawNative (const MultiFab    &mf,
+                       const std::string &mf_name)
+{
+    BL_PROFILE("VisMF::Write_rawnative_mf");
+    BL_ASSERT(mf_name[mf_name.length() - 1] != '/');
+
+    static const char *FabFileSuffix = "_D_";
+
+    VisMF::Initialize();
+
+    const RealDescriptor &nrd = FPC::NativeRealDescriptor();
+    long fabBytes(0), bytesWritten(0);
+
+    std::string filePrefix(mf_name + FabFileSuffix);
+
+    for(NFilesIter nfi(nOutFiles, filePrefix); nfi.ReadyToWrite(); ++nfi) {
+
+      for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
+        // ---- write the raw fab data
+        const FArrayBox &fab = mf[mfi];
+        fabBytes = fab.box().numPts() * fab.nComp() * nrd.numBytes();
+        nfi.Stream().write((char *) fab.dataPtr(), fabBytes);
+        bytesWritten += fabBytes;
+      }
+    }
+
+
+    if(ParallelDescriptor::IOProcessor()) {
+        std::string MFHdrFileName = mf_name;
+        MFHdrFileName += TheMultiFabHdrFileSuffix;
+        VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+        std::ofstream MFHdrFile;
+        MFHdrFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
+
+        MFHdrFile.open(MFHdrFileName.c_str(), std::ios::out|std::ios::trunc);
+
+        if( ! MFHdrFile.good()) {
+            BoxLib::FileOpenFailed(MFHdrFileName);
+	}
+
+        MFHdrFile << VisMF::Header::RawNative << '\n';;
+        MFHdrFile << mf.nComp() << '\n';;
+        MFHdrFile << mf.nGrow() << '\n';;
+        MFHdrFile << nrd << '\n';;
+        mf.boxArray().writeOn(MFHdrFile); MFHdrFile << '\n';;
+
+        bytesWritten += VisMF::FileOffset(MFHdrFile);
+
+        MFHdrFile.close();
+    }
+
+    return bytesWritten;
+}
+
 
 VisMF::VisMF (const std::string& mf_name)
     :
