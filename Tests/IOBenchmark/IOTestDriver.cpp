@@ -27,7 +27,8 @@ void FileTests();
 void TestWriteNFiles(int nfiles, int maxgrid, int ncomps, int nboxes,
                      bool raninit, bool mb2);
 void TestWriteNFilesRawNative(int nfiles, int maxgrid, int ncomps,
-                              int nboxes, bool raninit, bool mb2);
+                              int nboxes, bool raninit, bool mb2,
+			      bool writeMinMax);
 void TestReadMF();
 void NFileTests(int nOutFiles, const std::string &filePrefix);
 
@@ -48,6 +49,7 @@ static void PrintUsage(const char *progName) {
     cout << "   [mb2    = tf]" << '\n';
     cout << "   [rbuffsize = rbs]" << '\n';
     cout << "   [wbuffsize = wbs]" << '\n';
+    cout << "   [writeminmax = wmm]" << '\n';
     cout << '\n';
     cout << "Running with default values." << '\n';
     cout << '\n';
@@ -72,7 +74,7 @@ int main(int argc, char *argv[]) {
   int nsleep(0), nfiles(std::min(nprocs, 128));  // limit default to max of 128
   int maxgrid(32), ncomps(4), nboxes(nprocs), ntimes(1);
   int rbs(8912), wbs(8192);
-  bool raninit(false), mb2(false);
+  bool raninit(false), mb2(false), writeminmax(false);
 
   pp.query("nfiles", nfiles);
   nfiles = std::max(1, std::min(nfiles, nprocs));
@@ -92,6 +94,8 @@ int main(int argc, char *argv[]) {
   pp.query("raninit", raninit);
   pp.query("mb2", mb2);
 
+  pp.query("writeminmax", writeminmax);
+
   pp.query("rbuffsize", rbs);
   pp.query("wbuffsize", wbs);
   RealDescriptor::SetReadBufferSize(rbs);
@@ -110,6 +114,7 @@ int main(int argc, char *argv[]) {
     cout << "mb2 = " << mb2 << endl;
     cout << "rbuffsize = " << rbs << endl;
     cout << "wbuffsize = " << wbs << endl;
+    cout << "writeminmax = " << writeminmax << endl;
     cout << "sizeof(int) = " << sizeof(int) << endl;
     cout << "sizeof(size_t) = " << sizeof(size_t) << endl;
     cout << "sizeof(long) = " << sizeof(long) << endl;
@@ -203,7 +208,7 @@ int main(int argc, char *argv[]) {
       cout << "Testing NFiles Raw Native Write" << endl;
     }
 
-    TestWriteNFilesRawNative(nfiles, maxgrid, ncomps, nboxes, raninit, mb2);
+    TestWriteNFilesRawNative(nfiles, maxgrid, ncomps, nboxes, raninit, mb2, writeminmax);
 
     if(ParallelDescriptor::IOProcessor()) {
       cout << "==================================================" << endl;
