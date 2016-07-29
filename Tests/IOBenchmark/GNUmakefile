@@ -1,15 +1,18 @@
 BOXLIB_HOME ?= ../../../BoxLib
 
-PROFILE   = FALSE
 PRECISION = DOUBLE
-DEBUG     = TRUE
 DEBUG     = FALSE
+DEBUG     = TRUE
 DIM       = 3
 COMP      = g++
 FCOMP     = gfortran
 
 USE_MPI=FALSE
 USE_MPI=TRUE
+
+PROFILE       = TRUE
+#TRACE_PROFILE = TRUE
+#COMM_PROFILE  = FALSE
 
 include $(BOXLIB_HOME)/Tools/C_mk/Make.defs
 

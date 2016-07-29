@@ -870,8 +870,13 @@ VisMF::WriteRawNative (const MultiFab    &mf,
 
     VisMF::Initialize();
 
-    const RealDescriptor &nrd = FPC::NativeRealDescriptor();
     long fabBytes(0), bytesWritten(0);
+    const RealDescriptor &nrd = FPC::NativeRealDescriptor();
+    int nrdBytes(nrd.numBytes());
+    BL_ASSERT(nrdBytes == sizeof(Real));
+    Array<Real> minmax(2 * mf.nComp());
+    long mmSize(minmax.size() * sizeof(Real));
+    int nComps(mf.nComp());
 
     std::string filePrefix(mf_name + FabFileSuffix);
 
@@ -880,16 +885,15 @@ VisMF::WriteRawNative (const MultiFab    &mf,
       for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
         // ---- write the raw fab data
         const FArrayBox &fab = mf[mfi];
-        fabBytes = fab.box().numPts() * fab.nComp() * nrd.numBytes();
+        fabBytes = fab.box().numPts() * fab.nComp() * nrdBytes;
         nfi.Stream().write((char *) fab.dataPtr(), fabBytes);
         bytesWritten += fabBytes;
         if(writeMinMax) {
-	  Array<Real> minmax(2 * fab.nComp());
-	  for(int i(0); i < fab.nComp(); ++i) {
+          BL_ASSERT(nComps == fab.nComp());
+	  for(int i(0); i < nComps; ++i) {
 	    minmax[i]   = fab.min(i);
 	    minmax[i+1] = fab.max(i);
 	  }
-          long mmSize(minmax.size() * sizeof(Real));
           nfi.Stream().write((char *) minmax.dataPtr(), mmSize);
           bytesWritten += mmSize;
         }
@@ -907,7 +911,7 @@ VisMF::WriteRawNative (const MultiFab    &mf,
         MFHdrFile.open(MFHdrFileName.c_str(), std::ios::out|std::ios::trunc);
 
         if( ! MFHdrFile.good()) {
-            BoxLib::FileOpenFailed(MFHdrFileName);
+          BoxLib::FileOpenFailed(MFHdrFileName);
 	}
 
 	if(writeMinMax) {
@@ -921,6 +925,8 @@ VisMF::WriteRawNative (const MultiFab    &mf,
         mf.boxArray().writeOn(MFHdrFile); MFHdrFile << '\n';;
 
 	// ---- calculate offsets
+	const BoxArray &mfBA = mf.boxArray();
+	const DistributionMapping &mfDM = mf.DistributionMap();
 
         bytesWritten += VisMF::FileOffset(MFHdrFile);
 
