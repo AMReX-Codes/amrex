@@ -57,7 +57,7 @@ class BoxArrayRef
 {
 public:
     BoxArrayRef ();
-    BoxArrayRef (size_t size);
+    explicit BoxArrayRef (size_t size);
     BoxArrayRef (const BoxList& bl);
     BoxArrayRef (std::istream& is);
     BoxArrayRef (const BoxArrayRef& rhs);

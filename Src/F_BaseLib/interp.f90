@@ -1001,6 +1001,11 @@ contains
     real(kind=dp_t) :: b(21), A2T(size(A2,2),0:size(A2,1)-1), c(15)
 
     integer :: n, i, j, ic, jc, k
+    integer :: fine_hi(2) 
+
+    fine_hi(1) = fine_lo(1) + size(fine,1) - 1
+    fine_hi(2) = fine_lo(2) + size(fine,2) - 1
+
     !
     ! Prevent underflow for small crse values.
     !
@@ -1047,6 +1052,8 @@ contains
 
                    k = 2*(i-ic*lratio(1)) + (j-jc*lratio(2))
 
+                   if (i.ge.fine_lo(1) .and. i.le.fine_hi(1) .and. &
+                       j.ge.fine_lo(2) .and. j.le.fine_hi(2)) &
                    fine(i,j,n) = dot_product(c, A2T(:,k))*4
                    
                 end do
@@ -1055,12 +1062,6 @@ contains
           end do
        end do
     end do
-
-    ! print *, 'COARSE'
-    ! print *, crse
-
-    ! print *, 'FINE'
-    ! print *, fine
 
   end subroutine fourth_order_interp_2d
 
