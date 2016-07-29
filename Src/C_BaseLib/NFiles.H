@@ -6,6 +6,7 @@
 #include <fstream>
 
 #include <ParallelDescriptor.H>
+#include <VisMF.H>
 
 class OrientationIter;
 
@@ -27,12 +28,16 @@ class NFilesIter
 
   public:
 
-    // ---- the nfiles will be named filePrefix00000 through
-    // ---- filePrefixnoutfile-1
-    // ---- the range [1, nProcs-1] for noutfiles is enforced
-    NFilesIter(int noutfiles, const std::string &filePrefix);
+    // ---- the nfiles will be named "filePrefix" + "00000"
+    // ---- through "filePrefix" + "noutfiles-1"
+    // ---- the range [1, nProcs] for noutfiles is enforced
+    NFilesIter(int noutfiles, const std::string &filePrefix,
+               bool setBuf = false);
+
     ~NFilesIter();
+
     bool ReadyToWrite();
+    
     NFilesIter &operator++();
 
     std::ofstream &Stream() { return fileStream; }
@@ -62,6 +67,7 @@ class NFilesIter
     int mySet;
     std::string fullFileName;
     std::ofstream fileStream;
+    VisMF::IO_Buffer io_buffer;
     bool finishedWriting;
 
     NFilesIter();  // ---- disallow
