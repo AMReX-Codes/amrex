@@ -29,11 +29,12 @@
         manipulated by more sophisticated control classes.
 */
 
-class FabSet
-    :
-    public MultiFab
-{
+class FabSetIter;
 
+class FabSet
+{
+    friend class FabSetIter;
+    friend class FabSetCopyDescriptor;
 public:
     //
     // The default constructor -- you must later call define().
@@ -59,6 +60,26 @@ public:
     void define (const BoxArray&            grids,
                  int                        ncomp,
                  const DistributionMapping& dm);
+
+    const FArrayBox& operator[] (const MFIter& mfi) const { return m_mf[mfi]; }
+
+    FArrayBox& operator[] (const MFIter& mfi) { return m_mf[mfi]; }
+
+    const FArrayBox& operator[] (int i) const { return m_mf[i]; }
+
+    FArrayBox& operator[] (int i) { return m_mf[i]; }
+
+    Box fabbox (int K) const { return m_mf.fabbox(K); }
+
+    int size () const { return m_mf.size(); }
+
+    const BoxArray& boxArray () const { return m_mf.boxArray(); }
+
+    const DistributionMapping& DistributionMap () const 
+	{ return m_mf.DistributionMap(); }
+
+    ParallelDescriptor::Color color() const { return m_mf.color(); }
+
     //
     // Copy from the FAB to this FabSet.
     //
@@ -101,6 +122,9 @@ public:
     // Copy to the MultiFab from this FabSet.
     //
     void copyTo (MultiFab& dest) const;
+
+    void setVal (Real val);
+                 
     //
     // Componentwise multiply each datum in this FabSet for specified components.
     //
@@ -157,7 +181,6 @@ public:
                      int             num_comp,
                      int             n_ghost=0);
 
-    friend class FabSetCopyDescriptor;
     //
     // Write (used for writing to checkpoint)
     //
@@ -166,11 +189,10 @@ public:
     // Read (used for reading from checkpoint)
     //
     void read (const std::string& name);
-
     //
     // Promote AddProcsToComp() back to public.
     //
-    using MultiFab::AddProcsToComp;
+    //xxxxx    using MultiFab::AddProcsToComp;
 
 protected:
     //
@@ -184,9 +206,18 @@ protected:
                int             dcomp,
                int             ncomp,
                How             how);
+
+private:
+    MultiFab m_mf;
 };
 
-typedef MFIter FabSetIter;
+class FabSetIter
+    : public MFIter
+{
+public:
+    explicit FabSetIter (const FabSet& fs) 
+	: MFIter(fs.m_mf) { }
+};
 
 typedef FabArrayId FabSetId;
 
@@ -200,7 +231,8 @@ public:
 
     ~FabSetCopyDescriptor ();
 
-    FabSetId RegisterFabSet (FabSet* fabset) { return RegisterMultiFab(fabset); }
+    FabSetId RegisterFabSet (FabSet* fabset) 
+	{ return RegisterMultiFab(&(fabset->m_mf)); }
 
 private:
     //
