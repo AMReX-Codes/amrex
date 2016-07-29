@@ -45,16 +45,27 @@ class NFilesIter
     // ---- get the current Stream()'s seek position
     std::streampos SeekPos();
 
+    // ---- this returns the actual number of files used
+    // ---- the range [1, nProcs] is enforced
+    static int ActualNFiles(int nOutFiles)
+    {
+      return( std::max(1, std::min(ParallelDescriptor::NProcs(), nOutFiles)) );
+    }
+
     static int FileNumber(int nOutFiles, int whichProc)
     {
-      return(whichProc % nOutFiles);
+      BL_ASSERT(whichProc >= 0 && whichProc < ParallelDescriptor::NProcs());
+      return(whichProc % ActualNFiles(nOutFiles));
     }
 
     static std::string FileName(int nOutFiles,
                                 const std::string &filePrefix,
 				int whichProc)
     {
-      return BoxLib::Concatenate(filePrefix, FileNumber(nOutFiles, whichProc), 5);
+      BL_ASSERT(whichProc >= 0 && whichProc < ParallelDescriptor::NProcs());
+      return ( BoxLib::Concatenate(filePrefix,
+                                   FileNumber(ActualNFiles(nOutFiles),
+				              whichProc), 5 ) );
     }
 
 
