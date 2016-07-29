@@ -76,6 +76,18 @@ FabSet::setVal (Real val)
     }
 }
 
+void
+FabSet::setVal (Real val, int comp, int num_comp)
+{
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (FabSetIter fsi(*this); fsi.isValid(); ++fsi) {
+	FArrayBox& fab = (this->m_mf)[fsi];
+	fab.setVal(val, fab.box(), comp, num_comp);
+    }
+}
+
 FabSet&
 FabSet::plus (Real v,
               int  comp,

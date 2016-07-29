@@ -128,7 +128,8 @@ public:
     void copyTo (MultiFab& dest) const;
 
     void setVal (Real val);
-                 
+    void setVal (Real val, int comp, int num_comp);
+   
     //
     // Componentwise multiply each datum in this FabSet for specified components.
     //
