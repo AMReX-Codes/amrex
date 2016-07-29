@@ -441,6 +441,11 @@ ifeq ($(findstring gfortran, $(FCOMP)), gfortran)
     ifeq ($(_f95_lib),libgfortran.a)
       _f95_lib:=$(shell $(FCOMP) -print-file-name=libgfortran.so)
     endif
+    _quadmath_lib:=$(shell $(FCOMP) -print-file-name=libquadmath.a)
+    ifeq ($(_quadmath_lib),libquadmath.a)
+      _quadmath_lib:=$(shell $(FCOMP) -print-file-name=libquadmath.so)
+    endif
+
 
     FCOMP_VERSION := $(shell $(FC) -v 2>&1 | grep version)
   
@@ -452,7 +457,7 @@ ifeq ($(findstring gfortran, $(FCOMP)), gfortran)
     ifeq ($(findstring cims.nyu.edu, $(HOSTNAME)), cims.nyu.edu)
        XTRALIBS += -lgfortran
     else
-       override XTRALIBS += $(_f95_lib)       
+       override XTRALIBS += $(_f95_lib) $(_quadmath_lib)
     endif
     endif
 
@@ -731,6 +736,46 @@ ifeq ($(COMP),Intel)
     endif
   endif
 endif
+
+# Add more debugging output if we want to profile with Intel VTune. These flags
+# probably do not slow down code execution, but we don't need this much
+# debugging information in production runs.
+ifeq ($(COMP),Intel)
+  ifeq ($(FCOMP),Intel)
+    ifeq ($(USE_VTUNE),TRUE)
+
+      CXXFLAGS += -debug inline-debug-info
+      FFLAGS += -debug inline-debug-info
+      fFLAGS += -debug inline-debug-info
+      CFLAGS += -debug inline-debug-info
+
+      # On the Crays at NERSC, VTune can't resolve debug symbols unless we
+      # compile and link dynamically using the "-dynamic" flag with the Cray
+      # compiler wrappers.
+      ifeq ($(WHICHLINUX), $(filter $(WHICHLINUX), EDISON CORI))
+        CXXFLAGS += -dynamic
+        FFLAGS += -dynamic
+        fFLAGS += -dynamic
+        CFLAGS += -dynamic
+      endif
+
+      # VTune allows you to instrument your code with calls to __itt_resume()
+      # and __itt_pause() so that you can profile only certain regions, rather
+      # than profiling the entire code (which is the default behavior). Using
+      # these requires access to certain VTune header files and libraries. The
+      # "vtune" module on the Crays at NERSC defines the necessary include and
+      # library directories. Unfortunately the names of the defined environment
+      # variables change with VTune versions so these will need to be updated
+      # periodically.
+      ifeq ($(USE_ITTNOTIFY),TRUE)
+        INCLUDE_LOCATIONS += $(VTUNE_AMPLIFIER_XE_2016_DIR)/include
+        LIBRARIES += -L$(VTUNE_AMPLIFIER_XE_2016_DIR)/lib64 -littnotify
+      endif
+
+    endif
+  endif
+endif
+
 
 ifeq ($(TEST),TRUE)
     CPPFLAGS += -DBL_TESTING
@@ -1045,9 +1090,9 @@ ifeq ($(USE_HPGMG), TRUE)
       DEFINES += -DUNLIMIT_F_CYCLES=1
     # do exactly 1 F-cycle followed by however many V-cycles it takes to converge
     else ifeq ($(HPGMG_POST_F_CYCLE_TYPE), V)
-      DEFINES += -DUNLIMIT_FMG_VCYCLES=1
+      DEFINES += -DUNLIMIT_FMG_ITERATIONS=1
     else
-      DEFINES += -DUNLIMIT_FMG_VCYCLES=1
+      DEFINES += -DUNLIMIT_FMG_ITERATIONS=1
     endif
   endif
 
