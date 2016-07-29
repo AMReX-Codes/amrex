@@ -8,7 +8,7 @@ NFilesIter::NFilesIter(int noutfiles, const std::string &filePrefix,
 {
   myProc    = ParallelDescriptor::MyProc();
   nProcs    = ParallelDescriptor::NProcs();
-  nOutFiles = std::max(1, std::min(nProcs, noutfiles));
+  nOutFiles = ActualNFiles(noutfiles);
   nSets     = (nProcs + (nOutFiles - 1)) / nOutFiles;
   mySet     = myProc / nOutFiles;
 
