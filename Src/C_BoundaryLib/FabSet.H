@@ -80,6 +80,10 @@ public:
 
     ParallelDescriptor::Color color() const { return m_mf.color(); }
 
+    int nComp () const { return m_mf.nComp(); }
+
+    void clear () { m_mf.clear(); }
+
     //
     // Copy from the FAB to this FabSet.
     //
@@ -193,6 +197,10 @@ public:
     // Promote AddProcsToComp() back to public.
     //
     //xxxxx    using MultiFab::AddProcsToComp;
+    //xxxxx This is not virtual.  Is that a problem?
+    void AddProcsToComp (int ioProcNumSCS, int ioProcNumAll,
+			 int scsMyId, MPI_Comm scsComm)
+	{ } // xxxxx FIXME to be implemented
 
 protected:
     //
