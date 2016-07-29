@@ -11,6 +11,9 @@ iotest3d.Linux.g++.gfortran.MPI.ex
    [ntimes = ntimes]
    [raninit = tf]
    [mb2    = tf]
+   [rbuffsize = rbs]
+   [wbuffsize = wbs]
+   [writeminmax = wmm]
 
 
 the range [1,nprocs] is enforced for nfiles.
@@ -20,6 +23,9 @@ nsleep will sleep for nsleep seconds.
 ntimes is the number of times to run the test.
 raninit will initialize the multifab with random values.
 mb2 will use 2^20 instead of 1.0e+06 to calculate megabytes.
+rbuffsize sets the read  buffer size
+wbuffsize sets the write buffer size
+writeminmax writes fab min and max values into the raw native format
 
 
 example run:
