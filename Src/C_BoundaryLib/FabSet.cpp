@@ -24,16 +24,14 @@ FabSet::~FabSet () {}
 FabSet::FabSet (const BoxArray& grids, int ncomp,
 		ParallelDescriptor::Color color)
     :
-    MultiFab(grids,ncomp,0,color)
+    m_mf(grids,ncomp,0,color)
 {}
 
 void
 FabSet::define (const BoxArray& grids, int ncomp,
 		ParallelDescriptor::Color color)
 {
-    MultiFab* tmp = this;
-
-    tmp->define(grids, ncomp, 0, Fab_allocate, IntVect::TheZeroVector(), color);
+    m_mf.define(grids, ncomp, 0, Fab_allocate, IntVect::TheZeroVector(), color);
 }
 
 void
@@ -41,21 +39,19 @@ FabSet::define (const BoxArray&            grids,
                 int                        ncomp,
                 const DistributionMapping& dm)
 {
-    MultiFab* tmp = this;
-
-    tmp->define(grids, ncomp, 0, dm, Fab_allocate);
+    m_mf.define(grids, ncomp, 0, dm, Fab_allocate);
 }
 
 void
 FabSet::copyTo (MultiFab& dest) const
 {
-    dest.copy(*this);
+//xxxxx    dest.copy(*this);
 }
 
 FabSet&
 FabSet::copyFrom (const FabSet& src)
 {
-    copy(src);
+//xxxxx    copy(src);
     return *this;
 }
 
@@ -65,7 +61,7 @@ FabSet::copyFrom (const FabSet& src,
                   int           dest_comp,
                   int           num_comp)
 {
-    copy(src,src_comp,dest_comp,num_comp);
+//xxxxx    copy(src,src_comp,dest_comp,num_comp);
     return *this;
 }
 
@@ -85,8 +81,8 @@ FabSet::plus (Real v,
               int  comp,
               int  num_comp)
 {
-    MultiFab* tmp = this;
-    tmp->plus(v, comp, num_comp);
+//xxxxx    MultiFab* tmp = this;
+//xxxxx    tmp->plus(v, comp, num_comp);
     return *this;
 }
 
@@ -96,8 +92,8 @@ FabSet::plus (Real       v,
               int        comp,
               int        num_comp)
 {
-    MultiFab* tmp = this;
-    tmp->plus(v, subreg, comp, num_comp);
+//xxxxx    MultiFab* tmp = this;
+//xxxxx    tmp->plus(v, subreg, comp, num_comp);
     return *this;
 }
 
@@ -106,8 +102,8 @@ FabSet::mult (Real v,
               int  comp,
               int  num_comp)
 {
-    MultiFab* tmp = this;
-    tmp->mult(v, comp, num_comp);
+//xxxxx    MultiFab* tmp = this;
+//xxxxx    tmp->mult(v, comp, num_comp);
     return *this;
 }
 
@@ -117,8 +113,8 @@ FabSet::mult (Real       v,
               int        comp,
               int        num_comp)
 {
-    MultiFab* tmp = this;
-    tmp->mult(v, subreg, comp, num_comp);
+//xxxxx    MultiFab* tmp = this;
+//xxxxx    tmp->mult(v, subreg, comp, num_comp);
     return *this;
 }
 
@@ -126,10 +122,13 @@ FabSet::mult (Real       v,
 FabSet&
 FabSet::copyFrom (const FArrayBox& src)
 {
+    //xxxxx
+#if 0
     for (FabSetIter fsi(*this); fsi.isValid(); ++fsi)
     {
         get(fsi).copy(src);
     }
+#endif
     return *this;
 }
 
@@ -139,10 +138,13 @@ FabSet::copyFrom (const FArrayBox& src,
                   int              dest_comp,
                   int              num_comp)
 {
+    //xxxxx
+#if 0
     for (FabSetIter fsi(*this); fsi.isValid(); ++fsi)
     {
         get(fsi).copy(src,src_comp,dest_comp,num_comp);
     }
+#endif
     return *this;
 }
 
@@ -153,8 +155,10 @@ FabSet::copyFrom (const FArrayBox& src,
                   int              dest_comp,
                   int              num_comp)
 {
+    //xxxxx
     BL_ASSERT(src.box().contains(subbox));
 
+#if 0
     for (FabSetIter fsi(*this); fsi.isValid(); ++fsi)
     {
         Box dbox = get(fsi).box() & subbox;
@@ -164,6 +168,7 @@ FabSet::copyFrom (const FArrayBox& src,
             get(fsi).copy(src,dbox,src_comp,dbox,dest_comp,num_comp);
         }
     }
+#endif
 
     return *this;
 }
@@ -176,6 +181,8 @@ FabSet::DoIt (const MultiFab& src,
               int             ncomp,
               How             how)
 {
+    //xxxxx
+#if 0
     BL_ASSERT(nGrow() == 0);
     BL_ASSERT(ngrow <= src.nGrow());
     BL_ASSERT((dcomp+ncomp) <= nComp());
@@ -185,6 +192,7 @@ FabSet::DoIt (const MultiFab& src,
     FabArrayBase::CpOp op = (how == FabSet::COPYFROM) ? FabArrayBase::COPY : FabArrayBase::ADD;
 
     this->copy(src,scomp,dcomp,ncomp,ngrow,0,op);
+#endif
 }
 
 FabSet&
@@ -194,7 +202,7 @@ FabSet::copyFrom (const MultiFab& src,
                   int             dcomp,
                   int             ncomp)
 {
-    DoIt(src,ngrow,scomp,dcomp,ncomp,FabSet::COPYFROM);
+//xxxxx    DoIt(src,ngrow,scomp,dcomp,ncomp,FabSet::COPYFROM);
 
     return *this;
 }
@@ -206,7 +214,7 @@ FabSet::plusFrom (const MultiFab& src,
                   int             dcomp,
                   int             ncomp)
 {
-    DoIt(src,ngrow,scomp,dcomp,ncomp,FabSet::PLUSFROM);
+//xxxxx    DoIt(src,ngrow,scomp,dcomp,ncomp,FabSet::PLUSFROM);
 
     return *this;
 }
@@ -225,6 +233,7 @@ FabSet::linComb (Real          a,
 {
     BL_ASSERT(size() == src.size());
 
+#if 0
     for (FabSetIter fsi(*this); fsi.isValid(); ++fsi)
     {
         BL_ASSERT(get(fsi).box() == src[fsi].box());
@@ -243,6 +252,7 @@ FabSet::linComb (Real          a,
                       dcomp,
                       ncomp);
     }
+#endif
     return *this;
 }
 
@@ -261,6 +271,8 @@ FabSet::linComb (Real            a,
                  int             ngrow)
 {
     BL_PROFILE("FabSet::linComb()");
+
+#if 0
 
     BL_ASSERT(ngrow <= mfa.nGrow());
     BL_ASSERT(ngrow <= mfb.nGrow());
@@ -346,6 +358,7 @@ FabSet::linComb (Real            a,
                                                  dcomp,
                                                  ncomp);
     }
+#endif
 
     return *this;
 }
@@ -353,11 +366,13 @@ FabSet::linComb (Real            a,
 void
 FabSet::write(const std::string& name) const
 {
-    VisMF::Write(*this,name);
+    // xxxxx
+    VisMF::Write(m_mf,name);
 }
 
 void
 FabSet::read(const std::string& name)
 {
-    VisMF::Read(*this,name);
+    //xxxxx
+    VisMF::Read(m_mf,name);
 }
