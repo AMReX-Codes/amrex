@@ -451,19 +451,19 @@ public:
 		       int             numcomp,
 		       int             nghost);
 
-    virtual void define (const BoxArray& bxs,
-			 int             nvar,
-			 int             ngrow,
-			 FabAlloc        mem_mode,
-			 const IntVect&  nodal = IntVect::TheZeroVector(),
-			 ParallelDescriptor::Color color = ParallelDescriptor::DefaultColor()) BL_OVERRIDE;
+    void define (const BoxArray& bxs,
+		 int             nvar,
+		 int             ngrow,
+		 FabAlloc        mem_mode,
+		 const IntVect&  nodal = IntVect::TheZeroVector(),
+		 ParallelDescriptor::Color color = ParallelDescriptor::DefaultColor());
 
-    virtual void define (const BoxArray&            bxs,
-			 int                        nvar,
-			 int                        ngrow,
-			 const DistributionMapping& dm,
-			 FabAlloc                   mem_mode,
-			 const IntVect&             nodal = IntVect::TheZeroVector()) BL_OVERRIDE;
+    void define (const BoxArray&            bxs,
+		 int                        nvar,
+		 int                        ngrow,
+		 const DistributionMapping& dm,
+		 FabAlloc                   mem_mode,
+		 const IntVect&             nodal = IntVect::TheZeroVector());
 
     //
     // Are there any NaNs in the MF?

@@ -70,79 +70,50 @@ BndryRegister::operator= (const BndryRegister& src)
     return *this;
 }
 
-void
-BndryRegister::defineDoit (Orientation _face,
-                           IndexType   _typ,
-                           int         _in_rad,
-                           int         _out_rad,
-                           int         _extent_rad,
-                           BoxArray&   fsBA)
+
+BndryBATransformer::BndryBATransformer (Orientation face, IndexType typ,
+					int in_rad, int out_rad, int extent_rad)
+    : BATBase(typ), m_dir(face.coordDir()), m_in_rad(in_rad), m_out_rad(out_rad),
+      m_extent_rad(extent_rad), m_nodal_shft(typ.ixType())
+{ }
+
+Box
+BndryBATransformer::operator() (const Box& bx) const
 {
-    BL_PROFILE("BndryRegister::defineDoit()");
-
-    BL_ASSERT(grids.size() > 0);
-
-    const int coord_dir = _face.coordDir();
-    const int lo_side   = _face.isLow();
-    //
-    // Build the BoxArray on which to define the FabSet on this face.
-    //
-    const int N = grids.size();
-
-    fsBA.resize(N);
-
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
-    for (int idx = 0; idx < N; ++idx)
-    {
-        Box b;
-        //
-        // First construct proper box for direction normal to face.
-        //
-        if (_out_rad > 0)
-        {
-            if (_typ.ixType(coord_dir) == IndexType::CELL)
-                b = BoxLib::adjCell(grids[idx], _face, _out_rad);
-            else
-                b = BoxLib::bdryNode(grids[idx], _face, _out_rad);
-
-            if (_in_rad > 0)
-                b.grow(_face.flip(), _in_rad);
-        }
-        else
-        {
-            if (_in_rad > 0)
-            {
-                if (_typ.ixType(coord_dir) == IndexType::CELL)
-                    b = BoxLib::adjCell(grids[idx], _face, _in_rad);
-                else
-                    b = BoxLib::bdryNode(grids[idx], _face, _in_rad);
-
-                b.shift(coord_dir, lo_side ? _in_rad : -_in_rad);
-            }
-            else
-                BoxLib::Error("BndryRegister::define(): strange values for in_rad, out_rad");
-        }
-        //
-        // Now alter box in all other index directions.
-        //
-        for (int dir = 0; dir < BL_SPACEDIM; dir++)
-        {
-            if (dir == coord_dir)
-                continue;
-            if (_typ.ixType(dir) == IndexType::NODE)
-                b.surroundingNodes(dir);
-            if (_extent_rad > 0)
-                b.grow(dir,_extent_rad);
-        }
-
-        BL_ASSERT(b.ok());
-
-        fsBA.set(idx,b);
+    BL_ASSERT(bx.cellCentered());
+    IntVect lo(bx.loVect());
+    IntVect hi(bx.hiVect());
+    if (m_lo_face) {
+	for (int i = 0; i < BL_SPACEDIM; ++i) {
+	    if (i == m_dir) {
+		lo[i] -= m_out_rad + m_nodal_shft[i];
+		hi[i] = lo[i] + m_in_rad + m_out_rad - 1;
+	    } else {
+		lo[i] -= m_extent_rad;
+		hi[i] += m_extent_rad + m_nodal_shft[i];
+	    }
+	}
+    } else {
+	for (int i = 0; i < BL_SPACEDIM; ++i) {
+	    if (i == m_dir) {
+		hi[i] += m_out_rad;
+		lo[i] = hi[i] - (m_in_rad+m_out_rad) + 1;
+	    } else {
+		lo[i] -= m_extent_rad;
+		hi[i] += m_extent_rad + m_nodal_shft[i];
+	    }
+	}
     }
+    return Box(lo, hi, m_typ);
+}
 
-    BL_ASSERT(fsBA.ok());
+bool 
+BndryBATransformer::operator== (const BndryBATransformer& rhs) const
+{
+    // Note that m_nodal_shft is computed form m_typ, so no need to compare it.
+    return m_typ == rhs.m_typ && m_dir == rhs.m_dir && m_lo_face == rhs.m_lo_face
+	&& m_in_rad == rhs.m_in_rad && m_out_rad == rhs.m_out_rad 
+	&& m_extent_rad == rhs.m_extent_rad; 
 }
 
 void
@@ -154,9 +125,8 @@ BndryRegister::define (Orientation _face,
                        int         _ncomp,
 		       ParallelDescriptor::Color color)
 {
-    BoxArray fsBA;
-
-    defineDoit(_face,_typ,_in_rad,_out_rad,_extent_rad,fsBA);
+    BndryBATransformer bbatrans(_face,_typ,_in_rad,_out_rad,_extent_rad);
+    BoxArray fsBA(grids, bbatrans);
 
     FabSet& fabs = bndry[_face];
 
@@ -181,9 +151,8 @@ BndryRegister::define (Orientation                _face,
                        int                        _ncomp,
                        const DistributionMapping& _dm)
 {
-    BoxArray fsBA;
-
-    defineDoit(_face,_typ,_in_rad,_out_rad,_extent_rad,fsBA);
+    BndryBATransformer bbatrans(_face,_typ,_in_rad,_out_rad,_extent_rad);
+    BoxArray fsBA(grids, bbatrans);
 
     FabSet& fabs = bndry[_face];
 

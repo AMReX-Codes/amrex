@@ -111,7 +111,7 @@ public:
     // Returns the Kth FABs Box in the FabArray.
     // That is, the region the Kth fab is actually defined on.
     //
-    virtual Box fabbox (int K) const;
+    Box fabbox (int K) const;
     //
     // Returns the number of FABs in the FabArray..
     //
@@ -825,19 +825,19 @@ public:
     // This is only valid if this FabArray was defined using
     // the default constructor.
     //
-    virtual void define (const BoxArray& bxs,
-			 int             nvar,
-			 int             ngrow,
-			 FabAlloc        mem_mode,
-			 const IntVect&  nodal = IntVect::TheZeroVector(),
-			 ParallelDescriptor::Color color = ParallelDescriptor::DefaultColor());
+    void define (const BoxArray& bxs,
+		 int             nvar,
+		 int             ngrow,
+		 FabAlloc        mem_mode,
+		 const IntVect&  nodal = IntVect::TheZeroVector(),
+		 ParallelDescriptor::Color color = ParallelDescriptor::DefaultColor());
 
-    virtual void define (const BoxArray&            bxs,
-			 int                        nvar,
-			 int                        ngrow,
-			 const DistributionMapping& dm,
-			 FabAlloc                   mem_mode,
-			 const IntVect&             nodal = IntVect::TheZeroVector());
+    void define (const BoxArray&            bxs,
+		 int                        nvar,
+		 int                        ngrow,
+		 const DistributionMapping& dm,
+		 FabAlloc                   mem_mode,
+		 const IntVect&             nodal = IntVect::TheZeroVector());
     //
     // Returns true if the FabArray is well-defined.  That is,
     // if FABs are allocated for each Box in the BoxArray and the
