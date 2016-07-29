@@ -239,7 +239,7 @@ operator<< (std::ostream&        os,
     //
     std::ios::fmtflags oflags = os.flags();
     os.setf(std::ios::floatfield, std::ios::scientific);
-    int old_prec = os.precision(15);
+    int oldPrec(os.precision(16));
 
     os << hd.m_vers     << '\n';
     os << int(hd.m_how) << '\n';
@@ -253,7 +253,7 @@ operator<< (std::ostream&        os,
     os << hd.m_max      << '\n';
 
     os.flags(oflags);
-    os.precision(old_prec);
+    os.precision(oldPrec);
 
     if( ! os.good()) {
         BoxLib::Error("Write of VisMF::Header failed");
@@ -741,21 +741,7 @@ VisMF::Write (const MultiFab&    mf,
                 BL_PROFILE_VAR_STOP(filemetaopen);
 
                 for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
-                    //hdr.m_fod[mfi.index()] = VisMF::Write(mf[mfi],BName,FabFile,bytes);
-// ================
-{
-    VisMF::FabOnDisk fab_on_disk(BName, VisMF::FileOffset(FabFile));
-
-    mf[mfi].writeOn(FabFile);
-    //
-    // Add in the number of bytes in the FAB including the FAB header.
-    //
-    bytes += (VisMF::FileOffset(FabFile) - fab_on_disk.m_head);
-    
-////    return fab_on_disk;
-                    hdr.m_fod[mfi.index()] = fab_on_disk;
-}
-// ================
+                    hdr.m_fod[mfi.index()] = VisMF::Write(mf[mfi],BName,FabFile,bytes);
                 }
 
                 BL_PROFILE_VAR_START(filemetaflush);
@@ -864,8 +850,9 @@ VisMF::WriteRawNative (const MultiFab    &mf,
 
     // ---- add stream retry
 
-    // ---- add stream buffer
+    // ---- add stream buffer (to nfiles)
 
+    VisMF::Header *hdr;
     static const char *FabFileSuffix = "_D_";
 
     VisMF::Initialize();
@@ -877,10 +864,11 @@ VisMF::WriteRawNative (const MultiFab    &mf,
     Array<Real> minmax(2 * mf.nComp());
     long mmSize(minmax.size() * sizeof(Real));
     int nComps(mf.nComp());
+    bool setBuf(false);
 
     std::string filePrefix(mf_name + FabFileSuffix);
 
-    for(NFilesIter nfi(nOutFiles, filePrefix); nfi.ReadyToWrite(); ++nfi) {
+    for(NFilesIter nfi(nOutFiles, filePrefix, setBuf); nfi.ReadyToWrite(); ++nfi) {
 
       for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
         // ---- write the raw fab data
@@ -888,25 +876,22 @@ VisMF::WriteRawNative (const MultiFab    &mf,
         fabBytes = fab.box().numPts() * fab.nComp() * nrdBytes;
         nfi.Stream().write((char *) fab.dataPtr(), fabBytes);
         bytesWritten += fabBytes;
-        if(writeMinMax) {
-          BL_ASSERT(nComps == fab.nComp());
-	  for(int i(0); i < nComps; ++i) {
-	    minmax[i]   = fab.min(i);
-	    minmax[i+1] = fab.max(i);
-	  }
-          nfi.Stream().write((char *) minmax.dataPtr(), mmSize);
-          bytesWritten += mmSize;
-        }
       }
     }
 
+    if(writeMinMax) {
+      hdr = new VisMF::Header(mf, NFiles);  // ---- this calculates and distributes fab mins and maxes
+    }
 
     if(ParallelDescriptor::IOProcessor()) {
         std::string MFHdrFileName = mf_name;
         MFHdrFileName += TheMultiFabHdrFileSuffix;
-        VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
         std::ofstream MFHdrFile;
-        MFHdrFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
+        VisMF::IO_Buffer io_buffer;
+	if(setBuf) {
+          io_buffer.resize(VisMF::IO_Buffer_Size);
+          MFHdrFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
+	}
 
         MFHdrFile.open(MFHdrFileName.c_str(), std::ios::out|std::ios::trunc);
 
@@ -927,6 +912,38 @@ VisMF::WriteRawNative (const MultiFab    &mf,
 	// ---- calculate offsets
 	const BoxArray &mfBA = mf.boxArray();
 	const DistributionMapping &mfDM = mf.DistributionMap();
+	int nFiles(NFilesIter::ActualNFiles(nOutFiles));
+	int whichFileNumber(-1), whichProc(-1);
+	std::string whichFileName;
+	Array<std::streampos> currentOffset(nFiles, 0);
+	Array<FabOnDisk> fod(mfBA.size());
+
+	for(int i(0); i < fod.size(); ++i) {
+	  whichProc = mfDM[i];
+	  whichFileNumber = NFilesIter::FileNumber(nFiles, whichProc);
+	  whichFileName   = NFilesIter::FileName(nFiles, filePrefix, whichProc);
+	  fod[i].m_name = whichFileName;
+	  fod[i].m_head = currentOffset[whichFileNumber];
+	  currentOffset[whichFileNumber] += mfBA[i].numPts() * nComps * nrdBytes;
+	}
+	for(int i(0); i < fod.size(); ++i) {
+	  whichProc = mfDM[i];
+	  whichFileNumber = NFilesIter::FileNumber(nFiles, whichProc);
+          MFHdrFile << fod[i] << '\n';
+	}
+
+        if(writeMinMax) {
+          std::ios::fmtflags oflags = MFHdrFile.flags();
+          MFHdrFile.setf(std::ios::floatfield, std::ios::scientific);
+          int oldPrec(MFHdrFile.precision(16));
+
+	  MFHdrFile << hdr->m_min << '\n';
+	  MFHdrFile << hdr->m_max << '\n';
+	  delete hdr;
+
+          MFHdrFile.flags(oflags);
+          MFHdrFile.precision(oldPrec);
+	}
 
         bytesWritten += VisMF::FileOffset(MFHdrFile);
 
