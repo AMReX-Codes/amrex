@@ -7,6 +7,10 @@
 #include <BLProfiler.H>
 #include <VisMF.H>
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 FabSetCopyDescriptor::FabSetCopyDescriptor ()
     :
     MultiFabCopyDescriptor() {}
@@ -65,9 +69,16 @@ FabSet::copyFrom (const FabSet& src,
     return *this;
 }
 
-//
-// The following are different from MultiFab only in the return value
-//
+void
+FabSet::setVal (Real val)
+{
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (FabSetIter fsi(*this); fsi.isValid(); ++fsi) {
+	(this->m_mf)[fsi].setVal(val);
+    }
+}
 
 FabSet&
 FabSet::plus (Real v,
