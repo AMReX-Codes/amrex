@@ -64,7 +64,7 @@ Geometry::FPB::FPB (const Geometry& geom, const FabArrayBase& fa, bool do_corner
     BL_ASSERT(m_ngrow >= 0);
     BL_ASSERT(fa.boxArray().size() > 0);
     BL_ASSERT(isAnyPeriodic());
-    BL_ASSERT(domain.ok());
+    BL_ASSERT(geom.domain.ok());
 
     const BoxArray&            ba     = fa.boxArray();
     const DistributionMapping& dm     = fa.DistributionMap();
