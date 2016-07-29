@@ -1391,17 +1391,14 @@ MultiFab::SumBoundary (int scomp,
     // in the CopyComTags.
     //
     MultiFab&                 mf       = *this;
-    FabArrayBase::FBCacheIter cache_it = FabArrayBase::TheFB(false,mf);
 
-    BL_ASSERT(cache_it != FabArrayBase::m_TheFBCache.end());
+    const FabArrayBase::FB& TheFB = mf.getFB(false);
 
-    const FabArrayBase::SI& TheSI_ = cache_it->second;
-
-    const CopyComTagsContainer&      LocTags = *(TheSI_.m_LocTags);
-    const MapOfCopyComTagContainers& SndTags = *(TheSI_.m_RcvTags);
-    const MapOfCopyComTagContainers& RcvTags = *(TheSI_.m_SndTags);
-    const std::map<int,int>&         SndVols = *(TheSI_.m_RcvVols);
-    const std::map<int,int>&         RcvVols = *(TheSI_.m_SndVols);
+    const CopyComTagsContainer&      LocTags = *(TheFB.m_LocTags);
+    const MapOfCopyComTagContainers& SndTags = *(TheFB.m_RcvTags);
+    const MapOfCopyComTagContainers& RcvTags = *(TheFB.m_SndTags);
+    const std::map<int,int>&         SndVols = *(TheFB.m_RcvVols);
+    const std::map<int,int>&         RcvVols = *(TheFB.m_SndVols);
 
     if (ParallelDescriptor::NProcs() == 1)
     {

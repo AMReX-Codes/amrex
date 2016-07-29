@@ -236,10 +236,6 @@ public:
 		       int             dstng = 0,
 		       int             srcng = 0) const;
     //
-    // Flush the cache of PIRM information.
-    //
-    static void FlushPIRMCache ();
-    //
     // Used by FillPeriodicBoundary().
     //
     struct FPBComTag
@@ -263,34 +259,19 @@ public:
     //
     struct FPB
     {
-        FPB ();
-
-        FPB (const BoxArray&            ba,
-             const DistributionMapping& dm,
-             const Box&                 domain,
-             int                        ngrow,
-             bool                       do_corners);
-
+        FPB (const Geometry& geom, const FabArrayBase& fa, bool do_corners=false);
         ~FPB ();
-
-        bool operator== (const FPB& rhs) const;
-        bool operator!= (const FPB& rhs) const { return !operator==(rhs); }
 
         long bytes () const;
 
-        BoxArray            m_ba;
-        DistributionMapping m_dm;
-        Box                 m_domain;
-        int                 m_ngrow;
-        bool                m_do_corners;
-        bool                m_reused;
+	IndexType m_typ;
+	int       m_ngrow;
+	bool      m_do_corners;
+	//
 	bool                m_threadsafe_loc;
 	bool                m_threadsafe_rcv;
-        //
-        // Some useful typedefs.
-        //
+	//
         typedef std::vector<FPBComTag> FPBComTagsContainer;
-
         typedef std::map<int,FPBComTagsContainer> MapOfFPBComTagContainers;
         //
         // The cache of local and send/recv info per FabArray::copy().
@@ -300,30 +281,24 @@ public:
         MapOfFPBComTagContainers* m_RcvTags;
         std::map<int,int>*        m_SndVols;
         std::map<int,int>*        m_RcvVols;
+	//
+	int m_nuse;
 
     private:
-	static long bytesOfMapOfComTagContainers (const MapOfFPBComTagContainers&);
+	long bytesOfMapOfComTagContainers (const Geometry::FPB::MapOfFPBComTagContainers& m) const;
     };
     //
-    // Some useful typedefs for the FPB cache.
+    typedef std::multimap<FabArrayBase::BDKey,FPB*> FPBCache;
+    typedef FPBCache::iterator FPBCacheIter;
     //
-    typedef std::multimap<int,Geometry::FPB> FPBMMap;
+    static FPBCache                 m_TheFPBCache;
+    static FabArrayBase::CacheStats m_FPBC_stats;
+    //
+    const FPB& getFPB (const FabArrayBase& fa, bool do_corners=false) const;
+    //
+    static void flushFPB (const FabArrayBase::BDKey& key); // Flushes FPBs related to this key.
+    static void flushFPBCache ();                          // Flushes the entire cache.
 
-    typedef FPBMMap::iterator FPBMMapIter;
-
-    static FPBMMap m_FPBCache;
-    static int fpb_cache_max_size;
-    static long bytesOfFPBCache ();
-#ifdef BL_MEM_PROFILING
-    static long fpb_cache_total_bytes;
-    static long fpb_cache_total_bytes_hwm;
-#endif
-    //
-    // See if we've got an approprite FPB cached.
-    //
-    static Geometry::FPBMMapIter GetFPB (const Geometry&      geom,
-                                         const Geometry::FPB& fpb,
-                                         const FabArrayBase&  mf);
 #ifdef BL_USE_MPI
     //
     // Send Geometry to sidecar procs.
@@ -381,13 +356,8 @@ namespace BoxLib
             if (geom.isPeriodic(n))
                 BL_ASSERT(mf.nGrow() <= geom.Domain().length(n));
 #endif
-        const Geometry::FPB fpb(mf.boxArray(),dmap,geom.Domain(),mf.nGrow(),corners);
 
-        Geometry::FPBMMapIter cache_it = Geometry::GetFPB(geom,fpb,mf);
-
-        BL_ASSERT(cache_it != Geometry::m_FPBCache.end());
-
-        const Geometry::FPB& TheFPB = cache_it->second;
+        const Geometry::FPB& TheFPB = geom.getFPB(mf,corners);
 
         if (ParallelDescriptor::NProcs() == 1)
         {
@@ -671,13 +641,7 @@ namespace BoxLib
         BL_ASSERT(!ParallelDescriptor::MPIOneSided());
 #endif
 	
-        const Geometry::FPB fpb(mf.boxArray(),mf.DistributionMap(),geom.Domain(),mf.nGrow(),mf.fpb_corners);
-
-        Geometry::FPBMMapIter cache_it = Geometry::GetFPB(geom,fpb,mf);
-
-        BL_ASSERT(cache_it != Geometry::m_FPBCache.end());
-
-        const Geometry::FPB& TheFPB = cache_it->second;
+        const Geometry::FPB& TheFPB = geom.getFPB(mf,mf.fpb_corners);
 
         typedef typename FAB::value_type value_type;
 
