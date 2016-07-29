@@ -30,6 +30,27 @@ class Orientation;
         accessible, but not resettable,
 */
 
+struct BndryBATransformer
+    : public BATBase<BndryBATransformer>
+{
+    BndryBATransformer (Orientation face, IndexType typ,
+			int in_rad, int out_rad, int extent_rad);
+
+    virtual ~BndryBATransformer () BL_OVERRIDE {}
+
+    virtual Box operator() (const Box& bx) const BL_OVERRIDE;
+    
+    bool operator== (const BndryBATransformer& rhs) const;
+
+private:
+    int     m_dir;
+    bool    m_lo_face;
+    int     m_in_rad;
+    int     m_out_rad;
+    int     m_extent_rad;
+    IntVect m_nodal_shft;
+};
+
 class BndryRegister
 {
 
@@ -161,15 +182,6 @@ public:
                                 int scsMyId, MPI_Comm scsComm);
 
 protected:
-    //
-    // Helper for define() functions.
-    //
-    void defineDoit (Orientation face,
-                     IndexType   typ,
-                     int         in_rad,
-                     int         out_rad,
-                     int         extent_rad,
-                     BoxArray&   fsba);
     //
     // Used by the copy constructor and assignment operator.
     //

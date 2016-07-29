@@ -236,6 +236,12 @@ BoxArray::BoxArray (const BoxArray& rhs)
     m_ref(rhs.m_ref)
 {}
 
+BoxArray::BoxArray (const BoxArray& rhs, const BATransformer& trans)
+    :
+    m_transformer(trans.clone()),
+    m_ref(rhs.m_ref)
+{}
+
 BoxArray::~BoxArray ()
 { 
     delete m_transformer;

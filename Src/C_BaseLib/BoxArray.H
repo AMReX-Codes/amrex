@@ -135,8 +135,9 @@ template <class T>
 struct BATBase
     : public BATransformer
 {
-    BATBase (IndexType typ) : m_typ(typ) {}
-    virtual ~BATBase () { }
+    explicit BATBase (IndexType typ = IndexType())
+	: m_typ(typ) {}
+    virtual ~BATBase () {}
 
     virtual BATransformer* clone () const BL_OVERRIDE {
 	return new T(dynamic_cast<const T&>(*this));
@@ -211,9 +212,12 @@ public:
     //
     BoxArray (const BoxArray& rhs);
     //
+    BoxArray (const BoxArray& rhs, const BATransformer& trans);
+    //
     // The assignment operator.
     //
     BoxArray& operator= (const BoxArray& rhs);
+    
     //
     // The destructor.
     //
