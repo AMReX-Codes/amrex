@@ -57,9 +57,7 @@ public:
     //
     // Define a FabSet constructed via default constructor.
     //
-    void define (const BoxArray&            grids,
-                 int                        ncomp,
-                 const DistributionMapping& dm);
+    void define (const BoxArray& grids, int ncomp, const DistributionMapping& dm);
 
     const FArrayBox& operator[] (const MFIter& mfi) const { return m_mf[mfi]; }
 
@@ -84,107 +82,25 @@ public:
 
     void clear () { m_mf.clear(); }
 
-    //
-    // Copy from the FAB to this FabSet.
-    //
-    FabSet& copyFrom (const FArrayBox& src);
-    //
-    // Copy from the specified components of a source FAB to the components to this destination FabSet
-    //
-    FabSet& copyFrom (const FArrayBox& src,
-                      int              src_comp,
-                      int              dest_comp,
-                      int              num_comp);
-    //
-    // Copy from the specified components of a source FAB to the destination components of this FabSet over the subregion
-    //
-    FabSet& copyFrom (const FArrayBox& src,
-                      const Box&       subbox,
-                      int              src_comp,
-                      int              dest_comp,
-                      int              num_comp);
-    //
-    // Copy from the source MultiFab to this destination FabSet.
-    //
-    FabSet& copyFrom (const MultiFab& src,
-                      int             nghost,
-                      int             src_comp,
-                      int             dest_comp,
-                      int             num_comp);
-    //
-    // Copy from the FabSet to this FabSet.
-    //
-    FabSet& copyFrom (const FabSet& src);
-    //
-    // Copy from the specified components of a source FabSet to the components to this destination FabSet
-    //
-    FabSet& copyFrom (const FabSet& src,
-                      int           src_comp,
-                      int           dest_comp,
-                      int           num_comp);
-    //
-    // Copy to the MultiFab from this FabSet.
-    //
+    FabSet& copyFrom (const FabSet& src, int src_comp, int dest_comp, int num_comp);
+
+    FabSet& copyFrom (const MultiFab& src, int ngrow, int scomp, int dcomp, int ncomp);
+
+    FabSet& plusFrom (const MultiFab& src, int ngrow, int scomp, int dcomp, int ncomp);
+
     void copyTo (MultiFab& dest) const;
 
     void setVal (Real val);
+
     void setVal (Real val, int comp, int num_comp);
-   
-    //
-    // Componentwise multiply each datum in this FabSet for specified components.
-    //
-    FabSet& mult (Real v,
-                  int  comp,
-                  int  num_comp);
-    //
-    // Componentwise multiply each datum in this FabSet for specified components in the subregion.
-    //
-    FabSet& mult (Real       v,
-                  const Box& subreg,
-                  int        comp,
-                  int        num_comp);
-    //
-    // Componentwise add scalar to each datum in this FabSet for specified components.
-    //
-    FabSet& plus (Real v,
-                  int  comp,
-                  int  num_comp);
-    //
-    // Componentwise add scalar to each datum in this FabSet for specified components in the subregion.
-    //
-    FabSet& plus (Real       v,
-                  const Box& subreg,
-                  int        comp,
-                  int        num_comp);
-    //
-    // Add each datum in MultiFab to each in this FabSet for specified components in the subregion, including ghost cells specified.
-    //
-    FabSet& plusFrom (const MultiFab& src,
-                      int             nghost,
-                      int             src_comp,
-                      int             dest_comp,
-                      int             num_comp);
-    //
+
     // Linear combination: this := a*this + b*src (FabSets must be commensurate).
-    //
-    FabSet& linComb (Real          a,
-                     Real          b,
-                     const FabSet& src,
-                     int           src_comp,
-                     int           dest_comp,
-                     int           num_comp);
-    //
-    // Linear combination: this := a*mfa + b*mfb on intersection with valid region.
-    //
-    FabSet& linComb (Real            a,
-                     const MultiFab& mfa,
-                     int             a_comp,
-                     Real            b,
-                     const MultiFab& mfb,
-                     int             b_comp,
-                     int             dest_comp,
-                     int             num_comp,
-                     int             n_ghost=0);
+    FabSet& linComb (Real a, Real b, const FabSet& src, int scomp, int dcomp, int ncomp);
+
+    // Linear combination: this := a*mfa + b*mfb
+    FabSet& linComb (Real a, const MultiFab& mfa, int a_comp,
+		     Real b, const MultiFab& mfb, int b_comp,
+                     int dcomp, int ncomp, int ngrow);
 
     //
     // Write (used for writing to checkpoint)
@@ -203,19 +119,6 @@ public:
 			 int scsMyId, MPI_Comm scsComm)
 	{ } // xxxxx FIXME to be implemented
 
-protected:
-    //
-    // copyFrom(MultiFab) and plusFrom(MultiFab) use common function.
-    //
-    enum How { COPYFROM, PLUSFROM };
-
-    void DoIt (const MultiFab& src,
-               int             ngrow,
-               int             scomp,
-               int             dcomp,
-               int             ncomp,
-               How             how);
-
 private:
     MultiFab m_mf;
 };
@@ -226,29 +129,6 @@ class FabSetIter
 public:
     explicit FabSetIter (const FabSet& fs) 
 	: MFIter(fs.m_mf) { }
-};
-
-typedef FabArrayId FabSetId;
-
-class FabSetCopyDescriptor
-    :
-    public MultiFabCopyDescriptor
-{
-public:
-
-    FabSetCopyDescriptor ();
-
-    ~FabSetCopyDescriptor ();
-
-    FabSetId RegisterFabSet (FabSet* fabset) 
-	{ return RegisterMultiFab(&(fabset->m_mf)); }
-
-private:
-    //
-    // These are disallowed.
-    //
-    FabSetCopyDescriptor (const FabSetCopyDescriptor& rhs);
-    FabSetCopyDescriptor& operator= (const FabSetCopyDescriptor& rhs);
 };
 
 #endif /*_FABSET_H_*/

@@ -1,7 +1,4 @@
 
-#include <winstd.H>
-#include <map>
-
 #include <FabSet.H>
 #include <ParallelDescriptor.H>
 #include <BLProfiler.H>
@@ -11,58 +8,52 @@
 #include <omp.h>
 #endif
 
-FabSetCopyDescriptor::FabSetCopyDescriptor ()
-    :
-    MultiFabCopyDescriptor() {}
-
-FabSetCopyDescriptor::~FabSetCopyDescriptor () {}
-
 FabSet::FabSet () {}
 
 FabSet::~FabSet () {}
 
-FabSet::FabSet (const BoxArray& grids, int ncomp,
-		ParallelDescriptor::Color color)
+FabSet::FabSet (const BoxArray& grids, int ncomp, ParallelDescriptor::Color color)
     :
     m_mf(grids,ncomp,0,color)
 {}
 
 void
-FabSet::define (const BoxArray& grids, int ncomp,
-		ParallelDescriptor::Color color)
+FabSet::define (const BoxArray& grids, int ncomp, ParallelDescriptor::Color color)
 {
     m_mf.define(grids, ncomp, 0, Fab_allocate, IntVect::TheZeroVector(), color);
 }
 
 void
-FabSet::define (const BoxArray&            grids,
-                int                        ncomp,
-                const DistributionMapping& dm)
+FabSet::define (const BoxArray& grids, int ncomp, const DistributionMapping& dm)
 {
     m_mf.define(grids, ncomp, 0, dm, Fab_allocate);
+}
+
+FabSet&
+FabSet::copyFrom (const FabSet& src, int src_comp, int dest_comp, int num_comp)
+{
+//xxxxx    copy(src,src_comp,dest_comp,num_comp);
+    return *this;
+}
+
+FabSet&
+FabSet::copyFrom (const MultiFab& src, int ngrow, int scomp, int dcomp, int ncomp)
+{
+//xxxxx    this->copy(src,scomp,dcomp,ncomp,ngrow,0,FabArrayBase::COPY);
+    return *this;
+}
+
+FabSet&
+FabSet::plusFrom (const MultiFab& src, int ngrow, int scomp, int dcomp, int ncomp)
+{
+//xxxxx    this->copy(src,scomp,dcomp,ncomp,ngrow,0,FabArrayBase::ADD);
+    return *this;
 }
 
 void
 FabSet::copyTo (MultiFab& dest) const
 {
 //xxxxx    dest.copy(*this);
-}
-
-FabSet&
-FabSet::copyFrom (const FabSet& src)
-{
-//xxxxx    copy(src);
-    return *this;
-}
-
-FabSet&
-FabSet::copyFrom (const FabSet& src,
-                  int           src_comp,
-                  int           dest_comp,
-                  int           num_comp)
-{
-//xxxxx    copy(src,src_comp,dest_comp,num_comp);
-    return *this;
 }
 
 void
@@ -88,199 +79,35 @@ FabSet::setVal (Real val, int comp, int num_comp)
     }
 }
 
-FabSet&
-FabSet::plus (Real v,
-              int  comp,
-              int  num_comp)
-{
-//xxxxx    MultiFab* tmp = this;
-//xxxxx    tmp->plus(v, comp, num_comp);
-    return *this;
-}
-
-FabSet&
-FabSet::plus (Real       v,
-              const Box& subreg,
-              int        comp,
-              int        num_comp)
-{
-//xxxxx    MultiFab* tmp = this;
-//xxxxx    tmp->plus(v, subreg, comp, num_comp);
-    return *this;
-}
-
-FabSet&
-FabSet::mult (Real v,
-              int  comp,
-              int  num_comp)
-{
-//xxxxx    MultiFab* tmp = this;
-//xxxxx    tmp->mult(v, comp, num_comp);
-    return *this;
-}
-
-FabSet&
-FabSet::mult (Real       v,
-              const Box& subreg,
-              int        comp,
-              int        num_comp)
-{
-//xxxxx    MultiFab* tmp = this;
-//xxxxx    tmp->mult(v, subreg, comp, num_comp);
-    return *this;
-}
-
-
-FabSet&
-FabSet::copyFrom (const FArrayBox& src)
-{
-    //xxxxx
-#if 0
-    for (FabSetIter fsi(*this); fsi.isValid(); ++fsi)
-    {
-        get(fsi).copy(src);
-    }
-#endif
-    return *this;
-}
-
-FabSet&
-FabSet::copyFrom (const FArrayBox& src,
-                  int              src_comp,
-                  int              dest_comp,
-                  int              num_comp)
-{
-    //xxxxx
-#if 0
-    for (FabSetIter fsi(*this); fsi.isValid(); ++fsi)
-    {
-        get(fsi).copy(src,src_comp,dest_comp,num_comp);
-    }
-#endif
-    return *this;
-}
-
-FabSet&
-FabSet::copyFrom (const FArrayBox& src,
-                  const Box&       subbox,
-                  int              src_comp,
-                  int              dest_comp,
-                  int              num_comp)
-{
-    //xxxxx
-    BL_ASSERT(src.box().contains(subbox));
-
-#if 0
-    for (FabSetIter fsi(*this); fsi.isValid(); ++fsi)
-    {
-        Box dbox = get(fsi).box() & subbox;
-
-        if (dbox.ok())
-        {
-            get(fsi).copy(src,dbox,src_comp,dbox,dest_comp,num_comp);
-        }
-    }
-#endif
-
-    return *this;
-}
-
-void
-FabSet::DoIt (const MultiFab& src,
-              int             ngrow,
-              int             scomp,
-              int             dcomp,
-              int             ncomp,
-              How             how)
-{
-    //xxxxx
-#if 0
-    BL_ASSERT(nGrow() == 0);
-    BL_ASSERT(ngrow <= src.nGrow());
-    BL_ASSERT((dcomp+ncomp) <= nComp());
-    BL_ASSERT((scomp+ncomp) <= src.nComp());
-    BL_ASSERT(how == FabSet::COPYFROM || how == FabSet::PLUSFROM);
-
-    FabArrayBase::CpOp op = (how == FabSet::COPYFROM) ? FabArrayBase::COPY : FabArrayBase::ADD;
-
-    this->copy(src,scomp,dcomp,ncomp,ngrow,0,op);
-#endif
-}
-
-FabSet&
-FabSet::copyFrom (const MultiFab& src,
-                  int             ngrow,
-                  int             scomp,
-                  int             dcomp,
-                  int             ncomp)
-{
-//xxxxx    DoIt(src,ngrow,scomp,dcomp,ncomp,FabSet::COPYFROM);
-
-    return *this;
-}
-
-FabSet&
-FabSet::plusFrom (const MultiFab& src,
-                  int             ngrow,
-                  int             scomp,
-                  int             dcomp,
-                  int             ncomp)
-{
-//xxxxx    DoIt(src,ngrow,scomp,dcomp,ncomp,FabSet::PLUSFROM);
-
-    return *this;
-}
-
-//
 // Linear combination this := a*this + b*src
 // Note: corresponding fabsets must be commensurate.
-//
 FabSet&
-FabSet::linComb (Real          a,
-                 Real          b,
-                 const FabSet& src,
-                 int           scomp,
-                 int           dcomp,
-                 int           ncomp)
+FabSet::linComb (Real a, Real b, const FabSet& src, int scomp, int dcomp, int ncomp)
 {
     BL_ASSERT(size() == src.size());
 
-#if 0
     for (FabSetIter fsi(*this); fsi.isValid(); ++fsi)
     {
-        BL_ASSERT(get(fsi).box() == src[fsi].box());
         //
         // WARNING: same fab used as src and dest here.
+	// xxxxx FIXME
         //
-        get(fsi).linComb(get(fsi),
-                      get(fsi).box(),
-                      dcomp,
-                      src[fsi],
-                      src[fsi].box(),
-                      scomp,
-                      a,
-                      b,
-                      get(fsi).box(),
-                      dcomp,
-                      ncomp);
+	const FArrayBox& srcfab = src[fsi];
+	FArrayBox& dstfab = (*this)[fsi];
+	BL_ASSERT(srcfab.box() == dstfab.box());
+	dstfab.linComb(dstfab, dstfab.box(), dcomp,
+		       srcfab, srcfab.box(), scomp,
+		       a, b, dstfab.box(), dcomp, ncomp);
     }
-#endif
     return *this;
 }
 
-//
+// Linear combination: this := a*mfa + b*mfb
 // CastroRadiation is the only code that uses this function. 
-//
 FabSet&
-FabSet::linComb (Real            a,
-                 const MultiFab& mfa,
-                 int             a_comp,
-                 Real            b,
-                 const MultiFab& mfb,
-                 int             b_comp,
-                 int             dcomp,
-                 int             ncomp,
-                 int             ngrow)
+FabSet::linComb (Real a, const MultiFab& mfa, int a_comp,
+		 Real b, const MultiFab& mfb, int b_comp,
+		 int dcomp, int ncomp, int ngrow)
 {
     BL_PROFILE("FabSet::linComb()");
 
@@ -378,13 +205,13 @@ FabSet::linComb (Real            a,
 void
 FabSet::write(const std::string& name) const
 {
-    // xxxxx
+    // xxxxx FIXME
     VisMF::Write(m_mf,name);
 }
 
 void
 FabSet::read(const std::string& name)
 {
-    //xxxxx
+    //xxxxx FIXME
     VisMF::Read(m_mf,name);
 }
