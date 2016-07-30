@@ -113,7 +113,6 @@ public:
     //
     // Promote AddProcsToComp() back to public.
     //
-    //xxxxx    using MultiFab::AddProcsToComp;
     //xxxxx This is not virtual.  Is that a problem?
     void AddProcsToComp (int ioProcNumSCS, int ioProcNumAll,
 			 int scsMyId, MPI_Comm scsComm)

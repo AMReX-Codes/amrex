@@ -30,30 +30,42 @@ FabSet::define (const BoxArray& grids, int ncomp, const DistributionMapping& dm)
 }
 
 FabSet&
-FabSet::copyFrom (const FabSet& src, int src_comp, int dest_comp, int num_comp)
+FabSet::copyFrom (const FabSet& src, int scomp, int dcomp, int ncomp)
 {
-//xxxxx    copy(src,src_comp,dest_comp,num_comp);
+    if (boxArray() == src.boxArray() && DistributionMap() == src.DistributionMap()) {
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+	for (FabSetIter fsi(*this); fsi.isValid(); ++fsi) {
+	    (*this)[fsi].copy(src[fsi], scomp, dcomp, ncomp);
+	}
+    } else {
+	m_mf.copy(src.m_mf,scomp,dcomp,ncomp);
+    }
     return *this;
 }
 
 FabSet&
 FabSet::copyFrom (const MultiFab& src, int ngrow, int scomp, int dcomp, int ncomp)
 {
-//xxxxx    this->copy(src,scomp,dcomp,ncomp,ngrow,0,FabArrayBase::COPY);
+    BL_ASSERT(boxArray() != src.boxArray());
+    m_mf.copy(src,scomp,dcomp,ncomp,ngrow,0,FabArrayBase::COPY);
     return *this;
 }
 
 FabSet&
 FabSet::plusFrom (const MultiFab& src, int ngrow, int scomp, int dcomp, int ncomp)
 {
-//xxxxx    this->copy(src,scomp,dcomp,ncomp,ngrow,0,FabArrayBase::ADD);
+    BL_ASSERT(boxArray() != src.boxArray());
+    m_mf.copy(src,scomp,dcomp,ncomp,ngrow,0,FabArrayBase::ADD);
     return *this;
 }
 
 void
 FabSet::copyTo (MultiFab& dest) const
 {
-//xxxxx    dest.copy(*this);
+    BL_ASSERT(boxArray() != dest.boxArray());
+    dest.copy(m_mf);
 }
 
 void
@@ -86,6 +98,9 @@ FabSet::linComb (Real a, Real b, const FabSet& src, int scomp, int dcomp, int nc
 {
     BL_ASSERT(size() == src.size());
 
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
     for (FabSetIter fsi(*this); fsi.isValid(); ++fsi)
     {
         //

@@ -417,6 +417,11 @@ public:
 
     void flushFPinfo ();
 
+    //
+    // parallel copy or add
+    //
+    enum CpOp { COPY = 0, ADD = 1 };
+
 protected:
 
     DistributionMapping& ModifyDistributionMap () { return distributionMap; }
@@ -500,8 +505,6 @@ protected:
     //
     // parallel copy or add
     //
-    enum CpOp { COPY = 0, ADD = 1 };
-
     struct CPC
     {
 	CPC (const FabArrayBase& dstfa, int dstng, const FabArrayBase& srcfa, int srcng);
