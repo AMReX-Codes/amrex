@@ -377,7 +377,7 @@ FluxRegister::Reflux (MultiFab&       mf,
 	MultiFab flux(mf.boxArray(), ncomp, 0, Fab_allocate, IntVect::TheDimensionVector(idir));
 	flux.setVal(0.0);
 
-//xxxxx	flux.copy(bndry[face], scomp, 0, ncomp, 0, 0);
+	bndry[face].copyTo(flux, scomp, 0, ncomp);
 //xxxxx	geom.PeriodicCopy(flux, bndry[face], 0, scomp, ncomp);
 
 #ifdef _OPENMP

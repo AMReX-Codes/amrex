@@ -82,13 +82,13 @@ public:
 
     void clear () { m_mf.clear(); }
 
-    FabSet& copyFrom (const FabSet& src, int src_comp, int dest_comp, int num_comp);
+    FabSet& copyFrom (const FabSet& src, int scomp, int dcomp, int ncomp);
 
     FabSet& copyFrom (const MultiFab& src, int ngrow, int scomp, int dcomp, int ncomp);
 
     FabSet& plusFrom (const MultiFab& src, int ngrow, int scomp, int dcomp, int ncomp);
 
-    void copyTo (MultiFab& dest) const;
+    void copyTo (MultiFab& dest, int scomp, int dcomp, int ncomp) const;
 
     void setVal (Real val);
 
