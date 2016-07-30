@@ -838,11 +838,20 @@ BoxArray::intersections (const Box&                         bx,
     {
         BL_ASSERT(bx.ixType() == ixType());
 
-        Box           cbx = BoxLib::coarsen(BoxLib::grow(bx,ng), m_ref->crsn);
-        const IntVect& sm = BoxLib::max(cbx.smallEnd()-1, m_ref->bbox.smallEnd());
-        const IntVect& bg = BoxLib::min(cbx.bigEnd(),     m_ref->bbox.bigEnd());
+	Box gbx = BoxLib::grow(bx,ng);
 
-        cbx = Box(sm,bg);
+	IntVect glo = gbx.smallEnd();
+	IntVect ghi = gbx.bigEnd();
+	const IntVect& doilo = m_transformer->doiLo();
+	const IntVect& doihi = m_transformer->doiHi();
+
+	gbx.setSmall(glo - doihi).setBig(ghi + doilo);
+        gbx.coarsen(m_ref->crsn);
+	
+        const IntVect& sm = BoxLib::max(gbx.smallEnd()-1, m_ref->bbox.smallEnd());
+        const IntVect& bg = BoxLib::min(gbx.bigEnd(),     m_ref->bbox.bigEnd());
+
+        Box cbx(sm,bg);
 
 	BARef::HashType::const_iterator TheEnd = BoxHashMap.end();
 
@@ -881,11 +890,20 @@ BoxArray::complement (const Box& bx) const
 
 	BL_ASSERT(bx.ixType() == ixType());
 
-	Box           cbx = BoxLib::coarsen(bx, m_ref->crsn);
-        const IntVect& sm = BoxLib::max(cbx.smallEnd()-1, m_ref->bbox.smallEnd());
-        const IntVect& bg = BoxLib::min(cbx.bigEnd(),     m_ref->bbox.bigEnd());
+	Box gbx = bx;
 
-        cbx = Box(sm,bg);
+	IntVect glo = gbx.smallEnd();
+	IntVect ghi = gbx.bigEnd();
+	const IntVect& doilo = m_transformer->doiLo();
+	const IntVect& doihi = m_transformer->doiHi();
+
+	gbx.setSmall(glo - doihi).setBig(ghi + doilo);
+        gbx.coarsen(m_ref->crsn);
+	
+        const IntVect& sm = BoxLib::max(gbx.smallEnd()-1, m_ref->bbox.smallEnd());
+        const IntVect& bg = BoxLib::min(gbx.bigEnd(),     m_ref->bbox.bigEnd());
+
+        Box cbx(sm,bg);
 
 	BARef::HashType::const_iterator TheEnd = BoxHashMap.end();
 
@@ -1088,14 +1106,14 @@ BoxArray::getHashMap () const
             //
             // Calculate the bounding box & maximum extent of the boxes.
             //
-            Box boundingbox = BoxLib::surroundingNodes(m_ref->m_abox[0]);
+            Box boundingbox = m_ref->m_abox[0];
 	    IntVect maxext = boundingbox.size();
 
 	    const int N = size();
 
 	    for (int i = 1; i < N; ++i)
             {
-                const Box& bx = BoxLib::surroundingNodes(m_ref->m_abox[i]);
+                const Box& bx = m_ref->m_abox[i];
 		boundingbox.minBox(bx);
                 maxext = BoxLib::max(maxext, bx.size());
             }

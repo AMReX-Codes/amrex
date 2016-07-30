@@ -487,8 +487,7 @@ public:
     // but is the only point in common.  It is also an error if the
     // chop_pnt is an end node of the Box.
     //
-    Box chop (int dir,
-                    int chop_pnt);
+    Box chop (int dir, int chop_pnt);
     //
     // Grow Box in all directions by given amount.
     // NOTE: n_cell negative shrinks the Box by that number of cells.
