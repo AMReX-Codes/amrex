@@ -191,13 +191,13 @@ BARef::Initialize ()
 
 BoxArray::BoxArray ()
     :
-    m_transformer(),
+    m_transformer(new BATypeTransformer()),
     m_ref(new BARef())
 {}
 
 BoxArray::BoxArray (const Box& bx)
     :
-    m_transformer(),
+    m_transformer(new BATypeTransformer(bx.ixType())),
     m_ref(new BARef(1))
 {
     m_ref->m_abox[0] = BoxLib::enclosedCells(bx);
@@ -205,7 +205,7 @@ BoxArray::BoxArray (const Box& bx)
 
 BoxArray::BoxArray (const BoxList& bl)
     :
-    m_transformer(bl.ixType()),
+    m_transformer(new BATypeTransformer(bl.ixType())),
     m_ref(new BARef(bl))
 {
     type_update();
@@ -213,14 +213,14 @@ BoxArray::BoxArray (const BoxList& bl)
 
 BoxArray::BoxArray (size_t n)
     :
-    m_transformer(),
+    m_transformer(new BATypeTransformer()),
     m_ref(new BARef(n))
 {}
 
 BoxArray::BoxArray (const Box* bxvec,
                     int        nbox)
     :
-    m_transformer(bxvec->ixType()),
+    m_transformer(new BATypeTransformer(bxvec->ixType())),
     m_ref(new BARef(nbox))
 {
     for (int i = 0; i < nbox; i++)
@@ -232,22 +232,26 @@ BoxArray::BoxArray (const Box* bxvec,
 //
 BoxArray::BoxArray (const BoxArray& rhs)
     :
-    m_transformer(rhs.m_transformer),
+    m_transformer(rhs.m_transformer->clone()),
     m_ref(rhs.m_ref)
 {}
 
 BoxArray::BoxArray (const BoxArray& rhs, const BATransformer& trans)
     :
-    m_transformer(trans),
+    m_transformer(trans.clone()),
     m_ref(rhs.m_ref)
 {}
 
-BoxArray::~BoxArray () { }
+BoxArray::~BoxArray ()
+{ 
+    delete m_transformer;
+}
 
 BoxArray&
 BoxArray::operator= (const BoxArray& rhs)
 {
-    m_transformer = rhs.m_transformer;
+    delete m_transformer;
+    m_transformer = rhs.m_transformer->clone();
     m_ref = rhs.m_ref;
     return *this;
 }
@@ -257,7 +261,7 @@ BoxArray::define (const Box& bx)
 {
     BL_ASSERT(size() == 0);
     clear();
-    m_transformer.setIxType(bx.ixType());
+    m_transformer->setIxType(bx.ixType());
     m_ref->define(BoxLib::enclosedCells(bx));
 }
 
@@ -273,7 +277,8 @@ BoxArray::define (const BoxList& bl)
 void
 BoxArray::clear ()
 {
-    m_transformer = BATransformer();
+    delete m_transformer;
+    m_transformer = new BATypeTransformer();
     m_ref = new BARef();
 }
 
@@ -365,7 +370,7 @@ BoxArray::writeOn (std::ostream& os) const
 bool
 BoxArray::operator== (const BoxArray& rhs) const
 {
-    return m_transformer == rhs.m_transformer
+    return m_transformer->equal(*rhs.m_transformer)
 	&& (m_ref == rhs.m_ref || m_ref->m_abox == rhs.m_ref->m_abox);
 }
 
@@ -553,7 +558,7 @@ BoxArray::enclosedCells (int dir)
 BoxArray&
 BoxArray::convert (IndexType typ)
 {
-    m_transformer.setIxType(typ);
+    m_transformer->setIxType(typ);
     return *this;
 }
 
@@ -632,7 +637,7 @@ void
 BoxArray::set (int        i,
                const Box& ibox)
 {
-    if (i == 0) m_transformer.setIxType(ibox.ixType());
+    if (i == 0) m_transformer->setIxType(ibox.ixType());
     if (!m_ref.unique())
         uniqify();
     m_ref->m_abox.set(i, BoxLib::enclosedCells(ibox));
@@ -1059,7 +1064,7 @@ BoxArray::type_update ()
 	IndexType typ = m_ref->m_abox[0].ixType();
 	if (!typ.cellCentered())
 	{
-	    m_transformer.setIxType(typ);
+	    m_transformer->setIxType(typ);
 	    for (Array<Box>::iterator it = m_ref->m_abox.begin(), End = m_ref->m_abox.end(); 
 		 it != End; ++it)
 	    {
