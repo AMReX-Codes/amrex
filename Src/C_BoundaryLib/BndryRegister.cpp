@@ -70,12 +70,40 @@ BndryRegister::operator= (const BndryRegister& src)
     return *this;
 }
 
-
+// out_rad: grow outwards; for nodal, out_rad=1 means growing to the boundary face. 
+// in_rad: grow inwards; for nodal, in_rad=0 means on the boundary face.
 BndryBATransformer::BndryBATransformer (Orientation face, IndexType typ,
 					int in_rad, int out_rad, int extent_rad)
-    : BATBase(typ), m_dir(face.coordDir()), m_in_rad(in_rad), m_out_rad(out_rad),
-      m_extent_rad(extent_rad), m_nodal_shft(typ.ixType())
-{ }
+    : BATBase(typ), m_dir(face.coordDir()), m_lo_face(face.isLow()),
+      m_in_rad(in_rad), m_out_rad(out_rad), m_extent_rad(extent_rad), 
+      m_nodal(typ.ixType())
+{ 
+    BL_ASSERT(in_rad >= 0 && out_rad >= 0);
+    BL_ASSERT(in_rad >  0 || out_rad >  0);
+    BL_ASSERT(extent_rad >=0);
+
+    m_loshft = IntVect(D_DECL(-extent_rad,-extent_rad,-extent_rad));
+    m_hishft = IntVect(D_DECL( extent_rad, extent_rad, extent_rad));
+    m_hishft += m_nodal;
+    if (m_lo_face) {
+    	m_loshft[m_dir] = m_nodal[m_dir] - out_rad;
+	m_hishft[m_dir] = m_nodal[m_dir] + in_rad - 1;
+    } else {
+	m_loshft[m_dir] = 1 - in_rad;
+	m_hishft[m_dir] = out_rad;
+    }
+
+    m_doilo = IntVect(D_DECL(extent_rad, extent_rad, extent_rad));
+    m_doihi = IntVect(D_DECL(extent_rad, extent_rad, extent_rad));
+    m_doihi += m_nodal;
+    if (m_lo_face) {  // domain of influence in index space
+	m_doilo[m_dir] = std::max(0, out_rad - m_nodal[m_dir]);
+	m_doihi[m_dir] = 0;
+    } else {
+	m_doilo[m_dir] = 0;
+	m_doihi[m_dir] = out_rad;
+    }
+}
 
 Box
 BndryBATransformer::operator() (const Box& bx) const
@@ -84,26 +112,14 @@ BndryBATransformer::operator() (const Box& bx) const
     IntVect lo(bx.loVect());
     IntVect hi(bx.hiVect());
     if (m_lo_face) {
-	for (int i = 0; i < BL_SPACEDIM; ++i) {
-	    if (i == m_dir) {
-		lo[i] -= m_out_rad + m_nodal_shft[i];
-		hi[i] = lo[i] + m_in_rad + m_out_rad - 1;
-	    } else {
-		lo[i] -= m_extent_rad;
-		hi[i] += m_extent_rad + m_nodal_shft[i];
-	    }
-	}
+	hi[m_dir] = lo[m_dir];
     } else {
-	for (int i = 0; i < BL_SPACEDIM; ++i) {
-	    if (i == m_dir) {
-		hi[i] += m_out_rad;
-		lo[i] = hi[i] - (m_in_rad+m_out_rad) + 1;
-	    } else {
-		lo[i] -= m_extent_rad;
-		hi[i] += m_extent_rad + m_nodal_shft[i];
-	    }
-	}
+	lo[m_dir] = hi[m_dir];
     }
+
+    lo += m_loshft;
+    hi += m_hishft;
+
     return Box(lo, hi, m_typ);
 }
 

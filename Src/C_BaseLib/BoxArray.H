@@ -127,6 +127,9 @@ struct BATransformer
 
     virtual IndexType ixType () const = 0;
     virtual void setIxType (IndexType typ) = 0;
+    
+    virtual IntVect doiLo () const = 0; // doi: Domain of Influence
+    virtual IntVect doiHi () const = 0; // doi: Domain of Influence
 
     virtual Box operator() (const Box& bx) const = 0;
 };
@@ -167,6 +170,12 @@ struct BATypeTransformer
 	: BATBase(typ) {}
 
     virtual ~BATypeTransformer () BL_OVERRIDE {}
+
+    virtual IntVect doiLo () const BL_OVERRIDE 
+        { return IntVect::TheZeroVector(); }
+
+    virtual IntVect doiHi () const BL_OVERRIDE 
+        { return m_typ.ixType(); }
 
     virtual Box operator() (const Box& bx) const BL_OVERRIDE
         { return BoxLib::convert(bx, m_typ); }

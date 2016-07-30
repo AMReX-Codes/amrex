@@ -38,6 +38,9 @@ struct BndryBATransformer
 
     virtual ~BndryBATransformer () BL_OVERRIDE {}
 
+    virtual IntVect doiLo () const BL_OVERRIDE { return m_doilo; }
+    virtual IntVect doiHi () const BL_OVERRIDE { return m_doihi; }
+
     virtual Box operator() (const Box& bx) const BL_OVERRIDE;
     
     bool operator== (const BndryBATransformer& rhs) const;
@@ -48,7 +51,12 @@ private:
     int     m_in_rad;
     int     m_out_rad;
     int     m_extent_rad;
-    IntVect m_nodal_shft;
+    //
+    IntVect m_nodal;
+    IntVect m_loshft;
+    IntVect m_hishft;
+    IntVect m_doilo;
+    IntVect m_doihi;
 };
 
 class BndryRegister
