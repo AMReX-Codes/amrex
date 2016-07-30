@@ -120,48 +120,59 @@ struct LnClassPtrCallBack<BARef>
 //
 struct BATransformer
 {
-    BATransformer () : m_typ(), m_loshft(), m_hishft() {}
+    virtual ~BATransformer () {}
 
-    explicit BATransformer (IndexType typ)
-	: m_typ(), m_loshft(), m_hishft(typ.ixType()) {}
+    virtual BATransformer* clone () const = 0;
+    virtual bool equal (const BATransformer& rhs) const = 0;
 
-    BATransformer (IndexType typ, const IntVect& loshft, const IntVect& hishft)
-	: m_typ(typ), m_loshft(loshft), m_hishft(hishft) {}
+    virtual IndexType ixType () const = 0;
+    virtual void setIxType (IndexType typ) = 0;
 
-    // C++11:   BATransformer (const BATransformer& rhs) = default;
+    virtual Box operator() (const Box& bx) const = 0;
+};
 
-    ~BATransformer () {}
+template <class T>
+struct BATBase
+    : public BATransformer
+{
+    explicit BATBase (IndexType typ = IndexType())
+	: m_typ(typ) {}
+    virtual ~BATBase () {}
 
-    bool operator== (const BATransformer& rhs) const {
-	return m_typ    == rhs.m_typ 
-	    && m_loshft == rhs.m_loshft 
-	    && m_hishft == rhs.m_hishft;
+    virtual BATransformer* clone () const BL_OVERRIDE {
+	return new T(dynamic_cast<const T&>(*this));
     }
 
-    IndexType ixType () const { return m_typ; }
+    virtual bool equal (const BATransformer& rhs) const BL_OVERRIDE {
+	const T* p = dynamic_cast<const T*>(&rhs);
+	return p && (*p) == (dynamic_cast<const T&>(*this));
+    }
 
-    const IntVect& loShftVec () const {	return m_loshft; }
+    virtual IndexType ixType () const BL_OVERRIDE {
+	return m_typ;
+    }
 
-    const IntVect& hiShftVec () const {	return m_hishft; }
-
-    void setIxType (IndexType typ) {
-	m_hishft += typ.ixType() - m_typ.ixType();
+    virtual void setIxType (IndexType typ) BL_OVERRIDE {
 	m_typ = typ;
-    }
-
-    Box operator() (const Box& bx) const {
-	BL_ASSERT(bx.cellCentered());
-	IntVect lo(bx.loVect());
-	IntVect hi(bx.hiVect());
-	lo += m_loshft;
-	hi += m_hishft;
-	return Box(lo, hi, m_typ);
     }
 
 protected:
     IndexType m_typ;
-    IntVect   m_loshft;
-    IntVect   m_hishft;
+};
+
+struct BATypeTransformer
+    : public BATBase<BATypeTransformer>
+{
+    explicit BATypeTransformer (IndexType typ = IndexType())
+	: BATBase(typ) {}
+
+    virtual ~BATypeTransformer () BL_OVERRIDE {}
+
+    virtual Box operator() (const Box& bx) const BL_OVERRIDE
+        { return BoxLib::convert(bx, m_typ); }
+
+    bool operator== (const BATypeTransformer& rhs) const
+	{ return m_typ == rhs.m_typ; }
 };
 
 //
@@ -360,9 +371,9 @@ public:
     // Returns element index of this BoxArray.
     //
     Box operator[] (int index) const 
-	{ return m_transformer(m_ref->m_abox[index]); }
+	{ return (*m_transformer)(m_ref->m_abox[index]); }
     Box get        (int index) const 
-	{ return m_transformer(m_ref->m_abox[index]); }
+	{ return (*m_transformer)(m_ref->m_abox[index]); }
     //
     // Returns cell-centered box at element index of this BoxArray.
     //
@@ -446,7 +457,7 @@ public:
     //
     // Returns index type of this BoxArray
     //
-    IndexType ixType () const { return m_transformer.ixType(); }
+    IndexType ixType () const { return m_transformer->ixType(); }
 
 #ifdef BL_USE_MPI
     static void SendBoxArray(const BoxArray &ba, int whichSidecar);
@@ -471,7 +482,8 @@ private:
     //
     void uniqify ();
 
-    BATransformer m_transformer;
+    // When we move to C++11, we will switch to unique pointer
+    BATransformer* m_transformer;
 
     //
     // The data -- a reference-counted pointer to a Ref.
