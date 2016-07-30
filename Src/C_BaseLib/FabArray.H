@@ -519,9 +519,10 @@ protected:
 
 	BDKey       m_srcbdk;
 	BDKey       m_dstbdk;
-	IndexType   m_typ;
 	int         m_srcng;
 	int         m_dstng;
+	BoxArray    m_srcba;
+	BoxArray    m_dstba;
         //
         // The cache of local and send/recv info per FabArray::copy().
         //
