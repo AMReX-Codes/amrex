@@ -70,50 +70,26 @@ BndryRegister::operator= (const BndryRegister& src)
     return *this;
 }
 
-
-BndryBATransformer::BndryBATransformer (Orientation face, IndexType typ,
-					int in_rad, int out_rad, int extent_rad)
-    : BATBase(typ), m_dir(face.coordDir()), m_in_rad(in_rad), m_out_rad(out_rad),
-      m_extent_rad(extent_rad), m_nodal_shft(typ.ixType())
-{ }
-
-Box
-BndryBATransformer::operator() (const Box& bx) const
+BATransformer
+BndryRegister::make_transformer (Orientation face, IndexType typ,
+				 int in_rad, int out_rad, int extent_rad)
 {
-    BL_ASSERT(bx.cellCentered());
-    IntVect lo(bx.loVect());
-    IntVect hi(bx.hiVect());
-    if (m_lo_face) {
-	for (int i = 0; i < BL_SPACEDIM; ++i) {
-	    if (i == m_dir) {
-		lo[i] -= m_out_rad + m_nodal_shft[i];
-		hi[i] = lo[i] + m_in_rad + m_out_rad - 1;
-	    } else {
-		lo[i] -= m_extent_rad;
-		hi[i] += m_extent_rad + m_nodal_shft[i];
-	    }
-	}
+    const IntVect& nodal_shft = typ.ixType();
+
+    IntVect lo(D_DECL(-extent_rad,-extent_rad,-extent_rad));
+    IntVect hi(D_DECL( extent_rad, extent_rad, extent_rad));
+    hi += nodal_shft;
+
+    int i = face.coordDir();
+    if (face.isLow()) {
+	lo[i] = nodal_shft[i] - out_rad;
+	hi[i] = lo[i] + in_rad + out_rad - 1;
     } else {
-	for (int i = 0; i < BL_SPACEDIM; ++i) {
-	    if (i == m_dir) {
-		hi[i] += m_out_rad;
-		lo[i] = hi[i] - (m_in_rad+m_out_rad) + 1;
-	    } else {
-		lo[i] -= m_extent_rad;
-		hi[i] += m_extent_rad + m_nodal_shft[i];
-	    }
-	}
+	hi[i] = out_rad;
+	lo[i] = hi[i] - (in_rad+out_rad) + 1;
     }
-    return Box(lo, hi, m_typ);
-}
 
-bool 
-BndryBATransformer::operator== (const BndryBATransformer& rhs) const
-{
-    // Note that m_nodal_shft is computed form m_typ, so no need to compare it.
-    return m_typ == rhs.m_typ && m_dir == rhs.m_dir && m_lo_face == rhs.m_lo_face
-	&& m_in_rad == rhs.m_in_rad && m_out_rad == rhs.m_out_rad 
-	&& m_extent_rad == rhs.m_extent_rad; 
+    return BATransformer(typ, lo, hi);
 }
 
 void
@@ -125,7 +101,8 @@ BndryRegister::define (Orientation _face,
                        int         _ncomp,
 		       ParallelDescriptor::Color color)
 {
-    BndryBATransformer bbatrans(_face,_typ,_in_rad,_out_rad,_extent_rad);
+    const BATransformer& bbatrans
+	= make_transformer(_face,_typ,_in_rad,_out_rad,_extent_rad);
     BoxArray fsBA(grids, bbatrans);
 
     FabSet& fabs = bndry[_face];
@@ -151,7 +128,8 @@ BndryRegister::define (Orientation                _face,
                        int                        _ncomp,
                        const DistributionMapping& _dm)
 {
-    BndryBATransformer bbatrans(_face,_typ,_in_rad,_out_rad,_extent_rad);
+    const BATransformer& bbatrans
+	= make_transformer(_face,_typ,_in_rad,_out_rad,_extent_rad);
     BoxArray fsBA(grids, bbatrans);
 
     FabSet& fabs = bndry[_face];
