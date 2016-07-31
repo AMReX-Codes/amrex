@@ -14,9 +14,15 @@
 #include <ParmParse.H>
 #include <PArray.H>
 
+#ifdef BL_MEM_PROFILING
+#include <MemProfiler.H>
+#endif
+
 namespace
 {
     bool initialized = false;
+    int num_multifabs     = 0;
+    int num_multifabs_hwm = 0;
 }
 
 MultiFabCopyDescriptor::MultiFabCopyDescriptor ()
@@ -235,6 +241,12 @@ MultiFab::Initialize ()
 
     BoxLib::ExecOnFinalize(MultiFab::Finalize);
 
+#ifdef BL_MEM_PROFILING
+    MemProfiler::add("MultiFab", [] () -> MemProfiler::NBuildsInfo {
+            return {num_multifabs, num_multifabs_hwm};
+        });
+#endif
+
     initialized = true;
 }
 
@@ -247,6 +259,10 @@ MultiFab::Finalize ()
 MultiFab::MultiFab ()
 {
     Initialize();
+#ifdef BL_MEM_PROFILING
+    ++num_multifabs;
+    num_multifabs_hwm = std::max(num_multifabs_hwm, num_multifabs);
+#endif
 }
 
 MultiFab::MultiFab (const BoxArray& bxs,
@@ -259,6 +275,10 @@ MultiFab::MultiFab (const BoxArray& bxs,
 {
     Initialize();
     if (SharedMemory() && alloc == Fab_allocate) initVal();  // else already done in FArrayBox
+#ifdef BL_MEM_PROFILING
+    ++num_multifabs;
+    num_multifabs_hwm = std::max(num_multifabs_hwm, num_multifabs);
+#endif
 }
 
 MultiFab::MultiFab (const BoxArray&            bxs,
@@ -272,6 +292,10 @@ MultiFab::MultiFab (const BoxArray&            bxs,
 {
     Initialize();
     if (SharedMemory() && alloc == Fab_allocate) initVal();  // else already done in FArrayBox
+#ifdef BL_MEM_PROFILING
+    ++num_multifabs;
+    num_multifabs_hwm = std::max(num_multifabs_hwm, num_multifabs);
+#endif
 }
 
 MultiFab::MultiFab (const BoxArray& bxs,
@@ -283,6 +307,17 @@ MultiFab::MultiFab (const BoxArray& bxs,
 {
     Initialize();
     if (SharedMemory()) initVal();  // else already done in FArrayBox
+#ifdef BL_MEM_PROFILING
+    ++num_multifabs;
+    num_multifabs_hwm = std::max(num_multifabs_hwm, num_multifabs);
+#endif
+}
+
+MultiFab::~MultiFab()
+{
+#ifdef BL_MEM_PROFILING
+    --num_multifabs;
+#endif    
 }
 
 void
@@ -405,22 +440,6 @@ MultiFab::is_nodal () const
     return boxArray().ixType().nodeCentered();
 }
 
-
-const FArrayBox&
-MultiFab::operator[] (int K) const
-{
-    BL_ASSERT(defined(K));
-    const FArrayBox& fab = this->FabArray<FArrayBox>::get(K);
-    return fab;
-}
-
-FArrayBox&
-MultiFab::operator[] (int K)
-{
-    BL_ASSERT(defined(K));
-    FArrayBox& fab = this->FabArray<FArrayBox>::get(K);
-    return fab;
-}
 
 Real
 MultiFab::min (int comp,
@@ -1372,17 +1391,14 @@ MultiFab::SumBoundary (int scomp,
     // in the CopyComTags.
     //
     MultiFab&                 mf       = *this;
-    FabArrayBase::FBCacheIter cache_it = FabArrayBase::TheFB(false,mf);
 
-    BL_ASSERT(cache_it != FabArrayBase::m_TheFBCache.end());
+    const FabArrayBase::FB& TheFB = mf.getFB(false);
 
-    const FabArrayBase::SI& TheSI_ = cache_it->second;
-
-    const CopyComTagsContainer&      LocTags = *(TheSI_.m_LocTags);
-    const MapOfCopyComTagContainers& SndTags = *(TheSI_.m_RcvTags);
-    const MapOfCopyComTagContainers& RcvTags = *(TheSI_.m_SndTags);
-    const std::map<int,int>&         SndVols = *(TheSI_.m_RcvVols);
-    const std::map<int,int>&         RcvVols = *(TheSI_.m_SndVols);
+    const CopyComTagsContainer&      LocTags = *(TheFB.m_LocTags);
+    const MapOfCopyComTagContainers& SndTags = *(TheFB.m_RcvTags);
+    const MapOfCopyComTagContainers& RcvTags = *(TheFB.m_SndTags);
+    const std::map<int,int>&         SndVols = *(TheFB.m_RcvVols);
+    const std::map<int,int>&         RcvVols = *(TheFB.m_SndVols);
 
     if (ParallelDescriptor::NProcs() == 1)
     {
@@ -1571,7 +1587,7 @@ MultiFab::SumBoundary (int scomp,
     BoxLib::The_Arena()->free(the_recv_data);
 
     if (FabArrayBase::do_async_sends && !SndTags.empty())
-        FabArrayBase::GrokAsyncSends(N_snds,send_reqs,send_data,stats);
+        FabArrayBase::WaitForAsyncSends(N_snds,send_reqs,send_data,stats);
 
 #endif /*BL_USE_MPI*/
 }
@@ -1583,149 +1599,15 @@ MultiFab::SumBoundary ()
 }
 
 
-// Given a MultiFab in the compute MPI group, clone its data onto a MultiFab in
-// the sidecar group.
-//
-// Usage: on compute group, supply a reference to a regular MultiFab. On
-// sidecar group, supply a reference to an "empty" MultiFab, e.g.,
-//
-// MultiFab mf;
-// MultiFab::SendMultiFabToSidecars(&mf);
-//
-// This function will do all of the allocation on the sidecars for you.
-
-#ifdef BL_USE_MPI
 void
-MultiFab::SendMultiFabToSidecars (MultiFab *mf)
+MultiFab::AddProcsToComp (int ioProcNumSCS, int ioProcNumAll,
+                          int scsMyId, MPI_Comm scsComm)
 {
-    // Broadcasts to intercommunicators have weird syntax. See below.
-    // Whichever proc is actually broadcasting the data uses MPI_ROOT; all
-    // other procs in that same communicator use MPI_PROC_NULL. On the
-    // receiving end, the source rank is the rank of the broadcasting process
-    // within its local communicator, *not* its rank in MPI_COMM_WORLD.
-    // (Usually broadcasts will come from IOProcessor(), which is typically
-    // rank 0.)
-    const int MPI_IntraGroup_Broadcast_Rank = ParallelDescriptor::IOProcessor() ? MPI_ROOT : MPI_PROC_NULL;
-
-    if (ParallelDescriptor::Communicator() == ParallelDescriptor::CommunicatorComp())
-    {
-      // The in-transit procs also need the distribution map of the compute
-      // group so they know who to MPI_Recv() from.
-      Array<int> comp_procmap = mf->DistributionMap().ProcessorMap();
-      int procmap_size = comp_procmap.size();
-      ParallelDescriptor::Bcast(&procmap_size, 1, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
-      ParallelDescriptor::Bcast(&comp_procmap[0], procmap_size, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
-
-      // Even though a MultiFab is a distributed object, the layout of the
-      // Boxes themselves is stored on every process, so broadcast them to
-      // everyone on the in-transit side.
-      const BoxArray& boxArray = mf->boxArray();
-      for (int i = 0; i < boxArray.size(); ++i) {
-        const Box& box = boxArray[i];
-        const int *box_index_type = box.type().getVect();
-        const int *smallEnd = box.smallEnd().getVect();
-        const int *bigEnd = box.bigEnd().getVect();
-
-        // getVect() returns a const pointer, but MPI buffers require
-        // non-constant pointers. So we have to copy the data to these
-        // temporary arrays and use those as the buffers for MPI.
-        int box_index_type_MPI_buff[BL_SPACEDIM];
-        int smallEnd_MPI_buff[BL_SPACEDIM];
-        int bigEnd_MPI_buff[BL_SPACEDIM];
-        for (unsigned int i = 0; i < BL_SPACEDIM; ++i) {
-            box_index_type_MPI_buff[i] = box_index_type[i];
-            smallEnd_MPI_buff[i] = smallEnd[i];
-            bigEnd_MPI_buff[i] = bigEnd[i];
-        }
-        ParallelDescriptor::Bcast(&box_index_type_MPI_buff[0], BL_SPACEDIM, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
-        ParallelDescriptor::Bcast(&smallEnd_MPI_buff[0]      , BL_SPACEDIM, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
-        ParallelDescriptor::Bcast(&bigEnd_MPI_buff[0]        , BL_SPACEDIM, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
-      }
-
-      int nComp = mf->nComp();
-      ParallelDescriptor::Bcast(&nComp, 1, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
-
-      int nGhost = mf->nGrow();
-      ParallelDescriptor::Bcast(&nGhost, 1, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
-
-      // Now that the sidecars have all the Box data, they will build the DM
-      // and send it back to the compute processes, The compute DM has the same
-      // size since they contain the same number of boxes.
-      Array<int> intransit_procmap(mf->DistributionMap().ProcessorMap().size()+1);
-      ParallelDescriptor::Bcast(&intransit_procmap[0], intransit_procmap.size(), 0, ParallelDescriptor::CommunicatorInter());
-
-      // Both the compute and sidecar procs now have both DMs, so now we can
-      // send the FAB data.
-      for (MFIter mfi(*mf); mfi.isValid(); ++mfi)
-      {
-          const int index = mfi.index();
-          const Box& box = (*mf)[mfi].box();
-          const long numPts = box.numPts();
-          ParallelDescriptor::Send(&numPts, 1, intransit_procmap[index], 0, ParallelDescriptor::CommunicatorInter());
-          const Real *dataPtr = (*mf)[mfi].dataPtr();
-          ParallelDescriptor::Send(dataPtr, numPts*nComp, intransit_procmap[index], 1, ParallelDescriptor::CommunicatorInter());
-      }
-    }
-    else
-    {
-      // The sidecars also need the compute proc's DM.
-      int procmap_size;
-      ParallelDescriptor::Bcast(&procmap_size, 1, 0, ParallelDescriptor::CommunicatorInter());
-      Array<int> comp_procmap(procmap_size);
-      ParallelDescriptor::Bcast(&comp_procmap[0], procmap_size, 0, ParallelDescriptor::CommunicatorInter());
-      DistributionMapping CompDM(comp_procmap);
-
-      // Now build the list of Boxes.
-      BoxList bl;
-
-      for (unsigned int i = 0; i < procmap_size-1; ++i) {
-        int box_index_type[BL_SPACEDIM];
-        int smallEnd[BL_SPACEDIM];
-        int bigEnd[BL_SPACEDIM];
-        ParallelDescriptor::Bcast(box_index_type, BL_SPACEDIM, 0, ParallelDescriptor::CommunicatorInter());
-        ParallelDescriptor::Bcast(smallEnd      , BL_SPACEDIM, 0, ParallelDescriptor::CommunicatorInter());
-        ParallelDescriptor::Bcast(bigEnd        , BL_SPACEDIM, 0, ParallelDescriptor::CommunicatorInter());
-
-        IntVect smallEnd_IV(smallEnd);
-        IntVect bigEnd_IV(bigEnd);
-        IntVect box_index_type_IV(box_index_type);
-        Box box(smallEnd_IV, bigEnd_IV, box_index_type_IV);
-        bl.push_back(box);
-      }
-
-      BoxArray ba(bl);
-
-      // Get number of components in the FabArray.
-      int nComp;
-      ParallelDescriptor::Bcast(&nComp, 1, 0, ParallelDescriptor::CommunicatorInter());
-
-      // Get number of ghost cells.
-      int nGhost;
-      ParallelDescriptor::Bcast(&nGhost, 1, 0, ParallelDescriptor::CommunicatorInter());
-
-      // Now that the sidecars have all the Boxes, they can build their DM.
-      DistributionMapping sidecar_DM;
-      sidecar_DM.define(ba, ParallelDescriptor::NProcsSidecar());
-
-      // The compute procs need the sidecars' DM so that we can match Send()s
-      // and Recv()s for the FAB data.
-      Array<int> intransit_procmap = sidecar_DM.ProcessorMap();
-      ParallelDescriptor::Bcast(&intransit_procmap[0], procmap_size, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
-
-      // Now build the sidecar MultiFab with the new DM.
-      mf->define(ba, nComp, nGhost, sidecar_DM, Fab_allocate);
-
-      // Now we populate the MultiFab with data.
-      for (MFIter mfi(*mf); mfi.isValid(); ++mfi)
-      {
-        const int index = mfi.index();
-        long numPts;
-        ParallelDescriptor::Recv(&numPts, 1, comp_procmap[index], 0, ParallelDescriptor::CommunicatorInter());
-        Real FAB_data[numPts*nComp];
-        Real *data_ptr = (*mf)[mfi].dataPtr();
-        ParallelDescriptor::Recv(FAB_data, numPts*nComp, comp_procmap[index], 1, ParallelDescriptor::CommunicatorInter());
-        std::memcpy(data_ptr, FAB_data, numPts*nComp*sizeof(Real));
-      }
-    }
+  // ---- bools
+  int bInit(initialized);
+  if(scsMyId != ioProcNumSCS) {
+    initialized   = bInit;
+  }
+  FabArray::AddProcsToComp(ioProcNumSCS, ioProcNumAll, scsMyId, scsComm);
 }
-#endif
+

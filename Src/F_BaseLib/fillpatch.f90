@@ -75,17 +75,36 @@ contains
     no_final_physbc      = .false.
     fill_crse            = .true.
     fill_crse_physbc     = .true.
+
     stencil_width        = 1
     fourth_order         = .false.
 
-    if ( present(stencil_width_input)   ) stencil_width   = stencil_width_input
+    ! Check this first so we can adjust the default for stencil_width
     if ( present(fourth_order_input)    ) fourth_order    = fourth_order_input
+
+    if (present(stencil_width_input)) then
+       if ( fourth_order ) then
+          if ( stencil_width_input < 2) &
+            call bl_error('fillpatch: fourth_order but stencil_width < 2')
+       end if
+       stencil_width = stencil_width_input
+    else
+       if ( fourth_order) then
+          stencil_width = 2
+       else
+          stencil_width = 1
+       end if
+    end if
+
     if ( present(lim_slope_input)       ) lim_slope       = lim_slope_input
     if ( present(lin_limit_input)       ) lin_limit       = lin_limit_input
     if ( present(no_final_physbc_input) ) no_final_physbc = no_final_physbc_input
     if ( present(fill_crse_input)       ) fill_crse       = fill_crse_input
     if ( present(fill_crse_physbc_input)) fill_crse_physbc= fill_crse_physbc_input
 
+    ! This test detects if fourth_order was set to true and a stencil_width_input < 2 was passed in.
+    ! If fourth_order = 2 and no stencil_width_input is passed in, then we will use stencil_width = 2
+    !    and all should be fine
     if (fourth_order .and. (stencil_width < 2)) &
        call bl_error('fillpatch: need at least stencil_width = 2 for fourth order interp')
 

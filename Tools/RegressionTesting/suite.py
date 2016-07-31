@@ -95,6 +95,10 @@ class Test(object):
 
         self.backtrace = []   # filled automatically
 
+        self.has_stderr = False # filled automatically
+
+        self.compile_successful = False  # filled automatically
+        self.compare_successful = False  # filled automatically
 
     def __lt__(self, other):
         return self.value() < other.value()
@@ -117,9 +121,9 @@ class Test(object):
             output_dir = self.output_dir   # not yet implemented
 
         plts = [d for d in os.listdir(output_dir) if \
-                (os.path.isdir(d) and 
+                (os.path.isdir(d) and
                  d.startswith("{}_plt".format(self.name))) or \
-                (os.path.isfile(d) and 
+                (os.path.isfile(d) and
                  d.startswith("{}_plt".format(self.name)) and d.endswith(".tgz"))]
 
         if len(plts) == 0:
@@ -193,7 +197,7 @@ class Suite(object):
 
         self.globalAddToExecString = ""
 
-        # this will be automatically filled 
+        # this will be automatically filled
         self.extra_src_comp_string = ""
 
         # delete all plot/checkfiles but the plotfile used for comparison upon
@@ -208,7 +212,7 @@ class Suite(object):
         # if the test was run on a branch other than the default, then
         # an asterisk will appear next to the date in the main page
         self.default_branch = "master"
-        
+
     def check_test_dir(self, dir_name):
         """ given a string representing a directory, check if it points to
             a valid directory.  If so, return the directory name """
@@ -271,7 +275,7 @@ class Suite(object):
     def get_bench_dir(self):
         bench_dir = self.testTopDir + self.suiteName + "-benchmarks/"
         if not os.path.isdir(bench_dir):
-            if not self.args.make_benchmarks == None:
+            if not self.args.make_benchmarks is None:
                 os.mkdir(bench_dir)
             else:
                 self.log.fail("ERROR: benchmark directory, {}, does not exist".format(bench_dir))
@@ -528,13 +532,18 @@ class Suite(object):
             self.FCOMP, self.add_to_f_make_command, all_opts, target)
 
         self.log.log(comp_string)
-        test_util.run(comp_string, outfile=outfile)
-        return comp_string
+        stdout, stderr, rc = test_util.run(comp_string, outfile=outfile)
+
+        # make returns 0 if everything was good
+        if not rc == 0:
+            self.log.warn("build failed")
+
+        return comp_string, rc
 
     def build_c(self, test=None, opts="", outfile=None):
 
         build_opts = ""
-        
+
         if test is not None:
             build_opts += "DEBUG={} ".format(c_flag(test.debug))
             build_opts += "USE_MPI={} ".format(c_flag(test.useMPI))
@@ -554,8 +563,13 @@ class Suite(object):
             all_opts, self.COMP, self.FCOMP, self.add_to_c_make_command)
 
         self.log.log(comp_string)
-        test_util.run(comp_string, outfile=outfile)
-        return comp_string
+        stdout, stderr, rc = test_util.run(comp_string, outfile=outfile)
+
+        # make returns 0 if everything was good
+        if not rc == 0:
+            self.log.warn("build failed")
+
+        return comp_string, rc
 
     def run_test(self, test, base_command):
         test_env = None
@@ -572,7 +586,9 @@ class Suite(object):
 
         self.log.log(test_run_command)
         sout, serr, ierr = test_util.run(test_run_command, stdin=True,
-                                         outfile="{}.run.out".format(test.name), env=test_env)
+                                         outfile="{}.run.out".format(test.name),
+                                         errfile="{}.err.out".format(test.name),
+                                         env=test_env)
         test.run_command = test_run_command
 
     def copy_backtrace(self, test):
@@ -609,7 +625,10 @@ class Suite(object):
 
         for t in tools:
             self.log.log("building {}...".format(t))
-            self.build_f(target="programs={}".format(t), opts="NDEBUG=t MPI= ")
+            comp_string, rc = self.build_f(target="programs={}".format(t), opts="NDEBUG=t MPI= ")
+            if not rc == 0:
+                self.log.fail("unable to continue, tools not able to be built")
+
             exe = test_util.get_recent_filename(self.compare_tool_dir, t, ".exe")
             self.tools[t] = "{}/{}".format(self.compare_tool_dir, exe)
 

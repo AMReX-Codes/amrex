@@ -446,6 +446,11 @@ public:
 			  int       ncomp,
 	                  int       dcomp=0);
     
+    virtual void AddProcsToComp(Amr *aptr, int nSidecarProcs, int prevSidecarProcs,
+                                int ioProcNumSCS, int ioProcNumAll, int scsMyId,
+			        MPI_Comm scsComm);
+    void Check() const;
+
 protected:
     //
     // The constructors -- for derived classes.
@@ -468,6 +473,7 @@ protected:
     // Common code used by all constructors.
     //
     void finishConstructor (); 
+
     //
     // The Data.
     //

@@ -77,7 +77,7 @@ FluxRegister::define (const BoxArray& fine_boxes,
     fine_level = fine_lev;
     ncomp      = nvar;
 
-    grids.define(fine_boxes);
+    grids = fine_boxes;
     grids.coarsen(ratio);
 
     for (int dir = 0; dir < BL_SPACEDIM; dir++)
@@ -108,7 +108,7 @@ FluxRegister::define (const BoxArray&            fine_boxes,
     fine_level = fine_lev;
     ncomp      = nvar;
 
-    grids.define(fine_boxes);
+    grids = fine_boxes;
     grids.coarsen(ratio);
 
     for (int dir = 0; dir < BL_SPACEDIM; dir++)
@@ -452,3 +452,25 @@ FluxRegister::read (const std::string& name, std::istream& is)
 
     br->read(name,is);
 }
+
+void
+FluxRegister::AddProcsToComp(int ioProcNumSCS, int ioProcNumAll,
+                             int scsMyId, MPI_Comm scsComm)
+{
+  // ---- ints
+  ParallelDescriptor::Bcast(&fine_level, 1, ioProcNumSCS, scsComm);
+  ParallelDescriptor::Bcast(&ncomp, 1, ioProcNumSCS, scsComm);
+
+  // ---- IntVects
+  Array<int> iv(BL_SPACEDIM, -1);
+  if(scsMyId == ioProcNumSCS) {
+    for(int i(0); i < BL_SPACEDIM; ++i) { iv[i] = ratio[i]; }
+  }
+  ParallelDescriptor::Bcast(iv.dataPtr(), iv.size(), ioProcNumSCS, scsComm);
+  if(scsMyId != ioProcNumSCS) {
+    for(int i(0); i < BL_SPACEDIM; ++i) { ratio[i] = iv[i]; }
+  }
+  BndryRegister::AddProcsToComp(ioProcNumSCS, ioProcNumAll,
+                                scsMyId, scsComm);
+}
+

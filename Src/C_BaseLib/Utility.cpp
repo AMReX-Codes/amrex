@@ -22,6 +22,7 @@
 #include <BLProfiler.H>
 
 #include <ParallelDescriptor.H>
+#include <BoxArray.H>
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -882,10 +883,11 @@ BoxLib::RestoreRandomState (const Array<unsigned long>& state)
 }
 
 void
-BoxLib::UniqueRandomSubset (Array<int> &uSet, int setSize, int poolSize)
+BoxLib::UniqueRandomSubset (Array<int> &uSet, int setSize, int poolSize,
+                            bool printSet)
 {
   if(setSize > poolSize) {
-    BoxLib::Abort("**** Error in UniqueSet:  setSize > poolSize.");
+    BoxLib::Abort("**** Error in UniqueRandomSubset:  setSize > poolSize.");
   }
   std::set<int> copySet;
   Array<int> uSetTemp;
@@ -897,8 +899,10 @@ BoxLib::UniqueRandomSubset (Array<int> &uSet, int setSize, int poolSize)
     }
   }
   uSet = uSetTemp;
-  for(int i(0); i < uSet.size(); ++i) {
-    std::cout << "uSet[" << i << "]  = " << uSet[i] << std::endl;
+  if(printSet) {
+    for(int i(0); i < uSet.size(); ++i) {
+      std::cout << "uSet[" << i << "]  = " << uSet[i] << std::endl;
+    }
   }
 }
 
@@ -1519,4 +1523,104 @@ void BoxLib::SyncStrings(const Array<std::string> &localStrings,
 
 }
 
+
+
+Array<char> BoxLib::SerializeStringArray(const Array<std::string> &stringArray)
+{
+  std::ostringstream stringStream;
+  for(int i(0); i < stringArray.size(); ++i) {
+    stringStream << stringArray[i] << '\n';
+  }
+
+  Array<char> charArray(stringStream.str().size() + 1);
+  std::strcpy(charArray.dataPtr(), stringStream.str().c_str());  // null terminated
+
+  return charArray;
+}
+
+
+
+
+
+Array<std::string> BoxLib::UnSerializeStringArray(const Array<char> &charArray)
+{
+  Array<std::string> stringArray;
+  std::istringstream stringStream(charArray.dataPtr());
+  std::string sTemp;
+  while( ! stringStream.eof()) {
+    std::getline(stringStream, sTemp, '\n');
+    if( ! stringStream.eof()) {
+      stringArray.push_back(sTemp);
+    }
+  }
+
+  return stringArray;
+}
+
+
+void BoxLib::BroadcastBox(Box &bB, int myLocalId, int rootId, const MPI_Comm &localComm)
+{
+  Array<int> baseBoxAI;
+  if(myLocalId == rootId) {
+    baseBoxAI = BoxLib::SerializeBox(bB);
+  }
+  BoxLib::BroadcastArray(baseBoxAI, myLocalId, rootId, localComm);
+  if(myLocalId != rootId) {
+    bB = BoxLib::UnSerializeBox(baseBoxAI);
+  }
+}
+
+
+
+void BoxLib::BroadcastBoxArray(BoxArray &bBA, int myLocalId, int rootId, const MPI_Comm &localComm)
+{
+  Array<int> sbaG;
+  if(myLocalId == rootId) {
+    sbaG = BoxLib::SerializeBoxArray(bBA);
+  }
+  BoxLib::BroadcastArray(sbaG, myLocalId, rootId, localComm);
+  if(myLocalId != rootId) {
+    if(sbaG.size() > 0) {
+      bBA = BoxLib::UnSerializeBoxArray(sbaG);
+    }
+  }
+}
+
+
+void BoxLib::BroadcastDistributionMapping(DistributionMapping &dM, int sentinelProc,
+                                          int myLocalId, int rootId, const MPI_Comm &localComm,
+					  bool addToCache)
+{
+  int dmStrategy(dM.strategy());
+  ParallelDescriptor::Bcast(&dmStrategy, 1, rootId, localComm);
+  if(myLocalId != rootId) {
+    dM.strategy(static_cast<DistributionMapping::Strategy>(dmStrategy));
+  }
+
+  Array<int> dmapA;
+
+  if(myLocalId == rootId) {
+    dmapA = dM.ProcessorMap();
+  }
+  BoxLib::BroadcastArray(dmapA, myLocalId, rootId, localComm);
+  if(dmapA.size() > 0) {
+    if(myLocalId != rootId) {
+      dmapA[dmapA.size() - 1] = sentinelProc;  // ---- set the sentinel
+      dM.define(dmapA, addToCache);
+    }
+  }
+  int dmID(dM.DistMapID()), nDM(DistributionMapping::NDistMaps());
+  ParallelDescriptor::Bcast(&dmID, 1, rootId, localComm);
+  ParallelDescriptor::Bcast(&nDM, 1, rootId, localComm);
+  if(myLocalId != rootId) {
+    dM.SetDistMapID(dmID);
+    DistributionMapping::SetNDistMaps(nDM);
+  }
+}
+
+
+void BoxLib::USleep(double sleepsec) {
+  //usleep(sleepsec * msps);
+  usleep(sleepsec * msps / 10.0);
+}
 

@@ -89,7 +89,7 @@ contains
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
   subroutine ml_edge_restriction_c(crse, cc, fine, cf, ir, face, nc)
-    use edge_restriction_module
+    use cc_restriction_module
     type(multifab), intent(inout) :: fine
     type(multifab), intent(inout) :: crse
     integer,        intent(in)    :: cc, cf, ir(:)

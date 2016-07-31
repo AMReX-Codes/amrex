@@ -29,6 +29,7 @@ public:
     // be implemented by derived classes.
     //
     virtual void variableSetUp () = 0;
+    virtual void variableSetUpForNewCompProcs () { } 
     //
     // Perform any problem-dependent cleanup.
     // This is a pure virtual function and hence MUST

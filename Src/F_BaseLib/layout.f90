@@ -3638,6 +3638,8 @@ contains
 
     ta => la%lap%tas(tid)
 
+    call tilearray_destroy(ta)
+
     ta%dim = dim
     ta%nthreads = nthreads
     ta%tilesize = tilesize
@@ -3692,11 +3694,6 @@ contains
 
     nt_in_thread = thi - tlo + 1
     ta%ntiles = nt_in_thread
-
-    if (associated(ta%gidx))   call bl_deallocate(ta%gidx)
-    if (associated(ta%lidx))   call bl_deallocate(ta%lidx)
-    if (associated(ta%tilelo)) call bl_deallocate(ta%tilelo)
-    if (associated(ta%tilehi)) call bl_deallocate(ta%tilehi)
 
     call bl_allocate(ta%gidx, 1, nt_in_thread)
     call bl_allocate(ta%lidx, 1, nt_in_thread)

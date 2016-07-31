@@ -142,7 +142,7 @@ public:
     // Set values in ba to val. 
     //
     void setVal (const BoxArray& ba, TagBox::TagVal val);
-    using FabArray::setVal;
+    using FabArray<TagBox>::setVal;
     //
     // Calls coarsen() on all contained TagBoxes.
     //
@@ -156,6 +156,9 @@ public:
     // The callee must delete[] the space when not needed.
     //
     IntVect* collate (long& numtags) const;
+
+    virtual void AddProcsToComp (int ioProcNumSCS, int ioProcNumAll,
+                                 int scsMyId, MPI_Comm scsComm);
 
 private:
     //
