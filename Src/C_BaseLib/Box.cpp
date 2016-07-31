@@ -685,7 +685,7 @@ BoxLib::minBox (const Box& b,
 Box&
 Box::minBox (const Box &b)
 {
-    BL_ASSERT(b.ok() && ok());
+// BoxArray may call this with not ok boxes.  BL_ASSERT(b.ok() && ok());
     BL_ASSERT(sameType(b));
     smallend.min(b.smallend);
     bigend.max(b.bigend);

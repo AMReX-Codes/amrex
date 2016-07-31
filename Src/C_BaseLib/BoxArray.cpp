@@ -1107,7 +1107,8 @@ BoxArray::getHashMap () const
             // Calculate the bounding box & maximum extent of the boxes.
             //
             Box boundingbox = m_ref->m_abox[0];
-	    IntVect maxext = boundingbox.size();
+	    IntVect maxext = BoxLib::max(boundingbox.size(),
+                                         IntVect::TheUnitVector());
 
 	    const int N = size();
 
@@ -1122,6 +1123,11 @@ BoxArray::getHashMap () const
 
             m_ref->crsn = maxext;
             m_ref->bbox = boundingbox;
+	    for (int dir = 0; dir < BL_SPACEDIM; ++dir) {
+                if (m_ref->bbox.bigEnd(dir) < m_ref->bbox.smallEnd(dir)) {
+                    m_ref->bbox.setBig(dir,m_ref->bbox.smallEnd(dir));
+                }
+            }
 
             for (int i = 0; i < N; i++)
             {
