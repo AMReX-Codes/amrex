@@ -3,6 +3,7 @@
 #define _FABSET_H_
 
 #include <MultiFab.H>
+#include <Geometry.H>
 
 /*
         A FabSet is a group of FArrayBox's.  The grouping is designed
@@ -89,6 +90,8 @@ public:
     FabSet& plusFrom (const MultiFab& src, int ngrow, int scomp, int dcomp, int ncomp);
 
     void copyTo (MultiFab& dest, int scomp, int dcomp, int ncomp) const;
+
+    void periodicCopyTo (MultiFab& dest, const Geometry& geom, int scomp, int dcomp, int ncomp) const;
 
     void setVal (Real val);
 

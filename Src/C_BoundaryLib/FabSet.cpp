@@ -69,6 +69,14 @@ FabSet::copyTo (MultiFab& dest, int scomp, int dcomp, int ncomp) const
 }
 
 void
+FabSet::periodicCopyTo (MultiFab& dest, const Geometry& geom, int scomp, int dcomp, int ncomp) const
+{
+    BL_ASSERT(boxArray() != dest.boxArray());
+    geom.PeriodicCopy(dest, m_mf, dcomp, scomp, ncomp);
+    dest.copy(m_mf,scomp,dcomp,ncomp);
+}
+
+void
 FabSet::setVal (Real val)
 {
 #ifdef _OPENMP
