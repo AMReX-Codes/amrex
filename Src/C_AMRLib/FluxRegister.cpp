@@ -378,7 +378,7 @@ FluxRegister::Reflux (MultiFab&       mf,
 	flux.setVal(0.0);
 
 	bndry[face].copyTo(flux, scomp, 0, ncomp);
-//xxxxx	geom.PeriodicCopy(flux, bndry[face], 0, scomp, ncomp);
+	bndry[face].periodicCopyTo(flux, geom, scomp, 0, ncomp);
 
 #ifdef _OPENMP
 #pragma omp parallel
