@@ -189,9 +189,14 @@ DistributionMapping::Initialize ()
     }
 
     if(proximityMap.size() != ParallelDescriptor::NProcs()) {
-      //std::cout << "#00#::Initialize: proximityMap not resized yet." << std::endl;
       proximityMap.resize(ParallelDescriptor::NProcs(), 0);
       proximityOrder.resize(ParallelDescriptor::NProcs(), 0);
+      for(int i(0); i < proximityMap.size(); ++i) {
+        proximityMap[i] = i;
+      }
+      for(int i(0); i < proximityOrder.size(); ++i) {
+        proximityOrder[i] = i;
+      }
     }
     totalBoxPoints.resize(ParallelDescriptor::NProcs(), 0);
 
@@ -373,6 +378,41 @@ DistributionMapping::GetMap (const BoxArray& boxes)
     {
         m_ref = it->second;
 
+        if(m_ref->m_pmap[N] != ParallelDescriptor::MyProc()) {
+	  CacheStats(std::cout);
+	  std::cout << "********* _in GetMap:  myproc m_Cache.size() N m_pmap[N] = "
+	            << ParallelDescriptor::MyProc() << "  " << m_Cache.size()
+		    << "  " << N << "  " << m_ref->m_pmap[N] << "  m_pmap = "
+		    << m_ref->m_pmap << std::endl;
+	}
+        BL_ASSERT(m_ref->m_pmap[N] == ParallelDescriptor::MyProc());
+
+        return true;
+    }
+
+    return false;
+}
+
+bool
+DistributionMapping::GetMap (int nBoxes)
+{
+    const int N = nBoxes;
+
+    BL_ASSERT(m_ref->m_pmap.size() == N + 1);
+
+    std::map< std::pair<int,int>, LnClassPtr<Ref> >::const_iterator it 
+	= m_Cache.find(std::make_pair(N+1,m_color.to_int()));
+
+    if (it != m_Cache.end())
+    {
+        m_ref = it->second;
+
+        if(m_ref->m_pmap[N] != ParallelDescriptor::MyProc()) {
+	  CacheStats(std::cout);
+	  std::cout << "********* _in GetMap:  myproc m_Cache.size() N m_pmap[N] = "
+	            << ParallelDescriptor::MyProc() << "  " << m_Cache.size()
+		    << "  " << N << "  " << m_ref->m_pmap[N] << std::endl;
+	}
         BL_ASSERT(m_ref->m_pmap[N] == ParallelDescriptor::MyProc());
 
         return true;
@@ -511,11 +551,37 @@ DistributionMapping::define (const Array<int>& pmap)
 {
     Initialize();
 
-    if (m_ref->m_pmap.size() != pmap.size())
+    if (m_ref->m_pmap.size() != pmap.size()) {
         m_ref->m_pmap.resize(pmap.size());
+    }
 
-    for (unsigned int i=0; i<pmap.size(); ++i)
+    for (unsigned int i(0); i < pmap.size(); ++i) {
         m_ref->m_pmap[i] = pmap[i];
+    }
+}
+
+void
+DistributionMapping::define (const Array<int>& pmap, bool put_in_cache)
+{
+    if( ! put_in_cache) {
+      define(pmap);
+      return;
+    }
+
+    Initialize();
+
+    if (m_ref->m_pmap.size() != pmap.size()) {
+        m_ref->m_pmap.resize(pmap.size());
+    }
+
+    if ( ! GetMap(pmap.size() - 1)) {
+	BL_ASSERT(m_BuildMap != 0);
+
+        m_Cache.insert(std::make_pair(std::make_pair(m_ref->m_pmap.size(),m_color.to_int()),m_ref));
+    }
+    for (unsigned int i(0); i < pmap.size(); ++i) {
+        m_ref->m_pmap[i] = pmap[i];
+    }
 }
 
 DistributionMapping::~DistributionMapping () { }
@@ -523,8 +589,9 @@ DistributionMapping::~DistributionMapping () { }
 void
 DistributionMapping::FlushCache ()
 {
-    if (BoxLib::verbose)
+    if (BoxLib::verbose) {
 	CacheStats(std::cout);
+    }
     //
     // Remove maps that aren't referenced anywhere else.
     //
@@ -541,6 +608,18 @@ DistributionMapping::FlushCache ()
             ++it;
         }
     }
+}
+
+void
+DistributionMapping::DeleteCache ()
+{
+    CacheStats(std::cout);
+    std::map< std::pair<int,int>,LnClassPtr<Ref> >::iterator it = m_Cache.begin();
+
+    while (it != m_Cache.end()) {
+      m_Cache.erase(it++);
+    }
+    CacheStats(std::cout);
 }
 
 void
@@ -1971,17 +2050,30 @@ if(ParallelDescriptor::IOProcessor()) {
 Array<Array<int> >
 DistributionMapping::MultiLevelMapRandom (const Array<IntVect>  &refRatio,
                                           const Array<BoxArray> &allBoxes,
-					  int maxgrid)
+					  int maxgrid, int maxRank, int minRank)
 {
     BL_PROFILE("DistributionMapping::MultiLevelMapRandom()");
+
+    if(maxRank < 0) {
+      maxRank = ParallelDescriptor::NProcs() - 1;
+    }
+    maxRank = std::min(maxRank, ParallelDescriptor::NProcs() - 1);
+    minRank = std::max(0, minRank);
+    minRank = std::min(minRank, maxRank);
+    if(ParallelDescriptor::IOProcessor()) {
+      std::cout << "_in DistributionMapping::MultiLevelMapRandom:  minRank maxRank = "
+                << minRank << "  " << maxRank << std::endl;
+    }
 
     Array<Array<int> > localPMaps(allBoxes.size());
     for(int n(0); n < localPMaps.size(); ++n) {
       localPMaps[n].resize(allBoxes[n].size() + 1, -1);
 
       if(ParallelDescriptor::IOProcessor()) {
+	int range(maxRank - minRank);
         for(int ir(0); ir < localPMaps[n].size() - 1; ++ir) {
-          localPMaps[n][ir] = BoxLib::Random_int(ParallelDescriptor::NProcs());
+          //localPMaps[n][ir] = BoxLib::Random_int(maxRank + 1);
+          localPMaps[n][ir] = minRank + BoxLib::Random_int(range + 1);
         }
       }
       ParallelDescriptor::Bcast(localPMaps[n].dataPtr(), localPMaps[n].size());
@@ -2236,9 +2328,12 @@ DistributionMapping::GetProcNumber() {
 
 
 void
-DistributionMapping::InitProximityMap()
+DistributionMapping::InitProximityMap(bool makeMap, bool reinit)
 {
   static bool pMapInited(false);
+  if(reinit) {
+    pMapInited = false;
+  }
   if(pMapInited) {
     return;
   }
@@ -2248,6 +2343,16 @@ DistributionMapping::InitProximityMap()
 
   proximityMap.resize(ParallelDescriptor::NProcs(), 0);
   proximityOrder.resize(ParallelDescriptor::NProcs(), 0);
+  if(makeMap == false) {  // ---- dont use proximity mapping
+    for(int i(0); i < proximityMap.size(); ++i) {
+      proximityMap[i] = i;
+    }
+    for(int i(0); i < proximityOrder.size(); ++i) {
+      proximityOrder[i] = i;
+    }
+    pMapInited = true;
+    return;
+  }
 
 #ifdef BL_USE_MPI
   int procNumber(GetProcNumber());
@@ -2270,8 +2375,7 @@ DistributionMapping::InitProximityMap()
     pNumOrderRank[pnor++] = mmit->second;
   }
 
-  if(ParallelDescriptor::IOProcessor())
-  {
+  if(ParallelDescriptor::IOProcessor()) {
     bool bRandomClusters(false);
     Box tBox;
     FArrayBox tFab;
@@ -2280,8 +2384,7 @@ DistributionMapping::InitProximityMap()
 #else
     std::ifstream ifs("topolcoords.3d.fab");
 #endif
-    if( ! ifs.good() && ! bRandomClusters)
-    {
+    if( ! ifs.good() && ! bRandomClusters) {
       std::cerr << "**** In DistributionMapping::InitProximityMap():  "
                 << "cannot open topolcoords.3d.fab   using defaults." << std::endl;
 
@@ -2341,7 +2444,6 @@ DistributionMapping::InitProximityMap()
         for(IntVect iv(tBox.smallEnd()); iv <= tBox.bigEnd(); tBox.next(iv)) {
           int pnum(tFab(iv, nc));
           if(pnum >= 0) {
-            //std::cout << ">>>> iv pnum = " << iv << "  " << pnum << std::endl;
             pNumTopIVMap.insert(std::pair<int, IntVect>(pnum, iv));
 	    topIVpNumMM.insert(std::pair<IntVect, int>(iv, pnum));
           }
@@ -2354,8 +2456,7 @@ DistributionMapping::InitProximityMap()
       int maxijk(0);
 
       int i(0);
-      for(IntVect iv(tBox.smallEnd()); iv <= tBox.bigEnd(); tBox.next(iv))
-      {
+      for(IntVect iv(tBox.smallEnd()); iv <= tBox.bigEnd(); tBox.next(iv)) {
           tFabTokens.push_back(SFCToken(i++, iv, 1.0));
           const SFCToken &token = tFabTokens.back();
 
@@ -2365,16 +2466,14 @@ DistributionMapping::InitProximityMap()
       }
       // Set SFCToken::MaxPower for BoxArray.
       int m(0);
-      for ( ; (1<<m) <= maxijk; m++)
-      {
+      for( ; (1<<m) <= maxijk; m++) {
         // do nothing
       }
       SFCToken::MaxPower = m;
       std::sort(tFabTokens.begin(), tFabTokens.end(), SFCToken::Compare());  // sfc order
       FArrayBox tFabSFC(tBox, 1);
       tFabSFC.setVal(-1.0);
-      for(int i(0); i < tFabTokens.size(); ++i)
-      {
+      for(int i(0); i < tFabTokens.size(); ++i) {
 	IntVect &iv = tFabTokens[i].m_idx;
         tFabSFC(iv) = i;
       }
@@ -2568,13 +2667,11 @@ DistributionMapping::RanksFromTopIV(const IntVect &iv) {
 
 
 void
-DistributionMapping::CacheStats (std::ostream& os)
+DistributionMapping::CacheStats (std::ostream& os, int whichProc)
 {
-    if (ParallelDescriptor::IOProcessor() && m_Cache.size())
-    {
-        os << "DistributionMapping::m_Cache.size() = "
-           << m_Cache.size()
-           << " [ (refs,size): ";
+    if(ParallelDescriptor::MyProcAll() == whichProc) {
+        os << whichProc << "::DistributionMapping::m_Cache.size() = "
+           << m_Cache.size() << " [ (refs,size): ";
 
         for (std::map< std::pair<int,int>,LnClassPtr<Ref> >::const_iterator it = m_Cache.begin();
              it != m_Cache.end();
@@ -2582,7 +2679,6 @@ DistributionMapping::CacheStats (std::ostream& os)
         {
             os << '(' << it->second.linkCount() << ',' << it->second->m_pmap.size()-1 << ") ";
         }
-
         os << "]\n";
     }
 }
@@ -2742,6 +2838,29 @@ void DistributionMapping::ReadCheckPointHeader(const std::string &filename,
 }
 #endif
 
+bool 
+DistributionMapping::Check () const
+{
+   bool ok(true);
+   for(int i(0); i < m_ref->m_pmap.size() - 1; ++i) {
+     if(m_ref->m_pmap[i] >= ParallelDescriptor::NProcs()) {
+       ok = false;
+       std::cout << ParallelDescriptor::MyProc() << ":: **** error 1 in DistributionMapping::Check() "
+                 << "bad rank:  nProcs dmrank = " << ParallelDescriptor::NProcs() << "  "
+		 << m_ref->m_pmap[i] << std::endl;
+       BoxLib::Abort("Bad DistributionMapping::Check");
+     }
+   }
+   if(m_ref->m_pmap[m_ref->m_pmap.size() - 1] != ParallelDescriptor::MyProc()) {
+     ok = false;
+     std::cout << ParallelDescriptor::MyProc() << ":: **** error 2 in DistributionMapping::Check() "
+               << "bad sentinel:  myProc sentinel = " << ParallelDescriptor::MyProc() << "  "
+	       << m_ref->m_pmap[m_ref->m_pmap.size() - 1] << std::endl;
+     BoxLib::Abort("Bad DistributionMapping::Check");
+   }
+   return ok;
+}
+
 ptrdiff_t 
 DistributionMapping::getRefID () const
 {
@@ -2750,27 +2869,12 @@ DistributionMapping::getRefID () const
 }
 
 #ifdef BL_USE_MPI
-void
-DistributionMapping::SendDistributionMappingToSidecars(DistributionMapping *dm)
+Array<int>
+DistributionMapping::TranslateProcMap(const Array<int> &pm_old, const MPI_Group group_new, const MPI_Group group_old)
 {
-    const int MPI_IntraGroup_Broadcast_Rank = ParallelDescriptor::IOProcessor() ? MPI_ROOT : MPI_PROC_NULL;
-
-    if (ParallelDescriptor::InCompGroup())
-    {
-        int ProcessorMapSize(dm->size());
-        Array<int> ProcessorMap(dm->ProcessorMap());
-        ParallelDescriptor::Bcast(&ProcessorMapSize, 1, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
-        ParallelDescriptor::Bcast(&ProcessorMap[0], ProcessorMapSize, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
-    }
-    else
-    {
-        int ProcessorMapSize;
-        ParallelDescriptor::Bcast(&ProcessorMapSize, 1, 0, ParallelDescriptor::CommunicatorInter());
-        Array<int> ProcessorMap(ProcessorMapSize);
-        ParallelDescriptor::Bcast(&ProcessorMap[0], ProcessorMapSize, 0, ParallelDescriptor::CommunicatorInter());
-
-        dm->define(ProcessorMap);
-    }
+    Array<int> pm_new(pm_old.size());
+    BL_MPI_REQUIRE( MPI_Group_translate_ranks(group_old, pm_old.size(), pm_old.dataPtr(), group_new, pm_new.dataPtr()) );
+    return pm_new;
 }
 #endif
 

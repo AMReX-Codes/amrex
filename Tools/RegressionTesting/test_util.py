@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import argparse
 import os
 import shlex
@@ -186,7 +188,7 @@ class Log(object):
         print("{}{}".format(self.indent_str, nstr))
 
     def warn(self, warn_msg):
-        """ 
+        """
         output a warning.  It is always prefix with 'WARNING:'
         For multi-line warnings, send in a list of strings
         """
@@ -222,7 +224,8 @@ def get_args(arg_string=None):
     """ parse the commandline arguments.  If arg_string is present, we
         parse from there, otherwise we use the default (sys.argv) """
 
-    parser = argparse.ArgumentParser(description=usage, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser = argparse.ArgumentParser(description=usage,
+                                     formatter_class=argparse.RawDescriptionHelpFormatter)
 
     parser.add_argument("-d", type=int, default=-1,
                         help="restrict tests to a particular dimensionality")
@@ -267,21 +270,23 @@ def get_args(arg_string=None):
     return args
 
 
-def run(string, stdin=False, outfile=None, store_command=False, env=None, outfile_mode="a", log=None):
+def run(string, stdin=False, outfile=None, store_command=False, env=None,
+        outfile_mode="a", errfile=None, log=None):
 
     # shlex.split will preserve inner quotes
     prog = shlex.split(string)
     sin = None
-    if stdin: sin=subprocess.PIPE
+    if stdin: sin = subprocess.PIPE
     p0 = subprocess.Popen(prog, stdin=sin, stdout=subprocess.PIPE,
-                          stderr=subprocess.STDOUT, env=env)
+                          stderr=subprocess.PIPE, env=env)
 
     stdout0, stderr0 = p0.communicate()
     if stdin: p0.stdin.close()
     rc = p0.returncode
     p0.stdout.close()
+    p0.stderr.close()
 
-    if not outfile == None:
+    if outfile is not None:
         try: cf = open(outfile, outfile_mode)
         except IOError:
             log.fail("  ERROR: unable to open file for writing")
@@ -290,19 +295,37 @@ def run(string, stdin=False, outfile=None, store_command=False, env=None, outfil
                 cf.write(string)
             for line in stdout0:
                 cf.write(line)
+
+            if errfile is None:
+                for line in stderr0:
+                    cf.write(line)
+
             cf.close()
+
+    if errfile is not None and stderr0 is not None:
+        write_err = True
+        if isinstance(stderr0, str):
+            if stderr0.strip() == "":
+                write_err = False
+        if write_err:
+            try: cf = open(errfile, outfile_mode)
+            except IOError:
+                log.fail("  ERROR: unable to open file for writing")
+            else:
+                for line in stderr0:
+                    cf.write(line)
+                cf.close()
 
     return stdout0, stderr0, rc
 
 
-def get_recent_filename(dir, base, extension):
+def get_recent_filename(fdir, base, extension):
     """ find the most recent file matching the base and extension """
 
-    files = [f for f in os.listdir(dir) if (f.startswith(base) and
-                                            f.endswith(extension))]
+    files = [f for f in os.listdir(fdir) if (f.startswith(base) and
+                                             f.endswith(extension))]
 
     files.sort(key=lambda x: os.path.getmtime(x))
 
     try: return files.pop()
     except: return None
-

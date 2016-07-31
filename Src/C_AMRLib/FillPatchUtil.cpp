@@ -125,8 +125,6 @@ namespace BoxLib
 	    
 	if (ngrow > 0 || mf.getBDKey() != fmf[0].getBDKey()) 
 	{
-	    BoxArray ba_crse_patch;
-	    DistributionMapping dm_crse_patch;
 	    InterpolaterBoxCoarsener coarsener = mapper->BoxCoarsener(ratio);
 	    
 	    Box fdomain = fgeom.Domain();
@@ -140,7 +138,7 @@ namespace BoxLib
 	    
 	    const FabArrayBase::FPinfo& fpc = FabArrayBase::TheFPinfo(fmf[0], mf, fdomain_g, ngrow, coarsener);
 
-	    if (!fpc.ba_crse_patch.empty())
+	    if ( ! fpc.ba_crse_patch.empty())
 	    {
 		MultiFab mf_crse_patch(fpc.ba_crse_patch, ncomp, 0, fpc.dm_crse_patch);
 		

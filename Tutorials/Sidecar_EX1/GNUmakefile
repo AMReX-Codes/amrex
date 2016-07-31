@@ -1,8 +1,10 @@
 # BOXLIB_HOME defines the directory in which we will find all the BoxLib code
 # If you set BOXLIB_HOME as an environment variable, this line will be ignored
-BOXLIB_HOME ?= ../../../BoxLib
+#BOXLIB_HOME ?= ../../../BoxLib
+BOXLIB_HOME = ../..
 
 DEBUG     = FALSE
+DEBUG     = TRUE
 USE_MPI   = TRUE
 USE_OMP   = FALSE
 PROFILE   = FALSE
@@ -10,7 +12,11 @@ COMP      = g++
 FCOMP     = gfortran
 DIM       = 3
 PRECISION = DOUBLE
+EBASE     = sidecarresizetest
 EBASE     = gridmovetest
+EBASE     = destmftest
+EBASE     = testranksets
+EBASE     = nsidecarstest
 
 DO_IN_TRANSIT_ANALYSIS = TRUE
 ANALYSIS_DIR = $(BOXLIB_HOME)/Tutorials/Sidecar_EX1

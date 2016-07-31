@@ -2,6 +2,8 @@
 #include <winstd.H>
 #include <sstream>
 
+#include <unistd.h>
+
 #include <AmrLevel.H>
 #include <Derive.H>
 #include <ParallelDescriptor.H>
@@ -215,7 +217,7 @@ AmrLevel::restart (Amr&          papa,
 #ifdef USE_PARTICLES
     // Note: it is important to call make_particle_dmap *after* the state
     //       has been defined because it makes use of the state's DistributionMap
-    particle_grids.define(grids);
+    particle_grids = grids;
     make_particle_dmap();
 #endif
 
@@ -1191,9 +1193,9 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
         //
         // Set non-periodic BCs in coarse data -- what we interpolate with.
         // This MUST come after the periodic fill mumbo-jumbo.
-        for (int i = 0; i < NC; i++)
+        for (int i = 0; i < NC; ++i)
         {
-            if (!ThePDomain.contains(CrseFabs[i].box()))
+            if ( ! ThePDomain.contains(CrseFabs[i].box()))
             {
                 TheLevel.setPhysBoundaryValues(CrseFabs[i],
                                                m_index,
@@ -1206,7 +1208,7 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
 
         if (m_FixUpCorners)
         {
-            for (int i = 0; i < NC; i++)
+            for (int i = 0; i < NC; ++i)
             {
                 FixUpPhysCorners(CrseFabs[i],TheLevel,m_index,m_time,m_scomp,0,m_ncomp);
             }
@@ -1232,8 +1234,9 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
             //
             // Fill crsefab from m_cbox via copy on intersect.
             //
-            for (int j = 0; j < NC; j++)
+            for (int j = 0; j < NC; j++) {
                 crsefab.copy(CrseFabs[j]);
+	    }
             //
             // Get boundary conditions for the fine patch.
             //
@@ -1262,8 +1265,9 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
             //
             // Copy intersect finefab into next level m_cboxes.
             //
-	    for (int j = 0, K = FinerCrseFabs.size(); j < K; j++)
+	    for (int j = 0, K = FinerCrseFabs.size(); j < K; ++j) {
 		FinerCrseFabs[j].copy(finefab);
+	    }
         }
 
         CrseFabs.clear();
@@ -1278,8 +1282,9 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
     //
     // Copy intersect coarse into destination fab.
     //
-    for (int i = 0, N = FinestCrseFabs.size(); i < N; i++)
+    for (int i = 0, N = FinestCrseFabs.size(); i < N; ++i) {
         fab.copy(FinestCrseFabs[i],0,dcomp,m_ncomp);
+    }
 
     if (FineGeom.isAnyPeriodic() && !FineDomain.contains(fab.box()))
     {
@@ -1315,7 +1320,7 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
     //
     // Final set of non-periodic BCs.
     //
-    if (!FineState.getDomain().contains(fab.box()))
+    if (! FineState.getDomain().contains(fab.box()))
     {
         m_amrlevel.setPhysBoundaryValues(fab,
                                          m_index,
@@ -1939,3 +1944,80 @@ AmrLevel::FillPatch(AmrLevel& amrlevel,
     const MultiFab& mf_fillpatched = fpi.get_mf();
     MultiFab::Copy(leveldata, mf_fillpatched, 0, dcomp, ncomp, boxGrow);
 }
+
+
+
+void
+AmrLevel::AddProcsToComp(Amr *aptr, int nSidecarProcs, int prevSidecarProcs,
+                         int ioProcNumSCS, int ioProcNumAll, int scsMyId,
+			 MPI_Comm scsComm)
+{
+#if BL_USE_MPI
+      if(scsMyId != ioProcNumSCS) {
+        parent = aptr;
+      }
+
+      // ---- ints
+      ParallelDescriptor::Bcast(&level, 1, ioProcNumAll, scsComm);
+
+      // ---- IntVects
+      Array<int> allIntVects;
+      if(scsMyId == ioProcNumSCS) {
+        for(int i(0); i < BL_SPACEDIM; ++i)    { allIntVects.push_back(crse_ratio[i]); }
+        for(int i(0); i < BL_SPACEDIM; ++i)    { allIntVects.push_back(fine_ratio[i]); }
+      }
+      BoxLib::BroadcastArray(allIntVects, scsMyId, ioProcNumSCS, scsComm);
+
+      if(scsMyId != ioProcNumSCS) {
+        int count(0);
+        for(int i(0); i < BL_SPACEDIM; ++i)    { crse_ratio[i] = allIntVects[count++]; }
+        for(int i(0); i < BL_SPACEDIM; ++i)    { fine_ratio[i] = allIntVects[count++]; }
+      }
+
+
+      // ---- Boxes
+      BoxLib::BroadcastBox(m_AreaToTag, scsMyId, ioProcNumSCS, scsComm);
+      
+      // ---- Geometry
+      Geometry::BroadcastGeometry(geom, ioProcNumSCS, scsComm);
+      
+      // ---- BoxArrays
+      BoxLib::BroadcastBoxArray(grids, scsMyId, ioProcNumSCS, scsComm);
+      BoxLib::BroadcastBoxArray(m_AreaNotToTag, scsMyId, ioProcNumSCS, scsComm);
+
+
+#ifdef USE_PARTICLES
+      BoxLib::BroadcastBoxArray(particle_grids, scsMyId, ioProcNumSCS, scsComm);
+
+      int sentinelProc(ParallelDescriptor::MyProcComp());
+      BoxLib::BroadcastDistributionMapping(particle_dmap, sentinelProc, scsMyId,
+                                           ioProcNumSCS, scsComm, true);
+#endif
+
+#ifdef USE_SLABSTAT
+      BoxLib::Abort("**** Error in AmrLevel::MSS:  USE_SLABSTAT not implemented");
+#endif
+
+      // ---- state
+      int stateSize(state.size());
+      ParallelDescriptor::Bcast(&stateSize, 1, ioProcNumSCS, scsComm);
+      if(scsMyId != ioProcNumSCS) {
+        state.resize(stateSize);
+      }
+      for(int i(0); i < state.size(); ++i) {
+        state[i].AddProcsToComp(desc_lst[i], ioProcNumSCS, ioProcNumAll, scsMyId, scsComm);
+      }
+#endif
+}
+
+
+
+void
+AmrLevel::Check() const
+{
+    for(int i(0); i < state.size(); ++i) {
+      state[i].Check();
+    }
+}
+
+

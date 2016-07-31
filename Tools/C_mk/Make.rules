@@ -33,6 +33,10 @@ realclean:: clean
 	$(SILENT) $(RM) *.mod
 	$(SILENT) $(RM) work.pc work.pcl
 
+file_locations:
+	$(BOXLIB_HOME)/Tools/F_scripts/find_files_vpath.py --vpath "$(VPATH_LOCATIONS)" --files "$(CEXE_sources) $(FEXE_sources) $(cEXE_sources) $(fEXE_sources) $(f90EXE_sources) $(F90EXE_sources)"
+
+
 tags:	$(allSources)
 	@echo ctags ...
 	$(SILENT) ctags $<
@@ -60,48 +64,48 @@ $(executable):	$(objForExecs)
 $(objTempDir)/%.o: %.cpp
 	@echo Compiling $*.cpp ...
 	@if [ ! -d $(objTempDir) ]; then mkdir -p $(objTempDir); fi
-	$(SILENT) $(CXX) $(CXXLIBFLAGS) $(CXXFLAGS) $(CPPFLAGS) -c $< $(LIB_OUTPUT_OPTION)
+	$(SILENT) $(CCACHE) $(CXX) $(CXXLIBFLAGS) $(CXXFLAGS) $(CPPFLAGS) -c $< $(LIB_OUTPUT_OPTION)
 
 $(objTempDir)/%.o: %.c
 	@echo Compiling $*.c ...
 	@if [ ! -d $(objTempDir) ]; then mkdir -p $(objTempDir); fi
-	$(SILENT) $(CC) $(CLIBFLAGS) $(CFLAGS) $(CPPFLAGS) -DBL_LANG_C -c $< $(LIB_OUTPUT_OPTION)
+	$(SILENT) $(CCACHE) $(CC) $(CLIBFLAGS) $(CFLAGS) $(CPPFLAGS) -DBL_LANG_C -c $< $(LIB_OUTPUT_OPTION)
 
 #$(objTempDir)/%.o: %.F90
 #	@echo Compiling $*.F90 ...
 #	@if [ ! -d $(f77TempDir) ]; then mkdir -p $(f77TempDir); fi
 #	@if [ ! -d $(objTempDir) ]; then mkdir -p $(objTempDir); fi
 #	$(SILENT) $(FORT_CPP) $(CPPFLAGS) -DBL_LANG_FORT $< | $(F90PREP) > $(f77TempDir)/$*.f90
-#	$(SILENT) $(fC) $(fLIBFLAGS) $(fFLAGS) $(fincludes) -c $(f77TempDir)/$*.f90 $(FORT_LIB_OUTPUT_OPTION)
+#	$(SILENT) $(F90CACHE) $(fC) $(fLIBFLAGS) $(fFLAGS) $(fincludes) -c $(f77TempDir)/$*.f90 $(FORT_LIB_OUTPUT_OPTION)
 
 $(objTempDir)/%.o: %.F
 	@echo Compiling $*.F ...
 	@if [ ! -d $(f77TempDir) ]; then mkdir -p $(f77TempDir); fi
 	@if [ ! -d $(objTempDir) ]; then mkdir -p $(objTempDir); fi
 	$(SILENT) $(FORT_CPP) $(CPPFLAGS) -DBL_LANG_FORT $< | $(FORTPREP) > $(f77TempDir)/$*.f
-	$(SILENT) $(FC) $(FLIBFLAGS) $(FFLAGS) $(fincludes) -c $(f77TempDir)/$*.f $(FORT_LIB_OUTPUT_OPTION)
+	$(SILENT) $(F90CACHE) $(FC) $(FLIBFLAGS) $(FFLAGS) $(fincludes) -c $(f77TempDir)/$*.f $(FORT_LIB_OUTPUT_OPTION)
 
 $(objTempDir)/%.o: %.f90
 	@echo Compiling $*.f90 ...
 	@if [ ! -d $(objTempDir) ]; then mkdir -p $(objTempDir); fi
-	$(SILENT) $(fC) $(fLIBFLAGS) $(fFLAGS) $(fincludes) -c $< $(FORT_LIB_OUTPUT_OPTION)
+	$(SILENT) $(F90CACHE) $(fC) $(fLIBFLAGS) $(fFLAGS) $(fincludes) -c $< $(FORT_LIB_OUTPUT_OPTION)
 
 $(objTempDir)/%.o: %.f
 	@echo Compiling $*.f ...
 	@if [ ! -d $(objTempDir) ]; then mkdir -p $(objTempDir); fi
-	$(SILENT) $(fC) $(fLIBFLAGS) $(fFLAGS) $(fincludes) -c $< $(FORT_LIB_OUTPUT_OPTION)
+	$(SILENT) $(F90CACHE) $(fC) $(fLIBFLAGS) $(fFLAGS) $(fincludes) -c $< $(FORT_LIB_OUTPUT_OPTION)
 #
 # Rules for objects.
 #
 $(objEXETempDir)/%.o: %.cpp
 	@echo Compiling $*.cpp ...
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
-	$(SILENT) $(CXX) $(CXXFLAGS) $(CPPFLAGS) -c $(CXXEXEFLAGS) $< $(EXE_OUTPUT_OPTION)
+	$(SILENT) $(CCACHE) $(CXX) $(CXXFLAGS) $(CPPFLAGS) -c $(CXXEXEFLAGS) $< $(EXE_OUTPUT_OPTION)
 
 $(objEXETempDir)/%.o: %.c
 	@echo Compiling $*.c ...
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
-	$(SILENT) $(CC) $(CFLAGS) $(CPPFLAGS) -c $(CEXEFLAGS) -DBL_LANG_C $< $(EXE_OUTPUT_OPTION)
+	$(SILENT) $(CCACHE) $(CC) $(CFLAGS) $(CPPFLAGS) -c $(CEXEFLAGS) -DBL_LANG_C $< $(EXE_OUTPUT_OPTION)
 
 pF90EXE_sources := $(addprefix $(f77TempDir)/, $(F90EXE_sources:.F90=.f90))
 
@@ -115,18 +119,18 @@ $(objEXETempDir)/%.o: %.F
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
 	@if [ ! -d $(f77TempDir) ]; then mkdir -p $(f77TempDir); fi
 	$(SILENT) $(FORT_CPP) -DBL_LANG_FORT $(CPPFLAGS) $< | $(FORTPREP) > $(f77TempDir)/$*.f
-	$(SILENT) $(FC) $(FFLAGS) $(fincludes) -c $(FEXEFLAGS) $(f77TempDir)/$*.f $(FORT_EXE_OUTPUT_OPTION)
+	$(SILENT) $(F90CACHE) $(FC) $(FFLAGS) $(fincludes) -c $(FEXEFLAGS) $(f77TempDir)/$*.f $(FORT_EXE_OUTPUT_OPTION)
 
 VPATH := $(VPATH) $(f77TempDir)
 $(objEXETempDir)/%.o: %.f90
 	@echo Compiling $*.f90 ...
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
-	$(SILENT) $(F90) $(F90FLAGS) $(fFLAGS) $(fincludes) -c $(fEXEFLAGS) $< $(FORT_EXE_OUTPUT_OPTION)
+	$(SILENT) $(F90CACHE) $(F90) $(F90FLAGS) $(fFLAGS) $(fincludes) -c $(fEXEFLAGS) $< $(FORT_EXE_OUTPUT_OPTION)
 
 $(objEXETempDir)/%.o: %.f
 	@echo Compiling $*.f ...
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
-	$(SILENT) $(fC) $(fFLAGS) $(fincludes) -c $(fEXEFLAGS) $< $(FORT_EXE_OUTPUT_OPTION)
+	$(SILENT) $(F90CACHE) $(fC) $(fFLAGS) $(fincludes) -c $(fEXEFLAGS) $< $(FORT_EXE_OUTPUT_OPTION)
 #
 # Rules for dependencies in libraries.
 #

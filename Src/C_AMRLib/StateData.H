@@ -229,6 +229,13 @@ public:
 		  std::vector<Real>& datatime,
 		  Real time) const;
 
+    void AddProcsToComp(const StateDescriptor &sdPtr,
+                        int ioProcNumSCS, int ioProcNumAll,
+                        int scsMyId, MPI_Comm scsComm);
+
+    void Check() const;
+
+
 private:
 
     struct TimeInterval
