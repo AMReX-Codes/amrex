@@ -45,6 +45,11 @@ class NFilesIter
     // ---- get the current Stream()'s seek position
     std::streampos SeekPos();
 
+    static int NSets(int nProcs, int nOutFiles) {
+      int anf(ActualNFiles(nOutFiles));
+      return ((nProcs + (anf - 1)) / anf);
+    }
+
     // ---- this returns the actual number of files used
     // ---- the range [1, nProcs] is enforced
     static int ActualNFiles(int nOutFiles)
@@ -55,10 +60,12 @@ class NFilesIter
     static int FileNumber(int nOutFiles, int whichProc, bool groupSets)
     {
       BL_ASSERT(whichProc >= 0 && whichProc < ParallelDescriptor::NProcs());
+      int anf(ActualNFiles(nOutFiles));
       if(groupSets) {
-        return(whichProc % ActualNFiles(nOutFiles));
+        return(whichProc % anf);
       } else {
-        return(whichProc / ActualNFiles(nOutFiles));
+	int nProcs(ParallelDescriptor::NProcs());
+        return(whichProc % NSets(nProcs, anf));
       }
     }
 

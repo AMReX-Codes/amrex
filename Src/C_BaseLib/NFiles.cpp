@@ -10,13 +10,13 @@ NFilesIter::NFilesIter(int noutfiles, const std::string &filePrefix,
   myProc    = ParallelDescriptor::MyProc();
   nProcs    = ParallelDescriptor::NProcs();
   nOutFiles = ActualNFiles(noutfiles);
-  nSets     = (nProcs + (nOutFiles - 1)) / nOutFiles;
+  nSets     = NSets(nProcs, nOutFiles);
   if(groupSets) {
     mySet     = myProc / nOutFiles;
     fullFileName  = BoxLib::Concatenate(filePrefix, myProc % nOutFiles, 5);
   } else {
-    mySet     = myProc % nOutFiles;
-    fullFileName  = BoxLib::Concatenate(filePrefix, myProc / nOutFiles, 5);
+    mySet     = myProc % nSets;
+    fullFileName  = BoxLib::Concatenate(filePrefix, myProc / nSets, 5);
   }
 
 
@@ -63,7 +63,7 @@ bool NFilesIter::ReadyToWrite() {
         tag = (myProc % nOutFiles);
       } else {
         waitForPID = (myProc - 1);
-        tag = (myProc / nOutFiles);
+        tag = (myProc / nSets);
       }
       ParallelDescriptor::Recv(&iBuff, 1, waitForPID, tag);
     }
@@ -82,7 +82,7 @@ NFilesIter &NFilesIter::operator++() {
     tag = (myProc % nOutFiles);
   } else {
     wakeUpPID = (myProc + 1);
-    tag = (myProc / nOutFiles);
+    tag = (myProc / nSets);
   }
   if(wakeUpPID < nProcs) {
     ParallelDescriptor::Send(&iBuff, 1, wakeUpPID, tag);
