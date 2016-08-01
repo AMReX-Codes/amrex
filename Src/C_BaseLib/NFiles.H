@@ -32,7 +32,7 @@ class NFilesIter
     // ---- through "filePrefix" + "noutfiles-1"
     // ---- the range [1, nProcs] for noutfiles is enforced
     NFilesIter(int noutfiles, const std::string &filePrefix,
-               bool setBuf = false);
+               bool groupsets = false, bool setBuf = false);
 
     ~NFilesIter();
 
@@ -52,20 +52,24 @@ class NFilesIter
       return( std::max(1, std::min(ParallelDescriptor::NProcs(), nOutFiles)) );
     }
 
-    static int FileNumber(int nOutFiles, int whichProc)
+    static int FileNumber(int nOutFiles, int whichProc, bool groupSets)
     {
       BL_ASSERT(whichProc >= 0 && whichProc < ParallelDescriptor::NProcs());
-      return(whichProc % ActualNFiles(nOutFiles));
+      if(groupSets) {
+        return(whichProc % ActualNFiles(nOutFiles));
+      } else {
+        return(whichProc / ActualNFiles(nOutFiles));
+      }
     }
 
     static std::string FileName(int nOutFiles,
                                 const std::string &filePrefix,
-				int whichProc)
+				int whichProc, bool groupSets)
     {
       BL_ASSERT(whichProc >= 0 && whichProc < ParallelDescriptor::NProcs());
       return ( BoxLib::Concatenate(filePrefix,
                                    FileNumber(ActualNFiles(nOutFiles),
-				              whichProc), 5 ) );
+				              whichProc, groupSets), 5 ) );
     }
 
 
@@ -80,6 +84,7 @@ class NFilesIter
     std::ofstream fileStream;
     VisMF::IO_Buffer io_buffer;
     bool finishedWriting;
+    bool groupSets;
 
     NFilesIter();  // ---- disallow
 };
