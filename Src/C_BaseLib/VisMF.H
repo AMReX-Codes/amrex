@@ -136,7 +136,9 @@ public:
     //
     static long WriteRawNative (const MultiFab&    mf,
                                 const std::string& name,
-				bool writeMinMax = false);
+				bool writeMinMax = false,
+				bool groupSets = false,
+				bool setBuf = true);
     //
     // Read a MultiFab from disk written using VisMF::Write().
     // The MultiFab mf must have been defined using the default

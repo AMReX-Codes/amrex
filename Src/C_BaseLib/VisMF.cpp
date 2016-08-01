@@ -843,7 +843,8 @@ VisMF::Write (const MultiFab&    mf,
 long
 VisMF::WriteRawNative (const MultiFab    &mf,
                        const std::string &mf_name,
-		       bool writeMinMax)
+		       bool writeMinMax, bool groupSets,
+		       bool setBuf)
 {
     BL_PROFILE("VisMF::Write_rawnative_mf");
     BL_ASSERT(mf_name[mf_name.length() - 1] != '/');
@@ -864,11 +865,10 @@ VisMF::WriteRawNative (const MultiFab    &mf,
     Array<Real> minmax(2 * mf.nComp());
     long mmSize(minmax.size() * sizeof(Real));
     int nComps(mf.nComp());
-    bool setBuf(false);
 
     std::string filePrefix(mf_name + FabFileSuffix);
 
-    for(NFilesIter nfi(nOutFiles, filePrefix, setBuf); nfi.ReadyToWrite(); ++nfi) {
+    for(NFilesIter nfi(nOutFiles, filePrefix, groupSets, setBuf); nfi.ReadyToWrite(); ++nfi) {
 
       for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
         // ---- write the raw fab data
@@ -880,7 +880,8 @@ VisMF::WriteRawNative (const MultiFab    &mf,
     }
 
     if(writeMinMax) {
-      hdr = new VisMF::Header(mf, NFiles);  // ---- this calculates and distributes fab mins and maxes
+      // ---- this calculates and distributes fab mins and maxes
+      hdr = new VisMF::Header(mf, NFiles);
     }
 
     if(ParallelDescriptor::IOProcessor()) {
@@ -920,15 +921,15 @@ VisMF::WriteRawNative (const MultiFab    &mf,
 
 	for(int i(0); i < fod.size(); ++i) {
 	  whichProc = mfDM[i];
-	  whichFileNumber = NFilesIter::FileNumber(nFiles, whichProc);
-	  whichFileName   = NFilesIter::FileName(nFiles, filePrefix, whichProc);
+	  whichFileNumber = NFilesIter::FileNumber(nFiles, whichProc, groupSets);
+	  whichFileName   = NFilesIter::FileName(nFiles, filePrefix, whichProc, groupSets);
 	  fod[i].m_name = whichFileName;
 	  fod[i].m_head = currentOffset[whichFileNumber];
 	  currentOffset[whichFileNumber] += mfBA[i].numPts() * nComps * nrdBytes;
 	}
 	for(int i(0); i < fod.size(); ++i) {
 	  whichProc = mfDM[i];
-	  whichFileNumber = NFilesIter::FileNumber(nFiles, whichProc);
+	  whichFileNumber = NFilesIter::FileNumber(nFiles, whichProc, groupSets);
           MFHdrFile << fod[i] << '\n';
 	}
 
