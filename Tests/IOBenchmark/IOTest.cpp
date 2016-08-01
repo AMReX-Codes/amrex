@@ -226,6 +226,8 @@ void TestWriteNFiles(int nfiles, int maxgrid, int ncomps, int nboxes,
   ParallelDescriptor::Barrier();
   double wallTimeStart(ParallelDescriptor::second());
 
+  VisMF::RemoveFiles(mfName, true);
+
   VisMF::Write(mfout, mfName); 
 
   double wallTime(ParallelDescriptor::second() - wallTimeStart);
@@ -285,6 +287,8 @@ void TestWriteNFilesRawNative(int nfiles, int maxgrid, int ncomps,
 
   ParallelDescriptor::Barrier();
   double wallTimeStart(ParallelDescriptor::second());
+
+  VisMF::RemoveFiles(mfName, true);
 
   VisMF::WriteRawNative(mfout, mfName, writeMinMax, groupSets, setBuf); 
 
