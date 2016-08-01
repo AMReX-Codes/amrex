@@ -98,8 +98,8 @@ void NFileTests(int nOutFiles, const std::string &filePrefix) {
     data[i] = (100 * myProc) + i;
   }
 
-  bool setBuf(true);
-  for(NFilesIter nfi(nOutFiles, filePrefix, setBuf); nfi.ReadyToWrite(); ++nfi) {
+  bool groupSets(false), setBuf(true);
+  for(NFilesIter nfi(nOutFiles, filePrefix, groupSets, setBuf); nfi.ReadyToWrite(); ++nfi) {
     nfi.Stream().write((char *) data.dataPtr(), data.size() * sizeof(int));
   }
 }
@@ -251,7 +251,8 @@ void TestWriteNFiles(int nfiles, int maxgrid, int ncomps, int nboxes,
 // -------------------------------------------------------------
 void TestWriteNFilesRawNative(int nfiles, int maxgrid, int ncomps,
                               int nboxes, bool raninit, bool mb2,
-			      bool writeMinMax)
+			      bool writeMinMax, bool groupSets,
+			      bool setBuf)
 {
   VisMF::SetNOutFiles(nfiles);
   if(mb2) {
@@ -285,7 +286,7 @@ void TestWriteNFilesRawNative(int nfiles, int maxgrid, int ncomps,
   ParallelDescriptor::Barrier();
   double wallTimeStart(ParallelDescriptor::second());
 
-  VisMF::WriteRawNative(mfout, mfName, writeMinMax); 
+  VisMF::WriteRawNative(mfout, mfName, writeMinMax, groupSets, setBuf); 
 
   double wallTime(ParallelDescriptor::second() - wallTimeStart);
 
