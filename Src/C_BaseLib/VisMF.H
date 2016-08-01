@@ -140,6 +140,11 @@ public:
 				bool groupSets = false,
 				bool setBuf = true);
     //
+    // this will remove nfiles associated with name
+    //
+    static void RemoveFiles(const std::string &name, bool verbose = false);
+
+    //
     // Read a MultiFab from disk written using VisMF::Write().
     // The MultiFab mf must have been defined using the default
     // constructor.

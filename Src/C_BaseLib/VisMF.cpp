@@ -6,6 +6,7 @@
 #include <sstream>
 #include <vector>
 #include <deque>
+#include <cerrno>
 //
 // This MUST be defined if don't have pubsetbuf() in I/O Streams Library.
 //
@@ -710,7 +711,7 @@ VisMF::Write (const MultiFab&    mf,
     const int   NProcs   = ParallelDescriptor::NProcs();
     const int   NSets    = (NProcs + (nOutFiles - 1)) / nOutFiles;
     const int   MySet    = MyProc/nOutFiles;
-    std::string FullName = BoxLib::Concatenate(mf_name + FabFileSuffix, MyProc % nOutFiles, 4);
+    std::string FullName = BoxLib::Concatenate(mf_name + FabFileSuffix, MyProc % nOutFiles, 5);
 
     const std::string BName = VisMF::BaseName(FullName);
 
@@ -825,7 +826,7 @@ VisMF::Write (const MultiFab&    mf,
             const int i(pmap[j]);
             hdr.m_fod[j].m_head = recvdata[offset[i]+cnt[i]];
 
-            std::string name = BoxLib::Concatenate(mf_name + FabFileSuffix, i % nOutFiles, 4);
+            std::string name = BoxLib::Concatenate(mf_name + FabFileSuffix, i % nOutFiles, 5);
 
             hdr.m_fod[j].m_name = VisMF::BaseName(name);
 
@@ -885,8 +886,7 @@ VisMF::WriteRawNative (const MultiFab    &mf,
     }
 
     if(ParallelDescriptor::IOProcessor()) {
-        std::string MFHdrFileName = mf_name;
-        MFHdrFileName += TheMultiFabHdrFileSuffix;
+        std::string MFHdrFileName(mf_name + TheMultiFabHdrFileSuffix);
         std::ofstream MFHdrFile;
         VisMF::IO_Buffer io_buffer;
 	if(setBuf) {
@@ -952,6 +952,39 @@ VisMF::WriteRawNative (const MultiFab    &mf,
     }
 
     return bytesWritten;
+}
+
+
+void
+VisMF::RemoveFiles(const std::string &mf_name, bool verbose)
+{
+    if(ParallelDescriptor::IOProcessor()) {
+      std::string MFHdrFileName(mf_name + TheMultiFabHdrFileSuffix);
+      if(verbose) {
+        std::cout << "---- removing:  " << MFHdrFileName << std::endl;
+      }
+      int retVal(std::remove(MFHdrFileName.c_str()));
+      if(verbose) {
+        if(retVal != 0) {
+          std::cout << "---- error removing:  " << MFHdrFileName << "  errno = "
+	            << strerror(errno) << std::endl;
+        }
+      }
+      for(int ip(0); ip < nOutFiles; ++ip) {
+        static const char *FabFileSuffix = "_D_";
+        std::string fileName(NFilesIter::FileName(nOutFiles, mf_name + FabFileSuffix, ip, true));
+        if(verbose) {
+          std::cout << "---- removing:  " << fileName << std::endl;
+	}
+        int retVal(std::remove(fileName.c_str()));
+        if(verbose) {
+          if(retVal != 0) {
+            std::cout << "---- error removing:  " << fileName << "  errno = "
+	              << strerror(errno) << std::endl;
+          }
+	}
+      }
+    }
 }
 
 
