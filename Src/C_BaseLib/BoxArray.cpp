@@ -423,8 +423,10 @@ BoxArray::refine (const IntVect& iv)
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-    for (int i = 0; i < N; i++)
+    for (int i = 0; i < N; i++) {
+	BL_ASSERT(m_ref->m_abox[i].ok());
         m_ref->m_abox[i].refine(iv);
+    }
     return *this;
 }
 
@@ -459,6 +461,7 @@ BoxArray::coarsen (const IntVect& iv)
 #pragma omp parallel for
 #endif
 	for (int i = 0; i < N; i++) {
+	    BL_ASSERT(m_ref->m_abox[i].ok());
 	    m_ref->m_abox[i].coarsen(iv);
 	}
 

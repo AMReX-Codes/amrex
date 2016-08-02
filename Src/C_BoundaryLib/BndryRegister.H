@@ -51,7 +51,7 @@ private:
     int     m_in_rad;
     int     m_out_rad;
     int     m_extent_rad;
-    //
+    // The variables below are derived from the variables above.
     IntVect m_nodal;
     IntVect m_loshft;
     IntVect m_hishft;
