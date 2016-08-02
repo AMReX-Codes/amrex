@@ -415,7 +415,7 @@ public:
 				    int                 dstng,
 				    const BoxConverter& coarsener);
 
-    void flushFPinfo ();
+    void flushFPinfo (bool no_assertion=false);
 
     //
     // parallel copy or add
@@ -461,7 +461,8 @@ protected:
     const TileArray* getTileArray (const IntVect& tilesize) const;
     void buildTileArray (const IntVect& tilesize, TileArray& ta) const;
     //
-    void flushTileArray (const IntVect& tilesize = IntVect::TheZeroVector()) const;
+    void flushTileArray (const IntVect& tilesize = IntVect::TheZeroVector(), 
+			 bool no_assertion=false) const;
     static void flushTileArrayCache (); // This flushes the entire cache.
 
     //
@@ -499,7 +500,7 @@ protected:
     //
     const FB& getFB (bool cross = false) const;
     //
-    void flushFB () const;       // This flushes its own FB.
+    void flushFB (bool no_assertion=false) const;       // This flushes its own FB.
     static void flushFBCache (); // This flushes the entire cache.
 
     //
@@ -552,7 +553,7 @@ protected:
     //
     const CPC& getCPC (int dstng, const FabArrayBase& src, int srcng) const;
     // 
-    void flushCPC () const;      // This flushes its own CPC.
+    void flushCPC (bool no_assertion=false) const;      // This flushes its own CPC.
     static void flushCPCache (); // This flusheds the entire cache.
 
     //
