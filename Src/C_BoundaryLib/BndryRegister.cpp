@@ -74,8 +74,12 @@ BndryRegister::operator= (const BndryRegister& src)
 // in_rad: grow inwards; for nodal, in_rad=0 means on the boundary face.
 BndryBATransformer::BndryBATransformer (Orientation face, IndexType typ,
 					int in_rad, int out_rad, int extent_rad)
-    : BATBase(typ), m_dir(face.coordDir()), m_lo_face(face.isLow()),
-      m_in_rad(in_rad), m_out_rad(out_rad), m_extent_rad(extent_rad), 
+    : BATBase(typ), 
+      m_dir(face.coordDir()), 
+      m_lo_face(face.isLow()),
+      m_in_rad(in_rad), 
+      m_out_rad(out_rad), 
+      m_extent_rad(extent_rad), 
       m_nodal(typ.ixType())
 { 
     BL_ASSERT(in_rad >= 0 && out_rad >= 0);
@@ -127,8 +131,11 @@ bool
 BndryBATransformer::operator== (const BndryBATransformer& rhs) const
 {
     // Note that m_nodal_shft is computed form m_typ, so no need to compare it.
-    return m_typ == rhs.m_typ && m_dir == rhs.m_dir && m_lo_face == rhs.m_lo_face
-	&& m_in_rad == rhs.m_in_rad && m_out_rad == rhs.m_out_rad 
+    return m_typ == rhs.m_typ 
+	&& m_dir == rhs.m_dir 
+	&& m_lo_face == rhs.m_lo_face
+	&& m_in_rad == rhs.m_in_rad 
+	&& m_out_rad == rhs.m_out_rad 
 	&& m_extent_rad == rhs.m_extent_rad; 
 }
 

@@ -208,8 +208,12 @@ FabArrayBase::TileArray::bytes () const
 //
 
 FabArrayBase::CPC::CPC (const FabArrayBase& dstfa, int dstng, const FabArrayBase& srcfa, int srcng)
-    : m_srcbdk(srcfa.getBDKey()), m_dstbdk(dstfa.getBDKey()), 
-      m_srcng(srcng), m_dstng(dstng), m_srcba(srcfa.boxArray()), m_dstba(dstfa.boxArray()),
+    : m_srcbdk(srcfa.getBDKey()), 
+      m_dstbdk(dstfa.getBDKey()), 
+      m_srcng(srcng), 
+      m_dstng(dstng), 
+      m_srcba(srcfa.boxArray()), 
+      m_dstba(dstfa.boxArray()),
       m_threadsafe_loc(false), m_threadsafe_rcv(false),
       m_LocTags(0), m_SndTags(0), m_RcvTags(0), m_SndVols(0), m_RcvVols(0), m_nuse(0)
 {
@@ -222,8 +226,12 @@ FabArrayBase::CPC::CPC (const BoxArray& dstba, const DistributionMapping& dstdm,
 			const BoxArray& srcba, const DistributionMapping& srcdm, 
 			const Array<int>& srcidx, int srcng,
 			int myproc)
-    : m_srcbdk(0,0), m_dstbdk(0,0), 
-      m_srcng(srcng), m_dstng(dstng), m_srcba(srcba), m_dstba(dstba),
+    : m_srcbdk(0,0), 
+      m_dstbdk(0,0), 
+      m_srcng(srcng), 
+      m_dstng(dstng), 
+      m_srcba(srcba), 
+      m_dstba(dstba),
       m_threadsafe_loc(false), m_threadsafe_rcv(false),
       m_LocTags(0), m_SndTags(0), m_RcvTags(0), m_SndVols(0), m_RcvVols(0), m_nuse(0)
 {
