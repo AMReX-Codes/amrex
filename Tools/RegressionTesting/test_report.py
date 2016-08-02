@@ -953,7 +953,7 @@ def report_all_runs(suite, active_test_list):
                 hf.write("<td>&nbsp;</td>\n")
             elif status == "benchmade":
                 hf.write("<td align=center title=\"{}\" class=\"{}\"><h3>U</h3></td>\n".format(
-                    status, test))
+                    test, status))
             else:
                 hf.write("<td align=center title=\"{}\" class=\"{}\"><h3><a href=\"{}/{}.html\" class=\"{}\">{}</a></h3></td>\n".format(
                     test, status, tdir, test, status, emoji))
