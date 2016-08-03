@@ -359,6 +359,9 @@ public:
     //
     static const IntVect& TheCellVector ();
 
+    static const IntVect& TheMaxVector ();
+    static const IntVect& TheMinVector ();
+
 private:
 
     int vect[BL_SPACEDIM];
