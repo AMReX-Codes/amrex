@@ -223,10 +223,10 @@ void TestWriteNFiles(int nfiles, int maxgrid, int ncomps, int nboxes,
   long totalNBytes(npts * ncomps * nboxes *sizeof(Real));
   std::string mfName("TestMF");
 
+  VisMF::RemoveFiles(mfName, true);
+
   ParallelDescriptor::Barrier();
   double wallTimeStart(ParallelDescriptor::second());
-
-  VisMF::RemoveFiles(mfName, true);
 
   VisMF::Write(mfout, mfName); 
 
@@ -285,10 +285,10 @@ void TestWriteNFilesRawNative(int nfiles, int maxgrid, int ncomps,
   long totalNBytes(npts * ncomps * nboxes *sizeof(Real));
   std::string mfName("TestMFRawNative");
 
+  VisMF::RemoveFiles(mfName, true);
+
   ParallelDescriptor::Barrier();
   double wallTimeStart(ParallelDescriptor::second());
-
-  VisMF::RemoveFiles(mfName, true);
 
   VisMF::WriteRawNative(mfout, mfName, writeMinMax, groupSets, setBuf); 
 
