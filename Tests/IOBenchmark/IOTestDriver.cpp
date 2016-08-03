@@ -75,7 +75,7 @@ int main(int argc, char *argv[]) {
   int nprocs(ParallelDescriptor::NProcs());
   int nsleep(0), nfiles(std::min(nprocs, 128));  // limit default to max of 128
   int maxgrid(32), ncomps(4), nboxes(nprocs), ntimes(1);
-  int rbs(8912), wbs(8192);
+  int rbs(8192), wbs(8192);
   bool raninit(false), mb2(false), writeminmax(false);
   bool groupsets(false), setbuf(true);
 
