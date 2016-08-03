@@ -1109,33 +1109,31 @@ BoxArray::getHashMap () const
             //
             // Calculate the bounding box & maximum extent of the boxes.
             //
-            Box boundingbox = m_ref->m_abox[0];
-	    IntVect maxext = BoxLib::max(boundingbox.size(),
-                                         IntVect::TheUnitVector());
+	    IntVect maxext = IntVect::TheUnitVector();
 
 	    const int N = size();
 
-	    for (int i = 1; i < N; ++i)
+	    for (int i = 0; i < N; ++i)
             {
                 const Box& bx = m_ref->m_abox[i];
-		boundingbox.minBox(bx);
                 maxext = BoxLib::max(maxext, bx.size());
             }
 
-            boundingbox.coarsen(maxext);
-
-            m_ref->crsn = maxext;
-            m_ref->bbox = boundingbox;
-	    for (int dir = 0; dir < BL_SPACEDIM; ++dir) {
-                if (m_ref->bbox.bigEnd(dir) < m_ref->bbox.smallEnd(dir)) {
-                    m_ref->bbox.setBig(dir,m_ref->bbox.smallEnd(dir));
-                }
-            }
+	    IntVect lob = IntVect::TheMaxVector();
+	    IntVect hib = IntVect::TheMinVector();
 
             for (int i = 0; i < N; i++)
             {
-                BoxHashMap[BoxLib::coarsen(m_ref->m_abox[i].smallEnd(),maxext)].push_back(i);
+                const IntVect& crsnsmlend 
+		    = BoxLib::coarsen(m_ref->m_abox[i].smallEnd(),maxext);
+                BoxHashMap[crsnsmlend].push_back(i);
+		lob = BoxLib::min(lob, crsnsmlend);
+		hib = BoxLib::max(hib, crsnsmlend);
             }
+
+            m_ref->crsn = maxext;
+            m_ref->bbox = Box(lob,hib);
+	    
 #ifdef BL_MEM_PROFILING
 	    m_ref->updateMemoryUsage_hash(1);
 #endif
