@@ -22,6 +22,10 @@ extern "C" {
                     int fcomma, int fcommc, int *fcomms,
                     int fgrpa, int fgrpc, int *fgrps,
                     int m_MyId_all, int m_MyId_comp, int m_MyId_sidecar);
+    void bl_fortran_set_nprocs_sidecar_to_zero(int m_nProcs_all,
+                    int fcomma, int fcommc,
+                    int fgrpa, int fgrpc,
+                    int m_MyId_all, int m_MyId_comp);
 }
 #endif
 
@@ -632,25 +636,32 @@ ParallelDescriptor::SetNProcsSidecars (const Array<int> &compRanksInAll,
     }
 
 #ifdef BL_USE_FORTRAN_MPI
-if(nSidecars > 0) {
-    int fcomma = MPI_Comm_c2f(m_comm_all);
-    int fcommc = MPI_Comm_c2f(m_comm_comp);
-    Array<int> fcomms(nSidecars, -1);
-    for(int i(0); i < fcomms.size(); ++i) {
-      fcomms[i] = MPI_Comm_c2f(m_comm_sidecar[i]);
+    if(nSidecars > 0) {
+      int fcomma = MPI_Comm_c2f(m_comm_all);
+      int fcommc = MPI_Comm_c2f(m_comm_comp);
+      Array<int> fcomms(nSidecars, -1);
+      for(int i(0); i < fcomms.size(); ++i) {
+        fcomms[i] = MPI_Comm_c2f(m_comm_sidecar[i]);
+      }
+      int fgrpa  = MPI_Group_c2f(m_group_all);
+      int fgrpc  = MPI_Group_c2f(m_group_comp);
+      Array<int> fgrps(nSidecars, -2);
+      for(int i(0); i < fgrps.size(); ++i) {
+        fgrps[i] = MPI_Group_c2f(m_group_sidecar[i]);
+      }
+      bl_fortran_set_nprocs_sidecar(nSidecars, inWhichSidecar,
+                                    m_nProcs_all, m_nProcs_comp, m_nProcs_sidecar.dataPtr(),
+                                    fcomma, fcommc, fcomms.dataPtr(),
+                                    fgrpa, fgrpc, fgrps.dataPtr(),
+                                    m_MyId_all, m_MyId_comp, m_MyId_sidecar);
+    } else {
+      int fcomma = MPI_Comm_c2f(m_comm_all);
+      int fcommc = MPI_Comm_c2f(m_comm_comp);
+      int fgrpa  = MPI_Group_c2f(m_group_all);
+      int fgrpc  = MPI_Group_c2f(m_group_comp);
+      bl_fortran_set_nprocs_sidecar_to_zero(m_nProcs_all, fcomma, fcommc, fgrpa, fgrpc,
+                                            m_MyId_all, m_MyId_comp);
     }
-    int fgrpa  = MPI_Group_c2f(m_group_all);
-    int fgrpc  = MPI_Group_c2f(m_group_comp);
-    Array<int> fgrps(nSidecars, -2);
-    for(int i(0); i < fgrps.size(); ++i) {
-      fgrps[i] = MPI_Group_c2f(m_group_sidecar[i]);
-    }
-    bl_fortran_set_nprocs_sidecar(nSidecars, inWhichSidecar,
-                                  m_nProcs_all, m_nProcs_comp, m_nProcs_sidecar.dataPtr(),
-                                  fcomma, fcommc, fcomms.dataPtr(),
-                                  fgrpa, fgrpc, fgrps.dataPtr(),
-                                  m_MyId_all, m_MyId_comp, m_MyId_sidecar);
-}
 #endif
 
     ParallelDescriptor::EndTeams();
