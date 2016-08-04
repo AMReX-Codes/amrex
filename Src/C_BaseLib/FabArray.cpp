@@ -365,9 +365,6 @@ FabArrayBase::CPC::define (const BoxArray& ba_dst, const DistributionMapping& dm
 	    }
 	}
 	
-//    ba_src.clear_hash_bin();
-//    ba_dst.clear_hash_bin();
-	
 	for (int ipass = 0; ipass < 2; ++ipass) // pass 0: send; pass 1: recv
 	{
 	    CopyComTag::MapOfCopyComTagContainers & Tags    = (ipass == 0) ? *m_SndTags : *m_RcvTags;
@@ -660,8 +657,6 @@ FabArrayBase::FB::FB (const FabArrayBase& fa, bool cross)
 		check_remote = m_threadsafe_rcv = remotetouch.max() <= 1;
 	    }
 	}
-
-	//    ba.clear_hash_bin();
 
 	for (int ipass = 0; ipass < 2; ++ipass) // pass 0: send; pass 1: recv
 	{

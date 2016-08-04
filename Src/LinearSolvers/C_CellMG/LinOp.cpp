@@ -484,8 +484,6 @@ LinOp::prepareForLevel (int level)
             }
         }
     }
-
-    gbox[level].clear_hash_bin();
 }
 
 void
