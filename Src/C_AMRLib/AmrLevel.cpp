@@ -217,7 +217,7 @@ AmrLevel::restart (Amr&          papa,
 #ifdef USE_PARTICLES
     // Note: it is important to call make_particle_dmap *after* the state
     //       has been defined because it makes use of the state's DistributionMap
-    particle_grids.define(grids);
+    particle_grids = grids;
     make_particle_dmap();
 #endif
 

@@ -5,19 +5,21 @@
 #include <iosfwd>
 #include <string>
 
-#include <MultiFab.H>
+#include <REAL.H>
+#include <FabArray.H>
+#include <FArrayBox.H>
 
 //
-// File I/O for MultiFabs.
+// File I/O for FabArray<FArrayBox>
 //
-//  Wrapper class for reading/writing MultiFabs to disk in various "smart" ways.
+//  Wrapper class for reading/writing FabArray<FArrayBox>s to disk in various "smart" ways.
 //
 
 class VisMF
 {
 public:
     //
-    // How we write out MultiFabs.
+    // How we write out FabArray<FArrayBox>s.
     //
     enum How { OneFilePerCPU, NFiles };
     //
@@ -46,12 +48,12 @@ public:
         long    m_head;     // Offset to start of FAB in file.
     };
     //
-    // An on-disk MultiFab contains this info in a header file.
+    // An on-disk FabArray<FArrayBox> contains this info in a header file.
     //
     struct Header
     {
         //
-        // The current version of the MultiFab Header code.
+        // The current version of the FabArray<FArrayBox> Header code.
         //
         enum { Version = 1, RawNative = 2, RawNativeMinMax = 3 };
         //
@@ -59,9 +61,9 @@ public:
         //
         Header ();
         //
-        // Construct from a MultiFab.
+        // Construct from a FabArray<FArrayBox>.
         //
-        Header (const MultiFab& mf, How how);
+        Header (const FabArray<FArrayBox>& mf, How how);
         //
         // The data.
         //
@@ -75,11 +77,11 @@ public:
         Array< Array<Real> > m_max;   // The max()s of each component of FABs.
     };
     //
-    // The number of components in the on-disk MultiFab.
+    // The number of components in the on-disk FabArray<FArrayBox>.
     //
     int nComp () const;
     //
-    // The grow factor of the on-disk MultiFab.
+    // The grow factor of the on-disk FabArray<FArrayBox>.
     //
     int nGrow () const;
     //
@@ -87,7 +89,7 @@ public:
     //
     int size () const;
     //
-    // The BoxArray of the on-disk MultiFab.
+    // The BoxArray of the on-disk FabArray<FArrayBox>.
     //
     const BoxArray& boxArray () const;
     //
@@ -121,35 +123,35 @@ public:
     //
     void clear ();
     //
-    // Write a MultiFab to disk in a "smart" way.
+    // Write a FabArray<FArrayBox> to disk in a "smart" way.
     // Returns the total number of bytes written on this processor.
-    // If set_ghost is true, sets the ghost cells in the MultiFab to
+    // If set_ghost is true, sets the ghost cells in the FabArray<FArrayBox> to
     // one-half the average of the min and max over the valid region
     // of each contained FAB.
     //
-    static long Write (const MultiFab&    mf,
+    static long Write (const FabArray<FArrayBox>&    mf,
                        const std::string& name,
                        VisMF::How         how = NFiles,
                        bool               set_ghost = false);
     //
     // Write in a raw and native format without min or max values
     //
-    static long WriteRawNative (const MultiFab&    mf,
+    static long WriteRawNative (const FabArray<FArrayBox>&    mf,
                                 const std::string& name,
-				bool writeMinMax = false,
-				bool groupSets = false,
-				bool setBuf = true);
+                                bool writeMinMax = false,
+                                bool groupSets = false,
+                                bool setBuf = true);
     //
     // this will remove nfiles associated with name and the header
     //
     static void RemoveFiles(const std::string &name, bool verbose = false);
 
     //
-    // Read a MultiFab from disk written using VisMF::Write().
-    // The MultiFab mf must have been defined using the default
+    // Read a FabArray<FArrayBox> from disk written using VisMF::Write().
+    // The FabArray<FArrayBox> mf must have been defined using the default
     // constructor.
     //
-    static void Read (MultiFab&          mf,
+    static void Read (FabArray<FArrayBox>&          mf,
                       const std::string& name);
     static void Check (const std::string& name);
     //
@@ -220,7 +222,7 @@ private:
     //
     // Read the whole FAB into mf[fabIndex]
     //
-    static void readFAB (MultiFab&          mf,
+    static void readFAB (FabArray<FArrayBox>&          mf,
 			 int                fabIndex,
 			 const std::string& mf_name,
 			 const Header&      hdr);
@@ -229,7 +231,7 @@ private:
 
     static std::string BaseName (const std::string& filename);
     //
-    // Name of the MultiFab.
+    // Name of the FabArray<FArrayBox>.
     //
     std::string m_mfname;
     //
@@ -241,7 +243,7 @@ private:
     //
     mutable Array< Array<FArrayBox*> > m_pa;
     //
-    // The number of files to write for a MultiFab.
+    // The number of files to write for a FabArray<FArrayBox>.
     //
     static int nOutFiles;
     static int nMFFileInStreams;

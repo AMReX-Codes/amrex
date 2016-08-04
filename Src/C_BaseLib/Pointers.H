@@ -218,8 +218,6 @@ public:
 
 protected:
     T*       ptr;
-
-private:
     UseCount ucnt;
 };
 
@@ -229,10 +227,16 @@ private:
 // The template class LnClassPtr<T> is derived from LnPtr<T>.  It provides a
 // reference counted wrapper around a pointer to type T (a T*).  The type T
 // MUST be a user-defined type, not an intrinsic type.  Given this
-// restriction, we can supply an operator->().
+// restriction, we can supply an operator->().  It also provides a callback
+// function called before destroying a unique reference.
 //
 
 template<class T>
+struct LnClassPtrCallBack {
+    void operator() (T*) { }
+};
+
+template<class T, class F = LnClassPtrCallBack<T> >
 class LnClassPtr
     :
     public LnPtr<T>
@@ -247,22 +251,26 @@ public:
     //
     explicit LnClassPtr (T* rhs);
     //
+    ~LnClassPtr ();
+    //
     // The copy assignment operator.  The contained pointer is set
     // to the one wrapped by rhs.  The reference count is decremented
     // on this object and the reference count is incremented for
     // the newly wrapped pointer.
     //
-    LnClassPtr<T>& operator= (const LnClassPtr<T>& rhs);
+    LnClassPtr<T,F>& operator= (const LnClassPtr<T,F>& rhs);
     //
     // Sets the wrapped pointer to rhs.  Decrements the count
     // on the previously wrapped pointer and deletes it if there
     // was only one reference.
     //
-    LnClassPtr<T>& operator= (T* rhs) { LnPtr<T>::operator=(rhs); return *this; }
+    LnClassPtr<T,F>& operator= (T* rhs);
     //
     // Applies operator-> to the wrapped pointer.
     //
     T* operator->() const { return LnPtr<T>::ptr; }
+
+    F callbackf;
 };
 
 template <class T>
@@ -357,22 +365,47 @@ LnPtr<T>::operator= (const LnPtr<T>& rhs)
     return *this;
 }
 
-template <class T>
-LnClassPtr<T>::LnClassPtr ()
-{}
-
-template <class T>
-LnClassPtr<T>::LnClassPtr (T* rhs)
+template <class T, class F>
+LnClassPtr<T,F>::LnClassPtr ()
     :
-    LnPtr<T>(rhs)
+    callbackf()
 {}
 
-template <class T>
-LnClassPtr<T>&
-LnClassPtr<T>::operator= (const LnClassPtr<T>& rhs)
+template <class T, class F>
+LnClassPtr<T,F>::LnClassPtr (T* rhs)
+    :
+    LnPtr<T>(rhs),
+    callbackf()
+{}
+
+template <class T, class F>
+LnClassPtr<T,F>::~LnClassPtr ()
 {
+    if (this->unique()) {
+	callbackf(this->ptr);
+    }
+}
+
+template <class T, class F>
+LnClassPtr<T,F>&
+LnClassPtr<T,F>::operator= (const LnClassPtr<T,F>& rhs)
+{
+    if (this->unique()) {
+	callbackf(this->ptr);
+    }
     LnPtr<T>::operator=(rhs);
     return *this;
+}
+
+template <class T, class F>
+LnClassPtr<T,F>& 
+LnClassPtr<T,F>::operator= (T* rhs) 
+{ 
+    if (this->unique()) {
+	callbackf(this->ptr);
+    }    
+    LnPtr<T>::operator=(rhs); 
+    return *this; 
 }
 
 #endif /*BL_POINTERS_H*/

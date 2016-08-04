@@ -77,7 +77,7 @@ FluxRegister::define (const BoxArray& fine_boxes,
     fine_level = fine_lev;
     ncomp      = nvar;
 
-    grids.define(fine_boxes);
+    grids = fine_boxes;
     grids.coarsen(ratio);
 
     for (int dir = 0; dir < BL_SPACEDIM; dir++)
@@ -108,7 +108,7 @@ FluxRegister::define (const BoxArray&            fine_boxes,
     fine_level = fine_lev;
     ncomp      = nvar;
 
-    grids.define(fine_boxes);
+    grids = fine_boxes;
     grids.coarsen(ratio);
 
     for (int dir = 0; dir < BL_SPACEDIM; dir++)

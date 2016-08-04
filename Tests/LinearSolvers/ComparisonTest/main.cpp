@@ -266,7 +266,7 @@ void build_grids(std::vector<Geometry>& geom, std::vector<BoxArray>& grids)
 
   BoxArray ba0(dom0);
 
-  grids[0].define(ba0); 
+  grids[0] = ba0; 
   grids[0].maxSize(max_grid_size);
 
   int nlevel=grids.size();
@@ -274,7 +274,7 @@ void build_grids(std::vector<Geometry>& geom, std::vector<BoxArray>& grids)
     ba0.grow(-n_cell/4);
     ba0.refine(2);
 
-    grids[ilev].define(ba0);
+    grids[ilev] = ba0;
     grids[ilev].maxSize(max_grid_size);    
   }
 
