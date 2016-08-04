@@ -678,7 +678,7 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
               VisMF::How         how,
               bool               set_ghost)
 {
-    BL_PROFILE("VisMF::Write_mf");
+    BL_PROFILE("VisMF::Write_FabArray");
     BL_ASSERT(mf_name[mf_name.length() - 1] != '/');
 
     static const char* FabFileSuffix = "_D_";
@@ -688,7 +688,6 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
     VisMF::Header hdr(mf, how);
 
     if(set_ghost) {
-        BL_PROFILE("VisMF::Write_mf_set_ghost");
         FabArray<FArrayBox>* the_mf = const_cast<FabArray<FArrayBox>*>(&mf);
 
         BL_ASSERT( ! (the_mf == 0));
@@ -709,68 +708,20 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
     long        bytes    = 0;
     const int   MyProc   = ParallelDescriptor::MyProc();
     const int   NProcs   = ParallelDescriptor::NProcs();
-    const int   NSets    = (NProcs + (nOutFiles - 1)) / nOutFiles;
-    const int   MySet    = MyProc/nOutFiles;
     std::string FullName = BoxLib::Concatenate(mf_name + FabFileSuffix, MyProc % nOutFiles, 5);
-
     const std::string BName = VisMF::BaseName(FullName);
 
-    BL_PROFILE_VAR_NS("VisMF::Write_filemeta_open", filemetaopen);
-    BL_PROFILE_VAR_NS("VisMF::Write_filemeta_flush", filemetaflush);
-    BL_PROFILE_VAR_NS("VisMF::Write_filemeta_close", filemetaclose);
-    for(int iSet(0); iSet < NSets; ++iSet) {
-        if(MySet == iSet) {
-            {
-                BL_PROFILE_VAR_START(filemetaopen);
-                VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
-    
-                std::ofstream FabFile;
+    std::string filePrefix(mf_name + FabFileSuffix);
+    bool groupSets(true), setBuf(true);
 
-                FabFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
-
-                if(iSet == 0) {  // ---- First set.
-                    FabFile.open(FullName.c_str(),
-                                 std::ios::out|std::ios::trunc|std::ios::binary);
-                } else {
-                    FabFile.open(FullName.c_str(),
-                                 std::ios::out|std::ios::app|std::ios::binary);
-                    FabFile.seekp(0, std::ios::end);  // ---- Set to the end of the file.
-                }
-                if( ! FabFile.good()) {
-                    BoxLib::FileOpenFailed(FullName);
-		}
-                BL_PROFILE_VAR_STOP(filemetaopen);
-
-                for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
-                    hdr.m_fod[mfi.index()] = VisMF::Write(mf[mfi],BName,FabFile,bytes);
-                }
-
-                BL_PROFILE_VAR_START(filemetaflush);
-                FabFile.flush();
-                BL_PROFILE_VAR_STOP(filemetaflush);
-                BL_PROFILE_VAR_START(filemetaclose);
-                FabFile.close();
-                BL_PROFILE_VAR_STOP(filemetaclose);
-            }
-
-            int iBuff     = 0;
-            int wakeUpPID = (MyProc + nOutFiles);
-            int tag       = (MyProc % nOutFiles);
-            if (wakeUpPID < NProcs) {
-                ParallelDescriptor::Send(&iBuff, 1, wakeUpPID, tag);
-	    }
-        }
-        if(MySet == (iSet + 1)) {  // ---- Next set waits.
-            int iBuff;
-            int waitForPID = (MyProc - nOutFiles);
-            int tag        = (MyProc % nOutFiles);
-            ParallelDescriptor::Recv(&iBuff, 1, waitForPID, tag);
-        }
+    for(NFilesIter nfi(nOutFiles, filePrefix, groupSets, setBuf); nfi.ReadyToWrite(); ++nfi) {
+      for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
+        hdr.m_fod[mfi.index()] = VisMF::Write(mf[mfi],BName,nfi.Stream(),bytes);
+      }
     }
 
-#ifdef BL_USE_MPI
-    BL_PROFILE_VAR("VisMF::Write_mf_part2", vmfp2);
 
+#ifdef BL_USE_MPI
     const int IOProcNumber(ParallelDescriptor::IOProcessorNumber());
 
     Array<int> nmtags(NProcs,0);
@@ -833,7 +784,6 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
             ++cnt[i];
         }
     }
-    BL_PROFILE_VAR_STOP(vmfp2);
 #endif /*BL_USE_MPI*/
 
     bytes += VisMF::WriteHeader(mf_name, hdr);
