@@ -111,16 +111,11 @@ FabSet::linComb (Real a, Real b, const FabSet& src, int scomp, int dcomp, int nc
 #endif
     for (FabSetIter fsi(*this); fsi.isValid(); ++fsi)
     {
-        //
-        // WARNING: same fab used as src and dest here.
-	// xxxxx FIXME
-        //
 	const FArrayBox& srcfab = src[fsi];
 	FArrayBox& dstfab = (*this)[fsi];
 	BL_ASSERT(srcfab.box() == dstfab.box());
-	dstfab.linComb(dstfab, dstfab.box(), dcomp,
-		       srcfab, srcfab.box(), scomp,
-		       a, b, dstfab.box(), dcomp, ncomp);
+	dstfab.mult(a, dcomp, ncomp);
+	dstfab.saxpy(b, srcfab, srcfab.box(), dstfab.box(), scomp, dcomp, ncomp);
     }
     return *this;
 }
