@@ -1242,7 +1242,6 @@ BoxLib::GetBndryCells (const BoxArray& ba,
         }
     }
 
-    tba.clear_hash_bin();
     //
     // Now strip out overlaps.
     //
