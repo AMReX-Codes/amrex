@@ -133,9 +133,6 @@ FabSet::linComb (Real a, const MultiFab& mfa, int a_comp,
 		 int dcomp, int ncomp, int ngrow)
 {
     BL_PROFILE("FabSet::linComb()");
-
-#if 0
-
     BL_ASSERT(ngrow <= mfa.nGrow());
     BL_ASSERT(ngrow <= mfb.nGrow());
 
@@ -154,7 +151,7 @@ FabSet::linComb (Real a, const MultiFab& mfa, int a_comp,
 
     for (FabSetIter fsi(*this); fsi.isValid(); ++fsi)
     {
-        bxa.intersections(get(fsi).box(),isects,false,ngrow);
+        bxa.intersections(fsi.fabbox(),isects,false,ngrow);
 
         const int index = fsi.index();
 
@@ -220,8 +217,6 @@ FabSet::linComb (Real a, const MultiFab& mfa, int a_comp,
                                                  dcomp,
                                                  ncomp);
     }
-#endif
-
     return *this;
 }
 
