@@ -3245,7 +3245,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
                                     BL_ASSERT(pshifts.size() == 1);
                                     fcells[j] = fcells[j] - pshifts[0];
                                 }
-                                (*mf)[lev_index + 1].boxArray().intersections(Box(fcells[j],fcells[j]),isects,true);
+                                (*mf)[lev_index + 1].boxArray().intersections(Box(fcells[j],fcells[j]),isects,true,0);
                                 if (isects.size() == 0) {
                                     continue;
 				}
@@ -3340,7 +3340,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
                                 //
                                 // Find its resident grid.
                                 //
-                                (*mf)[lev_index - 1].boxArray().intersections(Box(ccells[j],ccells[j]),isects,true);
+                                (*mf)[lev_index - 1].boxArray().intersections(Box(ccells[j],ccells[j]),isects,true,0);
                                 if (isects.size() == 0) {
                                     continue;
 				}
@@ -5570,7 +5570,7 @@ ParticleContainer<N>::CreateGhostParticles (int   level,
             //
             // Is it in the grown finer level?
             //
-            fine.intersections(Box(iv,iv),isects,ngrow);
+            fine.intersections(Box(iv,iv),isects,false,ngrow);
             //
             // Here we add the particle to each potential grid.
             //

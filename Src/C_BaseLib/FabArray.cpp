@@ -281,7 +281,7 @@ FabArrayBase::CPC::define (const BoxArray& ba_dst, const DistributionMapping& dm
 	    const int   k_src = imap_src[i];
 	    const Box& bx_src = BoxLib::grow(ba_src[k_src], ng_src);
 
-	    ba_dst.intersections(bx_src, isects, ng_dst);
+	    ba_dst.intersections(bx_src, isects, false, ng_dst);
 	    
 	    for (int j = 0, M = isects.size(); j < M; ++j)
 	    {
@@ -327,7 +327,7 @@ FabArrayBase::CPC::define (const BoxArray& ba_dst, const DistributionMapping& dm
 		remotetouch.setVal(0);
 	    }
 	    
-	    ba_src.intersections(bx_dst, isects, ng_src);
+	    ba_src.intersections(bx_dst, isects, false, ng_src);
 	    
 	    for (int j = 0, M = isects.size(); j < M; ++j)
 	    {
@@ -557,7 +557,7 @@ FabArrayBase::FB::FB (const FabArrayBase& fa, bool cross)
 	    const int ksnd = imap[i];
 	    const Box& vbx = ba[ksnd];
 
-	    ba.intersections(vbx, isects, ng);
+	    ba.intersections(vbx, isects, false, ng);
 
 	    for (int j = 0, M = isects.size(); j < M; ++j)
             {

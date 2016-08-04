@@ -2577,7 +2577,7 @@ FabArray<FAB>::copyTo (FAB&       dest,
     FAB ovlp;
 
     std::vector< std::pair<int,Box> > isects;
-    boxarray.intersections(subbox, isects, nghost);
+    boxarray.intersections(subbox, isects, false, nghost);
 
     for (int j = 0, M = isects.size(); j < M; ++j)
     {
