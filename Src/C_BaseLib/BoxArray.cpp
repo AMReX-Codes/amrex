@@ -55,7 +55,7 @@ BARef::BARef (std::istream& is)
 }
 
 BARef::BARef (const BARef& rhs) 
-    : m_abox(rhs.m_abox) 
+    : m_abox(rhs.m_abox) // don't copy hash
 {
 #ifdef BL_MEM_PROFILING
     updateMemoryUsage_box(1);
@@ -285,8 +285,11 @@ BoxArray::clear ()
 void
 BoxArray::resize (long len)
 {
-    if (!m_ref.unique())
+    if (m_ref.unique()) {
+	clear_hash_bin();
+    } else {
         uniqify();
+    }
     m_ref->resize(len);
 }
 
@@ -417,8 +420,11 @@ BoxArray::refine (int refinement_ratio)
 BoxArray&
 BoxArray::refine (const IntVect& iv)
 {
-    if (!m_ref.unique())
+    if (m_ref.unique()) {
+	clear_hash_bin();
+    } else {
         uniqify();
+    }
     const int N = m_ref->m_abox.size();
 #ifdef _OPENMP
 #pragma omp parallel for
@@ -475,8 +481,11 @@ BoxArray::coarsen (const IntVect& iv)
 BoxArray&
 BoxArray::growcoarsen (int n, const IntVect& iv)
 {
-    if (!m_ref.unique())
+    if (m_ref.unique()) {
+	clear_hash_bin();
+    } else {
         uniqify();
+    }
     const int N = m_ref->m_abox.size();
 #ifdef _OPENMP
 #pragma omp parallel for
@@ -489,8 +498,11 @@ BoxArray::growcoarsen (int n, const IntVect& iv)
 BoxArray&
 BoxArray::grow (int n)
 {
-    if (!m_ref.unique())
+    if (m_ref.unique()) {
+	clear_hash_bin();
+    } else {
         uniqify();
+    }
     const int N = m_ref->m_abox.size();
 #ifdef _OPENMP
 #pragma omp parallel for
@@ -503,8 +515,11 @@ BoxArray::grow (int n)
 BoxArray&
 BoxArray::grow (const IntVect& iv)
 {
-    if (!m_ref.unique())
+    if (m_ref.unique()) {
+	clear_hash_bin();
+    } else {
         uniqify();
+    }
     const int N = m_ref->m_abox.size();
 #ifdef _OPENMP
 #pragma omp parallel for
@@ -518,8 +533,11 @@ BoxArray&
 BoxArray::grow (int dir,
                 int n_cell)
 {
-    if (!m_ref.unique())
+    if (m_ref.unique()) {
+	clear_hash_bin();
+    } else {
         uniqify();
+    }
     const int N = m_ref->m_abox.size();
 #ifdef _OPENMP
 #pragma omp parallel for
@@ -570,8 +588,11 @@ BoxArray::convert (Box (*fp)(const Box&))
 {
     BL_ASSERT(!(fp == 0));
 
-    if (!m_ref.unique())
+    if (m_ref.unique()) {
+	clear_hash_bin();
+    } else {
         uniqify();
+    }
     const int N = size();
     for (int i = 0; i < N; ++i)
 	set(i,fp(get(i)));
@@ -582,8 +603,11 @@ BoxArray&
 BoxArray::shift (int dir,
                  int nzones)
 {
-    if (!m_ref.unique())
+    if (m_ref.unique()) {
+	clear_hash_bin();
+    } else {
         uniqify();
+    }
     const int N = m_ref->m_abox.size();
 #ifdef _OPENMP
 #pragma omp parallel for
@@ -596,8 +620,11 @@ BoxArray::shift (int dir,
 BoxArray&
 BoxArray::shift (const IntVect& iv)
 {
-    if (!m_ref.unique())
+    if (m_ref.unique()) {
+	clear_hash_bin();
+    } else {
         uniqify();
+    }
     const int N = m_ref->m_abox.size();
 #ifdef _OPENMP
 #pragma omp parallel for
@@ -611,8 +638,11 @@ BoxArray&
 BoxArray::shiftHalf (int dir,
                      int num_halfs)
 {
-    if (!m_ref.unique())
+    if (m_ref.unique()) {
+	clear_hash_bin();
+    } else {
         uniqify();
+    }
     const int N = m_ref->m_abox.size();
 #ifdef _OPENMP
 #pragma omp parallel for
@@ -625,8 +655,11 @@ BoxArray::shiftHalf (int dir,
 BoxArray&
 BoxArray::shiftHalf (const IntVect& iv)
 {
-    if (!m_ref.unique())
+    if (m_ref.unique()) {
+	clear_hash_bin();
+    } else {
         uniqify();
+    }
     const int N = m_ref->m_abox.size();
 #ifdef _OPENMP
 #pragma omp parallel for
@@ -640,9 +673,16 @@ void
 BoxArray::set (int        i,
                const Box& ibox)
 {
-    if (i == 0) m_transformer->setIxType(ibox.ixType());
-    if (!m_ref.unique())
-        uniqify();
+    if (i == 0) {
+	m_transformer->setIxType(ibox.ixType());
+
+	if (m_ref.unique()) {
+	    clear_hash_bin();
+	} else {
+	    uniqify();
+	}
+    }
+
     m_ref->m_abox.set(i, BoxLib::enclosedCells(ibox));
 }
 
@@ -930,7 +970,9 @@ BoxArray::removeOverlap ()
 {
     BL_ASSERT(ixType().cellCentered());
 
-    if (!m_ref.unique()) uniqify();
+    if (!m_ref.unique()) {
+        uniqify();
+    }
 
     BARef::HashType& BoxHashMap = m_ref->hash;
 
@@ -1007,8 +1049,6 @@ BoxArray::removeOverlap ()
     bl.simplify();
 
     BoxArray nba(bl);
-
-    bl.clear();
 
     *this = nba;
 
