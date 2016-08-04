@@ -33,6 +33,10 @@ realclean:: clean
 	$(SILENT) $(RM) *.mod
 	$(SILENT) $(RM) work.pc work.pcl
 
+file_locations:
+	$(BOXLIB_HOME)/Tools/F_scripts/find_files_vpath.py --vpath "$(VPATH_LOCATIONS)" --files "$(CEXE_sources) $(FEXE_sources) $(cEXE_sources) $(fEXE_sources) $(f90EXE_sources) $(F90EXE_sources)"
+
+
 tags:	$(allSources)
 	@echo ctags ...
 	$(SILENT) ctags $<

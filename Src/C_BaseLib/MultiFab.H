@@ -102,7 +102,7 @@ public:
               int             ngrow,
 	      ParallelDescriptor::Color color);
 
-    virtual ~MultiFab() { }
+    virtual ~MultiFab() BL_OVERRIDE;
 
 
     void operator= (const Real& r);
@@ -451,19 +451,19 @@ public:
 		       int             numcomp,
 		       int             nghost);
 
-    void define (const BoxArray& bxs,
-                 int             nvar,
-                 int             ngrow,
-                 FabAlloc        mem_mode,
-		 const IntVect&  nodal = IntVect::TheZeroVector(),
-		 ParallelDescriptor::Color color = ParallelDescriptor::DefaultColor());
+    virtual void define (const BoxArray& bxs,
+			 int             nvar,
+			 int             ngrow,
+			 FabAlloc        mem_mode,
+			 const IntVect&  nodal = IntVect::TheZeroVector(),
+			 ParallelDescriptor::Color color = ParallelDescriptor::DefaultColor()) BL_OVERRIDE;
 
-    void define (const BoxArray&            bxs,
-                 int                        nvar,
-                 int                        ngrow,
-		 const DistributionMapping& dm,
-                 FabAlloc                   mem_mode,
-		 const IntVect&             nodal = IntVect::TheZeroVector());
+    virtual void define (const BoxArray&            bxs,
+			 int                        nvar,
+			 int                        ngrow,
+			 const DistributionMapping& dm,
+			 FabAlloc                   mem_mode,
+			 const IntVect&             nodal = IntVect::TheZeroVector()) BL_OVERRIDE;
 
     //
     // Are there any NaNs in the MF?
@@ -490,20 +490,6 @@ public:
     bool is_nodal () const;
 
     bool contains_inf (int scomp, int ncomp, int ngrow = 0, bool local=false) const;
-
-    const FArrayBox& operator[] (int K) const;
-
-    FArrayBox& operator[] (int K);
-
-    const FArrayBox& operator[] (const MFIter& mfi) const { 
-	return this->FabArray<FArrayBox>::get(mfi); } 
-
-    const FArrayBox& get (const MFIter& mfi) const { return operator[](mfi); }
-
-    FArrayBox& operator[] (const MFIter& mfi) { 
-	return this->FabArray<FArrayBox>::get(mfi); } 
-
-    FArrayBox& get (const MFIter& mfi) { return operator[](mfi); }
     //
     // Set ghost cells that are covered by valid cells to the value of valid cells.
     //
