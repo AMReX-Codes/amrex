@@ -779,22 +779,6 @@ BoxArray::intersections (const Box& bx) const
 }
 
 std::vector< std::pair<int,Box> >
-BoxArray::intersections (const Box& bx, bool first_only) const
-{
-    std::vector< std::pair<int,Box> > isects;
-    intersections(bx,isects,first_only,0);
-    return isects;
-}
-
-std::vector< std::pair<int,Box> >
-BoxArray::intersections (const Box& bx, int ng) const
-{
-    std::vector< std::pair<int,Box> > isects;
-    intersections(bx,isects,false,0);
-    return isects;
-}
-
-std::vector< std::pair<int,Box> >
 BoxArray::intersections (const Box& bx, bool first_only, int ng) const
 {
     std::vector< std::pair<int,Box> > isects;
@@ -807,22 +791,6 @@ BoxArray::intersections (const Box&                         bx,
                          std::vector< std::pair<int,Box> >& isects) const
 {
     intersections(bx, isects, false, 0);
-}
-
-void
-BoxArray::intersections (const Box&                         bx,
-                         std::vector< std::pair<int,Box> >& isects,
-			 bool                               first_only) const
-{
-    intersections(bx, isects, first_only, 0);
-}
-
-void
-BoxArray::intersections (const Box&                         bx,
-                         std::vector< std::pair<int,Box> >& isects,
-			 int                                ng) const
-{
-    intersections(bx, isects, false, ng);
 }
 
 void
@@ -1195,7 +1163,7 @@ BoxLib::intersect (const BoxArray& ba,
 {
     std::vector< std::pair<int,Box> > isects;
 
-    ba.intersections(b,isects,ng);
+    ba.intersections(b,isects,false,ng);
 
     BoxArray r(isects.size());
 

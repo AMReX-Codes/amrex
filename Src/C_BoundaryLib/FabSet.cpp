@@ -154,7 +154,7 @@ FabSet::linComb (Real a, const MultiFab& mfa, int a_comp,
 
     for (FabSetIter fsi(*this); fsi.isValid(); ++fsi)
     {
-        bxa.intersections(get(fsi).box(),isects,ngrow);
+        bxa.intersections(get(fsi).box(),isects,false,ngrow);
 
         const int index = fsi.index();
 

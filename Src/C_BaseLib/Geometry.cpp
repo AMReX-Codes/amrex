@@ -108,7 +108,7 @@ Geometry::FPB::FPB (const Geometry& geom, const FabArrayBase& fa, bool do_corner
 		const IntVect& iv   = *pit;
 		const Box&     shft = bx_src + iv;
 		
-		ba.intersections(shft, isects, ng);
+		ba.intersections(shft, isects, false, ng);
 		
 		for (int j = 0, M = isects.size(); j < M; ++j)
 		{
