@@ -135,88 +135,28 @@ FabSet::linComb (Real a, const MultiFab& mfa, int a_comp,
     BL_PROFILE("FabSet::linComb()");
     BL_ASSERT(ngrow <= mfa.nGrow());
     BL_ASSERT(ngrow <= mfb.nGrow());
+    BL_ASSERT(mfa.boxArray() == mfb.boxArray());
+    BL_ASSERT(boxArray() != mfa.boxArray());
 
-    const BoxArray& bxa = mfa.boxArray();
+    MultiFab bdrya(boxArray(),ncomp,0,DistributionMap());
+    MultiFab bdryb(boxArray(),ncomp,0,DistributionMap());
 
-    BL_ASSERT(bxa == mfb.boxArray());
+    bdrya.copy(mfa,a_comp,0,ncomp,ngrow,0);
+    bdryb.copy(mfb,b_comp,0,ncomp,ngrow,0);
 
-    MultiFabCopyDescriptor mfcd;
-
-    MultiFabId mfid_mfa = mfcd.RegisterFabArray(const_cast<MultiFab*>(&mfa));
-    MultiFabId mfid_mfb = mfcd.RegisterFabArray(const_cast<MultiFab*>(&mfb));
-
-    std::vector<FillBoxId> fbids_mfa, fbids_mfb;
-
-    std::vector< std::pair<int,Box> > isects;
-
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
     for (FabSetIter fsi(*this); fsi.isValid(); ++fsi)
     {
-        bxa.intersections(fsi.fabbox(),isects,false,ngrow);
-
-        const int index = fsi.index();
-
-        for (int j = 0, N = isects.size(); j < N; j++)
-        {
-            const int  grd  = isects[j].first;
-            const Box& ovlp = isects[j].second;
-
-            fbids_mfa.push_back(mfcd.AddBox(mfid_mfa,
-                                            ovlp,
-                                            0,
-                                            grd,
-                                            a_comp,
-                                            0,
-                                            ncomp,
-                                            false));
-
-            BL_ASSERT(fbids_mfa.back().box() == ovlp);
-            //
-            // Also save the index of the FAB in the FabSet.
-            //
-            fbids_mfa.back().FabIndex(index);
-
-            fbids_mfb.push_back(mfcd.AddBox(mfid_mfb,
-                                            ovlp,
-                                            0,
-                                            grd,
-                                            b_comp,
-                                            0,
-                                            ncomp,
-                                            false));
-
-            BL_ASSERT(fbids_mfb.back().box() == ovlp);
-        }
+	const FArrayBox& afab = bdrya[fsi];
+	const FArrayBox& bfab = bdryb[fsi];
+	FArrayBox& dfab = (*this)[fsi];
+	dfab.linComb(afab, afab.box(), a_comp,
+		     bfab, bfab.box(), b_comp,
+		     a, b, dfab.box(), dcomp, ncomp);
     }
 
-    BL_COMM_PROFILE_NAMETAG("CD::FabSet::linComb()");
-    mfcd.CollectData();
-
-    FArrayBox a_fab, b_fab;
-
-    BL_ASSERT(fbids_mfa.size() == fbids_mfb.size());
-
-    for (int i = 0, N = fbids_mfa.size(); i < N; i++)
-    {
-        a_fab.resize(fbids_mfa[i].box(), ncomp);
-        b_fab.resize(fbids_mfb[i].box(), ncomp);
-
-        mfcd.FillFab(mfid_mfa, fbids_mfa[i], a_fab);
-        mfcd.FillFab(mfid_mfb, fbids_mfb[i], b_fab);
-
-        BL_ASSERT(DistributionMap()[fbids_mfa[i].FabIndex()] == ParallelDescriptor::MyProc());
-
-        (*this)[fbids_mfa[i].FabIndex()].linComb(a_fab,
-                                                 fbids_mfa[i].box(),
-                                                 0,
-                                                 b_fab,
-                                                 fbids_mfa[i].box(),
-                                                 0,
-                                                 a,
-                                                 b,
-                                                 fbids_mfa[i].box(),
-                                                 dcomp,
-                                                 ncomp);
-    }
     return *this;
 }
 
