@@ -700,7 +700,8 @@ BoxLib::bdryLo (const Box& b,
     IntVect low(b.smallEnd());
     IntVect hi(b.bigEnd());
     int sm = low[dir];
-    hi.setVal(dir,sm+len-1);
+    low.setVal(dir,sm-len+1);
+    hi.setVal(dir,sm);
     //
     // set dir'th bit to 1 = IndexType::NODE.
     //
@@ -739,7 +740,8 @@ BoxLib::bdryNode (const Box&  b,
     if (face.isLow())
     {
         int sm = low[dir];
-        hi.setVal(dir,sm+len-1);
+	low.setVal(dir,sm-len+1);
+        hi.setVal(dir,sm);
     }
     else
     {

@@ -1,7 +1,7 @@
 \section{Overview}
 
 An automated regression test suite for any \boxlib\ code
-exists in {\tt BoxLib/Tools/RegressionTesting/} as {\tt testnew.py}.
+exists in {\tt BoxLib/Tools/RegressionTesting/} as {\tt regtest.py}.
 The test suite consists of a set of problem definitions (e.g., the
 build directory, inputs files, etc.) and source locations for the
 building blocks of the application.
@@ -251,7 +251,7 @@ The first time you run the test suite there are no benchmark files to
 compare to.  Once you generate an inputs file, as described above, you
 would simply run the suite as:
 \begin{verbatim}
- ./testnew.py  --make_benchmarks "initial run" ./Maestro_tests.ini
+ ./regtest.py  --make_benchmarks "initial run" ./Maestro_tests.ini
 \end{verbatim}
 The string following {\tt --make\_benchmarks} is simply a comment that
 will be added to the web report.  This command creates three output
@@ -280,7 +280,7 @@ directories, using the {\tt suiteName} as the prefix.
 Once the initial benchmarks are created, you can compare the current
 version of the code to the stored results by simply doing:
 \begin{verbatim}
-./testnew.py ./Maestro_tests.ini
+./regtest.py ./Maestro_tests.ini
 \end{verbatim}
 This will do a git update in all the source repos (including \boxlib),
 generate {\tt ChangeLog} files listing all of the git comments for the
@@ -295,7 +295,7 @@ output does not match the stored benchmarks.
 
 There are additional runtime options to run only tests of a certain
 dimensionality, those that previously failed, etc.  Typing {\tt
-  ./testnew.py} with no options will give a description of these
+  ./regtest.py} with no options will give a description of these
 options.
 
 
@@ -318,12 +318,16 @@ confident that the latest output is correct, then you can tell the
 test suite to update the benchmarks.  If you want to do this for all
 the test problems, you would do:
 \begin{verbatim}
-./testnew.py --make_benchmarks "X bug fixed" ./Maestro_tests.ini
+./regtest.py --make_benchmarks "X bug fixed" ./Maestro_tests.ini
 \end{verbatim}
 where the string after ``{\tt --make\_benchmarks}'' is a note that is listed
 on the regression suite web page describing the reason for the benchmark
 update.  Subsequent runs of the test suite will use the new benchmarks.
 If you only want to update the benchmarks of a single test, then you
 can use the ``{\tt --single\_test test}'' flag on the commandline, where
-{\tt test} is the name of the test to update.
+{\tt test} is the name of the test to update.  
+
+Finally, if you just want to rerun the tests the previously failed,
+you can use the {\tt --redo\_failed} option.
+
 

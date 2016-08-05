@@ -84,8 +84,10 @@ program main
 
   ! allowable options for this example are
   ! -1 = PERIODIC
-  ! 12 = OUTLET (dphi/dn=0 at boundary)
-  ! 15 = NO_SLIP_WALL (wall with fixed phi=1)
+  ! 11 = INLET        (phi = val    at boundary)
+  ! 12 = OUTLET       (phi = extrap at boundary)
+  ! 14 = SLIP_WALL    (dphi/dn=0    at boundary)
+  ! 15 = NO_SLIP_WALL (dphi/dn=0    at boundary)
   bc_x_lo       = -1 ! PERIODIC
   bc_x_hi       = -1 ! PERIODIC
   bc_y_lo       = -1 ! PERIODIC
