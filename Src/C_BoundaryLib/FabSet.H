@@ -90,7 +90,7 @@ public:
 
     FabSet& plusFrom (const MultiFab& src, int ngrow, int scomp, int dcomp, int ncomp);
 
-    void copyTo (MultiFab& dest, int scomp, int dcomp, int ncomp) const;
+    void copyTo (MultiFab& dest, int ngrow, int scomp, int dcomp, int ncomp) const;
 
     void periodicCopyTo (MultiFab& dest, const Geometry& geom, int scomp, int dcomp, int ncomp) const;
 

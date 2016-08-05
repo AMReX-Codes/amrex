@@ -78,10 +78,10 @@ FabSet::plusFrom (const MultiFab& src, int ngrow, int scomp, int dcomp, int ncom
 }
 
 void
-FabSet::copyTo (MultiFab& dest, int scomp, int dcomp, int ncomp) const
+FabSet::copyTo (MultiFab& dest, int ngrow, int scomp, int dcomp, int ncomp) const
 {
     BL_ASSERT(boxArray() != dest.boxArray());
-    dest.copy(m_mf,scomp,dcomp,ncomp);
+    dest.copy(m_mf,scomp,dcomp,ncomp,0,ngrow);
 }
 
 void
