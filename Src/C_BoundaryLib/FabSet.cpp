@@ -54,6 +54,22 @@ FabSet::copyFrom (const MultiFab& src, int ngrow, int scomp, int dcomp, int ncom
 }
 
 FabSet&
+FabSet::plusFrom (const FabSet& src, int scomp, int dcomp, int ncomp)
+{
+    if (boxArray() == src.boxArray() && DistributionMap() == src.DistributionMap()) {
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+	for (FabSetIter fsi(*this); fsi.isValid(); ++fsi) {
+	    (*this)[fsi].plus(src[fsi], scomp, dcomp, ncomp);
+	}
+    } else {
+	BoxLib::Abort("FabSet::plusFrom: parallel plusFrom not supported");
+    }
+    return *this;
+}
+
+FabSet&
 FabSet::plusFrom (const MultiFab& src, int ngrow, int scomp, int dcomp, int ncomp)
 {
     BL_ASSERT(boxArray() != src.boxArray());

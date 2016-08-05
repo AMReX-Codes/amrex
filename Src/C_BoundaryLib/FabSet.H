@@ -86,6 +86,8 @@ public:
 
     FabSet& copyFrom (const MultiFab& src, int ngrow, int scomp, int dcomp, int ncomp);
 
+    FabSet& plusFrom (const FabSet& src, int scomp, int dcomp, int ncomp);
+
     FabSet& plusFrom (const MultiFab& src, int ngrow, int scomp, int dcomp, int ncomp);
 
     void copyTo (MultiFab& dest, int scomp, int dcomp, int ncomp) const;
