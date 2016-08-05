@@ -401,9 +401,9 @@ FabArrayBase::CPC::define (const BoxArray& ba_dst, const DistributionMapping& dm
 }
 
 void
-FabArrayBase::flushCPC () const
+FabArrayBase::flushCPC (bool no_assertion) const
 {
-    BL_ASSERT(getBDKey() == m_bdkey);
+    BL_ASSERT(no_assertion || getBDKey() == m_bdkey);
 
     std::vector<CPCacheIter> others;
 
@@ -744,9 +744,9 @@ FabArrayBase::FB::~FB ()
 }
 
 void
-FabArrayBase::flushFB () const
+FabArrayBase::flushFB (bool no_assertion) const
 {
-    BL_ASSERT(getBDKey() == m_bdkey);
+    BL_ASSERT(no_assertion || getBDKey() == m_bdkey);
     std::pair<FBCacheIter,FBCacheIter> er_it = m_TheFBCache.equal_range(m_bdkey);
     for (FBCacheIter it = er_it.first; it != er_it.second; ++it)
     {
@@ -929,9 +929,9 @@ FabArrayBase::TheFPinfo (const FabArrayBase& srcfa,
 }
 
 void
-FabArrayBase::flushFPinfo ()
+FabArrayBase::flushFPinfo (bool no_assertion)
 {
-    BL_ASSERT(getBDKey() == m_bdkey);
+    BL_ASSERT(no_assertion || getBDKey() == m_bdkey);
 
     std::vector<FPinfoCacheIter> others;
 
@@ -1116,9 +1116,9 @@ FabArrayBase::buildTileArray (const IntVect& tileSize, TileArray& ta) const
 }
 
 void
-FabArrayBase::flushTileArray (const IntVect& tileSize) const
+FabArrayBase::flushTileArray (const IntVect& tileSize, bool no_assertion) const
 {
-    BL_ASSERT(getBDKey() == m_bdkey);
+    BL_ASSERT(no_assertion || getBDKey() == m_bdkey);
 
     TACache& tao = m_TheTileArrayCache;
     TACache::iterator tao_it = tao.find(m_bdkey);
@@ -1186,10 +1186,10 @@ FabArrayBase::clearThisBD (bool no_assertion)
 		
 		// Since this is the last one built with these BoxArray 
 		// and DistributionMapping, erase it from caches.
-		flushTileArray();
-		flushFPinfo();
-		flushFB();
-		flushCPC();
+		flushTileArray(IntVect::TheZeroVector(), no_assertion);
+		flushFPinfo(no_assertion);
+		flushFB(no_assertion);
+		flushCPC(no_assertion);
 		Geometry::flushFPB(m_bdkey);
 	    }
 	}
