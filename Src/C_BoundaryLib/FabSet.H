@@ -112,13 +112,10 @@ public:
     // Read (used for reading from checkpoint)
     //
     void read (const std::string& name);
-    //
-    // Promote AddProcsToComp() back to public.
-    //
-    //xxxxx This is not virtual.  Is that a problem?
+
     void AddProcsToComp (int ioProcNumSCS, int ioProcNumAll,
 			 int scsMyId, MPI_Comm scsComm)
-	{ } // xxxxx FIXME to be implemented
+	{ BoxLib::Abort("FabSet::AddProcsToComp not implemented"); }
 
 private:
     MultiFab m_mf;
