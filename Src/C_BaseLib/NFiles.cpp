@@ -13,11 +13,11 @@ NFilesIter::NFilesIter(int noutfiles, const std::string &filePrefix,
   nSets     = NSets(nProcs, nOutFiles);
   if(groupSets) {
     mySet     = myProc / nOutFiles;
-    fullFileName  = BoxLib::Concatenate(filePrefix, myProc % nOutFiles, 5);
   } else {
     mySet     = myProc % nSets;
-    fullFileName  = BoxLib::Concatenate(filePrefix, myProc / nSets, 5);
   }
+  int fileNumber(FileNumber(nOutFiles, myProc, groupSets));
+  fullFileName  = BoxLib::Concatenate(filePrefix, fileNumber, 5);
 
 
   finishedWriting = false;

@@ -65,7 +65,7 @@ class NFilesIter
         return(whichProc % anf);
       } else {
 	int nProcs(ParallelDescriptor::NProcs());
-        return(whichProc % NSets(nProcs, anf));
+        return(whichProc / NSets(nProcs, anf));
       }
     }
 
