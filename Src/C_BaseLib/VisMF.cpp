@@ -706,15 +706,14 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
     }
 
     long        bytes    = 0;
-    const int   MyProc   = ParallelDescriptor::MyProc();
-    const int   NProcs   = ParallelDescriptor::NProcs();
-    std::string FullName = BoxLib::Concatenate(mf_name + FabFileSuffix, MyProc % nOutFiles, 5);
-    const std::string BName = VisMF::BaseName(FullName);
+    const int   myProc   = ParallelDescriptor::MyProc();
+    const int   nProcs   = ParallelDescriptor::NProcs();
 
     std::string filePrefix(mf_name + FabFileSuffix);
     bool groupSets(true), setBuf(true);
 
     for(NFilesIter nfi(nOutFiles, filePrefix, groupSets, setBuf); nfi.ReadyToWrite(); ++nfi) {
+      const std::string BName(NFilesIter::FileName(nOutFiles, filePrefix, myProc, groupSets));
       for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
         hdr.m_fod[mfi.index()] = VisMF::Write(mf[mfi],BName,nfi.Stream(),bytes);
       }
@@ -724,8 +723,8 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
 #ifdef BL_USE_MPI
     const int IOProcNumber(ParallelDescriptor::IOProcessorNumber());
 
-    Array<int> nmtags(NProcs,0);
-    Array<int> offset(NProcs,0);
+    Array<int> nmtags(nProcs,0);
+    Array<int> offset(nProcs,0);
 
     const Array<int> &pmap = mf.DistributionMap().ProcessorMap();
 
@@ -771,13 +770,13 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
                     ParallelDescriptor::MyProc(), BLProfiler::AfterCall());
 
     if(ParallelDescriptor::IOProcessor()) {
-        Array<int> cnt(NProcs,0);
+        Array<int> cnt(nProcs,0);
 
         for(int j(0), N(mf.size()); j < N; ++j) {
             const int i(pmap[j]);
             hdr.m_fod[j].m_head = recvdata[offset[i]+cnt[i]];
 
-            std::string name = BoxLib::Concatenate(mf_name + FabFileSuffix, i % nOutFiles, 5);
+            const std::string name(NFilesIter::FileName(nOutFiles, filePrefix, i, groupSets));
 
             hdr.m_fod[j].m_name = VisMF::BaseName(name);
 
@@ -814,7 +813,6 @@ VisMF::WriteRawNative (const FabArray<FArrayBox>    &mf,
     int nrdBytes(nrd.numBytes());
     BL_ASSERT(nrdBytes == sizeof(Real));
     Array<Real> minmax(2 * mf.nComp());
-    long mmSize(minmax.size() * sizeof(Real));
     int nComps(mf.nComp());
 
     std::string filePrefix(mf_name + FabFileSuffix);
