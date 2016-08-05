@@ -46,7 +46,7 @@ module parallel
   integer, private :: m_nprocs = 1
   integer, private :: m_nprocs_all     = 1
   integer, private :: m_nprocs_comp    = 1
-  integer, private :: m_nprocs_sidecar = 0
+  integer, private :: m_nprocs_sidecar(0:0) = 0
   integer, private :: m_nsidecar_procs = 0
   integer, private :: m_myproc = 0
   integer, private :: m_myproc_all     = 0
@@ -55,11 +55,11 @@ module parallel
   integer, private :: m_comm   = -1
   integer, private :: m_comm_all     = -1
   integer, private :: m_comm_comp    = -1
-  integer, private :: m_comm_sidecar = -1
-  integer, private :: m_comm_inter   = -1
+  integer, private :: m_comm_sidecar(0:0) = -1
+  integer, private :: m_comm_inter(0:0)   = -1
   integer, private :: m_group_all     = -1
   integer, private :: m_group_comp    = -1
-  integer, private :: m_group_sidecar = -1
+  integer, private :: m_group_sidecar(0:0) = -1
 
   integer, private :: m_thread_support_level = 0
 
@@ -315,9 +315,10 @@ contains
     integer r
     r = m_nprocs_comp
   end function parallel_nprocs_comp
-  pure function parallel_nprocs_sidecar() result(r)
+  pure function parallel_nprocs_sidecar(whichsidecar) result(r)
+    integer, intent(in) :: whichsidecar
     integer r
-    r = m_nprocs_sidecar
+    r = 0
   end function parallel_nprocs_sidecar
   pure function parallel_myproc() result(r)
     integer r
