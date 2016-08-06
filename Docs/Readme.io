@@ -22,12 +22,18 @@ preallocation
 persistent streams
 dynamic set selection
 buffer size adjustments
-striping.
-more combining writes.
+striping tests
+more combining writes
 tests for meta operations:  seek open close mkdir rename
-make set selection a function.
-recursive mkdir
+//make set selection a function
+//recursive mkdir
 dot in path issue
 remove how
 check if pubsetbuf works
 add more retry code to vismf
+check nfilesiter with long paths
+special profiling
+support new shared boxarrays (test restart)
+readandbcast vismf header
+check vismf reads for copies and non-contiguous
+check vismf colors
