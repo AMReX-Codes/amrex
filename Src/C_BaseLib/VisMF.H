@@ -55,7 +55,17 @@ public:
         //
         // The current version of the FabArray<FArrayBox> Header code.
         //
-        enum { Version = 1, RawNative = 2, RawNativeMinMax = 3 };
+        enum Version {
+	  Undefined_v1         = 0,  // ---- undefined
+	  Version_v1           = 1,  // ---- auto converting version with headers
+	                             // ---- for each fab in the data files and
+				     // ---- min and max values for each fab in the header
+	  RawNative_v1         = 2,  // ---- native format, no fab headers, no fab mins or maxes
+	  RawNativeMinMax_v1   = 3,  // ---- native format, no fab headers,
+				     // ---- min and max values for each fab in the header
+	  RawNativeFAMinMax_v1 = 4   // ---- native format, no fab headers, no fab mins or maxes,
+				     // ---- min and max values for each FabArray in the header
+	};
         //
         // The default constructor.
         //
@@ -63,18 +73,21 @@ public:
         //
         // Construct from a FabArray<FArrayBox>.
         //
-        Header (const FabArray<FArrayBox>& mf, How how);
+        Header (const FabArray<FArrayBox>& mf, VisMF::How how, Version version = Version_v1);
         //
         // The data.
         //
-        int                  m_vers;  // The version # of the Header.
+        int                  m_vers;  // The version of the Header.
         How                  m_how;   // How the MF was written to disk.
         int                  m_ncomp; // Number of components in MF.
         int                  m_ngrow; // The number of ghost cells in MF.
         BoxArray             m_ba;    // The BoxArray of the MF.
         Array< FabOnDisk >   m_fod;   // FabOnDisk info for contained FABs.
-        Array< Array<Real> > m_min;   // The min()s of each component of FABs.
-        Array< Array<Real> > m_max;   // The max()s of each component of FABs.
+	// The min max values will be calculated if necessary
+        Array< Array<Real> > m_min;   // The min()s of each component of FABs.  [findex][comp]
+        Array< Array<Real> > m_max;   // The max()s of each component of FABs.  [findex][comp]
+        Array<Real>          m_famin; // The min()s of each component of the FabArray.
+        Array<Real>          m_famax; // The max()s of each component of the FabArray.
     };
     //
     // The number of components in the on-disk FabArray<FArrayBox>.
@@ -95,18 +108,24 @@ public:
     //
     // The min of the FAB (in valid region) at specified index and component.
     //
-    Real min (int fabIndex,
-              int nComp) const;
+    Real min (int fabIndex, int nComp) const;
+    //
+    // The min of the FabArray (in valid region) at specified component.
+    //
+    Real min (int nComp) const;
     //
     // The max of the FAB (in valid region) at specified index and component.
     //
-    Real max (int fabIndex,
-              int nComp) const;
+    Real max (int fabIndex, int nComp) const;
+    //
+    // The max of the FabArray (in valid region) at specified component.
+    //
+    Real max (int nComp) const;
 
-    /* The FAB at the specified index and component.
-               Reads it from disk if necessary.
-               This reads only the specified component.
-    */
+    // The FAB at the specified index and component.
+    //         Reads it from disk if necessary.
+    //         This reads only the specified component.
+    //
     const FArrayBox& GetFab (int fabIndex,
                              int compIndex) const;
     //
@@ -138,7 +157,7 @@ public:
     //
     static long WriteRawNative (const FabArray<FArrayBox>&    mf,
                                 const std::string& name,
-                                bool writeMinMax = false,
+                                VisMF::Header::Version hVersion = VisMF::Header::RawNative_v1,
                                 bool groupSets = false,
                                 bool setBuf = true);
     //

@@ -268,7 +268,7 @@ operator>> (std::istream&  is,
             VisMF::Header& hd)
 {
     is >> hd.m_vers;
-    BL_ASSERT(hd.m_vers == VisMF::Header::Version);
+    BL_ASSERT(hd.m_vers == VisMF::Header::Version_v1);
 
     int how;
     is >> how;
@@ -344,7 +344,16 @@ VisMF::min (int fabIndex,
 {
     BL_ASSERT(0 <= fabIndex && fabIndex < m_hdr.m_ba.size());
     BL_ASSERT(0 <= nComp && nComp < m_hdr.m_ncomp);
+    BL_ASSERT(m_hdr.m_min.size() > 0);
     return m_hdr.m_min[fabIndex][nComp];
+}
+
+Real
+VisMF::min (int nComp) const
+{
+    BL_ASSERT(0 <= nComp && nComp < m_hdr.m_ncomp);
+    BL_ASSERT(m_hdr.m_famin.size() > 0);
+    return m_hdr.m_famin[nComp];
 }
 
 Real
@@ -353,7 +362,16 @@ VisMF::max (int fabIndex,
 {
     BL_ASSERT(0 <= fabIndex && fabIndex < m_hdr.m_ba.size());
     BL_ASSERT(0 <= nComp && nComp < m_hdr.m_ncomp);
+    BL_ASSERT(m_hdr.m_max.size() > 0);
     return m_hdr.m_max[fabIndex][nComp];
+}
+
+Real
+VisMF::max (int nComp) const
+{
+    BL_ASSERT(0 <= nComp && nComp < m_hdr.m_ncomp);
+    BL_ASSERT(m_hdr.m_famax.size() > 0);
+    return m_hdr.m_famax[nComp];
 }
 
 const FArrayBox&
@@ -487,7 +505,7 @@ VisMF::Write (const FArrayBox&   fab,
 
 VisMF::Header::Header ()
     :
-    m_vers(0)
+    m_vers(VisMF::Header::Undefined_v1)
 {}
 
 //
@@ -495,18 +513,48 @@ VisMF::Header::Header ()
 //
 
 VisMF::Header::Header (const FabArray<FArrayBox>& mf,
-                       VisMF::How      how)
+                       VisMF::How      how,
+		       Version version)
     :
-    m_vers(VisMF::Header::Version),
+    m_vers(version),
     m_how(how),
     m_ncomp(mf.nComp()),
     m_ngrow(mf.nGrow()),
     m_ba(mf.boxArray()),
-    m_fod(m_ba.size()),
-    m_min(m_ba.size()),
-    m_max(m_ba.size())
+    m_fod(m_ba.size())
 {
     BL_PROFILE("VisMF::Header");
+
+    if(version == RawNative_v1) {
+      m_min.clear();
+      m_max.clear();
+      m_famin.clear();
+      m_famax.clear();
+      return;
+    }
+
+    if(version == RawNativeFAMinMax_v1) {
+      // ---- calculate FabArray min max values only
+      m_min.clear();
+      m_max.clear();
+      m_famin.resize(m_ncomp,  std::numeric_limits<Real>::max());
+      m_famax.resize(m_ncomp, -std::numeric_limits<Real>::max());
+
+      for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
+        const int idx = mfi.index();
+        for(int i(0); i < m_ncomp; ++i) {
+          m_famin[i] = std::min(m_famin[i], mf[mfi].min(m_ba[idx],i));
+          m_famax[i] = std::max(m_famax[i], mf[mfi].max(m_ba[idx],i));
+        }
+      }
+      ParallelDescriptor::ReduceRealMin(m_famin.dataPtr(), m_famin.size());
+      ParallelDescriptor::ReduceRealMax(m_famax.dataPtr(), m_famax.size());
+
+      return;
+    }
+
+    m_min.resize(m_ba.size());
+    m_max.resize(m_ba.size());
 
 #ifdef BL_USE_MPI
     const int IOProcNumber = ParallelDescriptor::IOProcessorNumber();
@@ -631,8 +679,29 @@ VisMF::Header::Header (const FabArray<FArrayBox>& mf,
                 }
             }
         }
+        for(int i(0); i < m_max.size(); ++i) {
+            for(int j(0); j < m_max[i].size(); ++j) {
+                if(std::abs(m_max[i][j]) < 1.0e-300) {
+                    m_max[i][j] = 0.0;
+                }
+            }
+        }
     }
 #endif
+
+    // ---- calculate fabarray min max values
+    m_famin.resize(m_ncomp);
+    m_famax.resize(m_ncomp);
+    for(int i(0); i < m_ncomp; ++i) {
+      m_famin[i] =  std::numeric_limits<Real>::max();
+      m_famax[i] = -std::numeric_limits<Real>::max();
+      for(int j(0); j < m_min[i].size(); ++j) {
+        m_famin[i] = std::min(m_famin[i], m_min[i][j]);
+      }
+      for(int j(0); j < m_max[i].size(); ++j) {
+        m_famax[i] = std::max(m_famax[i], m_max[i][j]);
+      }
+    }
 }
 
 long
@@ -793,17 +862,17 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
 long
 VisMF::WriteRawNative (const FabArray<FArrayBox>    &mf,
                        const std::string &mf_name,
-		       bool writeMinMax, bool groupSets,
-		       bool setBuf)
+		       VisMF::Header::Version hVersion,
+		       bool groupSets, bool setBuf)
 {
     BL_PROFILE("VisMF::Write_rawnative_mf");
     BL_ASSERT(mf_name[mf_name.length() - 1] != '/');
+    BL_ASSERT(hVersion != Header::Version_v1);
 
     // ---- add stream retry
 
     // ---- add stream buffer (to nfiles)
 
-    VisMF::Header *hdr;
     static const char *FabFileSuffix = "_D_";
 
     VisMF::Initialize();
@@ -812,7 +881,6 @@ VisMF::WriteRawNative (const FabArray<FArrayBox>    &mf,
     const RealDescriptor &nrd = FPC::NativeRealDescriptor();
     int nrdBytes(nrd.numBytes());
     BL_ASSERT(nrdBytes == sizeof(Real));
-    Array<Real> minmax(2 * mf.nComp());
     int nComps(mf.nComp());
 
     std::string filePrefix(mf_name + FabFileSuffix);
@@ -828,10 +896,7 @@ VisMF::WriteRawNative (const FabArray<FArrayBox>    &mf,
       }
     }
 
-    if(writeMinMax) {
-      // ---- this calculates and distributes fab mins and maxes
-      hdr = new VisMF::Header(mf, NFiles);
-    }
+    VisMF::Header hdr(mf, NFiles, hVersion);
 
     if(ParallelDescriptor::IOProcessor()) {
         std::string MFHdrFileName(mf_name + TheMultiFabHdrFileSuffix);
@@ -848,11 +913,7 @@ VisMF::WriteRawNative (const FabArray<FArrayBox>    &mf,
           BoxLib::FileOpenFailed(MFHdrFileName);
 	}
 
-	if(writeMinMax) {
-          MFHdrFile << VisMF::Header::RawNativeMinMax << '\n';;
-	} else {
-          MFHdrFile << VisMF::Header::RawNative << '\n';;
-	}
+        MFHdrFile << hVersion << '\n';;
         MFHdrFile << mf.nComp() << '\n';;
         MFHdrFile << mf.nGrow() << '\n';;
         MFHdrFile << nrd << '\n';;
@@ -881,14 +942,13 @@ VisMF::WriteRawNative (const FabArray<FArrayBox>    &mf,
           MFHdrFile << fod[i] << '\n';
 	}
 
-        if(writeMinMax) {
+        if(hVersion == Header::RawNativeMinMax_v1) {
           std::ios::fmtflags oflags = MFHdrFile.flags();
           MFHdrFile.setf(std::ios::floatfield, std::ios::scientific);
           int oldPrec(MFHdrFile.precision(16));
 
-	  MFHdrFile << hdr->m_min << '\n';
-	  MFHdrFile << hdr->m_max << '\n';
-	  delete hdr;
+	  MFHdrFile << hdr.m_min << '\n';
+	  MFHdrFile << hdr.m_max << '\n';
 
           MFHdrFile.flags(oflags);
           MFHdrFile.precision(oldPrec);
