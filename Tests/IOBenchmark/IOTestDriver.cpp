@@ -28,7 +28,8 @@ void TestWriteNFiles(int nfiles, int maxgrid, int ncomps, int nboxes,
                      bool raninit, bool mb2);
 void TestWriteNFilesRawNative(int nfiles, int maxgrid, int ncomps,
                               int nboxes, bool raninit, bool mb2,
-			      bool writeMinMax, bool groupsets, bool setbuf);
+			      VisMF::Header::Version writeMinMax,
+			      bool groupsets, bool setbuf);
 void TestReadMF();
 void NFileTests(int nOutFiles, const std::string &filePrefix);
 
@@ -50,6 +51,7 @@ static void PrintUsage(const char *progName) {
     cout << "   [rbuffsize = rbs]" << '\n';
     cout << "   [wbuffsize = wbs]" << '\n';
     cout << "   [writeminmax = wmm]" << '\n';
+    cout << "   [writefaminmax = wfamm]" << '\n';
     cout << "   [groupsets = groupsets]" << '\n';
     cout << "   [setbuf = setbuf]" << '\n';
     cout << '\n';
@@ -76,8 +78,10 @@ int main(int argc, char *argv[]) {
   int nsleep(0), nfiles(std::min(nprocs, 128));  // limit default to max of 128
   int maxgrid(32), ncomps(4), nboxes(nprocs), ntimes(1);
   int rbs(8192), wbs(8192);
-  bool raninit(false), mb2(false), writeminmax(false);
+  bool raninit(false), mb2(false);
+  bool writeminmax(false), writefaminmax(false);
   bool groupsets(false), setbuf(true);
+  VisMF::Header::Version hVersion;
 
   pp.query("nfiles", nfiles);
   nfiles = std::max(1, std::min(nfiles, nprocs));
@@ -98,6 +102,16 @@ int main(int argc, char *argv[]) {
   pp.query("mb2", mb2);
 
   pp.query("writeminmax", writeminmax);
+  pp.query("writefaminmax", writefaminmax);
+  BL_ASSERT( ! (writeminmax && writefaminmax));
+  if(writeminmax) {
+    hVersion = VisMF::Header::RawNativeMinMax_v1;
+  } else if(writefaminmax) {
+    hVersion = VisMF::Header::RawNativeFAMinMax_v1;
+  } else {
+    hVersion = VisMF::Header::RawNative_v1;
+  }
+
   pp.query("groupsets", groupsets);
   pp.query("setbuf", setbuf);
 
@@ -120,6 +134,7 @@ int main(int argc, char *argv[]) {
     cout << "rbuffsize = " << rbs << endl;
     cout << "wbuffsize = " << wbs << endl;
     cout << "writeminmax = " << writeminmax << endl;
+    cout << "writefaminmax = " << writefaminmax << endl;
     cout << "groupsets = " << groupsets << endl;
     cout << "setbuf = " << setbuf << endl;
     cout << endl;
@@ -130,6 +145,11 @@ int main(int argc, char *argv[]) {
     cout << "sizeof(std::streampos) = " << sizeof(std::streampos) << endl;
     cout << "sizeof(std::streamoff) = " << sizeof(std::streamoff) << endl;
     cout << "sizeof(std::streamsize) = " << sizeof(std::streamsize) << endl;
+    cout << endl;
+    cout << "std::numeric_limits<int>::min()  = " << std::numeric_limits<int>::min() << endl;
+    cout << "std::numeric_limits<int>::max()  = " << std::numeric_limits<int>::max() << endl;
+    cout << "std::numeric_limits<Real>::min() = " << std::numeric_limits<Real>::min() << endl;
+    cout << "std::numeric_limits<Real>::max() = " << std::numeric_limits<Real>::max() << endl;
     cout << endl;
   }
 
@@ -218,7 +238,7 @@ int main(int argc, char *argv[]) {
     }
 
     TestWriteNFilesRawNative(nfiles, maxgrid, ncomps, nboxes, raninit, mb2,
-                             writeminmax, groupsets, setbuf);
+                             hVersion, groupsets, setbuf);
 
     if(ParallelDescriptor::IOProcessor()) {
       cout << "==================================================" << endl;

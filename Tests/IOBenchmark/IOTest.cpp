@@ -253,7 +253,7 @@ void TestWriteNFiles(int nfiles, int maxgrid, int ncomps, int nboxes,
 // -------------------------------------------------------------
 void TestWriteNFilesRawNative(int nfiles, int maxgrid, int ncomps,
                               int nboxes, bool raninit, bool mb2,
-			      bool writeMinMax, bool groupSets,
+			      VisMF::Header::Version whichVersion, bool groupSets,
 			      bool setBuf)
 {
   VisMF::SetNOutFiles(nfiles);
@@ -290,7 +290,7 @@ void TestWriteNFilesRawNative(int nfiles, int maxgrid, int ncomps,
   ParallelDescriptor::Barrier();
   double wallTimeStart(ParallelDescriptor::second());
 
-  VisMF::WriteRawNative(mfout, mfName, writeMinMax, groupSets, setBuf); 
+  VisMF::WriteRawNative(mfout, mfName, whichVersion, groupSets, setBuf); 
 
   double wallTime(ParallelDescriptor::second() - wallTimeStart);
 
