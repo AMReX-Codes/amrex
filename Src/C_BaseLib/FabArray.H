@@ -248,13 +248,13 @@ public:
     //
     struct CopyComTag
     {
-        Box sbox;
 	Box dbox;
-        int srcIndex;
+        Box sbox;
         int dstIndex;
+        int srcIndex;
 	CopyComTag () {}
-	CopyComTag (const Box& sb, const Box& db, int sidx, int didx)
-	    : sbox(sb), dbox(db), srcIndex(sidx), dstIndex(didx) {}
+	CopyComTag (const Box& db, const Box& sb, int didx, int sidx)
+	    : dbox(db), sbox(sb), dstIndex(didx), srcIndex(sidx) {}
 	bool operator< (const CopyComTag& rhs) const {
 	    return (srcIndex < rhs.srcIndex) || ((srcIndex == rhs.srcIndex) && (
                    (dstIndex < rhs.dstIndex) || ((dstIndex == rhs.dstIndex) && (
