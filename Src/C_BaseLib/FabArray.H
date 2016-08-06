@@ -33,6 +33,7 @@
 #include <Utility.H>
 #include <ccse-mpi.H>
 #include <BLProfiler.H>
+#include <Periodicity.H>
 
 //
 // Helper class
@@ -70,13 +71,11 @@ private:
 // This is meant to be a concrete class not a polymorphic one.
 //
 
-class Geometry;
 class MFIter;
 class MFGhostIter;
 
 class FabArrayBase
 {
-    friend class Geometry;
     friend class MFIter;
     friend class MFGhostIter;
 
@@ -249,20 +248,19 @@ public:
     //
     struct CopyComTag
     {
-        Box box;
-        int fabIndex;
+        Box sbox;
+	Box dbox;
         int srcIndex;
+        int dstIndex;
 	CopyComTag () {}
-	CopyComTag (const Box& b, int fidx, int sidx)
-	    : box(b), fabIndex(fidx), srcIndex(sidx) {}
-	// CopyComTag needs to be sortable if it is used in remote communication.
-	// Note that the intersection of two boxes is at most one box.
-	// Therefore fabIndex==rhs.fabIndex && srcIndex==rhs.srcIndex means
-	// *this == rhs.
+	CopyComTag (const Box& sb, const Box& db, int sidx, int didx)
+	    : sbox(sb), dbox(db), srcIndex(sidx), dstIndex(didx) {}
 	bool operator< (const CopyComTag& rhs) const {
-	    return (fabIndex < rhs.fabIndex) || ((fabIndex == rhs.fabIndex) && (
-                   (srcIndex < rhs.srcIndex) || ((srcIndex == rhs.srcIndex) && (
-	           (IntVect::Compare()(box.smallEnd(),rhs.box.smallEnd()))))));
+	    return (srcIndex < rhs.srcIndex) || ((srcIndex == rhs.srcIndex) && (
+                   (dstIndex < rhs.dstIndex) || ((dstIndex == rhs.dstIndex) && (
+                   (IntVect::Compare()(dbox.smallEnd(),rhs.dbox.smallEnd())
+		               || ((dbox.smallEnd() == rhs.dbox.smallEnd()) && (
+                   (IntVect::Compare()(sbox.smallEnd(),rhs.sbox.smallEnd())))))))));
 	}
         //
         // Some typedefs & helper functions used throughout the code.
@@ -2067,11 +2065,11 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
             if (op == FabArrayBase::COPY)
             {
-                get(tag.fabIndex).copy(src[tag.srcIndex],tag.box,scomp,tag.box,dcomp,ncomp);
+                get(tag.dstIndex).copy(src[tag.srcIndex],tag.sbox,scomp,tag.dbox,dcomp,ncomp);
             }
             else
             {
-                get(tag.fabIndex).plus(src[tag.srcIndex],tag.box,tag.box,scomp,dcomp,ncomp);
+                get(tag.dstIndex).plus(src[tag.srcIndex],tag.sbox,tag.dbox,scomp,dcomp,ncomp);
             }
         }
 
@@ -2222,7 +2220,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 		for (CopyComTagsContainer::const_iterator it = cctc.begin();
 		     it != cctc.end(); ++it)
 		{
-		    const Box& bx = it->box;
+		    const Box& bx = it->sbox;
 		    src[it->srcIndex].copyToMem(bx,SC,NC,dptr);
 		    const int Cnt = bx.numPts()*NC;
 		    dptr += Cnt;
@@ -2322,11 +2320,11 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 		
 		if (op == FabArrayBase::COPY)
 		{
-		    get(tag.fabIndex).copy(src[tag.srcIndex],tag.box,SC,tag.box,DC,NC);
+		    get(tag.dstIndex).copy(src[tag.srcIndex],tag.sbox,SC,tag.dbox,DC,NC);
 		}
 		else
 		{
-		    get(tag.fabIndex).plus(src[tag.srcIndex],tag.box,tag.box,SC,DC,NC);
+		    get(tag.dstIndex).plus(src[tag.srcIndex],tag.sbox,tag.dbox,SC,DC,NC);
 		}
 	    });
 #endif	    
@@ -2342,11 +2340,11 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 		
 		if (op == FabArrayBase::COPY)
 		{
-		    get(tag.fabIndex).copy(src[tag.srcIndex],tag.box,SC,tag.box,DC,NC);
+		    get(tag.dstIndex).copy(src[tag.srcIndex],tag.sbox,SC,tag.dbox,DC,NC);
 		}
 		else
 		{
-		    get(tag.fabIndex).plus(src[tag.srcIndex],tag.box,tag.box,SC,DC,NC);
+		    get(tag.dstIndex).plus(src[tag.srcIndex],tag.sbox,tag.dbox,SC,DC,NC);
 		}
 	    }
 	}
@@ -2402,18 +2400,18 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 		    for (CopyComTagsContainer::const_iterator it = cctc.begin();
 			 it != cctc.end(); ++it)
 		    {
-			const Box& bx  = it->box;
+			const Box& bx  = it->dbox;
 			const int  Cnt = bx.numPts()*NC;
 			
 			if (op == FabArrayBase::COPY)
 			{
-			    get(it->fabIndex).copyFromMem(bx,DC,NC,dptr);
+			    get(it->dstIndex).copyFromMem(bx,DC,NC,dptr);
 			}
 			else
 			{
 			    fab.resize(bx,NC);
 			    memcpy(fab.dataPtr(), dptr, Cnt*sizeof(value_type));
-			    get(it->fabIndex).plus(fab,bx,bx,0,DC,NC);
+			    get(it->dstIndex).plus(fab,bx,bx,0,DC,NC);
 			}
 			
 			dptr += Cnt;
@@ -2809,7 +2807,7 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
             for (CopyComTagsContainer::const_iterator it = cctc.begin();
                  it != cctc.end(); ++it)
             {
-                const Box& bx = it->box;
+                const Box& bx = it->sbox;
                 (*src)[it->srcIndex].copyToMem(bx,SC,NC,dptr);
                 const int Cnt = bx.numPts()*NC;
                 dptr += Cnt;
@@ -2848,11 +2846,11 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
 
             if (op == FabArrayBase::COPY)
             {
-                dest->get(tag.fabIndex).copy((*src)[tag.srcIndex],tag.box,SC,tag.box,DC,NC);
+                dest->get(tag.dstIndex).copy((*src)[tag.srcIndex],tag.sbox,SC,tag.dbox,DC,NC);
             }
             else
             {
-                dest->get(tag.fabIndex).plus((*src)[tag.srcIndex],tag.box,tag.box,SC,DC,NC);
+                dest->get(tag.dstIndex).plus((*src)[tag.srcIndex],tag.sbox,tag.dbox,SC,DC,NC);
             }
         }
 
@@ -2897,19 +2895,19 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
 		for (CopyComTagsContainer::const_iterator it = cctc.begin();
 		     it != cctc.end(); ++it)
 		{
-		    const Box& bx  = it->box;
+		    const Box& bx  = it->dbox;
 		    const int  Cnt = bx.numPts()*NC;
 		    
 		    if (op == FabArrayBase::COPY)
 		    {
-			dest->get(it->fabIndex).copyFromMem(bx,DC,NC,dptr);
+			dest->get(it->dstIndex).copyFromMem(bx,DC,NC,dptr);
 		    }
 		    else
 		    {
 			fab.resize(bx,NC);
 			memcpy(fab.dataPtr(), dptr, Cnt*sizeof(value_type));
 			
-			dest->get(it->fabIndex).plus(fab,bx,bx,0,DC,NC);
+			dest->get(it->dstIndex).plus(fab,bx,bx,0,DC,NC);
 		    }
 		    
 		    dptr += Cnt;
@@ -3362,7 +3360,6 @@ FabArray<FAB>::MoveAllFabs (const Array<int> &newDistMapArray)
     // ---- flush caches
     DistributionMapping::FlushCache();
     flushCPCache();
-    //Geometry::flushFPBCache();  // ---- needs to be done externally
     flushFBCache();
     flushTileArrayCache();
 
@@ -4547,10 +4544,10 @@ FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross)
         {
             const CopyComTag& tag = (*TheFB.m_LocTags)[i];
 
-            BL_ASSERT(distributionMap[tag.fabIndex] == ParallelDescriptor::MyProc());
+            BL_ASSERT(distributionMap[tag.dstIndex] == ParallelDescriptor::MyProc());
             BL_ASSERT(distributionMap[tag.srcIndex] == ParallelDescriptor::MyProc());
 
-            get(tag.fabIndex).copy(get(tag.srcIndex),tag.box,scomp,tag.box,scomp,ncomp);
+            get(tag.dstIndex).copy(get(tag.srcIndex),tag.sbox,scomp,tag.dbox,scomp,ncomp);
         }
 
         return;
@@ -4678,7 +4675,7 @@ FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross)
 		 it != cctc.end(); ++it)
 	    {
 		BL_ASSERT(distributionMap[it->srcIndex] == ParallelDescriptor::MyProc());
-		const Box& bx = it->box;
+		const Box& bx = it->sbox;
 		get(it->srcIndex).copyToMem(bx,scomp,ncomp,dptr);
 		const int Cnt = bx.numPts()*ncomp;
 		dptr += Cnt;
@@ -4771,10 +4768,10 @@ FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross)
         {
 	    const auto& tag = (*TheFB.m_LocTags)[i];
 
-	    BL_ASSERT(ParallelDescriptor::sameTeam(distributionMap[tag.fabIndex]));
+	    BL_ASSERT(ParallelDescriptor::sameTeam(distributionMap[tag.dstIndex]));
 	    BL_ASSERT(ParallelDescriptor::sameTeam(distributionMap[tag.srcIndex]));
 
-	    get(tag.fabIndex).copy(get(tag.srcIndex),tag.box,scomp,tag.box,scomp,ncomp);
+	    get(tag.dstIndex).copy(get(tag.srcIndex),tag.sbox,scomp,tag.dbox,scomp,ncomp);
 	});
 #endif
     }
@@ -4787,11 +4784,11 @@ FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross)
 	{
 	    const CopyComTag& tag = (*TheFB.m_LocTags)[i];
 
-	    BL_ASSERT(ParallelDescriptor::sameTeam(distributionMap[tag.fabIndex]));
+	    BL_ASSERT(ParallelDescriptor::sameTeam(distributionMap[tag.dstIndex]));
 	    BL_ASSERT(ParallelDescriptor::sameTeam(distributionMap[tag.srcIndex]));
 	    
-	    if (distributionMap[tag.fabIndex] == ParallelDescriptor::MyProc()) {
-		get(tag.fabIndex).copy(get(tag.srcIndex),tag.box,scomp,tag.box,scomp,ncomp);
+	    if (distributionMap[tag.dstIndex] == ParallelDescriptor::MyProc()) {
+		get(tag.dstIndex).copy(get(tag.srcIndex),tag.sbox,scomp,tag.dbox,scomp,ncomp);
 	    }
 	}
     }
@@ -4863,9 +4860,9 @@ FabArray<FAB>::FillBoundary_finish ()
 	    for (CopyComTagsContainer::const_iterator it = cctc.begin();
 		 it != cctc.end(); ++it)
 	    {
-		const Box& bx  = it->box;
+		const Box& bx  = it->dbox;
 		const int  Cnt = bx.numPts()*fb_ncomp;
-		get(it->fabIndex).copyFromMem(bx,fb_scomp,fb_ncomp,dptr);
+		get(it->dstIndex).copyFromMem(bx,fb_scomp,fb_ncomp,dptr);
 		dptr += Cnt;
 	    }	    
 	}

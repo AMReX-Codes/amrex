@@ -292,7 +292,7 @@ FabArrayBase::CPC::define (const BoxArray& ba_dst, const DistributionMapping& dm
 		if (ParallelDescriptor::sameTeam(dst_owner)) {
 		    continue; // local copy will be dealt with later
 		} else if (MyProc == dm_src[k_src]) {
-		    send_tags[dst_owner].push_back(CopyComTag(bx, k_dst, k_src));
+		    send_tags[dst_owner].push_back(CopyComTag(bx, bx, k_dst, k_src));
 		}
 	    }
 	}
@@ -341,13 +341,13 @@ FabArrayBase::CPC::define (const BoxArray& ba_dst, const DistributionMapping& dm
 			     it_tile  = tilelist.begin(),
 			     End_tile = tilelist.end();   it_tile != End_tile; ++it_tile)
 		    {
-			m_LocTags->push_back(CopyComTag(*it_tile, k_dst, k_src));
+			m_LocTags->push_back(CopyComTag(*it_tile, *it_tile, k_dst, k_src));
 		    }
 		    if (check_local) {
 			localtouch.plus(1, bx);
 		    }
 		} else if (MyProc == dm_dst[k_dst]) {
-		    recv_tags[src_owner].push_back(CopyComTag(bx, k_dst, k_src));
+		    recv_tags[src_owner].push_back(CopyComTag(bx, bx, k_dst, k_src));
 		    if (check_remote) {
 			remotetouch.plus(1, bx);
 		    }
@@ -388,7 +388,7 @@ FabArrayBase::CPC::define (const BoxArray& ba_dst, const DistributionMapping& dm
 			 it2  = cctv.begin(),
 			 End2 = cctv.end();   it2 != End2; ++it2)
 		{
-		    const Box& bx = it2->box;
+		    const Box& bx = it2->sbox;
 		    
 		    Vols[key] += bx.numPts();
 		    
@@ -397,7 +397,7 @@ FabArrayBase::CPC::define (const BoxArray& ba_dst, const DistributionMapping& dm
 			     it_tile  = tilelist.begin(), 
 			     End_tile = tilelist.end();    it_tile != End_tile; ++it_tile)
 		    {
-			new_cctv.push_back(CopyComTag(*it_tile, it2->fabIndex, it2->srcIndex));
+			new_cctv.push_back(CopyComTag(*it_tile, *it_tile, it2->dstIndex, it2->srcIndex));
 		    }
 		}
 		
@@ -569,7 +569,7 @@ FabArrayBase::FB::FB (const FabArrayBase& fa, bool cross)
 		} else if (MyProc == dm[ksnd]) {
 		    const BoxList& bl = BoxLib::boxDiff(bx, ba[krcv]);
 		    for (BoxList::const_iterator lit = bl.begin(); lit != bl.end(); ++lit)
-			send_tags[dst_owner].push_back(CopyComTag(*lit, krcv, ksnd));
+			send_tags[dst_owner].push_back(CopyComTag(*lit, *lit, krcv, ksnd));
 		}
 	    }
 	}
@@ -633,13 +633,13 @@ FabArrayBase::FB::FB (const FabArrayBase& fa, bool cross)
 				 it_tile  = tilelist.begin(),
 				 End_tile = tilelist.end();   it_tile != End_tile; ++it_tile)
 			{
-			    m_LocTags->push_back(CopyComTag(*it_tile, krcv, ksnd));
+			    m_LocTags->push_back(CopyComTag(*it_tile, *it_tile, krcv, ksnd));
 			}
 			if (check_local) {
 			    localtouch.plus(1, blbx);
 			}
 		    } else if (MyProc == dm[krcv]) {
-			recv_tags[src_owner].push_back(CopyComTag(blbx, krcv, ksnd));
+			recv_tags[src_owner].push_back(CopyComTag(blbx, blbx, krcv, ksnd));
 			if (check_remote) {
 			    remotetouch.plus(1, blbx);
 			}
@@ -681,13 +681,13 @@ FabArrayBase::FB::FB (const FabArrayBase& fa, bool cross)
 			 it2  = cctv.begin(),
 			 End2 = cctv.end();   it2 != End2; ++it2)
 		{
-		    const Box& bx = it2->box;
+		    const Box& bx = it2->sbox;
 
 		    std::vector<Box> boxes;
 		    int vol = 0;
 		    
 		    if (m_cross) {
-			const Box& dstfabbx = ba[it2->fabIndex];
+			const Box& dstfabbx = ba[it2->dstIndex];
 			for (int dir = 0; dir < BL_SPACEDIM; dir++)
 			{
 			    Box lo = dstfabbx;
@@ -726,7 +726,7 @@ FabArrayBase::FB::FB (const FabArrayBase& fa, bool cross)
 				     it_tile  = tilelist.begin(), 
 				     End_tile = tilelist.end();   it_tile != End_tile; ++it_tile)
 			    {
-				new_cctv.push_back(CopyComTag(*it_tile, it2->fabIndex, it2->srcIndex));
+				new_cctv.push_back(CopyComTag(*it_tile, *it_tile, it2->dstIndex, it2->srcIndex));
 			    }
 			}
 		    }
