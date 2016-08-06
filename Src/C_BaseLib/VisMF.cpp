@@ -22,9 +22,9 @@
 #include <FPC.H>
 #include <FabConv.H>
 
-static const char* TheMultiFabHdrFileSuffix = "_H";
+static const char *TheMultiFabHdrFileSuffix = "_H";
 
-static const char* TheFabOnDiskPrefix = "FabOnDisk:";
+static const char *TheFabOnDiskPrefix = "FabOnDisk:";
 
 int VisMF::verbose = 1;
 
@@ -44,7 +44,9 @@ VisMF::Initialize ()
 {
     BL_PROFILE("VisMF::Initialize");
 
-    if (initialized) return;
+    if(initialized) {
+      return;
+    }
     //
     // Use the same defaults as in Amr.cpp.
     //
@@ -120,7 +122,7 @@ std::ostream&
 operator<< (std::ostream&                  os,
             const Array<VisMF::FabOnDisk>& fa)
 {
-    long i = 0, N = fa.size();
+    long i(0), N(fa.size());
 
     os << N << '\n';
 
@@ -139,7 +141,7 @@ std::istream&
 operator>> (std::istream&            is,
             Array<VisMF::FabOnDisk>& fa)
 {
-    long i = 0, N;
+    long i(0), N;
 
     is >> N;
     BL_ASSERT(N >= 0);
@@ -162,7 +164,7 @@ std::ostream&
 operator<< (std::ostream&               os,
             const Array< Array<Real> >& ar)
 {
-    long i = 0, N = ar.size(), M = (N == 0) ? 0 : ar[0].size();
+    long i(0), N(ar.size()), M = (N == 0) ? 0 : ar[0].size();
 
     os << N << ',' << M << '\n';
 
@@ -188,7 +190,7 @@ operator>> (std::istream&         is,
             Array< Array<Real> >& ar)
 {
     char ch;
-    long i = 0, N, M;
+    long i(0), N, M;
 #ifdef BL_USE_FLOAT
     double dtemp;
 #endif
@@ -272,13 +274,14 @@ operator>> (std::istream&  is,
 
     int how;
     is >> how;
-    switch (how)
-    {
-    case VisMF::OneFilePerCPU:
-        hd.m_how = VisMF::OneFilePerCPU; break;
-    case VisMF::NFiles:
-        hd.m_how = VisMF::NFiles; break;
-    default:
+    switch(how) {
+      case VisMF::OneFilePerCPU:
+        hd.m_how = VisMF::OneFilePerCPU;
+      break;
+      case VisMF::NFiles:
+        hd.m_how = VisMF::NFiles;
+      break;
+      default:
         BoxLib::Error("Bad case in switch");
     }
 
@@ -378,8 +381,7 @@ const FArrayBox&
 VisMF::GetFab (int fabIndex,
                int ncomp) const
 {
-    if (m_pa[ncomp][fabIndex] == 0)
-    {
+    if(m_pa[ncomp][fabIndex] == 0) {
         m_pa[ncomp][fabIndex] = VisMF::readFAB(fabIndex,m_mfname,m_hdr,ncomp);
     }
     return *m_pa[ncomp][fabIndex];
@@ -428,15 +430,12 @@ VisMF::BaseName (const std::string& filename)
 {
     BL_ASSERT(filename[filename.length() - 1] != '/');
 
-    if (const char* slash = strrchr(filename.c_str(), '/'))
-    {
+    if(const char *slash = strrchr(filename.c_str(), '/')) {
         //
-        // Got at least one slash -- give'm the following tail.
+        // Got at least one slash -- return the following tail.
         //
         return std::string(slash + 1);
-    }
-    else
-    {
+    } else {
         //
         // No leading directory portion to name.
         //
@@ -451,29 +450,26 @@ VisMF::DirName (const std::string& filename)
 
     static const std::string TheNullString("");
 
-    const char* str = filename.c_str();    
+    const char *str = filename.c_str();    
 
-    if (const char* slash = strrchr(str, '/'))
-    {
+    if(const char *slash = strrchr(str, '/')) {
         //
-        // Got at least one slash -- give'm the dirname including last slash.
+        // Got at least one slash -- return the dirname including last slash.
         //
-        int len = (slash - str) + 1;
+        int len((slash - str) + 1);
 
-        char* buf = new char[len+1];
+        char *buf = new char[len+1];
 
         strncpy(buf, str, len);
 
-        buf[len] = 0; // Stringify
+        buf[len] = 0;   // Stringify
 
         std::string dirname = buf;
 
         delete [] buf;
 
         return dirname;
-    }
-    else
-    {
+    } else {
         //
         // No directory name here.
         //
@@ -709,12 +705,12 @@ VisMF::WriteHeader (const std::string& mf_name,
                     VisMF::Header&     hdr)
 {
     BL_PROFILE("VisMF::WriteHeader");
-    long bytes = 0;
+    long bytes(0);
     //
     // When running in parallel only one processor should do this I/O.
     //
     if(ParallelDescriptor::IOProcessor()) {
-        std::string MFHdrFileName = mf_name;
+        std::string MFHdrFileName(mf_name);
 
         MFHdrFileName += TheMultiFabHdrFileSuffix;
 
@@ -750,7 +746,7 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
     BL_PROFILE("VisMF::Write_FabArray");
     BL_ASSERT(mf_name[mf_name.length() - 1] != '/');
 
-    static const char* FabFileSuffix = "_D_";
+    static const char *FabFileSuffix = "_D_";
 
     VisMF::Initialize();
 
@@ -764,19 +760,19 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
         BL_ASSERT(hdr.m_ncomp == mf.nComp());
 
         for(MFIter mfi(*the_mf); mfi.isValid(); ++mfi) {
-            const int idx = mfi.index();
+            const int idx(mfi.index());
 
             for(int j(0); j < hdr.m_ncomp; ++j) {
-                const Real val = (hdr.m_min[idx][j] + hdr.m_max[idx][j]) / 2;
+                const Real val((hdr.m_min[idx][j] + hdr.m_max[idx][j]) / 2);
 
                 the_mf->get(mfi).setComplement(val, hdr.m_ba[idx], j, 1);
             }
         }
     }
 
-    long        bytes    = 0;
-    const int   myProc   = ParallelDescriptor::MyProc();
-    const int   nProcs   = ParallelDescriptor::NProcs();
+    long        bytes(0);
+    const int   myProc(ParallelDescriptor::MyProc());
+    const int   nProcs(ParallelDescriptor::NProcs());
 
     std::string filePrefix(mf_name + FabFileSuffix);
     bool groupSets(true), setBuf(true);
@@ -801,7 +797,7 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
         ++nmtags[pmap[i]];
     }
 
-    for(int i = 1, N = offset.size(); i < N; ++i) {
+    for(int i(1), N(offset.size()); i < N; ++i) {
         offset[i] = offset[i-1] + nmtags[i-1];
     }
 
@@ -996,11 +992,11 @@ VisMF::RemoveFiles(const std::string &mf_name, bool verbose)
 }
 
 
-VisMF::VisMF (const std::string& mf_name)
+VisMF::VisMF (const std::string &mf_name)
     :
     m_mfname(mf_name)
 {
-    std::string FullHdrFileName = m_mfname;
+    std::string FullHdrFileName(m_mfname);
 
     FullHdrFileName += TheMultiFabHdrFileSuffix;
 
@@ -1013,12 +1009,10 @@ VisMF::VisMF (const std::string& mf_name)
 
     m_pa.resize(m_hdr.m_ncomp);
 
-    for (int nComp = 0; nComp < m_pa.size(); ++nComp)
-    {
+    for(int nComp(0); nComp < m_pa.size(); ++nComp) {
         m_pa[nComp].resize(m_hdr.m_ba.size());
 
-        for (int ii = 0, N = m_pa[nComp].size(); ii < N; ++ii)
-        {
+        for(int ii(0), N(m_pa[nComp].size()); ii < N; ++ii) {
             m_pa[nComp][ii] = 0;
         }
     }
@@ -1033,12 +1027,13 @@ VisMF::readFAB (int                  idx,
     BL_PROFILE("VisMF::readFAB_idx");
     Box fab_box = hdr.m_ba[idx];
 
-    if (hdr.m_ngrow)
+    if(hdr.m_ngrow) {
         fab_box.grow(hdr.m_ngrow);
+    }
 
-    FArrayBox* fab = new FArrayBox(fab_box, ncomp == -1 ? hdr.m_ncomp : 1);
+    FArrayBox *fab = new FArrayBox(fab_box, ncomp == -1 ? hdr.m_ncomp : 1);
 
-    std::string FullName = VisMF::DirName(mf_name);
+    std::string FullName(VisMF::DirName(mf_name));
 
     FullName += hdr.m_fod[idx].m_name;
     
@@ -1078,7 +1073,7 @@ VisMF::readFAB (FabArray<FArrayBox>&            mf,
     BL_PROFILE("VisMF::readFAB_mf");
     FArrayBox& fab = mf[idx];
 
-    std::string FullName = VisMF::DirName(mf_name);
+    std::string FullName(VisMF::DirName(mf_name));
 
     FullName += hdr.m_fod[idx].m_name;
     
@@ -1111,8 +1106,7 @@ VisMF::Read (FabArray<FArrayBox>&          mf,
 
   VisMF::Initialize();
 
-  if (verbose && ParallelDescriptor::IOProcessor())
-  {
+  if(verbose && ParallelDescriptor::IOProcessor()) {
       std::cout << "VisMF::Read:  about to read:  " << mf_name << std::endl;
   }
 
@@ -1342,8 +1336,7 @@ VisMF::Read (FabArray<FArrayBox>&          mf,
 #endif
     ParallelDescriptor::Barrier("VisMF::Read");
 
-    if (ParallelDescriptor::IOProcessor() && false)
-    {
+    if(ParallelDescriptor::IOProcessor() && false) {
       Real mfReadTime = ParallelDescriptor::second() - startTime;
       totalTime += mfReadTime;
       std::cout << "MFRead:::  nBoxes = "
@@ -1357,8 +1350,7 @@ VisMF::Read (FabArray<FArrayBox>&          mf,
                 << totalTime << std::endl;
     }
 #else
-    for (MFIter mfi(mf); mfi.isValid(); ++mfi)
-    {
+    for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
 	VisMF::readFAB(mf,mfi.index(), mf_name, hdr);
     }
 #endif
