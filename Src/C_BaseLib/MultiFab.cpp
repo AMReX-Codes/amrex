@@ -1410,7 +1410,7 @@ MultiFab::SumBoundary (int scomp,
 	for (int i=0; i<N_loc; ++i)
         {
             const CopyComTag& tag = LocTags[i];
-            mf[tag.srcIndex].plus(mf[tag.fabIndex],tag.box,tag.box,scomp,scomp,ncomp);
+            mf[tag.srcIndex].plus(mf[tag.dstIndex],tag.dbox,tag.sbox,scomp,scomp,ncomp);
         }
 
         return;
@@ -1498,9 +1498,9 @@ MultiFab::SumBoundary (int scomp,
         for (CopyComTagsContainer::const_iterator it = cctc.begin();
              it != cctc.end(); ++it)
         {
-            BL_ASSERT(distributionMap[it->fabIndex] == ParallelDescriptor::MyProc());
-            const Box& bx = it->box;
-            mf[it->fabIndex].copyToMem(bx,scomp,ncomp,dptr);
+            BL_ASSERT(distributionMap[it->dstIndex] == ParallelDescriptor::MyProc());
+            const Box& bx = it->dbox;
+            mf[it->dstIndex].copyToMem(bx,scomp,ncomp,dptr);
             const int Cnt = bx.numPts()*ncomp;
             dptr += Cnt;
         }
@@ -1531,10 +1531,10 @@ MultiFab::SumBoundary (int scomp,
     {
         const CopyComTag& tag = LocTags[i];
 
-        BL_ASSERT(distributionMap[tag.fabIndex] == ParallelDescriptor::MyProc());
+        BL_ASSERT(distributionMap[tag.dstIndex] == ParallelDescriptor::MyProc());
         BL_ASSERT(distributionMap[tag.srcIndex] == ParallelDescriptor::MyProc());
 
-        mf[tag.srcIndex].plus(mf[tag.fabIndex],tag.box,tag.box,scomp,scomp,ncomp);
+        mf[tag.srcIndex].plus(mf[tag.dstIndex],tag.dbox,tag.sbox,scomp,scomp,ncomp);
     }
 
     //
@@ -1573,7 +1573,7 @@ MultiFab::SumBoundary (int scomp,
 		     it != cctc.end(); ++it)
 		{
 		    BL_ASSERT(distributionMap[it->srcIndex] == ParallelDescriptor::MyProc());
-		    const Box& bx = it->box;
+		    const Box& bx = it->sbox;
 		    fab.resize(bx,ncomp);
 		    const int Cnt = bx.numPts()*ncomp;
 		    memcpy(fab.dataPtr(), dptr, Cnt*sizeof(Real));
