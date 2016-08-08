@@ -283,7 +283,20 @@ void TestWriteNFilesRawNative(int nfiles, int maxgrid, int ncomps,
 
   long npts(bArray[0].numPts());
   long totalNBytes(npts * ncomps * nboxes *sizeof(Real));
-  std::string mfName("TestMFRawNative");
+  std::string mfName;
+  switch(whichVersion) {
+    case VisMF::Header::RawNative_v1:
+      mfName = "TestMFRawNative";
+    break;
+    case VisMF::Header::RawNativeMinMax_v1:
+      mfName = "TestMFRawNativeMinMax";
+    break;
+    case VisMF::Header::RawNativeFAMinMax_v1:
+      mfName = "TestMFRawNativeFAMinMax";
+    break;
+    default:
+      BoxLib::Abort("**** Error in TestWriteNFilesRawNative:: bad version.");
+  }
 
   VisMF::RemoveFiles(mfName, true);
 
@@ -313,9 +326,8 @@ void TestWriteNFilesRawNative(int nfiles, int maxgrid, int ncomps,
 
 
 // -------------------------------------------------------------
-void TestReadMF() {
+void TestReadMF(const std::string &mfName) {
   MultiFab mfin;
-  std::string mfName("TestMF");
 
   ParallelDescriptor::Barrier();
   double wallTimeStart(ParallelDescriptor::second());
