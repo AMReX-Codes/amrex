@@ -30,7 +30,7 @@ void TestWriteNFilesRawNative(int nfiles, int maxgrid, int ncomps,
                               int nboxes, bool raninit, bool mb2,
 			      VisMF::Header::Version writeMinMax,
 			      bool groupsets, bool setbuf);
-void TestReadMF();
+void TestReadMF(const std::string &mfName);
 void NFileTests(int nOutFiles, const std::string &filePrefix);
 
 
@@ -217,6 +217,7 @@ int main(int argc, char *argv[]) {
 */
 
 
+/*
   for(int itimes(0); itimes < ntimes; ++itimes) {
     if(ParallelDescriptor::IOProcessor()) {
       cout << endl << "--------------------------------------------------" << endl;
@@ -230,7 +231,10 @@ int main(int argc, char *argv[]) {
       cout << endl;
     }
   }
+*/
 
+
+/*
   for(int itimes(0); itimes < ntimes; ++itimes) {
     if(ParallelDescriptor::IOProcessor()) {
       cout << endl << "--------------------------------------------------" << endl;
@@ -245,22 +249,26 @@ int main(int argc, char *argv[]) {
       cout << endl;
     }
   }
+*/
 
-  /*
+
   for(int itimes(0); itimes < ntimes; ++itimes) {
     if(ParallelDescriptor::IOProcessor()) {
       cout << endl << "++++++++++++++++++++++++++++++++++++++++++++++++++" << endl;
       cout << "Testing MF Read" << endl;
     }
 
-    TestReadMF();
+    TestReadMF("TestMF");
+    TestReadMF("TestMFRawNative");
+    TestReadMF("TestMFRawNativeMinMax");
+    TestReadMF("TestMFRawNativeFAMinMax");
 
     if(ParallelDescriptor::IOProcessor()) {
       cout << "##################################################" << endl;
       cout << endl;
     }
   }
-  */
+
 
 
   BoxLib::Finalize();
