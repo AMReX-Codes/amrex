@@ -1093,28 +1093,6 @@ VisMF::Read (FabArray<FArrayBox>&          mf,
       std::cout << "VisMF::Read:  about to read:  " << mf_name << std::endl;
   }
 
-#ifdef BL_VISMF_MSGCHECK
-  ParallelDescriptor::Barrier("VisMF::Read::MSGCHECK_0");
-  {
-      MPI_Status mwstatus;
-      int mwflag(0);
-      bool bextra(false);
-      ParallelDescriptor::IProbe(MPI_ANY_SOURCE, MPI_ANY_TAG, mwflag, mwstatus);
-      while(mwflag) {
-        bextra = true;
-        std::cout << "### ### ### :  EXTRA MESSAGE BEFORE:  myproc = "
-	          << ParallelDescriptor::MyProc() << '\n' << std::flush;
-        ParallelDescriptor::Message rmess;
-        std::vector<int> cread(mwstatus.count);
-        rmess = ParallelDescriptor::Recv(cread, mwstatus.MPI_SOURCE, mwstatus.MPI_TAG);
-        ParallelDescriptor::IProbe(MPI_ANY_SOURCE, MPI_ANY_TAG, mwflag, mwstatus);
-      }
-      if (bextra) {
-        //BoxLib::Abort("EXTRA MESSAGES BEFORE");
-      }
-  }
-  ParallelDescriptor::Barrier("VisMF::Read::MSGCHECK_1");
-#endif
 
     VisMF::Header hdr;
 
@@ -1296,27 +1274,6 @@ VisMF::Read (FabArray<FArrayBox>&          mf,
     }
 
 
-#ifdef BL_VISMF_MSGCHECK
-  ParallelDescriptor::Barrier("VisMF::Read::MSGCHECK_2");
-  {
-      MPI_Status mwstatus;
-      int mwflag(0);
-      bool bextra(false);
-      ParallelDescriptor::IProbe(MPI_ANY_SOURCE, MPI_ANY_TAG, mwflag, mwstatus);
-      while(mwflag) {
-        bextra = true;
-        std::cout << "### ### ### :  EXTRA MESSAGE AFTER:  myproc = "
-	          << ParallelDescriptor::MyProc() << '\n' << std::flush;
-        ParallelDescriptor::Message rmess;
-        std::vector<int> cread(mwstatus.count);
-        rmess = ParallelDescriptor::Recv(cread, mwstatus.MPI_SOURCE, mwstatus.MPI_TAG);
-        ParallelDescriptor::IProbe(MPI_ANY_SOURCE, MPI_ANY_TAG, mwflag, mwstatus);
-      }
-      if(bextra) {
-        //BoxLib::Abort("EXTRA MESSAGES AFTER");
-      }
-  }
-#endif
     ParallelDescriptor::Barrier("VisMF::Read");
 
     if(ParallelDescriptor::IOProcessor() && false) {
