@@ -261,6 +261,7 @@ operator<< (std::ostream&        os,
     }
 
     if(hd.m_vers == VisMF::Header::RawNativeFAMinMax_v1) {
+      BL_ASSERT(hd.m_famin.size() == hd.m_ncomp);
       BL_ASSERT(hd.m_famin.size() == hd.m_famax.size());
       for(int i(0); i < hd.m_famin.size(); ++i) {
         os << hd.m_famin[i] << ',';
@@ -294,7 +295,7 @@ operator>> (std::istream&  is,
             VisMF::Header& hd)
 {
     is >> hd.m_vers;
-    BL_ASSERT(hd.m_vers == VisMF::Header::Version_v1);
+    BL_ASSERT(hd.m_vers != VisMF::Header::Undefined_v1);
 
     int how;
     is >> how;
@@ -306,7 +307,7 @@ operator>> (std::istream&  is,
         hd.m_how = VisMF::NFiles;
       break;
       default:
-        BoxLib::Error("Bad case in switch");
+        BoxLib::Error("Bad case in VisMF::Header.m_how switch");
     }
 
     is >> hd.m_ncomp;
@@ -320,11 +321,43 @@ operator>> (std::istream&  is,
     is >> hd.m_fod;
     BL_ASSERT(hd.m_ba.size() == hd.m_fod.size());
 
-    is >> hd.m_min;
-    is >> hd.m_max;
+    if(hd.m_vers == VisMF::Header::Version_v1 ||
+       hd.m_vers == VisMF::Header::RawNativeMinMax_v1)
+    {
+      is >> hd.m_min;
+      is >> hd.m_max;
+      BL_ASSERT(hd.m_ba.size() == hd.m_min.size());
+      BL_ASSERT(hd.m_ba.size() == hd.m_max.size());
+    }
 
-    BL_ASSERT(hd.m_ba.size() == hd.m_min.size());
-    BL_ASSERT(hd.m_ba.size() == hd.m_max.size());
+    if(hd.m_vers == VisMF::Header::RawNativeFAMinMax_v1) {
+      char ch;
+      hd.m_famin.resize(hd.m_ncomp);
+      hd.m_famax.resize(hd.m_ncomp);
+      for(int i(0); i < hd.m_famin.size(); ++i) {
+        is >> hd.m_famin[i] >> ch;
+	if( ch != ',' ) {
+	  BoxLib::Error("Expected a ',' when reading hd.m_famin");
+	}
+      }
+      for(int i(0); i < hd.m_famax.size(); ++i) {
+        is >> hd.m_famax[i] >> ch;
+	if( ch != ',' ) {
+	  BoxLib::Error("Expected a ',' when reading hd.m_famax");
+	}
+      }
+    }
+    if(hd.m_vers == VisMF::Header::RawNative_v1       ||
+       hd.m_vers == VisMF::Header::RawNativeMinMax_v1 ||
+       hd.m_vers == VisMF::Header::RawNativeFAMinMax_v1)
+    {
+      RealDescriptor writtenRD;
+      is >> writtenRD;
+      if(writtenRD != FPC::NativeRealDescriptor()) {
+        BoxLib::Abort("**** Error:  RawNativeFormat read different RealDescriptor.");
+      }
+    }
+
 
     if( ! is.good()) {
         BoxLib::Error("Read of VisMF::Header failed");
@@ -897,7 +930,7 @@ VisMF::WriteRawNative (const FabArray<FArrayBox>    &mf,
 
     VisMF::Initialize();
 
-    long fabBytes(0), bytesWritten(0);
+    long bytesWritten(0);
     const RealDescriptor &nrd = FPC::NativeRealDescriptor();
     int nrdBytes(nrd.numBytes());
     BL_ASSERT(nrdBytes == sizeof(Real));
@@ -910,9 +943,9 @@ VisMF::WriteRawNative (const FabArray<FArrayBox>    &mf,
       for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
         // ---- write the raw fab data
         const FArrayBox &fab = mf[mfi];
-        fabBytes = fab.box().numPts() * fab.nComp() * nrdBytes;
-        nfi.Stream().write((char *) fab.dataPtr(), fabBytes);
-        bytesWritten += fabBytes;
+        BL_ASSERT(fab.nBytes() == fab.size() * nrdBytes);
+        nfi.Stream().write((char *) fab.dataPtr(), fab.nBytes());
+        bytesWritten += fab.nBytes();
       }
     }
 
@@ -1047,6 +1080,7 @@ VisMF::readFAB (int                  idx,
     return fab;
 }
 
+
 void
 VisMF::readFAB (FabArray<FArrayBox>&            mf,
 		int                  idx,
@@ -1081,17 +1115,53 @@ VisMF::readFAB (FabArray<FArrayBox>&            mf,
     ifs.close();
 }
 
+
+void
+VisMF::readFABRawNative (FabArray<FArrayBox>&            mf,
+		         int                  idx,
+                         const std::string&   mf_name,
+                         const VisMF::Header& hdr)
+{
+    BL_PROFILE("VisMF::readFABRawNative_mf");
+    FArrayBox &fab = mf[idx];
+
+    std::string FullName(VisMF::DirName(mf_name));
+
+    FullName += hdr.m_fod[idx].m_name;
+    
+    VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+
+    std::ifstream ifs;
+
+    ifs.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
+
+    ifs.open(FullName.c_str(), std::ios::in|std::ios::binary);
+
+    if( ! ifs.good()) {
+        BoxLib::FileOpenFailed(FullName);
+    }
+
+    if(hdr.m_fod[idx].m_head) {
+        ifs.seekg(hdr.m_fod[idx].m_head, std::ios::beg);
+    }
+
+    ifs.read((char *) fab.dataPtr(), fab.nBytes());
+
+    ifs.close();
+}
+
+
 void
 VisMF::Read (FabArray<FArrayBox>&          mf,
              const std::string& mf_name)
 {
-  BL_PROFILE("VisMF::Read()");
+    BL_PROFILE("VisMF::Read()");
 
-  VisMF::Initialize();
+    VisMF::Initialize();
 
-  if(verbose && ParallelDescriptor::IOProcessor()) {
-      std::cout << "VisMF::Read:  about to read:  " << mf_name << std::endl;
-  }
+    if(verbose && ParallelDescriptor::IOProcessor()) {
+        std::cout << "VisMF::Read:  about to read:  " << mf_name << std::endl;
+    }
 
 
     VisMF::Header hdr;
@@ -1112,6 +1182,19 @@ VisMF::Read (FabArray<FArrayBox>&          mf,
 
         ifs >> hdr;
     }
+    if(ParallelDescriptor::IOProcessor()) {
+      std::cout << "hdr = " << '\n' << hdr << std::endl;
+    }
+
+    bool rawNative(false);
+    if(hdr.m_vers == VisMF::Header::RawNative_v1       ||
+       hdr.m_vers == VisMF::Header::RawNativeMinMax_v1 ||
+       hdr.m_vers == VisMF::Header::RawNativeFAMinMax_v1)
+    {
+      rawNative = true;
+    }
+
+
     mf.define(hdr.m_ba, hdr.m_ncomp, hdr.m_ngrow, Fab_allocate);
 
 #ifdef BL_USE_MPI
@@ -1229,7 +1312,11 @@ VisMF::Read (FabArray<FArrayBox>&          mf,
 
 	while( ! iopReads.empty()) {
 	  int index = iopReads.front();
-	  VisMF::readFAB(mf,index, mf_name, hdr);
+	  if(rawNative) {
+	    VisMF::readFABRawNative(mf,index, mf_name, hdr);
+	  } else {
+	    VisMF::readFAB(mf,index, mf_name, hdr);
+	  }
 	  --totalIOReqs;
 	  iopReads.pop_front();
 	  if(iopReads.empty()) {
@@ -1264,7 +1351,11 @@ VisMF::Read (FabArray<FArrayBox>&          mf,
         rmess = ParallelDescriptor::Recv(recReads, ioProcNum, MPI_ANY_TAG);
         for(int ir(0); ir < rmess.count(); ++ir) {
 	  int mfIndex(recReads[ir]);
-	  VisMF::readFAB(mf,mfIndex, mf_name, hdr);
+	  if(rawNative) {
+	    VisMF::readFABRawNative(mf,mfIndex, mf_name, hdr);
+	  } else {
+	    VisMF::readFAB(mf,mfIndex, mf_name, hdr);
+	  }
 	}
         nReqs -= rmess.count();
 	iDone[iDoneIndex] = recReads[0];
@@ -1291,7 +1382,11 @@ VisMF::Read (FabArray<FArrayBox>&          mf,
     }
 #else
     for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
-	VisMF::readFAB(mf,mfi.index(), mf_name, hdr);
+	if(rawNative) {
+	  VisMF::readFABRawNative(mf,mfi.index(), mf_name, hdr);
+	} else {
+	  VisMF::readFAB(mf,mfi.index(), mf_name, hdr);
+	}
     }
 #endif
 

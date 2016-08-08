@@ -86,8 +86,8 @@ public:
 	// The min max values will be calculated if necessary
         Array< Array<Real> > m_min;   // The min()s of each component of FABs.  [findex][comp]
         Array< Array<Real> > m_max;   // The max()s of each component of FABs.  [findex][comp]
-        Array<Real>          m_famin; // The min()s of each component of the FabArray.
-        Array<Real>          m_famax; // The max()s of each component of the FabArray.
+        Array<Real>          m_famin; // The min()s of each component of the FabArray.  [comp]
+        Array<Real>          m_famax; // The max()s of each component of the FabArray.  [comp]
     };
     //
     // The number of components in the on-disk FabArray<FArrayBox>.
@@ -245,6 +245,11 @@ private:
 			 int                fabIndex,
 			 const std::string& mf_name,
 			 const Header&      hdr);
+
+    static void readFABRawNative (FabArray<FArrayBox>&          mf,
+			          int                fabIndex,
+			          const std::string& mf_name,
+			          const Header&      hdr);
 
     static std::string DirName (const std::string& filename);
 
