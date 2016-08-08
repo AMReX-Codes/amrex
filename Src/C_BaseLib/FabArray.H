@@ -417,6 +417,11 @@ public:
 
     void flushFPinfo (bool no_assertion=false);
 
+    //
+    // parallel copy or add
+    //
+    enum CpOp { COPY = 0, ADD = 1 };
+
 protected:
 
     DistributionMapping& ModifyDistributionMap () { return distributionMap; }
@@ -501,7 +506,6 @@ protected:
     //
     // parallel copy or add
     //
-    enum CpOp { COPY = 0, ADD = 1 };
 
     struct CPC
     {
