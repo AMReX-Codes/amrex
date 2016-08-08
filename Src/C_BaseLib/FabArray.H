@@ -468,7 +468,7 @@ protected:
     //
     struct FB
     {
-        FB (const FabArrayBase& fa, bool cross);
+        FB (const FabArrayBase& fa, bool cross, const Periodicity& period);
         ~FB ();
 
         long bytes () const;
@@ -476,6 +476,7 @@ protected:
 	IndexType           m_typ;
         int                 m_ngrow;
         bool                m_cross;
+	Periodicity         m_period;
         //
         // The cache of local and send/recv per FillBoundary().
         //
@@ -496,7 +497,7 @@ protected:
     static FBCache    m_TheFBCache;
     static CacheStats m_FBC_stats;
     //
-    const FB& getFB (bool cross = false) const;
+    const FB& getFB (bool cross, const Periodicity& period) const;
     //
     void flushFB (bool no_assertion=false) const;       // This flushes its own FB.
     static void flushFBCache (); // This flushes the entire cache.
@@ -1010,16 +1011,21 @@ public:
     // Copy on intersection within a FabArray.  Data is copied from
     // valid regions to intersecting regions of definition.  The
     // purpose is to fill in the boundary regions of each FAB in
-    // the FabArray.
+    // the FabArray.  If cross=true, corner cells are not filled.
+    // If the length of periodic is provided, periodic boundaries are
+    // also filled.  Note that FabArray itself does not contains
+    // any periodicity information.
     //
-    void FillBoundary (bool cross = false);
+    void FillBoundary (bool cross = false, const Periodicity& period = Periodicity());
     //
     // Same as FillBoundary(), but only copies ncomp components starting at scomp.
     //
-    void FillBoundary (int scomp, int ncomp, bool cross = false);
+    void FillBoundary (int scomp, int ncomp, bool cross = false, 
+		       const Periodicity& period = Periodicity());
 
-    void FillBoundary_nowait (bool cross = false);
-    void FillBoundary_nowait (int scomp, int ncomp, bool cross = false);
+    void FillBoundary_nowait (bool cross = false, const Periodicity& period = Periodicity());
+    void FillBoundary_nowait (int scomp, int ncomp, bool cross = false, 
+			      const Periodicity& period = Periodicity());
     void FillBoundary_finish ();
 
     //
@@ -1121,6 +1127,7 @@ public:
     // Data used in non-blocking FillBoundary
     bool fb_cross;
     int fb_scomp, fb_ncomp;
+    Periodicity fb_period;
 
     //
     value_type*        fb_the_recv_data;
@@ -4498,38 +4505,36 @@ FabArrayCopyDescriptor<FAB>::PrintStats () const
 
 template <class FAB>
 void
-FabArray<FAB>::FillBoundary (bool cross)
+FabArray<FAB>::FillBoundary (bool cross, const Periodicity& period)
 {
     BL_PROFILE("FabArray::FillBoundary()");
-    FillBoundary_nowait(0, nComp(), cross);
+    FillBoundary_nowait(0, nComp(), cross, period);
     FillBoundary_finish();
 }
 
 template <class FAB>
 void
-FabArray<FAB>::FillBoundary (int  scomp,
-                             int  ncomp,
-                             bool cross)
+FabArray<FAB>::FillBoundary (int scomp, int ncomp, bool cross, const Periodicity& period)
 {
     BL_PROFILE("FabArray::FillBoundary()");
-    FillBoundary_nowait(scomp, ncomp, cross);
+    FillBoundary_nowait(scomp, ncomp, cross, period);
     FillBoundary_finish();
 }
 
 template <class FAB>
 void
-FabArray<FAB>::FillBoundary_nowait (bool cross)
+FabArray<FAB>::FillBoundary_nowait (bool cross, const Periodicity& period)
 {
-    FillBoundary_nowait(0, nComp(), cross);
+    FillBoundary_nowait(0, nComp(), cross, period);
 }
 
 template <class FAB>
 void
-FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross)
+FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross, const Periodicity& period)
 {
     if ( n_grow <= 0 ) return;
 
-    const FB& TheFB = getFB(cross);
+    const FB& TheFB = getFB(cross, period);
 
     if (ParallelDescriptor::NProcs() == 1)
     {
@@ -4556,7 +4561,8 @@ FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross)
     fb_cross = cross;
     fb_scomp = scomp;
     fb_ncomp = ncomp;
-    
+    fb_period = period;
+ 
 #ifdef BL_USE_MPI
 
 #if defined(BL_USE_UPCXX)
@@ -4814,7 +4820,7 @@ FabArray<FAB>::FillBoundary_finish ()
     BL_ASSERT(!ParallelDescriptor::MPIOneSided());
 #endif
 
-    const FB& TheFB = getFB(fb_cross);
+    const FB& TheFB = getFB(fb_cross,fb_period);
 
     const int N_rcvs = TheFB.m_RcvTags->size();
     const int N_snds = TheFB.m_SndTags->size();

@@ -519,8 +519,9 @@ FabArrayBase::getCPC (int dstng, const FabArrayBase& src, int srcng) const
 // Some stuff for fill boundary
 //
 
-FabArrayBase::FB::FB (const FabArrayBase& fa, bool cross)
-    : m_typ(fa.boxArray().ixType()), m_ngrow(fa.nGrow()), m_cross(cross), 
+FabArrayBase::FB::FB (const FabArrayBase& fa, bool cross, const Periodicity& period)
+    : m_typ(fa.boxArray().ixType()), m_ngrow(fa.nGrow()), 
+      m_cross(cross), m_period(period),
       m_threadsafe_loc(false), m_threadsafe_rcv(false),
       m_LocTags(0), m_SndTags(0), m_RcvTags(0), m_SndVols(0), m_RcvVols(0), 
       m_nuse(0)
@@ -780,7 +781,7 @@ FabArrayBase::flushFBCache ()
 }
 
 const FabArrayBase::FB&
-FabArrayBase::getFB (bool cross) const
+FabArrayBase::getFB (bool cross, const Periodicity& period) const
 {
     BL_PROFILE("FabArrayBase::getFB()");
 
@@ -788,9 +789,10 @@ FabArrayBase::getFB (bool cross) const
     std::pair<FBCacheIter,FBCacheIter> er_it = m_TheFBCache.equal_range(m_bdkey);
     for (FBCacheIter it = er_it.first; it != er_it.second; ++it)
     {
-	if (it->second->m_typ   == boxArray().ixType() &&
-	    it->second->m_ngrow == nGrow()             &&
-	    it->second->m_cross == cross)
+	if (it->second->m_typ    == boxArray().ixType() &&
+	    it->second->m_ngrow  == nGrow()             &&
+	    it->second->m_cross  == cross,
+	    it->second->m_period == period)
 	{
 	    ++(it->second->m_nuse);
 	    m_FBC_stats.recordUse();
@@ -799,7 +801,7 @@ FabArrayBase::getFB (bool cross) const
     }
 
     // Have to build a new one
-    FB* new_fb = new FB(*this, cross);
+    FB* new_fb = new FB(*this, cross, period);
 
 #ifdef BL_PROFILE
     m_FBC_stats.bytes += new_fb->bytes();
