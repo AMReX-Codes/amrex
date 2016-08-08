@@ -252,8 +252,32 @@ operator<< (std::ostream&        os,
     hd.m_ba.writeOn(os); os << '\n';
 
     os << hd.m_fod      << '\n';
-    os << hd.m_min      << '\n';
-    os << hd.m_max      << '\n';
+
+    if(hd.m_vers == VisMF::Header::Version_v1 ||
+       hd.m_vers == VisMF::Header::RawNativeMinMax_v1)
+    {
+      os << hd.m_min      << '\n';
+      os << hd.m_max      << '\n';
+    }
+
+    if(hd.m_vers == VisMF::Header::RawNativeFAMinMax_v1) {
+      BL_ASSERT(hd.m_famin.size() == hd.m_famax.size());
+      for(int i(0); i < hd.m_famin.size(); ++i) {
+        os << hd.m_famin[i] << ',';
+      }
+      os << '\n';
+      for(int i(0); i < hd.m_famax.size(); ++i) {
+        os << hd.m_famax[i] << ',';
+      }
+      os << '\n';
+    }
+
+    if(hd.m_vers == VisMF::Header::RawNative_v1       ||
+       hd.m_vers == VisMF::Header::RawNativeMinMax_v1 ||
+       hd.m_vers == VisMF::Header::RawNativeFAMinMax_v1)
+    {
+      os << FPC::NativeRealDescriptor() << '\n';
+    }
 
     os.flags(oflags);
     os.precision(oldPrec);
@@ -892,29 +916,9 @@ VisMF::WriteRawNative (const FabArray<FArrayBox>    &mf,
       }
     }
 
-    VisMF::Header hdr(mf, NFiles, hVersion);
+    VisMF::Header hdr(mf, VisMF::NFiles, hVersion);
 
     if(ParallelDescriptor::IOProcessor()) {
-        std::string MFHdrFileName(mf_name + TheMultiFabHdrFileSuffix);
-        std::ofstream MFHdrFile;
-        VisMF::IO_Buffer io_buffer;
-	if(setBuf) {
-          io_buffer.resize(VisMF::IO_Buffer_Size);
-          MFHdrFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
-	}
-
-        MFHdrFile.open(MFHdrFileName.c_str(), std::ios::out|std::ios::trunc);
-
-        if( ! MFHdrFile.good()) {
-          BoxLib::FileOpenFailed(MFHdrFileName);
-	}
-
-        MFHdrFile << hVersion << '\n';;
-        MFHdrFile << mf.nComp() << '\n';;
-        MFHdrFile << mf.nGrow() << '\n';;
-        MFHdrFile << nrd << '\n';;
-        mf.boxArray().writeOn(MFHdrFile); MFHdrFile << '\n';;
-
 	// ---- calculate offsets
 	const BoxArray &mfBA = mf.boxArray();
 	const DistributionMapping &mfDM = mf.DistributionMap();
@@ -922,37 +926,16 @@ VisMF::WriteRawNative (const FabArray<FArrayBox>    &mf,
 	int whichFileNumber(-1), whichProc(-1);
 	std::string whichFileName;
 	Array<std::streampos> currentOffset(nFiles, 0);
-	Array<FabOnDisk> fod(mfBA.size());
 
-	for(int i(0); i < fod.size(); ++i) {
+	for(int i(0); i < hdr.m_fod.size(); ++i) {
 	  whichProc = mfDM[i];
 	  whichFileNumber = NFilesIter::FileNumber(nFiles, whichProc, groupSets);
 	  whichFileName   = NFilesIter::FileName(nFiles, filePrefix, whichProc, groupSets);
-	  fod[i].m_name = whichFileName;
-	  fod[i].m_head = currentOffset[whichFileNumber];
+	  hdr.m_fod[i].m_name = whichFileName;
+	  hdr.m_fod[i].m_head = currentOffset[whichFileNumber];
 	  currentOffset[whichFileNumber] += mfBA[i].numPts() * nComps * nrdBytes;
 	}
-	for(int i(0); i < fod.size(); ++i) {
-	  whichProc = mfDM[i];
-	  whichFileNumber = NFilesIter::FileNumber(nFiles, whichProc, groupSets);
-          MFHdrFile << fod[i] << '\n';
-	}
-
-        if(hVersion == Header::RawNativeMinMax_v1) {
-          std::ios::fmtflags oflags = MFHdrFile.flags();
-          MFHdrFile.setf(std::ios::floatfield, std::ios::scientific);
-          int oldPrec(MFHdrFile.precision(16));
-
-	  MFHdrFile << hdr.m_min << '\n';
-	  MFHdrFile << hdr.m_max << '\n';
-
-          MFHdrFile.flags(oflags);
-          MFHdrFile.precision(oldPrec);
-	}
-
-        bytesWritten += VisMF::FileOffset(MFHdrFile);
-
-        MFHdrFile.close();
+	bytesWritten += VisMF::WriteHeader(mf_name, hdr);
     }
 
     return bytesWritten;
