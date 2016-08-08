@@ -1441,8 +1441,7 @@ VisMF::Check (const std::string& mf_name)
 void
 VisMF::clear (int fabIndex)
 {
-    for (int ncomp = 0, N = m_pa.size(); ncomp < N; ++ncomp)
-    {
+    for(int ncomp(0), N(m_pa.size()); ncomp < N; ++ncomp) {
         clear(ncomp, fabIndex);
     }
 }
@@ -1450,10 +1449,8 @@ VisMF::clear (int fabIndex)
 void
 VisMF::clear ()
 {
-    for (int ncomp = 0, N = m_pa.size(); ncomp < N; ++ncomp)
-    {
-        for (int fabIndex = 0, M = m_pa[ncomp].size(); fabIndex < M; ++fabIndex)
-        {
+    for(int ncomp(0), N(m_pa.size()); ncomp < N; ++ncomp) {
+        for(int fabIndex(0), M(m_pa[ncomp].size()); fabIndex < M; ++fabIndex) {
             clear(ncomp, fabIndex);
         }
     }
