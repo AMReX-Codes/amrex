@@ -16,6 +16,7 @@
 #include <MultiFab.H>
 #include <ParallelDescriptor.H>
 #include <RealBox.H>
+#include <Periodicity.H>
 
 //
 // Rectangular problem domain geometry.
@@ -162,6 +163,13 @@ public:
     // What's period in specified direction?
     //
     int period (int dir) const { BL_ASSERT(is_periodic[dir]); return domain.length(dir); }
+
+    Periodicity periodicity () const {
+	return Periodicity(IntVect(D_DECL(domain.length(0) * is_periodic[0],
+					  domain.length(1) * is_periodic[1],
+					  domain.length(2) * is_periodic[2])));
+    }
+
     //
     // Compute Array of shifts which will translate src so that it will
     // intersect target with non-zero intersection.  the array will be
