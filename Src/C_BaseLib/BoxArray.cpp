@@ -864,6 +864,8 @@ BoxArray::intersections (const Box&                         bx,
 
         Box cbx(sm,bg);
 
+	if (!cbx.intersects(m_ref->bbox)) return;
+
 	BARef::HashType::const_iterator TheEnd = BoxHashMap.end();
 
         for (IntVect iv = cbx.smallEnd(), End = cbx.bigEnd(); iv <= End; cbx.next(iv))

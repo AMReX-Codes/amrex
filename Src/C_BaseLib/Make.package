@@ -44,7 +44,7 @@ C${BOXLIB_BASE}_sources += FabConv.cpp FPC.cpp
 #
 # Index space.
 #
-C$(BOXLIB_BASE)_sources += Box.cpp IntVect.cpp IndexType.cpp Orientation.cpp
+C$(BOXLIB_BASE)_sources += Box.cpp IntVect.cpp IndexType.cpp Orientation.cpp Periodicity.cpp
 C$(BOXLIB_BASE)_headers += Box.H IntVect.H IndexType.H Orientation.H Periodicity.H
 
 #
