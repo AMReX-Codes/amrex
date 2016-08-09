@@ -548,6 +548,8 @@ FabArrayBase::FB::FB (const FabArrayBase& fa, bool cross, const Periodicity& per
 	const int ng = m_ngrow;
 	std::vector< std::pair<int,Box> > isects;
 
+	const std::vector<IntVect>& pshifts = period.shiftIntVect();
+
 	CopyComTag::MapOfCopyComTagContainers send_tags; // temp copy
 
 	for (int i = 0; i < nlocal; ++i)
@@ -555,22 +557,23 @@ FabArrayBase::FB::FB (const FabArrayBase& fa, bool cross, const Periodicity& per
 	    const int ksnd = imap[i];
 	    const Box& vbx = ba[ksnd];
 
-	    ba.intersections(vbx, isects, false, ng);
+	    for (std::vector<IntVect>::const_iterator pit=pshifts.begin(); pit!=pshifts.end(); ++pit)
+	    {
+		ba.intersections(vbx+(*pit), isects, false, ng);
 
-	    for (int j = 0, M = isects.size(); j < M; ++j)
-            {
-		const int krcv      = isects[j].first;
-		const Box& bx       = isects[j].second;
-		const int dst_owner = dm[krcv];
-
-		if (krcv == ksnd) continue;  // same box
-
-		if (ParallelDescriptor::sameTeam(dst_owner)) {
-		    continue;  // local copy will be dealt with later
-		} else if (MyProc == dm[ksnd]) {
-		    const BoxList& bl = BoxLib::boxDiff(bx, ba[krcv]);
-		    for (BoxList::const_iterator lit = bl.begin(); lit != bl.end(); ++lit)
-			send_tags[dst_owner].push_back(CopyComTag(*lit, *lit, krcv, ksnd));
+		for (int j = 0, M = isects.size(); j < M; ++j)
+		{
+		    const int krcv      = isects[j].first;
+		    const Box& bx       = isects[j].second;
+		    const int dst_owner = dm[krcv];
+		    
+		    if (ParallelDescriptor::sameTeam(dst_owner)) {
+			continue;  // local copy will be dealt with later
+		    } else if (MyProc == dm[ksnd]) {
+			const BoxList& bl = BoxLib::boxDiff(bx, ba[krcv]);
+			for (BoxList::const_iterator lit = bl.begin(); lit != bl.end(); ++lit)
+			    send_tags[dst_owner].push_back(CopyComTag(*lit, (*lit)-(*pit), krcv, ksnd));
+		    }
 		}
 	    }
 	}
@@ -613,36 +616,37 @@ FabArrayBase::FB::FB (const FabArrayBase& fa, bool cross, const Periodicity& per
 		remotetouch.setVal(0);
 	    }
 
-	    ba.intersections(bxrcv, isects);
-
-	    for (int j = 0, M = isects.size(); j < M; ++j)
+	    for (std::vector<IntVect>::const_iterator pit=pshifts.begin(); pit!=pshifts.end(); ++pit)
 	    {
-		const int ksnd      = isects[j].first;
-		const Box& bx       = isects[j].second;
-		const int src_owner = dm[ksnd];
-		
-		if (krcv == ksnd) continue;  // same box
-		
-		const BoxList& bl = BoxLib::boxDiff(bx, vbx);
-		for (BoxList::const_iterator lit = bl.begin(); lit != bl.end(); ++lit)
+		ba.intersections(bxrcv+(*pit), isects);
+
+		for (int j = 0, M = isects.size(); j < M; ++j)
 		{
-		    const Box& blbx = *lit;
+		    const int ksnd      = isects[j].first;
+		    const Box& bx       = isects[j].second;
+		    const int src_owner = dm[ksnd];
+		
+		    const BoxList& bl = BoxLib::boxDiff(bx, vbx);
+		    for (BoxList::const_iterator lit = bl.begin(); lit != bl.end(); ++lit)
+		    {
+			const Box& blbx = (*lit) - (*pit);
 			
-		    if (ParallelDescriptor::sameTeam(src_owner)) { // local copy
-			const BoxList tilelist(blbx, FabArrayBase::comm_tile_size);
-			for (BoxList::const_iterator
-				 it_tile  = tilelist.begin(),
-				 End_tile = tilelist.end();   it_tile != End_tile; ++it_tile)
-			{
-			    m_LocTags->push_back(CopyComTag(*it_tile, *it_tile, krcv, ksnd));
-			}
-			if (check_local) {
-			    localtouch.plus(1, blbx);
-			}
-		    } else if (MyProc == dm[krcv]) {
-			recv_tags[src_owner].push_back(CopyComTag(blbx, blbx, krcv, ksnd));
-			if (check_remote) {
-			    remotetouch.plus(1, blbx);
+			if (ParallelDescriptor::sameTeam(src_owner)) { // local copy
+			    const BoxList tilelist(blbx, FabArrayBase::comm_tile_size);
+			    for (BoxList::const_iterator
+				     it_tile  = tilelist.begin(),
+				     End_tile = tilelist.end();   it_tile != End_tile; ++it_tile)
+			    {
+				m_LocTags->push_back(CopyComTag(*it_tile, (*it_tile)+(*pit), krcv, ksnd));
+			    }
+			    if (check_local) {
+				localtouch.plus(1, blbx);
+			    }
+			} else if (MyProc == dm[krcv]) {
+			    recv_tags[src_owner].push_back(CopyComTag(blbx, blbx+(*pit), krcv, ksnd));
+			    if (check_remote) {
+				remotetouch.plus(1, blbx);
+			    }
 			}
 		    }
 		}
@@ -682,27 +686,28 @@ FabArrayBase::FB::FB (const FabArrayBase& fa, bool cross, const Periodicity& per
 			 it2  = cctv.begin(),
 			 End2 = cctv.end();   it2 != End2; ++it2)
 		{
-		    const Box& bx = it2->sbox;
+		    const Box& bx = it2->dbox;
+		    IntVect d2s = it2->sbox.smallEnd() - it2->dbox.smallEnd();
 
 		    std::vector<Box> boxes;
 		    int vol = 0;
 		    
 		    if (m_cross) {
-			const Box& dstfabbx = ba[it2->dstIndex];
+			const Box& dstvbx = ba[it2->dstIndex];
 			for (int dir = 0; dir < BL_SPACEDIM; dir++)
 			{
-			    Box lo = dstfabbx;
-			    lo.setSmall(dir, dstfabbx.smallEnd(dir) - ng);
-			    lo.setBig  (dir, dstfabbx.smallEnd(dir) - 1);
+			    Box lo = dstvbx;
+			    lo.setSmall(dir, dstvbx.smallEnd(dir) - ng);
+			    lo.setBig  (dir, dstvbx.smallEnd(dir) - 1);
 			    lo &= bx;
 			    if (lo.ok()) {
 				boxes.push_back(lo);
 				vol += lo.numPts();
 			    }
 			    
-			    Box hi = dstfabbx;
-			    hi.setSmall(dir, dstfabbx.bigEnd(dir) + 1);
-			    hi.setBig  (dir, dstfabbx.bigEnd(dir) + ng);
+			    Box hi = dstvbx;
+			    hi.setSmall(dir, dstvbx.bigEnd(dir) + 1);
+			    hi.setBig  (dir, dstvbx.bigEnd(dir) + ng);
 			    hi &= bx;
 			    if (hi.ok()) {
 				boxes.push_back(hi);
@@ -727,7 +732,8 @@ FabArrayBase::FB::FB (const FabArrayBase& fa, bool cross, const Periodicity& per
 				     it_tile  = tilelist.begin(), 
 				     End_tile = tilelist.end();   it_tile != End_tile; ++it_tile)
 			    {
-				new_cctv.push_back(CopyComTag(*it_tile, *it_tile, it2->dstIndex, it2->srcIndex));
+				new_cctv.push_back(CopyComTag(*it_tile, (*it_tile)+d2s, 
+							      it2->dstIndex, it2->srcIndex));
 			    }
 			}
 		    }

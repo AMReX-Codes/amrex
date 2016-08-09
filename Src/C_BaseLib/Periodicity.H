@@ -1,6 +1,9 @@
 #ifndef _PERIODICITY_H_
 #define _PERIODICITY_H_
 
+#include <IntVect.H>
+#include <vector>
+
 // This provides length of period for periodic domains.  0 means it is 
 // not periodic in that direction.
 class Periodicity
@@ -18,6 +21,8 @@ public:
 
     bool operator==(const Periodicity& rhs) const
 	{ return period == rhs.period; }
+
+    std::vector<IntVect> shiftIntVect () const;
 
 private:
     IntVect period;
