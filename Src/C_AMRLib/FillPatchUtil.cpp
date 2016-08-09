@@ -87,11 +87,8 @@ namespace BoxLib
 	    
 	    if (sameba)
 	    {
-		mf.FillBoundary_nowait(dcomp,ncomp);
-		geom.FillPeriodicBoundary_nowait(mf,dcomp,ncomp);
-
+		mf.FillBoundary_nowait(dcomp,ncomp,geom.periodicity());
 		mf.FillBoundary_finish();
-		geom.FillPeriodicBoundary_finish(mf);
 	    }
 	    else
 	    {
