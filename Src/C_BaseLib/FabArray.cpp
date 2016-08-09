@@ -797,7 +797,7 @@ FabArrayBase::getFB (bool cross, const Periodicity& period) const
     {
 	if (it->second->m_typ    == boxArray().ixType() &&
 	    it->second->m_ngrow  == nGrow()             &&
-	    it->second->m_cross  == cross,
+	    it->second->m_cross  == cross               &&
 	    it->second->m_period == period)
 	{
 	    ++(it->second->m_nuse);
