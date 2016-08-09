@@ -200,10 +200,11 @@ MCLinOp::applyBC (MultiFab& inout,
     BL_ASSERT(nc == numcomp );
 
     inout.setBndry(-1.e30);
-    inout.FillBoundary();
+
     prepareForLevel(level);
 
-    geomarray[level].FillPeriodicBoundary(inout,0,nc);
+    inout.FillBoundary(geomarray[level].periodicity());
+
     //
     // Fill boundary cells.
     //

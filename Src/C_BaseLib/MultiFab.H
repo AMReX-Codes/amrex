@@ -493,9 +493,11 @@ public:
     //
     // Set ghost cells that are covered by valid cells to the value of valid cells.
     //
+#if 0
     void FillBoundary (bool local = false, bool cross = false);
 
     void FillBoundary (int scomp, int ncomp, bool local = false, bool cross = false);
+#endif
     //
     // Sum ghost cells that are covered by valid cells into the valid cells.
     //
