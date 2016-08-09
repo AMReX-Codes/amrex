@@ -1147,31 +1147,28 @@ VisMF::readFABRawNative (FabArray<FArrayBox>&            mf,
 
     ifs.read((char *) fab.dataPtr(), fab.nBytes());
 
+    //// test ifs.gcount and tellg vs count
+
     ifs.close();
 }
 
 
 void
-VisMF::Read (FabArray<FArrayBox>&          mf,
-             const std::string& mf_name)
+VisMF::Read (FabArray<FArrayBox> &mf,
+             const std::string   &mf_name)
 {
     BL_PROFILE("VisMF::Read()");
 
-    VisMF::Initialize();
-
-    if(verbose && ParallelDescriptor::IOProcessor()) {
-        std::cout << "VisMF::Read:  about to read:  " << mf_name << std::endl;
-    }
-
-
     VisMF::Header hdr;
-
-    std::string FullHdrFileName = mf_name;
-
-    FullHdrFileName += TheMultiFabHdrFileSuffix;
-
     Real hEndTime, hStartTime;
 
+    if(verbose && ParallelDescriptor::IOProcessor()) {
+      std::cout << "VisMF::Read:  about to read:  " << mf_name << std::endl;
+    }
+
+    VisMF::Initialize();
+
+    std::string FullHdrFileName(mf_name + TheMultiFabHdrFileSuffix);
     {
         hStartTime = ParallelDescriptor::second();
         Array<char> fileCharPtr;
@@ -1181,9 +1178,6 @@ VisMF::Read (FabArray<FArrayBox>&          mf,
         hEndTime = ParallelDescriptor::second();
 
         ifs >> hdr;
-    }
-    if(ParallelDescriptor::IOProcessor()) {
-      std::cout << "hdr = " << '\n' << hdr << std::endl;
     }
 
     bool rawNative(false);
@@ -1215,6 +1209,9 @@ VisMF::Read (FabArray<FArrayBox>&          mf,
     int nOpensPerFile(nMFFileInStreams), allReadsIndex(0), messTotal(0);
     ParallelDescriptor::Message rmess;
     Array<std::map<int,std::map<int,int> > > allReads; // [file]<proc,<seek,index>>
+    Array<std::ifstream *> dataStreams;        // ---- persistent streams
+    std::map<std::string, int> dataFileNames;  // ---- [filename, stream index]
+
 
     for(int i(0); i < nBoxes; ++i) {   // count the files
       int whichProc(mf.DistributionMap()[i]);
@@ -1311,7 +1308,7 @@ VisMF::Read (FabArray<FArrayBox>&          mf,
         }  // end while(aFilesIter...)
 
 	while( ! iopReads.empty()) {
-	  int index = iopReads.front();
+	  int index(iopReads.front());
 	  if(rawNative) {
 	    VisMF::readFABRawNative(mf,index, mf_name, hdr);
 	  } else {
@@ -1367,7 +1364,8 @@ VisMF::Read (FabArray<FArrayBox>&          mf,
 
     ParallelDescriptor::Barrier("VisMF::Read");
 
-    if(ParallelDescriptor::IOProcessor() && false) {
+    bool reportMFReadStats(true);
+    if(ParallelDescriptor::IOProcessor() && reportMFReadStats) {
       Real mfReadTime = ParallelDescriptor::second() - startTime;
       totalTime += mfReadTime;
       std::cout << "MFRead:::  nBoxes = "
