@@ -526,11 +526,11 @@ ifeq ($(COMP),Intel)
    endif
 
    ifeq ($(WHICHLINUX), CORI)
-     CXXOPTF += -g -O2 -ip -qopt-report=5 -qopt-report-phase=vec -parallel-source-info=2 -fp-model source
+     CXXOPTF += -g -O2 -ip -qopt-report=5 -qopt-report-phase=vec -fp-model source
    endif
 
    ifeq ($(WHICHLINUX), EDISON)
-     CXXOPTF += -g -O2 -ip -qopt-report=5 -qopt-report-phase=vec -parallel-source-info=2 -fp-model source
+     CXXOPTF += -g -O2 -ip -qopt-report=5 -qopt-report-phase=vec -fp-model source
    endif
 
    ifeq ($(WHICHLINUX), BABBAGE)
@@ -611,12 +611,12 @@ ifeq ($(FCOMP),Intel)
    fOPTF += -g
 
    ifeq ($(WHICHLINUX), CORI)
-     FOPTF += -O2 -ip -g -qopt-report=5 -qopt-report-phase=vec -parallel-source-info=2 #-qoverride-limits
-     fOPTF += -O2 -ip -g -qopt-report=5 -qopt-report-phase=vec -parallel-source-info=2 #-qoverride-limits
+     FOPTF += -O2 -ip -g -qopt-report=5 -qopt-report-phase=vec #-qoverride-limits
+     fOPTF += -O2 -ip -g -qopt-report=5 -qopt-report-phase=vec #-qoverride-limits
    endif
    ifeq ($(WHICHLINUX), EDISON)
-     FOPTF += -O2 -ip -g -qopt-report=5 -qopt-report-phase=vec -parallel-source-info=2 #-qoverride-limits
-     fOPTF += -O2 -ip -g -qopt-report=5 -qopt-report-phase=vec -parallel-source-info=2 #-qoverride-limits
+     FOPTF += -O2 -ip -g -qopt-report=5 -qopt-report-phase=vec #-qoverride-limits
+     fOPTF += -O2 -ip -g -qopt-report=5 -qopt-report-phase=vec #-qoverride-limits
    endif
    ifeq ($(WHICHLINUX), BABBAGE)
      ifneq ($(MIC), TRUE) # the "-xHost" flag conflicts with the "-mmic" option
@@ -744,10 +744,12 @@ ifeq ($(COMP),Intel)
   ifeq ($(FCOMP),Intel)
     ifeq ($(USE_VTUNE),TRUE)
 
-      CXXFLAGS += -debug inline-debug-info
-      FFLAGS += -debug inline-debug-info
-      fFLAGS += -debug inline-debug-info
-      CFLAGS += -debug inline-debug-info
+      DEFINES += -DVTUNE
+
+      CXXFLAGS += -debug inline-debug-info -parallel-source-info=2
+      FFLAGS += -debug inline-debug-info -parallel-source-info=2
+      fFLAGS += -debug inline-debug-info -parallel-source-info=2
+      CFLAGS += -debug inline-debug-info -parallel-source-info=2
 
       # On the Crays at NERSC, VTune can't resolve debug symbols unless we
       # compile and link dynamically using the "-dynamic" flag with the Cray
@@ -768,6 +770,7 @@ ifeq ($(COMP),Intel)
       # variables change with VTune versions so these will need to be updated
       # periodically.
       ifeq ($(USE_ITTNOTIFY),TRUE)
+        DEFINES += -DITTNOTIFY
         INCLUDE_LOCATIONS += $(VTUNE_AMPLIFIER_XE_2016_DIR)/include
         LIBRARIES += -L$(VTUNE_AMPLIFIER_XE_2016_DIR)/lib64 -littnotify
       endif
