@@ -1016,16 +1016,18 @@ public:
     // also filled.  Note that FabArray itself does not contains
     // any periodicity information.
     //
-    void FillBoundary (bool cross = false, const Periodicity& period = Periodicity());
+    void FillBoundary (bool cross = false);
+    void FillBoundary (const Periodicity& period, bool cross = false);
     //
     // Same as FillBoundary(), but only copies ncomp components starting at scomp.
     //
-    void FillBoundary (int scomp, int ncomp, bool cross = false, 
-		       const Periodicity& period = Periodicity());
+    void FillBoundary (int scomp, int ncomp, bool cross = false);
+    void FillBoundary (int scomp, int ncomp, const Periodicity& period, bool cross = false);
 
-    void FillBoundary_nowait (bool cross = false, const Periodicity& period = Periodicity());
-    void FillBoundary_nowait (int scomp, int ncomp, bool cross = false, 
-			      const Periodicity& period = Periodicity());
+    void FillBoundary_nowait (bool cross = false);
+    void FillBoundary_nowait (const Periodicity& period, bool cross = false);
+    void FillBoundary_nowait (int scomp, int ncomp, bool cross = false);
+    void FillBoundary_nowait (int scomp, int ncomp, const Periodicity& period, bool cross = false);
     void FillBoundary_finish ();
 
     //
@@ -4505,32 +4507,64 @@ FabArrayCopyDescriptor<FAB>::PrintStats () const
 
 template <class FAB>
 void
-FabArray<FAB>::FillBoundary (bool cross, const Periodicity& period)
+FabArray<FAB>::FillBoundary (bool cross)
 {
     BL_PROFILE("FabArray::FillBoundary()");
-    FillBoundary_nowait(0, nComp(), cross, period);
+    FillBoundary_nowait(0, nComp(), Periodicity(), cross);
     FillBoundary_finish();
 }
 
 template <class FAB>
 void
-FabArray<FAB>::FillBoundary (int scomp, int ncomp, bool cross, const Periodicity& period)
+FabArray<FAB>::FillBoundary (const Periodicity& period, bool cross)
 {
     BL_PROFILE("FabArray::FillBoundary()");
-    FillBoundary_nowait(scomp, ncomp, cross, period);
+    FillBoundary_nowait(0, nComp(), period, cross);
     FillBoundary_finish();
 }
 
 template <class FAB>
 void
-FabArray<FAB>::FillBoundary_nowait (bool cross, const Periodicity& period)
+FabArray<FAB>::FillBoundary (int scomp, int ncomp, bool cross)
 {
-    FillBoundary_nowait(0, nComp(), cross, period);
+    BL_PROFILE("FabArray::FillBoundary()");
+    FillBoundary_nowait(scomp, ncomp, Periodicity(), cross);
+    FillBoundary_finish();
 }
 
 template <class FAB>
 void
-FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross, const Periodicity& period)
+FabArray<FAB>::FillBoundary (int scomp, int ncomp, const Periodicity& period, bool cross)
+{
+    BL_PROFILE("FabArray::FillBoundary()");
+    FillBoundary_nowait(scomp, ncomp, period, cross);
+    FillBoundary_finish();
+}
+
+template <class FAB>
+void
+FabArray<FAB>::FillBoundary_nowait (bool cross)
+{
+    FillBoundary_nowait(0, nComp(), Periodicity(), cross);
+}
+
+template <class FAB>
+void
+FabArray<FAB>::FillBoundary_nowait (const Periodicity& period, bool cross)
+{
+    FillBoundary_nowait(0, nComp(), period, cross);
+}
+
+template <class FAB>
+void
+FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross)
+{
+    FillBoundary_nowait(scomp, ncomp, Periodicity(), cross);
+}
+
+template <class FAB>
+void
+FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, const Periodicity& period, bool cross)
 {
     if ( n_grow <= 0 ) return;
 
