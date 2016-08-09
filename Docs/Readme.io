@@ -29,11 +29,17 @@ tests for meta operations:  seek open close mkdir rename
 //recursive mkdir
 dot in path issue
 remove how
-check if pubsetbuf works
 add more retry code to vismf
 check nfilesiter with long paths
 special profiling
 support new shared boxarrays (test restart)
-readandbcast vismf header
 check vismf reads for copies and non-contiguous
 check vismf colors
+fix types on stream functions (streamsize in read, streampos, etc.)
+add NFiles files to CMakeLists.txt.
+tests for copy multifab speed.
+new fabarray read algorithm.
+tests for buffer sizes.
+check if pubsetbuf works
+pre make plot and check directories.
+check visit and yt with new formats.
