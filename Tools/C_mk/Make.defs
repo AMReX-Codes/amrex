@@ -744,6 +744,8 @@ ifeq ($(COMP),Intel)
   ifeq ($(FCOMP),Intel)
     ifeq ($(USE_VTUNE),TRUE)
 
+      DEFINES += -DVTUNE
+
       CXXFLAGS += -debug inline-debug-info -parallel-source-info=2
       FFLAGS += -debug inline-debug-info -parallel-source-info=2
       fFLAGS += -debug inline-debug-info -parallel-source-info=2
@@ -768,6 +770,7 @@ ifeq ($(COMP),Intel)
       # variables change with VTune versions so these will need to be updated
       # periodically.
       ifeq ($(USE_ITTNOTIFY),TRUE)
+        DEFINES += -DITTNOTIFY
         INCLUDE_LOCATIONS += $(VTUNE_AMPLIFIER_XE_2016_DIR)/include
         LIBRARIES += -L$(VTUNE_AMPLIFIER_XE_2016_DIR)/lib64 -littnotify
       endif
