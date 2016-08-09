@@ -1315,6 +1315,7 @@ BoxLib::InterpFillFab (MultiFabCopyDescriptor& fabCopyDesc,
     }
 }
 
+#if 0
 void
 MultiFab::FillBoundary (int  scomp,
                         int  ncomp,
@@ -1368,6 +1369,7 @@ MultiFab::FillBoundary (bool local, bool cross)
 {
     FillBoundary(0, n_comp, local, cross);
 }
+#endif
 
 //
 // Some useful typedefs.

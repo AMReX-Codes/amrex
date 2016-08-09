@@ -217,7 +217,6 @@ namespace BoxLib
 
     void fill_boundary(MultiFab& mf, int scomp, int ncomp, const Geometry& geom, bool cross)
     {
-	FabArray<FArrayBox>& fa = mf;
-	fa.FillBoundary(scomp,ncomp,geom.periodicity(),cross);
+	mf.FillBoundary(scomp,ncomp,geom.periodicity(),cross);
     }
 }

@@ -104,13 +104,7 @@ ABec4::applyBC (MultiFab&     inout,
     prepareForLevel(level);
 
     const bool cross = false;
-    inout.FillBoundary(src_comp,num_comp,local,cross);
-    BL_ASSERT(level<geomarray.size());
-    geomarray[level].FillPeriodicBoundary(inout,src_comp,num_comp,true,local);
-
-    //
-    // Fill boundary cells.
-    //
+    inout.FillBoundary(src_comp,num_comp,geomarray[level].periodicity(),cross);
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -637,13 +631,10 @@ ABec4::Fapply (MultiFab&       y,
     const MultiFab& a = aCoefficients(level);
     const MultiFab& b = bCoefficients(level);
 
-    const bool cross = false;
-    bool local = false;
-    const_cast<MultiFab&>(b).FillBoundary(src_comp,num_comp,local,cross);
-
     prepareForLevel(level);
-    BL_ASSERT(level<geomarray.size());
-    geomarray[level].FillPeriodicBoundary(const_cast<MultiFab&>(b),src_comp,num_comp,true,local);
+
+    const bool cross = false;
+    const_cast<MultiFab&>(b).FillBoundary(src_comp,num_comp,geomarray[level].periodicity(),cross);
 
     const bool tiling = true;
 
