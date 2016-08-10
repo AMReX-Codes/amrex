@@ -142,6 +142,21 @@ contains
             brs_bcs(n)%uncovered)
     end do
 
+    ! Enforce solvability if appropriate -- note that we need to make "rh" solvable, not just "res" as before,
+    ! because "res" is recomputed as rh - L(full_soln) after each cycle
+    if (nlevs .eq. 1 .and. mgt(1)%bottom_singular .and. mgt(1)%coeffs_sum_to_zero) then
+
+       sum = multifab_sum(rh(1))  / boxarray_dvolume(get_boxarray(rh(1)))
+
+       ! Subtract "sum" from rh(1) in order to make this solvable
+       call sub_sub(rh(1), sum)
+
+       if ( parallel_IOProcessor() .and. (do_diagnostics == 1) ) then
+          write(unit=*, fmt='("F90mg: Subtracting from rh  ",g15.8)') sum
+       end if
+
+    end if
+
     do n = 1,nlevs,1
        mglev = mgt(n)%nlevels
        call compute_defect(mgt(n)%ss(mglev),res(n),rh(n),full_soln(n), &
@@ -195,21 +210,6 @@ contains
     ! Otherwise the BiCG/CG bottom solver will not see it.
     if (associated(mgt(1)%bottom_mgt)) then
        mgt(1)%bottom_mgt%coeffs_sum_to_zero = mgt(1)%coeffs_sum_to_zero
-    end if
-
-    ! Enforce solvability if appropriate
-    ! Note we do this before res is copied back into rhs.
-    if (nlevs .eq. 1 .and. mgt(1)%bottom_singular .and. mgt(1)%coeffs_sum_to_zero) then
-
-       sum = multifab_sum(res(1))  / boxarray_dvolume(get_boxarray(res(1)))
-
-       ! Subtract "sum" from res(1) in order to make this solvable
-       call sub_sub(res(1), sum)
-
-       if ( parallel_IOProcessor() .and. (do_diagnostics == 1) ) then
-          write(unit=*, fmt='("F90mg: Subtracting from res ",g15.8)') sum
-       end if
-
     end if
 
     if ( parallel_IOProcessor() .and. mgt(nlevs)%verbose > 0 ) then
