@@ -24,6 +24,8 @@ public:
 
     std::vector<IntVect> shiftIntVect () const;
 
+    static const Periodicity& NonPeriodic ();
+
 private:
     IntVect period;
 };
