@@ -18,29 +18,35 @@ class OrientationIter;
 // 
 // for(NFilesIter nfi(nOutFiles, filePrefix); nfi.ReadyToWrite(); ++nfi) {
 //   // ---- do your writing here
-//   nfi.Stream().write((char *) data.dataPtr(), data.size() * sizeof(int));
+//   nfi.Stream().write((const char *) data.dataPtr(), nChars);
 // }
 
 //
 
 class NFilesIter
 {
-
   public:
 
     // ---- the nfiles will be named "filePrefix" + "00000"
     // ---- through "filePrefix" + "noutfiles-1"
     // ---- the range [1, nProcs] for noutfiles is enforced
-    NFilesIter(int noutfiles, const std::string &filePrefix,
+
+    NFilesIter(int noutfiles, const std::string &fileprefix,
                bool groupsets = false, bool setBuf = false);
+
+    // ---- constructor for reading
+    NFilesIter(const std::string &fileName,
+               const Array<int> &readRanks,
+               bool setBuf = false);
 
     ~NFilesIter();
 
     bool ReadyToWrite();
+    bool ReadyToRead();
     
     NFilesIter &operator++();
 
-    std::ofstream &Stream() { return fileStream; }
+    std::fstream &Stream() { return fileStream; }
 
     // ---- get the current Stream()'s seek position
     std::streampos SeekPos();
@@ -88,10 +94,14 @@ class NFilesIter
     int nSets;
     int mySet;
     std::string fullFileName;
-    std::ofstream fileStream;
+    std::fstream fileStream;
     VisMF::IO_Buffer io_buffer;
     bool finishedWriting;
     bool groupSets;
+    bool isReading;
+    bool finishedReading;
+    Array<int> readRanks;
+    int myReadIndex;
 
     NFilesIter();  // ---- disallow
 };
