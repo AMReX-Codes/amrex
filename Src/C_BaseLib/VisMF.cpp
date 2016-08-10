@@ -374,6 +374,19 @@ VisMF::FabOnDisk::FabOnDisk (const std::string& name, long offset)
     m_head(offset)
 {}
 
+
+VisMF::FileReadChain::FileReadChain()
+    :
+    rankToRead(-1),
+    fileOffset(-1)
+{ }
+
+VisMF::FileReadChain::FileReadChain(int ranktoread, long fileoffset)
+    :
+    rankToRead(ranktoread),
+    fileOffset(fileoffset)
+{ }
+
 int
 VisMF::nComp () const
 {
@@ -1191,6 +1204,67 @@ VisMF::Read (FabArray<FArrayBox> &mf,
 
     mf.define(hdr.m_ba, hdr.m_ncomp, hdr.m_ngrow, Fab_allocate);
 
+#ifdef BL_USENEWREADS
+
+    //
+    // Create an ordered map of which processors read which
+    // Fabs in each file
+    //
+    
+    std::map<std::string, Array<FileReadChain> > AllFileReadChains;  // ---- [filename, chain]
+
+    int nBoxes(hdr.m_ba.size());
+    for(int i(0); i < nBoxes; ++i) {   // ---- create the map
+      int whichProc(mf.DistributionMap()[i]);
+      std::string fname(hdr.m_fod[i].m_name);
+      AllFileReadChains[fname].push_back(FileReadChain(whichProc, hdr.m_fod[i].m_head));
+    }
+
+    if(ParallelDescriptor::IOProcessor()) {
+      std::map<std::string, Array<FileReadChain> >::iterator frcIter;
+      for(frcIter = AllFileReadChains.begin(); frcIter != AllFileReadChains.end(); ++ frcIter) {
+        std::cout << "frcIter:  " << frcIter->first << std::endl;
+	Array<FileReadChain> &frc = frcIter->second;
+	for(int i(0); i < frc.size(); ++i) {
+	  std::cout << "  frc[" << i << "] = " << frc[i].rankToRead
+	            << "  " << frc[i].fileOffset << std::endl;
+	}
+      }
+    }
+
+    //
+    // We have a choice of reading in file order or rank order
+    //
+    bool readFileOrder(false);
+
+    if(readFileOrder) {
+    } else {
+      // ---- sort to rank ordering
+      std::map<std::string, Array<FileReadChain> >::iterator frcIter;
+      for(frcIter = AllFileReadChains.begin(); frcIter != AllFileReadChains.end(); ++ frcIter) {
+	Array<FileReadChain> &frc = frcIter->second;
+        std::stable_sort(frc.begin(), frc.end(), [] (const FileReadChain &a, const FileReadChain &b)
+	  { return a.rankToRead < b.rankToRead; } );
+      }
+
+      if(ParallelDescriptor::IOProcessor()) {
+        std::cout << "--------------------- sorted by rank" << std::endl;
+        std::map<std::string, Array<FileReadChain> >::iterator frcIter;
+        for(frcIter = AllFileReadChains.begin(); frcIter != AllFileReadChains.end(); ++ frcIter) {
+          std::cout << "frcIter:  " << frcIter->first << std::endl;
+	  Array<FileReadChain> &frc = frcIter->second;
+	  for(int i(0); i < frc.size(); ++i) {
+	    std::cout << "  frc[" << i << "] = " << frc[i].rankToRead
+	              << "  " << frc[i].fileOffset << std::endl;
+	  }
+        }
+      }
+
+    }
+
+
+#else
+
 #ifdef BL_USE_MPI
     //
     // Here we limit the number of open files when reading a multifab.
@@ -1386,6 +1460,8 @@ VisMF::Read (FabArray<FArrayBox> &mf,
 	  VisMF::readFAB(mf,mfi.index(), mf_name, hdr);
 	}
     }
+#endif
+
 #endif
 
     BL_ASSERT(mf.ok());
