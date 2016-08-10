@@ -623,10 +623,8 @@ FabArrayBase::FB::FB (const FabArrayBase& fa, bool cross, const Periodicity& per
 		for (int j = 0, M = isects.size(); j < M; ++j)
 		{
 		    const int ksnd      = isects[j].first;
-		    const Box& bx       = isects[j].second;
+		    const Box& dst_bx   = isects[j].second - *pit;
 		    const int src_owner = dm[ksnd];
-
-		    Box dst_bx = bx - (*pit);
 
 		    const BoxList& bl = BoxLib::boxDiff(dst_bx, vbx);
 		    for (BoxList::const_iterator lit = bl.begin(); lit != bl.end(); ++lit)
