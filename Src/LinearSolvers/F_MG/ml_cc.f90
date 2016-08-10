@@ -177,13 +177,14 @@ contains
 
     ! Enforce solvability if appropriate -- note that we need to make "rh" solvable, not just "res" as before,
     ! because "res" is recomputed as rh - L(full_soln) after each cycle
-    if (nlevs .eq. 1 .and. mgt(1)%bottom_singular .and. mgt(1)%coeffs_sum_to_zero) then
+    if (nlevs .eq. 1 .and. mgt(1)%bottom_singular .and. mgt(1)%coeffs_sum_to_zero .and. &
+        mgt(1)%ok_to_fix_singular) then
 
        sum = multifab_sum(rh(1))  / boxarray_dvolume(get_boxarray(rh(1)))
 
        ! Subtract "sum" from rh(1) in order to make this solvable
        call sub_sub(rh(1), sum)
-
+          
        if ( parallel_IOProcessor() .and. (do_diagnostics == 1) ) then
           write(unit=*, fmt='("F90mg: Subtracting from rh  ",g15.8)') sum
        end if

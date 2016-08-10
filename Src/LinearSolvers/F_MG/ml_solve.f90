@@ -37,7 +37,7 @@ contains
                            max_nlevel, max_bottom_nlevel, min_width, max_iter, &
                            abort_on_max_iter, eps, abs_eps, bottom_solver, &
                            bottom_max_iter, bottom_solver_eps, max_L0_growth, &
-                           verbose, cg_verbose, use_hypre, &
+                           verbose, cg_verbose, use_hypre, ok_to_fix_singular, &
                            fancy_bottom_type, use_lininterp, ptype, &
                            stencil_type, stencil_order, do_diagnostics)
     
@@ -77,6 +77,7 @@ contains
     integer, intent(in), optional :: verbose
     integer, intent(in), optional :: cg_verbose
     integer, intent(in), optional :: use_hypre
+    logical, intent(in), optional :: ok_to_fix_singular
     integer, intent(in), optional :: fancy_bottom_type
     logical, intent(in), optional :: use_lininterp
     integer, intent(in), optional :: ptype
@@ -184,6 +185,7 @@ contains
        if (present(verbose))              mgt(n)%verbose = verbose ! verbosity
        if (present(cg_verbose))           mgt(n)%cg_verbose = cg_verbose ! bottom solver verbosity
        if (present(use_hypre))            mgt(n)%use_hypre = use_hypre
+       if (present(ok_to_fix_singular))   mgt(n)%ok_to_fix_singular = ok_to_fix_singular
        if (present(fancy_bottom_type))    mgt(n)%fancy_bottom_type = fancy_bottom_type
        if (present(use_lininterp))        mgt(n)%use_lininterp = use_lininterp
        if (present(ptype))                mgt(n)%ptype = ptype
@@ -248,7 +250,8 @@ contains
                               verbose = mgt(n)%verbose, &
                               cg_verbose = mgt(n)%cg_verbose, &
                               nodal = nodal_flags(rh(nlevs)), &
-                              use_hypre = mgt(n)%use_hypre,&
+                              use_hypre = mgt(n)%use_hypre, &
+                              ok_to_fix_singular = mgt(n)%ok_to_fix_singular, &
                               fancy_bottom_type = mgt(n)%fancy_bottom_type, &
                               use_lininterp = mgt(n)%use_lininterp, &
                               ptype = mgt(n)%ptype)
