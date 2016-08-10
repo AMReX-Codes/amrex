@@ -43,3 +43,4 @@ tests for buffer sizes.
 check if pubsetbuf works
 pre make plot and check directories.
 check visit and yt with new formats.
+test performance of rank order vs. file order reads.
