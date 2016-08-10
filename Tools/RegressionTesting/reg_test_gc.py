@@ -6,7 +6,10 @@ import sys
 import getopt
 import string
 import argparse
-import testnew as reg_test
+
+import test_util
+import params
+import test_report as report
 
 def reg_test_gc(argv):
     usage = """
@@ -58,9 +61,9 @@ def reg_test_gc(argv):
 
     print "loading ", testFile
 
-    args=reg_test.get_args([testFile])
+    args=test_util.get_args([testFile])
 
-    suite, testList = reg_test.load_params(args)
+    suite, testList = params.load_params(args)
     activeTestList = [t.name for t in testList]
 
     benchmarkTestList = [t for t in testList if not (t.compileTest or t.restartTest)]
@@ -130,7 +133,7 @@ def reg_test_gc(argv):
                 rmDir(d)
     
     print "\ncreating suite report..."
-    reg_test.report_all_runs(suite, activeTestList)
+    report.report_all_runs(suite, activeTestList)
 
     print "\nGarbage cleaning finished."
 
