@@ -89,6 +89,20 @@ public:
         Array<Real>          m_famin; // The min()s of each component of the FabArray.  [comp]
         Array<Real>          m_famax; // The max()s of each component of the FabArray.  [comp]
     };
+
+    //
+    // This structure stores the read order for each FabArray file
+    //
+    struct FileReadChain
+    {
+        int rankToRead;
+	long fileOffset;
+
+	FileReadChain();
+	FileReadChain(int ranktoread, long fileoffset);
+    };
+
+
     //
     // The number of components in the on-disk FabArray<FArrayBox>.
     //
