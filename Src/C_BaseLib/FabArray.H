@@ -507,12 +507,14 @@ protected:
     //
     struct CPC
     {
-	CPC (const FabArrayBase& dstfa, int dstng, const FabArrayBase& srcfa, int srcng);
+	CPC (const FabArrayBase& dstfa, int dstng,
+	     const FabArrayBase& srcfa, int srcng,
+	     const Periodicity& period);
 	CPC (const BoxArray& dstba, const DistributionMapping& dstdm, 
 	     const Array<int>& dstidx, int dstng,
 	     const BoxArray& srcba, const DistributionMapping& srcdm, 
 	     const Array<int>& srcidx, int srcng,
-	     int myproc);
+	     const Periodicity& period, int myproc);
         ~CPC ();
 
         long bytes () const;	
@@ -521,6 +523,7 @@ protected:
 	BDKey       m_dstbdk;
 	int         m_srcng;
 	int         m_dstng;
+	Periodicity m_period;
 	BoxArray    m_srcba;
 	BoxArray    m_dstba;
         //
@@ -550,7 +553,7 @@ protected:
     static CPCache    m_TheCPCache;
     static CacheStats m_CPC_stats;
     //
-    const CPC& getCPC (int dstng, const FabArrayBase& src, int srcng) const;
+    const CPC& getCPC (int dstng, const FabArrayBase& src, int srcng, const Periodicity& period) const;
     // 
     void flushCPC (bool no_assertion=false) const;      // This flushes its own CPC.
     static void flushCPCache (); // This flusheds the entire cache.
@@ -2034,7 +2037,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
     if ((src.boxArray().ixType().cellCentered() || op == FabArrayBase::COPY) &&
         (boxarray == src.boxarray && distributionMap == src.distributionMap)
-	&& snghost ==0 && dnghost == 0)
+	&& snghost ==0 && dnghost == 0 && !period.isAnyPeriodic())
     {
         //
         // Short-circuit full intersection code if we're doing copy()s or if
@@ -2061,7 +2064,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
         return;
     }
 
-    const CPC& thecpc = getCPC(dnghost, src, snghost);
+    const CPC& thecpc = getCPC(dnghost, src, snghost, period);
 
     if (ParallelDescriptor::NProcs() == 1)
     {
@@ -2727,7 +2730,8 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
     destDMAll.define(destPMapAll, putInCache);
 
     CPC thecpc(destBoxArray, destDMAll, destIndexArray, dnghost,
-	       srcBoxArray ,  srcDMAll,  srcIndexArray, dnghost, myProcBoth);
+	       srcBoxArray ,  srcDMAll,  srcIndexArray, dnghost, 
+	       Periodicity(), myProcBoth);
 
     if (ParallelDescriptor::NProcsAll() == 1) {
         return;
