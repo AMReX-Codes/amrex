@@ -28,6 +28,10 @@ a.compfailed:link {color: yellow; text-decoration: none;}
 a.compfailed:visited {color: yellow; text-decoration: none;}
 a.compfailed:hover {color: #00ffff; text-decoration: underline;}
 
+a.crashed:link {color: yellow; text-decoration: none;}
+a.crashed:visited {color: yellow; text-decoration: none;}
+a.crashed:hover {color: #00ffff; text-decoration: underline;}
+
 h3.benchmade {text-decoration: none; display: inline;
               color: black; background-color: orange; padding: 2px;}
 
@@ -49,6 +53,7 @@ td {border-width: 0px;
 td.passed {background-color: lime; opacity: 0.8;}
 td.failed {background-color: red; color: yellow; opacity: 0.8;}
 td.compfailed {background-color: purple; color: yellow; opacity: 0.8;}
+td.crashed {background-color: black; color: yellow; opacity: 0.8;}
 td.benchmade {background-color: orange; opacity: 0.8;}
 td.date {background-color: #666666; color: white; opacity: 0.8; font-weight: bold;}
 
@@ -103,9 +108,11 @@ div.verticaltext {text-align: center;
 #summary tr.special {background: #ccccff;}
 #summary td.highlight {color: red;}
 
-#summary td.passed {background-color: lime;}
-#summary td.failed {background-color: red;}
+#summary td.passed {background-color: lime; }
+#summary td.failed {background-color: red; color: yellow;}
 #summary td.benchmade {background-color: orange;}
+#summary td.compfailed {background-color: purple; color: yellow;}
+#summary td.crashed {background-color: black; color: yellow;}
 
 div.small {font-size: 75%;}
 
@@ -330,6 +337,9 @@ def report_single_test(suite, test, tests, failure_msg=None):
             elif not compile_successful:
                 sf.write("COMPILE FAILED\n")
                 suite.log.testfail("{} COMPILE FAILED".format(test.name))
+            elif len(test.backtrace) > 0:
+                sf.write("CRASHED\n")
+                suite.log.testfail("{} CRASHED (backtraces produced)".format(test.name))
             else:
                 sf.write("FAILED\n")
                 suite.log.testfail("{} FAILED".format(test.name))
@@ -713,18 +723,29 @@ def report_this_test_run(suite, make_benchmarks, note, update_time,
 
             # check if it passed or failed
             status_file = "%s.status" % (test.name)
-
-            test_passed = 0
-
+            
+            status = None
             with open(status_file, 'r') as sf:
                 for line in sf:
                     if line.find("PASSED") >= 0:
-                        test_passed = 1
+                        status = "passed"
+                        td_class = "passed"
                         num_passed += 1
-                        break
+                    elif line.find("COMPILE FAILED") >= 0:
+                        status = "compile fail"
+                        td_class = "compfailed"
+                        num_failed += 1
+                    elif line.find("CRASHED") >= 0:
+                        status = "crashed"
+                        td_class = "crashed"
+                        num_failed += 1
+                    elif line.find("FAILED") >= 0:
+                        status = "failed"
+                        td_class = "failed"
+                        num_failed += 1
 
-                if not test_passed:
-                    num_failed += 1
+                    if status is not None:
+                        break
 
             row_info = []
             row_info.append("<a href=\"{}.html\">{}</a>".format(test.name, test.name))
@@ -768,22 +789,23 @@ def report_this_test_run(suite, make_benchmarks, note, update_time,
 
             # special columns
             if suite.summary_job_info_field1 is not "":
-                row_info.append("<div class='small'>{}</div>".format(test.job_info_field1))
+                row_info.append("<div class='small'>{}</div>".format(
+                    test.job_info_field1))
 
             if suite.summary_job_info_field2 is not "":
-                row_info.append("<div class='small'>{}</div>".format(test.job_info_field2))
+                row_info.append("<div class='small'>{}</div>".format(
+                    test.job_info_field2))
 
             if suite.summary_job_info_field3 is not "":
-                row_info.append("<div class='small'>{}</div>".format(test.job_info_field3))
+                row_info.append("<div class='small'>{}</div>".format(
+                    test.job_info_field3))
 
 
             # wallclock time
             row_info.append("{:.3f}&nbsp;s".format(test.wall_time))
 
-            if test_passed:
-                row_info.append(("PASSED", "class='passed'"))
-            else:
-                row_info.append(("FAILED", "class='failed'"))
+            # result
+            row_info.append((status.upper(), "class='{}'".format(td_class)))
 
             ht.print_row(row_info)
 
@@ -938,6 +960,9 @@ def report_all_runs(suite, active_test_list):
                         elif line.find("COMPILE FAILED") >= 0:
                             status = "compfailed"
                             emoji = ":("
+                        elif line.find("CRASHED") >= 0:
+                            status = "crashed"
+                            emoji = "xx"                            
                         elif line.find("FAILED") >= 0:
                             status = "failed"
                             emoji = "!&nbsp;"

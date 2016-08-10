@@ -488,7 +488,7 @@ class Suite(object):
             status_file = "{}/{}/{}.status".format(self.webTopDir, test_dir, test)
             with open(status_file, "r") as sf:
                 for line in sf:
-                    if line.find("FAILED") >= 0:
+                    if line.find("FAILED") >= 0 or line.find("CRASHED") >= 0:
                         failed.append(test)
 
         os.chdir(cwd)
