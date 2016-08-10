@@ -625,11 +625,13 @@ FabArrayBase::FB::FB (const FabArrayBase& fa, bool cross, const Periodicity& per
 		    const int ksnd      = isects[j].first;
 		    const Box& bx       = isects[j].second;
 		    const int src_owner = dm[ksnd];
-		
-		    const BoxList& bl = BoxLib::boxDiff(bx, vbx);
+
+		    Box dst_bx = bx - (*pit);
+
+		    const BoxList& bl = BoxLib::boxDiff(dst_bx, vbx);
 		    for (BoxList::const_iterator lit = bl.begin(); lit != bl.end(); ++lit)
 		    {
-			const Box& blbx = (*lit) - (*pit);
+			const Box& blbx = *lit;
 			
 			if (ParallelDescriptor::sameTeam(src_owner)) { // local copy
 			    const BoxList tilelist(blbx, FabArrayBase::comm_tile_size);
