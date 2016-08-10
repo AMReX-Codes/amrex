@@ -47,8 +47,7 @@ namespace BoxLib
 
 	if (smf.size() == 1) 
 	{
-	    mf.copy(smf[0], scomp, dcomp, ncomp, 0, mf.nGrow());
-	    geom.PeriodicCopy(mf, smf[0], dcomp, scomp, ncomp, mf.nGrow());
+	    mf.copy(smf[0], scomp, dcomp, ncomp, 0, mf.nGrow(), geom.periodicity());
 	} 
 	else if (smf.size() == 2) 
 	{
@@ -95,8 +94,7 @@ namespace BoxLib
 		int src_ngrow = 0;
 		int dst_ngrow = mf.nGrow();
 
-		mf.copy(*dmf, 0, dcomp, ncomp, src_ngrow, dst_ngrow);
-		geom.PeriodicCopy(mf, *dmf, dcomp, 0, ncomp, dst_ngrow);
+		mf.copy(*dmf, 0, dcomp, ncomp, src_ngrow, dst_ngrow, geom.periodicity());
 	    }
 	}
 	else {
