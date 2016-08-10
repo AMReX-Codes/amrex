@@ -1394,7 +1394,7 @@ MultiFab::SumBoundary (int scomp,
     //
     MultiFab&                 mf       = *this;
 
-    const FabArrayBase::FB& TheFB = mf.getFB(false, Periodicity());
+    const FabArrayBase::FB& TheFB = mf.getFB(false, Periodicity::NonPeriodic());
 
     const CopyComTagsContainer&      LocTags = *(TheFB.m_LocTags);
     const MapOfCopyComTagContainers& SndTags = *(TheFB.m_RcvTags);

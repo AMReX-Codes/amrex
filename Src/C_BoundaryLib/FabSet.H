@@ -91,7 +91,7 @@ public:
     FabSet& plusFrom (const MultiFab& src, int ngrow, int scomp, int dcomp, int ncomp);
 
     void copyTo (MultiFab& dest, int ngrow, int scomp, int dcomp, int ncomp,
-		 const Periodicity& period = Periodicity()) const;
+		 const Periodicity& period = Periodicity::NonPeriodic()) const;
 
     void setVal (Real val);
 

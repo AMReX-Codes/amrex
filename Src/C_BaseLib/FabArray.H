@@ -943,7 +943,7 @@ public:
     // valid+src_nghost region of source.
     //
     void copy (const FabArray<FAB>& fa,
-	       const Periodicity&   period = Periodicity(),
+	       const Periodicity&   period = Periodicity::NonPeriodic(),
                CpOp                 op = FabArrayBase::COPY);
     //
     // This function copies data from src to this FabArray.  Each FAB
@@ -957,7 +957,7 @@ public:
                int                  src_comp,
                int                  dest_comp,
                int                  num_comp,
-	       const Periodicity&   period = Periodicity(),
+	       const Periodicity&   period = Periodicity::NonPeriodic(),
                CpOp                 op = FabArrayBase::COPY);
     void copy (const FabArray<FAB>& src,
                int                  src_comp,
@@ -965,7 +965,7 @@ public:
                int                  num_comp,
 	       int                  src_nghost,
 	       int                  dst_nghost,
-	       const Periodicity&   period = Periodicity(),
+	       const Periodicity&   period = Periodicity::NonPeriodic(),
                CpOp                 op = FabArrayBase::COPY);
 
     //
@@ -2731,7 +2731,7 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
 
     CPC thecpc(destBoxArray, destDMAll, destIndexArray, dnghost,
 	       srcBoxArray ,  srcDMAll,  srcIndexArray, dnghost, 
-	       Periodicity(), myProcBoth);
+	       Periodicity::NonPeriodic(), myProcBoth);
 
     if (ParallelDescriptor::NProcsAll() == 1) {
         return;
@@ -4519,7 +4519,7 @@ void
 FabArray<FAB>::FillBoundary (bool cross)
 {
     BL_PROFILE("FabArray::FillBoundary()");
-    FillBoundary_nowait(0, nComp(), Periodicity(), cross);
+    FillBoundary_nowait(0, nComp(), Periodicity::NonPeriodic(), cross);
     FillBoundary_finish();
 }
 
@@ -4537,7 +4537,7 @@ void
 FabArray<FAB>::FillBoundary (int scomp, int ncomp, bool cross)
 {
     BL_PROFILE("FabArray::FillBoundary()");
-    FillBoundary_nowait(scomp, ncomp, Periodicity(), cross);
+    FillBoundary_nowait(scomp, ncomp, Periodicity::NonPeriodic(), cross);
     FillBoundary_finish();
 }
 
@@ -4554,7 +4554,7 @@ template <class FAB>
 void
 FabArray<FAB>::FillBoundary_nowait (bool cross)
 {
-    FillBoundary_nowait(0, nComp(), Periodicity(), cross);
+    FillBoundary_nowait(0, nComp(), Periodicity::NonPeriodic(), cross);
 }
 
 template <class FAB>
@@ -4568,7 +4568,7 @@ template <class FAB>
 void
 FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross)
 {
-    FillBoundary_nowait(scomp, ncomp, Periodicity(), cross);
+    FillBoundary_nowait(scomp, ncomp, Periodicity::NonPeriodic(), cross);
 }
 
 template <class FAB>

@@ -25,3 +25,10 @@ Periodicity::shiftIntVect () const
 
     return r;
 }
+
+const Periodicity&
+Periodicity::NonPeriodic ()
+{
+    static const Periodicity np(IntVect(D_DECL(0,0,0)));
+    return np;
+}
