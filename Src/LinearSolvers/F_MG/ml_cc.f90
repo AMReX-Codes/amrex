@@ -51,7 +51,7 @@ contains
     real(dp_t) :: tres, tres0, max_norm
     real(dp_t) :: sum, coeff_sum, coeff_max
 
-    real(dp_t) :: r1,r2,t1(4),t2(4),stime,bottom_solve_time
+    real(dp_t) :: r1,r2,t1(3),t2(3),stime,bottom_solve_time
     logical :: solved
 
     type(bl_prof_timer), save :: bpt
@@ -142,6 +142,39 @@ contains
             brs_bcs(n)%uncovered)
     end do
 
+    !
+    ! Elide some reduction.
+    !
+    t1(1) = max_of_stencil_sum(mgt(1)%ss(1),local=.true.) 
+    t1(2) = stencil_norm(mgt(1)%ss(1),local=.true.) 
+
+    call parallel_reduce(t2, t1, MPI_MAX)
+
+    coeff_sum = t2(1)
+    coeff_max = t2(2)
+
+    !
+    ! Test on whether coefficients sum to zero in order to know whether to enforce solvability
+    ! Only test on lowest mg level of lowest AMR level -- this should be cheapest
+    !
+    if ( coeff_sum .lt. (1.0e-12_dp_t * coeff_max) ) then
+       mgt(1)%coeffs_sum_to_zero = .true.
+       if ( parallel_IOProcessor() .and. (do_diagnostics == 1) ) &
+            print *,'Coefficients sum to zero '
+    else
+       if ( parallel_IOProcessor() .and. (do_diagnostics == 1) ) then
+          print *,'Coefficients sum to ', coeff_sum
+          print *,' ... coeff_max   is ', coeff_max
+          print *,'Not setting singular flag '
+       end if
+    end if
+
+    ! Make sure to pass this flag through to the bottom_mgt object if there is one. 
+    ! Otherwise the BiCG/CG bottom solver will not see it.
+    if (associated(mgt(1)%bottom_mgt)) then
+       mgt(1)%bottom_mgt%coeffs_sum_to_zero = mgt(1)%coeffs_sum_to_zero
+    end if
+
     ! Enforce solvability if appropriate -- note that we need to make "rh" solvable, not just "res" as before,
     ! because "res" is recomputed as rh - L(full_soln) after each cycle
     if (nlevs .eq. 1 .and. mgt(1)%bottom_singular .and. mgt(1)%coeffs_sum_to_zero) then
@@ -173,44 +206,20 @@ contains
 
        call ml_cc_restriction(res(n-1), res(n), mla%mba%rr(n-1,:))
     enddo
-    !
-    ! Test on whether coefficients sum to zero in order to know whether to enforce solvability
-    ! Only test on lowest mg level of lowest AMR level -- this should be cheapest
+
     !
     ! Elide some reduction.
     !
-    t1(1) = max_of_stencil_sum(mgt(1)%ss(1),local=.true.) 
-    t1(2) = stencil_norm(mgt(1)%ss(1),local=.true.) 
-    t1(3) = ml_norm_inf(res,fine_mask,local=.true.)
-    t1(4) = ml_norm_inf(rh,fine_mask,local=.true.)
+    t1(1) = ml_norm_inf(res,fine_mask,local=.true.)
+    t1(2) = ml_norm_inf(rh,fine_mask,local=.true.)
 
     call parallel_reduce(t2, t1, MPI_MAX)
 
     call bl_proffortfuncstop("ml_cc:0")
     call bl_proffortfuncstart("ml_cc:1")
 
-    coeff_sum = t2(1)
-    coeff_max = t2(2)
-    tres0     = t2(3)
-    bnorm     = t2(4)
-
-    if ( coeff_sum .lt. (1.0e-12_dp_t * coeff_max) ) then
-       mgt(1)%coeffs_sum_to_zero = .true.
-       if ( parallel_IOProcessor() .and. (do_diagnostics == 1) ) &
-            print *,'Coefficients sum to zero '
-    else
-       if ( parallel_IOProcessor() .and. (do_diagnostics == 1) ) then
-          print *,'Coefficients sum to ', coeff_sum
-          print *,' ... coeff_max   is ', coeff_max
-          print *,'Not setting singular flag '
-       end if
-    end if
-
-    ! Make sure to pass this flag through to the bottom_mgt object if there is one. 
-    ! Otherwise the BiCG/CG bottom solver will not see it.
-    if (associated(mgt(1)%bottom_mgt)) then
-       mgt(1)%bottom_mgt%coeffs_sum_to_zero = mgt(1)%coeffs_sum_to_zero
-    end if
+    tres0     = t2(1)
+    bnorm     = t2(2)
 
     if ( parallel_IOProcessor() .and. mgt(nlevs)%verbose > 0 ) then
        write(unit=*, &
