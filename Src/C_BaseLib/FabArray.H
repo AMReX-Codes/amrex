@@ -940,6 +940,7 @@ public:
     // valid+src_nghost region of source.
     //
     void copy (const FabArray<FAB>& fa,
+	       const Periodicity&   period = Periodicity(),
                CpOp                 op = FabArrayBase::COPY);
     //
     // This function copies data from src to this FabArray.  Each FAB
@@ -953,6 +954,7 @@ public:
                int                  src_comp,
                int                  dest_comp,
                int                  num_comp,
+	       const Periodicity&   period = Periodicity(),
                CpOp                 op = FabArrayBase::COPY);
     void copy (const FabArray<FAB>& src,
                int                  src_comp,
@@ -960,6 +962,7 @@ public:
                int                  num_comp,
 	       int                  src_nghost,
 	       int                  dst_nghost,
+	       const Periodicity&   period = Periodicity(),
                CpOp                 op = FabArrayBase::COPY);
 
     //
@@ -2016,6 +2019,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
                      int                  ncomp,
 		     int                  snghost,
 		     int                  dnghost,
+		     const Periodicity&   period,
                      CpOp                 op)
 {
     BL_PROFILE("FabArray::copy()");
@@ -2495,16 +2499,17 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
                      int                  scomp,
                      int                  dcomp,
                      int                  ncomp,
+		     const Periodicity&   period,
                      CpOp                 op)
 {
-    copy(src,scomp,dcomp,ncomp,0,0,op);
+    copy(src,scomp,dcomp,ncomp,0,0,period,op);
 }
 
 template <class FAB>
 void
-FabArray<FAB>::copy (const FabArray<FAB>& src, CpOp op)
+FabArray<FAB>::copy (const FabArray<FAB>& src, const Periodicity& period, CpOp op)
 {
-    copy(src,0,0,nComp(),0,0,op);
+    copy(src,0,0,nComp(),0,0,period,op);
 }
 
 //
