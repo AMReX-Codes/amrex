@@ -1,0 +1,20 @@
+rbuffsize = 32000
+maxgrid=64
+ncomps=4
+nboxes=64
+raninit=false
+mb2=true
+nfiles=4
+writeminmax=false
+writefaminmax=true
+groupsets=false
+ntimes=1
+nfiletest=false
+filetests=false
+dirtests=false
+testwritenfiles=false
+testwritenfilesrn=false
+testreadmf=true
+
+readfanames = TestMF TestMFRawNative
+#readfanames = TestMF TestMFRawNative TestMFRawNativeMinMax TestMFRawNativeFAMinMax

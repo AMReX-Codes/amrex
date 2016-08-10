@@ -115,11 +115,11 @@ void FileTests() {
 
   std::fstream myFile;
 
-  BL_PROFILE_VAR("makefile", makefile);
+  BL_PROFILE_VAR("makeafile", makeafile);
   myFile.open("myFile", std::ios::out|std::ios::trunc|std::ios::binary);
-  myFile.write((char*)myInts.dataPtr(), myInts.size() * sizeof(int));
+  myFile.write((char *) myInts.dataPtr(), myInts.size() * sizeof(int));
   myFile.close();
-  BL_PROFILE_VAR_STOP(makefile);
+  BL_PROFILE_VAR_STOP(makeafile);
 
   BL_PROFILE_VAR_NS("seektests", seektests);
   myFile.open("myFile", std::ios::in|std::ios::binary);
@@ -241,11 +241,13 @@ void TestWriteNFiles(int nfiles, int maxgrid, int ncomps, int nboxes,
 
   if(ParallelDescriptor::IOProcessor()) {
     cout << std::setprecision(5);
+    cout << "------------------------------------------" << endl;
     cout << "  Total megabytes = " << megabytes << endl;
     cout << "  Write:  Megabytes/sec   = " << megabytes/wallTimeMax << endl;
     cout << "  Wall clock time = " << wallTimeMax << endl;
     cout << "  Min wall clock time = " << wallTimeMin << endl;
     cout << "  Max wall clock time = " << wallTimeMax << endl;
+    cout << "------------------------------------------" << endl;
   }
 }
 
@@ -316,11 +318,13 @@ void TestWriteNFilesRawNative(int nfiles, int maxgrid, int ncomps,
 
   if(ParallelDescriptor::IOProcessor()) {
     cout << std::setprecision(5);
+    cout << "------------------------------------------" << endl;
     cout << "  Total megabytes = " << megabytes << endl;
     cout << "  Write:  Megabytes/sec   = " << megabytes/wallTimeMax << endl;
     cout << "  Wall clock time = " << wallTimeMax << endl;
     cout << "  Min wall clock time = " << wallTimeMin << endl;
     cout << "  Max wall clock time = " << wallTimeMax << endl;
+    cout << "------------------------------------------" << endl;
   }
 }
 
@@ -350,6 +354,7 @@ void TestReadMF(const std::string &mfName) {
 
   if(ParallelDescriptor::IOProcessor()) {
     cout << std::setprecision(5);
+    cout << "------------------------------------------" << endl;
     cout << "  ncomps = " << ncomps << endl;
     cout << "  nboxes = " << nboxes << endl;
     cout << "  Total megabytes = " << megabytes << endl;
@@ -357,6 +362,7 @@ void TestReadMF(const std::string &mfName) {
     cout << "  Wall clock time = " << wallTimeMax << endl;
     cout << "  Min wall clock time = " << wallTimeMin << endl;
     cout << "  Max wall clock time = " << wallTimeMax << endl;
+    cout << "------------------------------------------" << endl;
   }
 }
 // -------------------------------------------------------------

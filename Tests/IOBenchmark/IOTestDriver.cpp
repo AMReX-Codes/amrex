@@ -40,20 +40,27 @@ static void PrintUsage(const char *progName) {
     cout << '\n';
     cout << "Usage:" << '\n';
     cout << progName << '\n';
-    cout << "   [nfiles = nfiles]" << '\n';
-    cout << "   [maxgrid = maxgrid]" << '\n';
-    cout << "   [ncomps = ncomps]" << '\n';
-    cout << "   [nboxes = nboxes]" << '\n';
-    cout << "   [nsleep = nsleep]" << '\n';
-    cout << "   [ntimes = ntimes]" << '\n';
-    cout << "   [raninit = tf]" << '\n';
-    cout << "   [mb2    = tf]" << '\n';
-    cout << "   [rbuffsize = rbs]" << '\n';
-    cout << "   [wbuffsize = wbs]" << '\n';
-    cout << "   [writeminmax = wmm]" << '\n';
-    cout << "   [writefaminmax = wfamm]" << '\n';
-    cout << "   [groupsets = groupsets]" << '\n';
-    cout << "   [setbuf = setbuf]" << '\n';
+    cout << "   [nfiles            = nfiles   ]" << '\n';
+    cout << "   [maxgrid           = maxgrid  ]" << '\n';
+    cout << "   [ncomps            = ncomps   ]" << '\n';
+    cout << "   [nboxes            = nboxes   ]" << '\n';
+    cout << "   [nsleep            = nsleep   ]" << '\n';
+    cout << "   [ntimes            = ntimes   ]" << '\n';
+    cout << "   [raninit           = tf       ]" << '\n';
+    cout << "   [mb2               = tf       ]" << '\n';
+    cout << "   [rbuffsize         = rbs      ]" << '\n';
+    cout << "   [wbuffsize         = wbs      ]" << '\n';
+    cout << "   [writeminmax       = wmm      ]" << '\n';
+    cout << "   [writefaminmax     = wfamm    ]" << '\n';
+    cout << "   [groupsets         = groupsets]" << '\n';
+    cout << "   [setbuf            = setbuf   ]" << '\n';
+    cout << "   [nfiletest         = tf       ]" << '\n';
+    cout << "   [filetests         = tf       ]" << '\n';
+    cout << "   [dirtests          = tf       ]" << '\n';
+    cout << "   [testwritenfiles   = tf       ]" << '\n';
+    cout << "   [testwritenfilesrn = tf       ]" << '\n';
+    cout << "   [testreadmf        = tf       ]" << '\n';
+    cout << "   [readFANames       = fanames  ]" << '\n';
     cout << '\n';
     cout << "Running with default values." << '\n';
     cout << '\n';
@@ -82,6 +89,10 @@ int main(int argc, char *argv[]) {
   bool writeminmax(false), writefaminmax(false);
   bool groupsets(false), setbuf(true);
   VisMF::Header::Version hVersion;
+  bool nfiletest(false), filetests(false), dirtests(false);
+  bool testwritenfiles(false), testwritenfilesrn(false), testreadmf(false);
+  Array<std::string> readFANames;
+
 
   pp.query("nfiles", nfiles);
   nfiles = std::max(1, std::min(nfiles, nprocs));
@@ -120,36 +131,59 @@ int main(int argc, char *argv[]) {
   RealDescriptor::SetReadBufferSize(rbs);
   RealDescriptor::SetWriteBufferSize(wbs);
 
+  pp.query("nfiletest", nfiletest);
+  pp.query("filetests", filetests);
+  pp.query("dirtests", dirtests);
+  pp.query("testwritenfiles", testwritenfiles);
+  pp.query("testwritenfilesrn", testwritenfilesrn);
+  pp.query("testreadmf", testreadmf);
+  int nNames(pp.countval("readfanames"));
+  if(nNames > 0) {
+    pp.getarr("readfanames", readFANames, 0, nNames);
+  }
+
+
   if(ParallelDescriptor::IOProcessor()) {
-    cout << endl;
-    cout << "**************************************************" << endl;
-    cout << "nprocs = " << nprocs << endl;
-    cout << "nfiles = " << nfiles << endl;
-    cout << "maxgrid = " << maxgrid << endl;
-    cout << "ncomps = " << ncomps << endl;
-    cout << "nboxes = " << nboxes << endl;
-    cout << "ntimes = " << ntimes << endl;
-    cout << "raninit = " << raninit << endl;
-    cout << "mb2 = " << mb2 << endl;
-    cout << "rbuffsize = " << rbs << endl;
-    cout << "wbuffsize = " << wbs << endl;
-    cout << "writeminmax = " << writeminmax << endl;
-    cout << "writefaminmax = " << writefaminmax << endl;
-    cout << "groupsets = " << groupsets << endl;
-    cout << "setbuf = " << setbuf << endl;
-    cout << endl;
-    cout << "sizeof(int) = " << sizeof(int) << endl;
-    cout << "sizeof(size_t) = " << sizeof(size_t) << endl;
-    cout << "sizeof(long) = " << sizeof(long) << endl;
-    cout << "sizeof(long long) = " << sizeof(long long) << endl;
-    cout << "sizeof(std::streampos) = " << sizeof(std::streampos) << endl;
-    cout << "sizeof(std::streamoff) = " << sizeof(std::streamoff) << endl;
-    cout << "sizeof(std::streamsize) = " << sizeof(std::streamsize) << endl;
-    cout << endl;
-    cout << "std::numeric_limits<int>::min()  = " << std::numeric_limits<int>::min() << endl;
-    cout << "std::numeric_limits<int>::max()  = " << std::numeric_limits<int>::max() << endl;
-    cout << "std::numeric_limits<Real>::min() = " << std::numeric_limits<Real>::min() << endl;
-    cout << "std::numeric_limits<Real>::max() = " << std::numeric_limits<Real>::max() << endl;
+    cout << '\n';
+    cout << "**************************************************" << '\n';
+    cout << "nprocs            = " << nprocs << '\n';
+    cout << "nfiles            = " << nfiles << '\n';
+    cout << "maxgrid           = " << maxgrid << '\n';
+    cout << "ncomps            = " << ncomps << '\n';
+    cout << "nboxes            = " << nboxes << '\n';
+    cout << "ntimes            = " << ntimes << '\n';
+    cout << "raninit           = " << raninit << '\n';
+    cout << "mb2               = " << mb2 << '\n';
+    cout << "rbuffsize         = " << rbs << '\n';
+    cout << "wbuffsize         = " << wbs << '\n';
+    cout << "writeminmax       = " << writeminmax << '\n';
+    cout << "writefaminmax     = " << writefaminmax << '\n';
+    cout << "groupsets         = " << groupsets << '\n';
+    cout << "setbuf            = " << setbuf << '\n';
+    cout << "nfiletest         = " << nfiletest << '\n';
+    cout << "filetests         = " << filetests << '\n';
+    cout << "dirtests          = " << dirtests << '\n';
+    cout << "testwritenfiles   = " << testwritenfiles << '\n';
+    cout << "testwritenfilesrn = " << testwritenfilesrn << '\n';
+    cout << "testreadmf        = " << testreadmf << '\n';
+    for(int i(0); i < readFANames.size(); ++i) {
+      cout << "readFANames[" << i << "]    = " << readFANames[i] << '\n';
+    }
+
+    cout << '\n';
+    cout << "sizeof(int) = " << sizeof(int) << '\n';
+    cout << "sizeof(size_t) = " << sizeof(size_t) << '\n';
+    cout << "sizeof(long) = " << sizeof(long) << '\n';
+    cout << "sizeof(long long) = " << sizeof(long long) << '\n';
+    cout << "sizeof(std::streampos) = " << sizeof(std::streampos) << '\n';
+    cout << "sizeof(std::streamoff) = " << sizeof(std::streamoff) << '\n';
+    cout << "sizeof(std::streamsize) = " << sizeof(std::streamsize) << '\n';
+    cout << '\n';
+    cout << "std::numeric_limits<int>::min()  = " << std::numeric_limits<int>::min() << '\n';
+    cout << "std::numeric_limits<int>::max()  = " << std::numeric_limits<int>::max() << '\n';
+    cout << "std::numeric_limits<Real>::min() = " << std::numeric_limits<Real>::min() << '\n';
+    cout << "std::numeric_limits<Real>::max() = " << std::numeric_limits<Real>::max() << '\n';
+    cout << "***************************************************" << '\n';
     cout << endl;
   }
 
@@ -164,108 +198,116 @@ int main(int argc, char *argv[]) {
 
   ParallelDescriptor::Barrier();
 
-/*
-  for(int itimes(0); itimes < ntimes; ++itimes) {
-    if(ParallelDescriptor::IOProcessor()) {
-      cout << endl << "--------------------------------------------------" << endl;
-      cout << "Testing NFile Operations" << endl;
-    }
+  if(nfiletest) {
+    for(int itimes(0); itimes < ntimes; ++itimes) {
+      if(ParallelDescriptor::IOProcessor()) {
+        cout << endl << "--------------------------------------------------" << endl;
+        cout << "Testing NFile Operations" << endl;
+      }
 
-    int nOutFiles(5);
-    std::string filePrefix("FiveFiles");
-    NFileTests(nOutFiles, filePrefix);
+      int nOutFiles(5);
+      std::string filePrefix("FiveFiles");
+      NFileTests(nOutFiles, filePrefix);
 
-    if(ParallelDescriptor::IOProcessor()) {
-      cout << "==================================================" << endl;
-      cout << endl;
-    }
-  }
-*/
-
-
-/*
-  for(int itimes(0); itimes < ntimes; ++itimes) {
-    if(ParallelDescriptor::IOProcessor()) {
-      cout << endl << "--------------------------------------------------" << endl;
-      cout << "Testing File Operations" << endl;
-    }
-
-    FileTests();
-
-    if(ParallelDescriptor::IOProcessor()) {
-      cout << "==================================================" << endl;
-      cout << endl;
+      if(ParallelDescriptor::IOProcessor()) {
+        cout << "==================================================" << endl;
+        cout << endl;
+      }
     }
   }
-*/
 
 
-/*
-  for(int itimes(0); itimes < ntimes; ++itimes) {
-    if(ParallelDescriptor::IOProcessor()) {
-      cout << endl << "--------------------------------------------------" << endl;
-      cout << "Testing Directory Operations" << endl;
-    }
 
-    DirectoryTests();
+  if(filetests) {
+    for(int itimes(0); itimes < ntimes; ++itimes) {
+      if(ParallelDescriptor::IOProcessor()) {
+        cout << endl << "--------------------------------------------------" << endl;
+        cout << "Testing File Operations" << endl;
+      }
 
-    if(ParallelDescriptor::IOProcessor()) {
-      cout << "==================================================" << endl;
-      cout << endl;
-    }
-  }
-*/
+      FileTests();
 
-
-/*
-  for(int itimes(0); itimes < ntimes; ++itimes) {
-    if(ParallelDescriptor::IOProcessor()) {
-      cout << endl << "--------------------------------------------------" << endl;
-      cout << "Testing NFiles Write" << endl;
-    }
-
-    TestWriteNFiles(nfiles, maxgrid, ncomps, nboxes, raninit, mb2);
-
-    if(ParallelDescriptor::IOProcessor()) {
-      cout << "==================================================" << endl;
-      cout << endl;
+      if(ParallelDescriptor::IOProcessor()) {
+        cout << "==================================================" << endl;
+        cout << endl;
+      }
     }
   }
-*/
 
 
-/*
-  for(int itimes(0); itimes < ntimes; ++itimes) {
-    if(ParallelDescriptor::IOProcessor()) {
-      cout << endl << "--------------------------------------------------" << endl;
-      cout << "Testing NFiles Raw Native Write" << endl;
-    }
 
-    TestWriteNFilesRawNative(nfiles, maxgrid, ncomps, nboxes, raninit, mb2,
-                             hVersion, groupsets, setbuf);
 
-    if(ParallelDescriptor::IOProcessor()) {
-      cout << "==================================================" << endl;
-      cout << endl;
+  if(dirtests) {
+    for(int itimes(0); itimes < ntimes; ++itimes) {
+      if(ParallelDescriptor::IOProcessor()) {
+        cout << endl << "--------------------------------------------------" << endl;
+        cout << "Testing Directory Operations" << endl;
+      }
+
+      DirectoryTests();
+
+      if(ParallelDescriptor::IOProcessor()) {
+        cout << "==================================================" << endl;
+        cout << endl;
+      }
     }
   }
-*/
 
 
-  for(int itimes(0); itimes < ntimes; ++itimes) {
-    if(ParallelDescriptor::IOProcessor()) {
-      cout << endl << "++++++++++++++++++++++++++++++++++++++++++++++++++" << endl;
-      cout << "Testing MF Read" << endl;
+
+  if(testwritenfiles) {
+    for(int itimes(0); itimes < ntimes; ++itimes) {
+      if(ParallelDescriptor::IOProcessor()) {
+        cout << endl << "--------------------------------------------------" << endl;
+        cout << "Testing NFiles Write" << endl;
+      }
+
+      TestWriteNFiles(nfiles, maxgrid, ncomps, nboxes, raninit, mb2);
+
+      if(ParallelDescriptor::IOProcessor()) {
+        cout << "==================================================" << endl;
+        cout << endl;
+      }
     }
+  }
 
-    TestReadMF("TestMF");
-    TestReadMF("TestMFRawNative");
-    TestReadMF("TestMFRawNativeMinMax");
-    TestReadMF("TestMFRawNativeFAMinMax");
 
-    if(ParallelDescriptor::IOProcessor()) {
-      cout << "##################################################" << endl;
-      cout << endl;
+
+
+  if(testwritenfilesrn) {
+    for(int itimes(0); itimes < ntimes; ++itimes) {
+      if(ParallelDescriptor::IOProcessor()) {
+        cout << endl << "--------------------------------------------------" << endl;
+        cout << "Testing NFiles Raw Native Write" << endl;
+      }
+
+      TestWriteNFilesRawNative(nfiles, maxgrid, ncomps, nboxes, raninit, mb2,
+                               hVersion, groupsets, setbuf);
+
+      if(ParallelDescriptor::IOProcessor()) {
+        cout << "==================================================" << endl;
+        cout << endl;
+      }
+    }
+  }
+
+
+
+  if(testreadmf) {
+    for(int itimes(0); itimes < ntimes; ++itimes) {
+      if(ParallelDescriptor::IOProcessor()) {
+        cout << endl << "++++++++++++++++++++++++++++++++++++++++++++++++++" << endl;
+        cout << "Testing MF Read" << endl;
+      }
+
+      for(int i(0); i < readFANames.size(); ++i) {
+        TestReadMF(readFANames[i]);
+      }
+
+      if(ParallelDescriptor::IOProcessor()) {
+        cout << "##################################################" << endl;
+        cout << endl;
+      }
     }
   }
 
