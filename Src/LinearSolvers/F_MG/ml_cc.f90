@@ -148,7 +148,7 @@ contains
     t1(1) = max_of_stencil_sum(mgt(1)%ss(1),local=.true.) 
     t1(2) = stencil_norm(mgt(1)%ss(1),local=.true.) 
 
-    call parallel_reduce(t2, t1, MPI_MAX)
+    call parallel_reduce(t2(1:2), t1(1:2), MPI_MAX)
 
     coeff_sum = t2(1)
     coeff_max = t2(2)
@@ -213,7 +213,7 @@ contains
     t1(1) = ml_norm_inf(res,fine_mask,local=.true.)
     t1(2) = ml_norm_inf(rh,fine_mask,local=.true.)
 
-    call parallel_reduce(t2, t1, MPI_MAX)
+    call parallel_reduce(t2(1:2), t1(1:2), MPI_MAX)
 
     call bl_proffortfuncstop("ml_cc:0")
     call bl_proffortfuncstart("ml_cc:1")
