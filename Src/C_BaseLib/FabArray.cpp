@@ -207,11 +207,14 @@ FabArrayBase::TileArray::bytes () const
 // Stuff used for copy() caching.
 //
 
-FabArrayBase::CPC::CPC (const FabArrayBase& dstfa, int dstng, const FabArrayBase& srcfa, int srcng)
+FabArrayBase::CPC::CPC (const FabArrayBase& dstfa, int dstng,
+			const FabArrayBase& srcfa, int srcng,
+			const Periodicity& period)
     : m_srcbdk(srcfa.getBDKey()), 
       m_dstbdk(dstfa.getBDKey()), 
       m_srcng(srcng), 
       m_dstng(dstng), 
+      m_period(period),
       m_srcba(srcfa.boxArray()), 
       m_dstba(dstfa.boxArray()),
       m_threadsafe_loc(false), m_threadsafe_rcv(false),
@@ -225,11 +228,12 @@ FabArrayBase::CPC::CPC (const BoxArray& dstba, const DistributionMapping& dstdm,
 			const Array<int>& dstidx, int dstng,
 			const BoxArray& srcba, const DistributionMapping& srcdm, 
 			const Array<int>& srcidx, int srcng,
-			int myproc)
+			const Periodicity& period, int myproc)
     : m_srcbdk(0,0), 
       m_dstbdk(0,0), 
       m_srcng(srcng), 
       m_dstng(dstng), 
+      m_period(period),
       m_srcba(srcba), 
       m_dstba(dstba),
       m_threadsafe_loc(false), m_threadsafe_rcv(false),
@@ -274,6 +278,8 @@ FabArrayBase::CPC::define (const BoxArray& ba_dst, const DistributionMapping& dm
 
 	std::vector< std::pair<int,Box> > isects;
 
+	const std::vector<IntVect>& pshifts = m_period.shiftIntVect();
+
 	CopyComTag::MapOfCopyComTagContainers send_tags; // temp copy
 	
 	for (int i = 0; i < nlocal_src; ++i)
@@ -281,18 +287,21 @@ FabArrayBase::CPC::define (const BoxArray& ba_dst, const DistributionMapping& dm
 	    const int   k_src = imap_src[i];
 	    const Box& bx_src = BoxLib::grow(ba_src[k_src], ng_src);
 
-	    ba_dst.intersections(bx_src, isects, false, ng_dst);
-	    
-	    for (int j = 0, M = isects.size(); j < M; ++j)
+	    for (std::vector<IntVect>::const_iterator pit=pshifts.begin(); pit!=pshifts.end(); ++pit)
 	    {
-		const int k_dst     = isects[j].first;
-		const Box& bx       = isects[j].second;
-		const int dst_owner = dm_dst[k_dst];
+		ba_dst.intersections(bx_src+(*pit), isects, false, ng_dst);
+	    
+		for (int j = 0, M = isects.size(); j < M; ++j)
+		{
+		    const int k_dst     = isects[j].first;
+		    const Box& bx       = isects[j].second;
+		    const int dst_owner = dm_dst[k_dst];
 		
-		if (ParallelDescriptor::sameTeam(dst_owner)) {
-		    continue; // local copy will be dealt with later
-		} else if (MyProc == dm_src[k_src]) {
-		    send_tags[dst_owner].push_back(CopyComTag(bx, bx, k_dst, k_src));
+		    if (ParallelDescriptor::sameTeam(dst_owner)) {
+			continue; // local copy will be dealt with later
+		    } else if (MyProc == dm_src[k_src]) {
+			send_tags[dst_owner].push_back(CopyComTag(bx, bx-(*pit), k_dst, k_src));
+		    }
 		}
 	    }
 	}
@@ -327,29 +336,32 @@ FabArrayBase::CPC::define (const BoxArray& ba_dst, const DistributionMapping& dm
 		remotetouch.setVal(0);
 	    }
 	    
-	    ba_src.intersections(bx_dst, isects, false, ng_src);
-	    
-	    for (int j = 0, M = isects.size(); j < M; ++j)
+	    for (std::vector<IntVect>::const_iterator pit=pshifts.begin(); pit!=pshifts.end(); ++pit)
 	    {
-		const int k_src     = isects[j].first;
-		const Box& bx       = isects[j].second;
-		const int src_owner = dm_src[k_src];
+		ba_src.intersections(bx_dst+(*pit), isects, false, ng_src);
+	    
+		for (int j = 0, M = isects.size(); j < M; ++j)
+		{
+		    const int k_src     = isects[j].first;
+		    const Box& bx       = isects[j].second - *pit;
+		    const int src_owner = dm_src[k_src];
 		
-		if (ParallelDescriptor::sameTeam(src_owner, MyProc)) { // local copy
-		    const BoxList tilelist(bx, FabArrayBase::comm_tile_size);
-		    for (BoxList::const_iterator
-			     it_tile  = tilelist.begin(),
-			     End_tile = tilelist.end();   it_tile != End_tile; ++it_tile)
-		    {
-			m_LocTags->push_back(CopyComTag(*it_tile, *it_tile, k_dst, k_src));
-		    }
-		    if (check_local) {
-			localtouch.plus(1, bx);
-		    }
-		} else if (MyProc == dm_dst[k_dst]) {
-		    recv_tags[src_owner].push_back(CopyComTag(bx, bx, k_dst, k_src));
-		    if (check_remote) {
-			remotetouch.plus(1, bx);
+		    if (ParallelDescriptor::sameTeam(src_owner, MyProc)) { // local copy
+			const BoxList tilelist(bx, FabArrayBase::comm_tile_size);
+			for (BoxList::const_iterator
+				 it_tile  = tilelist.begin(),
+				 End_tile = tilelist.end();   it_tile != End_tile; ++it_tile)
+			{
+			    m_LocTags->push_back(CopyComTag(*it_tile, (*it_tile)+(*pit), k_dst, k_src));
+			}
+			if (check_local) {
+			    localtouch.plus(1, bx);
+			}
+		    } else if (MyProc == dm_dst[k_dst]) {
+			recv_tags[src_owner].push_back(CopyComTag(bx, bx+(*pit), k_dst, k_src));
+			if (check_remote) {
+			    remotetouch.plus(1, bx);
+			}
 		    }
 		}
 	    }
@@ -388,7 +400,8 @@ FabArrayBase::CPC::define (const BoxArray& ba_dst, const DistributionMapping& dm
 			 it2  = cctv.begin(),
 			 End2 = cctv.end();   it2 != End2; ++it2)
 		{
-		    const Box& bx = it2->sbox;
+		    const Box& bx = it2->dbox;
+		    const IntVect& d2s = it2->sbox.smallEnd() - it2->dbox.smallEnd();
 		    
 		    Vols[key] += bx.numPts();
 		    
@@ -397,7 +410,8 @@ FabArrayBase::CPC::define (const BoxArray& ba_dst, const DistributionMapping& dm
 			     it_tile  = tilelist.begin(), 
 			     End_tile = tilelist.end();    it_tile != End_tile; ++it_tile)
 		    {
-			new_cctv.push_back(CopyComTag(*it_tile, *it_tile, it2->dstIndex, it2->srcIndex));
+			new_cctv.push_back(CopyComTag(*it_tile, (*it_tile)+d2s, 
+						      it2->dstIndex, it2->srcIndex));
 		    }
 		}
 		
@@ -468,7 +482,7 @@ FabArrayBase::flushCPCache ()
 }
 
 const FabArrayBase::CPC&
-FabArrayBase::getCPC (int dstng, const FabArrayBase& src, int srcng) const
+FabArrayBase::getCPC (int dstng, const FabArrayBase& src, int srcng, const Periodicity& period) const
 {
     BL_PROFILE("FabArrayBase::getCPC()");
 
@@ -487,6 +501,7 @@ FabArrayBase::getCPC (int dstng, const FabArrayBase& src, int srcng) const
 	    it->second->m_dstng  == dstng &&
 	    it->second->m_srcbdk == srckey &&
 	    it->second->m_dstbdk == dstkey &&
+	    it->second->m_period == period &&
 	    it->second->m_srcba  == src.boxArray() &&
 	    it->second->m_dstba  == boxArray())
 	{
@@ -497,7 +512,7 @@ FabArrayBase::getCPC (int dstng, const FabArrayBase& src, int srcng) const
     }
     
     // Have to build a new one
-    CPC* new_cpc = new CPC(*this, dstng, src, srcng);
+    CPC* new_cpc = new CPC(*this, dstng, src, srcng, period);
 
 #ifdef BL_MEM_PROFILING
     m_CPC_stats.bytes += new_cpc->bytes();
@@ -687,7 +702,7 @@ FabArrayBase::FB::FB (const FabArrayBase& fa, bool cross, const Periodicity& per
 			 End2 = cctv.end();   it2 != End2; ++it2)
 		{
 		    const Box& bx = it2->dbox;
-		    IntVect d2s = it2->sbox.smallEnd() - it2->dbox.smallEnd();
+		    const IntVect& d2s = it2->sbox.smallEnd() - it2->dbox.smallEnd();
 
 		    std::vector<Box> boxes;
 		    int vol = 0;
