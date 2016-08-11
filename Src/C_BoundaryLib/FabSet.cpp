@@ -70,10 +70,11 @@ FabSet::plusFrom (const FabSet& src, int scomp, int dcomp, int ncomp)
 }
 
 FabSet&
-FabSet::plusFrom (const MultiFab& src, int ngrow, int scomp, int dcomp, int ncomp)
+FabSet::plusFrom (const MultiFab& src, int ngrow, int scomp, int dcomp, int ncomp,
+		  const Periodicity& period)
 {
     BL_ASSERT(boxArray() != src.boxArray());
-    m_mf.copy(src,scomp,dcomp,ncomp,ngrow,0,Periodicity::NonPeriodic(),FabArrayBase::ADD);
+    m_mf.copy(src,scomp,dcomp,ncomp,ngrow,0,period,FabArrayBase::ADD);
     return *this;
 }
 
