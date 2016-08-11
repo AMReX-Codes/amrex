@@ -88,7 +88,8 @@ public:
 
     FabSet& plusFrom (const FabSet& src, int scomp, int dcomp, int ncomp);
 
-    FabSet& plusFrom (const MultiFab& src, int ngrow, int scomp, int dcomp, int ncomp);
+    FabSet& plusFrom (const MultiFab& src, int ngrow, int scomp, int dcomp, int ncomp,
+		      const Periodicity& period = Periodicity::NonPeriodic());
 
     void copyTo (MultiFab& dest, int ngrow, int scomp, int dcomp, int ncomp,
 		 const Periodicity& period = Periodicity::NonPeriodic()) const;
