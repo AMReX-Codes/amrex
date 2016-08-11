@@ -91,15 +91,15 @@ public:
     };
 
     //
-    // This structure stores the read order for each FabArray file
+    // This structure is used to store the read order for each FabArray file
     //
-    struct FileReadChain
+    struct FabReadLink
     {
         int rankToRead;
 	long fileOffset;
 
-	FileReadChain();
-	FileReadChain(int ranktoread, long fileoffset);
+	FabReadLink();
+	FabReadLink(int ranktoread, long fileoffset);
     };
 
 
