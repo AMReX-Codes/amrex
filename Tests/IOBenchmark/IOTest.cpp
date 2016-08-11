@@ -100,7 +100,7 @@ void NFileTests(int nOutFiles, const std::string &filePrefix) {
 
   bool groupSets(false), setBuf(true);
   for(NFilesIter nfi(nOutFiles, filePrefix, groupSets, setBuf); nfi.ReadyToWrite(); ++nfi) {
-    nfi.Stream().write((char *) data.dataPtr(), data.size() * sizeof(int));
+    nfi.Stream().write((const char *) data.dataPtr(), data.size() * sizeof(int));
   }
 }
 
@@ -117,7 +117,7 @@ void FileTests() {
 
   BL_PROFILE_VAR("makeafile", makeafile);
   myFile.open("myFile", std::ios::out|std::ios::trunc|std::ios::binary);
-  myFile.write((char *) myInts.dataPtr(), myInts.size() * sizeof(int));
+  myFile.write((const char *) myInts.dataPtr(), myInts.size() * sizeof(int));
   myFile.close();
   BL_PROFILE_VAR_STOP(makeafile);
 
