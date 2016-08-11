@@ -375,13 +375,13 @@ VisMF::FabOnDisk::FabOnDisk (const std::string& name, long offset)
 {}
 
 
-VisMF::FileReadChain::FileReadChain()
+VisMF::FabReadLink::FabReadLink()
     :
     rankToRead(-1),
     fileOffset(-1)
 { }
 
-VisMF::FileReadChain::FileReadChain(int ranktoread, long fileoffset)
+VisMF::FabReadLink::FabReadLink(int ranktoread, long fileoffset)
     :
     rankToRead(ranktoread),
     fileOffset(fileoffset)
@@ -1204,6 +1204,8 @@ VisMF::Read (FabArray<FArrayBox> &mf,
 
     mf.define(hdr.m_ba, hdr.m_ncomp, hdr.m_ngrow, Fab_allocate);
 
+#ifdef BL_USE_MPI
+
 #ifdef BL_USENEWREADS
 
     //
@@ -1211,61 +1213,110 @@ VisMF::Read (FabArray<FArrayBox> &mf,
     // Fabs in each file
     //
     
-    std::map<std::string, Array<FileReadChain> > AllFileReadChains;  // ---- [filename, chain]
+    std::map<std::string, Array<FabReadLink> > FileReadChains;  // ---- [filename, chain]
 
     int nBoxes(hdr.m_ba.size());
     for(int i(0); i < nBoxes; ++i) {   // ---- create the map
       int whichProc(mf.DistributionMap()[i]);
       std::string fname(hdr.m_fod[i].m_name);
-      AllFileReadChains[fname].push_back(FileReadChain(whichProc, hdr.m_fod[i].m_head));
+      FileReadChains[fname].push_back(FabReadLink(whichProc, hdr.m_fod[i].m_head));
     }
 
-    if(ParallelDescriptor::IOProcessor()) {
-      std::map<std::string, Array<FileReadChain> >::iterator frcIter;
-      for(frcIter = AllFileReadChains.begin(); frcIter != AllFileReadChains.end(); ++ frcIter) {
-        std::cout << "frcIter:  " << frcIter->first << std::endl;
-	Array<FileReadChain> &frc = frcIter->second;
+    //
+    // This code is only for reading in file order
+    //
+    bool inFileOrder(true);
+    std::map<std::string, Array<FabReadLink> >::iterator frcIter;
+    std::string readFileName;
+    std::map<std::string, std::set<int> > readFileRanks;  // ---- [filename, ranks]
+
+    for(frcIter = FileReadChains.begin(); frcIter != FileReadChains.end(); ++frcIter) {
+      // ---- sort to rank ordering and compare with original
+      const std::string &fileName = frcIter->first;
+      Array<FabReadLink> &frc = frcIter->second;
+      Array<FabReadLink> frcSorted = frcIter->second;  // ---- make a copy
+      std::stable_sort(frcSorted.begin(), frcSorted.end(),
+	               [] (const FabReadLink &a, const FabReadLink &b)
+	                    { return a.rankToRead < b.rankToRead; } );
+
+      for(int i(0); i < frc.size(); ++i) {
+        if(frc[i].rankToRead != frcSorted[i].rankToRead ||
+           frc[i].fileOffset != frcSorted[i].fileOffset)
+	{
+	  inFileOrder = false;
+	}
+
+        readFileRanks[fileName].insert(frc[i].rankToRead);
+      }
+
+
+      if(ParallelDescriptor::IOProcessor()) {
+        std::cout << "frcIter:  " << fileName << std::endl;
+        std::cout << "--------------------- original order" << std::endl;
 	for(int i(0); i < frc.size(); ++i) {
 	  std::cout << "  frc[" << i << "] = " << frc[i].rankToRead
 	            << "  " << frc[i].fileOffset << std::endl;
 	}
+        std::cout << "--------------------- sorted by rank" << std::endl;
+	for(int i(0); i < frcSorted.size(); ++i) {
+	  std::cout << "  frcSorted[" << i << "] = " << frcSorted[i].rankToRead
+	            << "  " << frcSorted[i].fileOffset << std::endl;
+	}
       }
+
+      if(inFileOrder) {
+        if(ParallelDescriptor::IOProcessor()) {
+	  std::cout << "OOOOOOOO:  inFileOrder" << std::endl;
+	}
+      } else {
+        BoxLib::Abort("**** Error:  not inFileOrder");
+      }
+
     }
 
-    //
-    // We have a choice of reading in file order or rank order
-    //
-    bool readFileOrder(false);
+    // ---- check that a rank only needs to read one file
+    std::map<std::string, std::set<int> >::iterator rfrIter;
+    std::set<int>::iterator setIter;
 
-    if(readFileOrder) {
-    } else {
-      // ---- sort to rank ordering
-      std::map<std::string, Array<FileReadChain> >::iterator frcIter;
-      for(frcIter = AllFileReadChains.begin(); frcIter != AllFileReadChains.end(); ++ frcIter) {
-	Array<FileReadChain> &frc = frcIter->second;
-        std::stable_sort(frc.begin(), frc.end(), [] (const FileReadChain &a, const FileReadChain &b)
-	  { return a.rankToRead < b.rankToRead; } );
+    for(rfrIter = readFileRanks.begin(); rfrIter != readFileRanks.end(); ++rfrIter) {
+      Array<int> readRanks;
+      if(ParallelDescriptor::IOProcessor()) {
+        std::cout << "rfrIter->first = " << rfrIter->first << std::endl;
+	std::set<int> &rfrSet = rfrIter->second;
+        for(setIter = rfrSet.begin(); setIter != rfrSet.end(); ++setIter) {
+          std::cout << "rfrSetIter = " << *setIter << std::endl;
+	}
+      }
+      std::set<int> &rfrSet = rfrIter->second;
+      for(setIter = rfrSet.begin(); setIter != rfrSet.end(); ++setIter) {
+        readRanks.push_back(*setIter);
       }
 
-      if(ParallelDescriptor::IOProcessor()) {
-        std::cout << "--------------------- sorted by rank" << std::endl;
-        std::map<std::string, Array<FileReadChain> >::iterator frcIter;
-        for(frcIter = AllFileReadChains.begin(); frcIter != AllFileReadChains.end(); ++ frcIter) {
-          std::cout << "frcIter:  " << frcIter->first << std::endl;
-	  Array<FileReadChain> &frc = frcIter->second;
+      const int myProc(ParallelDescriptor::MyProc());
+      if(rfrSet.find(myProc) != rfrSet.end()) {  // ---- myProc needs to read this file
+
+        const std::string &fileName = rfrIter->first;
+	frcIter = FileReadChains.find(fileName);
+        Array<FabReadLink> &frc = frcIter->second;
+        for(NFilesIter nfi(fileName, readRanks); nfi.ReadyToRead(); ++nfi) {
 	  for(int i(0); i < frc.size(); ++i) {
-	    std::cout << "  frc[" << i << "] = " << frc[i].rankToRead
-	              << "  " << frc[i].fileOffset << std::endl;
+            nfi.Stream().seekp(frc[i].fileOffset, std::ios::beg);
+	    std::cout << myProc << "::fileName seekPos = " << fileName << "  "
+	              << nfi.SeekPos() << std::endl;
+            //nfi.Stream().read((char *) data.dataPtr(), nChars);
 	  }
         }
-      }
 
+      }
     }
+
+
+
+
 
 
 #else
 
-#ifdef BL_USE_MPI
     //
     // Here we limit the number of open files when reading a multifab.
     //
@@ -1452,6 +1503,8 @@ VisMF::Read (FabArray<FArrayBox> &mf,
                 << "  totalTime = "
                 << totalTime << std::endl;
     }
+#endif  /* BL_USENEWREADS */
+
 #else
     for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
 	if(rawNative) {
@@ -1460,7 +1513,6 @@ VisMF::Read (FabArray<FArrayBox> &mf,
 	  VisMF::readFAB(mf,mfi.index(), mf_name, hdr);
 	}
     }
-#endif
 
 #endif
 
