@@ -378,12 +378,14 @@ VisMF::FabOnDisk::FabOnDisk (const std::string& name, long offset)
 VisMF::FabReadLink::FabReadLink()
     :
     rankToRead(-1),
+    faIndex(-1),
     fileOffset(-1)
 { }
 
-VisMF::FabReadLink::FabReadLink(int ranktoread, long fileoffset)
+VisMF::FabReadLink::FabReadLink(int ranktoread, int faindex, long fileoffset)
     :
     rankToRead(ranktoread),
+    faIndex(faindex),
     fileOffset(fileoffset)
 { }
 
@@ -417,7 +419,11 @@ VisMF::min (int fabIndex,
 {
     BL_ASSERT(0 <= fabIndex && fabIndex < m_hdr.m_ba.size());
     BL_ASSERT(0 <= nComp && nComp < m_hdr.m_ncomp);
-    BL_ASSERT(m_hdr.m_min.size() > 0);
+
+    if(m_hdr.m_min.size() == 0) {  // ---- these were not in the header
+      return std::numeric_limits<int>::max();
+    }
+
     return m_hdr.m_min[fabIndex][nComp];
 }
 
@@ -425,7 +431,11 @@ Real
 VisMF::min (int nComp) const
 {
     BL_ASSERT(0 <= nComp && nComp < m_hdr.m_ncomp);
-    BL_ASSERT(m_hdr.m_famin.size() > 0);
+
+    if(m_hdr.m_famin.size() == 0) {  // ---- these were not in the header
+      return std::numeric_limits<int>::max();
+    }
+
     return m_hdr.m_famin[nComp];
 }
 
@@ -435,7 +445,11 @@ VisMF::max (int fabIndex,
 {
     BL_ASSERT(0 <= fabIndex && fabIndex < m_hdr.m_ba.size());
     BL_ASSERT(0 <= nComp && nComp < m_hdr.m_ncomp);
-    BL_ASSERT(m_hdr.m_max.size() > 0);
+
+    if(m_hdr.m_max.size() == 0) {  // ---- these were not in the header
+      return -std::numeric_limits<int>::max();
+    }
+
     return m_hdr.m_max[fabIndex][nComp];
 }
 
@@ -443,7 +457,11 @@ Real
 VisMF::max (int nComp) const
 {
     BL_ASSERT(0 <= nComp && nComp < m_hdr.m_ncomp);
-    BL_ASSERT(m_hdr.m_famax.size() > 0);
+
+    if(m_hdr.m_famax.size() == 0) {  // ---- these were not in the header
+      return -std::numeric_limits<int>::max();
+    }
+
     return m_hdr.m_famax[nComp];
 }
 
@@ -619,6 +637,13 @@ VisMF::Header::Header (const FabArray<FArrayBox>& mf,
       return;
     }
 
+    CalculateMinMax(mf);
+}
+
+
+void
+VisMF::Header::CalculateMinMax (const FabArray<FArrayBox>& mf)
+{
     m_min.resize(m_ba.size());
     m_max.resize(m_ba.size());
 
@@ -1082,10 +1107,21 @@ VisMF::readFAB (int                  idx,
         ifs.seekg(hdr.m_fod[idx].m_head, std::ios::beg);
     }
 
-    if(ncomp == -1) {
+    if(hdr.m_vers == Header::Version_v1) {
+      if(ncomp == -1) {
         fab->readFrom(ifs);
-    } else {
+      } else {
         fab->readFrom(ifs, ncomp);
+      }
+    } else {
+      if(ncomp == -1) {
+        ifs.read((char *) fab->dataPtr(), fab->nBytes());
+      } else {
+	const RealDescriptor &nrd = FPC::NativeRealDescriptor();
+        long bytesPerComp(fab->box().numPts() * nrd.numBytes());
+        ifs.seekg(bytesPerComp * ncomp, std::ios::cur);
+        ifs.read((char *) fab->dataPtr(), bytesPerComp);
+      }
     }
 
     ifs.close();
@@ -1206,7 +1242,8 @@ VisMF::Read (FabArray<FArrayBox> &mf,
 
 #ifdef BL_USE_MPI
 
-#ifdef BL_USENEWREADS
+//////// #ifdef BL_USENEWREADS
+if(rawNative) {
 
     //
     // Create an ordered map of which processors read which
@@ -1219,7 +1256,7 @@ VisMF::Read (FabArray<FArrayBox> &mf,
     for(int i(0); i < nBoxes; ++i) {   // ---- create the map
       int whichProc(mf.DistributionMap()[i]);
       std::string fname(hdr.m_fod[i].m_name);
-      FileReadChains[fname].push_back(FabReadLink(whichProc, hdr.m_fod[i].m_head));
+      FileReadChains[fname].push_back(FabReadLink(whichProc, i, hdr.m_fod[i].m_head));
     }
 
     //
@@ -1255,11 +1292,13 @@ VisMF::Read (FabArray<FArrayBox> &mf,
         std::cout << "--------------------- original order" << std::endl;
 	for(int i(0); i < frc.size(); ++i) {
 	  std::cout << "  frc[" << i << "] = " << frc[i].rankToRead
+	            << "  " << frcSorted[i].faIndex
 	            << "  " << frc[i].fileOffset << std::endl;
 	}
         std::cout << "--------------------- sorted by rank" << std::endl;
 	for(int i(0); i < frcSorted.size(); ++i) {
 	  std::cout << "  frcSorted[" << i << "] = " << frcSorted[i].rankToRead
+	            << "  " << frcSorted[i].faIndex
 	            << "  " << frcSorted[i].fileOffset << std::endl;
 	}
       }
@@ -1300,10 +1339,16 @@ VisMF::Read (FabArray<FArrayBox> &mf,
         Array<FabReadLink> &frc = frcIter->second;
         for(NFilesIter nfi(fileName, readRanks); nfi.ReadyToRead(); ++nfi) {
 	  for(int i(0); i < frc.size(); ++i) {
-            nfi.Stream().seekp(frc[i].fileOffset, std::ios::beg);
-	    std::cout << myProc << "::fileName seekPos = " << fileName << "  "
-	              << nfi.SeekPos() << std::endl;
-            //nfi.Stream().read((char *) data.dataPtr(), nChars);
+	    if(myProc == frc[i].rankToRead) {
+	      std::cout << myProc << "::fileName fileOffset curSeekPos diff = " << fileName << "  "
+	                << frc[i].fileOffset << "  " << nfi.SeekPos()
+			<< "  " <<  frc[i].fileOffset - nfi.SeekPos() << std::endl;
+	      if(nfi.SeekPos() != frc[i].fileOffset) {
+                nfi.Stream().seekp(frc[i].fileOffset, std::ios::beg);
+	      }
+	      FArrayBox &fab = mf[frc[i].faIndex];
+              nfi.Stream().read((char *) fab.dataPtr(), fab.nBytes());
+	    }
 	  }
         }
 
@@ -1313,9 +1358,8 @@ VisMF::Read (FabArray<FArrayBox> &mf,
 
 
 
-
-
-#else
+} else {
+//////// #else
 
     //
     // Here we limit the number of open files when reading a multifab.
@@ -1503,7 +1547,8 @@ VisMF::Read (FabArray<FArrayBox> &mf,
                 << "  totalTime = "
                 << totalTime << std::endl;
     }
-#endif  /* BL_USENEWREADS */
+//////// #endif  /* BL_USENEWREADS */
+}
 
 #else
     for(MFIter mfi(mf); mfi.isValid(); ++mfi) {

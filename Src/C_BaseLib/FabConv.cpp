@@ -482,6 +482,7 @@ permute_real_word_order (void*       out,
                          const int*  outord,
                          const int*  inord)
 {
+    BL_PROFILE("permute_real_word_order");
     const int REALSIZE = sizeof(Real);
     
     char* pin  = (char*) in;
@@ -578,6 +579,7 @@ PD_fconvert (void*       out,
              int         l_bytes,
              int         onescmp)
 {
+    BL_PROFILE("PD_fconvert");
     long i, expn, expn_max, hexpn, mant, DeltaBias, hmbo, hmbi;
     int nbits, inbytes, outbytes, sign;
     int indxin, indxout, inrem, outrem, dindx;
@@ -741,6 +743,7 @@ PD_fixdenormals (void*       out,
                  const long* outfor,
                  const int*  outord)
 {
+    BL_PROFILE("PD_fixdenormals");
     const int nbo = int(outfor[0]);
 
     int nbo_exp  = int(outfor[1]);
@@ -878,7 +881,7 @@ PD_convert (void*                 out,
         BL_ASSERT(int(n) == nitems);
         memcpy(out, in, n*ord.numBytes());
     }
-    else if (ord.formatarray() == ird.formatarray() && boffs == 0 && !onescmp) {
+    else if (ord.formatarray() == ird.formatarray() && boffs == 0 && ! onescmp) {
         permute_real_word_order(out, in, nitems, ord.order(), ird.order());
     }
     else if (ird == FPC::NativeRealDescriptor() && ord == FPC::Native32RealDescriptor()) {
