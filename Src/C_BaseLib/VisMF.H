@@ -74,6 +74,10 @@ public:
         // Construct from a FabArray<FArrayBox>.
         //
         Header (const FabArray<FArrayBox>& mf, VisMF::How how, Version version = Version_v1);
+	//
+	// Calculate the min and max arrays
+	//
+	void CalculateMinMax(const FabArray<FArrayBox>& mf);
         //
         // The data.
         //
@@ -83,7 +87,9 @@ public:
         int                  m_ngrow; // The number of ghost cells in MF.
         BoxArray             m_ba;    // The BoxArray of the MF.
         Array< FabOnDisk >   m_fod;   // FabOnDisk info for contained FABs.
-	// The min max values will be calculated if necessary
+	//
+	// These are not defined if they are not in the header
+	//
         Array< Array<Real> > m_min;   // The min()s of each component of FABs.  [findex][comp]
         Array< Array<Real> > m_max;   // The max()s of each component of FABs.  [findex][comp]
         Array<Real>          m_famin; // The min()s of each component of the FabArray.  [comp]
@@ -96,10 +102,11 @@ public:
     struct FabReadLink
     {
         int rankToRead;
+	int faIndex;
 	long fileOffset;
 
 	FabReadLink();
-	FabReadLink(int ranktoread, long fileoffset);
+	FabReadLink(int ranktoread, int faIndex, long fileoffset);
     };
 
 

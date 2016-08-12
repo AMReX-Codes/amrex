@@ -39,17 +39,22 @@ NFilesIter::NFilesIter(const std::string &filename,
   nProcs    = ParallelDescriptor::NProcs();
   fullFileName  = filename;
   readRanks = readranks;
-  myReadIndex = -1;
+  myReadIndex = indexUndefined;
   for(int i(0); i < readRanks.size(); ++i) {
     if(myProc == readRanks[i]) {
-      if(myReadIndex != -1) {
+      if(myReadIndex != indexUndefined) {
         BoxLib::Abort("**** Error in NFilesIter:  readRanks not unique.");
       }
       myReadIndex = i;
     }
   }
 
-  finishedReading = false;
+  if(myReadIndex == indexUndefined) {  // ---- nothing to read
+    finishedReading = true;
+    return;
+  } else {
+    finishedReading = false;
+  }
 
   if(setBuf) {
     io_buffer.resize(VisMF::IO_Buffer_Size);

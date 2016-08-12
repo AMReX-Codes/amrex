@@ -8,8 +8,6 @@
 #include <ParallelDescriptor.H>
 #include <VisMF.H>
 
-class OrientationIter;
-
 //
 // This class encapsulates writing to nfiles with
 // static set selection.
@@ -102,6 +100,8 @@ class NFilesIter
     bool finishedReading;
     Array<int> readRanks;
     int myReadIndex;
+
+    static const int indexUndefined = -1;
 
     NFilesIter();  // ---- disallow
 };
