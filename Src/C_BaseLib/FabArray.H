@@ -144,20 +144,6 @@ public:
     // Some static member templates used throughout the code.
     //
     template<typename T>
-    static void SetRecvTag (std::map< int,std::vector<T> >& m_RcvTags,
-                            int                             src_owner,
-                            const T&                        tag,
-                            std::map<int,int>&              m_RcvVols,
-                            const Box&                      bx);
-
-    template<typename T>
-    static void SetSendTag (std::map< int,std::vector<T> >& m_SndTags,
-                            int                             dst_owner,
-                            const T&                        tag,
-                            std::map<int,int>&              m_SndVols,
-                            const Box&                      bx);
-
-    template<typename T>
     static void WaitForAsyncSends (int                 N_snds,
                                    Array<MPI_Request>& send_reqs,
                                    Array<T*>&          send_data,
@@ -1354,54 +1340,6 @@ private:
     int                         nextFillBoxId;
     bool                        dataAvailable;
 };
-
-template<typename T>
-void
-FabArrayBase::SetRecvTag (std::map< int,std::vector<T> >& m_RcvTags,
-                          int                             src_owner,
-                          const T&                        tag,
-                          std::map<int,int>&              m_RcvVols,
-                          const Box&                      bx)
-{
-    m_RcvTags[src_owner].push_back(tag);
-
-    std::map<int,int>::iterator vol_it = m_RcvVols.find(src_owner);
-
-    const int vol = bx.numPts();
-
-    if (vol_it != m_RcvVols.end())
-    {
-        vol_it->second += vol;
-    }
-    else
-    {
-        m_RcvVols[src_owner] = vol;
-    }
-}
-
-template<typename T>
-void
-FabArrayBase::SetSendTag (std::map< int,std::vector<T> >& m_SndTags,
-                          int                             dst_owner,
-                          const T&                        tag,
-                          std::map<int,int>&              m_SndVols,
-                          const Box&                      bx)
-{
-    m_SndTags[dst_owner].push_back(tag);
-
-    std::map<int,int>::iterator vol_it = m_SndVols.find(dst_owner);
-
-    const int vol = bx.numPts();
-
-    if (vol_it != m_SndVols.end())
-    {
-        vol_it->second += vol;
-    }
-    else
-    {
-        m_SndVols[dst_owner] = vol;
-    }
-}
 
 template<typename T>
 void
