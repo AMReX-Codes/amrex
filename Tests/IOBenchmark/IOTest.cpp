@@ -305,7 +305,10 @@ void TestWriteNFilesRawNative(int nfiles, int maxgrid, int ncomps,
   ParallelDescriptor::Barrier();
   double wallTimeStart(ParallelDescriptor::second());
 
+  VisMF::Header::Version currentVersion(VisMF::GetHeaderVersion());
+  VisMF::SetHeaderVersion(whichVersion);
   VisMF::WriteRawNative(mfout, mfName, whichVersion, groupSets, setBuf); 
+  VisMF::SetHeaderVersion(currentVersion);
 
   double wallTime(ParallelDescriptor::second() - wallTimeStart);
 
@@ -337,6 +340,15 @@ void TestReadMF(const std::string &mfName) {
   double wallTimeStart(ParallelDescriptor::second());
 
   VisMF::Read(mfin, mfName); 
+
+  for(int i(0); i < mfin.nComp(); ++i) {
+    Real mfMin = mfin.min(i);
+    Real mfMax = mfin.max(i);
+    if(ParallelDescriptor::IOProcessor()) {
+      std::cout << "MMMMMMMM:  i mfMin mfMax = " << i << "  " << mfMin << "  " << mfMax << std::endl;
+    }
+  }
+
 
   double wallTime(ParallelDescriptor::second() - wallTimeStart);
 
