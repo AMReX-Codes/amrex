@@ -19,9 +19,7 @@ stream throttling for reading to prevent thrashing.
 
 compressed metadata
 preallocation
-persistent streams
 dynamic set selection
-buffer size adjustments
 striping tests
 more combining writes
 tests for meta operations:  seek open close mkdir rename
@@ -29,7 +27,10 @@ tests for meta operations:  seek open close mkdir rename
 //recursive mkdir
 dot in path issue
 remove how
+fix VisMF::Check for new formats.
+remove duplicate writeplotfile code.
 add more retry code to vismf
+test set_ghost
 check nfilesiter with long paths
 special profiling
 support new shared boxarrays (test restart)
@@ -39,8 +40,14 @@ fix types on stream functions (streamsize in read, streampos, etc.)
 add NFiles files to CMakeLists.txt.
 tests for copy multifab speed.
 new fabarray read algorithm.
-tests for buffer sizes.
+tests for buffer sizes (copy buffer [shouldread], pubsetbuf, no buffer).
 check if pubsetbuf works
-pre make plot and check directories.
+buffer size adjustments
 check visit and yt with new formats.
 test performance of rank order vs. file order reads.
+byte order swap for integers.
+persistent streams
+nstreams in new read
+pre make plot and check directories.  ParticleContainer::Checkpoint
+  also makes directories.
+tutorial for nfiles.
