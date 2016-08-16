@@ -29,6 +29,7 @@ static const char *TheFabOnDiskPrefix = "FabOnDisk:";
 int VisMF::verbose(1);
 VisMF::Header::Version VisMF::currentVersion(VisMF::Header::Version_v1);
 bool VisMF::groupSets(false);
+bool VisMF::setBuf(true);
 
 //
 // Set these in Initialize().
@@ -862,19 +863,32 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
         }
     }
 
-    VisMF::Header hdr(mf, how);
+    VisMF::Header hdr(mf, how, currentVersion);
 
-    long        bytesWritten(0);
-    const int   myProc(ParallelDescriptor::MyProc());
+    long bytesWritten(0);
+    const int myProc(ParallelDescriptor::MyProc());
 
     std::string filePrefix(mf_name + FabFileSuffix);
-    bool groupSets(true), setBuf(true);
 
-    for(NFilesIter nfi(nOutFiles, filePrefix, groupSets, setBuf); nfi.ReadyToWrite(); ++nfi) {
-      const std::string BName(NFilesIter::FileName(nOutFiles, filePrefix, myProc, groupSets));
-      for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
-        hdr.m_fod[mfi.index()] = VisMF::Write(mf[mfi],BName,nfi.Stream(),bytesWritten);
+    if(currentVersion == VisMF::Header::Version_v1) {
+
+      for(NFilesIter nfi(nOutFiles, filePrefix, groupSets, setBuf); nfi.ReadyToWrite(); ++nfi) {
+        const std::string BName(NFilesIter::FileName(nOutFiles, filePrefix, myProc, groupSets));
+        for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
+          hdr.m_fod[mfi.index()] = VisMF::Write(mf[mfi],BName,nfi.Stream(),bytesWritten);
+        }
       }
+
+    } else {
+
+      for(NFilesIter nfi(nOutFiles, filePrefix, groupSets, setBuf); nfi.ReadyToWrite(); ++nfi) {
+        for(MFIter mfi(mf); mfi.isValid(); ++mfi) { // ---- write the fab data directly
+          const FArrayBox &fab = mf[mfi];
+          nfi.Stream().write((char *) fab.dataPtr(), fab.nBytes());
+          bytesWritten += fab.nBytes();
+        }
+      }
+
     }
 
     VisMF::FindOffsets(mf, filePrefix, hdr, groupSets, currentVersion);
@@ -1017,21 +1031,19 @@ VisMF::WriteNoFabHeader (const FabArray<FArrayBox> &mf,
 		         VisMF::Header::Version hVersion,
 		         bool groupSets, bool setBuf)
 {
+BoxLib::Abort("VisMF::WriteNoFabHeader");
     BL_PROFILE("VisMF::Write_noFabHeader_mf");
     BL_ASSERT(mf_name[mf_name.length() - 1] != '/');
     BL_ASSERT(hVersion != Header::Version_v1);
 
     // ---- add stream retry
-
     // ---- add stream buffer (to nfiles)
 
     VisMF::Initialize();
 
+    VisMF::Header hdr(mf, VisMF::NFiles, currentVersion);
+
     long bytesWritten(0);
-    const RealDescriptor &nrd = FPC::NativeRealDescriptor();
-    int nrdBytes(nrd.numBytes());
-    BL_ASSERT(nrdBytes == sizeof(Real));
-    //int nComps(mf.nComp());
 
     std::string filePrefix(mf_name + FabFileSuffix);
 
@@ -1040,13 +1052,10 @@ VisMF::WriteNoFabHeader (const FabArray<FArrayBox> &mf,
       for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
         // ---- write the fab data
         const FArrayBox &fab = mf[mfi];
-        BL_ASSERT(fab.nBytes() == fab.size() * nrdBytes);
         nfi.Stream().write((char *) fab.dataPtr(), fab.nBytes());
         bytesWritten += fab.nBytes();
       }
     }
-
-    VisMF::Header hdr(mf, VisMF::NFiles, hVersion);
 
     VisMF::FindOffsets(mf, filePrefix, hdr, groupSets, currentVersion);
     
