@@ -454,15 +454,14 @@ protected:
     //
     struct FB
     {
-        FB (const FabArrayBase& fa, bool cross, const Periodicity& period);
+        FB (const FabArrayBase& fa, bool cross, const Periodicity& period, const Box& epobox);
         ~FB ();
-
-        long bytes () const;
 
 	IndexType           m_typ;
         int                 m_ngrow;
         bool                m_cross;
 	Periodicity         m_period;
+	Box                 m_epobox;
         //
         // The cache of local and send/recv per FillBoundary().
         //
@@ -475,6 +474,11 @@ protected:
         std::map<int,int>*         m_RcvVols;
 	//
 	int                 m_nuse;
+	//
+	long bytes () const;
+    private:
+	void define_fb (const FabArrayBase& fa);
+	void define_epo (const FabArrayBase& fa);
     };
     //
     typedef std::multimap<BDKey,FabArrayBase::FB*> FBCache;
@@ -483,7 +487,7 @@ protected:
     static FBCache    m_TheFBCache;
     static CacheStats m_FBC_stats;
     //
-    const FB& getFB (bool cross, const Periodicity& period) const;
+    const FB& getFB (bool cross, const Periodicity& period, const Box& epobox) const; // epobox is for EnforcePeriodicity only!
     //
     void flushFB (bool no_assertion=false) const;       // This flushes its own FB.
     static void flushFBCache (); // This flushes the entire cache.
@@ -1022,6 +1026,9 @@ public:
     void FillBoundary_nowait (int scomp, int ncomp, const Periodicity& period, bool cross = false);
     void FillBoundary_finish ();
 
+    void EnforcePeriodicity (const Periodicity& period, const Box& pbox);
+    void EnforcePeriodicity (int scomp, int ncomp, const Periodicity& period, const Box& pbox);
+
     //
     // Move FABs in this FabArray to different MPI ranks.
     //
@@ -1117,11 +1124,16 @@ private:
     //
     void AllocFabs ();
 
+    // epo_box is for EnforcePeriodicity only
+    void FBEP_nowait (int scomp, int ncomp, const Periodicity& period, bool cross,
+		      const Box& epo_box = Box());
+
 public:
     // Data used in non-blocking FillBoundary
     bool fb_cross;
     int fb_scomp, fb_ncomp;
     Periodicity fb_period;
+    Box fb_epobox;
 
     //
     value_type*        fb_the_recv_data;
@@ -4511,11 +4523,43 @@ FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross)
 
 template <class FAB>
 void
+FabArray<FAB>::EnforcePeriodicity (const Periodicity& period, const Box& pbox)
+{
+    BL_PROFILE("FabArray::EnforcePeriodicity");
+    FillBoundary_nowait(0, nComp(), period, false, pbox);
+    FillBoundary_finish();
+}
+
+template <class FAB>
+void
+FabArray<FAB>::EnforcePeriodicity (int scomp, int ncomp, const Periodicity& period, const Box& pbox)
+{
+    BL_PROFILE("FabArray::EnforcePeriodicity");
+    FillBoundary_nowait(scomp, ncomp, period, false, pbox);
+    FillBoundary_finish();
+}
+
+template <class FAB>
+void
 FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, const Periodicity& period, bool cross)
 {
-    if ( n_grow <= 0 ) return;
+    FBEP_nowait(scomp, ncomp, period, cross);
+}
 
-    const FB& TheFB = getFB(cross, period);
+template <class FAB>
+void
+FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const Periodicity& period, bool cross,
+			    const Box& epo_box)
+{
+    bool work_to_do;
+    if (epo_box.isEmpty()) {
+	work_to_do = n_grow > 0;
+    } else {
+	work_to_do = period.isAnyPeriodic();
+    }
+    if (!work_to_do) return;
+
+    const FB& TheFB = getFB(cross, period, epo_box);
 
     if (ParallelDescriptor::NProcs() == 1)
     {
@@ -4540,6 +4584,7 @@ FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, const Periodicity& per
     }
    
     fb_cross = cross;
+    fb_epobox = epo_box;
     fb_scomp = scomp;
     fb_ncomp = ncomp;
     fb_period = period;
@@ -4801,7 +4846,7 @@ FabArray<FAB>::FillBoundary_finish ()
     BL_ASSERT(!ParallelDescriptor::MPIOneSided());
 #endif
 
-    const FB& TheFB = getFB(fb_cross,fb_period);
+    const FB& TheFB = getFB(fb_cross,fb_period,fb_epobox);
 
     const int N_rcvs = TheFB.m_RcvTags->size();
     const int N_snds = TheFB.m_SndTags->size();
