@@ -454,14 +454,15 @@ protected:
     //
     struct FB
     {
-        FB (const FabArrayBase& fa, bool cross, const Periodicity& period, const Box& epobox);
+        FB (const FabArrayBase& fa, bool cross, const Periodicity& period,
+	    bool enforce_periodicity_only);
         ~FB ();
 
 	IndexType           m_typ;
         int                 m_ngrow;
         bool                m_cross;
+	bool                m_epo;
 	Periodicity         m_period;
-	Box                 m_epobox;
         //
         // The cache of local and send/recv per FillBoundary().
         //
@@ -487,7 +488,7 @@ protected:
     static FBCache    m_TheFBCache;
     static CacheStats m_FBC_stats;
     //
-    const FB& getFB (bool cross, const Periodicity& period, const Box& epobox) const; // epobox is for EnforcePeriodicity only!
+    const FB& getFB (bool cross, const Periodicity& period, bool enforce_periodicity_only = false) const;
     //
     void flushFB (bool no_assertion=false) const;       // This flushes its own FB.
     static void flushFBCache (); // This flushes the entire cache.
@@ -1026,8 +1027,8 @@ public:
     void FillBoundary_nowait (int scomp, int ncomp, const Periodicity& period, bool cross = false);
     void FillBoundary_finish ();
 
-    void EnforcePeriodicity (const Periodicity& period, const Box& pbox);
-    void EnforcePeriodicity (int scomp, int ncomp, const Periodicity& period, const Box& pbox);
+    void EnforcePeriodicity (const Periodicity& period);
+    void EnforcePeriodicity (int scomp, int ncomp, const Periodicity& period);
 
     //
     // Move FABs in this FabArray to different MPI ranks.
@@ -1124,16 +1125,14 @@ private:
     //
     void AllocFabs ();
 
-    // epo_box is for EnforcePeriodicity only
     void FBEP_nowait (int scomp, int ncomp, const Periodicity& period, bool cross,
-		      const Box& epo_box = Box());
+		      bool enforce_periodicity_only = false);
 
 public:
     // Data used in non-blocking FillBoundary
-    bool fb_cross;
+    bool fb_cross, fb_epo;
     int fb_scomp, fb_ncomp;
     Periodicity fb_period;
-    Box fb_epobox;
 
     //
     value_type*        fb_the_recv_data;
@@ -4523,19 +4522,19 @@ FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross)
 
 template <class FAB>
 void
-FabArray<FAB>::EnforcePeriodicity (const Periodicity& period, const Box& pbox)
+FabArray<FAB>::EnforcePeriodicity (const Periodicity& period)
 {
     BL_PROFILE("FabArray::EnforcePeriodicity");
-    FillBoundary_nowait(0, nComp(), period, false, pbox);
+    FBEP_nowait(0, nComp(), period, false, true);
     FillBoundary_finish();
 }
 
 template <class FAB>
 void
-FabArray<FAB>::EnforcePeriodicity (int scomp, int ncomp, const Periodicity& period, const Box& pbox)
+FabArray<FAB>::EnforcePeriodicity (int scomp, int ncomp, const Periodicity& period)
 {
     BL_PROFILE("FabArray::EnforcePeriodicity");
-    FBEP_nowait(scomp, ncomp, period, false, pbox);
+    FBEP_nowait(scomp, ncomp, period, false, true);
     FillBoundary_finish();
 }
 
@@ -4549,17 +4548,17 @@ FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, const Periodicity& per
 template <class FAB>
 void
 FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const Periodicity& period, bool cross,
-			    const Box& epo_box)
+			    bool enforce_periodicity_only)
 {
     bool work_to_do;
-    if (epo_box.isEmpty()) {
-	work_to_do = n_grow > 0;
-    } else {
+    if (enforce_periodicity_only) {
 	work_to_do = period.isAnyPeriodic();
+    } else {
+	work_to_do = n_grow > 0;
     }
     if (!work_to_do) return;
 
-    const FB& TheFB = getFB(cross, period, epo_box);
+    const FB& TheFB = getFB(cross, period, enforce_periodicity_only);
 
     if (ParallelDescriptor::NProcs() == 1)
     {
@@ -4584,7 +4583,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const Periodicity& period, boo
     }
    
     fb_cross = cross;
-    fb_epobox = epo_box;
+    fb_epo   = enforce_periodicity_only;
     fb_scomp = scomp;
     fb_ncomp = ncomp;
     fb_period = period;
@@ -4846,7 +4845,7 @@ FabArray<FAB>::FillBoundary_finish ()
     BL_ASSERT(!ParallelDescriptor::MPIOneSided());
 #endif
 
-    const FB& TheFB = getFB(fb_cross,fb_period,fb_epobox);
+    const FB& TheFB = getFB(fb_cross,fb_period,fb_epo);
 
     const int N_rcvs = TheFB.m_RcvTags->size();
     const int N_snds = TheFB.m_SndTags->size();

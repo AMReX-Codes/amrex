@@ -2,7 +2,6 @@
 
 #include <iterator>
 #include <numeric>
-#include <limits>
 
 #ifdef BL_LAZY
 #include <Lazy.H>
@@ -536,9 +535,9 @@ FabArrayBase::getCPC (int dstng, const FabArrayBase& src, int srcng, const Perio
 //
 
 FabArrayBase::FB::FB (const FabArrayBase& fa, bool cross, const Periodicity& period, 
-		      const Box& epobox)
+		      bool enforce_periodicity_only)
     : m_typ(fa.boxArray().ixType()), m_ngrow(fa.nGrow()),
-      m_cross(cross), m_period(period), m_epobox(epobox), 
+      m_cross(cross), m_epo(enforce_periodicity_only), m_period(period),
       m_threadsafe_loc(false), m_threadsafe_rcv(false),
       m_LocTags(new CopyComTag::CopyComTagsContainer),
       m_SndTags(new CopyComTag::MapOfCopyComTagContainers),
@@ -550,11 +549,11 @@ FabArrayBase::FB::FB (const FabArrayBase& fa, bool cross, const Periodicity& per
     BL_PROFILE("FabArrayBase::FB::FB()");
 
     if (!fa.IndexArray().empty()) {
-	if (epobox.isEmpty()) {
-	    define_fb(fa);
-	} else {
+	if (enforce_periodicity_only) {
 	    BL_ASSERT(m_cross==false);
 	    define_epo(fa);
+	} else {
+	    define_fb(fa);
 	}
     }
 }
@@ -793,13 +792,8 @@ FabArrayBase::FB::define_epo (const FabArrayBase& fa)
     
     CopyComTag::MapOfCopyComTagContainers send_tags; // temp copy
 
-    Box pdomain = BoxLib::convert(m_epobox,typ);
-    for (int i = 0; i < BL_SPACEDIM; ++i) {
-	if (!m_period.isPeriodic(i)) {
-	    pdomain.setSmall(i, std::numeric_limits<int>::min());
-	    pdomain.setBig(i, std::numeric_limits<int>::max());
-	}
-    }
+    Box pdomain = m_period.Domain();
+    pdomain.convert(typ);
     
     for (int i = 0; i < nlocal; ++i)
     {
@@ -1006,7 +1000,7 @@ FabArrayBase::flushFBCache ()
 }
 
 const FabArrayBase::FB&
-FabArrayBase::getFB (bool cross, const Periodicity& period, const Box& epobox) const
+FabArrayBase::getFB (bool cross, const Periodicity& period, bool enforce_periodicity_only) const
 {
     BL_PROFILE("FabArrayBase::getFB()");
 
@@ -1017,8 +1011,8 @@ FabArrayBase::getFB (bool cross, const Periodicity& period, const Box& epobox) c
 	if (it->second->m_typ    == boxArray().ixType() &&
 	    it->second->m_ngrow  == nGrow()             &&
 	    it->second->m_cross  == cross               &&
-	    it->second->m_period == period              &&
-	    it->second->m_epobox == epobox)
+	    it->second->m_epo    == enforce_periodicity_only &&
+	    it->second->m_period == period              )
 	{
 	    ++(it->second->m_nuse);
 	    m_FBC_stats.recordUse();
@@ -1027,7 +1021,7 @@ FabArrayBase::getFB (bool cross, const Periodicity& period, const Box& epobox) c
     }
 
     // Have to build a new one
-    FB* new_fb = new FB(*this, cross, period, epobox);
+    FB* new_fb = new FB(*this, cross, period, enforce_periodicity_only);
 
 #ifdef BL_PROFILE
     m_FBC_stats.bytes += new_fb->bytes();
