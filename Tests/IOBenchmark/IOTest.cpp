@@ -253,10 +253,10 @@ void TestWriteNFiles(int nfiles, int maxgrid, int ncomps, int nboxes,
 
 
 // -------------------------------------------------------------
-void TestWriteNFilesRawNative(int nfiles, int maxgrid, int ncomps,
-                              int nboxes, bool raninit, bool mb2,
-			      VisMF::Header::Version whichVersion, bool groupSets,
-			      bool setBuf)
+void TestWriteNFilesNoFabHeader(int nfiles, int maxgrid, int ncomps,
+                                int nboxes, bool raninit, bool mb2,
+			        VisMF::Header::Version whichVersion, bool groupSets,
+			        bool setBuf)
 {
   VisMF::SetNOutFiles(nfiles);
   if(mb2) {
@@ -287,17 +287,17 @@ void TestWriteNFilesRawNative(int nfiles, int maxgrid, int ncomps,
   long totalNBytes(npts * ncomps * nboxes *sizeof(Real));
   std::string mfName;
   switch(whichVersion) {
-    case VisMF::Header::RawNative_v1:
-      mfName = "TestMFRawNative";
+    case VisMF::Header::NoFabHeader_v1:
+      mfName = "TestMFNoFabHeader";
     break;
-    case VisMF::Header::RawNativeMinMax_v1:
-      mfName = "TestMFRawNativeMinMax";
+    case VisMF::Header::NoFabHeaderMinMax_v1:
+      mfName = "TestMFNoFabHeaderMinMax";
     break;
-    case VisMF::Header::RawNativeFAMinMax_v1:
-      mfName = "TestMFRawNativeFAMinMax";
+    case VisMF::Header::NoFabHeaderFAMinMax_v1:
+      mfName = "TestMFNoFabHeaderFAMinMax";
     break;
     default:
-      BoxLib::Abort("**** Error in TestWriteNFilesRawNative:: bad version.");
+      BoxLib::Abort("**** Error in TestWriteNFilesNoFabHeader:: bad version.");
   }
 
   VisMF::RemoveFiles(mfName, true);
@@ -307,7 +307,7 @@ void TestWriteNFilesRawNative(int nfiles, int maxgrid, int ncomps,
 
   VisMF::Header::Version currentVersion(VisMF::GetHeaderVersion());
   VisMF::SetHeaderVersion(whichVersion);
-  VisMF::WriteRawNative(mfout, mfName, whichVersion, groupSets, setBuf); 
+  VisMF::WriteNoFabHeader(mfout, mfName, whichVersion, groupSets, setBuf); 
   VisMF::SetHeaderVersion(currentVersion);
 
   double wallTime(ParallelDescriptor::second() - wallTimeStart);

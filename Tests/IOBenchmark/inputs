@@ -19,6 +19,6 @@ testwritenfiles   = false
 testwritenfilesrn = true
 testreadmf        = true
 
-readfanames = TestMFRawNative
-#readfanames = TestMF TestMFRawNative
-#readfanames = TestMF TestMFRawNative TestMFRawNativeMinMax TestMFRawNativeFAMinMax
+readfanames = TestMFNoFabHeader
+readfanames = TestMF TestMFNoFabHeader
+#readfanames = TestMF TestMFNoFabHeader TestMFNoFabHeaderMinMax TestMFNoFabHeaderFAMinMax

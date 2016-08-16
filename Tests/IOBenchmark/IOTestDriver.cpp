@@ -26,10 +26,10 @@ void DirectoryTests();
 void FileTests();
 void TestWriteNFiles(int nfiles, int maxgrid, int ncomps, int nboxes,
                      bool raninit, bool mb2);
-void TestWriteNFilesRawNative(int nfiles, int maxgrid, int ncomps,
-                              int nboxes, bool raninit, bool mb2,
-			      VisMF::Header::Version writeMinMax,
-			      bool groupsets, bool setbuf);
+void TestWriteNFilesNoFabHeader(int nfiles, int maxgrid, int ncomps,
+                                int nboxes, bool raninit, bool mb2,
+			        VisMF::Header::Version writeMinMax,
+			        bool groupsets, bool setbuf);
 void TestReadMF(const std::string &mfName);
 void NFileTests(int nOutFiles, const std::string &filePrefix);
 
@@ -116,11 +116,11 @@ int main(int argc, char *argv[]) {
   pp.query("writefaminmax", writefaminmax);
   BL_ASSERT( ! (writeminmax && writefaminmax));
   if(writeminmax) {
-    hVersion = VisMF::Header::RawNativeMinMax_v1;
+    hVersion = VisMF::Header::NoFabHeaderMinMax_v1;
   } else if(writefaminmax) {
-    hVersion = VisMF::Header::RawNativeFAMinMax_v1;
+    hVersion = VisMF::Header::NoFabHeaderFAMinMax_v1;
   } else {
-    hVersion = VisMF::Header::RawNative_v1;
+    hVersion = VisMF::Header::NoFabHeader_v1;
   }
 
   pp.query("groupsets", groupsets);
@@ -281,8 +281,8 @@ int main(int argc, char *argv[]) {
         cout << "Testing NFiles Raw Native Write" << endl;
       }
 
-      TestWriteNFilesRawNative(nfiles, maxgrid, ncomps, nboxes, raninit, mb2,
-                               hVersion, groupsets, setbuf);
+      TestWriteNFilesNoFabHeader(nfiles, maxgrid, ncomps, nboxes, raninit, mb2,
+                                 hVersion, groupsets, setbuf);
 
       if(ParallelDescriptor::IOProcessor()) {
         cout << "==================================================" << endl;
