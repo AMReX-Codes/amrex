@@ -2,7 +2,7 @@ module init_data_module
 
 contains
 
-  subroutine init_data_3d(tlo,thi,lo,hi,cons,ng,dx,phlo,phhi) bind(c)
+  subroutine init_data_3d(tlo,thi,lo,hi,cons,ng,dx,phlo,phhi) bind(c,name='init_data_3d')
     
     use variables_module, only : irho, imx,imy,imz,iene,iry1,ncons, iH2, iO2, iN2
     use chemistry_module, only : nspecies, patm
