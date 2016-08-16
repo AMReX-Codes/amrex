@@ -20,12 +20,15 @@ class VisMF
 public:
     //
     // How we write out FabArray<FArrayBox>s.
+    // These are deprecated, we always use NFiles.
+    // For OneFilePerCPU, set NFiles to NProcs.
     //
     enum How { OneFilePerCPU, NFiles };
     //
     // Construct by reading in the on-disk VisMF of the specified name.
-    // The MF on-disk is read lazily. The name here is the name of
-    // the MF not the name of the on-disk file.
+    // The FABs in the on-disk FabArray are read on demand unless
+    // the entire FabArray is requested. The name here is the name of
+    // the FabArray not the name of the on-disk files.
     //
     explicit VisMF (const std::string& mf_name);
     //
@@ -53,7 +56,7 @@ public:
     struct Header
     {
         //
-        // The current version of the FabArray<FArrayBox> Header code.
+        // The versions of the FabArray<FArrayBox> Header code.
         //
         enum Version {
 	  Undefined_v1         = 0,  // ---- undefined
@@ -230,8 +233,15 @@ public:
     static void SetMFFileInStreams (int nstreams);
 
     static int GetNOutFiles ();
-    static int GetVerbose ();
-    static void SetVerbose (int verbose);
+    static int GetVerbose ()       { return verbose; }
+    static void SetVerbose (int v) { verbose = v; }
+
+    static VisMF::Header::Version GetHeaderVersion () { return currentVersion; }
+    static void SetHeaderVersion (VisMF::Header::Version version)
+                                                   { currentVersion = version; }
+
+    static bool GetGroupSets () { return groupSets; }
+    static void SetGroupSets (bool groupsets) { groupSets = groupsets; }
 
     static void Initialize ();
     static void Finalize ();
@@ -250,6 +260,12 @@ private:
 
     static long WriteHeader (const std::string& mf_name,
                              VisMF::Header&     hdr);
+
+    static void FindOffsets (const FabArray<FArrayBox> &mf,
+			     const std::string& mf_name,
+                             VisMF::Header &hdr,
+			     bool groupSets,
+			     VisMF::Header::Version whichVersion);
     //
     // Read the fab.
     // If ncomp == -1 reads the whole FAB.
@@ -294,6 +310,8 @@ private:
     static int nMFFileInStreams;
 
     static int verbose;
+    static VisMF::Header::Version currentVersion;
+    static bool groupSets;
 };
 //
 // Write a FabOnDisk to an ostream in ASCII.
