@@ -1297,22 +1297,6 @@ if(noFabHeader) {
       }
 
 
-      if(ParallelDescriptor::IOProcessor()) {
-        std::cout << "frcIter:  " << fileName << std::endl;
-        std::cout << "--------------------- original order" << std::endl;
-	for(int i(0); i < frc.size(); ++i) {
-	  std::cout << "  frc[" << i << "] = " << frc[i].rankToRead
-	            << "  " << frcSorted[i].faIndex
-	            << "  " << frc[i].fileOffset << std::endl;
-	}
-        std::cout << "--------------------- sorted by rank" << std::endl;
-	for(int i(0); i < frcSorted.size(); ++i) {
-	  std::cout << "  frcSorted[" << i << "] = " << frcSorted[i].rankToRead
-	            << "  " << frcSorted[i].faIndex
-	            << "  " << frcSorted[i].fileOffset << std::endl;
-	}
-      }
-
       if(inFileOrder) {
         if(ParallelDescriptor::IOProcessor()) {
 	  std::cout << "OOOOOOOO:  inFileOrder" << std::endl;
@@ -1329,13 +1313,13 @@ if(noFabHeader) {
 
     for(rfrIter = readFileRanks.begin(); rfrIter != readFileRanks.end(); ++rfrIter) {
       Array<int> readRanks;
-      if(ParallelDescriptor::IOProcessor()) {
-        std::cout << "rfrIter->first = " << rfrIter->first << std::endl;
-	std::set<int> &rfrSet = rfrIter->second;
-        for(setIter = rfrSet.begin(); setIter != rfrSet.end(); ++setIter) {
-          std::cout << "rfrSetIter = " << *setIter << std::endl;
-	}
-      }
+      //if(ParallelDescriptor::IOProcessor()) {
+        //std::cout << "rfrIter->first = " << rfrIter->first << std::endl;
+	//std::set<int> &rfrSet = rfrIter->second;
+        //for(setIter = rfrSet.begin(); setIter != rfrSet.end(); ++setIter) {
+          //std::cout << "rfrSetIter = " << *setIter << std::endl;
+	//}
+      //}
       std::set<int> &rfrSet = rfrIter->second;
       for(setIter = rfrSet.begin(); setIter != rfrSet.end(); ++setIter) {
         readRanks.push_back(*setIter);
@@ -1350,9 +1334,6 @@ if(noFabHeader) {
         for(NFilesIter nfi(fileName, readRanks); nfi.ReadyToRead(); ++nfi) {
 	  for(int i(0); i < frc.size(); ++i) {
 	    if(myProc == frc[i].rankToRead) {
-	      std::cout << myProc << "::fileName fileOffset curSeekPos diff = " << fileName << "  "
-	                << frc[i].fileOffset << "  " << nfi.SeekPos()
-			<< "  " <<  frc[i].fileOffset - nfi.SeekPos() << std::endl;
 	      if(nfi.SeekPos() != frc[i].fileOffset) {
                 nfi.Stream().seekp(frc[i].fileOffset, std::ios::beg);
 	      }
@@ -1364,8 +1345,6 @@ if(noFabHeader) {
 
       }
     }
-
-
 
 
 } else {
