@@ -59,15 +59,15 @@ public:
         // The versions of the FabArray<FArrayBox> Header code.
         //
         enum Version {
-	  Undefined_v1         = 0,  // ---- undefined
-	  Version_v1           = 1,  // ---- auto converting version with headers
-	                             // ---- for each fab in the data files and
-				     // ---- min and max values for each fab in the header
+	  Undefined_v1         = 0,    // ---- undefined
+	  Version_v1           = 1,    // ---- auto converting version with headers
+	                               // ---- for each fab in the data files and
+				       // ---- min and max values for each fab in the header
 	  NoFabHeader_v1         = 2,  // ---- native format, no fab headers, no fab mins or maxes
 	  NoFabHeaderMinMax_v1   = 3,  // ---- native format, no fab headers,
-				     // ---- min and max values for each fab in the header
+				       // ---- min and max values for each fab in the header
 	  NoFabHeaderFAMinMax_v1 = 4   // ---- native format, no fab headers, no fab mins or maxes,
-				     // ---- min and max values for each FabArray in the header
+				       // ---- min and max values for each FabArray in the header
 	};
         //
         // The default constructor.
@@ -180,10 +180,10 @@ public:
     // Write in a raw and native format without min or max values
     //
     static long WriteNoFabHeader (const FabArray<FArrayBox>&    mf,
-                                const std::string& name,
-                                VisMF::Header::Version hVersion = VisMF::Header::NoFabHeader_v1,
-                                bool groupSets = false,
-                                bool setBuf = true);
+                                  const std::string& name,
+                                  VisMF::Header::Version hVersion = VisMF::Header::NoFabHeader_v1,
+                                  bool groupSets = false,
+                                  bool setBuf = true);
     //
     // this will remove nfiles associated with name and the header
     //
@@ -284,9 +284,9 @@ private:
 			 const Header&      hdr);
 
     static void readFABNoFabHeader (FabArray<FArrayBox>&          mf,
-			          int                fabIndex,
-			          const std::string& mf_name,
-			          const Header&      hdr);
+			            int                fabIndex,
+			            const std::string& mf_name,
+			            const Header&      hdr);
 
     static std::string DirName (const std::string& filename);
 

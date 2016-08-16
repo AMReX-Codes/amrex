@@ -581,7 +581,7 @@ VisMF::Write (const FArrayBox&   fab,
     // Add in the number of bytes in the FAB including the FAB header.
     //
     bytes += (VisMF::FileOffset(os) - fab_on_disk.m_head);
-    
+
     return fab_on_disk;
 }
 
@@ -894,7 +894,9 @@ VisMF::FindOffsets (const FabArray<FArrayBox> &mf,
 {
     BL_PROFILE("VisMF::FindOffsets");
 
-    if(whichVersion == VisMF::Header::Version_v1) {
+    if(FArrayBox::getFormat() == FABio::FAB_ASCII ||
+       FArrayBox::getFormat() == FABio::FAB_8BIT)
+    {
 #ifdef BL_USE_MPI
     const int IOProcNumber(ParallelDescriptor::IOProcessorNumber());
     const int nProcs(ParallelDescriptor::NProcs());
@@ -961,20 +963,37 @@ VisMF::FindOffsets (const FabArray<FArrayBox> &mf,
     }
 #endif /*BL_USE_MPI*/
 
-    } else {  // ---- native versions
-      const RealDescriptor &nrd = FPC::NativeRealDescriptor();
-      int nrdBytes(nrd.numBytes());
-      BL_ASSERT(nrdBytes == sizeof(Real));
+
+    } else {  // ---- calculate offsets
+      RealDescriptor *whichRD;
+      if(FArrayBox::getFormat() == FABio::FAB_NATIVE) {
+        whichRD = FPC::NativeRealDescriptor().clone();
+      } else if(FArrayBox::getFormat() == FABio::FAB_NATIVE_32) {
+        whichRD = FPC::Native32RealDescriptor().clone();
+      } else if(FArrayBox::getFormat() == FABio::FAB_IEEE_32) {
+        whichRD = FPC::NativeRealDescriptor().clone();
+      }
+      const  FABio &fio = FArrayBox::getFABio();
+      int whichRDBytes(whichRD->numBytes());
       int nComps(mf.nComp());
 
-      if(ParallelDescriptor::IOProcessor()) {
-	// ---- calculate offsets
+      if(ParallelDescriptor::IOProcessor()) {   // ---- calculate offsets
 	const BoxArray &mfBA = mf.boxArray();
 	const DistributionMapping &mfDM = mf.DistributionMap();
+	Array<long> fabHeaderBytes(mfBA.size(), 0);
 	int nFiles(NFilesIter::ActualNFiles(nOutFiles));
 	int whichFileNumber(-1), whichProc(-1);
 	std::string whichFileName;
 	Array<std::streampos> currentOffset(nFiles, 0);
+
+        if(hdr.m_vers == VisMF::Header::Version_v1) {
+	  for(int i(0); i < hdr.m_fod.size(); ++i) {
+            std::stringstream hss;
+	    FArrayBox tempFab(mfBA[i], nComps, false);  // ---- no alloc
+            fio.write_header(hss, tempFab, tempFab.nComp());
+	    fabHeaderBytes[i] = hss.tellp();
+	  }
+	}
 
 	for(int i(0); i < hdr.m_fod.size(); ++i) {
 	  whichProc = mfDM[i];
@@ -982,21 +1001,23 @@ VisMF::FindOffsets (const FabArray<FArrayBox> &mf,
 	  whichFileName   = NFilesIter::FileName(nFiles, filePrefix, whichProc, groupSets);
 	  hdr.m_fod[i].m_name = whichFileName;
 	  hdr.m_fod[i].m_head = currentOffset[whichFileNumber];
-	  currentOffset[whichFileNumber] += mfBA[i].numPts() * nComps * nrdBytes;
+	  currentOffset[whichFileNumber] += mfBA[i].numPts() * nComps * whichRDBytes
+	                                    + fabHeaderBytes[i];
 	}
       }
     
+      delete whichRD;
     }
 }
 
 
 long
 VisMF::WriteNoFabHeader (const FabArray<FArrayBox> &mf,
-                       const std::string &mf_name,
-		       VisMF::Header::Version hVersion,
-		       bool groupSets, bool setBuf)
+                         const std::string &mf_name,
+		         VisMF::Header::Version hVersion,
+		         bool groupSets, bool setBuf)
 {
-    BL_PROFILE("VisMF::Write_rawnative_mf");
+    BL_PROFILE("VisMF::Write_noFabHeader_mf");
     BL_ASSERT(mf_name[mf_name.length() - 1] != '/');
     BL_ASSERT(hVersion != Header::Version_v1);
 
@@ -1017,7 +1038,7 @@ VisMF::WriteNoFabHeader (const FabArray<FArrayBox> &mf,
     for(NFilesIter nfi(nOutFiles, filePrefix, groupSets, setBuf); nfi.ReadyToWrite(); ++nfi) {
 
       for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
-        // ---- write the raw fab data
+        // ---- write the fab data
         const FArrayBox &fab = mf[mfi];
         BL_ASSERT(fab.nBytes() == fab.size() * nrdBytes);
         nfi.Stream().write((char *) fab.dataPtr(), fab.nBytes());
@@ -1028,26 +1049,6 @@ VisMF::WriteNoFabHeader (const FabArray<FArrayBox> &mf,
     VisMF::Header hdr(mf, VisMF::NFiles, hVersion);
 
     VisMF::FindOffsets(mf, filePrefix, hdr, groupSets, currentVersion);
-    /*
-    if(ParallelDescriptor::IOProcessor()) {
-	// ---- calculate offsets
-	const BoxArray &mfBA = mf.boxArray();
-	const DistributionMapping &mfDM = mf.DistributionMap();
-	int nFiles(NFilesIter::ActualNFiles(nOutFiles));
-	int whichFileNumber(-1), whichProc(-1);
-	std::string whichFileName;
-	Array<std::streampos> currentOffset(nFiles, 0);
-
-	for(int i(0); i < hdr.m_fod.size(); ++i) {
-	  whichProc = mfDM[i];
-	  whichFileNumber = NFilesIter::FileNumber(nFiles, whichProc, groupSets);
-	  whichFileName   = NFilesIter::FileName(nFiles, filePrefix, whichProc, groupSets);
-	  hdr.m_fod[i].m_name = whichFileName;
-	  hdr.m_fod[i].m_head = currentOffset[whichFileNumber];
-	  currentOffset[whichFileNumber] += mfBA[i].numPts() * nComps * nrdBytes;
-	}
-    }
-    */
     
     bytesWritten += VisMF::WriteHeader(mf_name, hdr);
 
@@ -1208,9 +1209,9 @@ VisMF::readFAB (FabArray<FArrayBox>&            mf,
 
 void
 VisMF::readFABNoFabHeader (FabArray<FArrayBox>&            mf,
-		         int                  idx,
-                         const std::string&   mf_name,
-                         const VisMF::Header& hdr)
+		           int                  idx,
+                           const std::string&   mf_name,
+                           const VisMF::Header& hdr)
 {
     BL_PROFILE("VisMF::readFABNoFabHeader_mf");
     FArrayBox &fab = mf[idx];
@@ -1270,12 +1271,12 @@ VisMF::Read (FabArray<FArrayBox> &mf,
         ifs >> hdr;
     }
 
-    bool rawNative(false);
+    bool noFabHeader(false);
     if(hdr.m_vers == VisMF::Header::NoFabHeader_v1       ||
        hdr.m_vers == VisMF::Header::NoFabHeaderMinMax_v1 ||
        hdr.m_vers == VisMF::Header::NoFabHeaderFAMinMax_v1)
     {
-      rawNative = true;
+      noFabHeader = true;
     }
 
 
@@ -1283,8 +1284,7 @@ VisMF::Read (FabArray<FArrayBox> &mf,
 
 #ifdef BL_USE_MPI
 
-//////// #ifdef BL_USENEWREADS
-if(rawNative) {
+if(noFabHeader) {
 
     //
     // Create an ordered map of which processors read which
@@ -1400,7 +1400,6 @@ if(rawNative) {
 
 
 } else {
-//////// #else
 
     //
     // Here we limit the number of open files when reading a multifab.
@@ -1519,7 +1518,7 @@ if(rawNative) {
 
 	while( ! iopReads.empty()) {
 	  int index(iopReads.front());
-	  if(rawNative) {
+	  if(noFabHeader) {
 	    VisMF::readFABNoFabHeader(mf,index, mf_name, hdr);
 	  } else {
 	    VisMF::readFAB(mf,index, mf_name, hdr);
@@ -1558,7 +1557,7 @@ if(rawNative) {
         rmess = ParallelDescriptor::Recv(recReads, ioProcNum, MPI_ANY_TAG);
         for(int ir(0); ir < rmess.count(); ++ir) {
 	  int mfIndex(recReads[ir]);
-	  if(rawNative) {
+	  if(noFabHeader) {
 	    VisMF::readFABNoFabHeader(mf,mfIndex, mf_name, hdr);
 	  } else {
 	    VisMF::readFAB(mf,mfIndex, mf_name, hdr);
@@ -1588,12 +1587,11 @@ if(rawNative) {
                 << "  totalTime = "
                 << totalTime << std::endl;
     }
-//////// #endif  /* BL_USENEWREADS */
 }
 
 #else
     for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
-	if(rawNative) {
+	if(noFabHeader) {
 	  VisMF::readFABNoFabHeader(mf,mfi.index(), mf_name, hdr);
 	} else {
 	  VisMF::readFAB(mf,mfi.index(), mf_name, hdr);
