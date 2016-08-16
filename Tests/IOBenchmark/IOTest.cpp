@@ -192,7 +192,9 @@ BoxArray MakeBoxArray(int maxgrid,  int nboxes) {
 
 // -------------------------------------------------------------
 void TestWriteNFiles(int nfiles, int maxgrid, int ncomps, int nboxes,
-                     bool raninit, bool mb2)
+                     bool raninit, bool mb2,
+		     VisMF::Header::Version whichVersion,
+		     bool groupSets, bool setBuf)
 {
   VisMF::SetNOutFiles(nfiles);
   if(mb2) {
@@ -201,10 +203,11 @@ void TestWriteNFiles(int nfiles, int maxgrid, int ncomps, int nboxes,
 
   BoxArray bArray(MakeBoxArray(maxgrid, nboxes));
   if(ParallelDescriptor::IOProcessor()) {
-    cout << "  Timings for writing to " << nfiles << " files:" << endl;
+    cout << "  Timings for writing to " << nfiles << " files with version:  "
+         << whichVersion << endl;
   }
 
-  // make a MultiFab
+  // ---- make a MultiFab
   MultiFab mfout(bArray, ncomps, 0);
   for(MFIter mfiset(mfout); mfiset.isValid(); ++mfiset) {
     for(int invar(0); invar < ncomps; ++invar) {
@@ -219,25 +222,46 @@ void TestWriteNFiles(int nfiles, int maxgrid, int ncomps, int nboxes,
     }
   }
 
-  long npts(bArray[0].numPts());
-  long totalNBytes(npts * ncomps * nboxes *sizeof(Real));
-  std::string mfName("TestMF");
+  std::string mfName;
+  switch(whichVersion) {
+    case VisMF::Header::Version_v1:
+      mfName = "TestMF";
+    break;
+    case VisMF::Header::NoFabHeader_v1:
+      mfName = "TestMFNoFabHeader";
+    break;
+    case VisMF::Header::NoFabHeaderMinMax_v1:
+      mfName = "TestMFNoFabHeaderMinMax";
+    break;
+    case VisMF::Header::NoFabHeaderFAMinMax_v1:
+      mfName = "TestMFNoFabHeaderFAMinMax";
+    break;
+    default:
+      BoxLib::Abort("**** Error in TestWriteNFilesNoFabHeader:: bad version.");
+  }
+
 
   VisMF::RemoveFiles(mfName, true);
+
+  VisMF::Header::Version currentVersion(VisMF::GetHeaderVersion());
+  VisMF::SetHeaderVersion(whichVersion);
 
   ParallelDescriptor::Barrier();
   double wallTimeStart(ParallelDescriptor::second());
 
-  VisMF::Write(mfout, mfName); 
+  long totalBytesWritten = VisMF::Write(mfout, mfName);
 
   double wallTime(ParallelDescriptor::second() - wallTimeStart);
+
+  VisMF::SetHeaderVersion(currentVersion);  // ---- set back to previous version
 
   double wallTimeMax(wallTime);
   double wallTimeMin(wallTime);
 
-  ParallelDescriptor::ReduceRealMin(wallTimeMin);
-  ParallelDescriptor::ReduceRealMax(wallTimeMax);
-  Real megabytes((static_cast<Real> (totalNBytes)) / bytesPerMB);
+  ParallelDescriptor::ReduceLongSum(totalBytesWritten, ParallelDescriptor::IOProcessorNumber());
+  ParallelDescriptor::ReduceRealMin(wallTimeMin, ParallelDescriptor::IOProcessorNumber());
+  ParallelDescriptor::ReduceRealMax(wallTimeMax, ParallelDescriptor::IOProcessorNumber());
+  Real megabytes((static_cast<Real> (totalBytesWritten)) / bytesPerMB);
 
   if(ParallelDescriptor::IOProcessor()) {
     cout << std::setprecision(5);
@@ -252,6 +276,7 @@ void TestWriteNFiles(int nfiles, int maxgrid, int ncomps, int nboxes,
 }
 
 
+/*
 // -------------------------------------------------------------
 void TestWriteNFilesNoFabHeader(int nfiles, int maxgrid, int ncomps,
                                 int nboxes, bool raninit, bool mb2,
@@ -330,6 +355,7 @@ void TestWriteNFilesNoFabHeader(int nfiles, int maxgrid, int ncomps,
     cout << "------------------------------------------" << endl;
   }
 }
+*/
 
 
 // -------------------------------------------------------------
