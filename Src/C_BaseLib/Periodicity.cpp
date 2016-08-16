@@ -1,4 +1,5 @@
 
+#include <limits>
 #include <Periodicity.H>
 
 std::vector<IntVect>
@@ -24,6 +25,22 @@ Periodicity::shiftIntVect () const
     }
 
     return r;
+}
+
+Box
+Periodicity::Domain () const
+{
+    Box pdomain;
+    for (int i = 0; i < BL_SPACEDIM; ++i) {
+	if (isPeriodic(i)) {
+	    pdomain.setSmall(i,0);
+	    pdomain.setBig  (i,period[i]-1);
+	} else {
+	    pdomain.setSmall(i, std::numeric_limits<int>::min());
+	    pdomain.setBig(i, std::numeric_limits<int>::max()-1); // so that it can be nodalized.
+	}
+    }
+    return pdomain;
 }
 
 const Periodicity&
