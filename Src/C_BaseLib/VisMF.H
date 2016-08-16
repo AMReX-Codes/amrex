@@ -63,10 +63,10 @@ public:
 	  Version_v1           = 1,  // ---- auto converting version with headers
 	                             // ---- for each fab in the data files and
 				     // ---- min and max values for each fab in the header
-	  RawNative_v1         = 2,  // ---- native format, no fab headers, no fab mins or maxes
-	  RawNativeMinMax_v1   = 3,  // ---- native format, no fab headers,
+	  NoFabHeader_v1         = 2,  // ---- native format, no fab headers, no fab mins or maxes
+	  NoFabHeaderMinMax_v1   = 3,  // ---- native format, no fab headers,
 				     // ---- min and max values for each fab in the header
-	  RawNativeFAMinMax_v1 = 4   // ---- native format, no fab headers, no fab mins or maxes,
+	  NoFabHeaderFAMinMax_v1 = 4   // ---- native format, no fab headers, no fab mins or maxes,
 				     // ---- min and max values for each FabArray in the header
 	};
         //
@@ -179,9 +179,9 @@ public:
     //
     // Write in a raw and native format without min or max values
     //
-    static long WriteRawNative (const FabArray<FArrayBox>&    mf,
+    static long WriteNoFabHeader (const FabArray<FArrayBox>&    mf,
                                 const std::string& name,
-                                VisMF::Header::Version hVersion = VisMF::Header::RawNative_v1,
+                                VisMF::Header::Version hVersion = VisMF::Header::NoFabHeader_v1,
                                 bool groupSets = false,
                                 bool setBuf = true);
     //
@@ -283,7 +283,7 @@ private:
 			 const std::string& mf_name,
 			 const Header&      hdr);
 
-    static void readFABRawNative (FabArray<FArrayBox>&          mf,
+    static void readFABNoFabHeader (FabArray<FArrayBox>&          mf,
 			          int                fabIndex,
 			          const std::string& mf_name,
 			          const Header&      hdr);
