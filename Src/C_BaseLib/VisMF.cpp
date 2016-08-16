@@ -1025,46 +1025,6 @@ VisMF::FindOffsets (const FabArray<FArrayBox> &mf,
 }
 
 
-long
-VisMF::WriteNoFabHeader (const FabArray<FArrayBox> &mf,
-                         const std::string &mf_name,
-		         VisMF::Header::Version hVersion,
-		         bool groupSets, bool setBuf)
-{
-BoxLib::Abort("VisMF::WriteNoFabHeader");
-    BL_PROFILE("VisMF::Write_noFabHeader_mf");
-    BL_ASSERT(mf_name[mf_name.length() - 1] != '/');
-    BL_ASSERT(hVersion != Header::Version_v1);
-
-    // ---- add stream retry
-    // ---- add stream buffer (to nfiles)
-
-    VisMF::Initialize();
-
-    VisMF::Header hdr(mf, VisMF::NFiles, currentVersion);
-
-    long bytesWritten(0);
-
-    std::string filePrefix(mf_name + FabFileSuffix);
-
-    for(NFilesIter nfi(nOutFiles, filePrefix, groupSets, setBuf); nfi.ReadyToWrite(); ++nfi) {
-
-      for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
-        // ---- write the fab data
-        const FArrayBox &fab = mf[mfi];
-        nfi.Stream().write((char *) fab.dataPtr(), fab.nBytes());
-        bytesWritten += fab.nBytes();
-      }
-    }
-
-    VisMF::FindOffsets(mf, filePrefix, hdr, groupSets, currentVersion);
-    
-    bytesWritten += VisMF::WriteHeader(mf_name, hdr);
-
-    return bytesWritten;
-}
-
-
 void
 VisMF::RemoveFiles(const std::string &mf_name, bool verbose)
 {

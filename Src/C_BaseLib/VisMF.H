@@ -177,14 +177,6 @@ public:
                        VisMF::How         how = NFiles,
                        bool               set_ghost = false);
     //
-    // Write in a raw and native format without min or max values
-    //
-    static long WriteNoFabHeader (const FabArray<FArrayBox>&    mf,
-                                  const std::string& name,
-                                  VisMF::Header::Version hVersion = VisMF::Header::NoFabHeader_v1,
-                                  bool groupSets = false,
-                                  bool setBuf = true);
-    //
     // this will remove nfiles associated with name and the header
     //
     static void RemoveFiles(const std::string &name, bool verbose = false);
