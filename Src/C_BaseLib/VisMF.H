@@ -59,14 +59,14 @@ public:
         // The versions of the FabArray<FArrayBox> Header code.
         //
         enum Version {
-	  Undefined_v1         = 0,    // ---- undefined
-	  Version_v1           = 1,    // ---- auto converting version with headers
+	  Undefined_v1           = 0,  // ---- undefined
+	  Version_v1             = 1,  // ---- auto converting version with headers
 	                               // ---- for each fab in the data files and
 				       // ---- min and max values for each fab in the header
-	  NoFabHeader_v1         = 2,  // ---- native format, no fab headers, no fab mins or maxes
-	  NoFabHeaderMinMax_v1   = 3,  // ---- native format, no fab headers,
+	  NoFabHeader_v1         = 2,  // ---- no fab headers, no fab mins or maxes
+	  NoFabHeaderMinMax_v1   = 3,  // ---- no fab headers,
 				       // ---- min and max values for each fab in the header
-	  NoFabHeaderFAMinMax_v1 = 4   // ---- native format, no fab headers, no fab mins or maxes,
+	  NoFabHeaderFAMinMax_v1 = 4   // ---- no fab headers, no fab mins or maxes,
 				       // ---- min and max values for each FabArray in the header
 	};
         //
@@ -243,6 +243,9 @@ public:
     static bool GetGroupSets () { return groupSets; }
     static void SetGroupSets (bool groupsets) { groupSets = groupsets; }
 
+    static bool GetSetBuf () { return setBuf; }
+    static void SetSetBuf (bool setbuf) { setBuf = setbuf; }
+
     static void Initialize ();
     static void Finalize ();
 
@@ -312,6 +315,7 @@ private:
     static int verbose;
     static VisMF::Header::Version currentVersion;
     static bool groupSets;
+    static bool setBuf;
 };
 //
 // Write a FabOnDisk to an ostream in ASCII.
