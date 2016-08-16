@@ -5,20 +5,19 @@ nboxes        = 32
 ntimes        = 1
 raninit       = false
 mb2           = true
+
 rbuffsize     = 16000
 wbuffsize     = 32000
-writeminmax   = false
-writefaminmax = false
-groupsets     = false
-setbuf        = true
 
 nfiletest         = false
 filetests         = false
 dirtests          = false
-testwritenfiles   = false
-testwritenfilesrn = true
 testreadmf        = true
 
-readfanames = TestMFNoFabHeader
-readfanames = TestMF TestMFNoFabHeader
-#readfanames = TestMF TestMFNoFabHeader TestMFNoFabHeaderMinMax TestMFNoFabHeaderFAMinMax
+groupsets     = false
+setbuf        = true
+
+testwritenfiles = 1 2 3 4
+
+#readfanames = TestMF TestMFNoFabHeader
+readfanames = TestMF TestMFNoFabHeader TestMFNoFabHeaderMinMax TestMFNoFabHeaderFAMinMax

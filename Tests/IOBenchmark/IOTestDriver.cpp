@@ -25,11 +25,9 @@ using std::endl;
 void DirectoryTests();
 void FileTests();
 void TestWriteNFiles(int nfiles, int maxgrid, int ncomps, int nboxes,
-                     bool raninit, bool mb2);
-void TestWriteNFilesNoFabHeader(int nfiles, int maxgrid, int ncomps,
-                                int nboxes, bool raninit, bool mb2,
-			        VisMF::Header::Version writeMinMax,
-			        bool groupsets, bool setbuf);
+                     bool raninit, bool mb2,
+		     VisMF::Header::Version writeMinMax,
+		     bool groupsets, bool setbuf);
 void TestReadMF(const std::string &mfName);
 void NFileTests(int nOutFiles, const std::string &filePrefix);
 
@@ -50,15 +48,12 @@ static void PrintUsage(const char *progName) {
     cout << "   [mb2               = tf       ]" << '\n';
     cout << "   [rbuffsize         = rbs      ]" << '\n';
     cout << "   [wbuffsize         = wbs      ]" << '\n';
-    cout << "   [writeminmax       = wmm      ]" << '\n';
-    cout << "   [writefaminmax     = wfamm    ]" << '\n';
     cout << "   [groupsets         = groupsets]" << '\n';
     cout << "   [setbuf            = setbuf   ]" << '\n';
-    cout << "   [nfiletest         = tf       ]" << '\n';
+    cout << "   [nfileitertest     = tf       ]" << '\n';
     cout << "   [filetests         = tf       ]" << '\n';
     cout << "   [dirtests          = tf       ]" << '\n';
-    cout << "   [testwritenfiles   = tf       ]" << '\n';
-    cout << "   [testwritenfilesrn = tf       ]" << '\n';
+    cout << "   [testwritenfiles   = versions ]" << '\n';
     cout << "   [testreadmf        = tf       ]" << '\n';
     cout << "   [readFANames       = fanames  ]" << '\n';
     cout << '\n';
@@ -86,11 +81,10 @@ int main(int argc, char *argv[]) {
   int maxgrid(32), ncomps(4), nboxes(nprocs), ntimes(1);
   int rbs(8192), wbs(8192);
   bool raninit(false), mb2(false);
-  bool writeminmax(false), writefaminmax(false);
-  bool groupsets(false), setbuf(true);
-  VisMF::Header::Version hVersion;
-  bool nfiletest(false), filetests(false), dirtests(false);
-  bool testwritenfiles(false), testwritenfilesrn(false), testreadmf(false);
+  bool groupSets(false), setBuf(true);
+  bool nfileitertest(false), filetests(false), dirtests(false);
+  bool testreadmf(false);
+  Array<int> testWriteNFilesVersions;
   Array<std::string> readFANames;
 
 
@@ -112,30 +106,22 @@ int main(int argc, char *argv[]) {
   pp.query("raninit", raninit);
   pp.query("mb2", mb2);
 
-  pp.query("writeminmax", writeminmax);
-  pp.query("writefaminmax", writefaminmax);
-  BL_ASSERT( ! (writeminmax && writefaminmax));
-  if(writeminmax) {
-    hVersion = VisMF::Header::NoFabHeaderMinMax_v1;
-  } else if(writefaminmax) {
-    hVersion = VisMF::Header::NoFabHeaderFAMinMax_v1;
-  } else {
-    hVersion = VisMF::Header::NoFabHeader_v1;
+  int nWNFTests(pp.countval("testwritenfiles"));
+  if(nWNFTests > 0) {
+    pp.getarr("testwritenfiles", testWriteNFilesVersions, 0, nWNFTests);
   }
 
-  pp.query("groupsets", groupsets);
-  pp.query("setbuf", setbuf);
+  pp.query("groupsets", groupSets);
+  pp.query("setbuf", setBuf);
 
   pp.query("rbuffsize", rbs);
   pp.query("wbuffsize", wbs);
   RealDescriptor::SetReadBufferSize(rbs);
   RealDescriptor::SetWriteBufferSize(wbs);
 
-  pp.query("nfiletest", nfiletest);
+  pp.query("nfileitertest", nfileitertest);
   pp.query("filetests", filetests);
   pp.query("dirtests", dirtests);
-  pp.query("testwritenfiles", testwritenfiles);
-  pp.query("testwritenfilesrn", testwritenfilesrn);
   pp.query("testreadmf", testreadmf);
   int nNames(pp.countval("readfanames"));
   if(nNames > 0) {
@@ -156,16 +142,15 @@ int main(int argc, char *argv[]) {
     cout << "mb2               = " << mb2 << '\n';
     cout << "rbuffsize         = " << rbs << '\n';
     cout << "wbuffsize         = " << wbs << '\n';
-    cout << "writeminmax       = " << writeminmax << '\n';
-    cout << "writefaminmax     = " << writefaminmax << '\n';
-    cout << "groupsets         = " << groupsets << '\n';
-    cout << "setbuf            = " << setbuf << '\n';
-    cout << "nfiletest         = " << nfiletest << '\n';
+    cout << "groupsets         = " << groupSets << '\n';
+    cout << "setbuf            = " << setBuf << '\n';
+    cout << "nfileitertest     = " << nfileitertest << '\n';
     cout << "filetests         = " << filetests << '\n';
     cout << "dirtests          = " << dirtests << '\n';
-    cout << "testwritenfiles   = " << testwritenfiles << '\n';
-    cout << "testwritenfilesrn = " << testwritenfilesrn << '\n';
     cout << "testreadmf        = " << testreadmf << '\n';
+    for(int i(0); i < testWriteNFilesVersions.size(); ++i) {
+      cout << "testWriteNFilesVersions[" << i << "]    = " << testWriteNFilesVersions[i] << '\n';
+    }
     for(int i(0); i < readFANames.size(); ++i) {
       cout << "readFANames[" << i << "]    = " << readFANames[i] << '\n';
     }
@@ -198,7 +183,7 @@ int main(int argc, char *argv[]) {
 
   ParallelDescriptor::Barrier();
 
-  if(nfiletest) {
+  if(nfileitertest) {
     for(int itimes(0); itimes < ntimes; ++itimes) {
       if(ParallelDescriptor::IOProcessor()) {
         cout << endl << "--------------------------------------------------" << endl;
@@ -255,34 +240,36 @@ int main(int argc, char *argv[]) {
 
 
 
-  if(testwritenfiles) {
-    for(int itimes(0); itimes < ntimes; ++itimes) {
-      if(ParallelDescriptor::IOProcessor()) {
-        cout << endl << "--------------------------------------------------" << endl;
-        cout << "Testing NFiles Write" << endl;
-      }
-
-      TestWriteNFiles(nfiles, maxgrid, ncomps, nboxes, raninit, mb2);
-
-      if(ParallelDescriptor::IOProcessor()) {
-        cout << "==================================================" << endl;
-        cout << endl;
-      }
+  for(int v(0); v < testWriteNFilesVersions.size(); ++v) {
+    if(ParallelDescriptor::IOProcessor()) {
+      cout << "testWriteNFilesVersions[" << v << "] = " << testWriteNFilesVersions[v] << std::endl;
     }
-  }
+    VisMF::Header::Version hVersion;
+    switch(testWriteNFilesVersions[v]) {
+      case 1:
+        hVersion = VisMF::Header::Version_v1;
+      break;
+      case 2:
+        hVersion = VisMF::Header::NoFabHeader_v1;
+      break;
+      case 3:
+        hVersion = VisMF::Header::NoFabHeaderMinMax_v1;
+      break;
+      case 4:
+        hVersion = VisMF::Header::NoFabHeaderFAMinMax_v1;
+      break;
+      default:
+        BoxLib::Abort("**** Error:  bad hVersion.");
+      }
 
-
-
-
-  if(testwritenfilesrn) {
     for(int itimes(0); itimes < ntimes; ++itimes) {
       if(ParallelDescriptor::IOProcessor()) {
         cout << endl << "--------------------------------------------------" << endl;
-        cout << "Testing NFiles Raw Native Write" << endl;
+        cout << "Testing NFiles Write:  version = " << hVersion << endl;
       }
 
-      TestWriteNFilesNoFabHeader(nfiles, maxgrid, ncomps, nboxes, raninit, mb2,
-                                 hVersion, groupsets, setbuf);
+      TestWriteNFiles(nfiles, maxgrid, ncomps, nboxes, raninit, mb2,
+                      hVersion, groupSets, setBuf);
 
       if(ParallelDescriptor::IOProcessor()) {
         cout << "==================================================" << endl;
