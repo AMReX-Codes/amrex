@@ -172,7 +172,8 @@ class Box
 public:
     //
     // The default constructor.  For safety, the constructed Box is  
-    // invalid and may be tested for validity with ok().
+    // invalid and may be tested for validity with ok(). 
+    // DO NOT CHANGE THIS BEHAVIOR!
     //
     Box ();
     //
