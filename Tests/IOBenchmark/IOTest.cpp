@@ -237,7 +237,7 @@ void TestWriteNFiles(int nfiles, int maxgrid, int ncomps, int nboxes,
       mfName = "TestMFNoFabHeaderFAMinMax";
     break;
     default:
-      BoxLib::Abort("**** Error in TestWriteNFilesNoFabHeader:: bad version.");
+      BoxLib::Abort("**** Error in TestWriteNFiles:  bad version.");
   }
 
 
@@ -274,88 +274,6 @@ void TestWriteNFiles(int nfiles, int maxgrid, int ncomps, int nboxes,
     cout << "------------------------------------------" << endl;
   }
 }
-
-
-/*
-// -------------------------------------------------------------
-void TestWriteNFilesNoFabHeader(int nfiles, int maxgrid, int ncomps,
-                                int nboxes, bool raninit, bool mb2,
-			        VisMF::Header::Version whichVersion, bool groupSets,
-			        bool setBuf)
-{
-  VisMF::SetNOutFiles(nfiles);
-  if(mb2) {
-    bytesPerMB = pow(2.0, 20);
-  }
-
-  BoxArray bArray(MakeBoxArray(maxgrid, nboxes));
-  if(ParallelDescriptor::IOProcessor()) {
-    cout << "  Timings for writing to " << nfiles << " files:" << endl;
-  }
-
-  // make a MultiFab
-  MultiFab mfout(bArray, ncomps, 0);
-  for(MFIter mfiset(mfout); mfiset.isValid(); ++mfiset) {
-    for(int invar(0); invar < ncomps; ++invar) {
-      if(raninit) {
-        Real *dp = mfout[mfiset].dataPtr(invar);
-	for(int i(0); i < mfout[mfiset].box().numPts(); ++i) {
-	  dp[i] = BoxLib::Random() + (1.0 + static_cast<Real> (invar));
-	}
-      } else {
-        mfout[mfiset].setVal((100.0 * mfiset.index()) + invar, invar);
-      }
-    }
-  }
-
-  long npts(bArray[0].numPts());
-  long totalNBytes(npts * ncomps * nboxes *sizeof(Real));
-  std::string mfName;
-  switch(whichVersion) {
-    case VisMF::Header::NoFabHeader_v1:
-      mfName = "TestMFNoFabHeader";
-    break;
-    case VisMF::Header::NoFabHeaderMinMax_v1:
-      mfName = "TestMFNoFabHeaderMinMax";
-    break;
-    case VisMF::Header::NoFabHeaderFAMinMax_v1:
-      mfName = "TestMFNoFabHeaderFAMinMax";
-    break;
-    default:
-      BoxLib::Abort("**** Error in TestWriteNFilesNoFabHeader:: bad version.");
-  }
-
-  VisMF::RemoveFiles(mfName, true);
-
-  ParallelDescriptor::Barrier();
-  double wallTimeStart(ParallelDescriptor::second());
-
-  VisMF::Header::Version currentVersion(VisMF::GetHeaderVersion());
-  VisMF::SetHeaderVersion(whichVersion);
-  VisMF::WriteNoFabHeader(mfout, mfName, whichVersion, groupSets, setBuf); 
-  VisMF::SetHeaderVersion(currentVersion);
-
-  double wallTime(ParallelDescriptor::second() - wallTimeStart);
-
-  double wallTimeMax(wallTime);
-  double wallTimeMin(wallTime);
-
-  ParallelDescriptor::ReduceRealMin(wallTimeMin);
-  ParallelDescriptor::ReduceRealMax(wallTimeMax);
-  Real megabytes((static_cast<Real> (totalNBytes)) / bytesPerMB);
-
-  if(ParallelDescriptor::IOProcessor()) {
-    cout << std::setprecision(5);
-    cout << "------------------------------------------" << endl;
-    cout << "  Total megabytes = " << megabytes << endl;
-    cout << "  Write:  Megabytes/sec   = " << megabytes/wallTimeMax << endl;
-    cout << "  Wall clock time = " << wallTimeMax << endl;
-    cout << "  Min wall clock time = " << wallTimeMin << endl;
-    cout << "  Max wall clock time = " << wallTimeMax << endl;
-    cout << "------------------------------------------" << endl;
-  }
-}
-*/
 
 
 // -------------------------------------------------------------
