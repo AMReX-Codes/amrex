@@ -4535,7 +4535,7 @@ void
 FabArray<FAB>::EnforcePeriodicity (int scomp, int ncomp, const Periodicity& period, const Box& pbox)
 {
     BL_PROFILE("FabArray::EnforcePeriodicity");
-    FillBoundary_nowait(scomp, ncomp, period, false, pbox);
+    FBEP_nowait(scomp, ncomp, period, false, pbox);
     FillBoundary_finish();
 }
 
