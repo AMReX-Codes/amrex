@@ -1232,6 +1232,13 @@ BoxLib::intersect (const BoxArray& lhs,
     return BoxArray(bl);
 }
 
+BoxArray
+BoxLib::convert (const BoxArray& ba, IndexType typ)
+{
+    BoxArray ba2 = ba;
+    return ba2.convert(typ);
+}
+
 BoxList
 BoxLib::GetBndryCells (const BoxArray& ba,
                        int             ngrow)
