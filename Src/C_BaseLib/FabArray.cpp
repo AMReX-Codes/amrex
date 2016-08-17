@@ -839,13 +839,6 @@ FabArrayBase::FB::define_epo (const FabArrayBase& fa)
 	check_local = true;
     }
 
-    if (typ.cellCentered()) {
-	m_threadsafe_loc = true;
-	m_threadsafe_rcv = true;
-	check_local = false;
-	check_remote = false;
-    }
-    
     for (int i = 0; i < nlocal; ++i)
     {
 	const int   krcv = imap[i];
