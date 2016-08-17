@@ -823,3 +823,43 @@ iMultiFab::negate (const Box& region,
     }
 }
 
+void
+iMultiFab::buildMask (const Geometry& geom, int covered, int uncovered, int interior)
+{
+    int ncomp = this->nComp();
+
+    const FabArrayBase::FB& TheFB = this->getFB(geom.periodicity());
+
+    const CopyComTagsContainer&      LocTags = *(TheFB.m_LocTags);
+    const MapOfCopyComTagContainers& RcvTags = *(TheFB.m_RcvTags);
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(*this); mfi.isValid(); ++mfi) {
+	const Box& tbx = mfi.tilebox();
+	const Box& gbx = mfi.growntilebox();
+	(*this)[mfi].setVal(uncovered, gbx, 0, ncomp);
+	(*this)[mfi].setVal( interior, tbx, 0, ncomp);
+    }
+
+    int N_locs = LocTags.size();
+#ifdef _OPENMP
+#pragma omp parallel for if (TheFB.m_threadsafe_loc)
+#endif
+    for (int i = 0; i < N_locs; ++i) {
+	const CopyComTag& tag = LocTags[i];
+	(*this)[tag.dstIndex].setVal(covered, tag.dbox, 0, ncomp);
+    }
+
+    for (MapOfCopyComTagContainers::const_iterator it = RcvTags.begin(); it != RcvTags.end(); ++it) {
+	int N = it->second.size();
+#ifdef _OPENMP
+#pragma omp parallel for if (TheFB.m_threadsafe_rcv)
+#endif
+	for (int i = 0; i < N; ++i) {
+	    const CopyComTag& tag = it->second[i];
+	    (*this)[tag.dstIndex].setVal(covered, tag.dbox, 0, ncomp);
+	}
+    }
+}
