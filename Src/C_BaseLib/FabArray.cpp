@@ -619,7 +619,8 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa)
 	check_local = true;
     }
 
-    if (typ.cellCentered()) {
+    if (typ.cellCentered()) {  // The assumption here is the ba is nonoverlapping
+	BL_ASSERT(ba.isDisjoint());
 	m_threadsafe_loc = true;
 	m_threadsafe_rcv = true;
 	check_local = false;
