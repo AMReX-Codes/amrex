@@ -473,7 +473,7 @@ VisMF::GetFab (int fabIndex,
                int ncomp) const
 {
     if(m_pa[ncomp][fabIndex] == 0) {
-        m_pa[ncomp][fabIndex] = VisMF::readFAB(fabIndex,m_mfname,m_hdr,ncomp);
+        m_pa[ncomp][fabIndex] = VisMF::readFAB(fabIndex,m_fafabname,m_hdr,ncomp);
     }
     return *m_pa[ncomp][fabIndex];
 }
@@ -513,7 +513,7 @@ FArrayBox*
 VisMF::readFAB (int idx,
 		int ncomp)
 {
-    return VisMF::readFAB(idx,m_mfname,m_hdr,ncomp);
+    return VisMF::readFAB(idx,m_fafabname,m_hdr,ncomp);
 }
 
 std::string
@@ -1067,11 +1067,11 @@ VisMF::RemoveFiles(const std::string &mf_name, bool verbose)
 }
 
 
-VisMF::VisMF (const std::string &mf_name)
+VisMF::VisMF (const std::string &fafab_name)
     :
-    m_mfname(mf_name)
+    m_fafabname(fafab_name)
 {
-    std::string FullHdrFileName(m_mfname);
+    std::string FullHdrFileName(m_fafabname);
 
     FullHdrFileName += TheMultiFabHdrFileSuffix;
 
@@ -1306,12 +1306,15 @@ if(noFabHeader) {
       }
 
 
+      FabArray<FArrayBox> mfFileOrder;
+
       if(inFileOrder) {
         if(ParallelDescriptor::IOProcessor()) {
 	  std::cout << "OOOOOOOO:  inFileOrder" << std::endl;
 	}
       } else {
         BoxLib::Abort("**** Error:  not inFileOrder");
+        mfFileOrder.define(hdr.m_ba, hdr.m_ncomp, hdr.m_ngrow, Fab_allocate);
       }
 
     }
