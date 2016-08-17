@@ -86,6 +86,8 @@ namespace BoxLib
 	    
 	    if (sameba)
 	    {
+		// Note that when sameba is true mf's BoxArray is nonoverlapping.
+		// So FillBoundary is safe.
 		mf.FillBoundary(dcomp,ncomp,geom.periodicity());
 	    }
 	    else
