@@ -1315,62 +1315,6 @@ BoxLib::InterpFillFab (MultiFabCopyDescriptor& fabCopyDesc,
     }
 }
 
-#if 0
-void
-MultiFab::FillBoundary (int  scomp,
-                        int  ncomp,
-                        bool local,
-                        bool cross)
-{
-    if ( n_grow <= 0 ) return;
-
-    if ( local )
-    {
-        //
-        // Do what you can with the FABs you own.  No parallelism allowed.
-        //
-        const BoxArray&            ba     = boxArray();
-        const DistributionMapping& DMap   = DistributionMap();
-        const int                  MyProc = ParallelDescriptor::MyProc();
-
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-	{
-	    std::vector< std::pair<int,Box> > isects;
-
-	    for (MFIter mfi(*this); mfi.isValid(); ++mfi)
-	    {
-		const int i = mfi.index();
-		
-		ba.intersections((*this)[mfi].box(),isects);
-		
-		for (int ii = 0, N = isects.size(); ii < N; ii++)
-		{
-		    const Box& bx  = isects[ii].second;
-		    const int  iii = isects[ii].first;
-		    
-		    if (i != iii && DMap[iii] == MyProc)
-		    {
-			(*this)[mfi].copy((*this)[iii], bx, scomp, bx, scomp, ncomp);
-		    }
-		}
-            }
-        }
-    }
-    else
-    {
-        FabArray<FArrayBox>::FillBoundary(scomp,ncomp,cross);
-    }
-}
-
-void
-MultiFab::FillBoundary (bool local, bool cross)
-{
-    FillBoundary(0, n_comp, local, cross);
-}
-#endif
-
 //
 // Some useful typedefs.
 //

@@ -116,8 +116,7 @@ solve_with_hpgmg(MultiFab& rhs,
   MGDestroy(&MG_h); // destroys all but the finest grid
   destroy_level(&level_h); // destroys the finest grid
 
-  soln.FillBoundary();
-  geom.FillPeriodicBoundary(soln);
+  soln.FillBoundary(geom.periodicity());
 
   lap_operator.compFlux(grad_phi[0],grad_phi[1],grad_phi[2],soln);
 }

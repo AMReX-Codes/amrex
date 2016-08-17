@@ -51,10 +51,7 @@ static
 void advance (MultiFab* old_phi, MultiFab* new_phi, MultiFab* flux, Real* dx, Real dt, Geometry geom)
 {
   // Fill the ghost cells of each grid from the other grids
-  old_phi->FillBoundary();
-
-  // Fill periodic boundary ghost cells
-  geom.FillPeriodicBoundary(*old_phi);
+  old_phi->FillBoundary(geom.periodicity());
 
   int Ncomp = old_phi->nComp();
   int ng_p = old_phi->nGrow();

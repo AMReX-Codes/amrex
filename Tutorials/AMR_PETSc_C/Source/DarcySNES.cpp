@@ -736,12 +736,10 @@ DarcySNES::ComputeDarcyFlux(PArray<MFTower>& darcy_flux,
     const Geometry& geom = layout.GeomArray()[lev];
 
     MultiFab& smf = rhoSat[lev];
-    smf.FillBoundary(rsComp+rhoSat.BaseComp(),nComp);
-    geom.FillPeriodicBoundary(smf,rsComp+rhoSat.BaseComp(),nComp);
+    smf.FillBoundary(rsComp+rhoSat.BaseComp(),nComp, geom.periodicity());
 
     MultiFab& pmf = pressure[lev];
-    pmf.FillBoundary(pComp+pressure.BaseComp(),nComp);
-    geom.FillPeriodicBoundary(pmf,pComp+pressure.BaseComp(),nComp);
+    pmf.FillBoundary(pComp+pressure.BaseComp(),nComp, geom.periodicity());
   }
 
 
