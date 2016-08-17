@@ -1336,9 +1336,9 @@ MultiFab::SumBoundary (int scomp,
     // receive the m_SndTags, and invert the sense of fabIndex and srcIndex
     // in the CopyComTags.
     //
-    MultiFab&                 mf       = *this;
+    MultiFab& mf = *this;
 
-    const FabArrayBase::FB& TheFB = mf.getFB(false, Periodicity::NonPeriodic());
+    const FabArrayBase::FB& TheFB = mf.getFB(Periodicity::NonPeriodic());
 
     const CopyComTagsContainer&      LocTags = *(TheFB.m_LocTags);
     const MapOfCopyComTagContainers& SndTags = *(TheFB.m_RcvTags);

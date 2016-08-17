@@ -488,7 +488,7 @@ protected:
     static FBCache    m_TheFBCache;
     static CacheStats m_FBC_stats;
     //
-    const FB& getFB (bool cross, const Periodicity& period, bool enforce_periodicity_only = false) const;
+    const FB& getFB (const Periodicity& period, bool cross=false, bool enforce_periodicity_only = false) const;
     //
     void flushFB (bool no_assertion=false) const;       // This flushes its own FB.
     static void flushFBCache (); // This flushes the entire cache.
@@ -4560,7 +4560,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const Periodicity& period, boo
     }
     if (!work_to_do) return;
 
-    const FB& TheFB = getFB(cross, period, enforce_periodicity_only);
+    const FB& TheFB = getFB(period, cross, enforce_periodicity_only);
 
     if (ParallelDescriptor::NProcs() == 1)
     {
@@ -4847,7 +4847,7 @@ FabArray<FAB>::FillBoundary_finish ()
     BL_ASSERT(!ParallelDescriptor::MPIOneSided());
 #endif
 
-    const FB& TheFB = getFB(fb_cross,fb_period,fb_epo);
+    const FB& TheFB = getFB(fb_period,fb_cross,fb_epo);
 
     const int N_rcvs = TheFB.m_RcvTags->size();
     const int N_snds = TheFB.m_SndTags->size();

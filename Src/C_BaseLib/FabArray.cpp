@@ -995,7 +995,7 @@ FabArrayBase::flushFBCache ()
 }
 
 const FabArrayBase::FB&
-FabArrayBase::getFB (bool cross, const Periodicity& period, bool enforce_periodicity_only) const
+FabArrayBase::getFB (const Periodicity& period, bool cross, bool enforce_periodicity_only) const
 {
     BL_PROFILE("FabArrayBase::getFB()");
 
