@@ -57,10 +57,7 @@ extern "C" {
     void fi_multifab_fill_boundary (MultiFab* mf, const Geometry* geom, 
 				    int c, int nc, int cross)
     {
-	mf->FillBoundary_nowait(c, nc, cross);
-	geom->FillPeriodicBoundary_nowait(*mf, c, nc);
-	mf->FillBoundary_finish();
-	geom->FillPeriodicBoundary_finish(*mf);
+	mf->FillBoundary(c, nc, cross, geom.periodicity());
     }
 
     // MFIter routines
