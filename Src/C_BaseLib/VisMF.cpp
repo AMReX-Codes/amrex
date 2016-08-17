@@ -873,9 +873,9 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
     if(currentVersion == VisMF::Header::Version_v1) {
 
       for(NFilesIter nfi(nOutFiles, filePrefix, groupSets, setBuf); nfi.ReadyToWrite(); ++nfi) {
-        const std::string BName(NFilesIter::FileName(nOutFiles, filePrefix, myProc, groupSets));
+        const std::string fName(NFilesIter::FileName(nOutFiles, filePrefix, myProc, groupSets));
         for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
-          hdr.m_fod[mfi.index()] = VisMF::Write(mf[mfi],BName,nfi.Stream(),bytesWritten);
+          hdr.m_fod[mfi.index()] = VisMF::Write(mf[mfi], fName,nfi.Stream(), bytesWritten);
         }
       }
 
@@ -1001,7 +1001,7 @@ VisMF::FindOffsets (const FabArray<FArrayBox> &mf,
 	Array<std::streampos> currentOffset(nFiles, 0);
 
         if(hdr.m_vers == VisMF::Header::Version_v1) {
-	  for(int i(0); i < hdr.m_fod.size(); ++i) {
+	  for(int i(0); i < mfBA.size(); ++i) {
             std::stringstream hss;
 	    FArrayBox tempFab(mfBA[i], nComps, false);  // ---- no alloc
             fio.write_header(hss, tempFab, tempFab.nComp());
@@ -1009,14 +1009,24 @@ VisMF::FindOffsets (const FabArray<FArrayBox> &mf,
 	  }
 	}
 
-	for(int i(0); i < hdr.m_fod.size(); ++i) {
-	  whichProc = mfDM[i];
+	std::map<int, Array<int> > rankBoxOrder;  // ---- [rank, index]
+
+	for(int i(0); i < mfBA.size(); ++i) {
+	  rankBoxOrder[mfDM[i]].push_back(i);
+	}
+
+	std::map<int, Array<int> >::iterator rboIter;
+	for(rboIter = rankBoxOrder.begin(); rboIter != rankBoxOrder.end(); ++rboIter) {
+	  Array<int> &index = rboIter->second;
+	  whichProc = rboIter->first;
 	  whichFileNumber = NFilesIter::FileNumber(nFiles, whichProc, groupSets);
 	  whichFileName   = NFilesIter::FileName(nFiles, filePrefix, whichProc, groupSets);
-	  hdr.m_fod[i].m_name = whichFileName;
-	  hdr.m_fod[i].m_head = currentOffset[whichFileNumber];
-	  currentOffset[whichFileNumber] += mfBA[i].numPts() * nComps * whichRDBytes
-	                                    + fabHeaderBytes[i];
+	  for(int i(0); i < index.size(); ++i) {
+	    hdr.m_fod[index[i]].m_name = whichFileName;
+	    hdr.m_fod[index[i]].m_head = currentOffset[whichFileNumber];
+	    currentOffset[whichFileNumber] += mfBA[index[i]].numPts() * nComps * whichRDBytes
+	                                      + fabHeaderBytes[index[i]];
+	  }
 	}
       }
     
@@ -1169,7 +1179,6 @@ VisMF::readFAB (FabArray<FArrayBox>&            mf,
     if(hdr.m_fod[idx].m_head) {
         ifs.seekg(hdr.m_fod[idx].m_head, std::ios::beg);
     }
-
     fab.readFrom(ifs);
 
     ifs.close();
