@@ -2,11 +2,10 @@
 #ifndef BL_IMULTIFAB_H
 #define BL_IMULTIFAB_H
 
-#include <winstd.H>
-
 #include <BLassert.H>
 #include <IArrayBox.H>
 #include <FabArray.H>
+#include <Geometry.H>
 
 //
 // A Collection of IArrayBoxes
@@ -350,6 +349,11 @@ public:
 	return this->FabArray<IArrayBox>::get(mfi); } 
 
     IArrayBox& get (const MFIter& mfi) { return operator[](mfi); }
+
+    // covered: covered boundary cells
+    // uncovered: uncovered boundary cells
+    // interior: interior cells
+    void buildMask (const Geometry& geom, int covered, int uncovered, int interior);
 
     static void Initialize ();
     static void Finalize ();
