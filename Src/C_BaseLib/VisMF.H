@@ -30,7 +30,7 @@ public:
     // the entire FabArray is requested. The name here is the name of
     // the FabArray not the name of the on-disk files.
     //
-    explicit VisMF (const std::string& mf_name);
+    explicit VisMF (const std::string& fafab_name);
     //
     // A structure containing info regarding an on-disk FAB.
     //
@@ -76,11 +76,11 @@ public:
         //
         // Construct from a FabArray<FArrayBox>.
         //
-        Header (const FabArray<FArrayBox>& mf, VisMF::How how, Version version = Version_v1);
+        Header (const FabArray<FArrayBox>& fafab, VisMF::How how, Version version = Version_v1);
 	//
 	// Calculate the min and max arrays
 	//
-	void CalculateMinMax(const FabArray<FArrayBox>& mf);
+	void CalculateMinMax(const FabArray<FArrayBox>& fafab);
         //
         // The data.
         //
@@ -172,7 +172,7 @@ public:
     // one-half the average of the min and max over the valid region
     // of each contained FAB.
     //
-    static long Write (const FabArray<FArrayBox>&    mf,
+    static long Write (const FabArray<FArrayBox> &fafab,
                        const std::string& name,
                        VisMF::How         how = NFiles,
                        bool               set_ghost = false);
@@ -183,12 +183,12 @@ public:
 
     //
     // Read a FabArray<FArrayBox> from disk written using VisMF::Write().
-    // The FabArray<FArrayBox> mf must have been defined using the default
+    // The FabArray<FArrayBox> fafab must have been defined using the default
     // constructor.
     //
-    static void Read (FabArray<FArrayBox>&          mf,
-                      const std::string& name);
-    static void Check (const std::string& name);
+    static void Read (FabArray<FArrayBox> &fafab,
+                      const std::string &name);
+    static void Check (const std::string &name);
     //
     // We try to do I/O with buffers of this size.
     //
@@ -213,7 +213,7 @@ public:
     // Read the entire fab (all components).
     //
     FArrayBox* readFAB (int                fabIndex,
-                        const std::string& mfName);
+                        const std::string& fafabName);
     //
     // Read the specified fab component.
     //
@@ -253,11 +253,11 @@ private:
                             std::ostream&      os,
                             long&              bytes);
 
-    static long WriteHeader (const std::string& mf_name,
+    static long WriteHeader (const std::string& fafab_name,
                              VisMF::Header&     hdr);
 
-    static void FindOffsets (const FabArray<FArrayBox> &mf,
-			     const std::string& mf_name,
+    static void FindOffsets (const FabArray<FArrayBox> &fafab,
+			     const std::string &fafab_name,
                              VisMF::Header &hdr,
 			     bool groupSets,
 			     VisMF::Header::Version whichVersion);
@@ -267,20 +267,20 @@ private:
     // Otherwise read just that component.
     //
     static FArrayBox* readFAB (int                fabIndex,
-                               const std::string& mf_name,
+                               const std::string &fafab_name,
                                const Header&      hdr,
 			       int                ncomp = -1);
     //
-    // Read the whole FAB into mf[fabIndex]
+    // Read the whole FAB into fafab[fabIndex]
     //
-    static void readFAB (FabArray<FArrayBox>&          mf,
+    static void readFAB (FabArray<FArrayBox>&          fafab,
 			 int                fabIndex,
-			 const std::string& mf_name,
+			 const std::string& fafab_name,
 			 const Header&      hdr);
 
-    static void readFABNoFabHeader (FabArray<FArrayBox>&          mf,
+    static void readFABNoFabHeader (FabArray<FArrayBox>&          fafab,
 			            int                fabIndex,
-			            const std::string& mf_name,
+			            const std::string& fafab_name,
 			            const Header&      hdr);
 
     static std::string DirName (const std::string& filename);
@@ -289,7 +289,7 @@ private:
     //
     // Name of the FabArray<FArrayBox>.
     //
-    std::string m_mfname;
+    std::string m_fafabname;
     //
     // The VisMF header as read from disk.
     //
