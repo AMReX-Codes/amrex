@@ -1012,6 +1012,8 @@ public:
     // If the length of periodic is provided, periodic boundaries are
     // also filled.  Note that FabArray itself does not contains
     // any periodicity information.
+    // FillBoundary expects that its cell-centered version of its BoxArray 
+    // is non-overlapping.
     //
     void FillBoundary (bool cross = false);
     void FillBoundary (const Periodicity& period, bool cross = false);
