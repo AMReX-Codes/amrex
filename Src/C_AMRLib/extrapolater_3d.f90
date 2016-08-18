@@ -118,7 +118,7 @@ contains
                      +                         u(i+1,j,k+1,n) &
                      +        msk(i,j-1,k+1) * u(i,j-1,k+1,n) &
                      +        msk(i,j+1,k+1) * u(i,j+1,k+1,n)) / &
-                     (msk(i+1,j-1,k)+msk(i+1,j+1,k)+1+msk(i,j-1,k+1)+msk(i,j+1,k+1))
+                     (msk(i+1,j-1,k) + msk(i+1,j+1,k) + 1 + msk(i,j-1,k+1) + msk(i,j+1,k+1))
              end if
           end if
        end do
@@ -280,7 +280,7 @@ contains
                      +                       u(i,j+1,k,n) &
                      +        msk(i,j,k-1) * u(i,j,k-1,n) &
                      +        msk(i,j,k+1) * u(i,j,k+1,n)) / &
-                     (msk(i-1,j,k) + msk(i+1,j,k) + msk(i,j,k-1) + msk(i,j,k+1))
+                     (msk(i-1,j,k) + msk(i+1,j,k) + 1 + msk(i,j,k-1) + msk(i,j,k+1))
              end if
           end do
        end do
@@ -378,7 +378,6 @@ contains
                      +        msk(i,j,k-1) * u(i,j,k-1,n) &
                      +        msk(i,j,k+1) * u(i,j,k+1,n)) / &
                      (msk(i-1,j,k) + msk(i+1,j,k) + 1 + msk(i,j,k-1) + msk(i,j,k+1))
-                
              end if
           end do
        end do
@@ -447,10 +446,10 @@ contains
                   .or. msk(i,j,k-1) .eq. finecell) then
 
                 u(i,j,k,n) = (msk(i-1,j,k) * u(i-1,j,k,n) &
-                     +        msk(i+1,j,j) * u(i+1,j,k,n) &
+                     +        msk(i+1,j,k) * u(i+1,j,k,n) &
                      +        msk(i,j+1,k) * u(i,j+1,k,n) &
                      +        msk(i,j,k-1) * u(i,j,k-1,n)) &
-                     / (msk(i-1,j,k) + msk(i+1,j,j) + msk(i,j+1,k) + msk(i,j,k-1))
+                     / (msk(i-1,j,k) + msk(i+1,j,k) + msk(i,j+1,k) + msk(i,j,k-1))
              else
                 u(i,j,k,n) = (msk(i-1,j+1,k) * u(i-1,j+1,k,n) &
                      +        msk(i+1,j+1,k) * u(i+1,j+1,k,n) &
@@ -510,7 +509,7 @@ contains
                      +                         u(i+1,j,k-1,n) &
                      +        msk(i,j-1,k-1) * u(i,j-1,k-1,n) &
                      +        msk(i,j+1,k-1) * u(i,j+1,k-1,n)) / &
-                     (msk(i+1,j-1,k)+msk(i+1,j+1,k)+1+msk(i,j-1,k-1)+msk(i,j+1,k-1))
+                     (msk(i+1,j-1,k) + msk(i+1,j+1,k) + 1 + msk(i,j-1,k-1) + msk(i,j+1,k-1))
              end if                
           end if
        end do
@@ -551,7 +550,7 @@ contains
                      +                         u(i-1,j,k-1,n) &
                      +        msk(i,j-1,k-1) * u(i,j-1,k-1,n) &
                      +        msk(i,j+1,k-1) * u(i,j+1,k-1,n)) / &
-                     (msk(i-1,j-1,k)+msk(i-1,j+1,k)+1+msk(i,j-1,k-1)+msk(i,j+1,k-1))
+                     (msk(i-1,j-1,k) + msk(i-1,j+1,k) + 1 + msk(i,j-1,k-1) + msk(i,j+1,k-1))
              end if                                
           end if
        end do
