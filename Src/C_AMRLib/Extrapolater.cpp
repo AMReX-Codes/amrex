@@ -15,12 +15,14 @@ extern "C"
 
 namespace Extrapolater
 {
-    void FirstOrderExtrap (MultiFab& mf, int scomp, int ncomp, const iMultiFab& mask)
+    void FirstOrderExtrap (MultiFab& mf, const Geometry& geom, int scomp, int ncomp)
     {
 	BL_ASSERT(mf.nGrow() == 1);
-	BL_ASSERT(mask.nGrow() == 1);
 	BL_ASSERT(scomp >= 0);
 	BL_ASSERT(ncomp <= mf.nComp());
+
+	iMultiFab mask(mf.boxArray(), 1, 1, mf.DistributionMap());
+	mask.buildMask(geom, finebnd, crsebnd, physbnd, interior);
 
 	int N = mf.nComp();
 
