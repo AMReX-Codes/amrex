@@ -50,15 +50,15 @@ contains
        do i = lo(1), hi(1)
           if (msk(i,j,k) .eq. crsecell) then
              if (      msk(i-1,j,k) .eq. finecell &
-                  .or. msk(i+1,j,j) .eq. finecell &
+                  .or. msk(i+1,j,k) .eq. finecell &
                   .or. msk(i,j+1,k) .eq. finecell &
                   .or. msk(i,j,k+1) .eq. finecell) then
 
                 u(i,j,k,n) = (msk(i-1,j,k) * u(i-1,j,k,n) &
-                     +        msk(i+1,j,j) * u(i+1,j,k,n) &
+                     +        msk(i+1,j,k) * u(i+1,j,k,n) &
                      +        msk(i,j+1,k) * u(i,j+1,k,n) &
                      +        msk(i,j,k+1) * u(i,j,k+1,n)) &
-                     / (msk(i-1,j,k) + msk(i+1,j,j) + msk(i,j+1,k) + msk(i,j,k+1))
+                     / (msk(i-1,j,k) + msk(i+1,j,k) + msk(i,j+1,k) + msk(i,j,k+1))
              else
                 u(i,j,k,n) = (msk(i-1,j+1,k) * u(i-1,j+1,k,n) &
                      +        msk(i+1,j+1,k) * u(i+1,j+1,k,n) &
@@ -441,7 +441,7 @@ contains
        do i = lo(1), hi(1)
           if (msk(i,j,k) .eq. crsecell) then
              if (      msk(i-1,j,k) .eq. finecell &
-                  .or. msk(i+1,j,j) .eq. finecell &
+                  .or. msk(i+1,j,k) .eq. finecell &
                   .or. msk(i,j+1,k) .eq. finecell &
                   .or. msk(i,j,k-1) .eq. finecell) then
 
