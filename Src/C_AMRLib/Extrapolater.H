@@ -3,6 +3,7 @@
 
 #include <MultiFab.H>
 #include <iMultiFab.H>
+#include <Geometry.H>
 
 namespace Extrapolater
 {
@@ -15,7 +16,8 @@ namespace Extrapolater
     const int physbnd = 0;
     const int interior = 1;
 
-    void FirstOrderExtrap (MultiFab& mf, int scomp, int ncomp, const iMultiFab& mask);
+    // It is expected that FillBoundary (w/ periodicity) has been called on mf.
+    void FirstOrderExtrap (MultiFab& mf, const Geometry& geom, int scomp, int ncomp);
 }
 
 #endif
