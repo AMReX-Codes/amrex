@@ -1270,6 +1270,7 @@ if(noFabHeader) {
     //
     
     std::map<std::string, Array<FabReadLink> > FileReadChains;  // ---- [filename, chain]
+    std::map<std::string, Array<FabReadLink> > FileReadChainsSorted;  // ---- [filename, chain]
 
     int nBoxes(hdr.m_ba.size());
     for(int i(0); i < nBoxes; ++i) {   // ---- create the map
@@ -1278,13 +1279,17 @@ if(noFabHeader) {
       FileReadChains[fname].push_back(FabReadLink(whichProc, i, hdr.m_fod[i].m_head));
     }
 
-    //
-    // This code is only for reading in file order
-    //
+    // ---- This code is only for reading in file order
     bool inFileOrder(true);
     std::map<std::string, Array<FabReadLink> >::iterator frcIter;
     std::string readFileName;
     std::map<std::string, std::set<int> > readFileRanks;  // ---- [filename, ranks]
+
+    int indexFileOrder(0);
+    FabArray<FArrayBox> fafabFileOrder;
+    BoxArray baFileOrder(hdr.m_ba.size());
+    Array<int> ranksFileOrder(mf.DistributionMap().size());
+    ranksFileOrder[ranksFileOrder.size() - 1] = ParallelDescriptor::MyProc();
 
     for(frcIter = FileReadChains.begin(); frcIter != FileReadChains.end(); ++frcIter) {
       // ---- sort to rank ordering and compare with original
@@ -1301,23 +1306,46 @@ if(noFabHeader) {
 	{
 	  inFileOrder = false;
 	}
+        readFileRanks[fileName].insert(frcSorted[i].rankToRead);
 
-        readFileRanks[fileName].insert(frc[i].rankToRead);
-      }
+	ranksFileOrder[indexFileOrder] = frcSorted[i].rankToRead;
+	baFileOrder.set(indexFileOrder, hdr.m_ba[frcSorted[i].faIndex]);
 
-
-      FabArray<FArrayBox> mfFileOrder;
-
-      if(inFileOrder) {
         if(ParallelDescriptor::IOProcessor()) {
-	  std::cout << "OOOOOOOO:  inFileOrder" << std::endl;
-	}
-      } else {
-        BoxLib::Abort("**** Error:  not inFileOrder");
-        mfFileOrder.define(hdr.m_ba, hdr.m_ncomp, hdr.m_ngrow, Fab_allocate);
+          std::cout << fileName << " :: i rank index box = " << i << "  "
+	            << frcSorted[i].rankToRead << "  " << frcSorted[i].faIndex
+		    << "  " << hdr.m_ba[frcSorted[i].faIndex] << std::endl;
+        }
+        FileReadChainsSorted[fileName].push_back(FabReadLink(frcSorted[i].rankToRead,
+	                                                     indexFileOrder,
+							     frcSorted[i].fileOffset));
+	++indexFileOrder;
       }
-
     }
+
+    if(ParallelDescriptor::IOProcessor()) {
+      std::cout << std::endl;
+      for(int i(0); i < baFileOrder.size(); ++i) {
+        std::cout << " :::: i rank box = " << i << "  " << ranksFileOrder[i] << "  "
+		  << baFileOrder[i] << std::endl;
+      }
+      std::cout << std::endl;
+    }
+    DistributionMapping dmFileOrder(ranksFileOrder);
+
+    if(inFileOrder) {
+      if(ParallelDescriptor::IOProcessor()) {
+        std::cout << "OOOOOOOO:  inFileOrder" << std::endl;
+      }
+    } else {
+      // ---- make a temporary fabarray in file order
+      if(ParallelDescriptor::IOProcessor()) {
+        std::cout << "OOOOOOOO:  not inFileOrder" << std::endl;
+      }
+      fafabFileOrder.define(baFileOrder, hdr.m_ncomp, hdr.m_ngrow, dmFileOrder, Fab_allocate);
+    }
+
+    FabArray<FArrayBox> &whichFA = inFileOrder ? mf : fafabFileOrder;
 
     // ---- check that a rank only needs to read one file
     std::map<std::string, std::set<int> >::iterator rfrIter;
@@ -1325,13 +1353,13 @@ if(noFabHeader) {
 
     for(rfrIter = readFileRanks.begin(); rfrIter != readFileRanks.end(); ++rfrIter) {
       Array<int> readRanks;
-      //if(ParallelDescriptor::IOProcessor()) {
-        //std::cout << "rfrIter->first = " << rfrIter->first << std::endl;
-	//std::set<int> &rfrSet = rfrIter->second;
-        //for(setIter = rfrSet.begin(); setIter != rfrSet.end(); ++setIter) {
-          //std::cout << "rfrSetIter = " << *setIter << std::endl;
-	//}
-      //}
+      if(ParallelDescriptor::IOProcessor()) {
+        std::cout << "rfrIter->first = " << rfrIter->first << std::endl;
+	std::set<int> &rfrSet = rfrIter->second;
+        for(setIter = rfrSet.begin(); setIter != rfrSet.end(); ++setIter) {
+          std::cout << "rfrSetIter = " << *setIter << std::endl;
+	}
+      }
       std::set<int> &rfrSet = rfrIter->second;
       for(setIter = rfrSet.begin(); setIter != rfrSet.end(); ++setIter) {
         readRanks.push_back(*setIter);
@@ -1341,7 +1369,7 @@ if(noFabHeader) {
       if(rfrSet.find(myProc) != rfrSet.end()) {  // ---- myProc needs to read this file
 
         const std::string &fileName = rfrIter->first;
-	frcIter = FileReadChains.find(fileName);
+	frcIter = FileReadChainsSorted.find(fileName);
         Array<FabReadLink> &frc = frcIter->second;
         for(NFilesIter nfi(fileName, readRanks); nfi.ReadyToRead(); ++nfi) {
 	  for(int i(0); i < frc.size(); ++i) {
@@ -1349,7 +1377,10 @@ if(noFabHeader) {
 	      if(nfi.SeekPos() != frc[i].fileOffset) {
                 nfi.Stream().seekp(frc[i].fileOffset, std::ios::beg);
 	      }
-	      FArrayBox &fab = mf[frc[i].faIndex];
+	      std::cout << myProc << "::dm[fai] frc[i].faIndex = "
+	                << whichFA.DistributionMap()[frc[i].faIndex]
+			<< "  " << frc[i].faIndex << std::endl;
+	      FArrayBox &fab = whichFA[frc[i].faIndex];
               nfi.Stream().read((char *) fab.dataPtr(), fab.nBytes());
 	    }
 	  }
@@ -1358,6 +1389,9 @@ if(noFabHeader) {
       }
     }
 
+    if( ! inFileOrder) {
+      mf.copy(fafabFileOrder);
+    }
 
 } else {
 
