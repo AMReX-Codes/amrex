@@ -90,7 +90,7 @@ contains
        end do
 
        ! yhi, xhi
-       i = lo(1)+1
+       i = hi(1)+1
        j = hi(2)+1
        if (msk(i,j) .eq. crsecell) then
           if (msk(i-1,j).eq.finecell .or. msk(i,j-1).eq.finecell) then
