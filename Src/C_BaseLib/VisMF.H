@@ -188,6 +188,7 @@ public:
     //
     static void Read (FabArray<FArrayBox> &fafab,
                       const std::string &name);
+
     static void Check (const std::string &name);
     //
     // We try to do I/O with buffers of this size.
@@ -253,7 +254,7 @@ private:
                             std::ostream&      os,
                             long&              bytes);
 
-    static long WriteHeader (const std::string& fafab_name,
+    static long WriteHeader (const std::string &fafab_name,
                              VisMF::Header&     hdr);
 
     static void FindOffsets (const FabArray<FArrayBox> &fafab,
@@ -273,14 +274,14 @@ private:
     //
     // Read the whole FAB into fafab[fabIndex]
     //
-    static void readFAB (FabArray<FArrayBox>&          fafab,
+    static void readFAB (FabArray<FArrayBox> &fafab,
 			 int                fabIndex,
-			 const std::string& fafab_name,
+			 const std::string &fafab_name,
 			 const Header&      hdr);
 
-    static void readFABNoFabHeader (FabArray<FArrayBox>&          fafab,
-			            int                fabIndex,
-			            const std::string& fafab_name,
+    static void readFABNoFabHeader (FabArray<FArrayBox> &fafab,
+			            int                  fabIndex,
+			            const std::string   &fafab_name,
 			            const Header&      hdr);
 
     static std::string DirName (const std::string& filename);
