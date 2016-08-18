@@ -824,7 +824,7 @@ iMultiFab::negate (const Box& region,
 }
 
 void
-iMultiFab::buildMask (const Geometry& geom, int covered, int uncovered, int interior)
+iMultiFab::buildMask (const Geometry& geom, int finebnd, int crsebnd, int physbnd, int interior)
 {
     int ncomp = this->nComp();
 
@@ -833,14 +833,23 @@ iMultiFab::buildMask (const Geometry& geom, int covered, int uncovered, int inte
     const CopyComTagsContainer&      LocTags = *(TheFB.m_LocTags);
     const MapOfCopyComTagContainers& RcvTags = *(TheFB.m_RcvTags);
 
+    const Box& domain = BoxLib::convert(geom.Domain(), boxArray().ixType());
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for (MFIter mfi(*this); mfi.isValid(); ++mfi) {
+    for (MFIter mfi(*this); mfi.isValid(); ++mfi)
+    {
+	IArrayBox& fab = (*this)[mfi];
+
+	Box gbx = mfi.growntilebox();
+	fab.setVal(physbnd, gbx, 0, ncomp);
+
+	gbx &= domain;
+	fab.setVal(crsebnd, gbx, 0, ncomp);
+
 	const Box& tbx = mfi.tilebox();
-	const Box& gbx = mfi.growntilebox();
-	(*this)[mfi].setVal(uncovered, gbx, 0, ncomp);
-	(*this)[mfi].setVal( interior, tbx, 0, ncomp);
+	fab.setVal(interior, tbx, 0, ncomp);
     }
 
     int N_locs = LocTags.size();
@@ -849,7 +858,7 @@ iMultiFab::buildMask (const Geometry& geom, int covered, int uncovered, int inte
 #endif
     for (int i = 0; i < N_locs; ++i) {
 	const CopyComTag& tag = LocTags[i];
-	(*this)[tag.dstIndex].setVal(covered, tag.dbox, 0, ncomp);
+	(*this)[tag.dstIndex].setVal(finebnd, tag.dbox, 0, ncomp);
     }
 
     for (MapOfCopyComTagContainers::const_iterator it = RcvTags.begin(); it != RcvTags.end(); ++it) {
@@ -859,7 +868,7 @@ iMultiFab::buildMask (const Geometry& geom, int covered, int uncovered, int inte
 #endif
 	for (int i = 0; i < N; ++i) {
 	    const CopyComTag& tag = it->second[i];
-	    (*this)[tag.dstIndex].setVal(covered, tag.dbox, 0, ncomp);
+	    (*this)[tag.dstIndex].setVal(finebnd, tag.dbox, 0, ncomp);
 	}
     }
 }

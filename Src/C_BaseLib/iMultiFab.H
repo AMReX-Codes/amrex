@@ -350,10 +350,11 @@ public:
 
     IArrayBox& get (const MFIter& mfi) { return operator[](mfi); }
 
-    // covered: covered boundary cells
-    // uncovered: uncovered boundary cells
+    // finebnd: boundary cells covered by fine cells (including periodically shifted fine cells)
+    // crsebnd: boundary cells not covered by fine cells
+    // physbnd: boundary cells outside the domain (excluding periodic boundaries)
     // interior: interior cells
-    void buildMask (const Geometry& geom, int covered, int uncovered, int interior);
+    void buildMask (const Geometry& geom, int finebnd, int crsebnd, int physbnd, int interior);
 
     static void Initialize ();
     static void Finalize ();
