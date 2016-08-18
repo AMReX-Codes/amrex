@@ -1229,7 +1229,10 @@ VisMF::Read (FabArray<FArrayBox> &mf,
     BL_PROFILE("VisMF::Read()");
 
     VisMF::Header hdr;
-    Real hEndTime, hStartTime;
+    Real hEndTime, hStartTime, faCopyTime(0.0);
+    Real startTime(ParallelDescriptor::second());
+    int nOpensPerFile(nMFFileInStreams), messTotal(0);
+    static Real totalTime(0.0);
 
     if(verbose && ParallelDescriptor::IOProcessor()) {
       std::cout << "VisMF::Read:  about to read:  " << mf_name << std::endl;
@@ -1311,11 +1314,6 @@ if(noFabHeader) {
 	ranksFileOrder[indexFileOrder] = frcSorted[i].rankToRead;
 	baFileOrder.set(indexFileOrder, hdr.m_ba[frcSorted[i].faIndex]);
 
-        if(ParallelDescriptor::IOProcessor()) {
-          std::cout << fileName << " :: i rank index box = " << i << "  "
-	            << frcSorted[i].rankToRead << "  " << frcSorted[i].faIndex
-		    << "  " << hdr.m_ba[frcSorted[i].faIndex] << std::endl;
-        }
         FileReadChainsSorted[fileName].push_back(FabReadLink(frcSorted[i].rankToRead,
 	                                                     indexFileOrder,
 							     frcSorted[i].fileOffset));
@@ -1323,14 +1321,6 @@ if(noFabHeader) {
       }
     }
 
-    if(ParallelDescriptor::IOProcessor()) {
-      std::cout << std::endl;
-      for(int i(0); i < baFileOrder.size(); ++i) {
-        std::cout << " :::: i rank box = " << i << "  " << ranksFileOrder[i] << "  "
-		  << baFileOrder[i] << std::endl;
-      }
-      std::cout << std::endl;
-    }
     DistributionMapping dmFileOrder(ranksFileOrder);
 
     if(inFileOrder) {
@@ -1339,9 +1329,6 @@ if(noFabHeader) {
       }
     } else {
       // ---- make a temporary fabarray in file order
-      if(ParallelDescriptor::IOProcessor()) {
-        std::cout << "OOOOOOOO:  not inFileOrder" << std::endl;
-      }
       fafabFileOrder.define(baFileOrder, hdr.m_ncomp, hdr.m_ngrow, dmFileOrder, Fab_allocate);
     }
 
@@ -1353,13 +1340,6 @@ if(noFabHeader) {
 
     for(rfrIter = readFileRanks.begin(); rfrIter != readFileRanks.end(); ++rfrIter) {
       Array<int> readRanks;
-      if(ParallelDescriptor::IOProcessor()) {
-        std::cout << "rfrIter->first = " << rfrIter->first << std::endl;
-	std::set<int> &rfrSet = rfrIter->second;
-        for(setIter = rfrSet.begin(); setIter != rfrSet.end(); ++setIter) {
-          std::cout << "rfrSetIter = " << *setIter << std::endl;
-	}
-      }
       std::set<int> &rfrSet = rfrIter->second;
       for(setIter = rfrSet.begin(); setIter != rfrSet.end(); ++setIter) {
         readRanks.push_back(*setIter);
@@ -1377,9 +1357,6 @@ if(noFabHeader) {
 	      if(nfi.SeekPos() != frc[i].fileOffset) {
                 nfi.Stream().seekp(frc[i].fileOffset, std::ios::beg);
 	      }
-	      std::cout << myProc << "::dm[fai] frc[i].faIndex = "
-	                << whichFA.DistributionMap()[frc[i].faIndex]
-			<< "  " << frc[i].faIndex << std::endl;
 	      FArrayBox &fab = whichFA[frc[i].faIndex];
               nfi.Stream().read((char *) fab.dataPtr(), fab.nBytes());
 	    }
@@ -1390,7 +1367,9 @@ if(noFabHeader) {
     }
 
     if( ! inFileOrder) {
+      faCopyTime = ParallelDescriptor::second();
       mf.copy(fafabFileOrder);
+      faCopyTime = ParallelDescriptor::second() - faCopyTime;
     }
 
 } else {
@@ -1398,8 +1377,6 @@ if(noFabHeader) {
     //
     // Here we limit the number of open files when reading a multifab.
     //
-    Real startTime(ParallelDescriptor::second());
-    static Real totalTime(0.0);
     int nReqs(0), ioProcNum(ParallelDescriptor::IOProcessorNumber());
     int myProc(ParallelDescriptor::MyProc());
     int nBoxes(hdr.m_ba.size());
@@ -1409,7 +1386,7 @@ if(noFabHeader) {
     std::set<int> busyProcs;  // [whichProc]
     std::map<std::string, int> fileNames;  // <filename, allreadsindex>
     std::multiset<int> availableFiles;  // [whichFile]  supports multiple reads/file
-    int nOpensPerFile(nMFFileInStreams), allReadsIndex(0), messTotal(0);
+    int allReadsIndex(0);
     ParallelDescriptor::Message rmess;
     Array<std::map<int,std::map<int,int> > > allReads; // [file]<proc,<seek,index>>
     Array<std::ifstream *> dataStreams;        // ---- persistent streams
@@ -1565,23 +1542,20 @@ if(noFabHeader) {
     }
 
 
-    ParallelDescriptor::Barrier("VisMF::Read");
+    //ParallelDescriptor::Barrier("VisMF::Read");
+}
 
     bool reportMFReadStats(true);
     if(ParallelDescriptor::IOProcessor() && reportMFReadStats) {
       Real mfReadTime = ParallelDescriptor::second() - startTime;
       totalTime += mfReadTime;
-      std::cout << "MFRead:::  nBoxes = "
-                << nBoxes
-                << "  nMessages = "
-                << messTotal << '\n';
-      std::cout << "MFRead:::  hTime = " << (hEndTime - hStartTime) << '\n';
-      std::cout << "MFRead:::  mfReadTime = "
-                << mfReadTime
-                << "  totalTime = "
-                << totalTime << std::endl;
+      std::cout << "FARead ::  nBoxes = " << hdr.m_ba.size()
+                << "  nMessages = " << messTotal << '\n';
+      std::cout << "FARead ::  hTime = " << (hEndTime - hStartTime) << '\n';
+      std::cout << "FARead ::  faCopyTime = " << faCopyTime << '\n';
+      std::cout << "FARead ::  mfReadTime = " << mfReadTime
+                << "  totalTime = " << totalTime << std::endl;
     }
-}
 
 #else
     for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
