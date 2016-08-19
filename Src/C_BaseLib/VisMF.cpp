@@ -1022,7 +1022,7 @@ VisMF::FindOffsets (const FabArray<FArrayBox> &mf,
 	  whichFileNumber = NFilesIter::FileNumber(nFiles, whichProc, groupSets);
 	  whichFileName   = NFilesIter::FileName(nFiles, filePrefix, whichProc, groupSets);
 	  for(int i(0); i < index.size(); ++i) {
-	    hdr.m_fod[index[i]].m_name = whichFileName;
+	    hdr.m_fod[index[i]].m_name = VisMF::BaseName(whichFileName);
 	    hdr.m_fod[index[i]].m_head = currentOffset[whichFileNumber];
 	    currentOffset[whichFileNumber] += mfBA[index[i]].numPts() * nComps * whichRDBytes
 	                                      + fabHeaderBytes[index[i]];
