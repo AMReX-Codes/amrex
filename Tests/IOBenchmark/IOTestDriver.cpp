@@ -56,6 +56,7 @@ static void PrintUsage(const char *progName) {
     cout << "   [testwritenfiles   = versions ]" << '\n';
     cout << "   [testreadmf        = tf       ]" << '\n';
     cout << "   [readFANames       = fanames  ]" << '\n';
+    cout << "   [nreadstreams      = nrs      ]" << '\n';
     cout << '\n';
     cout << "Running with default values." << '\n';
     cout << '\n';
@@ -86,6 +87,7 @@ int main(int argc, char *argv[]) {
   bool testreadmf(false);
   Array<int> testWriteNFilesVersions;
   Array<std::string> readFANames;
+  int nReadStreams(1);
 
 
   pp.query("nfiles", nfiles);
@@ -127,6 +129,8 @@ int main(int argc, char *argv[]) {
   if(nNames > 0) {
     pp.getarr("readfanames", readFANames, 0, nNames);
   }
+  pp.query("nreadstreams", nReadStreams);
+  nReadStreams = std::max(1, nReadStreams);
 
 
   if(ParallelDescriptor::IOProcessor()) {
@@ -154,6 +158,7 @@ int main(int argc, char *argv[]) {
     for(int i(0); i < readFANames.size(); ++i) {
       cout << "readFANames[" << i << "]    = " << readFANames[i] << '\n';
     }
+    cout << "nreadstreams      = " << nReadStreams << '\n';
 
     cout << '\n';
     cout << "sizeof(int) = " << sizeof(int) << '\n';
@@ -281,6 +286,7 @@ int main(int argc, char *argv[]) {
 
 
   if(testreadmf) {
+    VisMF::SetMFFileInStreams(nReadStreams);
     for(int itimes(0); itimes < ntimes; ++itimes) {
       if(ParallelDescriptor::IOProcessor()) {
         cout << endl << "++++++++++++++++++++++++++++++++++++++++++++++++++" << endl;

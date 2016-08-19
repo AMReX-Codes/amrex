@@ -1,7 +1,7 @@
 nfiles        = 4
 maxgrid       = 64
-ncomps        = 4
-nboxes        = 32
+ncomps        = 1
+nboxes        = 64
 ntimes        = 1
 raninit       = false
 mb2           = true
@@ -17,7 +17,14 @@ testreadmf        = true
 groupsets     = false
 setbuf        = true
 
+nreadstreams  = 1
+
+testwritenfiles = 1
+testwritenfiles = 2
 testwritenfiles = 1 2 3 4
 
-#readfanames = TestMF TestMFNoFabHeader
+readfanames = TestMF TestMFNoFabHeader
+readfanames = TestMF
+readfanames = TestMFNoFabHeader
 readfanames = TestMF TestMFNoFabHeader TestMFNoFabHeaderMinMax TestMFNoFabHeaderFAMinMax
+
