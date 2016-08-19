@@ -355,26 +355,13 @@ AmrLevel::checkPoint (const std::string& dir,
     // Build directory to hold the MultiFabs in the StateData at this level.
     // The directory is relative the the directory containing the Header file.
     //
-    std::string Level = BoxLib::Concatenate("Level_", level, 1);
-    //
-    // Now for the full pathname of that directory.
-    //
-    std::string FullPath = dir;
-    if (!FullPath.empty() && FullPath[FullPath.length()-1] != '/')
-    {
-        FullPath += '/';
+    std::string LevelDir, FullPath;
+    LevelDirectoryNames(dir, LevelDir, FullPath);
+    if( ! levelDirectoryCreated) {
+      CreateLevelDirectory(dir);
+      // ---- Force other processors to wait until directory is built.
+      ParallelDescriptor::Barrier("AmrLevel::checkPoint::dir");
     }
-    FullPath += Level;
-    //
-    // Only the I/O processor makes the directory if it doesn't already exist.
-    //
-    if (ParallelDescriptor::IOProcessor())
-        if (!BoxLib::UtilCreateDirectory(FullPath, 0755))
-            BoxLib::CreateDirectoryFailed(FullPath);
-    //
-    // Force other processors to wait till directory is built.
-    //
-    ParallelDescriptor::Barrier("AmrLevel::checkPoint::dir");
 
     if (ParallelDescriptor::IOProcessor())
     {
@@ -395,11 +382,13 @@ AmrLevel::checkPoint (const std::string& dir,
         //
         // There is only one MultiFab written out at each level in HyperCLaw.
         //
-        std::string PathNameInHdr = BoxLib::Concatenate(Level    + "/SD_", i, 1);
+        std::string PathNameInHdr = BoxLib::Concatenate(LevelDir + "/SD_", i, 1);
         std::string FullPathName  = BoxLib::Concatenate(FullPath + "/SD_", i, 1);
 
         state[i].checkPoint(PathNameInHdr, FullPathName, os, how, dump_old);
     }
+
+    levelDirectoryCreated = false;  // ---- now that the checkpoint is finished
 }
 
 AmrLevel::~AmrLevel ()
@@ -2007,6 +1996,11 @@ AmrLevel::AddProcsToComp(Amr *aptr, int nSidecarProcs, int prevSidecarProcs,
       for(int i(0); i < state.size(); ++i) {
         state[i].AddProcsToComp(desc_lst[i], ioProcNumSCS, ioProcNumAll, scsMyId, scsComm);
       }
+
+      // ---- bools
+      int ldc(levelDirectoryCreated);
+      ParallelDescriptor::Bcast(&ldc, 1, ioProcNumAll, scsComm);
+      levelDirectoryCreated = ldc;
 #endif
 }
 
@@ -2019,5 +2013,42 @@ AmrLevel::Check() const
       state[i].Check();
     }
 }
+
+
+void
+AmrLevel::LevelDirectoryNames(const std::string &dir,
+                              std::string &LevelDir,
+			      std::string &FullPath)
+{
+    LevelDir = BoxLib::Concatenate("Level_", level, 1);
+    //
+    // Now for the full pathname of that directory.
+    //
+    FullPath = dir;
+    if( ! FullPath.empty() && FullPath[FullPath.length()-1] != '/')
+    {
+        FullPath += '/';
+    }
+    FullPath += LevelDir;
+}
+
+void
+AmrLevel::CreateLevelDirectory (const std::string &dir)
+{
+    // Build directory to hold the MultiFabs in the StateData at this level.
+    // The directory is relative the the directory containing the Header file.
+
+    std::string LevelDir, FullPath;
+    LevelDirectoryNames(dir, LevelDir, FullPath);
+
+    if(ParallelDescriptor::IOProcessor()) {
+      if( ! BoxLib::UtilCreateDirectory(FullPath, 0755)) {
+        BoxLib::CreateDirectoryFailed(FullPath);
+      }
+    }
+
+    levelDirectoryCreated = true;
+}
+
 
 

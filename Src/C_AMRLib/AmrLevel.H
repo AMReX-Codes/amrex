@@ -48,6 +48,14 @@ public:
     //
     virtual ~AmrLevel ();
     //
+    // Get the level direcotory names
+    // Create the Level_ directory for checkpoint and plot files
+    //
+    virtual void LevelDirectoryNames (const std::string &dir,
+                                      std::string &LevelDir,
+                                      std::string &FullPath);
+    virtual void CreateLevelDirectory (const std::string &dir);
+    //
     // A string written as the first item in writePlotFile() at
     // level zero. This MUST be defined by each derived class.
     // It is so we can distinguish between different types of
@@ -501,6 +509,8 @@ private:
 
     mutable BoxArray      edge_grids[BL_SPACEDIM];  // face-centered grids
     mutable BoxArray      nodal_grids;              // all nodal grids
+
+    bool                  levelDirectoryCreated;    // for checkpoints and plotfiles
 
     //
     // Disallowed.

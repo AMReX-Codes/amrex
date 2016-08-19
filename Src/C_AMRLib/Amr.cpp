@@ -66,6 +66,7 @@ std::list<std::string> Amr::state_small_plot_vars;
 std::list<std::string> Amr::derive_plot_vars;
 bool                   Amr::first_plotfile;
 bool                   Amr::first_smallplotfile;
+bool                   Amr::precreateDirectories;
 Array<BoxArray>        Amr::initial_ba;
 Array<BoxArray>        Amr::regrid_ba;
 bool                   Amr::useFixedCoarseGrids;
@@ -107,6 +108,7 @@ Amr::Initialize ()
     //
     Amr::first_plotfile      = true;
     Amr::first_smallplotfile = true;
+    Amr::precreateDirectories= true;
     plot_nfiles              = 64;
     mffile_nstreams          = 1;
     probinit_natonce         = 32;
@@ -1716,7 +1718,9 @@ Amr::restart (const std::string& filename)
 void
 Amr::checkPoint ()
 {
-    if ( ! checkpoint_files_output) return;
+    if( ! checkpoint_files_output) {
+      return;
+    }
 
     BL_PROFILE_REGION_START("Amr::checkPoint()");
     BL_PROFILE("Amr::checkPoint()");
@@ -1733,11 +1737,13 @@ Amr::checkPoint ()
 
     const std::string& ckfile = BoxLib::Concatenate(check_file_root,level_steps[0],file_name_digits);
 
-    if (verbose > 0 && ParallelDescriptor::IOProcessor())
+    if(verbose > 0 && ParallelDescriptor::IOProcessor()) {
         std::cout << "CHECKPOINT: file = " << ckfile << std::endl;
+    }
 
-    if (record_run_info && ParallelDescriptor::IOProcessor())
+    if(record_run_info && ParallelDescriptor::IOProcessor()) {
         runlog << "CHECKPOINT: file = " << ckfile << '\n';
+    }
 
 
   BoxLib::StreamRetry sretry(ckfile, abort_on_stream_retry_failure,
@@ -1753,8 +1759,18 @@ Amr::checkPoint ()
     //  it is finished writing.  then stream retry can rename
     //  it to a bad suffix if there were stream errors.
     //
-    BoxLib::UtilRenameDirectoryToOld(ckfile, false);     // dont call barrier
-    BoxLib::UtilCreateCleanDirectory(ckfileTemp, true);  // call barrier
+
+    if(precreateDirectories) {    // ---- make all directories at once
+      BoxLib::UtilRenameDirectoryToOld(ckfile, false);      // dont call barrier
+      BoxLib::UtilCreateCleanDirectory(ckfileTemp, false);  // dont call barrier
+      for(int i(0); i <= finest_level; ++i) {
+        amr_level[i].CreateLevelDirectory(ckfileTemp);
+      }
+      ParallelDescriptor::Barrier("Amr::precreateDirectories");
+    } else {
+      BoxLib::UtilRenameDirectoryToOld(ckfile, false);     // dont call barrier
+      BoxLib::UtilCreateCleanDirectory(ckfileTemp, true);  // call barrier
+    }
 
     std::string HeaderFileName = ckfileTemp + "/Header";
 
@@ -1803,15 +1819,16 @@ Amr::checkPoint ()
         HeaderFile << '\n';
     }
 
-    for (i = 0; i <= finest_level; ++i)
+    for(i = 0; i <= finest_level; ++i) {
         amr_level[i].checkPoint(ckfileTemp, HeaderFile);
+    }
 
-    if (ParallelDescriptor::IOProcessor())
-    {
+    if(ParallelDescriptor::IOProcessor()) {
         HeaderFile.precision(old_prec);
 
-        if ( ! HeaderFile.good())
+        if( ! HeaderFile.good()) {
             BoxLib::Error("Amr::checkpoint() failed");
+	}
     }
 
     last_checkpoint = level_steps[0];
@@ -1830,8 +1847,9 @@ Amr::checkPoint ()
         ParallelDescriptor::ReduceRealMax(dCheckPointTime,
 	                            ParallelDescriptor::IOProcessorNumber());
 
-        if (ParallelDescriptor::IOProcessor())
+        if(ParallelDescriptor::IOProcessor()) {
             std::cout << "checkPoint() time = " << dCheckPointTime << " secs." << '\n';
+	}
     }
     ParallelDescriptor::Barrier("Amr::checkPoint::end");
 
@@ -1843,7 +1861,7 @@ Amr::checkPoint ()
   }  // end while
 
   //
-  // Don't forget to reset FAB format.
+  // Restore the previous FAB format.
   //
   FArrayBox::setFormat(thePrevFormat);
 
@@ -3489,6 +3507,8 @@ Amr::initPltAndChk ()
     abort_on_stream_retry_failure = false;
     pp.query("abort_on_stream_retry_failure",abort_on_stream_retry_failure);
 
+    precreateDirectories = true;
+    pp.query("precreateDirectories", precreateDirectories);
 }
 
 
@@ -3928,6 +3948,7 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
         allBools.push_back(initialized);
         allBools.push_back(useFixedCoarseGrids);
         allBools.push_back(first_smallplotfile);
+        allBools.push_back(precreateDirectories);
 
 	allBoolsSize = allBools.size();
       }
@@ -3949,6 +3970,7 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
         initialized                   = allBools[count++];
         useFixedCoarseGrids           = allBools[count++];
         first_smallplotfile           = allBools[count++];
+        precreateDirectories          = allBools[count++];
       }
 
 
