@@ -1267,12 +1267,10 @@ VisMF::Read (FabArray<FArrayBox> &mf,
 
 if(noFabHeader) {
 
-    //
-    // Create an ordered map of which processors read which
-    // Fabs in each file
-    //
+    // ---- Create an ordered map of which processors read which
+    // ---- Fabs in each file
     
-    std::map<std::string, Array<FabReadLink> > FileReadChains;  // ---- [filename, chain]
+    std::map<std::string, Array<FabReadLink> > FileReadChains;        // ---- [filename, chain]
     std::map<std::string, Array<FabReadLink> > FileReadChainsSorted;  // ---- [filename, chain]
 
     int nBoxes(hdr.m_ba.size());
@@ -1339,28 +1337,48 @@ if(noFabHeader) {
     std::set<int>::iterator setIter;
 
     for(rfrIter = readFileRanks.begin(); rfrIter != readFileRanks.end(); ++rfrIter) {
-      Array<int> readRanks;
-      std::set<int> &rfrSet = rfrIter->second;
-      for(setIter = rfrSet.begin(); setIter != rfrSet.end(); ++setIter) {
-        readRanks.push_back(*setIter);
+      std::set<int> &rfrSplitSet = rfrIter->second;
+      if(rfrSplitSet.size() == 0) {
+        continue;
+      }
+      // ---- split the set into nstreams sets
+      int ssSize(rfrSplitSet.size());
+      int nStreams(std::min(ssSize, nOpensPerFile));
+      int ranksPerStream(ssSize / nStreams); // ---- plus some remainder... 
+      Array<std::set<int> > streamSets(nStreams);
+      int sIndex(0), sCount(0);
+      for(setIter = rfrSplitSet.begin(); setIter != rfrSplitSet.end(); ++setIter) {
+        streamSets[sIndex].insert(*setIter);
+	if(++sCount >= ranksPerStream) {
+	  sCount = 0;
+	  ++sIndex;
+	  sIndex = std::min(sIndex, streamSets.size() - 1);
+	}
       }
 
-      const int myProc(ParallelDescriptor::MyProc());
-      if(rfrSet.find(myProc) != rfrSet.end()) {  // ---- myProc needs to read this file
+      for(int iSet(0); iSet < streamSets.size(); ++iSet) {
+        Array<int> readRanks;
+        std::set<int> &rfrSet = streamSets[iSet];
+        for(setIter = rfrSet.begin(); setIter != rfrSet.end(); ++setIter) {
+          readRanks.push_back(*setIter);
+        }
 
-        const std::string &fileName = rfrIter->first;
-	frcIter = FileReadChainsSorted.find(fileName);
-        Array<FabReadLink> &frc = frcIter->second;
-        for(NFilesIter nfi(fileName, readRanks); nfi.ReadyToRead(); ++nfi) {
-	  for(int i(0); i < frc.size(); ++i) {
-	    if(myProc == frc[i].rankToRead) {
-	      if(nfi.SeekPos() != frc[i].fileOffset) {
-                nfi.Stream().seekp(frc[i].fileOffset, std::ios::beg);
+        const int myProc(ParallelDescriptor::MyProc());
+        if(rfrSet.find(myProc) != rfrSet.end()) {  // ---- myProc needs to read this file
+          const std::string &fileName = rfrIter->first;
+	  frcIter = FileReadChainsSorted.find(fileName);
+          Array<FabReadLink> &frc = frcIter->second;
+          for(NFilesIter nfi(fileName, readRanks); nfi.ReadyToRead(); ++nfi) {
+	    for(int i(0); i < frc.size(); ++i) {
+	      if(myProc == frc[i].rankToRead) {
+	        if(nfi.SeekPos() != frc[i].fileOffset) {
+                  nfi.Stream().seekp(frc[i].fileOffset, std::ios::beg);
+	        }
+	        FArrayBox &fab = whichFA[frc[i].faIndex];
+                nfi.Stream().read((char *) fab.dataPtr(), fab.nBytes());
 	      }
-	      FArrayBox &fab = whichFA[frc[i].faIndex];
-              nfi.Stream().read((char *) fab.dataPtr(), fab.nBytes());
 	    }
-	  }
+          }
         }
 
       }
