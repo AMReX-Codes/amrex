@@ -800,14 +800,17 @@ FabArrayBase::FB::define_epo (const FabArrayBase& fa)
     for (int i = 0; i < nlocal; ++i)
     {
 	const int ksnd = imap[i];
-	const Box& vbx = ba[ksnd];
-	
+	Box bxsnd = BoxLib::grow(ba[ksnd],ng);
+	bxsnd &= pdomain;
+
+	if (!bxsnd.ok()) continue;
+
 	for (std::vector<IntVect>::const_iterator pit=pshifts.begin(); pit!=pshifts.end(); ++pit)
 	{
 	    if (*pit != IntVect::TheZeroVector())
 	    {
-		ba.intersections(vbx+(*pit), isects, false, ng);
-
+		ba.intersections(bxsnd+(*pit), isects, false, ng);
+		
 		for (int j = 0, M = isects.size(); j < M; ++j)
 		{
 		    const int krcv      = isects[j].first;
@@ -818,8 +821,9 @@ FabArrayBase::FB::define_epo (const FabArrayBase& fa)
 			continue;  // local copy will be dealt with later
 		    } else if (MyProc == dm[ksnd]) {
 			const BoxList& bl = BoxLib::boxDiff(bx, pdomain);
-			for (BoxList::const_iterator lit = bl.begin(); lit != bl.end(); ++lit)
+			for (BoxList::const_iterator lit = bl.begin(); lit != bl.end(); ++lit) {
 			    send_tags[dst_owner].push_back(CopyComTag(*lit, (*lit)-(*pit), krcv, ksnd));
+			}
 		    }
 		}
 	    }
@@ -863,7 +867,7 @@ FabArrayBase::FB::define_epo (const FabArrayBase& fa)
 	{
 	    if (*pit != IntVect::TheZeroVector())
 	    {
-		ba.intersections(bxrcv+(*pit), isects);
+		ba.intersections(bxrcv+(*pit), isects, false, ng);
 
 		for (int j = 0, M = isects.size(); j < M; ++j)
 		{
