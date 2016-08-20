@@ -1029,6 +1029,9 @@ public:
     void FillBoundary_nowait (int scomp, int ncomp, const Periodicity& period, bool cross = false);
     void FillBoundary_finish ();
 
+    // Fill cells outside periodic domains with their corresponding cells inside
+    // the domain.  Ghost cells are treated the same as valid cells.  The BoxArray
+    // is allowed to be overlapping.
     void EnforcePeriodicity (const Periodicity& period);
     void EnforcePeriodicity (int scomp, int ncomp, const Periodicity& period);
 
