@@ -5,6 +5,8 @@ module bl_extrapolater
   integer, parameter :: finecell = 1 ! must be consistent with Extrapolater.H
   integer, parameter :: crsecell = 0
 
+  ! The value of msk is either 0 or 1.
+
 contains
 
   subroutine first_order_extrap (u, ulo, uhi, nu, msk, mlo, mhi, lo, hi, sc, nc) &
@@ -17,13 +19,22 @@ contains
     integer :: i, j, n
 
     do n = sc, sc+nc-1
+       ! set all crse cells to zero first
+       do    j = lo(2)-1, hi(2)+1
+          do i = lo(1)-1, hi(1)+1
+             if (msk(i,j) .eq. crsecell) then
+                u(i,j,n) = 0.d0
+             end if
+          end do
+       end do
+
        ! ylo, xlo
        j = lo(2)-1
        i = lo(1)-1
        if (msk(i,j) .eq. crsecell) then
           if (msk(i,j+1) .eq. finecell .or. msk(i+1,j) .eq. finecell) then
-             u(i,j,n) = (msk(i,j+1)*u(i,j+1,n) + msk(i+1,j)*u(i+1,j,n)) &
-                  &   / (msk(i,j+1)            + msk(i+1,j)           )
+             u(i,j,n) = (  u(i,j+1,n) +   u(i+1,j,n)) &
+                  &   / (msk(i,j+1)   + msk(i+1,j))
           else
              u(i,j,n) = u(i+1,j+1,n)
           end if
@@ -33,8 +44,8 @@ contains
        j = lo(2)-1
        do i = lo(1), hi(1)
           if (msk(i,j) .eq. crsecell) then
-             u(i,j,n) = (msk(i-1,j)*u(i-1,j,n)+msk(i+1,j)*u(i+1,j,n)+u(i,j+1,n)) &
-                  &   / (msk(i-1,j)           +msk(i+1,j)           +1         )
+             u(i,j,n) = (  u(i-1,j,n) +   u(i+1,j,n) + u(i,j+1,n)) &
+                  &   / (msk(i-1,j)   + msk(i+1,j)   + 1)
           end if
        end do
 
@@ -43,8 +54,8 @@ contains
        i = hi(1)+1
        if (msk(i,j) .eq. crsecell) then
           if (msk(i-1,j).eq.finecell .or. msk(i,j+1).eq.finecell) then
-             u(i,j,n) = (msk(i-1,j)*u(i-1,j,n)+msk(i,j+1)*u(i,j+1,n)) &
-                  &   / (msk(i-1,j)           +msk(i,j+1))
+             u(i,j,n) = (  u(i-1,j,n) +   u(i,j+1,n)) &
+                  &   / (msk(i-1,j)   + msk(i,j+1))
           else
              u(i,j,n) = u(i-1,j+1,n)
           end if
@@ -54,8 +65,8 @@ contains
        i = lo(1)-1
        do j = lo(2), hi(2)
           if (msk(i,j) .eq. crsecell) then
-             u(i,j,n) = (msk(i,j-1)*u(i,j-1,n)+u(i+1,j,n)+msk(i,j+1)*u(i,j+1,n)) &
-                  &   / (msk(i,j-1)           +1         +msk(i,j+1)           )
+             u(i,j,n) = (  u(i,j-1,n) + u(i+1,j,n)+   u(i,j+1,n)) &
+                  &   / (msk(i,j-1)   + 1         + msk(i,j+1))
           end if
        end do
 
@@ -63,8 +74,8 @@ contains
        i = hi(1)+1
        do j = lo(2), hi(2)
           if (msk(i,j) .eq. crsecell) then
-             u(i,j,n) = (msk(i,j-1)*u(i,j-1,n)+u(i-1,j,n)+msk(i,j+1)*u(i,j+1,n)) &
-                  &   / (msk(i,j-1)           +1         +msk(i,j+1)           )
+             u(i,j,n) = (  u(i,j-1,n) + u(i-1,j,n)+   u(i,j+1,n)) &
+                  &   / (msk(i,j-1)   + 1         + msk(i,j+1))
           end if
        end do
        
@@ -73,8 +84,8 @@ contains
        i = lo(1)-1
        if (msk(i,j) .eq. crsecell) then
           if (msk(i,j-1).eq.finecell .or. msk(i+1,j).eq.finecell) then
-             u(i,j,n) = (msk(i,j-1)*u(i,j-1,n)+msk(i+1,j)*u(i+1,j,n)) &
-                  &   / (msk(i,j-1)           +msk(i+1,j)           )
+             u(i,j,n) = (  u(i,j-1,n) +   u(i+1,j,n)) &
+                  &   / (msk(i,j-1)   + msk(i+1,j))
           else
              u(i,j,n) = u(i+1,j-1,n)
           end if
@@ -84,8 +95,8 @@ contains
        j = hi(2)+1
        do i = lo(1), hi(1)
           if (msk(i,j) .eq. crsecell) then
-             u(i,j,n) = (u(i,j-1,n)+msk(i-1,j)*u(i-1,j,n)+msk(i+1,j)*u(i+1,j,n)) &
-                  &   / (1         +msk(i-1,j)           +msk(i+1,j)           )
+             u(i,j,n) = (u(i,j-1,n) +   u(i-1,j,n) +   u(i+1,j,n)) &
+                  &   / (1          + msk(i-1,j)   + msk(i+1,j))
           end if
        end do
 
@@ -94,8 +105,8 @@ contains
        j = hi(2)+1
        if (msk(i,j) .eq. crsecell) then
           if (msk(i-1,j).eq.finecell .or. msk(i,j-1).eq.finecell) then
-             u(i,j,n) = (msk(i-1,j)*u(i-1,j,n)+msk(i,j-1)*u(i,j-1,n)) &
-                  &   / (msk(i-1,j)           +msk(i,j-1)           )
+             u(i,j,n) = (  u(i-1,j,n) +   u(i,j-1,n)) &
+                  &   / (msk(i-1,j)   + msk(i,j-1))
           else
              u(i,j,n) = u(i-1,j-1,n)
           end if
