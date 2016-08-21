@@ -4483,8 +4483,10 @@ void
 FabArray<FAB>::FillBoundary (bool cross)
 {
     BL_PROFILE("FabArray::FillBoundary()");
-    FillBoundary_nowait(0, nComp(), Periodicity::NonPeriodic(), cross);
-    FillBoundary_finish();
+    if ( n_grow > 0 ) {
+	FillBoundary_nowait(0, nComp(), Periodicity::NonPeriodic(), cross);
+	FillBoundary_finish();
+    }
 }
 
 template <class FAB>
@@ -4492,8 +4494,10 @@ void
 FabArray<FAB>::FillBoundary (const Periodicity& period, bool cross)
 {
     BL_PROFILE("FabArray::FillBoundary()");
-    FillBoundary_nowait(0, nComp(), period, cross);
-    FillBoundary_finish();
+    if ( n_grow > 0 ) {
+	FillBoundary_nowait(0, nComp(), period, cross);
+	FillBoundary_finish();
+    }
 }
 
 template <class FAB>
@@ -4501,8 +4505,10 @@ void
 FabArray<FAB>::FillBoundary (int scomp, int ncomp, bool cross)
 {
     BL_PROFILE("FabArray::FillBoundary()");
-    FillBoundary_nowait(scomp, ncomp, Periodicity::NonPeriodic(), cross);
-    FillBoundary_finish();
+    if ( n_grow > 0 ) {
+	FillBoundary_nowait(scomp, ncomp, Periodicity::NonPeriodic(), cross);
+	FillBoundary_finish();
+    }
 }
 
 template <class FAB>
@@ -4510,8 +4516,10 @@ void
 FabArray<FAB>::FillBoundary (int scomp, int ncomp, const Periodicity& period, bool cross)
 {
     BL_PROFILE("FabArray::FillBoundary()");
-    FillBoundary_nowait(scomp, ncomp, period, cross);
-    FillBoundary_finish();
+    if ( n_grow > 0 ) {
+	FillBoundary_nowait(scomp, ncomp, period, cross);
+	FillBoundary_finish();
+    }
 }
 
 template <class FAB>
