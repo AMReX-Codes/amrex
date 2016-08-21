@@ -2,7 +2,6 @@
 #define _EXTRAPOLATER_H_
 
 #include <MultiFab.H>
-#include <iMultiFab.H>
 #include <Geometry.H>
 
 namespace Extrapolater

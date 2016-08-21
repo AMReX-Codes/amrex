@@ -1035,6 +1035,14 @@ public:
     void EnforcePeriodicity (const Periodicity& period);
     void EnforcePeriodicity (int scomp, int ncomp, const Periodicity& period);
 
+    // finebnd: boundary cells covered by fine cells (including periodically shifted fine cells)
+    // crsebnd: boundary cells not covered by fine cells
+    // physbnd: boundary cells outside the domain (excluding periodic boundaries)
+    // interior: interior cells
+    void BuildMask (const Box& phys_domain, const Periodicity& period,
+		    value_type finebnd, value_type crsebnd, 
+		    value_type physbnd, value_type interior);
+
     //
     // Move FABs in this FabArray to different MPI ranks.
     //
@@ -5016,6 +5024,61 @@ FabArrayBase::WaitForAsyncSends_PGAS (int                 N_snds,
       BLPgas::free(send_data[i]);
 }
 #endif /* BL_USE_UPCXX */
+
+
+template <class FAB>
+void
+FabArray<FAB>::BuildMask (const Box& phys_domain, const Periodicity& period,
+			  value_type finebnd, value_type crsebnd, 
+			  value_type physbnd, value_type interior)
+{
+    int ncomp = this->nComp();
+
+    const FabArrayBase::FB& TheFB = this->getFB(period);
+
+    const CopyComTagsContainer&      LocTags = *(TheFB.m_LocTags);
+    const MapOfCopyComTagContainers& RcvTags = *(TheFB.m_RcvTags);
+
+    const Box& domain = BoxLib::convert(phys_domain, boxArray().ixType());
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(*this); mfi.isValid(); ++mfi)
+    {
+	FAB& fab = (*this)[mfi];
+
+	Box gbx = mfi.growntilebox();
+	fab.setVal(physbnd, gbx, 0, ncomp);
+
+	gbx &= domain;
+	fab.setVal(crsebnd, gbx, 0, ncomp);
+
+	const Box& tbx = mfi.tilebox();
+	fab.setVal(interior, tbx, 0, ncomp);
+    }
+
+    int N_locs = LocTags.size();
+#ifdef _OPENMP
+#pragma omp parallel for if (TheFB.m_threadsafe_loc)
+#endif
+    for (int i = 0; i < N_locs; ++i) {
+	const CopyComTag& tag = LocTags[i];
+	(*this)[tag.dstIndex].setVal(finebnd, tag.dbox, 0, ncomp);
+    }
+
+    for (MapOfCopyComTagContainers::const_iterator it = RcvTags.begin(); it != RcvTags.end(); ++it) {
+	int N = it->second.size();
+#ifdef _OPENMP
+#pragma omp parallel for if (TheFB.m_threadsafe_rcv)
+#endif
+	for (int i = 0; i < N; ++i) {
+	    const CopyComTag& tag = it->second[i];
+	    (*this)[tag.dstIndex].setVal(finebnd, tag.dbox, 0, ncomp);
+	}
+    }
+}
+
 
 template <typename FAB> std::map<int, std::map<int, FabArray<FAB> *> > FabArray<FAB>::allocatedFAPointers;
 template <typename FAB> std::set<int> FabArray<FAB>::noallocFAPIds;
