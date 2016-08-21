@@ -4540,8 +4540,10 @@ void
 FabArray<FAB>::EnforcePeriodicity (const Periodicity& period)
 {
     BL_PROFILE("FabArray::EnforcePeriodicity");
-    FBEP_nowait(0, nComp(), period, false, true);
-    FillBoundary_finish();
+    if (period.isAnyPeriodic()) {
+	FBEP_nowait(0, nComp(), period, false, true);
+	FillBoundary_finish(); // unsafe unless isAnyPeriodic()
+    }
 }
 
 template <class FAB>
@@ -4549,8 +4551,10 @@ void
 FabArray<FAB>::EnforcePeriodicity (int scomp, int ncomp, const Periodicity& period)
 {
     BL_PROFILE("FabArray::EnforcePeriodicity");
-    FBEP_nowait(scomp, ncomp, period, false, true);
-    FillBoundary_finish();
+    if (period.isAnyPeriodic()) {
+	FBEP_nowait(scomp, ncomp, period, false, true);
+	FillBoundary_finish(); // unsafe unless isAnyPeriodic()
+    }
 }
 
 template <class FAB>
