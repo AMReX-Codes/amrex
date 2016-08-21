@@ -1035,12 +1035,13 @@ public:
     void EnforcePeriodicity (const Periodicity& period);
     void EnforcePeriodicity (int scomp, int ncomp, const Periodicity& period);
 
-    // finebnd: boundary cells covered by fine cells (including periodically shifted fine cells)
-    // crsebnd: boundary cells not covered by fine cells
-    // physbnd: boundary cells outside the domain (excluding periodic boundaries)
-    // interior: interior cells
+    // covered  : ghost cells covered by valid cells of this FabArray
+    //            (including periodically shifted valid cells)
+    // uncovered: ghost cells not covered by valid cells
+    // physbnd  : boundary cells outside the domain (excluding periodic boundaries)
+    // interior : interior cells (i.e., valid cells)
     void BuildMask (const Box& phys_domain, const Periodicity& period,
-		    value_type finebnd, value_type crsebnd, 
+		    value_type covered, value_type uncovered, 
 		    value_type physbnd, value_type interior);
 
     //
@@ -5029,7 +5030,7 @@ FabArrayBase::WaitForAsyncSends_PGAS (int                 N_snds,
 template <class FAB>
 void
 FabArray<FAB>::BuildMask (const Box& phys_domain, const Periodicity& period,
-			  value_type finebnd, value_type crsebnd, 
+			  value_type covered, value_type uncovered, 
 			  value_type physbnd, value_type interior)
 {
     int ncomp = this->nComp();
@@ -5052,7 +5053,7 @@ FabArray<FAB>::BuildMask (const Box& phys_domain, const Periodicity& period,
 	fab.setVal(physbnd, gbx, 0, ncomp);
 
 	gbx &= domain;
-	fab.setVal(crsebnd, gbx, 0, ncomp);
+	fab.setVal(uncovered, gbx, 0, ncomp);
 
 	const Box& tbx = mfi.tilebox();
 	fab.setVal(interior, tbx, 0, ncomp);
@@ -5064,7 +5065,7 @@ FabArray<FAB>::BuildMask (const Box& phys_domain, const Periodicity& period,
 #endif
     for (int i = 0; i < N_locs; ++i) {
 	const CopyComTag& tag = LocTags[i];
-	(*this)[tag.dstIndex].setVal(finebnd, tag.dbox, 0, ncomp);
+	(*this)[tag.dstIndex].setVal(covered, tag.dbox, 0, ncomp);
     }
 
     for (MapOfCopyComTagContainers::const_iterator it = RcvTags.begin(); it != RcvTags.end(); ++it) {
@@ -5074,7 +5075,7 @@ FabArray<FAB>::BuildMask (const Box& phys_domain, const Periodicity& period,
 #endif
 	for (int i = 0; i < N; ++i) {
 	    const CopyComTag& tag = it->second[i];
-	    (*this)[tag.dstIndex].setVal(finebnd, tag.dbox, 0, ncomp);
+	    (*this)[tag.dstIndex].setVal(covered, tag.dbox, 0, ncomp);
 	}
     }
 }
