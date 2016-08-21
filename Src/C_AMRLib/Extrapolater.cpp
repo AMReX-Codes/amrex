@@ -1,5 +1,6 @@
 
 #include <Extrapolater.H>
+#include <iMultiFab.H>
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -22,7 +23,8 @@ namespace Extrapolater
 	BL_ASSERT(ncomp <= mf.nComp());
 
 	iMultiFab mask(mf.boxArray(), 1, 1, mf.DistributionMap());
-	mask.buildMask(geom, finebnd, crsebnd, physbnd, interior);
+	mask.BuildMask(geom.Domain(), geom.periodicity(),
+		       finebnd, crsebnd, physbnd, interior);
 
 	int N = mf.nComp();
 
