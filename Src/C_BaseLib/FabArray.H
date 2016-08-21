@@ -1038,6 +1038,7 @@ public:
     // covered  : ghost cells covered by valid cells of this FabArray
     //            (including periodically shifted valid cells)
     // uncovered: ghost cells not covered by valid cells
+    //            (including ghost cells outside periodic boundaries)
     // physbnd  : boundary cells outside the domain (excluding periodic boundaries)
     // interior : interior cells (i.e., valid cells)
     void BuildMask (const Box& phys_domain, const Periodicity& period,
@@ -5034,13 +5035,19 @@ FabArray<FAB>::BuildMask (const Box& phys_domain, const Periodicity& period,
 			  value_type physbnd, value_type interior)
 {
     int ncomp = this->nComp();
+    int ngrow = this->nGrow();
 
     const FabArrayBase::FB& TheFB = this->getFB(period);
 
     const CopyComTagsContainer&      LocTags = *(TheFB.m_LocTags);
     const MapOfCopyComTagContainers& RcvTags = *(TheFB.m_RcvTags);
 
-    const Box& domain = BoxLib::convert(phys_domain, boxArray().ixType());
+    Box domain = BoxLib::convert(phys_domain, boxArray().ixType());
+    for (int i = 0; i < BL_SPACEDIM; ++i) {
+	if (period.isPeriodic(i)) {
+	    domain.grow(i, ngrow);
+	}
+    }
 
 #ifdef _OPENMP
 #pragma omp parallel
