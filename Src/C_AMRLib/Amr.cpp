@@ -1444,8 +1444,7 @@ Amr::restart (const std::string& filename)
     BL_PROFILE_REGION_START("Amr::restart()");
     BL_PROFILE("Amr::restart()");
 
-    // Just initialize this here for the heck of it
-    which_level_being_advanced = -1;
+    which_level_being_advanced = -1;  // ---- initialize
 
     Real dRestartTime0 = ParallelDescriptor::second();
 
@@ -1521,7 +1520,7 @@ Amr::restart (const std::string& filename)
     is >> finest_level;
 
     Array<Box> inputs_domain(max_level+1);
-    for (int lev = 0; lev <= max_level; lev++)
+    for (int lev = 0; lev <= max_level; ++lev)
     {
        Box bx(geom[lev].Domain().smallEnd(),geom[lev].Domain().bigEnd());
        inputs_domain[lev] = bx;
@@ -4171,9 +4170,6 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
 
 void
 Amr::RedistributeGrids(int how) {
-//    MultiFab::flushFBCache();
-//    Geometry::flushFPBCache();
-//    FabArrayBase::CPC::flushCPCache();
     DistributionMapping::FlushCache();
     if( ! ParallelDescriptor::InCompGroup()) {
       return;
@@ -4246,19 +4242,10 @@ Amr::PrintData(std::ostream& os) {
 using std::endl;
 #define SHOWVAL(val) { os << #val << " = " << val << std::endl; }
   os << "---------------------------------------------" << std::endl;
-  //SHOWVAL(regrid_grids_file);
-  //SHOWVAL(initial_grids_file);
   SHOWVAL(max_level);
   SHOWVAL(finest_level);
   SHOWVAL(cumtime);
   SHOWVAL(start_time);
-  //SHOWVAL(verbose);
-  //SHOWVAL(plot_file_root);
-  //SHOWVAL(check_int);
-  //SHOWVAL(ref_ratio.size());
-  //for(int i(0); i < ref_ratio.size(); ++i) {
-    //os << "ref_ratio[" << i << "] = " << ref_ratio[i] << endl;
-  //}
   SHOWVAL(amr_level.size());
   os << endl;
   for(int i(0); i < amr_level.size(); ++i) {
@@ -4304,34 +4291,5 @@ Amr::BroadcastBCRec(BCRec &bcrec, int myLocalId, int rootId, MPI_Comm localComm)
     bcrec.setVect(bcvect);
   }
 }
-
-
-#if 0
-void
-Amr::SendDataToNewProcs() {
-
-    if (ParallelDescriptor::IOProcessor()) {
-      Array<std::string> origSA;
-      origSA.push_back("string0");
-      origSA.push_back("__string1");
-      origSA.push_back("string222");
-      std::cout << ">>>>>>>>>>>>>>>>>>" << std::endl;
-      for(int i(0); i < origSA.size(); ++i) {
-        std::cout << "origSA[" << i << "] = " << origSA[i] << std::endl;
-      }
-      Array<char> charArray(BoxLib::SerializeStringArray(origSA));
-      Array<std::string> unSA(BoxLib::UnSerializeStringArray(charArray));
-      for(int i(0); i < unSA.size(); ++i) {
-        std::cout << "unSA[" << i << "] = " << unSA[i] << std::endl;
-      }
-      std::cout << "~~~~~~~~~~~~~~~~~~" << std::endl;
-      std::cout << "<<<<<<<<<<<<<<<<<<" << std::endl;
-    }
-
-}
-#endif
-
-
-
 
 
