@@ -1225,7 +1225,8 @@ VisMF::readFABNoFabHeader (FabArray<FArrayBox>&            mf,
 
 void
 VisMF::Read (FabArray<FArrayBox> &mf,
-             const std::string   &mf_name)
+             const std::string   &mf_name,
+	     const char *header)
 {
     BL_PROFILE("VisMF::Read()");
 
@@ -1244,13 +1245,19 @@ VisMF::Read (FabArray<FArrayBox> &mf,
     std::string FullHdrFileName(mf_name + TheMultiFabHdrFileSuffix);
     {
         hStartTime = ParallelDescriptor::second();
-        Array<char> fileCharPtr;
-        ParallelDescriptor::ReadAndBcastFile(FullHdrFileName, fileCharPtr);
-        std::string fileCharPtrString(fileCharPtr.dataPtr());
+        std::string fileCharPtrString;
+	if(header == 0) {
+          Array<char> fileCharPtr;
+          ParallelDescriptor::ReadAndBcastFile(FullHdrFileName, fileCharPtr);
+          fileCharPtrString = fileCharPtr.dataPtr();
+	} else {
+          fileCharPtrString = header;
+	}
         std::istringstream ifs(fileCharPtrString, std::istringstream::in);
-        hEndTime = ParallelDescriptor::second();
 
         ifs >> hdr;
+
+        hEndTime = ParallelDescriptor::second();
     }
 
     bool noFabHeader(false);
@@ -1368,7 +1375,6 @@ if(noFabHeader) {
         if(rfrSet.find(myProc) != rfrSet.end()) {  // ---- myProc needs to read this file
           const std::string &fileName = rfrIter->first;
 	  std::string fullFileName(VisMF::DirName(mf_name) + fileName);
-std::cout << "_here 2:  mf_name fileName fullFileName = " << mf_name << "  " << fileName << "  " << fullFileName << std::endl;
 	  frcIter = FileReadChainsSorted.find(fileName);
           Array<FabReadLink> &frc = frcIter->second;
           for(NFilesIter nfi(fullFileName, readRanks); nfi.ReadyToRead(); ++nfi) {
@@ -1592,6 +1598,18 @@ std::cout << "_here 2:  mf_name fileName fullFileName = " << mf_name << "  " << 
     BL_ASSERT(mf.ok());
 }
 
+
+void
+VisMF::ReadFAHeader (const std::string &fafabName,
+	             Array<char> &header)
+{
+    BL_PROFILE("VisMF::ReadFAHeader()");
+
+    VisMF::Initialize();
+
+    std::string FullHdrFileName(fafabName + TheMultiFabHdrFileSuffix);
+    ParallelDescriptor::ReadAndBcastFile(FullHdrFileName, header);
+}
 
 
 void
