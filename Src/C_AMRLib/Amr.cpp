@@ -1455,11 +1455,13 @@ Amr::restart (const std::string& filename)
 
     int i;
 
-    if (verbose > 0 && ParallelDescriptor::IOProcessor())
+    if (verbose > 0 && ParallelDescriptor::IOProcessor()) {
         std::cout << "restarting calculation from file: " << filename << std::endl;
+    }
 
-    if (record_run_info && ParallelDescriptor::IOProcessor())
+    if (record_run_info && ParallelDescriptor::IOProcessor()) {
         runlog << "RESTART from file = " << filename << '\n';
+    }
     //
     // Init problem dependent data.
     //
@@ -1469,8 +1471,9 @@ Amr::restart (const std::string& filename)
     //
     // Start calculation from given restart file.
     //
-    if (record_run_info && ParallelDescriptor::IOProcessor())
+    if (record_run_info && ParallelDescriptor::IOProcessor()) {
         runlog << "RESTART from file = " << filename << '\n';
+    }
     //
     // Open the checkpoint header file for reading.
     //
@@ -1526,51 +1529,53 @@ Amr::restart (const std::string& filename)
 
     if (max_level >= mx_lev) {
 
-       for (i = 0; i <= mx_lev; i++) is >> geom[i];
-       for (i = 0; i <  mx_lev; i++) is >> ref_ratio[i];
-       for (i = 0; i <= mx_lev; i++) is >> dt_level[i];
+       for (i = 0; i <= mx_lev; ++i) { is >> geom[i];      }
+       for (i = 0; i <  mx_lev; ++i) { is >> ref_ratio[i]; }
+       for (i = 0; i <= mx_lev; ++i) { is >> dt_level[i];  }
 
        if (new_checkpoint_format)
        {
-           for (i = 0; i <= mx_lev; i++) is >> dt_min[i];
+           for (i = 0; i <= mx_lev; ++i) { is >> dt_min[i]; }
        }
        else
        {
-           for (i = 0; i <= mx_lev; i++) dt_min[i] = dt_level[i];
+           for (i = 0; i <= mx_lev; ++i) { dt_min[i] = dt_level[i]; }
        }
 
        Array<int>  n_cycle_in;
        n_cycle_in.resize(mx_lev+1);  
-       for (i = 0; i <= mx_lev; i++) is >> n_cycle_in[i];
+       for (i = 0; i <= mx_lev; ++i) { is >> n_cycle_in[i]; }
        bool any_changed = false;
 
-       for (i = 0; i <= mx_lev; i++) 
-           if (n_cycle[i] != n_cycle_in[i])
-           {
+       for (i = 0; i <= mx_lev; ++i) {
+           if (n_cycle[i] != n_cycle_in[i]) {
                any_changed = true;
-               if (verbose > 0 && ParallelDescriptor::IOProcessor())
+               if (verbose > 0 && ParallelDescriptor::IOProcessor()) {
                    std::cout << "Warning: n_cycle has changed at level " << i << 
                                 " from " << n_cycle_in[i] << " to " << n_cycle[i] << std::endl;;
+	       }
            }
+       }
 
        // If we change n_cycle then force a full regrid from level 0 up
        if (max_level > 0 && any_changed)
        {
            level_count[0] = regrid_int[0];
-           if ((verbose > 0) && ParallelDescriptor::IOProcessor())
+           if ((verbose > 0) && ParallelDescriptor::IOProcessor()) {
                std::cout << "Warning: This forces a full regrid " << std::endl;
+	   }
        }
 
 
-       for (i = 0; i <= mx_lev; i++) is >> level_steps[i];
-       for (i = 0; i <= mx_lev; i++) is >> level_count[i];
+       for (i = 0; i <= mx_lev; ++i) { is >> level_steps[i]; }
+       for (i = 0; i <= mx_lev; ++i) { is >> level_count[i]; }
 
        //
        // Set bndry conditions.
        //
        if (max_level > mx_lev)
        {
-           for (i = mx_lev+1; i <= max_level; i++)
+           for (i = mx_lev+1; i <= max_level; ++i)
            {
                dt_level[i]    = dt_level[i-1]/n_cycle[i];
                level_steps[i] = n_cycle[i]*level_steps[i-1];
@@ -1578,22 +1583,24 @@ Amr::restart (const std::string& filename)
            }
 
            // This is just an error check
-           if (!sub_cycle)
+           if ( ! sub_cycle)
            {
-               for (i = 1; i <= finest_level; i++)
+               for (i = 1; i <= finest_level; ++i)
                {
-                   if (dt_level[i] != dt_level[i-1])
+                   if (dt_level[i] != dt_level[i-1]) {
                       BoxLib::Error("restart: must have same dt at all levels if not subcycling");
+		   }
                }
            }
        }
 
        if (regrid_on_restart && max_level > 0)
        {
-           if (regrid_int[0] > 0) 
+           if (regrid_int[0] > 0) {
                level_count[0] = regrid_int[0];
-           else
+	   } else {
                BoxLib::Error("restart: can't have regrid_on_restart and regrid_int <= 0");
+	   }
        }
 
        checkInput();
@@ -1601,7 +1608,7 @@ Amr::restart (const std::string& filename)
        // Read levels.
        //
        int lev;
-       for (lev = 0; lev <= finest_level; lev++)
+       for (lev = 0; lev <= finest_level; ++lev)
        {
            amr_level.set(lev,(*levelbld)());
            amr_level[lev].restart(*this, is);
@@ -1609,13 +1616,15 @@ Amr::restart (const std::string& filename)
        //
        // Build any additional data structures.
        //
-       for (lev = 0; lev <= finest_level; lev++)
+       for (lev = 0; lev <= finest_level; ++lev) {
            amr_level[lev].post_restart();
+       }
 
     } else {
 
-       if (ParallelDescriptor::IOProcessor())
+       if (ParallelDescriptor::IOProcessor()) {
           BoxLib::Warning("Amr::restart(): max_level is lower than before");
+       }
 
        int new_finest_level = std::min(max_level,finest_level);
 
@@ -1627,40 +1636,37 @@ Amr::restart (const std::string& filename)
        int         int_dummy;
        IntVect intvect_dummy;
 
-       for (i = 0          ; i <= max_level; i++) is >> geom[i];
-       for (i = max_level+1; i <= mx_lev   ; i++) is >> geom_dummy;
+       for (i = 0          ; i <= max_level; ++i) { is >> geom[i]; }
+       for (i = max_level+1; i <= mx_lev   ; ++i) { is >> geom_dummy; }
 
-       for (i = 0        ; i <  max_level; i++) is >> ref_ratio[i];
-       for (i = max_level; i <  mx_lev   ; i++) is >> intvect_dummy;
+       for (i = 0        ; i <  max_level; ++i) { is >> ref_ratio[i]; }
+       for (i = max_level; i <  mx_lev   ; ++i) { is >> intvect_dummy; }
 
-       for (i = 0          ; i <= max_level; i++) is >> dt_level[i];
-       for (i = max_level+1; i <= mx_lev   ; i++) is >> real_dummy;
+       for (i = 0          ; i <= max_level; ++i) { is >> dt_level[i]; }
+       for (i = max_level+1; i <= mx_lev   ; ++i) { is >> real_dummy; }
 
-       if (new_checkpoint_format)
-       {
-           for (i = 0          ; i <= max_level; i++) is >> dt_min[i];
-           for (i = max_level+1; i <= mx_lev   ; i++) is >> real_dummy;
-       }
-       else
-       {
-           for (i = 0; i <= max_level; i++) dt_min[i] = dt_level[i];
+       if (new_checkpoint_format) {
+           for (i = 0          ; i <= max_level; ++i) { is >> dt_min[i]; }
+           for (i = max_level+1; i <= mx_lev   ; ++i) { is >> real_dummy; }
+       } else {
+           for (i = 0; i <= max_level; ++i) dt_min[i] = dt_level[i];
        }
 
-       for (i = 0          ; i <= max_level; i++) is >> n_cycle[i];
-       for (i = max_level+1; i <= mx_lev   ; i++) is >> int_dummy;
+       for (i = 0          ; i <= max_level; ++i) { is >> n_cycle[i]; }
+       for (i = max_level+1; i <= mx_lev   ; ++i) { is >> int_dummy; }
 
-       for (i = 0          ; i <= max_level; i++) is >> level_steps[i];
-       for (i = max_level+1; i <= mx_lev   ; i++) is >> int_dummy;
+       for (i = 0          ; i <= max_level; ++i) { is >> level_steps[i]; }
+       for (i = max_level+1; i <= mx_lev   ; ++i) { is >> int_dummy; }
 
-       for (i = 0          ; i <= max_level; i++) is >> level_count[i];
-       for (i = max_level+1; i <= mx_lev   ; i++) is >> int_dummy;
+       for (i = 0          ; i <= max_level; ++i) { is >> level_count[i]; }
+       for (i = max_level+1; i <= mx_lev   ; ++i) { is >> int_dummy; }
 
-       if (regrid_on_restart && max_level > 0)
-       {
-           if (regrid_int[0] > 0) 
+       if (regrid_on_restart && max_level > 0) {
+           if (regrid_int[0] > 0)  {
                level_count[0] = regrid_int[0];
-           else
+	   } else {
                BoxLib::Error("restart: can't have regrid_on_restart and regrid_int <= 0");
+	   }
        }
 
        checkInput();
@@ -1669,30 +1675,30 @@ Amr::restart (const std::string& filename)
        // Read levels.
        //
        int lev;
-       for (lev = 0; lev <= new_finest_level; lev++)
-       {
+       for (lev = 0; lev <= new_finest_level; ++lev) {
            amr_level.set(lev,(*levelbld)());
            amr_level[lev].restart(*this, is);
        }
        //
        // Build any additional data structures.
        //
-       for (lev = 0; lev <= new_finest_level; lev++)
+       for (lev = 0; lev <= new_finest_level; ++lev) {
            amr_level[lev].post_restart();
-
+       }
     }
 
-    for (int lev = 0; lev <= finest_level; lev++)
+    for (int lev = 0; lev <= finest_level; ++lev)
     {
        Box restart_domain(geom[lev].Domain());
-       if (! (inputs_domain[lev] == restart_domain) )
+       if ( ! (inputs_domain[lev] == restart_domain) )
        {
           if (ParallelDescriptor::IOProcessor())
           {
              std::cout << "Problem at level " << lev << '\n';
              std::cout << "Domain according to     inputs file is " <<  inputs_domain[lev] << '\n';
              std::cout << "Domain according to checkpoint file is " << restart_domain      << '\n';
-             std::cout << "Amr::restart() failed -- box from inputs file does not equal box from restart file" << std::endl;
+             std::cout << "Amr::restart() failed -- box from inputs file does not "
+	               << "equal box from restart file." << std::endl;
           }
           BoxLib::Abort();
        }
@@ -1709,8 +1715,9 @@ Amr::restart (const std::string& filename)
 
         ParallelDescriptor::ReduceRealMax(dRestartTime,ParallelDescriptor::IOProcessorNumber());
 
-        if (ParallelDescriptor::IOProcessor())
+        if (ParallelDescriptor::IOProcessor()) {
             std::cout << "Restart time = " << dRestartTime << " seconds." << '\n';
+	}
     }
     BL_PROFILE_REGION_STOP("Amr::restart()");
 }
@@ -1803,19 +1810,19 @@ Amr::checkPoint ()
         //
         // Write out problem domain.
         //
-        for (i = 0; i <= max_level; i++) HeaderFile << geom[i]        << ' ';
+        for (i = 0; i <= max_level; ++i) { HeaderFile << geom[i]        << ' '; }
         HeaderFile << '\n';
-        for (i = 0; i < max_level; i++)  HeaderFile << ref_ratio[i]   << ' ';
+        for (i = 0; i < max_level; ++i)  { HeaderFile << ref_ratio[i]   << ' '; }
         HeaderFile << '\n';
-        for (i = 0; i <= max_level; i++) HeaderFile << dt_level[i]    << ' ';
+        for (i = 0; i <= max_level; ++i) { HeaderFile << dt_level[i]    << ' '; }
         HeaderFile << '\n';
-        for (i = 0; i <= max_level; i++) HeaderFile << dt_min[i]      << ' ';
+        for (i = 0; i <= max_level; ++i) { HeaderFile << dt_min[i]      << ' '; }
         HeaderFile << '\n';
-        for (i = 0; i <= max_level; i++) HeaderFile << n_cycle[i]     << ' ';
+        for (i = 0; i <= max_level; ++i) { HeaderFile << n_cycle[i]     << ' '; }
         HeaderFile << '\n';
-        for (i = 0; i <= max_level; i++) HeaderFile << level_steps[i] << ' ';
+        for (i = 0; i <= max_level; ++i) { HeaderFile << level_steps[i] << ' '; }
         HeaderFile << '\n';
-        for (i = 0; i <= max_level; i++) HeaderFile << level_count[i] << ' ';
+        for (i = 0; i <= max_level; ++i) { HeaderFile << level_count[i] << ' '; }
         HeaderFile << '\n';
     }
 
