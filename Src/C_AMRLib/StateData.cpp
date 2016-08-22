@@ -255,7 +255,7 @@ StateData::restart (std::istream&          is,
     //
     if (nsets == 0) {
        new_data = new MultiFab(grids,desc->nComp(),desc->nExtra(),Fab_allocate);
-       new_data->setVal(0.);
+       new_data->setVal(0.0);
     }
 
     std::string mf_name;

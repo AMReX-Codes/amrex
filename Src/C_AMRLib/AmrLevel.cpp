@@ -205,7 +205,7 @@ AmrLevel::restart (Amr&          papa,
     }
 
     state.resize(ndesc);
-    for (int i = 0; i < ndesc; i++)
+    for (int i = 0; i < ndesc; ++i)
     {
 	if (state_in_checkpoint[i]) {
 	    state[i].restart(is, desc_lst[i], papa.theRestartFile(), bReadSpecial);
@@ -379,8 +379,6 @@ AmrLevel::checkPoint (const std::string& dir,
         // Now build the full relative pathname of the StateData.
         // The name is relative to the Header file containing this name.
         // It's the name that gets written into the Header.
-        //
-        // There is only one MultiFab written out at each level in HyperCLaw.
         //
         std::string PathNameInHdr = BoxLib::Concatenate(LevelDir + "/SD_", i, 1);
         std::string FullPathName  = BoxLib::Concatenate(FullPath + "/SD_", i, 1);

@@ -1003,7 +1003,7 @@ VisMF::FindOffsets (const FabArray<FArrayBox> &mf,
         if(hdr.m_vers == VisMF::Header::Version_v1) {
 	  for(int i(0); i < mfBA.size(); ++i) {
             std::stringstream hss;
-	    FArrayBox tempFab(mfBA[i], nComps, false);  // ---- no alloc
+	    FArrayBox tempFab(mf.fabbox(i), nComps, false);  // ---- no alloc
             fio.write_header(hss, tempFab, tempFab.nComp());
 	    fabHeaderBytes[i] = hss.tellp();
 	  }
@@ -1024,7 +1024,8 @@ VisMF::FindOffsets (const FabArray<FArrayBox> &mf,
 	  for(int i(0); i < index.size(); ++i) {
 	    hdr.m_fod[index[i]].m_name = VisMF::BaseName(whichFileName);
 	    hdr.m_fod[index[i]].m_head = currentOffset[whichFileNumber];
-	    currentOffset[whichFileNumber] += mfBA[index[i]].numPts() * nComps * whichRDBytes
+	    //currentOffset[whichFileNumber] += mfBA[index[i]].numPts() * nComps * whichRDBytes
+	    currentOffset[whichFileNumber] += mf.fabbox(index[i]).numPts() * nComps * whichRDBytes
 	                                      + fabHeaderBytes[index[i]];
 	  }
 	}
@@ -1366,9 +1367,11 @@ if(noFabHeader) {
         const int myProc(ParallelDescriptor::MyProc());
         if(rfrSet.find(myProc) != rfrSet.end()) {  // ---- myProc needs to read this file
           const std::string &fileName = rfrIter->first;
+	  std::string fullFileName(VisMF::DirName(mf_name) + fileName);
+std::cout << "_here 2:  mf_name fileName fullFileName = " << mf_name << "  " << fileName << "  " << fullFileName << std::endl;
 	  frcIter = FileReadChainsSorted.find(fileName);
           Array<FabReadLink> &frc = frcIter->second;
-          for(NFilesIter nfi(fileName, readRanks); nfi.ReadyToRead(); ++nfi) {
+          for(NFilesIter nfi(fullFileName, readRanks); nfi.ReadyToRead(); ++nfi) {
 	    for(int i(0); i < frc.size(); ++i) {
 	      if(myProc == frc[i].rankToRead) {
 	        if(nfi.SeekPos() != frc[i].fileOffset) {
