@@ -224,19 +224,17 @@ StateData::restart (std::istream&          is,
 {
     BL_PROFILE("StateData::restart()");
 
-    if (bReadSpecial)
+    if (bReadSpecial) {
    	BoxLib::Abort("StateData:: restart:: w/bReadSpecial not implemented");
+    }
 
     desc = &d;
 
     is >> domain;
 
-    if (bReadSpecial)
-    {
+    if (bReadSpecial) {
         BoxLib::readBoxArray(grids, is, bReadSpecial);
-    }
-    else
-    {
+    } else {
         grids.readFrom(is);
     }
 
@@ -255,8 +253,7 @@ StateData::restart (std::istream&          is,
     // This assumes that the application will do something with it.
     // We set it to zero in case a compiler complains about uninitialized data.
     //
-    if (nsets == 0)
-    {
+    if (nsets == 0) {
        new_data = new MultiFab(grids,desc->nComp(),desc->nExtra(),Fab_allocate);
        new_data->setVal(0.);
     }
@@ -266,8 +263,7 @@ StateData::restart (std::istream&          is,
     //
     // This reads the "new" data, if it's there.
     //
-    if (nsets >= 1)
-    {
+    if (nsets >= 1) {
         new_data = new MultiFab;
         is >> mf_name;
         //
@@ -275,16 +271,16 @@ StateData::restart (std::istream&          is,
         // We need to prepend the name of the chkfile directory.
         //
         FullPathName = chkfile;
-        if (!chkfile.empty() && chkfile[chkfile.length()-1] != '/')
+        if ( ! chkfile.empty() && chkfile[chkfile.length()-1] != '/') {
             FullPathName += '/';
+	}
         FullPathName += mf_name;
         VisMF::Read(*new_data, FullPathName);
     }
     //
     // This reads the "old" data, if it's there.
     //
-    if (nsets == 2)
-    {
+    if (nsets == 2) {
         old_data = new MultiFab;
         is >> mf_name;
         //
@@ -292,8 +288,9 @@ StateData::restart (std::istream&          is,
         // We need to prepend the name of the chkfile directory.
         //
         FullPathName = chkfile;
-        if (!chkfile.empty() && chkfile[chkfile.length()-1] != '/')
+        if ( ! chkfile.empty() && chkfile[chkfile.length()-1] != '/') {
             FullPathName += '/';
+	}
         FullPathName += mf_name;
         VisMF::Read(*old_data, FullPathName);
     }
