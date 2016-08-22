@@ -801,7 +801,7 @@ FabArrayBase::FB::define_epo (const FabArrayBase& fa)
     {
 	const int ksnd = imap[i];
 	Box bxsnd = BoxLib::grow(ba[ksnd],ng);
-	bxsnd &= pdomain;
+	bxsnd &= pdomain; // source must be inside the periodic domain.
 
 	if (!bxsnd.ok()) continue;
 
@@ -879,23 +879,27 @@ FabArrayBase::FB::define_epo (const FabArrayBase& fa)
 
 		    for (BoxList::const_iterator lit = bl.begin(); lit != bl.end(); ++lit)
 		    {
-			const Box& blbx = *lit;
+			Box sbx = (*lit) + (*pit);
+			sbx &= pdomain; // source must be inside the periodic domain.
 			
-			if (ParallelDescriptor::sameTeam(src_owner)) { // local copy
-			    const BoxList tilelist(blbx, FabArrayBase::comm_tile_size);
-			    for (BoxList::const_iterator
-				     it_tile  = tilelist.begin(),
-				     End_tile = tilelist.end();   it_tile != End_tile; ++it_tile)
-			    {
-				m_LocTags->push_back(CopyComTag(*it_tile, (*it_tile)+(*pit), krcv, ksnd));
-			    }
-			    if (check_local) {
-				localtouch.plus(1, blbx);
-			    }
-			} else if (MyProc == dm[krcv]) {
-			    recv_tags[src_owner].push_back(CopyComTag(blbx, blbx+(*pit), krcv, ksnd));
-			    if (check_remote) {
-				remotetouch.plus(1, blbx);
+			if (sbx.ok()) {
+			    Box dbx = sbx - (*pit);
+			    if (ParallelDescriptor::sameTeam(src_owner)) { // local copy
+				const BoxList tilelist(dbx, FabArrayBase::comm_tile_size);
+				for (BoxList::const_iterator
+					 it_tile  = tilelist.begin(),
+					 End_tile = tilelist.end();   it_tile != End_tile; ++it_tile)
+				{
+				    m_LocTags->push_back(CopyComTag(*it_tile, (*it_tile)+(*pit), krcv, ksnd));
+				}
+				if (check_local) {
+				    localtouch.plus(1, dbx);
+				}
+			    } else if (MyProc == dm[krcv]) {
+				recv_tags[src_owner].push_back(CopyComTag(dbx, sbx, krcv, ksnd));
+				if (check_remote) {
+				    remotetouch.plus(1, dbx);
+				}
 			    }
 			}
 		    }
