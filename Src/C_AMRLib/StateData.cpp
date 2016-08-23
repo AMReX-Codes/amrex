@@ -20,6 +20,10 @@ const Real INVALID_TIME = -1.0e200;
 const int MFNEWDATA = 0;
 const int MFOLDDATA = 1;
 
+Array<std::string> StateData::fabArrayHeaderNames;
+std::map<std::string, Array<char> > *StateData::faHeaderMap;
+
+
 StateData::StateData () 
 {
    desc = 0;
@@ -711,8 +715,8 @@ StateData::checkPoint (const std::string& name,
         //
         // The relative name gets written to the Header file.
         //
-        std::string mf_name_old = name; mf_name_old += OldSuffix;
-        std::string mf_name_new = name; mf_name_new += NewSuffix;
+        std::string mf_name_old(name + OldSuffix);
+        std::string mf_name_new(name + NewSuffix);
 
         os << domain << '\n';
 
@@ -728,10 +732,13 @@ StateData::checkPoint (const std::string& name,
            if (dump_old)
            {
                os << 2 << '\n' << mf_name_new << '\n' << mf_name_old << '\n';
+	       fabArrayHeaderNames.push_back(mf_name_new);
+	       fabArrayHeaderNames.push_back(mf_name_old);
            }
            else
            {
                os << 1 << '\n' << mf_name_new << '\n';
+	       fabArrayHeaderNames.push_back(mf_name_new);
            }
         }
         else
@@ -743,13 +750,13 @@ StateData::checkPoint (const std::string& name,
     if (desc->store_in_checkpoint())
     {
        BL_ASSERT(new_data);
-       std::string mf_fullpath_new = fullpathname; mf_fullpath_new += NewSuffix;
+       std::string mf_fullpath_new(fullpathname + NewSuffix);
        VisMF::Write(*new_data,mf_fullpath_new,how);
 
        if (dump_old)
        {
            BL_ASSERT(old_data);
-           std::string mf_fullpath_old = fullpathname; mf_fullpath_old += OldSuffix;
+           std::string mf_fullpath_old(fullpathname + OldSuffix);
            VisMF::Write(*old_data,mf_fullpath_old,how);
        }
     }

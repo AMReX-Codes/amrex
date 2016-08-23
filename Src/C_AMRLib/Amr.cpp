@@ -32,6 +32,7 @@
 #include <Utility.H>
 #include <DistributionMapping.H>
 #include <FabSet.H>
+#include <StateData.H>
 
 #ifdef MG_USE_FBOXLIB
 #include <mg_cpp_f.h>
@@ -67,6 +68,7 @@ std::list<std::string> Amr::derive_plot_vars;
 bool                   Amr::first_plotfile;
 bool                   Amr::first_smallplotfile;
 bool                   Amr::precreateDirectories;
+bool                   Amr::prereadFAHeaders;
 Array<BoxArray>        Amr::initial_ba;
 Array<BoxArray>        Amr::regrid_ba;
 bool                   Amr::useFixedCoarseGrids;
@@ -109,6 +111,7 @@ Amr::Initialize ()
     Amr::first_plotfile      = true;
     Amr::first_smallplotfile = true;
     Amr::precreateDirectories= true;
+    Amr::prereadFAHeaders    = true;
     plot_nfiles              = 64;
     mffile_nstreams          = 1;
     probinit_natonce         = 32;
@@ -1444,7 +1447,7 @@ Amr::restart (const std::string& filename)
     BL_PROFILE_REGION_START("Amr::restart()");
     BL_PROFILE("Amr::restart()");
 
-    which_level_being_advanced = -1;  // ---- initialize
+    which_level_being_advanced = -1;
 
     Real dRestartTime0 = ParallelDescriptor::second();
 
@@ -1473,13 +1476,40 @@ Amr::restart (const std::string& filename)
     if (record_run_info && ParallelDescriptor::IOProcessor()) {
         runlog << "RESTART from file = " << filename << '\n';
     }
+
+    // ---- preread and broadcast all FabArray headers if this file exists
+    std::map<std::string, Array<char> > faHeaderMap;
+    if(prereadFAHeaders) {
+      // ---- broadcast the file with the names of the fabarray headers
+      std::string faHeaderFilesName(filename + "/FabArrayHeaders.txt");
+      Array<char> faHeaderFileChars;
+      bool bExitOnError(false);  // ---- dont exit if this file does not exist
+      ParallelDescriptor::ReadAndBcastFile(faHeaderFilesName, faHeaderFileChars,
+                                           bExitOnError);
+      if(faHeaderFileChars.size() > 0) {  // ---- headers were read
+        std::string faFileCharPtrString(faHeaderFileChars.dataPtr());
+        std::istringstream fais(faFileCharPtrString, std::istringstream::in);
+        while ( ! fais.eof()) {  // ---- read and broadcast each header
+          std::string faHeaderName;
+          fais >> faHeaderName;
+          if( ! fais.eof()) {
+            std::string faHeaderFullName(filename + '/' + faHeaderName + "_H");
+            Array<char> &tempCharArray = faHeaderMap[faHeaderFullName];
+            ParallelDescriptor::ReadAndBcastFile(faHeaderFullName, tempCharArray);
+	    if(ParallelDescriptor::IOProcessor()) {
+              std::cout << ":::: faHeaderName faHeaderFullName tempCharArray.size() = " << faHeaderName
+	                << "  " << faHeaderFullName << "  " << tempCharArray.size() << std::endl;
+	    }
+          }
+        }
+        StateData::SetFAHeaderMapPtr(&faHeaderMap);
+      }
+    }
+
     //
     // Open the checkpoint header file for reading.
     //
-    std::string File = filename;
-
-    File += '/';
-    File += "Header";
+    std::string File(filename + "/Header");
 
     VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
 
@@ -1758,6 +1788,9 @@ Amr::checkPoint ()
   const std::string ckfileTemp(ckfile + ".temp");
 
   while(sretry.TryFileOutput()) {
+
+    StateData::ClearFabArrayHeaderNames();
+
     //
     //  if either the ckfile or ckfileTemp exists, rename them
     //  to move them out of the way.  then create ckfile
@@ -1796,8 +1829,9 @@ Amr::checkPoint ()
         HeaderFile.open(HeaderFileName.c_str(), std::ios::out | std::ios::trunc |
 	                                        std::ios::binary);
 
-        if ( ! HeaderFile.good())
+        if ( ! HeaderFile.good()) {
             BoxLib::FileOpenFailed(HeaderFileName);
+	}
 
         old_prec = HeaderFile.precision(17);
 
@@ -1827,6 +1861,23 @@ Amr::checkPoint ()
 
     for(i = 0; i <= finest_level; ++i) {
         amr_level[i].checkPoint(ckfileTemp, HeaderFile);
+    }
+
+    if (ParallelDescriptor::IOProcessor()) {
+	const Array<std::string> &FAHeaderNames = StateData::FabArrayHeaderNames();
+	if(FAHeaderNames.size() > 0) {
+          std::string FAHeaderFilesName = ckfileTemp + "/FabArrayHeaders.txt";
+          std::ofstream FAHeaderFile(FAHeaderFilesName.c_str(),
+	                             std::ios::out | std::ios::trunc |
+	                             std::ios::binary);
+          if ( ! FAHeaderFile.good()) {
+              BoxLib::FileOpenFailed(FAHeaderFilesName);
+	  }
+
+	  for(int i(0); i < FAHeaderNames.size(); ++i) {
+	    FAHeaderFile << FAHeaderNames[i] << '\n';
+	  }
+	}
     }
 
     if(ParallelDescriptor::IOProcessor()) {
@@ -3515,6 +3566,9 @@ Amr::initPltAndChk ()
 
     precreateDirectories = true;
     pp.query("precreateDirectories", precreateDirectories);
+
+    prereadFAHeaders = true;
+    pp.query("prereadFAHeaders", prereadFAHeaders);
 }
 
 
@@ -3955,6 +4009,7 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
         allBools.push_back(useFixedCoarseGrids);
         allBools.push_back(first_smallplotfile);
         allBools.push_back(precreateDirectories);
+        allBools.push_back(prereadFAHeaders);
 
 	allBoolsSize = allBools.size();
       }
@@ -3977,6 +4032,7 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
         useFixedCoarseGrids           = allBools[count++];
         first_smallplotfile           = allBools[count++];
         precreateDirectories          = allBools[count++];
+        prereadFAHeaders              = allBools[count++];
       }
 
 

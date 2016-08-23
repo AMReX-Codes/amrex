@@ -212,7 +212,9 @@ AmrLevel::restart (Amr&          papa,
 	}
     }
  
-    if (Amr::useFixedCoarseGrids) constructAreaNotToTag();
+    if (Amr::useFixedCoarseGrids) {
+      constructAreaNotToTag();
+    }
 
 #ifdef USE_PARTICLES
     // Note: it is important to call make_particle_dmap *after* the state
