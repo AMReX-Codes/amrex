@@ -4577,6 +4577,12 @@ void
 FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const Periodicity& period, bool cross,
 			    bool enforce_periodicity_only)
 {
+    fb_cross = cross;
+    fb_epo   = enforce_periodicity_only;
+    fb_scomp = scomp;
+    fb_ncomp = ncomp;
+    fb_period = period;
+
     bool work_to_do;
     if (enforce_periodicity_only) {
 	work_to_do = period.isAnyPeriodic();
@@ -4609,12 +4615,6 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const Periodicity& period, boo
         return;
     }
    
-    fb_cross = cross;
-    fb_epo   = enforce_periodicity_only;
-    fb_scomp = scomp;
-    fb_ncomp = ncomp;
-    fb_period = period;
- 
 #ifdef BL_USE_MPI
 
 #if defined(BL_USE_UPCXX)
@@ -4857,7 +4857,7 @@ template <class FAB>
 void
 FabArray<FAB>::FillBoundary_finish ()
 {
-    if ( n_grow <= 0 ) return;
+    if ( n_grow <= 0 && !fb_epo ) return; // For epo (Enforce Periodicity Only), there may be no ghost cells.
 
     if (ParallelDescriptor::NProcs() == 1) return;
 
