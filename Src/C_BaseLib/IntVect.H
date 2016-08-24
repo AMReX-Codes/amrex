@@ -79,6 +79,8 @@ public:
     //
     const int* getVect () const { return vect; }
     //
+    int* getVect () { return vect; }
+    //
     // Returns true of IntVect is equivalent to argument IntVect.
     // All comparisons between analogous components must be satisfied.
     //

@@ -12,7 +12,7 @@ module kernels_module
 
 contains
 
-  subroutine hypterm_3d (lo,hi,dx,cons,clo,chi,q,qlo,qhi,rhs,rlo,rhi) bind(c)
+  subroutine hypterm_3d (lo,hi,dx,cons,clo,chi,q,qlo,qhi,rhs,rlo,rhi) bind(c,name='hypterm_3d')
 
     integer,         intent(in)   :: lo(3),hi(3),clo(3),chi(3),qlo(3),qhi(3),rlo(3),rhi(3)
     double precision,intent(in)   :: dx(3)
@@ -321,7 +321,8 @@ contains
   end subroutine hypterm_3d
 
 
-  subroutine narrow_diffterm_3d (lo,hi,dx,q,qlo,qhi,rhs_g,glo,ghi,mu,xi,lam,dxy) bind(c)
+  subroutine narrow_diffterm_3d (lo,hi,dx,q,qlo,qhi,rhs_g,glo,ghi,mu,xi,lam,dxy) &
+       bind(c,name='narrow_diffterm_3d')
 
     integer,         intent(in):: lo(3),hi(3),qlo(3),qhi(3),glo(3),ghi(3)
     double precision,intent(in):: dx(3)
@@ -2092,7 +2093,7 @@ contains
   end subroutine diffterm_2
 
 
-  subroutine chemterm_3d(lo,hi,q,qlo,qhi,up,uplo,uphi) bind(c)
+  subroutine chemterm_3d(lo,hi,q,qlo,qhi,up,uplo,uphi) bind(c,name='chemterm_3d')
     integer,         intent(in):: lo(3),hi(3),qlo(3),qhi(3),uplo(3),uphi(3)
     double precision,intent(in):: q ( qlo(1): qhi(1), qlo(2): qhi(2), qlo(3): qhi(3),nprim)
     double precision           :: up(uplo(1):uphi(1),uplo(2):uphi(2),uplo(3):uphi(3),ncons)
@@ -2125,7 +2126,7 @@ contains
   end subroutine chemterm_3d
 
 
-  subroutine comp_courno_3d(lo,hi,dx,Q,qlo,qhi,courno) bind(c)
+  subroutine comp_courno_3d(lo,hi,dx,Q,qlo,qhi,courno) bind(c,name='comp_courno_3d')
     integer, intent(in) :: lo(3), hi(3), qlo(3), qhi(3)
     double precision, intent(in) :: dx(3)
     double precision, intent(in) :: q(qlo(1):qhi(1),qlo(2):qhi(2),qlo(3):qhi(3),nprim)

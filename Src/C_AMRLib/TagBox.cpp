@@ -1,7 +1,6 @@
 #include <winstd.H>
 #include <algorithm>
 #include <cstdlib>
-#include <vector>
 #include <cmath>
 #include <climits>
 
@@ -202,23 +201,21 @@ TagBox::merge (const TagBox& src)
 #undef OFF
 }
 
-int
+long
 TagBox::numTags () const
 {
-   int nt = 0;
-   long t_long = domain.numPts();
-   BL_ASSERT(t_long < INT_MAX);
-   int len = static_cast<int>(t_long);
-   const TagType* d = dataPtr();
-   for (int n = 0; n < len; n++)
-   {
-      if (d[n] != TagBox::CLEAR)
-          nt++;
-   }
-   return nt;
+    long nt = 0L;
+    long len = domain.numPts();
+    const TagType* d = dataPtr();
+    for (long n = 0; n < len; ++n)
+    {
+	if (d[n] != TagBox::CLEAR)
+	    ++nt;
+    }
+    return nt;
 }
 
-int
+long
 TagBox::numTags (const Box& b) const
 {
    TagBox tempTagBox(b,1);
@@ -226,17 +223,15 @@ TagBox::numTags (const Box& b) const
    return tempTagBox.numTags();
 }
 
-int
-TagBox::collate (IntVect* ar,
-                 int      start) const
+long
+TagBox::collate (std::vector<IntVect>& ar, int start) const
 {
-    BL_ASSERT(!(ar == 0));
     BL_ASSERT(start >= 0);
     //
     // Starting at given offset of array ar, enter location (IntVect) of
     // each tagged cell in tagbox.
     //
-    int count        = 0;
+    long count       = 0;
     IntVect d_length = domain.size();
     const int* len   = d_length.getVect();
     const int* lo    = domain.loVect();
@@ -481,12 +476,12 @@ TagBoxArray::numTags () const
     return ntag;
 }
 
-IntVect*
-TagBoxArray::collate (long& numtags) const
+void
+TagBoxArray::collate (std::vector<IntVect>& TheGlobalCollateSpace) const
 {
     BL_PROFILE("TagBoxArray::collate()");
 
-    int count = 0;
+    long count = 0;
 
 #ifdef _OPENMP
 #pragma omp parallel reduction(+:count)
@@ -496,140 +491,98 @@ TagBoxArray::collate (long& numtags) const
         count += get(fai).numTags();
     }
 
-    int nfabs = local_size();
-
     //
     // Local space for holding just those tags we want to gather to the root cpu.
     //
-    IntVect*  TheLocalCollateSpace = new IntVect[count];
+    std::vector<IntVect> TheLocalCollateSpace(count);
 
     count = 0;
 
     // unsafe to do OMP
     for (MFIter fai(*this); fai.isValid(); ++fai)
     {
-        get(fai).collate(TheLocalCollateSpace,count);
-        count += get(fai).numTags();
+        count += get(fai).collate(TheLocalCollateSpace,count);
     }
 
-    if (nfabs > 0 && count > 0)
+    if (count > 0)
     {
         //
         // Remove duplicate IntVects.
         //
-        std::sort(TheLocalCollateSpace, TheLocalCollateSpace+count, IntVect::Compare());
-        IntVect* end = std::unique(TheLocalCollateSpace,TheLocalCollateSpace+count);
-        ptrdiff_t duplicates = (TheLocalCollateSpace+count) - end;
-        BL_ASSERT(duplicates >= 0);
-        count -= duplicates;
+	std::set<IntVect, IntVect::Compare> tmp (TheLocalCollateSpace.begin(),
+						 TheLocalCollateSpace.end());
+	TheLocalCollateSpace.assign( tmp.begin(), tmp.end() );
+	count = TheLocalCollateSpace.size();
     }
     //
     // The total number of tags system wide that must be collated.
     // This is really just an estimate of the upper bound due to duplicates.
     // While we've removed duplicates per MPI process there's still more systemwide.
     //
-    numtags = count;
+    long numtags = count;
 
     ParallelDescriptor::ReduceLongSum(numtags);
+
+    if (numtags == 0) {
+	TheGlobalCollateSpace.clear();
+	return;
+    }
+
     //
     // This holds all tags after they've been gather'd and unique'ified.
     //
     // Each CPU needs an identical copy since they all must go through grid_places() which isn't parallelized.
-    //
-    // The caller of collate() is responsible for delete[]ing this space.
-    //
-    IntVect* TheGlobalCollateSpace = new IntVect[numtags];
 
-    const int IOProcNumber(ParallelDescriptor::IOProcessorNumber());
+    TheGlobalCollateSpace.resize(numtags);
 
 #if BL_USE_MPI
-    Array<int> nmtags(1,0);
-    Array<int> offset(1,0);
-
-    if (ParallelDescriptor::IOProcessor())
-    {
-         nmtags.resize(ParallelDescriptor::NProcs(),0);
-         offset.resize(ParallelDescriptor::NProcs(),0);
-    }
     //
     // Tell root CPU how many tags each CPU will be sending.
     //
-    BL_COMM_PROFILE(BLProfiler::GatherTi, sizeof(int), BLProfiler::NoTag(),
-                    BLProfiler::BeforeCall());
-    MPI_Gather(&count,
-               1,
-               ParallelDescriptor::Mpi_typemap<int>::type(),
-               nmtags.dataPtr(),
-               1,
-               ParallelDescriptor::Mpi_typemap<int>::type(),
-               IOProcNumber,
-               ParallelDescriptor::Communicator());
-
-    BL_COMM_PROFILE(BLProfiler::GatherTi, sizeof(int), BLProfiler::NoTag(),
-                    BLProfiler::AfterCall());
-
+    const int IOProcNumber = ParallelDescriptor::IOProcessorNumber();
+    count *= BL_SPACEDIM;  // Convert from count of tags to count of integers to expect.
+    const std::vector<long>& countvec = ParallelDescriptor::Gather(count, IOProcNumber);
+    
+    std::vector<long> offset(countvec.size(),0L);
     if (ParallelDescriptor::IOProcessor())
     {
-        for (int i = 0, N = nmtags.size(); i < N; i++)
-            //
-            // Convert from count of tags to count of integers to expect.
-            //
-            nmtags[i] *= BL_SPACEDIM;
-
-        for (int i = 1, N = offset.size(); i < N; i++)
-            offset[i] = offset[i-1] + nmtags[i-1];
+        for (int i = 1, N = offset.size(); i < N; i++) {
+	    offset[i] = offset[i-1] + countvec[i-1];
+	}
     }
     //
     // Gather all the tags to IOProcNumber into TheGlobalCollateSpace.
     //
     BL_ASSERT(sizeof(IntVect) == BL_SPACEDIM * sizeof(int));
-
-    BL_COMM_PROFILE(BLProfiler::Gatherv, numtags * sizeof(IntVect),
-                    ParallelDescriptor::MyProc(), BLProfiler::BeforeCall());
-
-    MPI_Gatherv(reinterpret_cast<int*>(TheLocalCollateSpace),
-                count*BL_SPACEDIM,
-                ParallelDescriptor::Mpi_typemap<int>::type(),
-                reinterpret_cast<int*>(TheGlobalCollateSpace),
-                nmtags.dataPtr(),
-                offset.dataPtr(),
-                ParallelDescriptor::Mpi_typemap<int>::type(),
-                IOProcNumber,
-                ParallelDescriptor::Communicator());
-
-    BL_COMM_PROFILE(BLProfiler::Gatherv, numtags * sizeof(IntVect),
-                    ParallelDescriptor::MyProc(), BLProfiler::AfterCall());
-#else
-    //
-    // Copy TheLocalCollateSpace to TheGlobalCollateSpace.
-    //
-    for (int i = 0; i < count; i++)
-        TheGlobalCollateSpace[i] = TheLocalCollateSpace[i];
-#endif
-
-    delete [] TheLocalCollateSpace;
+    const int* psend = (count > 0) ? TheLocalCollateSpace[0].getVect() : 0;
+    int* precv = TheGlobalCollateSpace[0].getVect();
+    ParallelDescriptor::Gatherv(psend, count,
+				precv, countvec, offset, IOProcNumber); 
 
     if (ParallelDescriptor::IOProcessor())
     {
         //
         // Remove yet more possible duplicate IntVects.
         //
-        std::sort(TheGlobalCollateSpace, TheGlobalCollateSpace+numtags, IntVect::Compare());
-        IntVect* end = std::unique(TheGlobalCollateSpace,TheGlobalCollateSpace+numtags);
-        ptrdiff_t duplicates = (TheGlobalCollateSpace+numtags) - end;
-        BL_ASSERT(duplicates >= 0);
-
-        //std::cout << "*** numtags: " << numtags << ", duplicates: " << duplicates << '\n';
-
-        numtags -= duplicates;
+	std::set<IntVect, IntVect::Compare> tmp (TheGlobalCollateSpace.begin(),
+						 TheGlobalCollateSpace.end());
+	TheGlobalCollateSpace.assign( tmp.begin(), tmp.end() );
+	numtags = TheGlobalCollateSpace.size();
     }
+
     //
     // Now broadcast them back to the other processors.
     //
     ParallelDescriptor::Bcast(&numtags, 1, IOProcNumber);
-    ParallelDescriptor::Bcast(reinterpret_cast<int*>(TheGlobalCollateSpace), numtags*BL_SPACEDIM, IOProcNumber);
+    ParallelDescriptor::Bcast(TheGlobalCollateSpace[0].getVect(), numtags*BL_SPACEDIM, IOProcNumber);
+    TheGlobalCollateSpace.resize(numtags);
 
-    return TheGlobalCollateSpace;
+#else
+    //
+    // Copy TheLocalCollateSpace to TheGlobalCollateSpace.
+    //
+    TheGlobalCollateSpace = TheLocalCollateSpace;
+#endif
 }
 
 void
