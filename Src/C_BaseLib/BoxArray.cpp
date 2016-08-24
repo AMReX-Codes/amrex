@@ -175,15 +175,18 @@ BARef::Initialize ()
 {
     if (!initialized) {
 	initialized = true;
-	MemProfiler::add("BoxArray", [] () -> MemProfiler::MemInfo {
-		return {total_box_bytes, total_box_bytes_hwm};
-	    });
-	MemProfiler::add("BoxArrayHash", [] () -> MemProfiler::MemInfo {
-		return {total_hash_bytes, total_hash_bytes_hwm};
-	    });
-	MemProfiler::add("BoxArray Innard", [] () -> MemProfiler::NBuildsInfo {
-		return {numboxarrays, numboxarrays_hwm};
-	    });
+	MemProfiler::add("BoxArray", std::function<MemProfiler::MemInfo()>
+			 ([] () -> MemProfiler::MemInfo {
+			     return {total_box_bytes, total_box_bytes_hwm};
+			 }));
+	MemProfiler::add("BoxArrayHash", std::function<MemProfiler::MemInfo()>
+			 ([] () -> MemProfiler::MemInfo {
+			     return {total_hash_bytes, total_hash_bytes_hwm};
+			 }));
+	MemProfiler::add("BoxArray Innard", std::function<MemProfiler::NBuildsInfo()>
+			 ([] () -> MemProfiler::NBuildsInfo {
+			     return {numboxarrays, numboxarrays_hwm};
+			 }));
     }
 }
 #endif
