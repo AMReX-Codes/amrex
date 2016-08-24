@@ -3126,12 +3126,11 @@ Amr::grid_places (int              lbase,
         //
         // Create initial cluster containing all tagged points.
         //
-        long     len = 0;
-        IntVect* pts = tags.collate(len);
-
+	std::vector<IntVect> tagvec;
+	tags.collate(tagvec);
         tags.clear();
 
-        if (len > 0)
+        if (tagvec.size() > 0)
         {
             //
             // Created new level, now generate efficient grids.
@@ -3141,7 +3140,7 @@ Amr::grid_places (int              lbase,
             //
             // Construct initial cluster.
             //
-            ClusterList clist(pts,len);
+            ClusterList clist(&tagvec[0], tagvec.size());
             clist.chop(grid_eff);
             BoxDomain bd;
             bd.add(p_n[levc]);
@@ -3225,10 +3224,6 @@ Amr::grid_places (int              lbase,
               new_grids[levf].define(new_bx);
 	    }
         }
-        //
-        // Don't forget to get rid of space used for collate()ing.
-        //
-        delete [] pts;
     }
 
     // If Nprocs > Ngrids and refine_grid_layout == 1 then break up the grids
