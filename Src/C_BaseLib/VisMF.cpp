@@ -1318,7 +1318,7 @@ if(noFabHeader) {
         readFileRanks[fileName].insert(frcSorted[i].rankToRead);
 
 	ranksFileOrder[indexFileOrder] = frcSorted[i].rankToRead;
-	baFileOrder.set(indexFileOrder, hdr.m_ba[frcSorted[i].faIndex]);
+	baFileOrder.set(indexFileOrder, hdr.m_ba[frc[i].faIndex]);
 
         FileReadChainsSorted[fileName].push_back(FabReadLink(frcSorted[i].rankToRead,
 	                                                     indexFileOrder,
@@ -1334,6 +1334,9 @@ if(noFabHeader) {
         std::cout << "OOOOOOOO:  inFileOrder" << std::endl;
       }
     } else {
+      if(ParallelDescriptor::IOProcessor()) {
+        std::cout << "OOOOOOOO:  not inFileOrder" << std::endl;
+      }
       // ---- make a temporary fabarray in file order
       fafabFileOrder.define(baFileOrder, hdr.m_ncomp, hdr.m_ngrow, dmFileOrder, Fab_allocate);
     }
@@ -1375,7 +1378,11 @@ if(noFabHeader) {
         if(rfrSet.find(myProc) != rfrSet.end()) {  // ---- myProc needs to read this file
           const std::string &fileName = rfrIter->first;
 	  std::string fullFileName(VisMF::DirName(mf_name) + fileName);
-	  frcIter = FileReadChainsSorted.find(fileName);
+	  if(inFileOrder) {
+	    frcIter = FileReadChains.find(fileName);
+	  } else {
+	    frcIter = FileReadChainsSorted.find(fileName);
+	  }
           Array<FabReadLink> &frc = frcIter->second;
           for(NFilesIter nfi(fullFileName, readRanks); nfi.ReadyToRead(); ++nfi) {
 	    for(int i(0); i < frc.size(); ++i) {
