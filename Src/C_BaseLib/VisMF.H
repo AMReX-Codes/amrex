@@ -184,12 +184,12 @@ public:
     //
     // Read a FabArray<FArrayBox> from disk written using VisMF::Write().
     // The FabArray<FArrayBox> fafab must have been defined using the default
-    // constructor.  A pre-read header can be passed in to avoid a read and
-    // broadcast.
+    // constructor.  A pre-read FabArray header can be passed in to
+    // avoid a read and broadcast.
     //
     static void Read (FabArray<FArrayBox> &fafab,
                       const std::string &name,
-		      const char *header = 0);
+		      const char *faHeader = 0);
 
     //
     // Read only the header of a FabArray, header will be resized here.

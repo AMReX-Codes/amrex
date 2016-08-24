@@ -264,39 +264,39 @@ StateData::restart (std::istream&          is,
 
     std::string mf_name;
     std::string FullPathName;
-    //
-    // This reads the "new" data, if it's there.
-    //
-    if (nsets >= 1) {
+
+    for(int ns(1); ns <= nsets; ++ns) {
+      MultiFab *whichMF;
+      if(ns == 1) {
         new_data = new MultiFab;
-        is >> mf_name;
-        //
-        // Note that mf_name is relative to the Header file.
-        // We need to prepend the name of the chkfile directory.
-        //
-        FullPathName = chkfile;
-        if ( ! chkfile.empty() && chkfile[chkfile.length()-1] != '/') {
-            FullPathName += '/';
-	}
-        FullPathName += mf_name;
-        VisMF::Read(*new_data, FullPathName);
-    }
-    //
-    // This reads the "old" data, if it's there.
-    //
-    if (nsets == 2) {
+	whichMF = new_data;
+      } else if(ns == 2) {
         old_data = new MultiFab;
-        is >> mf_name;
-        //
-        // Note that mf_name is relative to the Header file.
-        // We need to prepend the name of the chkfile directory.
-        //
-        FullPathName = chkfile;
-        if ( ! chkfile.empty() && chkfile[chkfile.length()-1] != '/') {
-            FullPathName += '/';
+	whichMF = old_data;
+      } else {
+        BoxLib::Abort("**** Error in StateData::restart:  invalid nsets.");
+      }
+
+      is >> mf_name;
+      //
+      // Note that mf_name is relative to the Header file.
+      // We need to prepend the name of the chkfile directory.
+      //
+      FullPathName = chkfile;
+      if ( ! chkfile.empty() && chkfile[chkfile.length()-1] != '/') {
+          FullPathName += '/';
+      }
+      FullPathName += mf_name;
+      std::string FullHeaderPathName(FullPathName + "_H");
+      const char *faHeader = 0;
+      if(faHeaderMap != 0) {
+        std::map<std::string, Array<char> >::iterator fahmIter;
+	fahmIter = faHeaderMap->find(FullHeaderPathName);
+	if(fahmIter != faHeaderMap->end()) {
+	  faHeader = fahmIter->second.dataPtr();
 	}
-        FullPathName += mf_name;
-        VisMF::Read(*old_data, FullPathName);
+      }
+      VisMF::Read(*whichMF, FullPathName, faHeader);
     }
 }
 
