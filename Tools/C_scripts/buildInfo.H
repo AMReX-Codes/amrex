@@ -10,7 +10,7 @@ const char* buildInfoGetCompilerFlags(int i);
 const char* buildInfoGetFcomp();
 const char* buildInfoGetFcompVersion();
 const char* buildInfoGetAux(int i);
-const int buildInfoGetNumModules();
+int buildInfoGetNumModules();
 const char* buildInfoGetModuleName(int i);
 const char* buildInfoGetModuleVal(int i);
 const char* buildInfoGetDif(int i);
