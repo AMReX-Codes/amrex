@@ -74,7 +74,7 @@ BndryRegister::operator= (const BndryRegister& src)
 // in_rad: grow inwards; for nodal, in_rad=0 means on the boundary face.
 BndryBATransformer::BndryBATransformer (Orientation face, IndexType typ,
 					int in_rad, int out_rad, int extent_rad)
-    : BATBase(typ), 
+    : BATBase<BndryBATransformer>(typ), 
       m_dir(face.coordDir()), 
       m_lo_face(face.isLow()),
       m_in_rad(in_rad), 
