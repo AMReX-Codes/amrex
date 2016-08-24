@@ -169,7 +169,7 @@ struct BATypeTransformer
     : public BATBase<BATypeTransformer>
 {
     explicit BATypeTransformer (IndexType typ = IndexType())
-	: BATBase(typ) {}
+	: BATBase<BATypeTransformer>(typ) {}
 
     virtual ~BATypeTransformer () BL_OVERRIDE {}
 
