@@ -1278,13 +1278,13 @@ ParallelDescriptor::Gatherv (const T* send, long sc,
 {
     BL_COMM_PROFILE(BLProfiler::Gathervl,  BLProfiler::BeforeCall(), root, BLProfiler::NoTag());
 
-    int nprocs = NProcs();
-    BL_ASSERT(rc.size() == nprocs);
-    BL_ASSERT(disp.size() == nprocs);
-
     int tag = ParallelDescriptor::SeqNum();
 
     if (MyProc() == root) {
+	int nprocs = NProcs();
+	BL_ASSERT(rc.size() == nprocs);
+	BL_ASSERT(disp.size() == nprocs);
+
 	std::vector<MPI_Request> request;
 	for (int i = 0; i < nprocs; ++i) {
 	    T* buf = recv + disp[i];
