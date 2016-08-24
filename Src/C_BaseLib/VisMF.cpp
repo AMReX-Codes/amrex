@@ -1226,7 +1226,7 @@ VisMF::readFABNoFabHeader (FabArray<FArrayBox>&            mf,
 void
 VisMF::Read (FabArray<FArrayBox> &mf,
              const std::string   &mf_name,
-	     const char *header)
+	     const char *faHeader)
 {
     BL_PROFILE("VisMF::Read()");
 
@@ -1246,12 +1246,12 @@ VisMF::Read (FabArray<FArrayBox> &mf,
     {
         hStartTime = ParallelDescriptor::second();
         std::string fileCharPtrString;
-	if(header == 0) {
+	if(faHeader == 0) {
           Array<char> fileCharPtr;
           ParallelDescriptor::ReadAndBcastFile(FullHdrFileName, fileCharPtr);
           fileCharPtrString = fileCharPtr.dataPtr();
 	} else {
-          fileCharPtrString = header;
+          fileCharPtrString = faHeader;
 	}
         std::istringstream ifs(fileCharPtrString, std::istringstream::in);
 
@@ -1608,14 +1608,14 @@ if(noFabHeader) {
 
 void
 VisMF::ReadFAHeader (const std::string &fafabName,
-	             Array<char> &header)
+	             Array<char> &faHeader)
 {
     BL_PROFILE("VisMF::ReadFAHeader()");
 
     VisMF::Initialize();
 
     std::string FullHdrFileName(fafabName + TheMultiFabHdrFileSuffix);
-    ParallelDescriptor::ReadAndBcastFile(FullHdrFileName, header);
+    ParallelDescriptor::ReadAndBcastFile(FullHdrFileName, faHeader);
 }
 
 

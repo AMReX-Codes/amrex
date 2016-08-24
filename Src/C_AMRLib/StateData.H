@@ -284,6 +284,9 @@ private:
     // names written during a checkpoint
     //
     static Array<std::string> fabArrayHeaderNames;
+    //
+    // This is used to store preread FabArray headers
+    //
     static std::map<std::string, Array<char> > *faHeaderMap;  // ---- [faheader name, the header]
 };
 
