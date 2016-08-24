@@ -28,12 +28,6 @@ endif()
 set(F77_header_files bc_types.fi)
 set(F90_header_files)
 
-if(BL_USE_PARTICLES EQUAL 1)
-  list(APPEND CXX_source_files Particles.cpp)
-  list(APPEND CXX_header_files Particles.H)
-  list(APPEND FPP_source_files Particles_${BL_SPACEDIM}D.F)
-  list(APPEND FPP_header_files Particles_F.H)
-endif()
 set(F77_source_files)
 set(F90_source_files extrapolater_${BL_SPACEDIM}d.f90)
 

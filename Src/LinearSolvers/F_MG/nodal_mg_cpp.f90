@@ -257,14 +257,16 @@ subroutine mgt_nodal_finalize(dx,bc)
 
 end subroutine mgt_nodal_finalize
 
-subroutine mgt_init_nodal_coeffs_lev(lev)
+subroutine mgt_init_nodal_coeffs_lev(lev,val)
   use nodal_cpp_mg_module
   implicit none
-  integer, intent(in) :: lev
+  integer   , intent(in)           :: lev
+  real(dp_t), intent(in), optional :: val
+
   integer :: nlev
   integer :: flev
   flev = lev + 1
-  call mgt_verify_lev("MGT_INIT_STENCIL_LEV", flev)
+  call mgt_verify_lev("MGT_INIT_NODAL_COEFFS_LEV", flev)
 
   nlev = mgts%mgt(flev)%nlevels
 
@@ -273,6 +275,25 @@ subroutine mgt_init_nodal_coeffs_lev(lev)
   call multifab_setval(mgts%amr_coeffs(flev), ZERO, all=.true.)
 
 end subroutine mgt_init_nodal_coeffs_lev
+
+subroutine mgt_init_const_nodal_coeffs_lev(lev,val)
+  use nodal_cpp_mg_module
+  implicit none
+  integer   , intent(in) :: lev
+  real(dp_t), intent(in) :: val
+
+  integer :: nlev
+  integer :: flev
+  flev = lev + 1
+  call mgt_verify_lev("MGT_INIT_CONST_NODAL_COEFFS_LEV", flev)
+
+  nlev = mgts%mgt(flev)%nlevels
+
+  ! These only exist at amr levels, not the lower multigrid levels
+  call multifab_build( mgts%amr_coeffs(flev), mgts%mgt(flev)%ss(nlev)%la, 1, 1)
+  call multifab_setval(mgts%amr_coeffs(flev), val, all=.true.)
+
+end subroutine mgt_init_const_nodal_coeffs_lev
 
 subroutine mgt_finalize_nodal_stencil_lev(lev)
   use nodal_cpp_mg_module

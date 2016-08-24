@@ -17,7 +17,7 @@ module transport_properties
 
 contains
 
-  subroutine get_trans_prop_3d(tlo,thi,lo,hi,q,mu,xi,lam,Ddiag,ng) bind(c)
+  subroutine get_trans_prop_3d(tlo,thi,lo,hi,q,mu,xi,lam,Ddiag,ng) bind(c,name='get_trans_prop_3d')
     integer, intent(in) :: lo(3), hi(3), ng, tlo(3), thi(3)
     double precision,intent(in   )::    q(lo(1)-ng:hi(1)+ng,lo(2)-ng:hi(2)+ng,lo(3)-ng:hi(3)+ng,nprim)
     double precision,intent(inout)::   mu(lo(1)-ng:hi(1)+ng,lo(2)-ng:hi(2)+ng,lo(3)-ng:hi(3)+ng)

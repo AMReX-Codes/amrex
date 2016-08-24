@@ -60,15 +60,15 @@ public:
     // starting at given location.  Returns the number of
     // collated points.
     //
-    int collate (IntVect* ar, int start) const;
+    long collate (std::vector<IntVect>& ar, int start) const;
     //
     // Returns number of tagged cells in specified Box.
     //
-    int numTags (const Box& bx) const;
+    long numTags (const Box& bx) const;
     //
     // Returns total number of tagged cells in the TagBox.
     //
-    int numTags () const;
+    long numTags () const;
     //
     // Returns Array<int> of size domain.numPts() suitable for calling
     // Fortran, with positions set to same value as in the TagBox
@@ -153,9 +153,8 @@ public:
     long numTags () const;
     //
     // Calls collate() on all contained TagBoxes.
-    // The callee must delete[] the space when not needed.
     //
-    IntVect* collate (long& numtags) const;
+    void collate (std::vector<IntVect>& TheGlobalCollateSpace) const;
 
     virtual void AddProcsToComp (int ioProcNumSCS, int ioProcNumAll,
                                  int scsMyId, MPI_Comm scsComm);
