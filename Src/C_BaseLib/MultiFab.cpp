@@ -1324,8 +1324,7 @@ typedef FabArrayBase::CopyComTag::CopyComTagsContainer CopyComTagsContainer;
 typedef FabArrayBase::CopyComTag::MapOfCopyComTagContainers MapOfCopyComTagContainers;
 
 void
-MultiFab::SumBoundary (int scomp,
-                       int ncomp)
+MultiFab::SumBoundary (int scomp, int ncomp, const Periodicity& period)
 {
     if ( n_grow <= 0 ) return;
 
@@ -1339,7 +1338,7 @@ MultiFab::SumBoundary (int scomp,
     //
     MultiFab& mf = *this;
 
-    const FabArrayBase::FB& TheFB = mf.getFB(Periodicity::NonPeriodic());
+    const FabArrayBase::FB& TheFB = mf.getFB(period);
 
     const CopyComTagsContainer&      LocTags = *(TheFB.m_LocTags);
     const MapOfCopyComTagContainers& SndTags = *(TheFB.m_RcvTags);
@@ -1540,9 +1539,9 @@ MultiFab::SumBoundary (int scomp,
 }
 
 void
-MultiFab::SumBoundary ()
+MultiFab::SumBoundary (const Periodicity& period)
 {
-    SumBoundary(0, n_comp);
+    SumBoundary(0, n_comp, period);
 }
 
 

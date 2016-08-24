@@ -493,9 +493,9 @@ public:
     //
     // Sum ghost cells that are covered by valid cells into the valid cells.
     //
-    void SumBoundary ();
+    void SumBoundary (const Periodicity& period = Periodicity::NonPeriodic());
 
-    void SumBoundary (int scomp, int ncomp);
+    void SumBoundary (int scomp, int ncomp, const Periodicity& period = Periodicity::NonPeriodic());
 
     static void Initialize ();
     static void Finalize ();
