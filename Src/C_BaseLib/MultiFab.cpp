@@ -242,9 +242,10 @@ MultiFab::Initialize ()
     BoxLib::ExecOnFinalize(MultiFab::Finalize);
 
 #ifdef BL_MEM_PROFILING
-    MemProfiler::add("MultiFab", [] () -> MemProfiler::NBuildsInfo {
-            return {num_multifabs, num_multifabs_hwm};
-        });
+    MemProfiler::add("MultiFab", std::function<MemProfiler::NBuildsInfo()>
+		     ([] () -> MemProfiler::NBuildsInfo {
+			 return {num_multifabs, num_multifabs_hwm};
+		     }));
 #endif
 
     initialized = true;

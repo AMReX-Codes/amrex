@@ -915,9 +915,10 @@ Geometry::Setup (const RealBox* rb, int coord, int* isper)
     }
 
 #ifdef BL_MEM_PROFILING
-    MemProfiler::add(m_FPBC_stats.name, [] () -> MemProfiler::MemInfo {
-	    return {m_FPBC_stats.bytes, m_FPBC_stats.bytes_hwm};
-	});
+    MemProfiler::add(m_FPBC_stats.name, std::function<MemProfiler::MemInfo()>
+		     ([] () -> MemProfiler::MemInfo {
+			 return {m_FPBC_stats.bytes, m_FPBC_stats.bytes_hwm};
+		     }));
 #endif
 
     BoxLib::ExecOnFinalize(Geometry::Finalize);

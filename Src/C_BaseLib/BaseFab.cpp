@@ -51,10 +51,11 @@ BoxLib::BF_init::BF_init ()
 #endif
 
 #ifdef BL_MEM_PROFILING
-	MemProfiler::add("Fab", [] () -> MemProfiler::MemInfo {
-	    return {BoxLib::TotalBytesAllocatedInFabs(),
-		    BoxLib::TotalBytesAllocatedInFabsHWM()};
-        });
+	MemProfiler::add("Fab", std::function<MemProfiler::MemInfo()>
+			 ([] () -> MemProfiler::MemInfo {
+			     return {BoxLib::TotalBytesAllocatedInFabs(),
+				     BoxLib::TotalBytesAllocatedInFabsHWM()};
+			 }));
 #endif
     }
 }
