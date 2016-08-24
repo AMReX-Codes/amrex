@@ -12,6 +12,7 @@ include(TestManager)
 project(FBOXLIB)
 
 include_directories(${FBOXLIB_INCLUDE_DIRS})
+include_directories(${CBOXLIB_INCLUDE_DIRS})
 
 set(CXX_source_files backtrace_c.cpp)
 set(C_source_files fabio_c.c  ppm_util_c.c  system_util_c.c  timer_c.c)
