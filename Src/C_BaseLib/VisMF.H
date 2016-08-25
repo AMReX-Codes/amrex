@@ -247,6 +247,12 @@ public:
     static bool GetSetBuf () { return setBuf; }
     static void SetSetBuf (bool setbuf) { setBuf = setbuf; }
 
+    static bool GetUseSingleRead () { return useSingleRead; }
+    static void SetUseSingleRead (bool usesingleread) { useSingleRead = usesingleread; }
+
+    static bool GetUseSingleWrite () { return useSingleWrite; }
+    static void SetUseSingleWrite (bool usesinglewrite) { useSingleWrite = usesinglewrite; }
+
     static void Initialize ();
     static void Finalize ();
 
@@ -317,6 +323,8 @@ private:
     static VisMF::Header::Version currentVersion;
     static bool groupSets;
     static bool setBuf;
+    static bool useSingleRead;
+    static bool useSingleWrite;
 };
 //
 // Write a FabOnDisk to an ostream in ASCII.
