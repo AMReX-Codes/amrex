@@ -30,6 +30,8 @@ int VisMF::verbose(1);
 VisMF::Header::Version VisMF::currentVersion(VisMF::Header::Version_v1);
 bool VisMF::groupSets(false);
 bool VisMF::setBuf(true);
+bool VisMF::useSingleRead(false);
+bool VisMF::useSingleWrite(false);
 
 //
 // Set these in Initialize().
@@ -870,7 +872,7 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
 
     std::string filePrefix(mf_name + FabFileSuffix);
 
-    if(currentVersion == VisMF::Header::Version_v1) {
+    if(currentVersion == VisMF::Header::Version_v1) {  // ---- write the old way
 
       for(NFilesIter nfi(nOutFiles, filePrefix, groupSets, setBuf); nfi.ReadyToWrite(); ++nfi) {
         const std::string fName(NFilesIter::FileName(nOutFiles, filePrefix, myProc, groupSets));
@@ -879,14 +881,29 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
         }
       }
 
-    } else {
+    } else {     // ---- write the fab data directly
 
       for(NFilesIter nfi(nOutFiles, filePrefix, groupSets, setBuf); nfi.ReadyToWrite(); ++nfi) {
-        for(MFIter mfi(mf); mfi.isValid(); ++mfi) { // ---- write the fab data directly
-          const FArrayBox &fab = mf[mfi];
-          nfi.Stream().write((char *) fab.dataPtr(), fab.nBytes());
-          bytesWritten += fab.nBytes();
-        }
+	if(VisMF::useSingleWrite) {
+          for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
+            bytesWritten += mf[mfi].nBytes();
+          }
+	  std::vector<char> allFabData(bytesWritten);
+	  long writePosition(0);
+          for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
+            const FArrayBox &fab = mf[mfi];
+	    char *afPtr = allFabData.data() + writePosition;
+	    memcpy(afPtr, fab.dataPtr(), fab.nBytes());
+            writePosition += fab.nBytes();
+          }
+          nfi.Stream().write(allFabData.data(), bytesWritten);
+	} else {
+          for(MFIter mfi(mf); mfi.isValid(); ++mfi) {    // ---- write the fab data directly
+            const FArrayBox &fab = mf[mfi];
+            nfi.Stream().write((char *) fab.dataPtr(), fab.nBytes());
+            bytesWritten += fab.nBytes();
+          }
+	}
       }
 
     }
@@ -1385,13 +1402,68 @@ if(noFabHeader) {
 	  }
           Array<FabReadLink> &frc = frcIter->second;
           for(NFilesIter nfi(fullFileName, readRanks); nfi.ReadyToRead(); ++nfi) {
-	    for(int i(0); i < frc.size(); ++i) {
-	      if(myProc == frc[i].rankToRead) {
-	        if(nfi.SeekPos() != frc[i].fileOffset) {
-                  nfi.Stream().seekp(frc[i].fileOffset, std::ios::beg);
+	    if(VisMF::useSingleRead) {
+	      // ---- confirm the data is contiguous in the stream
+	      long firstOffset(-1);
+	      for(int i(0); i < frc.size(); ++i) {
+	        if(myProc == frc[i].rankToRead) {
+		  firstOffset = frc[i].fileOffset;
+		  break;
+		}
+	      }
+
+	      bool dataIsContiguous(true);
+	      long currentOffset(firstOffset);
+	      long bytesToRead(0);
+
+	      for(int i(0); i < frc.size(); ++i) {
+	        if(myProc == frc[i].rankToRead) {
+	          if(currentOffset != frc[i].fileOffset) {
+                    dataIsContiguous = false;
+	          } else {
+	            FArrayBox &fab = whichFA[frc[i].faIndex];
+                    currentOffset += fab.nBytes();
+                    bytesToRead   += fab.nBytes();
+		  }
 	        }
-	        FArrayBox &fab = whichFA[frc[i].faIndex];
-                nfi.Stream().read((char *) fab.dataPtr(), fab.nBytes());
+	      }
+	      if(dataIsContiguous) {
+	        std::vector<char> allFabData(bytesToRead);
+                nfi.Stream().seekp(firstOffset, std::ios::beg);
+                nfi.Stream().read(allFabData.data(), allFabData.size());
+
+		currentOffset = 0;  // ---- this is now relative to allFabData
+
+	        for(int i(0); i < frc.size(); ++i) {
+	          if(myProc == frc[i].rankToRead) {
+		    char *afPtr = allFabData.data() + currentOffset;
+	            FArrayBox &fab = whichFA[frc[i].faIndex];
+                    memcpy(fab.dataPtr(), afPtr, fab.nBytes());
+                    currentOffset += fab.nBytes();
+	          }
+	        }
+
+	      } else {          // ---- cannot use one read
+	        for(int i(0); i < frc.size(); ++i) {
+	          if(myProc == frc[i].rankToRead) {
+	            if(nfi.SeekPos() != frc[i].fileOffset) {
+                      nfi.Stream().seekp(frc[i].fileOffset, std::ios::beg);
+	            }
+	            FArrayBox &fab = whichFA[frc[i].faIndex];
+                    nfi.Stream().read((char *) fab.dataPtr(), fab.nBytes());
+	          }
+	        }
+	      }
+
+	    } else {
+	      for(int i(0); i < frc.size(); ++i) {
+	        if(myProc == frc[i].rankToRead) {
+	          if(nfi.SeekPos() != frc[i].fileOffset) {
+                    nfi.Stream().seekp(frc[i].fileOffset, std::ios::beg);
+	          }
+	          FArrayBox &fab = whichFA[frc[i].faIndex];
+                  nfi.Stream().read((char *) fab.dataPtr(), fab.nBytes());
+	        }
 	      }
 	    }
           }
