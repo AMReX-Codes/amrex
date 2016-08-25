@@ -914,15 +914,18 @@ Amr::okToContinue ()
 void
 Amr::writePlotFile ()
 {
-    if ( ! Plot_Files_Output()) return;
+    if ( ! Plot_Files_Output()) {
+      return;
+    }
 
     BL_PROFILE_REGION_START("Amr::writePlotFile()");
     BL_PROFILE("Amr::writePlotFile()");
 
     VisMF::SetNOutFiles(plot_nfiles);
+    VisMF::Header::Version currentVersion(VisMF::GetHeaderVersion());
+    VisMF::SetHeaderVersion(VisMF::Header::Version_v1);
 
-    if (first_plotfile) 
-    {
+    if (first_plotfile) {
         first_plotfile = false;
         amr_level[0].setPlotVariables();
     }
@@ -931,11 +934,13 @@ Amr::writePlotFile ()
 
     const std::string& pltfile = BoxLib::Concatenate(plot_file_root,level_steps[0],file_name_digits);
 
-    if (verbose > 0 && ParallelDescriptor::IOProcessor())
+    if (verbose > 0 && ParallelDescriptor::IOProcessor()) {
         std::cout << "PLOTFILE: file = " << pltfile << '\n';
+    }
 
-    if (record_run_info && ParallelDescriptor::IOProcessor())
+    if (record_run_info && ParallelDescriptor::IOProcessor()) {
         runlog << "PLOTFILE: file = " << pltfile << '\n';
+    }
 
   BoxLib::StreamRetry sretry(pltfile, abort_on_stream_retry_failure,
                              stream_max_tries);
@@ -963,8 +968,7 @@ Amr::writePlotFile ()
 
     int old_prec(0);
 
-    if (ParallelDescriptor::IOProcessor())
-    {
+    if (ParallelDescriptor::IOProcessor()) {
         //
         // Only the IOProcessor() writes to the header file.
         //
@@ -975,27 +979,28 @@ Amr::writePlotFile ()
         old_prec = HeaderFile.precision(15);
     }
 
-    for (int k(0); k <= finest_level; ++k)
+    for (int k(0); k <= finest_level; ++k) {
         amr_level[k].writePlotFile(pltfileTemp, HeaderFile);
+    }
 
-    if (ParallelDescriptor::IOProcessor())
-    {
+    if (ParallelDescriptor::IOProcessor()) {
         HeaderFile.precision(old_prec);
-        if ( ! HeaderFile.good())
+        if ( ! HeaderFile.good()) {
             BoxLib::Error("Amr::writePlotFile() failed");
+	}
     }
 
     last_plotfile = level_steps[0];
 
-    if (verbose > 0)
-    {
+    if (verbose > 0) {
         const int IOProc        = ParallelDescriptor::IOProcessorNumber();
         Real      dPlotFileTime = ParallelDescriptor::second() - dPlotFileTime0;
 
         ParallelDescriptor::ReduceRealMax(dPlotFileTime,IOProc);
 
-        if (ParallelDescriptor::IOProcessor())
+        if (ParallelDescriptor::IOProcessor()) {
             std::cout << "Write plotfile time = " << dPlotFileTime << "  seconds" << "\n\n";
+	}
     }
     ParallelDescriptor::Barrier("Amr::writePlotFile::end");
 
@@ -1008,38 +1013,50 @@ Amr::writePlotFile ()
     //
 
   }  // end while
+
+  VisMF::SetHeaderVersion(VisMF::Header::Version_v1);
+  
   BL_PROFILE_REGION_STOP("Amr::writePlotFile()");
 }
 
 void
 Amr::writeSmallPlotFile ()
 {
-    if ( ! Plot_Files_Output()) return;
+    if ( ! Plot_Files_Output()) {
+      return;
+    }
 
     BL_PROFILE_REGION_START("Amr::writeSmallPlotFile()");
     BL_PROFILE("Amr::writeSmallPlotFile()");
 
     VisMF::SetNOutFiles(plot_nfiles);
+    VisMF::Header::Version currentVersion(VisMF::GetHeaderVersion());
+    VisMF::SetHeaderVersion(VisMF::Header::Version_v1);
 
-    if (first_smallplotfile) 
-    {
+    if (first_smallplotfile) {
         first_smallplotfile = false;
         amr_level[0].setSmallPlotVariables();
     }
 
     // Don't continue if we have no variables to plot.
     
-    if (stateSmallPlotVars().size() == 0) return;
+    if (stateSmallPlotVars().size() == 0) {
+      return;
+    }
 
     Real dPlotFileTime0 = ParallelDescriptor::second();
 
-    const std::string& pltfile = BoxLib::Concatenate(small_plot_file_root,level_steps[0],file_name_digits);
+    const std::string& pltfile = BoxLib::Concatenate(small_plot_file_root,
+                                                     level_steps[0],
+                                                     file_name_digits);
 
-    if (verbose > 0 && ParallelDescriptor::IOProcessor())
+    if (verbose > 0 && ParallelDescriptor::IOProcessor()) {
         std::cout << "SMALL PLOTFILE: file = " << pltfile << '\n';
+    }
 
-    if (record_run_info && ParallelDescriptor::IOProcessor())
+    if (record_run_info && ParallelDescriptor::IOProcessor()) {
         runlog << "SMALL PLOTFILE: file = " << pltfile << '\n';
+    }
 
   BoxLib::StreamRetry sretry(pltfile, abort_on_stream_retry_failure,
                              stream_max_tries);
@@ -1067,39 +1084,40 @@ Amr::writeSmallPlotFile ()
 
     int old_prec(0);
 
-    if (ParallelDescriptor::IOProcessor())
-    {
+    if (ParallelDescriptor::IOProcessor()) {
         //
         // Only the IOProcessor() writes to the header file.
         //
         HeaderFile.open(HeaderFileName.c_str(), std::ios::out | std::ios::trunc |
 	                                        std::ios::binary);
-        if ( ! HeaderFile.good())
+        if ( ! HeaderFile.good()) {
             BoxLib::FileOpenFailed(HeaderFileName);
+	}
         old_prec = HeaderFile.precision(15);
     }
 
-    for (int k(0); k <= finest_level; ++k)
+    for (int k(0); k <= finest_level; ++k) {
         amr_level[k].writeSmallPlotFile(pltfileTemp, HeaderFile);
+    }
 
-    if (ParallelDescriptor::IOProcessor())
-    {
+    if (ParallelDescriptor::IOProcessor()) {
         HeaderFile.precision(old_prec);
-        if ( ! HeaderFile.good())
+        if ( ! HeaderFile.good()) {
             BoxLib::Error("Amr::writePlotFile() failed");
+	}
     }
 
     last_smallplotfile = level_steps[0];
 
-    if (verbose > 0)
-    {
+    if (verbose > 0) {
         const int IOProc        = ParallelDescriptor::IOProcessorNumber();
         Real      dPlotFileTime = ParallelDescriptor::second() - dPlotFileTime0;
 
         ParallelDescriptor::ReduceRealMax(dPlotFileTime,IOProc);
 
-        if (ParallelDescriptor::IOProcessor())
+        if (ParallelDescriptor::IOProcessor()) {
             std::cout << "Write small plotfile time = " << dPlotFileTime << "  seconds" << "\n\n";
+	}
     }
     ParallelDescriptor::Barrier("Amr::writeSmallPlotFile::end");
 
@@ -1112,6 +1130,9 @@ Amr::writeSmallPlotFile ()
     //
 
   }  // end while
+
+  VisMF::SetHeaderVersion(VisMF::Header::Version_v1);
+  
   BL_PROFILE_REGION_STOP("Amr::writeSmallPlotFile()");
 }
 
