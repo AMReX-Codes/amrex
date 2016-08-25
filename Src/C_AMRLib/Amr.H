@@ -665,9 +665,11 @@ public:
     BoundaryPointList intersect_hiy;
     BoundaryPointList intersect_hiz;
 
-    static bool                   first_smallplotfile;
-    static bool                   precreateDirectories;
-    static bool                   prereadFAHeaders;
+    static bool first_smallplotfile;
+    static bool precreateDirectories;
+    static bool prereadFAHeaders;
+    static bool useSingleRead;
+    static bool useSingleWrite;
 
 #ifdef USE_PARTICLES
     AmrParGDB* m_gdb;

@@ -69,6 +69,8 @@ bool                   Amr::first_plotfile;
 bool                   Amr::first_smallplotfile;
 bool                   Amr::precreateDirectories;
 bool                   Amr::prereadFAHeaders;
+bool                   Amr::useSingleRead;
+bool                   Amr::useSingleWrite;
 Array<BoxArray>        Amr::initial_ba;
 Array<BoxArray>        Amr::regrid_ba;
 bool                   Amr::useFixedCoarseGrids;
@@ -112,6 +114,8 @@ Amr::Initialize ()
     Amr::first_smallplotfile = true;
     Amr::precreateDirectories= true;
     Amr::prereadFAHeaders    = true;
+    Amr::useSingleRead       = false;
+    Amr::useSingleWrite      = false;
     plot_nfiles              = 64;
     mffile_nstreams          = 1;
     probinit_natonce         = 32;
@@ -3569,6 +3573,12 @@ Amr::initPltAndChk ()
 
     prereadFAHeaders = true;
     pp.query("prereadFAHeaders", prereadFAHeaders);
+
+    useSingleRead = false;
+    pp.query("useSingleRead", useSingleRead);
+
+    useSingleWrite = false;
+    pp.query("useSingleWrite", useSingleWrite);
 }
 
 
@@ -4010,6 +4020,8 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
         allBools.push_back(first_smallplotfile);
         allBools.push_back(precreateDirectories);
         allBools.push_back(prereadFAHeaders);
+        allBools.push_back(useSingleRead);
+        allBools.push_back(useSingleWrite);
 
 	allBoolsSize = allBools.size();
       }
@@ -4033,6 +4045,8 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
         first_smallplotfile           = allBools[count++];
         precreateDirectories          = allBools[count++];
         prereadFAHeaders              = allBools[count++];
+        useSingleRead                 = allBools[count++];
+        useSingleWrite                = allBools[count++];
       }
 
 
