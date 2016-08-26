@@ -71,6 +71,7 @@ bool                   Amr::precreateDirectories;
 bool                   Amr::prereadFAHeaders;
 bool                   Amr::useSingleRead;
 bool                   Amr::useSingleWrite;
+bool                   Amr::checkFilePositions;
 Array<BoxArray>        Amr::initial_ba;
 Array<BoxArray>        Amr::regrid_ba;
 bool                   Amr::useFixedCoarseGrids;
@@ -116,6 +117,7 @@ Amr::Initialize ()
     Amr::prereadFAHeaders    = true;
     Amr::useSingleRead       = false;
     Amr::useSingleWrite      = false;
+    Amr::checkFilePositions  = false;
     plot_nfiles              = 64;
     mffile_nstreams          = 1;
     probinit_natonce         = 32;
@@ -1886,6 +1888,7 @@ Amr::checkPoint ()
 
     for(i = 0; i <= finest_level; ++i) {
         amr_level[i].checkPoint(ckfileTemp, HeaderFile);
+        amr_level[i].SetLevelDirectoryCreated(false);
     }
 
     if (ParallelDescriptor::IOProcessor()) {
@@ -3600,6 +3603,9 @@ Amr::initPltAndChk ()
 
     useSingleWrite = false;
     pp.query("useSingleWrite", useSingleWrite);
+
+    checkFilePositions = false;
+    pp.query("checkFilePositions", checkFilePositions);
 }
 
 
@@ -4043,6 +4049,7 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
         allBools.push_back(prereadFAHeaders);
         allBools.push_back(useSingleRead);
         allBools.push_back(useSingleWrite);
+        allBools.push_back(checkFilePositions);
 
 	allBoolsSize = allBools.size();
       }
@@ -4068,6 +4075,7 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
         prereadFAHeaders              = allBools[count++];
         useSingleRead                 = allBools[count++];
         useSingleWrite                = allBools[count++];
+        checkFilePositions            = allBools[count++];
       }
 
 
