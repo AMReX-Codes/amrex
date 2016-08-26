@@ -1478,7 +1478,7 @@ FabArrayBase::WaitForAsyncSends (int                 N_snds,
                                  Array<MPI_Status>&  stats)
 {
 #ifdef BL_USE_MPI
-    BL_ASSERT(FabArrayBase::do_async_sends && N_snds > 0);
+    BL_ASSERT(N_snds > 0);
 
     stats.resize(N_snds);
 
