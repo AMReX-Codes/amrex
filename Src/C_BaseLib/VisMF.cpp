@@ -26,12 +26,15 @@ static const char *TheMultiFabHdrFileSuffix = "_H";
 static const char *FabFileSuffix = "_D_";
 static const char *TheFabOnDiskPrefix = "FabOnDisk:";
 
+std::map<std::string, VisMF::PersistentIFStream> VisMF::persistentIFStreams;
+
 int VisMF::verbose(1);
 VisMF::Header::Version VisMF::currentVersion(VisMF::Header::Version_v1);
 bool VisMF::groupSets(false);
 bool VisMF::setBuf(true);
 bool VisMF::useSingleRead(false);
 bool VisMF::useSingleWrite(false);
+bool VisMF::checkFilePositions(false);
 
 //
 // Set these in Initialize().
@@ -394,6 +397,15 @@ VisMF::FabReadLink::FabReadLink(int ranktoread, int faindex, long fileoffset)
     fileOffset(fileoffset)
 { }
 
+VisMF::PersistentIFStream::PersistentIFStream()
+    :
+    currentPosition(0),
+    isOpen(false)
+{ }
+
+VisMF::PersistentIFStream::~PersistentIFStream()
+{ }
+
 int
 VisMF::nComp () const
 {
@@ -475,7 +487,7 @@ VisMF::GetFab (int fabIndex,
                int ncomp) const
 {
     if(m_pa[ncomp][fabIndex] == 0) {
-        m_pa[ncomp][fabIndex] = VisMF::readFAB(fabIndex,m_fafabname,m_hdr,ncomp);
+        m_pa[ncomp][fabIndex] = VisMF::readFAB(fabIndex, m_fafabname, m_hdr, ncomp);
     }
     return *m_pa[ncomp][fabIndex];
 }
@@ -508,14 +520,14 @@ FArrayBox*
 VisMF::readFAB (int                idx,
                 const std::string& mf_name)
 {
-    return VisMF::readFAB(idx,mf_name,m_hdr,-1);
+    return VisMF::readFAB(idx, mf_name, m_hdr, -1);
 }
 
 FArrayBox*
 VisMF::readFAB (int idx,
 		int ncomp)
 {
-    return VisMF::readFAB(idx,m_fafabname,m_hdr,ncomp);
+    return VisMF::readFAB(idx, m_fafabname, m_hdr, ncomp);
 }
 
 std::string
@@ -825,12 +837,23 @@ VisMF::WriteHeader (const std::string& mf_name,
 	}
 
         MFHdrFile << hdr;
+
         //
         // Add in the number of bytes written out in the Header.
         //
         bytesWritten += VisMF::FileOffset(MFHdrFile);
 
         MFHdrFile.close();
+
+	if(checkFilePositions) {
+          std::stringstream hss;
+	  hss << hdr;
+	  if(hss.tellp() != bytesWritten) {
+	    std::cerr << "**** tellp error: hss.tellp() != bytesWritten :  "
+	              << hss.tellp() << "  " << bytesWritten << std::endl;
+	  }
+	}
+	
     }
     return bytesWritten;
 }
@@ -1131,14 +1154,20 @@ VisMF::VisMF (const std::string &fafab_name)
     }
 }
 
+
+VisMF::~VisMF ()
+{
+}
+
+
 FArrayBox*
 VisMF::readFAB (int                  idx,
-                const std::string&   mf_name,
-                const VisMF::Header& hdr,
+                const std::string   &mf_name,
+                const VisMF::Header &hdr,
 		int                  ncomp)
 {
     BL_PROFILE("VisMF::readFAB_idx");
-    Box fab_box = hdr.m_ba[idx];
+    Box fab_box(hdr.m_ba[idx]);
 
     if(hdr.m_ngrow) {
         fab_box.grow(hdr.m_ngrow);
@@ -1147,21 +1176,12 @@ VisMF::readFAB (int                  idx,
     FArrayBox *fab = new FArrayBox(fab_box, ncomp == -1 ? hdr.m_ncomp : 1);
 
     std::string FullName(VisMF::DirName(mf_name));
-
     FullName += hdr.m_fod[idx].m_name;
-    
     VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
-
     std::ifstream ifs;
-
     ifs.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
-
     ifs.open(FullName.c_str(), std::ios::in|std::ios::binary);
-
-    if( ! ifs.good()) {
-        BoxLib::FileOpenFailed(FullName);
-    }
-
+    if( ! ifs.good()) { BoxLib::FileOpenFailed(FullName); }
     if(hdr.m_fod[idx].m_head) {
         ifs.seekg(hdr.m_fod[idx].m_head, std::ios::beg);
     }
@@ -1199,20 +1219,12 @@ VisMF::readFAB (FabArray<FArrayBox>&            mf,
     FArrayBox& fab = mf[idx];
 
     std::string FullName(VisMF::DirName(mf_name));
-
     FullName += hdr.m_fod[idx].m_name;
-    
     VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
-
     std::ifstream ifs;
-
     ifs.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
-
     ifs.open(FullName.c_str(), std::ios::in|std::ios::binary);
-
-    if( ! ifs.good()) {
-        BoxLib::FileOpenFailed(FullName);
-    }
+    if( ! ifs.good()) { BoxLib::FileOpenFailed(FullName); }
 
     if(hdr.m_fod[idx].m_head) {
         ifs.seekg(hdr.m_fod[idx].m_head, std::ios::beg);
@@ -1233,21 +1245,12 @@ VisMF::readFABNoFabHeader (FabArray<FArrayBox>&            mf,
     FArrayBox &fab = mf[idx];
 
     std::string FullName(VisMF::DirName(mf_name));
-
     FullName += hdr.m_fod[idx].m_name;
-    
     VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
-
     std::ifstream ifs;
-
     ifs.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
-
     ifs.open(FullName.c_str(), std::ios::in|std::ios::binary);
-
-    if( ! ifs.good()) {
-        BoxLib::FileOpenFailed(FullName);
-    }
-
+    if( ! ifs.good()) { BoxLib::FileOpenFailed(FullName); }
     if(hdr.m_fod[idx].m_head) {
         ifs.seekg(hdr.m_fod[idx].m_head, std::ios::beg);
     }
@@ -1523,8 +1526,6 @@ if(noFabHeader) {
     int allReadsIndex(0);
     ParallelDescriptor::Message rmess;
     Array<std::map<int,std::map<int,int> > > allReads; // [file]<proc,<seek,index>>
-    Array<std::ifstream *> dataStreams;        // ---- persistent streams
-    std::map<std::string, int> dataFileNames;  // ---- [filename, stream index]
 
 
     for(int i(0); i < nBoxes; ++i) {   // count the files
@@ -1675,8 +1676,6 @@ if(noFabHeader) {
       }
     }
 
-
-    //ParallelDescriptor::Barrier("VisMF::Read");
 }
 
     bool reportMFReadStats(true);
@@ -1795,8 +1794,6 @@ VisMF::Check (const std::string& mf_name)
 }
 
 
-
-
 void
 VisMF::clear (int fabIndex)
 {
@@ -1814,3 +1811,23 @@ VisMF::clear ()
         }
     }
 }
+
+
+std::ifstream &VisMF::OpenStream(const std::string &fileName) {
+  std::map<std::string, VisMF::PersistentIFStream>::iterator it;
+  it = VisMF::persistentIFStreams.find(fileName);
+  if(it == VisMF::persistentIFStreams.end()) {
+    VisMF::PersistentIFStream pifs;
+    //it = VisMF::persistentIFStreams.insert(std::pair<std::string, VisMF::PersistentIFStream>(fileName,
+                                                                             //pifs));
+  }
+  return it->second.pstr;
+}
+
+
+void VisMF::CloseStream(const std::string &fileName) {
+}
+
+
+
+

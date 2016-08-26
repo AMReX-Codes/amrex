@@ -4,6 +4,7 @@
 
 #include <iosfwd>
 #include <string>
+#include <fstream>
 
 #include <REAL.H>
 #include <FabArray.H>
@@ -19,6 +20,22 @@ class VisMF
 {
 public:
     //
+    // We try to do I/O with buffers of this size.
+    //
+    enum { IO_Buffer_Size = 40960 * 32 };
+    //
+    // The type of a char buffer required by [p]setbuf().
+    //
+#ifdef BL_SETBUF_SIGNED_CHAR
+    typedef signed char Setbuf_Char_Type;
+#else
+    typedef char Setbuf_Char_Type;
+#endif
+    //
+    // A simple character buffer for setbuf() usage.
+    //
+    typedef Array<Setbuf_Char_Type> IO_Buffer;
+    //
     // How we write out FabArray<FArrayBox>s.
     // These are deprecated, we always use NFiles.
     // For OneFilePerCPU, set NFiles to NProcs.
@@ -31,6 +48,7 @@ public:
     // the FabArray not the name of the on-disk files.
     //
     explicit VisMF (const std::string& fafab_name);
+    ~VisMF ();
     //
     // A structure containing info regarding an on-disk FAB.
     //
@@ -112,6 +130,26 @@ public:
 	FabReadLink(int ranktoread, int faIndex, long fileoffset);
     };
 
+    //
+    // This structure is used to store file ifstreams that remain open
+    //
+    struct PersistentIFStream
+    {
+        std::ifstream    pstr;
+        std::streampos   currentPosition;
+	bool             isOpen;
+	VisMF::IO_Buffer ioBuffer;
+
+	PersistentIFStream();
+	~PersistentIFStream();
+    };
+
+    //
+    // Open the stream if it is not already open
+    // Close the stream if not persistent
+    //
+    static std::ifstream &OpenStream(const std::string &fileName);
+    static void CloseStream(const std::string &fileName);
 
     //
     // The number of components in the on-disk FabArray<FArrayBox>.
@@ -199,22 +237,6 @@ public:
 
     static void Check (const std::string &name);
     //
-    // We try to do I/O with buffers of this size.
-    //
-    enum { IO_Buffer_Size = 40960 * 32 };
-    //
-    // The type of a char buffer required by [p]setbuf().
-    //
-#ifdef BL_SETBUF_SIGNED_CHAR
-    typedef signed char Setbuf_Char_Type;
-#else
-    typedef char Setbuf_Char_Type;
-#endif
-    //
-    // A simple character buffer for setbuf() usage.
-    //
-    typedef Array<Setbuf_Char_Type> IO_Buffer;
-    //
     // The file offset of the passed ostream.
     //
     static long FileOffset (std::ostream& os);
@@ -252,6 +274,9 @@ public:
 
     static bool GetUseSingleWrite () { return useSingleWrite; }
     static void SetUseSingleWrite (bool usesinglewrite) { useSingleWrite = usesinglewrite; }
+
+    static bool GetCheckFilePosition () { return checkFilePositions; }
+    static void SetCheckFilePosition (bool cfp) { checkFilePositions = cfp; }
 
     static void Initialize ();
     static void Finalize ();
@@ -314,6 +339,16 @@ private:
     //
     mutable Array< Array<FArrayBox*> > m_pa;
     //
+    // Persistent streams.  These open on demand and should
+    // be closed when not needed with CloseAllStreams.
+    // ~VisMF also closes them.  [filename, pifs]
+    //
+    static std::map<std::string, VisMF::PersistentIFStream> persistentIFStreams;
+    //
+    // Closes all open streams.
+    //
+    static void CloseAllStreams();
+    //
     // The number of files to write for a FabArray<FArrayBox>.
     //
     static int nOutFiles;
@@ -325,6 +360,7 @@ private:
     static bool setBuf;
     static bool useSingleRead;
     static bool useSingleWrite;
+    static bool checkFilePositions;
 };
 //
 // Write a FabOnDisk to an ostream in ASCII.
