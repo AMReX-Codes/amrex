@@ -121,7 +121,7 @@ namespace BoxLib
 	    
 	if (ngrow > 0 || mf.getBDKey() != fmf[0].getBDKey()) 
 	{
-	    InterpolaterBoxCoarsener coarsener = mapper->BoxCoarsener(ratio);
+	    const InterpolaterBoxCoarsener& coarsener = mapper->BoxCoarsener(ratio);
 	    
 	    Box fdomain = fgeom.Domain();
 	    fdomain.convert(mf.boxArray().ixType());
@@ -170,5 +170,72 @@ namespace BoxLib
 	}
 
 	FillPatchSingleLevel(mf, time, fmf, ft, scomp, dcomp, ncomp, fgeom, fbc);
+    }
+
+    void InterpFromCoarseLevel (MultiFab& mf, Real time, const MultiFab& cmf, 
+				int scomp, int dcomp, int ncomp,
+				const Geometry& cgeom, const Geometry& fgeom, 
+				PhysBCFunct& cbc, PhysBCFunct& fbc, const IntVect& ratio, 
+				Interpolater* mapper, const Array<BCRec>& bcs)
+    {
+	const InterpolaterBoxCoarsener& coarsener = mapper->BoxCoarsener(ratio);
+
+	int ngrow = mf.nGrow();
+
+	Box fdomain = fgeom.Domain();
+	fdomain.convert(mf.boxArray().ixType());
+
+	Box fdomain_g(fdomain);
+	for (int i = 0; i < BL_SPACEDIM; ++i) {
+	    if (fgeom.isPeriodic(i)) {
+		fdomain_g.grow(i,ngrow);
+	    }
+	}
+
+	const BoxArray& ba = mf.boxArray();
+	const DistributionMapping& dm = mf.DistributionMap();
+
+	BoxArray ba_crse_patch(ba.size());
+	{  // TODO: later we might want to cache this
+	    for (int i = 0, N = ba.size(); i < N; ++i)
+	    {
+		const Box& bx = BoxLib::grow(ba[i],ngrow) & fdomain_g;
+		ba_crse_patch.set(i, coarsener.doit(bx));
+	    }
+	}
+
+	MultiFab mf_crse_patch(ba_crse_patch, ncomp, 0, dm);
+
+	mf_crse_patch.copy(cmf, scomp, 0, ncomp, cgeom.periodicity());
+
+	cbc.doit(mf_crse_patch, 0, ncomp, time);
+
+	int idummy1=0, idummy2=0;
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+	for (MFIter mfi(mf_crse_patch); mfi.isValid(); ++mfi)
+	{
+	    FArrayBox& dfab = mf[mfi];
+	    const Box& dbx = dfab.box();
+
+	    Array<BCRec> bcr(ncomp);
+	    BoxLib::setBC(dbx,fdomain,scomp,0,ncomp,bcs,bcr);
+	    
+	    mapper->interp(mf_crse_patch[mfi],
+			   0,
+			   mf[mfi],
+			   dcomp,
+			   ncomp,
+			   dbx,
+			   ratio,
+			   cgeom,
+			   fgeom,
+			   bcr,
+			   idummy1, idummy2);	    
+	}
+
+	fbc.doit(mf, dcomp, ncomp, time);
     }
 }
