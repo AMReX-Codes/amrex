@@ -808,6 +808,7 @@ FArrayBox::writeOn (std::ostream& os,
 {
     BL_ASSERT(comp >= 0 && num_comp >= 1 && (comp+num_comp) <= nComp());
     fabio->write_header(os, *this, num_comp);
+    os.flush();  // 2016-08-30: Titan requires this flush() (probably due to a bug).
     fabio->write(os, *this, comp, num_comp);
 }
 
