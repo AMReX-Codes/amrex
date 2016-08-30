@@ -24,6 +24,12 @@ namespace BoxLib
 			     PhysBCFunct& cbc, PhysBCFunct& fbc,
 			     const IntVect& ratio, 
 			     Interpolater* mapper, const Array<BCRec>& bcs);
+
+    void InterpFromCoarseLevel (MultiFab& mf, Real time,
+				const MultiFab& cmf, int scomp, int dcomp, int ncomp,
+				const Geometry& cgeom, const Geometry& fgeom, 
+				PhysBCFunct& cbc, PhysBCFunct& fbc, const IntVect& ratio, 
+				Interpolater* mapper, const Array<BCRec>& bcs);
 }
 
 #endif
