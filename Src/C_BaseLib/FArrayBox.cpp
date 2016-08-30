@@ -21,10 +21,6 @@
 #include <BL_CXX11.H>
 #include <MemPool.H>
 
-#ifdef _OPENMP
-#include <omp.h>
-#endif
-
 #if (__GNUC__ >= 6 || defined(BL_Darwin))
 using std::isinf;
 using std::isnan;
@@ -463,11 +459,6 @@ FArrayBox::get_initval ()
 void
 FArrayBox::Initialize ()
 {
-#ifdef _OPENMP
-#pragma omp single
-  {
-#endif
-
     BL_ASSERT(fabio == 0);
 
     ParmParse pp("fab");
@@ -560,9 +551,6 @@ FArrayBox::Initialize ()
     pp.query("init_snan", init_snan);
 
     BoxLib::ExecOnFinalize(FArrayBox::Finalize);
-#ifdef _OPENMP
-  }
-#endif
 }
 
 void
