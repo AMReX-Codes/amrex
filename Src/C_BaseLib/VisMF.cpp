@@ -35,6 +35,7 @@ bool VisMF::setBuf(true);
 bool VisMF::useSingleRead(false);
 bool VisMF::useSingleWrite(false);
 bool VisMF::checkFilePositions(false);
+bool VisMF::usePersistentIFStreams(false);
 
 //
 // Set these in Initialize().
@@ -395,15 +396,6 @@ VisMF::FabReadLink::FabReadLink(int ranktoread, int faindex, long fileoffset)
     rankToRead(ranktoread),
     faIndex(faindex),
     fileOffset(fileoffset)
-{ }
-
-VisMF::PersistentIFStream::PersistentIFStream()
-    :
-    currentPosition(0),
-    isOpen(false)
-{ }
-
-VisMF::PersistentIFStream::~PersistentIFStream()
 { }
 
 int
@@ -1177,13 +1169,17 @@ VisMF::readFAB (int                  idx,
 
     std::string FullName(VisMF::DirName(mf_name));
     FullName += hdr.m_fod[idx].m_name;
+    /*
     VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
     std::ifstream ifs;
     ifs.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
     ifs.open(FullName.c_str(), std::ios::in|std::ios::binary);
     if( ! ifs.good()) { BoxLib::FileOpenFailed(FullName); }
-    if(hdr.m_fod[idx].m_head) {
-        ifs.seekg(hdr.m_fod[idx].m_head, std::ios::beg);
+    */
+
+    std::ifstream &ifs = VisMF::OpenStream(FullName);
+    if(hdr.m_fod[idx].m_head != 0) {
+      ifs.seekg(hdr.m_fod[idx].m_head, std::ios::beg);
     }
 
     if(hdr.m_vers == Header::Version_v1) {
@@ -1203,7 +1199,8 @@ VisMF::readFAB (int                  idx,
       }
     }
 
-    ifs.close();
+    //ifs.close();
+    VisMF::CloseStream(FullName);
 
     return fab;
 }
@@ -1220,46 +1217,28 @@ VisMF::readFAB (FabArray<FArrayBox>&            mf,
 
     std::string FullName(VisMF::DirName(mf_name));
     FullName += hdr.m_fod[idx].m_name;
+    /*
     VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
     std::ifstream ifs;
     ifs.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
     ifs.open(FullName.c_str(), std::ios::in|std::ios::binary);
     if( ! ifs.good()) { BoxLib::FileOpenFailed(FullName); }
+    */
 
-    if(hdr.m_fod[idx].m_head) {
-        ifs.seekg(hdr.m_fod[idx].m_head, std::ios::beg);
-    }
-    fab.readFrom(ifs);
-
-    ifs.close();
-}
-
-
-void
-VisMF::readFABNoFabHeader (FabArray<FArrayBox>&            mf,
-		           int                  idx,
-                           const std::string&   mf_name,
-                           const VisMF::Header& hdr)
-{
-    BL_PROFILE("VisMF::readFABNoFabHeader_mf");
-    FArrayBox &fab = mf[idx];
-
-    std::string FullName(VisMF::DirName(mf_name));
-    FullName += hdr.m_fod[idx].m_name;
-    VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
-    std::ifstream ifs;
-    ifs.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
-    ifs.open(FullName.c_str(), std::ios::in|std::ios::binary);
-    if( ! ifs.good()) { BoxLib::FileOpenFailed(FullName); }
-    if(hdr.m_fod[idx].m_head) {
-        ifs.seekg(hdr.m_fod[idx].m_head, std::ios::beg);
+    std::ifstream &ifs = VisMF::OpenStream(FullName);
+    if(hdr.m_fod[idx].m_head != 0) {
+      ifs.seekg(hdr.m_fod[idx].m_head, std::ios::beg);
     }
 
-    ifs.read((char *) fab.dataPtr(), fab.nBytes());
+    if(NoFabHeader(hdr)) {
+      //// test ifs.gcount and tellg vs count
+      ifs.read((char *) fab.dataPtr(), fab.nBytes());
+    } else {
+      fab.readFrom(ifs);
+    }
 
-    //// test ifs.gcount and tellg vs count
-
-    ifs.close();
+    //ifs.close();
+    VisMF::CloseStream(FullName);
 }
 
 
@@ -1273,8 +1252,10 @@ VisMF::Read (FabArray<FArrayBox> &mf,
     VisMF::Header hdr;
     Real hEndTime, hStartTime, faCopyTime(0.0);
     Real startTime(ParallelDescriptor::second());
-    int nOpensPerFile(nMFFileInStreams), messTotal(0);
     static Real totalTime(0.0);
+
+    // ---- This limits the number of concurrent readers per file.
+    int nOpensPerFile(nMFFileInStreams), messTotal(0);
 
     if(verbose && ParallelDescriptor::IOProcessor()) {
       std::cout << "VisMF::Read:  about to read:  " << mf_name << std::endl;
@@ -1300,14 +1281,7 @@ VisMF::Read (FabArray<FArrayBox> &mf,
         hEndTime = ParallelDescriptor::second();
     }
 
-    bool noFabHeader(false);
-    if(hdr.m_vers == VisMF::Header::NoFabHeader_v1       ||
-       hdr.m_vers == VisMF::Header::NoFabHeaderMinMax_v1 ||
-       hdr.m_vers == VisMF::Header::NoFabHeaderFAMinMax_v1)
-    {
-      noFabHeader = true;
-    }
-
+    bool noFabHeader(NoFabHeader(hdr));
 
     mf.define(hdr.m_ba, hdr.m_ncomp, hdr.m_ngrow, Fab_allocate);
 
@@ -1486,7 +1460,7 @@ if(noFabHeader) {
 	        }
 	      }
 
-	    } else {
+	    } else {  // ---- not using a single read
 	      for(int i(0); i < frc.size(); ++i) {
 	        if(myProc == frc[i].rankToRead) {
 	          if(nfi.SeekPos() != frc[i].fileOffset) {
@@ -1509,11 +1483,8 @@ if(noFabHeader) {
       faCopyTime = ParallelDescriptor::second() - faCopyTime;
     }
 
-} else {
+} else {    // ---- noFabHeader == false
 
-    //
-    // Here we limit the number of open files when reading a multifab.
-    //
     int nReqs(0), ioProcNum(ParallelDescriptor::IOProcessorNumber());
     int myProc(ParallelDescriptor::MyProc());
     int nBoxes(hdr.m_ba.size());
@@ -1624,11 +1595,7 @@ if(noFabHeader) {
 
 	while( ! iopReads.empty()) {
 	  int index(iopReads.front());
-	  if(noFabHeader) {
-	    VisMF::readFABNoFabHeader(mf,index, mf_name, hdr);
-	  } else {
-	    VisMF::readFAB(mf,index, mf_name, hdr);
-	  }
+	  VisMF::readFAB(mf,index, mf_name, hdr);
 	  --totalIOReqs;
 	  iopReads.pop_front();
 	  if(iopReads.empty()) {
@@ -1663,11 +1630,7 @@ if(noFabHeader) {
         rmess = ParallelDescriptor::Recv(recReads, ioProcNum, MPI_ANY_TAG);
         for(int ir(0); ir < rmess.count(); ++ir) {
 	  int mfIndex(recReads[ir]);
-	  if(noFabHeader) {
-	    VisMF::readFABNoFabHeader(mf,mfIndex, mf_name, hdr);
-	  } else {
-	    VisMF::readFAB(mf,mfIndex, mf_name, hdr);
-	  }
+	  VisMF::readFAB(mf,mfIndex, mf_name, hdr);
 	}
         nReqs -= rmess.count();
 	iDone[iDoneIndex] = recReads[0];
@@ -1692,11 +1655,7 @@ if(noFabHeader) {
 
 #else
     for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
-	if(noFabHeader) {
-	  VisMF::readFABNoFabHeader(mf,mfi.index(), mf_name, hdr);
-	} else {
-	  VisMF::readFAB(mf,mfi.index(), mf_name, hdr);
-	}
+      VisMF::readFAB(mf,mfi.index(), mf_name, hdr);
     }
 
 #endif
@@ -1813,19 +1772,66 @@ VisMF::clear ()
 }
 
 
-std::ifstream &VisMF::OpenStream(const std::string &fileName) {
-  std::map<std::string, VisMF::PersistentIFStream>::iterator it;
-  it = VisMF::persistentIFStreams.find(fileName);
-  if(it == VisMF::persistentIFStreams.end()) {
-    VisMF::PersistentIFStream pifs;
-    //it = VisMF::persistentIFStreams.insert(std::pair<std::string, VisMF::PersistentIFStream>(fileName,
-                                                                             //pifs));
+bool VisMF::NoFabHeader(const VisMF::Header &hdr) {
+  if(hdr.m_vers == VisMF::Header::NoFabHeader_v1       ||
+    hdr.m_vers == VisMF::Header::NoFabHeaderMinMax_v1 ||
+    hdr.m_vers == VisMF::Header::NoFabHeaderFAMinMax_v1)
+  {
+    return true;
   }
-  return it->second.pstr;
+  return false;
 }
 
 
-void VisMF::CloseStream(const std::string &fileName) {
+VisMF::PersistentIFStream::PersistentIFStream()
+    :
+    currentPosition(0),
+    isOpen(false)
+{ }
+
+
+VisMF::PersistentIFStream::~PersistentIFStream()
+{
+  if(isOpen) {
+    pstr.close();
+  }
+}
+
+
+std::ifstream &VisMF::OpenStream(const std::string &fileName) {
+  VisMF::PersistentIFStream &pifs = VisMF::persistentIFStreams[fileName];
+  if( ! pifs.isOpen) {
+    pifs.pstr.open(fileName.c_str(), std::ios::in | std::ios::binary);
+    if( ! pifs.pstr.good()) { BoxLib::FileOpenFailed(fileName); }
+    pifs.isOpen = true;
+    pifs.currentPosition = 0;
+    if(setBuf) {
+      pifs.ioBuffer.resize(VisMF::IO_Buffer_Size);
+      pifs.pstr.rdbuf()->pubsetbuf(pifs.ioBuffer.dataPtr(), pifs.ioBuffer.size());
+    }
+  }
+
+  return pifs.pstr;
+}
+
+
+void VisMF::CloseStream(const std::string &fileName, bool forceClose)
+{
+  if(usePersistentIFStreams && ! forceClose) {
+    return;
+  }
+
+  VisMF::PersistentIFStream &pifs = VisMF::persistentIFStreams[fileName];
+  if(pifs.isOpen) {
+    pifs.pstr.close();
+    pifs.isOpen = false;
+  }
+  pifs.ioBuffer.clear();
+}
+
+
+void VisMF::CloseAllStreams() {
+  VisMF::persistentIFStreams.clear();
 }
 
 
