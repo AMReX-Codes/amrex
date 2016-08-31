@@ -218,7 +218,7 @@ namespace BoxLib
 	for (MFIter mfi(mf_crse_patch); mfi.isValid(); ++mfi)
 	{
 	    FArrayBox& dfab = mf[mfi];
-	    const Box& dbx = dfab.box();
+	    const Box& dbx = dfab.box() & fdomain_g;
 
 	    Array<BCRec> bcr(ncomp);
 	    BoxLib::setBC(dbx,fdomain,scomp,0,ncomp,bcs,bcr);
