@@ -239,6 +239,8 @@ MultiFab::Initialize ()
 {
     if (initialized) return;
 
+    FArrayBox foo(); // This will call FArrayBox::Initialize().
+
     BoxLib::ExecOnFinalize(MultiFab::Finalize);
 
 #ifdef BL_MEM_PROFILING
