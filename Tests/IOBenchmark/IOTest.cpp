@@ -283,6 +283,7 @@ void TestReadMF(const std::string &mfName) {
   ParallelDescriptor::Barrier();
   double wallTimeStart(ParallelDescriptor::second());
 
+  VisMF::CloseAllStreams(); 
   VisMF::Read(mfin, mfName); 
 
   for(int i(0); i < mfin.nComp(); ++i) {
