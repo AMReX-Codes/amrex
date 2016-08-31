@@ -180,10 +180,16 @@ namespace BoxLib
     {
 	const InterpolaterBoxCoarsener& coarsener = mapper->BoxCoarsener(ratio);
 
+	const BoxArray& ba = mf.boxArray();
+	const DistributionMapping& dm = mf.DistributionMap();
 	int ngrow = mf.nGrow();
 
+	const IndexType& typ = ba.ixType();
+
+	BL_ASSERT(typ == cmf.boxArray().ixType());
+
 	Box fdomain = fgeom.Domain();
-	fdomain.convert(mf.boxArray().ixType());
+	fdomain.convert(typ);
 
 	Box fdomain_g(fdomain);
 	for (int i = 0; i < BL_SPACEDIM; ++i) {
@@ -192,14 +198,12 @@ namespace BoxLib
 	    }
 	}
 
-	const BoxArray& ba = mf.boxArray();
-	const DistributionMapping& dm = mf.DistributionMap();
-
 	BoxArray ba_crse_patch(ba.size());
 	{  // TODO: later we might want to cache this
 	    for (int i = 0, N = ba.size(); i < N; ++i)
 	    {
-		const Box& bx = BoxLib::grow(ba[i],ngrow) & fdomain_g;
+		Box bx = BoxLib::convert(BoxLib::grow(ba[i],ngrow), typ);
+		bx &= fdomain_g;
 		ba_crse_patch.set(i, coarsener.doit(bx));
 	    }
 	}
