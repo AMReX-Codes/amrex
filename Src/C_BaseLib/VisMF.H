@@ -22,7 +22,7 @@ public:
     //
     // We try to do I/O with buffers of this size.
     //
-    enum { IO_Buffer_Size = 40960 * 32 };
+    enum { IO_Buffer_Size = 262144 * 8 };
     //
     // The type of a char buffer required by [p]setbuf().
     //
@@ -146,10 +146,13 @@ public:
 
     //
     // Open the stream if it is not already open
-    // Close the stream if not persistent
+    // Close the stream if not persistent or forced
+    // Close all open streams
     //
     static std::ifstream &OpenStream(const std::string &fileName);
-    static void CloseStream(const std::string &fileName);
+    static void CloseStream(const std::string &fileName, bool forceClose = false);
+    static void CloseAllStreams();
+    static bool NoFabHeader(const VisMF::Header &hdr);
 
     //
     // The number of components in the on-disk FabArray<FArrayBox>.
@@ -275,8 +278,11 @@ public:
     static bool GetUseSingleWrite () { return useSingleWrite; }
     static void SetUseSingleWrite (bool usesinglewrite) { useSingleWrite = usesinglewrite; }
 
-    static bool GetCheckFilePosition () { return checkFilePositions; }
-    static void SetCheckFilePosition (bool cfp) { checkFilePositions = cfp; }
+    static bool GetCheckFilePositions () { return checkFilePositions; }
+    static void SetCheckFilePositions (bool cfp) { checkFilePositions = cfp; }
+
+    static bool GetUsePersistentIFStreams () { return usePersistentIFStreams; }
+    static void SetUsePersistentIFStreams (bool usepifs) { usePersistentIFStreams = usepifs; }
 
     static void Initialize ();
     static void Finalize ();
@@ -318,11 +324,6 @@ private:
 			 const std::string &fafab_name,
 			 const Header&      hdr);
 
-    static void readFABNoFabHeader (FabArray<FArrayBox> &fafab,
-			            int                  fabIndex,
-			            const std::string   &fafab_name,
-			            const Header&      hdr);
-
     static std::string DirName (const std::string& filename);
 
     static std::string BaseName (const std::string& filename);
@@ -345,10 +346,6 @@ private:
     //
     static std::map<std::string, VisMF::PersistentIFStream> persistentIFStreams;
     //
-    // Closes all open streams.
-    //
-    static void CloseAllStreams();
-    //
     // The number of files to write for a FabArray<FArrayBox>.
     //
     static int nOutFiles;
@@ -361,6 +358,7 @@ private:
     static bool useSingleRead;
     static bool useSingleWrite;
     static bool checkFilePositions;
+    static bool usePersistentIFStreams;
 };
 //
 // Write a FabOnDisk to an ostream in ASCII.
