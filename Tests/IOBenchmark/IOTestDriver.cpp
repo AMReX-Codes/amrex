@@ -46,10 +46,10 @@ static void PrintUsage(const char *progName) {
     cout << "   [ntimes            = ntimes   ]" << '\n';
     cout << "   [raninit           = tf       ]" << '\n';
     cout << "   [mb2               = tf       ]" << '\n';
-    cout << "   [rbuffsize         = rbs      ]" << '\n';
-    cout << "   [wbuffsize         = wbs      ]" << '\n';
-    cout << "   [groupsets         = groupsets]" << '\n';
-    cout << "   [setbuf            = setbuf   ]" << '\n';
+    cout << "   [rbuffsize         = rbsize   ]" << '\n';
+    cout << "   [wbuffsize         = wbsize   ]" << '\n';
+    cout << "   [groupsets         = tf       ]" << '\n';
+    cout << "   [setbuf            = tf       ]" << '\n';
     cout << "   [nfileitertest     = tf       ]" << '\n';
     cout << "   [filetests         = tf       ]" << '\n';
     cout << "   [dirtests          = tf       ]" << '\n';
@@ -57,6 +57,10 @@ static void PrintUsage(const char *progName) {
     cout << "   [testreadmf        = tf       ]" << '\n';
     cout << "   [readFANames       = fanames  ]" << '\n';
     cout << "   [nreadstreams      = nrs      ]" << '\n';
+    cout << "   [usesingleread     = tf       ]" << '\n';
+    cout << "   [usesinglewrite    = tf       ]" << '\n';
+    cout << "   [checkfpositions   = tf       ]" << '\n';
+    cout << "   [pifstreams        = tf       ]" << '\n';
     cout << '\n';
     cout << "Running with default values." << '\n';
     cout << '\n';
@@ -85,6 +89,8 @@ int main(int argc, char *argv[]) {
   bool groupSets(false), setBuf(true);
   bool nfileitertest(false), filetests(false), dirtests(false);
   bool testreadmf(false);
+  bool useSingleRead(false), useSingleWrite(false);
+  bool checkFPositions(false), pIFStreams(false);
   Array<int> testWriteNFilesVersions;
   Array<std::string> readFANames;
   int nReadStreams(1);
@@ -115,6 +121,10 @@ int main(int argc, char *argv[]) {
 
   pp.query("groupsets", groupSets);
   pp.query("setbuf", setBuf);
+  pp.query("usesingleread", useSingleRead);
+  pp.query("usesinglewrite", useSingleWrite);
+  pp.query("checkfpositions", checkFPositions);
+  pp.query("pifstreams", pIFStreams);
 
   pp.query("rbuffsize", rbs);
   pp.query("wbuffsize", wbs);
@@ -159,6 +169,10 @@ int main(int argc, char *argv[]) {
       cout << "readFANames[" << i << "]    = " << readFANames[i] << '\n';
     }
     cout << "nreadstreams      = " << nReadStreams << '\n';
+    cout << "usesingleread     = " << useSingleRead << '\n';
+    cout << "usesinglewrite    = " << useSingleWrite << '\n';
+    cout << "checkfpositions   = " << checkFPositions << '\n';
+    cout << "pifstreams        = " << pIFStreams << '\n';
 
     cout << '\n';
     cout << "sizeof(int) = " << sizeof(int) << '\n';
@@ -187,6 +201,11 @@ int main(int argc, char *argv[]) {
   }
 
   ParallelDescriptor::Barrier();
+
+  VisMF::SetUseSingleRead(useSingleRead);
+  VisMF::SetUseSingleWrite(useSingleWrite);
+  VisMF::SetCheckFilePositions(checkFPositions);
+  VisMF::SetUsePersistentIFStreams(pIFStreams);
 
   if(nfileitertest) {
     for(int itimes(0); itimes < ntimes; ++itimes) {

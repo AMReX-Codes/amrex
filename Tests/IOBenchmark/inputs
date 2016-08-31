@@ -9,13 +9,18 @@ mb2           = true
 rbuffsize     = 16000
 wbuffsize     = 32000
 
-nfiletest         = false
-filetests         = false
-dirtests          = false
-testreadmf        = true
+nfiletest     = false
+filetests     = false
+dirtests      = false
+testreadmf    = true
 
 groupsets     = false
 setbuf        = true
+
+usesingleread   = true
+usesinglewrite  = true
+checkfpositions = true
+pifstreams      = true
 
 nreadstreams  = 1
 
