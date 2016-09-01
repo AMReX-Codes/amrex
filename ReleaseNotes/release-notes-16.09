@@ -1,0 +1,79 @@
+#-*- mode: org -*-
+#+STARTUP: showall
+
+        Release Notes for BoxLib 16.08
+
+The development branch was merged into master on September 1, 2016.
+
+* New Features
+** Multigrid solvability
+You can pass in an optional argument to ml_cc_solve,
+ok_to_fix_singular=.false. (default true).  If false, the multigrid
+solver will not subtract off the average of the RHS for singular
+matrices.  Useful for debugging singular problems if you want to see,
+e.g., if S integrates to zero for low mach codes, or if total charge
+integrates to zero for electrostatic potential solves.
+** FabArray::FillBoundary, EnforcePeriodicity and copy
+FabArray::FillBoundary and FabArray::copy can take a Periodicity
+argument and perform operations for periodic boundaries.
+FabArray::EnforcePeriodicity is a new function that fills cells (not
+necessarily ghost cells) outside the domain with periodically shifted
+data that are inside the domain. 
+** FabArray::BuildMask
+This new function fills a FabArray with provided mask values for ghost
+cells overlapping with valid cells, ghost cell not overlapping with
+valid cells, cells outside the physical domain, and valid cells.
+** Extrapolater
+This provides first-order extrapolation for a MulitFab's ghost
+cells.
+** ParallelDescriptor::Gatherv
+For int type offset, this is a wrapper for MPI_gatherv.  Additionally,
+it also supports long int as offset.  Note that MPI_gatherv does not
+support using long int for offset.
+** DistributionMapping::makeKnapSack
+This static function makes a KnapSack DistributionMapping object
+given a MultiFab of custom weight. 
+** BoxLib::InterpFromCoarseLevel
+This function fills the destination MultiFab with interpolation of
+data on a coarse level.  This is useful for data that are not in
+StateData of an AmrLevel. 
+
+* Bug Fixes
+** OMP race conditions in FArrayBox::Initialize
+When the number of boxes is less than the number MPI processes, there
+was a possibility that race conditions can occur in
+FArrayBox::Initialize function.  This is now fixed.
+** I/O problem on Titan
+The file system on Titan seems to have a bug. It reproducibly
+generates corrupted checkpoint files for certain tests.  We do not
+believe it is due to a bug in BoxLib.  Nevertheless, a way has been
+found to get around the problem.
+
+* Backward Incompatible Changes
+** BoxLib::bdryLo and bdryNode
+The behavior of bdryLo and bdryNode has changed when len>1 because the
+old behavior is determined to be undesired.  It should be noted that
+these functions have never been called with len>1 in any codes to the
+best of our knowledge.  
+
+* Deprecated Functions
+** BoxLib::fill_boundary, Geometry::FillPeriodicBoundary and Geometry::PeriodicCopy
+These functions are now deprecated, and they will be removed in the
+next release.  One should use FabArray::FillBoundary and
+FabArray::copy instead. 
+
+* Major Changes
+** BoxArray
+By introducing BATransformer class that can convert the box internally
+stored in BoxArray to the box of the public interface, different
+BoxArrays with the same origin can now share the internal data.  This
+greatly reduces the metadata size.
+** FabSet
+FabSet now contains a MultiFab member instead of deriving from
+MultiFab.  This allows flexibility in hiding MultiFab methods that
+are not meant for FabSet.
+** Communication Cache
+We have reimplemented how communication metadata are cached.
+
+* Make System
+** fix for CMake
