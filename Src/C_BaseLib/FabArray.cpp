@@ -69,6 +69,8 @@ void
 FabArrayBase::Initialize ()
 {
     if (initialized) return;
+    initialized = true;
+
     //
     // Set default values here!!!
     //
@@ -122,13 +124,10 @@ FabArrayBase::Initialize ()
 			 return {m_FPinfo_stats.bytes, m_FPinfo_stats.bytes_hwm};
 		     }));
 #endif
-
-    initialized = true;
 }
 
 FabArrayBase::FabArrayBase ()
 {
-    Initialize();
     aFAPId = nFabArrays++;
     aFAPIdLock = 0;  // ---- not locked
 }
