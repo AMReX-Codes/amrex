@@ -95,14 +95,12 @@ public:
     static long total_box_bytes_hwm;
     static long total_hash_bytes;
     static long total_hash_bytes_hwm;
-    
-private:
-    BARef& operator= (const BARef&); // disallowed
-    
-#ifdef BL_MEM_PROFILING
+        
     static void Initialize ();
     static bool initialized;
-#endif
+
+private:
+    BARef& operator= (const BARef&); // disallowed
 };
 
 
@@ -469,6 +467,9 @@ public:
     typedef std::map<ptrdiff_t, CBAMap> CBACache;
 
     static CBACache m_CoarseBoxArrayCache;
+
+    static void Initialize ();
+    static bool initialized;
 
 private:
     //

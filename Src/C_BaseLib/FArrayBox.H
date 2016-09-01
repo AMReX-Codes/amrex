@@ -391,6 +391,7 @@ public:
     //
     static void Initialize ();
     static void Finalize ();
+    static bool initialized;
 
 private:
     //

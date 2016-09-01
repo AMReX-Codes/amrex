@@ -22,10 +22,7 @@ namespace
     bool initialized = false;
 }
 
-IArrayBox::IArrayBox ()
-{
-    IArrayBox::Initialize();
-}
+IArrayBox::IArrayBox () {}
 
 IArrayBox::IArrayBox (const Box& b,
                       int        n,
@@ -37,8 +34,6 @@ IArrayBox::IArrayBox (const Box& b,
     //
     // For debugging purposes set values to QNAN when possible.
     //
-    IArrayBox::Initialize();
-
     if ( alloc && do_initval )
 	setVal(0);
 }

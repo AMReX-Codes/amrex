@@ -198,10 +198,7 @@ iMultiFab::Finalize ()
     initialized = false;
 }
 
-iMultiFab::iMultiFab ()
-{
-    Initialize();
-}
+iMultiFab::iMultiFab () {}
 
 iMultiFab::iMultiFab (const BoxArray& bxs,
                     int             ncomp,
@@ -210,7 +207,6 @@ iMultiFab::iMultiFab (const BoxArray& bxs,
     :
     FabArray<IArrayBox>(bxs,ncomp,ngrow,alloc)
 {
-    Initialize();
 }
 
 iMultiFab::iMultiFab (const BoxArray&            bxs,
@@ -221,7 +217,6 @@ iMultiFab::iMultiFab (const BoxArray&            bxs,
     :
     FabArray<IArrayBox>(bxs,ncomp,ngrow,dm,alloc)
 {
-    Initialize();
 }
 
 void
