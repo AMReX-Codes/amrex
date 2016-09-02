@@ -1424,7 +1424,6 @@ FabArrayBase::clearThisBD (bool no_assertion)
 		flushFPinfo(no_assertion);
 		flushFB(no_assertion);
 		flushCPC(no_assertion);
-		Geometry::flushFPB(m_bdkey);
 	    }
 	}
     }
