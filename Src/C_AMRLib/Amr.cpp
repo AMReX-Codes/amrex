@@ -2441,9 +2441,6 @@ Amr::regrid (int  lbase,
     //
     // Flush the caches.
     //
-//    MultiFab::flushFBCache();  no need to flush these
-//    Geometry::flushFPBCache();
-//    FabArrayBase::flushCPCache();
     DistributionMapping::FlushCache();
 #ifdef MG_USE_FBOXLIB
     mgt_flush_copyassoc_cache();
@@ -2521,7 +2518,6 @@ Amr::regrid (int  lbase,
         for(int iMap(0); iMap < mLDM.size(); ++iMap) {
           MultiFab::MoveAllFabs(mLDM[iMap]);
         }
-	Geometry::flushFPBCache();
     }
 
 #ifdef USE_STATIONDATA
@@ -3634,11 +3630,8 @@ Amr::GetParticleData (Array<Real>& part_data, int start_comp, int num_comp)
 
 
 void
-Amr::AddProcsToSidecar(int nSidecarProcs, int prevSidecarProcs) {
-
-//    MultiFab::flushFBCache();
-//    Geometry::flushFPBCache();
-//    FabArrayBase::flushCPCache();
+Amr::AddProcsToSidecar(int nSidecarProcs, int prevSidecarProcs)
+{
     DistributionMapping::FlushCache();
 
     Array<BoxArray> allBoxes(finest_level + 1);
@@ -3665,7 +3658,6 @@ Amr::AddProcsToSidecar(int nSidecarProcs, int prevSidecarProcs) {
         std::cout << "_in Amr::AddProcsToSidecar:  after calling MoveAllFabs:" << std::endl;
       }
     }
-    Geometry::flushFPBCache();
     VisMF::SetNOutFiles(checkpoint_nfiles);
 
 #ifdef USE_PARTICLES
@@ -3682,10 +3674,6 @@ Amr::AddProcsToSidecar(int nSidecarProcs, int prevSidecarProcs) {
 void
 Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
 #if BL_USE_MPI
-//    MultiFab::flushFBCache();
-//    Geometry::flushFPBCache();
-//    FabArrayBase::CPC::flushCPCache();
-    //FabArrayBase::flushTileArrayCache();
     DistributionMapping::FlushCache();
 
     MPI_Group scsGroup, allGroup;
@@ -4137,9 +4125,6 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
 
 void
 Amr::RedistributeGrids(int how) {
-//    MultiFab::flushFBCache();
-//    Geometry::flushFPBCache();
-//    FabArrayBase::CPC::flushCPCache();
     DistributionMapping::FlushCache();
     if( ! ParallelDescriptor::InCompGroup()) {
       return;
@@ -4179,7 +4164,6 @@ Amr::RedistributeGrids(int how) {
         for(int iMap(0); iMap < mLDM.size(); ++iMap) {
           MultiFab::MoveAllFabs(mLDM[iMap]);
         }
-	Geometry::flushFPBCache();
     }
 #ifdef USE_PARTICLES
     RedistributeParticles();
