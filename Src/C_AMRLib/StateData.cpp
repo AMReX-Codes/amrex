@@ -810,7 +810,7 @@ StateDataPhysBCFunct::doit (MultiFab& mf, int dest_comp, int num_comp, Real time
 		if (geom.isPeriodic(i)) {
 		    is_periodic = is_periodic || touch;
 		} else {
-		has_phys_bc = has_phys_bc || touch;
+		    has_phys_bc = has_phys_bc || touch;
 		}
 	    }
 	    
