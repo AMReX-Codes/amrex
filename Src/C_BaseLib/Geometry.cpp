@@ -7,8 +7,6 @@
 #include <Geometry.H>
 #include <ParmParse.H>
 #include <MultiFab.H>
-#include <FArrayBox.H>
-#include <BLProfiler.H>
 #include <Utility.H>
 #include <SPACE.H>
 
