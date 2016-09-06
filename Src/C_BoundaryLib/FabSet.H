@@ -115,6 +115,9 @@ public:
     //
     void read (const std::string& name);
 
+    // Local copy function
+    static void Copy (FabSet& dst, const FabSet& src);
+
     void AddProcsToComp (int ioProcNumSCS, int ioProcNumAll,
 			 int scsMyId, MPI_Comm scsComm)
 	{ BoxLib::Abort("FabSet::AddProcsToComp not implemented"); }
