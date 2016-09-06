@@ -168,13 +168,19 @@ FabSet::linComb (Real a, const MultiFab& mfa, int a_comp,
 void
 FabSet::write(const std::string& name) const
 {
-    // xxxxx FIXME
     VisMF::Write(m_mf,name);
 }
 
 void
 FabSet::read(const std::string& name)
 {
-    //xxxxx FIXME
     VisMF::Read(m_mf,name);
+}
+
+void
+FabSet::Copy (FabSet& dst, const FabSet& src)
+{
+    BL_ASSERT(BoxLib::match(dst.boxArray(), src.boxArray()));
+    BL_ASSERT(dst.nComp() == src.nComp());
+    MultiFab::Copy(dst.m_mf, src.m_mf, 0, 0, dst.nComp(), 0);
 }
