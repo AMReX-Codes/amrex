@@ -6,7 +6,6 @@
 
 #ifdef BL_MEM_PROFILING
 #include <MemProfiler.H>
-bool BARef::initialized          = false;
 int  BARef::numboxarrays         = 0;
 int  BARef::numboxarrays_hwm     = 0;
 long BARef::total_box_bytes      = 0L;
@@ -14,6 +13,9 @@ long BARef::total_box_bytes_hwm  = 0L;
 long BARef::total_hash_bytes     = 0L;
 long BARef::total_hash_bytes_hwm = 0L;
 #endif
+
+bool    BARef::initialized = false;
+bool BoxArray::initialized = false;
 
 BoxArray::CBACache BoxArray::m_CoarseBoxArrayCache;
 
@@ -24,7 +26,6 @@ namespace {
 BARef::BARef () 
 { 
 #ifdef BL_MEM_PROFILING
-    if (!initialized) Initialize();
     updateMemoryUsage_box(1);
 #endif	    
 }
@@ -33,24 +34,17 @@ BARef::BARef (size_t size)
     : m_abox(size) 
 { 
 #ifdef BL_MEM_PROFILING
-    if (!initialized) Initialize();
     updateMemoryUsage_box(1);
 #endif	    
 }
  
 BARef::BARef (const BoxList& bl)
 { 
-#ifdef BL_MEM_PROFILING
-    if (!initialized) Initialize();
-#endif
     define(bl); 
 }
 
 BARef::BARef (std::istream& is)
 { 
-#ifdef BL_MEM_PROFILING
-    if (!initialized) Initialize();
-#endif
     define(is); 
 }
 
@@ -169,12 +163,14 @@ BARef::updateMemoryUsage_hash (int s)
 	}
     }
 }
+#endif
 
 void
 BARef::Initialize ()
 {
     if (!initialized) {
 	initialized = true;
+#ifdef BL_MEM_PROFILING
 	MemProfiler::add("BoxArray", std::function<MemProfiler::MemInfo()>
 			 ([] () -> MemProfiler::MemInfo {
 			     return {total_box_bytes, total_box_bytes_hwm};
@@ -187,10 +183,18 @@ BARef::Initialize ()
 			 ([] () -> MemProfiler::NBuildsInfo {
 			     return {numboxarrays, numboxarrays_hwm};
 			 }));
+#endif
     }
 }
-#endif
 
+void
+BoxArray::Initialize ()
+{
+    if (!initialized) {
+	initialized = true;
+	BARef::Initialize();
+    }
+}
 
 BoxArray::BoxArray ()
     :
@@ -226,8 +230,9 @@ BoxArray::BoxArray (const Box* bxvec,
     m_transformer(new BATypeTransformer(bxvec->ixType())),
     m_ref(new BARef(nbox))
 {
-    for (int i = 0; i < nbox; i++)
+    for (int i = 0; i < nbox; i++) {
         m_ref->m_abox[i] = BoxLib::enclosedCells(*bxvec++);
+    }
 }
 
 //

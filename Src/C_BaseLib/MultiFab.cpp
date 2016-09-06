@@ -238,8 +238,7 @@ void
 MultiFab::Initialize ()
 {
     if (initialized) return;
-
-    FArrayBox foo(); // This will call FArrayBox::Initialize().
+    initialized = true;
 
     BoxLib::ExecOnFinalize(MultiFab::Finalize);
 
@@ -249,8 +248,6 @@ MultiFab::Initialize ()
 			 return {num_multifabs, num_multifabs_hwm};
 		     }));
 #endif
-
-    initialized = true;
 }
 
 void
@@ -261,7 +258,6 @@ MultiFab::Finalize ()
 
 MultiFab::MultiFab ()
 {
-    Initialize();
 #ifdef BL_MEM_PROFILING
     ++num_multifabs;
     num_multifabs_hwm = std::max(num_multifabs_hwm, num_multifabs);
@@ -276,7 +272,6 @@ MultiFab::MultiFab (const BoxArray& bxs,
     :
     FabArray<FArrayBox>(bxs,ncomp,ngrow,alloc,nodal)
 {
-    Initialize();
     if (SharedMemory() && alloc == Fab_allocate) initVal();  // else already done in FArrayBox
 #ifdef BL_MEM_PROFILING
     ++num_multifabs;
@@ -293,7 +288,6 @@ MultiFab::MultiFab (const BoxArray&            bxs,
     :
     FabArray<FArrayBox>(bxs,ncomp,ngrow,dm,alloc,nodal)
 {
-    Initialize();
     if (SharedMemory() && alloc == Fab_allocate) initVal();  // else already done in FArrayBox
 #ifdef BL_MEM_PROFILING
     ++num_multifabs;
@@ -308,7 +302,6 @@ MultiFab::MultiFab (const BoxArray& bxs,
     :
     FabArray<FArrayBox>(bxs,ncomp,ngrow,color)
 {
-    Initialize();
     if (SharedMemory()) initVal();  // else already done in FArrayBox
 #ifdef BL_MEM_PROFILING
     ++num_multifabs;

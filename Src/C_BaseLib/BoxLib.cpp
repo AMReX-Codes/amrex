@@ -16,10 +16,9 @@
 
 #ifndef BL_AMRPROF
 #include <ParmParse.H>
-#include <DistributionMapping.H>
-#include <FArrayBox.H>
-#include <FabArray.H>
 #include <MultiFab.H>
+#include <iMultiFab.H>
+#include <VisMF.H>
 #endif
 
 #ifdef BL_LAZY
@@ -374,6 +373,15 @@ BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi
 
     mempool_init();
 
+    // For thread safety, we should do these initializations here.
+    BoxArray::Initialize();
+    DistributionMapping::Initialize();
+    FArrayBox::Initialize();
+    IArrayBox::Initialize();
+    FabArrayBase::Initialize();
+    MultiFab::Initialize();
+    iMultiFab::Initialize();
+    VisMF::Initialize();
 #endif
 
     std::cout << std::setprecision(10);
