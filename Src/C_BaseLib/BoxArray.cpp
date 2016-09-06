@@ -1399,10 +1399,14 @@ BoxArray BoxLib::UnSerializeBoxArray(const Array<int> &serarray)
 
 bool BoxLib::match (const BoxArray& x, const BoxArray& y)
 {
-    bool m = (x.size() == y.size()) && (x.ixType() == y.ixType());
-    for (int i = 0, N = x.size(); i < N && m; ++i) {
-	m = x[i] == y[i];
+    if (x == y) {
+	return true;
+    } else {
+	bool m = (x.size() == y.size()) && (x.ixType() == y.ixType());
+	for (int i = 0, N = x.size(); i < N && m; ++i) {
+	    m = x[i] == y[i];
+	}
+	return m;
     }
-    return m;
 }
 
