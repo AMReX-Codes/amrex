@@ -48,6 +48,9 @@ namespace BoxLib
 
     Array<int> SerializeBoxArray(const BoxArray &ba);
     BoxArray UnSerializeBoxArray(const Array<int> &serarray);
+
+    // Note that two BoxArrays that match are not necessarily equal.
+    bool match (const BoxArray& x, const BoxArray& y);
 }
 
 class BARef
