@@ -219,26 +219,48 @@ StateData::reset ()
 void
 StateData::restart (std::istream&          is,
                     const StateDescriptor& d,
-                    const std::string&     chkfile,
-                    bool                   bReadSpecial)
+                    const std::string&     chkfile)
 {
-    BL_PROFILE("StateData::restart()");
-
-    if (bReadSpecial)
-   	BoxLib::Abort("StateData:: restart:: w/bReadSpecial not implemented");
-
     desc = &d;
-
     is >> domain;
+    grids.readFrom(is);
+    restartDoit(is, chkfile);
+}
 
-    if (bReadSpecial)
-    {
-        BoxLib::readBoxArray(grids, is, bReadSpecial);
+void
+StateData::restart (std::istream&          is,
+		    const Box&             p_domain,
+		    const BoxArray&        grds,
+                    const StateDescriptor& d,
+                    const std::string&     chkfile)
+{
+    desc = &d;
+    domain = p_domain;
+    grids = grds;
+
+    // Convert to proper type.
+    IndexType typ(desc->getType());
+    if (!typ.cellCentered()) {
+        domain.convert(typ);
+        grids.convert(typ);
     }
-    else
+
     {
-        grids.readFrom(is);
+	Box domain_in;
+	BoxArray grids_in;
+	is >> domain_in;
+	grids_in.readFrom(is);
+	BL_ASSERT(domain_in == domain);
+	BL_ASSERT(BoxLib::match(grids_in,grids));
     }
+
+    restartDoit(is, chkfile);
+}
+
+void 
+StateData::restartDoit (std::istream& is, const std::string& chkfile)
+{
+    BL_PROFILE("StateData::restartDoit()");
 
     is >> old_time.start;
     is >> old_time.stop;
@@ -248,8 +270,8 @@ StateData::restart (std::istream&          is,
     int nsets;
     is >> nsets;
 
-    old_data = 0;
-    new_data = 0;
+    old_data = (nsets == 2) ? new MultiFab(grids,desc->nComp(),desc->nExtra(),Fab_allocate) : 0;
+    new_data =                new MultiFab(grids,desc->nComp(),desc->nExtra(),Fab_allocate);
     //
     // If no data is written then we just allocate the MF instead of reading it in. 
     // This assumes that the application will do something with it.
@@ -257,7 +279,6 @@ StateData::restart (std::istream&          is,
     //
     if (nsets == 0)
     {
-       new_data = new MultiFab(grids,desc->nComp(),desc->nExtra(),Fab_allocate);
        new_data->setVal(0.);
     }
 
@@ -268,7 +289,7 @@ StateData::restart (std::istream&          is,
     //
     if (nsets >= 1)
     {
-        new_data = new MultiFab;
+        MultiFab new_data_in;
         is >> mf_name;
         //
         // Note that mf_name is relative to the Header file.
@@ -278,14 +299,20 @@ StateData::restart (std::istream&          is,
         if (!chkfile.empty() && chkfile[chkfile.length()-1] != '/')
             FullPathName += '/';
         FullPathName += mf_name;
-        VisMF::Read(*new_data, FullPathName);
+        VisMF::Read(new_data_in, FullPathName);
+
+	BL_ASSERT(BoxLib::match(grids,new_data_in.boxArray()));
+	BL_ASSERT(new_data->nComp() == new_data_in.nComp());
+	BL_ASSERT(new_data->nGrow() == new_data_in.nGrow());
+
+	MultiFab::Copy(*new_data, new_data_in, 0, 0, new_data->nComp(), new_data->nGrow());
     }
     //
     // This reads the "old" data, if it's there.
     //
     if (nsets == 2)
     {
-        old_data = new MultiFab;
+        MultiFab old_data_in;
         is >> mf_name;
         //
         // Note that mf_name is relative to the Header file.
@@ -295,7 +322,13 @@ StateData::restart (std::istream&          is,
         if (!chkfile.empty() && chkfile[chkfile.length()-1] != '/')
             FullPathName += '/';
         FullPathName += mf_name;
-        VisMF::Read(*old_data, FullPathName);
+        VisMF::Read(old_data_in, FullPathName);
+
+	BL_ASSERT(BoxLib::match(grids,old_data_in.boxArray()));
+	BL_ASSERT(old_data->nComp() == old_data_in.nComp());
+	BL_ASSERT(old_data->nGrow() == old_data_in.nGrow());
+
+	MultiFab::Copy(*old_data, old_data_in, 0, 0, old_data->nComp(), old_data->nGrow());
     }
 }
 
