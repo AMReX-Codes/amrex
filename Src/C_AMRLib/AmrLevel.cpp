@@ -208,7 +208,8 @@ AmrLevel::restart (Amr&          papa,
     for (int i = 0; i < ndesc; i++)
     {
 	if (state_in_checkpoint[i]) {
-	    state[i].restart(is, desc_lst[i], papa.theRestartFile(), bReadSpecial);
+	    state[i].restart(is, geom.Domain(), grids,
+			     desc_lst[i], papa.theRestartFile());
 	}
     }
  
