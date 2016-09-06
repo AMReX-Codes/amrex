@@ -181,6 +181,12 @@ void
 FabSet::Copy (FabSet& dst, const FabSet& src)
 {
     BL_ASSERT(BoxLib::match(dst.boxArray(), src.boxArray()));
-    BL_ASSERT(dst.nComp() == src.nComp());
-    MultiFab::Copy(dst.m_mf, src.m_mf, 0, 0, dst.nComp(), 0);
+    BL_ASSERT(dst.DistributionMap() == src.DistributionMap());
+    int ncomp = dst.nComp();
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (FabSetIter fsi(dst); fsi.isValid(); ++fsi) {
+	dst[fsi].copy(src[fsi], 0, 0, ncomp);
+    }
 }
