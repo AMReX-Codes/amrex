@@ -529,8 +529,6 @@ DistributionMapping::define (const BoxArray& boxes,
 			     int nprocs,
 			     ParallelDescriptor::Color color)
 {
-    Initialize();
-
     m_color = color;
 
     if (m_ref->m_pmap.size() != boxes.size() + 1)
@@ -550,8 +548,6 @@ DistributionMapping::define (const BoxArray& boxes,
 void
 DistributionMapping::define (const Array<int>& pmap)
 {
-    Initialize();
-
     if (m_ref->m_pmap.size() != pmap.size()) {
         m_ref->m_pmap.resize(pmap.size());
     }
@@ -568,8 +564,6 @@ DistributionMapping::define (const Array<int>& pmap, bool put_in_cache)
       define(pmap);
       return;
     }
-
-    Initialize();
 
     if (m_ref->m_pmap.size() != pmap.size()) {
         m_ref->m_pmap.resize(pmap.size());
