@@ -45,7 +45,7 @@ program fextract3d
 
   real(kind=dp_t) :: xmin, xmax, ymin, ymax, zmin, zmax
 
-  logical :: ji_exist, valid
+  logical :: ji_exist, valid, center
   integer :: io
 
   unit = unit_new()
@@ -54,6 +54,7 @@ program fextract3d
   pltfile  = ''
   idir = 1
   varname = ''
+  center = .true.
 
   narg = command_argument_count()
 
@@ -80,6 +81,9 @@ program fextract3d
         farg = farg + 1
         call get_command_argument(farg, value = varname)
 
+     case ('-l', '--lower_left')
+        center = .false.
+
      case default
         exit
 
@@ -95,18 +99,20 @@ program fextract3d
      print *, " "
      print *, "Extract at 1D slice through a plotfile in any coordinate direction."
      print *, "Works with 1-, 2-, or 3-d datasets."
-     print *, "usage:"
+     print *, " "
+     print *, "Usage:"
      print *, "   fextract [-p plotfile] [-s outfile] [-d dir] [-v variable] plotfile"
      print *, " "
      print *, "args [-p|--pltfile]   plotfile   : plot file directory (depreciated, optional)"
      print *, "     [-s|--slicefile] slice file : slice file          (optional)"
      print *, "     [-d|--direction] idir       : slice direction {1 (default), 2, or 3}"
      print *, "     [-v|--variable]  varname    : only output the values of variable varname"
+     print *, "     [-l|--lower_left]           : slice through lower left corner instead of center"
      print *, " "
-     print *, "note the plotfile at the end of the commandline is only required if you do"
+     print *, "Note the plotfile at the end of the commandline is only required if you do"
      print *, "not use the depreciated '-p' option"
      print *, " "
-     print *, "if a job_info file is present in the plotfile, that information is made"
+     print *, "If a job_info file is present in the plotfile, that information is made"
      print *, "available at the end of the slice file (commented out), for reference."
      print *, " "
      stop
@@ -177,12 +183,19 @@ program fextract3d
   flo(1:pf%dim) = lwb(plotfile_get_pd_box(pf, pf%flevel))
   fhi(1:pf%dim) = upb(plotfile_get_pd_box(pf, pf%flevel))
 
-  ! compute the index of the center of the domain on the coarse grid.
-  ! These are used to set the position of the slice in the transverse
-  ! direction.
-  iloc = (hi(1)-lo(1)+1)/2 + lo(1)
-  if (dim > 1) jloc = (hi(2)-lo(2)+1)/2 + lo(2)
-  if (dim > 2) kloc = (hi(3)-lo(3)+1)/2 + lo(3)
+  ! compute the index of the center or lower left of the domain on the
+  ! coarse grid.  These are used to set the position of the slice in
+  ! the transverse direction.
+  
+  if (center) then
+     iloc = (hi(1)-lo(1)+1)/2 + lo(1)
+     if (dim > 1) jloc = (hi(2)-lo(2)+1)/2 + lo(2)
+     if (dim > 2) kloc = (hi(3)-lo(3)+1)/2 + lo(3)
+  else
+     iloc = 0
+     if (dim > 1) jloc = 0
+     if (dim > 2) kloc = 0
+  endif
 
   cnt = 0
 
