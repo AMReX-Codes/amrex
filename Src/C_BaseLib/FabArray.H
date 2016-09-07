@@ -1160,21 +1160,6 @@ public:
     //
     Array<value_type*> fb_send_data;
     Array<MPI_Request> fb_send_reqs;
-
-    // Data used in non-blocking FillPeriodicBoundary
-    bool fpb_corners;
-    int fpb_scomp, fpb_ncomp;
-    //
-    value_type*        fpb_the_recv_data;
-    Array<int>         fpb_recv_from;
-    Array<value_type*> fpb_recv_data;
-    Array<MPI_Request> fpb_recv_reqs;
-#ifdef BL_USE_MPI3
-    Array<MPI_Aint>    fpb_recv_disp;
-#endif
-    //
-    Array<value_type*> fpb_send_data;
-    Array<MPI_Request> fpb_send_reqs;
 };
 
 class FabArrayId

@@ -59,7 +59,6 @@ namespace ParallelDescriptor
 #ifdef BL_USE_MPI3
     extern MPI_Win cp_win;
     extern MPI_Win fb_win;
-    extern MPI_Win fpb_win;
 #endif
 
     //

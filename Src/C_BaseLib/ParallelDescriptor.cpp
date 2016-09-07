@@ -124,7 +124,6 @@ namespace ParallelDescriptor
 #ifdef BL_USE_MPI3
     MPI_Win cp_win;
     MPI_Win fb_win;
-    MPI_Win fpb_win;
 #endif
   
     namespace util
