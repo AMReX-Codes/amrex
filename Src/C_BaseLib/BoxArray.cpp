@@ -768,10 +768,10 @@ BoxArray::contains (const Box& b) const
         if (isects.size() > 0)
         {
             BoxList bl(b.ixType());
-            for (int i = 0, N = isects.size(); i < N; i++)
+            for (int i = 0, N = isects.size(); i < N; i++) {
                 bl.push_back(isects[i].second);
-            BoxList blnew = BoxLib::complementIn(b, bl);
-            return blnew.size() == 0;
+	    }
+	    return bl.contains(b);
         }
     }
 
