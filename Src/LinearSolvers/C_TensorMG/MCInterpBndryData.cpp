@@ -177,8 +177,6 @@ MCInterpBndryData::setBndryValues (const ::BndryRegister& crse,
         const int* cbhi    = crse_bx.hiVect();
         int mxlen          = crse_bx.longside() + 2;
 
-        const MaskTuple& msk = masks[finemfi.index()];
-
         if (std::pow((double)mxlen,(double)BL_SPACEDIM-1) > tmplen)
         {
             delete [] derives;
@@ -218,7 +216,7 @@ MCInterpBndryData::setBndryValues (const ::BndryRegister& crse,
 		//
                 // Internal or periodic edge, interpolate from crse data.
                 //
-                const Mask& mask = *(msk[face]);
+                const Mask& mask = masks[face][finemfi];
                 const int* mlo   = mask.loVect();
                 const int* mhi   = mask.hiVect();
                 const int* mdat  = mask.dataPtr();

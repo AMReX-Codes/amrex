@@ -1035,14 +1035,14 @@ public:
     void EnforcePeriodicity (const Periodicity& period);
     void EnforcePeriodicity (int scomp, int ncomp, const Periodicity& period);
 
-    // covered  : ghost cells covered by valid cells of this FabArray
-    //            (including periodically shifted valid cells)
-    // uncovered: ghost cells not covered by valid cells
-    //            (including ghost cells outside periodic boundaries)
-    // physbnd  : boundary cells outside the domain (excluding periodic boundaries)
-    // interior : interior cells (i.e., valid cells)
+    // covered   : ghost cells covered by valid cells of this FabArray
+    //             (including periodically shifted valid cells)
+    // notcovered: ghost cells not covered by valid cells
+    //             (including ghost cells outside periodic boundaries)
+    // physbnd   : boundary cells outside the domain (excluding periodic boundaries)
+    // interior  : interior cells (i.e., valid cells)
     void BuildMask (const Box& phys_domain, const Periodicity& period,
-		    value_type covered, value_type uncovered, 
+		    value_type covered, value_type notcovered, 
 		    value_type physbnd, value_type interior);
 
     //
@@ -5028,7 +5028,7 @@ FabArrayBase::WaitForAsyncSends_PGAS (int                 N_snds,
 template <class FAB>
 void
 FabArray<FAB>::BuildMask (const Box& phys_domain, const Periodicity& period,
-			  value_type covered, value_type uncovered, 
+			  value_type covered, value_type notcovered, 
 			  value_type physbnd, value_type interior)
 {
     int ncomp = this->nComp();
@@ -5053,14 +5053,14 @@ FabArray<FAB>::BuildMask (const Box& phys_domain, const Periodicity& period,
     {
 	FAB& fab = (*this)[mfi];
 
-	Box gbx = mfi.growntilebox();
+	Box gbx = fab.box();
 	fab.setVal(physbnd, gbx, 0, ncomp);
 
 	gbx &= domain;
-	fab.setVal(uncovered, gbx, 0, ncomp);
+	fab.setVal(notcovered, gbx, 0, ncomp);
 
-	const Box& tbx = mfi.tilebox();
-	fab.setVal(interior, tbx, 0, ncomp);
+	const Box& vbx = mfi.validbox();
+	fab.setVal(interior, vbx, 0, ncomp);
     }
 
     int N_locs = LocTags.size();

@@ -28,14 +28,6 @@ BndryData::BndryData (const BoxArray& _grids,
 }
 
 void
-BndryData::setMaskValue (Orientation _face,
-                         int         _n,
-                         int         _val)
-{
-    masks[_face][_n].setVal(_val);
-}
-
-void
 BndryData::setBoundCond (Orientation     _face,
                          int              _n,
                          int              _comp,
@@ -68,16 +60,6 @@ BndryData::bndryLocs (int igrid) const
     return it->second;
 }
 
-#if 0
-const BndryData::MaskTuple&
-BndryData::bndryMasks (int igrid) const
-{
-    std::map<int,MaskTuple>::const_iterator it = masks.find(igrid);
-    BL_ASSERT(it != masks.end());
-    return it->second;
-}
-#endif
-
 void
 BndryData::init (const BndryData& src)
 {
@@ -87,11 +69,13 @@ BndryData::init (const BndryData& src)
     bcloc     = src.bcloc;
     bcond     = src.bcond;
 
+    masks.clear();
+    masks.resize(2*BL_SPACEDIM, PArrayManage);
     for (int i = 0; i < 2*BL_SPACEDIM; i++)
     {
 	const MultiMask& smasks = src.masks[i];
-	masks[i].define(smasks.boxArray(), smasks.DistributionMap(), smasks.nComp());
-	masks[i].copy(smasks);
+	masks.set(i, new MultiMask(smasks.boxArray(), smasks.DistributionMap(), smasks.nComp()));
+	MultiMask::Copy(masks[i], smasks);
     }
 }
 
@@ -146,84 +130,17 @@ BndryData::define (const BoxArray& _grids,
 
     BndryRegister::setBoxes(_grids);
 
-    Array<IntVect> pshifts(27);
-
-    std::vector< std::pair<int,Box> > isects;
+    masks.clear();
+    masks.resize(2*BL_SPACEDIM, PArrayManage);
 
     for (OrientationIter fi; fi; ++fi)
     {
-        const Orientation face = fi();
-        const int         cdir = face.coordDir();
+        Orientation face = fi();
 
         BndryRegister::define(face,IndexType::TheCellType(),0,1,1,_ncomp,color);
-
-	masks[face].define(bndry[face].boxArray(), 1, 0, Fab_allocate,IntVect::TheZeroVector(),color);
-
-        //
-        // Set masks to quad_interp value.
-        //
-        for (FabSetIter bfsi(bndry[face]); bfsi.isValid(); ++bfsi)
-        {
-            const int igrid = bfsi.index();
-
-            //Box face_box = BoxLib::adjCell(grids[igrid], face, 1);
-            Box face_box = BoxLib::adjCell(grids[igrid], face, 2);
-            //
-            // Extend box in directions orthogonal to face normal.
-            //
-            for (int dir = 0; dir < BL_SPACEDIM; dir++)
-                if (dir != cdir)
-                    face_box.grow(dir,NTangHalfWidth);
-
-            Mask* m = new Mask(face_box);
-            m->setVal(outside_domain,0);
-            const Box& dbox = geom.Domain() & face_box;
-            m->setVal(not_covered,dbox,0);
-            //
-            // Now have to set as not_covered the periodic translates as well.
-            //
-            if (geom.isAnyPeriodic() && !geom.Domain().contains(face_box))
-            {
-                geom.periodicShift(geom.Domain(), face_box, pshifts);
-
-                for (Array<IntVect>::const_iterator it = pshifts.begin(), End = pshifts.end();
-                     it != End;
-                     ++it)
-                {
-                    const IntVect& iv = *it;
-                    m->shift(iv);
-                    const Box& target = geom.Domain() & m->box();
-                    m->setVal(not_covered,target,0);
-                    m->shift(-iv);
-                }
-            }
-            masks[igrid][face] = m;
-            //
-            // Turn mask off on intersection with grids at this level.
-            //
-            grids.intersections(face_box,isects);
-
-            for (int ii = 0, N = isects.size(); ii < N; ii++)
-                m->setVal(covered, isects[ii].second, 0);
-
-            if (geom.isAnyPeriodic() && !geom.Domain().contains(face_box))
-            {
-                //
-                // Handle special cases if periodic: "face_box" hasn't changed; reuse pshifts from above.
-                //
-                for (Array<IntVect>::const_iterator it = pshifts.begin(), End = pshifts.end();
-                     it != End;
-                     ++it)
-                {
-                    const IntVect& iv = *it;
-                    m->shift(iv);
-                    grids.intersections(m->box(),isects);
-                    for (int ii = 0, N = isects.size(); ii < N; ii++)
-                        m->setVal(covered, isects[ii].second, 0);
-                    m->shift(-iv);
-                }
-            }
-        }
+	
+	masks.set(face, new MultiMask(grids, bndry[face].DistributionMap(), geom,
+				      face, 0, 2, NTangHalfWidth, 1, true));
     }
     //
     // Define "bcond" and "bcloc".
@@ -257,6 +174,8 @@ BndryData::define (const BoxArray& _grids,
     m_defined = true;
 }
 
+#if 0
+//xxxxx
 std::ostream&
 operator<< (std::ostream&    os,
             const BndryData& bd)
@@ -408,3 +327,4 @@ BndryData::readFrom (std::istream& is)
         }
     }
 }
+#endif

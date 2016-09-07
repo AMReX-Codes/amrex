@@ -5,7 +5,6 @@
 #include <BoxArray.H>
 #include <FArrayBox.H>
 #include <Orientation.H>
-#include <Mask.H>
 #include <BCRec.H>
 #include <Geometry.H>
 #include <BoundCond.H>

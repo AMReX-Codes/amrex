@@ -268,24 +268,30 @@ DivVis::Fsmooth (MultiFab&       solnL,
 
     const FabSet& fw  = (*undrrelxr[level])[oitr()]; 
     const FabSet& tdw = (*tangderiv[level])[oitr()];
+    const MultiMask& mmw = maskvals[level][oitr()];
     oitr++;
     const FabSet& fs  = (*undrrelxr[level])[oitr()]; 
     const FabSet& tds = (*tangderiv[level])[oitr()];
+    const MultiMask& mms = maskvals[level][oitr()];
     oitr++;
 #if BL_SPACEDIM>2
     const FabSet& fb  = (*undrrelxr[level])[oitr()]; 
     const FabSet& tdb = (*tangderiv[level])[oitr()];
+    const MultiMask& mmb = maskvals[level][oitr()];
     oitr++;
 #endif
     const FabSet& fe  = (*undrrelxr[level])[oitr()]; 
     const FabSet& tde = (*tangderiv[level])[oitr()];
+    const MultiMask& mme = maskvals[level][oitr()];
     oitr++;
     const FabSet& fn  = (*undrrelxr[level])[oitr()]; 
     const FabSet& tdn = (*tangderiv[level])[oitr()];
+    const MultiMask& mmn = maskvals[level][oitr()];
     oitr++;
 #if BL_SPACEDIM>2
     const FabSet& ft  = (*undrrelxr[level])[oitr()]; 
     const FabSet& tdt = (*tangderiv[level])[oitr()];
+    const MultiMask& mmt = maskvals[level][oitr()];
     oitr++;
 #endif
     const MultiFab& a  = aCoefficients(level);
@@ -296,21 +302,18 @@ DivVis::Fsmooth (MultiFab&       solnL,
 
     int nc = solnL.nComp();
 
-    for (MFIter solnLmfi(solnL); solnLmfi.isValid(); ++solnLmfi)
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter solnLmfi(solnL,true); solnLmfi.isValid(); ++solnLmfi)
     {
-	oitr.rewind();
+	D_TERM(const Mask& mw = mmw[solnLmfi];,
+               const Mask& ms = mms[solnLmfi];,
+               const Mask& mb = mmb[solnLmfi];);
 
-        const int gn = solnLmfi.index();
-
-        const MCLinOp::MaskTuple& mtuple = maskvals[level][gn];
-
-	D_TERM(const Mask& mw = *mtuple[oitr()]; oitr++;,
-               const Mask& ms = *mtuple[oitr()]; oitr++;,
-               const Mask& mb = *mtuple[oitr()]; oitr++;);
-
-	D_TERM(const Mask& me = *mtuple[oitr()]; oitr++;,
-               const Mask& mn = *mtuple[oitr()]; oitr++;,
-               const Mask& mt = *mtuple[oitr()]; oitr++;);
+	D_TERM(const Mask& me = mme[solnLmfi];,
+               const Mask& mn = mmn[solnLmfi];,
+               const Mask& mt = mmt[solnLmfi];);
 
         FArrayBox&       solfab = solnL[solnLmfi];
         const FArrayBox& rhsfab = rhsL[solnLmfi];
@@ -414,29 +417,38 @@ DivVis::compFlux (D_DECL(MultiFab& xflux,
 
     OrientationIter oitr;
 
-    D_TERM(const FabSet& tdw = (*tangderiv[level])[oitr()]; oitr++;,
-           const FabSet& tds = (*tangderiv[level])[oitr()]; oitr++;,
-           const FabSet& tdb = (*tangderiv[level])[oitr()]; oitr++;);
-
-    D_TERM(const FabSet& tde = (*tangderiv[level])[oitr()]; oitr++;,
-           const FabSet& tdn = (*tangderiv[level])[oitr()]; oitr++;,
-           const FabSet& tdt = (*tangderiv[level])[oitr()]; oitr++;);
+    const FabSet& tdw = (*tangderiv[level])[oitr()]; 
+    const MultiMask& mmw = maskvals[level][oitr()];
+    oitr++;
+    const FabSet& tds = (*tangderiv[level])[oitr()];
+    const MultiMask& mms = maskvals[level][oitr()];
+    oitr++;
+#if BL_SPACEDIM>2
+    const FabSet& tdb = (*tangderiv[level])[oitr()];
+    const MultiMask& mmb = maskvals[level][oitr()];
+    oitr++;
+#endif
+    const FabSet& tde = (*tangderiv[level])[oitr()];
+    const MultiMask& mme = maskvals[level][oitr()];
+    oitr++;
+    const FabSet& tdn = (*tangderiv[level])[oitr()];
+    const MultiMask& mmn = maskvals[level][oitr()];
+    oitr++;
+#if BL_SPACEDIM>2
+    const FabSet& tdt = (*tangderiv[level])[oitr()];
+    const MultiMask& mmt = maskvals[level][oitr()];
+    oitr++;
+#endif
 
     for (MFIter xmfi(x); xmfi.isValid(); ++xmfi)
     {
-	oitr.rewind();
+	D_TERM(const Mask& mw = mmw[xmfi];,
+               const Mask& ms = mms[xmfi];,
+               const Mask& mb = mmb[xmfi];);
 
-        const int gn = xmfi.index();
-
-        const MCLinOp::MaskTuple& mtuple = maskvals[level][gn];
-
-	D_TERM(const Mask& mw = *mtuple[oitr()]; oitr++;,
-               const Mask& ms = *mtuple[oitr()]; oitr++;,
-               const Mask& mb = *mtuple[oitr()]; oitr++;);
-
-	D_TERM(const Mask& me = *mtuple[oitr()]; oitr++;,
-	       const Mask& mn = *mtuple[oitr()]; oitr++;,
-               const Mask& mt = *mtuple[oitr()]; oitr++;);
+	D_TERM(const Mask& me = mme[xmfi];,
+               const Mask& mn = mmn[xmfi];,
+               const Mask& mt = mmt[xmfi];);
 
         FArrayBox&       xfab = x[xmfi];
         const FArrayBox& afab = a[xmfi];
@@ -526,29 +538,38 @@ DivVis::Fapply (MultiFab&       y,
 
     OrientationIter oitr;
 
-    D_TERM(const FabSet& tdw = (*tangderiv[level])[oitr()]; oitr++;,
-           const FabSet& tds = (*tangderiv[level])[oitr()]; oitr++;,
-           const FabSet& tdb = (*tangderiv[level])[oitr()]; oitr++;);
-
-    D_TERM(const FabSet& tde = (*tangderiv[level])[oitr()]; oitr++;,
-           const FabSet& tdn = (*tangderiv[level])[oitr()]; oitr++;,
-           const FabSet& tdt = (*tangderiv[level])[oitr()]; oitr++;);
+    const FabSet& tdw = (*tangderiv[level])[oitr()]; 
+    const MultiMask& mmw = maskvals[level][oitr()];
+    oitr++;
+    const FabSet& tds = (*tangderiv[level])[oitr()];
+    const MultiMask& mms = maskvals[level][oitr()];
+    oitr++;
+#if BL_SPACEDIM>2
+    const FabSet& tdb = (*tangderiv[level])[oitr()];
+    const MultiMask& mmb = maskvals[level][oitr()];
+    oitr++;
+#endif
+    const FabSet& tde = (*tangderiv[level])[oitr()];
+    const MultiMask& mme = maskvals[level][oitr()];
+    oitr++;
+    const FabSet& tdn = (*tangderiv[level])[oitr()];
+    const MultiMask& mmn = maskvals[level][oitr()];
+    oitr++;
+#if BL_SPACEDIM>2
+    const FabSet& tdt = (*tangderiv[level])[oitr()];
+    const MultiMask& mmt = maskvals[level][oitr()];
+    oitr++;
+#endif
 
     for (MFIter xmfi(x); xmfi.isValid(); ++xmfi)
     {
-        oitr.rewind();
+	D_TERM(const Mask& mw = mmw[xmfi];,
+               const Mask& ms = mms[xmfi];,
+               const Mask& mb = mmb[xmfi];);
 
-        const int gn = xmfi.index();
-
-        const MCLinOp::MaskTuple& mtuple = maskvals[level][gn];
-
-	D_TERM(const Mask& mw = *mtuple[oitr()]; oitr++;,
-               const Mask& ms = *mtuple[oitr()]; oitr++;,
-               const Mask& mb = *mtuple[oitr()]; oitr++;);
-
-	D_TERM(const Mask& me = *mtuple[oitr()]; oitr++;,
-               const Mask& mn = *mtuple[oitr()]; oitr++;,
-               const Mask& mt = *mtuple[oitr()]; oitr++;);
+	D_TERM(const Mask& me = mme[xmfi];,
+               const Mask& mn = mmn[xmfi];,
+               const Mask& mt = mmt[xmfi];);
 
         FArrayBox&       yfab = y[xmfi];
         const FArrayBox& xfab = x[xmfi];

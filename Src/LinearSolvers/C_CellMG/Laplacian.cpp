@@ -92,6 +92,16 @@ Laplacian::Fsmooth (MultiFab&       solnL,
     const FabSet& f5 = (*undrrelxr[level])[oitr()]; oitr++;
 #endif
 
+    oitr.rewind();
+    const MultiMask& mm0 = maskvals[level][oitr()]; oitr++;
+    const MultiMask& mm1 = maskvals[level][oitr()]; oitr++;
+    const MultiMask& mm2 = maskvals[level][oitr()]; oitr++;
+    const MultiMask& mm3 = maskvals[level][oitr()]; oitr++;
+#if (BL_SPACEDIM > 2)
+    const MultiMask& mm4 = maskvals[level][oitr()]; oitr++;
+    const MultiMask& mm5 = maskvals[level][oitr()]; oitr++;
+#endif
+
     const int nc = rhsL.nComp();
 
     const bool tiling = true;
@@ -101,20 +111,15 @@ Laplacian::Fsmooth (MultiFab&       solnL,
 #endif
     for (MFIter solnLmfi(solnL,tiling); solnLmfi.isValid(); ++solnLmfi)
     {
-	OrientationIter oitr;
-
-        const int gn = solnLmfi.index();
-
-        const LinOp::MaskTuple& mtuple = maskvals[level][gn];
-
-        const Mask& m0 = *mtuple[oitr()]; oitr++;
-        const Mask& m1 = *mtuple[oitr()]; oitr++;
-        const Mask& m2 = *mtuple[oitr()]; oitr++;
-        const Mask& m3 = *mtuple[oitr()]; oitr++;
-#if (BL_SPACEDIM > 2 )
-        const Mask& m4 = *mtuple[oitr()]; oitr++;
-        const Mask& m5 = *mtuple[oitr()]; oitr++;
+	const Mask& m0 = mm0[solnLmfi];
+        const Mask& m1 = mm1[solnLmfi];
+        const Mask& m2 = mm2[solnLmfi];
+        const Mask& m3 = mm3[solnLmfi];
+#if (BL_SPACEDIM > 2)
+        const Mask& m4 = mm4[solnLmfi];
+        const Mask& m5 = mm5[solnLmfi];
 #endif
+
 	const Box&       tbx     = solnLmfi.tilebox();
         const Box&       vbx     = solnLmfi.validbox();
         FArrayBox&       solnfab = solnL[solnLmfi];
