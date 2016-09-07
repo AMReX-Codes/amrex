@@ -420,6 +420,16 @@ ABecLaplacian::Fsmooth (MultiFab&       solnL,
            const MultiFab& bY = bCoefficients(1,level);,
            const MultiFab& bZ = bCoefficients(2,level););
 
+    oitr.rewind();
+    const MultiMask& mm0 = maskvals[level][oitr()]; oitr++;
+    const MultiMask& mm1 = maskvals[level][oitr()]; oitr++;
+    const MultiMask& mm2 = maskvals[level][oitr()]; oitr++;
+    const MultiMask& mm3 = maskvals[level][oitr()]; oitr++;
+#if (BL_SPACEDIM > 2)
+    const MultiMask& mm4 = maskvals[level][oitr()]; oitr++;
+    const MultiMask& mm5 = maskvals[level][oitr()]; oitr++;
+#endif
+
     //const int nc = solnL.nComp(); // FIXME: This LinOp only really supports single-component
     const int nc = 1;
 
@@ -430,20 +440,15 @@ ABecLaplacian::Fsmooth (MultiFab&       solnL,
 #endif
     for (MFIter solnLmfi(solnL,tiling); solnLmfi.isValid(); ++solnLmfi)
     {
-	OrientationIter oitr;
-
-        const int gn = solnLmfi.index();
-
-        const LinOp::MaskTuple& mtuple = maskvals[level][gn];
-
-        const Mask& m0 = *mtuple[oitr()]; oitr++;
-        const Mask& m1 = *mtuple[oitr()]; oitr++;
-        const Mask& m2 = *mtuple[oitr()]; oitr++;
-        const Mask& m3 = *mtuple[oitr()]; oitr++;
+	const Mask& m0 = mm0[solnLmfi];
+        const Mask& m1 = mm1[solnLmfi];
+        const Mask& m2 = mm2[solnLmfi];
+        const Mask& m3 = mm3[solnLmfi];
 #if (BL_SPACEDIM > 2)
-        const Mask& m4 = *mtuple[oitr()]; oitr++;
-        const Mask& m5 = *mtuple[oitr()]; oitr++;
+        const Mask& m4 = mm4[solnLmfi];
+        const Mask& m5 = mm5[solnLmfi];
 #endif
+
 	const Box&       tbx     = solnLmfi.tilebox();
         const Box&       vbx     = solnLmfi.validbox();
         FArrayBox&       solnfab = solnL[solnLmfi];
@@ -531,25 +536,33 @@ ABecLaplacian::Fsmooth_jacobi (MultiFab&       solnL,
            const MultiFab& bY = bCoefficients(1,level);,
            const MultiFab& bZ = bCoefficients(2,level););
 
+    oitr.rewind();
+    const MultiMask& mm0 = maskvals[level][oitr()]; oitr++;
+    const MultiMask& mm1 = maskvals[level][oitr()]; oitr++;
+    const MultiMask& mm2 = maskvals[level][oitr()]; oitr++;
+    const MultiMask& mm3 = maskvals[level][oitr()]; oitr++;
+#if (BL_SPACEDIM > 2)
+    const MultiMask& mm4 = maskvals[level][oitr()]; oitr++;
+    const MultiMask& mm5 = maskvals[level][oitr()]; oitr++;
+#endif
+
     //const int nc = solnL.nComp(); // FIXME: This LinOp only really supports single-component
     const int nc = 1;
 
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
     for (MFIter solnLmfi(solnL); solnLmfi.isValid(); ++solnLmfi)
     {
-        oitr.rewind();
-
-        const int gn = solnLmfi.index();
-
-        const LinOp::MaskTuple& mtuple = maskvals[level][gn];
-
-        const Mask& m0 = *mtuple[oitr()]; oitr++;
-        const Mask& m1 = *mtuple[oitr()]; oitr++;
-        const Mask& m2 = *mtuple[oitr()]; oitr++;
-        const Mask& m3 = *mtuple[oitr()]; oitr++;
+	const Mask& m0 = mm0[solnLmfi];
+        const Mask& m1 = mm1[solnLmfi];
+        const Mask& m2 = mm2[solnLmfi];
+        const Mask& m3 = mm3[solnLmfi];
 #if (BL_SPACEDIM > 2)
-        const Mask& m4 = *mtuple[oitr()]; oitr++;
-        const Mask& m5 = *mtuple[oitr()]; oitr++;
+        const Mask& m4 = mm4[solnLmfi];
+        const Mask& m5 = mm5[solnLmfi];
 #endif
+
         const Box&       vbx     = solnLmfi.validbox();
         FArrayBox&       solnfab = solnL[solnLmfi];
         const FArrayBox& rhsfab  = rhsL[solnLmfi];

@@ -247,13 +247,10 @@ protected:
     //
     Array< LnClassPtr< BndryRegister > > tangderiv;
     //
-    // A useful typedef.
+    // Array (on level) of PArrays (on orientation) of MultiMasks for 
+    // whether boundary Fabs are covered, not_covered, outside_domain
     //
-    typedef BndryData::MaskTuple MaskTuple;
-    //
-    // Array (on level) of Arrays (on grid) of Arrays (on orientation) of pointers to Masks for whether boundary Fabs are covered, not_covered, outside_domain
-    //
-    Array< std::map<int,MaskTuple> > maskvals;
+    Array<PArray<MultiMask> > maskvals;
     //
     // boundary data class
     //
