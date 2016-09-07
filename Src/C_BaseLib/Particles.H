@@ -814,7 +814,7 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata,
         //
         std::ifstream ifs;
 
-        VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+        VisMF::IO_Buffer io_buffer(VisMF::GetIOBufferSize());
  
         ifs.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
 
@@ -1145,7 +1145,7 @@ ParticleContainer<N>::InitFromBinaryFile (const std::string& file,
 
     std::ifstream ifs;
 
-    VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+    VisMF::IO_Buffer io_buffer(VisMF::GetIOBufferSize());
     //
     // The "set" of MPI processor numbers of the readers.  We want
     // to be able to easily check whether or not we're a reader.
@@ -6608,7 +6608,7 @@ ParticleContainer<N>::Checkpoint (const std::string& dir,
 
             std::ofstream ParticleFile;
 
-            VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+            VisMF::IO_Buffer io_buffer(VisMF::GetIOBufferSize());
 
             ParticleFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
 
@@ -7532,7 +7532,7 @@ ParticleContainer<N>::Timestamp (const std::string&      basename,
 
                 std::ofstream TimeStampFile;
 
-                VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+                VisMF::IO_Buffer io_buffer(VisMF::GetIOBufferSize());
 
                 TimeStampFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
 
@@ -7717,7 +7717,7 @@ ParticleContainer<N>::WriteAsciiFile (const std::string& filename)
             //
             std::ofstream File;
 
-            VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+            VisMF::IO_Buffer io_buffer(VisMF::GetIOBufferSize());
 
             File.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
 
@@ -7853,7 +7853,7 @@ ParticleContainer<N>::WriteCoarsenedAsciiFile (const std::string& filename)
             //
             std::ofstream File;
 
-            VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+            VisMF::IO_Buffer io_buffer(VisMF::GetIOBufferSize());
 
             File.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
 
