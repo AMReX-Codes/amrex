@@ -481,7 +481,7 @@ VisMF::Header::Header ()
 // The more-or-less complete header only exists at IOProcessor().
 //
 
-VisMF::Header::Header (const MultiFab& mf,
+VisMF::Header::Header (const FabArray<FArrayBox>& mf,
                        VisMF::How      how)
     :
     m_vers(VisMF::Header::Version),
@@ -671,7 +671,7 @@ VisMF::WriteHeader (const std::string& mf_name,
 }
 
 long
-VisMF::Write (const MultiFab&    mf,
+VisMF::Write (const FabArray<FArrayBox>&    mf,
               const std::string& mf_name,
               VisMF::How         how,
               bool               set_ghost)
@@ -686,7 +686,7 @@ VisMF::Write (const MultiFab&    mf,
 
     if (set_ghost)
     {
-        MultiFab* the_mf = const_cast<MultiFab*>(&mf);
+        FabArray<FArrayBox>* the_mf = const_cast<FabArray<FArrayBox>*>(&mf);
 
         BL_ASSERT(!(the_mf == 0));
         BL_ASSERT(hdr.m_ba == mf.boxArray());
@@ -922,7 +922,7 @@ VisMF::readFAB (int                  idx,
 }
 
 void
-VisMF::readFAB (MultiFab&            mf,
+VisMF::readFAB (FabArray<FArrayBox>&            mf,
 		int                  idx,
                 const std::string&   mf_name,
                 const VisMF::Header& hdr)
@@ -953,7 +953,7 @@ VisMF::readFAB (MultiFab&            mf,
 }
 
 void
-VisMF::Read (MultiFab&          mf,
+VisMF::Read (FabArray<FArrayBox>&          mf,
              const std::string& mf_name)
 {
   BL_PROFILE("VisMF::Read()");

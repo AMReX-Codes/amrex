@@ -31,7 +31,7 @@ contains
   ! 
   ! Initialize various indices
   !
-  subroutine variables_init() bind(c)
+  subroutine variables_init() bind(c,name='variables_init')
 
     irho = 1
     imx = 2
@@ -64,17 +64,17 @@ contains
     
   end subroutine variables_init
 
-  function get_num_cons () result(r) bind(c)
+  function get_num_cons () result(r) bind(c,name='get_num_cons')
     integer :: r
     r = ncons
   end function get_num_cons
 
-  function get_num_prim () result(r) bind(c)
+  function get_num_prim () result(r) bind(c,name='get_num_prim')
     integer :: r
     r = nprim
   end function get_num_prim
 
-  subroutine ctoprim_3d(tlo, thi, lo, hi, u, q, ngu, ngq) bind(c)
+  subroutine ctoprim_3d(tlo, thi, lo, hi, u, q, ngu, ngq) bind(c,name='ctoprim_3d')
     integer, intent(in) :: tlo(3), thi(3), lo(3), hi(3), ngu, ngq
     double precision, intent(in ) :: u(lo(1)-ngu:hi(1)+ngu,lo(2)-ngu:hi(2)+ngu,lo(3)-ngu:hi(3)+ngu,ncons)
     double precision, intent(out) :: q(lo(1)-ngq:hi(1)+ngq,lo(2)-ngq:hi(2)+ngq,lo(3)-ngq:hi(3)+ngq,nprim)
@@ -126,7 +126,7 @@ contains
   end subroutine ctoprim_3d
 
 
-  subroutine reset_rho_3d(tlo, thi, lo, hi, u, ng) bind(c)
+  subroutine reset_rho_3d(tlo, thi, lo, hi, u, ng) bind(c,name='reset_rho_3d')
     integer, intent(in) :: tlo(3), thi(3), lo(3), hi(3), ng
     double precision, intent(inout) :: u(lo(1)-ng:hi(1)+ng,lo(2)-ng:hi(2)+ng,lo(3)-ng:hi(3)+ng,ncons)
 

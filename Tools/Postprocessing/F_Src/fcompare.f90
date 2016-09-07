@@ -549,6 +549,8 @@ program fcompare
 
      print *, " "
      print *, "maximum error in ", trim(zone_info_var_name)
+     print *, "level = ", err_zone % level, " (i,j,k) = ", &
+          err_zone % i, err_zone % j, err_zone % k
      do n_a = 1, pf_a%nvars
         write (*, 1003) trim(pf_a%names(n_a)), &
              p(err_zone % i, err_zone % j, err_zone % k, n_a)

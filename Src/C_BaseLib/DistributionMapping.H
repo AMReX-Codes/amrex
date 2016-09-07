@@ -12,6 +12,7 @@
 #include <ParallelDescriptor.H>
 
 class BoxArray;
+class MultiFab;
 
 //
 // Calculates the distribution of FABs to MPI processes.
@@ -234,6 +235,8 @@ class DistributionMapping
 #ifdef BL_USE_MPI
     static Array<int> TranslateProcMap(const Array<int> &pm_old, const MPI_Group group_new, const MPI_Group group_old);
 #endif
+
+    static DistributionMapping makeKnapSack (const MultiFab& weight);
 
 private:
     //

@@ -357,6 +357,7 @@ contains
     lo = lbound(a)
     cp = c_loc(a(lo(1)))
     call mempool_free(cp)
+    a => Null()
   end subroutine bl_deallocate_d1
 
   subroutine bl_deallocate_d2(a)
@@ -366,6 +367,7 @@ contains
     lo = lbound(a)
     cp = c_loc(a(lo(1),lo(2)))
     call mempool_free(cp)
+    a => Null()
   end subroutine bl_deallocate_d2
 
   subroutine bl_deallocate_d3(a)
@@ -375,6 +377,7 @@ contains
     lo = lbound(a)
     cp = c_loc(a(lo(1),lo(2),lo(3)))
     call mempool_free(cp)
+    a => Null()
   end subroutine bl_deallocate_d3
 
   subroutine bl_deallocate_d4(a)
@@ -384,6 +387,7 @@ contains
     lo = lbound(a)
     cp = c_loc(a(lo(1),lo(2),lo(3),lo(4)))
     call mempool_free(cp)
+    a => Null()
   end subroutine bl_deallocate_d4
 
   subroutine bl_deallocate_d5(a)
@@ -393,6 +397,7 @@ contains
     lo = lbound(a)
     cp = c_loc(a(lo(1),lo(2),lo(3),lo(4),lo(5)))
     call mempool_free(cp)
+    a => Null()
   end subroutine bl_deallocate_d5
 
   subroutine bl_deallocate_d6(a)
@@ -402,6 +407,7 @@ contains
     lo = lbound(a)
     cp = c_loc(a(lo(1),lo(2),lo(3),lo(4),lo(5),lo(6)))
     call mempool_free(cp)
+    a => Null()
   end subroutine bl_deallocate_d6
 
   subroutine bl_allocate_i1(a, lo1, hi1)
@@ -480,6 +486,7 @@ contains
     lo = lbound(a)
     cp = c_loc(a(lo(1)))
     call mempool_free(cp)
+    a => Null()
   end subroutine bl_deallocate_i1
 
   subroutine bl_deallocate_i2(a)
@@ -489,6 +496,7 @@ contains
     lo = lbound(a)
     cp = c_loc(a(lo(1),lo(2)))
     call mempool_free(cp)
+    a => Null()
   end subroutine bl_deallocate_i2
 
   subroutine bl_deallocate_i3(a)
@@ -498,6 +506,7 @@ contains
     lo = lbound(a)
     cp = c_loc(a(lo(1),lo(2),lo(3)))
     call mempool_free(cp)
+    a => Null()
   end subroutine bl_deallocate_i3
 
 end module mempool_module

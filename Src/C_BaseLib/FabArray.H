@@ -33,6 +33,7 @@
 #include <Utility.H>
 #include <ccse-mpi.H>
 #include <BLProfiler.H>
+#include <Periodicity.H>
 
 //
 // Helper class
@@ -70,13 +71,11 @@ private:
 // This is meant to be a concrete class not a polymorphic one.
 //
 
-class Geometry;
 class MFIter;
 class MFGhostIter;
 
 class FabArrayBase
 {
-    friend class Geometry;
     friend class MFIter;
     friend class MFGhostIter;
 
@@ -84,7 +83,7 @@ public:
 
     FabArrayBase ();
 
-    ~FabArrayBase();
+    virtual ~FabArrayBase();
     //
     // Returns the grow factor that defines the region of definition.
     //
@@ -142,30 +141,8 @@ public:
     //
     const DistributionMapping& DistributionMap () const { return distributionMap; }
     //
-    // Flush the cache of self-intersection info used by FillBoundary.
-    //
-    static void FlushSICache ();
-    //
-    // The size of the cache of self-intersection info.
-    //
-    static int SICacheSize ();
-    //
     // Some static member templates used throughout the code.
     //
-    template<typename T>
-    static void SetRecvTag (std::map< int,std::vector<T> >& m_RcvTags,
-                            int                             src_owner,
-                            const T&                        tag,
-                            std::map<int,int>&              m_RcvVols,
-                            const Box&                      bx);
-
-    template<typename T>
-    static void SetSendTag (std::map< int,std::vector<T> >& m_SndTags,
-                            int                             dst_owner,
-                            const T&                        tag,
-                            std::map<int,int>&              m_SndVols,
-                            const Box&                      bx);
-
     template<typename T>
     static void WaitForAsyncSends (int                 N_snds,
                                    Array<MPI_Request>& send_reqs,
@@ -257,20 +234,19 @@ public:
     //
     struct CopyComTag
     {
-        Box box;
-        int fabIndex;
+	Box dbox;
+        Box sbox;
+        int dstIndex;
         int srcIndex;
 	CopyComTag () {}
-	CopyComTag (const Box& b, int fidx, int sidx)
-	    : box(b), fabIndex(fidx), srcIndex(sidx) {}
-	// CopyComTag needs to be sortable if it is used in remote communication.
-	// Note that the intersection of two boxes is at most one box.
-	// Therefore fabIndex==rhs.fabIndex && srcIndex==rhs.srcIndex means
-	// *this == rhs.
+	CopyComTag (const Box& db, const Box& sb, int didx, int sidx)
+	    : dbox(db), sbox(sb), dstIndex(didx), srcIndex(sidx) {}
 	bool operator< (const CopyComTag& rhs) const {
-	    return (fabIndex < rhs.fabIndex) || ((fabIndex == rhs.fabIndex) && (
-                   (srcIndex < rhs.srcIndex) || ((srcIndex == rhs.srcIndex) && (
-	           (IntVect::Compare()(box.smallEnd(),rhs.box.smallEnd()))))));
+	    return (srcIndex < rhs.srcIndex) || ((srcIndex == rhs.srcIndex) && (
+                   (dstIndex < rhs.dstIndex) || ((dstIndex == rhs.dstIndex) && (
+                   (IntVect::Compare()(dbox.smallEnd(),rhs.dbox.smallEnd())
+		               || ((dbox.smallEnd() == rhs.dbox.smallEnd()) && (
+                   (IntVect::Compare()(sbox.smallEnd(),rhs.sbox.smallEnd())))))))));
 	}
         //
         // Some typedefs & helper functions used throughout the code.
@@ -286,117 +262,30 @@ public:
     typedef CopyComTag::MapOfCopyComTagContainers MapOfCopyComTagContainers;
     //
     static long bytesOfMapOfCopyComTagContainers (const MapOfCopyComTagContainers&);
+
+    // Key for unique combination of BoxArray and DistributionMapping
+    // Note both BoxArray and DistributionMapping are reference counted.
+    // Objects with the same references have the same key.
+    typedef std::pair<ptrdiff_t,ptrdiff_t> BDKey;
+
+    BDKey getBDKey () const {
+	return std::make_pair(boxarray.getRefID(), distributionMap.getRefID());
+    }
+
+    void updateBDKey ();
+
     //
-    // Used in caching self-intersection info for FillBoundary().
+    // Tiling
     //
-    struct SI
+    struct TileArray
     {
-        SI ();
-
-        SI (const BoxArray&            ba,
-            const DistributionMapping& dm,
-            int                        ngrow,
-            bool                       cross);
-
-        ~SI ();
-
-        bool operator== (const SI& rhs) const;
-        bool operator!= (const SI& rhs) const { return !operator==(rhs); }
-
-        long bytes () const;
-        //
-        // Basic data.
-        //
-        BoxArray            m_ba;
-        DistributionMapping m_dm;
-        int                 m_ngrow;
-	int                 m_nuse;
-        bool                m_cross;
-	bool                m_threadsafe_loc;
-	bool                m_threadsafe_rcv;
-        //
-        // The cache of local and send/recv per FillBoundary().
-        //
-        CopyComTagsContainer*      m_LocTags;
-        MapOfCopyComTagContainers* m_SndTags;
-        MapOfCopyComTagContainers* m_RcvTags;
-        std::map<int,int>*         m_SndVols;
-        std::map<int,int>*         m_RcvVols;
+	int nuse;
+	Array<int> indexMap;	
+	Array<int> localIndexMap;
+	Array<Box> tileArray;
+	TileArray () : nuse(-1) {;}
+	long bytes () const;
     };
-    //
-    // Some useful typedefs for the FillBoundary() cache.
-    //
-    typedef std::multimap<int,FabArrayBase::SI> FBCache;
-
-    typedef FBCache::iterator FBCacheIter;
-
-    static FBCache m_TheFBCache;
-
-    static CacheStats m_FBC_stats;
-    //
-    static long bytesOfFBCache ();
-    //
-    // When copy()ing from one FabArray to another we can do a copy or an add.
-    //
-    enum CpOp { COPY = 0, ADD = 1 };
-
-    struct CPC
-    {
-        CPC (const BoxArray&            dstba,
-             const BoxArray&            srcba,
-             const DistributionMapping& dstdm,
-             const DistributionMapping& srcdm,
-	     int                        dstng,
-	     int                        srcng);
-
-        ~CPC ();
-
-        bool operator== (const CPC& rhs) const;
-        bool operator!= (const CPC& rhs) const { return !operator==(rhs); }
-
-        long bytes () const;
-
-        static void FlushCache ();
-
-        BoxArray            m_dstba;
-        BoxArray            m_srcba;
-        DistributionMapping m_dstdm;
-        DistributionMapping m_srcdm;
-	int                 m_dstng;
-	int                 m_srcng;
-        int                 m_nuse;
-	bool                m_threadsafe_loc;
-	bool                m_threadsafe_rcv;
-        //
-        // The cache of local and send/recv info per FabArray::copy().
-        //
-        CopyComTagsContainer*      m_LocTags;
-        MapOfCopyComTagContainers* m_SndTags;
-        MapOfCopyComTagContainers* m_RcvTags;
-        std::map<int,int>*         m_SndVols;
-        std::map<int,int>*         m_RcvVols;
-    };
-    //
-    // Some useful typedefs for the copy() cache.
-    //
-    typedef std::multimap<int,FabArrayBase::CPC> CPCCache;
-
-    typedef CPCCache::iterator CPCCacheIter;
-
-    static CPCCache m_TheCopyCache;
-
-    static CPCCacheIter TheCPC (const CPC          &cpc,
-                                const FabArrayBase &dst,
-                                const FabArrayBase &src,
-				const int MyProc = ParallelDescriptor::MyProc());
-    static CPCCacheIter TheCPC (const CPC          &cpc,
-                                const Array<int>   &dstIndexArray,
-                                const Array<int>   &srcIndexArray,
-				const int MyProc = ParallelDescriptor::MyProc());
-    static CacheStats m_CPC_stats;
-
-    static long bytesOfCPCCache ();
-
 
     //
     // Used for collecting information used in communicating FABs.
@@ -432,10 +321,6 @@ public:
             procThatNeedsData(0),
             procThatHasData(0) {}
     };
-    //
-    // Returns cached self-intersection records or builds them.
-    //
-    static FBCacheIter TheFB (bool cross, const FabArrayBase& mf);
     //
     // Default tilesize in MFIter
     //
@@ -476,29 +361,6 @@ public:
     static int NFabArrays() { return nFabArrays; }
     int AllocatedFAPtrID() const  { return aFAPId; }
 
-    struct TileArray
-    {
-	int nuse;
-	Array<int> indexMap;	
-	Array<int> localIndexMap;
-	Array<Box> tileArray;
-	TileArray () : nuse(-1) {;}
-	long bytes () const;
-    };
-
-    const TileArray* getTileArray (const IntVect& tilesize) const;
-
-    // Key for unique combination of BoxArray and DistributionMapping
-    // Note both BoxArray and DistributionMapping are reference counted.
-    // Objects with the same references have the same key.
-    typedef std::pair<ptrdiff_t,ptrdiff_t> BDKey;
-
-    BDKey getBDKey () const {
-	return std::make_pair(boxarray.getRefID(), distributionMap.getRefID());
-    }
-
-    void updateBDKey ();
-
     struct FPinfo
     {
 	FPinfo (const FabArrayBase& srcfa,
@@ -537,7 +399,12 @@ public:
 				    int                 dstng,
 				    const BoxConverter& coarsener);
 
-    void flushFPinfo ();
+    void flushFPinfo (bool no_assertion=false);
+
+    //
+    // parallel copy or add
+    //
+    enum CpOp { COPY = 0, ADD = 1 };
 
 protected:
 
@@ -563,9 +430,6 @@ protected:
     int                 aFAPId;      // ---- id of currently allocated fab array pointers
     int                 aFAPIdLock;  // ---- lock for resizing sidecars
 
-    static int fb_cache_max_size;
-    static int copy_cache_max_size;
-
     mutable BDKey m_bdkey;
 
     //
@@ -578,19 +442,119 @@ protected:
     static TACache     m_TheTileArrayCache;
     static CacheStats  m_TAC_stats;
     //
-    static long bytesOfTACache ();
-    //
+    const TileArray* getTileArray (const IntVect& tilesize) const;
     void buildTileArray (const IntVect& tilesize, TileArray& ta) const;
     //
-    void flushTileArray (const IntVect& tilesize = IntVect::TheZeroVector()) const;
-    // This flushes the entire cache.
-    static void flushTileArrayCache ();
+    void flushTileArray (const IntVect& tilesize = IntVect::TheZeroVector(), 
+			 bool no_assertion=false) const;
+    static void flushTileArrayCache (); // This flushes the entire cache.
+
+    //
+    // FillBoundary
+    //
+    struct FB
+    {
+        FB (const FabArrayBase& fa, bool cross, const Periodicity& period,
+	    bool enforce_periodicity_only);
+        ~FB ();
+
+	IndexType           m_typ;
+        int                 m_ngrow;
+        bool                m_cross;
+	bool                m_epo;
+	Periodicity         m_period;
+        //
+        // The cache of local and send/recv per FillBoundary().
+        //
+	bool                m_threadsafe_loc;
+	bool                m_threadsafe_rcv;
+        CopyComTagsContainer*      m_LocTags;
+        MapOfCopyComTagContainers* m_SndTags;
+        MapOfCopyComTagContainers* m_RcvTags;
+        std::map<int,int>*         m_SndVols;
+        std::map<int,int>*         m_RcvVols;
+	//
+	int                 m_nuse;
+	//
+	long bytes () const;
+    private:
+	void define_fb (const FabArrayBase& fa);
+	void define_epo (const FabArrayBase& fa);
+    };
+    //
+    typedef std::multimap<BDKey,FabArrayBase::FB*> FBCache;
+    typedef FBCache::iterator FBCacheIter;
+    //
+    static FBCache    m_TheFBCache;
+    static CacheStats m_FBC_stats;
+    //
+    const FB& getFB (const Periodicity& period, bool cross=false, bool enforce_periodicity_only = false) const;
+    //
+    void flushFB (bool no_assertion=false) const;       // This flushes its own FB.
+    static void flushFBCache (); // This flushes the entire cache.
+
+    //
+    // parallel copy or add
+    //
+    struct CPC
+    {
+	CPC (const FabArrayBase& dstfa, int dstng,
+	     const FabArrayBase& srcfa, int srcng,
+	     const Periodicity& period);
+	CPC (const BoxArray& dstba, const DistributionMapping& dstdm, 
+	     const Array<int>& dstidx, int dstng,
+	     const BoxArray& srcba, const DistributionMapping& srcdm, 
+	     const Array<int>& srcidx, int srcng,
+	     const Periodicity& period, int myproc);
+        ~CPC ();
+
+        long bytes () const;	
+
+	BDKey       m_srcbdk;
+	BDKey       m_dstbdk;
+	int         m_srcng;
+	int         m_dstng;
+	Periodicity m_period;
+	BoxArray    m_srcba;
+	BoxArray    m_dstba;
+        //
+        // The cache of local and send/recv info per FabArray::copy().
+        //
+	bool        m_threadsafe_loc;
+	bool        m_threadsafe_rcv;
+        CopyComTagsContainer*      m_LocTags;
+        MapOfCopyComTagContainers* m_SndTags;
+        MapOfCopyComTagContainers* m_RcvTags;
+        std::map<int,int>*         m_SndVols;
+        std::map<int,int>*         m_RcvVols;
+	//
+        int         m_nuse;
+
+    private:
+	void define (const BoxArray& ba_dst, const DistributionMapping& dm_dst,
+		     const Array<int>& imap_dst,
+		     const BoxArray& ba_src, const DistributionMapping& dm_src,
+		     const Array<int>& imap_src,
+		     int MyProc = ParallelDescriptor::MyProc());
+    };
+    //
+    typedef std::multimap<BDKey,FabArrayBase::CPC*> CPCache;
+    typedef CPCache::iterator CPCacheIter;
+    //
+    static CPCache    m_TheCPCache;
+    static CacheStats m_CPC_stats;
+    //
+    const CPC& getCPC (int dstng, const FabArrayBase& src, int srcng, const Periodicity& period) const;
+    // 
+    void flushCPC (bool no_assertion=false) const;      // This flushes its own CPC.
+    static void flushCPCache (); // This flusheds the entire cache.
+
     //
     // Keep track of how many FabArrays are built with the same BDKey.
     //
     static std::map<BDKey, int> m_BD_count;
     //
-    // clear BD count and TileArray cache associated with this BD, if no other is using this BD. 
+    // clear BD count and caches associated with this BD, if no other is using this BD. 
     // 
     void clearThisBD (bool no_assertion=false);
     //
@@ -852,7 +816,7 @@ public:
     //
     // The destructor -- deletes all FABs in the array.
     //
-    ~FabArray ();
+    virtual ~FabArray ();
     //
     // Define this FabArray identically to that performed by
     // the constructor having an analogous function signature.
@@ -860,17 +824,17 @@ public:
     // the default constructor.
     //
     void define (const BoxArray& bxs,
-                 int             nvar,
-                 int             ngrow,
-                 FabAlloc        mem_mode,
+		 int             nvar,
+		 int             ngrow,
+		 FabAlloc        mem_mode,
 		 const IntVect&  nodal = IntVect::TheZeroVector(),
 		 ParallelDescriptor::Color color = ParallelDescriptor::DefaultColor());
 
     void define (const BoxArray&            bxs,
-                 int                        nvar,
-                 int                        ngrow,
+		 int                        nvar,
+		 int                        ngrow,
 		 const DistributionMapping& dm,
-                 FabAlloc                   mem_mode,
+		 FabAlloc                   mem_mode,
 		 const IntVect&             nodal = IntVect::TheZeroVector());
     //
     // Returns true if the FabArray is well-defined.  That is,
@@ -970,6 +934,7 @@ public:
     // valid+src_nghost region of source.
     //
     void copy (const FabArray<FAB>& fa,
+	       const Periodicity&   period = Periodicity::NonPeriodic(),
                CpOp                 op = FabArrayBase::COPY);
     //
     // This function copies data from src to this FabArray.  Each FAB
@@ -983,6 +948,7 @@ public:
                int                  src_comp,
                int                  dest_comp,
                int                  num_comp,
+	       const Periodicity&   period = Periodicity::NonPeriodic(),
                CpOp                 op = FabArrayBase::COPY);
     void copy (const FabArray<FAB>& src,
                int                  src_comp,
@@ -990,6 +956,7 @@ public:
                int                  num_comp,
 	       int                  src_nghost,
 	       int                  dst_nghost,
+	       const Periodicity&   period = Periodicity::NonPeriodic(),
                CpOp                 op = FabArrayBase::COPY);
 
     //
@@ -1041,17 +1008,42 @@ public:
     // Copy on intersection within a FabArray.  Data is copied from
     // valid regions to intersecting regions of definition.  The
     // purpose is to fill in the boundary regions of each FAB in
-    // the FabArray.
+    // the FabArray.  If cross=true, corner cells are not filled.
+    // If the length of periodic is provided, periodic boundaries are
+    // also filled.  Note that FabArray itself does not contains
+    // any periodicity information.
+    // FillBoundary expects that its cell-centered version of its BoxArray 
+    // is non-overlapping.
     //
     void FillBoundary (bool cross = false);
+    void FillBoundary (const Periodicity& period, bool cross = false);
     //
     // Same as FillBoundary(), but only copies ncomp components starting at scomp.
     //
     void FillBoundary (int scomp, int ncomp, bool cross = false);
+    void FillBoundary (int scomp, int ncomp, const Periodicity& period, bool cross = false);
 
     void FillBoundary_nowait (bool cross = false);
+    void FillBoundary_nowait (const Periodicity& period, bool cross = false);
     void FillBoundary_nowait (int scomp, int ncomp, bool cross = false);
+    void FillBoundary_nowait (int scomp, int ncomp, const Periodicity& period, bool cross = false);
     void FillBoundary_finish ();
+
+    // Fill cells outside periodic domains with their corresponding cells inside
+    // the domain.  Ghost cells are treated the same as valid cells.  The BoxArray
+    // is allowed to be overlapping.
+    void EnforcePeriodicity (const Periodicity& period);
+    void EnforcePeriodicity (int scomp, int ncomp, const Periodicity& period);
+
+    // covered  : ghost cells covered by valid cells of this FabArray
+    //            (including periodically shifted valid cells)
+    // uncovered: ghost cells not covered by valid cells
+    //            (including ghost cells outside periodic boundaries)
+    // physbnd  : boundary cells outside the domain (excluding periodic boundaries)
+    // interior : interior cells (i.e., valid cells)
+    void BuildMask (const Box& phys_domain, const Periodicity& period,
+		    value_type covered, value_type uncovered, 
+		    value_type physbnd, value_type interior);
 
     //
     // Move FABs in this FabArray to different MPI ranks.
@@ -1148,10 +1140,14 @@ private:
     //
     void AllocFabs ();
 
+    void FBEP_nowait (int scomp, int ncomp, const Periodicity& period, bool cross,
+		      bool enforce_periodicity_only = false);
+
 public:
     // Data used in non-blocking FillBoundary
-    bool fb_cross;
+    bool fb_cross, fb_epo;
     int fb_scomp, fb_ncomp;
+    Periodicity fb_period;
 
     //
     value_type*        fb_the_recv_data;
@@ -1164,21 +1160,6 @@ public:
     //
     Array<value_type*> fb_send_data;
     Array<MPI_Request> fb_send_reqs;
-
-    // Data used in non-blocking FillPeriodicBoundary
-    bool fpb_corners;
-    int fpb_scomp, fpb_ncomp;
-    //
-    value_type*        fpb_the_recv_data;
-    Array<int>         fpb_recv_from;
-    Array<value_type*> fpb_recv_data;
-    Array<MPI_Request> fpb_recv_reqs;
-#ifdef BL_USE_MPI3
-    Array<MPI_Aint>    fpb_recv_disp;
-#endif
-    //
-    Array<value_type*> fpb_send_data;
-    Array<MPI_Request> fpb_send_reqs;
 };
 
 class FabArrayId
@@ -1373,54 +1354,6 @@ private:
 
 template<typename T>
 void
-FabArrayBase::SetRecvTag (std::map< int,std::vector<T> >& m_RcvTags,
-                          int                             src_owner,
-                          const T&                        tag,
-                          std::map<int,int>&              m_RcvVols,
-                          const Box&                      bx)
-{
-    m_RcvTags[src_owner].push_back(tag);
-
-    std::map<int,int>::iterator vol_it = m_RcvVols.find(src_owner);
-
-    const int vol = bx.numPts();
-
-    if (vol_it != m_RcvVols.end())
-    {
-        vol_it->second += vol;
-    }
-    else
-    {
-        m_RcvVols[src_owner] = vol;
-    }
-}
-
-template<typename T>
-void
-FabArrayBase::SetSendTag (std::map< int,std::vector<T> >& m_SndTags,
-                          int                             dst_owner,
-                          const T&                        tag,
-                          std::map<int,int>&              m_SndVols,
-                          const Box&                      bx)
-{
-    m_SndTags[dst_owner].push_back(tag);
-
-    std::map<int,int>::iterator vol_it = m_SndVols.find(dst_owner);
-
-    const int vol = bx.numPts();
-
-    if (vol_it != m_SndVols.end())
-    {
-        vol_it->second += vol;
-    }
-    else
-    {
-        m_SndVols[dst_owner] = vol;
-    }
-}
-
-template<typename T>
-void
 FabArrayBase::PostRcvs (const std::map<int,int>&               m_RcvVols,
                         T*&                                    the_recv_data,
                         Array<T*>&                             recv_data,
@@ -1530,7 +1463,7 @@ FabArrayBase::WaitForAsyncSends (int                 N_snds,
                                  Array<MPI_Status>&  stats)
 {
 #ifdef BL_USE_MPI
-    BL_ASSERT(FabArrayBase::do_async_sends && N_snds > 0);
+    BL_ASSERT(N_snds > 0);
 
     stats.resize(N_snds);
 
@@ -1726,7 +1659,7 @@ FabArray<FAB>::ok () const
     {
         if (defined(fai))
         {
-            if (get(fai).box() != BoxLib::grow(box(fai.index()),n_grow))
+            if (get(fai).box() != fabbox(fai.index()))
             {
                 isok = false;
             }
@@ -1759,7 +1692,7 @@ FabArray<FAB>::defineDoit (const BoxArray&            bxs,
     n_grow = ngrow;
     n_comp = nvar;
 
-    boxarray.define(bxs);
+    boxarray = bxs;
 
     if (nodal != IntVect::TheZeroVector()) {
 	if (nodal == IntVect::TheUnitVector()) {
@@ -1820,7 +1753,7 @@ FabArray<FAB>::defineDoit (const BoxArray&            bxs,
     }
 
 #ifdef BL_USE_TEAM
-    ParallelDescriptor::MyTeam().MemoryBarrier();
+    if (alloc == Fab_allocate) ParallelDescriptor::MyTeam().MemoryBarrier();
 #endif
 }
 
@@ -1861,7 +1794,7 @@ FabArray<FAB>::AllocFabs ()
     for (int i = 0; i < n; ++i)
     {
 	int K = indexArray[i];
-        const Box& tmp = BoxLib::grow(box(K), n_grow);
+        const Box& tmp = fabbox(K);
 	bool alloc = !shmem.alloc;
 	m_fabs_v.push_back(new FAB(tmp, n_comp, alloc, shmem.alloc));
     }
@@ -1970,7 +1903,7 @@ FabArray<FAB>::setFab (int  boxno,
 
     BL_ASSERT(n_comp == elem->nComp());
     BL_ASSERT(boxarray.size() > 0);
-    BL_ASSERT(elem->box() == BoxLib::grow(boxarray[boxno],n_grow));
+    BL_ASSERT(elem->box() == fabbox(boxno));
     BL_ASSERT(!this->defined(boxno));
     BL_ASSERT(distributionMap[boxno] == ParallelDescriptor::MyProc());
 
@@ -1994,7 +1927,7 @@ FabArray<FAB>::setFab (const MFIter& mfi,
 
     BL_ASSERT(n_comp == elem->nComp());
     BL_ASSERT(boxarray.size() > 0);
-    BL_ASSERT(elem->box() == BoxLib::grow(boxarray[mfi.index()],n_grow));
+    BL_ASSERT(elem->box() == fabbox(mfi.index()));
     BL_ASSERT(!this->defined(mfi));
     BL_ASSERT(distributionMap[mfi.index()] == ParallelDescriptor::MyProc());
 
@@ -2038,6 +1971,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
                      int                  ncomp,
 		     int                  snghost,
 		     int                  dnghost,
+		     const Periodicity&   period,
                      CpOp                 op)
 {
     BL_PROFILE("FabArray::copy()");
@@ -2052,7 +1986,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
     if ((src.boxArray().ixType().cellCentered() || op == FabArrayBase::COPY) &&
         (boxarray == src.boxarray && distributionMap == src.distributionMap)
-	&& snghost ==0 && dnghost == 0)
+	&& snghost ==0 && dnghost == 0 && !period.isAnyPeriodic())
     {
         //
         // Short-circuit full intersection code if we're doing copy()s or if
@@ -2079,13 +2013,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
         return;
     }
 
-    const CPC cpc(boxarray, src.boxarray, distributionMap, src.distributionMap, dnghost, snghost);
-
-    FabArrayBase::CPCCacheIter cache_it = FabArrayBase::TheCPC(cpc, *this, src);
-
-    BL_ASSERT(cache_it != FabArrayBase::m_TheCopyCache.end());
-
-    const CPC& thecpc = cache_it->second;
+    const CPC& thecpc = getCPC(dnghost, src, snghost, period);
 
     if (ParallelDescriptor::NProcs() == 1)
     {
@@ -2102,11 +2030,11 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
             if (op == FabArrayBase::COPY)
             {
-                get(tag.fabIndex).copy(src[tag.srcIndex],tag.box,scomp,tag.box,dcomp,ncomp);
+                get(tag.dstIndex).copy(src[tag.srcIndex],tag.sbox,scomp,tag.dbox,dcomp,ncomp);
             }
             else
             {
-                get(tag.fabIndex).plus(src[tag.srcIndex],tag.box,tag.box,scomp,dcomp,ncomp);
+                get(tag.dstIndex).plus(src[tag.srcIndex],tag.sbox,tag.dbox,scomp,dcomp,ncomp);
             }
         }
 
@@ -2257,7 +2185,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 		for (CopyComTagsContainer::const_iterator it = cctc.begin();
 		     it != cctc.end(); ++it)
 		{
-		    const Box& bx = it->box;
+		    const Box& bx = it->sbox;
 		    src[it->srcIndex].copyToMem(bx,SC,NC,dptr);
 		    const int Cnt = bx.numPts()*NC;
 		    dptr += Cnt;
@@ -2357,11 +2285,11 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 		
 		if (op == FabArrayBase::COPY)
 		{
-		    get(tag.fabIndex).copy(src[tag.srcIndex],tag.box,SC,tag.box,DC,NC);
+		    get(tag.dstIndex).copy(src[tag.srcIndex],tag.sbox,SC,tag.dbox,DC,NC);
 		}
 		else
 		{
-		    get(tag.fabIndex).plus(src[tag.srcIndex],tag.box,tag.box,SC,DC,NC);
+		    get(tag.dstIndex).plus(src[tag.srcIndex],tag.sbox,tag.dbox,SC,DC,NC);
 		}
 	    });
 #endif	    
@@ -2377,11 +2305,11 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 		
 		if (op == FabArrayBase::COPY)
 		{
-		    get(tag.fabIndex).copy(src[tag.srcIndex],tag.box,SC,tag.box,DC,NC);
+		    get(tag.dstIndex).copy(src[tag.srcIndex],tag.sbox,SC,tag.dbox,DC,NC);
 		}
 		else
 		{
-		    get(tag.fabIndex).plus(src[tag.srcIndex],tag.box,tag.box,SC,DC,NC);
+		    get(tag.dstIndex).plus(src[tag.srcIndex],tag.sbox,tag.dbox,SC,DC,NC);
 		}
 	    }
 	}
@@ -2437,18 +2365,18 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 		    for (CopyComTagsContainer::const_iterator it = cctc.begin();
 			 it != cctc.end(); ++it)
 		    {
-			const Box& bx  = it->box;
+			const Box& bx  = it->dbox;
 			const int  Cnt = bx.numPts()*NC;
 			
 			if (op == FabArrayBase::COPY)
 			{
-			    get(it->fabIndex).copyFromMem(bx,DC,NC,dptr);
+			    get(it->dstIndex).copyFromMem(bx,DC,NC,dptr);
 			}
 			else
 			{
 			    fab.resize(bx,NC);
 			    memcpy(fab.dataPtr(), dptr, Cnt*sizeof(value_type));
-			    get(it->fabIndex).plus(fab,bx,bx,0,DC,NC);
+			    get(it->dstIndex).plus(fab,bx,bx,0,DC,NC);
 			}
 			
 			dptr += Cnt;
@@ -2523,16 +2451,17 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
                      int                  scomp,
                      int                  dcomp,
                      int                  ncomp,
+		     const Periodicity&   period,
                      CpOp                 op)
 {
-    copy(src,scomp,dcomp,ncomp,0,0,op);
+    copy(src,scomp,dcomp,ncomp,0,0,period,op);
 }
 
 template <class FAB>
 void
-FabArray<FAB>::copy (const FabArray<FAB>& src, CpOp op)
+FabArray<FAB>::copy (const FabArray<FAB>& src, const Periodicity& period, CpOp op)
 {
-    copy(src,0,0,nComp(),0,0,op);
+    copy(src,0,0,nComp(),0,0,period,op);
 }
 
 //
@@ -2612,7 +2541,7 @@ FabArray<FAB>::copyTo (FAB&       dest,
     FAB ovlp;
 
     std::vector< std::pair<int,Box> > isects;
-    boxarray.intersections(subbox, isects, nghost);
+    boxarray.intersections(subbox, isects, false, nghost);
 
     for (int j = 0, M = isects.size(); j < M; ++j)
     {
@@ -2749,13 +2678,9 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
     srcDMAll.define(srcPMapAll, putInCache);
     destDMAll.define(destPMapAll, putInCache);
 
-    const CPC cpc(destBoxArray, srcBoxArray, destDMAll, srcDMAll, dnghost, snghost);
-
-    FabArrayBase::CPCCacheIter cache_it = FabArrayBase::TheCPC(cpc, destIndexArray, srcIndexArray, myProcBoth);
-
-    BL_ASSERT(cache_it != FabArrayBase::m_TheCopyCache.end());
-
-    const CPC& thecpc = cache_it->second;
+    CPC thecpc(destBoxArray, destDMAll, destIndexArray, dnghost,
+	       srcBoxArray ,  srcDMAll,  srcIndexArray, dnghost, 
+	       Periodicity::NonPeriodic(), myProcBoth);
 
     if (ParallelDescriptor::NProcsAll() == 1) {
         return;
@@ -2849,7 +2774,7 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
             for (CopyComTagsContainer::const_iterator it = cctc.begin();
                  it != cctc.end(); ++it)
             {
-                const Box& bx = it->box;
+                const Box& bx = it->sbox;
                 (*src)[it->srcIndex].copyToMem(bx,SC,NC,dptr);
                 const int Cnt = bx.numPts()*NC;
                 dptr += Cnt;
@@ -2888,11 +2813,11 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
 
             if (op == FabArrayBase::COPY)
             {
-                dest->get(tag.fabIndex).copy((*src)[tag.srcIndex],tag.box,SC,tag.box,DC,NC);
+                dest->get(tag.dstIndex).copy((*src)[tag.srcIndex],tag.sbox,SC,tag.dbox,DC,NC);
             }
             else
             {
-                dest->get(tag.fabIndex).plus((*src)[tag.srcIndex],tag.box,tag.box,SC,DC,NC);
+                dest->get(tag.dstIndex).plus((*src)[tag.srcIndex],tag.sbox,tag.dbox,SC,DC,NC);
             }
         }
 
@@ -2937,19 +2862,19 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
 		for (CopyComTagsContainer::const_iterator it = cctc.begin();
 		     it != cctc.end(); ++it)
 		{
-		    const Box& bx  = it->box;
+		    const Box& bx  = it->dbox;
 		    const int  Cnt = bx.numPts()*NC;
 		    
 		    if (op == FabArrayBase::COPY)
 		    {
-			dest->get(it->fabIndex).copyFromMem(bx,DC,NC,dptr);
+			dest->get(it->dstIndex).copyFromMem(bx,DC,NC,dptr);
 		    }
 		    else
 		    {
 			fab.resize(bx,NC);
 			memcpy(fab.dataPtr(), dptr, Cnt*sizeof(value_type));
 			
-			dest->get(it->fabIndex).plus(fab,bx,bx,0,DC,NC);
+			dest->get(it->dstIndex).plus(fab,bx,bx,0,DC,NC);
 		    }
 		    
 		    dptr += Cnt;
@@ -3265,8 +3190,6 @@ FabArray<FAB>::AddProcsToComp (int ioProcNumSCS, int ioProcNumAll,
   ParallelDescriptor::Bcast(&n_comp, 1, ioProcNumSCS, scsComm);
   ParallelDescriptor::Bcast(&aFAPId, 1, ioProcNumSCS, scsComm);
   ParallelDescriptor::Bcast(&nFabArrays, 1, ioProcNumSCS, scsComm);
-  ParallelDescriptor::Bcast(&fb_cache_max_size, 1, ioProcNumSCS, scsComm);
-  ParallelDescriptor::Bcast(&copy_cache_max_size, 1, ioProcNumSCS, scsComm);
 
   // ---- bools
   bool bii(IsInitialized());
@@ -3277,8 +3200,6 @@ FabArray<FAB>::AddProcsToComp (int ioProcNumSCS, int ioProcNumAll,
     SetInitialized(bInit);
     do_async_sends = bDAS;
   }
-  ParallelDescriptor::Bcast(&fb_cache_max_size, 1, ioProcNumSCS, scsComm);
-  ParallelDescriptor::Bcast(&copy_cache_max_size, 1, ioProcNumSCS, scsComm);
 
   // ---- IntVects
   Array<int> allIntVects;
@@ -3405,9 +3326,8 @@ FabArray<FAB>::MoveAllFabs (const Array<int> &newDistMapArray)
 
     // ---- flush caches
     DistributionMapping::FlushCache();
-    FabArrayBase::FlushSICache();
-    FabArrayBase::CPC::FlushCache();
-    //Geometry::FlushPIRMCache();  // ---- needs to be done externally
+    flushCPCache();
+    flushFBCache();
     flushTileArrayCache();
 
     if(lastFAPtr != 0) {
@@ -3520,7 +3440,7 @@ FabArray<FAB>::MoveFabs (const Array<int> &newDistMapArray)
     int dmi(moveThisFab.distMapIndex);
 
     if(myProc == moveThisFab.toRank) {   // ---- receive fab(s)
-      const Box &tmpbox = BoxLib::grow(boxarray[dmi], n_grow);
+      const Box &tmpbox = fabbox(dmi);
       FAB *fabPtr = new FAB(tmpbox, n_comp);
       tempIndexFABs[dmi] = fabPtr;  // ---- add to map
 
@@ -4548,66 +4468,138 @@ void
 FabArray<FAB>::FillBoundary (bool cross)
 {
     BL_PROFILE("FabArray::FillBoundary()");
-    FillBoundary_nowait(0, nComp(), cross);
-    FillBoundary_finish();
+    if ( n_grow > 0 ) {
+	FillBoundary_nowait(0, nComp(), Periodicity::NonPeriodic(), cross);
+	FillBoundary_finish();
+    }
 }
 
 template <class FAB>
 void
-FabArray<FAB>::FillBoundary (int  scomp,
-                             int  ncomp,
-                             bool cross)
+FabArray<FAB>::FillBoundary (const Periodicity& period, bool cross)
 {
     BL_PROFILE("FabArray::FillBoundary()");
-    FillBoundary_nowait(scomp, ncomp, cross);
-    FillBoundary_finish();
+    if ( n_grow > 0 ) {
+	FillBoundary_nowait(0, nComp(), period, cross);
+	FillBoundary_finish();
+    }
+}
+
+template <class FAB>
+void
+FabArray<FAB>::FillBoundary (int scomp, int ncomp, bool cross)
+{
+    BL_PROFILE("FabArray::FillBoundary()");
+    if ( n_grow > 0 ) {
+	FillBoundary_nowait(scomp, ncomp, Periodicity::NonPeriodic(), cross);
+	FillBoundary_finish();
+    }
+}
+
+template <class FAB>
+void
+FabArray<FAB>::FillBoundary (int scomp, int ncomp, const Periodicity& period, bool cross)
+{
+    BL_PROFILE("FabArray::FillBoundary()");
+    if ( n_grow > 0 ) {
+	FillBoundary_nowait(scomp, ncomp, period, cross);
+	FillBoundary_finish();
+    }
 }
 
 template <class FAB>
 void
 FabArray<FAB>::FillBoundary_nowait (bool cross)
 {
-    FillBoundary_nowait(0, nComp(), cross);
+    FillBoundary_nowait(0, nComp(), Periodicity::NonPeriodic(), cross);
+}
+
+template <class FAB>
+void
+FabArray<FAB>::FillBoundary_nowait (const Periodicity& period, bool cross)
+{
+    FillBoundary_nowait(0, nComp(), period, cross);
 }
 
 template <class FAB>
 void
 FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross)
 {
-    if ( n_grow <= 0 ) return;
+    FillBoundary_nowait(scomp, ncomp, Periodicity::NonPeriodic(), cross);
+}
 
-    FabArrayBase::FBCacheIter cache_it = FabArrayBase::TheFB(cross,*this);
+template <class FAB>
+void
+FabArray<FAB>::EnforcePeriodicity (const Periodicity& period)
+{
+    BL_PROFILE("FabArray::EnforcePeriodicity");
+    if (period.isAnyPeriodic()) {
+	FBEP_nowait(0, nComp(), period, false, true);
+	FillBoundary_finish(); // unsafe unless isAnyPeriodic()
+    }
+}
 
-    BL_ASSERT(cache_it != FabArrayBase::m_TheFBCache.end());
+template <class FAB>
+void
+FabArray<FAB>::EnforcePeriodicity (int scomp, int ncomp, const Periodicity& period)
+{
+    BL_PROFILE("FabArray::EnforcePeriodicity");
+    if (period.isAnyPeriodic()) {
+	FBEP_nowait(scomp, ncomp, period, false, true);
+	FillBoundary_finish(); // unsafe unless isAnyPeriodic()
+    }
+}
 
-    const FabArrayBase::SI& TheSI = cache_it->second;
+template <class FAB>
+void
+FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, const Periodicity& period, bool cross)
+{
+    FBEP_nowait(scomp, ncomp, period, cross);
+}
+
+template <class FAB>
+void
+FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const Periodicity& period, bool cross,
+			    bool enforce_periodicity_only)
+{
+    fb_cross = cross;
+    fb_epo   = enforce_periodicity_only;
+    fb_scomp = scomp;
+    fb_ncomp = ncomp;
+    fb_period = period;
+
+    bool work_to_do;
+    if (enforce_periodicity_only) {
+	work_to_do = period.isAnyPeriodic();
+    } else {
+	work_to_do = n_grow > 0;
+    }
+    if (!work_to_do) return;
+
+    const FB& TheFB = getFB(period, cross, enforce_periodicity_only);
 
     if (ParallelDescriptor::NProcs() == 1)
     {
         //
         // There can only be local work to do.
         //
-	int N_loc = (*TheSI.m_LocTags).size();
+	int N_loc = (*TheFB.m_LocTags).size();
 #ifdef _OPENMP
-#pragma omp parallel for if (TheSI.m_threadsafe_loc)
+#pragma omp parallel for if (TheFB.m_threadsafe_loc)
 #endif
 	for (int i=0; i<N_loc; ++i)
         {
-            const CopyComTag& tag = (*TheSI.m_LocTags)[i];
+            const CopyComTag& tag = (*TheFB.m_LocTags)[i];
 
-            BL_ASSERT(distributionMap[tag.fabIndex] == ParallelDescriptor::MyProc());
+            BL_ASSERT(distributionMap[tag.dstIndex] == ParallelDescriptor::MyProc());
             BL_ASSERT(distributionMap[tag.srcIndex] == ParallelDescriptor::MyProc());
 
-            get(tag.fabIndex).copy(get(tag.srcIndex),tag.box,scomp,tag.box,scomp,ncomp);
+            get(tag.dstIndex).copy(get(tag.srcIndex),tag.sbox,scomp,tag.dbox,scomp,ncomp);
         }
 
         return;
     }
    
-    fb_cross = cross;
-    fb_scomp = scomp;
-    fb_ncomp = ncomp;
-    
 #ifdef BL_USE_MPI
 
 #if defined(BL_USE_UPCXX)
@@ -4634,9 +4626,9 @@ FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross)
 	// else I don't have any data and my SubSeqNum() should not be called.
     }
 
-    const int N_locs = TheSI.m_LocTags->size();
-    const int N_rcvs = TheSI.m_RcvTags->size();
-    const int N_snds = TheSI.m_SndTags->size();
+    const int N_locs = TheFB.m_LocTags->size();
+    const int N_rcvs = TheFB.m_RcvTags->size();
+    const int N_snds = TheFB.m_SndTags->size();
 
     if (N_locs == 0 && N_rcvs == 0 && N_snds == 0)
         // No work to do.
@@ -4653,19 +4645,19 @@ FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross)
 
     if (N_rcvs > 0) {
 #ifdef BL_USE_UPCXX
-	FabArrayBase::PostRcvs_PGAS(*TheSI.m_RcvVols,fb_the_recv_data,
+	FabArrayBase::PostRcvs_PGAS(*TheFB.m_RcvVols,fb_the_recv_data,
 				    fb_recv_data,fb_recv_from,ncomp,SeqNum,&BLPgas::fb_recv_event);
 #else
 	if (ParallelDescriptor::MPIOneSided()) {
 #if defined(BL_USE_MPI3)
-	    FabArrayBase::PostRcvs_MPI_Onesided(*TheSI.m_RcvVols, fb_the_recv_data,
+	    FabArrayBase::PostRcvs_MPI_Onesided(*TheFB.m_RcvVols, fb_the_recv_data,
 						fb_recv_data, fb_recv_from, fb_recv_reqs, 
 						fb_recv_disp, ncomp, SeqNum, ParallelDescriptor::fb_win);
 	    MPI_Group_incl(tgroup, fb_recv_from.size(), fb_recv_from.dataPtr(), &rgroup);
 	    MPI_Win_post(rgroup, 0, ParallelDescriptor::fb_win);
 #endif
 	} else {
-	    FabArrayBase::PostRcvs(*TheSI.m_RcvVols,fb_the_recv_data,
+	    FabArrayBase::PostRcvs(*TheFB.m_RcvVols,fb_the_recv_data,
 				   fb_recv_data,fb_recv_from,fb_recv_reqs,ncomp,SeqNum);
 	}
 #endif
@@ -4686,14 +4678,14 @@ FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross)
 	send_rank.reserve(N_snds);
 	send_cctc.reserve(N_snds);
 
-	for (MapOfCopyComTagContainers::const_iterator m_it = TheSI.m_SndTags->begin(),
-		 m_End = TheSI.m_SndTags->end();
+	for (MapOfCopyComTagContainers::const_iterator m_it = TheFB.m_SndTags->begin(),
+		 m_End = TheFB.m_SndTags->end();
 	     m_it != m_End;
 	     ++m_it)
 	{
-	    std::map<int,int>::const_iterator vol_it = TheSI.m_SndVols->find(m_it->first);
+	    std::map<int,int>::const_iterator vol_it = TheFB.m_SndVols->find(m_it->first);
 
-	    BL_ASSERT(vol_it != TheSI.m_SndVols->end());
+	    BL_ASSERT(vol_it != TheFB.m_SndVols->end());
 	    
 	    const int N = vol_it->second*ncomp;
 	    
@@ -4726,7 +4718,7 @@ FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross)
 		 it != cctc.end(); ++it)
 	    {
 		BL_ASSERT(distributionMap[it->srcIndex] == ParallelDescriptor::MyProc());
-		const Box& bx = it->box;
+		const Box& bx = it->sbox;
 		get(it->srcIndex).copyToMem(bx,scomp,ncomp,dptr);
 		const int Cnt = bx.numPts()*ncomp;
 		dptr += Cnt;
@@ -4809,7 +4801,7 @@ FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross)
     //
     // Do the local work.  Hope for a bit of communication/computation overlap.
     //
-    if (ParallelDescriptor::TeamSize() > 1 && TheSI.m_threadsafe_loc)
+    if (ParallelDescriptor::TeamSize() > 1 && TheFB.m_threadsafe_loc)
     {
 #ifdef BL_USE_TEAM
 #ifdef _OPENMP
@@ -4817,29 +4809,29 @@ FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross)
 #endif
 	ParallelDescriptor::team_for(0, N_locs, [&] (int i) 
         {
-	    const auto& tag = (*TheSI.m_LocTags)[i];
+	    const auto& tag = (*TheFB.m_LocTags)[i];
 
-	    BL_ASSERT(ParallelDescriptor::sameTeam(distributionMap[tag.fabIndex]));
+	    BL_ASSERT(ParallelDescriptor::sameTeam(distributionMap[tag.dstIndex]));
 	    BL_ASSERT(ParallelDescriptor::sameTeam(distributionMap[tag.srcIndex]));
 
-	    get(tag.fabIndex).copy(get(tag.srcIndex),tag.box,scomp,tag.box,scomp,ncomp);
+	    get(tag.dstIndex).copy(get(tag.srcIndex),tag.sbox,scomp,tag.dbox,scomp,ncomp);
 	});
 #endif
     }
     else
     {
 #ifdef _OPENMP
-#pragma omp parallel for if (TheSI.m_threadsafe_loc)
+#pragma omp parallel for if (TheFB.m_threadsafe_loc)
 #endif
 	for (int i=0; i<N_locs; ++i)
 	{
-	    const CopyComTag& tag = (*TheSI.m_LocTags)[i];
+	    const CopyComTag& tag = (*TheFB.m_LocTags)[i];
 
-	    BL_ASSERT(ParallelDescriptor::sameTeam(distributionMap[tag.fabIndex]));
+	    BL_ASSERT(ParallelDescriptor::sameTeam(distributionMap[tag.dstIndex]));
 	    BL_ASSERT(ParallelDescriptor::sameTeam(distributionMap[tag.srcIndex]));
 	    
-	    if (distributionMap[tag.fabIndex] == ParallelDescriptor::MyProc()) {
-		get(tag.fabIndex).copy(get(tag.srcIndex),tag.box,scomp,tag.box,scomp,ncomp);
+	    if (distributionMap[tag.dstIndex] == ParallelDescriptor::MyProc()) {
+		get(tag.dstIndex).copy(get(tag.srcIndex),tag.sbox,scomp,tag.dbox,scomp,ncomp);
 	    }
 	}
     }
@@ -4850,7 +4842,7 @@ template <class FAB>
 void
 FabArray<FAB>::FillBoundary_finish ()
 {
-    if ( n_grow <= 0 ) return;
+    if ( n_grow <= 0 && !fb_epo ) return; // For epo (Enforce Periodicity Only), there may be no ghost cells.
 
     if (ParallelDescriptor::NProcs() == 1) return;
 
@@ -4865,14 +4857,10 @@ FabArray<FAB>::FillBoundary_finish ()
     BL_ASSERT(!ParallelDescriptor::MPIOneSided());
 #endif
 
-    FabArrayBase::FBCacheIter cache_it = FabArrayBase::TheFB(fb_cross,*this);
+    const FB& TheFB = getFB(fb_period,fb_cross,fb_epo);
 
-    BL_ASSERT(cache_it != FabArrayBase::m_TheFBCache.end());
-
-    const FabArrayBase::SI& TheSI = cache_it->second;
-
-    const int N_rcvs = TheSI.m_RcvTags->size();
-    const int N_snds = TheSI.m_SndTags->size();
+    const int N_rcvs = TheFB.m_RcvTags->size();
+    const int N_snds = TheFB.m_SndTags->size();
 
 #ifdef BL_USE_UPCXX
     if (N_rcvs > 0) BLPgas::fb_recv_event.wait();
@@ -4897,13 +4885,13 @@ FabArray<FAB>::FillBoundary_finish ()
 
 	for (int k = 0; k < N_rcvs; k++) 
 	{
-	    MapOfCopyComTagContainers::const_iterator m_it = TheSI.m_RcvTags->find(fb_recv_from[k]);
-	    BL_ASSERT(m_it != TheSI.m_RcvTags->end());
+	    MapOfCopyComTagContainers::const_iterator m_it = TheFB.m_RcvTags->find(fb_recv_from[k]);
+	    BL_ASSERT(m_it != TheFB.m_RcvTags->end());
 	    recv_cctc.push_back(&(m_it->second));
 	}	
 
 #ifdef _OPENMP
-#pragma omp parallel for if (TheSI.m_threadsafe_rcv)
+#pragma omp parallel for if (TheFB.m_threadsafe_rcv)
 #endif
 	for (int k = 0; k < N_rcvs; k++) 
 	{
@@ -4915,9 +4903,9 @@ FabArray<FAB>::FillBoundary_finish ()
 	    for (CopyComTagsContainer::const_iterator it = cctc.begin();
 		 it != cctc.end(); ++it)
 	    {
-		const Box& bx  = it->box;
+		const Box& bx  = it->dbox;
 		const int  Cnt = bx.numPts()*fb_ncomp;
-		get(it->fabIndex).copyFromMem(bx,fb_scomp,fb_ncomp,dptr);
+		get(it->dstIndex).copyFromMem(bx,fb_scomp,fb_ncomp,dptr);
 		dptr += Cnt;
 	    }	    
 	}
@@ -5035,6 +5023,67 @@ FabArrayBase::WaitForAsyncSends_PGAS (int                 N_snds,
       BLPgas::free(send_data[i]);
 }
 #endif /* BL_USE_UPCXX */
+
+
+template <class FAB>
+void
+FabArray<FAB>::BuildMask (const Box& phys_domain, const Periodicity& period,
+			  value_type covered, value_type uncovered, 
+			  value_type physbnd, value_type interior)
+{
+    int ncomp = this->nComp();
+    int ngrow = this->nGrow();
+
+    const FabArrayBase::FB& TheFB = this->getFB(period);
+
+    const CopyComTagsContainer&      LocTags = *(TheFB.m_LocTags);
+    const MapOfCopyComTagContainers& RcvTags = *(TheFB.m_RcvTags);
+
+    Box domain = BoxLib::convert(phys_domain, boxArray().ixType());
+    for (int i = 0; i < BL_SPACEDIM; ++i) {
+	if (period.isPeriodic(i)) {
+	    domain.grow(i, ngrow);
+	}
+    }
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(*this); mfi.isValid(); ++mfi)
+    {
+	FAB& fab = (*this)[mfi];
+
+	Box gbx = mfi.growntilebox();
+	fab.setVal(physbnd, gbx, 0, ncomp);
+
+	gbx &= domain;
+	fab.setVal(uncovered, gbx, 0, ncomp);
+
+	const Box& tbx = mfi.tilebox();
+	fab.setVal(interior, tbx, 0, ncomp);
+    }
+
+    int N_locs = LocTags.size();
+#ifdef _OPENMP
+#pragma omp parallel for if (TheFB.m_threadsafe_loc)
+#endif
+    for (int i = 0; i < N_locs; ++i) {
+	const CopyComTag& tag = LocTags[i];
+	(*this)[tag.dstIndex].setVal(covered, tag.dbox, 0, ncomp);
+    }
+
+    for (MapOfCopyComTagContainers::const_iterator it = RcvTags.begin(); it != RcvTags.end(); ++it) {
+	int N = it->second.size();
+#ifdef _OPENMP
+#pragma omp parallel for if (TheFB.m_threadsafe_rcv)
+#endif
+	for (int i = 0; i < N; ++i) {
+	    const CopyComTag& tag = it->second[i];
+	    (*this)[tag.dstIndex].setVal(covered, tag.dbox, 0, ncomp);
+	}
+    }
+}
+
 
 template <typename FAB> std::map<int, std::map<int, FabArray<FAB> *> > FabArray<FAB>::allocatedFAPointers;
 template <typename FAB> std::set<int> FabArray<FAB>::noallocFAPIds;

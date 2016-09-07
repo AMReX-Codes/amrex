@@ -95,6 +95,7 @@ public:
   void get_fluxes(int lev, PArray<MultiFab>& flux, const Real* dx);
 
   void set_nodal_coefficients(const MultiFab* aa[]);
+  void set_nodal_const_coefficients(Real val);
   void nodal_project(MultiFab* uu[], MultiFab* vel[], MultiFab* rhcc[], const PArray<MultiFab>& rhnd, 
 		     const Real& tol, const Real& abs_tol, 
 		     int* lo_inflow=0, int* hi_inflow=0);

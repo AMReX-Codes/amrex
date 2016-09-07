@@ -1,0 +1,51 @@
+#-*- mode: org -*-
+#+STARTUP: showall
+
+        Release Notes for BoxLib 16.08
+
+The development branch was merged into master on Auguest 1, 2016.
+
+* New Features
+** Sidecars have been merged into the master branch.  
+See BoxLib/Docs/Readme.sidecars for more details.
+
+* Bug Fixes
+** Fix a minor bug in Fortran tilearray counter for memory profiling.
+Note that this bug affected neither simulation results nor actual memory usage.
+
+* Backward Incompatible Changes
+** BoxArray::define(const BoxArray& rhs)
+has been removed.  "lhs = rhs" can be used instead.
+** Remove edge_restriction.f90 because all its functions are already duplicated in 
+cc_restrition_module and the edge restriction functions are called by
+functions in ml_cc_restriction_module.  Note that there is no
+ml_edge_restriction_module. 
+
+* Major Changes
+** Parallel communication cache
+is reimplemented using BoxArray/DistributionMap keys.  The new
+approach avoids holding up BoxArrays that have been removed from the
+run.
+** VisMF is now class for FabArray<FArrayBox>, not just MultiFab.
+** Fortran random module now support single precision.
+** Fortran random module allows using FluctHydro/HydroGrid distribution.
+** Lots of improvement in the regressing test script.
+** Coarsened BoxArrays are kept in cache as long as the fine BoxArray is alive.
+This can avoid building coarse BoxArrays again and again.
+** bl_deallocate now nullifies fortran pointer. 
+** Memory profiling now keeps track of the number of BoxArrays and MultiFabs.
+** Fourth order interpolation in fillpatch in Fortran BoxLib 
+now sets stencil width automatically.
+** Write a plotfile on demand with plot_and_continue
+
+* Make System
+** 'make file_locations' will printout where in the VPATH each source file is found
+as well as indicate which files are not found.
+** Make.local: Users now can have its own Make.local.  Because it is included
+near the very end of setting up make definitions, one can use to
+override variables such as compiler options.
+** New options USE_VTUNE and USE_ITTNOTIFY for Intel compilers.
+** HPGMG: DUNLIMIT_FMG_VCYCLES -> DUNLIMIT_FMG_VCYCLES
+** Add libquadmath when compiling with gfortran
+
+

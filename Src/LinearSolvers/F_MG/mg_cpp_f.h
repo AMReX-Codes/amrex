@@ -15,6 +15,7 @@
 #define mgt_init_coeffs_lev       MGT_INIT_COEFFS_LEV
 #define mgt_init_mc_coeffs_lev    MGT_INIT_MC_COEFFS_LEV
 #define mgt_init_nodal_coeffs_lev MGT_INIT_NODAL_COEFFS_LEV
+#define mgt_init_const_nodal_coeffs_lev MGT_INIT_CONST_NODAL_COEFFS_LEV
 #define mgt_finalize_stencil      MGT_FINALIZE_STENCIL
 #define mgt_finalize_nodal_stencil MGT_FINALIZE_NODAL_STENCIL
 #define mgt_finalize_stencil_lev  MGT_FINALIZE_STENCIL_LEV
@@ -154,6 +155,7 @@
 #define mgt_init_coeffs_lev       mgt_init_coeffs_lev_
 #define mgt_init_mc_coeffs_lev    mgt_init_mc_coeffs_lev_
 #define mgt_init_nodal_coeffs_lev mgt_init_nodal_coeffs_lev_
+#define mgt_init_const_nodal_coeffs_lev mgt_init_const_nodal_coeffs_lev_
 #define mgt_finalize_stencil      mgt_finalize_stencil_
 #define mgt_finalize_nodal_stencil mgt_finalize_nodal_stencil_
 #define mgt_finalize_stencil_lev  mgt_finalize_stencil_lev_
@@ -291,6 +293,7 @@
 #define mgt_init_coeffs_lev       mgt_init_coeffs_lev__
 #define mgt_init_mc_coeffs_lev    mgt_init_mc_coeffs_lev__
 #define mgt_init_nodal_coeffs_lev mgt_init_nodal_coeffs_lev__
+#define mgt_init_const_nodal_coeffs_lev mgt_init_const_nodal_coeffs_lev__
 #define mgt_finalize_stencil      mgt_finalize_stencil__
 #define mgt_finalize_nodal_stencil mgt_finalize_nodal_stencil__
 #define mgt_finalize_stencil_lev  mgt_finalize_stencil_lev__
@@ -449,8 +452,7 @@ extern "C"
   void mgt_init_coeffs_lev(const int* lev);
   void mgt_init_mc_coeffs_lev(const int* lev, const int* nc, int* nc_opt);
   void mgt_init_nodal_coeffs_lev(const int* lev);
-
-  void mgt_init_nodal_coeffs_lev(const int* lev);
+  void mgt_init_const_nodal_coeffs_lev(const int* lev, const Real* val);
   
   void mgt_finalize_stencil();
   void mgt_finalize_nodal_stencil();

@@ -280,17 +280,12 @@ Cluster::chop ()
     CutStatus mincut = InvalidCut;
     CutStatus status[BL_SPACEDIM];
     IntVect cut;
-    for (int n = 0, mincount = 0; n < BL_SPACEDIM; n++)
+    for (int n = 0; n < BL_SPACEDIM; n++)
     {
         cut[n] = FindCut(hist[n], lo[n], hi[n], status[n]);
         if (status[n] < mincut)
         {
             mincut = status[n];
-            mincount = 1;
-        }
-        else if (status[n] == mincut)
-        {
-            mincount++;
         }
     }
     BL_ASSERT(mincut != InvalidCut);
@@ -303,7 +298,7 @@ Cluster::chop ()
         if (status[n] == mincut)
         {
             int mincutlen = std::min(cut[n]-lo[n],hi[n]-cut[n]);
-            if (mincutlen > minlen)
+            if (mincutlen >= minlen)
             {
                 dir = n;
                 minlen = mincutlen;

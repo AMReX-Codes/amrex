@@ -75,7 +75,7 @@ int main(int argc, char* argv[])
 	std::cout << "     " << "1-norm   " << norm << "\n";
     }
 
-    BoxLib::fill_boundary(mf, geom);
+    mf.FillBoundary(geom.periodicity());
     norm = mf.norm1(nc-1,ng);
     if (ParallelDescriptor::IOProcessor()) {
 	std::cout << "     " << "1-norm   " << norm << "\n";

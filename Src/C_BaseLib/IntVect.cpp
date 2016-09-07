@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cstdlib>
 #include <iostream>
+#include <limits>
 
 #include <BLassert.H>
 #include <BoxLib.H>
@@ -57,6 +58,24 @@ IntVect::TheCellVector ()
 {
     static const IntVect Cell(D_DECL(IndexType::CELL,IndexType::CELL,IndexType::CELL));
     return Cell;
+}
+
+const IntVect&
+IntVect::TheMaxVector ()
+{
+    static const IntVect mx(D_DECL(std::numeric_limits<int>::max(),
+                                   std::numeric_limits<int>::max(),
+                                   std::numeric_limits<int>::max()));
+    return mx;
+}
+
+const IntVect&
+IntVect::TheMinVector ()
+{
+    static const IntVect mn(D_DECL(std::numeric_limits<int>::min(),
+                                   std::numeric_limits<int>::min(),
+                                   std::numeric_limits<int>::min()));
+    return mn;
 }
 
 IntVect::IntVect (const int *a)

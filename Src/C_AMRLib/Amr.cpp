@@ -2440,12 +2440,7 @@ Amr::regrid (int  lbase,
     finest_level = new_finest;
     //
     // Flush the caches.
-    // We're most interesting in flushing cached stuff from the finer levels.
-    // Lower level stuff that could be reused is just as easily rebuilt.
     //
-    MultiFab::FlushSICache();
-    Geometry::FlushPIRMCache();
-    FabArrayBase::CPC::FlushCache();
     DistributionMapping::FlushCache();
 #ifdef MG_USE_FBOXLIB
     mgt_flush_copyassoc_cache();
@@ -2523,7 +2518,6 @@ Amr::regrid (int  lbase,
         for(int iMap(0); iMap < mLDM.size(); ++iMap) {
           MultiFab::MoveAllFabs(mLDM[iMap]);
         }
-      Geometry::FlushPIRMCache();
     }
 
 #ifdef USE_STATIONDATA
@@ -3128,12 +3122,11 @@ Amr::grid_places (int              lbase,
         //
         // Create initial cluster containing all tagged points.
         //
-        long     len = 0;
-        IntVect* pts = tags.collate(len);
-
+	std::vector<IntVect> tagvec;
+	tags.collate(tagvec);
         tags.clear();
 
-        if (len > 0)
+        if (tagvec.size() > 0)
         {
             //
             // Created new level, now generate efficient grids.
@@ -3143,7 +3136,7 @@ Amr::grid_places (int              lbase,
             //
             // Construct initial cluster.
             //
-            ClusterList clist(pts,len);
+            ClusterList clist(&tagvec[0], tagvec.size());
             clist.chop(grid_eff);
             BoxDomain bd;
             bd.add(p_n[levc]);
@@ -3227,10 +3220,6 @@ Amr::grid_places (int              lbase,
               new_grids[levf].define(new_bx);
 	    }
         }
-        //
-        // Don't forget to get rid of space used for collate()ing.
-        //
-        delete [] pts;
     }
 
     // If Nprocs > Ngrids and refine_grid_layout == 1 then break up the grids
@@ -3641,11 +3630,8 @@ Amr::GetParticleData (Array<Real>& part_data, int start_comp, int num_comp)
 
 
 void
-Amr::AddProcsToSidecar(int nSidecarProcs, int prevSidecarProcs) {
-
-    MultiFab::FlushSICache();
-    Geometry::FlushPIRMCache();
-    FabArrayBase::CPC::FlushCache();
+Amr::AddProcsToSidecar(int nSidecarProcs, int prevSidecarProcs)
+{
     DistributionMapping::FlushCache();
 
     Array<BoxArray> allBoxes(finest_level + 1);
@@ -3672,7 +3658,6 @@ Amr::AddProcsToSidecar(int nSidecarProcs, int prevSidecarProcs) {
         std::cout << "_in Amr::AddProcsToSidecar:  after calling MoveAllFabs:" << std::endl;
       }
     }
-    Geometry::FlushPIRMCache();
     VisMF::SetNOutFiles(checkpoint_nfiles);
 
 #ifdef USE_PARTICLES
@@ -3689,10 +3674,6 @@ Amr::AddProcsToSidecar(int nSidecarProcs, int prevSidecarProcs) {
 void
 Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
 #if BL_USE_MPI
-    MultiFab::FlushSICache();
-    Geometry::FlushPIRMCache();
-    FabArrayBase::CPC::FlushCache();
-    //FabArrayBase::flushTileArrayCache();
     DistributionMapping::FlushCache();
 
     MPI_Group scsGroup, allGroup;
@@ -4144,9 +4125,6 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
 
 void
 Amr::RedistributeGrids(int how) {
-    MultiFab::FlushSICache();
-    Geometry::FlushPIRMCache();
-    FabArrayBase::CPC::FlushCache();
     DistributionMapping::FlushCache();
     if( ! ParallelDescriptor::InCompGroup()) {
       return;
@@ -4186,7 +4164,6 @@ Amr::RedistributeGrids(int how) {
         for(int iMap(0); iMap < mLDM.size(); ++iMap) {
           MultiFab::MoveAllFabs(mLDM[iMap]);
         }
-      Geometry::FlushPIRMCache();
     }
 #ifdef USE_PARTICLES
     RedistributeParticles();

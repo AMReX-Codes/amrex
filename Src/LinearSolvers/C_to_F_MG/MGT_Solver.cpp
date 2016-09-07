@@ -611,6 +611,20 @@ MGT_Solver::set_nodal_coefficients(const MultiFab* sig[])
     mgt_finalize_nodal_stencil();
 }
 
+void
+MGT_Solver::set_nodal_const_coefficients(Real val)
+{
+    for ( int lev = 0; lev < m_nlevel; ++lev ) {
+	mgt_init_const_nodal_coeffs_lev(&lev,&val);
+    }
+
+    for ( int lev = 0; lev < m_nlevel; ++lev ) {
+	mgt_finalize_nodal_stencil_lev(&lev);
+    }
+
+    mgt_finalize_nodal_stencil();
+}
+
 void MGT_Solver::set_maxorder(const int max_order)
 {
   mgt_set_maxorder(&max_order);

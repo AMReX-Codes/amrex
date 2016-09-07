@@ -224,7 +224,7 @@ def get_args(arg_string=None):
     """ parse the commandline arguments.  If arg_string is present, we
         parse from there, otherwise we use the default (sys.argv) """
 
-    parser = argparse.ArgumentParser(description=usage, 
+    parser = argparse.ArgumentParser(description=usage,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
 
     parser.add_argument("-d", type=int, default=-1,
@@ -286,7 +286,7 @@ def run(string, stdin=False, outfile=None, store_command=False, env=None,
     p0.stdout.close()
     p0.stderr.close()
 
-    if not outfile is None:
+    if outfile is not None:
         try: cf = open(outfile, outfile_mode)
         except IOError:
             log.fail("  ERROR: unable to open file for writing")
@@ -296,7 +296,7 @@ def run(string, stdin=False, outfile=None, store_command=False, env=None,
             for line in stdout0:
                 cf.write(line)
 
-            if not errfile is None:
+            if errfile is None:
                 for line in stderr0:
                     cf.write(line)
 

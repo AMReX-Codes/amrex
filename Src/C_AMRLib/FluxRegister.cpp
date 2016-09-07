@@ -77,7 +77,7 @@ FluxRegister::define (const BoxArray& fine_boxes,
     fine_level = fine_lev;
     ncomp      = nvar;
 
-    grids.define(fine_boxes);
+    grids = fine_boxes;
     grids.coarsen(ratio);
 
     for (int dir = 0; dir < BL_SPACEDIM; dir++)
@@ -108,7 +108,7 @@ FluxRegister::define (const BoxArray&            fine_boxes,
     fine_level = fine_lev;
     ncomp      = nvar;
 
-    grids.define(fine_boxes);
+    grids = fine_boxes;
     grids.coarsen(ratio);
 
     for (int dir = 0; dir < BL_SPACEDIM; dir++)
@@ -377,8 +377,7 @@ FluxRegister::Reflux (MultiFab&       mf,
 	MultiFab flux(mf.boxArray(), ncomp, 0, Fab_allocate, IntVect::TheDimensionVector(idir));
 	flux.setVal(0.0);
 
-	flux.copy(bndry[face], scomp, 0, ncomp, 0, 0);
-	geom.PeriodicCopy(flux, bndry[face], 0, scomp, ncomp);
+	bndry[face].copyTo(flux, 0, scomp, 0, ncomp, geom.periodicity());
 
 #ifdef _OPENMP
 #pragma omp parallel
