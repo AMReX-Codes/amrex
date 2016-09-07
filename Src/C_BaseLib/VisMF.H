@@ -284,6 +284,15 @@ public:
     static bool GetUsePersistentIFStreams () { return usePersistentIFStreams; }
     static void SetUsePersistentIFStreams (bool usepifs) { usePersistentIFStreams = usepifs; }
 
+    static bool GetUseSynchronousReads () { return useSynchronousReads; }
+    static void SetUseSynchronousReads (bool usepsr) { useSynchronousReads = usepsr; }
+
+    static long GetIOBufferSize () { return ioBufferSize; }
+    static void SetIOBufferSize (long iobuffersize) {
+      BL_ASSERT(iobuffersize > 0);
+      ioBufferSize = iobuffersize;
+    }
+
     static void Initialize ();
     static void Finalize ();
 
@@ -359,6 +368,9 @@ private:
     static bool useSingleWrite;
     static bool checkFilePositions;
     static bool usePersistentIFStreams;
+    static bool useSynchronousReads;
+    
+    static long ioBufferSize;   // ---- the settable buffer size
 };
 //
 // Write a FabOnDisk to an ostream in ASCII.

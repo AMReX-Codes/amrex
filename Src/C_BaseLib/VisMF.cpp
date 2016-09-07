@@ -36,6 +36,9 @@ bool VisMF::useSingleRead(false);
 bool VisMF::useSingleWrite(false);
 bool VisMF::checkFilePositions(false);
 bool VisMF::usePersistentIFStreams(false);
+bool VisMF::useSynchronousReads(false);
+
+long VisMF::ioBufferSize(VisMF::IO_Buffer_Size);
 
 //
 // Set these in Initialize().
@@ -816,7 +819,7 @@ VisMF::WriteHeader (const std::string& mf_name,
 
         MFHdrFileName += TheMultiFabHdrFileSuffix;
 
-        VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+        VisMF::IO_Buffer io_buffer(ioBufferSize);
 
         std::ofstream MFHdrFile;
 
@@ -1169,13 +1172,6 @@ VisMF::readFAB (int                  idx,
 
     std::string FullName(VisMF::DirName(mf_name));
     FullName += hdr.m_fod[idx].m_name;
-    /*
-    VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
-    std::ifstream ifs;
-    ifs.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
-    ifs.open(FullName.c_str(), std::ios::in|std::ios::binary);
-    if( ! ifs.good()) { BoxLib::FileOpenFailed(FullName); }
-    */
 
     std::ifstream &ifs = VisMF::OpenStream(FullName);
     if(hdr.m_fod[idx].m_head != 0) {
@@ -1199,7 +1195,6 @@ VisMF::readFAB (int                  idx,
       }
     }
 
-    //ifs.close();
     VisMF::CloseStream(FullName);
 
     return fab;
@@ -1279,7 +1274,7 @@ VisMF::Read (FabArray<FArrayBox> &mf,
 
 #ifdef BL_USE_MPI
 
-if(noFabHeader) {
+  if(noFabHeader && useSynchronousReads) {
 
     // ---- Create an ordered map of which processors read which
     // ---- Fabs in each file
@@ -1475,7 +1470,7 @@ if(noFabHeader) {
       faCopyTime = ParallelDescriptor::second() - faCopyTime;
     }
 
-} else {    // ---- noFabHeader == false
+  } else {    // ---- noFabHeader == false
 
     int nReqs(0), ioProcNum(ParallelDescriptor::IOProcessorNumber());
     int myProc(ParallelDescriptor::MyProc());
@@ -1634,7 +1629,7 @@ if(noFabHeader) {
       }
     }
 
-}
+  }
 
     bool reportMFReadStats(true);
     if(ParallelDescriptor::IOProcessor() && reportMFReadStats) {
@@ -1801,7 +1796,7 @@ std::ifstream &VisMF::OpenStream(const std::string &fileName) {
     pifs.isOpen = true;
     pifs.currentPosition = 0;
     if(setBuf) {
-      pifs.ioBuffer.resize(VisMF::IO_Buffer_Size);
+      pifs.ioBuffer.resize(ioBufferSize);
       pifs.pstr.rdbuf()->pubsetbuf(pifs.ioBuffer.dataPtr(), pifs.ioBuffer.size());
     }
   }
