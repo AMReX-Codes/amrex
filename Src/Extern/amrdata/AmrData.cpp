@@ -211,7 +211,7 @@ bool AmrData::ReadData(const string &filename, Amrvis::FileType filetype) {
     File += "Header";
 #endif
 
-    VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+    VisMF::IO_Buffer io_buffer(VisMF::GetIOBufferSize());
 
     ifstream isPltIn;
 
@@ -819,7 +819,7 @@ bool AmrData::ReadNonPlotfileData(const string &filename, Amrvis::FileType filet
   fileName = filename;
 
 #ifdef BL_USE_SETBUF
-    VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+    VisMF::IO_Buffer io_buffer(VisMF::GetIOBufferSize());
 #endif
 
   time = 0;

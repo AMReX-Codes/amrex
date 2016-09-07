@@ -962,7 +962,7 @@ Amr::writePlotFile ()
 
     std::string HeaderFileName(pltfileTemp + "/Header");
 
-    VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+    VisMF::IO_Buffer io_buffer(VisMF::GetIOBufferSize());
 
     std::ofstream HeaderFile;
 
@@ -1078,7 +1078,7 @@ Amr::writeSmallPlotFile ()
 
     std::string HeaderFileName(pltfileTemp + "/Header");
 
-    VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+    VisMF::IO_Buffer io_buffer(VisMF::GetIOBufferSize());
 
     std::ofstream HeaderFile;
 
@@ -1538,7 +1538,7 @@ Amr::restart (const std::string& filename)
     //
     std::string File(filename + "/Header");
 
-    VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+    VisMF::IO_Buffer io_buffer(VisMF::GetIOBufferSize());
 
     Array<char> fileCharPtr;
     ParallelDescriptor::ReadAndBcastFile(File, fileCharPtr);
@@ -1840,7 +1840,7 @@ Amr::checkPoint ()
 
     std::string HeaderFileName = ckfileTemp + "/Header";
 
-    VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+    VisMF::IO_Buffer io_buffer(VisMF::GetIOBufferSize());
 
     std::ofstream HeaderFile;
 
