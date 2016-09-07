@@ -23,7 +23,7 @@ NFilesIter::NFilesIter(int noutfiles, const std::string &fileprefix,
   finishedWriting = false;
 
   if(setBuf) {
-    io_buffer.resize(VisMF::IO_Buffer_Size);
+    io_buffer.resize(VisMF::GetIOBufferSize());
     fileStream.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
   }
 
@@ -57,7 +57,7 @@ NFilesIter::NFilesIter(const std::string &filename,
   }
 
   if(setBuf) {
-    io_buffer.resize(VisMF::IO_Buffer_Size);
+    io_buffer.resize(VisMF::GetIOBufferSize());
     fileStream.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
   }
 
