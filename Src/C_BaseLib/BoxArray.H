@@ -2,6 +2,7 @@
 #ifndef BL_BOXARRAY_H
 #define BL_BOXARRAY_H
 
+#include <iostream>
 #include <cstddef>
 #include <map>
 
@@ -32,6 +33,8 @@ namespace BoxLib
     //
     BoxArray intersect (const BoxArray& lhs, const BoxArray& rhs);
     //
+    BoxArray convert (const BoxArray& ba, IndexType typ);
+    //
     // Find the ghost cells of a given BoxArray.
     //
     BoxList GetBndryCells (const BoxArray& ba, int ngrow);
@@ -41,14 +44,148 @@ namespace BoxLib
     //
     void readBoxArray (BoxArray& ba, std::istream& s, bool b);
 
+    void clearCoarseBoxArrayCache (ptrdiff_t key);
+
     Array<int> SerializeBoxArray(const BoxArray &ba);
     BoxArray UnSerializeBoxArray(const Array<int> &serarray);
+
+    // Note that two BoxArrays that match are not necessarily equal.
+    bool match (const BoxArray& x, const BoxArray& y);
 }
 
+class BARef
+{
+public:
+    BARef ();
+    explicit BARef (size_t size);
+    BARef (const BoxList& bl);
+    BARef (std::istream& is);
+    BARef (const BARef& rhs);
+
+    ~BARef ();
+
+    // This gives a unique ID of the reference
+    ptrdiff_t getRefID () const;
+
+    void define (const Box& bx);
+    void define (const BoxList& bl);
+    void define (std::istream& is);
+    //
+    void resize (long n);
+    //
+#ifdef BL_MEM_PROFILING
+    void updateMemoryUsage_box (int s);
+    void updateMemoryUsage_hash (int s);
+#endif
+    //
+    // The data.
+    //
+    Array<Box> m_abox;
+    //
+    // Box hash stuff.
+    //
+    mutable Box bbox;
+    
+    mutable IntVect crsn;
+    
+    typedef std::map< IntVect,std::vector<int>,IntVect::Compare > HashType;
+
+    mutable HashType hash;
+    
+    static int  numboxarrays;
+    static int  numboxarrays_hwm;
+    static long total_box_bytes;
+    static long total_box_bytes_hwm;
+    static long total_hash_bytes;
+    static long total_hash_bytes_hwm;
+        
+    static void Initialize ();
+    static bool initialized;
+
+private:
+    BARef& operator= (const BARef&); // disallowed
+};
+
+
+template<>
+struct LnClassPtrCallBack<BARef> 
+{
+    // This will be called when a unique ref is about to be deleted.
+    void operator() (BARef* ref) {
+	BoxLib::clearCoarseBoxArrayCache(ref->getRefID());
+    }
+};
+
+
 //
-// Write a BoxArray to an ostream in ASCII format.
+// Thess classes are used to transform from cell-centered boxes stored in BARef
+// (and hidden from the users) to the public boxes BoxArray is supposed to hold.
 //
-std::ostream& operator<< (std::ostream& os, const BoxArray& ba);
+struct BATransformer
+{
+    virtual ~BATransformer () {}
+
+    virtual BATransformer* clone () const = 0;
+    virtual bool equal (const BATransformer& rhs) const = 0;
+
+    virtual IndexType ixType () const = 0;
+    virtual void setIxType (IndexType typ) = 0;
+    
+    virtual IntVect doiLo () const = 0; // doi: Domain of Influence
+    virtual IntVect doiHi () const = 0; // doi: Domain of Influence
+
+    virtual Box operator() (const Box& bx) const = 0;
+};
+
+template <class T>
+struct BATBase
+    : public BATransformer
+{
+    explicit BATBase (IndexType typ = IndexType())
+	: m_typ(typ) {}
+    virtual ~BATBase () {}
+
+    virtual BATransformer* clone () const BL_OVERRIDE {
+	return new T(dynamic_cast<const T&>(*this));
+    }
+
+    virtual bool equal (const BATransformer& rhs) const BL_OVERRIDE {
+	const T* p = dynamic_cast<const T*>(&rhs);
+	return p && (*p) == (dynamic_cast<const T&>(*this));
+    }
+
+    virtual IndexType ixType () const BL_OVERRIDE {
+	return m_typ;
+    }
+
+    virtual void setIxType (IndexType typ) BL_OVERRIDE {
+	m_typ = typ;
+    }
+
+protected:
+    IndexType m_typ;
+};
+
+struct BATypeTransformer
+    : public BATBase<BATypeTransformer>
+{
+    explicit BATypeTransformer (IndexType typ = IndexType())
+	: BATBase<BATypeTransformer>(typ) {}
+
+    virtual ~BATypeTransformer () BL_OVERRIDE {}
+
+    virtual IntVect doiLo () const BL_OVERRIDE 
+        { return IntVect::TheZeroVector(); }
+
+    virtual IntVect doiHi () const BL_OVERRIDE 
+        { return m_typ.ixType(); }
+
+    virtual Box operator() (const Box& bx) const BL_OVERRIDE
+        { return BoxLib::convert(bx, m_typ); }
+
+    bool operator== (const BATypeTransformer& rhs) const
+	{ return m_typ == rhs.m_typ; }
+};
 
 //
 // An Array of Boxes
@@ -68,7 +205,7 @@ public:
     //
     /// Make a boxarray out of a single box
     //
-    BoxArray (const Box& bx);
+    explicit BoxArray (const Box& bx);
     //
     // Construct a BoxArray of the specified size.
     //
@@ -87,9 +224,12 @@ public:
     //
     BoxArray (const BoxArray& rhs);
     //
+    BoxArray (const BoxArray& rhs, const BATransformer& trans);
+    //
     // The assignment operator.
     //
     BoxArray& operator= (const BoxArray& rhs);
+    
     //
     // The destructor.
     //
@@ -104,11 +244,6 @@ public:
     // It is an error if the BoxArray has already been initialized.
     //
     void define (const BoxList& bl);
-    //
-    // Initialize the BoxArray from the supplied BoxArray.
-    // It is an error if the BoxArray has already been initialized.
-    //
-    void define (const BoxArray& bs);
     //
     // Remove all Boxes from the BoxArray.
     //
@@ -222,14 +357,14 @@ public:
     //
     BoxArray& convert (Box (*fp)(const Box&));
     //
-    // Applies Box::shift(const IntVect &iv) to each Box in the BoxArray.
-    //
-    BoxArray& shift (const IntVect &iv);
-    //
     // Applies Box::shift(int,int) to each Box in the BoxArray.
     //
     BoxArray& shift (int dir,
                      int nzones);
+    //
+    // Applies Box::shift(const IntVect &iv) to each Box in the BoxArray.
+    //
+    BoxArray& shift (const IntVect &iv);
     //
     // Applies Box::shiftHalf(int,int) to each Box in the BoxArray.
     //
@@ -247,25 +382,15 @@ public:
     //
     // Returns element index of this BoxArray.
     //
-    Box operator[] (int index) const {
-	Box b = m_ref->m_abox[index];
-	b.convert(m_typ); 
-	return b;
-    }
-    //
-    // Returns element index of this BoxArray.
-    //
-    Box get (int index) const {
-	Box b = m_ref->m_abox[index];
-	b.convert(m_typ); 
-	return b;
-    }
+    Box operator[] (int index) const 
+	{ return (*m_transformer)(m_ref->m_abox[index]); }
+    Box get        (int index) const 
+	{ return (*m_transformer)(m_ref->m_abox[index]); }
     //
     // Returns cell-centered box at element index of this BoxArray.
     //
-    const Box& getCellCenteredBox (int index) const {
-	return m_ref->m_abox[index];
-    }    
+    const Box& getCellCenteredBox (int index) const
+	{ return m_ref->m_abox[index]; }    
     //
     // Returns true if Box is valid and they all have the same
     // IndexType.  Is true by default if the BoxArray is empty.
@@ -279,12 +404,6 @@ public:
     // Create a BoxList from this BoxArray.
     //
     BoxList boxList () const;
-    //
-    // True if the Box intersects with this BoxArray(+ghostcells).
-    // The Box must have the same IndexType as those in this
-    // BoxArray.
-    //
-    bool intersects (const Box& b, int ng = 0) const;
     //
     // True if the IntVect is within any of the Boxes in this BoxArray.
     //
@@ -303,24 +422,19 @@ public:
     // Returns smallest Box that contains all Boxes in this BoxArray.
     //
     Box minimalBox () const;
-
+    //
+    // True if the Box intersects with this BoxArray(+ghostcells).
+    // The Box must have the same IndexType as those in this
+    // BoxArray.
+    //
+    bool intersects (const Box& b, int ng = 0) const;
     //
     // Returns intersections of Box and BoxArray(+ghsotcells).
-    // ng = 0 if unspecified.  first_only = false, if unspecified.  
     //
     std::vector< std::pair<int,Box> > intersections (const Box& bx) const;
-    std::vector< std::pair<int,Box> > intersections (const Box& bx,
-						     bool       first_only) const;
-    std::vector< std::pair<int,Box> > intersections (const Box& bx, 
-						     int        ng) const;
-    std::vector< std::pair<int,Box> > intersections (const Box& bx, 
-						     bool first_only, int ng) const;
+    std::vector< std::pair<int,Box> > intersections (const Box& bx, bool first_only, int ng) const;
     //
-    void intersections (const Box& bx, std::vector< std::pair<int,Box> >& isects) const;
-    void intersections (const Box& bx, std::vector< std::pair<int,Box> >& isects, 
-			bool first_only) const;
-    void intersections (const Box& bx, std::vector< std::pair<int,Box> >& isects,
-			int ng) const;
+    void intersections (const Box& bx, std::vector< std::pair<int,Box> >& isects) const; 
     void intersections (const Box& bx, std::vector< std::pair<int,Box> >& isects, 
 			bool first_only, int ng) const;
     // Return box - boxarray
@@ -340,17 +454,25 @@ public:
     //
     // This gives a unique ID of the reference
     //
-    ptrdiff_t getRefID () const;
+    ptrdiff_t getRefID () const { return m_ref->getRefID(); }
 
     //
     // Returns index type of this BoxArray
     //
-    const IndexType& ixType () const { return m_typ; }
+    IndexType ixType () const { return m_transformer->ixType(); }
 
 #ifdef BL_USE_MPI
     static void SendBoxArray(const BoxArray &ba, int whichSidecar);
     static void RecvBoxArray(BoxArray &ba, int whichSidecar);
 #endif
+
+    typedef std::map<IntVect, BoxArray*, IntVect::Compare> CBAMap;
+    typedef std::map<ptrdiff_t, CBAMap> CBACache;
+
+    static CBACache m_CoarseBoxArrayCache;
+
+    static void Initialize ();
+    static bool initialized;
 
 private:
     //
@@ -358,120 +480,25 @@ private:
     //
     void type_update ();
 
-    void decrementCounters () const;
-
-    IndexType m_typ;
-
-    typedef std::map< IntVect,std::vector<int>,IntVect::Compare > BoxHashMapType;
-    typedef std::map< IntVect,std::vector<int>,IntVect::Compare >::iterator BoxHashMapIter;
-    typedef std::map< IntVect,std::vector<int>,IntVect::Compare >::const_iterator ConstBoxHashMapIter;
-
-    BoxHashMapType& getHashMap () const;
-
-    class Ref
-    {
-    public:
-        //
-        // Constructors to match those in BoxArray ....
-        //
-        Ref () { 
-#ifdef BL_MEM_PROFILING
-	    if (!initialized) Initialize();
-	    updateMemoryUsage_box(1);
-#endif	    
-	}
-
-        Ref (size_t size) : m_abox(size) { 
-#ifdef BL_MEM_PROFILING
-	    if (!initialized) Initialize();
-	    updateMemoryUsage_box(1);
-#endif	    
-	}
-
-        Ref (const BoxList& bl) { 
-#ifdef BL_MEM_PROFILING
-	    if (!initialized) Initialize();
-#endif
-	    define(bl); 
-	}
-
-        Ref (std::istream& is) { 
-#ifdef BL_MEM_PROFILING
-	    if (!initialized) Initialize();
-#endif
-	    define(is); 
-	}
-
-        Ref (const Ref& rhs) : m_abox(rhs.m_abox) {
-#ifdef BL_MEM_PROFILING
-	    updateMemoryUsage_box(1);
-#endif	    
-	}
-
-	~Ref () {
-#ifdef BL_MEM_PROFILING
-	    updateMemoryUsage_box(-1);
-	    updateMemoryUsage_hash(-1);
-#endif	    
-	}
-
-        //
-        // Some defines()s to match those in BoxArray.
-        //
-        void define (const Box& bx);
-        void define (const BoxList& bl);
-        void define (std::istream& is);
-	//
-	void resize (long n) {
-#ifdef BL_MEM_PROFILING
-	    updateMemoryUsage_box(-1);
-	    updateMemoryUsage_hash(-1);
-#endif
-	    m_abox.resize(n);
-	    hash.clear();
-#ifdef BL_MEM_PROFILING
-	    updateMemoryUsage_box(1);
-#endif
-	}
-#ifdef BL_MEM_PROFILING
-	void updateMemoryUsage_box (int s);
-	void updateMemoryUsage_hash (int s);
-#endif
-        //
-        // The data.
-        //
-        Array<Box> m_abox;
-        //
-        // Box hash stuff.
-        //
-        mutable Box bbox;
-
-        mutable IntVect crsn;
-
-        mutable BoxHashMapType hash;
-
-	static long total_box_bytes;
-	static long total_box_bytes_hwm;
-	static long total_hash_bytes;
-	static long total_hash_bytes_hwm;
-
-    private:
-	Ref& operator= (const Ref&); // disallowed
-
-#ifdef BL_MEM_PROFILING
-	static void Initialize ();
-	static bool initialized;
-#endif
-    };
+    BARef::HashType& getHashMap () const;
 
     //
     // Make ourselves unique.
     //
     void uniqify ();
+
+    // When we move to C++11, we will switch to unique pointer
+    BATransformer* m_transformer;
+
     //
     // The data -- a reference-counted pointer to a Ref.
     //
-    LnClassPtr<Ref> m_ref;
+    LnClassPtr<BARef> m_ref;    
 };
+
+//
+// Write a BoxArray to an ostream in ASCII format.
+//
+std::ostream& operator<< (std::ostream& os, const BoxArray& ba);
 
 #endif /*BL_BOXARRAY_H*/

@@ -217,12 +217,6 @@ namespace BoxLib
 
     void fill_boundary(MultiFab& mf, int scomp, int ncomp, const Geometry& geom, bool cross)
     {
-	if (mf.nGrow() <= 0) return;
-	
-	bool local = false;  // Don't think we ever want it to be true.
-	mf.FillBoundary(scomp, ncomp, local, cross);
-
-	bool do_corners = !cross;
-	geom.FillPeriodicBoundary(mf, scomp, ncomp, do_corners, local);
+	mf.FillBoundary(scomp,ncomp,geom.periodicity(),cross);
     }
 }

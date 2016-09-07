@@ -26,6 +26,8 @@ using std::isinf;
 using std::isnan;
 #endif
 
+bool FArrayBox::initialized = false;
+
 #if defined(DEBUG) || defined(BL_TESTING)
 bool FArrayBox::do_initval = true;
 bool FArrayBox::init_snan  = true;
@@ -152,10 +154,7 @@ FABio::Format FArrayBox::format;
 
 FABio* FArrayBox::fabio = 0;
 
-FArrayBox::FArrayBox ()
-{
-    if (fabio == 0) FArrayBox::Initialize();
-}
+FArrayBox::FArrayBox () {}
 
 FArrayBox::FArrayBox (const Box& b,
                       int        n,
@@ -164,7 +163,6 @@ FArrayBox::FArrayBox (const Box& b,
     :
     BaseFab<Real>(b,n,alloc,shared)
 {
-    if (fabio == 0) FArrayBox::Initialize();
     if (alloc) initVal();
 }
 
@@ -459,6 +457,9 @@ FArrayBox::get_initval ()
 void
 FArrayBox::Initialize ()
 {
+    if (initialized) return;
+    initialized = true;
+
     BL_ASSERT(fabio == 0);
 
     ParmParse pp("fab");
@@ -808,6 +809,7 @@ FArrayBox::writeOn (std::ostream& os,
 {
     BL_ASSERT(comp >= 0 && num_comp >= 1 && (comp+num_comp) <= nComp());
     fabio->write_header(os, *this, num_comp);
+    os.flush();  // 2016-08-30: Titan requires this flush() (probably due to a bug).
     fabio->write(os, *this, comp, num_comp);
 }
 

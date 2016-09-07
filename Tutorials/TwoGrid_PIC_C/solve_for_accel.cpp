@@ -60,7 +60,7 @@ solve_for_accel(PArray<MultiFab>& rhs, PArray<MultiFab>& phi, PArray<MultiFab>& 
     for (int lev = base_level; lev <= finest_level; lev++)
     {
         BoxLib::average_face_to_cellcenter(grad_phi[lev], grad_phi_edge[lev], geom[lev]);
-        BoxLib::fill_boundary(grad_phi[lev],0,BL_SPACEDIM,geom[lev],false);
+	grad_phi[lev].FillBoundary(0,BL_SPACEDIM,geom[lev].periodicity());
     }
 
     // VisMF::Write(grad_phi[0],"GradPhi");

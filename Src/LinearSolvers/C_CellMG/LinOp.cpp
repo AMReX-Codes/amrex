@@ -236,16 +236,11 @@ LinOp::applyBC (MultiFab&      inout,
         //
         flagbc = 0;
 
-    const bool cross = true;
-
-    inout.FillBoundary(src_comp,num_comp,local,cross);
-
     prepareForLevel(level);
-    //
-    // Do periodic fixup.
-    //
-    BL_ASSERT(level<geomarray.size());
-    geomarray[level].FillPeriodicBoundary(inout,src_comp,num_comp,false,local);
+
+    const bool cross = true;
+    inout.FillBoundary(src_comp,num_comp,geomarray[level].periodicity(),cross);
+
     //
     // Fill boundary cells.
     //
@@ -484,8 +479,6 @@ LinOp::prepareForLevel (int level)
             }
         }
     }
-
-    gbox[level].clear_hash_bin();
 }
 
 void

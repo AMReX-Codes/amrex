@@ -52,6 +52,9 @@ module mg_tower_module
      ! use hypre instead of mg_tower's multigrid for the solve itself
      integer :: use_hypre =  0
 
+     ! allow code to subtract mean from RHS for singular problems
+     logical :: ok_to_fix_singular = .true.
+
      ! let MG pick the maximum number of levels
      integer :: max_nlevel = 1024
      integer :: max_bottom_nlevel = 3

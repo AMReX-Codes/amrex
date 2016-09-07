@@ -2,19 +2,10 @@
 #ifndef BL_IMULTIFAB_H
 #define BL_IMULTIFAB_H
 
-#include <winstd.H>
-
 #include <BLassert.H>
 #include <IArrayBox.H>
 #include <FabArray.H>
-//
-// Forward declaration.
-//
-typedef FabArrayId iMultiFabId;
-
-class iMultiFabCopyDescriptor;
-
-class iMultiFab;
+#include <Geometry.H>
 
 //
 // A Collection of IArrayBoxes
@@ -358,12 +349,6 @@ public:
 	return this->FabArray<IArrayBox>::get(mfi); } 
 
     IArrayBox& get (const MFIter& mfi) { return operator[](mfi); }
-    //
-    // Set ghost cells that are covered by valid cells to the value of valid cells.
-    //
-    void FillBoundary (bool local = false, bool cross = false);
-
-    void FillBoundary (int scomp, int ncomp, bool local = false, bool cross = false);
 
     static void Initialize ();
     static void Finalize ();
@@ -374,29 +359,6 @@ private:
     //
     iMultiFab (const iMultiFab& rhs);
     iMultiFab& operator= (const iMultiFab& rhs);
-
-    static bool check_for_nan;
-    static bool check_for_inf;
-};
-
-class iMultiFabCopyDescriptor
-    :
-    public FabArrayCopyDescriptor<IArrayBox>
-{
-  public:
-
-    iMultiFabCopyDescriptor ();
-
-    ~iMultiFabCopyDescriptor ();
-
-    iMultiFabId RegisteriMultiFab (iMultiFab* mf) { return RegisterFabArray(mf); }
-
-  private:
-    //
-    // These are disallowed.
-    //
-    iMultiFabCopyDescriptor (const iMultiFabCopyDescriptor&);
-    iMultiFabCopyDescriptor& operator= (const iMultiFabCopyDescriptor&);
 };
 
 #endif /*BL_IMULTIFAB_H*/

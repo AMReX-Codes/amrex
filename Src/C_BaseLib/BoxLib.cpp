@@ -16,10 +16,9 @@
 
 #ifndef BL_AMRPROF
 #include <ParmParse.H>
-#include <DistributionMapping.H>
-#include <FArrayBox.H>
-#include <FabArray.H>
 #include <MultiFab.H>
+#include <iMultiFab.H>
+#include <VisMF.H>
 #endif
 
 #ifdef BL_LAZY
@@ -282,7 +281,6 @@ BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi
 #ifdef BL_USE_MPI3
     BL_MPI_REQUIRE( MPI_Win_create_dynamic(MPI_INFO_NULL, MPI_COMM_WORLD, &ParallelDescriptor::cp_win) );
     BL_MPI_REQUIRE( MPI_Win_create_dynamic(MPI_INFO_NULL, MPI_COMM_WORLD, &ParallelDescriptor::fb_win) );
-    BL_MPI_REQUIRE( MPI_Win_create_dynamic(MPI_INFO_NULL, MPI_COMM_WORLD, &ParallelDescriptor::fpb_win) );
 #endif
 
     while ( ! The_Initialize_Function_Stack.empty())
@@ -374,6 +372,15 @@ BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi
 
     mempool_init();
 
+    // For thread safety, we should do these initializations here.
+    BoxArray::Initialize();
+    DistributionMapping::Initialize();
+    FArrayBox::Initialize();
+    IArrayBox::Initialize();
+    FabArrayBase::Initialize();
+    MultiFab::Initialize();
+    iMultiFab::Initialize();
+    VisMF::Initialize();
 #endif
 
     std::cout << std::setprecision(10);
@@ -466,13 +473,7 @@ BoxLib::Finalize (bool finalize_parallel)
 
     if (finalize_parallel) {
 #if defined(BL_USE_FORTRAN_MPI) || defined(BL_USE_F_INTERFACES)
-#ifdef IN_TRANSIT
-	int fcomm = MPI_Comm_c2f(ParallelDescriptor::Communicator());
-	//bl_fortran_sidecar_mpi_comm_free(fcomm);
-	std::cout << "******** BoxLib::Finalize:  check bl_fortran_sidecar_mpi_comm_free" << std::endl;
-#else
 	bl_fortran_mpi_comm_free();
-#endif
 #endif
     /* Don't shut down MPI if GASNet is still using MPI */
 #ifndef GASNET_CONDUIT_MPI

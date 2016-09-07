@@ -28,7 +28,6 @@ namespace
 #else
     static int init_snan = 0;
 #endif
-    static bool equal_size_double_longlong = true;
 }
 
 extern "C" {
@@ -44,8 +43,6 @@ void mempool_init()
         ParmParse pp("fab");
 	pp.query("init_snan", init_snan);
 #endif
-
-        equal_size_double_longlong = sizeof(double) == sizeof(long long);
 
 #ifdef _OPENMP
 	int nthreads = omp_get_max_threads();
@@ -67,12 +64,13 @@ void mempool_init()
 	}
 
 #ifdef BL_MEM_PROFILING
-	MemProfiler::add("MemPool", [] () -> MemProfiler::MemInfo {
-		int MB_min, MB_max, MB_tot;
-		mempool_get_stats(MB_min, MB_max, MB_tot);
-		long b = MB_tot * (1024L*1024L);
-		return {b, b};
-	    });
+	MemProfiler::add("MemPool", std::function<MemProfiler::MemInfo()>
+			 ([] () -> MemProfiler::MemInfo {
+			     int MB_min, MB_max, MB_tot;
+			     mempool_get_stats(MB_min, MB_max, MB_tot);
+			     long b = MB_tot * (1024L*1024L);
+			     return {b, b};
+			 }));
 #endif
     }
 }
@@ -120,11 +118,13 @@ void double_array_init (double* p, size_t nelems)
 
 void array_init_snan (double* p, size_t nelems)
 {
-    if (equal_size_double_longlong) {
-	for (size_t i = 0; i < nelems; ++i) {
-	    long long *ll = (long long *) (p++);
-	    *ll = 0x7ff0000080000001LL;
-	}
+#ifdef BL_USE_CXX11
+    static_assert(sizeof(double) == sizeof(long long), "MemPool: sizeof double != sizeof long long");
+#endif
+
+    for (size_t i = 0; i < nelems; ++i) {
+	long long *ll = (long long *) (p++);
+	*ll = 0x7ff0000080000001LL;
     }
 }
 

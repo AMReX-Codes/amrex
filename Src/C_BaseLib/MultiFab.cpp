@@ -14,9 +14,15 @@
 #include <ParmParse.H>
 #include <PArray.H>
 
+#ifdef BL_MEM_PROFILING
+#include <MemProfiler.H>
+#endif
+
 namespace
 {
     bool initialized = false;
+    int num_multifabs     = 0;
+    int num_multifabs_hwm = 0;
 }
 
 MultiFabCopyDescriptor::MultiFabCopyDescriptor ()
@@ -232,10 +238,16 @@ void
 MultiFab::Initialize ()
 {
     if (initialized) return;
+    initialized = true;
 
     BoxLib::ExecOnFinalize(MultiFab::Finalize);
 
-    initialized = true;
+#ifdef BL_MEM_PROFILING
+    MemProfiler::add("MultiFab", std::function<MemProfiler::NBuildsInfo()>
+		     ([] () -> MemProfiler::NBuildsInfo {
+			 return {num_multifabs, num_multifabs_hwm};
+		     }));
+#endif
 }
 
 void
@@ -246,7 +258,10 @@ MultiFab::Finalize ()
 
 MultiFab::MultiFab ()
 {
-    Initialize();
+#ifdef BL_MEM_PROFILING
+    ++num_multifabs;
+    num_multifabs_hwm = std::max(num_multifabs_hwm, num_multifabs);
+#endif
 }
 
 MultiFab::MultiFab (const BoxArray& bxs,
@@ -257,8 +272,11 @@ MultiFab::MultiFab (const BoxArray& bxs,
     :
     FabArray<FArrayBox>(bxs,ncomp,ngrow,alloc,nodal)
 {
-    Initialize();
     if (SharedMemory() && alloc == Fab_allocate) initVal();  // else already done in FArrayBox
+#ifdef BL_MEM_PROFILING
+    ++num_multifabs;
+    num_multifabs_hwm = std::max(num_multifabs_hwm, num_multifabs);
+#endif
 }
 
 MultiFab::MultiFab (const BoxArray&            bxs,
@@ -270,8 +288,11 @@ MultiFab::MultiFab (const BoxArray&            bxs,
     :
     FabArray<FArrayBox>(bxs,ncomp,ngrow,dm,alloc,nodal)
 {
-    Initialize();
     if (SharedMemory() && alloc == Fab_allocate) initVal();  // else already done in FArrayBox
+#ifdef BL_MEM_PROFILING
+    ++num_multifabs;
+    num_multifabs_hwm = std::max(num_multifabs_hwm, num_multifabs);
+#endif
 }
 
 MultiFab::MultiFab (const BoxArray& bxs,
@@ -281,8 +302,18 @@ MultiFab::MultiFab (const BoxArray& bxs,
     :
     FabArray<FArrayBox>(bxs,ncomp,ngrow,color)
 {
-    Initialize();
     if (SharedMemory()) initVal();  // else already done in FArrayBox
+#ifdef BL_MEM_PROFILING
+    ++num_multifabs;
+    num_multifabs_hwm = std::max(num_multifabs_hwm, num_multifabs);
+#endif
+}
+
+MultiFab::~MultiFab()
+{
+#ifdef BL_MEM_PROFILING
+    --num_multifabs;
+#endif    
 }
 
 void
@@ -405,22 +436,6 @@ MultiFab::is_nodal () const
     return boxArray().ixType().nodeCentered();
 }
 
-
-const FArrayBox&
-MultiFab::operator[] (int K) const
-{
-    BL_ASSERT(defined(K));
-    const FArrayBox& fab = this->FabArray<FArrayBox>::get(K);
-    return fab;
-}
-
-FArrayBox&
-MultiFab::operator[] (int K)
-{
-    BL_ASSERT(defined(K));
-    FArrayBox& fab = this->FabArray<FArrayBox>::get(K);
-    return fab;
-}
 
 Real
 MultiFab::min (int comp,
@@ -1296,60 +1311,6 @@ BoxLib::InterpFillFab (MultiFabCopyDescriptor& fabCopyDesc,
     }
 }
 
-void
-MultiFab::FillBoundary (int  scomp,
-                        int  ncomp,
-                        bool local,
-                        bool cross)
-{
-    if ( n_grow <= 0 ) return;
-
-    if ( local )
-    {
-        //
-        // Do what you can with the FABs you own.  No parallelism allowed.
-        //
-        const BoxArray&            ba     = boxArray();
-        const DistributionMapping& DMap   = DistributionMap();
-        const int                  MyProc = ParallelDescriptor::MyProc();
-
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-	{
-	    std::vector< std::pair<int,Box> > isects;
-
-	    for (MFIter mfi(*this); mfi.isValid(); ++mfi)
-	    {
-		const int i = mfi.index();
-		
-		ba.intersections((*this)[mfi].box(),isects);
-		
-		for (int ii = 0, N = isects.size(); ii < N; ii++)
-		{
-		    const Box& bx  = isects[ii].second;
-		    const int  iii = isects[ii].first;
-		    
-		    if (i != iii && DMap[iii] == MyProc)
-		    {
-			(*this)[mfi].copy((*this)[iii], bx, scomp, bx, scomp, ncomp);
-		    }
-		}
-            }
-        }
-    }
-    else
-    {
-        FabArray<FArrayBox>::FillBoundary(scomp,ncomp,cross);
-    }
-}
-
-void
-MultiFab::FillBoundary (bool local, bool cross)
-{
-    FillBoundary(0, n_comp, local, cross);
-}
-
 //
 // Some useful typedefs.
 //
@@ -1358,8 +1319,7 @@ typedef FabArrayBase::CopyComTag::CopyComTagsContainer CopyComTagsContainer;
 typedef FabArrayBase::CopyComTag::MapOfCopyComTagContainers MapOfCopyComTagContainers;
 
 void
-MultiFab::SumBoundary (int scomp,
-                       int ncomp)
+MultiFab::SumBoundary (int scomp, int ncomp, const Periodicity& period)
 {
     if ( n_grow <= 0 ) return;
 
@@ -1371,18 +1331,15 @@ MultiFab::SumBoundary (int scomp,
     // receive the m_SndTags, and invert the sense of fabIndex and srcIndex
     // in the CopyComTags.
     //
-    MultiFab&                 mf       = *this;
-    FabArrayBase::FBCacheIter cache_it = FabArrayBase::TheFB(false,mf);
+    MultiFab& mf = *this;
 
-    BL_ASSERT(cache_it != FabArrayBase::m_TheFBCache.end());
+    const FabArrayBase::FB& TheFB = mf.getFB(period);
 
-    const FabArrayBase::SI& TheSI_ = cache_it->second;
-
-    const CopyComTagsContainer&      LocTags = *(TheSI_.m_LocTags);
-    const MapOfCopyComTagContainers& SndTags = *(TheSI_.m_RcvTags);
-    const MapOfCopyComTagContainers& RcvTags = *(TheSI_.m_SndTags);
-    const std::map<int,int>&         SndVols = *(TheSI_.m_RcvVols);
-    const std::map<int,int>&         RcvVols = *(TheSI_.m_SndVols);
+    const CopyComTagsContainer&      LocTags = *(TheFB.m_LocTags);
+    const MapOfCopyComTagContainers& SndTags = *(TheFB.m_RcvTags);
+    const MapOfCopyComTagContainers& RcvTags = *(TheFB.m_SndTags);
+    const std::map<int,int>&         SndVols = *(TheFB.m_RcvVols);
+    const std::map<int,int>&         RcvVols = *(TheFB.m_SndVols);
 
     if (ParallelDescriptor::NProcs() == 1)
     {
@@ -1394,7 +1351,7 @@ MultiFab::SumBoundary (int scomp,
 	for (int i=0; i<N_loc; ++i)
         {
             const CopyComTag& tag = LocTags[i];
-            mf[tag.srcIndex].plus(mf[tag.fabIndex],tag.box,tag.box,scomp,scomp,ncomp);
+            mf[tag.srcIndex].plus(mf[tag.dstIndex],tag.dbox,tag.sbox,scomp,scomp,ncomp);
         }
 
         return;
@@ -1482,9 +1439,9 @@ MultiFab::SumBoundary (int scomp,
         for (CopyComTagsContainer::const_iterator it = cctc.begin();
              it != cctc.end(); ++it)
         {
-            BL_ASSERT(distributionMap[it->fabIndex] == ParallelDescriptor::MyProc());
-            const Box& bx = it->box;
-            mf[it->fabIndex].copyToMem(bx,scomp,ncomp,dptr);
+            BL_ASSERT(distributionMap[it->dstIndex] == ParallelDescriptor::MyProc());
+            const Box& bx = it->dbox;
+            mf[it->dstIndex].copyToMem(bx,scomp,ncomp,dptr);
             const int Cnt = bx.numPts()*ncomp;
             dptr += Cnt;
         }
@@ -1515,10 +1472,10 @@ MultiFab::SumBoundary (int scomp,
     {
         const CopyComTag& tag = LocTags[i];
 
-        BL_ASSERT(distributionMap[tag.fabIndex] == ParallelDescriptor::MyProc());
+        BL_ASSERT(distributionMap[tag.dstIndex] == ParallelDescriptor::MyProc());
         BL_ASSERT(distributionMap[tag.srcIndex] == ParallelDescriptor::MyProc());
 
-        mf[tag.srcIndex].plus(mf[tag.fabIndex],tag.box,tag.box,scomp,scomp,ncomp);
+        mf[tag.srcIndex].plus(mf[tag.dstIndex],tag.dbox,tag.sbox,scomp,scomp,ncomp);
     }
 
     //
@@ -1557,7 +1514,7 @@ MultiFab::SumBoundary (int scomp,
 		     it != cctc.end(); ++it)
 		{
 		    BL_ASSERT(distributionMap[it->srcIndex] == ParallelDescriptor::MyProc());
-		    const Box& bx = it->box;
+		    const Box& bx = it->sbox;
 		    fab.resize(bx,ncomp);
 		    const int Cnt = bx.numPts()*ncomp;
 		    memcpy(fab.dataPtr(), dptr, Cnt*sizeof(Real));
@@ -1577,9 +1534,9 @@ MultiFab::SumBoundary (int scomp,
 }
 
 void
-MultiFab::SumBoundary ()
+MultiFab::SumBoundary (const Periodicity& period)
 {
-    SumBoundary(0, n_comp);
+    SumBoundary(0, n_comp, period);
 }
 
 

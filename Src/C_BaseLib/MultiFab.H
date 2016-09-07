@@ -102,7 +102,7 @@ public:
               int             ngrow,
 	      ParallelDescriptor::Color color);
 
-    virtual ~MultiFab() { }
+    virtual ~MultiFab() BL_OVERRIDE;
 
 
     void operator= (const Real& r);
@@ -452,17 +452,17 @@ public:
 		       int             nghost);
 
     void define (const BoxArray& bxs,
-                 int             nvar,
-                 int             ngrow,
-                 FabAlloc        mem_mode,
+		 int             nvar,
+		 int             ngrow,
+		 FabAlloc        mem_mode,
 		 const IntVect&  nodal = IntVect::TheZeroVector(),
 		 ParallelDescriptor::Color color = ParallelDescriptor::DefaultColor());
 
     void define (const BoxArray&            bxs,
-                 int                        nvar,
-                 int                        ngrow,
+		 int                        nvar,
+		 int                        ngrow,
 		 const DistributionMapping& dm,
-                 FabAlloc                   mem_mode,
+		 FabAlloc                   mem_mode,
 		 const IntVect&             nodal = IntVect::TheZeroVector());
 
     //
@@ -490,32 +490,12 @@ public:
     bool is_nodal () const;
 
     bool contains_inf (int scomp, int ncomp, int ngrow = 0, bool local=false) const;
-
-    const FArrayBox& operator[] (int K) const;
-
-    FArrayBox& operator[] (int K);
-
-    const FArrayBox& operator[] (const MFIter& mfi) const { 
-	return this->FabArray<FArrayBox>::get(mfi); } 
-
-    const FArrayBox& get (const MFIter& mfi) const { return operator[](mfi); }
-
-    FArrayBox& operator[] (const MFIter& mfi) { 
-	return this->FabArray<FArrayBox>::get(mfi); } 
-
-    FArrayBox& get (const MFIter& mfi) { return operator[](mfi); }
-    //
-    // Set ghost cells that are covered by valid cells to the value of valid cells.
-    //
-    void FillBoundary (bool local = false, bool cross = false);
-
-    void FillBoundary (int scomp, int ncomp, bool local = false, bool cross = false);
     //
     // Sum ghost cells that are covered by valid cells into the valid cells.
     //
-    void SumBoundary ();
+    void SumBoundary (const Periodicity& period = Periodicity::NonPeriodic());
 
-    void SumBoundary (int scomp, int ncomp);
+    void SumBoundary (int scomp, int ncomp, const Periodicity& period = Periodicity::NonPeriodic());
 
     static void Initialize ();
     static void Finalize ();

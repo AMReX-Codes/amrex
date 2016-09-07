@@ -37,9 +37,6 @@ c :::
      $                          lratiox, lratioy, lratioz, nvar,
      $                          sl, num_slp,
      $                          actual_comp, actual_state)
-#ifdef BL_USE_OMP
-      use omp_lib
-#endif
       implicit none
       integer DIMDEC(crse)
       integer DIMDEC(cb)
@@ -63,11 +60,6 @@ c :::
       REAL_T RX, RY, RZ, RXY, RXZ, RYZ, RXYZ
       REAL_T dx00, d0x0, d00x, dx10, dx01, d0x1, dx11
 
-#ifdef BL_USE_OMP
-      logical nested
-      nested = omp_in_parallel()
-#endif
-
       RX   = one/dfloat(lratiox)
       RY   = one/dfloat(lratioy)
       RZ   = one/dfloat(lratioz)
@@ -78,10 +70,6 @@ c :::
 
       do n = 1, nvar
 
-!$omp parallel do private(i,j,k,ic,jc,kc,kratio,jratio,iratio,ilo,ihi)
-!$omp&private(jlo,jhi,klo,khi,istrt,istop,jstrt,jstop,kstrt,kstop)
-!$omp&private(dx00,d0x0,d00x,dx10,dx01,d0x1,dx11,ioff,joff,koff)
-!$omp&private(sx,sy,sz,sxy,sxz,syz,sxyz,fx,fy,fz) if (.not. nested)
          do kc = ARG_L3(cb), ARG_H3(cb)-1
 
             kratio = lratioz-1
@@ -150,7 +138,6 @@ c :::
                end do
             end do
          end do
-!$omp end parallel do
       end do
 
       end
@@ -253,9 +240,6 @@ c :::
      $                          fvcx, fvcy, fvcz, cvcx, cvcy, cvcz,
      $                          voffx,voffy,voffz, alpha, cmax, cmin,
      $                          actual_comp, actual_state)
-#ifdef BL_USE_OMP
-      use omp_lib
-#endif
       implicit none
 
       integer DIMDEC(fine)
@@ -311,11 +295,6 @@ c :::
 
       integer voff_lo(3), voff_hi(3)
 
-#ifdef BL_USE_OMP
-      logical nested
-      nested = omp_in_parallel()
-CMJL      print*, 'omp_in_parallel: ', nested; call flush(6)
-#endif
       ncbx = cslopehi(1)-cslopelo(1)+1
       ncby = cslopehi(2)-cslopelo(2)+1
       ncbz = cslopehi(3)-cslopelo(3)+1
@@ -353,7 +332,6 @@ CMJL      print*, 'omp_in_parallel: ', nested; call flush(6)
 c
 c     Initialize alpha = 1 and define cmax and cmin as neighborhood max/mins.
 c
-!$omp parallel do private(i,j,k,koff,joff,ioff) if (.not. nested)
           do k = cslopelo(3),cslopehi(3)
             do j = cslopelo(2),cslopehi(2)
               do i = cslopelo(1), cslopehi(1)
@@ -371,14 +349,12 @@ c
               end do
             end do
           end do
-!$omp end parallel do
       end do
 c
 c     Computed unlimited and limited slopes
 c
       do n = 1, nvar 
 
-!$omp parallel do private(i,j,k,cen,forw,back,slp) if (.not. nested)
           do k=cslopelo(3), cslopehi(3)
             do j=cslopelo(2), cslopehi(2)
               do i=cslopelo(1), cslopehi(1)
@@ -392,7 +368,6 @@ c
              end do
             end do
           end do
-!$omp end parallel do
 
           if (bclo(1,n) .eq. EXT_DIR .or. bclo(1,n).eq.HOEXTRAP) then
             i = cslopelo(1)
@@ -454,7 +429,6 @@ c
             end do
           end if
 
-!$omp parallel do private(i,j,k,cen,forw,back,slp) if (.not. nested)
           do k=cslopelo(3), cslopehi(3)
             do j=cslopelo(2), cslopehi(2)
               do i=cslopelo(1), cslopehi(1)
@@ -468,7 +442,6 @@ c
                end do
             end do
           end do
-!$omp end parallel do
 
           if (bclo(2,n) .eq. EXT_DIR .or. bclo(2,n).eq.HOEXTRAP) then
             j = cslopelo(2)
@@ -530,7 +503,6 @@ c
               end do
           end if
 
-!$omp parallel do private(i,j,k,cen,forw,back,slp) if (.not. nested)
           do k=cslopelo(3), cslopehi(3)
             do j=cslopelo(2), cslopehi(2)
               do i=cslopelo(1), cslopehi(1)
@@ -544,7 +516,6 @@ c
               end do
             end do
           end do
-!$omp end parallel do
 
           if (bclo(3,n) .eq. EXT_DIR .or. bclo(3,n).eq.HOEXTRAP) then
             k = cslopelo(3)
@@ -613,7 +584,6 @@ c
 c        Do the interpolation using unlimited slopes.
 c
           do n = 1, nvar
-!$omp parallel do private(i,j,k,ic,jc,kc) if (.not. nested)
              do k = fblo(3), fbhi(3)
                kc = IX_PROJ(k,lratioz)
                do j = fblo(2), fbhi(2)
@@ -627,7 +597,6 @@ c
                   end do
                end do
              end do
-!$omp end parallel do
           end do
 
        else
@@ -645,7 +614,6 @@ c
           zslope_factor = one
 
           do n = 1, nvar 
-!$omp parallel do private(i,j,k,denom,factorn) if (.not. nested)
             do k=cslopelo(3), cslopehi(3)
               do j=cslopelo(2), cslopehi(2)
                 do i=cslopelo(1), cslopehi(1)
@@ -669,13 +637,11 @@ c
                 end do
               end do
             end do
-!$omp end parallel do
           end do
 c
 c         Compute linear limited slopes
 c
           do n = 1, nvar 
-!$omp parallel do private(i,j,k) if (.not. nested)
             do k=cslopelo(3), cslopehi(3)
               do j=cslopelo(2), cslopehi(2)
                 do i=cslopelo(1), cslopehi(1)
@@ -685,7 +651,6 @@ c
                 end do
               end do
             end do
-!$omp end parallel do
           end do
 
          else
@@ -740,7 +705,6 @@ c
 c       Do the interpolation with limited slopes.
 c
         do n = 1, nvar
-!$omp parallel do private(i,j,k,ic,jc,kc) if (.not. nested)
           do k = fblo(3), fbhi(3)
             kc = IX_PROJ(k,lratioz)
             do j = fblo(2), fbhi(2)
@@ -754,7 +718,6 @@ c
               end do
             end do
           end do
-!$omp end parallel do
         end do
 
       end if

@@ -696,7 +696,7 @@ main (int   argc,
                 for (MFIter mfi(pData); mfi.isValid(); ++mfi)
                     pData[mfi].copy(pDataNG[mfi]);
                 amrData.FillVar(pData,lev,names[comps[i]],0);
-                geom[lev].FillPeriodicBoundary(pData);
+		pData.EnforcePeriodicity(geom[lev]);
                 for (MFIter mfi(pData); mfi.isValid(); ++mfi)
                     pDataNG[mfi].copy(pData[mfi]);
                 fileData[lev].copy(pDataNG,0,i,1);

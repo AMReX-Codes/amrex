@@ -720,8 +720,7 @@ MFTFillPatch::DoCoarseFineParallelInterp(MFTower& mft,
       }
     }
 
-    mf.FillBoundary(sComp+mft.BaseComp(),nComp);
-    gl.FillPeriodicBoundary(mf,sComp+mft.BaseComp(),nComp);
+    mf.FillBoundary(sComp+mft.BaseComp(),nComp,gl.periodicity());
   }
 }
 
@@ -834,8 +833,7 @@ MFTFillPatch::FillGrowCells(MFTower& mft,
         }
       }
       
-      mf.FillBoundary(sComp+mft.BaseComp(),nComp);
-      gl.FillPeriodicBoundary(mf,sComp+mft.BaseComp(),nComp);
+      mf.FillBoundary(sComp+mft.BaseComp(),nComp,gl.periodicity());
     }
   }
 }
@@ -906,8 +904,7 @@ MFTFillPatch::FillGrowCellsSimple(MFTower& mft,
       }
     }
 
-    mf.FillBoundary(sComp+mft.BaseComp(),nComp);
-    gl.FillPeriodicBoundary(mf,sComp+mft.BaseComp(),nComp);
+    mf.FillBoundary(sComp+mft.BaseComp(),nComp,gl.periodicity());
   }
 }
 

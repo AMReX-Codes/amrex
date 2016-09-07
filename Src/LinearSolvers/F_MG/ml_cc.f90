@@ -51,7 +51,7 @@ contains
     real(dp_t) :: tres, tres0, max_norm
     real(dp_t) :: sum, coeff_sum, coeff_max
 
-    real(dp_t) :: r1,r2,t1(4),t2(4),stime,bottom_solve_time
+    real(dp_t) :: r1,r2,t1(3),t2(3),stime,bottom_solve_time
     logical :: solved
 
     type(bl_prof_timer), save :: bpt
@@ -142,43 +142,21 @@ contains
             brs_bcs(n)%uncovered)
     end do
 
-    do n = 1,nlevs,1
-       mglev = mgt(n)%nlevels
-       call compute_defect(mgt(n)%ss(mglev),res(n),rh(n),full_soln(n), &
-                      mgt(n)%mm(mglev), mgt(n)%stencil_type, mgt(n)%lcross)
-    end do
-
-    do n = nlevs,2,-1
-       mglev      = mgt(n  )%nlevels
-       mglev_crse = mgt(n-1)%nlevels
-
-       pdc = layout_get_pd(mla%la(n-1))
-       call crse_fine_residual_cc(n,mgt,full_soln,res(n-1),brs_flx(n),pdc, &
-            mla%mba%rr(n-1,:), filled=.true.)
-
-       call ml_cc_restriction(res(n-1), res(n), mla%mba%rr(n-1,:))
-    enddo
-    !
-    ! Test on whether coefficients sum to zero in order to know whether to enforce solvability
-    ! Only test on lowest mg level of lowest AMR level -- this should be cheapest
     !
     ! Elide some reduction.
     !
     t1(1) = max_of_stencil_sum(mgt(1)%ss(1),local=.true.) 
     t1(2) = stencil_norm(mgt(1)%ss(1),local=.true.) 
-    t1(3) = ml_norm_inf(res,fine_mask,local=.true.)
-    t1(4) = ml_norm_inf(rh,fine_mask,local=.true.)
 
-    call parallel_reduce(t2, t1, MPI_MAX)
-
-    call bl_proffortfuncstop("ml_cc:0")
-    call bl_proffortfuncstart("ml_cc:1")
+    call parallel_reduce(t2(1:2), t1(1:2), MPI_MAX)
 
     coeff_sum = t2(1)
     coeff_max = t2(2)
-    tres0     = t2(3)
-    bnorm     = t2(4)
 
+    !
+    ! Test on whether coefficients sum to zero in order to know whether to enforce solvability
+    ! Only test on lowest mg level of lowest AMR level -- this should be cheapest
+    !
     if ( coeff_sum .lt. (1.0e-12_dp_t * coeff_max) ) then
        mgt(1)%coeffs_sum_to_zero = .true.
        if ( parallel_IOProcessor() .and. (do_diagnostics == 1) ) &
@@ -197,20 +175,52 @@ contains
        mgt(1)%bottom_mgt%coeffs_sum_to_zero = mgt(1)%coeffs_sum_to_zero
     end if
 
-    ! Enforce solvability if appropriate
-    ! Note we do this before res is copied back into rhs.
-    if (nlevs .eq. 1 .and. mgt(1)%bottom_singular .and. mgt(1)%coeffs_sum_to_zero) then
+    ! Enforce solvability if appropriate -- note that we need to make "rh" solvable, not just "res" as before,
+    ! because "res" is recomputed as rh - L(full_soln) after each cycle
+    if (nlevs .eq. 1 .and. mgt(1)%bottom_singular .and. mgt(1)%coeffs_sum_to_zero .and. &
+        mgt(1)%ok_to_fix_singular) then
 
-       sum = multifab_sum(res(1))  / boxarray_dvolume(get_boxarray(res(1)))
+       sum = multifab_sum(rh(1))  / boxarray_dvolume(get_boxarray(rh(1)))
 
-       ! Subtract "sum" from res(1) in order to make this solvable
-       call sub_sub(res(1), sum)
-
+       ! Subtract "sum" from rh(1) in order to make this solvable
+       call sub_sub(rh(1), sum)
+          
        if ( parallel_IOProcessor() .and. (do_diagnostics == 1) ) then
-          write(unit=*, fmt='("F90mg: Subtracting from res ",g15.8)') sum
+          write(unit=*, fmt='("F90mg: Subtracting from rh  ",g15.8)') sum
        end if
 
     end if
+
+    do n = 1,nlevs,1
+       mglev = mgt(n)%nlevels
+       call compute_defect(mgt(n)%ss(mglev),res(n),rh(n),full_soln(n), &
+                      mgt(n)%mm(mglev), mgt(n)%stencil_type, mgt(n)%lcross)
+    end do
+
+    do n = nlevs,2,-1
+       mglev      = mgt(n  )%nlevels
+       mglev_crse = mgt(n-1)%nlevels
+
+       pdc = layout_get_pd(mla%la(n-1))
+       call crse_fine_residual_cc(n,mgt,full_soln,res(n-1),brs_flx(n),pdc, &
+            mla%mba%rr(n-1,:), filled=.true.)
+
+       call ml_cc_restriction(res(n-1), res(n), mla%mba%rr(n-1,:))
+    enddo
+
+    !
+    ! Elide some reduction.
+    !
+    t1(1) = ml_norm_inf(res,fine_mask,local=.true.)
+    t1(2) = ml_norm_inf(rh,fine_mask,local=.true.)
+
+    call parallel_reduce(t2(1:2), t1(1:2), MPI_MAX)
+
+    call bl_proffortfuncstop("ml_cc:0")
+    call bl_proffortfuncstart("ml_cc:1")
+
+    tres0     = t2(1)
+    bnorm     = t2(2)
 
     if ( parallel_IOProcessor() .and. mgt(nlevs)%verbose > 0 ) then
        write(unit=*, &
