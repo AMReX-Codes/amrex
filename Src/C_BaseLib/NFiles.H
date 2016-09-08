@@ -61,6 +61,10 @@ class NFilesIter
       return( std::max(1, std::min(ParallelDescriptor::NProcs(), nOutFiles)) );
     }
 
+    // ---- this checks if nOutFiles equals the calculated number of files
+    // ---- returns false if they do not match
+    static bool CheckNFiles(int nProcs, int nOutFiles, bool groupSets);
+
     static int FileNumber(int nOutFiles, int whichProc, bool groupSets)
     {
       BL_ASSERT(whichProc >= 0 && whichProc < ParallelDescriptor::NProcs());
@@ -92,6 +96,7 @@ class NFilesIter
     int nSets;
     int mySet;
     std::string fullFileName;
+    std::string filePrefix;
     std::fstream fileStream;
     VisMF::IO_Buffer io_buffer;
     bool finishedWriting;
