@@ -115,12 +115,8 @@ ABec4::applyBC (MultiFab&     inout,
 
         BL_ASSERT(gbox[level][gn] == inout.box(gn));
 
-        BL_ASSERT(level<maskvals.size() && maskvals[level].find(gn)!=maskvals[level].end());
-        BL_ASSERT(level<lmaskvals.size() && lmaskvals[level].find(gn)!=lmaskvals[level].end());
         BL_ASSERT(level<undrrelxr.size());
 
-        const MaskTuple&                 ma  =  maskvals[level][gn];
-        const MaskTuple&                 lma = lmaskvals[level][gn];
         const BndryData::RealTuple&      bdl = bgb->bndryLocs(gn);
         const Array< Array<BoundCond> >& bdc = bgb->bndryConds(gn);
 
@@ -131,7 +127,7 @@ ABec4::applyBC (MultiFab&     inout,
             FabSet&       f   = (*undrrelxr[level])[o];
             int           cdr = o;
             const FabSet& fs  = bgb->bndryValues(o);
-            const Mask&   m   = local ? (*lma[o]) : (*ma[o]);
+            const Mask&   m   = local ? lmaskvals[level][o][mfi] : maskvals[level][o][mfi];
             Real          bcl = bdl[o];
             BL_ASSERT(bdc[o].size()>bndry_comp);
             int           bct = bdc[o][bndry_comp];
