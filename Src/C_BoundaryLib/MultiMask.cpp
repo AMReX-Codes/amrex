@@ -26,9 +26,9 @@ MultiMask::MultiMask (const BoxArray& regba, const DistributionMapping& dm, cons
 	    Mask& m = m_fa[mfi];
 	    const Box& face_box = m.box();
 		
-	    m.setVal(BndryData::outside_domain,0);
+	    m.setVal(BndryData::outside_domain);
 	    const Box& dbox = geom.Domain() & face_box;
-	    m.setVal(BndryData::not_covered,dbox,0);
+	    m.setVal(BndryData::not_covered,dbox,0,ncomp);
 	    //
 	    // Now have to set as not_covered the periodic translates as well.
 	    //
@@ -43,7 +43,7 @@ MultiMask::MultiMask (const BoxArray& regba, const DistributionMapping& dm, cons
 		    const IntVect& iv = *it;
 		    m.shift(iv);
 		    const Box& target = geom.Domain() & m.box();
-		    m.setVal(BndryData::not_covered,target,0);
+		    m.setVal(BndryData::not_covered,target,0,ncomp);
 		    m.shift(-iv);
 		}
 	    }
@@ -52,8 +52,9 @@ MultiMask::MultiMask (const BoxArray& regba, const DistributionMapping& dm, cons
 	    //
 	    regba.intersections(face_box,isects);
 	    
-	    for (int ii = 0, N = isects.size(); ii < N; ii++)
-		m.setVal(BndryData::covered, isects[ii].second, 0);
+	    for (int ii = 0, N = isects.size(); ii < N; ii++) {
+		m.setVal(BndryData::covered, isects[ii].second, 0, ncomp);
+	    }
 	    
 	    if (geom.isAnyPeriodic() && !geom.Domain().contains(face_box))
 	    {
@@ -69,7 +70,7 @@ MultiMask::MultiMask (const BoxArray& regba, const DistributionMapping& dm, cons
 		    m.shift(iv);
 		    regba.intersections(m.box(),isects);
 		    for (int ii = 0, N = isects.size(); ii < N; ii++) {
-			m.setVal(BndryData::covered, isects[ii].second, 0);
+			m.setVal(BndryData::covered, isects[ii].second, 0, ncomp);
 		    }
 		    m.shift(-iv);
 		}
