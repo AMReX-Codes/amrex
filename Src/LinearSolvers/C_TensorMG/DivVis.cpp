@@ -305,7 +305,7 @@ DivVis::Fsmooth (MultiFab&       solnL,
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for (MFIter solnLmfi(solnL,true); solnLmfi.isValid(); ++solnLmfi)
+    for (MFIter solnLmfi(solnL); solnLmfi.isValid(); ++solnLmfi)
     {
 	D_TERM(const Mask& mw = mmw[solnLmfi];,
                const Mask& ms = mms[solnLmfi];,
