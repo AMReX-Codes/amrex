@@ -18,13 +18,19 @@ NFilesIter::NFilesIter(int noutfiles, const std::string &fileprefix,
     mySet     = myProc % nSets;
   }
   int fileNumber(FileNumber(nOutFiles, myProc, groupSets));
-  fullFileName  = BoxLib::Concatenate(fileprefix, fileNumber, 5);
+  filePrefix    = fileprefix;
+  fullFileName  = BoxLib::Concatenate(filePrefix, fileNumber, 5);
 
   finishedWriting = false;
 
   if(setBuf) {
     io_buffer.resize(VisMF::GetIOBufferSize());
     fileStream.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
+  }
+
+  bool checkNFiles(true);
+  if(checkNFiles) {
+    CheckNFiles(nProcs, nOutFiles, groupSets);
   }
 
 }
@@ -77,9 +83,13 @@ bool NFilesIter::ReadyToWrite() {
   for(int iSet(0); iSet < nSets; ++iSet) {
     if(mySet == iSet) {
       if(iSet == 0) {   // ---- first set
+	BoxLib::USleep(myProc);
+	std::cout << myProc << ":: writing to:  " << fullFileName << std::endl;
         fileStream.open(fullFileName.c_str(),
                         std::ios::out | std::ios::trunc | std::ios::binary);
       } else {
+	BoxLib::USleep(myProc);
+	std::cout << myProc << ":: appending to:  " << fullFileName << std::endl;
         fileStream.open(fullFileName.c_str(),
                         std::ios::out | std::ios::app | std::ios::binary);
         fileStream.seekp(0, std::ios::end);   // ---- set to eof
@@ -99,6 +109,8 @@ bool NFilesIter::ReadyToWrite() {
         waitForPID = (myProc - 1);
         tag = (myProc / nSets);
       }
+	BoxLib::USleep(myProc);
+	std::cout << myProc << ":: waiting for:  " << waitForPID << std::endl;
       ParallelDescriptor::Recv(&iBuff, 1, waitForPID, tag);
     }
   }
@@ -164,5 +176,24 @@ NFilesIter &NFilesIter::operator++() {
 std::streampos NFilesIter::SeekPos() {
   return fileStream.tellp();
 }
+
+
+bool NFilesIter::CheckNFiles(int nProcs, int nOutFiles, bool groupSets)
+{
+  if(ParallelDescriptor::IOProcessor()) {
+    std::set<int> fileNumbers;
+    for(int i(0); i < nProcs; ++i) {
+      fileNumbers.insert(FileNumber(nOutFiles, i, groupSets));
+    }
+    std::cout << "nOutFiles fileNumbers.size() = " << nOutFiles
+              << "  " << fileNumbers.size() << std::endl;
+    if(nOutFiles != fileNumbers.size()) {
+      std::cout << "**** Different number of files." << std::endl;
+      return false;
+    }
+  }
+  return true;
+}
+
 
 
