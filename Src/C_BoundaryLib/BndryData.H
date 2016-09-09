@@ -90,13 +90,6 @@ public:
                  int             ncomp,
                  const Geometry& geom,
 		 ParallelDescriptor::Color color = ParallelDescriptor::DefaultColor());
-#if 0
-//xxxxx
-    //
-    // write to output stream
-    //
-    friend std::ostream& operator<< (std::ostream& os, const BndryData& bd);
-#endif
     //
     const MultiMask& bndryMasks (Orientation face) const { return masks[face]; }
     //
