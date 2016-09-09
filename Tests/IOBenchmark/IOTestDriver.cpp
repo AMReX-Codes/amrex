@@ -30,6 +30,7 @@ void TestWriteNFiles(int nfiles, int maxgrid, int ncomps, int nboxes,
 		     bool groupsets, bool setbuf);
 void TestReadMF(const std::string &mfName);
 void NFileTests(int nOutFiles, const std::string &filePrefix);
+void DSSNFileTests(int nOutFiles, const std::string &filePrefix);
 
 
 // -------------------------------------------------------------
@@ -51,6 +52,7 @@ static void PrintUsage(const char *progName) {
     cout << "   [groupsets         = tf       ]" << '\n';
     cout << "   [setbuf            = tf       ]" << '\n';
     cout << "   [nfileitertest     = tf       ]" << '\n';
+    cout << "   [dssnfileitertest  = tf       ]" << '\n';
     cout << "   [filetests         = tf       ]" << '\n';
     cout << "   [dirtests          = tf       ]" << '\n';
     cout << "   [testwritenfiles   = versions ]" << '\n';
@@ -87,7 +89,8 @@ int main(int argc, char *argv[]) {
   int rbs(8192), wbs(8192);
   bool raninit(false), mb2(false);
   bool groupSets(false), setBuf(true);
-  bool nfileitertest(false), filetests(false), dirtests(false);
+  bool nfileitertest(false), dssnfileitertest(false);
+  bool filetests(false), dirtests(false);
   bool testreadmf(false);
   bool useSingleRead(false), useSingleWrite(false);
   bool checkFPositions(false), pIFStreams(false);
@@ -132,6 +135,7 @@ int main(int argc, char *argv[]) {
   RealDescriptor::SetWriteBufferSize(wbs);
 
   pp.query("nfileitertest", nfileitertest);
+  pp.query("dssnfileitertest", dssnfileitertest);
   pp.query("filetests", filetests);
   pp.query("dirtests", dirtests);
   pp.query("testreadmf", testreadmf);
@@ -159,6 +163,7 @@ int main(int argc, char *argv[]) {
     cout << "groupsets         = " << groupSets << '\n';
     cout << "setbuf            = " << setBuf << '\n';
     cout << "nfileitertest     = " << nfileitertest << '\n';
+    cout << "dssnfileitertest  = " << dssnfileitertest << '\n';
     cout << "filetests         = " << filetests << '\n';
     cout << "dirtests          = " << dirtests << '\n';
     cout << "testreadmf        = " << testreadmf << '\n';
@@ -214,9 +219,10 @@ int main(int argc, char *argv[]) {
         cout << "Testing NFile Operations" << endl;
       }
 
-      int nOutFiles(5);
-      std::string filePrefix("FiveFiles");
-      NFileTests(nOutFiles, filePrefix);
+      std::string filePrefix("NFiles");
+      NFileTests(nfiles, filePrefix);
+
+      ParallelDescriptor::Barrier();
 
       if(ParallelDescriptor::IOProcessor()) {
         cout << "==================================================" << endl;
@@ -225,6 +231,24 @@ int main(int argc, char *argv[]) {
     }
   }
 
+
+  if(dssnfileitertest) {
+    for(int itimes(0); itimes < ntimes; ++itimes) {
+      if(ParallelDescriptor::IOProcessor()) {
+        cout << endl << "--------------------------------------------------" << endl;
+        cout << "Testing DSSNFile Operations" << endl;
+      }
+
+      std::string filePrefix("DSSFiles");
+      DSSNFileTests(nfiles, filePrefix);
+
+      ParallelDescriptor::Barrier();
+      if(ParallelDescriptor::IOProcessor()) {
+        cout << "==================================================" << endl;
+        cout << endl;
+      }
+    }
+  }
 
 
   if(filetests) {
