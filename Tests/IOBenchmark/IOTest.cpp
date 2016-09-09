@@ -322,6 +322,113 @@ void TestReadMF(const std::string &mfName) {
     cout << "------------------------------------------" << endl;
   }
 }
+
+
+
+// -------------------------------------------------------------
+void DSSNFileTests(int noutfiles, const std::string &filePrefix) {
+  int myProc(ParallelDescriptor::MyProc());
+  int nProcs    = ParallelDescriptor::NProcs();
+  int nOutFiles = NFilesIter::ActualNFiles(noutfiles);
+  int nSets     = NFilesIter::NSets(nProcs, nOutFiles);
+  int mySet     = myProc % nSets;
+  Array<int> data(32);
+  int deciderProc(nProcs - 1), coordinatorProc(-1);
+  int nonCoordinatorProc(-1);
+  int deciderTag(ParallelDescriptor::SeqNum());
+  int coordinatorTag(ParallelDescriptor::SeqNum());
+  int doneTag(ParallelDescriptor::SeqNum());
+  int writeTag(ParallelDescriptor::SeqNum());
+  bool needToWrite(true);
+  ParallelDescriptor::Message rmess;
+  int iDone(myProc);
+  MPI_Status status;
+  int remainingWriters(nProcs);
+
+  for(int i(0); i < data.size(); ++i) {
+    data[i] = (100 * myProc) + i;
+  }
+
+  NFilesIter::CheckNFiles(nProcs, nOutFiles, false);
+
+    if(mySet == 0) {
+      // ---- write data
+      std::ofstream csFile;
+      std::string FullName(BoxLib::Concatenate(filePrefix, fileNumber, 5));
+      csFile.open(FullName.c_str(), std::ios::out | std::ios::trunc | std::ios::binary);
+      if( ! csFile.good()) { BoxLib::FileOpenFailed(FullName); }
+      // ----------------------------- write to file here
+      csFile.write((const char *) data.dataPtr(), data.size() * sizeof(int));
+      // ----------------------------- end write to file here
+      csFile.flush();
+      csFile.close();
+      needToWrite = false;
+
+      // ---- tell the decider we are done
+      ParallelDescriptor::Send(&myProc, 1, deciderProc, deciderTag);
+
+      // ---- wait to find out who will coordinate
+      ParallelDescriptor::Recv(&coordinatorProc, 1, deciderProc, deciderTag);
+
+      if(myProc == coordinatorProc) {
+        // ---- signal each remaining processor when to write and to which file
+        //int fileNumber(NFilesIter::FileNumber(nOutFiles, myProc, false));
+	std::set<int> availableFileNumbers;
+	availableFileNumbers.insert(fileNumber);  // ---- the coordinators file number
+	--remainingWriters;  // ---- for the coordinator
+	// ---- probe for incoming available files
+	int doneFlag;
+	while(remainingWriters > 0) {
+	  ParallelDescriptor::IProbe(MPI_ANY_SOURCE, doneTag, doneFlag, status);
+	  // ---- if groupSets == false spread out which file writes
+          ParallelDescriptor::Send(&fileNumber, 1, nextProcToWrite, writeTag);
+	  --remainingWriters;
+	}
+      } else {
+        // ---- tell the coordinatorProc we are done writing
+        ParallelDescriptor::Send(&fileNumber, 1, coordinatorProc, doneTag);
+      }
+
+    } else if(myProc == deciderProc) {  // ---- this proc decides who decides
+
+      // ---- the first message received is the coordinator
+      ParallelDescriptor::Recv(&coordinatorProc, 1, MPI_ANY_SOURCE, deciderTag);
+      // ---- tell the coordinatorProc to start coordinating
+      ParallelDescriptor::Send(&deciderProc, 1, coordinatorProc, coordinatorTag);
+      for(int i(0); i < nOutFiles - 1; ++i) {  // ---- tell the others who is coorinating
+        rmess = ParallelDescriptor::Recv(&nonCoordinatorProc, 1, MPI_ANY_SOURCE, deciderTag);
+	int whichProc(rmess.pid());
+        ParallelDescriptor::Send(&coordinatorProc, 1, whichProc, coordinatorTag);
+      }
+    }
+
+    // ---- these are the rest of the procs who need to write
+    if(needToWrite) {  // ---- the deciderProc drops through to here
+      // ---- wait for signal to start writing
+      rmess = ParallelDescriptor::Recv(&fileNumber, 1, MPI_ANY_SOURCE, coordinatorTag);
+      coordinatorProc = rmess.pid();
+      std::string FullName(BoxLib::Concatenate(filePrefix, fileNumber, 5));
+
+      std::ofstream csFile;
+      csFile.open(FullName.c_str(), std::ios::out | std::ios::app | std::ios::binary);
+      csFile.seekp(0, std::ios::end);   // set to eof
+      if( ! csFile.good()) { BoxLib::FileOpenFailed(FullName); }
+      // ----------------------------- write to file here
+      csFile.write((const char *) data.dataPtr(), data.size() * sizeof(int));
+      // ----------------------------- end write to file here
+      csFile.flush();
+      csFile.close();
+      needToWrite = false;
+
+      // ---- signal we are finished
+      ParallelDescriptor::Send(&fileNumber, 1, coordinatorProc, doneTag);
+    }
+
+
+
+}
+
+
 // -------------------------------------------------------------
 // -------------------------------------------------------------
 
