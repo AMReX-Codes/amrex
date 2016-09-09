@@ -481,7 +481,7 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
 
     Lp.residual(r, rhs, sol, lev, bc_mode);
 
-    if ((verbose > 1) && r.contains_nan()) std::cout << "*** r contains NANs\n";
+    BL_ASSERT(!r.contains_nan());
 
     MultiFab::Copy(rt,r,0,0,1,0);
     MultiFab::Copy( p,r,0,0,1,0);
@@ -525,9 +525,9 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
         //
         MultiFab::Copy(PR,p,0,0,1,0);
         MultiFab::Copy(PR,r,0,2*SSS+1,1,0);
-
-        if ((verbose > 1) && PR.contains_nan(0,      1)) std::cout << "*** PR contains NANs @ p\n";
-        if ((verbose > 1) && PR.contains_nan(2*SSS+1,1)) std::cout << "*** PR contains NANs @ r\n";
+	
+        BL_ASSERT(!PR.contains_nan(0,      1));
+        BL_ASSERT(!PR.contains_nan(2*SSS+1,1));
         //
         // We use "tmp" to minimize the number of Lp.apply()s.
         // We do this by doing p & r together in a single call.
@@ -544,16 +544,16 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
             MultiFab::Copy(PR,tmp,0,        n,1,0);
             MultiFab::Copy(PR,tmp,1,2*SSS+n+1,1,0);
 
-            if ((verbose > 1) && PR.contains_nan(n,        1)) std::cout << "*** PR contains NANs @ p: " << n         << '\n';
-            if ((verbose > 1) && PR.contains_nan(2*SSS+n+1,1)) std::cout << "*** PR contains NANs @ r: " << 2*SSS+n+1 << '\n';
+            BL_ASSERT(!PR.contains_nan(n,        1));
+            BL_ASSERT(!PR.contains_nan(2*SSS+n+1,1));
         }
 
         MultiFab::Copy(tmp,PR,2*SSS-1,0,1,0);
         Lp.apply(tmp, tmp, lev, temp_bc_mode, false, 0, 1, 1);
         MultiFab::Copy(PR,tmp,1,2*SSS,1,0);
 
-        if ((verbose > 1) && PR.contains_nan(2*SSS-1,1)) std::cout << "*** PR contains NANs @ 2*SSS-1\n";
-        if ((verbose > 1) && PR.contains_nan(2*SSS,  1)) std::cout << "*** PR contains NANs @ 2*SSS\n";
+        BL_ASSERT(!PR.contains_nan(2*SSS-1,1));
+        BL_ASSERT(!PR.contains_nan(2*SSS,  1));
 
         Real time2 = ParallelDescriptor::second();
 
@@ -990,7 +990,7 @@ CGSolver::solve_cabicgstab_quad (MultiFab&       sol,
 
     Lp.residual(r, rhs, sol, lev, bc_mode);
 
-    if ((verbose > 1) && r.contains_nan()) std::cout << "*** r contains NANs\n";
+    BL_ASSERT(!r.contains_nan());
 
     MultiFab::Copy(rt,r,0,0,1,0);
     MultiFab::Copy( p,r,0,0,1,0);
@@ -1035,8 +1035,8 @@ CGSolver::solve_cabicgstab_quad (MultiFab&       sol,
         MultiFab::Copy(PR,p,0,0,1,0);
         MultiFab::Copy(PR,r,0,2*SSS+1,1,0);
 
-        if ((verbose > 1) && PR.contains_nan(0,      1)) std::cout << "*** PR contains NANs @ p\n";
-        if ((verbose > 1) && PR.contains_nan(2*SSS+1,1)) std::cout << "*** PR contains NANs @ r\n";
+        BL_ASSERT(!PR.contains_nan(0,      1));
+        BL_ASSERT(!PR.contains_nan(2*SSS+1,1));
         //
         // We use "tmp" to minimize the number of Lp.apply()s.
         // We do this by doing p & r together in a single call.
@@ -1053,16 +1053,16 @@ CGSolver::solve_cabicgstab_quad (MultiFab&       sol,
             MultiFab::Copy(PR,tmp,0,        n,1,0);
             MultiFab::Copy(PR,tmp,1,2*SSS+n+1,1,0);
 
-            if ((verbose > 1) && PR.contains_nan(n,        1)) std::cout << "*** PR contains NANs @ p: " << n         << '\n';
-            if ((verbose > 1) && PR.contains_nan(2*SSS+n+1,1)) std::cout << "*** PR contains NANs @ r: " << 2*SSS+n+1 << '\n';
+            BL_ASSERT(!PR.contains_nan(n,        1));
+            BL_ASSERT(!PR.contains_nan(2*SSS+n+1,1));
         }
 
         MultiFab::Copy(tmp,PR,2*SSS-1,0,1,0);
         Lp.apply(tmp, tmp, lev, temp_bc_mode, false, 0, 1, 1);
         MultiFab::Copy(PR,tmp,1,2*SSS,1,0);
 
-        if ((verbose > 1) && PR.contains_nan(2*SSS-1,1)) std::cout << "*** PR contains NANs @ 2*SSS-1\n";
-        if ((verbose > 1) && PR.contains_nan(2*SSS,  1)) std::cout << "*** PR contains NANs @ 2*SSS\n";
+        BL_ASSERT(!PR.contains_nan(2*SSS-1,1));
+        BL_ASSERT(!PR.contains_nan(2*SSS,  1));
 
         Real time2 = ParallelDescriptor::second();
 
