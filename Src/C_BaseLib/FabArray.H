@@ -5049,18 +5049,18 @@ FabArray<FAB>::BuildMask (const Box& phys_domain, const Periodicity& period,
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for (MFIter mfi(*this); mfi.isValid(); ++mfi)
+    for (MFIter mfi(*this, true); mfi.isValid(); ++mfi)
     {
 	FAB& fab = (*this)[mfi];
 
-	Box gbx = fab.box();
+	Box gbx = mfi.growntilebox();
 	fab.setVal(physbnd, gbx, 0, ncomp);
 
 	gbx &= domain;
 	fab.setVal(notcovered, gbx, 0, ncomp);
 
-	const Box& vbx = mfi.validbox();
-	fab.setVal(interior, vbx, 0, ncomp);
+	const Box& tbx = mfi.tilebox();
+	fab.setVal(interior, tbx, 0, ncomp);
     }
 
     int N_locs = LocTags.size();
