@@ -755,8 +755,12 @@ BoxArray::contains (const IntVect& iv) const
 }
 
 bool
-BoxArray::contains (const Box& b) const
+BoxArray::contains (const Box& b, bool assume_disjoint_ba) const
 {
+    BL_ASSERT(!assume_disjoint_ba || ba.isDisjoint());
+
+    bool result = false;
+
     if (size() > 0)
     {
         BL_ASSERT(ixType() == b.ixType());
@@ -767,27 +771,37 @@ BoxArray::contains (const Box& b) const
 
         if (isects.size() > 0)
         {
-            BoxList bl(b.ixType());
-            for (int i = 0, N = isects.size(); i < N; i++) {
-                bl.push_back(isects[i].second);
+	    if (assume_disjoint_ba) {
+		long nbx = b.numPts(), nisects = 0L;
+		for (int i = 0, N = isects.size(); i < N; i++) {
+		    nisects += isects[i].second.numPts();
+		}
+		result = nbx == nisects;
+	    } else {
+		BoxList bl(b.ixType());
+		for (int i = 0, N = isects.size(); i < N; i++) {
+		    bl.push_back(isects[i].second);
+		}
+		result = bl.contains(b);
 	    }
-	    return bl.contains(b);
         }
     }
 
-    return false;
+    return result;
 }
 
 bool
-BoxArray::contains (const BoxArray& bl) const
+BoxArray::contains (const BoxArray& bl, bool assume_disjoint_ba) const
 {
     if (size() == 0) return false;
 
     if (!minimalBox().contains(bl.minimalBox())) return false;
 
-    for (int i = 0, N = bl.size(); i < N; ++i)
-        if (!contains(bl[i]))
+    for (int i = 0, N = bl.size(); i < N; ++i) {
+        if (!contains(bl[i],assume_disjoint_ba)) {
             return false;
+	}
+    }
 
     return true;
 }
