@@ -55,6 +55,7 @@ persistent streams.
 pre make plot directories.
 ParticleContainer::Checkpoint also makes directories.
 check nfilesiter for reads with nprocs < nfiles.
+check temporary multifab read for nprocs < nfiles.
 compare darshan results.
 check for syncs in stream retry.
 more combining writes.
@@ -72,6 +73,7 @@ check for exceptions thrown from streams.
 check that tellp gives the correct offset for
  opening with append.
 test case for data corruption error.
-buffer iterator.
-
-
+partial buffer iterator (shouldwrite).
+always use async read?
+NFiles::FileNumber does not always return a complete set.  for
+  example with nfiles = 5 and nprocs = 7.
