@@ -9,7 +9,7 @@
 // Mask info required for this many cells past grid edge
 //  (here, e.g. ref=4, crse stencil width=3, and let stencil slide 2 past grid edge)
 //
-int BndryData::NTangHalfWidth = 5;
+int BndryData::NTangHalfWidth = 5;  // ref_ratio + 1, so won't work if ref_ratio > 4
 
 BndryData::BndryData ()
     :
