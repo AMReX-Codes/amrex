@@ -413,11 +413,11 @@ public:
     // The Box must also have the same IndexType as those in this
     // BoxArray.
     //
-    bool contains (const Box& b) const;
+    bool contains (const Box& b, bool assume_disjoint_ba = false) const;
     //
     // True if all Boxes in bl are contained in this BoxArray.
     //
-    bool contains (const BoxArray& bl) const;
+    bool contains (const BoxArray& bl, bool assume_disjoint_ba = false) const;
     //
     // Returns smallest Box that contains all Boxes in this BoxArray.
     //
