@@ -757,7 +757,7 @@ BoxArray::contains (const IntVect& iv) const
 bool
 BoxArray::contains (const Box& b, bool assume_disjoint_ba) const
 {
-    BL_ASSERT(!assume_disjoint_ba || ba.isDisjoint());
+    BL_ASSERT(!assume_disjoint_ba || isDisjoint());
 
     bool result = false;
 
