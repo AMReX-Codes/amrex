@@ -440,6 +440,9 @@ DivVis::compFlux (D_DECL(MultiFab& xflux,
     oitr++;
 #endif
 
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
     for (MFIter xmfi(x); xmfi.isValid(); ++xmfi)
     {
 	D_TERM(const Mask& mw = mmw[xmfi];,
@@ -561,6 +564,9 @@ DivVis::Fapply (MultiFab&       y,
     oitr++;
 #endif
 
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
     for (MFIter xmfi(x); xmfi.isValid(); ++xmfi)
     {
 	D_TERM(const Mask& mw = mmw[xmfi];,
