@@ -10,6 +10,7 @@
 
 #if !(defined(BL_NO_FORT) || defined(WIN32))
 #include <SPECIALIZE_F.H>
+#include <BaseFab_f.H>
 #endif
 
 #ifdef BL_MEM_PROFILING
@@ -496,28 +497,11 @@ BaseFab<Real>::saxpy (Real a, const BaseFab<Real>& src,
                       int               destcomp,
                       int               numcomp)
 {
-    const int* destboxlo  = destbox.loVect();
-    const int* destboxhi  = destbox.hiVect();
-    const int* _th_plo    = loVect();
-    const int* _th_phi    = hiVect();
-    const int* _x_lo      = srcbox.loVect();
-    const int* _x_plo     = src.loVect();
-    const int* _x_phi     = src.hiVect();
-    Real*       _th_p     = dataPtr(destcomp);
-    const Real* _x_p      = src.dataPtr(srccomp);
-
-    FORT_FASTSAXPY(_th_p,
-                   ARLIM(_th_plo),
-                   ARLIM(_th_phi),
-                   D_DECL(destboxlo[0],destboxlo[1],destboxlo[2]),
-                   D_DECL(destboxhi[0],destboxhi[1],destboxhi[2]),
-                   &a,
-                   _x_p,
-                   ARLIM(_x_plo),
-                   ARLIM(_x_phi),
-                   D_DECL(_x_lo[0],_x_lo[1],_x_lo[2]),
-                   &numcomp);
-
+    fort_saxpy(ARLIM_3D(destbox.loVect()), ARLIM_3D(destbox.hiVect()),
+	       BL_TO_FORTRAN_N_3D(*this,destcomp),
+	       &a,
+	       BL_TO_FORTRAN_N_3D(src,destcomp), ARLIM_3D(srcbox.loVect()),
+	       &numcomp);
     return *this;
 }
 
