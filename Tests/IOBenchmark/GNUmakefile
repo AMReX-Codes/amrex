@@ -10,10 +10,9 @@ FCOMP     = gfortran
 USE_MPI=FALSE
 USE_MPI=TRUE
 
-DEFINES += -DBL_USENEWREADS
 USE_CXX11 = TRUE
 
-PROFILE       = TRUE
+#PROFILE       = TRUE
 #TRACE_PROFILE = TRUE
 #COMM_PROFILE  = FALSE
 
@@ -40,4 +39,3 @@ all: $(executable)
 
 include $(BOXLIB_HOME)/Tools/C_mk/Make.rules
 
-BL_MPI_LIBS += -lmpl
