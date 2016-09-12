@@ -1,5 +1,6 @@
 
 vpath %.f   . $(VPATH_LOCATIONS)
+vpath %.fi  . $(VPATH_LOCATIONS)
 vpath %.F   . $(VPATH_LOCATIONS)
 vpath %.f90 . $(VPATH_LOCATIONS)
 vpath %.F90 . $(VPATH_LOCATIONS)
