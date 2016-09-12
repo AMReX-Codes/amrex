@@ -120,6 +120,8 @@ ifneq ($(BL_NO_FORT),TRUE)
   f90$(BOXLIB_BASE)_sources += threadbox.f90
 
   f90$(BOXLIB_BASE)_sources += MultiFabUtil_$(DIM)d.f90
+
+  F90$(BOXLIB_BASE)_sources += bl_fort_module.F90
 endif
 
 C$(BOXLIB_BASE)_sources += BLProfiler.cpp
