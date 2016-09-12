@@ -2062,20 +2062,6 @@ BaseFab<T>::saxpy (T a, const BaseFab<T>& x)
     return ovlp.ok() ? saxpy(a,x,ovlp,ovlp,0,0,nvar) : *this;
 }
 
-
-template <class T>
-BaseFab<T>&
-BaseFab<T>::saxpy (T a, const BaseFab<T>& x,
-                   const Box&        srcbox,
-                   const Box&        destbox,
-                   int               srccomp,
-                   int               destcomp,
-                   int               numcomp)
-{
-    BoxLib::Error("BaseFab<T>::saxpy:: non-Real version not implemented");
-    return *this;
-}
-
 template <class T>
 BaseFab<T>&
 BaseFab<T>::operator-= (T r)
