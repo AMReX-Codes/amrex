@@ -1,2 +1,5 @@
 CEXE_sources += BL_HPGMG.cpp
 CEXE_headers += BL_HPGMG.H
+
+VPATH_LOCATIONS += $(BOXLIB_HOME)/Src/Extern/hpgmg
+INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/Extern/hpgmg

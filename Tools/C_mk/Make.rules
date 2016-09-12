@@ -1,3 +1,13 @@
+
+vpath %.f   . $(VPATH_LOCATIONS)
+vpath %.F   . $(VPATH_LOCATIONS)
+vpath %.f90 . $(VPATH_LOCATIONS)
+vpath %.F90 . $(VPATH_LOCATIONS)
+vpath %.c   . $(VPATH_LOCATIONS)
+vpath %.cpp . $(VPATH_LOCATIONS)
+vpath %.h   . $(VPATH_LOCATIONS)
+vpath %.H   . $(VPATH_LOCATIONS)
+
 # Suppress display of executed commands.  Default verbose
 ifdef VERBOSE
   ifeq ($(VERBOSE),OFF)
