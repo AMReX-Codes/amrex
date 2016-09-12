@@ -3,3 +3,5 @@ CEXE_headers += ABec2.H ABec4.H
 FEXE_headers += ABec2_F.H ABec4_F.H
 FEXE_sources += ABec2_$(DIM)D.F ABec4_$(DIM)D.F
 
+VPATH_LOCATIONS += $(BOXLIB_HOME)/Src/LinearSolvers/C_CellMG4
+INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/LinearSolvers/C_CellMG4

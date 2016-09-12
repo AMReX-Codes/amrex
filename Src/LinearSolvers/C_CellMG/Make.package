@@ -10,3 +10,5 @@ FEXE_headers += ABec_F.H CG_F.H LO_F.H LP_F.H MG_F.H
 FEXE_sources += ABec_$(DIM)D.F ABec_UTIL.F CG_$(DIM)D.F \
                 LO_$(DIM)D.F LP_$(DIM)D.F MG_$(DIM)D.F
 
+VPATH_LOCATIONS += $(BOXLIB_HOME)/Src/LinearSolvers/C_CellMG
+INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/LinearSolvers/C_CellMG

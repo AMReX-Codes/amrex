@@ -13,3 +13,7 @@ C$(BNDRYLIB_BASE)_headers += FabSet.H BndryRegister.H Mask.H MultiMask.H\
 F$(BNDRYLIB_BASE)_headers += INTERPBNDRYDATA_F.H
 
 F$(BNDRYLIB_BASE)_sources += INTERPBNDRYDATA_$(DIM)D.F LO_UTIL.F
+
+VPATH_LOCATIONS += $(BOXLIB_HOME)/Src/C_BoundaryLib
+INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/C_BoundaryLib
+
