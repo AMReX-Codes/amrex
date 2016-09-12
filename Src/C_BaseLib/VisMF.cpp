@@ -1458,7 +1458,7 @@ VisMF::Read (FabArray<FArrayBox> &mf,
 	        }
 	      }
 	    }
-          }
+          }    // ---- end NFilesIter
         }
 
       }

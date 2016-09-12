@@ -19,6 +19,7 @@
 #include <fstream>
 #include <iomanip>
 #include <cerrno>
+#include <deque>
 
 #include <unistd.h>
 #include <string.h>
@@ -332,9 +333,8 @@ void DSSNFileTests(int noutfiles, const std::string &filePrefix) {
   int nOutFiles = NFilesIter::ActualNFiles(noutfiles);
   int nSets     = NFilesIter::NSets(nProcs, nOutFiles);
   int mySet     = myProc % nSets;
-  Array<int> data(32);
+  Array<int> data(10240);
   int deciderProc(nProcs - 1), coordinatorProc(-1);
-  int nonCoordinatorProc(-1);
   int deciderTag(ParallelDescriptor::SeqNum());
   int coordinatorTag(ParallelDescriptor::SeqNum());
   int doneTag(ParallelDescriptor::SeqNum());
@@ -344,6 +344,7 @@ void DSSNFileTests(int noutfiles, const std::string &filePrefix) {
   int iDone(myProc);
   MPI_Status status;
   int remainingWriters(nProcs);
+  bool groupSets(false);
 
   for(int i(0); i < data.size(); ++i) {
     data[i] = (100 * myProc) + i;
@@ -351,8 +352,8 @@ void DSSNFileTests(int noutfiles, const std::string &filePrefix) {
 
   NFilesIter::CheckNFiles(nProcs, nOutFiles, false);
 
-    if(mySet == 0) {
-      // ---- write data
+    if(mySet == 0) {    // ---- write data
+      int fileNumber(NFilesIter::FileNumber(nOutFiles, myProc, groupSets));
       std::ofstream csFile;
       std::string FullName(BoxLib::Concatenate(filePrefix, fileNumber, 5));
       csFile.open(FullName.c_str(), std::ios::out | std::ios::trunc | std::ios::binary);
@@ -368,22 +369,53 @@ void DSSNFileTests(int noutfiles, const std::string &filePrefix) {
       ParallelDescriptor::Send(&myProc, 1, deciderProc, deciderTag);
 
       // ---- wait to find out who will coordinate
-      ParallelDescriptor::Recv(&coordinatorProc, 1, deciderProc, deciderTag);
+      ParallelDescriptor::Recv(&coordinatorProc, 1, deciderProc, coordinatorTag);
 
       if(myProc == coordinatorProc) {
+
+
+	Array<std::deque<int> > procsToWrite(nOutFiles);    // ---- [fileNumber](procsToWriteToFileNumber)
+	// ---- populate with the static nfiles sets
+	for(int i(0); i < nProcs; ++i) {
+          int fileNumber(NFilesIter::FileNumber(nOutFiles, i, groupSets));
+          int procSet(i % nSets);
+	  if(procSet != 0) {    // ---- these have already written their data
+	    procsToWrite[fileNumber].push_back(i);
+	  }
+	}
+
         // ---- signal each remaining processor when to write and to which file
-        //int fileNumber(NFilesIter::FileNumber(nOutFiles, myProc, false));
 	std::set<int> availableFileNumbers;
 	availableFileNumbers.insert(fileNumber);  // ---- the coordinators file number
-	--remainingWriters;  // ---- for the coordinator
-	// ---- probe for incoming available files
+	--remainingWriters;                       // ---- for the coordinator
+
+	// ---- recv incoming available files
 	int doneFlag;
 	while(remainingWriters > 0) {
-	  ParallelDescriptor::IProbe(MPI_ANY_SOURCE, doneTag, doneFlag, status);
-	  // ---- if groupSets == false spread out which file writes
-          ParallelDescriptor::Send(&fileNumber, 1, nextProcToWrite, writeTag);
+
+	  int nextProcToWrite, nextFileNumberToWrite, nextFileNumberAvailable;
+	  std::set<int>::iterator ait = availableFileNumbers.begin();
+	  nextFileNumberToWrite = *ait;
+	  availableFileNumbers.erase(nextFileNumberToWrite);
+
+	  for(int nfn(0); nfn < procsToWrite.size(); ++nfn) {
+	    // ---- start with the current next file number
+	    // ---- get a proc from another file number if the queue is empty
+	    int tempNFN((nextFileNumberToWrite + nfn) % procsToWrite.size());
+	    if(procsToWrite[tempNFN].size() > 0) {
+	      nextProcToWrite = procsToWrite[tempNFN].front();
+	      procsToWrite[tempNFN].pop_front();
+	      break;  // ---- found one
+	    }
+	  }
+
+          ParallelDescriptor::Asend(&nextFileNumberToWrite, 1, nextProcToWrite, writeTag);
+
+          ParallelDescriptor::Recv(&nextFileNumberAvailable, 1, MPI_ANY_SOURCE, doneTag);
+	  availableFileNumbers.insert(nextFileNumberAvailable);
 	  --remainingWriters;
 	}
+
       } else {
         // ---- tell the coordinatorProc we are done writing
         ParallelDescriptor::Send(&fileNumber, 1, coordinatorProc, doneTag);
@@ -394,18 +426,19 @@ void DSSNFileTests(int noutfiles, const std::string &filePrefix) {
       // ---- the first message received is the coordinator
       ParallelDescriptor::Recv(&coordinatorProc, 1, MPI_ANY_SOURCE, deciderTag);
       // ---- tell the coordinatorProc to start coordinating
-      ParallelDescriptor::Send(&deciderProc, 1, coordinatorProc, coordinatorTag);
+      ParallelDescriptor::Asend(&coordinatorProc, 1, coordinatorProc, coordinatorTag);
       for(int i(0); i < nOutFiles - 1; ++i) {  // ---- tell the others who is coorinating
-        rmess = ParallelDescriptor::Recv(&nonCoordinatorProc, 1, MPI_ANY_SOURCE, deciderTag);
-	int whichProc(rmess.pid());
-        ParallelDescriptor::Send(&coordinatorProc, 1, whichProc, coordinatorTag);
+        int nonCoordinatorProc(-1);
+        ParallelDescriptor::Recv(&nonCoordinatorProc, 1, MPI_ANY_SOURCE, deciderTag);
+        ParallelDescriptor::Asend(&coordinatorProc, 1, nonCoordinatorProc, coordinatorTag);
       }
     }
 
     // ---- these are the rest of the procs who need to write
     if(needToWrite) {  // ---- the deciderProc drops through to here
+      int fileNumber;
       // ---- wait for signal to start writing
-      rmess = ParallelDescriptor::Recv(&fileNumber, 1, MPI_ANY_SOURCE, coordinatorTag);
+      rmess = ParallelDescriptor::Recv(&fileNumber, 1, MPI_ANY_SOURCE, writeTag);
       coordinatorProc = rmess.pid();
       std::string FullName(BoxLib::Concatenate(filePrefix, fileNumber, 5));
 
@@ -423,9 +456,6 @@ void DSSNFileTests(int noutfiles, const std::string &filePrefix) {
       // ---- signal we are finished
       ParallelDescriptor::Send(&fileNumber, 1, coordinatorProc, doneTag);
     }
-
-
-
 }
 
 
