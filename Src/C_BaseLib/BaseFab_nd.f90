@@ -77,6 +77,26 @@ contains
   end subroutine fort_fab_copyfrommem
 
 
+  subroutine fort_fab_setval(lo, hi, dst, dlo, dhi, ncomp, val) &
+       bind(c,name='fort_fab_setval')
+    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), ncomp
+    real(c_real), intent(in) :: val
+    real(c_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
+
+    integer :: i, j, k, n
+
+    do n = 1, ncomp
+       do       k = lo(3), hi(3)
+          do    j = lo(2), hi(2)
+             do i = lo(1), hi(1)
+                dst(i,j,k,n) = val
+             end do
+          end do
+       end do
+    end do
+  end subroutine fort_fab_setval
+
+
   ! dst += a*src
   subroutine fort_fab_saxpy(lo, hi, dst, dlo, dhi, a, src, slo, shi, sblo, ncomp) &
        bind(c,name='fort_fab_saxpy')

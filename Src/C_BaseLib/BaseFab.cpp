@@ -233,30 +233,9 @@ BaseFab<Real>::performSetVal (Real       val,
     BL_ASSERT(domain.contains(bx));
     BL_ASSERT(comp >= 0 && comp + ncomp <= nvar);
 
-    Real* data = dataPtr(comp);
-
-    if (bx == domain)
-    {
-        for (long i = 0, N = ncomp*numpts; i < N; i++)
-        {
-            *data++ = val;
-        }
-    }
-    else
-    {
-        const int* _box_lo = bx.loVect(); 
-        const int* _box_hi = bx.hiVect(); 
-        const int* _th_plo = loVect(); 
-        const int* _th_phi = hiVect(); 
-
-        FORT_FASTSETVAL(&val,
-                        _box_lo,
-                        _box_hi,
-                        data,
-                        ARLIM(_th_plo),
-                        ARLIM(_th_phi),
-                        &ncomp);
-    }
+    fort_fab_setval(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
+		    BL_TO_FORTRAN_N_3D(*this,comp), &ncomp,
+		    &val);
 }
 
 template<>
