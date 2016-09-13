@@ -2621,11 +2621,7 @@ BaseFab<T>::linInterp (const BaseFab<T>& f1,
 {
     Real alpha = (t2-t)/(t2-t1);
     Real beta = (t-t1)/(t2-t1);
-    ForAllThisBNNXCBNYCBN(T,b,comp,numcomp,f1,b1,comp1,f2,b2,comp2)
-    {
-        thisR = (T) (alpha*Real(f1R) + beta*Real(f2R));
-    } EndForTX
-    return *this;
+    return linComb(f1,b1,comp1,f2,b2,comp2,alpha,beta,b,comp,numcomp);
 }
 
 template <class T>
@@ -2641,7 +2637,9 @@ BaseFab<T>::linInterp (const BaseFab<T>& f1,
                        int               comp,
                        int               numcomp)
 {
-    return linInterp(f1, b, comp1, f2, b, comp2, t1, t2, t, b, comp, numcomp);
+    Real alpha = (t2-t)/(t2-t1);
+    Real beta = (t-t1)/(t2-t1);
+    return linComb(f1,b,comp1,f2,b,comp2,alpha,beta,b,comp,numcomp);
 }
 
 //
