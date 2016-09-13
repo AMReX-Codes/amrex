@@ -789,32 +789,13 @@ BuildGramMatrix (Real*           Gg,
 	    const Box& bx = mfi.tilebox();
 	    const FArrayBox& rfab = PR[mfi];
 	    const FArrayBox& tfab = rt[mfi];
-
-	    const int* lo = bx.loVect();
-	    const int* hi = bx.hiVect();
-	    const int* rlo = rfab.loVect();
-	    const int* rhi = rfab.hiVect();
-	    const int* tlo = tfab.loVect();
-	    const int* thi = tfab.hiVect();
 	    
 	    int cnt = 0;
-	    Real tdot;
-	    const int ncomp = 1;
 	    for (int mm = 0; mm < Nrows; mm++) {
 		for (int nn = mm; nn < Nrows; nn++) {
-		    tdot = 0.0;
-		    FORT_CGXDOTY(&tdot,
-				 rfab.dataPtr(nn), ARLIM(rlo),ARLIM(rhi),
-				 rfab.dataPtr(mm), ARLIM(rlo),ARLIM(rhi),
-				 lo, hi, &ncomp);
-		    tmp[tid][cnt++] = tdot;
+		    tmp[tid][cnt++] = rfab.dot(bx,nn,rfab,bx,mm);
 		}
-		tdot = 0.0;
-		FORT_CGXDOTY(&tdot,
-			     tfab.dataPtr(0) , ARLIM(tlo),ARLIM(thi),
-			     rfab.dataPtr(mm), ARLIM(rlo),ARLIM(rhi),
-			     lo, hi, &ncomp);
-		tmp[tid][cnt++] = tdot;
+		tmp[tid][cnt++] = tfab.dot(bx,0,rfab,bx,mm);
 	    }
 	}
 #ifdef _OPENMP
