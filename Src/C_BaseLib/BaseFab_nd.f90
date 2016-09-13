@@ -97,6 +97,39 @@ contains
   end subroutine fort_fab_setval
 
 
+  function fort_fab_norm (lo, hi, src, slo, shi, ncomp, p) result(nrm) &
+       bind(c,name='fort_fab_norm')
+    integer, intent(in) :: lo(3), hi(3), slo(3), shi(3), ncomp, p
+    real(c_real), intent(in) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
+    real(c_real) :: nrm
+
+    integer :: i,j,k,n
+
+    nrm = 0.0_c_real
+    if (p .eq. 0) then ! max norm
+       do n = 1, ncomp
+          do       k = lo(3), hi(3)
+             do    j = lo(2), hi(2)
+                do i = lo(1), hi(1)
+                   nrm = max(nrm, abs(src(i,j,k,n)))
+                end do
+             end do
+          end do
+       end do
+    else if (p .eq. 1) then
+       do n = 1, ncomp
+          do       k = lo(3), hi(3)
+             do    j = lo(2), hi(2)
+                do i = lo(1), hi(1)
+                   nrm = nrm + abs(src(i,j,k,n))
+                end do
+             end do
+          end do
+       end do
+    end if
+  end function fort_fab_norm
+
+
   ! dst += a*src
   subroutine fort_fab_saxpy(lo, hi, dst, dlo, dhi, a, src, slo, shi, sblo, ncomp) &
        bind(c,name='fort_fab_saxpy')

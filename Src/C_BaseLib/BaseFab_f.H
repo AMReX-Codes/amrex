@@ -24,6 +24,10 @@ extern "C"
 			  const Real* dst, const int* dlo, const int* dhi, const int* ncomp,
 			  const Real* val);
 
+    Real fort_fab_norm (const int* lo, const int* hi,
+			const Real* src, const int* slo, const int* shi, const int* ncomp,
+			const int* p);
+
     void fort_fab_saxpy (const int* lo, const int* hi,
 			 Real* dst, const int* dlo, const int* dhi,
 			 const Real* a,
