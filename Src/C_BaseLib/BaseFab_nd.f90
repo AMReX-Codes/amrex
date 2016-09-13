@@ -283,6 +283,7 @@ contains
     end do
   end subroutine fort_fab_invert
 
+
   ! dst += a*src
   subroutine fort_fab_saxpy(lo, hi, dst, dlo, dhi, a, src, slo, shi, sblo, ncomp) &
        bind(c,name='fort_fab_saxpy')
@@ -305,5 +306,33 @@ contains
        end do
     end do
   end subroutine fort_fab_saxpy
+
+
+  ! dst = a*x + b*y
+  subroutine fort_fab_lincomb(lo, hi, dst, dlo, dhi, a, x, xlo, xhi, xblo, &
+       b, y, ylo, yhi, yblo, ncomp) bind(c,name='fort_fab_lincomb')
+    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), xlo(3), xhi(3), xblo(3), &
+         ylo(3), yhi(3), yblo(3), ncomp
+    real(c_real), intent(in   ) :: a, b
+    real(c_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
+    real(c_real), intent(in   ) ::   x(xlo(1):xhi(1),xlo(2):xhi(2),xlo(3):xhi(3),ncomp)
+    real(c_real), intent(in   ) ::   y(ylo(1):yhi(1),ylo(2):yhi(2),ylo(3):yhi(3),ncomp)
+    
+    integer :: i,j,k,n,xoff(3),yoff(3)
+
+    xoff = xblo - lo
+    yoff = yblo - lo
+
+    do n = 1, ncomp
+       do       k = lo(3), hi(3)
+          do    j = lo(2), hi(2)
+             do i = lo(1), hi(1)
+                dst(i,j,k,n) = a * x(i+xoff(1),j+xoff(2),k+xoff(3),n) &
+                     +         b * y(i+yoff(1),j+yoff(2),k+yoff(3),n)
+             end do
+          end do
+       end do
+    end do
+  end subroutine fort_fab_lincomb
 
 end module basefab_nd_module
