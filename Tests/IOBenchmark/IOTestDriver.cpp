@@ -30,7 +30,8 @@ void TestWriteNFiles(int nfiles, int maxgrid, int ncomps, int nboxes,
 		     bool groupsets, bool setbuf);
 void TestReadMF(const std::string &mfName);
 void NFileTests(int nOutFiles, const std::string &filePrefix);
-void DSSNFileTests(int nOutFiles, const std::string &filePrefix);
+void DSSNFileTests(int nOutFiles, const std::string &filePrefix,
+                   bool useIter);
 
 
 // -------------------------------------------------------------
@@ -240,7 +241,8 @@ int main(int argc, char *argv[]) {
       }
 
       std::string filePrefix("DSSFiles");
-      DSSNFileTests(nfiles, filePrefix);
+      bool useIter(true);
+      DSSNFileTests(nfiles, filePrefix, useIter);
 
       ParallelDescriptor::Barrier();
       if(ParallelDescriptor::IOProcessor()) {

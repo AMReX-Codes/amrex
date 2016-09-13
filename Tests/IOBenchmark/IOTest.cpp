@@ -327,7 +327,28 @@ void TestReadMF(const std::string &mfName) {
 
 
 // -------------------------------------------------------------
-void DSSNFileTests(int noutfiles, const std::string &filePrefix) {
+void DSSNFileTests(int noutfiles, const std::string &filePrefixIn,
+                   bool useIter)
+{
+
+  std::string filePrefix(filePrefixIn);
+
+  if(useIter) {
+    int myProc(ParallelDescriptor::MyProc());
+    Array<int> data(10240);
+
+    for(int i(0); i < data.size(); ++i) {
+      data[i] = (100 * myProc) + i;
+    }
+
+    bool groupSets(false), setBuf(true);
+    for(NFilesIter nfi(noutfiles, filePrefix, groupSets, setBuf, -1); nfi.ReadyToWrite(); ++nfi) {
+      nfi.Stream().write((const char *) data.dataPtr(), data.size() * sizeof(int));
+    }
+  }
+
+  filePrefix += "_Check";
+
   int myProc(ParallelDescriptor::MyProc());
   int nProcs    = ParallelDescriptor::NProcs();
   int nOutFiles = NFilesIter::ActualNFiles(noutfiles);
@@ -339,7 +360,7 @@ void DSSNFileTests(int noutfiles, const std::string &filePrefix) {
   int coordinatorTag(ParallelDescriptor::SeqNum());
   int doneTag(ParallelDescriptor::SeqNum());
   int writeTag(ParallelDescriptor::SeqNum());
-  bool needToWrite(true);
+  bool finishedWriting(false);
   ParallelDescriptor::Message rmess;
   int iDone(myProc);
   MPI_Status status;
@@ -363,7 +384,7 @@ void DSSNFileTests(int noutfiles, const std::string &filePrefix) {
       // ----------------------------- end write to file here
       csFile.flush();
       csFile.close();
-      needToWrite = false;
+      finishedWriting = true;
 
       // ---- tell the decider we are done
       ParallelDescriptor::Send(&myProc, 1, deciderProc, deciderTag);
@@ -372,8 +393,6 @@ void DSSNFileTests(int noutfiles, const std::string &filePrefix) {
       ParallelDescriptor::Recv(&coordinatorProc, 1, deciderProc, coordinatorTag);
 
       if(myProc == coordinatorProc) {
-
-
 	Array<std::deque<int> > procsToWrite(nOutFiles);    // ---- [fileNumber](procsToWriteToFileNumber)
 	// ---- populate with the static nfiles sets
 	for(int i(0); i < nProcs; ++i) {
@@ -435,7 +454,7 @@ void DSSNFileTests(int noutfiles, const std::string &filePrefix) {
     }
 
     // ---- these are the rest of the procs who need to write
-    if(needToWrite) {  // ---- the deciderProc drops through to here
+    if( ! finishedWriting) {  // ---- the deciderProc drops through to here
       int fileNumber;
       // ---- wait for signal to start writing
       rmess = ParallelDescriptor::Recv(&fileNumber, 1, MPI_ANY_SOURCE, writeTag);
@@ -451,7 +470,7 @@ void DSSNFileTests(int noutfiles, const std::string &filePrefix) {
       // ----------------------------- end write to file here
       csFile.flush();
       csFile.close();
-      needToWrite = false;
+      finishedWriting = true;
 
       // ---- signal we are finished
       ParallelDescriptor::Send(&fileNumber, 1, coordinatorProc, doneTag);
