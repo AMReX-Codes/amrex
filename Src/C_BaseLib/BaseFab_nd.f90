@@ -173,6 +173,116 @@ contains
   end subroutine fort_fab_plus
 
 
+  subroutine fort_fab_minus(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp) &
+       bind(c,name='fort_fab_minus')
+    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3), ncomp
+    real(c_real), intent(in   ) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
+    real(c_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
+    
+    integer :: i,j,k,n,off(3)
+
+    off = lo - sblo
+
+    do n = 1, ncomp
+       do       k = lo(3), hi(3)
+          do    j = lo(2), hi(2)
+             do i = lo(1), hi(1)
+                dst(i,j,k,n) = dst(i,j,k,n) - src(i+off(1),j+off(2),k+off(3),n)
+             end do
+          end do
+       end do
+    end do
+  end subroutine fort_fab_minus
+
+
+  subroutine fort_fab_mult(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp) &
+       bind(c,name='fort_fab_mult')
+    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3), ncomp
+    real(c_real), intent(in   ) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
+    real(c_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
+    
+    integer :: i,j,k,n,off(3)
+
+    off = lo - sblo
+
+    do n = 1, ncomp
+       do       k = lo(3), hi(3)
+          do    j = lo(2), hi(2)
+             do i = lo(1), hi(1)
+                dst(i,j,k,n) = dst(i,j,k,n) * src(i+off(1),j+off(2),k+off(3),n)
+             end do
+          end do
+       end do
+    end do
+  end subroutine fort_fab_mult
+
+
+  subroutine fort_fab_divide(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp) &
+       bind(c,name='fort_fab_divide')
+    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3), ncomp
+    real(c_real), intent(in   ) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
+    real(c_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
+    
+    integer :: i,j,k,n,off(3)
+
+    off = lo - sblo
+
+    do n = 1, ncomp
+       do       k = lo(3), hi(3)
+          do    j = lo(2), hi(2)
+             do i = lo(1), hi(1)
+                dst(i,j,k,n) = dst(i,j,k,n) / src(i+off(1),j+off(2),k+off(3),n)
+             end do
+          end do
+       end do
+    end do
+  end subroutine fort_fab_divide
+
+
+  subroutine fort_fab_protdivide(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp) &
+       bind(c,name='fort_fab_protdivide')
+    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3), ncomp
+    real(c_real), intent(in   ) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
+    real(c_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
+    
+    integer :: i,j,k,n,off(3)
+
+    off = lo - sblo
+
+    do n = 1, ncomp
+       do       k = lo(3), hi(3)
+          do    j = lo(2), hi(2)
+             do i = lo(1), hi(1)
+                if (src(i+off(1),j+off(2),k+off(3),n) .ne. 0._c_real) then
+                   dst(i,j,k,n) = dst(i,j,k,n) / src(i+off(1),j+off(2),k+off(3),n)
+                end if
+             end do
+          end do
+       end do
+    end do
+  end subroutine fort_fab_protdivide
+
+
+  ! dst = a/src
+  subroutine fort_fab_invert(lo, hi, dst, dlo, dhi, ncomp, a) &
+       bind(c,name='fort_fab_invert')
+    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), ncomp
+    real(c_real), intent(in   ) :: a
+    real(c_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
+    
+    integer :: i,j,k,n
+
+    do n = 1, ncomp
+       do       k = lo(3), hi(3)
+          do    j = lo(2), hi(2)
+             do i = lo(1), hi(1)
+                dst(i,j,k,n) = a / dst(i,j,k,n)
+             end do
+          end do
+       end do
+    end do
+  end subroutine fort_fab_invert
+
   ! dst += a*src
   subroutine fort_fab_saxpy(lo, hi, dst, dlo, dhi, a, src, slo, shi, sblo, ncomp) &
        bind(c,name='fort_fab_saxpy')

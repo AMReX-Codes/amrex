@@ -36,6 +36,30 @@ extern "C"
 			const Real* src, const int* slo, const int* shi, const int* sblo,
 			const int* ncomp);    
 
+    void fort_fab_minus (const int* lo, const int* hi,
+			 Real* dst, const int* dlo, const int* dhi,
+			 const Real* src, const int* slo, const int* shi, const int* sblo,
+			 const int* ncomp);    
+
+    void fort_fab_mult (const int* lo, const int* hi,
+			Real* dst, const int* dlo, const int* dhi,
+			const Real* src, const int* slo, const int* shi, const int* sblo,
+			const int* ncomp);    
+
+    void fort_fab_divide (const int* lo, const int* hi,
+			  Real* dst, const int* dlo, const int* dhi,
+			  const Real* src, const int* slo, const int* shi, const int* sblo,
+			  const int* ncomp);    
+
+    void fort_fab_protdivide (const int* lo, const int* hi,
+			      Real* dst, const int* dlo, const int* dhi,
+			      const Real* src, const int* slo, const int* shi, const int* sblo,
+			      const int* ncomp);        
+
+    void fort_fab_invert (const int* lo, const int* hi,
+			  Real* dst, const int* dlo, const int* dhi, const int* ncomp,
+			  const Real* a);
+
     void fort_fab_saxpy (const int* lo, const int* hi,
 			 Real* dst, const int* dlo, const int* dhi,
 			 const Real* a,

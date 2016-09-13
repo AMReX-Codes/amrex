@@ -248,20 +248,9 @@ BaseFab<Real>::invert (Real       val,
     BL_ASSERT(domain.contains(bx));
     BL_ASSERT(comp >= 0 && comp + ncomp <= nvar);
 
-    const int* _box_lo = bx.loVect();            
-    const int* _box_hi = bx.hiVect();            
-    const int* _datalo = loVect();                           
-    const int* _datahi = hiVect();
-
-    const Real* _data = dataPtr(comp);
-
-    FORT_FASTINVERT(_data,
-                    ARLIM(_datalo),
-                    ARLIM(_datahi),
-                    _box_lo,
-                    _box_hi,
-                    &val,
-                    &ncomp);
+    fort_fab_invert(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
+		    BL_TO_FORTRAN_N_3D(*this,comp), &ncomp,
+		    &val);
     return *this;
 }
 
@@ -344,26 +333,10 @@ BaseFab<Real>::mult (const BaseFab<Real>& src,
     BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= nComp());
 
-    const int* destboxlo  = destbox.loVect();
-    const int* destboxhi  = destbox.hiVect();
-    const int* _th_plo    = loVect();
-    const int* _th_phi    = hiVect();
-    const int* _x_lo      = srcbox.loVect();
-    const int* _x_plo     = src.loVect();
-    const int* _x_phi     = src.hiVect();
-    Real*       _th_p     = dataPtr(destcomp);
-    const Real* _x_p      = src.dataPtr(srccomp);
-
-    FORT_FASTMULT(_th_p,
-                  ARLIM(_th_plo),
-                  ARLIM(_th_phi),
-                  D_DECL(destboxlo[0],destboxlo[1],destboxlo[2]),
-                  D_DECL(destboxhi[0],destboxhi[1],destboxhi[2]),
-                  _x_p,
-                  ARLIM(_x_plo),
-                  ARLIM(_x_phi),
-                  D_DECL(_x_lo[0],_x_lo[1],_x_lo[2]),
-                  &numcomp);
+    fort_fab_mult(ARLIM_3D(destbox.loVect()), ARLIM_3D(destbox.hiVect()),
+		  BL_TO_FORTRAN_N_3D(*this,destcomp),
+		  BL_TO_FORTRAN_N_3D(src,srccomp), ARLIM_3D(srcbox.loVect()),
+		  &numcomp);
     return *this;
 }
 
@@ -400,26 +373,10 @@ BaseFab<Real>::minus (const BaseFab<Real>& src,
     BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= nComp());
 
-    const int* destboxlo  = destbox.loVect();
-    const int* destboxhi  = destbox.hiVect();
-    const int* _th_plo    = loVect();
-    const int* _th_phi    = hiVect();
-    const int* _x_lo      = srcbox.loVect();
-    const int* _x_plo     = src.loVect();
-    const int* _x_phi     = src.hiVect();
-    Real*       _th_p     = dataPtr(destcomp);
-    const Real* _x_p      = src.dataPtr(srccomp);
-
-    FORT_FASTMINUS(_th_p,
-                   ARLIM(_th_plo),
-                   ARLIM(_th_phi),
-                   D_DECL(destboxlo[0],destboxlo[1],destboxlo[2]),
-                   D_DECL(destboxhi[0],destboxhi[1],destboxhi[2]),
-                   _x_p,
-                   ARLIM(_x_plo),
-                   ARLIM(_x_phi),
-                   D_DECL(_x_lo[0],_x_lo[1],_x_lo[2]),
-                   &numcomp);
+    fort_fab_minus(ARLIM_3D(destbox.loVect()), ARLIM_3D(destbox.hiVect()),
+		   BL_TO_FORTRAN_N_3D(*this,destcomp),
+		   BL_TO_FORTRAN_N_3D(src,srccomp), ARLIM_3D(srcbox.loVect()),
+		   &numcomp);
     return *this;
 }
 
@@ -439,26 +396,10 @@ BaseFab<Real>::divide (const BaseFab<Real>& src,
     BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= nComp());
 
-    const int* destboxlo  = destbox.loVect();
-    const int* destboxhi  = destbox.hiVect();
-    const int* _th_plo    = loVect();
-    const int* _th_phi    = hiVect();
-    const int* _x_lo      = srcbox.loVect();
-    const int* _x_plo     = src.loVect();
-    const int* _x_phi     = src.hiVect();
-    Real*       _th_p     = dataPtr(destcomp);
-    const Real* _x_p      = src.dataPtr(srccomp);
-
-    FORT_FASTDIVIDE(_th_p,
-                    ARLIM(_th_plo),
-                    ARLIM(_th_phi),
-                    D_DECL(destboxlo[0],destboxlo[1],destboxlo[2]),
-                    D_DECL(destboxhi[0],destboxhi[1],destboxhi[2]),
-                    _x_p,
-                    ARLIM(_x_plo),
-                    ARLIM(_x_phi),
-                    D_DECL(_x_lo[0],_x_lo[1],_x_lo[2]),
-                    &numcomp);
+    fort_fab_divide(ARLIM_3D(destbox.loVect()), ARLIM_3D(destbox.hiVect()),
+		    BL_TO_FORTRAN_N_3D(*this,destcomp),
+		    BL_TO_FORTRAN_N_3D(src,srccomp), ARLIM_3D(srcbox.loVect()),
+		    &numcomp);
     return *this;
 }
 
@@ -478,26 +419,10 @@ BaseFab<Real>::protected_divide (const BaseFab<Real>& src,
     BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= nComp());
 
-    const int* destboxlo  = destbox.loVect();
-    const int* destboxhi  = destbox.hiVect();
-    const int* _th_plo    = loVect();
-    const int* _th_phi    = hiVect();
-    const int* _x_lo      = srcbox.loVect();
-    const int* _x_plo     = src.loVect();
-    const int* _x_phi     = src.hiVect();
-    Real*       _th_p     = dataPtr(destcomp);
-    const Real* _x_p      = src.dataPtr(srccomp);
-
-    FORT_FASTPROTDIVIDE(_th_p,
-                        ARLIM(_th_plo),
-                        ARLIM(_th_phi),
-                        D_DECL(destboxlo[0],destboxlo[1],destboxlo[2]),
-                        D_DECL(destboxhi[0],destboxhi[1],destboxhi[2]),
-                        _x_p,
-                        ARLIM(_x_plo),
-                        ARLIM(_x_phi),
-                        D_DECL(_x_lo[0],_x_lo[1],_x_lo[2]),
-                        &numcomp);
+    fort_fab_protdivide(ARLIM_3D(destbox.loVect()), ARLIM_3D(destbox.hiVect()),
+			BL_TO_FORTRAN_N_3D(*this,destcomp),
+			BL_TO_FORTRAN_N_3D(src,srccomp), ARLIM_3D(srcbox.loVect()),
+			&numcomp);
     return *this;
 }
 
