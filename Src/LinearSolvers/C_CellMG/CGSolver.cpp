@@ -192,32 +192,10 @@ sxay (MultiFab&       ss,
 {
     BL_PROFILE("CGSolver::sxay()");
 
-    BL_ASSERT(yy.nComp() > yycomp);
-
     const int ncomp  = 1;
     const int sscomp = 0;
     const int xxcomp = 0;
-
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-    for (MFIter mfi(ss,true); mfi.isValid(); ++mfi)
-    {
-        const Box&       bx    = mfi.tilebox();
-        FArrayBox&       ssfab = ss[mfi];
-        const FArrayBox& xxfab = xx[mfi];
-        const FArrayBox& yyfab = yy[mfi];
-
-        FORT_CGSXAY(ssfab.dataPtr(sscomp),
-                    ARLIM(ssfab.loVect()), ARLIM(ssfab.hiVect()),
-                    xxfab.dataPtr(xxcomp),
-                    ARLIM(xxfab.loVect()), ARLIM(xxfab.hiVect()),
-                    &a,
-                    yyfab.dataPtr(yycomp),
-                    ARLIM(yyfab.loVect()), ARLIM(yyfab.hiVect()),
-                    bx.loVect(), bx.hiVect(),
-                    &ncomp);
-    }
+    MultiFab::LinComb(ss, 1.0, xx, xxcomp, a, yy, yycomp, sscomp, ncomp, 0);
 }
 
 inline
