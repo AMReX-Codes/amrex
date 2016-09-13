@@ -9,8 +9,7 @@
 #include <VisMF.H>
 
 //
-// This class encapsulates writing to nfiles with
-// static set selection.
+// This class encapsulates writing to nfiles.
 //
 // an example:
 // 
@@ -29,8 +28,15 @@ class NFilesIter
     // ---- through "filePrefix" + "noutfiles-1"
     // ---- the range [1, nProcs] for noutfiles is enforced
 
+    // ---- constructor for writing with static set selection
     NFilesIter(int noutfiles, const std::string &fileprefix,
-               bool groupsets = false, bool setBuf = false);
+               bool groupsets, bool setBuf);
+
+    // ---- constructor for writing with dynamic set selection
+    // ---- deciderproc defaults to nprocs - 1 if < 0
+    NFilesIter(int noutfiles, const std::string &fileprefix,
+               bool groupsets, bool setBuf,
+	       int deciderproc);
 
     // ---- constructor for reading
     NFilesIter(const std::string &fileName,
@@ -52,6 +58,18 @@ class NFilesIter
     static int NSets(int nProcs, int nOutFiles) {
       int anf(ActualNFiles(nOutFiles));
       return ((nProcs + (anf - 1)) / anf);
+    }
+
+    static int WhichSet(int whichproc, int nprocs,
+                        int noutfiles, bool groupsets)
+    {
+      int whichset;
+      if(groupsets) {
+        whichset = whichproc / noutfiles;
+      } else {
+        whichset = whichproc % NSets(nprocs, noutfiles);
+      }
+      return whichset;
     }
 
     // ---- this returns the actual number of files used
@@ -87,6 +105,12 @@ class NFilesIter
 				              whichProc, groupSets), 5 ) );
     }
 
+    // ---- this is the processor coorinating dynamic set selection
+    int CoordinatorProc() const { return coordinatorProc; }
+
+    // ---- these are the file numbers to which each rank wrote
+    const Array<int> &FileNumbersWritten() const { return fileNumbersWritten; }
+
 
   private:
 
@@ -104,7 +128,12 @@ class NFilesIter
     bool isReading;
     bool finishedReading;
     Array<int> readRanks;
+    Array<int> fileNumbersWritten;    // ---- [rank]
     int myReadIndex;
+    bool useStaticSetSelection;
+    int fileNumber, remainingWriters, deciderProc, coordinatorProc;
+    int deciderTag, coordinatorTag, doneTag, writeTag;
+
 
     static const int indexUndefined = -1;
 
