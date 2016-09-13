@@ -226,43 +226,19 @@ dotxy (const MultiFab& r,
     BL_ASSERT(r.boxArray() == z.boxArray());
 
     const int ncomp = 1;
-
-    Real dot = 0.0;
-
-#ifdef _OPENMP
-#pragma omp parallel reduction(+:dot)
-#endif
-    for (MFIter mfi(r,true); mfi.isValid(); ++mfi)
-    {
-        const Box&       rbx  = mfi.validbox();
-        const FArrayBox& rfab = r[mfi];
-        const FArrayBox& zfab = z[mfi];
-
-        Real tdot = 0.0;
-
-        FORT_CGXDOTY(&tdot,
-                     zfab.dataPtr(zcomp),
-                     ARLIM(zfab.loVect()),ARLIM(zfab.hiVect()),
-                     rfab.dataPtr(rcomp),
-                     ARLIM(rfab.loVect()),ARLIM(rfab.hiVect()),
-                     rbx.loVect(),rbx.hiVect(),
-                     &ncomp);
-        dot += tdot;
-    }
-
-    if ( !local )
-        ParallelDescriptor::ReduceRealSum(dot,r.color());
-
-    return dot;
+    const int nghost = 0;
+    return MultiFab::Dot(r,rcomp,z,zcomp,ncomp,nghost,local);
 }
 
-inline
+static
 Real
 dotxy (const MultiFab& r,
        const MultiFab& z,
        bool            local = false)
 {
-    return dotxy(r,0,z,0,local);
+    const int ncomp = 1;
+    const int nghost = 0;
+    return MultiFab::Dot(r,0,z,0,ncomp,nghost,local);
 }
 
 //

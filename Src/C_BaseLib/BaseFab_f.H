@@ -71,6 +71,11 @@ extern "C"
 			   const Real* a, const Real* x, const int* xlo, const int* xhi, const int* xblo,
 			   const Real* b, const Real* y, const int* ylo, const int* yhi, const int* yblo,
 			   const int* ncomp);
+
+    Real fort_fab_dot (const int* lo, const int* hi,
+		       const Real* x, const int* xlo, const int* xhi,
+		       const Real* y, const int* ylo, const int* yhi, const int* yblo,
+		       const int* ncomp);
 }
 
 #endif

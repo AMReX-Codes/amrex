@@ -867,6 +867,11 @@ public:
                          int               comp,
                          int               numcomp = 1);
 
+    // Dot product of x (i.e.,this) and y
+    T dot (const Box& xbx, int xcomp,
+	   const BaseFab<T>& y, const Box& ybx, int ycomp,
+	   int numcomp = 1) const;
+
 protected:
     //
     // Allocates memory for the BaseFab<T>.

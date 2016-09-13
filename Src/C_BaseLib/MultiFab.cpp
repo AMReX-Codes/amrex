@@ -31,6 +31,32 @@ MultiFabCopyDescriptor::MultiFabCopyDescriptor ()
 
 MultiFabCopyDescriptor::~MultiFabCopyDescriptor () {}
 
+Real
+MultiFab::Dot (const MultiFab& x, int xcomp,
+	       const MultiFab& y, int ycomp,
+	       int numcomp, int nghost, bool local)
+{
+    BL_ASSERT(x.boxArray() == y.boxArray());
+    BL_ASSERT(x.DistributionMap() == y.DistributionMap());
+    BL_ASSERT(x.nGrow() >= nghost && y.nGrow() >= nghost);
+
+    Real sm = 0.0;
+
+#ifdef _OPENMP
+#pragma omp parallel reduction(+:sm)
+#endif
+    for (MFIter mfi(x,true); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.growntilebox(nghost);
+        sm += x[mfi].dot(bx,xcomp,y[mfi],bx,ycomp,numcomp);
+    }
+
+    if (!local)
+        ParallelDescriptor::ReduceRealSum(sm, x.color());
+
+    return sm;
+}
+
 void
 MultiFab::Add (MultiFab&       dst,
 	       const MultiFab& src,
