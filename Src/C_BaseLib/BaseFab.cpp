@@ -9,7 +9,6 @@
 #include <CArena.H>
 
 #if !(defined(BL_NO_FORT) || defined(WIN32))
-#include <SPECIALIZE_F.H>
 #include <BaseFab_f.H>
 #endif
 

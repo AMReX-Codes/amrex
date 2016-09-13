@@ -117,9 +117,6 @@ ifneq ($(BL_NO_FORT),TRUE)
   f90$(BOXLIB_BASE)_sources += BaseFab_nd.f90
   f90(BOXLIB_BASE)_headers += BaseFab_f.H
 
-  F$(BOXLIB_BASE)_sources += SPECIALIZE_$(DIM)D.F
-  F$(BOXLIB_BASE)_headers += SPECIALIZE_F.H
-
   f90$(BOXLIB_BASE)_sources += threadbox.f90
 
   f90$(BOXLIB_BASE)_sources += MultiFabUtil_$(DIM)d.f90
