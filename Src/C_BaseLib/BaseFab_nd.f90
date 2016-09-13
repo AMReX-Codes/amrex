@@ -15,7 +15,7 @@ contains
     
     integer :: i,j,k,n,off(3)
 
-    off = lo - sblo
+    off = sblo - lo
 
     do n = 1, ncomp
        do       k = lo(3), hi(3)
@@ -159,7 +159,7 @@ contains
     
     integer :: i,j,k,n,off(3)
 
-    off = lo - sblo
+    off = sblo - lo
 
     do n = 1, ncomp
        do       k = lo(3), hi(3)
@@ -181,7 +181,7 @@ contains
     
     integer :: i,j,k,n,off(3)
 
-    off = lo - sblo
+    off = sblo - lo
 
     do n = 1, ncomp
        do       k = lo(3), hi(3)
@@ -203,7 +203,7 @@ contains
     
     integer :: i,j,k,n,off(3)
 
-    off = lo - sblo
+    off = sblo - lo
 
     do n = 1, ncomp
        do       k = lo(3), hi(3)
@@ -225,7 +225,7 @@ contains
     
     integer :: i,j,k,n,off(3)
 
-    off = lo - sblo
+    off = sblo - lo
 
     do n = 1, ncomp
        do       k = lo(3), hi(3)
@@ -247,7 +247,7 @@ contains
     
     integer :: i,j,k,n,off(3)
 
-    off = lo - sblo
+    off = sblo - lo
 
     do n = 1, ncomp
        do       k = lo(3), hi(3)
@@ -293,7 +293,7 @@ contains
     
     integer :: i,j,k,n,off(3)
 
-    off = lo - sblo
+    off = sblo - lo
 
     do n = 1, ncomp
        do       k = lo(3), hi(3)
