@@ -177,6 +177,36 @@ MultiFab::Saxpy (MultiFab&       dst,
 }
 
 void
+MultiFab::LinComb (MultiFab&       dst,
+		   Real            a,
+		   const MultiFab& x,
+		   int             xcomp,
+		   Real            b,
+		   const MultiFab& y,
+		   int             ycomp,
+		   int             dstcomp,
+		   int             numcomp,
+		   int             nghost)
+{
+    BL_ASSERT(dst.boxArray() == x.boxArray());
+    BL_ASSERT(dst.distributionMap == x.distributionMap);
+    BL_ASSERT(dst.boxArray() == y.boxArray());
+    BL_ASSERT(dst.distributionMap == y.distributionMap);
+    BL_ASSERT(dst.nGrow() >= nghost && x.nGrow() >= nghost && y.nGrow() >= nghost);
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(dst,true); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.growntilebox(nghost);
+	
+        if (bx.ok())
+            dst[mfi].linComb(x[mfi],bx,xcomp,y[mfi],bx,ycomp,a,b,bx,dstcomp,numcomp);
+    }
+}
+
+void
 MultiFab::plus (Real val,
                 int  nghost)
 {

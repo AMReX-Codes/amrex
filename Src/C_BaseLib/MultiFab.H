@@ -450,6 +450,19 @@ public:
 		       int             dstcomp,
 		       int             numcomp,
 		       int             nghost);
+    //
+    // dst = a*x + b*y
+    //
+    static void LinComb (MultiFab&       dst,
+			 Real            a,
+			 const MultiFab& x,
+			 int             xcomp,
+			 Real            b,
+			 const MultiFab& y,
+			 int             ycomp,
+			 int             dstcomp,
+			 int             numcomp,
+			 int             nghost);
 
     void define (const BoxArray& bxs,
 		 int             nvar,
