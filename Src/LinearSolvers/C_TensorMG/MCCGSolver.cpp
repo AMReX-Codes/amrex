@@ -4,7 +4,6 @@
 #include <ParmParse.H>
 #include <ParallelDescriptor.H>
 #include <Utility.H>
-#include <CG_F.H>
 #include <MCCGSolver.H>
 
 namespace
@@ -322,21 +321,15 @@ MCCGSolver::advance (MultiFab&       p,
     //
     // Compute p = z  +  beta p
     //
-    int             ncomp = p.nComp();
-    const BoxArray& zbox  = z.boxArray();
-
-    for (MFIter pmfi(p); pmfi.isValid(); ++pmfi)
+    int ncomp = p.nComp();
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(p,true); mfi.isValid(); ++mfi)
     {
-        const Box&       bx   = zbox[pmfi.index()];
-        FArrayBox&       pfab = p[pmfi];
-        const FArrayBox& zfab = z[pmfi];
-
-	FORT_CGADVCP(
-	    pfab.dataPtr(),
-            ARLIM(pfab.loVect()), ARLIM(pfab.hiVect()),
-	    zfab.dataPtr(),
-            ARLIM(zfab.loVect()), ARLIM(zfab.hiVect()),
-	    &beta, bx.loVect(), bx.hiVect(),&ncomp);
+	const Box& bx = mfi.tilebox();
+	p[mfi].mult(beta, bx, 0, ncomp);
+	p[mfi].plus(z[mfi],bx,0,0,ncomp);
     }
 }
 
@@ -348,31 +341,11 @@ MCCGSolver::update (MultiFab&       sol,
 		    const MultiFab& w)
 {
     //
-    // Compute x =+ alpha p  and  r -= alpha w
+    // Compute sol =+ alpha p  and  r -= alpha w
     //
     int ncomp = r.nComp();
-    for (MFIter solmfi(sol); solmfi.isValid(); ++solmfi)
-    {
-        const int gn = solmfi.index();
-
-        const Box&       vbox = solmfi.validbox();
-        FArrayBox&       sfab = sol[gn];
-        FArrayBox&       rfab = r[gn];
-        const FArrayBox& wfab = w[gn];
-        const FArrayBox& pfab = p[gn];
-
-	FORT_CGUPDATE(
-	    sfab.dataPtr(),
-            ARLIM(sfab.loVect()),ARLIM(sfab.hiVect()),
-	    rfab.dataPtr(),
-            ARLIM(rfab.loVect()),ARLIM(rfab.hiVect()),
-	    &alpha,
-	    wfab.dataPtr(),
-            ARLIM(wfab.loVect()),ARLIM(wfab.hiVect()),
-	    pfab.dataPtr(),
-            ARLIM(pfab.loVect()), ARLIM(pfab.hiVect()),
-	    vbox.loVect(), vbox.hiVect(),&ncomp);
-    }
+    MultiFab::Saxpy(sol,  alpha, p, 0, 0, ncomp, 0);
+    MultiFab::Saxpy(r  , -alpha, w, 0, 0, ncomp, 0);
 }
 
 Real
