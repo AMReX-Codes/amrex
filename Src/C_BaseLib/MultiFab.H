@@ -457,6 +457,16 @@ public:
 		       int             numcomp,
 		       int             nghost);
     //
+    // dst = src + a*dst
+    //
+    static void Xpay (MultiFab&       dst,
+		      Real            a, 
+		      const MultiFab& src,
+		      int             srccomp,
+		      int             dstcomp,
+		      int             numcomp,
+		      int             nghost);
+    //
     // dst = a*x + b*y
     //
     static void LinComb (MultiFab&       dst,
