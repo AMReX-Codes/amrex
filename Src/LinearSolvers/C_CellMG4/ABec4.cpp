@@ -603,44 +603,11 @@ ABec4::residual (MultiFab&       residL,
                  bool            local)
 {
   if (level == 0) {
-
-    apply(residL, solnL, level, bc_mode, local);
-
-    const bool tiling = true;
-
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-    for (MFIter solnLmfi(solnL,tiling); solnLmfi.isValid(); ++solnLmfi)
-    {
-      const int nc = residL.nComp();
-      //
-      // Only single-component solves supported (verified) by this class.
-      //
-      BL_ASSERT(nc == 1);
-
-      const Box& tbx = solnLmfi.tilebox();
-
-      BL_ASSERT(gbox[level][solnLmfi.index()] == solnLmfi.validbox());
-
-      FArrayBox& residfab = residL[solnLmfi];
-      const FArrayBox& rhsfab = rhsL[solnLmfi];
-
-      FORT_RESIDL(
-        residfab.dataPtr(), 
-        ARLIM(residfab.loVect()), ARLIM(residfab.hiVect()),
-        rhsfab.dataPtr(), 
-        ARLIM(rhsfab.loVect()), ARLIM(rhsfab.hiVect()),
-        residfab.dataPtr(), 
-        ARLIM(residfab.loVect()), ARLIM(residfab.hiVect()),
-        tbx.loVect(), tbx.hiVect(), &nc);
-    }
+      apply(residL, solnL, level, bc_mode, local);
+      MultiFab::Xpay(residL, -1.0, rhsL, 0, 0, residL.nComp(), 0);
   }
   else {
-
-    BL_ASSERT(LO_Op != 0);
-
-    LO_Op->residual(residL,rhsL,solnL,level,bc_mode,local);
-
+      BL_ASSERT(LO_Op != 0);
+      LO_Op->residual(residL,rhsL,solnL,level,bc_mode,local);
   }
 }
