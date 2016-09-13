@@ -1657,6 +1657,21 @@ BaseFab<Real>::protected_divide (const BaseFab<Real>& src,
                                  int                  srccomp,
                                  int                  destcomp,
                                  int                  numcomp);
+
+template <>
+BaseFab<Real>&
+BaseFab<Real>::linComb (const BaseFab<Real>&  f1,
+			const Box&         b1,
+			int                comp1,
+			const BaseFab<Real>&  f2,
+			const Box&         b2,
+			int                comp2,
+			Real               alpha,
+			Real               beta,
+			const Box&         b,
+			int                comp,
+			int                numcomp);
+
 #endif
 
 template <class T>
