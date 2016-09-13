@@ -96,11 +96,14 @@ MCCGSolver::norm (const MultiFab& res)
 
     Real restot = 0.0;
 
-    for (MFIter mfi(res); mfi.isValid(); ++mfi)
+#ifdef _OPENMP
+#pragma omp parallel reduction(max:restot)
+#endif
+    for (MFIter mfi(res,true); mfi.isValid(); ++mfi)
     {
-        restot = std::max(restot, res[mfi].norm(mfi.validbox(), p, 0, ncomp));
+	restot = std::max(restot, res[mfi].norm(mfi.tilebox(), p, 0, ncomp));
     }
-    ParallelDescriptor::ReduceRealMax(restot);
+    ParallelDescriptor::ReduceRealMax(restot,res.color());
     return restot;
 }
 
