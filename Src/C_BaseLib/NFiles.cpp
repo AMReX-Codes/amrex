@@ -8,10 +8,13 @@ NFilesIter::NFilesIter(int noutfiles, const std::string &fileprefix,
                        bool groupsets, bool setBuf)
 {
   isReading = false;
+  nOutFiles = ActualNFiles(noutfiles);
   groupSets = groupsets;
+  if(nOutFiles == nProcs) {
+    groupSets = true;
+  }
   myProc    = ParallelDescriptor::MyProc();
   nProcs    = ParallelDescriptor::NProcs();
-  nOutFiles = ActualNFiles(noutfiles);
   nSets     = NSets(nProcs, nOutFiles);
   mySet     = WhichSet(myProc, nProcs, nOutFiles, groupSets);
   fileNumber = FileNumber(nOutFiles, myProc, groupSets);
@@ -50,10 +53,13 @@ NFilesIter::NFilesIter(int noutfiles, const std::string &fileprefix,
 		       int deciderproc)
 {
   isReading = false;
+  nOutFiles = ActualNFiles(noutfiles);
   groupSets = groupsets;
+  if(nOutFiles == nProcs) {
+    groupSets = true;
+  }
   myProc    = ParallelDescriptor::MyProc();
   nProcs    = ParallelDescriptor::NProcs();
-  nOutFiles = ActualNFiles(noutfiles);
   nSets     = NSets(nProcs, nOutFiles);
   mySet     = WhichSet(myProc, nProcs, nOutFiles, groupSets);
   fileNumber = FileNumber(nOutFiles, myProc, groupSets);
@@ -79,6 +85,7 @@ NFilesIter::NFilesIter(int noutfiles, const std::string &fileprefix,
   useStaticSetSelection = false;
   if(nOutFiles == nProcs) {
     useStaticSetSelection = true;
+    coordinatorProc = ParallelDescriptor::IOProcessorNumber();
   }
 
 
