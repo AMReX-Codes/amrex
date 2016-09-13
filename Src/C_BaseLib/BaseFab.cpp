@@ -275,34 +275,13 @@ BaseFab<Real>::norm (const Box& bx,
     BL_ASSERT(domain.contains(bx));
     BL_ASSERT(comp >= 0 && comp + ncomp <= nvar);
 
-    const int* _box_lo = bx.loVect();            
-    const int* _box_hi = bx.hiVect();            
-    const int* _datalo = loVect();                           
-    const int* _datahi = hiVect();
+    Real nrm;
 
-    const Real* _data = dataPtr(comp);
-
-    Real nrm = 0;
-
-    if (p == 0)
+    if (p == 0 || p == 1)
     {
-        FORT_FASTZERONORM(_data,
-                          ARLIM(_datalo),
-                          ARLIM(_datahi),
-                          _box_lo,
-                          _box_hi,
-                          &ncomp,
-                          &nrm);
-    }
-    else if (p == 1)
-    {
-        FORT_FASTONENORM(_data,
-                         ARLIM(_datalo),
-                         ARLIM(_datahi),
-                         _box_lo,
-                         _box_hi,
-                         &ncomp,
-                         &nrm);
+	nrm = fort_fab_norm(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
+			    BL_TO_FORTRAN_N_3D(*this,comp), &ncomp,
+			    &p);
     }
     else
     {
