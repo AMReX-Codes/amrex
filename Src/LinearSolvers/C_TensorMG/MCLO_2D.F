@@ -29,7 +29,7 @@ c
       if ( cdir .eq. 0 ) then
          do n = 1, nc
             do j = lo(2), hi(2)
-               do i = lo(1), hi(1)+1
+               do i = lo(1), hi(1)
                   den = f(2*i,2*j,n) + f(2*i,2*j+1,n)
                   if (den .ne. 0.0) then
                     c(i,j,n) =  factor*f(2*i,2*j,n)*f(2*i,2*j+1,n)/den
@@ -41,7 +41,7 @@ c
          enddo
       else if (cdir .eq. 1 ) then
          do n = 1, nc
-            do j = lo(2), hi(2)+1
+            do j = lo(2), hi(2)
                do i = lo(1), hi(1)
                   den = f(2*i,2*j,n) + f(2*i+1,2*j,n)
                   if (den .ne. 0.0) then
@@ -81,14 +81,14 @@ c
       if (cdir .eq. 0 ) then
          do n = 1, nc
             do j = lo(2), hi(2)
-               do i = lo(1), hi(1)+1
+               do i = lo(1), hi(1)
                   c(i,j,n) = (f(2*i,2*j,n) + f(2*i,2*j+1,n))*denom
                enddo
             enddo
          enddo
       else if (cdir .eq. 1) then
          do n = 1, nc
-            do j = lo(2), hi(2)+1
+            do j = lo(2), hi(2)
                do i = lo(1), hi(1)
                   c(i,j,n) = (f(2*i,2*j,n) + f(2*i+1,2*j,n))*denom
                enddo
