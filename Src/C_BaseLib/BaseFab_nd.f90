@@ -308,6 +308,30 @@ contains
   end subroutine fort_fab_saxpy
 
 
+  ! dst = src + a*dst
+  subroutine fort_fab_xpay(lo, hi, dst, dlo, dhi, a, src, slo, shi, sblo, ncomp) &
+       bind(c,name='fort_fab_xpay')
+    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3), ncomp
+    real(c_real), intent(in   ) :: a
+    real(c_real), intent(in   ) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
+    real(c_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
+    
+    integer :: i,j,k,n,off(3)
+
+    off = sblo - lo
+
+    do n = 1, ncomp
+       do       k = lo(3), hi(3)
+          do    j = lo(2), hi(2)
+             do i = lo(1), hi(1)
+                dst(i,j,k,n) = src(i+off(1),j+off(2),k+off(3),n) + a * dst(i,j,k,n)
+             end do
+          end do
+       end do
+    end do
+  end subroutine fort_fab_xpay
+
+
   ! dst = a*x + b*y
   subroutine fort_fab_lincomb(lo, hi, dst, dlo, dhi, a, x, xlo, xhi, xblo, &
        b, y, ylo, yhi, yblo, ncomp) bind(c,name='fort_fab_lincomb')

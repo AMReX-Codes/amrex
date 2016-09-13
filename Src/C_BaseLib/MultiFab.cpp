@@ -203,6 +203,31 @@ MultiFab::Saxpy (MultiFab&       dst,
 }
 
 void
+MultiFab::Xpay (MultiFab&       dst,
+		Real            a, 
+		const MultiFab& src,
+		int             srccomp,
+		int             dstcomp,
+		int             numcomp,
+		int             nghost)
+{
+    BL_ASSERT(dst.boxArray() == src.boxArray());
+    BL_ASSERT(dst.distributionMap == src.distributionMap);
+    BL_ASSERT(dst.nGrow() >= nghost && src.nGrow() >= nghost);
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(dst,true); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.growntilebox(nghost);
+
+        if (bx.ok())
+            dst[mfi].xpay(a, src[mfi], bx, bx, srccomp, dstcomp, numcomp);
+    }
+}
+
+void
 MultiFab::LinComb (MultiFab&       dst,
 		   Real            a,
 		   const MultiFab& x,

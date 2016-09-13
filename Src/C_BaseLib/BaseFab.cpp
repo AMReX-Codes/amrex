@@ -364,6 +364,31 @@ BaseFab<Real>::saxpy (Real a, const BaseFab<Real>& src,
     return *this;
 }
 
+template <>
+BaseFab<Real>&
+BaseFab<Real>::xpay (Real a, const BaseFab<Real>& src,
+		     const Box&        srcbox,
+		     const Box&        destbox,
+		     int               srccomp,
+		     int               destcomp,
+		     int               numcomp)
+{
+    BL_ASSERT(srcbox.ok());
+    BL_ASSERT(src.box().contains(srcbox));
+    BL_ASSERT(destbox.ok());
+    BL_ASSERT(box().contains(destbox));
+    BL_ASSERT(destbox.sameSize(srcbox));
+    BL_ASSERT( srccomp >= 0 &&  srccomp+numcomp <= src.nComp());
+    BL_ASSERT(destcomp >= 0 && destcomp+numcomp <=     nComp());
+
+    fort_fab_xpay(ARLIM_3D(destbox.loVect()), ARLIM_3D(destbox.hiVect()),
+		  BL_TO_FORTRAN_N_3D(*this,destcomp),
+		  &a,
+		  BL_TO_FORTRAN_N_3D(src,srccomp), ARLIM_3D(srcbox.loVect()),
+		  &numcomp);
+    return *this;
+}
+
 template<>
 BaseFab<Real>&
 BaseFab<Real>::minus (const BaseFab<Real>& src,

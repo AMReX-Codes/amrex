@@ -612,6 +612,15 @@ public:
     //
     BaseFab<T>& saxpy (T a, const BaseFab<T>& x);
     //
+    // FAB XPAY (y[i] <- x[i] + a * y[i])
+    //
+    BaseFab<T>& xpay (T a, const BaseFab<T>& x,
+		      const Box&        srcbox,
+		      const Box&        destbox,
+		      int               srccomp,
+		      int               destcomp,
+		      int               numcomp=1);
+    //
     // Scalar subtraction (a[i] <- a[i] - r).
     // Note: use plus(-r) for more general operations.
     //
