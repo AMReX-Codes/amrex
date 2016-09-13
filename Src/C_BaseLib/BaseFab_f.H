@@ -20,6 +20,10 @@ extern "C"
 			       const Real* dst, const int* dlo, const int* dhi, const int* ncomp,
 			       const Real* src);
 
+    void fort_fab_setval (const int* lo, const int* hi, 
+			  const Real* dst, const int* dlo, const int* dhi, const int* ncomp,
+			  const Real* val);
+
     void fort_fab_saxpy (const int* lo, const int* hi,
 			 Real* dst, const int* dlo, const int* dhi,
 			 const Real* a,
