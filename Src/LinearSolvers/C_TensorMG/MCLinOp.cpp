@@ -9,6 +9,10 @@
 #include <MCLO_F.H>
 #include <MCLinOp.H>
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 namespace
 {
     bool initialized = false;
@@ -427,11 +431,12 @@ MCLinOp::makeCoefficients (MultiFab&       cs,
     cs.define(d, nc, nGrow, Fab_allocate);
     cs.setVal(0.0);
 
-    const BoxArray& grids = gbox[level];
-
-    for (MFIter csmfi(cs); csmfi.isValid(); ++csmfi)
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter csmfi(cs,true); csmfi.isValid(); ++csmfi)
     {
-        const Box&       grd   = grids[csmfi.index()];
+        const Box&       bx    = mfi.tilebox();
         FArrayBox&       csfab = cs[csmfi];
         const FArrayBox& fnfab = fn[csmfi];
 
@@ -443,8 +448,8 @@ MCLinOp::makeCoefficients (MultiFab&       cs,
                 ARLIM(csfab.loVect()), ARLIM(csfab.hiVect()),
 		fnfab.dataPtr(),
                 ARLIM(fnfab.loVect()), ARLIM(fnfab.hiVect()),
-		grd.loVect(),
-                grd.hiVect(), &nc);
+		bx.loVect(),
+                bx.hiVect(), &nc);
 	    break;
 	case 0:
 	case 1:
@@ -456,8 +461,8 @@ MCLinOp::makeCoefficients (MultiFab&       cs,
                     ARLIM(csfab.loVect()), ARLIM(csfab.hiVect()),
 		    fnfab.dataPtr(), 
                     ARLIM(fnfab.loVect()), ARLIM(fnfab.hiVect()),
-		    grd.loVect(),
-                    grd.hiVect(), &nc, &cdir);
+		    bx.loVect(),
+                    bx.hiVect(), &nc, &cdir);
 	    }
             else
             {
@@ -466,8 +471,8 @@ MCLinOp::makeCoefficients (MultiFab&       cs,
                     ARLIM(csfab.loVect()), ARLIM(csfab.hiVect()),
 		    fnfab.dataPtr(), 
                     ARLIM(fnfab.loVect()), ARLIM(fnfab.hiVect()),
-		    grd.loVect(),
-                    grd.hiVect(), &nc, &cdir);
+		    bx.loVect(),
+                    bx.hiVect(), &nc, &cdir);
 	    }
 	    break;
 	default:
