@@ -325,15 +325,8 @@ MCCGSolver::advance (MultiFab&       p,
     // Compute p = z  +  beta p
     //
     int ncomp = p.nComp();
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-    for (MFIter mfi(p,true); mfi.isValid(); ++mfi)
-    {
-	const Box& bx = mfi.tilebox();
-	p[mfi].mult(beta, bx, 0, ncomp);
-	p[mfi].plus(z[mfi],bx,0,0,ncomp);
-    }
+    int nghost = 0;
+    MultiFab::Xpay(p, beta, z, 0, 0, ncomp, nghost);
 }
 
 void

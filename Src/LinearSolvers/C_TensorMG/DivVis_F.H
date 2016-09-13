@@ -9,7 +9,6 @@
 #     define FORT_DVFLUX           dvflux2d
 #     define FORT_GSRB             gsrbvisc2d
 #     define FORT_APPLYBC          mcapplybc2dgen
-#     define FORT_RESIDL           mcresid2dgen
 #     define FORT_AVERAGECC        mcaveragecc2dgen
 #     define FORT_AVERAGEEC        mcaverageec2dgen
 #     define FORT_HARMONIC_AVERAGEEC mcharaverageec2dgen
@@ -18,7 +17,6 @@
 #     define FORT_DVFLUX           dvflux3d
 #     define FORT_GSRB             gsrbvisc3d
 #     define FORT_APPLYBC          mcapplybc3dgen
-#     define FORT_RESIDL           mcresid3dgen
 #     define FORT_AVERAGECC        mcaveragecc3dgen
 #     define FORT_AVERAGEEC        mcaverageec3dgen
 #     define FORT_HARMONIC_AVERAGEEC mcharaverageec3dgen
@@ -32,7 +30,6 @@
 #  define FORT_DVFLUX           DVFLUX2D
 #  define FORT_GSRB             GSRBVISC2D
 #  define FORT_APPLYBC          MCAPPLYBC2DGEN
-#  define FORT_RESIDL           MCRESID2DGEN
 #  define FORT_AVERAGECC        MCAVERAGECC2DGEN
 #  define FORT_AVERAGEEC        MCAVERAGEEC2DGEN
 #  define FORT_HARMONIC_AVERAGEEC MCHARAVERAGEEC2DGEN
@@ -41,7 +38,6 @@
 #  define FORT_DVFLUX           dvflux2d
 #  define FORT_GSRB             gsrbvisc2d
 #  define FORT_APPLYBC          mcapplybc2dgen
-#  define FORT_RESIDL           mcresid2dgen
 #  define FORT_AVERAGECC        mcaveragecc2dgen
 #  define FORT_AVERAGEEC        mcaverageec2dgen
 #  define FORT_HARMONIC_AVERAGEEC mcharaverageec2dgen
@@ -50,7 +46,6 @@
 #  define FORT_DVFLUX           dvflux2d_
 #  define FORT_GSRB             gsrbvisc2d_
 #  define FORT_APPLYBC          mcapplybc2dgen_
-#  define FORT_RESIDL           mcresid2dgen_
 #  define FORT_AVERAGECC        mcaveragecc2dgen_
 #  define FORT_AVERAGEEC        mcaverageec2dgen_
 #  define FORT_HARMONIC_AVERAGEEC mcharaverageec2dgen_
@@ -63,7 +58,6 @@
 #  define FORT_DVFLUX           DVFLUX3D
 #  define FORT_GSRB             GSRBVISC3D
 #  define FORT_APPLYBC          MCAPPLYBC3DGEN
-#  define FORT_RESIDL           MCRESID3DGEN
 #  define FORT_AVERAGECC        MCAVERAGECC3DGEN
 #  define FORT_AVERAGEEC        MCAVERAGEEC3DGEN
 #  define FORT_HARMONIC_AVERAGEEC MCHARAVERAGEEC3DGEN
@@ -72,7 +66,6 @@
 #  define FORT_DVFLUX           dvflux3d
 #  define FORT_GSRB             gsrbvisc3d
 #  define FORT_APPLYBC          mcapplybc3dgen
-#  define FORT_RESIDL           mcresid3dgen
 #  define FORT_AVERAGECC        mcaveragecc3dgen
 #  define FORT_AVERAGEEC        mcaverageec3dgen
 #  define FORT_HARMONIC_AVERAGEEC mcharaverageec3dgen
@@ -81,7 +74,6 @@
 #  define FORT_DVFLUX           dvflux3d_
 #  define FORT_GSRB             gsrbvisc3d_
 #  define FORT_APPLYBC          mcapplybc3dgen_
-#  define FORT_RESIDL           mcresid3dgen_
 #  define FORT_AVERAGECC        mcaveragecc3dgen_
 #  define FORT_AVERAGEEC        mcaverageec3dgen_
 #  define FORT_HARMONIC_AVERAGEEC mcharaverageec3dgen_
@@ -99,12 +91,6 @@ extern "C"
 	const int *tlo, const int *thi, const int *nc
 	);
 
-    void FORT_RESIDL (
-	Real* res      , ARLIM_P(res_lo), ARLIM_P(res_hi),
-	const Real* rhs, ARLIM_P(rhs_lo), ARLIM_P(rhs_hi),
-	const Real* phi, ARLIM_P(phi_lo), ARLIM_P(phi_hi),
-	const int* lo, const int* hi, const int* nc
-	);
     void FORT_AVERAGEEC (
 	Real* crseX,       ARLIM_P(crseX_lo), ARLIM_P(crseX_hi),
 	const Real* fineX, ARLIM_P(fineX_lo), ARLIM_P(fineX_hi),

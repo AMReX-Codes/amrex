@@ -282,22 +282,7 @@ MCLinOp::residual (MultiFab&       residL,
 		   MCBC_Mode       bc_mode)
 {
     apply(residL, solnL, level, bc_mode);
-
-    for (MFIter solnLmfi(solnL); solnLmfi.isValid(); ++solnLmfi)
-    {
-	int              nc     = residL.nComp();
-        const Box&       vbox   = solnLmfi.validbox();
-        FArrayBox&       resfab = residL[solnLmfi];
-        const FArrayBox& rhsfab = rhsL[solnLmfi];
-	FORT_RESIDL(
-	    resfab.dataPtr(), 
-            ARLIM(resfab.loVect()), ARLIM(resfab.hiVect()),
-	    rhsfab.dataPtr(), 
-            ARLIM(rhsfab.loVect()), ARLIM(rhsfab.hiVect()),
-	    resfab.dataPtr(), 
-            ARLIM(resfab.loVect()), ARLIM(resfab.hiVect()),
-	    vbox.loVect(), vbox.hiVect(), &nc);
-    }
+    MultiFab::Xpay(residL, -1.0, rhsL, 0, 0, residL.nComp(), 0);
 }
 
 void

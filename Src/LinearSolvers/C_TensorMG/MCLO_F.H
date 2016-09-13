@@ -7,26 +7,22 @@
 #  define FORT_AVERAGECC mcaveragecc
 #  define FORT_AVERAGEEC mcaverageec
 #  define FORT_HARMONIC_AVERAGEEC mcharaverageec
-#  define FORT_RESIDL    mcresid
 #  define FORT_APPLYBC   mcapplybc
 #else
 #  if defined(BL_FORT_USE_UPPERCASE)
 #    define FORT_AVERAGECC MCAVERAGECC
 #    define FORT_AVERAGEEC MCAVERAGEEC
 #    define FORT_HARMONIC_AVERAGEEC MCHARAVERAGEEC
-#    define FORT_RESIDL    MCRESID
 #    define FORT_APPLYBC   MCAPPLYBC
 #  elif defined(BL_FORT_USE_LOWERCASE)
 #    define FORT_AVERAGECC mcaveragecc
 #    define FORT_AVERAGEEC mcaverageec
 #    define FORT_HARMONIC_AVERAGEEC mcharaverageec
-#    define FORT_RESIDL    mcresid
 #    define FORT_APPLYBC   mcapplybc
 #  elif defined(BL_FORT_USE_UNDERSCORE)
 #    define FORT_AVERAGECC mcaveragecc_
 #    define FORT_AVERAGEEC mcaverageec_
 #    define FORT_HARMONIC_AVERAGEEC mcharaverageec_
-#    define FORT_RESIDL    mcresid_
 #    define FORT_APPLYBC   mcapplybc_
 #  endif
 
@@ -34,13 +30,6 @@
 
 extern "C"
 {
-    void FORT_RESIDL (
-	Real* res      , ARLIM_P(res_lo), ARLIM_P(res_hi),
-	const Real* rhs, ARLIM_P(rhs_lo), ARLIM_P(rhs_hi),
-	const Real* phi, ARLIM_P(phi_lo), ARLIM_P(phi_hi),
-	const int* lo, const int* hi, const int* nc
-	);
-
     void FORT_APPLYBC(
 		    const int *flagden,  // 1 if want values in den
 		    const int *flagbc,   // 1 for inhomogeneous
