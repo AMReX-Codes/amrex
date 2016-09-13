@@ -467,5 +467,23 @@ BaseFab<Real>::linComb (const BaseFab<Real>& f1,
     return *this;
 }
 
+template <>
+Real
+BaseFab<Real>::dot (const Box& xbx, int xcomp, 
+		    const BaseFab<Real>& y, const Box& ybx, int ycomp,
+		    int numcomp) const
+{
+    BL_ASSERT(xbx.ok());
+    BL_ASSERT(box().contains(xbx));
+    BL_ASSERT(y.box().contains(ybx));
+    BL_ASSERT(xbx.sameSize(ybx));
+    BL_ASSERT(xcomp >= 0 && xcomp+numcomp <=   nComp());
+    BL_ASSERT(ycomp >= 0 && ycomp+numcomp <= y.nComp());
+
+    return fort_fab_dot(ARLIM_3D(xbx.loVect()), ARLIM_3D(xbx.hiVect()),
+			BL_TO_FORTRAN_N_3D(*this,xcomp),
+			BL_TO_FORTRAN_N_3D(y,ycomp), ARLIM_3D(ybx.loVect()),
+			&numcomp);
+}
 
 #endif

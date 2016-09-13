@@ -335,4 +335,30 @@ contains
     end do
   end subroutine fort_fab_lincomb
 
+  
+  ! dot_product
+  function fort_fab_dot(lo, hi, x, xlo, xhi, y, ylo, yhi, yblo, ncomp) result(dp) &
+       bind(c,name='fort_fab_dot')
+    integer, intent(in) :: lo(3), hi(3), xlo(3), xhi(3), ylo(3), yhi(3), yblo(3), ncomp
+    real(c_real), intent(in) :: x(xlo(1):xhi(1),xlo(2):xhi(2),xlo(3):xhi(3),ncomp)
+    real(c_real), intent(in) :: y(ylo(1):yhi(1),ylo(2):yhi(2),ylo(3):yhi(3),ncomp)
+    real(c_real) :: dp
+
+    integer :: i,j,k,n, off(3)
+
+    dp = 0.0_c_real
+
+    off = yblo - lo
+
+    do n = 1, ncomp
+       do       k = lo(3), hi(3)
+          do    j = lo(2), hi(2)
+             do i = lo(1), hi(1)
+                dp = dp + x(i,j,k,n)*y(i+off(1),j+off(2),k+off(3),n)
+             end do
+          end do
+       end do
+    end do
+  end function fort_fab_dot
+
 end module basefab_nd_module

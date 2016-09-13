@@ -390,6 +390,12 @@ public:
 		 int             num_comp,
 		 int             nghost);
     //
+    // Returns the dot product of two MultiFabs.
+    //
+    static Real Dot (const MultiFab& x, int xcomp,
+		     const MultiFab& y, int ycomp,
+		     int num_comp, int nghost, bool local = false);
+    //
     // Add src to dst including nghost ghost cells.
     // The two MultiFabs MUST have the same underlying BoxArray.
     //
