@@ -890,22 +890,8 @@ MultiFab::norm0 (const Array<int>& comps, int nghost, bool local) const
 Real
 MultiFab::norm2 (int comp) const
 {
-    Real nm2 = 0.e0;
-
-#ifdef _OPENMP
-#pragma omp parallel reduction(+:nm2)
-#endif
-    for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
-    {
-        const Real nm_grid = get(mfi).norm(mfi.tilebox(), 2, comp, 1);
-
-        nm2 += nm_grid*nm_grid;
-    }
-
-    ParallelDescriptor::ReduceRealSum(nm2,this->color());
-
+    Real nm2 = MultiFab::Dot(*this, comp, *this, comp, 1, 0);
     nm2 = std::sqrt(nm2);
-
     return nm2;
 }
 

@@ -264,23 +264,6 @@ public:
     void resize (const Box& b,
                  int        N = 1);
     //
-    // Compute the Lp-norm of this FAB using components
-    // (scomp : scomp+ncomp-1).  p < 0  -> ERROR.
-    // p = 0  -> infinity norm (max norm).
-    // p = 1  -> sum of ABS(FAB)
-    // p > 1  -> Lp-norm
-    //
-    Real norm (int p     = 2,
-               int scomp = 0,
-               int ncomp = 1) const;
-    //
-    // Same as above except only on given subbox.
-    //
-    Real norm (const Box& subbox,
-               int        p     = 2,
-               int        scomp = 0,
-               int        ncomp = 1) const;
-    //
     // Write FABs in ASCII form.
     //
     friend std::ostream& operator<< (std::ostream&    os,

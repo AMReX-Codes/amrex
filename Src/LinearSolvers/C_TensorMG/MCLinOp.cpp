@@ -302,14 +302,8 @@ Real
 MCLinOp::norm (const MultiFab& in,
 	       int             level) const
 {
-    Real norm = 0.0;
-    for (MFIter inmfi(in); inmfi.isValid(); ++inmfi)
-    {
-        Real tnorm = in[inmfi].norm(gbox[level][inmfi.index()]);
-	norm += tnorm*tnorm;
-    }
-    ParallelDescriptor::ReduceRealSum(norm);
-    return norm;
+    Real nm = MultiFab::Dot(in, 0, in, 0, in.nComp(), 0);
+    return nm;
 }
 
 void
