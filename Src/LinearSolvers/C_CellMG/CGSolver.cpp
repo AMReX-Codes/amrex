@@ -12,7 +12,6 @@ using std::isinf;
 #include <ParallelDescriptor.H>
 #include <Utility.H>
 #include <LO_BCTYPES.H>
-#include <CG_F.H>
 #include <CGSolver.H>
 #include <MultiGrid.H>
 #include <VisMF.H>
