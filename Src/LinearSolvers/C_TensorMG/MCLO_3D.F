@@ -23,11 +23,8 @@ c-----------------------------------------------------------------------
 
       integer n, i, j, k
 
-!$omp parallel private(i,j,k,n)
-
       if ( cdir .eq. 0 ) then
          do n = 1, nc
-!$omp do
             do k = lo(3), hi(3)
                do j = lo(2), hi(2)
                   do i = lo(1), hi(1)+1
@@ -41,11 +38,9 @@ c-----------------------------------------------------------------------
                   enddo
                enddo
             enddo
-!$omp end do nowait
          enddo
       else if (cdir .eq. 1 ) then
          do n = 1, nc
-!$omp do
             do k = lo(3), hi(3)
                do j = lo(2), hi(2)+1
                   do i = lo(1), hi(1)
@@ -59,11 +54,9 @@ c-----------------------------------------------------------------------
                   enddo
                enddo
             enddo
-!$omp end do nowait
          enddo
       else if (cdir .eq. 2 ) then
          do n = 1, nc
-!$omp do
             do k = lo(3), hi(3)+1
                do j = lo(2), hi(2)
                   do i = lo(1), hi(1)
@@ -77,10 +70,8 @@ c-----------------------------------------------------------------------
                   enddo
                enddo
             enddo
-!$omp end do nowait
          enddo
       endif
-!$omp end parallel
 
       end
 c-----------------------------------------------------------------------
@@ -102,11 +93,8 @@ c-----------------------------------------------------------------------
      
       integer n, i, j, k
 
-!$omp parallel private(i,j,k,n)
-     
       if ( cdir .eq. 0 ) then
          do n = 1, nc
-!$omp do
             do k = lo(3), hi(3)
                do j = lo(2), hi(2)
                   do i = lo(1), hi(1)+1
@@ -120,11 +108,9 @@ c-----------------------------------------------------------------------
                   enddo
                enddo
             enddo
-!$omp end do nowait
          enddo
       else if (cdir .eq. 1 ) then
          do n = 1, nc
-!$omp do
             do k = lo(3), hi(3)
                do j = lo(2), hi(2)+1
                   do i = lo(1), hi(1)
@@ -138,11 +124,9 @@ c-----------------------------------------------------------------------
                   enddo
                enddo
             enddo
-!$omp end do nowait
          enddo
       else if (cdir .eq. 2 ) then
          do n = 1, nc
-!$omp do
             do k = lo(3), hi(3)+1
                do j = lo(2), hi(2)
                   do i = lo(1), hi(1)
@@ -156,10 +140,8 @@ c-----------------------------------------------------------------------
                   enddo
                enddo
             enddo
-!$omp end do nowait
          enddo
       endif
-!$omp end parallel
      
       end
 c-----------------------------------------------------------------------
@@ -179,9 +161,7 @@ c-----------------------------------------------------------------------
 
       integer i, j, k, n
 
-!$omp parallel private(i,j,k,n)
       do n = 1, nc
-!$omp do
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
@@ -199,9 +179,7 @@ c-----------------------------------------------------------------------
                enddo
             enddo
          enddo
-!$omp end do nowait
       enddo
-!$omp end parallel
      
       end
 
