@@ -182,7 +182,7 @@ BaseFab<Real>::performCopy (const BaseFab<Real>& src,
 
     fort_fab_copy(ARLIM_3D(destbox.loVect()), ARLIM_3D(destbox.hiVect()),
 		  BL_TO_FORTRAN_N_3D(*this,destcomp),
-		  BL_TO_FORTRAN_N_3D(src,destcomp), ARLIM_3D(srcbox.loVect()),
+		  BL_TO_FORTRAN_N_3D(src,srccomp), ARLIM_3D(srcbox.loVect()),
 		  &numcomp);
 }
 
@@ -198,19 +198,10 @@ BaseFab<Real>::copyToMem (const Box& srcbox,
 
     if (srcbox.ok())
     {
-        const Real* data   = dataPtr(srccomp);
-        const int* _box_lo = srcbox.loVect(); 
-        const int* _box_hi = srcbox.hiVect(); 
-        const int* _th_plo = loVect(); 
-        const int* _th_phi = hiVect(); 
-
-        FORT_FASTCOPYTOMEM(_box_lo,
-                           _box_hi,
-                           data,
-                           ARLIM(_th_plo),
-                           ARLIM(_th_phi),
-                           &numcomp,
-                           dst);
+	fort_fab_copytomem(ARLIM_3D(srcbox.loVect()), ARLIM_3D(srcbox.hiVect()),
+			   dst,
+			   BL_TO_FORTRAN_N_3D(*this,srccomp),
+			   &numcomp);
     }
 }
 
@@ -226,19 +217,9 @@ BaseFab<Real>::copyFromMem (const Box&  dstbox,
 
     if (dstbox.ok()) 
     {
-        Real*      data    = dataPtr(dstcomp);
-        const int* _box_lo = dstbox.loVect(); 
-        const int* _box_hi = dstbox.hiVect(); 
-        const int* _th_plo = loVect(); 
-        const int* _th_phi = hiVect(); 
-
-        FORT_FASTCOPYFROMMEM(_box_lo,
-                             _box_hi,
-                             data,
-                             ARLIM(_th_plo),
-                             ARLIM(_th_phi),
-                             &numcomp,
-                             src);
+	fort_fab_copyfrommem(ARLIM_3D(dstbox.loVect()), ARLIM_3D(dstbox.hiVect()),
+			     BL_TO_FORTRAN_N_3D(*this,dstcomp), &numcomp,
+			     src);
     }
 }
 
@@ -471,7 +452,7 @@ BaseFab<Real>::saxpy (Real a, const BaseFab<Real>& src,
     fort_fab_saxpy(ARLIM_3D(destbox.loVect()), ARLIM_3D(destbox.hiVect()),
 		   BL_TO_FORTRAN_N_3D(*this,destcomp),
 		   &a,
-		   BL_TO_FORTRAN_N_3D(src,destcomp), ARLIM_3D(srcbox.loVect()),
+		   BL_TO_FORTRAN_N_3D(src,srccomp), ARLIM_3D(srcbox.loVect()),
 		   &numcomp);
     return *this;
 }
