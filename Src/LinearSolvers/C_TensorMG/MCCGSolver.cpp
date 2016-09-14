@@ -221,7 +221,6 @@ MCCGSolver::solve (MultiFab&       sol,
 	}
 
 	int ncomp = z.nComp();
-	int nghsot = 0;
 	rho = MultiFab::Dot(r, 0, z, 0, ncomp, 0);
 	
 	if (nit == 0)
