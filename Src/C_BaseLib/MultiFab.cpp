@@ -907,9 +907,6 @@ MultiFab::norm2 (const Array<int>& comps) const
     int nthreads = 1;
 #endif
     PArray< Array<Real> > priv_nm2(nthreads, PArrayManage);
-    for (int i=0; i<nthreads; i++) {
-	priv_nm2.set(i, new Array<Real>(n, 0.0));
-    }
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -920,11 +917,14 @@ MultiFab::norm2 (const Array<int>& comps) const
 #else
 	int tid = 0;
 #endif
+	priv_nm2.set(tid, new Array<Real>(n, 0.0));
+
 	for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
 	{
+	    const Box& bx = mfi.tilebox();
+	    const FArrayBox& fab = get(mfi);
             for (int i=0; i<n; i++) {
-	        const Real nm_grid = get(mfi).norm(mfi.tilebox(), 2, comps[i], 1);
-		priv_nm2[tid][i] += nm_grid*nm_grid;
+		priv_nm2[tid][i] += fab.dot(bx,comps[i],fab,bx,comps[i]);
             }
         }
 #ifdef _OPENMP
@@ -932,16 +932,16 @@ MultiFab::norm2 (const Array<int>& comps) const
 #pragma omp for
 #endif
 	for (int i=0; i<n; i++) {
-	    for (int it=0; it<nthreads; it++) {
-		nm2[i] += priv_nm2[it][i];
+	    for (int it=1; it<nthreads; it++) {
+		priv_nm2[0][i] += priv_nm2[it][i];
 	    }
 	}
     }
 
-    ParallelDescriptor::ReduceRealSum(nm2.dataPtr(), n, this->color());
+    ParallelDescriptor::ReduceRealSum(&priv_nm2[0][0], n, this->color());
 
     for (int i=0; i<n; i++) {
-	nm2[i] = std::sqrt(nm2[i]);
+	nm2[i] = std::sqrt(priv_nm2[0][i]);
     }
 
     return nm2;
