@@ -10,13 +10,10 @@ NFilesIter::NFilesIter(int noutfiles, const std::string &fileprefix,
   isReading = false;
   nOutFiles = ActualNFiles(noutfiles);
   groupSets = groupsets;
-  if(nOutFiles == nProcs) {
-    groupSets = true;
-  }
   myProc    = ParallelDescriptor::MyProc();
   nProcs    = ParallelDescriptor::NProcs();
-  nSets     = NSets(nProcs, nOutFiles);
-  mySet     = WhichSet(myProc, nProcs, nOutFiles, groupSets);
+  nSets     = SetLength(nProcs, nOutFiles);
+  mySetPosition = WhichSetPosition(myProc, nProcs, nOutFiles, groupSets);
   fileNumber = FileNumber(nOutFiles, myProc, groupSets);
   filePrefix    = fileprefix;
   fullFileName  = BoxLib::Concatenate(filePrefix, fileNumber, 5);
@@ -52,13 +49,10 @@ NFilesIter::NFilesIter(int noutfiles, const std::string &fileprefix,
   isReading = false;
   nOutFiles = ActualNFiles(noutfiles);
   groupSets = groupsets;
-  if(nOutFiles == nProcs) {
-    groupSets = true;
-  }
   myProc    = ParallelDescriptor::MyProc();
   nProcs    = ParallelDescriptor::NProcs();
-  nSets     = NSets(nProcs, nOutFiles);
-  mySet     = WhichSet(myProc, nProcs, nOutFiles, groupSets);
+  nSets     = SetLength(nProcs, nOutFiles);
+  mySetPosition = WhichSetPosition(myProc, nProcs, nOutFiles, groupSets);
   fileNumber = FileNumber(nOutFiles, myProc, groupSets);
   filePrefix    = fileprefix;
   fullFileName  = BoxLib::Concatenate(filePrefix, fileNumber, 5);
@@ -142,7 +136,7 @@ bool NFilesIter::ReadyToWrite() {
   if(useStaticSetSelection) {
 
     for(int iSet(0); iSet < nSets; ++iSet) {
-      if(mySet == iSet) {
+      if(mySetPosition == iSet) {
         if(iSet == 0) {   // ---- first set
           fileStream.open(fullFileName.c_str(),
                           std::ios::out | std::ios::trunc | std::ios::binary);
@@ -157,7 +151,7 @@ bool NFilesIter::ReadyToWrite() {
         return true;
       }
 
-      if(mySet == (iSet + 1)) {   // ---- next set waits
+      if(mySetPosition == (iSet + 1)) {   // ---- next set waits
         int iBuff, waitForPID(-1), tag(-2);
         if(groupSets) {
           waitForPID = (myProc - nOutFiles);
@@ -172,7 +166,7 @@ bool NFilesIter::ReadyToWrite() {
 
   } else {    // ---- use dynamic set selection
 
-    if(mySet == 0) {    // ---- write data
+    if(mySetPosition == 0) {    // ---- write data
 
       fullFileName = BoxLib::Concatenate(filePrefix, fileNumber, 5);
       fileStream.open(fullFileName.c_str(),
@@ -274,7 +268,7 @@ NFilesIter &NFilesIter::operator++() {
 
     } else {    // ---- use dynamic set selection
 
-      if(mySet == 0) {    // ---- write data
+      if(mySetPosition == 0) {    // ---- write data
 
         fileStream.flush();
         fileStream.close();
@@ -291,7 +285,7 @@ NFilesIter &NFilesIter::operator++() {
           Array<std::deque<int> > procsToWrite(nOutFiles);  // ---- [fileNumber](procsToWriteToFileNumber)
           // ---- populate with the static nfiles sets
           for(int i(0); i < nProcs; ++i) {
-            int procSet(WhichSet(i, nProcs, nOutFiles, groupSets));
+            int procSet(WhichSetPosition(i, nProcs, nOutFiles, groupSets));
             int whichFileNumber(NFilesIter::FileNumber(nOutFiles, i, groupSets));
 	    // ---- procSet == 0 have already written their data
 	    if(procSet == 0) {
