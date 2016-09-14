@@ -341,7 +341,9 @@ void DSSNFileTests(int noutfiles, const std::string &filePrefixIn,
       data[i] = (100 * myProc) + i;
     }
 
-    for(NFilesIter nfi(noutfiles, filePrefix, groupSets, setBuf, -1); nfi.ReadyToWrite(); ++nfi) {
+    NFilesIter nfi(noutfiles, filePrefix, groupSets, setBuf);
+    nfi.SetDynamic(-1);
+    for( ; nfi.ReadyToWrite(); ++nfi) {
       nfi.Stream().write((const char *) data.dataPtr(), data.size() * sizeof(int));
     }
   }

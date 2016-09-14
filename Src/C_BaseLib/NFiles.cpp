@@ -7,16 +7,16 @@
 NFilesIter::NFilesIter(int noutfiles, const std::string &fileprefix,
                        bool groupsets, bool setBuf)
 {
-  isReading = false;
-  nOutFiles = ActualNFiles(noutfiles);
-  groupSets = groupsets;
-  myProc    = ParallelDescriptor::MyProc();
-  nProcs    = ParallelDescriptor::NProcs();
-  nSets     = SetLength(nProcs, nOutFiles);
+  isReading     = false;
+  nOutFiles     = ActualNFiles(noutfiles);
+  groupSets     = groupsets;
+  myProc        = ParallelDescriptor::MyProc();
+  nProcs        = ParallelDescriptor::NProcs();
+  nSets         = SetLength(nProcs, nOutFiles);
   mySetPosition = WhichSetPosition(myProc, nProcs, nOutFiles, groupSets);
-  fileNumber = FileNumber(nOutFiles, myProc, groupSets);
+  fileNumber    = FileNumber(nOutFiles, myProc, groupSets);
   filePrefix    = fileprefix;
-  fullFileName  = BoxLib::Concatenate(filePrefix, fileNumber, 5);
+  fullFileName  = FileName(fileNumber, filePrefix);
 
   finishedWriting = false;
 
@@ -42,28 +42,8 @@ NFilesIter::NFilesIter(int noutfiles, const std::string &fileprefix,
 }
 
 
-NFilesIter::NFilesIter(int noutfiles, const std::string &fileprefix,
-                       bool groupsets, bool setBuf,
-		       int deciderproc)
+void NFilesIter::SetDynamic(int deciderproc)
 {
-  isReading = false;
-  nOutFiles = ActualNFiles(noutfiles);
-  groupSets = groupsets;
-  myProc    = ParallelDescriptor::MyProc();
-  nProcs    = ParallelDescriptor::NProcs();
-  nSets     = SetLength(nProcs, nOutFiles);
-  mySetPosition = WhichSetPosition(myProc, nProcs, nOutFiles, groupSets);
-  fileNumber = FileNumber(nOutFiles, myProc, groupSets);
-  filePrefix    = fileprefix;
-  fullFileName  = BoxLib::Concatenate(filePrefix, fileNumber, 5);
-
-  finishedWriting = false;
-
-  if(setBuf) {
-    io_buffer.resize(VisMF::GetIOBufferSize());
-    fileStream.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
-  }
-
   deciderProc = deciderproc;
   if(deciderProc < 0) {
     deciderProc = nProcs - 1;
@@ -78,13 +58,6 @@ NFilesIter::NFilesIter(int noutfiles, const std::string &fileprefix,
     useStaticSetSelection = true;
     coordinatorProc = ParallelDescriptor::IOProcessorNumber();
   }
-
-
-  bool checkNFiles(true);
-  if(checkNFiles) {
-    CheckNFiles(nProcs, nOutFiles, groupSets);
-  }
-
 }
 
 
