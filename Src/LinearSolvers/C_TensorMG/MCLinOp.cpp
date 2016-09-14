@@ -436,7 +436,7 @@ MCLinOp::makeCoefficients (MultiFab&       cs,
 #endif
     for (MFIter csmfi(cs,true); csmfi.isValid(); ++csmfi)
     {
-        const Box&       bx    = mfi.tilebox();
+        const Box&       bx    = csmfi.tilebox();
         FArrayBox&       csfab = cs[csmfi];
         const FArrayBox& fnfab = fn[csmfi];
 

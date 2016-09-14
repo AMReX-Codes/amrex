@@ -508,7 +508,7 @@ MCMultiGrid::average (MultiFab&       c,
     // Use Fortran function to average down (restrict) f to c.
     //
 #ifdef _OPENMP
-#pragma omp
+#pragma omp parallel
 #endif
     for (MFIter cmfi(c,true); cmfi.isValid(); ++cmfi)
     {
@@ -532,11 +532,11 @@ MCMultiGrid::interpolate (MultiFab&       f,
     // Note: returns f=f+P(c) , i.e. ADDS interp'd c to f
     //
 #ifdef _OPENMP
-#pragma omp
+#pragma omp parallel
 #endif
     for (MFIter fmfi(c,true); fmfi.isValid(); ++fmfi)
     {
-	const Box&       bx   = mfi.tilebox();
+	const Box&       bx   = fmfi.tilebox();
 	int              nc   = f.nComp();
         const FArrayBox& cfab = c[fmfi];
         FArrayBox&       ffab = f[fmfi];
