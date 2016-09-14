@@ -330,7 +330,7 @@ void TestReadMF(const std::string &mfName) {
 void DSSNFileTests(int noutfiles, const std::string &filePrefixIn,
                    bool useIter)
 {
-
+  bool groupSets(false), setBuf(true);
   std::string filePrefix(filePrefixIn);
 
   if(useIter) {
@@ -341,7 +341,6 @@ void DSSNFileTests(int noutfiles, const std::string &filePrefixIn,
       data[i] = (100 * myProc) + i;
     }
 
-    bool groupSets(false), setBuf(true);
     for(NFilesIter nfi(noutfiles, filePrefix, groupSets, setBuf, -1); nfi.ReadyToWrite(); ++nfi) {
       nfi.Stream().write((const char *) data.dataPtr(), data.size() * sizeof(int));
     }
@@ -352,8 +351,8 @@ void DSSNFileTests(int noutfiles, const std::string &filePrefixIn,
   int myProc(ParallelDescriptor::MyProc());
   int nProcs    = ParallelDescriptor::NProcs();
   int nOutFiles = NFilesIter::ActualNFiles(noutfiles);
-  int nSets     = NFilesIter::NSets(nProcs, nOutFiles);
-  int mySet     = myProc % nSets;
+  int nSets     = NFilesIter::SetLength(nProcs, nOutFiles);
+  int mySetPosition = NFilesIter::WhichSetPosition(myProc, nProcs, nOutFiles, groupSets);
   Array<int> data(10240);
   int deciderProc(nProcs - 1), coordinatorProc(-1);
   int deciderTag(ParallelDescriptor::SeqNum());
@@ -365,7 +364,6 @@ void DSSNFileTests(int noutfiles, const std::string &filePrefixIn,
   int iDone(myProc);
   MPI_Status status;
   int remainingWriters(nProcs);
-  bool groupSets(false);
 
   for(int i(0); i < data.size(); ++i) {
     data[i] = (100 * myProc) + i;
@@ -373,7 +371,7 @@ void DSSNFileTests(int noutfiles, const std::string &filePrefixIn,
 
   NFilesIter::CheckNFiles(nProcs, nOutFiles, false);
 
-    if(mySet == 0) {    // ---- write data
+    if(mySetPosition == 0) {    // ---- write data
       int fileNumber(NFilesIter::FileNumber(nOutFiles, myProc, groupSets));
       std::ofstream csFile;
       std::string FullName(BoxLib::Concatenate(filePrefix, fileNumber, 5));

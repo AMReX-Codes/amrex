@@ -55,19 +55,19 @@ class NFilesIter
     // ---- get the current Stream()'s seek position
     std::streampos SeekPos();
 
-    static int NSets(int nProcs, int nOutFiles) {
+    static int SetLength(int nProcs, int nOutFiles) {
       int anf(ActualNFiles(nOutFiles));
       return ((nProcs + (anf - 1)) / anf);
     }
 
-    static int WhichSet(int whichproc, int nprocs,
-                        int noutfiles, bool groupsets)
+    static int WhichSetPosition(int whichproc, int nprocs,
+                                int noutfiles, bool groupsets)
     {
       int whichset;
       if(groupsets) {
         whichset = whichproc / noutfiles;
       } else {
-        whichset = whichproc % NSets(nprocs, noutfiles);
+        whichset = whichproc % SetLength(nprocs, noutfiles);
       }
       return whichset;
     }
@@ -91,7 +91,7 @@ class NFilesIter
         return(whichProc % anf);
       } else {
 	int nProcs(ParallelDescriptor::NProcs());
-        return(whichProc / NSets(nProcs, anf));
+        return(whichProc / SetLength(nProcs, anf));
       }
     }
 
@@ -124,7 +124,7 @@ class NFilesIter
     int nProcs;
     int nOutFiles;
     int nSets;
-    int mySet;
+    int mySetPosition;
     std::string fullFileName;
     std::string filePrefix;
     std::fstream fileStream;
