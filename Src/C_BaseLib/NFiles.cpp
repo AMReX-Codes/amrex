@@ -45,9 +45,6 @@ NFilesIter::NFilesIter(int noutfiles, const std::string &fileprefix,
 }
 
 
-
-
-
 NFilesIter::NFilesIter(int noutfiles, const std::string &fileprefix,
                        bool groupsets, bool setBuf,
 		       int deciderproc)
@@ -95,9 +92,6 @@ NFilesIter::NFilesIter(int noutfiles, const std::string &fileprefix,
   }
 
 }
-
-
-
 
 
 NFilesIter::NFilesIter(const std::string &filename,

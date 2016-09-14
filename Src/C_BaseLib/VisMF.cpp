@@ -959,7 +959,8 @@ VisMF::FindOffsets (const FabArray<FArrayBox> &mf,
 		    const std::string &filePrefix,
                     VisMF::Header &hdr,
 		    bool groupSets,
-		    VisMF::Header::Version whichVersion)
+		    VisMF::Header::Version whichVersion,
+		    Array<int> *fileNumbers)
 {
     BL_PROFILE("VisMF::FindOffsets");
 
@@ -1034,6 +1035,10 @@ VisMF::FindOffsets (const FabArray<FArrayBox> &mf,
 
 
     } else {  // ---- calculate offsets
+      bool givenFileNumbers(false);
+      if(fileNumbers != 0) {
+        givenFileNumbers = true;
+      }
       RealDescriptor *whichRD;
       if(FArrayBox::getFormat() == FABio::FAB_NATIVE) {
         whichRD = FPC::NativeRealDescriptor().clone();
@@ -1074,12 +1079,16 @@ VisMF::FindOffsets (const FabArray<FArrayBox> &mf,
 	for(rboIter = rankBoxOrder.begin(); rboIter != rankBoxOrder.end(); ++rboIter) {
 	  Array<int> &index = rboIter->second;
 	  whichProc = rboIter->first;
-	  whichFileNumber = NFilesIter::FileNumber(nFiles, whichProc, groupSets);
-	  whichFileName   = NFilesIter::FileName(nFiles, filePrefix, whichProc, groupSets);
+	  if(givenFileNumbers) {
+	    whichFileNumber = (*fileNumbers)[whichProc];
+	    whichFileName   = NFilesIter::FileName(whichFileNumber, filePrefix);
+	  } else {
+	    whichFileNumber = NFilesIter::FileNumber(nFiles, whichProc, groupSets);
+	    whichFileName   = NFilesIter::FileName(nFiles, filePrefix, whichProc, groupSets);
+	  }
 	  for(int i(0); i < index.size(); ++i) {
 	    hdr.m_fod[index[i]].m_name = VisMF::BaseName(whichFileName);
 	    hdr.m_fod[index[i]].m_head = currentOffset[whichFileNumber];
-	    //currentOffset[whichFileNumber] += mfBA[index[i]].numPts() * nComps * whichRDBytes
 	    currentOffset[whichFileNumber] += mf.fabbox(index[i]).numPts() * nComps * whichRDBytes
 	                                      + fabHeaderBytes[index[i]];
 	  }
