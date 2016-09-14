@@ -34,9 +34,7 @@ class NFilesIter
 
     // ---- constructor for writing with dynamic set selection
     // ---- deciderproc defaults to nprocs - 1 if < 0
-    NFilesIter(int noutfiles, const std::string &fileprefix,
-               bool groupsets, bool setBuf,
-	       int deciderproc);
+    void SetDynamic(int deciderproc = -1);
 
     // ---- constructor for reading
     NFilesIter(const std::string &fileName,
