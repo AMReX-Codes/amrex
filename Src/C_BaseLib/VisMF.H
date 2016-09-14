@@ -311,11 +311,15 @@ private:
     static long WriteHeader (const std::string &fafab_name,
                              VisMF::Header&     hdr);
 
+    //
+    // fileNumbers must be passed in for dynamic set selection [proc]
+    //
     static void FindOffsets (const FabArray<FArrayBox> &fafab,
 			     const std::string &fafab_name,
                              VisMF::Header &hdr,
 			     bool groupSets,
-			     VisMF::Header::Version whichVersion);
+			     VisMF::Header::Version whichVersion,
+			     Array<int> *fileNumbers = 0);
     //
     // Read the fab.
     // If ncomp == -1 reads the whole FAB.

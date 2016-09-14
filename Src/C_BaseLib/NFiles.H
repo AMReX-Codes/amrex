@@ -105,6 +105,12 @@ class NFilesIter
 				              whichProc, groupSets), 5 ) );
     }
 
+    static std::string FileName(int fileNumber,
+                                const std::string &filePrefix)
+    {
+      return ( BoxLib::Concatenate(filePrefix, fileNumber, 5 ) );
+    }
+
     // ---- this is the processor coorinating dynamic set selection
     int CoordinatorProc() const { return coordinatorProc; }
 
