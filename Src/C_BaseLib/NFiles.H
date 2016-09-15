@@ -137,6 +137,7 @@ class NFilesIter
     bool useStaticSetSelection;
     int fileNumber, remainingWriters, deciderProc, coordinatorProc;
     int deciderTag, coordinatorTag, doneTag, writeTag;
+    int nSetZeros, nonZeroDeciderProc;
 
 
     static const int indexUndefined = -1;
