@@ -353,7 +353,7 @@ void DSSNFileTests(int noutfiles, const std::string &filePrefixIn,
   int myProc(ParallelDescriptor::MyProc());
   int nProcs    = ParallelDescriptor::NProcs();
   int nOutFiles = NFilesIter::ActualNFiles(noutfiles);
-  int nSets     = NFilesIter::SetLength(nProcs, nOutFiles);
+  int setLength = NFilesIter::SetLength(nProcs, nOutFiles);
   int mySetPosition = NFilesIter::WhichSetPosition(myProc, nProcs, nOutFiles, groupSets);
   Array<int> data(10240);
   int deciderProc(nProcs - 1), coordinatorProc(-1);
@@ -372,6 +372,21 @@ void DSSNFileTests(int noutfiles, const std::string &filePrefixIn,
   }
 
   NFilesIter::CheckNFiles(nProcs, nOutFiles, false);
+
+  int nSetZeros(0), nonZeroDeciderProc(-1);
+  for(int i(0); i < nProcs; ++i) {
+    // ---- count zero set positions  and find an alternate decider
+    if(NFilesIter::WhichSetPosition(i, nProcs, nOutFiles, groupSets) == 0) {
+      ++nSetZeros;
+    } else {
+      nonZeroDeciderProc = i;  // ---- this will end up with the last value
+    }
+  }
+
+  if(NFilesIter::WhichSetPosition(deciderProc, nProcs, nOutFiles, groupSets) == 0) {
+    deciderProc = nonZeroDeciderProc;
+  }
+
 
     if(mySetPosition == 0) {    // ---- write data
       int fileNumber(NFilesIter::FileNumber(nOutFiles, myProc, groupSets));
@@ -397,8 +412,8 @@ void DSSNFileTests(int noutfiles, const std::string &filePrefixIn,
 	// ---- populate with the static nfiles sets
 	for(int i(0); i < nProcs; ++i) {
           int fileNumber(NFilesIter::FileNumber(nOutFiles, i, groupSets));
-          int procSet(i % nSets);
-	  if(procSet != 0) {    // ---- these have already written their data
+          int procSet(NFilesIter::WhichSetPosition(i, nProcs, nOutFiles, groupSets));
+	  if(procSet != 0) {    // ---- set 0 procs have already written their data
 	    procsToWrite[fileNumber].push_back(i);
 	  }
 	}
@@ -446,7 +461,7 @@ void DSSNFileTests(int noutfiles, const std::string &filePrefixIn,
       ParallelDescriptor::Recv(&coordinatorProc, 1, MPI_ANY_SOURCE, deciderTag);
       // ---- tell the coordinatorProc to start coordinating
       ParallelDescriptor::Asend(&coordinatorProc, 1, coordinatorProc, coordinatorTag);
-      for(int i(0); i < nOutFiles - 1; ++i) {  // ---- tell the others who is coorinating
+      for(int i(0); i < nSetZeros - 1; ++i) {  // ---- tell the others who is coorinating
         int nonCoordinatorProc(-1);
         ParallelDescriptor::Recv(&nonCoordinatorProc, 1, MPI_ANY_SOURCE, deciderTag);
         ParallelDescriptor::Asend(&coordinatorProc, 1, nonCoordinatorProc, coordinatorTag);
@@ -475,6 +490,7 @@ void DSSNFileTests(int noutfiles, const std::string &filePrefixIn,
       // ---- signal we are finished
       ParallelDescriptor::Send(&fileNumber, 1, coordinatorProc, doneTag);
     }
+ParallelDescriptor::Barrier();
 }
 
 
