@@ -118,6 +118,8 @@ NFilesIter::~NFilesIter() {
 
 bool NFilesIter::ReadyToWrite() {
 
+#ifdef BL_USE_MPI
+
   if(finishedWriting) {
     return false;
   }
@@ -197,8 +199,11 @@ bool NFilesIter::ReadyToWrite() {
     }
 
   }
-
   return false;
+
+#else
+  return true;
+#endif
 }
 
 
@@ -224,6 +229,9 @@ bool NFilesIter::ReadyToRead() {
 
 
 NFilesIter &NFilesIter::operator++() {
+
+#ifdef BL_USE_MPI
+
   if(isReading) {
     fileStream.close();
 
@@ -333,6 +341,9 @@ NFilesIter &NFilesIter::operator++() {
     }
 
   }
+
+#else
+#endif
 
   return *this;
 }
