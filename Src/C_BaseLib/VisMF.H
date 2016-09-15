@@ -287,6 +287,9 @@ public:
     static bool GetUseSynchronousReads () { return useSynchronousReads; }
     static void SetUseSynchronousReads (bool usepsr) { useSynchronousReads = usepsr; }
 
+    static bool GetUseDynamicSetSelection () { return useDynamicSetSelection; }
+    static void SetUseDynamicSetSelection (bool usedss) { useDynamicSetSelection = usedss; }
+
     static long GetIOBufferSize () { return ioBufferSize; }
     static void SetIOBufferSize (long iobuffersize) {
       BL_ASSERT(iobuffersize > 0);
@@ -319,7 +322,8 @@ private:
                              VisMF::Header &hdr,
 			     bool groupSets,
 			     VisMF::Header::Version whichVersion,
-			     Array<int> *fileNumbers = 0);
+			     Array<int> *fileNumbers = 0,
+			     int coordinatorProc = ParallelDescriptor::IOProcessorNumber());
     //
     // Read the fab.
     // If ncomp == -1 reads the whole FAB.
@@ -373,6 +377,7 @@ private:
     static bool checkFilePositions;
     static bool usePersistentIFStreams;
     static bool useSynchronousReads;
+    static bool useDynamicSetSelection;
     
     static long ioBufferSize;   // ---- the settable buffer size
 };
