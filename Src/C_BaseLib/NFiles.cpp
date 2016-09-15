@@ -34,6 +34,17 @@ NFilesIter::NFilesIter(int noutfiles, const std::string &fileprefix,
     }
   }
 
+  nSetZeros = 0;
+  nonZeroDeciderProc = -1;
+  for(int i(0); i < nProcs; ++i) {
+    // ---- count zero set positions  and find an alternate decider
+    if(NFilesIter::WhichSetPosition(i, nProcs, nOutFiles, groupSets) == 0) {
+      ++nSetZeros;
+    } else {
+      nonZeroDeciderProc = i;  // ---- this will end up with the last value
+    }
+  }
+
   bool checkNFiles(true);
   if(checkNFiles) {
     CheckNFiles(nProcs, nOutFiles, groupSets);
@@ -48,6 +59,11 @@ void NFilesIter::SetDynamic(int deciderproc)
   if(deciderProc < 0) {
     deciderProc = nProcs - 1;
   }
+  // ---- the decider cannot have set position zero
+  if(NFilesIter::WhichSetPosition(deciderProc, nProcs, nOutFiles, groupSets) == 0) {
+    deciderProc = nonZeroDeciderProc;
+  }
+
   deciderTag = ParallelDescriptor::SeqNum();
   coordinatorTag = ParallelDescriptor::SeqNum();
   doneTag = ParallelDescriptor::SeqNum();
@@ -155,7 +171,7 @@ bool NFilesIter::ReadyToWrite() {
       ParallelDescriptor::Recv(&coordinatorProc, 1, MPI_ANY_SOURCE, deciderTag);
       // ---- tell the coordinatorProc to start coordinating
       ParallelDescriptor::Asend(&coordinatorProc, 1, coordinatorProc, coordinatorTag);
-      for(int i(0); i < nOutFiles - 1; ++i) {  // ---- tell the others who is coorinating
+      for(int i(0); i < nSetZeros - 1; ++i) {  // ---- tell the others who is coorinating
         int nonCoordinatorProc(-1);
         ParallelDescriptor::Recv(&nonCoordinatorProc, 1, MPI_ANY_SOURCE, deciderTag);
         ParallelDescriptor::Asend(&coordinatorProc, 1, nonCoordinatorProc, coordinatorTag);
@@ -179,8 +195,6 @@ bool NFilesIter::ReadyToWrite() {
       return true;
 
     }
-
-
 
   }
 
