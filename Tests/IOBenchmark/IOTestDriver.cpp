@@ -27,7 +27,7 @@ void FileTests();
 void TestWriteNFiles(int nfiles, int maxgrid, int ncomps, int nboxes,
                      bool raninit, bool mb2,
 		     VisMF::Header::Version writeMinMax,
-		     bool groupsets, bool setbuf);
+		     bool groupsets, bool setbuf, bool useDSS);
 void TestReadMF(const std::string &mfName);
 void NFileTests(int nOutFiles, const std::string &filePrefix);
 void DSSNFileTests(int nOutFiles, const std::string &filePrefix,
@@ -64,6 +64,7 @@ static void PrintUsage(const char *progName) {
     cout << "   [usesinglewrite    = tf       ]" << '\n';
     cout << "   [checkfpositions   = tf       ]" << '\n';
     cout << "   [pifstreams        = tf       ]" << '\n';
+    cout << "   [usedss            = tf       ]" << '\n';
     cout << '\n';
     cout << "Running with default values." << '\n';
     cout << '\n';
@@ -95,6 +96,7 @@ int main(int argc, char *argv[]) {
   bool testreadmf(false);
   bool useSingleRead(false), useSingleWrite(false);
   bool checkFPositions(false), pIFStreams(false);
+  bool useDSS(false);
   Array<int> testWriteNFilesVersions;
   Array<std::string> readFANames;
   int nReadStreams(1);
@@ -129,6 +131,7 @@ int main(int argc, char *argv[]) {
   pp.query("usesinglewrite", useSingleWrite);
   pp.query("checkfpositions", checkFPositions);
   pp.query("pifstreams", pIFStreams);
+  pp.query("usedss", useDSS);
 
   pp.query("rbuffsize", rbs);
   pp.query("wbuffsize", wbs);
@@ -179,6 +182,7 @@ int main(int argc, char *argv[]) {
     cout << "usesinglewrite    = " << useSingleWrite << '\n';
     cout << "checkfpositions   = " << checkFPositions << '\n';
     cout << "pifstreams        = " << pIFStreams << '\n';
+    cout << "usedss            = " << useDSS << '\n';
 
     cout << '\n';
     cout << "sizeof(int) = " << sizeof(int) << '\n';
@@ -319,7 +323,7 @@ int main(int argc, char *argv[]) {
       }
 
       TestWriteNFiles(nfiles, maxgrid, ncomps, nboxes, raninit, mb2,
-                      hVersion, groupSets, setBuf);
+                      hVersion, groupSets, setBuf, useDSS);
 
       if(ParallelDescriptor::IOProcessor()) {
         cout << "==================================================" << endl;

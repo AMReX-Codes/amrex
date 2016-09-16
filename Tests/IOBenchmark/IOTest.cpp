@@ -195,9 +195,11 @@ BoxArray MakeBoxArray(int maxgrid,  int nboxes) {
 void TestWriteNFiles(int nfiles, int maxgrid, int ncomps, int nboxes,
                      bool raninit, bool mb2,
 		     VisMF::Header::Version whichVersion,
-		     bool groupSets, bool setBuf)
+		     bool groupSets, bool setBuf,
+		     bool useDSS)
 {
   VisMF::SetNOutFiles(nfiles);
+  VisMF::SetUseDynamicSetSelection(useDSS);
   if(mb2) {
     bytesPerMB = pow(2.0, 20);
   }
@@ -413,7 +415,10 @@ void DSSNFileTests(int noutfiles, const std::string &filePrefixIn,
 	for(int i(0); i < nProcs; ++i) {
           int fileNumber(NFilesIter::FileNumber(nOutFiles, i, groupSets));
           int procSet(NFilesIter::WhichSetPosition(i, nProcs, nOutFiles, groupSets));
-	  if(procSet != 0) {    // ---- set 0 procs have already written their data
+	  if(procSet == 0) {    // ---- set 0 procs have already written their data
+	    --remainingWriters;
+	  }
+	  if(procSet != 0) {
 	    procsToWrite[fileNumber].push_back(i);
 	  }
 	}
@@ -421,7 +426,6 @@ void DSSNFileTests(int noutfiles, const std::string &filePrefixIn,
         // ---- signal each remaining processor when to write and to which file
 	std::set<int> availableFileNumbers;
 	availableFileNumbers.insert(fileNumber);  // ---- the coordinators file number
-	--remainingWriters;                       // ---- for the coordinator
 
 	// ---- recv incoming available files
 	int doneFlag;
