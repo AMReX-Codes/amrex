@@ -184,7 +184,7 @@ bool NFilesIter::ReadyToWrite() {
     if( ! finishedWriting) {  // ---- the deciderProc drops through to here
       // ---- wait for signal to start writing
       ParallelDescriptor::Message rmess =
-            ParallelDescriptor::Recv(&fileNumber, 1, MPI_ANY_SOURCE, writeTag);
+            ParallelDescriptor::Recv(&fileNumber, 1, MPI_ANY_SOURCE, writeTag+111);
       coordinatorProc = rmess.pid();
       fullFileName = BoxLib::Concatenate(filePrefix, fileNumber, 5);
 
@@ -285,6 +285,7 @@ NFilesIter &NFilesIter::operator++() {
 	    // ---- procSet == 0 have already written their data
 	    if(procSet == 0) {
 	      fileNumbersWritten[i] = whichFileNumber;
+              --remainingWriters;
 	    }
             if(procSet != 0) {
               procsToWrite[whichFileNumber].push_back(i);
@@ -294,7 +295,6 @@ NFilesIter &NFilesIter::operator++() {
           // ---- signal each remaining processor when to write and to which file
           std::set<int> availableFileNumbers;
           availableFileNumbers.insert(fileNumber);  // ---- the coordinators file number
-          --remainingWriters;                       // ---- for the coordinator
 
           // ---- recv incoming available files
           while(remainingWriters > 0) {
@@ -316,7 +316,7 @@ NFilesIter &NFilesIter::operator++() {
             }
 
 	    fileNumbersWritten[nextProcToWrite] = nextFileNumberToWrite;
-            ParallelDescriptor::Asend(&nextFileNumberToWrite, 1, nextProcToWrite, writeTag);
+            ParallelDescriptor::Asend(&nextFileNumberToWrite, 1, nextProcToWrite, writeTag+111);
   
             ParallelDescriptor::Recv(&nextFileNumberAvailable, 1, MPI_ANY_SOURCE, doneTag);
             availableFileNumbers.insert(nextFileNumberAvailable);

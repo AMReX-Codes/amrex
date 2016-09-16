@@ -94,11 +94,13 @@ public:
         //
         // Construct from a FabArray<FArrayBox>.
         //
-        Header (const FabArray<FArrayBox>& fafab, VisMF::How how, Version version = Version_v1);
+        Header (const FabArray<FArrayBox>& fafab, VisMF::How how, Version version = Version_v1,
+		bool calcMinMax = true);
 	//
 	// Calculate the min and max arrays
 	//
-	void CalculateMinMax(const FabArray<FArrayBox>& fafab);
+	void CalculateMinMax(const FabArray<FArrayBox>& fafab,
+			     int procToWrite = ParallelDescriptor::IOProcessorNumber());
         //
         // The data.
         //
@@ -312,7 +314,8 @@ private:
                             long&              bytes);
 
     static long WriteHeader (const std::string &fafab_name,
-                             VisMF::Header&     hdr);
+                             VisMF::Header     &hdr,
+			     int procToWrite = ParallelDescriptor::IOProcessorNumber());
 
     //
     // fileNumbers must be passed in for dynamic set selection [proc]

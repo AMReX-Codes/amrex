@@ -611,7 +611,8 @@ VisMF::Header::Header ()
 
 VisMF::Header::Header (const FabArray<FArrayBox>& mf,
                        VisMF::How      how,
-		       Version version)
+		       Version version,
+		       bool calcMinMax)
     :
     m_vers(version),
     m_how(how),
@@ -650,18 +651,20 @@ VisMF::Header::Header (const FabArray<FArrayBox>& mf,
       return;
     }
 
-    CalculateMinMax(mf);
+    if(calcMinMax) {
+      CalculateMinMax(mf);
+    }
 }
 
 
 void
-VisMF::Header::CalculateMinMax (const FabArray<FArrayBox>& mf)
+VisMF::Header::CalculateMinMax (const FabArray<FArrayBox>& mf,
+                                int procToWrite)
 {
     m_min.resize(m_ba.size());
     m_max.resize(m_ba.size());
 
 #ifdef BL_USE_MPI
-    const int IOProcNumber = ParallelDescriptor::IOProcessorNumber();
     //
     // Calculate m_min and m_max on the CPU owning the fab.
     //
@@ -679,10 +682,10 @@ VisMF::Header::CalculateMinMax (const FabArray<FArrayBox>& mf)
         }
     }
 
-    Array<int> nmtags(ParallelDescriptor::NProcs(),0);
-    Array<int> offset(ParallelDescriptor::NProcs(),0);
+    Array<int> nmtags(ParallelDescriptor::NProcs(), 0);
+    Array<int> offset(ParallelDescriptor::NProcs(), 0);
 
-    const Array<int>& pmap = mf.DistributionMap().ProcessorMap();
+    const Array<int> &pmap = mf.DistributionMap().ProcessorMap();
 
     for(int i(0), N = mf.size(); i < N; ++i) {
         ++nmtags[pmap[i]];
@@ -733,22 +736,22 @@ VisMF::Header::CalculateMinMax (const FabArray<FArrayBox>& mf)
                                 nmtags.dataPtr(),
                                 offset.dataPtr(),
                                 ParallelDescriptor::Mpi_typemap<Real>::type(),
-                                IOProcNumber,
+                                procToWrite,
                                 ParallelDescriptor::Communicator()) );
 
     BL_COMM_PROFILE(BLProfiler::Gatherv, recvdata.size() * sizeof(Real),
                     ParallelDescriptor::MyProc(), BLProfiler::AfterCall());
 
-    if(ParallelDescriptor::IOProcessor()) {
+    if(ParallelDescriptor::MyProc() == procToWrite) {
         for(int i(0), N(mf.size()); i < N; ++i) {
-            if(pmap[i] != IOProcNumber) {
+            if(pmap[i] != procToWrite) {
                 m_min[i].resize(m_ncomp);
                 m_max[i].resize(m_ncomp);
             }
         }
 
         for(int j(0), N(mf.size()); j < N; ++j) {
-            if(pmap[j] != IOProcNumber) {
+            if(pmap[j] != procToWrite) {
                 for(int k(0); k < m_ncomp; ++k) {
                     m_min[j][k] = recvdata[offset[pmap[j]]+k];
                     m_max[j][k] = recvdata[offset[pmap[j]]+k+m_ncomp];
@@ -775,7 +778,7 @@ VisMF::Header::CalculateMinMax (const FabArray<FArrayBox>& mf)
 #endif /*BL_USE_MPI*/
 
 #ifdef BL_FIXHEADERDENORMS
-    if(ParallelDescriptor::IOProcessor()) {
+    if(ParallelDescriptor::MyProc() == procToWrite) {
         for(int i(0); i < m_min.size(); ++i) {
             for(int j(0); j < m_min[i].size(); ++j) {
                 if(std::abs(m_min[i][j]) < 1.0e-300) {
@@ -808,14 +811,16 @@ VisMF::Header::CalculateMinMax (const FabArray<FArrayBox>& mf)
     }
 }
 
+
 long
-VisMF::WriteHeader (const std::string& mf_name,
-                    VisMF::Header&     hdr)
+VisMF::WriteHeader (const std::string &mf_name,
+                    VisMF::Header     &hdr,
+		    int                procToWrite)
 {
     BL_PROFILE("VisMF::WriteHeader");
     long bytesWritten(0);
 
-    if(ParallelDescriptor::IOProcessor()) {
+    if(ParallelDescriptor::MyProc() == procToWrite) {
         std::string MFHdrFileName(mf_name);
 
         MFHdrFileName += TheMultiFabHdrFileSuffix;
@@ -884,10 +889,13 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
         }
     }
 
-    VisMF::Header hdr(mf, how, currentVersion);
+    int coordinatorProc(ParallelDescriptor::IOProcessorNumber());
+    int myProc(ParallelDescriptor::MyProc());
+
+    bool calcMinMax(false);
+    VisMF::Header hdr(mf, how, currentVersion, calcMinMax);
 
     long bytesWritten(0);
-    const int myProc(ParallelDescriptor::MyProc());
 
     std::string filePrefix(mf_name + FabFileSuffix);
 
@@ -901,7 +909,7 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
       for( ; nfi.ReadyToWrite(); ++nfi) {
         const std::string fName(NFilesIter::FileName(nOutFiles, filePrefix, myProc, groupSets));
         for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
-          hdr.m_fod[mfi.index()] = VisMF::Write(mf[mfi], fName,nfi.Stream(), bytesWritten);
+          hdr.m_fod[mfi.index()] = VisMF::Write(mf[mfi], fName, nfi.Stream(), bytesWritten);
         }
       }
 
@@ -955,17 +963,22 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
 
     }
 
-    int coordinatorProc(ParallelDescriptor::IOProcessorNumber());
-    Array<int> *fileNumbersWritten = 0;
+    Array<int> fileNumbersWritten;
+    Array<int> *fileNumbersWrittenPtr = 0;
     if(useDynamicSetSelection) {
       coordinatorProc = nfi.CoordinatorProc();
-      *fileNumbersWritten = nfi.FileNumbersWritten();
+      if(myProc == coordinatorProc) {
+        fileNumbersWritten = nfi.FileNumbersWritten();
+	fileNumbersWrittenPtr = &fileNumbersWritten;
+      }
     }
 
-    VisMF::FindOffsets(mf, filePrefix, hdr, groupSets, currentVersion,
-                       fileNumbersWritten, coordinatorProc);
+    hdr.CalculateMinMax(mf, coordinatorProc);
 
-    bytesWritten += VisMF::WriteHeader(mf_name, hdr);
+    VisMF::FindOffsets(mf, filePrefix, hdr, groupSets, currentVersion,
+                       fileNumbersWrittenPtr, coordinatorProc);
+
+    bytesWritten += VisMF::WriteHeader(mf_name, hdr, coordinatorProc);
 
     return bytesWritten;
 }
@@ -983,7 +996,6 @@ VisMF::FindOffsets (const FabArray<FArrayBox> &mf,
     BL_PROFILE("VisMF::FindOffsets");
 
     const int myProc(ParallelDescriptor::MyProc());
-    const int IOProcNumber(ParallelDescriptor::IOProcessorNumber());
     const int nProcs(ParallelDescriptor::NProcs());
 
     if(FArrayBox::getFormat() == FABio::FAB_ASCII ||
@@ -1030,13 +1042,13 @@ VisMF::FindOffsets (const FabArray<FArrayBox> &mf,
                                 nmtags.dataPtr(),
                                 offset.dataPtr(),
                                 ParallelDescriptor::Mpi_typemap<long>::type(),
-                                IOProcNumber,
+                                coordinatorProc,
                                 ParallelDescriptor::Communicator()) );
 
     BL_COMM_PROFILE(BLProfiler::Gatherv, recvdata.size() * sizeof(long),
                     myProc, BLProfiler::AfterCall());
 
-    if(ParallelDescriptor::IOProcessor()) {
+    if(myProc == coordinatorProc) {
         Array<int> cnt(nProcs,0);
 
         for(int j(0), N(mf.size()); j < N; ++j) {
@@ -1053,7 +1065,7 @@ VisMF::FindOffsets (const FabArray<FArrayBox> &mf,
 #endif /*BL_USE_MPI*/
 
 
-    } else {  // ---- calculate offsets
+    } else {    // ---- calculate offsets
       bool givenFileNumbers(false);
       if(fileNumbers != 0) {
         givenFileNumbers = true;
