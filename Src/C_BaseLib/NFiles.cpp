@@ -74,10 +74,10 @@ void NFilesIter::SetDynamic(int deciderproc)
   if(nOutFiles == nProcs) {
     useStaticSetSelection = true;
     coordinatorProc = ParallelDescriptor::IOProcessorNumber();
+  } else {
+    fileNumbersWriteOrder.clear();
+    fileNumbersWriteOrder.resize(nOutFiles);
   }
-
-  fileNumbersWriteOrder.clear();
-  fileNumbersWriteOrder.resize(nOutFiles);
 }
 
 
@@ -395,8 +395,10 @@ Array<int> NFilesIter::FileNumbersWritten()
       }
     }
     if(total != nProcs || procSet.size() != nProcs) {
-      std::cout << "**** Error in NFilesIter::FileNumbersWritten():  nProcs total procSet.size() = "
-                << nProcs << "  " << total << "  " << procSet.size() << std::endl;
+      std::cout << "**** Error in NFilesIter::FileNumbersWritten():  "
+                << " coordinatorProc nProcs total procSet.size() = "
+                << coordinatorProc << "  " << nProcs << "  "
+		<< total << "  " << procSet.size() << std::endl;
     }
 #endif
 
