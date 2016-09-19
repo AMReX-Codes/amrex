@@ -87,6 +87,14 @@ FabSet::copyTo (MultiFab& dest, int ngrow, int scomp, int dcomp, int ncomp,
 }
 
 void
+FabSet::plusTo (MultiFab& dest, int ngrow, int scomp, int dcomp, int ncomp,
+		const Periodicity& period) const
+{
+    BL_ASSERT(boxArray() != dest.boxArray());
+    dest.copy(m_mf,scomp,dcomp,ncomp,0,ngrow,period,FabArrayBase::ADD);
+}
+
+void
 FabSet::setVal (Real val)
 {
 #ifdef _OPENMP
