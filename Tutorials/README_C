@@ -6,12 +6,30 @@ The following tutorials demonstrate how to use the C++ BoxLib:
    and initialize a MultiFab.  This is then looped over using the MFIter
    and work is done on it in Fortran.
 
+* `Tiling_C`:
+
+   this sets up a MultFab, does domain decomposition into Boxes, and
+   loops over the data using logical tiling to do some work
+   (implemented in Fortran).  Two loops are done, the first uses the
+   default tile size and the second customizes the tiling layout.
+
 * `HeatEquation_EX1_C`:
 
    this is a simple explicit, first-order-in-time implementation of
    diffusion on a single level, with periodic boundaries.  The domain
    is decomposed into boxes and FillBoundary() is used for the ghost
    cells.
+
+* `Tiling_Heat_C`:
+  
+   this does the first-order explicit-in-time heat equation as 
+   `HeatEquation_EX1_C`, but using tiling for the loops over the
+   boxes.
+
+* `WaveEquation_C`:
+
+   This does a second-order accurate explicit solution of the second-order
+   wave equation, u_tt = c**2 L u, where L is the Laplacian
 
 * `AMR_Adv_C`:
 
@@ -21,19 +39,30 @@ The following tutorials demonstrate how to use the C++ BoxLib:
  
 * `MultiGrid_C`:
 
+   this example shows how to do multigrid to solve a Helmholtz elliptic
+   problem.  Interfaces to BoxLib's native multigrid, Hypre, and HPGMG
+   are provided.
+
 * `MultiColor_C`:
 
+   multicolor solves use different MPI communicators to solve the multigrid
+   problem for different components in the data.  This sets up different
+   RHSs for each of the components and does the solves using colors
 
-Tiling_C
-Tiling_Heat_C
-WaveEquation_C
 
 
-AMR_PETSc_C
-AMR_Trilinos_C
-PIC_C
-TwoGrid_PIC_C
+These are more specialized tutorials:
 
+* `AMR_PETSc_C`
+
+* `AMR_Trilinos_C`
+
+* `PIC_C`
+
+* `TwoGrid_PIC_C`
+
+
+This is for performance testing:
 
 * `MultiFabTests_C`
 
