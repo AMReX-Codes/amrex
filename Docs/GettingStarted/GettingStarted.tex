@@ -23,17 +23,18 @@ $\ell +1$ grid (grids at all levels are allowed to extend to the physical
 boundaries so the proper nesting is not strict there).  See Figure \ref{fig:AMR}
 for a sample two-dimensional grid structure.\\
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{figure}[tb]
+\begin{figure}[htb]
 \centering
-\includegraphics[width=6.5in]{./Introduction/AMR}
+\includegraphics[width=4in]{./Introduction/AMR}
 \caption{\label{fig:AMR}Sample grid structure with two levels of refinement.  These
-grids satisfy the requirements that the base grid covers the entire computational domain 
+grids satisfy the requirements that the base grid (i.e., the coarsest level)
+covers the entire computational domain 
 and the grids are properly nested.  Note that refined grids are allowed to extend to physical
-domain boundaries without coarser buffer cells.}
+(non-periodic) domain boundaries without coarser buffer cells.}
 \end{figure}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-On a grid, the data can be stored at cell-centers, faces, edges, or
+On a grid, the data can be stored at cell-centers, faces, edges (in three dimensions), or
 corners.  In \BoxLib, data that is on an face is termed `nodal'
 in that one direction (see Figure~\ref{fig:dataloc}).  In three-dimensions (not pictured),
 data that is nodal in two directions is said to live on edges.  Data that is nodal in
@@ -45,18 +46,18 @@ species, $\ldots$) is typically cell-centered.  Fluxes are typically nodal in ex
 one direction (i.e.~they are face-centered).  A few quantities are nodal in all 
 directions (e.g.~the pressure in the low Mach number projection methods).
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{figure}[tb]
+\begin{figure}[htb]
 \centering
 \includegraphics[width=6.5in]{./Introduction/data_loc2}
 \caption{\label{fig:dataloc} Some of the different data-centerings in two dimensions:
-(a) cell-centered, (b) nodal in the $x$-direction only (face-centered), and (c) nodal in
-both the $x$- and $y$-directions.  Note that for data that is nodal in one or more direction,
+(a) cell-centered, (b) face-centered, i.e., nodal in one dimensions ($x$) only, and (c) corner/nodal,
+i.e., nodal in all dimensions.  Note that for data that is nodal in one or more direction,
 the integer index corresponds to the lower boundary in that direction.
 Also note that \BoxLib\ uses $0$-based indexing, e.g., in each of these centerings, 
 the red point has the same indices:\ (1,2).
 Not shown is the case where data is nodal in the $y$-direction only.  
 Also not shown is the three-dimensional edge-centered case, where the data
-is nodal in exactly two directions.  }
+is nodal in exactly two directions.}
 \end{figure}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -110,8 +111,8 @@ To build a \BoxType\ in Fortran90 use:
 \begin{lstlisting}[backgroundcolor=\color{light-green}]
 type(box) :: bx
 integer   :: iv_lo(2), iv_hi(2)
-iv_lo(1:2) = 0
-iv_hi(1:2) = 15
+iv_lo(1:2) = (/ 0, 0 /)
+iv_hi(1:2) = (/ 15, 15 /)
 bx = make_box(lo,hi)
 \end{lstlisting}
 
@@ -158,36 +159,28 @@ In Fortran90, you could do the following:
 integer        :: lo(2), hi(2)
 type(box)      :: bx(4)
 type(boxarray) :: ba
-lo(1) = 0
-lo(2) = 0
-hi(1) = 7
-hi(2) = 7
+lo(1:2) = (/ 0, 0 /)
+hi(1:2) = (/ 7, 7 /)
 bx(1) = make_box(lo,hi)
-lo(1) = 8
-lo(2) = 0
-hi(1) = 15
-hi(2) = 7
+lo(1:2) = (/ 8, 0 /)
+hi(1:2) = (/ 15, 7 /)
 bx(2) = make_box(lo,hi)
-lo(1) = 0
-lo(2) = 8
-hi(1) = 7
-hi(2) = 15
+lo(1:2) = (/ 0, 8 /)
+hi(1:2) = (/ 7, 15 /)
 bx(3) = make_box(lo,hi)
-lo(1) = 8
-lo(2) = 8
-hi(1) = 15
-hi(2) = 15
+lo(1:2) = (/ 8, 8 /)
+hi(1:2) = (/ 15, 15 /)
 bx(4) = make_box(lo,hi)
 call boxarray_build_v(ba,bx)
 \end{lstlisting}
-This is rather cumbersome, so instead we use other \BoxLib\ functions to
-build the same \BoxArray:
+This is rather cumbersome, so instead we use built-in \BoxLib\ functions to
+divide a single box into smaller boxes to build the same \BoxArray:
 \begin{lstlisting}[backgroundcolor=\color{light-green}]
 type(boxarray) :: ba
 integer        :: lo(2), hi(2)
 type(box)      :: bx
-lo(1:2) = 0
-hi(1:2) = 15
+lo(1:2) = (/ 0, 0 /)
+hi(1:2) = (/ 15, 15 /)
 bx = make_box(lo,hi)
 call boxarray_build_bx(ba,bx)  ! the boxarray has one 16^2 box
 call boxarray_maxsize(ba,8)    ! the boxarray has four 8^2 boxes
@@ -222,7 +215,10 @@ that can be sent to a Fortran routine.
 In Fortran90, \Fab\ data is stored in a four-dimensional array,
 {\tt (nx,ny,nz,nc)} in size, regardless of the dimensionality of the
 problem.  Here {\tt nc} is the number of components, for instance
-representing different fluid variables.  For 2D problems, {\tt nz=1}.\\
+representing different fluid variables.  For 2D problems, {\tt nz=1}.
+In C++, \Fab\ data is stored in a one-dimensional array, and we pass
+shape information into Fortran90 subroutines when we need to access
+the data.
 
 In \BoxLib, we don't usually deal with 
 \Fab s alone, but rather through \MultiFab s, described next.
@@ -368,8 +364,30 @@ int main()
   // fill periodic domain boundary and neighboring grid ghost cells
   data->FillBoundary();
 }
+
+...
+
+subroutine work_on_data(data, ng, nc, lo, hi)
+
+  integer          :: lo(2), hi(2), ng
+  double precision :: data(lo(1)-ng:,lo(2)-ng:,:)
+
+  ! local variables
+  integer :: i,j,n
+
+  do j=lo(2),hi(2)
+     do i=lo(1),hi(1)
+        do n=1,nc
+           ! some silly function I made up
+           data(i,j,n) = (i + j) * n
+        end do
+     end do
+  end do
+
+end subroutine work_on_data
+
 \end{lstlisting}
-The {\tt FORT\_WORK\_ON\_DATA} calls a Fortran90 subroutine which is nearly
+Note that in C++, the {\tt FORT\_WORK\_ON\_DATA} calls a Fortran90 subroutine which is nearly
 identical to the Fortran90 example given above.  The only difference is the subroutine
 name cannot have the \_2d or \_3d in its name.  Thus, the 2d and 3d versions
 are both named {\tt subroutine work\_on\_data}, and must be written in
@@ -382,10 +400,12 @@ ghost cells with values that can simply be copied from the valid region of a nei
 grid at the same level of refinement.  For single-level problems that are periodic
 in all directions, these functions fill all ghost cells.  We will discuss
 non-periodic domain boundaries and fine grid ghost cells near coarse-fine interfaces
-in Chapter \ref{Sec:Boundary Conditions}.
+in Chapter \ref{Sec:Boundary Conditions} for Fortran90.
 
 \subsection{Other \MultiFab\ Functions}
-{\tt setVal} is a simple subroutine that sets the \MultiFab\ data to a particular value.
+\begin{itemize}
+\item {\tt setVal} sets the \MultiFab\ data to a particular value.
+\end{itemize}
 In Fortran90, use:
 \begin{lstlisting}[backgroundcolor=\color{light-green}]
 ! set all variables to 0.0; ``all=.true.'' means set the ghost cells also
@@ -395,7 +415,9 @@ In C++, use:
 \begin{lstlisting}[backgroundcolor=\color{light-blue}]
 data->setVal(0.0);  // set all variables to 0.0, including ghost cells
 \end{lstlisting}
-{\tt copy} is a simple subroutine that copies data from one \MultiFab\ to another.
+\begin{itemize}
+\item {\tt copy} copies data from one \MultiFab\ to another.
+\end{itemize}
 In Fortran90, use:
 \begin{lstlisting}[backgroundcolor=\color{light-green}]
 ! copy components 1 and 2 from data_src into data_dest, 
@@ -419,11 +441,14 @@ components of \MultiFab s, finding the min/max value, norms, number of cells, et
 Refer to {\tt BoxLib/Src/F\_BaseLib/multifab\_f.f90} or 
 {\tt BoxLib/Src/C\_BaseLib/MultiFab.H} for a complete listing.
 
-\section{Simple Example - Fortran90}
+\section{Simple Example - Explicit Heat Equation}
 We now provide a complete tutorial code that uses some concepts discussed above.
 The code also writes plotfiles that can be viewed, and can be run in parallel if you
-are working on a machine with MPI and/or OpenMP support.  The Fortran90 version of this 
-example is contained in {\tt BoxLib/Tutorials/HeatEquation\_EX1\_F/}.\\
+are working on a machine with MPI and/or OpenMP support.
+\begin{itemize}
+\item The Fortran90 version of this example is contained in {\tt BoxLib/Tutorials/HeatEquation\_EX1\_F/}.
+\item The C++ version of this example is contained in {\tt BoxLib/Tutorials/HeatEquation\_EX1\_C/}.
+\end{itemize}
 
 In this example, we advance the equation:
 \begin{equation}
@@ -451,11 +476,15 @@ Next, we compute the update by taking the divergence of these fluxes,
 \begin{equation}
 \left[\nabla\cdot(\nabla\phi)\right]_{ij} = \frac{(\nabla\phi)_{i+\myhalf,j}-(\nabla\phi)_{i-\myhalf,j}}{\Delta x} + \frac{(\nabla\phi)_{i,j+\myhalf}-(\nabla\phi)_{i,j-\myhalf}}{\Delta y}.
 \end{equation}
-We use a flux divergence formulation because it will enable a more natural 
+Note that the overall update could be expressed as a 5-point (in 2D) or 7-point (in 3D) 
+Laplacian stencil,
+but here use a flux divergence formulation because it will enable a more natural 
 extension to multiple levels of refinement, where we will be concerned with
 conservation across levels.  Note that in this explicit case, since $\Delta x = \Delta y$, 
 the Laplacian reduces to the standard five point stencil in two dimensions
 (seven point stencil in three dimensions).\\
+
+\subsection{Fortran90}
 
 Since the fluxes live on faces, we need face-centered \MultiFab s, i.e.,
 \MultiFab s that are nodal in one spatial direction.  In {\tt advance.f90},
@@ -555,7 +584,7 @@ The program will complete and there will be a series of plotfiles, e.g., {\tt pl
 and make animations using {\tt VisIt} (available at {\tt https://wci.llnl.gov/codes/visit/});
 refer to Section \ref{Sec:VisIt}.
 
-\section{Simple Example - C++}
+\subsection{C++}
 The C++ version of this example is contained in {\tt BoxLib/Tutorials/HeatEquation\_EX1\_C/}.
 
 \begin{itemize}
