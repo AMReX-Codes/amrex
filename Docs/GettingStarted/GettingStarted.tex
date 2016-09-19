@@ -511,7 +511,7 @@ This contains compiler settings and directories required by the make system to b
     \item {\tt BOXLIB\_HOME}
 
     Change this to point to the \BoxLib\ home directory.  Alternatively, you can define {\tt BOXLIB\_HOME}
-    as an environment variable on your system.
+    as an environment variable on your system and this line will be ignored.
 
     \item {\tt NDEBUG} ('{\tt t}' or '{\tt <blank>}') for TRUE or FALSE
       
@@ -539,14 +539,7 @@ This contains compiler settings and directories required by the make system to b
     \item {\tt COMP} ('{\tt gfortran}, {\tt Intel}, $\ldots$)'
 
     The Fortran compiler.  Supported options include {\tt gfortran}, {\tt Intel}, 
-    {\tt PathScale}, {\tt PGI}, and {\tt Cray}.  The {\tt gfortran} compiler seems to be 
-    bug-free on all systems we've run on, so stick with this unless you have good reason to 
-    change.  {\tt Intel} after version 9 seems flaky.  {\tt PathScale} (available 
-    at OLCF and NERSC) seems to work as long as you don't turn the optimization flags 
-    too high, and seems to run the fastest if you can actually get it to work.  
-    {\tt Cray} seems to give similar performance as {\tt PathScale} (perhaps
-    because Cray bought out PathScale recently).  {\tt PGI} (available at OLCF and NERSC) 
-    seems to work fine, but is slower than the others.
+    and {\tt Cray}.
 
     \item {\tt MKVERBOSE} ('{\tt t}' or '{\tt <blank>}')
 
@@ -597,7 +590,7 @@ This contains compiler settings and directories required by the make system to b
     \item {\tt BOXLIB\_HOME}
 
     Change this to point to the \BoxLib\ home directory.  Alternatively, you can define {\tt BOXLIB\_HOME}
-    as an environment variables on your system.
+    as an environment variable on your system and this line will be ignored.
 
     \item {\tt DEBUG} ('{\tt TRUE}' or '{\tt FALSE}')
       
@@ -623,12 +616,13 @@ This contains compiler settings and directories required by the make system to b
 
     \item {\tt COMP} ('{\tt g++}, {\tt Intel}, $\ldots$)'
 
-    The C++ compiler.  Supported options include {\tt g++}, {\tt Intel}, {\tt PathScale}, 
-    {\tt PGI}, and {\tt Cray}.  See compiler notes above.
+    The C++ compiler.  Supported options include {\tt g++}, {\tt Intel}, and
+    {\tt Cray}.
 
     \item {\tt FCOMP} ('{\tt gfortran}, {\tt Intel}, $\ldots$)'
 
-    The Fortran compiler.  See compiler notes above.
+    The Fortran compiler.  Supported options include {\tt g++}, {\tt Intel}, and
+    {\tt Cray}.
 
     \item {\tt DIM} ('1', '2', or '3')
 
@@ -668,13 +662,13 @@ about what setting you used in the {\tt GNUmakefile}.  To run the code on one pr
 \begin{lstlisting}[backgroundcolor=\color{light-red}]
 ./main2d.Linux.g++.gfortran.ex inputs_2d
 \end{lstlisting}
-The program will complete and there will be a series of plotfiles, e.g., {\tt plt00000}, 
+The program will execute and there will be a series of plotfiles, e.g., {\tt plt00000}, 
 {\tt plt00100}, etc., in the run directory.  You can visualize the data 
-and make animations using {\tt VisIt} (available at {\tt https://wci.llnl.gov/codes/visit/});
+and make animations using {\tt VisIt} (available at {\tt https://wci.llnl.gov/simulation/computer-codes/visit});
 refer to Section \ref{Sec:VisIt}.
 
 \section{Visualization Using {\tt VisIt}}\label{Sec:VisIt}
-First, download and install {\tt VisIt} from {\tt https://wci.llnl.gov/codes/visit/}.
+First, download and install {\tt VisIt} from {\tt https://wci.llnl.gov/simulation/computer-codes/visit}.
 To open a single plotfile, run {\tt VisIt}, then select ``File'' $\rightarrow$ ``Open file ...'',
 then select the {\tt Header} file associated the the plotfile of interest (e.g., {\tt plt00000/Header}).
 Assuming you ran the simulation in 2D, here are instructions for making a simple plot:
@@ -727,39 +721,43 @@ using MPI parallelism.  To run in parallel using C++ \BoxLib\ is analogous.
 On your local machine, if you have MPI installed, you must first configure
 {\tt BoxLib/Tools/F\_mk/GMakeMPI.mak} and {\tt BoxLib/Tools/C\_mk/Make.mpi}
 to your MPI installation.  Then, you 
-can simply build the executable as describe before, but with {\tt MPI=t} 
-in the {\tt GNUmakefile}.  Alternatively, you can override the settings in 
-{\tt GNUmakefile} at the command line using, e.g., ``{\tt make MPI=t}''.  
-An executable named {\tt main.Linux.gfortran.mpi.exe} will be built.
+can simply build the executable as describe before, but with {\tt MPI=t} (Fortran90)
+or {\tt USE\_MPI=TRUE} (C++) in the {\tt GNUmakefile}.  Alternatively, you can override the settings in 
+{\tt GNUmakefile} at the command line using, e.g., ``{\tt make MPI=t}'' (Fortran90)
+or ``{\tt make USE\_MPI=TRUE}'' (C++).  
+An executable named {\tt main.Linux.gfortran.mpi.exe} (or similar) will be built.
 Then you can run the program in parallel using, e.g.,
 \begin{lstlisting}[backgroundcolor=\color{light-red}].
 mpiexec -n 4 main.Linux.gfortran.mpi.ex inputs_2d
 \end{lstlisting}
 
-To run in parallel on the hopper machine at NERSC, first copy the \BoxLib\ source code
-into your home directory on hopper and go to the {\tt HeatEquation\_EX1\_F/} directory.
-The default programming environment uses the {\tt PGI} compilers, so we will switch to the
-{\tt gnu} programming environment to make {\tt g++} and {\tt gfortran} available
-using the command:
+To run in parallel on the edison machine at NERSC, first copy the \BoxLib\ source code
+into your home directory on edison and go to the {\tt HeatEquation\_EX1\_F/} directory.
+The default programming environment uses the {\tt Intel} compilers.  If you want
+to switch to the
+{\tt gnu} programming environment to make {\tt g++} and {\tt gfortran} available,
+use the command:
 \begin{lstlisting}[backgroundcolor=\color{light-red}].
-module swap PrgEnv-pgi PrgEnv-gnu
+module swap PrgEnv-intel PrgEnv-gnu
 \end{lstlisting}
 Next, in {\tt GNUmakefile}, set {\tt MPI=t}, and then type ``{\tt make}''
-(or alternatively, type ``{\tt make MPI=t}'').
-An executable named {\tt main2d.Linux.g++.gfortran.mpi.exe} will be built.
+(make sure MPI is enabled in the {\tt GNUmakefile} and the compiler is set correctly).
+An executable named something like 
+{\tt main2d.Linux.g++.gfortran.mpi.exe} will be built.
 You cannot submit jobs in your home directory, so change to a scratch space
 (``{\tt cd \$SCRATCH}'' will typically do), and copy the executable and
 {\tt inputs\_2d} into this directory.  Then you need to create a job script,
-e.g., "{\tt hopper.run}", that has contents (for tcsh):
-\lstinputlisting[backgroundcolor=\color{light-red}]{./GettingStarted/hopper.run}
-Note that ``mppwidth'' and ``-n'' both indicate the number of cores you are requesting.
-To run, simply type ``{\tt qsub hopper.run}''.  You can monitor the status of your job
-using ``{\tt qstat -u <username>}'' and view your position in the queue 
-using ``{\tt showq}''.
+e.g., "{\tt edison.run}", that has contents (for tcsh):
+\lstinputlisting[backgroundcolor=\color{light-red}]{./GettingStarted/edison.run}
+Note that ``-N'' and ``-n'' both indicate the number of cores you are requesting.
+To run, simply type ``{\tt sbatch edison.run}''.  You can monitor the status of your job
+using ``{\tt squeue -u <username>}'' and view your position in the queue 
+using ``{\tt squeue}''.
 
 \section{Running in Parallel with MPI/OpenMP (3D ONLY)}\label{Sec:OpenMP}
-Both the C++ and Fortran versions of this tutorial also support hybrid MPI/OpenMP parallelism for {\bf three-dimensional problems only}.
-You may add OMP parallelism to two-dimensional work loops, but be advised that subroutines within the \BoxLib~ infrastructure 
+Both the C++ and Fortran versions of this tutorial also support hybrid MPI/OpenMP parallelism for 
+{\bf three-dimensional problems only}.
+You may add OMP parallelism to two-dimensional work loops, but be advised that subroutines within the \BoxLib\ infrastructure 
 are not threaded for two-dimensional problems.
 To ``thread'' the code, we have simply added OpenMP directives (using the {\tt !\$omp parallel do} 
 construct) to any i/j/k loops we were interested in threading.  For example, in {\tt init\_phi.f90}:
@@ -790,13 +788,11 @@ Otherwise, all OpenMP directive are
 simply ignored.  Note that at runtime you must have set the 
 {\tt OMP\_NUM\_THREADS} environment variable properly in order for threads to work.
 Also, note that you can enable/disable MPI independently from the OMP flag.  Finally,
-here is a sample hopper script (tcsh) for a hybrid MPI/OpenMP job:
-\lstinputlisting[backgroundcolor=\color{light-red}]{./F_AdvancedTopics/hopper_omp.run}
+here is a sample edison script for a hybrid MPI/OpenMP job:
+\lstinputlisting[backgroundcolor=\color{light-red}]{./GettingStarted/edison_omp.run}
 \begin{itemize}
-\item ``mppwidth'': how many total cores requested
+\item ``-N'': number of edison nodes
 \item ``-n'': total number of MPI tasks
-\item ``-N'': number of MPI tasks per hopper node
-\item ``-S'': number of MPI tasks per NUMA node
-\item ``-ss'': demands strict memory containment per NUMA node
-\item ``-d'': number of OpenMP threads per MPI task
+\item ``-c'': number of threads per MPI task
+
 \end{itemize}
