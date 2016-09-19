@@ -254,6 +254,9 @@ void TestWriteNFiles(int nfiles, int maxgrid, int ncomps, int nboxes,
 
   long totalBytesWritten = VisMF::Write(mfout, mfName);
 
+  ParallelDescriptor::Barrier();
+  bool isOk = VisMF::Check(mfName);
+
   double wallTime(ParallelDescriptor::second() - wallTimeStart);
 
   VisMF::SetHeaderVersion(currentVersion);  // ---- set back to previous version
