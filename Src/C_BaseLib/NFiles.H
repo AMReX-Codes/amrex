@@ -93,6 +93,8 @@ class NFilesIter
       }
     }
 
+    const std::string &FileName() const { return fullFileName; }
+
     static std::string FileName(int nOutFiles,
                                 const std::string &filePrefix,
 				int whichProc, bool groupSets)
@@ -112,8 +114,13 @@ class NFilesIter
     // ---- this is the processor coorinating dynamic set selection
     int CoordinatorProc() const { return coordinatorProc; }
 
-    // ---- these are the file numbers to which each rank wrote
-    const Array<int> &FileNumbersWritten() const { return fileNumbersWritten; }
+    // ---- these are the file numbers to which each rank wrote  [rank]
+    // ---- a rank only writes to one file
+    Array<int> FileNumbersWritten();
+
+    // ---- these are the order of ranks which wrote to each file
+    // ---- [filenumber][ranks in order they wrote to filenumber]
+    const Array< Array<int> > &FileNumbersWriteOrder() const { return fileNumbersWriteOrder; }
 
 
   private:
@@ -132,7 +139,7 @@ class NFilesIter
     bool isReading;
     bool finishedReading;
     Array<int> readRanks;
-    Array<int> fileNumbersWritten;    // ---- [rank]
+    Array< Array<int> > fileNumbersWriteOrder;    // ---- [filenumber][ranks in order they wrote to filenumber]
     int myReadIndex;
     bool useStaticSetSelection;
     int fileNumber, remainingWriters, deciderProc, coordinatorProc;

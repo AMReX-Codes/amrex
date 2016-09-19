@@ -10,6 +10,8 @@
 #include <FabArray.H>
 #include <FArrayBox.H>
 
+class NFilesIter;
+
 //
 // File I/O for FabArray<FArrayBox>
 //
@@ -240,7 +242,10 @@ public:
     static void ReadFAHeader (const std::string &fafabName,
 		              Array<char> &header);
 
-    static void Check (const std::string &name);
+    //
+    // Check if the multifab is ok, false is returned if not ok
+    //
+    static bool Check (const std::string &name);
     //
     // The file offset of the passed ostream.
     //
@@ -325,8 +330,8 @@ private:
                              VisMF::Header &hdr,
 			     bool groupSets,
 			     VisMF::Header::Version whichVersion,
-			     Array<int> *fileNumbers = 0,
-			     int coordinatorProc = ParallelDescriptor::IOProcessorNumber());
+			     bool useDynamicSetSelection,
+			     NFilesIter &nfi);
     //
     // Read the fab.
     // If ncomp == -1 reads the whole FAB.

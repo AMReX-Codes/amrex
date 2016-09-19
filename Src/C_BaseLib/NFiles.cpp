@@ -28,9 +28,10 @@ NFilesIter::NFilesIter(int noutfiles, const std::string &fileprefix,
   useStaticSetSelection = true;
   coordinatorProc = ParallelDescriptor::IOProcessorNumber();
   if(myProc == coordinatorProc) {
-    fileNumbersWritten.resize(nProcs, -3);
+    // ---- make a static order
+    fileNumbersWriteOrder.resize(nOutFiles);
     for(int i(0); i < nProcs; ++i) {
-      fileNumbersWritten[i] = FileNumber(nOutFiles, i, groupSets);
+      fileNumbersWriteOrder[FileNumber(nOutFiles, i, groupSets)].push_back(i);
     }
   }
 
@@ -74,6 +75,9 @@ void NFilesIter::SetDynamic(int deciderproc)
     useStaticSetSelection = true;
     coordinatorProc = ParallelDescriptor::IOProcessorNumber();
   }
+
+  fileNumbersWriteOrder.clear();
+  fileNumbersWriteOrder.resize(nOutFiles);
 }
 
 
@@ -157,7 +161,7 @@ bool NFilesIter::ReadyToWrite() {
 
   } else {    // ---- use dynamic set selection
 
-    if(mySetPosition == 0) {    // ---- write data
+    if(mySetPosition == 0) {    // ---- return true, ready to write data
 
       fullFileName = BoxLib::Concatenate(filePrefix, fileNumber, 5);
       fileStream.open(fullFileName.c_str(),
@@ -184,7 +188,7 @@ bool NFilesIter::ReadyToWrite() {
     if( ! finishedWriting) {  // ---- the deciderProc drops through to here
       // ---- wait for signal to start writing
       ParallelDescriptor::Message rmess =
-            ParallelDescriptor::Recv(&fileNumber, 1, MPI_ANY_SOURCE, writeTag+111);
+            ParallelDescriptor::Recv(&fileNumber, 1, MPI_ANY_SOURCE, writeTag);
       coordinatorProc = rmess.pid();
       fullFileName = BoxLib::Concatenate(filePrefix, fileNumber, 5);
 
@@ -232,6 +236,8 @@ NFilesIter &NFilesIter::operator++() {
 
 #ifdef BL_USE_MPI
 
+  ParallelDescriptor::Message rmess;
+
   if(isReading) {
     fileStream.close();
 
@@ -276,7 +282,6 @@ NFilesIter &NFilesIter::operator++() {
         ParallelDescriptor::Recv(&coordinatorProc, 1, deciderProc, coordinatorTag);
 
         if(myProc == coordinatorProc) {
-	  fileNumbersWritten.resize(nProcs, -3);
           Array<std::deque<int> > procsToWrite(nOutFiles);  // ---- [fileNumber](procsToWriteToFileNumber)
           // ---- populate with the static nfiles sets
           for(int i(0); i < nProcs; ++i) {
@@ -284,7 +289,7 @@ NFilesIter &NFilesIter::operator++() {
             int whichFileNumber(NFilesIter::FileNumber(nOutFiles, i, groupSets));
 	    // ---- procSet == 0 have already written their data
 	    if(procSet == 0) {
-	      fileNumbersWritten[i] = whichFileNumber;
+	      fileNumbersWriteOrder[whichFileNumber].push_back(i);
               --remainingWriters;
 	    }
             if(procSet != 0) {
@@ -315,10 +320,11 @@ NFilesIter &NFilesIter::operator++() {
               }
             }
 
-	    fileNumbersWritten[nextProcToWrite] = nextFileNumberToWrite;
-            ParallelDescriptor::Asend(&nextFileNumberToWrite, 1, nextProcToWrite, writeTag+111);
+	    fileNumbersWriteOrder[nextFileNumberToWrite].push_back(nextProcToWrite);
+
+            ParallelDescriptor::Asend(&nextFileNumberToWrite, 1, nextProcToWrite, writeTag);
   
-            ParallelDescriptor::Recv(&nextFileNumberAvailable, 1, MPI_ANY_SOURCE, doneTag);
+            rmess = ParallelDescriptor::Recv(&nextFileNumberAvailable, 1, MPI_ANY_SOURCE, doneTag);
             availableFileNumbers.insert(nextFileNumberAvailable);
             --remainingWriters;
           }
@@ -369,6 +375,39 @@ bool NFilesIter::CheckNFiles(int nProcs, int nOutFiles, bool groupSets)
     }
   }
   return true;
+}
+
+
+
+Array<int> NFilesIter::FileNumbersWritten()
+{
+  Array<int> fileNumbersWritten(nProcs, -1);
+
+  if(myProc == coordinatorProc) {
+
+#ifdef DEBUG
+    int total(0);
+    std::set<int> procSet;
+    for(int f(0); f < fileNumbersWriteOrder.size(); ++f) {
+      total += fileNumbersWriteOrder[f].size();
+      for(int r(0); r < fileNumbersWriteOrder[f].size(); ++r) {
+        procSet.insert(fileNumbersWriteOrder[f][r]);
+      }
+    }
+    if(total != nProcs || procSet.size() != nProcs) {
+      std::cout << "**** Error in NFilesIter::FileNumbersWritten():  nProcs total procSet.size() = "
+                << nProcs << "  " << total << "  " << procSet.size() << std::endl;
+    }
+#endif
+
+    for(int f(0); f < fileNumbersWriteOrder.size(); ++f) {
+      for(int r(0); r < fileNumbersWriteOrder[f].size(); ++r) {
+        fileNumbersWritten[fileNumbersWriteOrder[f][r]] = f;
+      }
+    }
+
+  }
+  return fileNumbersWritten;
 }
 
 
