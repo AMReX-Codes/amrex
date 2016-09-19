@@ -1,0 +1,8 @@
+#!/bin/tcsh
+#SBATCH -p debug
+#SBATCH -N 3
+#SBATCH -t 00:05:00
+#SBATCH -J my_job
+#SBATCH -o my_job.o%j
+
+srun -n 72 ./main.Linux.Intel.mpi.exe

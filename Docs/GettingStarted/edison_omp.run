@@ -1,0 +1,10 @@
+#!/bin/tcsh
+#SBATCH -p debug
+#SBATCH -N 3
+#SBATCH -t 00:05:00
+#SBATCH -J my_job
+#SBATCH -o my_job.o%j
+
+setenv OMP_NUM_THREADS 12
+
+srun -n 6 -c 12 ./main.Linux.Intel.mpi.omp.exe
