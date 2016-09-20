@@ -22,6 +22,15 @@ else
   SILENT =
 endif
 
+#
+# Rules for building executable.
+#
+$(executable):	$(objForExecs)
+	@echo Linking $@ ...
+	$(SILENT) $(PRELINK) $(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) \
+		-o $@ $^ $(libraries)
+#	@echo SUCCESS
+
 clean::
 	@echo Cleaning...
 	$(SILENT) $(RM) $(objTempDir)/*.o $(f77TempDir)/*.f $(f77TempDir)/*.f90 $(objEXETempDir)/*.o
@@ -61,14 +70,7 @@ BROWSE:	$(T_headers) $(T_sources) $(CEXE_headers) $(CEXE_sources)
 	$(SILENT) browse $^
 
 .PHONY:	all clean TAGS realclean tags BROWSE
-#
-# Rules for building executable.
-#
-$(executable):	$(objForExecs)
-	@echo Linking $@ ...
-	$(SILENT) $(PRELINK) $(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) \
-		-o $@ $^ $(libraries)
-#	@echo SUCCESS
+
 #
 # Rules for libraries.
 #
