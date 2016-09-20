@@ -11,10 +11,9 @@
 #include <Interpolater.H>
 #include <StateData.H>
 #include <StateDescriptor.H>
-#include <bc_F.H>
-
-
 #include <ArrayLim.H>
+
+#include "bc_F.H"
 
 extern "C"
 {
@@ -125,13 +124,13 @@ main (int argc, char* argv[])
   IntVect dom_lo(0,0,0);
   IntVect dom_hi(n_cell-1,n_cell-1,n_cell-1);
 #endif
-  Box domain(dom_lo,dom_hi);
+  const Box domain(dom_lo,dom_hi);
 
-  // Initialize the boxarray "bs" from the single box "bx"
-  BoxArray bs(domain);
+  // Initialize the boxarray "grids" from the single box "bx"
+  BoxArray grids(domain);
 
-  // Break up boxarray "bs" into chunks no larger than "max_grid_size" along a direction
-  bs.maxSize(max_grid_size);
+  // Break up boxarray "grids" into chunks no larger than "max_grid_size" along a direction
+  grids.maxSize(max_grid_size);
 
   // This defines the physical size of the box.  Right now the box is [-1,1] in each direction.
   RealBox real_box;
@@ -170,13 +169,12 @@ main (int argc, char* argv[])
   // here we will only have one.
   static DescriptorList desc_lst;     
 
-#if 0
   // We create a StateData instantiation of type Phi_Type.  The data lives at cell centers,
-  //    is time-centered at times t^n (old) and t^{n+1} (new), has 1 component, and 
-  //    is interpolated using conservative interpolation.
+  //    is time-centered at times t^n (old) and t^{n+1} (new), has Ncomp components, Nghost ghost cells,
+  //    and is interpolated using conservative interpolation.
   int Phi_Type = 0;
   desc_lst.addDescriptor(Phi_Type,IndexType::TheCellType(),
-                         StateDescriptor::Point,0,1,
+                         StateDescriptor::Point,Nghost,Ncomp,
                          &cell_cons_interp);
 
   int lo_bc[BL_SPACEDIM];
@@ -187,13 +185,32 @@ main (int argc, char* argv[])
   BCRec bc(lo_bc, hi_bc);
 
   // Here we set the boundary conditions for the first (and only) component of the StateData
-  desc_lst.setComponent(Phi_Type, 0, "phi", bc,
-                        StateDescriptor::BndryFunc(phifill));
+  desc_lst.setComponent(Phi_Type, 0, "phi", bc, StateDescriptor::BndryFunc(phifill));
 
+  // time = starting time in the simulation -- this is the time at which the "old" data
+  //        will be defined
+  Real time = 0.;
+
+  // dt = used to set new_time = old_time + dt
+  // we will over-write this later
+  Real dt = 1.e20;
+
+  // This define creates the data at the "new" time only
+  StateData phi_state;
+  phi_state.define(domain,
+                   grids,
+                   desc_lst,
+                   time,
+                   dt);
+
+#if 0
   // Allocate space for the old_phi and new_phi -- we define old_phi and new_phi as
   //   pointers to the MultiFabs
-  MultiFab* old_phi = new MultiFab(bs, Ncomp, Nghost);
-  MultiFab* new_phi = new MultiFab(bs, Ncomp, Nghost);
+  // MultiFab* old_phi = new MultiFab(grids, Ncomp, Nghost);
+  // MultiFab* new_phi = new MultiFab(grids, Ncomp, Nghost);
+
+  MultiFab& old_phi = phi_state.newData();
+  MultiFab& new_phi = phi_state.oldData();
 
   // Initialize both to zero (just because)
   old_phi->setVal(0.0);
@@ -211,7 +228,7 @@ main (int argc, char* argv[])
   }
 
   // Call the compute_dt routine to return a time step which we will pass to advance
-  Real dt = compute_dt(dx[0]);
+  dt = compute_dt(dx[0]);
 
   // Write a plotfile of the initial data if plot_int > 0 (plot_int was defined in the inputs file)
   if (plot_int > 0)
@@ -225,7 +242,7 @@ main (int argc, char* argv[])
   MultiFab* flux = new MultiFab[BL_SPACEDIM];
   for (int dir = 0; dir < BL_SPACEDIM; dir++)
     {
-      BoxArray edge_grids(bs);
+      BoxArray edge_grids(grids);
       // flux(dir) has one component, zero ghost cells, and is nodal in direction dir
       edge_grids.surroundingNodes(dir);
       flux[dir].define(edge_grids,1,0,Fab_allocate);
