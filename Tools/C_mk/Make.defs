@@ -260,6 +260,10 @@ ifndef USE_ASSERTION
   USE_ASSERTION = FALSE
 endif
 
+ifndef EBASE
+  EBASE = main
+endif
+
 #
 # Defaults for BoxLib style programs.
 #
