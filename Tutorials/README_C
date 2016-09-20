@@ -31,6 +31,11 @@ The following tutorials demonstrate how to use the C++ BoxLib:
    This does a second-order accurate explicit solution of the second-order
    wave equation, u_tt = c**2 L u, where L is the Laplacian
 
+* `HeatEquation_EX2_C`:
+
+   this example shows how to introduce boundary conditions with C++
+   using StateData but without using Amr or AmrLevel.
+
 * `AMR_Adv_C`:
 
    this is a full-fledged application that uses the BoxLib StateData class
