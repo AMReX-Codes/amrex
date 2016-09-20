@@ -98,7 +98,7 @@ endif
 #
 # Boundary-related 
 #
-C$(BOXLIB_BASE)_sources += BCRec.cpp
+C$(BOXLIB_BASE)_sources += BCRec.cpp PhysBCFunct.cpp
 C$(BOXLIB_BASE)_headers += BCRec.H PhysBCFunct.H
 C$(BOXLIB_BASE)_headers += BC_TYPES.H
 
@@ -108,6 +108,7 @@ C$(BOXLIB_BASE)_headers += BC_TYPES.H
 ifneq ($(BL_NO_FORT),TRUE)
   F$(BOXLIB_BASE)_sources += COORDSYS_$(DIM)D.F
   F$(BOXLIB_BASE)_headers += COORDSYS_F.H
+  F$(BOXLIB_BASE)_sources += FILCC_${DIM}D.F
 
   f$(BOXLIB_BASE)_sources += BLutil_F.f
   f$(BOXLIB_BASE)_sources += BLParmParse_F.f
