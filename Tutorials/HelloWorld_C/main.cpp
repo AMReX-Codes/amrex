@@ -5,7 +5,10 @@
 #include <BLFort.H>
 
 // declare a fortran subroutine
-BL_FORT_PROC_DECL(WORK, work) (const int* lo, const int* hi, BL_FORT_FAB_ARG(dfab));
+extern "C"
+{
+  void work(const int* lo, const int* hi, BL_FORT_FAB_ARG(dfab));
+}
 
 int main(int argc, char* argv[])
 {
@@ -32,8 +35,7 @@ int main(int argc, char* argv[])
 	const Box& bx = mfi.validbox();  // box for this fab
 
 	// call a fortran subroutine
-	BL_FORT_PROC_CALL(WORK, work)
-	    (bx.loVect(), bx.hiVect(),
+	work(bx.loVect(), bx.hiVect(),
 	     BL_TO_FORTRAN(data[mfi]));
     }
 
