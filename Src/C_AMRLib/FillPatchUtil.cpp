@@ -36,7 +36,7 @@ namespace BoxLib
     void FillPatchSingleLevel (MultiFab& mf, Real time, 
 			       const PArray<MultiFab>& smf, const std::vector<Real>& stime,
 			       int scomp, int dcomp, int ncomp,
-			       const Geometry& geom, PhysBCFunct& physbcf)
+			       const Geometry& geom, PhysBCFunctBase& physbcf)
     {
 	BL_PROFILE("FillPatchSingleLevel");
 
@@ -102,7 +102,7 @@ namespace BoxLib
 	    BoxLib::Abort("FillPatchSingleLevel: high-order interpolation in time not implemented yet");
 	}
 
-	physbcf.doit(mf, dcomp, ncomp, time);
+	physbcf.FillBoundary(mf, dcomp, ncomp, time);
     }
 
 
@@ -111,7 +111,7 @@ namespace BoxLib
 			     const PArray<MultiFab>& fmf, const std::vector<Real>& ft,
 			     int scomp, int dcomp, int ncomp,
 			     const Geometry& cgeom, const Geometry& fgeom, 
-			     PhysBCFunct& cbc, PhysBCFunct& fbc,
+			     PhysBCFunctBase& cbc, PhysBCFunctBase& fbc,
 			     const IntVect& ratio, 
 			     Interpolater* mapper, const Array<BCRec>& bcs)
     {
@@ -175,7 +175,7 @@ namespace BoxLib
     void InterpFromCoarseLevel (MultiFab& mf, Real time, const MultiFab& cmf, 
 				int scomp, int dcomp, int ncomp,
 				const Geometry& cgeom, const Geometry& fgeom, 
-				PhysBCFunct& cbc, PhysBCFunct& fbc, const IntVect& ratio, 
+				PhysBCFunctBase& cbc, PhysBCFunctBase& fbc, const IntVect& ratio, 
 				Interpolater* mapper, const Array<BCRec>& bcs)
     {
 	const InterpolaterBoxCoarsener& coarsener = mapper->BoxCoarsener(ratio);
@@ -212,7 +212,7 @@ namespace BoxLib
 
 	mf_crse_patch.copy(cmf, scomp, 0, ncomp, cgeom.periodicity());
 
-	cbc.doit(mf_crse_patch, 0, ncomp, time);
+	cbc.FillBoundary(mf_crse_patch, 0, ncomp, time);
 
 	int idummy1=0, idummy2=0;
 
@@ -240,6 +240,6 @@ namespace BoxLib
 			   idummy1, idummy2);	    
 	}
 
-	fbc.doit(mf, dcomp, ncomp, time);
+	fbc.FillBoundary(mf, dcomp, ncomp, time);
     }
 }

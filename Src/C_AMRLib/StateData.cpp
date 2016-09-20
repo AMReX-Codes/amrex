@@ -813,9 +813,9 @@ StateDataPhysBCFunct::StateDataPhysBCFunct (StateData&sd, int sc, const Geometry
 { }
 
 void
-StateDataPhysBCFunct::doit (MultiFab& mf, int dest_comp, int num_comp, Real time)
+StateDataPhysBCFunct::FillBoundary (MultiFab& mf, int dest_comp, int num_comp, Real time)
 {
-    BL_PROFILE("StateDataPhysBCFunct::doit");
+    BL_PROFILE("StateDataPhysBCFunct::FillBoundary");
 
     const Box&     domain      = statedata->getDomain();
     const int*     domainlo    = domain.loVect();
