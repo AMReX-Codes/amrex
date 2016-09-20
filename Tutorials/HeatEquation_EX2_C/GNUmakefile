@@ -17,6 +17,10 @@ include $(BOXLIB_HOME)/Tools/C_mk/Make.defs
 include $(BOXLIB_HOME)/Src/C_BoundaryLib/Make.package
 include $(BOXLIB_HOME)/Src/C_BaseLib/Make.package
 
+CEXE_sources += StateDescriptor.cpp
+CEXE_headers += StateDescriptor.H
+
+
 INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/C_BoundaryLib
 INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/C_BaseLib
 INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/C_AMRLib
