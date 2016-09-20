@@ -9,29 +9,16 @@
 #include <VisMF.H>
 #include <writePlotFile.H>
 
-#if    defined(BL_FORT_USE_UPPERCASE)
-#define FORT_INIT_DATA            INIT_DATA
-#define FORT_ADVANCE              ADVANCE
-#elif  defined(BL_FORT_USE_LOWERCASE)
-#define FORT_INIT_DATA            init_data
-#define FORT_ADVANCE              advance
-#elif  defined(BL_FORT_USE_UNDERSCORE)
-#define FORT_INIT_DATA            init_data_
-#define FORT_ADVANCE              advance_
-#endif
-
 #include <ArrayLim.H>
 
 extern "C"
 {
-    void FORT_INIT_DATA (
-        Real* data, const int* lo, const int* hi,
-        const int* Ncomp,  const int* ng, 
-        const Real* dx, const Real* prob_lo, const Real* prob_hi);
+    void init_data(Real* data, const int* lo, const int* hi,
+		   const int* Ncomp,  const int* ng, 
+		   const Real* dx, const Real* prob_lo, const Real* prob_hi);
 
-    void FORT_ADVANCE (
-        Real* old_data , Real* new_data, const int* lo, const int* hi, 
-        const int* Ncomp, const int* ng, const Real* dx, const Real* dt);
+    void advance(Real* old_data , Real* new_data, const int* lo, const int* hi, 
+		 const int* Ncomp, const int* ng, const Real* dx, const Real* dt);
 }
 
 static
@@ -49,10 +36,10 @@ void advance(MultiFab* old_data, MultiFab* new_data, Real* dx, Real dt)
   {
     const Box& bx = mfi.validbox();
 
-    FORT_ADVANCE((*old_data)[mfi].dataPtr(),
-                 (*new_data)[mfi].dataPtr(),
-                  bx.loVect(),bx.hiVect(),&Ncomp, &ng,
-                  &(dx[0]),&dt);
+    advance((*old_data)[mfi].dataPtr(),
+	    (*new_data)[mfi].dataPtr(),
+	    bx.loVect(),bx.hiVect(),&Ncomp, &ng,
+	    &(dx[0]),&dt);
   }
 }
 
@@ -161,9 +148,9 @@ main (int argc, char* argv[])
   {
     const Box& bx = mfi.validbox();
 
-    FORT_INIT_DATA((*new_data)[mfi].dataPtr(),
-                     bx.loVect(),bx.hiVect(), &Ncomp, &Nghost,
-                     dx,geom.ProbLo(),geom.ProbHi());
+    init_data((*new_data)[mfi].dataPtr(),
+	      bx.loVect(),bx.hiVect(), &Ncomp, &Nghost,
+	      dx,geom.ProbLo(),geom.ProbHi());
   }
 
   // Call the compute_dt routine to return a time step which we will pass to advance

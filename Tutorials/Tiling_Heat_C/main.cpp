@@ -13,22 +13,22 @@
 #include <omp.h>
 #endif
 
-BL_FORT_PROC_DECL(ADVANCE_PHI, advance_phi)
-    (const int* lo, const int* hi,
-     const BL_FORT_FAB_ARG(phiold),
-     const BL_FORT_FAB_ARG(phinew),
-     const int& ncomp, const Real* dx, const Real& dt);
+extern "C"
+{
+  void advance_phi(const int* lo, const int* hi,
+		   const BL_FORT_FAB_ARG(phiold),
+		   const BL_FORT_FAB_ARG(phinew),
+		   const int& ncomp, const Real* dx, const Real& dt);
 
-BL_FORT_PROC_DECL(ADVANCE_PHI2, advance_phi2)
-    (const int* lo, const int* hi,
-     const BL_FORT_FAB_ARG(phiold),
-     const BL_FORT_FAB_ARG(phinew),
-     const int& ncomp, const Real* dx, const Real& dt);
+  void advance_phi2(const int* lo, const int* hi,
+		    const BL_FORT_FAB_ARG(phiold),
+		    const BL_FORT_FAB_ARG(phinew),
+		    const int& ncomp, const Real* dx, const Real& dt);
 
-BL_FORT_PROC_DECL(INIT_PHI,init_phi)
-    (const int* lo, const int* hi,
-     BL_FORT_FAB_ARG(phi),
-     const int& ncomp, const Real* dx, const Real* prob_lo, const Real* prob_hi);
+  void init_phi(const int* lo, const int* hi,
+		BL_FORT_FAB_ARG(phi),
+		const int& ncomp, const Real* dx, const Real* prob_lo, const Real* prob_hi);
+}
 
 static Real kernel_time = 0;
 static Real FB_time = 0;
@@ -53,22 +53,20 @@ void advance (MultiFab* old_phi, MultiFab* new_phi, Real* dx, Real dt, Geometry 
 	{
 	    const Box& bx = mfi.tilebox();
 	
-	    BL_FORT_PROC_CALL(ADVANCE_PHI,advance_phi)
-		(bx.loVect(), bx.hiVect(),
-		 BL_TO_FORTRAN((*old_phi)[mfi]),
-		 BL_TO_FORTRAN((*new_phi)[mfi]),
-		 Ncomp,dx, dt);
+	    advance_phi(bx.loVect(), bx.hiVect(),
+			BL_TO_FORTRAN((*old_phi)[mfi]),
+			BL_TO_FORTRAN((*new_phi)[mfi]),
+			Ncomp,dx, dt);
 	}
     } else {
 	for ( MFIter mfi(*old_phi); mfi.isValid(); ++mfi )
 	{
 	    const Box& bx = mfi.validbox();
 	
-	    BL_FORT_PROC_CALL(ADVANCE_PHI2,advance_phi2)
-		(bx.loVect(), bx.hiVect(),
-		 BL_TO_FORTRAN((*old_phi)[mfi]),
-		 BL_TO_FORTRAN((*new_phi)[mfi]),
-		 Ncomp,dx, dt);
+	    advance_phi2(bx.loVect(), bx.hiVect(),
+			 BL_TO_FORTRAN((*old_phi)[mfi]),
+			 BL_TO_FORTRAN((*new_phi)[mfi]),
+			 Ncomp,dx, dt);
 	}
     }
     
@@ -177,10 +175,9 @@ main (int argc, char* argv[])
     {
 	const Box& bx = mfi.tilebox();
 
-	BL_FORT_PROC_CALL(INIT_PHI,init_phi)
-	    (bx.loVect(),bx.hiVect(), 
-	     BL_TO_FORTRAN((*new_phi)[mfi]),Ncomp,
-	     dx,geom.ProbLo(),geom.ProbHi());
+	init_phi(bx.loVect(),bx.hiVect(), 
+		 BL_TO_FORTRAN((*new_phi)[mfi]),Ncomp,
+		 dx,geom.ProbLo(),geom.ProbHi());
     }
 
     // Call the compute_dt routine to return a time step which we will pass to advance

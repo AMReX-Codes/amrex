@@ -31,7 +31,7 @@ Adv::variableSetUp ()
     BCRec bc(lo_bc, hi_bc);
 
     desc_lst.setComponent(State_Type, 0, "phi", bc, 
-			  StateDescriptor::BndryFunc(BL_FORT_PROC_CALL(NULLFILL,nullfill)));
+			  StateDescriptor::BndryFunc(nullfill));
 
     //
     // read taggin parameters from probin file
@@ -48,6 +48,5 @@ Adv::variableSetUp ()
     for (int i = 0; i < probin_file_length; i++)
 	probin_file_name[i] = probin_file[i];
 
-     BL_FORT_PROC_CALL(GET_TAGGING_PARAMS, get_tagging_params)
-	(probin_file_name.dataPtr(), &probin_file_length);
+     get_tagging_params(probin_file_name.dataPtr(), &probin_file_length);
 }

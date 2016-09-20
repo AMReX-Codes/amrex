@@ -2,7 +2,7 @@
 subroutine get_face_velocity(level, time, &
      vx, vx_l1, vx_l2, vx_h1, vx_h2, &
      vy, vy_l1, vy_l2, vy_h1, vy_h2, &
-     dx, prob_lo)
+     dx, prob_lo) bind(C, name="get_face_velocity")
 
   use probdata_module, only : adv_vel
 
