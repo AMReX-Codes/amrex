@@ -1217,25 +1217,25 @@ VisMF::readFAB (int                  idx,
     std::string FullName(VisMF::DirName(mf_name));
     FullName += hdr.m_fod[idx].m_name;
 
-    std::ifstream &ifs = VisMF::OpenStream(FullName);
+    std::ifstream *ifs = VisMF::OpenStream(FullName);
     if(hdr.m_fod[idx].m_head != 0) {
-      ifs.seekg(hdr.m_fod[idx].m_head, std::ios::beg);
+      ifs->seekg(hdr.m_fod[idx].m_head, std::ios::beg);
     }
 
     if(hdr.m_vers == Header::Version_v1) {
       if(ncomp == -1) {
-        fab->readFrom(ifs);
+        fab->readFrom(*ifs);
       } else {
-        fab->readFrom(ifs, ncomp);
+        fab->readFrom(*ifs, ncomp);
       }
     } else {
       if(ncomp == -1) {
-        ifs.read((char *) fab->dataPtr(), fab->nBytes());
+        ifs->read((char *) fab->dataPtr(), fab->nBytes());
       } else {
 	const RealDescriptor &nrd = FPC::NativeRealDescriptor();
         long bytesPerComp(fab->box().numPts() * nrd.numBytes());
-        ifs.seekg(bytesPerComp * ncomp, std::ios::cur);
-        ifs.read((char *) fab->dataPtr(), bytesPerComp);
+        ifs->seekg(bytesPerComp * ncomp, std::ios::cur);
+        ifs->read((char *) fab->dataPtr(), bytesPerComp);
       }
     }
 
@@ -1257,16 +1257,16 @@ VisMF::readFAB (FabArray<FArrayBox>&            mf,
     std::string FullName(VisMF::DirName(mf_name));
     FullName += hdr.m_fod[idx].m_name;
 
-    std::ifstream &ifs = VisMF::OpenStream(FullName);
+    std::ifstream *ifs = VisMF::OpenStream(FullName);
     if(hdr.m_fod[idx].m_head != 0) {
-      ifs.seekg(hdr.m_fod[idx].m_head, std::ios::beg);
+      ifs->seekg(hdr.m_fod[idx].m_head, std::ios::beg);
     }
 
     if(NoFabHeader(hdr)) {
-      //// test ifs.gcount and tellg vs count
-      ifs.read((char *) fab.dataPtr(), fab.nBytes());
+      //// test ifs->gcount and tellg vs count
+      ifs->read((char *) fab.dataPtr(), fab.nBytes());
     } else {
-      fab.readFrom(ifs);
+      fab.readFrom(*ifs);
     }
 
     VisMF::CloseStream(FullName);
@@ -1836,6 +1836,7 @@ bool VisMF::NoFabHeader(const VisMF::Header &hdr) {
 
 VisMF::PersistentIFStream::PersistentIFStream()
     :
+    pstr(0),
     currentPosition(0),
     isOpen(false)
 { }
@@ -1844,21 +1845,28 @@ VisMF::PersistentIFStream::PersistentIFStream()
 VisMF::PersistentIFStream::~PersistentIFStream()
 {
   if(isOpen) {
-    pstr.close();
+    pstr->close();
+    delete pstr;
+    pstr = 0;
+    isOpen = false;
   }
 }
 
 
-std::ifstream &VisMF::OpenStream(const std::string &fileName) {
+std::ifstream *VisMF::OpenStream(const std::string &fileName) {
   VisMF::PersistentIFStream &pifs = VisMF::persistentIFStreams[fileName];
   if( ! pifs.isOpen) {
-    pifs.pstr.open(fileName.c_str(), std::ios::in | std::ios::binary);
-    if( ! pifs.pstr.good()) { BoxLib::FileOpenFailed(fileName); }
+    pifs.pstr = new std::ifstream;
+    pifs.pstr->open(fileName.c_str(), std::ios::in | std::ios::binary);
+    if( ! pifs.pstr->good()) {
+      delete pifs.pstr;
+      BoxLib::FileOpenFailed(fileName);
+    }
     pifs.isOpen = true;
     pifs.currentPosition = 0;
     if(setBuf) {
       pifs.ioBuffer.resize(ioBufferSize);
-      pifs.pstr.rdbuf()->pubsetbuf(pifs.ioBuffer.dataPtr(), pifs.ioBuffer.size());
+      pifs.pstr->rdbuf()->pubsetbuf(pifs.ioBuffer.dataPtr(), pifs.ioBuffer.size());
     }
   }
 
@@ -1874,7 +1882,9 @@ void VisMF::CloseStream(const std::string &fileName, bool forceClose)
 
   VisMF::PersistentIFStream &pifs = VisMF::persistentIFStreams[fileName];
   if(pifs.isOpen) {
-    pifs.pstr.close();
+    pifs.pstr->close();
+    delete pifs.pstr;
+    pifs.pstr = 0;
     pifs.isOpen = false;
   }
   pifs.ioBuffer.clear();
