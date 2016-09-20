@@ -176,11 +176,11 @@ bool NFilesIter::ReadyToWrite() {
       // ---- the first message received is the coordinator
       ParallelDescriptor::Recv(&coordinatorProc, 1, MPI_ANY_SOURCE, deciderTag);
       // ---- tell the coordinatorProc to start coordinating
-      ParallelDescriptor::Asend(&coordinatorProc, 1, coordinatorProc, coordinatorTag);
+      ParallelDescriptor::Send(&coordinatorProc, 1, coordinatorProc, coordinatorTag);
       for(int i(0); i < nSetZeros - 1; ++i) {  // ---- tell the others who is coorinating
         int nonCoordinatorProc(-1);
         ParallelDescriptor::Recv(&nonCoordinatorProc, 1, MPI_ANY_SOURCE, deciderTag);
-        ParallelDescriptor::Asend(&coordinatorProc, 1, nonCoordinatorProc, coordinatorTag);
+        ParallelDescriptor::Send(&coordinatorProc, 1, nonCoordinatorProc, coordinatorTag);
       }
     }
 
@@ -322,7 +322,7 @@ NFilesIter &NFilesIter::operator++() {
 
 	    fileNumbersWriteOrder[nextFileNumberToWrite].push_back(nextProcToWrite);
 
-            ParallelDescriptor::Asend(&nextFileNumberToWrite, 1, nextProcToWrite, writeTag);
+            ParallelDescriptor::Send(&nextFileNumberToWrite, 1, nextProcToWrite, writeTag);
   
             rmess = ParallelDescriptor::Recv(&nextFileNumberAvailable, 1, MPI_ANY_SOURCE, doneTag);
             availableFileNumbers.insert(nextFileNumberAvailable);
