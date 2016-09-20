@@ -361,8 +361,8 @@ void compute_analyticSolution(MultiFab& anaSoln, const Array<Real>& offset)
     const int* ahi = anaSoln[mfi].hiVect();
     const Box& bx = mfi.validbox();
 
-    FORT_COMP_ASOL(anaSoln[mfi].dataPtr(), ARLIM(alo), ARLIM(ahi),
-		   bx.loVect(),bx.hiVect(),dx, ibnd, offset.dataPtr());
+    comp_asol(anaSoln[mfi].dataPtr(), ARLIM(alo), ARLIM(ahi),
+	      bx.loVect(),bx.hiVect(),dx, ibnd, offset.dataPtr());
   }
 }
 
@@ -384,13 +384,13 @@ void setup_coeffs(BoxArray& bs, MultiFab& alpha, PArray<MultiFab>& beta,
 
     const int* alo = alpha[mfi].loVect();
     const int* ahi = alpha[mfi].hiVect();
-    FORT_SET_ALPHA(alpha[mfi].dataPtr(),ARLIM(alo),ARLIM(ahi),
-    		   bx.loVect(),bx.hiVect(),dx);
+    set_alpha(alpha[mfi].dataPtr(),ARLIM(alo),ARLIM(ahi),
+	      bx.loVect(),bx.hiVect(),dx);
 
     const int* clo = cc_coef[mfi].loVect();
     const int* chi = cc_coef[mfi].hiVect();
-    FORT_SET_CC_COEF(cc_coef[mfi].dataPtr(),ARLIM(clo),ARLIM(chi),
-		     bx.loVect(),bx.hiVect(),dx, sigma, w);
+    set_cc_coef(cc_coef[mfi].dataPtr(),ARLIM(clo),ARLIM(chi),
+		bx.loVect(),bx.hiVect(),dx, sigma, w);
   }
 
   BoxLib::average_cellcenter_to_face(beta, cc_coef, geom);
@@ -414,14 +414,14 @@ void setup_coeffs4(BoxArray& bs, MultiFab& alpha, MultiFab& beta, const Geometry
     const int* alo = alpha[mfi].loVect();
     const int* ahi = alpha[mfi].hiVect();
     const Box& abx = alpha[mfi].box();
-    FORT_SET_ALPHA(alpha[mfi].dataPtr(),ARLIM(alo),ARLIM(ahi),
-    		   abx.loVect(),abx.hiVect(),dx);
+    set_alpha(alpha[mfi].dataPtr(),ARLIM(alo),ARLIM(ahi),
+	      abx.loVect(),abx.hiVect(),dx);
 
     const int* clo = beta[mfi].loVect();
     const int* chi = beta[mfi].hiVect();
 
-    FORT_SET_CC_COEF(beta[mfi].dataPtr(),ARLIM(clo),ARLIM(chi),
-		     bx.loVect(),bx.hiVect(),dx, sigma, w);
+    set_cc_coef(beta[mfi].dataPtr(),ARLIM(clo),ARLIM(chi),
+		bx.loVect(),bx.hiVect(),dx, sigma, w);
   }
 
   if (plot_beta == 1) {
@@ -455,8 +455,8 @@ void setup_rhs(MultiFab& rhs, const Geometry& geom)
     const int* rlo = bx.loVect();
     const int* rhi = bx.hiVect();
 
-    FORT_SET_RHS(rhs[mfi].dataPtr(),ARLIM(rlo),ARLIM(rhi),
-                 tbx.loVect(),tbx.hiVect(),dx, a, b, sigma, w, ibnd);
+    set_rhs(rhs[mfi].dataPtr(),ARLIM(rlo),ARLIM(rhi),
+	    tbx.loVect(),tbx.hiVect(),dx, a, b, sigma, w, ibnd);
   }
 
   // MultiFab::sum() does a tiled MFIter loop internally, so we don't want to
