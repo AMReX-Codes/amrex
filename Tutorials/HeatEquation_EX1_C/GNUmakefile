@@ -10,7 +10,6 @@ COMP      = g++
 FCOMP     = gfortran
 DIM       = 2
 PRECISION = DOUBLE
-EBASE     = main
 
 include $(BOXLIB_HOME)/Tools/C_mk/Make.defs
 
