@@ -1,6 +1,6 @@
 The following tutorials demonstrate how to use the C++ BoxLib:
 
-* `HellowWorld_C`: 
+* `HelloWorld_C`: 
 
    this simply shows how to initialize BoxLib, create a domain decomposition,
    and initialize a MultiFab.  This is then looped over using the MFIter
