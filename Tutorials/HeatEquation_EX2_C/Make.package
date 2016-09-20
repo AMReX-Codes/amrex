@@ -1,3 +1,4 @@
+# These live here
 CEXE_sources += main.cpp
 CEXE_sources += writePlotFile.cpp
 
@@ -7,3 +8,8 @@ CEXE_headers += bc_F.H
 f90EXE_sources += init_phi_$(DIM)d.f90 
 f90EXE_sources += advance_$(DIM)d.f90
 f90EXE_sources += bcfill_nd.f90
+
+# These live in BoxLib/Src/C_AMRLib
+CEXE_sources += StateDescriptor.cpp
+CEXE_headers += StateDescriptor.H
+
