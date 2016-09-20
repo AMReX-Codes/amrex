@@ -244,7 +244,7 @@ void TestWriteNFiles(int nfiles, int maxgrid, int ncomps, int nboxes,
   }
 
 
-  VisMF::RemoveFiles(mfName, true);
+  VisMF::RemoveFiles(mfName, false);  // ---- not verbose
 
   VisMF::Header::Version currentVersion(VisMF::GetHeaderVersion());
   VisMF::SetHeaderVersion(whichVersion);
@@ -254,12 +254,7 @@ void TestWriteNFiles(int nfiles, int maxgrid, int ncomps, int nboxes,
 
   long totalBytesWritten = VisMF::Write(mfout, mfName);
 
-  ParallelDescriptor::Barrier();
-  bool isOk = VisMF::Check(mfName);
-
   double wallTime(ParallelDescriptor::second() - wallTimeStart);
-
-  VisMF::SetHeaderVersion(currentVersion);  // ---- set back to previous version
 
   double wallTimeMax(wallTime);
   double wallTimeMin(wallTime);
@@ -272,13 +267,32 @@ void TestWriteNFiles(int nfiles, int maxgrid, int ncomps, int nboxes,
   if(ParallelDescriptor::IOProcessor()) {
     cout << std::setprecision(5);
     cout << "------------------------------------------" << endl;
-    cout << "  Total megabytes = " << megabytes << endl;
-    cout << "  Write:  Megabytes/sec   = " << megabytes/wallTimeMax << endl;
-    cout << "  Wall clock time = " << wallTimeMax << endl;
-    cout << "  Min wall clock time = " << wallTimeMin << endl;
-    cout << "  Max wall clock time = " << wallTimeMax << endl;
+    cout << "  Total megabytes       = " << megabytes << endl;
+    cout << "  Write:  Megabytes/sec = " << megabytes/wallTimeMax << endl;
+    cout << "  Wall clock time       = " << wallTimeMax << " s." << endl;
+    cout << "  Min wall clock time   = " << wallTimeMin << " s." << endl;
+    cout << "  Max wall clock time   = " << wallTimeMax << " s." << endl;
     cout << "------------------------------------------" << endl;
   }
+
+  ParallelDescriptor::Barrier();
+  wallTime = ParallelDescriptor::second();
+  bool isOk = VisMF::Check(mfName);
+  wallTimeMax = ParallelDescriptor::second() - wallTime;
+  ParallelDescriptor::ReduceRealMax(wallTimeMax, ParallelDescriptor::IOProcessorNumber());
+  if(ParallelDescriptor::IOProcessor()) {
+    cout << std::setprecision(5);
+    cout << "------------------------------------------" << endl;
+    cout << "VisMF::Check():  time = " << wallTimeMax << " s." << endl;
+    if(isOk) {
+      cout << "VisMF::Check():  multifab is ok." << endl;
+    } else {
+      cout << "**** Error:  VisMF::Check():  multifab is not ok." << endl;
+    }
+    cout << "------------------------------------------" << endl;
+  }
+
+  VisMF::SetHeaderVersion(currentVersion);  // ---- set back to previous version
 }
 
 
@@ -358,7 +372,6 @@ void DSSNFileTests(int noutfiles, const std::string &filePrefixIn,
   int myProc(ParallelDescriptor::MyProc());
   int nProcs    = ParallelDescriptor::NProcs();
   int nOutFiles = NFilesIter::ActualNFiles(noutfiles);
-  int setLength = NFilesIter::SetLength(nProcs, nOutFiles);
   int mySetPosition = NFilesIter::WhichSetPosition(myProc, nProcs, nOutFiles, groupSets);
   Array<int> data(10240);
   int deciderProc(nProcs - 1), coordinatorProc(-1);
@@ -368,8 +381,6 @@ void DSSNFileTests(int noutfiles, const std::string &filePrefixIn,
   int writeTag(ParallelDescriptor::SeqNum());
   bool finishedWriting(false);
   ParallelDescriptor::Message rmess;
-  int iDone(myProc);
-  MPI_Status status;
   int remainingWriters(nProcs);
 
   for(int i(0); i < data.size(); ++i) {
@@ -431,7 +442,6 @@ void DSSNFileTests(int noutfiles, const std::string &filePrefixIn,
 	availableFileNumbers.insert(fileNumber);  // ---- the coordinators file number
 
 	// ---- recv incoming available files
-	int doneFlag;
 	while(remainingWriters > 0) {
 
 	  int nextProcToWrite, nextFileNumberToWrite, nextFileNumberAvailable;
