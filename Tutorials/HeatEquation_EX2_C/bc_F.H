@@ -4,10 +4,9 @@
 
 extern "C"
 {
-void phifill
-    (BL_FORT_FAB_ARG(state),
-     const int dlo[], const int dhi[],
-     const Real dx[], const Real glo[],
-     const Real* time, const int bc[]);
+    void phifill (BL_FORT_FAB_ARG_3D(state),
+		  const int* dlo, const int* dhi,
+		  const Real* dx, const Real* glo, 
+		  const Real* time, const int* bc);
 }
 #endif
