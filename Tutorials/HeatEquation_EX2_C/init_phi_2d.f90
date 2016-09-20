@@ -1,4 +1,4 @@
-subroutine init_phi(phi, lo, hi, ng, dx, prob_lo, prob_hi)
+subroutine init_phi(phi, lo, hi, ng, dx, prob_lo, prob_hi) bind(C, name="init_phi")
 
   implicit none
 
