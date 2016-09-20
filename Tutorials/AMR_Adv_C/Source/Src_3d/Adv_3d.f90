@@ -8,7 +8,7 @@ subroutine advect(time, lo, hi, &
      &            flxx, fx_lo, fx_hi, &
      &            flxy, fy_lo, fy_hi, &
      &            flxz, fz_lo, fz_hi, &
-     &            dx,dt)
+     &            dx,dt) bind(C, name="advect")
   
   use mempool_module, only : bl_allocate, bl_deallocate
   use compute_flux_module, only : compute_flux_3d

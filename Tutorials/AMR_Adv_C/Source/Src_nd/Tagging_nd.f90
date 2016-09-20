@@ -21,7 +21,7 @@ subroutine state_error(tag,tag_lo,tag_hi, &
                        state,state_lo,state_hi, &
                        set,clear,&
                        lo,hi,&
-                       dx,problo,time,level)
+                       dx,problo,time,level) bind(C, name="state_error")
 
   use tagging_params_module, only : phierr, phigrad, max_phierr_lev, max_phigrad_lev
   implicit none
