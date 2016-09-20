@@ -139,7 +139,7 @@ public:
     //
     struct PersistentIFStream
     {
-        std::ifstream    pstr;
+        std::ifstream   *pstr;
         std::streampos   currentPosition;
 	bool             isOpen;
 	VisMF::IO_Buffer ioBuffer;
@@ -153,7 +153,7 @@ public:
     // Close the stream if not persistent or forced
     // Close all open streams
     //
-    static std::ifstream &OpenStream(const std::string &fileName);
+    static std::ifstream *OpenStream(const std::string &fileName);
     static void CloseStream(const std::string &fileName, bool forceClose = false);
     static void CloseAllStreams();
     static bool NoFabHeader(const VisMF::Header &hdr);
