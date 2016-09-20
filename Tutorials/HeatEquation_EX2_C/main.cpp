@@ -167,7 +167,7 @@ main (int argc, char* argv[])
 
   // desc_lst will hold the list of variables to be contained in StateData instantiations;
   // here we will only have one.
-  static DescriptorList desc_lst;     
+  DescriptorList desc_lst;     
 
   // We create a StateData instantiation of type Phi_Type.  The data lives at cell centers,
   //    is time-centered at times t^n (old) and t^{n+1} (new), has Ncomp components, Nghost ghost cells,
@@ -199,7 +199,7 @@ main (int argc, char* argv[])
   StateData phi_state;
   phi_state.define(domain,
                    grids,
-                   desc_lst,
+                   desc_lst[Phi_Type],
                    time,
                    dt);
 
