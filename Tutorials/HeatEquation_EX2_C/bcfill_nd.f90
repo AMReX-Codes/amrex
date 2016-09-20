@@ -1,4 +1,4 @@
-subroutine phifill(phi,phi_lo,phi_hi,domlo,domhi,delta,xlo,time,bc)
+subroutine phifill(phi,phi_lo,phi_hi,domlo,domhi,delta,xlo,time,bc) bind(C, name="phifill")
 
   implicit none
   integer          :: phi_lo(3),phi_hi(3)
