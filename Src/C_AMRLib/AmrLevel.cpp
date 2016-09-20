@@ -1442,7 +1442,7 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
 	}
 
 	StateDataPhysBCFunct physbcf(state[index],SComp,geom);
-	physbcf.doit(mf, DComp, NComp, time);
+	physbcf.FillBoundary(mf, DComp, NComp, time);
 
         DComp += NComp;
     }

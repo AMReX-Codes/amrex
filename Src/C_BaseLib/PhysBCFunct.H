@@ -3,12 +3,12 @@
 
 #include <MultiFab.H>
 
-class PhysBCFunct {
+class PhysBCFunctBase {
 public:
-    virtual void doit (MultiFab& mf, int dcomp, int ncomp, Real time) = 0;
-    virtual ~PhysBCFunct () = 0;
+    virtual void FillBoundary (MultiFab& mf, int dcomp, int ncomp, Real time) = 0;
+    virtual ~PhysBCFunctBase () = 0;
 };
 
-inline PhysBCFunct::~PhysBCFunct () { }
+inline PhysBCFunctBase::~PhysBCFunctBase () { }
 
 #endif
