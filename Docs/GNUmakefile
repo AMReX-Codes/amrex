@@ -14,6 +14,7 @@ section_sources = Preface/Preface.tex \
                   GettingStarted/GettingStarted.tex \
                   F_AdvancedTopics/F_AdvancedTopics.tex \
 	          C_AdvancedTopics/C_AdvancedTopics.tex \
+	          LinearSolvers/LinearSolvers.tex \
                   Regression/test_suite.tex
 
 UsersGuide.dvi: UsersGuide.tex $(eps_source) $(section_sources) $(eps_source) 

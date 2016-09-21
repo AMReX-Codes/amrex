@@ -14,7 +14,7 @@ module chemistry_module
 
 contains
 
-  subroutine chemistry_init() bind(c)
+  subroutine chemistry_init() bind(c, name='chemistry_init')
     integer :: iwrk
     double precision :: rwrk
 
@@ -37,12 +37,12 @@ contains
     chemistry_initialized = .true.
   end subroutine chemistry_init
 
-  function get_num_species () result(r) bind(c)
+  function get_num_species () result(r) bind(c,name='get_num_species')
     integer :: r
     r = nspecies
   end function get_num_species
 
-  subroutine chemistry_close()
+  subroutine chemistry_close() bind(c,name='chemistry_close')
     return
   end subroutine chemistry_close
 

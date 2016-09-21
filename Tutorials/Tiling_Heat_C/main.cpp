@@ -13,25 +13,25 @@
 #include <omp.h>
 #endif
 
-BL_FORT_PROC_DECL(ADVANCE_PHI, advance_phi)
-    (const int* lo, const int* hi,
-     const BL_FORT_FAB_ARG(phiold),
-     const BL_FORT_FAB_ARG(phinew),
-     const int& ncomp, const Real* dx, const Real& dt);
+extern "C"
+{
+  void advance_phi(const int* lo, const int* hi,
+		   const BL_FORT_FAB_ARG(phiold),
+		   const BL_FORT_FAB_ARG(phinew),
+		   const int& ncomp, const Real* dx, const Real& dt);
 
-BL_FORT_PROC_DECL(ADVANCE_PHI2, advance_phi2)
-    (const int* lo, const int* hi,
-     const BL_FORT_FAB_ARG(phiold),
-     const BL_FORT_FAB_ARG(phinew),
-     const int& ncomp, const Real* dx, const Real& dt);
+  void advance_phi2(const int* lo, const int* hi,
+		    const BL_FORT_FAB_ARG(phiold),
+		    const BL_FORT_FAB_ARG(phinew),
+		    const int& ncomp, const Real* dx, const Real& dt);
 
-BL_FORT_PROC_DECL(INIT_PHI,init_phi)
-    (const int* lo, const int* hi,
-     BL_FORT_FAB_ARG(phi),
-     const int& ncomp, const Real* dx, const Real* prob_lo, const Real* prob_hi);
+  void init_phi(const int* lo, const int* hi,
+		BL_FORT_FAB_ARG(phi),
+		const int& ncomp, const Real* dx, const Real* prob_lo, const Real* prob_hi);
+}
 
 static Real kernel_time = 0;
-static Real FPB_time = 0;
+static Real FB_time = 0;
 static int do_tiling = 1;
 
 void advance (MultiFab* old_phi, MultiFab* new_phi, Real* dx, Real dt, Geometry geom)
@@ -39,12 +39,9 @@ void advance (MultiFab* old_phi, MultiFab* new_phi, Real* dx, Real dt, Geometry 
     int Ncomp = old_phi->nComp();
 
     // Fill the ghost cells of each grid from the other grids
-    old_phi->FillBoundary();
-    
     Real t1 = ParallelDescriptor::second();
-    // Fill periodic boundary ghost cells
-    geom.FillPeriodicBoundary(*old_phi);
-    FPB_time += ParallelDescriptor::second() - t1;
+    old_phi->FillBoundary(geom.periodicity());
+    FB_time += ParallelDescriptor::second() - t1;
 
     Real t0 = ParallelDescriptor::second();
     
@@ -56,22 +53,20 @@ void advance (MultiFab* old_phi, MultiFab* new_phi, Real* dx, Real dt, Geometry 
 	{
 	    const Box& bx = mfi.tilebox();
 	
-	    BL_FORT_PROC_CALL(ADVANCE_PHI,advance_phi)
-		(bx.loVect(), bx.hiVect(),
-		 BL_TO_FORTRAN((*old_phi)[mfi]),
-		 BL_TO_FORTRAN((*new_phi)[mfi]),
-		 Ncomp,dx, dt);
+	    advance_phi(bx.loVect(), bx.hiVect(),
+			BL_TO_FORTRAN((*old_phi)[mfi]),
+			BL_TO_FORTRAN((*new_phi)[mfi]),
+			Ncomp,dx, dt);
 	}
     } else {
 	for ( MFIter mfi(*old_phi); mfi.isValid(); ++mfi )
 	{
 	    const Box& bx = mfi.validbox();
 	
-	    BL_FORT_PROC_CALL(ADVANCE_PHI2,advance_phi2)
-		(bx.loVect(), bx.hiVect(),
-		 BL_TO_FORTRAN((*old_phi)[mfi]),
-		 BL_TO_FORTRAN((*new_phi)[mfi]),
-		 Ncomp,dx, dt);
+	    advance_phi2(bx.loVect(), bx.hiVect(),
+			 BL_TO_FORTRAN((*old_phi)[mfi]),
+			 BL_TO_FORTRAN((*new_phi)[mfi]),
+			 Ncomp,dx, dt);
 	}
     }
     
@@ -180,10 +175,9 @@ main (int argc, char* argv[])
     {
 	const Box& bx = mfi.tilebox();
 
-	BL_FORT_PROC_CALL(INIT_PHI,init_phi)
-	    (bx.loVect(),bx.hiVect(), 
-	     BL_TO_FORTRAN((*new_phi)[mfi]),Ncomp,
-	     dx,geom.ProbLo(),geom.ProbHi());
+	init_phi(bx.loVect(),bx.hiVect(), 
+		 BL_TO_FORTRAN((*new_phi)[mfi]),Ncomp,
+		 dx,geom.ProbLo(),geom.ProbHi());
     }
 
     // Call the compute_dt routine to return a time step which we will pass to advance
@@ -225,12 +219,12 @@ main (int argc, char* argv[])
     ParallelDescriptor::ReduceRealMax(stop_time,IOProc);
     ParallelDescriptor::ReduceRealMax(advance_time,IOProc);
     ParallelDescriptor::ReduceRealMax(kernel_time,IOProc);
-    ParallelDescriptor::ReduceRealMax(FPB_time,IOProc);
+    ParallelDescriptor::ReduceRealMax(FB_time,IOProc);
     
     // Tell the I/O Processor to write out the "run time"
     if (ParallelDescriptor::IOProcessor()) {
 	std::cout << "Kernel    time = " << kernel_time << std::endl;
-	std::cout << "FPB       time = " << FPB_time << std::endl;
+	std::cout << "FB        time = " << FB_time << std::endl;
 	std::cout << "Advance   time = " << advance_time << std::endl;
 	std::cout << "Total run time = " << stop_time << std::endl;
     }

@@ -1,3 +1,6 @@
 CEXE_sources += MGT_Solver.cpp FMultiGrid.cpp
 CEXE_headers += MGT_Solver.H FMultiGrid.H
 CEXE_headers += stencil_types.H
+
+VPATH_LOCATIONS += $(BOXLIB_HOME)/Src/LinearSolvers/C_to_F_MG
+INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/LinearSolvers/C_to_F_MG

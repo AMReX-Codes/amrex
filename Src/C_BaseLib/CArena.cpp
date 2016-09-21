@@ -117,9 +117,7 @@ CArena::free (void* vp)
 
     NL::iterator free_it = pair_it.first;
 
-    void* freeblock = static_cast<char*>((*busy_it).block());
-
-    BL_ASSERT(free_it != m_freelist.end() && (*free_it).block() == freeblock);
+    BL_ASSERT(free_it != m_freelist.end() && (*free_it).block() == (*busy_it).block());
     //
     // And remove from busy list.
     //

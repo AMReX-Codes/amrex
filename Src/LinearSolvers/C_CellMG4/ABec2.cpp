@@ -34,12 +34,8 @@ ABec2::altApplyBC (int  level,
     {
         const int gn = mfi.index();
 
-        BL_ASSERT(level<maskvals.size() && maskvals[level].find(gn)!=maskvals[level].end());
-        BL_ASSERT(level<lmaskvals.size() && lmaskvals[level].find(gn)!=lmaskvals[level].end());
         BL_ASSERT(level<undrrelxr.size());
 
-        const MaskTuple&                 ma  =  maskvals[level][gn];
-        const MaskTuple&                 lma = lmaskvals[level][gn];
         const BndryData::RealTuple&      bdl = bgb->bndryLocs(gn);
         const Array< Array<BoundCond> >& bdc = bgb->bndryConds(gn);
 
@@ -49,7 +45,7 @@ ABec2::altApplyBC (int  level,
 
             FabSet&       f   = (*undrrelxr[level])[o];
             int           cdr = o;
-            const Mask&   m   = local ? (*lma[o]) : (*ma[o]);
+            const Mask&   m   = local ? lmaskvals[level][o][mfi] : maskvals[level][o][mfi];
             Real          bcl = bdl[o];
             BL_ASSERT(bdc[o].size()>bndry_comp);
             int           bct = bdc[o][bndry_comp];
@@ -92,6 +88,16 @@ ABec2::Fsmooth (MultiFab&       solnL,
          const MultiFab& bY = bCoefficients(1,level);,
          const MultiFab& bZ = bCoefficients(2,level););
 
+  oitr.rewind();
+  const MultiMask& mm0 = maskvals[level][oitr()]; oitr++;
+  const MultiMask& mm1 = maskvals[level][oitr()]; oitr++;
+  const MultiMask& mm2 = maskvals[level][oitr()]; oitr++;
+  const MultiMask& mm3 = maskvals[level][oitr()]; oitr++;
+#if (BL_SPACEDIM > 2)
+  const MultiMask& mm4 = maskvals[level][oitr()]; oitr++;
+  const MultiMask& mm5 = maskvals[level][oitr()]; oitr++;
+#endif
+
   const int nc = 1;
 
   Real alpha = get_alpha();
@@ -104,37 +110,32 @@ ABec2::Fsmooth (MultiFab&       solnL,
 #endif
   for (MFIter solnLmfi(solnL,tiling); solnLmfi.isValid(); ++solnLmfi)
   {
-    OrientationIter oitr;
-
-    const int gn = solnLmfi.index();
-
-    const LinOp::MaskTuple& mtuple = maskvals[level][gn];
-
-    const Mask& m0 = *mtuple[oitr()]; oitr++;
-    const Mask& m1 = *mtuple[oitr()]; oitr++;
-    const Mask& m2 = *mtuple[oitr()]; oitr++;
-    const Mask& m3 = *mtuple[oitr()]; oitr++;
-#if (BL_SPACEDIM == 3)
-    const Mask& m4 = *mtuple[oitr()]; oitr++;
-    const Mask& m5 = *mtuple[oitr()]; oitr++;
+    const Mask& m0 = mm0[solnLmfi];
+    const Mask& m1 = mm1[solnLmfi];
+    const Mask& m2 = mm2[solnLmfi];
+    const Mask& m3 = mm3[solnLmfi];
+#if (BL_SPACEDIM > 2)
+    const Mask& m4 = mm4[solnLmfi];
+    const Mask& m5 = mm5[solnLmfi];
 #endif
+
     const Box&       tbx     = solnLmfi.tilebox();
     const Box&       vbx     = solnLmfi.validbox();
-    FArrayBox&       solnfab = solnL[gn];
-    const FArrayBox& resfab  = resL[gn];
-    const FArrayBox& afab    = a[gn];
+    FArrayBox&       solnfab = solnL[solnLmfi];
+    const FArrayBox& resfab  = resL[solnLmfi];
+    const FArrayBox& afab    = a[solnLmfi];
 
-    D_TERM(const FArrayBox& bxfab = bX[gn];,
-           const FArrayBox& byfab = bY[gn];,
-           const FArrayBox& bzfab = bZ[gn];);
+    D_TERM(const FArrayBox& bxfab = bX[solnLmfi];,
+           const FArrayBox& byfab = bY[solnLmfi];,
+           const FArrayBox& bzfab = bZ[solnLmfi];);
 
-    const FArrayBox& f0fab = f0[gn];
-    const FArrayBox& f1fab = f1[gn];
-    const FArrayBox& f2fab = f2[gn];
-    const FArrayBox& f3fab = f3[gn];
+    const FArrayBox& f0fab = f0[solnLmfi];
+    const FArrayBox& f1fab = f1[solnLmfi];
+    const FArrayBox& f2fab = f2[solnLmfi];
+    const FArrayBox& f3fab = f3[solnLmfi];
 #if (BL_SPACEDIM == 3)
-    const FArrayBox& f4fab = f4[gn];
-    const FArrayBox& f5fab = f5[gn];
+    const FArrayBox& f4fab = f4[solnLmfi];
+    const FArrayBox& f5fab = f5[solnLmfi];
 #endif
 
     BL_FORT_PROC_CALL(AB2_GSRB, ab2_gsrb)
@@ -183,43 +184,51 @@ ABec2::Fsmooth_jacobi (MultiFab&       solnL,
          const MultiFab& bY = bCoefficients(1,level);,
          const MultiFab& bZ = bCoefficients(2,level););
 
+  oitr.rewind();
+  const MultiMask& mm0 = maskvals[level][oitr()]; oitr++;
+  const MultiMask& mm1 = maskvals[level][oitr()]; oitr++;
+  const MultiMask& mm2 = maskvals[level][oitr()]; oitr++;
+  const MultiMask& mm3 = maskvals[level][oitr()]; oitr++;
+#if (BL_SPACEDIM > 2)
+  const MultiMask& mm4 = maskvals[level][oitr()]; oitr++;
+  const MultiMask& mm5 = maskvals[level][oitr()]; oitr++;
+#endif
+
   //const int nc = solnL.nComp(); // FIXME: This LinOp only really supports single-component
   const int nc = 1;
   Real alpha = get_alpha();
   Real beta = get_beta();
 
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
   for (MFIter solnLmfi(solnL); solnLmfi.isValid(); ++solnLmfi)
   {
-    oitr.rewind();
-
-    const int gn = solnLmfi.index();
-
-    const LinOp::MaskTuple& mtuple = maskvals[level][gn];
-
-    const Mask& m0 = *mtuple[oitr()]; oitr++;
-    const Mask& m1 = *mtuple[oitr()]; oitr++;
-    const Mask& m2 = *mtuple[oitr()]; oitr++;
-    const Mask& m3 = *mtuple[oitr()]; oitr++;
-#if (BL_SPACEDIM == 3)
-    const Mask& m4 = *mtuple[oitr()]; oitr++;
-    const Mask& m5 = *mtuple[oitr()]; oitr++;
+    const Mask& m0 = mm0[solnLmfi];
+    const Mask& m1 = mm1[solnLmfi];
+    const Mask& m2 = mm2[solnLmfi];
+    const Mask& m3 = mm3[solnLmfi];
+#if (BL_SPACEDIM > 2)
+    const Mask& m4 = mm4[solnLmfi];
+    const Mask& m5 = mm5[solnLmfi];
 #endif
+
     const Box&       vbx     = solnLmfi.validbox();
-    FArrayBox&       solnfab = solnL[gn];
-    const FArrayBox& resfab  = resL[gn];
-    const FArrayBox& afab    = a[gn];
+    FArrayBox&       solnfab = solnL[solnLmfi];
+    const FArrayBox& resfab  = resL[solnLmfi];
+    const FArrayBox& afab    = a[solnLmfi];
 
-    D_TERM(const FArrayBox& bxfab = bX[gn];,
-           const FArrayBox& byfab = bY[gn];,
-           const FArrayBox& bzfab = bZ[gn];);
+    D_TERM(const FArrayBox& bxfab = bX[solnLmfi];,
+           const FArrayBox& byfab = bY[solnLmfi];,
+           const FArrayBox& bzfab = bZ[solnLmfi];);
 
-    const FArrayBox& f0fab = f0[gn];
-    const FArrayBox& f1fab = f1[gn];
-    const FArrayBox& f2fab = f2[gn];
-    const FArrayBox& f3fab = f3[gn];
+    const FArrayBox& f0fab = f0[solnLmfi];
+    const FArrayBox& f1fab = f1[solnLmfi];
+    const FArrayBox& f2fab = f2[solnLmfi];
+    const FArrayBox& f3fab = f3[solnLmfi];
 #if (BL_SPACEDIM == 3)
-    const FArrayBox& f4fab = f4[gn];
-    const FArrayBox& f5fab = f5[gn];
+    const FArrayBox& f4fab = f4[solnLmfi];
+    const FArrayBox& f5fab = f5[solnLmfi];
 #endif
 
     BL_FORT_PROC_CALL(AB2_JACOBI, ab2_jacobi)

@@ -31,10 +31,6 @@ namespace BLPgas {
   upcxx::event fb_recv_event;
   int          fb_send_counter;
 
-  upcxx::event fpb_send_event;
-  upcxx::event fpb_recv_event;
-  int          fpb_send_counter;
-
   upcxx::event CollectData_recv_event;
 }
 

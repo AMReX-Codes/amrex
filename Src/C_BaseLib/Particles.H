@@ -2757,8 +2757,7 @@ ParticleContainer<N>::AssignCellDensitySingleLevel (MultiFab& mf_to_be_filled,
         }
     }
 
-    mf_pointer->SumBoundary();
-    gm.SumPeriodicBoundary(*mf_pointer);
+    mf_pointer->SumBoundary(gm.periodicity());
     //
     // If ncomp > 1, first divide the momenta (component n) 
     // by the mass (component 0) in order to get velocities.
@@ -3245,7 +3244,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
                                     BL_ASSERT(pshifts.size() == 1);
                                     fcells[j] = fcells[j] - pshifts[0];
                                 }
-                                (*mf)[lev_index + 1].boxArray().intersections(Box(fcells[j],fcells[j]),isects,true);
+                                (*mf)[lev_index + 1].boxArray().intersections(Box(fcells[j],fcells[j]),isects,true,0);
                                 if (isects.size() == 0) {
                                     continue;
 				}
@@ -3340,7 +3339,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
                                 //
                                 // Find its resident grid.
                                 //
-                                (*mf)[lev_index - 1].boxArray().intersections(Box(ccells[j],ccells[j]),isects,true);
+                                (*mf)[lev_index - 1].boxArray().intersections(Box(ccells[j],ccells[j]),isects,true,0);
                                 if (isects.size() == 0) {
                                     continue;
 				}
@@ -3804,7 +3803,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
     //
     // Send any needed data to other MPI processes.
     // This "may" touch ghost cells so we want to do it before
-    // the SumBoundary() and SumPeriodicBoundary() stuff.
+    // the SumBoundary() stuff.
     //
     AssignDensityDoit(mf,data,ncomp,lev_min);
 
@@ -3815,8 +3814,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
         const Real*     dx        = gm.CellSize();
         const Real      vol       = D_TERM(dx[0], *dx[1], *dx[2]);
 
-        (*mf)[lev_index].SumBoundary();
-        gm.SumPeriodicBoundary((*mf)[lev_index]);
+        (*mf)[lev_index].SumBoundary(gm.periodicity());
         //
         // If ncomp > 1, first divide the momenta (component n) 
         // by the mass (component 0) in order to get velocities.
@@ -5570,7 +5568,7 @@ ParticleContainer<N>::CreateGhostParticles (int   level,
             //
             // Is it in the grown finer level?
             //
-            fine.intersections(Box(iv,iv),isects,ngrow);
+            fine.intersections(Box(iv,iv),isects,false,ngrow);
             //
             // Here we add the particle to each potential grid.
             //

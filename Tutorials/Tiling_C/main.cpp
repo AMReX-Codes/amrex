@@ -5,7 +5,10 @@
 #include <BLFort.H>
 
 // declare a fortran subroutine
-BL_FORT_PROC_DECL(WORK, work) (const int& flag, const int* lo, const int* hi, BL_FORT_FAB_ARG(dfab));
+extern "C"
+{
+  void work(const int& flag, const int* lo, const int* hi, BL_FORT_FAB_ARG(dfab));
+}
 
 int main(int argc, char* argv[])
 {
@@ -38,8 +41,7 @@ int main(int argc, char* argv[])
 	const Box& bx = mfi.tilebox();  // box for this tile
 
 	// call a fortran subroutine
-	BL_FORT_PROC_CALL(WORK, work)
-	    (0, bx.loVect(), bx.hiVect(),
+	work(0, bx.loVect(), bx.hiVect(),
 	     BL_TO_FORTRAN(data[mfi]));
     }
 
@@ -70,8 +72,7 @@ int main(int argc, char* argv[])
 	const Box& bx = mfi.validbox();  // valid box for this fab
 
 	// call a fortran subroutine
-	BL_FORT_PROC_CALL(WORK, work)
-	    (1, bx.loVect(), bx.hiVect(),
+	work(1, bx.loVect(), bx.hiVect(),
 	     BL_TO_FORTRAN(data2[mfi]));
     }
 
@@ -87,8 +88,7 @@ int main(int argc, char* argv[])
 	const Box& bx = mfi.tilebox();
 
 	// call a fortran subroutine
-	BL_FORT_PROC_CALL(WORK, work)
-	    (2, bx.loVect(), bx.hiVect(),
+	work(2, bx.loVect(), bx.hiVect(),
 	     BL_TO_FORTRAN(data2[mfi]));
     }
 

@@ -100,32 +100,6 @@ LinOp::LinOp (BndryData*  _bgb,
 LinOp::~LinOp ()
 {
     delete bgb;
-
-    for (int i = 0, N = maskvals.size(); i < N; ++i)
-    {
-        for (std::map<int,MaskTuple>::iterator it = maskvals[i].begin(),
-                 End = maskvals[i].end();
-             it != End;
-             ++it)
-        {
-            MaskTuple& a = it->second;
-            for (int k = 0; k < 2*BL_SPACEDIM; ++k)
-                delete a[k];
-        }
-    }
-
-    for (int i = 0, N = lmaskvals.size(); i < N; ++i)
-    {
-        for (std::map<int,MaskTuple>::iterator it = lmaskvals[i].begin(),
-                 End = lmaskvals[i].end();
-             it != End;
-             ++it)
-        {
-            MaskTuple& a = it->second;
-            for (int k = 0; k < 2*BL_SPACEDIM; ++k)
-                delete a[k];
-        }
-    }
 }
 
 void
@@ -164,31 +138,20 @@ LinOp::initConstruct (const Real* _h)
     undrrelxr.resize(1);
     undrrelxr[level] = new BndryRegister(gbox[level], 1, 0, 0, 1, color());
 
-     maskvals.resize(1);
-    lmaskvals.resize(1);
-    //
-    // For each orientation, build NULL masks, then use distributed allocation.
-    // We note that all orientations of the FabSets have the same distribution.
-    // We'll use the low 0 side as the model.
-    //
-    for (FabSetIter bndryfsi((*bgb)[Orientation(0,Orientation::low)]);
-         bndryfsi.isValid();
-         ++bndryfsi)
-    {
-        const int        i   = bndryfsi.index();
-        MaskTuple&       ma  =  maskvals[level][i];
-        MaskTuple&       lma = lmaskvals[level][i];
-        const MaskTuple& bdm = bgb->bndryMasks(i);
+    maskvals.resize(1);
+    maskvals[0].resize(2*BL_SPACEDIM, PArrayManage);
 
-        for (OrientationIter oitr; oitr; ++oitr)
-        {
-            const Orientation face = oitr();
-            const Mask*       m    = bdm[face];
-             ma[face] = new Mask(m->box(),1);
-            lma[face] = new Mask(m->box(),1);
-             ma[face]->copy(*m);
-            lma[face]->copy(*m);
-        }
+    lmaskvals.resize(1);
+    lmaskvals[0].resize(2*BL_SPACEDIM, PArrayManage);
+
+    for (OrientationIter oitr; oitr; ++oitr)
+    {
+	const Orientation face = oitr();
+	const MultiMask& m = bgb->bndryMasks(face);
+	maskvals[0].set(face, new MultiMask(m.boxArray(), m.DistributionMap(), 1));
+	lmaskvals[0].set(face, new MultiMask(m.boxArray(), m.DistributionMap(), 1));
+	MultiMask::Copy(maskvals[0][face], m);
+	MultiMask::Copy(lmaskvals[0][face], m);
     }
 }
 
@@ -236,16 +199,11 @@ LinOp::applyBC (MultiFab&      inout,
         //
         flagbc = 0;
 
-    const bool cross = true;
-
-    inout.FillBoundary(src_comp,num_comp,local,cross);
-
     prepareForLevel(level);
-    //
-    // Do periodic fixup.
-    //
-    BL_ASSERT(level<geomarray.size());
-    geomarray[level].FillPeriodicBoundary(inout,src_comp,num_comp,false,local);
+
+    const bool cross = true;
+    inout.FillBoundary(src_comp,num_comp,geomarray[level].periodicity(),cross);
+
     //
     // Fill boundary cells.
     //
@@ -258,13 +216,8 @@ LinOp::applyBC (MultiFab&      inout,
         const int gn = mfi.index();
 
         BL_ASSERT(gbox[level][gn] == inout.box(gn));
-
-        BL_ASSERT(level<maskvals.size() && maskvals[level].find(gn)!=maskvals[level].end());
-        BL_ASSERT(level<lmaskvals.size() && lmaskvals[level].find(gn)!=lmaskvals[level].end());
         BL_ASSERT(level<undrrelxr.size());
 
-        const MaskTuple&                 ma  =  maskvals[level][gn];
-        const MaskTuple&                 lma = lmaskvals[level][gn];
         const BndryData::RealTuple&      bdl = bgb->bndryLocs(gn);
         const Array< Array<BoundCond> >& bdc = bgb->bndryConds(gn);
 
@@ -275,7 +228,7 @@ LinOp::applyBC (MultiFab&      inout,
             FabSet&       f   = (*undrrelxr[level])[o];
             int           cdr = o;
             const FabSet& fs  = bgb->bndryValues(o);
-            const Mask&   m   = local ? (*lma[o]) : (*ma[o]);
+            const Mask&   m   = local ? lmaskvals[level][o][mfi] : maskvals[level][o][mfi];
             Real          bcl = bdl[o];
             BL_ASSERT(bdc[o].size()>bndry_comp);
             int           bct = bdc[o][bndry_comp];
@@ -313,38 +266,8 @@ LinOp::residual (MultiFab&       residL,
                  bool            local)
 {
     BL_PROFILE("LinOp::residual()");
-
     apply(residL, solnL, level, bc_mode, local);
-
-    const bool tiling = true;
-
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-    for (MFIter solnLmfi(solnL,tiling); solnLmfi.isValid(); ++solnLmfi)
-    {
-        const int nc = residL.nComp();
-        //
-        // Only single-component solves supported (verified) by this class.
-        //
-        BL_ASSERT(nc == 1);
-
-        const Box& tbx = solnLmfi.tilebox();
-
-        BL_ASSERT(gbox[level][solnLmfi.index()] == solnLmfi.validbox());
-
-        FArrayBox& residfab = residL[solnLmfi];
-        const FArrayBox& rhsfab = rhsL[solnLmfi];
-
-        FORT_RESIDL(
-            residfab.dataPtr(), 
-            ARLIM(residfab.loVect()), ARLIM(residfab.hiVect()),
-            rhsfab.dataPtr(), 
-            ARLIM(rhsfab.loVect()), ARLIM(rhsfab.hiVect()),
-            residfab.dataPtr(), 
-            ARLIM(residfab.loVect()), ARLIM(residfab.hiVect()),
-            tbx.loVect(), tbx.hiVect(), &nc);
-    }
+    MultiFab::Xpay(residL, -1.0, rhsL, 0, 0, residL.nComp(), 0);
 }
 
 void
@@ -398,7 +321,6 @@ LinOp::prepareForLevel (int level)
     }
     geomarray.resize(level+1);
     geomarray[level].define(BoxLib::coarsen(geomarray[level-1].Domain(),2));
-    const Box& curdomain = geomarray[level].Domain();
     //
     // Add a box to the new coarser level (assign removes old BoxArray).
     //
@@ -422,70 +344,22 @@ LinOp::prepareForLevel (int level)
      maskvals.resize(level+1);
     lmaskvals.resize(level+1);
 
-    Array<IntVect> pshifts(27);
+    maskvals[level].resize(2*BL_SPACEDIM, PArrayManage);
+    lmaskvals[level].resize(2*BL_SPACEDIM, PArrayManage);
 
-    std::vector< std::pair<int,Box> > isects;
-    //
-    // Use bgb's distribution map for masks.
-    // We note that all orientations of the FabSets have the same distribution.
-    // We'll use the low 0 side as the model.
-    //
     int nGrow = NumGrow(level);
-    for (FabSetIter bndryfsi((*bgb)[Orientation(0,Orientation::low)]);
-         bndryfsi.isValid();
-         ++bndryfsi)
+
+    for (OrientationIter fi; fi; ++fi)
     {
-        const int   gn = bndryfsi.index();
-        MaskTuple&  ma =  maskvals[level][gn];
-        MaskTuple& lma = lmaskvals[level][gn];
-
-        for (OrientationIter oitr; oitr; ++oitr)
-        {
-            const Orientation face = oitr();
-            const Box         bx_k = BoxLib::adjCell(gbox[level][gn], face, nGrow);
-	    ma[face] = new Mask(bx_k,1);
-            lma[face] = new Mask(bx_k,1);
-            Mask&  curmask = *( ma[face]);
-            Mask& lcurmask = *(lma[face]);
-             curmask.setVal(BndryData::not_covered);
-            lcurmask.setVal(BndryData::not_covered);
-            gbox[level].intersections(bx_k,isects);
-            for (int ii = 0, N = isects.size(); ii < N; ii++)
-            {
-                if (isects[ii].first != gn)
-                {
-                     curmask.setVal(BndryData::covered, isects[ii].second, 0);
-                    lcurmask.setVal(BndryData::covered, isects[ii].second, 0);
-                }
-            }
-            //
-            // Now take care of periodic wraparounds.
-            //
-            Geometry& curgeom = geomarray[level];
-
-            if (curgeom.isAnyPeriodic() && !curdomain.contains(bx_k))
-            {
-                curgeom.periodicShift(curdomain, bx_k, pshifts);
-
-                for (int iiv = 0, M = pshifts.size(); iiv < M; iiv++)
-                {
-                     curmask.shift(pshifts[iiv]);
-                    lcurmask.shift(pshifts[iiv]);
-                    BL_ASSERT(curmask.box() == lcurmask.box());
-                    gbox[level].intersections(curmask.box(),isects);
-                    for (int ii = 0, N = isects.size(); ii < N; ii++)
-                    {
-                         curmask.setVal(BndryData::covered, isects[ii].second, 0);
-                        lcurmask.setVal(BndryData::covered, isects[ii].second, 0);
-                    }
-                     curmask.shift(-pshifts[iiv]);
-                    lcurmask.shift(-pshifts[iiv]);
-                }
-            }
-        }
+        Orientation face = fi();
+	maskvals[level].set(face, new MultiMask(gbox[level],
+						bgb->DistributionMap(),
+						geomarray[level],
+						face, 0, nGrow, 0, 1, true));
+	lmaskvals[level].set(face, new MultiMask(maskvals[level][face].boxArray(),
+						 maskvals[level][face].DistributionMap(), 1));
+	MultiMask::Copy(lmaskvals[level][face], maskvals[level][face]);
     }
-
-    gbox[level].clear_hash_bin();
 }
 
 void
@@ -645,8 +519,6 @@ operator<< (std::ostream& os,
         if (ParallelDescriptor::IOProcessor())
             os << "level = " << level << '\n';
 
-        const std::map<int,LinOp::MaskTuple>& m = lp.maskvals[level];
-
         for (int nproc = 0; nproc < ParallelDescriptor::NProcs(); ++nproc)
         {
             if (nproc == ParallelDescriptor::MyProc())
@@ -657,12 +529,9 @@ operator<< (std::ostream& os,
                 {
                     const Orientation face = oitr();
 
-                    for (std::map<int,LinOp::MaskTuple>::const_iterator it = m.begin(),
-                             End = m.end();
-                         it != End;
-                         ++it)
-                    {
-                        os << *(it->second[face]);
+		    for (MultiMaskIter mmi(lp.maskvals[level][face]); mmi.isValid(); ++mmi)
+		    {
+                        os << lp.maskvals[level][face][mmi];
                     }
                 }
             }

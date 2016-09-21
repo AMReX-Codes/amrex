@@ -390,6 +390,12 @@ public:
 		 int             num_comp,
 		 int             nghost);
     //
+    // Returns the dot product of two MultiFabs.
+    //
+    static Real Dot (const MultiFab& x, int xcomp,
+		     const MultiFab& y, int ycomp,
+		     int num_comp, int nghost, bool local = false);
+    //
     // Add src to dst including nghost ghost cells.
     // The two MultiFabs MUST have the same underlying BoxArray.
     //
@@ -450,20 +456,43 @@ public:
 		       int             dstcomp,
 		       int             numcomp,
 		       int             nghost);
+    //
+    // dst = src + a*dst
+    //
+    static void Xpay (MultiFab&       dst,
+		      Real            a, 
+		      const MultiFab& src,
+		      int             srccomp,
+		      int             dstcomp,
+		      int             numcomp,
+		      int             nghost);
+    //
+    // dst = a*x + b*y
+    //
+    static void LinComb (MultiFab&       dst,
+			 Real            a,
+			 const MultiFab& x,
+			 int             xcomp,
+			 Real            b,
+			 const MultiFab& y,
+			 int             ycomp,
+			 int             dstcomp,
+			 int             numcomp,
+			 int             nghost);
 
-    virtual void define (const BoxArray& bxs,
-			 int             nvar,
-			 int             ngrow,
-			 FabAlloc        mem_mode,
-			 const IntVect&  nodal = IntVect::TheZeroVector(),
-			 ParallelDescriptor::Color color = ParallelDescriptor::DefaultColor()) BL_OVERRIDE;
+    void define (const BoxArray& bxs,
+		 int             nvar,
+		 int             ngrow,
+		 FabAlloc        mem_mode,
+		 const IntVect&  nodal = IntVect::TheZeroVector(),
+		 ParallelDescriptor::Color color = ParallelDescriptor::DefaultColor());
 
-    virtual void define (const BoxArray&            bxs,
-			 int                        nvar,
-			 int                        ngrow,
-			 const DistributionMapping& dm,
-			 FabAlloc                   mem_mode,
-			 const IntVect&             nodal = IntVect::TheZeroVector()) BL_OVERRIDE;
+    void define (const BoxArray&            bxs,
+		 int                        nvar,
+		 int                        ngrow,
+		 const DistributionMapping& dm,
+		 FabAlloc                   mem_mode,
+		 const IntVect&             nodal = IntVect::TheZeroVector());
 
     //
     // Are there any NaNs in the MF?
@@ -491,17 +520,11 @@ public:
 
     bool contains_inf (int scomp, int ncomp, int ngrow = 0, bool local=false) const;
     //
-    // Set ghost cells that are covered by valid cells to the value of valid cells.
-    //
-    void FillBoundary (bool local = false, bool cross = false);
-
-    void FillBoundary (int scomp, int ncomp, bool local = false, bool cross = false);
-    //
     // Sum ghost cells that are covered by valid cells into the valid cells.
     //
-    void SumBoundary ();
+    void SumBoundary (const Periodicity& period = Periodicity::NonPeriodic());
 
-    void SumBoundary (int scomp, int ncomp);
+    void SumBoundary (int scomp, int ncomp, const Periodicity& period = Periodicity::NonPeriodic());
 
     static void Initialize ();
     static void Finalize ();

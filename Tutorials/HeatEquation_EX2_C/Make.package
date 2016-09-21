@@ -1,0 +1,24 @@
+# These live here
+CEXE_sources += main.cpp
+CEXE_sources += writePlotFile.cpp
+
+CEXE_headers += writePlotFile.H
+
+FEXE_headers += bc_F.H
+
+f90EXE_sources += init_phi_$(DIM)d.f90 
+f90EXE_sources += advance_$(DIM)d.f90
+F90EXE_sources += bc_fill_$(DIM)d.F90
+
+# These live in BoxLib/Src/C_AMRLib
+CEXE_sources += StateData.cpp
+CEXE_sources += StateDescriptor.cpp
+CEXE_sources += Interpolater.cpp
+
+CEXE_headers += StateData.H
+CEXE_headers += StateDescriptor.H
+CEXE_headers += Interpolater.H
+CEXE_headers += INTERP_F.H
+
+FEXE_sources += INTERP_$(DIM)D.F
+FEXE_sources += FILCC_$(DIM)D.F

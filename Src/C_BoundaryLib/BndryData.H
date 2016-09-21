@@ -7,7 +7,7 @@
 #include <FArrayBox.H>
 #include <Orientation.H>
 #include <BndryRegister.H>
-#include <Mask.H>
+#include <MultiMask.H>
 #include <BoundCond.H>
 #include <Geometry.H>
 #include <Tuple.H>
@@ -54,6 +54,8 @@ public:
     //
     using BndryRegister::size;
     //
+    using BndryRegister::DistributionMap;
+    //
     // mask values enumeration
     //
     enum MaskVal { covered = 0, not_covered = 1, outside_domain = 2, NumMaskVals = 3 };
@@ -89,9 +91,7 @@ public:
                  const Geometry& geom,
 		 ParallelDescriptor::Color color = ParallelDescriptor::DefaultColor());
     //
-    // write to output stream
-    //
-    friend std::ostream& operator<< (std::ostream& os, const BndryData& bd);
+    const MultiMask& bndryMasks (Orientation face) const { return masks[face]; }
     //
     // Return FabSet on given face.
     //
@@ -101,7 +101,6 @@ public:
     //
     typedef Tuple<Real,2*BL_SPACEDIM> RealTuple;
 
-    typedef Tuple<Mask*,2*BL_SPACEDIM> MaskTuple;
     //
     // Return boundary location on given face for grids we own.
     // It's an error if we don't own that grid.
@@ -113,11 +112,6 @@ public:
     // It's an error if we don't own that grid.
     //
     const Array< Array<BoundCond> >& bndryConds (int igrid) const;
-    //
-    // Return boundary masks for grids we own.
-    // It's an error if we don't own that grid.
-    //
-    const MaskTuple& bndryMasks (int igrid) const;
     //
     // return number of components for which this object is intended
     //
@@ -136,12 +130,6 @@ public:
     // set values of boundary Fab for given orientation on nth grid
     //
     void setValue (Orientation face, int n, Real val) { bndry[face][n].setVal(val); }
-    //
-    // set mask values for given orientation on nth grid
-    //
-    void setMaskValue (Orientation face,
-                       int         n,
-                       int         val);
     //
     // set boundary type specifier for given orientation on nth grid
     //
@@ -163,6 +151,8 @@ public:
     // implement public access to BndryRegister::operator[]
     //
     FabSet& operator[] (Orientation face) { return BndryRegister::bndry[face]; }
+#if 0
+//xxxxx
     //
     // write the boundary data object to an ostream
     //
@@ -171,6 +161,7 @@ public:
     // read the boundary data object from an istream
     //
     void readFrom (std::istream& is);
+#endif
 
 protected:
     //
@@ -193,9 +184,9 @@ protected:
 
     std::map<int,RealTuple> bcloc;
     //
-    // Map boundary condition mask arrays (FAB-like).
+    // Boundary condition mask
     //
-    std::map<int,MaskTuple> masks;
+    PArray<MultiMask> masks;
     //
     // Domain used for mask definitions.
     //
@@ -204,11 +195,6 @@ protected:
     bool     m_defined;
 
 private:
-    //
-    // Free memory taken by masks for this BndryData object.
-    //
-    void clear_masks ();
-
     static int NTangHalfWidth;
 };
 

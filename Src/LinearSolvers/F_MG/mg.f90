@@ -25,8 +25,8 @@ contains
                                       max_nlevel, max_bottom_nlevel, min_width, &
                                       max_iter, abort_on_max_iter, eps, abs_eps, &
                                       bottom_solver, bottom_max_iter, bottom_solver_eps, &
-                                      max_L0_growth, &
-                                      verbose, cg_verbose, nodal, use_hypre, is_singular, &
+                                      max_L0_growth, verbose, cg_verbose, nodal, use_hypre, &
+                                      is_singular, ok_to_fix_singular, &
                                       the_bottom_comm, fancy_bottom_type, use_lininterp, ptype)
     use bl_IO_module
     use bl_prof_module
@@ -62,6 +62,7 @@ contains
     logical, intent(in), optional :: nodal(:)
     integer, intent(in), optional :: use_hypre
     logical, intent(in), optional :: is_singular
+    logical, intent(in), optional :: ok_to_fix_singular
     integer, intent(in), optional :: the_bottom_comm
     integer, intent(in), optional :: fancy_bottom_type
     logical, intent(in), optional :: use_lininterp
@@ -113,6 +114,7 @@ contains
     if ( present(verbose)           ) mgt%verbose           = verbose
     if ( present(cg_verbose)        ) mgt%cg_verbose        = cg_verbose
     if ( present(use_hypre)         ) mgt%use_hypre         = use_hypre 
+    if ( present(ok_to_fix_singular)) mgt%ok_to_fix_singular= ok_to_fix_singular
     if ( present(max_L0_growth)     ) mgt%max_L0_growth     = max_L0_growth 
     if ( present(use_lininterp)     ) mgt%use_lininterp     = use_lininterp
     if ( present(ptype)             ) mgt%ptype             = ptype

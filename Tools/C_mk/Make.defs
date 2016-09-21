@@ -207,13 +207,6 @@ ifeq ($(MEM_PROFILE),TRUE)
   USE_CXX11 = TRUE
 endif
 
-ifndef TINY_PROFILE
-  TINY_PROFILE = FALSE
-endif
-ifdef PROFILE
-  TINY_PROFILE = FALSE
-endif
-
 ifndef TEST
   TEST = FALSE
 endif
@@ -265,6 +258,10 @@ endif
 
 ifndef USE_ASSERTION
   USE_ASSERTION = FALSE
+endif
+
+ifndef EBASE
+  EBASE = main
 endif
 
 #
@@ -526,11 +523,11 @@ ifeq ($(COMP),Intel)
    endif
 
    ifeq ($(WHICHLINUX), CORI)
-     CXXOPTF += -g -O2 -ip -qopt-report=5 -qopt-report-phase=vec -parallel-source-info=2 -fp-model source
+     CXXOPTF += -g -O2 -ip -qopt-report=5 -qopt-report-phase=vec -fp-model source
    endif
 
    ifeq ($(WHICHLINUX), EDISON)
-     CXXOPTF += -g -O2 -ip -qopt-report=5 -qopt-report-phase=vec -parallel-source-info=2 -fp-model source
+     CXXOPTF += -g -O2 -ip -qopt-report=5 -qopt-report-phase=vec -fp-model source
    endif
 
    ifeq ($(WHICHLINUX), BABBAGE)
@@ -611,12 +608,12 @@ ifeq ($(FCOMP),Intel)
    fOPTF += -g
 
    ifeq ($(WHICHLINUX), CORI)
-     FOPTF += -O2 -ip -g -qopt-report=5 -qopt-report-phase=vec -parallel-source-info=2 #-qoverride-limits
-     fOPTF += -O2 -ip -g -qopt-report=5 -qopt-report-phase=vec -parallel-source-info=2 #-qoverride-limits
+     FOPTF += -O2 -ip -g -qopt-report=5 -qopt-report-phase=vec #-qoverride-limits
+     fOPTF += -O2 -ip -g -qopt-report=5 -qopt-report-phase=vec #-qoverride-limits
    endif
    ifeq ($(WHICHLINUX), EDISON)
-     FOPTF += -O2 -ip -g -qopt-report=5 -qopt-report-phase=vec -parallel-source-info=2 #-qoverride-limits
-     fOPTF += -O2 -ip -g -qopt-report=5 -qopt-report-phase=vec -parallel-source-info=2 #-qoverride-limits
+     FOPTF += -O2 -ip -g -qopt-report=5 -qopt-report-phase=vec #-qoverride-limits
+     fOPTF += -O2 -ip -g -qopt-report=5 -qopt-report-phase=vec #-qoverride-limits
    endif
    ifeq ($(WHICHLINUX), BABBAGE)
      ifneq ($(MIC), TRUE) # the "-xHost" flag conflicts with the "-mmic" option
@@ -714,6 +711,9 @@ ifeq ($(PROFILE),TRUE)
         ProfSuffix	:= .PROF
     endif
 else
+    ifndef TINY_PROFILE
+        TINY_PROFILE = FALSE
+    endif
     ifeq ($(TINY_PROFILE),TRUE)
         CPPFLAGS    += -DBL_TINY_PROFILING
         ProfSuffix	:= .TPROF
@@ -744,10 +744,12 @@ ifeq ($(COMP),Intel)
   ifeq ($(FCOMP),Intel)
     ifeq ($(USE_VTUNE),TRUE)
 
-      CXXFLAGS += -debug inline-debug-info
-      FFLAGS += -debug inline-debug-info
-      fFLAGS += -debug inline-debug-info
-      CFLAGS += -debug inline-debug-info
+      DEFINES += -DVTUNE
+
+      CXXFLAGS += -debug inline-debug-info -parallel-source-info=2
+      FFLAGS += -debug inline-debug-info -parallel-source-info=2
+      fFLAGS += -debug inline-debug-info -parallel-source-info=2
+      CFLAGS += -debug inline-debug-info -parallel-source-info=2
 
       # On the Crays at NERSC, VTune can't resolve debug symbols unless we
       # compile and link dynamically using the "-dynamic" flag with the Cray
@@ -768,10 +770,18 @@ ifeq ($(COMP),Intel)
       # variables change with VTune versions so these will need to be updated
       # periodically.
       ifeq ($(USE_ITTNOTIFY),TRUE)
+        DEFINES += -DITTNOTIFY
         INCLUDE_LOCATIONS += $(VTUNE_AMPLIFIER_XE_2016_DIR)/include
         LIBRARIES += -L$(VTUNE_AMPLIFIER_XE_2016_DIR)/lib64 -littnotify
-      endif
 
+	# Intel Software Development Emulator (SDE) is a tool we use to count
+	# FLOPS in software, since Intel chips have not had working hardware
+	# FLOP counters since Sandy Bridge. One can manually instrument code
+	# regions with SDE, similarly to the way one does with VTune/ittnotify.
+        ifeq ($(USE_SDE),TRUE)
+          DEFINES += -DSDE
+        endif
+      endif
     endif
   endif
 endif
@@ -1109,9 +1119,7 @@ ifeq ($(USE_HPGMG), TRUE)
   include $(HPGMG_DIR)/source/Make.package
   include $(BOXLIB_HOME)/Src/Extern/hpgmg/Make.package
   INCLUDE_LOCATIONS += $(HPGMG_DIR)/source
-  INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/Extern/hpgmg
   VPATH_LOCATIONS   += $(HPGMG_DIR)/source
-  VPATH_LOCATIONS   += $(BOXLIB_HOME)/Src/Extern/hpgmg
 endif
 
 ifeq ($(WHICHLINUX),MIRA)

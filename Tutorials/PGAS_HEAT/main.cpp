@@ -41,11 +41,7 @@ void advance (MultiFab* old_phi, MultiFab* new_phi, Real* dx, Real dt, Geometry 
     Real t0 = ParallelDescriptor::second();
 
     // Fill the ghost cells of each grid from the other grids
-    old_phi->FillBoundary_nowait();
-    geom.FillPeriodicBoundary_nowait(*old_phi);
-
-    old_phi->FillBoundary_finish();
-    geom.FillPeriodicBoundary_finish(*old_phi);
+    old_phi->FillBoundary_nowait(geom.periodicity());
 
     Real t1 = ParallelDescriptor::second();
 

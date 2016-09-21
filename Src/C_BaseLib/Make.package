@@ -47,8 +47,8 @@ C${BOXLIB_BASE}_sources += FabConv.cpp FPC.cpp
 #
 # Index space.
 #
-C$(BOXLIB_BASE)_sources += Box.cpp IntVect.cpp IndexType.cpp Orientation.cpp
-C$(BOXLIB_BASE)_headers += Box.H IntVect.H IndexType.H Orientation.H
+C$(BOXLIB_BASE)_sources += Box.cpp IntVect.cpp IndexType.cpp Orientation.cpp Periodicity.cpp
+C$(BOXLIB_BASE)_headers += Box.H IntVect.H IndexType.H Orientation.H Periodicity.H
 
 #
 # Real space.
@@ -101,7 +101,7 @@ endif
 #
 # Boundary-related 
 #
-C$(BOXLIB_BASE)_sources += BCRec.cpp
+C$(BOXLIB_BASE)_sources += BCRec.cpp PhysBCFunct.cpp
 C$(BOXLIB_BASE)_headers += BCRec.H PhysBCFunct.H
 C$(BOXLIB_BASE)_headers += BC_TYPES.H
 
@@ -111,18 +111,21 @@ C$(BOXLIB_BASE)_headers += BC_TYPES.H
 ifneq ($(BL_NO_FORT),TRUE)
   F$(BOXLIB_BASE)_sources += COORDSYS_$(DIM)D.F
   F$(BOXLIB_BASE)_headers += COORDSYS_F.H
+  F$(BOXLIB_BASE)_sources += FILCC_${DIM}D.F
 
   f$(BOXLIB_BASE)_sources += BLutil_F.f
   f$(BOXLIB_BASE)_sources += BLParmParse_F.f
   f$(BOXLIB_BASE)_sources += BLBoxLib_F.f
   f$(BOXLIB_BASE)_sources += BLProfiler_F.f
 
-  F$(BOXLIB_BASE)_sources += SPECIALIZE_$(DIM)D.F
-  F$(BOXLIB_BASE)_headers += SPECIALIZE_F.H
+  f90$(BOXLIB_BASE)_sources += BaseFab_nd.f90
+  f90(BOXLIB_BASE)_headers += BaseFab_f.H
 
   f90$(BOXLIB_BASE)_sources += threadbox.f90
 
   f90$(BOXLIB_BASE)_sources += MultiFabUtil_$(DIM)d.f90
+
+  F90$(BOXLIB_BASE)_sources += bl_fort_module.F90
 endif
 
 C$(BOXLIB_BASE)_sources += BLProfiler.cpp
@@ -168,4 +171,7 @@ endif
 
 # C++11 stuff
 C$(BOXLIB_BASE)_headers += BL_CXX11.H
+
+VPATH_LOCATIONS += $(BOXLIB_HOME)/Src/C_BaseLib
+INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/C_BaseLib
 

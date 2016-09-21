@@ -9,23 +9,11 @@
 #include <PArray.H>
 #include <REAL.H>
 #include <Box.H>
-#include <BCRec.H>
-#include <ArrayLim.H>
+#include <PhysBCFunct.H>
+#include <BL_CXX11.H>
+
 
 class Interpolater;
-
-
-extern "C"
-{
-    typedef void (*BndryFuncDefault)(Real* data, ARLIM_P(lo), ARLIM_P(hi),
-                                     const int* dom_lo, const int* dom_hi,
-                                     const Real* dx, const Real* grd_lo,
-                                     const Real* time, const int* bc);
-    typedef void (*BndryFunc3DDefault)(Real* data, const int* lo, const int* hi,
-                                       const int* dom_lo, const int* dom_hi,
-                                       const Real* dx, const Real* grd_lo,
-                                       const Real* time, const int* bc);
-}
 
 //
 // Attributes of StateData.
@@ -46,6 +34,7 @@ public:
     // Class wrapper around BndryFuncDefault.
     //
     class BndryFunc
+	: public BndryFunctBase
     {
     public:
         //
@@ -66,18 +55,18 @@ public:
         // Return a ptr to a clone of this object.
         // It is the responsibility of the caller to delete the result.
         //
-        virtual BndryFunc* clone () const;
+        virtual BndryFunc* clone () const BL_OVERRIDE;
         //
         // Destructor.
         //
-        virtual ~BndryFunc ();
-        //
-        // Fill boundary cells using "regular" function.
-        //
-        virtual void operator () (Real* data, const int* lo, const int* hi,
-                                  const int* dom_lo, const int* dom_hi,
-                                  const Real* dx, const Real* grd_lo,
-                                  const Real* time, const int* bc) const;
+        virtual ~BndryFunc () BL_OVERRIDE;
+	//
+	// Fill boundary cells using "regular" function.
+	//
+	virtual void operator () (Real* data, const int* lo, const int* hi,
+				  const int* dom_lo, const int* dom_hi,
+				  const Real* dx, const Real* grd_lo,
+				  const Real* time, const int* bc) const BL_OVERRIDE;
         //
         // Fill boundary cells using "group" function.
         //
@@ -90,11 +79,8 @@ public:
 
     private:
 
-        BndryFuncDefault  m_func;
-        BndryFuncDefault  m_gfunc;
-
-        BndryFunc3DDefault  m_func3D;
-        BndryFunc3DDefault  m_gfunc3D;
+        BndryFuncDefault   m_gfunc;
+        BndryFunc3DDefault m_gfunc3D;
     };
     //
     // The default constructor.

@@ -6,14 +6,16 @@
 
 #ifdef BL_MEM_PROFILING
 #include <MemProfiler.H>
-bool BoxArrayRef::initialized          = false;
-int  BoxArrayRef::numboxarrays         = 0;
-int  BoxArrayRef::numboxarrays_hwm     = 0;
-long BoxArrayRef::total_box_bytes      = 0L;
-long BoxArrayRef::total_box_bytes_hwm  = 0L;
-long BoxArrayRef::total_hash_bytes     = 0L;
-long BoxArrayRef::total_hash_bytes_hwm = 0L;
+int  BARef::numboxarrays         = 0;
+int  BARef::numboxarrays_hwm     = 0;
+long BARef::total_box_bytes      = 0L;
+long BARef::total_box_bytes_hwm  = 0L;
+long BARef::total_hash_bytes     = 0L;
+long BARef::total_hash_bytes_hwm = 0L;
 #endif
+
+bool    BARef::initialized = false;
+bool BoxArray::initialized = false;
 
 BoxArray::CBACache BoxArray::m_CoarseBoxArrayCache;
 
@@ -21,48 +23,40 @@ namespace {
     const int bl_ignore_max = 100000;
 }
 
-BoxArrayRef::BoxArrayRef () 
+BARef::BARef () 
 { 
 #ifdef BL_MEM_PROFILING
-    if (!initialized) Initialize();
     updateMemoryUsage_box(1);
 #endif	    
 }
 
-BoxArrayRef::BoxArrayRef (size_t size) 
+BARef::BARef (size_t size) 
     : m_abox(size) 
 { 
 #ifdef BL_MEM_PROFILING
-    if (!initialized) Initialize();
     updateMemoryUsage_box(1);
 #endif	    
 }
  
-BoxArrayRef::BoxArrayRef (const BoxList& bl)
+BARef::BARef (const BoxList& bl)
 { 
-#ifdef BL_MEM_PROFILING
-    if (!initialized) Initialize();
-#endif
     define(bl); 
 }
 
-BoxArrayRef::BoxArrayRef (std::istream& is)
+BARef::BARef (std::istream& is)
 { 
-#ifdef BL_MEM_PROFILING
-    if (!initialized) Initialize();
-#endif
     define(is); 
 }
 
-BoxArrayRef::BoxArrayRef (const BoxArrayRef& rhs) 
-    : m_abox(rhs.m_abox) 
+BARef::BARef (const BARef& rhs) 
+    : m_abox(rhs.m_abox) // don't copy hash
 {
 #ifdef BL_MEM_PROFILING
     updateMemoryUsage_box(1);
 #endif	    
 }
 
-BoxArrayRef::~BoxArrayRef ()
+BARef::~BARef ()
 {
 #ifdef BL_MEM_PROFILING
     updateMemoryUsage_box(-1);
@@ -71,14 +65,14 @@ BoxArrayRef::~BoxArrayRef ()
 }
 
 ptrdiff_t 
-BoxArrayRef::getRefID () const
+BARef::getRefID () const
 {
-    static BoxArrayRef ref0;
+    static BARef ref0;
     return &(*this) - &(ref0);
 }
 
 void
-BoxArrayRef::define (std::istream& is)
+BARef::define (std::istream& is)
 {
     //
     // TODO -- completely remove the fiction of a hash value.
@@ -96,7 +90,7 @@ BoxArrayRef::define (std::istream& is)
 }
 
 void
-BoxArrayRef::define (const Box& bx)
+BARef::define (const Box& bx)
 {
     BL_ASSERT(m_abox.size() == 0);
 #ifdef BL_MEM_PROFILING
@@ -109,7 +103,7 @@ BoxArrayRef::define (const Box& bx)
 }
 
 void
-BoxArrayRef::define (const BoxList& bl)
+BARef::define (const BoxList& bl)
 {
     BL_ASSERT(m_abox.size() == 0);
     const int N = bl.size();
@@ -122,7 +116,7 @@ BoxArrayRef::define (const BoxList& bl)
 }
 
 void 
-BoxArrayRef::resize (long n) {
+BARef::resize (long n) {
 #ifdef BL_MEM_PROFILING
     updateMemoryUsage_box(-1);
     updateMemoryUsage_hash(-1);
@@ -136,7 +130,7 @@ BoxArrayRef::resize (long n) {
 
 #ifdef BL_MEM_PROFILING
 void
-BoxArrayRef::updateMemoryUsage_box (int s)
+BARef::updateMemoryUsage_box (int s)
 {
     if (m_abox.size() > 1) {
 	long b = BoxLib::bytesOf(m_abox);
@@ -153,7 +147,7 @@ BoxArrayRef::updateMemoryUsage_box (int s)
 }
 
 void
-BoxArrayRef::updateMemoryUsage_hash (int s)
+BARef::updateMemoryUsage_hash (int s)
 {
     if (hash.size() > 0) {
 	long b = sizeof(hash);
@@ -169,62 +163,76 @@ BoxArrayRef::updateMemoryUsage_hash (int s)
 	}
     }
 }
+#endif
 
 void
-BoxArrayRef::Initialize ()
+BARef::Initialize ()
 {
     if (!initialized) {
 	initialized = true;
-	MemProfiler::add("BoxArray", [] () -> MemProfiler::MemInfo {
-		return {total_box_bytes, total_box_bytes_hwm};
-	    });
-	MemProfiler::add("BoxArrayHash", [] () -> MemProfiler::MemInfo {
-		return {total_hash_bytes, total_hash_bytes_hwm};
-	    });
-	MemProfiler::add("BoxArray Innard", [] () -> MemProfiler::NBuildsInfo {
-		return {numboxarrays, numboxarrays_hwm};
-	    });
+#ifdef BL_MEM_PROFILING
+	MemProfiler::add("BoxArray", std::function<MemProfiler::MemInfo()>
+			 ([] () -> MemProfiler::MemInfo {
+			     return {total_box_bytes, total_box_bytes_hwm};
+			 }));
+	MemProfiler::add("BoxArrayHash", std::function<MemProfiler::MemInfo()>
+			 ([] () -> MemProfiler::MemInfo {
+			     return {total_hash_bytes, total_hash_bytes_hwm};
+			 }));
+	MemProfiler::add("BoxArray Innard", std::function<MemProfiler::NBuildsInfo()>
+			 ([] () -> MemProfiler::NBuildsInfo {
+			     return {numboxarrays, numboxarrays_hwm};
+			 }));
+#endif
     }
 }
-#endif
 
+void
+BoxArray::Initialize ()
+{
+    if (!initialized) {
+	initialized = true;
+	BARef::Initialize();
+    }
+}
 
 BoxArray::BoxArray ()
     :
-    m_typ(IndexType()),
-    m_ref(new BoxArrayRef)
+    m_transformer(new BATypeTransformer()),
+    m_ref(new BARef())
 {}
 
 BoxArray::BoxArray (const Box& bx)
     :
-    m_typ(bx.ixType()),
-    m_ref(new BoxArrayRef(1))
+    m_transformer(new BATypeTransformer(bx.ixType())),
+    m_ref(new BARef(1))
 {
     m_ref->m_abox[0] = BoxLib::enclosedCells(bx);
 }
 
 BoxArray::BoxArray (const BoxList& bl)
     :
-    m_typ(bl.ixType()),
-    m_ref(new BoxArrayRef(bl))
+    m_transformer(new BATypeTransformer(bl.ixType())),
+    m_ref(new BARef(bl))
 {
     type_update();
 }
 
 BoxArray::BoxArray (size_t n)
     :
-    m_typ(IndexType()),
-    m_ref(new BoxArrayRef(n))
+    m_transformer(new BATypeTransformer()),
+    m_ref(new BARef(n))
 {}
 
 BoxArray::BoxArray (const Box* bxvec,
                     int        nbox)
     :
-    m_typ(bxvec->ixType()),
-    m_ref(new BoxArrayRef(nbox))
+    m_transformer(new BATypeTransformer(bxvec->ixType())),
+    m_ref(new BARef(nbox))
 {
-    for (int i = 0; i < nbox; i++)
+    for (int i = 0; i < nbox; i++) {
         m_ref->m_abox[i] = BoxLib::enclosedCells(*bxvec++);
+    }
 }
 
 //
@@ -232,16 +240,26 @@ BoxArray::BoxArray (const Box* bxvec,
 //
 BoxArray::BoxArray (const BoxArray& rhs)
     :
-    m_typ(rhs.m_typ),
+    m_transformer(rhs.m_transformer->clone()),
     m_ref(rhs.m_ref)
 {}
 
-BoxArray::~BoxArray (){ }
+BoxArray::BoxArray (const BoxArray& rhs, const BATransformer& trans)
+    :
+    m_transformer(trans.clone()),
+    m_ref(rhs.m_ref)
+{}
+
+BoxArray::~BoxArray ()
+{ 
+    delete m_transformer;
+}
 
 BoxArray&
 BoxArray::operator= (const BoxArray& rhs)
 {
-    m_typ = rhs.m_typ;
+    delete m_transformer;
+    m_transformer = rhs.m_transformer->clone();
     m_ref = rhs.m_ref;
     return *this;
 }
@@ -251,7 +269,7 @@ BoxArray::define (const Box& bx)
 {
     BL_ASSERT(size() == 0);
     clear();
-    m_typ = bx.ixType();
+    m_transformer->setIxType(bx.ixType());
     m_ref->define(BoxLib::enclosedCells(bx));
 }
 
@@ -267,14 +285,19 @@ BoxArray::define (const BoxList& bl)
 void
 BoxArray::clear ()
 {
-    m_ref = new BoxArrayRef();
+    delete m_transformer;
+    m_transformer = new BATypeTransformer();
+    m_ref = new BARef();
 }
 
 void
 BoxArray::resize (long len)
 {
-    if (!m_ref.unique())
+    if (m_ref.unique()) {
+	clear_hash_bin();
+    } else {
         uniqify();
+    }
     m_ref->resize(len);
 }
 
@@ -358,7 +381,8 @@ BoxArray::writeOn (std::ostream& os) const
 bool
 BoxArray::operator== (const BoxArray& rhs) const
 {
-    return m_typ == rhs.m_typ && (m_ref == rhs.m_ref || m_ref->m_abox == rhs.m_ref->m_abox);
+    return m_transformer->equal(*rhs.m_transformer)
+	&& (m_ref == rhs.m_ref || m_ref->m_abox == rhs.m_ref->m_abox);
 }
 
 bool
@@ -386,7 +410,7 @@ BoxArray::maxSize (const IntVect& block_size)
     blst.maxSize(block_size);
     const int N = blst.size();
     if (size() != N) { // If size doesn't change, do nothing.
-	clear();
+	m_ref = new BARef();
 	m_ref->resize(N);
 	BoxList::iterator bli = blst.begin(), End = blst.end();
 	for (int i = 0; bli != End; ++bli)
@@ -404,14 +428,19 @@ BoxArray::refine (int refinement_ratio)
 BoxArray&
 BoxArray::refine (const IntVect& iv)
 {
-    if (!m_ref.unique())
+    if (m_ref.unique()) {
+	clear_hash_bin();
+    } else {
         uniqify();
+    }
     const int N = m_ref->m_abox.size();
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-    for (int i = 0; i < N; i++)
+    for (int i = 0; i < N; i++) {
+	BL_ASSERT(m_ref->m_abox[i].ok());
         m_ref->m_abox[i].refine(iv);
+    }
     return *this;
 }
 
@@ -446,6 +475,7 @@ BoxArray::coarsen (const IntVect& iv)
 #pragma omp parallel for
 #endif
 	for (int i = 0; i < N; i++) {
+	    BL_ASSERT(m_ref->m_abox[i].ok());
 	    m_ref->m_abox[i].coarsen(iv);
 	}
 
@@ -459,8 +489,11 @@ BoxArray::coarsen (const IntVect& iv)
 BoxArray&
 BoxArray::growcoarsen (int n, const IntVect& iv)
 {
-    if (!m_ref.unique())
+    if (m_ref.unique()) {
+	clear_hash_bin();
+    } else {
         uniqify();
+    }
     const int N = m_ref->m_abox.size();
 #ifdef _OPENMP
 #pragma omp parallel for
@@ -473,8 +506,11 @@ BoxArray::growcoarsen (int n, const IntVect& iv)
 BoxArray&
 BoxArray::grow (int n)
 {
-    if (!m_ref.unique())
+    if (m_ref.unique()) {
+	clear_hash_bin();
+    } else {
         uniqify();
+    }
     const int N = m_ref->m_abox.size();
 #ifdef _OPENMP
 #pragma omp parallel for
@@ -487,8 +523,11 @@ BoxArray::grow (int n)
 BoxArray&
 BoxArray::grow (const IntVect& iv)
 {
-    if (!m_ref.unique())
+    if (m_ref.unique()) {
+	clear_hash_bin();
+    } else {
         uniqify();
+    }
     const int N = m_ref->m_abox.size();
 #ifdef _OPENMP
 #pragma omp parallel for
@@ -502,8 +541,11 @@ BoxArray&
 BoxArray::grow (int dir,
                 int n_cell)
 {
-    if (!m_ref.unique())
+    if (m_ref.unique()) {
+	clear_hash_bin();
+    } else {
         uniqify();
+    }
     const int N = m_ref->m_abox.size();
 #ifdef _OPENMP
 #pragma omp parallel for
@@ -516,35 +558,36 @@ BoxArray::grow (int dir,
 BoxArray&
 BoxArray::surroundingNodes ()
 {
-    m_typ = IndexType::TheNodeType();
-    return *this;
+    
+    return this->convert(IndexType::TheNodeType());
 }
 
 BoxArray&
 BoxArray::surroundingNodes (int dir)
 {
-    m_typ.setType(dir, IndexType::NODE);
-    return *this;
+    IndexType typ = ixType();
+    typ.setType(dir, IndexType::NODE);
+    return this->convert(typ);
 }
 
 BoxArray&
 BoxArray::enclosedCells ()
 {
-    m_typ = IndexType::TheCellType();
-    return *this;
+    return this->convert(IndexType::TheCellType());
 }
 
 BoxArray&
 BoxArray::enclosedCells (int dir)
 {
-    m_typ.setType(dir, IndexType::CELL);
-    return *this;
+    IndexType typ = ixType();
+    typ.setType(dir, IndexType::CELL);
+    return this->convert(typ);
 }
 
 BoxArray&
 BoxArray::convert (IndexType typ)
 {
-    m_typ = typ;
+    m_transformer->setIxType(typ);
     return *this;
 }
 
@@ -553,8 +596,11 @@ BoxArray::convert (Box (*fp)(const Box&))
 {
     BL_ASSERT(!(fp == 0));
 
-    if (!m_ref.unique())
+    if (m_ref.unique()) {
+	clear_hash_bin();
+    } else {
         uniqify();
+    }
     const int N = size();
     for (int i = 0; i < N; ++i)
 	set(i,fp(get(i)));
@@ -565,8 +611,11 @@ BoxArray&
 BoxArray::shift (int dir,
                  int nzones)
 {
-    if (!m_ref.unique())
+    if (m_ref.unique()) {
+	clear_hash_bin();
+    } else {
         uniqify();
+    }
     const int N = m_ref->m_abox.size();
 #ifdef _OPENMP
 #pragma omp parallel for
@@ -579,8 +628,11 @@ BoxArray::shift (int dir,
 BoxArray&
 BoxArray::shift (const IntVect& iv)
 {
-    if (!m_ref.unique())
+    if (m_ref.unique()) {
+	clear_hash_bin();
+    } else {
         uniqify();
+    }
     const int N = m_ref->m_abox.size();
 #ifdef _OPENMP
 #pragma omp parallel for
@@ -594,8 +646,11 @@ BoxArray&
 BoxArray::shiftHalf (int dir,
                      int num_halfs)
 {
-    if (!m_ref.unique())
+    if (m_ref.unique()) {
+	clear_hash_bin();
+    } else {
         uniqify();
+    }
     const int N = m_ref->m_abox.size();
 #ifdef _OPENMP
 #pragma omp parallel for
@@ -608,8 +663,11 @@ BoxArray::shiftHalf (int dir,
 BoxArray&
 BoxArray::shiftHalf (const IntVect& iv)
 {
-    if (!m_ref.unique())
+    if (m_ref.unique()) {
+	clear_hash_bin();
+    } else {
         uniqify();
+    }
     const int N = m_ref->m_abox.size();
 #ifdef _OPENMP
 #pragma omp parallel for
@@ -623,9 +681,16 @@ void
 BoxArray::set (int        i,
                const Box& ibox)
 {
-    if (i == 0) m_typ = ibox.ixType();
-    if (!m_ref.unique())
-        uniqify();
+    if (i == 0) {
+	m_transformer->setIxType(ibox.ixType());
+
+	if (m_ref.unique()) {
+	    clear_hash_bin();
+	} else {
+	    uniqify();
+	}
+    }
+
     m_ref->m_abox.set(i, BoxLib::enclosedCells(ibox));
 }
 
@@ -650,7 +715,7 @@ BoxArray::ok () const
 bool
 BoxArray::isDisjoint () const
 {
-    BL_ASSERT(m_typ.cellCentered());
+    BL_ASSERT(ixType().cellCentered());
 
     std::vector< std::pair<int,Box> > isects;
 
@@ -690,11 +755,15 @@ BoxArray::contains (const IntVect& iv) const
 }
 
 bool
-BoxArray::contains (const Box& b) const
+BoxArray::contains (const Box& b, bool assume_disjoint_ba) const
 {
+    BL_ASSERT(!assume_disjoint_ba || isDisjoint());
+
+    bool result = false;
+
     if (size() > 0)
     {
-        BL_ASSERT(m_typ == b.ixType());
+        BL_ASSERT(ixType() == b.ixType());
 
         std::vector< std::pair<int,Box> > isects;
 
@@ -702,27 +771,37 @@ BoxArray::contains (const Box& b) const
 
         if (isects.size() > 0)
         {
-            BoxList bl(b.ixType());
-            for (int i = 0, N = isects.size(); i < N; i++)
-                bl.push_back(isects[i].second);
-            BoxList blnew = BoxLib::complementIn(b, bl);
-            return blnew.size() == 0;
+	    if (assume_disjoint_ba) {
+		long nbx = b.numPts(), nisects = 0L;
+		for (int i = 0, N = isects.size(); i < N; i++) {
+		    nisects += isects[i].second.numPts();
+		}
+		result = nbx == nisects;
+	    } else {
+		BoxList bl(b.ixType());
+		for (int i = 0, N = isects.size(); i < N; i++) {
+		    bl.push_back(isects[i].second);
+		}
+		result = bl.contains(b);
+	    }
         }
     }
 
-    return false;
+    return result;
 }
 
 bool
-BoxArray::contains (const BoxArray& bl) const
+BoxArray::contains (const BoxArray& bl, bool assume_disjoint_ba) const
 {
     if (size() == 0) return false;
 
     if (!minimalBox().contains(bl.minimalBox())) return false;
 
-    for (int i = 0, N = bl.size(); i < N; ++i)
-        if (!contains(bl[i]))
+    for (int i = 0, N = bl.size(); i < N; ++i) {
+        if (!contains(bl[i],assume_disjoint_ba)) {
             return false;
+	}
+    }
 
     return true;
 }
@@ -738,7 +817,7 @@ BoxArray::minimalBox () const
 	for (int i = 1; i < N; ++i)
             minbox.minBox(m_ref->m_abox.get(i));
     }
-    minbox.convert(m_typ);
+    minbox.convert(ixType());
     return minbox;
 }
 
@@ -755,22 +834,6 @@ BoxArray::intersects (const Box& b, int ng) const
 
 std::vector< std::pair<int,Box> >
 BoxArray::intersections (const Box& bx) const
-{
-    std::vector< std::pair<int,Box> > isects;
-    intersections(bx,isects,false,0);
-    return isects;
-}
-
-std::vector< std::pair<int,Box> >
-BoxArray::intersections (const Box& bx, bool first_only) const
-{
-    std::vector< std::pair<int,Box> > isects;
-    intersections(bx,isects,first_only,0);
-    return isects;
-}
-
-std::vector< std::pair<int,Box> >
-BoxArray::intersections (const Box& bx, int ng) const
 {
     std::vector< std::pair<int,Box> > isects;
     intersections(bx,isects,false,0);
@@ -795,46 +858,41 @@ BoxArray::intersections (const Box&                         bx,
 void
 BoxArray::intersections (const Box&                         bx,
                          std::vector< std::pair<int,Box> >& isects,
-			 bool                               first_only) const
-{
-    intersections(bx, isects, first_only, 0);
-}
-
-void
-BoxArray::intersections (const Box&                         bx,
-                         std::vector< std::pair<int,Box> >& isects,
-			 int                                ng) const
-{
-    intersections(bx, isects, false, ng);
-}
-
-void
-BoxArray::intersections (const Box&                         bx,
-                         std::vector< std::pair<int,Box> >& isects,
 			 bool                               first_only,
 			 int                                ng) const
 {
     // called too many times  BL_PROFILE("BoxArray::intersections()");
 
-    BoxArrayRef::HashType& BoxHashMap = getHashMap();
+    BARef::HashType& BoxHashMap = getHashMap();
 
     isects.resize(0);
 
     if (!BoxHashMap.empty())
     {
-        BL_ASSERT(bx.ixType() == m_typ);
+        BL_ASSERT(bx.ixType() == ixType());
 
-        Box           cbx = BoxLib::coarsen(BoxLib::grow(bx,ng), m_ref->crsn);
-        const IntVect& sm = BoxLib::max(cbx.smallEnd()-1, m_ref->bbox.smallEnd());
-        const IntVect& bg = BoxLib::min(cbx.bigEnd(),     m_ref->bbox.bigEnd());
+	Box gbx = BoxLib::grow(bx,ng);
 
-        cbx = Box(sm,bg);
+	IntVect glo = gbx.smallEnd();
+	IntVect ghi = gbx.bigEnd();
+	const IntVect& doilo = m_transformer->doiLo();
+	const IntVect& doihi = m_transformer->doiHi();
 
-	BoxArrayRef::HashType::const_iterator TheEnd = BoxHashMap.end();
+	gbx.setSmall(glo - doihi).setBig(ghi + doilo);
+        gbx.coarsen(m_ref->crsn);
+	
+        const IntVect& sm = BoxLib::max(gbx.smallEnd()-1, m_ref->bbox.smallEnd());
+        const IntVect& bg = BoxLib::min(gbx.bigEnd(),     m_ref->bbox.bigEnd());
+
+        Box cbx(sm,bg);
+
+	if (!cbx.intersects(m_ref->bbox)) return;
+
+	BARef::HashType::const_iterator TheEnd = BoxHashMap.end();
 
         for (IntVect iv = cbx.smallEnd(), End = cbx.bigEnd(); iv <= End; cbx.next(iv))
         {
-            BoxArrayRef::HashType::const_iterator it = BoxHashMap.find(iv);
+            BARef::HashType::const_iterator it = BoxHashMap.find(iv);
 
             if (it != TheEnd)
             {
@@ -863,23 +921,32 @@ BoxArray::complement (const Box& bx) const
 
     if (!empty()) 
     {
-	BoxArrayRef::HashType& BoxHashMap = getHashMap();
+	BARef::HashType& BoxHashMap = getHashMap();
 
-	BL_ASSERT(bx.ixType() == m_typ);
+	BL_ASSERT(bx.ixType() == ixType());
 
-	Box           cbx = BoxLib::coarsen(bx, m_ref->crsn);
-        const IntVect& sm = BoxLib::max(cbx.smallEnd()-1, m_ref->bbox.smallEnd());
-        const IntVect& bg = BoxLib::min(cbx.bigEnd(),     m_ref->bbox.bigEnd());
+	Box gbx = bx;
 
-        cbx = Box(sm,bg);
+	IntVect glo = gbx.smallEnd();
+	IntVect ghi = gbx.bigEnd();
+	const IntVect& doilo = m_transformer->doiLo();
+	const IntVect& doihi = m_transformer->doiHi();
 
-	BoxArrayRef::HashType::const_iterator TheEnd = BoxHashMap.end();
+	gbx.setSmall(glo - doihi).setBig(ghi + doilo);
+        gbx.coarsen(m_ref->crsn);
+	
+        const IntVect& sm = BoxLib::max(gbx.smallEnd()-1, m_ref->bbox.smallEnd());
+        const IntVect& bg = BoxLib::min(gbx.bigEnd(),     m_ref->bbox.bigEnd());
+
+        Box cbx(sm,bg);
+
+	BARef::HashType::const_iterator TheEnd = BoxHashMap.end();
 
 	for (IntVect iv = cbx.smallEnd(), End = cbx.bigEnd(); 
 	     iv <= End && bl.isNotEmpty(); 
 	     cbx.next(iv))
         {
-            BoxArrayRef::HashType::const_iterator it = BoxHashMap.find(iv);
+            BARef::HashType::const_iterator it = BoxHashMap.find(iv);
 
             if (it != TheEnd)
             {
@@ -925,11 +992,13 @@ BoxArray::clear_hash_bin () const
 void
 BoxArray::removeOverlap ()
 {
-    BL_ASSERT(m_typ.cellCentered());
+    BL_ASSERT(ixType().cellCentered());
 
-    if (!m_ref.unique()) uniqify();
+    if (!m_ref.unique()) {
+        uniqify();
+    }
 
-    BoxArrayRef::HashType& BoxHashMap = m_ref->hash;
+    BARef::HashType& BoxHashMap = m_ref->hash;
 
     BoxList bl;
 
@@ -979,11 +1048,11 @@ BoxArray::removeOverlap ()
 
     const Box& bb = m_ref->bbox;
 
-    BoxArrayRef::HashType::const_iterator TheEnd = BoxHashMap.end();
+    BARef::HashType::const_iterator TheEnd = BoxHashMap.end();
 
     for (IntVect iv = bb.smallEnd(), End = bb.bigEnd(); iv <= End; bb.next(iv))
     {
-        BoxArrayRef::HashType::const_iterator it = BoxHashMap.find(iv);
+        BARef::HashType::const_iterator it = BoxHashMap.find(iv);
 
         if (it != TheEnd)
         {
@@ -1004,8 +1073,6 @@ BoxArray::removeOverlap ()
     bl.simplify();
 
     BoxArray nba(bl);
-
-    bl.clear();
 
     *this = nba;
 
@@ -1047,9 +1114,10 @@ BoxArray::type_update ()
 {
     if (!empty())
     {
-	m_typ = m_ref->m_abox[0].ixType();
-	if (! m_typ.cellCentered())
+	IndexType typ = m_ref->m_abox[0].ixType();
+	if (!typ.cellCentered())
 	{
+	    m_transformer->setIxType(typ);
 	    for (Array<Box>::iterator it = m_ref->m_abox.begin(), End = m_ref->m_abox.end(); 
 		 it != End; ++it)
 	    {
@@ -1059,10 +1127,10 @@ BoxArray::type_update ()
     }
 }
 
-BoxArrayRef::HashType&
+BARef::HashType&
 BoxArray::getHashMap () const
 {
-    BoxArrayRef::HashType& BoxHashMap = m_ref->hash;
+    BARef::HashType& BoxHashMap = m_ref->hash;
 
 #ifdef _OPENMP
     #pragma omp critical(intersections_lock)
@@ -1073,27 +1141,31 @@ BoxArray::getHashMap () const
             //
             // Calculate the bounding box & maximum extent of the boxes.
             //
-            Box boundingbox = BoxLib::surroundingNodes(m_ref->m_abox[0]);
-	    IntVect maxext = boundingbox.size();
+	    IntVect maxext = IntVect::TheUnitVector();
 
 	    const int N = size();
 
-	    for (int i = 1; i < N; ++i)
+	    for (int i = 0; i < N; ++i)
             {
-                const Box& bx = BoxLib::surroundingNodes(m_ref->m_abox[i]);
-		boundingbox.minBox(bx);
+                const Box& bx = m_ref->m_abox[i];
                 maxext = BoxLib::max(maxext, bx.size());
             }
 
-            boundingbox.coarsen(maxext);
-
-            m_ref->crsn = maxext;
-            m_ref->bbox = boundingbox;
+	    IntVect lob = IntVect::TheMaxVector();
+	    IntVect hib = IntVect::TheMinVector();
 
             for (int i = 0; i < N; i++)
             {
-                BoxHashMap[BoxLib::coarsen(m_ref->m_abox[i].smallEnd(),maxext)].push_back(i);
+                const IntVect& crsnsmlend 
+		    = BoxLib::coarsen(m_ref->m_abox[i].smallEnd(),maxext);
+                BoxHashMap[crsnsmlend].push_back(i);
+		lob = BoxLib::min(lob, crsnsmlend);
+		hib = BoxLib::max(hib, crsnsmlend);
             }
+
+            m_ref->crsn = maxext;
+            m_ref->bbox = Box(lob,hib);
+	    
 #ifdef BL_MEM_PROFILING
 	    m_ref->updateMemoryUsage_hash(1);
 #endif
@@ -1107,7 +1179,7 @@ void
 BoxArray::uniqify ()
 {
     BL_ASSERT(!m_ref.unique());
-    m_ref = new BoxArrayRef(*m_ref);
+    m_ref = new BARef(*m_ref);
 }
 
 std::ostream&
@@ -1155,7 +1227,7 @@ BoxLib::intersect (const BoxArray& ba,
 {
     std::vector< std::pair<int,Box> > isects;
 
-    ba.intersections(b,isects,ng);
+    ba.intersections(b,isects,false,ng);
 
     BoxArray r(isects.size());
 
@@ -1180,6 +1252,13 @@ BoxLib::intersect (const BoxArray& lhs,
         bl.catenate(tmp);
     }
     return BoxArray(bl);
+}
+
+BoxArray
+BoxLib::convert (const BoxArray& ba, IndexType typ)
+{
+    BoxArray ba2 = ba;
+    return ba2.convert(typ);
 }
 
 BoxList
@@ -1234,7 +1313,6 @@ BoxLib::GetBndryCells (const BoxArray& ba,
         }
     }
 
-    tba.clear_hash_bin();
     //
     // Now strip out overlaps.
     //
@@ -1330,5 +1408,19 @@ BoxArray BoxLib::UnSerializeBoxArray(const Array<int> &serarray)
     ba.set(i, BoxLib::UnSerializeBox(aiBox));
   }
   return ba;
+}
+
+
+bool BoxLib::match (const BoxArray& x, const BoxArray& y)
+{
+    if (x == y) {
+	return true;
+    } else {
+	bool m = (x.size() == y.size()) && (x.ixType() == y.ixType());
+	for (int i = 0, N = x.size(); i < N && m; ++i) {
+	    m = x[i] == y[i];
+	}
+	return m;
+    }
 }
 

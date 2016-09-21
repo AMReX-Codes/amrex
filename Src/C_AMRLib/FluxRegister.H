@@ -2,8 +2,7 @@
 #define _FLUXREGISTER_H_
 
 #include <BndryRegister.H>
-
-class Geometry;
+#include <Geometry.H>
 
 //
 // Flux Register.
@@ -165,6 +164,8 @@ public:
                  int             numcomp,
                  const Geometry& crse_geom);
 
+    // Set internal borders to zero
+    void ClearInternalBorders (const Geometry& geom);
     //
     // Write (used for writing to checkpoint)
     //

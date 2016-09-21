@@ -9,52 +9,37 @@
 #include <VisMF.H>
 #include <writePlotFile.H>
 
-#if    defined(BL_FORT_USE_UPPERCASE)
-#define FORT_INIT_PHI            INIT_PHI
-#define FORT_COMPUTE_FLUX        COMPUTE_FLUX
-#define FORT_UPDATE_PHI          UPDATE_PHI
-#elif  defined(BL_FORT_USE_LOWERCASE)
-#define FORT_INIT_PHI            init_phi
-#define FORT_COMPUTE_FLUX        compute_flux
-#define FORT_UPDATE_PHI          update_phi
-#elif  defined(BL_FORT_USE_UNDERSCORE)
-#define FORT_INIT_PHI            init_phi_
-#define FORT_COMPUTE_FLUX        compute_flux_
-#define FORT_UPDATE_PHI          update_phi_
-#endif
-
 #include <ArrayLim.H>
+
 
 extern "C"
 {
-  void FORT_INIT_PHI (Real* data, const int* lo, const int* hi, const int* ng, 
-		      const Real* dx, const Real* prob_lo, const Real* prob_hi);
+  void init_phi(Real* data, const int* lo, const int* hi, const int* ng, 
+		const Real* dx, const Real* prob_lo, const Real* prob_hi);
 
-  void FORT_COMPUTE_FLUX (Real* phi, const int* ng_p,
-			  Real* fluxx, 
-			  Real* fluxy,
+  void compute_flux(Real* phi, const int* ng_p,
+		    Real* fluxx, 
+		    Real* fluxy,
 #if (BL_SPACEDIM == 3)   
-			  Real* fluxz,
+		    Real* fluxz,
 #endif
-   const int* ng_f, const int* lo, const int* hi, const Real* dx);
+		    const int* ng_f, const int* lo, const int* hi, const Real* dx);
   
-  void FORT_UPDATE_PHI (Real* phiold, Real* phinew, const int* ng_p,
-			Real* fluxx, 
-			Real* fluxy,
+  void update_phi(Real* phiold, Real* phinew, const int* ng_p,
+		  Real* fluxx, 
+		  Real* fluxy,
 #if (BL_SPACEDIM == 3)   
-			Real* fluxz,
+		  Real* fluxz,
 #endif
-			const int* ng_f, const int* lo, const int* hi, const Real* dx, const Real* dt);
+		  const int* ng_f, const int* lo, const int* hi, const Real* dx, const Real* dt);
 }
+
 
 static
 void advance (MultiFab* old_phi, MultiFab* new_phi, MultiFab* flux, Real* dx, Real dt, Geometry geom)
 {
   // Fill the ghost cells of each grid from the other grids
-  old_phi->FillBoundary();
-
-  // Fill periodic boundary ghost cells
-  geom.FillPeriodicBoundary(*old_phi);
+  old_phi->FillBoundary(geom.periodicity());
 
   int Ncomp = old_phi->nComp();
   int ng_p = old_phi->nGrow();
@@ -65,14 +50,14 @@ void advance (MultiFab* old_phi, MultiFab* new_phi, MultiFab* flux, Real* dx, Re
   {
     const Box& bx = mfi.validbox();
 
-    FORT_COMPUTE_FLUX((*old_phi)[mfi].dataPtr(),
-		      &ng_p,
-		      flux[0][mfi].dataPtr(),
-		      flux[1][mfi].dataPtr(),
+    compute_flux((*old_phi)[mfi].dataPtr(),
+		 &ng_p,
+		 flux[0][mfi].dataPtr(),
+		 flux[1][mfi].dataPtr(),
 #if (BL_SPACEDIM == 3)   
-		      flux[2][mfi].dataPtr(),
+		 flux[2][mfi].dataPtr(),
 #endif
-		      &ng_f, bx.loVect(), bx.hiVect(), &(dx[0]));
+		 &ng_f, bx.loVect(), bx.hiVect(), &(dx[0]));
   }
 
   // Advance the solution one grid at a time
@@ -80,15 +65,15 @@ void advance (MultiFab* old_phi, MultiFab* new_phi, MultiFab* flux, Real* dx, Re
   {
     const Box& bx = mfi.validbox();
 
-    FORT_UPDATE_PHI((*old_phi)[mfi].dataPtr(),
-		    (*new_phi)[mfi].dataPtr(),
-		    &ng_p,
-		    flux[0][mfi].dataPtr(),
-		    flux[1][mfi].dataPtr(),
+    update_phi((*old_phi)[mfi].dataPtr(),
+	       (*new_phi)[mfi].dataPtr(),
+	       &ng_p,
+	       flux[0][mfi].dataPtr(),
+	       flux[1][mfi].dataPtr(),
 #if (BL_SPACEDIM == 3)   
-		    flux[2][mfi].dataPtr(),
+	       flux[2][mfi].dataPtr(),
 #endif
-		    &ng_f, bx.loVect(), bx.hiVect(), &(dx[0]) , &dt);
+	       &ng_f, bx.loVect(), bx.hiVect(), &(dx[0]) , &dt);
   }
 }
 
@@ -193,9 +178,9 @@ main (int argc, char* argv[])
   {
     const Box& bx = mfi.validbox();
 
-    FORT_INIT_PHI((*new_phi)[mfi].dataPtr(),
-                     bx.loVect(),bx.hiVect(), &Nghost,
-                     dx,geom.ProbLo(),geom.ProbHi());
+    init_phi((*new_phi)[mfi].dataPtr(),
+	     bx.loVect(),bx.hiVect(), &Nghost,
+	     dx,geom.ProbLo(),geom.ProbHi());
   }
 
   // Call the compute_dt routine to return a time step which we will pass to advance
