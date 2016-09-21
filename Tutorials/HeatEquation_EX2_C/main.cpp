@@ -72,6 +72,9 @@ void main_main ()
 
   int n_cell, max_grid_size, nsteps, plot_int, is_per[BL_SPACEDIM];
 
+  // Boundary conditions
+  Array<int> lo_bc(BL_SPACEDIM), hi_bc(BL_SPACEDIM);
+
   // inputs parameters
   {
     // ParmParse is way of reading inputs from the inputs file
@@ -92,6 +95,14 @@ void main_main ()
     // Default nsteps to 0, allow us to set it to something else in the inputs file
     nsteps = 0;
     pp.query("nsteps",nsteps);
+
+    // Boundary conditions - default is periodic (INT_DIR)
+    for (int i = 0; i < BL_SPACEDIM; ++i)
+    {
+      lo_bc[i] = hi_bc[i] = INT_DIR;   // periodic boundaries are interior boundaries
+    }
+    pp.queryarr("lo_bc",lo_bc,0,BL_SPACEDIM);
+    pp.queryarr("hi_bc",hi_bc,0,BL_SPACEDIM);
   }
 
   // make BoxArray and Geometry
@@ -119,30 +130,25 @@ void main_main ()
 	
     // This sets the boundary conditions to be doubly or triply periodic
     int is_per[BL_SPACEDIM];
-    for (int i = 0; i < BL_SPACEDIM; i++) {
-      is_per[i] = 1;
+    for (int i = 0; i < BL_SPACEDIM; i++)
+    {
+      is_per[i] = 0;
+      if (lo_bc[i] == 0 && hi_bc[i] == 0) {
+	is_per[i] = 1;
+      }
     }
 
     // This defines a Geometry object
     geom.define(domain,&real_box,coord,is_per);
   }
 
+  // Boundary conditions
+  PhysBCFunct physbcf;
+  BCRec bcr(&lo_bc[0], &hi_bc[0]);
+  physbcf.define(geom, bcr, BndryFunctBase(phifill)); // phifill is a fortran function
+
   // define dx[]
   const Real* dx = geom.CellSize();
-
-  // define physical boundary filling object
-  PhysBCFunct physbcf;
-  {
-    // Boundary conditions
-    int lo_bc[BL_SPACEDIM];
-    int hi_bc[BL_SPACEDIM];
-    for (int i = 0; i < BL_SPACEDIM; ++i) {
-      lo_bc[i] = hi_bc[i] = INT_DIR;   // periodic boundaries are interior boundaries
-    }
-    BCRec bcr(lo_bc, hi_bc);
-
-    physbcf.define(geom, bcr, BndryFunctBase(phifill)); // phifill is a fortran function
-  }
 
   // Nghost = number of ghost cells for each array 
   int Nghost = 1;
