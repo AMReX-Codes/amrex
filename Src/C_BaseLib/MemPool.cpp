@@ -64,12 +64,13 @@ void mempool_init()
 	}
 
 #ifdef BL_MEM_PROFILING
-	MemProfiler::add("MemPool", [] () -> MemProfiler::MemInfo {
-		int MB_min, MB_max, MB_tot;
-		mempool_get_stats(MB_min, MB_max, MB_tot);
-		long b = MB_tot * (1024L*1024L);
-		return {b, b};
-	    });
+	MemProfiler::add("MemPool", std::function<MemProfiler::MemInfo()>
+			 ([] () -> MemProfiler::MemInfo {
+			     int MB_min, MB_max, MB_tot;
+			     mempool_get_stats(MB_min, MB_max, MB_tot);
+			     long b = MB_tot * (1024L*1024L);
+			     return {b, b};
+			 }));
 #endif
     }
 }

@@ -36,7 +36,7 @@ namespace BoxLib
     void FillPatchSingleLevel (MultiFab& mf, Real time, 
 			       const PArray<MultiFab>& smf, const std::vector<Real>& stime,
 			       int scomp, int dcomp, int ncomp,
-			       const Geometry& geom, PhysBCFunct& physbcf)
+			       const Geometry& geom, PhysBCFunctBase& physbcf)
     {
 	BL_PROFILE("FillPatchSingleLevel");
 
@@ -47,8 +47,7 @@ namespace BoxLib
 
 	if (smf.size() == 1) 
 	{
-	    mf.copy(smf[0], scomp, dcomp, ncomp, 0, mf.nGrow());
-	    geom.PeriodicCopy(mf, smf[0], dcomp, scomp, ncomp, mf.nGrow());
+	    mf.copy(smf[0], scomp, dcomp, ncomp, 0, mf.nGrow(), geom.periodicity());
 	} 
 	else if (smf.size() == 2) 
 	{
@@ -87,26 +86,23 @@ namespace BoxLib
 	    
 	    if (sameba)
 	    {
-		mf.FillBoundary_nowait(dcomp,ncomp);
-		geom.FillPeriodicBoundary_nowait(mf,dcomp,ncomp);
-
-		mf.FillBoundary_finish();
-		geom.FillPeriodicBoundary_finish(mf);
+		// Note that when sameba is true mf's BoxArray is nonoverlapping.
+		// So FillBoundary is safe.
+		mf.FillBoundary(dcomp,ncomp,geom.periodicity());
 	    }
 	    else
 	    {
 		int src_ngrow = 0;
 		int dst_ngrow = mf.nGrow();
 
-		mf.copy(*dmf, 0, dcomp, ncomp, src_ngrow, dst_ngrow);
-		geom.PeriodicCopy(mf, *dmf, dcomp, 0, ncomp, dst_ngrow);
+		mf.copy(*dmf, 0, dcomp, ncomp, src_ngrow, dst_ngrow, geom.periodicity());
 	    }
 	}
 	else {
 	    BoxLib::Abort("FillPatchSingleLevel: high-order interpolation in time not implemented yet");
 	}
 
-	physbcf.doit(mf, dcomp, ncomp, time);
+	physbcf.FillBoundary(mf, dcomp, ncomp, time);
     }
 
 
@@ -115,7 +111,7 @@ namespace BoxLib
 			     const PArray<MultiFab>& fmf, const std::vector<Real>& ft,
 			     int scomp, int dcomp, int ncomp,
 			     const Geometry& cgeom, const Geometry& fgeom, 
-			     PhysBCFunct& cbc, PhysBCFunct& fbc,
+			     PhysBCFunctBase& cbc, PhysBCFunctBase& fbc,
 			     const IntVect& ratio, 
 			     Interpolater* mapper, const Array<BCRec>& bcs)
     {
@@ -125,7 +121,7 @@ namespace BoxLib
 	    
 	if (ngrow > 0 || mf.getBDKey() != fmf[0].getBDKey()) 
 	{
-	    InterpolaterBoxCoarsener coarsener = mapper->BoxCoarsener(ratio);
+	    const InterpolaterBoxCoarsener& coarsener = mapper->BoxCoarsener(ratio);
 	    
 	    Box fdomain = fgeom.Domain();
 	    fdomain.convert(mf.boxArray().ixType());
@@ -174,5 +170,76 @@ namespace BoxLib
 	}
 
 	FillPatchSingleLevel(mf, time, fmf, ft, scomp, dcomp, ncomp, fgeom, fbc);
+    }
+
+    void InterpFromCoarseLevel (MultiFab& mf, Real time, const MultiFab& cmf, 
+				int scomp, int dcomp, int ncomp,
+				const Geometry& cgeom, const Geometry& fgeom, 
+				PhysBCFunctBase& cbc, PhysBCFunctBase& fbc, const IntVect& ratio, 
+				Interpolater* mapper, const Array<BCRec>& bcs)
+    {
+	const InterpolaterBoxCoarsener& coarsener = mapper->BoxCoarsener(ratio);
+
+	const BoxArray& ba = mf.boxArray();
+	const DistributionMapping& dm = mf.DistributionMap();
+	int ngrow = mf.nGrow();
+
+	const IndexType& typ = ba.ixType();
+
+	BL_ASSERT(typ == cmf.boxArray().ixType());
+
+	Box fdomain = fgeom.Domain();
+	fdomain.convert(typ);
+
+	Box fdomain_g(fdomain);
+	for (int i = 0; i < BL_SPACEDIM; ++i) {
+	    if (fgeom.isPeriodic(i)) {
+		fdomain_g.grow(i,ngrow);
+	    }
+	}
+
+	BoxArray ba_crse_patch(ba.size());
+	{  // TODO: later we might want to cache this
+	    for (int i = 0, N = ba.size(); i < N; ++i)
+	    {
+		Box bx = BoxLib::convert(BoxLib::grow(ba[i],ngrow), typ);
+		bx &= fdomain_g;
+		ba_crse_patch.set(i, coarsener.doit(bx));
+	    }
+	}
+
+	MultiFab mf_crse_patch(ba_crse_patch, ncomp, 0, dm);
+
+	mf_crse_patch.copy(cmf, scomp, 0, ncomp, cgeom.periodicity());
+
+	cbc.FillBoundary(mf_crse_patch, 0, ncomp, time);
+
+	int idummy1=0, idummy2=0;
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+	for (MFIter mfi(mf_crse_patch); mfi.isValid(); ++mfi)
+	{
+	    FArrayBox& dfab = mf[mfi];
+	    const Box& dbx = dfab.box() & fdomain_g;
+
+	    Array<BCRec> bcr(ncomp);
+	    BoxLib::setBC(dbx,fdomain,scomp,0,ncomp,bcs,bcr);
+	    
+	    mapper->interp(mf_crse_patch[mfi],
+			   0,
+			   mf[mfi],
+			   dcomp,
+			   ncomp,
+			   dbx,
+			   ratio,
+			   cgeom,
+			   fgeom,
+			   bcr,
+			   idummy1, idummy2);	    
+	}
+
+	fbc.FillBoundary(mf, dcomp, ncomp, time);
     }
 }

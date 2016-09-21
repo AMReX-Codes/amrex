@@ -104,13 +104,7 @@ ABec4::applyBC (MultiFab&     inout,
     prepareForLevel(level);
 
     const bool cross = false;
-    inout.FillBoundary(src_comp,num_comp,local,cross);
-    BL_ASSERT(level<geomarray.size());
-    geomarray[level].FillPeriodicBoundary(inout,src_comp,num_comp,true,local);
-
-    //
-    // Fill boundary cells.
-    //
+    inout.FillBoundary(src_comp,num_comp,geomarray[level].periodicity(),cross);
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -121,12 +115,8 @@ ABec4::applyBC (MultiFab&     inout,
 
         BL_ASSERT(gbox[level][gn] == inout.box(gn));
 
-        BL_ASSERT(level<maskvals.size() && maskvals[level].find(gn)!=maskvals[level].end());
-        BL_ASSERT(level<lmaskvals.size() && lmaskvals[level].find(gn)!=lmaskvals[level].end());
         BL_ASSERT(level<undrrelxr.size());
 
-        const MaskTuple&                 ma  =  maskvals[level][gn];
-        const MaskTuple&                 lma = lmaskvals[level][gn];
         const BndryData::RealTuple&      bdl = bgb->bndryLocs(gn);
         const Array< Array<BoundCond> >& bdc = bgb->bndryConds(gn);
 
@@ -137,7 +127,7 @@ ABec4::applyBC (MultiFab&     inout,
             FabSet&       f   = (*undrrelxr[level])[o];
             int           cdr = o;
             const FabSet& fs  = bgb->bndryValues(o);
-            const Mask&   m   = local ? (*lma[o]) : (*ma[o]);
+            const Mask&   m   = local ? lmaskvals[level][o][mfi] : maskvals[level][o][mfi];
             Real          bcl = bdl[o];
             BL_ASSERT(bdc[o].size()>bndry_comp);
             int           bct = bdc[o][bndry_comp];
@@ -172,105 +162,8 @@ ABec4::applyBC (MultiFab&     inout,
   // the box edge to avoid referencing that corner point.  On the physical boundary
   // though, the corner point is needed.  Particularly if a fine-fine boundary intersects
   // the physical boundary, since we want the stencil to be independent of the box
-  // blocking.  FillBoundary operations wont fix the problem because the "good"
-  // data we need is living in the grow region of adjacent fabs.  So, here we play
-  // the usual games to treat the newly filled grow cells as "valid" data.
-
-  // Note that we only need to do something where the grids touch the physical boundary.
-
-  const Geometry& geomlev = geomarray[level];
-  const BoxArray& grids = inout.boxArray();
-  const Box& domain = geomlev.Domain();
-  int nGrow = 2;
-
-  // Lets do a quick check to see if we need to do anything at all here
-  BoxArray BIGba = BoxArray(grids).grow(nGrow);
-
-  if (! (domain.contains(BIGba.minimalBox())) ) {
-
-    BoxArray boundary_pieces;
-    Array<int> proc_idxs;
-    Array<Array<int> > old_to_new(grids.size());
-    const DistributionMapping& dmap=inout.DistributionMap();
-
-    for (int d=0; d<BL_SPACEDIM; ++d) {
-      if (! (geomlev.isPeriodic(d)) ) {
-
-        BoxArray gba = BoxArray(grids).grow(d,nGrow);
-        for (int i=0; i<gba.size(); ++i) {
-          BoxArray new_pieces = BoxLib::boxComplement(gba[i],domain);
-          int size_new = new_pieces.size();
-          if (size_new>0) {
-            int size_old = boundary_pieces.size();
-            boundary_pieces.resize(size_old+size_new);
-            proc_idxs.resize(boundary_pieces.size());
-            for (int j=0; j<size_new; ++j) {
-              boundary_pieces.set(size_old+j,new_pieces[j]);
-              proc_idxs[size_old+j] = dmap[i];
-              old_to_new[i].push_back(size_old+j);
-            }
-          }
-        }
-      }
-    }
-
-    if (boundary_pieces.size() > 0) {
-      proc_idxs.push_back(ParallelDescriptor::MyProc());
-
-      MultiFab boundary_data(boundary_pieces,num_comp,nGrow,
-                             DistributionMapping(proc_idxs));
-
-      for (MFIter mfi(inout); mfi.isValid(); ++mfi) {
-        const FArrayBox& src_fab = inout[mfi];
-        for (int j=0; j<old_to_new[mfi.index()].size(); ++j) {
-          int new_box_idx = old_to_new[mfi.index()][j];
-          boundary_data[new_box_idx].copy(src_fab,src_comp,0,num_comp);
-        }
-      }
-
-      boundary_data.FillBoundary();
-
-      // Use a hacked Geometry object to handle the periodic intersections for us.
-      // Here, the "domain" is the plane of cells on non-periodic boundary faces.
-      // and there may be cells over the periodic boundary in the remaining directions.
-      // We do a Geometry::PFB on each non-periodic face to sync these up.
-      if (geomlev.isAnyPeriodic()) {
-        Array<int> is_per(BL_SPACEDIM,0);
-        for (int d=0; d<BL_SPACEDIM; ++d) {
-          is_per[d] = geomlev.isPeriodic(d);
-        }
-        for (int d=0; d<BL_SPACEDIM; ++d) {
-          if (! is_per[d]) {
-            Box tmpLo = BoxLib::adjCellLo(geomlev.Domain(),d,1);
-            Geometry tmpGeomLo(tmpLo,&(geomlev.ProbDomain()),(int)geomlev.Coord(),is_per.dataPtr());
-            tmpGeomLo.FillPeriodicBoundary(boundary_data);
-
-            Box tmpHi = BoxLib::adjCellHi(geomlev.Domain(),d,1);
-            Geometry tmpGeomHi(tmpHi,&(geomlev.ProbDomain()),(int)geomlev.Coord(),is_per.dataPtr());
-            tmpGeomHi.FillPeriodicBoundary(boundary_data);
-          }
-        }
-      }
-
-      for (MFIter mfi(inout); mfi.isValid(); ++mfi) {
-        int idx = mfi.index();
-        FArrayBox& dst_fab = inout[mfi];
-        for (int j=0; j<old_to_new[idx].size(); ++j) {
-          int new_box_idx = old_to_new[mfi.index()][j];
-          const FArrayBox& src_fab = boundary_data[new_box_idx];
-          const Box& src_box = src_fab.box();
-
-          BoxArray pieces_outside_domain = BoxLib::boxComplement(src_box,domain);
-          for (int k=0; k<pieces_outside_domain.size(); ++k) {
-            const Box& outside = pieces_outside_domain[k] & dst_fab.box();
-            if (outside.ok()) {
-              dst_fab.copy(src_fab,outside,0,outside,src_comp,num_comp);
-            }
-          }
-        }
-      }
-    }
-  }
+  // blocking. 
+    inout.EnforcePeriodicity(geomarray[level].periodicity());
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -294,12 +187,12 @@ void
 ABec4::ca2cc(const MultiFab& ca, MultiFab& cc,
              int sComp, int dComp, int nComp)
 {
-    const bool tiling = true;
+  const bool tiling = true;
 
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for (MFIter mfi(ca,tiling); mfi.isValid(); ++mfi) {
+  for (MFIter mfi(ca,tiling); mfi.isValid(); ++mfi) {
     const FArrayBox& caf = ca[mfi];
     FArrayBox& ccf = cc[mfi];
     const Box& box = mfi.tilebox();
@@ -315,10 +208,13 @@ void
 ABec4::cc2ca(const MultiFab& cc, MultiFab& ca,
              int sComp, int dComp, int nComp)
 {
-  for (MFIter mfi(cc); mfi.isValid(); ++mfi) {
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+  for (MFIter mfi(ca,true); mfi.isValid(); ++mfi) {
     const FArrayBox& ccf = cc[mfi];
     FArrayBox& caf = ca[mfi];
-    const Box& box = caf.box();
+    const Box& box = mfi.growntilebox();
     BL_ASSERT(ccf.box().contains(BoxLib::grow(box,1)));
     FORT_CC2CA(box.loVect(), box.hiVect(),
                ccf.dataPtr(sComp), ARLIM(ccf.box().loVect()), ARLIM(ccf.box().hiVect()),
@@ -331,10 +227,13 @@ void
 ABec4::lo_cc2ec(const MultiFab& cc, MultiFab& ec,
                 int sComp, int dComp, int nComp, int dir, bool do_harm)
 {
-  for (MFIter mfi(cc); mfi.isValid(); ++mfi) {
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+  for (MFIter mfi(ec,true); mfi.isValid(); ++mfi) {
     const FArrayBox& ccf = cc[mfi];
     FArrayBox& ecf = ec[mfi];
-    const Box& box = ecf.box();
+    const Box& box = mfi.growntilebox();
     BL_ASSERT(ccf.box().contains(Box(box).enclosedCells().grow(dir,1)));
     int iharm = (int)do_harm;
     FORT_LO_CC2EC(box.loVect(), box.hiVect(),
@@ -637,13 +536,10 @@ ABec4::Fapply (MultiFab&       y,
     const MultiFab& a = aCoefficients(level);
     const MultiFab& b = bCoefficients(level);
 
-    const bool cross = false;
-    bool local = false;
-    const_cast<MultiFab&>(b).FillBoundary(src_comp,num_comp,local,cross);
-
     prepareForLevel(level);
-    BL_ASSERT(level<geomarray.size());
-    geomarray[level].FillPeriodicBoundary(const_cast<MultiFab&>(b),src_comp,num_comp,true,local);
+
+    const bool cross = false;
+    const_cast<MultiFab&>(b).FillBoundary(src_comp,num_comp,geomarray[level].periodicity(),cross);
 
     const bool tiling = true;
 
@@ -707,44 +603,11 @@ ABec4::residual (MultiFab&       residL,
                  bool            local)
 {
   if (level == 0) {
-
-    apply(residL, solnL, level, bc_mode, local);
-
-    const bool tiling = true;
-
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-    for (MFIter solnLmfi(solnL,tiling); solnLmfi.isValid(); ++solnLmfi)
-    {
-      const int nc = residL.nComp();
-      //
-      // Only single-component solves supported (verified) by this class.
-      //
-      BL_ASSERT(nc == 1);
-
-      const Box& tbx = solnLmfi.tilebox();
-
-      BL_ASSERT(gbox[level][solnLmfi.index()] == solnLmfi.validbox());
-
-      FArrayBox& residfab = residL[solnLmfi];
-      const FArrayBox& rhsfab = rhsL[solnLmfi];
-
-      FORT_RESIDL(
-        residfab.dataPtr(), 
-        ARLIM(residfab.loVect()), ARLIM(residfab.hiVect()),
-        rhsfab.dataPtr(), 
-        ARLIM(rhsfab.loVect()), ARLIM(rhsfab.hiVect()),
-        residfab.dataPtr(), 
-        ARLIM(residfab.loVect()), ARLIM(residfab.hiVect()),
-        tbx.loVect(), tbx.hiVect(), &nc);
-    }
+      apply(residL, solnL, level, bc_mode, local);
+      MultiFab::Xpay(residL, -1.0, rhsL, 0, 0, residL.nComp(), 0);
   }
   else {
-
-    BL_ASSERT(LO_Op != 0);
-
-    LO_Op->residual(residL,rhsL,solnL,level,bc_mode,local);
-
+      BL_ASSERT(LO_Op != 0);
+      LO_Op->residual(residL,rhsL,solnL,level,bc_mode,local);
   }
 }

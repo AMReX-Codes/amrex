@@ -1205,14 +1205,12 @@ contains
       real(dp_t) :: Gram(Nrows,Ncols)
       real(dp_t) :: tmp((Ncols*(Ncols+1))/2-1), rtmp((Ncols*(Ncols+1))/2-1)
 
-      !$OMP PARALLEL DO PRIVATE(mm,nn) SCHEDULE(static,1)
       do mm = 1, Nrows
          do nn = mm, Nrows
             Gram(mm,nn) = dot(PR, mm, PR, nn, nodal_mask = nodal_mask, local = .true.)
          end do
          Gram(mm,Ncols) = dot(PR, mm, rt,  1, nodal_mask = nodal_mask, local = .true.)
       end do
-      !$OMP END PARALLEL DO
       !
       ! Put upper triangle into "tmp".
       !

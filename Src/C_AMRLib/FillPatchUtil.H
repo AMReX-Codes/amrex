@@ -14,16 +14,22 @@ namespace BoxLib
     void FillPatchSingleLevel (MultiFab& mf, Real time, 
 			       const PArray<MultiFab>& smf, const std::vector<Real>& stime, 
 			       int scomp, int dcomp, int ncomp,
-			       const Geometry& geom, PhysBCFunct& physbcf);
+			       const Geometry& geom, PhysBCFunctBase& physbcf);
 
     void FillPatchTwoLevels (MultiFab& mf, Real time,
 			     const PArray<MultiFab>& cmf, const std::vector<Real>& ct,
 			     const PArray<MultiFab>& fmf, const std::vector<Real>& ft,
 			     int scomp, int dcomp, int ncomp,
 			     const Geometry& cgeom, const Geometry& fgeom, 
-			     PhysBCFunct& cbc, PhysBCFunct& fbc,
+			     PhysBCFunctBase& cbc, PhysBCFunctBase& fbc,
 			     const IntVect& ratio, 
 			     Interpolater* mapper, const Array<BCRec>& bcs);
+
+    void InterpFromCoarseLevel (MultiFab& mf, Real time,
+				const MultiFab& cmf, int scomp, int dcomp, int ncomp,
+				const Geometry& cgeom, const Geometry& fgeom, 
+				PhysBCFunctBase& cbc, PhysBCFunctBase& fbc, const IntVect& ratio, 
+				Interpolater* mapper, const Array<BCRec>& bcs);
 }
 
 #endif

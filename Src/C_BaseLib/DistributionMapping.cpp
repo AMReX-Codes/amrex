@@ -1,6 +1,7 @@
 #include <winstd.H>
 
 #include <BoxArray.H>
+#include <MultiFab.H>
 #include <DistributionMapping.H>
 #include <ParmParse.H>
 #include <BLProfiler.H>
@@ -528,8 +529,6 @@ DistributionMapping::define (const BoxArray& boxes,
 			     int nprocs,
 			     ParallelDescriptor::Color color)
 {
-    Initialize();
-
     m_color = color;
 
     if (m_ref->m_pmap.size() != boxes.size() + 1)
@@ -549,8 +548,6 @@ DistributionMapping::define (const BoxArray& boxes,
 void
 DistributionMapping::define (const Array<int>& pmap)
 {
-    Initialize();
-
     if (m_ref->m_pmap.size() != pmap.size()) {
         m_ref->m_pmap.resize(pmap.size());
     }
@@ -567,8 +564,6 @@ DistributionMapping::define (const Array<int>& pmap, bool put_in_cache)
       define(pmap);
       return;
     }
-
-    Initialize();
 
     if (m_ref->m_pmap.size() != pmap.size()) {
         m_ref->m_pmap.resize(pmap.size());
@@ -2878,6 +2873,42 @@ DistributionMapping::TranslateProcMap(const Array<int> &pm_old, const MPI_Group 
 }
 #endif
 
+
+DistributionMapping
+DistributionMapping::makeKnapSack (const MultiFab& weight)
+{
+    DistributionMapping r;
+
+    Array<long> cost(weight.size());
+#if BL_USE_MPI
+    {
+	Array<Real> rcost(cost.size(), 0.0);
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+	for (MFIter mfi(weight); mfi.isValid(); ++mfi) {
+	    int i = mfi.index();
+	    rcost[i] = weight[mfi].sum(mfi.validbox(),0);
+	}
+
+	ParallelDescriptor::ReduceRealSum(&rcost[0], rcost.size());
+
+	Real wmax = *std::max_element(rcost.begin(), rcost.end());
+	Real scale = 1.e9/wmax;
+	
+	for (int i = 0; i < rcost.size(); ++i) {
+	    cost[i] = long(cost[i]*scale) + 1L;
+	}
+    }
+#endif
+
+    int nprocs = ParallelDescriptor::NProcs();
+    Real eff;
+
+    r.KnapSackProcessorMap(cost, nprocs, &eff, true);
+
+    return r;
+}
 
 std::ostream&
 operator<< (std::ostream&              os,

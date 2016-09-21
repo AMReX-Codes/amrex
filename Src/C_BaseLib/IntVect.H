@@ -79,6 +79,8 @@ public:
     //
     const int* getVect () const { return vect; }
     //
+    int* getVect () { return vect; }
+    //
     // Returns true of IntVect is equivalent to argument IntVect.
     // All comparisons between analogous components must be satisfied.
     //
@@ -358,6 +360,9 @@ public:
     // It is provided as a convenience to our users when defining Boxes.
     //
     static const IntVect& TheCellVector ();
+
+    static const IntVect& TheMaxVector ();
+    static const IntVect& TheMinVector ();
 
 private:
 

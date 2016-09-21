@@ -69,7 +69,7 @@ const char* buildInfoGetAux(int i) {
   }
 }
 
-const int buildInfoGetNumModules() {
+int buildInfoGetNumModules() {
   // int num_modules = X;
   @@NUM_MODULES@@
   return num_modules;

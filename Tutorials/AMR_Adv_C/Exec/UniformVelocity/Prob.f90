@@ -42,7 +42,8 @@ end subroutine PROBINIT
 
 subroutine initdata(level, time, lo, hi, &
      phi, phi_lo, phi_hi, &
-     dx, prob_lo)
+     dx, prob_lo) bind(C, name="initdata")
+
   implicit none
   integer, intent(in) :: level, lo(3), hi(3), phi_lo(3), phi_hi(3)
   double precision, intent(in) :: time

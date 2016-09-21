@@ -1,5 +1,6 @@
 
-subroutine work(flag, lo, hi, a, a_l1, a_l2, a_l3, a_h1, a_h2, a_h3)
+subroutine work(flag, lo, hi, a, a_l1, a_l2, a_l3, a_h1, a_h2, a_h3) bind(C, name="work")
+
   integer, intent(in) :: flag, lo(3), hi(3), a_l1, a_l2, a_l3, a_h1, a_h2, a_h3
   double precision :: a(a_l1:a_h1, a_l2:a_h2, a_l3:a_h3)
   

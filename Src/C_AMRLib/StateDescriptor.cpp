@@ -12,43 +12,38 @@ int StateDescriptor::bf_ext_dir_threadsafe = 0;
 
 StateDescriptor::BndryFunc::BndryFunc ()
     :
-    m_func(0),
+    BndryFunctBase(),
     m_gfunc(0),
-    m_func3D(0),
     m_gfunc3D(0)
 {}
 
 StateDescriptor::BndryFunc::BndryFunc (BndryFuncDefault inFunc)
     :
-    m_func(inFunc),
+    BndryFunctBase(inFunc),
     m_gfunc(0),
-    m_func3D(0),
     m_gfunc3D(0)
 {}
 
 StateDescriptor::BndryFunc::BndryFunc (BndryFunc3DDefault inFunc)
     :
-    m_func(0),
+    BndryFunctBase(inFunc),
     m_gfunc(0),
-    m_func3D(inFunc),
     m_gfunc3D(0)
 {}
 
 StateDescriptor::BndryFunc::BndryFunc (BndryFuncDefault inFunc,
                                        BndryFuncDefault gFunc)
     :
-    m_func(inFunc),
+    BndryFunctBase(inFunc),
     m_gfunc(gFunc),
-    m_func3D(0),
     m_gfunc3D(0)
 {}
 
 StateDescriptor::BndryFunc::BndryFunc (BndryFunc3DDefault inFunc,
                                        BndryFunc3DDefault gFunc)
     :
-    m_func(0),
+    BndryFunctBase(inFunc),
     m_gfunc(0),
-    m_func3D(inFunc),
     m_gfunc3D(gFunc)
 {}
 

@@ -188,6 +188,9 @@ InterpBndryData::setBndryValues (::BndryRegister& crse,
     //
     if (max_order==3 || max_order==1)
     {
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
         for (MFIter fine_mfi(fine); fine_mfi.isValid(); ++fine_mfi)
         {
             BL_ASSERT(grids[fine_mfi.index()] == fine_mfi.validbox());
@@ -200,11 +203,7 @@ InterpBndryData::setBndryValues (::BndryRegister& crse,
             const int*       lo       = fine_bx.loVect();
             const int*       hi       = fine_bx.hiVect();
             const FArrayBox& fine_grd = fine[fine_mfi];
-            const MaskTuple& msk      = masks[fine_mfi.index()];
 
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
             for (int i = 0; i < 2*BL_SPACEDIM; i++)
             {
                 const int               dir  = ((i<BL_SPACEDIM) ? i : (i-BL_SPACEDIM));
@@ -219,7 +218,7 @@ InterpBndryData::setBndryValues (::BndryRegister& crse,
                     //
                     Array<Real> derives(D_TERM(1,*mxlen,*mxlen)*NUMDERIV);
 
-                    const Mask&      mask           = *(msk[face]);
+                    const Mask&      mask           = masks[face][fine_mfi];
                     const int*       mlo            = mask.loVect();
                     const int*       mhi            = mask.hiVect();
                     const int*       mdat           = mask.dataPtr();

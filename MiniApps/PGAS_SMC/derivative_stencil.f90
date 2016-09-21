@@ -25,7 +25,7 @@ module derivative_stencil_module
 
 contains
   
-  subroutine derivative_stencil_init () bind(c)
+  subroutine derivative_stencil_init () bind(c, name='derivative_stencil_init')
 
     ! 8th-order
     M8(1,1) = 5.d0/336.d0 + M8_48
@@ -104,7 +104,7 @@ contains
     
   end subroutine derivative_stencil_init
 
-  function get_num_ghost_cells () result(r) bind(c)
+  function get_num_ghost_cells () result(r) bind(c, name='get_num_ghost_cells')
     integer :: r
     r = stencil_ng
   end function get_num_ghost_cells

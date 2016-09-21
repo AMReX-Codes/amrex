@@ -157,8 +157,15 @@ public:
     //
     void restart (std::istream&          is,
                   const StateDescriptor& d,
-                  const std::string&     restart_file,
-		  bool                   bReadSpecial = false);
+                  const std::string&     restart_file);
+    //
+    // with domain box and grids provided
+    //
+    void restart (std::istream&          is,
+		  const Box&             p_domain,
+		  const BoxArray&        grds,
+                  const StateDescriptor& d,
+                  const std::string&     restart_file);
     //
     // or from another similar state
     //
@@ -288,14 +295,16 @@ private:
     // This is used to store preread FabArray headers
     //
     static std::map<std::string, Array<char> > *faHeaderMap;  // ---- [faheader name, the header]
+
+    void restartDoit (std::istream& is, const std::string& restart_file);
 };
 
 class StateDataPhysBCFunct
-    : public PhysBCFunct
+    : public PhysBCFunctBase
 {
 public:
     StateDataPhysBCFunct (StateData& sd, int sc, const Geometry& geom_);
-    virtual void doit (MultiFab& mf, int dcomp, int ncomp, Real time);
+    virtual void FillBoundary (MultiFab& mf, int dcomp, int ncomp, Real time);
 private:
     StateData* statedata;
     int src_comp;

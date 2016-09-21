@@ -1,7 +1,7 @@
 subroutine advance_phi(lo, hi, &
      pold, po_l1, po_l2, po_l3, po_h1, po_h2, po_h3, &
      pnew, pn_l1, pn_l2, pn_l3, pn_h1, pn_h2, pn_h3, &
-     ncomp, dx, dt)
+     ncomp, dx, dt) bind(C, name="advance_phi")
 
   implicit none
 
@@ -70,7 +70,7 @@ end subroutine advance_phi
 subroutine advance_phi2(lo, hi, &
      pold, po_l1, po_l2, po_l3, po_h1, po_h2, po_h3, &
      pnew, pn_l1, pn_l2, pn_l3, pn_h1, pn_h2, pn_h3, &
-     ncomp, dx, dt)
+     ncomp, dx, dt) bind(C, name="advance_phi2")
 
   implicit none
 

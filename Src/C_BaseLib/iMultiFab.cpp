@@ -14,22 +14,10 @@
 #include <ParmParse.H>
 #include <PArray.H>
 
-//
-// Set default values in Initialize()!!!
-//
-bool iMultiFab::check_for_nan;
-bool iMultiFab::check_for_inf;
-
 namespace
 {
     bool initialized = false;
 }
-
-iMultiFabCopyDescriptor::iMultiFabCopyDescriptor ()
-    :
-    FabArrayCopyDescriptor<IArrayBox>() {}
-
-iMultiFabCopyDescriptor::~iMultiFabCopyDescriptor () {}
 
 void
 iMultiFab::Add (iMultiFab&       dst,
@@ -198,16 +186,6 @@ void
 iMultiFab::Initialize ()
 {
     if (initialized) return;
-    //
-    // Set initial values!!!
-    //
-    iMultiFab::check_for_nan = false;
-    iMultiFab::check_for_inf = false;
-
-    ParmParse pp("multifab");
-
-    pp.query("check_for_nan", check_for_nan);
-    pp.query("check_for_inf", check_for_inf);
 
     BoxLib::ExecOnFinalize(iMultiFab::Finalize);
 
@@ -220,10 +198,7 @@ iMultiFab::Finalize ()
     initialized = false;
 }
 
-iMultiFab::iMultiFab ()
-{
-    Initialize();
-}
+iMultiFab::iMultiFab () {}
 
 iMultiFab::iMultiFab (const BoxArray& bxs,
                     int             ncomp,
@@ -232,9 +207,6 @@ iMultiFab::iMultiFab (const BoxArray& bxs,
     :
     FabArray<IArrayBox>(bxs,ncomp,ngrow,alloc)
 {
-    Initialize();
-
-    if ((check_for_nan || check_for_inf) && alloc == Fab_allocate) setVal(0);
 }
 
 iMultiFab::iMultiFab (const BoxArray&            bxs,
@@ -245,7 +217,6 @@ iMultiFab::iMultiFab (const BoxArray&            bxs,
     :
     FabArray<IArrayBox>(bxs,ncomp,ngrow,dm,alloc)
 {
-    Initialize();
 }
 
 void
@@ -846,65 +817,3 @@ iMultiFab::negate (const Box& region,
             get(mfi).negate(b,comp,num_comp);
     }
 }
-
-void
-iMultiFab::FillBoundary (int  scomp,
-                        int  ncomp,
-                        bool local,
-                        bool cross)
-{
-    if ( n_grow <= 0 ) return;
-
-    if ( local )
-    {
-        //
-        // Do what you can with the FABs you own.  No parallelism allowed.
-        //
-        const BoxArray&            ba     = boxArray();
-        const DistributionMapping& DMap   = DistributionMap();
-        const int                  MyProc = ParallelDescriptor::MyProc();
-
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-	{
-	    std::vector< std::pair<int,Box> > isects;
-	    
-	    for (MFIter mfi(*this); mfi.isValid(); ++mfi)
-	    {
-		const int i = mfi.index();
-		
-		ba.intersections((*this)[mfi].box(),isects);
-		
-		for (int ii = 0, N = isects.size(); ii < N; ii++)
-		{
-		    const Box& bx  = isects[ii].second;
-		    const int  iii = isects[ii].first;
-		    
-		    if (i != iii && DMap[iii] == MyProc)
-		    {
-			(*this)[mfi].copy((*this)[iii], bx, scomp, bx, scomp, ncomp);
-		    }
-		}
-            }
-        }
-    }
-    else
-    {
-        FabArray<IArrayBox>::FillBoundary(scomp,ncomp,cross);
-    }
-}
-
-void
-iMultiFab::FillBoundary (bool local, bool cross)
-{
-    FillBoundary(0, n_comp, local, cross);
-}
-
-//
-// Some useful typedefs.
-//
-typedef FabArrayBase::CopyComTag::CopyComTagsContainer CopyComTagsContainer;
-
-typedef FabArrayBase::CopyComTag::MapOfCopyComTagContainers MapOfCopyComTagContainers;
-

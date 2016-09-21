@@ -223,24 +223,50 @@ StateData::reset ()
 void
 StateData::restart (std::istream&          is,
                     const StateDescriptor& d,
-                    const std::string&     chkfile,
-                    bool                   bReadSpecial)
+                    const std::string&     chkfile)
 {
     BL_PROFILE("StateData::restart()");
 
-    if (bReadSpecial) {
-   	BoxLib::Abort("StateData:: restart:: w/bReadSpecial not implemented");
-    }
-
     desc = &d;
-
     is >> domain;
+    grids.readFrom(is);
+    restartDoit(is, chkfile);
+}
 
-    if (bReadSpecial) {
-        BoxLib::readBoxArray(grids, is, bReadSpecial);
-    } else {
-        grids.readFrom(is);
+void
+StateData::restart (std::istream&          is,
+		    const Box&             p_domain,
+		    const BoxArray&        grds,
+                    const StateDescriptor& d,
+                    const std::string&     chkfile)
+{
+    desc = &d;
+    domain = p_domain;
+    grids = grds;
+
+    // Convert to proper type.
+    IndexType typ(desc->getType());
+    if (!typ.cellCentered()) {
+        domain.convert(typ);
+        grids.convert(typ);
     }
+
+    {
+	Box domain_in;
+	BoxArray grids_in;
+	is >> domain_in;
+	grids_in.readFrom(is);
+	BL_ASSERT(domain_in == domain);
+	BL_ASSERT(BoxLib::match(grids_in,grids));
+    }
+
+    restartDoit(is, chkfile);
+}
+
+void 
+StateData::restartDoit (std::istream& is, const std::string& chkfile)
+{
+    BL_PROFILE("StateData::restartDoit()");
 
     is >> old_time.start;
     is >> old_time.stop;
@@ -250,15 +276,14 @@ StateData::restart (std::istream&          is,
     int nsets;
     is >> nsets;
 
-    old_data = 0;
-    new_data = 0;
+    old_data = (nsets == 2) ? new MultiFab(grids,desc->nComp(),desc->nExtra(),Fab_allocate) : 0;
+    new_data =                new MultiFab(grids,desc->nComp(),desc->nExtra(),Fab_allocate);
     //
     // If no data is written then we just allocate the MF instead of reading it in. 
     // This assumes that the application will do something with it.
     // We set it to zero in case a compiler complains about uninitialized data.
     //
     if (nsets == 0) {
-       new_data = new MultiFab(grids,desc->nComp(),desc->nExtra(),Fab_allocate);
        new_data->setVal(0.0);
     }
 
@@ -268,15 +293,14 @@ StateData::restart (std::istream&          is,
     for(int ns(1); ns <= nsets; ++ns) {
       MultiFab *whichMF;
       if(ns == 1) {
-        new_data = new MultiFab;
 	whichMF = new_data;
       } else if(ns == 2) {
-        old_data = new MultiFab;
 	whichMF = old_data;
       } else {
         BoxLib::Abort("**** Error in StateData::restart:  invalid nsets.");
       }
 
+      MultiFab data_in;
       is >> mf_name;
       //
       // Note that mf_name is relative to the Header file.
@@ -287,6 +311,8 @@ StateData::restart (std::istream&          is,
           FullPathName += '/';
       }
       FullPathName += mf_name;
+
+      // ---- check for preread header
       std::string FullHeaderPathName(FullPathName + "_H");
       const char *faHeader = 0;
       if(faHeaderMap != 0) {
@@ -296,7 +322,13 @@ StateData::restart (std::istream&          is,
 	  faHeader = fahmIter->second.dataPtr();
 	}
       }
-      VisMF::Read(*whichMF, FullPathName, faHeader);
+      VisMF::Read(data_in, FullPathName, faHeader);
+      
+      BL_ASSERT(BoxLib::match(grids, data_in.boxArray()));
+      BL_ASSERT(whichMF->nComp() == data_in.nComp());
+      BL_ASSERT(whichMF->nGrow() == data_in.nGrow());
+      
+      MultiFab::Copy(*whichMF, data_in, 0, 0, whichMF->nComp(), whichMF->nGrow());
     }
 }
 
@@ -784,9 +816,9 @@ StateDataPhysBCFunct::StateDataPhysBCFunct (StateData&sd, int sc, const Geometry
 { }
 
 void
-StateDataPhysBCFunct::doit (MultiFab& mf, int dest_comp, int num_comp, Real time)
+StateDataPhysBCFunct::FillBoundary (MultiFab& mf, int dest_comp, int num_comp, Real time)
 {
-    BL_PROFILE("StateDataPhysBCFunct::doit");
+    BL_PROFILE("StateDataPhysBCFunct::FillBoundary");
 
     const Box&     domain      = statedata->getDomain();
     const int*     domainlo    = domain.loVect();
@@ -814,7 +846,7 @@ StateDataPhysBCFunct::doit (MultiFab& mf, int dest_comp, int num_comp, Real time
 		if (geom.isPeriodic(i)) {
 		    is_periodic = is_periodic || touch;
 		} else {
-		has_phys_bc = has_phys_bc || touch;
+		    has_phys_bc = has_phys_bc || touch;
 		}
 	    }
 	    

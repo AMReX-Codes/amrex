@@ -66,3 +66,6 @@ f90EXE_sources += nodal_sync_resid.f90
 cEXE_headers   += mg_cpp_f.h
 
 f90EXE_sources += stencil_util.f90
+
+VPATH_LOCATIONS += $(BOXLIB_HOME)/Src/LinearSolvers/F_MG
+INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/LinearSolvers/F_MG

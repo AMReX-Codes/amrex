@@ -3,6 +3,7 @@
 #define _FABSET_H_
 
 #include <MultiFab.H>
+#include <Geometry.H>
 
 /*
         A FabSet is a group of FArrayBox's.  The grouping is designed
@@ -29,11 +30,11 @@
         manipulated by more sophisticated control classes.
 */
 
-class FabSet
-    :
-    public MultiFab
-{
+class FabSetIter;
 
+class FabSet
+{
+    friend class FabSetIter;
 public:
     //
     // The default constructor -- you must later call define().
@@ -56,108 +57,58 @@ public:
     //
     // Define a FabSet constructed via default constructor.
     //
-    void define (const BoxArray&            grids,
-                 int                        ncomp,
-                 const DistributionMapping& dm);
-    //
-    // Copy from the FAB to this FabSet.
-    //
-    FabSet& copyFrom (const FArrayBox& src);
-    //
-    // Copy from the specified components of a source FAB to the components to this destination FabSet
-    //
-    FabSet& copyFrom (const FArrayBox& src,
-                      int              src_comp,
-                      int              dest_comp,
-                      int              num_comp);
-    //
-    // Copy from the specified components of a source FAB to the destination components of this FabSet over the subregion
-    //
-    FabSet& copyFrom (const FArrayBox& src,
-                      const Box&       subbox,
-                      int              src_comp,
-                      int              dest_comp,
-                      int              num_comp);
-    //
-    // Copy from the source MultiFab to this destination FabSet.
-    //
-    FabSet& copyFrom (const MultiFab& src,
-                      int             nghost,
-                      int             src_comp,
-                      int             dest_comp,
-                      int             num_comp);
-    //
-    // Copy from the FabSet to this FabSet.
-    //
-    FabSet& copyFrom (const FabSet& src);
-    //
-    // Copy from the specified components of a source FabSet to the components to this destination FabSet
-    //
-    FabSet& copyFrom (const FabSet& src,
-                      int           src_comp,
-                      int           dest_comp,
-                      int           num_comp);
-    //
-    // Copy to the MultiFab from this FabSet.
-    //
-    void copyTo (MultiFab& dest) const;
-    //
-    // Componentwise multiply each datum in this FabSet for specified components.
-    //
-    FabSet& mult (Real v,
-                  int  comp,
-                  int  num_comp);
-    //
-    // Componentwise multiply each datum in this FabSet for specified components in the subregion.
-    //
-    FabSet& mult (Real       v,
-                  const Box& subreg,
-                  int        comp,
-                  int        num_comp);
-    //
-    // Componentwise add scalar to each datum in this FabSet for specified components.
-    //
-    FabSet& plus (Real v,
-                  int  comp,
-                  int  num_comp);
-    //
-    // Componentwise add scalar to each datum in this FabSet for specified components in the subregion.
-    //
-    FabSet& plus (Real       v,
-                  const Box& subreg,
-                  int        comp,
-                  int        num_comp);
-    //
-    // Add each datum in MultiFab to each in this FabSet for specified components in the subregion, including ghost cells specified.
-    //
-    FabSet& plusFrom (const MultiFab& src,
-                      int             nghost,
-                      int             src_comp,
-                      int             dest_comp,
-                      int             num_comp);
-    //
-    // Linear combination: this := a*this + b*src (FabSets must be commensurate).
-    //
-    FabSet& linComb (Real          a,
-                     Real          b,
-                     const FabSet& src,
-                     int           src_comp,
-                     int           dest_comp,
-                     int           num_comp);
-    //
-    // Linear combination: this := a*mfa + b*mfb on intersection with valid region.
-    //
-    FabSet& linComb (Real            a,
-                     const MultiFab& mfa,
-                     int             a_comp,
-                     Real            b,
-                     const MultiFab& mfb,
-                     int             b_comp,
-                     int             dest_comp,
-                     int             num_comp,
-                     int             n_ghost=0);
+    void define (const BoxArray& grids, int ncomp, const DistributionMapping& dm);
 
-    friend class FabSetCopyDescriptor;
+    const FArrayBox& operator[] (const MFIter& mfi) const { return m_mf[mfi]; }
+
+    FArrayBox& operator[] (const MFIter& mfi) { return m_mf[mfi]; }
+
+    const FArrayBox& operator[] (int i) const { return m_mf[i]; }
+
+    FArrayBox& operator[] (int i) { return m_mf[i]; }
+
+    Box fabbox (int K) const { return m_mf.fabbox(K); }
+
+    int size () const { return m_mf.size(); }
+
+    const BoxArray& boxArray () const { return m_mf.boxArray(); }
+
+    const DistributionMapping& DistributionMap () const 
+	{ return m_mf.DistributionMap(); }
+
+    ParallelDescriptor::Color color() const { return m_mf.color(); }
+
+    int nComp () const { return m_mf.nComp(); }
+
+    void clear () { m_mf.clear(); }
+
+    FabSet& copyFrom (const FabSet& src, int scomp, int dcomp, int ncomp);
+
+    FabSet& copyFrom (const MultiFab& src, int ngrow, int scomp, int dcomp, int ncomp);
+
+    FabSet& plusFrom (const FabSet& src, int scomp, int dcomp, int ncomp);
+
+    FabSet& plusFrom (const MultiFab& src, int ngrow, int scomp, int dcomp, int ncomp,
+		      const Periodicity& period = Periodicity::NonPeriodic());
+
+    void copyTo (MultiFab& dest, int ngrow, int scomp, int dcomp, int ncomp,
+		 const Periodicity& period = Periodicity::NonPeriodic()) const;
+
+    void plusTo (MultiFab& dest, int ngrow, int scomp, int dcomp, int ncomp,
+		 const Periodicity& period = Periodicity::NonPeriodic()) const;
+
+    void setVal (Real val);
+
+    void setVal (Real val, int comp, int num_comp);
+
+    // Linear combination: this := a*this + b*src (FabSets must be commensurate).
+    FabSet& linComb (Real a, Real b, const FabSet& src, int scomp, int dcomp, int ncomp);
+
+    // Linear combination: this := a*mfa + b*mfb
+    FabSet& linComb (Real a, const MultiFab& mfa, int a_comp,
+		     Real b, const MultiFab& mfb, int b_comp,
+                     int dcomp, int ncomp, int ngrow);
+
     //
     // Write (used for writing to checkpoint)
     //
@@ -167,47 +118,23 @@ public:
     //
     void read (const std::string& name);
 
-    //
-    // Promote AddProcsToComp() back to public.
-    //
-    using MultiFab::AddProcsToComp;
+    // Local copy function
+    static void Copy (FabSet& dst, const FabSet& src);
 
-protected:
-    //
-    // copyFrom(MultiFab) and plusFrom(MultiFab) use common function.
-    //
-    enum How { COPYFROM, PLUSFROM };
-
-    void DoIt (const MultiFab& src,
-               int             ngrow,
-               int             scomp,
-               int             dcomp,
-               int             ncomp,
-               How             how);
-};
-
-typedef MFIter FabSetIter;
-
-typedef FabArrayId FabSetId;
-
-class FabSetCopyDescriptor
-    :
-    public MultiFabCopyDescriptor
-{
-public:
-
-    FabSetCopyDescriptor ();
-
-    ~FabSetCopyDescriptor ();
-
-    FabSetId RegisterFabSet (FabSet* fabset) { return RegisterMultiFab(fabset); }
+    void AddProcsToComp (int ioProcNumSCS, int ioProcNumAll,
+			 int scsMyId, MPI_Comm scsComm)
+	{ BoxLib::Abort("FabSet::AddProcsToComp not implemented"); }
 
 private:
-    //
-    // These are disallowed.
-    //
-    FabSetCopyDescriptor (const FabSetCopyDescriptor& rhs);
-    FabSetCopyDescriptor& operator= (const FabSetCopyDescriptor& rhs);
+    MultiFab m_mf;
+};
+
+class FabSetIter
+    : public MFIter
+{
+public:
+    explicit FabSetIter (const FabSet& fs) 
+	: MFIter(fs.m_mf) { }
 };
 
 #endif /*_FABSET_H_*/

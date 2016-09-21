@@ -4,7 +4,6 @@
 #include <ParmParse.H>
 #include <ParallelDescriptor.H>
 #include <Utility.H>
-#include <CG_F.H>
 #include <MCCGSolver.H>
 
 namespace
@@ -97,11 +96,14 @@ MCCGSolver::norm (const MultiFab& res)
 
     Real restot = 0.0;
 
-    for (MFIter mfi(res); mfi.isValid(); ++mfi)
+#ifdef _OPENMP
+#pragma omp parallel reduction(max:restot)
+#endif
+    for (MFIter mfi(res,true); mfi.isValid(); ++mfi)
     {
-        restot = std::max(restot, res[mfi].norm(mfi.validbox(), p, 0, ncomp));
+	restot = std::max(restot, res[mfi].norm(mfi.tilebox(), p, 0, ncomp));
     }
-    ParallelDescriptor::ReduceRealMax(restot);
+    ParallelDescriptor::ReduceRealMax(restot,res.color());
     return restot;
 }
 
@@ -218,25 +220,8 @@ MCCGSolver::solve (MultiFab&       sol,
 	    z.copy(r, srccomp, destcomp, ncomp);
 	}
 
-	rho = 0;
 	int ncomp = z.nComp();
-
-        for (MFIter rmfi(r); rmfi.isValid(); ++rmfi)
-	{
-            Real trho;
-            const Box& vbox = rmfi.validbox();
-            FArrayBox& zfab = z[rmfi];
-            FArrayBox& rfab = r[rmfi];
-	    FORT_CGXDOTY(
-		&trho,
-		zfab.dataPtr(), 
-                ARLIM(zfab.loVect()), ARLIM(zfab.hiVect()),
-		rfab.dataPtr(), 
-                ARLIM(rfab.loVect()), ARLIM(rfab.hiVect()),
-		vbox.loVect(), vbox.hiVect(), &ncomp);
-	    rho += trho;
-	}
-        ParallelDescriptor::ReduceRealSum(rho);
+	rho = MultiFab::Dot(r, 0, z, 0, ncomp, 0);
 	
 	if (nit == 0)
 	{
@@ -338,22 +323,9 @@ MCCGSolver::advance (MultiFab&       p,
     //
     // Compute p = z  +  beta p
     //
-    int             ncomp = p.nComp();
-    const BoxArray& zbox  = z.boxArray();
-
-    for (MFIter pmfi(p); pmfi.isValid(); ++pmfi)
-    {
-        const Box&       bx   = zbox[pmfi.index()];
-        FArrayBox&       pfab = p[pmfi];
-        const FArrayBox& zfab = z[pmfi];
-
-	FORT_CGADVCP(
-	    pfab.dataPtr(),
-            ARLIM(pfab.loVect()), ARLIM(pfab.hiVect()),
-	    zfab.dataPtr(),
-            ARLIM(zfab.loVect()), ARLIM(zfab.hiVect()),
-	    &beta, bx.loVect(), bx.hiVect(),&ncomp);
-    }
+    int ncomp = p.nComp();
+    int nghost = 0;
+    MultiFab::Xpay(p, beta, z, 0, 0, ncomp, nghost);
 }
 
 void
@@ -364,31 +336,11 @@ MCCGSolver::update (MultiFab&       sol,
 		    const MultiFab& w)
 {
     //
-    // Compute x =+ alpha p  and  r -= alpha w
+    // Compute sol =+ alpha p  and  r -= alpha w
     //
     int ncomp = r.nComp();
-    for (MFIter solmfi(sol); solmfi.isValid(); ++solmfi)
-    {
-        const int gn = solmfi.index();
-
-        const Box&       vbox = solmfi.validbox();
-        FArrayBox&       sfab = sol[gn];
-        FArrayBox&       rfab = r[gn];
-        const FArrayBox& wfab = w[gn];
-        const FArrayBox& pfab = p[gn];
-
-	FORT_CGUPDATE(
-	    sfab.dataPtr(),
-            ARLIM(sfab.loVect()),ARLIM(sfab.hiVect()),
-	    rfab.dataPtr(),
-            ARLIM(rfab.loVect()),ARLIM(rfab.hiVect()),
-	    &alpha,
-	    wfab.dataPtr(),
-            ARLIM(wfab.loVect()),ARLIM(wfab.hiVect()),
-	    pfab.dataPtr(),
-            ARLIM(pfab.loVect()), ARLIM(pfab.hiVect()),
-	    vbox.loVect(), vbox.hiVect(),&ncomp);
-    }
+    MultiFab::Saxpy(sol,  alpha, p, 0, 0, ncomp, 0);
+    MultiFab::Saxpy(r  , -alpha, w, 0, 0, ncomp, 0);
 }
 
 Real
@@ -399,22 +351,7 @@ MCCGSolver::axp (MultiFab& w,
     //
     // Compute w = A.p, and return Transpose(p).w
     //
-    Real pw = 0.0;
     Lp.apply(w, p, lev, bc_mode);
-    int ncomp = p.nComp();
-    for (MFIter pmfi(p); pmfi.isValid(); ++pmfi)
-    {
-	Real tpw;
-        const Box& vbox = pmfi.validbox();
-        FArrayBox& pfab = p[pmfi];
-        FArrayBox& wfab = w[pmfi];
-	FORT_CGXDOTY(
-	    &tpw,
-	    pfab.dataPtr(),ARLIM(pfab.loVect()),ARLIM(pfab.hiVect()),
-	    wfab.dataPtr(),ARLIM(wfab.loVect()),ARLIM(wfab.hiVect()),
-	    vbox.loVect(), vbox.hiVect(),&ncomp);
-	pw += tpw;
-    }
-    ParallelDescriptor::ReduceRealSum(pw);
-    return pw;
+    int nghost = 0;
+    return MultiFab::Dot(w,0,p,0,p.nComp(),nghost);
 }
