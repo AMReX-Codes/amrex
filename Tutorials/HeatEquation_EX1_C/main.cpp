@@ -1,42 +1,16 @@
-#include <fstream>
-#include <iomanip>
-
 #include <Utility.H>
-#include <IntVect.H>
 #include <Geometry.H>
+#include <MultiFab.H>
+#include <PhysBCFunct.H>
+#include <PArray.H>
 #include <ParmParse.H>
 #include <ParallelDescriptor.H>
-#include <VisMF.H>
 #include <writePlotFile.H>
 
-#include <ArrayLim.H>
+#include "myfunc_F.H"
 
-
-extern "C"
-{
-  void init_phi(Real* data, const int* lo, const int* hi, const int* ng, 
-		const Real* dx, const Real* prob_lo, const Real* prob_hi);
-
-  void compute_flux(Real* phi, const int* ng_p,
-		    Real* fluxx, 
-		    Real* fluxy,
-#if (BL_SPACEDIM == 3)   
-		    Real* fluxz,
-#endif
-		    const int* ng_f, const int* lo, const int* hi, const Real* dx);
-  
-  void update_phi(Real* phiold, Real* phinew, const int* ng_p,
-		  Real* fluxx, 
-		  Real* fluxy,
-#if (BL_SPACEDIM == 3)   
-		  Real* fluxz,
-#endif
-		  const int* ng_f, const int* lo, const int* hi, const Real* dx, const Real* dt);
-}
-
-
-static
-void advance (MultiFab* old_phi, MultiFab* new_phi, MultiFab* flux, Real* dx, Real dt, Geometry geom)
+void advance (MultiFab* old_phi, MultiFab* new_phi, MultiFab* flux,
+	      Real dt, Geometry geom)
 {
   // Fill the ghost cells of each grid from the other grids
   old_phi->FillBoundary(geom.periodicity());
@@ -44,6 +18,8 @@ void advance (MultiFab* old_phi, MultiFab* new_phi, MultiFab* flux, Real* dx, Re
   int Ncomp = old_phi->nComp();
   int ng_p = old_phi->nGrow();
   int ng_f = flux->nGrow();
+
+  const Real* dx = geom.CellSize();
 
   // Compute fluxes one grid at a time
   for ( MFIter mfi(*old_phi); mfi.isValid(); ++mfi )
@@ -77,17 +53,8 @@ void advance (MultiFab* old_phi, MultiFab* new_phi, MultiFab* flux, Real* dx, Re
   }
 }
 
-static
-Real compute_dt (Real dx)
+void main_main ()
 {
-  return 0.9*dx*dx / (2.0*BL_SPACEDIM);
-}
-
-int
-main (int argc, char* argv[])
-{
-  BoxLib::Initialize(argc,argv);
-
   // What time is it now?  We'll use this to compute total run time.
   Real strt_time = ParallelDescriptor::second();
 
@@ -149,9 +116,7 @@ main (int argc, char* argv[])
   Geometry geom(domain,&real_box,coord,is_per);
 
   // This defines the mesh spacing
-  Real dx[BL_SPACEDIM];
-  for ( int n=0; n<BL_SPACEDIM; n++ )
-      dx[n] = ( geom.ProbHi(n) - geom.ProbLo(n) )/domain.length(n);
+  const Real* dx = geom.CellSize();
 
   // Nghost = number of ghost cells for each array 
   int Nghost = 1;
@@ -183,8 +148,8 @@ main (int argc, char* argv[])
 	     dx,geom.ProbLo(),geom.ProbHi());
   }
 
-  // Call the compute_dt routine to return a time step which we will pass to advance
-  Real dt = compute_dt(dx[0]);
+  // compute the time step
+  Real dt = 0.9*dx[0]*dx[0] / (2.0*BL_SPACEDIM);
 
   // Write a plotfile of the initial data if plot_int > 0 (plot_int was defined in the inputs file)
   if (plot_int > 0)
@@ -210,7 +175,7 @@ main (int argc, char* argv[])
      std::swap(old_phi, new_phi);
 
      // new_phi = old_phi + dt * (something)
-     advance(old_phi, new_phi, flux, dx, dt, geom); 
+     advance(old_phi, new_phi, flux, dt, geom); 
 
      // Tell the I/O Processor to write out which step we're doing
      if (ParallelDescriptor::IOProcessor())
@@ -231,10 +196,17 @@ main (int argc, char* argv[])
   ParallelDescriptor::ReduceRealMax(stop_time,IOProc);
 
   // Tell the I/O Processor to write out the "run time"
-  if (ParallelDescriptor::IOProcessor())
+  if (ParallelDescriptor::IOProcessor()) {
      std::cout << "Run time = " << stop_time << std::endl;
-  
-  // Say goodbye to MPI, etc...
-  BoxLib::Finalize();
+  }
+}
 
+int main (int argc, char* argv[])
+{
+    BoxLib::Initialize(argc,argv);
+
+    main_main();
+
+    BoxLib::Finalize();
+    return 0;
 }

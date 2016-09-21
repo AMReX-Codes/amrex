@@ -1,4 +1,3 @@
-
 #include <Utility.H>
 #include <Geometry.H>
 #include <MultiFab.H>
@@ -9,11 +8,6 @@
 #include <writePlotFile.H>
 
 #include "myfunc_F.H"
-
-Real compute_dt (Real dx)
-{
-    return 0.9*dx*dx / (2.0*BL_SPACEDIM);
-}
 
 void advance (MultiFab& old_phi, MultiFab& new_phi, PArray<MultiFab>& flux,
 	      Real time, Real dt, const Geometry& geom, PhysBCFunct& physbcf)
@@ -174,8 +168,9 @@ void main_main ()
 		 geom.CellSize(), geom.ProbLo(), geom.ProbHi());
     }
 
-    // Call the compute_dt routine to return a time step which we will pass to advance
-    Real dt = compute_dt(geom.CellSize(0));
+    // compute the time step
+    const Real* dx = geom.CellSize();
+    Real dt = 0.9*dx[0]*dx[0] / (2.0*BL_SPACEDIM);
 
     // Write a plotfile of the initial data if plot_int > 0 (plot_int was defined in the inputs file)
     if (plot_int > 0)
@@ -227,7 +222,6 @@ void main_main ()
     }
 }
 
-
 int main (int argc, char* argv[])
 {
     BoxLib::Initialize(argc,argv);
@@ -237,4 +231,3 @@ int main (int argc, char* argv[])
     BoxLib::Finalize();
     return 0;
 }
-
