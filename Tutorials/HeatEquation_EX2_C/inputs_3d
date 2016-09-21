@@ -2,3 +2,8 @@ nsteps = 1000
 plot_int = 100
 n_cell = 128
 max_grid_size = 32
+
+# 0 = Periodic (INT_DIR)
+# 2 = Outflow (FOEXTRAP; homogeneous Neumann using first-order extrapolation)
+lo_bc = 2 2 2
+hi_bc = 2 2 2

@@ -5,6 +5,5 @@ max_grid_size = 64
 
 # 0 = Periodic (INT_DIR)
 # 2 = Outflow (FOEXTRAP; homogeneous Neumann using first-order extrapolation)
-# 3 = Dirichlet (EXT_DIR; ghost cells are set to a specified Dirichlet value)
 lo_bc = 2 2
 hi_bc = 2 2
