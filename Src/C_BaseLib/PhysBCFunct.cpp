@@ -49,11 +49,21 @@ PhysBCFunct::PhysBCFunct (const Geometry& geom, const BCRec& bcr, const BndryFun
 { }
 
 void
+PhysBCFunct::define (const Geometry& geom, const BCRec& bcr, const BndryFunctBase& func)
+{
+    m_geom = geom;
+    m_bcr = bcr;
+    m_bc_func = func.clone();
+}
+
+void
 PhysBCFunct::FillBoundary (MultiFab& mf, int, int, Real time)
 {
     BL_PROFILE("PhysBCFunct::FillBoundary");
 
     if (mf.nGrow() == 0) return;
+    
+    if (m_geom.isAllPeriodic()) return;
 
     const Box&     domain      = m_geom.Domain();
     const int*     dlo         = domain.loVect();
