@@ -59,6 +59,7 @@ class PhysBCFunct
 {
 public:
     PhysBCFunct () {}
+    virtual ~PhysBCFunct () BL_OVERRIDE {}
     PhysBCFunct (const Geometry& geom, const BCRec& bcr, const BndryFunctBase& func);
     void define (const Geometry& geom, const BCRec& bcr, const BndryFunctBase& func);
     virtual void FillBoundary (MultiFab& mf, int, int, Real time) BL_OVERRIDE;
