@@ -19,13 +19,13 @@ contains
     real(c_real) :: delta(3), xlo(3), time
     real(c_real) :: phi(phi_lo(1):phi_hi(1),phi_lo(2):phi_hi(2),phi_lo(3):phi_hi(3))
 
-    if (bl_spacedim .eq. 1) then
+#if (BL_SPACEDIM == 1)
        call filcc(phi,phi_lo(1),phi_hi(1),domlo,domhi,delta,xlo,bc)
-    else if (bl_spacedim .eq. 2) then
+#elif (BL_SPACEDIM == 2)
        call filcc(phi,phi_lo(1),phi_lo(2),phi_hi(1),phi_hi(2),domlo,domhi,delta,xlo,bc)
-    else
+#else
        call filcc(phi,phi_lo(1),phi_lo(2),phi_lo(3),phi_hi(1),phi_hi(2),phi_hi(3),domlo,domhi,delta,xlo,bc)
-    end if
+#endif
 
   end subroutine phifill
   
