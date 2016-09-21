@@ -106,17 +106,17 @@ void main_main ()
   }
 
   // make BoxArray and Geometry
-  BoxArray grids;
+  BoxArray ba;
   Geometry geom;
   {
     IntVect dom_lo(IntVect(D_DECL(0,0,0)));
     IntVect dom_hi(IntVect(D_DECL(n_cell-1, n_cell-1, n_cell-1)));
     Box domain(dom_lo, dom_hi);
 
-    // Initialize the boxarray "grids" from the single box "bx"
-    grids.define(domain);
-    // Break up boxarray "grids" into chunks no larger than "max_grid_size" along a direction
-    grids.maxSize(max_grid_size);
+    // Initialize the boxarray "ba" from the single box "bx"
+    ba.define(domain);
+    // Break up boxarray "ba" into chunks no larger than "max_grid_size" along a direction
+    ba.maxSize(max_grid_size);
 
     // This defines the physical size of the box.  Right now the box is [-1,1] in each direction.
     RealBox real_box;
@@ -162,8 +162,9 @@ void main_main ()
   // we allocate two phi multifabs; one will store the old state, the other the new
   // we swap the indices each time step to avoid copies of new into old
   PArray<MultiFab> phi(2, PArrayManage);
-  phi.set(0, new MultiFab(grids, Ncomp, Nghost));
-  phi.set(1, new MultiFab(grids, Ncomp, Nghost));
+  phi.set(0, new MultiFab(ba, Ncomp, Nghost));
+  phi.set(1, new MultiFab(ba, Ncomp, Nghost));
+
   // Initialize both to zero (just because)
   phi[0].setVal(0.0);
   phi[1].setVal(0.0);
@@ -196,9 +197,9 @@ void main_main ()
   for (int dir = 0; dir < BL_SPACEDIM; dir++)
   {
     // flux(dir) has one component, zero ghost cells, and is nodal in direction dir
-    BoxArray edge_grids = grids;
-    edge_grids.surroundingNodes(dir);
-    flux.set(dir, new MultiFab(edge_grids, 1, 0));
+    BoxArray edge_ba = ba;
+    edge_ba.surroundingNodes(dir);
+    flux.set(dir, new MultiFab(edge_ba, 1, 0));
   }
 
   int old_index = init_index;

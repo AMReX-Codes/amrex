@@ -278,6 +278,13 @@ MultiFab* data = new MultiFab(ba,2,6);     // build pointer to MultiFab
 
 delete data;                               // need to free the memory
 \end{lstlisting}
+In the C++ tutorial {\tt BoxLib/Tutorials/HeatEquation\_EX1\_C/}, we use
+the {\tt PArray} class, which manages memory under the covers
+to prevent memory leaks:
+\begin{lstlisting}[backgroundcolor=\color{light-blue}]
+  PArray<MultiFab> data(1, PArrayManage);
+  data.set(0, new MultiFab(ba, 2, 6));
+\end{lstlisting}
 
 \subsection{Accessing \MultiFab\ Data}
 Here is some sample Fortran90 code to access data within a \MultiFab:
