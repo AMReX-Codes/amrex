@@ -28,7 +28,7 @@ void TestWriteNFiles(int nfiles, int maxgrid, int ncomps, int nboxes,
                      bool raninit, bool mb2,
 		     VisMF::Header::Version writeMinMax,
 		     bool groupsets, bool setbuf, bool useDSS);
-void TestReadMF(const std::string &mfName);
+void TestReadMF(const std::string &mfName, bool useSyncReads);
 void NFileTests(int nOutFiles, const std::string &filePrefix);
 void DSSNFileTests(int nOutFiles, const std::string &filePrefix,
                    bool useIter);
@@ -65,6 +65,7 @@ static void PrintUsage(const char *progName) {
     cout << "   [checkfpositions   = tf       ]" << '\n';
     cout << "   [pifstreams        = tf       ]" << '\n';
     cout << "   [usedss            = tf       ]" << '\n';
+    cout << "   [usesyncreads      = tf       ]" << '\n';
     cout << '\n';
     cout << "Running with default values." << '\n';
     cout << '\n';
@@ -96,7 +97,7 @@ int main(int argc, char *argv[]) {
   bool testreadmf(false);
   bool useSingleRead(false), useSingleWrite(false);
   bool checkFPositions(false), pIFStreams(false);
-  bool useDSS(false);
+  bool useDSS(false), useSyncReads(false);
   Array<int> testWriteNFilesVersions;
   Array<std::string> readFANames;
   int nReadStreams(1);
@@ -132,6 +133,7 @@ int main(int argc, char *argv[]) {
   pp.query("checkfpositions", checkFPositions);
   pp.query("pifstreams", pIFStreams);
   pp.query("usedss", useDSS);
+  pp.query("usesyncreads", useSyncReads);
 
   pp.query("rbuffsize", rbs);
   pp.query("wbuffsize", wbs);
@@ -183,6 +185,7 @@ int main(int argc, char *argv[]) {
     cout << "checkfpositions   = " << checkFPositions << '\n';
     cout << "pifstreams        = " << pIFStreams << '\n';
     cout << "usedss            = " << useDSS << '\n';
+    cout << "usesyncreads      = " << useSyncReads << '\n';
 
     cout << '\n';
     cout << "sizeof(int) = " << sizeof(int) << '\n';
@@ -343,7 +346,7 @@ int main(int argc, char *argv[]) {
       }
 
       for(int i(0); i < readFANames.size(); ++i) {
-        TestReadMF(readFANames[i]);
+        TestReadMF(readFANames[i], useSyncReads);
       }
 
       if(ParallelDescriptor::IOProcessor()) {

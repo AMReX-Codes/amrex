@@ -297,14 +297,19 @@ void TestWriteNFiles(int nfiles, int maxgrid, int ncomps, int nboxes,
 
 
 // -------------------------------------------------------------
-void TestReadMF(const std::string &mfName) {
+void TestReadMF(const std::string &mfName, bool useSyncReads)
+{
   MultiFab mfin;
+
+  VisMF::SetUseSynchronousReads(useSyncReads);
+  VisMF::CloseAllStreams(); 
 
   ParallelDescriptor::Barrier();
   double wallTimeStart(ParallelDescriptor::second());
 
-  VisMF::CloseAllStreams(); 
   VisMF::Read(mfin, mfName); 
+
+  double wallTime(ParallelDescriptor::second() - wallTimeStart);
 
   for(int i(0); i < mfin.nComp(); ++i) {
     Real mfMin = mfin.min(i);
@@ -313,9 +318,6 @@ void TestReadMF(const std::string &mfName) {
       std::cout << "MMMMMMMM:  i mfMin mfMax = " << i << "  " << mfMin << "  " << mfMax << std::endl;
     }
   }
-
-
-  double wallTime(ParallelDescriptor::second() - wallTimeStart);
 
   double wallTimeMax(wallTime);
   double wallTimeMin(wallTime);
