@@ -23,6 +23,7 @@ usesinglewrite  = true
 checkfpositions = true
 pifstreams      = true
 usedss          = true
+usesyncreads    = false
 
 
 nreadstreams  = 4

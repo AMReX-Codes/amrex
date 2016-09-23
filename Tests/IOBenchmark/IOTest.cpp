@@ -199,6 +199,8 @@ void TestWriteNFiles(int nfiles, int maxgrid, int ncomps, int nboxes,
 		     bool useDSS)
 {
   VisMF::SetNOutFiles(nfiles);
+  VisMF::SetGroupSets(groupSets);
+  VisMF::SetSetBuf(setBuf);
   VisMF::SetUseDynamicSetSelection(useDSS);
   if(mb2) {
     bytesPerMB = pow(2.0, 20);
