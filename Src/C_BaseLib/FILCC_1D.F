@@ -54,7 +54,14 @@ c     ::::: first fill sides
       if (nlft .gt. 0) then
          ilo = domlo(1)
 
-	 if (bc(1,1) .eq. FOEXTRAP) then
+	 if (bc(1,1) .eq. EXT_DIR) then
+c     set all ghost cell values to a prescribed dirichlet
+c     value; in this example, we have chosen 1
+c	    do i = 1, nlft
+c	       q(ilo-i) = 1.d0
+c	    end do
+            call bl_error("C_BaseLib/FILCC_1D.F: EXT_DIR not specified")
+	 else if (bc(1,1) .eq. FOEXTRAP) then
 	    do i = 1, nlft
 	       q(ilo-i) = q(ilo)
 	    end do
@@ -82,7 +89,12 @@ c     ::::: first fill sides
       if (nrgt .gt. 0) then
          ihi = domhi(1)
 
-	 if (bc(1,2) .eq. FOEXTRAP) then
+	 if (bc(1,2) .eq. EXT_DIR) then
+c	    do i = 1, nrgt
+c	       q(ihi+i) = 1.d0
+c	    end do
+            call bl_error("C_BaseLib/FILCC_1D.F: EXT_DIR not specified")
+	 else if (bc(1,2) .eq. FOEXTRAP) then
 	    do i = 1, nrgt
 	       q(ihi+i) = q(ihi)
 	    end do
