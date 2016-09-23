@@ -103,9 +103,9 @@ of the \BoxType.
 \end{itemize}
 To build a \BoxType\ in C++ use:
 \begin{lstlisting}[backgroundcolor=\color{light-blue}]
-IntVect iv_lo(0,0);
-IntVect iv_hi(15,15);
-Box bx(iv_lo,iv_hi);
+// define a box with bounds (0,0) to (15,15) in 2D
+IntVect lo(0,0), hi(15,15);
+Box bx(lo,hi);
 \end{lstlisting}
 To build a \BoxType\ in Fortran90 use:
 \begin{lstlisting}[backgroundcolor=\color{light-green}]
@@ -185,27 +185,65 @@ bx = make_box(lo,hi)
 call boxarray_build_bx(ba,bx)  ! the boxarray has one 16^2 box
 call boxarray_maxsize(ba,8)    ! the boxarray has four 8^2 boxes
 \end{lstlisting}
-The analogous code in C++ is
+The define the same \BoxArray in C++, first define {\tt bx} as before, then
 \begin{lstlisting}[backgroundcolor=\color{light-blue}]
-IntVect lo(0,0), hi(15,15);
-Box bx(lo,hi);
-BoxArray ba(bx);  // the BoxArray has one 16^2 box
-ba.maxSize(8);    // the BoxArray has four 8^2 boxes
+// define a box with bounds (0,0) to (15,15) in 2D
+BoxArray ba(bx);  // ba has one 16^2 box
+ba.maxSize(8);    // ba now has four 8^2 boxes
 \end{lstlisting}
 
 \subsection{\layout\ (Fortran90 Only)}
 
-A \layout\ is a more intelligent \BoxArray, since it contains a \BoxArray\ as well
-as the associated processor assignments, \BoxType\ connectivity, and many other
+A \layout\ is a more intelligent \BoxArray,
+since it contains a \BoxArray\ as well
+as the associated processor assignments, \BoxType\ connectivity, whether or not the 
+domain is periodic in each direction, and many other
 parallel constructs.  In the simplest case, if we have a \BoxArray\ {\tt ba} (obtained
-from the example above), a 
-\layout\ can be defined using:
+from the example above), a \layout\ can be defined using:
 \begin{lstlisting}[backgroundcolor=\color{light-green}]
-type(layout) :: la
-call layout_build_ba(la,ba)
+type(layout)   :: la
+type(box)      :: pd
+type(boxarray) :: ba
+logical        :: is_periodic(2)
+
+is_periodic(1:2) = .true.
+call layout_build_ba(la,ba,pd,pmask)
 \end{lstlisting}
+Here, {\tt pd} is a box that spans the entire domain.
+
 In C++, the information that is contained in the Fortran90 \layout\ is part of
 the \MultiFab\ class.
+
+\subsection{\Geometry\ (C++ Only)}
+
+\Geometry\ is a class that stores the physical coordinates and the indices of the
+lo and hi corners of the problem domain, the coordinate system of the problem
+(Cartesian, RZ, or spherical) as well as the periodicity.  To define a \Geometry\
+object, first build the \BoxArray\ {\tt ba} above, then
+\begin{lstlisting}[backgroundcolor=\color{light-blue}]
+// This stores the physical coordinates of the problem domain
+RealBox real_box;
+for (int n = 0; n < BL_SPACEDIM; n++)
+{
+  real_box.setLo(n,-1.0);
+  real_box.setHi(n, 1.0);
+}
+
+// This says we are using Cartesian coordinates
+int coord = 0;
+
+// This says the domain is periodic in each direction
+int is_per[BL_SPACEDIM];
+for (int i = 0; i < BL_SPACEDIM; i++)
+{
+  is_per[i] = 1;
+}
+
+// Define a Geometry object to store problem domain physical coordinates,
+// incides, coordinate system, and periodicity
+Geometry geom;
+geom.define(bx, &real_box, coord, is_per);
+\end{lstlisting}
 
 \subsection{\FArrayBox}
 
@@ -228,9 +266,7 @@ In \BoxLib, we don't usually deal with
 Floating point data in C++ is declared as {\tt Real} which is {\tt
 typedef} to either {\tt float} or {\tt double} depending on how {\tt
 PRECISION} is set in the {\tt GNUmakefile}.  This is defined in {\tt
-REAL.H}.
-
-In Fortran90, the {\tt bl\_types} module defines a type {\tt dp\_t} that
+REAL.H}.  In Fortran90, the {\tt bl\_types} module defines a type {\tt dp\_t} that
 is double precision.  Floating point types should be declared using
 {\tt real (kind=dp\_t)}.
 
@@ -282,8 +318,15 @@ In the C++ tutorial {\tt BoxLib/Tutorials/HeatEquation\_EX1\_C/}, we use
 the {\tt PArray} class, which manages memory under the covers
 to prevent memory leaks:
 \begin{lstlisting}[backgroundcolor=\color{light-blue}]
-  PArray<MultiFab> data(1, PArrayManage);
-  data.set(0, new MultiFab(ba, 2, 6));
+// define a multifab with 2 components and 6 ghost cells
+// We use the PArray class to help manage the memory
+// (auto deallocation to prevent memory leaks)
+
+// the "1" means only 1 MultiFab; you can declare more if needed
+PArray <MultiFab> data(1,PArrayManage);
+
+// build the "0th" MultiFab in the PArray
+data.set(0, new MultiFab(ba, 2, 6));
 \end{lstlisting}
 
 \subsection{Accessing \MultiFab\ Data}
@@ -337,63 +380,11 @@ subroutine work_on_data_2d(data, ng, nc, lo, hi)
 end subroutine work_on_data_2d
 \end{lstlisting}
 
-In C++:
-\begin{lstlisting}[backgroundcolor=\color{light-blue}]
-#if    defined(BL_FORT_USE_UPPERCASE)
-#define FORT_WORK_ON_DATA            WORK_ON_DATA
-#elif  defined(BL_FORT_USE_LOWERCASE)
-#define FORT_WORK_ON_DATA            work_on_data
-#elif  defined(BL_FORT_USE_UNDERSCORE)
-#define FORT_WORK_ON_DATA            work_on_data_
-#endif
+In C++, here is a complete program consisting of two files, {\tt main.cpp}:
+\lstinputlisting[backgroundcolor=\color{light-blue}]{../../Tutorials/GettingStarted_C/main.cpp}
+and {\tt work\_on\_data\_2d.f90}:
+\lstinputlisting[backgroundcolor=\color{light-blue}]{../../Tutorials/GettingStarted_C/work_on_data_2d.f90}
 
-extern "C"
-{
-    void FORT_WORK_ON_DATA (
-        Real* data, const int* Ncomp, const int* ng,
-        const int* lo, const int* hi);
-}
-
-int main()
-{
-  int Ncomp = 2, Nghost = 6;
-
-  ...    // build pointer to MultiFab* ``data'' as described above
-  
-  // MFIter is a ``MultiFab Iterator'' that essentially
-  // loops over grids
-  for ( MFIter mfi(*data); mfi.isValid(); ++mfi )
-  {
-    const Box& bx = mfi.validbox();
-    FORT_WORK_ON_DATA((*data)[mfi].dataPtr(),
-                      &Nghost, &Ncomp, bx.loVect(), bx.hiVect());
-  }
-  // fill periodic domain boundary and neighboring grid ghost cells
-  data->FillBoundary();
-}
-
-...
-
-subroutine work_on_data(data, ng, nc, lo, hi)
-
-  integer          :: lo(2), hi(2), ng
-  double precision :: data(lo(1)-ng:,lo(2)-ng:,:)
-
-  ! local variables
-  integer :: i,j,n
-
-  do j=lo(2),hi(2)
-     do i=lo(1),hi(1)
-        do n=1,nc
-           ! some silly function I made up
-           data(i,j,n) = (i + j) * n
-        end do
-     end do
-  end do
-
-end subroutine work_on_data
-
-\end{lstlisting}
 Note that in C++, the {\tt FORT\_WORK\_ON\_DATA} calls a Fortran90 subroutine which is nearly
 identical to the Fortran90 example given above.  The only difference is the subroutine
 name cannot have the \_2d or \_3d in its name.  Thus, the 2d and 3d versions
