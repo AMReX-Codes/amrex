@@ -159,10 +159,10 @@ private:
 
 public:
     //
-    // Have to have these to support Array< PArray<T> >. 
+    // Disallow these. FIXME
     //
     PArray (const PArray<T>&);
-    PArray<T>& operator= (const PArray<T>& rhs);
+    // PArray<T> operator= (const PArray<T>&);
 };
 
 template <class T>
@@ -170,15 +170,6 @@ PArray<T>::PArray (const PArray<T>& c)
 {
     BL_ASSERT(c.size()==0);
     managed = c.managed;
-}
-
-template <class T>
-PArray<T>&
-PArray<T>::operator= (const PArray<T>& rhs)
-{
-    BL_ASSERT(rhs.size() == 0);
-    BL_ASSERT(size() == 0);
-    managed = rhs.managed;    
 }
 
 template <class T>
