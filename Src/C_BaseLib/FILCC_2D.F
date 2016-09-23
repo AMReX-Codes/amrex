@@ -66,7 +66,6 @@ c	    do j = ARG_L2(q), ARG_H2(q)
 c	       q(ilo-i,j) = 1.d0
 c	    end do
 c	    end do
-            call bl_error("C_BaseLib/FILCC_2D.F: EXT_DIR not specified")
          else if (bc(1,1) .eq. FOEXTRAP) then
 	    do i = 1, nlft
 	    do j = ARG_L2(q), ARG_H2(q)
@@ -113,7 +112,6 @@ c	    do j = ARG_L2(q), ARG_H2(q)
 c	       q(ihi+i,j) = 1.d0
 c	    end do
 c	    end do
-            call bl_error("C_BaseLib/FILCC_2D.F: EXT_DIR not specified")
 	 else if (bc(1,2) .eq. FOEXTRAP) then
 	    do i = 1, nrgt
 	    do j = ARG_L2(q), ARG_H2(q)
@@ -160,7 +158,6 @@ c	    do i = ARG_L1(q), ARG_H1(q)
 c	       q(i,jlo-j) = 1.d0
 c	    end do
 c	    end do
-            call bl_error("C_BaseLib/FILCC_2D.F: EXT_DIR not specified")
 	 else if (bc(2,1) .eq. FOEXTRAP) then
 	    do j = 1, nbot
 	    do i = ARG_L1(q), ARG_H1(q)
@@ -207,7 +204,6 @@ c 	    do i = ARG_L1(q), ARG_H1(q)
 c	       q(i,jhi+j) = 1.d0
 c	    end do
 c	    end do
-            call bl_error("C_BaseLib/FILCC_2D.F: EXT_DIR not specified")
 	 else if (bc(2,2) .eq. FOEXTRAP) then
 	    do j = 1, ntop
  	    do i = ARG_L1(q), ARG_H1(q)
