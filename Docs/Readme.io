@@ -26,13 +26,13 @@ stream throttling for reading to prevent thrashing.
 //tests for meta operations:  seek open close mkdir rename
 //new fabarray read algorithm.
 //pre make check directories.
+//dot in path issue
 
 separate sidecar cout output.
 compressed metadata
 preallocation
 dynamic set selection
 striping tests
-dot in path issue
 remove how
 fix VisMF::Check for new formats.
 remove duplicate writeplotfile code.
@@ -61,7 +61,7 @@ check for syncs in stream retry.
 more combining writes.
 fixes for non-native formats.
 async reads for new formats.
-useSingleRead for async.
+useSingleRead and write for async.
 check use single read and write for > sizeof(int).
 should Array::size() return size_t or size_type instead
  of int?  vector returns size_type
@@ -77,3 +77,26 @@ partial buffer iterator (shouldwrite).
 always use async read?
 NFiles::FileNumber does not always return a complete set.  for
   example with nfiles = 5 and nprocs = 7.
+Check that all options are being set.
+
+
+// ---- i/o parameters
+vismf.headerversion           (def:  Version_v1  (1) )
+vismf.groupsets               (def:  false)
+vismf.setbuf                  (def:  true)
+vismf.usesingleread           (def:  false)
+vismf.usesinglewrite          (def:  false)
+vismf.checkfilepositions      (def:  false)
+vismf.usepersistentifstreams  (def:  true)
+vismf.usesynchronousreads     (def:  false)
+vismf.usedynamicsetselection  (def:  true)
+vismf.iobuffersize            (def:  VisMF::IO_Buffer_Size)
+noutfiles                     (def:  64)
+mffile_nstreams               (def:  1)
+conversionbuffers
+irbuffsize
+wbuffsize
+amr.prereadFAHeaders
+amr.precreateDirectories
+
+
