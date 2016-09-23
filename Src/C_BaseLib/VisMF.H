@@ -261,11 +261,12 @@ public:
     FArrayBox* readFAB (int fabIndex,
                         int ncomp);
 
+    static int  GetNOutFiles ();
     static void SetNOutFiles (int noutfiles);
 
+    static int  GetMFFileInStreams ()  { return nMFFileInStreams; }
     static void SetMFFileInStreams (int nstreams);
 
-    static int GetNOutFiles ();
     static int GetVerbose ()       { return verbose; }
     static void SetVerbose (int v) { verbose = v; }
 

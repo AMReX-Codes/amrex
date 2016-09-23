@@ -69,9 +69,6 @@ bool                   Amr::first_plotfile;
 bool                   Amr::first_smallplotfile;
 bool                   Amr::precreateDirectories;
 bool                   Amr::prereadFAHeaders;
-bool                   Amr::useSingleRead;
-bool                   Amr::useSingleWrite;
-bool                   Amr::checkFilePositions;
 Array<BoxArray>        Amr::initial_ba;
 Array<BoxArray>        Amr::regrid_ba;
 bool                   Amr::useFixedCoarseGrids;
@@ -115,9 +112,6 @@ Amr::Initialize ()
     Amr::first_smallplotfile = true;
     Amr::precreateDirectories= true;
     Amr::prereadFAHeaders    = true;
-    Amr::useSingleRead       = false;
-    Amr::useSingleWrite      = false;
-    Amr::checkFilePositions  = false;
     plot_nfiles              = 64;
     mffile_nstreams          = 1;
     probinit_natonce         = 32;
@@ -1016,7 +1010,7 @@ Amr::writePlotFile ()
 
   }  // end while
 
-  VisMF::SetHeaderVersion(VisMF::Header::Version_v1);
+  VisMF::SetHeaderVersion(currentVersion);
   
   BL_PROFILE_REGION_STOP("Amr::writePlotFile()");
 }
@@ -1133,7 +1127,7 @@ Amr::writeSmallPlotFile ()
 
   }  // end while
 
-  VisMF::SetHeaderVersion(VisMF::Header::Version_v1);
+  VisMF::SetHeaderVersion(currentVersion);
   
   BL_PROFILE_REGION_STOP("Amr::writeSmallPlotFile()");
 }
@@ -3588,15 +3582,6 @@ Amr::initPltAndChk ()
 
     prereadFAHeaders = true;
     pp.query("prereadFAHeaders", prereadFAHeaders);
-
-    useSingleRead = false;
-    pp.query("useSingleRead", useSingleRead);
-
-    useSingleWrite = false;
-    pp.query("useSingleWrite", useSingleWrite);
-
-    checkFilePositions = false;
-    pp.query("checkFilePositions", checkFilePositions);
 }
 
 
@@ -3902,6 +3887,11 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
         allInts.push_back(state_small_plot_vars.size());
         allInts.push_back(derive_plot_vars.size());
 
+        allInts.push_back(VisMF::GetNOutFiles());
+        allInts.push_back(VisMF::GetMFFileInStreams());
+        allInts.push_back(VisMF::GetVerbose());
+        allInts.push_back(VisMF::GetHeaderVersion());
+
         allIntsSize = allInts.size();
       }
 
@@ -3973,7 +3963,27 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
         state_small_plot_vars_Size = allInts[count++];
         derive_plot_vars_Size      = allInts[count++];
 
+        VisMF::SetNOutFiles(allInts[count++]);
+        VisMF::SetMFFileInStreams(allInts[count++]);
+        VisMF::SetVerbose(allInts[count++]);
+        VisMF::SetHeaderVersion(static_cast<VisMF::Header::Version> (allInts[count++]));
+
 	BL_ASSERT(count == allInts.size());
+      }
+
+
+      // ---- pack up the longs
+      Array<long> allLongs;
+      if(scsMyId == ioProcNumSCS) {
+        allLongs.push_back(VisMF::GetIOBufferSize());
+      }
+
+      BoxLib::BroadcastArray(allLongs, scsMyId, ioProcNumAll, scsComm);
+      
+      // ---- unpack the longs
+      if(scsMyId != ioProcNumSCS) {
+	int count(0);
+        VisMF::SetIOBufferSize(allLongs[count++]);
       }
 
 
@@ -4030,9 +4040,16 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
         allBools.push_back(first_smallplotfile);
         allBools.push_back(precreateDirectories);
         allBools.push_back(prereadFAHeaders);
-        allBools.push_back(useSingleRead);
-        allBools.push_back(useSingleWrite);
-        allBools.push_back(checkFilePositions);
+
+	// ---- sync vismf settings
+        allBools.push_back(VisMF::GetGroupSets());
+        allBools.push_back(VisMF::GetSetBuf());
+        allBools.push_back(VisMF::GetUseSingleRead());
+        allBools.push_back(VisMF::GetUseSingleWrite());
+        allBools.push_back(VisMF::GetCheckFilePositions());
+        allBools.push_back(VisMF::GetUsePersistentIFStreams());
+        allBools.push_back(VisMF::GetUseSynchronousReads());
+        allBools.push_back(VisMF::GetUseDynamicSetSelection());
 
 	allBoolsSize = allBools.size();
       }
@@ -4056,9 +4073,15 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
         first_smallplotfile           = allBools[count++];
         precreateDirectories          = allBools[count++];
         prereadFAHeaders              = allBools[count++];
-        useSingleRead                 = allBools[count++];
-        useSingleWrite                = allBools[count++];
-        checkFilePositions            = allBools[count++];
+
+        VisMF::SetGroupSets(allBools[count++]);
+        VisMF::SetSetBuf(allBools[count++]);
+        VisMF::SetUseSingleRead(allBools[count++]);
+        VisMF::SetUseSingleWrite(allBools[count++]);
+        VisMF::SetCheckFilePositions(allBools[count++]);
+        VisMF::SetUsePersistentIFStreams(allBools[count++]);
+        VisMF::SetUseSynchronousReads(allBools[count++]);
+        VisMF::SetUseDynamicSetSelection(allBools[count++]);
       }
 
 

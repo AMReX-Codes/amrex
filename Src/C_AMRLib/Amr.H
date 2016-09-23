@@ -668,9 +668,6 @@ public:
     static bool first_smallplotfile;
     static bool precreateDirectories;
     static bool prereadFAHeaders;
-    static bool useSingleRead;
-    static bool useSingleWrite;
-    static bool checkFilePositions;
 
 #ifdef USE_PARTICLES
     AmrParGDB* m_gdb;
