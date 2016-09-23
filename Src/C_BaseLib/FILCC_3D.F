@@ -75,7 +75,6 @@ c              q(ilo-i,j,k) = 1.d0
 c           end do
 c           end do
 c	    end do
-            call bl_error("C_BaseLib/FILCC_3D.F: EXT_DIR not specified")
 	 else if (bc(1,1) .eq. FOEXTRAP) then
 	    do i = 1, nlft
             do k = ARG_L3(q),ARG_H3(q)
@@ -136,7 +135,6 @@ c              q(ihi+i,j,k) = 1.d0
 c           end do
 c           end do
 c	    end do
-            call bl_error("C_BaseLib/FILCC_3D.F: EXT_DIR not specified")
 	 else if (bc(1,2) .eq. FOEXTRAP) then
 	    do i = 1, nrgt
             do k = ARG_L3(q),ARG_H3(q)
@@ -197,7 +195,6 @@ c              q(i,jlo-j,k) = 1.d0
 c           end do
 c           end do
 c	    end do
-            call bl_error("C_BaseLib/FILCC_3D.F: EXT_DIR not specified")
 	 else if (bc(2,1) .eq. FOEXTRAP) then
 	    do j = 1, nbot
             do k = ARG_L3(q),ARG_H3(q)
@@ -258,7 +255,6 @@ c              q(i,jhi+j,k) = 1.d0
 c           end do
 c           end do
 c	    end do
-            call bl_error("C_BaseLib/FILCC_3D.F: EXT_DIR not specified")
 	 else if (bc(2,2) .eq. FOEXTRAP) then
 	    do j = 1, ntop
             do k = ARG_L3(q),ARG_H3(q)
@@ -319,7 +315,6 @@ c              q(i,j,klo-k) = 1.d0
 c           end do
 c           end do
 c	    end do
-            call bl_error("C_BaseLib/FILCC_3D.F: EXT_DIR not specified")
 	 else if (bc(3,1) .eq. FOEXTRAP) then
 	    do k = 1, ndwn
             do j = ARG_L2(q),ARG_H2(q)
@@ -380,7 +375,6 @@ c              q(i,j,khi+k) = 1.d0
 c           end do
 c           end do
 c	    end do
-            call bl_error("C_BaseLib/FILCC_3D.F: EXT_DIR not specified")
 	 else if (bc(3,2) .eq. FOEXTRAP) then
 	    do k = 1, nup
             do j = ARG_L2(q),ARG_H2(q)

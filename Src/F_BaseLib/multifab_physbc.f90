@@ -99,7 +99,6 @@ contains
        ! set all ghost cell values to a prescribed dirichlet
        ! value; in this example, we have chosen 1
        ! s(lo(1)-ng:lo(1)-1) = ONE
-       call bl_error("F_BaseLib/multifab_physbc.f90: EXT_DIR Dirichlet condition not specified")
 
     else if (bc(1,1) == FOEXTRAP) then
        ! set all ghost cell values to first interior value
@@ -141,7 +140,6 @@ contains
     
     if (bc(1,2) == EXT_DIR) then
        ! s(hi(1)+1:hi(1)+ng) = ONE
-       call bl_error("F_BaseLib/multifab_physbc.f90: EXT_DIR Dirichlet condition not specified")
 
     else if (bc(1,2) == FOEXTRAP) then
        s(hi(1)+1:hi(1)+ng) = s(hi(1))
@@ -197,7 +195,6 @@ contains
        ! do j = lo(2)-ng, hi(2)+ng
        !   s(lo(1)-ng:lo(1)-1,j) = ONE
        ! end do
-       call bl_error("F_BaseLib/multifab_physbc.f90: EXT_DIR Dirichlet condition not specified")
 
     else if (bc(1,1) == FOEXTRAP) then
        ! set all ghost cell values to first interior value
@@ -249,7 +246,6 @@ contains
        ! do j = lo(2)-ng, hi(2)+ng
        !    s(hi(1)+1:hi(1)+ng,j) = ONE
        ! end do
-       call bl_error("F_BaseLib/multifab_physbc.f90: EXT_DIR Dirichlet condition not specified")
 
     else if (bc(1,2) == FOEXTRAP) then
        do j = lo(2)-ng, hi(2)+ng
@@ -292,7 +288,6 @@ contains
        ! do i = lo(1)-ng, hi(1)+ng
        !    s(i,lo(2)-ng:lo(2)-1) = ONE
        ! end do
-       call bl_error("F_BaseLib/multifab_physbc.f90: EXT_DIR Dirichlet condition not specified")
 
     else if (bc(2,1) == FOEXTRAP) then
        do i = lo(1)-ng, hi(1)+ng
@@ -335,7 +330,6 @@ contains
        ! do i = lo(1)-ng, hi(1)+ng
        !    s(i,hi(2)+1:hi(2)+ng) = ONE
        ! end do
-       call bl_error("F_BaseLib/multifab_physbc.f90: EXT_DIR Dirichlet condition not specified")
 
     else if (bc(2,2) == FOEXTRAP) then
        do i = lo(1)-ng, hi(1)+ng
@@ -400,7 +394,6 @@ contains
        !       s(lo(1)-ng:lo(1)-1,j,k) = ONE
        !    end do
        ! end do
-       call bl_error("F_BaseLib/multifab_physbc.f90: EXT_DIR Dirichlet condition not specified")
 
     else if (bc(1,1) == FOEXTRAP) then
        ! set all ghost cell values to first interior value
@@ -462,7 +455,6 @@ contains
        !       s(hi(1)+1:hi(1)+ng,j,k) = ONE
        !    end do
        ! end do
-       call bl_error("F_BaseLib/multifab_physbc.f90: EXT_DIR Dirichlet condition not specified")
 
     else if (bc(1,2) == FOEXTRAP) then
        do k = lo(3)-ng,hi(3)+ng
@@ -515,7 +507,6 @@ contains
        !       s(i,lo(2)-ng:lo(2)-1,k) = ONE
        !    end do
        ! end do
-       call bl_error("F_BaseLib/multifab_physbc.f90: EXT_DIR Dirichlet condition not specified")
 
     else if (bc(2,1) == FOEXTRAP .or. bc(2,1) == REFLECT_EVEN) then
        do k = lo(3)-ng,hi(3)+ng
@@ -568,7 +559,6 @@ contains
        !       s(i,hi(2)+1:hi(2)+ng,k) = ONE
        !    end do
        ! end do
-       call bl_error("F_BaseLib/multifab_physbc.f90: EXT_DIR Dirichlet condition not specified")
 
     else if (bc(2,2) == FOEXTRAP .or. bc(2,2) == REFLECT_EVEN) then
        do k = lo(3)-ng,hi(3)+ng
@@ -621,7 +611,6 @@ contains
        !      s(i,j,lo(3)-ng:lo(3)-1) = ONE
        !    end do
        ! end do
-       call bl_error("F_BaseLib/multifab_physbc.f90: EXT_DIR Dirichlet condition not specified")
 
     else if (bc(3,1) == FOEXTRAP .or. bc(3,1) == REFLECT_EVEN) then
        do j = lo(2)-ng,hi(2)+ng
@@ -674,7 +663,6 @@ contains
        !       s(i,j,hi(3)+1:hi(3)+ng) = ONE
        !    end do
        ! end do
-       call bl_error("F_BaseLib/multifab_physbc.f90: EXT_DIR Dirichlet condition not specified")
 
     else if (bc(3,2) == FOEXTRAP .or. bc(3,2) == REFLECT_EVEN) then
        do j = lo(2)-ng,hi(2)+ng
