@@ -951,8 +951,18 @@ Amr::writePlotFile ()
     //  it is finished writing.  then stream retry can rename
     //  it to a bad suffix if there were stream errors.
     //
-    BoxLib::UtilRenameDirectoryToOld(pltfile, false);     // dont call barrier
-    BoxLib::UtilCreateCleanDirectory(pltfileTemp, true);  // call barrier
+
+    if(precreateDirectories) {    // ---- make all directories at once
+      BoxLib::UtilRenameDirectoryToOld(pltfile, false);      // dont call barrier
+      BoxLib::UtilCreateCleanDirectory(pltfileTemp, false);  // dont call barrier
+      for(int i(0); i <= finest_level; ++i) {
+        amr_level[i].CreateLevelDirectory(pltfileTemp);
+      }
+      ParallelDescriptor::Barrier("Amr::precreate plotfile Directories");
+    } else {
+      BoxLib::UtilRenameDirectoryToOld(pltfile, false);     // dont call barrier
+      BoxLib::UtilCreateCleanDirectory(pltfileTemp, true);  // call barrier
+    }
 
     std::string HeaderFileName(pltfileTemp + "/Header");
 
@@ -970,8 +980,9 @@ Amr::writePlotFile ()
         //
         HeaderFile.open(HeaderFileName.c_str(), std::ios::out | std::ios::trunc |
 	                                        std::ios::binary);
-        if ( ! HeaderFile.good())
+        if ( ! HeaderFile.good()) {
             BoxLib::FileOpenFailed(HeaderFileName);
+	}
         old_prec = HeaderFile.precision(15);
     }
 
@@ -1067,8 +1078,18 @@ Amr::writeSmallPlotFile ()
     //  it is finished writing.  then stream retry can rename
     //  it to a bad suffix if there were stream errors.
     //
-    BoxLib::UtilRenameDirectoryToOld(pltfile, false);     // dont call barrier
-    BoxLib::UtilCreateCleanDirectory(pltfileTemp, true);  // call barrier
+    if(precreateDirectories) {    // ---- make all directories at once
+      BoxLib::UtilRenameDirectoryToOld(pltfile, false);      // dont call barrier
+      BoxLib::UtilCreateCleanDirectory(pltfileTemp, false);  // dont call barrier
+      for(int i(0); i <= finest_level; ++i) {
+        amr_level[i].CreateLevelDirectory(pltfileTemp);
+      }
+      ParallelDescriptor::Barrier("Amr::precreate smallplotfile Directories");
+    } else {
+      BoxLib::UtilRenameDirectoryToOld(pltfile, false);     // dont call barrier
+      BoxLib::UtilCreateCleanDirectory(pltfileTemp, true);  // call barrier
+    }
+
 
     std::string HeaderFileName(pltfileTemp + "/Header");
 
@@ -1882,7 +1903,6 @@ Amr::checkPoint ()
 
     for(i = 0; i <= finest_level; ++i) {
         amr_level[i].checkPoint(ckfileTemp, HeaderFile);
-        amr_level[i].SetLevelDirectoryCreated(false);
     }
 
     if (ParallelDescriptor::IOProcessor()) {
