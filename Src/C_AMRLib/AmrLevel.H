@@ -508,12 +508,12 @@ protected:
     BoxArray              m_AreaNotToTag; //Area which shouldn't be tagged on this level.
     Box                   m_AreaToTag;    //Area which is allowed to be tagged on this level.
 
+    bool                  levelDirectoryCreated;    // for checkpoints and plotfiles
+
 private:
 
     mutable BoxArray      edge_grids[BL_SPACEDIM];  // face-centered grids
     mutable BoxArray      nodal_grids;              // all nodal grids
-
-    bool                  levelDirectoryCreated;    // for checkpoints and plotfiles
 
     //
     // Disallowed.
