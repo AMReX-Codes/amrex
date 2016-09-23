@@ -58,7 +58,16 @@ c     ::::: first fill sides
       if (nlft .gt. 0) then
          ilo = domlo(1)
 
-	 if (bc(1,1) .eq. FOEXTRAP) then
+         if (bc(1,1) .eq. EXT_DIR) then
+c     set all ghost cell values to a prescribed dirichlet
+c     value; in this example, we have chosen 1
+c	    do i = 1, nlft
+c	    do j = ARG_L2(q), ARG_H2(q)
+c	       q(ilo-i,j) = 1.d0
+c	    end do
+c	    end do
+            call bl_error("C_BaseLib/FILCC_2D.F: EXT_DIR not specified")
+         else if (bc(1,1) .eq. FOEXTRAP) then
 	    do i = 1, nlft
 	    do j = ARG_L2(q), ARG_H2(q)
 	       q(ilo-i,j) = q(ilo,j)
@@ -98,7 +107,14 @@ c     ::::: first fill sides
       if (nrgt .gt. 0) then
          ihi = domhi(1)
 
-	 if (bc(1,2) .eq. FOEXTRAP) then
+	 if (bc(1,2) .eq. EXT_DIR) then
+c	    do i = 1, nrgt
+c	    do j = ARG_L2(q), ARG_H2(q)
+c	       q(ihi+i,j) = 1.d0
+c	    end do
+c	    end do
+            call bl_error("C_BaseLib/FILCC_2D.F: EXT_DIR not specified")
+	 else if (bc(1,2) .eq. FOEXTRAP) then
 	    do i = 1, nrgt
 	    do j = ARG_L2(q), ARG_H2(q)
 	       q(ihi+i,j) = q(ihi,j)
@@ -138,7 +154,14 @@ c     ::::: first fill sides
       if (nbot .gt. 0) then
          jlo = domlo(2)
 
-	 if (bc(2,1) .eq. FOEXTRAP) then
+	 if (bc(2,1) .eq. EXT_DIR) then
+c	    do j = 1, nbot
+c	    do i = ARG_L1(q), ARG_H1(q)
+c	       q(i,jlo-j) = 1.d0
+c	    end do
+c	    end do
+            call bl_error("C_BaseLib/FILCC_2D.F: EXT_DIR not specified")
+	 else if (bc(2,1) .eq. FOEXTRAP) then
 	    do j = 1, nbot
 	    do i = ARG_L1(q), ARG_H1(q)
 	       q(i,jlo-j) = q(i,jlo)
@@ -178,7 +201,14 @@ c     ::::: first fill sides
       if (ntop .gt. 0) then
          jhi = domhi(2)
 
-	 if (bc(2,2) .eq. FOEXTRAP) then
+	 if (bc(2,2) .eq. EXT_DIR) then
+c	    do j = 1, ntop
+c 	    do i = ARG_L1(q), ARG_H1(q)
+c	       q(i,jhi+j) = 1.d0
+c	    end do
+c	    end do
+            call bl_error("C_BaseLib/FILCC_2D.F: EXT_DIR not specified")
+	 else if (bc(2,2) .eq. FOEXTRAP) then
 	    do j = 1, ntop
  	    do i = ARG_L1(q), ARG_H1(q)
 	       q(i,jhi+j) = q(i,jhi)
