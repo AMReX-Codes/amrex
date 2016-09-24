@@ -3,7 +3,7 @@ subroutine work_on_data(data, ng, nc, lo, hi) bind(C, name="work_on_data")
   implicit none
 
   integer          :: lo(3), hi(3), ng, nc
-  double precision :: data(lo(1)-ng:,lo(2)-ng:,lo(3)-ng:,:)
+  double precision :: data(lo(1)-ng:hi(1)+ng,lo(2)-ng:hi(2)+ng,lo(3)-ng:hi(3)+ng,1:nc)
 
   ! local variables
   integer :: i,j,k,n

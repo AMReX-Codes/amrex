@@ -38,13 +38,14 @@ program main
   call boxarray_build_bx(ba,bx) ! ba has one 16^2 box
   call boxarray_maxsize(ba,8)   ! ba now has four 8^2 boxes
 
+  ! build a boxarray
   call layout_build_ba(la,ba,bx,is_periodic)
 
   ! build a multifab with 2 components and 6 ghost cells
   call multifab_build(data,la,2,6)
 
-
-
+  ! look in work_on_data.f90
+  call work_on_data(data)
 
   ! free up memory to prevent leaks
   call multifab_destroy(data)
