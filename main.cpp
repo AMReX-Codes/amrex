@@ -5,9 +5,6 @@
 #include <MultiFabUtil.H>
 #include <BLFort.H>
 #include <MacBndry.H>
-#include <MGT_Solver.H>
-#include <mg_cpp_f.h>
-#include <stencil_types.H>
 #include <MultiFabUtil.H>
 
 #include "Particles.H"
@@ -22,7 +19,6 @@ int main(int argc, char* argv[])
     const Real strt_total = ParallelDescriptor::second();
 
     int    nx, ny, nz;
-    double hx, hy, hz;
 
     ParmParse pp;
 
@@ -56,7 +52,6 @@ int main(int argc, char* argv[])
        std::cout << "Size of domain               : " << nx << " " << ny << " " << nz << std::endl;
     }
 
-    Real strt_single, end_single;
     single_level(nlevs,nx,ny,nz,max_grid_size,nppc,verbose);
 
     Real end_total = ParallelDescriptor::second() - strt_total;

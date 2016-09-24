@@ -5,23 +5,17 @@
 #include <MultiFabUtil.H>
 #include <BLFort.H>
 #include <MacBndry.H>
-#include <MGT_Solver.H>
-#include <mg_cpp_f.h>
-#include <stencil_types.H>
 #include <MultiFabUtil.H>
 
 #include "Particles.H"
 
-// declare routines below
-void solve_for_accel(PArray<MultiFab>& rhs, PArray<MultiFab>& phi, PArray<MultiFab>& grad_phi,
-                     const Array<Geometry>& geom, int base_level, int finest_level, Real offset);
-
-int single_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int nppc, bool verbose) 
+void
+single_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int nppc, bool verbose) 
 {
     const int IOProc = ParallelDescriptor::IOProcessorNumber();
 
-    Real strt_init, strt_assd, strt_solve, strt_mK;
-    Real  end_init,  end_assd,  end_solve,  end_mK;
+    Real strt_init, strt_assd, strt_assc, strt_mK;
+    Real  end_init,  end_assd,  end_assc,  end_mK;
 
     // ********************************************************************************************
     // All of this defines the level 0 information -- size of box, type of boundary condition, etc.
@@ -107,12 +101,9 @@ int single_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int nppc,
     MyPC->SetVerbose(0);
 
     // This allows us to write the gravitational acceleration into these components 
-    int accel_comp = BL_SPACEDIM+1;
-    Real dummy_dt  = 0.0;
 
     int num_particles = nppc * nx * ny * nz;
-    int iseed = 10;
-    Real mass  = 10.0;
+    Real charge = 1.0;
 
     if (ParallelDescriptor::IOProcessor())
        std::cout << "Total number of particles    : " << num_particles << '\n' << '\n';
@@ -121,61 +112,93 @@ int single_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int nppc,
     // Do a single-level solve on level 0
     // **************************************************************************
 
-    // Initialize "num_particles" number of particles, each with mass/charge "mass"
-    bool serialize = false;
-
     strt_init = ParallelDescriptor::second();
-    MyPC->InitRandom(num_particles,iseed,mass,serialize);
+
+    // Randomly initialize "num_particles" number of particles, each with charge "charge"
+    // bool serialize = false;
+    // int iseed   = 10;
+    // MyPC->InitRandom(num_particles,iseed,charge,serialize);
+
+    // Initialize one particle at each cell center
+    MultiFab dummy_mf(ba[0],1,0,Fab_allocate);
+    MyPC->InitOnePerCell(0.5,0.5,0.5,charge,dummy_mf);
+
     end_init = ParallelDescriptor::second() - strt_init;
 
     // Write out the positions, masses and accelerations of each particle.
-    // if (verbose) MyPC->WriteAsciiFile("Particles_before");
-
-    // **************************************************************************
-    // Compute the total charge of all particles in order to compute the offset
-    //     to make the Poisson equations solvable
-    // **************************************************************************
-    Real offset = 0.;
-    if (geom[0].isAllPeriodic()) 
-    {
-        offset = MyPC->sumParticleMass(lev);
-        offset /= geom[0].ProbSize();
-    }
+    if (verbose) MyPC->WriteAsciiFile("Particles_before");
 
     // **************************************************************************
 
-    // Define the density on level 0 from all particles at all levels
-    int base_level   = 0;
-    int finest_level = 0;
+    MultiFab ChargeMF;
+    IntVect nodal(1,1,1);
+    ChargeMF.define(ba[0],1,0,Fab_allocate,nodal);
 
-    PArray<MultiFab> PartMF;
-    IntVect nodal (1,1,1);
-    PartMF.resize(nlevs,PArrayManage);
-    PartMF.set(0,new MultiFab(ba[0],1,0,Fab_allocate,nodal));
-    PartMF[0].setVal(0.0);
+    // **************************************************************************
+    // First we test the PICSAR charge deposition
+    // **************************************************************************
 
     strt_assd = ParallelDescriptor::second();
+
+    // Initialize to zero
+    ChargeMF.setVal(0.0);
     
     // Charge deposition
-    MyPC->PicsarDeposition(PartMF[0],0,1,0); 
+    MyPC->ChargeDeposition(ChargeMF,0); 
+
+    std::cout << "PICSAR:Min of ChargeMF " << ChargeMF.min(0,0) << std::endl;
+    std::cout << "PICSAR:Max of ChargeMF " << ChargeMF.max(0,0) << std::endl;
+
+    std::cout << ChargeMF[0] << std::endl;
 
     end_assd = ParallelDescriptor::second() - strt_assd;
 
-    MultiFab::Add(rhs[0], PartMF[0], 0, 0, 1, 0);
- 
     // **************************************************************************
-    // Define this to be solve at level 0 only
+    // Next we test the BoxLib charge deposition
     // **************************************************************************
 
-    base_level   = 0;
-    finest_level = 0;
+    strt_assd = ParallelDescriptor::second();
 
-    strt_solve = ParallelDescriptor::second();
+    // Initialize to zero
+    ChargeMF.setVal(0.0);
+    
+    // Charge deposition
+    MyPC->AssignNodalDensitySingleLevel(ChargeMF,0,1); 
 
-    // Use multigrid to solve Lap(phi) = rhs with periodic boundary conditions (set above)
-    solve_for_accel(rhs,phi,grad_phi,geom,base_level,finest_level,offset);
+    std::cout << "BoxLib:Min of ChargeMF " << ChargeMF.min(0,0) << std::endl;
+    std::cout << "BoxLib:Max of ChargeMF " << ChargeMF.max(0,0) << std::endl;
 
-    end_solve = ParallelDescriptor::second() - strt_solve;
+    std::cout << ChargeMF[0] << std::endl;
+
+    end_assd = ParallelDescriptor::second() - strt_assd;
+
+    // **************************************************************************
+    // Now we test the PICSAR current deposition
+    // **************************************************************************
+
+    PArray<MultiFab> CurrentMF;
+    CurrentMF.resize(BL_SPACEDIM,PArrayManage);
+
+    IntVect x_face (1,0,0);
+    CurrentMF.set(0,new MultiFab(ba[0],1,0,Fab_allocate,x_face));
+
+    IntVect y_face (0,1,0);
+    CurrentMF.set(1,new MultiFab(ba[0],1,0,Fab_allocate,y_face));
+
+    IntVect z_face (0,0,1);
+    CurrentMF.set(2,new MultiFab(ba[0],1,0,Fab_allocate,z_face));
+
+    CurrentMF[0].setVal(0.0);
+    CurrentMF[1].setVal(0.0);
+    CurrentMF[2].setVal(0.0);
+
+    strt_assc = ParallelDescriptor::second();
+
+    // Current deposition
+    // Real dummy_dt  = 1.0;
+    // MyPC->CurrentDeposition(CurrentMF,0,dummy_dt); 
+
+    end_assc = ParallelDescriptor::second() - strt_assc;
 
     // Fill the particle data with the acceleration at the particle location
     // Note that we are calling moveKick with accel_comp > BL_SPACEDIM
@@ -183,7 +206,7 @@ int single_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int nppc,
 
     strt_mK = ParallelDescriptor::second();
 
-    MyPC->moveKick(grad_phi[0],nlevs-1,dummy_dt,1.0,1.0,accel_comp);
+    // MyPC->moveKick(grad_phi[0],nlevs-1,dummy_dt,1.0,1.0,accel_comp);
 
     end_mK = ParallelDescriptor::second() - strt_mK;
 
@@ -192,15 +215,15 @@ int single_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int nppc,
 
     delete MyPC;
 
-    ParallelDescriptor::ReduceRealMax(end_init ,IOProc);
+    ParallelDescriptor::ReduceRealMax(end_init,IOProc);
     ParallelDescriptor::ReduceRealMax(end_assd,IOProc);
-    ParallelDescriptor::ReduceRealMax(end_solve,IOProc);
-    ParallelDescriptor::ReduceRealMax(end_mK   ,IOProc);
+    ParallelDescriptor::ReduceRealMax(end_assc,IOProc);
+    ParallelDescriptor::ReduceRealMax(end_mK  ,IOProc);
     if (verbose && ParallelDescriptor::IOProcessor())
     {
-           std::cout << "Time in InitRandom   : " << end_init  << '\n';
-           std::cout << "Time in AssignDensity: " << end_assd  << '\n';
-           std::cout << "Time in Solve        : " << end_solve << '\n';
-           std::cout << "Time in moveKick     : " << end_mK    << '\n';
+           std::cout << "Time in InitRandom       : " << end_init << '\n';
+           std::cout << "Time in ChargeDeposition : " << end_assd << '\n';
+           std::cout << "Time in CurrentDeposition: " << end_assc << '\n';
+           std::cout << "Time in moveKick         : " << end_mK   << '\n';
     }
 }
