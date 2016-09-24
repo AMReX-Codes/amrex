@@ -149,8 +149,6 @@ single_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int nppc, boo
     std::cout << "PICSAR:Min of ChargeMF " << ChargeMF.min(0,0) << std::endl;
     std::cout << "PICSAR:Max of ChargeMF " << ChargeMF.max(0,0) << std::endl;
 
-    std::cout << ChargeMF[0] << std::endl;
-
     end_assd = ParallelDescriptor::second() - strt_assd;
 
     // **************************************************************************
