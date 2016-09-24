@@ -245,6 +245,16 @@ Geometry geom;
 geom.define(bx, &real_box, coord, is_per);
 \end{lstlisting}
 
+
+\subsection{Floating point data}
+
+Floating point data in C++ is declared as {\tt Real} which is {\tt
+typedef} to either {\tt float} or {\tt double} depending on how {\tt
+PRECISION} is set in the {\tt GNUmakefile}.  This is defined in {\tt
+REAL.H}.  In Fortran90, the {\tt bl\_types} module defines a type {\tt dp\_t} that
+is double precision.  Floating point types should be declared using
+{\tt real (kind=dp\_t)}.
+
 \subsection{\FArrayBox}
 
 A \FArrayBox\ (or \Fab) is a ``Fortran array box'' that holds data.  It contains the
@@ -260,16 +270,6 @@ the data.
 
 In \BoxLib, we don't usually deal with 
 \Fab s alone, but rather through \MultiFab s, described next.
-
-\subsection{Floating point data}
-
-Floating point data in C++ is declared as {\tt Real} which is {\tt
-typedef} to either {\tt float} or {\tt double} depending on how {\tt
-PRECISION} is set in the {\tt GNUmakefile}.  This is defined in {\tt
-REAL.H}.  In Fortran90, the {\tt bl\_types} module defines a type {\tt dp\_t} that
-is double precision.  Floating point types should be declared using
-{\tt real (kind=dp\_t)}.
-
 
 \section{The \MultiFab}
 \MultiFab s are so important that we will give them their own section.
@@ -331,17 +331,170 @@ data.set(0, new MultiFab(ba, 2, 6));
 In the next section we will demonstrate how to access \MultiFab\ data.
 
 \section{First Example - Accessing \MultiFab\ Data}
+The first ``full code'' example demonstrates how to build a \MultiFab\ and access its data.
+There are both Fortran90 and C++ versions of these codes in 
+{\tt BoxLib/Tutorials/GettingStarted\_F/} and {\tt BoxLib/Tutorials/GettingStarted\_C/}.
+Note that these codes don't actually solve equations or write data to plotfiles, but they
+are meant to be simple introductions for how to initialize and eventually manipulate data.
 
-Here is a complete Fortran90 program that shows you how to build a 
-\MultiFab\ and access its data.  The complete source code, which you can build and run,
-is in {\tt BoxLib/Tutorials/GettingStarted\_F/}.  It consists of two source code files; {\tt main.f90}:
+\subsection{Fortran90}
+
+In the problem directory, you will see the following files:
+\begin{itemize}
+\item {\tt GNUmakefile}
+
+This contains compiler settings and directories required by the make system to build the code.
+
+  \begin{itemize}
+
+    \item {\tt BOXLIB\_HOME}
+
+    Change this to point to the \BoxLib\ home directory.  Alternatively, you can define {\tt BOXLIB\_HOME}
+    as an environment variable on your system and this line will be ignored.
+
+    \item {\tt NDEBUG} ('{\tt t}' or '{\tt <blank>}') for TRUE or FALSE
+      
+    ``not debug'' (we know, confusing).  If '{\tt t}', modifies compiler flags to build a 
+    more optimized version of the code.  The program will run faster, but have fewer 
+    runtime error checks.
+
+    \item {\tt MPI} ('{\tt t}' or '{\tt <blank>}')
+
+    Indicate whether you want your executable to be MPI-compatible.  MPI must be installed on your
+    machine in order to use this, and you must modify some of the make scripts, as will be 
+    discussed later.
+
+    \item {\tt OMP} ('{\tt t}' or '{\tt <blank>}')
+
+    Turns on OpenMP compiler flags to compile in any OpenMP directives in the code.
+    We will discuss OpenMP further in Section \ref{Sec:OpenMP}.
+
+    \item {\tt PROF} ('{\tt t}' or '{\tt <blank>}')
+
+    Turns on timer compilation flags.  Timers are useful for optimizing your code since they tell you 
+    what subroutines are taking the most time and require more optimization.  Note that you still have 
+    to write timers into your code.  Documentation for timers is coming soon!
+
+    \item {\tt COMP} ('{\tt gfortran}', '{\tt Intel}', $\ldots$)
+
+    The Fortran compiler.  Supported options include {\tt gfortran}, {\tt Intel}, 
+    and {\tt Cray}.
+
+    \item {\tt MKVERBOSE} ('{\tt t}' or '{\tt <blank>}')
+
+    Verbosity of compile-time output.
+
+  \end{itemize}
+
+\item {\tt GPackage.mak}
+
+List of local files needed to be included in the build.  The {\tt GNUmakefile} points to this.
+
+\item {\tt main.f90}, {\tt work\_on\_data.f90}
+
+Source code that is not within the {\tt BoxLib/Src/} tree.  Note that 
+if a file that exists in the
+{\tt BoxLib/Src/} tree also exists in the local directory, the local copy takes precedence
+as long as the {\tt GNUmakefile} lists your local directory as a {\tt VPATH\_LOCATIONS} 
+before the \BoxLib\ source code directory, {\tt BoxLib/Src/F\_BaseLib}.
+
+\end{itemize}
+
+To build the code, edit the {\tt GNUmakefile} and simply type ``{\tt make}''.  An 
+executable will appear that has some indication (but not complete)
+about what setting you used in the {\tt GNUmakefile}.  To run the code on a single processor,
+simply type, for example (terminal commands and non-source code files are shaded in red),
+\begin{lstlisting}[backgroundcolor=\color{light-red}]
+./main.Linux.gfortran.exe
+\end{lstlisting}
+
+Here are the two source code files; {\tt main.f90}:
 \lstinputlisting[backgroundcolor=\color{light-green}]{../../Tutorials/GettingStarted_F/main.f90}
 and {\tt work\_on\_data.f90}:
 \lstinputlisting[backgroundcolor=\color{light-green}]{../../Tutorials/GettingStarted_F/work_on_data.f90}
 
-Here is a complete C++ program that shows you how to build a 
-\MultiFab\ and access its data.  The complete source code, which you can build and run,
-is in {\tt BoxLib/Tutorials/GettingStarted\_C/}.  It consists of two source code files; {\tt main.cpp}:
+\subsection{C++}
+
+In the problem directory, you will see the following files:
+\begin{itemize}
+\item {\tt GNUmakefile}
+
+This contains compiler settings and directories required by the make system to build the code.
+
+  \begin{itemize}
+
+    \item {\tt BOXLIB\_HOME}
+
+    Change this to point to the \BoxLib\ home directory.  Alternatively, you can define {\tt BOXLIB\_HOME}
+    as an environment variable on your system and this line will be ignored.
+
+    \item {\tt DEBUG} ('{\tt TRUE}' or '{\tt FALSE}')
+      
+    Debug mode.  If 'FALSE', modifies compiler flags to build a more optimized version of the code.
+    The program will run faster, but have fewer runtime error checks.
+
+    \item {\tt USE\_MPI} ('{\tt TRUE}' or '{\tt FALSE}')
+
+    Indicate whether you want your executable to be MPI-compatible.  MPI must be installed on your
+    machine in order to use this, and you must modify some of the make scripts, as will be 
+    discussed later.
+
+    \item {\tt USE\_OMP} ('{\tt TRUE}' or '{\tt FALSE}')
+    
+    Turns on OpenMP compiler flags to compile in any OpenMP directives in the code.
+    We will discuss OpenMP further in Chapter \ref{Sec:OpenMP}.
+
+    \item {\tt PROFILE} ('{\tt TRUE}' or '{\tt FALSE}')
+
+    Turns on timer compilation flags.  Timers are useful for optimizing your code since they tell you 
+    what subroutines are taking the most time and require more optimization.  Note that you still have 
+    to write timers into your code.  Documentation for timers is coming soon!
+
+    \item {\tt COMP} ('{\tt g++}', '{\tt Intel}', $\ldots$)
+
+    The C++ compiler.  Supported options include {\tt g++}, {\tt Intel}, and
+    {\tt Cray}.
+
+    \item {\tt FCOMP} ('{\tt gfortran}', '{\tt Intel}', $\ldots$)
+
+    The Fortran compiler.  Supported options include {\tt g++}, {\tt Intel}, and
+    {\tt Cray}.
+
+    \item {\tt DIM} ('1', '2', or '3')
+
+    Dimensionality of the problem.  Unlike Fortran90, you need to set this in the C++ version.
+
+    \item {\tt PRECISION} ('{\tt DOUBLE}' or '{\tt FLOAT}')
+
+    Precision of real numbers.  You can use {\tt FLOAT} for single-precision real numbers to save memory.
+
+    \item {\tt EBASE} ('{\tt main}', $\ldots$)
+
+    The executable string will begin with this.
+
+  \end{itemize}
+
+\item {\tt Make.package}
+
+List of local files needed to be included in the build.  The {\tt GNUmakefile} points to this.
+
+\item {\tt main.f90}, {\tt work\_on\_data\_2d.f90}, {\tt work\_on\_data\_3d.f90}
+
+Source code that is not within the {\tt BoxLib/Src/} tree.  Note that if a file that 
+exists in the
+{\tt BoxLib/Src/} tree also exists in the local directory, the local copy takes precedence
+as long as the {\tt GNUmakefile} lists your local directory in the {\tt include} line before
+before the \BoxLib\ source code directories.
+
+\end{itemize}
+
+To build the code, simply type ``{\tt make}''.  An exectubale will appear that has some indication (but not complete)
+about what setting you used in the {\tt GNUmakefile}.  To run the code on one processor, simply type, for example,
+\begin{lstlisting}[backgroundcolor=\color{light-red}]
+./main2d.Linux.g++.gfortran.ex
+\end{lstlisting}
+
+Here are the two source code files; {\tt main.cpp}:
 \lstinputlisting[backgroundcolor=\color{light-blue}]{../../Tutorials/GettingStarted_C/main.cpp}
 and {\tt work\_on\_data\_2d.f90}:
 \lstinputlisting[backgroundcolor=\color{light-blue}]{../../Tutorials/GettingStarted_C/work_on_data_2d.f90}
@@ -459,165 +612,21 @@ do i=1,dm
 end do
 \end{lstlisting}
 
-In the problem directory, you will see the following files:
-\begin{itemize}
-\item {\tt GNUmakefile}
-
-This contains compiler settings and directories required by the make system to build the code.
-
-  \begin{itemize}
-
-    \item {\tt BOXLIB\_HOME}
-
-    Change this to point to the \BoxLib\ home directory.  Alternatively, you can define {\tt BOXLIB\_HOME}
-    as an environment variable on your system and this line will be ignored.
-
-    \item {\tt NDEBUG} ('{\tt t}' or '{\tt <blank>}') for TRUE or FALSE
-      
-    ``not debug'' (we know, confusing).  If '{\tt t}', modifies compiler flags to build a 
-    more optimized version of the code.  The program will run faster, but have fewer 
-    runtime error checks.
-
-    \item {\tt MPI} ('{\tt t}' or '{\tt <blank>}')
-
-    Indicate whether you want your executable to be MPI-compatible.  MPI must be installed on your
-    machine in order to use this, and you must modify some of the make scripts, as will be 
-    discussed later.
-
-    \item {\tt OMP} ('{\tt t}' or '{\tt <blank>}')
-
-    Turns on OpenMP compiler flags to compile in any OpenMP directives in the code.
-    We will discuss OpenMP further in Section \ref{Sec:OpenMP}.
-
-    \item {\tt PROF} ('{\tt t}' or '{\tt <blank>}')
-
-    Turns on timer compilation flags.  Timers are useful for optimizing your code since they tell you 
-    what subroutines are taking the most time and require more optimization.  Note that you still have 
-    to write timers into your code.  Documentation for timers is coming soon!
-
-    \item {\tt COMP} ('{\tt gfortran}, {\tt Intel}, $\ldots$)'
-
-    The Fortran compiler.  Supported options include {\tt gfortran}, {\tt Intel}, 
-    and {\tt Cray}.
-
-    \item {\tt MKVERBOSE} ('{\tt t}' or '{\tt <blank>}')
-
-    Verbosity of compile-time output.
-
-  \end{itemize}
-
-\item {\tt GPackage.mak}
-
-List of local files needed to be included in the build.  The {\tt GNUmakefile} points to this.
-
-\item {\tt main.f90}, {\tt init\_phi.f90}, {\tt advance.f90}, {\tt write\_plotfile.f90}
-
-Source code that is not within the {\tt BoxLib/Src/} tree.  Note that 
-if a file that exists in the
-{\tt BoxLib/Src/} tree also exists in the local directory, the local copy takes precedence
-as long as the {\tt GNUmakefile} lists your local directory as a {\tt VPATH\_LOCATIONS} 
-before the \BoxLib\ source code directory, {\tt BoxLib/Src/F\_BaseLib}.
-
-\item {\tt inputs\_2d}, {\tt inputs\_3d}
-
-Input files to customize the simulation parameters.
-
-\end{itemize}
-
-To build the code, edit the {\tt GNUmakefile} and simply type ``{\tt make}''.  An 
-executable will appear that has some indication (but not complete)
-about what setting you used in the {\tt GNUmakefile}.  To run the code on a single processor,
-simply type, for example (terminal commands and non-source code files are shaded in red),
+In the problem directory, you will now see inputs files that are read in by the program
+to customize simulation parameters.
+When you build and run this program using, e.g.,
 \begin{lstlisting}[backgroundcolor=\color{light-red}]
 ./main.Linux.gfortran.exe inputs_2d
 \end{lstlisting}
-The program will complete and there will be a series of plotfiles, e.g., {\tt plt00000}, 
+there will be a series of plotfiles, e.g., {\tt plt00000}, 
 {\tt plt00100}, etc., in the run directory.  You can visualize the data 
 and make animations using {\tt VisIt} (available at {\tt https://wci.llnl.gov/codes/visit/});
 refer to Section \ref{Sec:VisIt}.
 
 \subsection{C++}
 The C++ version of this example is contained in {\tt BoxLib/Tutorials/HeatEquation\_EX1\_C/}.
-
-\begin{itemize}
-\item {\tt GNUmakefile}
-
-This contains compiler settings and directories required by the make system to build the code.
-
-  \begin{itemize}
-
-    \item {\tt BOXLIB\_HOME}
-
-    Change this to point to the \BoxLib\ home directory.  Alternatively, you can define {\tt BOXLIB\_HOME}
-    as an environment variable on your system and this line will be ignored.
-
-    \item {\tt DEBUG} ('{\tt TRUE}' or '{\tt FALSE}')
-      
-    Debug mode.  If 'FALSE', modifies compiler flags to build a more optimized version of the code.
-    The program will run faster, but have fewer runtime error checks.
-
-    \item {\tt USE\_MPI} ('{\tt TRUE}' or '{\tt FALSE}')
-
-    Indicate whether you want your executable to be MPI-compatible.  MPI must be installed on your
-    machine in order to use this, and you must modify some of the make scripts, as will be 
-    discussed later.
-
-    \item {\tt USE\_OMP} ('{\tt TRUE}' or '{\tt FALSE}')
-    
-    Turns on OpenMP compiler flags to compile in any OpenMP directives in the code.
-    We will discuss OpenMP further in Chapter \ref{Sec:OpenMP}.
-
-    \item {\tt PROFILE} ('{\tt TRUE}' or '{\tt FALSE}')
-
-    Turns on timer compilation flags.  Timers are useful for optimizing your code since they tell you 
-    what subroutines are taking the most time and require more optimization.  Note that you still have 
-    to write timers into your code.  Documentation for timers is coming soon!
-
-    \item {\tt COMP} ('{\tt g++}, {\tt Intel}, $\ldots$)'
-
-    The C++ compiler.  Supported options include {\tt g++}, {\tt Intel}, and
-    {\tt Cray}.
-
-    \item {\tt FCOMP} ('{\tt gfortran}, {\tt Intel}, $\ldots$)'
-
-    The Fortran compiler.  Supported options include {\tt g++}, {\tt Intel}, and
-    {\tt Cray}.
-
-    \item {\tt DIM} ('1', '2', or '3')
-
-    Dimensionality of the problem.  Unlike Fortran90, you need to set this in the C++ version.
-
-    \item {\tt PRECISION} ('{\tt DOUBLE}' or '{\tt FLOAT}')
-
-    Precision of real numbers.  You can use {\tt FLOAT} for single-precision real numbers to save memory.
-
-    \item {\tt EBASE} ('{\tt main}', $\ldots$)
-
-    The executable string will begin with this.
-
-  \end{itemize}
-
-\item {\tt Make.package}
-
-List of local files needed to be included in the build.  The {\tt GNUmakefile} points to this.
-
-\item {\tt main.f90}, {\tt writePlotFile.cpp}, {\tt writePlotFile.H}, {\tt init\_phi\_2d.f90},
-      {\tt init\_phi\_3d.f90}, {\tt advance\_2d.f90}, {\tt advance\_3d.f90}
-
-Source code that is not within the {\tt BoxLib/Src/} tree.  Note that if a file that 
-exists in the
-{\tt BoxLib/Src/} tree also exists in the local directory, the local copy takes precedence
-as long as the {\tt GNUmakefile} lists your local directory in the {\tt include} line before
-before the \BoxLib\ source code directories.
-
-\item {\tt inputs\_2d}, {\tt inputs\_3d}
-
-Input files to customize the simulation parameters.
-
-\end{itemize}
-
-To build the code, simply type ``{\tt make}''.  An exectubale will appear that has some indication (but not complete)
-about what setting you used in the {\tt GNUmakefile}.  To run the code on one processor, simply type, for example,
+Note there are now inputs files, as well as plotfile writing routines.
+When you build and run this program using, e.g.,
 \begin{lstlisting}[backgroundcolor=\color{light-red}]
 ./main2d.Linux.g++.gfortran.ex inputs_2d
 \end{lstlisting}
@@ -714,8 +723,8 @@ using ``{\tt squeue -u <username>}'' and view your position in the queue
 using ``{\tt squeue}''.
 
 \section{Running in Parallel with MPI/OpenMP (3D ONLY)}\label{Sec:OpenMP}
-Both the C++ and Fortran versions of this tutorial also support hybrid MPI/OpenMP parallelism for 
-{\bf three-dimensional problems only}.
+Both the C++ and Fortran versions of the first heat equation tutorial 
+support hybrid MPI/OpenMP parallelism for {\bf three-dimensional problems only}.
 You may add OMP parallelism to two-dimensional work loops, but be advised that subroutines within the \BoxLib\ infrastructure 
 are not threaded for two-dimensional problems.
 To ``thread'' the code, we have simply added OpenMP directives (using the {\tt !\$omp parallel do} 
