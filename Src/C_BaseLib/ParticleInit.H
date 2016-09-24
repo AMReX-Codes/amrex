@@ -898,8 +898,9 @@ ParticleContainer<N>::InitCosmo1ppcMultiLevel(MultiFab& mf, const Real disp_fac[
       		        ParticleBase::PeriodicShift(p,m_gdb);
 
                         if (!ParticleBase::Where(p,m_gdb))
-                            BoxLib::Abort("ParticleContainer<N>::InitCosmo(): invalid particle");
-		    }
+                            BoxLib::Abort("ParticleContainer<N>::InitCosmo1ppcMultiLevel():invalid particle");
+                    }
+
 		    BL_ASSERT(p.m_lev >= 0 && p.m_lev <= m_gdb->finestLevel());
 		    //handle particles that ran out of this level into a finer one. 
 		    if (baWhereNot.contains(p.m_cell))
@@ -924,7 +925,7 @@ ParticleContainer<N>::InitCosmo1ppcMultiLevel(MultiFab& mf, const Real disp_fac[
 			    ParticleBase::PeriodicShift(newp[i],m_gdb);
     
 			    if (!ParticleBase::Where(newp[i],m_gdb))
-				BoxLib::Abort("ParticleContainer<N>::InitCosmo(): invalid particle");
+                                BoxLib::Abort("ParticleContainer<N>::InitCosmo1ppcMultiLevel():invalid particle");
 			}
 			m_particles[newp[i].m_lev][newp[i].m_grid].push_back(newp[i]);
 		      }
@@ -1010,7 +1011,7 @@ ParticleContainer<N>::InitCosmo1ppc (MultiFab& mf, const Real vel_fac[], const R
       		        ParticleBase::PeriodicShift(p,m_gdb);
 
                         if (!ParticleBase::Where(p,m_gdb))
-                            BoxLib::Abort("ParticleContainer<N>::InitCosmo(): invalid particle");
+                            BoxLib::Abort("ParticleContainer<N>::InitCosmo1ppc(): invalid particle");
 		    }
 
 	            BL_ASSERT(p.m_lev >= 0 && p.m_lev <= m_gdb->finestLevel());
@@ -1449,3 +1450,203 @@ ParticleContainer<N>::InitRandom (long          icount,
     }
 }
 
+template <int N>
+void
+ParticleContainer<N>::InitOnePerCell (Real x_off, Real y_off, Real z_off,
+                                      Real      mass, 
+                                      MultiFab& particle_mf)
+{
+    BL_PROFILE("ParticleContainer<N>::InitOnePerCell()");
+
+    BL_ASSERT(m_gdb != 0);
+
+    // Note that x_off, y_off and z_off are the offsets from the lower left corner
+    //      in each cell as measured in units of dx, so they must be in [0,1]
+    BL_ASSERT(x_off >= 0. && y_off >= 0. && z_off >= 0.); 
+    BL_ASSERT(x_off <= 1. && y_off <= 1. && z_off <= 1.); 
+
+    const int       IOProc   = ParallelDescriptor::IOProcessorNumber();
+    const Real      strttime = ParallelDescriptor::second();
+    const Geometry& geom     = m_gdb->Geom(0);
+
+    //
+    // This assumes level 0 since geom = m_gdb->Geom(0)
+    //
+    const Real* dx  = geom.CellSize();
+
+    m_particles.reserve(15);  // So we don't ever have to do any copying on a resize.
+    m_particles.resize(m_gdb->finestLevel()+1);
+
+    for (int lev = 0; lev < m_particles.size(); lev++)
+        BL_ASSERT(m_particles[lev].empty());
+
+    //
+    // We'll generate the particles in parallel -- but no tiling here.
+    //
+    for (MFIter mfi(particle_mf,false); mfi.isValid(); ++mfi)
+    {
+        Box grid = m_gdb->ParticleBoxArray(0)[mfi.index()];
+        RealBox grid_box = RealBox(grid,dx,geom.ProbLo());
+
+	int nx = grid.length(0), ny = grid.length(1), nz = grid.length(2); 
+
+        for (int i = 0; i < nx; i++) {
+         for (int j = 0; j < ny; j++) {
+          for (int k = 0; k < nz; k++)
+          {
+            ParticleType p;
+
+            p.m_pos[0] = grid_box.lo(0) + (x_off + i)*dx[0];
+            p.m_pos[1] = grid_box.lo(1) + (y_off + j)*dx[1];
+            p.m_pos[2] = grid_box.lo(2) + (z_off + k)*dx[2];
+
+            for (int i = 0; i < BL_SPACEDIM; i++)
+                BL_ASSERT(p.m_pos[i] < grid_box.hi(i));
+
+            if (N > 0)
+            {
+                p.m_data[0] = mass;
+
+                for (int i = 1; i < N; i++)
+                    //
+                    // Just zero out the rest of the data for lack of a better value.
+                    //
+                    p.m_data[i] = 0;
+            }
+
+            p.m_id  = ParticleBase::NextID();
+            p.m_cpu = ParallelDescriptor::MyProc();
+
+            if (!ParticleBase::Where(p,m_gdb))
+            {
+                BoxLib::Abort("ParticleContainer<N>::InitOnePerCell(): invalid particle");
+            }
+
+            BL_ASSERT(p.m_lev >= 0 && p.m_lev <= m_gdb->finestLevel());
+            //
+            // Add it to the appropriate PBox at the appropriate level.
+            //
+            m_particles[p.m_lev][p.m_grid].push_back(p);
+          } 
+         } 
+        }
+    }
+
+    //
+    // We still need to redistribute in order to define each particle's cell, grid and level, but this 
+    //    shouldn't require any inter-node communication because the particles should already be in the right grid.
+    //
+    Redistribute(true);
+
+    if (m_verbose > 1)
+    {
+        Real stoptime = ParallelDescriptor::second() - strttime;
+
+        ParallelDescriptor::ReduceRealMax(stoptime,IOProc);
+
+        if (ParallelDescriptor::IOProcessor())
+        {
+            std::cout << "ParticleContainer<N>::InitOnePerCell() time: " << stoptime << '\n';
+        }
+    }
+}
+
+template <int N>
+void
+ParticleContainer<N>::InitNRandomPerCell (int n_per_cell, Real mass, MultiFab& particle_mf)
+{
+    BL_PROFILE("ParticleContainer<N>::InitNRandomPerCell()");
+
+    BL_ASSERT(m_gdb != 0);
+
+    const int       IOProc   = ParallelDescriptor::IOProcessorNumber();
+    const Real      strttime = ParallelDescriptor::second();
+    const Geometry& geom     = m_gdb->Geom(0);
+
+    //
+    // This assumes level 0 since geom = m_gdb->Geom(0)
+    //
+    const Real* dx  = geom.CellSize();
+
+    Real r;
+
+    m_particles.reserve(15);  // So we don't ever have to do any copying on a resize.
+    m_particles.resize(m_gdb->finestLevel()+1);
+
+    for (int lev = 0; lev < m_particles.size(); lev++)
+        BL_ASSERT(m_particles[lev].empty());
+
+    //
+    // We'll generate the particles in parallel -- but no tiling here.
+    //
+    for (MFIter mfi(particle_mf,false); mfi.isValid(); ++mfi)
+    {
+        Box grid = m_gdb->ParticleBoxArray(0)[mfi.index()];
+        RealBox grid_box = RealBox(grid,dx,geom.ProbLo());
+
+	int nx = grid.length(0), ny = grid.length(1), nz = grid.length(2); 
+
+        for (int i = 0; i < nx; i++) {
+         for (int j = 0; j < ny; j++) {
+          for (int k = 0; k < nz; k++)
+          {
+            ParticleType p;
+
+            for (int n = 0; n < n_per_cell; n++)
+            {
+               r = BoxLib::Random();
+               p.m_pos[0] = grid_box.lo(0) + (r + i)*dx[0];
+               r = BoxLib::Random();
+               p.m_pos[1] = grid_box.lo(1) + (r + j)*dx[1];
+               r = BoxLib::Random();
+               p.m_pos[2] = grid_box.lo(2) + (r + k)*dx[2];
+
+               for (int i = 0; i < BL_SPACEDIM; i++)
+                   BL_ASSERT(p.m_pos[i] < grid_box.hi(i));
+
+               if (N > 0)
+               {
+                   p.m_data[0] = mass;
+   
+                   for (int i = 1; i < N; i++)
+                       //
+                       // Just zero out the rest of the data for lack of a better value.
+                       //
+                       p.m_data[i] = 0;
+               }
+
+               p.m_id  = ParticleBase::NextID();
+               p.m_cpu = ParallelDescriptor::MyProc();
+
+               if (!ParticleBase::Where(p,m_gdb))
+                   BoxLib::Abort("ParticleContainer<N>::InitNRandomPerCell(): invalid particle");
+
+               BL_ASSERT(p.m_lev >= 0 && p.m_lev <= m_gdb->finestLevel());
+               //
+               // Add it to the appropriate PBox at the appropriate level.
+               //
+               m_particles[p.m_lev][p.m_grid].push_back(p);
+            }
+          } 
+         } 
+        }
+    }
+
+    //
+    // We still need to redistribute in order to define each particle's cell, grid and level, but this 
+    //    shouldn't require any inter-node communication because the particles should already be in the right grid.
+    //
+    Redistribute(true);
+
+    if (m_verbose > 1)
+    {
+        Real stoptime = ParallelDescriptor::second() - strttime;
+
+        ParallelDescriptor::ReduceRealMax(stoptime,IOProc);
+
+        if (ParallelDescriptor::IOProcessor())
+        {
+            std::cout << "ParticleContainer<N>::InitNRandomPerCell() time: " << stoptime << '\n';
+        }
+    }
+}
