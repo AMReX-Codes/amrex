@@ -324,6 +324,9 @@ public:
     void InitFromBinaryMetaFile (const std::string& file, int extradata);
 
     void InitRandom (long icount, unsigned long iseed, Real particleMass, bool serialize = false, RealBox bx = RealBox());
+    void InitOnePerCell (Real x_off, Real y_off, Real z_off,
+                         Real particleMass, MultiFab& particle_mf);
+    void InitNRandomPerCell (int n_per_cell, Real particleMass, MultiFab& particle_mf);
     void InitCosmo  (MultiFab& mf, const Real vel_fac[], const Array<int> n_part, const Real particleMass);
     void InitCosmo  (MultiFab& mf, const Real vel_fac[], const Array<int> n_part, 
                      const Real particleMass, const Real shift[]);
