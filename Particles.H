@@ -1541,7 +1541,7 @@ ParticleContainer<N>::AssignNodalDensitySingleLevel (MultiFab& mf_to_be_filled,
     //
     const Real vol = D_TERM(dx[0], *dx[1], *dx[2]);
 
-    // mf_pointer->mult(1/vol,0,1);
+    mf_pointer->mult(1/vol,0,1);
 
     // If mf_to_be_filled is not defined on the particle_box_array, then we need
     // to copy here from mf_pointer into mf_to_be_filled.   I believe that we don't
