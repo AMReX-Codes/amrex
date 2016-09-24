@@ -500,11 +500,17 @@ and {\tt work\_on\_data\_2d.f90}:
 \lstinputlisting[backgroundcolor=\color{light-blue}]{../../Tutorials/GettingStarted_C/work_on_data_2d.f90}
 
 Note that in C++, {\tt work\_on\_data} calls a Fortran90 subroutine which is nearly
-identical to the Fortran90 example given above.  The only difference is the subroutine
-name cannot have the \_2d or \_3d in its name.  Thus, the 2d and 3d versions
-are both named {\tt subroutine work\_on\_data}, and must be written in
-different .f90 files, where the make system determines which version to compile
-based on {\tt DIM}.\\
+identical to the Fortran90 example given above.  There are several key differences:
+\begin{itemize}
+\item The subroutine name cannot have the \_2d or \_3d in its name.
+      Thus, the 2d and 3d versions
+      are both named {\tt subroutine work\_on\_data}, and must be written in
+      different .f90 files, where the make system determines which version to compile
+      based on {\tt DIM}.
+\item In the C++ version of the code, you must explicitly shape the lower and upper
+      bounds of the work arrays, whereas in Fortran90 you can simply specify the lower
+      bounds.
+\end{itemize} 
 
 The {\tt multifab\_fill\_boundary} and {\tt FillBoundary} functions 
 fill all ghost cells on periodic domain boundaries, as well as interior
