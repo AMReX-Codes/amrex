@@ -14,8 +14,8 @@ single_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int nppc, boo
 {
     const int IOProc = ParallelDescriptor::IOProcessorNumber();
 
-    Real strt_init, strt_assd, strt_assc, strt_mK;
-    Real  end_init,  end_assd,  end_assc,  end_mK;
+    Real strt_init, strt_assb, strt_assd, strt_assc, strt_mK;
+    Real  end_init,  end_assb,  end_assd,  end_assc,  end_mK;
 
     // ********************************************************************************************
     // All of this defines the level 0 information -- size of box, type of boundary condition, etc.
@@ -155,7 +155,7 @@ single_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int nppc, boo
     // Next we test the BoxLib charge deposition
     // **************************************************************************
 
-    strt_assd = ParallelDescriptor::second();
+    strt_assb = ParallelDescriptor::second();
 
     // Initialize to zero
     ChargeMF.setVal(0.0);
@@ -165,8 +165,9 @@ single_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int nppc, boo
 
     std::cout << "BoxLib:Min of ChargeMF " << ChargeMF.min(0,0) << std::endl;
     std::cout << "BoxLib:Max of ChargeMF " << ChargeMF.max(0,0) << std::endl;
+    std::cout << " " << std::endl;
 
-    end_assd = ParallelDescriptor::second() - strt_assd;
+    end_assb = ParallelDescriptor::second() - strt_assb;
 
     // **************************************************************************
     // Now we test the PICSAR current deposition
@@ -191,8 +192,8 @@ single_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int nppc, boo
     strt_assc = ParallelDescriptor::second();
 
     // Current deposition
-    // Real dummy_dt  = 1.0;
-    // MyPC->CurrentDeposition(CurrentMF,0,dummy_dt); 
+    Real dummy_dt  = 1.0;
+    MyPC->CurrentDeposition(CurrentMF,0,dummy_dt); 
 
     end_assc = ParallelDescriptor::second() - strt_assc;
 
@@ -217,9 +218,10 @@ single_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int nppc, boo
     ParallelDescriptor::ReduceRealMax(end_mK  ,IOProc);
     if (verbose && ParallelDescriptor::IOProcessor())
     {
-           std::cout << "Time in InitRandom       : " << end_init << '\n';
-           std::cout << "Time in ChargeDeposition : " << end_assd << '\n';
-           std::cout << "Time in CurrentDeposition: " << end_assc << '\n';
-           std::cout << "Time in moveKick         : " << end_mK   << '\n';
+           std::cout << "Time in InitRandom             : " << end_init << '\n';
+           std::cout << "Time in BoxLibChargeDeposition : " << end_assb << '\n';
+           std::cout << "Time in PicsarChargeDeposition : " << end_assd << '\n';
+           std::cout << "Time in CurrentDeposition      : " << end_assc << '\n';
+           std::cout << "Time in moveKick               : " << end_mK   << '\n';
     }
 }

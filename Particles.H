@@ -279,7 +279,7 @@ struct ParticleContainerBase
 
     virtual void ChargeDeposition(MultiFab& mf_to_be_filled, int lev) const = 0;
 
-    virtual void CurrentDeposition(PArray<MultiFab> mf_to_be_filled, int lev,
+    virtual void CurrentDeposition(PArray<MultiFab>& mf_to_be_filled, int lev,
                                    Real dt) const = 0;
 
     virtual Real sumParticleMass (int level) const = 0;
@@ -396,7 +396,7 @@ public:
     BL_OVERRIDE;
 
     virtual void ChargeDeposition (       MultiFab& mf_to_be_filled, int lev) const BL_OVERRIDE;
-    virtual void CurrentDeposition(PArray<MultiFab> mf_to_be_filled, int lev, Real dt) const BL_OVERRIDE;
+    virtual void CurrentDeposition(PArray<MultiFab>& mf_to_be_filled, int lev, Real dt) const BL_OVERRIDE;
 
     virtual void AssignDensity (PArray<MultiFab>& mf, int lev_min = 0, int ncomp = 1, int finest_level = -1) const BL_OVERRIDE;
 
@@ -1528,8 +1528,6 @@ ParticleContainer<N>::AssignNodalDensitySingleLevel (MultiFab& mf_to_be_filled,
             for (int i = 0; i < 8; i++)
             {
                fab(cells[i],0) += p.m_data[0] * fracs[i];
-               if (cells[0][0] == 2 && cells[0][1] == 2 && cells[0][2] == 2)
-                  std::cout << "ADDING " << p.m_data[0] << " " << fracs[i] << std::endl;
             }
         }
     }
@@ -1703,7 +1701,7 @@ ParticleContainer<N>::ChargeDeposition(MultiFab& mf_to_be_filled,
 //
 template <int N>
 void
-ParticleContainer<N>::CurrentDeposition(PArray<MultiFab> mf_to_be_filled,
+ParticleContainer<N>::CurrentDeposition(PArray<MultiFab>& mf_to_be_filled,
                                         int lev, Real dt) const
 {
     MultiFab *mf_pointer_x, *mf_pointer_y, *mf_pointer_z;
