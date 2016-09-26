@@ -10,7 +10,8 @@
 #include "myfunc_F.H"
 
 void advance (MultiFab& old_phi, MultiFab& new_phi, PArray<MultiFab>& flux,
-	      Real time, Real dt, const Geometry& geom, PhysBCFunct& physbcf)
+	      Real time, Real dt, const Geometry& geom, PhysBCFunct& physbcf,
+	      BCRec& bcr)
 {
   // Fill the ghost cells of each grid from the other grids
   // includes periodic boundaries
@@ -43,7 +44,11 @@ void advance (MultiFab& old_phi, MultiFab& new_phi, PArray<MultiFab>& flux,
 #if (BL_SPACEDIM == 3)   
 		 flux[2][mfi].dataPtr(),
 #endif
-		 &ng_f, bx.loVect(), bx.hiVect(), &dx[0]);
+		 &ng_f, bx.loVect(), bx.hiVect(), 
+		 (geom.Domain()).loVect(),
+		 (geom.Domain()).hiVect(),
+		 bcr.vect(),
+		 &dx[0]);
   }
 
   // Advance the solution one grid at a time
@@ -208,7 +213,7 @@ void main_main ()
     int new_index = 1 - old_index;
 	
     // new_phi = old_phi + dt * (something)
-    advance(phi[old_index], phi[new_index], flux, time, dt, geom, physbcf); 
+    advance(phi[old_index], phi[new_index], flux, time, dt, geom, physbcf, bcr); 
     time = time + dt;
 	
     // Tell the I/O Processor to write out which step we're doing

@@ -14,7 +14,9 @@ extern "C"
 #if (BL_SPACEDIM == 3)   
 		    Real* fluxz,
 #endif
-		    const int* ng_f, const int* lo, const int* hi, const Real* dx);
+		    const int* ng_f, const int* lo, const int* hi, 
+		    const int* dlo, const int* dhi, 
+		    const int* bc, const Real* dx);
   
   void update_phi(Real* phiold, Real* phinew, const int* ng_p,
 		  Real* fluxx, 
