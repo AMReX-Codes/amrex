@@ -3,7 +3,9 @@ plot_int = 100
 n_cell = 128
 max_grid_size = 32
 
-# 0 = Periodic (INT_DIR)
-# 2 = Outflow (FOEXTRAP; homogeneous Neumann using first-order extrapolation)
+# allowable options for this example are
+# -1 = PERIODIC
+#  2 = OUTLET       (phi = extrap at boundary)
+#  3 = EXT_DIR      (phi = specified value of 1 at boundary)
 lo_bc = 2 2 2
 hi_bc = 2 2 2
