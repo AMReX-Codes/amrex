@@ -1,8 +1,9 @@
-subroutine compute_flux(phi, ng_p, fluxx, fluxy, ng_f, lo, hi, dx) bind(C, name="compute_flux")
+subroutine compute_flux(phi, ng_p, fluxx, fluxy, ng_f, lo, hi, &
+                        domlo, domhi, bc, dx) bind(C, name="compute_flux")
 
   implicit none
 
-  integer lo(2),hi(2),ng_p,ng_f
+  integer lo(2),hi(2),domlo(2),domhi(2),bc(2,2),ng_p,ng_f
   double precision   phi(lo(1)-ng_p:hi(1)+ng_p,lo(2)-ng_p:hi(2)+ng_p)
   double precision fluxx(lo(1)-ng_f:hi(1)+ng_f+1,lo(2)-ng_f:hi(2)+ng_f)
   double precision fluxy(lo(1)-ng_f:hi(1)+ng_f,lo(2)-ng_f:hi(2)+ng_f+1)
