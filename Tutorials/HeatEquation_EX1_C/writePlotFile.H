@@ -10,4 +10,5 @@
 void
 writePlotFile (const std::string& dir, 
                const MultiFab&    mf, 
-               const Geometry&    geom);
+               const Geometry&    geom,
+	       const Real&        time);
