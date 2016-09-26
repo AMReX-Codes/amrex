@@ -621,6 +621,16 @@ public:
 		      int               destcomp,
 		      int               numcomp=1);
     //
+    // y[i] <- y[i] + x1[i] * x2[i])
+    //
+    BaseFab<T>& addproduct (const Box&        destbox,
+			    int               destcomp,
+			    int               numcomp,
+			    const BaseFab<T>& src1,
+			    int               comp1,
+			    const BaseFab<T>& src2,
+			    int               comp2);
+    //
     // Scalar subtraction (a[i] <- a[i] - r).
     // Note: use plus(-r) for more general operations.
     //
