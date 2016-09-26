@@ -1,4 +1,4 @@
-BOXLIB_HOME = ../../BoxLib
+BOXLIB_HOME = ../BoxLib
 PICSAR_HOME = ../picsar
 
 DEBUG	= FALSE
