@@ -157,7 +157,7 @@ public:
     //
     IntVect operator- () const { return IntVect(D_DECL(-vect[0], -vect[1], -vect[2] )); }
     //
-    // Modifies IntVect by addition of a scaler to each component.
+    // Modifies IntVect by addition of a scalar to each component.
     //
     IntVect& operator+= (int s)
     {
@@ -171,7 +171,7 @@ public:
         D_EXPR(vect[0] += p[0], vect[1] += p[1], vect[2] += p[2]); return *this;
     }
     //
-    // Modifies IntVect by multiplication of a scaler to each component.
+    // Modifies IntVect by multiplication of a scalar to each component.
     //
     IntVect& operator*= (int s)
     {
@@ -185,7 +185,7 @@ public:
         D_EXPR(vect[0] *= p[0], vect[1] *= p[1], vect[2] *= p[2]); return *this;
     }
     //
-    // Modifies IntVect by division by a scaler to each component.
+    // Modifies IntVect by division by a scalar to each component.
     //
     IntVect& operator/= (int s)
     {
@@ -199,7 +199,7 @@ public:
         D_EXPR(vect[0] /= p[0], vect[1] /= p[1], vect[2] /= p[2]); return *this;
     }
     //
-    // Modifies IntVect by subtraction of a scaler to each component.
+    // Modifies IntVect by subtraction of a scalar to each component.
     //
     IntVect& operator-= (int s)
     {
