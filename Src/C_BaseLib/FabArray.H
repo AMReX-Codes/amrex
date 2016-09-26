@@ -2028,14 +2028,13 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
         {
             const CopyComTag& tag = (*thecpc.m_LocTags)[i];
 
-            if (op == FabArrayBase::COPY)
-            {
-                get(tag.dstIndex).copy(src[tag.srcIndex],tag.sbox,scomp,tag.dbox,dcomp,ncomp);
-            }
-            else
-            {
-                get(tag.dstIndex).plus(src[tag.srcIndex],tag.sbox,tag.dbox,scomp,dcomp,ncomp);
-            }
+	    if (this != &src || tag.sbox != tag.dbox) { // avoid self copy or plus
+		if (op == FabArrayBase::COPY) {
+		    get(tag.dstIndex).copy(src[tag.srcIndex],tag.sbox,scomp,tag.dbox,dcomp,ncomp);
+		} else {
+		    get(tag.dstIndex).plus(src[tag.srcIndex],tag.sbox,tag.dbox,scomp,dcomp,ncomp);
+		}
+	    }
         }
 
         return;
