@@ -189,7 +189,7 @@ void main_main ()
   {
     int n = 0;
     const std::string& pltfile = BoxLib::Concatenate("plt",n,5);
-    writePlotFile(pltfile, phi[init_index], geom);
+    writePlotFile(pltfile, phi[init_index], geom, time);
   }
 
   // build the flux multifabs
@@ -209,6 +209,7 @@ void main_main ()
 	
     // new_phi = old_phi + dt * (something)
     advance(phi[old_index], phi[new_index], flux, time, dt, geom, physbcf); 
+    time = time + dt;
 	
     // Tell the I/O Processor to write out which step we're doing
     if (ParallelDescriptor::IOProcessor())
@@ -218,7 +219,7 @@ void main_main ()
     if (plot_int > 0 && n%plot_int == 0)
     {
       const std::string& pltfile = BoxLib::Concatenate("plt",n,5);
-      writePlotFile(pltfile, phi[new_index], geom);
+      writePlotFile(pltfile, phi[new_index], geom, time);
     }
   }
 
