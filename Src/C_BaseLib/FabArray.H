@@ -2000,14 +2000,14 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
         {
             const Box& bx = fai.tilebox();
 
-            if (op == FabArrayBase::COPY)
-            {
-                get(fai).copy(src[fai],bx,scomp,bx,dcomp,ncomp);
-            }
-            else
-            {
-                get(fai).plus(src[fai],bx,bx,scomp,dcomp,ncomp);
-            }
+	    if (this != &src) {
+		// avoid self copy or plus
+		if (op == FabArrayBase::COPY) {
+		    get(fai).copy(src[fai],bx,scomp,bx,dcomp,ncomp);
+		} else {
+		    get(fai).plus(src[fai],bx,bx,scomp,dcomp,ncomp);
+		}
+	    }
         }
 
         return;
@@ -2028,14 +2028,14 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
         {
             const CopyComTag& tag = (*thecpc.m_LocTags)[i];
 
-            if (op == FabArrayBase::COPY)
-            {
-                get(tag.dstIndex).copy(src[tag.srcIndex],tag.sbox,scomp,tag.dbox,dcomp,ncomp);
-            }
-            else
-            {
-                get(tag.dstIndex).plus(src[tag.srcIndex],tag.sbox,tag.dbox,scomp,dcomp,ncomp);
-            }
+	    if (this != &src || tag.dstIndex != tag.srcIndex || tag.sbox != tag.dbox) {
+		// avoid self copy or plus
+		if (op == FabArrayBase::COPY) {
+		    get(tag.dstIndex).copy(src[tag.srcIndex],tag.sbox,scomp,tag.dbox,dcomp,ncomp);
+		} else {
+		    get(tag.dstIndex).plus(src[tag.srcIndex],tag.sbox,tag.dbox,scomp,dcomp,ncomp);
+		}
+	    }
         }
 
         return;
@@ -2283,13 +2283,13 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
             {
 		const CopyComTag& tag = (*thecpc.m_LocTags)[j];
 		
-		if (op == FabArrayBase::COPY)
-		{
-		    get(tag.dstIndex).copy(src[tag.srcIndex],tag.sbox,SC,tag.dbox,DC,NC);
-		}
-		else
-		{
-		    get(tag.dstIndex).plus(src[tag.srcIndex],tag.sbox,tag.dbox,SC,DC,NC);
+		if (this != &src || tag.dstIndex != tag.srcIndex || tag.sbox != tag.dbox) {
+		    // avoid self copy or plus
+		    if (op == FabArrayBase::COPY) {
+			get(tag.dstIndex).copy(src[tag.srcIndex],tag.sbox,SC,tag.dbox,DC,NC);
+		    } else {
+			get(tag.dstIndex).plus(src[tag.srcIndex],tag.sbox,tag.dbox,SC,DC,NC);
+		    }
 		}
 	    });
 #endif	    
@@ -2302,14 +2302,14 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 	    for (int j=0; j<N_locs; ++j)
 	    {
 		const CopyComTag& tag = (*thecpc.m_LocTags)[j];
-		
-		if (op == FabArrayBase::COPY)
-		{
-		    get(tag.dstIndex).copy(src[tag.srcIndex],tag.sbox,SC,tag.dbox,DC,NC);
-		}
-		else
-		{
-		    get(tag.dstIndex).plus(src[tag.srcIndex],tag.sbox,tag.dbox,SC,DC,NC);
+
+		if (this != &src || tag.dstIndex != tag.srcIndex || tag.sbox != tag.dbox) {
+		    // avoid self copy or plus
+		    if (op == FabArrayBase::COPY) {
+			get(tag.dstIndex).copy(src[tag.srcIndex],tag.sbox,SC,tag.dbox,DC,NC);
+		    } else {
+			get(tag.dstIndex).plus(src[tag.srcIndex],tag.sbox,tag.dbox,SC,DC,NC);
+		    }
 		}
 	    }
 	}
