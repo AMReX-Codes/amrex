@@ -258,6 +258,34 @@ MultiFab::LinComb (MultiFab&       dst,
 }
 
 void
+MultiFab::AddProduct (MultiFab&       dst,
+		      const MultiFab& src1,
+		      int             comp1,
+		      const MultiFab& src2,
+		      int             comp2,
+		      int             dstcomp,
+		      int             numcomp,
+		      int             nghost)
+{
+    BL_ASSERT(dst.boxArray() == src1.boxArray());
+    BL_ASSERT(dst.distributionMap == src1.distributionMap);
+    BL_ASSERT(dst.boxArray() == src2.boxArray());
+    BL_ASSERT(dst.distributionMap == src2.distributionMap);
+    BL_ASSERT(dst.nGrow() >= nghost && src1.nGrow() >= nghost && src2.nGrow() >= nghost);
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(dst,true); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.growntilebox(nghost);
+	
+        if (bx.ok())
+            dst[mfi].addproduct(bx, dstcomp, numcomp, src1[mfi], comp1, src2[mfi], comp2);
+    }
+}
+
+void
 MultiFab::plus (Real val,
                 int  nghost)
 {
