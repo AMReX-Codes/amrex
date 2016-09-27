@@ -140,12 +140,16 @@ single_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int nppc, boo
 
     end_assd = ParallelDescriptor::second() - strt_assd;
 
-    if (verbose && ParallelDescriptor::IOProcessor())
+    if (verbose)
     {
-        std::cout << "PICSAR:Min of ChargeMF " << ChargeMF.min(0,0) << std::endl;
-        std::cout << "PICSAR:Max of ChargeMF " << ChargeMF.max(0,0) << std::endl;
-        std::cout << "Time in PicsarChargeDeposition : " << end_assd << '\n';
-        std::cout << " " << std::endl;
+	Real cmin = ChargeMF.min(0,0);
+	Real cmax = ChargeMF.max(0.0);
+	if (ParallelDescriptor::IOProcessor()) {
+	    std::cout << "PICSAR:Min of ChargeMF " << cmin << std::endl;
+	    std::cout << "PICSAR:Max of ChargeMF " << cmax << std::endl;
+	    std::cout << "Time in PicsarChargeDeposition : " << end_assd << '\n';
+	    std::cout << " " << std::endl;
+	}
     }
 
     // **************************************************************************
@@ -162,12 +166,16 @@ single_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int nppc, boo
 
     end_assb = ParallelDescriptor::second() - strt_assb;
 
-    if (verbose && ParallelDescriptor::IOProcessor())
+    if (verbose)
     {
-        std::cout << "BoxLib:Min of ChargeMF " << ChargeMF.min(0,0) << std::endl;
-        std::cout << "BoxLib:Max of ChargeMF " << ChargeMF.max(0,0) << std::endl;
-        std::cout << "Time in BoxLibChargeDeposition : " << end_assb << '\n';
-        std::cout << " " << std::endl;
+	Real cmin = ChargeMF.min(0,0);
+	Real cmax = ChargeMF.max(0.0);
+	if (ParallelDescriptor::IOProcessor()) {
+	    std::cout << "BoxLib:Min of ChargeMF " << cmin << std::endl;
+	    std::cout << "BoxLib:Max of ChargeMF " << cmax << std::endl;
+	    std::cout << "Time in BoxLibChargeDeposition : " << end_assb << '\n';
+	    std::cout << " " << std::endl;
+	}
     }
 
     // **************************************************************************
