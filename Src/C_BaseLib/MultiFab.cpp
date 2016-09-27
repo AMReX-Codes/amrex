@@ -1426,6 +1426,7 @@ MultiFab::SumBoundary (int scomp, int ncomp, const Periodicity& period)
     } else {
 	MultiFab tmp(boxArray(), ncomp, n_grow, DistributionMap());
 	MultiFab::Copy(tmp, *this, scomp, 0, ncomp, n_grow);
+	this->setVal(0.0);
 	this->copy(tmp,0,scomp,ncomp,n_grow,0,period,FabArrayBase::ADD);
     }
 }
