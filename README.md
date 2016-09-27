@@ -17,7 +17,7 @@ mkdir warpx_directory
 cd warpx_directory
 git clone https://github.com/BoxLib-Codes/BoxLib.git
 git clone https://bitbucket.org/berkeleylab/picsar.git
-git clone https://bitbucket.org/remilehe/warpx.git
+git clone https://bitbucket.org/berkeleylab/warpx.git
 ```
 You should then switch to the branch `development` of BoxLib, and to the branch `picsar_for_boxlib` of picsar:
 ```
