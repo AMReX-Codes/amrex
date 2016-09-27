@@ -67,8 +67,6 @@ std::list<std::string> Amr::state_small_plot_vars;
 std::list<std::string> Amr::derive_plot_vars;
 bool                   Amr::first_plotfile;
 bool                   Amr::first_smallplotfile;
-bool                   Amr::precreateDirectories;
-bool                   Amr::prereadFAHeaders;
 Array<BoxArray>        Amr::initial_ba;
 Array<BoxArray>        Amr::regrid_ba;
 bool                   Amr::useFixedCoarseGrids;
@@ -99,6 +97,11 @@ namespace
     int  checkpoint_on_restart;
     bool checkpoint_files_output;
     int  compute_new_dt_on_regrid;
+    bool precreateDirectories;
+    bool prereadFAHeaders;
+    VisMF::Header::Version plot_headerversion;
+    VisMF::Header::Version checkpoint_headerversion;
+
 }
 
 void
@@ -110,8 +113,6 @@ Amr::Initialize ()
     //
     Amr::first_plotfile      = true;
     Amr::first_smallplotfile = true;
-    Amr::precreateDirectories= true;
-    Amr::prereadFAHeaders    = true;
     plot_nfiles              = 64;
     mffile_nstreams          = 1;
     probinit_natonce         = 32;
@@ -126,6 +127,10 @@ Amr::Initialize ()
     compute_new_dt_on_regrid = 0;
     Amr::useFixedCoarseGrids = false;
     Amr::useFixedUpToLevel   = 0;
+    precreateDirectories     = true;
+    prereadFAHeaders         = true;
+    VisMF::Header::Version plot_headerversion       = VisMF::Header::Version_v1;
+    VisMF::Header::Version checkpoint_headerversion = VisMF::Header::Version_v1;
 
     BoxLib::ExecOnFinalize(Amr::Finalize);
 
@@ -3597,11 +3602,18 @@ Amr::initPltAndChk ()
     abort_on_stream_retry_failure = false;
     pp.query("abort_on_stream_retry_failure",abort_on_stream_retry_failure);
 
-    precreateDirectories = true;
     pp.query("precreateDirectories", precreateDirectories);
-
-    prereadFAHeaders = true;
     pp.query("prereadFAHeaders", prereadFAHeaders);
+
+    int phvInt(plot_headerversion), chvInt(checkpoint_headerversion);
+    pp.query("plot_headerversion", phvInt);
+    if(phvInt != plot_headerversion) {
+      plot_headerversion = static_cast<VisMF::Header::Version> (phvInt);
+    }
+    pp.query("checkpoint_headerversion", chvInt);
+    if(chvInt != checkpoint_headerversion) {
+      checkpoint_headerversion = static_cast<VisMF::Header::Version> (chvInt);
+    }
 }
 
 
@@ -3912,6 +3924,9 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
         allInts.push_back(VisMF::GetVerbose());
         allInts.push_back(VisMF::GetHeaderVersion());
 
+        allInts.push_back(plot_headerversion);
+        allInts.push_back(checkpoint_headerversion);
+
         allIntsSize = allInts.size();
       }
 
@@ -3987,6 +4002,9 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
         VisMF::SetMFFileInStreams(allInts[count++]);
         VisMF::SetVerbose(allInts[count++]);
         VisMF::SetHeaderVersion(static_cast<VisMF::Header::Version> (allInts[count++]));
+
+        plot_headerversion       = static_cast<VisMF::Header::Version> (allInts[count++]);
+        checkpoint_headerversion = static_cast<VisMF::Header::Version> (allInts[count++]);
 
 	BL_ASSERT(count == allInts.size());
       }
