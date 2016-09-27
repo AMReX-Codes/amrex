@@ -666,8 +666,6 @@ public:
     BoundaryPointList intersect_hiz;
 
     static bool first_smallplotfile;
-    static bool precreateDirectories;
-    static bool prereadFAHeaders;
 
 #ifdef USE_PARTICLES
     AmrParGDB* m_gdb;
