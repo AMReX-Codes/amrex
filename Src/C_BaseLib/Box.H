@@ -352,7 +352,7 @@ public:
     int shortside () const;
     //
     // Returns offset of point from smallend; i.e.
-    // index(smallend) -> 0, bigend would return volume()-1.
+    // index(smallend) -> 0, bigend would return numPts()-1.
     // Is used in accessing FArrayBox.
     //
     long index (const IntVect& v) const;
