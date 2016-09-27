@@ -328,10 +328,7 @@ public:
     //
     // Return the volume, in indexing space, of region enclosed by
     // this Box.   This is identical to numPts() for CELL centered
-    // Box; i.e. consider a edge-based box in 2D which has two edges
-    // in it.  This box has one cell center, located between the
-    // two edges.  numPts() would return 2 as would volume().
-    // Otherwise, numPts() >= volume().  Abort()s if the number
+    // Box; otherwise, numPts() > volume().  Abort()s if the number
     // cannot be represented in a long.
     //
     long volume () const;
