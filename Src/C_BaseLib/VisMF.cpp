@@ -940,10 +940,12 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
           }
 
 	  char *allFabData;
-	  bool goodAlloc(true);
+	  bool goodAlloc(false);
 	  allFabData = new(std::nothrow) char[bytesWritten];
 	  if(allFabData == nullptr) {
 	    goodAlloc = false;
+	  } else {
+	    goodAlloc = true;
 	  }
 
 	  if(goodAlloc) {
@@ -1472,11 +1474,13 @@ VisMF::Read (FabArray<FArrayBox> &mf,
 	        }
 	      }
 	      char *allFabData;
-	      bool goodAlloc(true);
+	      bool goodAlloc(false);
 	      if(dataIsContiguous) {
 	        allFabData = new(std::nothrow) char[bytesToRead];
 		if(allFabData == nullptr) {
 		  goodAlloc = false;
+		} else {
+		  goodAlloc = true;
 		}
 	      }
 	      if(goodAlloc) {
