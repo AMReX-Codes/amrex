@@ -441,10 +441,10 @@ IntVect operator* (int s, const IntVect& p)
 //
 // Print the IntVect to given output stream in ASCII.
 //
-std::ostream& operator<< (std::ostream&  os, const IntVect& iv);
+std::ostream& operator<< (std::ostream& os, const IntVect& iv);
 //
 // Read next IntVect from given input stream.
 //
-std::istream& operator>> (std::istream& os, IntVect& iv);
+std::istream& operator>> (std::istream& is, IntVect& iv);
 
 #endif /*BL_INTVECT_H*/
