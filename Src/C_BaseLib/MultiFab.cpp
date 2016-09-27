@@ -1418,9 +1418,16 @@ MultiFab::SumBoundary (int scomp, int ncomp, const Periodicity& period)
 {
     BL_PROFILE("MultiFab::SumBoundary()");
 
-    if ( n_grow <= 0 && boxArray().ixType().cellCentered()) return;
+    if ( n_grow == 0 && boxArray().ixType().cellCentered()) return;
 
-    this->copy(*this, scomp, scomp, ncomp, n_grow, 0, period, FabArrayBase::ADD);
+    if (boxArray().ixType().cellCentered()) {
+	// Self copy is safe only for cell-centered MultiFab
+	this->copy(*this,scomp,scomp,ncomp,n_grow,0,period,FabArrayBase::ADD);
+    } else {
+	MultiFab tmp(boxArray(), ncomp, n_grow, DistributionMap());
+	MultiFab::Copy(tmp, *this, scomp, 0, ncomp, n_grow);
+	this->copy(tmp,0,scomp,ncomp,n_grow,0,period,FabArrayBase::ADD);
+    }
 }
 
 void
