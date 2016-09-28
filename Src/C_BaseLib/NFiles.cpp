@@ -46,7 +46,7 @@ NFilesIter::NFilesIter(int noutfiles, const std::string &fileprefix,
     }
   }
 
-  bool checkNFiles(true);
+  bool checkNFiles(false);
   if(checkNFiles) {
     CheckNFiles(nProcs, nOutFiles, groupSets);
   }
