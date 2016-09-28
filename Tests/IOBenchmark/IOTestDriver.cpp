@@ -27,8 +27,10 @@ void FileTests();
 void TestWriteNFiles(int nfiles, int maxgrid, int ncomps, int nboxes,
                      bool raninit, bool mb2,
 		     VisMF::Header::Version writeMinMax,
-		     bool groupsets, bool setbuf, bool useDSS);
-void TestReadMF(const std::string &mfName, bool useSyncReads);
+		     bool groupsets, bool setbuf, bool useDSS,
+		     int nMultiFabs);
+void TestReadMF(const std::string &mfName, bool useSyncReads,
+                     int nMultiFabs);
 void NFileTests(int nOutFiles, const std::string &filePrefix);
 void DSSNFileTests(int nOutFiles, const std::string &filePrefix,
                    bool useIter);
@@ -66,6 +68,7 @@ static void PrintUsage(const char *progName) {
     cout << "   [pifstreams        = tf       ]" << '\n';
     cout << "   [usedss            = tf       ]" << '\n';
     cout << "   [usesyncreads      = tf       ]" << '\n';
+    cout << "   [nmultifabs        = nmf      ]" << '\n';
     cout << '\n';
     cout << "Running with default values." << '\n';
     cout << '\n';
@@ -77,7 +80,7 @@ static void PrintUsage(const char *progName) {
 int main(int argc, char *argv[]) {
 
   BoxLib::Initialize(argc,argv);
-  VisMF::Initialize();
+  //VisMF::Initialize();
 
   if(argc == 1) {
     PrintUsage(argv[0]);
@@ -100,7 +103,7 @@ int main(int argc, char *argv[]) {
   bool useDSS(false), useSyncReads(false);
   Array<int> testWriteNFilesVersions;
   Array<std::string> readFANames;
-  int nReadStreams(1);
+  int nReadStreams(1), nMultiFabs(1);
 
 
   pp.query("nfiles", nfiles);
@@ -134,6 +137,8 @@ int main(int argc, char *argv[]) {
   pp.query("pifstreams", pIFStreams);
   pp.query("usedss", useDSS);
   pp.query("usesyncreads", useSyncReads);
+  pp.query("nmultifabs", nMultiFabs);
+  nMultiFabs = std::max(1, std::min(nMultiFabs, 32));
 
   pp.query("rbuffsize", rbs);
   pp.query("wbuffsize", wbs);
@@ -186,6 +191,7 @@ int main(int argc, char *argv[]) {
     cout << "pifstreams        = " << pIFStreams << '\n';
     cout << "usedss            = " << useDSS << '\n';
     cout << "usesyncreads      = " << useSyncReads << '\n';
+    cout << "nmultifabs        = " << nMultiFabs << '\n';
 
     cout << '\n';
     cout << "sizeof(int) = " << sizeof(int) << '\n';
@@ -326,7 +332,7 @@ int main(int argc, char *argv[]) {
       }
 
       TestWriteNFiles(nfiles, maxgrid, ncomps, nboxes, raninit, mb2,
-                      hVersion, groupSets, setBuf, useDSS);
+                      hVersion, groupSets, setBuf, useDSS, nMultiFabs);
 
       if(ParallelDescriptor::IOProcessor()) {
         cout << "==================================================" << endl;
@@ -346,7 +352,7 @@ int main(int argc, char *argv[]) {
       }
 
       for(int i(0); i < readFANames.size(); ++i) {
-        TestReadMF(readFANames[i], useSyncReads);
+        TestReadMF(readFANames[i], useSyncReads, nMultiFabs);
       }
 
       if(ParallelDescriptor::IOProcessor()) {
