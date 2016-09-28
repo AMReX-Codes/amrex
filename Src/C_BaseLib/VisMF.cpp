@@ -895,8 +895,6 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
       whichRD = FPC::NativeRealDescriptor().clone();
     }
 
-    VisMF::Initialize();
-
     if(set_ghost) {
         FabArray<FArrayBox>* the_mf = const_cast<FabArray<FArrayBox>*>(&mf);
 
@@ -1361,8 +1359,6 @@ VisMF::Read (FabArray<FArrayBox> &mf,
       std::cout << "VisMF::Read:  about to read:  " << mf_name << std::endl;
     }
 
-    VisMF::Initialize();
-
     std::string FullHdrFileName(mf_name + TheMultiFabHdrFileSuffix);
     {
         hStartTime = ParallelDescriptor::second();
@@ -1775,8 +1771,6 @@ VisMF::ReadFAHeader (const std::string &fafabName,
 {
     BL_PROFILE("VisMF::ReadFAHeader()");
 
-    VisMF::Initialize();
-
     std::string FullHdrFileName(fafabName + TheMultiFabHdrFileSuffix);
     ParallelDescriptor::ReadAndBcastFile(FullHdrFileName, faHeader);
 }
@@ -1786,8 +1780,6 @@ bool
 VisMF::Check (const std::string& mf_name)
 {
   BL_PROFILE("VisMF::Check()");
-
-  VisMF::Initialize();
 
   int isOk(true);  // ---- int to broadcast
   int v1(true);

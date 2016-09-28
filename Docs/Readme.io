@@ -91,12 +91,16 @@ vismf.usepersistentifstreams  (def:  true)
 vismf.usesynchronousreads     (def:  false)
 vismf.usedynamicsetselection  (def:  true)
 vismf.iobuffersize            (def:  VisMF::IO_Buffer_Size)
-noutfiles                     (def:  64)
-mffile_nstreams               (def:  1)
+amr.plot_nfiles               (def:  64)
+amr.checkpoint_nfiles         (def:  64)
+amr.mffile_nstreams           (def:  1)
+amr.plot_headerversion        (def:  Version_v1  (1) )
+amr.checkpoint_headerversion  (def:  Version_v1  (1) )
+amr.prereadFAHeaders          (def:  true)
+amr.precreateDirectories      (def:  true)
+
 conversionbuffers
 irbuffsize
 wbuffsize
-amr.prereadFAHeaders
-amr.precreateDirectories
 
 
