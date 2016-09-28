@@ -53,7 +53,7 @@ writePlotFile (const std::string& dir,
 
 	// variable names
         for (int ivar = 1; ivar <= mf.nComp(); ivar++) {
-          HeaderFile << "Phi\n";
+          HeaderFile << "phi\n";
         }
 	// dimensionality
         HeaderFile << BL_SPACEDIM << '\n';

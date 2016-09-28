@@ -1,5 +1,8 @@
 module bc_fill_module
 
+! since this is a .F90 file (instead of .f90) we run this through a C++ preprocessor
+! for e.g., #if (BL_SPACEDIM == 1) statements.
+
   implicit none
 
   public

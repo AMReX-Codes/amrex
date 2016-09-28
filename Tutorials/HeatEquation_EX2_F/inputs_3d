@@ -12,11 +12,11 @@
  ! 12 = OUTLET       (phi = extrap at boundary)
  ! 14 = SLIP_WALL    (dphi/dn=0    at boundary)
  ! 15 = NO_SLIP_WALL (dphi/dn=0    at boundary)
- bc_x_lo = -1
- bc_x_hi = -1
- bc_y_lo = -1
- bc_y_hi = -1
- bc_z_lo = -1
- bc_z_hi = -1
+ bc_x_lo = 11
+ bc_x_hi = 11
+ bc_y_lo = 11
+ bc_y_hi = 11
+ bc_z_lo = 11
+ bc_z_hi = 11
 
 /
