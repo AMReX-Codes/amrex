@@ -6,6 +6,7 @@
 #include <ParmParse.H>
 #include <ParallelDescriptor.H>
 #include <writePlotFile.H>
+#include <BC_TYPES.H>
 
 #include "myfunc_F.H"
 
