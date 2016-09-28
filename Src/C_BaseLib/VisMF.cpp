@@ -886,6 +886,14 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
 
     // ---- add stream retry
     // ---- add stream buffer (to nfiles)
+    RealDescriptor *whichRD;
+    if(FArrayBox::getFormat() == FABio::FAB_NATIVE) {
+      whichRD = FPC::NativeRealDescriptor().clone();
+    } else if(FArrayBox::getFormat() == FABio::FAB_NATIVE_32) {
+      whichRD = FPC::Native32RealDescriptor().clone();
+    } else if(FArrayBox::getFormat() == FABio::FAB_IEEE_32) {
+      whichRD = FPC::NativeRealDescriptor().clone();
+    }
 
     VisMF::Initialize();
 
@@ -922,10 +930,53 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
         nfi.SetDynamic();
       }
       for( ; nfi.ReadyToWrite(); ++nfi) {
-        const std::string &fName = nfi.FileName();
-        for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
-          hdr.m_fod[mfi.index()] = VisMF::Write(mf[mfi], fName, nfi.Stream(), bytesWritten);
-        }
+	if(VisMF::useSingleWrite) {
+	  // ---- find the total number of bytes including fab headers
+          const FABio &fio = FArrayBox::getFABio();
+          int whichRDBytes(whichRD->numBytes());
+          for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
+	    const FArrayBox &fab = mf[mfi];
+	    std::stringstream hss;
+	    fio.write_header(hss, fab, fab.nComp());
+	    bytesWritten += hss.tellp();
+	    bytesWritten += fab.box().numPts() * mf.nComp() * whichRDBytes;
+	  }
+	  char *allFabData;
+	  bool goodAlloc(false);
+	  allFabData = new(std::nothrow) char[bytesWritten];
+	  if(allFabData == nullptr) {
+	    goodAlloc = false;
+	  } else {
+	    goodAlloc = true;
+	  }
+
+	  if(goodAlloc) {
+	    long writePosition(0);
+            for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
+              const FArrayBox &fab = mf[mfi];
+	      std::stringstream hss;
+	      fio.write_header(hss, fab, fab.nComp());
+	      int hLength(hss.tellp());
+	      char *afPtr = allFabData + writePosition;
+	      memcpy(afPtr, hss.str().c_str(), hLength);  // ---- the fab header
+	      memcpy(afPtr + hLength, fab.dataPtr(), fab.nBytes());
+              writePosition += hLength + fab.nBytes();
+            }
+            nfi.Stream().write(allFabData, bytesWritten);
+	    delete [] allFabData;
+
+	  } else {    // ---- cannot use one write
+            const std::string &fName = nfi.FileName();
+            for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
+              hdr.m_fod[mfi.index()] = VisMF::Write(mf[mfi], fName, nfi.Stream(), bytesWritten);
+            }
+	  }
+	} else {
+          const std::string &fName = nfi.FileName();
+          for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
+            hdr.m_fod[mfi.index()] = VisMF::Write(mf[mfi], fName, nfi.Stream(), bytesWritten);
+          }
+	}
       }
 
     } else {     // ---- write the fab data directly
