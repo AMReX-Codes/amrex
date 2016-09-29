@@ -196,7 +196,8 @@ void TestWriteNFiles(int nfiles, int maxgrid, int ncomps, int nboxes,
                      bool raninit, bool mb2,
 		     VisMF::Header::Version whichVersion,
 		     bool groupSets, bool setBuf,
-		     bool useDSS, int nMultiFabs)
+		     bool useDSS, int nMultiFabs,
+		     bool checkmf)
 {
   VisMF::SetNOutFiles(nfiles);
   VisMF::SetGroupSets(groupSets);
@@ -232,24 +233,24 @@ void TestWriteNFiles(int nfiles, int maxgrid, int ncomps, int nboxes,
 
   // ---- make the MultiFabs
   Array<std::string> mfNames(nMultiFabs);
-  Array<MultiFab> multifabs(nMultiFabs);
+  Array<MultiFab *> multifabs(nMultiFabs);
   for(int nmf(0); nmf < nMultiFabs; ++nmf) {
     std::stringstream suffix;
     suffix << "_" << nmf;
     mfNames[nmf] = mfName + suffix.str();
     VisMF::RemoveFiles(mfNames[nmf], false);  // ---- not verbose
 
-    multifabs[nmf].define(bArray, ncomps, 0, Fab_allocate);
+    multifabs[nmf] = new MultiFab(bArray, ncomps, 0);
 
-    for(MFIter mfiset(multifabs[nmf]); mfiset.isValid(); ++mfiset) {
+    for(MFIter mfiset(*(multifabs[nmf])); mfiset.isValid(); ++mfiset) {
       for(int invar(0); invar < ncomps; ++invar) {
         if(raninit) {
-          Real *dp = multifabs[nmf][mfiset].dataPtr(invar);
-	  for(int i(0); i < multifabs[nmf][mfiset].box().numPts(); ++i) {
+          Real *dp = (*multifabs[nmf])[mfiset].dataPtr(invar);
+	  for(int i(0); i < (*multifabs[nmf])[mfiset].box().numPts(); ++i) {
 	    dp[i] = BoxLib::Random() + (1.0 + static_cast<Real> (invar));
 	  }
         } else {
-          multifabs[nmf][mfiset].setVal((100.0 * mfiset.index()) + invar +
+          (*multifabs[nmf])[mfiset].setVal((100.0 * mfiset.index()) + invar +
 	                                (static_cast<Real> (nmf) / 100.0), invar);
         }
       }
@@ -267,9 +268,8 @@ void TestWriteNFiles(int nfiles, int maxgrid, int ncomps, int nboxes,
   double wallTimeStart(ParallelDescriptor::second());
 
   for(int nmf(0); nmf < nMultiFabs; ++nmf) {
-    totalBytesWritten += VisMF::Write(multifabs[nmf], mfNames[nmf]);
+    totalBytesWritten += VisMF::Write(*multifabs[nmf], mfNames[nmf]);
   }
-
   double wallTime(ParallelDescriptor::second() - wallTimeStart);
 
   double wallTimeMax(wallTime);
@@ -291,25 +291,32 @@ void TestWriteNFiles(int nfiles, int maxgrid, int ncomps, int nboxes,
     cout << "------------------------------------------" << endl;
   }
 
-  ParallelDescriptor::Barrier();
-  wallTime = ParallelDescriptor::second();
-
-  bool isOk(true);
   for(int nmf(0); nmf < nMultiFabs; ++nmf) {
-    isOk &= VisMF::Check(mfNames[nmf]);
+    delete multifabs[nmf];
   }
-  wallTimeMax = ParallelDescriptor::second() - wallTime;
-  ParallelDescriptor::ReduceRealMax(wallTimeMax, ParallelDescriptor::IOProcessorNumber());
-  if(ParallelDescriptor::IOProcessor()) {
-    cout << std::setprecision(5);
-    cout << "------------------------------------------" << endl;
-    cout << "VisMF::Check():  time = " << wallTimeMax << " s." << endl;
-    if(isOk) {
-      cout << "VisMF::Check():  multifab is ok." << endl;
-    } else {
-      cout << "**** Error:  VisMF::Check():  multifab is not ok." << endl;
+
+
+  if(checkmf) {
+    ParallelDescriptor::Barrier();
+    wallTime = ParallelDescriptor::second();
+
+    bool isOk(true);
+    for(int nmf(0); nmf < nMultiFabs; ++nmf) {
+      isOk &= VisMF::Check(mfNames[nmf]);
     }
-    cout << "------------------------------------------" << endl;
+    wallTimeMax = ParallelDescriptor::second() - wallTime;
+    ParallelDescriptor::ReduceRealMax(wallTimeMax, ParallelDescriptor::IOProcessorNumber());
+    if(ParallelDescriptor::IOProcessor()) {
+      cout << std::setprecision(5);
+      cout << "------------------------------------------" << endl;
+      cout << "VisMF::Check():  time = " << wallTimeMax << " s." << endl;
+      if(isOk) {
+        cout << "VisMF::Check():  multifab is ok." << endl;
+      } else {
+        cout << "**** Error:  VisMF::Check():  multifab is not ok." << endl;
+      }
+      cout << "------------------------------------------" << endl;
+    }
   }
 
   VisMF::SetHeaderVersion(currentVersion);  // ---- set back to previous version
@@ -321,11 +328,12 @@ void TestReadMF(const std::string &mfName, bool useSyncReads,
                 int nMultiFabs)
 {
   Array<std::string> mfNames(nMultiFabs);
-  Array<MultiFab> multifabs(nMultiFabs);
+  Array<MultiFab *> multifabs(nMultiFabs);
   for(int nmf(0); nmf < nMultiFabs; ++nmf) {
     std::stringstream suffix;
     suffix << "_" << nmf;
     mfNames[nmf] = mfName + suffix.str();
+    multifabs[nmf] = new MultiFab;
   }
 
   VisMF::SetUseSynchronousReads(useSyncReads);
@@ -334,16 +342,25 @@ void TestReadMF(const std::string &mfName, bool useSyncReads,
   ParallelDescriptor::Barrier();
   double wallTimeStart(ParallelDescriptor::second());
 
+  Array<Array<char> > faHeaders(nMultiFabs);
   for(int nmf(0); nmf < nMultiFabs; ++nmf) {
-    VisMF::Read(multifabs[nmf], mfNames[nmf]); 
+    std::string faHName(mfNames[nmf] + "_H");
+    if(ParallelDescriptor::IOProcessor()) {
+      std::cout << "HHHHHHHH:  reading and broadcasting:  " << faHName << std::endl;
+      bool bExitOnError(false);  // ---- dont exit if this file does not exist
+      ParallelDescriptor::ReadAndBcastFile(faHName, faHeaders[nmf], bExitOnError);
+    }
+  }
+  for(int nmf(0); nmf < nMultiFabs; ++nmf) {
+    VisMF::Read(*multifabs[nmf], mfNames[nmf], faHeaders[nmf].dataPtr()); 
   }
 
   double wallTime(ParallelDescriptor::second() - wallTimeStart);
 
   for(int nmf(0); nmf < nMultiFabs; ++nmf) {
-    for(int i(0); i < multifabs[nmf].nComp(); ++i) {
-      Real mfMin = multifabs[nmf].min(i);
-      Real mfMax = multifabs[nmf].max(i);
+    for(int i(0); i < multifabs[nmf]->nComp(); ++i) {
+      Real mfMin = multifabs[nmf]->min(i);
+      Real mfMax = multifabs[nmf]->max(i);
       if(ParallelDescriptor::IOProcessor()) {
         std::cout << "MMMMMMMM:  i mfMin mfMax = " << i << "  " << mfMin << "  " << mfMax << std::endl;
       }
@@ -359,9 +376,10 @@ void TestReadMF(const std::string &mfName, bool useSyncReads,
   long totalNBytes(0);
 
   for(int nmf(0); nmf < nMultiFabs; ++nmf) {
-    for(MFIter mfi(multifabs[nmf]); mfi.isValid(); ++mfi) {
-      totalNBytes += multifabs[nmf][mfi].nBytes();
+    for(MFIter mfi(*multifabs[nmf]); mfi.isValid(); ++mfi) {
+      totalNBytes += (*multifabs[nmf])[mfi].nBytes();
     }
+    delete multifabs[nmf];
   }
   ParallelDescriptor::ReduceLongSum(totalNBytes);
 
