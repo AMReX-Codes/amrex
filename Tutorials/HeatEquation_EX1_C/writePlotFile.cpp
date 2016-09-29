@@ -1,13 +1,3 @@
-
-#include <fstream>
-#include <iomanip>
-
-#include <Utility.H>
-#include <IntVect.H>
-#include <Geometry.H>
-#include <ParmParse.H>
-#include <ParallelDescriptor.H>
-#include <VisMF.H>
 #include <writePlotFile.H>
 
 void
@@ -53,7 +43,7 @@ writePlotFile (const std::string& dir,
 
 	// variable names
         for (int ivar = 1; ivar <= mf.nComp(); ivar++) {
-          HeaderFile << "Phi\n";
+          HeaderFile << "phi\n";
         }
 	// dimensionality
         HeaderFile << BL_SPACEDIM << '\n';
