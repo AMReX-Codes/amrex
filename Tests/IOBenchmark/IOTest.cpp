@@ -345,11 +345,8 @@ void TestReadMF(const std::string &mfName, bool useSyncReads,
   Array<Array<char> > faHeaders(nMultiFabs);
   for(int nmf(0); nmf < nMultiFabs; ++nmf) {
     std::string faHName(mfNames[nmf] + "_H");
-    if(ParallelDescriptor::IOProcessor()) {
-      std::cout << "HHHHHHHH:  reading and broadcasting:  " << faHName << std::endl;
-      bool bExitOnError(false);  // ---- dont exit if this file does not exist
-      ParallelDescriptor::ReadAndBcastFile(faHName, faHeaders[nmf], bExitOnError);
-    }
+    bool bExitOnError(false);  // ---- dont exit if this file does not exist
+    ParallelDescriptor::ReadAndBcastFile(faHName, faHeaders[nmf], bExitOnError);
   }
   for(int nmf(0); nmf < nMultiFabs; ++nmf) {
     VisMF::Read(*multifabs[nmf], mfNames[nmf], faHeaders[nmf].dataPtr()); 
