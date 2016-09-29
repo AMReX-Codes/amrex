@@ -1,13 +1,3 @@
-
-#include <fstream>
-#include <iomanip>
-
-#include <Utility.H>
-#include <IntVect.H>
-#include <Geometry.H>
-#include <ParmParse.H>
-#include <ParallelDescriptor.H>
-#include <VisMF.H>
 #include <writePlotFile.H>
 
 void

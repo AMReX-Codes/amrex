@@ -1,11 +1,10 @@
-#include <Utility.H>
-#include <Geometry.H>
-#include <MultiFab.H>
-#include <PhysBCFunct.H>
-#include <PArray.H>
+#include <fstream>
+#include <iomanip>
+
 #include <ParmParse.H>
-#include <ParallelDescriptor.H>
 #include <writePlotFile.H>
+#include <Geometry.H>
+#include <VisMF.H>
 
 #include "myfunc_F.H"
 
@@ -13,7 +12,7 @@ void advance (MultiFab& old_phi, MultiFab& new_phi, PArray<MultiFab>& flux,
 	      Real dt, const Geometry& geom)
 {
   // Fill the ghost cells of each grid from the other grids
-  // includes periodic boundaries
+  // includes periodic domain boundaries
   old_phi.FillBoundary(geom.periodicity());
 
   int Ncomp = old_phi.nComp();
@@ -67,7 +66,7 @@ void main_main ()
 
   std::cout << std::setprecision(15);
 
-  int n_cell, max_grid_size, nsteps, plot_int, is_per[BL_SPACEDIM];
+  int n_cell, max_grid_size, nsteps, plot_int, is_periodic[BL_SPACEDIM];
 
   // inputs parameters
   {
@@ -115,13 +114,13 @@ void main_main ()
     int coord = 0;
 	
     // This sets the boundary conditions to be doubly or triply periodic
-    int is_per[BL_SPACEDIM];
+    int is_periodic[BL_SPACEDIM];
     for (int i = 0; i < BL_SPACEDIM; i++) {
-      is_per[i] = 1;
+      is_periodic[i] = 1;
     }
 
     // This defines a Geometry object
-    geom.define(domain,&real_box,coord,is_per);
+    geom.define(domain,&real_box,coord,is_periodic);
   }
 
   // define dx[]
@@ -184,20 +183,20 @@ void main_main ()
   {
     int new_index = 1 - old_index;
 
-     // new_phi = old_phi + dt * (something)
-     advance(phi[old_index], phi[new_index], flux, dt, geom); 
-     time = time + dt;
+    // new_phi = old_phi + dt * (something)
+    advance(phi[old_index], phi[new_index], flux, dt, geom); 
+    time = time + dt;
 
-     // Tell the I/O Processor to write out which step we're doing
-     if (ParallelDescriptor::IOProcessor())
-        std::cout << "Advanced step " << n << std::endl;
+    // Tell the I/O Processor to write out which step we're doing
+    if (ParallelDescriptor::IOProcessor())
+      std::cout << "Advanced step " << n << std::endl;
 
-     // Write a plotfile of the current data (plot_int was defined in the inputs file)
-     if (plot_int > 0 && n%plot_int == 0)
-     {
-        const std::string& pltfile = BoxLib::Concatenate("plt",n,5);
-        writePlotFile(pltfile, phi[new_index], geom, time);
-     }
+    // Write a plotfile of the current data (plot_int was defined in the inputs file)
+    if (plot_int > 0 && n%plot_int == 0)
+    {
+      const std::string& pltfile = BoxLib::Concatenate("plt",n,5);
+      writePlotFile(pltfile, phi[new_index], geom, time);
+    }
   }
 
   // Call the timer again and compute the maximum difference between the start time and stop time
