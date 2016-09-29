@@ -28,7 +28,7 @@ void TestWriteNFiles(int nfiles, int maxgrid, int ncomps, int nboxes,
                      bool raninit, bool mb2,
 		     VisMF::Header::Version writeMinMax,
 		     bool groupsets, bool setbuf, bool useDSS,
-		     int nMultiFabs);
+		     int nMultiFabs, bool checkmf);
 void TestReadMF(const std::string &mfName, bool useSyncReads,
                      int nMultiFabs);
 void NFileTests(int nOutFiles, const std::string &filePrefix);
@@ -65,6 +65,7 @@ static void PrintUsage(const char *progName) {
     cout << "   [usesingleread     = tf       ]" << '\n';
     cout << "   [usesinglewrite    = tf       ]" << '\n';
     cout << "   [checkfpositions   = tf       ]" << '\n';
+    cout << "   [checkfmf          = tf       ]" << '\n';
     cout << "   [pifstreams        = tf       ]" << '\n';
     cout << "   [usedss            = tf       ]" << '\n';
     cout << "   [usesyncreads      = tf       ]" << '\n';
@@ -100,6 +101,7 @@ int main(int argc, char *argv[]) {
   bool testreadmf(false);
   bool useSingleRead(false), useSingleWrite(false);
   bool checkFPositions(false), pIFStreams(false);
+  bool checkmf(false);
   bool useDSS(false), useSyncReads(false);
   Array<int> testWriteNFilesVersions;
   Array<std::string> readFANames;
@@ -134,6 +136,7 @@ int main(int argc, char *argv[]) {
   pp.query("usesingleread", useSingleRead);
   pp.query("usesinglewrite", useSingleWrite);
   pp.query("checkfpositions", checkFPositions);
+  pp.query("checkmf", checkmf);
   pp.query("pifstreams", pIFStreams);
   pp.query("usedss", useDSS);
   pp.query("usesyncreads", useSyncReads);
@@ -188,6 +191,7 @@ int main(int argc, char *argv[]) {
     cout << "usesingleread     = " << useSingleRead << '\n';
     cout << "usesinglewrite    = " << useSingleWrite << '\n';
     cout << "checkfpositions   = " << checkFPositions << '\n';
+    cout << "checkmf           = " << checkmf << '\n';
     cout << "pifstreams        = " << pIFStreams << '\n';
     cout << "usedss            = " << useDSS << '\n';
     cout << "usesyncreads      = " << useSyncReads << '\n';
@@ -326,13 +330,18 @@ int main(int argc, char *argv[]) {
       }
 
     for(int itimes(0); itimes < ntimes; ++itimes) {
+      ParallelDescriptor::Barrier();
+      BoxLib::USleep(4);
+      ParallelDescriptor::Barrier();
+
       if(ParallelDescriptor::IOProcessor()) {
         cout << endl << "--------------------------------------------------" << endl;
         cout << "Testing NFiles Write:  version = " << hVersion << endl;
       }
 
       TestWriteNFiles(nfiles, maxgrid, ncomps, nboxes, raninit, mb2,
-                      hVersion, groupSets, setBuf, useDSS, nMultiFabs);
+                      hVersion, groupSets, setBuf, useDSS, nMultiFabs,
+		      checkmf);
 
       if(ParallelDescriptor::IOProcessor()) {
         cout << "==================================================" << endl;
@@ -346,6 +355,10 @@ int main(int argc, char *argv[]) {
   if(testreadmf) {
     VisMF::SetMFFileInStreams(nReadStreams);
     for(int itimes(0); itimes < ntimes; ++itimes) {
+      ParallelDescriptor::Barrier();
+      BoxLib::USleep(4);
+      ParallelDescriptor::Barrier();
+
       if(ParallelDescriptor::IOProcessor()) {
         cout << endl << "++++++++++++++++++++++++++++++++++++++++++++++++++" << endl;
         cout << "Testing MF Read" << endl;
