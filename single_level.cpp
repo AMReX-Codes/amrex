@@ -9,6 +9,19 @@
 
 #include "Particles.H"
 
+extern "C" {
+  void pxrpush_em3d_evec_norder( Real* ex, Real* ey, Real* ez,
+	Real* bx, Real* by, Real* bz,
+	const Real* jx, const Real* jy, const Real* jz,
+	const Real* mudt,
+	const Real* dtsdx, const Real* dtsdy, const Real* dtsdz, 
+	const long* nxlocal, const long* nylocal, const long* nzlocal,
+	const long* nxorder, const long* nyorder, const long* nzorder,
+	const long* nxguard, const long* nyguard, const long* nzguard, 
+	const long* nxs, const long* nys, const long* nzs, const bool* l_nodal );
+}
+
+
 void
 single_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int nppc, bool verbose) 
 {
@@ -28,7 +41,11 @@ single_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int nppc, boo
        real_box.setHi(n,1.0);
     }
     Real dx = real_box.length(0)/nx;
-
+    Real dy = real_box.length(1)/ny;
+    Real dz = real_box.length(2)/nz;
+    Real clight = 299792458.;
+    Real dt  = 0.95 * dx /clight ;
+    
     // Define the lower and upper corner of a 3D domain
     IntVect domain_lo(0 , 0, 0); 
     IntVect domain_hi(nx-1,ny-1,nz-1); 
@@ -198,9 +215,7 @@ single_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int nppc, boo
     strt_assc = ParallelDescriptor::second();
 
     // Current deposition
-    Real clight = 299792458.;
-    Real dummy_dt  = 0.95 * dx /clight ;
-    MyPC->CurrentDeposition(CurrentMF,0,dummy_dt); 
+    MyPC->CurrentDeposition(CurrentMF,0,dt); 
 
     end_assc = ParallelDescriptor::second() - strt_assc;
 
@@ -210,8 +225,6 @@ single_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int nppc, boo
         std::cout << " " << std::endl;
     }
 
-    exit(0);
-
     // **************************************************************************
     // Create the B arrays -- 
     //     these are on the centers of faces but we declare the arrays as nodal
@@ -220,9 +233,9 @@ single_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int nppc, boo
     PArray<MultiFab> BfieldMF;
     BfieldMF.resize(BL_SPACEDIM,PArrayManage);
 
-    BfieldMF.set(0,new MultiFab(ba[0],1,0,Fab_allocate,nodal));
-    BfieldMF.set(1,new MultiFab(ba[0],1,0,Fab_allocate,nodal));
-    BfieldMF.set(2,new MultiFab(ba[0],1,0,Fab_allocate,nodal));
+    BfieldMF.set(0,new MultiFab(ba[0],1,1,Fab_allocate,nodal));
+    BfieldMF.set(1,new MultiFab(ba[0],1,1,Fab_allocate,nodal));
+    BfieldMF.set(2,new MultiFab(ba[0],1,1,Fab_allocate,nodal));
 
     BfieldMF[0].setVal(0.0);
     BfieldMF[1].setVal(0.0);
@@ -236,14 +249,47 @@ single_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int nppc, boo
     PArray<MultiFab> EfieldMF;
     EfieldMF.resize(BL_SPACEDIM,PArrayManage);
 
-    EfieldMF.set(0,new MultiFab(ba[0],1,0,Fab_allocate,nodal));
-    EfieldMF.set(1,new MultiFab(ba[0],1,0,Fab_allocate,nodal));
-    EfieldMF.set(2,new MultiFab(ba[0],1,0,Fab_allocate,nodal));
+    EfieldMF.set(0,new MultiFab(ba[0],1,1,Fab_allocate,nodal));
+    EfieldMF.set(1,new MultiFab(ba[0],1,1,Fab_allocate,nodal));
+    EfieldMF.set(2,new MultiFab(ba[0],1,1,Fab_allocate,nodal));
 
     EfieldMF[0].setVal(0.0);
     EfieldMF[1].setVal(0.0);
     EfieldMF[2].setVal(0.0);
 
+    for ( MFIter mfi(EfieldMF[0]); mfi.isValid(); ++mfi ) {
+      const Box& bx = mfi.validbox();
+      long nxlocal = bx.length(0)-1, nylocal = bx.length(1)-1, nzlocal = bx.length(2)-1; 
+      
+      Real mu0 = 1.2566370614359173e-06;
+      Real mudt = mu0*clight*clight * dt;
+      /* Define coefficients of the stencil: for now, only the Yee grid */
+      Real dtsdx[1], dtsdy[1], dtsdz[1];
+      dtsdx[0] = dt/dx * clight*clight;
+      dtsdy[0] = dt/dy * clight*clight;
+      dtsdz[0] = dt/dz * clight*clight;
+      long norder = 2;
+      long nguard = 1;
+      bool l_nodal = 0;
+      
+      pxrpush_em3d_evec_norder( EfieldMF[0][mfi].dataPtr(),
+			      EfieldMF[1][mfi].dataPtr(),
+			      EfieldMF[2][mfi].dataPtr(),
+			      BfieldMF[0][mfi].dataPtr(),
+			      BfieldMF[1][mfi].dataPtr(),
+			      BfieldMF[2][mfi].dataPtr(), 
+			      CurrentMF[0][mfi].dataPtr(),
+			      CurrentMF[1][mfi].dataPtr(),
+			      CurrentMF[2][mfi].dataPtr(),
+			      &mudt, dtsdx, dtsdy, dtsdz, 
+			      &nxlocal, &nylocal, &nzlocal,
+			      &norder, &norder, &norder,
+			      &nguard, &nguard, &nguard,
+			      &nguard, &nguard, &nguard,
+			      &l_nodal );
+    }
+    std::cout << "Passed Maxwell" << std::endl;
+    
     // **************************************************************************
     // Now we create the E and B arrays
     // **************************************************************************
