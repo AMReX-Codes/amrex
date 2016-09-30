@@ -1740,7 +1740,8 @@ ParticleContainer<N>::CurrentDeposition(PArray<MultiFab>& mf_to_be_filled,
     MultiFab *mf_pointer_x, *mf_pointer_y, *mf_pointer_z;
 
     // We are only deposing one quantity on each face
-    int ncomp = 1;
+    int ncomp  = 1;
+    int nghost = mf_to_be_filled[0].nGrow();
 
     if (OnSameGrids(lev, mf_to_be_filled[0]))
     {
@@ -1755,23 +1756,19 @@ ParticleContainer<N>::CurrentDeposition(PArray<MultiFab>& mf_to_be_filled,
         // If mf_to_be_filled is not defined on the particle_box_array, then we need 
         // to make a temporary here and copy into mf_to_be_filled at the end.
 
-        IntVect x_face(1,0,0);
-        mf_pointer_x = new MultiFab(m_gdb->ParticleBoxArray(lev), 1, 0, 
-				    m_gdb->ParticleDistributionMap(lev), Fab_allocate, x_face);
+        IntVect nodal(1,1,1);
 
-        IntVect y_face(0,1,0);
-        mf_pointer_y = new MultiFab(m_gdb->ParticleBoxArray(lev), 1, 0, 
-				    m_gdb->ParticleDistributionMap(lev), Fab_allocate, y_face);
-
-        IntVect z_face(0,0,1);
-        mf_pointer_z = new MultiFab(m_gdb->ParticleBoxArray(lev), 1, 0, 
-				    m_gdb->ParticleDistributionMap(lev), Fab_allocate, z_face);
+        mf_pointer_x = new MultiFab(m_gdb->ParticleBoxArray(lev), ncomp, nghost, 
+				    m_gdb->ParticleDistributionMap(lev), Fab_allocate, nodal);
+        mf_pointer_y = new MultiFab(m_gdb->ParticleBoxArray(lev), ncomp, nghost, 
+				    m_gdb->ParticleDistributionMap(lev), Fab_allocate, nodal);
+        mf_pointer_z = new MultiFab(m_gdb->ParticleBoxArray(lev), ncomp, nghost, 
+				    m_gdb->ParticleDistributionMap(lev), Fab_allocate, nodal);
     }
 
     const Real      strttime    = ParallelDescriptor::second();
     const Geometry& gm          = m_gdb->Geom(lev);
     const BoxArray& ba          = mf_pointer_x->boxArray();
-    const Real*     plo         = gm.ProbLo();
     const Real*     dx          = gm.CellSize();
     const PMap&     pmap        = m_particles[lev];
     const int       ngrids      = pmap.size();
