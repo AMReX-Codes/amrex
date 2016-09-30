@@ -27,6 +27,7 @@ single_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int nppc, boo
        real_box.setLo(n,0.0);
        real_box.setHi(n,1.0);
     }
+    Real dx = real_box.length(0)/nx;
 
     // Define the lower and upper corner of a 3D domain
     IntVect domain_lo(0 , 0, 0); 
@@ -197,7 +198,8 @@ single_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int nppc, boo
     strt_assc = ParallelDescriptor::second();
 
     // Current deposition
-    Real dummy_dt  = 1.0;
+    Real clight = 299792458.;
+    Real dummy_dt  = 0.95 * dx /clight ;
     MyPC->CurrentDeposition(CurrentMF,0,dummy_dt); 
 
     end_assc = ParallelDescriptor::second() - strt_assc;
