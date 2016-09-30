@@ -1454,6 +1454,8 @@ ParticleContainer<N>::AssignNodalDensitySingleLevel (MultiFab& mf_to_be_filled,
     Array<int>         pgrd(ngrids);
     Array<const PBox*> pbxs(ngrids);
 
+    Real strt_depose = ParallelDescriptor::second();
+
     int j = 0;
     for (typename PMap::const_iterator pmap_it = pmap.begin(), pmapEnd = pmap.end();
          pmap_it != pmapEnd;
@@ -1532,7 +1534,19 @@ ParticleContainer<N>::AssignNodalDensitySingleLevel (MultiFab& mf_to_be_filled,
         }
     }
 
+    Real end_depose = ParallelDescriptor::second() - strt_depose;
+
+    if (ParallelDescriptor::IOProcessor()) 
+        std::cout << "Time in BoxLibChargeDeposition : Depose " << end_depose << '\n';
+
+    Real strt_sumb = ParallelDescriptor::second();
+
     mf_pointer->SumBoundary(gm.periodicity());
+
+    Real end_sumb = ParallelDescriptor::second() - strt_sumb;
+
+    if (ParallelDescriptor::IOProcessor()) 
+        std::cout << "Time in BoxLibChargeDeposition : SumBoundary " << end_sumb << '\n';
 
     //
     // Only multiply the first component by (1/vol) because this converts mass
@@ -1642,6 +1656,8 @@ ParticleContainer<N>::ChargeDeposition(MultiFab& mf_to_be_filled,
 	long nx = bx.length(0)-1, ny = bx.length(1)-1, nz = bx.length(2)-1; 
 	long ng = mf_pointer->nGrow();
 	long lvect = 8;
+
+        Real strt_copy = ParallelDescriptor::second();
 	
 	// Loop over particles in that box (to change array layout)
         for (typename PBox::const_iterator it = pbx.begin(); it < pbx.end(); ++it)
@@ -1658,6 +1674,13 @@ ParticleContainer<N>::ChargeDeposition(MultiFab& mf_to_be_filled,
  	    wp.push_back( 1. ); 
         }
 
+        Real end_copy = ParallelDescriptor::second() - strt_copy;
+
+        Real strt_depose = ParallelDescriptor::second();
+
+        if (ParallelDescriptor::IOProcessor()) 
+            std::cout << "Time in PicsarChargeDeposition : Copy " << end_copy << '\n';
+
 #if 0
 	depose_rho_vecHVv2_1_1_1( fab.dataPtr(), &np, xp.dataPtr(), yp.dataPtr(), zp.dataPtr(), 
 				  wp.dataPtr(), &q, &xyzmin[0], &xyzmin[1],
@@ -1669,10 +1692,20 @@ ParticleContainer<N>::ChargeDeposition(MultiFab& mf_to_be_filled,
 		                 wp.dataPtr(), &q, &xyzmin[0], &xyzmin[1],
 		                 &xyzmin[2], &dx[0], &dx[1], &dx[2], &nx, &ny, &nz,
 				 &ng, &ng, &ng);
+  
+        Real end_depose = ParallelDescriptor::second() - strt_depose;
+        if (ParallelDescriptor::IOProcessor()) 
+            std::cout << "Time in PicsarChargeDeposition : Depose " << end_depose << '\n';
     }
 
-    // TODO: Need nodal version
+    Real strt_sumb = ParallelDescriptor::second();
+
     mf_pointer->SumBoundary(gm.periodicity());
+
+    Real end_sumb = ParallelDescriptor::second() - strt_sumb;
+
+    if (ParallelDescriptor::IOProcessor()) 
+        std::cout << "Time in PicsarChargeDeposition : SumBoundary " << end_sumb << '\n';
 
     // If mf_to_be_filled is not defined on the particle_box_array, then we need
     // to copy here from mf_pointer into mf_to_be_filled.   I believe that we don't
@@ -1837,7 +1870,6 @@ ParticleContainer<N>::CurrentDeposition(PArray<MultiFab>& mf_to_be_filled,
 
     }
 
-    // TODO: Need nodal version
     mf_pointer_x->SumBoundary(gm.periodicity());
     mf_pointer_y->SumBoundary(gm.periodicity());
     mf_pointer_z->SumBoundary(gm.periodicity());
