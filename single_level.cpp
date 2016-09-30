@@ -179,6 +179,34 @@ single_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int nppc, boo
     }
 
     // **************************************************************************
+    // Test our ability 
+    // **************************************************************************
+
+    strt_assb = ParallelDescriptor::second();
+
+    // Initialize to zero
+    ChargeMF.setVal(0.0);
+    
+    // Charge deposition
+    MyPC->AssignNodalDensitySingleLevel(ChargeMF,0,1); 
+
+    end_assb = ParallelDescriptor::second() - strt_assb;
+
+    if (verbose)
+    {
+	Real cmin = ChargeMF.min(0,0);
+	Real cmax = ChargeMF.max(0.0);
+	if (ParallelDescriptor::IOProcessor()) {
+	    std::cout << "BoxLib:Min of ChargeMF " << cmin << std::endl;
+	    std::cout << "BoxLib:Max of ChargeMF " << cmax << std::endl;
+	    std::cout << "Time in BoxLibChargeDeposition : " << end_assb << '\n';
+	    std::cout << " " << std::endl;
+	}
+    }
+
+    exit(0);
+
+    // **************************************************************************
     // Define the different spatial centerings
     // **************************************************************************
 
