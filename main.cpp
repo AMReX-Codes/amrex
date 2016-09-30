@@ -35,8 +35,8 @@ int main(int argc, char* argv[])
     int nlevs = max_level + 1;
 
     // Number of particles per cell
-    int nppc = -1;
-    pp.get("nppc", nppc);
+    int nppc = 1;
+    // pp.get("nppc", nppc);
 
     if (nppc < 1 && ParallelDescriptor::IOProcessor())
        BoxLib::Abort("Must specify at least one particle per cell");
