@@ -178,32 +178,17 @@ single_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int nppc, boo
 	}
     }
 
-    exit(0);
-
     // **************************************************************************
-    // Define the different spatial centerings
-    // **************************************************************************
-
-    // These are the centers of the faces (used for B)
-    IntVect x_face (1,0,0);
-    IntVect y_face (0,1,0);
-    IntVect z_face (0,0,1);
-
-    // These are the centers of the edges (used for E and J)
-    IntVect x_edge (0,1,1);
-    IntVect y_edge (1,0,1);
-    IntVect z_edge (1,1,0);
-
-    // **************************************************************************
-    // Now we test the PICSAR current deposition
+    // Now we test the PICSAR current deposition - 
+    //     these are on the centers of edge but we declare the arrays as nodal
     // **************************************************************************
 
     PArray<MultiFab> CurrentMF;
     CurrentMF.resize(BL_SPACEDIM,PArrayManage);
 
-    CurrentMF.set(0,new MultiFab(ba[0],1,0,Fab_allocate,x_edge));
-    CurrentMF.set(1,new MultiFab(ba[0],1,0,Fab_allocate,y_edge));
-    CurrentMF.set(2,new MultiFab(ba[0],1,0,Fab_allocate,z_edge));
+    CurrentMF.set(0,new MultiFab(ba[0],1,1,Fab_allocate,nodal));
+    CurrentMF.set(1,new MultiFab(ba[0],1,1,Fab_allocate,nodal));
+    CurrentMF.set(2,new MultiFab(ba[0],1,1,Fab_allocate,nodal));
 
     CurrentMF[0].setVal(0.0);
     CurrentMF[1].setVal(0.0);
@@ -223,31 +208,35 @@ single_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int nppc, boo
         std::cout << " " << std::endl;
     }
 
+    exit(0);
+
     // **************************************************************************
-    // Create the B arrays -- these are on the centers of faces
+    // Create the B arrays -- 
+    //     these are on the centers of faces but we declare the arrays as nodal
     // **************************************************************************
 
     PArray<MultiFab> BfieldMF;
     BfieldMF.resize(BL_SPACEDIM,PArrayManage);
 
-    BfieldMF.set(0,new MultiFab(ba[0],1,0,Fab_allocate,x_face));
-    BfieldMF.set(1,new MultiFab(ba[0],1,0,Fab_allocate,y_face));
-    BfieldMF.set(2,new MultiFab(ba[0],1,0,Fab_allocate,z_face));
+    BfieldMF.set(0,new MultiFab(ba[0],1,0,Fab_allocate,nodal));
+    BfieldMF.set(1,new MultiFab(ba[0],1,0,Fab_allocate,nodal));
+    BfieldMF.set(2,new MultiFab(ba[0],1,0,Fab_allocate,nodal));
 
     BfieldMF[0].setVal(0.0);
     BfieldMF[1].setVal(0.0);
     BfieldMF[2].setVal(0.0);
 
     // **************************************************************************
-    // Create the E arrays -- these are on the centers of edges
+    // Create the E arrays -- 
+    //     these are on the centers of edges but we declare the arrays as nodal
     // **************************************************************************
 
     PArray<MultiFab> EfieldMF;
     EfieldMF.resize(BL_SPACEDIM,PArrayManage);
 
-    EfieldMF.set(0,new MultiFab(ba[0],1,0,Fab_allocate,x_edge));
-    EfieldMF.set(1,new MultiFab(ba[0],1,0,Fab_allocate,y_edge));
-    EfieldMF.set(2,new MultiFab(ba[0],1,0,Fab_allocate,z_edge));
+    EfieldMF.set(0,new MultiFab(ba[0],1,0,Fab_allocate,nodal));
+    EfieldMF.set(1,new MultiFab(ba[0],1,0,Fab_allocate,nodal));
+    EfieldMF.set(2,new MultiFab(ba[0],1,0,Fab_allocate,nodal));
 
     EfieldMF[0].setVal(0.0);
     EfieldMF[1].setVal(0.0);
