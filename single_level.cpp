@@ -19,16 +19,24 @@ extern "C" {
 	const long* nxorder, const long* nyorder, const long* nzorder,
 	const long* nxguard, const long* nyguard, const long* nzguard, 
 	const long* nxs, const long* nys, const long* nzs, const bool* l_nodal );
+
+  void pxrpush_em3d_bvec_norder( Real* ex, Real* ey, Real* ez,
+	Real* bx, Real* by, Real* bz,
+	const Real* dtsdx, const Real* dtsdy, const Real* dtsdz, 
+	const long* nxlocal, const long* nylocal, const long* nzlocal,
+	const long* nxorder, const long* nyorder, const long* nzorder,
+	const long* nxguard, const long* nyguard, const long* nzguard, 
+	const long* nxs, const long* nys, const long* nzs, const bool* l_nodal );
 }
 
 
 void
-single_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int nppc, bool verbose) 
+single_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int order, bool verbose) 
 {
     const int IOProc = ParallelDescriptor::IOProcessorNumber();
 
-    Real strt_init, strt_assb, strt_assd, strt_assc, strt_mK;
-    Real  end_init,  end_assb,  end_assd,  end_assc,  end_mK;
+    Real strt_init, strt_assb, strt_assd, strt_assc, strt_mK, strt_evec, strt_bvec;
+    Real  end_init,  end_assb,  end_assd,  end_assc,  end_mK,  end_evec,  end_bvec;
 
     // ********************************************************************************************
     // All of this defines the level 0 information -- size of box, type of boundary condition, etc.
@@ -112,7 +120,7 @@ single_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int nppc, boo
 
     // This allows us to write the gravitational acceleration into these components 
 
-    int num_particles = nppc * nx * ny * nz;
+    int num_particles = nx * ny * nz;
     Real charge = 1.0;
 
     if (ParallelDescriptor::IOProcessor())
@@ -142,7 +150,8 @@ single_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int nppc, boo
 
     MultiFab ChargeMF;
     IntVect nodal(1,1,1);
-    ChargeMF.define(ba[0],1,0,Fab_allocate,nodal);
+    int ngrow = order-1;
+    ChargeMF.define(ba[0],1,ngrow,Fab_allocate,nodal);
 
     // **************************************************************************
     // First we test the PICSAR charge deposition
@@ -154,7 +163,8 @@ single_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int nppc, boo
     ChargeMF.setVal(0.0);
     
     // Charge deposition
-    MyPC->ChargeDeposition(ChargeMF,0); 
+    int level = 0;
+    MyPC->ChargeDeposition(ChargeMF,level,order); 
 
     end_assd = ParallelDescriptor::second() - strt_assd;
 
@@ -165,7 +175,6 @@ single_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int nppc, boo
 	if (ParallelDescriptor::IOProcessor()) {
 	    std::cout << "PICSAR:Min of ChargeMF " << cmin << std::endl;
 	    std::cout << "PICSAR:Max of ChargeMF " << cmax << std::endl;
-	    std::cout << "Time in PicsarChargeDeposition : " << end_assd << '\n';
 	    std::cout << " " << std::endl;
 	}
     }
@@ -191,7 +200,6 @@ single_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int nppc, boo
 	if (ParallelDescriptor::IOProcessor()) {
 	    std::cout << "BoxLib:Min of ChargeMF " << cmin << std::endl;
 	    std::cout << "BoxLib:Max of ChargeMF " << cmax << std::endl;
-	    std::cout << "Time in BoxLibChargeDeposition : " << end_assb << '\n';
 	    std::cout << " " << std::endl;
 	}
     }
@@ -256,39 +264,64 @@ single_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int nppc, boo
     EfieldMF[0].setVal(0.0);
     EfieldMF[1].setVal(0.0);
     EfieldMF[2].setVal(0.0);
+      
+    Real mu0 = 1.2566370614359173e-06;
+    Real mudt = mu0*clight*clight * dt;
+    /* Define coefficients of the stencil: for now, only the Yee grid */
+    Real dtsdx[1], dtsdy[1], dtsdz[1];
+    dtsdx[0] = dt/dx * clight*clight;
+    dtsdy[0] = dt/dy * clight*clight;
+    dtsdz[0] = dt/dz * clight*clight;
+    long norder = 2;
+    long nguard = 1;
+    bool l_nodal = 0;
+
+    strt_evec = ParallelDescriptor::second();
 
     for ( MFIter mfi(EfieldMF[0]); mfi.isValid(); ++mfi ) {
       const Box& bx = mfi.validbox();
       long nxlocal = bx.length(0)-1, nylocal = bx.length(1)-1, nzlocal = bx.length(2)-1; 
       
-      Real mu0 = 1.2566370614359173e-06;
-      Real mudt = mu0*clight*clight * dt;
-      /* Define coefficients of the stencil: for now, only the Yee grid */
-      Real dtsdx[1], dtsdy[1], dtsdz[1];
-      dtsdx[0] = dt/dx * clight*clight;
-      dtsdy[0] = dt/dy * clight*clight;
-      dtsdz[0] = dt/dz * clight*clight;
-      long norder = 2;
-      long nguard = 1;
-      bool l_nodal = 0;
-      
       pxrpush_em3d_evec_norder( EfieldMF[0][mfi].dataPtr(),
-			      EfieldMF[1][mfi].dataPtr(),
-			      EfieldMF[2][mfi].dataPtr(),
-			      BfieldMF[0][mfi].dataPtr(),
-			      BfieldMF[1][mfi].dataPtr(),
-			      BfieldMF[2][mfi].dataPtr(), 
-			      CurrentMF[0][mfi].dataPtr(),
-			      CurrentMF[1][mfi].dataPtr(),
-			      CurrentMF[2][mfi].dataPtr(),
-			      &mudt, dtsdx, dtsdy, dtsdz, 
-			      &nxlocal, &nylocal, &nzlocal,
-			      &norder, &norder, &norder,
-			      &nguard, &nguard, &nguard,
-			      &nguard, &nguard, &nguard,
-			      &l_nodal );
+			        EfieldMF[1][mfi].dataPtr(),
+  			        EfieldMF[2][mfi].dataPtr(),
+  			        BfieldMF[0][mfi].dataPtr(),
+  			        BfieldMF[1][mfi].dataPtr(),
+			        BfieldMF[2][mfi].dataPtr(), 
+			        CurrentMF[0][mfi].dataPtr(),
+			        CurrentMF[1][mfi].dataPtr(),
+			        CurrentMF[2][mfi].dataPtr(),
+			        &mudt, dtsdx, dtsdy, dtsdz, 
+			        &nxlocal, &nylocal, &nzlocal,
+			        &norder, &norder, &norder,
+			        &nguard, &nguard, &nguard,
+			        &nguard, &nguard, &nguard,
+			        &l_nodal );
     }
-    std::cout << "Passed Maxwell" << std::endl;
+
+    end_evec = ParallelDescriptor::second() - strt_evec;
+
+    strt_bvec = ParallelDescriptor::second();
+
+    for ( MFIter mfi(EfieldMF[0]); mfi.isValid(); ++mfi ) {
+      const Box& bx = mfi.validbox();
+      long nxlocal = bx.length(0)-1, nylocal = bx.length(1)-1, nzlocal = bx.length(2)-1; 
+      
+      pxrpush_em3d_bvec_norder( EfieldMF[0][mfi].dataPtr(),
+			        EfieldMF[1][mfi].dataPtr(),
+  			        EfieldMF[2][mfi].dataPtr(),
+  			        BfieldMF[0][mfi].dataPtr(),
+  			        BfieldMF[1][mfi].dataPtr(),
+			        BfieldMF[2][mfi].dataPtr(), 
+			        dtsdx, dtsdy, dtsdz, 
+			        &nxlocal, &nylocal, &nzlocal,
+			        &norder, &norder, &norder,
+			        &nguard, &nguard, &nguard,
+			        &nguard, &nguard, &nguard,
+			        &l_nodal );
+    }
+
+    end_bvec = ParallelDescriptor::second() - strt_bvec;
     
     // **************************************************************************
     // Now we create the E and B arrays
@@ -310,15 +343,21 @@ single_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int nppc, boo
     delete MyPC;
 
     ParallelDescriptor::ReduceRealMax(end_init,IOProc);
-    ParallelDescriptor::ReduceRealMax(end_assd,IOProc);
+    ParallelDescriptor::ReduceRealMax(end_assb,IOProc);
     ParallelDescriptor::ReduceRealMax(end_assc,IOProc);
+    ParallelDescriptor::ReduceRealMax(end_assd,IOProc);
+    ParallelDescriptor::ReduceRealMax(end_evec,IOProc);
+    ParallelDescriptor::ReduceRealMax(end_bvec,IOProc);
     ParallelDescriptor::ReduceRealMax(end_mK  ,IOProc);
+
     if (verbose && ParallelDescriptor::IOProcessor())
     {
-           std::cout << "Time in InitRandom             : " << end_init << '\n';
+           std::cout << "Time in Init                   : " << end_init << '\n';
            std::cout << "Time in BoxLibChargeDeposition : " << end_assb << '\n';
            std::cout << "Time in PicsarChargeDeposition : " << end_assd << '\n';
            std::cout << "Time in CurrentDeposition      : " << end_assc << '\n';
+           std::cout << "Time in E-field                : " << end_evec << '\n';
+           std::cout << "Time in B-field                : " << end_bvec << '\n';
            std::cout << "Time in moveKick               : " << end_mK   << '\n';
     }
 }

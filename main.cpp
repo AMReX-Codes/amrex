@@ -10,7 +10,7 @@
 #include "Particles.H"
 
 // declare routines below
-void single_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int nppc, bool verbose);
+void single_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int order, bool verbose);
 
 int main(int argc, char* argv[])
 {
@@ -36,10 +36,16 @@ int main(int argc, char* argv[])
 
     // Number of particles per cell
     int nppc = 1;
-    // pp.get("nppc", nppc);
 
     if (nppc < 1 && ParallelDescriptor::IOProcessor())
        BoxLib::Abort("Must specify at least one particle per cell");
+
+    // Order of charge deposition routine
+    int order = 1;
+    pp.query("order", order);
+
+    if ( (order < 1 || order > 3) && ParallelDescriptor::IOProcessor())
+       BoxLib::Abort("The order must be 1 <= order <= 3");
 
     bool verbose = false;
     pp.query("verbose", verbose);
@@ -50,15 +56,17 @@ int main(int argc, char* argv[])
        std::cout << "Number of levels             : " << nlevs << std::endl;
        std::cout << "Number of particles per cell : " << nppc  << std::endl;
        std::cout << "Size of domain               : " << nx << " " << ny << " " << nz << std::endl;
+       std::cout << "Order of charge deposition   : " << order << std::endl;
     }
 
-    single_level(nlevs,nx,ny,nz,max_grid_size,nppc,verbose);
+    single_level(nlevs,nx,ny,nz,max_grid_size,order,verbose);
 
     Real end_total = ParallelDescriptor::second() - strt_total;
 
     ParallelDescriptor::ReduceRealMax(end_total ,ParallelDescriptor::IOProcessorNumber());
     if (verbose && ParallelDescriptor::IOProcessor()) 
-       std::cout << "Total Time           : " << end_total << '\n' << '\n';
+       std::cout << "Total Time                     : " << end_total << '\n';
+
 ;
 
     BoxLib::Finalize();

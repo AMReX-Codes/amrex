@@ -22,8 +22,8 @@ max_grid_size = 32
 #   max_level = 1 : two    level test
 max_level = 0
 
-# Number of particles per cell
-nppc = 10
+# Order of the charge deposition
+order = 1
 
 # Verbosity
 verbose = true   # set to true to get more verbosity 

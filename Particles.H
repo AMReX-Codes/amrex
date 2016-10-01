@@ -47,6 +47,22 @@ extern "C" {
 	   const long* nx, const long* ny, const long* nz,
 	   const long* nxguard, const long* nyguard, const long* nzguard);
 
+ void depose_rho_scalar_2_2_2( Real* rho, const long* np,
+	   const Real* xp, const Real* yp, const Real* zp,
+	   const Real* w, const Real* q,
+	   const Real* xmin, const Real* ymin, const Real* zmin,
+	   const Real* dx, const Real* dy, const Real* dz,
+	   const long* nx, const long* ny, const long* nz,
+	   const long* nxguard, const long* nyguard, const long* nzguard);
+
+ void depose_rho_scalar_3_3_3( Real* rho, const long* np,
+	   const Real* xp, const Real* yp, const Real* zp,
+	   const Real* w, const Real* q,
+	   const Real* xmin, const Real* ymin, const Real* zmin,
+	   const Real* dx, const Real* dy, const Real* dz,
+	   const long* nx, const long* ny, const long* nz,
+	   const long* nxguard, const long* nyguard, const long* nzguard);
+
  void depose_jxjyjz_vecHVv2_1_1_1(Real* jx, Real* jy, Real* jz, const long* np,
            const Real* xp, const Real* yp, const Real* zp,
 	   const Real* uxp, const Real* uyp,const Real* uzp,
@@ -277,7 +293,7 @@ struct ParticleContainerBase
     virtual void AssignNodalDensitySingleLevel (MultiFab& mf, int
     level, int ncomp=1, int particle_lvl_offset = 0) const = 0;
 
-    virtual void ChargeDeposition(MultiFab& mf_to_be_filled, int lev) const = 0;
+    virtual void ChargeDeposition(MultiFab& mf_to_be_filled, int lev, int order) const = 0;
 
     virtual void CurrentDeposition(PArray<MultiFab>& mf_to_be_filled, int lev,
                                    Real dt) const = 0;
@@ -395,7 +411,7 @@ public:
     level, int ncomp=1, int particle_lvl_offset = 0) const
     BL_OVERRIDE;
 
-    virtual void ChargeDeposition (       MultiFab& mf_to_be_filled, int lev) const BL_OVERRIDE;
+    virtual void ChargeDeposition (       MultiFab& mf_to_be_filled, int lev, int order) const BL_OVERRIDE;
     virtual void CurrentDeposition(PArray<MultiFab>& mf_to_be_filled, int lev, Real dt) const BL_OVERRIDE;
 
     virtual void AssignDensity (PArray<MultiFab>& mf, int lev_min = 0, int ncomp = 1, int finest_level = -1) const BL_OVERRIDE;
@@ -1433,7 +1449,6 @@ ParticleContainer<N>::AssignNodalDensitySingleLevel (MultiFab& mf_to_be_filled,
 
     const Real      strttime    = ParallelDescriptor::second();
     const Geometry& gm          = m_gdb->Geom(lev);
-    const Real*     plo         = gm.ProbLo();
     const Real*     dx          = gm.CellSize();
     const PMap&     pmap        = m_particles[lev];
     const int       ngrids      = pmap.size();
@@ -1586,7 +1601,7 @@ ParticleContainer<N>::AssignNodalDensitySingleLevel (MultiFab& mf_to_be_filled,
 template <int N>
 void
 ParticleContainer<N>::ChargeDeposition(MultiFab& mf_to_be_filled, 
-                                       int lev) const
+                                       int lev, int order) const
 {
     MultiFab* mf_pointer;
 
@@ -1610,7 +1625,6 @@ ParticleContainer<N>::ChargeDeposition(MultiFab& mf_to_be_filled,
     const Real      strttime    = ParallelDescriptor::second();
     const Geometry& gm          = m_gdb->Geom(lev);
     const BoxArray& ba          = mf_pointer->boxArray();
-    const Real*     plo         = gm.ProbLo();
     const Real*     dx          = gm.CellSize();
     const PMap&     pmap        = m_particles[lev];
     const int       ngrids      = pmap.size();
@@ -1688,10 +1702,27 @@ ParticleContainer<N>::ChargeDeposition(MultiFab& mf_to_be_filled,
 				  &ng, &ng, &ng, &lvect );
 #endif
 
-	depose_rho_scalar_1_1_1( fab.dataPtr(), &np, xp.dataPtr(), yp.dataPtr(), zp.dataPtr(), 
-		                 wp.dataPtr(), &q, &xyzmin[0], &xyzmin[1],
-		                 &xyzmin[2], &dx[0], &dx[1], &dx[2], &nx, &ny, &nz,
-				 &ng, &ng, &ng);
+	if (order == 1) 
+	{
+	    depose_rho_scalar_1_1_1( fab.dataPtr(), &np, xp.dataPtr(), yp.dataPtr(), zp.dataPtr(), 
+	    	                     wp.dataPtr(), &q, &xyzmin[0], &xyzmin[1],
+	    	                     &xyzmin[2], &dx[0], &dx[1], &dx[2], &nx, &ny, &nz,
+				     &ng, &ng, &ng);
+	} 
+        else if (order == 2) 
+	{
+	    depose_rho_scalar_2_2_2( fab.dataPtr(), &np, xp.dataPtr(), yp.dataPtr(), zp.dataPtr(), 
+	    	                     wp.dataPtr(), &q, &xyzmin[0], &xyzmin[1],
+	    	                     &xyzmin[2], &dx[0], &dx[1], &dx[2], &nx, &ny, &nz,
+				     &ng, &ng, &ng);
+	} 
+        else if (order == 3) 
+	{
+	    depose_rho_scalar_3_3_3( fab.dataPtr(), &np, xp.dataPtr(), yp.dataPtr(), zp.dataPtr(), 
+	    	                     wp.dataPtr(), &q, &xyzmin[0], &xyzmin[1],
+	    	                     &xyzmin[2], &dx[0], &dx[1], &dx[2], &nx, &ny, &nz,
+				     &ng, &ng, &ng);
+	} 
   
         Real end_depose = ParallelDescriptor::second() - strt_depose;
         if (ParallelDescriptor::IOProcessor()) 
