@@ -327,12 +327,6 @@ public:
     void InitOnePerCell (Real x_off, Real y_off, Real z_off,
                          Real particleMass, MultiFab& particle_mf);
     void InitNRandomPerCell (int n_per_cell, Real particleMass, MultiFab& particle_mf);
-    void InitCosmo  (MultiFab& mf, const Real vel_fac[], const Array<int> n_part, const Real particleMass);
-    void InitCosmo  (MultiFab& mf, const Real vel_fac[], const Array<int> n_part, 
-                     const Real particleMass, const Real shift[]);
-    void InitCosmo1ppc (MultiFab& mf, const Real vel_fac[], const Real particleMass);
-    void InitCosmo1ppcMultiLevel(MultiFab& mf, const Real disp_fac[], const Real vel_fac[], const Real particleMass, 
-                                 int disp_idx, int vel_idx, BoxArray &baWhereNot, int lev);
 
     void addOneParticle (int id_in, int cpu_in, 
                          std::vector<double>& xloc, std::vector<double>& attributes); 
