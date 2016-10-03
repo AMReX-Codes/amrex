@@ -1343,7 +1343,8 @@ VisMF::readFAB (FabArray<FArrayBox>&            mf,
 void
 VisMF::Read (FabArray<FArrayBox> &mf,
              const std::string   &mf_name,
-	     const char *faHeader)
+	     const char *faHeader,
+	     int coordinatorProc)
 {
     BL_PROFILE("VisMF::Read()");
 
@@ -1351,11 +1352,12 @@ VisMF::Read (FabArray<FArrayBox> &mf,
     Real hEndTime, hStartTime, faCopyTime(0.0);
     Real startTime(ParallelDescriptor::second());
     static Real totalTime(0.0);
+    int myProc(ParallelDescriptor::MyProc());
 
     // ---- This limits the number of concurrent readers per file.
     int nOpensPerFile(nMFFileInStreams), messTotal(0);
 
-    if(verbose && ParallelDescriptor::IOProcessor()) {
+    if(verbose && myProc == coordinatorProc) {
       std::cout << "VisMF::Read:  about to read:  " << mf_name << std::endl;
     }
 
@@ -1440,11 +1442,11 @@ VisMF::Read (FabArray<FArrayBox> &mf,
     DistributionMapping dmFileOrder(ranksFileOrder);
 
     if(inFileOrder) {
-      if(ParallelDescriptor::IOProcessor()) {
+      if(myProc == coordinatorProc) {
         std::cout << "OOOOOOOO:  inFileOrder" << std::endl;
       }
     } else {
-      if(ParallelDescriptor::IOProcessor()) {
+      if(myProc == coordinatorProc) {
         std::cout << "OOOOOOOO:  not inFileOrder" << std::endl;
       }
       // ---- make a temporary fabarray in file order
@@ -1583,7 +1585,7 @@ VisMF::Read (FabArray<FArrayBox> &mf,
 
   } else {    // ---- noFabHeader == false
 
-    int nReqs(0), ioProcNum(ParallelDescriptor::IOProcessorNumber());
+    int nReqs(0), ioProcNum(coordinatorProc);
     int myProc(ParallelDescriptor::MyProc());
     int nBoxes(hdr.m_ba.size());
     int totalIOReqs(nBoxes), nFiles(-1);
@@ -1602,7 +1604,7 @@ VisMF::Read (FabArray<FArrayBox> &mf,
       if(whichProc == myProc) {
         ++nReqs;
       }
-      if(ParallelDescriptor::IOProcessor()) {
+      if(myProc == coordinatorProc) {
         std::string fname(hdr.m_fod[i].m_name);
 	if(fileNames.insert(std::pair<std::string,int>(fname,allReadsIndex)).second)
 	{
@@ -1611,7 +1613,7 @@ VisMF::Read (FabArray<FArrayBox> &mf,
       }
     }
 
-    if(ParallelDescriptor::IOProcessor()) {    // fill availableFiles
+    if(myProc == coordinatorProc) {    // fill availableFiles
       nFiles = fileNames.size();
       for(int i(0); i < nFiles; ++i) {
         for(int nOpens(0); nOpens < nOpensPerFile; ++nOpens) {
@@ -1640,7 +1642,7 @@ VisMF::Read (FabArray<FArrayBox> &mf,
     int readTag(ParallelDescriptor::SeqNum());
     int doneTag(ParallelDescriptor::SeqNum());
 
-    if(ParallelDescriptor::IOProcessor()) {  // manage the file locks
+    if(myProc == coordinatorProc) {  // manage the file locks
       int reqsPending(0), iopFileIndex;
       std::deque<int> iopReads;
       MPI_Status status;
@@ -1743,7 +1745,7 @@ VisMF::Read (FabArray<FArrayBox> &mf,
   }
 
     bool reportMFReadStats(true);
-    if(ParallelDescriptor::IOProcessor() && reportMFReadStats) {
+    if(myProc == coordinatorProc && reportMFReadStats) {
       Real mfReadTime = ParallelDescriptor::second() - startTime;
       totalTime += mfReadTime;
       std::cout << "FARead ::  nBoxes = " << hdr.m_ba.size()

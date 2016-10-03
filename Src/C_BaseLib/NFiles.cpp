@@ -180,7 +180,7 @@ bool NFilesIter::ReadyToWrite() {
       for(int i(0); i < nSetZeros - 1; ++i) {  // ---- tell the others who is coorinating
         int nonCoordinatorProc(-1);
         ParallelDescriptor::Recv(&nonCoordinatorProc, 1, MPI_ANY_SOURCE, deciderTag);
-        ParallelDescriptor::Send(&coordinatorProc, 1, nonCoordinatorProc, coordinatorTag);
+        ParallelDescriptor::Asend(&coordinatorProc, 1, nonCoordinatorProc, coordinatorTag);
       }
     }
 
