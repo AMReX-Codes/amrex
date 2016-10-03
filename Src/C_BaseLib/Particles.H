@@ -246,14 +246,10 @@ struct ParticleContainerBase
                                int  lev_min              = 0, 
                                int  nGrow                = 0) = 0;
 
-    virtual void moveKickDrift (MultiFab& grav_vector, int level, Real timestep, 
+    virtual void moveKickDrift (MultiFab& acceleration, int level, Real timestep, 
                                 Real a_old = 1.0, Real a_half = 1.0) = 0;
-    virtual void moveKick      (MultiFab& grav_vector, int level, Real timestep, 
+    virtual void moveKick      (MultiFab& acceleration, int level, Real timestep, 
                                 Real a_new = 1.0, Real a_half = 1.0, int start_comp_for_accel = -1) = 0;
-    virtual void moveKickDrift (PArray<MultiFab>& grav_vector, int level, Real timestep, 
-                                Real a_old = 1.0, Real a_half = 1.0) = 0;
-    virtual void moveKick      (PArray<MultiFab>& grav_vector, int level, Real timestep, 
-                                Real a_new = 1.0, Real a_half = 1.0) = 0;
 };
 
 template <int N>
@@ -318,11 +314,8 @@ public:
     const ParGDBBase* GetParGDB () const { return m_gdb; }
 
     void InitFromAsciiFile (const std::string& file, int extradata, const IntVect* Nrep = 0);
-
     void InitFromBinaryFile (const std::string& file, int extradata);
-
     void InitFromBinaryMetaFile (const std::string& file, int extradata);
-
     void InitRandom (long icount, unsigned long iseed, Real particleMass, bool serialize = false, RealBox bx = RealBox());
     void InitOnePerCell (Real x_off, Real y_off, Real z_off,
                          Real particleMass, MultiFab& particle_mf);
@@ -344,8 +337,6 @@ public:
 
     virtual void AssignDensity (PArray<MultiFab>& mf, int lev_min = 0, int ncomp = 1, int finest_level = -1) const BL_OVERRIDE;
 
-    void AssignDensityAndVels (PArray<MultiFab>& mf, int lev_min = 0) const;
-
     void AssignDensityDoit (PArray<MultiFab>* mf, PMap& data, int ncomp, int lev_min = 0) const;
 
     void MultiplyParticleMass (int lev, Real mult);
@@ -363,8 +354,8 @@ public:
     //     the part of their contribution in AssignDensity that is outside the domain.
     void SetAllowParticlesNearBoundary(bool value);
  
-    Real estTimestep (MultiFab& grav_vector,         int level, Real cfl) const;
-    Real estTimestep (MultiFab& grav_vector, Real a, int level, Real cfl) const;
+    Real estTimestep (MultiFab& acceleration,         int level, Real cfl) const;
+    Real estTimestep (MultiFab& acceleration, Real a, int level, Real cfl) const;
 
     virtual void Redistribute (bool where_already_called = false,
 			       bool full_where           = false,
@@ -399,44 +390,19 @@ public:
 
     void MoveRandom (int level);
 
-    // **********************************************************************************
-    // Nyx Specifc Methods
-    // **********************************************************************************
-    //
-    // If the particles move only with self-gravity from themselves and the gas, then 
-    // we can move them according to the schemes below.
-    // The gravitational force must be computed between the calls of the parts of the integration scheme.
-    //
-    // The following two functions form a PREDICTOR CORRECTOR scheme for integrating the motion of the particles
-    // BE CAREFUL: This one uses a NGP interpolation, which is not consistent with the density assignment scheme!
-    //
-    void movePredict (const MultiFab& grav_vector, int level, Real timestep);
-    void moveCorrect (const MultiFab& grav_vector_old, const MultiFab& grav_vector, int level, Real timestep);
     //
     // TODO: the methods should return a constraint on the timestep...
     //
     // The following two functions form a KICK DRIFT KICK scheme for integrating the motion of the particles in
-    //   comoving coordinates -- these rely on CELL-BASED gravity component
+    //   comoving coordinates -- these rely on CELL-BASED acceleration
     //
-    virtual void moveKickDrift (MultiFab& grav_vector, int level, Real timestep, 
+    virtual void moveKickDrift (MultiFab& acceleration, int level, Real timestep, 
 				Real a_old = 1.0, Real a_half = 1.0) BL_OVERRIDE;
-    virtual void moveKick      (MultiFab& grav_vector, int level, Real timestep, 
+    virtual void moveKick      (MultiFab& acceleration, int level, Real timestep, 
 				Real a_new = 1.0, Real a_half = 1.0,
 				int start_comp_for_accel = -1) BL_OVERRIDE;
     //
-    // The following two functions form a KICK DRIFT KICK scheme for integrating the motion of the particles in
-    //   comoving coordinates -- these rely on EDGE-BASED gravity component
-    //
-    virtual void moveKickDrift (PArray<MultiFab>& grav_vector, int level, Real timestep, 
-				Real a_old = 1.0, Real a_half = 1.0) BL_OVERRIDE;
-    virtual void moveKick      (PArray<MultiFab>& grav_vector, int level, Real timestep, 
-				Real a_new = 1.0, Real a_half = 1.0) BL_OVERRIDE;
-    //
-    // after the moveKickDrift step the positions of the particles are advanced for a full timestep,
-    // so this scheme should work in the overall algorithm...
-    //
-    //
-    // The Following methods are for managing Nyx's Virtual and Ghost Particles.
+    // The Following methods are for managing Virtual and Ghost Particles.
     //
     // Removes all particles at a given level
     //
@@ -914,19 +880,19 @@ ParticleContainer<N>::IncrementWithTotal (MultiFab& mf,
 
 template <int N>
 Real
-ParticleContainer<N>::estTimestep (MultiFab& gv,
+ParticleContainer<N>::estTimestep (MultiFab& acceleration,
                                    int             lev,
                                    Real            cfl) const
 {
-    return estTimestep(gv,1.0,lev,cfl);
+    return estTimestep(acceleration,1.0,lev,cfl);
 }
 
 template <int N>
 Real
-ParticleContainer<N>::estTimestep (MultiFab& gv,
-                                   Real            a,
-                                   int             lev,
-                                   Real            cfl) const
+ParticleContainer<N>::estTimestep (MultiFab& acceleration,
+                                   Real       a,
+                                   int      lev,
+                                   Real     cfl) const
 {
     BL_PROFILE("ParticleContainer<N>::estTimestep(lev)");
     Real            dt               = 1e50;
@@ -951,17 +917,17 @@ ParticleContainer<N>::estTimestep (MultiFab& gv,
 
     long num_particles_at_level = 0;
 
-    MultiFab* gv_pointer;
-    if (OnSameGrids(lev, gv))
+    MultiFab* ac_pointer;
+    if (OnSameGrids(lev, acceleration))
     {
-        gv_pointer = 0;
+        ac_pointer = 0;
     }
     else 
     {
-        gv_pointer = new MultiFab(m_gdb->ParticleBoxArray(lev), gv.nComp(), gv.nGrow(),
+        ac_pointer = new MultiFab(m_gdb->ParticleBoxArray(lev), acceleration.nComp(), acceleration.nGrow(),
 				  m_gdb->ParticleDistributionMap(lev), Fab_allocate);
-        gv_pointer->copy(gv,0,0,BL_SPACEDIM);
-        gv_pointer->FillBoundary(); // DO WE NEED GHOST CELLS FILLED ???
+        ac_pointer->copy(acceleration,0,0,BL_SPACEDIM);
+        ac_pointer->FillBoundary(); // DO WE NEED GHOST CELLS FILLED ???
     }
 
     for (typename PMap::const_iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
@@ -969,7 +935,7 @@ ParticleContainer<N>::estTimestep (MultiFab& gv,
         const int        grid = pmap_it->first;
         const PBox&      pbox = pmap_it->second;
         const int        n    = pbox.size();
-        const FArrayBox& gfab = (gv_pointer) ? (*gv_pointer)[grid] : gv[grid];
+        const FArrayBox& gfab = (ac_pointer) ? (*ac_pointer)[grid] : acceleration[grid];
 
         num_particles_at_level += n;
 
@@ -998,15 +964,15 @@ ParticleContainer<N>::estTimestep (MultiFab& gv,
 #endif
             Real dt_part = (max_mag_vel_over_dx > 0) ? (cfl / max_mag_vel_over_dx) : 1e50;
 
-            const Real gval[BL_SPACEDIM] = { D_DECL(gfab(p.m_cell,0),
+            const Real aval[BL_SPACEDIM] = { D_DECL(gfab(p.m_cell,0),
                                                     gfab(p.m_cell,1),
                                                     gfab(p.m_cell,2)) };
 
-            const Real mag_grav = sqrt(D_TERM(gval[0]*gval[0],
-                                            + gval[1]*gval[1],
-                                            + gval[2]*gval[2]));
-            if (mag_grav > 0)
-                dt_part = std::min( dt_part, 1/std::sqrt(mag_grav/dx[0]) );
+            const Real mag_accel = sqrt(D_TERM(aval[0]*aval[0],
+                                             + aval[1]*aval[1],
+                                             + aval[2]*aval[2]));
+            if (mag_accel > 0)
+                dt_part = std::min( dt_part, 1/std::sqrt(mag_accel/dx[0]) );
 
             int tid = 0;
 
@@ -1017,7 +983,7 @@ ParticleContainer<N>::estTimestep (MultiFab& gv,
         }
     }
 
-    if (gv_pointer) delete gv_pointer;
+    if (ac_pointer) delete ac_pointer;
 
     for (int i = 0; i < ldt.size(); i++)
         dt = std::min(dt, ldt[i]);
@@ -1374,14 +1340,6 @@ ParticleContainer<N>::AssignNodalDensitySingleLevel (MultiFab& mf_to_be_filled,
 //
 // There'll be finest_level+1 of them.
 //
-
-template <int N>
-void
-ParticleContainer<N>::AssignDensityAndVels (PArray<MultiFab>& mf,
-                                            int               lev_min) const
-{
-    AssignDensity(mf, lev_min, BL_SPACEDIM+1);
-}
 
 template <int N>
 void
@@ -3093,192 +3051,22 @@ ParticleContainer<N>::MultiplyParticleMass (int lev, Real mult)
    }
 }
 
-template <int N>
-void
-ParticleContainer<N>::movePredict (const MultiFab& gv,
-                                   int             lev,
-                                   Real            dt)
-{
-    BL_PROFILE("ParticleContainer<N>::movePredict()");
-    BL_ASSERT(OK());
-    BL_ASSERT(N >= BL_SPACEDIM+1);
-    BL_ASSERT(lev >= 0 && lev < m_particles.size());
-
-    const Real strttime = ParallelDescriptor::second();
-
-    PMap& pmap = m_particles[lev];
-
-    MultiFab* gv_pointer;
-    if (OnSameGrids(lev,gv))
-    {
-        gv_pointer = 0;
-    }
-    else 
-    {
-        gv_pointer = new MultiFab(m_gdb->ParticleBoxArray(lev), 1, gv.nGrow(),
-				  m_gdb->ParticleDistributionMap(lev), Fab_allocate);
-        gv_pointer->copy(gv,0,0,BL_SPACEDIM);
-        gv_pointer->FillBoundary(); // DO WE NEED GHOST CELLS FILLED ???
-    }
-
-    for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
-    {
-        const int        grid = pmap_it->first;
-        PBox&            pbox = pmap_it->second;
-        const int        n    = pbox.size();
-        const FArrayBox& gfab = (gv_pointer) ? (*gv_pointer)[grid] : gv[grid];
-
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
-        for (int i = 0; i < n; i++)
-        {
-            ParticleType& p = pbox[i];
-
-            if (p.m_id > 0)
-            {
-                BL_ASSERT(p.m_grid == grid);
-                //
-                // Note: m_data[0] is mass, 1 is v_x, ...
-                //
-                D_TERM(p.m_data[1] += dt * gfab(p.m_cell,0);,
-                       p.m_data[2] += dt * gfab(p.m_cell,1);,
-                       p.m_data[3] += dt * gfab(p.m_cell,2););
-
-                D_TERM(p.m_pos[0]  += dt * p.m_data[1];,
-                       p.m_pos[1]  += dt * p.m_data[2];,
-                       p.m_pos[2]  += dt * p.m_data[3];);
-
-                ParticleBase::Reset(p,m_gdb,true);
-            } 
-        }
-    }
-
-    if (gv_pointer) delete gv_pointer;
-
-    if (m_verbose > 1)
-    {
-        Real stoptime = ParallelDescriptor::second() - strttime;
-
-        ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
-
-        if (ParallelDescriptor::IOProcessor())
-        {
-            std::cout << "ParticleContainer<N>::movePredict() time: " << stoptime << '\n';
-        }
-    }
-
-    Redistribute(true);
-}
-
-template <int N>
-void
-ParticleContainer<N>::moveCorrect (const MultiFab& gv_old,
-                                   const MultiFab& gv,
-                                   int             lev,
-                                   Real            dt)
-{
-    BL_PROFILE("ParticleContainer<N>::moveCorrect()");
-    BL_ASSERT(OK());
-    BL_ASSERT(N >= BL_SPACEDIM+1);
-    BL_ASSERT(lev >= 0 && lev < m_particles.size());
-
-    const Real strttime = ParallelDescriptor::second();
-
-    PMap& pmap = m_particles[lev];
-
-    MultiFab* gv_pointer;
-    MultiFab* gv_pointer_old;
-    if (OnSameGrids(lev,gv))
-    {
-        gv_pointer     = 0;
-        gv_pointer_old = 0;
-    }
-    else 
-    {
-        gv_pointer     = new MultiFab(m_gdb->ParticleBoxArray(lev),1,gv.nGrow(),
-				      m_gdb->ParticleDistributionMap(lev), Fab_allocate);
-        gv_pointer_old = new MultiFab(m_gdb->ParticleBoxArray(lev),1,gv_old.nGrow(),
-				      m_gdb->ParticleDistributionMap(lev), Fab_allocate);
-        gv_pointer->copy(gv,0,0,BL_SPACEDIM);
-        gv_pointer_old->copy(gv_old,0,0,BL_SPACEDIM);
-        gv_pointer->FillBoundary(); // DO WE NEED GHOST CELLS FILLED ???
-        gv_pointer_old->FillBoundary(); // DO WE NEED GHOST CELLS FILLED ???
-    }
-
-
-    for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
-    {
-        const int        grid     = pmap_it->first;
-        PBox&            pbox     = pmap_it->second;
-        const int        n        = pbox.size();
-        const FArrayBox& gfab     = (gv_pointer) ? (*gv_pointer)[grid] : gv[grid];
-        const FArrayBox& gfab_old = (gv_pointer_old) ? (*gv_pointer_old)[grid] : gv_old[grid];
-        const Real       half_dt  = Real(0.5) * dt;
-
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
-        for (int i = 0; i < n; i++)
-        {
-            ParticleType& p = pbox[i];
-
-            if (p.m_id > 0)
-            {
-                BL_ASSERT(p.m_grid == grid);
-                //
-                // Note: m_data[0] is mass, 1 is v_x, ...
-                //
-                D_TERM(p.m_pos[0]  -= half_dt * p.m_data[1];,
-                       p.m_pos[1]  -= half_dt * p.m_data[2];,
-                       p.m_pos[2]  -= half_dt * p.m_data[3];);
-            
-                D_TERM(p.m_data[1] += half_dt * ( gfab(p.m_cell,0) - gfab_old(p.m_cell,0) );,
-                       p.m_data[2] += half_dt * ( gfab(p.m_cell,1) - gfab_old(p.m_cell,1) );,
-                       p.m_data[3] += half_dt * ( gfab(p.m_cell,2) - gfab_old(p.m_cell,2) ););
-
-                D_TERM(p.m_pos[0]  += half_dt * p.m_data[1];,
-                       p.m_pos[1]  += half_dt * p.m_data[2];,
-                       p.m_pos[2]  += half_dt * p.m_data[3];);
-
-                ParticleBase::Reset(p,m_gdb,true);
-            }
-        }
-    }
-
-    if (gv_pointer) delete gv_pointer;
-    if (gv_pointer_old) delete gv_pointer_old;
-
-    if (m_verbose > 1)
-    {
-        Real stoptime = ParallelDescriptor::second() - strttime;
-
-        ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
-
-        if (ParallelDescriptor::IOProcessor())
-        {
-            std::cout << "ParticleContainer<N>::moveCorrect() time: " << stoptime << '\n';
-        }
-    }
-
-    Redistribute(true);
-}
 
 //
-// This version takes as input the gravity vector at cell centers
+// This version takes as input the acceleration vector at cell centers
 //
 template <int N>
 void
-ParticleContainer<N>::moveKickDrift (MultiFab& grav_vector,
-                                     int             lev,
-                                     Real            dt,
-                                     Real            a_old,
-                                     Real            a_half) 
+ParticleContainer<N>::moveKickDrift (MultiFab& acceleration,
+                                     int                lev,
+                                     Real               dt,
+                                     Real               a_old,
+                                     Real               a_half) 
 {
     BL_PROFILE("ParticleContainer::moveKickDrift()");
     BL_ASSERT(N >= BL_SPACEDIM+1);
     BL_ASSERT(lev >= 0);
-    BL_ASSERT(grav_vector.nGrow() >= 2);
+    BL_ASSERT(acceleration.nGrow() >= 2);
 
     //If there are no particles at this level
     if (lev >= m_particles.size())
@@ -3290,19 +3078,19 @@ ParticleContainer<N>::moveKickDrift (MultiFab& grav_vector,
     const Real dt_a_half_inv = dt * a_half_inv;
     PMap&      pmap          = m_particles[lev];
 
-    MultiFab* gv_pointer;
-    if (OnSameGrids(lev, grav_vector))
+    MultiFab* ac_pointer;
+    if (OnSameGrids(lev, acceleration))
     {
-        gv_pointer = &grav_vector;
+        ac_pointer = &acceleration;
     }
     else
     {
-        gv_pointer = new MultiFab(m_gdb->ParticleBoxArray(lev),grav_vector.nComp(),grav_vector.nGrow(),
+        ac_pointer = new MultiFab(m_gdb->ParticleBoxArray(lev),acceleration.nComp(),acceleration.nGrow(),
 				  m_gdb->ParticleDistributionMap(lev),Fab_allocate);
-        for (MFIter mfi(*gv_pointer); mfi.isValid(); ++mfi)
-            gv_pointer->setVal(0.);
-        gv_pointer->copy(grav_vector,0,0,grav_vector.nComp());
-        gv_pointer->FillBoundary(); // DO WE NEED GHOST CELLS FILLED ???
+        for (MFIter mfi(*ac_pointer); mfi.isValid(); ++mfi)
+            ac_pointer->setVal(0.);
+        ac_pointer->copy(acceleration,0,0,acceleration.nComp());
+        ac_pointer->FillBoundary(); // DO WE NEED GHOST CELLS FILLED ???
     }
 
     for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
@@ -3310,7 +3098,7 @@ ParticleContainer<N>::moveKickDrift (MultiFab& grav_vector,
         const int        grid = pmap_it->first;
         PBox&            pbox = pmap_it->second;
         const int        n    = pbox.size();
-        const FArrayBox& gfab = (*gv_pointer)[grid];
+        const FArrayBox& gfab = (*ac_pointer)[grid];
 
 #ifdef _OPENMP
 #pragma omp parallel for
@@ -3355,7 +3143,7 @@ ParticleContainer<N>::moveKickDrift (MultiFab& grav_vector,
         }
     }
 
-    if (gv_pointer != &grav_vector) delete gv_pointer;
+    if (ac_pointer != &acceleration) delete ac_pointer;
 
     if (lev > 0 && m_gdb->subCycle())
     {
@@ -3375,7 +3163,7 @@ ParticleContainer<N>::moveKickDrift (MultiFab& grav_vector,
                 // Move the particle to the proper ghost cell. 
                 //      and remove any *ghost* particles that have gone too far
                 // Note that this should only negate ghost particles, not real particles.
-                if (!ParticleBase::RestrictedWhere(p,m_gdb, grav_vector.nGrow()-2))
+                if (!ParticleBase::RestrictedWhere(p,m_gdb, acceleration.nGrow()-2))
                 {
                     // Assert that the particle being removed is a ghost particle;
                     // the ghost particle is no longer in relevant ghost cells for this grid.
@@ -3413,7 +3201,7 @@ ParticleContainer<N>::moveKickDrift (MultiFab& grav_vector,
 //
 template <int N>
 void
-ParticleContainer<N>::moveKick (MultiFab& grav_vector,
+ParticleContainer<N>::moveKick (MultiFab& acceleration,
                                 int             lev,
                                 Real            dt,
                                 Real            a_new,
@@ -3429,19 +3217,19 @@ ParticleContainer<N>::moveKick (MultiFab& grav_vector,
     const Real a_new_inv = 1 / a_new;
     PMap&      pmap      = m_particles[lev];
 
-    MultiFab* gv_pointer;
-    if (OnSameGrids(lev,grav_vector))
+    MultiFab* ac_pointer;
+    if (OnSameGrids(lev,acceleration))
     {
-        gv_pointer = &grav_vector;
+        ac_pointer = &acceleration;
     }
     else 
     {
-        gv_pointer = new MultiFab(m_gdb->ParticleBoxArray(lev),grav_vector.nComp(),grav_vector.nGrow(),
+        ac_pointer = new MultiFab(m_gdb->ParticleBoxArray(lev),acceleration.nComp(),acceleration.nGrow(),
 				  m_gdb->ParticleDistributionMap(lev),Fab_allocate);
-        for (MFIter mfi(*gv_pointer); mfi.isValid(); ++mfi)
-            gv_pointer->setVal(0.);
-        gv_pointer->copy(grav_vector,0,0,grav_vector.nComp());
-        gv_pointer->FillBoundary(); // DO WE NEED GHOST CELLS FILLED ???
+        for (MFIter mfi(*ac_pointer); mfi.isValid(); ++mfi)
+            ac_pointer->setVal(0.);
+        ac_pointer->copy(acceleration,0,0,acceleration.nComp());
+        ac_pointer->FillBoundary(); // DO WE NEED GHOST CELLS FILLED ???
     }
 
     for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
@@ -3449,7 +3237,7 @@ ParticleContainer<N>::moveKick (MultiFab& grav_vector,
         const int        grid = pmap_it->first;
         PBox&            pbox = pmap_it->second;
         const int        n    = pbox.size();
-        const FArrayBox& gfab = (*gv_pointer)[grid];
+        const FArrayBox& gfab = (*ac_pointer)[grid];
 
 #ifdef _OPENMP
 #pragma omp parallel for
@@ -3492,280 +3280,7 @@ ParticleContainer<N>::moveKick (MultiFab& grav_vector,
         }
     }
 
-    if (gv_pointer != &grav_vector) delete gv_pointer;
-
-    if (m_verbose > 1)
-    {
-        Real stoptime = ParallelDescriptor::second() - strttime;
-
-        ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
-
-        if (ParallelDescriptor::IOProcessor())
-        {
-            std::cout << "ParticleContainer<N>::moveKick() time: " << stoptime << '\n';
-        }
-    }
-    //
-    // No need for Redistribution(), we only change the velocity.
-    //
-}
-
-//
-// This version takes as input the normal gravity component on each face
-//
-template <int N>
-void
-ParticleContainer<N>::moveKickDrift (PArray<MultiFab>& grav_vector,
-                                     int             lev,
-                                     Real            dt,
-                                     Real            a_old,
-                                     Real            a_half) 
-{
-    BL_PROFILE("ParticleContainer::moveKickDrift()");
-    BL_ASSERT(OK());
-    BL_ASSERT(N >= BL_SPACEDIM+1);
-    BL_ASSERT(lev >= 0 && lev < m_particles.size());
-
-    const Real      strttime      = ParallelDescriptor::second();
-    const Geometry& geom          = m_gdb->Geom(lev);
-    const Real*     dx            = geom.CellSize();
-    const Real*     plo           = geom.ProbLo();
-    const Real      half_dt       = Real(0.5) * dt;
-    const Real      a_half_inv    = 1 / a_half;
-    const Real      dt_a_half_inv = dt * a_half_inv;
-    PMap&           pmap          = m_particles[lev];
-
-    MultiFab* gv_pointer[BL_SPACEDIM];
-    if (OnSameGrids(lev,grav_vector[0]))
-    {
-        for (int i = 0; i < BL_SPACEDIM; i++)
-           gv_pointer[i] = &grav_vector[i];
-    }
-    else 
-    {
-        for (int i = 0; i < BL_SPACEDIM; i++)
-        {
-           gv_pointer[i] = new MultiFab(m_gdb->ParticleBoxArray(lev),grav_vector[i].nComp(),
-                                        grav_vector[i].nGrow(),
-					m_gdb->ParticleDistributionMap(lev),Fab_allocate);
-           gv_pointer[i]->copy(grav_vector[i],0,0,grav_vector[i].nComp());
-           gv_pointer[i]->FillBoundary(); // DO WE NEED GHOST CELLS FILLED ???
-        }
-    }
-
-    for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
-    {
-        const int grid = pmap_it->first;
-        PBox&     pbox = pmap_it->second;
-        const int n    = pbox.size();
-
-        const FArrayBox* gfab[BL_SPACEDIM] = 
-          { D_DECL(&(*gv_pointer)[0][grid],&(*gv_pointer)[1][grid],&(*gv_pointer)[2][grid]) };
-
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
-        for (int i = 0; i < n; i++)
-        {
-            ParticleType& p = pbox[i];
-
-            if (p.m_id <= 0) continue;
-
-            BL_ASSERT(p.m_grid == grid);
-            //
-            // First update (a u)^half = (a u)^old + dt/2 grav^old
-            //
-            D_TERM(p.m_data[1] *= a_old;,
-                   p.m_data[2] *= a_old;,
-                   p.m_data[3] *= a_old;);
-
-            const IntVect lo = p.m_cell;
-
-            for (int d = 0; d < BL_SPACEDIM; d++)
-            {
-                IntVect hi = lo;
-
-                hi[d] += 1;
-
-                Real delta = (p.m_pos[d] - plo[d]) / dx[d] - lo[d];
-
-                if (delta > 1) delta = 1;
-                if (delta < 0) delta = 0;
-
-                const Real grav_lo = (*gfab[d])(lo);
-                const Real grav_hi = (*gfab[d])(hi);
-                //
-                // Note: m_data[0] is mass, 1 is v_x, ...
-                //
-                p.m_data[1+d] += half_dt * (grav_lo + delta * (grav_hi - grav_lo));
-            }
-
-            D_TERM(p.m_data[1] *= a_half_inv;,
-                   p.m_data[2] *= a_half_inv;,
-                   p.m_data[3] *= a_half_inv;);
-            //
-            // Now update x^new = x^old + dt grav^half / a^half
-            //
-            D_TERM(p.m_pos[0] += dt_a_half_inv * p.m_data[1];,
-                   p.m_pos[1] += dt_a_half_inv * p.m_data[2];,
-                   p.m_pos[2] += dt_a_half_inv * p.m_data[3];);
-        }
-    }
-
-    for (int i = 0; i < BL_SPACEDIM; i++)
-    {
-	if (gv_pointer[i] != &grav_vector[i]) delete gv_pointer[i];
-    }
-
-    if (lev > 0 && m_gdb->subCycle())
-    {
-        for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
-        {
-            PBox&            pbox = pmap_it->second;
-            const int        n    = pbox.size();
- 
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
-            for (int i = 0; i < n; i++)
-            {
-                ParticleType& p = pbox[i];
-                if (p.m_id <= 0) continue;
-
-                // Move the particle to the proper ghost cell. 
-                //      and remove any *ghost* particles that have gone too far
-                // Note that this should only negate ghost particles, not real particles.
-                if (!ParticleBase::RestrictedWhere(p,m_gdb, grav_vector[0].nGrow()-2))
-                {
-                    // Assert that the particle being removed is a ghost particle;
-                    // the ghost particle is no longer in relevant ghost cells for this grid.
-                    if (p.m_id == GhostParticleID)
-                    {
-                        p.m_id = -1;
-                    }
-                    else
-                    {
-                        std::cout << "Oops -- removing particle " << p.m_id << std::endl;
-                        BoxLib::Error("Trying to get rid of a non-ghost particle in moveKickDrift");
-                    }
-                }
-            }
-        }
-    }
-
-    if (m_verbose > 1)
-    {
-        Real stoptime = ParallelDescriptor::second() - strttime;
-
-        ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
-
-        if (ParallelDescriptor::IOProcessor())
-        {
-            std::cout << "ParticleContainer<N>::moveKickDrift() time: " << stoptime << '\n';
-        }
-    }
-}
-
-//
-// This version takes as input the normal gravity component on each face
-//
-
-template <int N>
-void
-ParticleContainer<N>::moveKick (PArray<MultiFab>& grav_vector,
-                                int               lev,
-                                Real              dt,
-                                Real              a_new,
-                                Real              a_half) 
-{
-    BL_PROFILE("ParticleContainer::moveKick()");
-    BL_ASSERT(OK());
-    BL_ASSERT(N >= BL_SPACEDIM+1);
-    BL_ASSERT(lev >= 0 && lev < m_particles.size());
-
-    const Real      strttime  = ParallelDescriptor::second();
-    const Geometry& geom      = m_gdb->Geom(lev);
-    const Real*     dx        = geom.CellSize();
-    const Real*     plo       = geom.ProbLo();
-    const Real      half_dt   = Real(0.5) * dt;
-    const Real      a_new_inv = 1 / a_new;
-    PMap&           pmap      = m_particles[lev];
-
-    MultiFab* gv_pointer[BL_SPACEDIM];
-    if (OnSameGrids(lev,grav_vector[0]))
-    {
-        for (int i = 0; i < BL_SPACEDIM; i++)
-           gv_pointer[i] = &grav_vector[i];
-    }
-    else 
-    {
-        for (int i = 0; i < BL_SPACEDIM; i++)
-        {
-           gv_pointer[i] = new MultiFab(m_gdb->ParticleBoxArray(lev),grav_vector[i].nComp(),
-                                        grav_vector[i].nGrow(),
-					m_gdb->ParticleDistributionMap(lev),Fab_allocate);
-           gv_pointer[i]->copy(grav_vector[i],0,0,grav_vector[i].nComp());
-           gv_pointer[i]->FillBoundary(); // DO WE NEED GHOST CELLS FILLED ???
-        }
-    }
-
-    for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
-    {
-        const int grid = pmap_it->first;
-        PBox&     pbox = pmap_it->second;
-        const int n    = pbox.size();
-
-        const FArrayBox* gfab[BL_SPACEDIM] = 
-          { D_DECL(&(*gv_pointer)[0][grid],&(*gv_pointer)[1][grid],&(*gv_pointer)[2][grid]) };
-
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
-        for (int i = 0; i < n; i++)
-        {
-            ParticleType& p = pbox[i];
-
-            if (p.m_id <= 0) continue;
-
-            BL_ASSERT(p.m_grid == grid);
-            //
-            // Define (a u)^new = (a u)^half + dt/2 grav^new
-            //
-            D_TERM(p.m_data[1] *= a_half;,
-                   p.m_data[2] *= a_half;,
-                   p.m_data[3] *= a_half;);
-
-            const IntVect lo = p.m_cell;
-
-            for (int d = 0; d < BL_SPACEDIM; d++)
-            {
-                IntVect hi = lo;
-
-                hi[d] += 1;
-
-                Real delta = (p.m_pos[d] - plo[d]) / dx[d] - lo[d];
-
-                if (delta > 1) delta = 1;
-                if (delta < 0) delta = 0;
-
-                const Real grav_lo = (*gfab[d])(lo);
-                const Real grav_hi = (*gfab[d])(hi);
-                //
-                // Note: m_data[0] is mass, 1 is v_x, ...
-                //
-                p.m_data[1+d] += half_dt * (grav_lo + delta * (grav_hi - grav_lo));
-            }
-
-            D_TERM(p.m_data[1] *= a_new_inv;,
-                   p.m_data[2] *= a_new_inv;,
-                   p.m_data[3] *= a_new_inv;);
-        }
-    }
-
-    for (int i = 0; i < BL_SPACEDIM; i++)
-    {
-	if (gv_pointer[i] != &grav_vector[i]) delete gv_pointer[i];
-    }
+    if (ac_pointer != &acceleration) delete ac_pointer;
 
     if (m_verbose > 1)
     {
