@@ -882,7 +882,7 @@ ParticleContainer<NR,NI>::IncrementWithTotal (MultiFab& mf,
 
 template <int NR, int NI>
 Real
-ParticleContainer<NR,NI>::estTimestep (MultiFab& gv,
+ParticleContainer<NR,NI>::estTimestep (MultiFab&       acceleration,
 				       int             lev,
 				       Real            cfl) const
 {
@@ -891,7 +891,7 @@ ParticleContainer<NR,NI>::estTimestep (MultiFab& gv,
 
 template <int NR, int NI>
 Real
-ParticleContainer<NR,NI>::estTimestep (MultiFab& gv,
+ParticleContainer<NR,NI>::estTimestep (MultiFab&       acceleration,
 				       Real            a,
 				       int             lev,
 				       Real            cfl) const
@@ -3058,7 +3058,7 @@ ParticleContainer<NR,NI>::MultiplyParticleMass (int lev, Real mult)
 //
 template <int NR, int NI>
 void
-ParticleContainer<NR,NI>::moveKickDrift (MultiFab& grav_vector,
+ParticleContainer<NR,NI>::moveKickDrift (MultiFab&       acceleration,
 					 int             lev,
 					 Real            dt,
 					 Real            a_old,
@@ -3202,7 +3202,7 @@ ParticleContainer<NR,NI>::moveKickDrift (MultiFab& grav_vector,
 //
 template <int NR, int NI>
 void
-ParticleContainer<NR,NI>::moveKick (MultiFab& grav_vector,
+ParticleContainer<NR,NI>::moveKick (MultiFab&       acceleration,
 				    int             lev,
 				    Real            dt,
 				    Real            a_new,
