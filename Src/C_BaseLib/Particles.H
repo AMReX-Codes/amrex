@@ -213,8 +213,8 @@ struct Particle
     // 2 - y-velocity
     // 3 - z-velocity
     //
-    RealType m_data[NR];
-    std::array<int,NI> m_idata;
+    std::array<RealType,NR> m_data;
+    std::array<int     ,NI> m_idata;
 };
 
 //
