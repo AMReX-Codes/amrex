@@ -159,7 +159,6 @@ ifeq ($(TINY_PROFILE),TRUE)
 endif
 
 ifeq ($(USE_PARTICLES), TRUE)
-  DEFINES += -DUSE_PARTICLES -DPARTICLES
   C$(BOXLIB_BASE)_sources += Particles.cpp
   C$(BOXLIB_BASE)_headers += Particles.H ParticleInit.H ParGDB.H
   F$(BOXLIB_BASE)_headers += Particles_F.H
