@@ -87,6 +87,9 @@ MCInterpBndryData::setBndryValues(const MultiFab&     mf,
 
     const Real* h = geom.CellSize();
 
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
     for (MFIter mfi(mf); mfi.isValid(); ++mfi)
     {
 	BL_ASSERT(grids[mfi.index()] == mfi.validbox());
@@ -165,8 +168,13 @@ MCInterpBndryData::setBndryValues (const ::BndryRegister& crse,
     //
     // Mask turned off if covered by fine grid.
     //
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    {
     Real* derives = 0;
     int tmplen    = 0;
+    
     for (MFIter finemfi(fine); finemfi.isValid(); ++finemfi)
     {
         BL_ASSERT(grids[finemfi.index()] == finemfi.validbox());
@@ -176,8 +184,6 @@ MCInterpBndryData::setBndryValues (const ::BndryRegister& crse,
         const int* cblo    = crse_bx.loVect();
         const int* cbhi    = crse_bx.hiVect();
         int mxlen          = crse_bx.longside() + 2;
-
-        const MaskTuple& msk = masks[finemfi.index()];
 
         if (std::pow((double)mxlen,(double)BL_SPACEDIM-1) > tmplen)
         {
@@ -218,7 +224,7 @@ MCInterpBndryData::setBndryValues (const ::BndryRegister& crse,
 		//
                 // Internal or periodic edge, interpolate from crse data.
                 //
-                const Mask& mask = *(msk[face]);
+                const Mask& mask = masks[face][finemfi];
                 const int* mlo   = mask.loVect();
                 const int* mhi   = mask.hiVect();
                 const int* mdat  = mask.dataPtr();
@@ -249,4 +255,5 @@ MCInterpBndryData::setBndryValues (const ::BndryRegister& crse,
 	}
     }
     delete [] derives;
+    }
 }

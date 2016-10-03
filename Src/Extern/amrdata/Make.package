@@ -2,3 +2,6 @@ CEXE_sources += AmrData.cpp DataServices.cpp
 CEXE_headers += AmrData.H AmrvisConstants.H DataServices.H
 FEXE_headers += 
 FEXE_sources += FABUTIL_${DIM}D.F
+
+VPATH_LOCATIONS += $(BOXLIB_HOME)/Src/Extern/amrdata
+INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/Extern/amrdata

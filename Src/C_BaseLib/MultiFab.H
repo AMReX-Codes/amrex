@@ -390,6 +390,12 @@ public:
 		 int             num_comp,
 		 int             nghost);
     //
+    // Returns the dot product of two MultiFabs.
+    //
+    static Real Dot (const MultiFab& x, int xcomp,
+		     const MultiFab& y, int ycomp,
+		     int num_comp, int nghost, bool local = false);
+    //
     // Add src to dst including nghost ghost cells.
     // The two MultiFabs MUST have the same underlying BoxArray.
     //
@@ -450,6 +456,40 @@ public:
 		       int             dstcomp,
 		       int             numcomp,
 		       int             nghost);
+    //
+    // dst = src + a*dst
+    //
+    static void Xpay (MultiFab&       dst,
+		      Real            a, 
+		      const MultiFab& src,
+		      int             srccomp,
+		      int             dstcomp,
+		      int             numcomp,
+		      int             nghost);
+    //
+    // dst = a*x + b*y
+    //
+    static void LinComb (MultiFab&       dst,
+			 Real            a,
+			 const MultiFab& x,
+			 int             xcomp,
+			 Real            b,
+			 const MultiFab& y,
+			 int             ycomp,
+			 int             dstcomp,
+			 int             numcomp,
+			 int             nghost);
+    // 
+    // dst += src1*src2
+    //
+    static void AddProduct (MultiFab&       dst,
+			    const MultiFab& src1,
+			    int             comp1,
+			    const MultiFab& src2,
+			    int             comp2,
+			    int             dstcomp,
+			    int             numcomp,
+			    int             nghost);
 
     void define (const BoxArray& bxs,
 		 int             nvar,

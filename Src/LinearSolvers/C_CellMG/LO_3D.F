@@ -10,36 +10,6 @@
 #include "ArrayLim.H"
 
 c-----------------------------------------------------------------------
-      subroutine FORT_RESIDL (
-     $     res, DIMS(res), 
-     $     rhs, DIMS(rhs),
-     $     phi, DIMS(phi),
-     $     lo, hi, nc
-     $     )
-      implicit none
-      integer nc
-      integer lo(BL_SPACEDIM)
-      integer hi(BL_SPACEDIM)
-      integer DIMDEC(phi)
-      REAL_T phi(DIMV(phi),nc)
-      integer DIMDEC(rhs)
-      REAL_T rhs(DIMV(rhs),nc)
-      integer DIMDEC(res)
-      REAL_T res(DIMV(res),nc)
-
-      integer i,j,k,n
-
-      do n = 1, nc
-         do k = lo(3), hi(3)
-            do j = lo(2), hi(2)
-               do i = lo(1), hi(1)
-                  res(i,j,k,n) = rhs(i,j,k,n) - phi(i,j,k,n)
-               end do
-            end do
-         end do
-      end do
-      end
-c-----------------------------------------------------------------------
       subroutine FORT_HARMONIC_AVERAGEEC (
      $     c, DIMS(c),
      $     f, DIMS(f),

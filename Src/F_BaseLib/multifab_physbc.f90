@@ -98,7 +98,7 @@ contains
     if (bc(1,1) == EXT_DIR) then
        ! set all ghost cell values to a prescribed dirichlet
        ! value; in this example, we have chosen 1
-       s(lo(1)-ng:lo(1)-1) = ONE
+       ! s(lo(1)-ng:lo(1)-1) = ONE
 
     else if (bc(1,1) == FOEXTRAP) then
        ! set all ghost cell values to first interior value
@@ -134,13 +134,12 @@ contains
        call bl_error('BC(1,1) = NOT YET SUPPORTED')
     end if
 
-
     !--------------------------------------------------------------------------
     ! upper X
     !--------------------------------------------------------------------------
-
+    
     if (bc(1,2) == EXT_DIR) then
-          s(hi(1)+1:hi(1)+ng) = ONE
+       ! s(hi(1)+1:hi(1)+ng) = ONE
 
     else if (bc(1,2) == FOEXTRAP) then
        s(hi(1)+1:hi(1)+ng) = s(hi(1))
@@ -193,9 +192,9 @@ contains
     if (bc(1,1) == EXT_DIR) then
        ! set all ghost cell values to a prescribed dirichlet
        ! value; in this example, we have chosen 1
-       do j = lo(2)-ng, hi(2)+ng
-          s(lo(1)-ng:lo(1)-1,j) = ONE
-       end do
+       ! do j = lo(2)-ng, hi(2)+ng
+       !   s(lo(1)-ng:lo(1)-1,j) = ONE
+       ! end do
 
     else if (bc(1,1) == FOEXTRAP) then
        ! set all ghost cell values to first interior value
@@ -244,9 +243,9 @@ contains
     ! upper X
     !--------------------------------------------------------------------------
     if (bc(1,2) == EXT_DIR) then
-       do j = lo(2)-ng, hi(2)+ng
-          s(hi(1)+1:hi(1)+ng,j) = ONE
-       end do
+       ! do j = lo(2)-ng, hi(2)+ng
+       !    s(hi(1)+1:hi(1)+ng,j) = ONE
+       ! end do
 
     else if (bc(1,2) == FOEXTRAP) then
        do j = lo(2)-ng, hi(2)+ng
@@ -286,9 +285,9 @@ contains
     ! lower Y
     !--------------------------------------------------------------------------
     if (bc(2,1) == EXT_DIR) then
-       do i = lo(1)-ng, hi(1)+ng
-          s(i,lo(2)-ng:lo(2)-1) = ONE
-       end do
+       ! do i = lo(1)-ng, hi(1)+ng
+       !    s(i,lo(2)-ng:lo(2)-1) = ONE
+       ! end do
 
     else if (bc(2,1) == FOEXTRAP) then
        do i = lo(1)-ng, hi(1)+ng
@@ -328,9 +327,9 @@ contains
     ! upper Y
     !--------------------------------------------------------------------------
     if (bc(2,2) == EXT_DIR) then
-       do i = lo(1)-ng, hi(1)+ng
-          s(i,hi(2)+1:hi(2)+ng) = ONE
-       end do
+       ! do i = lo(1)-ng, hi(1)+ng
+       !    s(i,hi(2)+1:hi(2)+ng) = ONE
+       ! end do
 
     else if (bc(2,2) == FOEXTRAP) then
        do i = lo(1)-ng, hi(1)+ng
@@ -388,13 +387,16 @@ contains
     ! lower X
     !--------------------------------------------------------------------------
     if (bc(1,1) == EXT_DIR) then
-       do k = lo(3)-ng,hi(3)+ng
-          do j = lo(2)-ng,hi(2)+ng
-             s(lo(1)-ng:lo(1)-1,j,k) = ONE
-          end do
-       end do
+       ! set all ghost cell values to a prescribed dirichlet
+       ! value; in this example, we have chosen 1
+       ! do k = lo(3)-ng,hi(3)+ng
+       !    do j = lo(2)-ng,hi(2)+ng
+       !       s(lo(1)-ng:lo(1)-1,j,k) = ONE
+       !    end do
+       ! end do
 
     else if (bc(1,1) == FOEXTRAP) then
+       ! set all ghost cell values to first interior value
        do k = lo(3)-ng,hi(3)+ng
           do j = lo(2)-ng,hi(2)+ng
              s(lo(1)-ng:lo(1)-1,j,k) = s(lo(1),j,k)
@@ -402,6 +404,9 @@ contains
        end do
 
     else if (bc(1,1) == HOEXTRAP) then
+       ! set all ghost cell values equal to quadratic interpolate
+       ! to the physical location of the domain boundary, NOT the
+       ! physical location of the first ghost cell-center
        do k = lo(3)-ng,hi(3)+ng
           do j = lo(2)-ng,hi(2)+ng
              s(lo(1)-ng:lo(1)-1,j,k) = EIGHTH* &
@@ -410,6 +415,7 @@ contains
        end do
 
     else if (bc(1,1) == REFLECT_EVEN) then
+       ! mirror the interior
        do k = lo(3)-ng,hi(3)+ng
           do j = lo(2)-ng,hi(2)+ng
              do i = 1,ng
@@ -419,6 +425,7 @@ contains
        end do
 
     else if (bc(1,1) == REFLECT_ODD) then
+       ! mirror the interior with opposite sign
        do k = lo(3)-ng,hi(3)+ng
           do j = lo(2)-ng,hi(2)+ng
              do i = 1,ng
@@ -428,7 +435,10 @@ contains
        end do
 
     else if (bc(1,1) == INTERIOR) then
-       ! do nothing - see comment above
+       ! do nothing, these ghost cell values should be filled by something else
+       ! multifab_fill_boundary fills from periodic or neighboring cells at
+       ! the same level of refinement, multifab_fill_ghost_cells fills fine
+       ! ghost cells by interpolating coarse values in space
 
     else 
        print *,'bc(1,1) = ',bc(1,1)
@@ -440,11 +450,11 @@ contains
     ! upper X
     !--------------------------------------------------------------------------
     if (bc(1,2) == EXT_DIR) then
-       do k = lo(3)-ng,hi(3)+ng
-          do j = lo(2)-ng,hi(2)+ng
-             s(hi(1)+1:hi(1)+ng,j,k) = ONE
-          end do
-       end do
+       ! do k = lo(3)-ng,hi(3)+ng
+       !    do j = lo(2)-ng,hi(2)+ng
+       !       s(hi(1)+1:hi(1)+ng,j,k) = ONE
+       !    end do
+       ! end do
 
     else if (bc(1,2) == FOEXTRAP) then
        do k = lo(3)-ng,hi(3)+ng
@@ -492,11 +502,11 @@ contains
     ! lower Y
     !--------------------------------------------------------------------------
     if (bc(2,1) == EXT_DIR) then
-       do k = lo(3)-ng,hi(3)+ng
-          do i = lo(1)-ng,hi(1)+ng
-             s(i,lo(2)-ng:lo(2)-1,k) = ONE
-          end do
-       end do
+       ! do k = lo(3)-ng,hi(3)+ng
+       !    do i = lo(1)-ng,hi(1)+ng
+       !       s(i,lo(2)-ng:lo(2)-1,k) = ONE
+       !    end do
+       ! end do
 
     else if (bc(2,1) == FOEXTRAP .or. bc(2,1) == REFLECT_EVEN) then
        do k = lo(3)-ng,hi(3)+ng
@@ -544,11 +554,11 @@ contains
     ! upper Y
     !--------------------------------------------------------------------------
     if (bc(2,2) == EXT_DIR) then
-       do k = lo(3)-ng,hi(3)+ng
-          do i = lo(1)-ng,hi(1)+ng
-             s(i,hi(2)+1:hi(2)+ng,k) = ONE
-          end do
-       end do
+       ! do k = lo(3)-ng,hi(3)+ng
+       !    do i = lo(1)-ng,hi(1)+ng
+       !       s(i,hi(2)+1:hi(2)+ng,k) = ONE
+       !    end do
+       ! end do
 
     else if (bc(2,2) == FOEXTRAP .or. bc(2,2) == REFLECT_EVEN) then
        do k = lo(3)-ng,hi(3)+ng
@@ -596,11 +606,11 @@ contains
     ! lower Z
     !--------------------------------------------------------------------------
     if (bc(3,1) == EXT_DIR) then
-       do j = lo(2)-ng,hi(2)+ng
-          do i = lo(1)-ng,hi(1)+ng
-             s(i,j,lo(3)-ng:lo(3)-1) = ONE
-          end do
-       end do
+       ! do j = lo(2)-ng,hi(2)+ng
+       !    do i = lo(1)-ng,hi(1)+ng
+       !      s(i,j,lo(3)-ng:lo(3)-1) = ONE
+       !    end do
+       ! end do
 
     else if (bc(3,1) == FOEXTRAP .or. bc(3,1) == REFLECT_EVEN) then
        do j = lo(2)-ng,hi(2)+ng
@@ -648,11 +658,11 @@ contains
     ! upper Z
     !--------------------------------------------------------------------------
     if (bc(3,2) == EXT_DIR) then
-       do j = lo(2)-ng,hi(2)+ng
-          do i = lo(1)-ng,hi(1)+ng
-             s(i,j,hi(3)+1:hi(3)+ng) = ONE
-          end do
-       end do
+       ! do j = lo(2)-ng,hi(2)+ng
+       !    do i = lo(1)-ng,hi(1)+ng
+       !       s(i,j,hi(3)+1:hi(3)+ng) = ONE
+       !    end do
+       ! end do
 
     else if (bc(3,2) == FOEXTRAP .or. bc(3,2) == REFLECT_EVEN) then
        do j = lo(2)-ng,hi(2)+ng

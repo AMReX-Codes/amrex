@@ -69,6 +69,8 @@ void
 FabArrayBase::Initialize ()
 {
     if (initialized) return;
+    initialized = true;
+
     //
     // Set default values here!!!
     //
@@ -122,13 +124,10 @@ FabArrayBase::Initialize ()
 			 return {m_FPinfo_stats.bytes, m_FPinfo_stats.bytes_hwm};
 		     }));
 #endif
-
-    initialized = true;
 }
 
 FabArrayBase::FabArrayBase ()
 {
-    Initialize();
     aFAPId = nFabArrays++;
     aFAPIdLock = 0;  // ---- not locked
 }
@@ -1425,7 +1424,6 @@ FabArrayBase::clearThisBD (bool no_assertion)
 		flushFPinfo(no_assertion);
 		flushFB(no_assertion);
 		flushCPC(no_assertion);
-		Geometry::flushFPB(m_bdkey);
 	    }
 	}
     }

@@ -260,6 +260,10 @@ ifndef USE_ASSERTION
   USE_ASSERTION = FALSE
 endif
 
+ifndef EBASE
+  EBASE = main
+endif
+
 #
 # Defaults for BoxLib style programs.
 #
@@ -1115,9 +1119,7 @@ ifeq ($(USE_HPGMG), TRUE)
   include $(HPGMG_DIR)/source/Make.package
   include $(BOXLIB_HOME)/Src/Extern/hpgmg/Make.package
   INCLUDE_LOCATIONS += $(HPGMG_DIR)/source
-  INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/Extern/hpgmg
   VPATH_LOCATIONS   += $(HPGMG_DIR)/source
-  VPATH_LOCATIONS   += $(BOXLIB_HOME)/Src/Extern/hpgmg
 endif
 
 ifeq ($(WHICHLINUX),MIRA)

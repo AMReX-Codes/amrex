@@ -1,6 +1,6 @@
 subroutine init_phi(lo, hi, &
      phi, p_l1, p_l2, p_l3, p_h1, p_h2, p_h3, &
-     ncomp, dx, prob_lo, prob_hi)
+     ncomp, dx, prob_lo, prob_hi) bind(C, name="init_phi")
 
   implicit none
 

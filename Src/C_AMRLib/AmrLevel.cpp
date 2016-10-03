@@ -208,7 +208,8 @@ AmrLevel::restart (Amr&          papa,
     for (int i = 0; i < ndesc; i++)
     {
 	if (state_in_checkpoint[i]) {
-	    state[i].restart(is, desc_lst[i], papa.theRestartFile(), bReadSpecial);
+	    state[i].restart(is, geom.Domain(), grids,
+			     desc_lst[i], papa.theRestartFile());
 	}
     }
  
@@ -1364,6 +1365,14 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
     const Box&              pdomain = state[index].getDomain();
     const BoxArray&         mf_BA   = mf.boxArray();
     AmrLevel&               clev    = parent->getLevel(level-1);
+    const Geometry&         cgeom   = clev.geom;
+
+    Box domain_g = pdomain;
+    for (int i = 0; i < BL_SPACEDIM; ++i) {
+	if (geom.isPeriodic(i)) {
+	    domain_g.grow(i,nghost);
+	}
+    }
 
     std::vector< std::pair<int,int> > ranges  = desc.sameInterps(scomp,ncomp);
 
@@ -1380,8 +1389,8 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
         for (int j = 0, N = crseBA.size(); j < N; ++j)
         {
             BL_ASSERT(mf_BA[j].ixType() == desc.getType());
-
-            crseBA.set(j,mapper->CoarseBox(BoxLib::grow(mf_BA[j],nghost),crse_ratio));
+	    const Box& bx = BoxLib::grow(mf_BA[j],nghost) & domain_g;
+            crseBA.set(j,mapper->CoarseBox(bx, crse_ratio));
         }
 
 	MultiFab crseMF(crseBA,NComp,0);
@@ -1396,11 +1405,11 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
 	    std::vector<Real> stime;
 	    statedata.getData(smf,stime,time);
 
-	    const Geometry& geom = clev.geom;
+	    const Geometry& cgeom = clev.geom;
 
-	    StateDataPhysBCFunct physbcf(statedata,SComp,geom);
+	    StateDataPhysBCFunct physbcf(statedata,SComp,cgeom);
 
-	    BoxLib::FillPatchSingleLevel(crseMF,time,smf,stime,SComp,0,NComp,geom,physbcf);
+	    BoxLib::FillPatchSingleLevel(crseMF,time,smf,stime,SComp,0,NComp,cgeom,physbcf);
 	}
 	else
 	{
@@ -1412,7 +1421,7 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
 #endif
 	for (MFIter mfi(mf); mfi.isValid(); ++mfi)
 	{
-	    const Box& dbx = BoxLib::grow(mfi.validbox(),nghost);
+	    const Box& dbx = BoxLib::grow(mfi.validbox(),nghost) & domain_g;
 	    
 	    Array<BCRec> bcr(ncomp);
 	    
@@ -1425,12 +1434,15 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
 			   NComp,
 			   dbx,
 			   crse_ratio,
-			   clev.geom,
+			   cgeom,
 			   geom,
 			   bcr,
 			   SComp,
 			   index);
 	}
+
+	StateDataPhysBCFunct physbcf(state[index],SComp,geom);
+	physbcf.FillBoundary(mf, DComp, NComp, time);
 
         DComp += NComp;
     }

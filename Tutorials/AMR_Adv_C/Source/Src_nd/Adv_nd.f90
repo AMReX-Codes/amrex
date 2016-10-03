@@ -1,4 +1,4 @@
-subroutine nullfill(adv,adv_lo,adv_hi,domlo,domhi,delta,xlo,time,bc)
+subroutine nullfill(adv,adv_lo,adv_hi,domlo,domhi,delta,xlo,time,bc) bind(C, name="nullfill")
   implicit none
   integer          :: adv_lo(3),adv_hi(3)
   integer          :: bc(*)
@@ -10,7 +10,7 @@ subroutine nullfill(adv,adv_lo,adv_hi,domlo,domhi,delta,xlo,time,bc)
 end subroutine nullfill
 
 
-subroutine get_tagging_params(name, namlen)
+subroutine get_tagging_params(name, namlen) bind(C, name="get_tagging_params")
 
   use tagging_params_module
 

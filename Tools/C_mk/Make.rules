@@ -1,3 +1,14 @@
+
+vpath %.f   . $(VPATH_LOCATIONS)
+vpath %.fi  . $(VPATH_LOCATIONS)
+vpath %.F   . $(VPATH_LOCATIONS)
+vpath %.f90 . $(VPATH_LOCATIONS)
+vpath %.F90 . $(VPATH_LOCATIONS)
+vpath %.c   . $(VPATH_LOCATIONS)
+vpath %.cpp . $(VPATH_LOCATIONS)
+vpath %.h   . $(VPATH_LOCATIONS)
+vpath %.H   . $(VPATH_LOCATIONS)
+
 # Suppress display of executed commands.  Default verbose
 ifdef VERBOSE
   ifeq ($(VERBOSE),OFF)
@@ -10,6 +21,15 @@ ifdef VERBOSE
 else
   SILENT =
 endif
+
+#
+# Rules for building executable.
+#
+$(executable):	$(objForExecs)
+	@echo Linking $@ ...
+	$(SILENT) $(PRELINK) $(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) \
+		-o $@ $^ $(libraries)
+#	@echo SUCCESS
 
 clean::
 	@echo Cleaning...
@@ -50,14 +70,7 @@ BROWSE:	$(T_headers) $(T_sources) $(CEXE_headers) $(CEXE_sources)
 	$(SILENT) browse $^
 
 .PHONY:	all clean TAGS realclean tags BROWSE
-#
-# Rules for building executable.
-#
-$(executable):	$(objForExecs)
-	@echo Linking $@ ...
-	$(SILENT) $(PRELINK) $(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) \
-		-o $@ $^ $(libraries)
-#	@echo SUCCESS
+
 #
 # Rules for libraries.
 #

@@ -31,6 +31,32 @@ MultiFabCopyDescriptor::MultiFabCopyDescriptor ()
 
 MultiFabCopyDescriptor::~MultiFabCopyDescriptor () {}
 
+Real
+MultiFab::Dot (const MultiFab& x, int xcomp,
+	       const MultiFab& y, int ycomp,
+	       int numcomp, int nghost, bool local)
+{
+    BL_ASSERT(x.boxArray() == y.boxArray());
+    BL_ASSERT(x.DistributionMap() == y.DistributionMap());
+    BL_ASSERT(x.nGrow() >= nghost && y.nGrow() >= nghost);
+
+    Real sm = 0.0;
+
+#ifdef _OPENMP
+#pragma omp parallel reduction(+:sm)
+#endif
+    for (MFIter mfi(x,true); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.growntilebox(nghost);
+        sm += x[mfi].dot(bx,xcomp,y[mfi],bx,ycomp,numcomp);
+    }
+
+    if (!local)
+        ParallelDescriptor::ReduceRealSum(sm, x.color());
+
+    return sm;
+}
+
 void
 MultiFab::Add (MultiFab&       dst,
 	       const MultiFab& src,
@@ -177,6 +203,89 @@ MultiFab::Saxpy (MultiFab&       dst,
 }
 
 void
+MultiFab::Xpay (MultiFab&       dst,
+		Real            a, 
+		const MultiFab& src,
+		int             srccomp,
+		int             dstcomp,
+		int             numcomp,
+		int             nghost)
+{
+    BL_ASSERT(dst.boxArray() == src.boxArray());
+    BL_ASSERT(dst.distributionMap == src.distributionMap);
+    BL_ASSERT(dst.nGrow() >= nghost && src.nGrow() >= nghost);
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(dst,true); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.growntilebox(nghost);
+
+        if (bx.ok())
+            dst[mfi].xpay(a, src[mfi], bx, bx, srccomp, dstcomp, numcomp);
+    }
+}
+
+void
+MultiFab::LinComb (MultiFab&       dst,
+		   Real            a,
+		   const MultiFab& x,
+		   int             xcomp,
+		   Real            b,
+		   const MultiFab& y,
+		   int             ycomp,
+		   int             dstcomp,
+		   int             numcomp,
+		   int             nghost)
+{
+    BL_ASSERT(dst.boxArray() == x.boxArray());
+    BL_ASSERT(dst.distributionMap == x.distributionMap);
+    BL_ASSERT(dst.boxArray() == y.boxArray());
+    BL_ASSERT(dst.distributionMap == y.distributionMap);
+    BL_ASSERT(dst.nGrow() >= nghost && x.nGrow() >= nghost && y.nGrow() >= nghost);
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(dst,true); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.growntilebox(nghost);
+	
+        if (bx.ok())
+            dst[mfi].linComb(x[mfi],bx,xcomp,y[mfi],bx,ycomp,a,b,bx,dstcomp,numcomp);
+    }
+}
+
+void
+MultiFab::AddProduct (MultiFab&       dst,
+		      const MultiFab& src1,
+		      int             comp1,
+		      const MultiFab& src2,
+		      int             comp2,
+		      int             dstcomp,
+		      int             numcomp,
+		      int             nghost)
+{
+    BL_ASSERT(dst.boxArray() == src1.boxArray());
+    BL_ASSERT(dst.distributionMap == src1.distributionMap);
+    BL_ASSERT(dst.boxArray() == src2.boxArray());
+    BL_ASSERT(dst.distributionMap == src2.distributionMap);
+    BL_ASSERT(dst.nGrow() >= nghost && src1.nGrow() >= nghost && src2.nGrow() >= nghost);
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(dst,true); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.growntilebox(nghost);
+	
+        if (bx.ok())
+            dst[mfi].addproduct(bx, dstcomp, numcomp, src1[mfi], comp1, src2[mfi], comp2);
+    }
+}
+
+void
 MultiFab::plus (Real val,
                 int  nghost)
 {
@@ -238,8 +347,7 @@ void
 MultiFab::Initialize ()
 {
     if (initialized) return;
-
-    FArrayBox foo(); // This will call FArrayBox::Initialize().
+    initialized = true;
 
     BoxLib::ExecOnFinalize(MultiFab::Finalize);
 
@@ -249,8 +357,6 @@ MultiFab::Initialize ()
 			 return {num_multifabs, num_multifabs_hwm};
 		     }));
 #endif
-
-    initialized = true;
 }
 
 void
@@ -261,7 +367,6 @@ MultiFab::Finalize ()
 
 MultiFab::MultiFab ()
 {
-    Initialize();
 #ifdef BL_MEM_PROFILING
     ++num_multifabs;
     num_multifabs_hwm = std::max(num_multifabs_hwm, num_multifabs);
@@ -276,7 +381,6 @@ MultiFab::MultiFab (const BoxArray& bxs,
     :
     FabArray<FArrayBox>(bxs,ncomp,ngrow,alloc,nodal)
 {
-    Initialize();
     if (SharedMemory() && alloc == Fab_allocate) initVal();  // else already done in FArrayBox
 #ifdef BL_MEM_PROFILING
     ++num_multifabs;
@@ -293,7 +397,6 @@ MultiFab::MultiFab (const BoxArray&            bxs,
     :
     FabArray<FArrayBox>(bxs,ncomp,ngrow,dm,alloc,nodal)
 {
-    Initialize();
     if (SharedMemory() && alloc == Fab_allocate) initVal();  // else already done in FArrayBox
 #ifdef BL_MEM_PROFILING
     ++num_multifabs;
@@ -308,7 +411,6 @@ MultiFab::MultiFab (const BoxArray& bxs,
     :
     FabArray<FArrayBox>(bxs,ncomp,ngrow,color)
 {
-    Initialize();
     if (SharedMemory()) initVal();  // else already done in FArrayBox
 #ifdef BL_MEM_PROFILING
     ++num_multifabs;
@@ -816,22 +918,8 @@ MultiFab::norm0 (const Array<int>& comps, int nghost, bool local) const
 Real
 MultiFab::norm2 (int comp) const
 {
-    Real nm2 = 0.e0;
-
-#ifdef _OPENMP
-#pragma omp parallel reduction(+:nm2)
-#endif
-    for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
-    {
-        const Real nm_grid = get(mfi).norm(mfi.tilebox(), 2, comp, 1);
-
-        nm2 += nm_grid*nm_grid;
-    }
-
-    ParallelDescriptor::ReduceRealSum(nm2,this->color());
-
+    Real nm2 = MultiFab::Dot(*this, comp, *this, comp, 1, 0);
     nm2 = std::sqrt(nm2);
-
     return nm2;
 }
 
@@ -847,9 +935,6 @@ MultiFab::norm2 (const Array<int>& comps) const
     int nthreads = 1;
 #endif
     PArray< Array<Real> > priv_nm2(nthreads, PArrayManage);
-    for (int i=0; i<nthreads; i++) {
-	priv_nm2.set(i, new Array<Real>(n, 0.0));
-    }
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -860,11 +945,14 @@ MultiFab::norm2 (const Array<int>& comps) const
 #else
 	int tid = 0;
 #endif
+	priv_nm2.set(tid, new Array<Real>(n, 0.0));
+
 	for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
 	{
+	    const Box& bx = mfi.tilebox();
+	    const FArrayBox& fab = get(mfi);
             for (int i=0; i<n; i++) {
-	        const Real nm_grid = get(mfi).norm(mfi.tilebox(), 2, comps[i], 1);
-		priv_nm2[tid][i] += nm_grid*nm_grid;
+		priv_nm2[tid][i] += fab.dot(bx,comps[i],fab,bx,comps[i]);
             }
         }
 #ifdef _OPENMP
@@ -872,16 +960,16 @@ MultiFab::norm2 (const Array<int>& comps) const
 #pragma omp for
 #endif
 	for (int i=0; i<n; i++) {
-	    for (int it=0; it<nthreads; it++) {
-		nm2[i] += priv_nm2[it][i];
+	    for (int it=1; it<nthreads; it++) {
+		priv_nm2[0][i] += priv_nm2[it][i];
 	    }
 	}
     }
 
-    ParallelDescriptor::ReduceRealSum(nm2.dataPtr(), n, this->color());
+    ParallelDescriptor::ReduceRealSum(&priv_nm2[0][0], n, this->color());
 
     for (int i=0; i<n; i++) {
-	nm2[i] = std::sqrt(nm2[i]);
+	nm2[i] = std::sqrt(priv_nm2[0][i]);
     }
 
     return nm2;
@@ -1328,216 +1416,19 @@ typedef FabArrayBase::CopyComTag::MapOfCopyComTagContainers MapOfCopyComTagConta
 void
 MultiFab::SumBoundary (int scomp, int ncomp, const Periodicity& period)
 {
-    if ( n_grow <= 0 ) return;
-
     BL_PROFILE("MultiFab::SumBoundary()");
-    //
-    // We're going to attempt to reuse the information in the FillBoundary
-    // cache.  The intersection info should be that same.  It's what we do
-    // with it that's different.  Basically we have to send the m_RcvTags and
-    // receive the m_SndTags, and invert the sense of fabIndex and srcIndex
-    // in the CopyComTags.
-    //
-    MultiFab& mf = *this;
 
-    const FabArrayBase::FB& TheFB = mf.getFB(period);
+    if ( n_grow == 0 && boxArray().ixType().cellCentered()) return;
 
-    const CopyComTagsContainer&      LocTags = *(TheFB.m_LocTags);
-    const MapOfCopyComTagContainers& SndTags = *(TheFB.m_RcvTags);
-    const MapOfCopyComTagContainers& RcvTags = *(TheFB.m_SndTags);
-    const std::map<int,int>&         SndVols = *(TheFB.m_RcvVols);
-    const std::map<int,int>&         RcvVols = *(TheFB.m_SndVols);
-
-    if (ParallelDescriptor::NProcs() == 1)
-    {
-        //
-        // There can only be local work to do.
-        //
-	int N_loc = LocTags.size();
-	// undafe to do OMP
-	for (int i=0; i<N_loc; ++i)
-        {
-            const CopyComTag& tag = LocTags[i];
-            mf[tag.srcIndex].plus(mf[tag.dstIndex],tag.dbox,tag.sbox,scomp,scomp,ncomp);
-        }
-
-        return;
-    }
-
-#ifdef BL_USE_MPI
-    //
-    // Do this before prematurely exiting if running in parallel.
-    // Otherwise sequence numbers will not match across MPI processes.
-    //
-    int SeqNum;
-    {
-	ParallelDescriptor::Color mycolor = this->color();
-	if (mycolor == ParallelDescriptor::DefaultColor()) {
-	    SeqNum = ParallelDescriptor::SeqNum();
-	} else if (mycolor == ParallelDescriptor::SubCommColor()) {
-	    SeqNum = ParallelDescriptor::SubSeqNum();
-	}
-	// else I don't have any data and my SubSeqNum() should not be called.
-    }
-
-    if (LocTags.empty() && RcvTags.empty() && SndTags.empty())
-        //
-        // No work to do.
-        //
-        return;
-
-    Array<MPI_Status>  stats;
-    Array<int>         recv_from;
-    Array<Real*>       recv_data;
-    Array<MPI_Request> recv_reqs;
-    //
-    // Post rcvs. Allocate one chunk of space to hold'm all.
-    //
-    Real* the_recv_data = 0;
-
-    FabArrayBase::PostRcvs(RcvVols,the_recv_data,recv_data,recv_from,recv_reqs,ncomp,SeqNum);
-
-    //
-    // Post send's
-    //
-    const int N_snds = SndTags.size();
-
-    Array<Real*>                       send_data;
-    Array<int>                         send_N;
-    Array<int>                         send_rank;
-    Array<const CopyComTagsContainer*> send_cctc;
-
-    send_data.reserve(N_snds);
-    send_N   .reserve(N_snds);
-    send_rank.reserve(N_snds);
-    send_cctc.reserve(N_snds);
-
-    for (MapOfCopyComTagContainers::const_iterator m_it = SndTags.begin(),
-             m_End = SndTags.end();
-         m_it != m_End;
-         ++m_it)
-    {
-        std::map<int,int>::const_iterator vol_it = SndVols.find(m_it->first);
-
-        BL_ASSERT(vol_it != SndVols.end());
-
-        const int N = vol_it->second*ncomp;
-
-        BL_ASSERT(N < std::numeric_limits<int>::max());
-
-        Real* data = static_cast<Real*>(BoxLib::The_Arena()->alloc(N*sizeof(Real)));
-
-	send_data.push_back(data);
-	send_N   .push_back(N);
-	send_rank.push_back(m_it->first);
-	send_cctc.push_back(&(m_it->second));
-    }
-
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
-    for (int i=0; i<N_snds; ++i)
-    {
-	Real*dptr = send_data[i];
-	BL_ASSERT(dptr != 0);
-
-	const CopyComTagsContainer& cctc = *send_cctc[i];
-
-        for (CopyComTagsContainer::const_iterator it = cctc.begin();
-             it != cctc.end(); ++it)
-        {
-            BL_ASSERT(distributionMap[it->dstIndex] == ParallelDescriptor::MyProc());
-            const Box& bx = it->dbox;
-            mf[it->dstIndex].copyToMem(bx,scomp,ncomp,dptr);
-            const int Cnt = bx.numPts()*ncomp;
-            dptr += Cnt;
-        }
-    }
-
-    Array<MPI_Request> send_reqs;
-
-    if (FabArrayBase::do_async_sends)
-    {
-	send_reqs.reserve(N_snds);
-	for (int i=0; i<N_snds; ++i) {
-            send_reqs.push_back(ParallelDescriptor::Asend
-				(send_data[i],send_N[i],send_rank[i],SeqNum).req());
-        }
+    if (boxArray().ixType().cellCentered()) {
+	// Self copy is safe only for cell-centered MultiFab
+	this->copy(*this,scomp,scomp,ncomp,n_grow,0,period,FabArrayBase::ADD);
     } else {
-	for (int i=0; i<N_snds; ++i) {
-            ParallelDescriptor::Send(send_data[i],send_N[i],send_rank[i],SeqNum);
-            BoxLib::The_Arena()->free(send_data[i]);
-        }
+	MultiFab tmp(boxArray(), ncomp, n_grow, DistributionMap());
+	MultiFab::Copy(tmp, *this, scomp, 0, ncomp, n_grow);
+	this->setVal(0.0);
+	this->copy(tmp,0,scomp,ncomp,n_grow,0,period,FabArrayBase::ADD);
     }
-
-    //
-    // Do the local work.  Hope for a bit of communication/computation overlap.
-    //
-    int N_loc = LocTags.size();
-    // undafe to do OMP
-    for (int i=0; i<N_loc; ++i)
-    {
-        const CopyComTag& tag = LocTags[i];
-
-        BL_ASSERT(distributionMap[tag.dstIndex] == ParallelDescriptor::MyProc());
-        BL_ASSERT(distributionMap[tag.srcIndex] == ParallelDescriptor::MyProc());
-
-        mf[tag.srcIndex].plus(mf[tag.dstIndex],tag.dbox,tag.sbox,scomp,scomp,ncomp);
-    }
-
-    //
-    //  wait and unpack
-    //
-    const int N_rcvs = RcvTags.size();
-
-    if (N_rcvs > 0)
-    {
-	Array<const CopyComTagsContainer*> recv_cctc;
-	recv_cctc.reserve(N_rcvs);
-
-        for (int k = 0; k < N_rcvs; k++)
-        {
-            MapOfCopyComTagContainers::const_iterator m_it = RcvTags.find(recv_from[k]);
-            BL_ASSERT(m_it != RcvTags.end());
-
-	    recv_cctc.push_back(&(m_it->second));
-	}
-
-	stats.resize(N_rcvs);
-	BL_MPI_REQUIRE( MPI_Waitall(N_rcvs, recv_reqs.dataPtr(), stats.dataPtr()) );
-
-	// unsafe to do OMP
-	{
-	    FArrayBox fab;
-
-	    for (int k = 0; k < N_rcvs; k++) 
-	    {
-		const Real* dptr = recv_data[k];
-		BL_ASSERT(dptr != 0);
-		
-		const CopyComTagsContainer& cctc = *recv_cctc[k];
-		
-		for (CopyComTagsContainer::const_iterator it = cctc.begin();
-		     it != cctc.end(); ++it)
-		{
-		    BL_ASSERT(distributionMap[it->srcIndex] == ParallelDescriptor::MyProc());
-		    const Box& bx = it->sbox;
-		    fab.resize(bx,ncomp);
-		    const int Cnt = bx.numPts()*ncomp;
-		    memcpy(fab.dataPtr(), dptr, Cnt*sizeof(Real));
-		    mf[it->srcIndex].plus(fab,bx,bx,0,scomp,ncomp);
-		    dptr += Cnt;
-		}
-	    }
-        }
-    }
-
-    BoxLib::The_Arena()->free(the_recv_data);
-
-    if (FabArrayBase::do_async_sends && !SndTags.empty())
-        FabArrayBase::WaitForAsyncSends(N_snds,send_reqs,send_data,stats);
-
-#endif /*BL_USE_MPI*/
 }
 
 void

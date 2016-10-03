@@ -12,9 +12,11 @@ Mask::Mask ()
     BaseFab<int>() {}
 
 Mask::Mask (const Box& bx,
-            int        nc)
+            int        nc,
+	    bool       alloc,
+	    bool       shared)
     :
-    BaseFab<int>(bx,nc) {}
+    BaseFab<int>(bx,nc,alloc,shared) {}
 
 Mask::~Mask () {}
 

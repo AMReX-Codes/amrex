@@ -280,17 +280,12 @@ Cluster::chop ()
     CutStatus mincut = InvalidCut;
     CutStatus status[BL_SPACEDIM];
     IntVect cut;
-    for (int n = 0, mincount = 0; n < BL_SPACEDIM; n++)
+    for (int n = 0; n < BL_SPACEDIM; n++)
     {
         cut[n] = FindCut(hist[n], lo[n], hi[n], status[n]);
         if (status[n] < mincut)
         {
             mincut = status[n];
-            mincount = 1;
-        }
-        else if (status[n] == mincut)
-        {
-            mincount++;
         }
     }
     BL_ASSERT(mincut != InvalidCut);
@@ -303,7 +298,7 @@ Cluster::chop ()
         if (status[n] == mincut)
         {
             int mincutlen = std::min(cut[n]-lo[n],hi[n]-cut[n]);
-            if (mincutlen > minlen)
+            if (mincutlen >= minlen)
             {
                 dir = n;
                 minlen = mincutlen;
@@ -430,35 +425,6 @@ ClusterList::chop (Real eff)
     }
 }
 
-//
-// Fast version of contains() when the BoxArray is disjoint.
-//
-static
-bool
-FastContains (BoxArray& ba, const Box& bx)
-{
-    BL_ASSERT(ba.isDisjoint());
-
-    if (ba.size() > 0)
-    {
-        BL_ASSERT(ba[0].sameType(bx));
-
-        std::vector< std::pair<int,Box> > isects;
-
-        ba.intersections(bx,isects);
-
-        if (isects.size() > 0)
-        {
-            long nbx = bx.numPts(), nisects = 0;
-            for (int i = 0, N = isects.size(); i < N; i++)
-                nisects += isects[i].second.numPts();
-            return nbx == nisects;
-        }
-    }
-
-    return false;
-}
-
 void
 ClusterList::intersect (const BoxDomain& dom)
 {
@@ -472,7 +438,8 @@ ClusterList::intersect (const BoxDomain& dom)
     {
         Cluster* c = *cli;
 
-        if (FastContains(domba,c->box()))
+	bool assume_disjoint_ba = true;
+        if (domba.contains(c->box(),assume_disjoint_ba))
         {
             ++cli;
         }

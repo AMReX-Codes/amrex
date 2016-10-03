@@ -83,10 +83,9 @@ Adv::initData ()
         const int* lo      = box.loVect();
         const int* hi      = box.hiVect();
 
-          BL_FORT_PROC_CALL(INITDATA,initdata)
-	      (level, cur_time, ARLIM_3D(lo), ARLIM_3D(hi),
-	       BL_TO_FORTRAN_3D(S_new[mfi]), ZFILL(dx),
-	       ZFILL(prob_lo));
+          initdata(level, cur_time, ARLIM_3D(lo), ARLIM_3D(hi),
+		   BL_TO_FORTRAN_3D(S_new[mfi]), ZFILL(dx),
+		   ZFILL(prob_lo));
     }
 
     if (verbose && ParallelDescriptor::IOProcessor())
@@ -236,12 +235,11 @@ Adv::errorEst (TagBoxArray& tags,
 	    const int*  tlo     = tilebx.loVect();
 	    const int*  thi     = tilebx.hiVect();
 
-	    BL_FORT_PROC_CALL(STATE_ERROR, state_error)
-		(tptr,  ARLIM_3D(tlo), ARLIM_3D(thi),
-		 BL_TO_FORTRAN_3D(S_new[mfi]),
-		 &tagval, &clearval, 
-		 ARLIM_3D(tilebx.loVect()), ARLIM_3D(tilebx.hiVect()), 
-		 ZFILL(dx), ZFILL(prob_lo), &time, &level);
+	    state_error(tptr,  ARLIM_3D(tlo), ARLIM_3D(thi),
+			BL_TO_FORTRAN_3D(S_new[mfi]),
+			&tagval, &clearval, 
+			ARLIM_3D(tilebx.loVect()), ARLIM_3D(tilebx.hiVect()), 
+			ZFILL(dx), ZFILL(prob_lo), &time, &level);
 	    //
 	    // Now update the tags in the TagBox.
 	    //

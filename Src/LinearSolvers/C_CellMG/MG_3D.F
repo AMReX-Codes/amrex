@@ -46,10 +46,8 @@
       end do
 
       end
-!
-! This can't be OpenMP'd.
-! Instead we thread over FABs in MultiGrid::interpolate()
-!
+
+
       subroutine FORT_INTERP (
      $     f, DIMS(f),
      $     c, DIMS(c),

@@ -183,6 +183,9 @@ public:
     //
     void read (const std::string& name, std::istream& is);
 
+    // Local copy function
+    static void Copy (BndryRegister& dst, const BndryRegister& src);
+
     //
     // AddProcsToComp
     //

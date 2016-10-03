@@ -94,6 +94,9 @@ public:
     void copyTo (MultiFab& dest, int ngrow, int scomp, int dcomp, int ncomp,
 		 const Periodicity& period = Periodicity::NonPeriodic()) const;
 
+    void plusTo (MultiFab& dest, int ngrow, int scomp, int dcomp, int ncomp,
+		 const Periodicity& period = Periodicity::NonPeriodic()) const;
+
     void setVal (Real val);
 
     void setVal (Real val, int comp, int num_comp);
@@ -114,6 +117,9 @@ public:
     // Read (used for reading from checkpoint)
     //
     void read (const std::string& name);
+
+    // Local copy function
+    static void Copy (FabSet& dst, const FabSet& src);
 
     void AddProcsToComp (int ioProcNumSCS, int ioProcNumAll,
 			 int scsMyId, MPI_Comm scsComm)

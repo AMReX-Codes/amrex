@@ -33,7 +33,9 @@ public:
     // allocating constructor (nc=number of components)
     //
     Mask (const Box& bx,
-          int        nc = 1);
+          int        nc = 1,
+	  bool       alloc=true,
+	  bool       shared=false);
     //
     // construct from input stream
     //

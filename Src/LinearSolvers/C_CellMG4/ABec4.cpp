@@ -115,12 +115,8 @@ ABec4::applyBC (MultiFab&     inout,
 
         BL_ASSERT(gbox[level][gn] == inout.box(gn));
 
-        BL_ASSERT(level<maskvals.size() && maskvals[level].find(gn)!=maskvals[level].end());
-        BL_ASSERT(level<lmaskvals.size() && lmaskvals[level].find(gn)!=lmaskvals[level].end());
         BL_ASSERT(level<undrrelxr.size());
 
-        const MaskTuple&                 ma  =  maskvals[level][gn];
-        const MaskTuple&                 lma = lmaskvals[level][gn];
         const BndryData::RealTuple&      bdl = bgb->bndryLocs(gn);
         const Array< Array<BoundCond> >& bdc = bgb->bndryConds(gn);
 
@@ -131,7 +127,7 @@ ABec4::applyBC (MultiFab&     inout,
             FabSet&       f   = (*undrrelxr[level])[o];
             int           cdr = o;
             const FabSet& fs  = bgb->bndryValues(o);
-            const Mask&   m   = local ? (*lma[o]) : (*ma[o]);
+            const Mask&   m   = local ? lmaskvals[level][o][mfi] : maskvals[level][o][mfi];
             Real          bcl = bdl[o];
             BL_ASSERT(bdc[o].size()>bndry_comp);
             int           bct = bdc[o][bndry_comp];
@@ -191,12 +187,12 @@ void
 ABec4::ca2cc(const MultiFab& ca, MultiFab& cc,
              int sComp, int dComp, int nComp)
 {
-    const bool tiling = true;
+  const bool tiling = true;
 
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for (MFIter mfi(ca,tiling); mfi.isValid(); ++mfi) {
+  for (MFIter mfi(ca,tiling); mfi.isValid(); ++mfi) {
     const FArrayBox& caf = ca[mfi];
     FArrayBox& ccf = cc[mfi];
     const Box& box = mfi.tilebox();
@@ -212,10 +208,13 @@ void
 ABec4::cc2ca(const MultiFab& cc, MultiFab& ca,
              int sComp, int dComp, int nComp)
 {
-  for (MFIter mfi(cc); mfi.isValid(); ++mfi) {
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+  for (MFIter mfi(ca,true); mfi.isValid(); ++mfi) {
     const FArrayBox& ccf = cc[mfi];
     FArrayBox& caf = ca[mfi];
-    const Box& box = caf.box();
+    const Box& box = mfi.growntilebox();
     BL_ASSERT(ccf.box().contains(BoxLib::grow(box,1)));
     FORT_CC2CA(box.loVect(), box.hiVect(),
                ccf.dataPtr(sComp), ARLIM(ccf.box().loVect()), ARLIM(ccf.box().hiVect()),
@@ -228,10 +227,13 @@ void
 ABec4::lo_cc2ec(const MultiFab& cc, MultiFab& ec,
                 int sComp, int dComp, int nComp, int dir, bool do_harm)
 {
-  for (MFIter mfi(cc); mfi.isValid(); ++mfi) {
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+  for (MFIter mfi(ec,true); mfi.isValid(); ++mfi) {
     const FArrayBox& ccf = cc[mfi];
     FArrayBox& ecf = ec[mfi];
-    const Box& box = ecf.box();
+    const Box& box = mfi.growntilebox();
     BL_ASSERT(ccf.box().contains(Box(box).enclosedCells().grow(dir,1)));
     int iharm = (int)do_harm;
     FORT_LO_CC2EC(box.loVect(), box.hiVect(),
@@ -601,44 +603,11 @@ ABec4::residual (MultiFab&       residL,
                  bool            local)
 {
   if (level == 0) {
-
-    apply(residL, solnL, level, bc_mode, local);
-
-    const bool tiling = true;
-
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-    for (MFIter solnLmfi(solnL,tiling); solnLmfi.isValid(); ++solnLmfi)
-    {
-      const int nc = residL.nComp();
-      //
-      // Only single-component solves supported (verified) by this class.
-      //
-      BL_ASSERT(nc == 1);
-
-      const Box& tbx = solnLmfi.tilebox();
-
-      BL_ASSERT(gbox[level][solnLmfi.index()] == solnLmfi.validbox());
-
-      FArrayBox& residfab = residL[solnLmfi];
-      const FArrayBox& rhsfab = rhsL[solnLmfi];
-
-      FORT_RESIDL(
-        residfab.dataPtr(), 
-        ARLIM(residfab.loVect()), ARLIM(residfab.hiVect()),
-        rhsfab.dataPtr(), 
-        ARLIM(rhsfab.loVect()), ARLIM(rhsfab.hiVect()),
-        residfab.dataPtr(), 
-        ARLIM(residfab.loVect()), ARLIM(residfab.hiVect()),
-        tbx.loVect(), tbx.hiVect(), &nc);
-    }
+      apply(residL, solnL, level, bc_mode, local);
+      MultiFab::Xpay(residL, -1.0, rhsL, 0, 0, residL.nComp(), 0);
   }
   else {
-
-    BL_ASSERT(LO_Op != 0);
-
-    LO_Op->residual(residL,rhsL,solnL,level,bc_mode,local);
-
+      BL_ASSERT(LO_Op != 0);
+      LO_Op->residual(residL,rhsL,solnL,level,bc_mode,local);
   }
 }

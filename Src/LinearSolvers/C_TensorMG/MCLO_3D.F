@@ -5,36 +5,6 @@
 #include <ArrayLim.H>
 
 c-----------------------------------------------------------------------
-      subroutine FORT_RESIDL (
-     $     res, DIMS(res), 
-     $     rhs, DIMS(rhs),
-     $     phi, DIMS(phi),
-     $     lo, hi, nc
-     $     )
-      integer nc
-      integer lo(BL_SPACEDIM)
-      integer hi(BL_SPACEDIM)
-      integer DIMDEC(phi)
-      REAL_T phi(DIMV(phi),nc)
-      integer DIMDEC(rhs)
-      REAL_T rhs(DIMV(rhs),nc)
-      integer DIMDEC(res)
-      REAL_T res(DIMV(res),nc)
-
-      integer i, j, k, n
-
-      do n = 1, nc
-         do k = lo(3), hi(3)
-            do j = lo(2), hi(2)
-               do i = lo(1), hi(1)
-                  res(i,j,k,n) = rhs(i,j,k,n) - phi(i,j,k,n)
-               enddo
-            enddo
-         enddo
-      enddo
-     
-      end
-c-----------------------------------------------------------------------
       subroutine FORT_HARMONIC_AVERAGEEC (
      $     c, DIMS(c),
      $     f, DIMS(f),
@@ -53,14 +23,11 @@ c-----------------------------------------------------------------------
 
       integer n, i, j, k
 
-!$omp parallel private(i,j,k,n)
-
       if ( cdir .eq. 0 ) then
          do n = 1, nc
-!$omp do
             do k = lo(3), hi(3)
                do j = lo(2), hi(2)
-                  do i = lo(1), hi(1)+1
+                  do i = lo(1), hi(1)
                   
                      c(i,j,k,n) = 4.0d0/(
      $                    + 1.0d0/f(2*i,2*j  ,2*k  ,n)
@@ -71,13 +38,11 @@ c-----------------------------------------------------------------------
                   enddo
                enddo
             enddo
-!$omp end do nowait
          enddo
       else if (cdir .eq. 1 ) then
          do n = 1, nc
-!$omp do
             do k = lo(3), hi(3)
-               do j = lo(2), hi(2)+1
+               do j = lo(2), hi(2)
                   do i = lo(1), hi(1)
 
                      c(i,j,k,n) = 4.0d0/(
@@ -89,12 +54,10 @@ c-----------------------------------------------------------------------
                   enddo
                enddo
             enddo
-!$omp end do nowait
          enddo
       else if (cdir .eq. 2 ) then
          do n = 1, nc
-!$omp do
-            do k = lo(3), hi(3)+1
+            do k = lo(3), hi(3)
                do j = lo(2), hi(2)
                   do i = lo(1), hi(1)
                      
@@ -107,10 +70,8 @@ c-----------------------------------------------------------------------
                   enddo
                enddo
             enddo
-!$omp end do nowait
          enddo
       endif
-!$omp end parallel
 
       end
 c-----------------------------------------------------------------------
@@ -132,14 +93,11 @@ c-----------------------------------------------------------------------
      
       integer n, i, j, k
 
-!$omp parallel private(i,j,k,n)
-     
       if ( cdir .eq. 0 ) then
          do n = 1, nc
-!$omp do
             do k = lo(3), hi(3)
                do j = lo(2), hi(2)
-                  do i = lo(1), hi(1)+1
+                  do i = lo(1), hi(1)
      
                      c(i,j,k,n) = 0.25d0*(
      $                    + f(2*i,2*j  ,2*k  ,n)
@@ -150,13 +108,11 @@ c-----------------------------------------------------------------------
                   enddo
                enddo
             enddo
-!$omp end do nowait
          enddo
       else if (cdir .eq. 1 ) then
          do n = 1, nc
-!$omp do
             do k = lo(3), hi(3)
-               do j = lo(2), hi(2)+1
+               do j = lo(2), hi(2)
                   do i = lo(1), hi(1)
                      
                      c(i,j,k,n) = 0.25d0*(
@@ -168,12 +124,10 @@ c-----------------------------------------------------------------------
                   enddo
                enddo
             enddo
-!$omp end do nowait
          enddo
       else if (cdir .eq. 2 ) then
          do n = 1, nc
-!$omp do
-            do k = lo(3), hi(3)+1
+            do k = lo(3), hi(3)
                do j = lo(2), hi(2)
                   do i = lo(1), hi(1)
      
@@ -186,10 +140,8 @@ c-----------------------------------------------------------------------
                   enddo
                enddo
             enddo
-!$omp end do nowait
          enddo
       endif
-!$omp end parallel
      
       end
 c-----------------------------------------------------------------------
@@ -209,9 +161,7 @@ c-----------------------------------------------------------------------
 
       integer i, j, k, n
 
-!$omp parallel private(i,j,k,n)
       do n = 1, nc
-!$omp do
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
@@ -229,9 +179,7 @@ c-----------------------------------------------------------------------
                enddo
             enddo
          enddo
-!$omp end do nowait
       enddo
-!$omp end parallel
      
       end
 

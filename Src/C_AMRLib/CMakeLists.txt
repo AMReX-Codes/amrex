@@ -25,7 +25,7 @@ set(FPP_header_files FLUSH_F.H FLUXREG_F.H)
 if(BL_SPACEDIM EQUAL 3)
   list(APPEND FPP_header_files MAKESLICE_F.H)
 endif()
-set(F77_header_files bc_types.fi)
+set(F77_header_files)
 set(F90_header_files)
 
 set(F77_source_files)
