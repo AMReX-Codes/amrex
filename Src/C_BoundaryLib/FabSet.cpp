@@ -87,6 +87,14 @@ FabSet::copyTo (MultiFab& dest, int ngrow, int scomp, int dcomp, int ncomp,
 }
 
 void
+FabSet::plusTo (MultiFab& dest, int ngrow, int scomp, int dcomp, int ncomp,
+		const Periodicity& period) const
+{
+    BL_ASSERT(boxArray() != dest.boxArray());
+    dest.copy(m_mf,scomp,dcomp,ncomp,0,ngrow,period,FabArrayBase::ADD);
+}
+
+void
 FabSet::setVal (Real val)
 {
 #ifdef _OPENMP
@@ -168,13 +176,25 @@ FabSet::linComb (Real a, const MultiFab& mfa, int a_comp,
 void
 FabSet::write(const std::string& name) const
 {
-    // xxxxx FIXME
     VisMF::Write(m_mf,name);
 }
 
 void
 FabSet::read(const std::string& name)
 {
-    //xxxxx FIXME
     VisMF::Read(m_mf,name);
+}
+
+void
+FabSet::Copy (FabSet& dst, const FabSet& src)
+{
+    BL_ASSERT(BoxLib::match(dst.boxArray(), src.boxArray()));
+    BL_ASSERT(dst.DistributionMap() == src.DistributionMap());
+    int ncomp = dst.nComp();
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (FabSetIter fsi(dst); fsi.isValid(); ++fsi) {
+	dst[fsi].copy(src[fsi], 0, 0, ncomp);
+    }
 }

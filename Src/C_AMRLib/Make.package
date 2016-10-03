@@ -23,8 +23,6 @@ F$(AMRLIB_BASE)_headers += FLUXREG_F.H INTERP_F.H
 F$(AMRLIB_BASE)_sources += FLUXREG_$(DIM)D.F INTERP_$(DIM)D.F \
                            ARRAYLIM_$(DIM)D.F
 
-F$(AMRLIB_BASE)_sources += FILCC_$(DIM)D.F
-
 ifeq ($(DIM),3)
   F$(AMRLIB_BASE)_sources += MAKESLICE_$(DIM)D.F
 endif
@@ -57,3 +55,5 @@ ifeq ($(USE_SDCLIB), TRUE)
   CEXE_headers += MLSDCAmr.H
 endif
 
+VPATH_LOCATIONS += $(BOXLIB_HOME)/Src/C_AMRLib
+INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/C_AMRLib

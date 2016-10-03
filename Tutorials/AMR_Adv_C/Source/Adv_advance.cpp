@@ -75,24 +75,22 @@ Adv::advance (Real time,
 		uface[i].resize(BoxLib::grow(bxtmp,1),1);
 	    }
 
-	    BL_FORT_PROC_CALL(GET_FACE_VELOCITY,get_face_velocity)
-		(level, ctr_time,
-		 D_DECL(BL_TO_FORTRAN(uface[0]),
-			BL_TO_FORTRAN(uface[1]),
-			BL_TO_FORTRAN(uface[2])),
-		 dx, prob_lo);
+	    get_face_velocity(level, ctr_time,
+			      D_DECL(BL_TO_FORTRAN(uface[0]),
+				     BL_TO_FORTRAN(uface[1]),
+				     BL_TO_FORTRAN(uface[2])),
+			      dx, prob_lo);
 
-            BL_FORT_PROC_CALL(ADVECT,advect)
-                (time, bx.loVect(), bx.hiVect(),
-                 BL_TO_FORTRAN_3D(statein), 
-		 BL_TO_FORTRAN_3D(stateout),
-		 D_DECL(BL_TO_FORTRAN_3D(uface[0]),
-			BL_TO_FORTRAN_3D(uface[1]),
-			BL_TO_FORTRAN_3D(uface[2])),
-                 D_DECL(BL_TO_FORTRAN_3D(flux[0]), 
-                        BL_TO_FORTRAN_3D(flux[1]), 
-                        BL_TO_FORTRAN_3D(flux[2])), 
-                 dx, dt);
+            advect(time, bx.loVect(), bx.hiVect(),
+		   BL_TO_FORTRAN_3D(statein), 
+		   BL_TO_FORTRAN_3D(stateout),
+		   D_DECL(BL_TO_FORTRAN_3D(uface[0]),
+			  BL_TO_FORTRAN_3D(uface[1]),
+			  BL_TO_FORTRAN_3D(uface[2])),
+		   D_DECL(BL_TO_FORTRAN_3D(flux[0]), 
+			  BL_TO_FORTRAN_3D(flux[1]), 
+			  BL_TO_FORTRAN_3D(flux[2])), 
+		   dx, dt);
 
 	    if (do_reflux) {
 		for (int i = 0; i < BL_SPACEDIM ; i++)

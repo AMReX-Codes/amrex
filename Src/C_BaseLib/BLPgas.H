@@ -73,10 +73,6 @@ namespace BLPgas
   extern upcxx::event fb_recv_event;
   extern int          fb_send_counter;
 
-  extern upcxx::event fpb_send_event;
-  extern upcxx::event fpb_recv_event;
-  extern int          fpb_send_counter;
-
   extern upcxx::event CollectData_recv_event;
 
   void* alloc (std::size_t _sz);

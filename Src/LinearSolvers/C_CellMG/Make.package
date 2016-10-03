@@ -5,8 +5,10 @@ CEXE_sources += ABecLaplacian.cpp CGSolver.cpp \
 
 CEXE_headers += ABecLaplacian.H CGSolver.H LinOp.H MultiGrid.H Laplacian.H
 
-FEXE_headers += ABec_F.H CG_F.H LO_F.H LP_F.H MG_F.H
+FEXE_headers += ABec_F.H LO_F.H LP_F.H MG_F.H
 
-FEXE_sources += ABec_$(DIM)D.F ABec_UTIL.F CG_$(DIM)D.F \
+FEXE_sources += ABec_$(DIM)D.F ABec_UTIL.F \
                 LO_$(DIM)D.F LP_$(DIM)D.F MG_$(DIM)D.F
 
+VPATH_LOCATIONS += $(BOXLIB_HOME)/Src/LinearSolvers/C_CellMG
+INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/LinearSolvers/C_CellMG

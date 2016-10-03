@@ -6,7 +6,6 @@
 
 #ifdef BL_MEM_PROFILING
 #include <MemProfiler.H>
-bool BARef::initialized          = false;
 int  BARef::numboxarrays         = 0;
 int  BARef::numboxarrays_hwm     = 0;
 long BARef::total_box_bytes      = 0L;
@@ -14,6 +13,9 @@ long BARef::total_box_bytes_hwm  = 0L;
 long BARef::total_hash_bytes     = 0L;
 long BARef::total_hash_bytes_hwm = 0L;
 #endif
+
+bool    BARef::initialized = false;
+bool BoxArray::initialized = false;
 
 BoxArray::CBACache BoxArray::m_CoarseBoxArrayCache;
 
@@ -24,7 +26,6 @@ namespace {
 BARef::BARef () 
 { 
 #ifdef BL_MEM_PROFILING
-    if (!initialized) Initialize();
     updateMemoryUsage_box(1);
 #endif	    
 }
@@ -33,24 +34,17 @@ BARef::BARef (size_t size)
     : m_abox(size) 
 { 
 #ifdef BL_MEM_PROFILING
-    if (!initialized) Initialize();
     updateMemoryUsage_box(1);
 #endif	    
 }
  
 BARef::BARef (const BoxList& bl)
 { 
-#ifdef BL_MEM_PROFILING
-    if (!initialized) Initialize();
-#endif
     define(bl); 
 }
 
 BARef::BARef (std::istream& is)
 { 
-#ifdef BL_MEM_PROFILING
-    if (!initialized) Initialize();
-#endif
     define(is); 
 }
 
@@ -157,7 +151,7 @@ BARef::updateMemoryUsage_hash (int s)
 {
     if (hash.size() > 0) {
 	long b = sizeof(hash);
-	for (auto&& x: hash) {
+	for (const auto& x: hash) {
 	    b += BoxLib::gcc_map_node_extra_bytes
 		+ sizeof(IntVect) + BoxLib::bytesOf(x.second);
 	}
@@ -169,12 +163,14 @@ BARef::updateMemoryUsage_hash (int s)
 	}
     }
 }
+#endif
 
 void
 BARef::Initialize ()
 {
     if (!initialized) {
 	initialized = true;
+#ifdef BL_MEM_PROFILING
 	MemProfiler::add("BoxArray", std::function<MemProfiler::MemInfo()>
 			 ([] () -> MemProfiler::MemInfo {
 			     return {total_box_bytes, total_box_bytes_hwm};
@@ -187,10 +183,18 @@ BARef::Initialize ()
 			 ([] () -> MemProfiler::NBuildsInfo {
 			     return {numboxarrays, numboxarrays_hwm};
 			 }));
+#endif
     }
 }
-#endif
 
+void
+BoxArray::Initialize ()
+{
+    if (!initialized) {
+	initialized = true;
+	BARef::Initialize();
+    }
+}
 
 BoxArray::BoxArray ()
     :
@@ -226,8 +230,9 @@ BoxArray::BoxArray (const Box* bxvec,
     m_transformer(new BATypeTransformer(bxvec->ixType())),
     m_ref(new BARef(nbox))
 {
-    for (int i = 0; i < nbox; i++)
+    for (int i = 0; i < nbox; i++) {
         m_ref->m_abox[i] = BoxLib::enclosedCells(*bxvec++);
+    }
 }
 
 //
@@ -750,8 +755,12 @@ BoxArray::contains (const IntVect& iv) const
 }
 
 bool
-BoxArray::contains (const Box& b) const
+BoxArray::contains (const Box& b, bool assume_disjoint_ba) const
 {
+    BL_ASSERT(!assume_disjoint_ba || isDisjoint());
+
+    bool result = false;
+
     if (size() > 0)
     {
         BL_ASSERT(ixType() == b.ixType());
@@ -762,27 +771,37 @@ BoxArray::contains (const Box& b) const
 
         if (isects.size() > 0)
         {
-            BoxList bl(b.ixType());
-            for (int i = 0, N = isects.size(); i < N; i++)
-                bl.push_back(isects[i].second);
-            BoxList blnew = BoxLib::complementIn(b, bl);
-            return blnew.size() == 0;
+	    if (assume_disjoint_ba) {
+		long nbx = b.numPts(), nisects = 0L;
+		for (int i = 0, N = isects.size(); i < N; i++) {
+		    nisects += isects[i].second.numPts();
+		}
+		result = nbx == nisects;
+	    } else {
+		BoxList bl(b.ixType());
+		for (int i = 0, N = isects.size(); i < N; i++) {
+		    bl.push_back(isects[i].second);
+		}
+		result = bl.contains(b);
+	    }
         }
     }
 
-    return false;
+    return result;
 }
 
 bool
-BoxArray::contains (const BoxArray& bl) const
+BoxArray::contains (const BoxArray& bl, bool assume_disjoint_ba) const
 {
     if (size() == 0) return false;
 
     if (!minimalBox().contains(bl.minimalBox())) return false;
 
-    for (int i = 0, N = bl.size(); i < N; ++i)
-        if (!contains(bl[i]))
+    for (int i = 0, N = bl.size(); i < N; ++i) {
+        if (!contains(bl[i],assume_disjoint_ba)) {
             return false;
+	}
+    }
 
     return true;
 }
@@ -1389,5 +1408,19 @@ BoxArray BoxLib::UnSerializeBoxArray(const Array<int> &serarray)
     ba.set(i, BoxLib::UnSerializeBox(aiBox));
   }
   return ba;
+}
+
+
+bool BoxLib::match (const BoxArray& x, const BoxArray& y)
+{
+    if (x == y) {
+	return true;
+    } else {
+	bool m = (x.size() == y.size()) && (x.ixType() == y.ixType());
+	for (int i = 0, N = x.size(); i < N && m; ++i) {
+	    m = x[i] == y[i];
+	}
+	return m;
+    }
 }
 

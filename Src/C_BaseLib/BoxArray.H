@@ -48,6 +48,9 @@ namespace BoxLib
 
     Array<int> SerializeBoxArray(const BoxArray &ba);
     BoxArray UnSerializeBoxArray(const Array<int> &serarray);
+
+    // Note that two BoxArrays that match are not necessarily equal.
+    bool match (const BoxArray& x, const BoxArray& y);
 }
 
 class BARef
@@ -95,14 +98,12 @@ public:
     static long total_box_bytes_hwm;
     static long total_hash_bytes;
     static long total_hash_bytes_hwm;
-    
-private:
-    BARef& operator= (const BARef&); // disallowed
-    
-#ifdef BL_MEM_PROFILING
+        
     static void Initialize ();
     static bool initialized;
-#endif
+
+private:
+    BARef& operator= (const BARef&); // disallowed
 };
 
 
@@ -412,11 +413,11 @@ public:
     // The Box must also have the same IndexType as those in this
     // BoxArray.
     //
-    bool contains (const Box& b) const;
+    bool contains (const Box& b, bool assume_disjoint_ba = false) const;
     //
     // True if all Boxes in bl are contained in this BoxArray.
     //
-    bool contains (const BoxArray& bl) const;
+    bool contains (const BoxArray& bl, bool assume_disjoint_ba = false) const;
     //
     // Returns smallest Box that contains all Boxes in this BoxArray.
     //
@@ -469,6 +470,9 @@ public:
     typedef std::map<ptrdiff_t, CBAMap> CBACache;
 
     static CBACache m_CoarseBoxArrayCache;
+
+    static void Initialize ();
+    static bool initialized;
 
 private:
     //

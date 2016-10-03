@@ -1035,14 +1035,14 @@ public:
     void EnforcePeriodicity (const Periodicity& period);
     void EnforcePeriodicity (int scomp, int ncomp, const Periodicity& period);
 
-    // covered  : ghost cells covered by valid cells of this FabArray
-    //            (including periodically shifted valid cells)
-    // uncovered: ghost cells not covered by valid cells
-    //            (including ghost cells outside periodic boundaries)
-    // physbnd  : boundary cells outside the domain (excluding periodic boundaries)
-    // interior : interior cells (i.e., valid cells)
+    // covered   : ghost cells covered by valid cells of this FabArray
+    //             (including periodically shifted valid cells)
+    // notcovered: ghost cells not covered by valid cells
+    //             (including ghost cells outside periodic boundaries)
+    // physbnd   : boundary cells outside the domain (excluding periodic boundaries)
+    // interior  : interior cells (i.e., valid cells)
     void BuildMask (const Box& phys_domain, const Periodicity& period,
-		    value_type covered, value_type uncovered, 
+		    value_type covered, value_type notcovered, 
 		    value_type physbnd, value_type interior);
 
     //
@@ -1160,21 +1160,6 @@ public:
     //
     Array<value_type*> fb_send_data;
     Array<MPI_Request> fb_send_reqs;
-
-    // Data used in non-blocking FillPeriodicBoundary
-    bool fpb_corners;
-    int fpb_scomp, fpb_ncomp;
-    //
-    value_type*        fpb_the_recv_data;
-    Array<int>         fpb_recv_from;
-    Array<value_type*> fpb_recv_data;
-    Array<MPI_Request> fpb_recv_reqs;
-#ifdef BL_USE_MPI3
-    Array<MPI_Aint>    fpb_recv_disp;
-#endif
-    //
-    Array<value_type*> fpb_send_data;
-    Array<MPI_Request> fpb_send_reqs;
 };
 
 class FabArrayId
@@ -2015,14 +2000,14 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
         {
             const Box& bx = fai.tilebox();
 
-            if (op == FabArrayBase::COPY)
-            {
-                get(fai).copy(src[fai],bx,scomp,bx,dcomp,ncomp);
-            }
-            else
-            {
-                get(fai).plus(src[fai],bx,bx,scomp,dcomp,ncomp);
-            }
+	    if (this != &src) {
+		// avoid self copy or plus
+		if (op == FabArrayBase::COPY) {
+		    get(fai).copy(src[fai],bx,scomp,bx,dcomp,ncomp);
+		} else {
+		    get(fai).plus(src[fai],bx,bx,scomp,dcomp,ncomp);
+		}
+	    }
         }
 
         return;
@@ -2043,14 +2028,14 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
         {
             const CopyComTag& tag = (*thecpc.m_LocTags)[i];
 
-            if (op == FabArrayBase::COPY)
-            {
-                get(tag.dstIndex).copy(src[tag.srcIndex],tag.sbox,scomp,tag.dbox,dcomp,ncomp);
-            }
-            else
-            {
-                get(tag.dstIndex).plus(src[tag.srcIndex],tag.sbox,tag.dbox,scomp,dcomp,ncomp);
-            }
+	    if (this != &src || tag.dstIndex != tag.srcIndex || tag.sbox != tag.dbox) {
+		// avoid self copy or plus
+		if (op == FabArrayBase::COPY) {
+		    get(tag.dstIndex).copy(src[tag.srcIndex],tag.sbox,scomp,tag.dbox,dcomp,ncomp);
+		} else {
+		    get(tag.dstIndex).plus(src[tag.srcIndex],tag.sbox,tag.dbox,scomp,dcomp,ncomp);
+		}
+	    }
         }
 
         return;
@@ -2298,13 +2283,13 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
             {
 		const CopyComTag& tag = (*thecpc.m_LocTags)[j];
 		
-		if (op == FabArrayBase::COPY)
-		{
-		    get(tag.dstIndex).copy(src[tag.srcIndex],tag.sbox,SC,tag.dbox,DC,NC);
-		}
-		else
-		{
-		    get(tag.dstIndex).plus(src[tag.srcIndex],tag.sbox,tag.dbox,SC,DC,NC);
+		if (this != &src || tag.dstIndex != tag.srcIndex || tag.sbox != tag.dbox) {
+		    // avoid self copy or plus
+		    if (op == FabArrayBase::COPY) {
+			get(tag.dstIndex).copy(src[tag.srcIndex],tag.sbox,SC,tag.dbox,DC,NC);
+		    } else {
+			get(tag.dstIndex).plus(src[tag.srcIndex],tag.sbox,tag.dbox,SC,DC,NC);
+		    }
 		}
 	    });
 #endif	    
@@ -2317,14 +2302,14 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 	    for (int j=0; j<N_locs; ++j)
 	    {
 		const CopyComTag& tag = (*thecpc.m_LocTags)[j];
-		
-		if (op == FabArrayBase::COPY)
-		{
-		    get(tag.dstIndex).copy(src[tag.srcIndex],tag.sbox,SC,tag.dbox,DC,NC);
-		}
-		else
-		{
-		    get(tag.dstIndex).plus(src[tag.srcIndex],tag.sbox,tag.dbox,SC,DC,NC);
+
+		if (this != &src || tag.dstIndex != tag.srcIndex || tag.sbox != tag.dbox) {
+		    // avoid self copy or plus
+		    if (op == FabArrayBase::COPY) {
+			get(tag.dstIndex).copy(src[tag.srcIndex],tag.sbox,SC,tag.dbox,DC,NC);
+		    } else {
+			get(tag.dstIndex).plus(src[tag.srcIndex],tag.sbox,tag.dbox,SC,DC,NC);
+		    }
 		}
 	    }
 	}
@@ -5043,7 +5028,7 @@ FabArrayBase::WaitForAsyncSends_PGAS (int                 N_snds,
 template <class FAB>
 void
 FabArray<FAB>::BuildMask (const Box& phys_domain, const Periodicity& period,
-			  value_type covered, value_type uncovered, 
+			  value_type covered, value_type notcovered, 
 			  value_type physbnd, value_type interior)
 {
     int ncomp = this->nComp();
@@ -5064,7 +5049,7 @@ FabArray<FAB>::BuildMask (const Box& phys_domain, const Periodicity& period,
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for (MFIter mfi(*this); mfi.isValid(); ++mfi)
+    for (MFIter mfi(*this, true); mfi.isValid(); ++mfi)
     {
 	FAB& fab = (*this)[mfi];
 
@@ -5072,7 +5057,7 @@ FabArray<FAB>::BuildMask (const Box& phys_domain, const Periodicity& period,
 	fab.setVal(physbnd, gbx, 0, ncomp);
 
 	gbx &= domain;
-	fab.setVal(uncovered, gbx, 0, ncomp);
+	fab.setVal(notcovered, gbx, 0, ncomp);
 
 	const Box& tbx = mfi.tilebox();
 	fab.setVal(interior, tbx, 0, ncomp);

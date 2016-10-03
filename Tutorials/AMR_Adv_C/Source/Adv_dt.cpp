@@ -32,12 +32,11 @@ Adv::estTimeStep (Real)
 		uface[i].resize(bx,1);
 	    }
 
-	    BL_FORT_PROC_CALL(GET_FACE_VELOCITY,get_face_velocity)
-		(level, cur_time,
-		 D_DECL(BL_TO_FORTRAN(uface[0]),
-			BL_TO_FORTRAN(uface[1]),
-			BL_TO_FORTRAN(uface[2])),
-		 dx, prob_lo);
+	    get_face_velocity(level, cur_time,
+			      D_DECL(BL_TO_FORTRAN(uface[0]),
+				     BL_TO_FORTRAN(uface[1]),
+				     BL_TO_FORTRAN(uface[2])),
+			      dx, prob_lo);
 
 	    for (int i = 0; i < BL_SPACEDIM; ++i) {
 		Real umax = uface[i].norm(0);

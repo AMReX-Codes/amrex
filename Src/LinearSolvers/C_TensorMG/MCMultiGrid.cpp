@@ -10,6 +10,10 @@
 #include <MG_F.H>
 #include <MCMultiGrid.H>
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 namespace
 {
     bool initialized = false;
@@ -96,12 +100,15 @@ Real
 norm_inf (const MultiFab& res, bool local = false)
 {
     Real restot = 0.0;
-    for (MFIter mfi(res); mfi.isValid(); ++mfi) 
+#ifdef _OPENMP
+#pragma omp parallel reduction(max:restot)
+#endif
+    for (MFIter mfi(res,true); mfi.isValid(); ++mfi) 
     {
-      restot = std::max(restot, res[mfi].norm(mfi.validbox(), 0, 0, res.nComp()));
+      restot = std::max(restot, res[mfi].norm(mfi.tilebox(), 0, 0, res.nComp()));
     }
     if ( !local )
-        ParallelDescriptor::ReduceRealMax(restot);
+        ParallelDescriptor::ReduceRealMax(restot, res.color());
     return restot;
 }
 
@@ -500,9 +507,12 @@ MCMultiGrid::average (MultiFab&       c,
     //
     // Use Fortran function to average down (restrict) f to c.
     //
-    for (MFIter cmfi(c); cmfi.isValid(); ++cmfi)
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter cmfi(c,true); cmfi.isValid(); ++cmfi)
     {
-        const Box&       bx   = cmfi.validbox();
+        const Box&       bx   = cmfi.tilebox();
 	int              nc   = c.nComp();
         FArrayBox&       cfab = c[cmfi];
         const FArrayBox& ffab = f[cmfi];
@@ -521,9 +531,12 @@ MCMultiGrid::interpolate (MultiFab&       f,
     // Use fortran function to interpolate up (prolong) c to f
     // Note: returns f=f+P(c) , i.e. ADDS interp'd c to f
     //
-    for (MFIter fmfi(f); fmfi.isValid(); ++fmfi)
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter fmfi(c,true); fmfi.isValid(); ++fmfi)
     {
-        const Box&       bx   = c.boxArray()[fmfi.index()];
+	const Box&       bx   = fmfi.tilebox();
 	int              nc   = f.nComp();
         const FArrayBox& cfab = c[fmfi];
         FArrayBox&       ffab = f[fmfi];

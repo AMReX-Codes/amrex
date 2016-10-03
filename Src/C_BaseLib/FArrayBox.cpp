@@ -26,6 +26,8 @@ using std::isinf;
 using std::isnan;
 #endif
 
+bool FArrayBox::initialized = false;
+
 #if defined(DEBUG) || defined(BL_TESTING)
 bool FArrayBox::do_initval = true;
 bool FArrayBox::init_snan  = true;
@@ -152,10 +154,7 @@ FABio::Format FArrayBox::format;
 
 FABio* FArrayBox::fabio = 0;
 
-FArrayBox::FArrayBox ()
-{
-    if (fabio == 0) FArrayBox::Initialize();
-}
+FArrayBox::FArrayBox () {}
 
 FArrayBox::FArrayBox (const Box& b,
                       int        n,
@@ -164,7 +163,6 @@ FArrayBox::FArrayBox (const Box& b,
     :
     BaseFab<Real>(b,n,alloc,shared)
 {
-    if (fabio == 0) FArrayBox::Initialize();
     if (alloc) initVal();
 }
 
@@ -341,14 +339,6 @@ FArrayBox::setFABio (FABio* rd)
     fabio = rd;
 }
 
-Real
-FArrayBox::norm (int p,
-                 int comp,
-                 int numcomp) const
-{
-    return norm(domain,p,comp,numcomp);
-}
-
 void
 FArrayBox::writeOn (std::ostream& os) const
 {
@@ -459,6 +449,9 @@ FArrayBox::get_initval ()
 void
 FArrayBox::Initialize ()
 {
+    if (initialized) return;
+    initialized = true;
+
     BL_ASSERT(fabio == 0);
 
     ParmParse pp("fab");
@@ -558,77 +551,6 @@ FArrayBox::Finalize ()
 {
     delete fabio;
     fabio = 0;
-}
-
-Real
-FArrayBox::norm (const Box& subbox,
-                 int        p,
-                 int        comp,
-                 int        ncomp) const
-{
-    BL_ASSERT(p >= 0);
-    BL_ASSERT(comp >= 0 && comp+ncomp <= nComp());
-
-    Real  nrm    = 0;
-    Real* tmp    = 0;
-    int   tmplen = 0;
-
-    if (p == 0 || p == 1)
-    {
-        nrm = BaseFab<Real>::norm(subbox,p,comp,ncomp);
-    }
-    else if (p == 2)
-    {
-        ForAllThisCPencil(Real,subbox,comp,ncomp)
-        {
-            const Real* row = &thisR;
-            if (tmp == 0)
-            {
-                tmp    = new Real[thisLen];
-                tmplen = thisLen;
-                for (int i = 0; i < thisLen; i++)
-                    tmp[i] = row[i]*row[i];
-            }
-            else
-            {
-                for (int i = 0; i < thisLen; i++)
-                    tmp[i] += row[i]*row[i];
-            }
-        } EndForPencil
-        nrm = tmp[0];
-        for (int i = 1; i < tmplen; i++)
-            nrm += tmp[i];
-        nrm = std::sqrt(nrm);
-    }
-    else
-    {
-        Real pwr = Real(p);
-        ForAllThisCPencil(Real,subbox,comp,ncomp)
-        {
-            const Real* row = &thisR;
-            if (tmp == 0)
-            {
-                tmp = new Real[thisLen];
-                tmplen = thisLen;
-                for (int i = 0; i < thisLen; i++)
-                    tmp[i] = std::pow(row[i],pwr);
-            }
-            else
-            {
-                for (int i = 0; i < thisLen; i++)
-                    tmp[i] += std::pow(row[i],pwr);
-            }
-        } EndForPencil
-        nrm = tmp[0];
-        for (int i = 1; i < tmplen; i++)
-            nrm += tmp[i];
-        Real invpwr = 1.0/pwr;
-        nrm = std::pow(nrm,invpwr);
-    }
-
-    delete [] tmp;
-
-    return nrm;
 }
 
 //

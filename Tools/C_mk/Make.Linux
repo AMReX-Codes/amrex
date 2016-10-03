@@ -236,8 +236,8 @@ ifeq ($(FCOMP),PGI)
   else
     FOPTF += -noacc
     fOPTF += -noacc
-    FDEBF += -noacc
-    fDEBF += -noacc
+    FDEBF += -noacc -Mbounds
+    fDEBF += -noacc -Mbounds
   endif
 
   fFLAGS += -Mextend -module $(objEXETempDir) -I$(objEXETempDir)
