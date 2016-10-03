@@ -4,19 +4,19 @@
 #include <Particles.H>
 #include <AmrParGDB.H>
 
-template <int N>
+template <int NR, int NI=0>
 class AmrParticleContainer
-    : public ParticleContainer<N>
+    : public ParticleContainer<NR,NI>
 {
 
 public:
 
-    typedef Particle<N> ParticleType;
-    typedef typename ParticleContainer<N>::PBox PBox;
-    typedef typename ParticleContainer<N>::PMap PMap;
+    typedef Particle<NR,NI> ParticleType;
+    typedef typename ParticleContainer<NR,NI>::PBox PBox;
+    typedef typename ParticleContainer<NR,NI>::PMap PMap;
     
     AmrParticleContainer (Amr* amr)
-	: ParticleContainer<N>(amr->GetParGDB())
+	: ParticleContainer<NR,NI>(amr->GetParGDB())
     {
 	this->m_particles.resize(this->m_gdb->finestLevel()+1);
     }

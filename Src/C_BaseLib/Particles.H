@@ -8,6 +8,7 @@
 #include <iostream>
 #include <numeric>
 #include <algorithm>
+#include <array>
 
 #include <ParmParse.H>
 
@@ -197,7 +198,7 @@ struct ParticleBase
 
 std::ostream& operator<< (std::ostream& os, const ParticleBase& p);
 
-template <int N>
+template <int NR, int NI=0>
 struct Particle
     :
     public ParticleBase
@@ -212,7 +213,8 @@ struct Particle
     // 2 - y-velocity
     // 3 - z-velocity
     //
-    RealType m_data[N];
+    RealType m_data[NR];
+    std::array<int,NI> m_idata;
 };
 
 //
@@ -256,7 +258,7 @@ struct ParticleContainerBase
                                 Real a_new = 1.0, Real a_half = 1.0) = 0;
 };
 
-template <int N>
+template <int NR, int NI = 0>
 class ParticleContainer
     :
     public ParticleContainerBase
@@ -265,7 +267,7 @@ public:
     //
     // The type of Particles we hold.
     //
-    typedef Particle<N> ParticleType;
+    typedef Particle<NR,NI> ParticleType;
     //
     // We want to store the particles on a level by level and grid by grid basis.  This will
     // make accessing them and doing operations on them more memory efficient since most of our
@@ -533,9 +535,9 @@ protected:
 
 };
 
-template <int N>
+template <int NR, int NI>
 long
-ParticleContainer<N>::TotalNumberOfParticles (bool only_valid, bool only_local) const
+ParticleContainer<NR,NI>::TotalNumberOfParticles (bool only_valid, bool only_local) const
 {
     long nparticles = 0;
     for (int lev = 0; lev <= m_gdb->finestLevel(); lev++)
@@ -543,9 +545,9 @@ ParticleContainer<N>::TotalNumberOfParticles (bool only_valid, bool only_local) 
     return nparticles;
 }
 
-template <int N>
+template <int NR, int NI>
 Array<long>
-ParticleContainer<N>::NumberOfParticlesInGrid (int  lev, 
+ParticleContainer<NR,NI>::NumberOfParticlesInGrid (int  lev, 
                                                bool only_valid,
                                                bool only_local) const
 {
@@ -588,9 +590,9 @@ ParticleContainer<N>::NumberOfParticlesInGrid (int  lev,
     return nparticles;
 }
 
-template <int N>
+template <int NR, int NI>
 long
-ParticleContainer<N>::NumberOfParticlesAtLevel (int  lev,
+ParticleContainer<NR,NI>::NumberOfParticlesAtLevel (int  lev,
                                                 bool only_valid,
                                                 bool only_local) const
 {
@@ -633,9 +635,9 @@ ParticleContainer<N>::NumberOfParticlesAtLevel (int  lev,
 // This includes both valid and invalid particles since invalid particles still take up space.
 //
 
-template <int N>
+template <int NR, int NI>
 void
-ParticleContainer<N>::ByteSpread () const
+ParticleContainer<NR,NI>::ByteSpread () const
 {
     long cnt = 0;
 
@@ -663,7 +665,7 @@ ParticleContainer<N>::ByteSpread () const
 
     if (ParallelDescriptor::IOProcessor())
     {
-        std::cout << "ParticleContainer<N> byte spread across MPI nodes: ["
+        std::cout << "ParticleContainer<NR,NI> byte spread across MPI nodes: ["
                   << mn*sz
 		  << " (" << mn << ")"
                   << " ... "
@@ -676,14 +678,14 @@ ParticleContainer<N>::ByteSpread () const
 #endif
 }
 
-template <int N>
+template <int NR, int NI>
 void
-ParticleContainer<N>::addOneParticle (int                  id_in,
+ParticleContainer<NR,NI>::addOneParticle (int                  id_in,
                                       int                  cpu_in, 
                                       std::vector<double>& xloc, 
  				      std::vector<double>& attributes)
 {
-    BL_PROFILE("ParticleContainer<N>::addOneParticle()");
+    BL_PROFILE("ParticleContainer<NR,NI>::addOneParticle()");
     if (m_particles.size() == 0)
     {
        m_particles.reserve(15);  // So we don't ever have to do any copying on a resize.
@@ -704,7 +706,7 @@ ParticleContainer<N>::addOneParticle (int                  id_in,
     for (int i = 0; i < BL_SPACEDIM; i++)
        p.m_pos[i] = xloc[i];
 
-    for (int i = 0; i < N; i++)
+    for (int i = 0; i < NR; i++)
        p.m_data[i] = attributes[i];
     //
     // It's possible that particles are defined to live right on the boundary,
@@ -735,7 +737,7 @@ ParticleContainer<N>::addOneParticle (int                  id_in,
             {
                 std::cout << "BAD PARTICLE POS(" << d << ") " << p.m_pos[d] << std::endl;
             }
-            BoxLib::Abort("ParticleContainer<N>::addOneParticle(): invalid particle");
+            BoxLib::Abort("ParticleContainer<NR,NI>::addOneParticle(): invalid particle");
         }
     }
 
@@ -748,13 +750,13 @@ ParticleContainer<N>::addOneParticle (int                  id_in,
 }
 
     //
-    // The ParticleContainer<N>::Init... routines have been moved into a separate file.
+    // The ParticleContainer<NR,NI>::Init... routines have been moved into a separate file.
     //
 #include "ParticleInit.H"
 
-template <int N>
+template <int NR, int NI>
 void
-ParticleContainer<N>::MoveRandom ()
+ParticleContainer<NR,NI>::MoveRandom ()
 {
     //
     // Move particles randomly at all levels
@@ -765,11 +767,11 @@ ParticleContainer<N>::MoveRandom ()
     }
 }
 
-template <int N>
+template <int NR, int NI>
 void
-ParticleContainer<N>::MoveRandom (int lev)
+ParticleContainer<NR,NI>::MoveRandom (int lev)
 {
-    BL_PROFILE("ParticleContainer<N>::MoveRandom(lev)");
+    BL_PROFILE("ParticleContainer<NR,NI>::MoveRandom(lev)");
     BL_ASSERT(OK());
     BL_ASSERT(m_gdb != 0);
     // 
@@ -840,20 +842,20 @@ ParticleContainer<N>::MoveRandom (int lev)
     Redistribute(true);
 }
 
-template <int N>
+template <int NR, int NI>
 void
-ParticleContainer<N>::Increment (MultiFab& mf,
+ParticleContainer<NR,NI>::Increment (MultiFab& mf,
                                  int       lev) 
 {
     IncrementWithTotal(mf,lev);
 }
 
-template <int N>
+template <int NR, int NI>
 long
-ParticleContainer<N>::IncrementWithTotal (MultiFab& mf,
+ParticleContainer<NR,NI>::IncrementWithTotal (MultiFab& mf,
                                           int       lev)
 {
-    BL_PROFILE("ParticleContainer<N>::IncrementWithTotal(lev)");
+    BL_PROFILE("ParticleContainer<NR,NI>::IncrementWithTotal(lev)");
     BL_ASSERT(OK());
 
     if (m_particles.empty()) return 0;
@@ -912,25 +914,25 @@ ParticleContainer<N>::IncrementWithTotal (MultiFab& mf,
     return num_particles_in_domain;
 }
 
-template <int N>
+template <int NR, int NI>
 Real
-ParticleContainer<N>::estTimestep (MultiFab& gv,
+ParticleContainer<NR,NI>::estTimestep (MultiFab& gv,
                                    int             lev,
                                    Real            cfl) const
 {
     return estTimestep(gv,1.0,lev,cfl);
 }
 
-template <int N>
+template <int NR, int NI>
 Real
-ParticleContainer<N>::estTimestep (MultiFab& gv,
+ParticleContainer<NR,NI>::estTimestep (MultiFab& gv,
                                    Real            a,
                                    int             lev,
                                    Real            cfl) const
 {
-    BL_PROFILE("ParticleContainer<N>::estTimestep(lev)");
+    BL_PROFILE("ParticleContainer<NR,NI>::estTimestep(lev)");
     Real            dt               = 1e50;
-    BL_ASSERT(N >= BL_SPACEDIM+1);
+    BL_ASSERT(NR >= BL_SPACEDIM+1);
     BL_ASSERT(lev >= 0);
 
     if (m_particles.size() == 0)
@@ -1038,7 +1040,7 @@ ParticleContainer<N>::estTimestep (MultiFab& gv,
 
         if (ParallelDescriptor::IOProcessor())
         {
-            std::cout << "ParticleContainer<N>::estTimestep() time: " << stoptime << '\n';
+            std::cout << "ParticleContainer<NR,NI>::estTimestep() time: " << stoptime << '\n';
         }
     }
 
@@ -1049,12 +1051,12 @@ ParticleContainer<N>::estTimestep (MultiFab& gv,
 // Assumes mass is in m_data[0]!
 //
 
-template <int N>
+template <int NR, int NI>
 Real
-ParticleContainer<N>::sumParticleMass (int lev) const
+ParticleContainer<NR,NI>::sumParticleMass (int lev) const
 {
-    BL_PROFILE("ParticleContainer<N>::sumParticleMass(lev)");
-    BL_ASSERT(N >= 1);
+    BL_PROFILE("ParticleContainer<NR,NI>::sumParticleMass(lev)");
+    BL_ASSERT(NR >= 1);
     BL_ASSERT(lev >= 0 && lev < m_particles.size());
 
     Real msum = 0;
@@ -1084,13 +1086,13 @@ ParticleContainer<N>::sumParticleMass (int lev) const
 // dim defines the cartesian direction in which the momentum is summed, x is 0, y is 1, ...
 //
 
-template <int N>
+template <int NR, int NI>
 void
-ParticleContainer<N>::sumParticleMomentum (int   lev,
+ParticleContainer<NR,NI>::sumParticleMomentum (int   lev,
                                            Real* mom) const
 {
-    BL_PROFILE("ParticleContainer<N>::sumParticleMomentum()");
-    BL_ASSERT(N >= BL_SPACEDIM+1);
+    BL_PROFILE("ParticleContainer<NR,NI>::sumParticleMomentum()");
+    BL_ASSERT(NR >= BL_SPACEDIM+1);
     BL_ASSERT(lev >= 0 && lev < m_particles.size());
 
     const PMap& pmap = m_particles[lev];
@@ -1128,15 +1130,15 @@ ParticleContainer<N>::sumParticleMomentum (int   lev,
 //
 // This is the single-level version -- it takes either cell-centered or node-centered MF's
 //
-template <int N>
+template <int NR, int NI>
 void
-ParticleContainer<N>::AssignDensitySingleLevel (MultiFab& mf_to_be_filled,
+ParticleContainer<NR,NI>::AssignDensitySingleLevel (MultiFab& mf_to_be_filled,
                                                 int       lev,
                                                 int       ncomp,
                                                 int       particle_lvl_offset) const
 {
-    BL_PROFILE("ParticleContainer<N>::AssignDensitySingleLevel()");
-    BL_ASSERT(N >= 1);
+    BL_PROFILE("ParticleContainer<NR,NI>::AssignDensitySingleLevel()");
+    BL_ASSERT(NR >= 1);
     BL_ASSERT(ncomp == 1 || ncomp == BL_SPACEDIM+1);
 
 #ifdef NEUTRINO_PARTICLES
@@ -1165,9 +1167,9 @@ ParticleContainer<N>::AssignDensitySingleLevel (MultiFab& mf_to_be_filled,
 //
 // This is the single-level version for cell-centered density
 //
-template <int N>
+template <int NR, int NI>
 void
-ParticleContainer<N>::AssignCellDensitySingleLevel (MultiFab& mf_to_be_filled,
+ParticleContainer<NR,NI>::AssignCellDensitySingleLevel (MultiFab& mf_to_be_filled,
                                                     int       lev,
                                                     int       ncomp,
                                                     int       particle_lvl_offset) const
@@ -1347,7 +1349,7 @@ ParticleContainer<N>::AssignCellDensitySingleLevel (MultiFab& mf_to_be_filled,
 
         if (ParallelDescriptor::IOProcessor())
         {
-            std::cout << "ParticleContainer<N>::AssignDensity(single-level) time: " << stoptime << '\n';
+            std::cout << "ParticleContainer<NR,NI>::AssignDensity(single-level) time: " << stoptime << '\n';
         }
     }
 }
@@ -1355,9 +1357,9 @@ ParticleContainer<N>::AssignCellDensitySingleLevel (MultiFab& mf_to_be_filled,
 //
 // This is the single-level version for nodal density
 //
-template <int N>
+template <int NR, int NI>
 void
-ParticleContainer<N>::AssignNodalDensitySingleLevel (MultiFab& mf_to_be_filled,
+ParticleContainer<NR,NI>::AssignNodalDensitySingleLevel (MultiFab& mf_to_be_filled,
                                                      int       lev,
                                                      int       ncomp,
                                                      int       particle_lvl_offset) const
@@ -1375,24 +1377,24 @@ ParticleContainer<N>::AssignNodalDensitySingleLevel (MultiFab& mf_to_be_filled,
 // There'll be finest_level+1 of them.
 //
 
-template <int N>
+template <int NR, int NI>
 void
-ParticleContainer<N>::AssignDensityAndVels (PArray<MultiFab>& mf,
+ParticleContainer<NR,NI>::AssignDensityAndVels (PArray<MultiFab>& mf,
                                             int               lev_min) const
 {
     AssignDensity(mf, lev_min, BL_SPACEDIM+1);
 }
 
-template <int N>
+template <int NR, int NI>
 void
-ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled, 
+ParticleContainer<NR,NI>::AssignDensity (PArray<MultiFab>& mf_to_be_filled, 
                                      int               lev_min,
                                      int               ncomp,
                                      int               finest_level) const
 {
-    BL_PROFILE("ParticleContainer<N>::AssignDensity()");
-    BL_ASSERT(N >= 1);
-    BL_ASSERT(N >= ncomp);
+    BL_PROFILE("ParticleContainer<NR,NI>::AssignDensity()");
+    BL_ASSERT(NR >= 1);
+    BL_ASSERT(NR >= ncomp);
     BL_ASSERT(ncomp == 1 || ncomp == BL_SPACEDIM+1);
 
 #ifdef NEUTRINO_PARTICLES
@@ -2408,7 +2410,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
 
         if (ParallelDescriptor::IOProcessor())
         {
-            std::cout << "ParticleContainer<N>::AssignDensity(multi-level) time: " << etime << '\n';
+            std::cout << "ParticleContainer<NR,NI>::AssignDensity(multi-level) time: " << etime << '\n';
         }
     }
 }
@@ -2426,15 +2428,15 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
 //
 //
 
-template <int N>
+template <int NR, int NI>
 void
-ParticleContainer<N>::AssignDensityDoit (PArray<MultiFab>* mf,
+ParticleContainer<NR,NI>::AssignDensityDoit (PArray<MultiFab>* mf,
                                          PMap&             data,
                                          int               ncomp,
                                          int               lev_min) const
 {
-    BL_PROFILE("ParticleContainer<N>::AssignDensityDoit()");
-    BL_ASSERT(N >= ncomp);
+    BL_PROFILE("ParticleContainer<NR,NI>::AssignDensityDoit()");
+    BL_ASSERT(NR >= ncomp);
 
     const int NProcs = ParallelDescriptor::NProcs();
 
@@ -2631,11 +2633,11 @@ ParticleContainer<N>::AssignDensityDoit (PArray<MultiFab>* mf,
 #endif /*BL_USE_MPI*/
 }
 
-template <int N>
+template <int NR, int NI>
 void
-ParticleContainer<N>::GetParticleIDs (Array<int>& part_ids)
+ParticleContainer<NR,NI>::GetParticleIDs (Array<int>& part_ids)
 {
-    BL_PROFILE("ParticleContainer<N>::GetParticleIDs()");
+    BL_PROFILE("ParticleContainer<NR,NI>::GetParticleIDs()");
     //
     // This gives us the starting point into the part_ids array
     // If only one processor (or no MPI), then that's all we need.
@@ -2701,11 +2703,11 @@ ParticleContainer<N>::GetParticleIDs (Array<int>& part_ids)
     ParallelDescriptor::ReduceIntSum(part_ids.dataPtr(),part_ids.size()); 
 }
 
-template <int N>
+template <int NR, int NI>
 void
-ParticleContainer<N>::GetParticleCPU (Array<int>& part_cpu)
+ParticleContainer<NR,NI>::GetParticleCPU (Array<int>& part_cpu)
 {
-    BL_PROFILE("ParticleContainer<N>::GetParticleCPU()");
+    BL_PROFILE("ParticleContainer<NR,NI>::GetParticleCPU()");
     //
     // This gives us the starting point into the part_cpu array
     // If only one processor (or no MPI), then that's all we need.
@@ -2768,11 +2770,11 @@ ParticleContainer<N>::GetParticleCPU (Array<int>& part_cpu)
     ParallelDescriptor::ReduceIntSum(part_cpu.dataPtr(),part_cpu.size()); 
 }
 
-template <int N>
+template <int NR, int NI>
 void
-ParticleContainer<N>::GetParticleLocations (Array<Real>& part_data)
+ParticleContainer<NR,NI>::GetParticleLocations (Array<Real>& part_data)
 {
-    BL_PROFILE("ParticleContainer<N>::GetParticleLocations()");
+    BL_PROFILE("ParticleContainer<NR,NI>::GetParticleLocations()");
     //
     // This gives us the starting point into the part_data array
     // If only one processor (or no MPI), then that's all we need.
@@ -2837,11 +2839,11 @@ ParticleContainer<N>::GetParticleLocations (Array<Real>& part_data)
     ParallelDescriptor::ReduceRealSum(part_data.dataPtr(),part_data.size()); 
 }
 
-template <int N>
+template <int NR, int NI>
 void
-ParticleContainer<N>::GetParticleVelocities (Array<Real>& part_data)
+ParticleContainer<NR,NI>::GetParticleVelocities (Array<Real>& part_data)
 {
-    BL_PROFILE("ParticleContainer<N>::GetParticleVelocities()");
+    BL_PROFILE("ParticleContainer<NR,NI>::GetParticleVelocities()");
     // This assumes that the mass/charge is stored in the first position 
     //      in the particle data, followed by the velocity components
     int start_comp = 1;
@@ -2849,11 +2851,11 @@ ParticleContainer<N>::GetParticleVelocities (Array<Real>& part_data)
     GetParticleData(part_data,1,BL_SPACEDIM);
 }
 
-template <int N>
+template <int NR, int NI>
 void
-ParticleContainer<N>::GetParticleData (Array<Real>& part_data, int start_comp, int num_comp)
+ParticleContainer<NR,NI>::GetParticleData (Array<Real>& part_data, int start_comp, int num_comp)
 {
-    BL_PROFILE("ParticleContainer<N>::GetParticleData()");
+    BL_PROFILE("ParticleContainer<NR,NI>::GetParticleData()");
     //
     // This gives us the starting point into the part_data array
     // If only one processor (or no MPI), then that's all we need.
@@ -2863,7 +2865,7 @@ ParticleContainer<N>::GetParticleData (Array<Real>& part_data, int start_comp, i
     //
     // Make sure we don't try to get more than we have
     //
-    if (start_comp + num_comp > N)
+    if (start_comp + num_comp > NR)
         BoxLib::Error("Tried to grab too many components in GetParticleData!!");
 
 #if BL_USE_MPI
@@ -2923,18 +2925,18 @@ ParticleContainer<N>::GetParticleData (Array<Real>& part_data, int start_comp, i
     ParallelDescriptor::ReduceRealSum(part_data.dataPtr(),part_data.size()); 
 }
 
-template <int N>
+template <int NR, int NI>
 void
-ParticleContainer<N>::SetAllowParticlesNearBoundary (bool value)
+ParticleContainer<NR,NI>::SetAllowParticlesNearBoundary (bool value)
 {
     allow_particles_near_boundary = value; 
 }
 
-template <int N>
+template <int NR, int NI>
 void
-ParticleContainer<N>::SetParticleLocations (Array<Real>& part_data)
+ParticleContainer<NR,NI>::SetParticleLocations (Array<Real>& part_data)
 {
-    BL_PROFILE("ParticleContainer<N>::SetParticleLocations()");
+    BL_PROFILE("ParticleContainer<NR,NI>::SetParticleLocations()");
    // This gives us the starting point into the part_data array
    // If only one processor (or no MPI), then that's all we need
    int cnt = 0;
@@ -2996,11 +2998,11 @@ ParticleContainer<N>::SetParticleLocations (Array<Real>& part_data)
     }
 }
 
-template <int N>
+template <int NR, int NI>
 void
-ParticleContainer<N>::SetParticleVelocities (Array<Real>& part_data)
+ParticleContainer<NR,NI>::SetParticleVelocities (Array<Real>& part_data)
 {
-    BL_PROFILE("ParticleContainer<N>::SetParticleVelocities()");
+    BL_PROFILE("ParticleContainer<NR,NI>::SetParticleVelocities()");
    // This gives us the starting point into the part_data array
    // If only one processor (or no MPI), then that's all we need
    int cnt = 0;
@@ -3062,11 +3064,11 @@ ParticleContainer<N>::SetParticleVelocities (Array<Real>& part_data)
     }
 }
 
-template <int N>
+template <int NR, int NI>
 void
-ParticleContainer<N>::MultiplyParticleMass (int lev, Real mult)
+ParticleContainer<NR,NI>::MultiplyParticleMass (int lev, Real mult)
 {
-    BL_PROFILE("ParticleContainer<N>::MultiplyParticleMass()");
+    BL_PROFILE("ParticleContainer<NR,NI>::MultiplyParticleMass()");
    BL_ASSERT(lev == 0);
 
    PMap& pmap = m_particles[lev];
@@ -3093,15 +3095,15 @@ ParticleContainer<N>::MultiplyParticleMass (int lev, Real mult)
    }
 }
 
-template <int N>
+template <int NR, int NI>
 void
-ParticleContainer<N>::movePredict (const MultiFab& gv,
+ParticleContainer<NR,NI>::movePredict (const MultiFab& gv,
                                    int             lev,
                                    Real            dt)
 {
-    BL_PROFILE("ParticleContainer<N>::movePredict()");
+    BL_PROFILE("ParticleContainer<NR,NI>::movePredict()");
     BL_ASSERT(OK());
-    BL_ASSERT(N >= BL_SPACEDIM+1);
+    BL_ASSERT(NR >= BL_SPACEDIM+1);
     BL_ASSERT(lev >= 0 && lev < m_particles.size());
 
     const Real strttime = ParallelDescriptor::second();
@@ -3164,23 +3166,23 @@ ParticleContainer<N>::movePredict (const MultiFab& gv,
 
         if (ParallelDescriptor::IOProcessor())
         {
-            std::cout << "ParticleContainer<N>::movePredict() time: " << stoptime << '\n';
+            std::cout << "ParticleContainer<NR,NI>::movePredict() time: " << stoptime << '\n';
         }
     }
 
     Redistribute(true);
 }
 
-template <int N>
+template <int NR, int NI>
 void
-ParticleContainer<N>::moveCorrect (const MultiFab& gv_old,
+ParticleContainer<NR,NI>::moveCorrect (const MultiFab& gv_old,
                                    const MultiFab& gv,
                                    int             lev,
                                    Real            dt)
 {
-    BL_PROFILE("ParticleContainer<N>::moveCorrect()");
+    BL_PROFILE("ParticleContainer<NR,NI>::moveCorrect()");
     BL_ASSERT(OK());
-    BL_ASSERT(N >= BL_SPACEDIM+1);
+    BL_ASSERT(NR >= BL_SPACEDIM+1);
     BL_ASSERT(lev >= 0 && lev < m_particles.size());
 
     const Real strttime = ParallelDescriptor::second();
@@ -3257,7 +3259,7 @@ ParticleContainer<N>::moveCorrect (const MultiFab& gv_old,
 
         if (ParallelDescriptor::IOProcessor())
         {
-            std::cout << "ParticleContainer<N>::moveCorrect() time: " << stoptime << '\n';
+            std::cout << "ParticleContainer<NR,NI>::moveCorrect() time: " << stoptime << '\n';
         }
     }
 
@@ -3267,16 +3269,16 @@ ParticleContainer<N>::moveCorrect (const MultiFab& gv_old,
 //
 // This version takes as input the gravity vector at cell centers
 //
-template <int N>
+template <int NR, int NI>
 void
-ParticleContainer<N>::moveKickDrift (MultiFab& grav_vector,
+ParticleContainer<NR,NI>::moveKickDrift (MultiFab& grav_vector,
                                      int             lev,
                                      Real            dt,
                                      Real            a_old,
                                      Real            a_half) 
 {
     BL_PROFILE("ParticleContainer::moveKickDrift()");
-    BL_ASSERT(N >= BL_SPACEDIM+1);
+    BL_ASSERT(NR >= BL_SPACEDIM+1);
     BL_ASSERT(lev >= 0);
     BL_ASSERT(grav_vector.nGrow() >= 2);
 
@@ -3401,7 +3403,7 @@ ParticleContainer<N>::moveKickDrift (MultiFab& grav_vector,
 
         if (ParallelDescriptor::IOProcessor())
         {
-            std::cout << "ParticleContainer<N>::moveKickDrift() time: " << stoptime << '\n';
+            std::cout << "ParticleContainer<NR,NI>::moveKickDrift() time: " << stoptime << '\n';
         }
     }
 }
@@ -3411,9 +3413,9 @@ ParticleContainer<N>::moveKickDrift (MultiFab& grav_vector,
 //      returning the acceleration at the particle location in the data array, starting at
 //      component start_comp_for_accel
 //
-template <int N>
+template <int NR, int NI>
 void
-ParticleContainer<N>::moveKick (MultiFab& grav_vector,
+ParticleContainer<NR,NI>::moveKick (MultiFab& grav_vector,
                                 int             lev,
                                 Real            dt,
                                 Real            a_new,
@@ -3421,7 +3423,7 @@ ParticleContainer<N>::moveKick (MultiFab& grav_vector,
                                 int             start_comp_for_accel)
 {
     BL_PROFILE("ParticleContainer::moveKick()");
-    BL_ASSERT(N >= BL_SPACEDIM+1);
+    BL_ASSERT(NR >= BL_SPACEDIM+1);
     BL_ASSERT(lev >= 0 && lev < m_particles.size());
 
     const Real strttime  = ParallelDescriptor::second();
@@ -3502,7 +3504,7 @@ ParticleContainer<N>::moveKick (MultiFab& grav_vector,
 
         if (ParallelDescriptor::IOProcessor())
         {
-            std::cout << "ParticleContainer<N>::moveKick() time: " << stoptime << '\n';
+            std::cout << "ParticleContainer<NR,NI>::moveKick() time: " << stoptime << '\n';
         }
     }
     //
@@ -3513,9 +3515,9 @@ ParticleContainer<N>::moveKick (MultiFab& grav_vector,
 //
 // This version takes as input the normal gravity component on each face
 //
-template <int N>
+template <int NR, int NI>
 void
-ParticleContainer<N>::moveKickDrift (PArray<MultiFab>& grav_vector,
+ParticleContainer<NR,NI>::moveKickDrift (PArray<MultiFab>& grav_vector,
                                      int             lev,
                                      Real            dt,
                                      Real            a_old,
@@ -3523,7 +3525,7 @@ ParticleContainer<N>::moveKickDrift (PArray<MultiFab>& grav_vector,
 {
     BL_PROFILE("ParticleContainer::moveKickDrift()");
     BL_ASSERT(OK());
-    BL_ASSERT(N >= BL_SPACEDIM+1);
+    BL_ASSERT(NR >= BL_SPACEDIM+1);
     BL_ASSERT(lev >= 0 && lev < m_particles.size());
 
     const Real      strttime      = ParallelDescriptor::second();
@@ -3661,7 +3663,7 @@ ParticleContainer<N>::moveKickDrift (PArray<MultiFab>& grav_vector,
 
         if (ParallelDescriptor::IOProcessor())
         {
-            std::cout << "ParticleContainer<N>::moveKickDrift() time: " << stoptime << '\n';
+            std::cout << "ParticleContainer<NR,NI>::moveKickDrift() time: " << stoptime << '\n';
         }
     }
 }
@@ -3670,9 +3672,9 @@ ParticleContainer<N>::moveKickDrift (PArray<MultiFab>& grav_vector,
 // This version takes as input the normal gravity component on each face
 //
 
-template <int N>
+template <int NR, int NI>
 void
-ParticleContainer<N>::moveKick (PArray<MultiFab>& grav_vector,
+ParticleContainer<NR,NI>::moveKick (PArray<MultiFab>& grav_vector,
                                 int               lev,
                                 Real              dt,
                                 Real              a_new,
@@ -3680,7 +3682,7 @@ ParticleContainer<N>::moveKick (PArray<MultiFab>& grav_vector,
 {
     BL_PROFILE("ParticleContainer::moveKick()");
     BL_ASSERT(OK());
-    BL_ASSERT(N >= BL_SPACEDIM+1);
+    BL_ASSERT(NR >= BL_SPACEDIM+1);
     BL_ASSERT(lev >= 0 && lev < m_particles.size());
 
     const Real      strttime  = ParallelDescriptor::second();
@@ -3775,7 +3777,7 @@ ParticleContainer<N>::moveKick (PArray<MultiFab>& grav_vector,
 
         if (ParallelDescriptor::IOProcessor())
         {
-            std::cout << "ParticleContainer<N>::moveKick() time: " << stoptime << '\n';
+            std::cout << "ParticleContainer<NR,NI>::moveKick() time: " << stoptime << '\n';
         }
     }
     //
@@ -3783,11 +3785,11 @@ ParticleContainer<N>::moveKick (PArray<MultiFab>& grav_vector,
     //
 }
 
-template <int N>
+template <int NR, int NI>
 void
-ParticleContainer<N>::RemoveParticlesNotAtFinestLevel ()
+ParticleContainer<NR,NI>::RemoveParticlesNotAtFinestLevel ()
 {
-    BL_PROFILE("ParticleContainer<N>::RemoveParticlesNotAtFinestLevel()");
+    BL_PROFILE("ParticleContainer<NR,NI>::RemoveParticlesNotAtFinestLevel()");
     BL_ASSERT(m_gdb->finestLevel()+1 == m_particles.size());
 
     int cnt = 0;
@@ -3846,11 +3848,11 @@ ParticleContainer<N>::RemoveParticlesNotAtFinestLevel ()
     }
 }
 
-template <int N>
+template <int NR, int NI>
 void
-ParticleContainer<N>::RemoveParticlesAtLevel (int level)
+ParticleContainer<NR,NI>::RemoveParticlesAtLevel (int level)
 {
-    BL_PROFILE("ParticleContainer<N>::RemoveParticlesAtLevel()");
+    BL_PROFILE("ParticleContainer<NR,NI>::RemoveParticlesAtLevel()");
     if (level >= m_particles.size())
         return;
 
@@ -3862,18 +3864,18 @@ ParticleContainer<N>::RemoveParticlesAtLevel (int level)
     BL_ASSERT(m_particles[level].empty());
 }
 
-template <int N>
+template <int NR, int NI>
 void
-ParticleContainer<N>::AddParticlesAtLevel (int   level,
+ParticleContainer<NR,NI>::AddParticlesAtLevel (int   level,
                                            PBox& virts,
                                            bool  where_already_called)
 {
-    BL_PROFILE("ParticleContainer<N>::AddParticlesAtLevel()");
+    BL_PROFILE("ParticleContainer<NR,NI>::AddParticlesAtLevel()");
     if (m_particles.size() < level+1)
     {
         if (ParallelDescriptor::IOProcessor())
         {
-            std::cout << "ParticleContainer<N>::AddParticlesAtLevel resizing m_particles from "
+            std::cout << "ParticleContainer<NR,NI>::AddParticlesAtLevel resizing m_particles from "
                       << m_particles.size()
                       << " to "
                       << level+1 << '\n';
@@ -3904,7 +3906,7 @@ ParticleContainer<N>::AddParticlesAtLevel (int   level,
                     //
                     // Virtuals shouldn't be in Ghost cells.
                     //
-                    BoxLib::Abort("ParticleContainer<N>::AddParticlesAtLevel(): Can't add outside of domain\n");
+                    BoxLib::Abort("ParticleContainer<NR,NI>::AddParticlesAtLevel(): Can't add outside of domain\n");
             }
             else
             {
@@ -3936,12 +3938,12 @@ ParticleContainer<N>::AddParticlesAtLevel (int   level,
     }
 }
 
-template <int N>
+template <int NR, int NI>
 void
-ParticleContainer<N>::CreateVirtualParticles (int   level,
+ParticleContainer<NR,NI>::CreateVirtualParticles (int   level,
                                               PBox& virts) const
 {
-    BL_PROFILE("ParticleContainer<N>::CreateVirtualParticles()");
+    BL_PROFILE("ParticleContainer<NR,NI>::CreateVirtualParticles()");
     BL_ASSERT(level > 0);
     BL_ASSERT(virts.empty());
 
@@ -4050,7 +4052,7 @@ ParticleContainer<N>::CreateVirtualParticles (int   level,
                         //
                         // Set the metadata (presumably velocity) to the mass-weighted average.
                         //
-                        for (int i = 1; i < N; i++)
+                        for (int i = 1; i < NR; i++)
                         {
                             pold.m_data[i] = (old_mass*pold.m_data[i] + new_mass*pnew.m_data[i])/total_mass;
                         }
@@ -4080,13 +4082,13 @@ ParticleContainer<N>::CreateVirtualParticles (int   level,
     }
 }
 
-template <int N>
+template <int NR, int NI>
 void
-ParticleContainer<N>::CreateGhostParticles (int   level,
+ParticleContainer<NR,NI>::CreateGhostParticles (int   level,
                                             int   ngrow,
                                             PBox& ghosts) const
 {
-    BL_PROFILE("ParticleContainer<N>::CreateGhostParticles()");
+    BL_PROFILE("ParticleContainer<NR,NI>::CreateGhostParticles()");
     BL_ASSERT(ghosts.empty());
     BL_ASSERT(level < m_gdb->finestLevel());
 
@@ -4152,17 +4154,17 @@ ParticleContainer<N>::CreateGhostParticles (int   level,
 // Uses midpoint method to advance particles using umac.
 //
 
-template <int N>
+template <int NR, int NI>
 void
-ParticleContainer<N>::AdvectWithUmac (MultiFab* umac,
+ParticleContainer<NR,NI>::AdvectWithUmac (MultiFab* umac,
                                       int       lev,
                                       Real      dt,
                                       int       vcomp)
 {
-    BL_PROFILE("ParticleContainer<N>::AdvectWithUmac()");
+    BL_PROFILE("ParticleContainer<NR,NI>::AdvectWithUmac()");
     BL_ASSERT(OK(true, lev, umac[0].nGrow()-1));
     BL_ASSERT(vcomp >= 0);
-    BL_ASSERT(N >= vcomp + BL_SPACEDIM);
+    BL_ASSERT(NR >= vcomp + BL_SPACEDIM);
     BL_ASSERT(lev >= 0 && lev < m_particles.size());
 
     D_TERM(BL_ASSERT(umac[0].nGrow() >= 1);,
@@ -4288,7 +4290,7 @@ ParticleContainer<N>::AdvectWithUmac (MultiFab* umac,
 
         if (ParallelDescriptor::IOProcessor())
         {
-            std::cout << "ParticleContainer<N>::AdvectWithUmac() time: " << stoptime << '\n';
+            std::cout << "ParticleContainer<NR,NI>::AdvectWithUmac() time: " << stoptime << '\n';
         }
 #ifdef BL_LAZY
 	});
@@ -4300,9 +4302,9 @@ ParticleContainer<N>::AdvectWithUmac (MultiFab* umac,
 // Uses midpoint method to advance particles using cell-centered velocity
 //
 
-template <int N>
+template <int NR, int NI>
 void
-ParticleContainer<N>::AdvectWithUcc (const MultiFab& Ucc,
+ParticleContainer<NR,NI>::AdvectWithUcc (const MultiFab& Ucc,
 				     int             lev,
 				     Real            dt,
 				     int             vcomp)
@@ -4310,7 +4312,7 @@ ParticleContainer<N>::AdvectWithUcc (const MultiFab& Ucc,
     BL_ASSERT(Ucc.nGrow() > 0);
     BL_ASSERT(OK(true, lev, Ucc.nGrow()-1));
     BL_ASSERT(vcomp >= 0);
-    BL_ASSERT(N >= vcomp + BL_SPACEDIM);
+    BL_ASSERT(NR >= vcomp + BL_SPACEDIM);
     BL_ASSERT(lev >= 0 && lev < m_particles.size());
 
     BL_ASSERT(!Ucc.contains_nan());
@@ -4385,7 +4387,7 @@ ParticleContainer<N>::AdvectWithUcc (const MultiFab& Ucc,
 
         if (ParallelDescriptor::IOProcessor())
         {
-            std::cout << "ParticleContainer<N>::AdvectWithUcc() time: " << stoptime << '\n';
+            std::cout << "ParticleContainer<NR,NI>::AdvectWithUcc() time: " << stoptime << '\n';
         }
 #ifdef BL_LAZY
 	});
@@ -4397,9 +4399,9 @@ ParticleContainer<N>::AdvectWithUcc (const MultiFab& Ucc,
 // This redistributes valid particles and discards invalid ones.
 //
 
-template <int N>
+template <int NR, int NI>
 void
-ParticleContainer<N>::Redistribute (bool where_already_called,
+ParticleContainer<NR,NI>::Redistribute (bool where_already_called,
                                     bool full_where,
                                     int  lev_min,
                                     int  nGrow)
@@ -4420,7 +4422,7 @@ ParticleContainer<N>::Redistribute (bool where_already_called,
     {
         if (ParallelDescriptor::IOProcessor())
         {
-            std::cout << "ParticleContainer<N>::Redistribute() resizing m_particles from "
+            std::cout << "ParticleContainer<NR,NI>::Redistribute() resizing m_particles from "
                       << m_particles.size()
                       << " to "
                       << theEffectiveFinestLevel+1 << '\n';
@@ -4458,7 +4460,7 @@ ParticleContainer<N>::Redistribute (bool where_already_called,
                                     if (lev_min != 0) // RestrictedWhere should be unnecessary at top level.
                                     {
                                         if (!ParticleBase::RestrictedWhere(p, m_gdb, nGrow))
-                                            BoxLib::Abort("ParticleContainer<N>::Redistribute(): invalid particle at non-coarse step");
+                                            BoxLib::Abort("ParticleContainer<NR,NI>::Redistribute(): invalid particle at non-coarse step");
                                     }
                                     else
                                     {
@@ -4473,7 +4475,7 @@ ParticleContainer<N>::Redistribute (bool where_already_called,
                             else
                             {
                                 std::cout << "Bad Particle: " << p << '\n';
-                                BoxLib::Abort("ParticleContainer<N>::Redistribute(): invalid particle in basic check");
+                                BoxLib::Abort("ParticleContainer<NR,NI>::Redistribute(): invalid particle in basic check");
                             }
                         }
                     }
@@ -4551,7 +4553,7 @@ ParticleContainer<N>::Redistribute (bool where_already_called,
         //
         if (ParallelDescriptor::IOProcessor())
         {
-            std::cout << "ParticleContainer<N>::Redistribute() resizing m_particles from "
+            std::cout << "ParticleContainer<NR,NI>::Redistribute() resizing m_particles from "
                       << m_particles.size()
                       << " to "
                       << theEffectiveFinestLevel+1 << '\n';
@@ -4584,18 +4586,18 @@ ParticleContainer<N>::Redistribute (bool where_already_called,
 #endif
         ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
         if (ParallelDescriptor::IOProcessor())
-            std::cout << "ParticleContainer<N>::Redistribute() time: " << stoptime << "\n\n";
+            std::cout << "ParticleContainer<NR,NI>::Redistribute() time: " << stoptime << "\n\n";
 #ifdef BL_LAZY
 	});
 #endif
     }
 }
 
-template <int N>
+template <int NR, int NI>
 void
-ParticleContainer<N>::RedistributeMPI (PMap& not_ours)
+ParticleContainer<NR,NI>::RedistributeMPI (PMap& not_ours)
 {
-    BL_PROFILE("ParticleContainer<N>::RedistributeMPI()");
+    BL_PROFILE("ParticleContainer<NR,NI>::RedistributeMPI()");
 #if BL_USE_MPI
     const int MyProc = ParallelDescriptor::MyProc();
     const int NProcs = ParallelDescriptor::NProcs();
@@ -4783,7 +4785,7 @@ ParticleContainer<N>::RedistributeMPI (PMap& not_ours)
     //
     {
         const int SeqNum     = ParallelDescriptor::SeqNum();
-        const int rChunkSize = BL_SPACEDIM+N;
+        const int rChunkSize = BL_SPACEDIM+NR;
         //
         // Allocate data for rcvs as one big chunk.
         //
@@ -4835,10 +4837,10 @@ ParticleContainer<N>::RedistributeMPI (PMap& not_ours)
 
                 ioff += BL_SPACEDIM;
 
-                for (int j = 0; j < N; j++)
+                for (int j = 0; j < NR; j++)
                     senddata[ioff+j] = p.m_data[j];
 
-                ioff += N;
+                ioff += NR;
             }
 
             PBox().swap(pbox);
@@ -4877,10 +4879,10 @@ ParticleContainer<N>::RedistributeMPI (PMap& not_ours)
 
                     rcvp += BL_SPACEDIM;
 
-                    for (int j = 0; j < N; j++)
+                    for (int j = 0; j < NR; j++)
                         p.m_data[j] = rcvp[j];
 
-                    rcvp += N;
+                    rcvp += NR;
 
                     m_particles[p.m_lev][p.m_grid].push_back(p);
                 }
@@ -4892,14 +4894,14 @@ ParticleContainer<N>::RedistributeMPI (PMap& not_ours)
 #endif /*BL_USE_MPI*/
 }
 
-template <int N>
+template <int NR, int NI>
 bool
-ParticleContainer<N>::OK (bool full_where,
+ParticleContainer<NR,NI>::OK (bool full_where,
                           int  lev_min,
                           int  ngrow,
                           int  finest_level) const
 {
-    BL_PROFILE("ParticleContainer<N>::OK()");
+    BL_PROFILE("ParticleContainer<NR,NI>::OK()");
     if (finest_level == -1)
         finest_level = m_gdb->finestLevel();
 
@@ -4976,13 +4978,13 @@ ParticleContainer<N>::OK (bool full_where,
     return true;
 }
 
-template <int N>
+template <int NR, int NI>
 void
-ParticleContainer<N>::Checkpoint (const std::string& dir,
+ParticleContainer<NR,NI>::Checkpoint (const std::string& dir,
                                   const std::string& name,
                                   bool               is_checkpoint) const
 {
-    BL_PROFILE("ParticleContainer<N>::Checkpoint()");
+    BL_PROFILE("ParticleContainer<NR,NI>::Checkpoint()");
     BL_ASSERT(OK());
 
     BL_ASSERT(sizeof(ParticleBase::RealType) == 4 || sizeof(ParticleBase::RealType) == 8);
@@ -5079,7 +5081,7 @@ ParticleContainer<N>::Checkpoint (const std::string& dir,
         //
         HdrFile << BL_SPACEDIM << '\n';
 
-        HdrFile << N << '\n';
+        HdrFile << NR << '\n';
         //
         // The total number of particles.
         //
@@ -5201,7 +5203,7 @@ ParticleContainer<N>::Checkpoint (const std::string& dir,
                     ParticleFile.close();
 
                     if (!ParticleFile.good())
-                        BoxLib::Abort("ParticleContainer<N>::Checkpoint(): problem writing ParticleFile");
+                        BoxLib::Abort("ParticleContainer<NR,NI>::Checkpoint(): problem writing ParticleFile");
 
                     int iBuff = 0, wakeUpPID = (MyProc + nOutFiles), tag = (MyProc % nOutFiles);
 
@@ -5279,19 +5281,19 @@ ParticleContainer<N>::Checkpoint (const std::string& dir,
             HdrFile.close();
 
             if (!HdrFile.good())
-                BoxLib::Abort("ParticleContainer<N>::Checkpoint(): problem writing HdrFile");
+                BoxLib::Abort("ParticleContainer<NR,NI>::Checkpoint(): problem writing HdrFile");
 
-            std::cout << "ParticleContainer<N>::Checkpoint() time: " << stoptime << '\n';
+            std::cout << "ParticleContainer<NR,NI>::Checkpoint() time: " << stoptime << '\n';
         }
     }
 }
 
-template <int N>
+template <int NR, int NI>
 void
-ParticleContainer<N>::WritePlotFile (const std::string& dir,
+ParticleContainer<NR,NI>::WritePlotFile (const std::string& dir,
                                      const std::string& name) const
 {
-    BL_PROFILE("ParticleContainer<N>::WritePlotFile()");
+    BL_PROFILE("ParticleContainer<NR,NI>::WritePlotFile()");
     BL_ASSERT(OK());
     bool is_checkpoint = false;
 
@@ -5302,9 +5304,9 @@ ParticleContainer<N>::WritePlotFile (const std::string& dir,
     Checkpoint(dir,name,is_checkpoint);
 }
 
-template <int N>
+template <int NR, int NI>
 void
-ParticleContainer<N>::WriteParticles (int            lev,
+ParticleContainer<NR,NI>::WriteParticles (int            lev,
                                       std::ofstream& ofs,
                                       int            fnum,
                                       Array<int>&    which,
@@ -5312,7 +5314,7 @@ ParticleContainer<N>::WriteParticles (int            lev,
                                       Array<long>&   where,
                                       bool           is_checkpoint) const
 {
-    BL_PROFILE("ParticleContainer<N>::WriteParticles()");
+    BL_PROFILE("ParticleContainer<NR,NI>::WriteParticles()");
     const PMap&     pmap  = m_particles[lev];
 
     MultiFab state(m_gdb->boxArray(lev),1,0,Fab_noallocate);
@@ -5418,7 +5420,7 @@ ParticleContainer<N>::WriteParticles (int            lev,
         //
         // Write the Real data in binary.
         //
-        const int rChunkSize = BL_SPACEDIM+N;
+        const int rChunkSize = BL_SPACEDIM+NR;
 
 #ifdef BL_LOWMEMPWRITE
 	int maxItemsToWrite(8192);
@@ -5437,7 +5439,7 @@ ParticleContainer<N>::WriteParticles (int            lev,
                        rptr[1] = it->m_pos[1];,
                        rptr[2] = it->m_pos[2];);
 
-                for (int i = 0; i < N; i++) {
+                for (int i = 0; i < NR; i++) {
                   rptr[BL_SPACEDIM+i] = it->m_data[i];
 		}
                 rptr += rChunkSize;
@@ -5462,7 +5464,7 @@ ParticleContainer<N>::WriteParticles (int            lev,
                        rptr[1] = it->m_pos[1];,
                        rptr[2] = it->m_pos[2];);
 
-                for (int i = 0; i < N; i++)
+                for (int i = 0; i < NR; i++)
                     rptr[BL_SPACEDIM+i] = it->m_data[i];
 
                 rptr += rChunkSize;
@@ -5474,13 +5476,13 @@ ParticleContainer<N>::WriteParticles (int            lev,
     }
 }
 
-template <int N>
+template <int NR, int NI>
 void
-ParticleContainer<N>::Restart (const std::string& dir,
+ParticleContainer<NR,NI>::Restart (const std::string& dir,
                                const std::string& file,
                                bool is_checkpoint)
 {
-    BL_PROFILE("ParticleContainer<N>::Restart()");
+    BL_PROFILE("ParticleContainer<NR,NI>::Restart()");
     BL_ASSERT(!dir.empty());
     BL_ASSERT(!file.empty());
 
@@ -5562,14 +5564,14 @@ ParticleContainer<N>::Restart (const std::string& dir,
         }
         else
         {
-            std::string msg("ParticleContainer<N>::Restart(): bad version string: ");
+            std::string msg("ParticleContainer<NR,NI>::Restart(): bad version string: ");
             msg += version;
             BoxLib::Error(version.c_str());
         }
     }
     else
     {
-        std::string msg("ParticleContainer<N>::Restart(): unknown version string: ");
+        std::string msg("ParticleContainer<NR,NI>::Restart(): unknown version string: ");
         msg += version;
         BoxLib::Abort(msg.c_str());
     }
@@ -5582,19 +5584,19 @@ ParticleContainer<N>::Restart (const std::string& dir,
 
         if (ParallelDescriptor::IOProcessor())
         {
-            std::cout << "ParticleContainer<N>::Restart() time: " << stoptime << '\n';
+            std::cout << "ParticleContainer<NR,NI>::Restart() time: " << stoptime << '\n';
         }
     }
 }
 
-template <int N>
+template <int NR, int NI>
 void
-ParticleContainer<N>::Restart_Doit (const std::string& fullname,
+ParticleContainer<NR,NI>::Restart_Doit (const std::string& fullname,
                                     std::ifstream&     HdrFile,
                                     const std::string& how,
                                     bool is_checkpoint)
 {
-    BL_PROFILE("ParticleContainer<N>::RestartDoit()");
+    BL_PROFILE("ParticleContainer<NR,NI>::RestartDoit()");
     BL_ASSERT(!fullname.empty());
 
     const int IOProc = ParallelDescriptor::IOProcessorNumber();
@@ -5608,7 +5610,7 @@ ParticleContainer<N>::Restart_Doit (const std::string& fullname,
         HdrFile >> dm;
 
         if (dm != BL_SPACEDIM)
-            BoxLib::Abort("ParticleContainer<N>::Restart(): dm != BL_SPACEDIM");
+            BoxLib::Abort("ParticleContainer<NR,NI>::Restart(): dm != BL_SPACEDIM");
     }
     ParallelDescriptor::Bcast(&dm, 1, IOProc);
     //
@@ -5620,8 +5622,8 @@ ParticleContainer<N>::Restart_Doit (const std::string& fullname,
     {
         HdrFile >> n;
 
-        if (n != N)
-            BoxLib::Abort("ParticleContainer<N>::Restart(): n != N");
+        if (n != NR)
+            BoxLib::Abort("ParticleContainer<NR,NI>::Restart(): n != N");
     }
     ParallelDescriptor::Bcast(&n, 1, IOProc);
 
@@ -5757,7 +5759,7 @@ ParticleContainer<N>::Restart_Doit (const std::string& fullname,
             }
             else
             {
-                std::string msg("ParticleContainer<N>::Restart_Doit(): bad parameter: ");
+                std::string msg("ParticleContainer<NR,NI>::Restart_Doit(): bad parameter: ");
                 msg += how;
                 BoxLib::Error(msg.c_str());
             }
@@ -5765,7 +5767,7 @@ ParticleContainer<N>::Restart_Doit (const std::string& fullname,
             ParticleFile.close();
 
             if (!ParticleFile.good())
-                BoxLib::Abort("ParticleContainer<N>::Restart_Doit(): problem reading particles");
+                BoxLib::Abort("ParticleContainer<NR,NI>::Restart_Doit(): problem reading particles");
         }
     }
 
@@ -5776,15 +5778,15 @@ ParticleContainer<N>::Restart_Doit (const std::string& fullname,
 // This one stores real data as doubles.
 //
 
-template <int N>
+template <int NR, int NI>
 void
-ParticleContainer<N>::ReadParticles_DoublePrecision (int            cnt,
+ParticleContainer<NR,NI>::ReadParticles_DoublePrecision (int            cnt,
                                                      int            grd,
                                                      int            lev,
                                                      bool           is_checkpoint,
                                                      std::ifstream& ifs)
 {
-    BL_PROFILE("ParticleContainer<N>::ReadParticles_DoublePrecision()");
+    BL_PROFILE("ParticleContainer<NR,NI>::ReadParticles_DoublePrecision()");
     BL_ASSERT(cnt > 0);
     BL_ASSERT(lev < m_particles.size());
     BL_ASSERT(lev >= 0 && lev <= m_gdb->finestLevel());
@@ -5803,7 +5805,7 @@ ParticleContainer<N>::ReadParticles_DoublePrecision (int            cnt,
     //
     // Then the double data in binary.
     //
-    const int rChunkSize = BL_SPACEDIM+N;
+    const int rChunkSize = BL_SPACEDIM+NR;
 
     Array<double> rstuff(cnt*rChunkSize);
 
@@ -5853,7 +5855,7 @@ ParticleContainer<N>::ReadParticles_DoublePrecision (int            cnt,
                         std::cout << "RESTART:BAD PARTICLE POS(" << d << ") " << p.m_pos[d] << std::endl;
                     }
 
-                    BoxLib::Abort("ParticleContainer<N>::ReadParticles_DoublePrecision(): invalid particle");
+                    BoxLib::Abort("ParticleContainer<NR,NI>::ReadParticles_DoublePrecision(): invalid particle");
                 }
             }
 
@@ -5887,7 +5889,7 @@ ParticleContainer<N>::ReadParticles_DoublePrecision (int            cnt,
             if (p.m_pos[d] >= ProbHi[d]) p.m_pos[d] -= Delta[d];
         }
 
-        for (int i = 0; i < N; i++)
+        for (int i = 0; i < NR; i++)
             p.m_data[i] = rptr[BL_SPACEDIM+i];
 
         rptr += rChunkSize;
@@ -5900,15 +5902,15 @@ ParticleContainer<N>::ReadParticles_DoublePrecision (int            cnt,
 // This one stores real data as floats.
 //
 
-template <int N>
+template <int NR, int NI>
 void
-ParticleContainer<N>::ReadParticles_SinglePrecision (int            cnt,
+ParticleContainer<NR,NI>::ReadParticles_SinglePrecision (int            cnt,
                                                      int            grd,
                                                      int            lev,
                                                      bool           is_checkpoint,
                                                      std::ifstream& ifs)
 {
-    BL_PROFILE("ParticleContainer<N>::ReadParticles_SinglePrecision()");
+    BL_PROFILE("ParticleContainer<NR,NI>::ReadParticles_SinglePrecision()");
     BL_ASSERT(cnt > 0);
     BL_ASSERT(lev < m_particles.size());
     BL_ASSERT(lev >= 0 && lev <= m_gdb->finestLevel());
@@ -5927,7 +5929,7 @@ ParticleContainer<N>::ReadParticles_SinglePrecision (int            cnt,
     //
     // Then the float data in binary.
     //
-    const int rChunkSize = BL_SPACEDIM+N;
+    const int rChunkSize = BL_SPACEDIM+NR;
 
     Array<float> rstuff(cnt*rChunkSize);
 
@@ -5974,7 +5976,7 @@ ParticleContainer<N>::ReadParticles_SinglePrecision (int            cnt,
                         std::cout << "RESTART:BAD PARTICLE POS(" << d << ") " << p.m_pos[d] << std::endl;
                     }
 
-                    BoxLib::Abort("ParticleContainer<N>::ReadParticles_SinglePrecision(): invalid particle");
+                    BoxLib::Abort("ParticleContainer<NR,NI>::ReadParticles_SinglePrecision(): invalid particle");
                 }
             }
 
@@ -6000,7 +6002,7 @@ ParticleContainer<N>::ReadParticles_SinglePrecision (int            cnt,
                p.m_pos[1] = rptr[1];,
                p.m_pos[2] = rptr[2];);
 
-        for (int i = 0; i < N; i++)
+        for (int i = 0; i < NR; i++)
             p.m_data[i] = rptr[BL_SPACEDIM+i];
 
         rptr += rChunkSize;
@@ -6009,16 +6011,16 @@ ParticleContainer<N>::ReadParticles_SinglePrecision (int            cnt,
     }
 }
 
-template <int N>
+template <int NR, int NI>
 void
-ParticleContainer<N>::Timestamp (const std::string&      basename,
+ParticleContainer<NR,NI>::Timestamp (const std::string&      basename,
                                  const MultiFab&         mf,
                                  int                     lev,
                                  Real                    time,
                                  const std::vector<int>& indices,
                                  const int               vcomp)
 {
-    BL_PROFILE("ParticleContainer<N>::Timestamp()");
+    BL_PROFILE("ParticleContainer<NR,NI>::Timestamp()");
     //
     // basename -> base filename for the output file
     // mf       -> the multifab
@@ -6031,7 +6033,7 @@ ParticleContainer<N>::Timestamp (const std::string&      basename,
     BL_ASSERT(time >= 0);
     BL_ASSERT(vcomp >= 0);
     BL_ASSERT(!basename.empty());
-    BL_ASSERT(N >= vcomp + BL_SPACEDIM);
+    BL_ASSERT(NR >= vcomp + BL_SPACEDIM);
     BL_ASSERT(lev <= m_gdb->finestLevel());
 
     const Real strttime = ParallelDescriptor::second();
@@ -6187,7 +6189,7 @@ ParticleContainer<N>::Timestamp (const std::string&      basename,
         ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
         if (ParallelDescriptor::IOProcessor())
         {
-            std::cout << "ParticleContainer<N>::Timestamp: lev: " << lev << " time: " << stoptime << '\n';
+            std::cout << "ParticleContainer<NR,NI>::Timestamp: lev: " << lev << " time: " << stoptime << '\n';
         }
 #ifdef BL_LAZY
         });
@@ -6195,11 +6197,11 @@ ParticleContainer<N>::Timestamp (const std::string&      basename,
     }
 }
 
-template <int N>
+template <int NR, int NI>
 void
-ParticleContainer<N>::WriteAsciiFile (const std::string& filename)
+ParticleContainer<NR,NI>::WriteAsciiFile (const std::string& filename)
 {
-    BL_PROFILE("ParticleContainer<N>::WriteAsciiFile()");
+    BL_PROFILE("ParticleContainer<NR,NI>::WriteAsciiFile()");
     BL_ASSERT(!filename.empty());
 
     const Real strttime = ParallelDescriptor::second();
@@ -6250,7 +6252,7 @@ ParticleContainer<N>::WriteAsciiFile (const std::string& filename)
         File.close();
 
         if (!File.good())
-            BoxLib::Abort("ParticleContainer<N>::WriteAsciiFile(): problem writing file");
+            BoxLib::Abort("ParticleContainer<NR,NI>::WriteAsciiFile(): problem writing file");
     }
 
     ParallelDescriptor::Barrier();
@@ -6293,9 +6295,9 @@ ParticleContainer<N>::WriteAsciiFile (const std::string& filename)
                                         << it->m_pos[1] << ' ',
                                         << it->m_pos[2] << ' ');
 
-                            for (int i = 0; i < N; i++)
+                            for (int i = 0; i < NR; i++)
                             {
-                                char ws = (i == N-1) ? '\n' : ' ';
+                                char ws = (i == NR-1) ? '\n' : ' ';
 
                                 File << it->m_data[i] << ws;
                             }
@@ -6309,7 +6311,7 @@ ParticleContainer<N>::WriteAsciiFile (const std::string& filename)
             File.close();
 
             if (!File.good())
-                BoxLib::Abort("ParticleContainer<N>::WriteAsciiFile(): problem writing file");
+                BoxLib::Abort("ParticleContainer<NR,NI>::WriteAsciiFile(): problem writing file");
 
         }
 
@@ -6324,16 +6326,16 @@ ParticleContainer<N>::WriteAsciiFile (const std::string& filename)
 
         if (ParallelDescriptor::IOProcessor())
         {
-            std::cout << "ParticleContainer<N>::WriteAsciiFile() time: " << stoptime << '\n';
+            std::cout << "ParticleContainer<NR,NI>::WriteAsciiFile() time: " << stoptime << '\n';
         }
     }
 }
 
-template <int N>
+template <int NR, int NI>
 void
-ParticleContainer<N>::WriteCoarsenedAsciiFile (const std::string& filename)
+ParticleContainer<NR,NI>::WriteCoarsenedAsciiFile (const std::string& filename)
 {
-    BL_PROFILE("ParticleContainer<N>::WriteCoarsenedAsciiFile()");
+    BL_PROFILE("ParticleContainer<NR,NI>::WriteCoarsenedAsciiFile()");
     BL_ASSERT(!filename.empty());
 
     const Real strttime = ParallelDescriptor::second();
@@ -6386,7 +6388,7 @@ ParticleContainer<N>::WriteCoarsenedAsciiFile (const std::string& filename)
         File.close();
 
         if (!File.good())
-            BoxLib::Abort("ParticleContainer<N>::WriteCoarsenedAsciiFile(): problem writing file");
+            BoxLib::Abort("ParticleContainer<NR,NI>::WriteCoarsenedAsciiFile(): problem writing file");
     }
 
     ParallelDescriptor::Barrier();
@@ -6436,9 +6438,9 @@ ParticleContainer<N>::WriteCoarsenedAsciiFile (const std::string& filename)
                             File << (8.0 * it->m_data[0]) << ' ';
 
                             // Now write out the velocity of the particle chosen; no weighting here
-                            for (int i = 1; i < N; i++)
+                            for (int i = 1; i < NR; i++)
                             {
-                                char ws = (i == N-1) ? '\n' : ' ';
+                                char ws = (i == NR-1) ? '\n' : ' ';
                                 File << it->m_data[i] << ws;
                             }
                         }
@@ -6451,7 +6453,7 @@ ParticleContainer<N>::WriteCoarsenedAsciiFile (const std::string& filename)
             File.close();
 
             if (!File.good())
-                BoxLib::Abort("ParticleContainer<N>::WriteCoarsenedAsciiFile(): problem writing file");
+                BoxLib::Abort("ParticleContainer<NR,NI>::WriteCoarsenedAsciiFile(): problem writing file");
 
         }
 
@@ -6466,7 +6468,7 @@ ParticleContainer<N>::WriteCoarsenedAsciiFile (const std::string& filename)
 
         if (ParallelDescriptor::IOProcessor())
         {
-            std::cout << "ParticleContainer<N>::WriteCoarsenedAsciiFile() time: " << stoptime << '\n';
+            std::cout << "ParticleContainer<NR,NI>::WriteCoarsenedAsciiFile() time: " << stoptime << '\n';
         }
     }
 }
