@@ -234,7 +234,8 @@ public:
     //
     static void Read (FabArray<FArrayBox> &fafab,
                       const std::string &name,
-		      const char *faHeader = 0);
+		      const char *faHeader = 0,
+		      int coordinatorProc = ParallelDescriptor::IOProcessorNumber());
 
     //
     // Read only the header of a FabArray, header will be resized here.
