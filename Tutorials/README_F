@@ -20,6 +20,15 @@ This solves the wave equation explicitly on a single level with multiple boxes
 and is analogous to the C++ version in Tutorials/WaveEquation_C.
 
 ! ************************************************************************************
+GettingStarted_F
+! ************************************************************************************
+
+The BoxLib user's guide includes source code from this example.
+This simply shows how to initialize BoxLib, create a domain decomposition,
+access data in a MultiFab, and fill interior/periodic boundaries.
+This is then looped over using the MFIter and work is done on it in Fortran.
+
+! ************************************************************************************
 HeatEquation_EX*_F:
 ! ************************************************************************************
 

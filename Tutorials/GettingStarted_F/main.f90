@@ -47,6 +47,9 @@ program main
   ! look in work_on_data.f90
   call work_on_data(data)
 
+  ! fill periodic and interior ghost cells
+  call multifab_fill_boundary(data)
+
   ! free up memory to prevent leaks
   call multifab_destroy(data)
 
