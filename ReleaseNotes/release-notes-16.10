@@ -1,0 +1,38 @@
+#-*- mode: org -*-
+#+STARTUP: showall
+
+        Release Notes for BoxLib 16.10
+
+The development branch was merged into master on October 3, 2016.
+
+* New Features
+** Reduce duplicated BoxArrays after restart.
+** MultiFab::SumBoundary works on nodal data now.
+** MultiFab::AddProduct that computes dst += src1*src2.
+** Add two more initialization routines for particles.
+** Add FluxRegister::ClearInternalBorders that zeros out fine/fine fluxes in FluxRegister. 
+** Add FabSet::plusTo (a MultiFab)
+** MultiFab::Xpay and BaseFab::xpay that do y = x + a*y
+** Add MultiFab::Dot that returns the scalar dot product of two MultiFabs.
+** Add MultiFab::LinComb that computes linear combination of two MultiFabs.
+** New bl_fort_module Fortran module for C++.  The module contains c_real
+data type matching Real in C++.
+
+* Backward Incompatible Changes
+** Remove deprecated Geometry::FillPeriodicBoundary and Geometry::PeriodicCopy
+
+* Major Changes
+** Some Nyx specific Particle functions have been moved out of BoxLib.
+** Updating User's Guide
+** New tutorial and cleanup of C++ tutorials.
+** Simplify boundary filling process for MultiFab not in StateData.
+** Some OpenMP and tiling in linear solvers.
+** BaseFab Fortran functions are now dimension agnostic.
+** Call various Initialize() in BoxLib::Initialize() to ensure thread safety
+** C_BoundaryLib: new MultiMask class based on MultiFab to replace the implementation
+based map of Fabs.
+
+* Make
+** Add -Mbounds for PGI in debug mode
+** Set up VPATH_LOCATIONS and INCLUDE_LOCATIONS in various Make.package and add vpath
+to Make.rules so that the user does not need to do it.

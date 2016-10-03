@@ -1626,6 +1626,7 @@ MFIter::nodaltilebox (int dir) const
     return bx;
 }
 
+// Note that a small negative ng is supported.
 Box 
 MFIter::growntilebox (int ng) const 
 {
