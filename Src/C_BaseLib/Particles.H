@@ -237,7 +237,7 @@ struct ParticleContainerBase
 
     virtual void AssignDensitySingleLevel      (MultiFab& mf, int level, int ncomp=1, int particle_lvl_offset = 0) const = 0;
     virtual void AssignCellDensitySingleLevel  (MultiFab& mf, int level, int ncomp=1, int particle_lvl_offset = 0) const = 0;
-    virtual void AssignNodalDensitySingleLevel (MultiFab& mf, int level, int ncomp=1, int particle_lvl_offset = 0) const = 0;
+    virtual void NodalDepositionSingleLevel (MultiFab& mf, int level, int ncomp=1, int particle_lvl_offset = 0) const = 0;
 
     virtual Real sumParticleMass (int level) const = 0;
 
@@ -333,9 +333,9 @@ public:
 
     long IncrementWithTotal (MultiFab& mf, int level);
 
-    virtual void AssignDensitySingleLevel      (MultiFab& mf, int level, int ncomp=1, int particle_lvl_offset = 0) const BL_OVERRIDE;
-    virtual void AssignCellDensitySingleLevel  (MultiFab& mf, int level, int ncomp=1, int particle_lvl_offset = 0) const BL_OVERRIDE;
-    virtual void AssignNodalDensitySingleLevel (MultiFab& mf, int level, int ncomp=1, int particle_lvl_offset = 0) const BL_OVERRIDE;
+    virtual void AssignDensitySingleLevel     (MultiFab& mf, int level, int ncomp=1, int particle_lvl_offset = 0) const BL_OVERRIDE;
+    virtual void AssignCellDensitySingleLevel (MultiFab& mf, int level, int ncomp=1, int particle_lvl_offset = 0) const BL_OVERRIDE;
+    virtual void NodalDepositionSingleLevel   (MultiFab& mf, int level, int ncomp=1, int particle_lvl_offset = 0) const BL_OVERRIDE;
 
     virtual void AssignDensity (PArray<MultiFab>& mf, int lev_min = 0, int ncomp = 1, int finest_level = -1) const BL_OVERRIDE;
 
@@ -1111,7 +1111,7 @@ ParticleContainer<NR,NI>::AssignDensitySingleLevel (MultiFab& mf_to_be_filled,
     // Keep the same external interface to the applications, but if the
     if (mf_to_be_filled.is_nodal())
     {
-        AssignNodalDensitySingleLevel(mf_to_be_filled,lev,ncomp,particle_lvl_offset);
+        NodalDepositionSingleLevel(mf_to_be_filled,lev,ncomp,particle_lvl_offset);
     }
     else
     {
@@ -1299,12 +1299,172 @@ ParticleContainer<NR,NI>::AssignCellDensitySingleLevel (MultiFab& mf_to_be_fille
 //
 template <int NR, int NI>
 void
-ParticleContainer<NR,NI>::AssignNodalDensitySingleLevel (MultiFab& mf_to_be_filled,
-							 int       lev,
-							 int       ncomp,
-							 int       particle_lvl_offset) const
+ParticleContainer<NR,NI>::NodalDepositionSingleLevel (MultiFab& mf_to_be_filled,
+					              int       lev,
+           					      int       ncomp,
+	           				      int       particle_lvl_offset) const
 {
-    BoxLib::Error("AssignNodalDensitySingleLevel not implemented yet");
+    MultiFab* mf_pointer;
+
+    if (OnSameGrids(lev, mf_to_be_filled))
+    {
+        // If we are already working with the internal mf defined on the 
+        // particle_box_array, then we just work with this.
+        mf_pointer = &mf_to_be_filled;
+    }
+    else
+    {
+        // If mf_to_be_filled is not defined on the particle_box_array, then we need 
+        // to make a temporary here and copy into mf_to_be_filled at the end.
+        mf_pointer = new MultiFab(m_gdb->ParticleBoxArray(lev), ncomp, mf_to_be_filled.nGrow(),
+				  m_gdb->ParticleDistributionMap(lev), Fab_allocate);
+    }
+
+    const Real      strttime    = ParallelDescriptor::second();
+    const Geometry& gm          = m_gdb->Geom(lev);
+    const Real*     dx          = gm.CellSize();
+    const PMap&     pmap        = m_particles[lev];
+    const int       ngrids      = pmap.size();
+
+    if (gm.isAnyPeriodic() && ! gm.isAllPeriodic()) 
+        BoxLib::Error("AssignDensity: problem must be periodic in no or all directions");
+
+    for (MFIter mfi(*mf_pointer); mfi.isValid(); ++mfi) {
+        (*mf_pointer)[mfi].setVal(0);
+    }
+    //
+    // This is a little funky.  What in effect this'll do is force
+    // each thread to work on a single (separate) grid at a time.  That
+    // way no thread will step on any other.  If there's only one grid per CPU,
+    // then oh well ....
+    //
+    // TODO: implement tiling with OpenMP in this grid loop.
+    Array<int>         pgrd(ngrids);
+    Array<const PBox*> pbxs(ngrids);
+
+    Real strt_depose = ParallelDescriptor::second();
+
+    int j = 0;
+    for (typename PMap::const_iterator pmap_it = pmap.begin(), pmapEnd = pmap.end();
+         pmap_it != pmapEnd;
+         ++pmap_it, ++j)
+    {
+        pgrd[j] =   pmap_it->first;
+        pbxs[j] = &(pmap_it->second);
+    }
+
+    Array<IntVect> cells;
+    cells.resize(8);
+
+    Array<Real> fracs;
+    fracs.resize(8);
+
+    Array<Real> sx;
+    Array<Real> sy;
+    Array<Real> sz;
+    sx.resize(2);
+    sy.resize(2);
+    sz.resize(2);
+
+    for (int j = 0; j < ngrids; j++)
+    {
+        const PBox& pbx = *pbxs[j];
+        FArrayBox&  fab = (*mf_pointer)[pgrd[j]];
+
+        for (typename PBox::const_iterator it = pbx.begin(); it < pbx.end(); ++it)
+        {
+            const ParticleType& p = *it;
+
+            if (p.m_id <= 0) {
+	      continue;
+	    }
+            cells[0] = p.m_cell;
+            cells[1] = p.m_cell+IntVect(1,0,0);
+            cells[2] = p.m_cell+IntVect(0,1,0);
+            cells[3] = p.m_cell+IntVect(1,1,0);
+            cells[4] = p.m_cell+IntVect(0,0,1);
+            cells[5] = p.m_cell+IntVect(1,0,1);
+            cells[6] = p.m_cell+IntVect(0,1,1);
+            cells[7] = p.m_cell+IntVect(1,1,1);
+
+            Real x = p.m_pos[0] / dx[0];
+            Real y = p.m_pos[1] / dx[1];
+            Real z = p.m_pos[2] / dx[2];
+
+            int i = p.m_cell[0];
+            int j = p.m_cell[1];
+            int k = p.m_cell[2];
+
+            Real xint = x - i;
+            Real yint = y - j;
+            Real zint = z - k;
+
+            sx[0] = 1.0-xint;
+            sx[1] = xint;
+            sy[0] = 1.0-yint;
+            sy[1] = yint;
+            sz[0] = 1.0-zint;
+            sz[1] = zint;
+
+            fracs[0] = sx[0] * sy[0] * sz[0];
+            fracs[1] = sx[1] * sy[0] * sz[0];
+            fracs[2] = sx[0] * sy[1] * sz[0];
+            fracs[3] = sx[1] * sy[1] * sz[0];
+            fracs[4] = sx[0] * sy[0] * sz[1];
+            fracs[5] = sx[1] * sy[0] * sz[1];
+            fracs[6] = sx[0] * sy[1] * sz[1];
+            fracs[7] = sx[1] * sy[1] * sz[1];
+
+            for (int i = 0; i < 8; i++)
+            {
+               fab(cells[i],0) += p.m_data[0] * fracs[i];
+            }
+        }
+    }
+
+    Real end_depose = ParallelDescriptor::second() - strt_depose;
+
+    if (ParallelDescriptor::IOProcessor()) 
+        std::cout << "Time in BoxLibChargeDeposition : Depose " << end_depose << '\n';
+
+    Real strt_sumb = ParallelDescriptor::second();
+
+    mf_pointer->SumBoundary(gm.periodicity());
+
+    Real end_sumb = ParallelDescriptor::second() - strt_sumb;
+
+    if (ParallelDescriptor::IOProcessor()) 
+        std::cout << "Time in BoxLibChargeDeposition : SumBoundary " << end_sumb << '\n';
+
+    //
+    // Only multiply the first component by (1/vol) because this converts mass
+    // to density. If there are additional components (like velocity), we don't
+    // want to divide those by volume.
+    //
+    const Real vol = D_TERM(dx[0], *dx[1], *dx[2]);
+
+    mf_pointer->mult(1/vol,0,1);
+
+    // If mf_to_be_filled is not defined on the particle_box_array, then we need
+    // to copy here from mf_pointer into mf_to_be_filled.   I believe that we don't
+    // need any information in ghost cells so we don't copy those.
+    if (mf_pointer != &mf_to_be_filled)
+    {
+        mf_to_be_filled.copy(*mf_pointer,0,0,ncomp);
+	delete mf_pointer;
+    }
+
+    if (m_verbose > 1)
+    {
+        Real stoptime = ParallelDescriptor::second() - strttime;
+
+        ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
+
+        if (ParallelDescriptor::IOProcessor())
+        {
+            std::cout << "ParticleContainer<N>::NodalDepositionSingleLevel time: " << stoptime << '\n';
+        }
+    }
 }
 
 //
