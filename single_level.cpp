@@ -7,7 +7,7 @@
 #include <MacBndry.H>
 #include <MultiFabUtil.H>
 
-#include "Particles.H"
+#include "ParticleContainer.H"
 
 extern "C" {
   void pxrpush_em3d_evec_norder( Real* ex, Real* ey, Real* ez,
@@ -104,10 +104,6 @@ single_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int order, bo
     //    8 -- Bx 
     //    9 -- By 
     //   10 -- Bz 
-    const int N_attributes = 10;
-
-    // Define a new particle container to hold my particles.
-    typedef ParticleContainer<N_attributes> MyParticleContainer;
 
     // We define the refinement ratio even though we are single level because
     //    we want to use the multilevel interface in the different calls.
@@ -189,7 +185,7 @@ single_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int order, bo
     ChargeMF.setVal(0.0);
     
     // Charge deposition
-    MyPC->AssignNodalDensitySingleLevel(ChargeMF,0,1); 
+    MyPC->NodalDepositionSingleLevel(ChargeMF,0,1); 
 
     end_assb = ParallelDescriptor::second() - strt_assb;
 
