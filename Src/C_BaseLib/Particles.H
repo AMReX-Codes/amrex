@@ -499,8 +499,12 @@ long
 ParticleContainer<NR,NI>::TotalNumberOfParticles (bool only_valid, bool only_local) const
 {
     long nparticles = 0;
-    for (int lev = 0; lev <= m_gdb->finestLevel(); lev++)
-        nparticles += NumberOfParticlesAtLevel(lev,only_valid,only_local);
+    for (int lev = 0; lev <= m_gdb->finestLevel(); lev++) {
+        nparticles += NumberOfParticlesAtLevel(lev,only_valid,false);
+    }
+    if (!only_local) {
+	ParallelDescriptor::ReduceLongSum(nparticles);
+    }
     return nparticles;
 }
 
