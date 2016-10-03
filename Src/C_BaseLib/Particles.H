@@ -548,8 +548,8 @@ ParticleContainer<NR,NI>::TotalNumberOfParticles (bool only_valid, bool only_loc
 template <int NR, int NI>
 Array<long>
 ParticleContainer<NR,NI>::NumberOfParticlesInGrid (int  lev, 
-                                               bool only_valid,
-                                               bool only_local) const
+						   bool only_valid,
+						   bool only_local) const
 {
     int ngrids = m_gdb->ParticleBoxArray(lev).size();
     Array<long> nparticles(ngrids,0);
@@ -593,8 +593,8 @@ ParticleContainer<NR,NI>::NumberOfParticlesInGrid (int  lev,
 template <int NR, int NI>
 long
 ParticleContainer<NR,NI>::NumberOfParticlesAtLevel (int  lev,
-                                                bool only_valid,
-                                                bool only_local) const
+						    bool only_valid,
+						    bool only_local) const
 {
     long nparticles = 0;
 
@@ -681,9 +681,9 @@ ParticleContainer<NR,NI>::ByteSpread () const
 template <int NR, int NI>
 void
 ParticleContainer<NR,NI>::addOneParticle (int                  id_in,
-                                      int                  cpu_in, 
-                                      std::vector<double>& xloc, 
- 				      std::vector<double>& attributes)
+					  int                  cpu_in, 
+					  std::vector<double>& xloc, 
+					  std::vector<double>& attributes)
 {
     BL_PROFILE("ParticleContainer<NR,NI>::addOneParticle()");
     if (m_particles.size() == 0)
@@ -845,7 +845,7 @@ ParticleContainer<NR,NI>::MoveRandom (int lev)
 template <int NR, int NI>
 void
 ParticleContainer<NR,NI>::Increment (MultiFab& mf,
-                                 int       lev) 
+				     int       lev) 
 {
     IncrementWithTotal(mf,lev);
 }
@@ -853,7 +853,7 @@ ParticleContainer<NR,NI>::Increment (MultiFab& mf,
 template <int NR, int NI>
 long
 ParticleContainer<NR,NI>::IncrementWithTotal (MultiFab& mf,
-                                          int       lev)
+					      int       lev)
 {
     BL_PROFILE("ParticleContainer<NR,NI>::IncrementWithTotal(lev)");
     BL_ASSERT(OK());
@@ -917,8 +917,8 @@ ParticleContainer<NR,NI>::IncrementWithTotal (MultiFab& mf,
 template <int NR, int NI>
 Real
 ParticleContainer<NR,NI>::estTimestep (MultiFab& gv,
-                                   int             lev,
-                                   Real            cfl) const
+				       int             lev,
+				       Real            cfl) const
 {
     return estTimestep(gv,1.0,lev,cfl);
 }
@@ -926,9 +926,9 @@ ParticleContainer<NR,NI>::estTimestep (MultiFab& gv,
 template <int NR, int NI>
 Real
 ParticleContainer<NR,NI>::estTimestep (MultiFab& gv,
-                                   Real            a,
-                                   int             lev,
-                                   Real            cfl) const
+				       Real            a,
+				       int             lev,
+				       Real            cfl) const
 {
     BL_PROFILE("ParticleContainer<NR,NI>::estTimestep(lev)");
     Real            dt               = 1e50;
@@ -1089,7 +1089,7 @@ ParticleContainer<NR,NI>::sumParticleMass (int lev) const
 template <int NR, int NI>
 void
 ParticleContainer<NR,NI>::sumParticleMomentum (int   lev,
-                                           Real* mom) const
+					       Real* mom) const
 {
     BL_PROFILE("ParticleContainer<NR,NI>::sumParticleMomentum()");
     BL_ASSERT(NR >= BL_SPACEDIM+1);
@@ -1133,9 +1133,9 @@ ParticleContainer<NR,NI>::sumParticleMomentum (int   lev,
 template <int NR, int NI>
 void
 ParticleContainer<NR,NI>::AssignDensitySingleLevel (MultiFab& mf_to_be_filled,
-                                                int       lev,
-                                                int       ncomp,
-                                                int       particle_lvl_offset) const
+						    int       lev,
+						    int       ncomp,
+						    int       particle_lvl_offset) const
 {
     BL_PROFILE("ParticleContainer<NR,NI>::AssignDensitySingleLevel()");
     BL_ASSERT(NR >= 1);
@@ -1170,9 +1170,9 @@ ParticleContainer<NR,NI>::AssignDensitySingleLevel (MultiFab& mf_to_be_filled,
 template <int NR, int NI>
 void
 ParticleContainer<NR,NI>::AssignCellDensitySingleLevel (MultiFab& mf_to_be_filled,
-                                                    int       lev,
-                                                    int       ncomp,
-                                                    int       particle_lvl_offset) const
+							int       lev,
+							int       ncomp,
+							int       particle_lvl_offset) const
 {
     MultiFab* mf_pointer;
 
@@ -1360,9 +1360,9 @@ ParticleContainer<NR,NI>::AssignCellDensitySingleLevel (MultiFab& mf_to_be_fille
 template <int NR, int NI>
 void
 ParticleContainer<NR,NI>::AssignNodalDensitySingleLevel (MultiFab& mf_to_be_filled,
-                                                     int       lev,
-                                                     int       ncomp,
-                                                     int       particle_lvl_offset) const
+							 int       lev,
+							 int       ncomp,
+							 int       particle_lvl_offset) const
 {
     BoxLib::Error("AssignNodalDensitySingleLevel not implemented yet");
 }
@@ -1380,7 +1380,7 @@ ParticleContainer<NR,NI>::AssignNodalDensitySingleLevel (MultiFab& mf_to_be_fill
 template <int NR, int NI>
 void
 ParticleContainer<NR,NI>::AssignDensityAndVels (PArray<MultiFab>& mf,
-                                            int               lev_min) const
+						int               lev_min) const
 {
     AssignDensity(mf, lev_min, BL_SPACEDIM+1);
 }
@@ -1388,9 +1388,9 @@ ParticleContainer<NR,NI>::AssignDensityAndVels (PArray<MultiFab>& mf,
 template <int NR, int NI>
 void
 ParticleContainer<NR,NI>::AssignDensity (PArray<MultiFab>& mf_to_be_filled, 
-                                     int               lev_min,
-                                     int               ncomp,
-                                     int               finest_level) const
+					 int               lev_min,
+					 int               ncomp,
+					 int               finest_level) const
 {
     BL_PROFILE("ParticleContainer<NR,NI>::AssignDensity()");
     BL_ASSERT(NR >= 1);
@@ -2431,9 +2431,9 @@ ParticleContainer<NR,NI>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
 template <int NR, int NI>
 void
 ParticleContainer<NR,NI>::AssignDensityDoit (PArray<MultiFab>* mf,
-                                         PMap&             data,
-                                         int               ncomp,
-                                         int               lev_min) const
+					     PMap&             data,
+					     int               ncomp,
+					     int               lev_min) const
 {
     BL_PROFILE("ParticleContainer<NR,NI>::AssignDensityDoit()");
     BL_ASSERT(NR >= ncomp);
@@ -3098,8 +3098,8 @@ ParticleContainer<NR,NI>::MultiplyParticleMass (int lev, Real mult)
 template <int NR, int NI>
 void
 ParticleContainer<NR,NI>::movePredict (const MultiFab& gv,
-                                   int             lev,
-                                   Real            dt)
+				       int             lev,
+				       Real            dt)
 {
     BL_PROFILE("ParticleContainer<NR,NI>::movePredict()");
     BL_ASSERT(OK());
@@ -3176,9 +3176,9 @@ ParticleContainer<NR,NI>::movePredict (const MultiFab& gv,
 template <int NR, int NI>
 void
 ParticleContainer<NR,NI>::moveCorrect (const MultiFab& gv_old,
-                                   const MultiFab& gv,
-                                   int             lev,
-                                   Real            dt)
+				       const MultiFab& gv,
+				       int             lev,
+				       Real            dt)
 {
     BL_PROFILE("ParticleContainer<NR,NI>::moveCorrect()");
     BL_ASSERT(OK());
@@ -3272,10 +3272,10 @@ ParticleContainer<NR,NI>::moveCorrect (const MultiFab& gv_old,
 template <int NR, int NI>
 void
 ParticleContainer<NR,NI>::moveKickDrift (MultiFab& grav_vector,
-                                     int             lev,
-                                     Real            dt,
-                                     Real            a_old,
-                                     Real            a_half) 
+					 int             lev,
+					 Real            dt,
+					 Real            a_old,
+					 Real            a_half) 
 {
     BL_PROFILE("ParticleContainer::moveKickDrift()");
     BL_ASSERT(NR >= BL_SPACEDIM+1);
@@ -3416,11 +3416,11 @@ ParticleContainer<NR,NI>::moveKickDrift (MultiFab& grav_vector,
 template <int NR, int NI>
 void
 ParticleContainer<NR,NI>::moveKick (MultiFab& grav_vector,
-                                int             lev,
-                                Real            dt,
-                                Real            a_new,
-                                Real            a_half, 
-                                int             start_comp_for_accel)
+				    int             lev,
+				    Real            dt,
+				    Real            a_new,
+				    Real            a_half, 
+				    int             start_comp_for_accel)
 {
     BL_PROFILE("ParticleContainer::moveKick()");
     BL_ASSERT(NR >= BL_SPACEDIM+1);
@@ -3518,10 +3518,10 @@ ParticleContainer<NR,NI>::moveKick (MultiFab& grav_vector,
 template <int NR, int NI>
 void
 ParticleContainer<NR,NI>::moveKickDrift (PArray<MultiFab>& grav_vector,
-                                     int             lev,
-                                     Real            dt,
-                                     Real            a_old,
-                                     Real            a_half) 
+					 int             lev,
+					 Real            dt,
+					 Real            a_old,
+					 Real            a_half) 
 {
     BL_PROFILE("ParticleContainer::moveKickDrift()");
     BL_ASSERT(OK());
@@ -3675,10 +3675,10 @@ ParticleContainer<NR,NI>::moveKickDrift (PArray<MultiFab>& grav_vector,
 template <int NR, int NI>
 void
 ParticleContainer<NR,NI>::moveKick (PArray<MultiFab>& grav_vector,
-                                int               lev,
-                                Real              dt,
-                                Real              a_new,
-                                Real              a_half) 
+				    int               lev,
+				    Real              dt,
+				    Real              a_new,
+				    Real              a_half) 
 {
     BL_PROFILE("ParticleContainer::moveKick()");
     BL_ASSERT(OK());
@@ -3867,8 +3867,8 @@ ParticleContainer<NR,NI>::RemoveParticlesAtLevel (int level)
 template <int NR, int NI>
 void
 ParticleContainer<NR,NI>::AddParticlesAtLevel (int   level,
-                                           PBox& virts,
-                                           bool  where_already_called)
+					       PBox& virts,
+					       bool  where_already_called)
 {
     BL_PROFILE("ParticleContainer<NR,NI>::AddParticlesAtLevel()");
     if (m_particles.size() < level+1)
@@ -3941,7 +3941,7 @@ ParticleContainer<NR,NI>::AddParticlesAtLevel (int   level,
 template <int NR, int NI>
 void
 ParticleContainer<NR,NI>::CreateVirtualParticles (int   level,
-                                              PBox& virts) const
+						  PBox& virts) const
 {
     BL_PROFILE("ParticleContainer<NR,NI>::CreateVirtualParticles()");
     BL_ASSERT(level > 0);
@@ -4085,8 +4085,8 @@ ParticleContainer<NR,NI>::CreateVirtualParticles (int   level,
 template <int NR, int NI>
 void
 ParticleContainer<NR,NI>::CreateGhostParticles (int   level,
-                                            int   ngrow,
-                                            PBox& ghosts) const
+						int   ngrow,
+						PBox& ghosts) const
 {
     BL_PROFILE("ParticleContainer<NR,NI>::CreateGhostParticles()");
     BL_ASSERT(ghosts.empty());
@@ -4157,9 +4157,9 @@ ParticleContainer<NR,NI>::CreateGhostParticles (int   level,
 template <int NR, int NI>
 void
 ParticleContainer<NR,NI>::AdvectWithUmac (MultiFab* umac,
-                                      int       lev,
-                                      Real      dt,
-                                      int       vcomp)
+					  int       lev,
+					  Real      dt,
+					  int       vcomp)
 {
     BL_PROFILE("ParticleContainer<NR,NI>::AdvectWithUmac()");
     BL_ASSERT(OK(true, lev, umac[0].nGrow()-1));
@@ -4305,9 +4305,9 @@ ParticleContainer<NR,NI>::AdvectWithUmac (MultiFab* umac,
 template <int NR, int NI>
 void
 ParticleContainer<NR,NI>::AdvectWithUcc (const MultiFab& Ucc,
-				     int             lev,
-				     Real            dt,
-				     int             vcomp)
+					 int             lev,
+					 Real            dt,
+					 int             vcomp)
 {
     BL_ASSERT(Ucc.nGrow() > 0);
     BL_ASSERT(OK(true, lev, Ucc.nGrow()-1));
@@ -4402,9 +4402,9 @@ ParticleContainer<NR,NI>::AdvectWithUcc (const MultiFab& Ucc,
 template <int NR, int NI>
 void
 ParticleContainer<NR,NI>::Redistribute (bool where_already_called,
-                                    bool full_where,
-                                    int  lev_min,
-                                    int  nGrow)
+					bool full_where,
+					int  lev_min,
+					int  nGrow)
 {
     BL_PROFILE("ParticleContainer::Redistribute()");
     const int MyProc   = ParallelDescriptor::MyProc();
@@ -4897,9 +4897,9 @@ ParticleContainer<NR,NI>::RedistributeMPI (PMap& not_ours)
 template <int NR, int NI>
 bool
 ParticleContainer<NR,NI>::OK (bool full_where,
-                          int  lev_min,
-                          int  ngrow,
-                          int  finest_level) const
+			      int  lev_min,
+			      int  ngrow,
+			      int  finest_level) const
 {
     BL_PROFILE("ParticleContainer<NR,NI>::OK()");
     if (finest_level == -1)
@@ -4981,8 +4981,8 @@ ParticleContainer<NR,NI>::OK (bool full_where,
 template <int NR, int NI>
 void
 ParticleContainer<NR,NI>::Checkpoint (const std::string& dir,
-                                  const std::string& name,
-                                  bool               is_checkpoint) const
+				      const std::string& name,
+				      bool               is_checkpoint) const
 {
     BL_PROFILE("ParticleContainer<NR,NI>::Checkpoint()");
     BL_ASSERT(OK());
@@ -5291,7 +5291,7 @@ ParticleContainer<NR,NI>::Checkpoint (const std::string& dir,
 template <int NR, int NI>
 void
 ParticleContainer<NR,NI>::WritePlotFile (const std::string& dir,
-                                     const std::string& name) const
+					 const std::string& name) const
 {
     BL_PROFILE("ParticleContainer<NR,NI>::WritePlotFile()");
     BL_ASSERT(OK());
@@ -5307,12 +5307,12 @@ ParticleContainer<NR,NI>::WritePlotFile (const std::string& dir,
 template <int NR, int NI>
 void
 ParticleContainer<NR,NI>::WriteParticles (int            lev,
-                                      std::ofstream& ofs,
-                                      int            fnum,
-                                      Array<int>&    which,
-                                      Array<int>&    count,
-                                      Array<long>&   where,
-                                      bool           is_checkpoint) const
+					  std::ofstream& ofs,
+					  int            fnum,
+					  Array<int>&    which,
+					  Array<int>&    count,
+					  Array<long>&   where,
+					  bool           is_checkpoint) const
 {
     BL_PROFILE("ParticleContainer<NR,NI>::WriteParticles()");
     const PMap&     pmap  = m_particles[lev];
@@ -5479,8 +5479,8 @@ ParticleContainer<NR,NI>::WriteParticles (int            lev,
 template <int NR, int NI>
 void
 ParticleContainer<NR,NI>::Restart (const std::string& dir,
-                               const std::string& file,
-                               bool is_checkpoint)
+				   const std::string& file,
+				   bool is_checkpoint)
 {
     BL_PROFILE("ParticleContainer<NR,NI>::Restart()");
     BL_ASSERT(!dir.empty());
@@ -5592,9 +5592,9 @@ ParticleContainer<NR,NI>::Restart (const std::string& dir,
 template <int NR, int NI>
 void
 ParticleContainer<NR,NI>::Restart_Doit (const std::string& fullname,
-                                    std::ifstream&     HdrFile,
-                                    const std::string& how,
-                                    bool is_checkpoint)
+					std::ifstream&     HdrFile,
+					const std::string& how,
+					bool is_checkpoint)
 {
     BL_PROFILE("ParticleContainer<NR,NI>::RestartDoit()");
     BL_ASSERT(!fullname.empty());
@@ -5781,10 +5781,10 @@ ParticleContainer<NR,NI>::Restart_Doit (const std::string& fullname,
 template <int NR, int NI>
 void
 ParticleContainer<NR,NI>::ReadParticles_DoublePrecision (int            cnt,
-                                                     int            grd,
-                                                     int            lev,
-                                                     bool           is_checkpoint,
-                                                     std::ifstream& ifs)
+							 int            grd,
+							 int            lev,
+							 bool           is_checkpoint,
+							 std::ifstream& ifs)
 {
     BL_PROFILE("ParticleContainer<NR,NI>::ReadParticles_DoublePrecision()");
     BL_ASSERT(cnt > 0);
@@ -5905,10 +5905,10 @@ ParticleContainer<NR,NI>::ReadParticles_DoublePrecision (int            cnt,
 template <int NR, int NI>
 void
 ParticleContainer<NR,NI>::ReadParticles_SinglePrecision (int            cnt,
-                                                     int            grd,
-                                                     int            lev,
-                                                     bool           is_checkpoint,
-                                                     std::ifstream& ifs)
+							 int            grd,
+							 int            lev,
+							 bool           is_checkpoint,
+							 std::ifstream& ifs)
 {
     BL_PROFILE("ParticleContainer<NR,NI>::ReadParticles_SinglePrecision()");
     BL_ASSERT(cnt > 0);
@@ -6014,11 +6014,11 @@ ParticleContainer<NR,NI>::ReadParticles_SinglePrecision (int            cnt,
 template <int NR, int NI>
 void
 ParticleContainer<NR,NI>::Timestamp (const std::string&      basename,
-                                 const MultiFab&         mf,
-                                 int                     lev,
-                                 Real                    time,
-                                 const std::vector<int>& indices,
-                                 const int               vcomp)
+				     const MultiFab&         mf,
+				     int                     lev,
+				     Real                    time,
+				     const std::vector<int>& indices,
+				     const int               vcomp)
 {
     BL_PROFILE("ParticleContainer<NR,NI>::Timestamp()");
     //
