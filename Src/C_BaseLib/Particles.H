@@ -275,13 +275,13 @@ public:
 
     ParticleContainer (ParGDBBase* gdb)
         :
-        m_verbose(1), m_relativistic(0), m_csq(-1.), m_gdb(gdb), allow_particles_near_boundary(false) { }
+        m_verbose(1), m_gdb(gdb), allow_particles_near_boundary(false) { }
 
     ParticleContainer (const Geometry            & geom, 
 		       const DistributionMapping & dmap,
 		       const BoxArray            & ba)
 	:
-        m_verbose(1), m_relativistic(0), m_csq(-1.),
+        m_verbose(1), 
 	allow_particles_near_boundary(false),
 	m_gdb_object(geom,dmap,ba)
     {
@@ -293,7 +293,7 @@ public:
 		       const Array<BoxArray>            & ba,
 		       const Array<int>                 & rr)
 	:
-        m_verbose(1), m_relativistic(0), m_csq(-1.),
+        m_verbose(1), 
 	allow_particles_near_boundary(false),
 	m_gdb_object(geom,dmap,ba,rr)
     {
@@ -421,8 +421,7 @@ public:
     // Add particles from a pbox to the grid at this level
     //
     void AddParticlesAtLevel (int level, PBox& virts, bool where_already_called = false);
-    // **************************************************************************************************************** 
-
+    // 
     void AdvectWithUmac (MultiFab* umac, int level, Real dt, int vcomp = 0);
 
     void AdvectWithUcc (const MultiFab& ucc, int level, Real dt, int vcomp = 0);
@@ -443,10 +442,6 @@ public:
     int Verbose () { return m_verbose; }
 
     void SetVerbose (int verbose) { m_verbose = verbose; }
-
-    void SetRelativistic (int relativistic) { m_relativistic = relativistic; }
-
-    void SetCSquared (Real csq) { m_csq = csq; }
 
     const PMap& GetParticles(int lev) const { return m_particles[lev]; }
     PMap& GetParticles(int lev) { return m_particles[lev]; }
@@ -488,8 +483,6 @@ protected:
     // The data.
     //
     int         m_verbose;
-    int         m_relativistic; // if 1 then we weight the mass by gamma in AssignDensity*
-    Real        m_csq;          // the square of the speed of light -- used to compute relativistic effects
 
 
     ParGDBBase* m_gdb;
@@ -1105,10 +1098,6 @@ ParticleContainer<N>::AssignDensitySingleLevel (MultiFab& mf_to_be_filled,
     BL_ASSERT(N >= 1);
     BL_ASSERT(ncomp == 1 || ncomp == BL_SPACEDIM+1);
 
-#ifdef NEUTRINO_PARTICLES
-    BL_ASSERT(m_csq > 0.);
-#endif
-
     if (lev >= m_particles.size())
     {
         //
@@ -1241,21 +1230,6 @@ ParticleContainer<N>::AssignCellDensitySingleLevel (MultiFab& mf_to_be_filled,
                 //
                 // Sum up mass in first component.
                 //
-#ifdef NEUTRINO_PARTICLES
-                if (m_relativistic)
-                {
-                    Real vsq = 0.0;
-                    for (int n = 1; n < ncomp; n++) {
-                       vsq += p.m_data[n] * p.m_data[n];
-		    }
-                    Real gamma = 1.0 / sqrt(1.0 - vsq / m_csq);
-#ifdef _OPENMP
-#pragma omp atomic
-#endif
-                    fab(cells[i],0) += p.m_data[0] * fracs[i] * gamma;
-                }
-                else 
-#endif /* NEUTRINO_PARTICLES */
                 {
 #ifdef _OPENMP
 #pragma omp atomic
@@ -1352,10 +1326,6 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
     BL_ASSERT(N >= 1);
     BL_ASSERT(N >= ncomp);
     BL_ASSERT(ncomp == 1 || ncomp == BL_SPACEDIM+1);
-
-#ifdef NEUTRINO_PARTICLES
-    BL_ASSERT(m_csq > 0.0);
-#endif
 
     if (finest_level == -1)
     {
@@ -1692,18 +1662,6 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
                         //
                         // Sum up mass in first component.
                         //
-#ifdef NEUTRINO_PARTICLES
-                        if (m_relativistic)
-                        {
-                            Real vsq = 0.0;
-                            for (int n = 1; n < ncomp; n++) {
-                               vsq += p.m_data[n] * p.m_data[n];
-			    }
-                            Real gamma = 1.0 / sqrt(1.0 - vsq / m_csq);
-                            fab(cells[i],0) += p.m_data[0] * fracs[i] * gamma;
-                        }
-                        else 
-#endif
                         {
                             fab(cells[i],0) += p.m_data[0] * fracs[i];
                         }
@@ -1765,18 +1723,6 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
                                     //
                                     // Sum up mass in first component.
                                     //
-#ifdef NEUTRINO_PARTICLES
-                                    if (m_relativistic)
-                                    {
-                                        Real vsq = 0.0;
-                                        for (int n = 1; n < ncomp; n++) {
-                                           vsq += p.m_data[n] * p.m_data[n];
-					}
-                                        Real gamma = 1.0 / sqrt(1.0 - vsq / m_csq);
-                                        (*mf)[lev_index+1][grid](fcells[j],0) += p.m_data[0] * ffracs[j] * gamma;
-                                    }
-                                    else 
-#endif
                                     {
                                         (*mf)[lev_index+1][grid](fcells[j],0) += p.m_data[0] * ffracs[j];
                                     }
@@ -1795,18 +1741,6 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
                                     //
                                     // Sum up mass in first component.
                                     //
-#ifdef NEUTRINO_PARTICLES
-                                    if (m_relativistic)
-                                    {
-                                        Real vsq = 0.0;
-                                        for (int n = 1; n < ncomp; n++) {
-                                           vsq += p.m_data[n] * p.m_data[n];
-					}
-                                        Real gamma = 1.0 / sqrt(1.0 - vsq / m_csq);
-                                        pb.m_data[0] = p.m_data[0] *  ffracs[j] * gamma;
-                                    }
-                                    else 
-#endif
                                     {
                                         pb.m_data[0] = p.m_data[0] *  ffracs[j];
                                     }
@@ -1859,18 +1793,6 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
                                     //
                                     // Sum up mass in first component.
                                     //
-#ifdef NEUTRINO_PARTICLES
-                                    if (m_relativistic)
-                                    {
-                                        Real vsq = 0.0;
-                                        for (int n = 1; n < ncomp; n++) {
-                                           vsq += p.m_data[n] * p.m_data[n];
-					}
-                                        Real gamma = 1.0 / sqrt(1.0 - vsq / m_csq);
-                                        (*mf)[lev_index-1][grid](ccells[j],0) += p.m_data[0] * cfracs[j] * gamma;
-                                    }
-                                    else 
-#endif
                                     {
                                         (*mf)[lev_index-1][grid](ccells[j],0) += p.m_data[0] * cfracs[j];
                                     }
@@ -1889,18 +1811,6 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
                                     //
                                     // Sum up mass in first component.
                                     //
-#ifdef NEUTRINO_PARTICLES
-                                    if (m_relativistic)
-                                    {
-                                        Real vsq = 0.0;
-                                        for (int n = 1; n < ncomp; n++) {
-                                           vsq += p.m_data[n] * p.m_data[n];
-					}
-                                        Real gamma = 1.0 / sqrt(1.0 - vsq / m_csq);
-                                        pb.m_data[0] = p.m_data[0] * cfracs[j] * gamma;
-                                    }
-                                    else 
-#endif
                                     {
                                         pb.m_data[0] = p.m_data[0] * cfracs[j];
                                     }
@@ -1955,18 +1865,6 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
                             //
                             // Sum up mass in first component.
                             //
-#ifdef NEUTRINO_PARTICLES
-                            if (m_relativistic)
-                            {
-                                Real vsq = 0.0;
-                                for (int n = 1; n < ncomp; n++) {
-                                   vsq += p.m_data[n] * p.m_data[n];
-				}
-                                Real gamma = 1.0 / sqrt(1.0 - vsq / m_csq);
-                                fab(cells[i],0) += p.m_data[0] * fracs[i] * gamma;
-                            }
-                            else 
-#endif
                             {
                                 fab(cells[i],0) += p.m_data[0] * fracs[i];
                             }
@@ -2016,18 +1914,6 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
                                     //
                                     // Sum up mass in first component.
                                     //
-#ifdef NEUTRINO_PARTICLES
-                                    if (m_relativistic)
-                                    {
-                                        Real vsq = 0.0;
-                                        for (int n = 1; n < ncomp; n++) {
-                                           vsq += p.m_data[n] * p.m_data[n];
-					}
-                                        Real gamma = 1.0 / sqrt(1.0 - vsq / m_csq);
-                                        (*mf)[lev_index-1][cgrid[i]](ccells[i],0) += p.m_data[0] * cfracs[i] * gamma;
-                                    }
-                                    else 
-#endif
                                     {
                                         (*mf)[lev_index-1][cgrid[i]](ccells[i],0) += p.m_data[0] * cfracs[i];
                                     }
@@ -2046,18 +1932,6 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
                                     //
                                     // Sum up mass in first component.
                                     //
-#ifdef NEUTRINO_PARTICLES
-                                    if (m_relativistic)
-                                    {
-                                        Real vsq = 0.0;
-                                        for (int n = 1; n < ncomp; n++) {
-                                           vsq += p.m_data[n] * p.m_data[n];
-					}
-                                        Real gamma = 1.0 / sqrt(1.0 - vsq / m_csq);
-                                        pb.m_data[0] = p.m_data[0] * cfracs[i] * gamma;
-                                    }
-                                    else 
-#endif
                                     {
                                         pb.m_data[0] = p.m_data[0] * cfracs[i];
                                     }
@@ -2100,18 +1974,6 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
                                 //
                                 // Sum up mass in first component.
                                 //
-#ifdef NEUTRINO_PARTICLES
-                                if (m_relativistic)
-                                {
-                                    Real vsq = 0.0;
-                                    for (int n = 1; n < ncomp; n++) {
-                                       vsq += p.m_data[n] * p.m_data[n];
-				    }
-                                    Real gamma = 1.0 / sqrt(1.0 - vsq / m_csq);
-                                    fab(cells[i],0) += p.m_data[0] * fracs[i] * gamma;
-                                }
-                                else 
-#endif
                                 {
                                     fab(cells[i],0) += p.m_data[0] * fracs[i];
                                 }
@@ -2156,18 +2018,6 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
                                 //
                                 // Sum up mass in first component.
                                 //
-#ifdef NEUTRINO_PARTICLES
-                                if (m_relativistic)
-                                {
-                                    Real vsq = 0.0;
-                                    for (int n = 1; n < ncomp; n++) {
-                                       vsq += p.m_data[n] * p.m_data[n];
-				    }
-                                    Real gamma = 1.0 / sqrt(1.0 - vsq / m_csq);
-                                    fab(cells[i],0) += p.m_data[0] * fracs[i] * mult * gamma;
-                                }
-                                else 
-#endif
                                 {
                                     fab(cells[i],0) += p.m_data[0] * fracs[i] * mult;
                                 }
@@ -2203,18 +2053,6 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
                                 //
                                 // Sum up mass in first component.
                                 //
-#ifdef NEUTRINO_PARTICLES
-                                if (m_relativistic)
-                                {
-                                    Real vsq = 0.0;
-                                    for (int n = 1; n < ncomp; n++) {
-                                       vsq += p.m_data[n] * p.m_data[n];
-				    }
-                                    Real gamma = 1.0 / sqrt(1.0 - vsq / m_csq);
-                                    fab(cells[i],0) += p.m_data[0] * fracs[i] * gamma;
-                                }
-                                else 
-#endif
                                 {
                                     fab(cells[i],0) += p.m_data[0] * fracs[i];
                                 }
@@ -2243,18 +2081,6 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
                                         //
                                         // Sum up mass in first component.
                                         //
-#ifdef NEUTRINO_PARTICLES
-                                        if (m_relativistic)
-                                        {
-                                            Real vsq = 0.0;
-                                            for (int n = 1; n < ncomp; n++) {
-                                               vsq += p.m_data[n] * p.m_data[n];
-					    }
-                                            Real gamma = 1.0 / sqrt(1.0 - vsq / m_csq);
-                                            (*mf)[lev_index+1][fgrid[j]](fcells[j],0) += p.m_data[0] * fracs[i] * ffracs[j] * gamma;
-                                        }
-                                        else 
-#endif
                                         {
                                             (*mf)[lev_index+1][fgrid[j]](fcells[j],0) += p.m_data[0] * fracs[i] * ffracs[j];
                                         }
@@ -2273,18 +2099,6 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
                                         //
                                         // Sum up mass in first component.
                                         //
-#ifdef NEUTRINO_PARTICLES
-                                        if (m_relativistic)
-                                        {
-                                            Real vsq = 0.0;
-                                            for (int n = 1; n < ncomp; n++) {
-                                               vsq += p.m_data[n] * p.m_data[n];
-					    }
-                                            Real gamma = 1.0 / sqrt(1.0 - vsq / m_csq);
-                                            pb.m_data[0] = p.m_data[0] * fracs[i] * ffracs[j] * gamma;
-                                        }
-                                        else 
-#endif
                                         {
                                             pb.m_data[0] = p.m_data[0] * fracs[i] * ffracs[j];
                                         }
