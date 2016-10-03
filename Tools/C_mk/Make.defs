@@ -252,6 +252,10 @@ ifeq ($(USE_MPI3),TRUE)
   USE_CXX11 = TRUE
 endif
 
+ifeq ($(USE_PARTICLES),TRUE)
+  USE_CXX11 = TRUE
+endif
+
 ifndef DIMENSION_AGNOSTIC
   DIMENSION_AGNOSTIC = FALSE
 endif
@@ -984,6 +988,10 @@ ifeq ($(WHICHLINUX),EDISON)
   DEFINES += -DBL_SIMD_LEN=4
 endif
 endif
+endif
+
+ifeq ($(USE_PARTICLES),TRUE)
+  DEFINES += -DUSE_PARTICLES -DPARTICLES
 endif
 
 includes	= $(addprefix -I, $(INCLUDE_LOCATIONS))

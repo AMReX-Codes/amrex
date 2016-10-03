@@ -1,10 +1,10 @@
-template <int N>
+template <int NR, int NI>
 void
-ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata, const IntVect* Nrep)
+ParticleContainer<NR,NI>::InitFromAsciiFile (const std::string& file, int extradata, const IntVect* Nrep)
 {
-    BL_PROFILE("ParticleContainer<N>::InitFromAsciiFile()");
+    BL_PROFILE("ParticleContainer<NR,NI>::InitFromAsciiFile()");
     BL_ASSERT(!file.empty());
-    BL_ASSERT(extradata <= N);
+    BL_ASSERT(extradata <= NR);
 
     const int  MyProc   = ParallelDescriptor::MyProc();
     const int  NProcs   = ParallelDescriptor::NProcs();
@@ -151,7 +151,7 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata,
                         std::cout << "BAD PARTICLE POS(" << d << ") " << p.m_pos[d] << std::endl;
                     }
 
-                    BoxLib::Abort("ParticleContainer<N>::InitFromAsciiFile(): invalid particle");
+                    BoxLib::Abort("ParticleContainer<NR,NI>::InitFromAsciiFile(): invalid particle");
                 }
             }
 
@@ -197,7 +197,7 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata,
                                 if (!ParticleBase::Where(p_rep,m_gdb))
                                 {
                                     std::cout << "BAD REPLICATED PARTICLE ID WOULD BE " << ParticleBase::NextID() << std::endl;
-                                    BoxLib::Abort("ParticleContainer<N>::InitFromAsciiFile(): invalid replicated particle");
+                                    BoxLib::Abort("ParticleContainer<NR,NI>::InitFromAsciiFile(): invalid replicated particle");
                                 }
                             }
                             //
@@ -343,14 +343,14 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata,
 // They're packed into the binary file like sardines.
 //
 
-template <int N>
+template <int NR, int NI>
 void
-ParticleContainer<N>::InitFromBinaryFile (const std::string& file,
+ParticleContainer<NR,NI>::InitFromBinaryFile (const std::string& file,
                                           int                extradata)
 {
-    BL_PROFILE("ParticleContainer<N>::InitFromBinaryFile()");
+    BL_PROFILE("ParticleContainer<NR,NI>::InitFromBinaryFile()");
     BL_ASSERT(!file.empty());
-    BL_ASSERT(extradata <= N);
+    BL_ASSERT(extradata <= NR);
 
     const int  MyProc   = ParallelDescriptor::MyProc();
     const int  NProcs   = ParallelDescriptor::NProcs();
@@ -484,22 +484,22 @@ ParticleContainer<N>::InitFromBinaryFile (const std::string& file,
         // NP MUST be positive!
         //
         if (NP <= 0)
-            BoxLib::Abort("ParticleContainer<N>::InitFromBinaryFile(): NP <= 0");
+            BoxLib::Abort("ParticleContainer<NR,NI>::InitFromBinaryFile(): NP <= 0");
         //
         // DM must equal BL_SPACEDIM.
         //
         if (DM != BL_SPACEDIM)
-            BoxLib::Abort("ParticleContainer<N>::InitFromBinaryFile(): DM != BL_SPACEDIM");
+            BoxLib::Abort("ParticleContainer<NR,NI>::InitFromBinaryFile(): DM != BL_SPACEDIM");
         //
         // NX MUST be in [0,N].
         //
-        if (NX < 0 || NX > N)
-            BoxLib::Abort("ParticleContainer<N>::InitFromBinaryFile(): NX < 0 || NX > N");
+        if (NX < 0 || NX > NR)
+            BoxLib::Abort("ParticleContainer<NR,NI>::InitFromBinaryFile(): NX < 0 || NX > N");
         //
         // Can't ask for more data than exists in the file!
         //
         if (extradata > NX)
-            BoxLib::Abort("ParticleContainer<N>::InitFromBinaryFile(): extradata > NX");
+            BoxLib::Abort("ParticleContainer<NR,NI>::InitFromBinaryFile(): extradata > NX");
         //
         // Figure out whether we're dealing with floats or doubles.
         //
@@ -597,9 +597,9 @@ ParticleContainer<N>::InitFromBinaryFile (const std::string& file,
 
             BL_ASSERT(MyCnt > how_many_read);
 
-            const long NR = std::min((MyCnt-how_many_read), NPartPerRedist);
+            const long NRead = std::min((MyCnt-how_many_read), NPartPerRedist);
 
-            for (long i = 0; i < NR; i++)
+            for (long i = 0; i < NRead; i++)
             {
                 //
                 // We don't read in m_id or m_cpu.  We'll set those later
@@ -690,7 +690,7 @@ ParticleContainer<N>::InitFromBinaryFile (const std::string& file,
                             std::cout << "BAD PARTICLE POS(" << d << ") " << p.m_pos[d] << std::endl;
                         }
 
-                        BoxLib::Abort("ParticleContainer<N>::InitFromBinaryFile(): invalid particle");
+                        BoxLib::Abort("ParticleContainer<NR,NI>::InitFromBinaryFile(): invalid particle");
                     }
                 }
 
@@ -700,7 +700,7 @@ ParticleContainer<N>::InitFromBinaryFile (const std::string& file,
                 m_particles[p.m_lev][p.m_grid].push_back(p);
             }
 
-            how_many_read += NR;
+            how_many_read += NRead;
         }
 
         Redistribute(true);
@@ -769,12 +769,12 @@ ParticleContainer<N>::InitFromBinaryFile (const std::string& file,
 // one file name per line.
 //
 
-template <int N>
+template <int NR, int NI>
 void
-ParticleContainer<N>::InitFromBinaryMetaFile (const std::string& metafile,
+ParticleContainer<NR,NI>::InitFromBinaryMetaFile (const std::string& metafile,
                                               int                extradata)
 {
-    BL_PROFILE("ParticleContainer<N>::InitFromBinaryMetaFile()");
+    BL_PROFILE("ParticleContainer<NR,NI>::InitFromBinaryMetaFile()");
     const Real strttime = ParallelDescriptor::second();
 
     std::ifstream ifs(metafile.c_str(), std::ios::in);
@@ -806,15 +806,15 @@ ParticleContainer<N>::InitFromBinaryMetaFile (const std::string& metafile,
     }
 }
 
-template <int N>
+template <int NR, int NI>
 void
-ParticleContainer<N>::InitRandom (long          icount,
+ParticleContainer<NR,NI>::InitRandom (long          icount,
                                   unsigned long iseed,
                                   Real          mass,
                                   bool          serialize,
                                   RealBox       containing_bx)
 {
-    BL_PROFILE("ParticleContainer<N>::InitRandom()");
+    BL_PROFILE("ParticleContainer<NR,NI>::InitRandom()");
     BL_ASSERT(iseed  > 0);
     BL_ASSERT(icount > 0);
 
@@ -893,11 +893,11 @@ ParticleContainer<N>::InitRandom (long          icount,
                 p.m_pos[i] = pos[j*BL_SPACEDIM + i];
             }
 
-            if (N > 0)
+            if (NR > 0)
             {
                 p.m_data[0] = mass;
 
-                for (int i = 1; i < N; i++)
+                for (int i = 1; i < NR; i++)
                     //
                     // Just zero out the rest of the data for lack of a better value.
                     //
@@ -906,7 +906,7 @@ ParticleContainer<N>::InitRandom (long          icount,
 
             if (!ParticleBase::Where(p,m_gdb))
             {
-                BoxLib::Abort("ParticleContainer<N>::InitRandom(): invalid particle");
+                BoxLib::Abort("ParticleContainer<NR,NI>::InitRandom(): invalid particle");
             }
 
             BL_ASSERT(p.m_lev >= 0 && p.m_lev <= m_gdb->finestLevel());
@@ -963,11 +963,11 @@ ParticleContainer<N>::InitRandom (long          icount,
                 BL_ASSERT(p.m_pos[i] < geom.ProbHi(i));
             }
 
-            if (N > 0)
+            if (NR > 0)
             {
                 p.m_data[0] = mass;
 
-                for (int i = 1; i < N; i++)
+                for (int i = 1; i < NR; i++)
                     //
                     // Just zero out the rest of the data for lack of a better value.
                     //
@@ -979,7 +979,7 @@ ParticleContainer<N>::InitRandom (long          icount,
 
             if (!ParticleBase::Where(p,m_gdb))
             {
-                BoxLib::Abort("ParticleContainer<N>::InitRandom(): invalid particle");
+                BoxLib::Abort("ParticleContainer<NR,NI>::InitRandom(): invalid particle");
             }
 
             BL_ASSERT(p.m_lev >= 0 && p.m_lev <= m_gdb->finestLevel());
@@ -1002,18 +1002,18 @@ ParticleContainer<N>::InitRandom (long          icount,
 
         if (ParallelDescriptor::IOProcessor())
         {
-            std::cout << "ParticleContainer<N>::InitRandom() time: " << stoptime << '\n';
+            std::cout << "ParticleContainer<NR,NI>::InitRandom() time: " << stoptime << '\n';
         }
     }
 }
 
-template <int N>
+template <int NR, int NI>
 void
-ParticleContainer<N>::InitOnePerCell (Real x_off, Real y_off, Real z_off,
+ParticleContainer<NR,NI>::InitOnePerCell (Real x_off, Real y_off, Real z_off,
                                       Real      mass, 
                                       MultiFab& particle_mf)
 {
-    BL_PROFILE("ParticleContainer<N>::InitOnePerCell()");
+    BL_PROFILE("ParticleContainer<NR,NI>::InitOnePerCell()");
 
     BL_ASSERT(m_gdb != 0);
 
@@ -1060,11 +1060,11 @@ ParticleContainer<N>::InitOnePerCell (Real x_off, Real y_off, Real z_off,
             for (int i = 0; i < BL_SPACEDIM; i++)
                 BL_ASSERT(p.m_pos[i] < grid_box.hi(i));
 
-            if (N > 0)
+            if (NR > 0)
             {
                 p.m_data[0] = mass;
 
-                for (int i = 1; i < N; i++)
+                for (int i = 1; i < NR; i++)
                     //
                     // Just zero out the rest of the data for lack of a better value.
                     //
@@ -1076,7 +1076,7 @@ ParticleContainer<N>::InitOnePerCell (Real x_off, Real y_off, Real z_off,
 
             if (!ParticleBase::Where(p,m_gdb))
             {
-                BoxLib::Abort("ParticleContainer<N>::InitOnePerCell(): invalid particle");
+                BoxLib::Abort("ParticleContainer<NR,NI>::InitOnePerCell(): invalid particle");
             }
 
             BL_ASSERT(p.m_lev >= 0 && p.m_lev <= m_gdb->finestLevel());
@@ -1103,16 +1103,16 @@ ParticleContainer<N>::InitOnePerCell (Real x_off, Real y_off, Real z_off,
 
         if (ParallelDescriptor::IOProcessor())
         {
-            std::cout << "ParticleContainer<N>::InitOnePerCell() time: " << stoptime << '\n';
+            std::cout << "ParticleContainer<NR,NI>::InitOnePerCell() time: " << stoptime << '\n';
         }
     }
 }
 
-template <int N>
+template <int NR, int NI>
 void
-ParticleContainer<N>::InitNRandomPerCell (int n_per_cell, Real mass, MultiFab& particle_mf)
+ParticleContainer<NR,NI>::InitNRandomPerCell (int n_per_cell, Real mass, MultiFab& particle_mf)
 {
-    BL_PROFILE("ParticleContainer<N>::InitNRandomPerCell()");
+    BL_PROFILE("ParticleContainer<NR,NI>::InitNRandomPerCell()");
 
     BL_ASSERT(m_gdb != 0);
 
@@ -1161,11 +1161,11 @@ ParticleContainer<N>::InitNRandomPerCell (int n_per_cell, Real mass, MultiFab& p
                for (int i = 0; i < BL_SPACEDIM; i++)
                    BL_ASSERT(p.m_pos[i] < grid_box.hi(i));
 
-               if (N > 0)
+               if (NR > 0)
                {
                    p.m_data[0] = mass;
    
-                   for (int i = 1; i < N; i++)
+                   for (int i = 1; i < NR; i++)
                        //
                        // Just zero out the rest of the data for lack of a better value.
                        //
@@ -1176,7 +1176,7 @@ ParticleContainer<N>::InitNRandomPerCell (int n_per_cell, Real mass, MultiFab& p
                p.m_cpu = ParallelDescriptor::MyProc();
 
                if (!ParticleBase::Where(p,m_gdb))
-                   BoxLib::Abort("ParticleContainer<N>::InitNRandomPerCell(): invalid particle");
+                   BoxLib::Abort("ParticleContainer<NR,NI>::InitNRandomPerCell(): invalid particle");
 
                BL_ASSERT(p.m_lev >= 0 && p.m_lev <= m_gdb->finestLevel());
                //
@@ -1203,7 +1203,7 @@ ParticleContainer<N>::InitNRandomPerCell (int n_per_cell, Real mass, MultiFab& p
 
         if (ParallelDescriptor::IOProcessor())
         {
-            std::cout << "ParticleContainer<N>::InitNRandomPerCell() time: " << stoptime << '\n';
+            std::cout << "ParticleContainer<NR,NI>::InitNRandomPerCell() time: " << stoptime << '\n';
         }
     }
 }
