@@ -2,6 +2,7 @@
 #define _AmrParticles_H_
 
 #include <Particles.H>
+#include <TracerParticles.H>
 #include <AmrParGDB.H>
 
 template <int NR, int NI=0>
@@ -21,6 +22,20 @@ public:
 	this->m_particles.resize(this->m_gdb->finestLevel()+1);
     }
 
+};
+
+class AmrTracerParticleContainer
+    : public TracerParticleContainer
+{
+public:
+
+    AmrTracerParticleContainer (Amr* amr)
+	: TracerParticleContainer(amr->GetParGDB())
+    {
+	this->m_particles.resize(this->m_gdb->finestLevel()+1);
+    }
+
+    virtual ~AmrTracerParticleContainer () {}
 };
 
 #endif
