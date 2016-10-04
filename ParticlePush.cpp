@@ -2,13 +2,11 @@
 
 extern "C" {
 void pxr_epush_v(const long* np, 
-           const Real*  xp, const Real*  yp, const Real*  zp,
 	   const Real* uxp, const Real* uyp, const Real* uzp,
 	   const Real* exp, const Real* eyp,const Real* ezp,
 	   const Real* charge, const Real* mass, Real* dt);
 
 void pxr_bpush_v(const long* np, 
-           const Real*  xp, const Real*  yp, const Real*  zp,
 	   const Real* uxp, const Real* uyp, const Real* uzp,
 	   const Real* gaminv, 
 	   const Real* bxp, const Real* byp,const Real* bzp,
@@ -87,18 +85,17 @@ MyParticleContainer::ParticlePush(Real dt)
             // Velocity
  	    uxp.push_back( p.m_data[1] ); 
  	    uyp.push_back( p.m_data[2] ); 
-
  	    uzp.push_back( p.m_data[3] ); 
 
             // E-field
- 	    exp.push_back( p.m_data[5] ); 
- 	    eyp.push_back( p.m_data[6] ); 
- 	    ezp.push_back( p.m_data[7] ); 
+ 	    exp.push_back( p.m_data[4] ); 
+ 	    eyp.push_back( p.m_data[5] ); 
+ 	    ezp.push_back( p.m_data[6] ); 
 
             // B-field
- 	    bxp.push_back( p.m_data[8] ); 
- 	    byp.push_back( p.m_data[9] ); 
- 	    bzp.push_back( p.m_data[10] ); 
+ 	    bxp.push_back( p.m_data[7] ); 
+ 	    byp.push_back( p.m_data[8] ); 
+ 	    bzp.push_back( p.m_data[9] ); 
 
             // (1 / Gamma)
  	    gaminv.push_back( 1.e20 );
@@ -111,23 +108,20 @@ MyParticleContainer::ParticlePush(Real dt)
 
         Real strt_push = ParallelDescriptor::second();
 
-        pxr_epush_v(&np, xp.dataPtr(), yp.dataPtr(), zp.dataPtr(),
-                        uxp.dataPtr(),uyp.dataPtr(),uzp.dataPtr(),
+        pxr_epush_v(&np,uxp.dataPtr(),uyp.dataPtr(),uzp.dataPtr(),
                         exp.dataPtr(),eyp.dataPtr(),ezp.dataPtr(),
                     &q,&mass,&half_dt);
 
         pxr_set_gamma(&np, uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(), gaminv.dataPtr());
 
-        pxr_bpush_v(&np, xp.dataPtr(), yp.dataPtr(), zp.dataPtr(),
-                        uxp.dataPtr(),uyp.dataPtr(),uzp.dataPtr(),
-                     gaminv.dataPtr(),
-                        bxp.dataPtr(),byp.dataPtr(),bzp.dataPtr(),
-                     &q,&mass,&dt);
+        pxr_bpush_v(&np, uxp.dataPtr(),uyp.dataPtr(),uzp.dataPtr(),
+                      gaminv.dataPtr(),
+                         bxp.dataPtr(),byp.dataPtr(),bzp.dataPtr(),
+                    &q,&mass,&dt);
 
-        pxr_epush_v(&np, xp.dataPtr(), yp.dataPtr(), zp.dataPtr(),
-                        uxp.dataPtr(),uyp.dataPtr(),uzp.dataPtr(),
+        pxr_epush_v(&np,uxp.dataPtr(),uyp.dataPtr(),uzp.dataPtr(),
                         exp.dataPtr(),eyp.dataPtr(),ezp.dataPtr(),
-                     &q,&mass,&half_dt);
+                    &q,&mass,&half_dt);
 
         pxr_set_gamma(&np, uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(), gaminv.dataPtr());
 
