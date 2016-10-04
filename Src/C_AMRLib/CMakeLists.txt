@@ -15,7 +15,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(${CBOXLIB_INCLUDE_DIRS})
 
 set(CXX_source_files Amr.cpp AmrLevel.cpp AuxBoundaryData.cpp Cluster.cpp Derive.cpp ErrorList.cpp FillPatchUtil.cpp FluxRegister.cpp Interpolater.cpp Extrapolater.cpp SlabStat.cpp StateData.cpp StateDescriptor.cpp StationData.cpp TagBox.cpp)
-set(FPP_source_files ARRAYLIM_${BL_SPACEDIM}D.F FILCC_${BL_SPACEDIM}D.F FLUXREG_${BL_SPACEDIM}D.F INTERP_${BL_SPACEDIM}D.F SLABSTAT_${BL_SPACEDIM}D.F)
+set(FPP_source_files ARRAYLIM_${BL_SPACEDIM}D.F FLUXREG_${BL_SPACEDIM}D.F INTERP_${BL_SPACEDIM}D.F SLABSTAT_${BL_SPACEDIM}D.F)
 if(BL_SPACEDIM EQUAL 3)
   set(FPP_source_files ${FPP_source_files} MAKESLICE_${BL_SPACEDIM}D.F)
 endif()
