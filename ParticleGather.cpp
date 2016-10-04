@@ -6,6 +6,7 @@ void geteb3d_energy_conserving(const long* np,
 	   const Real* exp, const Real* eyp,const Real* ezp,
 	   const Real* bxp, const Real* byp,const Real* bzp,
 	   const Real* xmin, const Real* ymin, const Real* zmin,
+           const Real* dx, const Real* dy, const Real* dz,
 	   const long* nx, const long* ny, const long* nz,
 	   const long* nxguard, const long* nyguard, const long* nzguard,
 	   const long* nox, const long* noy, const long* noz,
@@ -52,7 +53,6 @@ MyParticleContainer::FieldGather(MultiFab& Ex, MultiFab& Ey, MultiFab& Ez,
     {
         const PBox& pbx = *pbxs[j];
 	long np = 0;
-	Real q = 1.;
 	Array<Real>  xp,  yp,  zp, wp;
 	Array<Real> exp, eyp, ezp;
 	Array<Real> bxp, byp, bzp;
@@ -98,6 +98,14 @@ MyParticleContainer::FieldGather(MultiFab& Ex, MultiFab& Ey, MultiFab& Ez,
 	    yp.push_back( p.m_pos[1] );
 	    zp.push_back( p.m_pos[2] );
  	    wp.push_back( 1. ); 
+
+ 	    // We put dummy values in here just to make sure these values are getting filled below.
+ 	    exp.push_back( 1.e20 ); 
+ 	    eyp.push_back( 1.e20 ); 
+ 	    ezp.push_back( 1.e20 ); 
+ 	    bxp.push_back( 1.e20 ); 
+ 	    byp.push_back( 1.e20 ); 
+ 	    bzp.push_back( 1.e20 ); 
         }
 
         Real end_copy = ParallelDescriptor::second() - strt_copy;
@@ -106,7 +114,7 @@ MyParticleContainer::FieldGather(MultiFab& Ex, MultiFab& Ey, MultiFab& Ez,
             std::cout << "Time in FieldGather : Copy " << end_copy << '\n';
 
         bool ll4symtry          = false;
-        bool l_lower_order_in_v = false;
+        bool l_lower_order_in_v = true;
 
         Real strt_gather = ParallelDescriptor::second();
 
@@ -114,6 +122,7 @@ MyParticleContainer::FieldGather(MultiFab& Ex, MultiFab& Ey, MultiFab& Ez,
                                       exp.dataPtr(),eyp.dataPtr(),ezp.dataPtr(),
                                       bxp.dataPtr(),byp.dataPtr(),bzp.dataPtr(),
 				      &xyzmin[0], &xyzmin[1], &xyzmin[2],
+				      &dx[0], &dx[1], &dx[2],
 				      &nx, &ny, &nz, &ng, &ng, &ng, 
 				      &order, &order, &order, 
 				      exfab.dataPtr(), eyfab.dataPtr(), ezfab.dataPtr(),
