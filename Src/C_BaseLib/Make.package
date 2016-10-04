@@ -158,13 +158,6 @@ ifeq ($(TINY_PROFILE),TRUE)
   C$(BOXLIB_BASE)_sources += TinyProfiler.cpp
 endif
 
-ifeq ($(USE_PARTICLES), TRUE)
-  C$(BOXLIB_BASE)_sources += Particles.cpp
-  C$(BOXLIB_BASE)_headers += Particles.H ParticleInit.H ParGDB.H
-  F$(BOXLIB_BASE)_headers += Particles_F.H
-  F$(BOXLIB_BASE)_sources += Particles_$(DIM)D.F
-endif
-
 # C++11 stuff
 C$(BOXLIB_BASE)_headers += BL_CXX11.H
 

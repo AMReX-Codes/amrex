@@ -47,6 +47,7 @@ ifeq ($(USE_ARRAYVIEW),TRUE)
 endif
 
 ifeq ($(USE_PARTICLES), TRUE)
+  # These files are in C_ParticleLib
   CEXE_headers += AmrParGDB.H AmrParticles.H
 endif
 
