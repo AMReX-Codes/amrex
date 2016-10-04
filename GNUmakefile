@@ -21,6 +21,7 @@ include ./Make.package
 include $(BOXLIB_HOME)/Tools/C_mk/Make.defs
 
 include $(BOXLIB_HOME)/Src/C_BaseLib/Make.package
+include $(BOXLIB_HOME)/Src/C_ParticleLib/Make.package
 include $(BOXLIB_HOME)/Src/C_BoundaryLib/Make.package
 
 #include $(BOXLIB_HOME)/Src/F_BaseLib/FParallelMG.mak
