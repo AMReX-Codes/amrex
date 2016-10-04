@@ -55,6 +55,9 @@ MyParticleContainer::ParticlePush(Real dt)
 
     Real mass = 1.0;
 
+    // Charge
+    Real q  = 1.0;
+
     // Loop over boxes
     for (int j = 0; j < ngrids; j++)
     {
@@ -133,7 +136,7 @@ MyParticleContainer::ParticlePush(Real dt)
         pxr_epush_v(&np, xp.dataPtr(), yp.dataPtr(), zp.dataPtr(),
                         uxp.dataPtr(),uyp.dataPtr(),uzp.dataPtr(),
                         exp.dataPtr(),eyp.dataPtr(),ezp.dataPtr(),
-                         wp.dataPtr(),&mass,&half_dt);
+                    &q,&mass,&half_dt);
 
         pxr_set_gamma(&np, uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(), gaminv.dataPtr());
 
@@ -141,12 +144,12 @@ MyParticleContainer::ParticlePush(Real dt)
                         uxp.dataPtr(),uyp.dataPtr(),uzp.dataPtr(),
                      gaminv.dataPtr(),
                         bxp.dataPtr(),byp.dataPtr(),bzp.dataPtr(),
-                         wp.dataPtr(),&mass,&dt);
+                     &q,&mass,&dt);
 
         pxr_epush_v(&np, xp.dataPtr(), yp.dataPtr(), zp.dataPtr(),
                         uxp.dataPtr(),uyp.dataPtr(),uzp.dataPtr(),
                         exp.dataPtr(),eyp.dataPtr(),ezp.dataPtr(),
-                         wp.dataPtr(),&mass,&half_dt);
+                     &q,&mass,&half_dt);
 
         pxr_set_gamma(&np, uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(), gaminv.dataPtr());
 
