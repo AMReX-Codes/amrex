@@ -26,25 +26,11 @@ MyParticleContainer::Init(MultiFab& dummy_mf)
 
     int             lev         = 0; 
     const Real      strttime    = ParallelDescriptor::second();
-    const PMap&     pmap        = m_particles[lev];
-    const int       ngrids      = pmap.size();
+    PMap&           pmap        = m_particles[lev];
 
-    Array<int>         pgrd(ngrids);
-    Array<const PBox*> pbxs(ngrids);
-
-    int j = 0;
-    for (typename PMap::const_iterator pmap_it = pmap.begin(), pmapEnd = pmap.end();
-         pmap_it != pmapEnd;
-         ++pmap_it, ++j)
+    for (auto& kv : pmap) 
     {
-        pgrd[j] =   pmap_it->first;
-        pbxs[j] = &(pmap_it->second);
-    }
-
-    // Loop over boxes
-    for (int j = 0; j < ngrids; j++)
-    {
-        const PBox& pbx = *pbxs[j];
+	PBox& pbx = kv.second;
 	long np = 0;
 	Array<Real> uxp, uyp, uzp, gaminv;
 
@@ -56,10 +42,8 @@ MyParticleContainer::Init(MultiFab& dummy_mf)
 	gaminv.reserve( pbx.size() );
 
 	// Loop over particles in that box (to change array layout)
-        for (typename PBox::const_iterator it = pbx.begin(); it < pbx.end(); ++it)
+	for (auto& p : pbx)
         {
-            const ParticleType& p = *it;
-	    
             if (p.m_id <= 0) {
 	      continue;
 	    }
@@ -74,21 +58,16 @@ MyParticleContainer::Init(MultiFab& dummy_mf)
 
         pxr_set_gamma(&np, uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(), gaminv.dataPtr());
 
-#if 0
         // Loop over particles in that box (to change array layout)
         int n = 0;
-        for (typename PBox::const_iterator it = pbx.begin(); it < pbx.end(); ++it)
+        for (auto& p : pbx)
         {
-            const ParticleType& p = *it;
-
             if (p.m_id <= 0) {
               continue;
             }
             p.m_data[ 0] = charge;
-            p.m_data[10] = gaminv.dataPtr()[n];
-            n++;
+            p.m_data[10] = gaminv.dataPtr()[n++];
         }
-#endif
     }
 
     if (m_verbose > 1)
