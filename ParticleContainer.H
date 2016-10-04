@@ -5,20 +5,21 @@
 #include "Particles.H"
 
     // Particle Attributes:
-    //    1 -- w  (weight)
-    //    2 -- px (x mom)
-    //    3 -- py (y mom)
-    //    4 -- pz (z mom)
-    //    5 -- Ex
-    //    6 -- Ey
-    //    7 -- Ez
-    //    8 -- Bx
-    //    9 -- By
-    //   10 -- Bz
+    //    0 -- w  (weight)
+    //    1 -- px (x mom)
+    //    2 -- py (y mom)
+    //    3 -- pz (z mom)
+    //    4 -- Ex
+    //    5 -- Ey
+    //    6 -- Ez
+    //    7 -- Bx
+    //    8 -- By
+    //    9 -- Bz
+    //   10 -- gaminv
 
 
 class MyParticleContainer
-    : public ParticleContainer<10,0>
+    : public ParticleContainer<11,0>
 {
 
 public:
@@ -28,8 +29,10 @@ public:
                          const Array<BoxArray>            & ba,
                          const Array<int>                 & rr)
 
-     : ParticleContainer<10> (geom,dmap,ba,rr)
+     : ParticleContainer<11> (geom,dmap,ba,rr)
     { }
+
+    virtual void Init(MultiFab& dummy_mf); 
 
     virtual void ChargeDeposition(MultiFab& mf_to_be_filled, int lev, int order) const;
 
@@ -39,6 +42,8 @@ public:
     virtual void FieldGather(MultiFab& Ex, MultiFab& Ey, MultiFab& Ez,
                              MultiFab& Bx, MultiFab& By, MultiFab& Bz,
                              long order, long field_gathe_algo);
+
+    virtual void ParticlePush(Real dt);
 
 };
 #endif /*_ParticleContainer_H_*/

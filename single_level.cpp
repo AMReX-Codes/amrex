@@ -117,7 +117,6 @@ single_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int order, bo
     // This allows us to write the gravitational acceleration into these components 
 
     int num_particles = nx * ny * nz;
-    Real charge = 1.0;
 
     if (ParallelDescriptor::IOProcessor())
        std::cout << "Total number of particles    : " << num_particles << '\n' << '\n';
@@ -128,14 +127,9 @@ single_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int order, bo
 
     strt_init = ParallelDescriptor::second();
 
-    // Randomly initialize "num_particles" number of particles, each with charge "charge"
-    // bool serialize = false;
-    // int iseed   = 10;
-    // MyPC->InitRandom(num_particles,iseed,charge,serialize);
-
-    // Initialize one particle at each cell center
+    // Initialize particles and distribute using the BoxArray and DistributionMap from dummy_mf
     MultiFab dummy_mf(ba[0],1,0,Fab_allocate);
-    MyPC->InitOnePerCell(0.5,0.5,0.5,charge,dummy_mf);
+    MyPC->Init(dummy_mf);
 
     end_init = ParallelDescriptor::second() - strt_init;
 
@@ -344,12 +338,12 @@ single_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int order, bo
 
     strt_mK = ParallelDescriptor::second();
 
-    // MyPC->moveKick(grad_phi[0],nlevs-1,dummy_dt,1.0,1.0,accel_comp);
+    MyPC->ParticlePush(dt);
 
     end_mK = ParallelDescriptor::second() - strt_mK;
 
     // Write out the positions, masses and accelerations of each particle.
-    // if (verbose) MyPC->WriteAsciiFile("Particles_after_level0_solve");
+    if (verbose) MyPC->WriteAsciiFile("Particles_after");
 
     delete MyPC;
 

@@ -1,6 +1,9 @@
 CEXE_sources += main.cpp
 CEXE_sources += single_level.cpp
+
 CEXE_sources += ParticleDeposition.cpp
 CEXE_sources += ParticleGather.cpp
+CEXE_sources += ParticleInit.cpp
+CEXE_sources += ParticlePush.cpp
 
 CEXE_headers += ParticleContainer.H
