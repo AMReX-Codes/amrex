@@ -1292,6 +1292,7 @@ ParticleContainer<NR,NI>::NodalDepositionSingleLevel (MultiFab& mf_to_be_filled,
            					      int       ncomp,
 	           				      int       particle_lvl_offset) const
 {
+#if (BL_SPACEDIM == 3)
     MultiFab* mf_pointer;
 
     if (OnSameGrids(lev, mf_to_be_filled))
@@ -1453,6 +1454,9 @@ ParticleContainer<NR,NI>::NodalDepositionSingleLevel (MultiFab& mf_to_be_filled,
             std::cout << "ParticleContainer<N>::NodalDepositionSingleLevel time: " << stoptime << '\n';
         }
     }
+#else
+    BoxLib::Abort("NodalDepositionSingleLevel only works in 3D");
+#endif
 }
 
 //
