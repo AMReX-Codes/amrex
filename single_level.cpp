@@ -320,10 +320,20 @@ single_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int order, bo
     end_bvec = ParallelDescriptor::second() - strt_bvec;
     
     // **************************************************************************
-    // Now we create the E and B arrays
+    // Now we scatter E and B onto particles
     // **************************************************************************
 
-    // Fill the particle data with the acceleration at the particle location
+    int gather_order = 1;
+
+    // Fill the particle data with E, B at the particle locations
+    MyPC->FieldGather( EfieldMF[0], EfieldMF[1], EfieldMF[2],
+                       BfieldMF[0], BfieldMF[1], BfieldMF[2],
+                       gather_order);
+
+    // **************************************************************************
+    // Now we scatter E and B onto particles
+    // **************************************************************************
+
     // Note that we are calling moveKick with accel_comp > BL_SPACEDIM
     //      which means with dt = 0 we don't move the particle or set a velocity
 

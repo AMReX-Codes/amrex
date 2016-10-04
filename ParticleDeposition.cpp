@@ -52,7 +52,6 @@ extern "C" {
 	   const Real* dx, const Real* dy, const Real* dz,
 	   const long* nx, const long* ny, const long* nz,
 	   const long* nxguard, const long* nyguard, const long* nzguard);
-
 }
 
 void
@@ -382,3 +381,4 @@ MyParticleContainer::CurrentDeposition(PArray<MultiFab>& mf_to_be_filled, int le
         }
     }
 }
+

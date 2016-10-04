@@ -36,5 +36,9 @@ public:
     virtual void CurrentDeposition(PArray<MultiFab>& mf_to_be_filled, int lev,
                                    Real dt) const;
 
+    virtual void FieldGather(MultiFab& Ex, MultiFab& Ey, MultiFab& Ez,
+                             MultiFab& Bx, MultiFab& By, MultiFab& Bz,
+                             long order);
+
 };
 #endif /*_ParticleContainer_H_*/
