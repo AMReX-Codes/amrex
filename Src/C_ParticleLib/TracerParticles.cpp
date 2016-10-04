@@ -7,7 +7,7 @@
 void
 TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
 {
-    BL_PROFILE("ParticleContainer<NR,NI>::AdvectWithUmac()");
+    BL_PROFILE("TracerParticleContainer::AdvectWithUmac()");
     BL_ASSERT(OK(true, lev, umac[0].nGrow()-1));
     BL_ASSERT(lev >= 0 && lev < m_particles.size());
 
@@ -228,6 +228,176 @@ TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
         }
 #ifdef BL_LAZY
 	});
+#endif
+    }
+}
+
+void
+TracerParticleContainer::Timestamp (const std::string&      basename,
+				    const MultiFab&         mf,
+				    int                     lev,
+				    Real                    time,
+				    const std::vector<int>& indices)
+{
+    BL_PROFILE("TracerParticleContainer::Timestamp()");
+    //
+    // basename -> base filename for the output file
+    // mf       -> the multifab
+    // lev      -> level to check for particles
+    // time     -> simulation time (will be recorded in Timestamp file)
+    // indices  -> indices into mf that we output
+    //
+    BL_ASSERT(lev >= 0);
+    BL_ASSERT(time >= 0);
+    BL_ASSERT(!basename.empty());
+    BL_ASSERT(lev <= m_gdb->finestLevel());
+
+    const Real strttime = ParallelDescriptor::second();
+
+    const int   MyProc    = ParallelDescriptor::MyProc();
+    const int   NProcs    = ParallelDescriptor::NProcs();
+    // We'll spread the output over this many files.
+    int nOutFiles(64);
+    ParmParse pp("particles");
+    pp.query("particles_nfiles",nOutFiles);
+    if(nOutFiles == -1) {
+      nOutFiles = NProcs;
+    }
+    nOutFiles = std::max(1, std::min(nOutFiles,NProcs));
+    const int   nSets     = ((NProcs + (nOutFiles - 1)) / nOutFiles);
+    const int   mySet     = (MyProc / nOutFiles);
+
+    for (int iSet = 0; iSet < nSets; ++iSet)
+    {
+        if (mySet == iSet)
+        {
+            //
+            // Do we have any particles at this level that need writing?
+            //
+            bool gotwork = false;
+
+            const PMap& pmap = m_particles[lev];
+
+	    for (const auto& kv : pmap) {
+		for (const auto& p : kv.second) {
+		    if (p.m_id > 0) {
+			gotwork = true;
+			break;
+		    }
+		}
+		if (gotwork) break;
+	    }
+
+            if (gotwork)
+            {
+                std::string FileName = BoxLib::Concatenate(basename + '_', MyProc % nOutFiles, 2);
+
+                std::ofstream TimeStampFile;
+
+                VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+
+                TimeStampFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
+
+                TimeStampFile.open(FileName.c_str(), std::ios::out|std::ios::app|std::ios::binary);
+
+                TimeStampFile.setf(std::ios_base::scientific,std::ios_base::floatfield);
+
+                TimeStampFile.precision(10);
+
+                TimeStampFile.seekp(0, std::ios::end);
+
+                if (!TimeStampFile.good())
+                    BoxLib::FileOpenFailed(FileName);
+
+                const int       M  = indices.size();
+                const BoxArray& ba = mf.boxArray();
+
+                std::vector<Real> vals(M);
+
+		for (const auto& kv : pmap)
+                {
+                    const int        grid = kv.first;
+                    const PBox&      pbox = kv.second;
+                    const Box&       bx   = ba[grid];
+                    const FArrayBox& fab  = mf[grid];
+
+		    for (const auto& p : pbox)
+                    {
+                        if (p.m_id <= 0) continue;
+
+                        const IntVect& iv = ParticleBase::Index(p, m_gdb->Geom(lev));
+
+                        if (!bx.contains(iv) && !ba.contains(iv)) continue;
+
+                        BL_ASSERT(p.m_lev == lev);
+                        BL_ASSERT(p.m_grid == grid);
+
+                        TimeStampFile << p.m_id  << ' ' << p.m_cpu << ' ';
+
+                        D_TERM(TimeStampFile << p.m_pos[0] << ' ';,
+                               TimeStampFile << p.m_pos[1] << ' ';,
+                               TimeStampFile << p.m_pos[2] << ' ';);
+
+                        TimeStampFile << time;
+                        //
+                        // AdvectWithUmac stores the velocity in m_data ...
+                        //
+                        D_TERM(TimeStampFile << ' ' << p.m_data[0];,
+                               TimeStampFile << ' ' << p.m_data[1];,
+                               TimeStampFile << ' ' << p.m_data[2];);
+
+                        if (M > 0)
+                        {
+                            ParticleBase::Interp(p,m_gdb->Geom(p.m_lev),fab,&indices[0],&vals[0],M);
+
+                            for (int i = 0; i < M; i++)
+                            {
+                                TimeStampFile << ' ' << vals[i];
+                            }
+                        }
+
+                        TimeStampFile << '\n';
+                    }
+                }
+
+                TimeStampFile.flush();
+                TimeStampFile.close();
+            }
+
+            const int iBuff     = 0;
+            const int wakeUpPID = (MyProc + nOutFiles);
+            const int tag       = (MyProc % nOutFiles);
+
+            if (wakeUpPID < NProcs)
+                ParallelDescriptor::Send(&iBuff, 1, wakeUpPID, tag);
+        }
+        if (mySet == (iSet + 1))
+        {
+            //
+            // Next set waits.
+            //
+            int       iBuff;
+            const int waitForPID = (MyProc - nOutFiles);
+            const int tag        = (MyProc % nOutFiles);
+
+            ParallelDescriptor::Recv(&iBuff, 1, waitForPID, tag);
+        }
+    }
+
+    if (m_verbose > 1)
+    {
+        Real stoptime = ParallelDescriptor::second() - strttime;
+
+#ifdef BL_LAZY
+        Lazy::QueueReduction( [=] () mutable {
+#endif
+        ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
+        if (ParallelDescriptor::IOProcessor())
+        {
+            std::cout << "TracerParticleContainer::Timestamp: lev: " << lev << " time: " << stoptime << '\n';
+        }
+#ifdef BL_LAZY
+        });
 #endif
     }
 }

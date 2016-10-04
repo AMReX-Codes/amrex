@@ -23,6 +23,9 @@ public:
     void AdvectWithUmac (MultiFab* umac, int level, Real dt);
 
     void AdvectWithUcc (const MultiFab& ucc, int level, Real dt);
+
+    void Timestamp (const std::string& file, const MultiFab& mf, int lev, Real time,
+		    const std::vector<int>& idx);
 };
 
 
