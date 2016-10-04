@@ -1348,12 +1348,16 @@ ParticleContainer<NR,NI>::NodalDepositionSingleLevel (MultiFab& mf_to_be_filled,
     Array<Real> fracs;
     fracs.resize(8);
 
+#if (BL_SPACEDIM > 1)
     Array<Real> sx;
-    Array<Real> sy;
-    Array<Real> sz;
     sx.resize(2);
+    Array<Real> sy;
     sy.resize(2);
+#endif
+#if (BL_SPACEDIM > 2)
+    Array<Real> sz;
     sz.resize(2);
+#endif
 
     for (int j = 0; j < ngrids; j++)
     {
@@ -1367,6 +1371,51 @@ ParticleContainer<NR,NI>::NodalDepositionSingleLevel (MultiFab& mf_to_be_filled,
             if (p.m_id <= 0) {
 	      continue;
 	    }
+#if (BL_SPACEDIM == 1)
+            cells[0] = p.m_cell;
+            cells[1] = p.m_cell+IntVect(1);
+
+            Real x = p.m_pos[0] / dx[0];
+
+            int i = p.m_cell[0];
+
+            Real xint = x - i;
+
+            for (int i = 0; i < 2; i++)
+            {
+               fab(cells[0],0) += p.m_data[0] * (1.0 - xint);
+               fab(cells[1],0) += p.m_data[0] *        xint ;
+            }
+#elif (BL_SPACEDIM == 2)
+            cells[0] = p.m_cell;
+            cells[1] = p.m_cell+IntVect(1,0);
+            cells[2] = p.m_cell+IntVect(0,1);
+            cells[3] = p.m_cell+IntVect(1,1);
+
+            Real x = p.m_pos[0] / dx[0];
+            Real y = p.m_pos[1] / dx[1];
+
+            int i = p.m_cell[0];
+            int j = p.m_cell[1];
+
+            Real xint = x - i;
+            Real yint = y - j;
+
+            sx[0] = 1.0-xint;
+            sx[1] = xint;
+            sy[0] = 1.0-yint;
+            sy[1] = yint;
+
+            fracs[0] = sx[0] * sy[0];
+            fracs[1] = sx[1] * sy[0];
+            fracs[2] = sx[0] * sy[1];
+            fracs[3] = sx[1] * sy[1];
+
+            for (int i = 0; i < 4; i++)
+            {
+               fab(cells[i],0) += p.m_data[0] * fracs[i];
+            }
+#else
             cells[0] = p.m_cell;
             cells[1] = p.m_cell+IntVect(1,0,0);
             cells[2] = p.m_cell+IntVect(0,1,0);
@@ -1408,6 +1457,7 @@ ParticleContainer<NR,NI>::NodalDepositionSingleLevel (MultiFab& mf_to_be_filled,
             {
                fab(cells[i],0) += p.m_data[0] * fracs[i];
             }
+#endif
         }
     }
 
