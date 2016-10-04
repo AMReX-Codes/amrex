@@ -323,12 +323,13 @@ single_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int order, bo
     // Now we scatter E and B onto particles
     // **************************************************************************
 
-    int gather_order = 1;
+    long gather_order     = 1;
+    long field_gathe_algo = 1;
 
     // Fill the particle data with E, B at the particle locations
     MyPC->FieldGather( EfieldMF[0], EfieldMF[1], EfieldMF[2],
                        BfieldMF[0], BfieldMF[1], BfieldMF[2],
-                       gather_order);
+                       gather_order,field_gathe_algo);
 
     // **************************************************************************
     // Now we scatter E and B onto particles

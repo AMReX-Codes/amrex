@@ -11,13 +11,14 @@ void geteb3d_energy_conserving(const long* np,
 	   const long* nox, const long* noy, const long* noz,
 	   const Real* exg, const Real* eyg, const Real* ezg,
 	   const Real* bxg, const Real* byg, const Real* bzg,
-	   const bool* ll4symtry, const bool* l_lower_order_in_v); 
+	   const bool* ll4symtry, const bool* l_lower_order_in_v,  
+	   const long* field_gathe_algo);
 }
 
 void
 MyParticleContainer::FieldGather(MultiFab& Ex, MultiFab& Ey, MultiFab& Ez,
                                  MultiFab& Bx, MultiFab& By, MultiFab& Bz,
-                                 long order)
+                                 long order, long field_gathe_algo)
 {
     int             lev         = 0; 
     const Real      strttime    = ParallelDescriptor::second();
@@ -117,7 +118,7 @@ MyParticleContainer::FieldGather(MultiFab& Ex, MultiFab& Ey, MultiFab& Ez,
 				      &order, &order, &order, 
 				      exfab.dataPtr(), eyfab.dataPtr(), ezfab.dataPtr(),
 				      bxfab.dataPtr(), byfab.dataPtr(), bzfab.dataPtr(),
-				      &ll4symtry, &l_lower_order_in_v);
+				      &ll4symtry, &l_lower_order_in_v, &field_gathe_algo);
 
        Real end_gather = ParallelDescriptor::second() - strt_gather;
        if (ParallelDescriptor::IOProcessor()) 

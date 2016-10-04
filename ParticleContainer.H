@@ -38,7 +38,7 @@ public:
 
     virtual void FieldGather(MultiFab& Ex, MultiFab& Ey, MultiFab& Ez,
                              MultiFab& Bx, MultiFab& By, MultiFab& Bz,
-                             long order);
+                             long order, long field_gathe_algo);
 
 };
 #endif /*_ParticleContainer_H_*/
