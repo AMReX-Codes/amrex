@@ -42,7 +42,7 @@ MyParticleContainer::Init(MultiFab& dummy_mf)
 	gaminv.reserve( pbx.size() );
 
 	// Loop over particles in that box (to change array layout)
-	for (auto& p : pbx)
+	for (const auto& p : pbx)
         {
             if (p.m_id <= 0) {
 	      continue;
