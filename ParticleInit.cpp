@@ -31,7 +31,6 @@ MyParticleContainer::Init(MultiFab& dummy_mf)
     for (auto& kv : pmap) 
     {
 	PBox& pbx = kv.second;
-	long np = 0;
 	Array<Real> uxp, uyp, uzp, gaminv;
 
 	// 1D Arrays of particle attributes
@@ -42,6 +41,7 @@ MyParticleContainer::Init(MultiFab& dummy_mf)
 	gaminv.reserve( pbx.size() );
 
 	// Loop over particles in that box (to change array layout)
+	long np = 0;
 	for (const auto& p : pbx)
         {
             if (p.m_id <= 0) {

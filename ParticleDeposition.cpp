@@ -76,49 +76,36 @@ MyParticleContainer::ChargeDeposition(MultiFab& mf_to_be_filled, int lev, int or
 				  m_gdb->ParticleDistributionMap(lev), Fab_allocate);
     }
 
+    // Putting the density to 0 before depositing the charge
+    for (MFIter mfi(*mf_pointer); mfi.isValid(); ++mfi)  
+        (*mf_pointer)[mfi].setVal(0);
+
     const Real      strttime    = ParallelDescriptor::second();
+
     const Geometry& gm          = m_gdb->Geom(lev);
     const BoxArray& ba          = mf_pointer->boxArray();
     const Real*     dx          = gm.CellSize();
+
     const PMap&     pmap        = m_particles[lev];
-    const int       ngrids      = pmap.size();
 
-    // Putting the density to 0 before depositing the charge
-    for (MFIter mfi(*mf_pointer); mfi.isValid(); ++mfi) {
-        (*mf_pointer)[mfi].setVal(0);
-    }
-    //
-    // This is a little funky.  What in effect this'll do is force
-    // each thread to work on a single (separate) grid at a time.  That
-    // way no thread will step on any other.  If there's only one grid per CPU,
-    // then oh well ....
-    //
-    // TODO: implement tiling with OpenMP in this grid loop.
-    Array<int>         pgrd(ngrids);
-    Array<const PBox*> pbxs(ngrids);
+    // Charge
+    Real q = 1.;
 
-    int j = 0;
-    for (typename PMap::const_iterator pmap_it = pmap.begin(), pmapEnd = pmap.end();
-         pmap_it != pmapEnd;
-         ++pmap_it, ++j)
+    // Loop over the grids containing particles
+    for (auto& kv : pmap)
     {
-        pgrd[j] =   pmap_it->first;
-        pbxs[j] = &(pmap_it->second);
-    }
+        const  int  pgr = kv.first;
+        const PBox& pbx = kv.second;
 
-    // Loop over boxes
-    for (int j = 0; j < ngrids; j++)
-    {
-        const PBox& pbx = *pbxs[j];
-	long np = 0;
-	Real q = 1.;
+        FArrayBox&  fab = (*mf_pointer)[pgr];
+
 	Array<Real> xp, yp, zp, wp;
-        FArrayBox&  fab = (*mf_pointer)[pgrd[j]];
 	xp.reserve( pbx.size() );
 	yp.reserve( pbx.size() );
 	zp.reserve( pbx.size() );
 	wp.reserve( pbx.size() );
-	const Box & bx = ba[pgrd[j]];
+
+	const Box & bx = ba[pgr];
 	RealBox grid_box = RealBox( bx, dx, gm.ProbLo() );
 	const Real* xyzmin = grid_box.lo();
 	long nx = bx.length(0)-1, ny = bx.length(1)-1, nz = bx.length(2)-1; 
@@ -128,10 +115,9 @@ MyParticleContainer::ChargeDeposition(MultiFab& mf_to_be_filled, int lev, int or
         Real strt_copy = ParallelDescriptor::second();
 	
 	// Loop over particles in that box (to change array layout)
-        for (typename PBox::const_iterator it = pbx.begin(); it < pbx.end(); ++it)
+	long np = 0;
+        for (const auto& p : pbx)
         {
-            const ParticleType& p = *it;
-	    
             if (p.m_id <= 0) {
 	      continue;
 	    }
@@ -254,42 +240,26 @@ MyParticleContainer::CurrentDeposition(PArray<MultiFab>& mf_to_be_filled, int le
     const BoxArray& ba          = mf_pointer_x->boxArray();
     const Real*     dx          = gm.CellSize();
     const PMap&     pmap        = m_particles[lev];
-    const int       ngrids      = pmap.size();
 
     // Setting the current to 0 before depositing the charge
     for (MFIter mfi(*mf_pointer_x); mfi.isValid(); ++mfi) (*mf_pointer_x)[mfi].setVal(0);
     for (MFIter mfi(*mf_pointer_y); mfi.isValid(); ++mfi) (*mf_pointer_y)[mfi].setVal(0);
     for (MFIter mfi(*mf_pointer_z); mfi.isValid(); ++mfi) (*mf_pointer_z)[mfi].setVal(0);
    
-    //
-    // This is a little funky.  What in effect this'll do is force
-    // each thread to work on a single (separate) grid at a time.  That
-    // way no thread will step on any other.  If there's only one grid per CPU,
-    // then oh well ....
-    //
-    // TODO: implement tiling with OpenMP in this grid loop.
-    Array<int>         pgrd(ngrids);
-    Array<const PBox*> pbxs(ngrids);
+    // Charge
+    Real q = 1.;
 
-    int j = 0;
-    for (typename PMap::const_iterator pmap_it = pmap.begin(), pmapEnd = pmap.end();
-         pmap_it != pmapEnd;
-         ++pmap_it, ++j)
+    // Loop over the grids containing particles
+    for (auto& kv : pmap)
     {
-        pgrd[j] =   pmap_it->first;
-        pbxs[j] = &(pmap_it->second);
-    }
+        const  int  pgr = kv.first;
+        const PBox& pbx = kv.second;
 
-    // Loop over boxes
-    for (int j = 0; j < ngrids; j++)
-    {
-        const PBox& pbx = *pbxs[j];
-	long np = 0;
-	Real q = 1.;
 	Array<Real> xp, yp, zp, wp, uxp, uyp, uzp, gip;
-        FArrayBox&  fabx = (*mf_pointer_x)[pgrd[j]];
-        FArrayBox&  faby = (*mf_pointer_y)[pgrd[j]];
-        FArrayBox&  fabz = (*mf_pointer_z)[pgrd[j]];
+        FArrayBox&  fabx = (*mf_pointer_x)[pgr];
+        FArrayBox&  faby = (*mf_pointer_y)[pgr];
+        FArrayBox&  fabz = (*mf_pointer_z)[pgr];
+
 	 xp.reserve( pbx.size() );
 	 yp.reserve( pbx.size() );
 	 zp.reserve( pbx.size() );
@@ -298,17 +268,17 @@ MyParticleContainer::CurrentDeposition(PArray<MultiFab>& mf_to_be_filled, int le
 	uyp.reserve( pbx.size() );
 	uzp.reserve( pbx.size() );
 	gip.reserve( pbx.size() );
-	const Box & bx = ba[pgrd[j]];
+
+	const Box & bx = ba[pgr];
 	RealBox grid_box = RealBox( bx, dx, gm.ProbLo() );
 	const Real* xyzmin = grid_box.lo();
 	long nx = bx.length(0)-1, ny = bx.length(1)-1, nz = bx.length(2)-1; 
 	long ng = mf_pointer_x->nGrow();
 	
 	// Loop over particles in that box (to change array layout)
-        for (typename PBox::const_iterator it = pbx.begin(); it < pbx.end(); ++it)
+	long np = 0;
+        for (const auto& p : pbx)
         {
-            const ParticleType& p = *it;
-	    
             if (p.m_id <= 0) {
 	      continue;
 	    }

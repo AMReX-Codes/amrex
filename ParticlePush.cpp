@@ -2,25 +2,25 @@
 
 extern "C" {
 void pxr_epush_v(const long* np, 
-           const Real* xp, const Real* yp, const Real* zp,
-	   const Real* up, const Real* vp, const Real* wp,
+           const Real*  xp, const Real*  yp, const Real*  zp,
+	   const Real* uxp, const Real* uyp, const Real* uzp,
 	   const Real* exp, const Real* eyp,const Real* ezp,
 	   const Real* charge, const Real* mass, Real* dt);
 
 void pxr_bpush_v(const long* np, 
-           const Real* xp, const Real* yp, const Real* zp,
-	   const Real* up, const Real* vp, const Real* wp,
+           const Real*  xp, const Real*  yp, const Real*  zp,
+	   const Real* uxp, const Real* uyp, const Real* uzp,
 	   const Real* gaminv, 
 	   const Real* bxp, const Real* byp,const Real* bzp,
 	   const Real* charge, const Real* mass, Real* dt);
 
 void pxr_pushxyz(const long* np, 
-           const Real* xp, const Real* yp, const Real* zp,
-	   const Real* up, const Real* vp, const Real* wp,
+           const Real*  xp, const Real*  yp, const Real*  zp,
+	   const Real* uxp, const Real* uyp, const Real* uzp,
 	   const Real* gaminv, Real* dt);
 
 void pxr_set_gamma(const long* np, 
-	   const Real* up, const Real* vp, const Real* wp,
+	   const Real* uxp, const Real* uyp, const Real* uzp,
 	   const Real* gaminv);
 }
 
@@ -29,40 +29,22 @@ MyParticleContainer::ParticlePush(Real dt)
 {
     int             lev         = 0; 
     const Real      strttime    = ParallelDescriptor::second();
-    const PMap&     pmap        = m_particles[lev];
-    const int       ngrids      = pmap.size();
-
-    //
-    // This is a little funky.  What in effect this'll do is force
-    // each thread to work on a single (separate) grid at a time.  That
-    // way no thread will step on any other.  If there's only one grid per CPU,
-    // then oh well ....
-    //
-    // TODO: implement tiling with OpenMP in this grid loop.
-    Array<int>         pgrd(ngrids);
-    Array<const PBox*> pbxs(ngrids);
-
-    int j = 0;
-    for (typename PMap::const_iterator pmap_it = pmap.begin(), pmapEnd = pmap.end();
-         pmap_it != pmapEnd;
-         ++pmap_it, ++j)
-    {
-        pgrd[j] =   pmap_it->first;
-        pbxs[j] = &(pmap_it->second);
-    }
+    PMap&           pmap        = m_particles[lev];
 
     Real half_dt = 0.5 * dt;
 
+    // Mass
     Real mass = 1.0;
 
     // Charge
     Real q  = 1.0;
 
-    // Loop over boxes
-    for (int j = 0; j < ngrids; j++)
+    // Loop over pmap which loops over the grids containing particles
+    for (auto& kv : pmap)
     {
-        const PBox& pbx = *pbxs[j];
-	long np = 0;
+        PBox& pbx = kv.second;
+        long np = 0;
+
 	Array<Real>  xp,  yp,  zp, wp;
 	Array<Real> uxp, uyp, uzp;
 	Array<Real> exp, eyp, ezp;
@@ -89,11 +71,9 @@ MyParticleContainer::ParticlePush(Real dt)
 
         Real strt_copy = ParallelDescriptor::second();
 	
-	// Loop over particles in that box (to change array layout)
-        for (typename PBox::const_iterator it = pbx.begin(); it < pbx.end(); ++it)
+	// Loop over particles in the box
+        for (const auto& p : pbx)
         {
-            const ParticleType& p = *it;
-	    
             if (p.m_id <= 0) {
 	      continue;
 	    }
@@ -104,12 +84,10 @@ MyParticleContainer::ParticlePush(Real dt)
 	     yp.push_back( p.m_pos[1] );
 	     zp.push_back( p.m_pos[2] );
 
-            // Charge
- 	     wp.push_back( p.m_data[0]);
-
             // Velocity
  	    uxp.push_back( p.m_data[1] ); 
  	    uyp.push_back( p.m_data[2] ); 
+
  	    uzp.push_back( p.m_data[3] ); 
 
             // E-field
@@ -161,6 +139,26 @@ MyParticleContainer::ParticlePush(Real dt)
 
         if (ParallelDescriptor::IOProcessor()) 
             std::cout << "Time in PicsarPush : Push " << end_push << '\n';
+
+        // Loop over particles in that box again to save the new particle positions, velocities, and (1/gamma)
+        int n = 0;
+        for (auto& p : pbx)
+        {
+            if (p.m_id <= 0) {
+              continue;
+            }
+            p.m_pos[0] = xp.dataPtr()[n];
+            p.m_pos[1] = yp.dataPtr()[n];
+            p.m_pos[2] = zp.dataPtr()[n];
+
+            p.m_data[1] = uxp.dataPtr()[n];
+            p.m_data[2] = uyp.dataPtr()[n];
+            p.m_data[3] = uzp.dataPtr()[n];
+
+            p.m_data[10] = gaminv.dataPtr()[n];
+
+            n++;
+        }
     }
 
     if (m_verbose > 1)

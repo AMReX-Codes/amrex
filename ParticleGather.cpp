@@ -26,32 +26,15 @@ MyParticleContainer::FieldGather(MultiFab& Ex, MultiFab& Ey, MultiFab& Ez,
     const Geometry& gm          = m_gdb->Geom(lev);
     const BoxArray& ba          = Ex.boxArray();
     const Real*     dx          = gm.CellSize();
+
     const PMap&     pmap        = m_particles[lev];
-    const int       ngrids      = pmap.size();
 
-    //
-    // This is a little funky.  What in effect this'll do is force
-    // each thread to work on a single (separate) grid at a time.  That
-    // way no thread will step on any other.  If there's only one grid per CPU,
-    // then oh well ....
-    //
-    // TODO: implement tiling with OpenMP in this grid loop.
-    Array<int>         pgrd(ngrids);
-    Array<const PBox*> pbxs(ngrids);
-
-    int j = 0;
-    for (typename PMap::const_iterator pmap_it = pmap.begin(), pmapEnd = pmap.end();
-         pmap_it != pmapEnd;
-         ++pmap_it, ++j)
+    // Loop over the grids containing particles
+    for (auto& kv : pmap)
     {
-        pgrd[j] =   pmap_it->first;
-        pbxs[j] = &(pmap_it->second);
-    }
+        const  int  pgr = kv.first;
+        const PBox& pbx = kv.second;
 
-    // Loop over boxes
-    for (int j = 0; j < ngrids; j++)
-    {
-        const PBox& pbx = *pbxs[j];
 	long np = 0;
 	Array<Real>  xp,  yp,  zp, wp;
 	Array<Real> exp, eyp, ezp;
@@ -70,14 +53,14 @@ MyParticleContainer::FieldGather(MultiFab& Ex, MultiFab& Ey, MultiFab& Ez,
 	bzp.reserve( pbx.size() );
 
 	// Data on the grid
-        FArrayBox& exfab = Ex[pgrd[j]];
-        FArrayBox& eyfab = Ey[pgrd[j]];
-        FArrayBox& ezfab = Ez[pgrd[j]];
-        FArrayBox& bxfab = Bx[pgrd[j]];
-        FArrayBox& byfab = By[pgrd[j]];
-        FArrayBox& bzfab = Bz[pgrd[j]];
+        FArrayBox& exfab = Ex[pgr];
+        FArrayBox& eyfab = Ey[pgr];
+        FArrayBox& ezfab = Ez[pgr];
+        FArrayBox& bxfab = Bx[pgr];
+        FArrayBox& byfab = By[pgr];
+        FArrayBox& bzfab = Bz[pgr];
 
-	const Box & bx = ba[pgrd[j]];
+	const Box & bx = ba[pgr];
 	RealBox grid_box = RealBox( bx, dx, gm.ProbLo() );
 	const Real* xyzmin = grid_box.lo();
 	long nx = bx.length(0)-1, ny = bx.length(1)-1, nz = bx.length(2)-1; 
@@ -85,11 +68,9 @@ MyParticleContainer::FieldGather(MultiFab& Ex, MultiFab& Ey, MultiFab& Ez,
 
         Real strt_copy = ParallelDescriptor::second();
 	
-	// Loop over particles in that box (to change array layout)
-        for (typename PBox::const_iterator it = pbx.begin(); it < pbx.end(); ++it)
+	// Loop over particles in that box 
+        for (const auto& p : pbx)
         {
-            const ParticleType& p = *it;
-	    
             if (p.m_id <= 0) {
 	      continue;
 	    }
