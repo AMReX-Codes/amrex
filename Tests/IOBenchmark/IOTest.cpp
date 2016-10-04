@@ -264,13 +264,15 @@ void TestWriteNFiles(int nfiles, int maxgrid, int ncomps, int nboxes,
   VisMF::Header::Version currentVersion(VisMF::GetHeaderVersion());
   VisMF::SetHeaderVersion(whichVersion);
 
-  ParallelDescriptor::Barrier();
+  ParallelDescriptor::Barrier("TestWriteNFiles:BeforeWrite");
   double wallTimeStart(ParallelDescriptor::second());
 
   for(int nmf(0); nmf < nMultiFabs; ++nmf) {
     totalBytesWritten += VisMF::Write(*multifabs[nmf], mfNames[nmf]);
   }
   double wallTime(ParallelDescriptor::second() - wallTimeStart);
+
+  ParallelDescriptor::Barrier("TestWriteNFiles:AfterWrite");
 
   double wallTimeMax(wallTime);
   double wallTimeMin(wallTime);
@@ -297,7 +299,7 @@ void TestWriteNFiles(int nfiles, int maxgrid, int ncomps, int nboxes,
 
 
   if(checkmf) {
-    ParallelDescriptor::Barrier();
+    ParallelDescriptor::Barrier("TestWriteNFiles:checkmf");
     wallTime = ParallelDescriptor::second();
 
     bool isOk(true);
@@ -339,7 +341,7 @@ void TestReadMF(const std::string &mfName, bool useSyncReads,
   VisMF::SetUseSynchronousReads(useSyncReads);
   VisMF::CloseAllStreams(); 
 
-  ParallelDescriptor::Barrier();
+  ParallelDescriptor::Barrier("TestReadMF:BeforeRead");
   double wallTimeStart(ParallelDescriptor::second());
 
   Array<Array<char> > faHeaders(nMultiFabs);
@@ -349,10 +351,12 @@ void TestReadMF(const std::string &mfName, bool useSyncReads,
     ParallelDescriptor::ReadAndBcastFile(faHName, faHeaders[nmf], bExitOnError);
   }
   for(int nmf(0); nmf < nMultiFabs; ++nmf) {
-    VisMF::Read(*multifabs[nmf], mfNames[nmf], faHeaders[nmf].dataPtr()); 
+    VisMF::Read(*multifabs[nmf], mfNames[nmf], faHeaders[nmf].dataPtr(), nmf); 
   }
 
   double wallTime(ParallelDescriptor::second() - wallTimeStart);
+
+  ParallelDescriptor::Barrier("TestReadMF:AfterRead");
 
   for(int nmf(0); nmf < nMultiFabs; ++nmf) {
     for(int i(0); i < multifabs[nmf]->nComp(); ++i) {
