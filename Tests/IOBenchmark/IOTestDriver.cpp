@@ -223,7 +223,7 @@ int main(int argc, char *argv[]) {
          << timerTime << "  (should be " << nsleep << " seconds)" << endl;
   }
 
-  ParallelDescriptor::Barrier();
+  ParallelDescriptor::Barrier("main:top");
 
   VisMF::SetUseSingleRead(useSingleRead);
   VisMF::SetUseSingleWrite(useSingleWrite);
@@ -240,7 +240,7 @@ int main(int argc, char *argv[]) {
       std::string filePrefix("NFiles");
       NFileTests(nfiles, filePrefix);
 
-      ParallelDescriptor::Barrier();
+      ParallelDescriptor::Barrier("after NFileTests");
 
       if(ParallelDescriptor::IOProcessor()) {
         cout << "==================================================" << endl;
@@ -261,7 +261,7 @@ int main(int argc, char *argv[]) {
       bool useIter(true);
       DSSNFileTests(nfiles, filePrefix, useIter);
 
-      ParallelDescriptor::Barrier();
+      ParallelDescriptor::Barrier("after DSSNFileTests");
       if(ParallelDescriptor::IOProcessor()) {
         cout << "==================================================" << endl;
         cout << endl;
@@ -330,9 +330,9 @@ int main(int argc, char *argv[]) {
       }
 
     for(int itimes(0); itimes < ntimes; ++itimes) {
-      ParallelDescriptor::Barrier();
+      ParallelDescriptor::Barrier("TestWriteNFiles::BeforeSleep4");
       BoxLib::USleep(4);
-      ParallelDescriptor::Barrier();
+      ParallelDescriptor::Barrier("TestWriteNFiles::AfterSleep4");
 
       if(ParallelDescriptor::IOProcessor()) {
         cout << endl << "--------------------------------------------------" << endl;
@@ -342,6 +342,8 @@ int main(int argc, char *argv[]) {
       TestWriteNFiles(nfiles, maxgrid, ncomps, nboxes, raninit, mb2,
                       hVersion, groupSets, setBuf, useDSS, nMultiFabs,
 		      checkmf);
+
+      ParallelDescriptor::Barrier("TestWriteNFiles::finished");
 
       if(ParallelDescriptor::IOProcessor()) {
         cout << "==================================================" << endl;
@@ -355,9 +357,9 @@ int main(int argc, char *argv[]) {
   if(testreadmf) {
     VisMF::SetMFFileInStreams(nReadStreams);
     for(int itimes(0); itimes < ntimes; ++itimes) {
-      ParallelDescriptor::Barrier();
+      ParallelDescriptor::Barrier("TestReadMF::BeforeSleep4");
       BoxLib::USleep(4);
-      ParallelDescriptor::Barrier();
+      ParallelDescriptor::Barrier("TestReadMF::AfterSleep4");
 
       if(ParallelDescriptor::IOProcessor()) {
         cout << endl << "++++++++++++++++++++++++++++++++++++++++++++++++++" << endl;
@@ -367,6 +369,8 @@ int main(int argc, char *argv[]) {
       for(int i(0); i < readFANames.size(); ++i) {
         TestReadMF(readFANames[i], useSyncReads, nMultiFabs);
       }
+
+      ParallelDescriptor::Barrier("TestReadMF::finished");
 
       if(ParallelDescriptor::IOProcessor()) {
         cout << "##################################################" << endl;

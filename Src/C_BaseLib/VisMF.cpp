@@ -677,6 +677,8 @@ void
 VisMF::Header::CalculateMinMax (const FabArray<FArrayBox>& mf,
                                 int procToWrite)
 {
+    BL_PROFILE("VisMF::CalculateMinMax");
+
     m_min.resize(m_ba.size());
     m_max.resize(m_ba.size());
 
@@ -1033,7 +1035,11 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
       coordinatorProc = nfi.CoordinatorProc();
     }
 
-    hdr.CalculateMinMax(mf, coordinatorProc);
+    if(currentVersion == VisMF::Header::Version_v1 ||
+       currentVersion == VisMF::Header::NoFabHeaderMinMax_v1)
+    {
+      hdr.CalculateMinMax(mf, coordinatorProc);
+    }
 
     VisMF::FindOffsets(mf, filePrefix, hdr, groupSets, currentVersion,
 		       useDynamicSetSelection, nfi);
