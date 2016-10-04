@@ -521,24 +521,17 @@ ParticleContainer<NR,NI>::NumberOfParticlesInGrid (int  lev,
     {
         const PMap& pmap = m_particles[lev];
 
-        for (typename PMap::const_iterator pmap_it = pmap.begin(), End = pmap.end();
-             pmap_it != End;
-             ++pmap_it)
+        for (const auto& kv : pmap)
         {
-            int         pgrd = pmap_it->first;
-            const PBox& pbox = pmap_it->second;
-
-            nparticles[pgrd] = 0;
+            int         pgrd = kv.first;
+            const PBox& pbox = kv.second;
 
             if (only_valid)
             {
-                for (typename PBox::const_iterator it = pbox.begin(), pboxEnd = pbox.end();
-                     it != pboxEnd;
-                     ++it)
-                {
-                    if (it->m_id > 0)
-                        nparticles[pgrd]++;
-                }
+		for (const auto& p : pbox)
+		{
+		    if (p.m_id > 0) ++nparticles[pgrd];
+		}
             }
             else
             {
@@ -565,21 +558,16 @@ ParticleContainer<NR,NI>::NumberOfParticlesAtLevel (int  lev,
     {
         const PMap& pmap = m_particles[lev];
 
-        for (typename PMap::const_iterator pmap_it = pmap.begin(), End = pmap.end();
-             pmap_it != End;
-             ++pmap_it)
+	for (const auto& kv : pmap)
         {
-            const PBox& pbox = pmap_it->second;
+            const PBox& pbox = kv.second;
 
             if (only_valid)
             {
-                for (typename PBox::const_iterator it = pbox.begin(), pboxEnd = pbox.end();
-                     it != pboxEnd;
-                     ++it)
-                {
-                    if (it->m_id > 0)
-                        nparticles++;
-                }
+		for (const auto& p : pbox)
+		{
+		    if (p.m_id > 0) ++nparticles;
+		}
             }
             else
             {
@@ -604,14 +592,10 @@ ParticleContainer<NR,NI>::ByteSpread () const
 {
     long cnt = 0;
 
-    for (int lev = 0; lev < m_particles.size(); lev++)
-    {
-        const PMap& pmap = m_particles[lev];
-
-        for (typename PMap::const_iterator it = pmap.begin(), End = pmap.end(); it != End; ++it)
-        {
-            cnt += it->second.size();
-        }
+    for (const auto& pmap : m_particles) {
+	for (const auto& kv : pmap) {
+	    cnt += kv.second.size();
+	}
     }
 
     long mn = cnt, mx = mn;
