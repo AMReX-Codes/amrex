@@ -262,12 +262,16 @@ single_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int order, bo
     EfieldMF[2].setVal(0.0);
       
     Real mu0 = 1.2566370614359173e-06;
-    Real mudt = mu0*clight*clight * dt;
+    Real mu_c2_dt = mu0*clight*clight * dt;
     /* Define coefficients of the stencil: for now, only the Yee grid */
-    Real dtsdx[1], dtsdy[1], dtsdz[1];
-    dtsdx[0] = dt/dx * clight*clight;
-    dtsdy[0] = dt/dy * clight*clight;
-    dtsdz[0] = dt/dz * clight*clight;
+    Real dtsdx[1], dtsdy[1], dtsdz[1], dtsdx_c2[1], dtsdy_c2[1],
+    dtsdz_c2[1];
+    dtsdx[0] = dt/dx;
+    dtsdy[0] = dt/dx;
+    dtsdz[0] = dt/dx;
+    dtsdx_c2[0] = dt/dx * clight*clight;
+    dtsdy_c2[0] = dt/dy * clight*clight;
+    dtsdz_c2[0] = dt/dz * clight*clight;
     long norder = 2;
     long nguard = 1;
     bool l_nodal = 0;
@@ -287,7 +291,7 @@ single_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int order, bo
 			        CurrentMF[0][mfi].dataPtr(),
 			        CurrentMF[1][mfi].dataPtr(),
 			        CurrentMF[2][mfi].dataPtr(),
-			        &mudt, dtsdx, dtsdy, dtsdz, 
+			        &mu_c2_dt, dtsdx_c2, dtsdy_c2, dtsdz_c2, 
 			        &nxlocal, &nylocal, &nzlocal,
 			        &norder, &norder, &norder,
 			        &nguard, &nguard, &nguard,
