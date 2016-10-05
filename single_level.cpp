@@ -9,6 +9,10 @@
 
 #include "ParticleContainer.H"
 
+namespace {
+    constexpr Real clight = 299792458.;
+};
+
 extern "C" {
   void pxrpush_em3d_evec_norder( Real* ex, Real* ey, Real* ez,
 	Real* bx, Real* by, Real* bz,
@@ -41,43 +45,55 @@ single_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int order, bo
     // ********************************************************************************************
     // All of this defines the level 0 information -- size of box, type of boundary condition, etc.
     // ********************************************************************************************
-    // This defines the physical size of the box.  Right now the box is [0,1] in each direction.
-    RealBox real_box;
-    for (int n = 0; n < BL_SPACEDIM; n++)
-    {
-       real_box.setLo(n,0.0);
-       real_box.setHi(n,1.0);
-    }
-    Real dx = real_box.length(0)/nx;
-    Real dy = real_box.length(1)/ny;
-    Real dz = real_box.length(2)/nz;
-    Real clight = 299792458.;
-    Real dt  = 0.95 * dx /clight ;
-    
-    // Define the lower and upper corner of a 3D domain
-    IntVect domain_lo(0 , 0, 0); 
-    IntVect domain_hi(nx-1,ny-1,nz-1); 
- 
-    // Build a box for the level 0 domain
-    const Box domain(domain_lo, domain_hi);
 
-    // This says we are using Cartesian coordinates
-    int coord = 0;
+    BL_ASSERT(nlevs == 1);
 
-    // This sets the boundary conditions to be doubly or triply periodic
-    int is_per[BL_SPACEDIM];
-    for (int i = 0; i < BL_SPACEDIM; i++) is_per[i] = 1; 
-
-    // This defines a Geometry object which is useful for writing the plotfiles  
-    Array<Geometry> geom(nlevs);
-    geom[0].define(domain, &real_box, coord, is_per);
-
-    // Build a BoxArray then initialize with the domain.
+    Array<Geometry> geom(1);
+    Array<DistributionMapping> dmap(1);
     Array<BoxArray> ba(1);
-    ba[0].define(domain);
+    Real dx, dy, dz;
+    Real dt;
+    {
+	// This defines the physical size of the box. 
+	// Right now the box is [0,1] in each direction.
+	RealBox real_box;
+	for (int n = 0; n < BL_SPACEDIM; n++)
+	{
+	    real_box.setLo(n,0.0);
+	    real_box.setHi(n,1.0);
+	}
+	dx = real_box.length(0)/nx;
+	dy = real_box.length(1)/ny;
+	dz = real_box.length(2)/nz;
+	dt  = 0.95 * dx /clight ;
+	
+	// Define the lower and upper corner of a 3D domain
+	IntVect domain_lo(0 , 0, 0); 
+	IntVect domain_hi(nx-1,ny-1,nz-1); 
+	
+	// Build a box for the level 0 domain
+	const Box domain(domain_lo, domain_hi);
+	
+	// This says we are using Cartesian coordinates
+	int coord = 0;
+	
+	// This sets the boundary conditions to be doubly or triply periodic
+	int is_per[BL_SPACEDIM];
+	for (int i = 0; i < BL_SPACEDIM; i++) is_per[i] = 1; 
+	
+	// This defines a Geometry object which is useful for writing the plotfiles  
+	geom[0].define(domain, &real_box, coord, is_per);
+	
+	// Build a BoxArray then initialize with the domain.
+	ba[0].define(domain);
+	
+	// Break the BoxArrays at both levels into max_grid_size^3 boxes
+	ba[0].maxSize(max_grid_size);
 
-    // Break the BoxArrays at both levels into max_grid_size^3 boxes
-    ba[0].maxSize(max_grid_size);
+	// Build a dummy MultiFab so we can use its DistributionMap
+	MultiFab dummyMF(ba[0],1,0);
+	dmap[0] = dummyMF.DistributionMap();
+    }
 
     if (verbose && ParallelDescriptor::IOProcessor())
     {
@@ -88,31 +104,14 @@ single_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int order, bo
     // Set up the arrays for the solve
     // ********************************************************************************************
 
-    // Build a dummy MultiFab so we can use its DistributionMap
-    MultiFab dummyMF(ba[0],1,0);
-    Array<DistributionMapping> dmap(1);
-    dmap[0] = dummyMF.DistributionMap();
-
-    // Particle Attributes:
-    //    1 -- w  (weight)
-    //    2 -- px (x mom)
-    //    3 -- py (y mom)
-    //    4 -- pz (z mom)
-    //    5 -- Ex 
-    //    6 -- Ey 
-    //    7 -- Ez 
-    //    8 -- Bx 
-    //    9 -- By 
-    //   10 -- Bz 
-
     // We define the refinement ratio even though we are single level because
     //    we want to use the multilevel interface in the different calls.
     Array<int> rr(nlevs-1);
     
     // Build a new particle container to hold my particles.
-    MyParticleContainer* MyPC = new MyParticleContainer(geom,dmap,ba,rr);
+    MyParticleContainer MyPC(geom,dmap,ba,rr);
 
-    MyPC->SetVerbose(0);
+    MyPC.SetVerbose(0);
 
     // This allows us to write the gravitational acceleration into these components 
 
@@ -128,20 +127,21 @@ single_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int order, bo
     strt_init = ParallelDescriptor::second();
 
     // Initialize particles and distribute using the BoxArray and DistributionMap from dummy_mf
-    MultiFab dummy_mf(ba[0],1,0,Fab_allocate);
-    MyPC->Init(dummy_mf);
+    {
+	MultiFab dummy_mf(ba[0],1,0);
+	MyPC.Init(dummy_mf);
+    }
 
     end_init = ParallelDescriptor::second() - strt_init;
 
     // Write out the positions, masses and accelerations of each particle.
-    if (verbose) MyPC->WriteAsciiFile("Particles_before");
+    if (verbose) MyPC.WriteAsciiFile("Particles_before");
 
     // **************************************************************************
 
-    MultiFab ChargeMF;
     IntVect nodal(1,1,1);
     int ngrow = order-1;
-    ChargeMF.define(ba[0],1,ngrow,Fab_allocate,nodal);
+    MultiFab ChargeMF(ba[0],1,ngrow,Fab_allocate,nodal);
 
     // **************************************************************************
     // First we test the PICSAR charge deposition
@@ -154,7 +154,7 @@ single_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int order, bo
     
     // Charge deposition
     int level = 0;
-    MyPC->ChargeDeposition(ChargeMF,level,order); 
+    MyPC.ChargeDeposition(ChargeMF,level,order); 
 
     end_assd = ParallelDescriptor::second() - strt_assd;
 
@@ -179,7 +179,7 @@ single_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int order, bo
     ChargeMF.setVal(0.0);
     
     // Charge deposition
-    MyPC->NodalDepositionSingleLevel(ChargeMF,0,1); 
+    MyPC.NodalDepositionSingleLevel(ChargeMF,0,1); 
 
     end_assb = ParallelDescriptor::second() - strt_assb;
 
@@ -199,8 +199,7 @@ single_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int order, bo
     //     these are on the centers of edge but we declare the arrays as nodal
     // **************************************************************************
 
-    PArray<MultiFab> CurrentMF;
-    CurrentMF.resize(BL_SPACEDIM,PArrayManage);
+    PArray<MultiFab> CurrentMF(BL_SPACEDIM,PArrayManage);
 
     CurrentMF.set(0,new MultiFab(ba[0],1,1,Fab_allocate,nodal));
     CurrentMF.set(1,new MultiFab(ba[0],1,1,Fab_allocate,nodal));
@@ -213,7 +212,7 @@ single_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int order, bo
     strt_assc = ParallelDescriptor::second();
 
     // Current deposition
-    MyPC->CurrentDeposition(CurrentMF,0,dt); 
+    MyPC.CurrentDeposition(CurrentMF,0,dt); 
 
     end_assc = ParallelDescriptor::second() - strt_assc;
 
@@ -228,8 +227,7 @@ single_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int order, bo
     //     these are on the centers of faces but we declare the arrays as nodal
     // **************************************************************************
 
-    PArray<MultiFab> BfieldMF;
-    BfieldMF.resize(BL_SPACEDIM,PArrayManage);
+    PArray<MultiFab> BfieldMF(BL_SPACEDIM,PArrayManage);
 
     BfieldMF.set(0,new MultiFab(ba[0],1,1,Fab_allocate,nodal));
     BfieldMF.set(1,new MultiFab(ba[0],1,1,Fab_allocate,nodal));
@@ -244,8 +242,7 @@ single_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int order, bo
     //     these are on the centers of edges but we declare the arrays as nodal
     // **************************************************************************
 
-    PArray<MultiFab> EfieldMF;
-    EfieldMF.resize(BL_SPACEDIM,PArrayManage);
+    PArray<MultiFab> EfieldMF(BL_SPACEDIM,PArrayManage);
 
     EfieldMF.set(0,new MultiFab(ba[0],1,1,Fab_allocate,nodal));
     EfieldMF.set(1,new MultiFab(ba[0],1,1,Fab_allocate,nodal));
@@ -261,8 +258,8 @@ single_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int order, bo
     Real dtsdx[1], dtsdy[1], dtsdz[1], dtsdx_c2[1], dtsdy_c2[1],
     dtsdz_c2[1];
     dtsdx[0] = dt/dx;
-    dtsdy[0] = dt/dx;
-    dtsdz[0] = dt/dx;
+    dtsdy[0] = dt/dy;
+    dtsdz[0] = dt/dz;
     dtsdx_c2[0] = dt/dx * clight*clight;
     dtsdy_c2[0] = dt/dy * clight*clight;
     dtsdz_c2[0] = dt/dz * clight*clight;
@@ -325,7 +322,7 @@ single_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int order, bo
     long field_gathe_algo = 1;
 
     // Fill the particle data with E, B at the particle locations
-    MyPC->FieldGather( EfieldMF[0], EfieldMF[1], EfieldMF[2],
+    MyPC.FieldGather( EfieldMF[0], EfieldMF[1], EfieldMF[2],
                        BfieldMF[0], BfieldMF[1], BfieldMF[2],
                        gather_order,field_gathe_algo);
 
@@ -338,14 +335,12 @@ single_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int order, bo
 
     strt_mK = ParallelDescriptor::second();
 
-    MyPC->ParticlePush(dt);
+    MyPC.ParticlePush(dt);
 
     end_mK = ParallelDescriptor::second() - strt_mK;
 
     // Write out the positions, masses and accelerations of each particle.
-    if (verbose) MyPC->WriteAsciiFile("Particles_after");
-
-    delete MyPC;
+    if (verbose) MyPC.WriteAsciiFile("Particles_after");
 
     ParallelDescriptor::ReduceRealMax(end_init,IOProc);
     ParallelDescriptor::ReduceRealMax(end_assb,IOProc);
