@@ -1299,7 +1299,9 @@ ParticleContainer<NR,NI>::NodalDepositionSingleLevel (MultiFab& mf_to_be_filled,
     {
         // If mf_to_be_filled is not defined on the particle_box_array, then we need 
         // to make a temporary here and copy into mf_to_be_filled at the end.
-        mf_pointer = new MultiFab(m_gdb->ParticleBoxArray(lev), ncomp, mf_to_be_filled.nGrow(),
+        mf_pointer = new MultiFab(BoxLib::convert(m_gdb->ParticleBoxArray(lev),
+						  mf_to_be_filled.boxArray().ixType()),
+				  ncomp, mf_to_be_filled.nGrow(),
 				  m_gdb->ParticleDistributionMap(lev), Fab_allocate);
     }
 
@@ -1312,9 +1314,8 @@ ParticleContainer<NR,NI>::NodalDepositionSingleLevel (MultiFab& mf_to_be_filled,
     if (gm.isAnyPeriodic() && ! gm.isAllPeriodic()) 
         BoxLib::Error("AssignDensity: problem must be periodic in no or all directions");
 
-    for (MFIter mfi(*mf_pointer); mfi.isValid(); ++mfi) {
-        (*mf_pointer)[mfi].setVal(0);
-    }
+    mf_pointer->setVal(0.0);
+
     //
     // This is a little funky.  What in effect this'll do is force
     // each thread to work on a single (separate) grid at a time.  That
