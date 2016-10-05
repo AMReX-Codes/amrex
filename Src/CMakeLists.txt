@@ -2,6 +2,7 @@
 set(CBOXDIR C_BaseLib)
 set(FBOXDIR F_BaseLib)
 set(CBNDRYDIR C_BoundaryLib)
+set(CPARTDIR C_ParticleLib)
 set(CAMRDIR C_AMRLib)
 set(CMGDIR LinearSolvers/C_CellMG)
 set(CTMGDIR LinearSolvers/C_TensorMG)
@@ -13,12 +14,14 @@ set(CAMRDATADIR Extern/amrdata)
 set(CMAKE_Fortran_MODULE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/mod_files CACHE PATH "Folder for fortran module files")
 install(DIRECTORY ${CMAKE_Fortran_MODULE_DIRECTORY}/ DESTINATION include)
 
-set(CBOXLIB_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/${CBOXDIR} ${CMAKE_CURRENT_SOURCE_DIR}/${CBNDRYDIR} ${CMAKE_CURRENT_SOURCE_DIR}/${CAMRDIR} ${CMAKE_CURRENT_SOURCE_DIR}/${CMGDIR} ${CMAKE_CURRENT_SOURCE_DIR}/${CTMGDIR} ${CMAKE_CURRENT_SOURCE_DIR}/${CFMGDIR} ${CMAKE_CURRENT_SOURCE_DIR}/${CAMRDATADIR} ${BOXLIB_EXTRA_CXX_INCLUDE_PATH})
+set(CBOXLIB_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/${CBOXDIR} ${CMAKE_CURRENT_SOURCE_DIR}/${CBNDRYDIR} ${CMAKE_CURRENT_SOURCE_DIR}/${CPARTDIR} ${CMAKE_CURRENT_SOURCE_DIR}/${CAMRDIR} ${CMAKE_CURRENT_SOURCE_DIR}/${CMGDIR} ${CMAKE_CURRENT_SOURCE_DIR}/${CTMGDIR} ${CMAKE_CURRENT_SOURCE_DIR}/${CFMGDIR} ${CMAKE_CURRENT_SOURCE_DIR}/${CAMRDATADIR} ${BOXLIB_EXTRA_CXX_INCLUDE_PATH})
 
 include(PreprocessBoxLibFortran)
+include(PreprocessBoxLibFortran90)
 
 add_subdirectory(${CBOXDIR})
 add_subdirectory(${CBNDRYDIR})
+add_subdirectory(${CPARTDIR})
 add_subdirectory(${CAMRDIR})
 add_subdirectory(${CMGDIR})
 add_subdirectory(${CTMGDIR})
@@ -30,7 +33,7 @@ add_subdirectory(${FMGDIR})
 
 add_subdirectory(${CFMGDIR})
 
-add_library(cboxlib $<TARGET_OBJECTS:box_c> $<TARGET_OBJECTS:box_cbndry> $<TARGET_OBJECTS:box_camr> $<TARGET_OBJECTS:box_cmg> $<TARGET_OBJECTS:box_ctmg> $<TARGET_OBJECTS:box_cfmg>)
+add_library(cboxlib $<TARGET_OBJECTS:box_c> $<TARGET_OBJECTS:box_cbndry> $<TARGET_OBJECTS:box_cpart> $<TARGET_OBJECTS:box_camr> $<TARGET_OBJECTS:box_cmg> $<TARGET_OBJECTS:box_ctmg> $<TARGET_OBJECTS:box_cfmg>)
 add_library(cfboxlib $<TARGET_OBJECTS:box_cfmg>)
 add_library(fboxlib $<TARGET_OBJECTS:box_f> $<TARGET_OBJECTS:box_fmg>)
 add_install_library(cboxlib)
