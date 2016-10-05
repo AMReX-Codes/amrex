@@ -339,6 +339,9 @@ single_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int order, bo
 
     end_mK = ParallelDescriptor::second() - strt_mK;
 
+    // After the particles' positions have been updated, update which grid and process own them.
+    MyPC.Redistribute();
+
     // Write out the positions, masses and accelerations of each particle.
     if (verbose) MyPC.WriteAsciiFile("Particles_after");
 
