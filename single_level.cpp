@@ -22,7 +22,7 @@ extern "C" {
 	const long* nxlocal, const long* nylocal, const long* nzlocal,
 	const long* nxorder, const long* nyorder, const long* nzorder,
 	const long* nxguard, const long* nyguard, const long* nzguard, 
-	const long* nxs, const long* nys, const long* nzs, const bool* l_nodal );
+	const long* nxs, const long* nys, const long* nzs, const int* l_nodal );
 
   void pxrpush_em3d_bvec_norder( Real* ex, Real* ey, Real* ez,
 	Real* bx, Real* by, Real* bz,
@@ -30,7 +30,7 @@ extern "C" {
 	const long* nxlocal, const long* nylocal, const long* nzlocal,
 	const long* nxorder, const long* nyorder, const long* nzorder,
 	const long* nxguard, const long* nyguard, const long* nzguard, 
-	const long* nxs, const long* nys, const long* nzs, const bool* l_nodal );
+	const long* nxs, const long* nys, const long* nzs, const int* l_nodal );
 }
 
 
@@ -265,7 +265,7 @@ single_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int order, bo
     dtsdz_c2[0] = dt/dz * clight*clight;
     long norder = 2;
     long nguard = 1;
-    bool l_nodal = 0;
+    int l_nodal = 0;
 
     strt_evec = ParallelDescriptor::second();
 
