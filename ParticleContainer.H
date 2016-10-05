@@ -4,22 +4,18 @@
 
 #include "Particles.H"
 
-    // Particle Attributes:
-    //    0 -- w  (weight)
-    //    1 -- px (x mom)
-    //    2 -- py (y mom)
-    //    3 -- pz (z mom)
-    //    4 -- Ex
-    //    5 -- Ey
-    //    6 -- Ez
-    //    7 -- Bx
-    //    8 -- By
-    //    9 -- Bz
-    //   10 -- gaminv
-
+struct PIdx
+{
+    enum {
+	// Particle Attributes:
+	w = 0,  // weight
+	px, py, pz, Ex, Ey, Ez, Bx, By, Bz, gaminv,
+	nattribs
+    };
+};
 
 class MyParticleContainer
-    : public ParticleContainer<11,0>
+    : public ParticleContainer<PIdx::nattribs,0>
 {
 
 public:
@@ -29,21 +25,22 @@ public:
                          const Array<BoxArray>            & ba,
                          const Array<int>                 & rr)
 
-     : ParticleContainer<11> (geom,dmap,ba,rr)
+	: ParticleContainer<PIdx::nattribs,0> (geom,dmap,ba,rr)
     { }
 
-    virtual void Init(MultiFab& dummy_mf); 
+    virtual ~MyParticleContainer() {}
 
-    virtual void ChargeDeposition(MultiFab& mf_to_be_filled, int lev, int order) const;
+    void Init(MultiFab& dummy_mf); 
 
-    virtual void CurrentDeposition(PArray<MultiFab>& mf_to_be_filled, int lev,
-                                   Real dt) const;
+    void ChargeDeposition(MultiFab& mf_to_be_filled, int lev, int order) const;
 
-    virtual void FieldGather(MultiFab& Ex, MultiFab& Ey, MultiFab& Ez,
-                             MultiFab& Bx, MultiFab& By, MultiFab& Bz,
-                             long order, long field_gathe_algo);
+    void CurrentDeposition(PArray<MultiFab>& mf_to_be_filled, int lev,
+			   Real dt) const;
 
-    virtual void ParticlePush(Real dt);
+    void FieldGather(MultiFab& Ex, MultiFab& Ey, MultiFab& Ez,
+		     MultiFab& Bx, MultiFab& By, MultiFab& Bz,
+		     long order, long field_gathe_algo);
 
+    void ParticlePush(Real dt);
 };
 #endif /*_ParticleContainer_H_*/
