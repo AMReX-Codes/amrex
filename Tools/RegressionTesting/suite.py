@@ -53,6 +53,8 @@ class Test(object):
 
         self.debug = 0
 
+        self.acc = 0
+        
         self.useMPI = 0
         self.numprocs = -1
 
@@ -516,6 +518,7 @@ class Suite(object):
         build_opts = ""
         if test is not None:
             build_opts += "NDEBUG={} ".format(f_flag(test.debug, test_not=True))
+            build_opts += "ACC={} ".format(f_flag(test.acc))
             build_opts += "MPI={} ".format(f_flag(test.useMPI))
             build_opts += "OMP={} ".format(f_flag(test.useOMP))
 
@@ -546,6 +549,7 @@ class Suite(object):
 
         if test is not None:
             build_opts += "DEBUG={} ".format(c_flag(test.debug))
+            build_opts += "USE_ACC={} ".format(c_flag(test.acc))
             build_opts += "USE_MPI={} ".format(c_flag(test.useMPI))
             build_opts += "USE_OMP={} ".format(c_flag(test.useOMP))
             build_opts += "DIM={} ".format(test.dim)
