@@ -891,6 +891,9 @@ public:
 	   const BaseFab<T>& y, const Box& ybx, int ycomp,
 	   int numcomp = 1) const;
 
+    // Change the Box type without change the length
+    void SetBoxType(const IndexType& typ) { domain.setType(typ); }
+    
 protected:
     //
     // Allocates memory for the BaseFab<T>.
