@@ -1,4 +1,4 @@
-CEXE_sources += main.cpp WarpX.cpp initdata.cpp evolve.cpp
+CEXE_sources += main.cpp WarpX.cpp initdata.cpp WarpXEvolve.cpp
 
 CEXE_sources += ParticleContainer.cpp
 CEXE_sources += ParticleDeposition.cpp
