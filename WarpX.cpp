@@ -55,17 +55,18 @@ WarpX::WarpX ()
     IntVect nodalflag = IntVect::TheUnitVector(); // nodal in all directions
     charge.define(ba_arr[0], 1, ng, dmap_arr[0], Fab_allocate, nodalflag);
 
+    // PICSAR assumes all fields are nodal plus one ghost cell.
+    ng = 1;
+
     for (int i = 0; i < BL_SPACEDIM; ++i) {
-	IntVect nodalflag = IntVect::TheUnitVector();
-	nodalflag[i] = 0;  // J and E are nodal except in dimension i
 	current.push_back(std::unique_ptr<MultiFab>
-			  (new MultiFab(ba_arr[0],1,1,dmap_arr[0],Fab_allocate,nodalflag)));
+			  (new MultiFab(ba_arr[0],1,ng,dmap_arr[0],Fab_allocate,nodalflag)));
+
 	Efield.push_back(std::unique_ptr<MultiFab>
-			 (new MultiFab(ba_arr[0],1,1,dmap_arr[0],Fab_allocate,nodalflag)));
-	nodalflag = IntVect::TheZeroVector();
-	nodalflag[i] = 1; // B is cell-centered except in dimenstion i
+			 (new MultiFab(ba_arr[0],1,ng,dmap_arr[0],Fab_allocate,nodalflag)));
+
 	Bfield.push_back(std::unique_ptr<MultiFab>
-			 (new MultiFab(ba_arr[0],1,1,dmap_arr[0],Fab_allocate,nodalflag)));	
+			 (new MultiFab(ba_arr[0],1,ng,dmap_arr[0],Fab_allocate,nodalflag)));	
     }
 }
 
