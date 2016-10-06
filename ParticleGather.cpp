@@ -1,20 +1,6 @@
-#include "ParticleContainer.H"
 
-extern "C" {
-void geteb3d_energy_conserving(const long* np, 
-           const Real* xp, const Real* yp, const Real* zp,
-	   const Real* exp, const Real* eyp,const Real* ezp,
-	   const Real* bxp, const Real* byp,const Real* bzp,
-	   const Real* xmin, const Real* ymin, const Real* zmin,
-           const Real* dx, const Real* dy, const Real* dz,
-	   const long* nx, const long* ny, const long* nz,
-	   const long* nxguard, const long* nyguard, const long* nzguard,
-	   const long* nox, const long* noy, const long* noz,
-	   const Real* exg, const Real* eyg, const Real* ezg,
-	   const Real* bxg, const Real* byg, const Real* bzg,
-	   const bool* ll4symtry, const bool* l_lower_order_in_v,  
-	   const long* field_gathe_algo);
-}
+#include <ParticleContainer.H>
+#include <PICSAR_f.H>
 
 void
 MyParticleContainer::FieldGather(MultiFab& Ex, MultiFab& Ey, MultiFab& Ez,

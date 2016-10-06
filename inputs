@@ -1,29 +1,27 @@
 
-# Domain size
-
-nx = 32 # number of grid points along the x axis
-ny = 32 # number of grid points along the y axis 
-nz = 32 # number of grid points along the z axis
-
-nx = 128 # number of grid points along the x axis
-ny = 128 # number of grid points along the y axis 
-nz = 128 # number of grid points along the z axis
-
-nx = 64 # number of grid points along the x axis
-ny = 64 # number of grid points along the y axis 
-nz = 64 # number of grid points along the z axis
+# number of grid points
+nx = 64
+ny = 64
+nz = 64
 
 # Maximum allowable size of each subdomain in the problem domain; 
 #    this is used to decompose the domain for parallel calculations.
 max_grid_size = 32
 
-# Maximum level in hierarchy (for now must be 0 or 1)
-#   max_level = 0 : single level test
-#   max_level = 1 : two    level test
+# Maximum level in hierarchy (for now must be 0, i.e., one level in total)
 max_level = 0
 
+# Maximum number of time steps
+max_step = 1
+
+# Geometry
+geometry.coord_sys   = 0                  # 0: Cartesian
+geometry.is_periodic = 1     1     1      # Is periodic?  
+geometry.prob_lo     = 0.0   0.0   0.0    # physical domain
+geometry.prob_hi     = 1.0   1.0   1.0
+
 # Order of the charge deposition
-order = 1
+warpx.charge_deposition_order = 1
 
 # Verbosity
-verbose = true   # set to true to get more verbosity 
+verbose = 1

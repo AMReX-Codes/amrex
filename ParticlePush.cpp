@@ -1,26 +1,6 @@
-#include "ParticleContainer.H"
 
-extern "C" {
-void pxr_epush_v(const long* np, 
-	   const Real* uxp, const Real* uyp, const Real* uzp,
-	   const Real* exp, const Real* eyp,const Real* ezp,
-	   const Real* charge, const Real* mass, Real* dt);
-
-void pxr_bpush_v(const long* np, 
-	   const Real* uxp, const Real* uyp, const Real* uzp,
-	   const Real* gaminv, 
-	   const Real* bxp, const Real* byp,const Real* bzp,
-	   const Real* charge, const Real* mass, Real* dt);
-
-void pxr_pushxyz(const long* np, 
-           const Real*  xp, const Real*  yp, const Real*  zp,
-	   const Real* uxp, const Real* uyp, const Real* uzp,
-	   const Real* gaminv, Real* dt);
-
-void pxr_set_gamma(const long* np, 
-	   const Real* uxp, const Real* uyp, const Real* uzp,
-	   const Real* gaminv);
-}
+#include <ParticleContainer.H>
+#include <PICSAR_f.H>
 
 void
 MyParticleContainer::ParticlePush(Real dt)

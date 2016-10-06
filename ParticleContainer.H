@@ -2,7 +2,9 @@
 #ifndef _ParticleContainer_H_
 #define _ParticleContainer_H_
 
-#include "Particles.H"
+#include <memory>
+
+#include <Particles.H>
 
 struct PIdx
 {
@@ -30,17 +32,17 @@ public:
 
     virtual ~MyParticleContainer() {}
 
-    void Init(MultiFab& dummy_mf); 
+    void Init (MultiFab& dummy_mf); 
 
-    void ChargeDeposition(MultiFab& mf_to_be_filled, int lev, int order) const;
+    void ChargeDeposition (MultiFab& mf_to_be_filled, int lev, int order) const;
 
-    void CurrentDeposition(PArray<MultiFab>& mf_to_be_filled, int lev,
-			   Real dt) const;
+    void CurrentDeposition (Array< std::unique_ptr<MultiFab> >& mf_to_be_filled,
+			    int lev, Real dt) const;
 
-    void FieldGather(MultiFab& Ex, MultiFab& Ey, MultiFab& Ez,
-		     MultiFab& Bx, MultiFab& By, MultiFab& Bz,
-		     long order, long field_gathe_algo);
+    void FieldGather (MultiFab& Ex, MultiFab& Ey, MultiFab& Ez,
+		      MultiFab& Bx, MultiFab& By, MultiFab& Bz,
+		      long order, long field_gathe_algo);
 
-    void ParticlePush(Real dt);
+    void ParticlePush (Real dt);
 };
 #endif /*_ParticleContainer_H_*/

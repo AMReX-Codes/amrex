@@ -1,67 +1,22 @@
-#include "ParticleContainer.H"
 
-extern "C" {
- void depose_rho_vecHVv2_1_1_1( Real* rho, const long* np,
-	   const Real* xp, const Real* yp, const Real* zp,
-	   const Real* w, const Real* q,
-	   const Real* xmin, const Real* ymin, const Real* zmin,
-	   const Real* dx, const Real* dy, const Real* dz,
-	   const long* nx, const long* ny, const long* nz,
-	   const long* nxguard, const long* nyguard, const long* nzguard, const long* lvect );
+#include <memory>
 
- void depose_rho_scalar_1_1_1( Real* rho, const long* np,
-	   const Real* xp, const Real* yp, const Real* zp,
-	   const Real* w, const Real* q,
-	   const Real* xmin, const Real* ymin, const Real* zmin,
-	   const Real* dx, const Real* dy, const Real* dz,
-	   const long* nx, const long* ny, const long* nz,
-	   const long* nxguard, const long* nyguard, const long* nzguard);
-
- void depose_rho_scalar_2_2_2( Real* rho, const long* np,
-	   const Real* xp, const Real* yp, const Real* zp,
-	   const Real* w, const Real* q,
-	   const Real* xmin, const Real* ymin, const Real* zmin,
-	   const Real* dx, const Real* dy, const Real* dz,
-	   const long* nx, const long* ny, const long* nz,
-	   const long* nxguard, const long* nyguard, const long* nzguard);
-
- void depose_rho_scalar_3_3_3( Real* rho, const long* np,
-	   const Real* xp, const Real* yp, const Real* zp,
-	   const Real* w, const Real* q,
-	   const Real* xmin, const Real* ymin, const Real* zmin,
-	   const Real* dx, const Real* dy, const Real* dz,
-	   const long* nx, const long* ny, const long* nz,
-	   const long* nxguard, const long* nyguard, const long* nzguard);
-
- void depose_jxjyjz_vecHVv2_1_1_1(Real* jx, Real* jy, Real* jz, const long* np,
-           const Real* xp, const Real* yp, const Real* zp,
-	   const Real* uxp, const Real* uyp,const Real* uzp,
-	   const Real* gip, const Real* w, const Real* q,
-	   const Real* xmin, const Real* ymin, const Real* zmin,
-	   const Real* dt, 
-	   const Real* dx, const Real* dy, const Real* dz,
-	   const long* nx, const long* ny, const long* nz,
-	   const long* nxguard, const long* nyguard, const long* nzguard);
-
- void depose_jxjyjz_scalar_1_1_1(Real* jx, Real* jy, Real* jz, const long* np,
-           const Real* xp, const Real* yp, const Real* zp,
-	   const Real* uxp, const Real* uyp,const Real* uzp,
-	   const Real* gip, const Real* w, const Real* q,
-	   const Real* xmin, const Real* ymin, const Real* zmin,
-	   const Real* dt, 
-	   const Real* dx, const Real* dy, const Real* dz,
-	   const long* nx, const long* ny, const long* nz,
-	   const long* nxguard, const long* nyguard, const long* nzguard);
-}
+#include <ParticleContainer.H>
+#include <PICSAR_f.H>
 
 void
-MyParticleContainer::ChargeDeposition(MultiFab& mf_to_be_filled, int lev, int order) const
+MyParticleContainer::ChargeDeposition (MultiFab& mf_to_be_filled, int lev, int order) const
 {
+    BL_PROFILE("MyPC::ChargeDeposition")
+    BL_PROFILE_VAR_NS("MyPC::ChargeDeposition::Copy", blp_copy);
+    BL_PROFILE_VAR_NS("PXR::ChargeDeposition", blp_pxr_cd);
+
     MultiFab* mf_pointer;
 
     // We are only deposing one quantity
     int ncomp = 1;
 
+    std::unique_ptr<MultiFab> raii;
     if (OnSameGrids(lev, mf_to_be_filled))
     {
         // If we are already working with the internal mf defined on the 
@@ -72,15 +27,14 @@ MyParticleContainer::ChargeDeposition(MultiFab& mf_to_be_filled, int lev, int or
     {
         // If mf_to_be_filled is not defined on the particle_box_array, then we need 
         // to make a temporary here and copy into mf_to_be_filled at the end.
-        mf_pointer = new MultiFab(m_gdb->ParticleBoxArray(lev), ncomp, mf_to_be_filled.nGrow(),
-				  m_gdb->ParticleDistributionMap(lev), Fab_allocate);
+	raii = std::unique_ptr<MultiFab>
+	    (new MultiFab(m_gdb->ParticleBoxArray(lev), ncomp, mf_to_be_filled.nGrow(),
+			  m_gdb->ParticleDistributionMap(lev), Fab_allocate));
+	mf_pointer = raii.get();
     }
 
     // Putting the density to 0 before depositing the charge
-    for (MFIter mfi(*mf_pointer); mfi.isValid(); ++mfi)  
-        (*mf_pointer)[mfi].setVal(0);
-
-    const Real      strttime    = ParallelDescriptor::second();
+    mf_pointer->setVal(0.0);
 
     const Geometry& gm          = m_gdb->Geom(lev);
     const BoxArray& ba          = mf_pointer->boxArray();
@@ -90,6 +44,7 @@ MyParticleContainer::ChargeDeposition(MultiFab& mf_to_be_filled, int lev, int or
 
     // Charge
     Real q = 1.;
+    Array<Real> xp, yp, zp, wp;
 
     // Loop over the grids containing particles
     for (auto& kv : pmap)
@@ -99,41 +54,43 @@ MyParticleContainer::ChargeDeposition(MultiFab& mf_to_be_filled, int lev, int or
 
         FArrayBox&  fab = (*mf_pointer)[pgr];
 
-	Array<Real> xp, yp, zp, wp;
+	xp.resize(0);
+	yp.resize(0);
+	zp.resize(0);
+	wp.resize(0);
+
 	xp.reserve( pbx.size() );
 	yp.reserve( pbx.size() );
 	zp.reserve( pbx.size() );
 	wp.reserve( pbx.size() );
 
-	const Box & bx = ba[pgr];
+	const Box & bx = BoxLib::enclosedCells(ba[pgr]);
 	RealBox grid_box = RealBox( bx, dx, gm.ProbLo() );
 	const Real* xyzmin = grid_box.lo();
-	long nx = bx.length(0)-1, ny = bx.length(1)-1, nz = bx.length(2)-1; 
+	long nx = bx.length(0);
+	long ny = bx.length(1);
+	long nz = bx.length(2); 
 	long ng = mf_pointer->nGrow();
 	long lvect = 8;
 
-        Real strt_copy = ParallelDescriptor::second();
+	BL_PROFILE_VAR_START(blp_copy);
 	
 	// Loop over particles in that box (to change array layout)
-	long np = 0;
         for (const auto& p : pbx)
         {
             if (p.m_id <= 0) {
 	      continue;
 	    }
-	    ++np;
 	    xp.push_back( p.m_pos[0] );
 	    yp.push_back( p.m_pos[1] );
 	    zp.push_back( p.m_pos[2] );
  	    wp.push_back( 1. ); 
         }
+	long np = wp.size();
 
-        Real end_copy = ParallelDescriptor::second() - strt_copy;
+	BL_PROFILE_VAR_STOP(blp_copy);
 
-        Real strt_depose = ParallelDescriptor::second();
-
-        if (ParallelDescriptor::IOProcessor()) 
-            std::cout << "Time in PicsarChargeDeposition : Copy " << end_copy << '\n';
+	BL_PROFILE_VAR_START(blp_pxr_cd);
 
 #if 0
 	depose_rho_vecHVv2_1_1_1( fab.dataPtr(), &np, xp.dataPtr(), yp.dataPtr(), zp.dataPtr(), 
@@ -147,56 +104,33 @@ MyParticleContainer::ChargeDeposition(MultiFab& mf_to_be_filled, int lev, int or
 	    depose_rho_scalar_1_1_1( fab.dataPtr(), &np, xp.dataPtr(), yp.dataPtr(), zp.dataPtr(), 
 	    	                     wp.dataPtr(), &q, &xyzmin[0], &xyzmin[1],
 	    	                     &xyzmin[2], &dx[0], &dx[1], &dx[2], &nx, &ny, &nz,
-				     &ng, &ng, &ng);
+				     &ng, &ng, &ng, &lvect);
 	} 
         else if (order == 2) 
 	{
 	    depose_rho_scalar_2_2_2( fab.dataPtr(), &np, xp.dataPtr(), yp.dataPtr(), zp.dataPtr(), 
 	    	                     wp.dataPtr(), &q, &xyzmin[0], &xyzmin[1],
 	    	                     &xyzmin[2], &dx[0], &dx[1], &dx[2], &nx, &ny, &nz,
-				     &ng, &ng, &ng);
+				     &ng, &ng, &ng, &lvect);
 	} 
         else if (order == 3) 
 	{
 	    depose_rho_scalar_3_3_3( fab.dataPtr(), &np, xp.dataPtr(), yp.dataPtr(), zp.dataPtr(), 
 	    	                     wp.dataPtr(), &q, &xyzmin[0], &xyzmin[1],
 	    	                     &xyzmin[2], &dx[0], &dx[1], &dx[2], &nx, &ny, &nz,
-				     &ng, &ng, &ng);
+				     &ng, &ng, &ng, &lvect);
 	} 
   
-        Real end_depose = ParallelDescriptor::second() - strt_depose;
-        if (ParallelDescriptor::IOProcessor()) 
-            std::cout << "Time in PicsarChargeDeposition : Depose " << end_depose << '\n';
+	BL_PROFILE_VAR_STOP(blp_pxr_cd);
     }
-
-    Real strt_sumb = ParallelDescriptor::second();
 
     mf_pointer->SumBoundary(gm.periodicity());
 
-    Real end_sumb = ParallelDescriptor::second() - strt_sumb;
-
-    if (ParallelDescriptor::IOProcessor()) 
-        std::cout << "Time in PicsarChargeDeposition : SumBoundary " << end_sumb << '\n';
-
     // If mf_to_be_filled is not defined on the particle_box_array, then we need
-    // to copy here from mf_pointer into mf_to_be_filled.   I believe that we don't
-    // need any information in ghost cells so we don't copy those.
+    // to copy here from mf_pointer into mf_to_be_filled.  Ghost cells are not copied.
     if (mf_pointer != &mf_to_be_filled)
     {
         mf_to_be_filled.copy(*mf_pointer,0,0,ncomp);
-	delete mf_pointer;
-    }
-
-    if (m_verbose > 1)
-    {
-        Real stoptime = ParallelDescriptor::second() - strttime;
-
-        ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
-
-        if (ParallelDescriptor::IOProcessor())
-        {
-            std::cout << "ParticleContainer<N>::ChargeDeposition time: " << stoptime << '\n';
-        }
     }
 }
 
@@ -204,50 +138,54 @@ MyParticleContainer::ChargeDeposition(MultiFab& mf_to_be_filled, int lev, int or
 // This is the single-level version for current deposition on faces
 //
 void
-MyParticleContainer::CurrentDeposition(PArray<MultiFab>& mf_to_be_filled, int lev, Real dt) const
+MyParticleContainer::CurrentDeposition (Array< std::unique_ptr<MultiFab> >& mf_to_be_filled,
+					int lev, Real dt) const
 {
-    MultiFab *mf_pointer_x, *mf_pointer_y, *mf_pointer_z;
+    BL_PROFILE("MyPC::CurrentDeposition");
+    BL_PROFILE_VAR_NS("MyPC::CurrentDeposition::Copy", blp_copy);
+    BL_PROFILE_VAR_NS("PXR::CurrentDeposition", blp_pxr_cd);
+
+    Array<MultiFab*> mf_pointer(BL_SPACEDIM);
 
     // We are only deposing one quantity on each face
     int ncomp  = 1;
-    int nghost = mf_to_be_filled[0].nGrow();
+    int nghost = mf_to_be_filled[0]->nGrow();
 
-    if (OnSameGrids(lev, mf_to_be_filled[0]))
+    Array< std::unique_ptr<MultiFab> > raii;
+    if (OnSameGrids(lev, *mf_to_be_filled[0]))
     {
         // If we are already working with the internal mf defined on the 
         // particle_box_array, then we just work with this.
-        mf_pointer_x = &mf_to_be_filled[0];
-        mf_pointer_y = &mf_to_be_filled[1];
-        mf_pointer_z = &mf_to_be_filled[2];
+	for (int i = 0; i < BL_SPACEDIM; ++i) {
+	    mf_pointer[i] = mf_to_be_filled[i].get();
+	}
     }
     else
     {
-        // If mf_to_be_filled is not defined on the particle_box_array, then we need 
-        // to make a temporary here and copy into mf_to_be_filled at the end.
-
-        IntVect nodal(1,1,1);
-
-        mf_pointer_x = new MultiFab(m_gdb->ParticleBoxArray(lev), ncomp, nghost, 
-				    m_gdb->ParticleDistributionMap(lev), Fab_allocate, nodal);
-        mf_pointer_y = new MultiFab(m_gdb->ParticleBoxArray(lev), ncomp, nghost, 
-				    m_gdb->ParticleDistributionMap(lev), Fab_allocate, nodal);
-        mf_pointer_z = new MultiFab(m_gdb->ParticleBoxArray(lev), ncomp, nghost, 
-				    m_gdb->ParticleDistributionMap(lev), Fab_allocate, nodal);
+	for (int i = 0; i < BL_SPACEDIM; ++i) {
+	    raii[i] = std::unique_ptr<MultiFab>
+		(new MultiFab(BoxLib::convert(m_gdb->ParticleBoxArray(lev),
+					      mf_to_be_filled[0]->boxArray().ixType()),
+			      ncomp, nghost, m_gdb->ParticleDistributionMap(lev), Fab_allocate));
+	    mf_pointer[i] = raii[i].get();
+	}
     }
 
-    const Real      strttime    = ParallelDescriptor::second();
     const Geometry& gm          = m_gdb->Geom(lev);
-    const BoxArray& ba          = mf_pointer_x->boxArray();
+    const BoxArray& ba          = mf_pointer[0]->boxArray();
     const Real*     dx          = gm.CellSize();
     const PMap&     pmap        = m_particles[lev];
 
     // Setting the current to 0 before depositing the charge
-    for (MFIter mfi(*mf_pointer_x); mfi.isValid(); ++mfi) (*mf_pointer_x)[mfi].setVal(0);
-    for (MFIter mfi(*mf_pointer_y); mfi.isValid(); ++mfi) (*mf_pointer_y)[mfi].setVal(0);
-    for (MFIter mfi(*mf_pointer_z); mfi.isValid(); ++mfi) (*mf_pointer_z)[mfi].setVal(0);
+    for (int i = 0; i < BL_SPACEDIM; ++i) {
+	mf_pointer[i]->setVal(0.0);
+    }
    
     // Charge
     Real q = 1.;
+
+    Array<Real> xp, yp, zp, wp, uxp, uyp, uzp, gip;
+    FArrayBox fab;
 
     // Loop over the grids containing particles
     for (auto& kv : pmap)
@@ -255,10 +193,29 @@ MyParticleContainer::CurrentDeposition(PArray<MultiFab>& mf_to_be_filled, int le
         const  int  pgr = kv.first;
         const PBox& pbx = kv.second;
 
-	Array<Real> xp, yp, zp, wp, uxp, uyp, uzp, gip;
-        FArrayBox&  fabx = (*mf_pointer_x)[pgr];
-        FArrayBox&  faby = (*mf_pointer_y)[pgr];
-        FArrayBox&  fabz = (*mf_pointer_z)[pgr];
+        FArrayBox&  fabx_orig = (*mf_pointer[0])[pgr];
+        FArrayBox&  faby_orig = (*mf_pointer[1])[pgr];
+        FArrayBox&  fabz_orig = (*mf_pointer[2])[pgr];
+
+	const Box& xbx_orig = fabx_orig.box();
+	const Box& ybx_orig = faby_orig.box();
+	const Box& zbx_orig = fabz_orig.box();
+
+	Box ndbx = BoxLib::surroundingNodes(xbx_orig);
+
+	BL_PROFILE_VAR_START(blp_copy);
+
+	fab.resize(ndbx, 3);
+	fab.setVal(0.0);
+
+	 xp.resize(0);
+	 yp.resize(0);
+	 zp.resize(0);
+	 wp.resize(0);
+	uxp.resize(0);
+	uyp.resize(0);
+	uzp.resize(0);
+	gip.resize(0);
 
 	 xp.reserve( pbx.size() );
 	 yp.reserve( pbx.size() );
@@ -269,20 +226,20 @@ MyParticleContainer::CurrentDeposition(PArray<MultiFab>& mf_to_be_filled, int le
 	uzp.reserve( pbx.size() );
 	gip.reserve( pbx.size() );
 
-	const Box & bx = ba[pgr];
+	const Box & bx = BoxLib::enclosedCells(ba[pgr]);
 	RealBox grid_box = RealBox( bx, dx, gm.ProbLo() );
 	const Real* xyzmin = grid_box.lo();
-	long nx = bx.length(0)-1, ny = bx.length(1)-1, nz = bx.length(2)-1; 
-	long ng = mf_pointer_x->nGrow();
+	long nx = bx.length(0);
+	long ny = bx.length(1);
+	long nz = bx.length(2); 
+	long ng = mf_pointer[0]->nGrow();
 	
 	// Loop over particles in that box (to change array layout)
-	long np = 0;
         for (const auto& p : pbx)
         {
             if (p.m_id <= 0) {
 	      continue;
 	    }
-	    ++np;
 
             // (x,y,z) position
 	    xp.push_back( p.m_pos[0] );
@@ -290,18 +247,23 @@ MyParticleContainer::CurrentDeposition(PArray<MultiFab>& mf_to_be_filled, int le
 	    zp.push_back( p.m_pos[2] );
 
             // weights
- 	    wp.push_back( 1. ); 
-
- 	    uxp.push_back( 1. ); 
- 	    uyp.push_back( 1. ); 
- 	    uzp.push_back( 1. ); 
+ 	    wp.push_back( p.m_data[PIdx::w] ); 
+	    
+ 	    uxp.push_back( p.m_data[PIdx::px] ); 
+ 	    uyp.push_back( p.m_data[PIdx::py] ); 
+ 	    uzp.push_back( p.m_data[PIdx::pz] ); 
 
             // gaminv 
- 	    gip.push_back( 1. ); 
+ 	    gip.push_back( p.m_data[PIdx::gaminv] ); 
         }
+	long np = gip.size();
+
+	BL_PROFILE_VAR_STOP(blp_copy);
+
+	BL_PROFILE_VAR_START(blp_pxr_cd);
 
 #if 0
-	depose_jxjyjz_vecHVv2_1_1_1(fabx.dataPtr(), faby.dataPtr(), fabz.dataPtr(),
+	depose_jxjyjz_vecHVv2_1_1_1(fab.dataPtr(0), fab.dataPtr(1), fab.dataPtr(2),
                                     &np, xp.dataPtr(), yp.dataPtr(), zp.dataPtr(), 
                                     uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(), 
                                     gip.dataPtr(), wp.dataPtr(), &q, 
@@ -310,7 +272,7 @@ MyParticleContainer::CurrentDeposition(PArray<MultiFab>& mf_to_be_filled, int le
 				    &ng, &ng, &ng);
 #endif
 
-	depose_jxjyjz_scalar_1_1_1( fabx.dataPtr(), faby.dataPtr(), fabz.dataPtr(),
+	depose_jxjyjz_scalar_1_1_1( fab.dataPtr(0), fab.dataPtr(1), fab.dataPtr(2),
                                     &np, xp.dataPtr(), yp.dataPtr(), zp.dataPtr(), 
                                     uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(), 
                                     gip.dataPtr(), wp.dataPtr(), &q, 
@@ -318,37 +280,33 @@ MyParticleContainer::CurrentDeposition(PArray<MultiFab>& mf_to_be_filled, int le
                                     &dt, &dx[0], &dx[1], &dx[2], &nx, &ny, &nz,
 				    &ng, &ng, &ng);
 
+	BL_PROFILE_VAR_STOP(blp_pxr_cd);
+
+	BL_PROFILE_VAR_START(blp_copy);
+
+	fab.SetBoxType(xbx_orig.ixType());
+	fabx_orig.copy(fab, xbx_orig, 0, xbx_orig, 0, 1);
+
+	fab.SetBoxType(ybx_orig.ixType());
+	faby_orig.copy(fab, ybx_orig, 0, ybx_orig, 0, 1);
+
+	fab.SetBoxType(zbx_orig.ixType());
+	fabz_orig.copy(fab, zbx_orig, 0, zbx_orig, 0, 1);
+
+	BL_PROFILE_VAR_STOP(blp_copy);
     }
 
-    mf_pointer_x->SumBoundary(gm.periodicity());
-    mf_pointer_y->SumBoundary(gm.periodicity());
-    mf_pointer_z->SumBoundary(gm.periodicity());
+    for (int i = 0; i < BL_SPACEDIM; ++i) {
+	mf_pointer[i]->SumBoundary(gm.periodicity());
+    }
 
     // If mf_to_be_filled is not defined on the particle_box_array, then we need
-    // to copy here from mf_pointer into mf_to_be_filled.   I believe that we don't
-    // need any information in ghost cells so we don't copy those.
-    if (mf_pointer_x != &mf_to_be_filled[0])
+    // to copy here from mf_pointer into mf_to_be_filled.
+    if (mf_pointer[0] != mf_to_be_filled[0].get())
     {
-        mf_to_be_filled[0].copy(*mf_pointer_x,0,0,ncomp);
-	delete mf_pointer_x;
-
-        mf_to_be_filled[0].copy(*mf_pointer_y,0,0,ncomp);
-	delete mf_pointer_y;
-
-        mf_to_be_filled[0].copy(*mf_pointer_z,0,0,ncomp);
-	delete mf_pointer_z;
-    }
-
-    if (m_verbose > 1)
-    {
-        Real stoptime = ParallelDescriptor::second() - strttime;
-
-        ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
-
-        if (ParallelDescriptor::IOProcessor())
-        {
-            std::cout << "ParticleContainer<N>::ChargeDeposition time: " << stoptime << '\n';
-        }
+	for (int i = 0; i < BL_SPACEDIM; ++i) {
+	    mf_to_be_filled[i]->copy(*mf_pointer[i],0,0,ncomp);
+	}
     }
 }
 

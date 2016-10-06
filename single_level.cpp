@@ -4,7 +4,6 @@
 #include <MultiFab.H>
 #include <MultiFabUtil.H>
 #include <BLFort.H>
-#include <MacBndry.H>
 #include <MultiFabUtil.H>
 
 #include "ParticleContainer.H"
