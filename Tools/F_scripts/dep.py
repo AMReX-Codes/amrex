@@ -28,7 +28,7 @@ module_proc_re = re.compile(r"( )(module)(\s+)(procedure)(\s+)((?:[a-z][a-z_0-9]
 # regular expression for "{}use{}modulename...".  Note this will work for
 # use modulename, only: stuff, other stuff'
 # see (txt2re.com)
-use_re = re.compile(r"( )(use)(\s+)((?:[a-z_][a-z_0-9]+))",
+use_re = re.compile(r"^(\s*)(use)(\s+)((?:[a-z_][a-z_0-9]+))",
                     re.IGNORECASE|re.DOTALL)
 
 
@@ -77,7 +77,7 @@ class Preprocessor(object):
         # $(FORT_CPP) $(CPPFLAGS) $< | $(F90PREP) > $(f77TempDir)/$*.f90
         # we output to the temporary directory
 
-        processed_file = "{}/TEST-{}".format(self.temp_dir,
+        processed_file = "{}/F90PP-{}".format(self.temp_dir,
                                              os.path.basename(sf.name))
 
         command = "{} {} {} | {}".format(self.cpp_cmd, self.defines,
@@ -86,6 +86,8 @@ class Preprocessor(object):
         stdout, rc = run(command, outfile=processed_file)
 
         sf.cpp_name = processed_file
+
+        return command
 
 
 class SourceFile(object):
@@ -174,7 +176,12 @@ class SourceFile(object):
         return depends
 
 
-def doit(prefix, search_path, files, cpp):
+def doit(prefix, search_path, files, cpp, debug=False):
+    """ main routine that processes the files"""
+
+    if debug:
+        df = open("dependencies.out", "w")
+
 
     # module_files is a dictionary where the keys are the name of the
     # module (as it appears in Fortran code) and the value associated
@@ -197,13 +204,19 @@ def doit(prefix, search_path, files, cpp):
                     break
         else:
             full_file = cf
-
+            
         sf = SourceFile(full_file)
 
         # preprocess, if necessary
         if sf.preprocess:
-            cpp.preprocess(sf)
+            command = cpp.preprocess(sf)
 
+        if debug:
+            df.write("source file: {}\n".format(sf.name))
+            if sf.preprocess:
+                df.write("preprocessed: {}\n".format(sf.cpp_name))
+            df.write("\n")
+        
         all_files.append(sf)
 
     # for each file, figure out what modules they define and add those to
@@ -216,6 +229,12 @@ def doit(prefix, search_path, files, cpp):
         for p in provides:
             module_files[p] = sf.obj()
 
+        if debug:
+            df.write("source file: {}\n".format(sf.name))
+            df.write("provides:\n")
+            for p in provides:
+                df.write("   {}\n".format(p))
+            df.write("\n")
 
     # go back through the files now and look for the use statements
     # to figure out what modules each file requires
@@ -223,11 +242,25 @@ def doit(prefix, search_path, files, cpp):
         depends = sf.needed_modules()
 
         for d in depends:
+            try: provides_obj = module_files[d]
+            except KeyError:
+                sys.exit("module {} required by {} not found".format(d, sf.name))
+
             print("{}: {}".format(
                 prefix+os.path.basename(sf.obj()),
-                prefix+os.path.basename(module_files[d])))
+                prefix+os.path.basename(provides_obj)))
 
         print(" ")
+
+        if debug:
+            df.write("source file: {}\n".format(sf.name))
+            df.write("depends on:\n")
+            for d in depends:
+                df.write("   {}\n".format(d))
+            df.write("\n")
+
+    if debug:
+        df.close()
 
 
 if __name__ == "__main__":
@@ -251,6 +284,9 @@ if __name__ == "__main__":
     parser.add_argument("--defines",
                         help="defines to send to preprocess the files",
                         default="")
+    parser.add_argument("--debug",
+                        help="output a detailed log file describing each source file",
+                        action="store_true")
     parser.add_argument("files", metavar="source files", type=str, nargs="*",
                         help="F90 source files to find dependencies amongst")
 
@@ -263,4 +299,4 @@ if __name__ == "__main__":
     cpp_pass = Preprocessor(temp_dir=args.temp_dir, cpp_cmd=args.cpp,
                             defines=args.defines, f90_preprocess=args.f90_preprocess)
 
-    doit(prefix_pass, args.search_path.split(), args.files, cpp_pass)
+    doit(prefix_pass, args.search_path.split(), args.files, cpp_pass, debug=args.debug)
