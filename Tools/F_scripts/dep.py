@@ -107,6 +107,18 @@ if __name__ == "__main__":
     parser.add_argument("--search_path",
                         help="ordered path to search for the files",
                         default="")
+    parser.add_argument("--cpp",
+                        help="apply the C preprocessor first?",
+                        action="store_true")
+    parser.add_argument("--temp_dir",
+                        help="directory to put temporary preprocessed files",
+                        default="")
+    parser.add_argument("--includes",
+                        help="include files needed to preprocess the source",
+                        default="")
+    parser.add_argument("--defines",
+                        help="defines to send to preprocess the files",
+                        default="")
     parser.add_argument("files", metavar="source files", type=str, nargs="*",
                         help="F90 source files to find dependencies amongst")
 
