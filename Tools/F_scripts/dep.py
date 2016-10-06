@@ -10,7 +10,8 @@ import sys
 import re
 import os
 import argparse
-
+import shlex
+import subprocess
 
 # modules to ignore in the dependencies
 IGNORES = ["iso_c_binding", "iso_fortran_env"]
@@ -28,27 +29,63 @@ module_proc_re = re.compile("( )(module)(\s+)(procedure)(\s+)((?:[a-z][a-z_0-9]+
 # regular expression for "{}use{}modulename...".  Note this will work for
 # use modulename, only: stuff, other stuff'
 # see (txt2re.com)
-use_re = re.compile("( )(use)(\s+)((?:[a-z_][a-z_0-9]+))", 
+use_re = re.compile("( )(use)(\s+)((?:[a-z_][a-z_0-9]+))",
                     re.IGNORECASE|re.DOTALL)
+
+
+def run(command, stdin=False, outfile=None):
+    """ run a command in the unix shell """
+
+    # shlex.split will preserve inner quotes
+    sin = None
+    if stdin: sin = subprocess.PIPE
+    p0 = subprocess.Popen(command, stdin=sin, stdout=subprocess.PIPE,
+                          stderr=subprocess.STDOUT, shell=True)
+
+    stdout0, stderr0 = p0.communicate()
+    if stdin: p0.stdin.close()
+    rc = p0.returncode
+    p0.stdout.close()
+
+    if outfile is not None:
+        try: cf = open(outfile, "w")
+        except IOError:
+            sys.exit("ERROR: unable to open file for writing: {}".format(outfile))
+        else:
+            for line in stdout0:
+                cf.write(line)
+            cf.close()
+
+    return stdout0, rc
 
 
 class Preprocessor(object):
     """ hold the information about preprocessing """
 
-    def __init__(self, temp_dir=None, cpp_cmd=None, 
-                 includes=None, defines=None):
+    def __init__(self, temp_dir=None, cpp_cmd=None,
+                 defines=None, f90_preprocess=None):
 
         self.temp_dir = temp_dir
         self.cpp_cmd = cpp_cmd
-        self.includes = includes
         self.defines = defines
+        self.f90_preprocess = f90_preprocess
 
     def preprocess(self, sf):
         """ preprocess the file described by a SourceFile object sf """
 
+        # we want to do:
+        # $(FORT_CPP) $(CPPFLAGS) $< | $(F90PREP) > $(f77TempDir)/$*.f90
         # we output to the temporary directory
-        #sf.cpp_name = 
-        pass
+
+        processed_file = "{}/TEST-{}".format(self.temp_dir, os.path.basename(sf.name))
+
+        command = "{} {} {} | {}".format(self.cpp_cmd, self.defines, 
+                                         sf.name, self.f90_preprocess)
+
+        stdout, rc = run(command, outfile=processed_file)
+
+        sf.cpp_name = processed_file
+
 
 class SourceFile(object):
     """ hold information about one of the .f90/.F90 files """
@@ -83,7 +120,7 @@ class SourceFile(object):
 
 
     def obj(self):
-        """ the name of the object file we expect to be produced -- this 
+        """ the name of the object file we expect to be produced -- this
         will always be based on the original name -- we do not compile the
         preprocessed files """
         return self.name.replace(self.ext, ".o")
@@ -153,12 +190,12 @@ def doit(prefix, search_path, files, cpp):
     # find the locations of all the files, given an (optional) search
     # path and preprocess them if necessary
     for cf in files:
-        
+
         # find the file in the first part of the search path it exists
         if len(search_path) > 0:
             for p in search_path:
                 full_file = "{}/{}".format(p, cf)
-                if os.path.isfile(full_file): 
+                if os.path.isfile(full_file):
                     break
         else:
             full_file = cf
@@ -186,10 +223,10 @@ def doit(prefix, search_path, files, cpp):
     # to figure out what modules each file requires
     for sf in all_files:
         depends = sf.needed_modules()
-        
+
         for d in depends:
             print("{}: {}".format(
-                prefix+os.path.basename(sf.obj()), 
+                prefix+os.path.basename(sf.obj()),
                 prefix+os.path.basename(module_files[d])))
 
         print(" ")
@@ -206,12 +243,12 @@ if __name__ == "__main__":
                         default="")
     parser.add_argument("--cpp",
                         help="apply the C preprocessor first?",
-                        action="store_true")
+                        default="")
+    parser.add_argument("--f90_preprocess",
+                        help="command to pipe cpp output to for additional Fortran preprocessing",
+                        default="")
     parser.add_argument("--temp_dir",
                         help="directory to put temporary preprocessed files",
-                        default="")
-    parser.add_argument("--includes",
-                        help="include files needed to preprocess the source",
                         default="")
     parser.add_argument("--defines",
                         help="defines to send to preprocess the files",
@@ -224,7 +261,8 @@ if __name__ == "__main__":
     if args.prefix != "":
         prefix = "{}/".format(os.path.normpath(args.prefix))
 
-    # create a preprocessor object 
-    cpp = Preprocessor()
+    # create a preprocessor object
+    cpp = Preprocessor(temp_dir=args.temp_dir, cpp_cmd=args.cpp,
+                       defines=args.defines, f90_preprocess=args.f90_preprocess)
 
     doit(prefix, args.search_path.split(), args.files, cpp)
