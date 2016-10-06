@@ -65,11 +65,13 @@ MyParticleContainer::ChargeDeposition (MultiFab& mf_to_be_filled, int lev, int o
 	wp.reserve( pbx.size() );
 
 	const Box & bx = BoxLib::enclosedCells(ba[pgr]);
-	RealBox grid_box = RealBox( bx, dx, gm.ProbLo() );
-	const Real* xyzmin = grid_box.lo();
 	long nx = bx.length(0);
 	long ny = bx.length(1);
 	long nz = bx.length(2); 
+
+	RealBox grid_box = RealBox( bx, dx, gm.ProbLo() );
+	const Real* xyzmin = grid_box.lo();
+
 	long ng = mf_pointer->nGrow();
 	long lvect = 8;
 

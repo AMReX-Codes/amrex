@@ -41,9 +41,8 @@ public:
     void CurrentDeposition (Array< std::unique_ptr<MultiFab> >& mf_to_be_filled,
 			    int lev, Real dt) const;
 
-    void FieldGather (MultiFab& Ex, MultiFab& Ey, MultiFab& Ez,
-		      MultiFab& Bx, MultiFab& By, MultiFab& Bz,
-		      long order, long field_gathe_algo);
+    void GatherField (const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
+		      const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz);
 
     void ParticlePush (Real dt);
 

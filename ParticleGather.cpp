@@ -3,113 +3,109 @@
 #include <PICSAR_f.H>
 
 void
-MyParticleContainer::FieldGather(MultiFab& Ex, MultiFab& Ey, MultiFab& Ez,
-                                 MultiFab& Bx, MultiFab& By, MultiFab& Bz,
-                                 long order, long field_gathe_algo)
+MyParticleContainer::GatherField(const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
+                                 const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz)
 {
-    int             lev         = 0; 
-    const Real      strttime    = ParallelDescriptor::second();
-    const Geometry& gm          = m_gdb->Geom(lev);
-    const BoxArray& ba          = Ex.boxArray();
-    const Real*     dx          = gm.CellSize();
+    BL_PROFILE("MyPC::GatherField");
+    BL_PROFILE_VAR_NS("MyPC::GatherField::Copy", blp_copy);
+    BL_PROFILE_VAR_NS("PXR::FieldGather", blp_pxr);
 
-    const PMap&     pmap        = m_particles[lev];
+    const long order = 1;
+    const long field_gathe_algo = 1;
+    const long ng = 1;
+
+    BL_ASSERT(ng == Ex.nGrow());
+    BL_ASSERT(ng == Ey.nGrow());
+    BL_ASSERT(ng == Ez.nGrow());
+    BL_ASSERT(ng == Bx.nGrow());
+    BL_ASSERT(ng == By.nGrow());
+    BL_ASSERT(ng == Bz.nGrow());
+
+    const int       lev = 0; 
+    const Geometry& gm  = m_gdb->Geom(lev);
+    const BoxArray& ba  = Ex.boxArray();
+    const Real*     dx  = gm.CellSize();
+
+    BL_ASSERT(OnSameGrids(lev,Ex));
+
+    const PMap& pmap = m_particles[lev];
+
+    Array<Real> xp, yp, zp;
 
     // Loop over the grids containing particles
     for (auto& kv : pmap)
     {
-        const  int  pgr = kv.first;
+        const  int  gid = kv.first;
         const PBox& pbx = kv.second;
 
-	long np = 0;
-	Array<Real>  xp,  yp,  zp, wp;
-	Array<Real> exp, eyp, ezp;
-	Array<Real> bxp, byp, bzp;
+	const long np = pbx.size();
+
+	auto& pdata = partdata[gid];
+	auto& Exp = pdata[PIdx::Ex];
+	auto& Eyp = pdata[PIdx::Ey];
+	auto& Ezp = pdata[PIdx::Ez];
+	auto& Bxp = pdata[PIdx::Bx];
+	auto& Byp = pdata[PIdx::By];
+	auto& Bzp = pdata[PIdx::Bz];
 
 	// 1D Arrays of particle attributes
-	 xp.reserve( pbx.size() );
-	 yp.reserve( pbx.size() );
-	 zp.reserve( pbx.size() );
-	 wp.reserve( pbx.size() );
-	exp.reserve( pbx.size() );
-	eyp.reserve( pbx.size() );
-	ezp.reserve( pbx.size() );
-	bxp.reserve( pbx.size() );
-	byp.reserve( pbx.size() );
-	bzp.reserve( pbx.size() );
+	xp.resize(np);
+	yp.resize(np);
+	zp.resize(np);
+
+	Exp->resize(np);
+	Eyp->resize(np);
+	Ezp->resize(np);
+	Bxp->resize(np);
+	Byp->resize(np);
+	Bzp->resize(np);
 
 	// Data on the grid
-        FArrayBox& exfab = Ex[pgr];
-        FArrayBox& eyfab = Ey[pgr];
-        FArrayBox& ezfab = Ez[pgr];
-        FArrayBox& bxfab = Bx[pgr];
-        FArrayBox& byfab = By[pgr];
-        FArrayBox& bzfab = Bz[pgr];
+        const FArrayBox& exfab = Ex[gid];
+        const FArrayBox& eyfab = Ey[gid];
+        const FArrayBox& ezfab = Ez[gid];
+        const FArrayBox& bxfab = Bx[gid];
+        const FArrayBox& byfab = By[gid];
+        const FArrayBox& bzfab = Bz[gid];
 
-	const Box & bx = ba[pgr];
-	RealBox grid_box = RealBox( bx, dx, gm.ProbLo() );
-	const Real* xyzmin = grid_box.lo();
-	long nx = bx.length(0)-1, ny = bx.length(1)-1, nz = bx.length(2)-1; 
-	long ng = Ex.nGrow();
+	BL_PROFILE_VAR_START(blp_copy);
 
-        Real strt_copy = ParallelDescriptor::second();
-	
 	// Loop over particles in that box 
-        for (const auto& p : pbx)
+        for (int i; i < np; ++i)
         {
-            if (p.m_id <= 0) {
-	      continue;
-	    }
-	    ++np;
-	    xp.push_back( p.m_pos[0] );
-	    yp.push_back( p.m_pos[1] );
-	    zp.push_back( p.m_pos[2] );
- 	    wp.push_back( 1. ); 
-
- 	    // We put dummy values in here just to make sure these values are getting filled below.
- 	    exp.push_back( 1.e20 ); 
- 	    eyp.push_back( 1.e20 ); 
- 	    ezp.push_back( 1.e20 ); 
- 	    bxp.push_back( 1.e20 ); 
- 	    byp.push_back( 1.e20 ); 
- 	    bzp.push_back( 1.e20 ); 
+	    const auto& p = pbx[i];
+	    BL_ASSERT(p.m_id > 0);
+	    xp[i] = p.m_pos[0];
+	    yp[i] = p.m_pos[1];
+	    zp[i] = p.m_pos[2];
         }
 
-        Real end_copy = ParallelDescriptor::second() - strt_copy;
+	BL_PROFILE_VAR_STOP(blp_copy);
 
-        if (ParallelDescriptor::IOProcessor()) 
-            std::cout << "Time in FieldGather : Copy " << end_copy << '\n';
+	const Box& box = BoxLib::enclosedCells(ba[gid]);
+	long nx = box.length(0);
+	long ny = box.length(1);
+	long nz = box.length(2); 
 
-        bool ll4symtry          = false;
-        bool l_lower_order_in_v = true;
+	RealBox grid_box = RealBox( box, dx, gm.ProbLo() );
+	const Real* xyzmin = grid_box.lo();
 
-        Real strt_gather = ParallelDescriptor::second();
+        int ll4symtry          = false;
+        int l_lower_order_in_v = true;
 
-        geteb3d_energy_conserving(&np, xp.dataPtr(), yp.dataPtr(), zp.dataPtr(),
-                                      exp.dataPtr(),eyp.dataPtr(),ezp.dataPtr(),
-                                      bxp.dataPtr(),byp.dataPtr(),bzp.dataPtr(),
-				      &xyzmin[0], &xyzmin[1], &xyzmin[2],
-				      &dx[0], &dx[1], &dx[2],
-				      &nx, &ny, &nz, &ng, &ng, &ng, 
-				      &order, &order, &order, 
-				      exfab.dataPtr(), eyfab.dataPtr(), ezfab.dataPtr(),
-				      bxfab.dataPtr(), byfab.dataPtr(), bzfab.dataPtr(),
-				      &ll4symtry, &l_lower_order_in_v, &field_gathe_algo);
+	BL_PROFILE_VAR_START(blp_pxr);
 
-       Real end_gather = ParallelDescriptor::second() - strt_gather;
-       if (ParallelDescriptor::IOProcessor()) 
-           std::cout << "Time in PicsarFieldGather : Gather " << end_gather << '\n';
-    }
+        warpx_geteb3d_energy_conserving(&np, xp.dataPtr(), yp.dataPtr(), zp.dataPtr(),
+					Exp->dataPtr(),Eyp->dataPtr(),Ezp->dataPtr(),
+					Bxp->dataPtr(),Byp->dataPtr(),Bzp->dataPtr(),
+					&xyzmin[0], &xyzmin[1], &xyzmin[2],
+					&dx[0], &dx[1], &dx[2],
+					&nx, &ny, &nz, &ng, &ng, &ng, 
+					&order, &order, &order, 
+					exfab.dataPtr(), eyfab.dataPtr(), ezfab.dataPtr(),
+					bxfab.dataPtr(), byfab.dataPtr(), bzfab.dataPtr(),
+					&ll4symtry, &l_lower_order_in_v, &field_gathe_algo);
 
-    if (m_verbose > 1)
-    {
-        Real stoptime = ParallelDescriptor::second() - strttime;
-
-        ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
-
-        if (ParallelDescriptor::IOProcessor())
-        {
-            std::cout << "ParticleContainer<N>::FieldGather time: " << stoptime << '\n';
-        }
+	BL_PROFILE_VAR_STOP(blp_pxr);
     }
 }

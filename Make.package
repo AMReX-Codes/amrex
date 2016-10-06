@@ -7,3 +7,5 @@ CEXE_sources += ParticleInit.cpp
 CEXE_sources += ParticlePush.cpp
 
 CEXE_headers += WarpX.H ParticleContainer.H PICSAR_f.H
+
+F90EXE_sources += WarpX_f.F90

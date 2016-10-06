@@ -20,14 +20,16 @@ WarpX::Evolve ()
 	// At the beginning, we have B^{n-1/2} and E^{n}.
 	// Particles have p^{n-1/2} and x^{n}.
 
-	EvolveBfield(0.5*dt); // We now B^{n}
+	EvolveB(0.5*dt); // We now B^{n}
     
+	mypc->GatherField(*Efield[0],*Efield[1],*Efield[2],
+			  *Bfield[0],*Bfield[1],*Bfield[2]);
 
 //	DepositCharge();
 
 //	DepositCurrent(dt);
 	
-//	EvolveEfield(dt);
+//	EvolveE(dt);
     }
 }
 
@@ -59,7 +61,7 @@ WarpX::DepositCurrent (Real dt)
 }
 
 void
-WarpX::EvolveBfield (Real dt)
+WarpX::EvolveB (Real dt)
 {
     BL_PROFILE("WPX::EvolveBfield");
 
@@ -91,23 +93,23 @@ WarpX::EvolveBfield (Real dt)
 	long ny = box.length(1);
 	long nz = box.length(2); 
 
-	pxrpush_em3d_bvec_norder( (*Efield[0])[mfi].dataPtr(),
-				  (*Efield[1])[mfi].dataPtr(),
-				  (*Efield[2])[mfi].dataPtr(),
-				  (*Bfield[0])[mfi].dataPtr(),
-				  (*Bfield[1])[mfi].dataPtr(),
-				  (*Bfield[2])[mfi].dataPtr(), 
-				  dtsdx, dtsdx+1, dtsdx+2,
-				  &nx, &ny, &nz,
-				  &norder, &norder, &norder,
-				  &nguard, &nguard, &nguard,
-				  &nstart, &nstart, &nstart,
-				  &l_nodal );
+	warpx_pxrpush_em3d_bvec_norder( (*Efield[0])[mfi].dataPtr(),
+					(*Efield[1])[mfi].dataPtr(),
+					(*Efield[2])[mfi].dataPtr(),
+					(*Bfield[0])[mfi].dataPtr(),
+					(*Bfield[1])[mfi].dataPtr(),
+					(*Bfield[2])[mfi].dataPtr(), 
+					dtsdx, dtsdx+1, dtsdx+2,
+					&nx, &ny, &nz,
+					&norder, &norder, &norder,
+					&nguard, &nguard, &nguard,
+					&nstart, &nstart, &nstart,
+					&l_nodal );
     }
 }
 
 void
-WarpX::EvolveEfield (Real dt)
+WarpX::EvolveE (Real dt)
 {
     BL_PROFILE("WPX::EvolveEfield");
 
@@ -142,20 +144,20 @@ WarpX::EvolveEfield (Real dt)
 	long ny = bx.length(1);
 	long nz = bx.length(2); 
 
-	pxrpush_em3d_evec_norder( (*Efield[0])[mfi].dataPtr(),
-				  (*Efield[1])[mfi].dataPtr(),
-				  (*Efield[2])[mfi].dataPtr(),
-				  (*Bfield[0])[mfi].dataPtr(),
-				  (*Bfield[1])[mfi].dataPtr(),
-				  (*Bfield[2])[mfi].dataPtr(), 
-				  (*current[0])[mfi].dataPtr(),
-				  (*current[1])[mfi].dataPtr(),
-				  (*current[2])[mfi].dataPtr(),
-				  &mu_c2_dt, dtsdx_c2, dtsdx_c2+1, dtsdx_c2+2,
-				  &nx, &ny, &nz,
-				  &norder, &norder, &norder,
-				  &nguard, &nguard, &nguard,
-				  &nstart, &nstart, &nstart,
-				  &l_nodal );
+	warpx_pxrpush_em3d_evec_norder( (*Efield[0])[mfi].dataPtr(),
+					(*Efield[1])[mfi].dataPtr(),
+					(*Efield[2])[mfi].dataPtr(),
+					(*Bfield[0])[mfi].dataPtr(),
+					(*Bfield[1])[mfi].dataPtr(),
+					(*Bfield[2])[mfi].dataPtr(), 
+					(*current[0])[mfi].dataPtr(),
+					(*current[1])[mfi].dataPtr(),
+					(*current[2])[mfi].dataPtr(),
+					&mu_c2_dt, dtsdx_c2, dtsdx_c2+1, dtsdx_c2+2,
+					&nx, &ny, &nz,
+					&norder, &norder, &norder,
+					&nguard, &nguard, &nguard,
+					&nstart, &nstart, &nstart,
+					&l_nodal );
     }
 }

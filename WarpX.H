@@ -27,8 +27,8 @@ private:
 
     void DepositCharge ();
     void DepositCurrent (Real dt);
-    void EvolveEfield (Real dt);
-    void EvolveBfield (Real dt);
+    void EvolveE (Real dt);
+    void EvolveB (Real dt);
 
     void ReadParameters ();
 
