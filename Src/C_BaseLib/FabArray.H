@@ -1693,6 +1693,7 @@ FabArray<FAB>::defineDoit (const BoxArray&            bxs,
     n_comp = nvar;
 
     boxarray = bxs;
+    boxarray.convert(IndexType(nodal));
 
     if (nodal != IntVect::TheZeroVector()) {
 	if (nodal == IntVect::TheUnitVector()) {
