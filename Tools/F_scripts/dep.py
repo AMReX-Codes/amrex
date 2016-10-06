@@ -15,13 +15,18 @@ import argparse
 # modules to ignore in the dependencies
 IGNORES = ["iso_c_binding", "iso_fortran_env"]
 
+# regular expression for "{}module{}name", where {} can be any number
+# of spaces.  We use 4 groups here, denoted by (), so the name of the
+# module is the 4th group
 module_re = re.compile("( )(module)(\s+)((?:[a-z][a-z_0-9]+))",
                        re.IGNORECASE|re.DOTALL)
 
+# regular expression for "{}module{}procedure{}name"
 module_proc_re = re.compile("( )(module)(\s+)(procedure)(\s+)((?:[a-z][a-z_0-9]+))",
                             re.IGNORECASE|re.DOTALL)
 
-# regular expression for ' use modulename, only: stuff, other stuff'
+# regular expression for "{}use{}modulename...".  Note this will work for
+# use modulename, only: stuff, other stuff'
 # see (txt2re.com)
 use_re = re.compile("( )(use)(\s+)((?:[a-z_][a-z_0-9]+))", 
                     re.IGNORECASE|re.DOTALL)
@@ -136,10 +141,13 @@ class SourceFile(object):
 
 def doit(prefix, search_path, files, cpp):
 
-    # first parse the files and find all the module statements.  Keep a
-    # dictionary of 'module name':filename.
+    # module_files is a dictionary where the keys are the name of the
+    # module (as it appears in Fortran code) and the value associated
+    # with the key is the name of the object file that provides the
+    # module.
     module_files = {}
 
+    # all_files is a list of SourceFile objects
     all_files = []
 
     # find the locations of all the files, given an (optional) search
@@ -213,7 +221,8 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    prefix = "{}/".format(os.path.normpath(args.prefix))
+    if args.prefix != "":
+        prefix = "{}/".format(os.path.normpath(args.prefix))
 
     # create a preprocessor object 
     cpp = Preprocessor()
