@@ -23,6 +23,9 @@ public:
 
     int Verbose () const { return verbose; }
 
+    static void SumBoundary (MultiFab& mf, const Geometry& geom, const IntVect& nodalflag);
+    static void FillBoundary (MultiFab& mf, const Geometry& geom, const IntVect& nodalflag);
+
 private:
 
     void EvolveE (Real dt);

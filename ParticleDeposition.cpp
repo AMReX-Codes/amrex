@@ -2,7 +2,13 @@
 #include <memory>
 
 #include <ParticleContainer.H>
+#include <WarpX.H>
 #include <PICSAR_f.H>
+
+//
+// This funciton is assumed to be called after ParticlePush, and therefore
+// gaminv is update to date.
+//
 
 void
 MyParticleContainer::CurrentDeposition (MultiFab& jx, MultiFab& jy, MultiFab& jz, Real dt) const
@@ -18,6 +24,10 @@ MyParticleContainer::CurrentDeposition (MultiFab& jx, MultiFab& jy, MultiFab& jz
     const PMap&     pmap = m_particles[lev];
 
     BL_ASSERT(OnSameGrids(lev,jx));
+
+    jx.setVal(0.0);
+    jy.setVal(0.0);
+    jz.setVal(0.0);
 
     // Charge
     Real q = 1.;
@@ -101,9 +111,7 @@ MyParticleContainer::CurrentDeposition (MultiFab& jx, MultiFab& jy, MultiFab& jz
 	BL_PROFILE_VAR_STOP(blp_pxr);
     }
 
-#if 0
-    for (int i = 0; i < BL_SPACEDIM; ++i) {
-	mf_pointer[i]->SumBoundary(gm.periodicity());
-    }
-#endif
+    WarpX::SumBoundary(jx, gm, IntVect(D_DECL(0,1,1)));
+    WarpX::SumBoundary(jy, gm, IntVect(D_DECL(1,0,1)));
+    WarpX::SumBoundary(jz, gm, IntVect(D_DECL(1,1,0)));
 }

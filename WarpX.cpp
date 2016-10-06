@@ -89,3 +89,17 @@ WarpX::ReadParameters ()
 	pp.query("verbose", verbose);
     }
 }
+
+void 
+WarpX::SumBoundary (MultiFab& mf, const Geometry& geom, const IntVect& nodalflag)
+{
+
+    mf.SumBoundary(geom.periodicity());
+}
+
+void 
+WarpX::FillBoundary (MultiFab& mf, const Geometry& geom, const IntVect& nodalflag)
+{
+
+    mf.FillBoundary(geom.periodicity());
+}

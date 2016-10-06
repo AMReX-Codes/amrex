@@ -31,7 +31,14 @@ WarpX::Evolve ()
 
 	mypc->CurrentDeposition(*current[0],*current[1],*current[2],dt); // We now have j^{n+1/2}
 
+	mypc->Redistribute();  // Redistribute particles
+
 	EvolveB(0.5*dt); // We now B^{n+1/2}
+
+	// Fill B's ghost cells because of the next step of evolving E.
+	WarpX::FillBoundary(*Bfield[0], geom_arr[0], IntVect(D_DECL(1,0,0)));
+	WarpX::FillBoundary(*Bfield[1], geom_arr[0], IntVect(D_DECL(0,1,0)));
+	WarpX::FillBoundary(*Bfield[2], geom_arr[0], IntVect(D_DECL(0,0,1)));
 	
 	EvolveE(dt); // We now have E^{n+1}
     }
