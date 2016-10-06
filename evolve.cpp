@@ -77,7 +77,7 @@ WarpX::EvolveB (Real dt)
     long norder = 2;
     long nguard = 1;
     long nstart = 0;
-    int l_nodal = 0;
+    int l_nodal = false;
 
     BL_ASSERT(nguard == Efield[0]->nGrow());
     BL_ASSERT(nguard == Efield[1]->nGrow());
@@ -125,7 +125,7 @@ WarpX::EvolveE (Real dt)
     long norder = 2;
     long nguard = 1;
     long nstart = 0;
-    int l_nodal = 0;
+    int l_nodal = false;
 
     BL_ASSERT(nguard == Efield[0]->nGrow());
     BL_ASSERT(nguard == Efield[1]->nGrow());

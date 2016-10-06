@@ -10,17 +10,6 @@ MyParticleContainer::GatherField(const MultiFab& Ex, const MultiFab& Ey, const M
     BL_PROFILE_VAR_NS("MyPC::GatherField::Copy", blp_copy);
     BL_PROFILE_VAR_NS("PXR::FieldGather", blp_pxr);
 
-    const long order = 1;
-    const long field_gathe_algo = 1;
-    const long ng = 1;
-
-    BL_ASSERT(ng == Ex.nGrow());
-    BL_ASSERT(ng == Ey.nGrow());
-    BL_ASSERT(ng == Ez.nGrow());
-    BL_ASSERT(ng == Bx.nGrow());
-    BL_ASSERT(ng == By.nGrow());
-    BL_ASSERT(ng == Bz.nGrow());
-
     const int       lev = 0; 
     const Geometry& gm  = m_gdb->Geom(lev);
     const BoxArray& ba  = Ex.boxArray();
@@ -90,8 +79,18 @@ MyParticleContainer::GatherField(const MultiFab& Ex, const MultiFab& Ey, const M
 	RealBox grid_box = RealBox( box, dx, gm.ProbLo() );
 	const Real* xyzmin = grid_box.lo();
 
-        int ll4symtry          = false;
-        int l_lower_order_in_v = true;
+	const long order = 1;
+	const long field_gathe_algo = 1;
+	const long ng = 1;
+	const int ll4symtry          = false;
+	const int l_lower_order_in_v = true;
+	
+	BL_ASSERT(ng == Ex.nGrow());
+	BL_ASSERT(ng == Ey.nGrow());
+	BL_ASSERT(ng == Ez.nGrow());
+	BL_ASSERT(ng == Bx.nGrow());
+	BL_ASSERT(ng == By.nGrow());
+	BL_ASSERT(ng == Bz.nGrow());
 
 	BL_PROFILE_VAR_START(blp_pxr);
 
