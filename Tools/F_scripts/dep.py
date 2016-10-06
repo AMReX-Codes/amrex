@@ -30,16 +30,20 @@ use_re = re.compile("( )(use)(\s+)((?:[a-z_][a-z_0-9]+))",
 class Preprocessor(object):
     """ hold the information about preprocessing """
 
-    def __init__(self, temp_dir, cpp_cmd, includes, defines):
+    def __init__(self, temp_dir=None, cpp_cmd=None, 
+                 includes=None, defines=None):
+
         self.temp_dir = temp_dir
         self.cpp_cmd = cpp_cmd
         self.includes = includes
         self.defines = defines
 
-    def preprocess(self, source_file):
-        """ preprocess the file described by a SourceFile object source_file """
+    def preprocess(self, sf):
+        """ preprocess the file described by a SourceFile object sf """
+
+        # we output to the temporary directory
+        #sf.cpp_name = 
         pass
-        
 
 class SourceFile(object):
     """ hold information about one of the .f90/.F90 files """
@@ -50,9 +54,9 @@ class SourceFile(object):
 
         # do we need to be preprocessed?  We'll use the convention
         # that .F90 = yes, .f90 = no
-        ext = os.path.splitext(filename)
+        self.ext = os.path.splitext(filename)[1]
 
-        if ext in [".F90", ".F95", ".F03"]:
+        if self.ext in [".F90", ".F95", ".F03"]:
             self.preprocess = True
         else:
             self.preprocess = False
@@ -61,12 +65,32 @@ class SourceFile(object):
         self.cpp_name = None
 
 
+    def search_name(self):
+        """return the file name we use for searching -- this is the
+        preprocessed file if it exists"""
+
+        if self.cpp_name is not None:
+            search_file = self.cpp_name
+        else:
+            search_file = self.name
+
+        return search_file
+
+
+    def obj(self):
+        """ the name of the object file we expect to be produced -- this 
+        will always be based on the original name -- we do not compile the
+        preprocessed files """
+        return self.name.replace(self.ext, ".o")
+
+
     def defined_modules(self):
-        """ determine what modules this file provides """
+        """determine what modules this file provides -- we work off of the
+        preprocessed file if it exists."""
 
         defines = []
 
-        with open(self.name, "r") as f:
+        with open(self.search_name(), "r") as f:
 
             for line in f:
 
@@ -85,11 +109,12 @@ class SourceFile(object):
 
     def needed_modules(self):
         """determine what modules this file needs.  Assume only one use
-           statement per line.  Ignore any only clauses. """
+           statement per line.  Ignore any only clauses.  We work off
+           of the preprocessed file if it exists."""
 
         depends = []
 
-        with open(self.name, "r") as f:
+        with open(self.search_name(), "r") as f:
 
             for line in f:
 
@@ -109,7 +134,7 @@ class SourceFile(object):
         return depends
 
 
-def doit(prefix, search_path, files):
+def doit(prefix, search_path, files, cpp):
 
     # first parse the files and find all the module statements.  Keep a
     # dictionary of 'module name':filename.
@@ -118,7 +143,7 @@ def doit(prefix, search_path, files):
     all_files = []
 
     # find the locations of all the files, given an (optional) search
-    # path
+    # path and preprocess them if necessary
     for cf in files:
         
         # find the file in the first part of the search path it exists
@@ -130,15 +155,23 @@ def doit(prefix, search_path, files):
         else:
             full_file = cf
 
-        all_files.append(SourceFile(full_file))
+        sf = SourceFile(full_file)
+
+        # preprocess, if necessary
+        if sf.preprocess:
+            cpp.preprocess(sf)
+
+        all_files.append(sf)
 
     # for each file, figure out what modules they define and add those to
-    # the module_files dictionary -- the module provided is the "key"
+    # the module_files dictionary -- the module provided is the "key" and
+    # the value is the object file corresponding to the source file that
+    # holds the module definition
     for sf in all_files:
         provides = sf.defined_modules()
 
         for p in provides:
-            module_files[p] = sf.name
+            module_files[p] = sf.obj()
 
 
     # go back through the files now and look for the use statements
@@ -148,8 +181,8 @@ def doit(prefix, search_path, files):
         
         for d in depends:
             print("{}: {}".format(
-                prefix+os.path.basename(sf.name).replace(".f90", ".o"), 
-                prefix+os.path.basename(module_files[d]).replace(".f90", ".o")))
+                prefix+os.path.basename(sf.obj()), 
+                prefix+os.path.basename(module_files[d])))
 
         print(" ")
 
@@ -182,4 +215,7 @@ if __name__ == "__main__":
 
     prefix = "{}/".format(os.path.normpath(args.prefix))
 
-    doit(prefix, args.search_path.split(), args.files)
+    # create a preprocessor object 
+    cpp = Preprocessor()
+
+    doit(prefix, args.search_path.split(), args.files, cpp)
