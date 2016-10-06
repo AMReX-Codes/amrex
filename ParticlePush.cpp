@@ -5,9 +5,12 @@
 void
 MyParticleContainer::ParticlePush(Real dt)
 {
-    int             lev         = 0; 
-    const Real      strttime    = ParallelDescriptor::second();
-    PMap&           pmap        = m_particles[lev];
+    BL_PROFILE("MyPC::ParticlePush");
+    BL_PROFILE_VAR_NS("MyPC::ParticlePush::Copy", blp_copy);
+    BL_PROFILE_VAR_NS("PXR::FieldGather", blp_pxr);
+
+    int   lev  = 0; 
+    PMap& pmap = m_particles[lev];
 
     Real half_dt = 0.5 * dt;
 
@@ -16,134 +19,97 @@ MyParticleContainer::ParticlePush(Real dt)
 
     // Charge
     Real q  = 1.0;
+    // xxxxx what's weight? Is it the same as charge?
+    // xxxxx no negative charges?
+
+    Array<Real>  xp,  yp,  zp;
+    Array<Real> uxp, uyp, uzp;
 
     // Loop over pmap which loops over the grids containing particles
     for (auto& kv : pmap)
     {
-        PBox& pbx = kv.second;
-        long np = 0;
+	const int gid = kv.first;
+        PBox&     pbx = kv.second;
 
-	Array<Real>  xp,  yp,  zp, wp;
-	Array<Real> uxp, uyp, uzp;
-	Array<Real> exp, eyp, ezp;
-	Array<Real> bxp, byp, bzp;
-	Array<Real> cp;
-	Array<Real> gaminv;
+        const long np = pbx.size();
+
+	auto& pdata = partdata[gid];
+	const auto& Exp = pdata[PIdx::Ex];
+	const auto& Eyp = pdata[PIdx::Ey];
+	const auto& Ezp = pdata[PIdx::Ez];
+	const auto& Bxp = pdata[PIdx::Bx];
+	const auto& Byp = pdata[PIdx::By];
+	const auto& Bzp = pdata[PIdx::Bz];
+	auto& giv = pdata[PIdx::gaminv];
+
+	BL_ASSERT(Exp->size() == np);
+
+	giv->resize(np);
+
+	BL_PROFILE_VAR_START(blp_copy);
 
 	// 1D Arrays of particle attributes
-	 xp.reserve( pbx.size() );
-	 yp.reserve( pbx.size() );
-	 zp.reserve( pbx.size() );
-	 wp.reserve( pbx.size() );
-	uxp.reserve( pbx.size() );
-	uyp.reserve( pbx.size() );
-	uzp.reserve( pbx.size() );
-	exp.reserve( pbx.size() );
-	eyp.reserve( pbx.size() );
-	ezp.reserve( pbx.size() );
-	bxp.reserve( pbx.size() );
-	byp.reserve( pbx.size() );
-	bzp.reserve( pbx.size() );
+	 xp.resize(np);
+	 yp.resize(np);
+	 zp.resize(np);
+	uxp.resize(np);
+	uyp.resize(np);
+	uzp.resize(np);
 
-	gaminv.reserve( pbx.size() );
-
-        Real strt_copy = ParallelDescriptor::second();
-	
-	// Loop over particles in the box
-        for (const auto& p : pbx)
+	// Loop over particles in that box 
+        for (auto i = 0; i < np; ++i)
         {
-            if (p.m_id <= 0) {
-	      continue;
-	    }
-	    ++np;
-
-            // Position
-	     xp.push_back( p.m_pos[0] );
-	     yp.push_back( p.m_pos[1] );
-	     zp.push_back( p.m_pos[2] );
-
-            // Velocity
- 	    uxp.push_back( p.m_data[1] ); 
- 	    uyp.push_back( p.m_data[2] ); 
- 	    uzp.push_back( p.m_data[3] ); 
-
-            // E-field
- 	    exp.push_back( p.m_data[4] ); 
- 	    eyp.push_back( p.m_data[5] ); 
- 	    ezp.push_back( p.m_data[6] ); 
-
-            // B-field
- 	    bxp.push_back( p.m_data[7] ); 
- 	    byp.push_back( p.m_data[8] ); 
- 	    bzp.push_back( p.m_data[9] ); 
-
-            // (1 / Gamma)
- 	    gaminv.push_back( 1.e20 );
+	    const auto& p = pbx[i];
+	    BL_ASSERT(p.m_id > 0);
+	    xp[i]  = p.m_pos[0];
+	    yp[i]  = p.m_pos[1];
+	    zp[i]  = p.m_pos[2];
+ 	    uxp[i] = p.m_data[PIdx::ux]; 
+ 	    uyp[i] = p.m_data[PIdx::uy]; 
+ 	    uzp[i] = p.m_data[PIdx::uz]; 
         }
 
-        Real end_copy = ParallelDescriptor::second() - strt_copy;
+	BL_PROFILE_VAR_STOP(blp_copy);
 
-        if (ParallelDescriptor::IOProcessor()) 
-            std::cout << "Time in ParticlePush : Copy " << end_copy << '\n';
+	BL_PROFILE_VAR_START(blp_pxr);
 
-        Real strt_push = ParallelDescriptor::second();
+        pxr_epush_v(&np, uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(),
+		    Exp->dataPtr(), Eyp->dataPtr(), Ezp->dataPtr(),
+                    &q, &mass, &half_dt);
 
-        pxr_epush_v(&np,uxp.dataPtr(),uyp.dataPtr(),uzp.dataPtr(),
-                        exp.dataPtr(),eyp.dataPtr(),ezp.dataPtr(),
-                    &q,&mass,&half_dt);
+        pxr_set_gamma(&np, uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(), giv->dataPtr());
 
-        pxr_set_gamma(&np, uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(), gaminv.dataPtr());
+        pxr_bpush_v(&np, uxp.dataPtr(),uyp.dataPtr(),uzp.dataPtr(), giv->dataPtr(),
+		    Bxp->dataPtr(), Byp->dataPtr(), Bzp->dataPtr(),
+                    &q, &mass, &dt);
 
-        pxr_bpush_v(&np, uxp.dataPtr(),uyp.dataPtr(),uzp.dataPtr(),
-                      gaminv.dataPtr(),
-                         bxp.dataPtr(),byp.dataPtr(),bzp.dataPtr(),
-                    &q,&mass,&dt);
+        pxr_epush_v(&np, uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(),
+		    Exp->dataPtr(), Eyp->dataPtr(), Ezp->dataPtr(),
+                    &q, &mass, &half_dt);
 
-        pxr_epush_v(&np,uxp.dataPtr(),uyp.dataPtr(),uzp.dataPtr(),
-                        exp.dataPtr(),eyp.dataPtr(),ezp.dataPtr(),
-                    &q,&mass,&half_dt);
+        pxr_set_gamma(&np, uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(), giv->dataPtr());
 
-        pxr_set_gamma(&np, uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(), gaminv.dataPtr());
+        pxr_pushxyz(&np, xp.dataPtr(), yp.dataPtr(), zp.dataPtr(),
+		    uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(), giv->dataPtr(),
+		    &dt);
 
-        pxr_pushxyz(&np,  xp.dataPtr(), yp.dataPtr(), zp.dataPtr(),
-                        uxp.dataPtr(),uyp.dataPtr(),uzp.dataPtr(),
-                      gaminv.dataPtr(), &dt);
+	BL_PROFILE_VAR_STOP(blp_pxr);
 
-        Real end_push = ParallelDescriptor::second() - strt_push;
+	BL_PROFILE_VAR_START(blp_copy);
 
-        if (ParallelDescriptor::IOProcessor()) 
-            std::cout << "Time in PicsarPush : Push " << end_push << '\n';
-
-        // Loop over particles in that box again to save the new particle positions, velocities, and (1/gamma)
-        int n = 0;
-        for (auto& p : pbx)
+	// Loop over particles in that box 
+        for (auto i = 0; i < np; ++i)
         {
-            if (p.m_id <= 0) {
-              continue;
-            }
-            p.m_pos[0] = xp.dataPtr()[n];
-            p.m_pos[1] = yp.dataPtr()[n];
-            p.m_pos[2] = zp.dataPtr()[n];
-
-            p.m_data[1] = uxp.dataPtr()[n];
-            p.m_data[2] = uyp.dataPtr()[n];
-            p.m_data[3] = uzp.dataPtr()[n];
-
-            p.m_data[10] = gaminv.dataPtr()[n];
-
-            n++;
+	    auto& p = pbx[i];
+	    BL_ASSERT(p.m_id > 0);
+	    p.m_pos[0] = xp[i];
+	    p.m_pos[1] = yp[i];
+	    p.m_pos[2] = zp[i];
+ 	    p.m_data[PIdx::ux] = uxp[i];
+ 	    p.m_data[PIdx::uy] = uyp[i];
+ 	    p.m_data[PIdx::uz] = uzp[i];
         }
-    }
 
-    if (m_verbose > 1)
-    {
-        Real stoptime = ParallelDescriptor::second() - strttime;
-
-        ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
-
-        if (ParallelDescriptor::IOProcessor())
-        {
-            std::cout << "ParticleContainer<N>::ParticlePush time: " << stoptime << '\n';
-        }
+	BL_PROFILE_VAR_STOP(blp_copy);
     }
 }

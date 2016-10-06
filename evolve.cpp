@@ -22,14 +22,20 @@ WarpX::Evolve ()
 
 	EvolveB(0.5*dt); // We now B^{n}
 
-	mypc->GatherField(*Efield[0],*Efield[1],*Efield[2],
-			  *Bfield[0],*Bfield[1],*Bfield[2]);
+	bool do_high_order = false;  // If true, we need to call FillBoundary
+	mypc->FieldGather(*Efield[0],*Efield[1],*Efield[2],
+			  *Bfield[0],*Bfield[1],*Bfield[2],
+			  do_high_order);
+
+	mypc->ParticlePush(dt); // We now have p^{n+1/2} and x^{n+1}
 
 //	DepositCharge();
 
 //	DepositCurrent(dt);
+
+	EvolveB(0.5*dt); // We now B^{n+1/2}
 	
-//	EvolveE(dt);
+	EvolveE(dt); // We now have E^{n+1}
     }
 }
 

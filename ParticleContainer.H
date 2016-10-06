@@ -11,7 +11,7 @@ struct PIdx
 {
     enum { // Particle Attributes stored in p.m_data
 	w = 0,  // weight
-	px, py, pz,
+	ux, uy, uz,
 	nattribs
     };
 
@@ -41,8 +41,9 @@ public:
     void CurrentDeposition (Array< std::unique_ptr<MultiFab> >& mf_to_be_filled,
 			    int lev, Real dt) const;
 
-    void GatherField (const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
-		      const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz);
+    void FieldGather (const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
+		      const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz,
+		      bool do_high_order);
 
     void ParticlePush (Real dt);
 

@@ -251,9 +251,9 @@ MyParticleContainer::CurrentDeposition (Array< std::unique_ptr<MultiFab> >& mf_t
             // weights
  	    wp.push_back( p.m_data[PIdx::w] ); 
 	    
- 	    uxp.push_back( p.m_data[PIdx::px] ); 
- 	    uyp.push_back( p.m_data[PIdx::py] ); 
- 	    uzp.push_back( p.m_data[PIdx::pz] ); 
+ 	    uxp.push_back( p.m_data[PIdx::ux] ); 
+ 	    uyp.push_back( p.m_data[PIdx::uy] ); 
+ 	    uzp.push_back( p.m_data[PIdx::uz] ); 
 
             // gaminv 
  	    gip.push_back( p.m_data[PIdx::gaminv] ); 

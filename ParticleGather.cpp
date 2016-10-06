@@ -3,11 +3,12 @@
 #include <PICSAR_f.H>
 
 void
-MyParticleContainer::GatherField(const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
-                                 const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz)
+MyParticleContainer::FieldGather(const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
+                                 const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz,
+				 bool do_high_order)
 {
-    BL_PROFILE("MyPC::GatherField");
-    BL_PROFILE_VAR_NS("MyPC::GatherField::Copy", blp_copy);
+    BL_PROFILE("MyPC::FieldGather");
+    BL_PROFILE_VAR_NS("MyPC::FieldGather::Copy", blp_copy);
     BL_PROFILE_VAR_NS("PXR::FieldGather", blp_pxr);
 
     const int       lev = 0; 
@@ -37,11 +38,6 @@ MyParticleContainer::GatherField(const MultiFab& Ex, const MultiFab& Ey, const M
 	auto& Byp = pdata[PIdx::By];
 	auto& Bzp = pdata[PIdx::Bz];
 
-	// 1D Arrays of particle attributes
-	xp.resize(np);
-	yp.resize(np);
-	zp.resize(np);
-
 	Exp->resize(np);
 	Eyp->resize(np);
 	Ezp->resize(np);
@@ -58,6 +54,11 @@ MyParticleContainer::GatherField(const MultiFab& Ex, const MultiFab& Ey, const M
         const FArrayBox& bzfab = Bz[gid];
 
 	BL_PROFILE_VAR_START(blp_copy);
+
+	// 1D Arrays of particle attributes
+	xp.resize(np);
+	yp.resize(np);
+	zp.resize(np);
 
 	// Loop over particles in that box 
         for (auto i = 0; i < np; ++i)
@@ -83,7 +84,7 @@ MyParticleContainer::GatherField(const MultiFab& Ex, const MultiFab& Ey, const M
 	const long field_gathe_algo = 1;
 	const long ng = 1;
 	const int ll4symtry          = false;
-	const int l_lower_order_in_v = true;
+	const int l_lower_order_in_v = !do_high_order;
 	
 	BL_ASSERT(ng == Ex.nGrow());
 	BL_ASSERT(ng == Ey.nGrow());
