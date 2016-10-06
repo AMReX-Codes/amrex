@@ -11,9 +11,9 @@ void
 MyParticleContainer::CurrentDeposition (MultiFab& jx, MultiFab& jy, MultiFab& jz, Real dt) const
 {
 #if 0
-    BL_PROFILE("MyPC::CurrentDeposition");
+    BL_PROFILE("MyPC::CurrentDeposition()");
     BL_PROFILE_VAR_NS("MyPC::CurrentDeposition::Copy", blp_copy);
-    BL_PROFILE_VAR_NS("PXR::CurrentDeposition", blp_pxr_cd);
+    BL_PROFILE_VAR_NS("PICSAR::CurrentDeposition", blp_pxr_cd);
 
     int lev = 0;
 

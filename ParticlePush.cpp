@@ -5,9 +5,9 @@
 void
 MyParticleContainer::ParticlePush(Real dt)
 {
-    BL_PROFILE("MyPC::ParticlePush");
+    BL_PROFILE("MyPC::ParticlePush()");
     BL_PROFILE_VAR_NS("MyPC::ParticlePush::Copy", blp_copy);
-    BL_PROFILE_VAR_NS("PXR::FieldGather", blp_pxr);
+    BL_PROFILE_VAR_NS("PICSAR::FieldGather", blp_pxr);
 
     int   lev  = 0; 
     PMap& pmap = m_particles[lev];

@@ -7,9 +7,9 @@ MyParticleContainer::FieldGather(const MultiFab& Ex, const MultiFab& Ey, const M
                                  const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz,
 				 bool do_high_order)
 {
-    BL_PROFILE("MyPC::FieldGather");
+    BL_PROFILE("MyPC::FieldGather()");
     BL_PROFILE_VAR_NS("MyPC::FieldGather::Copy", blp_copy);
-    BL_PROFILE_VAR_NS("PXR::FieldGather", blp_pxr);
+    BL_PROFILE_VAR_NS("PICSAR::FieldGather", blp_pxr);
 
     const int       lev = 0; 
     const Geometry& gm  = m_gdb->Geom(lev);

@@ -4,7 +4,7 @@
 void
 WarpX::InitData ()
 {
-    BL_PROFILE("WPX::InitData");
+    BL_PROFILE("WarpX::InitData()");
 
     MultiFab dummy_mf(ba_arr[0], 1, 0);
     mypc->Init(dummy_mf);

@@ -10,7 +10,7 @@ namespace {
 void
 WarpX::Evolve ()
 {
-    BL_PROFILE("WPX::Evolve");
+    BL_PROFILE("WarpX::Evolve()");
 
     Real t = 0.0;
     Real dt  = 0.95 * geom_arr[0].CellSize(0) * (1.0/clight);
@@ -40,7 +40,7 @@ WarpX::Evolve ()
 void
 WarpX::EvolveB (Real dt)
 {
-    BL_PROFILE("WPX::EvolveBfield");
+    BL_PROFILE("WarpX::EvolveB()");
 
     const Real* dx = geom_arr[0].CellSize();
 
@@ -86,7 +86,7 @@ WarpX::EvolveB (Real dt)
 void
 WarpX::EvolveE (Real dt)
 {
-    BL_PROFILE("WPX::EvolveEfield");
+    BL_PROFILE("WarpX::EvolveE()");
 
     Real mu_c2_dt = (mu0*clight*clight) * dt;
 

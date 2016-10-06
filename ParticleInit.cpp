@@ -7,7 +7,7 @@
 void
 MyParticleContainer::Init(MultiFab& dummy_mf)
 {
-    BL_PROFILE("MyPC::Init");
+    BL_PROFILE("MyPC::Init()");
 
     Real x_off = 0.5;
     Real y_off = 0.5;
