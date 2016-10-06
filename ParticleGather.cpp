@@ -60,7 +60,7 @@ MyParticleContainer::GatherField(const MultiFab& Ex, const MultiFab& Ey, const M
 	BL_PROFILE_VAR_START(blp_copy);
 
 	// Loop over particles in that box 
-        for (int i; i < np; ++i)
+        for (auto i = 0; i < np; ++i)
         {
 	    const auto& p = pbx[i];
 	    BL_ASSERT(p.m_id > 0);
