@@ -4,6 +4,10 @@
 #include <deque>
 
 
+int NFilesIter::currentDeciderIndex(-1);
+Array<std::pair<int, int> > NFilesIter::unreadMessages;
+
+
 NFilesIter::NFilesIter(int noutfiles, const std::string &fileprefix,
                        bool groupsets, bool setBuf)
 {
@@ -35,14 +39,21 @@ NFilesIter::NFilesIter(int noutfiles, const std::string &fileprefix,
     }
   }
 
-  nSetZeros = 0;
-  nonZeroDeciderProc = -1;
+  availableDeciders.reserve(nProcs);
+  setZeroProcs.reserve(nOutFiles);
   for(int i(0); i < nProcs; ++i) {
     // ---- count zero set positions  and find an alternate decider
     if(NFilesIter::WhichSetPosition(i, nProcs, nOutFiles, groupSets) == 0) {
-      ++nSetZeros;
+      setZeroProcs.push_back(i);
     } else {
-      nonZeroDeciderProc = i;  // ---- this will end up with the last value
+      availableDeciders.push_back(i);
+    }
+  }
+
+  if(currentDeciderIndex < 0) {
+    currentDeciderIndex = nSets / 2;
+    if(currentDeciderIndex >= availableDeciders.size()) {
+      currentDeciderIndex = 0;
     }
   }
 
@@ -57,12 +68,21 @@ NFilesIter::NFilesIter(int noutfiles, const std::string &fileprefix,
 void NFilesIter::SetDynamic(int deciderproc)
 {
   deciderProc = deciderproc;
-  if(deciderProc < 0) {
-    deciderProc = nProcs - 1;
+  if(deciderProc < 0 || deciderProc >= nProcs) {
+    deciderProc = availableDeciders[currentDeciderIndex];
   }
-  // ---- the decider cannot have set position zero
   if(NFilesIter::WhichSetPosition(deciderProc, nProcs, nOutFiles, groupSets) == 0) {
-    deciderProc = nonZeroDeciderProc;
+    // ---- the decider cannot have set position zero
+    deciderProc = availableDeciders[currentDeciderIndex];
+  }
+  currentDeciderIndex += nSets - 1;
+  if(currentDeciderIndex >= availableDeciders.size()) {
+    currentDeciderIndex = 0;
+  }
+  if(myProc == deciderProc) {
+    int wsp(NFilesIter::WhichSetPosition(myProc, nProcs, nOutFiles, groupSets));
+    std::cout << myProc << "::DDDDDDDD:  idecide:  currentDeciderIndex setpos nSets = " << currentDeciderIndex
+              << "  " << wsp << "  " << nSets  << std::endl;
   }
 
   deciderTag = ParallelDescriptor::SeqNum();
@@ -138,7 +158,6 @@ bool NFilesIter::ReadyToWrite() {
         } else {
           fileStream.open(fullFileName.c_str(),
                           std::ios::out | std::ios::app | std::ios::binary);
-          fileStream.seekp(0, std::ios::end);   // ---- set to eof
         }
         if( ! fileStream.good()) {
           BoxLib::FileOpenFailed(fullFileName);
@@ -173,15 +192,14 @@ bool NFilesIter::ReadyToWrite() {
 
     } else if(myProc == deciderProc) {  // ---- this proc decides who decides
 
+      BL_PROFILE("NFI::ReadyToWrite:decider");
       // ---- the first message received is the coordinator
       ParallelDescriptor::Recv(&coordinatorProc, 1, MPI_ANY_SOURCE, deciderTag);
-      // ---- tell the coordinatorProc to start coordinating
-      ParallelDescriptor::Send(&coordinatorProc, 1, coordinatorProc, coordinatorTag);
-      for(int i(0); i < nSetZeros - 1; ++i) {  // ---- tell the others who is coorinating
-        int nonCoordinatorProc(-1);
-        ParallelDescriptor::Recv(&nonCoordinatorProc, 1, MPI_ANY_SOURCE, deciderTag);
-        ParallelDescriptor::Asend(&coordinatorProc, 1, nonCoordinatorProc, coordinatorTag);
+      std::cout << myProc << ":: coordinatorProc = " << coordinatorProc << std::endl;
+      for(int i(0); i < setZeroProcs.size(); ++i) {  // ---- tell the set zero ranks  who is coorinating
+        ParallelDescriptor::Send(&coordinatorProc, 1, setZeroProcs[i], coordinatorTag);
       }
+      unreadMessages.push_back(std::make_pair(deciderTag, setZeroProcs.size() - 1));
     }
 
     // ---- these are the rest of the procs who need to write
@@ -194,7 +212,6 @@ bool NFilesIter::ReadyToWrite() {
 
       fileStream.open(fullFileName.c_str(),
                       std::ios::out | std::ios::app | std::ios::binary);
-      fileStream.seekp(0, std::ios::end);   // ---- set to eof
       if( ! fileStream.good()) {
         BoxLib::FileOpenFailed(fullFileName);
       }
@@ -410,6 +427,22 @@ Array<int> NFilesIter::FileNumbersWritten()
 
   }
   return fileNumbersWritten;
+}
+
+
+
+void NFilesIter::CleanUpMessages() {
+  BL_PROFILE("NFI::CleanUpMessages");
+  for(int i(0); i < unreadMessages.size(); ++i) {
+    std::pair<int, int> & pii = unreadMessages[i];
+    int fromProc, tag(pii.first), nMessages(pii.second);
+    std::cout << ParallelDescriptor::MyProc() << ":: cleaning up " << nMessages
+              << " messages for tag " << tag << std::endl;
+    for(int n(0); n < nMessages; ++n) {
+      ParallelDescriptor::Recv(&fromProc, 1, MPI_ANY_SOURCE, tag);
+    }
+  }
+  unreadMessages.clear();
 }
 
 
