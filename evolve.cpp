@@ -21,7 +21,7 @@ WarpX::Evolve ()
 	// Particles have p^{n-1/2} and x^{n}.
 
 	EvolveB(0.5*dt); // We now B^{n}
-    
+
 	mypc->GatherField(*Efield[0],*Efield[1],*Efield[2],
 			  *Bfield[0],*Bfield[1],*Bfield[2]);
 
@@ -64,8 +64,6 @@ void
 WarpX::EvolveB (Real dt)
 {
     BL_PROFILE("WPX::EvolveBfield");
-
-    Real mu_c2_dt = (mu0*clight*clight) * dt;
 
     const Real* dx = geom_arr[0].CellSize();
 

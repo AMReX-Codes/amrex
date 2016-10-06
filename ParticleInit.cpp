@@ -33,41 +33,17 @@ MyParticleContainer::Init(MultiFab& dummy_mf)
     {
 	PBox& pbx = kv.second;
 
-	uxp.resize(0);
-	uyp.resize(0);
-	uzp.resize(0);
-	gaminv.resize(0);
-
-	uxp.reserve( pbx.size() );
-	uyp.reserve( pbx.size() );
-	uzp.reserve( pbx.size() );
-	gaminv.reserve( pbx.size() );
+	uxp.resize( pbx.size() );
+	uyp.resize( pbx.size() );
+	uzp.resize( pbx.size() );
 
 	// Loop over particles in that box (to change array layout)
 	for (const auto& p : pbx)
         {
-            if (p.m_id <= 0) {
-              continue;
-            }
+            BL_ASSERT(p.m_id > 0);
 	    uxp.push_back( p.m_data[0] );
 	    uyp.push_back( p.m_data[1] );
 	    uzp.push_back( p.m_data[2] );
-
-            // Initialize this to 1e20 to make sure it gets filled below
- 	    gaminv.push_back( 1.e20 ); 
-        }
-
-	long np = gaminv.size();
-        pxr_set_gamma(&np, uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(), gaminv.dataPtr());
-
-        // Loop over particles in that box (to change array layout)
-        int n = 0;
-        for (auto& p : pbx)
-        {
-            if (p.m_id <= 0) {
-              continue;
-            }
-            p.m_data[PIdx::gaminv] = gaminv[n++];
         }
     }
 }
