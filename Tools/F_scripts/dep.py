@@ -10,7 +10,6 @@ import sys
 import re
 import os
 import argparse
-import shlex
 import subprocess
 
 # modules to ignore in the dependencies
@@ -19,17 +18,17 @@ IGNORES = ["iso_c_binding", "iso_fortran_env"]
 # regular expression for "{}module{}name", where {} can be any number
 # of spaces.  We use 4 groups here, denoted by (), so the name of the
 # module is the 4th group
-module_re = re.compile("( )(module)(\s+)((?:[a-z][a-z_0-9]+))",
+module_re = re.compile(r"( )(module)(\s+)((?:[a-z][a-z_0-9]+))",
                        re.IGNORECASE|re.DOTALL)
 
 # regular expression for "{}module{}procedure{}name"
-module_proc_re = re.compile("( )(module)(\s+)(procedure)(\s+)((?:[a-z][a-z_0-9]+))",
+module_proc_re = re.compile(r"( )(module)(\s+)(procedure)(\s+)((?:[a-z][a-z_0-9]+))",
                             re.IGNORECASE|re.DOTALL)
 
 # regular expression for "{}use{}modulename...".  Note this will work for
 # use modulename, only: stuff, other stuff'
 # see (txt2re.com)
-use_re = re.compile("( )(use)(\s+)((?:[a-z_][a-z_0-9]+))",
+use_re = re.compile(r"( )(use)(\s+)((?:[a-z_][a-z_0-9]+))",
                     re.IGNORECASE|re.DOTALL)
 
 
@@ -42,7 +41,7 @@ def run(command, stdin=False, outfile=None):
     p0 = subprocess.Popen(command, stdin=sin, stdout=subprocess.PIPE,
                           stderr=subprocess.STDOUT, shell=True)
 
-    stdout0, stderr0 = p0.communicate()
+    stdout0 = p0.communicate()
     if stdin: p0.stdin.close()
     rc = p0.returncode
     p0.stdout.close()
@@ -53,7 +52,8 @@ def run(command, stdin=False, outfile=None):
             sys.exit("ERROR: unable to open file for writing: {}".format(outfile))
         else:
             for line in stdout0:
-                cf.write(line)
+                if line is not None:
+                    cf.write(line.decode("ascii"))
             cf.close()
 
     return stdout0, rc
@@ -77,9 +77,10 @@ class Preprocessor(object):
         # $(FORT_CPP) $(CPPFLAGS) $< | $(F90PREP) > $(f77TempDir)/$*.f90
         # we output to the temporary directory
 
-        processed_file = "{}/TEST-{}".format(self.temp_dir, os.path.basename(sf.name))
+        processed_file = "{}/TEST-{}".format(self.temp_dir,
+                                             os.path.basename(sf.name))
 
-        command = "{} {} {} | {}".format(self.cpp_cmd, self.defines, 
+        command = "{} {} {} | {}".format(self.cpp_cmd, self.defines,
                                          sf.name, self.f90_preprocess)
 
         stdout, rc = run(command, outfile=processed_file)
@@ -98,10 +99,7 @@ class SourceFile(object):
         # that .F90 = yes, .f90 = no
         self.ext = os.path.splitext(filename)[1]
 
-        if self.ext in [".F90", ".F95", ".F03"]:
-            self.preprocess = True
-        else:
-            self.preprocess = False
+        self.preprocess = bool(self.ext in [".F90", ".F95", ".F03"])
 
         # when we preprocess, the output file has a different name
         self.cpp_name = None
@@ -259,10 +257,10 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.prefix != "":
-        prefix = "{}/".format(os.path.normpath(args.prefix))
+        prefix_pass = "{}/".format(os.path.normpath(args.prefix))
 
     # create a preprocessor object
-    cpp = Preprocessor(temp_dir=args.temp_dir, cpp_cmd=args.cpp,
-                       defines=args.defines, f90_preprocess=args.f90_preprocess)
+    cpp_pass = Preprocessor(temp_dir=args.temp_dir, cpp_cmd=args.cpp,
+                            defines=args.defines, f90_preprocess=args.f90_preprocess)
 
-    doit(prefix, args.search_path.split(), args.files, cpp)
+    doit(prefix_pass, args.search_path.split(), args.files, cpp_pass)
