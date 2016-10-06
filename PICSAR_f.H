@@ -7,41 +7,42 @@ extern "C"
 		       const Real* up, const Real* vp, const Real* wp,
 		       const Real* gaminv);
 
-    void depose_rho_vecHVv2_1_1_1( Real* rho, const long* np,
-				   const Real* xp, const Real* yp, const Real* zp,
-				   const Real* w, const Real* q,
-				   const Real* xmin, const Real* ymin, const Real* zmin,
-				   const Real* dx, const Real* dy, const Real* dz,
-				   const long* nx, const long* ny, const long* nz,
-				   const long* nxguard, const long* nyguard, const long* nzguard,
-				   const long* lvect );
+    // void depose_rho_vecHVv2_1_1_1( Real* rho, const long* np,
+    // 				   const Real* xp, const Real* yp, const Real* zp,
+    // 				   const Real* w, const Real* q,
+    // 				   const Real* xmin, const Real* ymin, const Real* zmin,
+    // 				   const Real* dx, const Real* dy, const Real* dz,
+    // 				   const long* nx, const long* ny, const long* nz,
+    // 				   const long* nxguard, const long* nyguard, const long* nzguard,
+    // 				   const long* lvect );
     
-    void depose_rho_scalar_1_1_1( Real* rho, const long* np,
-				  const Real* xp, const Real* yp, const Real* zp,
-				  const Real* w, const Real* q,
-				  const Real* xmin, const Real* ymin, const Real* zmin,
-				  const Real* dx, const Real* dy, const Real* dz,
-				  const long* nx, const long* ny, const long* nz,
-				  const long* nxguard, const long* nyguard, const long* nzguard,
-				  const long* lvect );
+    // void depose_rho_scalar_1_1_1( Real* rho, const long* np,
+    // 				  const Real* xp, const Real* yp, const Real* zp,
+    // 				  const Real* w, const Real* q,
+    // 				  const Real* xmin, const Real* ymin, const Real* zmin,
+    // 				  const Real* dx, const Real* dy, const Real* dz,
+    // 				  const long* nx, const long* ny, const long* nz,
+    // 				  const long* nxguard, const long* nyguard, const long* nzguard,
+    // 				  const long* lvect );
 
-    void depose_rho_scalar_2_2_2( Real* rho, const long* np,
-				  const Real* xp, const Real* yp, const Real* zp,
-				  const Real* w, const Real* q,
-				  const Real* xmin, const Real* ymin, const Real* zmin,
-				  const Real* dx, const Real* dy, const Real* dz,
-				  const long* nx, const long* ny, const long* nz,
-				  const long* nxguard, const long* nyguard, const long* nzguard,
-				  const long* lvect );
+    // void depose_rho_scalar_2_2_2( Real* rho, const long* np,
+    // 				  const Real* xp, const Real* yp, const Real* zp,
+    // 				  const Real* w, const Real* q,
+    // 				  const Real* xmin, const Real* ymin, const Real* zmin,
+    // 				  const Real* dx, const Real* dy, const Real* dz,
+    // 				  const long* nx, const long* ny, const long* nz,
+    // 				  const long* nxguard, const long* nyguard, const long* nzguard,
+    // 				  const long* lvect );
 
-    void depose_rho_scalar_3_3_3( Real* rho, const long* np,
-				  const Real* xp, const Real* yp, const Real* zp,
-				  const Real* w, const Real* q,
-				  const Real* xmin, const Real* ymin, const Real* zmin,
-				  const Real* dx, const Real* dy, const Real* dz,
-				  const long* nx, const long* ny, const long* nz,
-				  const long* nxguard, const long* nyguard, const long* nzguard,
-				  const long* lvect );
+    // void depose_rho_scalar_3_3_3( Real* rho, const long* np,
+    // 				  const Real* xp, const Real* yp, const Real* zp,
+    // 				  const Real* w, const Real* q,
+    // 				  const Real* xmin, const Real* ymin, const Real* zmin,
+    // 				  const Real* dx, const Real* dy, const Real* dz,
+    // 				  const long* nx, const long* ny, const long* nz,
+    // 				  const long* nxguard, const long* nyguard, const long* nzguard,
+    // 				  const long* lvect );
+
 
     void depose_jxjyjz_vecHVv2_1_1_1(Real* jx, Real* jy, Real* jz, const long* np,
 				     const Real* xp, const Real* yp, const Real* zp,

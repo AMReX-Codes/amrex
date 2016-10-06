@@ -25,8 +25,6 @@ public:
 
 private:
 
-    void DepositCharge ();
-    void DepositCurrent (Real dt);
     void EvolveE (Real dt);
     void EvolveB (Real dt);
 
@@ -38,10 +36,11 @@ private:
     Array<Geometry> geom_arr;
     Array<BoxArray> ba_arr;
     Array<DistributionMapping> dmap_arr;
+    //
     // Particle container
     std::unique_ptr<MyParticleContainer> mypc;
+    //
     // Assuming there is only a single level
-    MultiFab charge;
     Array< std::unique_ptr<MultiFab> > current;
     Array< std::unique_ptr<MultiFab> > Efield;
     Array< std::unique_ptr<MultiFab> > Bfield;
@@ -57,8 +56,6 @@ private:
     //
     int nx, ny, nz;
     int max_step;
-    //
-    int charge_deposition_order = 1;
 };
 
 #endif

@@ -20,8 +20,5 @@ geometry.is_periodic = 1     1     1      # Is periodic?
 geometry.prob_lo     = 0.0   0.0   0.0    # physical domain
 geometry.prob_hi     = 1.0   1.0   1.0
 
-# Order of the charge deposition
-warpx.charge_deposition_order = 1
-
 # Verbosity
 verbose = 1

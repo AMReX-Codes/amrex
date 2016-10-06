@@ -29,41 +29,12 @@ WarpX::Evolve ()
 
 	mypc->ParticlePush(dt); // We now have p^{n+1/2} and x^{n+1}
 
-//	DepositCharge();
-
-//	DepositCurrent(dt);
+	mypc->CurrentDeposition(*current[0],*current[1],*current[2],dt); // We now have j^{n+1/2}
 
 	EvolveB(0.5*dt); // We now B^{n+1/2}
 	
 	EvolveE(dt); // We now have E^{n+1}
     }
-}
-
-void
-WarpX::DepositCharge ()
-{
-    BL_PROFILE("WPX::DepositCharge");
-
-    {
-	BL_PROFILE_VAR("BoxLib::DepositCharge", bldep);
-	int lev = 0;
-	int ncomp = 1;
-	mypc->NodalDepositionSingleLevel(charge,lev,ncomp);
-    }
-
-    {
-	BL_PROFILE_VAR("PICSAR::DepositCharge", picsardep);
-	int lev = 0;
-	mypc->ChargeDeposition(charge, lev, charge_deposition_order);
-    }
-}
-
-void
-WarpX::DepositCurrent (Real dt)
-{
-    BL_PROFILE("WPX::DepositCurrent");
-    int lev = 0;
-    mypc->CurrentDeposition(current,lev,dt); 
 }
 
 void
