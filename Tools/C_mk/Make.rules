@@ -219,12 +219,12 @@ $(depEXETempDir)/%.d: %.F
 		sed -e '\''s,^[^:]*\/,,'\'' | \
 		sed -e '\''s,$*.o,$(objEXETempDir)/& $@,'\'' > $@'
 
-$(depEXETempDir)/%.d: %.f90
-	@echo Depending $< ...
-	@if [ ! -d $(depEXETempDir) ]; then mkdir -p $(depEXETempDir); fi
-	@$(SHELL) -ec '$(MKDEP) -fortran $(fincludes) $< | \
-		sed -e '\''s,^[^:]*\/,,'\'' | \
-		sed -e '\''s,$*.o,$(objEXETempDir)/& $@,'\'' > $@'
+#$(depEXETempDir)/%.d: %.f90
+#	@echo Depending $< ...
+#	@if [ ! -d $(depEXETempDir) ]; then mkdir -p $(depEXETempDir); fi
+#	@$(SHELL) -ec '$(MKDEP) -fortran $(fincludes) $< | \
+#		sed -e '\''s,^[^:]*\/,,'\'' | \
+#		sed -e '\''s,$*.o,$(objEXETempDir)/& $@,'\'' > $@'
 
 $(depEXETempDir)/%.d: %.f
 	@echo Depending $< ...
@@ -236,7 +236,10 @@ $(depEXETempDir)/%.d: %.f
 $(depEXETempDir)/f90.depends: $(f90EXE_sources) $(pF90EXE_sources) 
 	@if [ ! -d $(depEXETempDir) ]; then mkdir -p $(depEXETempDir); fi
 	@echo "Building f90/F90 dependency File ..."
-	@$(MODDEP) $(f_includes) --odir $(objEXETempDir) $^ > $(depEXETempDir)/f90.depends 
+	$(MODDEP) --prefix $(objEXETempDir) $^ > $(depEXETempDir)/f90.depends 
+
+# ^ should we pass in include locations? $(f_includes) 
+
 #
 # Now load/build the dependency files.
 #
