@@ -4,6 +4,7 @@
 #
 # this will output all the dependency pairs amongst the source files.
 
+from __future__ import print_function
 
 import sys
 import re
@@ -54,6 +55,7 @@ def doit(prefix, search_path, files):
             idx = line.find("!")
             line = line[:idx]
 
+            # we want a module definition itself, not a 'module procedure'
             rebreak = module_re.search(line)
             rebreak2 = module_proc_re.search(line)
             if rebreak and not rebreak2:
@@ -69,6 +71,8 @@ def doit(prefix, search_path, files):
 
         f = open(cf, "r")
 
+        depends = []
+
         for line in f:
 
             # strip off the comments
@@ -78,13 +82,21 @@ def doit(prefix, search_path, files):
             rebreak = use_re.search(line)
             if rebreak:
                 used_module = rebreak.group(4)
-                if used_module in IGNORES:
-                    continue
-                print prefix+os.path.basename(cf).replace(".f90", ".o"), ':', \
-                    prefix+os.path.basename(modulefiles[used_module]).replace(".f90", ".o")
+                if used_module not in IGNORES:
+                    depends.append(used_module)
 
         f.close()
-        print " "
+
+        # remove duplicates
+        depends = list(set(depends))
+
+        for d in depends:
+            print("{}: {}".format(
+                prefix+os.path.basename(cf).replace(".f90", ".o"), 
+                prefix+os.path.basename(modulefiles[d]).replace(".f90", ".o")))
+
+        print(" ")
+
 
 if __name__ == "__main__":
 
