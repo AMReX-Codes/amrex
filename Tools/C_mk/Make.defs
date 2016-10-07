@@ -922,13 +922,6 @@ F77SourceFiles	=
 F90SourceFiles	=
 f77SourceFiles	=
 
-objForLibs	=	$(CLIB_sources:%.cpp=%.o)			\
-			$(FLIB_sources:%.F=%.o)				\
-			$(F90LIB_sources:%.F90=%.o)			\
-			$(cLIB_sources:%.c=%.o)				\
-			$(fLIB_sources:%.f=%.o)				\
-			$(f90LIB_sources:%.f90=%.o)			\
-
 objStandalone	= 	$(CEXE_sources:%.cpp=%.o)			\
 			$(FEXE_sources:%.F=%.o)				\
 			$(cEXE_sources:%.c=%.o)				\
