@@ -91,15 +91,31 @@ WarpX::ReadParameters ()
 }
 
 void 
-WarpX::SumBoundary (MultiFab& mf, const Geometry& geom, const IntVect& nodalflag)
-{
-
-    mf.SumBoundary(geom.periodicity());
-}
-
-void 
 WarpX::FillBoundary (MultiFab& mf, const Geometry& geom, const IntVect& nodalflag)
 {
+    const IndexType correct_typ(nodalflag);
+    BoxArray ba = mf.boxArray();
+    ba.convert(correct_typ);
 
-    mf.FillBoundary(geom.periodicity());
+    int ng = mf.nGrow();
+
+    MultiFab tmpmf(ba, mf.nComp(), ng, mf.DistributionMap());
+
+    const IndexType& mf_typ = mf.boxArray().ixType();
+
+    for (MFIter mfi(tmpmf); mfi.isValid(); ++mfi) {
+	FArrayBox& tmpfab = tmpmf[mfi];
+	tmpfab.SetBoxType(mf_typ);
+	tmpfab.copy(mf[mfi]);
+	tmpfab.SetBoxType(correct_typ);
+    }
+
+    tmpmf.FillBoundary(geom.periodicity());
+
+    for (MFIter mfi(tmpmf); mfi.isValid(); ++mfi) {
+	FArrayBox& tmpfab = tmpmf[mfi];
+	tmpfab.SetBoxType(mf_typ);
+	const Box& bx = BoxLib::grow(tmpfab.box(), -ng);
+	mf[mfi].copy(tmpmf[mfi], bx);
+    }
 }

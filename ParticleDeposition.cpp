@@ -111,7 +111,7 @@ MyParticleContainer::CurrentDeposition (MultiFab& jx, MultiFab& jy, MultiFab& jz
 	BL_PROFILE_VAR_STOP(blp_pxr);
     }
 
-    WarpX::SumBoundary(jx, gm, IntVect(D_DECL(0,1,1)));
-    WarpX::SumBoundary(jy, gm, IntVect(D_DECL(1,0,1)));
-    WarpX::SumBoundary(jz, gm, IntVect(D_DECL(1,1,0)));
+    jx.SumBoundary(gm.periodicity());
+    jy.SumBoundary(gm.periodicity());
+    jz.SumBoundary(gm.periodicity());
 }
