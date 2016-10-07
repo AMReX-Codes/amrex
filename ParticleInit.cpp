@@ -21,29 +21,5 @@ MyParticleContainer::Init(MultiFab& dummy_mf)
     // Randomly initialize "num_particles" number of particles, each with charge "charge"
     // bool serialize = false;
     // int iseed   = 10;
-    // MyPC->InitRandom(num_particles,iseed,charge,serialize);
-
-    int             lev         = 0; 
-    PMap&           pmap        = m_particles[lev];
-
-    // 1D Arrays of particle attributes
-    Array<Real> uxp, uyp, uzp, gaminv;
-
-    for (auto& kv : pmap) 
-    {
-	PBox& pbx = kv.second;
-
-	uxp.resize( pbx.size() );
-	uyp.resize( pbx.size() );
-	uzp.resize( pbx.size() );
-
-	// Loop over particles in that box (to change array layout)
-	for (const auto& p : pbx)
-        {
-            BL_ASSERT(p.m_id > 0);
-	    uxp.push_back( p.m_data[0] );
-	    uyp.push_back( p.m_data[1] );
-	    uzp.push_back( p.m_data[2] );
-        }
-    }
+    // InitRandom(num_particles,iseed,charge,serialize);
 }
