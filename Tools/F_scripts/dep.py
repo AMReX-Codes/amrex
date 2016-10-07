@@ -13,22 +13,22 @@ import argparse
 import subprocess
 
 # modules to ignore in the dependencies
-IGNORES = ["iso_c_binding", "iso_fortran_env"]
+IGNORES = ["iso_c_binding", "iso_fortran_env", "omp_lib", "mpi"]
 
 # regular expression for "{}module{}name", where {} can be any number
 # of spaces.  We use 4 groups here, denoted by (), so the name of the
 # module is the 4th group
-module_re = re.compile(r"( )(module)(\s+)((?:[a-z][a-z_0-9]+))",
+module_re = re.compile(r"^(\s*)([Mm][Oo][Dd][Uu][Ll][Ee])(\s+)((?:[a-z][a-z_0-9]+))",
                        re.IGNORECASE|re.DOTALL)
 
 # regular expression for "{}module{}procedure{}name"
-module_proc_re = re.compile(r"( )(module)(\s+)(procedure)(\s+)((?:[a-z][a-z_0-9]+))",
+module_proc_re = re.compile(r"(\s*)(module)(\s+)(procedure)(\s+)((?:[a-z][a-z_0-9]+))",
                             re.IGNORECASE|re.DOTALL)
 
 # regular expression for "{}use{}modulename...".  Note this will work for
 # use modulename, only: stuff, other stuff'
 # see (txt2re.com)
-use_re = re.compile(r"^(\s*)(use)(\s+)((?:[a-z_][a-z_0-9]+))",
+use_re = re.compile(r"^(\s*)([Uu][Ss][Ee])(\s+)((?:[a-z_][a-z_0-9]+))",
                     re.IGNORECASE|re.DOTALL)
 
 
@@ -166,7 +166,7 @@ class SourceFile(object):
                 rebreak = use_re.search(line)
                 if rebreak:
                     used_module = rebreak.group(4)
-                    if used_module not in IGNORES:
+                    if used_module.lower() not in IGNORES:
                         depends.append(used_module)
 
         # remove duplicates
