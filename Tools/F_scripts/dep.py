@@ -3,6 +3,22 @@
 # automatically generate Makefile dependencies for Fortran 90 source.
 #
 # this will output all the dependency pairs amongst the source files.
+#
+# tips for debugging:
+#
+#   -- do `make > out` when building your code.  Any error messages
+#      about modules not found will be sent to stderr, so you will
+#      easily see them.  Usually this is a case of the regex not
+#      capturing how the module is defined
+#
+#   -- add `--debug` to the `dep.py` commandline (e.g., in 
+#      `C_mk/Make.rules`).  This will output a file called 
+#      `dependencies.out` that shows details about what files are
+#      parsed, what modules they define, and what modules they require.
+#
+#   -- a system-provided module won't be found in your file.
+#      (e.g. iso_c_binding).  Add any system-provided modules to the
+#      `IGNORES` list below
 
 from __future__ import print_function
 
