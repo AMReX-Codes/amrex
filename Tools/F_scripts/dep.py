@@ -23,6 +23,10 @@
 from __future__ import print_function
 
 import sys
+
+if sys.version_info < (2, 7):
+    sys.exit("ERROR: need python 2.7 or later for dep.py")
+
 import re
 import os
 import argparse
