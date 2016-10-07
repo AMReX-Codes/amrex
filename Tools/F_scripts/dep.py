@@ -35,7 +35,6 @@ use_re = re.compile(r"^(\s*)(use)(\s+)((?:[a-z_][a-z_0-9]+))",
 def run(command, stdin=False, outfile=None):
     """ run a command in the unix shell """
 
-    # shlex.split will preserve inner quotes
     sin = None
     if stdin: sin = subprocess.PIPE
     p0 = subprocess.Popen(command, stdin=sin, stdout=subprocess.PIPE,
