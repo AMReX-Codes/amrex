@@ -406,6 +406,7 @@ void TestReadMF(const std::string &mfName, bool useSyncReads,
 void DSSNFileTests(int noutfiles, const std::string &filePrefixIn,
                    bool useIter)
 {
+#ifdef BL_USE_MPI
   bool groupSets(false), setBuf(true);
   std::string filePrefix(filePrefixIn);
 
@@ -565,6 +566,7 @@ void DSSNFileTests(int noutfiles, const std::string &filePrefixIn,
       ParallelDescriptor::Send(&fileNumber, 1, coordinatorProc, doneTag);
     }
 ParallelDescriptor::Barrier();
+#endif
 }
 
 

@@ -68,12 +68,14 @@ NFilesIter::NFilesIter(int noutfiles, const std::string &fileprefix,
 void NFilesIter::SetDynamic(int deciderproc)
 {
   deciderProc = deciderproc;
-  if(deciderProc < 0 || deciderProc >= nProcs) {
-    deciderProc = availableDeciders[currentDeciderIndex];
-  }
-  if(NFilesIter::WhichSetPosition(deciderProc, nProcs, nOutFiles, groupSets) == 0) {
-    // ---- the decider cannot have set position zero
-    deciderProc = availableDeciders[currentDeciderIndex];
+  if(availableDeciders.size() > 0) {
+    if(deciderProc < 0 || deciderProc >= nProcs) {
+      deciderProc = availableDeciders[currentDeciderIndex];
+    }
+    if(NFilesIter::WhichSetPosition(deciderProc, nProcs, nOutFiles, groupSets) == 0) {
+      // ---- the decider cannot have set position zero
+      deciderProc = availableDeciders[currentDeciderIndex];
+    }
   }
   currentDeciderIndex += nSets - 1;
   if(currentDeciderIndex >= availableDeciders.size()) {
@@ -223,6 +225,14 @@ bool NFilesIter::ReadyToWrite() {
   return false;
 
 #else
+  if(finishedWriting) {
+    return false;
+  }
+  fileStream.open(fullFileName.c_str(),
+                  std::ios::out | std::ios::trunc | std::ios::binary);
+  if( ! fileStream.good()) {
+    BoxLib::FileOpenFailed(fullFileName);
+  }
   return true;
 #endif
 }
@@ -366,6 +376,14 @@ NFilesIter &NFilesIter::operator++() {
   }
 
 #else
+  if(isReading) {
+    fileStream.close();
+    finishedReading = true;
+  } else {  // ---- writing
+    fileStream.flush();
+    fileStream.close();
+    finishedWriting = true;
+  }
 #endif
 
   return *this;
