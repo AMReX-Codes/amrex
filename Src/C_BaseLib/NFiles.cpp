@@ -432,6 +432,7 @@ Array<int> NFilesIter::FileNumbersWritten()
 
 
 void NFilesIter::CleanUpMessages() {
+#ifdef BL_USE_MPI
   BL_PROFILE("NFI::CleanUpMessages");
   for(int i(0); i < unreadMessages.size(); ++i) {
     std::pair<int, int> & pii = unreadMessages[i];
@@ -443,6 +444,7 @@ void NFilesIter::CleanUpMessages() {
     }
   }
   unreadMessages.clear();
+#endif
 }
 
 
