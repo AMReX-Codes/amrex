@@ -97,9 +97,7 @@ WarpX::FillBoundary (MultiFab& mf, const Geometry& geom, const IntVect& nodalfla
     BoxArray ba = mf.boxArray();
     ba.convert(correct_typ);
 
-    int ng = mf.nGrow();
-
-    MultiFab tmpmf(ba, mf.nComp(), ng, mf.DistributionMap());
+    MultiFab tmpmf(ba, mf.nComp(), mf.nGrow(), mf.DistributionMap());
 
     const IndexType& mf_typ = mf.boxArray().ixType();
 
@@ -115,7 +113,7 @@ WarpX::FillBoundary (MultiFab& mf, const Geometry& geom, const IntVect& nodalfla
     for (MFIter mfi(tmpmf); mfi.isValid(); ++mfi) {
 	FArrayBox& tmpfab = tmpmf[mfi];
 	tmpfab.SetBoxType(mf_typ);
-	const Box& bx = BoxLib::grow(tmpfab.box(), -ng);
-	mf[mfi].copy(tmpmf[mfi], bx);
+	mf[mfi].copy(tmpmf[mfi]);
+	tmpfab.SetBoxType(correct_typ);
     }
 }
