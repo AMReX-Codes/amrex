@@ -17,8 +17,11 @@ max_step = 5
 # Geometry
 geometry.coord_sys   = 0                  # 0: Cartesian
 geometry.is_periodic = 1     1     1      # Is periodic?  
-geometry.prob_lo     = 0.0   0.0   0.0    # physical domain
-geometry.prob_hi     = 1.0   1.0   1.0
+geometry.prob_lo     = -20.e-6   -20.e-6   -20.e-6    # physical domain
+geometry.prob_hi     =  20.e-6    20.e-6    20.e-6
 
 # Verbosity
 verbose = 1
+
+langmuirwave.n_e = 1.e25  # number of electrons per m^3
+langmuirwave.ux  = 0.01   # ux = gamma*beta_x
