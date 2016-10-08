@@ -256,23 +256,6 @@ ifeq ($(FCOMP),Intel)
   fDEBF += $(INTEL_EXTRA_DEBUG_FLAGS)
   fOPTF += $(INTEL_EXTRA_OPT_FLAGS)
 else
-ifeq ($(FCOMP),f77)
-  FC       := g77 -fno-second-underscore
-  fC       := $(FC)
-  # default g77/f77 version
-  FOPTF += -O
-  fOPTF += -O
-  FDEBF += -g
-  fDEBF += -g
-  #DEFINES += -DBL_FORT_USE_UNDERSCORE
-  #override XTRALIBS +=  -lf2c
-# LIBRARY_LOCATIONS += /usr/lib/gcc-lib/i386-redhat-linux/2.96
-  override XTRALIBS += -lg2c
-  FDEBF += -ffortran-bounds-check
-  FDEBF += -Wimplicit
-  fDEBF += -Wimplicit
-  fDEBF += -ffortran-bounds-check
-else
 ifeq ($(FCOMP),xlf)
 
   ifeq ($(USE_OMP),TRUE)
@@ -309,7 +292,6 @@ ifeq ($(FCOMP),xlf)
 
   override FORTLINK := LOWERCASE
   NEEDS_FLUSH_F := TRUE
-endif
 endif
 endif
 endif
