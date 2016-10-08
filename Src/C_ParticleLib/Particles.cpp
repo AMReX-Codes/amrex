@@ -890,4 +890,3 @@ operator<< (std::ostream& os, const ParticleBase& p)
     return os;
 }
 
-ParticleContainerBase::~ParticleContainerBase () {}
