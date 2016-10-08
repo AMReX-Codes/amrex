@@ -370,6 +370,8 @@ public:
     // Removes all particles at a given level
     //
     void RemoveParticlesAtLevel (int level);
+    // 
+    void RemoveParticlesNotAtFinestLevel ();
     //
     // Creates virtual particles for a given level that represent
     // in some capacity all particles at finer levels
@@ -384,8 +386,6 @@ public:
     // Add particles from a pbox to the grid at this level
     //
     void AddParticlesAtLevel (int level, PBox& virts, bool where_already_called = false);
-    // 
-    void RemoveParticlesNotAtFinestLevel ();
 
     void Checkpoint (const std::string& dir, const std::string& name, bool is_checkpoint = true) const;
 
@@ -1293,6 +1293,85 @@ ParticleContainer<NR,NI>::AddParticlesAtLevel (int   level,
     else
     {
         RedistributeMPI(not_ours);
+    }
+}
+
+template <int NR, int NI>
+void
+ParticleContainer<NR,NI>::RemoveParticlesAtLevel (int level)
+{
+    BL_PROFILE("ParticleContainer<NR,NI>::RemoveParticlesAtLevel()");
+    if (level >= this->m_particles.size())
+        return;
+
+    if (!this->m_particles[level].empty())
+    {
+        PMap().swap(this->m_particles[level]);
+    }
+
+    BL_ASSERT(this->m_particles[level].empty());
+}
+
+template <int NR, int NI>
+void
+ParticleContainer<NR,NI>::RemoveParticlesNotAtFinestLevel ()
+{
+    BL_PROFILE("ParticleContainer<NR,NI>::RemoveParticlesNotAtFinestLevel()");
+    BL_ASSERT(this->m_gdb->finestLevel()+1 == this->m_particles.size());
+
+    int cnt = 0;
+
+    for (int lev = 0; lev < this->m_gdb->finestLevel(); lev++)
+    {
+        PMap& pmap = this->m_particles[lev];
+
+        if (!pmap.empty())
+        {
+            for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end();
+                 pmap_it != pmapEnd;
+                 ++pmap_it)
+            {
+                cnt += pmap_it->second.size();
+            }
+
+            PMap().swap(pmap);
+
+            BL_ASSERT(pmap.empty());
+        }
+    }
+    //
+    // Print how many particles removed on each processor if any were removed.
+    //
+    if (this->m_verbose > 1)
+    {
+        int maxcnt = cnt;
+
+#ifdef BL_LAZY
+	Lazy::QueueReduction( [=] () mutable {
+#endif
+        ParallelDescriptor::ReduceIntMax(maxcnt);
+
+        if (maxcnt > 0)
+        {
+            for (int i = 0; i < ParallelDescriptor::NProcs(); i++)
+            {
+                if (ParallelDescriptor::MyProc() == i)
+                {
+                    if (cnt > 0)
+                    {
+                        std::cout << "Processor "
+                                  << i
+                                  << " removed "
+                                  << cnt
+                                  << " particles not in finest level" << std::endl;
+                    }
+                }
+                ParallelDescriptor::Barrier();
+            }
+        }
+#ifdef BL_LAZY
+	});
+#endif
     }
 }
 
