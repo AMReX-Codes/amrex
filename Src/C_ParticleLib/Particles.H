@@ -275,6 +275,9 @@ public:
     //
     typedef typename std::map<int,PBox> PMap;
 
+    ParticleContainer ()
+	: m_verbose(1), m_gdb(nullptr), allow_particles_near_boundary(false) {}
+
     ParticleContainer (ParGDBBase* gdb)
         :
         m_verbose(1), m_gdb(gdb), allow_particles_near_boundary(false) { }
@@ -300,6 +303,28 @@ public:
 	m_gdb_object(geom,dmap,ba,rr)
     {
 	m_gdb = & m_gdb_object;
+    }
+
+    void Define (ParGDBBase* gdb)
+    {
+	m_gdb = gdb;
+    }
+
+    void Define (const Geometry            & geom, 
+		 const DistributionMapping & dmap,
+		 const BoxArray            & ba)
+    {
+	m_gdb_object = ParGDB(geom, dmap, ba);
+	m_gdb = &m_gdb_object;
+    }
+
+    void Define (const Array<Geometry>            & geom, 
+		 const Array<DistributionMapping> & dmap,
+		 const Array<BoxArray>            & ba,
+		 const Array<int>                 & rr)
+    {
+	m_gdb_object = ParGDB(geom, dmap, ba, rr);
+	m_gdb = &m_gdb_object;
     }
 
     void SetParticleBoxArray (int lev,
