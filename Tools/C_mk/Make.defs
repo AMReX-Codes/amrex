@@ -50,15 +50,6 @@ endif
 
 ifeq ($(MACHINE), Linux)
   WHICHLINUX := GENERICLINUX
-  ifeq ($(findstring n2001, $(UNAMEN)), n2001)
-    WHICHLINUX := PCCLUSTER
-  endif
-  ifeq ($(findstring xfe1, $(UNAMEN)), xfe1)
-    WHICHLINUX := ALPHACLUSTER
-  endif
-  ifeq ($(findstring lens, $(UNAMEN)), lens)
-    WHICHLINUX := LENS
-  endif
   ifeq ($(findstring jvn, $(UNAMEN)), jvn)
     WHICHLINUX := JVN
   endif
@@ -88,9 +79,6 @@ ifeq ($(MACHINE), Linux)
   endif
   ifeq ($(findstring ranger, $(UNAMEN)), ranger)
     WHICHLINUX := RANGER
-  endif
-  ifeq ($(findstring darter, $(UNAMEN)), darter)
-    WHICHLINUX := DARTER
   endif
   ifeq ($(findstring orion, $(UNAMEN)), orion)
     WHICHLINUX := ORION
