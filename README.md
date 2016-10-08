@@ -25,7 +25,7 @@ You should then switch to the branch `development` of BoxLib, and to the branch 
 cd BoxLib/
 git checkout development
 cd ../picsar
-git checkout picsar_for_boxlib
+git checkout boxlib
 cd ..
 ```
 
