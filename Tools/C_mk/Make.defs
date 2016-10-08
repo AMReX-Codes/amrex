@@ -25,16 +25,7 @@ endif
 ifndef MACHINE
     MACHINE := $(shell uname)
 endif
-#
-# We'd also like to distinguish between SunOS and Solaris.
-#
-UNAMER := $(shell uname -r)
-ifeq ($(MACHINE), SunOS)
-    ifeq ($(shell awk 'BEGIN {print "$(UNAMER)"; print "5.0"}' /dev/null | \
-            sort | head -1), 5.0)
-        MACHINE := Solaris
-    endif
-endif
+
 
 #
 # Set special flag to identify machine
