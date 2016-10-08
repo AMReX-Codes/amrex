@@ -4,6 +4,32 @@
 
 namespace BoxLib
 {
+    void average_edge_to_cellcenter (MultiFab& cc, const PArray<MultiFab>& edge)
+    {
+	BL_ASSERT(cc.nComp() >= BL_SPACEDIM);
+	BL_ASSERT(edge.size() == BL_SPACEDIM);
+	BL_ASSERT(edge[0].nComp() == 1);
+#if (BL_SPACEDIM == 3)
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+	for (MFIter mfi(cc,true); mfi.isValid(); ++mfi) 
+	{
+	    const Box& bx = mfi.tilebox();
+
+	    BL_FORT_PROC_CALL(BL_AVG_EG_TO_CC,bl_avg_eg_to_cc)
+		(bx.loVect(), bx.hiVect(),
+		 BL_TO_FORTRAN(cc[mfi]),
+		 D_DECL(BL_TO_FORTRAN(edge[0][mfi]),
+			BL_TO_FORTRAN(edge[1][mfi]),
+			BL_TO_FORTRAN(edge[2][mfi])));
+	}	
+#else
+	BoxLib::Abort("not implemented");
+#endif
+    }
+
+
     void average_face_to_cellcenter (MultiFab& cc, const PArray<MultiFab>& fc, const Geometry& geom)
     {
 	BL_ASSERT(cc.nComp() >= BL_SPACEDIM);
