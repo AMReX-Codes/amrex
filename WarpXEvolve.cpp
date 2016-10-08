@@ -17,6 +17,10 @@ WarpX::Evolve ()
 
     for (int istep = 0; istep < max_step; ++istep, t += dt)
     {
+	if (ParallelDescriptor::IOProcessor()) {
+	    std::cout << "\nStart step " << istep << std::endl;
+	}
+
 	// At the beginning, we have B^{n-1/2} and E^{n}.
 	// Particles have p^{n-1/2} and x^{n}.
 
@@ -32,7 +36,7 @@ WarpX::Evolve ()
 	mypc->CurrentDeposition(*current[0],*current[1],*current[2],dt);// We now have j^{n+1/2}
 	// At the end of CurrentDeposition, SumBoundary is called (communications)
 
-	mypc->Redistribute();  // Redistribute particles
+	mypc->Redistribute(false,true);  // Redistribute particles
 
 	EvolveB(0.5*dt); // We now B^{n+1/2}
 	
@@ -42,6 +46,10 @@ WarpX::Evolve ()
 	WarpX::FillBoundary(*Bfield[2], geom_arr[0], IntVect(D_DECL(0,0,1)));
 	
 	EvolveE(dt); // We now have E^{n+1}
+
+	if (ParallelDescriptor::IOProcessor()) {
+	    std::cout << "Finish step " << istep << std::endl;
+	}
     }
 }
 
