@@ -341,16 +341,6 @@ ifeq ($(WHICHLINUX), RANGER)
   endif
 endif
 
-ifeq ($(WHICHLINUX), DARTER)
-  DEFINES += -DMPICH_SKIP_MPICXX
-  ifeq ($(USE_MPI),TRUE)
-    CXX := CC
-    FC  := ftn
-    F90 := ftn
-    fC  := ftn
-  endif
-endif
-
 ifeq ($(WHICHLINUX), GRACE)
   DEFINES += -DMPICH_SKIP_MPICXX
   ifeq ($(USE_MPI),TRUE)
@@ -524,6 +514,7 @@ ifeq ($(WHICHLINUX), JVN)
 endif
 
 
+# hyperion is an LLNL linux cluster
 ifeq ($(WHICHLINUX), HYPERION)
   ifeq ($(COMP),Intel)
     CXX = icpc
@@ -578,20 +569,6 @@ ifeq ($(WHICHLINUX), COLUMBIA)
   DEFINES += -DCOLUMBIA
 endif
 
-ifeq ($(WHICHLINUX), ALPHACLUSTER)
-  FC  := fort -assume nounderscore
-#  FC  := fort
-  fC  := $(FC)
-  override FORTLINK := LOWERCASE
-  #FOPTF += -O5 -fast -transform_loops -speculate all -automatic
-  FOPTF = -O5 -fast
-  FOPTF = -O2
-  fOPTF = -O5 -fast
-  fOPTF = -O2
-  LIBRARY_LOCATIONS += /usr/local/pkg/gcc-2.95.1-generic/lib/gcc-lib/alpha-redhat-linux/2.95.1
-             #  this should be made into a link to the current version  ^^^^^^
-  LIBRARIES += -lfor
-endif
 
 CXXPRFF += -pg
 FPRF    += -pg
@@ -606,10 +583,6 @@ ifeq ($(FCOMP), gfortran)
   endif
 endif
 
-ifeq ($(WHICHLINUX), PCCLUSTER)
-  LIBRARY_LOCATIONS += /usr/local/pkg/gcc/lib/gcc-lib/i686-pc-linux-gnu/2.95.1
-             #  this should be made into a link to the current version  ^^^^^^
-endif
 
 # These are the machines in Gottingen
 ifeq ($(HOST), c1) 
