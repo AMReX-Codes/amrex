@@ -77,9 +77,6 @@ ifeq ($(MACHINE), Linux)
   ifeq ($(findstring della, $(UNAMEN)), della)
     WHICHLINUX := DELLA
   endif
-  ifeq ($(findstring ranger, $(UNAMEN)), ranger)
-    WHICHLINUX := RANGER
-  endif
   ifeq ($(findstring orion, $(UNAMEN)), orion)
     WHICHLINUX := ORION
   endif
