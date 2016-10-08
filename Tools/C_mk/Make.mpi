@@ -64,12 +64,16 @@ ifeq ($(MACHINE), Linux)
       BL_MPI_LIBS += -lmpi -lmpi_f90
     endif
 
-    ifeq ($(WHICHLINUX), BLUE_WATERS)
-      CC := cc
-      CXX := CC
-      FC := ftn
-      F90 := ftn
-      fC := ftn
+    CRAY_MACHINES: = BLUE_WATERS TITAN CHESTER
+
+    ifeq ($(WHICHLINUX), $(findstring $(WHICHLINUX), $(CRAY_MACHINES)))
+      ifeq ($(USE_MPI),TRUE)
+        CC := cc
+        CXX := CC
+        FC := ftn
+        F90 := ftn
+        fC := ftn
+      endif
 
       ifeq ($(COMP), Cray)
         ifneq ($(USE_OMP),TRUE)
@@ -84,26 +88,6 @@ ifeq ($(MACHINE), Linux)
 	  FFLAGS += -hnoomp
 	endif
       endif
-    endif
-
-    ifeq ($(WHICHLINUX), TITAN)
-	ifeq ($(USE_MPI),TRUE)
-	   CC := cc
-	   CXX := CC
-	   FC := ftn
-	   F90 := ftn
-	   fC := ftn
-	endif
-    endif
-
-    ifeq ($(WHICHLINUX), CHESTER)
-	ifeq ($(USE_MPI),TRUE)
-	   CC := cc
-	   CXX := CC
-	   FC := ftn
-	   F90 := ftn
-	   fC := ftn
-	endif
     endif
 
     ifeq ($(WHICHLINUX), ORANGE)
@@ -357,33 +341,10 @@ ifndef MPI_HOME
       CPPFLAGS += -DMPICH_SKIP_MPICXX
 endif
 
-ifeq ($(HOST),c2)
-      MPI_HOME=/usr/lib/openmpi
-      LIBRARY_LOCATIONS += $(MPI_HOME)/lib
-      INCLUDE_LOCATIONS += $(MPI_HOME)/include
-      CPPFLAGS += -DMPICH_SKIP_MPICXX
-      BL_MPI_LIBS = $(shell mpic++ --showme:link)
-      BL_MPI_LIBS +=$(shell mpif90 --showme:link)
-endif
+# These are the machines in Gottingen
+GOTTINGEN_MACHINES := c1 c2 c3 c4
 
-ifeq ($(HOST),c1)
-      MPI_HOME=/usr/lib/openmpi
-      LIBRARY_LOCATIONS += $(MPI_HOME)/lib
-      INCLUDE_LOCATIONS += $(MPI_HOME)/include
-      CPPFLAGS += -DMPICH_SKIP_MPICXX
-      BL_MPI_LIBS = $(shell mpic++ --showme:link)
-      BL_MPI_LIBS +=$(shell mpif90 --showme:link)
-endif
-
-ifeq ($(HOST),c3)
-      MPI_HOME=/usr/lib/openmpi
-      LIBRARY_LOCATIONS += $(MPI_HOME)/lib
-      INCLUDE_LOCATIONS += $(MPI_HOME)/include
-      CPPFLAGS += -DMPICH_SKIP_MPICXX
-      BL_MPI_LIBS = $(shell mpic++ --showme:link)
-      BL_MPI_LIBS +=$(shell mpif90 --showme:link)
-endif
-ifeq ($(HOST),c4)
+ifeq ($(HOST), $(findstring $(HOST), $(GOTTINGEN_MACHINES)))
       MPI_HOME=/usr/lib/openmpi
       LIBRARY_LOCATIONS += $(MPI_HOME)/lib
       INCLUDE_LOCATIONS += $(MPI_HOME)/include
@@ -413,7 +374,7 @@ ifeq ($(MACHINE), Darwin)
         CC  := $(MPIHOME)/bin/mpicc
 
         MPI_HOME=$(MPIHOME)
-	#LIBRARIES += -lmpi_f77
+        #LIBRARIES += -lmpi_f77
 	LIBRARIES += -lmpi_mpifh
      else
         ifndef MPI_HOME
