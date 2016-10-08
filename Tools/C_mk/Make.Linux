@@ -564,7 +564,6 @@ ifeq ($(WHICHLINUX), BABBAGE)
   endif
 endif
 
-endif
 
 # For running natively on the MIC cards
 ifeq ($(MIC), TRUE)
