@@ -18,7 +18,7 @@ public:
 	: ParticleContainer<BL_SPACEDIM,0> (geom,dmap,ba)
 	{}
 
-    virtual ~TracerParticleContainer () {}
+    ~TracerParticleContainer () {}
 
     void AdvectWithUmac (MultiFab* umac, int level, Real dt);
 
