@@ -397,23 +397,6 @@ ifeq ($(findstring rose, $(FCOMP)), rose)
     fDEBF += -g -O1 -ffixed-line-length-0 -fbounds-check -fbacktrace -Wuninitialized -Wunused -ffpe-trap=invalid -finit-real=nan
 endif
 
-ifeq ($(FCOMP),g77)
-    FC := $(FCOMP)
-    fC := $(FC)
-    FFLAGS = -fno-second-underscore
-    fFLAGS = -fno-second-underscore
-    FOPTF += -g -O
-    fOPTF += -g -O
-    FDEBF += -g -O0
-    fDEBF += -g -O0
-    _f77_lib:=$(shell g77 -print-file-name=libg2c.a)
-    override XTRALIBS += $(_f77_lib)
-    FDEBF +=   -ffortran-bounds-check 
-    FDEBF += -Wimplicit
-    fDEBF += -Wimplicit
-    fDEBF +=   -ffortran-bounds-check
-endif
-
 ifeq ($(findstring gfortran, $(FCOMP)), gfortran)
     FC = $(FCOMP)
     fC = $(FCOMP)

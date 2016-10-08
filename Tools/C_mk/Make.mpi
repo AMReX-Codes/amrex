@@ -64,7 +64,7 @@ ifeq ($(MACHINE), Linux)
       BL_MPI_LIBS += -lmpi -lmpi_f90
     endif
 
-    CRAY_MACHINES: = BLUE_WATERS TITAN CHESTER
+    CRAY_MACHINES := BLUE_WATERS TITAN CHESTER
 
     ifeq ($(WHICHLINUX), $(findstring $(WHICHLINUX), $(CRAY_MACHINES)))
       ifeq ($(USE_MPI),TRUE)
