@@ -22,6 +22,7 @@ public:
 	this->m_particles.resize(this->m_gdb->finestLevel()+1);
     }
 
+    ~AmrParticleContainer () {}
 };
 
 class AmrTracerParticleContainer
@@ -35,7 +36,7 @@ public:
 	this->m_particles.resize(this->m_gdb->finestLevel()+1);
     }
 
-    virtual ~AmrTracerParticleContainer () {}
+    ~AmrTracerParticleContainer () {}
 };
 
 #endif
