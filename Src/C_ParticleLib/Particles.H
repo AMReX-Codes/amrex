@@ -1708,7 +1708,7 @@ ParticleContainer<NR,NI>::Redistribute (bool where_already_called,
         //
         // Remove any map entries for which the particle container is now empty.
         //
-	for (auto pmap_it = pmap.begin(); pmap_it != pmap.end(); ++pmap_it)
+	for (auto pmap_it = pmap.begin(); pmap_it != pmap.end(); )
         {
             if (pmap_it->second.empty())
             {
