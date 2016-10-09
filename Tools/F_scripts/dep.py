@@ -265,9 +265,12 @@ def doit(prefix, search_path, files, cpp, debug=False):
             except KeyError:
                 sys.exit("module {} required by {} not found".format(d, sf.name))
 
-            print("{}: {}".format(
-                prefix+os.path.basename(sf.obj()),
-                prefix+os.path.basename(provides_obj)))
+            # skip the case where a file provides the module it needs
+            # on its own; otherwise output the dependency line
+            if provides_obj != sf.obj():
+                print("{}: {}".format(
+                    prefix+os.path.basename(sf.obj()),
+                    prefix+os.path.basename(provides_obj)))
 
         print(" ")
 
