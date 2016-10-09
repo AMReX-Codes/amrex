@@ -336,7 +336,7 @@ public:
     void SetAllowParticlesNearBoundary(bool value);
  
     void Redistribute (bool where_already_called = false,
-		       bool full_where           = false,
+		       bool full_where           = false, // w.z.: why is default not true?
 		       int  lev_min              = 0, 
 		       int  nGrow                = 0);
 
