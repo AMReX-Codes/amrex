@@ -598,6 +598,8 @@ ParticleBase::PeriodicWhere (ParticleBase& p,
 {
     BL_ASSERT(gdb != 0);
 
+    if (!gdb->Geom(0).isAnyPeriodic()) return false;
+
     if (finest_level == -1)
         finest_level = gdb->finestLevel();
 
