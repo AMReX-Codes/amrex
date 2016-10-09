@@ -42,8 +42,7 @@ contains
             ex,ey,ez,bx,by,bz,xmin,ymin,zmin,dx,dy,dz,nx,ny,nz,nxguard,nyguard,nzguard, &
             nox,noy,noz,exg,eyg,ezg,bxg,byg,bzg, &
             ll4symtry,l_lower_order_in_v, &
-            field_gathe_algo) &
-            bind(C, name="geteb3d_energy_conserving")
+            field_gathe_algo)
          use iso_c_binding
          use bl_fort_module, only : c_real
          implicit none
@@ -200,7 +199,7 @@ contains
     END SELECT
 
     ! Dimension 2
-#else (defined(BL_SPACEDIM)&&(BL_SPACEDIM==2))
+#elif (defined(BL_SPACEDIM)&&(BL_SPACEDIM==2))
 
 
 #endif
@@ -391,7 +390,7 @@ contains
     END SELECT
 
     ! Dimension 2
-#else (defined(BL_SPACEDIM)&&(BL_SPACEDIM==2))
+#elif (defined(BL_SPACEDIM)&&(BL_SPACEDIM==2))
 
 
 #endif
@@ -414,7 +413,9 @@ contains
   !> @param[in] m masse
   !> @param[in] dt time step
   subroutine warpx_particle_pushe(np,xp,yp,zp,uxp,uyp,uzp, &
-                                  ex,ey,ez,bx,by,bz,q,m,dt) &
+                                  gaminv,&
+                                  ex,ey,ez,bx,by,bz,q,m,dt, &
+                                  particle_pusher_algo) &
        bind(C, name="warpx_particle_pusher")
   ! _________________________________________________________________ 
     interface
@@ -429,14 +430,81 @@ contains
         INTEGER(c_long) :: ip
         REAL(c_real)       :: const
       end subroutine
+
+      subroutine pxr_bpush_v(np,uxp,uyp,uzp,gaminv,bx,by,bz,q,m,dt)
+        use iso_c_binding
+        use bl_fort_module, only : c_real
+        implicit none
+        INTEGER(c_long)   :: np
+        REAL(c_real)      :: uxp(np), uyp(np), uzp(np), gaminv(np)
+        REAL(c_real)      :: bx(np), by(np), bz(np)
+        REAL(c_real)      :: q,m,dt
+      end subroutine
+
+      subroutine pxr_set_gamma(np,uxp,uyp,uzp,gaminv)
+        use iso_c_binding
+        use bl_fort_module, only : c_real
+        implicit none
+        INTEGER(c_long)   :: np
+        REAL(c_real) :: uxp(np), uyp(np), uzp(np), gaminv(np)
+      end subroutine
+
+      subroutine pxr_ebcancelpush3d(np,uxp,uyp,uzp,gi,exp,eyp,ezp,bxp,byp,bzp,q,m,dt,which)
+        use iso_c_binding
+        use bl_fort_module, only : c_real
+        implicit none
+        INTEGER(c_long) :: np,which
+        REAL(c_real)    :: uxp(np),uyp(np),uzp(np),gi(np)
+        REAL(c_real)    :: exp(np),eyp(np),ezp(np),bxp(np),byp(np),bzp(np)
+        REAL(c_real)    :: q,m,dt
+      end subroutine
+
+      subroutine pxr_pushxyz(np,xp,yp,zp,uxp,uyp,uzp,gaminv,dt)
+        use iso_c_binding
+        use bl_fort_module, only : c_real
+        implicit none
+        INTEGER(c_long)   :: np
+        REAL(c_real)      :: xp(np),yp(np),zp(np),uxp(np),uyp(np),uzp(np), gaminv(np)
+        REAL(c_real)      :: dt
+      end subroutine
+
     end interface    
 
     INTEGER(c_long), INTENT(IN)   :: np
+    REAL(c_real),INTENT(INOUT)    :: gaminv(np)
     REAL(c_real),INTENT(INOUT)    :: xp(np),yp(np),zp(np)
     REAL(c_real),INTENT(INOUT)    :: uxp(np),uyp(np),uzp(np)
     REAL(c_real),INTENT(IN)       :: ex(np),ey(np),ez(np)
     REAL(c_real),INTENT(IN)       :: bx(np),by(np),bz(np)
     REAL(c_real),INTENT(IN)       :: q,m,dt
+    INTEGER(c_long), INTENT(IN)   :: particle_pusher_algo
+
+    SELECT CASE (particle_pusher_algo)
+
+    !! Vay pusher -- Full push
+    CASE (1_c_long)
+      CALL pxr_ebcancelpush3d(np,uxp,uyp,uzp,gaminv, &
+                                 ex,ey,ez,  &
+                                 bx,by,bz,q,m,dt,0_c_long)
+    CASE DEFAULT
+
+      !! --- Push velocity with E half step
+      CALL pxr_epush_v(np,uxp,uyp,uzp,      &
+                      ex,ey,ez,q,m,dt*0.5_c_real)
+      !! --- Set gamma of particles
+      CALL pxr_set_gamma(np,uxp,uyp,uzp,gaminv)
+      !! --- Push velocity with B half step
+      CALL pxr_bpush_v(np,uxp,uyp,uzp,gaminv,      &
+                      bx,by,bz,q,m,dt)
+      !!! --- Push velocity with E half step
+      CALL pxr_epush_v(np,uxp,uyp,uzp,      &
+                      ex,ey,ez,q,m,dt*0.5_c_real)
+      !! --- Set gamma of particles
+      CALL pxr_set_gamma(np,uxp,uyp,uzp,gaminv)
+    END SELECT
+
+    !!!! --- push particle species positions a time step
+    CALL pxr_pushxyz(np,xp,yp,zp,uxp,uyp,uzp,gaminv,dt)
 
   end subroutine
 
@@ -459,8 +527,7 @@ contains
             dtsdx,dtsdy,dtsdz,nx,ny,nz,   &
             norderx,nordery,norderz,             &
             nxguard,nyguard,nzguard,nxs,nys,nzs, &
-            l_nodalgrid) &  !!!!!
-            bind(C, name="pxrpush_em3d_evec_norder")
+            l_nodalgrid)
          use iso_c_binding
          use bl_fort_module, only : c_real
          implicit none
@@ -516,8 +583,7 @@ contains
             dtsdx,dtsdy,dtsdz,nx,ny,nz,          &
             norderx,nordery,norderz,             &
             nxguard,nyguard,nzguard,nxs,nys,nzs, &
-            l_nodalgrid) &  !!!!!
-            bind(C, name="pxrpush_em3d_bvec_norder")
+            l_nodalgrid) 
          use iso_c_binding
          use bl_fort_module, only : c_real
          implicit none

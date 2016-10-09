@@ -3,9 +3,19 @@
 
 extern "C" 
 {
-    void pxr_set_gamma(const long* np,
-		       const Real* up, const Real* vp, const Real* wp,
-		       const Real* gaminv);
+
+	// Charge deposition
+
+    void warpx_charge_deposition(Real* rho, const long* np,
+				     const Real* xp, const Real* yp, const Real* zp,
+				     const Real* gip, const Real* w, const Real* q,
+				     const Real* xmin, const Real* ymin, const Real* zmin,
+				     const Real* dt, 
+				     const Real* dx, const Real* dy, const Real* dz,
+				     const long* nx, const long* ny, const long* nz,
+				     const long* nxguard, const long* nyguard, const long* nzguard,
+				     const long* nox, const long* noy,const long* noz,
+                     const long* lvect, const long* charge_depo_algo);
 
     // void depose_rho_vecHVv2_1_1_1( Real* rho, const long* np,
     // 				   const Real* xp, const Real* yp, const Real* zp,
@@ -76,6 +86,8 @@ extern "C"
 				//     const long* nx, const long* ny, const long* nz,
 				//     const long* nxguard, const long* nyguard, const long* nzguard);
 
+    // Field gathering
+
     void warpx_geteb3d_energy_conserving(const long* np, 
 					 const Real* xp, const Real* yp, const Real* zp,
 					 const Real* exp, const Real* eyp,const Real* ezp,
@@ -90,21 +102,38 @@ extern "C"
 					 const int* ll4symtry, const int* l_lower_order_in_v,  
 					 const long* field_gathe_algo);
 
-    void pxr_epush_v(const long* np, 
+    // Particle pusher
+
+ 	void warpx_particle_pusher(const long* np,
+		     const Real* xp, const Real* yp, const Real* zp,
 		     const Real* uxp, const Real* uyp, const Real* uzp,
+		     const Real* gaminv,
 		     const Real* exp, const Real* eyp,const Real* ezp,
-		     const Real* charge, const Real* mass, Real* dt);
-    
-    void pxr_bpush_v(const long* np, 
-		     const Real* uxp, const Real* uyp, const Real* uzp,
-		     const Real* gaminv, 
 		     const Real* bxp, const Real* byp,const Real* bzp,
-		     const Real* charge, const Real* mass, Real* dt);
+		     const Real* charge, const Real* mass, Real* dt,
+		     const long* particle_pusher_algo);
+
+    // void pxr_epush_v(const long* np, 
+		  //    const Real* uxp, const Real* uyp, const Real* uzp,
+		  //    const Real* exp, const Real* eyp,const Real* ezp,
+		  //    const Real* charge, const Real* mass, Real* dt);
     
-    void pxr_pushxyz(const long* np, 
-		     const Real*  xp, const Real*  yp, const Real*  zp,
-		     const Real* uxp, const Real* uyp, const Real* uzp,
-		     const Real* gaminv, Real* dt);
+    // void pxr_bpush_v(const long* np, 
+		  //    const Real* uxp, const Real* uyp, const Real* uzp,
+		  //    const Real* gaminv, 
+		  //    const Real* bxp, const Real* byp,const Real* bzp,
+		  //    const Real* charge, const Real* mass, Real* dt);
+    
+    // void pxr_pushxyz(const long* np, 
+		  //    const Real*  xp, const Real*  yp, const Real*  zp,
+		  //    const Real* uxp, const Real* uyp, const Real* uzp,
+		  //    const Real* gaminv, Real* dt);
+
+    // void pxr_set_gamma(const long* np,
+		  //      const Real* up, const Real* vp, const Real* wp,
+		  //      const Real* gaminv);
+
+    // Maxwell solver
 
     void warpx_pxrpush_em3d_evec_norder( Real* ex, Real* ey, Real* ez,
 					 Real* bx, Real* by, Real* bz,
