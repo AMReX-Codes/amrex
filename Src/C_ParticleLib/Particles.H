@@ -734,9 +734,9 @@ ParticleContainer<NR,NI>::MoveRandom (int lev)
     const Real* dx                = m_gdb->Geom(lev).CellSize();
     const Real  dist[BL_SPACEDIM] = { D_DECL(FRAC*dx[0], FRAC*dx[1], FRAC*dx[2]) };
 
-    for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
+    for (auto& kv : pmap)
     {
-        PBox&     pbox = pmap_it->second;
+        PBox&     pbox = kv.second;
         const int n    = pbox.size();
 
 #ifdef _OPENMP
@@ -805,19 +805,19 @@ ParticleContainer<NR,NI>::IncrementWithTotal (MultiFab& mf,
 				  m_gdb->ParticleDistributionMap(lev), Fab_allocate);
     }
 
-    for (typename PMap::const_iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
+    for (const auto& kv : pmap)
     {
-        const int   grid = pmap_it->first;
-        const PBox& pbox = pmap_it->second;
+        const int   grid = kv.first;
+        const PBox& pbox = kv.second;
         FArrayBox&  fab  = (*mf_pointer)[grid];
 
-        for (typename PBox::const_iterator it = pbox.begin(), pboxEnd = pbox.end(); it != pboxEnd; ++it)
+	for (const auto& p : pbox)
         {
-            if (it->m_id > 0)
+            if (p.m_id > 0)
             {
-                BL_ASSERT(it->m_grid == grid);
+                BL_ASSERT(p.m_grid == grid);
 
-                fab(it->m_cell) += 1;
+                fab(p.m_cell) += 1;
                 num_particles_in_domain += 1;
             }
         }
@@ -849,15 +849,15 @@ ParticleContainer<NR,NI>::sumParticleMass (int rho_index, int lev) const
 
     const PMap& pmap = m_particles[lev];
 
-    for (typename PMap::const_iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
+    for (const auto& kv : pmap)
     {
-        const PBox& pbox = pmap_it->second;
+        const PBox& pbox = kv.second;
 
-        for (typename PBox::const_iterator it = pbox.begin(), pboxEnd = pbox.end(); it != pboxEnd; ++it)
+	for (const auto& p : pbox)
         {
-            if (it->m_id > 0)
+            if (p.m_id > 0)
             {
-                msum += it->m_data[rho_index];
+                msum += p.m_data[rho_index];
             }
         }
     }
@@ -912,16 +912,15 @@ ParticleContainer<NR,NI>::GetParticleIDs (Array<int>& part_ids)
 
     for (int lev = 0; lev <= m_gdb->finestLevel(); lev++)
     {
-        PMap& pmap = m_particles[lev];
+        const PMap& pmap = m_particles[lev];
 
-        for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
+	for (const auto& kv : pmap)
         {
-            PBox&     pbx = pmap_it->second;
-            const int n    = pbx.size();
+            const PBox& pbx = kv.second;
+            const int   n   = pbx.size();
     
-            for (int i = 0; i < n; i++)
+	    for (const auto& p : pbx)
             {
-                ParticleType& p = pbx[i];
                 if (p.m_id > 0)
                 {
                     // Load the ID
@@ -979,16 +978,15 @@ ParticleContainer<NR,NI>::GetParticleCPU (Array<int>& part_cpu)
 
     for (int lev = 0; lev <= m_gdb->finestLevel(); lev++)
     {
-        PMap& pmap = m_particles[lev];
+        const PMap& pmap = m_particles[lev];
 
-        for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
+	for (const auto& kv : pmap)
         {
-            PBox&     pbx = pmap_it->second;
-            const int n    = pbx.size();
+            const PBox& pbx = kv.second;
+            const int   n   = pbx.size();
     
-            for (int i = 0; i < n; i++)
+	    for (const auto& p : pbx)
             {
-                ParticleType& p = pbx[i];
                 if (p.m_id > 0)
                 {
                     // Load the ID
@@ -1047,16 +1045,15 @@ ParticleContainer<NR,NI>::GetParticleLocations (Array<Real>& part_data)
 
     for (int lev = 0; lev <= m_gdb->finestLevel(); lev++)
     {
-        PMap& pmap = m_particles[lev];
+        const PMap& pmap = m_particles[lev];
 
-        for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
+	for (const auto& kv : pmap)
         {
-            PBox&     pbx = pmap_it->second;
-            const int n    = pbx.size();
+            const PBox& pbx = kv.second;
+            const int   n   = pbx.size();
     
-            for (int i = 0; i < n; i++)
-            {
-                ParticleType& p = pbx[i];
+	    for (const auto& p : pbx)
+	    {
                 if (p.m_id > 0)
                 {
                     // Load positions
@@ -1122,16 +1119,15 @@ ParticleContainer<NR,NI>::GetParticleData (Array<Real>& part_data, int start_com
 
     for (int lev = 0; lev <= m_gdb->finestLevel(); lev++)
     {
-        PMap& pmap = m_particles[lev];
+        const PMap& pmap = m_particles[lev];
 
-        for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
+	for (const auto& kv : pmap)
         {
-            PBox&     pbx = pmap_it->second;
-            const int n    = pbx.size();
+            const PBox& pbx = kv.second;
+            const int   n   = pbx.size();
     
-            for (int i = 0; i < n; i++)
-            {
-                ParticleType& p = pbx[i];
+	    for (const auto& p : pbx)
+	    {
                 if (p.m_id > 0)
                 {
                     // Load particle data, whatever it is.
@@ -1199,14 +1195,13 @@ ParticleContainer<NR,NI>::SetParticleLocations (Array<Real>& part_data)
    {
        PMap& pmap = m_particles[lev];
 
-       for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
+       for (auto& kv : pmap)
        {
-           PBox&     pbx = pmap_it->second;
-           const int n    = pbx.size();
+           PBox&     pbx = kv.second;
+           const int n   = pbx.size();
     
-           for (int i = 0; i < n; i++)
+	   for (auto& p : pbx)
            {
-              ParticleType& p = pbx[i];
               if (p.m_id > 0)
               {
                   // Load positions
@@ -1327,11 +1322,9 @@ ParticleContainer<NR,NI>::RemoveParticlesNotAtFinestLevel ()
 
         if (!pmap.empty())
         {
-            for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end();
-                 pmap_it != pmapEnd;
-                 ++pmap_it)
+	    for (const auto& kv : pmap)
             {
-                cnt += pmap_it->second.size();
+                cnt += kv.second.size();
             }
 
             PMap().swap(pmap);
@@ -1409,21 +1402,15 @@ ParticleContainer<NR,NI>::CreateVirtualParticles (int   level,
 
     const PMap& pmap = m_particles[level];
 
-    for (typename PMap::const_iterator pmap_it = pmap.begin(), pmapEnd = pmap.end();
-         pmap_it != pmapEnd;
-         ++pmap_it)
+    for (const auto& kv : pmap)
     {
-        const PBox& pbox = pmap_it->second;
+        const PBox& pbox = kv.second;
         //
         // Map for use in Cell aggregation.
         //
         std::map<IntVect,ParticleType,IntVect::Compare> agg_map;
 
-        typename std::map<IntVect,ParticleType,IntVect::Compare>::iterator agg_map_it;
-
-        for (typename PBox::const_iterator it = pbox.begin(), pboxEnd = pbox.end();
-             it != pboxEnd;
-             ++it)
+	for (auto it = pbox.cbegin(); it != pbox.cend(); ++it)
         {
             if (buffer.contains(it->m_cell))
             {
@@ -1456,7 +1443,7 @@ ParticleContainer<NR,NI>::CreateVirtualParticles (int   level,
                     // that all other components should be combined in a mass-weighted
                     // average.
                     //
-                    agg_map_it = agg_map.find(it->m_cell);
+                    auto agg_map_it = agg_map.find(it->m_cell);
 
                     if (agg_map_it == agg_map.end())
                     {
@@ -1511,9 +1498,9 @@ ParticleContainer<NR,NI>::CreateVirtualParticles (int   level,
             //
             // Add the aggregated particles to the virtuals.
             //
-            for (typename std::map<IntVect,ParticleType>::iterator agg_it = agg_map.begin(), aggEnd = agg_map.end(); agg_it != aggEnd; ++agg_it)
+	    for (const auto& kv : agg_map)
             {
-                virts.push_back((*agg_it).second);
+                virts.push_back(kv.second);
             }
         }
     }
@@ -1541,15 +1528,11 @@ ParticleContainer<NR,NI>::CreateGhostParticles (int   level,
 
     const PMap& pmap = m_particles[level];
 
-    for (typename PMap::const_iterator pmap_it = pmap.begin(), pmapEnd = pmap.end();
-         pmap_it != pmapEnd;
-         ++pmap_it)
+    for (const auto& kv : pmap)
     {
-        const PBox& pbox = pmap_it->second;
+        const PBox& pbox = kv.second;
 
-        for (typename PBox::const_iterator it = pbox.begin(), pboxEnd = pbox.end();
-             it != pboxEnd;
-             ++it)
+	for (auto it = pbox.cbegin(); it != pbox.cend(); ++it)
         {
             //
             // Find particle location on the finer level.
@@ -1630,12 +1613,12 @@ ParticleContainer<NR,NI>::Redistribute (bool where_already_called,
     {
         PMap& pmap = m_particles[lev];
 
-        for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
+	for (auto& kv : pmap)
         {
-            const int grid = pmap_it->first;
-            PBox&     pbox = pmap_it->second;
+            const int grid = kv.first;
+            PBox&     pbox = kv.second;
 
-            for (typename PBox::iterator it = pbox.begin(), End = pbox.end(); it != End; )
+            for (auto it = pbox.begin(); it != pbox.end(); )
             {
                 ParticleType& p = *it;
 
@@ -1725,7 +1708,7 @@ ParticleContainer<NR,NI>::Redistribute (bool where_already_called,
         //
         // Remove any map entries for which the particle container is now empty.
         //
-        for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; )
+	for (auto pmap_it = pmap.begin(); pmap_it != pmap.end(); ++pmap_it)
         {
             if (pmap_it->second.empty())
             {
@@ -1800,10 +1783,10 @@ ParticleContainer<NR,NI>::RedistributeMPI (PMap& not_ours)
 
     int NumSnds = 0, NumRcvs = 0;
 
-    for (typename PMap::const_iterator it = not_ours.begin(), End = not_ours.end(); it != End; ++it)
+    for (const auto& kv : not_ours)
     {
-        NumSnds        += it->second.size();
-        Snds[it->first] = it->second.size();
+        NumSnds       += kv.second.size();
+        Snds[kv.first] = kv.second.size();
     }
 
     ParallelDescriptor::ReduceIntMax(NumSnds);
@@ -1856,9 +1839,9 @@ ParticleContainer<NR,NI>::RedistributeMPI (PMap& not_ours)
     //
     PMap nparticles;
 
-    for (IntIntMap::const_iterator it = RcvCnts.begin(), End = RcvCnts.end(); it != End; ++it)
+    for (const auto& kv : RcvCnts)
     {
-        nparticles[it->first].resize(it->second);
+        nparticles[kv.first].resize(kv.second);
     }
     Array<int>         owner(RcvCnts.size());
     Array<int>         index(RcvCnts.size());
@@ -1878,7 +1861,7 @@ ParticleContainer<NR,NI>::RedistributeMPI (PMap& not_ours)
         // Post receives.
         //
         int idx = 0;
-        for (IntIntMap::const_iterator it = RcvCnts.begin(), End = RcvCnts.end(); it != End; ++it, ++idx)
+	for (auto it = RcvCnts.cbegin(); it != RcvCnts.cend(); ++it, ++idx)
         {
             const int Who = it->first;
             const int Cnt = it->second   * iChunkSize;
@@ -1896,10 +1879,10 @@ ParticleContainer<NR,NI>::RedistributeMPI (PMap& not_ours)
         //
         Array<int> senddata;
 
-        for (IntIntMap::const_iterator it = SndCnts.begin(), End = SndCnts.end(); it != End; ++it)
+	for (const auto& kv : SndCnts)
         {
-            const int Who = it->first;
-            const int Cnt = it->second * iChunkSize;
+            const int Who = kv.first;
+            const int Cnt = kv.second * iChunkSize;
 
             BL_ASSERT(Cnt > 0);
             BL_ASSERT(Who >= 0 && Who < NProcs);
@@ -1910,10 +1893,8 @@ ParticleContainer<NR,NI>::RedistributeMPI (PMap& not_ours)
             const PBox& pbox = not_ours[Who];
 
             int ioff = 0;
-            for (typename PBox::const_iterator it = pbox.begin(), End = pbox.end(); it != End; ++it)
+	    for (const auto& p : pbox)
             {
-                const ParticleType& p = *it;
-
                 BL_ASSERT(p.m_id > 0);
 
                 senddata[ioff+0] = p.m_id;
@@ -1951,10 +1932,8 @@ ParticleContainer<NR,NI>::RedistributeMPI (PMap& not_ours)
 
                 BL_ASSERT(pbox.size() == RcvCnts[Who]);
 
-                for (typename PBox::iterator it = pbox.begin(), End = pbox.end(); it != End; ++it)
+		for (auto& p : pbox)
                 {
-                    ParticleType& p = *it;
-
                     BL_ASSERT(rcvp != 0);
 
                     p.m_id   = rcvp[0];
@@ -1986,7 +1965,7 @@ ParticleContainer<NR,NI>::RedistributeMPI (PMap& not_ours)
         // Post receives.
         //
         int idx = 0;
-        for (IntIntMap::const_iterator it = RcvCnts.begin(), End = RcvCnts.end(); it != End; ++it, ++idx)
+	for (auto it = RcvCnts.cbegin(); it != RcvCnts.cend(); ++it, ++idx)
         {
             const int Who = it->first;
             const int Cnt = it->second   * rChunkSize;
@@ -2003,10 +1982,10 @@ ParticleContainer<NR,NI>::RedistributeMPI (PMap& not_ours)
         //
         Array<ParticleBase::RealType> senddata;
 
-        for (IntIntMap::const_iterator it = SndCnts.begin(), End = SndCnts.end(); it != End; ++it)
+	for (const auto& kv : SndCnts)
         {
-            const int Who = it->first;
-            const int Cnt = it->second * rChunkSize;
+            const int Who = kv.first;
+            const int Cnt = kv.second * rChunkSize;
 
             BL_ASSERT(Cnt > 0);
             BL_ASSERT(Who >= 0 && Who < NProcs);
@@ -2017,10 +1996,8 @@ ParticleContainer<NR,NI>::RedistributeMPI (PMap& not_ours)
             PBox& pbox = not_ours[Who];
 
             int ioff = 0;
-            for (typename PBox::const_iterator it = pbox.begin(), End = pbox.end(); it != End; ++it)
+	    for (const auto& p : pbox)
             {
-                const ParticleType& p = *it;
-
                 BL_ASSERT(p.m_id > 0);
 
                 D_TERM(senddata[ioff+0] = p.m_pos[0];,
@@ -2059,10 +2036,8 @@ ParticleContainer<NR,NI>::RedistributeMPI (PMap& not_ours)
 
                 BL_ASSERT(pbox.size() == RcvCnts[Who]);
 
-                for (typename PBox::iterator it = pbox.begin(), End = pbox.end(); it != End; ++it)
+		for (auto& p : pbox)
                 {
-                    ParticleType& p = *it;
-
                     BL_ASSERT(rcvp != 0);
 
                     D_TERM(p.m_pos[0] = rcvp[0];,
@@ -2109,12 +2084,12 @@ ParticleContainer<NR,NI>::OK (bool full_where,
     {
         const PMap& pmap = m_particles[lev];
 
-        for (typename PMap::const_iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
+	for (const auto& kv : pmap)
         {
-            const int   grid = pmap_it->first;
-            const PBox& pbox = pmap_it->second;
+            const int   grid = kv.first;
+            const PBox& pbox = kv.second;
 
-            for (typename PBox::const_iterator it = pbox.begin(), pboxEnd = pbox.end(); it != pboxEnd; ++it)
+	    for (auto it = pbox.cbegin(); it != pbox.cend(); ++it)
             {
                 //
                 // Yes I want to make a copy of the particle.
@@ -2217,13 +2192,13 @@ ParticleContainer<NR,NI>::Checkpoint (const std::string& dir,
     {
         const PMap& pmap = m_particles[lev];
 
-        for (typename PMap::const_iterator pmap_it = pmap.begin(), End = pmap.end(); pmap_it != End; ++pmap_it)
+	for (const auto& kv : pmap)
         {
-            const PBox& pbox = pmap_it->second;
+            const PBox& pbox = kv.second;
 
-            for (typename PBox::const_iterator it = pbox.begin(), pboxEnd = pbox.end(); it != pboxEnd; ++it)
+	    for (const auto& p : pbox)
             {
-                if (it->m_id > 0)
+                if (p.m_id > 0)
                     //
                     // Only count (and checkpoint) valid particles.
                     //
@@ -2519,15 +2494,13 @@ ParticleContainer<NR,NI>::WriteParticles (int            lev,
         //
         int cnt = 0;
 
-        typename PMap::const_iterator pmap_it = pmap.find(grid);
+        auto pmap_it = pmap.find(grid);
 
         if (pmap_it != pmap.end())
         {
-            for (typename PBox::const_iterator it = pmap_it->second.begin(), pboxEnd =  pmap_it->second.end();
-                 it != pboxEnd;
-                 ++it)
+	    for (const auto& p : pmap_it->second)
             {
-                if (it->m_id > 0)
+                if (p.m_id > 0)
                     cnt++;
             }
         }
@@ -2555,8 +2528,8 @@ ParticleContainer<NR,NI>::WriteParticles (int            lev,
 	    int cntBufSize(maxItemsToWrite * iChunkSize);
 	    int nItems(cnt), nItemsToWrite(0);
             Array<int> istuff(cntBufSize);
-            typename PBox::const_iterator it  = pbox.begin();
-            typename PBox::const_iterator End = pbox.end();
+            auto it  = pbox.cbegin();
+            auto End = pbox.cend();
 
 	    while(nItems > 0) {
               int *iptr = istuff.dataPtr();
@@ -2586,7 +2559,7 @@ ParticleContainer<NR,NI>::WriteParticles (int            lev,
 
             int* iptr = istuff.dataPtr();
 
-            for (typename PBox::const_iterator it = pbox.begin(), End = pbox.end(); it != End; ++it)
+	    for (auto it = pbox.cbegin(); it != pbox.cend(); ++it)
             {
                 if (it->m_id > 0)
                 {
@@ -2619,8 +2592,8 @@ ParticleContainer<NR,NI>::WriteParticles (int            lev,
 	int cntBufSize(maxItemsToWrite * rChunkSize);
 	int nItems(cnt), nItemsToWrite(0);
         Array<ParticleBase::RealType> rstuff(cntBufSize);
-        typename PBox::const_iterator it = pbox.begin();
-        typename PBox::const_iterator End = pbox.end();
+        auto it  = pbox.cbegin();
+        auto End = pbox.cend();
 
 	while(nItems > 0) {
           ParticleBase::RealType *rptr = rstuff.dataPtr();
@@ -2648,7 +2621,7 @@ ParticleContainer<NR,NI>::WriteParticles (int            lev,
 
         ParticleBase::RealType* rptr = rstuff.dataPtr();
 
-        for (typename PBox::const_iterator it = pbox.begin(), End = pbox.end(); it != End; ++it)
+	for (auto it = pbox.cbegin(); it != pbox.cend(); ++it)
         {
             if (it->m_id > 0)
             {
@@ -3220,13 +3193,13 @@ ParticleContainer<NR,NI>::WriteAsciiFile (const std::string& filename)
     {
         const PMap& pmap = m_particles[lev];
 
-        for (typename PMap::const_iterator pmap_it = pmap.begin(), End = pmap.end(); pmap_it != End; ++pmap_it)
+	for (const auto& kv : pmap)
         {
-            const PBox& pbox = pmap_it->second;
+            const PBox& pbox = kv.second;
 
-            for (typename PBox::const_iterator it = pbox.begin(), pboxEnd = pbox.end(); it != pboxEnd; ++it)
+	    for (const auto& p : pbox)
             {
-                if (it->m_id > 0)
+                if (p.m_id > 0)
                     //
                     // Only count (and checkpoint) valid particles.
                     //
@@ -3289,11 +3262,11 @@ ParticleContainer<NR,NI>::WriteAsciiFile (const std::string& filename)
             {
                 const PMap& pmap = m_particles[lev];
 
-                for (typename PMap::const_iterator pmap_it = pmap.begin(), End = pmap.end(); pmap_it != End; ++pmap_it)
+		for (const auto& kv : pmap)
                 {
-                    const PBox& pbox = pmap_it->second;
+                    const PBox& pbox = kv.second;
 
-                    for (typename PBox::const_iterator it = pbox.begin(), pboxEnd = pbox.end(); it != pboxEnd; ++it)
+		    for (auto it = pbox.cbegin(); it != pbox.cend(); ++it)
                     {
                         if (it->m_id > 0)
                         {
@@ -3354,11 +3327,11 @@ ParticleContainer<NR,NI>::WriteCoarsenedAsciiFile (const std::string& filename)
     {
         const PMap& pmap = m_particles[lev];
 
-        for (typename PMap::const_iterator pmap_it = pmap.begin(), End = pmap.end(); pmap_it != End; ++pmap_it)
+	for (const auto& kv : pmap)
         {
-            const PBox& pbox = pmap_it->second;
+            const PBox& pbox = kv.second;
 
-            for (typename PBox::const_iterator it = pbox.begin(), pboxEnd = pbox.end(); it != pboxEnd; ++it)
+	    for (auto it = pbox.cbegin(); it != pbox.cend(); ++it)
             {
                 // Only keep particles in even cells
                 if (it->m_id > 0 &&
@@ -3425,11 +3398,11 @@ ParticleContainer<NR,NI>::WriteCoarsenedAsciiFile (const std::string& filename)
             {
                 const PMap& pmap = m_particles[lev];
 
-                for (typename PMap::const_iterator pmap_it = pmap.begin(), End = pmap.end(); pmap_it != End; ++pmap_it)
+		for (const auto& kv : pmap)
                 {
-                    const PBox& pbox = pmap_it->second;
+                    const PBox& pbox = kv.second;
 
-                    for (typename PBox::const_iterator it = pbox.begin(), pboxEnd = pbox.end(); it != pboxEnd; ++it)
+		    for (auto it = pbox.cbegin(); it != pbox.cend(); ++it)
                     {
                         // Only keep particles in even cells
                         if (it->m_id > 0 &&
@@ -3908,20 +3881,13 @@ ParticleContainer<NR,NI>::AssignDensity (int rho_index,
         //
         const bool GridsCoverDomain = fvalid.contains(m_gdb->Geom(lev).Domain());
         
-        for (typename PMap::const_iterator pmap_it = m_particles[lev].begin(),
-                 pmapEnd = m_particles[lev].end();
-             pmap_it != pmapEnd;
-             ++pmap_it)
+	for (const auto& kv : m_particles[lev])
         {
-            const PBox& pbx = pmap_it->second;
-            FArrayBox&  fab = (*mf)[lev_index][pmap_it->first];
+            const PBox& pbx = kv.second;
+            FArrayBox&  fab = (*mf)[lev_index][kv.first];
 
-            for (typename PBox::const_iterator it = pbx.begin(), End = pbx.end();
-                 it != End;
-                 ++it)
+	    for (const auto& p : pbx)
             {
-                const ParticleType& p = *it;
-
                 if (p.m_id <= 0) {
 		  continue;
 		}
@@ -4542,10 +4508,10 @@ ParticleContainer<NR,NI>::AssignDensityDoit (int rho_index,
 
     int NumSnds = 0, NumRcvs = 0;
 
-    for (typename PMap::const_iterator it = data.begin(), End = data.end(); it != End; ++it)
+    for (const auto& kv : data)
     {
-        NumSnds        += it->second.size();
-        Snds[it->first] = it->second.size();
+        NumSnds       += kv.second.size();
+        Snds[kv.first] = kv.second.size();
     }
 
     ParallelDescriptor::ReduceIntMax(NumSnds);
@@ -4617,7 +4583,7 @@ ParticleContainer<NR,NI>::AssignDensityDoit (int rho_index,
     // Post the receives.
     //
     int idx = 0;
-    for (IntIntMap::const_iterator it = RcvCnts.begin(), End = RcvCnts.end(); it != End; ++it, ++idx)
+    for (auto it = RcvCnts.cbegin(); it != RcvCnts.cend(); ++it, ++idx)
     {
         const int Who  = it->first;
         const int iCnt = it->second   * iChunkSize;
@@ -4640,11 +4606,11 @@ ParticleContainer<NR,NI>::AssignDensityDoit (int rho_index,
     Array<int>                    isenddata;
     Array<ParticleBase::RealType> rsenddata;
 
-    for (IntIntMap::const_iterator it = SndCnts.begin(), End = SndCnts.end(); it != End; ++it)
+    for (const auto& kv : SndCnts)
     {
-        const int Who  = it->first;
-        const int iCnt = it->second * iChunkSize;
-        const int rCnt = it->second * rChunkSize;
+        const int Who  = kv.first;
+        const int iCnt = kv.second * iChunkSize;
+        const int rCnt = kv.second * rChunkSize;
 
         BL_ASSERT(iCnt > 0);
         BL_ASSERT(rCnt > 0);
@@ -4658,10 +4624,8 @@ ParticleContainer<NR,NI>::AssignDensityDoit (int rho_index,
         PBox& pbox = data[Who];
 
         int ioff = 0, roff = 0;
-        for (typename PBox::const_iterator it = pbox.begin(), End = pbox.end(); it != End; ++it)
+	for (const auto& p : pbox)
         {
-            const ParticleType& p = *it;
-
             isenddata[ioff+0] = p.m_lev  - lev_min;
             isenddata[ioff+1] = p.m_grid;
 
@@ -4818,12 +4782,11 @@ ParticleContainer<NR,NI>::AssignCellDensitySingleLevel (int rho_index,
     Array<const PBox*> pbxs(ngrids);
 
     int j = 0;
-    for (typename PMap::const_iterator pmap_it = pmap.begin(), pmapEnd = pmap.end();
-         pmap_it != pmapEnd;
-         ++pmap_it, ++j)
+    for (const auto& kv : pmap)
     {
-        pgrd[j] =   pmap_it->first;
-        pbxs[j] = &(pmap_it->second);
+        pgrd[j] =   kv.first;
+        pbxs[j] = &(kv.second);
+	++j;
     }
 
     for (int j = 0; j < ngrids; j++)
@@ -4837,9 +4800,9 @@ ParticleContainer<NR,NI>::AssignCellDensitySingleLevel (int rho_index,
 #ifdef _OPENMP
 #pragma omp parallel for default(none) private(fracs,cells) shared(plo,dx,dx_particle,gm,fab,ncomp,pbx)
 #endif
-        for (typename PBox::const_iterator it = pbx.begin(); it < pbx.end(); ++it)
+	for (int ip = 0; ip < pbx.size(); ++ip)
         {
-            const ParticleType& p = *it;
+            const ParticleType& p = pbx[ip];
 
             if (p.m_id <= 0) {
 	      continue;
@@ -4988,12 +4951,11 @@ ParticleContainer<NR,NI>::NodalDepositionSingleLevel (int rho_index,
     Real strt_depose = ParallelDescriptor::second();
 
     int j = 0;
-    for (typename PMap::const_iterator pmap_it = pmap.begin(), pmapEnd = pmap.end();
-         pmap_it != pmapEnd;
-         ++pmap_it, ++j)
+    for (const auto& kv : pmap)
     {
-        pgrd[j] =   pmap_it->first;
-        pbxs[j] = &(pmap_it->second);
+        pgrd[j] =   kv.first;
+        pbxs[j] = &(kv.second);
+	++j;
     }
 
     Array<IntVect> cells;
@@ -5018,10 +4980,8 @@ ParticleContainer<NR,NI>::NodalDepositionSingleLevel (int rho_index,
         const PBox& pbx = *pbxs[j];
         FArrayBox&  fab = (*mf_pointer)[pgrd[j]];
 
-        for (typename PBox::const_iterator it = pbx.begin(); it < pbx.end(); ++it)
+	for (const auto& p : pbx)
         {
-            const ParticleType& p = *it;
-
             if (p.m_id <= 0) {
 	      continue;
 	    }
@@ -5198,10 +5158,10 @@ ParticleContainer<NR,NI>::moveKick (MultiFab&       acceleration,
         ac_pointer->FillBoundary(); // DO WE NEED GHOST CELLS FILLED ???
     }
 
-    for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
+    for (auto& kv : pmap)
     {
-        const int        grid = pmap_it->first;
-        PBox&            pbox = pmap_it->second;
+        const int        grid = kv.first;
+        PBox&            pbox = kv.second;
         const int        n    = pbox.size();
         const FArrayBox& gfab = (*ac_pointer)[grid];
 
