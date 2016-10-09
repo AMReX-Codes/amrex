@@ -79,6 +79,13 @@ MyParticleContainer::CurrentDeposition (MultiFab& jx, MultiFab& jy, MultiFab& jz
 	long ny = box.length(1);
 	long nz = box.length(2); 
 
+	long nox = 1;
+	long noy = 1;
+	long noz = 1;
+
+	long lvect = 8;
+	long curr_depo_algo = 3;
+
 	RealBox grid_box = RealBox( box, dx, gm.ProbLo() );
 	const Real* xyzmin = grid_box.lo();
 
@@ -100,13 +107,21 @@ MyParticleContainer::CurrentDeposition (MultiFab& jx, MultiFab& jy, MultiFab& jz
 				     &ng, &ng, &ng);
 #endif
 
-	depose_jxjyjz_scalar_1_1_1( jx[gid].dataPtr(), jy[gid].dataPtr(), jz[gid].dataPtr(),
+	warpx_current_deposition( jx[gid].dataPtr(), jy[gid].dataPtr(), jz[gid].dataPtr(),
                                     &np, xp.dataPtr(), yp.dataPtr(), zp.dataPtr(), 
                                     uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(), 
                                     gaminv->dataPtr(), wp.dataPtr(), &q, 
                                     &xyzmin[0], &xyzmin[1], &xyzmin[2], 
                                     &dt, &dx[0], &dx[1], &dx[2], &nx, &ny, &nz,
-				    &ng, &ng, &ng);
+				    &ng, &ng, &ng, &nox,&noy,&noz,&lvect,&curr_depo_algo);
+
+	// depose_jxjyjz_scalar_1_1_1( jx[gid].dataPtr(), jy[gid].dataPtr(), jz[gid].dataPtr(),
+ //                                    &np, xp.dataPtr(), yp.dataPtr(), zp.dataPtr(), 
+ //                                    uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(), 
+ //                                    gaminv->dataPtr(), wp.dataPtr(), &q, 
+ //                                    &xyzmin[0], &xyzmin[1], &xyzmin[2], 
+ //                                    &dt, &dx[0], &dx[1], &dx[2], &nx, &ny, &nz,
+	// 			    &ng, &ng, &ng);
 
 	BL_PROFILE_VAR_STOP(blp_pxr);
     }
