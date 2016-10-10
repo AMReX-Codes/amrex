@@ -28,7 +28,7 @@ struct PIdx
 };
 
 class MyParticleContainer
-    : public ParticleContainer<PIdx::nattribs,0>
+    : public ParticleContainer<PIdx::nattribs,0,std::vector<Particle<PIdx::nattribs,0> > >
 {
 
 public:

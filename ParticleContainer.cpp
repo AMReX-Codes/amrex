@@ -6,7 +6,7 @@ MyParticleContainer::MyParticleContainer (const Array<Geometry>            & geo
 					  const Array<DistributionMapping> & dmap,
 					  const Array<BoxArray>            & ba,
 					  const Array<int>                 & rr)
-    : ParticleContainer<PIdx::nattribs,0> (geom,dmap,ba,rr)
+    : ParticleContainer<PIdx::nattribs,0,std::vector<Particle<PIdx::nattribs,0> > >(geom,dmap,ba,rr)
 {
     MultiFab foo(ba[0],1,0,dmap[0],Fab_noallocate);
     for (MFIter mfi(foo); mfi.isValid(); ++mfi)
