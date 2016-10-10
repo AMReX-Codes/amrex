@@ -22,6 +22,9 @@ MyParticleContainer::ParticlePush(Real dt)
     // xxxxx what's weight? Is it the same as charge?
     // xxxxx no negative charges?
 
+    // Particle pusher algorithm
+    long particle_pusher_algo = 0;
+
     Array<Real>  xp,  yp,  zp;
     Array<Real> uxp, uyp, uzp;
 
@@ -73,25 +76,11 @@ MyParticleContainer::ParticlePush(Real dt)
 
 	BL_PROFILE_VAR_START(blp_pxr);
 
-        pxr_epush_v(&np, uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(),
-		    Exp->dataPtr(), Eyp->dataPtr(), Ezp->dataPtr(),
-                    &q, &mass, &half_dt);
-
-        pxr_set_gamma(&np, uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(), giv->dataPtr());
-
-        pxr_bpush_v(&np, uxp.dataPtr(),uyp.dataPtr(),uzp.dataPtr(), giv->dataPtr(),
-		    Bxp->dataPtr(), Byp->dataPtr(), Bzp->dataPtr(),
-                    &q, &mass, &dt);
-
-        pxr_epush_v(&np, uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(),
-		    Exp->dataPtr(), Eyp->dataPtr(), Ezp->dataPtr(),
-                    &q, &mass, &half_dt);
-
-        pxr_set_gamma(&np, uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(), giv->dataPtr());
-
-        pxr_pushxyz(&np, xp.dataPtr(), yp.dataPtr(), zp.dataPtr(),
-		    uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(), giv->dataPtr(),
-		    &dt);
+	warpx_particle_pusher(&np,xp.dataPtr(), yp.dataPtr(), zp.dataPtr(),
+		uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(), giv->dataPtr(),
+        Exp->dataPtr(), Eyp->dataPtr(), Ezp->dataPtr(),
+        Bxp->dataPtr(), Byp->dataPtr(), Bzp->dataPtr(),
+        &q, &mass, &dt, &particle_pusher_algo);
 
 	BL_PROFILE_VAR_STOP(blp_pxr);
 
