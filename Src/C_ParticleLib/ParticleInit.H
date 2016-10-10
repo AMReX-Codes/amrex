@@ -1,8 +1,8 @@
-template <int NR, int NI>
+template <int NR, int NI, class C>
 void
-ParticleContainer<NR,NI>::InitFromAsciiFile (const std::string& file, int extradata, const IntVect* Nrep)
+ParticleContainer<NR,NI,C>::InitFromAsciiFile (const std::string& file, int extradata, const IntVect* Nrep)
 {
-    BL_PROFILE("ParticleContainer<NR,NI>::InitFromAsciiFile()");
+    BL_PROFILE("ParticleContainer<NR,NI,C>::InitFromAsciiFile()");
     BL_ASSERT(!file.empty());
     BL_ASSERT(extradata <= NR);
 
@@ -151,7 +151,7 @@ ParticleContainer<NR,NI>::InitFromAsciiFile (const std::string& file, int extrad
                         std::cout << "BAD PARTICLE POS(" << d << ") " << p.m_pos[d] << std::endl;
                     }
 
-                    BoxLib::Abort("ParticleContainer<NR,NI>::InitFromAsciiFile(): invalid particle");
+                    BoxLib::Abort("ParticleContainer<NR,NI,C>::InitFromAsciiFile(): invalid particle");
                 }
             }
 
@@ -197,7 +197,7 @@ ParticleContainer<NR,NI>::InitFromAsciiFile (const std::string& file, int extrad
                                 if (!ParticleBase::Where(p_rep,m_gdb))
                                 {
                                     std::cout << "BAD REPLICATED PARTICLE ID WOULD BE " << ParticleBase::NextID() << std::endl;
-                                    BoxLib::Abort("ParticleContainer<NR,NI>::InitFromAsciiFile(): invalid replicated particle");
+                                    BoxLib::Abort("ParticleContainer<NR,NI,C>::InitFromAsciiFile(): invalid replicated particle");
                                 }
                             }
                             //
@@ -343,12 +343,12 @@ ParticleContainer<NR,NI>::InitFromAsciiFile (const std::string& file, int extrad
 // They're packed into the binary file like sardines.
 //
 
-template <int NR, int NI>
+template <int NR, int NI, class C>
 void
-ParticleContainer<NR,NI>::InitFromBinaryFile (const std::string& file,
+ParticleContainer<NR,NI,C>::InitFromBinaryFile (const std::string& file,
                                           int                extradata)
 {
-    BL_PROFILE("ParticleContainer<NR,NI>::InitFromBinaryFile()");
+    BL_PROFILE("ParticleContainer<NR,NI,C>::InitFromBinaryFile()");
     BL_ASSERT(!file.empty());
     BL_ASSERT(extradata <= NR);
 
@@ -484,22 +484,22 @@ ParticleContainer<NR,NI>::InitFromBinaryFile (const std::string& file,
         // NP MUST be positive!
         //
         if (NP <= 0)
-            BoxLib::Abort("ParticleContainer<NR,NI>::InitFromBinaryFile(): NP <= 0");
+            BoxLib::Abort("ParticleContainer<NR,NI,C>::InitFromBinaryFile(): NP <= 0");
         //
         // DM must equal BL_SPACEDIM.
         //
         if (DM != BL_SPACEDIM)
-            BoxLib::Abort("ParticleContainer<NR,NI>::InitFromBinaryFile(): DM != BL_SPACEDIM");
+            BoxLib::Abort("ParticleContainer<NR,NI,C>::InitFromBinaryFile(): DM != BL_SPACEDIM");
         //
         // NX MUST be in [0,N].
         //
         if (NX < 0 || NX > NR)
-            BoxLib::Abort("ParticleContainer<NR,NI>::InitFromBinaryFile(): NX < 0 || NX > N");
+            BoxLib::Abort("ParticleContainer<NR,NI,C>::InitFromBinaryFile(): NX < 0 || NX > N");
         //
         // Can't ask for more data than exists in the file!
         //
         if (extradata > NX)
-            BoxLib::Abort("ParticleContainer<NR,NI>::InitFromBinaryFile(): extradata > NX");
+            BoxLib::Abort("ParticleContainer<NR,NI,C>::InitFromBinaryFile(): extradata > NX");
         //
         // Figure out whether we're dealing with floats or doubles.
         //
@@ -690,7 +690,7 @@ ParticleContainer<NR,NI>::InitFromBinaryFile (const std::string& file,
                             std::cout << "BAD PARTICLE POS(" << d << ") " << p.m_pos[d] << std::endl;
                         }
 
-                        BoxLib::Abort("ParticleContainer<NR,NI>::InitFromBinaryFile(): invalid particle");
+                        BoxLib::Abort("ParticleContainer<NR,NI,C>::InitFromBinaryFile(): invalid particle");
                     }
                 }
 
@@ -769,12 +769,12 @@ ParticleContainer<NR,NI>::InitFromBinaryFile (const std::string& file,
 // one file name per line.
 //
 
-template <int NR, int NI>
+template <int NR, int NI, class C>
 void
-ParticleContainer<NR,NI>::InitFromBinaryMetaFile (const std::string& metafile,
+ParticleContainer<NR,NI,C>::InitFromBinaryMetaFile (const std::string& metafile,
                                               int                extradata)
 {
-    BL_PROFILE("ParticleContainer<NR,NI>::InitFromBinaryMetaFile()");
+    BL_PROFILE("ParticleContainer<NR,NI,C>::InitFromBinaryMetaFile()");
     const Real strttime = ParallelDescriptor::second();
 
     std::ifstream ifs(metafile.c_str(), std::ios::in);
@@ -806,15 +806,15 @@ ParticleContainer<NR,NI>::InitFromBinaryMetaFile (const std::string& metafile,
     }
 }
 
-template <int NR, int NI>
+template <int NR, int NI, class C>
 void
-ParticleContainer<NR,NI>::InitRandom (long          icount,
+ParticleContainer<NR,NI,C>::InitRandom (long          icount,
                                   unsigned long iseed,
                                   Real          mass,
                                   bool          serialize,
                                   RealBox       containing_bx)
 {
-    BL_PROFILE("ParticleContainer<NR,NI>::InitRandom()");
+    BL_PROFILE("ParticleContainer<NR,NI,C>::InitRandom()");
     BL_ASSERT(iseed  > 0);
     BL_ASSERT(icount > 0);
 
@@ -906,7 +906,7 @@ ParticleContainer<NR,NI>::InitRandom (long          icount,
 
             if (!ParticleBase::Where(p,m_gdb))
             {
-                BoxLib::Abort("ParticleContainer<NR,NI>::InitRandom(): invalid particle");
+                BoxLib::Abort("ParticleContainer<NR,NI,C>::InitRandom(): invalid particle");
             }
 
             BL_ASSERT(p.m_lev >= 0 && p.m_lev <= m_gdb->finestLevel());
@@ -979,7 +979,7 @@ ParticleContainer<NR,NI>::InitRandom (long          icount,
 
             if (!ParticleBase::Where(p,m_gdb))
             {
-                BoxLib::Abort("ParticleContainer<NR,NI>::InitRandom(): invalid particle");
+                BoxLib::Abort("ParticleContainer<NR,NI,C>::InitRandom(): invalid particle");
             }
 
             BL_ASSERT(p.m_lev >= 0 && p.m_lev <= m_gdb->finestLevel());
@@ -1002,18 +1002,18 @@ ParticleContainer<NR,NI>::InitRandom (long          icount,
 
         if (ParallelDescriptor::IOProcessor())
         {
-            std::cout << "ParticleContainer<NR,NI>::InitRandom() time: " << stoptime << '\n';
+            std::cout << "ParticleContainer<NR,NI,C>::InitRandom() time: " << stoptime << '\n';
         }
     }
 }
 
-template <int NR, int NI>
+template <int NR, int NI, class C>
 void
-ParticleContainer<NR,NI>::InitOnePerCell (Real x_off, Real y_off, Real z_off,
+ParticleContainer<NR,NI,C>::InitOnePerCell (Real x_off, Real y_off, Real z_off,
                                       Real      mass, 
                                       MultiFab& particle_mf)
 {
-    BL_PROFILE("ParticleContainer<NR,NI>::InitOnePerCell()");
+    BL_PROFILE("ParticleContainer<NR,NI,C>::InitOnePerCell()");
 
     BL_ASSERT(m_gdb != 0);
 
@@ -1076,7 +1076,7 @@ ParticleContainer<NR,NI>::InitOnePerCell (Real x_off, Real y_off, Real z_off,
 
             if (!ParticleBase::Where(p,m_gdb))
             {
-                BoxLib::Abort("ParticleContainer<NR,NI>::InitOnePerCell(): invalid particle");
+                BoxLib::Abort("ParticleContainer<NR,NI,C>::InitOnePerCell(): invalid particle");
             }
 
             BL_ASSERT(p.m_lev >= 0 && p.m_lev <= m_gdb->finestLevel());
@@ -1103,16 +1103,16 @@ ParticleContainer<NR,NI>::InitOnePerCell (Real x_off, Real y_off, Real z_off,
 
         if (ParallelDescriptor::IOProcessor())
         {
-            std::cout << "ParticleContainer<NR,NI>::InitOnePerCell() time: " << stoptime << '\n';
+            std::cout << "ParticleContainer<NR,NI,C>::InitOnePerCell() time: " << stoptime << '\n';
         }
     }
 }
 
-template <int NR, int NI>
+template <int NR, int NI, class C>
 void
-ParticleContainer<NR,NI>::InitNRandomPerCell (int n_per_cell, Real mass, MultiFab& particle_mf)
+ParticleContainer<NR,NI,C>::InitNRandomPerCell (int n_per_cell, Real mass, MultiFab& particle_mf)
 {
-    BL_PROFILE("ParticleContainer<NR,NI>::InitNRandomPerCell()");
+    BL_PROFILE("ParticleContainer<NR,NI,C>::InitNRandomPerCell()");
 
     BL_ASSERT(m_gdb != 0);
 
@@ -1176,7 +1176,7 @@ ParticleContainer<NR,NI>::InitNRandomPerCell (int n_per_cell, Real mass, MultiFa
                p.m_cpu = ParallelDescriptor::MyProc();
 
                if (!ParticleBase::Where(p,m_gdb))
-                   BoxLib::Abort("ParticleContainer<NR,NI>::InitNRandomPerCell(): invalid particle");
+                   BoxLib::Abort("ParticleContainer<NR,NI,C>::InitNRandomPerCell(): invalid particle");
 
                BL_ASSERT(p.m_lev >= 0 && p.m_lev <= m_gdb->finestLevel());
                //
@@ -1203,7 +1203,7 @@ ParticleContainer<NR,NI>::InitNRandomPerCell (int n_per_cell, Real mass, MultiFa
 
         if (ParallelDescriptor::IOProcessor())
         {
-            std::cout << "ParticleContainer<NR,NI>::InitNRandomPerCell() time: " << stoptime << '\n';
+            std::cout << "ParticleContainer<NR,NI,C>::InitNRandomPerCell() time: " << stoptime << '\n';
         }
     }
 }
