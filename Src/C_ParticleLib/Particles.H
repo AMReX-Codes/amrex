@@ -1610,92 +1610,89 @@ ParticleContainer<NR,NI>::Redistribute (bool where_already_called,
             const int grid = pmap_it->first;
             PBox&     pbox = pmap_it->second;
 
-            for (auto it = pbox.begin(); it != pbox.end(); )
-            {
-                ParticleType& p = *it;
+	    auto first = pbox.begin();
+	    auto last  = pbox.end();
 
-                if (p.m_id > 0)
-                {
-                    if (!where_already_called)
-                    {
-                        if (!ParticleBase::Where(p,m_gdb, lev_min, theEffectiveFinestLevel))
-                        {                                
-                            if (full_where) // Lengthier checks for subcycling.
-                            {
-                                if (!ParticleBase::PeriodicWhere(p, m_gdb, lev_min, theEffectiveFinestLevel))
-                                {
-                                    if (lev_min != 0) // RestrictedWhere should be unnecessary at top level.
-                                    {
-                                        if (!ParticleBase::RestrictedWhere(p, m_gdb, nGrow))
-                                            BoxLib::Abort("ParticleContainer<NR,NI>::Redistribute(): invalid particle at non-coarse step");
-                                    }
-                                    else
-                                    {
-                                        //
-                                        // The particle has left the domain; invalidate it.
-                                        // This typically only happens on a coarse timestep.
-                                        //
-                                        p.m_id = -p.m_id;
-                                    }
-                                }
-                            }
-                            else
-                            {
-                                std::cout << "Bad Particle: " << p << '\n';
-                                BoxLib::Abort("ParticleContainer<NR,NI>::Redistribute(): invalid particle in basic check");
-                            }
-                        }
-                    }
+	    if (first != last) 
+	    {
+		for (auto it = first; it != last; ++it)
+		{
+		    ParticleType& p = *it;
 
-                    if (p.m_id > 0)
-                    {
-                        //
-                        // The owner of the particle is the CPU owning the finest grid
-                        // in state data that contains the particle.
-                        //
-                        const int who = m_gdb->ParticleDistributionMap(p.m_lev)[p.m_grid];
+		    if (p.m_id > 0)
+		    {
+			if (!where_already_called)
+			{
+			    if (!ParticleBase::Where(p,m_gdb, lev_min, theEffectiveFinestLevel))
+			    {                                
+				if (full_where) // Lengthier checks for subcycling.
+				{
+				    if (!ParticleBase::PeriodicWhere(p, m_gdb, lev_min, theEffectiveFinestLevel))
+				    {
+					if (lev_min != 0) // RestrictedWhere should be unnecessary at top level.
+					{
+					    if (!ParticleBase::RestrictedWhere(p, m_gdb, nGrow))
+						BoxLib::Abort("ParticleContainer<NR,NI>::Redistribute(): invalid particle at non-coarse step");
+					}
+					else
+					{
+					    //
+					    // The particle has left the domain; invalidate it.
+					    // This typically only happens on a coarse timestep.
+					    //
+					    p.m_id = -p.m_id;
+					}
+				    }
+				}
+				else
+				{
+				    std::cout << "Bad Particle: " << p << '\n';
+				    BoxLib::Abort("ParticleContainer<NR,NI>::Redistribute(): invalid particle in basic check");
+				}
+			    }
+			}
 
-                        if (who == MyProc)
-                        {
-                            if (p.m_lev != lev || p.m_grid != grid)
-                            {
-                                //
-                                // We own it but must shift it to another place.
-                                //
-                                m_particles[p.m_lev][p.m_grid].push_back(p);
-                                //
-                                // Invalidate the particle so we can reclaim its space.
-                                //
-                                p.m_id = -p.m_id;
-                            }
-                        }
-                        else
-                        {
-                            not_ours[who].push_back(p);
-                            //
-                            // Invalidate the particle so we can reclaim its space.
-                            //
-                            p.m_id = -p.m_id;
-                        }
-                    }
-                }
+			if (p.m_id > 0)
+			{
+			    //
+			    // The owner of the particle is the CPU owning the finest grid
+			    // in state data that contains the particle.
+			    //
+			    const int who = m_gdb->ParticleDistributionMap(p.m_lev)[p.m_grid];
+			    
+			    if (who == MyProc)
+			    {
+				if (p.m_lev != lev || p.m_grid != grid)
+				{
+				    //
+				    // We own it but must shift it to another place.
+				    //
+				    m_particles[p.m_lev][p.m_grid].push_back(p);
+				    //
+				    // Invalidate the particle so we can reclaim its space.
+				    //
+				    p.m_id = -p.m_id;
+				}
+			    }
+			    else
+			    {
+				not_ours[who].push_back(p);
+				//
+				// Invalidate the particle so we can reclaim its space.
+				//
+				p.m_id = -p.m_id;
+			    }
+			}
+		    }
 
-                if (p.m_id <= 0)
-                {
-                    if (it != pbox.begin())
-                    {
-
-                        BL_ASSERT(pbox.front().m_id > 0);
-                        std::swap(pbox.front(),p);
-                    }
-                    ++it;
-                    pbox.pop_front();
-                }
-                else
-                {
-                    ++it;
-                }
-            }
+		    if (p.m_id > 0) // this is a valid particle
+		    {
+			if (it != first) *first = p;
+			++first;
+		    }
+		}
+		pbox.erase(first, last);
+	    }
 	    //
 	    // Remove any map entries for which the particle container is now empty.
 	    //
