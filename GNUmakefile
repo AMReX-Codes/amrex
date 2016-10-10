@@ -26,6 +26,8 @@ include ./Make.package
 
 include $(BOXLIB_HOME)/Src/C_BaseLib/Make.package
 include $(BOXLIB_HOME)/Src/C_ParticleLib/Make.package
+include $(BOXLIB_HOME)/Src/C_BoundaryLib/Make.package
+include $(BOXLIB_HOME)/Src/C_AmrCoreLib/Make.package
 
 include $(PICSAR_HOME)/src/Make.package
 
