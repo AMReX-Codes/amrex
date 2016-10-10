@@ -51,20 +51,12 @@ struct ParticleBase
     typedef double RealType;
 #endif
 
-    int      m_id;
-    int      m_cpu;
-    int      m_lev;
-    int      m_grid;
+    int      m_id   = -1;
+    int      m_cpu  = -1;
+    int      m_lev  = -1;
+    int      m_grid = -1;
     IntVect  m_cell;
     RealType m_pos[BL_SPACEDIM];
-
-    ParticleBase ()
-        :
-        m_id(-1),
-        m_cpu(-1),
-        m_lev(-1),
-        m_grid(-1)
-        {}
 
     static IntVect Index (const ParticleBase& p, const Geometry& geom);
     //
@@ -1613,10 +1605,10 @@ ParticleContainer<NR,NI>::Redistribute (bool where_already_called,
     {
         PMap& pmap = m_particles[lev];
 
-	for (auto& kv : pmap)
+	for (auto pmap_it = pmap.begin(); pmap_it != pmap.end(); /* no ++ */ )
         {
-            const int grid = kv.first;
-            PBox&     pbox = kv.second;
+            const int grid = pmap_it->first;
+            PBox&     pbox = pmap_it->second;
 
             for (auto it = pbox.begin(); it != pbox.end(); )
             {
@@ -1704,12 +1696,9 @@ ParticleContainer<NR,NI>::Redistribute (bool where_already_called,
                     ++it;
                 }
             }
-        }
-        //
-        // Remove any map entries for which the particle container is now empty.
-        //
-	for (auto pmap_it = pmap.begin(); pmap_it != pmap.end(); )
-        {
+	    //
+	    // Remove any map entries for which the particle container is now empty.
+	    //
             if (pmap_it->second.empty())
             {
                 pmap.erase(pmap_it++);
