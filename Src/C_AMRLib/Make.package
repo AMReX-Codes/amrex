@@ -6,24 +6,15 @@ endif
 
 include $(BOXLIB_HOME)/Src/C_AmrCoreLib/Make.package
 
-C$(AMRLIB_BASE)_sources += Amr.cpp AmrLevel.cpp \
-                Derive.cpp ErrorList.cpp FluxRegister.cpp \
-                Interpolater.cpp StateData.cpp \
-                StateDescriptor.cpp TagBox.cpp \
-                AuxBoundaryData.cpp FillPatchUtil.cpp Extrapolater.cpp
+C$(AMRLIB_BASE)_sources += Amr.cpp AmrLevel.cpp Derive.cpp StateData.cpp \
+                StateDescriptor.cpp AuxBoundaryData.cpp Extrapolater.cpp
 
-C$(AMRLIB_BASE)_headers += Amr.H AmrLevel.H \
-                Derive.H ErrorList.H FluxRegister.H \
-                LevelBld.H Interpolater.H StateData.H \
-                StateDescriptor.H TagBox.H PROB_AMR_F.H \
-                AuxBoundaryData.H FillPatchUtil.H Extrapolater.H
+C$(AMRLIB_BASE)_headers += Amr.H AmrLevel.H Derive.H LevelBld.H StateData.H \
+                StateDescriptor.H PROB_AMR_F.H AuxBoundaryData.H Extrapolater.H
 
 f90$(AMRLIB_BASE)_sources += extrapolater_$(DIM)d.f90
 
-F$(AMRLIB_BASE)_headers += FLUXREG_F.H INTERP_F.H
-
-F$(AMRLIB_BASE)_sources += FLUXREG_$(DIM)D.F INTERP_$(DIM)D.F \
-                           ARRAYLIM_$(DIM)D.F
+F$(AMRLIB_BASE)_sources += ARRAYLIM_$(DIM)D.F
 
 ifeq ($(DIM),3)
   F$(AMRLIB_BASE)_sources += MAKESLICE_$(DIM)D.F
