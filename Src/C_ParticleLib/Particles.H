@@ -1841,7 +1841,7 @@ ParticleContainer<NR,NI>::RedistributeMPI (PMap& not_ours)
     //
     {
         const int SeqNum     = ParallelDescriptor::SeqNum();
-        const int iChunkSize = 4 + BL_SPACEDIM;
+        const int iChunkSize = 4 + BL_SPACEDIM + NI;
         //
         // Allocate data for rcvs as one big chunk.
         //
@@ -1896,6 +1896,10 @@ ParticleContainer<NR,NI>::RedistributeMPI (PMap& not_ours)
                        senddata[ioff+5] = p.m_cell[1];,
                        senddata[ioff+6] = p.m_cell[2];);
 
+		for (int i = 0; i < NI; ++i) {
+		    senddata[i+ioff+4+BL_SPACEDIM] = p.m_idata[i];
+		}
+
                 ioff += iChunkSize;
             }
 
@@ -1934,6 +1938,10 @@ ParticleContainer<NR,NI>::RedistributeMPI (PMap& not_ours)
                     D_TERM(p.m_cell[0] = rcvp[4];,
                            p.m_cell[1] = rcvp[5];,
                            p.m_cell[2] = rcvp[6];);
+
+		    for (int i = 0; i < NI; ++i) {
+			p.m_idata[i] = rcvp[i+4+BL_SPACEDIM];
+		    }
 
                     rcvp += iChunkSize;
                 }
