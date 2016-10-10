@@ -22,7 +22,7 @@ struct PIdx
     };
 
     enum { // Particle data stored in partdata
-	Ex=0, Ey, Ez, Bx, By, Bz, gaminv,
+	Ex=0, Ey, Ez, Bx, By, Bz,
 	npartdata
     };
 };
@@ -42,6 +42,11 @@ public:
 
     void Init (MultiFab& dummy_mf); 
 
+    void Evolve (const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
+		 const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz,
+		 MultiFab& jx, MultiFab& jy, MultiFab& jz, Real dt);
+
+#if 0
     void CurrentDeposition (MultiFab& jx, MultiFab& jy, MultiFab& jz, Real dt) const;
 
     void FieldGather (const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
@@ -49,6 +54,7 @@ public:
 		      bool do_high_order);
 
     void ParticlePush (Real dt);
+#endif
 
 private:
     // map's key is grid id and value is an Array. The size of map is the size of local grids.

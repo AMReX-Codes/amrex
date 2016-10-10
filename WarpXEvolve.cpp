@@ -26,15 +26,11 @@ WarpX::Evolve ()
 
 	EvolveB(0.5*dt); // We now B^{n}
 
-	bool do_high_order = false;  // If true, we need to call FillBoundary
-	mypc->FieldGather(*Efield[0],*Efield[1],*Efield[2],
-			  *Bfield[0],*Bfield[1],*Bfield[2],
-			  do_high_order);
-
-	mypc->ParticlePush(dt); // We now have p^{n+1/2} and x^{n+1}
-
-	mypc->CurrentDeposition(*current[0],*current[1],*current[2],dt);// We now have j^{n+1/2}
-	// At the end of CurrentDeposition, SumBoundary is called (communications)
+	// Evolve particles to p^{n+1/2} and x^{n+1}
+	// Depose current, j^{n+1/2}
+	mypc->Evolve(*Efield[0],*Efield[1],*Efield[2],
+		     *Bfield[0],*Bfield[1],*Bfield[2],
+		     *current[0],*current[1],*current[2],dt);
 
 	mypc->Redistribute(false,true);  // Redistribute particles
 

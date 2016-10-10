@@ -1,10 +1,8 @@
-CEXE_sources += main.cpp WarpX.cpp WarpXInitData.cpp WarpXEvolve.cpp
+CEXE_sources += main.cpp
 
-CEXE_sources += ParticleContainer.cpp
-CEXE_sources += ParticleDeposition.cpp
-CEXE_sources += ParticleGather.cpp
-CEXE_sources += ParticleInit.cpp
-CEXE_sources += ParticlePush.cpp
+CEXE_sources += WarpX.cpp WarpXInitData.cpp WarpXEvolve.cpp
+
+CEXE_sources += ParticleContainer.cpp ParticleInit.cpp
 
 CEXE_headers += WarpX.H ParticleContainer.H PICSAR_f.H
 
