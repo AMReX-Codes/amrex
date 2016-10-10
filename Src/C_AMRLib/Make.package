@@ -4,14 +4,16 @@ ifeq ($(LBASE),amr)
   AMRLIB_BASE=LIB
 endif
 
-C$(AMRLIB_BASE)_sources += Amr.cpp AmrLevel.cpp Cluster.cpp \
+include $(BOXLIB_HOME)/Src/C_AmrCoreLib/Make.package
+
+C$(AMRLIB_BASE)_sources += Amr.cpp AmrLevel.cpp \
                 Derive.cpp ErrorList.cpp FluxRegister.cpp \
                 Interpolater.cpp StateData.cpp \
                 StateDescriptor.cpp TagBox.cpp \
                 AuxBoundaryData.cpp FillPatchUtil.cpp Extrapolater.cpp
 
 C$(AMRLIB_BASE)_headers += Amr.H AmrLevel.H \
-                Cluster.H Derive.H ErrorList.H FluxRegister.H \
+                Derive.H ErrorList.H FluxRegister.H \
                 LevelBld.H Interpolater.H StateData.H \
                 StateDescriptor.H TagBox.H PROB_AMR_F.H \
                 AuxBoundaryData.H FillPatchUtil.H Extrapolater.H
@@ -46,11 +48,6 @@ ifeq ($(USE_ARRAYVIEW),TRUE)
   C$(AMRLIB_BASE)_sources += DatasetClient.cpp
 endif
 
-ifeq ($(USE_PARTICLES), TRUE)
-  # These files are in C_ParticleLib
-  CEXE_headers += AmrParGDB.H AmrParticles.H
-endif
-
 ifeq ($(USE_SDCLIB), TRUE)
   CEXE_sources += MLSDCAmr.cpp MLSDCAmrEncap.cpp
   CEXE_headers += MLSDCAmr.H
@@ -58,3 +55,4 @@ endif
 
 VPATH_LOCATIONS += $(BOXLIB_HOME)/Src/C_AMRLib
 INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/C_AMRLib
+

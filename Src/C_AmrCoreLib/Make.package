@@ -1,0 +1,11 @@
+
+CEXE_sources += Cluster.cpp
+
+CEXE_headers += Cluster.H
+
+ifeq ($(USE_PARTICLES), TRUE)
+  CEXE_headers += AmrParGDB.H AmrParticles.H
+endif
+
+VPATH_LOCATIONS += $(BOXLIB_HOME)/Src/C_AmrCoreLib
+INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/C_AmrCoreLib
