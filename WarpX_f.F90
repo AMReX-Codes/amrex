@@ -14,6 +14,7 @@
 !> Ann Almgren
 !> Remi Lehe
 !> Mathieu Lobet
+!>
 module warpx_to_pxr_module
 ! _________________________________________________________________
 
@@ -27,7 +28,19 @@ contains
   ! _________________________________________________________________
   !>
   !> @brief
-  !> Main function for the field gathering process
+  !> Main subroutine for the field gathering process
+  !> 
+  !> @param[in] np number of particles
+  !> @param[in] xp,yp,zp particle position arrays
+  !> @param[in] ex,ey,ez particle electric fields in each direction
+  !> @param[in] bx,by,bz particle magnetic fields in each direction
+  !> @param[in] xmin,ymin,zmin tile grid minimum position
+  !> @param[in] dx,dy,dz space discretization steps
+  !> @param[in] nx,ny,nz number of cells
+  !> @param[in] nxguard,nyguard,nzguard number of guard cells
+  !> @param[in] nox,noy,noz interpolation order
+  !> @param[in] exg,eyg,ezg electric field grid arrays
+  !> @param[in] bxg,byg,bzg electric field grid arrays
   !> 
   subroutine warpx_geteb3d_energy_conserving(np,xp,yp,zp, &
        ex,ey,ez,bx,by,bz,xmin,ymin,zmin,dx,dy,dz,nx,ny,nz,nxguard,nyguard,nzguard, &
@@ -182,8 +195,8 @@ contains
     real(c_real), intent(IN)                                     :: dx,dy,dz
     real(c_real), intent(IN)                                     :: xmin,ymin,zmin
     real(c_real), dimension(np)                                  :: xp,yp,zp,w
-    integer(c_int), intent(IN)                                   :: lvect
-    integer(c_int), intent(IN)                                   :: charge_depo_algo
+    integer(c_long), intent(IN)                                   :: lvect
+    integer(c_long), intent(IN)                                   :: charge_depo_algo
   
 
     ! Dimension 3
@@ -193,9 +206,38 @@ contains
 
     ! Scalar classical current deposition subroutines
     CASE(1)
+      IF ((nox.eq.1).and.(noy.eq.1).and.(noz.eq.1)) THEN
 
+        CALL depose_rho_scalar_1_1_1(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,nx,ny,nz,&
+      nxguard,nyguard,nzguard,lvect)
+
+      ELSE IF ((nox.eq.2).and.(noy.eq.2).and.(noz.eq.2)) THEN
+
+        CALL depose_rho_scalar_2_2_2(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,nx,ny,nz,&
+      nxguard,nyguard,nzguard,lvect)
+
+      ELSE IF ((nox.eq.3).and.(noy.eq.3).and.(noz.eq.3)) THEN
+
+        CALL depose_rho_scalar_3_3_3(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,nx,ny,nz,&
+      nxguard,nyguard,nzguard,lvect)
+
+      ELSE
+        CALL pxr_depose_rho_n(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,nx,ny,nz,&
+                    nxguard,nyguard,nzguard,nox,noy,noz, &
+                    .TRUE.,.FALSE.)
+      ENDIF      
+
+    ! Optimized subroutines
     CASE DEFAULT
 
+      IF ((nox.eq.1).and.(noy.eq.1).and.(noz.eq.1)) THEN
+        CALL depose_rho_vecHVv2_1_1_1(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,nx,ny,nz,&
+                 nxguard,nyguard,nzguard,lvect)
+      ELSE
+        CALL pxr_depose_rho_n(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,nx,ny,nz,&
+                    nxguard,nyguard,nzguard,nox,noy,noz, &
+                    .TRUE.,.FALSE.)
+      ENDIF     
     END SELECT
 
     ! Dimension 2
@@ -219,6 +261,8 @@ contains
   !> @param[inout] jx,jy,jz current arrays
   !> @param[in] np number of particles
   !> @param[in] xp,yp,zp particle position arrays
+  !> @param[in] uxp,uyp,uzp particle momentum arrays
+  !> @param[in] gaminv inverve of the particle Lorentz factor (array)
   !> @param[in] w particle weight arrays
   !> @param[in] q particle species charge
   !> @param[in] xmin,ymin,zmin tile grid minimum position
@@ -229,8 +273,8 @@ contains
   !> @param[in] lvect vector length
   !> @param[in] charge_depo_algo algorithm choice for the charge deposition
   !>
-  subroutine warpx_current_deposition(jx,jy,jz,np,xp,yp,zp,uxp,uyp,uzp,&
-                                      w,q,xmin,ymin,zmin,dx,dy,dz,dt,nx,ny,nz,&
+  subroutine warpx_current_deposition(jx,jy,jz,np,xp,yp,zp,uxp,uyp,uzp,gaminv,&
+                                      w,q,xmin,ymin,zmin,dt,dx,dy,dz,nx,ny,nz,&
                                       nxguard,nyguard,nzguard,nox,noy,noz,&
                                       lvect,current_depo_algo) &
                                       bind(C, name="warpx_current_deposition")
@@ -270,6 +314,84 @@ contains
         REAL(c_real), DIMENSION(np) :: xp,yp,zp,uxp,uyp,uzp, w, gaminv
         REAL(c_real) :: q,dt,dx,dy,dz,xmin,ymin,zmin
       end subroutine depose_jxjyjz_scalar_3_3_3
+
+      subroutine depose_jxjyjz_vecHVv2_1_1_1(jx,jy,jz,np,xp,yp,zp,uxp,uyp,uzp,gaminv,w,q,xmin,ymin,zmin, &
+                 dt,dx,dy,dz,nx,ny,nz,nxguard,nyguard,nzguard)
+        use iso_c_binding
+        use bl_fort_module, only : c_real
+        implicit none
+        INTEGER(c_long)             :: np,nx,ny,nz,nxguard,nyguard,nzguard
+        REAL(c_real),INTENT(IN OUT) :: jx(1:(1+nx+2*nxguard)*(1+ny+2*nyguard)*(1+nz+2*nzguard))
+        REAL(c_real),INTENT(IN OUT) :: jy(1:(1+nx+2*nxguard)*(1+ny+2*nyguard)*(1+nz+2*nzguard))
+        REAL(c_real),INTENT(IN OUT) :: jz(1:(1+nx+2*nxguard)*(1+ny+2*nyguard)*(1+nz+2*nzguard))
+        REAL(c_real), DIMENSION(np) :: xp,yp,zp,uxp,uyp,uzp, gaminv, w
+        REAL(c_real)                :: q,dt,dx,dy,dz,xmin,ymin,zmin
+      end subroutine
+
+      subroutine depose_jxjyjz_vecHVv2_2_2_2(jx,jy,jz,np,xp,yp,zp,uxp,uyp,uzp,gaminv,w,q,xmin,ymin,zmin, &
+                 dt,dx,dy,dz,nx,ny,nz,nxguard,nyguard,nzguard)
+        use iso_c_binding
+        use bl_fort_module, only : c_real
+        implicit none
+        INTEGER(c_long)             :: np,nx,ny,nz,nxguard,nyguard,nzguard
+        REAL(c_real),INTENT(IN OUT) :: jx(1:(1+nx+2*nxguard)*(1+ny+2*nyguard)*(1+nz+2*nzguard))
+        REAL(c_real),INTENT(IN OUT) :: jy(1:(1+nx+2*nxguard)*(1+ny+2*nyguard)*(1+nz+2*nzguard))
+        REAL(c_real),INTENT(IN OUT) :: jz(1:(1+nx+2*nxguard)*(1+ny+2*nyguard)*(1+nz+2*nzguard))
+        REAL(c_real), DIMENSION(np) :: xp,yp,zp,uxp,uyp,uzp, gaminv, w
+        REAL(c_real)                :: q,dt,dx,dy,dz,xmin,ymin,zmin
+      end subroutine
+
+      subroutine depose_jxjyjz_vecHVv3_3_3_3(jx,jy,jz,np,xp,yp,zp,uxp,uyp,uzp,gaminv,w,q,xmin,ymin,zmin, &
+                 dt,dx,dy,dz,nx,ny,nz,nxguard,nyguard,nzguard)
+        use iso_c_binding
+        use bl_fort_module, only : c_real
+        implicit none
+        INTEGER(c_long)             :: np,nx,ny,nz,nxguard,nyguard,nzguard
+        REAL(c_real),INTENT(IN OUT) :: jx(1:(1+nx+2*nxguard)*(1+ny+2*nyguard)*(1+nz+2*nzguard))
+        REAL(c_real),INTENT(IN OUT) :: jy(1:(1+nx+2*nxguard)*(1+ny+2*nyguard)*(1+nz+2*nzguard))
+        REAL(c_real),INTENT(IN OUT) :: jz(1:(1+nx+2*nxguard)*(1+ny+2*nyguard)*(1+nz+2*nzguard))
+        REAL(c_real), DIMENSION(np) :: xp,yp,zp,uxp,uyp,uzp, gaminv, w
+        REAL(c_real)                :: q,dt,dx,dy,dz,xmin,ymin,zmin
+      end subroutine
+
+      subroutine depose_jxjyjz_esirkepov_1_1_1(jx,jy,jz,np,xp,yp,zp,uxp,uyp,uzp,gaminv,w,q,xmin,ymin,zmin, &
+                                            dt,dx,dy,dz,nx,ny,nz,nxguard,nyguard,nzguard, &
+                                            nox,noy,noz,l_particles_weight,l4symtry)
+        use iso_c_binding
+        use bl_fort_module, only : c_real
+        implicit none
+        INTEGER(c_long):: np,nx,ny,nz,nox,noy,noz,nxguard,nyguard,nzguard
+        REAL(c_real), DIMENSION(-nxguard:nx+nxguard,-nyguard:ny+nyguard,-nzguard:nz+nzguard), intent(in out) :: jx,jy,jz
+        REAL(c_real), DIMENSION(np) :: xp,yp,zp,uxp,uyp,uzp, w, gaminv
+        REAL(c_real) :: q,dt,dx,dy,dz,xmin,ymin,zmin
+        LOGICAL(c_long)             :: l_particles_weight,l4symtry
+      end subroutine
+
+      subroutine depose_jxjyjz_esirkepov_2_2_2(jx,jy,jz,np,xp,yp,zp,uxp,uyp,uzp,gaminv,w,q,xmin,ymin,zmin, &
+                                            dt,dx,dy,dz,nx,ny,nz,nxguard,nyguard,nzguard, &
+                                            nox,noy,noz,l_particles_weight,l4symtry)
+        use iso_c_binding
+        use bl_fort_module, only : c_real
+        implicit none
+        INTEGER(c_long):: np,nx,ny,nz,nox,noy,noz,nxguard,nyguard,nzguard
+        REAL(c_real), DIMENSION(-nxguard:nx+nxguard,-nyguard:ny+nyguard,-nzguard:nz+nzguard), intent(in out) :: jx,jy,jz
+        REAL(c_real), DIMENSION(np) :: xp,yp,zp,uxp,uyp,uzp, w, gaminv
+        REAL(c_real) :: q,dt,dx,dy,dz,xmin,ymin,zmin
+        LOGICAL(c_long)             :: l_particles_weight,l4symtry
+      end subroutine
+
+      subroutine depose_jxjyjz_esirkepov_3_3_3(jx,jy,jz,np,xp,yp,zp,uxp,uyp,uzp,gaminv,w,q,xmin,ymin,zmin, &
+                                            dt,dx,dy,dz,nx,ny,nz,nxguard,nyguard,nzguard, &
+                                            nox,noy,noz,l_particles_weight,l4symtry)
+        use iso_c_binding
+        use bl_fort_module, only : c_real
+        implicit none
+        INTEGER(c_long):: np,nx,ny,nz,nox,noy,noz,nxguard,nyguard,nzguard
+        REAL(c_real), DIMENSION(-nxguard:nx+nxguard,-nyguard:ny+nyguard,-nzguard:nz+nzguard), intent(in out) :: jx,jy,jz
+        REAL(c_real), DIMENSION(np) :: xp,yp,zp,uxp,uyp,uzp, w, gaminv
+        REAL(c_real) :: q,dt,dx,dy,dz,xmin,ymin,zmin
+        LOGICAL(c_long)             :: l_particles_weight,l4symtry
+      end subroutine
 
       SUBROUTINE pxr_depose_jxjyjz_esirkepov_n(jx,jy,jz,np,xp,yp,zp,uxp,uyp,uzp,gaminv,w,q,xmin,ymin,zmin, &
            dt,dx,dy,dz,nx,ny,nz,nxguard,nyguard,nzguard, &
@@ -312,49 +434,36 @@ contains
     CASE(3)
 
       IF ((nox.eq.1).and.(noy.eq.1).and.(noz.eq.1)) THEN
-
         CALL depose_jxjyjz_scalar_1_1_1(jx,jy,jz,np,xp,yp,zp,uxp,uyp,uzp,gaminv,w,q,xmin,ymin,zmin, &
              dt,dx,dy,dz,nx,ny,nz,nxguard,nyguard,nzguard)
-
       ELSE IF ((nox.eq.2).and.(noy.eq.2).and.(noz.eq.2)) THEN
-
         CALL depose_jxjyjz_scalar_2_2_2(jx,jy,jz,np,xp,yp,zp,uxp,uyp,uzp,gaminv,w,q,xmin,ymin,zmin, &
              dt,dx,dy,dz,nx,ny,nz,nxguard,nyguard,nzguard)
-
       ELSE IF ((nox.eq.3).and.(noy.eq.3).and.(noz.eq.3)) THEN
-
         CALL depose_jxjyjz_scalar_3_3_3(jx,jy,jz,np,xp,yp,zp,uxp,uyp,uzp,gaminv,w,q,xmin,ymin,zmin, &
              dt,dx,dy,dz,nx,ny,nz,nxguard,nyguard,nzguard)
-
       ELSE
-
         CALL pxr_depose_jxjyjz_esirkepov_n(jx,jy,jz,np,xp,yp,zp,uxp,uyp,uzp,gaminv,w,q,xmin,ymin,zmin, &
              dt,dx,dy,dz,nx,ny,nz,nxguard,nyguard,nzguard, &
              nox,noy,noz,.TRUE._c_long,.FALSE._c_long)
-
       ENDIF
 
     ! Optimized classical current deposition
     CASE(2)
 
       IF ((nox.eq.1).and.(noy.eq.1).and.(noz.eq.1)) THEN
-
-
-
+        CALL depose_jxjyjz_vecHVv2_1_1_1(jx,jy,jz,np,xp,yp,zp,uxp,uyp,uzp,gaminv,w,q,xmin,ymin,zmin, &
+                 dt,dx,dy,dz,nx,ny,nz,nxguard,nyguard,nzguard)
       ELSE IF ((nox.eq.2).and.(noy.eq.2).and.(noz.eq.2)) THEN
-
-
-
+        CALL depose_jxjyjz_vecHVv2_2_2_2(jx,jy,jz,np,xp,yp,zp,uxp,uyp,uzp,gaminv,w,q,xmin,ymin,zmin, &
+                 dt,dx,dy,dz,nx,ny,nz,nxguard,nyguard,nzguard)
       ELSE IF ((nox.eq.3).and.(noy.eq.3).and.(noz.eq.3)) THEN
-
-
-
+        CALL depose_jxjyjz_vecHVv3_3_3_3(jx,jy,jz,np,xp,yp,zp,uxp,uyp,uzp,gaminv,w,q,xmin,ymin,zmin, &
+                 dt,dx,dy,dz,nx,ny,nz,nxguard,nyguard,nzguard)
       ELSE
-
         CALL pxr_depose_jxjyjz_esirkepov_n(jx,jy,jz,np,xp,yp,zp,uxp,uyp,uzp,gaminv,w,q,xmin,ymin,zmin, &
              dt,dx,dy,dz,nx,ny,nz,nxguard,nyguard,nzguard, &
              nox,noy,noz,.TRUE._c_long,.FALSE._c_long)
-
       ENDIF
 
     ! Esirkepov non optimized
@@ -368,23 +477,21 @@ contains
     CASE DEFAULT
 
       IF ((nox.eq.1).and.(noy.eq.1).and.(noz.eq.1)) THEN
-
-
-
+        CALL depose_jxjyjz_esirkepov_1_1_1(jx,jy,jz,np,xp,yp,zp,uxp,uyp,uzp,gaminv,w,q,xmin,ymin,zmin, &
+                                            dt,dx,dy,dz,nx,ny,nz,nxguard,nyguard,nzguard, &
+                                            nox,noy,noz,.TRUE._c_long,.FALSE._c_long)
       ELSE IF ((nox.eq.2).and.(noy.eq.2).and.(noz.eq.2)) THEN
-
-
-
+        CALL depose_jxjyjz_esirkepov_2_2_2(jx,jy,jz,np,xp,yp,zp,uxp,uyp,uzp,gaminv,w,q,xmin,ymin,zmin, &
+                                            dt,dx,dy,dz,nx,ny,nz,nxguard,nyguard,nzguard, &
+                                            nox,noy,noz,.TRUE._c_long,.FALSE._c_long)
       ELSE IF ((nox.eq.3).and.(noy.eq.3).and.(noz.eq.3)) THEN
-
-
-
+        CALL depose_jxjyjz_esirkepov_3_3_3(jx,jy,jz,np,xp,yp,zp,uxp,uyp,uzp,gaminv,w,q,xmin,ymin,zmin, &
+                                            dt,dx,dy,dz,nx,ny,nz,nxguard,nyguard,nzguard, &
+                                            nox,noy,noz,.TRUE._c_long,.FALSE._c_long)
       ELSE
-
         CALL pxr_depose_jxjyjz_esirkepov_n(jx,jy,jz,np,xp,yp,zp,uxp,uyp,uzp,gaminv,w,q,xmin,ymin,zmin, &
              dt,dx,dy,dz,nx,ny,nz,nxguard,nyguard,nzguard, &
              nox,noy,noz,.TRUE._c_long,.FALSE._c_long)
-
       ENDIF
 
     END SELECT
@@ -412,7 +519,8 @@ contains
   !> @param[in] q charge
   !> @param[in] m masse
   !> @param[in] dt time step
-  subroutine warpx_particle_pushe(np,xp,yp,zp,uxp,uyp,uzp, &
+  !> @param[in] particle_pusher_algo Particle pusher algorithm
+  subroutine warpx_particle_pusher(np,xp,yp,zp,uxp,uyp,uzp, &
                                   gaminv,&
                                   ex,ey,ez,bx,by,bz,q,m,dt, &
                                   particle_pusher_algo) &
@@ -552,7 +660,6 @@ contains
          &                              -nyguard:ny+nyguard,&
          &                              -nzguard:nz+nzguard) :: jx, jy, jz
     real(c_real), intent(IN) :: mudt,dtsdx(norderx/2),dtsdy(nordery/2),dtsdz(norderz/2)
-    integer(c_long) :: j,k,l,ist
     integer(c_int) :: l_nodalgrid
 
     logical pxr_l_nodalgrid
@@ -602,7 +709,6 @@ contains
          &                                  -nyguard:ny+nyguard,&
          &                                  -nzguard:nz+nzguard) :: ex,ey,ez,bx,by,bz
     real(c_real), intent(IN) :: dtsdx(norderx/2),dtsdy(nordery/2),dtsdz(norderz/2)
-    integer(c_long)          :: j,k,l,ist
     integer(c_int)           :: l_nodalgrid
 
     logical pxr_l_nodalgrid
