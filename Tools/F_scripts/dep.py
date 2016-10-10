@@ -227,7 +227,7 @@ def doit(prefix, search_path, files, cpp, debug=False):
         sf = SourceFile(full_file)
 
         # preprocess, if necessary
-        if sf.preprocess:
+        if sf.preprocess and cpp is not None:
             command = cpp.preprocess(sf)
 
         if debug:
@@ -295,7 +295,7 @@ if __name__ == "__main__":
                         help="ordered path to search for the files",
                         default="")
     parser.add_argument("--cpp",
-                        help="apply the C preprocessor first?",
+                        help="command to run C preprocessor on .F90 files first.  If omitted, then no preprocessing is done",
                         default="")
     parser.add_argument("--f90_preprocess",
                         help="command to pipe cpp output to for additional Fortran preprocessing",
@@ -318,7 +318,10 @@ if __name__ == "__main__":
         prefix_pass = "{}/".format(os.path.normpath(args.prefix))
 
     # create a preprocessor object
-    cpp_pass = Preprocessor(temp_dir=args.temp_dir, cpp_cmd=args.cpp,
-                            defines=args.defines, f90_preprocess=args.f90_preprocess)
+    if args.cpp != "":
+        cpp_pass = Preprocessor(temp_dir=args.temp_dir, cpp_cmd=args.cpp,
+                                defines=args.defines, f90_preprocess=args.f90_preprocess)
+    else:
+        cpp_pass = None
 
     doit(prefix_pass, args.search_path.split(), args.files, cpp_pass, debug=args.debug)
