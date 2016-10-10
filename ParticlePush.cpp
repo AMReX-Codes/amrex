@@ -82,26 +82,6 @@ MyParticleContainer::ParticlePush(Real dt)
         Bxp->dataPtr(), Byp->dataPtr(), Bzp->dataPtr(),
         &q, &mass, &dt, &particle_pusher_algo);
 
-      //   pxr_epush_v(&np, uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(),
-		    // Exp->dataPtr(), Eyp->dataPtr(), Ezp->dataPtr(),
-      //               &q, &mass, &half_dt);
-
-      //   pxr_set_gamma(&np, uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(), giv->dataPtr());
-
-      //   pxr_bpush_v(&np, uxp.dataPtr(),uyp.dataPtr(),uzp.dataPtr(), giv->dataPtr(),
-		    // Bxp->dataPtr(), Byp->dataPtr(), Bzp->dataPtr(),
-      //               &q, &mass, &dt);
-
-      //   pxr_epush_v(&np, uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(),
-		    // Exp->dataPtr(), Eyp->dataPtr(), Ezp->dataPtr(),
-      //               &q, &mass, &half_dt);
-
-      //   pxr_set_gamma(&np, uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(), giv->dataPtr());
-
-      //   pxr_pushxyz(&np, xp.dataPtr(), yp.dataPtr(), zp.dataPtr(),
-		    // uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(), giv->dataPtr(),
-		    // &dt);
-
 	BL_PROFILE_VAR_STOP(blp_pxr);
 
 	BL_PROFILE_VAR_START(blp_copy);

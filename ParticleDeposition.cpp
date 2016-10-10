@@ -115,13 +115,6 @@ MyParticleContainer::CurrentDeposition (MultiFab& jx, MultiFab& jy, MultiFab& jz
                                     &dt, &dx[0], &dx[1], &dx[2], &nx, &ny, &nz,
 				    &ng, &ng, &ng, &nox,&noy,&noz,&lvect,&curr_depo_algo);
 
-	// depose_jxjyjz_scalar_1_1_1( jx[gid].dataPtr(), jy[gid].dataPtr(), jz[gid].dataPtr(),
- //                                    &np, xp.dataPtr(), yp.dataPtr(), zp.dataPtr(), 
- //                                    uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(), 
- //                                    gaminv->dataPtr(), wp.dataPtr(), &q, 
- //                                    &xyzmin[0], &xyzmin[1], &xyzmin[2], 
- //                                    &dt, &dx[0], &dx[1], &dx[2], &nx, &ny, &nz,
-	// 			    &ng, &ng, &ng);
 
 	BL_PROFILE_VAR_STOP(blp_pxr);
     }

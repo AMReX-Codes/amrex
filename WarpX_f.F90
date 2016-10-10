@@ -1,6 +1,6 @@
 ! _________________________________________________________________
 !
-!> @bried
+!> @brief
 !> Module that contains subroutines to be called with Boxlib
 !> and that uses subroutines of Picsar
 !> 
