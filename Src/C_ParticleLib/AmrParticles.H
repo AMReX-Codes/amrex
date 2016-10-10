@@ -5,19 +5,19 @@
 #include <TracerParticles.H>
 #include <AmrParGDB.H>
 
-template <int NR, int NI=0>
+template <int NR, int NI=0, class C = std::deque<Particle<NR,NI> > >
 class AmrParticleContainer
-    : public ParticleContainer<NR,NI>
+    : public ParticleContainer<NR,NI,C>
 {
 
 public:
 
     typedef Particle<NR,NI> ParticleType;
-    typedef typename ParticleContainer<NR,NI>::PBox PBox;
-    typedef typename ParticleContainer<NR,NI>::PMap PMap;
+    typedef typename ParticleContainer<NR,NI,C>::PBox PBox;
+    typedef typename ParticleContainer<NR,NI,C>::PMap PMap;
     
     AmrParticleContainer (Amr* amr)
-	: ParticleContainer<NR,NI>(amr->GetParGDB())
+	: ParticleContainer<NR,NI,C>(amr->GetParGDB())
     {
 	this->m_particles.resize(this->m_gdb->finestLevel()+1);
     }
