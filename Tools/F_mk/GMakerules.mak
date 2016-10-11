@@ -40,7 +40,7 @@ clean::
 	$(RM) $(odir)/*.il
 	$(RM) $(tdir)/f90.depends $(tdir)/c.depends
 	$(RM) *.html
-	$(RM) TAGS deppairs tags
+	$(RM) TAGS tags
 
 realclean:: clean
 	$(RM) -fr t
@@ -129,7 +129,6 @@ $(tdir)/f90.depends: $(fsources) $(f90sources) $(F90sources)
 	@echo "Building f90/F90/f dependency File ..."
 	$(MODDEP) --prefix $(odir) $^ > $(tdir)/f90.depends 
 	@if [ $$? -ne 0 ]; then exit "make fail"; fi
-	#@perl $(MODDEP) $(f_includes) --odir $(odir) $^ > $(tdir)/f90.depends 
 
 $(tdir)/c.depends:  $(csources) $(cxxsources)
 	@if [ ! -d $(tdir) ]; then mkdir -p $(tdir); fi
