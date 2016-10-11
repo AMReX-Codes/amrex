@@ -17,18 +17,17 @@ public:
     virtual const Geometry& Geom (int level) const override;
     virtual const DistributionMapping& ParticleDistributionMap 
                                              (int level) const override;
+    virtual const DistributionMapping&         DistributionMap 
+                                             (int level) const override;
     virtual const BoxArray& ParticleBoxArray (int level) const override;
     virtual const BoxArray&         boxArray (int level) const override;
 
-    virtual void SetParticleBoxArray (int level,
-				      const DistributionMapping& new_dm,
-				      const BoxArray           & new_ba) override;
+    virtual void SetParticleBoxArray (int level, const BoxArray& new_ba) override;
+    virtual void SetParticleDistributionMap (int level,	const DistributionMapping& new_dm) override;
 
     virtual bool LevelDefined (int level) const override;
     virtual int finestLevel () const override;
-    virtual int initialBaLevels () const override;
 
-    virtual int subCycle () const override;
     virtual IntVect refRatio (int level) const override;
     virtual int MaxRefRatio (int level) const override;
 
@@ -51,6 +50,13 @@ AmrParGDB::ParticleDistributionMap (int level) const
 }
 
 inline 
+const DistributionMapping& 
+AmrParGDB::DistributionMap (int level) const
+{
+    return m_amrcore->DistributionMap(level);
+}
+
+inline 
 const BoxArray&
 AmrParGDB::ParticleBoxArray (int level) const
 {
@@ -65,21 +71,22 @@ AmrParGDB::boxArray (int level) const
 }
 
 inline
-void AmrParGDB::SetParticleBoxArray (int level,
-				     const DistributionMapping& new_dm,
-				     const BoxArray           & new_ba)
+void AmrParGDB::SetParticleBoxArray (int level, const BoxArray& new_ba)
 {
-    // xxxxx
     BoxLib::Abort("AmrParGDB::SetParticleBoxArray: not implemented yet");
+}
+
+inline
+void AmrParGDB::SetParticleDistributionMap (int level, const DistributionMapping& new_ba)
+{
+    BoxLib::Abort("AmrParGDB::SetParticleDistributionMap: not implemented yet");
 }
 
 inline 
 bool 
 AmrParGDB::LevelDefined (int level) const
 {
-//    return m_amrcore->getAmrLevels().defined(level);
-    // xxxxx
-    return true;
+    return m_amrcore->LevelDefined(level);
 }
 
 inline 
@@ -89,24 +96,6 @@ AmrParGDB::finestLevel () const
     return m_amrcore->finestLevel();
 }
  
-inline 
-int 
-AmrParGDB::initialBaLevels () const
-{
-    // xxxxx
-//    return Amr::initialBaLevels();
-    return 0;
-}
-
-inline 
-int 
-AmrParGDB::subCycle () const
-{
-    // xxxxx
-//    return m_amrcore->subCycle();
-    return 0;
-}
-
 inline 
 IntVect 
 AmrParGDB::refRatio (int level) const

@@ -55,6 +55,8 @@ public:
     // Largest allowable grid.
     int maxGridSize (int lev) const { return max_grid_size[lev]; }
 
+    bool LevelDefined (int lev);
+
     static void Initialize ();
     static void Finalize ();
 

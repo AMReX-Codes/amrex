@@ -224,3 +224,9 @@ AmrCore::MakeDistributionMap (int lev)
     dmap[lev] = DistributionMapping(grids[lev], ParallelDescriptor::NProcs());
 }
 
+
+bool
+AmrCore::LevelDefined (int lev)
+{
+    return lev <= max_level && !grids[lev].empty() && !dmap[lev].empty();
+}
