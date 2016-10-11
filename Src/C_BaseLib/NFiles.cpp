@@ -39,6 +39,7 @@ NFilesIter::NFilesIter(int noutfiles, const std::string &fileprefix,
     }
   }
 
+  availableDeciders.resize(0);
   availableDeciders.reserve(nProcs);
   setZeroProcs.reserve(nOutFiles);
   for(int i(0); i < nProcs; ++i) {
@@ -68,6 +69,11 @@ NFilesIter::NFilesIter(int noutfiles, const std::string &fileprefix,
 void NFilesIter::SetDynamic(int deciderproc)
 {
   deciderProc = deciderproc;
+  // ---- we have to check currentDeciderIndex here also in case of
+  // ---- different nfiles for plots and checkpoints
+  if(currentDeciderIndex >= availableDeciders.size() || currentDeciderIndex < 0) {
+    currentDeciderIndex = 0;
+  }
   if(availableDeciders.size() > 0) {
     if(deciderProc < 0 || deciderProc >= nProcs) {
       deciderProc = availableDeciders[currentDeciderIndex];
@@ -78,7 +84,7 @@ void NFilesIter::SetDynamic(int deciderproc)
     }
   }
   currentDeciderIndex += nSets - 1;
-  if(currentDeciderIndex >= availableDeciders.size()) {
+  if(currentDeciderIndex >= availableDeciders.size() || currentDeciderIndex < 0) {
     currentDeciderIndex = 0;
   }
   if(myProc == deciderProc) {
