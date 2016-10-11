@@ -817,14 +817,19 @@ VisMF::Header::CalculateMinMax (const FabArray<FArrayBox>& mf,
     // ---- calculate fabarray min max values
     m_famin.resize(m_ncomp);
     m_famax.resize(m_ncomp);
-    for(int i(0); i < m_ncomp; ++i) {
-      m_famin[i] =  std::numeric_limits<Real>::max();
-      m_famax[i] = -std::numeric_limits<Real>::max();
-      for(int j(0); j < m_min[i].size(); ++j) {
-        m_famin[i] = std::min(m_famin[i], m_min[i][j]);
+    for(int comp(0); comp < m_ncomp; ++comp) {
+      m_famin[comp] =  std::numeric_limits<Real>::max();
+      m_famax[comp] = -std::numeric_limits<Real>::max();
+    }
+
+    for(int ibox(0); ibox < m_min.size(); ++ibox) {
+      for(int comp(0); comp < m_min[ibox].size(); ++comp) {
+        m_famin[comp] = std::min(m_famin[comp], m_min[ibox][comp]);
       }
-      for(int j(0); j < m_max[i].size(); ++j) {
-        m_famax[i] = std::max(m_famax[i], m_max[i][j]);
+    }
+    for(int ibox(0); ibox < m_max.size(); ++ibox) {
+      for(int comp(0); comp < m_max[ibox].size(); ++comp) {
+        m_famax[comp] = std::max(m_famax[comp], m_max[ibox][comp]);
       }
     }
 }
