@@ -4,7 +4,6 @@
 #include <Array.H>
 #include <Geometry.H>
 #include <MultiFab.H>
-#include <BL_CXX11.H>
 				      
 class ParGDBBase
 {
@@ -55,23 +54,23 @@ public:
 
     virtual ~ParGDB () {;}
 
-    virtual const Geometry& Geom (int level) const BL_OVERRIDE;
+    virtual const Geometry& Geom (int level) const override;
     virtual const DistributionMapping& ParticleDistributionMap 
-                                             (int level) const BL_OVERRIDE;
-    virtual const BoxArray& ParticleBoxArray (int level) const BL_OVERRIDE;
-    virtual const BoxArray&         boxArray (int level) const BL_OVERRIDE;
+                                             (int level) const override;
+    virtual const BoxArray& ParticleBoxArray (int level) const override;
+    virtual const BoxArray&         boxArray (int level) const override;
 
     virtual void SetParticleBoxArray (int level,
 				      const DistributionMapping& new_dm,
-				      const BoxArray           & new_ba) BL_OVERRIDE;
+				      const BoxArray           & new_ba) override;
 
-    virtual bool LevelDefined (int level) const BL_OVERRIDE;
-    virtual int finestLevel () const BL_OVERRIDE;
-    virtual int initialBaLevels () const BL_OVERRIDE;
+    virtual bool LevelDefined (int level) const override;
+    virtual int finestLevel () const override;
+    virtual int initialBaLevels () const override;
 
-    virtual int subCycle () const BL_OVERRIDE;
-    virtual IntVect refRatio (int level) const BL_OVERRIDE;
-    virtual int MaxRefRatio (int level) const BL_OVERRIDE;
+    virtual int subCycle () const override;
+    virtual IntVect refRatio (int level) const override;
+    virtual int MaxRefRatio (int level) const override;
 
 protected:
 

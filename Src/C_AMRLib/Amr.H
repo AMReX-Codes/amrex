@@ -11,21 +11,15 @@
 #include <PArray.H>
 #include <BCRec.H>
 
+#include <AmrCore.H>
+
 #ifdef USE_STATIONDATA
 #include <StationData.H>
-#endif
-
-#ifdef USE_PARTICLES
-#include <ParGDB.H>
 #endif
 
 class AmrLevel;
 class LevelBld;
 class BoxDomain;
-
-#ifdef USE_PARTICLES
-class AmrParGDB;
-#endif
 
 //
 //
@@ -37,6 +31,7 @@ class AmrParGDB;
 //
 
 class Amr
+    : public AmrCore
 {
     typedef std::multimap< std::pair<int, int>, double >  BoundaryPointList;
 
@@ -46,7 +41,7 @@ public:
     //
     Amr ();
     Amr (const RealBox* rb, int max_level_in, Array<int> n_cell_in, int coord);
-    void InitAmr(int max_level_in, Array<int> n_cell_in);
+    void InitAmr ();
     //
     // The destructor.
     //
@@ -81,14 +76,6 @@ public:
     //
     void setNCycle (const Array<int>& mss);
     //
-    // return blocking_factor
-    //
-    int blockingFactor (int lev) const { return blocking_factor[lev]; }
-    //
-    // Largest allowable grid.
-    //
-    int maxGridSize (int lev) const { return max_grid_size[lev]; }
-    //
     // Subcycle in time?
     //
     int subCycle () const { return sub_cycle; }
@@ -96,14 +83,6 @@ public:
     // How are we subcycling?
     //
     const std::string& subcyclingMode() const { return subcycling_mode; }
-    //
-    // Maximum allowable level.
-    //
-    int maxLevel () const { return max_level; }
-    //
-    // Finest currently existing level.
-    //
-    int finestLevel () const { return finest_level; }
     //  
     // What is "level" in Amr::timeStep?  This is only relevant if we are still in Amr::timeStep;
     //      it is set back to -1 on leaving Amr::timeStep.
@@ -132,25 +111,9 @@ public:
     //
     const Array<Real>& dtLevel () const { return dt_level; }
     //
-    // Geometry object.
-    //
-    const Geometry& Geom (int level) const { return geom[level]; }
-    //
     // Number of subcycled time steps.
     //
     int nCycle (int level) const { return n_cycle[level]; }
-    //
-    // Refinement ratio.
-    //
-    IntVect refRatio (int _level) const { return ref_ratio[_level]; }
-    //
-    // Maximum refinement ratio in any direction.
-    //
-    int MaxRefRatio (int level) const;
-    //
-    // Refinement ratios between all levels.
-    //
-    const Array<IntVect>& refRatio () const { return ref_ratio; }
     //
     // Number of time steps at specified level.
     //
@@ -260,28 +223,6 @@ public:
 
     static void Initialize ();
     static void Finalize ();
-    //
-    // Number of buffer cells in error estimator.
-    //
-    int nErrorBuf (int lev) const { return n_error_buf[lev]; }
-    //
-    // Minimum allowable grid efficiency.
-    //
-    Real gridEff () const { return grid_eff; }
-    //
-    // Number of cells to define proper nesting 
-    //
-    int nProper () const { return n_proper; }
-    //
-    // List of grids at each level.
-    //
-    const BoxArray& boxArray (int lev) const;
-#ifdef USE_PARTICLES
-    //
-    // List of particle_grids at each level.
-    //
-    const BoxArray& ParticleBoxArray (int lev) const;
-#endif
     //
     // AmrLevel lev.
     //
@@ -473,8 +414,6 @@ public:
     void GetParticleCPU       (Array<int>&  part_cpu);
     void GetParticleLocations (Array<Real>& part_locs);
     void GetParticleData      (Array<Real>& part_data, int start_comp, int num_comp);
-
-    AmrParGDB* GetParGDB () const { return m_gdb; }
 #endif
 
     void AddProcsToSidecar(int nSidecarProcs, int prevSidecarProcs);
@@ -579,11 +518,7 @@ protected:
     //
     std::string      regrid_grids_file;   // Grids file that will bypass regridding.
     std::string      initial_grids_file;  // Grids file that will bypass regridding only at initialization.
-    int              max_level;    // Maximum allowed level.
-    int              finest_level; // Current finest level.
-    Array<IntVect>   ref_ratio;    // Refinement ratios [0:finest_level-1]
     PArray<AmrLevel> amr_level;    // Array of levels
-    Array<Geometry>  geom;         // Index extent of domain at all levels.
     Real             cumtime;      // Physical time variable.
     Real             start_time;   // Physical time this simulation started.
     Array<Real>      dt_level;     // Timestep at this level.
@@ -594,11 +529,6 @@ protected:
     Array<Real>      dt_min;
     bool             isPeriodic[BL_SPACEDIM];  // Domain periodic?
     Array<int>       regrid_int;      // Interval between regridding.
-    Array<int>       n_error_buf;     // Buffer cells around each tagged cell.
-    Array<int>       blocking_factor; // Blocking factor in grid generation (by level).
-    Array<int>       max_grid_size;   // Maximum allowable grid size (by level).
-    Real             grid_eff;        // Grid efficiency.
-    int              n_proper;        // # cells required for proper nesting.
     int              last_checkpoint; // Step number of previous checkpoint.
     int              check_int;       // How often checkpoint (# time steps).
     Real             check_per;       // How often checkpoint (units of time).
@@ -621,7 +551,6 @@ protected:
     StationData      station;
 #endif
 
-    int              verbose;
     int              record_grid_info;
     int              record_run_info;
     int              record_run_info_terse;
@@ -666,10 +595,6 @@ public:
     BoundaryPointList intersect_hiz;
 
     static bool                   first_smallplotfile;
-
-#ifdef USE_PARTICLES
-    AmrParGDB* m_gdb;
-#endif
 
 private:
     //
