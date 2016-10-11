@@ -283,10 +283,11 @@ public:
 	m_gdb = &m_gdb_object;
     }
 
-    void SetParticleBoxArray (int lev,
-			      const DistributionMapping& new_dmap,
-			      const BoxArray           & new_ba)
-    { m_gdb->SetParticleBoxArray(lev, new_dmap, new_ba); }
+    void SetParticleBoxArray (int lev, const BoxArray& new_ba)
+	{ m_gdb->SetParticleBoxArray(lev, new_ba); }
+
+    void SetParticleDistributionMap (int lev, const DistributionMapping& new_dmap)
+	{ m_gdb->SetParticleDistributionMap(lev, new_dmap); }
 
     const BoxArray& ParticleBoxArray (int lev) const 
 	{ return m_gdb->ParticleBoxArray(lev); }
@@ -399,7 +400,7 @@ public:
     // Functions depending the layout of the data.  Use with caution.
     //
     // Multi-level version
-    void AssignDensity (int rho_index, PArray<MultiFab>& mf, 
+    void AssignDensity (int rho_index, bool sub_cycle, PArray<MultiFab>& mf, 
 			int lev_min = 0, int ncomp = 1, int finest_level = -1) const;
     // Single-level version
     void AssignDensitySingleLevel (int rho_index, MultiFab& mf, int level,
@@ -1388,7 +1389,7 @@ ParticleContainer<NR,NI,C>::CreateVirtualParticles (int   level,
     //
     // Create a buffer so that particles near the cf border are not aggregated.
     //
-    BoxArray buffer = BoxLib::complementIn(m_gdb->Geom(level).Domain(), m_gdb->boxArray(level));
+    BoxArray buffer = BoxLib::complementIn(m_gdb->Geom(level).Domain(), m_gdb->ParticleBoxArray(level));
 
     buffer.grow(aggregation_buffer);
 
@@ -2260,7 +2261,7 @@ ParticleContainer<NR,NI,C>::Checkpoint (const std::string& dir,
         //
         for (int lev = 0; lev <= m_gdb->finestLevel(); lev++)
         {
-            HdrFile << m_gdb->boxArray(lev).size() << '\n';
+            HdrFile << m_gdb->ParticleBoxArray(lev).size() << '\n';
         }
     }
     //
@@ -2300,7 +2301,7 @@ ParticleContainer<NR,NI,C>::Checkpoint (const std::string& dir,
             ParallelDescriptor::Barrier();
         }
 
-	MultiFab state(m_gdb->boxArray(lev),1,0,Fab_noallocate);
+	MultiFab state(m_gdb->ParticleBoxArray(lev),1,0,Fab_noallocate);
         //
         // We eventually want to write out the file name and the offset
         // into that file into which each grid of particles is written.
@@ -2478,7 +2479,7 @@ ParticleContainer<NR,NI,C>::WriteParticles (int            lev,
     BL_PROFILE("ParticleContainer<NR,NI,C>::WriteParticles()");
     const PMap&     pmap  = m_particles[lev];
 
-    MultiFab state(m_gdb->boxArray(lev),1,0,Fab_noallocate);
+    MultiFab state(m_gdb->ParticleBoxArray(lev),1,0,Fab_noallocate);
 
     for (MFIter mfi(state); mfi.isValid(); ++mfi)
     {
@@ -2841,7 +2842,7 @@ ParticleContainer<NR,NI,C>::Restart_Doit (const std::string& fullname,
             HdrFile >> ngrids[lev];
 
             BL_ASSERT(ngrids[lev] > 0);
-            BL_ASSERT(ngrids[lev] == m_gdb->boxArray(lev).size());
+            BL_ASSERT(ngrids[lev] == m_gdb->ParticleBoxArray(lev).size());
         }
     }
     ParallelDescriptor::Bcast(ngrids.dataPtr(), ngrids.size(), IOProc);
@@ -2878,7 +2879,7 @@ ParticleContainer<NR,NI,C>::Restart_Doit (const std::string& fullname,
 
         m_particles.resize(m_gdb->finestLevel()+1);
 
-	MultiFab state(m_gdb->boxArray(lev),1,0,Fab_noallocate);
+	MultiFab state(m_gdb->ParticleBoxArray(lev),1,0,Fab_noallocate);
 
         for (MFIter mfi(state); mfi.isValid(); ++mfi)
         {
@@ -2949,7 +2950,7 @@ ParticleContainer<NR,NI,C>::ReadParticles_DoublePrecision (int            cnt,
     BL_ASSERT(cnt > 0);
     BL_ASSERT(lev < m_particles.size());
     BL_ASSERT(lev >= 0 && lev <= m_gdb->finestLevel());
-    BL_ASSERT(grd >= 0 && grd < m_gdb->boxArray(lev).size());
+    BL_ASSERT(grd >= 0 && grd < m_gdb->ParticleBoxArray(lev).size());
     //
     // First read in the integer data in binary.  We do not store
     // the m_lev and m_grid data on disk.  We can easily recreate
@@ -3073,7 +3074,7 @@ ParticleContainer<NR,NI,C>::ReadParticles_SinglePrecision (int            cnt,
     BL_ASSERT(cnt > 0);
     BL_ASSERT(lev < m_particles.size());
     BL_ASSERT(lev >= 0 && lev <= m_gdb->finestLevel());
-    BL_ASSERT(grd >= 0 && grd < m_gdb->boxArray(lev).size());
+    BL_ASSERT(grd >= 0 && grd < m_gdb->ParticleBoxArray(lev).size());
     //
     // First read in the integer data in binary.  We do not store
     // the m_lev and m_grid data on disk.  We can easily recreate
@@ -3591,14 +3592,14 @@ ParticleBase::CIC_Cells_Fracs (const ParticleBase& p,
 //
 // There'll be finest_level+1 of them.
 //
-
 template <int NR, int NI, class C>
 void
 ParticleContainer<NR,NI,C>::AssignDensity (int rho_index,
-					 PArray<MultiFab>& mf_to_be_filled, 
-					 int               lev_min,
-					 int               ncomp,
-					 int               finest_level) const
+					   bool              sub_cycle,
+					   PArray<MultiFab>& mf_to_be_filled, 
+					   int               lev_min,
+					   int               ncomp,
+					   int               finest_level) const
 {
     if (rho_index != 0) BoxLib::Abort("AssignDensity only works if rho_index = 0");
 
@@ -3682,7 +3683,6 @@ ParticleContainer<NR,NI,C>::AssignDensity (int rho_index,
         return;
     }
     
-    const bool sub_cycle = m_gdb->subCycle();
     //
     // This'll hold all the info I need for parallel.
     // // What I'll use: m_lev, m_grid, m_cell & m_data[0..ncomp-1].

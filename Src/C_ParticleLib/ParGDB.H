@@ -15,18 +15,17 @@ public:
     virtual const Geometry& Geom (int level) const = 0;
     virtual const DistributionMapping& ParticleDistributionMap 
                                              (int level) const = 0;
+    virtual const DistributionMapping&         DistributionMap 
+                                             (int level) const = 0;
     virtual const BoxArray& ParticleBoxArray (int level) const = 0;
     virtual const BoxArray&         boxArray (int level) const = 0;
 
-    virtual void SetParticleBoxArray (int level,
-				      const DistributionMapping& new_dm,
-				      const BoxArray           & new_ba) = 0;
+    virtual void SetParticleBoxArray (int level, const BoxArray& new_ba) = 0;
+    virtual void SetParticleDistributionMap (int level, const DistributionMapping& new_dm) = 0;
 
     virtual bool LevelDefined (int level) const = 0;
     virtual int finestLevel () const = 0;
-    virtual int initialBaLevels () const = 0;
 
-    virtual int subCycle () const = 0;
     virtual IntVect refRatio (int level) const = 0;
     virtual int MaxRefRatio (int level) const = 0;
 
@@ -57,18 +56,17 @@ public:
     virtual const Geometry& Geom (int level) const override;
     virtual const DistributionMapping& ParticleDistributionMap 
                                              (int level) const override;
+    virtual const DistributionMapping&         DistributionMap 
+                                             (int level) const override;
     virtual const BoxArray& ParticleBoxArray (int level) const override;
     virtual const BoxArray&         boxArray (int level) const override;
 
-    virtual void SetParticleBoxArray (int level,
-				      const DistributionMapping& new_dm,
-				      const BoxArray           & new_ba) override;
+    virtual void SetParticleBoxArray (int level, const BoxArray& new_ba) override;
+    virtual void SetParticleDistributionMap (int level,	const DistributionMapping& new_dm) override;
 
     virtual bool LevelDefined (int level) const override;
     virtual int finestLevel () const override;
-    virtual int initialBaLevels () const override;
 
-    virtual int subCycle () const override;
     virtual IntVect refRatio (int level) const override;
     virtual int MaxRefRatio (int level) const override;
 
@@ -129,6 +127,13 @@ ParGDB::ParticleDistributionMap (int level) const
 }
 
 inline 
+const DistributionMapping& 
+ParGDB::DistributionMap (int level) const
+{
+    return m_dmap[level];
+}
+
+inline 
 const BoxArray&
 ParGDB::ParticleBoxArray (int level) const
 {
@@ -144,13 +149,18 @@ ParGDB::boxArray (int level) const
 
 inline
 void 
-ParGDB::SetParticleBoxArray (int level,
-			     const DistributionMapping& new_dm,
-			     const BoxArray           & new_ba)
+ParGDB::SetParticleBoxArray (int level, const BoxArray& new_ba)
+{
+    BL_ASSERT(level < m_nlevels);
+    m_ba[level] = new_ba;
+}
+
+inline
+void 
+ParGDB::SetParticleDistributionMap (int level, const DistributionMapping& new_dm)
 {
     BL_ASSERT(level < m_nlevels);
     m_dmap[level] = new_dm;
-    m_ba[level] = new_ba;
 }
 
 inline 
@@ -167,20 +177,6 @@ ParGDB::finestLevel () const
     return m_nlevels-1;
 }
  
-inline 
-int 
-ParGDB::initialBaLevels () const
-{
-    return 0;
-}
-
-inline 
-int 
-ParGDB::subCycle () const
-{
-    return false;
-}
-
 inline 
 IntVect 
 ParGDB::refRatio (int level) const
