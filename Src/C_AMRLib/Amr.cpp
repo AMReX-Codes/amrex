@@ -924,7 +924,7 @@ Amr::writePlotFile ()
 
     VisMF::SetNOutFiles(plot_nfiles);
     VisMF::Header::Version currentVersion(VisMF::GetHeaderVersion());
-    VisMF::SetHeaderVersion(VisMF::Header::Version_v1);
+    VisMF::SetHeaderVersion(plot_headerversion);
 
     if (first_plotfile) {
         first_plotfile = false;
@@ -1043,7 +1043,7 @@ Amr::writeSmallPlotFile ()
 
     VisMF::SetNOutFiles(plot_nfiles);
     VisMF::Header::Version currentVersion(VisMF::GetHeaderVersion());
-    VisMF::SetHeaderVersion(VisMF::Header::Version_v1);
+    VisMF::SetHeaderVersion(plot_headerversion);
 
     if (first_smallplotfile) {
         first_smallplotfile = false;
@@ -1816,6 +1816,9 @@ Amr::checkPoint ()
 
     FArrayBox::setFormat(FABio::FAB_NATIVE);
 
+    VisMF::Header::Version currentVersion(VisMF::GetHeaderVersion());
+    VisMF::SetHeaderVersion(checkpoint_headerversion);
+
     Real dCheckPointTime0 = ParallelDescriptor::second();
 
     const std::string& ckfile = BoxLib::Concatenate(check_file_root,level_steps[0],file_name_digits);
@@ -1968,6 +1971,8 @@ Amr::checkPoint ()
   // Restore the previous FAB format.
   //
   FArrayBox::setFormat(thePrevFormat);
+
+  VisMF::SetHeaderVersion(currentVersion);
 
   BL_PROFILE_REGION_STOP("Amr::checkPoint()");
 }
