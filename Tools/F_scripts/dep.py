@@ -99,8 +99,12 @@ class Preprocessor(object):
         processed_file = "{}/F90PP-{}".format(self.temp_dir,
                                              os.path.basename(sf.name))
 
-        command = "{} {} {} | {}".format(self.cpp_cmd, self.defines,
-                                         sf.name, self.f90_preprocess)
+        if self.f90_preprocess != "":
+            command = "{} {} {} | {}".format(self.cpp_cmd, self.defines,
+                                             sf.name, self.f90_preprocess)
+        else:
+            command = "{} {} {}".format(self.cpp_cmd, self.defines,
+                                        sf.name)
 
         stdout, rc = run(command, outfile=processed_file)
 
