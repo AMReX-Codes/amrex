@@ -412,11 +412,7 @@ public:
     static void BroadcastBCRec(BCRec &bcrec, int myLocalId, int rootId, MPI_Comm localComm);
 
 protected:
-    //
-    // Used by grid_places().
-    //
-    static void ProjPeriodic (BoxList&        bd,
-                              const Geometry& geom);
+
     //
     // Initialize grid hierarchy -- called by Amr::init.
     //
@@ -459,13 +455,6 @@ protected:
                       Real             time,
                       int&             new_finest,
                       Array<BoxArray>& new_grids);
-
-    //
-    // If ngrids < nprocs, break up the grids to better load balance
-    //
-    void impose_refine_grid_layout (int              lbase,
-                                    int              new_finest,
-                                    Array<BoxArray>& new_grids);
 
     //
     // Do a single timestep on level L.
