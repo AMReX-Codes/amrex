@@ -1264,13 +1264,13 @@ ParallelDescriptor::Gatherv (const T* send, int sc,
 			     T* recv, const std::vector<int>& rc, const std::vector<int>& disp,
 			     int root)
 {
-    BL_COMM_PROFILE(BLProfiler::Gathervi,  BLProfiler::BeforeCall(), root, BLProfiler::NoTag());
+    BL_COMM_PROFILE(BLProfiler::Gatherv,  BLProfiler::BeforeCall(), root, BLProfiler::NoTag());
 
     MPI_Gatherv(send, sc, ParallelDescriptor::Mpi_typemap<T>::type(),
 		recv, &rc[0], &disp[0], ParallelDescriptor::Mpi_typemap<T>::type(),
 		root, Communicator());
 
-    BL_COMM_PROFILE(BLProfiler::Gathervi, std::accumulate(rc.begin(),rc.end(),0)*sizeof(T), root, BLProfiler::NoTag());
+    BL_COMM_PROFILE(BLProfiler::Gatherv, std::accumulate(rc.begin(),rc.end(),0)*sizeof(T), root, BLProfiler::NoTag());
 }
 
 template <class T>
@@ -1279,7 +1279,7 @@ ParallelDescriptor::Gatherv (const T* send, long sc,
 			     T* recv, const std::vector<long>& rc, const std::vector<long>& disp,
 			     int root)
 {
-    BL_COMM_PROFILE(BLProfiler::Gathervl,  BLProfiler::BeforeCall(), root, BLProfiler::NoTag());
+    BL_COMM_PROFILE(BLProfiler::Gatherv,  BLProfiler::BeforeCall(), root, BLProfiler::NoTag());
 
     int tag = ParallelDescriptor::SeqNum();
 
@@ -1311,7 +1311,7 @@ ParallelDescriptor::Gatherv (const T* send, long sc,
 		 Communicator());
     }
 
-    BL_COMM_PROFILE(BLProfiler::Gathervl, std::accumulate(rc.begin(),rc.end(),0L)*sizeof(T), root, BLProfiler::NoTag());
+    BL_COMM_PROFILE(BLProfiler::Gatherv, std::accumulate(rc.begin(),rc.end(),0L)*sizeof(T), root, BLProfiler::NoTag());
 }
 
 template <class T, class T1>
