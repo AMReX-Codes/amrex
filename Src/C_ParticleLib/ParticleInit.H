@@ -243,8 +243,6 @@ ParticleContainer<NR,NI,C>::InitFromAsciiFile (const std::string& file, int extr
     
                     nparticles.pop_back();
                 }
-
-                PBox().swap(nparticles);
             }
         }
         //
@@ -273,8 +271,6 @@ ParticleContainer<NR,NI,C>::InitFromAsciiFile (const std::string& file, int extr
 
                 nparticles.pop_back();
             }
-
-            PBox().swap(nparticles);
         }
         //
         // Let Redistribute() sort'm out.

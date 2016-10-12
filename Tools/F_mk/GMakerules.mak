@@ -40,7 +40,7 @@ clean::
 	$(RM) $(odir)/*.il
 	$(RM) $(tdir)/f90.depends $(tdir)/c.depends
 	$(RM) *.html
-	$(RM) TAGS deppairs tags
+	$(RM) TAGS tags
 
 realclean:: clean
 	$(RM) -fr t
@@ -48,9 +48,6 @@ realclean:: clean
 
 file_locations:
 	$(BOXLIB_HOME)/Tools/F_scripts/find_files_vpath.py --vpath "$(VPATH_LOCATIONS)" --files "$(sources)"
-
-deppairs: $(f90sources) $(F90sources) $(fsources)
-	perl $(MODDEP) --tsort $^ > deppairs
 
 TAGS:	$(sources)
 	ctags -e --verbose=yes --fortran-kinds=+i $(abspath $^)
@@ -81,8 +78,8 @@ else
 	@$(COMPILE.f90) $(OUTPUT_OPTION) $<
 endif
 
-# here we rely on the compiler convection that .F90 files will automatically
-# be preprocessed
+# here we rely on the compiler convention that .F90 files will
+# automatically be preprocessed
 ${odir}/%.o: %.F90
 	@if [ ! -d $(odir) ]; then mkdir -p $(odir); fi
 	@if [ ! -d $(mdir) ]; then mkdir -p $(mdir); fi
@@ -123,15 +120,18 @@ ${hdir}/%.html: %.f
 	@if [ ! -d $(hdir) ]; then mkdir -p $(hdir); fi
 	$(F90DOC) $(F90DOC_OPTION) $<
 
+# determine the build dependencies among the source files.  At the moment,
+# we do not preprocess the Fortran files before doing the dependency check.
+# If this is an issue, then it is easy to change it, following what is done
+# in C_mk/Make.rules
 $(tdir)/f90.depends: $(fsources) $(f90sources) $(F90sources)
 	@if [ ! -d $(tdir) ]; then mkdir -p $(tdir); fi
-ifdef MKVERBOSE
-	perl $(MODDEP) $(f_includes) --odir $(odir)  $^ > $(tdir)/f90.depends 
-else
 	@echo "Building f90/F90/f dependency File ..."
-	@perl $(MODDEP) $(f_includes) --odir $(odir) $^ > $(tdir)/f90.depends 
-endif
-
+	$(MODDEP) --prefix $(odir) \
+            --temp_dir $(tdir) \
+            --cpp "cpp -E -traditional" \
+            --defines "$(FPPFLAGS)" $^ > $(tdir)/f90.depends 
+	@if [ $$? -ne 0 ]; then exit "make fail"; fi
 
 $(tdir)/c.depends:  $(csources) $(cxxsources)
 	@if [ ! -d $(tdir) ]; then mkdir -p $(tdir); fi
