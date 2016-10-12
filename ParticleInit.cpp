@@ -19,11 +19,14 @@ MyParticleContainer::Init(MultiFab& dummy_mf)
     const Real* dx  = geom.CellSize();
 
     Real weight, ux;
+    int n_part_per_cell;
     {
       ParmParse pp("langmuirwave");
+      n_part_per_cell = 1;
+      pp.query("num_particles_per_cell", n_part_per_cell);
       weight = 1.e25;
       pp.query("n_e", weight);
-      weight *= dx[0]*dx[1]*dx[2];
+      weight *= dx[0]*dx[1]*dx[2]/n_part_per_cell;
 
       ux = 0.01;
       pp.query("ux", ux);
@@ -40,41 +43,44 @@ MyParticleContainer::Init(MultiFab& dummy_mf)
 	for (int k = 0; k < nz; k++) {
 	  for (int j = 0; j < ny; j++) {
 	    for (int i = 0; i < nx; i++) {
-	      Real x = grid_box.lo(0) + (i+0.5)*dx[0];
-	      if (x > 0) continue;
+	      for (int i_part=0; i_part<n_part_per_cell;i_part++) {
+		Real particle_shift = (0.5+i_part)/n_part_per_cell;
+		Real x = grid_box.lo(0) + (i + particle_shift)*dx[0];
+		if (x > 0) continue;
 	      
-	      ParticleType p;
+		ParticleType p;
 
-	      p.m_pos[0] = grid_box.lo(0) + (0.5 + i)*dx[0];
-	      p.m_pos[1] = grid_box.lo(1) + (0.5 + j)*dx[1];
-	      p.m_pos[2] = grid_box.lo(2) + (0.5 + k)*dx[2];
-	      
-	      for (int i = 0; i < BL_SPACEDIM; i++) {
-		BL_ASSERT(p.m_pos[i] < grid_box.hi(i));
-	      }
-	      
-	      p.m_data[PIdx::w] = weight;
-	      
-	      for (int i = 1; i < PIdx::nattribs; i++) {
-		p.m_data[i] = 0;
-	      }
-	      
-	      p.m_data[PIdx::ux] = ux;
-
-	      p.m_id  = ParticleBase::NextID();
-	      p.m_cpu = ParallelDescriptor::MyProc();
-
-	      if (!ParticleBase::Where(p,m_gdb))
-		{
-		  BoxLib::Abort("invalid particle");
+		p.m_pos[0] = grid_box.lo(0) + (i + particle_shift)*dx[0];
+		p.m_pos[1] = grid_box.lo(1) + (j + particle_shift)*dx[1];
+		p.m_pos[2] = grid_box.lo(2) + (k + particle_shift)*dx[2];
+		
+		for (int i = 0; i < BL_SPACEDIM; i++) {
+		  BL_ASSERT(p.m_pos[i] < grid_box.hi(i));
 		}
+		
+		p.m_data[PIdx::w] = weight;
+	      
+		for (int i = 1; i < PIdx::nattribs; i++) {
+		  p.m_data[i] = 0;
+		}
+	      
+		p.m_data[PIdx::ux] = ux;
 
-	      BL_ASSERT(p.m_lev >= 0 && p.m_lev <= m_gdb->finestLevel());
-	      //
-	      // Add it to the appropriate PBox at the appropriate level.
-	      //
-	      m_particles[p.m_lev][p.m_grid].push_back(p);
-	    } 
+		p.m_id  = ParticleBase::NextID();
+		p.m_cpu = ParallelDescriptor::MyProc();
+		
+		if (!ParticleBase::Where(p,m_gdb))
+		  {
+		    BoxLib::Abort("invalid particle");
+		  }
+		
+		BL_ASSERT(p.m_lev >= 0 && p.m_lev <= m_gdb->finestLevel());
+		//
+		// Add it to the appropriate PBox at the appropriate level.
+		//
+		m_particles[p.m_lev][p.m_grid].push_back(p);
+	      }
+	    }
 	  } 
         }
     }

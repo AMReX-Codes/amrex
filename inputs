@@ -23,5 +23,6 @@ geometry.prob_hi     =  20.e-6    20.e-6    20.e-6
 # Verbosity
 verbose = 1
 
+langmuirwave.num_particles_per_cell = 5
 langmuirwave.n_e = 1.e25  # number of electrons per m^3
 langmuirwave.ux  = 0.01   # ux = gamma*beta_x
