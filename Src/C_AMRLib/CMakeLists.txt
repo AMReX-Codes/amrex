@@ -33,7 +33,7 @@ set(F90_source_files extrapolater_${BL_SPACEDIM}d.f90)
 
 # These files are in C_ParticleLib
 if(BL_USE_PARTICLES EQUAL 1)
-  list(APPEND CXX_header_files AmrParGDB.H AmrParticles.H)
+  list(APPEND CXX_header_files ../C_ParticleLib/AmrParGDB.H ../C_ParticleLib/AmrParticles.H)
 endif()
 
 preprocess_boxlib_fortran(FPP_out_files ${FPP_source_files})
