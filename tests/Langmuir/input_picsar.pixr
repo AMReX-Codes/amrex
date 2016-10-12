@@ -24,9 +24,9 @@ end::cpusplit
 
 section::main
  # Number of grid points in x,y,z
- nx = 64
- ny = 64
- nz = 64
+ nx = 65
+ ny = 65
+ nz = 65
 
  # Origin of simulation axes
  xmin = -20e-6
@@ -39,9 +39,9 @@ section::main
  # t_max = 7
  nsteps=5
  
- ntilex = 12
- ntiley = 6
- ntilez = 6
+ ntilex = 1
+ ntiley = 1
+ ntilez = 1
  
  # Guard cells
  nguardsx = 3
@@ -128,8 +128,25 @@ section::species
  sorting_start=20
 end::species
 
+section::particle_dump
+  species_name = electron
+  dump_x_min = -20e-6
+  dump_x_max = 20e-6
+  dump_y_min = -20e-6
+  dump_y_max = 20e-6
+  dump_z_min = -20e-6
+  dump_z_max = 20e-6
+  dump_ux_min = -1e9
+  dump_ux_max = 1e9 
+  dump_uy_min = -1e9
+  dump_uy_max = 1e9
+  dump_uz_min = -1e9
+  dump_uz_max = 1e9  
+  diag_period = 4
+end::particle_dump
+
 section::output
- output_frequency = 10
+ output_frequency = 1
  output_step_min  = 0
  output_step_max  = 1000
  ex = 1
@@ -137,7 +154,9 @@ section::output
  ez = 1
  rho = 1
  dive = 1
+ jx = 1
  jy = 1
+ jz = 1
 end::output
 
 section::timestat
@@ -161,3 +180,4 @@ section::temporal
   rho=1
   divE=1
 end::temporal
+
