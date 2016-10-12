@@ -99,8 +99,12 @@ class Preprocessor(object):
         processed_file = "{}/F90PP-{}".format(self.temp_dir,
                                              os.path.basename(sf.name))
 
-        command = "{} {} {} | {}".format(self.cpp_cmd, self.defines,
-                                         sf.name, self.f90_preprocess)
+        if self.f90_preprocess != "":
+            command = "{} {} {} | {}".format(self.cpp_cmd, self.defines,
+                                             sf.name, self.f90_preprocess)
+        else:
+            command = "{} {} {}".format(self.cpp_cmd, self.defines,
+                                        sf.name)
 
         stdout, rc = run(command, outfile=processed_file)
 
@@ -160,10 +164,11 @@ class SourceFile(object):
                 line = line[:idx]
 
                 # we want a module definition itself, not a 'module procedure'
+                # also, Fortran is case-insensitive
                 rebreak = module_re.search(line)
                 rebreak2 = module_proc_re.search(line)
                 if rebreak and not rebreak2:
-                    defines.append(rebreak.group(4))
+                    defines.append(rebreak.group(4).lower())
 
         return defines
 
@@ -187,7 +192,7 @@ class SourceFile(object):
                 if rebreak:
                     used_module = rebreak.group(4)
                     if used_module.lower() not in IGNORES:
-                        depends.append(used_module)
+                        depends.append(used_module.lower())
 
         # remove duplicates
         depends = list(set(depends))
