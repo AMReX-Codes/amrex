@@ -1402,7 +1402,8 @@ Amr::restart (const std::string& filename)
            amr_level.set(lev,(*levelbld)());
            amr_level[lev].restart(*this, is);
 	   this->SetBoxArray(lev, amr_level[lev].boxArray());
-	   this->MakeDistributionMap(lev);
+	   this->SetDistributionMap(lev, DistributionMapping(amr_level[lev].boxArray(),
+							     ParallelDescriptor::NProcs()));
        }
        //
        // Build any additional data structures.
@@ -1471,7 +1472,8 @@ Amr::restart (const std::string& filename)
            amr_level.set(lev,(*levelbld)());
            amr_level[lev].restart(*this, is);
 	   this->SetBoxArray(lev, amr_level[lev].boxArray());
-	   this->MakeDistributionMap(lev);
+	   this->SetDistributionMap(lev, DistributionMapping(amr_level[lev].boxArray(),
+							     ParallelDescriptor::NProcs()));
        }
        //
        // Build any additional data structures.
@@ -2169,7 +2171,8 @@ Amr::defBaseLevel (Real              strt_time,
     lev0 = new_grids[0];
 
     this->SetBoxArray(0, new_grids[0]);
-    this->MakeDistributionMap(0);
+    this->SetDistributionMap(0, DistributionMapping(new_grids[0],
+						    ParallelDescriptor::NProcs()));
 
     //
     // Now build level 0 grids.
@@ -2291,7 +2294,8 @@ Amr::regrid (int  lbase,
         }
 
 	this->SetBoxArray(lev, amr_level[lev].boxArray());
-	this->MakeDistributionMap(lev);
+	this->SetDistributionMap(lev, DistributionMapping(amr_level[lev].boxArray(),
+							  ParallelDescriptor::NProcs()));
     }
 
 
@@ -2410,7 +2414,8 @@ Amr::regrid_level_0_on_restart()
 	amr_level.set(0,a);
 	
 	this->SetBoxArray(0, amr_level[0].boxArray());
-	this->MakeDistributionMap(0);
+	this->SetDistributionMap(0, DistributionMapping(amr_level[0].boxArray(),
+							ParallelDescriptor::NProcs()));
 
 	amr_level[0].post_regrid(0,0);
 	
@@ -3075,7 +3080,8 @@ Amr::bldFineLevels (Real strt_time)
         finest_level = new_finest;
 
 	this->SetBoxArray(new_finest, new_grids[new_finest]);
-	this->MakeDistributionMap(new_finest);
+	this->SetDistributionMap(new_finest, DistributionMapping(new_grids[new_finest],
+								 ParallelDescriptor::NProcs()));
 
         AmrLevel* level = (*levelbld)(*this,
                                       new_finest,
@@ -3832,7 +3838,8 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
         amr_level[lev].AddProcsToComp(this, nSidecarProcs, prevSidecarProcs,
 	                              ioProcNumSCS, ioProcNumAll, scsMyId, scsComm);
 	this->SetBoxArray(lev, amr_level[lev].boxArray());
-	this->MakeDistributionMap(lev);
+	this->SetDistributionMap(lev, DistributionMapping(amr_level[lev].boxArray(),
+							  ParallelDescriptor::NProcs()));
       }
 
 
