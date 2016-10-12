@@ -64,10 +64,3 @@ In order to clean a previously compiled version:
 make realclean
 ```
 
-## Organization of the files
-
-Several files in the directory `warpx` are key to the project:
-
-- The file `main.cpp` contains the main program which is executed.
-- The file `single_level.cpp` contains the function `single_level` which does most of the physical work.
-- The file `Particles.H` was copied from BoxLib and modified to include PICSAR calls. The methods in `Particle.H` are used in `single_level`.
