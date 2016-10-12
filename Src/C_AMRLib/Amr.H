@@ -399,21 +399,9 @@ public:
 
 #ifdef USE_PARTICLES
     //
-    // Add one particle at a time.
-    //
-    void addOneParticle (int id_in, int cpu_in, 
-                         std::vector<double>& xloc, std::vector<double>& attributes);
-    //
-    // Redistribute after adding particles
+    // Redistribute particles
     //
     void RedistributeParticles ();
-    //
-    // Get particle data out of the Particle Class
-    //
-    void GetParticleIDs       (Array<int>&  part_ids);
-    void GetParticleCPU       (Array<int>&  part_cpu);
-    void GetParticleLocations (Array<Real>& part_locs);
-    void GetParticleData      (Array<Real>& part_data, int start_comp, int num_comp);
 #endif
 
     void AddProcsToSidecar(int nSidecarProcs, int prevSidecarProcs);
