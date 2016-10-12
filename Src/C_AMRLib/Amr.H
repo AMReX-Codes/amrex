@@ -40,7 +40,7 @@ public:
     // The constructor.
     //
     Amr ();
-    Amr (const RealBox* rb, int max_level_in, Array<int> n_cell_in, int coord);
+    Amr (const RealBox* rb, int max_level_in, const Array<int>& n_cell_in, int coord);
     void InitAmr ();
     //
     // The destructor.
@@ -412,11 +412,7 @@ public:
     static void BroadcastBCRec(BCRec &bcrec, int myLocalId, int rootId, MPI_Comm localComm);
 
 protected:
-    //
-    // Used by grid_places().
-    //
-    static void ProjPeriodic (BoxList&        bd,
-                              const Geometry& geom);
+
     //
     // Initialize grid hierarchy -- called by Amr::init.
     //
@@ -460,12 +456,9 @@ protected:
                       int&             new_finest,
                       Array<BoxArray>& new_grids);
 
-    //
-    // If ngrids < nprocs, break up the grids to better load balance
-    //
-    void impose_refine_grid_layout (int              lbase,
-                                    int              new_finest,
-                                    Array<BoxArray>& new_grids);
+    virtual void ErrorEst (int lev, TagBoxArray& tags, Real time, int ngrow) BL_OVERRIDE;
+    virtual BoxArray GetAreaNotToTag (int lev) BL_OVERRIDE;
+    virtual void ManualTagsPlacement (int lev, TagBoxArray& tags, Array<IntVect>& bf_lev) BL_OVERRIDE;
 
     //
     // Do a single timestep on level L.
@@ -570,10 +563,6 @@ protected:
     static Array<BoxArray> regrid_ba;
 
 public:
-    // Should we keep the coarser grids fixed (and not regrid those levels) at all?
-    static bool useFixedCoarseGrids;
-    // Up to what level should we keep the coarser grids fixed (and not regrid those levels)?
-    static int useFixedUpToLevel;
 
     BoundaryPointList intersect_lox;
     BoundaryPointList intersect_loy;

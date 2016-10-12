@@ -94,7 +94,7 @@ AmrLevel::AmrLevel (Amr&            papa,
                         parent->dtLevel(lev));
     }
 
-    if (Amr::useFixedCoarseGrids) constructAreaNotToTag();
+    if (parent->useFixedCoarseGrids()) constructAreaNotToTag();
 
     finishConstructor();
 }
@@ -138,7 +138,7 @@ AmrLevel::AmrLevel (Amr&            papa,
                         parent->dtLevel(lev));
     }
 
-    if (Amr::useFixedCoarseGrids) constructAreaNotToTag();
+    if (parent->useFixedCoarseGrids()) constructAreaNotToTag();
 
     finishConstructor();
 }
@@ -195,7 +195,7 @@ AmrLevel::restart (Amr&          papa,
 	}
     }
  
-    if (Amr::useFixedCoarseGrids) constructAreaNotToTag();
+    if (parent->useFixedCoarseGrids()) constructAreaNotToTag();
 
     finishConstructor();
 }
@@ -1818,11 +1818,11 @@ void AmrLevel::setAreaNotToTag(BoxArray& ba)
 
 void AmrLevel::constructAreaNotToTag()
 {
-    if (level == 0 || !Amr::useFixedCoarseGrids || Amr::useFixedUpToLevel>level)
+    if (level == 0 || !parent->useFixedCoarseGrids() || parent->useFixedUpToLevel()>level)
         return;
 
     // We are restricting the tagging on the finest fixed level
-    if (Amr::useFixedUpToLevel==level)
+    if (parent->useFixedUpToLevel()==level)
     {
         // We use the next coarser level shrunk by one blockingfactor
         //    as the region in which we allow tagging. 
@@ -1841,7 +1841,7 @@ void AmrLevel::constructAreaNotToTag()
         BL_ASSERT(bxa.contains(m_AreaNotToTag));
     }
 
-    if (Amr::useFixedUpToLevel<level)
+    if (parent->useFixedUpToLevel()<level)
     {
         Box tagarea = parent->getLevel(level-1).getAreaToTag();
         tagarea.refine(parent->refRatio(level-1));
