@@ -3396,50 +3396,9 @@ Amr::impose_refine_grid_layout (int lbase, int new_finest, Array<BoxArray>& new_
 
 #ifdef USE_PARTICLES
 void 
-Amr::addOneParticle (int id_in, int cpu_in, 
-                     std::vector<double>& xloc, std::vector<double>& attributes)
-{
-    amr_level[0].addOneParticle(id_in,cpu_in,xloc,attributes);
-}
-void 
 Amr::RedistributeParticles ()
 {
-    // Call Redistribute with where_already_called = false
-    //                        full_where           = false
-    //                        lev_min              = 0
     amr_level[0].particle_redistribute(0,true);
-}
-void
-Amr::GetParticleIDs (Array<int>& part_ids)
-{
-    //
-    // The AmrLevel class is where we have access to the particle container.
-    //
-    amr_level[0].GetParticleIDs(part_ids);
-}
-void
-Amr::GetParticleCPU (Array<int>& part_cpu)
-{
-    //
-    // The AmrLevel class is where we have access to the particle container.
-    //
-    amr_level[0].GetParticleCPU(part_cpu);
-}
-void
-Amr::GetParticleLocations (Array<Real>& part_data)
-{
-    //
-    // The AmrLevel class is where we have access to the particle container.
-    //
-    amr_level[0].GetParticleLocations(part_data);
-}
-void 
-Amr::GetParticleData (Array<Real>& part_data, int start_comp, int num_comp)
-{
-    //
-    // The AmrLevel class is where we have access to the particle container.
-    //
-    amr_level[0].GetParticleData(part_data,start_comp,num_comp);
 }
 #endif
 
