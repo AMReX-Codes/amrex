@@ -1,0 +1,28 @@
+
+# number of grid points
+nx = 64
+ny = 64
+nz = 64
+
+# Maximum allowable size of each subdomain in the problem domain; 
+#    this is used to decompose the domain for parallel calculations.
+max_grid_size = 32
+
+# Maximum level in hierarchy (for now must be 0, i.e., one level in total)
+max_level = 0
+
+# Maximum number of time steps
+max_step = 5
+
+# Geometry
+geometry.coord_sys   = 0                  # 0: Cartesian
+geometry.is_periodic = 1     1     1      # Is periodic?  
+geometry.prob_lo     = -20.e-6   -20.e-6   -20.e-6    # physical domain
+geometry.prob_hi     =  20.e-6    20.e-6    20.e-6
+
+# Verbosity
+verbose = 1
+
+langmuirwave.num_particles_per_cell = 10 # number of particle per cells
+langmuirwave.n_e = 1.e25  # number of electrons per m^3
+langmuirwave.ux  = 0.01   # ux = gamma*beta_x
