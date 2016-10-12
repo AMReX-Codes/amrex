@@ -64,9 +64,6 @@ bool                   Amr::first_plotfile;
 bool                   Amr::first_smallplotfile;
 Array<BoxArray>        Amr::initial_ba;
 Array<BoxArray>        Amr::regrid_ba;
-bool                   Amr::useFixedCoarseGrids;
-int                    Amr::useFixedUpToLevel;
-
 
 namespace
 {
@@ -87,7 +84,6 @@ namespace
     int  checkpoint_nfiles;
     int  regrid_on_restart;
     int  use_efficient_regrid;
-    bool refine_grid_layout;
     int  plotfile_on_restart;
     int  checkpoint_on_restart;
     bool checkpoint_files_output;
@@ -110,13 +106,10 @@ Amr::Initialize ()
     checkpoint_nfiles        = 64;
     regrid_on_restart        = 0;
     use_efficient_regrid     = 0;
-    refine_grid_layout       = true;
     plotfile_on_restart      = 0;
     checkpoint_on_restart    = 0;
     checkpoint_files_output  = true;
     compute_new_dt_on_regrid = 0;
-    Amr::useFixedCoarseGrids = false;
-    Amr::useFixedUpToLevel   = 0;
 
     BoxLib::ExecOnFinalize(Amr::Finalize);
 
@@ -195,18 +188,16 @@ Amr::Amr ()
     datalog(PArrayManage)
 {
     Initialize();
-    Geometry::Setup();
     InitAmr();
 }
 
-Amr::Amr (const RealBox* rb, int max_level_in, Array<int> n_cell_in, int coord)
+Amr::Amr (const RealBox* rb, int max_level_in, const Array<int>& n_cell_in, int coord)
     :
     AmrCore(rb,max_level_in,n_cell_in,coord),
     amr_level(PArrayManage),
     datalog(PArrayManage)
 {
     Initialize();
-    Geometry::Setup(rb,coord);
     InitAmr();
 }
 
@@ -250,8 +241,6 @@ Amr::InitAmr ()
     pp.query("checkpoint_on_restart",checkpoint_on_restart);
 
     pp.query("compute_new_dt_on_regrid",compute_new_dt_on_regrid);
-
-    pp.query("refine_grid_layout", refine_grid_layout);
 
     pp.query("mffile_nstreams", mffile_nstreams);
     pp.query("probinit_natonce", probinit_natonce);
@@ -335,11 +324,6 @@ Amr::InitAmr ()
        for (int i = 0; i < max_level; i++)
            regrid_int[i]  = 1;
     }
-
-    //
-    // Are we going to keep the grids at certain levels fixed?
-    //
-    pp.query("useFixedCoarseGrids", useFixedCoarseGrids);
     
     //
     // Setup plot and checkpoint controls.
@@ -401,7 +385,7 @@ Amr::InitAmr ()
         STRIP;
         initial_ba.resize(in_finest);
 
-        useFixedUpToLevel = in_finest;
+        use_fixed_upto_level = in_finest;
         if (in_finest > max_level)
            BoxLib::Error("You have fewer levels in your inputs file then in your grids file!");
 
@@ -934,7 +918,7 @@ Amr::checkInput ()
         if (MaxRefRatio(i) < 2 || MaxRefRatio(i) > 12)
             BoxLib::Error("checkInput bad ref_ratios");
     }
-    const Box& domain = geom[0].Domain();
+    const Box& domain = Geom(0).Domain();
     if (!domain.ok())
         BoxLib::Error("level 0 domain bad or not set");
     //
@@ -1002,9 +986,9 @@ Amr::init (Real strt_time,
 #endif
 
 #ifdef BL_COMM_PROFILING
-    Array<Box> probDomain(geom.size());
+    Array<Box> probDomain(maxLevel()+1);
     for(int i(0); i < probDomain.size(); ++i) {
-      probDomain[i] = geom[i].Domain();
+	probDomain[i] = Geom(i).Domain();
     }
     BL_COMM_PROFILE_INITAMR(finest_level, max_level, ref_ratio, probDomain);
 #endif
@@ -1234,7 +1218,7 @@ Amr::FinalizeInit (Real              strt_time,
 
 #ifdef USE_STATIONDATA 
     station.init(amr_level, finestLevel());
-    station.findGrid(amr_level,geom);
+    station.findGrid(amr_level,Geom());
 #endif
     BL_COMM_PROFILE_NAMETAG("Amr::initialInit BOTTOM");
 }
@@ -1317,13 +1301,13 @@ Amr::restart (const std::string& filename)
     Array<Box> inputs_domain(max_level+1);
     for (int lev = 0; lev <= max_level; lev++)
     {
-       Box bx(geom[lev].Domain().smallEnd(),geom[lev].Domain().bigEnd());
+	Box bx(Geom(lev).Domain().smallEnd(),Geom(lev).Domain().bigEnd());
        inputs_domain[lev] = bx;
     }
 
     if (max_level >= mx_lev) {
 
-       for (int i = 0; i <= mx_lev; i++) is >> geom[i];
+       for (int i = 0; i <= mx_lev; i++) is >> Geom(i);
        for (int i = 0; i <  mx_lev; i++) is >> ref_ratio[i];
        for (int i = 0; i <= mx_lev; i++) is >> dt_level[i];
 
@@ -1426,7 +1410,7 @@ Amr::restart (const std::string& filename)
        int         int_dummy;
        IntVect intvect_dummy;
 
-       for (int i = 0          ; i <= max_level; i++) is >> geom[i];
+       for (int i = 0          ; i <= max_level; i++) is >> Geom(i);
        for (int i = max_level+1; i <= mx_lev   ; i++) is >> geom_dummy;
 
        for (int i = 0        ; i <  max_level; i++) is >> ref_ratio[i];
@@ -1485,7 +1469,7 @@ Amr::restart (const std::string& filename)
 
     for (int lev = 0; lev <= finest_level; lev++)
     {
-       Box restart_domain(geom[lev].Domain());
+	Box restart_domain(Geom(lev).Domain());
        if (! (inputs_domain[lev] == restart_domain) )
        {
           if (ParallelDescriptor::IOProcessor())
@@ -1501,7 +1485,7 @@ Amr::restart (const std::string& filename)
 
 #ifdef USE_STATIONDATA
     station.init(amr_level, finestLevel());
-    station.findGrid(amr_level,geom);
+    station.findGrid(amr_level,Geom());
 #endif
 
     if (verbose > 0)
@@ -1590,7 +1574,7 @@ Amr::checkPoint ()
         //
         // Write out problem domain.
         //
-        for (int i = 0; i <= max_level; i++) HeaderFile << geom[i]        << ' ';
+        for (int i = 0; i <= max_level; i++) HeaderFile << Geom(i)        << ' ';
         HeaderFile << '\n';
         for (int i = 0; i < max_level; i++)  HeaderFile << ref_ratio[i]   << ' ';
         HeaderFile << '\n';
@@ -2116,15 +2100,14 @@ Amr::defBaseLevel (Real              strt_time,
     //
     // Check that base domain has even number of zones in all directions.
     //
-    const Box& domain   = geom[0].Domain();
-    IntVect    d_length = domain.size();
-    const int* d_len    = d_length.getVect();
+    const Box& domain   = Geom(0).Domain();
+    const IntVect& d_len = domain.size();
 
     for (int idir = 0; idir < BL_SPACEDIM; idir++)
         if (d_len[idir]%2 != 0)
             BoxLib::Error("defBaseLevel: must have even number of cells");
 
-    BoxArray lev0(1);
+    BoxArray lev0;
 
     if (lev0_grids != 0 && lev0_grids->size() > 0)
     {
@@ -2137,6 +2120,11 @@ Amr::defBaseLevel (Real              strt_time,
             BoxLib::Error("defBaseLevel: lev0_grids does not contain domain");
 
         lev0 = *lev0_grids;
+
+	if (refine_grid_layout) {
+	    ChopGrids(0,lev0,ParallelDescriptor::NProcs());
+	}
+
         //
         // Make sure that the grids all go on the processor as specified by pmap;
         //      we store this in cache so all level 0 MultiFabs will use this DistributionMap.
@@ -2146,38 +2134,16 @@ Amr::defBaseLevel (Real              strt_time,
     }
     else
     {
-        //
-        // Coarsening before we split the grids ensures that each resulting
-        // grid will have an even number of cells in each direction.
-        //
-        lev0.set(0,BoxLib::coarsen(domain,2));
-        //
-        // Now split up into list of grids within max_grid_size[0] limit.
-        //
-        lev0.maxSize(max_grid_size[0]/2);
-        //
-        // Now refine these boxes back to level 0.
-        //
-        lev0.refine(2);
+	lev0 = MakeBaseGrids();
     }
 
-    //
-    // If (refine_grid_layout == 1) and (Nprocs > ngrids) then break up the 
-    //    grids into smaller chunks
-    //
-    Array<BoxArray> new_grids(1);
-    new_grids[0] = lev0;
-    impose_refine_grid_layout(0,0,new_grids);
-    lev0 = new_grids[0];
-
-    this->SetBoxArray(0, new_grids[0]);
-    this->SetDistributionMap(0, DistributionMapping(new_grids[0],
-						    ParallelDescriptor::NProcs()));
+    this->SetBoxArray(0, lev0);
+    this->SetDistributionMap(0, DistributionMapping(lev0, ParallelDescriptor::NProcs()));
 
     //
     // Now build level 0 grids.
     //
-    amr_level.set(0,(*levelbld)(*this,0,geom[0],lev0,strt_time));
+    amr_level.set(0,(*levelbld)(*this,0,Geom(0),lev0,strt_time));
     //
     // Now init level 0 grids with data.
     //
@@ -2262,7 +2228,7 @@ Amr::regrid (int  lbase,
         // Construct skeleton of new level.
         //
 
-        AmrLevel* a = (*levelbld)(*this,lev,geom[lev],new_grid_places[lev],cumtime);
+        AmrLevel* a = (*levelbld)(*this,lev,Geom(lev),new_grid_places[lev],cumtime);
 
         if (initial)
         {
@@ -2332,7 +2298,7 @@ Amr::regrid (int  lbase,
     }
 
 #ifdef USE_STATIONDATA
-    station.findGrid(amr_level,geom);
+    station.findGrid(amr_level,Geom());
 #endif
     //
     // Report creation of new grids.
@@ -2388,7 +2354,7 @@ Amr::regrid_level_0_on_restart()
     // Coarsening before we split the grids ensures that each resulting
     // grid will have an even number of cells in each direction.
     //
-    BoxArray lev0(BoxLib::coarsen(geom[0].Domain(),2));
+    BoxArray lev0(BoxLib::coarsen(Geom(0).Domain(),2));
     //
     // Now split up into list of grids within max_grid_size[0] limit.
     //
@@ -2407,7 +2373,7 @@ Amr::regrid_level_0_on_restart()
 	//
 	// Construct skeleton of new level.
 	//
-	AmrLevel* a = (*levelbld)(*this,0,geom[0],lev0,cumtime);
+	AmrLevel* a = (*levelbld)(*this,0,Geom(0),lev0,cumtime);
 	
 	a->init(amr_level[0]);
 	amr_level.clear(0);
@@ -2451,7 +2417,7 @@ Amr::printGridInfo (std::ostream& os,
         const BoxArray&           bs      = amr_level[lev].boxArray();
         int                       numgrid = bs.size();
         long                      ncells  = amr_level[lev].countCells();
-        double                    ntot    = geom[lev].Domain().d_numPts();
+        double                    ntot    = Geom(lev).Domain().d_numPts();
         Real                      frac    = 100.0*(Real(ncells) / ntot);
         const DistributionMapping& map    = amr_level[lev].get_new_data(0).DistributionMap();
 
@@ -2493,7 +2459,7 @@ Amr::printGridSummary (std::ostream& os,
         const BoxArray&           bs      = amr_level[lev].boxArray();
         int                       numgrid = bs.size();
         long                      ncells  = amr_level[lev].countCells();
-        double                    ntot    = geom[lev].Domain().d_numPts();
+        double                    ntot    = Geom(lev).Domain().d_numPts();
         Real                      frac    = 100.0*(Real(ncells) / ntot);
 
         os << "  Level "
@@ -2575,58 +2541,6 @@ Amr::printGridSummary (std::ostream& os,
     os << std::endl; // Make sure we flush!
 }
 
-void
-Amr::ProjPeriodic (BoxList&        blout,
-                   const Geometry& geom)
-{
-    //
-    // Add periodic translates to blout.
-    //
-    Box domain = geom.Domain();
-
-    BoxList blorig(blout);
-
-    int nist,njst,nkst;
-    int niend,njend,nkend;
-    nist = njst = nkst = 0;
-    niend = njend = nkend = 0;
-    D_TERM( nist , =njst , =nkst ) = -1;
-    D_TERM( niend , =njend , =nkend ) = +1;
-
-    int ri,rj,rk;
-    for (ri = nist; ri <= niend; ri++)
-    {
-        if (ri != 0 && !geom.isPeriodic(0))
-            continue;
-        if (ri != 0 && geom.isPeriodic(0))
-            blorig.shift(0,ri*domain.length(0));
-        for (rj = njst; rj <= njend; rj++)
-        {
-            if (rj != 0 && !geom.isPeriodic(1))
-                continue;
-            if (rj != 0 && geom.isPeriodic(1))
-                blorig.shift(1,rj*domain.length(1));
-            for (rk = nkst; rk <= nkend; rk++)
-            {
-                if (rk != 0 && !geom.isPeriodic(2))
-                    continue;
-                if (rk != 0 && geom.isPeriodic(2))
-                    blorig.shift(2,rk*domain.length(2));
-
-                BoxList tmp(blorig);
-                tmp.intersect(domain);
-                blout.catenate(tmp);
- 
-                if (rk != 0 && geom.isPeriodic(2))
-                    blorig.shift(2,-rk*domain.length(2));
-            }
-            if (rj != 0 && geom.isPeriodic(1))
-                blorig.shift(1,-rj*domain.length(1));
-        }
-        if (ri != 0 && geom.isPeriodic(0))
-            blorig.shift(0,-ri*domain.length(0));
-    }
-}
 
 void
 Amr::grid_places (int              lbase,
@@ -2636,38 +2550,16 @@ Amr::grid_places (int              lbase,
 {
     BL_PROFILE("Amr::grid_places()");
 
-    int i, max_crse = std::min(finest_level,max_level-1);
+    int max_crse = std::min(finest_level,max_level-1);
 
     const Real strttime = ParallelDescriptor::second();
 
     if (lbase == 0)
     {
-        //
-        // Recalculate level 0 BoxArray in case max_grid_size[0] has changed.
-        // This is done exactly as in defBaseLev().
-        //
-        BoxArray lev0(1);
-
-        lev0.set(0,BoxLib::coarsen(geom[0].Domain(),2));
-        //
-        // Now split up into list of grids within max_grid_size[0] limit.
-        //
-        lev0.maxSize(max_grid_size[0]/2);
-        //
-        // Now refine these boxes back to level 0.
-        //
-        lev0.refine(2);
-
-        new_grids[0] = lev0;
-
-       // If Nprocs > Ngrids and refine_grid_layout == 1 then break up the grids
-       //    into smaller chunks for better load balancing
-       // We need to impose this here in the event that we return with fixed_grids
-       //    and never have a chance to impose it later
-       impose_refine_grid_layout(lbase,lbase,new_grids);
+	new_grids[0] = MakeBaseGrids();
     }
 
-    if ( time == 0. && !initial_grids_file.empty() && !useFixedCoarseGrids)
+    if ( time == 0. && !initial_grids_file.empty() && !use_fixed_coarse_grids)
     {
         new_finest = std::min(max_level,(finest_level+1));
         new_finest = std::min(new_finest,initial_ba.size());
@@ -2689,7 +2581,7 @@ Amr::grid_places (int              lbase,
     }
 
     // Use grids in initial_grids_file as fixed coarse grids.
-    if ( ! initial_grids_file.empty() && useFixedCoarseGrids)
+    if ( ! initial_grids_file.empty() && use_fixed_coarse_grids)
     {
         new_finest = std::min(max_level,(finest_level+1));
         new_finest = std::min(new_finest,initial_ba.size());
@@ -2731,315 +2623,7 @@ Amr::grid_places (int              lbase,
         return;
     }
 
-    //
-    // Construct problem domain at each level.
-    //
-    Array<IntVect> bf_lev(max_level); // Blocking factor at each level.
-    Array<IntVect> rr_lev(max_level);
-    Array<Box>     pc_domain(max_level);  // Coarsened problem domain.
-    for (int i = 0; i <= max_crse; i++)
-    {
-        for (int n=0; n<BL_SPACEDIM; n++)
-            bf_lev[i][n] = std::max(1,blocking_factor[i+1]/ref_ratio[i][n]);
-    }
-    for (i = lbase; i < max_crse; i++)
-    {
-        for (int n=0; n<BL_SPACEDIM; n++)
-            rr_lev[i][n] = (ref_ratio[i][n]*bf_lev[i][n])/bf_lev[i+1][n];
-    }
-    for(i = lbase; i <= max_crse; i++) {
-      pc_domain[i] = BoxLib::coarsen(geom[i].Domain(),bf_lev[i]);
-    }
-    //
-    // Construct proper nesting domains.
-    //
-    Array<BoxList> p_n(max_level);      // Proper nesting domain.
-    Array<BoxList> p_n_comp(max_level); // Complement proper nesting domain.
-
-    BoxList bl(amr_level[lbase].boxArray());
-    bl.simplify();
-    bl.coarsen(bf_lev[lbase]);
-    p_n_comp[lbase].complementIn(pc_domain[lbase],bl);
-    p_n_comp[lbase].simplify();
-    p_n_comp[lbase].accrete(n_proper);
-    Amr::ProjPeriodic(p_n_comp[lbase], Geometry(pc_domain[lbase]));
-    p_n[lbase].complementIn(pc_domain[lbase],p_n_comp[lbase]);
-    p_n[lbase].simplify();
-    bl.clear();
-
-    for (i = lbase+1; i <= max_crse; i++)
-    {
-        p_n_comp[i] = p_n_comp[i-1];
-
-        // Need to simplify p_n_comp or the number of grids can too large for many levels.
-        p_n_comp[i].simplify();
-
-        p_n_comp[i].refine(rr_lev[i-1]);
-        p_n_comp[i].accrete(n_proper);
-
-        Amr::ProjPeriodic(p_n_comp[i], Geometry(pc_domain[i]));
-
-        p_n[i].complementIn(pc_domain[i],p_n_comp[i]);
-        p_n[i].simplify();
-    }
-    //
-    // Now generate grids from finest level down.
-    //
-    new_finest = lbase;
-
-    for (int levc = max_crse; levc >= lbase; levc--)
-    {
-        int levf = levc+1;
-        //
-        // Construct TagBoxArray with sufficient grow factor to contain
-        // new levels projected down to this level.
-        //
-        int ngrow = 0;
-
-        if (levf < new_finest)
-        {
-            BoxArray ba_proj(new_grids[levf+1]);
-
-            ba_proj.coarsen(ref_ratio[levf]);
-            ba_proj.grow(n_proper);
-            ba_proj.coarsen(ref_ratio[levc]);
-
-            BoxArray levcBA = amr_level[levc].boxArray();
-
-            while (!levcBA.contains(ba_proj))
-            {
-                BoxArray tmp = levcBA;
-                tmp.grow(1);
-                levcBA = tmp;
-                ngrow++;
-            }
-        }
-        TagBoxArray tags(amr_level[levc].boxArray(),n_error_buf[levc]+ngrow);
-    
-        //
-        // Only use error estimation to tag cells for the creation of new grids
-        //      if the grids at that level aren't already fixed.
-        //
-
-        if ( ! (useFixedCoarseGrids && levc < useFixedUpToLevel) ) {
-            amr_level[levc].errorEst(tags,
-                                     TagBox::CLEAR,TagBox::SET,time,
-                                     n_error_buf[levc],ngrow);
-	}
-
-        //
-        // If new grids have been constructed above this level, project
-        // those grids down and tag cells on intersections to ensure
-        // proper nesting.
-        //
-        // NOTE: this loop replaces the previous code:
-        //      if (levf < new_finest) 
-        //          tags.setVal(ba_proj,TagBox::SET);
-        // The problem with this code is that it effectively 
-        // "buffered the buffer cells",  i.e., the grids at level
-        // levf+1 which were created by buffering with n_error_buf[levf]
-        // are then coarsened down twice to define tagging at
-        // level levc, which will then also be buffered.  This can
-        // create grids which are larger than necessary.
-        //
-        if (levf < new_finest)
-        {
-            int nerr = n_error_buf[levf];
-
-            BoxList bl_tagged(new_grids[levf+1]);
-            bl_tagged.simplify();
-            bl_tagged.coarsen(ref_ratio[levf]);
-            //
-            // This grows the boxes by nerr if they touch the edge of the
-            // domain in preparation for them being shrunk by nerr later.
-            // We want the net effect to be that grids are NOT shrunk away
-            // from the edges of the domain.
-            //
-            for (BoxList::iterator blt = bl_tagged.begin(), End = bl_tagged.end();
-                 blt != End;
-                 ++blt)
-            {
-                for (int idir = 0; idir < BL_SPACEDIM; idir++)
-                {
-                    if (blt->smallEnd(idir) == geom[levf].Domain().smallEnd(idir))
-                        blt->growLo(idir,nerr);
-                    if (blt->bigEnd(idir) == geom[levf].Domain().bigEnd(idir))
-                        blt->growHi(idir,nerr);
-                }
-            }
-            Box mboxF = BoxLib::grow(bl_tagged.minimalBox(),1);
-            BoxList blFcomp;
-            blFcomp.complementIn(mboxF,bl_tagged);
-            blFcomp.simplify();
-            bl_tagged.clear();
-
-            const IntVect& iv = IntVect(D_DECL(nerr/ref_ratio[levf][0],
-                                               nerr/ref_ratio[levf][1],
-                                               nerr/ref_ratio[levf][2]));
-            blFcomp.accrete(iv);
-            BoxList blF;
-            blF.complementIn(mboxF,blFcomp);
-            BoxArray baF(blF);
-            blF.clear();
-            baF.grow(n_proper);
-            //
-            // We need to do this in case the error buffering at
-            // levc will not be enough to cover the error buffering
-            // at levf which was just subtracted off.
-            //
-            for (int idir = 0; idir < BL_SPACEDIM; idir++) 
-            {
-                if (nerr > n_error_buf[levc]*ref_ratio[levc][idir]) 
-                    baF.grow(idir,nerr-n_error_buf[levc]*ref_ratio[levc][idir]);
-            }
-
-            baF.coarsen(ref_ratio[levc]);
-
-            tags.setVal(baF,TagBox::SET);
-        }
-        //
-        // Buffer error cells.
-        //
-        tags.buffer(n_error_buf[levc]+ngrow);
-
-        if (useFixedCoarseGrids)
-        {
-           if (levc>=useFixedUpToLevel)
-           {
-               BoxArray bla(amr_level[levc].getAreaNotToTag());
-               tags.setVal(bla,TagBox::CLEAR);
-           }
-           if (levc<useFixedUpToLevel)
-              new_finest = std::max(new_finest,levf);
-        }
-
-        //
-        // Coarsen the taglist by blocking_factor/ref_ratio.
-        //
-        int bl_max = 0;
-        for (int n=0; n<BL_SPACEDIM; n++)
-            bl_max = std::max(bl_max,bf_lev[levc][n]);
-        if (bl_max > 1) 
-            tags.coarsen(bf_lev[levc]);
-        //
-        // Remove or add tagged points which violate/satisfy additional 
-        // user-specified criteria.
-        //
-        amr_level[levc].manual_tags_placement(tags, bf_lev);
-        //
-        // Map tagged points through periodic boundaries, if any.
-        //
-        tags.mapPeriodic(Geometry(pc_domain[levc]));
-        //
-        // Remove cells outside proper nesting domain for this level.
-        //
-        tags.setVal(p_n_comp[levc],TagBox::CLEAR);
-        //
-        // Create initial cluster containing all tagged points.
-        //
-	std::vector<IntVect> tagvec;
-	tags.collate(tagvec);
-        tags.clear();
-
-        if (tagvec.size() > 0)
-        {
-            //
-            // Created new level, now generate efficient grids.
-            //
-            if ( !(useFixedCoarseGrids && levc<useFixedUpToLevel) )
-                new_finest = std::max(new_finest,levf);
-            //
-            // Construct initial cluster.
-            //
-            ClusterList clist(&tagvec[0], tagvec.size());
-            clist.chop(grid_eff);
-            BoxDomain bd;
-            bd.add(p_n[levc]);
-            clist.intersect(bd);
-            bd.clear();
-            //
-            // Efficient properly nested Clusters have been constructed
-            // now generate list of grids at level levf.
-            //
-            BoxList new_bx;
-            clist.boxList(new_bx);
-            new_bx.refine(bf_lev[levc]);
-            new_bx.simplify();
-            BL_ASSERT(new_bx.isDisjoint());
-	    
-	    if (new_bx.size()>0) {
-	      if ( !(geom[levc].Domain().contains(BoxArray(new_bx).minimalBox())) ) {
-		// Chop new grids outside domain, note that this is likely to result in
-		//  new grids that violate blocking_factor....see warning checking below
-		new_bx = BoxLib::intersect(new_bx,geom[levc].Domain());
-	      }
-	    }
-
-            IntVect largest_grid_size;
-            for (int n = 0; n < BL_SPACEDIM; n++)
-                largest_grid_size[n] = max_grid_size[levf] / ref_ratio[levc][n];
-            //
-            // Ensure new grid boxes are at most max_grid_size in index dirs.
-            //
-            new_bx.maxSize(largest_grid_size);
-
-#ifdef BL_FIX_GATHERV_ERROR
-	      int wcount = 0, iLGS = largest_grid_size[0];
-
-              while (new_bx.size() < 64 && wcount++ < 4)
-              {
-                  iLGS /= 2;
-                  if (ParallelDescriptor::IOProcessor())
-                  {
-                      std::cout << "BL_FIX_GATHERV_ERROR:  using iLGS = " << iLGS
-                                << "   largest_grid_size was:  " << largest_grid_size[0]
-                                << '\n';
-                      std::cout << "BL_FIX_GATHERV_ERROR:  new_bx.size() was:   "
-                                << new_bx.size() << '\n';
-                  }
-
-                  new_bx.maxSize(iLGS);
-
-                  if (ParallelDescriptor::IOProcessor())
-                  {
-                      std::cout << "BL_FIX_GATHERV_ERROR:  new_bx.size() now:   "
-                                << new_bx.size() << '\n';
-                  }
-	      }
-#endif
-            //
-            // Refine up to levf.
-            //
-            new_bx.refine(ref_ratio[levc]);
-            BL_ASSERT(new_bx.isDisjoint());
-
-	    if (new_bx.size()>0) {
-	      if ( !(geom[levf].Domain().contains(BoxArray(new_bx).minimalBox())) ) {
-		new_bx = BoxLib::intersect(new_bx,geom[levf].Domain());
-	      }
-	      if (ParallelDescriptor::IOProcessor()) {
-		for (int d=0; d<BL_SPACEDIM; ++d) {
-		  bool ok = true;
-		  for (BoxList::const_iterator bli = new_bx.begin(); bli != new_bx.end(); ++bli) {
-		    int len = bli->length(d);
-		    int bf = blocking_factor[levf];
-		    ok &= (len/bf) * bf == len;
-		  }
-		  if (!ok) {
-		    BoxLib::Warning("WARNING: New grids violate blocking factor near upper boundary");
-		  }
-		}
-	      }
-	    }
-            if(levf > useFixedUpToLevel) {
-              new_grids[levf].define(new_bx);
-	    }
-        }
-    }
-
-    // If Nprocs > Ngrids and refine_grid_layout == 1 then break up the grids
-    //    into smaller chunks for better load balancing
-    impose_refine_grid_layout(lbase,new_finest,new_grids);
+    MakeNewGrids(lbase, time, new_finest, new_grids);
 
     if (verbose > 0)
     {
@@ -3055,6 +2639,24 @@ Amr::grid_places (int              lbase,
 	});
 #endif
     }
+}
+
+void
+Amr::ErrorEst (int lev, TagBoxArray& tags, Real time, int ngrow)
+{
+    amr_level[lev].errorEst(tags,TagBox::CLEAR,TagBox::SET,time, n_error_buf[lev],ngrow);
+}
+
+BoxArray
+Amr::GetAreaNotToTag (int lev)
+{
+    return BoxArray(amr_level[lev].getAreaNotToTag());
+}
+
+void
+Amr::ManualTagsPlacement (int lev, TagBoxArray& tags, Array<IntVect>& bf_lev)
+{
+    amr_level[lev].manual_tags_placement(tags, bf_lev);
 }
 
 void
@@ -3085,7 +2687,7 @@ Amr::bldFineLevels (Real strt_time)
 
         AmrLevel* level = (*levelbld)(*this,
                                       new_finest,
-                                      geom[new_finest],
+                                      Geom(new_finest),
                                       new_grids[new_finest],
                                       strt_time);
 
@@ -3365,41 +2967,6 @@ const Array<BoxArray>& Amr::getInitialBA()
   return initial_ba;
 }
 
-void 
-Amr::impose_refine_grid_layout (int lbase, int new_finest, Array<BoxArray>& new_grids)
-{
-    const int NProcs = ParallelDescriptor::NProcs();
-    if (NProcs > 1 && refine_grid_layout)
-    {
-        //
-        // Chop up grids if fewer grids at level than CPUs.
-        // The idea here is to make more grids on a given level
-        // to spread the work around.
-        //
-        for (int cnt = 1; cnt <= 4; cnt *= 2)
-        {
-            for (int i = lbase; i <= new_finest; i++)
-            {
-                const int ChunkSize = max_grid_size[i]/cnt;
-
-                IntVect chunk(D_DECL(ChunkSize,ChunkSize,ChunkSize));
-                //
-                // We go from Z -> Y -> X to promote cache-efficiency.
-                //
-                for (int j = BL_SPACEDIM-1; j >= 0 ; j--)
-                {
-                    chunk[j] /= 2;
-
-                    if ( (new_grids[i].size() < NProcs) && (chunk[j]%blocking_factor[i] == 0) )
-                    {
-                        new_grids[i].maxSize(chunk);
-                    }
-                }
-            }
-        }
-    }
-}
-
 #ifdef USE_PARTICLES
 void 
 Amr::RedistributeParticles ()
@@ -3503,7 +3070,7 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
       Array<int> allInts;
       int allIntsSize(0);
       int dt_level_Size(dt_level.size()), dt_min_Size(dt_min.size());
-      int ref_ratio_Size(ref_ratio.size()), amr_level_Size(amr_level.size()), geom_Size(geom.size());
+      int ref_ratio_Size(ref_ratio.size()), amr_level_Size(amr_level.size()), geom_Size(Geom().size());
       int state_plot_vars_Size(state_plot_vars.size()), derive_plot_vars_Size(derive_plot_vars.size());
       int state_small_plot_vars_Size(state_small_plot_vars.size());
       if(scsMyId == ioProcNumSCS) {
@@ -3538,7 +3105,7 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
         allInts.push_back(plotfile_on_restart);
         allInts.push_back(checkpoint_on_restart);
         allInts.push_back(compute_new_dt_on_regrid);
-        allInts.push_back(useFixedUpToLevel);
+        allInts.push_back(use_fixed_upto_level);
 
         allInts.push_back(level_steps.size());
         for(int i(0); i < level_steps.size(); ++i)     { allInts.push_back(level_steps[i]); }
@@ -3560,7 +3127,7 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
         allInts.push_back(dt_min.size());
         allInts.push_back(ref_ratio.size());
         allInts.push_back(amr_level.size());
-        allInts.push_back(geom.size());
+        allInts.push_back(Geom().size());
         allInts.push_back(state_plot_vars.size());
         allInts.push_back(state_small_plot_vars.size());
         allInts.push_back(derive_plot_vars.size());
@@ -3603,7 +3170,7 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
         plotfile_on_restart        = allInts[count++];
         checkpoint_on_restart      = allInts[count++];
         compute_new_dt_on_regrid   = allInts[count++];
-        useFixedUpToLevel          = allInts[count++];
+        use_fixed_upto_level       = allInts[count++];
 
         aSize                      = allInts[count++];
 	level_steps.resize(aSize);
@@ -3689,7 +3256,7 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
         allBools.push_back(refine_grid_layout);
         allBools.push_back(checkpoint_files_output);
         allBools.push_back(initialized);
-        allBools.push_back(useFixedCoarseGrids);
+        allBools.push_back(use_fixed_coarse_grids);
         allBools.push_back(first_smallplotfile);
 
 	allBoolsSize = allBools.size();
@@ -3710,7 +3277,7 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
         refine_grid_layout            = allBools[count++];
         checkpoint_files_output       = allBools[count++];
         initialized                   = allBools[count++];
-        useFixedCoarseGrids           = allBools[count++];
+        use_fixed_coarse_grids        = allBools[count++];
         first_smallplotfile           = allBools[count++];
       }
 
@@ -3845,10 +3412,10 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
 
       // ---- handle geom
       if(scsMyId != ioProcNumSCS) {
-        geom.resize(geom_Size);
+	  Geom().resize(geom_Size);
       }
-      for(int lev(0); lev < geom.size(); ++lev) {
-        Geometry::BroadcastGeometry(geom[lev], ioProcNumSCS, scsComm);
+      for(int lev(0); lev < Geom().size(); ++lev) {
+	  Geometry::BroadcastGeometry(Geom(lev), ioProcNumSCS, scsComm);
       }
 
       // ---- handle BoundaryPointLists
@@ -4014,9 +3581,9 @@ using std::endl;
     SHOWVAL(mf0.NFabArrays());
     SHOWVAL(mf0.AllocatedFAPtrID());
   }
-  SHOWVAL(geom.size());
-  for(int i(0); i < geom.size(); ++i) {
-    os << "geom[" << i << "] = " << geom[i] << endl;
+  SHOWVAL(Geom().size());
+  for(int i(0); i < Geom().size(); ++i) {
+      os << "geom[" << i << "] = " << Geom(i) << endl;
   }
 
   /*
