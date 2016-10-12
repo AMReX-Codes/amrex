@@ -1,6 +1,8 @@
 #ifndef AMRCORE_H_
 #define AMRCORE_H_
 
+#include <memory>
+
 #include <BoxArray.H>
 #include <DistributionMapping.H>
 #include <Geometry.H>
@@ -32,17 +34,14 @@ public:
     const DistributionMapping& DistributionMap (int lev) const { return dmap[lev]; }
     const BoxArray& boxArray (int lev) const { return grids[lev]; }
 
-    void MakeDistributionMap (int lev);
-    void SetDistributionMap (int lev, const DistributionMapping& dmap_in) { dmap[lev] = dmap_in; }
-    void SetBoxArray (int lev, const BoxArray& ba_in) { grids[lev] = ba_in; }
+    void SetDistributionMap (int lev, const DistributionMapping& dmap_in);
+    void SetBoxArray (int lev, const BoxArray& ba_in);
 
-    void ClearDistributionMap (int lev) { dmap[lev] = DistributionMapping(); }
-    void ClearBoxArray (int lev) { grids[lev] = BoxArray(); }
+    void ClearDistributionMap (int lev);
+    void ClearBoxArray (int lev);
 
 #ifdef USE_PARTICLES
-    const DistributionMapping& ParticleDistributionMap (int lev) const { return particle_dmap[lev]; }
-    const BoxArray& ParticleBoxArray (int lev) const { return particle_grids[lev]; };
-    AmrParGDB* GetParGDB () const { return m_gdb; }
+    AmrParGDB* GetParGDB () const { return m_gdb.get(); }
 #endif
 
     // Number of buffer cells in error estimator.
@@ -79,9 +78,7 @@ protected:
     int              n_proper;        // # cells required for proper nesting.
 
 #ifdef USE_PARTICLES
-    Array<DistributionMapping> particle_dmap;
-    Array<BoxArray>            particle_grids;
-    AmrParGDB* m_gdb;
+    std::unique_ptr<AmrParGDB> m_gdb;
 #endif
 
 private:

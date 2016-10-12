@@ -90,13 +90,6 @@ public:
     //
     virtual void set_state_in_checkpoint (Array<int>& state_in_checkpoint);
 
-#ifdef USE_PARTICLES
-    //
-    // Make the particle distribution map
-    //
-    void make_particle_dmap ();
-#endif
-
     //
     // Is name a state variable?
     //
@@ -227,20 +220,6 @@ public:
     // Number of grids at this level.
     //
     int numGrids () const { return grids.size(); }
-#ifdef USE_PARTICLES
-    //
-    // List of particle_grids at this level.
-    //
-    const BoxArray& ParticleBoxArray () const { return particle_grids; }
-    //
-    // DistributionMap for particle_grids at this level.
-    //
-    const DistributionMapping& ParticleDistributionMap () const { return particle_dmap; }
-    //
-    // Number of particle_grids at this level.
-    //
-    int numParticleGrids () const { return particle_grids.size(); }
-#endif
     //
     // Returns the indices defining physical domain.
     //
@@ -463,10 +442,6 @@ protected:
     int                   level;        // AMR level (0 is coarsest).
     Geometry              geom;         // Geom at this level.
     BoxArray              grids;        // Cell-centered locations of grids.
-#ifdef USE_PARTICLES
-    BoxArray              particle_grids; // Cell-centered locations of grids on which particles live.
-    DistributionMapping   particle_dmap; // Distribution map associated with particle_grids.
-#endif
     Amr*                  parent;       // Pointer to parent AMR structure.
     IntVect               crse_ratio;   // Refinement ratio to coarser level.
     IntVect               fine_ratio;   // Refinement ratio to finer level.

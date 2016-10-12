@@ -45,9 +45,6 @@ AmrCore::AmrCore (const RealBox* rb, int max_level_in, Array<int> n_cell_in, int
 
 AmrCore::~AmrCore ()
 {
-#ifdef USE_PARTICLES
-    delete m_gdb;
-#endif
     Finalize();
 }
 
@@ -77,10 +74,6 @@ AmrCore::InitAmrCore (int max_level_in, Array<int> n_cell_in)
     geom.resize(nlev);
     dmap.resize(nlev);
     grids.resize(nlev);
-#ifdef USE_PARTICLES
-    particle_dmap.resize(nlev);
-    particle_grids.resize(nlev);
-#endif
 
     for (int i = 0; i < nlev; ++i) {
 	n_error_buf[i] = 1;
@@ -205,7 +198,7 @@ AmrCore::InitAmrCore (int max_level_in, Array<int> n_cell_in)
     }
     
 #ifdef USE_PARTICLES
-    m_gdb = new AmrParGDB(this);
+    m_gdb = std::unique_ptr<AmrParGDB>(new AmrParGDB(this));
 #endif
 }
 
@@ -218,12 +211,29 @@ AmrCore::MaxRefRatio (int lev) const
     return maxval;
 }
 
-void
-AmrCore::MakeDistributionMap (int lev)
-{
-    dmap[lev] = DistributionMapping(grids[lev], ParallelDescriptor::NProcs());
+void 
+AmrCore::SetDistributionMap (int lev, const DistributionMapping& dmap_in)
+{ 
+    dmap[lev] = dmap_in;
 }
 
+void
+AmrCore::SetBoxArray (int lev, const BoxArray& ba_in)
+{
+    grids[lev] = ba_in;
+}
+
+void
+AmrCore::ClearDistributionMap (int lev)
+{ 
+    dmap[lev] = DistributionMapping();
+}
+
+void
+AmrCore::ClearBoxArray (int lev)
+{
+    grids[lev] = BoxArray();
+}
 
 bool
 AmrCore::LevelDefined (int lev)

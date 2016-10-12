@@ -10,7 +10,10 @@ class AmrParGDB
 public:
 
     AmrParGDB (AmrCore* amr)
-	: m_amrcore(amr) { BL_ASSERT(amr != 0); }
+	: m_amrcore(amr),
+	  m_dmap(amr->maxLevel()+1),
+	  m_ba(amr->maxLevel()+1)
+	{ }
 
     virtual ~AmrParGDB () {;}
     
@@ -33,6 +36,8 @@ public:
 
 protected:
     AmrCore* m_amrcore;
+    Array<DistributionMapping> m_dmap;
+    Array<BoxArray>            m_ba;
 };
 
 inline 
@@ -46,7 +51,11 @@ inline
 const DistributionMapping& 
 AmrParGDB::ParticleDistributionMap (int level) const
 {
-    return m_amrcore->ParticleDistributionMap(level);
+    if (m_dmap[level].empty()) {
+	return m_amrcore->DistributionMap(level);
+    } else {
+	return m_dmap[level];
+    }
 }
 
 inline 
@@ -60,7 +69,11 @@ inline
 const BoxArray&
 AmrParGDB::ParticleBoxArray (int level) const
 {
-    return m_amrcore->ParticleBoxArray(level);
+    if (m_ba[level].empty()) {
+	return m_amrcore->boxArray(level);
+    } else {
+	return m_ba[level];
+    }
 }
 
 inline
@@ -73,13 +86,13 @@ AmrParGDB::boxArray (int level) const
 inline
 void AmrParGDB::SetParticleBoxArray (int level, const BoxArray& new_ba)
 {
-    BoxLib::Abort("AmrParGDB::SetParticleBoxArray: not implemented yet");
+    m_ba[level] = new_ba;
 }
 
 inline
-void AmrParGDB::SetParticleDistributionMap (int level, const DistributionMapping& new_ba)
+void AmrParGDB::SetParticleDistributionMap (int level, const DistributionMapping& new_dmap)
 {
-    BoxLib::Abort("AmrParGDB::SetParticleDistributionMap: not implemented yet");
+    m_dmap[level] = new_dmap;
 }
 
 inline 

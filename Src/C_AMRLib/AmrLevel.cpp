@@ -65,9 +65,6 @@ AmrLevel::AmrLevel (Amr&            papa,
     :
     geom(level_geom),
     grids(ba)
-#ifdef USE_PARTICLES
-    ,particle_grids(ba)
-#endif
 {
     BL_PROFILE("AmrLevel::AmrLevel()");
     level  = lev;
@@ -99,12 +96,6 @@ AmrLevel::AmrLevel (Amr&            papa,
 
     if (Amr::useFixedCoarseGrids) constructAreaNotToTag();
 
-#ifdef USE_PARTICLES
-    // Note: it is important to call make_particle_dmap *after* the state
-    //       has been defined because it makes use of the state's DistributionMap
-    make_particle_dmap();
-#endif
-
     finishConstructor();
 }
 
@@ -117,9 +108,6 @@ AmrLevel::AmrLevel (Amr&            papa,
     :
     geom(level_geom),
     grids(ba)
-#ifdef USE_PARTICLES
-    ,particle_grids(ba)
-#endif
 {
     BL_PROFILE("AmrLevel::AmrLevel(dm)");
     level  = lev;
@@ -151,12 +139,6 @@ AmrLevel::AmrLevel (Amr&            papa,
     }
 
     if (Amr::useFixedCoarseGrids) constructAreaNotToTag();
-
-#ifdef USE_PARTICLES
-    // Note: it is important to call make_particle_dmap *after* the state
-    //       has been defined because it makes use of the state's DistributionMap
-    make_particle_dmap();
-#endif
 
     finishConstructor();
 }
@@ -215,13 +197,6 @@ AmrLevel::restart (Amr&          papa,
  
     if (Amr::useFixedCoarseGrids) constructAreaNotToTag();
 
-#ifdef USE_PARTICLES
-    // Note: it is important to call make_particle_dmap *after* the state
-    //       has been defined because it makes use of the state's DistributionMap
-    particle_grids = grids;
-    make_particle_dmap();
-#endif
-
     finishConstructor();
 }
 
@@ -233,69 +208,6 @@ AmrLevel::set_state_in_checkpoint (Array<int>& state_in_checkpoint)
 
 void
 AmrLevel::finishConstructor () {}
-
-#ifdef USE_PARTICLES
-void
-AmrLevel::make_particle_dmap ()
-{
-    // Here we create particle_grids and make a distribution map for it
-    // Right now particle_grids is identical to grids, but the whole point is that 
-    // particle_grids can be optimized for distributing the particle work. 
-
-    // take a shortcut if possible
-    if (grids == particle_grids) {
-	particle_dmap = get_new_data(0).DistributionMap();
-	return;
-    }
-
-    Array<int> ParticleProcMap;
-    ParticleProcMap.resize(particle_grids.size()+1); // +1 is a historical thing
-
-    for (int i = 0; i <= particle_grids.size(); i++)
-        ParticleProcMap[i] = -1;
-
-    // Warning: O(N^2)!
-    for (int j = 0; j < grids.size(); j++)
-    {
-        const int who = get_new_data(0).DistributionMap()[j];
-        for (int i = 0; i < particle_grids.size(); i++)
-        {
-            if (grids[j].contains(particle_grids[i]))
-            {
-                ParticleProcMap[i] = who;
-            }
-        }
-    }
-
-    // Don't forget the last entry!
-    ParticleProcMap[particle_grids.size()] = ParallelDescriptor::MyProc();
-
-    // Sanity check that all grids got assigned to processors
-    for (int i = 0; i <= particle_grids.size(); i++)
-        if (ParticleProcMap[i] == -1)
-            BoxLib::Error("Didn't assign every particle_grids box to a processor!!");
-
-    // Different DistributionMappings must have different numbers of boxes 
-    if (grids.size() != particle_grids.size())
-    {
-        const bool put_in_cache = true;
-        particle_dmap = DistributionMapping(ParticleProcMap,put_in_cache);
-    }
-    else
-    {
-        if (grids != particle_grids)
-        {
-           // Oops -- can't handle this 
-            BoxLib::Error("grids != particle_grids but they have the same number of boxes");
-        }
-        else
-        {
-           // Just copy the grids distribution map to the particle_grids distribution map
-           particle_dmap = get_new_data(0).DistributionMap();
-        }
-    }
-}
-#endif
 
 void
 AmrLevel::setTimeLevel (Real time,
@@ -1997,14 +1909,6 @@ AmrLevel::AddProcsToComp(Amr *aptr, int nSidecarProcs, int prevSidecarProcs,
       BoxLib::BroadcastBoxArray(grids, scsMyId, ioProcNumSCS, scsComm);
       BoxLib::BroadcastBoxArray(m_AreaNotToTag, scsMyId, ioProcNumSCS, scsComm);
 
-
-#ifdef USE_PARTICLES
-      BoxLib::BroadcastBoxArray(particle_grids, scsMyId, ioProcNumSCS, scsComm);
-
-      int sentinelProc(ParallelDescriptor::MyProcComp());
-      BoxLib::BroadcastDistributionMapping(particle_dmap, sentinelProc, scsMyId,
-                                           ioProcNumSCS, scsComm, true);
-#endif
 
 #ifdef USE_SLABSTAT
       BoxLib::Abort("**** Error in AmrLevel::MSS:  USE_SLABSTAT not implemented");
