@@ -26,7 +26,7 @@ set(F90_header_files)
 
 if(BL_USE_PARTICLES EQUAL 1)
   list(APPEND CXX_source_files Particles.cpp TracerParticles.cpp)
-  list(APPEND CXX_header_files Particles.H TracerParticles.H)
+  list(APPEND CXX_header_files Particles.H ParticleInit.H TracerParticles.H ParGDB.H)
   list(APPEND FPP_source_files Particles_${BL_SPACEDIM}D.F)
   list(APPEND FPP_header_files Particles_F.H)
 endif()
