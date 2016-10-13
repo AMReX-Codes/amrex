@@ -1,6 +1,10 @@
+Regression Testing Management routines
+
 regtest.py is the main regression testing script for BoxLib-based
 applications.  Typing './regtest.py -h' will give a verbose
-description of usage and setup.
+description of usage and setup.  The regtest set of tools is 
+fully documented in the BoxLib Users Guide, but here's a quick
+overview of usage.
 
 Quickstart:
 
@@ -15,10 +19,10 @@ Tools/RegressionTesting
  b. In the config blocks of the .ini file, the locations of clones
     of these files to use for testing are set as "dir"
 
-    For each [BoxLib], [source] and [extra-IAMR], the tester pulls
-    the desired branch/SHA prior to building/running tests. Best to
-    have these as "extra" clones used solely for this purpose so 
-    that the tester can work on its own without confusing you.
+    For each [BoxLib], [source] and [extra-IAMR], the tester script
+    pulls the desired branch/SHA prior to building/running tests.
+    Best to have these as "extra" clones used solely for this purpose
+    so that the tester can work on its own without confusing you.
 
     Thus...edit the paths in the config file to point to local clones
     of each of these repos.
