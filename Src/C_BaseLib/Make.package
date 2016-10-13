@@ -103,6 +103,12 @@ C$(BOXLIB_BASE)_headers += BCRec.H PhysBCFunct.H
 C$(BOXLIB_BASE)_headers += BC_TYPES.H
 
 #
+# Plotfile
+#
+C$(BOXLIB_BASE)_sources += PlotFileUtil.cpp
+C$(BOXLIB_BASE)_headers += PlotFileUtil.H
+
+#
 # Fortran interface routines.
 #
 ifneq ($(BL_NO_FORT),TRUE)
