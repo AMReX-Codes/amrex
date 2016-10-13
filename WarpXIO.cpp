@@ -41,4 +41,6 @@ WarpX::WritePlotFile (int istep, Real t) const
     
     const std::string& plotfilename = BoxLib::Concatenate("plt",istep);
     BoxLib::WriteSingleLevelPlotfile(plotfilename, mf, varnames, geom_arr[lev], t);
+
+    mypc->Checkpoint(plotfilename, "particle");
 }
