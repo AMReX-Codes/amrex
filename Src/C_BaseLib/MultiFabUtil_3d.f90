@@ -9,7 +9,7 @@ subroutine bl_avg_eg_to_cc (lo, hi, &
      Ez, Ezl1, Ezl2, Ezl3, Ezh1, Ezh2, Ezh3)
 
   implicit none
-  integer          :: lo(3),hi(3), coord_type
+  integer          :: lo(3),hi(3)
   integer          :: ccl1, ccl2, ccl3, cch1, cch2, cch3
   integer          :: Exl1, Exl2, Exl3, Exh1, Exh2, Exh3
   integer          :: Eyl1, Eyl2, Eyl3, Eyh1, Eyh2, Eyh3
