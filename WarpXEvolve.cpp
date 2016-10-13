@@ -15,7 +15,7 @@ WarpX::Evolve ()
     Real t = 0.0;
     Real dt  = 0.95 * geom_arr[0].CellSize(0) * (1.0/clight);
 
-    for (int istep = 0; istep < max_step; ++istep, t += dt)
+    for (int istep = 1; istep <= max_step; ++istep)
     {
 	if (ParallelDescriptor::IOProcessor()) {
 	    std::cout << "\nStart step " << istep << std::endl;
@@ -42,6 +42,12 @@ WarpX::Evolve ()
 	WarpX::FillBoundary(*Bfield[2], geom_arr[0], IntVect(D_DECL(0,0,1)));
 	
 	EvolveE(dt); // We now have E^{n+1}
+
+	t += dt;
+
+	if (plot_int > 0 && istep%plot_int == 0) {
+	    WritePlotFile(istep, t);
+	}
 
 	if (ParallelDescriptor::IOProcessor()) {
 	    std::cout << "Finish step " << istep << std::endl;

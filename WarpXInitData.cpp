@@ -15,4 +15,8 @@ WarpX::InitData ()
 	Efield[i]->setVal(0.0);
 	Bfield[i]->setVal(0.0);
     }
+
+    if (plot_int > 0) {
+	WritePlotFile(0, 0.0);
+    }
 }

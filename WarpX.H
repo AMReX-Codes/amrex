@@ -32,6 +32,8 @@ private:
 
     void ReadParameters ();
 
+    void WritePlotFile (int istep, Real t) const;
+
     //
     // data
     //
@@ -58,6 +60,8 @@ private:
     //
     int nx, ny, nz;
     int max_step;
+    //
+    int plot_int = -1;
 };
 
 #endif

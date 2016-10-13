@@ -6,7 +6,6 @@
 WarpX::WarpX ()
 {
     ReadParameters();
-
     BL_ASSERT(max_level == 0);
 
     // Geometry
@@ -77,6 +76,8 @@ WarpX::ReadParameters ()
     {
 	ParmParse pp;
 
+	pp.query("verbose", verbose);
+
 	pp.get("nx", nx);
 	pp.get("ny", ny);
 	pp.get("nz", nz);
@@ -86,7 +87,7 @@ WarpX::ReadParameters ()
 	pp.query("max_level", max_level);
 	pp.query("ref_ratio", ref_ratio);
 
-	pp.query("verbose", verbose);
+	pp.query("plot_int", plot_int);
     }
 }
 
