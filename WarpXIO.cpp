@@ -52,7 +52,7 @@ WarpX::WritePlotFile (int istep, Real t) const
 
     mypc->Checkpoint(plotfilename, "particle");
 
-    if (ParallelDescriptor::IOProcessor()) {
+    if (false && ParallelDescriptor::IOProcessor()) {
 	// job_info file with details about the run
 	std::ofstream jobInfoFile;
 	std::string FullPathJobInfoFile = plotfilename;
