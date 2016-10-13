@@ -205,7 +205,7 @@ TCSORT  :=  $(BOXLIB_HOME)/Tools/F_scripts/tcsort.pl
 
 # MODDEP is for .f90, .f, and .F90.  
 # MKDEP is for c
-MODDEP  :=  $(BOXLIB_HOME)/Tools/F_scripts/moddep.pl
+MODDEP  :=  $(BOXLIB_HOME)/Tools/F_scripts/dep.py
 MKDEP   :=  $(BOXLIB_HOME)/Tools/F_scripts/mkdep.pl
 F90DOC  :=  $(BOXLIB_HOME)/Tools/F_scripts/f90doc/f90doc
 

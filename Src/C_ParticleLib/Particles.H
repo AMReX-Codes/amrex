@@ -1295,8 +1295,6 @@ ParticleContainer<NR,NI,C>::RemoveParticlesAtLevel (int level)
     {
         PMap().swap(this->m_particles[level]);
     }
-
-    BL_ASSERT(this->m_particles[level].empty());
 }
 
 template <int NR, int NI, class C>
@@ -1320,8 +1318,6 @@ ParticleContainer<NR,NI,C>::RemoveParticlesNotAtFinestLevel ()
             }
 
             PMap().swap(pmap);
-
-            BL_ASSERT(pmap.empty());
         }
     }
     //
