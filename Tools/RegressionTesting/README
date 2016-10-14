@@ -1,6 +1,48 @@
-regtest.py is the main regression testing script for BoxLib plotfiles.
-Typing './regtest.py -h' will give its basic usage.
+Regression Testing Management routines
 
-reg_test_blame.py can help find out which git commit to blame if a
-regression test fails.  It depends on testnew.py.  Typing
-./reg_test_blame.py will show the usage.
+regtest.py is the main regression testing script for BoxLib-based
+applications.  Typing './regtest.py -h' will give a verbose
+description of usage and setup.  The regtest set of tools is 
+fully documented in the BoxLib Users Guide, but here's a quick
+overview of usage.
+
+Quickstart:
+
+1. Each regression test suite is defined in a separate configuration
+file.  BoxLib is distributed with a number of such files in
+Tools/RegressionTesting
+
+2. With LMC-tests.ini as an example
+
+ a. LMC depends on the CCSE repositories: BoxLib, IAMR, Combustion
+
+ b. In the config blocks of the .ini file, the locations of clones
+    of these files to use for testing are set as "dir"
+
+    For each [BoxLib], [source] and [extra-IAMR], the tester script
+    pulls the desired branch/SHA prior to building/running tests.
+    Best to have these as "extra" clones used solely for this purpose
+    so that the tester can work on its own without confusing you.
+
+    Thus...edit the paths in the config file to point to local clones
+    of each of these repos.
+
+ c. Parameters that define each regression test appear in labeled
+    blocks.  I suspect that the number of options allowed for is going
+    to grow indefinitely; just look at examples in all the other .ini
+    files for what is available.
+
+ d. Each labeled test will be built, run and compared to "benchmark"
+    results.  The results of these tasks will be formatted into a
+    web page in a folder defined as "webTopDir" in the .ini file.
+    Make sure that variable points to something you like and can access.
+
+ e. You need benchmarks to exist before the tests can work.  Generate
+    them manually with 
+
+    ./regtest.py --make_benchmarks "<some useful comment>" LMC-tests.ini
+
+ f. Afterward, tests are run by typing
+
+    ./regtest.py LMC-tests.ini
+
