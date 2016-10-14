@@ -1,3 +1,4 @@
+cfl = 1
 
 # number of grid points
 nx = 64

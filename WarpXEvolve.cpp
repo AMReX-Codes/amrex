@@ -1,4 +1,6 @@
 
+#include <cmath>
+
 #include <WarpX.H>
 #include <PICSAR_f.H>
 
@@ -13,7 +15,8 @@ WarpX::Evolve ()
     BL_PROFILE("WarpX::Evolve()");
 
     Real t = 0.0;
-    Real dt  = 0.95 * geom_arr[0].CellSize(0) * (1.0/clight);
+    const Real* dx = geom_arr[0].CellSize();
+    Real dt  = cfl * 1./( std::sqrt( 1./(dx[0]*dx[0]) + 1./(dx[1]*dx[1]) + 1./(dx[2]*dx[2])) * clight );
 
     for (int istep = 1; istep <= max_step; ++istep)
     {

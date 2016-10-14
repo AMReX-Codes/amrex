@@ -78,6 +78,8 @@ WarpX::ReadParameters ()
 
 	pp.query("verbose", verbose);
 
+	pp.query("cfl", cfl);
+
 	pp.get("nx", nx);
 	pp.get("ny", ny);
 	pp.get("nz", nz);

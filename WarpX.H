@@ -58,6 +58,7 @@ private:
     int max_grid_size = 32;
     int ref_ratio = 2;
     //
+    Real cfl = 1;
     int nx, ny, nz;
     int max_step;
     //
