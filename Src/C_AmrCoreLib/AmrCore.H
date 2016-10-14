@@ -21,6 +21,8 @@ public:
 
     virtual ~AmrCore ();
 
+    int Verbose () const { return verbose; }
+
     int maxLevel () const { return max_level; }
     int finestLevel () const { return finest_level; }
     // Refinement ratio for level lev
