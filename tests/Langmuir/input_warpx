@@ -12,7 +12,9 @@ max_grid_size = 32
 max_level = 0
 
 # Maximum number of time steps
-max_step = 5
+max_step = 10
+
+plot_int = 2   # How often to write plotfiles.  "<= 0" means no plotfiles.
 
 # Geometry
 geometry.coord_sys   = 0                  # 0: Cartesian
@@ -23,6 +25,6 @@ geometry.prob_hi     =  20.e-6    20.e-6    20.e-6
 # Verbosity
 verbose = 1
 
-langmuirwave.num_particles_per_cell = 10 # number of particle per cells
+langmuirwave.num_particles_per_cell = 5
 langmuirwave.n_e = 1.e25  # number of electrons per m^3
 langmuirwave.ux  = 0.01   # ux = gamma*beta_x

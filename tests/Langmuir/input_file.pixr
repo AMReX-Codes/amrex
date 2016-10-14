@@ -1,8 +1,8 @@
 ######################### INPUT FILE FOR THE CODE PICSAR
 section::cpusplit
- nprocx = 2
- nprocy = 2
- nprocz = 2
+ nprocx = 1
+ nprocy = 1
+ nprocz = 1
  topology = 0
  
  # MPI com type
@@ -37,7 +37,7 @@ section::main
  zmax = 20e-6
  # Simulation duration (in 1/w0)
  # t_max = 7
- nsteps=5
+ nsteps=10
  
  ntilex = 1
  ntiley = 1
