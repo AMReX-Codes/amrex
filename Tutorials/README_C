@@ -59,6 +59,10 @@ can be running using MPI and/or OpenMP.  Here is a brief overview:
    to manage data on an adaptive grid.  This implements simple 2nd order
    accurate advection using a Godunov approach.
  
+* `AMR_Adv_C_v2`:
+
+   this is similar to `AMR_Adv_C`, but is implemented with the AmrCoreLib.
+
 * `MultiGrid_C`:
 
    this example shows how to do multigrid to solve a Helmholtz elliptic
