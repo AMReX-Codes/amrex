@@ -37,7 +37,7 @@ section::main
  zmax = 20e-6
  # Simulation duration (in 1/w0)
  # t_max = 7
- nsteps=10
+ nsteps=11
  
  ntilex = 1
  ntiley = 1
@@ -112,10 +112,10 @@ section::species
  nppcell = 10
  x_min = -20e-6
  y_min = -20e-6
- z_min = -10e-6
- x_max = 20e-6
+ z_min = -20e-6
+ x_max = 0e-6
  y_max = 20e-6
- z_max = 10e-6
+ z_max = 20e-6
  ! Drift velocity (in clight)
  vdrift_x = 0.01
  vdrift_y = 0.0
