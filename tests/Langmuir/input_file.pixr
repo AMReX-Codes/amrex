@@ -24,9 +24,9 @@ end::cpusplit
 
 section::main
  # Number of grid points in x,y,z
- nx = 66
- ny = 66
- nz = 66
+ nx = 65
+ ny = 65
+ nz = 65
 
  # Origin of simulation axes
  xmin = -20e-6
