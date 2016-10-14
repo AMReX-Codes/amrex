@@ -3,6 +3,7 @@
 
 #include <AmrCore.H>
 #include <ParmParse.H>
+#include <TagBox.H>
 #include <Cluster.H>
 
 #ifdef USE_PARTICLES
