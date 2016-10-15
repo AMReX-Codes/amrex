@@ -8,10 +8,9 @@ amr.n_cell           =  64   64   64
 # VERBOSITY
 amr.v              = 1       # verbosity in Amr
 
-# REFINEMENT / REGRIDDING
+# REFINEMENT
 amr.max_level       = 2       # maximum level number allowed
 amr.ref_ratio       = 2 2 2 2 # refinement ratio
-amr.regrid_int      = 2       # how often to regrid
 amr.blocking_factor = 8       # block factor in grid generation
 amr.max_grid_size   = 16
 
@@ -26,10 +25,12 @@ adv.cfl            = 0.7     # cfl number for hyperbolic system
 			     # the 3D test, but need to use 0.7 in 2D
 			     # to satisfy CFL condition.
 
+adv.regrid_int = 2      # how often to regrid
+
 # CHECKPOINT FILES
-adv.check_file              = chk   # root name of checkpoint file
-adv.check_int               = 10    # number of timesteps between checkpoints
+adv.check_file = chk   # root name of checkpoint file
+adv.check_int  = 10    # number of timesteps between checkpoints
 
 # PLOTFILES
-adv.plot_file         = plt    # root name of plot file
-adv.plot_int          = 10     # number of timesteps between plot files
+adv.plot_file  = plt    # root name of plot file
+adv.plot_int   = 10     # number of timesteps between plot files

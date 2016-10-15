@@ -115,6 +115,10 @@ protected:
     std::unique_ptr<AmrParGDB> m_gdb;
 #endif
 
+    Array<Geometry>            geom;
+    Array<DistributionMapping> dmap;
+    Array<BoxArray>            grids;    
+
 private:
     //
     // Disallowed
@@ -123,11 +127,6 @@ private:
     AmrCore& operator= (const AmrCore& rhs);
 
     void InitAmrCore (int max_level_in, const Array<int>& n_cell_in);
-    
-private:
-    Array<Geometry>            geom;
-    Array<DistributionMapping> dmap;
-    Array<BoxArray>            grids;    
 };
 
 #endif
