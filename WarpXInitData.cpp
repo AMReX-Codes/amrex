@@ -12,6 +12,7 @@ WarpX::InitData ()
 //    if (verbose) mypc->WriteAsciiFile("Particles_before");
 
     for (int i = 0; i < BL_SPACEDIM; ++i) {
+	current[i]->setVal(0.0);
 	Efield[i]->setVal(0.0);
 	Bfield[i]->setVal(0.0);
     }
