@@ -28,6 +28,9 @@ section::main
  ny = 65
  nz = 65
 
+ # CFL coefficient
+ dtcoef = 1
+
  # Origin of simulation axes
  xmin = -20e-6
  ymin = -20e-6
@@ -64,7 +67,7 @@ section::solver
  nox = 1
  noy = 1
  noz = 1
- 
+
  # Current deposition method
  currdepo = 3
  
