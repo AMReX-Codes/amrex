@@ -610,7 +610,7 @@ AmrCore::MakeNewGrids (int lbase, Real time, int& new_finest, Array<BoxArray>& n
     }
 
     if (refine_grid_layout) {
-	for (int lev = lbase; lev <= new_finest; ++lev) {
+	for (int lev = lbase+1; lev <= new_finest; ++lev) {
 	    ChopGrids(lev,new_grids[lev],ParallelDescriptor::NProcs());
 	    if (new_grids[lev] == grids[lev]) {
 		new_grids[lev] = grids[lev]; // to avoid dupliates
