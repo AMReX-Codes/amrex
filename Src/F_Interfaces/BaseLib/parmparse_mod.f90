@@ -13,12 +13,12 @@ module parmparse_module
   type, public :: ParmParse
      type(c_ptr) :: p = c_null_ptr
    contains
-     generic :: get      => get_int, get_double, get_logical !, get_string
+     generic :: get      => get_int, get_double, get_logical, get_string
 !     generic :: getarr   =>
-     generic :: query    => query_int, query_double, query_logical  !, query_string
+     generic :: query    => query_int, query_double, query_logical, query_string
 !     generic :: queryarr =>
-     procedure, private :: get_int, get_double, get_logical
-     procedure, private :: query_int, query_double, query_logical
+     procedure, private :: get_int, get_double, get_logical, get_string
+     procedure, private :: query_int, query_double, query_logical, query_string
      final :: parmparse_destroy
   end type ParmParse
 
@@ -62,6 +62,15 @@ module parmparse_module
        integer(c_int) :: v
      end subroutine fi_parmparse_get_bool
 
+     subroutine fi_parmparse_get_string (pp, name, v, len) bind(c)
+       use iso_c_binding
+       implicit none
+       type(c_ptr), value :: pp
+       character(c_char), intent(in) :: name(*)
+       character(c_char), intent(inout) :: v(*)
+       integer :: len
+     end subroutine fi_parmparse_get_string
+
      subroutine fi_parmparse_query_int (pp, name, v) bind(c)
        use iso_c_binding
        implicit none
@@ -85,6 +94,15 @@ module parmparse_module
        character(c_char), intent(in) :: name(*)
        integer(c_int) :: v
      end subroutine fi_parmparse_query_bool
+
+     subroutine fi_parmparse_query_string (pp, name, v, len) bind(c)
+       use iso_c_binding
+       implicit none
+       type(c_ptr), value :: pp
+       character(c_char), intent(in) :: name(*)
+       character(c_char), intent(inout) :: v(*)
+       integer :: len
+     end subroutine fi_parmparse_query_string
   end interface
 
 contains
@@ -130,6 +148,20 @@ contains
     v = i.eq.1
   end subroutine get_logical
 
+  subroutine get_string (this, name, v)
+    class(ParmParse), intent(in) :: this
+    character(*), intent(in) :: name
+    character(*), intent(inout) :: v
+
+    ! temporary string for passing back and forth to C -- include NULL
+    character(c_char), dimension(len(v)+1) :: v_pass
+
+    call fi_parmparse_get_string (this%p, string_f_to_c(name), v_pass, len(v)+1)
+
+    ! convert to Fortran string
+    v = string_c_to_f(v_pass)
+  end subroutine get_string
+
   subroutine query_int (this, name, v)
     class(ParmParse), intent(in) :: this
     character(len=*), intent(in) :: name
@@ -152,5 +184,19 @@ contains
     call fi_parmparse_query_bool (this%p, string_f_to_c(name), i)
     v = i.eq.1
   end subroutine query_logical
+
+  subroutine query_string (this, name, v)
+    class(ParmParse), intent(in) :: this
+    character(*), intent(in) :: name
+    character(*), intent(inout) :: v
+
+    ! temporary string for passing back and forth to C -- include NULL
+    character(c_char), dimension(len(v)+1) :: v_pass
+
+    call fi_parmparse_query_string (this%p, string_f_to_c(name), v_pass, len(v)+1)
+
+    ! convert to Fortran string
+    v = string_c_to_f(v_pass)
+  end subroutine query_string
 
 end module parmparse_module
