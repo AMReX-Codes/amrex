@@ -115,6 +115,9 @@ public:
     // The destructor deletes the array memory.
     //
     ~BaseFab ();
+
+    void make_alias (BaseFab<T>& alias, int scomp, int ncomp) const;
+
     //
     // This function resizes a BaseFab so it covers the Box B
     // with N components.  The default action
@@ -933,6 +936,26 @@ private:
     BaseFab (const BaseFab&);
     BaseFab& operator= (const BaseFab&);
 };
+
+template <class T>
+inline
+void
+BaseFab<T>::make_alias (BaseFab<T>& alias, int scomp, int ncomp) const
+{
+    alias.clear();
+    BL_ASSERT(dptr);
+    BL_ASSERT(scomp >= 0);
+    BL_ASSERT(scomp+ncomp <= nvar);
+
+    alias.domain        = domain;
+    alias.dlen          = dlen;
+    alias.nvar          = ncomp;
+    alias.numpts        = numpts;
+    alias.truesize      = alias.nvar * alias.numpts;
+    alias.dptr          = dataPtr(scomp);
+    alias.ptr_owner     = false;
+    alias.shared_memory = shared_memory;
+}
 
 template <class T>
 inline
