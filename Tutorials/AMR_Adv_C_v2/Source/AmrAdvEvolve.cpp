@@ -85,7 +85,25 @@ AmrAdv::timeStep (int lev, Real time, int iteration)
 void
 AmrAdv::Advance (int lev, Real time, Real dt, int iteration, int ncycle)
 {
-    
+    constexpr int num_grow = 3;
+
+    std::swap(phi_old[lev], phi_new[lev]);
+    t_old[lev] = t_new[lev];
+    t_new[lev] += dt;
+
+    MultiFab& S_new = *phi_new[lev];
+
+    const Real old_time = t_old[lev];
+    const Real new_time = t_new[lev];
+    const Real ctr_time = 0.5*(old_time+new_time);
+
+    const Real* dx = geom[lev].CellSize();
+    const Real* prob_lo = geom[lev].ProbLo();
+
+    // State with ghost cells
+    MultiFab Sborder(grids[lev], S_new.nComp(), num_grow, dmap[lev]);
+    FillPatch(lev, time, Sborder, 0, Sborder.nComp());
+
 }
 
 void
