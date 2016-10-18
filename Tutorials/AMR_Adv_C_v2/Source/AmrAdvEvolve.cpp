@@ -104,6 +104,51 @@ AmrAdv::Advance (int lev, Real time, Real dt, int iteration, int ncycle)
     MultiFab Sborder(grids[lev], S_new.nComp(), num_grow, dmap[lev]);
     FillPatch(lev, time, Sborder, 0, Sborder.nComp());
 
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    {
+	FArrayBox flux[BL_SPACEDIM], uface[BL_SPACEDIM];
+
+	for (MFIter mfi(S_new, true); mfi.isValid(); ++mfi)
+	{
+	    const Box& bx = mfi.tilebox();
+
+	    const FArrayBox& statein = Sborder[mfi];
+	    FArrayBox& stateout      =   S_new[mfi];
+
+	    // Allocate fabs for fluxes and Godunov velocities.
+	    for (int i = 0; i < BL_SPACEDIM ; i++) {
+		const Box& bxtmp = BoxLib::surroundingNodes(bx,i);
+		flux[i].resize(bxtmp,S_new.nComp());
+		uface[i].resize(BoxLib::grow(bxtmp,1),1);
+	    }
+
+	    get_face_velocity(lev, ctr_time,
+			      D_DECL(BL_TO_FORTRAN(uface[0]),
+				     BL_TO_FORTRAN(uface[1]),
+				     BL_TO_FORTRAN(uface[2])),
+			      dx, prob_lo);
+
+            advect(time, bx.loVect(), bx.hiVect(),
+		   BL_TO_FORTRAN_3D(statein), 
+		   BL_TO_FORTRAN_3D(stateout),
+		   D_DECL(BL_TO_FORTRAN_3D(uface[0]),
+			  BL_TO_FORTRAN_3D(uface[1]),
+			  BL_TO_FORTRAN_3D(uface[2])),
+		   D_DECL(BL_TO_FORTRAN_3D(flux[0]), 
+			  BL_TO_FORTRAN_3D(flux[1]), 
+			  BL_TO_FORTRAN_3D(flux[2])), 
+		   dx, dt);
+
+#if 0
+	    if (do_reflux) {
+		for (int i = 0; i < BL_SPACEDIM ; i++)
+		    fluxes[i][mfi].copy(flux[i],mfi.nodaltilebox(i));	  
+	    }
+#endif
+	}
+    }
 }
 
 void
