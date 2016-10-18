@@ -21,9 +21,8 @@ subroutine state_error(tag,tag_lo,tag_hi, &
                        state,state_lo,state_hi, &
                        set,clear,&
                        lo,hi,&
-                       dx,problo,time,level) bind(C, name="state_error")
+                       dx,problo,time,phierr) bind(C, name="state_error")
 
-  use tagging_params_module, only : phierr, max_phierr_lev
   implicit none
   
   integer          :: lo(3),hi(3)
@@ -33,23 +32,21 @@ subroutine state_error(tag,tag_lo,tag_hi, &
                             state_lo(2):state_hi(2), &
                             state_lo(3):state_hi(3))
   integer          :: tag(tag_lo(1):tag_hi(1),tag_lo(2):tag_hi(2),tag_lo(3):tag_hi(3))
-  double precision :: problo(3),dx(3),time
-  integer          :: level,set,clear
+  double precision :: problo(3),dx(3),time,phierr
+  integer          :: set,clear
 
   integer          :: i, j, k
 
   ! Tag on regions of high phi
-  if (level .lt. max_phierr_lev) then
-     do       k = lo(3), hi(3)
-        do    j = lo(2), hi(2)
-           do i = lo(1), hi(1)
-              if (state(i,j,k) .ge. phierr(level)) then
-                 tag(i,j,k) = set
-              endif
-           enddo
+  do       k = lo(3), hi(3)
+     do    j = lo(2), hi(2)
+        do i = lo(1), hi(1)
+           if (state(i,j,k) .ge. phierr) then
+              tag(i,j,k) = set
+           endif
         enddo
      enddo
-  endif
+  enddo
 
 end subroutine state_error
 
