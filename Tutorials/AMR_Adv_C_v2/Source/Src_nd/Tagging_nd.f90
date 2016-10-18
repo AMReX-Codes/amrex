@@ -36,7 +36,6 @@ subroutine state_error(tag,tag_lo,tag_hi, &
   double precision :: problo(3),dx(3),time
   integer          :: level,set,clear
 
-  double precision :: ax, ay, az
   integer          :: i, j, k
 
   ! Tag on regions of high phi
