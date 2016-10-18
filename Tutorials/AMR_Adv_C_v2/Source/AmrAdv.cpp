@@ -25,8 +25,7 @@ AmrAdv::AmrAdv ()
 
     t_new.resize(nlevs_max, 0.0);
     t_old.resize(nlevs_max, -1.e100);
-    dt.resize(nlevs_max, 0.0);
-    dt_min.resize(nlevs_max, 0.0);
+    dt.resize(nlevs_max, 1.e100);
 
     phi_new.resize(nlevs_max);
     phi_old.resize(nlevs_max);
@@ -40,21 +39,27 @@ AmrAdv::~AmrAdv ()
 void
 AmrAdv::ReadParameters ()
 {
-    ParmParse pp("adv");
+    {
+	ParmParse pp;  // Traditionally, max_step and stop_time do not have prefix.
+	pp.query("max_step", max_step);
+	pp.query("stop_time", stop_time);
+    }
 
-    pp.query("max_step", max_step);
-    pp.query("stop_time", stop_time);
 
-    pp.query("cfl", cfl);
+    {
+	ParmParse pp("adv");
+	
+	pp.query("cfl", cfl);
+	
+	pp.query("regrid_int", regrid_int);
+	
+	pp.query("restart", restart_chkfile);
 
-    pp.query("regrid_int", regrid_int);
-
-    pp.query("restart", restart_chkfile);
-
-    pp.query("check_file", check_file);
-    pp.query("plot_file", plot_file);
-    pp.query("check_int", check_int);
-    pp.query("plot_int", plot_int);
+	pp.query("check_file", check_file);
+	pp.query("plot_file", plot_file);
+	pp.query("check_int", check_int);
+	pp.query("plot_int", plot_int);
+    }
 }
 
 void
@@ -68,3 +73,20 @@ AmrAdv::AverageDown ()
     }
 }
 
+long
+AmrAdv::CountCells (int lev)
+{
+    const int N = grids[lev].size();
+
+    long cnt = 0;
+
+#ifdef _OPENMP
+#pragma omp parallel for reduction(+:cnt)
+#endif
+    for (int i = 0; i < N; ++i)
+    {
+        cnt += grids[lev][i].numPts();
+    }
+
+    return cnt;
+}

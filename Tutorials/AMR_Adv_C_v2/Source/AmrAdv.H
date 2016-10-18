@@ -29,6 +29,12 @@ private:
     void InitLevelData (int lev);
 
     void AverageDown ();
+    long CountCells (int lev);
+
+    void ComputeDt ();
+    Real EstTimeStep (int lev, bool local=false) const;
+    void timeStep (int lev, Real time, int iteration);
+    void Advance (int lev, Real time, Real dt, int iteration, int ncycle);
 
     std::string PlotFileName (int lev) const;
     Array<const MultiFab*> PlotFileMF () const;
@@ -41,7 +47,6 @@ private:
     Array<Real> t_new;
     Array<Real> t_old;
     Array<Real> dt;
-    Array<Real> dt_min;
 
     Array<std::unique_ptr<MultiFab> > phi_new;
     Array<std::unique_ptr<MultiFab> > phi_old;

@@ -26,7 +26,7 @@ int main(int argc, char* argv[])
 	
 	ParallelDescriptor::ReduceRealMax(end_total ,ParallelDescriptor::IOProcessorNumber());
 	if (amradv.Verbose() && ParallelDescriptor::IOProcessor()) {
-	    std::cout << "Total Time                     : " << end_total << '\n';
+	    std::cout << "\nTotal Time                     : " << end_total << '\n';
 	}
     }
 
