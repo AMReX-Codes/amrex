@@ -20,7 +20,7 @@ extern "C"
 		     const int* tagval, const int* clearval,
 		     const int* lo, const int* hi,
 		     const Real* dx, const Real* problo,
-		     const Real* time, const int* level);
+		     const Real* time, const Real* phierr);
 }
 
 #endif

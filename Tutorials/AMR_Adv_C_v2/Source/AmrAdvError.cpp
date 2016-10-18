@@ -3,12 +3,29 @@
 #include <omp.h>
 #endif
 
+#include <ParmParse.H>
+
 #include <AmrAdv.H>
 #include <AmrAdv_F.H>
 
 void
 AmrAdv::ErrorEst (int lev, TagBoxArray& tags, Real time, int /*ngrow*/)
 {
+    static bool first = true;
+    static Array<Real> phierr;
+
+    if (first)
+    {
+	first = false;
+	ParmParse pp("adv");
+	int n = pp.countval("phierr");
+	if (n > 0) {
+	    pp.getarr("phierr", phierr, 0, n);
+	}
+    }
+
+    if (lev >= phierr.size()) return;
+
     const int clearval = TagBox::CLEAR;
     const int   tagval = TagBox::SET;
 
@@ -42,7 +59,7 @@ AmrAdv::ErrorEst (int lev, TagBoxArray& tags, Real time, int /*ngrow*/)
 			BL_TO_FORTRAN_3D(state[mfi]),
 			&tagval, &clearval, 
 			ARLIM_3D(tilebx.loVect()), ARLIM_3D(tilebx.hiVect()), 
-			ZFILL(dx), ZFILL(prob_lo), &time, &lev);
+			ZFILL(dx), ZFILL(prob_lo), &time, &phierr[lev]);
 	    //
 	    // Now update the tags in the TagBox.
 	    //
