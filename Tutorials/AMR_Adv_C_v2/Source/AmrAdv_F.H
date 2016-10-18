@@ -21,6 +21,17 @@ extern "C"
 		     const int* lo, const int* hi,
 		     const Real* dx, const Real* problo,
 		     const Real* time, const Real* phierr);
+
+    void advect(const Real& time, const int* lo, const int*hi,
+		const BL_FORT_FAB_ARG_3D(statein),
+		BL_FORT_FAB_ARG_3D(stateout),
+		D_DECL(const BL_FORT_FAB_ARG_3D(xvel),
+		       const BL_FORT_FAB_ARG_3D(yvel),
+		       const BL_FORT_FAB_ARG_3D(zvel)),
+		D_DECL(BL_FORT_FAB_ARG_3D(fx),
+		       BL_FORT_FAB_ARG_3D(fy),
+		       BL_FORT_FAB_ARG_3D(fz)),
+		const Real* dx, const Real& dt);
 }
 
 #endif
