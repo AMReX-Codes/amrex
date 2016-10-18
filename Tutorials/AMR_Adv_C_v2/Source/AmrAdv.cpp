@@ -1,6 +1,7 @@
 
 #include <ParallelDescriptor.H>
 #include <ParmParse.H>
+#include <MultiFabUtil.H>
 
 #include <AmrAdv.H>
 
@@ -55,3 +56,15 @@ AmrAdv::ReadParameters ()
     pp.query("check_int", check_int);
     pp.query("plot_int", plot_int);
 }
+
+void
+AmrAdv::AverageDown ()
+{
+    for (int lev = finest_level-1; lev >= 0; --lev)
+    {
+	BoxLib::average_down(*phi_new[lev+1], *phi_new[lev],
+			     geom[lev+1], geom[lev],
+			     0, phi_new[lev]->nComp(), refRatio(lev));
+    }
+}
+
