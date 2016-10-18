@@ -2,8 +2,10 @@
 #include <ParallelDescriptor.H>
 #include <ParmParse.H>
 #include <MultiFabUtil.H>
+#include <FillPatchUtil.H>
 
 #include <AmrAdv.H>
+#include <AmrAdvBC.H>
 
 AmrAdv::AmrAdv ()
 {
@@ -89,4 +91,62 @@ AmrAdv::CountCells (int lev)
     }
 
     return cnt;
+}
+
+void
+AmrAdv::FillPatch (int lev, Real time, MultiFab& Sborder,int icomp, int ncomp)
+{
+    if (lev == 0)
+    {
+	PArray<MultiFab> smf;
+	std::vector<Real> stime;
+	GetData(0, time, smf, stime);
+
+	AmrAdvPhysBC physbc;
+	BoxLib::FillPatchSingleLevel(Sborder, time, smf, stime, 0, icomp, ncomp,
+				     geom[lev], physbc);
+    }
+    else
+    {
+	PArray<MultiFab> cmf, fmf;
+	std::vector<Real> ctime, ftime;
+	GetData(lev-1, time, cmf, ctime);
+	GetData(lev  , time, fmf, ftime);
+
+	AmrAdvPhysBC cphysbc, fphysbc;
+	Array<BCRec> bcs(6);
+	Interpolater* mapper = &cell_cons_interp;
+
+	BoxLib::FillPatchTwoLevels(Sborder, time, cmf, ctime, fmf, ftime,
+				   0, icomp, ncomp, geom[lev-1], geom[lev],
+				   cphysbc, fphysbc, refRatio(lev-1),
+				   mapper, bcs);
+    }
+}
+
+void
+AmrAdv::GetData (int lev, Real time, PArray<MultiFab>& data, std::vector<Real>& datatime)
+{
+    data.clear();
+    datatime.clear();
+
+    const Real teps = (t_new[lev] - t_old[lev]) * 1.e-3;
+
+    if (time > t_new[lev] - teps && time < t_new[lev] + teps)
+    {
+	data.push_back(phi_new[lev].get());
+	datatime.push_back(t_new[lev]);
+    }
+    else if (time > t_old[lev] - teps && time < t_old[lev] + teps)
+    {
+	data.push_back(phi_old[lev].get());
+	datatime.push_back(t_old[lev]);
+    }
+    else
+    {
+	data.push_back(phi_old[lev].get());
+	data.push_back(phi_new[lev].get());
+	datatime.push_back(t_old[lev]);
+	datatime.push_back(t_new[lev]);
+    }
 }
