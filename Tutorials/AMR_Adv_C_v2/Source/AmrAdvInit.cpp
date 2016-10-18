@@ -1,13 +1,48 @@
 
 #include <AmrAdv.H>
 #include <AmrAdv_F.H>
+#include <PlotFileUtil.H>
+
+std::string
+AmrAdv::PlotFileName (int lev) const
+{
+    return BoxLib::Concatenate(plot_file, lev, 5);
+}
+
+Array<const MultiFab*>
+AmrAdv::PlotFileMF () const
+{
+    Array<const MultiFab*> r;
+    for (int i = 0; i <= finest_level; ++i) {
+	r.push_back(phi_new[i].get());
+    }
+    return r;
+}
+
+std::vector<std::string>
+AmrAdv::PlotFileVarNames () const
+{
+    return {"phi"};
+}
 
 void
 AmrAdv::InitData ()
 {
-    if (restart_chkfile.empty()) {
+    if (restart_chkfile.empty())
+    {
 	InitFromScratch();
-    } else {
+
+	if (plot_int > 0) {
+	    const std::string& plotfilename = PlotFileName(0);
+	    const auto& mf = PlotFileMF();
+	    const auto& varnames = PlotFileVarNames();
+	    
+	    BoxLib::WriteMultiLevelPlotifle(plotfilename, finest_level+1, mf, varnames,
+					    Geom(), t_new[0], istep, refRatio());
+	}
+    }
+    else
+    {
 	InitFromCheckpoint();
     }
 }
@@ -64,6 +99,8 @@ AmrAdv::InitFromScratch ()
 	}
 	while (finest_level < max_level);
     }
+
+    AverageDown();
 }
 
 void AmrAdv::InitLevelData (int lev)

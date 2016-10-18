@@ -28,6 +28,12 @@ private:
     void InitFromCheckpoint ();
     void InitLevelData (int lev);
 
+    void AverageDown ();
+
+    std::string PlotFileName (int lev) const;
+    Array<const MultiFab*> PlotFileMF () const;
+    std::vector<std::string> PlotFileVarNames () const;
+
     Array<int> istep;      // which step?
     Array<int> isubstep;   // which substep in subcycle?
     Array<int> nsubsteps;  // how many substeps on each level?
