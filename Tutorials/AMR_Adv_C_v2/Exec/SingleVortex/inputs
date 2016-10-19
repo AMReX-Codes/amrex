@@ -26,6 +26,8 @@ adv.cfl            = 0.7     # cfl number for hyperbolic system
 
 adv.regrid_int = 2      # how often to regrid
 
+adv.do_reflux = 1
+
 # Tagging
 adv.phierr = 1.01  1.1  1.5
 
