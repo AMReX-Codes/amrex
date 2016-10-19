@@ -30,6 +30,10 @@ AmrAdv::Evolve ()
 
 	// post coarsetimestep, io?
 
+	if (plot_int > 0 && (step+1) % plot_int == 0) {
+	    WritePlotFile();
+	}
+
 	if (cur_time >= stop_time - 1.e-6*dt[0]) break;
     }
 }
