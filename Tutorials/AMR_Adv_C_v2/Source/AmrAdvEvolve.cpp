@@ -8,6 +8,7 @@ void
 AmrAdv::Evolve ()
 {
     Real cur_time = t_new[0];
+    int last_plot_file_step = 0;
 
     for (int step = istep[0]; step < max_step && cur_time < stop_time; ++step)
     {
@@ -31,10 +32,15 @@ AmrAdv::Evolve ()
 	// post coarsetimestep, io?
 
 	if (plot_int > 0 && (step+1) % plot_int == 0) {
+	    last_plot_file_step = step+1;
 	    WritePlotFile();
 	}
 
 	if (cur_time >= stop_time - 1.e-6*dt[0]) break;
+    }
+
+    if (istep[0] > last_plot_file_step) {
+	WritePlotFile();
     }
 }
 
