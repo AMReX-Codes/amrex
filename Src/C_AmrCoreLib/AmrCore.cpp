@@ -295,6 +295,8 @@ AmrCore::MakeBaseGrids () const
 void
 AmrCore::MakeNewGrids (int lbase, Real time, int& new_finest, Array<BoxArray>& new_grids)
 {
+    BL_ASSERT(lbase < max_level);
+
     // Add at most one new level
     int max_crse = std::min(finest_level, max_level-1);
 
