@@ -112,7 +112,6 @@ AmrAdv::RemakeLevel (int lev, Real time,
     t_old[lev] = time - 1.e200;
 
     if (lev > 0 && do_reflux) {
-
 	flux_reg[lev] = std::unique_ptr<FluxRegister>
 	    (new FluxRegister(grids[lev], refRatio(lev-1), lev, ncomp, dmap[lev]));
     }    
