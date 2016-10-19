@@ -61,7 +61,8 @@ namespace BoxLib
 		destcomp = dcomp;
 		sameba = true;
 	    } else {
-		dmf = raii.push_back(new MultiFab(smf[0].boxArray(), ncomp, 0));
+		dmf = raii.push_back(new MultiFab(smf[0].boxArray(), ncomp, 0,
+						  smf[0].DistributionMap()));
 		destcomp = 0;
 		sameba = false;
 	    }
