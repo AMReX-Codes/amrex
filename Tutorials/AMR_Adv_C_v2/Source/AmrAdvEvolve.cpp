@@ -83,7 +83,12 @@ AmrAdv::timeStep (int lev, Real time, int iteration)
 	}
     }
 
-    // post time step stuff
+    // reflux
+
+    if (lev < finest_level) {
+	AverageDownTo(lev); // average lev+1 down to lev
+    }
+    
 }
 
 void

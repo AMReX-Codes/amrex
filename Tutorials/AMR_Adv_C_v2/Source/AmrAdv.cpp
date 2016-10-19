@@ -31,6 +31,8 @@ AmrAdv::AmrAdv ()
 
     phi_new.resize(nlevs_max);
     phi_old.resize(nlevs_max);
+
+    flux_reg.resize(nlevs_max);
 }
 
 AmrAdv::~AmrAdv ()
@@ -55,6 +57,8 @@ AmrAdv::ReadParameters ()
 	
 	pp.query("regrid_int", regrid_int);
 	
+	pp.query("do_reflux", do_reflux);
+
 	pp.query("restart", restart_chkfile);
 
 	pp.query("check_file", check_file);
@@ -73,6 +77,14 @@ AmrAdv::AverageDown ()
 			     geom[lev+1], geom[lev],
 			     0, phi_new[lev]->nComp(), refRatio(lev));
     }
+}
+
+void
+AmrAdv::AverageDownTo (int crse_lev)
+{
+    BoxLib::average_down(*phi_new[crse_lev+1], *phi_new[crse_lev],
+			 geom[crse_lev+1], geom[crse_lev],
+			 0, phi_new[crse_lev]->nComp(), refRatio(crse_lev));
 }
 
 long

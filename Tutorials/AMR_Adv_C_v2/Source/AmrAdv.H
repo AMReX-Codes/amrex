@@ -5,7 +5,12 @@
 #include <limits>
 #include <memory>
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 #include <AmrCore.H>
+#include <FluxRegister.H>
 
 class AmrAdv
     : public AmrCore
@@ -29,6 +34,7 @@ private:
     void InitLevelData (int lev);
 
     void AverageDown ();
+    void AverageDownTo (int crse_lev);
     long CountCells (int lev);
 
     void ComputeDt ();
@@ -54,6 +60,8 @@ private:
 
     Array<std::unique_ptr<MultiFab> > phi_new;
     Array<std::unique_ptr<MultiFab> > phi_old;
+
+    Array<std::unique_ptr<FluxRegister> > flux_reg; 
     
     // runtime parameters
 
@@ -63,6 +71,8 @@ private:
     Real cfl = 0.7;
 
     int regrid_int = 2;
+
+    int do_reflux = 1;
 
     std::string restart_chkfile;
 
