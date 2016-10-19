@@ -23,6 +23,7 @@ AmrAdv::AmrAdv ()
     for (int lev = 1; lev <= maxLevel(); ++lev) {
 	nsubsteps[lev] = MaxRefRatio(lev-1);
     }
+    last_regrid_step.resize(nlevs_max, 0);
 
     t_new.resize(nlevs_max, 0.0);
     t_old.resize(nlevs_max, -1.e100);
@@ -68,10 +69,14 @@ AmrAdv::ReadParameters ()
 }
 
 void
-AmrAdv::MakeNewLevel (int lev, Real time)
+AmrAdv::MakeNewLevel (int lev, Real time,
+		      const BoxArray& new_grids, const DistributionMapping& new_dmap)
 {
     const int ncomp = 1;
     const int nghost = 0;
+
+    SetBoxArray(lev, new_grids);
+    SetDistributionMap(lev, new_dmap);
 
     phi_new[lev] = std::unique_ptr<MultiFab>(new MultiFab(grids[lev], ncomp, nghost, dmap[lev]));
     phi_old[lev] = std::unique_ptr<MultiFab>(new MultiFab(grids[lev], ncomp, nghost, dmap[lev]));
@@ -82,6 +87,72 @@ AmrAdv::MakeNewLevel (int lev, Real time)
     if (lev > 0 && do_reflux) {
 	flux_reg[lev] = std::unique_ptr<FluxRegister>
 	    (new FluxRegister(grids[lev], refRatio(lev-1), lev, ncomp, dmap[lev]));
+    }
+}
+
+void
+AmrAdv::RemakeLevel (int lev, Real time,
+		     const BoxArray& new_grids, const DistributionMapping& new_dmap)
+{
+    const int ncomp = phi_new[lev]->nComp();
+    const int nghost = phi_new[lev]->nGrow();
+
+    auto new_state = std::unique_ptr<MultiFab>(new MultiFab(new_grids, ncomp, nghost, new_dmap));
+    auto old_state = std::unique_ptr<MultiFab>(new MultiFab(new_grids, ncomp, nghost, new_dmap));
+
+    FillPatch(lev, time, *new_state, 0, ncomp);
+
+    SetBoxArray(lev, new_grids);
+    SetDistributionMap(lev, new_dmap);
+
+    std::swap(new_state, phi_new[lev]);
+    std::swap(old_state, phi_old[lev]);
+
+    t_new[lev] = time;
+    t_old[lev] = time - 1.e200;
+
+    if (lev > 0 && do_reflux) {
+
+	flux_reg[lev] = std::unique_ptr<FluxRegister>
+	    (new FluxRegister(grids[lev], refRatio(lev-1), lev, ncomp, dmap[lev]));
+    }    
+}
+
+void
+AmrAdv::ClearLevel (int lev)
+{
+    phi_new[lev].reset(nullptr);
+    phi_old[lev].reset(nullptr);
+    flux_reg[lev].reset(nullptr);
+
+    SetBoxArray(lev, BoxArray());
+    SetDistributionMap(lev, DistributionMapping());
+}
+
+void
+AmrAdv::regrid (int lbase, Real time)
+{
+    int new_finest;
+    Array<BoxArray> new_grids(finest_level+2);
+    MakeNewGrids(lbase, time, new_finest, new_grids);
+
+    BL_ASSERT(new_finest <= finest_level+1);
+
+    for (int lev = lbase+1; lev <= new_finest; ++lev)
+    {
+	if (lev <= finest_level) // an old level
+	{
+	    if (new_grids[lev] != grids[lev]) // otherwise nothing
+	    {
+		DistributionMapping new_dmap(new_grids[lev], ParallelDescriptor::NProcs());
+		RemakeLevel(lev, time, new_grids[lev], new_dmap);
+	    }
+	}
+	else  // a new level
+	{
+	    DistributionMapping new_dmap(new_grids[lev], ParallelDescriptor::NProcs());
+	    MakeNewLevel(lev, time, new_grids[lev], new_dmap);
+	}
     }
 }
 
@@ -123,7 +194,7 @@ AmrAdv::CountCells (int lev)
 }
 
 void
-AmrAdv::FillPatch (int lev, Real time, MultiFab& Sborder,int icomp, int ncomp)
+AmrAdv::FillPatch (int lev, Real time, MultiFab& mf, int icomp, int ncomp)
 {
     if (lev == 0)
     {
@@ -132,7 +203,7 @@ AmrAdv::FillPatch (int lev, Real time, MultiFab& Sborder,int icomp, int ncomp)
 	GetData(0, time, smf, stime);
 
 	AmrAdvPhysBC physbc;
-	BoxLib::FillPatchSingleLevel(Sborder, time, smf, stime, 0, icomp, ncomp,
+	BoxLib::FillPatchSingleLevel(mf, time, smf, stime, 0, icomp, ncomp,
 				     geom[lev], physbc);
     }
     else
@@ -146,7 +217,7 @@ AmrAdv::FillPatch (int lev, Real time, MultiFab& Sborder,int icomp, int ncomp)
 	Array<BCRec> bcs(6);
 	Interpolater* mapper = &cell_cons_interp;
 
-	BoxLib::FillPatchTwoLevels(Sborder, time, cmf, ctime, fmf, ftime,
+	BoxLib::FillPatchTwoLevels(mf, time, cmf, ctime, fmf, ftime,
 				   0, icomp, ncomp, geom[lev-1], geom[lev],
 				   cphysbc, fphysbc, refRatio(lev-1),
 				   mapper, bcs);

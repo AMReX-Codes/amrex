@@ -28,10 +28,10 @@ AmrAdv::InitFromScratch ()
     {
 	finest_level = 0;
 
-	SetBoxArray(0, MakeBaseGrids());
-	SetDistributionMap(0, DistributionMapping(grids[0], ParallelDescriptor::NProcs()));
+	const BoxArray& ba = MakeBaseGrids();
+	DistributionMapping dm(ba, ParallelDescriptor::NProcs());
 
-	MakeNewLevel(0, time);
+	MakeNewLevel(0, time, ba, dm);
 
 	InitLevelData(0);
     }
@@ -50,11 +50,9 @@ AmrAdv::InitFromScratch ()
 	    if (new_finest <= finest_level) break;
 	    finest_level = new_finest;
 
-	    SetBoxArray(new_finest, new_grids[new_finest]);
-	    SetDistributionMap(new_finest, DistributionMapping(new_grids[new_finest],
-							       ParallelDescriptor::NProcs()));
+	    DistributionMapping dm(new_grids[new_finest], ParallelDescriptor::NProcs());
 
-	    MakeNewLevel(new_finest, time);
+	    MakeNewLevel(new_finest, time, new_grids[new_finest], dm);
 
 	    InitLevelData(new_finest);
 	}

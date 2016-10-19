@@ -41,15 +41,25 @@ AmrAdv::Evolve ()
 void
 AmrAdv::timeStep (int lev, Real time, int iteration)
 {
-    if (regrid_int < 0)  // We may need to regrid
+    if (regrid_int >= 0)  // We may need to regrid
     {
-	int lev_top = finest_level;
-
-	for (int i = lev; i <= lev_top; ++i)
+        // note that finest_level may change during loop
+	for (int i = lev; i <= finest_level && i < max_level; ++i) 
 	{
-	    int old_finest = finest_level;
+	    if (istep[i] > last_regrid_step[i] && istep[i]%regrid_int == 0)
+	    {
+		int old_finest = finest_level;
 	    
-	    // We may need to regrid
+		regrid(i, time);
+
+		for (int k = i; k <= finest_level; ++k) {
+		    last_regrid_step[k] = istep[k];
+		}
+
+		for (int k = old_finest+1; k <= finest_level; ++k) {
+		    dt[k] = dt[k-1] / MaxRefRatio(k-1);
+		}
+	    }
 	}
     }
 

@@ -29,7 +29,12 @@ private:
 
     void ReadParameters();
 
-    void MakeNewLevel (int lev, Real time);
+    void MakeNewLevel (int lev, Real time,
+		       const BoxArray& new_grids, const DistributionMapping& new_dmap);
+    void RemakeLevel (int lev, Real time,
+		      const BoxArray& new_grids, const DistributionMapping& new_dmap);
+    void ClearLevel (int lev);
+    void regrid (int lbase, Real time);
 
     void InitFromScratch ();
     void InitFromCheckpoint ();
@@ -44,7 +49,7 @@ private:
     void timeStep (int lev, Real time, int iteration);
     void Advance (int lev, Real time, Real dt, int iteration, int ncycle);
 
-    void FillPatch (int lev, Real time, MultiFab& Sborder, int icomp, int ncomp);
+    void FillPatch (int lev, Real time, MultiFab& mf, int icomp, int ncomp);
     void GetData (int lev, Real time, PArray<MultiFab>& data, std::vector<Real>& datatime);
 
     std::string PlotFileName (int lev) const;
@@ -54,6 +59,7 @@ private:
 
     Array<int> istep;      // which step?
     Array<int> nsubsteps;  // how many substeps on each level?
+    Array<int> last_regrid_step;  // last time the grid was built
 
     Array<Real> t_new;
     Array<Real> t_old;
