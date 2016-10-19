@@ -32,7 +32,7 @@ AmrAdv::AmrAdv ()
     phi_new.resize(nlevs_max);
     phi_old.resize(nlevs_max);
 
-    flux_reg.resize(nlevs_max);
+    flux_reg.resize(nlevs_max+1);
 }
 
 AmrAdv::~AmrAdv ()
@@ -65,6 +65,24 @@ AmrAdv::ReadParameters ()
 	pp.query("plot_file", plot_file);
 	pp.query("check_int", check_int);
 	pp.query("plot_int", plot_int);
+    }
+}
+
+void
+AmrAdv::MakeNewLevel (int lev, Real time)
+{
+    const int ncomp = 1;
+    const int nghost = 0;
+
+    phi_new[lev] = std::unique_ptr<MultiFab>(new MultiFab(grids[lev], ncomp, nghost, dmap[lev]));
+    phi_old[lev] = std::unique_ptr<MultiFab>(new MultiFab(grids[lev], ncomp, nghost, dmap[lev]));
+
+    t_new[lev] = time;
+    t_old[lev] = time - 1.e200;
+
+    if (lev > 0 && do_reflux) {
+	flux_reg[lev] = std::unique_ptr<FluxRegister>
+	    (new FluxRegister(grids[lev], refRatio(lev-1), lev, ncomp, dmap[lev]));
     }
 }
 

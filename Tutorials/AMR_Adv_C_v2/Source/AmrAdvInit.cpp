@@ -22,10 +22,7 @@ AmrAdv::InitData ()
 void
 AmrAdv::InitFromScratch ()
 {
-    const int ncomp = 1;
-    const int nghost = 0;
     const Real time = 0.0;
-    const Real old_time = -1.e200;
 
     // define coarse level BoxArray and DistributionMap
     {
@@ -34,10 +31,7 @@ AmrAdv::InitFromScratch ()
 	SetBoxArray(0, MakeBaseGrids());
 	SetDistributionMap(0, DistributionMapping(grids[0], ParallelDescriptor::NProcs()));
 
-	phi_new[0] = std::unique_ptr<MultiFab>(new MultiFab(grids[0], ncomp, nghost, dmap[0]));
-	phi_old[0] = std::unique_ptr<MultiFab>(new MultiFab(grids[0], ncomp, nghost, dmap[0]));
-	t_new[0] = time;
-	t_old[0] = old_time;
+	MakeNewLevel(0, time);
 
 	InitLevelData(0);
     }
@@ -60,12 +54,7 @@ AmrAdv::InitFromScratch ()
 	    SetDistributionMap(new_finest, DistributionMapping(new_grids[new_finest],
 							       ParallelDescriptor::NProcs()));
 
-	    phi_new[new_finest] = std::unique_ptr<MultiFab>
-		(new MultiFab(grids[new_finest], ncomp, nghost, dmap[new_finest]));
-	    phi_old[new_finest] = std::unique_ptr<MultiFab>
-		(new MultiFab(grids[new_finest], ncomp, nghost, dmap[new_finest]));
-	    t_new[new_finest] = time;
-	    t_old[new_finest] = old_time;
+	    MakeNewLevel(new_finest, time);
 
 	    InitLevelData(new_finest);
 	}

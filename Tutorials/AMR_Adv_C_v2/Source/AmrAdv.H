@@ -29,6 +29,8 @@ private:
 
     void ReadParameters();
 
+    void MakeNewLevel (int lev, Real time);
+
     void InitFromScratch ();
     void InitFromCheckpoint ();
     void InitLevelData (int lev);

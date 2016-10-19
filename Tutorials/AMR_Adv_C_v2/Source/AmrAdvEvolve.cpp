@@ -81,11 +81,12 @@ AmrAdv::timeStep (int lev, Real time, int iteration)
 	{
 	    timeStep(lev+1, time+(i-1)*dt[lev+1], i);
 	}
-    }
 
-    // reflux
+	if (do_reflux)
+	{
+	    flux_reg[lev+1]->Reflux(*phi_new[lev], 1.0, 0, 0, phi_new[lev]->nComp(), geom[lev]);
+	}
 
-    if (lev < finest_level) {
 	AverageDownTo(lev); // average lev+1 down to lev
     }
     
@@ -108,6 +109,17 @@ AmrAdv::Advance (int lev, Real time, Real dt, int iteration, int ncycle)
 
     const Real* dx = geom[lev].CellSize();
     const Real* prob_lo = geom[lev].ProbLo();
+
+    MultiFab fluxes[BL_SPACEDIM];
+    if (do_reflux)
+    {
+	for (int i = 0; i < BL_SPACEDIM; ++i)
+	{
+	    BoxArray ba = grids[lev];
+	    ba.surroundingNodes(i);
+	    fluxes[i].define(ba, S_new.nComp(), 0, dmap[lev], Fab_allocate);
+	}
+    }
 
     // State with ghost cells
     MultiFab Sborder(grids[lev], S_new.nComp(), num_grow, dmap[lev]);
@@ -150,12 +162,26 @@ AmrAdv::Advance (int lev, Real time, Real dt, int iteration, int ncycle)
 			  BL_TO_FORTRAN_3D(flux[2])), 
 		   dx, dt);
 
-#if 0
 	    if (do_reflux) {
-		for (int i = 0; i < BL_SPACEDIM ; i++)
+		for (int i = 0; i < BL_SPACEDIM ; i++) {
 		    fluxes[i][mfi].copy(flux[i],mfi.nodaltilebox(i));	  
+		}
 	    }
-#endif
+	}
+    }
+
+    if (do_reflux) { // Note that the fluxes have already been scaled by dt and area.
+	if (flux_reg[lev]) {
+	    for (int i = 0; i < BL_SPACEDIM; ++i) {
+		flux_reg[lev]->FineAdd(fluxes[i],i,0,0,fluxes[i].nComp(), 1.0);
+	    }
+	}
+
+	if (flux_reg[lev+1]) {
+	    flux_reg[lev+1]->setVal(0.0);
+	    for (int i = 0; i < BL_SPACEDIM; ++i) {
+		flux_reg[lev+1]->CrseInit(fluxes[i],i,0,0,fluxes[i].nComp(), -1.0);
+	    }	    
 	}
     }
 }
