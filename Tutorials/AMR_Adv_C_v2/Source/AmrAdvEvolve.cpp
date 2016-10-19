@@ -41,15 +41,15 @@ AmrAdv::Evolve ()
 void
 AmrAdv::timeStep (int lev, Real time, int iteration)
 {
-    int lev_top = finest_level;
-
-    for (int i = lev; i <= lev_top; ++i)
+    if (regrid_int < 0)  // We may need to regrid
     {
-	int old_finest = finest_level;
+	int lev_top = finest_level;
 
-	// We may need to regrid
+	for (int i = lev; i <= lev_top; ++i)
 	{
+	    int old_finest = finest_level;
 	    
+	    // We may need to regrid
 	}
     }
 
@@ -62,8 +62,8 @@ AmrAdv::timeStep (int lev, Real time, int iteration)
     }
 
     Advance(lev, time, dt[lev], iteration, nsubsteps[lev]);
+
     ++istep[lev];
-    isubstep[lev] = iteration;
 
     if (Verbose() && ParallelDescriptor::IOProcessor())
     {
