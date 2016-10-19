@@ -268,7 +268,8 @@ def doit(prefix, search_path, files, cpp, debug=False):
         for d in depends:
             try: provides_obj = module_files[d]
             except KeyError:
-                sys.exit("module {} required by {} not found".format(d, sf.name))
+                print("warning: module {} required by {} not found".format(d, sf.name), 
+                      file=sys.stderr)
 
             # skip the case where a file provides the module it needs
             # on its own; otherwise output the dependency line
