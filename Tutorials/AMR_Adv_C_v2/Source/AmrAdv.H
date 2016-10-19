@@ -53,7 +53,6 @@ private:
     void WritePlotFile () const;
 
     Array<int> istep;      // which step?
-    Array<int> isubstep;   // which substep in subcycle?
     Array<int> nsubsteps;  // how many substeps on each level?
 
     Array<Real> t_new;

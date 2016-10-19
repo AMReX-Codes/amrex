@@ -19,7 +19,6 @@ AmrAdv::AmrAdv ()
     int nlevs_max = maxLevel() + 1;
 
     istep.resize(nlevs_max, 0);
-    isubstep.resize(nlevs_max, 0);
     nsubsteps.resize(nlevs_max, 1);
     for (int lev = 1; lev <= maxLevel(); ++lev) {
 	nsubsteps[lev] = MaxRefRatio(lev-1);
