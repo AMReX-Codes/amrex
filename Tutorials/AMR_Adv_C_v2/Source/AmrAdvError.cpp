@@ -1,8 +1,4 @@
 
-#ifdef _OPENMP
-#include <omp.h>
-#endif
-
 #include <ParmParse.H>
 
 #include <AmrAdv.H>
