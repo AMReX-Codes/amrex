@@ -125,8 +125,8 @@ AmrAdv::ClearLevel (int lev)
     phi_old[lev].reset(nullptr);
     flux_reg[lev].reset(nullptr);
 
-    SetBoxArray(lev, BoxArray());
-    SetDistributionMap(lev, DistributionMapping());
+    ClearBoxArray(lev);
+    ClearDistributionMap(lev);
 }
 
 void
@@ -137,6 +137,8 @@ AmrAdv::regrid (int lbase, Real time)
     MakeNewGrids(lbase, time, new_finest, new_grids);
 
     BL_ASSERT(new_finest <= finest_level+1);
+
+    DistributionMapping::FlushCache();
 
     for (int lev = lbase+1; lev <= new_finest; ++lev)
     {
