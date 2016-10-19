@@ -42,6 +42,7 @@ private:
     std::string PlotFileName (int lev) const;
     Array<const MultiFab*> PlotFileMF () const;
     std::vector<std::string> PlotFileVarNames () const;
+    void WritePlotFile () const;
 
     Array<int> istep;      // which step?
     Array<int> isubstep;   // which substep in subcycle?
