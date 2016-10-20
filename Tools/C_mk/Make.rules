@@ -170,5 +170,6 @@ endif
 # for debugging.  To see the value of a Makefile variable,
 # e.g. Fmlocs, simply do "make echo-Fmlocs".  This will
 # print out the value.
-echo-%: ; @echo $* is $($*)
+echo-%:
+	@echo "$* is $($*)"
 
