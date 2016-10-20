@@ -59,26 +59,27 @@ BoxLib::WriteMultiLevelPlotifle (const std::string& plotfilename, int nlevels,
 
     if (ParallelDescriptor::IOProcessor())
     {
-	std::string HeaderFileName = plotfilename + "/Header";
-
-	std::ofstream HeaderFile;
-
-	VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
-	HeaderFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
-
-	HeaderFile.precision(17);
-
 	// Only the I/O processor makes the directory if it doesn't already exist.
         if (!BoxLib::UtilCreateDirectory(plotfilename, 0755))
             BoxLib::CreateDirectoryFailed(plotfilename);
     
+	std::string HeaderFileName = plotfilename + "/Header";
+
+	std::ofstream HeaderFile;
+
         //
         // Only the IOProcessor() writes to the header file.
         //
-        HeaderFile.open(HeaderFileName.c_str(), std::ios::out|std::ios::trunc|std::ios::binary);
+        HeaderFile.open(HeaderFileName.c_str(), std::ofstream::out|std::ofstream::trunc|std::ofstream::binary);
         if (!HeaderFile.good()) {
             BoxLib::FileOpenFailed(HeaderFileName);
 	}
+
+	HeaderFile.precision(17);
+
+	VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+	HeaderFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
+
         HeaderFile << "HyperCLaw-V1.1\n";
 
         HeaderFile << mf[0]->nComp() << '\n';
