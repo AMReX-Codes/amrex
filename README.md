@@ -56,7 +56,7 @@ installed with Macports, this is `-lmpi_usempi -lmpi_mpifh -lmpi`.
 
 `cd` into the the directory `warpx` and type
 ```
-make -j 4 USE_MPI=TRUE BOXLIB_USE_MPI_WRAPPERS=TRUE
+make -j
 ```
 
 In order to clean a previously compiled version:
@@ -64,3 +64,57 @@ In order to clean a previously compiled version:
 make realclean
 ```
 
+## Running the tests
+
+The folder `tests/Langmuir` contains code that allow the user
+to run a Langmuir wave case with either WarpX or PICSAR, and to
+compare the results. The instructions below explain how to do this.
+
+### Running the test with Warpx
+
+After compiling WarpX (see the above instructions), copy the
+compiled executable (its name starts with `main3d`) to the folder
+`tests/Langmuir/`. Then type
+```
+cd tests/Langmuir
+./<executable_name> input_warpx
+```
+where `<executable_name>` should be replaced by the name of the
+compiled executable.
+
+The code produces a set of folders with names starting with `plt`.
+
+### Running the test with PICSAR
+
+`cd` into the folder `picsar` (`cd ../../../picsar` if you are
+currently in the folder `test/Langmuir`), and type the following set
+of commands:
+```
+make clean
+make
+cp fortran_bin/picsar ../warpx/tests/Langmuir/
+cd ../warpx/tests/Langmuir/
+./picsar
+```
+
+### Visualizing and comparing the results
+
+The results are compared using Python, inside a Jupyter notebook. In
+order to be able to visualize the results, you need to first install
+the proper visualization software:
+
+- If you are using the Anaconda distribution of Python, type:
+```
+conda install jupyter numpy yt matplotlib
+```
+
+- Otherwise, type:
+```
+pip install jupyter numpy yt matplotlib
+```
+
+Then, within the folder `tests/Langmuir`, type:
+```
+jupyter notebook Visualization.ipynb 
+```
+and follow the instructions that will pop up in your browser.
