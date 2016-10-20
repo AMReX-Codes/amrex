@@ -16,8 +16,8 @@ public:
     typedef typename ParticleContainer<NR,NI,C>::PBox PBox;
     typedef typename ParticleContainer<NR,NI,C>::PMap PMap;
     
-    AmrParticleContainer (Amr* amr)
-	: ParticleContainer<NR,NI,C>(amr->GetParGDB())
+    AmrParticleContainer (AmrCore* amr_core)
+	: ParticleContainer<NR,NI,C>(amr_core->GetParGDB())
     {
 	this->m_particles.resize(this->m_gdb->finestLevel()+1);
     }
@@ -30,8 +30,8 @@ class AmrTracerParticleContainer
 {
 public:
 
-    AmrTracerParticleContainer (Amr* amr)
-	: TracerParticleContainer(amr->GetParGDB())
+    AmrTracerParticleContainer (AmrCore* amr_core)
+	: TracerParticleContainer(amr_core->GetParGDB())
     {
 	this->m_particles.resize(this->m_gdb->finestLevel()+1);
     }
