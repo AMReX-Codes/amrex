@@ -71,7 +71,7 @@ void AmrAdv::InitLevelData (int lev)
     MultiFab& state = *phi_new[lev];
 
     for (MFIter mfi(state); mfi.isValid(); ++mfi)
-	{
+    {
         const Box& box = mfi.validbox();
         const int* lo  = box.loVect();
         const int* hi  = box.hiVect();
