@@ -14,7 +14,7 @@ max_level = 0
 # Maximum number of time steps
 max_step = 10
 
-plot_int = 2   # How often to write plotfiles.  "<= 0" means no plotfiles.
+plot_int = 1   # How often to write plotfiles.  "<= 0" means no plotfiles.
 
 # Geometry
 geometry.coord_sys   = 0                  # 0: Cartesian
