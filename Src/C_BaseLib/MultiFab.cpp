@@ -1447,6 +1447,6 @@ MultiFab::AddProcsToComp (int ioProcNumSCS, int ioProcNumAll,
   if(scsMyId != ioProcNumSCS) {
     initialized   = bInit;
   }
-  FabArray::AddProcsToComp(ioProcNumSCS, ioProcNumAll, scsMyId, scsComm);
+  FabArray<FArrayBox>::AddProcsToComp(ioProcNumSCS, ioProcNumAll, scsMyId, scsComm);
 }
 
