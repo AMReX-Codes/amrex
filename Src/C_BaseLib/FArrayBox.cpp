@@ -21,7 +21,7 @@
 #include <BL_CXX11.H>
 #include <MemPool.H>
 
-#if (__GNUC__ >= 5 || defined(BL_Darwin))
+#if !defined(__PGI) && (__GNUC__ >= 5 || defined(BL_Darwin))
 using std::isinf;
 using std::isnan;
 #endif
