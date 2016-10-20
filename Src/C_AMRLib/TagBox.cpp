@@ -647,8 +647,8 @@ void
 TagBoxArray::AddProcsToComp (int ioProcNumSCS, int ioProcNumAll,
                              int scsMyId, MPI_Comm scsComm)
 {
-  FabArray::AddProcsToComp(ioProcNumSCS, ioProcNumAll,
-                           scsMyId, scsComm);
+    FabArray<TagBox>::AddProcsToComp(ioProcNumSCS, ioProcNumAll,
+				     scsMyId, scsComm);
 }
 
 
