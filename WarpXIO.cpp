@@ -48,17 +48,17 @@ WarpX::WritePlotFile (int istep, Real t) const
     BoxLib::average_face_to_cellcenter(mf, dcomp, srcmf);
     
     const std::string& plotfilename = BoxLib::Concatenate("plt",istep);
-    BoxLib::WriteSingleLevelPlotfile(plotfilename, mf, varnames, geom_arr[lev], t);
+    BoxLib::WriteSingleLevelPlotfile(plotfilename, mf, varnames, geom_arr[lev], t, istep);
 
     mypc->Checkpoint(plotfilename, "particle");
 
-    if (false && ParallelDescriptor::IOProcessor()) {
+    if (ParallelDescriptor::IOProcessor()) {
 	// job_info file with details about the run
 	std::ofstream jobInfoFile;
 	std::string FullPathJobInfoFile = plotfilename;
 	std::string PrettyLine = "===============================================================================\n";
 
-	FullPathJobInfoFile += "/job_info";
+	FullPathJobInfoFile += "/warpx_job_info";
 	jobInfoFile.open(FullPathJobInfoFile.c_str(), std::ios::out);
 
 	// job information
