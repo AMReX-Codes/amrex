@@ -17,6 +17,8 @@ amr.ref_ratio       = 2 2 2 2 # refinement ratio
 amr.blocking_factor = 8       # block factor in grid generation
 amr.max_grid_size   = 16
 
+amr.regrid_int      = 2       # how often to regrid
+
 # TIME STEP CONTROL
 adv.cfl            = 0.7     # cfl number for hyperbolic system
                              # In this test problem, the velocity is
@@ -24,17 +26,15 @@ adv.cfl            = 0.7     # cfl number for hyperbolic system
 			     # the 3D test, but need to use 0.7 in 2D
 			     # to satisfy CFL condition.
 
-adv.regrid_int = 2      # how often to regrid
-
 adv.do_reflux = 1
 
 # Tagging
 adv.phierr = 1.01  1.1  1.5
 
 # CHECKPOINT FILES
-adv.check_file = chk   # root name of checkpoint file
-adv.check_int  = 10    # number of timesteps between checkpoints
+amr.check_file = chk   # root name of checkpoint file
+amr.check_int  = 10    # number of timesteps between checkpoints
 
 # PLOTFILES
-adv.plot_file  = plt    # root name of plot file
-adv.plot_int   = 10     # number of timesteps between plot files
+amr.plot_file  = plt    # root name of plot file
+amr.plot_int   = 10     # number of timesteps between plot files
