@@ -29,7 +29,10 @@ AmrAdv::Evolve ()
 		      << std::endl;
 	}
 
-	// post coarsetimestep, io?
+	// sync up time
+	for (int lev = 0; lev <= finest_level; ++lev) {
+	    t_new[lev] = cur_time;
+	}
 
 	if (plot_int > 0 && (step+1) % plot_int == 0) {
 	    last_plot_file_step = step+1;
