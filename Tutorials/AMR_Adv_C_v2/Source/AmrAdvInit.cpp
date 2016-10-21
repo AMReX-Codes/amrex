@@ -57,6 +57,31 @@ AmrAdv::InitFromScratch ()
 	    InitLevelData(new_finest);
 	}
 	while (finest_level < max_level);
+
+	// Iterate grids to ensure fine grids encompass all interesting junk.
+	for (int it=0; it<4; ++it)  // try at most 4 times
+	{
+	    for (int i = 1; i <= finest_level; ++i) {
+		new_grids[i] = grids[i];
+	    }
+
+	    int new_finest;
+	    MakeNewGrids(0, time, new_finest, new_grids);
+	    
+	    if (new_finest < finest_level) break;
+	    finest_level = new_finest;
+
+	    bool grids_the_same = true;
+	    for (int lev = 1; lev <= new_finest; ++lev) {
+		if (new_grids[lev] != grids[lev]) {
+		    grids_the_same = false;
+		    DistributionMapping dm(new_grids[lev], ParallelDescriptor::NProcs());
+		    MakeNewLevel(lev, time, new_grids[lev], dm);
+		    InitLevelData(new_finest);
+		}
+	    }
+	    if (grids_the_same) break;
+	}
     }
 
     AverageDown();
