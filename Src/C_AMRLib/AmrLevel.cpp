@@ -22,9 +22,13 @@ SlabStatList   AmrLevel::slabstat_lst;
 void
 AmrLevel::postCoarseTimeStep (Real time)
 {
+    BL_ASSERT(level == 0);
     // sync up statedata time
-    for (int i = 0; i < state.size(); ++i) {
-	state[i].syncNewTimeLevel(time);
+    for (int lev = 0; lev <= parent->finestLevel(); ++lev) {
+	AmrLevel& amrlevel = parent->getLevel(lev);
+	for (int i = 0; i < amrlevel.state.size(); ++i) {
+	    amrlevel.state[i].syncNewTimeLevel(time);
+	}
     }
 }
 
