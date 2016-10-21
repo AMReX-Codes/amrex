@@ -110,6 +110,8 @@ public:
     //
     void setNewTimeLevel (Real t_new);
 
+    void syncNewTimeLevel (Real t_new);
+
     void RegisterData (MultiFabCopyDescriptor& multiFabCopyDesc,
                        Array<MultiFabId>&      mfid);
 
