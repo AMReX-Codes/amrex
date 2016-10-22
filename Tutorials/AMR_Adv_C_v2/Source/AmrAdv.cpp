@@ -219,8 +219,11 @@ AmrAdv::FillPatch (int lev, Real time, MultiFab& mf, int icomp, int ncomp)
 	GetData(lev  , time, fmf, ftime);
 
 	AmrAdvPhysBC cphysbc, fphysbc;
-	Array<BCRec> bcs(6);
 	Interpolater* mapper = &cell_cons_interp;
+
+	int lo_bc[] = {INT_DIR, INT_DIR, INT_DIR}; // periodic boundaryies
+	int hi_bc[] = {INT_DIR, INT_DIR, INT_DIR};
+	Array<BCRec> bcs(1, BCRec(lo_bc, hi_bc));
 
 	BoxLib::FillPatchTwoLevels(mf, time, cmf, ctime, fmf, ftime,
 				   0, icomp, ncomp, geom[lev-1], geom[lev],
