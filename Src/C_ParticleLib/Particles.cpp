@@ -570,7 +570,7 @@ ParticleBase::Where (ParticleBase& p,
             // We may take a shortcut because the fact that we are here means 
             // this particle does not belong to any finer grids.
 	    const BoxArray& ba = gdb->ParticleBoxArray(p.m_lev);
-	    if (p.m_grid < ba.size() && ba[p.m_grid].contains(iv)) {
+	    if (0 <= p.m_grid && p.m_grid < ba.size() && ba[p.m_grid].contains(iv)) {
 		p.m_cell = iv;
 		return true;
 	    }
