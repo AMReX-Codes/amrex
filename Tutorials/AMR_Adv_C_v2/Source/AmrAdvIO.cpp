@@ -32,7 +32,7 @@ AmrAdv::WritePlotFile () const
     const auto& mf = PlotFileMF();
     const auto& varnames = PlotFileVarNames();
     
-    BoxLib::WriteMultiLevelPlotifle(plotfilename, finest_level+1, mf, varnames,
+    BoxLib::WriteMultiLevelPlotfile(plotfilename, finest_level+1, mf, varnames,
 				    Geom(), t_new[0], istep, refRatio());
 }
 
