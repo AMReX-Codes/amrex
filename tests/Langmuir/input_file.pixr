@@ -40,7 +40,7 @@ section::main
  zmax = 20e-6
  # Simulation duration (in 1/w0)
  # t_max = 7
- nsteps=11
+ nsteps=21
  
  ntilex = 1
  ntiley = 1
