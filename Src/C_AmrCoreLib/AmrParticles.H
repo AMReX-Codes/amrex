@@ -19,6 +19,7 @@ public:
     AmrParticleContainer (AmrCore* amr_core)
 	: ParticleContainer<NR,NI,C>(amr_core->GetParGDB())
     {
+	this->m_particles.reserve(this->m_gdb->maxLevel()+1);	
 	this->m_particles.resize(this->m_gdb->finestLevel()+1);
     }
 
@@ -33,6 +34,7 @@ public:
     AmrTracerParticleContainer (AmrCore* amr_core)
 	: TracerParticleContainer(amr_core->GetParGDB())
     {
+	this->m_particles.reserve(this->m_gdb->maxLevel()+1);
 	this->m_particles.resize(this->m_gdb->finestLevel()+1);
     }
 

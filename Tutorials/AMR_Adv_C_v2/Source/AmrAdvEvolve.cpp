@@ -42,7 +42,7 @@ AmrAdv::Evolve ()
 	if (cur_time >= stop_time - 1.e-6*dt[0]) break;
     }
 
-    if (istep[0] > last_plot_file_step) {
+    if (plot_int > 0 && istep[0] > last_plot_file_step) {
 	WritePlotFile();
     }
 }

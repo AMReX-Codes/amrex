@@ -28,8 +28,12 @@ public:
     virtual void SetParticleBoxArray (int level, const BoxArray& new_ba) override;
     virtual void SetParticleDistributionMap (int level,	const DistributionMapping& new_dm) override;
 
+    virtual void ClearParticleBoxArray (int level) override;
+    virtual void ClearParticleDistributionMap (int level) override;
+
     virtual bool LevelDefined (int level) const override;
     virtual int finestLevel () const override;
+    virtual int maxLevel () const override;
 
     virtual IntVect refRatio (int level) const override;
     virtual int MaxRefRatio (int level) const override;
@@ -95,6 +99,18 @@ void AmrParGDB::SetParticleDistributionMap (int level, const DistributionMapping
     m_dmap[level] = new_dmap;
 }
 
+inline
+void AmrParGDB::ClearParticleBoxArray (int level)
+{
+    m_ba[level] = BoxArray();
+}
+
+inline
+void AmrParGDB::ClearParticleDistributionMap (int level)
+{
+    m_dmap[level] = DistributionMapping();
+}
+
 inline 
 bool 
 AmrParGDB::LevelDefined (int level) const
@@ -107,6 +123,13 @@ int
 AmrParGDB::finestLevel () const
 {
     return m_amrcore->finestLevel();
+}
+
+inline 
+int 
+AmrParGDB::maxLevel () const
+{
+    return m_amrcore->maxLevel();
 }
  
 inline 

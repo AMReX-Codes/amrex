@@ -211,6 +211,8 @@ AmrCore::InitAmrCore (int max_level_in, const Array<int>& n_cell_in)
 	// chop up grids to have more grids than the number of procs
 	pp.query("refine_grid_layout", refine_grid_layout);
     }
+
+    finest_level = -1;
     
 #ifdef USE_PARTICLES
     m_gdb = std::unique_ptr<AmrParGDB>(new AmrParGDB(this));

@@ -604,7 +604,6 @@ ParticleContainer<NR,NI,C>::addOneParticle (int                  id_in,
     BL_PROFILE("ParticleContainer<NR,NI,C>::addOneParticle()");
     if (m_particles.size() == 0)
     {
-       m_particles.reserve(15);  // So we don't ever have to do any copying on a resize.
        m_particles.resize(m_gdb->finestLevel()+1);
     }
 
@@ -2870,8 +2869,6 @@ ParticleContainer<NR,NI,C>::Restart_Doit (const std::string& fullname,
         ParallelDescriptor::Bcast(which.dataPtr(), which.size(), IOProc);
         ParallelDescriptor::Bcast(count.dataPtr(), count.size(), IOProc);
         ParallelDescriptor::Bcast(where.dataPtr(), where.size(), IOProc);
-
-        m_particles.reserve(15);  // So we don't ever have to do any copying on a resize.
 
         m_particles.resize(m_gdb->finestLevel()+1);
 

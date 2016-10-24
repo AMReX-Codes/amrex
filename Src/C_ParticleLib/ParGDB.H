@@ -23,8 +23,12 @@ public:
     virtual void SetParticleBoxArray (int level, const BoxArray& new_ba) = 0;
     virtual void SetParticleDistributionMap (int level, const DistributionMapping& new_dm) = 0;
 
+    virtual void ClearParticleBoxArray (int level) = 0;
+    virtual void ClearParticleDistributionMap (int level) = 0;
+
     virtual bool LevelDefined (int level) const = 0;
     virtual int finestLevel () const = 0;
+    virtual int maxLevel () const = 0;
 
     virtual IntVect refRatio (int level) const = 0;
     virtual int MaxRefRatio (int level) const = 0;
@@ -64,8 +68,12 @@ public:
     virtual void SetParticleBoxArray (int level, const BoxArray& new_ba) override;
     virtual void SetParticleDistributionMap (int level,	const DistributionMapping& new_dm) override;
 
+    virtual void ClearParticleBoxArray (int level) override;
+    virtual void ClearParticleDistributionMap (int level) override;
+
     virtual bool LevelDefined (int level) const override;
     virtual int finestLevel () const override;
+    virtual int maxLevel () const override;
 
     virtual IntVect refRatio (int level) const override;
     virtual int MaxRefRatio (int level) const override;
@@ -163,6 +171,22 @@ ParGDB::SetParticleDistributionMap (int level, const DistributionMapping& new_dm
     m_dmap[level] = new_dm;
 }
 
+inline
+void 
+ParGDB::ClearParticleBoxArray (int level)
+{
+    BL_ASSERT(level < m_nlevels);
+    m_ba[level] = BoxArray();
+}
+
+inline
+void 
+ParGDB::ClearParticleDistributionMap (int level)
+{
+    BL_ASSERT(level < m_nlevels);
+    m_dmap[level] = DistributionMapping();
+}
+
 inline 
 bool 
 ParGDB::LevelDefined (int level) const
@@ -173,6 +197,13 @@ ParGDB::LevelDefined (int level) const
 inline 
 int 
 ParGDB::finestLevel () const
+{
+    return m_nlevels-1;
+}
+
+inline 
+int 
+ParGDB::maxLevel () const
 {
     return m_nlevels-1;
 }

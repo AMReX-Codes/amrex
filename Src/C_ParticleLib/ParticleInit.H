@@ -39,7 +39,6 @@ ParticleContainer<NR,NI,C>::InitFromAsciiFile (const std::string& file, int extr
        NRedist = 48;
     }
 
-    m_particles.reserve(15);  // So we don't ever have to do any copying on a resize.
     m_particles.resize(m_gdb->finestLevel()+1);
 
     IntVect lNrep(D_DECL(1,1,1));
@@ -377,8 +376,6 @@ ParticleContainer<NR,NI,C>::InitFromBinaryFile (const std::string& file,
     Array<PMap> tmp_particles;
 
     tmp_particles.reserve(15);  // So we don't ever have to do any copying on a resize.
-      m_particles.reserve(15);  // So we don't ever have to do any copying on a resize.
-
     tmp_particles.resize(m_gdb->finestLevel()+1);
       m_particles.resize(m_gdb->finestLevel()+1);
     //
@@ -838,8 +835,6 @@ ParticleContainer<NR,NI,C>::InitRandom (long          icount,
 
     BoxLib::InitRandom(iseed+MyProc);
 
-    m_particles.reserve(15);  // So we don't ever have to do any copying on a resize.
-
     m_particles.resize(m_gdb->finestLevel()+1);
 
     for (int lev = 0; lev < m_particles.size(); lev++)
@@ -1027,7 +1022,6 @@ ParticleContainer<NR,NI,C>::InitOnePerCell (Real x_off, Real y_off, Real z_off,
     //
     const Real* dx  = geom.CellSize();
 
-    m_particles.reserve(15);  // So we don't ever have to do any copying on a resize.
     m_particles.resize(m_gdb->finestLevel()+1);
 
     for (int lev = 0; lev < m_particles.size(); lev++)
@@ -1123,7 +1117,6 @@ ParticleContainer<NR,NI,C>::InitNRandomPerCell (int n_per_cell, Real mass, Multi
 
     Real r;
 
-    m_particles.reserve(15);  // So we don't ever have to do any copying on a resize.
     m_particles.resize(m_gdb->finestLevel()+1);
 
     for (int lev = 0; lev < m_particles.size(); lev++)
