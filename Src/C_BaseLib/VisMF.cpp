@@ -854,7 +854,7 @@ VisMF::WriteHeader (const std::string &mf_name,
 
         MFHdrFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
 
-        MFHdrFile.open(MFHdrFileName.c_str(), std::ios::out|std::ios::trunc);
+        MFHdrFile.open(MFHdrFileName.c_str(), std::ios::out | std::ios::trunc);
 
         if( ! MFHdrFile.good()) {
             BoxLib::FileOpenFailed(MFHdrFileName);
@@ -939,16 +939,20 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
 	  // ---- find the total number of bytes including fab headers
           const FABio &fio = FArrayBox::getFABio();
           int whichRDBytes(whichRD->numBytes());
+	  int nFABS(0);
           for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
 	    const FArrayBox &fab = mf[mfi];
 	    std::stringstream hss;
 	    fio.write_header(hss, fab, fab.nComp());
 	    bytesWritten += hss.tellp();
 	    bytesWritten += fab.box().numPts() * mf.nComp() * whichRDBytes;
+	    ++nFABS;
 	  }
-	  char *allFabData;
+	  char *allFabData(nullptr);
 	  bool goodAlloc(false);
-	  allFabData = new(std::nothrow) char[bytesWritten];
+	  if(nFABS > 1) {
+	    allFabData = new(std::nothrow) char[bytesWritten];
+	  }    // ---- else { no need to make a copy for one fab }
 	  if(allFabData == nullptr) {
 	    goodAlloc = false;
 	  } else {
@@ -991,13 +995,18 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
       }
       for( ; nfi.ReadyToWrite(); ++nfi) {
 	if(VisMF::useSingleWrite) {
+	  // ---- find the total number of bytes including fab headers
+	  int nFABS(0);
           for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
             bytesWritten += mf[mfi].nBytes();
+	    ++nFABS;
           }
 
-	  char *allFabData;
+	  char *allFabData(nullptr);
 	  bool goodAlloc(false);
-	  allFabData = new(std::nothrow) char[bytesWritten];
+	  if(nFABS > 1) {
+	    allFabData = new(std::nothrow) char[bytesWritten];
+	  }    // ---- else { no need to make a copy for one fab }
 	  if(allFabData == nullptr) {
 	    goodAlloc = false;
 	  } else {
@@ -1285,7 +1294,6 @@ VisMF::readFAB (int                  idx,
 {
     BL_PROFILE("VisMF::readFAB_idx");
     Box fab_box(hdr.m_ba[idx]);
-
     if(hdr.m_ngrow) {
         fab_box.grow(hdr.m_ngrow);
     }
@@ -1296,9 +1304,7 @@ VisMF::readFAB (int                  idx,
     FullName += hdr.m_fod[idx].m_name;
 
     std::ifstream *ifs = VisMF::OpenStream(FullName);
-    if(hdr.m_fod[idx].m_head != 0) {
-      ifs->seekg(hdr.m_fod[idx].m_head, std::ios::beg);
-    }
+    ifs->seekg(hdr.m_fod[idx].m_head, std::ios::beg);
 
     if(hdr.m_vers == Header::Version_v1) {
       if(ncomp == -1) {
@@ -1324,7 +1330,7 @@ VisMF::readFAB (int                  idx,
 
 
 void
-VisMF::readFAB (FabArray<FArrayBox>&            mf,
+VisMF::readFAB (FabArray<FArrayBox> &mf,
 		int                  idx,
                 const std::string&   mf_name,
                 const VisMF::Header& hdr)
@@ -1336,9 +1342,7 @@ VisMF::readFAB (FabArray<FArrayBox>&            mf,
     FullName += hdr.m_fod[idx].m_name;
 
     std::ifstream *ifs = VisMF::OpenStream(FullName);
-    if(hdr.m_fod[idx].m_head != 0) {
-      ifs->seekg(hdr.m_fod[idx].m_head, std::ios::beg);
-    }
+    ifs->seekg(hdr.m_fod[idx].m_head, std::ios::beg);
 
     if(NoFabHeader(hdr)) {
       //// test ifs->gcount and tellg vs count
@@ -1430,7 +1434,12 @@ VisMF::Read (FabArray<FArrayBox> &mf,
       Array<FabReadLink> frcSorted = frcIter->second;  // ---- make a copy
       std::stable_sort(frcSorted.begin(), frcSorted.end(),
 	               [] (const FabReadLink &a, const FabReadLink &b)
-	                    { return a.rankToRead < b.rankToRead; } );
+	                    { if(a.rankToRead == b.rankToRead) {
+			        return a.fileOffset < b.fileOffset;
+			      } else {
+			        return a.rankToRead < b.rankToRead;
+			      }
+			    } );
 
       for(int i(0); i < frc.size(); ++i) {
         if(frc[i].rankToRead != frcSorted[i].rankToRead ||
@@ -1441,7 +1450,7 @@ VisMF::Read (FabArray<FArrayBox> &mf,
         readFileRanks[fileName].insert(frcSorted[i].rankToRead);
 
 	ranksFileOrder[indexFileOrder] = frcSorted[i].rankToRead;
-	baFileOrder.set(indexFileOrder, hdr.m_ba[frc[i].faIndex]);
+	baFileOrder.set(indexFileOrder, hdr.m_ba[frcSorted[i].faIndex]);
 
         FileReadChainsSorted[fileName].push_back(FabReadLink(frcSorted[i].rankToRead,
 	                                                     indexFileOrder,
@@ -1508,6 +1517,7 @@ VisMF::Read (FabArray<FArrayBox> &mf,
 	  }
           Array<FabReadLink> &frc = frcIter->second;
           for(NFilesIter nfi(fullFileName, readRanks); nfi.ReadyToRead(); ++nfi) {
+
 	    if(VisMF::useSingleRead) {
 	      // ---- confirm the data is contiguous in the stream
 	      long firstOffset(-1);
@@ -1594,7 +1604,7 @@ VisMF::Read (FabArray<FArrayBox> &mf,
       faCopyTime = ParallelDescriptor::second() - faCopyTime;
     }
 
-  } else {    // ---- noFabHeader == false
+  } else {    // ---- (noFabHeader && useSynchronousReads) == false
 
     int nReqs(0), ioProcNum(coordinatorProc);
     int myProc(ParallelDescriptor::MyProc());
