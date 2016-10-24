@@ -6,64 +6,34 @@
 WarpX::WarpX ()
 {
     ReadParameters();
-    BL_ASSERT(max_level == 0);
 
-    // Geometry
-    {
-	Geometry::Setup();
-
-	geom_arr.resize(max_level+1);
-
-	Box index_domain(IntVect::TheZeroVector(), IntVect(D_DECL(nx-1,ny-1,nz-1)));
-
-	for (auto& g : geom_arr) {
-	    g.define(index_domain);
-	    index_domain.refine(ref_ratio);
-	}
+    if (max_level != 0) {
+	BoxLib::Abort("WaprX: max_level must be zero");
     }
 
-    // BoxArray
-    {
-	ba_arr.resize(max_level+1);
-	Box index_domain(IntVect::TheZeroVector(), IntVect(D_DECL(nx-1,ny-1,nz-1)));
-	// create level 0 BoxArray only
-	ba_arr[0].define(index_domain);
-	ba_arr[0].maxSize(max_grid_size);
+    // Geometry on all levels has been defined already.
+
+    // No valid BoxArray and DistributionMapping have been defined.
+    // But the arrays for them have been resized.
+
+    int nlevs_max = maxLevel() + 1;
+
+    istep.resize(nlevs_max, 0);
+    nsubsteps.resize(nlevs_max, 1);
+    for (int lev = 1; lev <= maxLevel(); ++lev) {
+	nsubsteps[lev] = MaxRefRatio(lev-1);
     }
 
-    // DistributionMapping
-    {
-	dmap_arr.resize(max_level+1);
-	// create level 0 DistributionMapping only
-	MultiFab foo(ba_arr[0],1,0);
-	dmap_arr[0] = foo.DistributionMap();
-    }
+    t_new.resize(nlevs_max, 0.0);
+    t_old.resize(nlevs_max, -1.e100);
+    dt.resize(nlevs_max, 1.e100);
 
     // Particle Container
-    if (!mypc)
-    {
-	Array<int> rr(max_level);
-	mypc = std::unique_ptr<MyParticleContainer>
-	    (new MyParticleContainer(geom_arr, dmap_arr, ba_arr, rr));
-	mypc->SetVerbose(0);
-    }
+    mypc = std::unique_ptr<MyParticleContainer> (new MyParticleContainer(this));
 
-    // Assuming there is only a single level
-
-    // PICSAR assumes all fields are nodal plus one ghost cell.
-    IntVect nodalflag = IntVect::TheUnitVector();
-    int ng = 1;
-
-    for (int i = 0; i < BL_SPACEDIM; ++i) {
-	current.push_back(std::unique_ptr<MultiFab>
-			  (new MultiFab(ba_arr[0],1,ng,dmap_arr[0],Fab_allocate,nodalflag)));
-
-	Efield.push_back(std::unique_ptr<MultiFab>
-			 (new MultiFab(ba_arr[0],1,ng,dmap_arr[0],Fab_allocate,nodalflag)));
-
-	Bfield.push_back(std::unique_ptr<MultiFab>
-			 (new MultiFab(ba_arr[0],1,ng,dmap_arr[0],Fab_allocate,nodalflag)));	
-    }
+    current.resize(nlevs_max);
+    Efield.resize(nlevs_max);
+    Bfield.resize(nlevs_max);
 }
 
 WarpX::~WarpX ()
@@ -74,22 +44,54 @@ void
 WarpX::ReadParameters ()
 {
     {
-	ParmParse pp;
+	ParmParse pp;  // Traditionally, max_step and stop_time do not have prefix.
+	pp.query("max_step", max_step);
+	pp.query("stop_time", stop_time);
+    }
 
-	pp.query("verbose", verbose);
+    {
+	ParmParse pp("amr"); // Traditionally, these have prefix, amr.
 
-	pp.query("cfl", cfl);
+	pp.query("check_file", check_file);
+	pp.query("check_int", check_int);
 
-	pp.get("nx", nx);
-	pp.get("ny", ny);
-	pp.get("nz", nz);
-	pp.get("max_step", max_step);
-	
-	pp.query("max_grid_size", max_grid_size);
-	pp.query("max_level", max_level);
-	pp.query("ref_ratio", ref_ratio);
-
+	pp.query("plot_file", plot_file);
 	pp.query("plot_int", plot_int);
+
+	pp.query("restart", restart_chkfile);
+    }
+
+    {
+	ParmParse pp("warpx");
+	
+	pp.query("cfl", cfl);
+	pp.query("verbose", verbose);
+    }
+}
+
+void
+WarpX::MakeNewLevel (int lev, Real time,
+		      const BoxArray& new_grids, const DistributionMapping& new_dmap)
+{
+    SetBoxArray(lev, new_grids);
+    SetDistributionMap(lev, new_dmap);
+
+    t_new[lev] = time;
+    t_old[lev] = time - 1.e200;
+
+    // PICSAR assumes all fields are nodal plus one ghost cell.
+    const IntVect& nodalflag = IntVect::TheUnitVector();
+    const int ng = 1;
+
+    for (int i = 0; i < BL_SPACEDIM; ++i) {
+	current[lev].push_back(std::unique_ptr<MultiFab>
+			       (new MultiFab(grids[lev],1,ng,dmap[lev],Fab_allocate,nodalflag)));
+
+	Efield[lev].push_back(std::unique_ptr<MultiFab>
+			      (new MultiFab(grids[lev],1,ng,dmap[lev],Fab_allocate,nodalflag)));
+
+	Bfield[lev].push_back(std::unique_ptr<MultiFab>
+			      (new MultiFab(grids[lev],1,ng,dmap[lev],Fab_allocate,nodalflag)));	
     }
 }
 

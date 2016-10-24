@@ -5,17 +5,18 @@
 #include <PICSAR_f.H>
 
 void
-MyParticleContainer::Init(MultiFab& dummy_mf)
+MyParticleContainer::InitData()
 {
-    BL_PROFILE("MyPC::Init()");
+    BL_PROFILE("MyPC::InitData()");
 
     charge = -q_e;
     mass = m_e;
 
-    m_particles.reserve(15);
     m_particles.resize(m_gdb->finestLevel()+1);
 
-    const Geometry& geom = m_gdb->Geom(0);
+    const int lev = 0;
+
+    const Geometry& geom = m_gdb->Geom(lev);
     const Real* dx  = geom.CellSize();
 
     Real weight, ux;
@@ -32,10 +33,16 @@ MyParticleContainer::Init(MultiFab& dummy_mf)
       pp.query("ux", ux);
       ux *= 2.9961479e8;
     }
-    
+
+    const BoxArray& ba = m_gdb->ParticleBoxArray(lev);
+    const DistributionMapping& dm = m_gdb->ParticleDistributionMap(lev);
+
+    MultiFab dummy_mf(ba, 1, 0, dm, Fab_noallocate);
+
     for (MFIter mfi(dummy_mf,false); mfi.isValid(); ++mfi)
     {
-        Box grid = m_gdb->ParticleBoxArray(0)[mfi.index()];
+	int gid = mfi.index();
+        Box grid = ba[gid];
         RealBox grid_box = RealBox(grid,dx,geom.ProbLo());
 
 	int nx = grid.length(0), ny = grid.length(1), nz = grid.length(2); 
@@ -49,6 +56,11 @@ MyParticleContainer::Init(MultiFab& dummy_mf)
 		if (x > 0) continue;
 	      
 		ParticleType p;
+
+		p.m_id  = ParticleBase::NextID();
+		p.m_cpu = ParallelDescriptor::MyProc();
+		p.m_lev = lev;
+		p.m_grid = gid; 
 
 		p.m_pos[0] = grid_box.lo(0) + (i + particle_shift)*dx[0];
 		p.m_pos[1] = grid_box.lo(1) + (j + particle_shift)*dx[1];
@@ -66,13 +78,10 @@ MyParticleContainer::Init(MultiFab& dummy_mf)
 	      
 		p.m_data[PIdx::ux] = ux;
 
-		p.m_id  = ParticleBase::NextID();
-		p.m_cpu = ParallelDescriptor::MyProc();
-		
-		if (!ParticleBase::Where(p,m_gdb))
-		  {
+		if (!ParticleBase::Where(p,m_gdb)) // this will set m_cell
+		{
 		    BoxLib::Abort("invalid particle");
-		  }
+		}
 		
 		BL_ASSERT(p.m_lev >= 0 && p.m_lev <= m_gdb->finestLevel());
 		//

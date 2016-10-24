@@ -1,8 +1,4 @@
 
-#ifdef _OPENMP
-#include <omp.h>
-#endif
-
 #include <MultiFabUtil.H>
 #include <PlotFileUtil.H>
 
@@ -11,44 +7,55 @@
 #include "buildInfo.H"
 
 void
-WarpX::WritePlotFile (int istep, Real t) const
+WarpX::WritePlotFile () const
 {
     BL_PROFILE("WarpX::WritePlotFile()");
 
-    const int finest_lev = 0;
+    const std::string& plotfilename = BoxLib::Concatenate("plt",istep[0]);
 
     if (ParallelDescriptor::IOProcessor()) {
-	std::cout << "    Writing plotfile " << istep << std::endl;
+	std::cout << "  Writing plotfile " << plotfilename << std::endl;
     }
     
-    int ncomp = 3*3;
-    int ngrow = 0;
-    int lev = 0;
-    MultiFab mf(ba_arr[lev], ncomp, ngrow, dmap_arr[lev]);
+    {
+	const std::vector<std::string> varnames {"jx", "jy", "jz", "Ex", "Ey", "Ez", "Bx", "By", "Bz"};
 
-    std::vector<std::string> varnames {"jx", "jy", "jz", "Ex", "Ey", "Ez", "Bx", "By", "Bz"};
-
-    std::vector<MultiFab*> srcmf(3);
-    for (int i = 0; i < 3; ++i) {
-	srcmf[i] = current[i].get();
-    }
-    int dcomp = 0;
-    BoxLib::average_edge_to_cellcenter(mf, dcomp, srcmf);
-
-    for (int i = 0; i < 3; ++i) {
-	srcmf[i] = Efield[i].get();
-    }
-    dcomp += 3;
-    BoxLib::average_edge_to_cellcenter(mf, dcomp, srcmf);
-
-    for (int i = 0; i < 3; ++i) {
-	srcmf[i] = Bfield[i].get();
-    }
-    dcomp += 3;
-    BoxLib::average_face_to_cellcenter(mf, dcomp, srcmf);
+	Array<std::unique_ptr<MultiFab> > mf(finest_level+1);
     
-    const std::string& plotfilename = BoxLib::Concatenate("plt",istep);
-    BoxLib::WriteSingleLevelPlotfile(plotfilename, mf, varnames, geom_arr[lev], t, istep);
+	for (int lev = 0; lev <= finest_level; ++lev)
+	{
+	    const int ncomp = 3*3;
+	    const int ngrow = 0;
+	    mf[lev] = std::unique_ptr<MultiFab>(new MultiFab(grids[lev], ncomp, ngrow, dmap[lev]));
+
+	    std::vector<MultiFab*> srcmf(3);
+	    for (int i = 0; i < 3; ++i) {
+		srcmf[i] = current[lev][i].get();
+	    }
+	    int dcomp = 0;
+	    BoxLib::average_edge_to_cellcenter(*mf[lev], dcomp, srcmf);
+
+	    for (int i = 0; i < 3; ++i) {
+		srcmf[i] = Efield[lev][i].get();
+	    }
+	    dcomp += 3;
+	    BoxLib::average_edge_to_cellcenter(*mf[lev], dcomp, srcmf);
+
+	    for (int i = 0; i < 3; ++i) {
+		srcmf[i] = Bfield[lev][i].get();
+	    }
+	    dcomp += 3;
+	    BoxLib::average_face_to_cellcenter(*mf[lev], dcomp, srcmf);
+	}
+    
+	Array<const MultiFab*> mf2(finest_level+1);
+	for (int lev = 0; lev <= finest_level; ++lev) {
+	    mf2[lev] = mf[lev].get();
+	}
+
+	BoxLib::WriteMultiLevelPlotfile(plotfilename, finest_level+1, mf2, varnames,
+					Geom(), t_new[0], istep, refRatio());
+    }
 
     mypc->Checkpoint(plotfilename, "particle");
 
@@ -112,14 +119,14 @@ WarpX::WritePlotFile (int istep, Real t) const
         jobInfoFile << " Grid Information\n";
         jobInfoFile << PrettyLine;
 
-        for (int i = 0; i <= finest_lev; i++)
+        for (int i = 0; i <= finest_level; i++)
 	{
             jobInfoFile << " level: " << i << "\n";
-            jobInfoFile << "   number of boxes = " << ba_arr[i].size() << "\n";
+            jobInfoFile << "   number of boxes = " << grids[i].size() << "\n";
             jobInfoFile << "   maximum zones   = ";
             for (int n = 0; n < BL_SPACEDIM; n++)
 	    {
-                jobInfoFile << geom_arr[i].Domain().length(n) << " ";
+                jobInfoFile << geom[i].Domain().length(n) << " ";
 	    }
             jobInfoFile << "\n\n";
 	}

@@ -1,28 +1,48 @@
 
 #include <ParticleContainer.H>
-#include <MultiFab.H>
 #include <PICSAR_f.H>
 
-MyParticleContainer::MyParticleContainer (const Array<Geometry>            & geom,
-					  const Array<DistributionMapping> & dmap,
-					  const Array<BoxArray>            & ba,
-					  const Array<int>                 & rr)
-    : ParticleContainer<PIdx::nattribs,0,std::vector<Particle<PIdx::nattribs,0> > >(geom,dmap,ba,rr)
+MyParticleContainer::MyParticleContainer (AmrCore* amr_core)
+    : ParticleContainer<PIdx::nattribs,0,std::vector<Particle<PIdx::nattribs,0> > >
+      (amr_core->GetParGDB())
 {
-    MultiFab foo(ba[0],1,0,dmap[0],Fab_noallocate);
-    for (MFIter mfi(foo); mfi.isValid(); ++mfi)
+    this->SetVerbose(0);
+
+    m_particles.reserve(m_gdb->maxLevel()+1);
+    m_particles.resize (m_gdb->finestLevel()+1);
+
+    m_partdata.reserve(m_gdb->maxLevel()+1);
+    m_partdata.resize (m_gdb->finestLevel()+1);
+}
+
+void
+MyParticleContainer::AllocData ()
+{
+    m_particles.resize(m_gdb->finestLevel()+1);
+    m_partdata.resize(m_gdb->finestLevel()+1);
+
+    for (int lev = 0; lev <= m_gdb->finestLevel(); ++ lev)
     {
-	int i = mfi.index();
-	partdata[i] = Array<std::unique_ptr<Array<Real> > > (PIdx::npartdata);
-	for (auto& d : partdata[i])
+	auto& partleveldata = m_partdata[lev];
+	const BoxArray& ba = m_gdb->ParticleBoxArray(lev);
+	const DistributionMapping& dm = m_gdb->ParticleDistributionMap(lev);
+
+	MultiFab foo(ba, 1, 0, dm, Fab_noallocate);
+	for (MFIter mfi(foo); mfi.isValid(); ++mfi)
 	{
-	    d = std::unique_ptr<Array<Real> >(new Array<Real>());
+	    int i = mfi.index();
+	    partleveldata[i] = Array<std::unique_ptr<Array<Real> > > (PIdx::npartdata);
+	    for (auto& d : partleveldata[i])
+	    {
+		d = std::unique_ptr<Array<Real> >(new Array<Real>());
+	    }
 	}
     }
 }
 
 void
-MyParticleContainer::Evolve (const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
+MyParticleContainer::Evolve (int lev,
+			     const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
 			     const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz,
 			     MultiFab& jx, MultiFab& jy, MultiFab& jz, Real dt)
 {
@@ -32,7 +52,6 @@ MyParticleContainer::Evolve (const MultiFab& Ex, const MultiFab& Ey, const Multi
     BL_PROFILE_VAR_NS("PICSAR::ParticlePush", blp_pxr_pp);
     BL_PROFILE_VAR_NS("PICSAR::CurrentDeposition", blp_pxr_cd);
 
-    const int       lev = 0; 
     const Geometry& gm  = m_gdb->Geom(lev);
     const BoxArray& ba  = Ex.boxArray();
     const Real*     dx  = gm.CellSize();
@@ -43,6 +62,7 @@ MyParticleContainer::Evolve (const MultiFab& Ex, const MultiFab& Ey, const Multi
     BL_ASSERT(OnSameGrids(lev,Ex));
 
     PMap& pmap = m_particles[lev];
+    auto& partleveldata = m_partdata[lev];
 
     Array<Real> xp, yp, zp, wp, uxp, uyp, uzp, giv;
 
@@ -68,7 +88,7 @@ MyParticleContainer::Evolve (const MultiFab& Ex, const MultiFab& Ey, const Multi
 	FArrayBox&       jyfab = jy[gid];
 	FArrayBox&       jzfab = jz[gid];
 
-	auto& pdata = partdata[gid];
+	auto& pdata = partleveldata[gid];
 	auto& Exp = pdata[PIdx::Ex];
 	auto& Eyp = pdata[PIdx::Ey];
 	auto& Ezp = pdata[PIdx::Ez];
@@ -186,3 +206,4 @@ MyParticleContainer::Evolve (const MultiFab& Ex, const MultiFab& Ey, const Multi
     jy.SumBoundary(gm.periodicity());
     jz.SumBoundary(gm.periodicity());
 }
+

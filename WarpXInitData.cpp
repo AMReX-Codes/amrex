@@ -6,18 +6,51 @@ WarpX::InitData ()
 {
     BL_PROFILE("WarpX::InitData()");
 
-    MultiFab dummy_mf(ba_arr[0], 1, 0);
-    mypc->Init(dummy_mf);
+    if (restart_chkfile.empty())
+    {
+	InitFromScratch();
 
-//    if (verbose) mypc->WriteAsciiFile("Particles_before");
+	if (plot_int > 0) {
+	    WritePlotFile();
+	}
+    }
+    else
+    {
+	InitFromCheckpoint();
+    }
+}
 
-    for (int i = 0; i < BL_SPACEDIM; ++i) {
-	current[i]->setVal(0.0);
-	Efield[i]->setVal(0.0);
-	Bfield[i]->setVal(0.0);
+void
+WarpX::InitFromScratch ()
+{
+    BL_ASSERT(max_level == 0);
+
+    const Real time = 0.0;
+    
+    // define coarse level BoxArray and DistributionMap
+    {
+	finest_level = 0;
+
+	const BoxArray& ba = MakeBaseGrids();
+	DistributionMapping dm(ba, ParallelDescriptor::NProcs());
+
+	MakeNewLevel(0, time, ba, dm);
+
+	InitLevelData(0);
     }
 
-    if (plot_int > 0) {
-	WritePlotFile(0, 0.0);
+    // if max_level > 0, define fine levels
+
+    mypc->AllocData();
+    mypc->InitData();
+}
+
+void
+WarpX::InitLevelData (int lev)
+{
+    for (int i = 0; i < BL_SPACEDIM; ++i) {
+	current[lev][i]->setVal(0.0);
+	Efield[lev][i]->setVal(0.0);
+	Bfield[lev][i]->setVal(0.0);
     }
 }

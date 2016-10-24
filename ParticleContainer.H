@@ -6,6 +6,7 @@
 #include <map>
 
 #include <Particles.H>
+#include <AmrParGDB.H>
 
 namespace{
   constexpr Real q_e = 1.6021766208e-19;
@@ -33,35 +34,27 @@ class MyParticleContainer
 
 public:
 
-    MyParticleContainer (const Array<Geometry>            & geom,
-                         const Array<DistributionMapping> & dmap,
-                         const Array<BoxArray>            & ba,
-                         const Array<int>                 & rr);
+    MyParticleContainer (AmrCore* amr_core);
 
     virtual ~MyParticleContainer() {}
 
-    void Init (MultiFab& dummy_mf); 
+    void AllocData ();
 
-    void Evolve (const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
+    void InitData ();
+
+    void Evolve (int lev,
+		 const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
 		 const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz,
 		 MultiFab& jx, MultiFab& jy, MultiFab& jz, Real dt);
 
-#if 0
-    void CurrentDeposition (MultiFab& jx, MultiFab& jy, MultiFab& jz, Real dt) const;
-
-    void FieldGather (const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
-		      const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz,
-		      bool do_high_order);
-
-    void ParticlePush (Real dt);
-#endif
-
 private:
+    // The outermost Array is for AMR level.
     // map's key is grid id and value is an Array. The size of map is the size of local grids.
-    // Array has npartdata unique_ptr to another Array.  The size of the firs Array is npartdata.
-    // The second Array holds a particular data (say Ex or gaminv) for particles on a grid.
-    //      The size of the second array is the number of particles.
-    std::map<int, Array<std::unique_ptr<Array<Real> > > > partdata;
+    // The Array (i.e., the value of the map) has npartdata unique_ptr to another Array.  
+    // The size of the map value Array is npartdata.
+    // The innermost Array holds a particular data (say Ex or gaminv) for particles on a grid.
+    // The size of the innermost array is the number of particles.
+    Array<std::map<int, Array<std::unique_ptr<Array<Real> > > > > m_partdata;
 
     Real charge;
     Real mass;

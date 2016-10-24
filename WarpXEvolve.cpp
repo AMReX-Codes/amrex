@@ -14,56 +14,77 @@ WarpX::Evolve ()
 {
     BL_PROFILE("WarpX::Evolve()");
 
-    Real t = 0.0;
-    const Real* dx = geom_arr[0].CellSize();
-    Real dt  = cfl * 1./( std::sqrt( 1./(dx[0]*dx[0]) + 1./(dx[1]*dx[1]) + 1./(dx[2]*dx[2])) * clight );
+    Real cur_time = t_new[0];
+    int last_plot_file_step = 0;
 
-    for (int istep = 1; istep <= max_step; ++istep)
+    for (int step = istep[0]; step < max_step && cur_time < stop_time; ++step)
     {
 	if (ParallelDescriptor::IOProcessor()) {
-	    std::cout << "\nStart step " << istep << std::endl;
+	    std::cout << "\nSTEP " << step+1 << " starts ..." << std::endl;
 	}
 
-	// At the beginning, we have B^{n-1/2} and E^{n}.
-	// Particles have p^{n-1/2} and x^{n}.
+	ComputeDt();
 
-	EvolveB(0.5*dt); // We now B^{n}
+	// Advance level 0 by dt
+	const int lev = 0;
+	{
+	    // At the beginning, we have B^{n-1/2} and E^{n}.
+	    // Particles have p^{n-1/2} and x^{n}.
+	    
+	    EvolveB(lev, 0.5*dt[lev]); // We now B^{n}
+	    
+	    // Evolve particles to p^{n+1/2} and x^{n+1}
+	    // Depose current, j^{n+1/2}
+	    mypc->Evolve(lev,
+			 *Efield[lev][0],*Efield[lev][1],*Efield[lev][2],
+			 *Bfield[lev][0],*Bfield[lev][1],*Bfield[lev][2],
+			 *current[lev][0],*current[lev][1],*current[lev][2],dt[lev]);
+	    
+	    mypc->Redistribute(false,true);  // Redistribute particles
+	    
+	    EvolveB(lev, 0.5*dt[lev]); // We now B^{n+1/2}
+	    
+	    // Fill B's ghost cells because of the next step of evolving E.
+	    WarpX::FillBoundary(*Bfield[lev][0], geom[lev], IntVect(D_DECL(1,0,0)));
+	    WarpX::FillBoundary(*Bfield[lev][1], geom[lev], IntVect(D_DECL(0,1,0)));
+	    WarpX::FillBoundary(*Bfield[lev][2], geom[lev], IntVect(D_DECL(0,0,1)));
+	    
+	    EvolveE(lev, dt[lev]); // We now have E^{n+1}
 
-	// Evolve particles to p^{n+1/2} and x^{n+1}
-	// Depose current, j^{n+1/2}
-	mypc->Evolve(*Efield[0],*Efield[1],*Efield[2],
-		     *Bfield[0],*Bfield[1],*Bfield[2],
-		     *current[0],*current[1],*current[2],dt);
-
-	mypc->Redistribute(false,true);  // Redistribute particles
-
-	EvolveB(0.5*dt); // We now B^{n+1/2}
-	
-	// Fill B's ghost cells because of the next step of evolving E.
-	WarpX::FillBoundary(*Bfield[0], geom_arr[0], IntVect(D_DECL(1,0,0)));
-	WarpX::FillBoundary(*Bfield[1], geom_arr[0], IntVect(D_DECL(0,1,0)));
-	WarpX::FillBoundary(*Bfield[2], geom_arr[0], IntVect(D_DECL(0,0,1)));
-	
-	EvolveE(dt); // We now have E^{n+1}
-
-	t += dt;
-
-	if (plot_int > 0 && istep%plot_int == 0) {
-	    WritePlotFile(istep, t);
+	    ++istep[lev];
 	}
+
+	cur_time += dt[0];
 
 	if (ParallelDescriptor::IOProcessor()) {
-	    std::cout << "Finish step " << istep << std::endl;
+	    std::cout << "STEP " << step+1 << " ends." << " TIME = " << cur_time << " DT = " << dt[0]
+		      << std::endl;
 	}
+
+	// sync up time
+	for (int i = 0; i <= finest_level; ++i) {
+	    t_new[i] = cur_time;
+	}
+
+	if (plot_int > 0 && (step+1) % plot_int == 0) {
+	    last_plot_file_step = step+1;
+	    WritePlotFile();
+	}
+
+	if (cur_time >= stop_time - 1.e-6*dt[0]) break;
+    }
+
+    if (plot_int > 0 && istep[0] > last_plot_file_step) {
+	WritePlotFile();
     }
 }
 
 void
-WarpX::EvolveB (Real dt)
+WarpX::EvolveB (int lev, Real dt)
 {
     BL_PROFILE("WarpX::EvolveB()");
 
-    const Real* dx = geom_arr[0].CellSize();
+    const Real* dx = geom[lev].CellSize();
 
     Real dtsdx[3];
     for (int i = 0; i < BL_SPACEDIM; ++i) {
@@ -75,26 +96,26 @@ WarpX::EvolveB (Real dt)
     long nstart = 0;
     int l_nodal = false;
 
-    BL_ASSERT(nguard == Efield[0]->nGrow());
-    BL_ASSERT(nguard == Efield[1]->nGrow());
-    BL_ASSERT(nguard == Efield[2]->nGrow());
-    BL_ASSERT(nguard == Bfield[0]->nGrow());
-    BL_ASSERT(nguard == Bfield[1]->nGrow());
-    BL_ASSERT(nguard == Bfield[2]->nGrow());
+    BL_ASSERT(nguard == Efield[lev][0]->nGrow());
+    BL_ASSERT(nguard == Efield[lev][1]->nGrow());
+    BL_ASSERT(nguard == Efield[lev][2]->nGrow());
+    BL_ASSERT(nguard == Bfield[lev][0]->nGrow());
+    BL_ASSERT(nguard == Bfield[lev][1]->nGrow());
+    BL_ASSERT(nguard == Bfield[lev][2]->nGrow());
 
-    for ( MFIter mfi(*Bfield[0]); mfi.isValid(); ++mfi )
+    for ( MFIter mfi(*Bfield[lev][0]); mfi.isValid(); ++mfi )
     {
 	const Box& box = BoxLib::enclosedCells(mfi.validbox());
 	long nx = box.length(0);
 	long ny = box.length(1);
 	long nz = box.length(2); 
 
-	warpx_pxrpush_em3d_bvec_norder( (*Efield[0])[mfi].dataPtr(),
-					(*Efield[1])[mfi].dataPtr(),
-					(*Efield[2])[mfi].dataPtr(),
-					(*Bfield[0])[mfi].dataPtr(),
-					(*Bfield[1])[mfi].dataPtr(),
-					(*Bfield[2])[mfi].dataPtr(), 
+	warpx_pxrpush_em3d_bvec_norder( (*Efield[lev][0])[mfi].dataPtr(),
+					(*Efield[lev][1])[mfi].dataPtr(),
+					(*Efield[lev][2])[mfi].dataPtr(),
+					(*Bfield[lev][0])[mfi].dataPtr(),
+					(*Bfield[lev][1])[mfi].dataPtr(),
+					(*Bfield[lev][2])[mfi].dataPtr(), 
 					dtsdx, dtsdx+1, dtsdx+2,
 					&nx, &ny, &nz,
 					&norder, &norder, &norder,
@@ -105,13 +126,13 @@ WarpX::EvolveB (Real dt)
 }
 
 void
-WarpX::EvolveE (Real dt)
+WarpX::EvolveE (int lev, Real dt)
 {
     BL_PROFILE("WarpX::EvolveE()");
 
     Real mu_c2_dt = (mu0*clight*clight) * dt;
 
-    const Real* dx = geom_arr[0].CellSize();
+    const Real* dx = geom[lev].CellSize();
 
     Real dtsdx_c2[3];
     for (int i = 0; i < BL_SPACEDIM; ++i) {
@@ -123,37 +144,63 @@ WarpX::EvolveE (Real dt)
     long nstart = 0;
     int l_nodal = false;
 
-    BL_ASSERT(nguard == Efield[0]->nGrow());
-    BL_ASSERT(nguard == Efield[1]->nGrow());
-    BL_ASSERT(nguard == Efield[2]->nGrow());
-    BL_ASSERT(nguard == Bfield[0]->nGrow());
-    BL_ASSERT(nguard == Bfield[1]->nGrow());
-    BL_ASSERT(nguard == Bfield[2]->nGrow());
-    BL_ASSERT(nguard == current[0]->nGrow());
-    BL_ASSERT(nguard == current[1]->nGrow());
-    BL_ASSERT(nguard == current[2]->nGrow());
+    BL_ASSERT(nguard == Efield[lev][0]->nGrow());
+    BL_ASSERT(nguard == Efield[lev][1]->nGrow());
+    BL_ASSERT(nguard == Efield[lev][2]->nGrow());
+    BL_ASSERT(nguard == Bfield[lev][0]->nGrow());
+    BL_ASSERT(nguard == Bfield[lev][1]->nGrow());
+    BL_ASSERT(nguard == Bfield[lev][2]->nGrow());
+    BL_ASSERT(nguard == current[lev][0]->nGrow());
+    BL_ASSERT(nguard == current[lev][1]->nGrow());
+    BL_ASSERT(nguard == current[lev][2]->nGrow());
 
-    for ( MFIter mfi(*Efield[0]); mfi.isValid(); ++mfi )
+    for ( MFIter mfi(*Efield[lev][0]); mfi.isValid(); ++mfi )
     {
 	const Box & bx = BoxLib::enclosedCells(mfi.validbox());
 	long nx = bx.length(0);
 	long ny = bx.length(1);
 	long nz = bx.length(2); 
 
-	warpx_pxrpush_em3d_evec_norder( (*Efield[0])[mfi].dataPtr(),
-					(*Efield[1])[mfi].dataPtr(),
-					(*Efield[2])[mfi].dataPtr(),
-					(*Bfield[0])[mfi].dataPtr(),
-					(*Bfield[1])[mfi].dataPtr(),
-					(*Bfield[2])[mfi].dataPtr(), 
-					(*current[0])[mfi].dataPtr(),
-					(*current[1])[mfi].dataPtr(),
-					(*current[2])[mfi].dataPtr(),
+	warpx_pxrpush_em3d_evec_norder( (*Efield[lev][0])[mfi].dataPtr(),
+					(*Efield[lev][1])[mfi].dataPtr(),
+					(*Efield[lev][2])[mfi].dataPtr(),
+					(*Bfield[lev][0])[mfi].dataPtr(),
+					(*Bfield[lev][1])[mfi].dataPtr(),
+					(*Bfield[lev][2])[mfi].dataPtr(), 
+					(*current[lev][0])[mfi].dataPtr(),
+					(*current[lev][1])[mfi].dataPtr(),
+					(*current[lev][2])[mfi].dataPtr(),
 					&mu_c2_dt, dtsdx_c2, dtsdx_c2+1, dtsdx_c2+2,
 					&nx, &ny, &nz,
 					&norder, &norder, &norder,
 					&nguard, &nguard, &nguard,
 					&nstart, &nstart, &nstart,
 					&l_nodal );
+    }
+}
+
+void
+WarpX::ComputeDt ()
+{
+    Array<Real> dt_tmp(finest_level+1);
+
+    for (int lev = 0; lev <= finest_level; ++lev)
+    {
+	const Real* dx = geom[lev].CellSize();
+	dt_tmp[lev]  = cfl * 1./( std::sqrt( 1./(dx[0]*dx[0]) 
+                                           + 1./(dx[1]*dx[1])
+                                           + 1./(dx[2]*dx[2])) * clight );
+    }
+
+    // Limit dt's by the value of stop_time.
+    Real dt_0 = dt_tmp[0];
+    const Real eps = 1.e-3*dt_0;
+    if (t_new[0] + dt_0 > stop_time - eps) {
+	dt_0 = stop_time - t_new[0];
+    }
+
+    dt[0] = dt_0;
+    for (int lev = 1; lev <= finest_level; ++lev) {
+	dt[lev] = dt[lev-1] / nsubsteps[lev];
     }
 }
