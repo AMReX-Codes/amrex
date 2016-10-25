@@ -2,12 +2,8 @@
 #include <cmath>
 
 #include <WarpX.H>
+#include <WarpXConst.H>
 #include <PICSAR_f.H>
-
-namespace {
-    constexpr Real clight = 299792458.;
-    constexpr Real mu0 = 1.2566370614359173e-06;
-};
 
 void
 WarpX::Evolve ()

@@ -8,12 +8,6 @@
 #include <Particles.H>
 #include <AmrParGDB.H>
 
-namespace{
-  constexpr Real q_e = 1.6021766208e-19;
-  constexpr Real m_e = 9.10938356e-31;
-  constexpr Real m_p = 1.672621898e-27;
-}
-
 struct PIdx
 {
     enum { // Particle Attributes stored in p.m_data

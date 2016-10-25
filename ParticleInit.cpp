@@ -3,6 +3,7 @@
 
 #include <ParticleContainer.H>
 #include <PICSAR_f.H>
+#include <WarpXConst.H>
 
 void
 MyParticleContainer::InitData()
