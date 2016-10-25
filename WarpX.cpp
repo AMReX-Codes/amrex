@@ -81,7 +81,7 @@ WarpX::MakeNewLevel (int lev, Real time,
 
     // PICSAR assumes all fields are nodal plus one ghost cell.
     const IntVect& nodalflag = IntVect::TheUnitVector();
-    const int ng = 1;
+    const int ng = 3;
 
     for (int i = 0; i < BL_SPACEDIM; ++i) {
 	current[lev].push_back(std::unique_ptr<MultiFab>
