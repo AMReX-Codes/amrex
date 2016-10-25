@@ -156,10 +156,10 @@ WarpX::EvolveE (int lev, Real dt)
 
     for ( MFIter mfi(*Efield[lev][0]); mfi.isValid(); ++mfi )
     {
-	const Box & box = BoxLib::enclosedCells(mfi.validbox());
-	long nx = box.length(0);
-	long ny = box.length(1);
-	long nz = box.length(2); 
+	const Box & bx = BoxLib::enclosedCells(mfi.validbox());
+	long nx = bx.length(0);
+	long ny = bx.length(1);
+	long nz = bx.length(2); 
 
 	long nxs = box.smallEnd(0);
 	long nys = box.smallEnd(1);
