@@ -1,4 +1,6 @@
 
+#include <cmath>
+
 #include <BLProfiler.H>
 
 #include <ParticleContainer.H>
@@ -32,7 +34,9 @@ MyParticleContainer::InitData()
 
       ux = 0.01;
       pp.query("ux", ux);
-      ux *= 2.9961479e8;
+
+      Real gamma = 1.0 / std::sqrt(1.0 - ux*ux);
+      ux *= clight*gamma;
     }
 
     const BoxArray& ba = m_gdb->ParticleBoxArray(lev);
