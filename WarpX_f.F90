@@ -666,11 +666,17 @@ contains
 
     pxr_l_nodalgrid = l_nodalgrid .eq. 1
     
-    call pxrpush_em3d_evec_norder(ex,ey,ez,bx,by,bz,jx,jy,jz,mudt, &
+!    call pxrpush_em3d_evec_norder(ex,ey,ez,bx,by,bz,jx,jy,jz,mudt, &
+!         dtsdx,dtsdy,dtsdz,nx,ny,nz,   &
+!         norderx,nordery,norderz,             &
+!         nxguard,nyguard,nzguard,nxs,nys,nzs, &
+!         pxr_l_nodalgrid)
+
+    call pxrpush_em3d_evec(ex,ey,ez,bx,by,bz,jx,jy,jz,mudt, &
          dtsdx,dtsdy,dtsdz,nx,ny,nz,   &
-         norderx,nordery,norderz,             &
          nxguard,nyguard,nzguard,nxs,nys,nzs, &
          pxr_l_nodalgrid)
+
   end subroutine warpx_pxrpush_em3d_evec_norder
 
   ! _________________________________________________________________
@@ -715,11 +721,17 @@ contains
 
     pxr_l_nodalgrid = l_nodalgrid .eq. 1
 
-    call pxrpush_em3d_bvec_norder(ex,ey,ez,bx,by,bz,                  &
+!    call pxrpush_em3d_bvec_norder(ex,ey,ez,bx,by,bz,                  &
+!         dtsdx,dtsdy,dtsdz,nx,ny,nz,          &
+!         norderx,nordery,norderz,             &
+!         nxguard,nyguard,nzguard,nxs,nys,nzs, &
+!         pxr_l_nodalgrid)
+
+    call pxrpush_em3d_bvec(ex,ey,ez,bx,by,bz,                  &
          dtsdx,dtsdy,dtsdz,nx,ny,nz,          &
-         norderx,nordery,norderz,             &
          nxguard,nyguard,nzguard,nxs,nys,nzs, &
          pxr_l_nodalgrid)
+
   end subroutine warpx_pxrpush_em3d_bvec_norder
 
 end module warpx_to_pxr_module
