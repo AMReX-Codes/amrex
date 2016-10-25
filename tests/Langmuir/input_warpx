@@ -1,5 +1,5 @@
 # Maximum number of time steps
-max_step = 20
+max_step = 40
 
 # number of grid points
 amr.n_cell =   64  64  64
@@ -23,7 +23,7 @@ geometry.prob_hi     =  20.e-6    20.e-6    20.e-6
 warpx.verbose = 1
 
 # CFL
-warpx.cfl = 0.7
+warpx.cfl = 1.0
 
 langmuirwave.num_particles_per_cell = 10
 langmuirwave.n_e = 1.e25  # number of electrons per m^3
