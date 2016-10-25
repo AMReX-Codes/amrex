@@ -2,12 +2,8 @@
 #include <cmath>
 
 #include <WarpX.H>
+#include <WarpXConst.H>
 #include <PICSAR_f.H>
-
-namespace {
-    constexpr Real clight = 299792458.;
-    constexpr Real mu0 = 1.2566370614359173e-06;
-};
 
 void
 WarpX::Evolve ()
@@ -32,7 +28,7 @@ WarpX::Evolve ()
 	    // Particles have p^{n-1/2} and x^{n}.
 	    
 	    EvolveB(lev, 0.5*dt[lev]); // We now B^{n}
-	    
+
 	    // Evolve particles to p^{n+1/2} and x^{n+1}
 	    // Depose current, j^{n+1/2}
 	    mypc->Evolve(lev,
@@ -92,11 +88,10 @@ WarpX::EvolveB (int lev, Real dt)
     }
 
     long norder = 2;
-    long nguard = 1;
     long nstart = 0;
     int l_nodal = false;
 
-    BL_ASSERT(nguard == Efield[lev][0]->nGrow());
+    long nguard = Efield[lev][0]->nGrow();
     BL_ASSERT(nguard == Efield[lev][1]->nGrow());
     BL_ASSERT(nguard == Efield[lev][2]->nGrow());
     BL_ASSERT(nguard == Bfield[lev][0]->nGrow());
@@ -140,11 +135,10 @@ WarpX::EvolveE (int lev, Real dt)
     }
 
     long norder = 2;
-    long nguard = 1;
     long nstart = 0;
     int l_nodal = false;
 
-    BL_ASSERT(nguard == Efield[lev][0]->nGrow());
+    long nguard = Efield[lev][0]->nGrow();
     BL_ASSERT(nguard == Efield[lev][1]->nGrow());
     BL_ASSERT(nguard == Efield[lev][2]->nGrow());
     BL_ASSERT(nguard == Bfield[lev][0]->nGrow());

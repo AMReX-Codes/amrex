@@ -4,6 +4,6 @@ CEXE_sources += WarpX.cpp WarpXInitData.cpp WarpXEvolve.cpp WarpXIO.cpp
 
 CEXE_sources += ParticleContainer.cpp ParticleInit.cpp
 
-CEXE_headers += WarpX.H ParticleContainer.H PICSAR_f.H
+CEXE_headers += WarpX.H ParticleContainer.H PICSAR_f.H WarpXConst.H
 
 F90EXE_sources += WarpX_f.F90

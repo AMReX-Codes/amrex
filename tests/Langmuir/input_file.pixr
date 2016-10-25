@@ -40,7 +40,7 @@ section::main
  zmax = 20e-6
  # Simulation duration (in 1/w0)
  # t_max = 7
- nsteps=11
+ nsteps=41
  
  ntilex = 1
  ntiley = 1
@@ -69,7 +69,7 @@ section::solver
  noz = 1
 
  # Current deposition method
- currdepo = 3
+ currdepo = 4
  
  # Field gathering method
  fieldgathe = 1
@@ -90,7 +90,7 @@ end::solver
 
 section::plasma
 
- nlab=1.1e25
+ nlab=1.e25
  gamma0=1.
  
  # Initialization type
