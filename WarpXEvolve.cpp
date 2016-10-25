@@ -92,11 +92,9 @@ WarpX::EvolveB (int lev, Real dt)
     }
 
     long norder = 2;
-    long nguard = 1;
-    long nstart = 0;
+    long nguard = Efield[lev][0]->nGrow();
     int l_nodal = false;
 
-    BL_ASSERT(nguard == Efield[lev][0]->nGrow());
     BL_ASSERT(nguard == Efield[lev][1]->nGrow());
     BL_ASSERT(nguard == Efield[lev][2]->nGrow());
     BL_ASSERT(nguard == Bfield[lev][0]->nGrow());
@@ -110,6 +108,10 @@ WarpX::EvolveB (int lev, Real dt)
 	long ny = box.length(1);
 	long nz = box.length(2); 
 
+	long nxs = box.smallEnd(0);
+	long nys = box.smallEnd(1);
+	long nzs = box.smallEnd(2);
+
 	warpx_pxrpush_em3d_bvec_norder( (*Efield[lev][0])[mfi].dataPtr(),
 					(*Efield[lev][1])[mfi].dataPtr(),
 					(*Efield[lev][2])[mfi].dataPtr(),
@@ -120,7 +122,7 @@ WarpX::EvolveB (int lev, Real dt)
 					&nx, &ny, &nz,
 					&norder, &norder, &norder,
 					&nguard, &nguard, &nguard,
-					&nstart, &nstart, &nstart,
+					&nxs, &nys, &nzs,
 					&l_nodal );
     }
 }
@@ -140,11 +142,9 @@ WarpX::EvolveE (int lev, Real dt)
     }
 
     long norder = 2;
-    long nguard = 1;
-    long nstart = 0;
+    long nguard = Efield[lev][0]->nGrow();
     int l_nodal = false;
 
-    BL_ASSERT(nguard == Efield[lev][0]->nGrow());
     BL_ASSERT(nguard == Efield[lev][1]->nGrow());
     BL_ASSERT(nguard == Efield[lev][2]->nGrow());
     BL_ASSERT(nguard == Bfield[lev][0]->nGrow());
@@ -161,6 +161,10 @@ WarpX::EvolveE (int lev, Real dt)
 	long ny = bx.length(1);
 	long nz = bx.length(2); 
 
+	long nxs = box.smallEnd(0);
+	long nys = box.smallEnd(1);
+	long nzs = box.smallEnd(2);
+
 	warpx_pxrpush_em3d_evec_norder( (*Efield[lev][0])[mfi].dataPtr(),
 					(*Efield[lev][1])[mfi].dataPtr(),
 					(*Efield[lev][2])[mfi].dataPtr(),
@@ -174,7 +178,7 @@ WarpX::EvolveE (int lev, Real dt)
 					&nx, &ny, &nz,
 					&norder, &norder, &norder,
 					&nguard, &nguard, &nguard,
-					&nstart, &nstart, &nstart,
+					&nxs, &nys, &nzs,
 					&l_nodal );
     }
 }
