@@ -138,7 +138,6 @@ MyParticleContainer::Evolve (int lev,
 	const Real* xyzmin = grid_box.lo();
 
 	{       // Field Gather
-	    const long order = 1;
 	    const int ll4symtry          = false;
 	    const int l_lower_order_in_v = true;
 
@@ -149,7 +148,7 @@ MyParticleContainer::Evolve (int lev,
 					    &xyzmin[0], &xyzmin[1], &xyzmin[2],
 					    &dx[0], &dx[1], &dx[2],
 					    &nx, &ny, &nz, &ng_eb, &ng_eb, &ng_eb, 
-					    &order, &order, &order, 
+					    &WarpX::nox, &WarpX::noy, &WarpX::noz, 
 					    exfab.dataPtr(), eyfab.dataPtr(), ezfab.dataPtr(),
 					    bxfab.dataPtr(), byfab.dataPtr(), bzfab.dataPtr(),
 					    &ll4symtry, &l_lower_order_in_v, &WarpX::field_gathering_algo);
@@ -168,9 +167,6 @@ MyParticleContainer::Evolve (int lev,
 	}
 	
 	{    // Current Deposition
-	    long nox = 1;
-	    long noy = 1;
-	    long noz = 1;
 	    long lvect = 8;
 
 	    BL_PROFILE_VAR_START(blp_pxr_cd);
@@ -180,7 +176,8 @@ MyParticleContainer::Evolve (int lev,
 				     giv.dataPtr(), wp.dataPtr(), &this->charge, 
 				     &xyzmin[0], &xyzmin[1], &xyzmin[2], 
 				     &dt, &dx[0], &dx[1], &dx[2], &nx, &ny, &nz,
-				     &ng_j, &ng_j, &ng_j, &nox,&noy,&noz,&lvect,&WarpX::current_deposition_algo);
+				     &ng_j, &ng_j, &ng_j, &WarpX::nox,&WarpX::noy,&WarpX::noz,
+				     &lvect,&WarpX::current_deposition_algo);
 	    BL_PROFILE_VAR_STOP(blp_pxr_cd);
 	}
 

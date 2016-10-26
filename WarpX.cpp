@@ -8,6 +8,10 @@ long WarpX::charge_deposition_algo = 0;
 long WarpX::field_gathering_algo = 1;
 long WarpX::particle_pusher_algo = 0;
 
+long WarpX::nox = 1;
+long WarpX::noy = 1;
+long WarpX::noz = 1;
+
 WarpX::WarpX ()
 {
     ReadParameters();
@@ -74,6 +78,13 @@ WarpX::ReadParameters ()
     }
 
     {
+    ParmParse pp("interpolation");
+    pp.query("nox", this->nox);
+    pp.query("noy", this->noy);
+    pp.query("noz", this->noz);  
+    }
+
+    {
     ParmParse pp("algo");
     pp.query("current_deposition", this->current_deposition_algo);
     pp.query("charge_deposition", this->charge_deposition_algo);
@@ -85,6 +96,8 @@ WarpX::ReadParameters ()
     std::cout << "charge deposition: " << this->charge_deposition_algo << std::endl;
     std::cout << "field gathering: " << this->field_gathering_algo << std::endl;
     std::cout << "particle pusher: " << this->particle_pusher_algo << std::endl;
+
+    std::cout << "nox: " << this->nox << " noy: " << this->noy << " noz: " << this->noz << std::endl;    
 }
 
 void
