@@ -29,10 +29,6 @@ WarpX::Evolve ()
 	    
 	    EvolveB(lev, 0.5*dt[lev]); // We now B^{n}
 
-	    (*Bfield[lev][0]).setVal(0.0);
-	    (*Bfield[lev][1]).setVal(0.0);
-	    (*Bfield[lev][2]).setVal(0.0);
-
 	    // Evolve particles to p^{n+1/2} and x^{n+1}
 	    // Depose current, j^{n+1/2}
 	    mypc->Evolve(lev,
@@ -49,14 +45,7 @@ WarpX::Evolve ()
 	    WarpX::FillBoundary(*Bfield[lev][1], geom[lev], IntVect(D_DECL(0,1,0)));
 	    WarpX::FillBoundary(*Bfield[lev][2], geom[lev], IntVect(D_DECL(0,0,1)));
 
-	    (*Bfield[lev][0]).setVal(0.0);
-	    (*Bfield[lev][1]).setVal(0.0);
-	    (*Bfield[lev][2]).setVal(0.0);
-	    
 	    EvolveE(lev, dt[lev]); // We now have E^{n+1}
-
-	    (*Efield[lev][1]).setVal(0.0);
-	    (*Efield[lev][2]).setVal(0.0);
 
 	    ++istep[lev];
 	}
