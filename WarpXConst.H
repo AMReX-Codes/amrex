@@ -2,9 +2,9 @@
 #define WARPX_CONST_H_
 
 // Physical constants
-namespace
+namespace PhysConst
 {
-    constexpr Real clight = 299792458.;
+    constexpr Real c   = 299792458.;
     constexpr Real mu0 = 1.2566370614359173e-06;
     constexpr Real q_e = 1.6021766208e-19;
     constexpr Real m_e = 9.10938356e-31;

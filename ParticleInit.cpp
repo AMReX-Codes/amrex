@@ -12,8 +12,8 @@ MyParticleContainer::InitData()
 {
     BL_PROFILE("MyPC::InitData()");
 
-    charge = -q_e;
-    mass = m_e;
+    charge = -PhysConst::q_e;
+    mass = PhysConst::m_e;
 
     m_particles.resize(m_gdb->finestLevel()+1);
 
@@ -44,7 +44,7 @@ MyParticleContainer::InitData()
       pp.query("ux", ux);
 
       Real gamma = 1.0 / std::sqrt(1.0 - ux*ux);
-      ux *= clight*gamma;
+      ux *= PhysConst::c*gamma;
     }
 
     const BoxArray& ba = m_gdb->ParticleBoxArray(lev);

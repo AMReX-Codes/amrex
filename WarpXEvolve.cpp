@@ -29,6 +29,10 @@ WarpX::Evolve ()
 	    
 	    EvolveB(lev, 0.5*dt[lev]); // We now B^{n}
 
+	    (*Bfield[lev][0]).setVal(0.0);
+	    (*Bfield[lev][1]).setVal(0.0);
+	    (*Bfield[lev][2]).setVal(0.0);
+
 	    // Evolve particles to p^{n+1/2} and x^{n+1}
 	    // Depose current, j^{n+1/2}
 	    mypc->Evolve(lev,
@@ -44,8 +48,15 @@ WarpX::Evolve ()
 	    WarpX::FillBoundary(*Bfield[lev][0], geom[lev], IntVect(D_DECL(1,0,0)));
 	    WarpX::FillBoundary(*Bfield[lev][1], geom[lev], IntVect(D_DECL(0,1,0)));
 	    WarpX::FillBoundary(*Bfield[lev][2], geom[lev], IntVect(D_DECL(0,0,1)));
+
+	    (*Bfield[lev][0]).setVal(0.0);
+	    (*Bfield[lev][1]).setVal(0.0);
+	    (*Bfield[lev][2]).setVal(0.0);
 	    
 	    EvolveE(lev, dt[lev]); // We now have E^{n+1}
+
+	    (*Efield[lev][1]).setVal(0.0);
+	    (*Efield[lev][2]).setVal(0.0);
 
 	    ++istep[lev];
 	}
@@ -125,13 +136,13 @@ WarpX::EvolveE (int lev, Real dt)
 {
     BL_PROFILE("WarpX::EvolveE()");
 
-    Real mu_c2_dt = (mu0*clight*clight) * dt;
+    Real mu_c2_dt = (PhysConst::mu0*PhysConst::c*PhysConst::c) * dt;
 
     const Real* dx = geom[lev].CellSize();
 
     Real dtsdx_c2[3];
     for (int i = 0; i < BL_SPACEDIM; ++i) {
-	dtsdx_c2[i] = (dt*clight*clight) / dx[i];
+	dtsdx_c2[i] = (PhysConst::c*PhysConst::c) * dt / dx[i];
     }
 
     long norder = 2;
@@ -183,7 +194,7 @@ WarpX::ComputeDt ()
 	const Real* dx = geom[lev].CellSize();
 	dt_tmp[lev]  = cfl * 1./( std::sqrt( 1./(dx[0]*dx[0]) 
                                            + 1./(dx[1]*dx[1])
-                                           + 1./(dx[2]*dx[2])) * clight );
+					   + 1./(dx[2]*dx[2])) * PhysConst::c );
     }
 
     // Limit dt's by the value of stop_time.
