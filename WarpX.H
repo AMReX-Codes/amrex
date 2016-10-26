@@ -28,6 +28,17 @@ public:
 
     static void FillBoundary (MultiFab& mf, const Geometry& geom, const IntVect& nodalflag);
 
+    // Algorithms
+    static long current_deposition_algo;
+    static long charge_deposition_algo;
+    static long field_gathering_algo;
+    static long particle_pusher_algo;
+    
+    // Interpolation order
+    static long nox;
+    static long noy;
+    static long noz;
+
 protected:
     virtual void ErrorEst (int lev, TagBoxArray& tags, Real time, int /*ngrow*/) override {}
 

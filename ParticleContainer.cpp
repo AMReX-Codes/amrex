@@ -1,6 +1,7 @@
 
 #include <ParticleContainer.H>
 #include <PICSAR_f.H>
+#include <WarpX.H>
 
 MyParticleContainer::MyParticleContainer (AmrCore* amr_core)
     : ParticleContainer<PIdx::nattribs,0,std::vector<Particle<PIdx::nattribs,0> > >
@@ -137,8 +138,6 @@ MyParticleContainer::Evolve (int lev,
 	const Real* xyzmin = grid_box.lo();
 
 	{       // Field Gather
-	    const long order = 1;
-	    const long field_gathe_algo = 1;
 	    const int ll4symtry          = false;
 	    const int l_lower_order_in_v = true;
 
@@ -149,31 +148,26 @@ MyParticleContainer::Evolve (int lev,
 					    &xyzmin[0], &xyzmin[1], &xyzmin[2],
 					    &dx[0], &dx[1], &dx[2],
 					    &nx, &ny, &nz, &ng_eb, &ng_eb, &ng_eb, 
-					    &order, &order, &order, 
+					    &WarpX::nox, &WarpX::noy, &WarpX::noz, 
 					    exfab.dataPtr(), eyfab.dataPtr(), ezfab.dataPtr(),
 					    bxfab.dataPtr(), byfab.dataPtr(), bzfab.dataPtr(),
-					    &ll4symtry, &l_lower_order_in_v, &field_gathe_algo);
+					    &ll4symtry, &l_lower_order_in_v, &WarpX::field_gathering_algo);
 	    BL_PROFILE_VAR_STOP(blp_pxr_fg);
 	}
 
 	{       // Particle Push
-	    long particle_pusher_algo = 0;
 	    
 	    BL_PROFILE_VAR_START(blp_pxr_pp);
 	    warpx_particle_pusher(&np, xp.dataPtr(), yp.dataPtr(), zp.dataPtr(),
 				  uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(), giv.dataPtr(),
 				  Exp->dataPtr(), Eyp->dataPtr(), Ezp->dataPtr(),
 				  Bxp->dataPtr(), Byp->dataPtr(), Bzp->dataPtr(),
-				  &this->charge, &this->mass, &dt, &particle_pusher_algo);
+				  &this->charge, &this->mass, &dt, &WarpX::particle_pusher_algo);
 	    BL_PROFILE_VAR_STOP(blp_pxr_pp);
 	}
 	
 	{    // Current Deposition
-	    long nox = 1;
-	    long noy = 1;
-	    long noz = 1;
 	    long lvect = 8;
-	    long curr_depo_algo = 3;
 
 	    BL_PROFILE_VAR_START(blp_pxr_cd);
 	    warpx_current_deposition(jxfab.dataPtr(), jyfab.dataPtr(), jzfab.dataPtr(),
@@ -182,7 +176,8 @@ MyParticleContainer::Evolve (int lev,
 				     giv.dataPtr(), wp.dataPtr(), &this->charge, 
 				     &xyzmin[0], &xyzmin[1], &xyzmin[2], 
 				     &dt, &dx[0], &dx[1], &dx[2], &nx, &ny, &nz,
-				     &ng_j, &ng_j, &ng_j, &nox,&noy,&noz,&lvect,&curr_depo_algo);
+				     &ng_j, &ng_j, &ng_j, &WarpX::nox,&WarpX::noy,&WarpX::noz,
+				     &lvect,&WarpX::current_deposition_algo);
 	    BL_PROFILE_VAR_STOP(blp_pxr_cd);
 	}
 

@@ -97,6 +97,29 @@ cd ../warpx/tests/Langmuir/
 ./picsar
 ```
 
+## Using WarpX
+
+### Configuration of the input file
+
+current_deposition_algo: algorithm for the current deposition
+ - 3: Scalar classical current deposition
+ - 2: Optimized classical current
+ - 1: Esirkepov non optimized
+ - 0: Esirkepov optimized
+
+charge_deposition_algo:
+ - 0: Optimized version
+ - 1: Scalar version
+
+field_gathering_algo:
+ - 0: Optmized subroutines
+ - 1: Scalar subroutines
+ - 2: General order non-optimized version
+
+particle_pusher_algo: algorithm for the particle pusher
+ - 0: pusher of Boris
+ - 1: pusher of J. L. Vay
+
 ### Visualizing and comparing the results
 
 The results are compared using Python, inside a Jupyter notebook. In
