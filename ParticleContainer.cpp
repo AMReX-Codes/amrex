@@ -126,6 +126,12 @@ MyParticleContainer::Evolve (int lev,
  	    uxp[i] = p.m_data[PIdx::ux]; 
  	    uyp[i] = p.m_data[PIdx::uy]; 
  	    uzp[i] = p.m_data[PIdx::uz]; 
+	    (*Exp)[i] = 0.0;
+	    (*Eyp)[i] = 0.0;
+	    (*Ezp)[i] = 0.0;
+	    (*Bxp)[i] = 0.0;
+	    (*Byp)[i] = 0.0;
+	    (*Bzp)[i] = 0.0;
 	}
 	BL_PROFILE_VAR_STOP(blp_copy);
 	
