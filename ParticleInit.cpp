@@ -73,8 +73,6 @@ MyParticleContainer::InitData()
 		    y >= particle_ymax || y < particle_ymin ||
 		    z >= particle_zmax || z < particle_zmin ) continue;
 	      
-		std::cout << "Loading one particle." << std::endl;
-
 		ParticleType p;
 
 		p.m_id  = ParticleBase::NextID();
