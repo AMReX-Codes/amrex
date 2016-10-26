@@ -665,17 +665,24 @@ contains
     logical pxr_l_nodalgrid
 
     pxr_l_nodalgrid = l_nodalgrid .eq. 1
-    
-!    call pxrpush_em3d_evec_norder(ex,ey,ez,bx,by,bz,jx,jy,jz,mudt, &
-!         dtsdx,dtsdy,dtsdz,nx,ny,nz,   &
-!         norderx,nordery,norderz,             &
-!         nxguard,nyguard,nzguard,nxs,nys,nzs, &
-!         pxr_l_nodalgrid)
 
-    call pxrpush_em3d_evec(ex,ey,ez,bx,by,bz,jx,jy,jz,mudt, &
-         dtsdx,dtsdy,dtsdz,nx,ny,nz,   &
-         nxguard,nyguard,nzguard,nxs,nys,nzs, &
-         pxr_l_nodalgrid)
+    if ((norderx.eq.2).and.(nordery.eq.2).and.(norderz.eq.2)) then
+
+      call pxrpush_em3d_evec(ex,ey,ez,bx,by,bz,jx,jy,jz,mudt, &
+           dtsdx,dtsdy,dtsdz,nx,ny,nz,   &
+           nxguard,nyguard,nzguard,nxs,nys,nzs, &
+           pxr_l_nodalgrid)
+    
+    else
+
+     call pxrpush_em3d_evec_norder(ex,ey,ez,bx,by,bz,jx,jy,jz,mudt, &
+          dtsdx,dtsdy,dtsdz,nx,ny,nz,   &
+          norderx,nordery,norderz,             &
+          nxguard,nyguard,nzguard,nxs,nys,nzs, &
+          pxr_l_nodalgrid)
+     
+   end if
+
 
   end subroutine warpx_pxrpush_em3d_evec_norder
 
@@ -721,16 +728,20 @@ contains
 
     pxr_l_nodalgrid = l_nodalgrid .eq. 1
 
-!    call pxrpush_em3d_bvec_norder(ex,ey,ez,bx,by,bz,                  &
-!         dtsdx,dtsdy,dtsdz,nx,ny,nz,          &
-!         norderx,nordery,norderz,             &
-!         nxguard,nyguard,nzguard,nxs,nys,nzs, &
-!         pxr_l_nodalgrid)
+    if ((norderx.eq.2).and.(nordery.eq.2).and.(norderz.eq.2)) then
 
-    call pxrpush_em3d_bvec(ex,ey,ez,bx,by,bz,                  &
-         dtsdx,dtsdy,dtsdz,nx,ny,nz,          &
-         nxguard,nyguard,nzguard,nxs,nys,nzs, &
-         pxr_l_nodalgrid)
+      call pxrpush_em3d_bvec(ex,ey,ez,bx,by,bz,                  &
+           dtsdx,dtsdy,dtsdz,nx,ny,nz,          &
+           nxguard,nyguard,nzguard,nxs,nys,nzs, &
+           pxr_l_nodalgrid)
+    else
+      call pxrpush_em3d_bvec_norder(ex,ey,ez,bx,by,bz,                  &
+           dtsdx,dtsdy,dtsdz,nx,ny,nz,          &
+           norderx,nordery,norderz,             &
+           nxguard,nyguard,nzguard,nxs,nys,nzs, &
+           pxr_l_nodalgrid)
+    endif
+
 
   end subroutine warpx_pxrpush_em3d_bvec_norder
 
