@@ -129,7 +129,7 @@ private:
                                const FArrayBox& f,
                                int              nvar) const BL_OVERRIDE;
 
-    CpClassPtr<RealDescriptor> rd;
+    CpClassPtr<RealDescriptor> realDesc;
 };
 
 //
@@ -968,7 +968,7 @@ FABio_8bit::write_header (std::ostream&    os,
 
 FABio_binary::FABio_binary (RealDescriptor* rd_)
     :
-    rd(rd_)
+    realDesc(rd_)
 {
 }
 
@@ -978,7 +978,7 @@ FABio_binary::write_header (std::ostream&    os,
                             int              nvar) const
 {
     BL_PROFILE("FABio_binary::write_header");
-    os << "FAB " << *rd;
+    os << "FAB " << *realDesc;
     FABio::write_header(os, f, nvar);
 }
 
@@ -990,7 +990,7 @@ FABio_binary::read (std::istream& is,
     const long base_siz = f.box().numPts();
     Real* comp_ptr      = f.dataPtr(0);
     const long siz      = base_siz*f.nComp();
-    RealDescriptor::convertToNativeFormat(comp_ptr, siz, is, *rd);
+    RealDescriptor::convertToNativeFormat(comp_ptr, siz, is, *realDesc);
     if(is.fail()) {
         BoxLib::Error("FABio_binary::read() failed");
     }
@@ -1009,7 +1009,7 @@ FABio_binary::write (std::ostream&    os,
     const Real* comp_ptr = f.dataPtr(comp);
     const long siz       = base_siz*num_comp;
 
-    RealDescriptor::convertFromNativeFormat(os, siz, comp_ptr, *rd);
+    RealDescriptor::convertFromNativeFormat(os, siz, comp_ptr, *realDesc);
 
     if(os.fail()) {
         BoxLib::Error("FABio_binary::write() failed");
@@ -1023,7 +1023,7 @@ FABio_binary::skip (std::istream& is,
     const Box& bx = f.box();
     long base_siz = bx.numPts();
     long siz      = base_siz * f.nComp();
-    is.seekg(siz*rd->numBytes(), std::ios::cur);
+    is.seekg(siz*realDesc->numBytes(), std::ios::cur);
     if(is.fail()) {
         BoxLib::Error("FABio_binary::skip() failed");
     }
@@ -1037,7 +1037,7 @@ FABio_binary::skip (std::istream& is,
     const Box& bx = f.box();
     long base_siz = bx.numPts();
     long siz      = base_siz * nCompToSkip;
-    is.seekg(siz*rd->numBytes(), std::ios::cur);
+    is.seekg(siz*realDesc->numBytes(), std::ios::cur);
     if(is.fail()) {
         BoxLib::Error("FABio_binary::skip(..., int nCompToSkip) failed");
     }
