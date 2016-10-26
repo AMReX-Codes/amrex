@@ -1035,7 +1035,12 @@ ParticleContainer<NR,NI,C>::InitOnePerCell (Real x_off, Real y_off, Real z_off,
         Box grid = m_gdb->ParticleBoxArray(0)[mfi.index()];
         RealBox grid_box = RealBox(grid,dx,geom.ProbLo());
 
-	int nx = grid.length(0), ny = grid.length(1), nz = grid.length(2); 
+        int nx = 1;
+        int ny = 1;
+        int nz = 1;
+        D_TERM(nx=grid.length(0);,
+               ny=grid.length(1);,
+               nz=grid.length(2););
 
         for (int i = 0; i < nx; i++) {
          for (int j = 0; j < ny; j++) {
