@@ -212,7 +212,7 @@ public:
     //
     static void convertFromNativeFormat (void*                 out,
                                          long                  nitems,
-                                         Real*                 in,
+                                         const Real*           in,
                                          const RealDescriptor& od);
 private:
 
