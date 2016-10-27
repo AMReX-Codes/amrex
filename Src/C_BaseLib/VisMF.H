@@ -9,6 +9,7 @@
 #include <REAL.H>
 #include <FabArray.H>
 #include <FArrayBox.H>
+#include <FabConv.H>
 
 class NFilesIter;
 
@@ -119,6 +120,7 @@ public:
         Array< Array<Real> > m_max;   // The max()s of each component of FABs.  [findex][comp]
         Array<Real>          m_famin; // The min()s of each component of the FabArray.  [comp]
         Array<Real>          m_famax; // The max()s of each component of the FabArray.  [comp]
+	RealDescriptor       m_writtenRD;
     };
 
     //
@@ -335,14 +337,16 @@ private:
 			     bool useDynamicSetSelection,
 			     NFilesIter &nfi);
     //
-    // Read the fab.
-    // If ncomp == -1 reads the whole FAB.
+    // Make a new FAB from a fab in a FabArray<FArrayBox> on disk.
+    // The returned *FAB will have either one component filled from
+    // fafab[fabIndex][whichComp] or fafab[fabIndex].nComp() components.
+    // whichComp == -1 means reads the whole FAB.
     // Otherwise read just that component.
     //
-    static FArrayBox* readFAB (int                fabIndex,
+    static FArrayBox *readFAB (int                fabIndex,
                                const std::string &fafab_name,
-                               const Header&      hdr,
-			       int                ncomp = -1);
+                               const Header      &hdr,
+			       int                whichComp = -1);
     //
     // Read the whole FAB into fafab[fabIndex]
     //
