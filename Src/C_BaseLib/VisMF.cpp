@@ -20,7 +20,6 @@
 #include <ParmParse.H>
 #include <NFiles.H>
 #include <FPC.H>
-#include <FabConv.H>
 
 static const char *TheMultiFabHdrFileSuffix = "_H";
 static const char *FabFileSuffix = "_D_";
@@ -40,6 +39,7 @@ bool VisMF::useSynchronousReads(false);
 bool VisMF::useDynamicSetSelection(true);
 
 long VisMF::ioBufferSize(VisMF::IO_Buffer_Size);
+
 
 //
 // Set these in Initialize().
@@ -262,8 +262,8 @@ operator>> (std::istream&         is,
 }
 
 std::ostream&
-operator<< (std::ostream&        os,
-            const VisMF::Header& hd)
+operator<< (std::ostream        &os,
+            const VisMF::Header &hd)
 {
     //
     // Up the precision for the Reals in m_min and m_max.
@@ -306,7 +306,13 @@ operator<< (std::ostream&        os,
        hd.m_vers == VisMF::Header::NoFabHeaderMinMax_v1 ||
        hd.m_vers == VisMF::Header::NoFabHeaderFAMinMax_v1)
     {
-      os << FPC::NativeRealDescriptor() << '\n';
+      if(FArrayBox::getFormat() == FABio::FAB_NATIVE) {
+        os << FPC::NativeRealDescriptor() << '\n';
+      } else if(FArrayBox::getFormat() == FABio::FAB_NATIVE_32) {
+        os << FPC::Native32RealDescriptor() << '\n';
+      } else if(FArrayBox::getFormat() == FABio::FAB_IEEE_32) {
+        os << FPC::NativeRealDescriptor() << '\n';
+      }
     }
 
     os.flags(oflags);
@@ -320,8 +326,8 @@ operator<< (std::ostream&        os,
 }
 
 std::istream&
-operator>> (std::istream&  is,
-            VisMF::Header& hd)
+operator>> (std::istream  &is,
+            VisMF::Header &hd)
 {
     is >> hd.m_vers;
     BL_ASSERT(hd.m_vers != VisMF::Header::Undefined_v1);
@@ -380,11 +386,7 @@ operator>> (std::istream&  is,
        hd.m_vers == VisMF::Header::NoFabHeaderMinMax_v1 ||
        hd.m_vers == VisMF::Header::NoFabHeaderFAMinMax_v1)
     {
-      RealDescriptor writtenRD;
-      is >> writtenRD;
-      if(writtenRD != FPC::NativeRealDescriptor()) {
-        BoxLib::Abort("**** Error:  NoFabHeaderFormat read different RealDescriptor.");
-      }
+      is >> hd.m_writtenRD;
     }
 
 
@@ -901,6 +903,7 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
     } else if(FArrayBox::getFormat() == FABio::FAB_IEEE_32) {
       whichRD = FPC::NativeRealDescriptor().clone();
     }
+    bool doConvert(*whichRD != FPC::NativeRealDescriptor());
 
     if(set_ghost) {
         FabArray<FArrayBox>* the_mf = const_cast<FabArray<FArrayBox>*>(&mf);
@@ -919,131 +922,98 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
     }
 
     int coordinatorProc(ParallelDescriptor::IOProcessorNumber());
-
+    long bytesWritten(0);
     bool calcMinMax(false);
     VisMF::Header hdr(mf, how, currentVersion, calcMinMax);
-
-    long bytesWritten(0);
 
     std::string filePrefix(mf_name + FabFileSuffix);
 
     NFilesIter nfi(nOutFiles, filePrefix, groupSets, setBuf);
 
-    if(currentVersion == VisMF::Header::Version_v1) {  // ---- write the old way
+    bool oldHeader(currentVersion == VisMF::Header::Version_v1);
 
       if(useDynamicSetSelection) {
         nfi.SetDynamic();
       }
       for( ; nfi.ReadyToWrite(); ++nfi) {
-	if(VisMF::useSingleWrite) {
-	  // ---- find the total number of bytes including fab headers
+	  // ---- find the total number of bytes including fab headers if needed
           const FABio &fio = FArrayBox::getFABio();
-          int whichRDBytes(whichRD->numBytes());
-	  int nFABS(0);
+          int whichRDBytes(whichRD->numBytes()), nFABs(0);
+          long writeDataItems(0), writeDataSize(0);
           for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
 	    const FArrayBox &fab = mf[mfi];
-	    std::stringstream hss;
-	    fio.write_header(hss, fab, fab.nComp());
-	    bytesWritten += hss.tellp();
-	    bytesWritten += fab.box().numPts() * mf.nComp() * whichRDBytes;
-	    ++nFABS;
-	  }
-	  char *allFabData(nullptr);
-	  bool goodAlloc(false);
-	  if(nFABS > 1) {
-	    allFabData = new(std::nothrow) char[bytesWritten];
-	  }    // ---- else { no need to make a copy for one fab }
-	  if(allFabData == nullptr) {
-	    goodAlloc = false;
-	  } else {
-	    goodAlloc = true;
-	  }
-
-	  if(goodAlloc) {
-	    long writePosition(0);
-            for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
-              const FArrayBox &fab = mf[mfi];
+	    if(oldHeader) {
 	      std::stringstream hss;
 	      fio.write_header(hss, fab, fab.nComp());
-	      int hLength(hss.tellp());
-	      char *afPtr = allFabData + writePosition;
-	      memcpy(afPtr, hss.str().c_str(), hLength);  // ---- the fab header
-	      memcpy(afPtr + hLength, fab.dataPtr(), fab.nBytes());
-              writePosition += hLength + fab.nBytes();
-            }
-            nfi.Stream().write(allFabData, bytesWritten);
-	    delete [] allFabData;
-
-	  } else {    // ---- cannot use one write
-            const std::string &fName = nfi.FileName();
-            for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
-              hdr.m_fod[mfi.index()] = VisMF::Write(mf[mfi], fName, nfi.Stream(), bytesWritten);
-            }
+	      bytesWritten += hss.tellp();
+	    }
+	    bytesWritten += fab.box().numPts() * mf.nComp() * whichRDBytes;
+	    ++nFABs;
 	  }
-	} else {
-          const std::string &fName = nfi.FileName();
-          for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
-            hdr.m_fod[mfi.index()] = VisMF::Write(mf[mfi], fName, nfi.Stream(), bytesWritten);
-          }
-	}
-      }
-
-    } else {     // ---- write the fab data directly
-
-      if(useDynamicSetSelection) {
-        nfi.SetDynamic();
-      }
-      for( ; nfi.ReadyToWrite(); ++nfi) {
-	if(VisMF::useSingleWrite) {
-	  // ---- find the total number of bytes including fab headers
-	  int nFABS(0);
-          for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
-            bytesWritten += mf[mfi].nBytes();
-	    ++nFABS;
-          }
-
 	  char *allFabData(nullptr);
-	  bool goodAlloc(false);
-	  if(nFABS > 1) {
+	  bool canCombineFABs(false);
+	  if((nFABs > 1 || doConvert) && VisMF::useSingleWrite) {
 	    allFabData = new(std::nothrow) char[bytesWritten];
 	  }    // ---- else { no need to make a copy for one fab }
 	  if(allFabData == nullptr) {
-	    goodAlloc = false;
+	    canCombineFABs = false;
 	  } else {
-	    goodAlloc = true;
+	    canCombineFABs = true;
 	  }
 
-	  if(goodAlloc) {
-	    long writePosition(0);
+	  if(canCombineFABs) {
+            long writePosition(0);
             for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
+              int hLength(0);
               const FArrayBox &fab = mf[mfi];
+	      writeDataItems = fab.box().numPts() * mf.nComp();
+	      writeDataSize = writeDataItems * whichRDBytes;
 	      char *afPtr = allFabData + writePosition;
-	      memcpy(afPtr, fab.dataPtr(), fab.nBytes());
-              writePosition += fab.nBytes();
+	      if(oldHeader) {
+	        std::stringstream hss;
+	        fio.write_header(hss, fab, fab.nComp());
+	        hLength = hss.tellp();
+	        memcpy(afPtr, hss.str().c_str(), hLength);  // ---- the fab header
+	      }
+	      if(doConvert) {
+	        RealDescriptor::convertFromNativeFormat(static_cast<void *> (afPtr + hLength),
+		                                        writeDataItems,
+		                                        fab.dataPtr(), *whichRD);
+	      } else {    // ---- copy from the fab
+	        memcpy(afPtr + hLength, fab.dataPtr(), writeDataSize);
+	      }
+              writePosition += hLength + writeDataSize;
             }
             nfi.Stream().write(allFabData, bytesWritten);
+            //nfi.Stream().flush();
 	    delete [] allFabData;
 
-	  } else {    // ---- cannot use one write
-
-            for(MFIter mfi(mf); mfi.isValid(); ++mfi) {    // ---- write the fab data directly
+	  } else {    // ---- write fabs individually
+            for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
+              int hLength(0);
               const FArrayBox &fab = mf[mfi];
-              nfi.Stream().write((char *) fab.dataPtr(), fab.nBytes());
-              bytesWritten += fab.nBytes();
+	      writeDataItems = fab.box().numPts() * mf.nComp();
+	      writeDataSize = writeDataItems * whichRDBytes;
+	      if(oldHeader) {
+	        std::stringstream hss;
+	        fio.write_header(hss, fab, fab.nComp());
+	        hLength = hss.tellp();
+                nfi.Stream().write(hss.str().c_str(), hLength);    // ---- the fab header
+	      }
+	      if(doConvert) {
+	        char *cDataPtr = new char[writeDataSize];
+	        RealDescriptor::convertFromNativeFormat(static_cast<void *> (cDataPtr),
+		                                        writeDataItems,
+		                                        fab.dataPtr(), *whichRD);
+                nfi.Stream().write(cDataPtr, writeDataSize);
+	        delete [] cDataPtr;
+	      } else {    // ---- copy from the fab
+                nfi.Stream().write((char *) fab.dataPtr(), writeDataSize);
+	      }
             }
 	  }
-
-	} else {
-
-          for(MFIter mfi(mf); mfi.isValid(); ++mfi) {    // ---- write the fab data directly
-            const FArrayBox &fab = mf[mfi];
-            nfi.Stream().write((char *) fab.dataPtr(), fab.nBytes());
-            bytesWritten += fab.nBytes();
-          }
-	}
       }
 
-    }
 
     if(useDynamicSetSelection) {
       coordinatorProc = nfi.CoordinatorProc();
@@ -1265,9 +1235,9 @@ VisMF::VisMF (const std::string &fafab_name)
     Array<char> fileCharPtr;
     ParallelDescriptor::ReadAndBcastFile(FullHdrFileName, fileCharPtr);
     std::string fileCharPtrString(fileCharPtr.dataPtr());
-    std::istringstream ifs(fileCharPtrString, std::istringstream::in);
+    std::istringstream infs(fileCharPtrString, std::istringstream::in);
 
-    ifs >> m_hdr;
+    infs >> m_hdr;
 
     m_pa.resize(m_hdr.m_ncomp);
 
@@ -1290,7 +1260,7 @@ FArrayBox*
 VisMF::readFAB (int                  idx,
                 const std::string   &mf_name,
                 const VisMF::Header &hdr,
-		int                  ncomp)
+		int                  whichComp)
 {
     BL_PROFILE("VisMF::readFAB_idx");
     Box fab_box(hdr.m_ba[idx]);
@@ -1298,28 +1268,40 @@ VisMF::readFAB (int                  idx,
         fab_box.grow(hdr.m_ngrow);
     }
 
-    FArrayBox *fab = new FArrayBox(fab_box, ncomp == -1 ? hdr.m_ncomp : 1);
+    FArrayBox *fab = new FArrayBox(fab_box, whichComp == -1 ? hdr.m_ncomp : 1);
 
     std::string FullName(VisMF::DirName(mf_name));
     FullName += hdr.m_fod[idx].m_name;
 
-    std::ifstream *ifs = VisMF::OpenStream(FullName);
-    ifs->seekg(hdr.m_fod[idx].m_head, std::ios::beg);
+    std::ifstream *infs = VisMF::OpenStream(FullName);
+    infs->seekg(hdr.m_fod[idx].m_head, std::ios::beg);
 
     if(hdr.m_vers == Header::Version_v1) {
-      if(ncomp == -1) {
-        fab->readFrom(*ifs);
+      if(whichComp == -1) {    // ---- read all components
+        fab->readFrom(*infs);
       } else {
-        fab->readFrom(*ifs, ncomp);
+        fab->readFrom(*infs, whichComp);
       }
     } else {
-      if(ncomp == -1) {
-        ifs->read((char *) fab->dataPtr(), fab->nBytes());
+      if(whichComp == -1) {    // ---- read all components
+	if(hdr.m_writtenRD == FPC::NativeRealDescriptor()) {
+          infs->read((char *) fab->dataPtr(), fab->nBytes());
+	} else {
+          long readDataItems(fab->box().numPts() * fab->nComp());
+          RealDescriptor::convertToNativeFormat(fab->dataPtr(), readDataItems,
+	                                        *infs, hdr.m_writtenRD);
+	}
+
       } else {
-	const RealDescriptor &nrd = FPC::NativeRealDescriptor();
-        long bytesPerComp(fab->box().numPts() * nrd.numBytes());
-        ifs->seekg(bytesPerComp * ncomp, std::ios::cur);
-        ifs->read((char *) fab->dataPtr(), bytesPerComp);
+        long bytesPerComp(fab->box().numPts() * hdr.m_writtenRD.numBytes());
+        infs->seekg(bytesPerComp * whichComp, std::ios::cur);
+	if(hdr.m_writtenRD == FPC::NativeRealDescriptor()) {
+          infs->read((char *) fab->dataPtr(), bytesPerComp);
+	} else {
+          long readDataItems(fab->box().numPts());  // ---- one component only
+          RealDescriptor::convertToNativeFormat(fab->dataPtr(), readDataItems,
+	                                        *infs, hdr.m_writtenRD);
+	}
       }
     }
 
@@ -1341,14 +1323,19 @@ VisMF::readFAB (FabArray<FArrayBox> &mf,
     std::string FullName(VisMF::DirName(mf_name));
     FullName += hdr.m_fod[idx].m_name;
 
-    std::ifstream *ifs = VisMF::OpenStream(FullName);
-    ifs->seekg(hdr.m_fod[idx].m_head, std::ios::beg);
+    std::ifstream *infs = VisMF::OpenStream(FullName);
+    infs->seekg(hdr.m_fod[idx].m_head, std::ios::beg);
 
     if(NoFabHeader(hdr)) {
-      //// test ifs->gcount and tellg vs count
-      ifs->read((char *) fab.dataPtr(), fab.nBytes());
+      if(hdr.m_writtenRD == FPC::NativeRealDescriptor()) {
+        infs->read((char *) fab.dataPtr(), fab.nBytes());
+      } else {
+        long readDataItems(fab.box().numPts() * fab.nComp());
+        RealDescriptor::convertToNativeFormat(fab.dataPtr(), readDataItems,
+	                                      *infs, hdr.m_writtenRD);
+      }
     } else {
-      fab.readFrom(*ifs);
+      fab.readFrom(*infs);
     }
 
     VisMF::CloseStream(FullName);
@@ -1377,6 +1364,7 @@ VisMF::Read (FabArray<FArrayBox> &mf,
     }
 
     std::string FullHdrFileName(mf_name + TheMultiFabHdrFileSuffix);
+
     {
         hStartTime = ParallelDescriptor::second();
         std::string fileCharPtrString;
@@ -1387,9 +1375,9 @@ VisMF::Read (FabArray<FArrayBox> &mf,
 	} else {
           fileCharPtrString = faHeader;
 	}
-        std::istringstream ifs(fileCharPtrString, std::istringstream::in);
+        std::istringstream infs(fileCharPtrString, std::istringstream::in);
 
-        ifs >> hdr;
+        infs >> hdr;
 
         hEndTime = ParallelDescriptor::second();
     }
@@ -1401,6 +1389,8 @@ VisMF::Read (FabArray<FArrayBox> &mf,
 #ifdef BL_USE_MPI
 
   if(noFabHeader && useSynchronousReads) {
+
+    bool doConvert(hdr.m_writtenRD != FPC::NativeRealDescriptor());
 
     // ---- Create an ordered map of which processors read which
     // ---- Fabs in each file
@@ -1518,7 +1508,6 @@ VisMF::Read (FabArray<FArrayBox> &mf,
           Array<FabReadLink> &frc = frcIter->second;
           for(NFilesIter nfi(fullFileName, readRanks); nfi.ReadyToRead(); ++nfi) {
 
-	    if(VisMF::useSingleRead) {
 	      // ---- confirm the data is contiguous in the stream
 	      long firstOffset(-1);
 	      for(int i(0); i < frc.size(); ++i) {
@@ -1529,8 +1518,8 @@ VisMF::Read (FabArray<FArrayBox> &mf,
 	      }
 
 	      bool dataIsContiguous(true);
-	      long currentOffset(firstOffset);
-	      long bytesToRead(0);
+	      long currentOffset(firstOffset), bytesToRead(0);
+	      int nFABs(0);
 
 	      for(int i(0); i < frc.size(); ++i) {
 	        if(myProc == frc[i].rankToRead) {
@@ -1538,22 +1527,24 @@ VisMF::Read (FabArray<FArrayBox> &mf,
                     dataIsContiguous = false;
 	          } else {
 	            FArrayBox &fab = whichFA[frc[i].faIndex];
-                    currentOffset += fab.nBytes();
-                    bytesToRead   += fab.nBytes();
+		    long fabBytesToRead(fab.box().numPts() * fab.nComp() * hdr.m_writtenRD.numBytes());
+                    currentOffset += fabBytesToRead;
+                    bytesToRead   += fabBytesToRead;
+		    ++nFABs;
 		  }
 	        }
 	      }
 	      char *allFabData;
-	      bool goodAlloc(false);
-	      if(dataIsContiguous) {
+	      bool canCombineFABs(false);
+	      if(nFABs > 1 && dataIsContiguous && VisMF::useSingleRead) {
 	        allFabData = new(std::nothrow) char[bytesToRead];
 		if(allFabData == nullptr) {
-		  goodAlloc = false;
+		  canCombineFABs = false;
 		} else {
-		  goodAlloc = true;
+		  canCombineFABs = true;
 		}
 	      }
-	      if(goodAlloc) {
+	      if(canCombineFABs) {
                 nfi.Stream().seekp(firstOffset, std::ios::beg);
                 nfi.Stream().read(allFabData, bytesToRead);
 
@@ -1563,8 +1554,14 @@ VisMF::Read (FabArray<FArrayBox> &mf,
 	          if(myProc == frc[i].rankToRead) {
 		    char *afPtr = allFabData + currentOffset;
 	            FArrayBox &fab = whichFA[frc[i].faIndex];
-                    memcpy(fab.dataPtr(), afPtr, fab.nBytes());
-                    currentOffset += fab.nBytes();
+		    long readDataItems(fab.box().numPts() * fab.nComp());
+		    if(doConvert) {
+		      RealDescriptor::convertToNativeFormat(fab.dataPtr(), readDataItems,
+		                                            afPtr, hdr.m_writtenRD);
+		    } else {
+                      memcpy(fab.dataPtr(), afPtr, fab.nBytes());
+		    }
+                    currentOffset += readDataItems * hdr.m_writtenRD.numBytes();
 	          }
 	        }
 		delete [] allFabData;
@@ -1576,22 +1573,17 @@ VisMF::Read (FabArray<FArrayBox> &mf,
                       nfi.Stream().seekp(frc[i].fileOffset, std::ios::beg);
 	            }
 	            FArrayBox &fab = whichFA[frc[i].faIndex];
-                    nfi.Stream().read((char *) fab.dataPtr(), fab.nBytes());
+		    long readDataItems(fab.box().numPts() * fab.nComp());
+		    if(doConvert) {
+		      RealDescriptor::convertToNativeFormat(fab.dataPtr(), readDataItems,
+		                                            nfi.Stream(), hdr.m_writtenRD);
+		    } else {
+                      nfi.Stream().read((char *) fab.dataPtr(), fab.nBytes());
+		    }
 	          }
 	        }
 	      }
 
-	    } else {  // ---- not using a single read
-	      for(int i(0); i < frc.size(); ++i) {
-	        if(myProc == frc[i].rankToRead) {
-	          if(nfi.SeekPos() != frc[i].fileOffset) {
-                    nfi.Stream().seekp(frc[i].fileOffset, std::ios::beg);
-	          }
-	          FArrayBox &fab = whichFA[frc[i].faIndex];
-                  nfi.Stream().read((char *) fab.dataPtr(), fab.nBytes());
-	        }
-	      }
-	    }
           }    // ---- end NFilesIter
         }
 
