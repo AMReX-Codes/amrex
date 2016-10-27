@@ -975,7 +975,7 @@ RealDescriptor::convertToNativeFormat (Real*                 out,
 void
 RealDescriptor::convertFromNativeFormat (void*                 out,
                                          long                  nitems,
-                                         Real*                 in,
+                                         const Real*           in,
                                          const RealDescriptor& od)
 {
     BL_PROFILE("RD:convertFromNativeFormat_vp");
