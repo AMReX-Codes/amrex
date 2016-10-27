@@ -44,9 +44,6 @@ public:
     //
     // An enum which controls format of FAB output.
     //
-    // Valid values are FAB_ASCII, FAB_IEEE, FAB_NATIVE,
-    // FAB_8BIT and FAB_IEEE_32;
-    //
     // FAB_ASCII: write the FAB out in ASCII format.
     //
     // FAB_8BIT: write the FAB out with all floating-point
@@ -62,6 +59,9 @@ public:
     //
     // FAB_IEEE: this is deprecated.  It is identical to
     // FAB_IEEE_32.
+    //
+    // FAB_NATIVE_32: write out values in the native 32 bit format.
+    //
     //
     enum Format
     {
@@ -154,47 +154,42 @@ public:
 			       int&          nCompAvailable);
 };
 
-/*
-  A Fortran Array of REALs
-
-  Fortran Array Box's (generally called FAB's) are objects constructed
-  to emulate the FORTRAN array.  Useful operations can be performed
-  upon FAB's in C++, and they provide a convenient interface to
-  FORTRAN when it is necessary to retreat into that language.
-
-  FArrayBox is derived from BaseFab<Real>.
-  FArrayBox adds additional useful capabilities which make sense
-  for Real types, such as I/O and L**p norms.
-
-  FArrayBox's may be output in various format's with various
-  precisions. Available formats are ascii, IEEE 32, native, and
-  8bit.  Ascii is self explanatory.  IEEE 32 is the standard on
-  most microprocessor based computers; it specifies that output should be in
-  IEEE 32 bit floating point format in normal order.  Native is the most
-  efficient, but not necessarily most portable, I/O format for a
-  given computer.  8bit is a 8 bit format, suitable for graphics output.
-  In general, you probably want to use NATIVE, unless you need to write
-  your data out with less precision than your computation in order to
-  save space.
-
-  The format and precision may be set in a file read by the ParmParse
-  class by the "fab.format" variable.  Allowed values are NATIVE, ASCII,
-  8BIT and IEEE32.
-
-  FABs written using operator<< are always written in ASCII.
-  FABS written using writOn use the FABio::Format specified with
-  setFormat or the FABio::Format specified in the ParmParse file
-  read by init. If the FABio::Format is not set explicitly by either
-  of these two methods, then it defaults to NATIVE.
-
-  The C pre-processor macro BL_SPACEDIM must be defined to use
-  this class.  The internal precision of FARRAYBOX objects is
-  set by defining either BL_USE_FLOAT or BL_USE_DOUBLE
-
-  This is NOT a polymorphic class.
-
-  This class does NOT provide a copy constructor or assignment operator.
-*/
+//
+//  A Fortran Array of REALs
+//
+//  Fortran Array Box's (generally called FAB's) are objects constructed
+//  to emulate the FORTRAN array.  Useful operations can be performed
+//  upon FAB's in C++, and they provide a convenient interface to
+//  FORTRAN when it is necessary to retreat into that language.
+//
+//  FArrayBox is derived from BaseFab<Real>.
+//  FArrayBox adds additional useful capabilities which make sense
+//  for Real types, such as I/O and L**p norms.
+//
+//  FArrayBox's may be output in various formats (see FABio above).
+//
+//  The format and precision may be set in a file read by the ParmParse
+//  class by the "fab.format" variable.  Allowed values are:
+//    ASCII
+//    8BIT
+//    NATIVE
+//    NATIVE_32
+//    IEEE32
+//
+//  FABs written using operator<< are always written in ASCII.
+//  FABS written using writOn use the FABio::Format specified with
+//  setFormat or the FABio::Format specified in the ParmParse file
+//  read by init. If the FABio::Format is not set explicitly by either
+//  of these two methods, then it defaults to NATIVE.
+//
+//  The C pre-processor macro BL_SPACEDIM must be defined to use
+//  this class.  The internal precision of FARRAYBOX objects is
+//  set by defining either BL_USE_FLOAT or BL_USE_DOUBLE
+//
+//  This is NOT a polymorphic class.
+//
+//  This class does NOT provide a copy constructor or assignment operator.
+//
 
 class FArrayBox
     :
