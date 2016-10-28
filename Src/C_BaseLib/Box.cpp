@@ -856,7 +856,7 @@ Box::setRange (int dir,
 bool
 Box::isSquare () const
 {
-    const IntVect size = this->size();
+    const IntVect& size = this->size();
 #if BL_SPACEDIM==1
     return false; // can't build a square in 1-D
 #elif BL_SPACEDIM==2
