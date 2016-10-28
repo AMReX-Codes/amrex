@@ -131,9 +131,10 @@ public:
         int rankToRead;
 	int faIndex;
 	long fileOffset;
+	Box box;
 
 	FabReadLink();
-	FabReadLink(int ranktoread, int faIndex, long fileoffset);
+	FabReadLink(int ranktoread, int faindex, long fileoffset, const Box &b);
     };
 
     //
