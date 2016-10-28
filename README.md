@@ -97,6 +97,29 @@ cd ../warpx/tests/Langmuir/
 ./picsar
 ```
 
+### Visualizing and comparing the results
+
+The results are compared using Python, inside a Jupyter notebook. In
+order to be able to visualize the results, you need to first install
+the proper visualization software:
+
+- If you are using the Anaconda distribution of Python, type:
+```
+conda install jupyter numpy yt matplotlib
+```
+
+- Otherwise, type:
+```
+pip install jupyter numpy yt matplotlib
+```
+
+Then, within the folder `tests/Langmuir`, type:
+```
+jupyter notebook Visualization.ipynb 
+```
+and follow the instructions that will pop up in your browser.
+
+
 ## Using WarpX
 
 ### Configuration of the input file
@@ -123,25 +146,3 @@ particle_pusher_algo: algorithm for the particle pusher
 
  - 0: pusher of Boris
  - 1: pusher of J. L. Vay
-
-### Visualizing and comparing the results
-
-The results are compared using Python, inside a Jupyter notebook. In
-order to be able to visualize the results, you need to first install
-the proper visualization software:
-
-- If you are using the Anaconda distribution of Python, type:
-```
-conda install jupyter numpy yt matplotlib
-```
-
-- Otherwise, type:
-```
-pip install jupyter numpy yt matplotlib
-```
-
-Then, within the folder `tests/Langmuir`, type:
-```
-jupyter notebook Visualization.ipynb 
-```
-and follow the instructions that will pop up in your browser.
