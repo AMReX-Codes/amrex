@@ -1,4 +1,9 @@
 
+//
+// Each problem must have its own version of MyParticleContainer::InitData()
+// to initialize the particle data on this level
+//
+
 #include <cmath>
 
 #include <BLProfiler.H>

@@ -44,13 +44,3 @@ WarpX::InitFromScratch ()
     mypc->AllocData();
     mypc->InitData();
 }
-
-void
-WarpX::InitLevelData (int lev)
-{
-    for (int i = 0; i < BL_SPACEDIM; ++i) {
-	current[lev][i]->setVal(0.0);
-	Efield[lev][i]->setVal(0.0);
-	Bfield[lev][i]->setVal(0.0);
-    }
-}
