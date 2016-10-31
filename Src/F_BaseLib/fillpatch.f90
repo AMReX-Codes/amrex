@@ -419,9 +419,11 @@ contains
        ! dst = fp failed using Intel 9.1.043
        call cpy_d(dst,fp)
 
-       deallocate(cvcx, fvcx, fp)
-       if ( dm > 1 ) deallocate(cvcy, fvcy)
-       if ( dm > 2 ) deallocate(cvcz, fvcz)
+       if (numnodals .eq. 0) then
+          deallocate(cvcx, fvcx, fp)
+          if ( dm > 1 ) deallocate(cvcy, fvcy)
+          if ( dm > 2 ) deallocate(cvcz, fvcz)
+       end if
 
     end do
     !$OMP END PARALLEL DO
