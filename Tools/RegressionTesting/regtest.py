@@ -793,7 +793,7 @@ def test_suite(argv):
                 shutil.copy(job_info_file, "{}/{}.job_info".format(
                     suite.full_web_dir, test.name))
 
-            if suite.sourceTree == "C_Src":
+            if suite.sourceTree == "C_Src" and test.probinFile != "":
                 shutil.copy(test.probinFile, "{}/{}.{}".format(
                     suite.full_web_dir, test.name, test.probinFile) )
 

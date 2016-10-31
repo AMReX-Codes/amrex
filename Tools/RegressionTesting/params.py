@@ -243,14 +243,10 @@ def load_params(args):
                 invalid = 1
 
         else:
-            if (mytest.buildDir == "" or mytest.inputFile == "" or
-                (mysuite.sourceTree == "C_Src" and mytest.probinFile == "") or
-                mytest.dim == -1):
+            if mytest.buildDir == "" or mytest.inputFile == "" or mytest.dim == -1:
                 warn_msg = ["required params for test {} not set".format(sec),
                             "buildDir = {}".format(mytest.buildDir),
                             "inputFile = {}".format(mytest.inputFile)]
-                if mysuite.sourceTree == "C_Src":
-                    warn_msg += ["probinFile = {}".format(mytest.probinFile)]
                 warn_msg += ["dim = {}".format(mytest.dim)]
                 mysuite.log.warn(warn_msg)
 

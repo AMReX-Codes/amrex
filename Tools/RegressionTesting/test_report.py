@@ -444,7 +444,7 @@ def report_single_test(suite, test, tests, failure_msg=None):
 
         ll.item("input file: <a href=\"{}.{}\">{}</a>".format(test.name, test.inputFile, test.inputFile))
 
-        if suite.sourceTree == "C_Src":
+        if suite.sourceTree == "C_Src" and test.probinFile != "":
             ll.item("probin file: <a href=\"{}.{}\">{}</a>".format(test.name, test.probinFile, test.probinFile))
 
         for i, afile in enumerate(test.auxFiles):
