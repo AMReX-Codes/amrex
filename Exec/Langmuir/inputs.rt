@@ -1,5 +1,5 @@
 # Maximum number of time steps
-max_step = 20
+max_step = 40
 
 # number of grid points
 amr.n_cell =   64  64  64
@@ -31,6 +31,12 @@ algo.particle_pusher = 0
 # CFL
 warpx.cfl = 1.0
 
+langmuirwave.particle_xmin = -20.e-6
+langmuirwave.particle_xmax = 0.e-6
+langmuirwave.particle_ymin = -20.e-6
+langmuirwave.particle_ymax = 20.e-6
+langmuirwave.particle_zmin = -20.e-6
+langmuirwave.particle_zmax = 20.e-6
 langmuirwave.num_particles_per_cell = 10
 langmuirwave.n_e = 1.e25  # number of electrons per m^3
 langmuirwave.ux  = 0.01   # ux = gamma*beta_x
