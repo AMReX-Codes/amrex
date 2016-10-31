@@ -11,7 +11,7 @@ WarpX::WritePlotFile () const
 {
     BL_PROFILE("WarpX::WritePlotFile()");
 
-    const std::string& plotfilename = BoxLib::Concatenate("plt",istep[0]);
+    const std::string& plotfilename = BoxLib::Concatenate(plot_file,istep[0]);
 
     if (ParallelDescriptor::IOProcessor()) {
 	std::cout << "  Writing plotfile " << plotfilename << std::endl;
