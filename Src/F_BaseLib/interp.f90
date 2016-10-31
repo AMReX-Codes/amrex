@@ -1079,7 +1079,7 @@ contains
           do j = lo(2), hi(2)
              jc = int_coarsen(j,2)
              do i = lo(1), hi(1)
-                icp = int_coarsen_pair(lo(1),2)
+                icp = int_coarsen_pair(i,2)
                 fine(i,j) = HALF*(crse(icp(1),jc) + crse(icp(2),jc))
              end do
           end do
