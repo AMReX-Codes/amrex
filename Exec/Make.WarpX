@@ -1,28 +1,12 @@
-BOXLIB_HOME ?= ../BoxLib
-PICSAR_HOME = ../picsar
-
-DEBUG	= FALSE
-DEBUG	= TRUE
-
-DIM	= 3
-
-COMP    = gcc
-FCOMP   = gfortran
+BOXLIB_HOME ?= ../../../BoxLib
+PICSAR_HOME ?= ../../../picsar
 
 USE_PARTICLES = TRUE
 
-PRECISION = DOUBLE
-
-TINY_PROFILE = TRUE
-
-USE_MPI   = TRUE
-USE_OMP   = FALSE
-
-EBASE     = main
-
 include $(BOXLIB_HOME)/Tools/C_mk/Make.defs
 
-include ./Make.package
+-include Make.package
+include $(WARPX_HOME)/Source/Make.package
 
 include $(BOXLIB_HOME)/Src/C_BaseLib/Make.package
 include $(BOXLIB_HOME)/Src/C_ParticleLib/Make.package
