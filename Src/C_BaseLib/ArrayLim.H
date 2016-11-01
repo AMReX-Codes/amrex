@@ -97,7 +97,7 @@
 
 #else
 
-#if __STDC__==1
+#if __STDC__==1 || defined(__INTEL_COMPILER)
 
 #if (BL_SPACEDIM == 1)
 #define DIMS(a) a##_l1, a##_h1
