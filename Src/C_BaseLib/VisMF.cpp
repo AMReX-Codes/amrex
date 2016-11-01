@@ -1412,13 +1412,16 @@ VisMF::Read (FabArray<FArrayBox> &mf,
     std::map<std::string, Array<FabReadLink> >::iterator frcIter;
 
     int indexFileOrder(0);
-    int ranksPerFile(nProcs / FileReadChains.size());
     int currentRank(0);
     FabArray<FArrayBox> fafabFileOrder;
     BoxArray baFileOrder(hdr.m_ba.size());
 
     Array<int> ranksFileOrder(mf.DistributionMap().size(), -1);
     ranksFileOrder[ranksFileOrder.size() - 1] = ParallelDescriptor::MyProc();
+
+    Array<int> nRanksPerFile(FileReadChains.size());
+    BoxLib::NItemsPerBin(nProcs, nRanksPerFile);
+    int currentFileIndex(0);
 
     for(frcIter = FileReadChains.begin(); frcIter != FileReadChains.end(); ++frcIter) {
       const std::string &fileName = frcIter->first;
@@ -1427,34 +1430,31 @@ VisMF::Read (FabArray<FArrayBox> &mf,
       std::sort(frc.begin(), frc.end(), [] (const FabReadLink &a, const FabReadLink &b)
 	                                      { return a.fileOffset < b.fileOffset; } );
 
-      int boxesPerRank(frc.size() / ranksPerFile);
-      int boxesPerRankCount(0);
-      if(myProc == coordinatorProc) {
-        std::cout << "BRBR::  boxesPerRank ranksPerFile = " << boxesPerRank << "  "
-	          << ranksPerFile << std::endl;
-      }
-      for(int i(0); i < frc.size(); ++i) {
-	baFileOrder.set(indexFileOrder, frc[i].box);
-	ranksFileOrder[indexFileOrder] = currentRank;
-	frc[i].rankToRead = currentRank;
-	frc[i].faIndex    = indexFileOrder;
-	readFileRanks[fileName].insert(currentRank);
-        if(myProc == coordinatorProc) {
-          std::cout << "FRCFRC:  file box offset dmrank = " << fileName << "  "
-	            << frc[i].box << "  " << frc[i].fileOffset << "  "
-	            << ranksFileOrder[indexFileOrder] << std::endl;
-        }
-	++indexFileOrder;
-	++boxesPerRankCount;
-	if(boxesPerRankCount >= boxesPerRank && i < frc.size() - 1) {
-	  boxesPerRankCount = 0;
-          ++currentRank;
-          currentRank = std::min(currentRank, nProcs - 1);
-	}
+      Array<int> nBoxesPerRank(nRanksPerFile[currentFileIndex]);
+      BoxLib::NItemsPerBin(frc.size(), nBoxesPerRank);
+      int frcIndex(0);
 
+      for(int nbpr(0); nbpr < nBoxesPerRank.size(); ++nbpr) {
+        for(int nb(0); nb < nBoxesPerRank[nbpr]; ++nb) {
+
+	  baFileOrder.set(indexFileOrder, frc[frcIndex].box);
+	  ranksFileOrder[indexFileOrder] = currentRank;
+	  frc[frcIndex].rankToRead = currentRank;
+	  frc[frcIndex].faIndex    = indexFileOrder;
+	  readFileRanks[fileName].insert(currentRank);
+
+          if(myProc == coordinatorProc) {
+            std::cout << "FRCFRC:  file box offset dmrank = " << fileName << "  "
+	              << frc[frcIndex].box << "  " << frc[frcIndex].fileOffset << "  "
+	              << ranksFileOrder[indexFileOrder] << std::endl;
+          }
+	  ++frcIndex;
+	  ++indexFileOrder;
+        }
+        ++currentRank;
+        currentRank = std::min(currentRank, nProcs - 1);
       }
-      ++currentRank;
-      currentRank = std::min(currentRank, nProcs - 1);
+      ++currentFileIndex;
     }
 
     DistributionMapping dmFileOrder(ranksFileOrder);
