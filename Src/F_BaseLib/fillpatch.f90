@@ -397,7 +397,7 @@ contains
           allocate(fp(lo_f(1):hi_f(1),lo_f(2):hi_f(2),lo_f(3):hi_f(3),1:nc))
           if (fourth_order) then
              call bl_error('fillpatch: fourth_order_interp not implemented in 3d')
-          else if (numnodals .eq. 1) then
+          else if (numnodals .eq. 0) then
              call lin_cc_interp_3d(fp(:,:,:,:), lo_f, src(:,:,:,:), lo_c, ir, local_bc, &
                   fvcx, lo_f(1), fvcy, lo_f(2), fvcz, lo_f(3), &
                   cvcx, lo_c(1), cvcy, lo_c(2), cvcz, lo_c(3), &
