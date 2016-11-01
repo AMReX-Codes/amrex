@@ -255,6 +255,12 @@ namespace BoxLib
     //
     void UniqueRandomSubset (Array<int> &uSet, int setSize, int poolSize,
                              bool printSet = false);
+
+    //
+    // Fill binCounts with the number of items for each bin.
+    //   The remainder items are randomly assigned.
+    //
+    void NItemsPerBin (int totalItems, Array<int> &binCounts);
     //
     // Helper class for Times, used in Threads, Profiling, and Timers.
     //
