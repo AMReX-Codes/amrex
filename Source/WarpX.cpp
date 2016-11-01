@@ -12,6 +12,24 @@ long WarpX::nox = 1;
 long WarpX::noy = 1;
 long WarpX::noz = 1;
 
+WarpX* WarpX::m_instance = nullptr;
+
+WarpX&
+WarpX::GetInstance ()
+{
+    if (!m_instance) {
+	m_instance = new WarpX();
+    }
+    return *m_instance;
+}
+
+void
+WarpX::ResetInstance ()
+{
+    delete m_instance;
+    m_instance = nullptr;
+}
+
 WarpX::WarpX ()
 {
     ReadParameters();

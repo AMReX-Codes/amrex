@@ -6,14 +6,17 @@
 #include <PICSAR_f.H>
 
 void
-WarpX::Evolve ()
+WarpX::Evolve (int numsteps)
 {
     BL_PROFILE("WarpX::Evolve()");
 
     Real cur_time = t_new[0];
-    int last_plot_file_step = 0;
+    static int last_plot_file_step = 0;
 
-    for (int step = istep[0]; step < max_step && cur_time < stop_time; ++step)
+    int numsteps_max = (numsteps >= 0 && numsteps <= max_step) ? numsteps : max_step;
+    bool max_time_reached = false;
+
+    for (int step = istep[0]; step < numsteps_max && cur_time < stop_time; ++step)
     {
 	if (ParallelDescriptor::IOProcessor()) {
 	    std::cout << "\nSTEP " << step+1 << " starts ..." << std::endl;
@@ -67,10 +70,13 @@ WarpX::Evolve ()
 	    WritePlotFile();
 	}
 
-	if (cur_time >= stop_time - 1.e-6*dt[0]) break;
+	if (cur_time >= stop_time - 1.e-6*dt[0]) {
+	    max_time_reached = true;
+	    break;
+	}
     }
 
-    if (plot_int > 0 && istep[0] > last_plot_file_step) {
+    if (plot_int > 0 && istep[0] > last_plot_file_step && (max_time_reached || istep[0] >= max_step)) {
 	WritePlotFile();
     }
 }

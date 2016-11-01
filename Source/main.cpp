@@ -1,36 +1,29 @@
 
 #include <iostream>
-
-#include <BoxLib.H>
 #include <BLProfiler.H>
 #include <ParallelDescriptor.H>
-
-#include <WarpX.H>
+#include <WarpXWrappers.h>
 
 int main(int argc, char* argv[])
 {
-    BoxLib::Initialize(argc,argv);
+    boxlib_init(argc, &argv);
 
-    BL_PROFILE_VAR("main()", pmain);
+    BL_PROFILE_VAR("main()", pmain);	
 
     const Real strt_total = ParallelDescriptor::second();
 
-    {
-	WarpX warpx;
-	
-	warpx.InitData();
+    warpx_init();
+    warpx_evolve(-1);
+    warpx_finalize();
 
-	warpx.Evolve();
-	
-	Real end_total = ParallelDescriptor::second() - strt_total;
-	
-	ParallelDescriptor::ReduceRealMax(end_total ,ParallelDescriptor::IOProcessorNumber());
-	if (warpx.Verbose() && ParallelDescriptor::IOProcessor()) {
-	    std::cout << "Total Time                     : " << end_total << '\n';
-	}
+    Real end_total = ParallelDescriptor::second() - strt_total;
+    
+    ParallelDescriptor::ReduceRealMax(end_total ,ParallelDescriptor::IOProcessorNumber());
+    if (ParallelDescriptor::IOProcessor()) {
+	std::cout << "Total Time                     : " << end_total << '\n';
     }
 
     BL_PROFILE_VAR_STOP(pmain);
 
-    BoxLib::Finalize();
+    boxlib_finalize();
 }
