@@ -99,6 +99,7 @@ class DistributionMapping
     //
     long size () const { return m_ref->m_pmap.size(); }
     long capacity () const { return m_ref->m_pmap.capacity(); }
+    bool empty () const { return m_ref->m_pmap.empty(); }
     //
     // Number of references to this DistributionMapping
     //

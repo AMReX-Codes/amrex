@@ -13,25 +13,18 @@ project(CBOXLIB)
 
 include_directories(${CBOXLIB_INCLUDE_DIRS})
 
-set(CXX_source_files Arena.cpp BArena.cpp BaseFab.cpp BCRec.cpp BLBackTrace.cpp BoxArray.cpp Box.cpp BoxDomain.cpp BoxLib.cpp BoxList.cpp CArena.cpp CoordSys.cpp DistributionMapping.cpp FabArray.cpp FabConv.cpp FArrayBox.cpp FPC.cpp Geometry.cpp MultiFabUtil.cpp IArrayBox.cpp IndexType.cpp IntVect.cpp iMultiFab.cpp MemPool.cpp MultiFab.cpp Orientation.cpp ParallelDescriptor.cpp ParmParse.cpp Periodicity.cpp PhysBCFunct.cpp RealBox.cpp UseCount.cpp Utility.cpp VisMF.cpp)
+set(CXX_source_files Arena.cpp BArena.cpp BaseFab.cpp BCRec.cpp BLBackTrace.cpp BoxArray.cpp Box.cpp BoxDomain.cpp BoxLib.cpp BoxList.cpp CArena.cpp CoordSys.cpp DistributionMapping.cpp FabArray.cpp FabConv.cpp FArrayBox.cpp FPC.cpp Geometry.cpp MultiFabUtil.cpp IArrayBox.cpp IndexType.cpp IntVect.cpp iMultiFab.cpp MemPool.cpp MultiFab.cpp Orientation.cpp ParallelDescriptor.cpp ParmParse.cpp Periodicity.cpp PhysBCFunct.cpp PlotFileUtil.cpp RealBox.cpp UseCount.cpp Utility.cpp VisMF.cpp)
 
 set(F77_source_files BLBoxLib_F.f bl_flush.f BLParmParse_F.f BLutil_F.f)
 set(FPP_source_files COORDSYS_${BL_SPACEDIM}D.F FILCC_${BL_SPACEDIM}D.F)
 set(F90PP_source_files bl_fort_module.F90)
 set(F90_source_files mempool_f.f90 threadbox.f90 MultiFabUtil_${BL_SPACEDIM}d.f90 BaseFab_nd.f90)
 
-set(CXX_header_files Arena.H Array.H ArrayLim.H BArena.H BaseFab.H BCRec.H BL_CXX11.H BC_TYPES.H BLassert.H BLBackTrace.H BLFort.H BLProfiler.H BoxArray.H BoxDomain.H Box.H BoxLib.H BoxList.H CArena.H ccse-mpi.H CONSTANTS.H CoordSys.H DistributionMapping.H FabArray.H FabConv.H FArrayBox.H FPC.H Geometry.H MultiFabUtil.H IArrayBox.H IndexType.H IntVect.H Looping.H iMultiFab.H MemPool.H MultiFab.H Orientation.H ParallelDescriptor.H ParmParse.H PArray.H Periodicity.H PList.H Pointers.H RealBox.H REAL.H SPACE.H Tuple.H UseCount.H Utility.H VisMF.H winstd.H PhysBCFunct.H ParGDB.H)
+set(CXX_header_files Arena.H Array.H ArrayLim.H BArena.H BaseFab.H BCRec.H BL_CXX11.H BC_TYPES.H BLassert.H BLBackTrace.H BLFort.H BLProfiler.H BoxArray.H BoxDomain.H Box.H BoxLib.H BoxList.H CArena.H ccse-mpi.H CONSTANTS.H CoordSys.H DistributionMapping.H FabArray.H FabConv.H FArrayBox.H FPC.H Geometry.H MultiFabUtil.H IArrayBox.H IndexType.H IntVect.H Looping.H iMultiFab.H MemPool.H MultiFab.H Orientation.H ParallelDescriptor.H ParmParse.H PArray.H Periodicity.H PList.H PlotFileUtil.H Pointers.H RealBox.H REAL.H SPACE.H Tuple.H UseCount.H Utility.H VisMF.H winstd.H PhysBCFunct.H)
 
 set(F77_header_files bc_types.fi)
 set(FPP_header_files COORDSYS_F.H SPACE_F.H BaseFab_f.H)
 set(F90_header_files)
-
-if(BL_USE_PARTICLES EQUAL 1)
-  list(APPEND CXX_source_files Particles.cpp)
-  list(APPEND CXX_header_files Particles.H)
-  list(APPEND FPP_source_files Particles_${BL_SPACEDIM}D.F)
-  list(APPEND FPP_header_files Particles_F.H)
-endif()
 
 preprocess_boxlib_fortran(FPP_out_files ${FPP_source_files})
 preprocess_boxlib_fortran90(F90PP_out_files ${F90PP_source_files})

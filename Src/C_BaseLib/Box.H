@@ -381,6 +381,10 @@ public:
                    int sm_index,
                    int n_cells = 1);
     //
+    // Set indexing type
+    //
+    Box& setType (const IndexType& t) { btype = t; return *this; }
+    //
     // Shift this Box nzones indexing positions in coordinate
     // direction dir.
     //

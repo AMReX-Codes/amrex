@@ -64,12 +64,16 @@ ifeq ($(MACHINE), Linux)
       BL_MPI_LIBS += -lmpi -lmpi_f90
     endif
 
-    ifeq ($(WHICHLINUX), BLUE_WATERS)
-      CC := cc
-      CXX := CC
-      FC := ftn
-      F90 := ftn
-      fC := ftn
+    CRAY_MACHINES := BLUE_WATERS TITAN CHESTER
+
+    ifeq ($(WHICHLINUX), $(findstring $(WHICHLINUX), $(CRAY_MACHINES)))
+      ifeq ($(USE_MPI),TRUE)
+        CC := cc
+        CXX := CC
+        FC := ftn
+        F90 := ftn
+        fC := ftn
+      endif
 
       ifeq ($(COMP), Cray)
         ifneq ($(USE_OMP),TRUE)
@@ -84,37 +88,6 @@ ifeq ($(MACHINE), Linux)
 	  FFLAGS += -hnoomp
 	endif
       endif
-    endif
-
-    ifeq ($(WHICHLINUX), TITAN)
-	ifeq ($(USE_MPI),TRUE)
-	   CC := cc
-	   CXX := CC
-	   FC := ftn
-	   F90 := ftn
-	   fC := ftn
-	endif
-    endif
-
-    ifeq ($(WHICHLINUX), CHESTER)
-	ifeq ($(USE_MPI),TRUE)
-	   CC := cc
-	   CXX := CC
-	   FC := ftn
-	   F90 := ftn
-	   fC := ftn
-	endif
-    endif
-
-    ifeq ($(WHICHLINUX), LENS)
-      ifeq ($(COMP), g++)
-  	MPI_HOME:=/sw/analysis-x64/ompi/1.4.2/centos5.5_gnu4.4.4
-      else
-        MPI_HOME:=/sw/analysis-x64/ompi/1.4.3/centos5.5_pgi10.9
-      endif
-      BL_MPI_LIBS += -lmpi
-      LIBRARY_LOCATIONS += $(MPI_HOME)/lib
-      INCLUDE_LOCATIONS += $(MPI_HOME)/include
     endif
 
     ifeq ($(WHICHLINUX), ORANGE)
@@ -148,16 +121,6 @@ ifeq ($(MACHINE), Linux)
       LIBRARY_LOCATIONS += $(MPI_HOME)/lib/
       INCLUDE_LOCATIONS += $(MPI_HOME)/include/
       BL_MPI_LIBS += -lmpichfarg
-    endif
-    ifeq ($(WHICHLINUX), PCCLUSTER)
-      MPI_HOME=/usr/local/pkg/mpich
-      LIBRARY_LOCATIONS += $(MPI_HOME)/lib/LINUX/ch_p4
-      INCLUDE_LOCATIONS += $(MPI_HOME)/lib/LINUX/ch_p4
-    endif
-    ifeq ($(WHICHLINUX), ALPHACLUSTER)
-      MPI_HOME=/usr/local/pkg/mpich
-      LIBRARY_LOCATIONS += $(MPI_HOME)/build/LINUX/ch_p4/lib
-      INCLUDE_LOCATIONS += $(MPI_HOME)/build/LINUX/ch_p4/include
     endif
 
     ifeq ($(HOST),orga)
@@ -304,7 +267,6 @@ ifeq ($(MACHINE), Linux)
                 ifneq ($(HOST), hicegate0)     # This is Wolfram Schmidt's machine
                   ifneq ($(WHICHLINUX), DONEV)
                     ifneq ($(HOST), stribog)   # This is Zarija Lukic's machine
-                      ifneq ($(WHICHLINUX), LENS)
                         ifneq ($(WHICHLINUX), BABBAGE)
                           ifneq ($(WHICHLINUX), MIRA)
                             ifneq ($(findstring ad.unsw.edu.au, $(HOST)), ad.unsw.edu.au)
@@ -315,7 +277,6 @@ ifeq ($(MACHINE), Linux)
                               endif
                             endif
                           endif
-                        endif
                       endif  
                     endif  
                   endif  
@@ -380,33 +341,10 @@ ifndef MPI_HOME
       CPPFLAGS += -DMPICH_SKIP_MPICXX
 endif
 
-ifeq ($(HOST),c2)
-      MPI_HOME=/usr/lib/openmpi
-      LIBRARY_LOCATIONS += $(MPI_HOME)/lib
-      INCLUDE_LOCATIONS += $(MPI_HOME)/include
-      CPPFLAGS += -DMPICH_SKIP_MPICXX
-      BL_MPI_LIBS = $(shell mpic++ --showme:link)
-      BL_MPI_LIBS +=$(shell mpif90 --showme:link)
-endif
+# These are the machines in Gottingen
+GOTTINGEN_MACHINES := c1 c2 c3 c4
 
-ifeq ($(HOST),c1)
-      MPI_HOME=/usr/lib/openmpi
-      LIBRARY_LOCATIONS += $(MPI_HOME)/lib
-      INCLUDE_LOCATIONS += $(MPI_HOME)/include
-      CPPFLAGS += -DMPICH_SKIP_MPICXX
-      BL_MPI_LIBS = $(shell mpic++ --showme:link)
-      BL_MPI_LIBS +=$(shell mpif90 --showme:link)
-endif
-
-ifeq ($(HOST),c3)
-      MPI_HOME=/usr/lib/openmpi
-      LIBRARY_LOCATIONS += $(MPI_HOME)/lib
-      INCLUDE_LOCATIONS += $(MPI_HOME)/include
-      CPPFLAGS += -DMPICH_SKIP_MPICXX
-      BL_MPI_LIBS = $(shell mpic++ --showme:link)
-      BL_MPI_LIBS +=$(shell mpif90 --showme:link)
-endif
-ifeq ($(HOST),c4)
+ifeq ($(HOST), $(findstring $(HOST), $(GOTTINGEN_MACHINES)))
       MPI_HOME=/usr/lib/openmpi
       LIBRARY_LOCATIONS += $(MPI_HOME)/lib
       INCLUDE_LOCATIONS += $(MPI_HOME)/include
@@ -436,7 +374,7 @@ ifeq ($(MACHINE), Darwin)
         CC  := $(MPIHOME)/bin/mpicc
 
         MPI_HOME=$(MPIHOME)
-	#LIBRARIES += -lmpi_f77
+        #LIBRARIES += -lmpi_f77
 	LIBRARIES += -lmpi_mpifh
      else
         ifndef MPI_HOME

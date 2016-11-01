@@ -25,16 +25,7 @@ endif
 ifndef MACHINE
     MACHINE := $(shell uname)
 endif
-#
-# We'd also like to distinguish between SunOS and Solaris.
-#
-UNAMER := $(shell uname -r)
-ifeq ($(MACHINE), SunOS)
-    ifeq ($(shell awk 'BEGIN {print "$(UNAMER)"; print "5.0"}' /dev/null | \
-            sort | head -1), 5.0)
-        MACHINE := Solaris
-    endif
-endif
+
 
 #
 # Set special flag to identify machine
@@ -50,15 +41,6 @@ endif
 
 ifeq ($(MACHINE), Linux)
   WHICHLINUX := GENERICLINUX
-  ifeq ($(findstring n2001, $(UNAMEN)), n2001)
-    WHICHLINUX := PCCLUSTER
-  endif
-  ifeq ($(findstring xfe1, $(UNAMEN)), xfe1)
-    WHICHLINUX := ALPHACLUSTER
-  endif
-  ifeq ($(findstring lens, $(UNAMEN)), lens)
-    WHICHLINUX := LENS
-  endif
   ifeq ($(findstring jvn, $(UNAMEN)), jvn)
     WHICHLINUX := JVN
   endif
@@ -85,12 +67,6 @@ ifeq ($(MACHINE), Linux)
   endif
   ifeq ($(findstring della, $(UNAMEN)), della)
     WHICHLINUX := DELLA
-  endif
-  ifeq ($(findstring ranger, $(UNAMEN)), ranger)
-    WHICHLINUX := RANGER
-  endif
-  ifeq ($(findstring darter, $(UNAMEN)), darter)
-    WHICHLINUX := DARTER
   endif
   ifeq ($(findstring orion, $(UNAMEN)), orion)
     WHICHLINUX := ORION
@@ -252,6 +228,10 @@ ifeq ($(USE_MPI3),TRUE)
   USE_CXX11 = TRUE
 endif
 
+ifeq ($(USE_PARTICLES),TRUE)
+  USE_CXX11 = TRUE
+endif
+
 ifndef DIMENSION_AGNOSTIC
   DIMENSION_AGNOSTIC = FALSE
 endif
@@ -274,7 +254,7 @@ FORTPREP  	= perl $(BOXLIB_HOME)/Tools/C_scripts/strip72 -c
 # a placeholder in case we have to write something later
 F90PREP  	= cat
 MKDEP		= perl $(BOXLIB_HOME)/Tools/C_scripts/mkdep
-MODDEP		= perl $(BOXLIB_HOME)/Tools/F_scripts/moddep.pl
+MODDEP		= $(BOXLIB_HOME)/Tools/F_scripts/dep.py
 
 RANLIB = true
 
@@ -316,7 +296,7 @@ ifdef USE_GCC
     __gcc_major_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;\..*;;')
     __gcc_minor_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;[^.]*\.;;' | sed -e 's;\..*;;')
 
-    COMP_VERSION := $(shell $(CXX) -v 2>&1 | grep version)
+    COMP_VERSION := $(shell $(CXX) --version 2>&1 | grep -i gcc)
 
     # ifeq ($(findstring 5, $(__gcc_major_version)), 5)
     # 	 CXXOPTF += -fno-inline
@@ -408,23 +388,6 @@ ifeq ($(findstring rose, $(FCOMP)), rose)
     fDEBF += -g -O1 -ffixed-line-length-0 -fbounds-check -fbacktrace -Wuninitialized -Wunused -ffpe-trap=invalid -finit-real=nan
 endif
 
-ifeq ($(FCOMP),g77)
-    FC := $(FCOMP)
-    fC := $(FC)
-    FFLAGS = -fno-second-underscore
-    fFLAGS = -fno-second-underscore
-    FOPTF += -g -O
-    fOPTF += -g -O
-    FDEBF += -g -O0
-    fDEBF += -g -O0
-    _f77_lib:=$(shell g77 -print-file-name=libg2c.a)
-    override XTRALIBS += $(_f77_lib)
-    FDEBF +=   -ffortran-bounds-check 
-    FDEBF += -Wimplicit
-    fDEBF += -Wimplicit
-    fDEBF +=   -ffortran-bounds-check
-endif
-
 ifeq ($(findstring gfortran, $(FCOMP)), gfortran)
     FC = $(FCOMP)
     fC = $(FCOMP)
@@ -444,7 +407,7 @@ ifeq ($(findstring gfortran, $(FCOMP)), gfortran)
     endif
 
 
-    FCOMP_VERSION := $(shell $(FC) -v 2>&1 | grep version)
+    FCOMP_VERSION := $(shell $(FC) --version 2>&1 | grep -i gcc)
   
 
     ifeq ($(HOST),baragon)
@@ -918,13 +881,6 @@ F77SourceFiles	=
 F90SourceFiles	=
 f77SourceFiles	=
 
-objForLibs	=	$(CLIB_sources:%.cpp=%.o)			\
-			$(FLIB_sources:%.F=%.o)				\
-			$(F90LIB_sources:%.F90=%.o)			\
-			$(cLIB_sources:%.c=%.o)				\
-			$(fLIB_sources:%.f=%.o)				\
-			$(f90LIB_sources:%.f90=%.o)			\
-
 objStandalone	= 	$(CEXE_sources:%.cpp=%.o)			\
 			$(FEXE_sources:%.F=%.o)				\
 			$(cEXE_sources:%.c=%.o)				\
@@ -984,6 +940,10 @@ ifeq ($(WHICHLINUX),EDISON)
   DEFINES += -DBL_SIMD_LEN=4
 endif
 endif
+endif
+
+ifeq ($(USE_PARTICLES),TRUE)
+  DEFINES += -DUSE_PARTICLES -DPARTICLES
 endif
 
 includes	= $(addprefix -I, $(INCLUDE_LOCATIONS))

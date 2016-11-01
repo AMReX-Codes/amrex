@@ -46,6 +46,14 @@ endif()
 #     CCSE_BINARY_DIR
 project(CCSE)
 
+
+# Compile options:
+OPTION (ENABLE_FORTRAN_MPI "Enable Fortran MPI Communicator" ON)
+OPTION (ENABLE_MG_FBOXLIB "Enable Fortran for MultiGrid Solver" OFF)
+OPTION (ENABLE_FBASELIB "Enable Fortran BaseLib" OFF)
+OPTION (ENABLE_CXX11 "Enable C++11" ON)
+
+
 # Below, we have set some of the switches for reasonable default behavior, these can be 
 # overridden at the cmake command line, ie  "cmake -DVAR=VALUE", or by editing the values
 # directly below.  NOTE: If the C++ classes are to be used, the BL_SPACEDIM value must
@@ -114,3 +122,5 @@ if (ENABLE_Config_Report)
     message(STATUS "${config_output}")
 endif()    
 
+
+#MESSAGE (STATUS ${CMAKE_CXX_FLAGS})

@@ -4,6 +4,58 @@
 
 namespace BoxLib
 {
+    void average_edge_to_cellcenter (MultiFab& cc, int dcomp, const std::vector<MultiFab*>& edge)
+    {
+	BL_ASSERT(cc.nComp() >= dcomp + BL_SPACEDIM);
+	BL_ASSERT(edge.size() == BL_SPACEDIM);
+	BL_ASSERT(edge[0]->nComp() == 1);
+#if (BL_SPACEDIM == 3)
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+	for (MFIter mfi(cc,true); mfi.isValid(); ++mfi) 
+	{
+	    const Box& bx = mfi.tilebox();
+
+	    BL_FORT_PROC_CALL(BL_AVG_EG_TO_CC,bl_avg_eg_to_cc)
+		(bx.loVect(), bx.hiVect(),
+		 BL_TO_FORTRAN_N(cc[mfi],dcomp),
+		 D_DECL(BL_TO_FORTRAN((*edge[0])[mfi]),
+			BL_TO_FORTRAN((*edge[1])[mfi]),
+			BL_TO_FORTRAN((*edge[2])[mfi])));
+	}	
+#else
+	BoxLib::Abort("not implemented");
+#endif
+    }
+
+    void average_face_to_cellcenter (MultiFab& cc, int dcomp, const std::vector<MultiFab*>& fc)
+    {
+	BL_ASSERT(cc.nComp() >= dcomp + BL_SPACEDIM);
+	BL_ASSERT(fc.size() == BL_SPACEDIM);
+	BL_ASSERT(fc[0]->nComp() == 1);
+
+	Real dx[3] = {1.0,1.0,1.0};
+	Real problo[3] = {0.,0.,0.};
+	int coord_type = 0;
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+	for (MFIter mfi(cc,true); mfi.isValid(); ++mfi) 
+	{
+	    const Box& bx = mfi.tilebox();
+
+	    BL_FORT_PROC_CALL(BL_AVG_FC_TO_CC,bl_avg_fc_to_cc)
+		(bx.loVect(), bx.hiVect(),
+		 BL_TO_FORTRAN_N(cc[mfi],dcomp),
+		 D_DECL(BL_TO_FORTRAN((*fc[0])[mfi]),
+			BL_TO_FORTRAN((*fc[1])[mfi]),
+			BL_TO_FORTRAN((*fc[2])[mfi])),
+		 dx, problo, coord_type);
+	}
+    }
+
     void average_face_to_cellcenter (MultiFab& cc, const PArray<MultiFab>& fc, const Geometry& geom)
     {
 	BL_ASSERT(cc.nComp() >= BL_SPACEDIM);

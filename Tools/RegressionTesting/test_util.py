@@ -103,6 +103,8 @@ Each test is given its own block, with the general form:
   useOMP = <is this an OpenMP job? 0 for no, 1 for yes) >
   numthreads = < # of threads to us with OpenMP (if OpenMP job) >
 
+  acc = < 0 for normal run, 1 if we want OpenACC >
+
   debug = < 0 for normal run, 1 if we want debugging options on >
 
   compileTest = < 0 for normal run, 1 if we just test compilation >
