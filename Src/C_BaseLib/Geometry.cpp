@@ -107,6 +107,13 @@ Geometry::Setup (const RealBox* rb, int coord, int* isper)
     BL_ASSERT(!omp_in_parallel());
 #endif
 
+    static bool first = true;
+    if (first) {
+	first = false;
+    } else {
+	return;
+    }
+
     ParmParse pp("geometry");
     //
     // The default behavior is as before.  If rb and coord come

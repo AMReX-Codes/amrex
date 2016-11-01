@@ -93,7 +93,7 @@ def ppCleanup(cwfile, infile, oufile):
 
             if cleanupstack[-1]:
                 # This whole ifdef ... else ... endif is inside "CLEANUP"
-                cleanupstack.append[True]
+                cleanupstack.append(True)
             else:
                 if status:
                     # "ifdef" block is CLEANUP, so "else" block is KEEP

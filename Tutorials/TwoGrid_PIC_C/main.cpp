@@ -234,7 +234,8 @@ int main(int argc, char* argv[])
 		if (neweff > oldeff)  
 		{
 		    // Now we actually move the particles onto the new_ba with the new_dm
-		    MyPC->SetParticleBoxArray(lev,new_dm,new_ba);
+		    MyPC->SetParticleBoxArray(lev,new_ba);
+		    MyPC->SetParticleDistributionMap(lev,new_dm);
 		    MyPC->Redistribute();
 		    
 		    // This counts how many particles are *actually* in each grid of the 
@@ -273,7 +274,7 @@ int main(int argc, char* argv[])
     if (geom[0].isAllPeriodic()) 
     {
         for (int lev = 0; lev < nlevs; lev++)
-            offset = MyPC->sumParticleMass(lev);
+            offset = MyPC->sumParticleMass(0,lev);
         if (ParallelDescriptor::IOProcessor())
            std::cout << "Total charge of particles = " << offset << std::endl;
         offset /= geom[0].ProbSize();
@@ -290,8 +291,8 @@ int main(int argc, char* argv[])
     PartMF.set(0,new MultiFab(ba[0],1,1));
     PartMF[0].setVal(0.0);
 
-//  MyPC->AssignDensity(PartMF, base_level, 1, finest_level);
-    MyPC->AssignDensitySingleLevel(PartMF[0], 0, 1, 0);
+//  MyPC->AssignDensity(0, PartMF, false, base_level, 1, finest_level);
+    MyPC->AssignDensitySingleLevel(0, PartMF[0], 0, 1, 0);
 
     for (int lev = finest_level - 1 - base_level; lev >= 0; lev--)
         BoxLib::average_down(PartMF[lev+1],PartMF[lev],0,1,rr[lev]);
@@ -364,7 +365,7 @@ int main(int argc, char* argv[])
     MyPC->Redistribute();
 
     // Use the PIC approach to deposit the "mass" onto the grid
-    MyPC->AssignDensity(rhs,base_level,1,finest_level);
+    MyPC->AssignDensity(0, false, rhs, base_level,1,finest_level);
 
     // Use multigrid to solve Lap(phi) = rhs with periodic boundary conditions (set above)
     solve_for_accel(rhs,phi,grad_phi,geom,base_level,finest_level,offset);

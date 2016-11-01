@@ -1,0 +1,15 @@
+
+CEXE_headers += AmrCore.H Cluster.H ErrorList.H FillPatchUtil.H FluxRegister.H \
+                Interpolater.H TagBox.H
+CEXE_sources += AmrCore.cpp Cluster.cpp ErrorList.cpp FillPatchUtil.cpp FluxRegister.cpp \
+                Interpolater.cpp TagBox.cpp
+
+FEXE_headers += FLUXREG_F.H INTERP_F.H
+FEXE_sources += FLUXREG_$(DIM)D.F INTERP_$(DIM)D.F
+
+ifeq ($(USE_PARTICLES), TRUE)
+  CEXE_headers += AmrParGDB.H AmrParticles.H
+endif
+
+VPATH_LOCATIONS += $(BOXLIB_HOME)/Src/C_AmrCoreLib
+INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/C_AmrCoreLib
