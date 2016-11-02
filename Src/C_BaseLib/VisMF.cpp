@@ -894,6 +894,7 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
 {
     BL_PROFILE("VisMF::Write_FabArray");
     BL_ASSERT(mf_name[mf_name.length() - 1] != '/');
+    BL_ASSERT(currentVersion != VisMF::Header::Undefined_v1);
 
     // ---- add stream retry
     // ---- add stream buffer (to nfiles)
