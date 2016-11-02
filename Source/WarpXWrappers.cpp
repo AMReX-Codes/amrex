@@ -7,14 +7,19 @@
 
 extern "C"
 {
-    void boxlib_init (int argc, char*** argv)
+    void boxlib_init (int* argc, char*** argv)
     {
-	BoxLib::Initialize(argc,(*argv));
+	BoxLib::Initialize(*argc,*argv);
     }
 
-    void boxlib_finalize ()
+    void boxlib_init_with_inited_mpi (int* argc, char*** argv, MPI_Comm mpicomm)
     {
-	BoxLib::Finalize();
+	BoxLib::Initialize(*argc,*argv,true,mpicomm);	
+    }
+
+    void boxlib_finalize (int finalize_mpi)
+    {
+	BoxLib::Finalize(finalize_mpi);
     }
 
     void warpx_init ()

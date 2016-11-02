@@ -5,6 +5,10 @@ USE_PARTICLES = TRUE
 
 include $(BOXLIB_HOME)/Tools/C_mk/Make.defs
 
+ifeq ($(BOXLIB_INIT_MPI),TRUE)
+DEFINES += -DBOXLIB_INIT_MPI
+endif
+
 -include Make.package
 include $(WARPX_HOME)/Source/Make.package
 

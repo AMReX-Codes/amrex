@@ -6,7 +6,12 @@
 
 int main(int argc, char* argv[])
 {
-    boxlib_init(argc, &argv);
+#ifdef BOXLIB_INIT_MPI
+    boxlib_init(&argc, &argv);
+#else
+    MPI_Init(&argc, &argv);
+    boxlib_init_with_inited_mpi(&argc, &argv, MPI_COMM_WORLD);
+#endif
 
     BL_PROFILE_VAR("main()", pmain);	
 
@@ -25,5 +30,10 @@ int main(int argc, char* argv[])
 
     BL_PROFILE_VAR_STOP(pmain);
 
-    boxlib_finalize();
+#ifdef BOXLIB_INIT_MPI
+    boxlib_finalize(1);
+#else
+    boxlib_finalize(0);
+    MPI_Finalize();
+#endif
 }
