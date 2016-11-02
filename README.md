@@ -8,6 +8,8 @@ This repository is a project to build an **electromagnetic Particle-In-Cell (PIC
 - The highly-optimized PIC code PICSAR
 - The Python interface of the code Warp
 
+NB: [Regression tests](https://ccse.lbl.gov/pub/RegressionTesting/WarpX/) are run every night to check the validity of the code in this repository.
+
 ## Installation
 
 ### Downloading the code
