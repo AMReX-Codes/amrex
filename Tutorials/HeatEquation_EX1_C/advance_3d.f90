@@ -48,7 +48,7 @@ subroutine compute_flux(phi, ng_p, fluxx, fluxy, fluxz, ng_f, lo, hi, dx) bind(C
 end subroutine compute_flux
 
 subroutine update_phi(phiold, phinew, ng_p, fluxx, fluxy, fluxz, ng_f, lo, hi, dx, dt) bind(C, name="update_phi")
- 
+
   integer          :: lo(3), hi(3), ng_p, ng_f
   double precision :: phiold(lo(1)-ng_p:hi(1)+ng_p,lo(2)-ng_p:hi(2)+ng_p,lo(3)-ng_p:hi(3)+ng_p)
   double precision :: phinew(lo(1)-ng_p:hi(1)+ng_p,lo(2)-ng_p:hi(2)+ng_p,lo(3)-ng_p:hi(3)+ng_p)

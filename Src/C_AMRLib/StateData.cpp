@@ -399,6 +399,23 @@ StateData::setNewTimeLevel (Real time)
 }
 
 void
+StateData::syncNewTimeLevel (Real time)
+{
+    Real teps = (new_time.stop - old_time.stop)*1.e-3;
+    if (time > new_time.stop-teps && time < new_time.stop+teps)
+    {
+	if (desc->timeType() == StateDescriptor::Point)
+	{
+	    new_time.start = new_time.stop = time;
+	}
+	else
+	{
+	    new_time.stop = time;
+	}
+    }
+}
+
+void
 StateData::setTimeLevel (Real time,
                          Real dt_old,
                          Real dt_new)
@@ -584,7 +601,7 @@ StateData::InterpAddBox (MultiFabCopyDescriptor& multiFabCopyDesc,
     }
     else
     {
-        const Real teps = (new_time.start - old_time.start)/1000.0;
+        const Real teps = (new_time.start - old_time.start)*1.e-3;
 
         if (time > new_time.start-teps && time < new_time.stop+teps)
         {
@@ -651,7 +668,7 @@ StateData::InterpFillFab (MultiFabCopyDescriptor&  multiFabCopyDesc,
     }
     else
     {
-        const Real teps = (new_time.start - old_time.start)/1000.0;
+        const Real teps = (new_time.start - old_time.start)*1.e-3;
 
         if (time > new_time.start-teps && time < new_time.stop+teps)
         {

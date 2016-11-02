@@ -1,4 +1,41 @@
 ! ***************************************************************************************
+! subroutine bl_avg_eg_to_cc 
+! ***************************************************************************************
+
+subroutine bl_avg_eg_to_cc (lo, hi, &
+     cc, ccl1, ccl2, ccl3, cch1, cch2, cch3, &
+     Ex, Exl1, Exl2, Exl3, Exh1, Exh2, Exh3, &
+     Ey, Eyl1, Eyl2, Eyl3, Eyh1, Eyh2, Eyh3, &
+     Ez, Ezl1, Ezl2, Ezl3, Ezh1, Ezh2, Ezh3)
+
+  implicit none
+  integer          :: lo(3),hi(3)
+  integer          :: ccl1, ccl2, ccl3, cch1, cch2, cch3
+  integer          :: Exl1, Exl2, Exl3, Exh1, Exh2, Exh3
+  integer          :: Eyl1, Eyl2, Eyl3, Eyh1, Eyh2, Eyh3
+  integer          :: Ezl1, Ezl2, Ezl3, Ezh1, Ezh2, Ezh3
+  double precision :: cc(ccl1:cch1, ccl2:cch2, ccl3:cch3, 3)
+  double precision :: Ex(Exl1:Exh1, Exl2:Exh2, Exl3:Exh3)
+  double precision :: Ey(Eyl1:Eyh1, Eyl2:Eyh2, Eyl3:Eyh3)
+  double precision :: Ez(Ezl1:Ezh1, Ezl2:Ezh2, Ezl3:Ezh3)
+  double precision :: dx(3), problo(3)
+
+  ! Local variables
+  integer          :: i,j,k
+  
+  do k=lo(3),hi(3)
+     do j=lo(2),hi(2)
+        do i=lo(1),hi(1)
+           cc(i,j,k,1) = 0.25d0 * ( Ex(i,j,k) + Ex(i,j+1,k) + Ex(i,j,k+1) + Ex(i,j+1,k+1) )
+           cc(i,j,k,2) = 0.25d0 * ( Ey(i,j,k) + Ey(i+1,j,k) + Ey(i,j,k+1) + Ey(i+1,j,k+1) )
+           cc(i,j,k,3) = 0.25d0 * ( Ez(i,j,k) + Ez(i+1,j,k) + Ez(i,j+1,k) + Ez(i+1,j+1,k) )
+        enddo
+     enddo
+  enddo
+
+end subroutine bl_avg_eg_to_cc
+
+! ***************************************************************************************
 ! subroutine bl_avg_fc_to_cc 
 ! ***************************************************************************************
 

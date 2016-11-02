@@ -328,10 +328,7 @@ public:
     //
     // Return the volume, in indexing space, of region enclosed by
     // this Box.   This is identical to numPts() for CELL centered
-    // Box; i.e. consider a edge-based box in 2D which has two edges
-    // in it.  This box has one cell center, located between the
-    // two edges.  numPts() would return 2 as would volume().
-    // Otherwise, numPts() >= volume().  Abort()s if the number
+    // Box; otherwise, numPts() > volume().  Abort()s if the number
     // cannot be represented in a long.
     //
     long volume () const;
@@ -355,7 +352,7 @@ public:
     int shortside () const;
     //
     // Returns offset of point from smallend; i.e.
-    // index(smallend) -> 0, bigend would return volume()-1.
+    // index(smallend) -> 0, bigend would return numPts()-1.
     // Is used in accessing FArrayBox.
     //
     long index (const IntVect& v) const;
@@ -383,6 +380,10 @@ public:
     Box& setRange (int dir,
                    int sm_index,
                    int n_cells = 1);
+    //
+    // Set indexing type
+    //
+    Box& setType (const IndexType& t) { btype = t; return *this; }
     //
     // Shift this Box nzones indexing positions in coordinate
     // direction dir.

@@ -68,7 +68,7 @@ def release(argv):
         for name in files:
             f = os.path.join(root,name)
             fext = os.path.splitext(f)[1]
-            if fext in ['.f','.F','.c','.cpp','.h','.H']:
+            if fext in ['.f','.f90','.F','.F90','.c','.cpp','.h','.H']:
                 ftmp = f+'.gitorig'
                 os.rename(f,ftmp)
 #                systemCall("~/mygitrepo/BoxLib/Tools/ppCleanup/ppCleanup.py -c "+

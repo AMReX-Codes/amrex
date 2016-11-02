@@ -7,6 +7,10 @@
 namespace BoxLib
 {
     // Average face-based MultiFab onto cell-centered MultiFab.
+    void average_edge_to_cellcenter (MultiFab& cc, int dcomp, const std::vector<MultiFab*>& edge);
+
+    // Average face-based MultiFab onto cell-centered MultiFab.
+    void average_face_to_cellcenter (MultiFab& cc, int dcomp, const std::vector<MultiFab*>& fc);
     void average_face_to_cellcenter (MultiFab& cc, const PArray<MultiFab>& fc, const Geometry& geom);
 
     // Average cell-centered MultiFab onto face-based MultiFab.

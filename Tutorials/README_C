@@ -6,12 +6,20 @@ The following tutorials demonstrate how to use the C++ BoxLib:
    and initialize a MultiFab.  This is then looped over using the MFIter
    and work is done on it in Fortran.
 
-* `Tiling_C`:
+* `GettingStarted_C`: 
 
-   this sets up a MultFab, does domain decomposition into Boxes, and
-   loops over the data using logical tiling to do some work
-   (implemented in Fortran).  Two loops are done, the first uses the
-   default tile size and the second customizes the tiling layout.
+   The BoxLib user's guide includes source code from this example.
+   This simply shows how to initialize BoxLib, create a domain decomposition,
+   build arrays of MultiFabs using the PArray class,
+   access data in a MultiFab, and fill interior/periodic boundaries.
+   This is then looped over using the MFIter and work is done on it in Fortran.
+
+! ************************************************************************************
+HeatEquation_EX*_C:
+! ************************************************************************************
+
+There are two (more coming soon) C++ HeatEquation examples in this section.  All examples
+can be running using MPI and/or OpenMP.  Here is a brief overview:
 
 * `HeatEquation_EX1_C`:
 
@@ -19,6 +27,20 @@ The following tutorials demonstrate how to use the C++ BoxLib:
    diffusion on a single level, with periodic boundaries.  The domain
    is decomposed into boxes and FillBoundary() is used for the ghost
    cells.
+
+* `HeatEquation_EX2_C`:
+
+   this example shows how to introduce boundary conditions with C++
+   using StateData but without using Amr or AmrLevel.
+
+
+
+* `Tiling_C`:
+
+   this sets up a MultFab, does domain decomposition into Boxes, and
+   loops over the data using logical tiling to do some work
+   (implemented in Fortran).  Two loops are done, the first uses the
+   default tile size and the second customizes the tiling layout.
 
 * `Tiling_Heat_C`:
   
@@ -31,17 +53,16 @@ The following tutorials demonstrate how to use the C++ BoxLib:
    This does a second-order accurate explicit solution of the second-order
    wave equation, u_tt = c**2 L u, where L is the Laplacian
 
-* `HeatEquation_EX2_C`:
-
-   this example shows how to introduce boundary conditions with C++
-   using StateData but without using Amr or AmrLevel.
-
 * `AMR_Adv_C`:
 
    this is a full-fledged application that uses the BoxLib StateData class
    to manage data on an adaptive grid.  This implements simple 2nd order
    accurate advection using a Godunov approach.
  
+* `AMR_Adv_C_v2`:
+
+   this is similar to `AMR_Adv_C`, but is implemented with the AmrCoreLib.
+
 * `MultiGrid_C`:
 
    this example shows how to do multigrid to solve a Helmholtz elliptic
