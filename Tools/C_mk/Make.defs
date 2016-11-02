@@ -133,6 +133,9 @@ ifeq ($(MACHINE), Linux)
   ifeq ($(findstring mira, $(UNAMEN)), mira)
     WHICHLINUX := MIRA
   endif
+  ifeq ($(findstring hpc.nrel.gov, $(HOSTNAMEF)), hpc.nrel.gov)
+    WHICHLINUX := PEREGRINE
+  endif
 endif
 #
 # Some Lawrencium crap ...

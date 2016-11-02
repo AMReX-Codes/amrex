@@ -668,3 +668,12 @@ endif
 ifeq ($(HOST),orga)
   override XTRALIBS += -lquadmath
 endif
+
+ifeq ($(WHICHLINUX), PEREGRINE)
+     CC=gcc
+     CXX=g++
+     F77=gfortran
+     F90=gfortran
+     FC=gfortran
+     fC=gfortran
+endif
