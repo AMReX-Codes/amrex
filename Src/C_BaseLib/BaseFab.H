@@ -115,6 +115,9 @@ public:
     // The destructor deletes the array memory.
     //
     ~BaseFab ();
+
+    void make_alias (BaseFab<T>& alias, int scomp, int ncomp) const;
+
     //
     // This function resizes a BaseFab so it covers the Box B
     // with N components.  The default action
@@ -621,6 +624,16 @@ public:
 		      int               destcomp,
 		      int               numcomp=1);
     //
+    // y[i] <- y[i] + x1[i] * x2[i])
+    //
+    BaseFab<T>& addproduct (const Box&        destbox,
+			    int               destcomp,
+			    int               numcomp,
+			    const BaseFab<T>& src1,
+			    int               comp1,
+			    const BaseFab<T>& src2,
+			    int               comp2);
+    //
     // Scalar subtraction (a[i] <- a[i] - r).
     // Note: use plus(-r) for more general operations.
     //
@@ -881,6 +894,9 @@ public:
 	   const BaseFab<T>& y, const Box& ybx, int ycomp,
 	   int numcomp = 1) const;
 
+    // Change the Box type without change the length
+    void SetBoxType(const IndexType& typ) { domain.setType(typ); }
+    
 protected:
     //
     // Allocates memory for the BaseFab<T>.
@@ -920,6 +936,26 @@ private:
     BaseFab (const BaseFab&);
     BaseFab& operator= (const BaseFab&);
 };
+
+template <class T>
+inline
+void
+BaseFab<T>::make_alias (BaseFab<T>& alias, int scomp, int ncomp) const
+{
+    alias.clear();
+    BL_ASSERT(dptr);
+    BL_ASSERT(scomp >= 0);
+    BL_ASSERT(scomp+ncomp <= nvar);
+
+    alias.domain        = domain;
+    alias.dlen          = dlen;
+    alias.nvar          = ncomp;
+    alias.numpts        = numpts;
+    alias.truesize      = alias.nvar * alias.numpts;
+    alias.dptr          = dataPtr(scomp);
+    alias.ptr_owner     = false;
+    alias.shared_memory = shared_memory;
+}
 
 template <class T>
 inline

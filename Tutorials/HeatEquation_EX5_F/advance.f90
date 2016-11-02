@@ -431,7 +431,7 @@ contains
        !$omp end parallel do
     else if (adv_bc(3,1) .eq. FOEXTRAP) then
        ! dphi/dn = 0
-       fluxz(lo(1):hi(1),lo(2):lo(3),lo(3)) = 0.d0
+       fluxz(lo(1):hi(1),lo(2):hi(2),lo(3)) = 0.d0
     end if
 
     ! hi-z boundary conditions

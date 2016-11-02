@@ -67,7 +67,7 @@ ifeq ($(COMP),PGI)
   CXXDEBF += -g -O0
 
   COMP_VERSION := $(shell $(CXX) -V 2>&1 | grep 'target')
-      
+
   ifeq ($(BL_FAST),TRUE)
     ifeq ($(WHICHLINUX), TITAN)
       CXXOPTF += -gopt  -O
@@ -126,7 +126,7 @@ FORT_CPP := cpp -E -traditional-cpp -P
 ifeq ($(FCOMP),PathScale)
   FC  = pathf95
   fC  = pathf95
-  F90 = pathf95 
+  F90 = pathf95
   FFLAGS += -fno-second-underscore
   fFLAGS += -fno-second-underscore
   F90FLAGS +=
@@ -156,7 +156,7 @@ else
 ifeq ($(FCOMP),Cray)
   FC  = ftn
   fC  = ftn
-  F90 = ftn 
+  F90 = ftn
 
   FCOMP_VERSION := $(shell $(FC) -V 2>&1 | grep 'Version')
 
@@ -184,7 +184,7 @@ ifeq ($(FCOMP),Cray)
   endif
 
   FORT_CPP := cpp -traditional
-  override XTRALIBS += 
+  override XTRALIBS +=
 #  LDFLAGS += -static
 else
 ifeq ($(FCOMP),Lahey)
@@ -236,8 +236,8 @@ ifeq ($(FCOMP),PGI)
   else
     FOPTF += -noacc
     fOPTF += -noacc
-    FDEBF += -noacc
-    fDEBF += -noacc
+    FDEBF += -noacc -Mbounds
+    fDEBF += -noacc -Mbounds
   endif
 
   fFLAGS += -Mextend -module $(objEXETempDir) -I$(objEXETempDir)
@@ -255,23 +255,6 @@ ifeq ($(FCOMP),Intel)
   FOPTF += $(INTEL_EXTRA_OPT_FLAGS)
   fDEBF += $(INTEL_EXTRA_DEBUG_FLAGS)
   fOPTF += $(INTEL_EXTRA_OPT_FLAGS)
-else
-ifeq ($(FCOMP),f77)
-  FC       := g77 -fno-second-underscore
-  fC       := $(FC)
-  # default g77/f77 version
-  FOPTF += -O
-  fOPTF += -O
-  FDEBF += -g
-  fDEBF += -g
-  #DEFINES += -DBL_FORT_USE_UNDERSCORE
-  #override XTRALIBS +=  -lf2c
-# LIBRARY_LOCATIONS += /usr/lib/gcc-lib/i386-redhat-linux/2.96
-  override XTRALIBS += -lg2c
-  FDEBF += -ffortran-bounds-check 
-  FDEBF += -Wimplicit
-  fDEBF += -Wimplicit
-  fDEBF += -ffortran-bounds-check
 else
 ifeq ($(FCOMP),xlf)
 
@@ -316,7 +299,6 @@ endif
 endif
 endif
 endif
-endif
 #
 # Overrides for specific machines.
 #
@@ -331,36 +313,6 @@ ifeq ($(WHICHLINUX), FYR)
   endif
 endif
 
-ifeq ($(WHICHLINUX), RANGER)
-  DEFINES += -DMPICH_SKIP_MPICXX
-  ifeq ($(USE_MPI),TRUE)
-    CXX := mpicxx
-    FC  := mpif90
-    F90 := mpif90
-    fC  := mpif90 
-  endif
-endif
-
-ifeq ($(WHICHLINUX), DARTER)
-  DEFINES += -DMPICH_SKIP_MPICXX
-  ifeq ($(USE_MPI),TRUE)
-    CXX := CC
-    FC  := ftn
-    F90 := ftn
-    fC  := ftn
-  endif
-endif
-
-ifeq ($(WHICHLINUX), GRACE)
-  DEFINES += -DMPICH_SKIP_MPICXX
-  ifeq ($(USE_MPI),TRUE)
-    CXX := CC -target=linux
-    CC  := cc -target=linux
-    FC  := ftn -target=linux
-    F90 := ftn -target=linux
-    fC  := ftn -target=linux
-  endif
-endif
 
 ifeq ($(WHICHLINUX), ORION)
   DEFINES += -DMPICH_SKIP_MPICXX
@@ -370,19 +322,10 @@ ifeq ($(WHICHLINUX), ORION)
 endif
 
 
-ifeq ($(WHICHLINUX), FREEDOM)
-  DEFINES += -DMPICH_SKIP_MPICXX
-  ifeq ($(USE_MPI),TRUE)
-    CXX := CC -target=linux
-    CC  := cc -target=linux
-    FC  := ftn -target=linux
-    F90 := ftn -target=linux
-    fC  := ftn -target=linux
-  endif
-endif
+# these machines all use a common wrapper (Crays?)
+CCWRAP_MACHINES := FREEDOM GRACE GARNET
 
-
-ifeq ($(WHICHLINUX), GARNET)
+ifeq ($(WHICHLINUX), $(findstring $(WHICHLINUX), $(CCWRAP_MACHINES)))
   DEFINES += -DMPICH_SKIP_MPICXX
   ifeq ($(USE_MPI),TRUE)
     CXX := CC -target=linux
@@ -411,7 +354,11 @@ ifeq ($(WHICHLINUX), HERA)
   endif
 endif
 
-ifeq ($(WHICHLINUX), CAB)
+
+# machines with MPI wrappers for intel
+INTELWRAP_MACHINES := CAB SYRAH
+
+ifeq ($(WHICHLINUX), $(findstring $(WHICHLINUX), $(INTELWRAP_MACHINES)))
   DEFINES += -DMPICH_SKIP_MPICXX
   ifeq ($(USE_MPI),TRUE)
     ifeq ($(COMP), Intel)
@@ -430,24 +377,6 @@ ifeq ($(WHICHLINUX), CAB)
   endif
 endif
 
-ifeq ($(WHICHLINUX), SYRAH)
-  DEFINES += -DMPICH_SKIP_MPICXX
-  ifeq ($(USE_MPI),TRUE)
-    ifeq ($(COMP), Intel)
-      CXX := mpiicc
-      CC  := mpiicc
-      F90 := mpiifort
-      FC  := mpiifort
-      fC  := mpiifort
-    else
-      CXX := mpiCC
-      CC  := gcc
-      FC  := gfortran
-      F90 := gfortran
-      fC  := gfortran
-    endif
-  endif
-endif
 
 ifeq ($(WHICHLINUX), CORI)
   DEFINES += -DMPICH_SKIP_MPICXX
@@ -467,8 +396,8 @@ endif
 ifeq ($(WHICHLINUX), EDISON)
   DEFINES += -DMPICH_SKIP_MPICXX
   ifeq ($(USE_MPI),TRUE)
-    CXX := CC 
-    CC  := cc 
+    CXX := CC
+    CC  := cc
     FC  := ftn
     F90 := ftn
     fC  := ftn
@@ -493,7 +422,7 @@ ifeq ($(HOSTNAME), hyades.ucsc.edu)
       F90 := mpiifort
       FC := mpiifort
       fC := mpiifort
-      
+
       ifeq ($(USE_OMP),TRUE)
         CXXOPTF += -mt_mpi
 	CXXDEBF += -mt_mpi
@@ -510,7 +439,7 @@ ifeq ($(HOSTNAME), hyades.ucsc.edu)
       fC := mpifc
     endif
   endif
-endif 
+endif
 
 ifeq ($(WHICHLINUX), JVN)
   ifeq ($(COMP),Intel)
@@ -524,6 +453,7 @@ ifeq ($(WHICHLINUX), JVN)
 endif
 
 
+# hyperion is an LLNL linux cluster
 ifeq ($(WHICHLINUX), HYPERION)
   ifeq ($(COMP),Intel)
     CXX = icpc
@@ -554,7 +484,7 @@ ifeq ($(WHICHLINUX), HYPERION)
     fOPTF = -O3 -ip -mp
   endif
   ifeq ($(COMP),PGI)
-    CXX = pgc++    
+    CXX = pgc++
     CXXOPTF = -fast
     CXXDEBF = -g
     FC = pgf90
@@ -578,20 +508,6 @@ ifeq ($(WHICHLINUX), COLUMBIA)
   DEFINES += -DCOLUMBIA
 endif
 
-ifeq ($(WHICHLINUX), ALPHACLUSTER)
-  FC  := fort -assume nounderscore
-#  FC  := fort
-  fC  := $(FC)
-  override FORTLINK := LOWERCASE
-  #FOPTF += -O5 -fast -transform_loops -speculate all -automatic
-  FOPTF = -O5 -fast
-  FOPTF = -O2
-  fOPTF = -O5 -fast
-  fOPTF = -O2
-  LIBRARY_LOCATIONS += /usr/local/pkg/gcc-2.95.1-generic/lib/gcc-lib/alpha-redhat-linux/2.95.1
-             #  this should be made into a link to the current version  ^^^^^^
-  LIBRARIES += -lfor
-endif
 
 CXXPRFF += -pg
 FPRF    += -pg
@@ -606,28 +522,15 @@ ifeq ($(FCOMP), gfortran)
   endif
 endif
 
-ifeq ($(WHICHLINUX), PCCLUSTER)
-  LIBRARY_LOCATIONS += /usr/local/pkg/gcc/lib/gcc-lib/i686-pc-linux-gnu/2.95.1
-             #  this should be made into a link to the current version  ^^^^^^
-endif
 
 # These are the machines in Gottingen
-ifeq ($(HOST), c1) 
-  CXX = mpic++   
+GOTTINGEN_MACHINES := c1 c2 c3 c4
+
+ifeq ($(HOST), $(findstring $(HOST), $(GOTTINGEN_MACHINES)))
+  CXX = mpic++
   FC  = mpif90
-endif    
-ifeq ($(HOST), c2) 
-  CXX = mpic++   
-  FC  = mpif90
-endif    
-ifeq ($(HOST), c3) 
-  CXX = mpic++   
-  FC  = mpif90
-endif    
-ifeq ($(HOST), c4) 
-  CXX = mpic++   
-  FC  = mpif90
-endif    
+endif
+
 
 ifeq ($(WHICHLINUX), BABBAGE)
   ifeq ($(USE_MPI),TRUE)
@@ -637,7 +540,12 @@ ifeq ($(WHICHLINUX), BABBAGE)
     F90 := mpiifort
     fC  := mpiifort
   endif
+  ifeq ($(MIC), TRUE)
+  # Because the linker on Babbage isn't very smart
+    override XTRALIBS += -lifcore -Wl,-rpath,$(MIC_LIBRARY_PATH)
+  endif
 endif
+
 
 # For running natively on the MIC cards
 ifeq ($(MIC), TRUE)
@@ -649,12 +557,6 @@ ifeq ($(MIC), TRUE)
   fDEBF += -mmic
 endif
 
-ifeq ($(WHICHLINUX), BABBAGE)
-ifeq ($(MIC), TRUE)
-# Because the linker on Babbage isn't very smart
-  override XTRALIBS += -lifcore -Wl,-rpath,$(MIC_LIBRARY_PATH)
-endif
-endif
 
 # Compiler flags for profiling MPI calls using Intel Trace Analyzer and
 # Collector. The "itac" module on Babbage will automatically populate the

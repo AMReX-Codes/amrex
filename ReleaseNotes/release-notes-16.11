@@ -1,0 +1,35 @@
+#-*- mode: org -*-
+#+STARTUP: showall
+
+        Release Notes for BoxLib 16.11
+
+The development branch was merged into master on November 1, 2016.
+
+* New Features
+** Some AMR core functionalites have been moved into a new directory,
+Src/C_AmrCoreLib, and part of the Amr class is now in a new class,
+AmrCore.  This allows the user to write an Amr application without
+using Amr, AmrLevel and StateData classes.  An example of this can be
+found at Tutorials/AMR_Adv_C_v2/.
+** New BaseFab::make_alias function that makes an alias to an existing BaseFab
+with the component 0 pointing to a given component in the original
+BaseFab.
+** Add support for strings in ParmParse on Fortran side of C++ BoxLib based codes.
+** New preprocessing approach for F90 files.
+Int the new approach, cpp is used on the F90 file, a script is then
+applied on the proprocessed file to figure out module dependency, and
+finally the original F90 file is sent to the compiler for generating
+.o files, which will also handle preprocessing.
+** Particle can now template on container type, vector or deque.
+** A new template parameter is add to support integer data.
+
+* Backward Incompatible Changes
+Particle now requires C++11.
+
+* Other Changes
+** Regression test script no longer requires probin file for C++ code.
+** The times stored in StateData can now be synchronized with the level 0 time
+in postCoarseTimeStep.
+** Most of the Particle stuff is now in C_ParticleLib.
+** Many functions in Particle have been moved into Nyx.
+

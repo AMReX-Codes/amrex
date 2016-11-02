@@ -419,6 +419,9 @@ def report_single_test(suite, test, tests, failure_msg=None):
         if test.debug:
             ll.item("Debug test")
 
+        if test.acc:
+            ll.item("OpenACC test")            
+
         if test.useMPI or test.useOMP:
             ll.item("Parallel run")
             ll.indent()
@@ -441,7 +444,7 @@ def report_single_test(suite, test, tests, failure_msg=None):
 
         ll.item("input file: <a href=\"{}.{}\">{}</a>".format(test.name, test.inputFile, test.inputFile))
 
-        if suite.sourceTree == "C_Src":
+        if suite.sourceTree == "C_Src" and test.probinFile != "":
             ll.item("probin file: <a href=\"{}.{}\">{}</a>".format(test.name, test.probinFile, test.probinFile))
 
         for i, afile in enumerate(test.auxFiles):
@@ -705,7 +708,7 @@ def report_this_test_run(suite, make_benchmarks, note, update_time,
             special_cols.append(suite.summary_job_info_field3)
 
         cols = ["test name", "dim", "compare plotfile",
-                "# levels", "MPI procs", "OMP threads", "debug",
+                "# levels", "MPI procs", "OMP threads", "OpenACC", "debug",
                 "compile", "restart"] + special_cols + ["wall time", "result"]
         ht = HTMLTable(hf, columns=len(cols), divs=["summary"])
         ht.start_table()
@@ -768,12 +771,18 @@ def report_this_test_run(suite, make_benchmarks, note, update_time,
             else:
                 row_info.append("")
 
+            # OpenACC ?
+            if test.acc:
+                row_info.append("&check;")
+            else:
+                row_info.append("")
+
             # debug ?
             if test.debug:
                 row_info.append("&check;")
             else:
                 row_info.append("")
-
+                
             # compile ?
             if test.compileTest:
                 row_info.append("&check;")

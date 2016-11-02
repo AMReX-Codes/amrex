@@ -479,6 +479,17 @@ public:
 			 int             dstcomp,
 			 int             numcomp,
 			 int             nghost);
+    // 
+    // dst += src1*src2
+    //
+    static void AddProduct (MultiFab&       dst,
+			    const MultiFab& src1,
+			    int             comp1,
+			    const MultiFab& src2,
+			    int             comp2,
+			    int             dstcomp,
+			    int             numcomp,
+			    int             nghost);
 
     void define (const BoxArray& bxs,
 		 int             nvar,

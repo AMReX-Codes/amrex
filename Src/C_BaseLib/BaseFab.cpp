@@ -389,6 +389,30 @@ BaseFab<Real>::xpay (Real a, const BaseFab<Real>& src,
     return *this;
 }
 
+template <>
+BaseFab<Real>&
+BaseFab<Real>::addproduct (const Box&           destbox,
+			   int                  destcomp,
+			   int                  numcomp,
+			   const BaseFab<Real>& src1,
+			   int                  comp1,
+			   const BaseFab<Real>& src2,
+			   int                  comp2)
+{
+    BL_ASSERT(destbox.ok());
+    BL_ASSERT(box().contains(destbox));
+    BL_ASSERT(   comp1 >= 0 &&    comp1+numcomp <= src1.nComp());
+    BL_ASSERT(   comp2 >= 0 &&    comp2+numcomp <= src2.nComp());
+    BL_ASSERT(destcomp >= 0 && destcomp+numcomp <=      nComp());
+
+    fort_fab_addproduct(ARLIM_3D(destbox.loVect()), ARLIM_3D(destbox.hiVect()),
+			BL_TO_FORTRAN_N_3D(*this,destcomp),
+			BL_TO_FORTRAN_N_3D(src1,comp1),
+			BL_TO_FORTRAN_N_3D(src2,comp2),
+			&numcomp);
+    return *this;
+}
+
 template<>
 BaseFab<Real>&
 BaseFab<Real>::minus (const BaseFab<Real>& src,

@@ -1,19 +1,10 @@
-
-#include <fstream>
-#include <iomanip>
-
-#include <Utility.H>
-#include <IntVect.H>
-#include <Geometry.H>
-#include <ParmParse.H>
-#include <ParallelDescriptor.H>
-#include <VisMF.H>
 #include <writePlotFile.H>
 
 void
 writePlotFile (const std::string& dir,
                const MultiFab&    mf,
-               const Geometry&    geom)
+               const Geometry&    geom,
+	       const Real&        time)
 {
     //
     // Only let 64 CPUs be writing at any one time.
@@ -50,12 +41,15 @@ writePlotFile (const std::string& dir,
 
         HeaderFile << mf.nComp() << '\n';
 
+	// variable names
         for (int ivar = 1; ivar <= mf.nComp(); ivar++) {
-          HeaderFile << "Variable " << ivar << "\n";
+          HeaderFile << "phi\n";
         }
-
+	// dimensionality
         HeaderFile << BL_SPACEDIM << '\n';
-        HeaderFile << 0 << '\n';
+	// time
+        HeaderFile << time << '\n';
+	// maximum level number (0=single level)
         HeaderFile << 0 << '\n';
         for (int i = 0; i < BL_SPACEDIM; i++)
             HeaderFile << geom.ProbLo(i) << ' ';

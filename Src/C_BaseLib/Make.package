@@ -106,6 +106,12 @@ C$(BOXLIB_BASE)_headers += BCRec.H PhysBCFunct.H
 C$(BOXLIB_BASE)_headers += BC_TYPES.H
 
 #
+# Plotfile
+#
+C$(BOXLIB_BASE)_sources += PlotFileUtil.cpp
+C$(BOXLIB_BASE)_headers += PlotFileUtil.H
+
+#
 # Fortran interface routines.
 #
 ifneq ($(BL_NO_FORT),TRUE)
@@ -159,14 +165,6 @@ endif
 ifeq ($(TINY_PROFILE),TRUE)
   C$(BOXLIB_BASE)_headers += TinyProfiler.H
   C$(BOXLIB_BASE)_sources += TinyProfiler.cpp
-endif
-
-ifeq ($(USE_PARTICLES), TRUE)
-  DEFINES += -DUSE_PARTICLES -DPARTICLES
-  C$(BOXLIB_BASE)_sources += Particles.cpp
-  C$(BOXLIB_BASE)_headers += Particles.H ParGDB.H
-  F$(BOXLIB_BASE)_headers += Particles_F.H
-  F$(BOXLIB_BASE)_sources += Particles_$(DIM)D.F
 endif
 
 # C++11 stuff

@@ -151,7 +151,7 @@ BARef::updateMemoryUsage_hash (int s)
 {
     if (hash.size() > 0) {
 	long b = sizeof(hash);
-	for (auto&& x: hash) {
+	for (const auto& x: hash) {
 	    b += BoxLib::gcc_map_node_extra_bytes
 		+ sizeof(IntVect) + BoxLib::bytesOf(x.second);
 	}

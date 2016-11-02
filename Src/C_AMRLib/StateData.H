@@ -11,9 +11,8 @@
 #include <DistributionMapping.H>
 #include <PhysBCFunct.H>
 #include <Geometry.H>
-
-class RealBox;
-class StateDescriptor;
+#include <RealBox.H>
+#include <StateDescriptor.H>
 
 //
 // Current and previous level-time data.
@@ -110,6 +109,8 @@ public:
     //
     void setNewTimeLevel (Real t_new);
 
+    void syncNewTimeLevel (Real t_new);
+
     void RegisterData (MultiFabCopyDescriptor& multiFabCopyDesc,
                        Array<MultiFabId>&      mfid);
 
@@ -186,11 +187,17 @@ public:
     //
     // Returns the current time.
     //
-    Real curTime () const { return 0.5*(new_time.start + new_time.stop); }
+    Real curTime () const {
+	return (desc->timeType() == StateDescriptor::Point) ?
+	    new_time.stop : 0.5*(new_time.start + new_time.stop);
+    }
     //
     // Returns the previous time.
     //
-    Real prevTime () const { return 0.5*(old_time.start + old_time.stop); }
+    Real prevTime () const {
+	return (desc->timeType() == StateDescriptor::Point) ?
+	    old_time.stop : 0.5*(old_time.start + old_time.stop);
+    }
     //
     // Returns the new data.
     //

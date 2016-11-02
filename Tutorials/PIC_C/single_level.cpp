@@ -135,7 +135,7 @@ int single_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int nppc,
     Real offset = 0.;
     if (geom[0].isAllPeriodic()) 
     {
-        offset = MyPC->sumParticleMass(lev);
+        offset = MyPC->sumParticleMass(0,lev);
         offset /= geom[0].ProbSize();
     }
 
@@ -152,7 +152,7 @@ int single_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int nppc,
 
     strt_assd = ParallelDescriptor::second();
 
-    MyPC->AssignDensitySingleLevel(PartMF[0],0,1,0); 
+    MyPC->AssignDensitySingleLevel(0,PartMF[0],0,1,0); 
 
     end_assd = ParallelDescriptor::second() - strt_assd;
 
