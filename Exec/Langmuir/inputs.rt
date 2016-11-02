@@ -39,4 +39,6 @@ langmuirwave.particle_zmin = -20.e-6
 langmuirwave.particle_zmax = 20.e-6
 langmuirwave.num_particles_per_cell = 10
 langmuirwave.n_e = 1.e25  # number of electrons per m^3
-langmuirwave.ux  = 0.01   # ux = gamma*beta_x
+langmuirwave.ux  = 0.01   # ux = beta_x
+langmuirwave.uy  = 0.     # uy = beta_y
+langmuirwave.uz  = 0.     # uz = beta_z
