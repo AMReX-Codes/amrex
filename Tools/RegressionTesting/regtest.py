@@ -457,6 +457,8 @@ def test_suite(argv):
             else:
                 base_cmd += " amr.checkpoint_files_output=0"
 
+            base_cmd += "{} {}".format(suite.globalAddToExecString, test.runtime_params)
+
         elif suite.sourceTree == "F_Src" or test.testSrcTree == "F_Src":
 
             base_cmd = "./{} {} --plot_base_name {}_plt --check_base_name {}_chk ".format(
@@ -465,7 +467,7 @@ def test_suite(argv):
             # keep around the checkpoint files only for the restart runs
             if not test.restartTest: base_cmd += " --chk_int 0 "
 
-            base_cmd += "{}".format(suite.globalAddToExecString)
+            base_cmd += "{} {}".format(suite.globalAddToExecString, test.runtime_params)
 
         if args.with_valgrind:
             base_cmd = "valgrind " + args.valgrind_options + " " + base_cmd
