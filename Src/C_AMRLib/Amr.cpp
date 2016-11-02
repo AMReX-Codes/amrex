@@ -91,8 +91,8 @@ namespace
     int  compute_new_dt_on_regrid;
     bool precreateDirectories;
     bool prereadFAHeaders;
-    VisMF::Header::Version plot_headerversion;
-    VisMF::Header::Version checkpoint_headerversion;
+    VisMF::Header::Version plot_headerversion(VisMF::Header::Version_v1);
+    VisMF::Header::Version checkpoint_headerversion(VisMF::Header::Version_v1);
 
 }
 
