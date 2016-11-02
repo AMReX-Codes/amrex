@@ -1,8 +1,8 @@
-nfiles        = 8
+nfiles        = 7
 maxgrid       = 64
 ncomps        = 1
-nboxes        = 64
 nboxes        = 16
+nboxes        = 64
 ntimes        = 1
 raninit       = false
 mb2           = true
@@ -28,13 +28,13 @@ checkfpositions = false
 pifstreams      = false
 
 nreadstreams  = 1
+usesyncreads  = true
 
-testwritenfiles = 1 2 3 4
+#testwritenfiles = 1 2 3 4
+#testwritenfiles = 1
 testwritenfiles = 2
-testwritenfiles = 1
 
-readfanames = TestMF TestMFNoFabHeader
-readfanames = TestMF TestMFNoFabHeader TestMFNoFabHeaderMinMax TestMFNoFabHeaderFAMinMax
+#readfanames = TestMF TestMFNoFabHeader TestMFNoFabHeaderMinMax TestMFNoFabHeaderFAMinMax
+#readfanames = TestMF
 readfanames = TestMFNoFabHeader
-readfanames = TestMF
 

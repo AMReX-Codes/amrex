@@ -78,7 +78,12 @@ always use async read?
 NFiles::FileNumber does not always return a complete set.  for
   example with nfiles = 5 and nprocs = 7.
 Check that all options are being set.
-
+Check return values for write/close/....
+dont seek if stream position is at seek to position.
+check usesyncreads in vismf.
+give priority to deciders for chained reads.
+check decider set for chk nfiles != plt nfiles.
+output GB/s.
 
 // ---- i/o parameters
 vismf.headerversion           (def:  Version_v1  (1) )
