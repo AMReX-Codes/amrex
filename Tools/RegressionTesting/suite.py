@@ -80,6 +80,8 @@ class Test(object):
 
         self.addToCompileString = ""
 
+        self.runtime_params = ""
+
         self.reClean = 0    # set automatically, not by users
 
         self.wall_time = 0   # set automatically, not by users
