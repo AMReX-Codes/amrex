@@ -253,7 +253,7 @@ libraries	= $(LIBRARIES) $(XTRALIBS)
 
 LDFLAGS		+= $(addprefix -L, $(LIBRARY_LOCATIONS))
 
-machineSuffix	= $(COMP)$(PrecisionSuffix)$(DebugSuffix)$(ProfSuffix)$(MProfSuffix)$(BTSuffix)$(MPISuffix)$(UPCXXSuffix)$(OMPSuffix)$(USERSuffix)
+machineSuffix	= $(lowercase_comp)$(PrecisionSuffix)$(DebugSuffix)$(ProfSuffix)$(MProfSuffix)$(BTSuffix)$(MPISuffix)$(UPCXXSuffix)$(OMPSuffix)$(USERSuffix)
 
 optionsSuffix	= $(DIM)d.$(machineSuffix)
 

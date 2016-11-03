@@ -43,7 +43,7 @@ else
   CXXFLAGS += -std=c++14
 endif
 #
-CFLAGS = -std=gnu99
+CFLAGS     += -std=gnu99
 
 # Fortran
 FFLAGS   += -fimplicit-none -ffixed-line-length-none
@@ -51,22 +51,24 @@ F90FLAGS += -fimplicit-none -ffree-line-length-none
 FFLAGS   += -fno-range-check -fno-second-underscore -J$(fmoddir) -I $(fmoddir)
 F90FLAGS += -fno-range-check -fno-second-underscore -J$(fmoddir) -I $(fmoddir)
 
-GENERIC_GCC_FLAGS = 
+
+GENERIC_COMP_FLAGS = 
+
 ifeq ($(THREAD_SANITIZER),TRUE)
-  GENERIC_GCC_FLAGS += -fsanitize=thread
+  GENERIC_COMP_FLAGS += -fsanitize=thread
 endif
 ifeq ($(FSANITIZER),TRUE)
-  GENERIC_GCC_FLAGS += -fsanitize=address -fsanitize=undefined
+  GENERIC_COMP_FLAGS += -fsanitize=address -fsanitize=undefined
 endif
 
 ifeq ($(USE_OMP),TRUE)
-  GENERIC_GCC_FLAGS += -fopenmp
+  GENERIC_COMP_FLAGS += -fopenmp
 endif
 
-CXXFLAGS += $(GENERIC_GCC_FLAGS)
-CFLAGS   += $(GENERIC_GCC_FLAGS)
-FFLAGS   += $(GENERIC_GCC_FLAGS)
-F90FLAGS += $(GENERIC_GCC_FLAGS)
+CXXFLAGS += $(GENERIC_COMP_FLAGS)
+CFLAGS   += $(GENERIC_COMP_FLAGS)
+FFLAGS   += $(GENERIC_COMP_FLAGS)
+F90FLAGS += $(GENERIC_COMP_FLAGS)
 
 # ask gfortran the name of the library to link in.  First check for the
 # static version.  If it returns only the name w/o a path, then it
