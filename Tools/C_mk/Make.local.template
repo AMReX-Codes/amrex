@@ -47,3 +47,12 @@ CXXFLAGS := $(subst -O0,-O2,$(CXXFLAGS))
 # completely replace it with my own flags.
 CFLAGS = MY_AWESOME_CFLAGS 
 
+
+# This compiler has a bug.  I have to remove an option from CXXFLAGS.
+# The variable lowercase_comp is defined in Make.defs and it's the
+# lower case version of $COMP.  Note that we are moving toward
+# C++11/14.  So disabling C++11 is not an option.  This is just an
+# example.
+ifeq ($(lowercase_comp),pg?compiler)
+  CXXFLAGS := $(filter-out --c++11,$(CXXFLAGS))
+endif
