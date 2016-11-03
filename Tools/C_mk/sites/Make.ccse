@@ -2,6 +2,10 @@
 # CCSE machines
 #
 
-INCLUDE_LOCATIONS += /usr/include/mpich
-# LIBRARY_LOCATIONS +=  # not needed for CCSE machines
-LIBRARIES += -lmpich -lmpichf90
+ifeq ($(USE_MPI),TRUE)
+
+  INCLUDE_LOCATIONS += /usr/include/mpich
+  # LIBRARY_LOCATIONS +=  # not needed for CCSE machines
+  LIBRARIES += -lmpich -lmpichf90
+
+endif

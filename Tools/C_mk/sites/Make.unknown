@@ -1,0 +1,17 @@
+#
+# Generic setup mainly for MPI stuff
+#
+
+os_type = $(shell uname)
+
+ifeq ($(USE_MPI),TRUE)
+
+  CXX := mpic++
+  CC  := mpicc
+  FC  := mpif90
+  F90 := mpif90
+
+  # Must link to MPI f90 library.
+  LIBRARIES += -lmpichf90
+
+endif
