@@ -134,6 +134,7 @@ ifeq ($(MACHINE), Linux)
     WHICHLINUX := MIRA
   endif
   ifeq ($(findstring hpc.nrel.gov, $(HOSTNAMEF)), hpc.nrel.gov)
+    # MAKE SURE YOU module load python 2.7 along with gcc/intel/openmpi/impi
     WHICHLINUX := PEREGRINE
   endif
 endif
