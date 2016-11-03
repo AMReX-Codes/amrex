@@ -670,10 +670,20 @@ ifeq ($(HOST),orga)
 endif
 
 ifeq ($(WHICHLINUX), PEREGRINE)
-     CC=gcc
-     CXX=g++
-     F77=gfortran
-     F90=gfortran
-     FC=gfortran
-     fC=gfortran
+    ifeq ($(COMP), Intel)
+      CC=icc
+      CXX=icc
+      F77=ifort
+      F90=ifort
+      FC=ifort
+      fC=ifort
+
+    else
+      CC=gcc
+      CXX=g++
+      F77=gfortran
+      F90=gfortran
+      FC=gfortran
+      fC=gfortran
+    endif
 endif
