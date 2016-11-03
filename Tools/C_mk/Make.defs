@@ -288,8 +288,8 @@ ifeq ($(USE_HPGMG), TRUE)
   include $(BOXLIB_HOME)/Tools/C_mk/packages/Make.hpgmg
 endif
 
-ifneq ("$(wildcard $(BOXLIB_HOME)/Tools/C_mk/sites/Make.$(UNAMEN))","")
-  include $(BOXLIB_HOME)/Tools/C_mk/sites/Make.$(UNAMEN)
+ifneq ("$(wildcard $(BOXLIB_HOME)/Tools/C_mk/sites/Make.$(host_name))","")
+  include $(BOXLIB_HOME)/Tools/C_mk/sites/Make.$(host_name)
 else
   include $(BOXLIB_HOME)/Tools/C_mk/sites/Make.$(which_site)
 endif

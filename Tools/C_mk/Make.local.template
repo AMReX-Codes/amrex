@@ -10,7 +10,7 @@
 #
 
 
-# Always have verbosity on even if GNUmake set it to FALSe.
+# Always have verbosity on even if GNUmakefile set it to FALSE.
 VERBOSE=TRUE
 
 
@@ -27,7 +27,7 @@ else
 endif
 
 
-# When I run on my local desktop, I like to have this gfortran flag.
+# When I run on my local desktop, I like to add this gfortran flag.
 FFLAGS   += -fcheck=array-temps
 F90FLAGS += -fcheck=array-temps
 
@@ -41,4 +41,9 @@ quadmath_lib = -lquadmath
 # `make print-CXXFLAGS` shows "-O0" is used.  I would like to replace it with "-O2".
 # Note that `:=` is needed to avoid recursive references. 
 CXXFLAGS := $(subst -O0,-O2,$(CXXFLAGS))
+
+
+# I don't like the CFLAGS shown by `print-CFLAGS`.  So I am going to
+# completely replace it with my own flags.
+CFLAGS = MY_AWESOME_CFLAGS 
 
