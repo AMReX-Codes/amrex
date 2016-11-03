@@ -1,6 +1,6 @@
 The build system requires GNU `make` >= 3.81. 
 
-Typically an application will have its own `GNUmakefile.  (See
+Typically an application will have its own `GNUmakefile`.  (See
 `Tutorials/HelloWorld_C/` for a simple example, or
 `Tutorials/AMR_Adv_C_v2/Exec/SingleVortex/` for a lightly more
 complicated example.)  `Make.defs` is included near the beginning, and
