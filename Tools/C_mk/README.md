@@ -17,7 +17,7 @@ the sources are:
 * `cEXE_headers` for C headers with `.h` or `.H` extension.
 * `f90EXE_sources` for free format Fortran sources with `.f90` extension.
 * `F90EXE_sources` for free format Fortran sources with `.F90` extension requiring preprocessing.
-* `fEXE_sources` for fixed format Fortran sources with `.F` extension.
+* `fEXE_sources` for fixed format Fortran sources with `.f` extension.
 * `FEXE_sources` for fixed format Fortran sources with `.F` extension requiring preprocessing.
 
 Typically one types `make` to build an executable.  Other useful
