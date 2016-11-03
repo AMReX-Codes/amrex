@@ -1,0 +1,7 @@
+#
+# CCSE machines
+#
+
+INCLUDE_LOCATIONS += /usr/include/mpich
+# LIBRARY_LOCATIONS +=  # not needed for CCSE machines
+LIBRARIES += -lmpich -lmpichf90
