@@ -14,7 +14,7 @@ USE_OMP   = FALSE
 
 EBASE     = main
 
-BOXLIB_INIT_MPI = TRUE
+USE_PYTHON_MAIN = FALSE
 
 WARPX_HOME := ../..
 include $(WARPX_HOME)/Exec/Make.WarpX

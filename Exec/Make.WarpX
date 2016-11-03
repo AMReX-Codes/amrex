@@ -5,8 +5,24 @@ USE_PARTICLES = TRUE
 
 include $(BOXLIB_HOME)/Tools/C_mk/Make.defs
 
+ifndef USE_PYTHON_MAIN
+  USE_PYTHON_MAIN = FALSE
+endif
+
+ifndef BOXLIB_INIT_MPI
+  BOXLIB_INIT_MPI = TRUE
+endif
+
+ifeq ($(USE_PYTHON_MAIN),TRUE)
+  BOXLIB_INIT_MPI = FALSE
+  CXXFLAGS += -fPIC
+  CFLAGS += -fPIC
+  fFLAGS += -fPIC
+  FFLAGS += -fPIC
+endif
+
 ifeq ($(BOXLIB_INIT_MPI),TRUE)
-DEFINES += -DBOXLIB_INIT_MPI
+  DEFINES += -DBOXLIB_INIT_MPI
 endif
 
 -include Make.package
@@ -19,9 +35,19 @@ include $(BOXLIB_HOME)/Src/C_AmrCoreLib/Make.package
 
 include $(PICSAR_HOME)/src/Make.package
 
+ifeq ($(USE_PYTHON_MAIN),TRUE)
+
+libwarpx.so: $(objForExecs)
+	@echo Making shared library $@ ...
+	$(SILENT) $(CXX) -shared -o $@ $^
+
+else
+
 all: $(executable) 
 	$(SILENT) $(RM) buildInfo.cpp
 	@echo SUCCESS
+
+endif
 
 # job_info support
 CEXE_sources += buildInfo.cpp
