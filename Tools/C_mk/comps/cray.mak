@@ -11,7 +11,11 @@ CFLAGS   =
 FFLAGS   =
 F90FLAGS =
 
+########################################################################
+
 cray_version := $(shell $(CXX) -V 2>&1 | grep 'Version')
+
+########################################################################
 
 ifeq ($(DEBUG),TRUE)
 
@@ -29,17 +33,17 @@ else
 
 endif
 
+########################################################################
 
-# C++ and C
 CXXFLAGS += -h std=c++11
 CFLAGS   += -h c99
 
-# Fortran
 F90FLAGS += -N 255 -I $(fmoddir) -J $(fmoddir) -em
 FFLAGS   += -N 255 -I $(fmoddir) -J $(fmoddir) -em
 
+########################################################################
 
-GENERIC_COMP_FLAGS = 
+GENERIC_COMP_FLAGS =
 
 ifneq ($(USE_OMP),TRUE)
   GENERIC_COMP_FLAGS += -h noomp
@@ -48,7 +52,6 @@ endif
 ifneq ($(USE_ACC),TRUE)
   GENERIC_COMP_FLAGS += -h noacc
 endif
-
 
 CXXFLAGS += $(GENERIC_COMP_FLAGS)
 CFLAGS   += $(GENERIC_COMP_FLAGS)

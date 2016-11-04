@@ -288,6 +288,11 @@ endif
 # place holder
 F90CACHE =
 
+ifeq ($(USE_VTUNE),TRUE)
+  $(into Loading $(BOXLIB_HOME)/Tools/C_mk/tools/Make.vtune
+  include        $(BOXLIB_HOME)/Tools/C_mk/tools/Make.vtune
+endif
+
 # Use Sam Williams's HPGMG
 ifeq ($(USE_HPGMG), TRUE)
   $(info Loading $(BOXLIB_HOME)/Tools/C_mk/packages/Make.hpgmg...)

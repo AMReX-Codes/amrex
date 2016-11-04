@@ -11,6 +11,8 @@ CFLAGS   =
 FFLAGS   =
 F90FLAGS =
 
+########################################################################
+
 gcc_version       := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;')
 gcc_major_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;\..*;;')
 gcc_minor_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;[^.]*\.;;' | sed -e 's;\..*;;')
@@ -18,6 +20,8 @@ gcc_minor_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;' 
 DEFINES += -DBL_GCC_VERSION='$(gcc_version)'
 DEFINES += -DBL_GCC_MAJOR_VERSION=$(gcc_major_version)
 DEFINES += -DBL_GCC_MINOR_VERSION=$(gcc_minor_version)
+
+########################################################################
 
 ifeq ($(DEBUG),TRUE)
 
@@ -36,23 +40,23 @@ else
 
 endif
 
-# C++ and C
+########################################################################
+
 ifeq ($(gcc_major_version),4)
   CXXFLAGS += -std=c++11
 else
   CXXFLAGS += -std=c++14
 endif
-#
 CFLAGS     += -std=gnu99
 
-# Fortran
 FFLAGS   += -fimplicit-none -ffixed-line-length-none
 F90FLAGS += -fimplicit-none -ffree-line-length-none
 FFLAGS   += -fno-range-check -fno-second-underscore -J$(fmoddir) -I $(fmoddir)
 F90FLAGS += -fno-range-check -fno-second-underscore -J$(fmoddir) -I $(fmoddir)
 
+########################################################################
 
-GENERIC_COMP_FLAGS = 
+GENERIC_COMP_FLAGS =
 
 ifeq ($(THREAD_SANITIZER),TRUE)
   GENERIC_COMP_FLAGS += -fsanitize=thread
@@ -69,6 +73,8 @@ CXXFLAGS += $(GENERIC_COMP_FLAGS)
 CFLAGS   += $(GENERIC_COMP_FLAGS)
 FFLAGS   += $(GENERIC_COMP_FLAGS)
 F90FLAGS += $(GENERIC_COMP_FLAGS)
+
+########################################################################
 
 # ask gfortran the name of the library to link in.  First check for the
 # static version.  If it returns only the name w/o a path, then it
