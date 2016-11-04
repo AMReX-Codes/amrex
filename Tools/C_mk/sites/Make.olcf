@@ -2,6 +2,11 @@
 # For titan at OLCF
 #
 
+ifneq ($(which_computer),$(filter $(which_computer),titan))
+  $(error Unknown OLCF computer, $(which_computer))
+endif
+
+
 ifdef PE_ENV
   lowercase_peenv := $(shell echo $(PE_ENV) | tr A-Z a-z)
   ifneq ($(lowercase_peenv),$(lowercase_comp))
@@ -10,17 +15,10 @@ ifdef PE_ENV
 endif
 
 
-ifeq ($(which_computer),titan)
-
-  ifeq ($(USE_MPI),TRUE)
-    CC  = cc
-    CXX = CC
-    FC  = ftn
-    F90 = ftn
-    LIBRARIES += -lmpichf90
-  endif
-
-else
-  $(error Unknown OLCF computer, $(which_computer))
+ifeq ($(USE_MPI),TRUE)
+  CC  = cc
+  CXX = CC
+  FC  = ftn
+  F90 = ftn
+  LIBRARIES += -lmpichf90
 endif
-
