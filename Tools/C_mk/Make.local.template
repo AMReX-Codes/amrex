@@ -33,7 +33,8 @@ F90FLAGS += -fcheck=array-temps
 
 
 # Instead of linking to static gfortran library, I like to use shared libraries.
-LIBRARY_LOCATIONS += $(dir $(shell $(FCOMP) -print-file-name=libgfortran.so))
+gfortran_libso_dir := $(dir $(shell $(F90) -print-file-name=libgfortran.so))
+LIBRARY_LOCATIONS += $(gfortran_libso_dir)
 gfortran_lib = -lgfortran
 quadmath_lib = -lquadmath
 

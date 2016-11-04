@@ -1,0 +1,25 @@
+#
+# For titan at OLCF
+#
+
+ifdef PE_ENV
+  lowercase_peenv := $(shell echo $(PE_ENV) | tr A-Z a-z)
+  ifneq ($(lowercase_peenv),$(lowercase_comp))
+    $(error COMP=$(COMP) does not match PrgEnv-$(lowercase_peenv))
+  endif
+endif
+
+
+ifeq ($(which_computer),titan)
+
+  ifeq ($(USE_MPI),TRUE)
+    CC  = cc
+    CXX = CC
+    FC  = ftn
+    F90 = ftn
+  endif
+
+else
+  $(error Unknown OLCF computer, $(which_computer))
+endif
+

@@ -2,7 +2,7 @@
 # Generic setup mainly for MPI stuff
 #
 
-os_type = $(shell uname)
+os_type := $(shell uname)
 
 ifeq ($(USE_MPI),TRUE)
 

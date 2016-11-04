@@ -73,13 +73,19 @@ F90FLAGS += $(GENERIC_COMP_FLAGS)
 # ask gfortran the name of the library to link in.  First check for the
 # static version.  If it returns only the name w/o a path, then it
 # was not found.  In that case, ask for the shared-object version.
-gfortran_lib = $(shell $(F90) -print-file-name=libgfortran.a)
-ifeq ($(gfortran_lib),libgfortran.a)
-  gfortran_lib = $(shell $(F90) -print-file-name=libgfortran.so)
+gfortran_liba  := $(shell $(F90) -print-file-name=libgfortran.a)
+gfortran_libso := $(shell $(F90) -print-file-name=libgfortran.so)
+quadmath_liba  := $(shell $(F90) -print-file-name=libquadmath.a)
+quadmath_libso := $(shell $(F90) -print-file-name=libquadmath.so)
+ifneq ($(gfortran_liba),libgfortran.a)  # if found the full path is printed, thus `neq`.
+  gfortran_lib = gfortran_liba
+else
+  gfortran_lib = gfortran_libso
 endif
-quadmath_lib = $(shell $(F90) -print-file-name=libquadmath.a)
-ifeq ($(quadmath_lib),libquadmath.a)
-  quadmath_lib = $(shell $(F90) -print-file-name=libquadmath.so)
+ifneq ($(quadmath_liba),libquadmath.a)
+  quadmath_lib = quadmath_liba
+else
+  quadmath_lib = quadmath_libso
 endif
 
 override XTRALIBS += $(gfortran_lib) $(quadmath_lib)
