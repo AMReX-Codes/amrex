@@ -17,6 +17,7 @@ ifeq ($(which_computer),titan)
     CXX = CC
     FC  = ftn
     F90 = ftn
+    LIBRARIES += -lmpichf90
   endif
 
 else
