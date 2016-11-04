@@ -35,7 +35,8 @@ CXXFLAGS += --c++11
 CFLAGS   += -c99
 
 # Fortran
-FFLAGS   += -Mextend -module $(fmoddir) -I$(fmoddir)
+F90FLAGS += -module $(fmoddir) -I$(fmoddir)
+FFLAGS   += -module $(fmoddir) -I$(fmoddir) -Mextend
 
 
 GENERIC_COMP_FLAGS = 
