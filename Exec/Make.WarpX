@@ -27,11 +27,16 @@ include $(BOXLIB_HOME)/Src/C_AmrCoreLib/Make.package
 
 include $(PICSAR_HOME)/src/Make.package
 
+# job_info support
+CEXE_sources += buildInfo.cpp
+CEXE_headers += $(BOXLIB_HOME)/Tools/C_scripts/buildInfo.H
+INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Tools/C_scripts
+
 ifeq ($(USE_PYTHON_MAIN),TRUE)
 
 libwarpx.so: $(objForExecs)
 	@echo Making shared library $@ ...
-	$(SILENT) $(CXX) -shared -o $@ $^
+	$(SILENT) $(CXX) -shared -fPIC -o $@ $^
 	$(SILENT) $(RM) buildInfo.cpp
 	@echo SUCCESS
 
@@ -45,11 +50,6 @@ endif
 
 clean::
 	$(SILENT) $(RM) libwarpx.so
-
-# job_info support
-CEXE_sources += buildInfo.cpp
-CEXE_headers += $(BOXLIB_HOME)/Tools/C_scripts/buildInfo.H
-INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Tools/C_scripts
 
 buildInfo.cpp: 
 	$(BOXLIB_HOME)/Tools/C_scripts/makebuildinfo_C.py \
