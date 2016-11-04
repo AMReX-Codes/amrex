@@ -11,7 +11,11 @@ CFLAGS   =
 FFLAGS   =
 F90FLAGS =
 
+########################################################################
+
 pgi_version := $(shell $(CXX) -V 2>&1 | grep 'target')
+
+########################################################################
 
 ifeq ($(DEBUG),TRUE)
 
@@ -29,17 +33,17 @@ else
 
 endif
 
+########################################################################
 
-# C++ and C
 CXXFLAGS += --c++11
 CFLAGS   += -c99
 
-# Fortran
 F90FLAGS += -module $(fmoddir) -I$(fmoddir)
 FFLAGS   += -module $(fmoddir) -I$(fmoddir) -Mextend
 
+########################################################################
 
-GENERIC_COMP_FLAGS = 
+GENERIC_COMP_FLAGS =
 
 ifeq ($(USE_OMP),TRUE)
   GENERIC_COMP_FLAGS += -mp=nonuma -Minfo=mp
@@ -51,12 +55,12 @@ else
   GENERIC_COMP_FLAGS += -noacc
 endif
 
-
 CXXFLAGS += $(GENERIC_COMP_FLAGS)
 CFLAGS   += $(GENERIC_COMP_FLAGS)
 FFLAGS   += $(GENERIC_COMP_FLAGS)
 F90FLAGS += $(GENERIC_COMP_FLAGS)
 
+########################################################################
 
 # Because we do not have a Fortran main
 override XTRALIBS += -pgf90libs
