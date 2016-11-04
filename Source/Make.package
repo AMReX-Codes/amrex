@@ -1,4 +1,6 @@
-CEXE_sources += main.cpp
+ifneq ($(USE_PYTHON_MAIN),TRUE)
+  CEXE_sources += main.cpp
+endif
 
 CEXE_sources += WarpXWrappers.cpp
 

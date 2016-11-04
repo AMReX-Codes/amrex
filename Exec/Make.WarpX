@@ -9,20 +9,12 @@ ifndef USE_PYTHON_MAIN
   USE_PYTHON_MAIN = FALSE
 endif
 
-ifndef BOXLIB_INIT_MPI
-  BOXLIB_INIT_MPI = TRUE
-endif
-
 ifeq ($(USE_PYTHON_MAIN),TRUE)
-  BOXLIB_INIT_MPI = FALSE
   CXXFLAGS += -fPIC
-  CFLAGS += -fPIC
-  fFLAGS += -fPIC
-  FFLAGS += -fPIC
-endif
-
-ifeq ($(BOXLIB_INIT_MPI),TRUE)
-  DEFINES += -DBOXLIB_INIT_MPI
+  CFLAGS   += -fPIC
+  fFLAGS   += -fPIC
+  FFLAGS   += -fPIC
+  USERSuffix = Lib
 endif
 
 -include Make.package
@@ -40,6 +32,8 @@ ifeq ($(USE_PYTHON_MAIN),TRUE)
 libwarpx.so: $(objForExecs)
 	@echo Making shared library $@ ...
 	$(SILENT) $(CXX) -shared -o $@ $^
+	$(SILENT) $(RM) buildInfo.cpp
+	@echo SUCCESS
 
 else
 
@@ -48,6 +42,9 @@ all: $(executable)
 	@echo SUCCESS
 
 endif
+
+clean::
+	$(SILENT) $(RM) libwarpx.so
 
 # job_info support
 CEXE_sources += buildInfo.cpp
