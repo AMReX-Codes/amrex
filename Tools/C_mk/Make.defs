@@ -86,13 +86,18 @@ FORT_EXE_OUTPUT_OPTION = -o $(objEXETempDir)/$*.o
 lowercase_comp := $(shell echo $(COMP) | tr A-Z a-z)
 
 ifeq ($(lowercase_comp),$(filter $(lowercase_comp),gcc gnu g++))
-  include $(BOXLIB_HOME)/Tools/C_mk/comps/gcc.mak
+  lowercase_comp = gnu
+  $(info Loading $(BOXLIB_HOME)/Tools/C_mk/comps/gnu.mak...)
+  include        $(BOXLIB_HOME)/Tools/C_mk/comps/gnu.mak
 else ifeq ($(lowercase_comp),intel)
-  include $(BOXLIB_HOME)/Tools/C_mk/comps/intel.mak
+  $(info Loading $(BOXLIB_HOME)/Tools/C_mk/comps/intel.mak...)
+  include        $(BOXLIB_HOME)/Tools/C_mk/comps/intel.mak
 else ifeq ($(lowercase_comp),cray)
-  include $(BOXLIB_HOME)/Tools/C_mk/comps/cray.mak
+  $(info Loading $(BOXLIB_HOME)/Tools/C_mk/comps/cray.mak...)
+  include        $(BOXLIB_HOME)/Tools/C_mk/comps/cray.mak
 else ifeq ($(lowercase_comp),pgi)
-  include $(BOXLIB_HOME)/Tools/C_mk/comps/pgi.mak
+  $(info Loading $(BOXLIB_HOME)/Tools/C_mk/comps/pgi.mak...)
+  include        $(BOXLIB_HOME)/Tools/C_mk/comps/pgi.mak
 else
   $(error Unknown compiler $(COMP). Supported compilers are gnu, intel, cray, and pgi)
 endif
@@ -285,17 +290,24 @@ F90CACHE =
 
 # Use Sam Williams's HPGMG
 ifeq ($(USE_HPGMG), TRUE)
-  include $(BOXLIB_HOME)/Tools/C_mk/packages/Make.hpgmg
+  $(info Loading $(BOXLIB_HOME)/Tools/C_mk/packages/Make.hpgmg...)
+  include        $(BOXLIB_HOME)/Tools/C_mk/packages/Make.hpgmg
 endif
 
 ifneq ("$(wildcard $(BOXLIB_HOME)/Tools/C_mk/sites/Make.$(host_name))","")
-  include $(BOXLIB_HOME)/Tools/C_mk/sites/Make.$(host_name)
+  $(info Loading $(BOXLIB_HOME)/Tools/C_mk/sites/Make.$(host_name)...)
+  include        $(BOXLIB_HOME)/Tools/C_mk/sites/Make.$(host_name)
 else
-  include $(BOXLIB_HOME)/Tools/C_mk/sites/Make.$(which_site)
+  $(info Loading $(BOXLIB_HOME)/Tools/C_mk/sites/Make.$(which_site)...)
+  include        $(BOXLIB_HOME)/Tools/C_mk/sites/Make.$(which_site)
 endif
 
 ifeq ($(USE_UPCXX),TRUE)
-  include $(BOXLIB_HOME)/Tools/C_mk/Make.upcxx
+  $(info Loading $(BOXLIB_HOME)/Tools/C_mk/Make.upcxx...)
+  include        $(BOXLIB_HOME)/Tools/C_mk/Make.upcxx
 endif
 
--include $(BOXLIB_HOME)/Tools/C_mk/Make.local
+ifneq ("$(wildcard $(BOXLIB_HOME)/Tools/C_mk/Make.local)","")
+  $(info Loading $(BOXLIB_HOME)/Tools/C_mk/Make.local)
+  include        $(BOXLIB_HOME)/Tools/C_mk/Make.local
+endif
