@@ -20,5 +20,5 @@ ifeq ($(USE_MPI),TRUE)
   CXX = CC
   FC  = ftn
   F90 = ftn
+  LIBRARIES += -lmpichf90
 endif
-
