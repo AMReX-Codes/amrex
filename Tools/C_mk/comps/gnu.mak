@@ -78,14 +78,14 @@ gfortran_libso := $(shell $(F90) -print-file-name=libgfortran.so)
 quadmath_liba  := $(shell $(F90) -print-file-name=libquadmath.a)
 quadmath_libso := $(shell $(F90) -print-file-name=libquadmath.so)
 ifneq ($(gfortran_liba),libgfortran.a)  # if found the full path is printed, thus `neq`.
-  gfortran_lib = gfortran_liba
+  gfortran_lib = $(gfortran_liba)
 else
-  gfortran_lib = gfortran_libso
+  gfortran_lib = $(gfortran_libso)
 endif
 ifneq ($(quadmath_liba),libquadmath.a)
-  quadmath_lib = quadmath_liba
+  quadmath_lib = $(quadmath_liba)
 else
-  quadmath_lib = quadmath_libso
+  quadmath_lib = $(quadmath_libso)
 endif
 
 override XTRALIBS += $(gfortran_lib) $(quadmath_lib)
