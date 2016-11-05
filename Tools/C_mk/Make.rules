@@ -52,7 +52,7 @@ TAGS:	$(allSources)
 	@echo etags $< ...
 	$(SILENT) etags $(abspath $^)
 
-.PHONY:	all clean realclean tags TAGS
+.PHONY:	all clean realclean file_locations tags TAGS
 
 #
 # Rules for objects.
@@ -159,6 +159,12 @@ endif
 endif
 endif
 
+ifneq ($(MAKECMDGOALS),$(filter $(MAKECMDGOALS),clean realclean file_locations tags TAGS))
+  ifdef has_compiler_mismatch
+    $(error $(has_compiler_mismatch))
+  endif
+endif
+
 #-----------------------------------------------------------------------------
 # for debugging.  To see the value of a Makefile variable,
 # e.g. libraries, simply do "make print-libraries".  This will
@@ -166,6 +172,7 @@ endif
 print-%:
 	@echo $* is $($*)
 
+.PHONY: help
 help:
 	@echo ""
 	@echo "The rule for compiling foo.cpp  is: \$$(CXX) \$$(CXXFLAGS) \$$(CPPFLAGS) \$$(cincludes) -c foo.o foo.cpp"
