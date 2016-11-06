@@ -1,4 +1,4 @@
-The build system requires GNU `make` >= 3.81. 
+The build system requires GNU make >= 3.81 and python >= 2.7. 
 
 Typically an application will have its own `GNUmakefile`.  (See
 `Tutorials/HelloWorld_C/` for a simple example, or
