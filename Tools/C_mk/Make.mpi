@@ -304,6 +304,39 @@ ifeq ($(MACHINE), Linux)
         LIBRARY_LOCATIONS += $(MPI_HOME)/build/LINUX/ch_p4/lib
       endif
     endif
+
+    ifeq ($(WHICHLINUX), PEREGRINE)
+      ifeq ($(COMP), Intel)
+        CXX := mpiicpc
+        CC  := mpiicc
+        FC  := mpiifort
+        fC  := mpiifort
+        F90 := mpiifort
+
+        MPI_HOME=/nopt/intel/16.0/impi/5.1.3.181/intel64
+        LIBRARY_LOCATIONS += $(MPI_HOME)/lib
+        INCLUDE_LOCATIONS += $(MPI_HOME)/include
+        CPPFLAGS += -DMPICH_SKIP_MPICXX
+        BL_MPI_LIBS = -lmpi -lpthread
+
+      else
+        CXX := mpic++
+        CC  := mpicc
+        FC  := mpif90
+        fC  := mpif90
+        F90 := mpif90
+
+        MPI_HOME=/nopt/nrel/apps/openmpi/1.10.0-serial-gcc-5.2.0
+        LIBRARY_LOCATIONS += $(MPI_HOME)/lib
+        INCLUDE_LOCATIONS += $(MPI_HOME)/include
+        CPPFLAGS += -DMPICH_SKIP_MPICXX
+        BL_MPI_LIBS = $(shell mpic++ --showme:link)
+        BL_MPI_LIBS +=$(shell mpif90 --showme:link)
+        BL_MPI_LIBS += -L/nopt/torque/lib -Wl,-rpath -Wl,/nopt/torque/lib -Wl,-rpath -Wl,/nopt/torque/lib -Wl,-rpath -Wl,/nopt/torque/lib
+      endif
+
+    endif
+     
   else
     ifdef LAMHOME
       BL_MPI_LIBS += -lmpi -ltstdio -ltrillium -largs -lt
