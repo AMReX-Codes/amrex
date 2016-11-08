@@ -18,7 +18,6 @@
 #include <BoxLib.H>
 #include <Looping.H>
 #include <Utility.H>
-#include <BL_CXX11.H>
 #include <MemPool.H>
 
 bool FArrayBox::initialized = false;
@@ -47,23 +46,23 @@ class FABio_8bit
 {
 public:
     virtual void read (std::istream& is,
-                       FArrayBox&    fb) const BL_OVERRIDE;
+                       FArrayBox&    fb) const override;
 
     virtual void write (std::ostream&    os,
                         const FArrayBox& fb,
                         int              comp,
-                        int              num_comp) const BL_OVERRIDE;
+                        int              num_comp) const override;
 
     virtual void skip (std::istream& is,
-                       FArrayBox&    f) const BL_OVERRIDE;
+                       FArrayBox&    f) const override;
 
     virtual void skip (std::istream& is,
                        FArrayBox&    f,
-		       int           nCompToSkip) const BL_OVERRIDE;
+		       int           nCompToSkip) const override;
 private:
     virtual void write_header (std::ostream&    os,
                                const FArrayBox& f,
-                               int              nvar) const BL_OVERRIDE;
+                               int              nvar) const override;
 };
 
 //
@@ -75,23 +74,23 @@ class FABio_ascii
 {
 public:
     virtual void read (std::istream&   is,
-                       FArrayBox&      fb) const BL_OVERRIDE;
+                       FArrayBox&      fb) const override;
 
     virtual void write (std::ostream&    os,
                         const FArrayBox& fb,
                         int              comp,
-                        int              num_comp) const BL_OVERRIDE;
+                        int              num_comp) const override;
 
     virtual void skip (std::istream& is,
-                       FArrayBox&    f) const BL_OVERRIDE;
+                       FArrayBox&    f) const override;
 
     virtual void skip (std::istream& is,
                        FArrayBox&    f,
-		       int           nCompToSkip) const BL_OVERRIDE;
+		       int           nCompToSkip) const override;
 private:
     virtual void write_header (std::ostream&    os,
                                const FArrayBox& f,
-                               int              nvar) const BL_OVERRIDE;
+                               int              nvar) const override;
 };
 
 //
@@ -105,24 +104,24 @@ public:
     FABio_binary (RealDescriptor* rd_);
 
     virtual void read (std::istream& is,
-                       FArrayBox&    fb) const BL_OVERRIDE;
+                       FArrayBox&    fb) const override;
 
     virtual void write (std::ostream&    os,
                         const FArrayBox& fb,
                         int              comp,
-                        int              num_comp) const BL_OVERRIDE;
+                        int              num_comp) const override;
 
     virtual void skip (std::istream& is,
-                       FArrayBox&    f) const BL_OVERRIDE;
+                       FArrayBox&    f) const override;
 
     virtual void skip (std::istream& is,
                        FArrayBox&    f,
-		       int           nCompToSkip) const BL_OVERRIDE;
+		       int           nCompToSkip) const override;
 
 private:
     virtual void write_header (std::ostream&    os,
                                const FArrayBox& f,
-                               int              nvar) const BL_OVERRIDE;
+                               int              nvar) const override;
 
     CpClassPtr<RealDescriptor> rd;
 };

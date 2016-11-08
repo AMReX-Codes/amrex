@@ -145,20 +145,20 @@ struct BATBase
 	: m_typ(typ) {}
     virtual ~BATBase () {}
 
-    virtual BATransformer* clone () const BL_OVERRIDE {
+    virtual BATransformer* clone () const override {
 	return new T(dynamic_cast<const T&>(*this));
     }
 
-    virtual bool equal (const BATransformer& rhs) const BL_OVERRIDE {
+    virtual bool equal (const BATransformer& rhs) const override {
 	const T* p = dynamic_cast<const T*>(&rhs);
 	return p && (*p) == (dynamic_cast<const T&>(*this));
     }
 
-    virtual IndexType ixType () const BL_OVERRIDE {
+    virtual IndexType ixType () const override {
 	return m_typ;
     }
 
-    virtual void setIxType (IndexType typ) BL_OVERRIDE {
+    virtual void setIxType (IndexType typ) override {
 	m_typ = typ;
     }
 
@@ -172,15 +172,15 @@ struct BATypeTransformer
     explicit BATypeTransformer (IndexType typ = IndexType())
 	: BATBase<BATypeTransformer>(typ) {}
 
-    virtual ~BATypeTransformer () BL_OVERRIDE {}
+    virtual ~BATypeTransformer () override {}
 
-    virtual IntVect doiLo () const BL_OVERRIDE 
+    virtual IntVect doiLo () const override 
         { return IntVect::TheZeroVector(); }
 
-    virtual IntVect doiHi () const BL_OVERRIDE 
+    virtual IntVect doiHi () const override 
         { return m_typ.ixType(); }
 
-    virtual Box operator() (const Box& bx) const BL_OVERRIDE
+    virtual Box operator() (const Box& bx) const override
         { return BoxLib::convert(bx, m_typ); }
 
     bool operator== (const BATypeTransformer& rhs) const

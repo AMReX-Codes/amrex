@@ -36,12 +36,12 @@ struct BndryBATransformer
     BndryBATransformer (Orientation face, IndexType typ,
 			int in_rad, int out_rad, int extent_rad);
 
-    virtual ~BndryBATransformer () BL_OVERRIDE {}
+    virtual ~BndryBATransformer () override {}
 
-    virtual IntVect doiLo () const BL_OVERRIDE { return m_doilo; }
-    virtual IntVect doiHi () const BL_OVERRIDE { return m_doihi; }
+    virtual IntVect doiLo () const override { return m_doilo; }
+    virtual IntVect doiHi () const override { return m_doihi; }
 
-    virtual Box operator() (const Box& bx) const BL_OVERRIDE;
+    virtual Box operator() (const Box& bx) const override;
     
     bool operator== (const BndryBATransformer& rhs) const;
 
