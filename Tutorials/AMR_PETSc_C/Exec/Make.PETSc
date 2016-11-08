@@ -19,7 +19,7 @@ all: $(executable)
 	@echo SUCCESS
 
 Bdirs 	:= Source
-Pdirs 	:= C_BaseLib C_AMRLib C_BoundaryLib C_TowerLib
+Pdirs 	:= C_BaseLib C_AmrCoreLibe C_AMRLib C_BoundaryLib C_TowerLib
 
 Bpack	+= $(foreach dir, $(Pdirs), $(BOXLIB_HOME)/Src/$(dir)/Make.package)
 Blocs	+= $(foreach dir, $(Pdirs), $(BOXLIB_HOME)/Src/$(dir))

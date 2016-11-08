@@ -4,8 +4,6 @@ ifeq ($(LBASE),amr)
   AMRLIB_BASE=LIB
 endif
 
-include $(BOXLIB_HOME)/Src/C_AmrCoreLib/Make.package
-
 C$(AMRLIB_BASE)_sources += Amr.cpp AmrLevel.cpp Derive.cpp StateData.cpp \
                 StateDescriptor.cpp AuxBoundaryData.cpp Extrapolater.cpp
 
