@@ -7,7 +7,6 @@ USE_MPI   = FALSE
 USE_OMP   = FALSE
 PROFILE   = FALSE
 COMP      = g++
-FCOMP     = gfortran
 DIM       = 2
 PRECISION = DOUBLE
 EBASE     = main

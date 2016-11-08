@@ -9,7 +9,6 @@ DEBUG      = TRUE
 DIM        = 2
 
 COMP	   = gcc
-FCOMP	   = gfortran
 
 # Do not edit below this line
 
