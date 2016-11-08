@@ -62,6 +62,8 @@ The `Make.defs` includes the following files in the listed order:
   * `F90FLAGS`: Flags for free format Fortran compiler.
   * `DEFINES`: This defines the macros passed the compilers.
 
+  Type `make help` for more details on the compilation rules.
+
 * `tools/Make.xxx`: Here `xxx` is an optional tool such as VTune, if
   it is used.
 
