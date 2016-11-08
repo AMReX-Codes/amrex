@@ -11,7 +11,22 @@ ifeq ($(USE_MPI),TRUE)
   FC  := mpif90
   F90 := mpif90
 
-  # Must link to MPI f90 library.
-  LIBRARIES += -lmpichf90
+  # Link to MPI f90 library.
+
+  ifeq ($(findstring mpich, $(shell mpicc -show 2>&1)), mpich)
+
+    # mpich
+    LIBRARIES += -lmpich -lmpichf90
+
+  else ifeq ($(findstring openmpi, $(shell mpicc -showme 2>&1)), openmpi)
+
+    # openmpi
+    LIBRARIES += -lmpi_usempi -lmpi_mpifh -lmpi
+
+  else
+
+    $(error unknown mpi implementaion)
+
+  endif
 
 endif
