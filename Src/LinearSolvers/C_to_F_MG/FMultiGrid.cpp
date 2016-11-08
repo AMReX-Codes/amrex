@@ -503,7 +503,7 @@ FMultiGrid::init_mgt_solver (PArray<MultiFab>& phi)
     Array<int> mg_bc;
     if (m_bc.initilized) 
     {
-	mg_bc = Array<int>(m_bc.get_mg_bc(), 2*BL_SPACEDIM);
+	mg_bc = m_bc.mg_bc;
     } 
     else 
     {
