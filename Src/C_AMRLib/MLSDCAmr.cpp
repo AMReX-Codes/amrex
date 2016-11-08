@@ -93,7 +93,7 @@ void mlsdc_amr_interpolate(void *Fp, void *Gp, sdc_state *state, void *ctxF, voi
   MLSDCAmrLevel& levelF = *((MLSDCAmrLevel*) ctxF);
   MLSDCAmrLevel& levelG = *((MLSDCAmrLevel*) ctxG);
 
-  levelF.interpolate(F, G, state->t, correction, evaluation, levelG);
+  levelF.Interpolate(F, G, state->t, correction, evaluation, levelG);
 }
 
 /*
@@ -111,7 +111,7 @@ void mlsdc_amr_restrict(void *Fp, void *Gp, sdc_state *state, void *ctxF, void *
 
   BL_ASSERT(G.type==SDC_SOLUTION || G.type==SDC_TAU);
 
-  levelF.restrict(F, G, state->t, levelG);
+  levelF.Restrict(F, G, state->t, levelG);
 }
 
 END_EXTERN_C
