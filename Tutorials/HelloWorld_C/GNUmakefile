@@ -6,7 +6,6 @@ DEBUG	= TRUE
 DIM	= 3
 
 COMP    = gcc
-FCOMP   = gfortran
 
 PRECISION = DOUBLE
 

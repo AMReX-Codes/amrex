@@ -28,7 +28,6 @@ DIM	= 3
 DIM	= 2
 
 COMP =gcc
-FCOMP=gfortran
 
 USE_HYPRE = FALSE
 USE_F90_SOLVERS = TRUE
