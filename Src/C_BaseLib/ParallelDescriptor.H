@@ -476,7 +476,6 @@ namespace ParallelDescriptor
 
 	return std::make_pair(rb,re);
     }
-#ifdef BL_USE_CXX11
     template <typename F>
     void team_for (int begin, int end, const F& f)
     {
@@ -501,7 +500,6 @@ namespace ParallelDescriptor
 	    f(i);
 	}
     }
-#endif
     //
     // BoxLib's Parallel Communicators
     //    m_comm_all       is for all ranks, probably MPI_COMM_WORLD

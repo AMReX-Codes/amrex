@@ -164,9 +164,6 @@ ifeq ($(TINY_PROFILE),TRUE)
   C$(BOXLIB_BASE)_sources += TinyProfiler.cpp
 endif
 
-# C++11 stuff
-C$(BOXLIB_BASE)_headers += BL_CXX11.H
-
 VPATH_LOCATIONS += $(BOXLIB_HOME)/Src/C_BaseLib
 INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/C_BaseLib
 

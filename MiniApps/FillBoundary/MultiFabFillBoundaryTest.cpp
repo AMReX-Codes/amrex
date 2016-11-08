@@ -83,21 +83,9 @@ int main(int argc, char *argv[]) {
     // ----  (these are also arbitrary, just meant to be representative)
     // ---- and for "cross" = true or false.
 
-#ifdef BL_CXX11
     const std::vector<bool> cross = { true, false };
     const std::vector<int>  nComp = { 1, 4, 20 };
     const std::vector<int> nGhost = { 1, 2, 3, 4 };
-#else
-    // do this for older compilers
-    static const bool crossarr[] = { true, false };
-    std::vector<bool> cross(crossarr, crossarr + sizeof(crossarr) / sizeof(crossarr[0]) );
-
-    static const int nComparr[] = { 1, 4, 20 };
-    std::vector<int> nComp(nComparr, nComparr + sizeof(nComparr) / sizeof(nComparr[0]) );
-
-    static const int nGhostarr[] = { 1, 2, 3, 4 };
-    std::vector<int> nGhost(nGhostarr, nGhostarr + sizeof(nGhostarr) / sizeof(nGhostarr[0]) );
-#endif
 
     for(int icross(0); icross < cross.size(); ++icross) {
       for(int icomp(0); icomp < nComp.size(); ++icomp) {

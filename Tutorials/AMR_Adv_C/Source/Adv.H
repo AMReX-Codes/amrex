@@ -3,7 +3,6 @@
 
 #include <AmrLevel.H>
 #include <FluxRegister.H>
-#include <BL_CXX11.H>
 
 #include <iostream>
 
@@ -38,26 +37,26 @@ public:
     //
     //The destructor.
     //
-    virtual ~Adv () BL_OVERRIDE;
+    virtual ~Adv () override;
     //
     //Restart from a checkpoint file.
     //
     virtual void restart (Amr&          papa,
                           std::istream& is,
-			  bool          bReadSpecial = false) BL_OVERRIDE;
+			  bool          bReadSpecial = false) override;
 
     /*A string written as the first item in writePlotFile() at
                level zero. It is so we can distinguish between different
                types of plot files. For Adv it has the form: Adv-Vnnn
     */
-    virtual std::string thePlotFileType () const BL_OVERRIDE;
+    virtual std::string thePlotFileType () const override;
 
     //
     //Write a plotfile to specified directory.
     //
     virtual void writePlotFile (const std::string& dir,
                                 std::ostream&      os,
-                                VisMF::How         how) BL_OVERRIDE;
+                                VisMF::How         how) override;
     //
     //Define data descriptors.
     //
@@ -69,26 +68,26 @@ public:
     //
     //Initialize grid data at problem start-up.
     //
-    virtual void initData () BL_OVERRIDE;
+    virtual void initData () override;
     //
     //Initialize data on this level from another Adv (during regrid).
     //
-    virtual void init (AmrLevel& old) BL_OVERRIDE;
+    virtual void init (AmrLevel& old) override;
     //
     //Initialize data on this level after regridding if old level did not previously exist
     //
-    virtual void init () BL_OVERRIDE;
+    virtual void init () override;
     //
     //Proceed with next timestep?
     //
-    virtual int okToContinue () BL_OVERRIDE { return 1; }
+    virtual int okToContinue () override { return 1; }
     //
     //Advance grids at this level in time.
     //
     virtual Real advance (Real time,
                           Real dt,
                           int  iteration,
-                          int  ncycle) BL_OVERRIDE;
+                          int  ncycle) override;
     //
     //Estimate time step.
     //
@@ -105,7 +104,7 @@ public:
                                    Array<int>&           n_cycle,
                                    const Array<IntVect>& ref_ratio,
                                    Array<Real>&          dt_level,
-                                   Real                  stop_time) BL_OVERRIDE;
+                                   Real                  stop_time) override;
     //
     //Compute new `dt'.
     //
@@ -116,23 +115,23 @@ public:
                                Array<Real>&          dt_min,
                                Array<Real>&          dt_level,
                                Real                  stop_time,
-                               int                   post_regrid_flag) BL_OVERRIDE;
+                               int                   post_regrid_flag) override;
     //
     //Do work after timestep().
     //
-    virtual void post_timestep (int iteration) BL_OVERRIDE;
+    virtual void post_timestep (int iteration) override;
     //
     //Do work after regrid().
     //
-    virtual void post_regrid (int lbase, int new_finest) BL_OVERRIDE { ; }
+    virtual void post_regrid (int lbase, int new_finest) override { ; }
     //
     //Do work after a restart().
     //
-    virtual void post_restart () BL_OVERRIDE { ; }
+    virtual void post_restart () override { ; }
     //
     //Do work after init().
     //
-    virtual void post_init (Real stop_time) BL_OVERRIDE;
+    virtual void post_init (Real stop_time) override;
     //
     //Error estimation for regridding.
     //
@@ -140,7 +139,7 @@ public:
                            int          clearval,
                            int          tagval,
                            Real         time,
-			   int          n_error_buf = 0, int ngrow = 0) BL_OVERRIDE;
+			   int          n_error_buf = 0, int ngrow = 0) override;
 
     static int  NUM_STATE;
     static int  NUM_GROW;

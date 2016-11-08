@@ -15,7 +15,6 @@ COMP      = g++
 FCOMP     = gfortran
 DIM       = 3
 PRECISION = DOUBLE
-USE_CXX11     = TRUE
 
 EBASE     = BcastClasses
 

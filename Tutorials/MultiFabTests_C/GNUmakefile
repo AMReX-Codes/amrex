@@ -15,7 +15,6 @@ DIM       = 3
 PRECISION = DOUBLE
 EBASE     = mfreadwrite
 EBASE     = gridmovetest
-USE_CXX11     = TRUE
 
 include ./Make.package
 include $(BOXLIB_HOME)/Tools/C_mk/Make.defs
