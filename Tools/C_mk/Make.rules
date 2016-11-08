@@ -127,7 +127,7 @@ $(depEXETempDir)/f90.depends: $(f90EXE_sources) $(F90EXE_sources)
 	$(MODDEP) --prefix $(objEXETempDir) \
             --temp_dir $(f77EXETempDir) \
             --cpp "$(FORT_CPP)" \
-            --defines "-DBL_LANG_FORT $(CPPFLAGS)" \
+            --defines "-DBL_LANG_FORT $(CPPFLAGS) $(fincludes)" \
             --f90_preprocess "$(F90PREP)" $^ > $(depEXETempDir)/f90.depends 
 
 #
@@ -153,7 +153,7 @@ ifdef FEXE_sources
 endif
 
 ifneq "$(strip $(f90EXE_sources) $(F90EXE_sources))" ""
-include $(depEXETempDir)/f90.depends
+-include $(depEXETempDir)/f90.depends
 endif
 
 endif
