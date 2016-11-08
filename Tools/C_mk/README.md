@@ -52,15 +52,15 @@ The `Make.defs` includes the following files in the listed order:
   Note that the compiler name is case insensitive.  This file defines
   compiler specific variables.   Usually it must define:
 
-** `CXX`: C++ compiler.
-** `CC`: C compiler.
-** `FC`: Fortran compiler for fixed format files.
-** `F90`: Fortran compiler for free format files.
-** `CXXFLAGS`: Flags for C++ compiler.
-** `CFLAGS`: Flags for C compiler.
-** `FFLAGS`: Flags for fixed format Fortran compiler.
-** `F90FLAGS`: Flags for free format Fortran compiler.
-** `DEFINES`: This defines the macros passed the compilers.
+  * `CXX`: C++ compiler.
+  * `CC`: C compiler.
+  * `FC`: Fortran compiler for fixed format files.
+  * `F90`: Fortran compiler for free format files.
+  * `CXXFLAGS`: Flags for C++ compiler.
+  * `CFLAGS`: Flags for C compiler.
+  * `FFLAGS`: Flags for fixed format Fortran compiler.
+  * `F90FLAGS`: Flags for free format Fortran compiler.
+  * `DEFINES`: This defines the macros passed the compilers.
 
 * `tools/Make.xxx`: Here `xxx` is an optional tool such as VTune, if
   it is used.
