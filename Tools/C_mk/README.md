@@ -88,21 +88,24 @@ The `Make.defs` includes the following files in the listed order:
 
 The build system uses the `vpath` directive to specify a list of
 directories to be searched for files.  The list of directories is
-defined in the `VPATH_LOCATIONS` variables.  The build system also
-implicitly adds the current directory to the top of the list.  So a
-file in the current directory will hide a file with the same name but
-stored in different a directory.
+defined in the `VPATH_LOCATIONS` variables.  An application code
+should add its own source directories to the variable.  The build system
+also implicitly adds the current directory to the top of the list.  So
+a file in the current directory will hide a file with the same name
+but stored in different a directory.
 
 The `INCLUDE_LOCATIONS` variable specifies for the compilers a list
 directories to be searched for header files.  Each directory specified
 in `INCLUDE_LOCATIONS` will be passed to the compilers with a `-I`
-prefix.
+prefix.  An application code should add its own header file
+directories to the variable.
 
 The C++ compiler specified in the variable `CXX` is used for linking.
 The variables `LIBRARIES` and `XTRALIBS` are used to form a variable
 called `libraries`, which is used to specify the libraries to be
 linked.  The locations for searching the libraries are specified in
-variable `LIBRARY_LOCATIONS`.
+variable `LIBRARY_LOCATIONS`.  Each directory in `LIBRARY_LOCATIONS`
+will be prefixed with `-L` and passed to the compilers.
 
 See User's Guide for more information on various build options (e.g.,
 `USE_MPI`). 
