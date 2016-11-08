@@ -1139,11 +1139,11 @@ VisMF::FindOffsets (const FabArray<FArrayBox> &mf,
       if(myProc == coordinatorProc) {   // ---- calculate offsets
 	const BoxArray &mfBA = mf.boxArray();
 	const DistributionMapping &mfDM = mf.DistributionMap();
-	Array<long> fabHeaderBytes(mfBA.size(), 0);
+	std::vector<long> fabHeaderBytes(mfBA.size(), 0);
 	int nFiles(NFilesIter::ActualNFiles(nOutFiles));
 	int whichFileNumber(-1);
 	std::string whichFileName;
-	Array<std::streampos> currentOffset(nFiles, 0);
+	std::vector<std::streampos> currentOffset(nFiles, 0);
 
         if(hdr.m_vers == VisMF::Header::Version_v1) {
 	  // ---- find the length of the fab header instead of asking the file system
