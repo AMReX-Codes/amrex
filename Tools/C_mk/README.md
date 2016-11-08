@@ -44,7 +44,7 @@ The `Make.defs` includes the following files in the listed order:
   is set to the environment variable `HOSTNAME` if defined.
   Otherwise, it is set to the environment variable `HOST`.  If neither
   `HOSTNAME` nor `HOST` is defined, `host_name` is defined to the
-  result of `hostname` shell command.
+  result of `hostname -f` shell command.
 
 * `comps/xxx.mak`: Here `xxx` is either `gnu`, or `intel`, or `pgi`,
   or `cray` depending on the make variable `COMP`, which must be set

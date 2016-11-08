@@ -9,7 +9,7 @@ ifdef $(HOSTNAME)
 else ifdef $(HOST)
   host_name := $(HOST)
 else
-  host_name := $(shell hostname)
+  host_name := $(shell hostname -f)
 endif
 
 # MACHINES supported
