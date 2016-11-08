@@ -224,9 +224,6 @@ objStandalone	= 	$(CEXE_sources:%.cpp=%.o)			\
 
 objForExecs	= $(addprefix $(objEXETempDir)/, $(objStandalone))
 
-INCLUDE_LOCATIONS += .
-LIBRARY_LOCATIONS += .
-
 DEFINES	+= -DBL_SPACEDIM=$(DIM)				\
            -DBL_FORT_USE_$(FORTLINK)			\
            -DBL_$(shell uname)
@@ -248,7 +245,7 @@ ifeq ($(USE_PARTICLES),TRUE)
   DEFINES += -DUSE_PARTICLES -DPARTICLES
 endif
 
-cincludes	= $(addprefix -I, $(INCLUDE_LOCATIONS))
+cincludes	= -I. $(addprefix -I, $(INCLUDE_LOCATIONS))
 fincludes	= $(cincludes)
 fmoddir         = $(objEXETempDir)
 
@@ -256,7 +253,7 @@ CPPFLAGS	+= $(DEFINES)
 
 libraries	= $(LIBRARIES) $(XTRALIBS)
 
-LDFLAGS		+= $(addprefix -L, $(LIBRARY_LOCATIONS))
+LDFLAGS		+= -L. $(addprefix -L, $(LIBRARY_LOCATIONS))
 
 machineSuffix	= $(lowercase_comp)$(PrecisionSuffix)$(DebugSuffix)$(ProfSuffix)$(MProfSuffix)$(BTSuffix)$(MPISuffix)$(UPCXXSuffix)$(OMPSuffix)$(USERSuffix)
 
