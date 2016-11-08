@@ -9,9 +9,9 @@
 // through a few driver functions which scale variables.
 //==========================================================================
 
-#include <AmrLevel.H>
 #include <ABecLaplacian.H>
 #include <BndryData.H>
+#include <AmrCore.H>
 
 class MacOperator
     :
@@ -19,10 +19,10 @@ class MacOperator
 {
 protected:
 
-    Amr*        parent;
+    AmrCore*      parent;
 public:
 
-    MacOperator (Amr*             Parent,
+    MacOperator (AmrCore*             Parent,
                  const BndryData& mgb,
                  const Real*      _h);
 

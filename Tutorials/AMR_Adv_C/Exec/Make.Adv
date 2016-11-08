@@ -7,9 +7,6 @@ EBASE := main
 
 include $(BOXLIB_HOME)/Tools/C_mk/Make.defs
 
-all: $(executable) 
-	@echo SUCCESS
-
 
 Bdirs 	:= Source Source/Src_nd Source/Src_$(DIM)d
 Bpack	+= $(foreach dir, $(Bdirs), $(TOP)/$(dir)/Make.package)
@@ -21,18 +18,14 @@ INCLUDE_LOCATIONS += $(Blocs)
 VPATH_LOCATIONS   += $(Blocs)
 
 
-Pdirs 	:= C_BaseLib C_AMRLib C_BoundaryLib 
+Pdirs 	:= C_BaseLib C_AmrCoreLib C_AMRLib C_BoundaryLib 
 Ppack	+= $(foreach dir, $(Pdirs), $(BOXLIB_HOME)/Src/$(dir)/Make.package)
 
 include $(Ppack)
 
 
+all: $(executable) 
+	@echo SUCCESS
+
 include $(BOXLIB_HOME)/Tools/C_mk/Make.rules
-
-
-#-----------------------------------------------------------------------------
-# for debugging.  To see the value of a Makefile variable,
-# e.g. COMP, simply do "make print-COMP".  This will
-# print out the value.
-print-%: ; @echo $* is $($*)
 
