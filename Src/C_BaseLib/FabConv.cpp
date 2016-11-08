@@ -51,8 +51,8 @@ RealDescriptor::RealDescriptor ()
 RealDescriptor::RealDescriptor (const long* fr_,
                                 const int*  ord_,
                                 int         ordl_)
-    : fr(fr_, 8),
-      ord(ord_, ordl_)
+    : fr(fr_, fr_+8),
+      ord(ord_, ord_+ordl_)
 {}
 
 const long*

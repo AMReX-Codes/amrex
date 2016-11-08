@@ -310,6 +310,6 @@ ifeq ($(USE_UPCXX),TRUE)
 endif
 
 ifneq ("$(wildcard $(BOXLIB_HOME)/Tools/C_mk/Make.local)","")
-  $(info Loading $(BOXLIB_HOME)/Tools/C_mk/Make.local)
+  $(info Loading $(BOXLIB_HOME)/Tools/C_mk/Make.local...)
   include        $(BOXLIB_HOME)/Tools/C_mk/Make.local
 endif
