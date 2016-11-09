@@ -6,7 +6,7 @@
 
 int main(int argc, char* argv[])
 {
-    boxlib_init(&argc, &argv);
+    boxlib_init(argc, argv);
 
     BL_PROFILE_VAR("main()", pmain);	
 

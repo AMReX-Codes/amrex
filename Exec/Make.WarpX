@@ -35,8 +35,8 @@ INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Tools/C_scripts
 ifeq ($(USE_PYTHON_MAIN),TRUE)
 
 libwarpx.so: $(objForExecs)
-	@echo Making shared library $@ ...
-	$(SILENT) $(CXX) -shared -fPIC -o $@ $^
+	@echo Making dynamic library $@ ...
+	$(SILENT) $(CXX) $(SHARED_OPTION) -fPIC -o $@ $^ $(LDFLAGS) $(libraries)
 	$(SILENT) $(RM) buildInfo.cpp
 	@echo SUCCESS
 
