@@ -18,7 +18,7 @@ WarpX::WritePlotFile () const
     }
     
     {
-	const std::vector<std::string> varnames {"jx", "jy", "jz", "Ex", "Ey", "Ez", "Bx", "By", "Bz"};
+	const Array<std::string> varnames {"jx", "jy", "jz", "Ex", "Ey", "Ez", "Bx", "By", "Bz"};
 
 	Array<std::unique_ptr<MultiFab> > mf(finest_level+1);
     
@@ -28,7 +28,7 @@ WarpX::WritePlotFile () const
 	    const int ngrow = 0;
 	    mf[lev] = std::unique_ptr<MultiFab>(new MultiFab(grids[lev], ncomp, ngrow, dmap[lev]));
 
-	    std::vector<MultiFab*> srcmf(3);
+	    Array<MultiFab*> srcmf(3);
 	    for (int i = 0; i < 3; ++i) {
 		srcmf[i] = current[lev][i].get();
 	    }
