@@ -17,6 +17,10 @@ class WarpX
     : public AmrCore
 {
 public:
+
+    static WarpX& GetInstance ();
+    static void ResetInstance ();
+
     WarpX ();
     ~WarpX ();
 
@@ -24,7 +28,7 @@ public:
 
     void InitData ();
 
-    void Evolve ();
+    void Evolve (int numsteps);
 
     static void FillBoundary (MultiFab& mf, const Geometry& geom, const IntVect& nodalflag);
 
@@ -43,6 +47,8 @@ protected:
     virtual void ErrorEst (int lev, TagBoxArray& tags, Real time, int /*ngrow*/) override {}
 
 private:
+
+    static WarpX* m_instance;
 
     void EvolveE (int lev, Real dt);
     void EvolveB (int lev, Real dt);

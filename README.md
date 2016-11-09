@@ -8,6 +8,8 @@ This repository is a project to build an **electromagnetic Particle-In-Cell (PIC
 - The highly-optimized PIC code PICSAR
 - The Python interface of the code Warp
 
+NB: [Regression tests](https://ccse.lbl.gov/pub/RegressionTesting/WarpX/) are run every night to check the validity of the code in this repository.
+
 ## Installation
 
 ### Downloading the code
@@ -52,19 +54,20 @@ In addition, `<your_compilation_flags>` should be replaced by the
 compilation flags that you see when typing `mpif90 -show`. For openmpi
 installed with Macports, this is `-lmpi_usempi -lmpi_mpifh -lmpi`.
 
-### Compiling the code
+### Compiling the Langmuir example
 
-`cd` into the the directory `warpx` and type
+`cd` into the the directory `warpx/Exec/Langmuir` and type
 ```
-make -j
+make -j 4
 ```
+(in order to  compile the code in parallel on 4 cores).
 
 In order to clean a previously compiled version:
 ```
 make realclean
 ```
 
-## Running the tests
+## Running the Langmuir tests
 
 The folder `tests/Langmuir` contains code that allow the user
 to run a Langmuir wave case with either WarpX or PICSAR, and to
@@ -72,12 +75,13 @@ compare the results. The instructions below explain how to do this.
 
 ### Running the test with Warpx
 
-After compiling WarpX (see the above instructions), copy the
-compiled executable (its name starts with `main3d`) to the folder
+After compiling WarpX for (see the above instructions), copy the
+compiled executable (its name starts with `main3d`) from the folder
+`Exec/Langmuir/` to the folder
 `tests/Langmuir/`. Then type
 ```
 cd tests/Langmuir
-./<executable_name> input_warpx
+mpirun -np 4 ./<executable_name> input_warpx
 ```
 where `<executable_name>` should be replaced by the name of the
 compiled executable.
@@ -96,29 +100,6 @@ cp fortran_bin/picsar ../warpx/tests/Langmuir/
 cd ../warpx/tests/Langmuir/
 ./picsar
 ```
-
-## Using WarpX
-
-### Configuration of the input file
-
-current_deposition_algo: algorithm for the current deposition
- - 3: Scalar classical current deposition
- - 2: Optimized classical current
- - 1: Esirkepov non optimized
- - 0: Esirkepov optimized
-
-charge_deposition_algo:
- - 0: Optimized version
- - 1: Scalar version
-
-field_gathering_algo:
- - 0: Optmized subroutines
- - 1: Scalar subroutines
- - 2: General order non-optimized version
-
-particle_pusher_algo: algorithm for the particle pusher
- - 0: pusher of Boris
- - 1: pusher of J. L. Vay
 
 ### Visualizing and comparing the results
 
@@ -141,3 +122,31 @@ Then, within the folder `tests/Langmuir`, type:
 jupyter notebook Visualization.ipynb 
 ```
 and follow the instructions that will pop up in your browser.
+
+
+## Using WarpX
+
+### Configuration of the input file
+
+`algo.current_deposition`: algorithm for the current deposition
+
+ - 3: Scalar classical current deposition
+ - 2: Optimized classical current
+ - 1: Esirkepov non optimized
+ - 0: Esirkepov optimized
+
+`algo.charge_deposition`:
+
+ - 0: Optimized version
+ - 1: Scalar version
+
+`algo.field_gathering`:
+
+ - 0: Optmized subroutines
+ - 1: Scalar subroutines
+ - 2: General order non-optimized version
+
+`algo.particle_pusher`: algorithm for the particle pusher
+
+ - 0: pusher of Boris
+ - 1: pusher of J. L. Vay

@@ -1,0 +1,23 @@
+BOXLIB_HOME ?= ../../../BoxLib
+
+DEBUG	= FALSE
+#DEBUG	= TRUE
+
+DIM	= 3
+
+COMP    = gcc
+FCOMP   = gfortran
+
+USE_MPI   = TRUE
+USE_OMP   = FALSE
+
+LIBRARIES += -lwarpx
+
+include $(BOXLIB_HOME)/Tools/C_mk/Make.defs
+
+CEXE_sources += main.cpp
+CEXE_headers += WarpXWrappers.h
+
+INCLUDE_LOCATIONS += ../../Source
+
+include $(BOXLIB_HOME)/Tools/C_mk/Make.rules

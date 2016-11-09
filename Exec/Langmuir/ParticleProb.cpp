@@ -1,4 +1,9 @@
 
+//
+// Each problem must have its own version of MyParticleContainer::InitData()
+// to initialize the particle data on this level
+//
+
 #include <cmath>
 
 #include <BLProfiler.H>
@@ -22,7 +27,7 @@ MyParticleContainer::InitData()
     const Geometry& geom = m_gdb->Geom(lev);
     const Real* dx  = geom.CellSize();
 
-    Real weight, ux;
+    Real weight, ux, uy, uz;
     Real particle_xmin, particle_xmax, particle_ymin, particle_ymax, particle_zmin, particle_zmax;
     int n_part_per_cell;
     {
@@ -40,11 +45,17 @@ MyParticleContainer::InitData()
       pp.query("particle_zmin", particle_zmin);
       pp.query("particle_zmax", particle_zmax);   
  
-      ux = 0.01;
+      ux = 0.;
+      uy = 0.;
+      uz = 0.;
       pp.query("ux", ux);
+      pp.query("uy", uy);
+      pp.query("uz", uz);
 
-      Real gamma = 1.0 / std::sqrt(1.0 - ux*ux);
+      Real gamma = 1./std::sqrt(1.0 - ux*ux - uy*uy - uz*uz);
       ux *= PhysConst::c*gamma;
+      uy *= PhysConst::c*gamma;      
+      uz *= PhysConst::c*gamma;
     }
 
     const BoxArray& ba = m_gdb->ParticleBoxArray(lev);
@@ -95,6 +106,8 @@ MyParticleContainer::InitData()
 		}
 	      
 		p.m_data[PIdx::ux] = ux;
+		p.m_data[PIdx::uy] = uy;
+		p.m_data[PIdx::uz] = uz;
 
 		if (!ParticleBase::Where(p,m_gdb)) // this will set m_cell
 		{

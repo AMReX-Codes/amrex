@@ -12,6 +12,24 @@ long WarpX::nox = 1;
 long WarpX::noy = 1;
 long WarpX::noz = 1;
 
+WarpX* WarpX::m_instance = nullptr;
+
+WarpX&
+WarpX::GetInstance ()
+{
+    if (!m_instance) {
+	m_instance = new WarpX();
+    }
+    return *m_instance;
+}
+
+void
+WarpX::ResetInstance ()
+{
+    delete m_instance;
+    m_instance = nullptr;
+}
+
 WarpX::WarpX ()
 {
     ReadParameters();
@@ -105,7 +123,7 @@ WarpX::MakeNewLevel (int lev, Real time,
 
     // PICSAR assumes all fields are nodal plus one ghost cell.
     const IntVect& nodalflag = IntVect::TheUnitVector();
-    const int ng = 3;
+    const int ng = 1;
 
     for (int i = 0; i < BL_SPACEDIM; ++i) {
 	current[lev].push_back(std::unique_ptr<MultiFab>
