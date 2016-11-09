@@ -601,7 +601,7 @@ contains
                       ex,ey,ez,q,m,dt*0.5_c_real)
       !! --- Set gamma of particles
       CALL pxr_set_gamma(np,uxp,uyp,uzp,gaminv)
-      !! --- Push velocity with B half step
+      !! --- Push velocity with B
       CALL pxr_bpush_v(np,uxp,uyp,uzp,gaminv,      &
                       bx,by,bz,q,m,dt)
       !!! --- Push velocity with E half step
@@ -680,7 +680,7 @@ contains
           norderx,nordery,norderz,             &
           nxguard,nyguard,nzguard,nxs,nys,nzs, &
           pxr_l_nodalgrid)
-     
+
    end if
 
 
