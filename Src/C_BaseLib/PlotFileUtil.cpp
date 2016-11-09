@@ -38,7 +38,7 @@ static std::string MultiFabFileFullName (int level, const std::string& plotfilen
 void
 BoxLib::WriteMultiLevelPlotfile (const std::string& plotfilename, int nlevels,
 				 const Array<const MultiFab*>& mf,
-				 const std::vector<std::string>& varnames,
+				 const Array<std::string>& varnames,
 				 const Array<Geometry>& geom, Real time, const Array<int>& level_steps,
 				 const Array<IntVect>& ref_ratio)
 {
@@ -164,7 +164,7 @@ BoxLib::WriteMultiLevelPlotfile (const std::string& plotfilename, int nlevels,
 
 void
 BoxLib::WriteSingleLevelPlotfile (const std::string& plotfilename,
-				  const MultiFab& mf, const std::vector<std::string>& varnames,
+				  const MultiFab& mf, const Array<std::string>& varnames,
 				  const Geometry& geom, Real time, int level_step)
 {
     Array<const MultiFab*> mfarr(1,&mf);
