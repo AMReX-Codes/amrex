@@ -61,7 +61,7 @@ contains
          implicit none
          integer(c_long), intent(in) :: field_gathe_algo
          integer(c_long), intent(in) :: np,nx,ny,nz,nox,noy,noz,nxguard,nyguard,nzguard
-         logical(c_long), intent(in) :: ll4symtry,l_lower_order_in_v
+         logical, intent(in)      :: ll4symtry,l_lower_order_in_v
          real(c_real), dimension(np) :: xp,yp,zp,ex,ey,ez,bx,by,bz
          real(c_real), intent(in)    :: xmin,ymin,zmin,dx,dy,dz
          real(c_real), dimension(-nxguard:nx+nxguard,-nyguard:ny+nyguard,-nzguard:nz+nzguard) :: exg,eyg,ezg
@@ -71,13 +71,13 @@ contains
 
     integer(c_long), intent(in) :: field_gathe_algo
     integer(c_long), intent(in) :: np,nx,ny,nz,nox,noy,noz,nxguard,nyguard,nzguard
-    integer(c_int), intent(in)  :: ll4symtry,l_lower_order_in_v
+    integer(c_int), intent(in)      :: ll4symtry,l_lower_order_in_v
     real(c_real), dimension(np) :: xp,yp,zp,ex,ey,ez,bx,by,bz
     real(c_real), intent(in)    :: xmin,ymin,zmin,dx,dy,dz
     real(c_real), dimension(-nxguard:nx+nxguard,-nyguard:ny+nyguard,-nzguard:nz+nzguard) :: exg,eyg,ezg
     real(c_real), dimension(-nxguard:nx+nxguard,-nyguard:ny+nyguard,-nzguard:nz+nzguard) :: bxg,byg,bzg
 
-    logical(c_long)             :: pxr_ll4symtry, pxr_l_lower_order_in_v
+    logical :: pxr_ll4symtry, pxr_l_lower_order_in_v
     
     pxr_ll4symtry = ll4symtry .eq. 1
     pxr_l_lower_order_in_v = l_lower_order_in_v .eq. 1
@@ -177,9 +177,9 @@ contains
         INTEGER(c_long) :: np,nx,ny,nz,nox,noy,noz,nxguard,nyguard,nzguard
         INTEGER(c_long) :: lvect ! Useless here, for the common interface
         REAL(c_real), DIMENSION(-nxguard:nx+nxguard,-nyguard:ny+nyguard,-nzguard:nz+nzguard), intent(in out) :: rho
-        REAL(c_real)    :: xp(np), yp(np), zp(np), w(np)
-        REAL(c_real)    :: q,dt,dx,dy,dz,xmin,ymin,zmin
-        LOGICAL(c_long) :: l_particles_weight, l4symtry
+        REAL(c_real) :: xp(np), yp(np), zp(np), w(np)
+        REAL(c_real) :: q,dt,dx,dy,dz,xmin,ymin,zmin
+        LOGICAL :: l_particles_weight, l4symtry
       end subroutine
 
     end interface
@@ -195,8 +195,8 @@ contains
     real(c_real), intent(IN)                                     :: dx,dy,dz
     real(c_real), intent(IN)                                     :: xmin,ymin,zmin
     real(c_real), dimension(np)                                  :: xp,yp,zp,w
-    integer(c_long), intent(IN)                                  :: lvect
-    integer(c_long), intent(IN)                                  :: charge_depo_algo
+    integer(c_long), intent(IN)                                   :: lvect
+    integer(c_long), intent(IN)                                   :: charge_depo_algo
   
 
     ! Dimension 3
@@ -648,7 +648,7 @@ contains
               &                              -nzguard:nz+nzguard) :: jx, jy, jz
          real(c_real), intent(IN) :: mudt,dtsdx(norderx/2),dtsdy(nordery/2),dtsdz(norderz/2)
          integer(c_long) :: j,k,l,ist
-         logical(c_long) :: l_nodalgrid
+         logical :: l_nodalgrid
        end subroutine pxrpush_em3d_evec_norder
     end interface
 
@@ -660,8 +660,9 @@ contains
          &                              -nyguard:ny+nyguard,&
          &                              -nzguard:nz+nzguard) :: jx, jy, jz
     real(c_real), intent(IN) :: mudt,dtsdx(norderx/2),dtsdy(nordery/2),dtsdz(norderz/2)
-    integer(c_int)           :: l_nodalgrid
-    logical(c_long)          :: pxr_l_nodalgrid
+    integer(c_int) :: l_nodalgrid
+
+    logical pxr_l_nodalgrid
 
     pxr_l_nodalgrid = l_nodalgrid .eq. 1
 
@@ -712,7 +713,7 @@ contains
               &                                  -nzguard:nz+nzguard) :: ex,ey,ez,bx,by,bz
          real(c_real), intent(IN) :: dtsdx(norderx/2),dtsdy(nordery/2),dtsdz(norderz/2)
          integer(c_long) :: j,k,l,ist
-         logical(c_long) :: l_nodalgrid
+         logical :: l_nodalgrid
        end subroutine pxrpush_em3d_bvec_norder
     end interface
 
@@ -722,7 +723,8 @@ contains
          &                                  -nzguard:nz+nzguard) :: ex,ey,ez,bx,by,bz
     real(c_real), intent(IN) :: dtsdx(norderx/2),dtsdy(nordery/2),dtsdz(norderz/2)
     integer(c_int)           :: l_nodalgrid
-    logical(c_long)          :: pxr_l_nodalgrid
+
+    logical pxr_l_nodalgrid
 
     pxr_l_nodalgrid = l_nodalgrid .eq. 1
 
