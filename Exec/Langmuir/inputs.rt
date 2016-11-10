@@ -28,6 +28,11 @@ algo.charge_deposition = 0
 algo.field_gathering = 1
 algo.particle_pusher = 0
 
+# Interpolation
+interpolation.nox = 1
+interpolation.noy = 1
+interpolation.noz = 1
+
 # CFL
 warpx.cfl = 1.0
 
