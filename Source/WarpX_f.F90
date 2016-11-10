@@ -3,10 +3,10 @@
 !> @brief
 !> Module that contains subroutines to be called with Boxlib
 !> and that uses subroutines of Picsar
-!> 
+!>
 !> @details
 !> This avoids the use of interface with bind in the core of Picsar
-!> This enables the use of integer in Boxlib and Logical in Picsar 
+!> This enables the use of integer in Boxlib and Logical in Picsar
 !> wihtout compatibility issue
 !>
 !> @author
@@ -22,14 +22,14 @@ module warpx_to_pxr_module
   use bl_fort_module, only : c_real
 
   implicit none
-  
+
 contains
 
   ! _________________________________________________________________
   !>
   !> @brief
   !> Main subroutine for the field gathering process
-  !> 
+  !>
   !> @param[in] np number of particles
   !> @param[in] xp,yp,zp particle position arrays
   !> @param[in] ex,ey,ez particle electric fields in each direction
@@ -41,7 +41,7 @@ contains
   !> @param[in] nox,noy,noz interpolation order
   !> @param[in] exg,eyg,ezg electric field grid arrays
   !> @param[in] bxg,byg,bzg electric field grid arrays
-  !> 
+  !>
   subroutine warpx_geteb3d_energy_conserving(np,xp,yp,zp, &
        ex,ey,ez,bx,by,bz,xmin,ymin,zmin,dx,dy,dz,nx,ny,nz,nxguard,nyguard,nzguard, &
        nox,noy,noz,exg,eyg,ezg,bxg,byg,bzg, &
@@ -61,7 +61,7 @@ contains
          implicit none
          integer(c_long), intent(in) :: field_gathe_algo
          integer(c_long), intent(in) :: np,nx,ny,nz,nox,noy,noz,nxguard,nyguard,nzguard
-         logical, intent(in)      :: ll4symtry,l_lower_order_in_v
+         logical(c_long), intent(in) :: ll4symtry,l_lower_order_in_v
          real(c_real), dimension(np) :: xp,yp,zp,ex,ey,ez,bx,by,bz
          real(c_real), intent(in)    :: xmin,ymin,zmin,dx,dy,dz
          real(c_real), dimension(-nxguard:nx+nxguard,-nyguard:ny+nyguard,-nzguard:nz+nzguard) :: exg,eyg,ezg
@@ -71,17 +71,17 @@ contains
 
     integer(c_long), intent(in) :: field_gathe_algo
     integer(c_long), intent(in) :: np,nx,ny,nz,nox,noy,noz,nxguard,nyguard,nzguard
-    integer(c_int), intent(in)      :: ll4symtry,l_lower_order_in_v
+    integer(c_int), intent(in)  :: ll4symtry,l_lower_order_in_v
     real(c_real), dimension(np) :: xp,yp,zp,ex,ey,ez,bx,by,bz
     real(c_real), intent(in)    :: xmin,ymin,zmin,dx,dy,dz
     real(c_real), dimension(-nxguard:nx+nxguard,-nyguard:ny+nyguard,-nzguard:nz+nzguard) :: exg,eyg,ezg
     real(c_real), dimension(-nxguard:nx+nxguard,-nyguard:ny+nyguard,-nzguard:nz+nzguard) :: bxg,byg,bzg
 
-    logical :: pxr_ll4symtry, pxr_l_lower_order_in_v
-    
+    logical(c_long)             :: pxr_ll4symtry, pxr_l_lower_order_in_v
+
     pxr_ll4symtry = ll4symtry .eq. 1
     pxr_l_lower_order_in_v = l_lower_order_in_v .eq. 1
-    
+
     call geteb3d_energy_conserving(np,xp,yp,zp, &
          ex,ey,ez,bx,by,bz,xmin,ymin,zmin,dx,dy,dz,nx,ny,nz,nxguard,nyguard,nzguard, &
          nox,noy,noz,exg,eyg,ezg,bxg,byg,bzg, &
@@ -94,10 +94,10 @@ contains
   !>
   !> @brief
   !> Main subroutine for the charge deposition
-  !> 
+  !>
   !> @details
-  !> This subroutines enable to controle the interpolation order 
-  !> via the parameters nox,noy,noz and the type of algorithm via 
+  !> This subroutines enable to controle the interpolation order
+  !> via the parameters nox,noy,noz and the type of algorithm via
   !> the parameter charge_depo_algo
   !
   !> @param[inout] rho charge array
@@ -121,7 +121,7 @@ contains
     interface
 
       SUBROUTINE depose_rho_scalar_1_1_1(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,nx,ny,nz,&
-      nxguard,nyguard,nzguard,lvect) 
+      nxguard,nyguard,nzguard,lvect)
         use iso_c_binding
         use bl_fort_module, only : c_real
         implicit none
@@ -133,7 +133,7 @@ contains
       END SUBROUTINE depose_rho_scalar_1_1_1
 
       SUBROUTINE depose_rho_scalar_2_2_2(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,nx,ny,nz,&
-      nxguard,nyguard,nzguard,lvect) 
+      nxguard,nyguard,nzguard,lvect)
         use iso_c_binding
         use bl_fort_module, only : c_real
         implicit none
@@ -145,7 +145,7 @@ contains
       END SUBROUTINE depose_rho_scalar_2_2_2
 
       SUBROUTINE depose_rho_scalar_3_3_3(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,nx,ny,nz,&
-      nxguard,nyguard,nzguard,lvect) 
+      nxguard,nyguard,nzguard,lvect)
         use iso_c_binding
         use bl_fort_module, only : c_real
         implicit none
@@ -177,9 +177,9 @@ contains
         INTEGER(c_long) :: np,nx,ny,nz,nox,noy,noz,nxguard,nyguard,nzguard
         INTEGER(c_long) :: lvect ! Useless here, for the common interface
         REAL(c_real), DIMENSION(-nxguard:nx+nxguard,-nyguard:ny+nyguard,-nzguard:nz+nzguard), intent(in out) :: rho
-        REAL(c_real) :: xp(np), yp(np), zp(np), w(np)
-        REAL(c_real) :: q,dt,dx,dy,dz,xmin,ymin,zmin
-        LOGICAL :: l_particles_weight, l4symtry
+        REAL(c_real)    :: xp(np), yp(np), zp(np), w(np)
+        REAL(c_real)    :: q,dt,dx,dy,dz,xmin,ymin,zmin
+        LOGICAL(c_long) :: l_particles_weight, l4symtry
       end subroutine
 
     end interface
@@ -195,9 +195,9 @@ contains
     real(c_real), intent(IN)                                     :: dx,dy,dz
     real(c_real), intent(IN)                                     :: xmin,ymin,zmin
     real(c_real), dimension(np)                                  :: xp,yp,zp,w
-    integer(c_long), intent(IN)                                   :: lvect
-    integer(c_long), intent(IN)                                   :: charge_depo_algo
-  
+    integer(c_long), intent(IN)                                  :: lvect
+    integer(c_long), intent(IN)                                  :: charge_depo_algo
+
 
     ! Dimension 3
 #if (defined(BL_SPACEDIM)&&(BL_SPACEDIM==3))
@@ -224,8 +224,8 @@ contains
       ELSE
         CALL pxr_depose_rho_n(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,nx,ny,nz,&
                     nxguard,nyguard,nzguard,nox,noy,noz, &
-                    .TRUE.,.FALSE.)
-      ENDIF      
+                    .TRUE._c_long,.FALSE._c_long)
+      ENDIF
 
     ! Optimized subroutines
     CASE DEFAULT
@@ -236,8 +236,8 @@ contains
       ELSE
         CALL pxr_depose_rho_n(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,nx,ny,nz,&
                     nxguard,nyguard,nzguard,nox,noy,noz, &
-                    .TRUE.,.FALSE.)
-      ENDIF     
+                    .TRUE._c_long,.FALSE._c_long)
+      ENDIF
     END SELECT
 
     ! Dimension 2
@@ -252,10 +252,10 @@ contains
   !>
   !> @brief
   !> Main subroutine for the current deposition
-  !> 
+  !>
   !> @details
-  !> This subroutines enable to controle the interpolation order 
-  !> via the parameters nox,noy,noz and the type of algorithm via 
+  !> This subroutines enable to controle the interpolation order
+  !> via the parameters nox,noy,noz and the type of algorithm via
   !> the parameter current_depo_algo
   !
   !> @param[inout] jx,jy,jz current arrays
@@ -283,7 +283,7 @@ contains
     interface
 
       subroutine depose_jxjyjz_scalar_1_1_1(jx,jy,jz,np,xp,yp,zp,uxp,uyp,uzp,gaminv,w,q,xmin,ymin,zmin, &
-           dt,dx,dy,dz,nx,ny,nz,nxguard,nyguard,nzguard) 
+           dt,dx,dy,dz,nx,ny,nz,nxguard,nyguard,nzguard)
         use iso_c_binding
         use bl_fort_module, only : c_real
         implicit none
@@ -294,7 +294,7 @@ contains
       end subroutine depose_jxjyjz_scalar_1_1_1
 
       subroutine depose_jxjyjz_scalar_2_2_2(jx,jy,jz,np,xp,yp,zp,uxp,uyp,uzp,gaminv,w,q,xmin,ymin,zmin, &
-           dt,dx,dy,dz,nx,ny,nz,nxguard,nyguard,nzguard) 
+           dt,dx,dy,dz,nx,ny,nz,nxguard,nyguard,nzguard)
         use iso_c_binding
         use bl_fort_module, only : c_real
         implicit none
@@ -305,7 +305,7 @@ contains
       end subroutine depose_jxjyjz_scalar_2_2_2
 
       subroutine depose_jxjyjz_scalar_3_3_3(jx,jy,jz,np,xp,yp,zp,uxp,uyp,uzp,gaminv,w,q,xmin,ymin,zmin, &
-           dt,dx,dy,dz,nx,ny,nz,nxguard,nyguard,nzguard) 
+           dt,dx,dy,dz,nx,ny,nz,nxguard,nyguard,nzguard)
         use iso_c_binding
         use bl_fort_module, only : c_real
         implicit none
@@ -395,13 +395,13 @@ contains
 
       SUBROUTINE pxr_depose_jxjyjz_esirkepov_n(jx,jy,jz,np,xp,yp,zp,uxp,uyp,uzp,gaminv,w,q,xmin,ymin,zmin, &
            dt,dx,dy,dz,nx,ny,nz,nxguard,nyguard,nzguard, &
-           nox,noy,noz,l_particles_weight,l4symtry) 
+           nox,noy,noz,l_particles_weight,l4symtry)
         use iso_c_binding
         use bl_fort_module, only : c_real
         implicit none
         INTEGER(c_long)             :: np,nx,ny,nz,nox,noy,noz,nxguard,nyguard,nzguard
         REAL(c_real), DIMENSION(np) :: xp,yp,zp,uxp,uyp,uzp, w, gaminv
-        REAL(c_real)                :: q,dt,dx,dy,dz,xmin,ymin,zmin  
+        REAL(c_real)                :: q,dt,dx,dy,dz,xmin,ymin,zmin
         REAL(c_real), DIMENSION(-nxguard:nx+nxguard,-nyguard:ny+nyguard,-nzguard:nz+nzguard), intent(in out) :: jx,jy,jz
         LOGICAL(c_long) :: l_particles_weight,l4symtry
       end subroutine
@@ -424,7 +424,7 @@ contains
     real(c_real), dimension(np)                                  :: gaminv
     integer(c_int), intent(IN)                                   :: lvect
     integer(c_int), intent(IN)                                   :: current_depo_algo
-  
+
     ! Dimension 3
 #if (defined(BL_SPACEDIM)&&(BL_SPACEDIM==3))
 
@@ -509,9 +509,9 @@ contains
   !>
   !> @brief
   !> Main subroutine for the particle pusher
-  !> 
+  !>
   !> @param[in] np number of super-particles
-  !> @param[in] xp,yp,zp particle position arrays  
+  !> @param[in] xp,yp,zp particle position arrays
   !> @param[in] uxp,uyp,uzp normalized momentum in each direction
   !> @param[in] gaminv particle Lorentz factors
   !> @param[in] ex,ey,ez particle electric fields in each direction
@@ -525,7 +525,7 @@ contains
                                   ex,ey,ez,bx,by,bz,q,m,dt, &
                                   particle_pusher_algo) &
        bind(C, name="warpx_particle_pusher")
-  ! _________________________________________________________________ 
+  ! _________________________________________________________________
     interface
       subroutine pxr_epush_v(np,uxp,uyp,uzp,ex,ey,ez,q,m,dt)
         use iso_c_binding
@@ -576,7 +576,7 @@ contains
         REAL(c_real)      :: dt
       end subroutine
 
-    end interface    
+    end interface
 
     INTEGER(c_long), INTENT(IN)   :: np
     REAL(c_real),INTENT(INOUT)    :: gaminv(np)
@@ -621,14 +621,14 @@ contains
   !>
   !> @brief
   !> Main function in warpx for evolving the electric field
-  !> 
+  !>
   subroutine warpx_pxrpush_em3d_evec_norder(ex,ey,ez,bx,by,bz,jx,jy,jz,mudt,    &
        dtsdx,dtsdy,dtsdz,nx,ny,nz,   &
        norderx,nordery,norderz,             &
        nxguard,nyguard,nzguard,nxs,nys,nzs, &
        l_nodalgrid) &  !!!!!
        bind(C, name="warpx_pxrpush_em3d_evec_norder")
-  ! _________________________________________________________________ 
+  ! _________________________________________________________________
 
     interface
        subroutine pxrpush_em3d_evec_norder(ex,ey,ez,bx,by,bz,jx,jy,jz,mudt, &
@@ -648,7 +648,7 @@ contains
               &                              -nzguard:nz+nzguard) :: jx, jy, jz
          real(c_real), intent(IN) :: mudt,dtsdx(norderx/2),dtsdy(nordery/2),dtsdz(norderz/2)
          integer(c_long) :: j,k,l,ist
-         logical :: l_nodalgrid
+         logical(c_long) :: l_nodalgrid
        end subroutine pxrpush_em3d_evec_norder
     end interface
 
@@ -660,9 +660,8 @@ contains
          &                              -nyguard:ny+nyguard,&
          &                              -nzguard:nz+nzguard) :: jx, jy, jz
     real(c_real), intent(IN) :: mudt,dtsdx(norderx/2),dtsdy(nordery/2),dtsdz(norderz/2)
-    integer(c_int) :: l_nodalgrid
-
-    logical pxr_l_nodalgrid
+    integer(c_int)           :: l_nodalgrid
+    logical(c_long)          :: pxr_l_nodalgrid
 
     pxr_l_nodalgrid = l_nodalgrid .eq. 1
 
@@ -672,7 +671,7 @@ contains
            dtsdx,dtsdy,dtsdz,nx,ny,nz,   &
            nxguard,nyguard,nzguard,nxs,nys,nzs, &
            pxr_l_nodalgrid)
-    
+
     else
 
      call pxrpush_em3d_evec_norder(ex,ey,ez,bx,by,bz,jx,jy,jz,mudt, &
@@ -690,7 +689,7 @@ contains
   !>
   !> @brief
   !> Main function in warpx for evolving the magnetic field
-  !> 
+  !>
   subroutine warpx_pxrpush_em3d_bvec_norder(ex,ey,ez,bx,by,bz,                  &
        dtsdx,dtsdy,dtsdz,nx,ny,nz,          &
        norderx,nordery,norderz,             &
@@ -703,7 +702,7 @@ contains
             dtsdx,dtsdy,dtsdz,nx,ny,nz,          &
             norderx,nordery,norderz,             &
             nxguard,nyguard,nzguard,nxs,nys,nzs, &
-            l_nodalgrid) 
+            l_nodalgrid)
          use iso_c_binding
          use bl_fort_module, only : c_real
          implicit none
@@ -713,7 +712,7 @@ contains
               &                                  -nzguard:nz+nzguard) :: ex,ey,ez,bx,by,bz
          real(c_real), intent(IN) :: dtsdx(norderx/2),dtsdy(nordery/2),dtsdz(norderz/2)
          integer(c_long) :: j,k,l,ist
-         logical :: l_nodalgrid
+         logical(c_long) :: l_nodalgrid
        end subroutine pxrpush_em3d_bvec_norder
     end interface
 
@@ -723,8 +722,7 @@ contains
          &                                  -nzguard:nz+nzguard) :: ex,ey,ez,bx,by,bz
     real(c_real), intent(IN) :: dtsdx(norderx/2),dtsdy(nordery/2),dtsdz(norderz/2)
     integer(c_int)           :: l_nodalgrid
-
-    logical pxr_l_nodalgrid
+    logical(c_long)          :: pxr_l_nodalgrid
 
     pxr_l_nodalgrid = l_nodalgrid .eq. 1
 
