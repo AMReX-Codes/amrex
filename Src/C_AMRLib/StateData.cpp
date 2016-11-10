@@ -688,8 +688,8 @@ StateData::InterpFillFab (MultiFabCopyDescriptor&  multiFabCopyDesc,
 }
 
 void
-StateData::getData (PArray<MultiFab>& data,
-		    std::vector<Real>& datatime,
+StateData::getData (Array<MultiFab*>& data,
+		    Array<Real>& datatime,
 		    Real time) const
 {
     data.clear();

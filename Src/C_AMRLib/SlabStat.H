@@ -2,6 +2,7 @@
 #define _SlabStat_H_
 
 #include <list>
+#include <memory>
 #include <ArrayLim.H>
 #include <REAL.H>
 #include <Box.H>
@@ -204,7 +205,7 @@ public:
     //
     // Write out any SlabStats in the list.
     //
-    void checkPoint (PArray<AmrLevel>& amrLevels, int level0_step);
+    void checkPoint (Array<std::unique_ptr<AmrLevel> >& amrLevels, int level0_step);
 
     std::list<SlabStatRec*>& list ();
 

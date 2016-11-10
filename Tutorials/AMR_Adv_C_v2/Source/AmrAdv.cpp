@@ -82,15 +82,14 @@ AmrAdv::MakeNewLevel (int lev, Real time,
     SetBoxArray(lev, new_grids);
     SetDistributionMap(lev, new_dmap);
 
-    phi_new[lev] = std::unique_ptr<MultiFab>(new MultiFab(grids[lev], ncomp, nghost, dmap[lev]));
-    phi_old[lev] = std::unique_ptr<MultiFab>(new MultiFab(grids[lev], ncomp, nghost, dmap[lev]));
+    phi_new[lev].reset(new MultiFab(grids[lev], ncomp, nghost, dmap[lev]));
+    phi_old[lev].reset(new MultiFab(grids[lev], ncomp, nghost, dmap[lev]));
 
     t_new[lev] = time;
     t_old[lev] = time - 1.e200;
 
     if (lev > 0 && do_reflux) {
-	flux_reg[lev] = std::unique_ptr<FluxRegister>
-	    (new FluxRegister(grids[lev], refRatio(lev-1), lev, ncomp, dmap[lev]));
+	flux_reg[lev].reset(new FluxRegister(grids[lev], refRatio(lev-1), lev, ncomp, dmap[lev]));
     }
 }
 
@@ -101,8 +100,13 @@ AmrAdv::RemakeLevel (int lev, Real time,
     const int ncomp = phi_new[lev]->nComp();
     const int nghost = phi_new[lev]->nGrow();
 
+#if __cplusplus >= 201402L
+    auto new_state = std::make_unique<MultiFab>(new_grids, ncomp, nghost, new_dmap);
+    auto old_state = std::amke_unique<MultiFab>(new_grids, ncomp, nghost, new_dmap);
+#else
     auto new_state = std::unique_ptr<MultiFab>(new MultiFab(new_grids, ncomp, nghost, new_dmap));
     auto old_state = std::unique_ptr<MultiFab>(new MultiFab(new_grids, ncomp, nghost, new_dmap));
+#endif
 
     FillPatch(lev, time, *new_state, 0, ncomp);
 
@@ -116,8 +120,7 @@ AmrAdv::RemakeLevel (int lev, Real time,
     t_old[lev] = time - 1.e200;
 
     if (lev > 0 && do_reflux) {
-	flux_reg[lev] = std::unique_ptr<FluxRegister>
-	    (new FluxRegister(grids[lev], refRatio(lev-1), lev, ncomp, dmap[lev]));
+	flux_reg[lev].reset(new FluxRegister(grids[lev], refRatio(lev-1), lev, ncomp, dmap[lev]));
     }    
 }
 
@@ -203,8 +206,8 @@ AmrAdv::FillPatch (int lev, Real time, MultiFab& mf, int icomp, int ncomp)
 {
     if (lev == 0)
     {
-	PArray<MultiFab> smf;
-	std::vector<Real> stime;
+	Array<MultiFab*> smf;
+	Array<Real> stime;
 	GetData(0, time, smf, stime);
 
 	AmrAdvPhysBC physbc;
@@ -213,8 +216,8 @@ AmrAdv::FillPatch (int lev, Real time, MultiFab& mf, int icomp, int ncomp)
     }
     else
     {
-	PArray<MultiFab> cmf, fmf;
-	std::vector<Real> ctime, ftime;
+	Array<MultiFab*> cmf, fmf;
+	Array<Real> ctime, ftime;
 	GetData(lev-1, time, cmf, ctime);
 	GetData(lev  , time, fmf, ftime);
 
@@ -233,7 +236,7 @@ AmrAdv::FillPatch (int lev, Real time, MultiFab& mf, int icomp, int ncomp)
 }
 
 void
-AmrAdv::GetData (int lev, Real time, PArray<MultiFab>& data, std::vector<Real>& datatime)
+AmrAdv::GetData (int lev, Real time, Array<MultiFab*>& data, Array<Real>& datatime)
 {
     data.clear();
     datatime.clear();

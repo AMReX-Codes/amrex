@@ -12,13 +12,13 @@ namespace BoxLib
 			 const IndexType& boxType, Interpolater* mapper);
 
     void FillPatchSingleLevel (MultiFab& mf, Real time, 
-			       const PArray<MultiFab>& smf, const std::vector<Real>& stime, 
+			       const Array<MultiFab*>& smf, const Array<Real>& stime, 
 			       int scomp, int dcomp, int ncomp,
 			       const Geometry& geom, PhysBCFunctBase& physbcf);
 
     void FillPatchTwoLevels (MultiFab& mf, Real time,
-			     const PArray<MultiFab>& cmf, const std::vector<Real>& ct,
-			     const PArray<MultiFab>& fmf, const std::vector<Real>& ft,
+			     const Array<MultiFab*>& cmf, const Array<Real>& ct,
+			     const Array<MultiFab*>& fmf, const Array<Real>& ft,
 			     int scomp, int dcomp, int ncomp,
 			     const Geometry& cgeom, const Geometry& fgeom, 
 			     PhysBCFunctBase& cbc, PhysBCFunctBase& fbc,

@@ -3,10 +3,9 @@
 #define _StateDescriptor_H_ 
 
 #include <utility>
-#include <vector>
+#include <memory>
 
 #include <Array.H>
-#include <PArray.H>
 #include <REAL.H>
 #include <Box.H>
 #include <PhysBCFunct.H>
@@ -244,7 +243,7 @@ private:
     bool               m_store_in_checkpoint; // Should store this in the checkpoint file?
     Array<std::string> names;    // Printable names of components
     Array<BCRec>       bc;       // Array of bndry types for entire level
-    PArray<BndryFunc>  bc_func;  // PArray of pointers to bndry fill functions
+    Array<std::unique_ptr<BndryFunc> >  bc_func;  // Array of pointers to bndry fill functions
     Array<int>         m_master; // Are we a master or slave? (true or false)
     Array<int>         m_groupsize; // Groupsize if we're a master
     //
@@ -346,7 +345,7 @@ private:
     DescriptorList (const DescriptorList&);
     DescriptorList& operator= (const DescriptorList&);
 
-    PArray<StateDescriptor> desc;
+    Array<std::unique_ptr<StateDescriptor> > desc;
 };
 
 #endif /*_StateDescriptor_H_*/

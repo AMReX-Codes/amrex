@@ -6,10 +6,10 @@
 #include <limits>
 #include <algorithm>
 #include <new>
+#include <memory>
 #include <cstring>
 
 #include <CArena.H>
-#include <PArray.H>
 #include <MemPool.H>
 
 #ifdef BL_MEM_PROFILING
@@ -22,7 +22,7 @@
 
 namespace
 {
-    static PArray<CArena> the_memory_pool;
+    static Array<std::unique_ptr<CArena> > the_memory_pool;
 #if defined(BL_TESTING) || defined(DEBUG)
     static int init_snan = 1;
 #else
@@ -49,9 +49,9 @@ void mempool_init()
 #else
 	int nthreads = 1;
 #endif
-	the_memory_pool.resize(nthreads, PArrayManage);
+	the_memory_pool.resize(nthreads);
 	for (int i=0; i<nthreads; ++i) {
-	    the_memory_pool.set(i, new CArena());
+	    the_memory_pool[i].reset(new CArena);
 	}
 #ifdef _OPENMP
 #pragma omp parallel
@@ -82,7 +82,7 @@ void* mempool_alloc (size_t nbytes)
 #else
   int tid = 0;
 #endif
-  return the_memory_pool[tid].alloc(nbytes);
+  return the_memory_pool[tid]->alloc(nbytes);
 }
 
 void mempool_free (void* p) 
@@ -92,7 +92,7 @@ void mempool_free (void* p)
 #else
   int tid = 0;
 #endif
-  the_memory_pool[tid].free(p);
+  the_memory_pool[tid]->free(p);
 }
 
 void mempool_get_stats (int& mp_min, int& mp_max, int& mp_tot) // min, max & tot in MB
@@ -100,8 +100,8 @@ void mempool_get_stats (int& mp_min, int& mp_max, int& mp_tot) // min, max & tot
   size_t hsu_min=std::numeric_limits<size_t>::max();
   size_t hsu_max=0;
   size_t hsu_tot=0;
-  for (int i=0; i<the_memory_pool.size(); ++i) {
-    size_t hsu = the_memory_pool[i].heap_space_used();
+  for (const auto& mp : the_memory_pool) {
+    size_t hsu = mp->heap_space_used();
     hsu_min = std::min(hsu, hsu_min);
     hsu_max = std::max(hsu, hsu_max);
     hsu_tot += hsu;
