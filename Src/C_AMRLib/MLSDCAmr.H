@@ -62,8 +62,8 @@ public:
     return (MLSDCAmr*) parent;
   }
 
-  virtual void restrict(MLSDCAmrEncap& F, MLSDCAmrEncap& G, Real t, MLSDCAmrLevel& levelG) = 0;
-  virtual void interpolate(MLSDCAmrEncap& F, MLSDCAmrEncap& G, Real t, bool correction, bool evaluation, MLSDCAmrLevel& levelG) = 0;
+  virtual void Restrict(MLSDCAmrEncap& F, MLSDCAmrEncap& G, Real t, MLSDCAmrLevel& levelG) = 0;
+  virtual void Interpolate(MLSDCAmrEncap& F, MLSDCAmrEncap& G, Real t, bool correction, bool evaluation, MLSDCAmrLevel& levelG) = 0;
 };
 
 /*

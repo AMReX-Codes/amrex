@@ -267,7 +267,6 @@ ifeq ($(MACHINE), Linux)
                 ifneq ($(HOST), hicegate0)     # This is Wolfram Schmidt's machine
                   ifneq ($(WHICHLINUX), DONEV)
                     ifneq ($(HOST), stribog)   # This is Zarija Lukic's machine
-                        ifneq ($(WHICHLINUX), BABBAGE)
                           ifneq ($(WHICHLINUX), MIRA)
                             ifneq ($(findstring ad.unsw.edu.au, $(HOST)), ad.unsw.edu.au)
                               ifneq ($(WHICHLINUX), CORI)
@@ -277,7 +276,6 @@ ifeq ($(MACHINE), Linux)
                               endif
                             endif
                           endif
-                      endif  
                     endif  
                   endif  
                 endif
