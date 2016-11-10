@@ -132,15 +132,12 @@ StateDescriptor::BndryFunc::Print () const
 
 
 DescriptorList::DescriptorList ()
-    :
-    desc(PArrayManage)
 {}
 
 void
 DescriptorList::clear ()
 {
     desc.clear();
-    desc.resize(0);
 }
 
 int
@@ -155,7 +152,7 @@ DescriptorList::resetComponentBCs (int                               indx,
                                    const BCRec&                      bc,
                                    const StateDescriptor::BndryFunc& func)
 {
-    desc[indx].resetComponentBCs(comp,bc,func);
+    desc[indx]->resetComponentBCs(comp,bc,func);
 }
 
 void
@@ -168,7 +165,7 @@ DescriptorList::setComponent (int                               indx,
                               int                               max_map_start_comp,
                               int                               min_map_end_comp)
 {
-    desc[indx].setComponent(comp,nm,bc,func,interp,max_map_start_comp,min_map_end_comp);
+    desc[indx]->setComponent(comp,nm,bc,func,interp,max_map_start_comp,min_map_end_comp);
 }
 
 void
@@ -183,14 +180,14 @@ DescriptorList::setComponent (int                               indx,
     {
         const bool master = (i == 0) ? true : false;
 
-        desc[indx].setComponent(comp+i,nm[i],bc[i],func,interp,master,nm.size());
+        desc[indx]->setComponent(comp+i,nm[i],bc[i],func,interp,master,nm.size());
     }
 }
 
 const StateDescriptor&
 DescriptorList::operator[] (int k) const
 {
-    return desc[k];
+    return *desc[k];
 }
 
 void
@@ -205,7 +202,7 @@ DescriptorList::addDescriptor (int                         indx,
 {
     if (indx >= desc.size())
         desc.resize(indx+1);
-    desc.set(indx,new StateDescriptor(typ,ttyp,indx,nextra,num_comp,interp,extrap,store_in_checkpoint));
+    desc[indx].reset(new StateDescriptor(typ,ttyp,indx,nextra,num_comp,interp,extrap,store_in_checkpoint));
 }  
 
 
@@ -213,8 +210,8 @@ void
 DescriptorList::Print () const
 {
   std::cout << "==== DescriptorList:  size  = " << desc.size() << std::endl;
-  for(int i(0); i < desc.size(); ++i) {
-    desc[i].Print();
+  for(const auto& d : desc) {
+      d->Print();
   }
 }
 
@@ -227,8 +224,7 @@ StateDescriptor::StateDescriptor ()
     ngrow(0),
     mapper(0),
     m_extrap(false),
-    m_store_in_checkpoint(true),
-    bc_func(PArrayManage)
+    m_store_in_checkpoint(true)
 {}
 
 StateDescriptor::StateDescriptor (IndexType                   btyp,
@@ -247,8 +243,7 @@ StateDescriptor::StateDescriptor (IndexType                   btyp,
     ngrow(nextra),
     mapper(interp),
     m_extrap(extrap),
-    m_store_in_checkpoint(store_in_checkpoint),
-    bc_func(PArrayManage)
+    m_store_in_checkpoint(store_in_checkpoint)
 {
     BL_ASSERT (num_comp > 0);
    
@@ -274,8 +269,7 @@ StateDescriptor::resetComponentBCs (int              comp,
 {
     BL_ASSERT(comp >= 0 && comp < ncomp);
 
-    bc_func.clear(comp);
-    bc_func.set(comp,func.clone());
+    bc_func[comp].reset(func.clone());
     bc[comp] = bcr;
 }
 
@@ -349,7 +343,7 @@ StateDescriptor::store_in_checkpoint () const
 const StateDescriptor::BndryFunc&
 StateDescriptor::bndryFill (int i) const
 {
-    return bc_func[i];
+    return *bc_func[i];
 }
 
 int
@@ -398,8 +392,7 @@ StateDescriptor::setComponent (int                               comp,
                                int                               max_map_start_comp_,
                                int                               min_map_end_comp_)
 {
-    bc_func.clear(comp);
-    bc_func.set(comp,func.clone());
+    bc_func[comp].reset(func.clone());
 
     names[comp]       = nm;
     bc[comp]          = bcr;
@@ -649,7 +642,7 @@ StateDescriptor::Print () const
   }
   for(int i(0); i < bc_func.size(); ++i) {
     std::cout << "==== StateDescriptor:  bc_func[" << i << "]  = " << std::endl;
-    bc_func[i].Print();
+    bc_func[i]->Print();
     std::cout << std::endl;
   }
   for(int i(0); i < m_master.size(); ++i) {

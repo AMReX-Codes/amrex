@@ -3,12 +3,12 @@
 #define _Amr_H_ 
 
 #include <fstream>
+#include <memory>
 
 #include <Box.H>
 #include <Geometry.H>
 #include <BoxArray.H>
 #include <Array.H>
-#include <PArray.H>
 #include <BCRec.H>
 
 #include <AmrCore.H>
@@ -226,11 +226,11 @@ public:
     //
     // AmrLevel lev.
     //
-    AmrLevel&  getLevel (int lev) { return amr_level[lev]; }
+    AmrLevel& getLevel (int lev) { return *amr_level[lev]; }
     //
-    // PArray of AmrLevels.
+    // Array of AmrLevels.
     //
-    PArray<AmrLevel>& getAmrLevels ();
+    Array<std::unique_ptr<AmrLevel> >& getAmrLevels ();
     //
     // Total number of cells.
     //
@@ -499,7 +499,7 @@ protected:
     //
     std::string      regrid_grids_file;   // Grids file that will bypass regridding.
     std::string      initial_grids_file;  // Grids file that will bypass regridding only at initialization.
-    PArray<AmrLevel> amr_level;    // Array of levels
+    Array<std::unique_ptr<AmrLevel> > amr_level;    // Array of levels
     Real             cumtime;      // Physical time variable.
     Real             start_time;   // Physical time this simulation started.
     Array<Real>      dt_level;     // Timestep at this level.
@@ -538,7 +538,7 @@ protected:
     std::ofstream    gridlog;
     std::ofstream    runlog;
     std::ofstream    runlog_terse;
-    PArray<std::fstream> datalog;
+    Array<std::unique_ptr<std::fstream> > datalog;
     Array<std::string> datalogname;
     int              sub_cycle;
     std::string      restart_chkfile;

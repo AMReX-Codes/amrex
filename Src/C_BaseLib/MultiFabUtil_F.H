@@ -36,7 +36,7 @@ BL_FORT_PROC_DECL(BL_AVG_CC_TO_FC, bl_avg_cc_to_fc)
 
 BL_FORT_PROC_DECL(BL_AVGDOWN_FACES, bl_avgdown_faces)
   (const int* lo, const int* hi,
-   BL_FORT_FAB_ARG(fine),
+   const BL_FORT_FAB_ARG(fine),
    BL_FORT_FAB_ARG(crse),
    const int* ratio, const int& n, const int& ncomp); 
 

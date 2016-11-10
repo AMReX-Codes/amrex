@@ -12,6 +12,7 @@
 #include <Geometry.H>
 #include <Tuple.H>
 
+#include <memory>
 #include <map>
 
 //
@@ -91,7 +92,7 @@ public:
                  const Geometry& geom,
 		 ParallelDescriptor::Color color = ParallelDescriptor::DefaultColor());
     //
-    const MultiMask& bndryMasks (Orientation face) const { return masks[face]; }
+    const MultiMask& bndryMasks (Orientation face) const { return *masks[face]; }
     //
     // Return FabSet on given face.
     //
@@ -186,7 +187,7 @@ protected:
     //
     // Boundary condition mask
     //
-    PArray<MultiMask> masks;
+    Array<std::unique_ptr<MultiMask>> masks;
     //
     // Domain used for mask definitions.
     //

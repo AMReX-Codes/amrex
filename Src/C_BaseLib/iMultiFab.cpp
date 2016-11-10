@@ -12,7 +12,6 @@
 #include <ParallelDescriptor.H>
 #include <BLProfiler.H>
 #include <ParmParse.H>
-#include <PArray.H>
 
 namespace
 {

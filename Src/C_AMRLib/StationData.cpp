@@ -21,7 +21,7 @@ StationData::~StationData ()
 }
 
 void
-StationData::init (const PArray<AmrLevel>& levels, const int finestlevel)
+StationData::init (const Array<std::unique<AmrLevel> >& levels, const int finestlevel)
 {
     //
     // ParmParse variables:
@@ -111,7 +111,7 @@ StationData::init (const PArray<AmrLevel>& levels, const int finestlevel)
 
     // adjust the positions so they are not exactly on a grid line
     // cannot use [levels.size()-1] because of level capping
-    const Real *fineDX = levels[finestlevel].Geom().CellSize();
+    const Real *fineDX = levels[finestlevel]->Geom().CellSize();
     for(int i(0); i < m_stn.size(); ++i) {
       for(int d(0); d < BL_SPACEDIM; ++d) {
         Real tempPos(m_stn[i].pos[d]), dx(fineDX[d]);
@@ -297,7 +297,7 @@ StationData::report (Real            time,
 }
 
 void
-StationData::findGrid (const PArray<AmrLevel>& levels,
+StationData::findGrid (const Array<std::unique_ptr<AmrLevel> >& levels,
                        const Array<Geometry>&  geoms)
 {
     BL_ASSERT(geoms.size() == levels.size());
@@ -316,19 +316,19 @@ StationData::findGrid (const PArray<AmrLevel>& levels,
 
     for (int level = levels.size()-1; level >= 0; level--)
     {
-        if (levels.defined(level))
+        if (levels[level])
         {
-            Array<RealBox> boxes(levels[level].boxArray().size());
+            Array<RealBox> boxes(levels[level]->boxArray().size());
 
             for (int i = 0; i < boxes.size(); i++)
             {
-                boxes[i] = RealBox(levels[level].boxArray()[i],
-                                   levels[level].Geom().CellSize(),
-                                   levels[level].Geom().ProbLo());
+                boxes[i] = RealBox(levels[level]->boxArray()[i],
+                                   levels[level]->Geom().CellSize(),
+                                   levels[level]->Geom().ProbLo());
             }
 
 
-            MultiFab mf(levels[level].boxArray(),1,0,Fab_noallocate);
+            MultiFab mf(levels[level]->boxArray(),1,0,Fab_noallocate);
 
             BL_ASSERT(mf.boxArray().size() == boxes.size());
 

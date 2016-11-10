@@ -50,11 +50,11 @@ private:
     void Advance (int lev, Real time, Real dt, int iteration, int ncycle);
 
     void FillPatch (int lev, Real time, MultiFab& mf, int icomp, int ncomp);
-    void GetData (int lev, Real time, PArray<MultiFab>& data, std::vector<Real>& datatime);
+    void GetData (int lev, Real time, Array<MultiFab*>& data, Array<Real>& datatime);
 
     std::string PlotFileName (int lev) const;
     Array<const MultiFab*> PlotFileMF () const;
-    std::vector<std::string> PlotFileVarNames () const;
+    Array<std::string> PlotFileVarNames () const;
     void WritePlotFile () const;
 
     Array<int> istep;      // which step?
