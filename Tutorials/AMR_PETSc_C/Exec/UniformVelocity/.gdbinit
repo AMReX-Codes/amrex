@@ -1,2 +1,0 @@
-b MPI_Abort
-
