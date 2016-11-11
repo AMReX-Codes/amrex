@@ -74,7 +74,6 @@ mgt_setni   mgt_set_pr         = mgt_set_pr_1d;
 mgt_set     mgt_set_rh         = mgt_set_rh_1d;
 mgt_set     mgt_set_cfa        = mgt_set_cfa_1d;
 mgt_setr    mgt_set_cfaa       = mgt_set_cfaa_1d;
-mgt_setn    mgt_set_cfa2       = mgt_set_cfa2_1d;
 mgt_set_cf  mgt_set_cfbx       = mgt_set_cfbx_1d;
 mgt_set_cfn mgt_set_cfbnx      = mgt_set_cfbnx_1d;
 mgt_set_c   mgt_set_cfa_const  = mgt_set_cfa_1d_const;
@@ -96,7 +95,6 @@ mgt_setni   mgt_set_pr         = mgt_set_pr_2d;
 mgt_set     mgt_set_rh         = mgt_set_rh_2d;
 mgt_set     mgt_set_cfa        = mgt_set_cfa_2d;
 mgt_setr     mgt_set_cfaa      = mgt_set_cfaa_2d;
-mgt_setn    mgt_set_cfa2       = mgt_set_cfa2_2d;
 mgt_set_c   mgt_set_cfa_const  = mgt_set_cfa_2d_const;
 mgt_set_cf  mgt_set_cfbx       = mgt_set_cfbx_2d;
 mgt_set_cfn mgt_set_cfbnx      = mgt_set_cfbnx_2d;
@@ -120,7 +118,6 @@ mgt_setni   mgt_set_pr         = mgt_set_pr_3d;
 mgt_set     mgt_set_rh         = mgt_set_rh_3d;
 mgt_set     mgt_set_cfa        = mgt_set_cfa_3d;
 mgt_setr     mgt_set_cfaa      = mgt_set_cfaa_3d;
-mgt_setn    mgt_set_cfa2       = mgt_set_cfa2_3d;
 mgt_set_c   mgt_set_cfa_const  = mgt_set_cfa_3d_const;
 mgt_set_cf  mgt_set_cfbx       = mgt_set_cfbx_3d;
 mgt_set_cfn mgt_set_cfbnx      = mgt_set_cfbnx_3d;
@@ -144,10 +141,10 @@ mgt_set     mgt_set_rhcc_nodal = mgt_set_rhcc_nodal_3d;
 //    (\alpha I - \beta \sum_i (1/b_i) \nabla a_i \nabla) \phi
 //
 
-MGT_Solver::MGT_Solver(const std::vector<Geometry>& geom, 
+MGT_Solver::MGT_Solver(const Array<Geometry>& geom, 
                        int* bc, 
-		       const std::vector<BoxArray>& grids,
-		       const std::vector<DistributionMapping>& dmap,
+		       const Array<BoxArray>& grids,
+		       const Array<DistributionMapping>& dmap,
 		       bool nodal,
 		       int stencil_type,
 		       bool _have_rhcc,
@@ -168,10 +165,10 @@ MGT_Solver::MGT_Solver(const std::vector<Geometry>& geom,
 
 
 void
-MGT_Solver::Build(const std::vector<Geometry>& geom, 
+MGT_Solver::Build(const Array<Geometry>& geom, 
                   int* bc, 
                   int stencil_type,
-                  const std::vector<DistributionMapping>& dmap,
+                  const Array<DistributionMapping>& dmap,
                   int nc,
                   int ncomp)
     
@@ -216,8 +213,8 @@ MGT_Solver::Build(const std::vector<Geometry>& geom,
       Box domain = geom[lev].Domain();
 
       int nb = m_grids[lev].size();
-      std::vector<int> lo(nb*dm);
-      std::vector<int> hi(nb*dm);
+      Array<int> lo(nb*dm);
+      Array<int> hi(nb*dm);
 
       for ( int i = 0; i < nb; ++i )
       {
@@ -237,7 +234,7 @@ MGT_Solver::Build(const std::vector<Geometry>& geom,
       }
     }
 
-  std::vector<Real> dx(m_nlevel*dm);
+  Array<Real> dx(m_nlevel*dm);
   for ( int lev = 0; lev < m_nlevel; ++lev )
     {
       for ( int j = 0; j < dm; ++j )
@@ -380,7 +377,7 @@ MGT_Solver::initialize(bool nodal)
 void
 MGT_Solver::set_abeclap_coeffs (Real alpha,
 				Real beta,
-				const Array<PArray<MultiFab> >& bb,
+				const Array< Array<MultiFab*> >& bb,
 				const Array< Array<Real> >& xa,
 				const Array< Array<Real> >& xb)
 {
@@ -403,7 +400,7 @@ MGT_Solver::set_abeclap_coeffs (Real alpha,
     for ( int lev = 0; lev < m_nlevel; ++lev )
     {	
 	for (int d=0; d<BL_SPACEDIM; ++d) {
-	    set_cfb(bb[lev][d], beta, lev, d);
+	    set_cfb(*bb[lev][d], beta, lev, d);
 	}
     }
 	
@@ -422,9 +419,9 @@ MGT_Solver::set_abeclap_coeffs (Real alpha,
 // Here, alpha is one.
 //
 void
-MGT_Solver::set_abeclap_coeffs (const PArray<MultiFab>& aa,
+MGT_Solver::set_abeclap_coeffs (const Array<MultiFab*>& aa,
 				Real beta,
-				const Array<PArray<MultiFab> >& bb,
+				const Array< Array<MultiFab*> >& bb,
 				const Array< Array<Real> >& xa,
 				const Array< Array<Real> >& xb)
 {
@@ -441,10 +438,10 @@ MGT_Solver::set_abeclap_coeffs (const PArray<MultiFab>& aa,
 #endif
     for ( int lev = 0; lev < m_nlevel; ++lev )
     {
-	set_cfa(aa[lev], lev);
+	set_cfa(*aa[lev], lev);
 	
 	for (int d=0; d<BL_SPACEDIM; ++d) {
-	    set_cfb(bb[lev][d], beta, lev, d);
+	    set_cfb(*bb[lev][d], beta, lev, d);
 	}
     }
 	
@@ -463,9 +460,9 @@ MGT_Solver::set_abeclap_coeffs (const PArray<MultiFab>& aa,
 //
 void
 MGT_Solver::set_abeclap_coeffs (Real alpha,
-				const PArray<MultiFab>& aa,
+				const Array<MultiFab*>& aa,
 				Real beta,
-				const Array<PArray<MultiFab> >& bb,
+				const Array< Array<MultiFab*> >& bb,
 				const Array< Array<Real> >& xa,
 				const Array< Array<Real> >& xb)
 {
@@ -482,10 +479,10 @@ MGT_Solver::set_abeclap_coeffs (Real alpha,
 #endif
     for ( int lev = 0; lev < m_nlevel; ++lev )
     {
-	set_cfaa(aa[lev], alpha, lev);
+	set_cfaa(*aa[lev], alpha, lev);
 	
 	for (int d=0; d<BL_SPACEDIM; ++d) {
-	    set_cfb(bb[lev][d], beta, lev, d);
+	    set_cfb(*bb[lev][d], beta, lev, d);
 	}
     }
 	
@@ -500,7 +497,7 @@ MGT_Solver::set_abeclap_coeffs (Real alpha,
 }
 
 void
-MGT_Solver::set_mac_coefficients(const Array<PArray<MultiFab> >& bb,
+MGT_Solver::set_mac_coefficients(const Array< Array<MultiFab*> >& bb,
                                  const Array< Array<Real> >& xa,
                                  const Array< Array<Real> >& xb)
 {
@@ -510,7 +507,7 @@ MGT_Solver::set_mac_coefficients(const Array<PArray<MultiFab> >& bb,
 }
 
 void
-MGT_Solver::set_gravity_coefficients(const Array< PArray<MultiFab> >& bb,
+MGT_Solver::set_gravity_coefficients(const Array< Array<MultiFab*> >& bb,
                                      const Array< Array<Real> >& xa,
                                      const Array< Array<Real> >& xb)
 {
@@ -535,48 +532,6 @@ MGT_Solver::set_const_gravity_coeffs(const Array< Array<Real> >& xa,
 	mgt_finalize_const_stencil_lev(&lev, &alpha, &beta,
 				       xa[lev].dataPtr(), xb[lev].dataPtr(), 
 				       pxa.dataPtr(), pxb.dataPtr(), &dm);
-    }
-
-    mgt_finalize_stencil();
-}
-
-void
-MGT_Solver::set_porous_coefficients(const PArray<MultiFab>& a1, 
-				    const PArray<MultiFab>& a2, 
-                                    const Array<PArray<MultiFab> >& bb, 
-                                    const Real& beta, 
-                                    const Array< Array<Real> >& xa, 
-				    const Array< Array<Real> >& xb,
-                                    int nc_opt)
-{
-    Array<Real> pxa(BL_SPACEDIM, 0.0);
-    Array<Real> pxb(BL_SPACEDIM, 0.0);
-
-    int nc = bb[0][0].nComp();
-    
-    for ( int lev = 0; lev < m_nlevel; ++lev )
-    {
-	mgt_init_mc_coeffs_lev(&lev,&nc,&nc_opt);
-    }
-
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-    for ( int lev = 0; lev < m_nlevel; ++lev )
-    {
-	set_cfa(a1[lev], lev);
-	if (nc_opt == 0) set_cfa2(a2[lev], lev);
-	
-	for (int d=0; d<BL_SPACEDIM; ++d) {
-	    set_cfbn(bb[d][lev], beta, lev, d);
-	}
-    }
-	
-    int dm = BL_SPACEDIM;
-    for ( int lev = 0; lev < m_nlevel; ++lev )
-    {
-	mgt_mc_finalize_stencil_lev(&lev, xa[lev].dataPtr(), xb[lev].dataPtr(), 
-				    pxa.dataPtr(), pxb.dataPtr(), &dm, &nc_opt);
     }
 
     mgt_finalize_stencil();
@@ -756,7 +711,7 @@ MGT_Solver::compute_residual(MultiFab* uu[], MultiFab* rh[], MultiFab* res[], co
 }
 
 void 
-MGT_Solver::get_fluxes(int lev, PArray<MultiFab>& flux, const Real* dx)
+MGT_Solver::get_fluxes(int lev, Array<MultiFab*>& flux, const Real* dx)
 {
   mgt_compute_flux(lev);
 
@@ -765,14 +720,14 @@ MGT_Solver::get_fluxes(int lev, PArray<MultiFab>& flux, const Real* dx)
 #endif
   for ( int dir = 0; dir < BL_SPACEDIM; ++dir )
   {
-      get_gp(flux[dir], lev, dir, dx[dir]);
+      get_gp(*flux[dir], lev, dir, dx[dir]);
   }
 
   mgt_delete_flux(lev);
 }
 
 void 
-MGT_Solver::nodal_project(MultiFab* p[], MultiFab* vel[], MultiFab* rhcc[], const PArray<MultiFab>& rhnd,
+MGT_Solver::nodal_project(MultiFab* p[], MultiFab* vel[], MultiFab* rhcc[], const Array<MultiFab*>& rhnd,
 			  const Real& tol, const Real& abs_tol,
 			  int* lo_inflow, int* hi_inflow)
 {
@@ -820,12 +775,12 @@ MGT_Solver::nodal_project(MultiFab* p[], MultiFab* vel[], MultiFab* rhcc[], cons
       Real rmax_this = -1.0;
       for ( int lev = 0; lev < rhnd.size(); ++lev )
       {
-	  if (rhnd.defined(lev)) {
-	      for (MFIter mfi(rhnd[lev], true); mfi.isValid(); ++mfi) 
+	  if (rhnd[lev]) {
+	      for (MFIter mfi(*rhnd[lev], true); mfi.isValid(); ++mfi) 
 	      {
 		  const int n = mfi.LocalIndex();
 		  const Box& bx = mfi.tilebox();
-		  const FArrayBox& rfab = (rhnd[lev])[mfi];
+		  const FArrayBox& rfab = (*rhnd[lev])[mfi];
 		  const Box& rbox = rfab.box();
 		  mgt_add_rh_nodal(&lev, &n, rfab.dataPtr(), rbox.loVect(), rbox.hiVect(),
 				   bx.loVect(), bx.hiVect(), &rmax_this);
@@ -1010,24 +965,6 @@ MGT_Solver::set_cfaa (const MultiFab& aa, Real alpha, int lev)
     }
 }
 
-void
-MGT_Solver::set_cfa2 (const MultiFab& aa, int lev)
-{
-    int ncomp = aa.nComp();
-    // the caller has started OMP
-    for (MFIter mfi(aa, true); mfi.isValid(); ++mfi)
-    {
-	const int n = mfi.LocalIndex();
-	const Box& bx = mfi.tilebox();
-	const FArrayBox& a = aa[mfi];
-	const Box& abx = a.box();
-	mgt_set_cfa2 (&lev, &n, a.dataPtr(),
-		      abx.loVect(), abx.hiVect(),
-		      bx.loVect(), bx.hiVect(),
-		      ncomp);
-    }
-}
-
 void 
 MGT_Solver::set_cfb (const MultiFab& bb, Real beta, int lev, int dir)
 {
@@ -1054,42 +991,6 @@ MGT_Solver::set_cfb (const MultiFab& bb, Real beta, int lev, int dir)
 	    mgt_set_cfbz(&lev, &n, fab.dataPtr(), &beta, 
 			 fbox.loVect(), fbox.hiVect(), 
 			 bx.loVect(), bx.hiVect());	    
-	}
-#endif
-#endif
-    }
-}
-
-void 
-MGT_Solver::set_cfbn (const MultiFab& bb, Real beta, int lev, int dir)
-{
-    int ncomp = bb.nComp();
-    // the caller has started OMP
-    for (MFIter mfi(bb,true); mfi.isValid(); ++mfi)
-    {
-	const int n = mfi.LocalIndex();
-	const Box& bx = mfi.tilebox();
-	const FArrayBox& fab = bb[mfi];
-	const Box& fbox = fab.box();
-	if (dir == 0) {
-	    mgt_set_cfbnx(&lev, &n, fab.dataPtr(), &beta, 
-			  fbox.loVect(), fbox.hiVect(), 
-			  bx.loVect(), bx.hiVect(),
-			  ncomp);
-	}
-#if (BL_SPACEDIM > 1)	
-	else if (dir == 1) {
-	    mgt_set_cfbny(&lev, &n, fab.dataPtr(), &beta, 
-			  fbox.loVect(), fbox.hiVect(), 
-			  bx.loVect(), bx.hiVect(),
-			  ncomp);
-	}
-#if (BL_SPACEDIM == 3)	
-	else {
-	    mgt_set_cfbnz(&lev, &n, fab.dataPtr(), &beta, 
-			  fbox.loVect(), fbox.hiVect(), 
-			  bx.loVect(), bx.hiVect(),
-			  ncomp);
 	}
 #endif
 #endif

@@ -1,4 +1,5 @@
 #include <iostream>
+#include <memory>
 
 #include <BoxLib.H>
 #include <MultiFab.H>
@@ -7,9 +8,11 @@
 #include <FMultiGrid.H>
 
 void 
-solve_with_f90(PArray<MultiFab>& rhs, PArray<MultiFab>& phi, 
-               Array< PArray<MultiFab> >& grad_phi_edge, 
-               const Array<Geometry>& geom, int base_level, int finest_level, Real tol, Real abs_tol)
+solve_with_f90(Array<std::unique_ptr<MultiFab> >& rhs,
+	       Array<std::unique_ptr<MultiFab> >& phi, 
+               Array< Array<std::unique_ptr<MultiFab> > >& grad_phi_edge, 
+               const Array<Geometry>& geom, int base_level, int finest_level,
+	       Real tol, Real abs_tol)
 {
     int nlevs = finest_level - base_level + 1;
 
@@ -28,13 +31,13 @@ solve_with_f90(PArray<MultiFab>& rhs, PArray<MultiFab>& phi,
     }
 
     // Have to do some packing because these arrays does not always start with base_level
-    PArray<Geometry> geom_p(nlevs);
-    PArray<MultiFab> rhs_p(nlevs);
-    PArray<MultiFab> phi_p(nlevs);
+    Array<Geometry> geom_p(nlevs);
+    Array<MultiFab*> rhs_p(nlevs);
+    Array<MultiFab*> phi_p(nlevs);
     for (int ilev = 0; ilev < nlevs; ++ilev) {
-	geom_p.set(ilev, &geom[ilev+base_level]);
-	rhs_p.set (ilev,  &rhs[ilev+base_level]);
-	phi_p.set (ilev,  &phi[ilev+base_level]);
+	geom_p[ilev] = geom[ilev+base_level];
+	rhs_p[ilev]  = rhs[ilev+base_level].get();
+	phi_p[ilev]  = phi[ilev+base_level].get();
     }
     
     // Refinement ratio is hardwired to 2 here.
@@ -44,9 +47,9 @@ solve_with_f90(PArray<MultiFab>& rhs, PArray<MultiFab>& phi,
     FMultiGrid fmg(geom_p, base_level, crse_ratio);
 
     if (base_level == 0) {
-	fmg.set_bc(mg_bc, phi[base_level]);
+	fmg.set_bc(mg_bc, *phi[base_level]);
     } else {
-	fmg.set_bc(mg_bc, phi[base_level-1], phi[base_level]);
+	fmg.set_bc(mg_bc, *phi[base_level-1], *phi[base_level]);
     }
 
     fmg.set_const_gravity_coeffs();
@@ -59,6 +62,10 @@ solve_with_f90(PArray<MultiFab>& rhs, PArray<MultiFab>& phi,
     for (int ilev = 0; ilev < nlevs; ++ilev)
     {
 	int amr_level = ilev + base_level;
-	fmg.get_fluxes(grad_phi_edge[amr_level], ilev);
+	Array<MultiFab*> gp(BL_SPACEDIM);
+	for (int i = 0; i < BL_SPACEDIM; ++i) {
+	    gp[i] = grad_phi_edge[amr_level][i].get();
+	}
+	fmg.get_fluxes(gp, ilev);
     }
 }
