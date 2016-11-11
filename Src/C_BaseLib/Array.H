@@ -2,7 +2,9 @@
 #ifndef BL_ARRAY_H
 #define BL_ARRAY_H
 
+#include <algorithm>
 #include <vector>
+#include <memory>
 #include <BLassert.H>
 
 //
@@ -36,5 +38,32 @@ public:
     T* dataPtr () { return this->data(); }
     const T* dataPtr () const { return this->data(); }
 };
+
+namespace BoxLib
+{
+    template <class T>
+    Array<T*> GetArrOfPtrs (const Array<std::unique_ptr<T> >& a)
+    {
+	Array<T*> r(a.size());
+	std::transform(a.begin(), a.end(), r.begin(),
+		       [](const std::unique_ptr<T>& p) { return p.get(); });
+	return r;
+    }
+
+    template <class T>
+    Array<const T*> GetArrOfConstPtrs (const Array<std::unique_ptr<T> >& a)
+    {
+	Array<const T*> r(a.size());
+	std::transform(a.begin(), a.end(), r.begin(),
+		       [](const std::unique_ptr<T>& p) { return p.get(); });
+	return r;
+    }
+
+    template <class T>
+    Array<const T*> GetArrOfConstPtrs (const Array<T*>& a)
+    {
+	return {a.begin(), a.end()};
+    }
+}
 
 #endif /*BL_ARRAY_H*/
