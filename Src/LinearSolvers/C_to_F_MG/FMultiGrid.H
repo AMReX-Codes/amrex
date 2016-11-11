@@ -32,8 +32,8 @@
 //
 // Step 6: OPTIONAL
 //   Call get_fluxes to get fluxes (i.e., -beta b grad phi).  The need_grad_phi 
-//   flag in last step must be 1.  Note that grad_phi is PArray with BL_SPACEDIM
-//   face-cented MultiFabs or Array<PArray> in case of multiple levels.
+//   flag in last step must be 1.  Note that grad_phi is Array with BL_SPACEDIM
+//   face-cented MultiFab pointerss or Array<Array> in case of multiple levels.
 //
 // If one only wants to test a solution by computing residual without actually
 // solving the problem, or apply the operator.  Replace Step 5 with a call to 
@@ -56,19 +56,14 @@ class FMultiGrid
 public:
 
     // single level
-    FMultiGrid (const             Geometry  & geom,
-		int                           baselevel = 0,
-		IntVect                       crse_ratio = IntVect::TheZeroVector());
+    FMultiGrid (const       Geometry  & geom,
+		int                     baselevel = 0,
+		IntVect                 crse_ratio = IntVect::TheZeroVector());
 
     // multi level
-    FMultiGrid (const std::vector<Geometry> & geom,
-		int                           baselevel = 0,
-		IntVect                       crse_ratio = IntVect::TheZeroVector());
-
-    // multi level
-    FMultiGrid (const      PArray<Geometry> & geom,
-		int                           baselevel = 0,
-		IntVect                       crse_ratio = IntVect::TheZeroVector());
+    FMultiGrid (const Array<Geometry> & geom,
+		int                     baselevel = 0,
+		IntVect                 crse_ratio = IntVect::TheZeroVector());
 
     ~FMultiGrid () { }
 
@@ -99,23 +94,23 @@ public:
     void set_const_gravity_coeffs ();
 
     // For gravity_eq
-    void set_gravity_coeffs (       PArray<MultiFab>  & b); // single level
-    void set_gravity_coeffs (Array< PArray<MultiFab> >& b); // multi level
+    void set_gravity_coeffs (       Array<MultiFab*>  & b); // single level
+    void set_gravity_coeffs (Array< Array<MultiFab*> >& b); // multi level
 
     // For MAC projection
-    void set_mac_coeffs (PArray<MultiFab> &b);
+    void set_mac_coeffs (Array<MultiFab*> &b);
  
     // For Diffusion operator
-    void set_diffusion_coeffs (       PArray<MultiFab>  & b) // single level
+    void set_diffusion_coeffs (       Array<MultiFab*>  & b) // single level
 	{ set_gravity_coeffs(b); }
-    void set_diffusion_coeffs (Array< PArray<MultiFab> >& b) // multi level
+    void set_diffusion_coeffs (Array< Array<MultiFab*> >& b) // multi level
 	{ set_gravity_coeffs(b); }
 
     // For general_eq
     void set_scalars (Real alpha, Real beta);
     //
-    void set_coefficients (const  MultiFab  &a,       PArray<MultiFab>   & b);
-    void set_coefficients (PArray<MultiFab> &a, Array<PArray<MultiFab> > & b);
+    void set_coefficients (const  MultiFab  &a,       Array<MultiFab*>   & b);
+    void set_coefficients (Array<MultiFab*> &a, Array<Array<MultiFab*> > & b);
 
     Real solve (MultiFab& phi,
 		MultiFab& rhs,
@@ -123,28 +118,27 @@ public:
 		int always_use_bnorm = 0,
 		int need_grad_phi = 0,
 		int verbose = 0);
-    Real solve (PArray<MultiFab>& phi,
-		PArray<MultiFab>& rhs,
+    Real solve (Array<MultiFab*>& phi,
+		Array<MultiFab*>& rhs,
 		Real rel_tol, Real abs_tol,
 		int always_use_bnorm = 0,
 		int need_grad_phi = 0,
 		int verbose = 0);
 
-    void get_fluxes (       PArray<MultiFab>  & grad_phi, int ilev = 0);
-    void get_fluxes ( Array<PArray<MultiFab> >& grad_phi);
-    void get_fluxes (PArray<PArray<MultiFab> >& grad_phi);
+    void get_fluxes (      Array<MultiFab*>  & grad_phi, int ilev = 0);
+    void get_fluxes (Array<Array<MultiFab*> >& grad_phi);
 
     void compute_residual (MultiFab & phi,
 			   MultiFab & rhs,
 			   MultiFab & res);
-    void compute_residual (PArray<MultiFab> & phi,
-			   PArray<MultiFab> & rhs,
-			   PArray<MultiFab> & res);
+    void compute_residual (Array<MultiFab*> & phi,
+			   Array<MultiFab*> & rhs,
+			   Array<MultiFab*> & res);
 
     void applyop (MultiFab & phi,
 		  MultiFab & res);
-    void applyop (PArray<MultiFab> & phi,
-		  PArray<MultiFab> & res);
+    void applyop (Array<MultiFab*> & phi,
+		  Array<MultiFab*> & res);
 
 private:
 
@@ -155,13 +149,12 @@ private:
     int     m_maxorder;
     int     m_verbose;
 
-    std::vector<Geometry> m_geom;
+    Array<Geometry> m_geom;
 
     MacBndry   * m_bndry;
-    MGT_Solver * m_mgt_solver;
+    std::unique_ptr<MacBndry> RAII_bndry;
 
-    PArray<MacBndry> RAII_bndry;
-    PArray<MGT_Solver> RAII_mgt_solver;
+    std::unique_ptr<MGT_Solver> m_mgt_solver;
 
     struct Boundary
     {
@@ -192,21 +185,21 @@ private:
 	bool scalars_set;
 	bool coeffs_set;
 	Real alpha;
-	PArray<MultiFab> a;
+	Array<MultiFab*> a;
 	Real beta;
-	Array<PArray<MultiFab> > b;
+	Array<Array<MultiFab*> > b;
 	ABecCoeff () : eq_type(invalid_eq), scalars_set(false), coeffs_set(false),
 		       alpha(0), beta(0) {}
 	void set_coeffs (MGT_Solver & mgt_solver, FMultiGrid& fmg);
     };
     ABecCoeff m_coeff;
 
-    static void Copy (PArray<MultiFab>& dst, const MultiFab& src);
-    static void Copy (PArray<MultiFab>& dst, PArray<MultiFab>& src);
-    static void Copy (Array<PArray<MultiFab> >& dst, PArray<MultiFab>& src);
-    static void Copy (Array<PArray<MultiFab> >& dst, Array<PArray<MultiFab> >& src);
+    static void Copy (Array<MultiFab*>& dst, const MultiFab& src);
+    static void Copy (Array<MultiFab*>& dst, Array<MultiFab*>& src);
+    static void Copy (Array<Array<MultiFab*> >& dst, Array<MultiFab*>& src);
+    static void Copy (Array<Array<MultiFab*> >& dst, Array<Array<MultiFab*> >& src);
 
-    void init_mgt_solver (PArray<MultiFab>& phi);
+    void init_mgt_solver (Array<MultiFab*>& phi);
 };
 
 #endif

@@ -4,7 +4,7 @@
 
 namespace BoxLib
 {
-    void average_edge_to_cellcenter (MultiFab& cc, int dcomp, const Array<const MultiFab*>& edge)
+    void average_edge_to_cellcenter (MultiFab& cc, int dcomp, const Array<MultiFab*>& edge)
     {
 	BL_ASSERT(cc.nComp() >= dcomp + BL_SPACEDIM);
 	BL_ASSERT(edge.size() == BL_SPACEDIM);
@@ -29,7 +29,7 @@ namespace BoxLib
 #endif
     }
 
-    void average_face_to_cellcenter (MultiFab& cc, int dcomp, const Array<const MultiFab*>& fc)
+    void average_face_to_cellcenter (MultiFab& cc, int dcomp, const Array<MultiFab*>& fc)
     {
 	BL_ASSERT(cc.nComp() >= dcomp + BL_SPACEDIM);
 	BL_ASSERT(fc.size() == BL_SPACEDIM);
@@ -56,7 +56,7 @@ namespace BoxLib
 	}
     }
 
-    void average_face_to_cellcenter (MultiFab& cc, const Array<const MultiFab*>& fc, const Geometry& geom)
+    void average_face_to_cellcenter (MultiFab& cc, const Array<MultiFab*>& fc, const Geometry& geom)
     {
 	BL_ASSERT(cc.nComp() >= BL_SPACEDIM);
 	BL_ASSERT(fc.size() == BL_SPACEDIM);

@@ -1,4 +1,5 @@
 #include <iostream>
+#include <memory>
 
 #include <BoxLib.H>
 #include <MultiFab.H>
@@ -13,8 +14,11 @@
 #include "Particles.H"
 
 // declare routines below
-void solve_for_accel(PArray<MultiFab>& rhs, PArray<MultiFab>& phi, PArray<MultiFab>& grad_phi, 
-                     const Array<Geometry>& geom, int base_level, int finest_level, Real offset);
+void solve_for_accel(Array<std::unique_ptr<MultiFab> >& rhs,
+		     Array<std::unique_ptr<MultiFab> >& phi,
+		     Array<std::unique_ptr<MultiFab> >& grad_phi, 
+                     const Array<Geometry>& geom,
+		     int base_level, int finest_level, Real offset);
 
 void 
 two_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int nppc, bool verbose)
@@ -122,27 +126,23 @@ two_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int nppc, bool v
     // ********************************************************************************************
 
     // build a multifab for the rhs on the box array with 
-    PArray<MultiFab> rhs; 
-    PArray<MultiFab> phi;
-    PArray<MultiFab> grad_phi;
+    Array<std::unique_ptr<MultiFab> > rhs(nlevs); 
+    Array<std::unique_ptr<MultiFab> > phi(nlevs);
+    Array<std::unique_ptr<MultiFab> > grad_phi(nlevs);
     Array<DistributionMapping> dmap(nlevs);
-
-    rhs.resize(nlevs,PArrayManage);
-    phi.resize(nlevs,PArrayManage);
-    grad_phi.resize(nlevs,PArrayManage);
 
     for (int lev = 0; lev < nlevs; lev++)
     {
 	//                                    # component # ghost cells
-	rhs.set     (lev,new MultiFab(ba[lev],1          ,0));
-	phi.set     (lev,new MultiFab(ba[lev],1          ,1));
-	grad_phi.set(lev,new MultiFab(ba[lev],BL_SPACEDIM,1));
+	rhs     [lev].reset(new MultiFab(ba[lev],1          ,0));
+	phi     [lev].reset(new MultiFab(ba[lev],1          ,1));
+	grad_phi[lev].reset(new MultiFab(ba[lev],BL_SPACEDIM,1));
 
-	rhs[lev].setVal(0.0);
-	phi[lev].setVal(0.0);
-	grad_phi[lev].setVal(0.0);
+	rhs     [lev]->setVal(0.0);
+	phi     [lev]->setVal(0.0);
+	grad_phi[lev]->setVal(0.0);
 
-	dmap[lev] = rhs[lev].DistributionMap();
+	dmap[lev] = rhs[lev]->DistributionMap();
     }
 
     // Define a new particle container to hold my particles.
@@ -150,7 +150,7 @@ two_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int nppc, bool v
     typedef ParticleContainer<1+2*BL_SPACEDIM> MyParticleContainer;
     
     // Build a new particle container to hold my particles.
-    MyParticleContainer* MyPC = new MyParticleContainer(geom,dmap,ba,rr);
+    auto MyPC = std::unique_ptr<MyParticleContainer>(new MyParticleContainer(geom,dmap,ba,rr));
 
     MyPC->SetVerbose(0);
 
@@ -203,18 +203,15 @@ two_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int nppc, bool v
     int base_level   = 0;
     int finest_level = nlevs-1;
 
-    PArray<MultiFab> PartMF;
-    PartMF.resize(nlevs,PArrayManage);
-    PartMF.set(0,new MultiFab(ba[0],1,1));
-    PartMF[0].setVal(0.0);
+    Array<std::unique_ptr<MultiFab> > PartMF;
     MyPC->AssignDensity(0, false, PartMF, base_level, 1, finest_level);
-    MyPC->AssignDensitySingleLevel(0, PartMF[0],0,1,0); 
+    MyPC->AssignDensitySingleLevel(0, *PartMF[0],0,1,0); 
 
     for (int lev = finest_level - 1 - base_level; lev >= 0; lev--)
-        BoxLib::average_down(PartMF[lev+1],PartMF[lev],0,1,rr[lev]);
+        BoxLib::average_down(*PartMF[lev+1],*PartMF[lev],0,1,rr[lev]);
 
     for (int lev = 0; lev < nlevs; lev++)
-        MultiFab::Add(rhs[base_level+lev], PartMF[lev], 0, 0, 1, 0);
+        MultiFab::Add(*rhs[base_level+lev], *PartMF[lev], 0, 0, 1, 0);
  
     // **************************************************************************
     // Define this to be solve at level 0 only
@@ -233,7 +230,7 @@ two_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int nppc, bool v
     // Fill the particle data with the acceleration at the particle location
     // Note that we are calling moveKick with accel_comp > BL_SPACEDIM
     //      which means with dt = 0 we don't move the particle or set a velocity
-    MyPC->moveKick(grad_phi[0],nlevs-1,dummy_dt,1.0,1.0,accel_comp);
+    MyPC->moveKick(*grad_phi[0],nlevs-1,dummy_dt,1.0,1.0,accel_comp);
 
     // Write out the positions, masses and accelerations of each particle.
     MyPC->WriteAsciiFile("Particles_after_level0_solve");
@@ -259,7 +256,7 @@ two_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int nppc, bool v
     // Note that we are calling moveKick with accel_comp > BL_SPACEDIM
     //      which means with dt = 0 we don't move the particle or set a velocity
     for (int lev = 0; lev < nlevs; lev++)
-        MyPC->moveKick(grad_phi[lev],lev,dummy_dt,1.0,1.0,accel_comp);
+        MyPC->moveKick(*grad_phi[lev],lev,dummy_dt,1.0,1.0,accel_comp);
 
     // Write out the positions, masses and accelerations of each particle.
     MyPC->WriteAsciiFile("Particles_after_level1_solve");
@@ -271,8 +268,8 @@ two_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int nppc, bool v
     // Reset everything to 0
     for (int lev = 0; lev < nlevs; lev++)
     {
-	phi[lev].setVal(0.0);
-	grad_phi[lev].setVal(0.0);
+	phi[lev]->setVal(0.0);
+	grad_phi[lev]->setVal(0.0);
     }
 
     // Define this to be solve at multi-level solve
@@ -296,12 +293,11 @@ two_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int nppc, bool v
     // Note that we are calling moveKick with accel_comp > BL_SPACEDIM
     //      which means with dt = 0 we don't move the particle or set a velocity
     for (int lev = 0; lev < nlevs; lev++)
-        MyPC->moveKick(grad_phi[lev],lev,dummy_dt,1.0,1.0,accel_comp);
+        MyPC->moveKick(*grad_phi[lev],lev,dummy_dt,1.0,1.0,accel_comp);
 
     // Write out the positions, masses and accelerations of each particle.
     MyPC->WriteAsciiFile("Particles_after_multilevel_solve");
 
     } // end if (nlevs > 1)
 
-    delete MyPC;
 }

@@ -9,6 +9,7 @@
 #include <numeric>
 #include <algorithm>
 #include <array>
+#include <memory>
 
 #include <ParmParse.H>
 
@@ -399,7 +400,7 @@ public:
     // Functions depending the layout of the data.  Use with caution.
     //
     // Multi-level version
-    void AssignDensity (int rho_index, bool sub_cycle, PArray<MultiFab>& mf, 
+    void AssignDensity (int rho_index, bool sub_cycle, Array<std::unique_ptr<MultiFab> >& mf, 
 			int lev_min = 0, int ncomp = 1, int finest_level = -1) const;
     // Single-level version
     void AssignDensitySingleLevel (int rho_index, MultiFab& mf, int level,
@@ -458,7 +459,7 @@ protected:
     Array<PMap> m_particles;
 
 private:
-    void AssignDensityDoit (int level, PArray<MultiFab>* mf, PMap& data,
+    void AssignDensityDoit (int level, Array<std::unique_ptr<MultiFab> >& mf, PMap& data,
 			    int ncomp, int lev_min = 0) const;
 };
 
@@ -3578,20 +3579,15 @@ ParticleBase::CIC_Cells_Fracs (const ParticleBase& p,
 //
 // This is the multi-level version.
 //
-// The PArray should be empty on input.
-//
-// The MultiFabs in the PArray will be Managed'd on return.
+// The Array should be empty on input.
 //
 // There'll be finest_level+1 of them.
 //
 template <int NR, int NI, class C>
 void
-ParticleContainer<NR,NI,C>::AssignDensity (int rho_index,
-					   bool              sub_cycle,
-					   PArray<MultiFab>& mf_to_be_filled, 
-					   int               lev_min,
-					   int               ncomp,
-					   int               finest_level) const
+ParticleContainer<NR,NI,C>::AssignDensity (int rho_index, bool sub_cycle,
+					   Array<std::unique_ptr<MultiFab> >& mf_to_be_filled, 
+					   int lev_min, int ncomp, int finest_level) const
 {
     if (rho_index != 0) BoxLib::Abort("AssignDensity only works if rho_index = 0");
 
@@ -3613,64 +3609,53 @@ ParticleContainer<NR,NI,C>::AssignDensity (int rho_index,
     // finest_level. In the following code, lev is the real level, 
     // lev_index is the corresponding index for mf. 
     //
-    PArray<MultiFab>* mf;
-    PArray<MultiFab>  mf_part;
 
     // Create the space for mf_to_be_filled, regardless of whether we'll need a temporary mf
-    mf_to_be_filled.resize(finest_level+1-lev_min, PArrayManage);
+    mf_to_be_filled.resize(finest_level+1-lev_min);
     for (int lev = lev_min; lev <= finest_level; lev++)
     { 
         const int lev_index = lev - lev_min;
-        mf_to_be_filled.set(lev_index, new MultiFab(m_gdb->boxArray(lev), ncomp, 1));
-
-        for (MFIter mfi(mf_to_be_filled[lev_index]); mfi.isValid(); ++mfi) {
-            mf_to_be_filled[lev_index][mfi].setVal(0);
-	}
+        mf_to_be_filled[lev_index].reset(new MultiFab(m_gdb->boxArray(lev), ncomp, 1));
+	mf_to_be_filled[lev_index]->setVal(0.0);
     }
 
     // Test whether the grid structure of the boxArray is the same
     //       as the ParticleBoxArray at all levels 
     bool all_grids_the_same = true; 
     for (int lev = lev_min; lev <= finest_level; lev++) {
-        if (!OnSameGrids(lev, mf_to_be_filled[lev-lev_min])) {
+        if (!OnSameGrids(lev, *mf_to_be_filled[lev-lev_min])) {
 	    all_grids_the_same = false;
 	    break;
 	}
     }
 
-    if (all_grids_the_same)
-    {
-        mf = &mf_to_be_filled;
-    } 
-    else     
+    Array<std::unique_ptr<MultiFab> > mf_part;
+    if (!all_grids_the_same)
     { 
         // Create the space for the temporary, mf_part
-        mf_part.resize(finest_level+1-lev_min, PArrayManage);
+        mf_part.resize(finest_level+1-lev_min);
         for (int lev = lev_min; lev <= finest_level; lev++)
         {
             const int lev_index = lev - lev_min;
-            mf_part.set(lev_index, new MultiFab(m_gdb->ParticleBoxArray(lev), ncomp, 1,
-						m_gdb->ParticleDistributionMap(lev)));
-    
-            for (MFIter mfi(mf_to_be_filled[lev_index]); mfi.isValid(); ++mfi) {
-                mf_part[lev_index][mfi].setVal(0);
-	    }
+            mf_part[lev_index].reset(new MultiFab(m_gdb->ParticleBoxArray(lev), ncomp, 1,
+						  m_gdb->ParticleDistributionMap(lev)));
+	    mf_part[lev_index]->setVal(0.0);
         }
-
-        mf = &mf_part;
     }
+
+    auto & mf = (all_grids_the_same) ? mf_to_be_filled : mf_part;
 
     if (finest_level == 0)
     {
         //
         // Just use the far simpler single-level version.
         //
-        AssignDensitySingleLevel(rho_index, (*mf)[0],0,ncomp);
+        AssignDensitySingleLevel(rho_index, *mf[0],0,ncomp);
         //
         // I believe that we don't need any information in ghost cells so we don't copy those.
         //
         if ( ! all_grids_the_same) {
-            mf_to_be_filled[0].copy((*mf)[0],0,0,ncomp);
+            mf_to_be_filled[0]->copy(*mf[0],0,0,ncomp);
 	}
         return;
     }
@@ -3722,10 +3707,10 @@ ParticleContainer<NR,NI,C>::AssignDensity (int rho_index,
         const Real*     dx_fine   = (lev < finest_level) ? m_gdb->Geom(lev+1).CellSize() : dx;
         const Real*     dx_coarse = (lev > 0) ? m_gdb->Geom(lev-1).CellSize() : dx;
         const int       lev_index = lev - lev_min;
-        const BoxArray& grids     = (*mf)[lev_index].boxArray();
+        const BoxArray& grids     = mf[lev_index]->boxArray();
         const int       dgrow     = (lev == 0) ? 1 : m_gdb->MaxRefRatio(lev-1);
 
-        BoxArray compfvalid, compfvalid_grown, fvalid = (*mf)[lev_index].boxArray();
+        BoxArray compfvalid, compfvalid_grown, fvalid = mf[lev_index]->boxArray();
         //
         // Do we have Fine->Crse overlap on a periodic boundary?
         // We want to add all ghost cells that can be shifted into valid region.
@@ -3787,7 +3772,7 @@ ParticleContainer<NR,NI,C>::AssignDensity (int rho_index,
             cfba = m_gdb->boxArray(lev+1);
             cfba.coarsen(m_gdb->refRatio(lev));
 
-            BL_ASSERT((*mf)[lev_index].boxArray().contains(cfba));
+            BL_ASSERT(mf[lev_index]->boxArray().contains(cfba));
         }
         //
         // This is cfba with any shifted ghost cells.
@@ -3798,13 +3783,13 @@ ParticleContainer<NR,NI,C>::AssignDensity (int rho_index,
         {
             BoxList cvalid;
 
-            const BoxArray& cgrids = (*mf)[lev_index].boxArray();
+            const BoxArray& cgrids = mf[lev_index]->boxArray();
 
             for (int i = 0; i < cfba.size(); i++)
             {
                 if (gm.isAnyPeriodic())
                 {
-                    const Box& dest = BoxLib::grow(cfba[i],(*mf)[lev_index].nGrow());
+                    const Box& dest = BoxLib::grow(cfba[i],mf[lev_index]->nGrow());
 
                     if ( ! dm.contains(dest))
                     {
@@ -3870,7 +3855,7 @@ ParticleContainer<NR,NI,C>::AssignDensity (int rho_index,
 	for (const auto& kv : m_particles[lev])
         {
             const PBox& pbx = kv.second;
-            FArrayBox&  fab = (*mf)[lev_index][kv.first];
+            FArrayBox&  fab = (*mf[lev_index])[kv.first];
 
 	    for (const auto& p : pbx)
             {
@@ -3976,12 +3961,12 @@ ParticleContainer<NR,NI,C>::AssignDensity (int rho_index,
                                     BL_ASSERT(pshifts.size() == 1);
                                     fcells[j] = fcells[j] - pshifts[0];
                                 }
-                                (*mf)[lev_index + 1].boxArray().intersections(Box(fcells[j],fcells[j]),isects,true,0);
+                                mf[lev_index + 1]->boxArray().intersections(Box(fcells[j],fcells[j]),isects,true,0);
                                 if (isects.size() == 0) {
                                     continue;
 				}
                                 const int grid = isects[0].first; 
-                                const int who  = (*mf)[lev_index+1].DistributionMap()[grid];
+                                const int who  = mf[lev_index+1]->DistributionMap()[grid];
 
                                 if (who == ParallelDescriptor::MyProc())
                                 {
@@ -3989,13 +3974,13 @@ ParticleContainer<NR,NI,C>::AssignDensity (int rho_index,
                                     // Sum up mass in first component.
                                     //
                                     {
-                                        (*mf)[lev_index+1][grid](fcells[j],0) += p.m_data[0] * ffracs[j];
+                                        (*mf[lev_index+1])[grid](fcells[j],0) += p.m_data[0] * ffracs[j];
                                     }
                                     //
                                     // Sum up momenta in next components.
                                     //
                                     for (int n = 1; n < ncomp; n++) {
-                                        (*mf)[lev_index+1][grid](fcells[j],n) += p.m_data[n] * p.m_data[0] * ffracs[j];
+                                        (*mf[lev_index+1])[grid](fcells[j],n) += p.m_data[n] * p.m_data[0] * ffracs[j];
 				    }
                                 }
                                 else
@@ -4047,25 +4032,25 @@ ParticleContainer<NR,NI,C>::AssignDensity (int rho_index,
                                 //
                                 // Find its resident grid.
                                 //
-                                (*mf)[lev_index - 1].boxArray().intersections(Box(ccells[j],ccells[j]),isects,true,0);
+                                mf[lev_index - 1]->boxArray().intersections(Box(ccells[j],ccells[j]),isects,true,0);
                                 if (isects.size() == 0) {
                                     continue;
 				}
                                 const int grid = isects[0].first;
-                                const int who  = (*mf)[lev_index-1].DistributionMap()[grid];
+                                const int who  = mf[lev_index-1]->DistributionMap()[grid];
                                 if (who == ParallelDescriptor::MyProc())
                                 {
                                     //
                                     // Sum up mass in first component.
                                     //
                                     {
-                                        (*mf)[lev_index-1][grid](ccells[j],0) += p.m_data[0] * cfracs[j];
+                                        (*mf[lev_index-1])[grid](ccells[j],0) += p.m_data[0] * cfracs[j];
                                     }
                                     //
                                     // Sum up momenta in next components.
                                     //
                                     for (int n = 1; n < ncomp; n++) {
-                                        (*mf)[lev_index-1][grid](ccells[j],n) += p.m_data[n] * p.m_data[0] * cfracs[j];
+                                        (*mf[lev_index-1])[grid](ccells[j],n) += p.m_data[n] * p.m_data[0] * cfracs[j];
 				    }
                                 }
                                 else
@@ -4153,17 +4138,17 @@ ParticleContainer<NR,NI,C>::AssignDensity (int rho_index,
                                 // We're at a Fine->Crse boundary.
                                 //
                                 BL_ASSERT(cgrid[i] >= 0);
-                                BL_ASSERT(cgrid[i] < (*mf)[lev_index-1].size());
+                                BL_ASSERT(cgrid[i] < mf[lev_index-1]->size());
                                 //
                                 // Here we need to update the crse region.  The coarse
                                 // region is always going to be updated if we have a
                                 // particle in a cell bordering a Fine->Crse boundary.
                                 //
-                                const int who = (*mf)[lev_index-1].DistributionMap()[cgrid[i]];
+                                const int who = mf[lev_index-1]->DistributionMap()[cgrid[i]];
 
                                 if (who == ParallelDescriptor::MyProc())
                                 {
-                                    if ( ! (*mf)[lev_index-1][cgrid[i]].box().contains(ccells[i])) {
+                                    if ( ! (*mf[lev_index-1])[cgrid[i]].box().contains(ccells[i])) {
 				      continue;
 				    }
 
@@ -4180,13 +4165,13 @@ ParticleContainer<NR,NI,C>::AssignDensity (int rho_index,
                                     // Sum up mass in first component.
                                     //
                                     {
-                                        (*mf)[lev_index-1][cgrid[i]](ccells[i],0) += p.m_data[0] * cfracs[i];
+                                        (*mf[lev_index-1])[cgrid[i]](ccells[i],0) += p.m_data[0] * cfracs[i];
                                     }
                                     //
                                     // Sum up momenta in next components.
                                     //
                                     for (int n = 1; n < ncomp; n++) {
-                                        (*mf)[lev_index-1][cgrid[i]](ccells[i],n) += p.m_data[n] * p.m_data[0] * cfracs[i];
+                                        (*mf[lev_index-1])[cgrid[i]](ccells[i],n) += p.m_data[n] * p.m_data[0] * cfracs[i];
 				    }
                                 }
                                 else
@@ -4339,7 +4324,7 @@ ParticleContainer<NR,NI,C>::AssignDensity (int rho_index,
 
                                 for (int j = 0; j < fcells.size(); j++)
                                 {
-                                    const int who = (*mf)[lev_index+1].DistributionMap()[fgrid[j]];
+                                    const int who = mf[lev_index+1]->DistributionMap()[fgrid[j]];
 
                                     if (who == ParallelDescriptor::MyProc())
                                     {
@@ -4347,13 +4332,13 @@ ParticleContainer<NR,NI,C>::AssignDensity (int rho_index,
                                         // Sum up mass in first component.
                                         //
                                         {
-                                            (*mf)[lev_index+1][fgrid[j]](fcells[j],0) += p.m_data[0] * fracs[i] * ffracs[j];
+                                            (*mf[lev_index+1])[fgrid[j]](fcells[j],0) += p.m_data[0] * fracs[i] * ffracs[j];
                                         }
                                         //
                                         // Sum up momenta in next components.
                                         //
                                         for (int n = 1; n < ncomp; n++) {
-                                            (*mf)[lev_index+1][fgrid[j]](fcells[j],n) += p.m_data[n] * p.m_data[0] * fracs[i] * ffracs[j];
+                                            (*mf[lev_index+1])[fgrid[j]](fcells[j],n) += p.m_data[n] * p.m_data[0] * fracs[i] * ffracs[j];
 					}
                                     }
                                     else
@@ -4402,7 +4387,7 @@ ParticleContainer<NR,NI,C>::AssignDensity (int rho_index,
         const Real*     dx        = gm.CellSize();
         const Real      vol       = D_TERM(dx[0], *dx[1], *dx[2]);
 
-        (*mf)[lev_index].SumBoundary(gm.periodicity());
+        mf[lev_index]->SumBoundary(gm.periodicity());
         //
         // If ncomp > 1, first divide the momenta (component n) 
         // by the mass (component 0) in order to get velocities.
@@ -4410,9 +4395,9 @@ ParticleContainer<NR,NI,C>::AssignDensity (int rho_index,
         //
         for (int n = 1; n < ncomp; n++)
         {
-            for (MFIter mfi((*mf)[lev_index]); mfi.isValid(); ++mfi)
+            for (MFIter mfi(*mf[lev_index]); mfi.isValid(); ++mfi)
             {
-                (*mf)[lev_index][mfi].protected_divide((*mf)[lev_index][mfi],0,n,1);
+                (*mf[lev_index])[mfi].protected_divide((*mf[lev_index])[mfi],0,n,1);
             }
         }
         //
@@ -4420,7 +4405,7 @@ ParticleContainer<NR,NI,C>::AssignDensity (int rho_index,
         // to density. If there are additional components (like velocity), we don't
         // want to divide those by volume.
         //
-        (*mf)[lev_index].mult(1/vol,0,1);
+        mf[lev_index]->mult(1/vol,0,1);
     }
 
     //
@@ -4434,7 +4419,7 @@ ParticleContainer<NR,NI,C>::AssignDensity (int rho_index,
         for (int lev = lev_min; lev <= finest_level; lev++)
         {
             const int lev_index = lev - lev_min;
-            mf_to_be_filled[lev_index].copy(mf_part[lev_index],0,0,1);
+            mf_to_be_filled[lev_index]->copy(*mf_part[lev_index],0,0,1);
         }
     
     if (m_verbose > 1)
@@ -4451,7 +4436,7 @@ ParticleContainer<NR,NI,C>::AssignDensity (int rho_index,
 }
 
 //
-// Used by AssignDensity (PArray<MultiFab>& mf).
+// Used by AssignDensity (Array<std::unique_ptr<MultiFab> >& mf).
 //
 // Passes data needed by Crse->Fine or Fine->Crse to CPU that needs it.
 //
@@ -4466,10 +4451,10 @@ ParticleContainer<NR,NI,C>::AssignDensity (int rho_index,
 template <int NR, int NI, class C>
 void
 ParticleContainer<NR,NI,C>::AssignDensityDoit (int rho_index,
-					     PArray<MultiFab>* mf,
-					     PMap&             data,
-					     int               ncomp,
-					     int               lev_min) const
+					       Array<std::unique_ptr<MultiFab> >& mf,
+					       PMap&             data,
+					       int               ncomp,
+					       int               lev_min) const
 {
     if (rho_index != 0) BoxLib::Abort("AssignDensityDoit only works if rho_index = 0");
 
@@ -4654,11 +4639,11 @@ ParticleContainer<NR,NI,C>::AssignDensityDoit (int rho_index,
             const int     grd  = idata[1];
             const IntVect cell = IntVect(D_DECL(idata[2],idata[3],idata[4]));
 
-            BL_ASSERT((*mf)[lev].DistributionMap()[grd] == MyProc);
-            BL_ASSERT((*mf)[lev][grd].box().contains(cell));
+            BL_ASSERT((*mf[lev]).DistributionMap()[grd] == MyProc);
+	    BL_ASSERT((*mf[lev])[grd].box().contains(cell));
 
             for (int n = 0; n < ncomp; n++) {
-                (*mf)[lev][grd](cell,n) += rdata[n];
+                (*mf[lev])[grd](cell,n) += rdata[n];
 	    }
 
             idata += iChunkSize;

@@ -24,28 +24,29 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
     const Real*     dx       = geom.CellSize();
     const Real*     plo      = geom.ProbLo();
 
-    PArray<MultiFab> umac_pointer;
+    Array<std::unique_ptr<MultiFab> > raii_umac(BL_SPACEDIM);
+    Array<MultiFab*> umac_pointer(BL_SPACEDIM);
     // We assume that if umac[0]'s boxArray matches then the others will too...
     if (OnSameGrids(lev, umac[0]))
     {
-	umac_pointer.resize(BL_SPACEDIM, PArrayNoManage);
-        for (int i = 0; i < BL_SPACEDIM; i++)
-	    umac_pointer.set(i, &umac[i]);
+        for (int i = 0; i < BL_SPACEDIM; i++) {
+	    umac_pointer[i] = &umac[i];
+	}
     }
     else
     {
-	umac_pointer.resize(BL_SPACEDIM, PArrayManage);
         for (int i = 0; i < BL_SPACEDIM; i++)
         {
 	    int ng = umac[i].nGrow();
 	    
-	    umac_pointer.set(i, new MultiFab(m_gdb->ParticleBoxArray(lev),
-					     umac[i].nComp(),
-					     ng,
-					     m_gdb->ParticleDistributionMap(lev),
-					     Fab_allocate,
-					     IntVect::TheDimensionVector(i)));
-	    umac_pointer[i].copy(umac[i],0,0,umac[i].nComp(),ng,ng);
+	    raii_umac[i].reset(new MultiFab(m_gdb->ParticleBoxArray(lev),
+					    umac[i].nComp(),
+					    ng,
+					    m_gdb->ParticleDistributionMap(lev),
+					    Fab_allocate,
+					    IntVect::TheDimensionVector(i)));
+	    umac_pointer[i] = raii_umac[i].get();
+	    umac_pointer[i]->copy(umac[i],0,0,umac[i].nComp(),ng,ng);
         }
     }
 
@@ -59,9 +60,9 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
             PBox&     pbox = kv.second;
             const int n    = pbox.size();
 
-            FArrayBox* fab[BL_SPACEDIM] = { D_DECL(&umac_pointer[0][grid],
-                                                   &umac_pointer[1][grid],
-                                                   &umac_pointer[2][grid]) };
+            FArrayBox* fab[BL_SPACEDIM] = { D_DECL(&((*umac_pointer[0])[grid]),
+						   &((*umac_pointer[1])[grid]),
+						   &((*umac_pointer[2])[grid])) };
 
 #ifdef _OPENMP
 #pragma omp parallel for

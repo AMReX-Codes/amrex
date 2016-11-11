@@ -2,6 +2,8 @@
 #ifndef _LINOP_H_
 #define _LINOP_H_
 
+#include <memory>
+
 #include <Array.H>
 #include <Tuple.H>
 #include <Pointers.H>
@@ -271,26 +273,26 @@ protected:
     //
     // Array (on level) of Tuples (on dimension) of grid spacings
     //
-    std::vector< Tuple<Real,BL_SPACEDIM> > h;
+    Array< Tuple<Real,BL_SPACEDIM> > h;
     //
     // Array (on level) of BoxArray's of LinOp's domain
     //
-    std::vector< BoxArray > gbox;
+    Array< BoxArray > gbox;
     //
     // Array (on level) of pointers to BndryRegisters along each grid
     //  for scratch data required to modify internal stencil on boundary
     //
-    std::vector< LnClassPtr<BndryRegister> > undrrelxr;
+    Array< LnClassPtr<BndryRegister> > undrrelxr;
     //
-    // Array (on level) of PArrays (on orientation) of MultiMasks for 
+    // Array (on level) of Arrays (on orientation) of MultiMasks for 
     // whether boundary Fabs are covered, not_covered, outside_domain
     //
-    Array<PArray<MultiMask> > maskvals;
+    Array<Array<std::unique_ptr<MultiMask> > > maskvals;
     //
     // Similar to maskvals, but only for level 0.
     // It's only made if it's needed.  Currently used only in applyBC().
     //
-    Array<PArray<MultiMask> > lmaskvals;
+    Array<Array<std::unique_ptr<MultiMask> > > lmaskvals;
     //
     // boundary data class
     //
@@ -299,7 +301,7 @@ protected:
     // Array (on level) of geometry objects.  Needed for determining
     // whether stuff intersects on periodic domains
     //
-    std::vector< Geometry > geomarray;
+    Array< Geometry > geomarray;
     //
     // flag (=1 if use harmonic averaged interpolation for coefficients,
     // =0 is arithmetic averaging)

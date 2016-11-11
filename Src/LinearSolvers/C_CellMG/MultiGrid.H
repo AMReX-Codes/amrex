@@ -3,7 +3,6 @@
 #define _MULTIGRID_H_
 
 #include <Array.H>
-#include <PArray.H>
 #include <Pointers.H>
 #include <MultiFab.H>
 #include <BndryData.H>
