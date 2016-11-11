@@ -43,7 +43,10 @@ class NFilesIter
 
     ~NFilesIter();
 
-    bool ReadyToWrite();
+    // ---- if appendFirst is true, the first set for this
+    // ---- iterator will open the files in append mode
+    bool ReadyToWrite(bool appendFirst = false);
+
     bool ReadyToRead();
     
     NFilesIter &operator++();
