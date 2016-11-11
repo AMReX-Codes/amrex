@@ -118,8 +118,8 @@ Amr::Initialize ()
     compute_new_dt_on_regrid = 0;
     precreateDirectories     = true;
     prereadFAHeaders         = true;
-    VisMF::Header::Version plot_headerversion       = VisMF::Header::Version_v1;
-    VisMF::Header::Version checkpoint_headerversion = VisMF::Header::Version_v1;
+    plot_headerversion       = VisMF::Header::Version_v1;
+    checkpoint_headerversion = VisMF::Header::Version_v1;
 
     BoxLib::ExecOnFinalize(Amr::Finalize);
 
@@ -1326,7 +1326,7 @@ Amr::restart (const std::string& filename)
             std::string faHeaderFullName(filename + '/' + faHeaderName + "_H");
             Array<char> &tempCharArray = faHeaderMap[faHeaderFullName];
             ParallelDescriptor::ReadAndBcastFile(faHeaderFullName, tempCharArray);
-	    if(ParallelDescriptor::IOProcessor()) {
+	    if(verbose > 0 && ParallelDescriptor::IOProcessor()) {
               std::cout << ":::: faHeaderName faHeaderFullName tempCharArray.size() = " << faHeaderName
 	                << "  " << faHeaderFullName << "  " << tempCharArray.size() << std::endl;
 	    }
@@ -2676,8 +2676,6 @@ Amr::grid_places (int              lbase,
                   Array<BoxArray>& new_grids)
 {
     BL_PROFILE("Amr::grid_places()");
-
-    int max_crse = std::min(finest_level,max_level-1);
 
     const Real strttime = ParallelDescriptor::second();
 
