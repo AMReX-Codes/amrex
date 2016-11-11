@@ -53,7 +53,7 @@ class NFilesIter
     // ---- get the current Stream()'s seek position
     std::streampos SeekPos();
 
-    static int SetLength(int nProcs, int nOutFiles) {
+    static int LengthOfSet(int nProcs, int nOutFiles) {
       int anf(ActualNFiles(nOutFiles));
       return ((nProcs + (anf - 1)) / anf);
     }
@@ -65,7 +65,7 @@ class NFilesIter
       if(groupsets) {
         whichset = whichproc / noutfiles;
       } else {
-        whichset = whichproc % SetLength(nprocs, noutfiles);
+        whichset = whichproc % LengthOfSet(nprocs, noutfiles);
       }
       return whichset;
     }
@@ -89,7 +89,7 @@ class NFilesIter
         return(whichProc % anf);
       } else {
 	int nProcs(ParallelDescriptor::NProcs());
-        return(whichProc / SetLength(nProcs, anf));
+        return(whichProc / LengthOfSet(nProcs, anf));
       }
     }
 

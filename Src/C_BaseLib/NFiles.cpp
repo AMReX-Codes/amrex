@@ -16,7 +16,7 @@ NFilesIter::NFilesIter(int noutfiles, const std::string &fileprefix,
   groupSets     = groupsets;
   myProc        = ParallelDescriptor::MyProc();
   nProcs        = ParallelDescriptor::NProcs();
-  nSets         = SetLength(nProcs, nOutFiles);
+  nSets         = LengthOfSet(nProcs, nOutFiles);
   mySetPosition = WhichSetPosition(myProc, nProcs, nOutFiles, groupSets);
   fileNumber    = FileNumber(nOutFiles, myProc, groupSets);
   filePrefix    = fileprefix;
