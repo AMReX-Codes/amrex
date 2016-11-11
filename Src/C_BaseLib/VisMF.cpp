@@ -1139,11 +1139,11 @@ VisMF::FindOffsets (const FabArray<FArrayBox> &mf,
       if(myProc == coordinatorProc) {   // ---- calculate offsets
 	const BoxArray &mfBA = mf.boxArray();
 	const DistributionMapping &mfDM = mf.DistributionMap();
-	std::vector<long> fabHeaderBytes(mfBA.size(), 0);
+	Array<long> fabHeaderBytes(mfBA.size(), 0);
 	int nFiles(NFilesIter::ActualNFiles(nOutFiles));
 	int whichFileNumber(-1);
 	std::string whichFileName;
-	std::vector<std::streampos> currentOffset(nFiles, 0);
+	Array<long> currentOffset(nFiles, 0L);
 
         if(hdr.m_vers == VisMF::Header::Version_v1) {
 	  // ---- find the length of the fab header instead of asking the file system
@@ -1176,20 +1176,21 @@ VisMF::FindOffsets (const FabArray<FArrayBox> &mf,
 	  for(int ri(0); ri < fileNumbersWriteOrder[fn].size(); ++ri) {
 	    int rank(fileNumbersWriteOrder[fn][ri]);
 	    std::map<int, Array<int> >::iterator rboIter = rankBoxOrder.find(rank);
-	    Array<int> &index = rboIter->second;
-	    whichFileNumber = fileNumbers[rank];
-	    whichFileName   = VisMF::BaseName(NFilesIter::FileName(whichFileNumber, filePrefix));
+	    if(rboIter != rankBoxOrder.end()) {
+	      Array<int> &index = rboIter->second;
+	      whichFileNumber = fileNumbers[rank];
+	      whichFileName   = VisMF::BaseName(NFilesIter::FileName(whichFileNumber, filePrefix));
 
-	    for(int i(0); i < index.size(); ++i) {
-	      hdr.m_fod[index[i]].m_name = whichFileName;
-	      hdr.m_fod[index[i]].m_head = currentOffset[whichFileNumber];
-	      currentOffset[whichFileNumber] += mf.fabbox(index[i]).numPts() * nComps * whichRDBytes
-	                                        + fabHeaderBytes[index[i]];
+	      for(int i(0); i < index.size(); ++i) {
+	        hdr.m_fod[index[i]].m_name = whichFileName;
+	        hdr.m_fod[index[i]].m_head = currentOffset[whichFileNumber];
+	        currentOffset[whichFileNumber] += mf.fabbox(index[i]).numPts() * nComps * whichRDBytes
+	                                          + fabHeaderBytes[index[i]];
+	      }
 	    }
 	  }
 	}
       }
-    
       delete whichRD;
     }
 }
