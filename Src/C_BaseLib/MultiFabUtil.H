@@ -7,30 +7,30 @@
 namespace BoxLib
 {
     // Average face-based MultiFab onto cell-centered MultiFab.
-    void average_edge_to_cellcenter (MultiFab& cc, int dcomp, const Array<MultiFab*>& edge);
+    void average_edge_to_cellcenter (MultiFab& cc, int dcomp, const Array<const MultiFab*>& edge);
 
     // Average face-based MultiFab onto cell-centered MultiFab.
-    void average_face_to_cellcenter (MultiFab& cc, int dcomp, const Array<MultiFab*>& fc);
-    void average_face_to_cellcenter (MultiFab& cc, const Array<MultiFab*>& fc, const Geometry& geom);
+    void average_face_to_cellcenter (MultiFab& cc, int dcomp, const Array<const MultiFab*>& fc);
+    void average_face_to_cellcenter (MultiFab& cc, const Array<const MultiFab*>& fc, const Geometry& geom);
 
     // Average cell-centered MultiFab onto face-based MultiFab.
-    void average_cellcenter_to_face (Array<MultiFab*>& fc, const MultiFab& cc, const Geometry& geom);
+    void average_cellcenter_to_face (const Array<MultiFab*>& fc, const MultiFab& cc, const Geometry& geom);
 
     // Average fine face-based MultiFab onto crse fine-centered MultiFab.
     // This routine assumes that the crse BoxArray is a coarsened version of the fine BoxArray.
-    void average_down_faces (const Array<MultiFab*>& fine, Array<MultiFab*>& crse, const IntVect& ratio);
+    void average_down_faces (const Array<const MultiFab*>& fine, const Array<MultiFab*>& crse, const IntVect& ratio);
 
     // Average fine cell-based MultiFab onto crse cell-centered MultiFab using volume-weighting.
     // This routine DOES NOT assume that the crse BoxArray is a coarsened version of the fine BoxArray.
-    void average_down(MultiFab& S_fine, MultiFab& S_crse, const Geometry& fine_geom, const Geometry& crse_geom,
+    void average_down(const MultiFab& S_fine, MultiFab& S_crse, const Geometry& fine_geom, const Geometry& crse_geom,
                       int scomp, int ncomp, const IntVect& ratio);
-    void average_down(MultiFab& S_fine, MultiFab& S_crse, const Geometry& fine_geom, const Geometry& crse_geom,
+    void average_down(const MultiFab& S_fine, MultiFab& S_crse, const Geometry& fine_geom, const Geometry& crse_geom,
                       int scomp, int ncomp, const int ratio);
 
     // Average fine cell-based MultiFab onto crse cell-centered MultiFab without volume weighting.
     // This routine DOES NOT assume that the crse BoxArray is a coarsened version of the fine BoxArray.
-    void average_down(MultiFab& S_fine, MultiFab& S_crse, int scomp, int ncomp, const IntVect& ratio);
-    void average_down(MultiFab& S_fine, MultiFab& S_crse, int scomp, int ncomp,       int      ratio);
+    void average_down(const MultiFab& S_fine, MultiFab& S_crse, int scomp, int ncomp, const IntVect& ratio);
+    void average_down(const MultiFab& S_fine, MultiFab& S_crse, int scomp, int ncomp,       int      ratio);
 
     // Fill MultiFab boundaries except for physical boundaries.
     void fill_boundary(MultiFab& mf, const Geometry& geom, bool cross = false);

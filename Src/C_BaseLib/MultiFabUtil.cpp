@@ -4,7 +4,7 @@
 
 namespace BoxLib
 {
-    void average_edge_to_cellcenter (MultiFab& cc, int dcomp, const Array<MultiFab*>& edge)
+    void average_edge_to_cellcenter (MultiFab& cc, int dcomp, const Array<const MultiFab*>& edge)
     {
 	BL_ASSERT(cc.nComp() >= dcomp + BL_SPACEDIM);
 	BL_ASSERT(edge.size() == BL_SPACEDIM);
@@ -29,7 +29,7 @@ namespace BoxLib
 #endif
     }
 
-    void average_face_to_cellcenter (MultiFab& cc, int dcomp, const Array<MultiFab*>& fc)
+    void average_face_to_cellcenter (MultiFab& cc, int dcomp, const Array<const MultiFab*>& fc)
     {
 	BL_ASSERT(cc.nComp() >= dcomp + BL_SPACEDIM);
 	BL_ASSERT(fc.size() == BL_SPACEDIM);
@@ -56,7 +56,8 @@ namespace BoxLib
 	}
     }
 
-    void average_face_to_cellcenter (MultiFab& cc, const Array<MultiFab*>& fc, const Geometry& geom)
+    void average_face_to_cellcenter (MultiFab& cc, const Array<const MultiFab*>& fc,
+				     const Geometry& geom)
     {
 	BL_ASSERT(cc.nComp() >= BL_SPACEDIM);
 	BL_ASSERT(fc.size() == BL_SPACEDIM);
@@ -83,7 +84,8 @@ namespace BoxLib
 	}
     }
 
-    void average_cellcenter_to_face (Array<MultiFab*>& fc, const MultiFab& cc, const Geometry& geom)
+    void average_cellcenter_to_face (const Array<MultiFab*>& fc, const MultiFab& cc,
+				     const Geometry& geom)
     {
 	BL_ASSERT(cc.nComp() == 1);
 	BL_ASSERT(cc.nGrow() >= 1);
@@ -128,13 +130,15 @@ namespace BoxLib
     // Average fine cell-based MultiFab onto crse cell-centered MultiFab.
     // We do NOT assume that the coarse layout is a coarsened version of the fine layout.
     // This version DOES use volume-weighting.
-    void average_down (MultiFab& S_fine, MultiFab& S_crse, const Geometry& fgeom, const Geometry& cgeom, 
+    void average_down (const MultiFab& S_fine, MultiFab& S_crse,
+		       const Geometry& fgeom, const Geometry& cgeom, 
                        int scomp, int ncomp, int rr)
     {
          average_down(S_fine,S_crse,fgeom,cgeom,scomp,ncomp,rr*IntVect::TheUnitVector());
     }
 
-    void average_down (MultiFab& S_fine, MultiFab& S_crse, const Geometry& fgeom, const Geometry& cgeom, 
+    void average_down (const MultiFab& S_fine, MultiFab& S_crse,
+		       const Geometry& fgeom, const Geometry& cgeom, 
                        int scomp, int ncomp, const IntVect& ratio)
     {
   
@@ -190,12 +194,12 @@ namespace BoxLib
     // Average fine cell-based MultiFab onto crse cell-centered MultiFab.
     // We do NOT assume that the coarse layout is a coarsened version of the fine layout.
     // This version does NOT use volume-weighting
-    void average_down (MultiFab& S_fine, MultiFab& S_crse, int scomp, int ncomp, int rr)
+    void average_down (const MultiFab& S_fine, MultiFab& S_crse, int scomp, int ncomp, int rr)
     {
          average_down(S_fine,S_crse,scomp,ncomp,rr*IntVect::TheUnitVector());
     }
 
-    void average_down (MultiFab& S_fine, MultiFab& S_crse, 
+    void average_down (const MultiFab& S_fine, MultiFab& S_crse, 
                        int scomp, int ncomp, const IntVect& ratio)
     {
         BL_ASSERT(S_crse.nComp() == S_fine.nComp());
@@ -233,7 +237,7 @@ namespace BoxLib
 
     // Average fine face-based MultiFab onto crse fine-centered MultiFab.
     // This routine assumes that the crse BoxArray is a coarsened version of the fine BoxArray.
-    void average_down_faces (const Array<const MultiFab*>& fine, Array<MultiFab*>& crse, IntVect& ratio)
+    void average_down_faces (const Array<const MultiFab*>& fine, const Array<MultiFab*>& crse, IntVect& ratio)
     {
 	BL_ASSERT(crse.size()  == BL_SPACEDIM);
 	BL_ASSERT(fine.size()  == BL_SPACEDIM);
