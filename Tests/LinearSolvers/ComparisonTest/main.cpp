@@ -4,7 +4,6 @@
 #include <Utility.H>
 #include <ParallelDescriptor.H>
 #include <ParmParse.H>
-#include <PArray.H>
 
 #include <LO_BCTYPES.H>
 
@@ -22,31 +21,34 @@ enum bc_t {Periodic = 0,
 solver_t solver_type = All;
 bc_t     bc_type = Periodic;
 
-void build_grids(std::vector<Geometry>& geom, 
-		 std::vector<BoxArray>& grids);
-void setup_coef(PArray<MultiFab> &exac, PArray<MultiFab> &alph, 
-		PArray<MultiFab> &beta, PArray<MultiFab> &rhs, 
-		const std::vector<Geometry>& geom, 
-		const std::vector<BoxArray>& grids,
+void build_grids(Array<Geometry>& geom, 
+		 Array<BoxArray>& grids);
+void setup_coef(const Array<std::unique_ptr<MultiFab> > &exac,
+		const Array<std::unique_ptr<MultiFab> > &alph, 
+		const Array<std::unique_ptr<MultiFab> > &beta,
+		const Array<std::unique_ptr<MultiFab> > &rhs, 
+		const Array<Geometry>& geom, 
+		const Array<BoxArray>& grids,
 		Real a, Real b, Real sigma, Real w);
-void solve_with_F90(PArray<MultiFab>& soln, Real a, Real b, 
-		    const PArray<MultiFab>& alph, 
-		    const PArray<MultiFab>& beta, 
-		    PArray<MultiFab>& rhs, 
-		    const std::vector<Geometry>& geom, 
-		    const std::vector<BoxArray>& grids,
+void solve_with_F90(const Array<std::unique_ptr<MultiFab> >& soln, Real a, Real b, 
+		    const Array<std::unique_ptr<MultiFab> >& alph, 
+		    const Array<std::unique_ptr<MultiFab> >& beta, 
+		    const Array<std::unique_ptr<MultiFab> >& rhs, 
+		    const Array<Geometry>& geom, 
+		    const Array<BoxArray>& grids,
 		    int ibnd);
 #ifdef USEHYPRE
-void solve_with_hypre(PArray<MultiFab>& soln, Real a, Real b, 
-		      const PArray<MultiFab>& alph, 
-		      const PArray<MultiFab>& beta, 
-		      PArray<MultiFab>& rhs, 
-		      const std::vector<Geometry>& geom, 
-		      const std::vector<BoxArray>& grids,
+void solve_with_hypre(const Array<std::unique_ptr<MultiFab> >& soln, Real a, Real b, 
+		      const Array<std::unique_ptr<MultiFab> >& alph, 
+		      const Array<std::unique_ptr<MultiFab> >& beta, 
+		      const Array<std::unique_ptr<MultiFab> >& rhs, 
+		      const Array<Geometry>& geom, 
+		      const Array<BoxArray>& grids,
 		      int ibnd);
 #endif
-void compute_norm(const PArray<MultiFab>& soln, const PArray<MultiFab>& exac, 
-		  const std::vector<Geometry>& geom, const std::vector<BoxArray>& grids,
+void compute_norm(const Array<std::unique_ptr<MultiFab> >& soln,
+		  const Array<std::unique_ptr<MultiFab> >& exac, 
+		  const Array<Geometry>& geom, const Array<BoxArray>& grids,
 		  int nsoln, int iCpp, int iF90, int iHyp);
 
 int main(int argc, char* argv[])
@@ -106,17 +108,17 @@ int main(int argc, char* argv[])
   pp.query("max_level", max_level);
   int nlevel = max_level+1;
 
-  std::vector<Geometry> geom(nlevel);
-  std::vector<BoxArray> grids(nlevel);
+  Array<Geometry> geom(nlevel);
+  Array<BoxArray> grids(nlevel);
 
   build_grids(geom, grids);
 
-  PArray<MultiFab> soln(nlevel, PArrayManage);
-  PArray<MultiFab> soln1(nlevel, PArrayNoManage);
-  PArray<MultiFab> exac(nlevel, PArrayManage);
-  PArray<MultiFab> alph(nlevel, PArrayManage);
-  PArray<MultiFab> beta(nlevel, PArrayManage);
-  PArray<MultiFab> rhs(nlevel, PArrayManage);
+  Array<std::unique_ptr<MultiFab> >  soln(nlevel);
+  Array<std::unique_ptr<MultiFab> > soln1(nlevel);
+  Array<std::unique_ptr<MultiFab> >  exac(nlevel);
+  Array<std::unique_ptr<MultiFab> >  alph(nlevel);
+  Array<std::unique_ptr<MultiFab> >  beta(nlevel);
+  Array<std::unique_ptr<MultiFab> >   rhs(nlevel);
 
   int nsoln=-1, iF90=-1, iCpp=-1, iHyp=-1;
   switch (solver_type) 
@@ -148,17 +150,12 @@ int main(int argc, char* argv[])
     }
 
   for (int ilev=0; ilev < nlevel; ilev++) {
-    soln.set(ilev, new MultiFab(grids[ilev], nsoln, 1));
-    if (nsoln == 1) {
-      soln1.set(ilev, &(soln.get(ilev)));
-    }
-    else {
-      soln1.set(ilev, new MultiFab(grids[ilev], 1, 1));
-    }
-    exac.set(ilev, new MultiFab(grids[ilev], 1, 0));
-    alph.set(ilev, new MultiFab(grids[ilev], 1, 0));
-    beta.set(ilev, new MultiFab(grids[ilev], 1, 1)); // one ghost cell
-    rhs.set (ilev, new MultiFab(grids[ilev], 1, 0));
+    soln [ilev].reset(new MultiFab(grids[ilev], nsoln, 1));
+    soln1[ilev].reset(new MultiFab(grids[ilev], 1, 1));
+    exac [ilev].reset(new MultiFab(grids[ilev], 1, 0));
+    alph [ilev].reset(new MultiFab(grids[ilev], 1, 0));
+    beta [ilev].reset(new MultiFab(grids[ilev], 1, 1)); // one ghost cell
+    rhs  [ilev].reset(new MultiFab(grids[ilev], 1, 0));
   }
 
   Real a, b, sigma, w;
@@ -173,71 +170,58 @@ int main(int argc, char* argv[])
 
   if (solver_type == BoxLib_C || solver_type == All) {
     for (int ilev=0; ilev < nlevel; ilev++) {
-      soln1[ilev].setVal(0.0);
+	soln1[ilev]->setVal(0.0);
     }    
 
     //    solve_with_Cpp(soln1, a, b, alph, beta, rhs, geom, grids, nlevel, ibnd);
 
-    if (nsoln > 1) { // soln1 doesn't point to the same multifabs as soln
-      for (int ilev=0; ilev < nlevel; ilev++) {
-	MultiFab::Copy(soln[ilev], soln1[ilev], 0, iCpp, 1, 1);
-      }        
+    for (int ilev=0; ilev < nlevel; ilev++) {
+	MultiFab::Copy(*soln[ilev], *soln1[ilev], 0, iCpp, 1, 1);
     }
   }
 
   if (solver_type == BoxLib_F || solver_type == All) {
     for (int ilev=0; ilev < nlevel; ilev++) {
-      soln1[ilev].setVal(0.0);
+	soln1[ilev]->setVal(0.0);
     }    
 
     solve_with_F90(soln1, a, b, alph, beta, rhs, geom, grids, ibnd);
 
-    if (nsoln > 1) { // soln1 doesn't point to the same multifabs as soln
-      for (int ilev=0; ilev < nlevel; ilev++) {
-	MultiFab::Copy(soln[ilev], soln1[ilev], 0, iF90, 1, 1);
-      }        
+    for (int ilev=0; ilev < nlevel; ilev++) {
+	MultiFab::Copy(*soln[ilev], *soln1[ilev], 0, iF90, 1, 1);
     }
   }
 
 #ifdef USEHYPRE
   if (solver_type == Hypre || solver_type == All) {
     for (int ilev=0; ilev < nlevel; ilev++) {
-      soln1[ilev].setVal(0.0);
+	soln1[ilev]->setVal(0.0);
     }    
 
     solve_with_hypre(soln1, a, b, alph, beta, rhs, geom, grids, ibnd);
 
-    if (nsoln > 1) { // soln1 doesn't point to the same multifabs as soln
-      for (int ilev=0; ilev < nlevel; ilev++) {
-	MultiFab::Copy(soln[ilev], soln1[ilev], 0, iHyp, 1, 1);
-      }        
+    for (int ilev=0; ilev < nlevel; ilev++) {
+	MultiFab::Copy(*soln[ilev], *soln1[ilev], 0, iHyp, 1, 1);
     }
   }
 #endif
 
-  if (nsoln > 1) { // soln1 doesn't point to the same multifabs as soln,
-                   // and soln1 is defined with PArrayNoManage
-    for (int ilev=0; ilev < nlevel; ilev++) {
-      delete &(soln1[ilev]);
-    }
-  }
-
   int write_plot = 0;
   pp.query("write_plot", write_plot);
   if (write_plot) {
-    writePlotFile("plot", soln, exac, alph, beta, rhs, geom, grids, nsoln, iCpp, iF90, iHyp);
+      writePlotFile("plot", soln, exac, alph, beta, rhs, geom, grids, nsoln, iCpp, iF90, iHyp);
   }
 
   int comp_norm = 1;
   pp.query("comp_norm", comp_norm);
   if (comp_norm) {
-    compute_norm(soln, exac, geom, grids, nsoln, iCpp, iF90, iHyp);
+      compute_norm(soln, exac, geom, grids, nsoln, iCpp, iF90, iHyp);
   }
 
   BoxLib::Finalize();
 }
 
-void build_grids(std::vector<Geometry>& geom, std::vector<BoxArray>& grids)
+void build_grids(Array<Geometry>& geom, Array<BoxArray>& grids)
 {
   ParmParse pp;
   
@@ -305,10 +289,12 @@ void build_grids(std::vector<Geometry>& geom, std::vector<BoxArray>& grids)
   }
 }
 
-void setup_coef(PArray<MultiFab> &exac, PArray<MultiFab> &alph, 
-		PArray<MultiFab> &beta, PArray<MultiFab> &rhs, 
-		const std::vector<Geometry>& geom, 
-		const std::vector<BoxArray>& grids,
+void setup_coef(const Array<std::unique_ptr<MultiFab> > &exac,
+		const Array<std::unique_ptr<MultiFab> > &alph, 
+		const Array<std::unique_ptr<MultiFab> > &beta,
+		const Array<std::unique_ptr<MultiFab> > &rhs, 
+		const Array<Geometry>& geom, 
+		const Array<BoxArray>& grids,
 		Real a, Real b, Real sigma, Real w)
 {
   int ibnd = static_cast<int>(bc_type); 
@@ -318,12 +304,12 @@ void setup_coef(PArray<MultiFab> &exac, PArray<MultiFab> &alph,
     const Geometry& geo = geom[ilev];
     const Real* dx = geo.CellSize();  
 
-    for (MFIter mfi(alph[ilev]); mfi.isValid(); ++mfi) {
+    for (MFIter mfi(*alph[ilev]); mfi.isValid(); ++mfi) {
       int i = mfi.index();
       const Box& bx = grids[ilev][i];
     
-      FORT_SET_COEF(exac[ilev][mfi].dataPtr(), alph[ilev][mfi].dataPtr(),
-		    beta[ilev][mfi].dataPtr(), rhs[ilev][mfi].dataPtr(),
+      FORT_SET_COEF((*exac[ilev])[mfi].dataPtr(), (*alph[ilev])[mfi].dataPtr(),
+		    (*beta[ilev])[mfi].dataPtr(), (*rhs[ilev])[mfi].dataPtr(),
 		    bx.loVect(), bx.hiVect(), geo.ProbLo(), geo.ProbHi(),
 		    dx, a, b, sigma, w, ibnd);
     }
