@@ -150,7 +150,7 @@ NFilesIter::~NFilesIter() {
 }
 
 
-bool NFilesIter::ReadyToWrite() {
+bool NFilesIter::ReadyToWrite(bool appendFirst) {
 
 #ifdef BL_USE_MPI
 
@@ -162,7 +162,7 @@ bool NFilesIter::ReadyToWrite() {
 
     for(int iSet(0); iSet < nSets; ++iSet) {
       if(mySetPosition == iSet) {
-        if(iSet == 0) {   // ---- first set
+        if(iSet == 0 && ! appendFirst) {   // ---- first set
           fileStream.open(fullFileName.c_str(),
                           std::ios::out | std::ios::trunc | std::ios::binary);
         } else {
@@ -193,8 +193,13 @@ bool NFilesIter::ReadyToWrite() {
     if(mySetPosition == 0) {    // ---- return true, ready to write data
 
       fullFileName = BoxLib::Concatenate(filePrefix, fileNumber, 5);
-      fileStream.open(fullFileName.c_str(),
-                      std::ios::out | std::ios::trunc | std::ios::binary);
+      if(appendFirst) {
+        fileStream.open(fullFileName.c_str(),
+                        std::ios::out | std::ios::app | std::ios::binary);
+      } else {
+        fileStream.open(fullFileName.c_str(),
+                        std::ios::out | std::ios::trunc | std::ios::binary);
+      }
       if( ! fileStream.good()) {
         BoxLib::FileOpenFailed(fullFileName);
       }
