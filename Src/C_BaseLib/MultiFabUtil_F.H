@@ -42,15 +42,15 @@ BL_FORT_PROC_DECL(BL_AVGDOWN_FACES, bl_avgdown_faces)
 
 BL_FORT_PROC_DECL(BL_AVGDOWN, bl_avgdown)
   (const int* ovlp_lo, const int* ovlp_hi,
-   BL_FORT_FAB_ARG(fine),
+   const BL_FORT_FAB_ARG(fine),
    BL_FORT_FAB_ARG(crse),
    const int* ratio, const int* ncomp);
 
 BL_FORT_PROC_DECL(BL_AVGDOWN_WITH_VOL, bl_avgdown_with_vol)
   (const int* ovlp_lo, const int* ovlp_hi,
-   BL_FORT_FAB_ARG(fine),
+   const BL_FORT_FAB_ARG(fine),
    BL_FORT_FAB_ARG(crse),
-   BL_FORT_FAB_ARG(fvolume),
+   const BL_FORT_FAB_ARG(fvolume),
    const int* ratio, const int* ncomp);
 
 #endif

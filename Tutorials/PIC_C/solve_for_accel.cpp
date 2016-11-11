@@ -80,11 +80,9 @@ solve_for_accel(Array<std::unique_ptr<MultiFab> >& rhs,
     // Average edge-centered gradients to cell centers and fill the values in ghost cells.
     for (int lev = base_level; lev <= finest_level; lev++)
     {
-	Array<MultiFab*> gpe(BL_SPACEDIM);
-	for (int i = 0; i < BL_SPACEDIM; ++i) {
-	    gpe[i] = grad_phi_edge[lev][i].get();
-	}
-        BoxLib::average_face_to_cellcenter(*grad_phi[lev], gpe, geom[lev]);
+        BoxLib::average_face_to_cellcenter(*grad_phi[lev],
+					   BoxLib::GetArrOfConstPtrs(grad_phi_edge[lev]),
+					   geom[lev]);
 	grad_phi[lev]->FillBoundary(0,BL_SPACEDIM,geom[lev].periodicity());
     }
 
