@@ -79,8 +79,6 @@ can be running using MPI and/or OpenMP.  Here is a brief overview:
 
 These are more specialized tutorials:
 
-* `AMR_PETSc_C`
-
 * `AMR_Trilinos_C`
 
 * `PIC_C`
