@@ -73,23 +73,25 @@ public:
 
   void set_maxorder(const int max_order);
 
-  void solve(MultiFab* uu[], MultiFab* rh[], const BndryData& bd,
+  void solve(const Array<MultiFab*>& uu, const Array<MultiFab*>& rh, const BndryData& bd,
 	     Real tol, Real abs_tol, int always_use_bnorm, 
 	     Real& final_resnorm, int need_grad_phi=0);
 
-  void applyop(MultiFab* uu[], MultiFab* res[], const BndryData& bd);
+  void applyop(const Array<MultiFab*>& uu, const Array<MultiFab*>& res, const BndryData& bd);
 
-  void compute_residual(MultiFab* uu[], MultiFab* rh[], MultiFab* res[], const BndryData& bd);
+  void compute_residual(const Array<MultiFab*>& uu, const Array<MultiFab*>& rh,
+			const Array<MultiFab*>& res, const BndryData& bd);
 
-  void get_fluxes(int lev, Array<MultiFab*>& flux, const Real* dx);
+  void get_fluxes(int lev, const Array<MultiFab*>& flux, const Real* dx);
 
-  void set_nodal_coefficients(const MultiFab* aa[]);
+  void set_nodal_coefficients(const Array<MultiFab*>& aa);
   void set_nodal_const_coefficients(Real val);
-  void nodal_project(MultiFab* uu[], MultiFab* vel[], MultiFab* rhcc[], const Array<MultiFab*>& rhnd, 
+  void nodal_project(const Array<MultiFab*>& uu, const Array<MultiFab*>& vel, 
+		     const Array<MultiFab*>& rhcc, const Array<MultiFab*>& rhnd, 
 		     const Real& tol, const Real& abs_tol, 
 		     int* lo_inflow=0, int* hi_inflow=0);
 
-  void fill_sync_resid(MultiFab* sync_resid_crse, const MultiFab& msk, const MultiFab& vold,
+  void fill_sync_resid(MultiFab& sync_resid_crse, const MultiFab& msk, const MultiFab& vold,
 		       int isCoarse);
 
   ~MGT_Solver();

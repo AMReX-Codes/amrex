@@ -538,7 +538,7 @@ MGT_Solver::set_const_gravity_coeffs(const Array< Array<Real> >& xa,
 }
 
 void
-MGT_Solver::set_nodal_coefficients(const MultiFab* sig[])
+MGT_Solver::set_nodal_coefficients(const Array<MultiFab*>& sig)
 {
     for ( int lev = 0; lev < m_nlevel; ++lev ) {
 	mgt_init_nodal_coeffs_lev(&lev);
@@ -586,7 +586,7 @@ void MGT_Solver::set_maxorder(const int max_order)
 }
 
 void
-MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[], const BndryData& bd,
+MGT_Solver::solve(const Array<MultiFab*>& uu, const Array<MultiFab*>& rh, const BndryData& bd,
 		  Real tol, Real abs_tol, int always_use_bnorm, 
 		  Real& final_resnorm, int need_grad_phi)
 {
@@ -636,7 +636,7 @@ MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[], const BndryData& bd,
 }
 
 void 
-MGT_Solver::applyop(MultiFab* uu[], MultiFab* res[], const BndryData& bd)
+MGT_Solver::applyop(const Array<MultiFab*>& uu, const Array<MultiFab*>& res, const BndryData& bd)
 {
   // Copy the boundary register values into the solution array to be copied into F90
   int lev = 0;
@@ -673,7 +673,8 @@ MGT_Solver::applyop(MultiFab* uu[], MultiFab* res[], const BndryData& bd)
 }
 
 void 
-MGT_Solver::compute_residual(MultiFab* uu[], MultiFab* rh[], MultiFab* res[], const BndryData& bd)
+MGT_Solver::compute_residual(const Array<MultiFab*>& uu, const Array<MultiFab*>& rh,
+			     const Array<MultiFab*>& res, const BndryData& bd)
 {
   // Copy the boundary register values into the solution array to be copied into F90
   int lev = 0;
@@ -711,7 +712,7 @@ MGT_Solver::compute_residual(MultiFab* uu[], MultiFab* rh[], MultiFab* res[], co
 }
 
 void 
-MGT_Solver::get_fluxes(int lev, Array<MultiFab*>& flux, const Real* dx)
+MGT_Solver::get_fluxes(int lev, const Array<MultiFab*>& flux, const Real* dx)
 {
   mgt_compute_flux(lev);
 
@@ -727,7 +728,8 @@ MGT_Solver::get_fluxes(int lev, Array<MultiFab*>& flux, const Real* dx)
 }
 
 void 
-MGT_Solver::nodal_project(MultiFab* p[], MultiFab* vel[], MultiFab* rhcc[], const Array<MultiFab*>& rhnd,
+MGT_Solver::nodal_project(const Array<MultiFab*>& p, const Array<MultiFab*>& vel,
+			  const Array<MultiFab*>& rhcc, const Array<MultiFab*>& rhnd,
 			  const Real& tol, const Real& abs_tol,
 			  int* lo_inflow, int* hi_inflow)
 {
@@ -853,7 +855,7 @@ MGT_Solver::nodal_project(MultiFab* p[], MultiFab* vel[], MultiFab* rhcc[], cons
   }
 }
 
-void MGT_Solver::fill_sync_resid(MultiFab* sync_resid, const MultiFab& msk,
+void MGT_Solver::fill_sync_resid(MultiFab& sync_resid, const MultiFab& msk,
 				 const MultiFab& vold, int isCoarse)
 {
   mgt_alloc_nodal_sync();
@@ -888,10 +890,10 @@ void MGT_Solver::fill_sync_resid(MultiFab* sync_resid, const MultiFab& msk,
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-  for (MFIter mfi(*sync_resid, true); mfi.isValid(); ++mfi) {
+  for (MFIter mfi(sync_resid, true); mfi.isValid(); ++mfi) {
       const int n = mfi.LocalIndex();
       const Box& bx = mfi.tilebox();
-      FArrayBox& sfab = (*sync_resid)[mfi];
+      FArrayBox& sfab = sync_resid[mfi];
       const Box& sbx = sfab.box();
       mgt_get_sync_res(&lev, &n, sfab.dataPtr(), sbx.loVect(), sbx.hiVect(),
 		       bx.loVect(), bx.hiVect());

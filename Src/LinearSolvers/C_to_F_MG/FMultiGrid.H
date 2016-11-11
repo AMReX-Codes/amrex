@@ -94,23 +94,23 @@ public:
     void set_const_gravity_coeffs ();
 
     // For gravity_eq
-    void set_gravity_coeffs (       Array<MultiFab*>  & b); // single level
-    void set_gravity_coeffs (Array< Array<MultiFab*> >& b); // multi level
+    void set_gravity_coeffs (const        Array<MultiFab*>  & b); // single level
+    void set_gravity_coeffs (const Array< Array<MultiFab*> >& b); // multi level
 
     // For MAC projection
-    void set_mac_coeffs (Array<MultiFab*> &b);
+    void set_mac_coeffs (const Array<MultiFab*> &b);
  
     // For Diffusion operator
-    void set_diffusion_coeffs (       Array<MultiFab*>  & b) // single level
+    void set_diffusion_coeffs (const        Array<MultiFab*>  & b) // single level
 	{ set_gravity_coeffs(b); }
-    void set_diffusion_coeffs (Array< Array<MultiFab*> >& b) // multi level
+    void set_diffusion_coeffs (const Array< Array<MultiFab*> >& b) // multi level
 	{ set_gravity_coeffs(b); }
 
     // For general_eq
     void set_scalars (Real alpha, Real beta);
     //
-    void set_coefficients (const  MultiFab  &a,       Array<MultiFab*>   & b);
-    void set_coefficients (Array<MultiFab*> &a, Array<Array<MultiFab*> > & b);
+    void set_coefficients (const       MultiFab   &a, const       Array<MultiFab*>   & b);
+    void set_coefficients (const Array<MultiFab*> &a, const Array<Array<MultiFab*> > & b);
 
     Real solve (MultiFab& phi,
 		MultiFab& rhs,
@@ -118,27 +118,27 @@ public:
 		int always_use_bnorm = 0,
 		int need_grad_phi = 0,
 		int verbose = 0);
-    Real solve (Array<MultiFab*>& phi,
-		Array<MultiFab*>& rhs,
+    Real solve (const Array<MultiFab*>& phi,
+		const Array<MultiFab*>& rhs,
 		Real rel_tol, Real abs_tol,
 		int always_use_bnorm = 0,
 		int need_grad_phi = 0,
 		int verbose = 0);
 
-    void get_fluxes (      Array<MultiFab*>  & grad_phi, int ilev = 0);
-    void get_fluxes (Array<Array<MultiFab*> >& grad_phi);
+    void get_fluxes (const       Array<MultiFab*>  & grad_phi, int ilev = 0);
+    void get_fluxes (const Array<Array<MultiFab*> >& grad_phi);
 
     void compute_residual (MultiFab & phi,
 			   MultiFab & rhs,
 			   MultiFab & res);
-    void compute_residual (Array<MultiFab*> & phi,
-			   Array<MultiFab*> & rhs,
-			   Array<MultiFab*> & res);
+    void compute_residual (const Array<MultiFab*> & phi,
+			   const Array<MultiFab*> & rhs,
+			   const Array<MultiFab*> & res);
 
     void applyop (MultiFab & phi,
 		  MultiFab & res);
-    void applyop (Array<MultiFab*> & phi,
-		  Array<MultiFab*> & res);
+    void applyop (const Array<MultiFab*> & phi,
+		  const Array<MultiFab*> & res);
 
 private:
 
@@ -195,11 +195,11 @@ private:
     ABecCoeff m_coeff;
 
     static void Copy (Array<MultiFab*>& dst, const MultiFab& src);
-    static void Copy (Array<MultiFab*>& dst, Array<MultiFab*>& src);
-    static void Copy (Array<Array<MultiFab*> >& dst, Array<MultiFab*>& src);
-    static void Copy (Array<Array<MultiFab*> >& dst, Array<Array<MultiFab*> >& src);
+    static void Copy (Array<MultiFab*>& dst, const Array<MultiFab*>& src);
+    static void Copy (Array<Array<MultiFab*> >& dst, const Array<MultiFab*>& src);
+    static void Copy (Array<Array<MultiFab*> >& dst, const Array<Array<MultiFab*> >& src);
 
-    void init_mgt_solver (Array<MultiFab*>& phi);
+    void init_mgt_solver (const Array<MultiFab*>& phi);
 };
 
 #endif
