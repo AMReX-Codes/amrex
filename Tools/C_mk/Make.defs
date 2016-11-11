@@ -245,8 +245,8 @@ ifeq ($(USE_PARTICLES),TRUE)
   DEFINES += -DUSE_PARTICLES -DPARTICLES
 endif
 
-cincludes	= -I. $(addprefix -I, $(INCLUDE_LOCATIONS))
-fincludes	= $(cincludes)
+includes	= -I. $(addprefix -I, $(INCLUDE_LOCATIONS))
+fincludes	= $(includes)
 fmoddir         = $(objEXETempDir)
 
 CPPFLAGS	+= $(DEFINES)
