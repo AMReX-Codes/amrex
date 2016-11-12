@@ -1,5 +1,4 @@
 #include <Geometry.H>
-#include <PArray.H>
 #include <MultiFab.H>
 
 //***********************************************
@@ -54,28 +53,26 @@ void main_main ()
   geom.define(bx, &real_box, coord, is_per);
 
   // define a multifab with 2 components and 6 ghost cells
-  // We use the PArray class to help manage the memory
-  // (auto deallocation to prevent memory leaks)
   int Ncomp = 2 , Nghost = 6;
 
   // the "1" means only 1 MultiFab; you can declare more if needed
-  PArray <MultiFab> data(1,PArrayManage);
+  Array <std::unique_ptr<MultiFab> > data(1);
 
-  // build the "0th" MultiFab in the PArray 
-  data.set(0, new MultiFab(ba, Ncomp, Nghost));
+  // build the "0th" MultiFab
+  data[0].reset(new MultiFab(ba, Ncomp, Nghost));
 
   // MFIter is a "MultiFab Iterator" that loops over 
   // the grids in the MultiFab
-  for ( MFIter mfi(data[0]); mfi.isValid(); ++mfi)
+  for ( MFIter mfi(*data[0]); mfi.isValid(); ++mfi)
   {
     // get the box associated with the current grid
     const Box& bx = mfi.validbox();
-    work_on_data((data[0])[mfi].dataPtr(), &Nghost, &Ncomp, 
+    work_on_data((*data[0])[mfi].dataPtr(), &Nghost, &Ncomp, 
 		 bx.loVect(), bx.hiVect());
   }
 
   // fill periodic domain boundary and neighboring grid ghost cells
-  data[0].FillBoundary(geom.periodicity());
+  data[0]->FillBoundary(geom.periodicity());
 }
 
 int main (int argc, char* argv[])

@@ -14,7 +14,7 @@ void set_boundary(BndryData& bd, MultiFab& rhs, const Real* dx);
 
 void
 solve_with_hpgmg(MultiFab& rhs,
-                 PArray<MultiFab>& grad_phi,
+                 Array<std::unique_ptr<MultiFab> >& grad_phi,
                  const Geometry& geom,
                  int base_level, int finest_level,
                  Real tol,
@@ -118,7 +118,7 @@ solve_with_hpgmg(MultiFab& rhs,
 
   soln.FillBoundary(geom.periodicity());
 
-  lap_operator.compFlux(grad_phi[0],grad_phi[1],grad_phi[2],soln);
+  lap_operator.compFlux(*grad_phi[0],*grad_phi[1],*grad_phi[2],soln);
 }
 
 void

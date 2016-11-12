@@ -156,11 +156,11 @@ main (int argc, char* argv[])
     pp.query("ncomp", Ncomp);
 
     // Allocate space for the old_phi and new_phi -- we define old_phi and new_phi as
-    PArray < MultiFab > phis(2, PArrayManage);
-    phis.set(0, new MultiFab(bs, Ncomp, Nghost));
-    phis.set(1, new MultiFab(bs, Ncomp, Nghost));
-    MultiFab* old_phi = &phis[0];
-    MultiFab* new_phi = &phis[1];
+    Array < std::unique_ptr<MultiFab> > phis(2);
+    phis[0].reset(new MultiFab(bs, Ncomp, Nghost));
+    phis[1].reset(new MultiFab(bs, Ncomp, Nghost));
+    MultiFab* old_phi = phis[0].get();
+    MultiFab* new_phi = phis[1].get();
 
     // Initialize both to zero (just because)
     old_phi->setVal(0.0);
