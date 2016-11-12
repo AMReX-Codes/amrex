@@ -215,10 +215,6 @@ libraries += $(hypre_libraries) $(mpi_libraries) $(xtr_libraries)
 
 CPPFLAGS += -DBL_FORT_USE_$(F_C_LINK) $(addprefix -I, $(INCLUDE_LOCATIONS))
 
-ifdef CXX11
-  CXXFLAGS += -DBL_USE_CXX11
-endif
-
 objects = $(addprefix $(odir)/,       \
 	$(sort $(f90sources:.f90=.o)) \
 	$(sort $(sf90sources:.f90=.o)) \
