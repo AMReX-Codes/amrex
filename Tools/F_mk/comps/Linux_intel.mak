@@ -21,6 +21,7 @@
     FFLAGS   += -module $(mdir) -I $(mdir)
     F90FLAGS += -module $(mdir) -I $(mdir) -cxxlib
     CFLAGS   += -std=c99
+    CXXFLAGS += -std=c++11
 
     ifdef MIC
       FFLAGS   += -mmic
@@ -127,8 +128,3 @@
 #      F90FLAGS += -stand f95
 #     FFLAGS += -stand f95
     endif
-
-
-  ifdef CXX11
-    CXXFLAGS += -std=c++11
-  endif

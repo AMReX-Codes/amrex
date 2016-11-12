@@ -46,6 +46,4 @@
       CXXFLAGS += -h noomp
     endif
  
-    ifdef CXX11
-      CXXFLAGS += -hstd=c++11
-    endif
+    CXXFLAGS += -hstd=c++11
