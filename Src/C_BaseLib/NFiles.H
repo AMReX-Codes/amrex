@@ -97,6 +97,7 @@ class NFilesIter
     }
 
     const std::string &FileName() const { return fullFileName; }
+    int FileNumber() const { return fileNumber; }
 
     static std::string FileName(int nOutFiles,
                                 const std::string &filePrefix,

@@ -222,7 +222,7 @@ class BLProfiler
     std::string fname;
     bool bRunning;
 
-    static bool bWriteAll, bWriteFabs;
+    static bool bWriteAll, bWriteFabs, groupSets;
     static bool bFirstCommWriteH, bFirstCommWriteD;
     static bool bInitialized, bNoOutput;
     static int  currentStep, csFlushSize, traceFlushSize, nProfFiles;
