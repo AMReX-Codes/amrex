@@ -62,33 +62,33 @@ int max_grid_size;
 int domain_boundary_condition;
 
 void compute_analyticSolution(MultiFab& anaSoln, const Array<Real>& offset);
-void setup_coeffs(BoxArray& bs, MultiFab& alpha, Array<MultiFab*>& beta, 
+void setup_coeffs(BoxArray& bs, MultiFab& alpha, const Array<std::unique_ptr<MultiFab> >& beta, 
 		  const Geometry& geom, MultiFab& beta_cc);
 void setup_coeffs4(BoxArray& bs, MultiFab& alpha, MultiFab& beta, const Geometry& geom);
 void setup_rhs(MultiFab& rhs, const Geometry& geom);
 void set_boundary(BndryData& bd, const MultiFab& rhs, int comp);
 void solve(MultiFab& soln, const MultiFab& anaSoln, MultiFab& gphi,
-	   Real a, Real b, MultiFab& alpha, Array<MultiFab*>& beta, MultiFab& beta_cc,
+	   Real a, Real b, MultiFab& alpha, const Array<std::unique_ptr<MultiFab > >& beta, MultiFab& beta_cc,
 	   MultiFab& rhs, const BoxArray& bs, const Geometry& geom,
 	   solver_t solver);
 void solve4(MultiFab& soln, const MultiFab& anaSoln, 
 	     Real a, Real b, MultiFab& alpha, MultiFab& beta, 
 	     MultiFab& rhs, const BoxArray& bs, const Geometry& geom);
 void solve_with_Cpp(MultiFab& soln, MultiFab& gphi, Real a, Real b, MultiFab& alpha, 
-		    Array<MultiFab*>& beta, MultiFab& rhs, const BoxArray& bs, const Geometry& geom);
+		    const Array<std::unique_ptr<MultiFab> >& beta, MultiFab& rhs, const BoxArray& bs, const Geometry& geom);
 
 #ifdef USE_F90_SOLVERS
 void solve_with_F90(MultiFab& soln, MultiFab& gphi, Real a, Real b, MultiFab& alpha, 
-		    Array<MultiFab*>& beta, MultiFab& rhs, const BoxArray& bs, const Geometry& geom);
+		    const Array<std::unique_ptr<MultiFab> >& beta, MultiFab& rhs, const BoxArray& bs, const Geometry& geom);
 #endif
 
 #ifdef USEHYPRE
 void solve_with_hypre(MultiFab& soln, Real a, Real b, MultiFab& alpha, 
-		      Array<MultiFab*>& beta, MultiFab& rhs, const BoxArray& bs, const Geometry& geom);
+		      const Array<std::unique_ptr<MultiFab> >& beta, MultiFab& rhs, const BoxArray& bs, const Geometry& geom);
 #endif
 
 #ifdef USEHPGMG
-void solve_with_HPGMG(MultiFab& soln, MultiFab& gphi, Real a, Real b, MultiFab& alpha, Array<MultiFab*>& beta,
+void solve_with_HPGMG(MultiFab& soln, MultiFab& gphi, Real a, Real b, MultiFab& alpha, const Array<std::unique_ptr<MultiFab> >& beta,
                       MultiFab& beta_cc, MultiFab& rhs, const BoxArray& bs, const Geometry& geom, int n_cell);
 #endif
 
@@ -248,12 +248,10 @@ int main(int argc, char* argv[])
 
   // Set up the Helmholtz operator coefficients.
   MultiFab alpha(bs, Ncomp, 0);
-  Array<std::unique_ptr<MultiFab> > raii_beta(BL_SPACEDIM);
-  Array<MultiFab*> beta(BL_SPACEDIM);
+  Array<std::unique_ptr<MultiFab> > beta(BL_SPACEDIM);
   for ( int n=0; n<BL_SPACEDIM; ++n ) {
       BoxArray bx(bs);
-      raii_beta[n].reset(new MultiFab(bx.surroundingNodes(n), Ncomp, 0, Fab_allocate));
-      beta[n] = raii_beta[n].get();
+      beta[n].reset(new MultiFab(bx.surroundingNodes(n), Ncomp, 0, Fab_allocate));
   }
 
   // The way HPGMG stores face-centered data is completely different than the
@@ -369,7 +367,7 @@ void compute_analyticSolution(MultiFab& anaSoln, const Array<Real>& offset)
   }
 }
 
-void setup_coeffs(BoxArray& bs, MultiFab& alpha, Array<MultiFab*>& beta, 
+void setup_coeffs(BoxArray& bs, MultiFab& alpha, const Array<std::unique_ptr<MultiFab> >& beta, 
 		  const Geometry& geom, MultiFab& cc_coef)
 {
   BL_PROFILE("setup_coeffs()");
@@ -396,7 +394,7 @@ void setup_coeffs(BoxArray& bs, MultiFab& alpha, Array<MultiFab*>& beta,
 		bx.loVect(),bx.hiVect(),dx, sigma, w);
   }
 
-  BoxLib::average_cellcenter_to_face(beta, cc_coef, geom);
+  BoxLib::average_cellcenter_to_face(BoxLib::GetArrOfPtrs(beta), cc_coef, geom);
 
   if (plot_beta == 1) {
     writePlotFile("BETA", cc_coef, geom);
@@ -614,7 +612,7 @@ void solve4(MultiFab& soln, const MultiFab& anaSoln,
 }
 
 void solve(MultiFab& soln, const MultiFab& anaSoln, MultiFab& gphi,
-	   Real a, Real b, MultiFab& alpha, Array<MultiFab*>& beta, MultiFab& beta_cc,
+	   Real a, Real b, MultiFab& alpha, const Array<std::unique_ptr<MultiFab> >& beta, MultiFab& beta_cc,
 	   MultiFab& rhs, const BoxArray& bs, const Geometry& geom,
 	   solver_t solver)
 {
@@ -688,7 +686,7 @@ void solve(MultiFab& soln, const MultiFab& anaSoln, MultiFab& gphi,
 }
 
 void solve_with_Cpp(MultiFab& soln, MultiFab& gphi, Real a, Real b, MultiFab& alpha, 
-		    Array<MultiFab*>& beta, MultiFab& rhs, const BoxArray& bs, const Geometry& geom)
+		    const Array<std::unique_ptr<MultiFab> >& beta, MultiFab& rhs, const BoxArray& bs, const Geometry& geom)
 {
   BL_PROFILE("solve_with_Cpp()");
 
@@ -697,7 +695,7 @@ void solve_with_Cpp(MultiFab& soln, MultiFab& gphi, Real a, Real b, MultiFab& al
 
   ABecLaplacian abec_operator(bd, dx);
   abec_operator.setScalars(a, b);
-  abec_operator.setCoefficients(alpha, beta);
+  abec_operator.setCoefficients(alpha, BoxLib::GetArrOfPtrs(beta));
 
   MultiGrid mg(abec_operator);
   mg.setVerbose(verbose);
@@ -709,11 +707,9 @@ void solve_with_Cpp(MultiFab& soln, MultiFab& gphi, Real a, Real b, MultiFab& al
 
   mg.solve(soln, rhs, tolerance_rel, tolerance_abs);
 
-  Array<std::unique_ptr<MultiFab> > raii_grad_phi(BL_SPACEDIM);
-  Array<MultiFab*> grad_phi(BL_SPACEDIM);
+  Array<std::unique_ptr<MultiFab> > grad_phi(BL_SPACEDIM);
   for (int n = 0; n < BL_SPACEDIM; ++n) {
-      raii_grad_phi[n].reset(new MultiFab(BoxArray(soln.boxArray()).surroundingNodes(n), 1, 0));
-      grad_phi[n] = raii_grad_phi[n].get();
+      grad_phi[n].reset(new MultiFab(BoxArray(soln.boxArray()).surroundingNodes(n), 1, 0));
   }
 
 #if (BL_SPACEDIM == 2)
@@ -723,12 +719,12 @@ void solve_with_Cpp(MultiFab& soln, MultiFab& gphi, Real a, Real b, MultiFab& al
 #endif
 
   // Average edge-centered gradients to cell centers.
-  BoxLib::average_face_to_cellcenter(gphi, grad_phi, geom);
+  BoxLib::average_face_to_cellcenter(gphi, BoxLib::GetArrOfConstPtrs(grad_phi), geom);
 }
 
 #ifdef USE_F90_SOLVERS
 void solve_with_F90(MultiFab& soln, MultiFab& gphi, Real a, Real b, MultiFab& alpha, 
-		    Array<MultiFab*>& beta, MultiFab& rhs, const BoxArray& bs, const Geometry& geom)
+		    const Array<std::unique_ptr<MultiFab> >& beta, MultiFab& rhs, const BoxArray& bs, const Geometry& geom)
 {
   BL_PROFILE("solve_with_F90()");
 
@@ -761,29 +757,27 @@ void solve_with_F90(MultiFab& soln, MultiFab& gphi, Real a, Real b, MultiFab& al
   fmg.set_maxorder(maxorder);
 
   fmg.set_scalars(a, b);
-  fmg.set_coefficients(alpha, beta);
+  fmg.set_coefficients(alpha, BoxLib::GetArrOfPtrs(beta));
 
   int always_use_bnorm = 0;
   int need_grad_phi = 1;
   fmg.solve(soln, rhs, tolerance_rel, tolerance_abs, always_use_bnorm, need_grad_phi);
 
-  Array<std::unique_ptr<MultiFab> > raii_grad_phi(BL_SPACEDIM);
-  Array<MultiFab*> grad_phi(BL_SPACEDIM);
+  Array<std::unique_ptr<MultiFab> > grad_phi(BL_SPACEDIM);
   for (int n = 0; n < BL_SPACEDIM; ++n) {
-      raii_grad_phi[n].reset(new MultiFab(BoxArray(soln.boxArray()).surroundingNodes(n), 1, 0));
-      grad_phi[n] = raii_grad_phi[n].get();
+      grad_phi[n].reset(new MultiFab(BoxArray(soln.boxArray()).surroundingNodes(n), 1, 0));
   }
 
-  fmg.get_fluxes(grad_phi);
+  fmg.get_fluxes(BoxLib::GetArrOfPtrs(grad_phi));
 
   // Average edge-centered gradients to cell centers.
-  BoxLib::average_face_to_cellcenter(gphi, grad_phi, geom);
+  BoxLib::average_face_to_cellcenter(gphi, BoxLib::GetArrOfConstPtrs(grad_phi), geom);
 }
 #endif
 
 #ifdef USEHYPRE
 void solve_with_hypre(MultiFab& soln, Real a, Real b, MultiFab& alpha, 
-		      Array<MultiFab*>& beta, MultiFab& rhs, const BoxArray& bs, const Geometry& geom)
+		      const Array<std::unique_ptr<MultiFab> >& beta, MultiFab& rhs, const BoxArray& bs, const Geometry& geom)
 {
   BL_PROFILE("solve_with_hypre()");
   BndryData bd(bs, 1, geom);
@@ -799,7 +793,7 @@ void solve_with_hypre(MultiFab& soln, Real a, Real b, MultiFab& alpha,
 #endif
 
 #ifdef USEHPGMG
-void solve_with_HPGMG(MultiFab& soln, MultiFab& gphi, Real a, Real b, MultiFab& alpha, Array<MultiFab*>& beta,
+void solve_with_HPGMG(MultiFab& soln, MultiFab& gphi, Real a, Real b, MultiFab& alpha, const Array<std::unique_ptr<MultiFab> >& beta,
                       MultiFab& beta_cc, MultiFab& rhs, const BoxArray& bs, const Geometry& geom, int n_cell)
 {
   BndryData bd(bs, 1, geom);
@@ -926,11 +920,9 @@ void solve_with_HPGMG(MultiFab& soln, MultiFab& gphi, Real a, Real b, MultiFab& 
   destroy_level(&level_h);
   //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-  Array<std::unique_ptr<MultiFab> > raii_grad_phi(BL_SPACEDIM);
-  Array<MultiFab*> grad_phi(BL_SPACEDIM);
+  Array<std::unique_ptr<MultiFab> > grad_phi(BL_SPACEDIM);
   for (int n = 0; n < BL_SPACEDIM; ++n) {
-      raii_grad_phi[n].reset(new MultiFab(BoxArray(soln.boxArray()).surroundingNodes(n), 1, 0));
-      grad_phi[n] = raii_grad_phi[n].get();
+      grad_phi[n].reset(new MultiFab(BoxArray(soln.boxArray()).surroundingNodes(n), 1, 0));
   }		   
 
 #if (BL_SPACEDIM == 2)
