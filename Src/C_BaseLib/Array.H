@@ -44,8 +44,8 @@ namespace BoxLib
     template <class T>
     Array<T*> GetArrOfPtrs (const Array<std::unique_ptr<T> >& a)
     {
-	Array<T*> r(a.size());
-	std::transform(a.begin(), a.end(), r.begin(),
+	Array<T*> r;
+	std::transform(a.begin(), a.end(), std::back_inserter(r),
 		       [](const std::unique_ptr<T>& p) { return p.get(); });
 	return r;
     }
@@ -54,7 +54,7 @@ namespace BoxLib
     Array<const T*> GetArrOfConstPtrs (const Array<std::unique_ptr<T> >& a)
     {
 	Array<const T*> r(a.size());
-	std::transform(a.begin(), a.end(), r.begin(),
+	std::transform(a.begin(), a.end(), std::back_inserter(r),
 		       [](const std::unique_ptr<T>& p) { return p.get(); });
 	return r;
     }
@@ -63,6 +63,15 @@ namespace BoxLib
     Array<const T*> GetArrOfConstPtrs (const Array<T*>& a)
     {
 	return {a.begin(), a.end()};
+    }
+
+    template <class T>
+    Array<Array<T*> > GetArrOfArrOfPtrs (const Array<Array<std::unique_ptr<T> > >& aa)
+    {
+	Array<Array<T*> > rr;
+	std::transform(aa.begin(), aa.end(), std::back_inserter(rr),
+		       [](const Array<std::unique_ptr<T> >& a) { return GetArrOfPtrs(a); });
+	return rr;
     }
 }
 

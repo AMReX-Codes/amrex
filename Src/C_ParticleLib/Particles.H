@@ -459,7 +459,7 @@ protected:
     Array<PMap> m_particles;
 
 private:
-    void AssignDensityDoit (int level, Array<std::unique_ptr<MultiFab> >& mf, PMap& data,
+    void AssignDensityDoit (int rho_index, Array<std::unique_ptr<MultiFab> >& mf, PMap& data,
 			    int ncomp, int lev_min = 0) const;
 };
 

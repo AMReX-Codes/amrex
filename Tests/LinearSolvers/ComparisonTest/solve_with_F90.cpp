@@ -7,10 +7,10 @@
 
 #include <FMultiGrid.H>
 
-void solve_with_F90(const Array<std::unique_ptr<MultiFab> >& soln, Real a, Real b, 
-		    const Array<std::unique_ptr<MultiFab> >& alph, 
-		    const Array<std::unique_ptr<MultiFab> >& beta, 
-		    const Array<std::unique_ptr<MultiFab> >& rhs, 
+void solve_with_F90(const Array<MultiFab*>& soln, Real a, Real b, 
+		    const Array<MultiFab*>& alph, 
+		    const Array<MultiFab*>& beta, 
+		    const Array<MultiFab*>& rhs, 
 		    const Array<Geometry>& geom, 
 		    const Array<BoxArray>& grids,
 		    int ibnd)
@@ -55,23 +55,21 @@ void solve_with_F90(const Array<std::unique_ptr<MultiFab> >& soln, Real a, Real 
     }
   }
    
-  Array< Array<std::unique_ptr<MultiFab> > > raii_bcoeffs(nlevel);
-  Array< Array<MultiFab* > > bcoeffs(nlevel);
+  Array< Array<std::unique_ptr<MultiFab> > > bcoeffs(nlevel);
   for (int ilev=0; ilev<nlevel; ilev++ ) {
 
-    raii_bcoeffs[ilev].resize(BL_SPACEDIM);
+    bcoeffs[ilev].resize(BL_SPACEDIM);
 
     for (int n = 0; n < BL_SPACEDIM ; n++) 
     {
       BoxArray edge_boxes(grids[ilev]);
       edge_boxes.surroundingNodes(n);
       
-      raii_bcoeffs[ilev][n].reset(new MultiFab(edge_boxes,1,0,Fab_allocate));
+      bcoeffs[ilev][n].reset(new MultiFab(edge_boxes,1,0,Fab_allocate));
     }
 
-    bcoeffs[ilev] = BoxLib::GetArrOfPtrs(raii_bcoeffs[ilev]);
-
-    BoxLib::average_cellcenter_to_face(bcoeffs[ilev], *beta[ilev], geom[ilev]);
+    BoxLib::average_cellcenter_to_face(BoxLib::GetArrOfPtrs(bcoeffs[ilev]),
+				       *beta[ilev], geom[ilev]);
   }
 
   if (composite_solve) 
@@ -82,10 +80,9 @@ void solve_with_F90(const Array<std::unique_ptr<MultiFab> >& soln, Real a, Real 
       fmg.set_maxorder(maxorder);
 
       fmg.set_scalars(a, b);
-      fmg.set_coefficients(BoxLib::GetArrOfPtrs(alph), bcoeffs);
+      fmg.set_coefficients(alph, BoxLib::GetArrOfArrOfPtrs(bcoeffs));
 
-      fmg.solve(BoxLib::GetArrOfPtrs(soln), BoxLib::GetArrOfPtrs(rhs),
-		tolerance_rel, tolerance_abs); 
+      fmg.solve(soln, rhs, tolerance_rel, tolerance_abs); 
   }
   else 
   {
@@ -102,7 +99,7 @@ void solve_with_F90(const Array<std::unique_ptr<MultiFab> >& soln, Real a, Real 
 	  fmg.set_maxorder(maxorder);
 
 	  fmg.set_scalars(a, b);
-	  fmg.set_coefficients(*alph[ilev], bcoeffs[ilev]);
+	  fmg.set_coefficients(*alph[ilev], BoxLib::GetArrOfPtrs(bcoeffs[ilev]));
 	  
 	  fmg.solve(*soln[ilev], *rhs[ilev], tolerance_rel, tolerance_abs);
       }

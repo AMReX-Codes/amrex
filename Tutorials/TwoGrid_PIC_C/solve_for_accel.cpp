@@ -10,14 +10,14 @@
 #include <stencil_types.H>
 #include <VisMF.H>
 
-void solve_with_f90  (const Array<std::unique_ptr<MultiFab> >& rhs,
-		      const Array<std::unique_ptr<MultiFab> >& phi,
-		      const Array< Array<std::unique_ptr<MultiFab> > >& grad_phi_edge, 
+void solve_with_f90  (const Array<MultiFab*>& rhs,
+		      const Array<MultiFab*>& phi,
+		      const Array< Array<MultiFab*> >& grad_phi_edge, 
                       const Array<Geometry>& geom, int base_level, int finest_level, Real tol, Real abs_tol);
 void 
-solve_for_accel(const Array<std::unique_ptr<MultiFab> >& rhs,
-		const Array<std::unique_ptr<MultiFab> >& phi,
-		const Array<std::unique_ptr<MultiFab> >& grad_phi, 
+solve_for_accel(const Array<MultiFab*>& rhs,
+		const Array<MultiFab*>& phi,
+		const Array<MultiFab*>& grad_phi, 
 		const Array<Geometry>& geom, int base_level, int finest_level, Real offset)
 {
  
@@ -57,7 +57,8 @@ solve_for_accel(const Array<std::unique_ptr<MultiFab> >& rhs,
     // Solve for phi and return both phi and grad_phi_edge
     // ***************************************************
 
-   solve_with_f90(rhs,phi,grad_phi_edge,geom,base_level,finest_level,tol,abs_tol);
+    solve_with_f90(rhs,phi,BoxLib::GetArrOfArrOfPtrs(grad_phi_edge),
+		   geom,base_level,finest_level,tol,abs_tol);
 
     // Average edge-centered gradients to cell centers and fill the values in ghost cells.
     for (int lev = base_level; lev <= finest_level; lev++)

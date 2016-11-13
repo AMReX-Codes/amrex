@@ -29,16 +29,16 @@ extern "C"
 }
 
 void setup_rhs(MultiFab& rhs, const Geometry& geom);
-void setup_coeffs(MultiFab& alpha, const Array<std::unique_ptr<MultiFab> >& beta, const Geometry& geom);
+void setup_coeffs(MultiFab& alpha, const Array<MultiFab*>& beta, const Geometry& geom);
 void set_boundary(BndryData& bd, const MultiFab& rhs, int comp);
 void solve(MultiFab& soln, const MultiFab& rhs, 
-	   const MultiFab& alpha, const Array<std::unique_ptr<MultiFab> >& beta,
+	   const MultiFab& alpha, const Array<MultiFab*>& beta,
 	   const Geometry& geom);
 void colored_solve(MultiFab& soln, const MultiFab& rhs, 
-		   const MultiFab& alpha, const Array<std::unique_ptr<MultiFab> >& beta, 
+		   const MultiFab& alpha, const Array<MultiFab*>& beta, 
 		   const Geometry& geom);
 void single_component_solve(MultiFab& soln, const MultiFab& rhs, 
-			    const MultiFab& alpha, const Array<std::unique_ptr<MultiFab> >& beta, 
+			    const MultiFab& alpha, const Array<MultiFab*>& beta, 
 			    const Geometry& geom);
 
 int main(int argc, char* argv[])
@@ -81,11 +81,11 @@ int main(int argc, char* argv[])
     for (int i = 0; i < BL_SPACEDIM; ++i) {
 	beta[i].reset(new MultiFab(ba, ncomp, 0, Fab_allocate, IntVect::TheDimensionVector(i)));
     }
-    setup_coeffs(alpha, beta, geom);
+    setup_coeffs(alpha, BoxLib::GetArrOfPtrs(beta), geom);
 
     MultiFab soln(ba, ncomp, 0);
 
-    solve(soln, rhs, alpha, beta, geom);
+    solve(soln, rhs, alpha, BoxLib::GetArrOfPtrs(beta), geom);
 
     VisMF::Write(soln, "soln");
 
@@ -106,7 +106,7 @@ void setup_rhs(MultiFab& rhs, const Geometry& geom)
     }
 }
 
-void setup_coeffs(MultiFab& alpha, const Array<std::unique_ptr<MultiFab> >& beta, const Geometry& geom)
+void setup_coeffs(MultiFab& alpha, const Array<MultiFab*>& beta, const Geometry& geom)
 {
     const Real* dx = geom.CellSize();
 
@@ -184,7 +184,7 @@ void set_boundary(BndryData& bd, const MultiFab& rhs, int comp)
 }
 
 void solve(MultiFab& soln, const MultiFab& rhs, 
-	   const MultiFab& alpha, const Array<std::unique_ptr<MultiFab> >& beta, const Geometry& geom)
+	   const MultiFab& alpha, const Array<MultiFab*>& beta, const Geometry& geom)
 {
     int ncolors = ParallelDescriptor::NColors();
     int cncomp = ncomp / ncolors;
@@ -218,7 +218,8 @@ void solve(MultiFab& soln, const MultiFab& rhs,
     }
 
     int icolor = ParallelDescriptor::SubCommColor().to_int();
-    colored_solve(*csoln[icolor], *crhs[icolor], *calpha[icolor], cbeta[icolor], geom);
+    colored_solve(*csoln[icolor], *crhs[icolor], *calpha[icolor],
+		  BoxLib::GetArrOfPtrs(cbeta[icolor]), geom);
 
     // Copy solution back from colored MFs.
     for (int i = 0; i < ncolors; ++i) {
@@ -227,7 +228,7 @@ void solve(MultiFab& soln, const MultiFab& rhs,
 }
 
 void colored_solve(MultiFab& soln, const MultiFab& rhs, 
-		   const MultiFab& alpha, const Array<std::unique_ptr<MultiFab> >& beta, 
+		   const MultiFab& alpha, const Array<MultiFab*>& beta, 
 		   const Geometry& geom)
 {
     const BoxArray& ba = soln.boxArray();
@@ -255,7 +256,8 @@ void colored_solve(MultiFab& soln, const MultiFab& rhs,
 		MultiFab::Copy(*sbeta[j], *beta[j], i, 0, 1, 0);
 	    }
 	    
-	    single_component_solve(ssoln, srhs, salpha, sbeta, geom);
+	    single_component_solve(ssoln, srhs, salpha,
+				   BoxLib::GetArrOfPtrs(sbeta), geom);
 	    
 	    MultiFab::Copy(soln, ssoln, 0, i, 1, 0);
 	}
@@ -263,7 +265,7 @@ void colored_solve(MultiFab& soln, const MultiFab& rhs,
 }
 
 void single_component_solve(MultiFab& soln, const MultiFab& rhs, 
-			    const MultiFab& alpha, const Array<std::unique_ptr<MultiFab> >& beta, 
+			    const MultiFab& alpha, const Array<MultiFab*>& beta, 
 			    const Geometry& geom)
 {
     const ParallelDescriptor::Color color = soln.color();
@@ -275,7 +277,7 @@ void single_component_solve(MultiFab& soln, const MultiFab& rhs,
 
     ABecLaplacian abec_operator(bd, dx);
     abec_operator.setScalars(a, b);
-    abec_operator.setCoefficients(alpha, BoxLib::GetArrOfPtrs(beta));
+    abec_operator.setCoefficients(alpha, beta);
 
     MultiGrid mg(abec_operator);
     mg.setVerbose(verbose);
