@@ -13,9 +13,9 @@
 #include "Particles.H"
 
 // declare routines below
-void solve_for_accel(const Array<std::unique_ptr<MultiFab> >& rhs,
-		     const Array<std::unique_ptr<MultiFab> >& phi,
-		     const Array<std::unique_ptr<MultiFab> >& grad_phi, 
+void solve_for_accel(const Array<MultiFab*>& rhs,
+		     const Array<MultiFab*>& phi,
+		     const Array<MultiFab*>& grad_phi, 
                      const Array<Geometry>& geom, int base_level, int finest_level, Real offset);
 
 Real                getEfficiency  (const DistributionMapping& dm, const Array<long>& cost);
@@ -307,7 +307,10 @@ int main(int argc, char* argv[])
     // Use multigrid to solve Lap(phi) = rhs with periodic boundary conditions (set above)
     if (ParallelDescriptor::IOProcessor())
        std::cout << "Solving for phi at level 0 ... " << std::endl;
-    solve_for_accel(rhs,phi,grad_phi,geom,base_level,finest_level,offset);
+    solve_for_accel(BoxLib::GetArrOfPtrs(rhs),
+		    BoxLib::GetArrOfPtrs(phi),
+		    BoxLib::GetArrOfPtrs(grad_phi),
+		    geom,base_level,finest_level,offset);
 
     // Fill the particle data with the acceleration at the particle location
     // Note that we are calling moveKick with accel_comp > BL_SPACEDIM
@@ -330,7 +333,10 @@ int main(int argc, char* argv[])
     // Use multigrid to solve Lap(phi) = rhs with boundary conditions from level 0
     if (ParallelDescriptor::IOProcessor())
        std::cout << "Solving for phi at level 1 ... " << std::endl;
-    solve_for_accel(rhs,phi,grad_phi,geom,base_level,finest_level,offset);
+    solve_for_accel(BoxLib::GetArrOfPtrs(rhs),
+		    BoxLib::GetArrOfPtrs(phi),
+		    BoxLib::GetArrOfPtrs(grad_phi),
+		    geom,base_level,finest_level,offset);
     if (ParallelDescriptor::IOProcessor())
        std::cout << "Solved  for phi at level 1 ... " << std::endl;
 
@@ -365,7 +371,10 @@ int main(int argc, char* argv[])
     MyPC->AssignDensity(0, false, rhs, base_level,1,finest_level);
 
     // Use multigrid to solve Lap(phi) = rhs with periodic boundary conditions (set above)
-    solve_for_accel(rhs,phi,grad_phi,geom,base_level,finest_level,offset);
+    solve_for_accel(BoxLib::GetArrOfPtrs(rhs),
+		    BoxLib::GetArrOfPtrs(phi),
+		    BoxLib::GetArrOfPtrs(grad_phi),
+		    geom,base_level,finest_level,offset);
 
     // Fill the particle data with the acceleration at the particle location
     // Note that we are calling moveKick with accel_comp > BL_SPACEDIM

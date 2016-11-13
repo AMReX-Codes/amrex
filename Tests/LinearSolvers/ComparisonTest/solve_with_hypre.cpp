@@ -13,10 +13,10 @@
 
 void setBndryConds(BndryData& levelbd, int ibnd, IntVect ratio);
 
-void solve_with_hypre(const Array<std::unique_ptr<MultiFab> >& soln, Real a, Real b, 
-		      const Array<std::unique_ptr<MultiFab> >& alph, 
-		      const Array<std::unique_ptr<MultiFab> >& beta, 
-		      const Array<std::unique_ptr<MultiFab> >& rhs, 
+void solve_with_hypre(const Array<MultiFab*>& soln, Real a, Real b, 
+		      const Array<MultiFab*>& alph, 
+		      const Array<MultiFab*>& beta, 
+		      const Array<MultiFab*>& rhs, 
 		      const Array<Geometry>& geom, 
 		      const Array<BoxArray>& grids,
 		      int ibnd)
@@ -88,7 +88,7 @@ void solve_with_hypre(const Array<std::unique_ptr<MultiFab> >& soln, Real a, Rea
       hypreSolver.setInitGuess(level, *soln[level]);
     }
 
-    hypreSolver.solve(BoxLib::GetArrOfPtrs(soln), tolerance_rel, tolerance_abs, max_iter);
+    hypreSolver.solve(soln, tolerance_rel, tolerance_abs, max_iter);
   }
   else {
 

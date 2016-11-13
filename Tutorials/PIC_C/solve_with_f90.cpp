@@ -8,9 +8,9 @@
 #include <FMultiGrid.H>
 
 void 
-solve_with_f90(Array<std::unique_ptr<MultiFab> >& rhs,
-	       Array<std::unique_ptr<MultiFab> >& phi, 
-               Array< Array<std::unique_ptr<MultiFab> > >& grad_phi_edge, 
+solve_with_f90(const Array<MultiFab*>& rhs,
+	       const Array<MultiFab*>& phi, 
+               const Array< Array<MultiFab*> >& grad_phi_edge, 
                const Array<Geometry>& geom, int base_level, int finest_level,
 	       Real tol, Real abs_tol)
 {
@@ -36,8 +36,8 @@ solve_with_f90(Array<std::unique_ptr<MultiFab> >& rhs,
     Array<MultiFab*> phi_p(nlevs);
     for (int ilev = 0; ilev < nlevs; ++ilev) {
 	geom_p[ilev] = geom[ilev+base_level];
-	rhs_p[ilev]  = rhs[ilev+base_level].get();
-	phi_p[ilev]  = phi[ilev+base_level].get();
+	rhs_p[ilev]  = rhs[ilev+base_level];
+	phi_p[ilev]  = phi[ilev+base_level];
     }
     
     // Refinement ratio is hardwired to 2 here.
@@ -62,10 +62,6 @@ solve_with_f90(Array<std::unique_ptr<MultiFab> >& rhs,
     for (int ilev = 0; ilev < nlevs; ++ilev)
     {
 	int amr_level = ilev + base_level;
-	Array<MultiFab*> gp(BL_SPACEDIM);
-	for (int i = 0; i < BL_SPACEDIM; ++i) {
-	    gp[i] = grad_phi_edge[amr_level][i].get();
-	}
-	fmg.get_fluxes(gp, ilev);
+	fmg.get_fluxes(grad_phi_edge[amr_level], ilev);
     }
 }

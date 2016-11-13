@@ -23,31 +23,31 @@ bc_t     bc_type = Periodic;
 
 void build_grids(Array<Geometry>& geom, 
 		 Array<BoxArray>& grids);
-void setup_coef(const Array<std::unique_ptr<MultiFab> > &exac,
-		const Array<std::unique_ptr<MultiFab> > &alph, 
-		const Array<std::unique_ptr<MultiFab> > &beta,
-		const Array<std::unique_ptr<MultiFab> > &rhs, 
+void setup_coef(const Array<MultiFab*> &exac,
+		const Array<MultiFab*> &alph, 
+		const Array<MultiFab*> &beta,
+		const Array<MultiFab*> &rhs, 
 		const Array<Geometry>& geom, 
 		const Array<BoxArray>& grids,
 		Real a, Real b, Real sigma, Real w);
-void solve_with_F90(const Array<std::unique_ptr<MultiFab> >& soln, Real a, Real b, 
-		    const Array<std::unique_ptr<MultiFab> >& alph, 
-		    const Array<std::unique_ptr<MultiFab> >& beta, 
-		    const Array<std::unique_ptr<MultiFab> >& rhs, 
+void solve_with_F90(const Array<MultiFab*>& soln, Real a, Real b, 
+		    const Array<MultiFab*>& alph, 
+		    const Array<MultiFab*>& beta, 
+		    const Array<MultiFab*>& rhs, 
 		    const Array<Geometry>& geom, 
 		    const Array<BoxArray>& grids,
 		    int ibnd);
 #ifdef USEHYPRE
-void solve_with_hypre(const Array<std::unique_ptr<MultiFab> >& soln, Real a, Real b, 
-		      const Array<std::unique_ptr<MultiFab> >& alph, 
-		      const Array<std::unique_ptr<MultiFab> >& beta, 
-		      const Array<std::unique_ptr<MultiFab> >& rhs, 
+void solve_with_hypre(const Array<MultiFab*>& soln, Real a, Real b, 
+		      const Array<MultiFab*>& alph, 
+		      const Array<MultiFab*>& beta, 
+		      const Array<MultiFab*>& rhs, 
 		      const Array<Geometry>& geom, 
 		      const Array<BoxArray>& grids,
 		      int ibnd);
 #endif
-void compute_norm(const Array<std::unique_ptr<MultiFab> >& soln,
-		  const Array<std::unique_ptr<MultiFab> >& exac, 
+void compute_norm(const Array<MultiFab*>& soln,
+		  const Array<MultiFab*>& exac, 
 		  const Array<Geometry>& geom, const Array<BoxArray>& grids,
 		  int nsoln, int iCpp, int iF90, int iHyp);
 
@@ -158,13 +158,20 @@ int main(int argc, char* argv[])
     rhs  [ilev].reset(new MultiFab(grids[ilev], 1, 0));
   }
 
+  auto psoln  = BoxLib::GetArrOfPtrs(soln);
+  auto psoln1 = BoxLib::GetArrOfPtrs(soln1);
+  auto pexac  = BoxLib::GetArrOfPtrs(exac);
+  auto palph  = BoxLib::GetArrOfPtrs(alph);
+  auto pbeta  = BoxLib::GetArrOfPtrs(beta);
+  auto prhs   = BoxLib::GetArrOfPtrs(rhs);
+
   Real a, b, sigma, w;
   pp.get("a",  a);
   pp.get("b",  b);
   pp.get("sigma", sigma);
   pp.get("w", w);  
 
-  setup_coef(exac, alph, beta, rhs, geom, grids, a, b, sigma, w);
+  setup_coef(pexac, palph, pbeta, prhs, geom, grids, a, b, sigma, w);
 
   int ibnd = static_cast<int>(bc_type);
 
@@ -185,7 +192,7 @@ int main(int argc, char* argv[])
 	soln1[ilev]->setVal(0.0);
     }    
 
-    solve_with_F90(soln1, a, b, alph, beta, rhs, geom, grids, ibnd);
+    solve_with_F90(psoln1, a, b, palph, pbeta, prhs, geom, grids, ibnd);
 
     for (int ilev=0; ilev < nlevel; ilev++) {
 	MultiFab::Copy(*soln[ilev], *soln1[ilev], 0, iF90, 1, 1);
@@ -198,7 +205,7 @@ int main(int argc, char* argv[])
 	soln1[ilev]->setVal(0.0);
     }    
 
-    solve_with_hypre(soln1, a, b, alph, beta, rhs, geom, grids, ibnd);
+    solve_with_hypre(psoln1, a, b, palph, pbeta, prhs, geom, grids, ibnd);
 
     for (int ilev=0; ilev < nlevel; ilev++) {
 	MultiFab::Copy(*soln[ilev], *soln1[ilev], 0, iHyp, 1, 1);
@@ -209,13 +216,13 @@ int main(int argc, char* argv[])
   int write_plot = 0;
   pp.query("write_plot", write_plot);
   if (write_plot) {
-      writePlotFile("plot", soln, exac, alph, beta, rhs, geom, grids, nsoln, iCpp, iF90, iHyp);
+      writePlotFile("plot", psoln, pexac, palph, pbeta, prhs, geom, grids, nsoln, iCpp, iF90, iHyp);
   }
 
   int comp_norm = 1;
   pp.query("comp_norm", comp_norm);
   if (comp_norm) {
-      compute_norm(soln, exac, geom, grids, nsoln, iCpp, iF90, iHyp);
+      compute_norm(psoln, pexac, geom, grids, nsoln, iCpp, iF90, iHyp);
   }
 
   BoxLib::Finalize();
@@ -289,10 +296,10 @@ void build_grids(Array<Geometry>& geom, Array<BoxArray>& grids)
   }
 }
 
-void setup_coef(const Array<std::unique_ptr<MultiFab> > &exac,
-		const Array<std::unique_ptr<MultiFab> > &alph, 
-		const Array<std::unique_ptr<MultiFab> > &beta,
-		const Array<std::unique_ptr<MultiFab> > &rhs, 
+void setup_coef(const Array<MultiFab*> &exac,
+		const Array<MultiFab*> &alph, 
+		const Array<MultiFab*> &beta,
+		const Array<MultiFab*> &rhs, 
 		const Array<Geometry>& geom, 
 		const Array<BoxArray>& grids,
 		Real a, Real b, Real sigma, Real w)

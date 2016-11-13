@@ -6,8 +6,8 @@
 
 #include <COMP_NORM_F.H>
 
-void compute_norm(const Array<std::unique_ptr<MultiFab> >& soln,
-		  const Array<std::unique_ptr<MultiFab> >& exac, 
+void compute_norm(const Array<MultiFab*>& soln,
+		  const Array<MultiFab*>& exac, 
 		  const Array<Geometry>& geom,
 		  const Array<BoxArray>& grids,
 		  int nsoln, int iCpp, int iF90, int iHyp)
