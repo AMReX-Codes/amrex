@@ -28,24 +28,17 @@ WarpX::WritePlotFile () const
 	    const int ngrow = 0;
 	    mf[lev] = std::unique_ptr<MultiFab>(new MultiFab(grids[lev], ncomp, ngrow, dmap[lev]));
 
-	    Array<MultiFab*> srcmf(3);
-	    for (int i = 0; i < 3; ++i) {
-		srcmf[i] = current[lev][i].get();
-	    }
 	    int dcomp = 0;
-	    BoxLib::average_edge_to_cellcenter(*mf[lev], dcomp, srcmf);
+	    BoxLib::average_edge_to_cellcenter(*mf[lev], dcomp,
+					       BoxLib::GetArrOfConstPtrs(current[lev]));
 
-	    for (int i = 0; i < 3; ++i) {
-		srcmf[i] = Efield[lev][i].get();
-	    }
 	    dcomp += 3;
-	    BoxLib::average_edge_to_cellcenter(*mf[lev], dcomp, srcmf);
+	    BoxLib::average_edge_to_cellcenter(*mf[lev], dcomp,
+					       BoxLib::GetArrOfConstPtrs(Efield[lev]));
 
-	    for (int i = 0; i < 3; ++i) {
-		srcmf[i] = Bfield[lev][i].get();
-	    }
 	    dcomp += 3;
-	    BoxLib::average_face_to_cellcenter(*mf[lev], dcomp, srcmf);
+	    BoxLib::average_face_to_cellcenter(*mf[lev], dcomp,
+					       BoxLib::GetArrOfConstPtrs(Bfield[lev]));
 	}
     
 	Array<const MultiFab*> mf2(finest_level+1);
