@@ -35,7 +35,7 @@ MyParticleContainer::AllocData ()
 	    partleveldata[i] = Array<std::unique_ptr<Array<Real> > > (PIdx::npartdata);
 	    for (auto& d : partleveldata[i])
 	    {
-		d = std::unique_ptr<Array<Real> >(new Array<Real>());
+		d.reset(new Array<Real>());
 	    }
 	}
     }

@@ -125,15 +125,11 @@ WarpX::MakeNewLevel (int lev, Real time,
     const IntVect& nodalflag = IntVect::TheUnitVector();
     const int ng = 1;
 
+    current[lev].resize(BL_SPACEDIM);
     for (int i = 0; i < BL_SPACEDIM; ++i) {
-	current[lev].push_back(std::unique_ptr<MultiFab>
-			       (new MultiFab(grids[lev],1,ng,dmap[lev],Fab_allocate,nodalflag)));
-
-	Efield[lev].push_back(std::unique_ptr<MultiFab>
-			      (new MultiFab(grids[lev],1,ng,dmap[lev],Fab_allocate,nodalflag)));
-
-	Bfield[lev].push_back(std::unique_ptr<MultiFab>
-			      (new MultiFab(grids[lev],1,ng,dmap[lev],Fab_allocate,nodalflag)));	
+	current[lev][i].reset(new MultiFab(grids[lev],1,ng,dmap[lev],Fab_allocate,nodalflag));
+	Efield [lev][i].reset(new MultiFab(grids[lev],1,ng,dmap[lev],Fab_allocate,nodalflag));
+	Bfield [lev][i].reset(new MultiFab(grids[lev],1,ng,dmap[lev],Fab_allocate,nodalflag));
     }
 }
 

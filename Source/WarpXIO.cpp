@@ -26,7 +26,7 @@ WarpX::WritePlotFile () const
 	{
 	    const int ncomp = 3*3;
 	    const int ngrow = 0;
-	    mf[lev] = std::unique_ptr<MultiFab>(new MultiFab(grids[lev], ncomp, ngrow, dmap[lev]));
+	    mf[lev].reset(new MultiFab(grids[lev], ncomp, ngrow, dmap[lev]));
 
 	    int dcomp = 0;
 	    BoxLib::average_edge_to_cellcenter(*mf[lev], dcomp,
