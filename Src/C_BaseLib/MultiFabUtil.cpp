@@ -237,7 +237,8 @@ namespace BoxLib
 
     // Average fine face-based MultiFab onto crse fine-centered MultiFab.
     // This routine assumes that the crse BoxArray is a coarsened version of the fine BoxArray.
-    void average_down_faces (const Array<const MultiFab*>& fine, const Array<MultiFab*>& crse, IntVect& ratio)
+    void average_down_faces (const Array<const MultiFab*>& fine, const Array<MultiFab*>& crse,
+			     const IntVect& ratio)
     {
 	BL_ASSERT(crse.size()  == BL_SPACEDIM);
 	BL_ASSERT(fine.size()  == BL_SPACEDIM);
