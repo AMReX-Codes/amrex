@@ -126,6 +126,8 @@ WarpX::MakeNewLevel (int lev, Real time,
     const int ng = 1;
 
     current[lev].resize(BL_SPACEDIM);
+    Efield [lev].resize(BL_SPACEDIM);
+    Bfield [lev].resize(BL_SPACEDIM);
     for (int i = 0; i < BL_SPACEDIM; ++i) {
 	current[lev][i].reset(new MultiFab(grids[lev],1,ng,dmap[lev],Fab_allocate,nodalflag));
 	Efield [lev][i].reset(new MultiFab(grids[lev],1,ng,dmap[lev],Fab_allocate,nodalflag));
