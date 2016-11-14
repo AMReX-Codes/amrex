@@ -155,15 +155,13 @@ WarpX::MakeNewLevel (int lev, Real time,
     const IntVect& nodalflag = IntVect::TheUnitVector();
     const int ng = 1;
 
+    current[lev].resize(3);
+    Efield [lev].resize(3);
+    Bfield [lev].resize(3);
     for (int i = 0; i < 3; ++i) {
-	current[lev].push_back(std::unique_ptr<MultiFab>
-			       (new MultiFab(grids[lev],1,ng,dmap[lev],Fab_allocate,nodalflag)));
-
-	Efield[lev].push_back(std::unique_ptr<MultiFab>
-			      (new MultiFab(grids[lev],1,ng,dmap[lev],Fab_allocate,nodalflag)));
-
-	Bfield[lev].push_back(std::unique_ptr<MultiFab>
-			      (new MultiFab(grids[lev],1,ng,dmap[lev],Fab_allocate,nodalflag)));	
+	current[lev][i].reset(new MultiFab(grids[lev],1,ng,dmap[lev],Fab_allocate,nodalflag));
+	Efield [lev][i].reset(new MultiFab(grids[lev],1,ng,dmap[lev],Fab_allocate,nodalflag));
+	Bfield [lev][i].reset(new MultiFab(grids[lev],1,ng,dmap[lev],Fab_allocate,nodalflag));
     }
 }
 
