@@ -6,6 +6,7 @@
 
 int NFilesIter::currentDeciderIndex(-1);
 Array<std::pair<int, int> > NFilesIter::unreadMessages;
+int NFilesIter::minDigits(5);
 
 
 NFilesIter::NFilesIter(int noutfiles, const std::string &fileprefix,
@@ -192,7 +193,7 @@ bool NFilesIter::ReadyToWrite(bool appendFirst) {
 
     if(mySetPosition == 0) {    // ---- return true, ready to write data
 
-      fullFileName = BoxLib::Concatenate(filePrefix, fileNumber, 5);
+      fullFileName = BoxLib::Concatenate(filePrefix, fileNumber, minDigits);
       if(appendFirst) {
         fileStream.open(fullFileName.c_str(),
                         std::ios::out | std::ios::app | std::ios::binary);
@@ -225,7 +226,7 @@ bool NFilesIter::ReadyToWrite(bool appendFirst) {
       ParallelDescriptor::Message rmess =
             ParallelDescriptor::Recv(&fileNumber, 1, MPI_ANY_SOURCE, writeTag);
       coordinatorProc = rmess.pid();
-      fullFileName = BoxLib::Concatenate(filePrefix, fileNumber, 5);
+      fullFileName = BoxLib::Concatenate(filePrefix, fileNumber, minDigits);
 
       fileStream.open(fullFileName.c_str(),
                       std::ios::out | std::ios::app | std::ios::binary);

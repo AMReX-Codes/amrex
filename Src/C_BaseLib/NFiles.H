@@ -106,13 +106,13 @@ class NFilesIter
       BL_ASSERT(whichProc >= 0 && whichProc < ParallelDescriptor::NProcs());
       return ( BoxLib::Concatenate(filePrefix,
                                    FileNumber(ActualNFiles(nOutFiles),
-				              whichProc, groupSets), 5 ) );
+				              whichProc, groupSets), minDigits ) );
     }
 
     static std::string FileName(int fileNumber,
                                 const std::string &filePrefix)
     {
-      return ( BoxLib::Concatenate(filePrefix, fileNumber, 5 ) );
+      return ( BoxLib::Concatenate(filePrefix, fileNumber, minDigits ) );
     }
 
     // ---- this is the processor coorinating dynamic set selection
@@ -127,6 +127,9 @@ class NFilesIter
     const Array< Array<int> > &FileNumbersWriteOrder() const { return fileNumbersWriteOrder; }
 
     static void CleanUpMessages();
+
+    static int  GetMinDigits()       { return minDigits; } 
+    static void SetMinDigits(int md) { minDigits = md;   }
 
   private:
 
@@ -158,6 +161,8 @@ class NFilesIter
     static Array<std::pair<int, int> > unreadMessages;    // ---- [](tag, nmessages)
 
     static const int indexUndefined = -1;
+
+    static int minDigits;    // ---- for Concatenate
 
     NFilesIter();  // ---- disallow
 };
