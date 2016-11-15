@@ -854,7 +854,7 @@ def test_suite(argv):
 
                     else:
                         try: shutil.rmtree(pfile)
-                        except:
+                        except OSError:
                             suite.log.warn("unable to remove {}".format(pfile))
 
 
