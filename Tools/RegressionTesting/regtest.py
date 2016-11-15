@@ -853,7 +853,9 @@ def test_suite(argv):
                         suite.log.warn("unable to tar output file {}".format(pfile))
 
                     else:
-                        shutil.rmtree(pfile)
+                        try: shutil.rmtree(pfile)
+                        except OSError:
+                            suite.log.warn("unable to remove {}".format(pfile))
 
 
         #----------------------------------------------------------------------
