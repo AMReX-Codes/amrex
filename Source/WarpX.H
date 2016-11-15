@@ -28,7 +28,7 @@ public:
 
     void InitData ();
 
-    void Evolve (int numsteps);
+    void Evolve (int numsteps = -1);
 
     static void FillBoundary (MultiFab& mf, const Geometry& geom, const IntVect& nodalflag);
 
