@@ -523,7 +523,7 @@ ParticleContainer<NR,NI,C>::NumberOfParticlesAtLevel (int  lev,
 {
     long nparticles = 0;
 
-    if (lev >= 0 && lev < m_particles.size())
+    if (lev >= 0 && lev < int(m_particles.size()))
     {
         const PMap& pmap = m_particles[lev];
 
@@ -4669,7 +4669,7 @@ ParticleContainer<NR,NI,C>::AssignDensitySingleLevel (int rho_index,
     BL_ASSERT(NR >= 1);
     BL_ASSERT(ncomp == 1 || ncomp == BL_SPACEDIM+1);
 
-    if (lev >= m_particles.size())
+    if (lev >= int(m_particles.size()))
     {
         //
         // Don't do anything if there are no particles at this level.
