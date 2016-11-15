@@ -21,7 +21,7 @@ StationData::~StationData ()
 }
 
 void
-StationData::init (const Array<std::unique<AmrLevel> >& levels, const int finestlevel)
+StationData::init (const Array<std::unique_ptr<AmrLevel> >& levels, const int finestlevel)
 {
     //
     // ParmParse variables:

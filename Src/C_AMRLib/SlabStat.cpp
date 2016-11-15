@@ -300,7 +300,7 @@ SlabStatList::update (AmrLevel& amrlevel,
 }
 
 void
-SlabStatList::checkPoint (Array<std::unique<AmrLevel> >& amrLevels, int level0_step)
+SlabStatList::checkPoint (Array<std::unique_ptr<AmrLevel> >& amrLevels, int level0_step)
 {
     if (m_list.empty()) return;
     //
