@@ -2178,7 +2178,7 @@ ParticleContainer<NR,NI,C>::Checkpoint (const std::string& dir,
 
     long nparticles = 0;
 
-    for (const auot& pmap : m_particles)
+    for (const auto& pmap : m_particles)
     {
 	for (const auto& kv : pmap)
         {
