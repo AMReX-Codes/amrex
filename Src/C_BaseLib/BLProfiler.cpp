@@ -1006,7 +1006,7 @@ void BLProfiler::WriteCallTrace(bool bFlushing) {   // ---- write call trace dat
       }
       for(int i(0); i < nOutFiles; ++i) {
         std::string headerName(cFilePrefix + "_H_");
-        headerName = NFilesIter::FileName(nOutFiles, headerName, i, groupSets);
+        headerName = BoxLib::Concatenate(headerName, i, NFilesIter::GetMinDigits());
         csGlobalHeaderFile << "HeaderFile " << headerName << '\n';
       }
       csGlobalHeaderFile.flush();
@@ -1208,7 +1208,7 @@ void BLProfiler::WriteCommStats(bool bFlushing) {
 #endif
     for(int i(0); i < nOutFiles; ++i) {
       std::string headerName(commprofPrefix + "_H_");
-      headerName = NFilesIter::FileName(nOutFiles, headerName, i, groupSets);
+      headerName = BoxLib::Concatenate(headerName, i, NFilesIter::GetMinDigits());
       csGlobalHeaderFile << "HeaderFile " << headerName << '\n';
     }
 
