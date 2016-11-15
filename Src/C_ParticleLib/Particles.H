@@ -518,8 +518,8 @@ ParticleContainer<NR,NI,C>::NumberOfParticlesInGrid (int  lev,
 template <int NR, int NI, class C>
 long
 ParticleContainer<NR,NI,C>::NumberOfParticlesAtLevel (int  lev,
-						    bool only_valid,
-						    bool only_local) const
+						      bool only_valid,
+						      bool only_local) const
 {
     long nparticles = 0;
 
@@ -1581,7 +1581,7 @@ ParticleContainer<NR,NI,C>::Redistribute (bool where_already_called,
     while (!m_gdb->LevelDefined(theEffectiveFinestLevel))
         theEffectiveFinestLevel--;
 
-    if (m_particles.size() < theEffectiveFinestLevel+1)
+    if (int(m_particles.size()) < theEffectiveFinestLevel+1)
     {
         if (ParallelDescriptor::IOProcessor())
         {
@@ -1597,7 +1597,7 @@ ParticleContainer<NR,NI,C>::Redistribute (bool where_already_called,
     //
     PMap not_ours;
 
-    for (int lev = lev_min; lev < m_particles.size(); lev++)
+    for (int lev = lev_min, nlevs = m_particles.size(); lev < nlevs; lev++)
     {
         PMap& pmap = m_particles[lev];
 
@@ -1703,7 +1703,7 @@ ParticleContainer<NR,NI,C>::Redistribute (bool where_already_called,
         }
     }
 
-    if (m_particles.size() > theEffectiveFinestLevel+1)
+    if (int(m_particles.size()) > theEffectiveFinestLevel+1)
     {
         //
         // Looks like we lost an AmrLevel on a regrid.
@@ -3731,9 +3731,9 @@ ParticleContainer<NR,NI,C>::AssignDensity (int rho_index, bool sub_cycle,
 
                         gm.periodicShift(dest, grids[j], pshifts);
 
-                        for (int k = 0; k < pshifts.size(); k++)
+			for (const auto& kiv : pshifts)
                         {
-                            const Box& sbx = grids[j] + pshifts[k];
+                            const Box& sbx = grids[j] + kiv;
                             const Box& dbx = dest & sbx;
 
                             BL_ASSERT(dbx.ok());
@@ -3799,9 +3799,9 @@ ParticleContainer<NR,NI,C>::AssignDensity (int rho_index, bool sub_cycle,
 
                             gm.periodicShift(dest, cgrids[j], pshifts);
 
-                            for (int k = 0; k < pshifts.size(); k++)
+			    for (const auto& kiv : pshifts)
                             {
-                                const Box& sbx = cfba[i] - pshifts[k];
+                                const Box& sbx = cfba[i] - kiv;
 
                                 cvalid.push_back(sbx);
                             }
@@ -4322,7 +4322,7 @@ ParticleContainer<NR,NI,C>::AssignDensity (int rho_index, bool sub_cycle,
                                 //
                                 ParticleBase::FineCellsToUpdateFromCrse(p,lev,m_gdb,cells[i],cfshifts[i],fgrid,ffracs,fcells,isects);
 
-                                for (int j = 0; j < fcells.size(); j++)
+                                for (int j = 0, nfcells = fcells.size(); j < nfcells; j++)
                                 {
                                     const int who = mf[lev_index+1]->DistributionMap()[fgrid[j]];
 

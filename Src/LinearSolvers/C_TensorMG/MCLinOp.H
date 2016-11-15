@@ -250,7 +250,7 @@ protected:
     // Array (on level) of Arrays (on orientation) of MultiMasks for 
     // whether boundary Fabs are covered, not_covered, outside_domain
     //
-    Array<Array<MultiMask*> > maskvals;
+    Array<Array<std::unique_ptr<MultiMask> > > maskvals;
     //
     // boundary data class
     //

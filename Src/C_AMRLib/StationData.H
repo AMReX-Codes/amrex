@@ -45,7 +45,7 @@ public:
     //
     // Data files have the form: "Station/stn_CPU_NNNN"
     //
-    void init (const Array<std::unique<AmrLevel> >& levels, const int finestlevel);
+    void init (const Array<std::unique_ptr<AmrLevel> >& levels, const int finestlevel);
     //
     // Collect data for all station points at level and write to station file.
     //
