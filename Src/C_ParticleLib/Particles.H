@@ -1715,7 +1715,7 @@ ParticleContainer<NR,NI,C>::Redistribute (bool where_already_called,
                       << " to "
                       << theEffectiveFinestLevel+1 << '\n';
         }
-        BL_ASSERT(m_particles.size() >= 2);
+        BL_ASSERT(int(m_particles.size()) >= 2);
         BL_ASSERT(m_particles[m_particles.size()-1].empty());
 
         m_particles.resize(theEffectiveFinestLevel+1);
@@ -1916,7 +1916,7 @@ ParticleContainer<NR,NI,C>::RedistributeMPI (PMap& not_ours)
                 const int* rcvp = &recvdata[Idx];
                 PBox&      pbox = nparticles[Who];
 
-                BL_ASSERT(pbox.size() == RcvCnts[Who]);
+                BL_ASSERT(int(pbox.size()) == RcvCnts[Who]);
 
 		for (auto& p : pbox)
                 {
@@ -2024,7 +2024,7 @@ ParticleContainer<NR,NI,C>::RedistributeMPI (PMap& not_ours)
                 const ParticleBase::RealType* rcvp = &recvdata[Idx];
                 PBox&                         pbox = nparticles[Who];
 
-                BL_ASSERT(pbox.size() == RcvCnts[Who]);
+                BL_ASSERT(int(pbox.size()) == RcvCnts[Who]);
 
 		for (auto& p : pbox)
                 {
@@ -2403,10 +2403,10 @@ ParticleContainer<NR,NI,C>::Checkpoint (const std::string& dir,
                 //
                 Array<long> cnt(nOutFiles,0);
 
-                for (int i = 0; i < count.size(); i++)
+                for (int i = 0, N=count.size(); i < N; i++)
                     cnt[which[i]] += count[i];
 
-                for (int i = 0; i < cnt.size(); i++)
+                for (int i = 0, N=cnt.size(); i < N; i++)
                 {
                     if (cnt[i] == 0)
                     {
@@ -2835,7 +2835,7 @@ ParticleContainer<NR,NI,C>::Restart_Doit (const std::string& fullname,
             HdrFile >> ngrids[lev];
 
             BL_ASSERT(ngrids[lev] > 0);
-            BL_ASSERT(ngrids[lev] == m_gdb->ParticleBoxArray(lev).size());
+            BL_ASSERT(ngrids[lev] == int(m_gdb->ParticleBoxArray(lev).size()));
         }
     }
     ParallelDescriptor::Bcast(ngrids.dataPtr(), ngrids.size(), IOProc);
@@ -3948,7 +3948,7 @@ ParticleContainer<NR,NI,C>::AssignDensity (int rho_index, bool sub_cycle,
                                 gm_fine.periodicShift(bx, gm_fine.Domain(), pshifts);
                                 if ( ! pshifts.empty())
                                 {
-                                    BL_ASSERT(pshifts.size() == 1);
+                                    BL_ASSERT(int(pshifts.size()) == 1);
                                     fcells[j] = fcells[j] - pshifts[0];
                                 }
                                 mf[lev_index + 1]->boxArray().intersections(Box(fcells[j],fcells[j]),isects,true,0);
@@ -4016,7 +4016,7 @@ ParticleContainer<NR,NI,C>::AssignDensity (int rho_index, bool sub_cycle,
 
                                 if ( ! pshifts.empty())
                                 {
-                                    BL_ASSERT(pshifts.size() == 1);
+                                    BL_ASSERT(int(pshifts.size()) == 1);
                                     ccells[j] = ccells[j] - pshifts[0]; 
                                 }
                                 //
