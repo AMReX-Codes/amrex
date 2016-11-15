@@ -486,7 +486,7 @@ ParticleContainer<NR,NI,C>::NumberOfParticlesInGrid (int  lev,
     int ngrids = m_gdb->ParticleBoxArray(lev).size();
     Array<long> nparticles(ngrids,0);
 
-    if (lev >= 0 && lev < m_particles.size())
+    if (lev >= 0 && lev < int(m_particles.size()))
     {
         const PMap& pmap = m_particles[lev];
 
@@ -676,7 +676,7 @@ ParticleContainer<NR,NI,C>::MoveRandom ()
     //
     // Move particles randomly at all levels
     //
-    for (int lev = 0; lev < m_particles.size(); lev++)
+    for (int lev = 0; lev < int(m_particles.size()); lev++)
     {
        MoveRandom(lev);
     }
@@ -775,7 +775,7 @@ ParticleContainer<NR,NI,C>::IncrementWithTotal (MultiFab& mf,
 
     if (m_particles.empty()) return 0;
 
-    BL_ASSERT(lev >= 0 && lev < m_particles.size());
+    BL_ASSERT(lev >= 0 && lev < int(m_particles.size()));
 
     const PMap& pmap = m_particles[lev];
   
@@ -835,7 +835,7 @@ ParticleContainer<NR,NI,C>::sumParticleMass (int rho_index, int lev) const
 {
     BL_PROFILE("ParticleContainer<NR,NI,C>::sumParticleMass(lev)");
     BL_ASSERT(NR >= 1);
-    BL_ASSERT(lev >= 0 && lev < m_particles.size());
+    BL_ASSERT(lev >= 0 && lev < int(m_particles.size()));
 
     Real msum = 0;
 
@@ -1216,7 +1216,7 @@ ParticleContainer<NR,NI,C>::AddParticlesAtLevel (int   level,
 					       bool  where_already_called)
 {
     BL_PROFILE("ParticleContainer<NR,NI,C>::AddParticlesAtLevel()");
-    if (m_particles.size() < level+1)
+    if (int(m_particles.size()) < level+1)
     {
         if (ParallelDescriptor::IOProcessor())
         {
@@ -1288,7 +1288,7 @@ void
 ParticleContainer<NR,NI,C>::RemoveParticlesAtLevel (int level)
 {
     BL_PROFILE("ParticleContainer<NR,NI,C>::RemoveParticlesAtLevel()");
-    if (level >= this->m_particles.size())
+    if (level >= int(this->m_particles.size()))
         return;
 
     if (!this->m_particles[level].empty())
@@ -1302,7 +1302,7 @@ void
 ParticleContainer<NR,NI,C>::RemoveParticlesNotAtFinestLevel ()
 {
     BL_PROFILE("ParticleContainer<NR,NI,C>::RemoveParticlesNotAtFinestLevel()");
-    BL_ASSERT(this->m_gdb->finestLevel()+1 == this->m_particles.size());
+    BL_ASSERT(this->m_gdb->finestLevel()+1 == int(this->m_particles.size()));
 
     int cnt = 0;
 
@@ -1365,7 +1365,7 @@ ParticleContainer<NR,NI,C>::CreateVirtualParticles (int   level,
     BL_ASSERT(level > 0);
     BL_ASSERT(virts.empty());
 
-    if (level >= m_particles.size())
+    if (level >= int(m_particles.size()))
         //
         // This level could exist and simply have no particles.
         //
@@ -1504,7 +1504,7 @@ ParticleContainer<NR,NI,C>::CreateGhostParticles (int   level,
     BL_ASSERT(ghosts.empty());
     BL_ASSERT(level < m_gdb->finestLevel());
 
-    if (level >= m_particles.size())
+    if (level >= int(m_particles.size()))
         //
         // This level could exist and simply have no particles.
         //
@@ -2070,7 +2070,7 @@ ParticleContainer<NR,NI,C>::OK (bool full_where,
     //
     // Particles are copied to avoid accidentally moving them with where.
     //
-    for (int lev = lev_min; lev < m_particles.size(); lev++)
+    for (int lev = lev_min, nlevs=m_particles.size(); lev < nlevs; lev++)
     {
         const PMap& pmap = m_particles[lev];
 
@@ -2178,10 +2178,8 @@ ParticleContainer<NR,NI,C>::Checkpoint (const std::string& dir,
 
     long nparticles = 0;
 
-    for (int lev = 0; lev < m_particles.size(); lev++)
+    for (const auot& pmap : m_particles)
     {
-        const PMap& pmap = m_particles[lev];
-
 	for (const auto& kv : pmap)
         {
             const PBox& pbox = kv.second;
@@ -2941,7 +2939,7 @@ ParticleContainer<NR,NI,C>::ReadParticles_DoublePrecision (int            cnt,
 {
     BL_PROFILE("ParticleContainer<NR,NI,C>::ReadParticles_DoublePrecision()");
     BL_ASSERT(cnt > 0);
-    BL_ASSERT(lev < m_particles.size());
+    BL_ASSERT(lev < int(m_particles.size()));
     BL_ASSERT(lev >= 0 && lev <= m_gdb->finestLevel());
     BL_ASSERT(grd >= 0 && grd < m_gdb->ParticleBoxArray(lev).size());
     //
@@ -3065,7 +3063,7 @@ ParticleContainer<NR,NI,C>::ReadParticles_SinglePrecision (int            cnt,
 {
     BL_PROFILE("ParticleContainer<NR,NI,C>::ReadParticles_SinglePrecision()");
     BL_ASSERT(cnt > 0);
-    BL_ASSERT(lev < m_particles.size());
+    BL_ASSERT(lev < int(m_particles.size()));
     BL_ASSERT(lev >= 0 && lev <= m_gdb->finestLevel());
     BL_ASSERT(grd >= 0 && grd < m_gdb->ParticleBoxArray(lev).size());
     //
@@ -3177,10 +3175,8 @@ ParticleContainer<NR,NI,C>::WriteAsciiFile (const std::string& filename)
     //
     long nparticles = 0;
 
-    for (int lev = 0; lev < m_particles.size(); lev++)
+    for (const auto& pmap : m_particles)
     {
-        const PMap& pmap = m_particles[lev];
-
 	for (const auto& kv : pmap)
         {
             const PBox& pbox = kv.second;
@@ -3246,10 +3242,8 @@ ParticleContainer<NR,NI,C>::WriteAsciiFile (const std::string& filename)
             if (!File.good())
                 BoxLib::FileOpenFailed(filename);
             
-            for (int lev = 0; lev < m_particles.size(); lev++)
+            for (const auto& pmap : m_particles)
             {
-                const PMap& pmap = m_particles[lev];
-
 		for (const auto& kv : pmap)
                 {
                     const PBox& pbox = kv.second;
@@ -3311,10 +3305,8 @@ ParticleContainer<NR,NI,C>::WriteCoarsenedAsciiFile (const std::string& filename
     //
     long nparticles = 0;
 
-    for (int lev = 0; lev < m_particles.size(); lev++)
+    for (const auto& pmap : m_particles)
     {
-        const PMap& pmap = m_particles[lev];
-
 	for (const auto& kv : pmap)
         {
             const PBox& pbox = kv.second;
@@ -3382,10 +3374,8 @@ ParticleContainer<NR,NI,C>::WriteCoarsenedAsciiFile (const std::string& filename
             if (!File.good())
                 BoxLib::FileOpenFailed(filename);
             
-            for (int lev = 0; lev < m_particles.size(); lev++)
+            for (const auto& pmap : m_particles)
             {
-                const PMap& pmap = m_particles[lev];
-
 		for (const auto& kv : pmap)
                 {
                     const PBox& pbox = kv.second;
@@ -5108,7 +5098,7 @@ ParticleContainer<NR,NI,C>::moveKick (MultiFab&       acceleration,
 {
     BL_PROFILE("ParticleContainer::moveKick()");
     BL_ASSERT(NR >= BL_SPACEDIM+1);
-    BL_ASSERT(lev >= 0 && lev < m_particles.size());
+    BL_ASSERT(lev >= 0 && lev < int(m_particles.size()));
 
     const Real strttime  = ParallelDescriptor::second();
     const Real half_dt   = Real(0.5) * dt;
