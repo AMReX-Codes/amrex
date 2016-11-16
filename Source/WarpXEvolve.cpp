@@ -44,9 +44,9 @@ WarpX::Evolve (int numsteps)
 	    EvolveB(lev, 0.5*dt[lev]); // We now B^{n+1/2}
 	    
 	    // Fill B's ghost cells because of the next step of evolving E.
-	    WarpX::FillBoundary(*Bfield[lev][0], geom[lev], IntVect(D_DECL(1,0,0)));
-	    WarpX::FillBoundary(*Bfield[lev][1], geom[lev], IntVect(D_DECL(0,1,0)));
-	    WarpX::FillBoundary(*Bfield[lev][2], geom[lev], IntVect(D_DECL(0,0,1)));
+	    WarpX::FillBoundary(*Bfield[lev][0], geom[lev], Bx_nodal_flag);
+	    WarpX::FillBoundary(*Bfield[lev][1], geom[lev], By_nodal_flag);
+	    WarpX::FillBoundary(*Bfield[lev][2], geom[lev], Bz_nodal_flag);
 
 	    EvolveE(lev, dt[lev]); // We now have E^{n+1}
 
@@ -187,9 +187,9 @@ WarpX::ComputeDt ()
     for (int lev = 0; lev <= finest_level; ++lev)
     {
 	const Real* dx = geom[lev].CellSize();
-	dt_tmp[lev]  = cfl * 1./( std::sqrt( 1./(dx[0]*dx[0]) 
-                                           + 1./(dx[1]*dx[1])
-					   + 1./(dx[2]*dx[2])) * PhysConst::c );
+	dt_tmp[lev]  = cfl * 1./( std::sqrt(D_TERM(  1./(dx[0]*dx[0]),
+						   + 1./(dx[1]*dx[1]),
+						   + 1./(dx[2]*dx[2]))) * PhysConst::c );
     }
 
     // Limit dt's by the value of stop_time.

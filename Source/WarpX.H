@@ -43,11 +43,20 @@ public:
     static long noy;
     static long noz;
 
+    static IntVect Bx_nodal_flag;
+    static IntVect By_nodal_flag;
+    static IntVect Bz_nodal_flag;
+
+    static IntVect Ex_nodal_flag;
+    static IntVect Ey_nodal_flag;
+    static IntVect Ez_nodal_flag;
+
 protected:
     virtual void ErrorEst (int lev, TagBoxArray& tags, Real time, int /*ngrow*/) override {}
 
 private:
 
+    // Singleton is used when the code is run from python
     static WarpX* m_instance;
 
     void EvolveE (int lev, Real dt);

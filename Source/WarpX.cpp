@@ -12,6 +12,26 @@ long WarpX::nox = 1;
 long WarpX::noy = 1;
 long WarpX::noz = 1;
 
+#if (BL_SPACEDIM == 3)
+IntVect WarpX::Bx_nodal_flag(1,0,0);
+IntVect WarpX::By_nodal_flag(0,1,0);
+IntVect WarpX::Bz_nodal_flag(0,0,1);
+#elif (BL_SPACEDIM == 2)
+IntVect WarpX::Bx_nodal_flag(1,0);  // x is the first dimension to BoxLib
+IntVect WarpX::By_nodal_flag(0,0);  // y is the missing dimension to 2D BoxLib
+IntVect WarpX::Bz_nodal_flag(0,1);  // z is the second dimension to 2D BoxLib
+#endif
+
+#if (BL_SPACEDIM == 3)
+IntVect WarpX::Ex_nodal_flag(1,0,0);
+IntVect WarpX::Ey_nodal_flag(0,1,0);
+IntVect WarpX::Ez_nodal_flag(0,0,1);
+#elif (BL_SPACEDIM == 2)
+IntVect WarpX::Ex_nodal_flag(0,1);  // x is the first dimension to BoxLib
+IntVect WarpX::Ey_nodal_flag(1,1);  // y is the missing dimension to 2D BoxLib
+IntVect WarpX::Ez_nodal_flag(1,0);  // z is the second dimension to 2D BoxLib
+#endif
+
 WarpX* WarpX::m_instance = nullptr;
 
 WarpX&
@@ -125,7 +145,7 @@ WarpX::MakeNewLevel (int lev, Real time,
     const IntVect& nodalflag = IntVect::TheUnitVector();
     const int ng = 1;
 
-    for (int i = 0; i < BL_SPACEDIM; ++i) {
+    for (int i = 0; i < 3; ++i) {
 	current[lev].push_back(std::unique_ptr<MultiFab>
 			       (new MultiFab(grids[lev],1,ng,dmap[lev],Fab_allocate,nodalflag)));
 
