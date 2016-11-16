@@ -13,19 +13,29 @@ ifeq ($(USE_MPI),TRUE)
 
   # Link to MPI f90 library.
 
-  ifeq ($(findstring mpich, $(shell mpicc -show 2>&1)), mpich)
+  ifeq ($(findstring mpich, $(shell mpif90 -show 2>&1)), mpich)
 
+    #
     # mpich
-    LIBRARIES += -lmpich -lmpichf90
+    #
 
-  else ifeq ($(findstring openmpi, $(shell mpicc -showme 2>&1)), openmpi)
+    mpif90_link_flags := $(shell mpif90 -link_info)
+    #
+    # The first word is the underlying compiler say gfortran
+    #
+    LIBRARIES += $(wordlist 2,1024,$(mpif90_link_flags))
 
+  else ifeq ($(findstring openmpi, $(shell mpif90 -showme 2>&1)), openmpi)
+
+    #
     # openmpi
-    LIBRARIES += -lmpi_usempi -lmpi_mpifh -lmpi
+    #
+    mpif90_link_flags := $(shell mpif90 -showme:link)
+    LIBRARIES += $(mpif90_link_flags)
 
   else
 
-    $(error unknown mpi implementaion)
+    $(error unknown mpi implementation)
 
   endif
 
