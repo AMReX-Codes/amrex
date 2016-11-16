@@ -183,16 +183,16 @@ MyParticleContainer::Evolve (int lev,
 	    const int l_lower_order_in_v = true;
 
 	    BL_PROFILE_VAR_START(blp_pxr_fg);
-	    warpx_geteb3d_energy_conserving(&np, xp.dataPtr(), yp.dataPtr(), zp.dataPtr(),
-					    Exp->dataPtr(),Eyp->dataPtr(),Ezp->dataPtr(),
-					    Bxp->dataPtr(),Byp->dataPtr(),Bzp->dataPtr(),
-					    &xyzmin[0], &xyzmin[1], &xyzmin[2],
-					    &dx[0], &dx[1], &dx[2],
-					    &nx, &ny, &nz, &ngx_eb, &ngy_eb, &ngz_eb, 
-					    &WarpX::nox, &WarpX::noy, &WarpX::noz, 
-					    exfab.dataPtr(), eyfab.dataPtr(), ezfab.dataPtr(),
-					    bxfab.dataPtr(), byfab.dataPtr(), bzfab.dataPtr(),
-					    &ll4symtry, &l_lower_order_in_v, &WarpX::field_gathering_algo);
+	    warpx_geteb_energy_conserving(&np, xp.dataPtr(), yp.dataPtr(), zp.dataPtr(),
+					  Exp->dataPtr(),Eyp->dataPtr(),Ezp->dataPtr(),
+					  Bxp->dataPtr(),Byp->dataPtr(),Bzp->dataPtr(),
+					  &xyzmin[0], &xyzmin[1], &xyzmin[2],
+					  &dx[0], &dx[1], &dx[2],
+					  &nx, &ny, &nz, &ngx_eb, &ngy_eb, &ngz_eb, 
+					  &WarpX::nox, &WarpX::noy, &WarpX::noz, 
+					  exfab.dataPtr(), eyfab.dataPtr(), ezfab.dataPtr(),
+					  bxfab.dataPtr(), byfab.dataPtr(), bzfab.dataPtr(),
+					  &ll4symtry, &l_lower_order_in_v, &WarpX::field_gathering_algo);
 	    BL_PROFILE_VAR_STOP(blp_pxr_fg);
 	}
 
