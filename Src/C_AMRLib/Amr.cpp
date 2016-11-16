@@ -865,7 +865,7 @@ Amr::writeSmallPlotFile ()
     {
         HeaderFile.precision(old_prec);
         if ( ! HeaderFile.good())
-            BoxLib::Error("Amr::writePlotFile() failed");
+            BoxLib::Error("Amr::writeSmallPlotFile() failed");
     }
 
     last_smallplotfile = level_steps[0];
