@@ -3,7 +3,7 @@
 
 #include <WarpX.H>
 #include <WarpXConst.H>
-#include <PICSAR_f.H>
+#include <WarpX_f.H>
 
 void
 WarpX::Evolve (int numsteps)

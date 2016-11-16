@@ -10,7 +10,7 @@ CEXE_sources += ParticleContainer.cpp ParticleProb.cpp
 
 CEXE_headers += WarpXWrappers.h
 
-CEXE_headers += WarpX.H ParticleContainer.H PICSAR_f.H WarpXConst.H
+CEXE_headers += WarpX.H ParticleContainer.H WarpX_f.H WarpXConst.H
 
 F90EXE_sources += WarpX_f.F90
 

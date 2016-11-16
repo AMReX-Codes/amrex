@@ -1,6 +1,6 @@
 
 #include <ParticleContainer.H>
-#include <PICSAR_f.H>
+#include <WarpX_f.H>
 #include <WarpX.H>
 
 MyParticleContainer::MyParticleContainer (AmrCore* amr_core)
