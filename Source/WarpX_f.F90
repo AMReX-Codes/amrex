@@ -1,3 +1,15 @@
+#if (BL_SPACEDIM == 3)
+
+#define PXR_PUSH_BVEC        pxrpush_em3d_bvec
+#define PXR_PUSH_BVEC_NORDER pxrpush_em3d_bvec_norder
+
+#elif (BL_SPACEDIM == 2)
+
+#define PXR_PUSH_BVEC        pxrpush_em2d_bvec
+#define PXR_PUSH_BVEC_NORDER pxrpush_em2d_bvec_norder
+
+#endif
+
 ! _________________________________________________________________
 !
 !> @brief
@@ -690,31 +702,12 @@ contains
   !> @brief
   !> Main function in warpx for evolving the magnetic field
   !>
-  subroutine warpx_pxrpush_em3d_bvec_norder(ex,ey,ez,bx,by,bz,                  &
+  subroutine warpx_push_bvec(ex,ey,ez,bx,by,bz,                  &
        dtsdx,dtsdy,dtsdz,nx,ny,nz,          &
        norderx,nordery,norderz,             &
        nxguard,nyguard,nzguard,nxs,nys,nzs, &
        l_nodalgrid) &  !!!!!
-       bind(C, name="warpx_pxrpush_em3d_bvec_norder")
-
-    interface
-       subroutine pxrpush_em3d_bvec_norder(ex,ey,ez,bx,by,bz,                  &
-            dtsdx,dtsdy,dtsdz,nx,ny,nz,          &
-            norderx,nordery,norderz,             &
-            nxguard,nyguard,nzguard,nxs,nys,nzs, &
-            l_nodalgrid)
-         use iso_c_binding
-         use bl_fort_module, only : c_real
-         implicit none
-         integer(c_long) :: nx,ny,nz,nxguard,nyguard,nzguard,nxs,nys,nzs,norderx,nordery,norderz
-         real(c_real), intent(IN OUT), dimension(-nxguard:nx+nxguard,&
-              &                                  -nyguard:ny+nyguard,&
-              &                                  -nzguard:nz+nzguard) :: ex,ey,ez,bx,by,bz
-         real(c_real), intent(IN) :: dtsdx(norderx/2),dtsdy(nordery/2),dtsdz(norderz/2)
-         integer(c_long) :: j,k,l,ist
-         logical(c_long) :: l_nodalgrid
-       end subroutine pxrpush_em3d_bvec_norder
-    end interface
+       bind(C, name="warpx_push_bvec")
 
     integer(c_long) :: nx,ny,nz,nxguard,nyguard,nzguard,nxs,nys,nzs,norderx,nordery,norderz
     real(c_real), intent(IN OUT), dimension(-nxguard:nx+nxguard,&
@@ -728,19 +721,22 @@ contains
 
     if ((norderx.eq.2).and.(nordery.eq.2).and.(norderz.eq.2)) then
 
-      call pxrpush_em3d_bvec(ex,ey,ez,bx,by,bz,                  &
+      call PXR_PUSH_BVEC(ex,ey,ez,bx,by,bz,                  &
            dtsdx,dtsdy,dtsdz,nx,ny,nz,          &
            nxguard,nyguard,nzguard,nxs,nys,nzs, &
            pxr_l_nodalgrid)
+
     else
-      call pxrpush_em3d_bvec_norder(ex,ey,ez,bx,by,bz,                  &
+
+      call PXR_PUSH_BVEC_NORDER(ex,ey,ez,bx,by,bz,                  &
            dtsdx,dtsdy,dtsdz,nx,ny,nz,          &
            norderx,nordery,norderz,             &
            nxguard,nyguard,nzguard,nxs,nys,nzs, &
            pxr_l_nodalgrid)
+
     endif
 
 
-  end subroutine warpx_pxrpush_em3d_bvec_norder
+  end subroutine warpx_push_bvec
 
 end module warpx_to_pxr_module

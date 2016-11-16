@@ -89,9 +89,15 @@ WarpX::EvolveB (int lev, Real dt)
     const Real* dx = geom[lev].CellSize();
 
     Real dtsdx[3];
-    for (int i = 0; i < BL_SPACEDIM; ++i) {
-	dtsdx[i] = dt / dx[i];
-    }
+#if (BL_SPACEDIM == 3)
+    dtsdx[0] = dt / dx[0];
+    dtsdx[1] = dt / dx[1];
+    dtsdx[2] = dt / dx[2];
+#elif (BL_SPACEDIM == 2)
+    dtsdx[0] = dt / dx[0];
+    dtsdx[1] = 0.0;
+    dtsdx[2] = dt / dx[1];
+#endif
 
     long norder = 2;
     long nstart = 0;
@@ -104,25 +110,41 @@ WarpX::EvolveB (int lev, Real dt)
     BL_ASSERT(nguard == Bfield[lev][1]->nGrow());
     BL_ASSERT(nguard == Bfield[lev][2]->nGrow());
 
+#if (BL_SPACEDIM == 3)
+    long nxguard = nguard;
+    long nyguard = nguard;
+    long nzguard = nguard; 
+#elif (BL_SPACEDIM == 2)
+    long nxguard = nguard;
+    long nyguard = 0;
+    long nzguard = nguard; 
+#endif
+
     for ( MFIter mfi(*Bfield[lev][0]); mfi.isValid(); ++mfi )
     {
 	const Box& box = BoxLib::enclosedCells(mfi.validbox());
+#if (BL_SPACEDIM == 3)
 	long nx = box.length(0);
 	long ny = box.length(1);
 	long nz = box.length(2); 
+#elif (BL_SPACEDIM == 2)
+	long nx = box.length(0);
+	long ny = 0;
+	long nz = box.length(1); 
+#endif
 
-	warpx_pxrpush_em3d_bvec_norder( (*Efield[lev][0])[mfi].dataPtr(),
-					(*Efield[lev][1])[mfi].dataPtr(),
-					(*Efield[lev][2])[mfi].dataPtr(),
-					(*Bfield[lev][0])[mfi].dataPtr(),
-					(*Bfield[lev][1])[mfi].dataPtr(),
-					(*Bfield[lev][2])[mfi].dataPtr(), 
-					dtsdx, dtsdx+1, dtsdx+2,
-					&nx, &ny, &nz,
-					&norder, &norder, &norder,
-					&nguard, &nguard, &nguard,
-					&nstart, &nstart, &nstart,
-					&l_nodal );
+	warpx_push_bvec( (*Efield[lev][0])[mfi].dataPtr(),
+			 (*Efield[lev][1])[mfi].dataPtr(),
+			 (*Efield[lev][2])[mfi].dataPtr(),
+			 (*Bfield[lev][0])[mfi].dataPtr(),
+			 (*Bfield[lev][1])[mfi].dataPtr(),
+			 (*Bfield[lev][2])[mfi].dataPtr(), 
+			 dtsdx, dtsdx+1, dtsdx+2,
+			 &nx, &ny, &nz,
+			 &norder, &norder, &norder,
+			 &nxguard, &nyguard, &nzguard,
+			 &nstart, &nstart, &nstart,
+			 &l_nodal );
     }
 }
 

@@ -71,12 +71,12 @@ extern "C"
 					 const long* nxs, const long* nys, const long* nzs,
 					 const int* l_nodal );
     
-    void warpx_pxrpush_em3d_bvec_norder( Real* ex, Real* ey, Real* ez,
-					 Real* bx, Real* by, Real* bz,
-					 const Real* dtsdx, const Real* dtsdy, const Real* dtsdz, 
-					 const long* nxlocal, const long* nylocal, const long* nzlocal,
-					 const long* nxorder, const long* nyorder, const long* nzorder,
-					 const long* nxguard, const long* nyguard, const long* nzguard, 
-					 const long* nxs, const long* nys, const long* nzs,
-					 const int* l_nodal );
+    void warpx_push_bvec( Real* ex, Real* ey, Real* ez,
+			  Real* bx, Real* by, Real* bz,
+			  const Real* dtsdx, const Real* dtsdy, const Real* dtsdz, 
+			  const long* nxlocal, const long* nylocal, const long* nzlocal,
+			  const long* nxorder, const long* nyorder, const long* nzorder,
+			  const long* nxguard, const long* nyguard, const long* nzguard, 
+			  const long* nxs, const long* nys, const long* nzs,
+			  const int* l_nodal );
 }
