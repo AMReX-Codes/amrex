@@ -1,3 +1,4 @@
+#include <limits>
 
 #include <ParticleContainer.H>
 #include <WarpX_f.H>
@@ -55,10 +56,28 @@ MyParticleContainer::Evolve (int lev,
 
     const Geometry& gm  = m_gdb->Geom(lev);
     const BoxArray& ba  = Ex.boxArray();
-    const Real*     dx  = gm.CellSize();
 
-    const long ng_eb = Ex.nGrow();
-    const long ng_j  = jx.nGrow();
+#if (BL_SPACEDIM == 3)
+    const Real* dx = gm.CellSize();
+#elif (BL_SPACEDIM == 2)
+    Real dx[3] = { gm.CellSize(0), std::numeric_limits<Real>::quiet_NaN(), gm.CellSize(1) };
+#endif
+
+#if (BL_SPACEDIM == 3)
+    long ngx_eb = Ex.nGrow();
+    long ngy_eb = ngx_eb;
+    long ngz_eb = ngx_eb;
+    long ngx_j  = jx.nGrow();
+    long ngy_j  = ngx_j;
+    long ngz_j  = ngx_j;
+#elif (BL_SPACEDIM == 2)
+    long ngx_eb = Ex.nGrow();
+    long ngy_eb = 0;
+    long ngz_eb = ngx_eb;
+    long ngx_j  = jx.nGrow();;
+    long ngy_j  = 0;
+    long ngz_j  = ngx_j;
+#endif
     
     BL_ASSERT(OnSameGrids(lev,Ex));
 
@@ -119,9 +138,15 @@ MyParticleContainer::Evolve (int lev,
         {
 	    const auto& p = pbx[i];
 	    BL_ASSERT(p.m_id > 0);
+#if (BL_SPACEDIM == 3)
 	    xp[i] = p.m_pos[0];
 	    yp[i] = p.m_pos[1];
 	    zp[i] = p.m_pos[2];
+#elif (BL_SPACEDIM == 2)
+	    xp[i] = p.m_pos[0];
+	    yp[i] = std::numeric_limits<Real>::quiet_NaN();
+	    zp[i] = p.m_pos[1];
+#endif
  	    wp[i]  = p.m_data[PIdx::w]; 
  	    uxp[i] = p.m_data[PIdx::ux]; 
  	    uyp[i] = p.m_data[PIdx::uy]; 
@@ -136,12 +161,22 @@ MyParticleContainer::Evolve (int lev,
 	BL_PROFILE_VAR_STOP(blp_copy);
 	
 	const Box& box = BoxLib::enclosedCells(ba[gid]);
+#if (BL_SPACEDIM == 3)
 	long nx = box.length(0);
 	long ny = box.length(1);
 	long nz = box.length(2); 
+#elif (BL_SPACEDIM == 2)
+	long nx = box.length(0);
+	long ny = 0;
+	long nz = box.length(1); 
+#endif
 
-	RealBox grid_box = RealBox( box, dx, gm.ProbLo() );
+	RealBox grid_box = RealBox( box, gm.CellSize(), gm.ProbLo() );
+#if (BL_SPACEDIM == 3)
 	const Real* xyzmin = grid_box.lo();
+#elif (BL_SPACEDIM == 2)
+	Real xyzmin[3] = { grid_box.lo(0), std::numeric_limits<Real>::quiet_NaN(), grid_box.lo(1) };
+#endif
 
 	{       // Field Gather
 	    const int ll4symtry          = false;
@@ -153,7 +188,7 @@ MyParticleContainer::Evolve (int lev,
 					    Bxp->dataPtr(),Byp->dataPtr(),Bzp->dataPtr(),
 					    &xyzmin[0], &xyzmin[1], &xyzmin[2],
 					    &dx[0], &dx[1], &dx[2],
-					    &nx, &ny, &nz, &ng_eb, &ng_eb, &ng_eb, 
+					    &nx, &ny, &nz, &ngx_eb, &ngy_eb, &ngz_eb, 
 					    &WarpX::nox, &WarpX::noy, &WarpX::noz, 
 					    exfab.dataPtr(), eyfab.dataPtr(), ezfab.dataPtr(),
 					    bxfab.dataPtr(), byfab.dataPtr(), bzfab.dataPtr(),
@@ -182,7 +217,7 @@ MyParticleContainer::Evolve (int lev,
 				     giv.dataPtr(), wp.dataPtr(), &this->charge, 
 				     &xyzmin[0], &xyzmin[1], &xyzmin[2], 
 				     &dt, &dx[0], &dx[1], &dx[2], &nx, &ny, &nz,
-				     &ng_j, &ng_j, &ng_j, &WarpX::nox,&WarpX::noy,&WarpX::noz,
+				     &ngx_j, &ngy_j, &ngz_j, &WarpX::nox,&WarpX::noy,&WarpX::noz,
 				     &lvect,&WarpX::current_deposition_algo);
 	    BL_PROFILE_VAR_STOP(blp_pxr_cd);
 	}
@@ -193,9 +228,14 @@ MyParticleContainer::Evolve (int lev,
         {
 	    auto& p = pbx[i];
 	    BL_ASSERT(p.m_id > 0);
+#if (BL_SPACEDIM == 3)
 	    p.m_pos[0] = xp[i];
 	    p.m_pos[1] = yp[i];
 	    p.m_pos[2] = zp[i];
+#elif (BL_SPACEDIM == 2)
+	    p.m_pos[0] = xp[i];
+	    p.m_pos[1] = zp[i];
+#endif
  	    p.m_data[PIdx::ux] = uxp[i];
  	    p.m_data[PIdx::uy] = uyp[i];
  	    p.m_data[PIdx::uz] = uzp[i];
