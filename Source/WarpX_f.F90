@@ -607,9 +607,13 @@ contains
 
     !! Vay pusher -- Full push
     CASE (1_c_long)
+#if (BL_SPACEDIM == 3)
       CALL pxr_ebcancelpush3d(np,uxp,uyp,uzp,gaminv, &
                                  ex,ey,ez,  &
                                  bx,by,bz,q,m,dt,0_c_long)
+#else
+      call bl_error("Is there a 2d Vay pusher implemented?")
+#endif
     CASE DEFAULT
 
       !! --- Push velocity with E half step
@@ -628,7 +632,11 @@ contains
     END SELECT
 
     !!!! --- push particle species positions a time step
+#if (BL_SPACEDIM == 3)    
     CALL pxr_pushxyz(np,xp,yp,zp,uxp,uyp,uzp,gaminv,dt)
+#elif (BL_SPACEDIM == 2)
+    CALL pxr_pushxz(np,xp,zp,uxp,uzp,gaminv,dt)
+#endif
 
   end subroutine
 
