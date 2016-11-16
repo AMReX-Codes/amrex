@@ -2,11 +2,15 @@
 
 #define PXR_PUSH_BVEC        pxrpush_em3d_bvec
 #define PXR_PUSH_BVEC_NORDER pxrpush_em3d_bvec_norder
+#define PXR_PUSH_EVEC        pxrpush_em3d_evec
+#define PXR_PUSH_EVEC_NORDER pxrpush_em3d_evec_norder
 
 #elif (BL_SPACEDIM == 2)
 
 #define PXR_PUSH_BVEC        pxrpush_em2d_bvec
 #define PXR_PUSH_BVEC_NORDER pxrpush_em2d_bvec_norder
+#define PXR_PUSH_EVEC        pxrpush_em2d_evec
+#define PXR_PUSH_EVEC_NORDER pxrpush_em2d_evec_norder
 
 #endif
 
@@ -634,35 +638,12 @@ contains
   !> @brief
   !> Main function in warpx for evolving the electric field
   !>
-  subroutine warpx_pxrpush_em3d_evec_norder(ex,ey,ez,bx,by,bz,jx,jy,jz,mudt,    &
+  subroutine warpx_push_evec(ex,ey,ez,bx,by,bz,jx,jy,jz,mudt,    &
        dtsdx,dtsdy,dtsdz,nx,ny,nz,   &
        norderx,nordery,norderz,             &
        nxguard,nyguard,nzguard,nxs,nys,nzs, &
        l_nodalgrid) &  !!!!!
-       bind(C, name="warpx_pxrpush_em3d_evec_norder")
-  ! _________________________________________________________________
-
-    interface
-       subroutine pxrpush_em3d_evec_norder(ex,ey,ez,bx,by,bz,jx,jy,jz,mudt, &
-            dtsdx,dtsdy,dtsdz,nx,ny,nz,   &
-            norderx,nordery,norderz,             &
-            nxguard,nyguard,nzguard,nxs,nys,nzs, &
-            l_nodalgrid)
-         use iso_c_binding
-         use bl_fort_module, only : c_real
-         implicit none
-         integer(c_long) :: nx,ny,nz,nxguard,nyguard,nzguard,nxs,nys,nzs,norderx,nordery,norderz
-         real(c_real), intent(IN OUT), dimension(-nxguard:nx+nxguard,&
-              &                                  -nyguard:ny+nyguard,&
-              &                                  -nzguard:nz+nzguard) :: ex,ey,ez,bx,by,bz
-         real(c_real), intent(IN), dimension(-nxguard:nx+nxguard,&
-              &                              -nyguard:ny+nyguard,&
-              &                              -nzguard:nz+nzguard) :: jx, jy, jz
-         real(c_real), intent(IN) :: mudt,dtsdx(norderx/2),dtsdy(nordery/2),dtsdz(norderz/2)
-         integer(c_long) :: j,k,l,ist
-         logical(c_long) :: l_nodalgrid
-       end subroutine pxrpush_em3d_evec_norder
-    end interface
+       bind(C, name="warpx_push_evec")
 
     integer(c_long) :: nx,ny,nz,nxguard,nyguard,nzguard,nxs,nys,nzs,norderx,nordery,norderz
     real(c_real), intent(IN OUT), dimension(-nxguard:nx+nxguard,&
@@ -679,14 +660,14 @@ contains
 
     if ((norderx.eq.2).and.(nordery.eq.2).and.(norderz.eq.2)) then
 
-      call pxrpush_em3d_evec(ex,ey,ez,bx,by,bz,jx,jy,jz,mudt, &
+      call PXR_PUSH_EVEC(ex,ey,ez,bx,by,bz,jx,jy,jz,mudt, &
            dtsdx,dtsdy,dtsdz,nx,ny,nz,   &
            nxguard,nyguard,nzguard,nxs,nys,nzs, &
            pxr_l_nodalgrid)
 
     else
 
-     call pxrpush_em3d_evec_norder(ex,ey,ez,bx,by,bz,jx,jy,jz,mudt, &
+     call PXR_PUSH_EVEC_NORDER(ex,ey,ez,bx,by,bz,jx,jy,jz,mudt, &
           dtsdx,dtsdy,dtsdz,nx,ny,nz,   &
           norderx,nordery,norderz,             &
           nxguard,nyguard,nzguard,nxs,nys,nzs, &
@@ -694,8 +675,7 @@ contains
 
    end if
 
-
-  end subroutine warpx_pxrpush_em3d_evec_norder
+ end subroutine warpx_push_evec
 
   ! _________________________________________________________________
   !>

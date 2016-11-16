@@ -60,16 +60,16 @@ extern "C"
 
     // Maxwell solver
 
-    void warpx_pxrpush_em3d_evec_norder( Real* ex, Real* ey, Real* ez,
-					 Real* bx, Real* by, Real* bz,
-					 const Real* jx, const Real* jy, const Real* jz,
-					 const Real* mudt,
-					 const Real* dtsdx, const Real* dtsdy, const Real* dtsdz, 
-					 const long* nxlocal, const long* nylocal, const long* nzlocal,
-					 const long* nxorder, const long* nyorder, const long* nzorder,
-					 const long* nxguard, const long* nyguard, const long* nzguard, 
-					 const long* nxs, const long* nys, const long* nzs,
-					 const int* l_nodal );
+    void warpx_push_evec( Real* ex, Real* ey, Real* ez,
+			  Real* bx, Real* by, Real* bz,
+			  const Real* jx, const Real* jy, const Real* jz,
+			  const Real* mudt,
+			  const Real* dtsdx, const Real* dtsdy, const Real* dtsdz, 
+			  const long* nxlocal, const long* nylocal, const long* nzlocal,
+			  const long* nxorder, const long* nyorder, const long* nzorder,
+			  const long* nxguard, const long* nyguard, const long* nzguard, 
+			  const long* nxs, const long* nys, const long* nzs,
+			  const int* l_nodal );
     
     void warpx_push_bvec( Real* ex, Real* ey, Real* ez,
 			  Real* bx, Real* by, Real* bz,
