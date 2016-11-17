@@ -43,14 +43,6 @@ public:
     static long noy;
     static long noz;
 
-    static IntVect Bx_nodal_flag;
-    static IntVect By_nodal_flag;
-    static IntVect Bz_nodal_flag;
-
-    static IntVect Ex_nodal_flag;
-    static IntVect Ey_nodal_flag;
-    static IntVect Ez_nodal_flag;
-
 protected:
     virtual void ErrorEst (int lev, TagBoxArray& tags, Real time, int /*ngrow*/) override {}
 
@@ -74,6 +66,9 @@ private:
     void ComputeDt ();
 
     void WritePlotFile () const;
+    static void PackPlotDataPtrs (std::vector<MultiFab*>& pmf,
+				  const Array<std::unique_ptr<MultiFab> >& data);
+    static void Copy (MultiFab& dstmf, int dcomp, int ncomp, const MultiFab& srcmf, int scomp);
 
     Array<int> istep;      // which step?
     Array<int> nsubsteps;  // how many substeps on each level?
@@ -104,6 +99,18 @@ private:
     std::string plot_file {"plt"};
     int check_int = -1;
     int plot_int = -1;
+
+    static IntVect Bx_nodal_flag;
+    static IntVect By_nodal_flag;
+    static IntVect Bz_nodal_flag;
+
+    static IntVect Ex_nodal_flag;
+    static IntVect Ey_nodal_flag;
+    static IntVect Ez_nodal_flag;
+
+    static IntVect jx_nodal_flag;
+    static IntVect jy_nodal_flag;
+    static IntVect jz_nodal_flag;
 };
 
 #endif

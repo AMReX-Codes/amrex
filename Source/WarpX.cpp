@@ -32,6 +32,16 @@ IntVect WarpX::Ey_nodal_flag(1,1);  // y is the missing dimension to 2D BoxLib
 IntVect WarpX::Ez_nodal_flag(1,0);  // z is the second dimension to 2D BoxLib
 #endif
 
+#if (BL_SPACEDIM == 3)
+IntVect WarpX::jx_nodal_flag(1,0,0);
+IntVect WarpX::jy_nodal_flag(0,1,0);
+IntVect WarpX::jz_nodal_flag(0,0,1);
+#elif (BL_SPACEDIM == 2)
+IntVect WarpX::jx_nodal_flag(0,1);  // x is the first dimension to BoxLib
+IntVect WarpX::jy_nodal_flag(1,1);  // y is the missing dimension to 2D BoxLib
+IntVect WarpX::jz_nodal_flag(1,0);  // z is the second dimension to 2D BoxLib
+#endif
+
 WarpX* WarpX::m_instance = nullptr;
 
 WarpX&
@@ -184,3 +194,20 @@ WarpX::FillBoundary (MultiFab& mf, const Geometry& geom, const IntVect& nodalfla
 	tmpfab.SetBoxType(correct_typ);
     }
 }
+
+void
+WarpX::Copy(MultiFab& dstmf, int dcomp, int ncomp, const MultiFab& srcmf, int scomp)
+{
+    const IndexType& dst_typ = dstmf.boxArray().ixType();
+    const IndexType& src_typ = srcmf.boxArray().ixType();
+
+    for (MFIter mfi(dstmf); mfi.isValid(); ++mfi)
+    {
+	FArrayBox& dfab = dstmf[mfi];
+	const FArrayBox& sfab = srcmf[mfi];
+	dfab.SetBoxType(src_typ);
+	dfab.copy(sfab, scomp, dcomp, ncomp);
+	dfab.SetBoxType(dst_typ);
+    }
+}
+

@@ -28,24 +28,30 @@ WarpX::WritePlotFile () const
 	    const int ngrow = 0;
 	    mf[lev] = std::unique_ptr<MultiFab>(new MultiFab(grids[lev], ncomp, ngrow, dmap[lev]));
 
-	    std::vector<MultiFab*> srcmf(3);
-	    for (int i = 0; i < 3; ++i) {
-		srcmf[i] = current[lev][i].get();
-	    }
+	    std::vector<MultiFab*> srcmf(BL_SPACEDIM);
+	    PackPlotDataPtrs(srcmf, current[lev]);
 	    int dcomp = 0;
 	    BoxLib::average_edge_to_cellcenter(*mf[lev], dcomp, srcmf);
+#if (BL_SPACEDIM == 2)
+	    MultiFab::Copy(*mf[lev], *mf[lev], dcomp+1, dcomp+2, 1, ngrow);
+	    WarpX::Copy(*mf[lev], dcomp+1, 1, *current[lev][1], 0);
+#endif
 
-	    for (int i = 0; i < 3; ++i) {
-		srcmf[i] = Efield[lev][i].get();
-	    }
+	    PackPlotDataPtrs(srcmf, Efield[lev]);
 	    dcomp += 3;
 	    BoxLib::average_edge_to_cellcenter(*mf[lev], dcomp, srcmf);
+#if (BL_SPACEDIM == 2)
+	    MultiFab::Copy(*mf[lev], *mf[lev], dcomp+1, dcomp+2, 1, ngrow);
+	    WarpX::Copy(*mf[lev], dcomp+1, 1, *Efield[lev][1], 0);
+#endif
 
-	    for (int i = 0; i < 3; ++i) {
-		srcmf[i] = Bfield[lev][i].get();
-	    }
+	    PackPlotDataPtrs(srcmf, Bfield[lev]);
 	    dcomp += 3;
 	    BoxLib::average_face_to_cellcenter(*mf[lev], dcomp, srcmf);
+#if (BL_SPACEDIM == 2)
+	    MultiFab::Copy(*mf[lev], *mf[lev], dcomp+1, dcomp+2, 1, ngrow);
+	    WarpX::Copy(*mf[lev], dcomp+1, 1, *Bfield[lev][1], 0);
+#endif
 	}
     
 	Array<const MultiFab*> mf2(finest_level+1);
@@ -156,4 +162,19 @@ WarpX::WritePlotFile () const
 
 	jobInfoFile.close();
     }
+}
+
+void
+WarpX::PackPlotDataPtrs(std::vector<MultiFab*>& pmf,
+			const Array<std::unique_ptr<MultiFab> >& data)
+{
+    BL_ASSERT(pmf.size() == BL_SPACEDIM);
+#if (BL_SPACEDIM == 3)
+    pmf[0] = data[0].get();
+    pmf[1] = data[1].get();
+    pmf[2] = data[2].get();
+#elif (BL_SPACEDIM == 2)
+    pmf[0] = data[0].get();
+    pmf[1] = data[2].get();
+#endif
 }
