@@ -37,11 +37,6 @@ ifeq ($(USE_ARRAYVIEW),TRUE)
   C$(AMRLIB_BASE)_sources += DatasetClient.cpp
 endif
 
-ifeq ($(USE_SDCLIB), TRUE)
-  CEXE_sources += MLSDCAmr.cpp MLSDCAmrEncap.cpp
-  CEXE_headers += MLSDCAmr.H
-endif
-
 VPATH_LOCATIONS += $(BOXLIB_HOME)/Src/C_AMRLib
 INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/C_AMRLib
 
