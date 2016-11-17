@@ -161,8 +161,8 @@ WarpX::EvolveE (int lev, Real dt)
     Real dtsdx_c2[3];
 #if (BL_SPACEDIM == 3)
     dtsdx_c2[0] = (PhysConst::c*PhysConst::c) * dt / dx[0];
-    dtsdx_c2[1] = (PhysConst::c*PhysConst::c) * dt / dx[2];
-    dtsdx_c2[2] = (PhysConst::c*PhysConst::c) * dt / dx[3];
+    dtsdx_c2[1] = (PhysConst::c*PhysConst::c) * dt / dx[1];
+    dtsdx_c2[2] = (PhysConst::c*PhysConst::c) * dt / dx[2];
 #else
     dtsdx_c2[0] = (PhysConst::c*PhysConst::c) * dt / dx[0];
     dtsdx_c2[1] = std::numeric_limits<Real>::quiet_NaN();
