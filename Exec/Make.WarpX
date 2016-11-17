@@ -14,7 +14,7 @@ ifeq ($(USE_PYTHON_MAIN),TRUE)
   CFLAGS   += -fPIC
   fFLAGS   += -fPIC
   FFLAGS   += -fPIC
-  USERSuffix = Lib
+  USERSuffix = .Lib
 endif
 
 -include Make.package
@@ -34,9 +34,17 @@ INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Tools/C_scripts
 
 ifeq ($(USE_PYTHON_MAIN),TRUE)
 
+ifeq ($(shell uname),Darwin)
+  SHARED_OPTION = -dynamiclib
+  MY_LINK_LIBRARIES = $(LDFLAGS) $(libraries)
+else
+  SHARED_OPTION = -shared
+  MY_LINK_LIBRARIES =
+endif
+
 libwarpx.so: $(objForExecs)
 	@echo Making dynamic library $@ ...
-	$(SILENT) $(CXX) $(SHARED_OPTION) -fPIC -o $@ $^ $(LDFLAGS) $(libraries)
+	$(SILENT) $(CXX) $(SHARED_OPTION) -fPIC -o $@ $^ $(MY_LINK_LIBRARIES)
 	$(SILENT) $(RM) buildInfo.cpp
 	@echo SUCCESS
 
