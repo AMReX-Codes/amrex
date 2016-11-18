@@ -9,7 +9,6 @@ namespace BoxLib
 	BL_ASSERT(cc.nComp() >= dcomp + BL_SPACEDIM);
 	BL_ASSERT(edge.size() == BL_SPACEDIM);
 	BL_ASSERT(edge[0]->nComp() == 1);
-#if (BL_SPACEDIM == 3)
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -24,9 +23,6 @@ namespace BoxLib
 			BL_TO_FORTRAN((*edge[1])[mfi]),
 			BL_TO_FORTRAN((*edge[2])[mfi])));
 	}	
-#else
-	BoxLib::Abort("not implemented");
-#endif
     }
 
     void average_face_to_cellcenter (MultiFab& cc, int dcomp, const std::vector<MultiFab*>& fc)
