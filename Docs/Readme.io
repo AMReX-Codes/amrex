@@ -7,83 +7,16 @@ data format independent of byte order, precision, nprocs.
 nfiles [1,nprocs], user settable.
 
 resiliency--stream retry
-nooverwrite of existing data
-.temp files
+nooverwrite of existing data, existing directories are renamed.
+directories are named *.temp until complete.
 
 demand driven reads.
-headers contain min/max and seek for each grid
+headers contain min/max and seek for each grid (VisMF Header Versions 1 and 3).
 data is addressable to a single component of a single grid.
 no restriction on the relationship between nprocs and nfiles for reading.
 stream throttling for reading to prevent thrashing.
 
 
-//add NFiles files to CMakeLists.txt.
-//make set selection a function
-//recursive mkdir
-//tutorial for nfiles.
-//nstreams in new read
-//prebroadcast fabarray header files
-//tests for meta operations:  seek open close mkdir rename
-//new fabarray read algorithm.
-//pre make check directories.
-//dot in path issue
-
-separate sidecar cout output.
-compressed metadata
-preallocation
-dynamic set selection
-striping tests
-remove how
-fix VisMF::Check for new formats.
-remove duplicate writeplotfile code.
-add more retry code to vismf
-test set_ghost
-check nfilesiter with long paths
-special profiling
-support new shared boxarrays (test restart)
-check vismf reads for copies and non-contiguous
-check vismf colors
-fix types on stream functions (streamsize in read, streampos, etc.)
-tests for copy multifab speed.
-tests for buffer sizes (copy buffer [shouldread], pubsetbuf, no buffer,
-  combined buffer for multiple fabs).
-check if pubsetbuf works
-check visit and yt with new formats.
-test performance of rank order vs. file order reads.
-byte order swap for integers.
-persistent streams.
-pre make plot directories.
-ParticleContainer::Checkpoint also makes directories.
-check nfilesiter for reads with nprocs < nfiles.
-check temporary multifab read for nprocs < nfiles.
-compare darshan results.
-check for syncs in stream retry.
-more combining writes.
-fixes for non-native formats.
-async reads for new formats.
-useSingleRead and write for async.
-check use single read and write for > sizeof(int).
-should Array::size() return size_t or size_type instead
- of int?  vector returns size_type
-test writeSmallPlotFile
-check for team ownership of fabs for direct indexing.
-possibly use mpi3 one sided and atomics.
-check return value of tellp
-check for exceptions thrown from streams.
-check that tellp gives the correct offset for
- opening with append.
-test case for data corruption error.
-partial buffer iterator (shouldwrite).
-always use async read?
-NFiles::FileNumber does not always return a complete set.  for
-  example with nfiles = 5 and nprocs = 7.
-Check that all options are being set.
-Check return values for write/close/....
-dont seek if stream position is at seek to position.
-check usesyncreads in vismf.
-give priority to deciders for chained reads.
-check decider set for chk nfiles != plt nfiles.
-output GB/s.
 
 // ---- i/o parameters
 vismf.headerversion           (def:  Version_v1  (1) )
@@ -104,8 +37,15 @@ amr.checkpoint_headerversion  (def:  Version_v1  (1) )
 amr.prereadFAHeaders          (def:  true)
 amr.precreateDirectories      (def:  true)
 
-conversionbuffers
-irbuffsize
-wbuffsize
+you can also call these to set fabconv buffer sizes:
+RealDescriptor::SetReadBufferSize(rbs);
+RealDescriptor::SetWriteBufferSize(wbs);
+
+
+// ---- recommended settings
+amr.checkpoint_headerversion = 2
+vismf.usesingleread          = true
+vismf.usesinglewrite         = true
+amr.mffile_nstreams          = 4
 
 
