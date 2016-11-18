@@ -16,6 +16,8 @@
 
 #endif
 
+#define LVECT 8_c_long
+
 ! _________________________________________________________________
 !
 !> @brief
@@ -303,6 +305,26 @@ contains
     ! Dimension 2
 #elif (BL_SPACEDIM==2)
 
+      IF ((nox.eq.1).and.(noz.eq.1)) THEN
+        CALL pxr_depose_jxjyjz_esirkepov2d_1_1(jx,jy,jz,np,xp,zp,uxp,uyp,uzp, &
+	     	gaminv,w,q,xmin,zmin,dt,dx,dz,nx,nz,nxguard,nzguard, &
+        	nox,noz,LVECT,.TRUE._c_long,.FALSE._c_long,.FALSE._c_long,&
+		.FALSE._c_long)
+      ELSE IF ((nox.eq.2).and.(noz.eq.2)) THEN
+        CALL pxr_depose_jxjyjz_esirkepov2d_2_2(jx,jy,jz,np,xp,zp,uxp,uyp,uzp, &
+	     	gaminv,w,q,xmin,zmin,dt,dx,dz,nx,nz,nxguard,nzguard, &
+        	nox,noz,LVECT,.TRUE._c_long,.FALSE._c_long,.FALSE._c_long,&
+		.FALSE._c_long)
+      ELSE IF ((nox.eq.3).and.(noz.eq.3)) THEN
+        CALL pxr_depose_jxjyjz_esirkepov2d_3_3(jx,jy,jz,np,xp,zp,uxp,uyp,uzp, &
+	     	gaminv,w,q,xmin,zmin,dt,dx,dz,nx,nz,nxguard,nzguard, &
+        	nox,noz,LVECT,.TRUE._c_long,.FALSE._c_long,.FALSE._c_long,&
+		.FALSE._c_long)
+      ELSE
+        CALL pxr_depose_jxjyjz_esirkepov2d_n(jx,jy,jz,np,xp,yp,zp,uxp,uyp,uzp,&
+	     gaminv,w,q,xmin,zmin,dt,dx,dz,nx,nz,nxguard,nzguard, &
+             nox,noz,.TRUE._c_long,.FALSE._c_long)
+      ENDIF
 
 #endif
 
