@@ -223,7 +223,7 @@ class BLProfiler
     bool bRunning;
 
     static bool bWriteAll, bWriteFabs, groupSets;
-    static bool bFirstCommWriteH, bFirstCommWriteD;
+    static bool bFirstCommWrite;
     static bool bInitialized, bNoOutput;
     static int  currentStep, csFlushSize, traceFlushSize, nProfFiles;
     static int  finestLevel, maxLevel;
@@ -257,7 +257,7 @@ class BLProfiler
     static Array<RStartStop> rStartStop;
     static const std::string noRegionName;
 
-    static bool bFirstTraceWriteH, bFirstTraceWriteD;
+    static bool bFirstTraceWrite;
 
     static Array<CallStatsStack> callIndexStack;  // need Array for iterator
     static Array<CallStatsPatch> callIndexPatch;
