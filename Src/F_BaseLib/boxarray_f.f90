@@ -76,6 +76,7 @@ module boxarray_module
   interface boxarray_coarsen
      module procedure boxarray_coarsen_v
      module procedure boxarray_coarsen_i
+     module procedure boxarray_coarsen_nd
   end interface
 
   interface boxarray_refine
@@ -478,6 +479,22 @@ contains
     end do
     !$OMP END PARALLEL DO
   end subroutine boxarray_coarsen_i
+
+  subroutine boxarray_coarsen_nd(ba, cv, nodal)
+    type(boxarray), intent(inout) :: ba
+    integer, intent(in) :: cv(:)
+    logical, intent(in) :: nodal(:)
+    integer :: i
+    if (.not.any(nodal)) then
+       call boxarray_coarsen(ba,cv)
+    else
+       !$OMP PARALLEL DO
+       do i = 1, ba%nboxes
+          ba%bxs(i) = box_coarsen_nd(ba%bxs(i), cv, nodal)
+       end do
+       !$OMP END PARALLEL DO       
+    end if
+  end subroutine boxarray_coarsen_nd
 
   subroutine boxarray_shift_v(ba, rv)
     type(boxarray), intent(inout) :: ba

@@ -1,4 +1,23 @@
 ! ***************************************************************************************
+! subroutine bl_avg_eg_to_cc 
+! ***************************************************************************************
+
+subroutine bl_avg_eg_to_cc (lo, hi, &
+     cc, ccl1, cch1, &
+     Ex, Exl1, Exh1 )
+
+  implicit none
+  integer          :: lo(1),hi(1)
+  integer          :: ccl1, cch1
+  integer          :: Exl1, Exh1
+  double precision :: cc(ccl1:cch1)
+  double precision :: Ex(Exl1:Exh1)
+
+  cc(lo(1):hi(1)) = Ex(lo(1):hi(1))
+end subroutine bl_avg_eg_to_cc
+
+
+! ***************************************************************************************
 ! subroutine bl_avg_fc_to_cc
 ! ***************************************************************************************
 

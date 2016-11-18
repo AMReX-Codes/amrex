@@ -1065,4 +1065,87 @@ contains
 
   end subroutine fourth_order_interp_2d
 
+  subroutine pclin_face_interp_2d(dir, lo, hi, fine, flo, crse, clo, r)
+    use box_module, only : int_coarsen, int_coarsen_pair
+    use bl_error_module
+    integer, intent(in) :: dir, lo(2), hi(2), flo(2), clo(2), r
+    real(kind=dp_t), intent(in   ) :: crse(clo(1):,clo(2):)
+    real(kind=dp_t), intent(inout) :: fine(flo(1):,flo(2):)
+
+    integer :: i,j, ic, jc, icp(2), jcp(2)
+
+    if (r.eq.2) then
+       if (dir .eq. 1) then
+          do j = lo(2), hi(2)
+             jc = int_coarsen(j,2)
+             do i = lo(1), hi(1)
+                icp = int_coarsen_pair(i,2)
+                fine(i,j) = HALF*(crse(icp(1),jc) + crse(icp(2),jc))
+             end do
+          end do
+       else
+          do j = lo(2), hi(2)
+             jcp = int_coarsen_pair(j,2)
+             do i = lo(1), hi(1)
+                ic = int_coarsen(i,2)
+                fine(i,j) = HALF*(crse(ic,jcp(1)) + crse(ic,jcp(2)))
+             end do
+          end do
+       end if
+    else
+       call bl_error("pclin_face_interp_2d: ref ratio != 2 not implemented")
+    end if
+
+  end subroutine pclin_face_interp_2d
+
+  subroutine pclin_face_interp_3d(dir, lo, hi, fine, flo, crse, clo, r)
+    use box_module, only : int_coarsen, int_coarsen_pair
+    use bl_error_module
+    integer, intent(in) :: dir, lo(3), hi(3), flo(3), clo(3), r
+    real(kind=dp_t), intent(in   ) :: crse(clo(1):,clo(2):,clo(3):)
+    real(kind=dp_t), intent(inout) :: fine(flo(1):,flo(2):,flo(3):)
+
+    integer :: i,j,k, ic, jc, kc, icp(2), jcp(2), kcp(2)
+
+    if (r.eq.2) then
+       if (dir .eq. 1) then
+          do k = lo(3), hi(3)
+             kc = int_coarsen(k,2)
+             do j = lo(2), hi(2)
+                jc = int_coarsen(j,2)
+                do i = lo(1), hi(1)
+                   icp = int_coarsen_pair(i,2)
+                   fine(i,j,k) = HALF*(crse(icp(1),jc,kc)+crse(icp(2),jc,kc))
+                end do
+             end do
+          end do
+       else if (dir .eq. 2) then
+          do k = lo(3), hi(3)
+             kc = int_coarsen(k,2)
+             do j = lo(2), hi(2)
+                jcp = int_coarsen_pair(j,2)
+                do i = lo(1), hi(1)
+                   ic = int_coarsen(i,2)
+                   fine(i,j,k) = HALF*(crse(ic,jcp(1),kc)+crse(ic,jcp(2),kc))
+                end do
+             end do
+          end do
+       else
+          do k = lo(3), hi(3)
+             kcp = int_coarsen_pair(k,2)
+             do j = lo(2), hi(2)
+                jc = int_coarsen(j,2)
+                do i = lo(1), hi(1)
+                   ic = int_coarsen(i,2)
+                   fine(i,j,k) = HALF*(crse(ic,jc,kcp(1))+crse(ic,jc,kcp(2)))
+                end do
+             end do
+          end do
+       end if
+    else
+       call bl_error("pclin_face_interp_3d: ref ratio != 2 not implemented")
+    end if
+
+  end subroutine pclin_face_interp_3d
+
 end module interp_module

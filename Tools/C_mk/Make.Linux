@@ -532,36 +532,10 @@ ifeq ($(HOST), $(findstring $(HOST), $(GOTTINGEN_MACHINES)))
 endif
 
 
-ifeq ($(WHICHLINUX), BABBAGE)
-  ifeq ($(USE_MPI),TRUE)
-    CXX := mpiicpc
-    CC  := mpiicc
-    FC  := mpiifort
-    F90 := mpiifort
-    fC  := mpiifort
-  endif
-  ifeq ($(MIC), TRUE)
-  # Because the linker on Babbage isn't very smart
-    override XTRALIBS += -lifcore -Wl,-rpath,$(MIC_LIBRARY_PATH)
-  endif
-endif
-
-
-# For running natively on the MIC cards
-ifeq ($(MIC), TRUE)
-  CXXOPTF += -mmic
-  CXXDEBF += -mmic
-  FOPTF += -mmic
-  FDEBF += -mmic
-  fOPTF += -mmic
-  fDEBF += -mmic
-endif
-
-
 # Compiler flags for profiling MPI calls using Intel Trace Analyzer and
-# Collector. The "itac" module on Babbage will automatically populate the
-# VT_LIB_DIR environment variable. The "-trace" option is fairly lightweight
-# and traces only MPI calls; you can trace user-defined functions as well using
+# Collector. The "itac" module will automatically populate the VT_LIB_DIR
+# environment variable. The "-trace" option is fairly lightweight and traces
+# only MPI calls; you can trace user-defined functions as well using
 # "-tcollect" instead of "-trace" but this generates a HUGE amount of data, so
 # don't use it unless you know what you're doing.
 ifeq ($(COMP),Intel)
@@ -667,4 +641,23 @@ endif
 
 ifeq ($(HOST),orga)
   override XTRALIBS += -lquadmath
+endif
+
+ifeq ($(WHICHLINUX), PEREGRINE)
+    ifeq ($(COMP), Intel)
+      CC=icc
+      CXX=icc
+      F77=ifort
+      F90=ifort
+      FC=ifort
+      fC=ifort
+
+    else
+      CC=gcc
+      CXX=g++
+      F77=gfortran
+      F90=gfortran
+      FC=gfortran
+      fC=gfortran
+    endif
 endif

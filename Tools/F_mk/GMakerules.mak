@@ -130,7 +130,7 @@ $(tdir)/f90.depends: $(fsources) $(f90sources) $(F90sources)
 	$(MODDEP) --prefix $(odir) \
             --temp_dir $(tdir) \
             --cpp "cpp -E -traditional" \
-            --defines "$(FPPFLAGS)" $^ > $(tdir)/f90.depends 
+            --defines "$(FPPFLAGS) $(FPP_DEFINES)" $^ > $(tdir)/f90.depends 
 	@if [ $$? -ne 0 ]; then exit "make fail"; fi
 
 $(tdir)/c.depends:  $(csources) $(cxxsources)
