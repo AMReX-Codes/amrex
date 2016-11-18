@@ -88,7 +88,7 @@ MyParticleContainer::InitData()
 #elif (BL_SPACEDIM == 2)
 		Real x = grid_box.lo(0) + (i + particle_shift)*dx[0];
 		Real y = 0.0;
-		Real z = grid_box.lo(2) + (k + particle_shift)*dx[2];
+		Real z = grid_box.lo(1) + (k + particle_shift)*dx[1];
 #endif   
 
 		if (x >= particle_xmax || x < particle_xmin ||
