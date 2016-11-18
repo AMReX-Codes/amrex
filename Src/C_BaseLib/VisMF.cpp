@@ -1463,12 +1463,12 @@ VisMF::Read (FabArray<FArrayBox> &mf,
 
     bool inFileOrder(mf.DistributionMap() == dmFileOrder && mf.boxArray() == baFileOrder);
     if(inFileOrder) {
-      if(myProc == coordinatorProc) {
-        std::cout << "OOOOOOOO:  inFileOrder" << std::endl;
+      if(myProc == coordinatorProc && verbose) {
+        std::cout << "VisMF::Read:  inFileOrder" << std::endl;
       }
     } else {
-      if(myProc == coordinatorProc) {
-        std::cout << "OOOOOOOO:  not inFileOrder" << std::endl;
+      if(myProc == coordinatorProc && verbose) {
+        std::cout << "VisMF::Read:  not inFileOrder" << std::endl;
       }
       // ---- make a temporary fabarray in file order
       fafabFileOrder.define(baFileOrder, hdr.m_ncomp, hdr.m_ngrow, dmFileOrder, Fab_allocate);
@@ -1654,7 +1654,7 @@ VisMF::Read (FabArray<FArrayBox> &mf,
 	  allReads[findex][whichProc].insert(std::pair<long, int>(iSeekPos, i));
 	} else {
 	  std::cout << "**** Error:  filename not found = " << fname << std::endl;
-	  BoxLib::Abort();
+	  BoxLib::Abort("**** Error in VisMF::Read");
 	}
       }
     }
@@ -1764,8 +1764,7 @@ VisMF::Read (FabArray<FArrayBox> &mf,
 
   }
 
-    bool reportMFReadStats(true);
-    if(myProc == coordinatorProc && reportMFReadStats) {
+    if(myProc == coordinatorProc && verbose) {
       Real mfReadTime = ParallelDescriptor::second() - startTime;
       totalTime += mfReadTime;
       std::cout << "FARead ::  nBoxes = " << hdr.m_ba.size()
