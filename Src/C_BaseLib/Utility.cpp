@@ -926,10 +926,12 @@ BoxLib::NItemsPerBin (int totalItems, Array<int> &binCounts)
   if(binCounts.size() == 0) {
     return;
   }
+  bool verbose(false);
   int countForAll(totalItems / binCounts.size());
   int remainder(totalItems % binCounts.size());
-  if(ParallelDescriptor::IOProcessor()) {
-    std::cout << "countForAll remainder = " << countForAll << "  " << remainder << std::endl;
+  if(ParallelDescriptor::IOProcessor() && verbose) {
+    std::cout << "BoxLib::NItemsPerBin:  countForAll remainder = " << countForAll
+              << "  " << remainder << std::endl;
   }
   for(int i(0); i < binCounts.size(); ++i) {
     binCounts[i] = countForAll;
@@ -938,8 +940,8 @@ BoxLib::NItemsPerBin (int totalItems, Array<int> &binCounts)
     ++binCounts[i];
   }
   for(int i(0); i < binCounts.size(); ++i) {
-    if(ParallelDescriptor::IOProcessor()) {
-      std::cout << "BBBB::  binCounts[" << i << "] = " << binCounts[i] << std::endl;
+    if(ParallelDescriptor::IOProcessor() && verbose) {
+      std::cout << "BoxLib::NItemsPerBin::  binCounts[" << i << "] = " << binCounts[i] << std::endl;
     }
   }
 }

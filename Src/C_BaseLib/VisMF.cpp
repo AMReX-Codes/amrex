@@ -27,7 +27,7 @@ static const char *TheFabOnDiskPrefix = "FabOnDisk:";
 
 std::map<std::string, VisMF::PersistentIFStream> VisMF::persistentIFStreams;
 
-int VisMF::verbose(1);
+int VisMF::verbose(0);
 VisMF::Header::Version VisMF::currentVersion(VisMF::Header::Version_v1);
 bool VisMF::groupSets(false);
 bool VisMF::setBuf(true);
@@ -1445,11 +1445,6 @@ VisMF::Read (FabArray<FArrayBox> &mf,
 	  frc[frcIndex].faIndex    = indexFileOrder;
 	  readFileRanks[fileName].insert(currentRank);
 
-          if(myProc == coordinatorProc) {
-            std::cout << "FRCFRC:  file box offset dmrank = " << fileName << "  "
-	              << frc[frcIndex].box << "  " << frc[frcIndex].fileOffset << "  "
-	              << ranksFileOrder[indexFileOrder] << std::endl;
-          }
 	  ++frcIndex;
 	  ++indexFileOrder;
         }
