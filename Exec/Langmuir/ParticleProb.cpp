@@ -35,7 +35,11 @@ MyParticleContainer::InitData()
       pp.query("num_particles_per_cell", n_part_per_cell);
       weight = 1.e25;
       pp.query("n_e", weight);
+      #if BL_SPACEDIM==3
       weight *= dx[0]*dx[1]*dx[2]/n_part_per_cell;
+      #elif BL_SPACEDIM==2
+      weight *= dx[0]*dx[1]/n_part_per_cell;
+      #endif
 
       particle_xmin = particle_ymin = particle_zmin = -2.e-5;
       particle_xmax = particle_ymax = particle_zmax =  2.e-5;
