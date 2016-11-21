@@ -311,7 +311,7 @@ operator<< (std::ostream        &os,
       } else if(FArrayBox::getFormat() == FABio::FAB_NATIVE_32) {
         os << FPC::Native32RealDescriptor() << '\n';
       } else if(FArrayBox::getFormat() == FABio::FAB_IEEE_32) {
-        os << FPC::NativeRealDescriptor() << '\n';
+        os << FPC::Ieee32NormalRealDescriptor() << '\n';
       }
     }
 
@@ -904,7 +904,7 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
     } else if(FArrayBox::getFormat() == FABio::FAB_NATIVE_32) {
       whichRD = FPC::Native32RealDescriptor().clone();
     } else if(FArrayBox::getFormat() == FABio::FAB_IEEE_32) {
-      whichRD = FPC::NativeRealDescriptor().clone();
+      whichRD = FPC::Ieee32NormalRealDescriptor().clone();
     }
     bool doConvert(*whichRD != FPC::NativeRealDescriptor());
 
@@ -1130,7 +1130,7 @@ VisMF::FindOffsets (const FabArray<FArrayBox> &mf,
       } else if(FArrayBox::getFormat() == FABio::FAB_NATIVE_32) {
         whichRD = FPC::Native32RealDescriptor().clone();
       } else if(FArrayBox::getFormat() == FABio::FAB_IEEE_32) {
-        whichRD = FPC::NativeRealDescriptor().clone();
+        whichRD = FPC::Ieee32NormalRealDescriptor().clone();
       }
       const FABio &fio = FArrayBox::getFABio();
       int whichRDBytes(whichRD->numBytes());
