@@ -9,7 +9,6 @@
 #include <Geometry.H>
 #include <BoundCond.H>
 #include <BndryData.H>
-#include <BL_CXX11.H>
 
 /*
         An InterpBndryData object adds to a BndryData object the ability to
@@ -57,7 +56,7 @@ public:
     //
     InterpBndryData (const InterpBndryData& rhs);
 
-    virtual ~InterpBndryData () BL_OVERRIDE;
+    virtual ~InterpBndryData () override;
     //
     // Copy assignment operator.
     //

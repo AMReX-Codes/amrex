@@ -8,7 +8,6 @@
 
 #include <Arena.H>
 #include <Array.H>
-#include <BL_CXX11.H>
 
 //
 // A Concrete Class for Dynamic Memory Management
@@ -32,16 +31,16 @@ public:
     //
     // The destructor.
     //
-    virtual ~CArena () BL_OVERRIDE;
+    virtual ~CArena () override;
     //
     // Allocate some memory.
     //
-    virtual void* alloc (size_t nbytes) BL_OVERRIDE;
+    virtual void* alloc (size_t nbytes) override;
     //
     // Free up allocated memory.  Merge neighboring free memory chunks
     // into largest possible chunk.
     //
-    virtual void free (void* ap) BL_OVERRIDE;
+    virtual void free (void* ap) override;
     //
     // The current amount of heap space used by the CArena object.
     //

@@ -3,7 +3,6 @@
 
 #include <Tuple.H>
 #include <MCLinOp.H>
-#include <BL_CXX11.H>
 
 /*
 
@@ -81,7 +80,7 @@ public:
     //
     // The destructor.
     //
-    virtual ~DivVis () BL_OVERRIDE;
+    virtual ~DivVis () override;
     //
     // Set scalar coefficients.
     //
@@ -142,11 +141,11 @@ public:
     //
     // Allocate/fill internal data for new level.
     //
-    virtual void prepareForLevel (int level) BL_OVERRIDE;
+    virtual void prepareForLevel (int level) override;
     //
     // Remove internal data for this level and all levels above.
     //
-    virtual void clearToLevel (int level) BL_OVERRIDE;
+    virtual void clearToLevel (int level) override;
     //
     // Set flags so that a coeffs at lev and coarser require recalculation.
     //
@@ -175,22 +174,22 @@ protected:
     //
     virtual void Fapply (MultiFab&       out,
 			 const MultiFab& in,
-			 int             level) BL_OVERRIDE;
+			 int             level) override;
     //
     // Apply smoother to improve residual to L(solnL)=rhsL.
     //
     virtual void Fsmooth (MultiFab&       solnL,
 			  const MultiFab& rhsL,
 			  int             level,
-			  int             phaseflag) BL_OVERRIDE;
+			  int             phaseflag) override;
     //
     // Return number of components.  This is virtual since only the derived knows.
     //
-    virtual int numberComponents () BL_OVERRIDE;
+    virtual int numberComponents () override;
     //
     // Number of relaxation phases.  On derived class knows.
     //
-    virtual int numberPhases () BL_OVERRIDE;
+    virtual int numberPhases () override;
     //
     // Helper function for object construction.
     //

@@ -19,7 +19,6 @@ DIM	= 2
 DIM	= 3
 
 COMP =gcc
-FCOMP=gfortran
 
 # USE_MPI must be TRUE to run in parallel 
 USE_MPI=TRUE

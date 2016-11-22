@@ -118,9 +118,7 @@ void double_array_init (double* p, size_t nelems)
 
 void array_init_snan (double* p, size_t nelems)
 {
-#ifdef BL_USE_CXX11
     static_assert(sizeof(double) == sizeof(long long), "MemPool: sizeof double != sizeof long long");
-#endif
 
     for (size_t i = 0; i < nelems; ++i) {
 	long long *ll = (long long *) (p++);

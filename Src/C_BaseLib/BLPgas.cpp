@@ -4,21 +4,13 @@
 #include <ParallelDescriptor.H>
 #include <BaseFab.H>
 
-#ifdef BL_USE_CXX11
 //#include <unordered_map>
-#include <map>
-#endif
-
 #include <map>
 
 namespace
 {
-#ifdef BL_USE_CXX11
   // typedef std::unordered_multimap< upcxx::rank_t, BLPgas::SendInfo > pgas_send_info_map_t;
   typedef std::multimap< upcxx::rank_t, BLPgas::SendInfo > pgas_send_info_map_t;
-#else
-  typedef std::multimap< upcxx::rank_t, BLPgas::SendInfo > pgas_send_info_map_t;
-#endif
   static pgas_send_info_map_t pgas_send_info_map;
 }
 
