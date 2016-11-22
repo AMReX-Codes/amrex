@@ -45,15 +45,15 @@ public:
     //
     // destructor
     //
-    virtual ~Laplacian() BL_OVERRIDE;
+    virtual ~Laplacian() override;
     //
     // Compute flux associated with the op
     //
     virtual void compFlux (D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflux),
 			   MultiFab& in, const BC_Mode& bc_mode=LinOp::Inhomogeneous_BC,
-			   int sComp=0, int dComp=0, int nComp=1, int bndComp=0) BL_OVERRIDE;
+			   int sComp=0, int dComp=0, int nComp=1, int bndComp=0) override;
     
-    virtual Real norm (int nm = 0, int level = 0, const bool local = false) BL_OVERRIDE;
+    virtual Real norm (int nm = 0, int level = 0, const bool local = false) override;
 
 protected:
     //
@@ -61,26 +61,26 @@ protected:
     //
     virtual void Fapply (MultiFab&       out,
                          const MultiFab& in,
-                         int             level) BL_OVERRIDE;
+                         int             level) override;
     virtual void Fapply (MultiFab&       out,
 			 int             dst_comp,
                          const MultiFab& in,
 			 int             src_comp,
 			 int             num_comp,
-                         int             level) BL_OVERRIDE;
+                         int             level) override;
     //
     // apply GSRB smoother to improve residual to L(solnL)=rhsL
     //
     virtual void Fsmooth (MultiFab&       solnL,
                           const MultiFab& rhsL,
                           int             level,
-                          int             rgbflag) BL_OVERRIDE;
+                          int             rgbflag) override;
     //
     // apply Jacobi smoother to improve residual to L(solnL)=rhsL
     //
     virtual void Fsmooth_jacobi (MultiFab&       solnL,
                                  const MultiFab& rhsL,
-                                 int             level) BL_OVERRIDE;
+                                 int             level) override;
 };
 
 #endif /*_LAPLACIAN_H_*/

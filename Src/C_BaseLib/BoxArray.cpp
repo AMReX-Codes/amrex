@@ -111,7 +111,7 @@ BARef::define (const BoxList& bl)
     int count = 0;
     for (BoxList::const_iterator bli = bl.begin(), End = bl.end(); bli != End; ++bli)
     {
-        m_abox.get(count++) = *bli;
+        m_abox[count++] = *bli;
     }
 }
 
@@ -691,7 +691,7 @@ BoxArray::set (int        i,
 	}
     }
 
-    m_ref->m_abox.set(i, BoxLib::enclosedCells(ibox));
+    m_ref->m_abox[i] = BoxLib::enclosedCells(ibox);
 }
 
 bool
@@ -813,9 +813,9 @@ BoxArray::minimalBox () const
     const int N = size();
     if (N > 0)
     {
-        minbox = m_ref->m_abox.get(0);
+        minbox = m_ref->m_abox[0];
 	for (int i = 1; i < N; ++i)
-            minbox.minBox(m_ref->m_abox.get(i));
+            minbox.minBox(m_ref->m_abox[i]);
     }
     minbox.convert(ixType());
     return minbox;

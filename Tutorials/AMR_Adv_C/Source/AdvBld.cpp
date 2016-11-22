@@ -6,14 +6,14 @@ class AdvBld
     :
     public LevelBld
 {
-    virtual void variableSetUp () BL_OVERRIDE;
-    virtual void variableCleanUp () BL_OVERRIDE;
-    virtual AmrLevel *operator() () BL_OVERRIDE;
+    virtual void variableSetUp () override;
+    virtual void variableCleanUp () override;
+    virtual AmrLevel *operator() () override;
     virtual AmrLevel *operator() (Amr&            papa,
                                   int             lev,
                                   const Geometry& level_geom,
                                   const BoxArray& ba,
-                                  Real            time) BL_OVERRIDE;
+                                  Real            time) override;
 };
 
 AdvBld Adv_bld;
