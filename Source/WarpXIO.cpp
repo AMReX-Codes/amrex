@@ -18,7 +18,7 @@ WarpX::WritePlotFile () const
     }
     
     {
-	const std::vector<std::string> varnames {"jx", "jy", "jz", "Ex", "Ey", "Ez", "Bx", "By", "Bz"};
+	Array<std::string> varnames {"jx", "jy", "jz", "Ex", "Ey", "Ez", "Bx", "By", "Bz"};
 
 	Array<std::unique_ptr<MultiFab> > mf(finest_level+1);
     
