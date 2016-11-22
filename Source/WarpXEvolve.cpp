@@ -33,6 +33,16 @@ WarpX::Evolve (int numsteps)
 	    
 	    EvolveB(lev, 0.5*dt[lev]); // We now B^{n}
 
+	    if (WarpX::nox > 1 || WarpX::noy > 1 || WarpX::noz > 1) {
+		WarpX::FillBoundary(*Bfield[lev][0], geom[lev], Bx_nodal_flag);
+		WarpX::FillBoundary(*Bfield[lev][1], geom[lev], By_nodal_flag);
+		WarpX::FillBoundary(*Bfield[lev][2], geom[lev], Bz_nodal_flag);
+		WarpX::FillBoundary(*Efield[lev][0], geom[lev], Ex_nodal_flag);
+		WarpX::FillBoundary(*Efield[lev][1], geom[lev], Ey_nodal_flag);
+		WarpX::FillBoundary(*Efield[lev][2], geom[lev], Ez_nodal_flag);
+	    }
+
+
 	    // Evolve particles to p^{n+1/2} and x^{n+1}
 	    // Depose current, j^{n+1/2}
 	    mypc->Evolve(lev,

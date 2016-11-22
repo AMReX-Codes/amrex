@@ -130,6 +130,12 @@ WarpX::ReadParameters ()
 	pp.query("nox", nox);
 	pp.query("noy", noy);
 	pp.query("noz", noz);  
+	if (nox != noy || nox != noz) {
+	    BoxLib::Abort("warpx.nox, noy and noz must be equal");
+	}
+	if (nox < 1) {
+	    BoxLib::Abort("warpx.nox must >= 1");
+	}
     }
 
     {
@@ -153,7 +159,7 @@ WarpX::MakeNewLevel (int lev, Real time,
 
     // PICSAR assumes all fields are nodal plus one ghost cell.
     const IntVect& nodalflag = IntVect::TheUnitVector();
-    const int ng = 1;
+    const int ng = WarpX::nox;  // need to update this
 
     current[lev].resize(3);
     Efield [lev].resize(3);
