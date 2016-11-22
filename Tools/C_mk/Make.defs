@@ -1,3 +1,9 @@
+# Check python version
+my_python_version := $(word 2, $(shell python --version 2>&1))
+ifneq ($(firstword $(sort 2.7 $(my_python_version))), 2.7)
+  $(error Python >= 2.7 required! Your version is $(my_python_version))
+endif
+
 include $(BOXLIB_HOME)/Tools/C_mk/Make.machines
 
 ifndef PRECISION
