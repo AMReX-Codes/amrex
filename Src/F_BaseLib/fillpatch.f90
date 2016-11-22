@@ -33,10 +33,11 @@ contains
 
     integer         :: i, j, dm, local_bc(multifab_get_dim(fine),2,nc), shft(3**multifab_get_dim(fine),multifab_get_dim(fine)), cnt
     integer         :: lo_f(3), lo_c(3), hi_f(3), hi_c(3), cslope_lo(3), cslope_hi(3)
-    integer         :: n_extra_valid_regions, np
+    integer         :: n_extra_valid_regions, np, numnodals, nodaldir
     type(layout)    :: cfine_la, tmpfine_la, fine_la, crse_la
     type(multifab)  :: cfine, tmpfine
-    type(box)       :: bx, fbx, cbx, fine_box, fdomain, cdomain, bxs(3**multifab_get_dim(fine))
+    type(box)       :: bx, fbx, cbx, fine_box, bxs(3**multifab_get_dim(fine))
+    type(box)       :: fdomaincc, cdomaincc, fdomainnd, cdomainnd
     type(list_box)  :: bl, pbl, pieces, leftover, extra
     type(boxarray)  :: ba
     real(kind=dp_t) :: dx(3)
@@ -64,8 +65,7 @@ contains
     if ( nghost(fine) < ng ) call bl_error('fillpatch: fine does NOT have enough ghost cells')
     if ( nghost(crse) < ng ) call bl_error('fillpatch: crse does NOT have enough ghost cells')
 
-    if ( .not. cell_centered_q(fine) ) call bl_error('fillpatch: fine is NOT cell centered')
-    if ( .not. cell_centered_q(crse) ) call bl_error('fillpatch: crse is NOT cell centered')
+    if (any(fine%nodal .neqv. crse%nodal)) call bl_error('fillpatch: fine and crse have different nodal flags')
 
     dx                   = ONE
     dm                   = get_dim(crse)
@@ -79,6 +79,24 @@ contains
     stencil_width        = 1
     fourth_order         = .false.
 
+    nodalflags = nodal_flags(fine)
+    numnodals = count(nodalflags)
+    nodaldir = 0
+    if (numnodals > 0) then
+       do i = 1, dm
+          if (nodalflags(i)) then
+             nodaldir = i
+             exit
+          end if
+       end do
+    end if
+
+    if (any(nodalflags)) then
+       if (nc > 1) call bl_error('fillpatch: nc must be 1 for nodal')
+       if (any(ir.ne.ir(1))) call bl_error('fillpatch: ref ratio must be the same in all directions for nodal')
+    end if
+
+
     ! Check this first so we can adjust the default for stencil_width
     if ( present(fourth_order_input)    ) fourth_order    = fourth_order_input
 
@@ -91,6 +109,8 @@ contains
     else
        if ( fourth_order) then
           stencil_width = 2
+       else if (numnodals .eq. 1) then
+          stencil_width = 0
        else
           stencil_width = 1
        end if
@@ -110,8 +130,10 @@ contains
 
     fine_la = get_layout(fine)
     crse_la = get_layout(crse)
-    fdomain = get_pd(fine_la)
-    cdomain = get_pd(crse_la)
+    fdomaincc = get_pd(fine_la)
+    cdomaincc = get_pd(crse_la)
+    fdomainnd = box_nodalize(fdomaincc, nodalflags)
+    cdomainnd = box_nodalize(cdomaincc, nodalflags)
 
     !
     ! Build coarsened version of fine such that the fabs @ i are owned by the same CPUs.
@@ -129,7 +151,7 @@ contains
        !       multifabs consistent with one another and because it means we
        !       don't have to manage changes to the processor map.
        !
-       bx = intersection(grow(box_nodalize(get_box(fine_la,i),fine%nodal),ng),fdomain)
+       bx = intersection(grow(box_nodalize(get_box(fine_la,i),nodalflags),ng),fdomainnd)
        call push_back(bl, bx)
     end do
 
@@ -139,11 +161,10 @@ contains
        !
        ! Collect additional boxes that contribute to periodically filling fine ghost cells.
        !
-       nodalflags = nodal_flags(fine)
 
        do i = 1, nboxes(fine_la)
-          bx = box_nodalize(get_box(fine_la,i),fine%nodal)
-          call box_periodic_shift(fdomain, bx, nodalflags, pmask, ng, shft, cnt, bxs)
+          bx = get_box(fine_la,i)
+          call box_periodic_shift(fdomaincc, bx, nodalflags, pmask, ng, shft, cnt, bxs)
           if ( cnt > 0 ) have_periodic_gcells = .true.
           do j = 1, cnt
              call push_back(pbl, bxs(j))
@@ -151,7 +172,7 @@ contains
           bln => begin(pbl)
           do while (associated(bln))
              bx =  value(bln)
-             bi => layout_get_box_intersector(fine_la, bx)
+             bi => layout_get_box_intersector(fine_la, bx, 0, nodalflags)
              do j = 1, size(bi)
                 call push_back(pieces, bi(j)%bx)
              end do
@@ -191,7 +212,7 @@ contains
        ! tmpfine looks like fine with extra boxes added.
        !
        do i = 1, nboxes(fine_la)
-          call push_back(pbl, box_nodalize(get_box(fine_la,i),fine%nodal))
+          call push_back(pbl, box_nodalize(get_box(fine_la,i),nodalflags))
        end do
        bln => begin(extra)
        do while (associated(bln))
@@ -200,7 +221,7 @@ contains
        end do
        call boxarray_build_l(ba, pbl, sort = .false.)
        call destroy(pbl)
-       call layout_build_ba(tmpfine_la, ba, pd = fdomain, pmask = pmask, explicit_mapping = procmap)
+       call layout_build_ba(tmpfine_la, ba, pd = fdomaincc, pmask = pmask, explicit_mapping = procmap)
        call boxarray_destroy(ba)
        call multifab_build(tmpfine, tmpfine_la, nc = nc, ng = ng)
        !
@@ -208,7 +229,7 @@ contains
        !
        bln => begin(extra)
        do while (associated(bln))
-          call set(bln, intersection(grow(value(bln),ng),fdomain))
+          call set(bln, intersection(grow(value(bln),ng),fdomainnd))
           bln => next(bln)
        end do
     end if
@@ -216,11 +237,11 @@ contains
     call splice(bl, extra)
     call boxarray_build_l(ba, bl, sort = .false.)
     call destroy(bl)
-    call boxarray_coarsen(ba, ir)
+    call boxarray_coarsen(ba, ir, nodalflags)
     ! Grow by stencil_width for stencil in interpolation routine. 
     ! Don't grow empty boxes!
     call boxarray_grow(ba, stencil_width, allow_empty=.true.) 
-    call layout_build_ba(cfine_la, ba, pd = cdomain, pmask = pmask, explicit_mapping = procmap)
+    call layout_build_ba(cfine_la, ba, pd = cdomaincc, pmask = pmask, explicit_mapping = procmap)
     call boxarray_destroy(ba)
     call multifab_build(cfine, cfine_la, nc = nc, ng = 0)
  
@@ -232,7 +253,7 @@ contains
     ! This subroutine assumes proper nesting.  However, crse may not have enough 
     ! ghost cells if cfine touchs physical boundaries 
     touch = .false.
-    gcdom = grow(cdomain, nghost(crse))
+    gcdom = grow(cdomainnd, nghost(crse))
     do i = 1, nboxes(cfine_la)
        bx = get_box(cfine_la,i)
        if ( (.not.empty(bx)) .and. (.not.contains(gcdom,bx)) ) then
@@ -246,7 +267,7 @@ contains
     if (fill_crse_physbc) call multifab_physbc(crse,icomp_crse,bcomp,nc,bc_crse)
 
     if (touch) then
-       call multifab_build(gcrse, crse_la, nc = ncomp(crse), ng = stencil_width)
+       call multifab_build(gcrse, crse_la, nc = ncomp(crse), ng = stencil_width, nodal=nodalflags)
        call copy(gcrse, crse)
        call fill_boundary(gcrse, icomp_crse, nc, ng=nghost(gcrse))
        call multifab_physbc(gcrse,icomp_crse,bcomp,nc,bc_crse)
@@ -282,96 +303,110 @@ contains
           fine_box = get_ibox(fine,   i)
        end if
 
-       fbx = intersection(grow(fine_box,ng),fdomain)
+       fbx = intersection(grow(fine_box,ng),fdomainnd)
        if (empty(fbx)) cycle
 
-       cslope_lo(1:dm) = lwb(grow(cbx,-stencil_width))
-       cslope_hi(1:dm) = upb(grow(cbx,-stencil_width))
-
-       local_bc(:,:,1:nc) = INTERIOR
-
-       if ( cslope_lo(1) == cdomain%lo(1) ) then
-          local_bc(1,1,1:nc) = bc_crse%adv_bc_level_array(0,1,1,bcomp:bcomp+nc-1)
-       end if
-       if ( cslope_hi(1) == cdomain%hi(1) ) then
-          local_bc(1,2,1:nc) = bc_crse%adv_bc_level_array(0,1,2,bcomp:bcomp+nc-1)
-       end if
-       if ( dm > 1 ) then
-          if ( cslope_lo(2) == cdomain%lo(2) ) then
-             local_bc(2,1,1:nc) = bc_crse%adv_bc_level_array(0,2,1,bcomp:bcomp+nc-1)
-          end if
-          if ( cslope_hi(2) == cdomain%hi(2) ) then
-             local_bc(2,2,1:nc) = bc_crse%adv_bc_level_array(0,2,2,bcomp:bcomp+nc-1)
-          end if
-       end if
-       if ( dm > 2 ) then
-          if ( cslope_lo(dm) == cdomain%lo(dm) ) then
-             local_bc(dm,1,1:nc) = bc_crse%adv_bc_level_array(0,dm,1,bcomp:bcomp+nc-1)
-          end if
-          if ( cslope_hi(dm) == cdomain%hi(dm) ) then
-             local_bc(dm,2,1:nc) = bc_crse%adv_bc_level_array(0,dm,2,bcomp:bcomp+nc-1)
-          end if
-       end if
+       src => dataptr(cfine, i)
 
        lo_c(1:dm) = lwb(cbx)
        hi_c(1:dm) = upb(cbx)
        lo_f(1:dm) = lwb(fbx)
        hi_f(1:dm) = upb(fbx)
 
-       allocate(fvcx(lo_f(1):hi_f(1)+1))
-       forall (j = lo_f(1):hi_f(1)+1) fvcx(j) = j
-       if ( dm > 1 ) then
-          allocate(fvcy(lo_f(2):hi_f(2)+1))
-          forall (j = lo_f(2):hi_f(2)+1) fvcy(j) = j 
+       if (numnodals .eq. 0) then
+          cslope_lo(1:dm) = lwb(grow(cbx,-stencil_width))
+          cslope_hi(1:dm) = upb(grow(cbx,-stencil_width))
+
+          local_bc(:,:,1:nc) = INTERIOR
+          
+          if ( cslope_lo(1) == cdomainnd%lo(1) ) then
+             local_bc(1,1,1:nc) = bc_crse%adv_bc_level_array(0,1,1,bcomp:bcomp+nc-1)
+          end if
+          if ( cslope_hi(1) == cdomainnd%hi(1) ) then
+             local_bc(1,2,1:nc) = bc_crse%adv_bc_level_array(0,1,2,bcomp:bcomp+nc-1)
+          end if
+          if ( dm > 1 ) then
+             if ( cslope_lo(2) == cdomainnd%lo(2) ) then
+                local_bc(2,1,1:nc) = bc_crse%adv_bc_level_array(0,2,1,bcomp:bcomp+nc-1)
+             end if
+             if ( cslope_hi(2) == cdomainnd%hi(2) ) then
+                local_bc(2,2,1:nc) = bc_crse%adv_bc_level_array(0,2,2,bcomp:bcomp+nc-1)
+             end if
+          end if
           if ( dm > 2 ) then
-             allocate(fvcz(lo_f(3):hi_f(3)+1))
-             forall (j = lo_f(3):hi_f(3)+1) fvcz(j) = j
+             if ( cslope_lo(dm) == cdomainnd%lo(dm) ) then
+                local_bc(dm,1,1:nc) = bc_crse%adv_bc_level_array(0,dm,1,bcomp:bcomp+nc-1)
+             end if
+             if ( cslope_hi(dm) == cdomainnd%hi(dm) ) then
+                local_bc(dm,2,1:nc) = bc_crse%adv_bc_level_array(0,dm,2,bcomp:bcomp+nc-1)
+             end if
+          end if
+
+          allocate(fvcx(lo_f(1):hi_f(1)+1))
+          forall (j = lo_f(1):hi_f(1)+1) fvcx(j) = j
+          if ( dm > 1 ) then
+             allocate(fvcy(lo_f(2):hi_f(2)+1))
+             forall (j = lo_f(2):hi_f(2)+1) fvcy(j) = j 
+             if ( dm > 2 ) then
+                allocate(fvcz(lo_f(3):hi_f(3)+1))
+                forall (j = lo_f(3):hi_f(3)+1) fvcz(j) = j
+             end if
+          end if
+          
+          allocate(cvcx(lo_c(1):hi_c(1)+1))
+          forall (j = lo_c(1):hi_c(1)+1) cvcx(j) = j * TWO
+          if ( dm > 1 ) then
+             allocate(cvcy(lo_c(2):hi_c(2)+1))
+             forall (j = lo_c(2):hi_c(2)+1) cvcy(j) = j * TWO
+             if ( dm > 2 ) then
+                allocate(cvcz(lo_c(3):hi_c(3)+1))
+                forall (j = lo_c(3):hi_c(3)+1) cvcz(j) = j * TWO
+             end if
           end if
        end if
-
-       allocate(cvcx(lo_c(1):hi_c(1)+1))
-       forall (j = lo_c(1):hi_c(1)+1) cvcx(j) = j * TWO
-       if ( dm > 1 ) then
-          allocate(cvcy(lo_c(2):hi_c(2)+1))
-          forall (j = lo_c(2):hi_c(2)+1) cvcy(j) = j * TWO
-          if ( dm > 2 ) then
-             allocate(cvcz(lo_c(3):hi_c(3)+1))
-             forall (j = lo_c(3):hi_c(3)+1) cvcz(j) = j * TWO
-          end if
-       end if
-
-       src => dataptr(cfine, i)
 
        select case (dm)
        case (1)
           allocate(fp(lo_f(1):hi_f(1),1:1,1:1,1:nc))
           if (fourth_order) then
              call bl_error('fillpatch: fourth_order_interp not implemented in 1d')
-          else
+          else if (numnodals .eq. 0) then
              call lin_cc_interp_1d(fp(:,1,1,:), lo_f, src(:,1,1,:), lo_c, ir, local_bc, &
                 fvcx, lo_f(1), cvcx, lo_c(1), &
                 cslope_lo, cslope_hi, lim_slope, lin_limit)
+          else
+             call bl_error('fillpatch: 1d nodal not supported')
           endif
        case (2)
           allocate(fp(lo_f(1):hi_f(1),lo_f(2):hi_f(2),1:1,1:nc))
           if (fourth_order) then
              call fourth_order_interp_2d(fp(:,:,1,:), lo_f, src(:,:,1,:), lo_c, ir, &
                   cslope_lo, cslope_hi)
-          else
+          else if (numnodals .eq. 0) then
              call lin_cc_interp_2d(fp(:,:,1,:), lo_f, src(:,:,1,:), lo_c, ir, local_bc, &
                 fvcx, lo_f(1), fvcy, lo_f(2), &
                 cvcx, lo_c(1), cvcy, lo_c(2), &
                 cslope_lo, cslope_hi, lim_slope, lin_limit)
+          else if (numnodals .eq. 1) then
+             call pclin_face_interp_2d(nodaldir, lo_f, hi_f, fp(:,:,1,1), lo_f, &
+                  src(:,:,1,1), lo_c, ir(1))
+          else
+             call bl_error('fillpatch: nodal in more than 1 direction not supported')
           endif
        case (3)
           allocate(fp(lo_f(1):hi_f(1),lo_f(2):hi_f(2),lo_f(3):hi_f(3),1:nc))
           if (fourth_order) then
              call bl_error('fillpatch: fourth_order_interp not implemented in 3d')
-          else
+          else if (numnodals .eq. 0) then
              call lin_cc_interp_3d(fp(:,:,:,:), lo_f, src(:,:,:,:), lo_c, ir, local_bc, &
                   fvcx, lo_f(1), fvcy, lo_f(2), fvcz, lo_f(3), &
                   cvcx, lo_c(1), cvcy, lo_c(2), cvcz, lo_c(3), &
                   cslope_lo, cslope_hi, lim_slope, lin_limit)
+          else if (numnodals .eq. 1) then
+             call pclin_face_interp_3d(nodaldir, lo_f, hi_f, fp(:,:,:,1), lo_f, &
+                  src(:,:,:,1), lo_c, ir(1))
+          else
+             call bl_error('fillpatch: nodal in more than 1 direction not supported')
           endif
        end select
 
@@ -384,9 +419,11 @@ contains
        ! dst = fp failed using Intel 9.1.043
        call cpy_d(dst,fp)
 
-       deallocate(cvcx, fvcx, fp)
-       if ( dm > 1 ) deallocate(cvcy, fvcy)
-       if ( dm > 2 ) deallocate(cvcz, fvcz)
+       if (numnodals .eq. 0) then
+          deallocate(cvcx, fvcx, fp)
+          if ( dm > 1 ) deallocate(cvcy, fvcy)
+          if ( dm > 2 ) deallocate(cvcz, fvcz)
+       end if
 
     end do
     !$OMP END PARALLEL DO

@@ -2722,7 +2722,7 @@ void DistributionMapping::ReadCheckPointHeader(const std::string &filename,
     std::string File(filename);
     File += "/Header";
 
-    VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+    VisMF::IO_Buffer io_buffer(VisMF::GetIOBufferSize());
 
     Array<char> fileCharPtr;
     ParallelDescriptor::ReadAndBcastFile(File, fileCharPtr);

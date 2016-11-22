@@ -4,10 +4,14 @@
 
 #include <iosfwd>
 #include <string>
+#include <fstream>
 
 #include <REAL.H>
 #include <FabArray.H>
 #include <FArrayBox.H>
+#include <FabConv.H>
+
+class NFilesIter;
 
 //
 // File I/O for FabArray<FArrayBox>
@@ -19,15 +23,35 @@ class VisMF
 {
 public:
     //
+    // We try to do I/O with buffers of this size.
+    //
+    enum { IO_Buffer_Size = 262144 * 8 };
+    //
+    // The type of a char buffer required by [p]setbuf().
+    //
+#ifdef BL_SETBUF_SIGNED_CHAR
+    typedef signed char Setbuf_Char_Type;
+#else
+    typedef char Setbuf_Char_Type;
+#endif
+    //
+    // A simple character buffer for setbuf() usage.
+    //
+    typedef Array<Setbuf_Char_Type> IO_Buffer;
+    //
     // How we write out FabArray<FArrayBox>s.
+    // These are deprecated, we always use NFiles.
+    // For OneFilePerCPU, set NFiles to NProcs.
     //
     enum How { OneFilePerCPU, NFiles };
     //
     // Construct by reading in the on-disk VisMF of the specified name.
-    // The MF on-disk is read lazily. The name here is the name of
-    // the MF not the name of the on-disk file.
+    // The FABs in the on-disk FabArray are read on demand unless
+    // the entire FabArray is requested. The name here is the name of
+    // the FabArray not the name of the on-disk files.
     //
-    explicit VisMF (const std::string& mf_name);
+    explicit VisMF (const std::string& fafab_name);
+    ~VisMF ();
     //
     // A structure containing info regarding an on-disk FAB.
     //
@@ -53,9 +77,19 @@ public:
     struct Header
     {
         //
-        // The current version of the FabArray<FArrayBox> Header code.
+        // The versions of the FabArray<FArrayBox> Header code.
         //
-        enum { Version = 1 };
+        enum Version {
+	  Undefined_v1           = 0,  // ---- undefined
+	  Version_v1             = 1,  // ---- auto converting version with headers
+	                               // ---- for each fab in the data files and
+				       // ---- min and max values for each fab in the header
+	  NoFabHeader_v1         = 2,  // ---- no fab headers, no fab mins or maxes
+	  NoFabHeaderMinMax_v1   = 3,  // ---- no fab headers,
+				       // ---- min and max values for each fab in the header
+	  NoFabHeaderFAMinMax_v1 = 4   // ---- no fab headers, no fab mins or maxes,
+				       // ---- min and max values for each FabArray in the header
+	};
         //
         // The default constructor.
         //
@@ -63,19 +97,70 @@ public:
         //
         // Construct from a FabArray<FArrayBox>.
         //
-        Header (const FabArray<FArrayBox>& mf, How how);
+        Header (const FabArray<FArrayBox>& fafab, VisMF::How how, Version version = Version_v1,
+		bool calcMinMax = true);
+	//
+	// Calculate the min and max arrays
+	//
+	void CalculateMinMax(const FabArray<FArrayBox>& fafab,
+			     int procToWrite = ParallelDescriptor::IOProcessorNumber());
         //
         // The data.
         //
-        int                  m_vers;  // The version # of the Header.
+        int                  m_vers;  // The version of the Header.
         How                  m_how;   // How the MF was written to disk.
         int                  m_ncomp; // Number of components in MF.
         int                  m_ngrow; // The number of ghost cells in MF.
         BoxArray             m_ba;    // The BoxArray of the MF.
         Array< FabOnDisk >   m_fod;   // FabOnDisk info for contained FABs.
-        Array< Array<Real> > m_min;   // The min()s of each component of FABs.
-        Array< Array<Real> > m_max;   // The max()s of each component of FABs.
+	//
+	// These are not defined if they are not in the header
+	//
+        Array< Array<Real> > m_min;   // The min()s of each component of FABs.  [findex][comp]
+        Array< Array<Real> > m_max;   // The max()s of each component of FABs.  [findex][comp]
+        Array<Real>          m_famin; // The min()s of each component of the FabArray.  [comp]
+        Array<Real>          m_famax; // The max()s of each component of the FabArray.  [comp]
+	RealDescriptor       m_writtenRD;
     };
+
+    //
+    // This structure is used to store the read order for each FabArray file
+    //
+    struct FabReadLink
+    {
+        int rankToRead;
+	int faIndex;
+	long fileOffset;
+	Box box;
+
+	FabReadLink();
+	FabReadLink(int ranktoread, int faindex, long fileoffset, const Box &b);
+    };
+
+    //
+    // This structure is used to store file ifstreams that remain open
+    //
+    struct PersistentIFStream
+    {
+        std::ifstream   *pstr;
+        std::streampos   currentPosition;
+	bool             isOpen;
+	VisMF::IO_Buffer ioBuffer;
+
+	PersistentIFStream();
+	~PersistentIFStream();
+    };
+
+    //
+    // Open the stream if it is not already open
+    // Close the stream if not persistent or forced
+    // Close all open streams
+    //
+    static std::ifstream *OpenStream(const std::string &fileName);
+    static void CloseStream(const std::string &fileName, bool forceClose = false);
+    static void CloseAllStreams();
+    static bool NoFabHeader(const VisMF::Header &hdr);
+
     //
     // The number of components in the on-disk FabArray<FArrayBox>.
     //
@@ -95,18 +180,24 @@ public:
     //
     // The min of the FAB (in valid region) at specified index and component.
     //
-    Real min (int fabIndex,
-              int nComp) const;
+    Real min (int fabIndex, int nComp) const;
+    //
+    // The min of the FabArray (in valid region) at specified component.
+    //
+    Real min (int nComp) const;
     //
     // The max of the FAB (in valid region) at specified index and component.
     //
-    Real max (int fabIndex,
-              int nComp) const;
+    Real max (int fabIndex, int nComp) const;
+    //
+    // The max of the FabArray (in valid region) at specified component.
+    //
+    Real max (int nComp) const;
 
-    /* The FAB at the specified index and component.
-               Reads it from disk if necessary.
-               This reads only the specified component.
-    */
+    // The FAB at the specified index and component.
+    //         Reads it from disk if necessary.
+    //         This reads only the specified component.
+    //
     const FArrayBox& GetFab (int fabIndex,
                              int compIndex) const;
     //
@@ -129,34 +220,36 @@ public:
     // one-half the average of the min and max over the valid region
     // of each contained FAB.
     //
-    static long Write (const FabArray<FArrayBox>&    mf,
+    static long Write (const FabArray<FArrayBox> &fafab,
                        const std::string& name,
-                       VisMF::How         how = OneFilePerCPU,
+                       VisMF::How         how = NFiles,
                        bool               set_ghost = false);
     //
+    // this will remove nfiles associated with name and the header
+    //
+    static void RemoveFiles(const std::string &name, bool verbose = false);
+
+    //
     // Read a FabArray<FArrayBox> from disk written using VisMF::Write().
-    // The FabArray<FArrayBox> mf must have been defined using the default
-    // constructor.
+    // The FabArray<FArrayBox> fafab must have been defined using the default
+    // constructor.  A pre-read FabArray header can be passed in to
+    // avoid a read and broadcast.
     //
-    static void Read (FabArray<FArrayBox>&          mf,
-                      const std::string& name);
-    static void Check (const std::string& name);
+    static void Read (FabArray<FArrayBox> &fafab,
+                      const std::string &name,
+		      const char *faHeader = 0,
+		      int coordinatorProc = ParallelDescriptor::IOProcessorNumber());
+
     //
-    // We try to do I/O with buffers of this size.
+    // Read only the header of a FabArray, header will be resized here.
     //
-    enum { IO_Buffer_Size = 40960 * 32 };
+    static void ReadFAHeader (const std::string &fafabName,
+		              Array<char> &header);
+
     //
-    // The type of a char buffer required by [p]setbuf().
+    // Check if the multifab is ok, false is returned if not ok
     //
-#ifdef BL_SETBUF_SIGNED_CHAR
-    typedef signed char Setbuf_Char_Type;
-#else
-    typedef char Setbuf_Char_Type;
-#endif
-    //
-    // A simple character buffer for setbuf() usage.
-    //
-    typedef Array<Setbuf_Char_Type> IO_Buffer;
+    static bool Check (const std::string &name);
     //
     // The file offset of the passed ostream.
     //
@@ -165,20 +258,55 @@ public:
     // Read the entire fab (all components).
     //
     FArrayBox* readFAB (int                fabIndex,
-                        const std::string& mfName);
+                        const std::string& fafabName);
     //
     // Read the specified fab component.
     //
     FArrayBox* readFAB (int fabIndex,
                         int ncomp);
 
+    static int  GetNOutFiles ();
     static void SetNOutFiles (int noutfiles);
 
+    static int  GetMFFileInStreams ()  { return nMFFileInStreams; }
     static void SetMFFileInStreams (int nstreams);
 
-    static int GetNOutFiles ();
-    static int GetVerbose ();
-    static void SetVerbose (int verbose);
+    static int GetVerbose ()       { return verbose; }
+    static void SetVerbose (int v) { verbose = v; }
+
+    static VisMF::Header::Version GetHeaderVersion () { return currentVersion; }
+    static void SetHeaderVersion (VisMF::Header::Version version)
+                                                   { currentVersion = version; }
+
+    static bool GetGroupSets () { return groupSets; }
+    static void SetGroupSets (bool groupsets) { groupSets = groupsets; }
+
+    static bool GetSetBuf () { return setBuf; }
+    static void SetSetBuf (bool setbuf) { setBuf = setbuf; }
+
+    static bool GetUseSingleRead () { return useSingleRead; }
+    static void SetUseSingleRead (bool usesingleread) { useSingleRead = usesingleread; }
+
+    static bool GetUseSingleWrite () { return useSingleWrite; }
+    static void SetUseSingleWrite (bool usesinglewrite) { useSingleWrite = usesinglewrite; }
+
+    static bool GetCheckFilePositions () { return checkFilePositions; }
+    static void SetCheckFilePositions (bool cfp) { checkFilePositions = cfp; }
+
+    static bool GetUsePersistentIFStreams () { return usePersistentIFStreams; }
+    static void SetUsePersistentIFStreams (bool usepifs) { usePersistentIFStreams = usepifs; }
+
+    static bool GetUseSynchronousReads () { return useSynchronousReads; }
+    static void SetUseSynchronousReads (bool usepsr) { useSynchronousReads = usepsr; }
+
+    static bool GetUseDynamicSetSelection () { return useDynamicSetSelection; }
+    static void SetUseDynamicSetSelection (bool usedss) { useDynamicSetSelection = usedss; }
+
+    static long GetIOBufferSize () { return ioBufferSize; }
+    static void SetIOBufferSize (long iobuffersize) {
+      BL_ASSERT(iobuffersize > 0);
+      ioBufferSize = iobuffersize;
+    }
 
     static void Initialize ();
     static void Finalize ();
@@ -195,23 +323,37 @@ private:
                             std::ostream&      os,
                             long&              bytes);
 
-    static long WriteHeader (const std::string& mf_name,
-                             VisMF::Header&     hdr);
+    static long WriteHeader (const std::string &fafab_name,
+                             VisMF::Header     &hdr,
+			     int procToWrite = ParallelDescriptor::IOProcessorNumber());
+
     //
-    // Read the fab.
-    // If ncomp == -1 reads the whole FAB.
+    // fileNumbers must be passed in for dynamic set selection [proc]
+    //
+    static void FindOffsets (const FabArray<FArrayBox> &fafab,
+			     const std::string &fafab_name,
+                             VisMF::Header &hdr,
+			     bool groupSets,
+			     VisMF::Header::Version whichVersion,
+			     bool useDynamicSetSelection,
+			     NFilesIter &nfi);
+    //
+    // Make a new FAB from a fab in a FabArray<FArrayBox> on disk.
+    // The returned *FAB will have either one component filled from
+    // fafab[fabIndex][whichComp] or fafab[fabIndex].nComp() components.
+    // whichComp == -1 means reads the whole FAB.
     // Otherwise read just that component.
     //
-    static FArrayBox* readFAB (int                fabIndex,
-                               const std::string& mf_name,
-                               const Header&      hdr,
-			       int                ncomp = -1);
+    static FArrayBox *readFAB (int                fabIndex,
+                               const std::string &fafab_name,
+                               const Header      &hdr,
+			       int                whichComp = -1);
     //
-    // Read the whole FAB into mf[fabIndex]
+    // Read the whole FAB into fafab[fabIndex]
     //
-    static void readFAB (FabArray<FArrayBox>&          mf,
+    static void readFAB (FabArray<FArrayBox> &fafab,
 			 int                fabIndex,
-			 const std::string& mf_name,
+			 const std::string &fafab_name,
 			 const Header&      hdr);
 
     static std::string DirName (const std::string& filename);
@@ -220,7 +362,7 @@ private:
     //
     // Name of the FabArray<FArrayBox>.
     //
-    std::string m_mfname;
+    std::string m_fafabname;
     //
     // The VisMF header as read from disk.
     //
@@ -230,12 +372,29 @@ private:
     //
     mutable Array< Array<FArrayBox*> > m_pa;
     //
+    // Persistent streams.  These open on demand and should
+    // be closed when not needed with CloseAllStreams.
+    // ~VisMF also closes them.  [filename, pifs]
+    //
+    static std::map<std::string, VisMF::PersistentIFStream> persistentIFStreams;
+    //
     // The number of files to write for a FabArray<FArrayBox>.
     //
     static int nOutFiles;
     static int nMFFileInStreams;
 
     static int verbose;
+    static VisMF::Header::Version currentVersion;
+    static bool groupSets;
+    static bool setBuf;
+    static bool useSingleRead;
+    static bool useSingleWrite;
+    static bool checkFilePositions;
+    static bool usePersistentIFStreams;
+    static bool useSynchronousReads;
+    static bool useDynamicSetSelection;
+    
+    static long ioBufferSize;   // ---- the settable buffer size
 };
 //
 // Write a FabOnDisk to an ostream in ASCII.

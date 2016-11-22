@@ -3,14 +3,12 @@
 
 #include <BLFort.H>
 
-#if (BL_SPACEDIM == 3)
 BL_FORT_PROC_DECL(BL_AVG_EG_TO_CC, bl_avg_eg_to_cc)
   (const int* lo, const int* hi,
    BL_FORT_FAB_ARG(cc),
    D_DECL(const BL_FORT_FAB_ARG(Ex),
 	  const BL_FORT_FAB_ARG(Ey),
 	  const BL_FORT_FAB_ARG(Ez)));
-#endif
 
 BL_FORT_PROC_DECL(BL_AVG_FC_TO_CC, bl_avg_fc_to_cc)
   (const int* lo, const int* hi,

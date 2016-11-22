@@ -1,0 +1,26 @@
+nfiles        = 5
+maxgrid       = 64
+ncomps        = 1
+nboxes        = 64
+nboxes        = 16
+ntimes        = 1
+raninit       = false
+mb2           = true
+
+rbuffsize     = 16000
+wbuffsize     = 32000
+
+filetests     = false
+dirtests      = false
+testreadmf    = false
+
+groupsets     = false
+setbuf        = false
+
+usesingleread   = true
+usesinglewrite  = true
+checkfpositions = true
+pifstreams      = true
+
+nfileitertest = true
+dssnfileitertest = false

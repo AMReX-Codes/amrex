@@ -5,6 +5,7 @@
 #include <Utility.H>
 #include <ParallelDescriptor.H>
 #include <Array.H>
+#include <NFiles.H>
 #include <iostream>
 #include <iomanip>
 #include <fstream>
@@ -21,8 +22,8 @@
 bool BLProfiler::bWriteAll = true;
 bool BLProfiler::bNoOutput = false;
 bool BLProfiler::bWriteFabs = true;
-bool BLProfiler::bFirstCommWriteH = true;  // header
-bool BLProfiler::bFirstCommWriteD = true;  // data
+bool BLProfiler::groupSets = false;
+bool BLProfiler::bFirstCommWrite = true;  // header
 bool BLProfiler::bInitialized = false;
 
 int BLProfiler::currentStep = 0;
@@ -81,8 +82,7 @@ int BLProfiler::inNRegions(0);
 Array<BLProfiler::RStartStop> BLProfiler::rStartStop;
 const std::string BLProfiler::noRegionName("__NoRegion__");
 
-bool BLProfiler::bFirstTraceWriteH(true);  // header
-bool BLProfiler::bFirstTraceWriteD(true);  // data
+bool BLProfiler::bFirstTraceWrite(true);
 int BLProfiler::CallStats::cstatsVersion(1);
 
 Array<BLProfiler::CallStatsStack> BLProfiler::callIndexStack;
@@ -587,71 +587,29 @@ void BLProfiler::Finalize() {
     }
 
 
-    // --------------------- start nfiles block
     std::string cdir(blProfDirName);
     if( ! blProfDirCreated) {
       BoxLib::UtilCreateCleanDirectory(cdir);
       blProfDirCreated = true;
     }
 
-    const int   myProc    = ParallelDescriptor::MyProc();
-    const int   nProcs    = ParallelDescriptor::NProcs();
-    const int   nOutFiles = std::max(1, std::min(nProcs, nProfFiles));
-    const int   nSets     = (nProcs + (nOutFiles - 1)) / nOutFiles;
-    const int   mySet     = myProc/nOutFiles;
+    const int nOutFiles = std::max(1, std::min(nProcs, nProfFiles));
     std::string cFileName(cdir + '/' + cdir + "_D_");
-    std::string FullName  = BoxLib::Concatenate(cFileName, myProc % nOutFiles, 4);
-
     long seekPos(0);
-
-    for(int iSet = 0; iSet < nSets; ++iSet) {
-      if(mySet == iSet) {
-        {  // scope
-          std::ofstream csFile;
-
-          if(iSet == 0) {   // First set.
-            csFile.open(FullName.c_str(),
-                        std::ios::out|std::ios::trunc|std::ios::binary);
-          } else {
-            csFile.open(FullName.c_str(),
-                        std::ios::out|std::ios::app|std::ios::binary);
-            csFile.seekp(0, std::ios::end);   // set to eof
-          }
-          if( ! csFile.good()) {
-            BoxLib::FileOpenFailed(FullName);
-          }
-
-          // ----------------------------- write to file here
-	  seekPos = csFile.tellp();
-	  if(nCallsOut.size() > 0) {
-            csFile.write((char *) nCallsOut.dataPtr(),
-	                 nCallsOut.size() * sizeof(long));
-	  }
-	  if(totalTimesOut.size() > 0) {
-            csFile.write((char *) totalTimesOut.dataPtr(),
-	                 totalTimesOut.size() * sizeof(Real));
-	  }
-          // ----------------------------- end write to file here
-
-          csFile.flush();
-          csFile.close();
-        }  // end scope
-
-        int iBuff     = 0;
-        int wakeUpPID = (myProc + nOutFiles);
-        int tag       = (myProc % nOutFiles);
-        if(wakeUpPID < nProcs) {
-          ParallelDescriptor::Send(&iBuff, 1, wakeUpPID, tag);
-        }
+    bool setBuf(true);
+    NFilesIter nfi(nOutFiles, cFileName, groupSets, setBuf);
+    for( ; nfi.ReadyToWrite(); ++nfi) {
+      seekPos = nfi.SeekPos();
+      if(nCallsOut.size() > 0) {
+        nfi.Stream().write((char *) nCallsOut.dataPtr(),
+        nCallsOut.size() * sizeof(long));
       }
-      if(mySet == (iSet + 1)) {   // Next set waits.
-        int iBuff;
-        int waitForPID = (myProc - nOutFiles);
-        int tag        = (myProc % nOutFiles);
-        ParallelDescriptor::Recv(&iBuff, 1, waitForPID, tag);
+      if(totalTimesOut.size() > 0) {
+        nfi.Stream().write((char *) totalTimesOut.dataPtr(),
+        totalTimesOut.size() * sizeof(Real));
       }
     }
-    // --------------------- end nfiles block
+
 
     Array<long> seekPosOut(1);
     if(ParallelDescriptor::IOProcessor()) {
@@ -675,7 +633,7 @@ void BLProfiler::Finalize() {
 
       std::string dFileName(cdir + "_D_");
       for(int p(0); p < nProcs; ++p) {
-        std::string dFullName  = BoxLib::Concatenate(dFileName, p % nOutFiles, 4);
+        std::string dFullName(NFilesIter::FileName(nOutFiles, dFileName, p, groupSets));
 	phHeaderFile << "BLProfProc " << p << " datafile " << dFullName
 	             << " seekpos " << seekPosOut[p] << '\n';
       }
@@ -683,7 +641,6 @@ void BLProfiler::Finalize() {
                    << ParallelDescriptor::second() - startTime << '\n';
       phHeaderFile.close();
     }
-
 
     BL_PROFILE_REGION_STOP(noRegionName);
 
@@ -997,11 +954,8 @@ void BLProfiler::WriteCallTrace(bool bFlushing) {   // ---- write call trace dat
     const int   myProc    = ParallelDescriptor::MyProc();
     const int   nProcs    = ParallelDescriptor::NProcs();
     const int   nOutFiles = std::max(1, std::min(nProcs, nProfFiles));
-    const int   nSets     = (nProcs + (nOutFiles - 1)) / nOutFiles;
-    const int   mySet     = myProc/nOutFiles;
     std::string cFilePrefix("bl_call_stats");
     std::string cFileName(cdir + '/' + cFilePrefix + "_D_");
-    std::string FullName  = BoxLib::Concatenate(cFileName, myProc % nOutFiles, 4);
 
     if( ! blProfDirCreated) {
       BoxLib::UtilCreateCleanDirectory(cdir);
@@ -1046,104 +1000,70 @@ void BLProfiler::WriteCallTrace(bool bFlushing) {   // ---- write call trace dat
       }
       for(int i(0); i < nOutFiles; ++i) {
         std::string headerName(cFilePrefix + "_H_");
-        headerName = BoxLib::Concatenate(headerName, i, 4);
+        headerName = BoxLib::Concatenate(headerName, i, NFilesIter::GetMinDigits());
         csGlobalHeaderFile << "HeaderFile " << headerName << '\n';
       }
       csGlobalHeaderFile.flush();
       csGlobalHeaderFile.close();
     }
 
-    std::string shortDFileName(cFilePrefix + "_D_");
-    shortDFileName  = BoxLib::Concatenate(shortDFileName, myProc % nOutFiles, 4);
-    std::string longDFileName(cdir + '/' + shortDFileName);
 
-    std::string shortHeaderFileName(cFilePrefix + "_H_");
-    shortHeaderFileName  = BoxLib::Concatenate(shortHeaderFileName, myProc % nOutFiles, 4);
-    std::string longHeaderFileName(cdir + '/' + shortHeaderFileName);
+    std::string shortHeaderFileNamePrefix(cFilePrefix + "_H_");
+    std::string longHeaderFileNamePrefix(cdir + '/' + shortHeaderFileNamePrefix);
+
+    std::string shortDFileNamePrefix(cFilePrefix + "_D_");
+    std::string longDFileNamePrefix(cdir + '/' + shortDFileNamePrefix);
+    std::string longDFileName(NFilesIter::FileName(nOutFiles, longDFileNamePrefix, myProc, groupSets));
 
     long baseSeekPos(-1);
 
-    for(int iSet = 0; iSet < nSets; ++iSet) {
-      if(mySet == iSet) {
-        {  // scope
-          std::ofstream csDFile, csHeaderFile;
+    bool setBuf(true);
+    bool appendFirstFile;
 
-          if(iSet == 0 && bFirstTraceWriteH) {   // First set.
-	    bFirstTraceWriteH = false;
-            csHeaderFile.open(longHeaderFileName.c_str(), std::ios::out | std::ios::trunc);
-          } else {
-            csHeaderFile.open(longHeaderFileName.c_str(), std::ios::out | std::ios::app);
-            csHeaderFile.seekp(0, std::ios::end);   // set to eof
-          }
-          if( ! csHeaderFile.good()) {
-            BoxLib::FileOpenFailed(longHeaderFileName);
-          }
+    if(bFirstTraceWrite) {
+      appendFirstFile = false;
+      bFirstTraceWrite = false;
+    } else {
+      appendFirstFile = true;
+    }
 
-          if(iSet == 0 && bFirstTraceWriteD) {   // First set.
-	    bFirstTraceWriteD = false;
-            csDFile.open(longDFileName.c_str(),
-	                 std::ios::out | std::ios::trunc | std::ios::binary);
-          } else {
-            csDFile.open(longDFileName.c_str(),
-	                 std::ios::out | std::ios::app | std::ios::binary);
-            csDFile.seekp(0, std::ios::end);   // set to eof
-          }
-          if( ! csDFile.good()) {
-            BoxLib::FileOpenFailed(longDFileName);
-          }
+    // ---- use static set selection because of nfiles for both headers and data
+    // ---- these are dependent iterators
+    NFilesIter nfiHeader(nOutFiles, longHeaderFileNamePrefix, groupSets, setBuf);
+    NFilesIter nfiDatafile(nOutFiles, longDFileNamePrefix, groupSets, setBuf);
 
-          // ----------------------------- write to file here
-          csHeaderFile << "CallStatsProc " << myProc
-		       << " nRSS " << rStartStop.size()
-		       << " nTraceStats " << vCallTrace.size()
-		       << "  datafile  " << shortDFileName
-		       << "  seekpos  " << csDFile.tellp()
-	               << '\n';
-	  for(std::map<std::string, int>::iterator it = mFNameNumbers.begin();
-	      it != mFNameNumbers.end(); ++it)
-	  {
-	    csHeaderFile << "fName " << '"' << it->first << '"'
-	                 << ' ' << it->second << '\n';
-	  }
+    for( ; nfiHeader.ReadyToWrite(appendFirstFile) && nfiDatafile.ReadyToWrite(appendFirstFile);
+        ++nfiHeader, ++nfiDatafile)
+    {
+      std::string localDFileName(NFilesIter::FileName(nOutFiles, shortDFileNamePrefix, myProc, groupSets));
+      nfiHeader.Stream() << "CallStatsProc " << myProc
+		         << " nRSS " << rStartStop.size()
+		         << " nTraceStats " << vCallTrace.size()
+		         << "  datafile  " << localDFileName
+		         << "  seekpos  " << nfiDatafile.SeekPos()    // ---- data file seek position
+	                 << '\n';
+      for(std::map<std::string, int>::iterator it = mFNameNumbers.begin();
+	  it != mFNameNumbers.end(); ++it)
+      {
+	 nfiHeader.Stream() << "fName " << '"' << it->first << '"'
+	                    << ' ' << it->second << '\n';
+      }
 #ifdef BL_TRACE_PROFILING
-	  csHeaderFile << std::setprecision(16) << "timeMinMax  "
-	               << CallStats::minCallTime << ' '
-	               << CallStats::maxCallTime << '\n';
+      nfiHeader.Stream() << std::setprecision(16) << "timeMinMax  "
+	                 << CallStats::minCallTime << ' '
+	                 << CallStats::maxCallTime << '\n';
 #endif
 
-          csHeaderFile.flush();
-          csHeaderFile.close();
-
-	  if(rStartStop.size() > 0) {
-	    csDFile.write((char *) rStartStop.dataPtr(),
+      if(rStartStop.size() > 0) {
+	nfiDatafile.Stream().write((char *) rStartStop.dataPtr(),
 	                  rStartStop.size() * sizeof(RStartStop));
-	  }
-	  if(vCallTrace.size() > 0) {
-	    baseSeekPos = csDFile.tellp();
-	    csDFile.write((char *) vCallTrace.dataPtr(),
-	                  vCallTrace.size() * sizeof(CallStats));
-	  }
-
-	  csDFile.flush();
-	  csDFile.close();
-          // ----------------------------- end write to file here
-        }  // end scope
-
-        int iBuff     = 0;
-        int wakeUpPID = (myProc + nOutFiles);
-        int tag       = (myProc % nOutFiles);
-        if(wakeUpPID < nProcs) {
-          ParallelDescriptor::Send(&iBuff, 1, wakeUpPID, tag);
-        }
       }
-      if(mySet == (iSet + 1)) {   // Next set waits.
-        int iBuff;
-        int waitForPID = (myProc - nOutFiles);
-        int tag        = (myProc % nOutFiles);
-        ParallelDescriptor::Recv(&iBuff, 1, waitForPID, tag);
+      if(vCallTrace.size() > 0) {
+        baseSeekPos = nfiDatafile.SeekPos();
+        nfiDatafile.Stream().write((char *) vCallTrace.dataPtr(),
+                                   vCallTrace.size() * sizeof(CallStats));
       }
     }
-    // --------------------- end nfiles block
 
 
     if(bFlushing) {  // ---- save stacked CallStats
@@ -1169,6 +1089,9 @@ void BLProfiler::WriteCallTrace(bool bFlushing) {   // ---- write call trace dat
         CallStats csOnDisk;
         csDFile.open(csPatch.fileName.c_str(), std::ios::in | std::ios::out |
 	                                       std::ios::binary);
+        if( ! csDFile.good()) {
+          BoxLib::FileOpenFailed(csPatch.fileName);
+        }
         csDFile.seekg(csPatch.seekPos, std::ios::beg);
         csDFile.read((char *) &csOnDisk, sizeof(CallStats));
 	bool bReportPatches(false);
@@ -1176,12 +1099,13 @@ void BLProfiler::WriteCallTrace(bool bFlushing) {   // ---- write call trace dat
 	  std::cout << myProc << "::PATCH:  csOnDisk.st tt = " << csOnDisk.stackTime
 	            << "  " << csOnDisk.totalTime << '\n'
 		    << myProc << "::PATCH:  csPatch.st tt = " << csPatch.callStats.stackTime
-		    << "  " << csPatch.callStats.totalTime << std::endl;
+		    << "  " << csPatch.callStats.totalTime << " :::: " << csPatch.fileName << std::endl;
 	}
 	csOnDisk.totalTime = csPatch.callStats.totalTime;
 	csOnDisk.stackTime = csPatch.callStats.stackTime;
         csDFile.seekp(csPatch.seekPos, std::ios::beg);
         csDFile.write((char *) &csOnDisk, sizeof(CallStats));
+	csDFile.flush();
 	csDFile.close();
       }
       callIndexPatch.clear();
@@ -1243,24 +1167,12 @@ void BLProfiler::WriteCommStats(bool bFlushing) {
   }
 
 
-  // --------------------- start nfiles block
   const int   myProc    = ParallelDescriptor::MyProc();
   const int   nProcs    = ParallelDescriptor::NProcs();
   const int   nOutFiles = std::max(1, std::min(nProcs, nProfFiles));
-  const int   nSets     = (nProcs + (nOutFiles - 1)) / nOutFiles;
-  const int   mySet     = myProc/nOutFiles;
 
-  std::string shortDFileName(commprofPrefix + "_D_");
-  shortDFileName = BoxLib::Concatenate(shortDFileName, myProc % nOutFiles, 4);
-  std::string longDFileName  = cdir + '/' + shortDFileName;
-
-  std::string shortHeaderFileName(commprofPrefix + "_H_");
-  shortHeaderFileName = BoxLib::Concatenate(shortHeaderFileName, myProc % nOutFiles, 4);
-  std::string longHeaderFileName  = cdir + '/' + shortHeaderFileName;
-
-  //double mpiWTick(MPI_Wtick());
-
-  if(ParallelDescriptor::IOProcessor() && bFirstCommWriteH) {
+  // ---- write the global header
+  if(ParallelDescriptor::IOProcessor() && bFirstCommWrite) {
     std::string globalHeaderFileName(cdir + '/' + commprofPrefix + "_H");
     std::ofstream csGlobalHeaderFile;
     csGlobalHeaderFile.open(globalHeaderFileName.c_str(), std::ios::out | std::ios::trunc);
@@ -1283,7 +1195,7 @@ void BLProfiler::WriteCommStats(bool bFlushing) {
 #endif
     for(int i(0); i < nOutFiles; ++i) {
       std::string headerName(commprofPrefix + "_H_");
-      headerName = BoxLib::Concatenate(headerName, i, 4);
+      headerName = BoxLib::Concatenate(headerName, i, NFilesIter::GetMinDigits());
       csGlobalHeaderFile << "HeaderFile " << headerName << '\n';
     }
 
@@ -1292,104 +1204,80 @@ void BLProfiler::WriteCommStats(bool bFlushing) {
   }
 
 
-  for(int iSet = 0; iSet < nSets; ++iSet) {
-    if(mySet == iSet) {
-      {  // scope
-        std::ofstream csDFile, csHeaderFile;
+  std::string shortHeaderFileNamePrefix(commprofPrefix + "_H_");
+  std::string longHeaderFileNamePrefix(cdir + '/' + shortHeaderFileNamePrefix);
 
-        if(iSet == 0 && bFirstCommWriteH) {   // First set.
-	  bFirstCommWriteH = false;
-          csHeaderFile.open(longHeaderFileName.c_str(), std::ios::out | std::ios::trunc);
-        } else {
-          csHeaderFile.open(longHeaderFileName.c_str(), std::ios::out | std::ios::app);
-          csHeaderFile.seekp(0, std::ios::end);   // set to eof
-        }
-        if( ! csHeaderFile.good()) {
-          BoxLib::FileOpenFailed(longHeaderFileName);
-        }
+  std::string shortDFileName(commprofPrefix + "_D_");
+  std::string longDFileNamePrefix(cdir + '/' + shortDFileName);
+  std::string longDFileName(NFilesIter::FileName(nOutFiles, longDFileNamePrefix, myProc, groupSets));
 
-        if(iSet == 0 && bFirstCommWriteD) {   // First set.
-	  bFirstCommWriteD = false;
-          csDFile.open(longDFileName.c_str(),
-                      std::ios::out | std::ios::trunc | std::ios::binary);
-        } else {
-          csDFile.open(longDFileName.c_str(),
-                      std::ios::out | std::ios::app | std::ios::binary);
-          csDFile.seekp(0, std::ios::end);   // set to eof
-        }
-        if( ! csDFile.good()) {
-          BoxLib::FileOpenFailed(longDFileName);
-        }
+    bool setBuf(true);
+    bool appendFirstFile;
 
-        // ----------------------------- write to file here
-        csHeaderFile << "CommProfProc  " << myProc
-                     << "  nCommStats  " << vCommStats.size()
-                     << "  datafile  " << shortDFileName
-	             << "  seekpos  " << csDFile.tellp()
-		     << "  " << procName << '\n';
-        for(int ib(0); ib < CommStats::barrierNames.size(); ++ib) {
+    if(bFirstCommWrite) {
+      appendFirstFile = false;
+      bFirstCommWrite = false;
+    } else {
+      appendFirstFile = true;
+    }
+
+    // ---- use static set selection because of nfiles for both headers and data
+    // ---- these are dependent iterators
+    NFilesIter nfiHeader(nOutFiles, longHeaderFileNamePrefix, groupSets, setBuf);
+    NFilesIter nfiDatafile(nOutFiles, longDFileNamePrefix, groupSets, setBuf);
+
+    for( ; nfiHeader.ReadyToWrite(appendFirstFile) && nfiDatafile.ReadyToWrite(appendFirstFile);
+        ++nfiHeader, ++nfiDatafile)
+    {
+      std::string localDFileName(NFilesIter::FileName(nOutFiles, shortDFileName, myProc, groupSets));
+      nfiHeader.Stream() << "CommProfProc  " << myProc
+                         << "  nCommStats  " << vCommStats.size()
+                         << "  datafile  " << localDFileName
+	                 << "  seekpos  " << nfiDatafile.SeekPos()    // ---- data file seek posotion
+		         << "  " << procName << '\n';
+      for(int ib(0); ib < CommStats::barrierNames.size(); ++ib) {
           int seekindex(CommStats::barrierNames[ib].second);
           CommStats &cs = vCommStats[seekindex];
-          csHeaderFile << "bNum  " << cs.tag  // tag is used for barrier number
-                       << ' ' << '"' << CommStats::barrierNames[ib].first << '"'
-                       << ' ' << seekindex << '\n';
-        }
-        for(int ib(0); ib < CommStats::nameTags.size(); ++ib) {
-          int seekindex(CommStats::nameTags[ib].second);
-          csHeaderFile << "nTag  " << CommStats::nameTags[ib].first << ' '
-                       << seekindex << '\n';
-        }
-        for(int ib(0); ib < CommStats::reductions.size(); ++ib) {
-          int seekindex(CommStats::reductions[ib]);
-          CommStats &cs = vCommStats[seekindex];
-          csHeaderFile << "red  " << cs.tag  // tag is used for reduction number
-	               << ' ' << seekindex << '\n';
-        }
-	if(vCommStats.size() > 0) {
-	  csHeaderFile << std::setprecision(16) << std::setiosflags(std::ios::showpoint)
-	               << "timeMinMax  " << vCommStats[0].timeStamp << ' '
-	               << vCommStats[vCommStats.size()-1].timeStamp << '\n';
-	  csHeaderFile << std::setprecision(16) << std::setiosflags(std::ios::showpoint)
-	               << "timerTime  " << timerTime << '\n';
-	} else {
-	  csHeaderFile << "timeMinMax  0.0  0.0" << '\n';
-	}
-        for(int i(0); i < CommStats::nameTagNames.size(); ++i) {
-          csHeaderFile << "nameTagNames  " << '"' << CommStats::nameTagNames[i]
-                       << '"' << '\n';
-        }
-        csHeaderFile << "tagRange  " << CommStats::tagMin << ' '
-	             << CommStats::tagMax << '\n';
-        for(int i(0); i < CommStats::tagWraps.size(); ++i) {
-          csHeaderFile << "tagWraps  " << CommStats::tagWraps[i] << '\n';
-        }
-	csHeaderFile.flush();
-        csHeaderFile.close();
-
-	if(vCommStats.size() > 0) {
-	  csDFile.write((char *) vCommStats.dataPtr(), vCommStats.size() * sizeof(CommStats));
-	}
-
-        csDFile.flush();
-        csDFile.close();
-        // ----------------------------- end write to file here
-      }  // end scope
-
-      int iBuff     = 0;
-      int wakeUpPID = (myProc + nOutFiles);
-      int tag       = (myProc % nOutFiles);
-      if(wakeUpPID < nProcs) {
-        ParallelDescriptor::Send(&iBuff, 1, wakeUpPID, tag);
+          nfiHeader.Stream() << "bNum  " << cs.tag  // tag is used for barrier number
+                             << ' ' << '"' << CommStats::barrierNames[ib].first << '"'
+                             << ' ' << seekindex << '\n';
       }
+      for(int ib(0); ib < CommStats::nameTags.size(); ++ib) {
+        int seekindex(CommStats::nameTags[ib].second);
+        nfiHeader.Stream() << "nTag  " << CommStats::nameTags[ib].first << ' '
+                           << seekindex << '\n';
+      }
+      for(int ib(0); ib < CommStats::reductions.size(); ++ib) {
+        int seekindex(CommStats::reductions[ib]);
+        CommStats &cs = vCommStats[seekindex];
+        nfiHeader.Stream() << "red  " << cs.tag  // tag is used for reduction number
+	                   << ' ' << seekindex << '\n';
+      }
+      if(vCommStats.size() > 0) {
+        nfiHeader.Stream() << std::setprecision(16) << std::setiosflags(std::ios::showpoint)
+                           << "timeMinMax  " << vCommStats[0].timeStamp << ' '
+                           << vCommStats[vCommStats.size()-1].timeStamp << '\n';
+        nfiHeader.Stream() << std::setprecision(16) << std::setiosflags(std::ios::showpoint)
+                           << "timerTime  " << timerTime << '\n';
+      } else {
+        nfiHeader.Stream() << "timeMinMax  0.0  0.0" << '\n';
+      }
+      for(int i(0); i < CommStats::nameTagNames.size(); ++i) {
+        nfiHeader.Stream() << "nameTagNames  " << '"' << CommStats::nameTagNames[i]
+                           << '"' << '\n';
+      }
+      nfiHeader.Stream() << "tagRange  " << CommStats::tagMin << ' '
+                         << CommStats::tagMax << '\n';
+      for(int i(0); i < CommStats::tagWraps.size(); ++i) {
+        nfiHeader.Stream() << "tagWraps  " << CommStats::tagWraps[i] << '\n';
+      }
+
+      // ---- write to the data file
+      if(vCommStats.size() > 0) {
+        nfiDatafile.Stream().write((char *) vCommStats.dataPtr(), vCommStats.size() * sizeof(CommStats));
+      }
+
     }
-    if(mySet == (iSet + 1)) {   // Next set waits.
-      int iBuff;
-      int waitForPID = (myProc - nOutFiles);
-      int tag        = (myProc % nOutFiles);
-      ParallelDescriptor::Recv(&iBuff, 1, waitForPID, tag);
-    }
-  }
-  // --------------------- end nfiles block
 
 
   // --------------------- delete the data

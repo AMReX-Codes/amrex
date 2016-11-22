@@ -1898,8 +1898,9 @@ FabArray<FAB>::setFab (int  boxno,
     //
     // Must check it is of the proper size.
     //
-    if (n_comp == 0)
+    if (n_comp == 0) {
         n_comp = elem->nComp();
+    }
 
     BL_ASSERT(n_comp == elem->nComp());
     BL_ASSERT(boxarray.size() > 0);

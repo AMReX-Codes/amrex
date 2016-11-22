@@ -66,26 +66,33 @@ namespace BoxLib
     std::string Concatenate (const std::string& root,
                              int                num,
                              int                mindigits = 5);
-    /*
-      Creates the specified directories.  path may be either a full pathname
-      or a relative pathname.  It will create all the directories in the
-      pathname, if they don't already exist, so that on successful return the
-      pathname refers to an existing directory.  Returns true or false
-      depending upon whether or not all it was successful.  Also returns
-      if path is NULL or "/".  mode is the mode passed to mkdir() for
-      any directories that must be created.
-    
-      For example, if it is passed the string "/a/b/c/d/e/f/g", it
-      will return successfully when all the directories in the pathname
-      exist; i.e. when the full pathname is a valid directory.
-
-      In a Windows environment, the path separator is a '\', so that if using
-      the example given above you must pass the string  
-      "\\a\\b\\c\\d\\e\\f\\g"  (Note that you must escape the backslash in a
-      character string), 
-    */
+    //
+    //  Creates the specified directories.  path may be either a full pathname
+    //  or a relative pathname.  It will create all the directories in the
+    //  pathname, if they don't already exist, so that on successful return the
+    //  pathname refers to an existing directory.  Returns true or false
+    //  depending upon whether or not it was successful.  Also returns true
+    //  if path is NULL or "/".  mode is the mode passed to mkdir() for
+    //  any directories that must be created (for example:  0755).
+    //  verbose will print out the directory creation steps.
+    // 
+    //  For example, if it is passed the string "/a/b/c/d/e/f/g", it
+    //  will return successfully when all the directories in the pathname
+    //  exist; i.e. when the full pathname is a valid directory.
+    //
+    //  In a Windows environment, the path separator is a '\', so that if using
+    //  the example given above you must pass the string  
+    //  "\\a\\b\\c\\d\\e\\f\\g"  (Note that you must escape the backslash in a
+    //  character string), 
+    //
+    //  Only the last mkdir return value is checked for success as errno may not
+    //  be set to EEXIST if a directory exists but mkdir has other reasons
+    //  to fail such as part of the path being a read-only filesystem (EROFS).
+    //  If this function fails, it will print out an error stack.
+    //
     bool UtilCreateDirectory (const std::string& path,
-                              mode_t             mode);
+                              mode_t             mode,
+			      bool               verbose = false);
     //
     // Output a message and abort when couldn't create the directory.
     //
@@ -248,6 +255,12 @@ namespace BoxLib
     //
     void UniqueRandomSubset (Array<int> &uSet, int setSize, int poolSize,
                              bool printSet = false);
+
+    //
+    // Fill binCounts with the number of items for each bin.
+    //   The remainder items are randomly assigned.
+    //
+    void NItemsPerBin (int totalItems, Array<int> &binCounts);
     //
     // Helper class for Times, used in Threads, Profiling, and Timers.
     //

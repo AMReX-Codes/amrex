@@ -20,6 +20,10 @@ const Real INVALID_TIME = -1.0e200;
 const int MFNEWDATA = 0;
 const int MFOLDDATA = 1;
 
+Array<std::string> StateData::fabArrayHeaderNames;
+std::map<std::string, Array<char> > *StateData::faHeaderMap;
+
+
 StateData::StateData () 
 {
    desc = 0;
@@ -221,6 +225,8 @@ StateData::restart (std::istream&          is,
                     const StateDescriptor& d,
                     const std::string&     chkfile)
 {
+    BL_PROFILE("StateData::restart()");
+
     desc = &d;
     is >> domain;
     grids.readFrom(is);
@@ -277,58 +283,52 @@ StateData::restartDoit (std::istream& is, const std::string& chkfile)
     // This assumes that the application will do something with it.
     // We set it to zero in case a compiler complains about uninitialized data.
     //
-    if (nsets == 0)
-    {
-       new_data->setVal(0.);
+    if (nsets == 0) {
+       new_data->setVal(0.0);
     }
 
     std::string mf_name;
     std::string FullPathName;
-    //
-    // This reads the "new" data, if it's there.
-    //
-    if (nsets >= 1)
-    {
-        MultiFab new_data_in;
-        is >> mf_name;
-        //
-        // Note that mf_name is relative to the Header file.
-        // We need to prepend the name of the chkfile directory.
-        //
-        FullPathName = chkfile;
-        if (!chkfile.empty() && chkfile[chkfile.length()-1] != '/')
-            FullPathName += '/';
-        FullPathName += mf_name;
-        VisMF::Read(new_data_in, FullPathName);
 
-	BL_ASSERT(BoxLib::match(grids,new_data_in.boxArray()));
-	BL_ASSERT(new_data->nComp() == new_data_in.nComp());
-	BL_ASSERT(new_data->nGrow() == new_data_in.nGrow());
+    for(int ns(1); ns <= nsets; ++ns) {
+      MultiFab *whichMF;
+      if(ns == 1) {
+	whichMF = new_data;
+      } else if(ns == 2) {
+	whichMF = old_data;
+      } else {
+        BoxLib::Abort("**** Error in StateData::restart:  invalid nsets.");
+      }
 
-	MultiFab::Copy(*new_data, new_data_in, 0, 0, new_data->nComp(), new_data->nGrow());
-    }
-    //
-    // This reads the "old" data, if it's there.
-    //
-    if (nsets == 2)
-    {
-        MultiFab old_data_in;
-        is >> mf_name;
-        //
-        // Note that mf_name is relative to the Header file.
-        // We need to prepend the name of the chkfile directory.
-        //
-        FullPathName = chkfile;
-        if (!chkfile.empty() && chkfile[chkfile.length()-1] != '/')
-            FullPathName += '/';
-        FullPathName += mf_name;
-        VisMF::Read(old_data_in, FullPathName);
+      MultiFab data_in;
+      is >> mf_name;
+      //
+      // Note that mf_name is relative to the Header file.
+      // We need to prepend the name of the chkfile directory.
+      //
+      FullPathName = chkfile;
+      if ( ! chkfile.empty() && chkfile[chkfile.length()-1] != '/') {
+          FullPathName += '/';
+      }
+      FullPathName += mf_name;
 
-	BL_ASSERT(BoxLib::match(grids,old_data_in.boxArray()));
-	BL_ASSERT(old_data->nComp() == old_data_in.nComp());
-	BL_ASSERT(old_data->nGrow() == old_data_in.nGrow());
-
-	MultiFab::Copy(*old_data, old_data_in, 0, 0, old_data->nComp(), old_data->nGrow());
+      // ---- check for preread header
+      std::string FullHeaderPathName(FullPathName + "_H");
+      const char *faHeader = 0;
+      if(faHeaderMap != 0) {
+        std::map<std::string, Array<char> >::iterator fahmIter;
+	fahmIter = faHeaderMap->find(FullHeaderPathName);
+	if(fahmIter != faHeaderMap->end()) {
+	  faHeader = fahmIter->second.dataPtr();
+	}
+      }
+      VisMF::Read(data_in, FullPathName, faHeader);
+      
+      BL_ASSERT(BoxLib::match(grids, data_in.boxArray()));
+      BL_ASSERT(whichMF->nComp() == data_in.nComp());
+      BL_ASSERT(whichMF->nGrow() == data_in.nGrow());
+      
+      MultiFab::Copy(*whichMF, data_in, 0, 0, whichMF->nComp(), whichMF->nGrow());
     }
 }
 
@@ -764,8 +764,8 @@ StateData::checkPoint (const std::string& name,
         //
         // The relative name gets written to the Header file.
         //
-        std::string mf_name_old = name; mf_name_old += OldSuffix;
-        std::string mf_name_new = name; mf_name_new += NewSuffix;
+        std::string mf_name_old(name + OldSuffix);
+        std::string mf_name_new(name + NewSuffix);
 
         os << domain << '\n';
 
@@ -781,10 +781,13 @@ StateData::checkPoint (const std::string& name,
            if (dump_old)
            {
                os << 2 << '\n' << mf_name_new << '\n' << mf_name_old << '\n';
+	       fabArrayHeaderNames.push_back(mf_name_new);
+	       fabArrayHeaderNames.push_back(mf_name_old);
            }
            else
            {
                os << 1 << '\n' << mf_name_new << '\n';
+	       fabArrayHeaderNames.push_back(mf_name_new);
            }
         }
         else
@@ -796,13 +799,13 @@ StateData::checkPoint (const std::string& name,
     if (desc->store_in_checkpoint())
     {
        BL_ASSERT(new_data);
-       std::string mf_fullpath_new = fullpathname; mf_fullpath_new += NewSuffix;
+       std::string mf_fullpath_new(fullpathname + NewSuffix);
        VisMF::Write(*new_data,mf_fullpath_new,how);
 
        if (dump_old)
        {
            BL_ASSERT(old_data);
-           std::string mf_fullpath_old = fullpathname; mf_fullpath_old += OldSuffix;
+           std::string mf_fullpath_old(fullpathname + OldSuffix);
            VisMF::Write(*old_data,mf_fullpath_old,how);
        }
     }

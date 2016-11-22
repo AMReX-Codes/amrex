@@ -239,16 +239,11 @@ def test_suite(argv):
             suite.repos[k].update = False
 
     else:
-        nouplist = no_update.split(",")
+        nouplist = [k.strip() for k in no_update.split(",")]
 
-        if "boxlib" in nouplist: suite.repos["BoxLib"].update = False
-        if suite.srcName.lower() in nouplist: suite.repos["source"].update = False
-        if suite.extSrcName.lower() in nouplist: suite.repos["extra_source"].update = False
-
-        # each extra build directory has its own update flag
-        for n, e in enumerate(suite.extra_build_names):
-            if e.lower() in nouplist:
-                suite.repos["extra_build-{}".format(n)].update = False
+        for repo in suite.repos.keys():
+            if repo.lower() in nouplist:
+                suite.repos[repo].update = False
 
     os.chdir(suite.testTopDir)
 
@@ -853,7 +848,9 @@ def test_suite(argv):
                         suite.log.warn("unable to tar output file {}".format(pfile))
 
                     else:
-                        shutil.rmtree(pfile)
+                        try: shutil.rmtree(pfile)
+                        except OSError:
+                            suite.log.warn("unable to remove {}".format(pfile))
 
 
         #----------------------------------------------------------------------

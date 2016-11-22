@@ -1,0 +1,42 @@
+nfiles        = 4
+maxgrid       = 64
+ncomps        = 4
+nboxes        = 131
+ntimes        = 1
+raninit       = false
+mb2           = true
+
+rbuffsize     = 16000
+wbuffsize     = 32000
+
+nfiletest     = false
+filetests     = false
+dirtests      = false
+testreadmf    = true
+dssnfiletest  = false
+
+groupsets     = false
+setbuf        = false
+
+usesingleread   = true
+usesinglewrite  = true
+checkfpositions = true
+pifstreams      = true
+usedss          = true
+usesyncreads    = false
+
+nmultifabs      = 4
+
+nreadstreams  = 4
+
+testwritenfiles = 2
+testwritenfiles = 3
+testwritenfiles = 1
+testwritenfiles = 1 2 3 4
+
+readfanames = TestMF TestMFNoFabHeader
+readfanames = TestMFNoFabHeader
+readfanames = TestMFNoFabHeaderMinMax
+readfanames = TestMF
+readfanames = TestMF TestMFNoFabHeader TestMFNoFabHeaderMinMax TestMFNoFabHeaderFAMinMax
+

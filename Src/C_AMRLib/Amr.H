@@ -571,7 +571,7 @@ public:
     BoundaryPointList intersect_hiy;
     BoundaryPointList intersect_hiz;
 
-    static bool                   first_smallplotfile;
+    static bool first_smallplotfile;
 
 private:
     //
