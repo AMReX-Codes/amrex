@@ -19,7 +19,7 @@ AmrAdv::PlotFileMF () const
     return r;
 }
 
-std::vector<std::string>
+Array<std::string>
 AmrAdv::PlotFileVarNames () const
 {
     return {"phi"};
