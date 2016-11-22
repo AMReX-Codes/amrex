@@ -1491,7 +1491,7 @@ VisMF::Read (FabArray<FArrayBox> &mf,
 	if(++sCount >= ranksPerStream) {
 	  sCount = 0;
 	  ++sIndex;
-	  sIndex = std::min(sIndex, streamSets.size() - 1);
+	  sIndex = std::min<int>(sIndex, streamSets.size() - 1);
 	}
       }
 
