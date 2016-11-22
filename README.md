@@ -29,31 +29,6 @@ git checkout development
 cd ..
 ```
 
-**For Mac OSX users:**   
-There is an additional step: create a file
-`BoxLib/Tools/C_mk/Make.local` and include the following text
-```
-CXX = mpicxx
-CC = mpicc
-FC = mpif90
-fc = mpif90
-F90 = mpif90
-
-LIBRARY_LOCATIONS += <your_MPI_library>
-INCLUDE_LOCATIONS += <your_MPI_include>
-BL_MPI_LIBS = <your_compilation_flags>
-```
-
-where `<your_MPI_library>` and `<your_MPI_include>` should be replaced
-by the corresponding location on your system. For instance, if you
-installed openmpi and gcc4.8 with Macports, `<your_MPI_library>`
-should be `/opt/local/lib/openmpi-gcc48` and `<your_MPI_include>`
-should be `/opt/local/include/openmpi-gcc48`.
-
-In addition, `<your_compilation_flags>` should be replaced by the
-compilation flags that you see when typing `mpif90 -show`. For openmpi
-installed with Macports, this is `-lmpi_usempi -lmpi_mpifh -lmpi`.
-
 ### Compiling the Langmuir example
 
 `cd` into the the directory `warpx/Exec/Langmuir` and type
