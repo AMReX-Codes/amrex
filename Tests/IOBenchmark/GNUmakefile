@@ -1,15 +1,20 @@
-BOXLIB_HOME ?= ../../../BoxLib
+BOXLIB_HOME = ../../../BoxLib
 
-PROFILE   = FALSE
 PRECISION = DOUBLE
-DEBUG     = TRUE
 DEBUG     = FALSE
+DEBUG     = TRUE
 DIM       = 3
 COMP      = g++
 FCOMP     = gfortran
 
 USE_MPI=FALSE
 USE_MPI=TRUE
+
+USE_CXX11 = TRUE
+
+#PROFILE       = TRUE
+#TRACE_PROFILE = TRUE
+#COMM_PROFILE  = FALSE
 
 include $(BOXLIB_HOME)/Tools/C_mk/Make.defs
 
@@ -34,4 +39,3 @@ all: $(executable)
 
 include $(BOXLIB_HOME)/Tools/C_mk/Make.rules
 
-BL_MPI_LIBS += -lmpl

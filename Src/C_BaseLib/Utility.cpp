@@ -320,87 +320,101 @@ BoxLib::Concatenate (const std::string& root,
     return result.str();
 }
 
-//
-// Creates the specified directories.  path may be either a full pathname
-// or a relative pathname.  It will create all the directories in the
-// pathname, if they don't already exist, so that on successful return the
-// pathname refers to an existing directory.  Returns true or false
-// depending upon whether or not all it was successful.  Also returns
-// true if path is NULL.  mode is the mode passed to mkdir() for
-// any directories that must be created.
-//
-// For example, if it is passed the string "/a/b/c/d/e/f/g", it
-// will return successfully when all the directories in the pathname
-// exist; i.e. when the full pathname is a valid directory.
-//
 
 bool
 #ifdef WIN32
 BoxLib::UtilCreateDirectory (const std::string& path,
-                             int)
+                             int mode, bool verbose)
 #else
 BoxLib::UtilCreateDirectory (const std::string& path,
-                             mode_t         mode)
+                             mode_t mode, bool verbose)
 #endif
 {
-    if (path.length() == 0 || path == path_sep_str)
-        return true;
+    bool retVal(false);
+    Array<std::pair<std::string, int> > pathError;
 
-    if (strchr(path.c_str(), *path_sep_str) == 0)
-    {
+    if (path.length() == 0 || path == path_sep_str) {
+        return true;
+    }
+
+    errno = 0;
+
+    if(strchr(path.c_str(), *path_sep_str) == 0) {
         //
         // No slashes in the path.
         //
-        return mkdir(path.c_str(),mode) < 0 && errno != EEXIST ? false : true;
-    }
-    else
-    {
+        errno = 0;
+        if(mkdir(path.c_str(), mode) < 0 && errno != EEXIST) {
+	  retVal = false;
+	} else {
+	  retVal = true;
+	}
+	pathError.push_back(std::make_pair(path, errno));
+    } else {
         //
         // Make copy of the directory pathname so we can write to it.
         //
-        char* dir = new char[path.length() + 1];
+        char *dir = new char[path.length() + 1];
         (void) strcpy(dir, path.c_str());
 
-        char* slash = strchr(dir, *path_sep_str);
+        char *slash = strchr(dir, *path_sep_str);
 
-        if (dir[0] == *path_sep_str)
-        {
-            //
-            // Got a full pathname.
-            //
-            do
-            {
-                if (*(slash+1) == 0)
+        if(dir[0] == *path_sep_str) {  // full pathname.
+            do {
+                if(*(slash+1) == 0) {
                     break;
-                if ((slash = strchr(slash+1, *path_sep_str)) != 0)
+		}
+                if((slash = strchr(slash+1, *path_sep_str)) != 0) {
                     *slash = 0;
-                if (mkdir(dir, mode) < 0 && errno != EEXIST)
-                    return false;
-                if (slash)
-                    *slash = *path_sep_str;
-            } while (slash);
-        }
-        else
-        {
-            //
-            // Got a relative pathname.
-            //
-            do
-            {
-                *slash = 0;
-                if (mkdir(dir, mode) < 0 && errno != EEXIST)
-                    return false;
-                *slash = *path_sep_str;
-            } while ((slash = strchr(slash+1, *path_sep_str)) != 0);
+		}
+                errno = 0;
+                if(mkdir(dir, mode) < 0 && errno != EEXIST) {
+	          retVal = false;
+		} else {
+	          retVal = true;
+		}
+	        pathError.push_back(std::make_pair(dir, errno));
+                if(slash) {
+                  *slash = *path_sep_str;
+		}
+            } while(slash);
 
-            if (mkdir(dir, mode) < 0 && errno != EEXIST)
-                return false;
+        } else {  // relative pathname.
+
+            do {
+                *slash = 0;
+                errno = 0;
+                if(mkdir(dir, mode) < 0 && errno != EEXIST) {
+	          retVal = false;
+		} else {
+	          retVal = true;
+		}
+	        pathError.push_back(std::make_pair(dir, errno));
+                *slash = *path_sep_str;
+            } while((slash = strchr(slash+1, *path_sep_str)) != 0);
+
+            errno = 0;
+            if(mkdir(dir, mode) < 0 && errno != EEXIST) {
+	      retVal = false;
+	    } else {
+	      retVal = true;
+	    }
+	    pathError.push_back(std::make_pair(dir, errno));
         }
 
         delete [] dir;
-
-        return true;
     }
+
+    if(retVal == false  || verbose == true) {
+      for(int i(0); i < pathError.size(); ++i) {
+        std::cout << "BoxLib::UtilCreateDirectory:: path errno:  " 
+                  << pathError[i].first << " :: "
+                  << strerror(pathError[i].second)
+                  << std::endl;
+      }
+    }
+
+    return retVal;
 }
 
 void
@@ -905,6 +919,33 @@ BoxLib::UniqueRandomSubset (Array<int> &uSet, int setSize, int poolSize,
     }
   }
 }
+
+void
+BoxLib::NItemsPerBin (int totalItems, Array<int> &binCounts)
+{
+  if(binCounts.size() == 0) {
+    return;
+  }
+  bool verbose(false);
+  int countForAll(totalItems / binCounts.size());
+  int remainder(totalItems % binCounts.size());
+  if(ParallelDescriptor::IOProcessor() && verbose) {
+    std::cout << "BoxLib::NItemsPerBin:  countForAll remainder = " << countForAll
+              << "  " << remainder << std::endl;
+  }
+  for(int i(0); i < binCounts.size(); ++i) {
+    binCounts[i] = countForAll;
+  }
+  for(int i(0); i < remainder; ++i) {
+    ++binCounts[i];
+  }
+  for(int i(0); i < binCounts.size(); ++i) {
+    if(ParallelDescriptor::IOProcessor() && verbose) {
+      std::cout << "BoxLib::NItemsPerBin::  binCounts[" << i << "] = " << binCounts[i] << std::endl;
+    }
+  }
+}
+
 
 //
 // Fortran entry points for BoxLib::Random().

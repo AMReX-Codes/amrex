@@ -251,6 +251,14 @@ public:
 
     void Check() const;
 
+    //
+    // These facilitate prereading FabArray headers to avoid
+    // synchronization when reading multiple FabArrays
+    //
+    static const Array<std::string> &FabArrayHeaderNames() { return fabArrayHeaderNames; }
+    static void ClearFabArrayHeaderNames() { fabArrayHeaderNames.clear(); }
+    static void SetFAHeaderMapPtr(std::map<std::string, Array<char> > *fahmp) { faHeaderMap = fahmp; }
+
 
 private:
 
@@ -287,6 +295,15 @@ private:
     // Pointer to previous time data.
     //
     MultiFab* old_data;
+    //
+    // This is used as a temporary collection of FabArray header
+    // names written during a checkpoint
+    //
+    static Array<std::string> fabArrayHeaderNames;
+    //
+    // This is used to store preread FabArray headers
+    //
+    static std::map<std::string, Array<char> > *faHeaderMap;  // ---- [faheader name, the header]
 
     void restartDoit (std::istream& is, const std::string& restart_file);
 };

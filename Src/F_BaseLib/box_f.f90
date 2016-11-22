@@ -198,6 +198,28 @@ contains
     end if
   end function int_coarsen
 
+  pure function int_coarsen_nd(v, i) result(r)
+    integer, intent(in) :: v
+    integer, intent(in) :: i
+    integer :: r
+    r = int_coarsen(v,i)
+    if (mod(v,i) .ne. 0) then
+       r = r + 1
+    end if
+  end function int_coarsen_nd
+
+  pure function int_coarsen_pair(v, i) result(r)
+    integer, intent(in) :: v
+    integer, intent(in) :: i
+    integer :: r(2)
+    r(1) = int_coarsen(v,i)
+    if (mod(v,i) .ne. 0) then
+       r(2) = r(1) + 1
+    else
+       r(2) = r(1)
+    end if
+  end function int_coarsen_pair
+
   !! Makes a box given a low and high end.
   !! If given a single point (index), it returs a unit box located
   !! at the that point.
@@ -338,6 +360,27 @@ contains
     r%lo(1:r%dim) = int_coarsen(bx%lo(1:bx%dim), ci)
     r%hi(1:r%dim) = int_coarsen(bx%hi(1:bx%dim), ci)
   end function box_coarsen_i
+
+  pure function box_coarsen_nd(bx, cv, nodal) result(r)
+    type(box), intent(in) :: bx
+    integer, intent(in) :: cv(:)
+    logical, intent(in) :: nodal(:)
+    type(box) :: r
+    integer :: i, off
+    r%dim = bx%dim
+    r%lo(1:r%dim) = int_coarsen(bx%lo(1:bx%dim), cv)
+    if (any(nodal)) then
+       do i = 1, r%dim
+          if (nodal(i)) then
+             r%hi(i) = int_coarsen_nd(bx%hi(i), cv(i))
+          else
+             r%hi(i) = int_coarsen(bx%hi(i), cv(i))
+          end if
+       end do
+    else
+       r%hi(1:r%dim) = int_coarsen(bx%hi(1:bx%dim), cv)
+    end if
+  end function box_coarsen_nd
 
   pure function box_refine_v_m(bx, rv, mask) result(r)
     type(box), intent(in) :: bx

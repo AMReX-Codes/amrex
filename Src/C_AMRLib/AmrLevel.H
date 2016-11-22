@@ -48,6 +48,17 @@ public:
     //
     virtual ~AmrLevel ();
     //
+    // Get the level direcotory names
+    // Create the Level_ directory for checkpoint and plot files
+    // Set if the Level_ directory was created or to clear the value.
+    // CreateLevelDirectory sets levelDirectoryCreated = true
+    //
+    virtual void LevelDirectoryNames (const std::string &dir,
+                                      std::string &LevelDir,
+                                      std::string &FullPath);
+    virtual void CreateLevelDirectory (const std::string &dir);
+    void SetLevelDirectoryCreated(bool ldc) { levelDirectoryCreated = ldc; }
+    //
     // A string written as the first item in writePlotFile() at
     // level zero. This MUST be defined by each derived class.
     // It is so we can distinguish between different types of
@@ -62,7 +73,7 @@ public:
     //
     virtual void writePlotFile (const std::string& dir,
                                 std::ostream&      os,
-                                VisMF::How         how = VisMF::OneFilePerCPU) = 0;
+                                VisMF::How         how = VisMF::NFiles) = 0;
     //
     // Write small plot file stuff to specified directory.  
     // Unlike writePlotFile, this is NOT a pure virtual function 
@@ -70,13 +81,13 @@ public:
     //
     virtual void writeSmallPlotFile (const std::string& dir,
                                      std::ostream&      os,
-				     VisMF::How         how = VisMF::OneFilePerCPU) {};
+				     VisMF::How         how = VisMF::NFiles) {};
     //
     // Write current state to checkpoint file.
     //
     virtual void checkPoint (const std::string& dir,
                              std::ostream&      os,
-                             VisMF::How         how = VisMF::OneFilePerCPU,
+                             VisMF::How         how = VisMF::NFiles,
                              bool               dump_old = true);
     //
     // Restart from a checkpoint file.
@@ -454,6 +465,8 @@ protected:
 
     BoxArray              m_AreaNotToTag; //Area which shouldn't be tagged on this level.
     Box                   m_AreaToTag;    //Area which is allowed to be tagged on this level.
+
+    bool                  levelDirectoryCreated;    // for checkpoints and plotfiles
 
 private:
 

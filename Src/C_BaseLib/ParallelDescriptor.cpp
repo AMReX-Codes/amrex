@@ -2305,7 +2305,7 @@ ParallelDescriptor::ReadAndBcastFile (const std::string& filename,
 				      bool               bExitOnError,
 				      const MPI_Comm    &comm)
 {
-    enum { IO_Buffer_Size = 40960 * 32 };
+    enum { IO_Buffer_Size = 262144 * 8 };
 
 #ifdef BL_SETBUF_SIGNED_CHAR
     typedef signed char Setbuf_Char_Type;
@@ -2315,16 +2315,14 @@ ParallelDescriptor::ReadAndBcastFile (const std::string& filename,
 
     Array<Setbuf_Char_Type> io_buffer(IO_Buffer_Size);
 
-    int fileLength = 0, fileLengthPadded;
+    int fileLength(0), fileLengthPadded(0);
 
     std::ifstream iss;
 
-    if (ParallelDescriptor::IOProcessor())
-    {
+    if (ParallelDescriptor::IOProcessor()) {
         iss.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
         iss.open(filename.c_str(), std::ios::in);
-        if ( ! iss.good())
-        {
+        if ( ! iss.good()) {
 	  if(bExitOnError) {
             BoxLib::FileOpenFailed(filename);
 	  } else {
@@ -2346,8 +2344,7 @@ ParallelDescriptor::ReadAndBcastFile (const std::string& filename,
     fileLengthPadded = fileLength + 1;
     fileLengthPadded += fileLengthPadded % 8;
     charBuf.resize(fileLengthPadded);
-    if (ParallelDescriptor::IOProcessor())
-    {
+    if (ParallelDescriptor::IOProcessor()) {
         iss.read(charBuf.dataPtr(), fileLength);
         iss.close();
     }

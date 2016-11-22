@@ -32,6 +32,7 @@
 #include <Utility.H>
 #include <DistributionMapping.H>
 #include <FabSet.H>
+#include <StateData.H>
 
 #ifdef MG_USE_FBOXLIB
 #include <mg_cpp_f.h>
@@ -88,6 +89,11 @@ namespace
     int  checkpoint_on_restart;
     bool checkpoint_files_output;
     int  compute_new_dt_on_regrid;
+    bool precreateDirectories;
+    bool prereadFAHeaders;
+    VisMF::Header::Version plot_headerversion(VisMF::Header::Version_v1);
+    VisMF::Header::Version checkpoint_headerversion(VisMF::Header::Version_v1);
+
 }
 
 void
@@ -110,6 +116,10 @@ Amr::Initialize ()
     checkpoint_on_restart    = 0;
     checkpoint_files_output  = true;
     compute_new_dt_on_regrid = 0;
+    precreateDirectories     = true;
+    prereadFAHeaders         = true;
+    plot_headerversion       = VisMF::Header::Version_v1;
+    checkpoint_headerversion = VisMF::Header::Version_v1;
 
     BoxLib::ExecOnFinalize(Amr::Finalize);
 
@@ -689,15 +699,18 @@ Amr::okToContinue ()
 void
 Amr::writePlotFile ()
 {
-    if ( ! Plot_Files_Output()) return;
+    if ( ! Plot_Files_Output()) {
+      return;
+    }
 
     BL_PROFILE_REGION_START("Amr::writePlotFile()");
     BL_PROFILE("Amr::writePlotFile()");
 
     VisMF::SetNOutFiles(plot_nfiles);
+    VisMF::Header::Version currentVersion(VisMF::GetHeaderVersion());
+    VisMF::SetHeaderVersion(plot_headerversion);
 
-    if (first_plotfile) 
-    {
+    if (first_plotfile) {
         first_plotfile = false;
         amr_level[0]->setPlotVariables();
     }
@@ -706,11 +719,13 @@ Amr::writePlotFile ()
 
     const std::string& pltfile = BoxLib::Concatenate(plot_file_root,level_steps[0],file_name_digits);
 
-    if (verbose > 0 && ParallelDescriptor::IOProcessor())
+    if (verbose > 0 && ParallelDescriptor::IOProcessor()) {
         std::cout << "PLOTFILE: file = " << pltfile << '\n';
+    }
 
-    if (record_run_info && ParallelDescriptor::IOProcessor())
+    if (record_run_info && ParallelDescriptor::IOProcessor()) {
         runlog << "PLOTFILE: file = " << pltfile << '\n';
+    }
 
   BoxLib::StreamRetry sretry(pltfile, abort_on_stream_retry_failure,
                              stream_max_tries);
@@ -725,12 +740,22 @@ Amr::writePlotFile ()
     //  it is finished writing.  then stream retry can rename
     //  it to a bad suffix if there were stream errors.
     //
-    BoxLib::UtilRenameDirectoryToOld(pltfile, false);     // dont call barrier
-    BoxLib::UtilCreateCleanDirectory(pltfileTemp, true);  // call barrier
+
+    if(precreateDirectories) {    // ---- make all directories at once
+      BoxLib::UtilRenameDirectoryToOld(pltfile, false);      // dont call barrier
+      BoxLib::UtilCreateCleanDirectory(pltfileTemp, false);  // dont call barrier
+      for(int i(0); i <= finest_level; ++i) {
+        amr_level[i].CreateLevelDirectory(pltfileTemp);
+      }
+      ParallelDescriptor::Barrier("Amr::precreate plotfile Directories");
+    } else {
+      BoxLib::UtilRenameDirectoryToOld(pltfile, false);     // dont call barrier
+      BoxLib::UtilCreateCleanDirectory(pltfileTemp, true);  // call barrier
+    }
 
     std::string HeaderFileName(pltfileTemp + "/Header");
 
-    VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+    VisMF::IO_Buffer io_buffer(VisMF::GetIOBufferSize());
 
     std::ofstream HeaderFile;
 
@@ -738,39 +763,40 @@ Amr::writePlotFile ()
 
     int old_prec(0);
 
-    if (ParallelDescriptor::IOProcessor())
-    {
+    if (ParallelDescriptor::IOProcessor()) {
         //
         // Only the IOProcessor() writes to the header file.
         //
         HeaderFile.open(HeaderFileName.c_str(), std::ios::out | std::ios::trunc |
 	                                        std::ios::binary);
-        if ( ! HeaderFile.good())
+        if ( ! HeaderFile.good()) {
             BoxLib::FileOpenFailed(HeaderFileName);
+	}
         old_prec = HeaderFile.precision(15);
     }
 
-    for (int k(0); k <= finest_level; ++k)
+    for (int k(0); k <= finest_level; ++k) {
         amr_level[k]->writePlotFile(pltfileTemp, HeaderFile);
+    }
 
-    if (ParallelDescriptor::IOProcessor())
-    {
+    if (ParallelDescriptor::IOProcessor()) {
         HeaderFile.precision(old_prec);
-        if ( ! HeaderFile.good())
+        if ( ! HeaderFile.good()) {
             BoxLib::Error("Amr::writePlotFile() failed");
+	}
     }
 
     last_plotfile = level_steps[0];
 
-    if (verbose > 0)
-    {
+    if (verbose > 0) {
         const int IOProc        = ParallelDescriptor::IOProcessorNumber();
         Real      dPlotFileTime = ParallelDescriptor::second() - dPlotFileTime0;
 
         ParallelDescriptor::ReduceRealMax(dPlotFileTime,IOProc);
 
-        if (ParallelDescriptor::IOProcessor())
+        if (ParallelDescriptor::IOProcessor()) {
             std::cout << "Write plotfile time = " << dPlotFileTime << "  seconds" << "\n\n";
+	}
     }
     ParallelDescriptor::Barrier("Amr::writePlotFile::end");
 
@@ -783,38 +809,50 @@ Amr::writePlotFile ()
     //
 
   }  // end while
+
+  VisMF::SetHeaderVersion(currentVersion);
+  
   BL_PROFILE_REGION_STOP("Amr::writePlotFile()");
 }
 
 void
 Amr::writeSmallPlotFile ()
 {
-    if ( ! Plot_Files_Output()) return;
+    if ( ! Plot_Files_Output()) {
+      return;
+    }
 
     BL_PROFILE_REGION_START("Amr::writeSmallPlotFile()");
     BL_PROFILE("Amr::writeSmallPlotFile()");
 
     VisMF::SetNOutFiles(plot_nfiles);
+    VisMF::Header::Version currentVersion(VisMF::GetHeaderVersion());
+    VisMF::SetHeaderVersion(plot_headerversion);
 
-    if (first_smallplotfile) 
-    {
+    if (first_smallplotfile) {
         first_smallplotfile = false;
         amr_level[0]->setSmallPlotVariables();
     }
 
     // Don't continue if we have no variables to plot.
     
-    if (stateSmallPlotVars().size() == 0) return;
+    if (stateSmallPlotVars().size() == 0) {
+      return;
+    }
 
     Real dPlotFileTime0 = ParallelDescriptor::second();
 
-    const std::string& pltfile = BoxLib::Concatenate(small_plot_file_root,level_steps[0],file_name_digits);
+    const std::string& pltfile = BoxLib::Concatenate(small_plot_file_root,
+                                                     level_steps[0],
+                                                     file_name_digits);
 
-    if (verbose > 0 && ParallelDescriptor::IOProcessor())
+    if (verbose > 0 && ParallelDescriptor::IOProcessor()) {
         std::cout << "SMALL PLOTFILE: file = " << pltfile << '\n';
+    }
 
-    if (record_run_info && ParallelDescriptor::IOProcessor())
+    if (record_run_info && ParallelDescriptor::IOProcessor()) {
         runlog << "SMALL PLOTFILE: file = " << pltfile << '\n';
+    }
 
   BoxLib::StreamRetry sretry(pltfile, abort_on_stream_retry_failure,
                              stream_max_tries);
@@ -829,12 +867,22 @@ Amr::writeSmallPlotFile ()
     //  it is finished writing.  then stream retry can rename
     //  it to a bad suffix if there were stream errors.
     //
-    BoxLib::UtilRenameDirectoryToOld(pltfile, false);     // dont call barrier
-    BoxLib::UtilCreateCleanDirectory(pltfileTemp, true);  // call barrier
+    if(precreateDirectories) {    // ---- make all directories at once
+      BoxLib::UtilRenameDirectoryToOld(pltfile, false);      // dont call barrier
+      BoxLib::UtilCreateCleanDirectory(pltfileTemp, false);  // dont call barrier
+      for(int i(0); i <= finest_level; ++i) {
+        amr_level[i].CreateLevelDirectory(pltfileTemp);
+      }
+      ParallelDescriptor::Barrier("Amr::precreate smallplotfile Directories");
+    } else {
+      BoxLib::UtilRenameDirectoryToOld(pltfile, false);     // dont call barrier
+      BoxLib::UtilCreateCleanDirectory(pltfileTemp, true);  // call barrier
+    }
+
 
     std::string HeaderFileName(pltfileTemp + "/Header");
 
-    VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+    VisMF::IO_Buffer io_buffer(VisMF::GetIOBufferSize());
 
     std::ofstream HeaderFile;
 
@@ -842,39 +890,40 @@ Amr::writeSmallPlotFile ()
 
     int old_prec(0);
 
-    if (ParallelDescriptor::IOProcessor())
-    {
+    if (ParallelDescriptor::IOProcessor()) {
         //
         // Only the IOProcessor() writes to the header file.
         //
         HeaderFile.open(HeaderFileName.c_str(), std::ios::out | std::ios::trunc |
 	                                        std::ios::binary);
-        if ( ! HeaderFile.good())
+        if ( ! HeaderFile.good()) {
             BoxLib::FileOpenFailed(HeaderFileName);
+	}
         old_prec = HeaderFile.precision(15);
     }
 
-    for (int k(0); k <= finest_level; ++k)
+    for (int k(0); k <= finest_level; ++k) {
         amr_level[k]->writeSmallPlotFile(pltfileTemp, HeaderFile);
+    }
 
-    if (ParallelDescriptor::IOProcessor())
-    {
+    if (ParallelDescriptor::IOProcessor()) {
         HeaderFile.precision(old_prec);
-        if ( ! HeaderFile.good())
-            BoxLib::Error("Amr::writePlotFile() failed");
+        if ( ! HeaderFile.good()) {
+            BoxLib::Error("Amr::writeSmallPlotFile() failed");
+	}
     }
 
     last_smallplotfile = level_steps[0];
 
-    if (verbose > 0)
-    {
+    if (verbose > 0) {
         const int IOProc        = ParallelDescriptor::IOProcessorNumber();
         Real      dPlotFileTime = ParallelDescriptor::second() - dPlotFileTime0;
 
         ParallelDescriptor::ReduceRealMax(dPlotFileTime,IOProc);
 
-        if (ParallelDescriptor::IOProcessor())
+        if (ParallelDescriptor::IOProcessor()) {
             std::cout << "Write small plotfile time = " << dPlotFileTime << "  seconds" << "\n\n";
+	}
     }
     ParallelDescriptor::Barrier("Amr::writeSmallPlotFile::end");
 
@@ -887,6 +936,9 @@ Amr::writeSmallPlotFile ()
     //
 
   }  // end while
+
+  VisMF::SetHeaderVersion(currentVersion);
+  
   BL_PROFILE_REGION_STOP("Amr::writeSmallPlotFile()");
 }
 
@@ -1225,18 +1277,19 @@ Amr::restart (const std::string& filename)
     BL_PROFILE_REGION_START("Amr::restart()");
     BL_PROFILE("Amr::restart()");
 
-    // Just initialize this here for the heck of it
     which_level_being_advanced = -1;
 
     Real dRestartTime0 = ParallelDescriptor::second();
 
     VisMF::SetMFFileInStreams(mffile_nstreams);
 
-    if (verbose > 0 && ParallelDescriptor::IOProcessor())
+    if (verbose > 0 && ParallelDescriptor::IOProcessor()) {
         std::cout << "restarting calculation from file: " << filename << std::endl;
+    }
 
-    if (record_run_info && ParallelDescriptor::IOProcessor())
+    if (record_run_info && ParallelDescriptor::IOProcessor()) {
         runlog << "RESTART from file = " << filename << '\n';
+    }
     //
     // Init problem dependent data.
     //
@@ -1246,17 +1299,45 @@ Amr::restart (const std::string& filename)
     //
     // Start calculation from given restart file.
     //
-    if (record_run_info && ParallelDescriptor::IOProcessor())
+    if (record_run_info && ParallelDescriptor::IOProcessor()) {
         runlog << "RESTART from file = " << filename << '\n';
+    }
+
+    // ---- preread and broadcast all FabArray headers if this file exists
+    std::map<std::string, Array<char> > faHeaderMap;
+    if(prereadFAHeaders) {
+      // ---- broadcast the file with the names of the fabarray headers
+      std::string faHeaderFilesName(filename + "/FabArrayHeaders.txt");
+      Array<char> faHeaderFileChars;
+      bool bExitOnError(false);  // ---- dont exit if this file does not exist
+      ParallelDescriptor::ReadAndBcastFile(faHeaderFilesName, faHeaderFileChars,
+                                           bExitOnError);
+      if(faHeaderFileChars.size() > 0) {  // ---- headers were read
+        std::string faFileCharPtrString(faHeaderFileChars.dataPtr());
+        std::istringstream fais(faFileCharPtrString, std::istringstream::in);
+        while ( ! fais.eof()) {  // ---- read and broadcast each header
+          std::string faHeaderName;
+          fais >> faHeaderName;
+          if( ! fais.eof()) {
+            std::string faHeaderFullName(filename + '/' + faHeaderName + "_H");
+            Array<char> &tempCharArray = faHeaderMap[faHeaderFullName];
+            ParallelDescriptor::ReadAndBcastFile(faHeaderFullName, tempCharArray);
+	    if(verbose > 0 && ParallelDescriptor::IOProcessor()) {
+              std::cout << ":::: faHeaderName faHeaderFullName tempCharArray.size() = " << faHeaderName
+	                << "  " << faHeaderFullName << "  " << tempCharArray.size() << std::endl;
+	    }
+          }
+        }
+        StateData::SetFAHeaderMapPtr(&faHeaderMap);
+      }
+    }
+
     //
     // Open the checkpoint header file for reading.
     //
-    std::string File = filename;
+    std::string File(filename + "/Header");
 
-    File += '/';
-    File += "Header";
-
-    VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+    VisMF::IO_Buffer io_buffer(VisMF::GetIOBufferSize());
 
     Array<char> fileCharPtr;
     ParallelDescriptor::ReadAndBcastFile(File, fileCharPtr);
@@ -1295,7 +1376,7 @@ Amr::restart (const std::string& filename)
     is >> finest_level;
 
     Array<Box> inputs_domain(max_level+1);
-    for (int lev = 0; lev <= max_level; lev++)
+    for (int lev = 0; lev <= max_level; ++lev)
     {
 	Box bx(Geom(lev).Domain().smallEnd(),Geom(lev).Domain().bigEnd());
        inputs_domain[lev] = bx;
@@ -1303,51 +1384,53 @@ Amr::restart (const std::string& filename)
 
     if (max_level >= mx_lev) {
 
-       for (int i = 0; i <= mx_lev; i++) is >> Geom(i);
-       for (int i = 0; i <  mx_lev; i++) is >> ref_ratio[i];
-       for (int i = 0; i <= mx_lev; i++) is >> dt_level[i];
+       for (int i(0); i <= mx_lev; ++i) { is >> Geom(i);      }
+       for (int i(0); i <  mx_lev; ++i) { is >> ref_ratio[i]; }
+       for (int i(0); i <= mx_lev; ++i) { is >> dt_level[i];  }
 
        if (new_checkpoint_format)
        {
-           for (int i = 0; i <= mx_lev; i++) is >> dt_min[i];
+           for (int i(0); i <= mx_lev; ++i) { is >> dt_min[i]; }
        }
        else
        {
-           for (int i = 0; i <= mx_lev; i++) dt_min[i] = dt_level[i];
+           for (int i(0); i <= mx_lev; ++i) { dt_min[i] = dt_level[i]; }
        }
 
        Array<int>  n_cycle_in;
        n_cycle_in.resize(mx_lev+1);  
-       for (int i = 0; i <= mx_lev; i++) is >> n_cycle_in[i];
+       for (int i(0); i <= mx_lev; ++i) { is >> n_cycle_in[i]; }
        bool any_changed = false;
 
-       for (int i = 0; i <= mx_lev; i++) 
-           if (n_cycle[i] != n_cycle_in[i])
-           {
+       for (int i(0); i <= mx_lev; ++i) {
+           if (n_cycle[i] != n_cycle_in[i]) {
                any_changed = true;
-               if (verbose > 0 && ParallelDescriptor::IOProcessor())
+               if (verbose > 0 && ParallelDescriptor::IOProcessor()) {
                    std::cout << "Warning: n_cycle has changed at level " << i << 
                                 " from " << n_cycle_in[i] << " to " << n_cycle[i] << std::endl;;
+	       }
            }
+       }
 
        // If we change n_cycle then force a full regrid from level 0 up
        if (max_level > 0 && any_changed)
        {
            level_count[0] = regrid_int[0];
-           if ((verbose > 0) && ParallelDescriptor::IOProcessor())
+           if ((verbose > 0) && ParallelDescriptor::IOProcessor()) {
                std::cout << "Warning: This forces a full regrid " << std::endl;
+	   }
        }
 
 
-       for (int i = 0; i <= mx_lev; i++) is >> level_steps[i];
-       for (int i = 0; i <= mx_lev; i++) is >> level_count[i];
+       for (int i(0); i <= mx_lev; ++i) { is >> level_steps[i]; }
+       for (int i(0); i <= mx_lev; ++i) { is >> level_count[i]; }
 
        //
        // Set bndry conditions.
        //
        if (max_level > mx_lev)
        {
-           for (int i = mx_lev+1; i <= max_level; i++)
+           for (int i(mx_lev + 1); i <= max_level; ++i)
            {
                dt_level[i]    = dt_level[i-1]/n_cycle[i];
                level_steps[i] = n_cycle[i]*level_steps[i-1];
@@ -1355,29 +1438,31 @@ Amr::restart (const std::string& filename)
            }
 
            // This is just an error check
-           if (!sub_cycle)
+           if ( ! sub_cycle)
            {
-               for (int i = 1; i <= finest_level; i++)
+               for (int i(1); i <= finest_level; ++i)
                {
-                   if (dt_level[i] != dt_level[i-1])
+                   if (dt_level[i] != dt_level[i-1]) {
                       BoxLib::Error("restart: must have same dt at all levels if not subcycling");
+		   }
                }
            }
        }
 
        if (regrid_on_restart && max_level > 0)
        {
-           if (regrid_int[0] > 0) 
+           if (regrid_int[0] > 0) {
                level_count[0] = regrid_int[0];
-           else
+	   } else {
                BoxLib::Error("restart: can't have regrid_on_restart and regrid_int <= 0");
+	   }
        }
 
        checkInput();
        //
        // Read levels.
        //
-       for (int lev = 0; lev <= finest_level; lev++)
+       for (int lev(0); lev <= finest_level; ++lev)
        {
 	   amr_level[lev].reset((*levelbld)());
            amr_level[lev]->restart(*this, is);
@@ -1388,13 +1473,15 @@ Amr::restart (const std::string& filename)
        //
        // Build any additional data structures.
        //
-       for (int lev = 0; lev <= finest_level; lev++)
+       for (int lev = 0; lev <= finest_level; lev++) {
            amr_level[lev]->post_restart();
+       }
 
     } else {
 
-       if (ParallelDescriptor::IOProcessor())
+       if (ParallelDescriptor::IOProcessor()) {
           BoxLib::Warning("Amr::restart(): max_level is lower than before");
+       }
 
        int new_finest_level = std::min(max_level,finest_level);
 
@@ -1406,40 +1493,37 @@ Amr::restart (const std::string& filename)
        int         int_dummy;
        IntVect intvect_dummy;
 
-       for (int i = 0          ; i <= max_level; i++) is >> Geom(i);
-       for (int i = max_level+1; i <= mx_lev   ; i++) is >> geom_dummy;
+       for (int i(0)            ; i <= max_level; ++i) { is >> Geom(i); }
+       for (int i(max_level + 1); i <= mx_lev   ; ++i) { is >> geom_dummy; }
 
-       for (int i = 0        ; i <  max_level; i++) is >> ref_ratio[i];
-       for (int i = max_level; i <  mx_lev   ; i++) is >> intvect_dummy;
+       for (int i(0)        ; i <  max_level; ++i) { is >> ref_ratio[i]; }
+       for (int i(max_level); i <  mx_lev   ; ++i) { is >> intvect_dummy; }
 
-       for (int i = 0          ; i <= max_level; i++) is >> dt_level[i];
-       for (int i = max_level+1; i <= mx_lev   ; i++) is >> real_dummy;
+       for (int i(0)            ; i <= max_level; ++i) { is >> dt_level[i]; }
+       for (int i(max_level + 1); i <= mx_lev   ; ++i) { is >> real_dummy; }
 
-       if (new_checkpoint_format)
-       {
-           for (int i = 0          ; i <= max_level; i++) is >> dt_min[i];
-           for (int i = max_level+1; i <= mx_lev   ; i++) is >> real_dummy;
-       }
-       else
-       {
-           for (int i = 0; i <= max_level; i++) dt_min[i] = dt_level[i];
+       if (new_checkpoint_format) {
+           for (int i(0)            ; i <= max_level; ++i) { is >> dt_min[i]; }
+           for (int i(max_level + 1); i <= mx_lev   ; ++i) { is >> real_dummy; }
+       } else {
+           for (int i(0); i <= max_level; ++i) { dt_min[i] = dt_level[i]; }
        }
 
-       for (int i = 0          ; i <= max_level; i++) is >> n_cycle[i];
-       for (int i = max_level+1; i <= mx_lev   ; i++) is >> int_dummy;
+       for (int i(0)            ; i <= max_level; ++i) { is >> n_cycle[i]; }
+       for (int i(max_level + 1); i <= mx_lev   ; ++i) { is >> int_dummy; }
 
-       for (int i = 0          ; i <= max_level; i++) is >> level_steps[i];
-       for (int i = max_level+1; i <= mx_lev   ; i++) is >> int_dummy;
+       for (int i(0)            ; i <= max_level; ++i) { is >> level_steps[i]; }
+       for (int i(max_level + 1); i <= mx_lev   ; ++i) { is >> int_dummy; }
 
-       for (int i = 0          ; i <= max_level; i++) is >> level_count[i];
-       for (int i = max_level+1; i <= mx_lev   ; i++) is >> int_dummy;
+       for (int i(0)            ; i <= max_level; ++i) { is >> level_count[i]; }
+       for (int i(max_level + 1); i <= mx_lev   ; ++i) { is >> int_dummy; }
 
-       if (regrid_on_restart && max_level > 0)
-       {
-           if (regrid_int[0] > 0) 
+       if (regrid_on_restart && max_level > 0) {
+           if (regrid_int[0] > 0)  {
                level_count[0] = regrid_int[0];
-           else
+	   } else {
                BoxLib::Error("restart: can't have regrid_on_restart and regrid_int <= 0");
+	   }
        }
 
        checkInput();
@@ -1458,22 +1542,23 @@ Amr::restart (const std::string& filename)
        //
        // Build any additional data structures.
        //
-       for (int lev = 0; lev <= new_finest_level; lev++)
+       for (int lev = 0; lev <= new_finest_level; lev++) {
            amr_level[lev]->post_restart();
-
+       }
     }
 
-    for (int lev = 0; lev <= finest_level; lev++)
+    for (int lev = 0; lev <= finest_level; ++lev)
     {
 	Box restart_domain(Geom(lev).Domain());
-       if (! (inputs_domain[lev] == restart_domain) )
+       if ( ! (inputs_domain[lev] == restart_domain) )
        {
           if (ParallelDescriptor::IOProcessor())
           {
              std::cout << "Problem at level " << lev << '\n';
              std::cout << "Domain according to     inputs file is " <<  inputs_domain[lev] << '\n';
              std::cout << "Domain according to checkpoint file is " << restart_domain      << '\n';
-             std::cout << "Amr::restart() failed -- box from inputs file does not equal box from restart file" << std::endl;
+             std::cout << "Amr::restart() failed -- box from inputs file does not "
+	               << "equal box from restart file." << std::endl;
           }
           BoxLib::Abort();
        }
@@ -1490,8 +1575,9 @@ Amr::restart (const std::string& filename)
 
         ParallelDescriptor::ReduceRealMax(dRestartTime,ParallelDescriptor::IOProcessorNumber());
 
-        if (ParallelDescriptor::IOProcessor())
+        if (ParallelDescriptor::IOProcessor()) {
             std::cout << "Restart time = " << dRestartTime << " seconds." << '\n';
+	}
     }
     BL_PROFILE_REGION_STOP("Amr::restart()");
 }
@@ -1499,7 +1585,9 @@ Amr::restart (const std::string& filename)
 void
 Amr::checkPoint ()
 {
-    if ( ! checkpoint_files_output) return;
+    if( ! checkpoint_files_output) {
+      return;
+    }
 
     BL_PROFILE_REGION_START("Amr::checkPoint()");
     BL_PROFILE("Amr::checkPoint()");
@@ -1512,15 +1600,20 @@ Amr::checkPoint ()
 
     FArrayBox::setFormat(FABio::FAB_NATIVE);
 
+    VisMF::Header::Version currentVersion(VisMF::GetHeaderVersion());
+    VisMF::SetHeaderVersion(checkpoint_headerversion);
+
     Real dCheckPointTime0 = ParallelDescriptor::second();
 
     const std::string& ckfile = BoxLib::Concatenate(check_file_root,level_steps[0],file_name_digits);
 
-    if (verbose > 0 && ParallelDescriptor::IOProcessor())
+    if(verbose > 0 && ParallelDescriptor::IOProcessor()) {
         std::cout << "CHECKPOINT: file = " << ckfile << std::endl;
+    }
 
-    if (record_run_info && ParallelDescriptor::IOProcessor())
+    if(record_run_info && ParallelDescriptor::IOProcessor()) {
         runlog << "CHECKPOINT: file = " << ckfile << '\n';
+    }
 
 
   BoxLib::StreamRetry sretry(ckfile, abort_on_stream_retry_failure,
@@ -1529,6 +1622,9 @@ Amr::checkPoint ()
   const std::string ckfileTemp(ckfile + ".temp");
 
   while(sretry.TryFileOutput()) {
+
+    StateData::ClearFabArrayHeaderNames();
+
     //
     //  if either the ckfile or ckfileTemp exists, rename them
     //  to move them out of the way.  then create ckfile
@@ -1536,12 +1632,22 @@ Amr::checkPoint ()
     //  it is finished writing.  then stream retry can rename
     //  it to a bad suffix if there were stream errors.
     //
-    BoxLib::UtilRenameDirectoryToOld(ckfile, false);     // dont call barrier
-    BoxLib::UtilCreateCleanDirectory(ckfileTemp, true);  // call barrier
+
+    if(precreateDirectories) {    // ---- make all directories at once
+      BoxLib::UtilRenameDirectoryToOld(ckfile, false);      // dont call barrier
+      BoxLib::UtilCreateCleanDirectory(ckfileTemp, false);  // dont call barrier
+      for(int i(0); i <= finest_level; ++i) {
+        amr_level[i].CreateLevelDirectory(ckfileTemp);
+      }
+      ParallelDescriptor::Barrier("Amr::precreateDirectories");
+    } else {
+      BoxLib::UtilRenameDirectoryToOld(ckfile, false);     // dont call barrier
+      BoxLib::UtilCreateCleanDirectory(ckfileTemp, true);  // call barrier
+    }
 
     std::string HeaderFileName = ckfileTemp + "/Header";
 
-    VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+    VisMF::IO_Buffer io_buffer(VisMF::GetIOBufferSize());
 
     std::ofstream HeaderFile;
 
@@ -1557,8 +1663,9 @@ Amr::checkPoint ()
         HeaderFile.open(HeaderFileName.c_str(), std::ios::out | std::ios::trunc |
 	                                        std::ios::binary);
 
-        if ( ! HeaderFile.good())
+        if ( ! HeaderFile.good()) {
             BoxLib::FileOpenFailed(HeaderFileName);
+	}
 
         old_prec = HeaderFile.precision(17);
 
@@ -1570,31 +1677,49 @@ Amr::checkPoint ()
         //
         // Write out problem domain.
         //
-        for (int i = 0; i <= max_level; i++) HeaderFile << Geom(i)        << ' ';
+        for (int i(0); i <= max_level; ++i) { HeaderFile << Geom(i)        << ' '; }
         HeaderFile << '\n';
-        for (int i = 0; i < max_level; i++)  HeaderFile << ref_ratio[i]   << ' ';
+        for (int i(0); i < max_level; ++i)  { HeaderFile << ref_ratio[i]   << ' '; }
         HeaderFile << '\n';
-        for (int i = 0; i <= max_level; i++) HeaderFile << dt_level[i]    << ' ';
+        for (int i(0); i <= max_level; ++i) { HeaderFile << dt_level[i]    << ' '; }
         HeaderFile << '\n';
-        for (int i = 0; i <= max_level; i++) HeaderFile << dt_min[i]      << ' ';
+        for (int i(0); i <= max_level; ++i) { HeaderFile << dt_min[i]      << ' '; }
         HeaderFile << '\n';
-        for (int i = 0; i <= max_level; i++) HeaderFile << n_cycle[i]     << ' ';
+        for (int i(0); i <= max_level; ++i) { HeaderFile << n_cycle[i]     << ' '; }
         HeaderFile << '\n';
-        for (int i = 0; i <= max_level; i++) HeaderFile << level_steps[i] << ' ';
+        for (int i(0); i <= max_level; ++i) { HeaderFile << level_steps[i] << ' '; }
         HeaderFile << '\n';
-        for (int i = 0; i <= max_level; i++) HeaderFile << level_count[i] << ' ';
+        for (int i(0); i <= max_level; ++i) { HeaderFile << level_count[i] << ' '; }
         HeaderFile << '\n';
     }
 
-    for (int i = 0; i <= finest_level; ++i)
+    for (int i = 0; i <= finest_level; ++i) {
         amr_level[i]->checkPoint(ckfileTemp, HeaderFile);
+    }
 
-    if (ParallelDescriptor::IOProcessor())
-    {
+    if (ParallelDescriptor::IOProcessor()) {
+	const Array<std::string> &FAHeaderNames = StateData::FabArrayHeaderNames();
+	if(FAHeaderNames.size() > 0) {
+          std::string FAHeaderFilesName = ckfileTemp + "/FabArrayHeaders.txt";
+          std::ofstream FAHeaderFile(FAHeaderFilesName.c_str(),
+	                             std::ios::out | std::ios::trunc |
+	                             std::ios::binary);
+          if ( ! FAHeaderFile.good()) {
+              BoxLib::FileOpenFailed(FAHeaderFilesName);
+	  }
+
+	  for(int i(0); i < FAHeaderNames.size(); ++i) {
+	    FAHeaderFile << FAHeaderNames[i] << '\n';
+	  }
+	}
+    }
+
+    if(ParallelDescriptor::IOProcessor()) {
         HeaderFile.precision(old_prec);
 
-        if ( ! HeaderFile.good())
+        if( ! HeaderFile.good()) {
             BoxLib::Error("Amr::checkpoint() failed");
+	}
     }
 
     last_checkpoint = level_steps[0];
@@ -1613,8 +1738,9 @@ Amr::checkPoint ()
         ParallelDescriptor::ReduceRealMax(dCheckPointTime,
 	                            ParallelDescriptor::IOProcessorNumber());
 
-        if (ParallelDescriptor::IOProcessor())
+        if(ParallelDescriptor::IOProcessor()) {
             std::cout << "checkPoint() time = " << dCheckPointTime << " secs." << '\n';
+	}
     }
     ParallelDescriptor::Barrier("Amr::checkPoint::end");
 
@@ -1626,9 +1752,11 @@ Amr::checkPoint ()
   }  // end while
 
   //
-  // Don't forget to reset FAB format.
+  // Restore the previous FAB format.
   //
   FArrayBox::setFormat(thePrevFormat);
+
+  VisMF::SetHeaderVersion(currentVersion);
 
   BL_PROFILE_REGION_STOP("Amr::checkPoint()");
 }
@@ -2542,8 +2670,6 @@ Amr::grid_places (int              lbase,
 {
     BL_PROFILE("Amr::grid_places()");
 
-    int max_crse = std::min(finest_level,max_level-1);
-
     const Real strttime = ParallelDescriptor::second();
 
     if (lbase == 0)
@@ -2895,6 +3021,18 @@ Amr::initPltAndChk ()
     abort_on_stream_retry_failure = false;
     pp.query("abort_on_stream_retry_failure",abort_on_stream_retry_failure);
 
+    pp.query("precreateDirectories", precreateDirectories);
+    pp.query("prereadFAHeaders", prereadFAHeaders);
+
+    int phvInt(plot_headerversion), chvInt(checkpoint_headerversion);
+    pp.query("plot_headerversion", phvInt);
+    if(phvInt != plot_headerversion) {
+      plot_headerversion = static_cast<VisMF::Header::Version> (phvInt);
+    }
+    pp.query("checkpoint_headerversion", chvInt);
+    if(chvInt != checkpoint_headerversion) {
+      checkpoint_headerversion = static_cast<VisMF::Header::Version> (chvInt);
+    }
 }
 
 
@@ -3124,6 +3262,14 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
         allInts.push_back(state_small_plot_vars.size());
         allInts.push_back(derive_plot_vars.size());
 
+        allInts.push_back(VisMF::GetNOutFiles());
+        allInts.push_back(VisMF::GetMFFileInStreams());
+        allInts.push_back(VisMF::GetVerbose());
+        allInts.push_back(VisMF::GetHeaderVersion());
+
+        allInts.push_back(plot_headerversion);
+        allInts.push_back(checkpoint_headerversion);
+
         allIntsSize = allInts.size();
       }
 
@@ -3195,7 +3341,30 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
         state_small_plot_vars_Size = allInts[count++];
         derive_plot_vars_Size      = allInts[count++];
 
+        VisMF::SetNOutFiles(allInts[count++]);
+        VisMF::SetMFFileInStreams(allInts[count++]);
+        VisMF::SetVerbose(allInts[count++]);
+        VisMF::SetHeaderVersion(static_cast<VisMF::Header::Version> (allInts[count++]));
+
+        plot_headerversion       = static_cast<VisMF::Header::Version> (allInts[count++]);
+        checkpoint_headerversion = static_cast<VisMF::Header::Version> (allInts[count++]);
+
 	BL_ASSERT(count == allInts.size());
+      }
+
+
+      // ---- pack up the longs
+      Array<long> allLongs;
+      if(scsMyId == ioProcNumSCS) {
+        allLongs.push_back(VisMF::GetIOBufferSize());
+      }
+
+      BoxLib::BroadcastArray(allLongs, scsMyId, ioProcNumAll, scsComm);
+      
+      // ---- unpack the longs
+      if(scsMyId != ioProcNumSCS) {
+	int count(0);
+        VisMF::SetIOBufferSize(allLongs[count++]);
       }
 
 
@@ -3250,6 +3419,18 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
         allBools.push_back(initialized);
         allBools.push_back(use_fixed_coarse_grids);
         allBools.push_back(first_smallplotfile);
+        allBools.push_back(precreateDirectories);
+        allBools.push_back(prereadFAHeaders);
+
+	// ---- sync vismf settings
+        allBools.push_back(VisMF::GetGroupSets());
+        allBools.push_back(VisMF::GetSetBuf());
+        allBools.push_back(VisMF::GetUseSingleRead());
+        allBools.push_back(VisMF::GetUseSingleWrite());
+        allBools.push_back(VisMF::GetCheckFilePositions());
+        allBools.push_back(VisMF::GetUsePersistentIFStreams());
+        allBools.push_back(VisMF::GetUseSynchronousReads());
+        allBools.push_back(VisMF::GetUseDynamicSetSelection());
 
 	allBoolsSize = allBools.size();
       }
@@ -3271,6 +3452,17 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
         initialized                   = allBools[count++];
         use_fixed_coarse_grids        = allBools[count++];
         first_smallplotfile           = allBools[count++];
+        precreateDirectories          = allBools[count++];
+        prereadFAHeaders              = allBools[count++];
+
+        VisMF::SetGroupSets(allBools[count++]);
+        VisMF::SetSetBuf(allBools[count++]);
+        VisMF::SetUseSingleRead(allBools[count++]);
+        VisMF::SetUseSingleWrite(allBools[count++]);
+        VisMF::SetCheckFilePositions(allBools[count++]);
+        VisMF::SetUsePersistentIFStreams(allBools[count++]);
+        VisMF::SetUseSynchronousReads(allBools[count++]);
+        VisMF::SetUseDynamicSetSelection(allBools[count++]);
       }
 
 
@@ -3490,14 +3682,6 @@ Amr::RedistributeGrids(int how) {
 	  int minRank(0), maxRank(0);
           mLDM = DistributionMapping::MultiLevelMapRandom(ref_ratio, allBoxes, maxGridSize(0),
 	                                                  maxRank, minRank);
-        } else if(how == 8) {   // ---- move all grids to proc 8
-	  int minRank(8), maxRank(8);
-          mLDM = DistributionMapping::MultiLevelMapRandom(ref_ratio, allBoxes, maxGridSize(0),
-	                                                  maxRank, minRank);
-        } else if(how == 13) {  // ---- move all grids to proc 13
-	  int minRank(13), maxRank(13);
-          mLDM = DistributionMapping::MultiLevelMapRandom(ref_ratio, allBoxes, maxGridSize(0),
-	                                                  maxRank, minRank);
         } else {
 	  return;
         }
@@ -3545,19 +3729,10 @@ Amr::PrintData(std::ostream& os) {
 using std::endl;
 #define SHOWVAL(val) { os << #val << " = " << val << std::endl; }
   os << "---------------------------------------------" << std::endl;
-  //SHOWVAL(regrid_grids_file);
-  //SHOWVAL(initial_grids_file);
   SHOWVAL(max_level);
   SHOWVAL(finest_level);
   SHOWVAL(cumtime);
   SHOWVAL(start_time);
-  //SHOWVAL(verbose);
-  //SHOWVAL(plot_file_root);
-  //SHOWVAL(check_int);
-  //SHOWVAL(ref_ratio.size());
-  //for(int i(0); i < ref_ratio.size(); ++i) {
-    //os << "ref_ratio[" << i << "] = " << ref_ratio[i] << endl;
-  //}
   SHOWVAL(amr_level.size());
   os << endl;
   for(int i(0); i < amr_level.size(); ++i) {
@@ -3603,34 +3778,5 @@ Amr::BroadcastBCRec(BCRec &bcrec, int myLocalId, int rootId, MPI_Comm localComm)
     bcrec.setVect(bcvect);
   }
 }
-
-
-#if 0
-void
-Amr::SendDataToNewProcs() {
-
-    if (ParallelDescriptor::IOProcessor()) {
-      Array<std::string> origSA;
-      origSA.push_back("string0");
-      origSA.push_back("__string1");
-      origSA.push_back("string222");
-      std::cout << ">>>>>>>>>>>>>>>>>>" << std::endl;
-      for(int i(0); i < origSA.size(); ++i) {
-        std::cout << "origSA[" << i << "] = " << origSA[i] << std::endl;
-      }
-      Array<char> charArray(BoxLib::SerializeStringArray(origSA));
-      Array<std::string> unSA(BoxLib::UnSerializeStringArray(charArray));
-      for(int i(0); i < unSA.size(); ++i) {
-        std::cout << "unSA[" << i << "] = " << unSA[i] << std::endl;
-      }
-      std::cout << "~~~~~~~~~~~~~~~~~~" << std::endl;
-      std::cout << "<<<<<<<<<<<<<<<<<<" << std::endl;
-    }
-
-}
-#endif
-
-
-
 
 
