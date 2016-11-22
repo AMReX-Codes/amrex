@@ -745,7 +745,7 @@ Amr::writePlotFile ()
       BoxLib::UtilRenameDirectoryToOld(pltfile, false);      // dont call barrier
       BoxLib::UtilCreateCleanDirectory(pltfileTemp, false);  // dont call barrier
       for(int i(0); i <= finest_level; ++i) {
-        amr_level[i].CreateLevelDirectory(pltfileTemp);
+        amr_level[i]->CreateLevelDirectory(pltfileTemp);
       }
       ParallelDescriptor::Barrier("Amr::precreate plotfile Directories");
     } else {
@@ -871,7 +871,7 @@ Amr::writeSmallPlotFile ()
       BoxLib::UtilRenameDirectoryToOld(pltfile, false);      // dont call barrier
       BoxLib::UtilCreateCleanDirectory(pltfileTemp, false);  // dont call barrier
       for(int i(0); i <= finest_level; ++i) {
-        amr_level[i].CreateLevelDirectory(pltfileTemp);
+        amr_level[i]->CreateLevelDirectory(pltfileTemp);
       }
       ParallelDescriptor::Barrier("Amr::precreate smallplotfile Directories");
     } else {
@@ -1637,7 +1637,7 @@ Amr::checkPoint ()
       BoxLib::UtilRenameDirectoryToOld(ckfile, false);      // dont call barrier
       BoxLib::UtilCreateCleanDirectory(ckfileTemp, false);  // dont call barrier
       for(int i(0); i <= finest_level; ++i) {
-        amr_level[i].CreateLevelDirectory(ckfileTemp);
+        amr_level[i]->CreateLevelDirectory(ckfileTemp);
       }
       ParallelDescriptor::Barrier("Amr::precreateDirectories");
     } else {
