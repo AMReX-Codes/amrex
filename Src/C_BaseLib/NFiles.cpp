@@ -214,7 +214,7 @@ bool NFilesIter::ReadyToWrite(bool appendFirst) {
 #ifdef DEBUG
       std::cout << myProc << ":: coordinatorProc = " << coordinatorProc << std::endl;
 #endif
-      for(int i(0); i < setZeroProcs.size(); ++i) {  // ---- tell the set zero ranks  who is coorinating
+      for(int i(0); i < setZeroProcs.size(); ++i) {  // ---- tell the set zero ranks  who is coordinating
         ParallelDescriptor::Send(&coordinatorProc, 1, setZeroProcs[i], coordinatorTag);
       }
       unreadMessages.push_back(std::make_pair(deciderTag, setZeroProcs.size() - 1));
