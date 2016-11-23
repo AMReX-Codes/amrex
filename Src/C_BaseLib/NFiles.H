@@ -115,7 +115,7 @@ class NFilesIter
       return ( BoxLib::Concatenate(filePrefix, fileNumber, minDigits ) );
     }
 
-    // ---- this is the processor coorinating dynamic set selection
+    // ---- this is the processor coordinating dynamic set selection
     int CoordinatorProc() const { return coordinatorProc; }
 
     // ---- these are the file numbers to which each rank wrote  [rank]
