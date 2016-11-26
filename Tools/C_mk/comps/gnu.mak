@@ -28,8 +28,8 @@ ifeq ($(DEBUG),TRUE)
   CXXFLAGS += -g -O0 -fno-inline -ggdb -Wall -Wno-sign-compare
   CFLAGS   += -g -O0 -fno-inline -ggdb -Wall -Wno-sign-compare
 
-  FFLAGS   += -g -O0 -fbounds-check -fbacktrace -Wuninitialized -Wno-maybe-uninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan
-  F90FLAGS += -g -O0 -fbounds-check -fbacktrace -Wuninitialized -Wno-maybe-uninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan
+  FFLAGS   += -g -O0 -ggdb -fbounds-check -fbacktrace -Wuninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan -finit-integer=2000000000
+  F90FLAGS += -g -O0 -ggdb -fbounds-check -fbacktrace -Wuninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan -finit-integer=2000000000
 
 else
 
