@@ -21,8 +21,8 @@ ifeq ($(DEBUG),TRUE)
 
   CXXFLAGS += -g -O0
   CFLAGS   += -g -O0
-  FFLAGS   += -g -O0 -Mbounds
-  F90FLAGS += -g -O0 -Mbounds
+  FFLAGS   += -g -O0 -Mbounds -Ktrap=divz,inv -Mchkptr
+  F90FLAGS += -g -O0 -Mbounds -Ktrap=divz,inv -Mchkptr
 
 else
 
@@ -38,7 +38,7 @@ endif
 CXXFLAGS += --c++11
 CFLAGS   += -c99
 
-F90FLAGS += -module $(fmoddir) -I$(fmoddir)
+F90FLAGS += -module $(fmoddir) -I$(fmoddir) -Mdclchk
 FFLAGS   += -module $(fmoddir) -I$(fmoddir) -Mextend
 
 ########################################################################
