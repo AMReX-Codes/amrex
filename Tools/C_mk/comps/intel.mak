@@ -19,10 +19,10 @@ intel_version := $(shell $(CXX) -V 2>&1 1>/dev/null | grep Version)
 
 ifeq ($(DEBUG),TRUE)
 
-  CXXFLAGS += -g -O0 -Wcheck
-  CFLAGS   += -g -O0 -Wcheck
-  FFLAGS   += -g -O0 -CB     # -u -check all -warn all
-  F90FLAGS += -g -O0 -CB     # -u -check all -warn all
+  CXXFLAGS += -g -O0 -Wcheck -traceback
+  CFLAGS   += -g -O0 -Wcheck -trackback
+  FFLAGS   += -g -O0 -check bounds,uninit,pointers -traceback
+  F90FLAGS += -g -O0 -check bounds,uninit,pointers -traceback
 
 else
 
@@ -38,7 +38,7 @@ endif
 CXXFLAGS += -std=c++11
 CFLAGS   += -std=c99
 
-F90FLAGS += -module $(fmoddir) -I$(fmoddir)
+F90FLAGS += -module $(fmoddir) -I$(fmoddir) -implicitnone
 FFLAGS   += -module $(fmoddir) -I$(fmoddir)
 
 ########################################################################
