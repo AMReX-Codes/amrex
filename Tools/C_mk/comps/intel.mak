@@ -13,7 +13,7 @@ F90FLAGS =
 
 ########################################################################
 
-intel_version := $(shell $(CXX) -V 2>&1 1>/dev/null | grep Version)
+intel_version := $(shell $(CXX) -dumpversion)
 
 ########################################################################
 
@@ -46,7 +46,11 @@ FFLAGS   += -module $(fmoddir) -I$(fmoddir)
 GENERIC_COMP_FLAGS =
 
 ifeq ($(USE_OMP),TRUE)
-  GENERIC_COMP_FLAGS += -openmp
+  ifeq ($(firstword $(sort 16.0 $(intel_version))), 16.0) 
+    GENERIC_COMP_FLAGS += -qopenmp
+  else
+    GENERIC_COMP_FLAGS += -openmp
+  endif
 endif
 
 CXXFLAGS += $(GENERIC_COMP_FLAGS)
