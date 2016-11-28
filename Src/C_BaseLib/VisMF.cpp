@@ -1033,6 +1033,8 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
 
     bytesWritten += VisMF::WriteHeader(mf_name, hdr, coordinatorProc);
 
+    delete whichRD;
+
     return bytesWritten;
 }
 
