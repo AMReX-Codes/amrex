@@ -40,6 +40,16 @@ else
 
 endif
 
+
+ifeq ($(USE_GPROF),TRUE)
+
+  CXXFLAGS += -pg
+  CFLAGS += -pg
+  FFLAGS += -pg
+  F90FLAGS += -pg
+
+endif
+
 ########################################################################
 
 ifeq ($(gcc_major_version),4)
