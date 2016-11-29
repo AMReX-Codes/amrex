@@ -10,14 +10,11 @@ PROFILE   = TRUE
 COMM_PROFILE  = TRUE
 TRACE_PROFILE = TRUE
 COMP      = g++
-FCOMP     = gfortran
 #COMP      = Intel
-#FCOMP     = Intel
 DIM       = 3
 PRECISION = DOUBLE
 EBASE     = mfreadwrite
 EBASE     = gridmovetest
-USE_CXX11     = TRUE
 
 include ./Make.package
 include $(BOXLIB_HOME)/Tools/C_mk/Make.defs

@@ -172,11 +172,10 @@ private:
 	Boundary () : initilized(false) {}
 	Boundary (const int * bc, MultiFab* cmf = 0, MultiFab * mf = 0) 
 	    : initilized(true),
-	      mg_bc(bc, 2*BL_SPACEDIM),
+	      mg_bc(bc, bc+2*BL_SPACEDIM),
 	      crse_phi(cmf),
 	      phi(mf)
 	    { }
-	int * get_mg_bc () { return mg_bc.dataPtr(); }
 	void set_bndry_values (MacBndry& bndry, IntVect crse_ratio);
     };
     Boundary m_bc;

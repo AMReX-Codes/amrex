@@ -1,6 +1,4 @@
-#ifndef HOST
-#  HOST := $(shell uname -n)
-#endif
+
+# UPC++
 
 CXX = upc++
-

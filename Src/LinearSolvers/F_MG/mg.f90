@@ -1028,7 +1028,7 @@ contains
              end if
           case (3)
              if ( .not. nodal_flag ) then
-                call cc_restriction_3d(cp(:,:,:,n), loc, fp(:,:,:,n), lof, lo, hi, tlo, thi, ir)
+                call cc_restriction_3d(cp(:,:,:,n), loc, fp(:,:,:,n), lof, tlo, thi, ir)
              else
                 call nodal_restriction_3d(cp(:,:,:,n), loc, fp(:,:,:,n), lof, &
                                           mp_fine(:,:,:,1), lom_fine, &

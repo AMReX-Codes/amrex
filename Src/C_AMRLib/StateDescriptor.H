@@ -10,8 +10,6 @@
 #include <REAL.H>
 #include <Box.H>
 #include <PhysBCFunct.H>
-#include <BL_CXX11.H>
-
 
 class Interpolater;
 
@@ -55,18 +53,18 @@ public:
         // Return a ptr to a clone of this object.
         // It is the responsibility of the caller to delete the result.
         //
-        virtual BndryFunc* clone () const BL_OVERRIDE;
+        virtual BndryFunc* clone () const override;
         //
         // Destructor.
         //
-        virtual ~BndryFunc () BL_OVERRIDE;
+        virtual ~BndryFunc () override;
 	//
 	// Fill boundary cells using "regular" function.
 	//
 	virtual void operator () (Real* data, const int* lo, const int* hi,
 				  const int* dom_lo, const int* dom_hi,
 				  const Real* dx, const Real* grd_lo,
-				  const Real* time, const int* bc) const BL_OVERRIDE;
+				  const Real* time, const int* bc) const override;
         //
         // Fill boundary cells using "group" function.
         //

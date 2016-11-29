@@ -18,7 +18,7 @@
   F90FLAGS += -J$(mdir) -I$(mdir)
   FFLAGS   += -J$(mdir) -I$(mdir)
   CFLAGS   += -std=c99 -Wall
-  CXXFLAGS += -Wall
+  CXXFLAGS += -std=c++11 -Wall
 
   ifdef NDEBUG
     F90FLAGS += -g -O2 -ftree-vectorize -fno-range-check
@@ -56,10 +56,6 @@
     ifdef OMP
       ROSEFLAGS += -rose:openmp
     endif
-  endif
-
-  ifdef CXX11
-    CXXFLAGS += -std=c++11
   endif
 
   ifdef FSANITIZER
