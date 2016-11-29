@@ -2687,7 +2687,7 @@ Amr::grid_places (int              lbase,
     if ( time == 0. && !initial_grids_file.empty() && !use_fixed_coarse_grids)
     {
         new_finest = std::min(max_level,(finest_level+1));
-        new_finest = std::min(new_finest,initial_ba.size());
+        new_finest = std::min<int>(new_finest,initial_ba.size());
 
         for (int lev = 1; lev <= new_finest; lev++)
         {
@@ -2709,7 +2709,7 @@ Amr::grid_places (int              lbase,
     if ( ! initial_grids_file.empty() && use_fixed_coarse_grids)
     {
         new_finest = std::min(max_level,(finest_level+1));
-        new_finest = std::min(new_finest,initial_ba.size());
+        new_finest = std::min<int>(new_finest,initial_ba.size());
 
         for (int lev = lbase+1; lev <= new_finest; lev++)
         {
@@ -2731,7 +2731,7 @@ Amr::grid_places (int              lbase,
     else if ( !regrid_grids_file.empty() )     // Use grids in regrid_grids_file 
     {
         new_finest = std::min(max_level,(finest_level+1));
-        new_finest = std::min(new_finest,regrid_ba.size());
+        new_finest = std::min<int>(new_finest,regrid_ba.size());
         for (int lev = 1; lev <= new_finest; lev++)
         {
             BoxList bl;

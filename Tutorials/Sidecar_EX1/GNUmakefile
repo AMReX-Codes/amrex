@@ -9,7 +9,6 @@ USE_MPI   = TRUE
 USE_OMP   = FALSE
 PROFILE   = FALSE
 COMP      = g++
-FCOMP     = gfortran
 DIM       = 3
 PRECISION = DOUBLE
 EBASE     = sidecarresizetest

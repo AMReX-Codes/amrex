@@ -14,12 +14,16 @@ contains
 
     type(multifab), intent(inout) :: data
 
-    integer                  :: i,dm,ng,nc,lo(2),hi(2)
+    integer                  :: i,dm,ng,nc
     real(kind=dp_t), pointer :: dp(:,:,:,:)
+
+    integer, allocatable     :: lo(:),hi(:)
 
     dm = data%dim   ! dm is dimensionality
     ng = data%ng    ! ng is number of ghost cells
     nc = data%nc    ! nc is number of components
+
+    allocate(lo(dm),hi(dm))
 
     ! loop over the grids owned by this processor
     do i=1,nfabs(data)
@@ -36,6 +40,8 @@ contains
     
     ! fill periodic domain boundary and neighboring grid ghost cells
     call multifab_fill_boundary(data)  
+
+    deallocate(lo,hi)
     
   end subroutine work_on_data
   

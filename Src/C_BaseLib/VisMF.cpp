@@ -1033,6 +1033,8 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
 
     bytesWritten += VisMF::WriteHeader(mf_name, hdr, coordinatorProc);
 
+    delete whichRD;
+
     return bytesWritten;
 }
 
@@ -1491,7 +1493,7 @@ VisMF::Read (FabArray<FArrayBox> &mf,
 	if(++sCount >= ranksPerStream) {
 	  sCount = 0;
 	  ++sIndex;
-	  sIndex = std::min(sIndex, streamSets.size() - 1);
+	  sIndex = std::min<int>(sIndex, streamSets.size() - 1);
 	}
       }
 

@@ -62,7 +62,7 @@ contains
           case (2)
              call cc_restriction_2d(cp(:,:,1,1), loc, fp(:,:,1,1), lof, lo, hi, ir)
           case (3)
-             call cc_restriction_3d(cp(:,:,:,1), loc, fp(:,:,:,1), lof, lo, hi, lo, hi, ir)
+             call cc_restriction_3d(cp(:,:,:,1), loc, fp(:,:,:,1), lof, lo, hi, ir)
           end select
        end do
     end do

@@ -18,13 +18,7 @@
 #include <BoxLib.H>
 #include <Looping.H>
 #include <Utility.H>
-#include <BL_CXX11.H>
 #include <MemPool.H>
-
-#if !defined(__PGI) && (__GNUC__ >= 5 || defined(BL_Darwin))
-using std::isinf;
-using std::isnan;
-#endif
 
 bool FArrayBox::initialized = false;
 
@@ -52,23 +46,23 @@ class FABio_8bit
 {
 public:
     virtual void read (std::istream& is,
-                       FArrayBox&    fb) const BL_OVERRIDE;
+                       FArrayBox&    fb) const override;
 
     virtual void write (std::ostream&    os,
                         const FArrayBox& fb,
                         int              comp,
-                        int              num_comp) const BL_OVERRIDE;
+                        int              num_comp) const override;
 
     virtual void skip (std::istream& is,
-                       FArrayBox&    f) const BL_OVERRIDE;
+                       FArrayBox&    f) const override;
 
     virtual void skip (std::istream& is,
                        FArrayBox&    f,
-		       int           nCompToSkip) const BL_OVERRIDE;
+		       int           nCompToSkip) const override;
 private:
     virtual void write_header (std::ostream&    os,
                                const FArrayBox& f,
-                               int              nvar) const BL_OVERRIDE;
+                               int              nvar) const override;
 };
 
 //
@@ -80,23 +74,23 @@ class FABio_ascii
 {
 public:
     virtual void read (std::istream&   is,
-                       FArrayBox&      fb) const BL_OVERRIDE;
+                       FArrayBox&      fb) const override;
 
     virtual void write (std::ostream&    os,
                         const FArrayBox& fb,
                         int              comp,
-                        int              num_comp) const BL_OVERRIDE;
+                        int              num_comp) const override;
 
     virtual void skip (std::istream& is,
-                       FArrayBox&    f) const BL_OVERRIDE;
+                       FArrayBox&    f) const override;
 
     virtual void skip (std::istream& is,
                        FArrayBox&    f,
-		       int           nCompToSkip) const BL_OVERRIDE;
+		       int           nCompToSkip) const override;
 private:
     virtual void write_header (std::ostream&    os,
                                const FArrayBox& f,
-                               int              nvar) const BL_OVERRIDE;
+                               int              nvar) const override;
 };
 
 //
@@ -110,24 +104,24 @@ public:
     FABio_binary (RealDescriptor* rd_);
 
     virtual void read (std::istream& is,
-                       FArrayBox&    fb) const BL_OVERRIDE;
+                       FArrayBox&    fb) const override;
 
     virtual void write (std::ostream&    os,
                         const FArrayBox& fb,
                         int              comp,
-                        int              num_comp) const BL_OVERRIDE;
+                        int              num_comp) const override;
 
     virtual void skip (std::istream& is,
-                       FArrayBox&    f) const BL_OVERRIDE;
+                       FArrayBox&    f) const override;
 
     virtual void skip (std::istream& is,
                        FArrayBox&    f,
-		       int           nCompToSkip) const BL_OVERRIDE;
+		       int           nCompToSkip) const override;
 
 private:
     virtual void write_header (std::ostream&    os,
                                const FArrayBox& f,
-                               int              nvar) const BL_OVERRIDE;
+                               int              nvar) const override;
 
     CpClassPtr<RealDescriptor> realDesc;
 };
@@ -192,7 +186,7 @@ FArrayBox::contains_nan () const
 #ifndef _CRAYC
     const Real* dp = dptr;
     for (int i = 0; i < numpts*nvar; i++)
-        if (isnan(*dp++))
+        if (std::isnan(*dp++))
             return true;
 #endif
     return false;
@@ -212,7 +206,7 @@ FArrayBox::contains_nan (const Box& bx, int scomp, int ncomp) const
     {
         for (IntVect p = bx.smallEnd(); p <= bx.bigEnd(); bx.next(p))
         {
-            if (isnan(this->operator()(p,scomp+i)))
+            if (std::isnan(this->operator()(p,scomp+i)))
                 return true;
         }
     }
@@ -240,7 +234,7 @@ FArrayBox::contains_nan (const Box& bx, int scomp, int ncomp, IntVect& where) co
     {
         for (IntVect p = bx.smallEnd(); p <= bx.bigEnd(); bx.next(p))
         {
-            if (isnan(this->operator()(p,scomp+i)))
+            if (std::isnan(this->operator()(p,scomp+i)))
             {
                 where = p;
 
@@ -257,7 +251,7 @@ FArrayBox::contains_inf () const
 {
     const Real* dp = dptr;
     for (int i = 0; i < numpts*nvar; i++)
-        if (isinf(*dp++))
+        if (std::isinf(*dp++))
             return true;
     return false;
 }
@@ -275,7 +269,7 @@ FArrayBox::contains_inf (const Box& bx, int scomp, int ncomp) const
     {
         for (IntVect p = bx.smallEnd(); p <= bx.bigEnd(); bx.next(p))
         {
-            if (isinf(this->operator()(p,scomp+i)))
+            if (std::isinf(this->operator()(p,scomp+i)))
                 return true;
         }
     }
@@ -301,7 +295,7 @@ FArrayBox::contains_inf (const Box& bx, int scomp, int ncomp, IntVect& where) co
     {
         for (IntVect p = bx.smallEnd(); p <= bx.bigEnd(); bx.next(p))
         {
-            if (isinf(this->operator()(p,scomp+i)))
+            if (std::isinf(this->operator()(p,scomp+i)))
             {
                 where = p;
 

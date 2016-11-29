@@ -21,7 +21,6 @@
 #include <VisMF.H>
 #include <Particles_F.H>
 #include <RealBox.H>
-#include <BL_CXX11.H>
 
 #ifdef BL_LAZY
 #include <Lazy.H>

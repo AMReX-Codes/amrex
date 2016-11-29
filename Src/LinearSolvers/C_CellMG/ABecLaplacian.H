@@ -4,7 +4,6 @@
 
 #include <Tuple.H>
 #include <LinOp.H>
-#include <BL_CXX11.H>
 
 /*
         An ABecLaplacian tailors the description of a linear operator to apply
@@ -83,13 +82,13 @@ public:
     //
     // destructor
     //
-    virtual ~ABecLaplacian () BL_OVERRIDE;
+    virtual ~ABecLaplacian () override;
     //
     // Compute extensive (area-weighted) flux associated with the op
     //
     virtual void compFlux (D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflux),
 			   MultiFab& in, const BC_Mode& bc_mode=LinOp::Inhomogeneous_BC,
-			   int src_comp=0, int dst_comp=0, int num_comp=1, int bnd_comp=0) BL_OVERRIDE;
+			   int src_comp=0, int dst_comp=0, int num_comp=1, int bnd_comp=0) override;
 
     void compFlux (D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflux),
                    MultiFab& in, bool do_ApplyBC, const BC_Mode& bc_mode=LinOp::Inhomogeneous_BC,
@@ -101,20 +100,20 @@ public:
     //
     // get scalar alpha coefficient
     //
-    virtual Real get_alpha () const BL_OVERRIDE { return alpha; }
+    virtual Real get_alpha () const override { return alpha; }
     //
     // get scalar beta coefficient
     //
-    virtual Real get_beta () const BL_OVERRIDE { return beta; }
+    virtual Real get_beta () const override { return beta; }
     //
     // return reference to "a" coefficients for base level
     //
-    virtual const MultiFab& aCoefficients (int level = 0) BL_OVERRIDE;
+    virtual const MultiFab& aCoefficients (int level = 0) override;
     //
     // return reference to "b" coefficients for base level
     //
     virtual const MultiFab& bCoefficients (int dir,
-					   int level=0) BL_OVERRIDE;
+					   int level=0) override;
     //
     // copy _a into "a" coeffs for base level
     //
@@ -151,11 +150,11 @@ public:
     //
     // allocate/fill internal data for new level
     //
-    virtual void prepareForLevel (int level) BL_OVERRIDE;
+    virtual void prepareForLevel (int level) override;
     //
     // remove internal data for this level and all levels above
     //
-    virtual void clearToLevel (int level) BL_OVERRIDE;
+    virtual void clearToLevel (int level) override;
     //
     // set flags so that a coeffs at lev and coarser require recalculation
     //
@@ -165,7 +164,7 @@ public:
     //
     void invalidate_b_to_level (int lev);
 
-    virtual Real norm (int nm = 0, int level = 0, const bool local = false) BL_OVERRIDE;
+    virtual Real norm (int nm = 0, int level = 0, const bool local = false) override;
   
 protected:
     //
@@ -177,26 +176,26 @@ protected:
     //
     virtual void Fapply (MultiFab&       out,
                          const MultiFab& in,
-                         int             level) BL_OVERRIDE;
+                         int             level) override;
     virtual void Fapply (MultiFab&       out,
 			 int             dst_comp,
                          const MultiFab& in,
 			 int             src_comp,
 			 int             num_comp,
-                         int             level) BL_OVERRIDE;
+                         int             level) override;
     //
     // apply GSRB smoother to improve residual to L(solnL)=rhsL
     //
     virtual void Fsmooth (MultiFab&       solnL,
                           const MultiFab& rhsL,
                           int             level,
-                          int             rgbflag) BL_OVERRIDE;
+                          int             rgbflag) override;
     //
     // apply Jacobi smoother to improve residual to L(solnL)=rhsL
     //
     virtual void Fsmooth_jacobi (MultiFab&       solnL,
                                  const MultiFab& rhsL,
-                                 int             level) BL_OVERRIDE;
+                                 int             level) override;
 private:
     //
     //

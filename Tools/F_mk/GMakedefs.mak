@@ -201,8 +201,6 @@ endif
 f_includes = $(addprefix -I , $(FINCLUDE_LOCATIONS))
 c_includes = $(addprefix -I , $(INCLUDE_LOCATIONS))
 
-TCSORT  :=  $(BOXLIB_HOME)/Tools/F_scripts/tcsort.pl
-
 # MODDEP is for .f90, .f, and .F90.  
 # MKDEP is for c
 MODDEP  :=  $(BOXLIB_HOME)/Tools/F_scripts/dep.py
@@ -214,10 +212,6 @@ LDFLAGS  += $(fld_flags)
 libraries += $(hypre_libraries) $(mpi_libraries) $(xtr_libraries)
 
 CPPFLAGS += -DBL_FORT_USE_$(F_C_LINK) $(addprefix -I, $(INCLUDE_LOCATIONS))
-
-ifdef CXX11
-  CXXFLAGS += -DBL_USE_CXX11
-endif
 
 objects = $(addprefix $(odir)/,       \
 	$(sort $(f90sources:.f90=.o)) \

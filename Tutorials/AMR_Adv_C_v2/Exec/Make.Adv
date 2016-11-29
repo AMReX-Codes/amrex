@@ -3,8 +3,6 @@ ADR_DIR  ?= $(BOXLIB_HOME)/Tutorials/AMR_Adv_C_v2
 
 TOP := $(ADR_DIR)
 
-USE_CXX11 = TRUE
-
 include $(BOXLIB_HOME)/Tools/C_mk/Make.defs
 
 Bdirs 	:= Source Source/Src_nd Source/Src_$(DIM)d

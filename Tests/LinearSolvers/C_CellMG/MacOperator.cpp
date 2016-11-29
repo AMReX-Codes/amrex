@@ -68,7 +68,7 @@ MacOperator::Finalize ()
     initialized = false;
 }
 
-MacOperator::MacOperator (Amr*             Parent,
+MacOperator::MacOperator (AmrCore*             Parent,
                           const BndryData& mgb,
                           const Real*      h)
     :
@@ -351,7 +351,7 @@ MacOperator::syncRhs (const MultiFab& Volume,
 //
 
 void
-mac_level_driver (Amr*            parent,
+mac_level_driver (AmrCore*            parent,
                   const MacBndry& mac_bndry,
 		  const BCRec&    phys_bc,
                   const BoxArray& grids,
@@ -488,7 +488,7 @@ mac_level_driver (Amr*            parent,
 //
 
 void
-mac_sync_driver (Amr*            parent,
+mac_sync_driver (AmrCore*            parent,
                  const MacBndry& mac_bndry,
 	         const BCRec&    phys_bc,
                  const BoxArray& grids,

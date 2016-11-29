@@ -4,10 +4,6 @@
 #include <iomanip>
 #include <cmath>
 
-#if (__GNUC__ >= 6 || defined(BL_Darwin))
-using std::isinf;
-#endif
-
 #include <ParmParse.H>
 #include <ParallelDescriptor.H>
 #include <Utility.H>
@@ -556,7 +552,7 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
 
             const Real alpha = delta / g_dot_Tpaj;
 
-            if ( isinf(alpha) )
+            if ( std::isinf(alpha) )
             {
                 if ( verbose > 1 && ParallelDescriptor::IOProcessor(color()) )
                     std::cout << "CGSolver_CABiCGStab: alpha == inf, nit = " << nit << '\n';
@@ -615,11 +611,11 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
             if ( verbose > 1 && ParallelDescriptor::IOProcessor(color()) )
             {
                 if ( omega == 0   ) std::cout << "CGSolver_CABiCGStab: omega == 0, nit = " << nit << '\n';
-                if ( isinf(omega) ) std::cout << "CGSolver_CABiCGStab: omega == inf, nit = " << nit << '\n';
+                if ( std::isinf(omega) ) std::cout << "CGSolver_CABiCGStab: omega == inf, nit = " << nit << '\n';
             }
 
             if ( omega == 0   ) { BiCGStabFailed = true; ret = 4; break; }
-            if ( isinf(omega) ) { BiCGStabFailed = true; ret = 4; break; }
+            if ( std::isinf(omega) ) { BiCGStabFailed = true; ret = 4; break; }
             //
             // Complete the update of ej & cj now that omega is known to be ok.
             //
@@ -653,10 +649,10 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
             if ( verbose > 1 && ParallelDescriptor::IOProcessor(color()) )
             {
                 if ( delta_next == 0   ) std::cout << "CGSolver_CABiCGStab: delta == 0, nit = " << nit << '\n';
-                if ( isinf(delta_next) ) std::cout << "CGSolver_CABiCGStab: delta == inf, nit = " << nit << '\n';
+                if ( std::isinf(delta_next) ) std::cout << "CGSolver_CABiCGStab: delta == inf, nit = " << nit << '\n';
             }
 
-            if ( isinf(delta_next) ) { BiCGStabFailed = true; ret = 5; break; } // delta = inf?
+            if ( std::isinf(delta_next) ) { BiCGStabFailed = true; ret = 5; break; } // delta = inf?
             if ( delta_next  == 0  ) { BiCGStabFailed = true; ret = 5; break; } // Lanczos breakdown...
 
             const Real beta = (delta_next/delta)*(alpha/omega);
@@ -664,10 +660,10 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
             if ( verbose > 1 && ParallelDescriptor::IOProcessor(color()) )
             {
                 if ( beta == 0   ) std::cout << "CGSolver_CABiCGStab: beta == 0, nit = " << nit << '\n';
-                if ( isinf(beta) ) std::cout << "CGSolver_CABiCGStab: beta == inf, nit = " << nit << '\n';
+                if ( std::isinf(beta) ) std::cout << "CGSolver_CABiCGStab: beta == inf, nit = " << nit << '\n';
             }
 
-            if ( isinf(beta) ) { BiCGStabFailed = true; ret = 6; break; } // beta = inf?
+            if ( std::isinf(beta) ) { BiCGStabFailed = true; ret = 6; break; } // beta = inf?
             if ( beta == 0   ) { BiCGStabFailed = true; ret = 6; break; } // beta = 0?  can't make further progress(?)
 
             axpy(aj, cj,        beta,   aj, 4*SSS+1);
