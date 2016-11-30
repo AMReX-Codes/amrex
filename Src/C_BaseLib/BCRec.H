@@ -51,11 +51,13 @@ public:
     //
     // Return low-end boundary data.
     //
-    const int* lo () const { return bc; }
+    const int* lo () const& { return bc; }
+    const int* lo () && = delete;
     //
     // Return high-end boundary data.
     //
-    const int* hi () const { return bc+BL_SPACEDIM; }
+    const int* hi () const& { return bc+BL_SPACEDIM; }
+    const int* hi () && = delete;
     //
     // Return low-end boundary data in direction <dir>.
     //

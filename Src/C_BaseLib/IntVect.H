@@ -77,9 +77,9 @@ public:
     // Returns a const pointer to an array of coordinates of the
     // IntVect.  Useful for arguments to FORTRAN calls.
     //
-    const int* getVect () const { return vect; }
-    //
-    int* getVect () { return vect; }
+    const int* getVect () const& { return vect; }
+    int*       getVect () &      { return vect; }
+    int*       getVect () && = delete;
     //
     // Returns true of IntVect is equivalent to argument IntVect.
     // All comparisons between analogous components must be satisfied.

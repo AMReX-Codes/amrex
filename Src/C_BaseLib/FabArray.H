@@ -642,11 +642,11 @@ public:
     //
     // Returns the valid Box that current tile resides.
     //
-    Box validbox () const;
+    Box validbox () const { return fabArray.box((*index_map)[currentIndex]); }
     //
     // Returns the Box of the FAB at which we currently point.
     //
-    Box fabbox () const;
+    Box fabbox () const { return fabArray.fabbox((*index_map)[currentIndex]); }
     //
     // Increments iterator to the next tile we own.
     //
@@ -4222,7 +4222,8 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
 		md[3] = tags[i]->nComp;
 		const int* lo = tags[i]->box.loVect();
 		const int* hi = tags[i]->box.hiVect();
-		const int* tp = tags[i]->box.type().getVect();
+		const IntVect& bxtyp = tags[i]->box.type();
+		const int* tp = bxtyp.getVect();
 		D_EXPR(md[4] = lo[0],
 		       md[5] = lo[1],
 		       md[6] = lo[2]);
