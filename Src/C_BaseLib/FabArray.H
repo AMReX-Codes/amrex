@@ -642,11 +642,11 @@ public:
     //
     // Returns the valid Box that current tile resides.
     //
-    Box validbox () const;
+    Box validbox () const { return fabArray.box((*index_map)[currentIndex]); }
     //
     // Returns the Box of the FAB at which we currently point.
     //
-    Box fabbox () const;
+    Box fabbox () const { return fabArray.fabbox((*index_map)[currentIndex]); }
     //
     // Increments iterator to the next tile we own.
     //
