@@ -49,11 +49,13 @@ public:
     //
     // Returns lo side.
     //
-    const Real* lo () const { return xlo; }
+    const Real* lo () const& { return xlo; }
+    const Real* lo () && = delete;
     //
     // Returns hide side.
     //
-    const Real* hi () const { return xhi; }
+    const Real* hi () const& { return xhi; }
+    const Real* hi () && = delete;
     //
     // Returns length in specified direction.
     //
