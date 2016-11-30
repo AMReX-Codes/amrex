@@ -42,15 +42,6 @@ include $(BOXLIB_HOME)/Tools/C_mk/Make.defs
 #_progs  := tRABcast.cpp
 _progs  := tProfiler
 
-INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/C_BaseLib
-INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/C_BoundaryLib
-
-ifeq ($(COMP),g++)
-  ifeq ($(__gcc_major_version),2)
-    INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/C_BaseLib/std
-  endif
-endif
-
 ifeq ($(_progs),tProfiler)
   FEXE_sources += TPROFILER.F
 endif
@@ -59,8 +50,6 @@ ifeq ($(_progs),tFillFab)
   fEXE_sources += fillfab.f
 endif
 
-VPATH += $(BOXLIB_HOME)/Src/C_BaseLib
-
 include $(BOXLIB_HOME)/Src/C_BaseLib/Make.package
 
 all: $(addsuffix $(optionsSuffix).ex, $(_progs))
@@ -68,7 +57,7 @@ all: $(addsuffix $(optionsSuffix).ex, $(_progs))
 
 $(addsuffix $(optionsSuffix).ex, $(_progs)) \
    : %$(optionsSuffix).ex : %.cpp $(objForExecs)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) -o $@ $< $(objForExecs) $(libraries)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(includes) $(LDFLAGS) -o $@ $< $(objForExecs) $(libraries)
 	$(RM) $@.o
 
 clean::
