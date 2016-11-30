@@ -195,6 +195,8 @@ MCLinOp::applyBC (MultiFab& inout,
     {
         const int gn = mfi.index();
 
+	const Box& iobx = inout.box(gn);
+
         BL_ASSERT(gbox[level][gn] == inout.box(gn));
 
         const BndryData::RealTuple&      bdl = bgb.bndryLocs(gn);
@@ -246,7 +248,7 @@ MCLinOp::applyBC (MultiFab& inout,
 		ARLIM(denfab.loVect()), ARLIM(denfab.hiVect()),
 		exttdptr, ARLIM(fslo), ARLIM(fshi),
 		tdfab.dataPtr(),ARLIM(tdfab.loVect()),ARLIM(tdfab.hiVect()),
-		inout.box(gn).loVect(), inout.box(gn).hiVect(),
+		iobx.loVect(), iobx.hiVect(),
 		&nc, h[level]);
 #elif BL_SPACEDIM==3
 	    const Mask& mn = maskvals[level][Orientation(1,Orientation::high)][mfi];
@@ -271,7 +273,7 @@ MCLinOp::applyBC (MultiFab& inout,
 		ARLIM(denfab.loVect()), ARLIM(denfab.hiVect()),
 		exttdptr, ARLIM(fslo), ARLIM(fshi),
 		tdfab.dataPtr(),ARLIM(tdfab.loVect()),ARLIM(tdfab.hiVect()),
-		inout.box(gn).loVect(), inout.box(gn).hiVect(),
+		iobx.loVect(), iobx.hiVect(),
 		&nc, h[level]);
 #endif
 	}
