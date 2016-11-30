@@ -244,12 +244,14 @@ public:
     // Returns a constant pointer the array of low end coordinates.
     // Useful for calls to FORTRAN.
     //
-    const int* loVect () const { return smallend.getVect(); }
+    const int* loVect () const& { return smallend.getVect(); }
+    const int* loVect () && = delete;
     //
     // Returns a constant pointer the array of high end coordinates.
     // Useful for calls to FORTRAN.
     //
-    const int* hiVect () const { return bigend.getVect(); }
+    const int* hiVect () const& { return bigend.getVect(); }
+    const int* hiVect () && = delete;
     //
     // Returns the coordinate normal to given face.
     //
@@ -611,7 +613,8 @@ public:
 
     explicit BoxCommHelper (const Box& bx, int* p_ = 0);
 
-    int* data () const { return p; }
+    int* data () const& { return p; }
+    int* data () && = delete;
 
     Box make_box () const {
 	return Box(IntVect(p), IntVect(p+BL_SPACEDIM), IntVect(p+2*BL_SPACEDIM));

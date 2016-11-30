@@ -58,7 +58,7 @@ RealDescriptor::RealDescriptor (const long* fr_,
 {}
 
 const long*
-RealDescriptor::format () const
+RealDescriptor::format () const &
 {
     BL_ASSERT(fr.size() != 0);
     return fr.dataPtr();
@@ -72,7 +72,7 @@ RealDescriptor::formatarray () const
 }
 
 const int*
-RealDescriptor::order () const
+RealDescriptor::order () const &
 {
     BL_ASSERT(ord.size() != 0);
     return ord.dataPtr();
