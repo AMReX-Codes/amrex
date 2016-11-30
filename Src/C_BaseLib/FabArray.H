@@ -4222,7 +4222,8 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
 		md[3] = tags[i]->nComp;
 		const int* lo = tags[i]->box.loVect();
 		const int* hi = tags[i]->box.hiVect();
-		const int* tp = tags[i]->box.type().getVect();
+		const IntVect& bxtyp = tags[i]->box.type();
+		const int* tp = bxtyp.getVect();
 		D_EXPR(md[4] = lo[0],
 		       md[5] = lo[1],
 		       md[6] = lo[2]);
