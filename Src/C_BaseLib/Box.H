@@ -202,15 +202,17 @@ public:
     //
     // Get the smallend of the box.
     //
-    const IntVect& smallEnd () const { return smallend; }
+    const IntVect& smallEnd () const& { return smallend; }
+    const IntVect& smallEnd () && = delete;
     //
     // Return the coordinate of the low end in the given direction.
     //
-    int smallEnd (int dir) const { return smallend[dir]; }
+    int smallEnd (int dir) const& { return smallend[dir]; }
     //
     // Get the bigend.
     //
-    const IntVect& bigEnd () const { return bigend; }
+    const IntVect& bigEnd () const& { return bigend; }
+    const IntVect& bigEnd () && = delete;
     //
     // Return the coordinate of the high end in the given direction.
     //

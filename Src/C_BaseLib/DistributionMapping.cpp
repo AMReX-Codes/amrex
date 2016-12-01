@@ -1232,7 +1232,8 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
 
     for (int i = 0; i < N; ++i)
     {
-        tokens.push_back(SFCToken(i,boxes[i].smallEnd(),wgts[i]));
+	const Box& bx = boxes[i];
+        tokens.push_back(SFCToken(i,bx.smallEnd(),wgts[i]));
 
         const SFCToken& token = tokens.back();
 
@@ -1452,7 +1453,8 @@ DistributionMapping::RRSFCDoIt (const BoxArray&          boxes,
 
     for (int i = 0; i < nboxes; ++i)
     {
-        tokens.push_back(SFCToken(i,boxes[i].smallEnd(),0.0));
+	const Box& bx = boxes[i];
+        tokens.push_back(SFCToken(i,bx.smallEnd(),0.0));
 
         const SFCToken& token = tokens.back();
 
@@ -1629,7 +1631,8 @@ DistributionMapping::PFCProcessorMapDoIt (const BoxArray&          boxes,
     int maxijk(0);
 
     for(int i(0), N(boxes.size()); i < N; ++i) {
-        tokens.push_back(PFCToken(i, boxes[i].smallEnd(), wgts[i]));
+	const Box& bx = boxes[i];
+        tokens.push_back(PFCToken(i, bx.smallEnd(), wgts[i]));
         const PFCToken &token = tokens.back();
         D_TERM(maxijk = std::max(maxijk, token.m_idx[0]);,
                maxijk = std::max(maxijk, token.m_idx[1]);,
