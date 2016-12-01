@@ -62,3 +62,6 @@ F90FLAGS += $(GENERIC_COMP_FLAGS)
 
 override XTRALIBS += -lifcore
 
+ifeq ($(USE_OMP),TRUE)
+  override XTRALIBS += -lifcoremt
+endif
