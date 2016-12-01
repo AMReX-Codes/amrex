@@ -65,7 +65,7 @@ RealDescriptor::format () const &
 }
 
 const Array<long>&
-RealDescriptor::formatarray () const
+RealDescriptor::formatarray () const &
 {
     BL_ASSERT(fr.size() != 0);
     return fr;
@@ -79,7 +79,7 @@ RealDescriptor::order () const &
 }
 
 const Array<int>&
-RealDescriptor::orderarray () const
+RealDescriptor::orderarray () const &
 {
     BL_ASSERT(ord.size() != 0);
     return ord;
