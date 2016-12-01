@@ -100,8 +100,6 @@ class Preprocessor(object):
                                              os.path.basename(sf.name))
 
         if self.f90_preprocess != "":
-            if re.search(r"cat", self.f90_preprocess):
-                self.f90_preprocess = "if [[ $? ]] ;then; cat ; else; exit -1; fi;"
             command = "{} {} {} | {}".format(self.cpp_cmd, self.defines,
                                              sf.name, self.f90_preprocess)
         else:
