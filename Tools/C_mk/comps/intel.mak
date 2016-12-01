@@ -19,10 +19,10 @@ intel_version := $(shell $(CXX) -dumpversion)
 
 ifeq ($(DEBUG),TRUE)
 
-  CXXFLAGS += -g -O0 -Wcheck -traceback
-  CFLAGS   += -g -O0 -Wcheck -trackback
-  FFLAGS   += -g -O0 -check bounds,uninit,pointers -traceback
-  F90FLAGS += -g -O0 -check bounds,uninit,pointers -traceback
+  CXXFLAGS += -g -O0 -traceback -Wcheck
+  CFLAGS   += -g -O0 -traceback -Wcheck
+  FFLAGS   += -g -O0 -traceback -check bounds,uninit,pointers
+  F90FLAGS += -g -O0 -traceback -check bounds,uninit,pointers
 
 else
 
@@ -62,3 +62,6 @@ F90FLAGS += $(GENERIC_COMP_FLAGS)
 
 override XTRALIBS += -lifcore
 
+ifeq ($(USE_OMP),TRUE)
+  override XTRALIBS += -lifcoremt
+endif

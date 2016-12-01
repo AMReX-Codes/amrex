@@ -19,10 +19,10 @@ pgi_version := $(shell $(CXX) -V 2>&1 | grep 'target')
 
 ifeq ($(DEBUG),TRUE)
 
-  CXXFLAGS += -g -O0
-  CFLAGS   += -g -O0
-  FFLAGS   += -g -O0 -Mbounds -Ktrap=divz,inv -Mchkptr
-  F90FLAGS += -g -O0 -Mbounds -Ktrap=divz,inv -Mchkptr
+  CXXFLAGS += -g -O0 -Mbounds -traceback
+  CFLAGS   += -g -O0 -Mbounds -traceback
+  FFLAGS   += -g -O0 -Mbounds -traceback -Ktrap=divz,inv -Mchkptr
+  F90FLAGS += -g -O0 -Mbounds -traceback -Ktrap=divz,inv -Mchkptr
 
 else
 
