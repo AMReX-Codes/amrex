@@ -100,6 +100,8 @@ class Preprocessor(object):
                                              os.path.basename(sf.name))
 
         if self.f90_preprocess != "":
+            if re.search(r"cat", self.f90_preprocess):
+                self.f90_preprocess = "if [[ $? ]] ;then; cat ; else; exit -1; fi;"
             command = "{} {} {} | {}".format(self.cpp_cmd, self.defines,
                                              sf.name, self.f90_preprocess)
         else:
@@ -108,7 +110,10 @@ class Preprocessor(object):
 
         stdout, rc = run(command, outfile=processed_file)
 
-        sf.cpp_name = processed_file
+        if rc == 0:
+            sf.cpp_name = processed_file
+        else:
+            raise ValueError("cpp process failed for {}".format(sf.name))
 
         return command
 
