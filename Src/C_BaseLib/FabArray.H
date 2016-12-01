@@ -3534,12 +3534,7 @@ FabArrayCopyDescriptor<FAB>::RegisterFabArray(FabArray<FAB>* fabarray)
 {
     BL_ASSERT(fabArrays.size() == fabCopyDescList.size());
 
-    {  // ---- check distmap
-      const DistributionMapping &dm = fabarray->DistributionMap();
-      if(fabarray != 0) {
-        dm.Check();
-      }
-    }
+    BL_ASSERT(fabarray==nullptr || fabarray->DistributionMap().Check());
 
     FabArrayId result(fabArrays.size());
 
