@@ -76,10 +76,10 @@ contains
 
   end subroutine cc_restriction_2d
 
-  subroutine cc_restriction_3d(cc, loc, ff, lof, lo, hi, tlo, thi, ir)
-    integer,     intent(in)    :: loc(:)
-    integer,     intent(in)    :: lof(:)
-    integer,     intent(in)    :: lo(:),hi(:), tlo(3), thi(3)
+  subroutine cc_restriction_3d(cc, loc, ff, lof, tlo, thi, ir)
+    integer,     intent(in)    :: loc(3)
+    integer,     intent(in)    :: lof(3)
+    integer,     intent(in)    :: tlo(3), thi(3)
     real (dp_t), intent(inout) :: cc(loc(1):,loc(2):,loc(3):)
     real (dp_t), intent(in)    :: ff(lof(1):,lof(2):,lof(3):)
     integer,     intent(in)    :: ir(:)

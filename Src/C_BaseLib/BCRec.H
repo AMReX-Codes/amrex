@@ -45,17 +45,21 @@ public:
     //
     // Return bndry values (used in calls to FORTRAN).
     //
-    const int* vect () const { return bc; }
+    const int* vect () const& { return bc; }
+    const int* vect () && = delete;
+
     int vectSize () const { return (2 * BL_SPACEDIM); }
     void setVect (const int *bcvect) { for(int i(0); i < vectSize(); ++i) { bc[i] = bcvect[i]; } }
     //
     // Return low-end boundary data.
     //
-    const int* lo () const { return bc; }
+    const int* lo () const& { return bc; }
+    const int* lo () && = delete;
     //
     // Return high-end boundary data.
     //
-    const int* hi () const { return bc+BL_SPACEDIM; }
+    const int* hi () const& { return bc+BL_SPACEDIM; }
+    const int* hi () && = delete;
     //
     // Return low-end boundary data in direction <dir>.
     //

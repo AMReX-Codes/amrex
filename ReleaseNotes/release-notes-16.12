@@ -1,0 +1,23 @@
+#-*- mode: org -*-
+#+STARTUP: showall
+
+        Release Notes for BoxLib 16.12
+
+The development branch was merged into master on December 2, 2016.
+
+* Major Changes in C++ BoxLib
+
+** C++11 is now required.
+This may require some small changes in application codes.  Thanks to
+C++11 rvalue ref-qualifier, flaws leading to potential dangling
+pointers and references have been plugged.  A few bugs in Box are
+fixed. 
+
+** New I/O
+Significant changes have been to I/O.  Many performance tuning
+parameters have been introduced.  See Docs/Readme.io for details. 
+
+** Make system
+The make system has gone through a lot of cleanups.  See
+Tools/C_mk/READ.md for details on the current make system.
+

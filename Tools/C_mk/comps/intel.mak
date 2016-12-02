@@ -13,16 +13,16 @@ F90FLAGS =
 
 ########################################################################
 
-intel_version := $(shell $(CXX) -V 2>&1 1>/dev/null | grep Version)
+intel_version := $(shell $(CXX) -dumpversion)
 
 ########################################################################
 
 ifeq ($(DEBUG),TRUE)
 
-  CXXFLAGS += -g -O0 -Wcheck
-  CFLAGS   += -g -O0 -Wcheck
-  FFLAGS   += -g -O0 -CB     # -u -check all -warn all
-  F90FLAGS += -g -O0 -CB     # -u -check all -warn all
+  CXXFLAGS += -g -O0 -traceback -Wcheck
+  CFLAGS   += -g -O0 -traceback -Wcheck
+  FFLAGS   += -g -O0 -traceback -check bounds,uninit,pointers
+  F90FLAGS += -g -O0 -traceback -check bounds,uninit,pointers
 
 else
 
@@ -38,7 +38,7 @@ endif
 CXXFLAGS += -std=c++11
 CFLAGS   += -std=c99
 
-F90FLAGS += -module $(fmoddir) -I$(fmoddir)
+F90FLAGS += -module $(fmoddir) -I$(fmoddir) -implicitnone
 FFLAGS   += -module $(fmoddir) -I$(fmoddir)
 
 ########################################################################
@@ -46,7 +46,11 @@ FFLAGS   += -module $(fmoddir) -I$(fmoddir)
 GENERIC_COMP_FLAGS =
 
 ifeq ($(USE_OMP),TRUE)
-  GENERIC_COMP_FLAGS += -openmp
+  ifeq ($(firstword $(sort 16.0 $(intel_version))), 16.0) 
+    GENERIC_COMP_FLAGS += -qopenmp
+  else
+    GENERIC_COMP_FLAGS += -openmp
+  endif
 endif
 
 CXXFLAGS += $(GENERIC_COMP_FLAGS)
@@ -58,3 +62,6 @@ F90FLAGS += $(GENERIC_COMP_FLAGS)
 
 override XTRALIBS += -lifcore
 
+ifeq ($(USE_OMP),TRUE)
+  override XTRALIBS += -lifcoremt
+endif

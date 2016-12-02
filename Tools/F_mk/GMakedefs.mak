@@ -201,8 +201,6 @@ endif
 f_includes = $(addprefix -I , $(FINCLUDE_LOCATIONS))
 c_includes = $(addprefix -I , $(INCLUDE_LOCATIONS))
 
-TCSORT  :=  $(BOXLIB_HOME)/Tools/F_scripts/tcsort.pl
-
 # MODDEP is for .f90, .f, and .F90.  
 # MKDEP is for c
 MODDEP  :=  $(BOXLIB_HOME)/Tools/F_scripts/dep.py

@@ -1589,7 +1589,8 @@ MFIter::tilebox () const
     if (! typ.cellCentered())
     {
 	bx.convert(typ);
-	const IntVect& Big = validbox().bigEnd();
+	const Box& vbx = validbox();
+	const IntVect& Big = vbx.bigEnd();
 	for (int d=0; d<BL_SPACEDIM; ++d) {
 	    if (typ.nodeCentered(d)) { // validbox should also be nodal in d-direction.
 		if (bx.bigEnd(d) < Big[d]) {
@@ -1607,7 +1608,8 @@ MFIter::nodaltilebox (int dir) const
     BL_ASSERT(tile_array != 0);
     Box bx((*tile_array)[currentIndex]);
     bx.convert(typ);
-    const IntVect& Big = validbox().bigEnd();
+    const Box& vbx = validbox();
+    const IntVect& Big = vbx.bigEnd();
     int d0, d1;
     if (dir < 0) {
 	d0 = 0;
@@ -1659,22 +1661,6 @@ MFIter::grownnodaltilebox (int dir, int ng) const
 	}
     }
     return bx;
-}
-
-// For whatever reason, gcc sometimes doesn't like these two functions in FabArray.H,
-// unless '-fno-inline' is used.  Moving it here seems to solve the problem.
-Box
-#ifdef __GNUG__ 
-__attribute__ ((noinline))
-#endif
-MFIter::validbox () const 
-{ 
-    return fabArray.box((*index_map)[currentIndex]);
-}
-Box
-MFIter::fabbox () const 
-{ 
-    return fabArray.fabbox((*index_map)[currentIndex]);
 }
 
 MFGhostIter::MFGhostIter (const FabArrayBase& fabarray)
