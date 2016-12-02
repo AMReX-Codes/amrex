@@ -25,6 +25,9 @@ BLBackTrace::handler(int s)
     case SIGINT:
 	BoxLib::write_to_stderr_without_buffering("SIGINT");
 	break;
+    case SIGABRT:
+	BoxLib::write_to_stderr_without_buffering("SIGABRT");
+	break;
     }
 
 #ifdef __linux__
@@ -69,7 +72,8 @@ BLBackTrace::handler(int s)
 
 #endif // __linux__
 
-    ParallelDescriptor::Abort();
+    signal(s, SIG_DFL);
+    ParallelDescriptor::Abort(s, false);
 }
 
 #ifdef __linux__
