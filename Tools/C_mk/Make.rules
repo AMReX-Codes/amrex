@@ -155,7 +155,7 @@ ifdef FEXE_sources
 endif
 
 ifneq "$(strip $(f90EXE_sources) $(F90EXE_sources))" ""
--include $(depEXETempDir)/f90.depends
+include $(depEXETempDir)/f90.depends
 endif
 
 endif
