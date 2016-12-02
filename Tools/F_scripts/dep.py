@@ -330,4 +330,9 @@ if __name__ == "__main__":
     else:
         cpp_pass = None
 
-    doit(prefix_pass, args.search_path.split(), args.files, cpp_pass, debug=args.debug)
+    try:
+        doit(prefix_pass, args.search_path.split(), args.files, cpp_pass, debug=args.debug)
+    except:
+        # something went wrong
+        print("$(error something went wrong in dep.py.  Remake with 'DEP_CHECK_OPTS=--debug' and examine the 'dependencies.out' ile)")
+
