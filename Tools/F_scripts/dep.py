@@ -270,6 +270,7 @@ def doit(prefix, search_path, files, cpp, debug=False):
             except KeyError:
                 print("warning: module {} required by {} not found".format(d, sf.name), 
                       file=sys.stderr)
+                print("$(warning module {} required by {} not found)".format(d, sf.name))
                 continue
 
             # skip the case where a file provides the module it needs
