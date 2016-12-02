@@ -130,19 +130,23 @@ public:
     //
     // Returns the format array as a const long*
     //
-    const long* format () const;
+    const long* format () const&;
+    const long* format () && = delete;
     //
     // Returns const Array<long> reference to the format array.
     //
-    const Array<long>& formatarray () const;
+    const Array<long>& formatarray () const&;
+    const Array<long>& formatarray () && = delete;
     //
     // Returns the order array as a const int*
     //
-    const int* order () const;
+    const int* order () const&;
+    const int* order () && = delete;
     //
     // Returns const Array<int> reference to the order array.
     //
-    const Array<int>& orderarray () const;
+    const Array<int>& orderarray () const&;
+    const Array<int>& orderarray () && = delete;
     //
     // Returns the number of bytes in the Real.
     //

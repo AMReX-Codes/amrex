@@ -871,6 +871,7 @@ VisMF::WriteHeader (const std::string &mf_name,
         //
         bytesWritten += VisMF::FileOffset(MFHdrFile);
 
+        MFHdrFile.flush();
         MFHdrFile.close();
 
 	if(checkFilePositions) {
@@ -988,7 +989,7 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
               writePosition += hLength + writeDataSize;
             }
             nfi.Stream().write(allFabData, bytesWritten);
-            //nfi.Stream().flush();
+            nfi.Stream().flush();
 	    delete [] allFabData;
 
 	  } else {    // ---- write fabs individually
@@ -1002,6 +1003,7 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
 	        fio.write_header(hss, fab, fab.nComp());
 	        hLength = hss.tellp();
                 nfi.Stream().write(hss.str().c_str(), hLength);    // ---- the fab header
+                nfi.Stream().flush();
 	      }
 	      if(doConvert) {
 	        char *cDataPtr = new char[writeDataSize];
@@ -1009,9 +1011,11 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
 		                                        writeDataItems,
 		                                        fab.dataPtr(), *whichRD);
                 nfi.Stream().write(cDataPtr, writeDataSize);
+                nfi.Stream().flush();
 	        delete [] cDataPtr;
 	      } else {    // ---- copy from the fab
                 nfi.Stream().write((char *) fab.dataPtr(), writeDataSize);
+                nfi.Stream().flush();
 	      }
             }
 	  }
@@ -1032,6 +1036,8 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
 		       useDynamicSetSelection, nfi);
 
     bytesWritten += VisMF::WriteHeader(mf_name, hdr, coordinatorProc);
+
+    delete whichRD;
 
     return bytesWritten;
 }

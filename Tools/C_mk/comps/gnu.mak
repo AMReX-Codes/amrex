@@ -25,11 +25,11 @@ DEFINES += -DBL_GCC_MINOR_VERSION=$(gcc_minor_version)
 
 ifeq ($(DEBUG),TRUE)
 
-  CXXFLAGS += -g -O0 -fno-inline -ggdb -Wall -Wno-sign-compare
-  CFLAGS   += -g -O0 -fno-inline -ggdb -Wall -Wno-sign-compare
+  CXXFLAGS += -g -O0 -fno-inline -ggdb -Wall -Wno-sign-compare -ftrapv
+  CFLAGS   += -g -O0 -fno-inline -ggdb -Wall -Wno-sign-compare -ftrapv
 
-  FFLAGS   += -g -O0 -fbounds-check -fbacktrace -Wuninitialized -Wno-maybe-uninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan
-  F90FLAGS += -g -O0 -fbounds-check -fbacktrace -Wuninitialized -Wno-maybe-uninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan
+  FFLAGS   += -g -O0 -ggdb -fbounds-check -fbacktrace -Wuninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan -finit-integer=2000000000 -ftrapv
+  F90FLAGS += -g -O0 -ggdb -fbounds-check -fbacktrace -Wuninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan -finit-integer=2000000000 -ftrapv
 
 else
 
@@ -37,6 +37,16 @@ else
   CFLAGS   += -g -O3
   FFLAGS   += -g -O3
   F90FLAGS += -g -O3
+
+endif
+
+
+ifeq ($(USE_GPROF),TRUE)
+
+  CXXFLAGS += -pg
+  CFLAGS += -pg
+  FFLAGS += -pg
+  F90FLAGS += -pg
 
 endif
 
@@ -50,7 +60,7 @@ endif
 CFLAGS     += -std=gnu99
 
 FFLAGS   += -ffixed-line-length-none -fno-range-check -fno-second-underscore -J$(fmoddir) -I $(fmoddir)
-F90FLAGS += -ffree-line-length-none -fno-range-check -fno-second-underscore -J$(fmoddir) -I $(fmoddir)
+F90FLAGS += -ffree-line-length-none -fno-range-check -fno-second-underscore -J$(fmoddir) -I $(fmoddir) -fimplicit-none
 
 ########################################################################
 

@@ -202,15 +202,17 @@ public:
     //
     // Get the smallend of the box.
     //
-    const IntVect& smallEnd () const { return smallend; }
+    const IntVect& smallEnd () const& { return smallend; }
+    const IntVect& smallEnd () && = delete;
     //
     // Return the coordinate of the low end in the given direction.
     //
-    int smallEnd (int dir) const { return smallend[dir]; }
+    int smallEnd (int dir) const& { return smallend[dir]; }
     //
     // Get the bigend.
     //
-    const IntVect& bigEnd () const { return bigend; }
+    const IntVect& bigEnd () const& { return bigend; }
+    const IntVect& bigEnd () && = delete;
     //
     // Return the coordinate of the high end in the given direction.
     //
@@ -244,12 +246,14 @@ public:
     // Returns a constant pointer the array of low end coordinates.
     // Useful for calls to FORTRAN.
     //
-    const int* loVect () const { return smallend.getVect(); }
+    const int* loVect () const& { return smallend.getVect(); }
+    const int* loVect () && = delete;
     //
     // Returns a constant pointer the array of high end coordinates.
     // Useful for calls to FORTRAN.
     //
-    const int* hiVect () const { return bigend.getVect(); }
+    const int* hiVect () const& { return bigend.getVect(); }
+    const int* hiVect () && = delete;
     //
     // Returns the coordinate normal to given face.
     //
@@ -611,7 +615,8 @@ public:
 
     explicit BoxCommHelper (const Box& bx, int* p_ = 0);
 
-    int* data () const { return p; }
+    int* data () const& { return p; }
+    int* data () && = delete;
 
     Box make_box () const {
 	return Box(IntVect(p), IntVect(p+BL_SPACEDIM), IntVect(p+2*BL_SPACEDIM));

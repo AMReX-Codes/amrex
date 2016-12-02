@@ -307,6 +307,8 @@ DivVis::Fsmooth (MultiFab&       solnL,
 #endif
     for (MFIter solnLmfi(solnL); solnLmfi.isValid(); ++solnLmfi)
     {
+	const Box& vbx = solnLmfi.validbox();
+
 	D_TERM(const Mask& mw = mmw[solnLmfi];,
                const Mask& ms = mms[solnLmfi];,
                const Mask& mb = mmb[solnLmfi];);
@@ -394,7 +396,7 @@ DivVis::Fsmooth (MultiFab&       solnL,
 	    tdbfab.dataPtr(),
 	    ARLIM(tdbfab.loVect()),ARLIM(tdbfab.hiVect()),
 #endif
-	    solnLmfi.validbox().loVect(), solnLmfi.validbox().hiVect(),
+	    vbx.loVect(), vbx.hiVect(),
 	    h[level], nc, phaseflag);
     }
 }
@@ -445,6 +447,8 @@ DivVis::compFlux (D_DECL(MultiFab& xflux,
 #endif
     for (MFIter xmfi(x); xmfi.isValid(); ++xmfi)
     {
+	const Box& vbx = xmfi.validbox();
+
 	D_TERM(const Mask& mw = mmw[xmfi];,
                const Mask& ms = mms[xmfi];,
                const Mask& mb = mmb[xmfi];);
@@ -523,7 +527,7 @@ DivVis::compFlux (D_DECL(MultiFab& xflux,
 	    tdbfab.dataPtr(),
 	    ARLIM(tdbfab.loVect()),ARLIM(tdbfab.hiVect()),
 #endif
-	    xmfi.validbox().loVect(), xmfi.validbox().hiVect(),
+	    vbx.loVect(), vbx.hiVect(),
 	    h[level]);
     }
 }
@@ -569,6 +573,8 @@ DivVis::Fapply (MultiFab&       y,
 #endif
     for (MFIter xmfi(x); xmfi.isValid(); ++xmfi)
     {
+	const Box& vbx = xmfi.validbox();
+
 	D_TERM(const Mask& mw = mmw[xmfi];,
                const Mask& ms = mms[xmfi];,
                const Mask& mb = mmb[xmfi];);
@@ -638,7 +644,7 @@ DivVis::Fapply (MultiFab&       y,
 	    tdbfab.dataPtr(),
 	    ARLIM(tdbfab.loVect()),ARLIM(tdbfab.hiVect()),
 #endif
-            xmfi.validbox().loVect(), xmfi.validbox().hiVect(),
+	    vbx.loVect(), vbx.hiVect(),
 	    h[level]);
     }
 }
