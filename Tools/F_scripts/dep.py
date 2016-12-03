@@ -108,7 +108,10 @@ class Preprocessor(object):
 
         stdout, rc = run(command, outfile=processed_file)
 
-        sf.cpp_name = processed_file
+        if rc == 0:
+            sf.cpp_name = processed_file
+        else:
+            raise ValueError("cpp process failed for {}".format(sf.name))
 
         return command
 
