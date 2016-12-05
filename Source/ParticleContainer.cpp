@@ -135,12 +135,12 @@ MyParticleContainer::Evolve (int lev,
 	    FArrayBox&       jyfab = jy[gid];
 	    FArrayBox&       jzfab = jz[gid];
 
-	    Exp.resize(np);
-	    Eyp.resize(np);
-	    Ezp.resize(np);
-	    Bxp.resize(np);
-	    Byp.resize(np);
-	    Bzp.resize(np);
+	    Exp.assign(np,0.0);
+	    Eyp.assign(np,0.0);
+	    Ezp.assign(np,0.0);
+	    Bxp.assign(np,0.0);
+	    Byp.assign(np,0.0);
+	    Bzp.assign(np,0.0);
 
 	    xp.resize(np);
 	    yp.resize(np);
