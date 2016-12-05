@@ -72,7 +72,7 @@ MyParticleContainer::InitData()
     {
 	int gid = mfi.index();
         Box grid = ba[gid];
-        RealBox grid_box = RealBox(grid,dx,geom.ProbLo());
+        RealBox grid_box { grid,dx,geom.ProbLo() };
 
 #if (BL_SPACEDIM == 3)
 	int nx = grid.length(0), ny = grid.length(1), nz = grid.length(2);
