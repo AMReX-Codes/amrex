@@ -5,6 +5,7 @@
 #include <ParmParse.H>
 #include <Array.H>
 #include <MultiFab.H>
+#include <PlotFileUtil.H>
 
 #include <WarpX_f.H>
 
@@ -80,14 +81,16 @@ int main(int argc, char* argv[])
 	FArrayBox byfab(grown_box);
 	FArrayBox bzfab(grown_box);
 
+	std::uniform_real_distribution<Real> rand_dis2(0.0,100.0);
+
 	for (IntVect cell=grown_box.smallEnd(); cell <= grown_box.bigEnd(); grown_box.next(cell))
 	{
-	    exfab(cell) = rand_dis(rand_eng);
-	    eyfab(cell) = rand_dis(rand_eng);
-	    ezfab(cell) = rand_dis(rand_eng);
-	    bxfab(cell) = rand_dis(rand_eng);
-	    byfab(cell) = rand_dis(rand_eng);
-	    bzfab(cell) = rand_dis(rand_eng);
+	    exfab(cell) = rand_dis2(rand_eng);
+	    eyfab(cell) = rand_dis2(rand_eng);
+	    ezfab(cell) = rand_dis2(rand_eng);
+	    bxfab(cell) = rand_dis2(rand_eng);
+	    byfab(cell) = rand_dis2(rand_eng);
+	    bzfab(cell) = rand_dis2(rand_eng);
 	}
 
 	const int ll4symtry          = false;
@@ -103,6 +106,32 @@ int main(int argc, char* argv[])
 				      bxfab.dataPtr(), byfab.dataPtr(), bzfab.dataPtr(),
 				      &ll4symtry, &l_lower_order_in_v,
 				      &field_gathering_algo);
+
+	Box plotbox{IntVect{D_DECL(0,0,0)},IntVect{D_DECL(nx-1,ny-1,nz-1)}};
+	MultiFab plotmf(BoxArray{plotbox}, 6, 0);
+	FArrayBox& plotfab = plotmf[0];
+	plotfab.setVal(0.0);
+	for (int k = 0; k < nz; ++k) {
+	    for (int j = 0; j < ny; ++j) {
+		for (int i = 0; i < nx; ++i) {
+		    IntVect cell{i,j,k};
+		    int ip = i + j*nx + k*nx*ny;
+		    plotfab(cell,0) += Exp[ip];
+		    plotfab(cell,1) += Eyp[ip];
+		    plotfab(cell,2) += Ezp[ip];
+		    plotfab(cell,3) += Bxp[ip];
+		    plotfab(cell,4) += Byp[ip];
+		    plotfab(cell,5) += Bzp[ip];
+		}
+	    }
+	}
+
+	RealBox realbox{plotbox, dx, xyzmin};
+	int is_per[3] = {0,0,0};
+	Geometry geom{plotbox, &realbox, 0, is_per};
+	std::string plotname{"plt00000"};
+	Array<std::string> varnames{"Ex", "Ey", "Ez", "Bx", "By", "Bz"};
+	BoxLib::WriteSingleLevelPlotfile(plotname, plotmf, varnames, geom, 0.0, 0);
     }
 
     BoxLib::Finalize();
