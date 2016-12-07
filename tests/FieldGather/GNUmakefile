@@ -17,4 +17,7 @@ include ./Make.package
 include $(BOXLIB_HOME)/Src/C_BaseLib/Make.package
 include $(PICSAR_HOME)/src/Make.package
 
+default: $(executable)
+	@echo SUCCESS
+
 include $(BOXLIB_HOME)/Tools/C_mk/Make.rules
