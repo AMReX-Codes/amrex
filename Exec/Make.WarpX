@@ -9,13 +9,15 @@ ifndef USE_PYTHON_MAIN
   USE_PYTHON_MAIN = FALSE
 endif
 
-ifeq ($(USE_PYTHON_MAIN),TRUE)
+#ifeq ($(USE_PYTHON_MAIN),TRUE)
   CXXFLAGS += -fPIC
   CFLAGS   += -fPIC
   fFLAGS   += -fPIC
   FFLAGS   += -fPIC
+  f90FLAGS   += -fPIC
+  F90FLAGS   += -fPIC
   USERSuffix = .Lib
-endif
+#endif
 
 -include Make.package
 include $(WARPX_HOME)/Source/Make.package
