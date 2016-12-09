@@ -13,7 +13,7 @@ ifeq ($(USE_MPI),TRUE)
 
   # Link to MPI f90 library.
 
-  ifeq ($(findstring mpich, $(shell $(F90) -show 2>&1)), mpich)
+  ifneq ($(findstring mpich, $(shell $(F90) -show 2>&1)),)
 
     #
     # mpich
@@ -25,7 +25,7 @@ ifeq ($(USE_MPI),TRUE)
     #
     LIBRARIES += $(wordlist 2,1024,$(mpif90_link_flags))
 
-  else ifeq ($(findstring openmpi, $(shell $(F90) -showme 2>&1)), openmpi)
+  else ifneq ($(findstring Open MPI, $(shell $(F90) -showme:version 2>&1)),)
 
     #
     # openmpi
