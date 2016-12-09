@@ -1,8 +1,3 @@
-! ************************************************************************************
-Chemotaxis_F
-! ************************************************************************************
-This evolves the chemotaxis model as described in Tutorials/Chemotaxis_F/README
-on a single level with multiple boxes using SDC time-stepping.
 
 ! ************************************************************************************
 Exp_CNS_NoSpec_F
