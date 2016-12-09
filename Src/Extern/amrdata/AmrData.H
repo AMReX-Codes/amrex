@@ -49,6 +49,7 @@ class AmrData {
   
   Amrvis::FileType fileType;
   bool bCartGrid;
+  int  vCartGrid;  // ---- the CartGrid version
   bool bTerrain;
   Array<int> levelSteps;
   
@@ -121,6 +122,7 @@ class AmrData {
   void SetFileType(Amrvis::FileType type);
   Amrvis::FileType GetFileType() const     { return fileType;  }
   bool CartGrid() const            { return bCartGrid; }
+  int  CartGridVersion() const     { return vCartGrid; }
   Real VfEps(int level) const      { return vfEps[level]; }
   void SetVfEps(Real *newvfeps, int finestlev);
   bool Terrain()  const            { return bTerrain; }
