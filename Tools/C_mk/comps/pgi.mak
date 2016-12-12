@@ -15,6 +15,8 @@ F90FLAGS =
 
 pgi_version := $(shell $(CXX) -V 2>&1 | grep 'target')
 
+COMP_VERSION := $(pgi_version)
+
 ########################################################################
 
 ifeq ($(DEBUG),TRUE)
