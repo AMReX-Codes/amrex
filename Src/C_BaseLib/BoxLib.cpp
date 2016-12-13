@@ -125,7 +125,7 @@ BoxLib::Error (const char* msg)
 {
     write_lib_id("Error");
     write_to_stderr_without_buffering(msg);
-    BLBackTrace::handler(SIGABRT);
+    ParallelDescriptor::Abort();
 }
 
 namespace
@@ -197,7 +197,7 @@ BoxLib::Abort (const char* msg)
 {
     write_lib_id("Abort");
     write_to_stderr_without_buffering(msg);
-    BLBackTrace::handler(SIGABRT);
+    ParallelDescriptor::Abort();
 }
 
 void
@@ -227,7 +227,7 @@ BoxLib::Assert (const char* EX,
 
     write_to_stderr_without_buffering(buf);
 
-    BLBackTrace::handler(SIGABRT);
+    ParallelDescriptor::Abort();
 }
 
 namespace
@@ -322,6 +322,7 @@ BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi
 
     signal(SIGSEGV, BLBackTrace::handler); // catch seg falult
     signal(SIGINT,  BLBackTrace::handler);
+    signal(SIGABRT, BLBackTrace::handler);
 
 #ifndef BL_AMRPROF
     if (build_parm_parse)

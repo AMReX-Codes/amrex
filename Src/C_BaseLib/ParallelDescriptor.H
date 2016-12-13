@@ -1,6 +1,7 @@
 #ifndef BL_PARALLELDESCRIPTOR_H
 #define BL_PARALLELDESCRIPTOR_H
 
+#include <BLBackTrace.H>
 #include <BLProfiler.H>
 #include <BLassert.H>
 #include <REAL.H>
@@ -659,13 +660,9 @@ namespace ParallelDescriptor
 
     void Comm_dup (MPI_Comm comm, MPI_Comm& newcomm);
     //
-    // Issue architecture specific Abort.
-    //
-    void Abort ();
-    //
     // Abort with specified error code.
     //
-    void Abort (int errorcode);
+    void Abort (int errorcode = SIGABRT, bool backtrace = true);
     //
     // ErrorString return string associated with error internal error condition
     //

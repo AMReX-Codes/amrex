@@ -120,11 +120,13 @@ $(depEXETempDir)/%.d: %.f
 		sed -e '\''s,^[^:]*\/,,'\'' | \
 		sed -e '\''s,$*.o,$(objEXETempDir)/& $@,'\'' > $@'
 
+DEP_CHECK_OPTS :=
+
 $(depEXETempDir)/f90.depends: $(f90EXE_sources) $(F90EXE_sources) 
 	@if [ ! -d $(depEXETempDir) ]; then mkdir -p $(depEXETempDir); fi
 	@if [ ! -d $(f77EXETempDir) ]; then mkdir -p $(f77EXETempDir); fi
 	@echo "Building f90/F90 dependency File ..."
-	$(MODDEP) --prefix $(objEXETempDir) \
+	$(MODDEP) $(DEP_CHECK_OPTS) --prefix $(objEXETempDir) \
             --temp_dir $(f77EXETempDir) \
             --cpp "$(FORT_CPP)" \
             --defines "-DBL_LANG_FORT $(CPPFLAGS) $(fincludes)" \
@@ -153,7 +155,7 @@ ifdef FEXE_sources
 endif
 
 ifneq "$(strip $(f90EXE_sources) $(F90EXE_sources))" ""
--include $(depEXETempDir)/f90.depends
+include $(depEXETempDir)/f90.depends
 endif
 
 endif

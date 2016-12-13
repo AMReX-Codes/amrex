@@ -495,11 +495,7 @@ BoxLib::UtilRenameDirectoryToOld (const std::string &path, bool callbarrier)
 void
 BoxLib::OutOfMemory ()
 {
-#ifdef BL_BGL
-    ParallelDescriptor::Abort(12);
-#else
     BoxLib::Error("Sorry, out of memory, bye ...");
-#endif
 }
 
 //
