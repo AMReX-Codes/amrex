@@ -128,10 +128,10 @@ BoxLib::WriteGenericPlotfileHeader (std::ostream &HeaderFile,
         HeaderFile << "0\n";
 
 	for (int level = 0; level <= finest_level; ++level) {
-	    HeaderFile << level << ' ' << bArray.size() << ' ' << time << '\n';
+	    HeaderFile << level << ' ' << bArray[level].size() << ' ' << time << '\n';
 	    HeaderFile << level_steps[level] << '\n';
 	    
-	    for (int i = 0; i < bArray.size(); ++i)
+	    for (int i = 0; i < bArray[level].size(); ++i)
 	    {
 		const Box &b(bArray[level][i]);
 		RealBox loc = RealBox(b, geom[level].CellSize(), geom[level].ProbLo());
