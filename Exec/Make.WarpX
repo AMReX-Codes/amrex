@@ -12,10 +12,8 @@ endif
 #ifeq ($(USE_PYTHON_MAIN),TRUE)
   CXXFLAGS += -fPIC
   CFLAGS   += -fPIC
-  fFLAGS   += -fPIC
   FFLAGS   += -fPIC
-  f90FLAGS   += -fPIC
-  F90FLAGS   += -fPIC
+  F90FLAGS += -fPIC
   USERSuffix = .Lib
 #endif
 
