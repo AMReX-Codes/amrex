@@ -1,4 +1,5 @@
 
+#include <limits>
 #include <random>
 
 #include <BoxLib.H>
@@ -30,7 +31,7 @@ int main(int argc, char* argv[])
 	}
 
 	std::mt19937 rand_eng(42);
-	std::uniform_real_distribution<Real> rand_dis(0.0,100.0);
+	std::uniform_real_distribution<Real> rand_dis(0.0,1.0);
 
 	long nx = 64, ny = 64, nz = 64;
 	Real dx[3] = {1.0/nx, 1.0/ny, 1.0/nz};
@@ -66,15 +67,15 @@ int main(int argc, char* argv[])
 	    FArrayBox& jzfab = (*current[2])[mfi];
 	    for (IntVect cell=bx.smallEnd(); cell <= bx.bigEnd(); bx.next(cell))
 	    {
-		exfab(cell) = rand_dis(rand_eng);
-		eyfab(cell) = rand_dis(rand_eng);
-		ezfab(cell) = rand_dis(rand_eng);
-		bxfab(cell) = rand_dis(rand_eng);
-		byfab(cell) = rand_dis(rand_eng);
-		bzfab(cell) = rand_dis(rand_eng);
-		jxfab(cell) = rand_dis(rand_eng);
-		jyfab(cell) = rand_dis(rand_eng);
-		jzfab(cell) = rand_dis(rand_eng);
+		exfab(cell) = rand_dis(rand_eng)*1.e5;
+		eyfab(cell) = rand_dis(rand_eng)*1.e5;
+		ezfab(cell) = rand_dis(rand_eng)*1.e5;
+		bxfab(cell) = rand_dis(rand_eng)*1.e-5;
+		byfab(cell) = rand_dis(rand_eng)*1.e-5;
+		bzfab(cell) = rand_dis(rand_eng)*1.e-5;
+		jxfab(cell) = rand_dis(rand_eng)*1.e10;
+		jyfab(cell) = rand_dis(rand_eng)*1.e10;
+		jzfab(cell) = rand_dis(rand_eng)*1.e10;
 	    }
 	}
 
