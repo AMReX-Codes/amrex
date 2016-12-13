@@ -1,8 +1,13 @@
 #!/usr/bin/env python
 
 import sys
+
+if sys.version_info < (2, 7):
+    sys.exit("ERROR: need python 2.7 or later for dep.py")
+
+import argparse
+
 import os
-import getopt
 import datetime
 import subprocess
 
@@ -145,229 +150,250 @@ def get_git_hash(d):
     return hash
 
 
-try: opts, next = getopt.getopt(sys.argv[1:], "",
-                                ["boxlib_home=",
-                                 "FCOMP=",
-                                 "FCOMP_VERSION=",
-                                 "COMP=",
-                                 "COMP_VERSION=",
-                                 "AUX=",
-                                 "MODULES=",
-                                 "GIT=",
-                                 "build_git_name=",
-                                 "build_git_dir="])
 
-except getopt.GetoptError:
-    sys.exit("invalid calling sequence")
+if __name__ == "__main__":
 
-boxlib_home = ""
-FCOMP = ""
-FCOMP_VERSION = ""
-COMP = ""
-COMP_VERSION = ""
-AUX = []
-# modules have the form "key=value", e.g. "EOS=helmeos"
-MODULES = []
-GIT = []
-build_git_name = ""
-build_git_dir = None
+    parser = argparse.ArgumentParser()
 
-for o, a in opts:
+    parser.add_argument("--boxlib_home",
+                        help="path to the BoxLib source",
+                        type=str, default="")
 
-    if o == "--boxlib_home": boxlib_home = a
+    parser.add_argument("--COMP",
+                        help="Compiler as defined by BoxLib's build system (deprecated)",
+                        type=str, default="")
 
-    if o == "--FCOMP": FCOMP = a
+    parser.add_argument("--COMP_VERSION",
+                        help="Compiler version (deprecated)",
+                        type=str, default="")
 
-    if o == "--FCOMP_VERSION": FCOMP_VERSION = a    
+    parser.add_argument("--FCOMP",
+                        help="Fortran compiler as defined by BoxLib's build system (deprecated)",
+                        type=str, default="")
 
-    if o == "--COMP": COMP = a
+    parser.add_argument("--FCOMP_VERSION",
+                        help="Fortran compiler version (deprecated)",
+                        type=str, default="")
 
-    if o == "--COMP_VERSION": COMP_VERSION = a    
+    parser.add_argument("--AUX",
+                        help="auxillary information (EOS, network path) (deprecated)",
+                        type=str, default="")
 
-    if o == "--AUX":
-        if not a == "": AUX = a.split()
+    parser.add_argument("--MODULES",
+                       help="module information in the form of key=value (e.g., EOS=helmeos)",
+                       type=str, default="")
 
-    if o == "--MODULES":
-        if not a == "": MODULES = a.split()
+    parser.add_argument("--GIT",
+                        help="the directories whose git hashes we should capture",
+                        type=str, default="")
 
-    if o == "--GIT":
-        if not a == "": GIT = a.split()
 
-    if o == "--build_git_name":
-        if not a == "": build_git_name = a
+    parser.add_argument("--build_git_name",
+                        help="the name of the build directory if different from the main source -- we'll get the git hash of this.",
+                        type=str, default="")
 
-    if o == "--build_git_dir":
-        if not a == "": build_git_dir = a
+    parser.add_argument("--build_git_dir",
+                        help="the full path to the build directory that corresponds to build_git_name",
+                        type=str, default="")
 
-        
-# build stuff
-build_date = str(datetime.datetime.now())
-build_dir = os.getcwd()
-build_machine = runcommand("uname -a")
 
-# git hashes
-running_dir = os.getcwd()
+    args = parser.parse_args()
 
-ngit = len(GIT)
-git_hashes = []
-for d in GIT:
-    if d and os.path.isdir(d):
-        git_hashes.append(get_git_hash(d))
+
+    # build stuff
+    build_date = str(datetime.datetime.now())
+    build_dir = os.getcwd()
+    build_machine = runcommand("uname -a")
+
+
+    # git hashes
+    running_dir = os.getcwd()
+
+    if args.GIT == "":
+        GIT = []
     else:
-        git_hashes.append("")
+        GIT = args.GIT.split()
 
-if not build_git_dir == None:
-    try: os.chdir(build_git_dir)
-    except:
-        build_git_hash = "directory not valid"
+    ngit = len(GIT)
+    git_hashes = []
+    for d in GIT:
+        if d and os.path.isdir(d):
+            git_hashes.append(get_git_hash(d))
+        else:
+            git_hashes.append("")
+
+    if args.build_git_dir != "":
+        try: os.chdir(args.build_git_dir)
+        except:
+            build_git_hash = "directory not valid"
+        else:
+            build_git_hash = get_git_hash(args.build_git_dir)
+            os.chdir(running_dir)
     else:
-        build_git_hash = get_git_hash(build_git_dir)
-        os.chdir(running_dir)
-else:
-    build_git_hash = ""
+        build_git_hash = ""
 
 
-if len(MODULES) > 0:
-    mod_dict = {}
-    for m in MODULES:
-        k, v = m.split("=")
-        mod_dict[k] = v
+    # modules
+    if args.MODULES == "":
+        MODULES = []
+    else:
+        MODULES = args.MODULES.split()
 
-fout = open("buildInfo.cpp", "w")
+    if len(MODULES) > 0:
+        mod_dict = {}
+        for m in MODULES:
+            k, v = m.split("=")
+            mod_dict[k] = v
 
-for line in source.splitlines():
 
-    index = line.find("@@")
+    # auxillary info
+    if args.AUX == "":
+        AUX = []
+    else:
+        AUX = args.AUX.split()
 
-    if index >= 0:
-        index2 = line.rfind("@@")
-        keyword = line[index+len("@@"):index2]
 
-        if keyword == "BUILD_DATE":
-            newline = line.replace("@@BUILD_DATE@@", build_date)
-            fout.write(newline)
+    fout = open("buildInfo.cpp", "w")
 
-        elif keyword == "BUILD_DIR":
-            newline = line.replace("@@BUILD_DIR@@", build_dir)
-            fout.write(newline)
+    for line in source.splitlines():
 
-        elif keyword == "BUILD_MACHINE":
-            newline = line.replace("@@BUILD_MACHINE@@", build_machine)
-            fout.write(newline)
+        index = line.find("@@")
 
-        elif keyword == "BOXLIB_DIR":
-            newline = line.replace("@@BOXLIB_DIR@@", boxlib_home)
-            fout.write(newline)
+        if index >= 0:
+            index2 = line.rfind("@@")
+            keyword = line[index+len("@@"):index2]
 
-        elif keyword == "COMP":
-            newline = line.replace("@@COMP@@", COMP)
-            fout.write(newline)
+            if keyword == "BUILD_DATE":
+                newline = line.replace("@@BUILD_DATE@@", build_date)
+                fout.write(newline)
 
-        elif keyword == "COMP_VERSION":
-            newline = line.replace("@@COMP_VERSION@@", COMP_VERSION)
-            fout.write(newline)
+            elif keyword == "BUILD_DIR":
+                newline = line.replace("@@BUILD_DIR@@", build_dir)
+                fout.write(newline)
 
-        elif keyword == "FCOMP":
-            newline = line.replace("@@FCOMP@@", FCOMP)
-            fout.write(newline)
+            elif keyword == "BUILD_MACHINE":
+                newline = line.replace("@@BUILD_MACHINE@@", build_machine)
+                fout.write(newline)
 
-        elif keyword == "FCOMP_VERSION":
-            newline = line.replace("@@FCOMP_VERSION@@", FCOMP_VERSION)
-            fout.write(newline)
+            elif keyword == "BOXLIB_DIR":
+                newline = line.replace("@@BOXLIB_DIR@@", args.boxlib_home)
+                fout.write(newline)
 
-        elif keyword == "AUX_DECLS":
-            indent = index
-            aux_str = ""
-            for i in range(len(AUX)):
-                aux_str += '%sstatic const char AUX%1d[] = "%s";\n' % (indent*" ", i+1, AUX[i])
+            elif keyword == "COMP":
+                newline = line.replace("@@COMP@@", args.COMP)
+                fout.write(newline)
 
-            fout.write(aux_str)
+            elif keyword == "COMP_VERSION":
+                newline = line.replace("@@COMP_VERSION@@", args.COMP_VERSION)
+                fout.write(newline)
 
-        elif keyword == "AUX_CASE":
-            indent = index
-            aux_str = ""
-            for i in range(len(AUX)):
-                aux_str += '%scase %1d: return AUX%1d;\n' % (indent*" ", i+1, i+1)
+            elif keyword == "FCOMP":
+                newline = line.replace("@@FCOMP@@", args.FCOMP)
+                fout.write(newline)
 
-            fout.write(aux_str)
+            elif keyword == "FCOMP_VERSION":
+                newline = line.replace("@@FCOMP_VERSION@@", args.FCOMP_VERSION)
+                fout.write(newline)
 
-        elif keyword == "NUM_MODULES":
-            num_modules = len(MODULES)
-            indent = index
-            fout.write("{}int num_modules = {};\n".format(
-                indent*" ", num_modules))
-
-        elif keyword == "MNAME_DECLS":
-            indent = index
-            aux_str = ""
-            if len(MODULES) > 0:
-                for i, m in enumerate(list(mod_dict.keys())):
+            elif keyword == "AUX_DECLS":
+                indent = index
+                aux_str = ""
+                for n, a in enumerate(AUX):
                     aux_str += '{}static const char AUX{:1d}[] = "{}";\n'.format(
-                        indent*" ", i+1, m)
+                        indent*" ", n+1, a)
 
-            fout.write(aux_str)
+                fout.write(aux_str)
 
-        elif keyword == "MNAME_CASE":
-            indent = index
-            aux_str = ""
-            if len(MODULES) > 0:
-                for i, m in enumerate(list(mod_dict.keys())):
+            elif keyword == "AUX_CASE":
+                indent = index
+                aux_str = ""
+                for i in range(len(AUX)):
                     aux_str += '{}case {:1d}: return AUX{:1d};\n'.format(
                         indent*" ", i+1, i+1)
 
-            fout.write(aux_str)
+                fout.write(aux_str)
+
+            elif keyword == "NUM_MODULES":
+                num_modules = len(MODULES)
+                indent = index
+                fout.write("{}int num_modules = {};\n".format(
+                    indent*" ", num_modules))
+
+            elif keyword == "MNAME_DECLS":
+                indent = index
+                aux_str = ""
+                if len(MODULES) > 0:
+                    for i, m in enumerate(list(mod_dict.keys())):
+                        aux_str += '{}static const char AUX{:1d}[] = "{}";\n'.format(
+                            indent*" ", i+1, m)
+
+                fout.write(aux_str)
+
+            elif keyword == "MNAME_CASE":
+                indent = index
+                aux_str = ""
+                if len(MODULES) > 0:
+                    for i, m in enumerate(list(mod_dict.keys())):
+                        aux_str += '{}case {:1d}: return AUX{:1d};\n'.format(
+                            indent*" ", i+1, i+1)
+
+                fout.write(aux_str)
 
 
-        elif keyword == "MVAL_DECLS":
-            indent = index
-            aux_str = ""
-            if len(MODULES) > 0:
-                for i, m in enumerate(list(mod_dict.keys())):
-                    aux_str += '{}static const char AUX{:1d}[] = "{}";\n'.format(
-                        indent*" ", i+1, mod_dict[m])
+            elif keyword == "MVAL_DECLS":
+                indent = index
+                aux_str = ""
+                if len(MODULES) > 0:
+                    for i, m in enumerate(list(mod_dict.keys())):
+                        aux_str += '{}static const char AUX{:1d}[] = "{}";\n'.format(
+                            indent*" ", i+1, mod_dict[m])
 
-            fout.write(aux_str)
+                fout.write(aux_str)
 
-        elif keyword == "MVAL_CASE":
-            indent = index
-            aux_str = ""
-            if len(MODULES) > 0:
-                for i, m in enumerate(list(mod_dict.keys())):
-                    aux_str += '{}case {:1d}: return AUX{:1d};\n'.format(
+            elif keyword == "MVAL_CASE":
+                indent = index
+                aux_str = ""
+                if len(MODULES) > 0:
+                    for i, m in enumerate(list(mod_dict.keys())):
+                        aux_str += '{}case {:1d}: return AUX{:1d};\n'.format(
+                            indent*" ", i+1, i+1)
+
+                fout.write(aux_str)
+
+
+            elif keyword == "GIT_DECLS":
+                indent = index
+                git_str = ""
+                for i, gh in enumerate(git_hashes):
+                    git_str += '{}static const char HASH{:1d}[] = "{}";\n'.format(
+                        indent*" ", i+1, gh)
+
+                fout.write(git_str)
+
+            elif keyword == "GIT_CASE":
+                indent = index
+                git_str = ""
+                for i in range(len(git_hashes)):
+                    git_str += '{}case {:1d}: return HASH{:1d};\n'.format(
                         indent*" ", i+1, i+1)
 
-            fout.write(aux_str)
+                fout.write(git_str)
 
+            elif keyword == "BUILDGIT_DECLS":
+                indent = index
+                git_str = '{}static const char HASH[] = "{}";\n'.format(
+                    indent*" ", build_git_hash)
+                fout.write(git_str)
 
-        elif keyword == "GIT_DECLS":
-            indent = index
-            git_str = ""
-            for i in range(len(GIT)):
-                git_str += '%sstatic const char HASH%1d[] = "%s";\n' % (indent*" ", i+1, git_hashes[i])
+            elif keyword == "BUILDGIT_NAME":
+                index = index
+                git_str = '{}static const char NAME[] = "{}";\n'.format(
+                    indent*" ", args.build_git_name)
+                fout.write(git_str)
 
-            fout.write(git_str)
+        else:
+            fout.write(line)
 
-        elif keyword == "GIT_CASE":
-            indent = index
-            git_str = ""
-            for i in range(len(GIT)):
-                git_str += '%scase %1d: return HASH%1d;\n' % (indent*" ", i+1, i+1)
+        fout.write("\n")
 
-            fout.write(git_str)
-
-        elif keyword == "BUILDGIT_DECLS":
-            indent = index
-            git_str = '%sstatic const char HASH[] = "%s";\n' % (indent*" ", build_git_hash)
-            fout.write(git_str)
-
-        elif keyword == "BUILDGIT_NAME":
-            index = index
-            git_str = '%sstatic const char NAME[] = "%s";\n' % (indent*" ", build_git_name)
-            fout.write(git_str)
-            
-    else:
-        fout.write(line)
-
-    fout.write("\n")
-
-fout.close()
+    fout.close()
