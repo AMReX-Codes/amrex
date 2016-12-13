@@ -306,6 +306,9 @@ public:
 
     void addOneParticle (int id_in, int cpu_in, 
                          std::vector<double>& xloc, std::vector<double>& attributes); 
+    void addNParticles (int n,  Array<double>& x, Array<double>& y, Array<double>& z, 
+                                Array<double>& u, Array<double>& v, Array<double>& w, 
+                        int na, Array<double>& attributes);
 
     void GetParticleIDs        (Array<int> & part_ids);
     void GetParticleCPU        (Array<int> & part_cpu);
@@ -661,6 +664,59 @@ ParticleContainer<NR,NI,C>::addOneParticle (int                  id_in,
     // The Where call above assigns a particle to a grid (p.m_grid) based on the particle location.
     // However, the particle may not currently live on the processor that owns that grid.
     // The Redistribute routine should ensure that the particle ends up on the right processor.
+}
+
+template <int NR, int NI, class C>
+void
+ParticleContainer<NR,NI,C>::addNParticles(int n_part, Array<double>& x, Array<double>& y, 
+#if (BL_SPACEDIM == 3)
+                                                      Array<double>& z, 
+#endif
+                                                      Array<double>& u, Array<double>& v, 
+#if (BL_SPACEDIM == 3)
+                                                      Array<double>& w, 
+#endif
+                                          int n_attr, Array<double>& attributes)
+{
+    BL_PROFILE("ParticleContainer<NR,NI,C>::addNParticles()");
+
+    BL_ASSERT(OK());
+    BL_ASSERT(NR >= BL_SPACEDIM+n_attr);
+
+    if (m_particles.size() == 0)
+       m_particles.resize(m_gdb->finestLevel()+1);
+
+    ParticleType p;
+
+    for (long j = 0; j < n_part; j++)
+    {
+       ParticleType p;
+
+       p.m_pos[j  ] = x[j]; // x
+       p.m_pos[j+1] = y[j]; // y
+#if (BL_SPACEDIM == 3)
+       p.m_pos[j+2] = z[j]; // z
+#endif
+
+       p.m_data[j  ] = u[j]; // u
+       p.m_data[j+1] = v[j]; // v
+#if (BL_SPACEDIM == 3)
+       p.m_data[j+2] = w[j]; // w
+#endif
+
+       if (!ParticleBase::Where(p,m_gdb))
+              BoxLib::Abort("ParticleContainer<NR,NI,C>::addNParticles(): invalid particle location");
+
+       for (int i = 0; i < n_attr; i++)
+          p.m_data[BL_SPACEDIM+i] = attributes[n_attr*j + i];
+
+       p.m_id  = ParticleBase::NextID();
+       p.m_cpu = ParallelDescriptor::MyProc();
+
+       m_particles[p.m_lev][p.m_grid].push_back(p);
+    }
+
+    Redistribute();
 }
 
     //
@@ -1564,9 +1620,9 @@ ParticleContainer<NR,NI,C>::CreateGhostParticles (int   level,
 template <int NR, int NI, class C>
 void
 ParticleContainer<NR,NI,C>::Redistribute (bool where_already_called,
-					bool full_where,
-					int  lev_min,
-					int  nGrow)
+					  bool full_where,
+  					  int  lev_min,
+					  int  nGrow)
 {
     BL_PROFILE("ParticleContainer::Redistribute()");
     const int MyProc   = ParallelDescriptor::MyProc();

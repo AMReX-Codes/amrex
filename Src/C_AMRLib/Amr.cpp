@@ -33,6 +33,7 @@
 #include <DistributionMapping.H>
 #include <FabSet.H>
 #include <StateData.H>
+#include <PlotFileUtil.H>
 
 #ifdef MG_USE_FBOXLIB
 #include <mg_cpp_f.h>
@@ -747,11 +748,10 @@ Amr::writePlotFile ()
 
     if(precreateDirectories) {    // ---- make all directories at once
       BoxLib::UtilRenameDirectoryToOld(pltfile, false);      // dont call barrier
-      BoxLib::UtilCreateCleanDirectory(pltfileTemp, false);  // dont call barrier
-      for(int i(0); i <= finest_level; ++i) {
-        amr_level[i].CreateLevelDirectory(pltfileTemp);
+      if(ParallelDescriptor::IOProcessor()) {
+        std::cout << "IOIOIOIO:  precreating directories for " << pltfileTemp << std::endl;
       }
-      ParallelDescriptor::Barrier("Amr::precreate plotfile Directories");
+      BoxLib::PreBuildDirectorHierarchy(pltfileTemp, "Level_", finest_level + 1, true);  // call barrier
     } else {
       BoxLib::UtilRenameDirectoryToOld(pltfile, false);     // dont call barrier
       BoxLib::UtilCreateCleanDirectory(pltfileTemp, true);  // call barrier
