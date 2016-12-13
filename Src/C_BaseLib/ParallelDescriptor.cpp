@@ -197,22 +197,13 @@ namespace ParallelDescriptor
 }
 
 void
-ParallelDescriptor::Abort ()
+ParallelDescriptor::Abort (int errorcode, bool backtrace)
 {
-#ifdef WIN32
-    throw;
-#endif
-    MPI_Abort(CommunicatorAll(), -1);
-}
-
-void
-ParallelDescriptor::Abort (int errorcode)
-{
-#ifdef BL_BGL
-    MPI_Abort(CommunicatorAll(), errorcode);
-#else
-    BoxLib::Abort(ErrorString(errorcode));
-#endif
+    if (backtrace) {
+	BLBackTrace::handler(errorcode);
+    } else {
+	MPI_Abort(CommunicatorAll(), errorcode);
+    }
 }
 
 const char*
@@ -1954,20 +1945,16 @@ void ParallelDescriptor::EndParallel () {}
 
 void ParallelDescriptor::EndSubCommunicator () {}
 
-void ParallelDescriptor::Abort ()
+void ParallelDescriptor::Abort (int s, bool backtrace)
 { 
 #ifdef WIN32
     throw;
 #else
-    std::abort(); 
-#endif
-}
-void ParallelDescriptor::Abort (int)
-{ 
-#ifdef WIN32
-    throw;
-#else
-    std::abort(); 
+    if (backtrace) {
+	BLBackTrace::handler(s);
+    } else {
+	std::_Exit(EXIT_FAILURE);
+    }
 #endif
 }
 

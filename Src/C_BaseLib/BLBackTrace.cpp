@@ -25,6 +25,9 @@ BLBackTrace::handler(int s)
     case SIGINT:
 	BoxLib::write_to_stderr_without_buffering("SIGINT");
 	break;
+    case SIGABRT:
+	BoxLib::write_to_stderr_without_buffering("SIGABRT");
+	break;
     }
 
 #ifdef __linux__
@@ -69,7 +72,8 @@ BLBackTrace::handler(int s)
 
 #endif // __linux__
 
-    ParallelDescriptor::Abort();
+    signal(s, SIG_DFL);
+    ParallelDescriptor::Abort(s, false);
 }
 
 #ifdef __linux__
@@ -88,12 +92,16 @@ BLBackTrace::print_backtrace_info (FILE* f)
 	    fclose(fp);
 	    have_addr2line = 1;
 	}
-	cmd += " -Cfie " + BoxLib::exename; 
-	if (have_addr2line) {
-	    fprintf(f, "=== Please note that the line number reported by addr2line may not be accurate.\n");
-	    fprintf(f, "    If necessary, one can use 'readelf -wl my_exefile | grep my_line_address'\n");
-	    fprintf(f, "    to find out the offset for that line.\n\n");
-	}
+	cmd += " -Cfie " + BoxLib::exename;
+
+	fprintf(f, "=== If no file names and line numbers are shown below, one can run\n");
+	fprintf(f, "            addr2line -Cfie my_exefile my_line_address\n");
+	fprintf(f, "    to convert `my_line_address` (e.g., 0x4a6b) into file name and line number.\n\n");
+	fprintf(f, "=== Please note that the line number reported by addr2line may not be accurate.\n");
+	fprintf(f, "    One can use\n");
+	fprintf(f, "            readelf -wl my_exefile | grep my_line_address'\n");
+	fprintf(f, "    to find out the offset for that line.\n\n");
+
 	for (int i = 0; i < nptrs; ++i) {
 	    std::string line = strings[i];
 	    line += "\n";

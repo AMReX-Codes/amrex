@@ -108,7 +108,10 @@ class Preprocessor(object):
 
         stdout, rc = run(command, outfile=processed_file)
 
-        sf.cpp_name = processed_file
+        if rc == 0:
+            sf.cpp_name = processed_file
+        else:
+            raise ValueError("cpp process failed for {}".format(sf.name))
 
         return command
 
@@ -270,6 +273,8 @@ def doit(prefix, search_path, files, cpp, debug=False):
             except KeyError:
                 print("warning: module {} required by {} not found".format(d, sf.name), 
                       file=sys.stderr)
+                print("$(warning module {} required by {} not found)".format(d, sf.name))
+                continue
 
             # skip the case where a file provides the module it needs
             # on its own; otherwise output the dependency line
@@ -330,4 +335,9 @@ if __name__ == "__main__":
     else:
         cpp_pass = None
 
-    doit(prefix_pass, args.search_path.split(), args.files, cpp_pass, debug=args.debug)
+    try:
+        doit(prefix_pass, args.search_path.split(), args.files, cpp_pass, debug=args.debug)
+    except:
+        # something went wrong
+        print("$(error something went wrong in dep.py.  Remake, adding the option 'DEP_CHECK_OPTS=--debug' to your make command and examine the 'dependencies.out' file)")
+

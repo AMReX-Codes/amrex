@@ -15,6 +15,8 @@ F90FLAGS =
 
 intel_version := $(shell $(CXX) -dumpversion)
 
+COMP_VERSION := $(intel_version)
+
 ########################################################################
 
 ifeq ($(DEBUG),TRUE)

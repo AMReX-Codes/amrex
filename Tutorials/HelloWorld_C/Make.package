@@ -2,3 +2,4 @@ CEXE_sources += main.cpp
 
 f90EXE_sources += work.f90
 
+#F90EXE_sources += superstring.F90

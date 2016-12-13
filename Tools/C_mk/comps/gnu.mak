@@ -17,6 +17,8 @@ gcc_version       := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;')
 gcc_major_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;\..*;;')
 gcc_minor_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;[^.]*\.;;' | sed -e 's;\..*;;')
 
+COMP_VERSION := $(gcc_version)
+
 DEFINES += -DBL_GCC_VERSION='$(gcc_version)'
 DEFINES += -DBL_GCC_MAJOR_VERSION=$(gcc_major_version)
 DEFINES += -DBL_GCC_MINOR_VERSION=$(gcc_minor_version)
@@ -28,8 +30,8 @@ ifeq ($(DEBUG),TRUE)
   CXXFLAGS += -g -O0 -fno-inline -ggdb -Wall -Wno-sign-compare -ftrapv
   CFLAGS   += -g -O0 -fno-inline -ggdb -Wall -Wno-sign-compare -ftrapv
 
-  FFLAGS   += -g -O0 -ggdb -fbounds-check -fbacktrace -Wuninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan -finit-integer=2000000000 -ftrapv
-  F90FLAGS += -g -O0 -ggdb -fbounds-check -fbacktrace -Wuninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan -finit-integer=2000000000 -ftrapv
+  FFLAGS   += -g -O0 -ggdb -fbounds-check -fbacktrace -Wuninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan -finit-integer=2147483647 -ftrapv
+  F90FLAGS += -g -O0 -ggdb -fbounds-check -fbacktrace -Wuninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan -finit-integer=2147483647 -ftrapv
 
 else
 
