@@ -194,6 +194,7 @@ namespace {
 bool AmrData::ReadData(const string &filename, Amrvis::FileType filetype) {
    fileType = filetype;
    bCartGrid = false;
+   vCartGrid = -1;
    bTerrain = false;
    if(filetype == Amrvis::FAB || filetype == Amrvis::MULTIFAB) {
      return ReadNonPlotfileData(filename, filetype);
@@ -243,6 +244,17 @@ bool AmrData::ReadData(const string &filename, Amrvis::FileType filetype) {
      if(strncmp(plotFileVersion.c_str(), "CartGrid", 8) == 0) {
        bCartGrid = true;
      }
+     if(strcmp(plotFileVersion.c_str(), "CartGrid-V1.2") == 0) {
+       vCartGrid = 12;
+     }
+     if(strcmp(plotFileVersion.c_str(), "CartGrid-V2.0") == 0) {
+       vCartGrid = 20;
+     }
+     if(bCartGrid && vCartGrid < 0) {
+       if(ParallelDescriptor::IOProcessor()) {
+         cerr << "**** Unknown CartGrid version:  " << plotFileVersion << endl;
+       }
+     }
      if(strncmp(plotFileVersion.c_str(), "Terrain", 7) == 0) {
        bTerrain = true;
      }
@@ -250,7 +262,7 @@ bool AmrData::ReadData(const string &filename, Amrvis::FileType filetype) {
        if(ParallelDescriptor::IOProcessor()) {
          cout << "Plot file version:  " << plotFileVersion << endl;
 	 if(bCartGrid) {
-	   cout << ":::: Found a CartGrid file type." << endl;
+	   cout << ":::: Found a CartGrid file:  version " << vCartGrid << endl;
 	 }
 	 if(bTerrain) {
 	   cout << ":::: Found a Terrain file type." << endl;
@@ -459,13 +471,11 @@ bool AmrData::ReadData(const string &filename, Amrvis::FileType filetype) {
 
       vfEps.resize(finestLevel + 1);  // must resize these even if not cartGrid
       afEps.resize(finestLevel + 1);
-      if(bCartGrid) {
+      if(bCartGrid && vCartGrid < 20) {
         for(i = 0; i <= finestLevel; ++i) {
           isPltIn >> vfEps[i];
-          if(verbose) {
-            if(ParallelDescriptor::IOProcessor()) {
-              cout << "vfEps[" << i << "] = " << vfEps[i] << endl;
-	    }
+          if(verbose && ParallelDescriptor::IOProcessor()) {
+            cout << "vfEps[" << i << "] = " << vfEps[i] << endl;
           }
         }
       }
@@ -797,6 +807,17 @@ bool AmrData::ReadData(const string &filename, Amrvis::FileType filetype) {
          probDomain[lev] = maxDomain[lev];
       }
    }
+
+   // ---- for CartGrid versions >= 20 write vfEps at the end of the header
+   if(bCartGrid && vCartGrid >= 20) {
+     for(i = 0; i <= finestLevel; ++i) {
+       isPltIn >> vfEps[i];
+       if(verbose && ParallelDescriptor::IOProcessor()) {
+           cout << "vfEps[" << i << "] = " << vfEps[i] << endl;
+       }
+     }
+   }
+   isPltIn.close();
 
    return true;
 

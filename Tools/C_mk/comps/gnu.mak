@@ -17,6 +17,8 @@ gcc_version       := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;')
 gcc_major_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;\..*;;')
 gcc_minor_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;[^.]*\.;;' | sed -e 's;\..*;;')
 
+COMP_VERSION := $(gcc_version)
+
 DEFINES += -DBL_GCC_VERSION='$(gcc_version)'
 DEFINES += -DBL_GCC_MAJOR_VERSION=$(gcc_major_version)
 DEFINES += -DBL_GCC_MINOR_VERSION=$(gcc_minor_version)

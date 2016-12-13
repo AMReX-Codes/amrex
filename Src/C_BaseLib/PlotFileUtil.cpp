@@ -5,94 +5,98 @@
 #include <VisMF.H>
 #include <PlotFileUtil.H>
 
-static std::string LevelPath (int level)
+std::string BoxLib::LevelPath (int level, const std::string &levelPrefix)
 {
-    return BoxLib::Concatenate("Level_",level,1); // e.g., Level_5
+    return BoxLib::Concatenate(levelPrefix, level, 1);  // e.g., Level_5
 }
 
-static std::string MultiFabFileName (int level)
+std::string BoxLib::MultiFabHeaderPath (int level,
+					const std::string &levelPrefix,
+                                        const std::string &mfPrefix)
 {
-    return LevelPath(level) + "/Cell"; // e.g., Level_4/Cell
+    return BoxLib::LevelPath(level, levelPrefix) + '/' + mfPrefix;  // e.g., Level_4/Cell
 }
 
-static std::string LevelFullPath (int level, const std::string& plotfilename)
+std::string BoxLib::LevelFullPath (int level,
+                                   const std::string &plotfilename,
+                                   const std::string &levelPrefix)
 {
-    std::string r = plotfilename;
-    if (!r.empty() && r[r.length()-1] != '/') {// could simply use back() in C++11
+    std::string r(plotfilename);
+    if ( ! r.empty() && r.back() != '/') {
 	r += '/';
     }
-    r += LevelPath(level); // e.g., plt00005/Level_5
+    r += BoxLib::LevelPath(level, levelPrefix);  // e.g., plt00005/Level_5
     return r;
 }
 
-static std::string MultiFabFileFullName (int level, const std::string& plotfilename)
+std::string BoxLib::MultiFabFileFullPrefix (int level,
+                                            const std::string& plotfilename,
+					    const std::string &levelPrefix,
+					    const std::string &mfPrefix)
 {
-    std::string r = plotfilename;
-    if (!r.empty() && r[r.length()-1] != '/') {// could simply use back() in C++11
+    std::string r(plotfilename);
+    if ( ! r.empty() && r.back() != '/') {
 	r += '/';
     }
-    r += MultiFabFileName(level);
+    r += MultiFabHeaderPath(level, levelPrefix, mfPrefix);
     return r;
 }
+
 
 void
-BoxLib::WriteMultiLevelPlotfile (const std::string& plotfilename, int nlevels,
-				 const Array<const MultiFab*>& mf,
-				 const Array<std::string>& varnames,
-				 const Array<Geometry>& geom, Real time, const Array<int>& level_steps,
-				 const Array<IntVect>& ref_ratio)
+BoxLib::PreBuildDirectorHierarchy (const std::string &dirName,
+                                   const std::string &subDirPrefix,
+                                   int nSubDirs, bool callBarrier)
 {
-    BL_PROFILE("WriteMultiLevelPlotfile()");
+  BoxLib::UtilCreateCleanDirectory(dirName, false);  // ---- dont call barrier
+  for(int i(0); i < nSubDirs; ++i) {
+    const std::string &fullpath = LevelFullPath(i, dirName);
+    BoxLib::UtilCreateCleanDirectory(fullpath, false);  // ---- dont call barrier
+  }
 
-    BL_ASSERT(nlevels <= mf.size());
-    BL_ASSERT(nlevels <= geom.size());
-    BL_ASSERT(nlevels <= ref_ratio.size()+1);
-    BL_ASSERT(nlevels <= level_steps.size());
-    BL_ASSERT(mf[0]->nComp() == varnames.size());
+  if(callBarrier) {
+    ParallelDescriptor::Barrier();
+  }
+}
 
-    int finest_level = nlevels-1;
 
-    //
-    // Only let 64 CPUs be writing at any one time.
-    //
-    VisMF::SetNOutFiles(64);
+void
+BoxLib::WriteGenericPlotfileHeader (std::ostream &HeaderFile,
+                                    int nlevels,
+				    const Array<BoxArray> &bArray,
+				    const Array<std::string> &varnames,
+				    const Array<Geometry> &geom,
+				    Real time,
+				    const Array<int> &level_steps,
+				    const Array<IntVect> &ref_ratio,
+				    const std::string &versionName,
+				    const std::string &levelPrefix,
+				    const std::string &mfPrefix)
+{
+        BL_PROFILE("WriteGenericPlotfileHeader()");
 
-    if (ParallelDescriptor::IOProcessor())
-    {
-	// Only the I/O processor makes the directory if it doesn't already exist.
-        if (!BoxLib::UtilCreateDirectory(plotfilename, 0755))
-            BoxLib::CreateDirectoryFailed(plotfilename);
-    
-	std::string HeaderFileName = plotfilename + "/Header";
+        BL_ASSERT(nlevels <= bArray.size());
+        BL_ASSERT(nlevels <= geom.size());
+        BL_ASSERT(nlevels <= ref_ratio.size()+1);
+        BL_ASSERT(nlevels <= level_steps.size());
 
-	std::ofstream HeaderFile;
-
-        //
-        // Only the IOProcessor() writes to the header file.
-        //
-        HeaderFile.open(HeaderFileName.c_str(), std::ofstream::out|std::ofstream::trunc|std::ofstream::binary);
-        if (!HeaderFile.good()) {
-            BoxLib::FileOpenFailed(HeaderFileName);
-	}
+        int finest_level(nlevels - 1);
 
 	HeaderFile.precision(17);
 
 	VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
 	HeaderFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
 
-        HeaderFile << "HyperCLaw-V1.1\n";
+	// ---- this is the generic plot file type name
+        HeaderFile << versionName << '\n';
 
-        HeaderFile << mf[0]->nComp() << '\n';
+        HeaderFile << varnames.size() << '\n';
 
-	// variable names
-        for (int ivar = 0; ivar < mf[0]->nComp(); ++ivar) {
+        for (int ivar = 0; ivar < varnames.size(); ++ivar) {
 	    HeaderFile << varnames[ivar] << "\n";
         }
-	// dimensionality
         HeaderFile << BL_SPACEDIM << '\n';
-	// time
         HeaderFile << time << '\n';
-	// maximum level number
         HeaderFile << finest_level << '\n';
         for (int i = 0; i < BL_SPACEDIM; ++i) {
             HeaderFile << Geometry::ProbLo(i) << ' ';
@@ -114,8 +118,7 @@ BoxLib::WriteMultiLevelPlotfile (const std::string& plotfilename, int nlevels,
             HeaderFile << level_steps[i] << ' ';
 	}
         HeaderFile << '\n';
-        for (int i = 0; i <= finest_level; ++i)
-        {
+        for (int i = 0; i <= finest_level; ++i) {
             for (int k = 0; k < BL_SPACEDIM; ++k) {
                 HeaderFile << geom[i].CellSize()[k] << ' ';
 	    }
@@ -124,42 +127,79 @@ BoxLib::WriteMultiLevelPlotfile (const std::string& plotfilename, int nlevels,
         HeaderFile << (int) Geometry::Coord() << '\n';
         HeaderFile << "0\n";
 
-	for (int level = 0; level <= finest_level; ++level)
-	{
-	    const std::string& fullpath = LevelFullPath(level, plotfilename);
-	    //
-	    // Only the I/O processor makes the directory if it doesn't already exist.
-	    //
-	    if (!BoxLib::UtilCreateDirectory(fullpath, 0755)) {
-		BoxLib::CreateDirectoryFailed(fullpath);
-	    }
-
-	    const BoxArray& ba = mf[level]->boxArray();
-
-	    HeaderFile << level << ' ' << ba.size() << ' ' << time << '\n';
+	for (int level = 0; level <= finest_level; ++level) {
+	    HeaderFile << level << ' ' << bArray[level].size() << ' ' << time << '\n';
 	    HeaderFile << level_steps[level] << '\n';
 	    
-	    for (int i = 0; i < ba.size(); ++i)
+	    for (int i = 0; i < bArray[level].size(); ++i)
 	    {
-		RealBox loc = RealBox(ba[i],geom[level].CellSize(),geom[level].ProbLo());
-		for (int n = 0; n < BL_SPACEDIM; n++) {
+		const Box &b(bArray[level][i]);
+		RealBox loc = RealBox(b, geom[level].CellSize(), geom[level].ProbLo());
+		for (int n = 0; n < BL_SPACEDIM; ++n) {
 		    HeaderFile << loc.lo(n) << ' ' << loc.hi(n) << '\n';
 		}
 	    }
 
-	    HeaderFile << MultiFabFileName(level) << '\n';
+	    HeaderFile << MultiFabHeaderPath(level, levelPrefix, mfPrefix) << '\n';
 	}
-    }
+}
+
+
+void
+BoxLib::WriteMultiLevelPlotfile (const std::string& plotfilename, int nlevels,
+				 const Array<const MultiFab*>& mf,
+				 const Array<std::string>& varnames,
+				 const Array<Geometry>& geom, Real time, const Array<int>& level_steps,
+				 const Array<IntVect>& ref_ratio)
+{
+    BL_PROFILE("WriteMultiLevelPlotfile()");
+
+    BL_ASSERT(nlevels <= mf.size());
+    BL_ASSERT(nlevels <= geom.size());
+    BL_ASSERT(nlevels <= ref_ratio.size()+1);
+    BL_ASSERT(nlevels <= level_steps.size());
+    BL_ASSERT(mf[0]->nComp() == varnames.size());
+
+    int finest_level = nlevels-1;
 
     //
-    // Force other processors to wait till directory is built.
+    // Only let 64 CPUs be writing at any one time.
     //
-    ParallelDescriptor::Barrier();
+    int saveNFiles(VisMF::GetNOutFiles());
+    VisMF::SetNOutFiles(64);
+
+    const std::string versionName("HyperCLaw-V1.1");
+    const std::string levelPrefix("Level_");
+    const std::string mfPrefix("Cell");
+
+    bool callBarrier(true);
+    BoxLib::PreBuildDirectorHierarchy(plotfilename, levelPrefix, nlevels, callBarrier);
+
+    if (ParallelDescriptor::IOProcessor()) {
+      std::string HeaderFileName(plotfilename + "/Header");
+      std::ofstream HeaderFile(HeaderFileName.c_str(), std::ofstream::out   |
+	                                               std::ofstream::trunc |
+						       std::ofstream::binary);
+      if( ! HeaderFile.good()) {
+        BoxLib::FileOpenFailed(HeaderFileName);
+      }
+
+      Array<BoxArray> boxArrays(nlevels);
+      for(int level(0); level < boxArrays.size(); ++level) {
+	boxArrays[level] = mf[level]->boxArray();
+      }
+
+      BoxLib::WriteGenericPlotfileHeader(HeaderFile, nlevels, boxArrays, varnames,
+                                         geom, time, level_steps, ref_ratio);
+    }
+
 
     for (int level = 0; level <= finest_level; ++level)
     {
-	VisMF::Write(*mf[level], MultiFabFileFullName(level,plotfilename));
+	VisMF::Write(*mf[level], MultiFabFileFullPrefix(level, plotfilename, levelPrefix, mfPrefix));
     }
+
+    VisMF::SetNOutFiles(saveNFiles);
 }
 
 void
@@ -175,3 +215,5 @@ BoxLib::WriteSingleLevelPlotfile (const std::string& plotfilename,
     BoxLib::WriteMultiLevelPlotfile(plotfilename, 1, mfarr, varnames, geomarr, time,
 				    level_steps, ref_ratio);
 }
+
+

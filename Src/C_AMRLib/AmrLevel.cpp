@@ -1948,8 +1948,7 @@ AmrLevel::LevelDirectoryNames(const std::string &dir,
     // Now for the full pathname of that directory.
     //
     FullPath = dir;
-    if( ! FullPath.empty() && FullPath[FullPath.length()-1] != '/')
-    {
+    if( ! FullPath.empty() && FullPath.back() != '/') {
         FullPath += '/';
     }
     FullPath += LevelDir;
