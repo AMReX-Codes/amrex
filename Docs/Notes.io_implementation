@@ -63,6 +63,7 @@ check decider set for chk nfiles != plt nfiles.
 output GB/s.
 hdf5
 genericio
+more documentation
 
 
 
