@@ -48,15 +48,19 @@ public:
     //
     virtual ~AmrLevel ();
     //
-    // Get the level direcotory names
-    // Create the Level_ directory for checkpoint and plot files
-    // Set if the Level_ directory was created or to clear the value.
-    // CreateLevelDirectory sets levelDirectoryCreated = true
+    // Get the level directory names
     //
     virtual void LevelDirectoryNames (const std::string &dir,
                                       std::string &LevelDir,
                                       std::string &FullPath);
+    //
+    // Create the Level_ directory for checkpoint and plot files
+    //
     virtual void CreateLevelDirectory (const std::string &dir);
+    //
+    // Set if the Level_ directory was created or to clear the value.
+    // CreateLevelDirectory sets levelDirectoryCreated = true
+    //
     void SetLevelDirectoryCreated(bool ldc) { levelDirectoryCreated = ldc; }
     //
     // A string written as the first item in writePlotFile() at
