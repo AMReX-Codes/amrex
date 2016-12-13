@@ -28,6 +28,7 @@ namespace BoxLib
 					const std::string &mfPrefix = "Cell");
 
     // ---- prebuild a hierarchy of directories
+    // ---- dirName is build first.  if dirName exists, it is renamed.  then build
     // ---- dirName/subDirPrefix_0 .. dirName/subDirPrefix_nSubDirs-1
     // ---- if callBarrier is true, call ParallelDescriptor::Barrier()
     // ---- after all directories are built
