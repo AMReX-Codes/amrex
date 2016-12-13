@@ -1,0 +1,6 @@
+
+interpolation.nox = 1 
+interpolation.noy = 1
+interpolation.noz = 1
+
+algo.current_deposition = 3
