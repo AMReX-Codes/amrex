@@ -28,14 +28,15 @@ namespace BoxLib
 					const std::string &mfPrefix = "Cell");
 
     // ---- prebuild a hierarchy of directories
-    // ---- dirName is build first.  if dirName exists, it is renamed.  then build
+    // ---- dirName is built first.  if dirName exists, it is renamed.  then build
     // ---- dirName/subDirPrefix_0 .. dirName/subDirPrefix_nSubDirs-1
     // ---- if callBarrier is true, call ParallelDescriptor::Barrier()
     // ---- after all directories are built
     // ---- ParallelDescriptor::IOProcessor() creates the directories
     void PreBuildDirectorHierarchy (const std::string &dirName,
                                     const std::string &subDirPrefix,
-				    int nSubDirs, bool callBarrier);
+				    int nSubDirs,
+				    bool callBarrier);
 
     // ---- write a generic plot file header to the file plotfilename/Header
     // ---- the plotfilename directory must already exist
@@ -51,15 +52,21 @@ namespace BoxLib
 				     const std::string &levelPrefix = "Level_",
 				     const std::string &mfPrefix = "Cell");
 
-    void WriteSingleLevelPlotfile (const std::string& plotfilename,
-				   const MultiFab& mf, const Array<std::string>& varnames,
-				   const Geometry& geom, Real t, int level_step);
+    void WriteSingleLevelPlotfile (const std::string &plotfilename,
+				   const MultiFab &mf,
+				   const Array<std::string> &varnames,
+				   const Geometry &geom,
+				   Real t,
+				   int level_step);
 
-    void WriteMultiLevelPlotfile (const std::string& plotfilename, int nlevels,
-				  const Array<const MultiFab*>& mf,
-				  const Array<std::string>& varnames,
-				  const Array<Geometry>& geom, Real time, const Array<int>& level_steps,
-				  const Array<IntVect>& ref_ratio);
+    void WriteMultiLevelPlotfile (const std::string &plotfilename,
+                                  int nlevels,
+				  const Array<const MultiFab*> &mf,
+				  const Array<std::string> &varnames,
+				  const Array<Geometry> &geom,
+				  Real time,
+				  const Array<int> &level_steps,
+				  const Array<IntVect> &ref_ratio);
 }
 
 #endif
