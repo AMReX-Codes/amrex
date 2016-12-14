@@ -766,7 +766,8 @@ BuildGramMatrix (Real*           Gg,
     const int nthreads = 1;
 #endif
     const int Ntmp = (Nrows*(Nrows+3))/2;
-    PArray<Array<Real> > tmp(nthreads, PArrayManage);
+
+    Array<Array<Real> > tmp(nthreads);
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -777,7 +778,7 @@ BuildGramMatrix (Real*           Gg,
 #else
 	int tid = 0;
 #endif
-	tmp.set(tid, new Array<Real>(Ntmp,0.0));
+	tmp[tid].resize(Ntmp,0.0);
 
 	for (MFIter mfi(PR,true); mfi.isValid(); ++mfi)
 	{

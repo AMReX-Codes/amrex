@@ -19,7 +19,6 @@
 #include <Looping.H>
 #include <REAL.H>
 #include <BLProfiler.H>
-#include <PArray.H>
 
 namespace BoxLib
 {

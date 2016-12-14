@@ -143,7 +143,7 @@ bool Amr::Plot_Files_Output () { return plot_files_output; }
 std::ostream&
 Amr::DataLog (int i)
 {
-    return datalog[i];
+    return *datalog[i];
 }
 
 int
@@ -165,7 +165,7 @@ Amr::setDtMin (const Array<Real>& dt_min_in)
         dt_min[i] = dt_min_in[i];
 }
 
-PArray<AmrLevel>&
+Array<std::unique_ptr<AmrLevel> >&
 Amr::getAmrLevels ()
 {
     return amr_level;
@@ -174,13 +174,13 @@ Amr::getAmrLevels ()
 long
 Amr::cellCount (int lev)
 {
-    return amr_level[lev].countCells();
+    return amr_level[lev]->countCells();
 }
 
 int
 Amr::numGrids (int lev)
 {
-    return amr_level[lev].numGrids();
+    return amr_level[lev]->numGrids();
 }
 
 MultiFab*
@@ -189,14 +189,12 @@ Amr::derive (const std::string& name,
              int                lev,
              int                ngrow)
 {
-    return amr_level[lev].derive(name,time,ngrow);
+    return amr_level[lev]->derive(name,time,ngrow);
 }
 
 Amr::Amr ()
     :
-    AmrCore(),
-    amr_level(PArrayManage),
-    datalog(PArrayManage)
+    AmrCore()
 {
     Initialize();
     InitAmr();
@@ -204,9 +202,7 @@ Amr::Amr ()
 
 Amr::Amr (const RealBox* rb, int max_level_in, const Array<int>& n_cell_in, int coord)
     :
-    AmrCore(rb,max_level_in,n_cell_in,coord),
-    amr_level(PArrayManage),
-    datalog(PArrayManage)
+    AmrCore(rb,max_level_in,n_cell_in,coord)
 {
     Initialize();
     InitAmr();
@@ -643,9 +639,9 @@ Amr::setRecordDataInfo (int i, const std::string& filename)
 {
     if (ParallelDescriptor::IOProcessor())
     {
-        datalog.set(i,new std::fstream);
-        datalog[i].open(filename.c_str(),std::ios::out|std::ios::app);
-        if (!datalog[i].good())
+        datalog[i].reset(new std::fstream);
+        datalog[i]->open(filename.c_str(),std::ios::out|std::ios::app);
+        if (!datalog[i]->good())
             BoxLib::FileOpenFailed(filename);
     }
     ParallelDescriptor::Barrier("Amr::setRecordDataInfo");
@@ -676,7 +672,7 @@ Amr::cellCount ()
 {
     long cnt = 0;
     for (int i = 0; i <= finest_level; i++)
-        cnt += amr_level[i].countCells();
+        cnt += amr_level[i]->countCells();
     return cnt;
 }
 
@@ -685,7 +681,7 @@ Amr::numGrids ()
 {
     int cnt = 0;
     for (int i = 0; i <= finest_level; i++)
-        cnt += amr_level[i].numGrids();
+        cnt += amr_level[i]->numGrids();
     return cnt;
 }
 
@@ -694,7 +690,7 @@ Amr::okToContinue ()
 {
     int ok = true;
     for (int i = 0; ok && (i <= finest_level); i++)
-        ok = ok && amr_level[i].okToContinue();
+        ok = ok && amr_level[i]->okToContinue();
     if(bUserStopRequest) {
       ok = false;
     }
@@ -717,7 +713,7 @@ Amr::writePlotFile ()
 
     if (first_plotfile) {
         first_plotfile = false;
-        amr_level[0].setPlotVariables();
+        amr_level[0]->setPlotVariables();
     }
 
     Real dPlotFileTime0 = ParallelDescriptor::second();
@@ -780,7 +776,7 @@ Amr::writePlotFile ()
     }
 
     for (int k(0); k <= finest_level; ++k) {
-        amr_level[k].writePlotFile(pltfileTemp, HeaderFile);
+        amr_level[k]->writePlotFile(pltfileTemp, HeaderFile);
     }
 
     if (ParallelDescriptor::IOProcessor()) {
@@ -835,7 +831,7 @@ Amr::writeSmallPlotFile ()
 
     if (first_smallplotfile) {
         first_smallplotfile = false;
-        amr_level[0].setSmallPlotVariables();
+        amr_level[0]->setSmallPlotVariables();
     }
 
     // Don't continue if we have no variables to plot.
@@ -875,7 +871,7 @@ Amr::writeSmallPlotFile ()
       BoxLib::UtilRenameDirectoryToOld(pltfile, false);      // dont call barrier
       BoxLib::UtilCreateCleanDirectory(pltfileTemp, false);  // dont call barrier
       for(int i(0); i <= finest_level; ++i) {
-        amr_level[i].CreateLevelDirectory(pltfileTemp);
+        amr_level[i]->CreateLevelDirectory(pltfileTemp);
       }
       ParallelDescriptor::Barrier("Amr::precreate smallplotfile Directories");
     } else {
@@ -907,7 +903,7 @@ Amr::writeSmallPlotFile ()
     }
 
     for (int k(0); k <= finest_level; ++k) {
-        amr_level[k].writeSmallPlotFile(pltfileTemp, HeaderFile);
+        amr_level[k]->writeSmallPlotFile(pltfileTemp, HeaderFile);
     }
 
     if (ParallelDescriptor::IOProcessor()) {
@@ -1033,7 +1029,7 @@ Amr::init (Real strt_time,
     if (first_plotfile)
     {
         first_plotfile = false;
-        amr_level[0].setPlotVariables();
+        amr_level[0]->setPlotVariables();
     }
 #endif
 
@@ -1206,12 +1202,12 @@ Amr::FinalizeInit (Real              strt_time,
     //
     // Compute dt and set time levels of all grid data.
     //
-    amr_level[0].computeInitialDt(finest_level,
-                                  sub_cycle,
-                                  n_cycle,
-                                  ref_ratio,
-                                  dt_level,
-                                  stop_time);
+    amr_level[0]->computeInitialDt(finest_level,
+				   sub_cycle,
+				   n_cycle,
+				   ref_ratio,
+				   dt_level,
+				   stop_time);
     //
     // The following was added for multifluid.
     //
@@ -1230,10 +1226,10 @@ Amr::FinalizeInit (Real              strt_time,
         bldFineLevels(strt_time);
 
     for (int lev = 0; lev <= finest_level; lev++)
-        amr_level[lev].setTimeLevel(strt_time,dt_level[lev],dt_level[lev]);
+        amr_level[lev]->setTimeLevel(strt_time,dt_level[lev],dt_level[lev]);
 
     for (int lev = 0; lev <= finest_level; lev++)
-        amr_level[lev].post_regrid(0,finest_level);
+        amr_level[lev]->post_regrid(0,finest_level);
 
     for (int lev = 0; lev <= finest_level; lev++)
     {
@@ -1245,7 +1241,7 @@ Amr::FinalizeInit (Real              strt_time,
     // Perform any special post_initialization operations.
     //
     for(int lev(0); lev <= finest_level; ++lev) {
-      amr_level[lev].post_init(stop_time);
+      amr_level[lev]->post_init(stop_time);
     }
 
     if (ParallelDescriptor::IOProcessor())
@@ -1468,17 +1464,17 @@ Amr::restart (const std::string& filename)
        //
        for (int lev(0); lev <= finest_level; ++lev)
        {
-           amr_level.set(lev,(*levelbld)());
-           amr_level[lev].restart(*this, is);
-	   this->SetBoxArray(lev, amr_level[lev].boxArray());
-	   this->SetDistributionMap(lev, DistributionMapping(amr_level[lev].boxArray(),
+	   amr_level[lev].reset((*levelbld)());
+           amr_level[lev]->restart(*this, is);
+	   this->SetBoxArray(lev, amr_level[lev]->boxArray());
+	   this->SetDistributionMap(lev, DistributionMapping(amr_level[lev]->boxArray(),
 							     ParallelDescriptor::NProcs()));
        }
        //
        // Build any additional data structures.
        //
-       for (int lev(0); lev <= finest_level; ++lev) {
-           amr_level[lev].post_restart();
+       for (int lev = 0; lev <= finest_level; lev++) {
+           amr_level[lev]->post_restart();
        }
 
     } else {
@@ -1535,18 +1531,19 @@ Amr::restart (const std::string& filename)
        //
        // Read levels.
        //
-       for (int lev(0); lev <= new_finest_level; ++lev) {
-           amr_level.set(lev,(*levelbld)());
-           amr_level[lev].restart(*this, is);
-	   this->SetBoxArray(lev, amr_level[lev].boxArray());
-	   this->SetDistributionMap(lev, DistributionMapping(amr_level[lev].boxArray(),
+       for (int lev = 0; lev <= new_finest_level; lev++)
+       {
+	   amr_level[lev].reset((*levelbld)());
+           amr_level[lev]->restart(*this, is);
+	   this->SetBoxArray(lev, amr_level[lev]->boxArray());
+	   this->SetDistributionMap(lev, DistributionMapping(amr_level[lev]->boxArray(),
 							     ParallelDescriptor::NProcs()));
        }
        //
        // Build any additional data structures.
        //
-       for (int lev(0); lev <= new_finest_level; ++lev) {
-           amr_level[lev].post_restart();
+       for (int lev = 0; lev <= new_finest_level; lev++) {
+           amr_level[lev]->post_restart();
        }
     }
 
@@ -1640,7 +1637,7 @@ Amr::checkPoint ()
       BoxLib::UtilRenameDirectoryToOld(ckfile, false);      // dont call barrier
       BoxLib::UtilCreateCleanDirectory(ckfileTemp, false);  // dont call barrier
       for(int i(0); i <= finest_level; ++i) {
-        amr_level[i].CreateLevelDirectory(ckfileTemp);
+        amr_level[i]->CreateLevelDirectory(ckfileTemp);
       }
       ParallelDescriptor::Barrier("Amr::precreateDirectories");
     } else {
@@ -1696,8 +1693,8 @@ Amr::checkPoint ()
         HeaderFile << '\n';
     }
 
-    for(int i(0); i <= finest_level; ++i) {
-        amr_level[i].checkPoint(ckfileTemp, HeaderFile);
+    for (int i = 0; i <= finest_level; ++i) {
+        amr_level[i]->checkPoint(ckfileTemp, HeaderFile);
     }
 
     if (ParallelDescriptor::IOProcessor()) {
@@ -1821,14 +1818,14 @@ Amr::timeStep (int  level,
                 if ( compute_new_dt_on_regrid && (i == 0) )
                 {
                     int post_regrid_flag = 1;
-                    amr_level[0].computeNewDt(finest_level,
-                                              sub_cycle,
-                                              n_cycle,
-                                              ref_ratio,
-                                              dt_min,
-                                              dt_level,
-                                              stop_time, 
-                                              post_regrid_flag);
+                    amr_level[0]->computeNewDt(finest_level,
+					       sub_cycle,
+					       n_cycle,
+					       ref_ratio,
+					       dt_min,
+					       dt_level,
+					       stop_time, 
+					       post_regrid_flag);
                 }
 
                 for (int k(i); k <= finest_level; ++k) {
@@ -1873,7 +1870,7 @@ Amr::timeStep (int  level,
                   << std::endl;
     }
     BL_PROFILE_REGION_START("amr_level.advance");
-    Real dt_new = amr_level[level].advance(time,dt_level[level],iteration,niter);
+    Real dt_new = amr_level[level]->advance(time,dt_level[level],iteration,niter);
     BL_PROFILE_REGION_STOP("amr_level.advance");
 
     dt_min[level] = iteration == 1 ? dt_new : std::min(dt_min[level],dt_new);
@@ -1886,17 +1883,17 @@ Amr::timeStep (int  level,
 	std::cout << "[Level " << level
 		  << " step " << level_steps[level] << "] ";
         std::cout << "Advanced "
-                  << amr_level[level].countCells()
+                  << amr_level[level]->countCells()
                   << " cells"
                   << std::endl;
     }
 
 #ifdef USE_STATIONDATA
-    station.report(time+dt_level[level],level,amr_level[level]);
+    station.report(time+dt_level[level],level,*amr_level[level]);
 #endif
 
 #ifdef USE_SLABSTAT
-    AmrLevel::get_slabstat_lst().update(amr_level[level],time,dt_level[level]);
+    AmrLevel::get_slabstat_lst().update(*amr_level[level],time,dt_level[level]);
 #endif
     //
     // Advance grids at higher level.
@@ -1920,7 +1917,7 @@ Amr::timeStep (int  level,
         }
     }
 
-    amr_level[level].post_timestep(iteration);
+    amr_level[level]->post_timestep(iteration);
 
     // Set this back to negative so we know whether we are in fact in this routine
     which_level_being_advanced = -1;
@@ -1948,23 +1945,23 @@ Amr::coarseTimeStep (Real stop_time)
     if (levelSteps(0) > 0)
     {
         int post_regrid_flag = 0;
-        amr_level[0].computeNewDt(finest_level,
-                                  sub_cycle,
-                                  n_cycle,
-                                  ref_ratio,
-                                  dt_min,
-                                  dt_level,
-                                  stop_time,
-                                  post_regrid_flag);
+        amr_level[0]->computeNewDt(finest_level,
+				   sub_cycle,
+				   n_cycle,
+				   ref_ratio,
+				   dt_min,
+				   dt_level,
+				   stop_time,
+				   post_regrid_flag);
     }
     else
     {
-        amr_level[0].computeInitialDt(finest_level,
-                                      sub_cycle,
-                                      n_cycle,
-                                      ref_ratio,
-                                      dt_level,
-                                      stop_time);
+        amr_level[0]->computeInitialDt(finest_level,
+				       sub_cycle,
+				       n_cycle,
+				       ref_ratio,
+				       dt_level,
+				       stop_time);
     }
 
     BL_PROFILE_REGION_START(stepName.str());
@@ -1975,7 +1972,7 @@ Amr::coarseTimeStep (Real stop_time)
 
     cumtime += dt_level[0];
 
-    amr_level[0].postCoarseTimeStep(cumtime);
+    amr_level[0]->postCoarseTimeStep(cumtime);
 
 #ifdef BL_PROFILING
 #ifdef DEBUG
@@ -2186,7 +2183,7 @@ Amr::writePlotNow()
 
     return ( (plot_int > 0 && level_steps[0] % plot_int == 0) || 
               plot_test == 1 ||
-              amr_level[0].writePlotNow());
+              amr_level[0]->writePlotNow());
 } 
 
 bool
@@ -2212,7 +2209,7 @@ Amr::writeSmallPlotNow()
 
     return ( (small_plot_int > 0 && level_steps[0] % small_plot_int == 0) || 
               plot_test == 1 ||
-              amr_level[0].writeSmallPlotNow());
+              amr_level[0]->writeSmallPlotNow());
 } 
 
 void
@@ -2270,11 +2267,11 @@ Amr::defBaseLevel (Real              strt_time,
     //
     // Now build level 0 grids.
     //
-    amr_level.set(0,(*levelbld)(*this,0,Geom(0),lev0,strt_time));
+    amr_level[0].reset((*levelbld)(*this,0,Geom(0),lev0,strt_time));
     //
     // Now init level 0 grids with data.
     //
-    amr_level[0].initData();
+    amr_level[0]->initData();
 }
 
 void
@@ -2298,14 +2295,14 @@ Amr::regrid (int  lbase,
     }
 
     bool regrid_level_zero = (!initial) &&
-        (lbase == 0 && new_grid_places[0] != amr_level[0].boxArray());
+        (lbase == 0 && new_grid_places[0] != amr_level[0]->boxArray());
 
     const int start = regrid_level_zero ? 0 : lbase+1;
 
     bool grids_unchanged = finest_level == new_finest;
     for (int lev = start, End = std::min(finest_level,new_finest); lev <= End; lev++) {
-	if (new_grid_places[lev] == amr_level[lev].boxArray()) {
-	    new_grid_places[lev] = amr_level[lev].boxArray();  // to avoid duplicates
+	if (new_grid_places[lev] == amr_level[lev]->boxArray()) {
+	    new_grid_places[lev] = amr_level[lev]->boxArray();  // to avoid duplicates
 	} else {
 	    grids_unchanged = false;
 	}
@@ -2327,13 +2324,13 @@ Amr::regrid (int  lbase,
     // Reclaim old-time grid space for all remain levels > lbase.
     //
     for(int lev = start; lev <= finest_level; ++lev) {
-	amr_level[lev].removeOldData();
+	amr_level[lev]->removeOldData();
     }
     //
     // Reclaim all remaining storage for levels > new_finest.
     //
     for(int lev = new_finest + 1; lev <= finest_level; ++lev) {
-	amr_level.clear(lev);
+	amr_level[lev].reset();
 	this->ClearBoxArray(lev);
 	this->ClearDistributionMap(lev);
     }
@@ -2364,30 +2361,27 @@ Amr::regrid (int  lbase,
             // NOTE: The initData function may use a filPatch, and so needs to
             //       be officially inserted into the hierarchy prior to the call.
             //
-            amr_level.clear(lev);
-            amr_level.set(lev,a);
-            amr_level[lev].initData();
+            amr_level[lev].reset(a);
+            amr_level[lev]->initData();
         }
-        else if (amr_level.defined(lev))
+        else if (amr_level[lev])
         {
             //
             // Init with data from old structure then remove old structure.
             // NOTE: The init function may use a filPatch from the old level,
             //       which therefore needs remain in the hierarchy during the call.
             //
-            a->init(amr_level[lev]);
-            amr_level.clear(lev);
-            amr_level.set(lev,a);
+            a->init(*amr_level[lev]);
+            amr_level[lev].reset(a);
 	}
         else
         {
             a->init();
-            amr_level.clear(lev);
-            amr_level.set(lev,a);
+            amr_level[lev].reset(a);
         }
 
-	this->SetBoxArray(lev, amr_level[lev].boxArray());
-	this->SetDistributionMap(lev, DistributionMapping(amr_level[lev].boxArray(),
+	this->SetBoxArray(lev, amr_level[lev]->boxArray());
+	this->SetDistributionMap(lev, DistributionMapping(amr_level[lev]->boxArray(),
 							  ParallelDescriptor::NProcs()));
     }
 
@@ -2397,7 +2391,7 @@ Amr::regrid (int  lbase,
     //       at levels lbase+1 and higher may have changed.  
     //
     for(int lev(0); lev <= new_finest; ++lev) {
-      amr_level[lev].post_regrid(lbase,new_finest);
+      amr_level[lev]->post_regrid(lbase,new_finest);
     }
 
     if(rebalance_grids > 0) {
@@ -2495,22 +2489,21 @@ Amr::regrid_level_0_on_restart()
     // If use_efficient_regrid flag is set, then test to see whether we in fact 
     //    have just changed the level 0 grids. If not, then don't do anything more here.
     //
-    if ( !( (use_efficient_regrid == 1) && (lev0 == amr_level[0].boxArray()) ) ) 
+    if ( !( (use_efficient_regrid == 1) && (lev0 == amr_level[0]->boxArray()) ) ) 
     {
 	//
 	// Construct skeleton of new level.
 	//
 	AmrLevel* a = (*levelbld)(*this,0,Geom(0),lev0,cumtime);
 	
-	a->init(amr_level[0]);
-	amr_level.clear(0);
-	amr_level.set(0,a);
+	a->init(*amr_level[0]);
+	amr_level[0].reset(a);
 	
-	this->SetBoxArray(0, amr_level[0].boxArray());
-	this->SetDistributionMap(0, DistributionMapping(amr_level[0].boxArray(),
+	this->SetBoxArray(0, amr_level[0]->boxArray());
+	this->SetDistributionMap(0, DistributionMapping(amr_level[0]->boxArray(),
 							ParallelDescriptor::NProcs()));
 
-	amr_level[0].post_regrid(0,0);
+	amr_level[0]->post_regrid(0,0);
 	
 	if (ParallelDescriptor::IOProcessor())
 	{
@@ -2541,12 +2534,12 @@ Amr::printGridInfo (std::ostream& os,
 {
     for (int lev = min_lev; lev <= max_lev; lev++)
     {
-        const BoxArray&           bs      = amr_level[lev].boxArray();
+        const BoxArray&           bs      = amr_level[lev]->boxArray();
         int                       numgrid = bs.size();
-        long                      ncells  = amr_level[lev].countCells();
+        long                      ncells  = amr_level[lev]->countCells();
         double                    ntot    = Geom(lev).Domain().d_numPts();
         Real                      frac    = 100.0*(Real(ncells) / ntot);
-        const DistributionMapping& map    = amr_level[lev].get_new_data(0).DistributionMap();
+        const DistributionMapping& map    = amr_level[lev]->get_new_data(0).DistributionMap();
 
         os << "  Level "
            << lev
@@ -2583,9 +2576,9 @@ Amr::printGridSummary (std::ostream& os,
 {
     for (int lev = min_lev; lev <= max_lev; lev++)
     {
-        const BoxArray&           bs      = amr_level[lev].boxArray();
+        const BoxArray&           bs      = amr_level[lev]->boxArray();
         int                       numgrid = bs.size();
-        long                      ncells  = amr_level[lev].countCells();
+        long                      ncells  = amr_level[lev]->countCells();
         double                    ntot    = Geom(lev).Domain().d_numPts();
         Real                      frac    = 100.0*(Real(ncells) / ntot);
 
@@ -2769,19 +2762,19 @@ Amr::grid_places (int              lbase,
 void
 Amr::ErrorEst (int lev, TagBoxArray& tags, Real time, int ngrow)
 {
-    amr_level[lev].errorEst(tags,TagBox::CLEAR,TagBox::SET,time, n_error_buf[lev],ngrow);
+    amr_level[lev]->errorEst(tags,TagBox::CLEAR,TagBox::SET,time, n_error_buf[lev],ngrow);
 }
 
 BoxArray
 Amr::GetAreaNotToTag (int lev)
 {
-    return BoxArray(amr_level[lev].getAreaNotToTag());
+    return BoxArray(amr_level[lev]->getAreaNotToTag());
 }
 
 void
 Amr::ManualTagsPlacement (int lev, TagBoxArray& tags, Array<IntVect>& bf_lev)
 {
-    amr_level[lev].manual_tags_placement(tags, bf_lev);
+    amr_level[lev]->manual_tags_placement(tags, bf_lev);
 }
 
 void
@@ -2816,9 +2809,9 @@ Amr::bldFineLevels (Real strt_time)
                                       new_grids[new_finest],
                                       strt_time);
 
-        amr_level.set(new_finest,level);
+        amr_level[new_finest].reset(level);
 
-        amr_level[new_finest].initData();
+        amr_level[new_finest]->initData();
     }
     while (finest_level < max_level);
     //
@@ -2836,7 +2829,7 @@ Amr::bldFineLevels (Real strt_time)
 	do
 	{
 	    for (int i = 0; i <= finest_level; i++) {
-		new_grids[i] = amr_level[i].boxArray();
+		new_grids[i] = amr_level[i]->boxArray();
 	    }
 
 	    regrid(0,strt_time,true);
@@ -2844,7 +2837,7 @@ Amr::bldFineLevels (Real strt_time)
 	    grids_the_same = true;
 
 	    for (int i = 0; i <= finest_level && grids_the_same; i++) {
-		if (!(new_grids[i] == amr_level[i].boxArray())) {
+		if (!(new_grids[i] == amr_level[i]->boxArray())) {
 		    grids_the_same = false;
 		}
 	    }
@@ -3049,7 +3042,7 @@ Amr::okToRegrid(int level)
     if (regrid_int[level] < 0)
         return false;
     else
-        return level_count[level] >= regrid_int[level] && amr_level[level].okToRegrid();
+        return level_count[level] >= regrid_int[level] && amr_level[level]->okToRegrid();
 }
 
 Real
@@ -3108,7 +3101,7 @@ const Array<BoxArray>& Amr::getInitialBA()
 void 
 Amr::RedistributeParticles ()
 {
-    amr_level[0].particle_redistribute(0,true);
+    amr_level[0]->particle_redistribute(0,true);
 }
 #endif
 
@@ -3585,18 +3578,17 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
       }
 
       if(scsMyId != ioProcNumSCS) {
-        amr_level.resize(0);
-        amr_level.resize(amr_level_Size, PArrayManage);
-        for(int lev(0); lev < amr_level.size(); ++lev) {
-	  amr_level.set(lev,(*levelbld)());
-	}
+	  amr_level.clear();
+	  for(int lev(0); lev < amr_level_Size; ++lev) {
+	      amr_level.push_back(std::unique_ptr<AmrLevel>((*levelbld)()));
+	  }
       }
 
       for(int lev(0); lev <= finest_level; ++lev) {
-        amr_level[lev].AddProcsToComp(this, nSidecarProcs, prevSidecarProcs,
-	                              ioProcNumSCS, ioProcNumAll, scsMyId, scsComm);
-	this->SetBoxArray(lev, amr_level[lev].boxArray());
-	this->SetDistributionMap(lev, DistributionMapping(amr_level[lev].boxArray(),
+        amr_level[lev]->AddProcsToComp(this, nSidecarProcs, prevSidecarProcs,
+				       ioProcNumSCS, ioProcNumAll, scsMyId, scsComm);
+	this->SetBoxArray(lev, amr_level[lev]->boxArray());
+	this->SetDistributionMap(lev, DistributionMapping(amr_level[lev]->boxArray(),
 							  ParallelDescriptor::NProcs()));
       }
 
@@ -3744,8 +3736,8 @@ using std::endl;
   SHOWVAL(amr_level.size());
   os << endl;
   for(int i(0); i < amr_level.size(); ++i) {
-    AmrLevel &amrlev = amr_level[i];
-    os << "amr_level[" << i << "] = " << &(amr_level[i]) << endl;
+    AmrLevel &amrlev = *amr_level[i];
+    os << "amr_level[" << i << "] = " << &(*amr_level[i]) << endl;
     SHOWVAL(amrlev.numGrids());
     SHOWVAL(amrlev.nStep());
     SHOWVAL(amrlev.countCells());

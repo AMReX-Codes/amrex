@@ -5,6 +5,7 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <memory>
 
 #include <Amr.H>
 #include <Array.H>
@@ -44,7 +45,7 @@ public:
     //
     // Data files have the form: "Station/stn_CPU_NNNN"
     //
-    void init (const PArray<AmrLevel>& levels, const int finestlevel);
+    void init (const Array<std::unique_ptr<AmrLevel> >& levels, const int finestlevel);
     //
     // Collect data for all station points at level and write to station file.
     //
@@ -54,7 +55,7 @@ public:
     //
     // Locate finest level grid for each station point.
     //
-    void findGrid (const PArray<AmrLevel>& levels,
+    void findGrid (const Array<std::unique_ptr<AmrLevel> >& levels,
                    const Array<Geometry>&  geoms);
 private:
 

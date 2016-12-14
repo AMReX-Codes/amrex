@@ -224,7 +224,7 @@ MCInterpBndryData::setBndryValues (const ::BndryRegister& crse,
 		//
                 // Internal or periodic edge, interpolate from crse data.
                 //
-                const Mask& mask = masks[face][finemfi];
+                const Mask& mask = (*masks[face])[finemfi];
                 const int* mlo   = mask.loVect();
                 const int* mhi   = mask.hiVect();
                 const int* mdat  = mask.dataPtr();

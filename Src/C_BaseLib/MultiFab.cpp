@@ -12,7 +12,6 @@
 #include <ParallelDescriptor.H>
 #include <BLProfiler.H>
 #include <ParmParse.H>
-#include <PArray.H>
 
 #ifdef BL_MEM_PROFILING
 #include <MemProfiler.H>
@@ -877,10 +876,7 @@ MultiFab::norm0 (const Array<int>& comps, int nghost, bool local) const
 #else
     int nthreads = 1;
 #endif
-    PArray< Array<Real> > priv_nm0(nthreads, PArrayManage);
-    for (int i=0; i<nthreads; i++) {
-	priv_nm0.set(i, new Array<Real>(n, -rmax));
-    }
+    Array<Array<Real> > priv_nm0(nthreads, Array<Real>(n, -rmax));
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -934,7 +930,7 @@ MultiFab::norm2 (const Array<int>& comps) const
 #else
     int nthreads = 1;
 #endif
-    PArray< Array<Real> > priv_nm2(nthreads, PArrayManage);
+    Array<Array<Real> > priv_nm2(nthreads, Array<Real>(n, 0.0));
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -945,7 +941,6 @@ MultiFab::norm2 (const Array<int>& comps) const
 #else
 	int tid = 0;
 #endif
-	priv_nm2.set(tid, new Array<Real>(n, 0.0));
 
 	for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
 	{
@@ -1005,10 +1000,7 @@ MultiFab::norm1 (const Array<int>& comps, int ngrow, bool local) const
 #else
     int nthreads = 1;
 #endif
-    PArray< Array<Real> > priv_nm1(nthreads, PArrayManage);
-    for (int i=0; i<nthreads; i++) {
-	priv_nm1.set(i, new Array<Real>(n, 0.0));
-    }
+    Array<Array<Real> > priv_nm1(nthreads, Array<Real>(n, 0.0));
 
 #ifdef _OPENMP
 #pragma omp parallel

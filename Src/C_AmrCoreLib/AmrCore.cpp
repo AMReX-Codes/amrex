@@ -215,7 +215,7 @@ AmrCore::InitAmrCore (int max_level_in, const Array<int>& n_cell_in)
     finest_level = -1;
     
 #ifdef USE_PARTICLES
-    m_gdb = std::unique_ptr<AmrParGDB>(new AmrParGDB(this));
+    m_gdb.reset(new AmrParGDB(this));
 #endif
 }
 

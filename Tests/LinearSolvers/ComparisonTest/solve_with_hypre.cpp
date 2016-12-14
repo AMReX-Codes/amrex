@@ -2,7 +2,6 @@
 
 #include <Utility.H>
 #include <ParmParse.H>
-#include <PArray.H>
 #include <LO_BCTYPES.H>
 #include <MultiFab.H>
 #include <Geometry.H>
@@ -14,12 +13,12 @@
 
 void setBndryConds(BndryData& levelbd, int ibnd, IntVect ratio);
 
-void solve_with_hypre(PArray<MultiFab>& soln, Real a, Real b, 
-		      const PArray<MultiFab>& alph, 
-		      const PArray<MultiFab>& beta, 
-		      PArray<MultiFab>& rhs, 
-		      const std::vector<Geometry>& geom, 
-		      const std::vector<BoxArray>& grids,
+void solve_with_hypre(const Array<MultiFab*>& soln, Real a, Real b, 
+		      const Array<MultiFab*>& alph, 
+		      const Array<MultiFab*>& beta, 
+		      const Array<MultiFab*>& rhs, 
+		      const Array<Geometry>& geom, 
+		      const Array<BoxArray>& grids,
 		      int ibnd)
 {
   const Real run_strt = ParallelDescriptor::second();
@@ -67,26 +66,26 @@ void solve_with_hypre(PArray<MultiFab>& soln, Real a, Real b,
 
     for (int level = 0; level < nlevel; level++) {
 
-      hypreSolver.setACoeffs(level, alph[level]);
+      hypreSolver.setACoeffs(level, *alph[level]);
 
-      PArray<MultiFab> bcoeffs(BL_SPACEDIM, PArrayManage);
+      Array<std::unique_ptr<MultiFab> > bcoeffs(BL_SPACEDIM);
       for (int n = 0; n < BL_SPACEDIM ; n++) 
       {
 	  BoxArray edge_boxes(grids[level]);
 	  edge_boxes.surroundingNodes(n);
-	  bcoeffs.set(n, new MultiFab(edge_boxes, 1, 0));
+	  bcoeffs[n].reset(new MultiFab(edge_boxes, 1, 0));
       }
 
-      BoxLib::average_cellcenter_to_face(bcoeffs, beta[level], geom[level]);
+      BoxLib::average_cellcenter_to_face(BoxLib::GetArrOfPtrs(bcoeffs), *beta[level], geom[level]);
 	
       for (int n = 0; n < BL_SPACEDIM ; n++) 
       {
-	  hypreSolver.setBCoeffs(level, bcoeffs[n], n);
+	  hypreSolver.setBCoeffs(level, *bcoeffs[n], n);
       }
 
-      hypreSolver.setRhs(level, rhs[level]);
+      hypreSolver.setRhs(level, *rhs[level]);
 
-      hypreSolver.setInitGuess(level, soln[level]);
+      hypreSolver.setInitGuess(level, *soln[level]);
     }
 
     hypreSolver.solve(soln, tolerance_rel, tolerance_abs, max_iter);

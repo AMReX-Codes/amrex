@@ -2,10 +2,10 @@
 #define _ErrorList_H_
 
 #include <string>
-#include <vector>
+#include <memory>
 
+#include <Array.H>
 #include <REAL.H>
-#include <PArray.H>
 #include <ArrayLim.H>
 
 extern "C"
@@ -206,8 +206,7 @@ private:
 class ErrorList
 {
 public:
-    ErrorList()
-        : vec(PArrayManage) {}
+    ErrorList() {}
     //
     // The number of ErrorRecs in the list.
     //
@@ -232,7 +231,7 @@ public:
 
 private:
 
-    PArray<ErrorRec> vec;
+    Array<std::unique_ptr<ErrorRec> > vec;
 };
 
 std::ostream& operator << (std::ostream& os, const ErrorList& elst);

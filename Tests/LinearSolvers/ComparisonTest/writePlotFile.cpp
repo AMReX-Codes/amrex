@@ -12,9 +12,11 @@
 #include <writePlotFile.H>
 
 void writePlotFile (const std::string& dir, 
-		    const PArray<MultiFab>& soln, const PArray<MultiFab>& exac, 
-		    const PArray<MultiFab>& alph, const PArray<MultiFab>& beta, 
-		    const PArray<MultiFab>& rhs, 
+		    const Array<MultiFab*>& soln,
+		    const Array<MultiFab*>& exac, 
+		    const Array<MultiFab*>& alph,
+		    const Array<MultiFab*>& beta, 
+		    const Array<MultiFab*>& rhs, 
 		    const std::vector<Geometry>& geom, 
 		    const std::vector<BoxArray>& grids,
 		    int nsoln, int iCpp, int iF90, int iHyp)
@@ -159,16 +161,16 @@ void writePlotFile (const std::string& dir,
       //
       int cnt=0;
       for (int isoln=0; isoln < nsoln; isoln++) {
-	MultiFab::Copy(plotMF, soln[ilev], isoln, cnt, 1, 0);
+	MultiFab::Copy(plotMF, *soln[ilev], isoln, cnt, 1, 0);
 	cnt++;
       }
-      MultiFab::Copy(plotMF, exac[ilev], 0, cnt, 1, 0);
+      MultiFab::Copy(plotMF, *exac[ilev], 0, cnt, 1, 0);
       cnt++;
-      MultiFab::Copy(plotMF, alph[ilev], 0, cnt, 1, 0);
+      MultiFab::Copy(plotMF, *alph[ilev], 0, cnt, 1, 0);
       cnt++;
-      MultiFab::Copy(plotMF, beta[ilev], 0, cnt, 1, 0);
+      MultiFab::Copy(plotMF, *beta[ilev], 0, cnt, 1, 0);
       cnt++;
-      MultiFab::Copy(plotMF,  rhs[ilev], 0, cnt, 1, 0);
+      MultiFab::Copy(plotMF,  *rhs[ilev], 0, cnt, 1, 0);
 
       //
       // Use the Full pathname when naming the MultiFab.

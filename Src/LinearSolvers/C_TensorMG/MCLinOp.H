@@ -247,10 +247,10 @@ protected:
     //
     Array< LnClassPtr< BndryRegister > > tangderiv;
     //
-    // Array (on level) of PArrays (on orientation) of MultiMasks for 
+    // Array (on level) of Arrays (on orientation) of MultiMasks for 
     // whether boundary Fabs are covered, not_covered, outside_domain
     //
-    Array<PArray<MultiMask> > maskvals;
+    Array<Array<std::unique_ptr<MultiMask> > > maskvals;
     //
     // boundary data class
     //

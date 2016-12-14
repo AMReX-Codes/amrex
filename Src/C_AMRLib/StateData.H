@@ -2,6 +2,8 @@
 #ifndef _StateData_H_
 #define _StateData_H_ 
 
+#include <memory>
+
 #include <Box.H>
 #include <BoxArray.H>
 #include <MultiFab.H>
@@ -239,8 +241,8 @@ public:
     //
     bool hasNewData () const { return new_data != 0; }
 
-    void getData (PArray<MultiFab>& data,
-		  std::vector<Real>& datatime,
+    void getData (Array<MultiFab*>& data,
+		  Array<Real>& datatime,
 		  Real time) const;
 
     void AddProcsToComp(const StateDescriptor &sdPtr,

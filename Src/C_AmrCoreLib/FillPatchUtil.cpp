@@ -34,35 +34,36 @@ namespace BoxLib
     }
 
     void FillPatchSingleLevel (MultiFab& mf, Real time, 
-			       const PArray<MultiFab>& smf, const std::vector<Real>& stime,
+			       const Array<MultiFab*>& smf, const Array<Real>& stime,
 			       int scomp, int dcomp, int ncomp,
 			       const Geometry& geom, PhysBCFunctBase& physbcf)
     {
 	BL_PROFILE("FillPatchSingleLevel");
 
-	BL_ASSERT(scomp+ncomp <= smf[0].nComp());
+	BL_ASSERT(scomp+ncomp <= smf[0]->nComp());
 	BL_ASSERT(dcomp+ncomp <= mf.nComp());
 	BL_ASSERT(smf.size() == stime.size());
 	BL_ASSERT(smf.size() != 0);
 
 	if (smf.size() == 1) 
 	{
-	    mf.copy(smf[0], scomp, dcomp, ncomp, 0, mf.nGrow(), geom.periodicity());
+	    mf.copy(*smf[0], scomp, dcomp, ncomp, 0, mf.nGrow(), geom.periodicity());
 	} 
 	else if (smf.size() == 2) 
 	{
-	    BL_ASSERT(smf[0].boxArray() == smf[1].boxArray());
-	    PArray<MultiFab> raii(PArrayManage);
+	    BL_ASSERT(smf[0]->boxArray() == smf[1]->boxArray());
+	    MultiFab raii;
 	    MultiFab * dmf;
 	    int destcomp;
 	    bool sameba;
-	    if (mf.boxArray() == smf[0].boxArray()) {
+	    if (mf.boxArray() == smf[0]->boxArray()) {
 		dmf = &mf;
 		destcomp = dcomp;
 		sameba = true;
 	    } else {
-		dmf = raii.push_back(new MultiFab(smf[0].boxArray(), ncomp, 0,
-						  smf[0].DistributionMap()));
+		raii.define(smf[0]->boxArray(), ncomp, 0,
+			    smf[0]->DistributionMap(), Fab_allocate);
+		dmf = &raii;
 		destcomp = 0;
 		sameba = false;
 	    }
@@ -73,9 +74,9 @@ namespace BoxLib
 	    for (MFIter mfi(*dmf,true); mfi.isValid(); ++mfi)
 	    {
 		const Box& bx = mfi.tilebox();
-		(*dmf)[mfi].linInterp(smf[0][mfi],
+		(*dmf)[mfi].linInterp((*smf[0])[mfi],
 				      scomp,
-				      smf[1][mfi],
+				      (*smf[1])[mfi],
 				      scomp,
 				      stime[0],
 				      stime[1],
@@ -108,8 +109,8 @@ namespace BoxLib
 
 
     void FillPatchTwoLevels (MultiFab& mf, Real time,
-			     const PArray<MultiFab>& cmf, const std::vector<Real>& ct,
-			     const PArray<MultiFab>& fmf, const std::vector<Real>& ft,
+			     const Array<MultiFab*>& cmf, const Array<Real>& ct,
+			     const Array<MultiFab*>& fmf, const Array<Real>& ft,
 			     int scomp, int dcomp, int ncomp,
 			     const Geometry& cgeom, const Geometry& fgeom, 
 			     PhysBCFunctBase& cbc, PhysBCFunctBase& fbc,
@@ -120,7 +121,7 @@ namespace BoxLib
 
 	int ngrow = mf.nGrow();
 	    
-	if (ngrow > 0 || mf.getBDKey() != fmf[0].getBDKey()) 
+	if (ngrow > 0 || mf.getBDKey() != fmf[0]->getBDKey()) 
 	{
 	    const InterpolaterBoxCoarsener& coarsener = mapper->BoxCoarsener(ratio);
 	    
@@ -133,7 +134,7 @@ namespace BoxLib
 		}
 	    }
 	    
-	    const FabArrayBase::FPinfo& fpc = FabArrayBase::TheFPinfo(fmf[0], mf, fdomain_g, ngrow, coarsener);
+	    const FabArrayBase::FPinfo& fpc = FabArrayBase::TheFPinfo(*fmf[0], mf, fdomain_g, ngrow, coarsener);
 
 	    if ( ! fpc.ba_crse_patch.empty())
 	    {
