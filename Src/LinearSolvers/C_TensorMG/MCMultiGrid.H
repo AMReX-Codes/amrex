@@ -3,7 +3,6 @@
 #define _MCMULTIGRID_H_
 
 #include <Array.H>
-#include <PArray.H>
 #include <Pointers.H>
 
 #include <MultiFab.H>

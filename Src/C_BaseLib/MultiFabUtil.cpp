@@ -4,7 +4,7 @@
 
 namespace BoxLib
 {
-    void average_edge_to_cellcenter (MultiFab& cc, int dcomp, const std::vector<MultiFab*>& edge)
+    void average_edge_to_cellcenter (MultiFab& cc, int dcomp, const Array<const MultiFab*>& edge)
     {
 	BL_ASSERT(cc.nComp() >= dcomp + BL_SPACEDIM);
 	BL_ASSERT(edge.size() == BL_SPACEDIM);
@@ -25,7 +25,7 @@ namespace BoxLib
 	}	
     }
 
-    void average_face_to_cellcenter (MultiFab& cc, int dcomp, const std::vector<MultiFab*>& fc)
+    void average_face_to_cellcenter (MultiFab& cc, int dcomp, const Array<const MultiFab*>& fc)
     {
 	BL_ASSERT(cc.nComp() >= dcomp + BL_SPACEDIM);
 	BL_ASSERT(fc.size() == BL_SPACEDIM);
@@ -52,11 +52,12 @@ namespace BoxLib
 	}
     }
 
-    void average_face_to_cellcenter (MultiFab& cc, const PArray<MultiFab>& fc, const Geometry& geom)
+    void average_face_to_cellcenter (MultiFab& cc, const Array<const MultiFab*>& fc,
+				     const Geometry& geom)
     {
 	BL_ASSERT(cc.nComp() >= BL_SPACEDIM);
 	BL_ASSERT(fc.size() == BL_SPACEDIM);
-	BL_ASSERT(fc[0].nComp() == 1); // We only expect fc to have the gradient perpendicular to the face
+	BL_ASSERT(fc[0]->nComp() == 1); // We only expect fc to have the gradient perpendicular to the face
 
 	const Real* dx     = geom.CellSize();
 	const Real* problo = geom.ProbLo();
@@ -72,19 +73,20 @@ namespace BoxLib
 	    BL_FORT_PROC_CALL(BL_AVG_FC_TO_CC,bl_avg_fc_to_cc)
 		(bx.loVect(), bx.hiVect(),
 		 BL_TO_FORTRAN(cc[mfi]),
-		 D_DECL(BL_TO_FORTRAN(fc[0][mfi]),
-			BL_TO_FORTRAN(fc[1][mfi]),
-			BL_TO_FORTRAN(fc[2][mfi])),
+		 D_DECL(BL_TO_FORTRAN((*fc[0])[mfi]),
+			BL_TO_FORTRAN((*fc[1])[mfi]),
+			BL_TO_FORTRAN((*fc[2])[mfi])),
 		 dx, problo, coord_type);
 	}
     }
 
-    void average_cellcenter_to_face (PArray<MultiFab>& fc, const MultiFab& cc, const Geometry& geom)
+    void average_cellcenter_to_face (const Array<MultiFab*>& fc, const MultiFab& cc,
+				     const Geometry& geom)
     {
 	BL_ASSERT(cc.nComp() == 1);
 	BL_ASSERT(cc.nGrow() >= 1);
 	BL_ASSERT(fc.size() == BL_SPACEDIM);
-	BL_ASSERT(fc[0].nComp() == 1); // We only expect fc to have the gradient perpendicular to the face
+	BL_ASSERT(fc[0]->nComp() == 1); // We only expect fc to have the gradient perpendicular to the face
 
 	const Real* dx     = geom.CellSize();
 	const Real* problo = geom.ProbLo();
@@ -111,9 +113,9 @@ namespace BoxLib
 #if (BL_SPACEDIM == 3)
 		 zbx.loVect(), zbx.hiVect(),
 #endif
-		 D_DECL(BL_TO_FORTRAN(fc[0][mfi]),
-			BL_TO_FORTRAN(fc[1][mfi]),
-			BL_TO_FORTRAN(fc[2][mfi])),
+		 D_DECL(BL_TO_FORTRAN((*fc[0])[mfi]),
+			BL_TO_FORTRAN((*fc[1])[mfi]),
+			BL_TO_FORTRAN((*fc[2])[mfi])),
 		 BL_TO_FORTRAN(cc[mfi]),
 		 dx, problo, coord_type);
 	}
@@ -124,13 +126,15 @@ namespace BoxLib
     // Average fine cell-based MultiFab onto crse cell-centered MultiFab.
     // We do NOT assume that the coarse layout is a coarsened version of the fine layout.
     // This version DOES use volume-weighting.
-    void average_down (MultiFab& S_fine, MultiFab& S_crse, const Geometry& fgeom, const Geometry& cgeom, 
+    void average_down (const MultiFab& S_fine, MultiFab& S_crse,
+		       const Geometry& fgeom, const Geometry& cgeom, 
                        int scomp, int ncomp, int rr)
     {
          average_down(S_fine,S_crse,fgeom,cgeom,scomp,ncomp,rr*IntVect::TheUnitVector());
     }
 
-    void average_down (MultiFab& S_fine, MultiFab& S_crse, const Geometry& fgeom, const Geometry& cgeom, 
+    void average_down (const MultiFab& S_fine, MultiFab& S_crse,
+		       const Geometry& fgeom, const Geometry& cgeom, 
                        int scomp, int ncomp, const IntVect& ratio)
     {
   
@@ -186,12 +190,12 @@ namespace BoxLib
     // Average fine cell-based MultiFab onto crse cell-centered MultiFab.
     // We do NOT assume that the coarse layout is a coarsened version of the fine layout.
     // This version does NOT use volume-weighting
-    void average_down (MultiFab& S_fine, MultiFab& S_crse, int scomp, int ncomp, int rr)
+    void average_down (const MultiFab& S_fine, MultiFab& S_crse, int scomp, int ncomp, int rr)
     {
          average_down(S_fine,S_crse,scomp,ncomp,rr*IntVect::TheUnitVector());
     }
 
-    void average_down (MultiFab& S_fine, MultiFab& S_crse, 
+    void average_down (const MultiFab& S_fine, MultiFab& S_crse, 
                        int scomp, int ncomp, const IntVect& ratio)
     {
         BL_ASSERT(S_crse.nComp() == S_fine.nComp());
@@ -229,26 +233,27 @@ namespace BoxLib
 
     // Average fine face-based MultiFab onto crse fine-centered MultiFab.
     // This routine assumes that the crse BoxArray is a coarsened version of the fine BoxArray.
-    void average_down_faces (PArray<MultiFab>& fine, PArray<MultiFab>& crse, IntVect& ratio)
+    void average_down_faces (const Array<const MultiFab*>& fine, const Array<MultiFab*>& crse,
+			     const IntVect& ratio)
     {
 	BL_ASSERT(crse.size()  == BL_SPACEDIM);
 	BL_ASSERT(fine.size()  == BL_SPACEDIM);
-	BL_ASSERT(crse[0].nComp() == fine[0].nComp());
+	BL_ASSERT(crse[0]->nComp() == fine[0]->nComp());
 
-	int ncomp = crse[0].nComp();
+	int ncomp = crse[0]->nComp();
 
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
         for (int n=0; n<BL_SPACEDIM; ++n) {
-            for (MFIter mfi(crse[n],true); mfi.isValid(); ++mfi)
+            for (MFIter mfi(*crse[n],true); mfi.isValid(); ++mfi)
             {
                 const Box& tbx = mfi.tilebox();
 
                 BL_FORT_PROC_CALL(BL_AVGDOWN_FACES,bl_avgdown_faces)
                     (tbx.loVect(),tbx.hiVect(),
-                     BL_TO_FORTRAN(fine[n][mfi]),
-                     BL_TO_FORTRAN(crse[n][mfi]),
+                     BL_TO_FORTRAN((*fine[n])[mfi]),
+                     BL_TO_FORTRAN((*crse[n])[mfi]),
                      ratio.getVect(),n,ncomp);
             }
         }

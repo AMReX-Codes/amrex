@@ -21,6 +21,7 @@
 #include <ParallelDescriptor.H>
 #include <Utility.H>
 #include <VisMF.H>
+#include <MultiFab.H>
 
 #ifdef BL_USE_SETBUF
 #define pubsetbuf setbuf

@@ -181,7 +181,7 @@ ErrorList::add (const std::string&         name,
     //
     int n = vec.size();
     vec.resize(n+1);
-    vec.set(n,new ErrorRec(name, nextra, typ, func));
+    vec[n].reset(new ErrorRec(name, nextra, typ, func));
 }
 
 void
@@ -195,7 +195,7 @@ ErrorList::add (const std::string&          name,
     //
     int n = vec.size();
     vec.resize(n+1);
-    vec.set(n,new ErrorRec(name, nextra, typ, func2));
+    vec[n].reset(new ErrorRec(name, nextra, typ, func2));
 }
 
 const ErrorRec&
@@ -203,7 +203,7 @@ ErrorList::operator[] (int k) const
 {
     BL_ASSERT(k < size());
 
-    return vec[k];
+    return *vec[k];
 }
 
 static const char* err_name[] = { "Special", "Standard", "UseAverage" };

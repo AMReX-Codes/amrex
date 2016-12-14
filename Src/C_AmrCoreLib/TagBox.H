@@ -8,7 +8,6 @@
 #include <BaseFab.H>
 #include <FabArray.H>
 #include <BoxArray.H>
-#include <PArray.H>
 #include <Geometry.H>
 
 //

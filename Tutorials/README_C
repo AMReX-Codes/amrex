@@ -9,10 +9,10 @@ The following tutorials demonstrate how to use the C++ BoxLib:
 * `GettingStarted_C`: 
 
    The BoxLib user's guide includes source code from this example.
-   This simply shows how to initialize BoxLib, create a domain decomposition,
-   build arrays of MultiFabs using the PArray class,
-   access data in a MultiFab, and fill interior/periodic boundaries.
-   This is then looped over using the MFIter and work is done on it in Fortran.
+   This simply shows how to initialize BoxLib, create a domain
+   decomposition, build arrays of MultiFabs, access data in a
+   MultiFab, and fill interior/periodic boundaries.  This is then
+   looped over using the MFIter and work is done on it in Fortran.
 
 ! ************************************************************************************
 HeatEquation_EX*_C:

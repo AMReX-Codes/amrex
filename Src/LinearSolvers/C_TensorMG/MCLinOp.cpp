@@ -119,14 +119,14 @@ MCLinOp::initConstruct (const Real* _h)
 	h[level][i] = _h[i];
     }
     maskvals.resize(1);
-    maskvals[0].resize(2*BL_SPACEDIM, PArrayManage);
+    maskvals[0].resize(2*BL_SPACEDIM);
 
     for (OrientationIter oitr; oitr; ++oitr)
     {
 	const Orientation face = oitr();
 	const MultiMask& m = bgb.bndryMasks(face);
-	maskvals[0].set(face, new MultiMask(m.boxArray(), m.DistributionMap(), 1));
-	MultiMask::Copy(maskvals[0][face], m);
+	maskvals[0][face].reset(new MultiMask(m.boxArray(), m.DistributionMap(), 1));
+	MultiMask::Copy(*maskvals[0][face], m);
     }
 }
 
@@ -232,9 +232,9 @@ MCLinOp::applyBC (MultiFab& inout,
 	    else
                 BoxLib::Abort("MCLinOp::applyBC(): bad logic");
 
-            const Mask& m    = maskvals[level][face][mfi];
-	    const Mask& mphi = maskvals[level][Orientation(perpdir,Orientation::high)][mfi];
-	    const Mask& mplo = maskvals[level][Orientation(perpdir,Orientation::low)][mfi];
+            const Mask& m    = (*maskvals[level][face])[mfi];
+	    const Mask& mphi = (*maskvals[level][Orientation(perpdir,Orientation::high)])[mfi];
+	    const Mask& mplo = (*maskvals[level][Orientation(perpdir,Orientation::low) ])[mfi];
 	    FORT_APPLYBC(
 		&flagden, &flagbc, &maxorder,
 		inoutfab.dataPtr(), 
@@ -251,12 +251,12 @@ MCLinOp::applyBC (MultiFab& inout,
 		iobx.loVect(), iobx.hiVect(),
 		&nc, h[level]);
 #elif BL_SPACEDIM==3
-	    const Mask& mn = maskvals[level][Orientation(1,Orientation::high)][mfi];
-	    const Mask& me = maskvals[level][Orientation(0,Orientation::high)][mfi];
-	    const Mask& mw = maskvals[level][Orientation(0,Orientation::low)][mfi];
-	    const Mask& ms = maskvals[level][Orientation(1,Orientation::low)][mfi];
-	    const Mask& mt = maskvals[level][Orientation(2,Orientation::high)][mfi];
-	    const Mask& mb = maskvals[level][Orientation(2,Orientation::low)][mfi];
+	    const Mask& mn = (*maskvals[level][Orientation(1,Orientation::high)])[mfi];
+	    const Mask& me = (*maskvals[level][Orientation(0,Orientation::high)])[mfi];
+	    const Mask& mw = (*maskvals[level][Orientation(0,Orientation::low) ])[mfi];
+	    const Mask& ms = (*maskvals[level][Orientation(1,Orientation::low) ])[mfi];
+	    const Mask& mt = (*maskvals[level][Orientation(2,Orientation::high)])[mfi];
+	    const Mask& mb = (*maskvals[level][Orientation(2,Orientation::low) ])[mfi];
 	    FORT_APPLYBC(
 		&flagden, &flagbc, &maxorder,
 		inoutfab.dataPtr(), 
@@ -375,15 +375,15 @@ MCLinOp::prepareForLevel (int level)
     //
     BL_ASSERT(maskvals.size() == level);
     maskvals.resize(level+1);
-    maskvals[level].resize(2*BL_SPACEDIM, PArrayManage);
+    maskvals[level].resize(2*BL_SPACEDIM);
 
     for (OrientationIter fi; fi; ++fi)
     {
         Orientation face = fi();
-	maskvals[level].set(face, new MultiMask(gbox[level], 
-						bgb.DistributionMap(),
-						geomarray[level],
-						face, 0, 1, 1, 1, true));
+	maskvals[level][face].reset(new MultiMask(gbox[level], 
+						  bgb.DistributionMap(),
+						  geomarray[level],
+						  face, 0, 1, 1, 1, true));
     }
 }
 
@@ -528,9 +528,9 @@ operator<< (std::ostream&  os,
 		{
 		    const Orientation face = oitr();
 
-		    for (MultiMaskIter mmi(lp.maskvals[level][face]); mmi.isValid(); ++mmi)
+		    for (MultiMaskIter mmi(*lp.maskvals[level][face]); mmi.isValid(); ++mmi)
 		    {
-                        os << lp.maskvals[level][face][mmi];
+                        os << (*lp.maskvals[level][face])[mmi];
                     }
 		}
 	    }

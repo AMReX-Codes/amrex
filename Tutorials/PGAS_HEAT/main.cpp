@@ -164,11 +164,11 @@ main (int argc, char* argv[])
     pp.query("ncomp", Ncomp);
 
     // Allocate space for the old_phi and new_phi -- we define old_phi and new_phi as
-    PArray < MultiFab > phis(2, PArrayManage);
-    phis.set(0, new MultiFab(bs, Ncomp, Nghost));
-    phis.set(1, new MultiFab(bs, Ncomp, Nghost));
-    MultiFab* old_phi = &phis[0];
-    MultiFab* new_phi = &phis[1];
+    Array<std::unique_ptr<MultiFab> > phis(2);
+    phis[0].reset(new MultiFab(bs, Ncomp, Nghost));
+    phis[1].reset(new MultiFab(bs, Ncomp, Nghost));
+    MultiFab* old_phi = phis[0].get();
+    MultiFab* new_phi = phis[1].get();
 
     // Initialize both to zero (just because)
     old_phi->setVal(0.0);
@@ -264,7 +264,7 @@ main (int argc, char* argv[])
 
     //
     // When MPI3 shared memory is used, the dtor of MultiFab calls MPI functions.
-    // Because the scope of PArray < MultiFab > phis is beyond the call to 
+    // Because the scope of phis is beyond the call to 
     // BoxLib::Finalize(), which in turn calls MPI_Finalize(), we destroy these
     // MultiFabs by hand now.
     phis.clear();

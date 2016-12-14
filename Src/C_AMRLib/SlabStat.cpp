@@ -300,8 +300,7 @@ SlabStatList::update (AmrLevel& amrlevel,
 }
 
 void
-SlabStatList::checkPoint (PArray<AmrLevel>& amrLevels,
-                          int               level0_step)
+SlabStatList::checkPoint (Array<std::unique_ptr<AmrLevel> >& amrLevels, int level0_step)
 {
     if (m_list.empty()) return;
     //
@@ -363,7 +362,7 @@ SlabStatList::checkPoint (PArray<AmrLevel>& amrLevels,
         for (int level = 0; level < amrLevels.size(); level++)
         {
             for (int dir = 0; dir < BL_SPACEDIM; dir++)
-                HeaderFile << amrLevels[level].Geom().CellSize(dir) << " ";
+                HeaderFile << amrLevels[level]->Geom().CellSize(dir) << " ";
 
             HeaderFile << '\n';
         }

@@ -3257,9 +3257,7 @@ FabArray<FAB>::AddProcsToComp (int ioProcNumSCS, int ioProcNumAll,
   }
   BoxLib::BroadcastArray(setArray, scsMyId, ioProcNumSCS, scsComm);
   if(scsMyId != ioProcNumSCS) {
-    for(int i(0); i < setArray.size(); ++i) {
-      noallocFAPIds.insert(setArray[i]);
-    }
+      noallocFAPIds.insert(std::begin(setArray), std::end(setArray));
   }
 
   // ---- m_bdkey

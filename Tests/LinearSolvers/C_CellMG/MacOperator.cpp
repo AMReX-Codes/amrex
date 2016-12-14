@@ -351,7 +351,7 @@ MacOperator::syncRhs (const MultiFab& Volume,
 //
 
 void
-mac_level_driver (AmrCore*            parent,
+mac_level_driver (AmrCore*        parent,
                   const MacBndry& mac_bndry,
 		  const BCRec&    phys_bc,
                   const BoxArray& grids,
@@ -408,13 +408,13 @@ mac_level_driver (AmrCore*            parent,
     }
     else if (the_solver == 3 ) 
     {
-        std::vector<BoxArray> bav(1);
+        Array<BoxArray> bav(1);
         bav[0] = mac_phi->boxArray();
-        std::vector<DistributionMapping> dmv(1);
+        Array<DistributionMapping> dmv(1);
         dmv[0] = Rhs.DistributionMap();
         bool nodal = false;
 	int stencil = CC_CROSS_STENCIL;
-        std::vector<Geometry> geom(1);
+        Array<Geometry> geom(1);
         geom[0] = mac_bndry.getGeom();
 
         int mg_bc[2*BL_SPACEDIM];
@@ -454,19 +454,17 @@ mac_level_driver (AmrCore*            parent,
         }
 
         // Set alpha and beta as in (alpha - del dot beta grad)
-	Array<PArray<MultiFab> > bb_p(1);
-	bb_p[0].resize(BL_SPACEDIM, PArrayNoManage);
+	Array<Array<MultiFab*> > bb_p(1);
+	bb_p[0].resize(BL_SPACEDIM);
         for ( int i = 0; i < BL_SPACEDIM; ++i )
         {
-            bb_p[0].set(i, &(mac_op.bCoefficients(i)));
+            bb_p[0][i] = const_cast<MultiFab*>(&(mac_op.bCoefficients(i)));
         }
 
         mgt_solver.set_mac_coefficients(bb_p, xa, xb);
 
-        MultiFab* mac_phi_p[1];
-        MultiFab* Rhs_p[1];
-        mac_phi_p[0] = mac_phi;
-        Rhs_p[0] = &Rhs;
+	Array<MultiFab*> mac_phi_p = { mac_phi };
+	Array<MultiFab*> Rhs_p = { &Rhs };
 
 	int always_use_bnorm = 0;
         Real final_resnorm;
@@ -543,13 +541,13 @@ mac_sync_driver (AmrCore*            parent,
     }
     else if (the_solver == 3 )
     {
-        std::vector<BoxArray> bav(1);
+        Array<BoxArray> bav(1);
         bav[0] = mac_sync_phi->boxArray();
-        std::vector<DistributionMapping> dmv(1);
+        Array<DistributionMapping> dmv(1);
         dmv[0] = Rhs.DistributionMap();
         bool nodal = false;
 	int stencil = CC_CROSS_STENCIL;
-        std::vector<Geometry> geom(1);
+        Array<Geometry> geom(1);
         geom[0] = mac_bndry.getGeom();
 
         int mg_bc[2*BL_SPACEDIM];
@@ -590,19 +588,17 @@ mac_sync_driver (AmrCore*            parent,
         }
 
         // Set alpha and beta as in (alpha - del dot beta grad)
-	Array<PArray<MultiFab> > bb_p(1);
-	bb_p[0].resize(BL_SPACEDIM, PArrayNoManage);
+	Array<Array<MultiFab*> > bb_p(1);
+	bb_p[0].resize(BL_SPACEDIM);
         for ( int i = 0; i < BL_SPACEDIM; ++i )
         {
-            bb_p[0].set(i, &(mac_op.bCoefficients(i)));
+            bb_p[0][i] = const_cast<MultiFab*>(&(mac_op.bCoefficients(i)));
         }
 
         mgt_solver.set_mac_coefficients(bb_p, xa, xb);
 
-        MultiFab* mac_phi_p[1];
-        MultiFab* Rhs_p[1];
-        mac_phi_p[0] = mac_sync_phi;
-        Rhs_p[0] = &Rhs;
+        Array<MultiFab*> mac_phi_p = { mac_sync_phi };
+        Array<MultiFab*> Rhs_p = { &Rhs };
 
 	int always_use_bnorm = 0;
         Real final_resnorm;
