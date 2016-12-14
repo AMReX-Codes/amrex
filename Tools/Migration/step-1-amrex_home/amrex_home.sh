@@ -14,3 +14,7 @@ NEW="\/amrex"
 echo ${OLD}" --> "${NEW}
 find . -type d \( -name .git -o -path './Tools/Migration/*' \) -prune -o -type f \( -name "Make\.package" -o -name "GNUmakefile" \) -exec grep -Iq . {} \; -exec sed -i 's/'"${OLD}"'/'"${NEW}"'/g' {} +
 
+#OLD="BOXLIB_HOME"
+#NEW="AMREX_HOME"
+#echo ${OLD}" --> "${NEW}
+#find . -type d \( -name .git -o -path './Tools/Migration/*' \) -prune -o -type f \( -name "GPackage\.make" -o -name "GMakedefs\.mak" -o -name "GMakerules\.mak" \) -exec grep -Iq . {} \; -exec sed -i 's/'"${OLD}"'/'"${NEW}"'/g' {} +
