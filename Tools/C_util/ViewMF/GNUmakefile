@@ -1,6 +1,6 @@
-BOXLIB_HOME = ../..
+AMREX_HOME = ../..
 
-TOP = $(BOXLIB_HOME)
+TOP = $(AMREX_HOME)
 #
 # Variables for the user to set ...
 #
@@ -21,13 +21,13 @@ CEXE_sources += $(EBASE).cpp
 
 DEFINES += -DBL_NOLINEVALUES
 
-include $(TOP)/BoxLib/Make.package
-INCLUDE_LOCATIONS += . $(TOP)/BoxLib $(TOP)/pAmrvis ..
+include $(TOP)/amrex/Make.package
+INCLUDE_LOCATIONS += . $(TOP)/amrex $(TOP)/pAmrvis ..
 
-vpath %.F   .. $(TOP)/pAmrvis $(TOP)/BoxLib
-vpath %.f   .. $(TOP)/pAmrvis $(TOP)/BoxLib
-vpath %.H   .. $(TOP)/pAmrvis $(TOP)/BoxLib
-vpath %.cpp .. $(TOP)/pAmrvis $(TOP)/BoxLib
+vpath %.F   .. $(TOP)/pAmrvis $(TOP)/amrex
+vpath %.f   .. $(TOP)/pAmrvis $(TOP)/amrex
+vpath %.H   .. $(TOP)/pAmrvis $(TOP)/amrex
+vpath %.cpp .. $(TOP)/pAmrvis $(TOP)/amrex
 
 all: $(executable)
 

@@ -2,9 +2,9 @@
 # $Id: GNUmakefile,v 1.25 2010-10-01 21:54:57 marc Exp $
 #
 
-BOXLIB_HOME = ../..
+AMREX_HOME = ../..
 
-TOP = $(BOXLIB_HOME)
+TOP = $(AMREX_HOME)
 
 PRECISION = DOUBLE
 DEBUG     = TRUE
@@ -21,7 +21,7 @@ LBASE = box
 #
 # Where libraries and include files will be installed.
 #
-INSTALL_ROOT = $(BOXLIB_HOME)
+INSTALL_ROOT = $(AMREX_HOME)
 
 ifeq ($(BL_NO_FORT),TRUE)
   DEFINES += -DBL_NO_FORT
@@ -152,7 +152,7 @@ install_ps: BoxLib.ps
         fi
 	$(INSTALL_DATA) BoxLib.ps $(INSTALL_ROOT)/ps
 
-WRAPPERGEN=$(BOXLIB_HOME)/util/wrappergen/wrappergen
+WRAPPERGEN=$(AMREX_HOME)/util/wrappergen/wrappergen
 BLMpi.cpp: BLMpi.w
 	$(WRAPPERGEN) -c++ -o BLMpi.cpp -w BLMpi.w
 

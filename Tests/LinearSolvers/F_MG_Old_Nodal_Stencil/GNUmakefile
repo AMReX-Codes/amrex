@@ -1,4 +1,4 @@
-BOXLIB_HOME := ../../..
+AMREX_HOME := ../../..
 
 NDEBUG := t
 MPI    := t
@@ -11,7 +11,7 @@ COMP := gfortran
 
 MKVERBOSE := t
 
-include $(BOXLIB_HOME)/Tools/F_mk/GMakedefs.mak
+include $(AMREX_HOME)/Tools/F_mk/GMakedefs.mak
 
 programs   += main.f90
 
@@ -27,14 +27,14 @@ f90sources += init_cell_coeffs.f90
 VPATH_LOCATIONS   += .
 INCLUDE_LOCATIONS += .
 
-include $(BOXLIB_HOME)/Src/LinearSolvers/F_MG/GPackage.mak
-VPATH_LOCATIONS   += $(BOXLIB_HOME)/Src/LinearSolvers/F_MG
-INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/LinearSolvers/F_MG
+include $(AMREX_HOME)/Src/LinearSolvers/F_MG/GPackage.mak
+VPATH_LOCATIONS   += $(AMREX_HOME)/Src/LinearSolvers/F_MG
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/LinearSolvers/F_MG
 
-include $(BOXLIB_HOME)/Src/F_BaseLib/GPackage.mak
-VPATH_LOCATIONS   += $(BOXLIB_HOME)/Src/F_BaseLib
-INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/F_BaseLib
+include $(AMREX_HOME)/Src/F_BaseLib/GPackage.mak
+VPATH_LOCATIONS   += $(AMREX_HOME)/Src/F_BaseLib
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/F_BaseLib
 
 all:	$(pnames)
 
-include $(BOXLIB_HOME)/Tools/F_mk/GMakerules.mak
+include $(AMREX_HOME)/Tools/F_mk/GMakerules.mak

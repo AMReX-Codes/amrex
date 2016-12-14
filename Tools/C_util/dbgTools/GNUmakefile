@@ -1,6 +1,6 @@
-BOXLIB_HOME = ../../
+AMREX_HOME = ../../
 
-TOP = $(BOXLIB_HOME)
+TOP = $(AMREX_HOME)
 #
 # Variables for the user to set ...
 #

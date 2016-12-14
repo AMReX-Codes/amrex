@@ -9,12 +9,12 @@
 #
 # ------------- in your GNUmakefile --------------
 # 
-# FBOXLIB_HOME =
-# FBOXLIB_HOME = ../../../fParallel 
-# ifdef FBOXLIB_HOME
+# FAMREX_HOME =
+# FAMREX_HOME = ../../../fParallel 
+# ifdef FAMREX_HOME
 #   include FParallelMG.mak
 #   Fdirs   := boxlib mg extern/LAPACK
-#   Flocs   := $(foreach dir, $(Fdirs), $(FBOXLIB_HOME)/$(dir))
+#   Flocs   := $(foreach dir, $(Fdirs), $(FAMREX_HOME)/$(dir))
 # endif
 #
 # VPATH_LOCATIONS   += . $(Blocs) $(Flocs)
@@ -67,5 +67,5 @@ cEXE_headers   += mg_cpp_f.h
 
 f90EXE_sources += stencil_util.f90
 
-VPATH_LOCATIONS += $(BOXLIB_HOME)/Src/LinearSolvers/F_MG
-INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/LinearSolvers/F_MG
+VPATH_LOCATIONS += $(AMREX_HOME)/Src/LinearSolvers/F_MG
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/LinearSolvers/F_MG

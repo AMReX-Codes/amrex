@@ -1,7 +1,7 @@
-# BOXLIB_HOME defines the directory in which we will find the BoxLib code
-# If you have BOXLIB_HOME set as an environment variable then that definition
+# AMREX_HOME defines the directory in which we will find the BoxLib code
+# If you have AMREX_HOME set as an environment variable then that definition
 #    will override this one.
-BOXLIB_HOME ?= /path/to/boxlib
+AMREX_HOME ?= /path/to/boxlib
 
 # These are additional external (to BoxLib) libraries that you will need.
 TRILINOS_DIR	 ?= /path/to/trilinos-11.0.3-Source
@@ -28,18 +28,18 @@ CPPFLAGS += -DMPICH_SKIP_MPICXX
 
 EBASE = driver
 
-include $(BOXLIB_HOME)/Tools/C_mk/Make.defs
+include $(AMREX_HOME)/Tools/C_mk/Make.defs
 
 CEXE_sources += $(EBASE).cpp
 
 include Make.package
-include $(BOXLIB_HOME)/Src/C_BaseLib/Make.package
+include $(AMREX_HOME)/Src/C_BaseLib/Make.package
 
-INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/C_BaseLib
-INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/C_AMRLib
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/C_BaseLib
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/C_AMRLib
 
-vpathdir += $(BOXLIB_HOME)/Src/C_BaseLib
-vpathdir += $(BOXLIB_HOME)/Src/C_AMRLib
+vpathdir += $(AMREX_HOME)/Src/C_BaseLib
+vpathdir += $(AMREX_HOME)/Src/C_AMRLib
 
 # trilinos library
 INCLUDE_LOCATIONS += $(TRILINOS_DIR)/include
@@ -63,4 +63,4 @@ vpath %.f90 : . $(vpathdir)
 all: $(executable)
 	@echo SUCCESS
 
-include $(BOXLIB_HOME)/Tools/C_mk/Make.rules
+include $(AMREX_HOME)/Tools/C_mk/Make.rules

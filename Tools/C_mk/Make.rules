@@ -41,7 +41,7 @@ realclean:: clean
 	$(SILENT) $(RM) *.mod
 
 file_locations:
-	$(BOXLIB_HOME)/Tools/F_scripts/find_files_vpath.py --vpath "$(FINAL_VPATH_LOCATIONS)" --files "$(CEXE_sources) $(FEXE_sources) $(cEXE_sources) $(fEXE_sources) $(f90EXE_sources) $(F90EXE_sources) $(CEXE_headers) $(cEXE_headers) $(fEXE_headers) $(FEXE_headers)"
+	$(AMREX_HOME)/Tools/F_scripts/find_files_vpath.py --vpath "$(FINAL_VPATH_LOCATIONS)" --files "$(CEXE_sources) $(FEXE_sources) $(cEXE_sources) $(fEXE_sources) $(f90EXE_sources) $(F90EXE_sources) $(CEXE_headers) $(cEXE_headers) $(fEXE_headers) $(FEXE_headers)"
 
 
 tags:	$(allSources)

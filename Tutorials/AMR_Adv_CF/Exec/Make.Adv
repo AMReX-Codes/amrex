@@ -1,9 +1,9 @@
-BOXLIB_HOME ?= ../../../..
-TOP := $(BOXLIB_HOME)/Tutorials/AMR_Adv_CF
+AMREX_HOME ?= ../../../..
+TOP := $(AMREX_HOME)/Tutorials/AMR_Adv_CF
 
 EBASE := main
 
-include $(BOXLIB_HOME)/Tools/C_mk/Make.defs
+include $(AMREX_HOME)/Tools/C_mk/Make.defs
 
 all: $(executable) 
 	@echo SUCCESS
@@ -11,8 +11,8 @@ all: $(executable)
 Bdirs 	:= Source
 Pdirs 	:= C_BaseLib F_Interfaces/BaseLib
 
-Bpack	+= $(foreach dir, $(Pdirs), $(BOXLIB_HOME)/Src/$(dir)/Make.package)
-Blocs	+= $(foreach dir, $(Pdirs), $(BOXLIB_HOME)/Src/$(dir))
+Bpack	+= $(foreach dir, $(Pdirs), $(AMREX_HOME)/Src/$(dir)/Make.package)
+Blocs	+= $(foreach dir, $(Pdirs), $(AMREX_HOME)/Src/$(dir))
 
 Bpack	+= $(foreach dir, $(Bdirs), $(TOP)/$(dir)/Make.package)
 Blocs	+= $(foreach dir, $(Bdirs), $(TOP)/$(dir))
@@ -33,5 +33,5 @@ vpath %.f   . $(VPATH_LOCATIONS)
 vpath %.fi  . $(VPATH_LOCATIONS)
 
 
-include $(BOXLIB_HOME)/Tools/C_mk/Make.rules
+include $(AMREX_HOME)/Tools/C_mk/Make.rules
 

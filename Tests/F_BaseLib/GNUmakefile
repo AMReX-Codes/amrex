@@ -1,4 +1,4 @@
-BOXLIB_HOME := ../..
+AMREX_HOME := ../..
 
 USE_RANDOM = TRUE
 
@@ -15,7 +15,7 @@ PARTICLES := t
 
 FPARALLEL := ../..
 
-include $(BOXLIB_HOME)/Tools/F_mk/GMakedefs.mak
+include $(AMREX_HOME)/Tools/F_mk/GMakedefs.mak
 
 f90sources += t_main.f90
 f90sources += t_knapsack.f90
@@ -30,8 +30,8 @@ f90sources += mt19937ar.f90
 
 all: $(pnames)
 
-include $(BOXLIB_HOME)/Src/F_BaseLib/GPackage.mak
-VPATH_LOCATIONS   += $(BOXLIB_HOME)/Src/F_BaseLib
-INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/F_BaseLib
+include $(AMREX_HOME)/Src/F_BaseLib/GPackage.mak
+VPATH_LOCATIONS   += $(AMREX_HOME)/Src/F_BaseLib
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/F_BaseLib
 
-include $(BOXLIB_HOME)/Tools/F_mk/GMakerules.mak
+include $(AMREX_HOME)/Tools/F_mk/GMakerules.mak
