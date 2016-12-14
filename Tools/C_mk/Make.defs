@@ -4,7 +4,7 @@ ifneq ($(firstword $(sort 2.7 $(my_python_version))), 2.7)
   $(error Python >= 2.7 required! Your version is $(my_python_version))
 endif
 
-include $(BOXLIB_HOME)/Tools/C_mk/Make.machines
+include $(AMREX_HOME)/Tools/C_mk/Make.machines
 
 ifndef PRECISION
   PRECISION = DOUBLE
@@ -80,10 +80,10 @@ endif
 FORTLINK  	= UNDERSCORE
 
 FORT_CPP        = cpp -E -traditional-cpp -P
-FORTPREP  	= perl $(BOXLIB_HOME)/Tools/C_scripts/strip72 -c
+FORTPREP  	= perl $(AMREX_HOME)/Tools/C_scripts/strip72 -c
 F90PREP  	= cat  # a placeholder in case we have to write something later
-MKDEP		= perl $(BOXLIB_HOME)/Tools/C_scripts/mkdep
-MODDEP		= $(BOXLIB_HOME)/Tools/F_scripts/dep.py
+MKDEP		= perl $(AMREX_HOME)/Tools/C_scripts/mkdep
+MODDEP		= $(AMREX_HOME)/Tools/F_scripts/dep.py
 
 EXE_OUTPUT_OPTION      = -o $(objEXETempDir)/$*.o
 FORT_EXE_OUTPUT_OPTION = -o $(objEXETempDir)/$*.o
@@ -93,17 +93,17 @@ lowercase_comp := $(shell echo $(COMP) | tr A-Z a-z)
 
 ifeq ($(lowercase_comp),$(filter $(lowercase_comp),gcc gnu g++))
   lowercase_comp = gnu
-  $(info Loading $(BOXLIB_HOME)/Tools/C_mk/comps/gnu.mak...)
-  include        $(BOXLIB_HOME)/Tools/C_mk/comps/gnu.mak
+  $(info Loading $(AMREX_HOME)/Tools/C_mk/comps/gnu.mak...)
+  include        $(AMREX_HOME)/Tools/C_mk/comps/gnu.mak
 else ifeq ($(lowercase_comp),intel)
-  $(info Loading $(BOXLIB_HOME)/Tools/C_mk/comps/intel.mak...)
-  include        $(BOXLIB_HOME)/Tools/C_mk/comps/intel.mak
+  $(info Loading $(AMREX_HOME)/Tools/C_mk/comps/intel.mak...)
+  include        $(AMREX_HOME)/Tools/C_mk/comps/intel.mak
 else ifeq ($(lowercase_comp),cray)
-  $(info Loading $(BOXLIB_HOME)/Tools/C_mk/comps/cray.mak...)
-  include        $(BOXLIB_HOME)/Tools/C_mk/comps/cray.mak
+  $(info Loading $(AMREX_HOME)/Tools/C_mk/comps/cray.mak...)
+  include        $(AMREX_HOME)/Tools/C_mk/comps/cray.mak
 else ifeq ($(lowercase_comp),pgi)
-  $(info Loading $(BOXLIB_HOME)/Tools/C_mk/comps/pgi.mak...)
-  include        $(BOXLIB_HOME)/Tools/C_mk/comps/pgi.mak
+  $(info Loading $(AMREX_HOME)/Tools/C_mk/comps/pgi.mak...)
+  include        $(AMREX_HOME)/Tools/C_mk/comps/pgi.mak
 else
   $(error Unknown compiler $(COMP). Supported compilers are gnu, intel, cray, and pgi)
 endif
@@ -173,7 +173,7 @@ endif
 
 ifeq ($(USE_ARRAYVIEW), TRUE)
   DEFINES += -DBL_USE_ARRAYVIEW
-  ARRAYVIEWDIR ?= $(BOXLIB_HOME)/../ArrayView
+  ARRAYVIEWDIR ?= $(AMREX_HOME)/../ArrayView
   INCLUDE_LOCATIONS += $(ARRAYVIEWDIR)
   LIBRARY_LOCATIONS += $(ARRAYVIEWDIR)
   LIBRARIES += -larrayview$(DIM)d
@@ -292,30 +292,30 @@ endif
 F90CACHE =
 
 ifeq ($(USE_VTUNE),TRUE)
-  $(into Loading $(BOXLIB_HOME)/Tools/C_mk/tools/Make.vtune
-  include        $(BOXLIB_HOME)/Tools/C_mk/tools/Make.vtune
+  $(into Loading $(AMREX_HOME)/Tools/C_mk/tools/Make.vtune
+  include        $(AMREX_HOME)/Tools/C_mk/tools/Make.vtune
 endif
 
 # Use Sam Williams's HPGMG
 ifeq ($(USE_HPGMG), TRUE)
-  $(info Loading $(BOXLIB_HOME)/Tools/C_mk/packages/Make.hpgmg...)
-  include        $(BOXLIB_HOME)/Tools/C_mk/packages/Make.hpgmg
+  $(info Loading $(AMREX_HOME)/Tools/C_mk/packages/Make.hpgmg...)
+  include        $(AMREX_HOME)/Tools/C_mk/packages/Make.hpgmg
 endif
 
-ifneq ("$(wildcard $(BOXLIB_HOME)/Tools/C_mk/sites/Make.$(host_name))","")
-  $(info Loading $(BOXLIB_HOME)/Tools/C_mk/sites/Make.$(host_name)...)
-  include        $(BOXLIB_HOME)/Tools/C_mk/sites/Make.$(host_name)
+ifneq ("$(wildcard $(AMREX_HOME)/Tools/C_mk/sites/Make.$(host_name))","")
+  $(info Loading $(AMREX_HOME)/Tools/C_mk/sites/Make.$(host_name)...)
+  include        $(AMREX_HOME)/Tools/C_mk/sites/Make.$(host_name)
 else
-  $(info Loading $(BOXLIB_HOME)/Tools/C_mk/sites/Make.$(which_site)...)
-  include        $(BOXLIB_HOME)/Tools/C_mk/sites/Make.$(which_site)
+  $(info Loading $(AMREX_HOME)/Tools/C_mk/sites/Make.$(which_site)...)
+  include        $(AMREX_HOME)/Tools/C_mk/sites/Make.$(which_site)
 endif
 
 ifeq ($(USE_UPCXX),TRUE)
-  $(info Loading $(BOXLIB_HOME)/Tools/C_mk/Make.upcxx...)
-  include        $(BOXLIB_HOME)/Tools/C_mk/Make.upcxx
+  $(info Loading $(AMREX_HOME)/Tools/C_mk/Make.upcxx...)
+  include        $(AMREX_HOME)/Tools/C_mk/Make.upcxx
 endif
 
-ifneq ("$(wildcard $(BOXLIB_HOME)/Tools/C_mk/Make.local)","")
-  $(info Loading $(BOXLIB_HOME)/Tools/C_mk/Make.local...)
-  include        $(BOXLIB_HOME)/Tools/C_mk/Make.local
+ifneq ("$(wildcard $(AMREX_HOME)/Tools/C_mk/Make.local)","")
+  $(info Loading $(AMREX_HOME)/Tools/C_mk/Make.local...)
+  include        $(AMREX_HOME)/Tools/C_mk/Make.local
 endif

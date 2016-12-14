@@ -7,8 +7,8 @@ MKVERBOSE :=t
 COMP := gfortran
 
 # include the main Makefile stuff
-BOXLIB_HOME := ../../..
-include $(BOXLIB_HOME)/Tools/F_mk/GMakedefs.mak
+AMREX_HOME := ../../..
+include $(AMREX_HOME)/Tools/F_mk/GMakedefs.mak
 
 # core BoxLib directories
 BOXLIB_CORE := Src/F_BaseLib
@@ -21,8 +21,8 @@ Fmincludes :=
 
 
 # BoxLib stuff
-Fmpack += $(foreach dir, $(BOXLIB_CORE), $(BOXLIB_HOME)/$(dir)/GPackage.mak)
-Fmlocs += $(foreach dir, $(BOXLIB_CORE), $(BOXLIB_HOME)/$(dir))
+Fmpack += $(foreach dir, $(BOXLIB_CORE), $(AMREX_HOME)/$(dir)/GPackage.mak)
+Fmlocs += $(foreach dir, $(BOXLIB_CORE), $(AMREX_HOME)/$(dir))
 
 # any include files
 Fmincs := $(foreach dir, $(Fmincludes), $(MAESTRO_TOP_DIR)/$(dir))
@@ -40,7 +40,7 @@ programs += tests
 
 all: $(pnames)
 
-include $(BOXLIB_HOME)/Tools/F_mk/GMakerules.mak
+include $(AMREX_HOME)/Tools/F_mk/GMakerules.mak
 
 
 %.$(suf).exe:%.f90 $(objects)

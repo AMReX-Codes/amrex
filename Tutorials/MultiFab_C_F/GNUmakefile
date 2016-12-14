@@ -1,6 +1,6 @@
-# BOXLIB_HOME defines the directory in which we will find all the BoxLib code
-# If you set BOXLIB_HOME as an environment variable, this line will be ignored
-BOXLIB_HOME ?= ../..
+# AMREX_HOME defines the directory in which we will find all the BoxLib code
+# If you set AMREX_HOME as an environment variable, this line will be ignored
+AMREX_HOME ?= ../..
 
 DEBUG     = TRUE
 USE_MPI   = TRUE
@@ -13,15 +13,15 @@ PRECISION = DOUBLE
 EBASE     = main
 
 include ./Make.package
-include $(BOXLIB_HOME)/Tools/C_mk/Make.defs
+include $(AMREX_HOME)/Tools/C_mk/Make.defs
 
-include $(BOXLIB_HOME)/Src/C_BaseLib/Make.package
-INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/C_BaseLib
-vpathdir += $(BOXLIB_HOME)/Src/C_BaseLib
+include $(AMREX_HOME)/Src/C_BaseLib/Make.package
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/C_BaseLib
+vpathdir += $(AMREX_HOME)/Src/C_BaseLib
 
-include $(BOXLIB_HOME)/Src/F_BaseLib/FParallelMG.mak
-INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/F_BaseLib
-vpathdir += $(BOXLIB_HOME)/Src/F_BaseLib
+include $(AMREX_HOME)/Src/F_BaseLib/FParallelMG.mak
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/F_BaseLib
+vpathdir += $(AMREX_HOME)/Src/F_BaseLib
 
 vpath %.c   : . $(vpathdir)
 vpath %.h   : . $(vpathdir)
@@ -33,7 +33,7 @@ vpath %.f90 : . $(vpathdir)
 
 all: $(executable)
 
-include $(BOXLIB_HOME)/Tools/C_mk/Make.rules
+include $(AMREX_HOME)/Tools/C_mk/Make.rules
 
 #-----------------------------------------------------------------------------
 # for debugging.  To see the value of a Makefile variable,

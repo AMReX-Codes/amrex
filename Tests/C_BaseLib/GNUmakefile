@@ -18,8 +18,8 @@ COMM_PROFILE  = TRUE
 TRACE_PROFILE = FALSE
 #DEFINES += -DBL_PROFILING_SPECIAL
 
-BOXLIB_HOME = ../..
-include $(BOXLIB_HOME)/Tools/C_mk/Make.defs
+AMREX_HOME = ../..
+include $(AMREX_HOME)/Tools/C_mk/Make.defs
 
 #
 # Base name of each of the executables we want to build.
@@ -50,7 +50,7 @@ ifeq ($(_progs),tFillFab)
   fEXE_sources += fillfab.f
 endif
 
-include $(BOXLIB_HOME)/Src/C_BaseLib/Make.package
+include $(AMREX_HOME)/Src/C_BaseLib/Make.package
 
 all: $(addsuffix $(optionsSuffix).ex, $(_progs))
 
@@ -64,4 +64,4 @@ clean::
 	$(RM) bl3_prof bl3_prof.m
 	$(RM) *.ex *.o
 
-include $(BOXLIB_HOME)/Tools/C_mk/Make.rules
+include $(AMREX_HOME)/Tools/C_mk/Make.rules

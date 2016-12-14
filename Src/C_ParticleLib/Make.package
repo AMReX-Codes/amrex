@@ -9,5 +9,5 @@ C$(BOXLIB_BASE)_headers += Particles.H ParticleInit.H ParGDB.H TracerParticles.H
 F$(BOXLIB_BASE)_headers += Particles_F.H
 F$(BOXLIB_BASE)_sources += Particles_$(DIM)D.F
 
-VPATH_LOCATIONS += $(BOXLIB_HOME)/Src/C_ParticleLib
-INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/C_ParticleLib
+VPATH_LOCATIONS += $(AMREX_HOME)/Src/C_ParticleLib
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/C_ParticleLib

@@ -1,4 +1,4 @@
-BOXLIB_HOME = ../../..
+AMREX_HOME = ../../..
 
 DEBUG     = FALSE
 DEBUG     = TRUE
@@ -20,9 +20,9 @@ EBASE     = BcastClasses
 
 CEXE_sources += BcastClasses.cpp
 
-include $(BOXLIB_HOME)/Tools/C_mk/Make.defs
+include $(AMREX_HOME)/Tools/C_mk/Make.defs
 
-include $(BOXLIB_HOME)/Src/C_BaseLib/Make.package
+include $(AMREX_HOME)/Src/C_BaseLib/Make.package
 
-include $(BOXLIB_HOME)/Tools/C_mk/Make.rules
+include $(AMREX_HOME)/Tools/C_mk/Make.rules
 

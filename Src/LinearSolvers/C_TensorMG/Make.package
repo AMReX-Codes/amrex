@@ -17,5 +17,5 @@ else
   F$(MCMG_BASE)_sources += DV_3D1.F DV_3D2.F DV_3D3.F
 endif
 
-VPATH_LOCATIONS += $(BOXLIB_HOME)/Src/LinearSolvers/C_TensorMG
-INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/LinearSolvers/C_TensorMG
+VPATH_LOCATIONS += $(AMREX_HOME)/Src/LinearSolvers/C_TensorMG
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/LinearSolvers/C_TensorMG

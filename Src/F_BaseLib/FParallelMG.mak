@@ -79,5 +79,5 @@ CEXE_sources += MemProfiler_f.cpp
 f90EXE_sources += memprof.f90
 endif
 
-VPATH_LOCATIONS += $(BOXLIB_HOME)/Src/F_BaseLib
-INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/F_BaseLib
+VPATH_LOCATIONS += $(AMREX_HOME)/Src/F_BaseLib
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/F_BaseLib

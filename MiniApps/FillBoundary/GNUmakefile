@@ -1,4 +1,4 @@
-BOXLIB_HOME = ../../../BoxLib
+AMREX_HOME = ../../../amrex
 
 DEBUG        = FALSE
 USE_MPI      = TRUE
@@ -17,8 +17,8 @@ EBASE        = fbtest
 
 CEXE_sources += MultiFabFillBoundaryTest.cpp
 
-include $(BOXLIB_HOME)/Tools/C_mk/Make.defs
-include $(BOXLIB_HOME)/Src/C_BoundaryLib/Make.package
-include $(BOXLIB_HOME)/Src/C_BaseLib/Make.package
+include $(AMREX_HOME)/Tools/C_mk/Make.defs
+include $(AMREX_HOME)/Src/C_BoundaryLib/Make.package
+include $(AMREX_HOME)/Src/C_BaseLib/Make.package
 
-include $(BOXLIB_HOME)/Tools/C_mk/Make.rules
+include $(AMREX_HOME)/Tools/C_mk/Make.rules
