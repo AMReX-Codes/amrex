@@ -306,8 +306,8 @@ public:
 
     void addOneParticle (int id_in, int cpu_in, 
                          std::vector<double>& xloc, std::vector<double>& attributes); 
-    void addNParticles (int n,  Array<double>& x, Array<double>& y, Array<double>& z, 
-                                Array<double>& u, Array<double>& v, Array<double>& w, 
+    void addNParticles (int n, D_DECL(Array<double>& x, Array<double>& y, Array<double>& z), 
+                               D_DECL(Array<double>& u, Array<double>& v, Array<double>& w), 
                         int na, Array<double>& attributes);
 
     void GetParticleIDs        (Array<int> & part_ids);
