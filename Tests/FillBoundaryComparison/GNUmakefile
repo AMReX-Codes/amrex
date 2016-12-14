@@ -1,8 +1,7 @@
 
 DIM          = 3
 
-COMP         = Intel
-FCOMP        = Intel
+COMP         = gnu
 
 DEBUG        = FALSE
 
