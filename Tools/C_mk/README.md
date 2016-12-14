@@ -6,7 +6,7 @@ Typically an application will have its own `GNUmakefile`.  (See
 complicated example.)  `Make.defs` is included near the beginning, and
 `Make.rules` is included in the end.  Depending the need,
 `GNUmakefile` includes a number of
-`$(BOXLIB_HOME)/Src/xxx/Make.package`, where `xxx` is `C_BaseLib` etc.
+`$(AMREX_HOME)/Src/xxx/Make.package`, where `xxx` is `C_BaseLib` etc.
 These `Make.package` files add sources to the make system.  An
 application also has its own `Make.package`.  The make variables for
 the sources are:
@@ -20,7 +20,7 @@ the sources are:
 * `fEXE_sources` for fixed format Fortran sources with `.f` extension.
 * `FEXE_sources` for fixed format Fortran sources with `.F` extension requiring preprocessing.
 
-The variable `BOXLIB_HOME` points to the path to BoxLib.  It must be
+The variable `AMREX_HOME` points to the path to AMReX.  It must be
 set either in the makefile or via the shell's environment variable.
 
 Typically one types `make` to build an executable.  Other useful
@@ -71,17 +71,17 @@ The `Make.defs` includes the following files in the listed order:
   as HPGMG, if it is used.
 
 * `sites/Make.xxx`: Here which file to include is resolved as follows.
-  If a file `$(BOXLIB_HOME)/Tools/C_mk/sites/Make.$(host_name)`
+  If a file `$(AMREX_HOME)/Tools/C_mk/sites/Make.$(host_name)`
   exists, it is included.  Otherwise,
-  `$(BOXLIB_HOME)/Tools/C_mk/sites/Make.$(which_site)` is included.
+  `$(AMREX_HOME)/Tools/C_mk/sites/Make.$(which_site)` is included.
   Note that both `host_name` and `which_site` are defined in
   `Make.machines`.  This file is used for site specific setup.
   Typically this is used for MPI related setup.  The file
   `sites/Make.unknown` contains a generic setup for using MPI
   wrappers.  Note that when MPI is used Fortran 90 MPI library may
-  also need to be linked to because it is used in parts of BoxLib.
+  also need to be linked to because it is used in parts of AMReX.
 
-* `Make.local`: This file is not in the BoxLib repository.  It is the
+* `Make.local`: This file is not in the AMReX repository.  It is the
   last file included in `Make.defs`, if it exists.  It is meant for a
   purely local setup that can override the setup in previously
   included files.  See `Make.local.template` for examples. 
