@@ -72,4 +72,19 @@ namespace BoxLib
     }
 }
 
+namespace AMReX
+{
+    template <class T>
+    void FillNull (Array<T*>& a)
+    {
+	std::for_each(a.begin(), a.end(), [](T*& p) { p = nullptr; });
+    }
+
+    template <class T>
+    void FillNull (Array<std::unique_ptr<T> >& a)
+    {
+	std::for_each(a.begin(), a.end(), [](std::unique_ptr<T>& p) { p.reset(); });
+    }
+}
+
 #endif /*BL_ARRAY_H*/
