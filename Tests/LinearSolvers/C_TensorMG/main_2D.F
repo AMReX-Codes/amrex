@@ -19,7 +19,7 @@ c .. 5 is x**2
       subroutine FORT_FILLCRSE (
      $     crse, DIMS(crse),
      $     h, nc
-     $     )
+     $     ) bind(c)
       integer nc
       integer DIMDEC(crse)
       REAL_T crse(DIMV(crse),nc)
@@ -74,7 +74,7 @@ c
       subroutine FORT_FILLFINE (
      $     fine, DIMS(fine),
      $     h, nc
-     $     )
+     $     ) bind(c)
       integer nc
       integer DIMDEC(fine)
       REAL_T fine(DIMV(fine),nc)
@@ -142,7 +142,7 @@ c....................at physical boundary, use homog bc
       subroutine FORT_FILLCRSE (
      $     crse, DIMS(crse),
      $     h, nc
-     $     )
+     $     ) bind(c)
       integer nc
       integer DIMDEC(crse)
       REAL_T crse(DIMV(crse),nc)
@@ -178,7 +178,7 @@ c
       subroutine FORT_FILLFINE (
      $     fine, DIMS(fine),
      $     h, nc
-     $     )
+     $     ) bind(c)
       integer nc
       integer DIMDEC(fine)
       REAL_T fine(DIMV(fine),nc)
@@ -219,7 +219,7 @@ c
       subroutine FORT_FILLRHS (
      $     rhs, DIMS(rhs),
      $     h, nc
-     $     )
+     $     ) bind(c)
       integer nc
       integer DIMDEC(rhs)
       REAL_T rhs(DIMV(rhs),nc)
@@ -275,7 +275,7 @@ c
       
       subroutine FORT_MAKEMU(
      $     mu,DIMS(mu),
-     $     h, idir )
+     $     h, idir ) bind(c)
 
       integer idir
       integer DIMDEC(mu)

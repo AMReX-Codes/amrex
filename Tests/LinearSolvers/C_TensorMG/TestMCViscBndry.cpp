@@ -17,7 +17,7 @@ MCViscBndry::setBndryConds (const BCRec& bc,
 
     for (OrientationIter fi; fi; ++fi)
     {
-	Array<Real> &bloc = bcloc[fi()];
+	RealTuple &bloc = bcloc[fi()];
 	Array< Array<BoundCond> >& bctag = bcond[fi()];
 	
 	int dir = fi().coordDir();
