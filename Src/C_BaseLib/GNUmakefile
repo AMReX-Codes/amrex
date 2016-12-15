@@ -81,10 +81,6 @@ endif
 
 include $(TOP)/Tools/C_mk/Make.defs ./Make.package
 
-ifeq ($(KCC_VERSION),3.3)
-CXXFLAGS += --one_instantiation_per_object
-endif
-
 all: $(optionsLib)
 #
 # `install' does NOT try to build and install the HTML stuff.
