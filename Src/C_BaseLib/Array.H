@@ -39,7 +39,7 @@ public:
     const T* dataPtr () const { return this->data(); }
 };
 
-namespace BoxLib
+namespace AMReX
 {
     template <class T>
     Array<T*> GetArrOfPtrs (const Array<std::unique_ptr<T> >& a)
@@ -70,10 +70,7 @@ namespace BoxLib
 	for (const auto& x : a)  r.push_back(GetArrOfPtrs(x));
 	return r;
     }
-}
 
-namespace AMReX
-{
     template <class T>
     void FillNull (Array<T*>& a)
     {
