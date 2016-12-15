@@ -1,5 +1,5 @@
-cxxsources += MemPool.cpp
-cxxsources += CArena.cpp
-cxxsources += Arena.cpp
+cxxsources += AMReX_MemPool.cpp
+cxxsources += AMReX_CArena.cpp
+cxxsources += AMReX_Arena.cpp
 
-f90sources += mempool_f.f90
+f90sources += AMReX_mempool_f.f90

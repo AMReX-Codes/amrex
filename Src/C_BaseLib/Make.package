@@ -7,164 +7,155 @@ endif
 #
 # Utility classes.
 #
-C$(BOXLIB_BASE)_headers += BoxLib.H
-C$(BOXLIB_BASE)_sources += BoxLib.cpp
+C$(BOXLIB_BASE)_headers += AMReX_BoxLib.H
+C$(BOXLIB_BASE)_sources += AMReX_BoxLib.cpp
 
-C$(BOXLIB_BASE)_sources += ParmParse.cpp Utility.cpp
-C$(BOXLIB_BASE)_headers += ParmParse.H Utility.H BLassert.H ArrayLim.H
+C$(BOXLIB_BASE)_sources += AMReX_ParmParse.cpp AMReX_Utility.cpp
+C$(BOXLIB_BASE)_headers += AMReX_ParmParse.H AMReX_Utility.H AMReX_BLassert.H AMReX_ArrayLim.H
 
-C$(BOXLIB_BASE)_headers += REAL.H CONSTANTS.H SPACE.H SPACE_F.H
+C$(BOXLIB_BASE)_headers += AMReX_REAL.H AMReX_CONSTANTS.H AMReX_SPACE.H AMReX_SPACE_F.H
 
-C$(BOXLIB_BASE)_sources += UseCount.cpp
-C$(BOXLIB_BASE)_headers += UseCount.H
+C$(BOXLIB_BASE)_sources += AMReX_UseCount.cpp
+C$(BOXLIB_BASE)_headers += AMReX_UseCount.H
 
-C$(BOXLIB_BASE)_sources += DistributionMapping.cpp ParallelDescriptor.cpp
-C$(BOXLIB_BASE)_headers += DistributionMapping.H ParallelDescriptor.H
+C$(BOXLIB_BASE)_sources += AMReX_DistributionMapping.cpp AMReX_ParallelDescriptor.cpp
+C$(BOXLIB_BASE)_headers += AMReX_DistributionMapping.H AMReX_ParallelDescriptor.H
 
-C$(BOXLIB_BASE)_sources += VisMF.cpp Arena.cpp BArena.cpp CArena.cpp
-C$(BOXLIB_BASE)_headers += VisMF.H Arena.H BArena.H CArena.H
+C$(BOXLIB_BASE)_sources += AMReX_VisMF.cpp AMReX_Arena.cpp AMReX_BArena.cpp AMReX_CArena.cpp
+C$(BOXLIB_BASE)_headers += AMReX_VisMF.H AMReX_Arena.H AMReX_BArena.H AMReX_CArena.H
 
-C$(BOXLIB_BASE)_headers += BLProfiler.H
+C$(BOXLIB_BASE)_headers += AMReX_BLProfiler.H
 
-C$(BOXLIB_BASE)_headers += BLBackTrace.H
+C$(BOXLIB_BASE)_headers += AMReX_BLBackTrace.H
 
-C$(BOXLIB_BASE)_headers += BLFort.H
+C$(BOXLIB_BASE)_headers += AMReX_BLFort.H
 
-C$(BOXLIB_BASE)_sources += NFiles.cpp
-C$(BOXLIB_BASE)_headers += NFiles.H
-
-#
-# Container classes.
-#
-T_headers += Array.H PList.H Pointers.H Tuple.H
+C$(BOXLIB_BASE)_sources += AMReX_NFiles.cpp
+C$(BOXLIB_BASE)_headers += AMReX_NFiles.H
 
 #
 # FAB I/O stuff.
 #
-C${BOXLIB_BASE}_headers += FabConv.H FPC.H
-C${BOXLIB_BASE}_sources += FabConv.cpp FPC.cpp
+C${BOXLIB_BASE}_headers += AMReX_FabConv.H AMReX_FPC.H
+C${BOXLIB_BASE}_sources += AMReX_FabConv.cpp AMReX_FPC.cpp
 
 #
 # Index space.
 #
-C$(BOXLIB_BASE)_sources += Box.cpp IntVect.cpp IndexType.cpp Orientation.cpp Periodicity.cpp
-C$(BOXLIB_BASE)_headers += Box.H IntVect.H IndexType.H Orientation.H Periodicity.H
+C$(BOXLIB_BASE)_sources += AMReX_Box.cpp AMReX_IntVect.cpp AMReX_IndexType.cpp AMReX_Orientation.cpp AMReX_Periodicity.cpp
+C$(BOXLIB_BASE)_headers += AMReX_Box.H AMReX_IntVect.H AMReX_IndexType.H AMReX_Orientation.H AMReX_Periodicity.H
 
 #
 # Real space.
 #
-C$(BOXLIB_BASE)_sources += RealBox.cpp 
-C$(BOXLIB_BASE)_headers += RealBox.H 
+C$(BOXLIB_BASE)_sources += AMReX_RealBox.cpp 
+C$(BOXLIB_BASE)_headers += AMReX_RealBox.H 
 
 #
 # Unions of rectangles.
 #
-C$(BOXLIB_BASE)_sources += BoxList.cpp BoxArray.cpp BoxDomain.cpp
-C$(BOXLIB_BASE)_headers += BoxList.H BoxArray.H BoxDomain.H
+C$(BOXLIB_BASE)_sources += AMReX_BoxList.cpp AMReX_BoxArray.cpp AMReX_BoxDomain.cpp
+C$(BOXLIB_BASE)_headers += AMReX_BoxList.H AMReX_BoxArray.H AMReX_BoxDomain.H
 
 #
 # FORTRAN array data.
 #
-C$(BOXLIB_BASE)_sources += FArrayBox.cpp
-C$(BOXLIB_BASE)_headers += FArrayBox.H
+C$(BOXLIB_BASE)_sources += AMReX_FArrayBox.cpp
+C$(BOXLIB_BASE)_headers += AMReX_FArrayBox.H
 
-C$(BOXLIB_BASE)_sources += IArrayBox.cpp
-C$(BOXLIB_BASE)_headers += IArrayBox.H
+C$(BOXLIB_BASE)_sources += AMReX_IArrayBox.cpp
+C$(BOXLIB_BASE)_headers += AMReX_IArrayBox.H
 
-C$(BOXLIB_BASE)_headers += Looping.H
+C$(BOXLIB_BASE)_headers += AMReX_Looping.H
 
-T_headers += BaseFab.H
-C$(BOXLIB_BASE)_sources += BaseFab.cpp
+C$(BOXLIB_BASE)_sources += AMReX_BaseFab.cpp
 
 #
 # FORTRAN data defined on unions of rectangles.
 #
-C$(BOXLIB_BASE)_sources += MultiFab.cpp
-C$(BOXLIB_BASE)_headers += MultiFab.H
+C$(BOXLIB_BASE)_sources += AMReX_MultiFab.cpp
+C$(BOXLIB_BASE)_headers += AMReX_MultiFab.H
 
-C$(BOXLIB_BASE)_sources += iMultiFab.cpp
-C$(BOXLIB_BASE)_headers += iMultiFab.H
+C$(BOXLIB_BASE)_sources += AMReX_iMultiFab.cpp
+C$(BOXLIB_BASE)_headers += AMReX_iMultiFab.H
 
-T_headers += FabArray.H
-C$(BOXLIB_BASE)_sources += FabArray.cpp
-
-T_headers += ccse-mpi.H
+C$(BOXLIB_BASE)_sources += AMReX_FabArray.cpp
 
 #
 # Geometry / Coordinate system routines.
 #
 ifneq ($(BL_NO_FORT),TRUE)
-  C$(BOXLIB_BASE)_sources += CoordSys.cpp Geometry.cpp MultiFabUtil.cpp
-  C$(BOXLIB_BASE)_headers += CoordSys.H Geometry.H MultiFabUtil.H
+  C$(BOXLIB_BASE)_sources += AMReX_CoordSys.cpp AMReX_Geometry.cpp AMReX_MultiFabUtil.cpp
+  C$(BOXLIB_BASE)_headers += AMReX_CoordSys.H AMReX_Geometry.H AMReX_MultiFabUtil.H
 endif
 
 #
 # Boundary-related 
 #
-C$(BOXLIB_BASE)_sources += BCRec.cpp PhysBCFunct.cpp
-C$(BOXLIB_BASE)_headers += BCRec.H PhysBCFunct.H
-C$(BOXLIB_BASE)_headers += BC_TYPES.H
+C$(BOXLIB_BASE)_sources += AMReX_BCRec.cpp AMReX_PhysBCFunct.cpp
+C$(BOXLIB_BASE)_headers += AMReX_BCRec.H AMReX_PhysBCFunct.H
+C$(BOXLIB_BASE)_headers += AMReX_BC_TYPES.H
 
 #
 # Plotfile
 #
-C$(BOXLIB_BASE)_sources += PlotFileUtil.cpp
-C$(BOXLIB_BASE)_headers += PlotFileUtil.H
+C$(BOXLIB_BASE)_sources += AMReX_PlotFileUtil.cpp
+C$(BOXLIB_BASE)_headers += AMReX_PlotFileUtil.H
 
 #
 # Fortran interface routines.
 #
 ifneq ($(BL_NO_FORT),TRUE)
-  F$(BOXLIB_BASE)_sources += COORDSYS_$(DIM)D.F
-  F$(BOXLIB_BASE)_headers += COORDSYS_F.H
-  F$(BOXLIB_BASE)_sources += FILCC_${DIM}D.F
+  F$(BOXLIB_BASE)_sources += AMReX_COORDSYS_$(DIM)D.F
+  F$(BOXLIB_BASE)_headers += AMReX_COORDSYS_F.H
+  F$(BOXLIB_BASE)_sources += AMReX_FILCC_${DIM}D.F
 
-  f$(BOXLIB_BASE)_sources += BLutil_F.f
-  f$(BOXLIB_BASE)_sources += BLParmParse_F.f
-  f$(BOXLIB_BASE)_sources += BLBoxLib_F.f
-  f$(BOXLIB_BASE)_sources += BLProfiler_F.f
+  f$(BOXLIB_BASE)_sources += AMReX_BLutil_F.f
+  f$(BOXLIB_BASE)_sources += AMReX_BLParmParse_F.f
+  f$(BOXLIB_BASE)_sources += AMReX_BLBoxLib_F.f
+  f$(BOXLIB_BASE)_sources += AMReX_BLProfiler_F.f
 
-  f90$(BOXLIB_BASE)_sources += BaseFab_nd.f90
-  f90(BOXLIB_BASE)_headers += BaseFab_f.H
+  f90$(BOXLIB_BASE)_sources += AMReX_BaseFab_nd.f90
+  f90(BOXLIB_BASE)_headers += AMReX_BaseFab_f.H
 
-  f90$(BOXLIB_BASE)_sources += threadbox.f90
+  f90$(BOXLIB_BASE)_sources += AMReX_threadbox.f90
 
-  f90$(BOXLIB_BASE)_sources += MultiFabUtil_$(DIM)d.f90
+  f90$(BOXLIB_BASE)_sources += AMReX_MultiFabUtil_$(DIM)d.f90
 
-  F90$(BOXLIB_BASE)_sources += bl_fort_module.F90
+  F90$(BOXLIB_BASE)_sources += AMReX_bl_fort_module.F90
 endif
 
-C$(BOXLIB_BASE)_sources += BLProfiler.cpp
-C$(BOXLIB_BASE)_sources += BLBackTrace.cpp
+C$(BOXLIB_BASE)_sources += AMReX_BLProfiler.cpp
+C$(BOXLIB_BASE)_sources += AMReX_BLBackTrace.cpp
 
 ifeq ($(LAZY),TRUE)
-  C$(BOXLIB_BASE)_sources += Lazy.cpp
-  C$(BOXLIB_BASE)_headers += Lazy.H
+  C$(BOXLIB_BASE)_sources += AMReX_Lazy.cpp
+  C$(BOXLIB_BASE)_headers += AMReX_Lazy.H
 endif
 
 # Memory pool
-C$(BOXLIB_BASE)_headers += MemPool.H
-C$(BOXLIB_BASE)_sources += MemPool.cpp
+C$(BOXLIB_BASE)_headers += AMReX_MemPool.H
+C$(BOXLIB_BASE)_sources += AMReX_MemPool.cpp
 ifneq ($(BL_NO_FORT),TRUE)
-  f90$(BOXLIB_BASE)_sources += mempool_f.f90
+  f90$(BOXLIB_BASE)_sources += AMReX_mempool_f.f90
 endif
 
 # UPCXX
 ifeq ($(USE_UPCXX),TRUE)
-  C$(BOXLIB_BASE)_sources += BLPgas.cpp
-  C$(BOXLIB_BASE)_headers += BLPgas.H
+  C$(BOXLIB_BASE)_sources += AMReX_BLPgas.cpp
+  C$(BOXLIB_BASE)_headers += AMReX_BLPgas.H
 endif
 
 # Memory Profiler
 ifeq ($(MEM_PROFILE),TRUE)
-  C$(BOXLIB_BASE)_sources += MemProfiler.cpp
-  C$(BOXLIB_BASE)_headers += MemProfiler.H
+  C$(BOXLIB_BASE)_sources += AMReX_MemProfiler.cpp
+  C$(BOXLIB_BASE)_headers += AMReX_MemProfiler.H
 endif
 
 # Basic Profiler
 ifeq ($(TINY_PROFILE),TRUE)
-  C$(BOXLIB_BASE)_headers += TinyProfiler.H
-  C$(BOXLIB_BASE)_sources += TinyProfiler.cpp
+  C$(BOXLIB_BASE)_headers += AMReX_TinyProfiler.H
+  C$(BOXLIB_BASE)_sources += AMReX_TinyProfiler.cpp
 endif
 
 VPATH_LOCATIONS += $(AMREX_HOME)/Src/C_BaseLib
