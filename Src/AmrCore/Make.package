@@ -11,5 +11,5 @@ ifeq ($(USE_PARTICLES), TRUE)
   CEXE_headers += AMReX_AmrParGDB.H AMReX_AmrParticles.H
 endif
 
-VPATH_LOCATIONS += $(AMREX_HOME)/Src/C_AmrCoreLib
-INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/C_AmrCoreLib
+VPATH_LOCATIONS += $(AMREX_HOME)/Src/AmrCore
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/AmrCore

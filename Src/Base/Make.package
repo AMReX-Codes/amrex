@@ -158,6 +158,6 @@ ifeq ($(TINY_PROFILE),TRUE)
   C$(BOXLIB_BASE)_sources += AMReX_TinyProfiler.cpp
 endif
 
-VPATH_LOCATIONS += $(AMREX_HOME)/Src/C_BaseLib
-INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/C_BaseLib
+VPATH_LOCATIONS += $(AMREX_HOME)/Src/Base
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Base
 

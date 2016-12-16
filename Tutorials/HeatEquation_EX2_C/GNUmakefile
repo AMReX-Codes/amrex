@@ -11,9 +11,9 @@ DIM       = 2
 PRECISION = DOUBLE
 EBASE     = main
 
-include $(AMREX_HOME)/Tools/C_mk/Make.defs
+include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
 include ./Make.package
-include $(AMREX_HOME)/Src/C_BaseLib/Make.package
+include $(AMREX_HOME)/Src/Base/Make.package
 
-include $(AMREX_HOME)/Tools/C_mk/Make.rules
+include $(AMREX_HOME)/Tools/GNUMake/Make.rules

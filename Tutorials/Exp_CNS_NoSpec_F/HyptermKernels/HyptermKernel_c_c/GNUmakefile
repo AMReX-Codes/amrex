@@ -8,7 +8,6 @@ PROFILE   = TRUE
 PROFILE   = FALSE
 
 COMP      = gcc
-FCOMP     = nofort
 
 DEBUG     = TRUE
 DEBUG     = FALSE
@@ -18,7 +17,7 @@ USE_MPI=TRUE
 USE_OMP=TRUE
 
 
-include $(AMREX_HOME)/Tools/C_mk/Make.defs
+include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
 
 override CXXOPTF = -O3 -msse3
@@ -47,6 +46,6 @@ vpath %.a $(LIBRARY_LOCATIONS)
 
 all: $(executable)
 
-include $(AMREX_HOME)/Tools/C_mk/Make.rules
+include $(AMREX_HOME)/Tools/GNUMake/Make.rules
 
 

@@ -9,10 +9,9 @@ DIM         = 2
 USE_MPI     = FALSE
 AIXLARGEMEM = FALSE
 COMP        = g++
-FCOMP       = gfortran
 BINARY_OUTPUT = FALSE
 
-include $(AMREX_HOME)/Tools/C_mk/Make.defs
+include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
 DEFINES     += -DBL_NOLINEVALUES
 
@@ -32,14 +31,14 @@ endif
 
 DEFINES += -DBL_PARALLEL_IO
 
-include $(AMREX_HOME)/Src/C_BaseLib/Make.package
+include $(AMREX_HOME)/Src/Base/Make.package
 
 INCLUDE_LOCATIONS += .
-INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/C_BaseLib
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Base
 INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Extern/amrdata
 
 PATHDIRS  = .
-PATHDIRS += $(AMREX_HOME)/Src/C_BaseLib
+PATHDIRS += $(AMREX_HOME)/Src/Base
 PATHDIRS += $(AMREX_HOME)/Src/Extern/amrdata
 
 
@@ -60,7 +59,7 @@ vpath %.f90 $(PATHDIRS)
 
 all: $(executable)
 
-include $(AMREX_HOME)/Tools/C_mk/Make.rules
+include $(AMREX_HOME)/Tools/GNUMake/Make.rules
 
 
 

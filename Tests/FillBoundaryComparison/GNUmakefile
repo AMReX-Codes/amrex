@@ -15,13 +15,13 @@ EBASE = main
 
 include ./Make.package
 
-include $(AMREX_HOME)/Tools/C_mk/Make.defs
+include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
-include $(AMREX_HOME)/Src/C_BaseLib/Make.package
+include $(AMREX_HOME)/Src/Base/Make.package
 
-INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/C_BaseLib
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Base
 
-vpathdir += $(AMREX_HOME)/Src/C_BaseLib
+vpathdir += $(AMREX_HOME)/Src/Base
 
 vpath %.c   : . $(vpathdir)
 vpath %.h   : . $(vpathdir)
@@ -33,4 +33,4 @@ vpath %.f90 : . $(vpathdir)
 
 all: $(executable)
 
-include $(AMREX_HOME)/Tools/C_mk/Make.rules
+include $(AMREX_HOME)/Tools/GNUMake/Make.rules

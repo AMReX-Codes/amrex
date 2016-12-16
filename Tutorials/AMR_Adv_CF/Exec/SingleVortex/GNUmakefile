@@ -9,7 +9,6 @@ MEM_PROFILE  = FALSE
 TINY_PROFILE = FALSE
 
 COMP      = g++
-FCOMP     = gfortran
 
 DIM       = 3
 

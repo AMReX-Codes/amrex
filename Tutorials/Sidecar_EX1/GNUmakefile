@@ -21,13 +21,13 @@ DO_IN_TRANSIT_ANALYSIS = TRUE
 ANALYSIS_DIR = $(AMREX_HOME)/Tutorials/Sidecar_EX1
 
 include ./Make.package
-include $(AMREX_HOME)/Tools/C_mk/Make.defs
-include $(AMREX_HOME)/Src/C_BoundaryLib/Make.package
-include $(AMREX_HOME)/Src/C_BaseLib/Make.package
+include $(AMREX_HOME)/Tools/GNUMake/Make.defs
+include $(AMREX_HOME)/Src/Boundary/Make.package
+include $(AMREX_HOME)/Src/Base/Make.package
 
-INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/C_BoundaryLib
-INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/C_BaseLib
-INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/C_AMRLib
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Boundary
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Base
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Amr
 
 ifeq ($(DO_IN_TRANSIT_ANALYSIS), TRUE)
   DEFINES += -DIN_TRANSIT
@@ -35,9 +35,9 @@ ifeq ($(DO_IN_TRANSIT_ANALYSIS), TRUE)
   vpathdir += $(ANALYSIS_DIR)
 endif
 
-vpathdir += $(AMREX_HOME)/Src/C_BoundaryLib
-vpathdir += $(AMREX_HOME)/Src/C_BaseLib
-vpathdir += $(AMREX_HOME)/Src/C_AMRLib
+vpathdir += $(AMREX_HOME)/Src/Boundary
+vpathdir += $(AMREX_HOME)/Src/Base
+vpathdir += $(AMREX_HOME)/Src/Amr
 
 vpath %.c   : . $(vpathdir)
 vpath %.h   : . $(vpathdir)
@@ -49,4 +49,4 @@ vpath %.f90 : . $(vpathdir)
 
 all: $(executable)
 
-include $(AMREX_HOME)/Tools/C_mk/Make.rules
+include $(AMREX_HOME)/Tools/GNUMake/Make.rules

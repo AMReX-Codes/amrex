@@ -79,7 +79,7 @@ ifeq ($(BL_MANGLE_SYMBOLS_WITH_DIM),TRUE)
   endif
 endif
 
-include $(TOP)/Tools/C_mk/Make.defs ./Make.package
+include $(TOP)/Tools/GNUMake/Make.defs ./Make.package
 
 all: $(optionsLib)
 #
@@ -89,7 +89,7 @@ all: $(optionsLib)
 #
 install: all
 
-include $(TOP)/Tools/C_mk/Make.rules
+include $(TOP)/Tools/GNUMake/Make.rules
 
 #
 # Temp stuff for doing html docs.
