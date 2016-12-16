@@ -68,7 +68,7 @@ void solve_with_F90(const Array<MultiFab*>& soln, Real a, Real b,
       bcoeffs[ilev][n].reset(new MultiFab(edge_boxes,1,0,Fab_allocate));
     }
 
-    BoxLib::average_cellcenter_to_face(amrex::GetArrOfPtrs(bcoeffs[ilev]),
+    amrex::average_cellcenter_to_face(amrex::GetArrOfPtrs(bcoeffs[ilev]),
 				       *beta[ilev], geom[ilev]);
   }
 

@@ -64,7 +64,7 @@ main (int   argc,
     if (argc == 1)
         PrintUsage(argv[0]);
 
-    BoxLib::Initialize(argc,argv);
+    amrex::Initialize(argc,argv);
 
     ParmParse pp;
 
@@ -77,11 +77,11 @@ main (int   argc,
 
     pp.query("infile", iFile);
     if (iFile.empty())
-        BoxLib::Abort("You must specify `infile'");
+        amrex::Abort("You must specify `infile'");
 
     pp.query("exact", eFile);
     if (eFile.empty())
-        BoxLib::Abort("You must specify `exact' file");
+        amrex::Abort("You must specify `exact' file");
 
     pp.query("outfile", oFile);
     bool do_out = !oFile.empty();
@@ -113,7 +113,7 @@ main (int   argc,
       IntVect refine_ratio = getRefRatio(domainI, domainE);
 
       if (refine_ratio == IntVect())
-        BoxLib::Error("Cannot find refinement ratio from data to exact");
+        amrex::Error("Cannot find refinement ratio from data to exact");
     
       FArrayBox error(domainI,nComp);
       error.setVal(GARBAGE);
@@ -150,5 +150,5 @@ main (int   argc,
       std::cout << "FABS AGREE" << std::endl;
     }
 
-    BoxLib::Finalize();
+    amrex::Finalize();
 }

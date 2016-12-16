@@ -335,7 +335,7 @@ norm ( const MultiFab& mfab,
 
     } else {
 
-        BoxLib::Error("Invalid exponent to norm function");
+        amrex::Error("Invalid exponent to norm function");
     }
     
     return myNorm;

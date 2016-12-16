@@ -49,7 +49,7 @@ main (int   argc,
     if (argc == 1)
         PrintUsage(argv[0]);
 
-    BoxLib::Initialize(argc,argv);
+    amrex::Initialize(argc,argv);
 
     ParmParse pp;
 
@@ -60,11 +60,11 @@ main (int   argc,
 
     pp.query("infile", iFile);                             // Input File
     if (iFile.empty() && ParallelDescriptor::IOProcessor())
-        BoxLib::Abort("You must specify `infile'");
+        amrex::Abort("You must specify `infile'");
 
     int nCrsRatio = pp.countval("crsratio");
     if (nCrsRatio == 0)
-        BoxLib::Abort("You must specify `crsratio'");
+        amrex::Abort("You must specify `crsratio'");
 
     Array<int> crsRatio(nCrsRatio);
     for (int n = 0; n < nCrsRatio; n++)
@@ -80,13 +80,13 @@ main (int   argc,
     is.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
     is.open(iFile.c_str(), std::ios::in);
     if (is.fail())
-        BoxLib::FileOpenFailed(iFile);
+        amrex::FileOpenFailed(iFile);
 
     int nRefLevels;
     is >> nRefLevels;
 
     if (nCrsRatio != nRefLevels)
-        BoxLib::Abort("nCrsRatio != nRefLevels");
+        amrex::Abort("nCrsRatio != nRefLevels");
 
     std::cout << nRefLevels << std::endl;
         
@@ -110,7 +110,7 @@ main (int   argc,
         }
     }
 
-    BoxLib::Finalize();
+    amrex::Finalize();
 
     return 0;
 }

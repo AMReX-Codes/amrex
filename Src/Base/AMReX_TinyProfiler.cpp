@@ -132,7 +132,7 @@ TinyProfiler::Finalize ()
 	    local_imp.push_back(*it);
 	}
 
-	BoxLib::SyncStrings(local_imp, sync_imp, synced);
+	amrex::SyncStrings(local_imp, sync_imp, synced);
 
 	if (ParallelDescriptor::IOProcessor()) {
 	    std::cout << "\nWARNING: TinyProfilers not properly nested!!!\n";
@@ -156,7 +156,7 @@ TinyProfiler::Finalize ()
 	localStrings.push_back(it->first);
     }
 
-    BoxLib::SyncStrings(localStrings, syncedStrings, alreadySynced);
+    amrex::SyncStrings(localStrings, syncedStrings, alreadySynced);
 
     if( ! alreadySynced) {  // add the new name
 	for(int i(0); i < syncedStrings.size(); ++i) {

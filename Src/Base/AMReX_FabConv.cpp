@@ -151,7 +151,7 @@ selectOrdering (int prec,
         case FABio::FAB_REVERSE_ORDER_2:
             return FPC::reverse_float_order_2;
         default:
-            BoxLib::Error("selectOrdering(): Crazy ordering");
+            amrex::Error("selectOrdering(): Crazy ordering");
         }
         break;
     case FABio::FAB_DOUBLE:
@@ -164,11 +164,11 @@ selectOrdering (int prec,
         case FABio::FAB_REVERSE_ORDER_2:
             return FPC::reverse_double_order_2;
         default:
-            BoxLib::Error("selectOrdering(): Crazy ordering");
+            amrex::Error("selectOrdering(): Crazy ordering");
         }
         break;
     default:
-        BoxLib::Error("selectOrdering(): Crazy precision");
+        amrex::Error("selectOrdering(): Crazy precision");
     }
     return 0;
 }
@@ -202,7 +202,7 @@ RealDescriptor::newRealDescriptor (int         iot,
     }
     case FABio::FAB_NATIVE:
     default:
-        BoxLib::Error("RealDescriptor::newRealDescriptor(): Crazy precision");
+        amrex::Error("RealDescriptor::newRealDescriptor(): Crazy precision");
     }
     rd = new RealDescriptor;
     return rd;
@@ -780,24 +780,24 @@ getarray (std::istream&  is,                                       \
     char c;                                                        \
     is >> c;                                                       \
     if (c != '(')                                                  \
-        BoxLib::Error("getarray(istream&): expected a \'(\'");     \
+        amrex::Error("getarray(istream&): expected a \'(\'");     \
     int size;                                                      \
     is >> size;                                                    \
     is >> c;                                                       \
     if ( c != ',')                                                 \
-        BoxLib::Error("getarray(istream&): expected a \',\'");     \
+        amrex::Error("getarray(istream&): expected a \',\'");     \
     is >> c;                                                       \
     if (c != '(')                                                  \
-        BoxLib::Error("getarray(istream&): expected a \'(\'");     \
+        amrex::Error("getarray(istream&): expected a \'(\'");     \
     ar.resize(size);                                               \
     for(int i = 0; i < size; ++i)                                  \
         is >> ar[i];                                               \
     is >> c;                                                       \
     if (c != ')')                                                  \
-        BoxLib::Error("getarray(istream&): expected a \')\'");     \
+        amrex::Error("getarray(istream&): expected a \')\'");     \
     is >> c;                                                       \
     if (c != ')')                                                  \
-        BoxLib::Error("getarray(istream&): expected a \')\'");     \
+        amrex::Error("getarray(istream&): expected a \')\'");     \
 }
 GETARRAY(int)
 GETARRAY(long)
@@ -829,7 +829,7 @@ std::ostream&
 operator<< (std::ostream&         os,
             const RealDescriptor& id)
 {
-  BoxLib::StreamRetry sr(os, "opRD", 4);
+  amrex::StreamRetry sr(os, "opRD", 4);
 
   while(sr.TryOutput()) {
     os << "(";
@@ -848,17 +848,17 @@ operator>> (std::istream&   is,
     char c;
     is >> c;
     if (c != '(')
-        BoxLib::Error("operator>>(istream&,RealDescriptor&): expected a \'(\'");
+        amrex::Error("operator>>(istream&,RealDescriptor&): expected a \'(\'");
     Array<long> fmt;
     getarray(is, fmt);
     is >> c;
     if (c != ',')
-        BoxLib::Error("operator>>(istream&,RealDescriptor&): expected a \',\'");
+        amrex::Error("operator>>(istream&,RealDescriptor&): expected a \',\'");
     Array<int> ord;
     getarray(is, ord);
     is >> c;
     if (c != ')')
-        BoxLib::Error("operator>>(istream&,RealDescriptor&): expected a \')\'");
+        amrex::Error("operator>>(istream&,RealDescriptor&): expected a \')\'");
     rd = RealDescriptor(fmt.dataPtr(),ord.dataPtr(),ord.size());
     return is;
 }
@@ -962,7 +962,7 @@ RealDescriptor::convertToNativeFormat (Real*                 out,
     }
 
     if(is.fail()) {
-      BoxLib::Error("convert(Real*,long,istream&,RealDescriptor&) failed");
+      amrex::Error("convert(Real*,long,istream&,RealDescriptor&) failed");
     }
 
     delete [] bufr;
@@ -1003,7 +1003,7 @@ RealDescriptor::convertFromNativeFormat (std::ostream&         os,
   long nitemsSave(nitems);
   long buffSize(std::min(long(writeBufferSize), nitems));
   const Real *inSave(in);
-  BoxLib::StreamRetry sr(os, "RD_cFNF", 4);
+  amrex::StreamRetry sr(os, "RD_cFNF", 4);
 
   while(sr.TryOutput()) {
     nitems = nitemsSave;

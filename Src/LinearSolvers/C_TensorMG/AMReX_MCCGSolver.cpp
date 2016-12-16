@@ -43,7 +43,7 @@ MCCGSolver::Initialize ()
         std::cout << "def_isExpert           = " << def_isExpert           << '\n';
     }
 
-    BoxLib::ExecOnFinalize(MCCGSolver::Finalize);
+    amrex::ExecOnFinalize(MCCGSolver::Finalize);
 
     initialized = true;
 }
@@ -296,11 +296,11 @@ MCCGSolver::solve (MultiFab&       sol,
 
     if (ret != 0 && isExpert == false)
     {
-        BoxLib::Error("MCCGSolver:: apparent accuracy problem; try expert setting or change unstable_criterion");
+        amrex::Error("MCCGSolver:: apparent accuracy problem; try expert setting or change unstable_criterion");
     }
     if (ret==0 && rnorm > eps_rel*rnorm0 && rnorm > eps_abs)
     {
-        BoxLib::Error("MCCGSolver:: failed to converge!");
+        amrex::Error("MCCGSolver:: failed to converge!");
     }
     //
     // Omit ghost update since maybe not initialized in calling routine.

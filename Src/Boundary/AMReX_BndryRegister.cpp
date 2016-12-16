@@ -308,7 +308,7 @@ BndryRegister::write (const std::string& name, std::ostream& os) const
         const int i = face();
         BL_ASSERT(i >= 0 && i <= 7);
 
-        std::string facename = BoxLib::Concatenate(name + '_', i, 1);
+        std::string facename = amrex::Concatenate(name + '_', i, 1);
 
         bndry[face()].write(facename);
     }
@@ -329,7 +329,7 @@ BndryRegister::read (const std::string& name, std::istream& is)
         const int i = face();
         BL_ASSERT(i >= 0 && i <= 7);
 
-        std::string facename = BoxLib::Concatenate(name + '_', i, 1);
+        std::string facename = amrex::Concatenate(name + '_', i, 1);
 
         bndry[face()].read(facename);
     }
@@ -350,7 +350,7 @@ BndryRegister::AddProcsToComp(int ioProcNumSCS, int ioProcNumAll,
                               int scsMyId, MPI_Comm scsComm)
 {
   // ---- BoxArrays
-  BoxLib::BroadcastBoxArray(grids, scsMyId, ioProcNumSCS, scsComm);
+  amrex::BroadcastBoxArray(grids, scsMyId, ioProcNumSCS, scsComm);
 
   // ---- FabSet
   for(int i(0); i < (2 * BL_SPACEDIM); ++i) {

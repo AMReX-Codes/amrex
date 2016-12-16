@@ -14,7 +14,7 @@ DeriveRec::TheSameBox (const Box& box)
 Box
 DeriveRec::GrowBoxByOne (const Box& box)
 {
-    return BoxLib::grow(box,1);
+    return amrex::grow(box,1);
 }
 
 

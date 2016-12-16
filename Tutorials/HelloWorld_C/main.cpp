@@ -12,7 +12,7 @@ extern "C"
 
 int main(int argc, char* argv[])
 {
-    BoxLib::Initialize(argc,argv);
+    amrex::Initialize(argc,argv);
 
     // define the lower and upper corner of a 3D domain
     IntVect domain_lo(0 , 0, 0); 
@@ -53,6 +53,6 @@ int main(int argc, char* argv[])
     std::cout << "L1  norm = " << data.norm1() << std::endl;
     std::cout << "L2  norm = " << data.norm2() << std::endl;
 
-    BoxLib::Finalize();
+    amrex::Finalize();
 }
 

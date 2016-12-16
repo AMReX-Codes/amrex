@@ -112,7 +112,7 @@ struct LnClassPtrCallBack<BARef>
 {
     // This will be called when a unique ref is about to be deleted.
     void operator() (BARef* ref) {
-	BoxLib::clearCoarseBoxArrayCache(ref->getRefID());
+	amrex::clearCoarseBoxArrayCache(ref->getRefID());
     }
 };
 
@@ -181,7 +181,7 @@ struct BATypeTransformer
         { return m_typ.ixType(); }
 
     virtual Box operator() (const Box& bx) const override
-        { return BoxLib::convert(bx, m_typ); }
+        { return amrex::convert(bx, m_typ); }
 
     bool operator== (const BATypeTransformer& rhs) const
 	{ return m_typ == rhs.m_typ; }

@@ -49,7 +49,7 @@ void solve(MultiFab& soln, const MultiFab& anaSoln,
 
 int main(int argc, char* argv[])
 {
-  BoxLib::Initialize(argc,argv);
+  amrex::Initialize(argc,argv);
 
   BL_PROFILE_VAR("main()", pmain);
 
@@ -80,7 +80,7 @@ int main(int argc, char* argv[])
     if(ParallelDescriptor::IOProcessor()) {
       std::cerr << "**** Error:  nprocs = " << nprocs << " is not currently supported." << std::endl;
     }
-    BoxLib::Error("We require that the number of processors be a perfect cube");
+    amrex::Error("We require that the number of processors be a perfect cube");
   }
   if(ParallelDescriptor::IOProcessor()) {
     std::cout << "N = " << N << std::endl;
@@ -153,7 +153,7 @@ int main(int argc, char* argv[])
 
   BL_PROFILE_VAR_STOP(pmain);
 
-  BoxLib::Finalize();
+  amrex::Finalize();
 }
 
 void compute_analyticSolution(MultiFab& anaSoln)

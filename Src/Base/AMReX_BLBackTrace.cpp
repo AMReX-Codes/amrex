@@ -17,16 +17,16 @@ BLBackTrace::handler(int s)
 {
     switch (s) {
     case SIGSEGV:
-	BoxLib::write_to_stderr_without_buffering("Segfault");
+	amrex::write_to_stderr_without_buffering("Segfault");
 	break;
     case SIGFPE:
-	BoxLib::write_to_stderr_without_buffering("Erroneous arithmetic operation");
+	amrex::write_to_stderr_without_buffering("Erroneous arithmetic operation");
 	break;
     case SIGINT:
-	BoxLib::write_to_stderr_without_buffering("SIGINT");
+	amrex::write_to_stderr_without_buffering("SIGINT");
 	break;
     case SIGABRT:
-	BoxLib::write_to_stderr_without_buffering("SIGABRT");
+	amrex::write_to_stderr_without_buffering("SIGABRT");
 	break;
     }
 
@@ -92,7 +92,7 @@ BLBackTrace::print_backtrace_info (FILE* f)
 	    fclose(fp);
 	    have_addr2line = 1;
 	}
-	cmd += " -Cfie " + BoxLib::exename;
+	cmd += " -Cfie " + amrex::exename;
 
 	fprintf(f, "=== If no file names and line numbers are shown below, one can run\n");
 	fprintf(f, "            addr2line -Cfie my_exefile my_line_address\n");

@@ -215,7 +215,7 @@ ParticleBase::FineToCrse (const ParticleBase&                p,
         which[i] =  0;
     }
 
-    const Box& ibx = BoxLib::grow(gdb->ParticleBoxArray(flev)[p.m_grid],-1);
+    const Box& ibx = amrex::grow(gdb->ParticleBoxArray(flev)[p.m_grid],-1);
 
     BL_ASSERT(ibx.ok());
 
@@ -309,7 +309,7 @@ ParticleBase::FineCellsToUpdateFromCrse (const ParticleBase&                p,
     BL_ASSERT(lev >= 0);
     BL_ASSERT(lev < gdb->finestLevel());
 
-    const Box&      fbx = BoxLib::refine(Box(ccell,ccell),gdb->refRatio(lev));
+    const Box&      fbx = amrex::refine(Box(ccell,ccell),gdb->refRatio(lev));
     const BoxArray& fba = gdb->ParticleBoxArray(lev+1);
     const Real*     plo = gdb->Geom(lev).ProbLo();
     const Real*     dx  = gdb->Geom(lev).CellSize();
@@ -437,7 +437,7 @@ ParticleBase::MaxReaders ()
         Max_Readers = std::min(ParallelDescriptor::NProcs(),Max_Readers);
 
         if (Max_Readers <= 0)
-            BoxLib::Abort("particles.nreaders must be positive");
+            amrex::Abort("particles.nreaders must be positive");
     }
 
     return Max_Readers;
@@ -467,7 +467,7 @@ ParticleBase::MaxParticlesPerRead ()
         pp.query("nparts_per_read", Max_Particles_Per_Read);
 
         if (Max_Particles_Per_Read <= 0)
-            BoxLib::Abort("particles.nparts_per_read must be positive");
+            amrex::Abort("particles.nparts_per_read must be positive");
     }
 
     return Max_Particles_Per_Read;
@@ -512,7 +512,7 @@ ParticleBase::NextID ()
     next = the_next_id++;
 
     if (next == std::numeric_limits<int>::max())
-	BoxLib::Abort("ParticleBase::NextID() -- too many particles");
+	amrex::Abort("ParticleBase::NextID() -- too many particles");
 
     return next;
 }
@@ -522,7 +522,7 @@ ParticleBase::UnprotectedNextID ()
 {
     int next = the_next_id++;
     if (next == std::numeric_limits<int>::max())
-	BoxLib::Abort("ParticleBase::NextID() -- too many particles");
+	amrex::Abort("ParticleBase::NextID() -- too many particles");
     return next;
 }
 
@@ -646,7 +646,7 @@ ParticleBase::RestrictedWhere (ParticleBase& p,
 
     const IntVect& iv = ParticleBase::Index(p,gdb->Geom(p.m_lev));
 
-    if (BoxLib::grow(gdb->ParticleBoxArray(p.m_lev)[p.m_grid], ngrow).contains(iv))
+    if (amrex::grow(gdb->ParticleBoxArray(p.m_lev)[p.m_grid], ngrow).contains(iv))
     {
         p.m_cell = iv;
 
@@ -887,7 +887,7 @@ operator<< (std::ostream& os, const ParticleBase& p)
         os << p.m_pos[i] << ' ';
 
     if (!os.good())
-        BoxLib::Error("operator<<(ostream&,ParticleBase&) failed");
+        amrex::Error("operator<<(ostream&,ParticleBase&) failed");
 
     return os;
 }

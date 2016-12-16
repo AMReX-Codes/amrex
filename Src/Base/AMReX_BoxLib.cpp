@@ -75,13 +75,13 @@ namespace BoxLib
 }
 
 //
-// This is used by BoxLib::Error(), BoxLib::Abort(), and BoxLib::Assert()
+// This is used by amrex::Error(), amrex::Abort(), and amrex::Assert()
 // to ensure that when writing the message to stderr, that no additional
 // heap-based memory is allocated.
 //
 
 void
-BoxLib::write_to_stderr_without_buffering (const char* str)
+amrex::write_to_stderr_without_buffering (const char* str)
 {
     //
     // Flush all buffers.
@@ -103,7 +103,7 @@ BoxLib::write_to_stderr_without_buffering (const char* str)
 void
 BL_this_is_a_dummy_routine_to_force_version_into_executable ()
 {
-    BoxLib::write_to_stderr_without_buffering(version);    
+    amrex::write_to_stderr_without_buffering(version);    
 }
 
 static
@@ -111,7 +111,7 @@ void
 write_lib_id(const char* msg)
 {
     fflush(0);
-    const char* const boxlib = "BoxLib::";
+    const char* const boxlib = "amrex::";
     fwrite(boxlib, strlen(boxlib), 1, stderr);
     if ( msg ) 
     {
@@ -121,7 +121,7 @@ write_lib_id(const char* msg)
 }
 
 void
-BoxLib::Error (const char* msg)
+amrex::Error (const char* msg)
 {
     write_lib_id("Error");
     write_to_stderr_without_buffering(msg);
@@ -169,7 +169,7 @@ BL_FORT_PROC_DECL(BL_ERROR_CPP,bl_error_cpp)
 {
   std::string res = "FORTRAN:";
   res += Fint_2_string(istr, *NSTR);
-  BoxLib::Error(res.c_str());
+  amrex::Error(res.c_str());
 }
 
 BL_FORT_PROC_DECL(BL_WARNING_CPP,bl_warning_cpp)
@@ -179,7 +179,7 @@ BL_FORT_PROC_DECL(BL_WARNING_CPP,bl_warning_cpp)
 {
   std::string res = "FORTRAN:";
   res += Fint_2_string(istr, *NSTR);
-  BoxLib::Warning(res.c_str());
+  amrex::Warning(res.c_str());
 }
 
 BL_FORT_PROC_DECL(BL_ABORT_CPP,bl_abort_cpp)
@@ -189,11 +189,11 @@ BL_FORT_PROC_DECL(BL_ABORT_CPP,bl_abort_cpp)
 {
   std::string res = "FORTRAN:";
   res += Fint_2_string(istr, *NSTR);
-  BoxLib::Abort(res.c_str());
+  amrex::Abort(res.c_str());
 }
 
 void
-BoxLib::Abort (const char* msg)
+amrex::Abort (const char* msg)
 {
     write_lib_id("Abort");
     write_to_stderr_without_buffering(msg);
@@ -201,7 +201,7 @@ BoxLib::Abort (const char* msg)
 }
 
 void
-BoxLib::Warning (const char* msg)
+amrex::Warning (const char* msg)
 {
     if (msg)
     {
@@ -210,7 +210,7 @@ BoxLib::Warning (const char* msg)
 }
 
 void
-BoxLib::Assert (const char* EX,
+amrex::Assert (const char* EX,
                 const char* file,
                 int         line)
 {
@@ -232,24 +232,24 @@ BoxLib::Assert (const char* EX,
 
 namespace
 {
-    std::stack<BoxLib::PTR_TO_VOID_FUNC> The_Finalize_Function_Stack;
-    std::stack<BoxLib::PTR_TO_VOID_FUNC> The_Initialize_Function_Stack;
+    std::stack<amrex::PTR_TO_VOID_FUNC> The_Finalize_Function_Stack;
+    std::stack<amrex::PTR_TO_VOID_FUNC> The_Initialize_Function_Stack;
 }
 
 void
-BoxLib::ExecOnFinalize (PTR_TO_VOID_FUNC fp)
+amrex::ExecOnFinalize (PTR_TO_VOID_FUNC fp)
 {
     The_Finalize_Function_Stack.push(fp);
 }
 
 void
-BoxLib::ExecOnInitialize (PTR_TO_VOID_FUNC fp)
+amrex::ExecOnInitialize (PTR_TO_VOID_FUNC fp)
 {
     The_Initialize_Function_Stack.push(fp);
 }
 
 void
-BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi_comm)
+amrex::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi_comm)
 {
     ParallelDescriptor::StartParallel(&argc, &argv, mpi_comm);
 
@@ -257,14 +257,14 @@ BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi
     //
     // Make sure to catch new failures.
     //
-    std::set_new_handler(BoxLib::OutOfMemory);
+    std::set_new_handler(amrex::OutOfMemory);
 
     if (argv[0][0] != '/') {
 	int bufSize(1024);
 	char temp[bufSize];
 	char *rCheck = getcwd(temp, bufSize);
 	if(rCheck == 0) {
-	  BoxLib::Abort("**** Error:  getcwd buffer too small.");
+	  amrex::Abort("**** Error:  getcwd buffer too small.");
 	}
 	exename = temp;
 	exename += "/";
@@ -275,7 +275,7 @@ BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi
 #ifdef BL_USE_UPCXX
     upcxx::init(&argc, &argv);
     if (upcxx::myrank() != ParallelDescriptor::MyProc())
-	BoxLib::Abort("UPC++ rank != MPI rank");
+	amrex::Abort("UPC++ rank != MPI rank");
 #endif
 
 #ifdef BL_USE_MPI3
@@ -300,7 +300,7 @@ BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi
     //
     // Initialize random seed after we're running in parallel.
     //
-    BoxLib::InitRandom(ParallelDescriptor::MyProc()+1, ParallelDescriptor::NProcs());
+    amrex::InitRandom(ParallelDescriptor::MyProc()+1, ParallelDescriptor::NProcs());
 
 #ifdef BL_USE_MPI
     if (ParallelDescriptor::IOProcessor())
@@ -407,7 +407,7 @@ BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi
 }
 
 void
-BoxLib::Finalize (bool finalize_parallel)
+amrex::Finalize (bool finalize_parallel)
 {
     BL_PROFILE_FINALIZE();
 
@@ -430,7 +430,7 @@ BoxLib::Finalize (bool finalize_parallel)
     // The MemPool stuff is not using The_Finalize_Function_Stack so that
     // it can be used in Fortran BoxLib.
 #ifndef BL_AMRPROF
-    if (BoxLib::verbose)
+    if (amrex::verbose)
     {
 	int mp_min, mp_max, mp_tot;
 	mempool_get_stats(mp_min, mp_max, mp_tot);  // in MB

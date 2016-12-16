@@ -478,7 +478,7 @@ void BLProfiler::Finalize() {
   {
     localStrings.push_back(it->first);
   }
-  BoxLib::SyncStrings(localStrings, syncedStrings, alreadySynced);
+  amrex::SyncStrings(localStrings, syncedStrings, alreadySynced);
 
   if( ! alreadySynced) {  // ---- add the new name
     for(int i(0); i < syncedStrings.size(); ++i) {
@@ -589,7 +589,7 @@ void BLProfiler::Finalize() {
 
     std::string cdir(blProfDirName);
     if( ! blProfDirCreated) {
-      BoxLib::UtilCreateCleanDirectory(cdir);
+      amrex::UtilCreateCleanDirectory(cdir);
       blProfDirCreated = true;
     }
 
@@ -958,7 +958,7 @@ void BLProfiler::WriteCallTrace(bool bFlushing) {   // ---- write call trace dat
     std::string cFileName(cdir + '/' + cFilePrefix + "_D_");
 
     if( ! blProfDirCreated) {
-      BoxLib::UtilCreateCleanDirectory(cdir);
+      amrex::UtilCreateCleanDirectory(cdir);
       blProfDirCreated = true;
     }
 
@@ -970,7 +970,7 @@ void BLProfiler::WriteCallTrace(bool bFlushing) {   // ---- write call trace dat
     {
       localStrings.push_back(it->first);
     }
-    BoxLib::SyncStrings(localStrings, syncedStrings, alreadySynced);
+    amrex::SyncStrings(localStrings, syncedStrings, alreadySynced);
 
     if( ! alreadySynced) {  // ---- need to remap names and numbers
       if(ParallelDescriptor::IOProcessor()) {
@@ -986,7 +986,7 @@ void BLProfiler::WriteCallTrace(bool bFlushing) {   // ---- write call trace dat
       csGlobalHeaderFile.open(globalHeaderFileName.c_str(),
                               std::ios::out | std::ios::trunc);
       if( ! csGlobalHeaderFile.good()) {
-        BoxLib::FileOpenFailed(globalHeaderFileName);
+        amrex::FileOpenFailed(globalHeaderFileName);
       }
       csGlobalHeaderFile << "CallStatsProfVersion  " << CallStats::cstatsVersion << '\n';
       csGlobalHeaderFile << "NProcs  " << nProcs << '\n';
@@ -1000,7 +1000,7 @@ void BLProfiler::WriteCallTrace(bool bFlushing) {   // ---- write call trace dat
       }
       for(int i(0); i < nOutFiles; ++i) {
         std::string headerName(cFilePrefix + "_H_");
-        headerName = BoxLib::Concatenate(headerName, i, NFilesIter::GetMinDigits());
+        headerName = amrex::Concatenate(headerName, i, NFilesIter::GetMinDigits());
         csGlobalHeaderFile << "HeaderFile " << headerName << '\n';
       }
       csGlobalHeaderFile.flush();
@@ -1090,7 +1090,7 @@ void BLProfiler::WriteCallTrace(bool bFlushing) {   // ---- write call trace dat
         csDFile.open(csPatch.fileName.c_str(), std::ios::in | std::ios::out |
 	                                       std::ios::binary);
         if( ! csDFile.good()) {
-          BoxLib::FileOpenFailed(csPatch.fileName);
+          amrex::FileOpenFailed(csPatch.fileName);
         }
         csDFile.seekg(csPatch.seekPos, std::ios::beg);
         csDFile.read((char *) &csOnDisk, sizeof(CallStats));
@@ -1154,7 +1154,7 @@ void BLProfiler::WriteCommStats(bool bFlushing) {
   std::string cdir(blProfDirName);
   std::string commprofPrefix("bl_comm_prof");
   if( ! blProfDirCreated) {
-    BoxLib::UtilCreateCleanDirectory(cdir);
+    amrex::UtilCreateCleanDirectory(cdir);
     blProfDirCreated = true;
   }
 
@@ -1177,7 +1177,7 @@ void BLProfiler::WriteCommStats(bool bFlushing) {
     std::ofstream csGlobalHeaderFile;
     csGlobalHeaderFile.open(globalHeaderFileName.c_str(), std::ios::out | std::ios::trunc);
     if( ! csGlobalHeaderFile.good()) {
-      BoxLib::FileOpenFailed(globalHeaderFileName);
+      amrex::FileOpenFailed(globalHeaderFileName);
     }
     csGlobalHeaderFile << "CommProfVersion  " << CommStats::csVersion << '\n';
     csGlobalHeaderFile << "NProcs  " << nProcs << '\n';
@@ -1195,7 +1195,7 @@ void BLProfiler::WriteCommStats(bool bFlushing) {
 #endif
     for(int i(0); i < nOutFiles; ++i) {
       std::string headerName(commprofPrefix + "_H_");
-      headerName = BoxLib::Concatenate(headerName, i, NFilesIter::GetMinDigits());
+      headerName = amrex::Concatenate(headerName, i, NFilesIter::GetMinDigits());
       csGlobalHeaderFile << "HeaderFile " << headerName << '\n';
     }
 

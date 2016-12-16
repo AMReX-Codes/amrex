@@ -180,7 +180,7 @@ MCInterpBndryData::setBndryValues (const ::BndryRegister& crse,
         BL_ASSERT(grids[finemfi.index()] == finemfi.validbox());
 
         const Box& fine_bx = finemfi.validbox();
-        Box crse_bx        = BoxLib::coarsen(fine_bx,ratio);
+        Box crse_bx        = amrex::coarsen(fine_bx,ratio);
         const int* cblo    = crse_bx.loVect();
         const int* cbhi    = crse_bx.hiVect();
         int mxlen          = crse_bx.longside() + 2;

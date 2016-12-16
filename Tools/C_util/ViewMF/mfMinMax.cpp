@@ -31,7 +31,7 @@ int
 main (int   argc,
       char* argv[])
 {
-    BoxLib::Initialize(argc,argv);
+    amrex::Initialize(argc,argv);
 //
 //  Parse the command line
 //
@@ -76,5 +76,5 @@ main (int   argc,
             cout << "Comp: " << comps[n] << ", (min,max): " << mf.min(comps[n]) << ", " << mf.max(comps[n])  << endl;
     }
     
-    BoxLib::Finalize();
+    amrex::Finalize();
 }

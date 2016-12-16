@@ -59,7 +59,7 @@ extern "C" int gettimeofday (struct timeval*, struct timezone*);
 #endif
 
 double
-BoxLib::second (double* t)
+amrex::second (double* t)
 {
     struct tms buffer;
 
@@ -72,12 +72,12 @@ BoxLib::second (double* t)
 #if defined(_SC_CLK_TCK)
         CyclesPerSecond = sysconf(_SC_CLK_TCK);
         if (CyclesPerSecond == -1)
-            BoxLib::Error("second(double*): sysconf() failed");
+            amrex::Error("second(double*): sysconf() failed");
 #elif defined(HZ)
         CyclesPerSecond = HZ;
 #else
         CyclesPerSecond = 100;
-        BoxLib::Warning("second(): sysconf(): default value of 100 for hz, worry about timings");
+        amrex::Warning("second(): sysconf(): default value of 100 for hz, worry about timings");
 #endif
     }
 
@@ -96,7 +96,7 @@ get_initial_wall_clock_time ()
     struct timeval tp;
 
     if (gettimeofday(&tp, 0) != 0)
-        BoxLib::Abort("get_time_of_day(): gettimeofday() failed");
+        amrex::Abort("get_time_of_day(): gettimeofday() failed");
 
     return tp.tv_sec + tp.tv_usec/1000000.0;
 }
@@ -107,7 +107,7 @@ get_initial_wall_clock_time ()
 double BL_Initial_Wall_Clock_Time = get_initial_wall_clock_time();
 
 double
-BoxLib::wsecond (double* t)
+amrex::wsecond (double* t)
 {
     struct timeval tp;
 
@@ -143,7 +143,7 @@ get_initial_wall_clock_time()
 LONGLONG BL_Initial_Wall_Clock_Time = get_initial_wall_clock_time();
 }
 double
-BoxLib::wsecond(double* rslt)
+amrex::wsecond(double* rslt)
 {
     BL_ASSERT( inited );
     LARGE_INTEGER li;
@@ -155,7 +155,7 @@ BoxLib::wsecond(double* rslt)
 
 #include <time.h>
 double
-BoxLib::second (double* r)
+amrex::second (double* r)
 {
     static clock_t start = -1;
 
@@ -177,7 +177,7 @@ BoxLib::second (double* r)
 #include <time.h>
 
 double
-BoxLib::second (double* r)
+amrex::second (double* r)
 {
     static clock_t start = -1;
 
@@ -207,7 +207,7 @@ get_initial_wall_clock_time ()
 time_t BL_Initial_Wall_Clock_Time = get_initial_wall_clock_time();
 
 double
-BoxLib::wsecond (double* r)
+amrex::wsecond (double* r)
 {
     time_t finish;
 
@@ -224,7 +224,7 @@ BoxLib::wsecond (double* r)
 #endif
 
 void
-BoxLib::ResetWallClockTime ()
+amrex::ResetWallClockTime ()
 {
     BL_Initial_Wall_Clock_Time = get_initial_wall_clock_time();
 }
@@ -234,7 +234,7 @@ BoxLib::ResetWallClockTime ()
 //
 
 bool
-BoxLib::is_integer (const char* str)
+amrex::is_integer (const char* str)
 {
     int len = 0;
 
@@ -258,11 +258,11 @@ namespace {
 }
 
 const std::vector<std::string>&
-BoxLib::Tokenize (const std::string& instr,
+amrex::Tokenize (const std::string& instr,
                   const std::string& separators)
 {
     if (!tokenize_initialized) {
-        BoxLib::ExecOnFinalize(CleanupTokenizeStatics);
+        amrex::ExecOnFinalize(CleanupTokenizeStatics);
         tokenize_initialized = true;
     }
 
@@ -310,7 +310,7 @@ BoxLib::Tokenize (const std::string& instr,
 }
 
 std::string
-BoxLib::Concatenate (const std::string& root,
+amrex::Concatenate (const std::string& root,
                      int                num,
                      int                mindigits)
 {
@@ -323,10 +323,10 @@ BoxLib::Concatenate (const std::string& root,
 
 bool
 #ifdef WIN32
-BoxLib::UtilCreateDirectory (const std::string& path,
+amrex::UtilCreateDirectory (const std::string& path,
                              int mode, bool verbose)
 #else
-BoxLib::UtilCreateDirectory (const std::string& path,
+amrex::UtilCreateDirectory (const std::string& path,
                              mode_t mode, bool verbose)
 #endif
 {
@@ -407,7 +407,7 @@ BoxLib::UtilCreateDirectory (const std::string& path,
 
     if(retVal == false  || verbose == true) {
       for(int i(0); i < pathError.size(); ++i) {
-        std::cout << "BoxLib::UtilCreateDirectory:: path errno:  " 
+        std::cout << "amrex::UtilCreateDirectory:: path errno:  " 
                   << pathError[i].first << " :: "
                   << strerror(pathError[i].second)
                   << std::endl;
@@ -418,36 +418,36 @@ BoxLib::UtilCreateDirectory (const std::string& path,
 }
 
 void
-BoxLib::CreateDirectoryFailed (const std::string& dir)
+amrex::CreateDirectoryFailed (const std::string& dir)
 {
     std::string msg("Couldn't create directory: ");
     msg += dir;
-    BoxLib::Error(msg.c_str());
+    amrex::Error(msg.c_str());
 }
 
 void
-BoxLib::FileOpenFailed (const std::string& file)
+amrex::FileOpenFailed (const std::string& file)
 {
     std::string msg("Couldn't open file: ");
     msg += file;
-    BoxLib::Error(msg.c_str());
+    amrex::Error(msg.c_str());
 }
 
 void
-BoxLib::UnlinkFile (const std::string& file)
+amrex::UnlinkFile (const std::string& file)
 {
     unlink(file.c_str());
 }
 
 bool
-BoxLib::FileExists(const std::string &filename)
+amrex::FileExists(const std::string &filename)
 {
   struct stat statbuff;
   return(::lstat(filename.c_str(), &statbuff) != -1);
 }
 
 std::string
-BoxLib::UniqueString()
+amrex::UniqueString()
 {
   std::stringstream tempstring;
   tempstring << std::setprecision(11) << std::fixed << ParallelDescriptor::second();
@@ -456,46 +456,46 @@ BoxLib::UniqueString()
 }
 
 void
-BoxLib::UtilCreateCleanDirectory (const std::string &path, bool callbarrier)
+amrex::UtilCreateCleanDirectory (const std::string &path, bool callbarrier)
 {
   if(ParallelDescriptor::IOProcessor()) {
-    if(BoxLib::FileExists(path)) {
-      std::string newoldname(path + ".old." + BoxLib::UniqueString());
-      std::cout << "BoxLib::UtilCreateCleanDirectory():  " << path
+    if(amrex::FileExists(path)) {
+      std::string newoldname(path + ".old." + amrex::UniqueString());
+      std::cout << "amrex::UtilCreateCleanDirectory():  " << path
                 << " exists.  Renaming to:  " << newoldname << std::endl;
       std::rename(path.c_str(), newoldname.c_str());
     }
-    if( ! BoxLib::UtilCreateDirectory(path, 0755)) {
-      BoxLib::CreateDirectoryFailed(path);
+    if( ! amrex::UtilCreateDirectory(path, 0755)) {
+      amrex::CreateDirectoryFailed(path);
     }
   }
   if(callbarrier) {
     // Force other processors to wait until directory is built.
-    ParallelDescriptor::Barrier("BoxLib::UtilCreateCleanDirectory");
+    ParallelDescriptor::Barrier("amrex::UtilCreateCleanDirectory");
   }
 }
 
 void
-BoxLib::UtilRenameDirectoryToOld (const std::string &path, bool callbarrier)
+amrex::UtilRenameDirectoryToOld (const std::string &path, bool callbarrier)
 {
   if(ParallelDescriptor::IOProcessor()) {
-    if(BoxLib::FileExists(path)) {
-      std::string newoldname(path + ".old." + BoxLib::UniqueString());
-      std::cout << "BoxLib::UtilRenameDirectoryToOld():  " << path
+    if(amrex::FileExists(path)) {
+      std::string newoldname(path + ".old." + amrex::UniqueString());
+      std::cout << "amrex::UtilRenameDirectoryToOld():  " << path
                 << " exists.  Renaming to:  " << newoldname << std::endl;
       std::rename(path.c_str(), newoldname.c_str());
     }
   }
   if(callbarrier) {
     // Force other processors to wait until directory is renamed.
-    ParallelDescriptor::Barrier("BoxLib::UtilRenameDirectoryToOld");
+    ParallelDescriptor::Barrier("amrex::UtilRenameDirectoryToOld");
   }
 }
 
 void
-BoxLib::OutOfMemory ()
+amrex::OutOfMemory ()
 {
-    BoxLib::Error("Sorry, out of memory, bye ...");
+    amrex::Error("Sorry, out of memory, bye ...");
 }
 
 //
@@ -507,13 +507,13 @@ namespace
 const long billion = 1000000000L;
 }
 
-BoxLib::Time::Time()
+amrex::Time::Time()
 {
     tv_sec = 0;
     tv_nsec = 0;
 }
 
-BoxLib::Time::Time(long s, long n)
+amrex::Time::Time(long s, long n)
 {
     BL_ASSERT(s >= 0);
     BL_ASSERT(n >= 0);
@@ -523,7 +523,7 @@ BoxLib::Time::Time(long s, long n)
     normalize();
 }
 
-BoxLib::Time::Time(double d)
+amrex::Time::Time(double d)
 {
     tv_sec = long(d);
     tv_nsec = long((d-tv_sec)*billion);
@@ -531,19 +531,19 @@ BoxLib::Time::Time(double d)
 }
 
 double
-BoxLib::Time::as_double() const
+amrex::Time::as_double() const
 {
     return tv_sec + tv_nsec/double(billion);
 }
 
 long
-BoxLib::Time::as_long() const
+amrex::Time::as_long() const
 {
     return tv_sec + tv_nsec/billion;
 }
 
-BoxLib::Time&
-BoxLib::Time::operator+=(const Time& r)
+amrex::Time&
+amrex::Time::operator+=(const Time& r)
 {
     tv_sec += r.tv_sec;
     tv_nsec += r.tv_nsec;
@@ -551,15 +551,15 @@ BoxLib::Time::operator+=(const Time& r)
     return *this;
 }
 
-BoxLib::Time
-BoxLib::Time::operator+(const Time& r) const
+amrex::Time
+amrex::Time::operator+(const Time& r) const
 {
     Time result(*this);
     return result+=r;
 }
 
 void
-BoxLib::Time::normalize()
+amrex::Time::normalize()
 {
     if ( tv_nsec > billion )
     {
@@ -568,10 +568,10 @@ BoxLib::Time::normalize()
     }
 }
 
-BoxLib::Time
-BoxLib::Time::get_time()
+amrex::Time
+amrex::Time::get_time()
 {
-    return Time(BoxLib::wsecond());
+    return Time(amrex::wsecond());
 }
 
 
@@ -606,15 +606,15 @@ BoxLib::Time::get_time()
 /* ACM Transactions on Modeling and Computer Simulation,           */
 /* Vol. 8, No. 1, January 1998, pp 3--30.                          */
 
-unsigned long BoxLib::mt19937::init_seed;
-unsigned long BoxLib::mt19937::mt[BoxLib::mt19937::N];
-int           BoxLib::mt19937::mti;
+unsigned long amrex::mt19937::init_seed;
+unsigned long amrex::mt19937::mt[amrex::mt19937::N];
+int           amrex::mt19937::mti;
 
 //
 // initializing with a NONZERO seed.
 //
 void
-BoxLib::mt19937::sgenrand(unsigned long seed)
+amrex::mt19937::sgenrand(unsigned long seed)
 {
     mt[0]= seed & 0xffffffffUL;
     for ( mti=1; mti<N; mti++ ) 
@@ -632,7 +632,7 @@ BoxLib::mt19937::sgenrand(unsigned long seed)
 /* init_key is the array for initializing keys */
 /* key_length is its length */
 void 
-BoxLib::mt19937::sgenrand(unsigned long init_key[], int key_length)
+amrex::mt19937::sgenrand(unsigned long init_key[], int key_length)
 {
     int i, j, k;
     sgenrand(19650218UL);
@@ -658,7 +658,7 @@ BoxLib::mt19937::sgenrand(unsigned long init_key[], int key_length)
 }
 
 void
-BoxLib::mt19937::reload()
+amrex::mt19937::reload()
 {
     unsigned long y;
     int kk;
@@ -693,7 +693,7 @@ BoxLib::mt19937::reload()
 }
 
 unsigned long
-BoxLib::mt19937::igenrand()
+amrex::mt19937::igenrand()
 {
     //
     // Generate N words at one time.
@@ -711,14 +711,14 @@ BoxLib::mt19937::igenrand()
     return y;
 }
 
-BoxLib::mt19937::mt19937(unsigned long seed)
+amrex::mt19937::mt19937(unsigned long seed)
 {
     init_seed = seed;
     mti = N;
     sgenrand(seed);
 }
 
-BoxLib::mt19937::mt19937(unsigned long seed, int numprocs)
+amrex::mt19937::mt19937(unsigned long seed, int numprocs)
 {
 #ifdef _OPENMP
 #pragma omp parallel
@@ -734,19 +734,19 @@ BoxLib::mt19937::mt19937(unsigned long seed, int numprocs)
 #endif
 }
 
-BoxLib::mt19937::mt19937 (unsigned long seed_array[], int len)
+amrex::mt19937::mt19937 (unsigned long seed_array[], int len)
 {
     sgenrand(seed_array, len);
 }
 
 void
-BoxLib::mt19937::rewind()
+amrex::mt19937::rewind()
 {
     sgenrand(init_seed);
 }
 
 void
-BoxLib::mt19937::reset(unsigned long seed)
+amrex::mt19937::reset(unsigned long seed)
 {
     sgenrand(seed);
 }
@@ -755,7 +755,7 @@ BoxLib::mt19937::reset(unsigned long seed)
 // [0,1] random numbers
 //
 double
-BoxLib::mt19937::d_value()
+amrex::mt19937::d_value()
 {
     return double(igenrand()) * (1.0/4294967295.0);  // divided by 2^32-1
 }
@@ -764,7 +764,7 @@ BoxLib::mt19937::d_value()
 // [0,1) random numbers
 //
 double
-BoxLib::mt19937::d1_value()
+amrex::mt19937::d1_value()
 {
     return double(igenrand()) * (1.0/4294967296.0);  // divided by 2^32
 }
@@ -773,25 +773,25 @@ BoxLib::mt19937::d1_value()
 // (0,1) random numbers
 //
 double
-BoxLib::mt19937::d2_value()
+amrex::mt19937::d2_value()
 {
     return (double(igenrand()) + .5) * (1.0/4294967296.0);  // divided by 2^32
 }
 
 long
-BoxLib::mt19937::l_value()
+amrex::mt19937::l_value()
 {
     return (long)(igenrand()>>1);
 }
 
 unsigned long
-BoxLib::mt19937::u_value()
+amrex::mt19937::u_value()
 {
     return igenrand();
 }
 
 void
-BoxLib::mt19937::save (Array<unsigned long>& state) const
+amrex::mt19937::save (Array<unsigned long>& state) const
 {
     state.resize(N+2);
     state[0] = init_seed;
@@ -801,16 +801,16 @@ BoxLib::mt19937::save (Array<unsigned long>& state) const
 }
 
 int
-BoxLib::mt19937::RNGstatesize () const
+amrex::mt19937::RNGstatesize () const
 {
     return N+2;
 }
 
 void
-BoxLib::mt19937::restore (const Array<unsigned long>& state)
+amrex::mt19937::restore (const Array<unsigned long>& state)
 {
     if (state.size() != N+2)
-        BoxLib::Error("mt19937::restore(): incorrectly sized state vector");
+        amrex::Error("mt19937::restore(): incorrectly sized state vector");
 
     init_seed = state[0];
     for (int i = 0; i < N; i++)
@@ -818,51 +818,51 @@ BoxLib::mt19937::restore (const Array<unsigned long>& state)
     mti = state[N+1];
 
     if (mti < 0 || mti > N)
-        BoxLib::Error("mt19937::restore(): mti out-of-bounds");
+        amrex::Error("mt19937::restore(): mti out-of-bounds");
 }
 
 namespace
 {
-    BoxLib::mt19937 the_generator;
+    amrex::mt19937 the_generator;
 }
 
 void
-BoxLib::InitRandom (unsigned long seed)
+amrex::InitRandom (unsigned long seed)
 {
     the_generator = mt19937(seed);
 }
 
 void
-BoxLib::InitRandom (unsigned long seed, int numprocs)
+amrex::InitRandom (unsigned long seed, int numprocs)
 {
     the_generator = mt19937(seed, numprocs);
 }
 
-void BoxLib::ResetRandomSeed(unsigned long seed)
+void amrex::ResetRandomSeed(unsigned long seed)
 {
     the_generator.reset(seed);
 }
 
 double
-BoxLib::Random ()
+amrex::Random ()
 {
     return the_generator.d_value();
 }
 
 double
-BoxLib::Random1 ()
+amrex::Random1 ()
 {
     return the_generator.d1_value();
 }
 
 double
-BoxLib::Random2 ()
+amrex::Random2 ()
 {
     return the_generator.d2_value();
 }
 
 unsigned long
-BoxLib::Random_int(unsigned long n)
+amrex::Random_int(unsigned long n)
 {
   const unsigned long umax = 4294967295UL; // 2^32-1
   BL_ASSERT( n > 0 && n <= umax ); 
@@ -875,34 +875,34 @@ BoxLib::Random_int(unsigned long n)
 }
 
 void
-BoxLib::SaveRandomState (Array<unsigned long>& state)
+amrex::SaveRandomState (Array<unsigned long>& state)
 {
     the_generator.save(state);
 }
 
 int
-BoxLib::sizeofRandomState ()
+amrex::sizeofRandomState ()
 {
     return the_generator.RNGstatesize();
 }
 
 void
-BoxLib::RestoreRandomState (const Array<unsigned long>& state)
+amrex::RestoreRandomState (const Array<unsigned long>& state)
 {
     the_generator.restore(state);
 }
 
 void
-BoxLib::UniqueRandomSubset (Array<int> &uSet, int setSize, int poolSize,
+amrex::UniqueRandomSubset (Array<int> &uSet, int setSize, int poolSize,
                             bool printSet)
 {
   if(setSize > poolSize) {
-    BoxLib::Abort("**** Error in UniqueRandomSubset:  setSize > poolSize.");
+    amrex::Abort("**** Error in UniqueRandomSubset:  setSize > poolSize.");
   }
   std::set<int> copySet;
   Array<int> uSetTemp;
   while(copySet.size() < setSize) {
-    int r(BoxLib::Random_int(poolSize));
+    int r(amrex::Random_int(poolSize));
     if(copySet.find(r) == copySet.end()) {
       copySet.insert(r);
       uSetTemp.push_back(r);
@@ -917,7 +917,7 @@ BoxLib::UniqueRandomSubset (Array<int> &uSet, int setSize, int poolSize,
 }
 
 void
-BoxLib::NItemsPerBin (int totalItems, Array<int> &binCounts)
+amrex::NItemsPerBin (int totalItems, Array<int> &binCounts)
 {
   if(binCounts.size() == 0) {
     return;
@@ -926,7 +926,7 @@ BoxLib::NItemsPerBin (int totalItems, Array<int> &binCounts)
   int countForAll(totalItems / binCounts.size());
   int remainder(totalItems % binCounts.size());
   if(ParallelDescriptor::IOProcessor() && verbose) {
-    std::cout << "BoxLib::NItemsPerBin:  countForAll remainder = " << countForAll
+    std::cout << "amrex::NItemsPerBin:  countForAll remainder = " << countForAll
               << "  " << remainder << std::endl;
   }
   for(int i(0); i < binCounts.size(); ++i) {
@@ -937,31 +937,31 @@ BoxLib::NItemsPerBin (int totalItems, Array<int> &binCounts)
   }
   for(int i(0); i < binCounts.size(); ++i) {
     if(ParallelDescriptor::IOProcessor() && verbose) {
-      std::cout << "BoxLib::NItemsPerBin::  binCounts[" << i << "] = " << binCounts[i] << std::endl;
+      std::cout << "amrex::NItemsPerBin::  binCounts[" << i << "] = " << binCounts[i] << std::endl;
     }
   }
 }
 
 
 //
-// Fortran entry points for BoxLib::Random().
+// Fortran entry points for amrex::Random().
 //
 
 BL_FORT_PROC_DECL(BLUTILINITRAND,blutilinitrand)(const int* sd)
 {
     unsigned long seed = *sd;
-    BoxLib::InitRandom(seed);
+    amrex::InitRandom(seed);
 }
 
 BL_FORT_PROC_DECL(BLINITRAND,blinitrand)(const int* sd)
 {
     unsigned long seed = *sd;
-    BoxLib::InitRandom(seed);
+    amrex::InitRandom(seed);
 }
 
 BL_FORT_PROC_DECL(BLUTILRAND,blutilrand)(Real* rn)
 {
-    *rn = BoxLib::Random();
+    *rn = amrex::Random();
 }
 
 //
@@ -985,10 +985,10 @@ BL_FORT_PROC_DECL(BLUTILRAND,blutilrand)(Real* rn)
 //
 
 double
-BoxLib::InvNormDist (double p)
+amrex::InvNormDist (double p)
 {
     if (p <= 0 || p >= 1)
-        BoxLib::Error("BoxLib::InvNormDist(): p MUST be in (0,1)");
+        amrex::Error("amrex::InvNormDist(): p MUST be in (0,1)");
     //
     // Coefficients in rational approximations.
     //
@@ -1073,7 +1073,7 @@ BL_FORT_PROC_DECL(BLINVNORMDIST,blinvnormdist)(Real* result)
     //
     double val = the_generator.d2_value();
 
-    *result = BoxLib::InvNormDist(val);
+    *result = amrex::InvNormDist(val);
 }
 
 //
@@ -1115,7 +1115,7 @@ BL_FORT_PROC_DECL(BLINVNORMDIST,blinvnormdist)(Real* result)
 //
 
 double
-BoxLib::InvNormDistBest (double p)
+amrex::InvNormDistBest (double p)
 
 {
   static const double a[8] =
@@ -1170,7 +1170,7 @@ BoxLib::InvNormDistBest (double p)
   double r, value;
 
   if (p <= 0 || p >= 1)
-      BoxLib::Error("InvNormDistBest(): p MUST be in (0,1)");
+      amrex::Error("InvNormDistBest(): p MUST be in (0,1)");
 
   double q = p - 0.5;
 
@@ -1236,7 +1236,7 @@ BL_FORT_PROC_DECL(BLINVNORMDISTBEST,blinvnormdistbest)(Real* result)
     //
     double val = the_generator.d2_value();
 
-    *result = BoxLib::InvNormDistBest(val);
+    *result = amrex::InvNormDistBest(val);
 }
 
 
@@ -1245,7 +1245,7 @@ BL_FORT_PROC_DECL(BLINVNORMDISTBEST,blinvnormdistbest)(Real* result)
 //
 
 std::istream&
-BoxLib::operator>>(std::istream& is, const expect& exp)
+amrex::operator>>(std::istream& is, const expect& exp)
 {
     int len = exp.istr.size();
     int n = 0;
@@ -1264,28 +1264,28 @@ BoxLib::operator>>(std::istream& is, const expect& exp)
     {
 	is.clear(std::ios::badbit|is.rdstate());
 	std::string msg = "expect fails to find \"" + exp.the_string() + "\"";
-	BoxLib::Error(msg.c_str());
+	amrex::Error(msg.c_str());
     }
     return is;
 }
 
-BoxLib::expect::expect(const char* istr_)
+amrex::expect::expect(const char* istr_)
     : istr(istr_)
 {
 }
 
-BoxLib::expect::expect(const std::string& str_)
+amrex::expect::expect(const std::string& str_)
     : istr(str_)
 {
 }
 
-BoxLib::expect::expect(char c)
+amrex::expect::expect(char c)
 {
     istr += c;
 }
 
 const std::string&
-BoxLib::expect::the_string() const
+amrex::expect::the_string() const
 {
     return istr;
 }
@@ -1295,15 +1295,15 @@ BoxLib::expect::the_string() const
 // StreamRetry
 //
 
-int BoxLib::StreamRetry::nStreamErrors = 0;
+int amrex::StreamRetry::nStreamErrors = 0;
 
-BoxLib::StreamRetry::StreamRetry(std::ostream &os, const std::string &suffix,
+amrex::StreamRetry::StreamRetry(std::ostream &os, const std::string &suffix,
                                  const int maxtries)
     : tries(0), maxTries(maxtries), sros(os), spos(os.tellp()), suffix(suffix)
 {
 }
 
-BoxLib::StreamRetry::StreamRetry(const std::string &filename,
+amrex::StreamRetry::StreamRetry(const std::string &filename,
 				 const bool abortonretryfailure,
                                  const int maxtries)
     : tries(0), maxTries(maxtries),
@@ -1314,7 +1314,7 @@ BoxLib::StreamRetry::StreamRetry(const std::string &filename,
   nStreamErrors = 0;
 }
 
-bool BoxLib::StreamRetry::TryOutput()
+bool amrex::StreamRetry::TryOutput()
 {
   if(tries == 0) {
     ++tries;
@@ -1357,7 +1357,7 @@ bool BoxLib::StreamRetry::TryOutput()
 }
 
 
-bool BoxLib::StreamRetry::TryFileOutput()
+bool amrex::StreamRetry::TryFileOutput()
 {
     bool bTryOutput(false);
 
@@ -1372,7 +1372,7 @@ bool BoxLib::StreamRetry::TryFileOutput()
         bTryOutput = false;
       } else {                 // wrote a bad file, rename it
         if(ParallelDescriptor::IOProcessor()) {
-          const std::string& badFileName = BoxLib::Concatenate(fileName + ".bad",
+          const std::string& badFileName = amrex::Concatenate(fileName + ".bad",
                                                                tries - 1, 2);
           std::cout << nWriteErrors << " STREAMERRORS : Renaming file from "
                     << fileName << "  to  " << badFileName << std::endl;
@@ -1385,7 +1385,7 @@ bool BoxLib::StreamRetry::TryFileOutput()
           bTryOutput = true;
         } else {
           if(abortOnRetryFailure) {
-            BoxLib::Abort("STREAMERROR : StreamRetry::maxTries exceeded.");
+            amrex::Abort("STREAMERROR : StreamRetry::maxTries exceeded.");
           }
           bTryOutput = false;
         }
@@ -1398,7 +1398,7 @@ bool BoxLib::StreamRetry::TryFileOutput()
 }
 
 
-void BoxLib::SyncStrings(const Array<std::string> &localStrings,
+void amrex::SyncStrings(const Array<std::string> &localStrings,
                          Array<std::string> &syncedStrings, bool &alreadySynced)
 {
 #ifdef BL_USE_MPI
@@ -1562,7 +1562,7 @@ void BoxLib::SyncStrings(const Array<std::string> &localStrings,
 
 
 
-Array<char> BoxLib::SerializeStringArray(const Array<std::string> &stringArray)
+Array<char> amrex::SerializeStringArray(const Array<std::string> &stringArray)
 {
   std::ostringstream stringStream;
   for(int i(0); i < stringArray.size(); ++i) {
@@ -1579,7 +1579,7 @@ Array<char> BoxLib::SerializeStringArray(const Array<std::string> &stringArray)
 
 
 
-Array<std::string> BoxLib::UnSerializeStringArray(const Array<char> &charArray)
+Array<std::string> amrex::UnSerializeStringArray(const Array<char> &charArray)
 {
   Array<std::string> stringArray;
   std::istringstream stringStream(charArray.dataPtr());
@@ -1595,36 +1595,36 @@ Array<std::string> BoxLib::UnSerializeStringArray(const Array<char> &charArray)
 }
 
 
-void BoxLib::BroadcastBox(Box &bB, int myLocalId, int rootId, const MPI_Comm &localComm)
+void amrex::BroadcastBox(Box &bB, int myLocalId, int rootId, const MPI_Comm &localComm)
 {
   Array<int> baseBoxAI;
   if(myLocalId == rootId) {
-    baseBoxAI = BoxLib::SerializeBox(bB);
+    baseBoxAI = amrex::SerializeBox(bB);
   }
-  BoxLib::BroadcastArray(baseBoxAI, myLocalId, rootId, localComm);
+  amrex::BroadcastArray(baseBoxAI, myLocalId, rootId, localComm);
   if(myLocalId != rootId) {
-    bB = BoxLib::UnSerializeBox(baseBoxAI);
+    bB = amrex::UnSerializeBox(baseBoxAI);
   }
 }
 
 
 
-void BoxLib::BroadcastBoxArray(BoxArray &bBA, int myLocalId, int rootId, const MPI_Comm &localComm)
+void amrex::BroadcastBoxArray(BoxArray &bBA, int myLocalId, int rootId, const MPI_Comm &localComm)
 {
   Array<int> sbaG;
   if(myLocalId == rootId) {
-    sbaG = BoxLib::SerializeBoxArray(bBA);
+    sbaG = amrex::SerializeBoxArray(bBA);
   }
-  BoxLib::BroadcastArray(sbaG, myLocalId, rootId, localComm);
+  amrex::BroadcastArray(sbaG, myLocalId, rootId, localComm);
   if(myLocalId != rootId) {
     if(sbaG.size() > 0) {
-      bBA = BoxLib::UnSerializeBoxArray(sbaG);
+      bBA = amrex::UnSerializeBoxArray(sbaG);
     }
   }
 }
 
 
-void BoxLib::BroadcastDistributionMapping(DistributionMapping &dM, int sentinelProc,
+void amrex::BroadcastDistributionMapping(DistributionMapping &dM, int sentinelProc,
                                           int myLocalId, int rootId, const MPI_Comm &localComm,
 					  bool addToCache)
 {
@@ -1639,7 +1639,7 @@ void BoxLib::BroadcastDistributionMapping(DistributionMapping &dM, int sentinelP
   if(myLocalId == rootId) {
     dmapA = dM.ProcessorMap();
   }
-  BoxLib::BroadcastArray(dmapA, myLocalId, rootId, localComm);
+  amrex::BroadcastArray(dmapA, myLocalId, rootId, localComm);
   if(dmapA.size() > 0) {
     if(myLocalId != rootId) {
       dmapA[dmapA.size() - 1] = sentinelProc;  // ---- set the sentinel
@@ -1656,7 +1656,7 @@ void BoxLib::BroadcastDistributionMapping(DistributionMapping &dM, int sentinelP
 }
 
 
-void BoxLib::USleep(double sleepsec) {
+void amrex::USleep(double sleepsec) {
   //usleep(sleepsec * msps);
   usleep(sleepsec * msps / 10.0);
 }

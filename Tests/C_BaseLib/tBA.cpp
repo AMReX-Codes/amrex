@@ -20,10 +20,10 @@ GetBndryCells_old (const BoxArray& ba,
     BoxDomain bd;
     for (int i = 0; i < ba.size(); ++i)
     {
-	BoxList gCells = BoxLib::boxDiff(BoxLib::grow(ba[i],ngrow),ba[i]);
+	BoxList gCells = amrex::boxDiff(amrex::grow(ba[i],ngrow),ba[i]);
 
 	for (BoxList::iterator bli = gCells.begin(); bli != gCells.end(); ++bli)
-	    bd.add(BoxLib::complementIn(*bli,blgrids));
+	    bd.add(amrex::complementIn(*bli,blgrids));
     }
 
     BoxList bl;
@@ -56,7 +56,7 @@ GetBndryCells_new (const BoxArray& ba,
     BoxList gcells;
     for (int i = 0; i < ba.size(); ++i)
     {
-	gcells.join(BoxLib::boxDiff(BoxLib::grow(ba[i],ngrow),ba[i]));
+	gcells.join(amrex::boxDiff(amrex::grow(ba[i],ngrow),ba[i]));
     }
     std::cout << "    size of ghostcell list: " << gcells.size() << std::endl;
     //
@@ -79,7 +79,7 @@ GetBndryCells_new (const BoxArray& ba,
             BoxList pieces;
             for (int i = 0; i < isects.size(); i++)
                 pieces.push_back(isects[i].second);
-            BoxList leftover = BoxLib::complementIn(*it,pieces);
+            BoxList leftover = amrex::complementIn(*it,pieces);
             bcells.catenate(leftover);
         }
     }
@@ -90,7 +90,7 @@ GetBndryCells_new (const BoxArray& ba,
     //
     gcells.clear();
 
-    gcells = BoxLib::removeOverlap(bcells);
+    gcells = amrex::removeOverlap(bcells);
 
     std::cout << "    size before simplify(): " << gcells.size() << std::endl;
 
@@ -198,7 +198,7 @@ intersections_old (const BoxArray& ba)
 
     for (int j = 0; j < ba.size(); j++)
     {
-        const Box& bx = BoxLib::grow(ba[j], ngrow);
+        const Box& bx = amrex::grow(ba[j], ngrow);
 
         for (int i = 0; i < ba.size(); i++)
         {
@@ -226,7 +226,7 @@ intersections_new (const BoxArray& ba)
     
     for (int j = 0; j < ba.size(); j++)
     {
-        std::vector< std::pair<int,Box> > v = ba.intersections(BoxLib::grow(ba[j], ngrow));
+        std::vector< std::pair<int,Box> > v = ba.intersections(amrex::grow(ba[j], ngrow));
 
         cnt += v.size();
     }
@@ -249,7 +249,7 @@ newComplementIn_old (const Box&     b,
         {
             if (newbli->intersects(*bli))
             {
-                BoxList tm = BoxLib::boxDiff(*newbli, *bli);
+                BoxList tm = amrex::boxDiff(*newbli, *bli);
                 newb.catenate(tm);
                 newb.remove(newbli++);
             }
@@ -332,7 +332,7 @@ main ()
 
     {
     const Real beg = ParallelDescriptor::second();
-    bl1 = BoxLib::complementIn(bb, bl);
+    bl1 = amrex::complementIn(bb, bl);
     const Real end = ParallelDescriptor::second() - beg;
     std::cout << "complementIn(), size = " << bl1.size() << " time = " << end << std::endl;
     bl1.simplify();

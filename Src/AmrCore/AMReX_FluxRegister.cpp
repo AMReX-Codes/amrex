@@ -284,7 +284,7 @@ FluxRegister::FineAdd (const FArrayBox& flux,
     FArrayBox& loreg = bndry[Orientation(dir,Orientation::low)][boxno];
 
 #ifndef NDEBUG
-    Box cbox = BoxLib::coarsen(flux.box(),ratio);
+    Box cbox = amrex::coarsen(flux.box(),ratio);
     BL_ASSERT(cbox.contains(loreg.box()));
 #endif
     const int* rlo = loreg.box().loVect();
@@ -331,7 +331,7 @@ FluxRegister::FineAdd (const FArrayBox& flux,
     FArrayBox& loreg = bndry[Orientation(dir,Orientation::low)][boxno];
 
 #ifndef NDEBUG
-    Box cbox = BoxLib::coarsen(flux.box(),ratio);
+    Box cbox = amrex::coarsen(flux.box(),ratio);
     BL_ASSERT(cbox.contains(loreg.box()));
 #endif
     const int* rlo = loreg.box().loVect();
@@ -449,10 +449,10 @@ FluxRegister::ClearInternalBorders (const Geometry& geom)
 		}
 		if (geom.isPeriodic(dir)) {
 		    if (bx.smallEnd(dir) == domain.smallEnd(dir)) {
-			const Box& sbx = BoxLib::shift(bx, dir, domain.length(dir));
+			const Box& sbx = amrex::shift(bx, dir, domain.length(dir));
 			const std::vector<std::pair<int,Box> >& isects2 = bahi.intersections(sbx);
 			for (int ii = 0; ii < isects2.size(); ++ii) {
-			    const Box& bx2 = BoxLib::shift(isects2[ii].second, dir, -domain.length(dir));
+			    const Box& bx2 = amrex::shift(isects2[ii].second, dir, -domain.length(dir));
 			    frlo[fsi].setVal(0.0, bx2, 0, ncomp);
 			}		      
 		    }
@@ -467,10 +467,10 @@ FluxRegister::ClearInternalBorders (const Geometry& geom)
 		}
 		if (geom.isPeriodic(dir)) {
 		    if (bx.bigEnd(dir) == domain.bigEnd(dir)) {
-			const Box& sbx = BoxLib::shift(bx, dir, -domain.length(dir));
+			const Box& sbx = amrex::shift(bx, dir, -domain.length(dir));
 			const std::vector<std::pair<int,Box> >& isects2 = balo.intersections(sbx);
 			for (int ii = 0; ii < isects2.size(); ++ii) {
-			    const Box& bx2 = BoxLib::shift(isects2[ii].second, dir, domain.length(dir));
+			    const Box& bx2 = amrex::shift(isects2[ii].second, dir, domain.length(dir));
 			    frhi[fsi].setVal(0.0, bx2, 0, ncomp);
 			}		      
 		    }

@@ -196,7 +196,7 @@ InterpBndryData::setBndryValues (::BndryRegister& crse,
             BL_ASSERT(grids[fine_mfi.index()] == fine_mfi.validbox());
 
             const Box&       fine_bx  = fine_mfi.validbox();
-            const Box&       crse_bx  = BoxLib::coarsen(fine_bx,ratio);
+            const Box&       crse_bx  = amrex::coarsen(fine_bx,ratio);
             const int*       cblo     = crse_bx.loVect();
             const int*       cbhi     = crse_bx.hiVect();
             const int        mxlen    = crse_bx.longside() + 2;
@@ -235,7 +235,7 @@ InterpBndryData::setBndryValues (::BndryRegister& crse,
                     // The quadratic interp needs crse data in 2 grow cells tangential
                     // to face.  This checks to be sure the source data is large enough.
                     //
-                    Box crsebnd = BoxLib::adjCell(crse_bx,face,1);
+                    Box crsebnd = amrex::adjCell(crse_bx,face,1);
 
                     if (max_order == 3) 
                     {
@@ -264,7 +264,7 @@ InterpBndryData::setBndryValues (::BndryRegister& crse,
     }
     else
     {
-        BoxLib::Abort("InterpBndryData::setBndryValues supports only max_order=1 or 3");
+        amrex::Abort("InterpBndryData::setBndryValues supports only max_order=1 or 3");
     }
 }
 

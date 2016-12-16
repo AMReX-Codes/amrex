@@ -96,7 +96,7 @@ operator >> (std::istream &is, RealBox& b)
     if (s != "RealBox")
     {
         std::cerr << "unexpected token in RealBox: " << s << '\n';
-        BoxLib::Abort();
+        amrex::Abort();
     }
 
     Real lo[BL_SPACEDIM];

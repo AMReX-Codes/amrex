@@ -178,7 +178,7 @@ AmrLevel::restart (Amr&          papa,
 
     if (bReadSpecial)
     {
-        BoxLib::readBoxArray(grids, is, bReadSpecial);
+        amrex::readBoxArray(grids, is, bReadSpecial);
     }
     else
     {
@@ -213,7 +213,7 @@ AmrLevel::restart (Amr&          papa,
 void
 AmrLevel::set_state_in_checkpoint (Array<int>& state_in_checkpoint)
 {
-    BoxLib::Error("Class derived AmrLevel has to handle this!");
+    amrex::Error("Class derived AmrLevel has to handle this!");
 }
 
 void
@@ -303,8 +303,8 @@ AmrLevel::checkPoint (const std::string& dir,
         // The name is relative to the Header file containing this name.
         // It's the name that gets written into the Header.
         //
-        std::string PathNameInHdr = BoxLib::Concatenate(LevelDir + "/SD_", i, 1);
-        std::string FullPathName  = BoxLib::Concatenate(FullPath + "/SD_", i, 1);
+        std::string PathNameInHdr = amrex::Concatenate(LevelDir + "/SD_", i, 1);
+        std::string FullPathName  = amrex::Concatenate(FullPath + "/SD_", i, 1);
 
         state[i].checkPoint(PathNameInHdr, FullPathName, os, how, dump_old);
     }
@@ -361,7 +361,7 @@ AmrLevel::get_data (int  state_indx,
         return get_new_data(state_indx);
     }
 
-    BoxLib::Error("get_data: invalid time");
+    amrex::Error("get_data: invalid time");
     static MultiFab bogus;
     return bogus;
 }
@@ -530,7 +530,7 @@ FillPatchIteratorHelper::Initialize (int           boxGrow,
         m_fbox.insert(m_fbox.end(),v2)->second.resize(m_amrlevel.level+1);
         m_cbox.insert(m_cbox.end(),v2)->second.resize(m_amrlevel.level+1);
 
-        m_ba.insert(m_ba.end(),std::map<int,Box>::value_type(i,BoxLib::grow(m_leveldata.boxArray()[i],m_growsize)));
+        m_ba.insert(m_ba.end(),std::map<int,Box>::value_type(i,amrex::grow(m_leveldata.boxArray()[i],m_growsize)));
     }
 
     BoxList        tempUnfillable(boxType);
@@ -588,7 +588,7 @@ FillPatchIteratorHelper::Initialize (int           boxGrow,
 
                     if (shbox.ok())
                     {
-                        BoxList bl = BoxLib::boxDiff(shbox,box);
+                        BoxList bl = amrex::boxDiff(shbox,box);
 
                         unfilledThisLevel.insert(unfilledThisLevel.end(), bl.begin(), bl.end());
                     }
@@ -768,7 +768,7 @@ FillPatchIterator::Initialize (int  boxGrow,
 	else
 	{
 	    if (level == 1 || 
-		BoxLib::ProperlyNested(m_amrlevel.crse_ratio,
+		amrex::ProperlyNested(m_amrlevel.crse_ratio,
 				       m_amrlevel.parent->blockingFactor(m_amrlevel.level),
 				       boxGrow, boxType, desc.interp(SComp)))
 	    {
@@ -780,7 +780,7 @@ FillPatchIterator::Initialize (int  boxGrow,
 		    if (ParallelDescriptor::IOProcessor()) {
 			int new_blocking_factor = 2*m_amrlevel.parent->blockingFactor(m_amrlevel.level);
 			for (int i = 0; i < 10; ++i) {
-			    if (BoxLib::ProperlyNested(m_amrlevel.crse_ratio,
+			    if (amrex::ProperlyNested(m_amrlevel.crse_ratio,
 						       new_blocking_factor,
 						       boxGrow, boxType, desc.interp(SComp))) {
 				break;
@@ -851,7 +851,7 @@ FillPatchIterator::FillFromLevel0 (Real time, int index, int scomp, int dcomp, i
 
     StateDataPhysBCFunct physbcf(statedata,scomp,geom);
 
-    BoxLib::FillPatchSingleLevel (m_fabs, time, smf, stime, scomp, dcomp, ncomp, geom, physbcf);
+    amrex::FillPatchSingleLevel (m_fabs, time, smf, stime, scomp, dcomp, ncomp, geom, physbcf);
 }
 
 void
@@ -882,7 +882,7 @@ FillPatchIterator::FillFromTwoLevels (Real time, int index, int scomp, int dcomp
 
     const StateDescriptor& desc = AmrLevel::desc_lst[index];
 
-    BoxLib::FillPatchTwoLevels(m_fabs, time, 
+    amrex::FillPatchTwoLevels(m_fabs, time, 
 			       smf_crse, stime_crse, 
 			       smf_fine, stime_fine,
 			       scomp, dcomp, ncomp, 
@@ -1150,7 +1150,7 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
             //
             // Get boundary conditions for the fine patch.
             //
-            BoxLib::setBC(finefab.box(),
+            amrex::setBC(finefab.box(),
                           fDomain,
                           m_scomp,
                           0,
@@ -1298,14 +1298,14 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
         for (int j = 0, N = crseBA.size(); j < N; ++j)
         {
             BL_ASSERT(mf_BA[j].ixType() == desc.getType());
-	    const Box& bx = BoxLib::grow(mf_BA[j],nghost) & domain_g;
+	    const Box& bx = amrex::grow(mf_BA[j],nghost) & domain_g;
             crseBA.set(j,mapper->CoarseBox(bx, crse_ratio));
         }
 
 	MultiFab crseMF(crseBA,NComp,0);
 
 	if ( level == 1 
-	     || BoxLib::ProperlyNested(crse_ratio, parent->blockingFactor(level),
+	     || amrex::ProperlyNested(crse_ratio, parent->blockingFactor(level),
 				       nghost, mf_BA.ixType(), mapper) )
 	{
 	    StateData& statedata = clev.state[index];
@@ -1318,7 +1318,7 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
 
 	    StateDataPhysBCFunct physbcf(statedata,SComp,cgeom);
 
-	    BoxLib::FillPatchSingleLevel(crseMF,time,smf,stime,SComp,0,NComp,cgeom,physbcf);
+	    amrex::FillPatchSingleLevel(crseMF,time,smf,stime,SComp,0,NComp,cgeom,physbcf);
 	}
 	else
 	{
@@ -1330,11 +1330,11 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
 #endif
 	for (MFIter mfi(mf); mfi.isValid(); ++mfi)
 	{
-	    const Box& dbx = BoxLib::grow(mfi.validbox(),nghost) & domain_g;
+	    const Box& dbx = amrex::grow(mfi.validbox(),nghost) & domain_g;
 	    
 	    Array<BCRec> bcr(ncomp);
 	    
-	    BoxLib::setBC(dbx,pdomain,SComp,0,NComp,desc.getBCs(),bcr);
+	    amrex::setBC(dbx,pdomain,SComp,0,NComp,desc.getBCs(),bcr);
 	    
 	    mapper->interp(crseMF[mfi],
 			   0,
@@ -1441,7 +1441,7 @@ AmrLevel::derive (const std::string& name,
 				 BCREC_3D(bcr),
 				 &level,&grid_no);
 	    } else {
-		BoxLib::Error("AmeLevel::derive: no function available");
+		amrex::Error("AmeLevel::derive: no function available");
 	    }
         }
 #else
@@ -1479,7 +1479,7 @@ AmrLevel::derive (const std::string& name,
 				 BCREC_3D(bcr),
 				 &level,&grid_no);
 	    } else {
-		BoxLib::Error("AmeLevel::derive: no function available");
+		amrex::Error("AmeLevel::derive: no function available");
 	    }
         }
 #endif
@@ -1491,7 +1491,7 @@ AmrLevel::derive (const std::string& name,
         //
         std::string msg("AmrLevel::derive(MultiFab*): unknown variable: ");
         msg += name;
-        BoxLib::Error(msg.c_str());
+        amrex::Error(msg.c_str());
     }
 
     return mf;
@@ -1577,7 +1577,7 @@ AmrLevel::derive (const std::string& name,
 				 BCREC_3D(bcr),
 				 &level,&idx);
 	    } else {
-		BoxLib::Error("AmeLevel::derive: no function available");
+		amrex::Error("AmeLevel::derive: no function available");
 	    }
         }
 #else
@@ -1615,7 +1615,7 @@ AmrLevel::derive (const std::string& name,
 				 BCREC_3D(bcr),
 				 &level,&idx);
 	    } else {
-		BoxLib::Error("AmeLevel::derive: no function available");
+		amrex::Error("AmeLevel::derive: no function available");
 	    }
         }
 #endif
@@ -1627,7 +1627,7 @@ AmrLevel::derive (const std::string& name,
         //
         std::string msg("AmrLevel::derive(MultiFab*): unknown variable: ");
         msg += name;
-        BoxLib::Error(msg.c_str());
+        amrex::Error(msg.c_str());
     }
 }
 
@@ -1831,7 +1831,7 @@ void AmrLevel::constructAreaNotToTag()
         m_AreaToTag = tagarea;
 
         // We disallow tagging in the remaining part of the domain.
-        BoxArray tagba = BoxLib::boxComplement(parent->Geom(level).Domain(),m_AreaToTag);
+        BoxArray tagba = amrex::boxComplement(parent->Geom(level).Domain(),m_AreaToTag);
         m_AreaNotToTag = tagba;
 
         BoxArray bxa(parent->Geom(level).Domain());
@@ -1844,7 +1844,7 @@ void AmrLevel::constructAreaNotToTag()
         tagarea.refine(parent->refRatio(level-1));
         tagarea.grow(-parent->blockingFactor(level));
         m_AreaToTag = tagarea;
-        BoxArray tagba = BoxLib::boxComplement(parent->Geom(level).Domain(),m_AreaToTag);
+        BoxArray tagba = amrex::boxComplement(parent->Geom(level).Domain(),m_AreaToTag);
         m_AreaNotToTag = tagba;
     }
 }
@@ -1887,7 +1887,7 @@ AmrLevel::AddProcsToComp(Amr *aptr, int nSidecarProcs, int prevSidecarProcs,
         for(int i(0); i < BL_SPACEDIM; ++i)    { allIntVects.push_back(crse_ratio[i]); }
         for(int i(0); i < BL_SPACEDIM; ++i)    { allIntVects.push_back(fine_ratio[i]); }
       }
-      BoxLib::BroadcastArray(allIntVects, scsMyId, ioProcNumSCS, scsComm);
+      amrex::BroadcastArray(allIntVects, scsMyId, ioProcNumSCS, scsComm);
 
       if(scsMyId != ioProcNumSCS) {
         int count(0);
@@ -1897,18 +1897,18 @@ AmrLevel::AddProcsToComp(Amr *aptr, int nSidecarProcs, int prevSidecarProcs,
 
 
       // ---- Boxes
-      BoxLib::BroadcastBox(m_AreaToTag, scsMyId, ioProcNumSCS, scsComm);
+      amrex::BroadcastBox(m_AreaToTag, scsMyId, ioProcNumSCS, scsComm);
       
       // ---- Geometry
       Geometry::BroadcastGeometry(geom, ioProcNumSCS, scsComm);
       
       // ---- BoxArrays
-      BoxLib::BroadcastBoxArray(grids, scsMyId, ioProcNumSCS, scsComm);
-      BoxLib::BroadcastBoxArray(m_AreaNotToTag, scsMyId, ioProcNumSCS, scsComm);
+      amrex::BroadcastBoxArray(grids, scsMyId, ioProcNumSCS, scsComm);
+      amrex::BroadcastBoxArray(m_AreaNotToTag, scsMyId, ioProcNumSCS, scsComm);
 
 
 #ifdef USE_SLABSTAT
-      BoxLib::Abort("**** Error in AmrLevel::MSS:  USE_SLABSTAT not implemented");
+      amrex::Abort("**** Error in AmrLevel::MSS:  USE_SLABSTAT not implemented");
 #endif
 
       // ---- state
@@ -1944,7 +1944,7 @@ AmrLevel::LevelDirectoryNames(const std::string &dir,
                               std::string &LevelDir,
 			      std::string &FullPath)
 {
-    LevelDir = BoxLib::Concatenate("Level_", level, 1);
+    LevelDir = amrex::Concatenate("Level_", level, 1);
     //
     // Now for the full pathname of that directory.
     //
@@ -1965,8 +1965,8 @@ AmrLevel::CreateLevelDirectory (const std::string &dir)
     LevelDirectoryNames(dir, LevelDir, FullPath);
 
     if(ParallelDescriptor::IOProcessor()) {
-      if( ! BoxLib::UtilCreateDirectory(FullPath, 0755)) {
-        BoxLib::CreateDirectoryFailed(FullPath);
+      if( ! amrex::UtilCreateDirectory(FullPath, 0755)) {
+        amrex::CreateDirectoryFailed(FullPath);
       }
     }
 

@@ -9,7 +9,7 @@
 void
 SMC::writePlotFile (int istep)
 {
-    const std::string& dir = BoxLib::Concatenate("plt",istep,5);
+    const std::string& dir = amrex::Concatenate("plt",istep,5);
 
     MultiFab mf(U.boxArray(), nplot, 0);
 #ifdef _OPENMP
@@ -30,8 +30,8 @@ SMC::writePlotFile (int istep)
     // Only the I/O processor makes the directory if it doesn't already exist.
     //
     if (ParallelDescriptor::IOProcessor())
-        if (!BoxLib::UtilCreateDirectory(dir, 0755))
-            BoxLib::CreateDirectoryFailed(dir);
+        if (!amrex::UtilCreateDirectory(dir, 0755))
+            amrex::CreateDirectoryFailed(dir);
     //
     // Force other processors to wait till directory is built.
     //
@@ -52,7 +52,7 @@ SMC::writePlotFile (int istep)
         //
         HeaderFile.open(HeaderFileName.c_str(), std::ios::out|std::ios::trunc|std::ios::binary);
         if (!HeaderFile.good())
-            BoxLib::FileOpenFailed(HeaderFileName);
+            amrex::FileOpenFailed(HeaderFileName);
         HeaderFile << "NavierStokes-V1.1\n";
 
         HeaderFile << mf.nComp() << '\n';
@@ -98,7 +98,7 @@ SMC::writePlotFile (int istep)
     //
     static const std::string BaseName = "/Cell";
 
-    std::string Level = BoxLib::Concatenate("Level_", 0, 1);
+    std::string Level = amrex::Concatenate("Level_", 0, 1);
     //
     // Now for the full pathname of that directory.
     //
@@ -110,8 +110,8 @@ SMC::writePlotFile (int istep)
     // Only the I/O processor makes the directory if it doesn't already exist.
     //
     if (ParallelDescriptor::IOProcessor())
-        if (!BoxLib::UtilCreateDirectory(FullPath, 0755))
-            BoxLib::CreateDirectoryFailed(FullPath);
+        if (!amrex::UtilCreateDirectory(FullPath, 0755))
+            amrex::CreateDirectoryFailed(FullPath);
     //
     // Force other processors to wait till directory is built.
     //

@@ -111,7 +111,7 @@ operator<< (std::ostream& os, const ParmParse::PP_entry& pp)
 
     if ( !os )
     {
-        BoxLib::Error("write on ostream failed");
+        amrex::Error("write on ostream failed");
     }
     return os;
 }
@@ -239,7 +239,7 @@ getToken (const char*& str,
    std::cerr << "STATE = " << state_name[state]				    \
              << ", next char = " << ch << '\n';				    \
    std::cerr << ", rest of input = \n" << str << '\n';		            \
-   BoxLib::Abort()
+   amrex::Abort()
    //
    // Eat white space and comments.
    //
@@ -261,7 +261,7 @@ getToken (const char*& str,
        char ch = *str;
        if ( ch == 0 )
        {
-	   BoxLib::Error("ParmParse::getToken: EOF while parsing");
+	   amrex::Error("ParmParse::getToken: EOF while parsing");
        }
        switch (state)
        {
@@ -480,7 +480,7 @@ addDefn (std::string&         def,
     if ( val.empty() )
     {
         std::cerr << "ParmParse::addDefn(): no values for definition " << def << "\n";
-        BoxLib::Abort();
+        amrex::Abort();
     }
     //
     // Check if this defn is a file include directive.
@@ -517,7 +517,7 @@ addTable (std::string& def,
     if ( val.empty() )
     {
         std::cerr << "ParmParse::addTable(): no values for Table " << def << "\n";
-	BoxLib::Abort();
+	amrex::Abort();
     }
     tab.push_back(ParmParse::PP_entry(def, val));
     val.clear();
@@ -544,7 +544,7 @@ bldTable (const char*&                    str,
 	case pCloseBracket:
 	    if ( !cur_name.empty() && cur_list.empty() )
 	    {
-		BoxLib::Abort("ParmParse::bldTable() defn with no list");
+		amrex::Abort("ParmParse::bldTable() defn with no list");
 	    }
 	case pEOF:
 	    addDefn(cur_name,cur_list,tab);
@@ -552,7 +552,7 @@ bldTable (const char*&                    str,
 	case pOpenBracket:
 	    if ( cur_name.empty() )
 	    {
-		BoxLib::Abort("ParmParse::bldTabe() '{' with no blocknamne");
+		amrex::Abort("ParmParse::bldTabe() '{' with no blocknamne");
 	    }
 	    if ( !cur_list.empty() )
 	    {
@@ -567,7 +567,7 @@ bldTable (const char*&                    str,
 	case pEQ_sign:
 	    if ( cur_name.empty() )
 	    {
-		BoxLib::Abort("ParmParse::bldTable() EQ with no current defn");
+		amrex::Abort("ParmParse::bldTable() EQ with no current defn");
 	    }
 	    if ( !cur_list.empty() )
 	    {
@@ -594,7 +594,7 @@ bldTable (const char*&                    str,
 	    {
 		std::string msg("ParmParse::bldTable(): value with no defn: ");
 		msg += tokname;
-		BoxLib::Abort(msg.c_str());
+		amrex::Abort(msg.c_str());
 	    }
 	    cur_list.push_back(tokname);
 	    break;
@@ -636,7 +636,7 @@ squeryval (const ParmParse::Table& table,
             std::cerr << " occurence " << occurence << " of ";
 	}
         std::cerr << def->m_name << '\n' << *def << '\n';
-        BoxLib::Abort();
+        amrex::Abort();
     }
 
     const std::string& valname = def->m_vals[ival];
@@ -660,7 +660,7 @@ squeryval (const ParmParse::Table& table,
                   << "\" type  which can't be parsed from the string \""
                   << valname << "\"\n"
 		  << *def << '\n';
-        BoxLib::Abort();
+        amrex::Abort();
     }
     return true;
 }
@@ -688,7 +688,7 @@ sgetval (const ParmParse::Table& table,
                   << " not found in table"
                   << '\n';
         ParmParse::dumpTable(std::cerr);
-        BoxLib::Abort();
+        amrex::Abort();
     }
 }
 
@@ -737,7 +737,7 @@ squeryarr (const ParmParse::Table& table,
             std::cerr << " occurence " << occurence << " of ";
 	}
         std::cerr << def->m_name << '\n' << *def << '\n';
-        BoxLib::Abort();
+        amrex::Abort();
     }
     for ( int n = start_ix; n <= stop_ix; n++ )
     {
@@ -761,7 +761,7 @@ squeryarr (const ParmParse::Table& table,
 		      << "\" type which can't be parsed from the string \""
 		      << valname << "\"\n"
 		      << *def << '\n';
-	    BoxLib::Abort();
+	    amrex::Abort();
 	}
     }
     return true;
@@ -788,7 +788,7 @@ sgetarr (const ParmParse::Table& table,
                   << " not found in table"
                   << '\n';
         ParmParse::dumpTable(std::cerr);
-        BoxLib::Abort();
+        amrex::Abort();
     }
 }
 
@@ -864,7 +864,7 @@ ParmParse::prefixedName (const std::string& str) const
 {
     if ( str.empty() )
     {
-	BoxLib::Error("ParmParse::prefixedName: has empty name");
+	amrex::Error("ParmParse::prefixedName: has empty name");
     }
     if ( !m_pstack.top().empty())
     {
@@ -892,7 +892,7 @@ ParmParse::popPrefix ()
 {
     if ( m_pstack.size() <= 1 )
     {
-	BoxLib::Error("ParmParse::popPrefix: stack underflow");
+	amrex::Error("ParmParse::popPrefix: stack underflow");
     }
     m_pstack.pop();
 }
@@ -1018,11 +1018,11 @@ ParmParse::Initialize (int         argc,
 {
     if ( initialized )
     {
-	BoxLib::Error("ParmParse::Initialize(): already initialized!");
+	amrex::Error("ParmParse::Initialize(): already initialized!");
     }
     ppinit(argc, argv, parfile, g_table);
 
-    BoxLib::ExecOnFinalize(ParmParse::Finalize);
+    amrex::ExecOnFinalize(ParmParse::Finalize);
 }
 
 void
@@ -1794,7 +1794,7 @@ ParmParse::getRecord (const std::string& name, int n) const
     if ( pe == 0 )
     {
 	std::cerr << "ParmParse::getRecord: record " << name << " not found" << std::endl;
-	BoxLib::Abort();
+	amrex::Abort();
     }
     return Record(ParmParse(*pe->m_table));
 }
@@ -1878,7 +1878,7 @@ require_valid_parmparse(const std::string& str, int pp)
     if ( it == parsers.end() )
     {
 	std::cerr << "In routine: " << str << ": ";
-	BoxLib::Error("require_valid_parser::not a valid parsers");
+	amrex::Error("require_valid_parser::not a valid parsers");
     }
 }
 
@@ -1888,7 +1888,7 @@ require_valid_size(const std::string& str, int asize, int nsize)
     if (asize > nsize)
     {
 	std::cerr << "In routine: " << str <<  ": ";
-	BoxLib::Error("require_valid_size::not large enough input array");
+	amrex::Error("require_valid_size::not large enough input array");
     }
 }
 }

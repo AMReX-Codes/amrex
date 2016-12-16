@@ -20,7 +20,7 @@ Print (const BoxList& bl, const char* str)
 int
 main (int argc, char* argv[])
 {
-    BoxLib::Initialize(argc, argv);
+    amrex::Initialize(argc, argv);
 
 //    std::ifstream ifs("ba.60", std::ios::in);
 //    std::ifstream ifs("ba.213", std::ios::in);
@@ -52,5 +52,5 @@ main (int argc, char* argv[])
         DistributionMapping::FlushCache();
     }
 
-    BoxLib::Finalize();
+    amrex::Finalize();
 }

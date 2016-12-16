@@ -41,7 +41,7 @@ CArena FB::m_CArena(100*CHUNKSIZE);
 
 FB::FB ()
 {
-    m_size = size_t(CHUNKSIZE*BoxLib::Random());
+    m_size = size_t(CHUNKSIZE*amrex::Random());
     m_data = (double*) m_CArena.alloc(m_size*sizeof(double));
     //
     // Set specific values in the data.

@@ -157,7 +157,7 @@ namespace BoxLib
       Internally, the Fortran entry point calls a static Mersenne Twister
       object (the same one called by blutilrand()) to get a random number in
       the open interval (0,1), and then sets "val" to the result of calling
-      BoxLib::InvNormDist() with that random number.
+      amrex::InvNormDist() with that random number.
     */
     double InvNormDist (double p);
     /*
@@ -190,7 +190,7 @@ namespace BoxLib
       Internally, the Fortran entry point calls a static Mersenne Twister
       object (the same one called by blutilrand()) to get a random number in
       the open interval (0,1), and then sets "val" to the result of calling
-      BoxLib::InvNormDist() with that random number.
+      amrex::InvNormDist() with that random number.
     */
     double InvNormDistBest (double p);
     /*
@@ -211,7 +211,7 @@ namespace BoxLib
       call blutilrand(rn)
 
       Internally, blutilrand() calls a static Mersenne Twister oject (the
-      same one used by BoxLib::Random()) to get a value in [0,1] and then
+      same one used by amrex::Random()) to get a value in [0,1] and then
       sets "rn" to that value.
     */
     double Random (); // [0,1]
@@ -286,8 +286,8 @@ namespace BoxLib
     template <double (*FCN)(double*)> class base_Timer;
     template <double (*FCN)(double*)> std::ostream& operator<<(std::ostream&, const base_Timer<FCN>&);
 
-    typedef base_Timer<BoxLib::wsecond> WallTimer;
-    typedef base_Timer<BoxLib::second>  CPUTimer;
+    typedef base_Timer<amrex::wsecond> WallTimer;
+    typedef base_Timer<amrex::second>  CPUTimer;
 
     template <double (*FCN)(double*)>
     class base_Timer
@@ -414,7 +414,7 @@ namespace BoxLib
 
 }
 
-template<class T> void BoxLib::BroadcastArray(Array<T> &aT, int myLocalId, int rootId, const MPI_Comm &localComm)
+template<class T> void amrex::BroadcastArray(Array<T> &aT, int myLocalId, int rootId, const MPI_Comm &localComm)
 {
   int aT_Size(-2);
   if(myLocalId == rootId) {
@@ -498,20 +498,20 @@ template<class T> void BoxLib::BroadcastArray(Array<T> &aT, int myLocalId, int r
 // Implementation of the Timer
 
 template <double (*FCN)(double*)>
-BoxLib::base_Timer<FCN>::base_Timer()
+amrex::base_Timer<FCN>::base_Timer()
     : running(false), val(0.0), accum_val(0.0), cnt(0)
 {
 }
 
 template <double (*FCN)(double*)>
-BoxLib::base_Timer<FCN>::~base_Timer()
+amrex::base_Timer<FCN>::~base_Timer()
 {
     BL_ASSERT( !running );
 }
 
 template <double (*FCN)(double*)>
 bool
-BoxLib::base_Timer<FCN>::is_running() const
+amrex::base_Timer<FCN>::is_running() const
 {
     return running;
 }
@@ -519,7 +519,7 @@ BoxLib::base_Timer<FCN>::is_running() const
 template <double (*FCN)(double*)>
 inline
 void
-BoxLib::base_Timer<FCN>::start()
+amrex::base_Timer<FCN>::start()
 {
     BL_ASSERT( !running );
     held = FCN(0);
@@ -529,7 +529,7 @@ BoxLib::base_Timer<FCN>::start()
 template <double (*FCN)(double*)>
 inline
 void
-BoxLib::base_Timer<FCN>::stop()
+amrex::base_Timer<FCN>::stop()
 {
     BL_ASSERT( running );
     val = (FCN(0) - held);
@@ -546,7 +546,7 @@ BoxLib::base_Timer<FCN>::stop()
 
 template <double (*FCN)(double*)>
 void
-BoxLib::base_Timer<FCN>::reset()
+amrex::base_Timer<FCN>::reset()
 {
     BL_ASSERT( !running );
     accum_val = 0;
@@ -555,7 +555,7 @@ BoxLib::base_Timer<FCN>::reset()
 
 template <double (*FCN)(double*)>
 double
-BoxLib::base_Timer<FCN>::accum_time() const
+amrex::base_Timer<FCN>::accum_time() const
 {
     BL_ASSERT( !running );
     return accum_val;
@@ -563,7 +563,7 @@ BoxLib::base_Timer<FCN>::accum_time() const
 
 template <double (*FCN)(double*)>
 double
-BoxLib::base_Timer<FCN>::time() const
+amrex::base_Timer<FCN>::time() const
 {
     BL_ASSERT( !running );
     return val;
@@ -571,7 +571,7 @@ BoxLib::base_Timer<FCN>::time() const
 
 template <double (*FCN)(double*)>
 int
-BoxLib::base_Timer<FCN>::count() const
+amrex::base_Timer<FCN>::count() const
 {
     BL_ASSERT( !running );
     return cnt;
@@ -580,7 +580,7 @@ BoxLib::base_Timer<FCN>::count() const
 // I stole this code from someplace, but I don't know where.
 template <double (*FCN)(double*)>
 double
-BoxLib::base_Timer<FCN>::tick()
+amrex::base_Timer<FCN>::tick()
 {
     const int M = 100;
     double timesfound[M];
@@ -606,7 +606,7 @@ BoxLib::base_Timer<FCN>::tick()
 }
 
 template <double (*FCN)(double*)>
-std::ostream& operator<<(std::ostream& os, const BoxLib::base_Timer<FCN>& bt)
+std::ostream& operator<<(std::ostream& os, const amrex::base_Timer<FCN>& bt)
 {
     return os << "["
 	      << bt.accum_time() << "/"
@@ -616,14 +616,14 @@ std::ostream& operator<<(std::ostream& os, const BoxLib::base_Timer<FCN>& bt)
 
 template <typename T> 
 long 
-BoxLib::bytesOf (const std::vector<T>& v)
+amrex::bytesOf (const std::vector<T>& v)
 {
     return sizeof(v) + v.capacity()*sizeof(T);
 }
 
 template <typename Key, typename T, class Compare>
 long
-BoxLib::bytesOf (const std::map<Key,T,Compare>& m)
+amrex::bytesOf (const std::map<Key,T,Compare>& m)
 {
     return sizeof(m) + m.size()*(sizeof(Key)+sizeof(T)+gcc_map_node_extra_bytes);
 }

@@ -196,7 +196,7 @@ ABec4::ca2cc(const MultiFab& ca, MultiFab& cc,
     const FArrayBox& caf = ca[mfi];
     FArrayBox& ccf = cc[mfi];
     const Box& box = mfi.tilebox();
-    BL_ASSERT(caf.box().contains(BoxLib::grow(box,1)));
+    BL_ASSERT(caf.box().contains(amrex::grow(box,1)));
     FORT_CA2CC(box.loVect(), box.hiVect(),
                caf.dataPtr(sComp), ARLIM(caf.box().loVect()), ARLIM(caf.box().hiVect()),
                ccf.dataPtr(dComp), ARLIM(ccf.box().loVect()), ARLIM(ccf.box().hiVect()),
@@ -215,7 +215,7 @@ ABec4::cc2ca(const MultiFab& cc, MultiFab& ca,
     const FArrayBox& ccf = cc[mfi];
     FArrayBox& caf = ca[mfi];
     const Box& box = mfi.growntilebox();
-    BL_ASSERT(ccf.box().contains(BoxLib::grow(box,1)));
+    BL_ASSERT(ccf.box().contains(amrex::grow(box,1)));
     FORT_CC2CA(box.loVect(), box.hiVect(),
                ccf.dataPtr(sComp), ARLIM(ccf.box().loVect()), ARLIM(ccf.box().hiVect()),
                caf.dataPtr(dComp), ARLIM(caf.box().loVect()), ARLIM(caf.box().hiVect()),
@@ -465,7 +465,7 @@ ABec4::Fsmooth (MultiFab&       solnL,
 		int             level,
 		int             redBlackFlag)
 {
-  BoxLib::Abort("ABec4 does not surrport Fsmooth at level = 0");
+  amrex::Abort("ABec4 does not surrport Fsmooth at level = 0");
 }
 
 void
@@ -473,7 +473,7 @@ ABec4::Fsmooth_jacobi (MultiFab&       solnL,
 		       const MultiFab& rhsL,
 		       int             level)
 {
-  BoxLib::Abort("ABec4 does not surrport Fsmooth_jacobi");
+  amrex::Abort("ABec4 does not surrport Fsmooth_jacobi");
 }
 
 void
@@ -567,7 +567,7 @@ ABec4::Fapply (MultiFab&       y,
     }
   }
   else {
-    BoxLib::Abort("ABec4 cannot do Fapply on level != 0");
+    amrex::Abort("ABec4 cannot do Fapply on level != 0");
   }
 }
 

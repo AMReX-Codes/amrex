@@ -1113,7 +1113,7 @@ protected:
 	    if (win != MPI_WIN_NULL) MPI_Win_free(&win);
 #endif
 	    if (alloc)
-		BoxLib::update_fab_stats(-n_points, -n_values, sizeof(value_type));
+		amrex::update_fab_stats(-n_points, -n_values, sizeof(value_type));
 	}
 	bool  alloc;
 	long  n_values;
@@ -1377,7 +1377,7 @@ FabArrayBase::PostRcvs (const std::map<int,int>&               m_RcvVols,
 
     BL_ASSERT((TotalRcvsVolume*sizeof(T)) < std::numeric_limits<int>::max());
 
-    the_recv_data = static_cast<T*>(BoxLib::The_Arena()->alloc(TotalRcvsVolume*sizeof(T)));
+    the_recv_data = static_cast<T*>(amrex::The_Arena()->alloc(TotalRcvsVolume*sizeof(T)));
 
     int Offset = 0;
 
@@ -1426,7 +1426,7 @@ FabArrayBase::PostRcvs_MPI_Onesided (
 
     BL_ASSERT((TotalRcvsVolume*sizeof(T)) < std::numeric_limits<int>::max());
 
-    the_recv_data = static_cast<T*>(BoxLib::The_Arena()->alloc(TotalRcvsVolume*sizeof(T)));
+    the_recv_data = static_cast<T*>(amrex::The_Arena()->alloc(TotalRcvsVolume*sizeof(T)));
 
     MPI_Win_attach(win, the_recv_data, TotalRcvsVolume*sizeof(T));
 
@@ -1478,7 +1478,7 @@ FabArrayBase::WaitForAsyncSends (int                 N_snds,
     BL_COMM_PROFILE_WAITSOME(BLProfiler::Waitall, send_reqs, N_snds, indx, stats, false);
 
     for (int i = 0; i < N_snds; i++)
-        BoxLib::The_Arena()->free(send_data[i]);
+        amrex::The_Arena()->free(send_data[i]);
 #endif /*BL_USE_MPI*/
 }
 
@@ -1870,7 +1870,7 @@ FabArray<FAB>::AllocFabs ()
 
 #else
 
-	BoxLib::Abort("BaseFab::define: to allocate shared memory, either USE_UPCXX or USE_MPI3 must be true");
+	amrex::Abort("BaseFab::define: to allocate shared memory, either USE_UPCXX or USE_MPI3 must be true");
 
 #endif
 
@@ -1885,7 +1885,7 @@ FabArray<FAB>::AllocFabs ()
 	    new (mfp) value_type;
 	}
 
-	BoxLib::update_fab_stats(shmem.n_points, shmem.n_values, sizeof(value_type));
+	amrex::update_fab_stats(shmem.n_points, shmem.n_values, sizeof(value_type));
     }
 #endif
 }
@@ -2164,7 +2164,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 #ifdef BL_USE_UPCXX
 		    (BLPgas::alloc(N*sizeof(value_type)));
 #else
-		    (BoxLib::The_Arena()->alloc(N*sizeof(value_type)));
+		    (amrex::The_Arena()->alloc(N*sizeof(value_type)));
 #endif
  
 		    send_data.push_back(data);
@@ -2257,7 +2257,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 		    for (int j=0; j<N_snds; ++j)
 		    {
 			ParallelDescriptor::Send(send_data[j],send_N[j],send_rank[j],SeqNum);
-			BoxLib::The_Arena()->free(send_data[j]);
+			amrex::The_Arena()->free(send_data[j]);
 		    }
 		}
 	    }
@@ -2391,11 +2391,11 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 	    if (ParallelDescriptor::MPIOneSided()) {
 #if defined(BL_USE_MPI3)
 		MPI_Win_detach(ParallelDescriptor::cp_win, the_recv_data);
-		BoxLib::The_Arena()->free(the_recv_data);
+		amrex::The_Arena()->free(the_recv_data);
 		recv_disp.clear();
 #endif
 	    } else {
-		BoxLib::The_Arena()->free(the_recv_data);
+		amrex::The_Arena()->free(the_recv_data);
 	    }
 #endif
 	    recv_from.clear();
@@ -2412,7 +2412,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 	    if (ParallelDescriptor::MPIOneSided()) {
 #if defined(BL_USE_MPI3)
 		for (int i = 0; i < N_snds; ++i)
-		    BoxLib::The_Arena()->free(send_data[i]);
+		    amrex::The_Arena()->free(send_data[i]);
 #endif
 	    } else {
 		if (FabArrayBase::do_async_sends && ! thecpc.m_SndTags->empty()) {
@@ -2515,7 +2515,7 @@ FabArray<FAB>::copyTo (FAB&       dest,
     {
         for (int j = 0, N = size(); j < N; ++j)
         {
-	    const Box& bx = BoxLib::grow(boxarray[j],nghost);
+	    const Box& bx = amrex::grow(boxarray[j],nghost);
 	    const Box& destbox = bx & subbox;
 	    if (destbox.ok())
             {
@@ -2667,14 +2667,14 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
       destPMapAll[destPMapAll.size()-1] = myProcBoth;  // ---- set the sentinel
     }
 
-    BoxLib::BroadcastBoxArray(srcBoxArray,  myProcBoth, bcastRootSrc,  commBoth);
+    amrex::BroadcastBoxArray(srcBoxArray,  myProcBoth, bcastRootSrc,  commBoth);
 
-    BoxLib::BroadcastBoxArray(destBoxArray, myProcBoth, bcastRootDest, commBoth);
+    amrex::BroadcastBoxArray(destBoxArray, myProcBoth, bcastRootDest, commBoth);
     BL_ASSERT(destBoxArray[0].ixType() == srcBoxArray[0].ixType());
 
 
-    BoxLib::BroadcastArray(srcPMapAll,  myProcBoth, bcastRootSrc,  commBoth);
-    BoxLib::BroadcastArray(destPMapAll, myProcBoth, bcastRootDest, commBoth);
+    amrex::BroadcastArray(srcPMapAll,  myProcBoth, bcastRootSrc,  commBoth);
+    amrex::BroadcastArray(destPMapAll, myProcBoth, bcastRootDest, commBoth);
 
     srcDMAll.define(srcPMapAll, putInCache);
     destDMAll.define(destPMapAll, putInCache);
@@ -2754,7 +2754,7 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
 
             BL_ASSERT(N < std::numeric_limits<int>::max());
 
-            value_type* data = static_cast<value_type*>(BoxLib::The_Arena()->alloc(N*sizeof(value_type)));
+            value_type* data = static_cast<value_type*>(amrex::The_Arena()->alloc(N*sizeof(value_type)));
  
 	    send_data.push_back(data);
 	    send_N   .push_back(N);
@@ -2796,7 +2796,7 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
 	    for (int j=0; j<N_snds; ++j)
 	    {
                 ParallelDescriptor::Send(send_data[j],send_N[j],send_rank[j],SeqNum, commBoth);
-                BoxLib::The_Arena()->free(send_data[j]);
+                amrex::The_Arena()->free(send_data[j]);
             }
         }
 
@@ -2884,7 +2884,7 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
 	}
 	}
 	
-        BoxLib::The_Arena()->free(the_recv_data);
+        amrex::The_Arena()->free(the_recv_data);
 	
         if (FabArrayBase::do_async_sends && ! thecpc.m_SndTags->empty()) {
             FabArrayBase::WaitForAsyncSends(thecpc.m_SndTags->size(),send_reqs,send_data,stats);
@@ -3017,11 +3017,11 @@ FabArray<FAB>::CheckFAPointers (bool abortOnError)
 
   if(allocFAPSize != FabArray<FAB>::allocatedFAPointers.size()) {
     if(abortOnError) {
-      BoxLib::USleep(ParallelDescriptor::MyProcAll());
+      amrex::USleep(ParallelDescriptor::MyProcAll());
       std::cout << ParallelDescriptor::MyProcAll() << ":: **** ERROR:  allocFAPSize != "
                 << "FabArray<FAB>::allocatedFAPointers.size() : " << allocFAPSize
 	        << "  " << FabArray<FAB>::allocatedFAPointers.size() << std::endl;
-      BoxLib::Abort("**** Error in FabArray<FAB>::CheckFAPointers():  bad allocFAPSize.");
+      amrex::Abort("**** Error in FabArray<FAB>::CheckFAPointers():  bad allocFAPSize.");
     }
   }
 
@@ -3034,11 +3034,11 @@ FabArray<FAB>::CheckFAPointers (bool abortOnError)
     ParallelDescriptor::Bcast(&fapCMapSize, 1, iopNumber);
     if(fapCMapSize != faPtrCachedMap.size()) {
       if(abortOnError) {
-        BoxLib::USleep(ParallelDescriptor::MyProcAll());
+        amrex::USleep(ParallelDescriptor::MyProcAll());
         std::cout << ParallelDescriptor::MyProcAll() << ":: **** ERROR:  fapCMapSize != "
 	          << "faPtrCachedMap.size() : " << fapCMapSize << "  "
 		  << faPtrCachedMap.size() << std::endl;
-        BoxLib::Abort("**** Error in FabArray<FAB>::CheckFAPointers():  bad fapCMapSize.");
+        amrex::Abort("**** Error in FabArray<FAB>::CheckFAPointers():  bad fapCMapSize.");
       }
     }
 
@@ -3046,10 +3046,10 @@ FabArray<FAB>::CheckFAPointers (bool abortOnError)
     ParallelDescriptor::Bcast(&distmapNGrids, 1, iopNumber);
     if(distmapNGrids != afapIter->first-1) {
       if(abortOnError) {
-        BoxLib::USleep(ParallelDescriptor::MyProcAll());
+        amrex::USleep(ParallelDescriptor::MyProcAll());
         std::cout << ParallelDescriptor::MyProcAll() << ":: **** ERROR:  distmapNGrids != "
 	          << "afapIter->first-1 : " << distmapNGrids << "  " << afapIter->first-1 << std::endl;
-        BoxLib::Abort("**** Error in FabArray<FAB>::CheckFAPointers():  bad distmapNGrids.");
+        amrex::Abort("**** Error in FabArray<FAB>::CheckFAPointers():  bad distmapNGrids.");
       }
     }
 
@@ -3079,13 +3079,13 @@ FabArray<FAB>::CheckFAPointers (bool abortOnError)
       nDMCheck = nDM;
       fabsAllocedCheck = fabsAlloced;
     }
-    BoxLib::BroadcastArray(fapIdCheck, ParallelDescriptor::MyProc(), iopNumber,
+    amrex::BroadcastArray(fapIdCheck, ParallelDescriptor::MyProc(), iopNumber,
                            ParallelDescriptor::Communicator());
-    BoxLib::BroadcastArray(dmIdCheck, ParallelDescriptor::MyProc(), iopNumber,
+    amrex::BroadcastArray(dmIdCheck, ParallelDescriptor::MyProc(), iopNumber,
                            ParallelDescriptor::Communicator());
-    BoxLib::BroadcastArray(nDMCheck, ParallelDescriptor::MyProc(), iopNumber,
+    amrex::BroadcastArray(nDMCheck, ParallelDescriptor::MyProc(), iopNumber,
                            ParallelDescriptor::Communicator());
-    BoxLib::BroadcastArray(fabsAllocedCheck, ParallelDescriptor::MyProc(), iopNumber,
+    amrex::BroadcastArray(fabsAllocedCheck, ParallelDescriptor::MyProc(), iopNumber,
                            ParallelDescriptor::Communicator());
     for(int i(0); i < fapId.size(); ++i) {
       if(fapId[i] != fapIdCheck[i]) {
@@ -3093,7 +3093,7 @@ FabArray<FAB>::CheckFAPointers (bool abortOnError)
           std::cout << ParallelDescriptor::MyProcAll() << ":: **** ERROR:  fapId[" << i
 	            << "] != fapIdCheck[" << i << "] : "
                     << fapId[i] << "  " << fapIdCheck[i] << std::endl;
-          BoxLib::Abort("**** Error in FabArray<FAB>::CheckFAPointers():  bad fapId.");
+          amrex::Abort("**** Error in FabArray<FAB>::CheckFAPointers():  bad fapId.");
         }
       }
     }
@@ -3103,7 +3103,7 @@ FabArray<FAB>::CheckFAPointers (bool abortOnError)
           std::cout << ParallelDescriptor::MyProcAll() << ":: **** ERROR:  dmId[" << i
 	            << "] != dmIdCheck[" << i << "] : "
                     << dmId[i] << "  " << dmIdCheck[i] << std::endl;
-          BoxLib::Abort("**** Error in FabArray<FAB>::CheckFAPointers():  bad dmId.");
+          amrex::Abort("**** Error in FabArray<FAB>::CheckFAPointers():  bad dmId.");
         }
       }
     }
@@ -3113,7 +3113,7 @@ FabArray<FAB>::CheckFAPointers (bool abortOnError)
           std::cout << ParallelDescriptor::MyProcAll() << ":: **** ERROR:  nDM[" << i
 	            << "] != nDMCheck[" << i << "] : "
                     << nDM[i] << "  " << nDMCheck[i] << std::endl;
-          BoxLib::Abort("**** Error in FabArray<FAB>::CheckFAPointers():  bad nDM.");
+          amrex::Abort("**** Error in FabArray<FAB>::CheckFAPointers():  bad nDM.");
         }
       }
     }
@@ -3123,7 +3123,7 @@ FabArray<FAB>::CheckFAPointers (bool abortOnError)
           std::cout << ParallelDescriptor::MyProcAll() << ":: **** ERROR:  fabsAlloced[" << i
 	            << "] != fabsAllocedCheck[" << i << "] : "
                     << fabsAlloced[i] << "  " << fabsAllocedCheck[i] << std::endl;
-          BoxLib::Abort("**** Error in FabArray<FAB>::CheckFAPointers():  bad fabsAlloced.");
+          amrex::Abort("**** Error in FabArray<FAB>::CheckFAPointers():  bad fabsAlloced.");
         }
       }
     }
@@ -3134,7 +3134,7 @@ FabArray<FAB>::CheckFAPointers (bool abortOnError)
     if(abortOnError) {
       std::cout << ParallelDescriptor::MyProcAll() << ":: **** ERROR:  "
                 << "pLocked != pLockedCheck : " << pLocked << "  " << pLockedCheck << std::endl;
-      BoxLib::Abort("**** Error in FabArray<FAB>::CheckFAPointers():  bad pLocked.");
+      amrex::Abort("**** Error in FabArray<FAB>::CheckFAPointers():  bad pLocked.");
     }
   }
 }
@@ -3179,11 +3179,11 @@ FabArray<FAB>::AddProcsToComp (int ioProcNumSCS, int ioProcNumAll,
   flushTileArrayCache();
 
   // ---- BoxArrays
-  BoxLib::BroadcastBoxArray(boxarray, scsMyId, ioProcNumSCS, scsComm);
+  amrex::BroadcastBoxArray(boxarray, scsMyId, ioProcNumSCS, scsComm);
 
   // ---- DistributionMapping
   int sentinelProc(ParallelDescriptor::MyProcComp());
-  BoxLib::BroadcastDistributionMapping(distributionMap, sentinelProc,
+  amrex::BroadcastDistributionMapping(distributionMap, sentinelProc,
                                        scsMyId, ioProcNumSCS, scsComm, true);
 
   // ---- ints
@@ -3208,7 +3208,7 @@ FabArray<FAB>::AddProcsToComp (int ioProcNumSCS, int ioProcNumAll,
     for(int i(0); i < BL_SPACEDIM; ++i)    { allIntVects.push_back(mfiter_tile_size[i]); }
     for(int i(0); i < BL_SPACEDIM; ++i)    { allIntVects.push_back(comm_tile_size[i]); }
   }
-  BoxLib::BroadcastArray(allIntVects, scsMyId, ioProcNumSCS, scsComm);
+  amrex::BroadcastArray(allIntVects, scsMyId, ioProcNumSCS, scsComm);
   if(scsMyId != ioProcNumSCS) {
     int count(0);
     for(int i(0); i < BL_SPACEDIM; ++i)    { mfiter_tile_size[i] = allIntVects[count++]; }
@@ -3255,7 +3255,7 @@ FabArray<FAB>::AddProcsToComp (int ioProcNumSCS, int ioProcNumAll,
       setArray.push_back(*it);
     }
   }
-  BoxLib::BroadcastArray(setArray, scsMyId, ioProcNumSCS, scsComm);
+  amrex::BroadcastArray(setArray, scsMyId, ioProcNumSCS, scsComm);
   if(scsMyId != ioProcNumSCS) {
       noallocFAPIds.insert(std::begin(setArray), std::end(setArray));
   }
@@ -3306,7 +3306,7 @@ FabArray<FAB>::MoveAllFabs (const Array<int> &newDistMapArray)
     {
       FabArray<FAB> *faPtr = it->second;
       if(faPtr->ok() == false) {
-        BoxLib::Abort("**** Error 0 in MoveAllFabs:  faPtr not ok");
+        amrex::Abort("**** Error 0 in MoveAllFabs:  faPtr not ok");
       }
 
       faPtr->flushFPinfo();
@@ -3340,7 +3340,7 @@ FabArray<FAB>::MoveAllFabs (const Array<int> &newDistMapArray)
     {
       FabArray<FAB> *faPtr = it->second;
       if(faPtr->ok() == false) {
-        BoxLib::Abort("**** Error 2 in MoveAllFabs:  faPtr not ok");
+        amrex::Abort("**** Error 2 in MoveAllFabs:  faPtr not ok");
       }
     }
 
@@ -3369,10 +3369,10 @@ FabArray<FAB>::MoveFabs (const Array<int> &newDistMapArray)
   if(newDistMapArray.size() != distributionMap.size()) {
     std::cout << "ndma.size  dm.size = " << newDistMapArray.size() << "  "
               << distributionMap.size() << std::endl;
-    BoxLib::Abort("**** Error:  bad newDistMap:0");
+    amrex::Abort("**** Error:  bad newDistMap:0");
   }
   if(newDistMapArray[newDistMapArray.size() - 1] != myProc) {
-    BoxLib::Abort("**** Error:  bad newDistMap:1");
+    amrex::Abort("**** Error:  bad newDistMap:1");
   }
   for(int idm(0); idm < newDistMapArray.size(); ++idm) {
     if(newDistMapArray[idm] < 0 ||
@@ -3380,7 +3380,7 @@ FabArray<FAB>::MoveFabs (const Array<int> &newDistMapArray)
     {
       std::cout << "**** idm ndm[idm] np = " << newDistMapArray[idm] << "  "
                 << ParallelDescriptor::NProcs() << std::endl;
-      BoxLib::Abort("**** Error:  bad newDistMap:2");
+      amrex::Abort("**** Error:  bad newDistMap:2");
     }
   }
   if(newDistMapArray == distributionMap.ProcessorMap()) {
@@ -3418,14 +3418,14 @@ FabArray<FAB>::MoveFabs (const Array<int> &newDistMapArray)
   typename std::map<int, FAB *>::iterator tIFiter;
   if(fabMoves.size() > 0) {  // ---- there are fabs on this proc to send || recv | both
     if(indexArray.size() != m_fabs_v.size()) {
-      BoxLib::Abort("**** Error:  indexArray size != m_fabs_v.size()");
+      amrex::Abort("**** Error:  indexArray size != m_fabs_v.size()");
     }
     for(int iim(0); iim < indexArray.size(); ++iim) {
       tIFiter = tempIndexFABs.find(indexArray[iim]);
       if(tIFiter == tempIndexFABs.end()) {
 	tempIndexFABs.insert(std::pair<int, FAB *>(indexArray[iim], m_fabs_v[iim]));
       } else {
-        BoxLib::Abort("**** Error:  index not in indexArray.");
+        amrex::Abort("**** Error:  index not in indexArray.");
       }
     }
   }
@@ -3454,7 +3454,7 @@ FabArray<FAB>::MoveFabs (const Array<int> &newDistMapArray)
       FAB *fabPtr;
       tIFiter = tempIndexFABs.find(dmi);
       if(tIFiter == tempIndexFABs.end()) {
-        BoxLib::Abort("**** Error:  index not in tempIndexFABs.");
+        amrex::Abort("**** Error:  index not in tempIndexFABs.");
       } else {
         fabPtr = tIFiter->second;
       }
@@ -3494,7 +3494,7 @@ FabArray<FAB>::MoveFabs (const Array<int> &newDistMapArray)
     if(myProc == moveThisFab.fromRank) {  // ---- delete sent fab
       tIFiter = tempIndexFABs.find(moveThisFab.distMapIndex);
       if(tIFiter == tempIndexFABs.end()) {
-        BoxLib::Abort("**** Error:  index not in tempIndexFABs when deleting.");
+        amrex::Abort("**** Error:  index not in tempIndexFABs when deleting.");
       } else {
 	delete tIFiter->second;
 	tempIndexFABs.erase(tIFiter);
@@ -3582,7 +3582,7 @@ FabArrayCopyDescriptor<FAB>::AddBoxDoIt (FabArrayId fabarrayid,
 	if(remoteProc >= ParallelDescriptor::NProcs()) {
 	  std::cout << ParallelDescriptor::MyProcAll() << ":: _in AddBoxDoIt:  nProcs remoteProc = "
 	            << ParallelDescriptor::NProcs() << "  " << remoteProc << std::endl;
-	  BoxLib::Abort("Bad remoteProc");
+	  amrex::Abort("Bad remoteProc");
 	}
         fcd->fillBoxId     = nextFillBoxId;
         fcd->subBox        = intersect;
@@ -4181,7 +4181,7 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
             N += cnt; 
         }
 
-	md_recv_data = static_cast<int*>(BoxLib::The_Arena()->alloc(N*sizeof(int)));
+	md_recv_data = static_cast<int*>(amrex::The_Arena()->alloc(N*sizeof(int)));
 
 	for (int i = 0; i < N_snds; ++i)
 	{
@@ -4200,7 +4200,7 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
 	    int Nmds = it->second;
 	    int cnt = Nmds * Nints;
 
-	    int* p = static_cast<int*>(BoxLib::The_Arena()->alloc(cnt*sizeof(int)));
+	    int* p = static_cast<int*>(amrex::The_Arena()->alloc(cnt*sizeof(int)));
 	    md_send_data.push_back(p);
 
 	    const FabComTagIterContainer& tags = RcvTags[rank];
@@ -4234,7 +4234,7 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
 
     if (N_rcvs > 0)
     {
-	recv_data = static_cast<value_type*>(BoxLib::The_Arena()->alloc(Total_Rcvs_Size*sizeof(value_type)));
+	recv_data = static_cast<value_type*>(amrex::The_Arena()->alloc(Total_Rcvs_Size*sizeof(value_type)));
 
 	// Post receives for data
 	int Idx = 0;
@@ -4291,7 +4291,7 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
 
 	    BL_ASSERT(N < std::numeric_limits<int>::max());
 	    
-	    value_type* data = static_cast<value_type*>(BoxLib::The_Arena()->alloc(N*sizeof(value_type)));
+	    value_type* data = static_cast<value_type*>(amrex::The_Arena()->alloc(N*sizeof(value_type)));
 	    value_type* dptr = data;
 	    send_data.push_back(data);
 
@@ -4304,7 +4304,7 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
 	    data_send_reqs.push_back(ParallelDescriptor::Asend(data,N,rank,SeqNum_data).req());
 	}
 
-	BoxLib::The_Arena()->free(md_recv_data);
+	amrex::The_Arena()->free(md_recv_data);
     }
 
     // Wait and upack data
@@ -4314,7 +4314,7 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
 
 	BL_MPI_REQUIRE (MPI_Waitall(N_rcvs, md_send_reqs.dataPtr(), stats.dataPtr()) );
 	for (int i = 0; i < N_rcvs; ++i) {
-            BoxLib::The_Arena()->free(md_send_data[i]);	    
+            amrex::The_Arena()->free(md_send_data[i]);	    
 	}
 
 	BL_MPI_REQUIRE( MPI_Waitall(N_rcvs, data_recv_reqs.dataPtr(), stats.dataPtr()) );
@@ -4364,7 +4364,7 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
 	    }
 	}
 
-	BoxLib::The_Arena()->free(recv_data);
+	amrex::The_Arena()->free(recv_data);
     }
 
     // Finished send
@@ -4376,7 +4376,7 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
         BL_COMM_PROFILE(BLProfiler::Waitall, sizeof(value_type), BLProfiler::AfterCall(), N_snds);
 
 	for (int i = 0; i < N_snds; ++i) {
-            BoxLib::The_Arena()->free(send_data[i]);
+            amrex::The_Arena()->free(send_data[i]);
 	}
     }
 
@@ -4690,7 +4690,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const Periodicity& period, boo
 #ifdef BL_USE_UPCXX
 		(BLPgas::alloc(N*sizeof(value_type)));
 #else
-	        (BoxLib::The_Arena()->alloc(N*sizeof(value_type)));
+	        (amrex::The_Arena()->alloc(N*sizeof(value_type)));
 #endif
 
 	    send_data.push_back(data);
@@ -4911,11 +4911,11 @@ FabArray<FAB>::FillBoundary_finish ()
 	if (ParallelDescriptor::MPIOneSided()) {
 #if defined(BL_USE_MPI3)
 	    MPI_Win_detach(ParallelDescriptor::fb_win, fb_the_recv_data);
-	    BoxLib::The_Arena()->free(fb_the_recv_data);
+	    amrex::The_Arena()->free(fb_the_recv_data);
 	    fb_recv_disp.clear();
 #endif
 	} else {
-	    BoxLib::The_Arena()->free(fb_the_recv_data);
+	    amrex::The_Arena()->free(fb_the_recv_data);
 	}
 #endif
 
@@ -4933,7 +4933,7 @@ FabArray<FAB>::FillBoundary_finish ()
 	if (ParallelDescriptor::MPIOneSided()) {
 #if defined(BL_USE_MPI3)
 	    for (int i = 0; i < N_snds; ++i)
-		BoxLib::The_Arena()->free(fb_send_data[i]);
+		amrex::The_Arena()->free(fb_send_data[i]);
 #endif
 	} else {
 	    Array<MPI_Status> stats;
@@ -5034,7 +5034,7 @@ FabArray<FAB>::BuildMask (const Box& phys_domain, const Periodicity& period,
     const CopyComTagsContainer&      LocTags = *(TheFB.m_LocTags);
     const MapOfCopyComTagContainers& RcvTags = *(TheFB.m_RcvTags);
 
-    Box domain = BoxLib::convert(phys_domain, boxArray().ixType());
+    Box domain = amrex::convert(phys_domain, boxArray().ixType());
     for (int i = 0; i < BL_SPACEDIM; ++i) {
 	if (period.isPeriodic(i)) {
 	    domain.grow(i, ngrow);

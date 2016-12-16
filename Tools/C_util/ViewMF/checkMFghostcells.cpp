@@ -31,7 +31,7 @@ int
 main (int   argc,
       char* argv[])
 {
-    BoxLib::Initialize(&argc, &argv);
+    amrex::Initialize(&argc, &argv);
 
 //
 //  Parse the command line

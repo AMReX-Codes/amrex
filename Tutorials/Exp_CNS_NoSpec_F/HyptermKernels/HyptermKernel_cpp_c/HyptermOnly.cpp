@@ -46,7 +46,7 @@ extern "C" {
 
 // --------------------------------------------------------------------
 int main(int argc, char *argv[]) {
-    BoxLib::Initialize(argc,argv);    
+    amrex::Initialize(argc,argv);    
 
     int maxgrid(64), nComps(5), nGhost(4);
     int ioProc(ParallelDescriptor::IOProcessorNumber());
@@ -102,9 +102,9 @@ int main(int argc, char *argv[]) {
     VisMF::Write(mfU, "mfUInit");
 
 
-    double tsleepstart = BoxLib::wsecond();
+    double tsleepstart = amrex::wsecond();
     sleep(1);
-    double tsleepend = BoxLib::wsecond();
+    double tsleepend = amrex::wsecond();
     if(ParallelDescriptor::IOProcessor()) {
       cout << "sleep(1) time = " << tsleepend - tsleepstart << endl;
     }
@@ -115,7 +115,7 @@ int main(int argc, char *argv[]) {
 
     init_timer();
 
-    double tstart = BoxLib::wsecond();
+    double tstart = amrex::wsecond();
 
     int nSteps(1);
     for(int iStep(0); iStep < nSteps; ++iStep) {
@@ -149,11 +149,11 @@ int main(int argc, char *argv[]) {
 	  cout << "-----------------" << endl;
 	}
 
-        double tstart = BoxLib::wsecond();
+        double tstart = amrex::wsecond();
 
         hypterm_naive(lo,hi,NG,dx,U,Q,F);
 
-        double tend = BoxLib::wsecond();
+        double tend = amrex::wsecond();
         if(ParallelDescriptor::IOProcessor()) {
 	  cout << "-----------------" << endl;
           cout << "hypterm =  " << tend - tstart << endl;
@@ -162,7 +162,7 @@ int main(int argc, char *argv[]) {
       }
     }
 
-    double tend = BoxLib::wsecond();
+    double tend = amrex::wsecond();
     if(ParallelDescriptor::IOProcessor()) {
       cout << "-----------------" << endl;
       cout << "runtime tot =  " << tend - tstart << endl;
@@ -172,7 +172,7 @@ int main(int argc, char *argv[]) {
 
     VisMF::Write(mfFlux, "mfFluxFinal");
 
-    BoxLib::Finalize();
+    amrex::Finalize();
     return 0;
 }
 // --------------------------------------------------------------------

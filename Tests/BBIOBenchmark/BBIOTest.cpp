@@ -66,7 +66,7 @@ void TestWriteNFiles(int nfiles, int nMB, bool raninit, bool mb2)
   long npts(dataArray.size()), nItemsToWrite(0);
   long totalNBytes(npts * sizeof(long) * nProcs);
   std::string fileName(dirName + "/TestArray_");
-  fileName = BoxLib::Concatenate(fileName, myProc, 4);
+  fileName = amrex::Concatenate(fileName, myProc, 4);
   cout << myProc << "::fileName = " << fileName << endl << endl;
 
   ParallelDescriptor::Barrier();
@@ -167,7 +167,7 @@ void TestReadNFiles(int nfiles, int nMB, bool raninit, bool mb2)
   long npts(dataArray.size()), nItemsToRead(0);
   long totalNBytes(npts * sizeof(long) * nProcs);
   std::string fileName(dirName + "/TestArray_");
-  fileName = BoxLib::Concatenate(fileName, myProc, 4);
+  fileName = amrex::Concatenate(fileName, myProc, 4);
   cout << myProc << "::fileName = " << fileName << endl << endl;
 
   ParallelDescriptor::Barrier();

@@ -104,7 +104,7 @@ class NFilesIter
 				int whichProc, bool groupSets)
     {
       BL_ASSERT(whichProc >= 0 && whichProc < ParallelDescriptor::NProcs());
-      return ( BoxLib::Concatenate(filePrefix,
+      return ( amrex::Concatenate(filePrefix,
                                    FileNumber(ActualNFiles(nOutFiles),
 				              whichProc, groupSets), minDigits ) );
     }
@@ -112,7 +112,7 @@ class NFilesIter
     static std::string FileName(int fileNumber,
                                 const std::string &filePrefix)
     {
-      return ( BoxLib::Concatenate(filePrefix, fileNumber, minDigits ) );
+      return ( amrex::Concatenate(filePrefix, fileNumber, minDigits ) );
     }
 
     // ---- this is the processor coordinating dynamic set selection

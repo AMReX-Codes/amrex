@@ -43,7 +43,7 @@ void single_component_solve(MultiFab& soln, const MultiFab& rhs,
 
 int main(int argc, char* argv[])
 {
-    BoxLib::Initialize(argc,argv);
+    amrex::Initialize(argc,argv);
 
     BoxArray ba;
     Geometry geom;
@@ -89,7 +89,7 @@ int main(int argc, char* argv[])
 
     VisMF::Write(soln, "soln");
 
-    BoxLib::Finalize();
+    amrex::Finalize();
 }
 
 void setup_rhs(MultiFab& rhs, const Geometry& geom)
@@ -113,7 +113,7 @@ void setup_coeffs(MultiFab& alpha, const Array<MultiFab*>& beta, const Geometry&
     alpha.setVal(1.0);
 
 #if (BL_SPACEDIM == 3)
-    BoxLib::Abort("2D only");
+    amrex::Abort("2D only");
 #endif
 
     for ( MFIter mfi(alpha); mfi.isValid(); ++mfi ) 

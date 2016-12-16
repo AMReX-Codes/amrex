@@ -63,7 +63,7 @@ void PrintL0Grdlog(std::ostream &os, const BoxArray &ba, const Array<int> &map) 
 // --------------------------------------------------------------------------
 int main(int argc, char *argv[]) {
 
-    BoxLib::Initialize(argc,argv);    
+    amrex::Initialize(argc,argv);    
 
     VisMF::SetNOutFiles(nFiles);  // ---- this will enforce the range [1, nprocs]
 
@@ -90,7 +90,7 @@ int main(int argc, char *argv[]) {
     for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
       const int index(mfi.index());
       FArrayBox &fab = mf[index];
-      std::string fname = BoxLib::Concatenate("FAB_", index, 4);
+      std::string fname = amrex::Concatenate("FAB_", index, 4);
       std::ofstream fabs(fname.c_str());
       fab.writeOn(fabs);
       fabs.close();
@@ -138,7 +138,7 @@ int main(int argc, char *argv[]) {
       PrintL0Grdlog(std::cout, mf.boxArray(), dmap.ProcessorMap());
     }
 
-    BoxLib::Finalize();
+    amrex::Finalize();
     return 0;
 }
 // --------------------------------------------------------------------------

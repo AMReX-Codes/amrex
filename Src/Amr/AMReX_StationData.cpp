@@ -60,7 +60,7 @@ StationData::init (const Array<std::unique_ptr<AmrLevel> >& levels, const int fi
                     std::cerr << "StationData::init(): `"
                               << m_vars[i]
                               << "' is not a state or derived variable\n";
-                    BoxLib::Abort();
+                    amrex::Abort();
                 }
             }
         }
@@ -131,7 +131,7 @@ StationData::init (const Array<std::unique_ptr<AmrLevel> >& levels, const int fi
 	}
       }
       if(Geometry::ProbDomain().contains(m_stn[i].pos) == false) {
-        BoxLib::Abort("Bad Stations coord.");
+        amrex::Abort("Bad Stations coord.");
       }
     }
 
@@ -145,8 +145,8 @@ StationData::init (const Array<std::unique_ptr<AmrLevel> >& levels, const int fi
         static const std::string Dir("Stations");
 
         if (ParallelDescriptor::IOProcessor())
-            if (!BoxLib::UtilCreateDirectory(Dir, 0755))
-                BoxLib::CreateDirectoryFailed(Dir);
+            if (!amrex::UtilCreateDirectory(Dir, 0755))
+                amrex::CreateDirectoryFailed(Dir);
         //
         // Everyone must wait till directory is built.
         //
@@ -156,7 +156,7 @@ StationData::init (const Array<std::unique_ptr<AmrLevel> >& levels, const int fi
         //
         const int MyProc = ParallelDescriptor::MyProc();
 
-        std::string datafile = BoxLib::Concatenate("Stations/stn_CPU_", MyProc, 4);
+        std::string datafile = amrex::Concatenate("Stations/stn_CPU_", MyProc, 4);
 
         m_ofile.open(datafile.c_str(), std::ios::out|std::ios::app);
 

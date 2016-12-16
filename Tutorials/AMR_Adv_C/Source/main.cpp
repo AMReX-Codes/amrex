@@ -12,7 +12,7 @@ int
 main (int   argc,
       char* argv[])
 {
-    BoxLib::Initialize(argc,argv);
+    amrex::Initialize(argc,argv);
     Real dRunTime1 = ParallelDescriptor::second();
 
     std::cout << std::setprecision(10);
@@ -31,11 +31,11 @@ main (int   argc,
     pp.query("stop_time",stop_time);
 
     if (strt_time < 0.0) {
-        BoxLib::Abort("MUST SPECIFY a non-negative strt_time"); 
+        amrex::Abort("MUST SPECIFY a non-negative strt_time"); 
     }
 
     if (max_step < 0 && stop_time < 0.0) {
-	BoxLib::Abort("Exiting because neither max_step nor stop_time is non-negative.");
+	amrex::Abort("Exiting because neither max_step nor stop_time is non-negative.");
     }
 
     Amr* amrptr = new Amr;
@@ -85,7 +85,7 @@ main (int   argc,
         std::cout << "Run time = " << dRunTime2 << std::endl;
     }
 
-    BoxLib::Finalize();
+    amrex::Finalize();
 
     return 0;
 }

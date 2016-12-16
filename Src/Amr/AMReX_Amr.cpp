@@ -122,7 +122,7 @@ Amr::Initialize ()
     plot_headerversion       = VisMF::Header::Version_v1;
     checkpoint_headerversion = VisMF::Header::Version_v1;
 
-    BoxLib::ExecOnFinalize(Amr::Finalize);
+    amrex::ExecOnFinalize(Amr::Finalize);
 
     initialized = true;
 }
@@ -363,11 +363,11 @@ Amr::InitAmr ()
        else if (numvals == 0)
        {
            if (ParallelDescriptor::IOProcessor())
-               BoxLib::Warning("Using default regrid_int = 1 at all levels");
+               amrex::Warning("Using default regrid_int = 1 at all levels");
        }
        else if (numvals < max_level)
        {
-           BoxLib::Error("You did not specify enough values of regrid_int");
+           amrex::Error("You did not specify enough values of regrid_int");
        }
        else 
        {
@@ -384,7 +384,7 @@ Amr::InitAmr ()
         std::ifstream is(initial_grids_file.c_str(),std::ios::in);
 
         if (!is.good())
-            BoxLib::FileOpenFailed(initial_grids_file);
+            amrex::FileOpenFailed(initial_grids_file);
 
         int in_finest,ngrid;
 
@@ -394,7 +394,7 @@ Amr::InitAmr ()
 
         use_fixed_upto_level = in_finest;
         if (in_finest > max_level)
-           BoxLib::Error("You have fewer levels in your inputs file then in your grids file!");
+           amrex::Error("You have fewer levels in your inputs file then in your grids file!");
 
         for (int lev = 1; lev <= in_finest; lev++)
         {
@@ -424,7 +424,7 @@ Amr::InitAmr ()
         std::ifstream is(regrid_grids_file.c_str(),std::ios::in);
 
         if (!is.good())
-            BoxLib::FileOpenFailed(regrid_grids_file);
+            amrex::FileOpenFailed(regrid_grids_file);
 
         int in_finest,ngrid;
 
@@ -445,7 +445,7 @@ Amr::InitAmr ()
                  if (bx.longside() > max_grid_size[lev])
                  {
                      std::cout << "Grid " << bx << " too large" << '\n';
-                     BoxLib::Error();
+                     amrex::Error();
                  }
                  bl.push_back(bx);
             }
@@ -603,7 +603,7 @@ Amr::setRecordGridInfo (const std::string& filename)
     {
         gridlog.open(filename.c_str(),std::ios::out|std::ios::app);
         if (!gridlog.good())
-            BoxLib::FileOpenFailed(filename);
+            amrex::FileOpenFailed(filename);
     }
     ParallelDescriptor::Barrier("Amr::setRecordGridInfo");
 }
@@ -616,7 +616,7 @@ Amr::setRecordRunInfo (const std::string& filename)
     {
         runlog.open(filename.c_str(),std::ios::out|std::ios::app);
         if (!runlog.good())
-            BoxLib::FileOpenFailed(filename);
+            amrex::FileOpenFailed(filename);
     }
     ParallelDescriptor::Barrier("Amr::setRecordRunInfo");
 }
@@ -629,7 +629,7 @@ Amr::setRecordRunInfoTerse (const std::string& filename)
     {
         runlog_terse.open(filename.c_str(),std::ios::out|std::ios::app);
         if (!runlog_terse.good())
-            BoxLib::FileOpenFailed(filename);
+            amrex::FileOpenFailed(filename);
     }
     ParallelDescriptor::Barrier("Amr::setRecordRunInfoTerse");
 }
@@ -642,7 +642,7 @@ Amr::setRecordDataInfo (int i, const std::string& filename)
         datalog[i].reset(new std::fstream);
         datalog[i]->open(filename.c_str(),std::ios::out|std::ios::app);
         if (!datalog[i]->good())
-            BoxLib::FileOpenFailed(filename);
+            amrex::FileOpenFailed(filename);
     }
     ParallelDescriptor::Barrier("Amr::setRecordDataInfo");
 }
@@ -718,7 +718,7 @@ Amr::writePlotFile ()
 
     Real dPlotFileTime0 = ParallelDescriptor::second();
 
-    const std::string& pltfile = BoxLib::Concatenate(plot_file_root,level_steps[0],file_name_digits);
+    const std::string& pltfile = amrex::Concatenate(plot_file_root,level_steps[0],file_name_digits);
 
     if (verbose > 0 && ParallelDescriptor::IOProcessor()) {
         std::cout << "PLOTFILE: file = " << pltfile << '\n';
@@ -728,7 +728,7 @@ Amr::writePlotFile ()
         runlog << "PLOTFILE: file = " << pltfile << '\n';
     }
 
-  BoxLib::StreamRetry sretry(pltfile, abort_on_stream_retry_failure,
+  amrex::StreamRetry sretry(pltfile, abort_on_stream_retry_failure,
                              stream_max_tries);
 
   const std::string pltfileTemp(pltfile + ".temp");
@@ -743,14 +743,14 @@ Amr::writePlotFile ()
     //
 
     if(precreateDirectories) {    // ---- make all directories at once
-      BoxLib::UtilRenameDirectoryToOld(pltfile, false);      // dont call barrier
+      amrex::UtilRenameDirectoryToOld(pltfile, false);      // dont call barrier
       if(ParallelDescriptor::IOProcessor()) {
         std::cout << "IOIOIOIO:  precreating directories for " << pltfileTemp << std::endl;
       }
-      BoxLib::PreBuildDirectorHierarchy(pltfileTemp, "Level_", finest_level + 1, true);  // call barrier
+      amrex::PreBuildDirectorHierarchy(pltfileTemp, "Level_", finest_level + 1, true);  // call barrier
     } else {
-      BoxLib::UtilRenameDirectoryToOld(pltfile, false);     // dont call barrier
-      BoxLib::UtilCreateCleanDirectory(pltfileTemp, true);  // call barrier
+      amrex::UtilRenameDirectoryToOld(pltfile, false);     // dont call barrier
+      amrex::UtilCreateCleanDirectory(pltfileTemp, true);  // call barrier
     }
 
     std::string HeaderFileName(pltfileTemp + "/Header");
@@ -770,7 +770,7 @@ Amr::writePlotFile ()
         HeaderFile.open(HeaderFileName.c_str(), std::ios::out | std::ios::trunc |
 	                                        std::ios::binary);
         if ( ! HeaderFile.good()) {
-            BoxLib::FileOpenFailed(HeaderFileName);
+            amrex::FileOpenFailed(HeaderFileName);
 	}
         old_prec = HeaderFile.precision(15);
     }
@@ -782,7 +782,7 @@ Amr::writePlotFile ()
     if (ParallelDescriptor::IOProcessor()) {
         HeaderFile.precision(old_prec);
         if ( ! HeaderFile.good()) {
-            BoxLib::Error("Amr::writePlotFile() failed");
+            amrex::Error("Amr::writePlotFile() failed");
 	}
     }
 
@@ -842,7 +842,7 @@ Amr::writeSmallPlotFile ()
 
     Real dPlotFileTime0 = ParallelDescriptor::second();
 
-    const std::string& pltfile = BoxLib::Concatenate(small_plot_file_root,
+    const std::string& pltfile = amrex::Concatenate(small_plot_file_root,
                                                      level_steps[0],
                                                      file_name_digits);
 
@@ -854,7 +854,7 @@ Amr::writeSmallPlotFile ()
         runlog << "SMALL PLOTFILE: file = " << pltfile << '\n';
     }
 
-  BoxLib::StreamRetry sretry(pltfile, abort_on_stream_retry_failure,
+  amrex::StreamRetry sretry(pltfile, abort_on_stream_retry_failure,
                              stream_max_tries);
 
   const std::string pltfileTemp(pltfile + ".temp");
@@ -868,15 +868,15 @@ Amr::writeSmallPlotFile ()
     //  it to a bad suffix if there were stream errors.
     //
     if(precreateDirectories) {    // ---- make all directories at once
-      BoxLib::UtilRenameDirectoryToOld(pltfile, false);      // dont call barrier
-      BoxLib::UtilCreateCleanDirectory(pltfileTemp, false);  // dont call barrier
+      amrex::UtilRenameDirectoryToOld(pltfile, false);      // dont call barrier
+      amrex::UtilCreateCleanDirectory(pltfileTemp, false);  // dont call barrier
       for(int i(0); i <= finest_level; ++i) {
         amr_level[i]->CreateLevelDirectory(pltfileTemp);
       }
       ParallelDescriptor::Barrier("Amr::precreate smallplotfile Directories");
     } else {
-      BoxLib::UtilRenameDirectoryToOld(pltfile, false);     // dont call barrier
-      BoxLib::UtilCreateCleanDirectory(pltfileTemp, true);  // call barrier
+      amrex::UtilRenameDirectoryToOld(pltfile, false);     // dont call barrier
+      amrex::UtilCreateCleanDirectory(pltfileTemp, true);  // call barrier
     }
 
 
@@ -897,7 +897,7 @@ Amr::writeSmallPlotFile ()
         HeaderFile.open(HeaderFileName.c_str(), std::ios::out | std::ios::trunc |
 	                                        std::ios::binary);
         if ( ! HeaderFile.good()) {
-            BoxLib::FileOpenFailed(HeaderFileName);
+            amrex::FileOpenFailed(HeaderFileName);
 	}
         old_prec = HeaderFile.precision(15);
     }
@@ -909,7 +909,7 @@ Amr::writeSmallPlotFile ()
     if (ParallelDescriptor::IOProcessor()) {
         HeaderFile.precision(old_prec);
         if ( ! HeaderFile.good()) {
-            BoxLib::Error("Amr::writeSmallPlotFile() failed");
+            amrex::Error("Amr::writeSmallPlotFile() failed");
 	}
     }
 
@@ -946,7 +946,7 @@ void
 Amr::checkInput ()
 {
     if (max_level < 0)
-        BoxLib::Error("checkInput: max_level not set");
+        amrex::Error("checkInput: max_level not set");
     //
     // Check that blocking_factor is a power of 2.
     //
@@ -956,7 +956,7 @@ Amr::checkInput ()
         while ( k > 0 && (k%2 == 0) )
             k /= 2;
         if (k != 1)
-            BoxLib::Error("Amr::checkInputs: blocking_factor not power of 2");
+            amrex::Error("Amr::checkInputs: blocking_factor not power of 2");
     }
     //
     // Check level dependent values.
@@ -964,11 +964,11 @@ Amr::checkInput ()
     for (int i = 0; i < max_level; i++)
     {
         if (MaxRefRatio(i) < 2 || MaxRefRatio(i) > 12)
-            BoxLib::Error("checkInput bad ref_ratios");
+            amrex::Error("checkInput bad ref_ratios");
     }
     const Box& domain = Geom(0).Domain();
     if (!domain.ok())
-        BoxLib::Error("level 0 domain bad or not set");
+        amrex::Error("level 0 domain bad or not set");
     //
     // Check that domain size is a multiple of blocking_factor[0].
     //
@@ -976,7 +976,7 @@ Amr::checkInput ()
     {
         int len = domain.length(i);
         if (len%blocking_factor[0] != 0)
-            BoxLib::Error("domain size not divisible by blocking_factor");
+            amrex::Error("domain size not divisible by blocking_factor");
     }
     //
     // Check that max_grid_size is even.
@@ -984,7 +984,7 @@ Amr::checkInput ()
     for (int i = 0; i < max_level; i++)
     {
         if (max_grid_size[i]%2 != 0)
-            BoxLib::Error("max_grid_size is not even");
+            amrex::Error("max_grid_size is not even");
     }
 
     //
@@ -993,11 +993,11 @@ Amr::checkInput ()
     for (int i = 0; i < max_level; i++)
     {
         if (max_grid_size[i]%blocking_factor[i] != 0)
-            BoxLib::Error("max_grid_size not divisible by blocking_factor");
+            amrex::Error("max_grid_size not divisible by blocking_factor");
     }
 
     if( ! Geometry::ProbDomain().ok()) {
-        BoxLib::Error("checkInput: bad physical problem size");
+        amrex::Error("checkInput: bad physical problem size");
     }
 
     if(verbose > 0 && ParallelDescriptor::IOProcessor()) {
@@ -1367,7 +1367,7 @@ Amr::restart (const std::string& filename)
     if (spdim != BL_SPACEDIM)
     {
         std::cerr << "Amr::restart(): bad spacedim = " << spdim << '\n';
-        BoxLib::Abort();
+        amrex::Abort();
     }
 
     is >> cumtime;
@@ -1443,7 +1443,7 @@ Amr::restart (const std::string& filename)
                for (int i(1); i <= finest_level; ++i)
                {
                    if (dt_level[i] != dt_level[i-1]) {
-                      BoxLib::Error("restart: must have same dt at all levels if not subcycling");
+                      amrex::Error("restart: must have same dt at all levels if not subcycling");
 		   }
                }
            }
@@ -1454,7 +1454,7 @@ Amr::restart (const std::string& filename)
            if (regrid_int[0] > 0) {
                level_count[0] = regrid_int[0];
 	   } else {
-               BoxLib::Error("restart: can't have regrid_on_restart and regrid_int <= 0");
+               amrex::Error("restart: can't have regrid_on_restart and regrid_int <= 0");
 	   }
        }
 
@@ -1480,7 +1480,7 @@ Amr::restart (const std::string& filename)
     } else {
 
        if (ParallelDescriptor::IOProcessor()) {
-          BoxLib::Warning("Amr::restart(): max_level is lower than before");
+          amrex::Warning("Amr::restart(): max_level is lower than before");
        }
 
        int new_finest_level = std::min(max_level,finest_level);
@@ -1522,7 +1522,7 @@ Amr::restart (const std::string& filename)
            if (regrid_int[0] > 0)  {
                level_count[0] = regrid_int[0];
 	   } else {
-               BoxLib::Error("restart: can't have regrid_on_restart and regrid_int <= 0");
+               amrex::Error("restart: can't have regrid_on_restart and regrid_int <= 0");
 	   }
        }
 
@@ -1560,7 +1560,7 @@ Amr::restart (const std::string& filename)
              std::cout << "Amr::restart() failed -- box from inputs file does not "
 	               << "equal box from restart file." << std::endl;
           }
-          BoxLib::Abort();
+          amrex::Abort();
        }
     }
 
@@ -1605,7 +1605,7 @@ Amr::checkPoint ()
 
     Real dCheckPointTime0 = ParallelDescriptor::second();
 
-    const std::string& ckfile = BoxLib::Concatenate(check_file_root,level_steps[0],file_name_digits);
+    const std::string& ckfile = amrex::Concatenate(check_file_root,level_steps[0],file_name_digits);
 
     if(verbose > 0 && ParallelDescriptor::IOProcessor()) {
         std::cout << "CHECKPOINT: file = " << ckfile << std::endl;
@@ -1616,7 +1616,7 @@ Amr::checkPoint ()
     }
 
 
-  BoxLib::StreamRetry sretry(ckfile, abort_on_stream_retry_failure,
+  amrex::StreamRetry sretry(ckfile, abort_on_stream_retry_failure,
                              stream_max_tries);
 
   const std::string ckfileTemp(ckfile + ".temp");
@@ -1634,15 +1634,15 @@ Amr::checkPoint ()
     //
 
     if(precreateDirectories) {    // ---- make all directories at once
-      BoxLib::UtilRenameDirectoryToOld(ckfile, false);      // dont call barrier
-      BoxLib::UtilCreateCleanDirectory(ckfileTemp, false);  // dont call barrier
+      amrex::UtilRenameDirectoryToOld(ckfile, false);      // dont call barrier
+      amrex::UtilCreateCleanDirectory(ckfileTemp, false);  // dont call barrier
       for(int i(0); i <= finest_level; ++i) {
         amr_level[i]->CreateLevelDirectory(ckfileTemp);
       }
       ParallelDescriptor::Barrier("Amr::precreateDirectories");
     } else {
-      BoxLib::UtilRenameDirectoryToOld(ckfile, false);     // dont call barrier
-      BoxLib::UtilCreateCleanDirectory(ckfileTemp, true);  // call barrier
+      amrex::UtilRenameDirectoryToOld(ckfile, false);     // dont call barrier
+      amrex::UtilCreateCleanDirectory(ckfileTemp, true);  // call barrier
     }
 
     std::string HeaderFileName = ckfileTemp + "/Header";
@@ -1664,7 +1664,7 @@ Amr::checkPoint ()
 	                                        std::ios::binary);
 
         if ( ! HeaderFile.good()) {
-            BoxLib::FileOpenFailed(HeaderFileName);
+            amrex::FileOpenFailed(HeaderFileName);
 	}
 
         old_prec = HeaderFile.precision(17);
@@ -1705,7 +1705,7 @@ Amr::checkPoint ()
 	                             std::ios::out | std::ios::trunc |
 	                             std::ios::binary);
           if ( ! FAHeaderFile.good()) {
-              BoxLib::FileOpenFailed(FAHeaderFilesName);
+              amrex::FileOpenFailed(FAHeaderFilesName);
 	  }
 
 	  for(int i(0); i < FAHeaderNames.size(); ++i) {
@@ -1718,7 +1718,7 @@ Amr::checkPoint ()
         HeaderFile.precision(old_prec);
 
         if( ! HeaderFile.good()) {
-            BoxLib::Error("Amr::checkpoint() failed");
+            amrex::Error("Amr::checkpoint() failed");
 	}
     }
 
@@ -2000,7 +2000,7 @@ Amr::coarseTimeStep (Real stop_time)
 #endif
 
 #ifndef BL_MEM_PROFILING
-        long min_fab_kilobytes  = BoxLib::TotalBytesAllocatedInFabsHWM()/1024;
+        long min_fab_kilobytes  = amrex::TotalBytesAllocatedInFabsHWM()/1024;
         long max_fab_kilobytes  = min_fab_kilobytes;
 
 #ifdef BL_LAZY
@@ -2229,7 +2229,7 @@ Amr::defBaseLevel (Real              strt_time,
 
     for (int idir = 0; idir < BL_SPACEDIM; idir++)
         if (d_len[idir]%2 != 0)
-            BoxLib::Error("defBaseLevel: must have even number of cells");
+            amrex::Error("defBaseLevel: must have even number of cells");
 
     BoxArray lev0;
 
@@ -2239,9 +2239,9 @@ Amr::defBaseLevel (Real              strt_time,
 
         BoxArray domain_ba(domain);
         if (!domain_ba.contains(*lev0_grids))
-            BoxLib::Error("defBaseLevel: domain does not contain lev0_grids!");
+            amrex::Error("defBaseLevel: domain does not contain lev0_grids!");
         if (!lev0_grids->contains(domain_ba))
-            BoxLib::Error("defBaseLevel: lev0_grids does not contain domain");
+            amrex::Error("defBaseLevel: lev0_grids does not contain domain");
 
         lev0 = *lev0_grids;
 
@@ -2475,7 +2475,7 @@ Amr::regrid_level_0_on_restart()
     // Coarsening before we split the grids ensures that each resulting
     // grid will have an even number of cells in each direction.
     //
-    BoxArray lev0(BoxLib::coarsen(Geom(0).Domain(),2));
+    BoxArray lev0(amrex::coarsen(Geom(0).Domain(),2));
     //
     // Now split up into list of grids within max_grid_size[0] limit.
     //
@@ -2866,7 +2866,7 @@ Amr::initSubcycle ()
         if (nosub > 0)
             sub_cycle = false;
         else
-            BoxLib::Error("nosub <= 0 not allowed.\n");
+            amrex::Error("nosub <= 0 not allowed.\n");
         subcycling_mode = "None";
     }
     else 
@@ -2910,19 +2910,19 @@ Amr::initSubcycle ()
             pp.getarr("subcycling_iterations",n_cycle,0,max_level+1);
             if (n_cycle[0] != 1)
             {
-                BoxLib::Error("First entry of subcycling_iterations must be 1");
+                amrex::Error("First entry of subcycling_iterations must be 1");
             }
         }
         else
         {
-            BoxLib::Error("Must provide a valid subcycling_iterations if mode is Manual");
+            amrex::Error("Must provide a valid subcycling_iterations if mode is Manual");
         }
         for (int i = 1; i <= max_level; i++)
         {
             if (n_cycle[i] > MaxRefRatio(i-1))
-                BoxLib::Error("subcycling iterations must always be <= ref_ratio");
+                amrex::Error("subcycling iterations must always be <= ref_ratio");
             if (n_cycle[i] <= 0)
-                BoxLib::Error("subcycling iterations must always be > 0");
+                amrex::Error("subcycling iterations must always be > 0");
         }
     }
     else if (subcycling_mode == "Auto")
@@ -2946,7 +2946,7 @@ Amr::initSubcycle ()
     else
     {
         std::string err_message = "Unrecognzied subcycling mode: " + subcycling_mode + "\n";
-        BoxLib::Error(err_message.c_str());
+        amrex::Error(err_message.c_str());
     }
 }
 
@@ -2978,7 +2978,7 @@ Amr::initPltAndChk ()
     if (check_int > 0 && check_per > 0)
     {
         if (ParallelDescriptor::IOProcessor())
-	    BoxLib::Warning("Warning: both amr.check_int and amr.check_per are > 0.");
+	    amrex::Warning("Warning: both amr.check_int and amr.check_per are > 0.");
     }
 
     plot_file_root = "plt";
@@ -2993,7 +2993,7 @@ Amr::initPltAndChk ()
     if (plot_int > 0 && plot_per > 0)
     {
         if (ParallelDescriptor::IOProcessor())
-            BoxLib::Warning("Warning: both amr.plot_int and amr.plot_per are > 0.");
+            amrex::Warning("Warning: both amr.plot_int and amr.plot_per are > 0.");
     }
 
     small_plot_file_root = "smallplt";
@@ -3008,7 +3008,7 @@ Amr::initPltAndChk ()
     if (small_plot_int > 0 && small_plot_per > 0)
     {
         if (ParallelDescriptor::IOProcessor())
-            BoxLib::Warning("Warning: both amr.small_plot_int and amr.small_plot_per are > 0.");
+            amrex::Warning("Warning: both amr.small_plot_int and amr.small_plot_per are > 0.");
     }
 
     write_plotfile_with_checkpoint = 1;
@@ -3273,7 +3273,7 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
         allIntsSize = allInts.size();
       }
 
-      BoxLib::BroadcastArray(allInts, scsMyId, ioProcNumAll, scsComm);
+      amrex::BroadcastArray(allInts, scsMyId, ioProcNumAll, scsComm);
 
       // ---- unpack the ints
       if(scsMyId != ioProcNumSCS) {
@@ -3359,7 +3359,7 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
         allLongs.push_back(VisMF::GetIOBufferSize());
       }
 
-      BoxLib::BroadcastArray(allLongs, scsMyId, ioProcNumAll, scsComm);
+      amrex::BroadcastArray(allLongs, scsMyId, ioProcNumAll, scsComm);
       
       // ---- unpack the longs
       if(scsMyId != ioProcNumSCS) {
@@ -3385,7 +3385,7 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
 	allRealsSize = allReals.size();
       }
 
-      BoxLib::BroadcastArray(allReals, scsMyId, ioProcNumAll, scsComm);
+      amrex::BroadcastArray(allReals, scsMyId, ioProcNumAll, scsComm);
 
       // ---- unpack the Reals
       if(scsMyId != ioProcNumSCS) {
@@ -3435,7 +3435,7 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
 	allBoolsSize = allBools.size();
       }
 
-      BoxLib::BroadcastArray(allBools, scsMyId, ioProcNumAll, scsComm);
+      amrex::BroadcastArray(allBools, scsMyId, ioProcNumAll, scsComm);
 
       // ---- unpack the bools
       if(scsMyId != ioProcNumSCS) {
@@ -3492,16 +3492,16 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
           allStrings.push_back(*lit);
 	}
 
-	serialStrings = BoxLib::SerializeStringArray(allStrings);
+	serialStrings = amrex::SerializeStringArray(allStrings);
 	serialStringsSize = serialStrings.size();
       }
 
-      BoxLib::BroadcastArray(serialStrings, scsMyId, ioProcNumAll, scsComm);
+      amrex::BroadcastArray(serialStrings, scsMyId, ioProcNumAll, scsComm);
 
       // ---- unpack the strings
       if(scsMyId != ioProcNumSCS) {
 	int count(0);
-        allStrings = BoxLib::UnSerializeStringArray(serialStrings);
+        allStrings = amrex::UnSerializeStringArray(serialStrings);
 
         regrid_grids_file  = allStrings[count++];
         initial_grids_file = allStrings[count++];
@@ -3560,10 +3560,10 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
 
       // ---- BoxArrays
       for(int i(0); i < initial_ba.size(); ++i) {
-        BoxLib::BroadcastBoxArray(initial_ba[i], scsMyId, ioProcNumAll, scsComm);
+        amrex::BroadcastBoxArray(initial_ba[i], scsMyId, ioProcNumAll, scsComm);
       }
       for(int i(0); i < regrid_ba.size(); ++i) {
-        BoxLib::BroadcastBoxArray(regrid_ba[i], scsMyId, ioProcNumAll, scsComm);
+        amrex::BroadcastBoxArray(regrid_ba[i], scsMyId, ioProcNumAll, scsComm);
       }
 
 
@@ -3610,7 +3610,7 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
       BroadcastBoundaryPointList(intersect_hiz, scsMyId, ioProcNumSCS, scsComm);
 
 #ifdef USE_STATIONDATA
-      BoxLib::Abort("**** Error:  USE_STATIONDATA not yet supported in sidecar resize.");
+      amrex::Abort("**** Error:  USE_STATIONDATA not yet supported in sidecar resize.");
       // ---- handle station
       if(scsMyId != ioProcNumSCS) {
       }
@@ -3709,9 +3709,9 @@ Amr::BroadcastBoundaryPointList(BoundaryPointList &bpl, int myLocalId, int rootI
       bplD.push_back(it->second);
     }
   }
-  BoxLib::BroadcastArray(pF, myLocalId, rootId, comm);
-  BoxLib::BroadcastArray(pS, myLocalId, rootId, comm);
-  BoxLib::BroadcastArray(bplD, myLocalId, rootId, comm);
+  amrex::BroadcastArray(pF, myLocalId, rootId, comm);
+  amrex::BroadcastArray(pS, myLocalId, rootId, comm);
+  amrex::BroadcastArray(bplD, myLocalId, rootId, comm);
 
   BL_ASSERT(pF.size() == pS.size());
   BL_ASSERT(pS.size() == bplD.size());

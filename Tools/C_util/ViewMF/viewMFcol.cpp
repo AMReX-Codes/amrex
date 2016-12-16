@@ -33,7 +33,7 @@ int
 main (int   argc,
       char* argv[])
 {
-    BoxLib::Initialize(argc,argv);
+    amrex::Initialize(argc,argv);
 //
 //  Parse the command line
 //
@@ -73,7 +73,7 @@ main (int   argc,
     cout << "Components: " << sComp << " : " << sComp + nComp - 1 << endl;
     cout << fab << endl;
 
-    BoxLib::Finalize();
+    amrex::Finalize();
     
     return 0;
 }

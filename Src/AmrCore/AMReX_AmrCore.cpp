@@ -113,7 +113,7 @@ AmrCore::InitAmrCore (int max_level_in, const Array<int>& n_cell_in)
    
         if (got_int == 1 && got_vect == 1 && ParallelDescriptor::IOProcessor())
         {
-            BoxLib::Warning("Only input *either* ref_ratio or ref_ratio_vect");
+            amrex::Warning("Only input *either* ref_ratio or ref_ratio_vect");
         }
         else if (got_vect == 1)
         {
@@ -135,7 +135,7 @@ AmrCore::InitAmrCore (int max_level_in, const Array<int>& n_cell_in)
         else
         {
             if (ParallelDescriptor::IOProcessor())
-                BoxLib::Warning("Using default ref_ratio = 2 at all levels");
+                amrex::Warning("Using default ref_ratio = 2 at all levels");
         }
     }
 
@@ -281,7 +281,7 @@ AmrCore::ChopGrids (int lev, BoxArray& ba, int target_size) const
 BoxArray
 AmrCore::MakeBaseGrids () const
 {
-    BoxArray ba(BoxLib::coarsen(geom[0].Domain(),2));
+    BoxArray ba(amrex::coarsen(geom[0].Domain(),2));
     ba.maxSize(max_grid_size[0]/2);
     ba.refine(2);
     if (refine_grid_layout) {
@@ -322,7 +322,7 @@ AmrCore::MakeNewGrids (int lbase, Real time, int& new_finest, Array<BoxArray>& n
             rr_lev[i][n] = (ref_ratio[i][n]*bf_lev[i][n])/bf_lev[i+1][n];
     }
     for (int i = lbase; i <= max_crse; i++) {
-	pc_domain[i] = BoxLib::coarsen(Geom(i).Domain(),bf_lev[i]);
+	pc_domain[i] = amrex::coarsen(Geom(i).Domain(),bf_lev[i]);
     }
     //
     // Construct proper nesting domains.
@@ -440,7 +440,7 @@ AmrCore::MakeNewGrids (int lbase, Real time, int& new_finest, Array<BoxArray>& n
                         blt->growHi(idir,nerr);
                 }
             }
-            Box mboxF = BoxLib::grow(bl_tagged.minimalBox(),1);
+            Box mboxF = amrex::grow(bl_tagged.minimalBox(),1);
             BoxList blFcomp;
             blFcomp.complementIn(mboxF,bl_tagged);
             blFcomp.simplify();
@@ -546,7 +546,7 @@ AmrCore::MakeNewGrids (int lbase, Real time, int& new_finest, Array<BoxArray>& n
 		if ( !(Geom(levc).Domain().contains(BoxArray(new_bx).minimalBox())) ) {
 		// Chop new grids outside domain, note that this is likely to result in
 		//  new grids that violate blocking_factor....see warning checking below
-		    new_bx = BoxLib::intersect(new_bx,Geom(levc).Domain());
+		    new_bx = amrex::intersect(new_bx,Geom(levc).Domain());
 		}
 	    }
 
@@ -590,7 +590,7 @@ AmrCore::MakeNewGrids (int lbase, Real time, int& new_finest, Array<BoxArray>& n
 
 	    if (new_bx.size()>0) {
 		if ( !(Geom(levf).Domain().contains(BoxArray(new_bx).minimalBox())) ) {
-		    new_bx = BoxLib::intersect(new_bx,Geom(levf).Domain());
+		    new_bx = amrex::intersect(new_bx,Geom(levf).Domain());
 		}
 		if (ParallelDescriptor::IOProcessor()) {
 		    for (int d=0; d<BL_SPACEDIM; ++d) {
@@ -601,7 +601,7 @@ AmrCore::MakeNewGrids (int lbase, Real time, int& new_finest, Array<BoxArray>& n
 			    ok &= (len/bf) * bf == len;
 			}
 			if (!ok) {
-			    BoxLib::Warning("WARNING: New grids violate blocking factor near upper boundary");
+			    amrex::Warning("WARNING: New grids violate blocking factor near upper boundary");
 			}
 		    }
 		}

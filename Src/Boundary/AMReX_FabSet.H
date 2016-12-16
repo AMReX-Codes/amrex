@@ -123,7 +123,7 @@ public:
 
     void AddProcsToComp (int ioProcNumSCS, int ioProcNumAll,
 			 int scsMyId, MPI_Comm scsComm)
-	{ BoxLib::Abort("FabSet::AddProcsToComp not implemented"); }
+	{ amrex::Abort("FabSet::AddProcsToComp not implemented"); }
 
 private:
     MultiFab m_mf;

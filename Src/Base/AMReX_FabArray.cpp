@@ -104,7 +104,7 @@ FabArrayBase::Initialize ()
 
     FabArrayBase::nFabArrays = 0;
 
-    BoxLib::ExecOnFinalize(FabArrayBase::Finalize);
+    amrex::ExecOnFinalize(FabArrayBase::Finalize);
 
 #ifdef BL_MEM_PROFILING
     MemProfiler::add(m_TAC_stats.name, std::function<MemProfiler::MemInfo()>
@@ -137,7 +137,7 @@ FabArrayBase::~FabArrayBase () {}
 Box
 FabArrayBase::fabbox (int K) const
 {
-    return BoxLib::grow(boxarray[K], n_grow);
+    return amrex::grow(boxarray[K], n_grow);
 }
 
 long
@@ -145,8 +145,8 @@ FabArrayBase::bytesOfMapOfCopyComTagContainers (const FabArrayBase::MapOfCopyCom
 {
     long r = sizeof(MapOfCopyComTagContainers);
     for (MapOfCopyComTagContainers::const_iterator it = m.begin(); it != m.end(); ++it) {
-	r += sizeof(it->first) + BoxLib::bytesOf(it->second)
-	    + BoxLib::gcc_map_node_extra_bytes;
+	r += sizeof(it->first) + amrex::bytesOf(it->second)
+	    + amrex::gcc_map_node_extra_bytes;
     }
     return r;
 }
@@ -157,7 +157,7 @@ FabArrayBase::CPC::bytes () const
     long cnt = sizeof(FabArrayBase::CPC);
 
     if (m_LocTags)
-	cnt += BoxLib::bytesOf(*m_LocTags);
+	cnt += amrex::bytesOf(*m_LocTags);
 
     if (m_SndTags)
 	cnt += FabArrayBase::bytesOfMapOfCopyComTagContainers(*m_SndTags);
@@ -166,10 +166,10 @@ FabArrayBase::CPC::bytes () const
 	cnt += FabArrayBase::bytesOfMapOfCopyComTagContainers(*m_RcvTags);
 
     if (m_SndVols)
-	cnt += BoxLib::bytesOf(*m_SndVols);
+	cnt += amrex::bytesOf(*m_SndVols);
 
     if (m_RcvVols)
-	cnt += BoxLib::bytesOf(*m_RcvVols);
+	cnt += amrex::bytesOf(*m_RcvVols);
 
     return cnt;
 }
@@ -180,7 +180,7 @@ FabArrayBase::FB::bytes () const
     int cnt = sizeof(FabArrayBase::FB);
 
     if (m_LocTags)
-	cnt += BoxLib::bytesOf(*m_LocTags);
+	cnt += amrex::bytesOf(*m_LocTags);
 
     if (m_SndTags)
 	cnt += FabArrayBase::bytesOfMapOfCopyComTagContainers(*m_SndTags);
@@ -189,10 +189,10 @@ FabArrayBase::FB::bytes () const
 	cnt += FabArrayBase::bytesOfMapOfCopyComTagContainers(*m_RcvTags);
 
     if (m_SndVols)
-	cnt += BoxLib::bytesOf(*m_SndVols);
+	cnt += amrex::bytesOf(*m_SndVols);
 
     if (m_RcvVols)
-	cnt += BoxLib::bytesOf(*m_RcvVols);
+	cnt += amrex::bytesOf(*m_RcvVols);
 
     return cnt;
 }
@@ -201,9 +201,9 @@ long
 FabArrayBase::TileArray::bytes () const
 {
     return sizeof(*this) 
-	+ (BoxLib::bytesOf(this->indexMap)      - sizeof(this->indexMap))
-	+ (BoxLib::bytesOf(this->localIndexMap) - sizeof(this->localIndexMap))
-	+ (BoxLib::bytesOf(this->tileArray)     - sizeof(this->tileArray));
+	+ (amrex::bytesOf(this->indexMap)      - sizeof(this->indexMap))
+	+ (amrex::bytesOf(this->localIndexMap) - sizeof(this->localIndexMap))
+	+ (amrex::bytesOf(this->tileArray)     - sizeof(this->tileArray));
 }
 
 //
@@ -288,7 +288,7 @@ FabArrayBase::CPC::define (const BoxArray& ba_dst, const DistributionMapping& dm
 	for (int i = 0; i < nlocal_src; ++i)
 	{
 	    const int   k_src = imap_src[i];
-	    const Box& bx_src = BoxLib::grow(ba_src[k_src], ng_src);
+	    const Box& bx_src = amrex::grow(ba_src[k_src], ng_src);
 
 	    for (std::vector<IntVect>::const_iterator pit=pshifts.begin(); pit!=pshifts.end(); ++pit)
 	    {
@@ -327,7 +327,7 @@ FabArrayBase::CPC::define (const BoxArray& ba_dst, const DistributionMapping& dm
 	for (int i = 0; i < nlocal_dst; ++i)
 	{
 	    const int   k_dst = imap_dst[i];
-	    const Box& bx_dst = BoxLib::grow(ba_dst[k_dst], ng_dst);
+	    const Box& bx_dst = amrex::grow(ba_dst[k_dst], ng_dst);
 	    
 	    if (check_local) {
 		localtouch.resize(bx_dst);
@@ -569,7 +569,7 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa)
     const DistributionMapping& dm       = fa.DistributionMap();
     const Array<int>&          imap     = fa.IndexArray();
 
-    BL_ASSERT(BoxLib::convert(ba,IndexType::TheCellType()).isDisjoint());
+    BL_ASSERT(amrex::convert(ba,IndexType::TheCellType()).isDisjoint());
 
     // For local copy, all workers in the same team will have the identical copy of tags
     // so that they can share work.  But for remote communication, they are all different.
@@ -601,7 +601,7 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa)
 		if (ParallelDescriptor::sameTeam(dst_owner)) {
 		    continue;  // local copy will be dealt with later
 		} else if (MyProc == dm[ksnd]) {
-		    const BoxList& bl = BoxLib::boxDiff(bx, ba[krcv]);
+		    const BoxList& bl = amrex::boxDiff(bx, ba[krcv]);
 		    for (BoxList::const_iterator lit = bl.begin(); lit != bl.end(); ++lit)
 			send_tags[dst_owner].push_back(CopyComTag(*lit, (*lit)-(*pit), krcv, ksnd));
 		}
@@ -635,7 +635,7 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa)
     {
 	const int   krcv = imap[i];
 	const Box& vbx   = ba[krcv];
-	const Box& bxrcv = BoxLib::grow(vbx, ng);
+	const Box& bxrcv = amrex::grow(vbx, ng);
 	
 	if (check_local) {
 	    localtouch.resize(bxrcv);
@@ -657,7 +657,7 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa)
 		const Box& dst_bx   = isects[j].second - *pit;
 		const int src_owner = dm[ksnd];
 		
-		const BoxList& bl = BoxLib::boxDiff(dst_bx, vbx);
+		const BoxList& bl = amrex::boxDiff(dst_bx, vbx);
 		for (BoxList::const_iterator lit = bl.begin(); lit != bl.end(); ++lit)
 		{
 		    const Box& blbx = *lit;
@@ -803,7 +803,7 @@ FabArrayBase::FB::define_epo (const FabArrayBase& fa)
     for (int i = 0; i < nlocal; ++i)
     {
 	const int ksnd = imap[i];
-	Box bxsnd = BoxLib::grow(ba[ksnd],ng);
+	Box bxsnd = amrex::grow(ba[ksnd],ng);
 	bxsnd &= pdomain; // source must be inside the periodic domain.
 
 	if (!bxsnd.ok()) continue;
@@ -823,7 +823,7 @@ FabArrayBase::FB::define_epo (const FabArrayBase& fa)
 		    if (ParallelDescriptor::sameTeam(dst_owner)) {
 			continue;  // local copy will be dealt with later
 		    } else if (MyProc == dm[ksnd]) {
-			const BoxList& bl = BoxLib::boxDiff(bx, pdomain);
+			const BoxList& bl = amrex::boxDiff(bx, pdomain);
 			for (BoxList::const_iterator lit = bl.begin(); lit != bl.end(); ++lit) {
 			    send_tags[dst_owner].push_back(CopyComTag(*lit, (*lit)-(*pit), krcv, ksnd));
 			}
@@ -852,7 +852,7 @@ FabArrayBase::FB::define_epo (const FabArrayBase& fa)
     {
 	const int   krcv = imap[i];
 	const Box& vbx   = ba[krcv];
-	const Box& bxrcv = BoxLib::grow(vbx, ng);
+	const Box& bxrcv = amrex::grow(vbx, ng);
 	
 	if (pdomain.contains(bxrcv)) continue;
 
@@ -878,7 +878,7 @@ FabArrayBase::FB::define_epo (const FabArrayBase& fa)
 		    const Box& dst_bx   = isects[j].second - *pit;
 		    const int src_owner = dm[ksnd];
 		    
-		    const BoxList& bl = BoxLib::boxDiff(dst_bx, pdomain);
+		    const BoxList& bl = amrex::boxDiff(dst_bx, pdomain);
 
 		    for (BoxList::const_iterator lit = bl.begin(); lit != bl.end(); ++lit)
 		    {
@@ -1214,7 +1214,7 @@ FabArrayBase::Finalize ()
 
     FabArrayBase::flushTileArrayCache();
 
-    if (ParallelDescriptor::IOProcessor() && BoxLib::verbose) {
+    if (ParallelDescriptor::IOProcessor() && amrex::verbose) {
 	m_FA_stats.print();
 	m_TAC_stats.print();
 	m_FBC_stats.print();
@@ -1702,7 +1702,7 @@ MFGhostIter::Initialize ()
 	const Box& vbx = fabArray.box(K);
 	const Box& fbx = fabArray.fabbox(K);
 
-	const BoxList& diff = BoxLib::boxDiff(fbx, vbx);
+	const BoxList& diff = amrex::boxDiff(fbx, vbx);
 	
 	for (BoxList::const_iterator bli = diff.begin(); bli != diff.end(); ++bli) {
 	    BoxList tiles(*bli, FabArrayBase::mfghostiter_tile_size);

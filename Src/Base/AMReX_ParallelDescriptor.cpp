@@ -81,7 +81,7 @@ namespace ParallelDescriptor
     MPI_Group m_group_comp    = MPI_GROUP_NULL;
     Array<MPI_Group> m_group_sidecar;
 #else
-    //  Set these for non-mpi codes that do not call BoxLib::Initialize(...)
+    //  Set these for non-mpi codes that do not call amrex::Initialize(...)
     int m_MyId_all         = 0;
     int m_MyId_comp        = 0;
     int m_MyId_sub         = 0;
@@ -192,7 +192,7 @@ namespace ParallelDescriptor
     void
     MPI_Error (const char* file, int line, const char* str, int rc)
     {
-	BoxLib::Error(the_message_string(file, line, str, rc));
+	amrex::Error(the_message_string(file, line, str, rc));
     }
 }
 
@@ -246,22 +246,22 @@ ParallelDescriptor::Message::test ()
 int
 ParallelDescriptor::Message::tag () const
 {
-    if ( !m_finished ) BoxLib::Error("Message::tag: Not Finished!");
+    if ( !m_finished ) amrex::Error("Message::tag: Not Finished!");
     return m_stat.MPI_TAG;
 }
 
 int
 ParallelDescriptor::Message::pid () const
 {
-    if ( !m_finished ) BoxLib::Error("Message::pid: Not Finished!");
+    if ( !m_finished ) amrex::Error("Message::pid: Not Finished!");
     return m_stat.MPI_SOURCE;
 }
 
 size_t
 ParallelDescriptor::Message::count () const
 {
-    if ( m_type == MPI_DATATYPE_NULL ) BoxLib::Error("Message::count: Bad Type!");
-    if ( !m_finished ) BoxLib::Error("Message::count: Not Finished!");
+    if ( m_type == MPI_DATATYPE_NULL ) amrex::Error("Message::count: Bad Type!");
+    if ( !m_finished ) amrex::Error("Message::count: Not Finished!");
     int cnt;
     BL_MPI_REQUIRE( MPI_Get_count(&m_stat, m_type, &cnt) );
     return cnt;
@@ -302,7 +302,7 @@ ParallelDescriptor::StartParallel (int*    argc,
 #ifdef BL_USE_MPI3
     int mpi_version, mpi_subversion;
     BL_MPI_REQUIRE( MPI_Get_version(&mpi_version, &mpi_subversion) );
-    if (mpi_version < 3) BoxLib::Abort("MPI 3 is needed because USE_MPI3=TRUE");
+    if (mpi_version < 3) amrex::Abort("MPI 3 is needed because USE_MPI3=TRUE");
 #endif
 
     SetNProcsSidecars(0);  // ---- users resize these later
@@ -352,7 +352,7 @@ ParallelDescriptor::SetNProcsSidecars (const Array<int> &compRanksInAll,
 
     // ---- check validity of the rank arrays and set inComp
     if(compRanksInAll[0] != 0) {  // ---- we require this for now
-      BoxLib::Abort("**** Error in SetNProcsSidecars:  compRanksInAll[0] != 0");
+      amrex::Abort("**** Error in SetNProcsSidecars:  compRanksInAll[0] != 0");
     }
     std::set<int> rankSet;
     for(int i(0); i < compRanksInAll.size(); ++i) {
@@ -374,13 +374,13 @@ ParallelDescriptor::SetNProcsSidecars (const Array<int> &compRanksInAll,
     if(rankSet.size() != m_nProcs_all) {
       std::cerr << "**** rankSet.size() != m_nProcs_all:  " << rankSet.size()
                 << " != " << m_nProcs_all << std::endl;
-      BoxLib::Abort("**** Error in SetNProcsSidecars:  rankSet.size() != m_nProcs_all.");
+      amrex::Abort("**** Error in SetNProcsSidecars:  rankSet.size() != m_nProcs_all.");
     }
     int rankCheck(0);
     std::set<int>::const_iterator cit;
     for(cit = rankSet.begin(); cit != rankSet.end(); ++cit) {
       if(*cit != rankCheck) {
-        BoxLib::Abort("**** Error in SetNProcsSidecars:  rankSet is not correct.");
+        amrex::Abort("**** Error in SetNProcsSidecars:  rankSet is not correct.");
       }
       ++rankCheck;
     }
@@ -427,7 +427,7 @@ ParallelDescriptor::SetNProcsSidecars (const Array<int> &compRanksInAll,
         }
       }
       if(ocrSet.size() > 0 && criaSet.size() > 0) {  // ---- this is currently not allowed
-        BoxLib::Abort("**** Error in SetNProcsSidecars:  adding and removing ranks from comp not supported.");
+        amrex::Abort("**** Error in SetNProcsSidecars:  adding and removing ranks from comp not supported.");
       }
     }
 
@@ -541,7 +541,7 @@ ParallelDescriptor::SetNProcsSidecars (const Array<int> &compRanksInAll,
 
           if(inComp) {                          // ---- in the computation group
 	    if(inWhichSidecar >= 0) {
-              BoxLib::Abort("**** Error 0:  bad inWhichSidecar in SetNProcsSidecars()");
+              amrex::Abort("**** Error 0:  bad inWhichSidecar in SetNProcsSidecars()");
 	    }
             BL_MPI_REQUIRE( MPI_Group_rank(m_group_comp, &m_MyId_comp) );
             BL_MPI_REQUIRE( MPI_Intercomm_create(m_comm_comp, 0, m_comm_all, sidecarRanksInAll[i][0],
@@ -549,7 +549,7 @@ ParallelDescriptor::SetNProcsSidecars (const Array<int> &compRanksInAll,
 	    m_MyId_sidecar = myId_notInGroup;
           } else {                              // ---- in a sidecar group
 	    if(inWhichSidecar < 0) {
-              BoxLib::Abort("**** Error 1:  bad inWhichSidecar in SetNProcsSidecars()");
+              amrex::Abort("**** Error 1:  bad inWhichSidecar in SetNProcsSidecars()");
 	    }
 	    if(inWhichSidecar == i) {
               BL_MPI_REQUIRE( MPI_Group_rank(m_group_sidecar[i], &m_MyId_sidecar) );
@@ -582,7 +582,7 @@ ParallelDescriptor::SetNProcsSidecars (const Array<int> &compRanksInAll,
     if(m_nCommColors > 1) {
       m_nProcs_sub = m_nProcs_comp / m_nCommColors;
       if (m_nProcs_sub * m_nCommColors != m_nProcs_comp) {
-        BoxLib::Abort("# of processors is not divisible by boxlib.ncolors");
+        amrex::Abort("# of processors is not divisible by boxlib.ncolors");
       }
       m_MyCommSubColor  = Color(MyProc()/m_nProcs_sub);
       m_MyCommCompColor = Color(m_nCommColors);  // special color for CommComp color
@@ -605,27 +605,27 @@ ParallelDescriptor::SetNProcsSidecars (const Array<int> &compRanksInAll,
     {
       std::cerr << "m_MyId_all m_MyId_comp m_MyId_sidecar = " << m_MyId_all << "  "
 	          << m_MyId_comp << "  " << m_MyId_sidecar << std::endl;
-      BoxLib::Abort("**** Error 2:  bad MyId in ParallelDescriptor::SetNProcsSidecars()");
+      amrex::Abort("**** Error 2:  bad MyId in ParallelDescriptor::SetNProcsSidecars()");
     }
     if(m_nProcs_all  == nProcs_undefined ||
        m_nProcs_comp == nProcs_undefined)
     {
       std::cerr << "m_nProcs_all m_nProcs_comp = " << m_nProcs_all << "  "
 	          << m_nProcs_comp << std::endl;
-      BoxLib::Abort("**** Error 3:  bad nProcs in ParallelDescriptor::SetNProcsSidecars()");
+      amrex::Abort("**** Error 3:  bad nProcs in ParallelDescriptor::SetNProcsSidecars()");
     }
     int nSCSum(0);
     for(int i(0); i < sidecarRanksInAll.size(); ++i) {
       nSCSum += sidecarRanksInAll[i].size();
       if(m_nProcs_sidecar[i] == nProcs_undefined) {
         std::cerr << "m_nProcs_sidecar[" << i << "] = " << m_nProcs_sidecar[i] << std::endl;
-        BoxLib::Abort("**** Error 4:  bad m_nProcs_sidecar in ParallelDescriptor::SetNProcsSidecars()");
+        amrex::Abort("**** Error 4:  bad m_nProcs_sidecar in ParallelDescriptor::SetNProcsSidecars()");
       }
     }
     if(m_nProcs_comp + nSCSum != m_nProcs_all) {
       std::cerr << "m_nProcs_all m_nProcs_comp + nSCSum = " << m_nProcs_all << "  "
                 << m_nProcs_comp + nSCSum << std::endl;
-      BoxLib::Abort("**** Error 5:  bad nProcs in ParallelDescriptor::SetNProcsSidecars()");
+      amrex::Abort("**** Error 5:  bad nProcs in ParallelDescriptor::SetNProcsSidecars()");
     }
 
 #ifdef BL_USE_FORTRAN_MPI
@@ -702,18 +702,18 @@ ParallelDescriptor::StartSubCommunicator ()
 
 #if defined(BL_USE_MPI3) || defined(BL_USE_UPCXX)
 	//    m_nCommColors = 1;
-	BoxLib::Abort("boxlib.ncolors > 1 not supported for MPI3 and UPCXX");
+	amrex::Abort("boxlib.ncolors > 1 not supported for MPI3 and UPCXX");
 	if (doTeamReduce())
-	    BoxLib::Abort("boxlib.ncolors > 1 not supported with team.reduce on");	    
+	    amrex::Abort("boxlib.ncolors > 1 not supported with team.reduce on");	    
 #endif
 
 #ifdef BL_LAZY
-	BoxLib::Abort("boxlib.ncolors > 1 not supported for LAZY=TRUE");
+	amrex::Abort("boxlib.ncolors > 1 not supported for LAZY=TRUE");
 #endif
 
 	m_nProcs_sub = m_nProcs_comp / m_nCommColors;
 	if (m_nProcs_sub * m_nCommColors != m_nProcs_comp) {
-	    BoxLib::Abort("# of processors is not divisible by boxlib.ncolors");
+	    amrex::Abort("# of processors is not divisible by boxlib.ncolors");
 	}
 	m_MyCommSubColor  = Color(MyProc()/m_nProcs_sub);
 	m_MyCommCompColor = Color(m_nCommColors);  // special color for CommComp color
@@ -2035,7 +2035,7 @@ void ParallelDescriptor::Bcast(void *, int, MPI_Datatype, int, MPI_Comm) {}
 double
 ParallelDescriptor::second ()
 {
-    return BoxLib::wsecond();
+    return amrex::wsecond();
 }
 
 void
@@ -2078,7 +2078,7 @@ ParallelDescriptor::SeqNum (int getsetinc, int newvalue)
       break;
       default:  // ---- error
       {
-	BoxLib::Abort("**** Error in ParallelDescriptor::SeqNum:  bad getsetinc.");
+	amrex::Abort("**** Error in ParallelDescriptor::SeqNum:  bad getsetinc.");
         result = -1;
       }
     }
@@ -2117,7 +2117,7 @@ ParallelDescriptor::SubSeqNum (int getsetinc, int newvalue)
       break;
       default:  // ---- error
       {
-	BoxLib::Abort("**** Error in ParallelDescriptor::SeqNum:  bad getsetinc.");
+	amrex::Abort("**** Error in ParallelDescriptor::SeqNum:  bad getsetinc.");
         result = -1;
       }
     }
@@ -2311,7 +2311,7 @@ ParallelDescriptor::ReadAndBcastFile (const std::string& filename,
         iss.open(filename.c_str(), std::ios::in);
         if ( ! iss.good()) {
 	  if(bExitOnError) {
-            BoxLib::FileOpenFailed(filename);
+            amrex::FileOpenFailed(filename);
 	  } else {
             fileLength = -1;
 	  }
@@ -2358,7 +2358,7 @@ ParallelDescriptor::StartTeams ()
     int rank   = ParallelDescriptor::MyProc();
 
     if (nprocs % team_size != 0)
-	BoxLib::Abort("Number of processes not divisible by team size");
+	amrex::Abort("Number of processes not divisible by team size");
 
     m_Team.m_numTeams    = nprocs / team_size;
     m_Team.m_size        = team_size;

@@ -46,8 +46,8 @@ void nap(unsigned int sleeptime) {
 void napabort(unsigned int sleeptime) {
   BL_PROFILE("napabort()");
   Sleep(sleeptime);
-  BoxLib::Finalize();
-  BoxLib::Abort("From napabort");
+  amrex::Finalize();
+  amrex::Abort("From napabort");
 }
 
 
@@ -90,7 +90,7 @@ void nonap() {
 
 // --------------------------------------------------------------
 int main(int argc, char *argv[]) {
-  BoxLib::Initialize(argc, argv);
+  amrex::Initialize(argc, argv);
 
 //  sleep(1);
   BL_PROFILE_INIT_PARAMS(3.0, true, true);
@@ -121,7 +121,7 @@ int main(int argc, char *argv[]) {
   ParallelDescriptor::Barrier();
 
 
-  BoxLib::SyncStrings(localStrings, syncedStrings, alreadySynced);
+  amrex::SyncStrings(localStrings, syncedStrings, alreadySynced);
 
   if( ! alreadySynced) {
     if(ParallelDescriptor::IOProcessor()) {
@@ -154,7 +154,7 @@ int main(int argc, char *argv[]) {
   localStrings.push_back("allString zzz");
   ParallelDescriptor::Barrier();
   
-  BoxLib::SyncStrings(localStrings, syncedStrings, alreadySynced);
+  amrex::SyncStrings(localStrings, syncedStrings, alreadySynced);
   
   if( ! alreadySynced) {
     if(ParallelDescriptor::IOProcessor()) {
@@ -275,7 +275,7 @@ int main(int argc, char *argv[]) {
   cout << "rint = " << rint << endl;
 
   for(int i(0); i < nPts; ++i) {
-    int ri(BoxLib::Random_int(rint));
+    int ri(amrex::Random_int(rint));
     nativeVals[i] = ri;
     if(i == 0) {
       nativeVals[i] = 1.234e+123;
@@ -376,7 +376,7 @@ int main(int argc, char *argv[]) {
   BL_PROFILE_REGION_STOP("R::main");
 
   BL_PROFILE_FINALIZE();
-  BoxLib::Finalize();
+  amrex::Finalize();
 }
 
 // --------------------------------------------------------------

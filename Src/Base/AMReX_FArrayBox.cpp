@@ -139,7 +139,7 @@ FABio::write_header (std::ostream&    os,
 {
     BL_PROFILE("FABio::write_header");
     BL_ASSERT(nvar <= f.nComp());
-    BoxLib::StreamRetry sr(os, "FABio_write_header", 4);
+    amrex::StreamRetry sr(os, "FABio_write_header", 4);
     while(sr.TryOutput()) {
       os << f.box() << ' ' << nvar << '\n';
     }
@@ -366,7 +366,7 @@ FArrayBox::setFormat (FABio::Format fmt)
         fio = new FABio_binary(FPC::NativeRealDescriptor().clone());
         break;
     case FABio::FAB_IEEE:
-        //BoxLib::Warning("FABio::FAB_IEEE has been deprecated");
+        //amrex::Warning("FABio::FAB_IEEE has been deprecated");
         //
         // Fall through ...
         //
@@ -378,7 +378,7 @@ FArrayBox::setFormat (FABio::Format fmt)
         break;
     default:
         std::cerr << "FArrayBox::setFormat(): Bad FABio::Format = " << fmt;
-        BoxLib::Abort();
+        amrex::Abort();
     }
 
     FArrayBox::format = fmt;
@@ -389,27 +389,27 @@ FArrayBox::setFormat (FABio::Format fmt)
 void
 FArrayBox::setOrdering (FABio::Ordering ordering_)
 {
-    //BoxLib::Warning("FArrayBox::setOrdering() has been deprecated");
+    //amrex::Warning("FArrayBox::setOrdering() has been deprecated");
     ordering = ordering_;
 }
 
 FABio::Ordering
 FArrayBox::getOrdering ()
 {
-    //BoxLib::Warning("FArrayBox::getOrdering() has been deprecated");
+    //amrex::Warning("FArrayBox::getOrdering() has been deprecated");
     return ordering;
 }
 
 void
 FArrayBox::setPrecision (FABio::Precision)
 {
-    BoxLib::Warning("FArrayBox::setPrecision() has been deprecated");
+    amrex::Warning("FArrayBox::setPrecision() has been deprecated");
 }
 
 FABio::Precision
 FArrayBox::getPrecision ()
 {
-    BoxLib::Warning("FArrayBox::getPrecision() has been deprecated");
+    amrex::Warning("FArrayBox::getPrecision() has been deprecated");
     return FABio::FAB_FLOAT;
 }
 
@@ -484,7 +484,7 @@ FArrayBox::Initialize ()
             if (fmt == "IEEE")
             {
                 FArrayBox::format = FABio::FAB_IEEE;
-                //BoxLib::Warning("IEEE fmt in ParmParse files is deprecated");
+                //amrex::Warning("IEEE fmt in ParmParse files is deprecated");
             }
             else
             {
@@ -495,7 +495,7 @@ FArrayBox::Initialize ()
         else
         {
             std::cerr << "FArrayBox::init(): Bad FABio::Format = " << fmt;
-            BoxLib::Abort();
+            amrex::Abort();
         }
 
         setFABio(fio);
@@ -526,7 +526,7 @@ FArrayBox::Initialize ()
         else
         {
             std::cerr << "FArrayBox::init(): Bad FABio::Ordering = " << ord;
-            BoxLib::Abort();
+            amrex::Abort();
         }
     }
 
@@ -538,7 +538,7 @@ FArrayBox::Initialize ()
     pp.query("do_initval", do_initval);
     pp.query("init_snan", init_snan);
 
-    BoxLib::ExecOnFinalize(FArrayBox::Finalize);
+    amrex::ExecOnFinalize(FArrayBox::Finalize);
 }
 
 void
@@ -569,11 +569,11 @@ FABio::read_header (std::istream& is,
     char c;
 
     is >> c;
-    if(c != 'F') BoxLib::Error("FABio::read_header(): expected \'F\'");
+    if(c != 'F') amrex::Error("FABio::read_header(): expected \'F\'");
     is >> c;
-    if(c != 'A') BoxLib::Error("FABio::read_header(): expected \'A\'");
+    if(c != 'A') amrex::Error("FABio::read_header(): expected \'A\'");
     is >> c;
-    if(c != 'B') BoxLib::Error("FABio::read_header(): expected \'B\'");
+    if(c != 'B') amrex::Error("FABio::read_header(): expected \'B\'");
 
     is >> c;
     if(c == ':') {  // ---- The "old" FAB format.
@@ -604,7 +604,7 @@ FABio::read_header (std::istream& is,
             fio = new FABio_binary(rd);
             break;
         default:
-            BoxLib::Error("FABio::read_header(): Unrecognized FABio header");
+            amrex::Error("FABio::read_header(): Unrecognized FABio header");
         }
     } else {  // ---- The "new" FAB format.
         is.putback(c);
@@ -621,7 +621,7 @@ FABio::read_header (std::istream& is,
     }
 
     if(is.fail()) {
-        BoxLib::Error("FABio::read_header() failed");
+        amrex::Error("FABio::read_header() failed");
     }
 
     return fio;
@@ -642,11 +642,11 @@ FABio::read_header (std::istream& is,
     char c;
 
     is >> c;
-    if(c != 'F') BoxLib::Error("FABio::read_header(): expected \'F\'");
+    if(c != 'F') amrex::Error("FABio::read_header(): expected \'F\'");
     is >> c;
-    if(c != 'A') BoxLib::Error("FABio::read_header(): expected \'A\'");
+    if(c != 'A') amrex::Error("FABio::read_header(): expected \'A\'");
     is >> c;
-    if(c != 'B') BoxLib::Error("FABio::read_header(): expected \'B\'");
+    if(c != 'B') amrex::Error("FABio::read_header(): expected \'B\'");
 
     is >> c;
     if(c == ':') {  // ---- The "old" FAB format.
@@ -679,7 +679,7 @@ FABio::read_header (std::istream& is,
             fio = new FABio_binary(rd);
             break;
         default:
-            BoxLib::Error("FABio::read_header(): Unrecognized FABio header");
+            amrex::Error("FABio::read_header(): Unrecognized FABio header");
         }
     } else {  // ---- The "new" FAB format.
         is.putback(c);
@@ -698,7 +698,7 @@ FABio::read_header (std::istream& is,
     }
 
     if(is.fail()) {
-        BoxLib::Error("FABio::read_header() failed");
+        amrex::Error("FABio::read_header() failed");
     }
 
     return fio;
@@ -779,7 +779,7 @@ FABio_ascii::write (std::ostream&    os,
     os << '\n';
 
     if(os.fail()) {
-        BoxLib::Error("FABio_ascii::write() failed");
+        amrex::Error("FABio_ascii::write() failed");
     }
 }
 
@@ -800,7 +800,7 @@ FABio_ascii::read (std::istream& is,
                     << "  should be "
                     << p
                     << '\n';
-          BoxLib::Error("FABio_ascii::read() bad IntVect");
+          amrex::Error("FABio_ascii::read() bad IntVect");
         }
         for(int k(0); k < f.nComp(); ++k) {
             is >> f(p, k);
@@ -808,7 +808,7 @@ FABio_ascii::read (std::istream& is,
     }
 
     if(is.fail()) {
-        BoxLib::Error("FABio_ascii::read() failed");
+        amrex::Error("FABio_ascii::read() failed");
     }
 }
 
@@ -824,7 +824,7 @@ FABio_ascii::skip (std::istream& is,
                    FArrayBox&    f,
 		   int           nCompToSkip) const
 {
-    BoxLib::Error("FABio_ascii::skip(..., int nCompToSkip) not implemented");
+    amrex::Error("FABio_ascii::skip(..., int nCompToSkip) not implemented");
 }
 
 void
@@ -873,7 +873,7 @@ FABio_8bit::write (std::ostream&    os,
     delete [] c;
 
     if(os.fail()) {
-        BoxLib::Error("FABio_8bit::write() failed");
+        amrex::Error("FABio_8bit::write() failed");
     }
 }
 
@@ -902,7 +902,7 @@ FABio_8bit::read (std::istream& is,
         }
     }
     if(is.fail()) {
-        BoxLib::Error("FABio_8bit::read() failed");
+        amrex::Error("FABio_8bit::read() failed");
     }
 
     delete [] c;
@@ -925,7 +925,7 @@ FABio_8bit::skip (std::istream& is,
     }
 
     if(is.fail()) {
-        BoxLib::Error("FABio_8bit::skip() failed");
+        amrex::Error("FABio_8bit::skip() failed");
     } 
 }
 
@@ -947,7 +947,7 @@ FABio_8bit::skip (std::istream& is,
     }
 
     if(is.fail()) {
-        BoxLib::Error("FABio_8bit::skip() failed");
+        amrex::Error("FABio_8bit::skip() failed");
     }
 }
 
@@ -986,7 +986,7 @@ FABio_binary::read (std::istream& is,
     const long siz      = base_siz*f.nComp();
     RealDescriptor::convertToNativeFormat(comp_ptr, siz, is, *realDesc);
     if(is.fail()) {
-        BoxLib::Error("FABio_binary::read() failed");
+        amrex::Error("FABio_binary::read() failed");
     }
 }
 
@@ -1006,7 +1006,7 @@ FABio_binary::write (std::ostream&    os,
     RealDescriptor::convertFromNativeFormat(os, siz, comp_ptr, *realDesc);
 
     if(os.fail()) {
-        BoxLib::Error("FABio_binary::write() failed");
+        amrex::Error("FABio_binary::write() failed");
     }
 }
 
@@ -1019,7 +1019,7 @@ FABio_binary::skip (std::istream& is,
     long siz      = base_siz * f.nComp();
     is.seekg(siz*realDesc->numBytes(), std::ios::cur);
     if(is.fail()) {
-        BoxLib::Error("FABio_binary::skip() failed");
+        amrex::Error("FABio_binary::skip() failed");
     }
 }
 
@@ -1033,7 +1033,7 @@ FABio_binary::skip (std::istream& is,
     long siz      = base_siz * nCompToSkip;
     is.seekg(siz*realDesc->numBytes(), std::ios::cur);
     if(is.fail()) {
-        BoxLib::Error("FABio_binary::skip(..., int nCompToSkip) failed");
+        amrex::Error("FABio_binary::skip(..., int nCompToSkip) failed");
     }
 }
 

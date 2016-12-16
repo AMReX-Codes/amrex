@@ -81,7 +81,7 @@ Box::convert (IndexType t)
 }
 
 Box
-BoxLib::convert (const Box& b, const IntVect& typ)
+amrex::convert (const Box& b, const IntVect& typ)
 {
     Box bx(b);
     bx.convert(typ);
@@ -89,7 +89,7 @@ BoxLib::convert (const Box& b, const IntVect& typ)
 }
 
 Box
-BoxLib::convert (const Box& b, const IndexType& t)
+amrex::convert (const Box& b, const IndexType& t)
 {
     Box bx(b);
     bx.convert(t);
@@ -97,7 +97,7 @@ BoxLib::convert (const Box& b, const IndexType& t)
 }
 
 Box
-BoxLib::surroundingNodes (const Box& b,
+amrex::surroundingNodes (const Box& b,
                           int        dir)
 {
     Box bx(b);
@@ -120,7 +120,7 @@ Box::surroundingNodes (int dir)
 }
 
 Box
-BoxLib::surroundingNodes (const Box& b)
+amrex::surroundingNodes (const Box& b)
 {
     Box bx(b);
     bx.surroundingNodes();
@@ -138,7 +138,7 @@ Box::surroundingNodes ()
 }
 
 Box
-BoxLib::enclosedCells (const Box& b,
+amrex::enclosedCells (const Box& b,
                        int        dir)
 {
     Box bx(b);
@@ -161,7 +161,7 @@ Box::enclosedCells (int dir)
 }
 
 Box
-BoxLib::enclosedCells (const Box& b)
+amrex::enclosedCells (const Box& b)
 {
     Box bx(b);
     bx.enclosedCells();
@@ -179,7 +179,7 @@ Box::enclosedCells ()
 }
 
 Box
-BoxLib::grow (const Box& b,
+amrex::grow (const Box& b,
               int        i)
 {
     Box result = b;
@@ -188,7 +188,7 @@ BoxLib::grow (const Box& b,
 }
 
 Box
-BoxLib::grow (const Box&     b,
+amrex::grow (const Box&     b,
               const IntVect& v)
 {
     Box result = b;
@@ -245,7 +245,7 @@ Box::numPts () const
     if (!numPtsOK(result))
     {
         std::cout << "Bad box: " << *this << std::endl;
-        BoxLib::Error("Arithmetic overflow in Box::numPts()");
+        amrex::Error("Arithmetic overflow in Box::numPts()");
     }
     return result;
 }
@@ -302,7 +302,7 @@ Box::volume () const
 {
     long result;
     if (!volumeOK(result))
-        BoxLib::Error("Arithmetic overflow in Box::volume()");
+        amrex::Error("Arithmetic overflow in Box::volume()");
     return result;
 }
 
@@ -416,7 +416,7 @@ Box::next (IntVect&   p,
 }
 
 Box
-BoxLib::refine (const Box& b,
+amrex::refine (const Box& b,
                 int        ref_ratio)
 {
     Box result = b;
@@ -431,7 +431,7 @@ Box::refine (int ref_ratio)
 }
 
 Box
-BoxLib::refine (const Box&     b,
+amrex::refine (const Box&     b,
                 const IntVect& ref_ratio)
 {
     Box result = b;
@@ -452,7 +452,7 @@ Box::refine (const IntVect& ref_ratio)
 }
 
 Box
-BoxLib::shift (const Box& b, int dir, int nzones)
+amrex::shift (const Box& b, int dir, int nzones)
 {
     Box result = b;
     result.shift(dir, nzones);
@@ -552,7 +552,7 @@ Box::chop (int dir,
 }
 
 Box
-BoxLib::coarsen (const Box& b,
+amrex::coarsen (const Box& b,
                  int        ref_ratio)
 {
     Box result = b;
@@ -567,7 +567,7 @@ Box::coarsen (int ref_ratio)
 }
 
 Box
-BoxLib::coarsen (const Box&     b,
+amrex::coarsen (const Box&     b,
                  const IntVect& ref_ratio)
 {
     Box result = b;
@@ -615,7 +615,7 @@ operator<< (std::ostream& os,
        << ')';
 
     if (os.fail())
-        BoxLib::Error("operator<<(ostream&,Box&) failed");
+        amrex::Error("operator<<(ostream&,Box&) failed");
 
     return os;
 }
@@ -662,19 +662,19 @@ operator>> (std::istream& is,
     }
     else
     {
-        BoxLib::Error("operator>>(istream&,Box&): expected \'(\'");
+        amrex::Error("operator>>(istream&,Box&): expected \'(\'");
     }
 
     b = Box(lo,hi,typ);
 
     if (is.fail())
-        BoxLib::Error("operator>>(istream&,Box&) failed");
+        amrex::Error("operator>>(istream&,Box&) failed");
 
     return is;
 }
 
 Box
-BoxLib::minBox (const Box& b,
+amrex::minBox (const Box& b,
                 const Box& o)
 {
     Box result = b;
@@ -693,7 +693,7 @@ Box::minBox (const Box &b)
 }
 
 Box
-BoxLib::bdryLo (const Box& b,
+amrex::bdryLo (const Box& b,
                 int        dir,
                 int        len)
 {
@@ -711,7 +711,7 @@ BoxLib::bdryLo (const Box& b,
 }
 
 Box
-BoxLib::bdryHi (const Box& b,
+amrex::bdryHi (const Box& b,
                 int        dir,
                 int        len)
 {
@@ -730,7 +730,7 @@ BoxLib::bdryHi (const Box& b,
 }
 
 Box
-BoxLib::bdryNode (const Box&  b,
+amrex::bdryNode (const Box&  b,
                   Orientation face,
                   int         len)
 {
@@ -759,7 +759,7 @@ BoxLib::bdryNode (const Box&  b,
 }
 
 Box
-BoxLib::adjCellLo (const Box& b,
+amrex::adjCellLo (const Box& b,
                    int        dir,
                    int        len)
 {
@@ -778,7 +778,7 @@ BoxLib::adjCellLo (const Box& b,
 }
 
 Box
-BoxLib::adjCellHi (const Box& b,
+amrex::adjCellHi (const Box& b,
                    int        dir,
                    int        len)
 {
@@ -798,7 +798,7 @@ BoxLib::adjCellHi (const Box& b,
 }
 
 Box
-BoxLib::adjCell (const Box&  b,
+amrex::adjCell (const Box&  b,
                  Orientation face,
                  int         len)
 {
@@ -866,7 +866,7 @@ Box::isSquare () const
 #endif
 }
 
-Array<int> BoxLib::SerializeBox(const Box &b)
+Array<int> amrex::SerializeBox(const Box &b)
 {
   int count(0);
   Array<int> retArray(BL_SPACEDIM * 3);
@@ -887,12 +887,12 @@ Array<int> BoxLib::SerializeBox(const Box &b)
 }
 
 
-int BoxLib::SerializeBoxSize() {
+int amrex::SerializeBoxSize() {
   return (BL_SPACEDIM * 3);
 }
 
 
-Box BoxLib::UnSerializeBox(const Array<int> &serarray)
+Box amrex::UnSerializeBox(const Array<int> &serarray)
 {
   BL_ASSERT(serarray.size() == (3 * BL_SPACEDIM));
   const int *iptr = serarray.dataPtr();

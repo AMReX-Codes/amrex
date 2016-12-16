@@ -78,7 +78,7 @@ IArrayBox::Initialize ()
 {
     if (initialized) return;
 //    ParmParse pp("iab");
-    BoxLib::ExecOnFinalize(IArrayBox::Finalize);
+    amrex::ExecOnFinalize(IArrayBox::Finalize);
     initialized = true;
 }
 

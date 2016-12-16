@@ -179,10 +179,10 @@ BLPgas::alloc (std::size_t _sz)
 	    std::cout << "   Failed to allocate " << _sz << " bytes global address space memory!\n";
 	    std::cout << "   Please try to increase the GASNET_MAX_SEGSIZE environment variable.\n";
 	    std::cout << "   For example, export GASNET_MAX_SEGSIZE=512MB\n";
-	    std::cout << "   Total Bytes Allocated in Fabs: " << BoxLib::TotalBytesAllocatedInFabs();
-	    std::cout << "   Highest Watermark in Fabs: " << BoxLib::TotalBytesAllocatedInFabsHWM();
+	    std::cout << "   Total Bytes Allocated in Fabs: " << amrex::TotalBytesAllocatedInFabs();
+	    std::cout << "   Highest Watermark in Fabs: " << amrex::TotalBytesAllocatedInFabsHWM();
 	    std::cout << std::endl;
-	    BoxLib::Abort("BLPgas: upcxx::allocate failed");
+	    amrex::Abort("BLPgas: upcxx::allocate failed");
 	}
 	return p;
     }

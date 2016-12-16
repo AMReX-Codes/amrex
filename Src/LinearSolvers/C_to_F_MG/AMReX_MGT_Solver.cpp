@@ -270,7 +270,7 @@ MGT_Solver::FlushFortranOutput()
 void
 MGT_Solver::initialize(bool nodal)
 {
-    BoxLib::ExecOnFinalize(MGT_Solver::Finalize);
+    amrex::ExecOnFinalize(MGT_Solver::Finalize);
 
     initialized = true;
 
@@ -622,7 +622,7 @@ MGT_Solver::solve(const Array<MultiFab*>& uu, const Array<MultiFab*>& rh, const 
     mgt_solve(tol,abs_tol,&need_grad_phi,&final_resnorm,&status,&always_use_bnorm);
 
     if (status != 0) 
-	BoxLib::Error("Multigrid did not converge!");
+	amrex::Error("Multigrid did not converge!");
 
     int ng = (need_grad_phi == 1) ? 1 : 0;
 

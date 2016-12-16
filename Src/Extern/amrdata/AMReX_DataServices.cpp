@@ -295,13 +295,13 @@ void DataServices::Dispatch(DSRequestType requestType, DataServices *ds, ...) {
 
     case FillVarArrayOfFabs:
     {
-      BoxLib::Abort("FillVarArrayOfFabs not implemented yet.");
+      amrex::Abort("FillVarArrayOfFabs not implemented yet.");
     }
     break;
 
     case FillVarMultiFab:
     {
-      BoxLib::Abort("FillVarMultiFab not implemented yet.");
+      amrex::Abort("FillVarMultiFab not implemented yet.");
     }
     break;
 
@@ -743,7 +743,7 @@ bool DataServices::DumpSlice(int slicedir, int slicenum,
   const int N = 64;
   char slicechar[N];
   if (snprintf(slicechar, N, "%d.Level_%d", slicenum, iWTL) >= N)
-    BoxLib::Abort("DataServices::DumpSlice(1): slicechar buffer too small");
+    amrex::Abort("DataServices::DumpSlice(1): slicechar buffer too small");
   sliceFile += slicechar;
   sliceFile += ".fab";
   cout << "sliceFile = " << sliceFile << endl;
@@ -801,7 +801,7 @@ bool DataServices::DumpSlice(int slicedir, int slicenum) {  // dump all vars
   const int N = 64;
   char slicechar[N];
   if (snprintf(slicechar, N, "%d.Level_%d", slicenum, iWTL) >= N)
-    BoxLib::Abort("DataServices::DumpSlice(2): slicechar buffer too small");
+    amrex::Abort("DataServices::DumpSlice(2): slicechar buffer too small");
   sliceFile += slicechar;
   sliceFile += ".fab";
   cout << "sliceFile = " << sliceFile << endl;
@@ -859,7 +859,7 @@ bool DataServices::DumpSlice(const Box &b, const string &varname) {
                        b.bigEnd(Amrvis::XDIR),   b.bigEnd(Amrvis::YDIR),   b.bigEnd(Amrvis::ZDIR), iWTL);
 #endif
   if (count >= N)
-    BoxLib::Abort("DataServices::DumpSlice(3): slicechar buffer too small");      
+    amrex::Abort("DataServices::DumpSlice(3): slicechar buffer too small");      
   sliceFile += slicechar;
   sliceFile += ".fab";
   cout << "sliceFile = " << sliceFile << endl;
@@ -905,7 +905,7 @@ bool DataServices::DumpSlice(const Box &b) {  // dump all vars
                        b.bigEnd(Amrvis::XDIR),   b.bigEnd(Amrvis::YDIR),   b.bigEnd(Amrvis::ZDIR), iWTL);
 #endif
   if (count >= N)
-    BoxLib::Abort("DataServices::DumpSlice(4): slicechar buffer too small");      
+    amrex::Abort("DataServices::DumpSlice(4): slicechar buffer too small");      
   sliceFile += slicechar;
   sliceFile += ".fab";
   cout << "sliceFile = " << sliceFile << endl;

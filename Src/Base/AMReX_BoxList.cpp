@@ -58,7 +58,7 @@ BoxList::remove (iterator bli)
 }
 
 BoxList
-BoxLib::intersect (const BoxList& bl,
+amrex::intersect (const BoxList& bl,
 		   const Box&     b)
 {
     BL_ASSERT(bl.ixType() == b.ixType());
@@ -68,7 +68,7 @@ BoxLib::intersect (const BoxList& bl,
 }
 
 BoxList
-BoxLib::intersect (const BoxList& bl,
+amrex::intersect (const BoxList& bl,
                    const BoxList& br)
 {
     BL_ASSERT(bl.ixType() == br.ixType());
@@ -78,7 +78,7 @@ BoxLib::intersect (const BoxList& bl,
 }
 
 BoxList
-BoxLib::refine (const BoxList& bl,
+amrex::refine (const BoxList& bl,
 		int            ratio)
 {
     BoxList nbl(bl);
@@ -87,7 +87,7 @@ BoxLib::refine (const BoxList& bl,
 }
 
 BoxList
-BoxLib::coarsen (const BoxList& bl,
+amrex::coarsen (const BoxList& bl,
                  int            ratio)
 {
     BoxList nbl(bl);
@@ -96,7 +96,7 @@ BoxLib::coarsen (const BoxList& bl,
 }
 
 BoxList
-BoxLib::accrete (const BoxList& bl,
+amrex::accrete (const BoxList& bl,
                  int            sz)
 {
     BoxList nbl(bl);
@@ -105,7 +105,7 @@ BoxLib::accrete (const BoxList& bl,
 }
 
 BoxList
-BoxLib::removeOverlap (const BoxList& bl)
+amrex::removeOverlap (const BoxList& bl)
 {
     BoxArray ba(bl);
     ba.removeOverlap();
@@ -227,7 +227,7 @@ BoxList::contains (const Box& b) const
 
     BL_ASSERT(ixType() == b.ixType());
 
-    BoxList bnew = BoxLib::complementIn(b,*this);
+    BoxList bnew = amrex::complementIn(b,*this);
 
     return bnew.isEmpty();
 }
@@ -302,7 +302,7 @@ BoxList::intersect (const BoxList& b)
 }
 
 BoxList
-BoxLib::complementIn (const Box&     b,
+amrex::complementIn (const Box&     b,
                       const BoxList& bl)
 {
     BL_ASSERT(bl.ixType() == b.ixType());
@@ -324,14 +324,14 @@ BoxList::complementIn (const Box&     b,
     }
     else if (bl.size() == 1)
     {
-        *this = BoxLib::boxDiff(b,bl.front());
+        *this = amrex::boxDiff(b,bl.front());
     }
     else
     {
         clear();
 
         Box     mbox = bl.minimalBox();
-        BoxList diff = BoxLib::boxDiff(b,mbox);
+        BoxList diff = amrex::boxDiff(b,mbox);
 
         catenate(diff);
 
@@ -388,7 +388,7 @@ BoxList::complementIn_base (const Box&     b,
         {
             if (newbli->intersects(*bli))
             {
-                diff = BoxLib::boxDiff(*newbli, *bli);
+                diff = amrex::boxDiff(*newbli, *bli);
                 lbox.splice(lbox.begin(), diff.lbox);
                 lbox.erase(newbli++);
             }
@@ -499,7 +499,7 @@ BoxList::shiftHalf (const IntVect& iv)
 //
 
 BoxList
-BoxLib::boxDiff (const Box& b1in,
+amrex::boxDiff (const Box& b1in,
 		 const Box& b2)
 {
    BL_ASSERT(b1in.sameType(b2));
@@ -805,7 +805,7 @@ operator<< (std::ostream&  os,
     os << ')' << '\n';
 
     if (os.fail())
-        BoxLib::Error("operator<<(ostream&,BoxList&) failed");
+        amrex::Error("operator<<(ostream&,BoxList&) failed");
 
     return os;
 }

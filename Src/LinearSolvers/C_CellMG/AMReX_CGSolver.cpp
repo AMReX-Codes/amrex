@@ -70,8 +70,8 @@ CGSolver::Initialize ()
     pp.query("use_jacobi_precond", use_jacobi_precond);
     pp.query("unstable_criterion", def_unstable_criterion);
 
-    if (SSS < 1      ) BoxLib::Abort("SSS must be >= 1");
-    if (SSS > SSS_MAX) BoxLib::Abort("SSS must be <= SSS_MAX");
+    if (SSS < 1      ) amrex::Abort("SSS must be >= 1");
+    if (SSS > SSS_MAX) amrex::Abort("SSS must be <= SSS_MAX");
 
     int ii;
     if (pp.query("cg_solver", ii))
@@ -82,7 +82,7 @@ CGSolver::Initialize ()
         case 1: def_cg_solver = BiCGStab;       break;
         case 2: def_cg_solver = CABiCGStab;     break;
         default:
-            BoxLib::Error("CGSolver::Initialize(): bad cg_solver");
+            amrex::Error("CGSolver::Initialize(): bad cg_solver");
         }
     }
 
@@ -97,7 +97,7 @@ CGSolver::Initialize ()
 	std::cout << "   SSS                    = " << SSS                    << '\n';
     }
 
-    BoxLib::ExecOnFinalize(CGSolver::Finalize);
+    amrex::ExecOnFinalize(CGSolver::Finalize);
     
     initialized = true;
 }
@@ -171,7 +171,7 @@ CGSolver::solve (MultiFab&       sol,
     case CABiCGStab:
         return solve_cabicgstab(sol, rhs, eps_rel, eps_abs, bc_mode);
     default:
-        BoxLib::Error("CGSolver::solve(): unknown solver");
+        amrex::Error("CGSolver::solve(): unknown solver");
     }
 
     return -1;
@@ -725,7 +725,7 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
         if ( L2_norm_of_resid > L2_norm_of_rt )
         {
             if ( ParallelDescriptor::IOProcessor(color()) )
-                BoxLib::Warning("CGSolver_CABiCGStab: failed to converge!");
+                amrex::Warning("CGSolver_CABiCGStab: failed to converge!");
             //
             // Return code 8 tells the MultiGrid driver to zero out the solution!
             //
@@ -1033,7 +1033,7 @@ CGSolver::solve_bicgstab (MultiFab&       sol,
 #endif
     {
         if ( ParallelDescriptor::IOProcessor(color()) )
-            BoxLib::Warning("CGSolver_BiCGStab:: failed to converge!");
+            amrex::Warning("CGSolver_BiCGStab:: failed to converge!");
         ret = 8;
     }
 
@@ -1207,7 +1207,7 @@ CGSolver::solve_cg (MultiFab&       sol,
 #endif
     {
         if ( ParallelDescriptor::IOProcessor(color()) )
-            BoxLib::Warning("CGSolver_cg: failed to converge!");
+            amrex::Warning("CGSolver_cg: failed to converge!");
         ret = 8;
     }
 
@@ -1365,7 +1365,7 @@ CGSolver::jbb_precond (MultiFab&       sol,
     {
         if ( ParallelDescriptor::IOProcessor(color()) )
 	{
-            BoxLib::Warning("jbb_precond:: failed to converge!");
+            amrex::Warning("jbb_precond:: failed to converge!");
 	}
         ret = 8;
     }
