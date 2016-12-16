@@ -7,6 +7,8 @@
 #include <AMReX_FabArray.H>
 #include <AMReX_Geometry.H>
 
+namespace amrex {
+
 //
 // A Collection of IArrayBoxes
 //
@@ -360,5 +362,7 @@ private:
     iMultiFab (const iMultiFab& rhs);
     iMultiFab& operator= (const iMultiFab& rhs);
 };
+
+}
 
 #endif /*BL_IMULTIFAB_H*/

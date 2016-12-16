@@ -4,6 +4,8 @@
 
 #include <AMReX_FabConv.H>
 
+namespace amrex {
+
 //
 // A Collection of Floating-Point Constants Supporting FAB I/O
 //
@@ -85,5 +87,7 @@ public:
     //
     static const RealDescriptor& Ieee64NormalRealDescriptor ();
 };
+
+}
 
 #endif /*BL_FPC_H*/

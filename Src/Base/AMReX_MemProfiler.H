@@ -9,6 +9,8 @@
 #include <map>
 #include <iostream>
 
+namespace amrex {
+
 class MemProfiler
 {
 public:
@@ -60,5 +62,7 @@ private:
     std::vector<std::string>                   the_names_builds;
     std::vector<std::function<NBuildsInfo()> > the_funcs_builds;
 };
+
+}
 
 #endif

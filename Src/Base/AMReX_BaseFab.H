@@ -39,7 +39,6 @@ namespace amrex
     long TotalCellsAllocatedInFabsHWM();
     void ResetTotalBytesAllocatedInFabsHWM();
     void update_fab_stats (long n, long s, size_t szt);
-}
 
 /*
   A Fortran Array-like Object
@@ -2722,8 +2721,6 @@ BaseFab<T>::linComb (const BaseFab<T>&  f1,
     return *this;
 }
 
-namespace amrex
-{
     class BF_init
     {
     public:

@@ -10,6 +10,8 @@
 #include <AMReX_Array.H>
 #include <AMReX_BLassert.H>
 
+namespace amrex {
+
 //
 // An Integer Vector in SPACEDIM-Dimensional Space
 //
@@ -366,11 +368,12 @@ public:
 
 private:
 
+    friend std::ostream& operator<< (std::ostream& os, const IntVect& iv);
+    friend std::istream& operator>> (std::istream& is, IntVect& iv);
+
     int vect[BL_SPACEDIM];
 };
 
-namespace amrex
-{
     //
     // Returns a basis vector in the given coordinate direction;
     // eg.  IntVect BASISV(1) == (0,1,0).  Note that the coordinate
@@ -413,7 +416,8 @@ namespace amrex
     // projection of IntVect p1 by IntVect p2.
     //
     IntVect coarsen (const IntVect& p1, const IntVect& p2);
-}
+
+
 //
 // Returns p + s.
 //
@@ -438,13 +442,7 @@ IntVect operator* (int s, const IntVect& p)
 {
     return IntVect(D_DECL(s * p[0], s * p[1], s * p[2]));
 }
-//
-// Print the IntVect to given output stream in ASCII.
-//
-std::ostream& operator<< (std::ostream& os, const IntVect& iv);
-//
-// Read next IntVect from given input stream.
-//
-std::istream& operator>> (std::istream& is, IntVect& iv);
+
+}
 
 #endif /*BL_INTVECT_H*/

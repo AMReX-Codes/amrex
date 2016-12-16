@@ -12,10 +12,10 @@
 #include <AMReX_Pointers.H>
 #include <AMReX_BaseFab.H>
 
-class BoxArray;
-
 namespace amrex
 {
+    class BoxArray;
+
     //
     // Makes a BoxArray from the the complement of b2 in b1in.
     //
@@ -51,7 +51,6 @@ namespace amrex
 
     // Note that two BoxArrays that match are not necessarily equal.
     bool match (const BoxArray& x, const BoxArray& y);
-}
 
 class BARef
 {
@@ -500,5 +499,7 @@ private:
 // Write a BoxArray to an ostream in ASCII format.
 //
 std::ostream& operator<< (std::ostream& os, const BoxArray& ba);
+
+}
 
 #endif /*BL_BOXARRAY_H*/

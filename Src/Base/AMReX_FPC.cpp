@@ -1,5 +1,8 @@
 
 #include <AMReX_FPC.H>
+
+namespace amrex {
+
 //
 // FP orders.
 //
@@ -142,3 +145,4 @@ FPC::Ieee64NormalRealDescriptor ()
 #error We do not yet support FAB I/O on this machine
 #endif
 
+}

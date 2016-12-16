@@ -10,7 +10,12 @@
 
 #include <AMReX_Utility.H>
 #include <AMReX_BLProfiler.H>
+#include <AMReX_BLFort.H>
 #include <AMReX_ParallelDescriptor.H>
+
+#ifdef BL_USE_MPI
+#include <AMReX_ccse-mpi.H>
+#endif
 
 #ifdef BL_USE_FORTRAN_MPI
 extern "C" {
@@ -36,6 +41,8 @@ extern "C" {
 #ifdef _OPENMP
 #include <omp.h>
 #endif
+
+namespace amrex {
 
 namespace ParallelDescriptor
 {
@@ -159,8 +166,6 @@ ParallelDescriptor::AddSignalHandler (PTR_TO_SIGNAL_HANDLER fp)
 }
 
 #ifdef BL_USE_MPI
-
-#include <AMReX_ccse-mpi.H>
 
 namespace
 {
@@ -2131,8 +2136,6 @@ ParallelDescriptor::SubSeqNum (int getsetinc, int newvalue)
 }
 
 
-#include <AMReX_BLFort.H>
-
 BL_FORT_PROC_DECL(BL_PD_BARRIER,bl_pd_barrier)()
 {
     ParallelDescriptor::Barrier();
@@ -2426,4 +2429,6 @@ ParallelDescriptor::MPIOneSided ()
 #endif
 
     return do_onesided;
+}
+
 }

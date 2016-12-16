@@ -19,6 +19,8 @@ const int* fablo = (fab).loVect();           \
 const int* fabhi = (fab).hiVect();           \
 Real* fabdat = (fab).dataPtr();
 
+namespace amrex {
+
 //
 // The definition of static data members.
 //
@@ -625,3 +627,4 @@ CoordSys::BroadcastCoordSys (CoordSys &cSys, int fromProc, MPI_Comm comm, bool b
 }
 #endif
 
+}

@@ -8,7 +8,7 @@
 #include <AMReX_REAL.H>
 #include <AMReX_SPACE.H>
 
-class IArrayBox;
+namespace amrex {
 
 /*
   A Fortran Array of ints
@@ -97,5 +97,7 @@ private:
     IArrayBox (const IArrayBox&);
     IArrayBox& operator= (const IArrayBox&);
 };
+
+}
 
 #endif /*BL_IFARRAYBOX_H*/

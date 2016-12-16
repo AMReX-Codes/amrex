@@ -3,6 +3,8 @@
 
 #include <AMReX_BCRec.H>
 
+namespace amrex {
+
 BCRec::BCRec (D_DECL(int loX, int loY, int loZ),
               D_DECL(int hiX, int hiY, int hiZ))
 {
@@ -43,7 +45,7 @@ BCRec::BCRec (const Box&   bx,
 }
 
 void
-amrex::setBC (const Box&          bx,
+setBC (const Box&          bx,
                const Box&          domain,
                int                 src_comp,
                int                 dest_comp,
@@ -70,7 +72,7 @@ amrex::setBC (const Box&          bx,
 }           
 
 void
-amrex::setBC (const Box&   bx,
+setBC (const Box&   bx,
                const Box&   domain, 
                const BCRec& bc_dom,
                BCRec&       bcr)
@@ -97,4 +99,6 @@ operator<< (std::ostream& os,
     }
     os << ')';
     return os;
+}
+
 }

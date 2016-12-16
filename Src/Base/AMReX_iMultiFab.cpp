@@ -13,6 +13,8 @@
 #include <AMReX_BLProfiler.H>
 #include <AMReX_ParmParse.H>
 
+namespace amrex {
+
 namespace
 {
     bool initialized = false;
@@ -815,4 +817,6 @@ iMultiFab::negate (const Box& region,
         if (b.ok())
             get(mfi).negate(b,comp,num_comp);
     }
+}
+
 }

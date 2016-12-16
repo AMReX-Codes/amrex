@@ -4,6 +4,8 @@
 #include <AMReX_BoxLib.H>
 #include <AMReX_Orientation.H>
 
+namespace amrex {
+
 std::ostream&
 operator<< (std::ostream&      os,
             const Orientation& o)
@@ -42,3 +44,4 @@ operator>> (std::istream& is,
     return is;
 }
 
+}

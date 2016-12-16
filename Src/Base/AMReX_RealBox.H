@@ -8,6 +8,8 @@
 #include <AMReX_REAL.H>
 #include <AMReX_Box.H>
 
+namespace amrex {
+
 //
 // A Real Box
 //
@@ -116,6 +118,7 @@ private:
     Real xlo[BL_SPACEDIM];
     Real xhi[BL_SPACEDIM];
 };
+
 //
 // Nice ASCII output.
 //
@@ -124,5 +127,7 @@ std::ostream& operator<< (std::ostream&, const RealBox&);
 // Nice ASCII input.
 //
 std::istream& operator>> (std::istream&, RealBox&);
+
+}
 
 #endif /*_RealBox_H_*/

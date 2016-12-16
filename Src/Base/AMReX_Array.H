@@ -13,6 +13,8 @@
 // DEBUG=TRUE.
 //
 
+namespace amrex {
+
 template <class T>
 class Array
     :
@@ -38,6 +40,8 @@ public:
     T* dataPtr () { return this->data(); }
     const T* dataPtr () const { return this->data(); }
 };
+
+}
 
 namespace amrex
 {

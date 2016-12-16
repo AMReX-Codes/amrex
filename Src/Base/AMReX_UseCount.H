@@ -5,6 +5,8 @@
 #include <AMReX_BLassert.H>
 #include <AMReX_BoxLib.H>
 
+namespace amrex {
+
 //
 // A Class Encapsulating Reference Counts
 //
@@ -52,5 +54,7 @@ private:
     //
     void decrement ();
 };
+
+}
 
 #endif /*BL_USECOUNT_H*/

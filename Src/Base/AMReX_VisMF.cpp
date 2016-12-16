@@ -21,6 +21,8 @@
 #include <AMReX_NFiles.H>
 #include <AMReX_FPC.H>
 
+namespace amrex {
+
 static const char *TheMultiFabHdrFileSuffix = "_H";
 static const char *FabFileSuffix = "_D_";
 static const char *TheFabOnDiskPrefix = "FabOnDisk:";
@@ -1980,6 +1982,4 @@ void VisMF::CloseAllStreams() {
   VisMF::persistentIFStreams.clear();
 }
 
-
-
-
+}

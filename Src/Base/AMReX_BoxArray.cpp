@@ -6,6 +6,11 @@
 
 #ifdef BL_MEM_PROFILING
 #include <AMReX_MemProfiler.H>
+#endif
+
+namespace amrex {
+
+#ifdef BL_MEM_PROFILING
 int  BARef::numboxarrays         = 0;
 int  BARef::numboxarrays_hwm     = 0;
 long BARef::total_box_bytes      = 0L;
@@ -1207,21 +1212,21 @@ operator<< (std::ostream&   os,
 }
 
 BoxArray
-amrex::boxComplement (const Box& b1in,
+boxComplement (const Box& b1in,
 		       const Box& b2)
 {
     return BoxArray(amrex::boxDiff(b1in, b2));
 }
 
 BoxArray
-amrex::complementIn (const Box&      b,
+complementIn (const Box&      b,
 		      const BoxArray& ba)
 {
     return BoxArray(amrex::complementIn(b,ba.boxList()));
 }
 
 BoxArray
-amrex::intersect (const BoxArray& ba,
+intersect (const BoxArray& ba,
 		   const Box&      b,
 		   int   ng)
 {
@@ -1240,7 +1245,7 @@ amrex::intersect (const BoxArray& ba,
 }
 
 BoxArray
-amrex::intersect (const BoxArray& lhs,
+intersect (const BoxArray& lhs,
 		   const BoxArray& rhs)
 {
     if (lhs.size() == 0 || rhs.size() == 0) return BoxArray();
@@ -1255,14 +1260,14 @@ amrex::intersect (const BoxArray& lhs,
 }
 
 BoxArray
-amrex::convert (const BoxArray& ba, IndexType typ)
+convert (const BoxArray& ba, IndexType typ)
 {
     BoxArray ba2 = ba;
     return ba2.convert(typ);
 }
 
 BoxList
-amrex::GetBndryCells (const BoxArray& ba,
+GetBndryCells (const BoxArray& ba,
                        int             ngrow)
 {
     BL_ASSERT(ba.ok());
@@ -1329,7 +1334,7 @@ amrex::GetBndryCells (const BoxArray& ba,
 
 
 void
-amrex::readBoxArray (BoxArray&     ba,
+readBoxArray (BoxArray&     ba,
                       std::istream& is,
                       bool          bReadSpecial)
 {
@@ -1357,7 +1362,7 @@ amrex::readBoxArray (BoxArray&     ba,
     }
 }
 
-void amrex::clearCoarseBoxArrayCache (ptrdiff_t key)
+void clearCoarseBoxArrayCache (ptrdiff_t key)
 {
     // Note that deleting a BoxArray may trigger a call to this function
     // resulting in modifying the cache map.  Because of the recusion,
@@ -1380,7 +1385,7 @@ void amrex::clearCoarseBoxArrayCache (ptrdiff_t key)
 }
 
 
-Array<int> amrex::SerializeBoxArray(const BoxArray &ba)
+Array<int> SerializeBoxArray(const BoxArray &ba)
 {
   int nIntsInBox(3 * BL_SPACEDIM);
   Array<int> retArray(ba.size() * nIntsInBox, -1);
@@ -1395,7 +1400,7 @@ Array<int> amrex::SerializeBoxArray(const BoxArray &ba)
 }
 
 
-BoxArray amrex::UnSerializeBoxArray(const Array<int> &serarray)
+BoxArray UnSerializeBoxArray(const Array<int> &serarray)
 {
   int nIntsInBox(3 * BL_SPACEDIM);
   int nBoxes(serarray.size() / nIntsInBox);
@@ -1411,7 +1416,7 @@ BoxArray amrex::UnSerializeBoxArray(const Array<int> &serarray)
 }
 
 
-bool amrex::match (const BoxArray& x, const BoxArray& y)
+bool match (const BoxArray& x, const BoxArray& y)
 {
     if (x == y) {
 	return true;
@@ -1424,3 +1429,4 @@ bool amrex::match (const BoxArray& x, const BoxArray& y)
     }
 }
 
+}

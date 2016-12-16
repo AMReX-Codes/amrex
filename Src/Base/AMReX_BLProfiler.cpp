@@ -1,3 +1,5 @@
+#include <AMReX_BLFort.H>
+
 #ifdef BL_PROFILING
 
 #include <AMReX_BLProfiler.H>
@@ -18,6 +20,7 @@
 #include <stdlib.h>
 #include <cmath>
 
+namespace amrex {
 
 bool BLProfiler::bWriteAll = true;
 bool BLProfiler::bNoOutput = false;
@@ -1519,8 +1522,6 @@ namespace {
   }
 }
 
-#include <AMReX_BLFort.H>
-
 BL_FORT_PROC_DECL(BL_PROFFORTFUNCSTART_CPP, bl_proffortfuncstart_cpp)
   (const int istr[], const int *NSTR)
 {
@@ -1593,10 +1594,11 @@ BL_FORT_PROC_DECL(BL_PROFFORTFUNCSTOP_CPP_INT, bl_proffortfuncstop_cpp_int)
 #endif
 }
 
+}
 
-#else
+#else  // BL_PROFILING not defined
 
-#include <AMReX_BLFort.H>
+namespace amrex {
 
 BL_FORT_PROC_DECL(BL_PROFFORTFUNCSTART_CPP,bl_proffortfuncstart_cpp)
   (
@@ -1626,6 +1628,7 @@ BL_FORT_PROC_DECL(BL_PROFFORTFUNCSTOP_CPP_INT,bl_proffortfuncstop_cpp_int)
 {
 }
 
+}
 
 #endif
 

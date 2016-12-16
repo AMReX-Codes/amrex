@@ -10,18 +10,13 @@
 #include <AMReX_FArrayBox.H>
 #include <AMReX_FabArray.H>
 
-
-//
-// Forward declaration.
-//
-typedef FabArrayId MultiFabId;
-
-class MultiFabCopyDescriptor;
-
-class MultiFab;
-
 namespace amrex
 {
+
+    class MultiFabCopyDescriptor;
+
+    typedef FabArrayId MultiFabId;
+
     void InterpAddBox (MultiFabCopyDescriptor& fabCopyDesc,
 		       BoxList*                returnUnfilledBoxes,
 		       Array<FillBoxId>&       returnedFillBoxIds,
@@ -48,7 +43,7 @@ namespace amrex
 			int                     dest_comp,
 			int                     num_comp,
 			bool                    extrap);
-}
+
 //
 // A Collection of FArrayBoxes
 //
@@ -576,5 +571,7 @@ class MultiFabCopyDescriptor
     MultiFabCopyDescriptor (const MultiFabCopyDescriptor&);
     MultiFabCopyDescriptor& operator= (const MultiFabCopyDescriptor&);
 };
+
+}
 
 #endif /*BL_MULTIFAB_H*/

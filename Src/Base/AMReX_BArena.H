@@ -12,6 +12,8 @@
 // Makes calls to ::operator new() and ::operator delete().
 //
 
+namespace amrex {
+
 class BArena
     :
     public Arena
@@ -27,5 +29,7 @@ public:
     //
     virtual void free (void* pt) override;
 };
+
+}
 
 #endif /*BL_BARENA_H*/

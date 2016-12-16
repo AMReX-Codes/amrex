@@ -20,6 +20,7 @@
 #include <utility>
 #include <typeinfo>
 
+namespace amrex {
 
 class BLProfiler 
 {
@@ -352,7 +353,7 @@ inline std::string BLProfiler::CommStats::CFTToString(CommFuncType cft) {
   return "*** Error: Bad CommFuncType.";
 }
 
-
+}
 
 #define BL_PROFILE_INITIALIZE()  BLProfiler::Initialize();
 #define BL_PROFILE_FINALIZE()    BLProfiler::Finalize();
@@ -453,6 +454,8 @@ inline std::string BLProfiler::CommStats::CFTToString(CommFuncType cft) {
 #include <string>
 #include <AMReX_REAL.H>
 
+namespace amrex {
+
 class BLProfiler
 {
   public:
@@ -467,6 +470,8 @@ class BLProfiler
                            const bool writefabs) { }
     static void AddStep(const int snum) { }
 };
+
+}
 
 #define BL_PROFILE_INITIALIZE()
 #define BL_PROFILE_FINALIZE()

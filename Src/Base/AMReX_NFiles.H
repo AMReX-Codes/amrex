@@ -8,6 +8,8 @@
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_VisMF.H>
 
+namespace amrex {
+
 //
 // This class encapsulates writing to nfiles.
 //
@@ -166,5 +168,7 @@ class NFilesIter
 
     NFilesIter();  // ---- disallow
 };
+
+}
 
 #endif  /* BL_NFILES_H */

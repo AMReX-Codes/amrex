@@ -14,6 +14,8 @@
 #include <omp.h>
 #endif
 
+namespace amrex {
+
 //
 // The definition of some static data members.
 //
@@ -415,3 +417,5 @@ Geometry::BroadcastGeometry (Geometry &geom, int fromProc, MPI_Comm comm, bool b
   }
 }
 #endif
+
+}

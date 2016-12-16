@@ -20,6 +20,8 @@
 #include <AMReX_ParmParse.H>
 #endif
 
+using namespace amrex;
+
 namespace
 {
     static Array<std::unique_ptr<CArena> > the_memory_pool;

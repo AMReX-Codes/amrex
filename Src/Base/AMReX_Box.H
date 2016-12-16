@@ -10,14 +10,12 @@
 #include <AMReX_Orientation.H>
 #include <AMReX_SPACE.H>
 #include <AMReX_Array.H>
-//
-// Forward declaration.
-//
-class Box;
-class BoxCommHelper;
 
 namespace amrex
 {
+    class Box;
+    class BoxCommHelper;
+
     //
     // Grow Box in all directions by given amount.
     // NOTE: n_cell negative shrinks the Box by that number of cells.
@@ -141,7 +139,7 @@ namespace amrex
     Array<int> SerializeBox(const Box &b);
     int SerializeBoxSize();
     Box UnSerializeBox(const Array<int> &serarray);
-}
+
 
 //
 // Write an ASCII representation to the ostream.
@@ -151,6 +149,7 @@ std::ostream& operator<< (std::ostream& os, const Box& bx);
 // Read from istream.
 //
 std::istream& operator>> (std::istream& os, Box& bx);
+
 
 //
 // A Rectangular Domain on an Integer Lattice
@@ -637,5 +636,7 @@ public:
 };
 
 inline BoxConverter::~BoxConverter () { }
+
+}
 
 #endif /*BL_BOX_H*/

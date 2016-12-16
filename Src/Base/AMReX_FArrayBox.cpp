@@ -20,6 +20,8 @@
 #include <AMReX_Utility.H>
 #include <AMReX_MemPool.H>
 
+namespace amrex {
+
 bool FArrayBox::initialized = false;
 
 #if defined(DEBUG) || defined(BL_TESTING)
@@ -1056,3 +1058,4 @@ operator>> (std::istream& is,
     return is;
 }
 
+}

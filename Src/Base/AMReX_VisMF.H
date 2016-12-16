@@ -11,6 +11,8 @@
 #include <AMReX_FArrayBox.H>
 #include <AMReX_FabConv.H>
 
+namespace amrex {
+
 class NFilesIter;
 
 //
@@ -396,6 +398,7 @@ private:
     
     static long ioBufferSize;   // ---- the settable buffer size
 };
+
 //
 // Write a FabOnDisk to an ostream in ASCII.
 //
@@ -420,5 +423,7 @@ std::ostream& operator<< (std::ostream& os, const VisMF::Header& hd);
 // Read a VisMF::Header from an istream.
 //
 std::istream& operator>> (std::istream& is, VisMF::Header& hd);
+
+}
 
 #endif /*BL_VISMF_H*/

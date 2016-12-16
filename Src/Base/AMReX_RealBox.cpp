@@ -3,6 +3,9 @@
 #include <string>
 
 #include <AMReX_RealBox.H>
+
+namespace amrex {
+
 //
 // The definition of lone static data member.
 //
@@ -118,4 +121,6 @@ operator >> (std::istream &is, RealBox& b)
     b = RealBox(lo,hi);
 
     return is;
+}
+
 }

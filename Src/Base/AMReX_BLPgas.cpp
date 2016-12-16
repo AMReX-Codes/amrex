@@ -7,6 +7,8 @@
 //#include <unordered_map>
 #include <map>
 
+namespace amrex {
+
 namespace
 {
   // typedef std::unordered_multimap< upcxx::rank_t, BLPgas::SendInfo > pgas_send_info_map_t;
@@ -192,4 +194,6 @@ void
 BLPgas::free (void* pt)
 {
     upcxx::deallocate(pt);
+}
+
 }

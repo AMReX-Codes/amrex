@@ -3,6 +3,7 @@
 #include <AMReX_NFiles.H>
 #include <deque>
 
+namespace amrex {
 
 int NFilesIter::currentDeciderIndex(-1);
 Array<std::pair<int, int> > NFilesIter::unreadMessages;
@@ -483,5 +484,4 @@ void NFilesIter::CleanUpMessages() {
 #endif
 }
 
-
-
+}

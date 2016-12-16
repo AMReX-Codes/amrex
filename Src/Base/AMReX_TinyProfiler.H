@@ -9,6 +9,8 @@
 
 #include <AMReX_REAL.H>
 
+namespace amrex {
+
 class TinyProfiler
 {
 public:
@@ -60,5 +62,7 @@ private:
     static std::map<std::string, Stats> statsmap;
     static Real t_init;
 };
+
+}
 
 #endif

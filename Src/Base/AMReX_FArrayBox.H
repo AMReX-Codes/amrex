@@ -8,6 +8,8 @@
 #include <AMReX_REAL.H>
 #include <AMReX_SPACE.H>
 
+namespace amrex {
+
 class FArrayBox;
 
 //
@@ -394,5 +396,7 @@ private:
     FArrayBox (const FArrayBox&);
     FArrayBox& operator= (const FArrayBox&);
 };
+
+}
 
 #endif /*BL_FARRAYBOX_H*/

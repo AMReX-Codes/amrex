@@ -13,6 +13,7 @@
 
 #include <mpi.h>
 
+namespace amrex {
 namespace ParallelDescriptor
 {
     template <class T>
@@ -34,7 +35,7 @@ namespace ParallelDescriptor
     template <> MPI_Datatype Mpi_typemap<float>::type();
     template <> MPI_Datatype Mpi_typemap<double>::type();
 }
-
+}
 
 #else
 
@@ -52,6 +53,7 @@ const int MPI_GROUP_NULL    = 0;
 const int MPI_PROC_NULL     = 0;
 const int MPI_MAX_PROCESSOR_NAME = 64;
 
+namespace amrex {
 namespace ParallelDescriptor
 {
     template <class T>
@@ -59,6 +61,7 @@ namespace ParallelDescriptor
     {
 	static MPI_Datatype type();
     };
+}
 }
 
 #endif /*BL_USE_MPI*/

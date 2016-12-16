@@ -17,6 +17,8 @@
 #include <AMReX_Looping.H>
 #include <AMReX_Utility.H>
 
+namespace amrex {
+
 namespace
 {
     bool initialized = false;
@@ -157,4 +159,6 @@ IArrayBox::norm (const Box& subbox,
     delete [] tmp;
 
     return nrm;
+}
+
 }
