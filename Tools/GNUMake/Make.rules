@@ -201,4 +201,4 @@ help:
 	@echo "    libraries  = $(libraries)"
 	@echo "    executable = $(executable)"
 	@echo ""
-	@echo "Read Tools/C_mk/README.md for details on tweaking the make system."
+	@echo "Read Tools/GNUMake/README.md for details on tweaking the make system."

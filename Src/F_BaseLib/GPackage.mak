@@ -113,7 +113,7 @@ ifdef CXX11
   INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/F_BaseLib
 endif
 
-include $(BOXLIB_HOME)/Src/C_BaseLib/GPackage.mak
-VPATH_LOCATIONS += $(BOXLIB_HOME)/Src/C_BaseLib
-INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/C_BaseLib
+include $(BOXLIB_HOME)/Src/Base/GPackage.mak
+VPATH_LOCATIONS += $(BOXLIB_HOME)/Src/Base
+INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/Base
 

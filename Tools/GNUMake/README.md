@@ -6,7 +6,7 @@ Typically an application will have its own `GNUmakefile`.  (See
 complicated example.)  `Make.defs` is included near the beginning, and
 `Make.rules` is included in the end.  Depending the need,
 `GNUmakefile` includes a number of
-`$(AMREX_HOME)/Src/xxx/Make.package`, where `xxx` is `C_BaseLib` etc.
+`$(AMREX_HOME)/Src/xxx/Make.package`, where `xxx` is `Base` etc.
 These `Make.package` files add sources to the make system.  An
 application also has its own `Make.package`.  The make variables for
 the sources are:
@@ -71,9 +71,9 @@ The `Make.defs` includes the following files in the listed order:
   as HPGMG, if it is used.
 
 * `sites/Make.xxx`: Here which file to include is resolved as follows.
-  If a file `$(AMREX_HOME)/Tools/C_mk/sites/Make.$(host_name)`
+  If a file `$(AMREX_HOME)/Tools/GNUMake/sites/Make.$(host_name)`
   exists, it is included.  Otherwise,
-  `$(AMREX_HOME)/Tools/C_mk/sites/Make.$(which_site)` is included.
+  `$(AMREX_HOME)/Tools/GNUMake/sites/Make.$(which_site)` is included.
   Note that both `host_name` and `which_site` are defined in
   `Make.machines`.  This file is used for site specific setup.
   Typically this is used for MPI related setup.  The file
