@@ -27,7 +27,7 @@ system by running the following command in your application directory.
 
 ## Step 2
 
-AMRex `migration/2-parray` branch should be used in this step.  In
+AMReX `migration/2-parray` branch should be used in this step.  In
 this step, we need to remove `PArray`, which is a BoxLib class that
 has been removed from AMReX.  This step has to be done manually.
 
@@ -62,4 +62,13 @@ has been removed from AMReX.  This step has to be done manually.
   `Array<T*> GetArrOfPtrs (const Array<std::unique_ptr<T> >& a)`.
   These functions are in `Src/C_BaseLib/Array.H` as of writing,
   and they will be moved to `Src/Base/AMReX_Array.H`.
+
+### Step 3
+
+AMReX `migration/3-amrex-prefix` branch should be used in this step.
+We have added `AMReX_` to source file names.  Thus we must update the
+header file names in the source codes.  For example, `#include
+<Box.H>` needs to be changed to `#include <AMReX_Box.H>`.  A script,
+`Tools/Migration/step-3-amrex-prefix/amrexprefix.sh`, can be used to
+do the search and replace.
 
