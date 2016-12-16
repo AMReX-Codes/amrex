@@ -5,9 +5,9 @@
 #include <iosfwd>
 #include <list>
 
-#include <IntVect.H>
-#include <IndexType.H>
-#include <Box.H>
+#include <AMReX_IntVect.H>
+#include <AMReX_IndexType.H>
+#include <AMReX_Box.H>
 //
 // Forward declarations.
 //

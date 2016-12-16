@@ -1,7 +1,7 @@
 #ifndef _ABec2_F_H_
 #define _ABec2_F_H_
 
-#include <BLFort.H>
+#include <AMReX_BLFort.H>
 
 BL_FORT_PROC_DECL(AB2_BNDRYRLX, ab2_bndryrlx)
     ( const int lo[], const int hi[],

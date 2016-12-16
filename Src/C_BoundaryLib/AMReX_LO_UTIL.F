@@ -11,8 +11,8 @@
 #define zero 0.d0
 #define one 1.d0
 #else
-#include <CONSTANTS.H>
-#include <REAL.H>
+#include <AMReX_CONSTANTS.H>
+#include <AMReX_REAL.H>
 #endif
     
       

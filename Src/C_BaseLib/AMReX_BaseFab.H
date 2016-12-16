@@ -2,7 +2,7 @@
 #ifndef BL_BASEFAB_H
 #define BL_BASEFAB_H
 
-#include <winstd.H>
+#include <AMReX_winstd.H>
 #include <cmath>
 #include <cstdlib>
 #include <algorithm>
@@ -12,13 +12,13 @@
 #include <omp.h>
 #endif
 
-#include <BLassert.H>
-#include <Box.H>
-#include <BoxList.H>
-#include <CArena.H>
-#include <Looping.H>
-#include <REAL.H>
-#include <BLProfiler.H>
+#include <AMReX_BLassert.H>
+#include <AMReX_Box.H>
+#include <AMReX_BoxList.H>
+#include <AMReX_CArena.H>
+#include <AMReX_Looping.H>
+#include <AMReX_REAL.H>
+#include <AMReX_BLProfiler.H>
 
 namespace BoxLib
 {

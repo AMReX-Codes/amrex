@@ -1,8 +1,8 @@
 
-#include <winstd.H>
-#include <LO_BCTYPES.H>
-#include <InterpBndryData.H>
-#include <INTERPBNDRYDATA_F.H>
+#include <AMReX_winstd.H>
+#include <AMReX_LO_BCTYPES.H>
+#include <AMReX_InterpBndryData.H>
+#include <AMReX_INTERPBNDRYDATA_F.H>
 
 #if (BL_SPACEDIM == 1)
 #define NUMDERIV 2

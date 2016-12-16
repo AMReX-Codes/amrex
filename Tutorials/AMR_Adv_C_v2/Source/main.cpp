@@ -1,9 +1,9 @@
 
 #include <iostream>
 
-#include <BoxLib.H>
-#include <BLProfiler.H>
-#include <ParallelDescriptor.H>
+#include <AMReX_BoxLib.H>
+#include <AMReX_BLProfiler.H>
+#include <AMReX_ParallelDescriptor.H>
 
 #include <AmrAdv.H>
 

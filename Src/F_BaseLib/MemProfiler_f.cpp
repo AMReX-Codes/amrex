@@ -1,5 +1,5 @@
 
-#include <MemProfiler.H>
+#include <AMReX_MemProfiler.H>
 #include <MemProfiler_f.H>
 
 extern "C"

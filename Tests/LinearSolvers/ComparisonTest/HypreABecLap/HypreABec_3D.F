@@ -3,9 +3,9 @@
 #define BL_LANG_FORT
 #endif
 
-#include <REAL.H>
-#include "ArrayLim.H"
-#include "LO_BCTYPES.H"
+#include <AMReX_REAL.H>
+#include "AMReX_ArrayLim.H"
+#include "AMReX_LO_BCTYPES.H"
 
 #include "HypreABec_F.H"
 

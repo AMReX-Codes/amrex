@@ -2,7 +2,7 @@
 #ifndef BL_PGAS_H
 #define BL_PGAS_H
 
-#include <BLassert.H>
+#include <AMReX_BLassert.H>
 #include <upcxx.h>
 
 namespace BLPgas

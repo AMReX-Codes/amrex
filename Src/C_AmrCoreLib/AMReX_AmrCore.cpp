@@ -1,13 +1,13 @@
 
 #include <algorithm>
 
-#include <AmrCore.H>
-#include <ParmParse.H>
-#include <TagBox.H>
-#include <Cluster.H>
+#include <AMReX_AmrCore.H>
+#include <AMReX_ParmParse.H>
+#include <AMReX_TagBox.H>
+#include <AMReX_Cluster.H>
 
 #ifdef USE_PARTICLES
-#include <AmrParGDB.H>
+#include <AMReX_AmrParGDB.H>
 #endif
 
 namespace

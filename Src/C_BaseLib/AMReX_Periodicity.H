@@ -1,8 +1,8 @@
 #ifndef _PERIODICITY_H_
 #define _PERIODICITY_H_
 
-#include <IntVect.H>
-#include <Box.H>
+#include <AMReX_IntVect.H>
+#include <AMReX_Box.H>
 #include <vector>
 
 // This provides length of period for periodic domains.  0 means it is 

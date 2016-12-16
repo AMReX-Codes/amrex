@@ -1,17 +1,17 @@
 #include <iostream>
 #include <memory>
 
-#include <BoxLib.H>
-#include <MultiFab.H>
-#include <MultiFabUtil.H>
-#include <BLFort.H>
-#include <MacBndry.H>
-#include <MGT_Solver.H>
+#include <AMReX_BoxLib.H>
+#include <AMReX_MultiFab.H>
+#include <AMReX_MultiFabUtil.H>
+#include <AMReX_BLFort.H>
+#include <AMReX_MacBndry.H>
+#include <AMReX_MGT_Solver.H>
 #include <mg_cpp_f.h>
-#include <stencil_types.H>
-#include <MultiFabUtil.H>
+#include <AMReX_stencil_types.H>
+#include <AMReX_MultiFabUtil.H>
 
-#include "Particles.H"
+#include "AMReX_Particles.H"
 
 // declare routines below
 void solve_for_accel(const Array<MultiFab*>& rhs,

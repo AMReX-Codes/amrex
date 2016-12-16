@@ -1,9 +1,9 @@
 #ifndef _INTERPOLATER_H_
 #define _INTERPOLATER_H_ 
 
-#include <Box.H>
-#include <BCRec.H>
-#include <REAL.H>
+#include <AMReX_Box.H>
+#include <AMReX_BCRec.H>
+#include <AMReX_REAL.H>
 
 class Geometry;
 class FArrayBox;

@@ -3,7 +3,7 @@
 #define BL_LANG_FORT
 #endif
 
-#include <REAL.H>
+#include <AMReX_REAL.H>
 
 c-----------------------------------------------------------------------
 c

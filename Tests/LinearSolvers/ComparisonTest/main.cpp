@@ -1,11 +1,11 @@
 // We solve (a alpha - b del dot beta grad) soln = rhs
 // where a and b are scalars, alpha and beta are arrays
 
-#include <Utility.H>
-#include <ParallelDescriptor.H>
-#include <ParmParse.H>
+#include <AMReX_Utility.H>
+#include <AMReX_ParallelDescriptor.H>
+#include <AMReX_ParmParse.H>
 
-#include <LO_BCTYPES.H>
+#include <AMReX_LO_BCTYPES.H>
 
 #ifdef USEHYPRE
 #include <HypreABecLap.H>

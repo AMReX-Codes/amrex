@@ -5,9 +5,9 @@
 // --------------------------------------------------------------------------
 #include <iostream>
 #include <fstream>
-#include <BoxArray.H>
-#include <MultiFab.H>
-#include <ParallelDescriptor.H>
+#include <AMReX_BoxArray.H>
+#include <AMReX_MultiFab.H>
+#include <AMReX_ParallelDescriptor.H>
 using std::cout;
 using std::endl;
 

@@ -2,8 +2,8 @@
 #ifndef _ABecLAPLACIAN_H_
 #define _ABecLAPLACIAN_H_
 
-#include <Tuple.H>
-#include <LinOp.H>
+#include <AMReX_Tuple.H>
+#include <AMReX_LinOp.H>
 
 /*
         An ABecLaplacian tailors the description of a linear operator to apply

@@ -2,7 +2,7 @@
 #include <HypreABecLap.H>
 #include <HypreABec_F.H>
 
-#include "LO_BCTYPES.H"
+#include "AMReX_LO_BCTYPES.H"
 
 #include "_hypre_sstruct_mv.h"
 #include "HYPRE_krylov.h"

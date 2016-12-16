@@ -2,11 +2,11 @@
 #ifndef _LEVELBLD_H_
 #define _LEVELBLD_H_
 
-#include <REAL.H>
-#include <Box.H>
-#include <Geometry.H>
-#include <Amr.H>
-#include <AmrLevel.H>
+#include <AMReX_REAL.H>
+#include <AMReX_Box.H>
+#include <AMReX_Geometry.H>
+#include <AMReX_Amr.H>
+#include <AMReX_AmrLevel.H>
 
 extern LevelBld* getLevelBld ();
 

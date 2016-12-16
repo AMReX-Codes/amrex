@@ -6,11 +6,11 @@
 #include <cstddef>
 #include <map>
 
-#include <IndexType.H>
-#include <BoxList.H>
-#include <Array.H>
-#include <Pointers.H>
-#include <BaseFab.H>
+#include <AMReX_IndexType.H>
+#include <AMReX_BoxList.H>
+#include <AMReX_Array.H>
+#include <AMReX_Pointers.H>
+#include <AMReX_BaseFab.H>
 
 class BoxArray;
 

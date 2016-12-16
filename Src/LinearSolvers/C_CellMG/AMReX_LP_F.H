@@ -1,7 +1,7 @@
 #ifndef _LP_F_H_
 #define _LP_F_H_
 
-#include <REAL.H>
+#include <AMReX_REAL.H>
 
 #if        defined(BL_LANG_FORT)
 
@@ -74,7 +74,7 @@
 
 #endif
 
-#include <ArrayLim.H>
+#include <AMReX_ArrayLim.H>
 
 extern "C"
 {

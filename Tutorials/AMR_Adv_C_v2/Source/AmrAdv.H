@@ -9,8 +9,8 @@
 #include <omp.h>
 #endif
 
-#include <AmrCore.H>
-#include <FluxRegister.H>
+#include <AMReX_AmrCore.H>
+#include <AMReX_FluxRegister.H>
 
 class AmrAdv
     : public AmrCore

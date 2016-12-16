@@ -5,8 +5,8 @@
 #include <string>
 #include <fstream>
 
-#include <ParallelDescriptor.H>
-#include <VisMF.H>
+#include <AMReX_ParallelDescriptor.H>
+#include <AMReX_VisMF.H>
 
 //
 // This class encapsulates writing to nfiles.

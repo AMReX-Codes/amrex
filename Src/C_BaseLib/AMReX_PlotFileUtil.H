@@ -3,8 +3,8 @@
 
 #include <string>
 
-#include <Geometry.H>
-#include <MultiFab.H>
+#include <AMReX_Geometry.H>
+#include <AMReX_MultiFab.H>
 
 namespace BoxLib
 {

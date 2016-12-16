@@ -1,7 +1,7 @@
 #ifndef _DivVis_F_H_
 #define _DivVis_F_H_
 
-#include <REAL.H>
+#include <AMReX_REAL.H>
 
 #if   defined(BL_LANG_FORT)
 #   if  (BL_SPACEDIM==2)
@@ -57,7 +57,7 @@
 
 #endif
 
-#include <ArrayLim.H>
+#include <AMReX_ArrayLim.H>
 
 extern "C"
 {

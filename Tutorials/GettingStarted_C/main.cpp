@@ -1,10 +1,10 @@
-#include <Geometry.H>
-#include <MultiFab.H>
+#include <AMReX_Geometry.H>
+#include <AMReX_MultiFab.H>
 
 //***********************************************
 // This can be moved into a C++ header file and #included here instead
 
-#include <BLFort.H>
+#include <AMReX_BLFort.H>
 
 extern "C"
 {

@@ -1,8 +1,8 @@
 
 #include <iostream>
 
-#include <Array.H>
-#include <ParmParse.H>
+#include <AMReX_Array.H>
+#include <AMReX_ParmParse.H>
 
 int
 main (int argc, char** argv)

@@ -3,7 +3,7 @@
 // --------------------------------------------------------------------------
 //   this file tests making directories.
 // --------------------------------------------------------------------------
-#include <winstd.H>
+#include <AMReX_winstd.H>
 
 #include <new>
 #include <iostream>
@@ -13,8 +13,8 @@
 #include <sys/stat.h>
 #include <string.h>
 
-#include <ParallelDescriptor.H>
-#include <Utility.H>
+#include <AMReX_ParallelDescriptor.H>
+#include <AMReX_Utility.H>
 
 // --------------------------------------------------------------------------
 int main(int argc, char *argv[]) {

@@ -6,10 +6,10 @@
 #include <string>
 #include <fstream>
 
-#include <REAL.H>
-#include <FabArray.H>
-#include <FArrayBox.H>
-#include <FabConv.H>
+#include <AMReX_REAL.H>
+#include <AMReX_FabArray.H>
+#include <AMReX_FArrayBox.H>
+#include <AMReX_FabConv.H>
 
 class NFilesIter;
 

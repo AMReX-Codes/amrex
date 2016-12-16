@@ -1,11 +1,11 @@
 #ifdef BL_PROFILING
 
-#include <BLProfiler.H>
-#include <REAL.H>
-#include <Utility.H>
-#include <ParallelDescriptor.H>
-#include <Array.H>
-#include <NFiles.H>
+#include <AMReX_BLProfiler.H>
+#include <AMReX_REAL.H>
+#include <AMReX_Utility.H>
+#include <AMReX_ParallelDescriptor.H>
+#include <AMReX_Array.H>
+#include <AMReX_NFiles.H>
 #include <iostream>
 #include <iomanip>
 #include <fstream>
@@ -1519,7 +1519,7 @@ namespace {
   }
 }
 
-#include <BLFort.H>
+#include <AMReX_BLFort.H>
 
 BL_FORT_PROC_DECL(BL_PROFFORTFUNCSTART_CPP, bl_proffortfuncstart_cpp)
   (const int istr[], const int *NSTR)
@@ -1596,7 +1596,7 @@ BL_FORT_PROC_DECL(BL_PROFFORTFUNCSTOP_CPP_INT, bl_proffortfuncstop_cpp_int)
 
 #else
 
-#include <BLFort.H>
+#include <AMReX_BLFort.H>
 
 BL_FORT_PROC_DECL(BL_PROFFORTFUNCSTART_CPP,bl_proffortfuncstart_cpp)
   (

@@ -1,8 +1,8 @@
 #include <iostream>
 
-#include <ParallelDescriptor.H>
-#include <MultiFab.H>
-#include <Geometry.H>
+#include <AMReX_ParallelDescriptor.H>
+#include <AMReX_MultiFab.H>
+#include <AMReX_Geometry.H>
 
 #include <InTransitAnalysis.H>
 

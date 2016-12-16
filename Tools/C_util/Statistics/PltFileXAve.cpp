@@ -8,9 +8,9 @@
 #include <PltFileXAve.H>
 #include <WritePlotFile.H>
 #include <ComputeAmrDataStat.H>
-#include <ParmParse.H>
-#include <ParallelDescriptor.H>
-#include <Utility.H>
+#include <AMReX_ParmParse.H>
+#include <AMReX_ParallelDescriptor.H>
+#include <AMReX_Utility.H>
 
 #ifndef NDEBUG
 #include <TV_TempWrite.H>

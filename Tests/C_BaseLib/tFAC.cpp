@@ -7,7 +7,7 @@
 #error "This code assumes BL_SPACEDIM==2"
 #endif
 
-#include <MultiFab.H>
+#include <AMReX_MultiFab.H>
 
 int
 main (int argc, char** argv)

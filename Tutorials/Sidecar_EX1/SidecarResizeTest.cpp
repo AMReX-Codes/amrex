@@ -13,10 +13,10 @@
 #include <sstream>
 #include <unistd.h>
 
-#include <BoxLib.H>
-#include <ParallelDescriptor.H>
-#include <Utility.H>
-#include <ParmParse.H>
+#include <AMReX_BoxLib.H>
+#include <AMReX_ParallelDescriptor.H>
+#include <AMReX_Utility.H>
+#include <AMReX_ParmParse.H>
 
 namespace
 {

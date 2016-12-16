@@ -2,7 +2,7 @@
 #ifndef _LAPLACIAN_H_
 #define _LAPLACIAN_H_
 
-#include <LinOp.H>
+#include <AMReX_LinOp.H>
 
 /*
   A Laplacian tailors the description of a linear operator to apply

@@ -9,7 +9,7 @@
 //
 
 #ifdef BL_USE_MPI
-#include <winstd.H>
+#include <AMReX_winstd.H>
 
 #include <mpi.h>
 

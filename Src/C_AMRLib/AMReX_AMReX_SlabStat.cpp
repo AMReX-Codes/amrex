@@ -1,9 +1,9 @@
 
-#include <winstd.H>
-#include <AmrLevel.H>
-#include <ParmParse.H>
-#include <SlabStat.H>
-#include <Utility.H>
+#include <AMReX_winstd.H>
+#include <AMReX_AmrLevel.H>
+#include <AMReX_ParmParse.H>
+#include <AMReX_SlabStat.H>
+#include <AMReX_Utility.H>
 
 SlabStatRec::SlabStatRec (const std::string&  name,
                           int                 ncomp,

@@ -1,8 +1,8 @@
 #ifndef _BL_BLFORT_H_
 #define _BL_BLFORT_H_ 
 
-#include <ArrayLim.H>
-#include <REAL.H>
+#include <AMReX_ArrayLim.H>
+#include <AMReX_REAL.H>
 
 #ifndef BL_LANG_FORT
 

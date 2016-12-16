@@ -3,7 +3,7 @@
 #include <unistd.h>
 #endif
 
-#include <MultiFab.H>
+#include <AMReX_MultiFab.H>
 #include <MFNorm.H>
 
 #include <iostream>

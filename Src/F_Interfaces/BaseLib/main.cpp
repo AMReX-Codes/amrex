@@ -1,6 +1,6 @@
 
-#include <BoxLib.H>
-#include <BLProfiler.H>
+#include <AMReX_BoxLib.H>
+#include <AMReX_BLProfiler.H>
 
 extern "C" { void fmain(); }
 

@@ -1,9 +1,9 @@
 #ifndef _MULTIMASK_H_
 #define _MULTIMASK_H_
 
-#include <Mask.H>
-#include <FabArray.H>
-#include <Geometry.H>
+#include <AMReX_Mask.H>
+#include <AMReX_FabArray.H>
+#include <AMReX_Geometry.H>
 
 #ifdef _OPENMP
 #include <omp.h>

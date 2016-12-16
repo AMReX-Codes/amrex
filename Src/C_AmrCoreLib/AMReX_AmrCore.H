@@ -3,10 +3,10 @@
 
 #include <memory>
 
-#include <BoxArray.H>
-#include <DistributionMapping.H>
-#include <Geometry.H>
-#include <TagBox.H>
+#include <AMReX_BoxArray.H>
+#include <AMReX_DistributionMapping.H>
+#include <AMReX_Geometry.H>
+#include <AMReX_TagBox.H>
 
 #ifdef USE_PARTICLES
 class AmrParGDB;

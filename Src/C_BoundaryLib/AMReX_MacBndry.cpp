@@ -1,7 +1,7 @@
 
-#include <winstd.H>
-#include <LO_BCTYPES.H>
-#include <MacBndry.H>
+#include <AMReX_winstd.H>
+#include <AMReX_LO_BCTYPES.H>
+#include <AMReX_MacBndry.H>
 
 MacBndry::MacBndry ()
     :

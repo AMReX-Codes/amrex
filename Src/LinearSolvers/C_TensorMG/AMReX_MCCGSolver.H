@@ -4,13 +4,13 @@
 
 #include <cmath>
 
-#include <Array.H>
-#include <Pointers.H>
+#include <AMReX_Array.H>
+#include <AMReX_Pointers.H>
 
-#include <MultiFab.H>
+#include <AMReX_MultiFab.H>
 
-#include <MCLinOp.H>
-#include <MCMultiGrid.H>
+#include <AMReX_MCLinOp.H>
+#include <AMReX_MCMultiGrid.H>
 
 /*
         A CGColver solves the linear equation, L(phi)=rhs, for a MCLinOp L and

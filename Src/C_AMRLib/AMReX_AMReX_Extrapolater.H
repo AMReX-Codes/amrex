@@ -1,8 +1,8 @@
 #ifndef _EXTRAPOLATER_H_
 #define _EXTRAPOLATER_H_
 
-#include <MultiFab.H>
-#include <Geometry.H>
+#include <AMReX_MultiFab.H>
+#include <AMReX_Geometry.H>
 
 namespace Extrapolater
 {

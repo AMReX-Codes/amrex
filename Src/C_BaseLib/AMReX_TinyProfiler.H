@@ -7,7 +7,7 @@
 #include <utility>
 #include <limits>
 
-#include <REAL.H>
+#include <AMReX_REAL.H>
 
 class TinyProfiler
 {

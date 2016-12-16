@@ -5,7 +5,7 @@
 #ifndef _AMRVISCONSTANTS_H
 #define _AMRVISCONSTANTS_H
 
-#include <REAL.H>
+#include <AMReX_REAL.H>
 #include <cfloat>
 
 #include <stdio.h>

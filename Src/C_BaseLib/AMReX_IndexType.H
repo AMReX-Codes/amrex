@@ -4,9 +4,9 @@
 
 #include <iosfwd>
 
-#include <ccse-mpi.H>
-#include <IntVect.H>
-#include <SPACE.H>
+#include <AMReX_ccse-mpi.H>
+#include <AMReX_IntVect.H>
+#include <AMReX_SPACE.H>
 
 //
 // Cell-Based or Node-Based Indices

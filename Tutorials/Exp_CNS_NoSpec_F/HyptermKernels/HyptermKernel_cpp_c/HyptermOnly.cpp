@@ -1,7 +1,7 @@
 // --------------------------------------------------------------------
 // HyptermOnly.cpp
 // --------------------------------------------------------------------
-#include <winstd.H>
+#include <AMReX_winstd.H>
 
 #include <new>
 #include <iostream>
@@ -17,13 +17,13 @@ using std::endl;
 #include <unistd.h>
 #endif
 
-#include <IntVect.H>
-#include <Box.H>
-#include <FArrayBox.H>
-#include <MultiFab.H>
-#include <ParallelDescriptor.H>
-#include <Utility.H>
-#include <VisMF.H>
+#include <AMReX_IntVect.H>
+#include <AMReX_Box.H>
+#include <AMReX_FArrayBox.H>
+#include <AMReX_MultiFab.H>
+#include <AMReX_ParallelDescriptor.H>
+#include <AMReX_Utility.H>
+#include <AMReX_VisMF.H>
 
 #ifdef SHOWVAL
 #undef SHOWVAL

@@ -1,8 +1,8 @@
 #include <iostream>
 #include <fstream>
-#include <BoxArray.H>
-#include <BoxDomain.H>
-#include <ParallelDescriptor.H>
+#include <AMReX_BoxArray.H>
+#include <AMReX_BoxDomain.H>
+#include <AMReX_ParallelDescriptor.H>
 #include <map>
 
 static

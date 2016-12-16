@@ -3,9 +3,9 @@
 #include <unistd.h>
 #endif
 
-#include <REAL.H>
-#include <CArena.H>
-#include <Utility.H>
+#include <AMReX_REAL.H>
+#include <AMReX_CArena.H>
+#include <AMReX_Utility.H>
 
 #include <list>
 #include <new>

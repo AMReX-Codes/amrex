@@ -1,7 +1,7 @@
 #include <fstream>
 
-#include <Utility.H>
-#include <VisMF.H>
+#include <AMReX_Utility.H>
+#include <AMReX_VisMF.H>
 
 #include <SMC.H>
 #include <SMC_F.H>

@@ -5,16 +5,16 @@
 #include <fstream>
 #include <memory>
 
-#include <Box.H>
-#include <Geometry.H>
-#include <BoxArray.H>
-#include <Array.H>
-#include <BCRec.H>
+#include <AMReX_Box.H>
+#include <AMReX_Geometry.H>
+#include <AMReX_BoxArray.H>
+#include <AMReX_Array.H>
+#include <AMReX_BCRec.H>
 
-#include <AmrCore.H>
+#include <AMReX_AmrCore.H>
 
 #ifdef USE_STATIONDATA
-#include <StationData.H>
+#include <AMReX_StationData.H>
 #endif
 
 class AmrLevel;

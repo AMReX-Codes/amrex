@@ -1,9 +1,9 @@
 
-#include <winstd.H>
+#include <AMReX_winstd.H>
 #include <cstring>
 
-#include <Derive.H>
-#include <StateDescriptor.H>
+#include <AMReX_Derive.H>
+#include <AMReX_StateDescriptor.H>
 
 Box
 DeriveRec::TheSameBox (const Box& box)

@@ -4,9 +4,9 @@
 
 #include <iosfwd>
 
-#include <Array.H>
-#include <REAL.H>
-#include <Box.H>
+#include <AMReX_Array.H>
+#include <AMReX_REAL.H>
+#include <AMReX_Box.H>
 
 //
 // A Real Box

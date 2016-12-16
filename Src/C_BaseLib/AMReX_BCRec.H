@@ -2,8 +2,8 @@
 #ifndef _BCREC_H_
 #define _BCREC_H_ 
 
-#include <Box.H>
-#include <BC_TYPES.H>
+#include <AMReX_Box.H>
+#include <AMReX_BC_TYPES.H>
 //
 // Boundary Condition Records.
 //

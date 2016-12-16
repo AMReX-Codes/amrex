@@ -1,10 +1,10 @@
 #ifndef _FillPatchUtil_H_
 #define _FillPatchUtil_H_
 
-#include <MultiFab.H>
-#include <Geometry.H>
-#include <PhysBCFunct.H>
-#include <Interpolater.H>
+#include <AMReX_MultiFab.H>
+#include <AMReX_Geometry.H>
+#include <AMReX_PhysBCFunct.H>
+#include <AMReX_Interpolater.H>
 
 namespace BoxLib
 {

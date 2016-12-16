@@ -3,8 +3,8 @@ c ::: SCCS stuff "@(#)FABUTIL_2D.F	3.1\t6/25/93"
 #define   FORT_CINTERP       cinterp2d
 #define   FORT_PCINTERP      pcinterp2d
 
-#include "REAL.H"
-#include "CONSTANTS.H"
+#include "AMReX_REAL.H"
+#include "AMReX_CONSTANTS.H"
 
 c ::: --------------------------------------------------------------
       subroutine FORT_CINTERP (fine,floi1,floi2,fhii1,fhii2, fblo,fbhi,

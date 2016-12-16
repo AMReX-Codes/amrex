@@ -1,9 +1,9 @@
-#include <ParmParse.H>
-#include <MGT_Solver.H>
-#include <ParallelDescriptor.H>
+#include <AMReX_ParmParse.H>
+#include <AMReX_MGT_Solver.H>
+#include <AMReX_ParallelDescriptor.H>
 
 #ifdef BL_MEM_PROFILING
-#include <MemProfiler.H>
+#include <AMReX_MemProfiler.H>
 #endif
 
 bool  MGT_Solver::initialized = false;

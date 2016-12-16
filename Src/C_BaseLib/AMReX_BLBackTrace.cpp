@@ -4,9 +4,9 @@
 
 #include <unistd.h>
 
-#include <BLBackTrace.H>
-#include <ParallelDescriptor.H>
-#include <BoxLib.H>
+#include <AMReX_BLBackTrace.H>
+#include <AMReX_ParallelDescriptor.H>
+#include <AMReX_BoxLib.H>
 
 #ifdef BL_BACKTRACING
 std::stack<std::pair<std::string, std::string> >  BLBackTrace::bt_stack;

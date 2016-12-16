@@ -2,11 +2,11 @@
 // ---------------------------------------------------------------
 // DataServices.cpp
 // ---------------------------------------------------------------
-#include <winstd.H>
+#include <AMReX_winstd.H>
 
-#include <AmrvisConstants.H>
-#include <DataServices.H>
-#include <ParallelDescriptor.H>
+#include <AMReX_AmrvisConstants.H>
+#include <AMReX_DataServices.H>
+#include <AMReX_ParallelDescriptor.H>
 
 #ifndef BL_NOLINEVALUES
 # include <XYPlotDataList.H>

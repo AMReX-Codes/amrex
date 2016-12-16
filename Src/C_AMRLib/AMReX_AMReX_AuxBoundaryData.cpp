@@ -1,10 +1,10 @@
 
-#include <winstd.H>
+#include <AMReX_winstd.H>
 #include <iostream>
-#include <AuxBoundaryData.H>
+#include <AMReX_AuxBoundaryData.H>
 
 #ifdef BL_LAZY
-#include <Lazy.H>
+#include <AMReX_Lazy.H>
 #endif
 
 AuxBoundaryData::AuxBoundaryData ()

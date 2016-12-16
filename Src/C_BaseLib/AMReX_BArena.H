@@ -2,7 +2,7 @@
 #ifndef BL_BARENA_H
 #define BL_BARENA_H
 
-#include <Arena.H>
+#include <AMReX_Arena.H>
 
 //
 // A Concrete Class for Dynamic Memory Management

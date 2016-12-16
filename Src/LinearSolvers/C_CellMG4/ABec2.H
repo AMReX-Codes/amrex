@@ -2,9 +2,9 @@
 #ifndef _ABec2_H_
 #define _ABec2_H_
 
-#include <Tuple.H>
-#include <LinOp.H>
-#include <ABecLaplacian.H>
+#include <AMReX_Tuple.H>
+#include <AMReX_LinOp.H>
+#include <AMReX_ABecLaplacian.H>
 
 class ABec2
     : public ABecLaplacian

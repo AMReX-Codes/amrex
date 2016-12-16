@@ -4,12 +4,12 @@
 #include <map>
 #include <limits>
 
-#include <Pointers.H>
-#include <BoxLib.H>
-#include <Array.H>
-#include <Box.H>
-#include <REAL.H>
-#include <ParallelDescriptor.H>
+#include <AMReX_Pointers.H>
+#include <AMReX_BoxLib.H>
+#include <AMReX_Array.H>
+#include <AMReX_Box.H>
+#include <AMReX_REAL.H>
+#include <AMReX_ParallelDescriptor.H>
 
 class BoxArray;
 class MultiFab;

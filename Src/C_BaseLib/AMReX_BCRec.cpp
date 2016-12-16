@@ -1,7 +1,7 @@
 
 #include <iostream>
 
-#include <BCRec.H>
+#include <AMReX_BCRec.H>
 
 BCRec::BCRec (D_DECL(int loX, int loY, int loZ),
               D_DECL(int hiX, int hiY, int hiZ))

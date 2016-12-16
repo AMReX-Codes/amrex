@@ -4,10 +4,10 @@
 #ifndef _AMRDATA_H_
 #define _AMRDATA_H_
 
-#include <AmrvisConstants.H>
-#include <Array.H>
-#include <MultiFab.H>
-#include <VisMF.H>
+#include <AMReX_AmrvisConstants.H>
+#include <AMReX_Array.H>
+#include <AMReX_MultiFab.H>
+#include <AMReX_VisMF.H>
 
 #include <vector>
 #include <fstream>

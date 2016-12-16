@@ -2,13 +2,13 @@
 #ifndef BL_INTVECT_H
 #define BL_INTVECT_H
 
-#include <winstd.H>
+#include <AMReX_winstd.H>
 #include <iosfwd>
 
-#include <ccse-mpi.H>
-#include <SPACE.H>
-#include <Array.H>
-#include <BLassert.H>
+#include <AMReX_ccse-mpi.H>
+#include <AMReX_SPACE.H>
+#include <AMReX_Array.H>
+#include <AMReX_BLassert.H>
 
 //
 // An Integer Vector in SPACEDIM-Dimensional Space

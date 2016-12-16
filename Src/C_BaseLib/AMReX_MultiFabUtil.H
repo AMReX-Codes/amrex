@@ -1,8 +1,8 @@
 #ifndef _MultiFabUtil_H_
 #define _MultiFabUtil_H_
 
-#include <MultiFab.H>
-#include <Geometry.H>
+#include <AMReX_MultiFab.H>
+#include <AMReX_Geometry.H>
 
 namespace BoxLib
 {

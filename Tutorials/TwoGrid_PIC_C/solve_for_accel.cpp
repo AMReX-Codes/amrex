@@ -1,14 +1,14 @@
 #include <iostream>
 
-#include <BoxLib.H>
-#include <MultiFab.H>
-#include <MultiFabUtil.H>
-#include <BLFort.H>
-#include <MacBndry.H>
-#include <MGT_Solver.H>
+#include <AMReX_BoxLib.H>
+#include <AMReX_MultiFab.H>
+#include <AMReX_MultiFabUtil.H>
+#include <AMReX_BLFort.H>
+#include <AMReX_MacBndry.H>
+#include <AMReX_MGT_Solver.H>
 #include <mg_cpp_f.h>
-#include <stencil_types.H>
-#include <VisMF.H>
+#include <AMReX_stencil_types.H>
+#include <AMReX_VisMF.H>
 
 void solve_with_f90  (const Array<MultiFab*>& rhs,
 		      const Array<MultiFab*>& phi,

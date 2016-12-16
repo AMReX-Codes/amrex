@@ -1,7 +1,7 @@
 #ifndef BL_TRACERPARTICLES_H_
 #define BL_TRACERPARTICLES_H_
 
-#include <Particles.H>
+#include <AMReX_Particles.H>
 
 class TracerParticleContainer
     : public ParticleContainer<BL_SPACEDIM,0,std::vector<Particle<BL_SPACEDIM,0> > >

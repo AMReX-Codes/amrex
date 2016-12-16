@@ -4,8 +4,8 @@
 
 #include <iosfwd>
 
-#include <BLassert.H>
-#include <SPACE.H>
+#include <AMReX_BLassert.H>
+#include <AMReX_SPACE.H>
 
 class OrientationIter;
 

@@ -4,9 +4,9 @@
 
 #include <iosfwd>
 
-#include <Array.H>
-#include <BLassert.H>
-#include <REAL.H>
+#include <AMReX_Array.H>
+#include <AMReX_BLassert.H>
+#include <AMReX_REAL.H>
 
 //
 // A Descriptor of the Long Integer type

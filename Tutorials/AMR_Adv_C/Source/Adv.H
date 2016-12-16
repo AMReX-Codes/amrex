@@ -1,8 +1,8 @@
 #ifndef _Adv_H_
 #define _Adv_H_
 
-#include <AmrLevel.H>
-#include <FluxRegister.H>
+#include <AMReX_AmrLevel.H>
+#include <AMReX_FluxRegister.H>
 
 #include <iostream>
 

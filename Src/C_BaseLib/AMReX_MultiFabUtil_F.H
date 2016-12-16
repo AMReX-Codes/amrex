@@ -1,7 +1,7 @@
 #ifndef _MtltiFabUtil_F_H_
 #define _MtltiFabUtil_F_H_
 
-#include <BLFort.H>
+#include <AMReX_BLFort.H>
 
 BL_FORT_PROC_DECL(BL_AVG_EG_TO_CC, bl_avg_eg_to_cc)
   (const int* lo, const int* hi,

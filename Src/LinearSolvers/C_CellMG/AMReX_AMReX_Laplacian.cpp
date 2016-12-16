@@ -1,7 +1,7 @@
 
-#include <winstd.H>
-#include <Laplacian.H>
-#include <LP_F.H>
+#include <AMReX_winstd.H>
+#include <AMReX_Laplacian.H>
+#include <AMReX_LP_F.H>
 
 Laplacian::Laplacian (const BndryData& bd,
                       Real             _h)

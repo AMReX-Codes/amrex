@@ -3,7 +3,7 @@
 // level 1 data. All this could be cleaner, but this is throw-away code
 // anyway, so why bother?
 
-#include <winstd.H>
+#include <AMReX_winstd.H>
 #include <iostream>
 #include <fstream>
 
@@ -11,11 +11,11 @@
 #include <unistd.h>
 #endif
 
-#include <Utility.H>
-#include <ParallelDescriptor.H>
-#include <VisMF.H>
-#include <RealBox.H>
-#include <Geometry.H>
+#include <AMReX_Utility.H>
+#include <AMReX_ParallelDescriptor.H>
+#include <AMReX_VisMF.H>
+#include <AMReX_RealBox.H>
+#include <AMReX_Geometry.H>
 #include <WritePlotFile.H>
 
 #ifdef BL_USE_SETBUF

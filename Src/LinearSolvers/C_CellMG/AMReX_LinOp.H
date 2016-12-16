@@ -4,13 +4,13 @@
 
 #include <memory>
 
-#include <Array.H>
-#include <Tuple.H>
-#include <Pointers.H>
-#include <REAL.H>
-#include <BoxArray.H>
-#include <MultiFab.H>
-#include <BndryData.H>
+#include <AMReX_Array.H>
+#include <AMReX_Tuple.H>
+#include <AMReX_Pointers.H>
+#include <AMReX_REAL.H>
+#include <AMReX_BoxArray.H>
+#include <AMReX_MultiFab.H>
+#include <AMReX_BndryData.H>
 
 /*
         A LinOp is a virtual base class for general linear operators capable

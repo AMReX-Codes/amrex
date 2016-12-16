@@ -4,11 +4,11 @@
 
 #include <cmath>
 
-#include <Array.H>
-#include <Pointers.H>
-#include <MultiFab.H>
-#include <LinOp.H>
-#include <ABecLaplacian.H>
+#include <AMReX_Array.H>
+#include <AMReX_Pointers.H>
+#include <AMReX_MultiFab.H>
+#include <AMReX_LinOp.H>
+#include <AMReX_ABecLaplacian.H>
 
 class MultiGrid;
 
