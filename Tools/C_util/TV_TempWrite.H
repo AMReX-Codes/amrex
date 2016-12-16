@@ -3,8 +3,8 @@
 
 #include <iostream>
 
-#include <MultiFab.H>
-#include <VisMF.H>
+#include <AMReX_MultiFab.H>
+#include <AMReX_VisMF.H>
 
 extern "C" {
     

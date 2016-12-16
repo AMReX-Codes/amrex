@@ -2,7 +2,7 @@
 #ifndef _MACBNDRYDATA_H_
 #define _MACBNDRYDATA_H_
 
-#include <InterpBndryData.H>
+#include <AMReX_InterpBndryData.H>
 
 class MacBndry
     :

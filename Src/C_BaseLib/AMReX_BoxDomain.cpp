@@ -1,8 +1,8 @@
 
 #include <iostream>
 
-#include <BoxDomain.H>
-#include <BLProfiler.H>
+#include <AMReX_BoxDomain.H>
+#include <AMReX_BLProfiler.H>
 
 BoxDomain&
 BoxDomain::intersect (const Box& b)

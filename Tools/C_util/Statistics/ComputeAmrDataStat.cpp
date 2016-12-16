@@ -4,13 +4,13 @@
 
 #include <ComputeAmrDataStat.H>
 #include <WritePlotFile.H>
-#include <REAL.H>
-#include <Box.H>
-#include <FArrayBox.H>
-#include <ParmParse.H>
-#include <ParallelDescriptor.H>
-#include <Utility.H>
-#include <VisMF.H>
+#include <AMReX_REAL.H>
+#include <AMReX_Box.H>
+#include <AMReX_FArrayBox.H>
+#include <AMReX_ParmParse.H>
+#include <AMReX_ParallelDescriptor.H>
+#include <AMReX_Utility.H>
+#include <AMReX_VisMF.H>
 
 // Determine the volume-averaged mean for an AMR data.
 void

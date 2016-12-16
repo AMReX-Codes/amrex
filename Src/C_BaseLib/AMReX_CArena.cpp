@@ -1,9 +1,9 @@
 
-#include <winstd.H>
+#include <AMReX_winstd.H>
 #include <utility>
 #include <cstring>
 
-#include <CArena.H>
+#include <AMReX_CArena.H>
 
 CArena::CArena (size_t hunk_size)
 {

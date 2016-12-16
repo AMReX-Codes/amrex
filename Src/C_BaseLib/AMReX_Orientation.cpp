@@ -1,8 +1,8 @@
 
 #include <iostream>
 
-#include <BoxLib.H>
-#include <Orientation.H>
+#include <AMReX_BoxLib.H>
+#include <AMReX_Orientation.H>
 
 std::ostream&
 operator<< (std::ostream&      os,

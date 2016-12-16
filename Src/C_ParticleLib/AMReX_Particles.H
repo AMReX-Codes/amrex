@@ -11,20 +11,20 @@
 #include <array>
 #include <memory>
 
-#include <ParmParse.H>
+#include <AMReX_ParmParse.H>
 
-#include <ParGDB.H>
-#include <REAL.H>
-#include <IntVect.H>
-#include <Array.H>
-#include <Utility.H>
-#include <Geometry.H>
-#include <VisMF.H>
-#include <Particles_F.H>
-#include <RealBox.H>
+#include <AMReX_ParGDB.H>
+#include <AMReX_REAL.H>
+#include <AMReX_IntVect.H>
+#include <AMReX_Array.H>
+#include <AMReX_Utility.H>
+#include <AMReX_Geometry.H>
+#include <AMReX_VisMF.H>
+#include <AMReX_Particles_F.H>
+#include <AMReX_RealBox.H>
 
 #ifdef BL_LAZY
-#include <Lazy.H>
+#include <AMReX_Lazy.H>
 #endif
 
 #ifdef _OPENMP
@@ -723,7 +723,7 @@ ParticleContainer<NR,NI,C>::addNParticles(int n_part, Array<double>& x, Array<do
     //
     // The ParticleContainer<NR,NI,C>::Init... routines have been moved into a separate file.
     //
-#include "ParticleInit.H"
+#include "AMReX_ParticleInit.H"
 
 template <int NR, int NI, class C>
 void

@@ -1,5 +1,5 @@
-#include <REAL.H>
-#include <ArrayLim.H>
+#include <AMReX_REAL.H>
+#include <AMReX_ArrayLim.H>
 
 extern "C"
 {

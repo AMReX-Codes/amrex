@@ -3,12 +3,12 @@
 #define BL_LANG_FORT
 #endif
 
-#include <REAL.H>
+#include <AMReX_REAL.H>
 
-#include "ABec4_F.H"
-#include "ArrayLim.H"
-#include "CONSTANTS.H"
-#include "LO_BCTYPES.H"
+#include "AMReX_ABec4_F.H"
+#include "AMReX_ArrayLim.H"
+#include "AMReX_CONSTANTS.H"
+#include "AMReX_LO_BCTYPES.H"
 
 #undef BC_ORDER_4
 #define BC_ORDER_5

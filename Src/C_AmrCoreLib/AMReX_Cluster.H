@@ -3,11 +3,11 @@
 #define _Cluster_H_ 
 
 #include <list>
-#include <IntVect.H>
-#include <Box.H>
-#include <Array.H>
-#include <BoxArray.H>
-#include <REAL.H>
+#include <AMReX_IntVect.H>
+#include <AMReX_Box.H>
+#include <AMReX_Array.H>
+#include <AMReX_BoxArray.H>
+#include <AMReX_REAL.H>
 
 class BoxDomain;
 class ClusterList;

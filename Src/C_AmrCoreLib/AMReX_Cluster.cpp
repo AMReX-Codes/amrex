@@ -1,8 +1,8 @@
 
-#include <winstd.H>
+#include <AMReX_winstd.H>
 #include <algorithm>
-#include <Cluster.H>
-#include <BoxDomain.H>
+#include <AMReX_Cluster.H>
+#include <AMReX_BoxDomain.H>
 
 enum CutStatus { HoleCut=0, SteepCut, BisectCut, InvalidCut };
 

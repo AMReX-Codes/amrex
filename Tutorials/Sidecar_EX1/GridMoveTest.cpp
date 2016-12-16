@@ -11,14 +11,14 @@
 #include <sstream>
 #include <unistd.h>
 
-#include <Geometry.H>
-#include <ParallelDescriptor.H>
-#include <ParmParse.H>
-#include <RealBox.H>
-#include <Utility.H>
-#include <ParmParse.H>
+#include <AMReX_Geometry.H>
+#include <AMReX_ParallelDescriptor.H>
+#include <AMReX_ParmParse.H>
+#include <AMReX_RealBox.H>
+#include <AMReX_Utility.H>
+#include <AMReX_ParmParse.H>
 
-#include <BoxLib.H>
+#include <AMReX_BoxLib.H>
 #include <InTransitAnalysis.H>
 
 // In this anonymous namespace we define the workflow which occurs when the

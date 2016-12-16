@@ -2,8 +2,8 @@
 #ifndef _FABSET_H_
 #define _FABSET_H_
 
-#include <MultiFab.H>
-#include <Geometry.H>
+#include <AMReX_MultiFab.H>
+#include <AMReX_Geometry.H>
 
 /*
         A FabSet is a group of FArrayBox's.  The grouping is designed

@@ -2,12 +2,12 @@
 // A test program for MultiFab.
 //
 
-#include <winstd.H>
+#include <AMReX_winstd.H>
 #include <map>
 #include <vector>
 
-#include <Utility.H>
-#include <MultiFab.H>
+#include <AMReX_Utility.H>
+#include <AMReX_MultiFab.H>
 
 int
 main (int argc, char** argv)

@@ -3,11 +3,11 @@
 
 #ifdef BL_PROFILING
 
-#include <REAL.H>
-#include <Array.H>
+#include <AMReX_REAL.H>
+#include <AMReX_Array.H>
 #ifndef BL_AMRPROF
-#include <IntVect.H>
-#include <Box.H>
+#include <AMReX_IntVect.H>
+#include <AMReX_Box.H>
 #endif
 
 #include <iostream>
@@ -423,7 +423,7 @@ inline std::string BLProfiler::CommStats::CFTToString(CommFuncType cft) {
 // --------------------------------------------
 #elif defined(BL_TINY_PROFILING)
 
-#include <TinyProfiler.H>
+#include <AMReX_TinyProfiler.H>
 
 #define BL_PROFILE_INITIALIZE()   TinyProfiler::Initialize();
 #define BL_PROFILE_FINALIZE()     TinyProfiler::Finalize();
@@ -451,7 +451,7 @@ inline std::string BLProfiler::CommStats::CFTToString(CommFuncType cft) {
 #else
 
 #include <string>
-#include <REAL.H>
+#include <AMReX_REAL.H>
 
 class BLProfiler
 {

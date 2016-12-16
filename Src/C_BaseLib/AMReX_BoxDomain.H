@@ -4,10 +4,10 @@
 
 #include <iosfwd>
 
-#include <IndexType.H>
-#include <Box.H>
-#include <IntVect.H>
-#include <BoxList.H>
+#include <AMReX_IndexType.H>
+#include <AMReX_Box.H>
+#include <AMReX_IntVect.H>
+#include <AMReX_BoxList.H>
 //
 // Forward declaration.
 //

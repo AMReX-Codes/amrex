@@ -7,9 +7,9 @@
 
 #include <PltFileFluxAve.H>
 #include <WritePlotFile.H>
-#include <ParallelDescriptor.H>
-#include <ParmParse.H>
-#include <Utility.H>
+#include <AMReX_ParallelDescriptor.H>
+#include <AMReX_ParmParse.H>
+#include <AMReX_Utility.H>
 
 #ifndef NDEBUG
 #include <TV_TempWrite.H>

@@ -5,8 +5,8 @@
 #ifndef _DATASERVICES_H_
 #define _DATASERVICES_H_
 
-#include <Array.H>
-#include <AmrData.H>
+#include <AMReX_Array.H>
+#include <AMReX_AmrData.H>
 
 #include <cstdarg>
 #include <string>

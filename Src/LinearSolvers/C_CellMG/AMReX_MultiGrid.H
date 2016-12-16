@@ -2,12 +2,12 @@
 #ifndef _MULTIGRID_H_
 #define _MULTIGRID_H_
 
-#include <Array.H>
-#include <Pointers.H>
-#include <MultiFab.H>
-#include <BndryData.H>
-#include <LinOp.H>
-#include <CGSolver.H>
+#include <AMReX_Array.H>
+#include <AMReX_Pointers.H>
+#include <AMReX_MultiFab.H>
+#include <AMReX_BndryData.H>
+#include <AMReX_LinOp.H>
+#include <AMReX_CGSolver.H>
 
 #include <algorithm>
 

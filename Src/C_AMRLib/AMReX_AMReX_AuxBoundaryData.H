@@ -2,8 +2,8 @@
 #ifndef _AuxBoundaryData_H_
 #define _AuxBoundaryData_H_
 
-#include <Geometry.H>
-#include <MultiFab.H>
+#include <AMReX_Geometry.H>
+#include <AMReX_MultiFab.H>
 
 class AuxBoundaryData
 {

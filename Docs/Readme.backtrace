@@ -27,7 +27,7 @@ statement before that.  But it might print out thousands (or even
 millions) of line before it hits the segfault.  With BACKTRACE, you
 could do
 
-   #include <BLBackTrace.H>
+   #include <AMReX_BLBackTrace.H>
    
    #ifdef BL_BACKTRACING
        std::ostringstream ss;

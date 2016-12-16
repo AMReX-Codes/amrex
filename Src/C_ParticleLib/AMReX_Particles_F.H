@@ -2,7 +2,7 @@
 
 #define _Particles_F_H_
 
-#include <BLFort.H>
+#include <AMReX_BLFort.H>
 
 #ifdef USE_PARTICLES
 

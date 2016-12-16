@@ -2,8 +2,8 @@
 #ifndef _BNDRYREGISTER_H_
 #define _BNDRYREGISTER_H_
 
-#include <BoxArray.H>
-#include <FabSet.H>
+#include <AMReX_BoxArray.H>
+#include <AMReX_FabSet.H>
 
 class Orientation;
 

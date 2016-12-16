@@ -4,10 +4,10 @@
 #define BL_LANG_FORT
 #endif
 
-#include "REAL.H"
-#include "CONSTANTS.H"
-#include "FLUXREG_F.H"
-#include "ArrayLim.H"
+#include "AMReX_REAL.H"
+#include "AMReX_CONSTANTS.H"
+#include "AMReX_FLUXREG_F.H"
+#include "AMReX_ArrayLim.H"
 
 #if defined(BL_USE_FLOAT) || defined(BL_T3E) || defined(BL_CRAY)
 #define  BL_USE_FLOAT_CONST

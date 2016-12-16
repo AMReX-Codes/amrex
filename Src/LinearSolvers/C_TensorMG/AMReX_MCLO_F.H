@@ -1,7 +1,7 @@
 #ifndef _MCLO_F_H_
 #define _MCLO_F_H_
 
-#include <REAL.H>
+#include <AMReX_REAL.H>
 
 #if defined(BL_LANG_FORT)
 #  define FORT_AVERAGECC mcaveragecc
@@ -26,7 +26,7 @@
 #    define FORT_APPLYBC   mcapplybc_
 #  endif
 
-#include <ArrayLim.H>
+#include <AMReX_ArrayLim.H>
 
 extern "C"
 {

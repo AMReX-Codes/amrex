@@ -2,7 +2,7 @@
 #ifndef BL_SPACE_F_H
 #define BL_SPACE_F_H
 
-#include <SPACE.H>
+#include <AMReX_SPACE.H>
 
 #ifdef BL_LANG_FORT
 #  if (BL_SPACEDIM == 1)

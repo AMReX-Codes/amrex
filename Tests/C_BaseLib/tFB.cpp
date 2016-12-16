@@ -2,8 +2,8 @@
 // A test program for FillBoundary().
 //
 
-#include <Utility.H>
-#include <MultiFab.H>
+#include <AMReX_Utility.H>
+#include <AMReX_MultiFab.H>
 
 const int nTimes(5);
 const int nStrategies(4);

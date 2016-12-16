@@ -1,5 +1,5 @@
 
-#include <winstd.H>
+#include <AMReX_winstd.H>
 #include <algorithm>
 #include <cstdio>
 #include <list>
@@ -17,34 +17,34 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#include <Geometry.H>
-#include <TagBox.H>
-#include <Array.H>
-#include <CoordSys.H>
-#include <ParmParse.H>
-#include <BoxDomain.H>
-#include <Cluster.H>
-#include <LevelBld.H>
-#include <AmrLevel.H>
-#include <PROB_AMR_F.H>
-#include <Amr.H>
-#include <ParallelDescriptor.H>
-#include <Utility.H>
-#include <DistributionMapping.H>
-#include <FabSet.H>
-#include <StateData.H>
-#include <PlotFileUtil.H>
+#include <AMReX_Geometry.H>
+#include <AMReX_TagBox.H>
+#include <AMReX_Array.H>
+#include <AMReX_CoordSys.H>
+#include <AMReX_ParmParse.H>
+#include <AMReX_BoxDomain.H>
+#include <AMReX_Cluster.H>
+#include <AMReX_LevelBld.H>
+#include <AMReX_AmrLevel.H>
+#include <AMReX_PROB_AMR_F.H>
+#include <AMReX_Amr.H>
+#include <AMReX_ParallelDescriptor.H>
+#include <AMReX_Utility.H>
+#include <AMReX_DistributionMapping.H>
+#include <AMReX_FabSet.H>
+#include <AMReX_StateData.H>
+#include <AMReX_PlotFileUtil.H>
 
 #ifdef MG_USE_FBOXLIB
 #include <mg_cpp_f.h>
 #endif
 
 #ifdef BL_LAZY
-#include <Lazy.H>
+#include <AMReX_Lazy.H>
 #endif
 
 #ifdef BL_MEM_PROFILING
-#include <MemProfiler.H>
+#include <AMReX_MemProfiler.H>
 #endif
 
 #ifdef BL_USE_ARRAYVIEW

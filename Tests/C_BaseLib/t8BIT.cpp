@@ -4,7 +4,7 @@
 
 #include <string>
 
-#include <VisMF.H>
+#include <AMReX_VisMF.H>
 
 int
 main (int argc, char** argv)

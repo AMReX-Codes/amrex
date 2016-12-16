@@ -2,7 +2,7 @@
 #include <iostream>
 #include <iomanip>
 
-#include <IndexType.H>
+#include <AMReX_IndexType.H>
 
 void
 IndexType::setType (int       dir,

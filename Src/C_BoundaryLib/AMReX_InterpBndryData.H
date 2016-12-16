@@ -2,13 +2,13 @@
 #ifndef _INTERPBNDRYDATA_H_
 #define _INTERPBNDRYDATA_H_
 
-#include <BoxArray.H>
-#include <FArrayBox.H>
-#include <Orientation.H>
-#include <BCRec.H>
-#include <Geometry.H>
-#include <BoundCond.H>
-#include <BndryData.H>
+#include <AMReX_BoxArray.H>
+#include <AMReX_FArrayBox.H>
+#include <AMReX_Orientation.H>
+#include <AMReX_BCRec.H>
+#include <AMReX_Geometry.H>
+#include <AMReX_BoundCond.H>
+#include <AMReX_BndryData.H>
 
 /*
         An InterpBndryData object adds to a BndryData object the ability to

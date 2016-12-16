@@ -1,10 +1,10 @@
 #ifndef _SMC_H_
 #define _SMC_H_
 
-#include <Array.H>
-#include <IntVect.H>
-#include <Geometry.H>
-#include <MultiFab.H>
+#include <AMReX_Array.H>
+#include <AMReX_IntVect.H>
+#include <AMReX_Geometry.H>
+#include <AMReX_MultiFab.H>
 
 #ifdef _OPEMP
 #include <omp.h>

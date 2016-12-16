@@ -2,10 +2,10 @@
 #ifndef BL_IMULTIFAB_H
 #define BL_IMULTIFAB_H
 
-#include <BLassert.H>
-#include <IArrayBox.H>
-#include <FabArray.H>
-#include <Geometry.H>
+#include <AMReX_BLassert.H>
+#include <AMReX_IArrayBox.H>
+#include <AMReX_FabArray.H>
+#include <AMReX_Geometry.H>
 
 //
 // A Collection of IArrayBoxes

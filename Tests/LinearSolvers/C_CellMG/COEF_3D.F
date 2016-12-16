@@ -3,8 +3,8 @@
 #define BL_LANG_FORT
 #endif
 
-#include <REAL.H>
-#include "ArrayLim.H"
+#include <AMReX_REAL.H>
+#include "AMReX_ArrayLim.H"
 #include "COEF_F.H"
 
 c-----------------------------------------------------------------------

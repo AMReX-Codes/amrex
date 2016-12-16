@@ -1,11 +1,11 @@
 #ifndef _MGT_SOLVER_
 #define _MGT_SOLVER_
 
-#include <Array.H>
-#include <MultiFab.H>
-#include <Geometry.H>
-#include <BCRec.H>
-#include <BndryData.H>
+#include <AMReX_Array.H>
+#include <AMReX_MultiFab.H>
+#include <AMReX_Geometry.H>
+#include <AMReX_BCRec.H>
+#include <AMReX_BndryData.H>
 
 #include <mg_cpp_f.h>
 

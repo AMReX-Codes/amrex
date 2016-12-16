@@ -1,6 +1,6 @@
 
-#include <Extrapolater.H>
-#include <iMultiFab.H>
+#include <AMReX_Extrapolater.H>
+#include <AMReX_iMultiFab.H>
 
 #ifdef _OPENMP
 #include <omp.h>

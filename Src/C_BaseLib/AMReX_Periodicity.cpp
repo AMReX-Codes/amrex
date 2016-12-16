@@ -1,6 +1,6 @@
 
 #include <limits>
-#include <Periodicity.H>
+#include <AMReX_Periodicity.H>
 
 std::vector<IntVect>
 Periodicity::shiftIntVect () const

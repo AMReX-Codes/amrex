@@ -3,10 +3,10 @@
 #include <list>
 #include <string>
 
-#include <ArrayLim.H>
-#include <REAL.H>
-#include <Box.H>
-#include <Interpolater.H>
+#include <AMReX_ArrayLim.H>
+#include <AMReX_REAL.H>
+#include <AMReX_Box.H>
+#include <AMReX_Interpolater.H>
 
 class DescriptorList;
 

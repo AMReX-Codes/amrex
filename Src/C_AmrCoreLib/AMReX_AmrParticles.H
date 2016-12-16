@@ -1,9 +1,9 @@
 #ifndef _AmrParticles_H_
 #define _AmrParticles_H_
 
-#include <Particles.H>
-#include <TracerParticles.H>
-#include <AmrParGDB.H>
+#include <AMReX_Particles.H>
+#include <AMReX_TracerParticles.H>
+#include <AMReX_AmrParGDB.H>
 
 template <int NR, int NI=0, class C = std::deque<Particle<NR,NI> > >
 class AmrParticleContainer

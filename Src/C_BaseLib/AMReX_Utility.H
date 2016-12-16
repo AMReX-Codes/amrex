@@ -2,7 +2,7 @@
 #ifndef BL_UTILITY_H
 #define BL_UTILITY_H
 
-#include <winstd.H>
+#include <AMReX_winstd.H>
 
 #include <iostream>
 #include <string>
@@ -16,13 +16,13 @@
 #endif
 #endif
 
-#include <BLassert.H>
-#include <REAL.H>
-#include <Array.H>
-#include <Box.H>
-#include <BoxArray.H>
-#include <DistributionMapping.H>
-#include <ParallelDescriptor.H>
+#include <AMReX_BLassert.H>
+#include <AMReX_REAL.H>
+#include <AMReX_Array.H>
+#include <AMReX_Box.H>
+#include <AMReX_BoxArray.H>
+#include <AMReX_DistributionMapping.H>
+#include <AMReX_ParallelDescriptor.H>
 
 //
 // Useful C++ Utility Functions

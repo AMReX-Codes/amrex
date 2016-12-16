@@ -14,15 +14,15 @@
 #include <sys/types.h>
 #include <errno.h>
 
-#include <BLFort.H>
-#include <REAL.H>
-#include <BoxLib.H>
-#include <Utility.H>
-#include <BLassert.H>
-#include <BLProfiler.H>
+#include <AMReX_BLFort.H>
+#include <AMReX_REAL.H>
+#include <AMReX_BoxLib.H>
+#include <AMReX_Utility.H>
+#include <AMReX_BLassert.H>
+#include <AMReX_BLProfiler.H>
 
-#include <ParallelDescriptor.H>
-#include <BoxArray.H>
+#include <AMReX_ParallelDescriptor.H>
+#include <AMReX_BoxArray.H>
 
 #ifdef _OPENMP
 #include <omp.h>

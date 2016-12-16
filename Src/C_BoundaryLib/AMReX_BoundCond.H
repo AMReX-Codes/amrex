@@ -2,7 +2,7 @@
 #ifndef _BOUNDCOND_H_
 #define _BOUNDCOND_H_
 
-#include <BLassert.H>
+#include <AMReX_BLassert.H>
 
 /*
    Maintain an identifier for boundary condition types.

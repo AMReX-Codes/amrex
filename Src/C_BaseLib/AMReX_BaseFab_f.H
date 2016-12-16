@@ -1,8 +1,8 @@
 #ifndef BASEFAB_F_H_
 #define BASEFAB_F_H_
 
-#include <REAL.H>
-#include <ArrayLim.H>
+#include <AMReX_REAL.H>
+#include <AMReX_ArrayLim.H>
 
 extern "C"
 {

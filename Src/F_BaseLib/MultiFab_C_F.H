@@ -2,8 +2,8 @@
 #define _MultiFab_C_F_H_
 
 #include <string>
-#include <MultiFab.H>
-#include <Geometry.H>
+#include <AMReX_MultiFab.H>
+#include <AMReX_Geometry.H>
 
 extern "C" {
     void build_layout_from_c (int nb, int dm, const int* lo, const int* hi, 

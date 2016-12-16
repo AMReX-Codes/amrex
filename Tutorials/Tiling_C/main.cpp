@@ -1,8 +1,8 @@
 #include <iostream>
 
-#include <BoxLib.H>
-#include <MultiFab.H>
-#include <BLFort.H>
+#include <AMReX_BoxLib.H>
+#include <AMReX_MultiFab.H>
+#include <AMReX_BLFort.H>
 
 // declare a fortran subroutine
 extern "C"

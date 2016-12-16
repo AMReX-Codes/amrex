@@ -11,10 +11,10 @@
 #include <sys/sysinfo.h>
 #endif
 
-#include <MemProfiler.H>
-#include <ParallelDescriptor.H>
-#include <BoxLib.H>
-#include <ParmParse.H>
+#include <AMReX_MemProfiler.H>
+#include <AMReX_ParallelDescriptor.H>
+#include <AMReX_BoxLib.H>
+#include <AMReX_ParmParse.H>
 
 void 
 MemProfiler::add (const std::string& name, std::function<MemInfo()>&& f)

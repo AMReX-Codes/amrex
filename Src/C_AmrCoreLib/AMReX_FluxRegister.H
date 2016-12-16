@@ -1,8 +1,8 @@
 #ifndef _FLUXREGISTER_H_
 #define _FLUXREGISTER_H_
 
-#include <BndryRegister.H>
-#include <Geometry.H>
+#include <AMReX_BndryRegister.H>
+#include <AMReX_Geometry.H>
 
 //
 // Flux Register.

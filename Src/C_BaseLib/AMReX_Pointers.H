@@ -2,9 +2,9 @@
 #ifndef BL_POINTERS_H
 #define BL_POINTERS_H
 
-#include <BLassert.H>
-#include <BoxLib.H>
-#include <UseCount.H>
+#include <AMReX_BLassert.H>
+#include <AMReX_BoxLib.H>
+#include <AMReX_UseCount.H>
 
 /*
   A Smart Pointer for Intrinsic or User-Defined Types

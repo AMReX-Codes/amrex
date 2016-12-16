@@ -9,14 +9,14 @@
 #endif
 
 #ifdef BL_USE_UPCXX
-#include <BLPgas.H>
+#include <AMReX_BLPgas.H>
 #endif
 
-#include <CoordSys.H>
-#include <MultiFab.H>
-#include <ParallelDescriptor.H>
-#include <RealBox.H>
-#include <Periodicity.H>
+#include <AMReX_CoordSys.H>
+#include <AMReX_MultiFab.H>
+#include <AMReX_ParallelDescriptor.H>
+#include <AMReX_RealBox.H>
+#include <AMReX_Periodicity.H>
 
 //
 // Rectangular problem domain geometry.

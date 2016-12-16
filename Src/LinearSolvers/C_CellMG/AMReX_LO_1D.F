@@ -3,11 +3,11 @@
 #define BL_LANG_FORT
 #endif
 
-#include <REAL.H>
-#include <CONSTANTS.H>
-#include "LO_BCTYPES.H"
-#include "LO_F.H"
-#include "ArrayLim.H"
+#include <AMReX_REAL.H>
+#include <AMReX_CONSTANTS.H>
+#include "AMReX_LO_BCTYPES.H"
+#include "AMReX_LO_F.H"
+#include "AMReX_ArrayLim.H"
 
 c-----------------------------------------------------------------------
       subroutine FORT_HARMONIC_AVERAGEEC (

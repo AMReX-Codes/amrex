@@ -2,8 +2,8 @@
 #ifndef BL_USECOUNT_H
 #define BL_USECOUNT_H
 
-#include <BLassert.H>
-#include <BoxLib.H>
+#include <AMReX_BLassert.H>
+#include <AMReX_BoxLib.H>
 
 //
 // A Class Encapsulating Reference Counts

@@ -46,7 +46,7 @@
 #  endif
 #  endif
 
-#include <ArrayLim.H>
+#include <AMReX_ArrayLim.H>
 
 extern "C"
 {

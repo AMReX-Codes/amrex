@@ -1,5 +1,5 @@
 
-#include <winstd.H>
+#include <AMReX_winstd.H>
 #include <typeinfo>
 #include <cstdlib>
 #include <iostream>
@@ -12,11 +12,11 @@
 #include <vector>
 #include <list>
 
-#include <BoxLib.H>
-#include <ParmParse.H>
-#include <ParallelDescriptor.H>
-#include <Box.H>
-#include <IntVect.H>
+#include <AMReX_BoxLib.H>
+#include <AMReX_ParmParse.H>
+#include <AMReX_ParallelDescriptor.H>
+#include <AMReX_Box.H>
+#include <AMReX_IntVect.H>
 
 static bool finalize_verbose = true;
 
@@ -1824,7 +1824,7 @@ ParmParse::Record::operator* () const
 //
 // FOrtran Interface routines
 //
-#include <BLFort.H>
+#include <AMReX_BLFort.H>
 #include <map>
 
 namespace

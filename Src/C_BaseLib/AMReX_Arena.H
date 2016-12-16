@@ -2,7 +2,7 @@
 #ifndef BL_ARENA_H
 #define BL_ARENA_H
 
-#include <winstd.H>
+#include <AMReX_winstd.H>
 #include <cstddef>
 
 class Arena;

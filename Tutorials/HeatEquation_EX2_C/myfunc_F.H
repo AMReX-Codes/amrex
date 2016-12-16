@@ -1,7 +1,7 @@
 #ifndef MYFUNC_F_H__ 
 #define MUFUNC_F_H__ 
 
-#include <BLFort.H>
+#include <AMReX_BLFort.H>
 
 extern "C"
 {

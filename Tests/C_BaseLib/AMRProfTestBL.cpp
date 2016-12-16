@@ -12,8 +12,8 @@
 using std::cout;
 using std::endl;
 
-#include <BLProfiler.H>
-#include <ParallelDescriptor.H>
+#include <AMReX_BLProfiler.H>
+#include <AMReX_ParallelDescriptor.H>
 #include <AMRPROFTEST_F.H>
 
 

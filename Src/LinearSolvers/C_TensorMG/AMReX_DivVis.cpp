@@ -1,6 +1,6 @@
-#include <winstd.H>
-#include <DivVis.H>
-#include <DivVis_F.H>
+#include <AMReX_winstd.H>
+#include <AMReX_DivVis.H>
+#include <AMReX_DivVis_F.H>
 
 Real DivVis::a_def     = 0.0;
 Real DivVis::b_def     = 1.0;

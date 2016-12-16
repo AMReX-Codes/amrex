@@ -5,7 +5,7 @@ subroutine compute_flux(phi, ng_p, fluxx, fluxy, ng_f, lo, hi, &
   implicit none
 
   ! includes definitions found in BC_TYPES.H
-  include 'bc_types.fi'
+  include 'AMReX_bc_types.fi'
 
   integer lo(2),hi(2),domlo(2),domhi(2),bc(2,2),ng_p,ng_f
   double precision   phi(lo(1)-ng_p:hi(1)+ng_p,lo(2)-ng_p:hi(2)+ng_p)

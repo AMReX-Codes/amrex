@@ -20,7 +20,7 @@
 #endif
 
 #ifndef FORTRAN_BOXLIB
-#include <BLBackTrace.H>
+#include <AMReX_BLBackTrace.H>
 #endif
 
 extern "C" {

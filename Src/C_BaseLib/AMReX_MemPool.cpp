@@ -9,15 +9,15 @@
 #include <memory>
 #include <cstring>
 
-#include <CArena.H>
-#include <MemPool.H>
+#include <AMReX_CArena.H>
+#include <AMReX_MemPool.H>
 
 #ifdef BL_MEM_PROFILING
-#include <MemProfiler.H>
+#include <AMReX_MemProfiler.H>
 #endif
 
 #ifndef FORTRAN_BOXLIB
-#include <ParmParse.H>
+#include <AMReX_ParmParse.H>
 #endif
 
 namespace

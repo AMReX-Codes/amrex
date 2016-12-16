@@ -2,7 +2,7 @@
 #include <iostream>
 #include <string>
 
-#include <RealBox.H>
+#include <AMReX_RealBox.H>
 //
 // The definition of lone static data member.
 //

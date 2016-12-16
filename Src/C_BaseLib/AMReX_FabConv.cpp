@@ -4,12 +4,12 @@
 #include <limits>
 #include <cstring>
 
-#include <BoxLib.H>
-#include <FabConv.H>
-#include <FArrayBox.H>
-#include <FPC.H>
-#include <REAL.H>
-#include <Utility.H>
+#include <AMReX_BoxLib.H>
+#include <AMReX_FabConv.H>
+#include <AMReX_FArrayBox.H>
+#include <AMReX_FPC.H>
+#include <AMReX_REAL.H>
+#include <AMReX_Utility.H>
 
 bool RealDescriptor::bAlwaysFixDenormals (false);
 int  RealDescriptor::writeBufferSize(262144);  // ---- these are number of reals,

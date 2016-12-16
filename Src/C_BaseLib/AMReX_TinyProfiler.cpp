@@ -7,9 +7,9 @@
 #include <cmath>
 #include <set>
 
-#include <TinyProfiler.H>
-#include <ParallelDescriptor.H>
-#include <Utility.H>
+#include <AMReX_TinyProfiler.H>
+#include <AMReX_ParallelDescriptor.H>
+#include <AMReX_Utility.H>
 
 #ifdef _OPENMP
 #include <omp.h>

@@ -1,4 +1,4 @@
-#include <Lazy.H>
+#include <AMReX_Lazy.H>
 
 namespace Lazy
 {

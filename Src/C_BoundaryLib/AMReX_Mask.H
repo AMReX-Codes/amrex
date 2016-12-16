@@ -2,8 +2,8 @@
 #ifndef _MASK_H_
 #define _MASK_H_
 
-#include <BaseFab.H>
-#include <FArrayBox.H>
+#include <AMReX_BaseFab.H>
+#include <AMReX_FArrayBox.H>
 
 /*
         A Mask is a derived Fab class whose elements maintain a logical

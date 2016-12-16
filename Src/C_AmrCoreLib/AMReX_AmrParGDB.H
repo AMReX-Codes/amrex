@@ -1,8 +1,8 @@
 #ifndef _AmrParGDB_H
 #define _AmrParGDB_H
 
-#include <ParGDB.H>
-#include <AmrCore.H>
+#include <AMReX_ParGDB.H>
+#include <AMReX_AmrCore.H>
 
 class AmrParGDB
     : public ParGDBBase

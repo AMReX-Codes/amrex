@@ -1,7 +1,7 @@
-#include <REAL.H>
-#include "ArrayLim.H"
-#include "CONSTANTS.H"
-#include "LO_BCTYPES.H"
+#include <AMReX_REAL.H>
+#include "AMReX_ArrayLim.H"
+#include "AMReX_CONSTANTS.H"
+#include "AMReX_LO_BCTYPES.H"
 
       subroutine ab2_gsrb (lo, hi, blo, bhi,
      &     phi, phi_l1, phi_l2, phi_h1, phi_h2,

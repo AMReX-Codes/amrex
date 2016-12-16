@@ -2,9 +2,9 @@
 #ifndef _ABec4_H_
 #define _ABec4_H_
 
-#include <Tuple.H>
-#include <LinOp.H>
-#include <ABec2.H>
+#include <AMReX_Tuple.H>
+#include <AMReX_LinOp.H>
+#include <AMReX_ABec2.H>
 
 /*
         An ABec4 tailors the description of a linear operator to apply

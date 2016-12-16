@@ -1,9 +1,9 @@
 #ifndef _ParGDB_H
 #define _ParGDB_H
 
-#include <Array.H>
-#include <Geometry.H>
-#include <MultiFab.H>
+#include <AMReX_Array.H>
+#include <AMReX_Geometry.H>
+#include <AMReX_MultiFab.H>
 				      
 class ParGDBBase
 {

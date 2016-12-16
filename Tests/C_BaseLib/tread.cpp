@@ -7,8 +7,8 @@
 #include <fstream>
 #include <iostream>
 
-#include <Utility.H>
-#include <FArrayBox.H>
+#include <AMReX_Utility.H>
+#include <AMReX_FArrayBox.H>
 
 int
 main (int argc, char** argv)

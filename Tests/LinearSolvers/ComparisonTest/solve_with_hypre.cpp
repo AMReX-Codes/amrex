@@ -1,13 +1,13 @@
 #ifdef USEHYPRE
 
-#include <Utility.H>
-#include <ParmParse.H>
-#include <LO_BCTYPES.H>
-#include <MultiFab.H>
-#include <Geometry.H>
-#include <BndryData.H>
-#include <MacBndry.H>
-#include <MultiFabUtil.H>
+#include <AMReX_Utility.H>
+#include <AMReX_ParmParse.H>
+#include <AMReX_LO_BCTYPES.H>
+#include <AMReX_MultiFab.H>
+#include <AMReX_Geometry.H>
+#include <AMReX_BndryData.H>
+#include <AMReX_MacBndry.H>
+#include <AMReX_MultiFabUtil.H>
 
 #include <HypreABecLap.H>
 

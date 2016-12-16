@@ -1,19 +1,19 @@
 
-#include <winstd.H>
+#include <AMReX_winstd.H>
 
 #include <cstring>
 #include <cstdlib>
 
-#include <BaseFab.H>
-#include <BArena.H>
-#include <CArena.H>
+#include <AMReX_BaseFab.H>
+#include <AMReX_BArena.H>
+#include <AMReX_CArena.H>
 
 #if !(defined(BL_NO_FORT) || defined(WIN32))
-#include <BaseFab_f.H>
+#include <AMReX_BaseFab_f.H>
 #endif
 
 #ifdef BL_MEM_PROFILING
-#include <MemProfiler.H>
+#include <AMReX_MemProfiler.H>
 #endif
 
 long BoxLib::private_total_bytes_allocated_in_fabs     = 0L;

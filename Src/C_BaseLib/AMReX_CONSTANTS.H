@@ -1,7 +1,7 @@
 #ifndef BL_CONSTANTS_H
 #define BL_CONSTANTS_H
 
-#include <REAL.H>
+#include <AMReX_REAL.H>
 
 
 #ifdef BL_LANG_FORT

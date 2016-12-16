@@ -50,7 +50,7 @@
 ** Fortran stuff ...
 */
 
-#include <REAL.H>
+#include <AMReX_REAL.H>
 
 #ifdef BL_USE_ARLIM
 

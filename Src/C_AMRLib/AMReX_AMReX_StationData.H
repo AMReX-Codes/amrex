@@ -7,11 +7,11 @@
 #include <string>
 #include <memory>
 
-#include <Amr.H>
-#include <Array.H>
-#include <REAL.H>
-#include <StateData.H>
-#include <Utility.H>
+#include <AMReX_Amr.H>
+#include <AMReX_Array.H>
+#include <AMReX_REAL.H>
+#include <AMReX_StateData.H>
+#include <AMReX_Utility.H>
 //
 // Forward declaration.
 //

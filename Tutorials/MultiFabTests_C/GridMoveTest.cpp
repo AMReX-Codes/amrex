@@ -3,7 +3,7 @@
 // --------------------------------------------------------------------------
 //  this file tests the performance for moving grids
 // --------------------------------------------------------------------------
-#include <winstd.H>
+#include <AMReX_winstd.H>
 
 #include <new>
 #include <iostream>
@@ -17,11 +17,11 @@
 #include <unistd.h>
 #endif
 
-#include <ParmParse.H>
-#include <ParallelDescriptor.H>
-#include <Utility.H>
-#include <VisMF.H>
-#include <MultiFab.H>
+#include <AMReX_ParmParse.H>
+#include <AMReX_ParallelDescriptor.H>
+#include <AMReX_Utility.H>
+#include <AMReX_VisMF.H>
+#include <AMReX_MultiFab.H>
 
 #ifdef BL_USE_SETBUF
 #define pubsetbuf setbuf

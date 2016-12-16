@@ -1,5 +1,5 @@
 #include <unistd.h>
-#include <winstd.H>
+#include <AMReX_winstd.H>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -9,24 +9,24 @@
 #include <stack>
 #include <limits>
 
-#include <BoxLib.H>
-#include <ParallelDescriptor.H>
-#include <BLProfiler.H>
-#include <Utility.H>
+#include <AMReX_BoxLib.H>
+#include <AMReX_ParallelDescriptor.H>
+#include <AMReX_BLProfiler.H>
+#include <AMReX_Utility.H>
 
 #ifndef BL_AMRPROF
-#include <ParmParse.H>
-#include <MultiFab.H>
-#include <iMultiFab.H>
-#include <VisMF.H>
+#include <AMReX_ParmParse.H>
+#include <AMReX_MultiFab.H>
+#include <AMReX_iMultiFab.H>
+#include <AMReX_VisMF.H>
 #endif
 
 #ifdef BL_LAZY
-#include <Lazy.H>
+#include <AMReX_Lazy.H>
 #endif
 
 #ifdef BL_MEM_PROFILING
-#include <MemProfiler.H>
+#include <AMReX_MemProfiler.H>
 #ifdef BL_USE_F_BASELIB
 #include <MemProfiler_f.H>
 #endif
@@ -36,8 +36,8 @@
 #include <omp.h>
 #endif
 
-#include <BLBackTrace.H>
-#include <MemPool.H>
+#include <AMReX_BLBackTrace.H>
+#include <AMReX_MemPool.H>
 
 #if defined(BL_USE_FORTRAN_MPI) || defined(BL_USE_F_INTERFACES)
 extern "C" {
@@ -160,7 +160,7 @@ namespace
   }
 }
 
-#include <BLFort.H>
+#include <AMReX_BLFort.H>
 
 BL_FORT_PROC_DECL(BL_ERROR_CPP,bl_error_cpp)
   (

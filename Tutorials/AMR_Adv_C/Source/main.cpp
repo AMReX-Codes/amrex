@@ -3,10 +3,10 @@
 #include <iostream>
 #include <iomanip>
 
-#include <Amr.H>
-#include <ParmParse.H>
-#include <ParallelDescriptor.H>
-#include <AmrLevel.H>
+#include <AMReX_Amr.H>
+#include <AMReX_ParmParse.H>
+#include <AMReX_ParallelDescriptor.H>
+#include <AMReX_AmrLevel.H>
 
 int
 main (int   argc,

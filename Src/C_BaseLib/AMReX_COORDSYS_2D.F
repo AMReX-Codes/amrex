@@ -4,10 +4,10 @@
 #define BL_LANG_FORT
 #endif
 
-#include "REAL.H"
-#include "CONSTANTS.H"
-#include "COORDSYS_F.H"
-#include "ArrayLim.H"
+#include "AMReX_REAL.H"
+#include "AMReX_CONSTANTS.H"
+#include "AMReX_COORDSYS_F.H"
+#include "AMReX_ArrayLim.H"
 
 #define SDIM 2
 

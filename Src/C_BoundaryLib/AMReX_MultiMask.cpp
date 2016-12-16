@@ -1,6 +1,6 @@
 
-#include <MultiMask.H>
-#include <BndryData.H>
+#include <AMReX_MultiMask.H>
+#include <AMReX_BndryData.H>
 
 MultiMask::MultiMask (const BoxArray& ba, const DistributionMapping& dm, int ncomp)
     : m_fa(ba, ncomp, 0, dm)
