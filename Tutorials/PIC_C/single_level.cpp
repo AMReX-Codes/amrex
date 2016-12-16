@@ -166,9 +166,9 @@ int single_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int nppc,
     strt_solve = ParallelDescriptor::second();
 
     // Use multigrid to solve Lap(phi) = rhs with periodic boundary conditions (set above)
-    solve_for_accel(AMReX::GetArrOfPtrs(rhs),
-		    AMReX::GetArrOfPtrs(phi),
-		    AMReX::GetArrOfPtrs(grad_phi),
+    solve_for_accel(amrex::GetArrOfPtrs(rhs),
+		    amrex::GetArrOfPtrs(phi),
+		    amrex::GetArrOfPtrs(grad_phi),
 		    geom,base_level,finest_level,offset);
 
     end_solve = ParallelDescriptor::second() - strt_solve;

@@ -223,9 +223,9 @@ two_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int nppc, bool v
     // Use multigrid to solve Lap(phi) = rhs with periodic boundary conditions (set above)
     if (ParallelDescriptor::IOProcessor())
        std::cout << "Solving for phi at level 0 ... " << std::endl;
-    solve_for_accel(AMReX::GetArrOfPtrs(rhs),
-		    AMReX::GetArrOfPtrs(phi),
-		    AMReX::GetArrOfPtrs(grad_phi),
+    solve_for_accel(amrex::GetArrOfPtrs(rhs),
+		    amrex::GetArrOfPtrs(phi),
+		    amrex::GetArrOfPtrs(grad_phi),
 		    geom,base_level,finest_level,offset);
     if (ParallelDescriptor::IOProcessor())
        std::cout << "Solved  for phi at level 0 ... " << std::endl;
@@ -251,9 +251,9 @@ two_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int nppc, bool v
     // Use multigrid to solve Lap(phi) = rhs with boundary conditions from level 0
     if (ParallelDescriptor::IOProcessor())
        std::cout << "Solving for phi at level 1 ... " << std::endl;
-    solve_for_accel(AMReX::GetArrOfPtrs(rhs),
-		    AMReX::GetArrOfPtrs(phi),
-		    AMReX::GetArrOfPtrs(grad_phi),
+    solve_for_accel(amrex::GetArrOfPtrs(rhs),
+		    amrex::GetArrOfPtrs(phi),
+		    amrex::GetArrOfPtrs(grad_phi),
 		    geom,base_level,finest_level,offset);
     if (ParallelDescriptor::IOProcessor())
        std::cout << "Solved  for phi at level 1 ... " << std::endl;
@@ -291,9 +291,9 @@ two_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int nppc, bool v
     // Use multigrid to solve Lap(phi) = rhs with periodic boundary conditions (set above)
     if (ParallelDescriptor::IOProcessor())
        std::cout << "Solving for phi at levels 0 and 1 ... " << std::endl;
-    solve_for_accel(AMReX::GetArrOfPtrs(rhs),
-		    AMReX::GetArrOfPtrs(phi),
-		    AMReX::GetArrOfPtrs(grad_phi),
+    solve_for_accel(amrex::GetArrOfPtrs(rhs),
+		    amrex::GetArrOfPtrs(phi),
+		    amrex::GetArrOfPtrs(grad_phi),
 		    geom,base_level,finest_level,offset);
     if (ParallelDescriptor::IOProcessor())
        std::cout << "Solved  for phi at levels 0 and 1 ... " << std::endl;

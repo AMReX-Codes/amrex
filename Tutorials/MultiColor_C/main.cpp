@@ -81,11 +81,11 @@ int main(int argc, char* argv[])
     for (int i = 0; i < BL_SPACEDIM; ++i) {
 	beta[i].reset(new MultiFab(ba, ncomp, 0, Fab_allocate, IntVect::TheDimensionVector(i)));
     }
-    setup_coeffs(alpha, AMReX::GetArrOfPtrs(beta), geom);
+    setup_coeffs(alpha, amrex::GetArrOfPtrs(beta), geom);
 
     MultiFab soln(ba, ncomp, 0);
 
-    solve(soln, rhs, alpha, AMReX::GetArrOfPtrs(beta), geom);
+    solve(soln, rhs, alpha, amrex::GetArrOfPtrs(beta), geom);
 
     VisMF::Write(soln, "soln");
 
@@ -219,7 +219,7 @@ void solve(MultiFab& soln, const MultiFab& rhs,
 
     int icolor = ParallelDescriptor::SubCommColor().to_int();
     colored_solve(*csoln[icolor], *crhs[icolor], *calpha[icolor],
-		  AMReX::GetArrOfPtrs(cbeta[icolor]), geom);
+		  amrex::GetArrOfPtrs(cbeta[icolor]), geom);
 
     // Copy solution back from colored MFs.
     for (int i = 0; i < ncolors; ++i) {
@@ -257,7 +257,7 @@ void colored_solve(MultiFab& soln, const MultiFab& rhs,
 	    }
 	    
 	    single_component_solve(ssoln, srhs, salpha,
-				   AMReX::GetArrOfPtrs(sbeta), geom);
+				   amrex::GetArrOfPtrs(sbeta), geom);
 	    
 	    MultiFab::Copy(soln, ssoln, 0, i, 1, 0);
 	}

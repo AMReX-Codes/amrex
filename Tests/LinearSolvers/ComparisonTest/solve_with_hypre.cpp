@@ -76,7 +76,7 @@ void solve_with_hypre(const Array<MultiFab*>& soln, Real a, Real b,
 	  bcoeffs[n].reset(new MultiFab(edge_boxes, 1, 0));
       }
 
-      BoxLib::average_cellcenter_to_face(AMReX::GetArrOfPtrs(bcoeffs), *beta[level], geom[level]);
+      BoxLib::average_cellcenter_to_face(amrex::GetArrOfPtrs(bcoeffs), *beta[level], geom[level]);
 	
       for (int n = 0; n < BL_SPACEDIM ; n++) 
       {

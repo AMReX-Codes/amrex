@@ -263,7 +263,7 @@ int main(int argc, char* argv[])
   // give HPGMG the cell-centered data and let it interpolate itself.
 
   MultiFab beta_cc(bs,Ncomp,1); // cell-centered beta
-  setup_coeffs(bs, alpha, AMReX::GetArrOfPtrs(beta), geom, beta_cc);
+  setup_coeffs(bs, alpha, amrex::GetArrOfPtrs(beta), geom, beta_cc);
 
   MultiFab alpha4, beta4;
   if (do_4th) {
@@ -298,7 +298,7 @@ int main(int argc, char* argv[])
       std::cout << "Solving with Hypre " << std::endl;
     }
 
-    solve(soln, anaSoln, gphi, a, b, alpha, AMReX::GetArrOfPtrs(beta),
+    solve(soln, anaSoln, gphi, a, b, alpha, amrex::GetArrOfPtrs(beta),
 	  beta_cc, rhs, bs, geom, Hypre);
   }
 #endif
@@ -308,7 +308,7 @@ int main(int argc, char* argv[])
       std::cout << "----------------------------------------" << std::endl;
       std::cout << "Solving with BoxLib C++ solver " << std::endl;
     }
-    solve(soln, anaSoln, gphi, a, b, alpha, AMReX::GetArrOfPtrs(beta),
+    solve(soln, anaSoln, gphi, a, b, alpha, amrex::GetArrOfPtrs(beta),
 	  beta_cc, rhs, bs, geom, BoxLib_C);
   }
 
@@ -328,7 +328,7 @@ int main(int argc, char* argv[])
       std::cout << "Solving with BoxLib F90 solver " << std::endl;
     }
 
-    solve(soln, anaSoln, gphi, a, b, alpha, AMReX::GetArrOfPtrs(beta),
+    solve(soln, anaSoln, gphi, a, b, alpha, amrex::GetArrOfPtrs(beta),
 	  beta_cc, rhs, bs, geom, BoxLib_F);
   }
 #endif
@@ -340,7 +340,7 @@ int main(int argc, char* argv[])
       std::cout << "Solving with HPGMG solver " << std::endl;
     }
 
-    solve(soln, anaSoln, gphi, a, b, alpha, AMReX::GetArrOfPtrs(beta),
+    solve(soln, anaSoln, gphi, a, b, alpha, amrex::GetArrOfPtrs(beta),
 	  beta_cc, rhs, bs, geom, HPGMG);
   }
 #endif
@@ -723,7 +723,7 @@ void solve_with_Cpp(MultiFab& soln, MultiFab& gphi, Real a, Real b, MultiFab& al
 #endif
 
   // Average edge-centered gradients to cell centers.
-  BoxLib::average_face_to_cellcenter(gphi, AMReX::GetArrOfConstPtrs(grad_phi), geom);
+  BoxLib::average_face_to_cellcenter(gphi, amrex::GetArrOfConstPtrs(grad_phi), geom);
 }
 
 #ifdef USE_F90_SOLVERS
@@ -772,10 +772,10 @@ void solve_with_F90(MultiFab& soln, MultiFab& gphi, Real a, Real b, MultiFab& al
       grad_phi[n].reset(new MultiFab(BoxArray(soln.boxArray()).surroundingNodes(n), 1, 0));
   }
 
-  fmg.get_fluxes(AMReX::GetArrOfPtrs(grad_phi));
+  fmg.get_fluxes(amrex::GetArrOfPtrs(grad_phi));
 
   // Average edge-centered gradients to cell centers.
-  BoxLib::average_face_to_cellcenter(gphi, AMReX::GetArrOfConstPtrs(grad_phi), geom);
+  BoxLib::average_face_to_cellcenter(gphi, amrex::GetArrOfConstPtrs(grad_phi), geom);
 }
 #endif
 
