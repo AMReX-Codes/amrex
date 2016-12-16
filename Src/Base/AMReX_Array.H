@@ -39,7 +39,7 @@ public:
     const T* dataPtr () const { return this->data(); }
 };
 
-namespace AMReX
+namespace amrex
 {
     template <class T>
     Array<T*> GetArrOfPtrs (const Array<std::unique_ptr<T> >& a)

@@ -57,14 +57,14 @@ solve_for_accel(const Array<MultiFab*>& rhs,
     // Solve for phi and return both phi and grad_phi_edge
     // ***************************************************
 
-    solve_with_f90(rhs,phi,AMReX::GetArrOfArrOfPtrs(grad_phi_edge),
+    solve_with_f90(rhs,phi,amrex::GetArrOfArrOfPtrs(grad_phi_edge),
 		   geom,base_level,finest_level,tol,abs_tol);
 
     // Average edge-centered gradients to cell centers and fill the values in ghost cells.
     for (int lev = base_level; lev <= finest_level; lev++)
     {
         BoxLib::average_face_to_cellcenter(*grad_phi[lev],
-					   AMReX::GetArrOfConstPtrs(grad_phi_edge[lev]),
+					   amrex::GetArrOfConstPtrs(grad_phi_edge[lev]),
 					   geom[lev]);
 	grad_phi[lev]->FillBoundary(0,BL_SPACEDIM,geom[lev].periodicity());
     }

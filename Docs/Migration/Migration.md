@@ -47,7 +47,7 @@ has been removed from AMReX.  This step has to be done manually.
 * The `clear()` function in `PArray` class does not change the size of
   the `PArray` container.  But the `clear` function in `Array` reduces
   the size to zero.  If you do not want to resize the container, you
-  can call `AMReX::FillNull(myArray)` to fill it with null pointers.
+  can call `amrex::FillNull(myArray)` to fill it with null pointers.
   `PArray` also has a `clear(int i)` function.  For that, you can do
   `a[i].reset()` for `unique_ptr` and `a[i] = nullptr` for `T*`.
 

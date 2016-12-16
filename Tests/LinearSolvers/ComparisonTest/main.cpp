@@ -158,12 +158,12 @@ int main(int argc, char* argv[])
     rhs  [ilev].reset(new MultiFab(grids[ilev], 1, 0));
   }
 
-  auto psoln  = AMReX::GetArrOfPtrs(soln);
-  auto psoln1 = AMReX::GetArrOfPtrs(soln1);
-  auto pexac  = AMReX::GetArrOfPtrs(exac);
-  auto palph  = AMReX::GetArrOfPtrs(alph);
-  auto pbeta  = AMReX::GetArrOfPtrs(beta);
-  auto prhs   = AMReX::GetArrOfPtrs(rhs);
+  auto psoln  = amrex::GetArrOfPtrs(soln);
+  auto psoln1 = amrex::GetArrOfPtrs(soln1);
+  auto pexac  = amrex::GetArrOfPtrs(exac);
+  auto palph  = amrex::GetArrOfPtrs(alph);
+  auto pbeta  = amrex::GetArrOfPtrs(beta);
+  auto prhs   = amrex::GetArrOfPtrs(rhs);
 
   Real a, b, sigma, w;
   pp.get("a",  a);

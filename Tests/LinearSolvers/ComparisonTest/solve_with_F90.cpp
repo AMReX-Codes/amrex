@@ -68,7 +68,7 @@ void solve_with_F90(const Array<MultiFab*>& soln, Real a, Real b,
       bcoeffs[ilev][n].reset(new MultiFab(edge_boxes,1,0,Fab_allocate));
     }
 
-    BoxLib::average_cellcenter_to_face(AMReX::GetArrOfPtrs(bcoeffs[ilev]),
+    BoxLib::average_cellcenter_to_face(amrex::GetArrOfPtrs(bcoeffs[ilev]),
 				       *beta[ilev], geom[ilev]);
   }
 
@@ -80,7 +80,7 @@ void solve_with_F90(const Array<MultiFab*>& soln, Real a, Real b,
       fmg.set_maxorder(maxorder);
 
       fmg.set_scalars(a, b);
-      fmg.set_coefficients(alph, AMReX::GetArrOfArrOfPtrs(bcoeffs));
+      fmg.set_coefficients(alph, amrex::GetArrOfArrOfPtrs(bcoeffs));
 
       fmg.solve(soln, rhs, tolerance_rel, tolerance_abs); 
   }
@@ -99,7 +99,7 @@ void solve_with_F90(const Array<MultiFab*>& soln, Real a, Real b,
 	  fmg.set_maxorder(maxorder);
 
 	  fmg.set_scalars(a, b);
-	  fmg.set_coefficients(*alph[ilev], AMReX::GetArrOfPtrs(bcoeffs[ilev]));
+	  fmg.set_coefficients(*alph[ilev], amrex::GetArrOfPtrs(bcoeffs[ilev]));
 	  
 	  fmg.solve(*soln[ilev], *rhs[ilev], tolerance_rel, tolerance_abs);
       }
