@@ -10,6 +10,8 @@
 // Necessary information and functions for computing boundary conditions.
 //
 
+namespace amrex {
+
 class BCRec
 {
 public:
@@ -80,8 +82,6 @@ private:
     int bc[2*BL_SPACEDIM];
 };
 
-namespace amrex
-{
     //
     // Function for setting a BC.
     //

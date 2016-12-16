@@ -25,10 +25,13 @@
 #include <string>
 #include <cstring>
 #include <iomanip>
-using std::string;
 
-namespace
-{
+namespace dmap {
+    bool verbose; // Have to put this in its own namespace to avoid conflict wiht amrex::verbose
+}
+
+namespace amrex {
+
     bool initialized = false;
     std::map<int, int> rankPNumMap;       // [rank, procNumber]
     std::multimap<int, int> pNumRankMM;   // [procNumber, rank]
@@ -36,18 +39,13 @@ namespace
     std::multimap<IntVect, int, IntVect::Compare> topIVpNumMM;
                                           // [topological iv position, procNumber]
     std::vector<int> ranksSFC;
-}
 
-namespace
-{
     //
     // Set default values for these in Initialize()!!!
     //
-    bool   verbose;
     int    sfc_threshold;
     Real   max_efficiency;
     int    node_size;
-}
 
 // We default to SFC.
 DistributionMapping::Strategy DistributionMapping::m_Strategy = DistributionMapping::SFC;
@@ -139,15 +137,15 @@ DistributionMapping::Initialize ()
     //
     // Set defaults here!!!
     //
-    verbose          = false;
+    dmap::verbose    = false;
     sfc_threshold    = 0;
     max_efficiency   = 0.9;
     node_size        = 0;
 
     ParmParse pp("DistributionMapping");
 
-    pp.query("v"      ,          verbose);
-    pp.query("verbose",          verbose);
+    pp.query("v"      ,          dmap::verbose);
+    pp.query("verbose",          dmap::verbose);
     pp.query("efficiency",       max_efficiency);
     pp.query("sfc_threshold",    sfc_threshold);
     pp.query("node_size",        node_size);
@@ -1038,7 +1036,7 @@ DistributionMapping::KnapSackDoIt (const std::vector<long>& wgts,
     //
     m_ref->m_pmap[wgts.size()] = ParallelDescriptor::MyProc();
 
-    if (verbose && ParallelDescriptor::IOProcessor())
+    if (dmap::verbose && ParallelDescriptor::IOProcessor())
     {
         std::cout << "KNAPSACK efficiency: " << efficiency << '\n';
     }
@@ -1362,7 +1360,7 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
     //
     m_ref->m_pmap[boxes.size()] = ParallelDescriptor::MyProc();
 
-    if (verbose && ParallelDescriptor::IOProcessor())
+    if (dmap::verbose && ParallelDescriptor::IOProcessor())
     {
         Real sum_wgt = 0, max_wgt = 0;
         for (int i = 0; i < nteams; ++i)
@@ -2311,7 +2309,7 @@ int
 DistributionMapping::GetProcNumber() {
 #ifdef BL_HOPPER
   std::string procName(GetProcName());
-  return(atoi(procName.substr(3, string::npos).c_str()));
+  return(atoi(procName.substr(3, std::string::npos).c_str()));
 #else
 #ifdef BL_SIM_HOPPER
   //static int procNumber = (100 * ParallelDescriptor::MyProc()) % 6527;
@@ -2932,4 +2930,6 @@ operator<< (std::ostream&              os,
         amrex::Error("operator<<(ostream &, DistributionMapping &) failed");
 
     return os;
+}
+
 }

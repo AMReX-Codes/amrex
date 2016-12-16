@@ -16,6 +16,8 @@
 #include <AMReX_BoxLib.H>
 #include <AMReX_ParmParse.H>
 
+namespace amrex {
+
 void 
 MemProfiler::add (const std::string& name, std::function<MemInfo()>&& f)
 {
@@ -352,4 +354,6 @@ operator<< (std::ostream& os, const MemProfiler::Builds& builds)
        << std::setw(7) << std::left  << builds.mx; 
     os << std::setw(0);
     return os;
+}
+
 }

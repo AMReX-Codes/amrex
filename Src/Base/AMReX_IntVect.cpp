@@ -9,6 +9,9 @@
 #include <AMReX_BoxLib.H>
 #include <AMReX_IntVect.H>
 #include <AMReX_IndexType.H>
+#include <AMReX_Utility.H>
+
+namespace amrex {
 
 const IntVect&
 IntVect::TheUnitVector ()
@@ -116,7 +119,7 @@ IntVect::lexGT (const IntVect& s) const
 }
 
 IntVect
-amrex::min (const IntVect& p1,
+min (const IntVect& p1,
 	     const IntVect& p2)
 {
     IntVect p(p1);
@@ -125,7 +128,7 @@ amrex::min (const IntVect& p1,
 }
 
 IntVect
-amrex::max (const IntVect& p1,
+max (const IntVect& p1,
 	     const IntVect& p2)
 {
     IntVect p(p1);
@@ -134,7 +137,7 @@ amrex::max (const IntVect& p1,
 }
 
 IntVect
-amrex::BASISV (int dir)
+BASISV (int dir)
 {
     BL_ASSERT(dir >= 0 && dir < BL_SPACEDIM);
     IntVect tmp;
@@ -143,13 +146,13 @@ amrex::BASISV (int dir)
 }
 
 IntVect
-amrex::scale (const IntVect& p, int s)
+scale (const IntVect& p, int s)
 {
     return IntVect(D_DECL(s * p[0], s * p[1], s * p[2]));
 }
 
 IntVect
-amrex::reflect (const IntVect& a,
+reflect (const IntVect& a,
 		 int            ref_ix,
 		 int            idir)
 {
@@ -160,13 +163,13 @@ amrex::reflect (const IntVect& a,
 }
 
 IntVect
-amrex::diagShift (const IntVect& p, int s)
+diagShift (const IntVect& p, int s)
 {
     return IntVect(D_DECL(p[0] + s, p[1] + s, p[2] + s));
 }
 
 IntVect
-amrex::coarsen (const IntVect& p,
+coarsen (const IntVect& p,
 		 int            s)
 {
     BL_ASSERT(s > 0);
@@ -176,7 +179,7 @@ amrex::coarsen (const IntVect& p,
 }
 
 IntVect
-amrex::coarsen (const IntVect& p1,
+coarsen (const IntVect& p1,
 		 const IntVect& p2)
 {
     IntVect v = p1;
@@ -224,7 +227,6 @@ operator<< (std::ostream&  os,
 // Copied from <Utility.H>
 //
 #define BL_IGNORE_MAX 100000
-#include <AMReX_Utility.H>
 
 std::istream&
 operator>> (std::istream& is,
@@ -250,4 +252,6 @@ operator>> (std::istream& is,
         amrex::Error("operator>>(istream&,IntVect&) failed");
 
     return is;
+}
+
 }

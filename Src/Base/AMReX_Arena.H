@@ -5,12 +5,11 @@
 #include <AMReX_winstd.H>
 #include <cstddef>
 
+namespace amrex {
+
 class Arena;
 
-namespace amrex
-{
-    Arena* The_Arena ();
-}
+Arena* The_Arena ();
 
 //
 // A Virtual Base Class for Dynamic Memory Management
@@ -55,5 +54,7 @@ protected:
 
     static const unsigned int align_size = 16;
 };
+
+}
 
 #endif /*BL_ARENA_H*/

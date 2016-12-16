@@ -6,6 +6,8 @@
 #include <AMReX_BoxLib.H>
 #include <AMReX_UseCount.H>
 
+namespace amrex {
+
 /*
   A Smart Pointer for Intrinsic or User-Defined Types
 
@@ -406,6 +408,8 @@ LnClassPtr<T,F>::operator= (T* rhs)
     }    
     LnPtr<T>::operator=(rhs); 
     return *this; 
+}
+
 }
 
 #endif /*BL_POINTERS_H*/

@@ -1,6 +1,8 @@
 
 #include <AMReX_PhysBCFunct.H>
 
+namespace amrex {
+
 BndryFunctBase::BndryFunctBase ()
     :
     m_func(0),
@@ -102,4 +104,6 @@ PhysBCFunct::FillBoundary (MultiFab& mf, int, int, Real time)
 			 dx, xlo, &time, m_bcr.vect());
 	}
     }
+}
+
 }

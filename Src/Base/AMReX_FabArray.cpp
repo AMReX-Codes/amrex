@@ -16,6 +16,8 @@
 #include <AMReX_MemProfiler.H>
 #endif
 
+namespace amrex {
+
 //
 // Set default values in Initialize()!!!
 //
@@ -1743,4 +1745,6 @@ MFGhostIter::Initialize ()
     index_map       = &(lta.indexMap);
     local_index_map = &(lta.localIndexMap);
     tile_array      = &(lta.tileArray);
+}
+
 }

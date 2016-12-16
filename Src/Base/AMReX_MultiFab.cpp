@@ -17,6 +17,8 @@
 #include <AMReX_MemProfiler.H>
 #endif
 
+namespace amrex {
+
 namespace
 {
     bool initialized = false;
@@ -1288,7 +1290,7 @@ MultiFab::negate (const Box& region,
 }
 
 void
-amrex::InterpAddBox (MultiFabCopyDescriptor& fabCopyDesc,
+InterpAddBox (MultiFabCopyDescriptor& fabCopyDesc,
 		      BoxList*                returnUnfilledBoxes,
 		      Array<FillBoxId>&       returnedFillBoxIds,
 		      const Box&              subbox,
@@ -1350,7 +1352,7 @@ amrex::InterpAddBox (MultiFabCopyDescriptor& fabCopyDesc,
 }
 
 void
-amrex::InterpFillFab (MultiFabCopyDescriptor& fabCopyDesc,
+InterpFillFab (MultiFabCopyDescriptor& fabCopyDesc,
 		       const Array<FillBoxId>& fillBoxIds,
 		       MultiFabId              faid1,
 		       MultiFabId              faid2,
@@ -1442,3 +1444,4 @@ MultiFab::AddProcsToComp (int ioProcNumSCS, int ioProcNumAll,
   FabArray<FArrayBox>::AddProcsToComp(ioProcNumSCS, ioProcNumAll, scsMyId, scsComm);
 }
 
+}

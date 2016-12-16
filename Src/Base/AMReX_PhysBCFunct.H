@@ -19,6 +19,8 @@ extern "C"
                                        const Real* time, const int* bc);
 }
 
+namespace amrex {
+
 class BndryFunctBase
 {
 public:
@@ -69,5 +71,6 @@ private:
     LnPtr<BndryFunctBase> m_bc_func;
 };
 
+}
 
 #endif

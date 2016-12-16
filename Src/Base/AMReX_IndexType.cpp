@@ -4,6 +4,8 @@
 
 #include <AMReX_IndexType.H>
 
+namespace amrex {
+
 void
 IndexType::setType (int       dir,
                     CellIndex t)
@@ -68,4 +70,6 @@ operator>> (std::istream& is,
         amrex::Error("operator>>(ostream&,IndexType&) failed");
 
     return is;
+}
+
 }

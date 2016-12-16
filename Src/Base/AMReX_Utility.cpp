@@ -58,6 +58,8 @@ const char* path_sep_str = "/";
 extern "C" int gettimeofday (struct timeval*, struct timezone*);
 #endif
 
+using amrex::Array;
+
 double
 amrex::second (double* t)
 {

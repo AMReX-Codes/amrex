@@ -11,6 +11,8 @@
 #include <AMReX_REAL.H>
 #include <AMReX_Utility.H>
 
+namespace amrex {
+
 bool RealDescriptor::bAlwaysFixDenormals (false);
 int  RealDescriptor::writeBufferSize(262144);  // ---- these are number of reals,
 int  RealDescriptor::readBufferSize(262144);   // ---- not bytes
@@ -1030,3 +1032,4 @@ RealDescriptor::convertFromNativeFormat (std::ostream&         os,
   }
 }
 
+}

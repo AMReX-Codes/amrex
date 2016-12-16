@@ -1,6 +1,8 @@
 
 #include <AMReX_UseCount.H>
 
+namespace amrex {
+
 UseCount::UseCount ()
     :
     cnt(new unsigned int(1))
@@ -39,4 +41,6 @@ UseCount::operator= (const UseCount& rhs)
 UseCount::~UseCount ()
 {
     decrement();
+}
+
 }

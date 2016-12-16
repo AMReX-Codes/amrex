@@ -16,19 +16,21 @@
 #include <AMReX_MemProfiler.H>
 #endif
 
-long amrex::private_total_bytes_allocated_in_fabs     = 0L;
-long amrex::private_total_bytes_allocated_in_fabs_hwm = 0L;
-long amrex::private_total_cells_allocated_in_fabs     = 0L;
-long amrex::private_total_cells_allocated_in_fabs_hwm = 0L;
+namespace amrex {
 
-int amrex::BF_init::m_cnt = 0;
+long private_total_bytes_allocated_in_fabs     = 0L;
+long private_total_bytes_allocated_in_fabs_hwm = 0L;
+long private_total_cells_allocated_in_fabs     = 0L;
+long private_total_cells_allocated_in_fabs_hwm = 0L;
+
+int BF_init::m_cnt = 0;
 
 namespace
 {
     Arena* the_arena = 0;
 }
 
-amrex::BF_init::BF_init ()
+BF_init::BF_init ()
 {
     if (m_cnt++ == 0)
     {
@@ -60,14 +62,14 @@ amrex::BF_init::BF_init ()
     }
 }
 
-amrex::BF_init::~BF_init ()
+BF_init::~BF_init ()
 {
     if (--m_cnt == 0)
         delete the_arena;
 }
 
 long 
-amrex::TotalBytesAllocatedInFabs()
+TotalBytesAllocatedInFabs()
 {
 #ifdef _OPENMP
     long r=0;
@@ -82,7 +84,7 @@ amrex::TotalBytesAllocatedInFabs()
 }
 
 long 
-amrex::TotalBytesAllocatedInFabsHWM()
+TotalBytesAllocatedInFabsHWM()
 {
 #ifdef _OPENMP
     long r=0;
@@ -97,7 +99,7 @@ amrex::TotalBytesAllocatedInFabsHWM()
 }
 
 long 
-amrex::TotalCellsAllocatedInFabs()
+TotalCellsAllocatedInFabs()
 {
 #ifdef _OPENMP
     long r=0;
@@ -112,7 +114,7 @@ amrex::TotalCellsAllocatedInFabs()
 }
 
 long 
-amrex::TotalCellsAllocatedInFabsHWM()
+TotalCellsAllocatedInFabsHWM()
 {
 #ifdef _OPENMP
     long r=0;
@@ -127,7 +129,7 @@ amrex::TotalCellsAllocatedInFabsHWM()
 }
 
 void 
-amrex::ResetTotalBytesAllocatedInFabsHWM()
+ResetTotalBytesAllocatedInFabsHWM()
 {
 #ifdef _OPENMP
 #pragma omp parallel
@@ -138,7 +140,7 @@ amrex::ResetTotalBytesAllocatedInFabsHWM()
 }
 
 void
-amrex::update_fab_stats (long n, long s, size_t szt)
+update_fab_stats (long n, long s, size_t szt)
 {
     long tst = s*szt;
     amrex::private_total_bytes_allocated_in_fabs += tst;
@@ -155,7 +157,7 @@ amrex::update_fab_stats (long n, long s, size_t szt)
 }
 
 Arena*
-amrex::The_Arena ()
+The_Arena ()
 {
     BL_ASSERT(the_arena != 0);
 
@@ -536,3 +538,5 @@ BaseFab<Real>::dot (const Box& xbx, int xcomp,
 }
 
 #endif
+
+}

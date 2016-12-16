@@ -8,6 +8,8 @@
 #include <AMReX_IntVect.H>
 #include <AMReX_SPACE.H>
 
+namespace amrex {
+
 //
 // Cell-Based or Node-Based Indices
 //
@@ -154,5 +156,7 @@ std::ostream& operator<< (std::ostream& os, const IndexType& itype);
 // Read an IndexType from an istream.
 //
 std::istream& operator>> (std::istream& is, IndexType& itype);
+
+}
 
 #endif /*BL_INDEXTYPE_H*/

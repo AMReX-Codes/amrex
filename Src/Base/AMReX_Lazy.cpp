@@ -1,5 +1,7 @@
 #include <AMReX_Lazy.H>
 
+namespace amrex {
+
 namespace Lazy
 {
     FuncQue reduction_queue;
@@ -34,4 +36,6 @@ namespace Lazy
     {
 	EvalReduction();
     }
+}
+
 }

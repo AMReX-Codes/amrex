@@ -6,6 +6,8 @@
 #include <AMReX_Array.H>
 #include <AMReX_Box.H>
 
+namespace amrex {
+
 class FArrayBox;
 
 //
@@ -306,6 +308,8 @@ CoordSys::IsRZ ()
 #if (BL_SPACEDIM == 3)
     return false;
 #endif    
+}
+
 }
 
 #endif /*_COORDSYS_H_*/

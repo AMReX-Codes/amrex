@@ -6,6 +6,8 @@
 #include <AMReX_BoxLib.H>
 #include <AMReX_Box.H>
 
+namespace amrex {
+
 const Box&
 Box::TheUnitBox ()
 {
@@ -81,7 +83,7 @@ Box::convert (IndexType t)
 }
 
 Box
-amrex::convert (const Box& b, const IntVect& typ)
+convert (const Box& b, const IntVect& typ)
 {
     Box bx(b);
     bx.convert(typ);
@@ -89,7 +91,7 @@ amrex::convert (const Box& b, const IntVect& typ)
 }
 
 Box
-amrex::convert (const Box& b, const IndexType& t)
+convert (const Box& b, const IndexType& t)
 {
     Box bx(b);
     bx.convert(t);
@@ -97,7 +99,7 @@ amrex::convert (const Box& b, const IndexType& t)
 }
 
 Box
-amrex::surroundingNodes (const Box& b,
+surroundingNodes (const Box& b,
                           int        dir)
 {
     Box bx(b);
@@ -120,7 +122,7 @@ Box::surroundingNodes (int dir)
 }
 
 Box
-amrex::surroundingNodes (const Box& b)
+surroundingNodes (const Box& b)
 {
     Box bx(b);
     bx.surroundingNodes();
@@ -138,7 +140,7 @@ Box::surroundingNodes ()
 }
 
 Box
-amrex::enclosedCells (const Box& b,
+enclosedCells (const Box& b,
                        int        dir)
 {
     Box bx(b);
@@ -161,7 +163,7 @@ Box::enclosedCells (int dir)
 }
 
 Box
-amrex::enclosedCells (const Box& b)
+enclosedCells (const Box& b)
 {
     Box bx(b);
     bx.enclosedCells();
@@ -179,7 +181,7 @@ Box::enclosedCells ()
 }
 
 Box
-amrex::grow (const Box& b,
+grow (const Box& b,
               int        i)
 {
     Box result = b;
@@ -188,7 +190,7 @@ amrex::grow (const Box& b,
 }
 
 Box
-amrex::grow (const Box&     b,
+grow (const Box&     b,
               const IntVect& v)
 {
     Box result = b;
@@ -416,7 +418,7 @@ Box::next (IntVect&   p,
 }
 
 Box
-amrex::refine (const Box& b,
+refine (const Box& b,
                 int        ref_ratio)
 {
     Box result = b;
@@ -431,7 +433,7 @@ Box::refine (int ref_ratio)
 }
 
 Box
-amrex::refine (const Box&     b,
+refine (const Box&     b,
                 const IntVect& ref_ratio)
 {
     Box result = b;
@@ -452,7 +454,7 @@ Box::refine (const IntVect& ref_ratio)
 }
 
 Box
-amrex::shift (const Box& b, int dir, int nzones)
+shift (const Box& b, int dir, int nzones)
 {
     Box result = b;
     result.shift(dir, nzones);
@@ -552,7 +554,7 @@ Box::chop (int dir,
 }
 
 Box
-amrex::coarsen (const Box& b,
+coarsen (const Box& b,
                  int        ref_ratio)
 {
     Box result = b;
@@ -567,7 +569,7 @@ Box::coarsen (int ref_ratio)
 }
 
 Box
-amrex::coarsen (const Box&     b,
+coarsen (const Box&     b,
                  const IntVect& ref_ratio)
 {
     Box result = b;
@@ -674,7 +676,7 @@ operator>> (std::istream& is,
 }
 
 Box
-amrex::minBox (const Box& b,
+minBox (const Box& b,
                 const Box& o)
 {
     Box result = b;
@@ -693,7 +695,7 @@ Box::minBox (const Box &b)
 }
 
 Box
-amrex::bdryLo (const Box& b,
+bdryLo (const Box& b,
                 int        dir,
                 int        len)
 {
@@ -711,7 +713,7 @@ amrex::bdryLo (const Box& b,
 }
 
 Box
-amrex::bdryHi (const Box& b,
+bdryHi (const Box& b,
                 int        dir,
                 int        len)
 {
@@ -730,7 +732,7 @@ amrex::bdryHi (const Box& b,
 }
 
 Box
-amrex::bdryNode (const Box&  b,
+bdryNode (const Box&  b,
                   Orientation face,
                   int         len)
 {
@@ -759,7 +761,7 @@ amrex::bdryNode (const Box&  b,
 }
 
 Box
-amrex::adjCellLo (const Box& b,
+adjCellLo (const Box& b,
                    int        dir,
                    int        len)
 {
@@ -778,7 +780,7 @@ amrex::adjCellLo (const Box& b,
 }
 
 Box
-amrex::adjCellHi (const Box& b,
+adjCellHi (const Box& b,
                    int        dir,
                    int        len)
 {
@@ -798,7 +800,7 @@ amrex::adjCellHi (const Box& b,
 }
 
 Box
-amrex::adjCell (const Box&  b,
+adjCell (const Box&  b,
                  Orientation face,
                  int         len)
 {
@@ -866,7 +868,7 @@ Box::isSquare () const
 #endif
 }
 
-Array<int> amrex::SerializeBox(const Box &b)
+Array<int> SerializeBox(const Box &b)
 {
   int count(0);
   Array<int> retArray(BL_SPACEDIM * 3);
@@ -887,12 +889,12 @@ Array<int> amrex::SerializeBox(const Box &b)
 }
 
 
-int amrex::SerializeBoxSize() {
+int SerializeBoxSize() {
   return (BL_SPACEDIM * 3);
 }
 
 
-Box amrex::UnSerializeBox(const Array<int> &serarray)
+Box UnSerializeBox(const Array<int> &serarray)
 {
   BL_ASSERT(serarray.size() == (3 * BL_SPACEDIM));
   const int *iptr = serarray.dataPtr();
@@ -919,4 +921,6 @@ BoxCommHelper::BoxCommHelper (const Box& bx, int* p_)
     D_EXPR(p[0+BL_SPACEDIM*2] = typ[0],
 	   p[1+BL_SPACEDIM*2] = typ[1],
 	   p[2+BL_SPACEDIM*2] = typ[2]);
+}
+
 }

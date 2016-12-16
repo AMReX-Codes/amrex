@@ -5,6 +5,7 @@
 #include <functional>
 #include <algorithm>
 
+namespace amrex {
 namespace Lazy
 {
     typedef typename std::function<void()> Func;
@@ -16,6 +17,7 @@ namespace Lazy
     void EvalReduction ();
     
     void Finalize ();
+}
 }
 
 #endif

@@ -35,6 +35,14 @@
 #include <AMReX_BLProfiler.H>
 #include <AMReX_Periodicity.H>
 
+namespace amrex {
+
+class MFIter;
+class MFGhostIter;
+
+template <class FAB> class FabArray;
+template <class FAB> class FabArrayCopyDescriptor;
+
 //
 // Helper class
 //
@@ -70,9 +78,6 @@ private:
 //
 // This is meant to be a concrete class not a polymorphic one.
 //
-
-class MFIter;
-class MFGhostIter;
 
 class FabArrayBase
 {
@@ -702,12 +707,6 @@ private:
     FabArrayBase::TileArray lta;
 };
 
-
-//
-// A forward declaration.
-//
-template <class FAB> class FabArray;
-template <class FAB> class FabArrayCopyDescriptor;
 
 /*
   A Collection of Fortran Array-like Objects
@@ -5079,8 +5078,9 @@ FabArray<FAB>::BuildMask (const Box& phys_domain, const Periodicity& period,
     }
 }
 
-
 template <typename FAB> std::map<int, std::map<int, FabArray<FAB> *> > FabArray<FAB>::allocatedFAPointers;
 template <typename FAB> std::set<int> FabArray<FAB>::noallocFAPIds;
+
+}
 
 #endif /*BL_FABARRAY_H*/

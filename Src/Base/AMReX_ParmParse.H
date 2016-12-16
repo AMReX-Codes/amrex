@@ -8,6 +8,11 @@
 #include <vector>
 #include <list>
 
+namespace amrex {
+
+class Box;
+class IntVect;
+
 //
 // ParmParse class implements a simple database for the storage and
 // retrieval of command-line and input-file arguments.  The entries are
@@ -228,9 +233,6 @@
 
      FILE = prob_file
 */
-
-class Box;
-class IntVect;
 
 class ParmParse
 {
@@ -1013,5 +1015,9 @@ private:
     explicit Record (const ParmParse& pp);
     ParmParse m_pp;
 };
+
+std::ostream& operator<< (std::ostream& os, const ParmParse::PP_entry& pp);
+
+}
 
 #endif /*BL_PARMPARSE_H*/

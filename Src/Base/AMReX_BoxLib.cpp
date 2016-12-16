@@ -12,6 +12,7 @@
 #include <AMReX_BoxLib.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_BLProfiler.H>
+#include <AMReX_BLFort.H>
 #include <AMReX_Utility.H>
 
 #ifndef BL_AMRPROF
@@ -159,8 +160,6 @@ namespace
     return Trim(res);
   }
 }
-
-#include <AMReX_BLFort.H>
 
 BL_FORT_PROC_DECL(BL_ERROR_CPP,bl_error_cpp)
   (

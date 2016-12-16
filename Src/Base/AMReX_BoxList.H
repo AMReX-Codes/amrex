@@ -8,14 +8,12 @@
 #include <AMReX_IntVect.H>
 #include <AMReX_IndexType.H>
 #include <AMReX_Box.H>
-//
-// Forward declarations.
-//
-class BoxArray;
-class BoxList;
 
 namespace amrex
 {
+    class BoxArray;
+    class BoxList;
+
     //
     // Returns a BoxList defining the complement of BoxList bl in Box b.
     //
@@ -48,12 +46,13 @@ namespace amrex
     // Return BoxList which covers the same area but has no overlapping boxes.
     //
     BoxList removeOverlap (const BoxList& bl);
-}
+
 
 //
 // Output a BoxList to an ostream in ASCII format.
 //
 std::ostream& operator<< (std::ostream&  os, const BoxList& blist);
+
 
 //
 // A List of Boxes
@@ -318,5 +317,7 @@ private:
     IndexType btype;
 
 };
+
+}
 
 #endif /*BL_BOXLIST_H*/

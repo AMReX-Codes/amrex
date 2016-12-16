@@ -15,6 +15,8 @@
 #include <omp.h>
 #endif
 
+namespace amrex {
+
 std::stack<std::pair<Real,Real> >          TinyProfiler::ttstack;
 std::map<std::string, TinyProfiler::Stats> TinyProfiler::statsmap;
 Real                                       TinyProfiler::t_init = std::numeric_limits<Real>::max();
@@ -304,4 +306,6 @@ TinyProfiler::Finalize ()
 
 	std::cout << std::endl;
     }
+}
+
 }

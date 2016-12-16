@@ -2,6 +2,8 @@
 #ifndef BL_PLIST_H
 #define BL_PLIST_H
 
+namespace amrex {
+
 //
 // An enum that controls whether or not class PList<T>
 // manages the pointed to objects, as well as the pointer itself.
@@ -142,5 +144,6 @@ PList<T>::~PList ()
     clear();
 }
 
+}
 
 #endif /*BL_PARRAY_H*/

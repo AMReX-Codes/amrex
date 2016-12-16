@@ -11,12 +11,16 @@
 #include <cctype>
 #include <vector>
 #include <list>
+#include <map>
 
 #include <AMReX_BoxLib.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_Box.H>
 #include <AMReX_IntVect.H>
+#include <AMReX_BLFort.H>
+
+namespace amrex {
 
 static bool finalize_verbose = true;
 
@@ -1824,8 +1828,6 @@ ParmParse::Record::operator* () const
 //
 // FOrtran Interface routines
 //
-#include <AMReX_BLFort.H>
-#include <map>
 
 namespace
 {
@@ -1998,4 +2000,6 @@ BL_FORT_PROC_DECL(BL_PP_RECORD_DELETE,bl_pp_record_delete)(int* ppr)
     require_valid_parmparse("BL_PP_RECORD_DELETE", *ppr);
     delete parsers[*ppr];
     parsers.erase(*ppr);
+}
+
 }

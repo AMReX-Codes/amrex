@@ -8,6 +8,8 @@
 #include <AMReX_BoxList.H>
 #include <AMReX_BLProfiler.H>
 
+namespace amrex {
+
 void
 BoxList::clear ()
 {
@@ -58,7 +60,7 @@ BoxList::remove (iterator bli)
 }
 
 BoxList
-amrex::intersect (const BoxList& bl,
+intersect (const BoxList& bl,
 		   const Box&     b)
 {
     BL_ASSERT(bl.ixType() == b.ixType());
@@ -68,7 +70,7 @@ amrex::intersect (const BoxList& bl,
 }
 
 BoxList
-amrex::intersect (const BoxList& bl,
+intersect (const BoxList& bl,
                    const BoxList& br)
 {
     BL_ASSERT(bl.ixType() == br.ixType());
@@ -78,7 +80,7 @@ amrex::intersect (const BoxList& bl,
 }
 
 BoxList
-amrex::refine (const BoxList& bl,
+refine (const BoxList& bl,
 		int            ratio)
 {
     BoxList nbl(bl);
@@ -87,7 +89,7 @@ amrex::refine (const BoxList& bl,
 }
 
 BoxList
-amrex::coarsen (const BoxList& bl,
+coarsen (const BoxList& bl,
                  int            ratio)
 {
     BoxList nbl(bl);
@@ -96,7 +98,7 @@ amrex::coarsen (const BoxList& bl,
 }
 
 BoxList
-amrex::accrete (const BoxList& bl,
+accrete (const BoxList& bl,
                  int            sz)
 {
     BoxList nbl(bl);
@@ -105,7 +107,7 @@ amrex::accrete (const BoxList& bl,
 }
 
 BoxList
-amrex::removeOverlap (const BoxList& bl)
+removeOverlap (const BoxList& bl)
 {
     BoxArray ba(bl);
     ba.removeOverlap();
@@ -302,7 +304,7 @@ BoxList::intersect (const BoxList& b)
 }
 
 BoxList
-amrex::complementIn (const Box&     b,
+complementIn (const Box&     b,
                       const BoxList& bl)
 {
     BL_ASSERT(bl.ixType() == b.ixType());
@@ -499,7 +501,7 @@ BoxList::shiftHalf (const IntVect& iv)
 //
 
 BoxList
-amrex::boxDiff (const Box& b1in,
+boxDiff (const Box& b1in,
 		 const Box& b2)
 {
    BL_ASSERT(b1in.sameType(b2));
@@ -820,4 +822,6 @@ BoxList::operator== (const BoxList& rhs) const
         if ( !( *liter == *riter) )
             return false;
     return true;
+}
+
 }

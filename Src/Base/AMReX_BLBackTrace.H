@@ -30,6 +30,8 @@
 #define BL_BACKTRACE_POP(S) ((void)0)
 #endif
 
+namespace amrex {
+
 struct BLBackTrace
 {
     static void handler(int s);
@@ -55,5 +57,7 @@ private:
     void pop_bt_stack();
 };
 #endif // BL_BACKTRACING
+
+}
 
 #endif

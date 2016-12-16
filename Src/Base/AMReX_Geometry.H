@@ -18,6 +18,8 @@
 #include <AMReX_RealBox.H>
 #include <AMReX_Periodicity.H>
 
+namespace amrex {
+
 //
 // Rectangular problem domain geometry.
 //
@@ -208,6 +210,8 @@ private:
     //
     Box domain;
 };
+
+
 //
 // Nice ASCII output.
 //
@@ -216,5 +220,7 @@ std::ostream& operator<< (std::ostream&, const Geometry&);
 // Nice ASCII input.
 //
 std::istream& operator>> (std::istream&, Geometry&);
+
+}
 
 #endif /*_GEOMETRY_H_*/

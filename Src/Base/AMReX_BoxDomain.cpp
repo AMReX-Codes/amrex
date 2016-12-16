@@ -4,6 +4,8 @@
 #include <AMReX_BoxDomain.H>
 #include <AMReX_BLProfiler.H>
 
+namespace amrex {
+
 BoxDomain&
 BoxDomain::intersect (const Box& b)
 {
@@ -13,7 +15,7 @@ BoxDomain::intersect (const Box& b)
 }
 
 void
-amrex::intersect (BoxDomain&       dest,
+intersect (BoxDomain&       dest,
 		   const BoxDomain& fin,
 		   const Box&       b)
 {
@@ -30,7 +32,7 @@ BoxDomain::refine (int ratio)
 }
 
 void
-amrex::refine (BoxDomain&       dest,
+refine (BoxDomain&       dest,
 		const BoxDomain& fin,
 		int              ratio)
 {
@@ -39,7 +41,7 @@ amrex::refine (BoxDomain&       dest,
 }
 
 void
-amrex::accrete (BoxDomain&       dest,
+accrete (BoxDomain&       dest,
 		 const BoxDomain& fin,
 		 int              sz)
 {
@@ -48,7 +50,7 @@ amrex::accrete (BoxDomain&       dest,
 }
 
 void
-amrex::coarsen (BoxDomain&       dest,
+coarsen (BoxDomain&       dest,
 		 const BoxDomain& fin,
 		 int              ratio)
 {
@@ -66,7 +68,7 @@ BoxDomain::complementIn (const Box&       b,
 }
 
 BoxDomain
-amrex::complementIn (const Box&       b,
+complementIn (const Box&       b,
 		      const BoxDomain& bl)
 {
     BoxDomain result;
@@ -241,3 +243,4 @@ operator<< (std::ostream&    os,
     return os;
 }
 
+}

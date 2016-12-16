@@ -8,6 +8,8 @@
 #include <AMReX_BLassert.H>
 #include <AMReX_REAL.H>
 
+namespace amrex {
+
 //
 // A Descriptor of the Long Integer type
 //
@@ -76,6 +78,7 @@ std::ostream& operator<< (std::ostream& os, const IntDescriptor& id);
 // Read in an IntDescriptor from an istream.
 //
 std::istream& operator>> (std::istream& is, IntDescriptor& id);
+
 
 /*
   A Descriptor of the Real Type
@@ -230,10 +233,12 @@ private:
 //
 // Write out an RealDescriptor to an ostream in ASCII.
 //
-std::ostream& operator<< (std::ostream& os, const RealDescriptor& id);
+std::ostream& operator<< (std::ostream& os, const amrex::RealDescriptor& id);
 //
 // Read in a RealDescriptor from an istream.
 //
-std::istream& operator>> (std::istream& is, RealDescriptor& id);
+std::istream& operator>> (std::istream& is, amrex::RealDescriptor& id);
+
+}
 
 #endif /*BL_FABCONV_H*/

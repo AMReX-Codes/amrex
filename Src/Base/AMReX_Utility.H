@@ -606,7 +606,7 @@ amrex::base_Timer<FCN>::tick()
 }
 
 template <double (*FCN)(double*)>
-std::ostream& operator<<(std::ostream& os, const amrex::base_Timer<FCN>& bt)
+std::ostream& amrex::operator<<(std::ostream& os, const amrex::base_Timer<FCN>& bt)
 {
     return os << "["
 	      << bt.accum_time() << "/"

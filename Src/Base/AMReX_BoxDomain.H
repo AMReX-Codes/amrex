@@ -8,13 +8,11 @@
 #include <AMReX_Box.H>
 #include <AMReX_IntVect.H>
 #include <AMReX_BoxList.H>
-//
-// Forward declaration.
-//
-class BoxDomain;
 
 namespace amrex
 {
+    class BoxDomain;
+
     //
     // Returns the complement of BoxDomain bl in Box b.
     //
@@ -45,12 +43,13 @@ namespace amrex
     void accrete (BoxDomain&       dest,
                   const BoxDomain& fin,
                   int              sz = 1);
-}
+
 
 //
 // Output a BoxDomain to an ostream is ASCII format.
 //
 std::ostream& operator<< (std::ostream& os, const BoxDomain& bd);
+
 
 //
 // A List of Disjoint Boxes
@@ -185,5 +184,7 @@ public:
     BoxDomain& complementIn (const Box&       b,
                              const BoxDomain& bl);
 };
+
+}
 
 #endif /*BL_BOXDOMAIN_H*/

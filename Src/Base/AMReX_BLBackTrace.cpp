@@ -8,6 +8,8 @@
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_BoxLib.H>
 
+namespace amrex {
+
 #ifdef BL_BACKTRACING
 std::stack<std::pair<std::string, std::string> >  BLBackTrace::bt_stack;
 #endif
@@ -189,3 +191,5 @@ BLBTer::pop_bt_stack()
 }
 
 #endif
+
+}

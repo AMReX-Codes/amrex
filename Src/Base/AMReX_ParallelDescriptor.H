@@ -36,6 +36,7 @@
 #include <limits>
 #include <numeric>
 
+namespace amrex {
 namespace ParallelDescriptor
 {
 #ifdef BL_USE_UPCXX
@@ -866,6 +867,7 @@ namespace ParallelDescriptor
     void IProbe(int src_pid, int tag, int &mflag, MPI_Status &status);
     void IProbe(int src_pid, int tag, MPI_Comm comm, int &mflag, MPI_Status &status);
 }
+}
 
 #define BL_MPI_REQUIRE(x)						\
 do									\
@@ -876,6 +878,8 @@ do									\
     }									\
 }									\
 while ( false )
+
+namespace amrex {
 
 #if BL_USE_MPI
 template <class T>
@@ -1450,5 +1454,7 @@ Scatter(T* t, size_t n, const T1* t1, size_t n1, int root)
 
 }
 #endif
+
+}
 
 #endif /*BL_PARALLELDESCRIPTOR_H*/

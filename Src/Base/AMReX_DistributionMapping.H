@@ -11,6 +11,8 @@
 #include <AMReX_REAL.H>
 #include <AMReX_ParallelDescriptor.H>
 
+namespace amrex {
+
 class BoxArray;
 class MultiFab;
 
@@ -370,9 +372,12 @@ private:
     int dmID;
 };
 
+
 //
 // Our output operator.
 //
 std::ostream& operator<< (std::ostream& os, const DistributionMapping& pmap);
+
+}
 
 #endif /*BL_DISTRIBUTIONMAPPING_H*/

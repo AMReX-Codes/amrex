@@ -6,6 +6,8 @@
 
 #include <AMReX_BLassert.H>
 
+namespace amrex {
+
 //
 // Ordered Tuples for Types T
 //
@@ -93,6 +95,8 @@ Tuple<T,N>::operator= (const Tuple<T,N>& rhs)
             vect[i] = rhs.vect[i];
     }
     return *this;
+}
+
 }
 
 #endif /*BL_TUPLE_H*/

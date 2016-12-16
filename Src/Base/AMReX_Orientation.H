@@ -7,6 +7,8 @@
 #include <AMReX_BLassert.H>
 #include <AMReX_SPACE.H>
 
+namespace amrex {
+
 class OrientationIter;
 
 //
@@ -118,6 +120,7 @@ private:
 //
 std::ostream& operator<< (std::ostream& os, const Orientation& o);
 
+
 //
 // An Iterator over the Orientation of Faces of a Box
 //
@@ -198,5 +201,7 @@ private:
     //
     bool ok () const { return 0 <= face && face < 2*BL_SPACEDIM; }
 };
+
+}
 
 #endif /*BL_ORIENTATION_H*/

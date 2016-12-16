@@ -9,6 +9,8 @@
 #include <AMReX_Arena.H>
 #include <AMReX_Array.H>
 
+namespace amrex {
+
 //
 // A Concrete Class for Dynamic Memory Management
 //
@@ -160,5 +162,7 @@ private:
     CArena (const CArena& rhs);
     CArena& operator= (const CArena& rhs);
 };
+
+}
 
 #endif /*BL_CARENA_H*/

@@ -2,13 +2,13 @@
 #include <AMReX_BArena.H>
 
 void*
-BArena::alloc (std::size_t _sz)
+amrex::BArena::alloc (std::size_t _sz)
 {
     return ::operator new(_sz);
 }
 
 void
-BArena::free (void* pt)
+amrex::BArena::free (void* pt)
 {
     ::operator delete(pt);
 }
