@@ -20,7 +20,7 @@
 #include <AMReX_REAL.H>
 #include <AMReX_BLProfiler.H>
 
-namespace BoxLib
+namespace amrex
 {
     extern long private_total_bytes_allocated_in_fabs;     // total bytes at any given time
     extern long private_total_bytes_allocated_in_fabs_hwm; // high-water-mark over a given interval
@@ -2722,7 +2722,7 @@ BaseFab<T>::linComb (const BaseFab<T>&  f1,
     return *this;
 }
 
-namespace BoxLib
+namespace amrex
 {
     class BF_init
     {

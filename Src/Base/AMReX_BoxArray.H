@@ -14,7 +14,7 @@
 
 class BoxArray;
 
-namespace BoxLib
+namespace amrex
 {
     //
     // Makes a BoxArray from the the complement of b2 in b1in.

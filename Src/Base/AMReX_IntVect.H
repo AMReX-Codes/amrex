@@ -369,7 +369,7 @@ private:
     int vect[BL_SPACEDIM];
 };
 
-namespace BoxLib
+namespace amrex
 {
     //
     // Returns a basis vector in the given coordinate direction;

@@ -6,7 +6,7 @@
 #include <AMReX_Geometry.H>
 #include <AMReX_MultiFab.H>
 
-namespace BoxLib
+namespace amrex
 {
     // ---- return the name of the level directory,  e.g., Level_5
     std::string LevelPath (int level, const std::string &levelPrefix = "Level_");

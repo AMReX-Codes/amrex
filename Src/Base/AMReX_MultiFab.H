@@ -20,7 +20,7 @@ class MultiFabCopyDescriptor;
 
 class MultiFab;
 
-namespace BoxLib
+namespace amrex
 {
     void InterpAddBox (MultiFabCopyDescriptor& fabCopyDesc,
 		       BoxList*                returnUnfilledBoxes,

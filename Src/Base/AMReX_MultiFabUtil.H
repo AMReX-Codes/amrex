@@ -4,7 +4,7 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_Geometry.H>
 
-namespace BoxLib
+namespace amrex
 {
     // Average face-based MultiFab onto cell-centered MultiFab.
     void average_edge_to_cellcenter (MultiFab& cc, int dcomp, const Array<const MultiFab*>& edge);

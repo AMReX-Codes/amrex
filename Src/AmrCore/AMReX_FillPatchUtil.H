@@ -6,7 +6,7 @@
 #include <AMReX_PhysBCFunct.H>
 #include <AMReX_Interpolater.H>
 
-namespace BoxLib
+namespace amrex
 {
     bool ProperlyNested (const IntVect& ratio, int blockint_factor, int ngrow, 
 			 const IndexType& boxType, Interpolater* mapper);
