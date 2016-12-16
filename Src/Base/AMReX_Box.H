@@ -16,7 +16,7 @@
 class Box;
 class BoxCommHelper;
 
-namespace BoxLib
+namespace amrex
 {
     //
     // Grow Box in all directions by given amount.

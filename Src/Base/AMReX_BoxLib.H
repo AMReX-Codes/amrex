@@ -18,7 +18,7 @@
 // to sentences that get output explicitly.
 //
 
-namespace BoxLib
+namespace amrex
 {
     void Initialize (int& argc, char**& argv, bool build_parm_parse=true, MPI_Comm mpi_comm = MPI_COMM_WORLD);
 

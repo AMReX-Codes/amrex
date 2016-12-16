@@ -41,7 +41,7 @@
   visible to debuggers while macros are not.
 */
 
-namespace BoxLib
+namespace amrex
 {
     const int SpaceDim = BL_SPACEDIM;
 }

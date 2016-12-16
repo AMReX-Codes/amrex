@@ -68,7 +68,7 @@ __TIME__;
 #undef bl_str
 #undef bl_xstr
 
-namespace BoxLib
+namespace amrex
 {
     std::string exename;
     int verbose = 0;

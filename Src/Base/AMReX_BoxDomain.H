@@ -13,7 +13,7 @@
 //
 class BoxDomain;
 
-namespace BoxLib
+namespace amrex
 {
     //
     // Returns the complement of BoxDomain bl in Box b.

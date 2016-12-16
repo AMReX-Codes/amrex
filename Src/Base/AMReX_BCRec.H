@@ -80,7 +80,7 @@ private:
     int bc[2*BL_SPACEDIM];
 };
 
-namespace BoxLib
+namespace amrex
 {
     //
     // Function for setting a BC.

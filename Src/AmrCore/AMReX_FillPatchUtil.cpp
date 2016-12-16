@@ -6,7 +6,7 @@
 #include <omp.h>
 #endif
 
-namespace BoxLib
+namespace amrex
 {
     bool ProperlyNested (const IntVect& ratio, int blocking_factor, int ngrow,
 			 const IndexType& boxType, Interpolater* mapper)

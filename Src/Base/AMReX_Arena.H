@@ -7,7 +7,7 @@
 
 class Arena;
 
-namespace BoxLib
+namespace amrex
 {
     Arena* The_Arena ();
 }

@@ -33,7 +33,7 @@
 // static member functions.
 //
 
-namespace BoxLib
+namespace amrex
 {
     //
     // Returns the total user and system time used by

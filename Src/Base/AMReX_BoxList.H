@@ -14,7 +14,7 @@
 class BoxArray;
 class BoxList;
 
-namespace BoxLib
+namespace amrex
 {
     //
     // Returns a BoxList defining the complement of BoxList bl in Box b.
