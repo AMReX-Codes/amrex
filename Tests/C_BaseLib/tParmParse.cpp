@@ -7,7 +7,7 @@
 int
 main (int argc, char** argv)
 {
-    BoxLib::Initialize(argc,argv);
+    amrex::Initialize(argc,argv);
 
     ParmParse pp;
 
@@ -20,5 +20,5 @@ main (int argc, char** argv)
         std::cout << arr[i] << std::endl;
     }
 
-    BoxLib::Finalize();
+    amrex::Finalize();
 }

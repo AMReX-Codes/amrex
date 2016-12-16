@@ -65,7 +65,7 @@ AuxBoundaryData::initialize (const BoxArray& ba,
 
     m_ngrow = n_grow;
 
-    BoxList gcells = BoxLib::GetBndryCells(ba,n_grow);
+    BoxList gcells = amrex::GetBndryCells(ba,n_grow);
     //
     // Remove any intersections with periodically shifted valid region.
     //

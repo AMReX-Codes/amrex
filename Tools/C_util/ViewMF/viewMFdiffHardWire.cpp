@@ -136,7 +136,7 @@ int main (int   argc,
 
     if (nComp == -1) {
         if (mf0.nComp() != mf1.nComp())
-            BoxLib::Abort("You must specify `ncomp' if (mfab0.nComp() != mfab1.nComp())");
+            amrex::Abort("You must specify `ncomp' if (mfab0.nComp() != mfab1.nComp())");
 
         nComp = mf0.nComp();
     }

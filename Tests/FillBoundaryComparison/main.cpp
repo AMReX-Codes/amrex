@@ -13,7 +13,7 @@
 int
 main (int argc, char* argv[])
 {
-    BoxLib::Initialize(argc,argv);
+    amrex::Initialize(argc,argv);
 
     BoxArray ba;
 
@@ -169,10 +169,10 @@ main (int argc, char* argv[])
     //
     // When MPI3 shared memory is used, the dtor of MultiFab calls MPI
     // functions.  Because the scope of mfs is beyond the call to
-    // BoxLib::Finalize(), which in turn calls MPI_Finalize(), we
+    // amrex::Finalize(), which in turn calls MPI_Finalize(), we
     // destroy these MultiFabs by hand now.
     //
     mfs.clear();
 
-    BoxLib::Finalize();
+    amrex::Finalize();
 }

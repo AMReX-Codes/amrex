@@ -64,7 +64,7 @@ FabSet::plusFrom (const FabSet& src, int scomp, int dcomp, int ncomp)
 	    (*this)[fsi].plus(src[fsi], scomp, dcomp, ncomp);
 	}
     } else {
-	BoxLib::Abort("FabSet::plusFrom: parallel plusFrom not supported");
+	amrex::Abort("FabSet::plusFrom: parallel plusFrom not supported");
     }
     return *this;
 }
@@ -188,7 +188,7 @@ FabSet::read(const std::string& name)
 void
 FabSet::Copy (FabSet& dst, const FabSet& src)
 {
-    BL_ASSERT(BoxLib::match(dst.boxArray(), src.boxArray()));
+    BL_ASSERT(amrex::match(dst.boxArray(), src.boxArray()));
     BL_ASSERT(dst.DistributionMap() == src.DistributionMap());
     int ncomp = dst.nComp();
 #ifdef _OPENMP

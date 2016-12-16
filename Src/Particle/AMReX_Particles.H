@@ -616,10 +616,10 @@ ParticleContainer<NR,NI,C>::addOneParticle (int                  id_in,
     p.m_cpu = cpu_in;
 
     if (p.m_id <= 0)
-        BoxLib::Abort("Particle ID's must be > 0 in addOneParticle");
+        amrex::Abort("Particle ID's must be > 0 in addOneParticle");
  
     if (ParallelDescriptor::MyProc() != p.m_cpu)
-        BoxLib::Abort("cpu_in must equal MyProc() in addOneParticle");
+        amrex::Abort("cpu_in must equal MyProc() in addOneParticle");
 
     for (int i = 0; i < BL_SPACEDIM; i++)
        p.m_pos[i] = xloc[i];
@@ -655,7 +655,7 @@ ParticleContainer<NR,NI,C>::addOneParticle (int                  id_in,
             {
                 std::cout << "BAD PARTICLE POS(" << d << ") " << p.m_pos[d] << std::endl;
             }
-            BoxLib::Abort("ParticleContainer<NR,NI,C>::addOneParticle(): invalid particle");
+            amrex::Abort("ParticleContainer<NR,NI,C>::addOneParticle(): invalid particle");
         }
     }
 
@@ -706,7 +706,7 @@ ParticleContainer<NR,NI,C>::addNParticles(int n_part, Array<double>& x, Array<do
 #endif
 
        if (!ParticleBase::Where(p,m_gdb))
-              BoxLib::Abort("ParticleContainer<NR,NI,C>::addNParticles(): invalid particle location");
+              amrex::Abort("ParticleContainer<NR,NI,C>::addNParticles(): invalid particle location");
 
        for (int i = 0; i < n_attr; i++)
           p.m_data[BL_SPACEDIM+i] = attributes[n_attr*j + i];
@@ -752,7 +752,7 @@ ParticleContainer<NR,NI,C>::MoveRandom (int lev)
 
     static bool first = true;
 
-    static Array<BoxLib::mt19937> rn;
+    static Array<amrex::mt19937> rn;
 
     if (first)
     {
@@ -774,7 +774,7 @@ ParticleContainer<NR,NI,C>::MoveRandom (int lev)
             //
             const unsigned long seedbase = 1+tnum*ParallelDescriptor::MyProc();
 
-            rn[i] = BoxLib::mt19937(seedbase+i);
+            rn[i] = amrex::mt19937(seedbase+i);
         }
     }
 
@@ -1134,7 +1134,7 @@ ParticleContainer<NR,NI,C>::GetParticleData (Array<Real>& part_data, int start_c
     // Make sure we don't try to get more than we have
     //
     if (start_comp + num_comp > NR)
-        BoxLib::Error("Tried to grab too many components in GetParticleData!!");
+        amrex::Error("Tried to grab too many components in GetParticleData!!");
 
 #if BL_USE_MPI
     Array<long> cnts(ParallelDescriptor::NProcs());
@@ -1237,7 +1237,7 @@ ParticleContainer<NR,NI,C>::SetParticleLocations (Array<Real>& part_data)
 
    // Mass + locations
    if (part_data.size() != npart*BL_SPACEDIM)
-       BoxLib::Abort("Sending in wrong size part_data to SetParticleLocations");
+       amrex::Abort("Sending in wrong size part_data to SetParticleLocations");
 
    for (int lev = 0; lev <= m_gdb->finestLevel(); lev++)
    {
@@ -1307,7 +1307,7 @@ ParticleContainer<NR,NI,C>::AddParticlesAtLevel (int   level,
                     //
                     // Virtuals shouldn't be in Ghost cells.
                     //
-                    BoxLib::Abort("ParticleContainer<NR,NI,C>::AddParticlesAtLevel(): Can't add outside of domain\n");
+                    amrex::Abort("ParticleContainer<NR,NI,C>::AddParticlesAtLevel(): Can't add outside of domain\n");
             }
             else
             {
@@ -1440,7 +1440,7 @@ ParticleContainer<NR,NI,C>::CreateVirtualParticles (int   level,
     //
     // Create a buffer so that particles near the cf border are not aggregated.
     //
-    BoxArray buffer = BoxLib::complementIn(m_gdb->Geom(level).Domain(), m_gdb->ParticleBoxArray(level));
+    BoxArray buffer = amrex::complementIn(m_gdb->Geom(level).Domain(), m_gdb->ParticleBoxArray(level));
 
     buffer.grow(aggregation_buffer);
 
@@ -1529,11 +1529,11 @@ ParticleContainer<NR,NI,C>::CreateVirtualParticles (int   level,
                 }
                 else if (aggregation_type == "Flow")
                 {
-                    BoxLib::Abort("Flow aggregation not implemented");
+                    amrex::Abort("Flow aggregation not implemented");
                 }
                 else 
                 {
-                    BoxLib::Abort("Unknown Particle Aggregation mode");
+                    amrex::Abort("Unknown Particle Aggregation mode");
                 }
             }
         }
@@ -1684,7 +1684,7 @@ ParticleContainer<NR,NI,C>::Redistribute (bool where_already_called,
 					if (lev_min != 0) // RestrictedWhere should be unnecessary at top level.
 					{
 					    if (!ParticleBase::RestrictedWhere(p, m_gdb, nGrow))
-						BoxLib::Abort("ParticleContainer<NR,NI,C>::Redistribute(): invalid particle at non-coarse step");
+						amrex::Abort("ParticleContainer<NR,NI,C>::Redistribute(): invalid particle at non-coarse step");
 					}
 					else
 					{
@@ -1699,7 +1699,7 @@ ParticleContainer<NR,NI,C>::Redistribute (bool where_already_called,
 				else
 				{
 				    std::cout << "Bad Particle: " << p << '\n';
-				    BoxLib::Abort("ParticleContainer<NR,NI,C>::Redistribute(): invalid particle in basic check");
+				    amrex::Abort("ParticleContainer<NR,NI,C>::Redistribute(): invalid particle in basic check");
 				}
 			    }
 			}
@@ -2219,8 +2219,8 @@ ParticleContainer<NR,NI,C>::Checkpoint (const std::string& dir,
     // Only the I/O processor makes the directory if it doesn't already exist.
     //
     if (ParallelDescriptor::IOProcessor())
-        if (!BoxLib::UtilCreateDirectory(pdir, 0755))
-            BoxLib::CreateDirectoryFailed(pdir);
+        if (!amrex::UtilCreateDirectory(pdir, 0755))
+            amrex::CreateDirectoryFailed(pdir);
     //
     // Force other processors to wait till directory is built.
     //
@@ -2271,7 +2271,7 @@ ParticleContainer<NR,NI,C>::Checkpoint (const std::string& dir,
         HdrFile.open(HdrFileName.c_str(), std::ios::out|std::ios::trunc);
 
         if (!HdrFile.good())
-            BoxLib::FileOpenFailed(HdrFileName);
+            amrex::FileOpenFailed(HdrFileName);
         //
         // First thing written is our Checkpoint/Restart version string.
         // 
@@ -2339,11 +2339,11 @@ ParticleContainer<NR,NI,C>::Checkpoint (const std::string& dir,
             if (!LevelDir.empty() && LevelDir[LevelDir.size()-1] != '/')
                 LevelDir += '/';
 
-            LevelDir = BoxLib::Concatenate(LevelDir + "Level_", lev, 1);
+            LevelDir = amrex::Concatenate(LevelDir + "Level_", lev, 1);
 
             if (ParallelDescriptor::IOProcessor())
-                if (!BoxLib::UtilCreateDirectory(LevelDir, 0755))
-                    BoxLib::CreateDirectoryFailed(LevelDir);
+                if (!amrex::UtilCreateDirectory(LevelDir, 0755))
+                    amrex::CreateDirectoryFailed(LevelDir);
             //
             // Force other processors to wait till directory is built.
             //
@@ -2366,7 +2366,7 @@ ParticleContainer<NR,NI,C>::Checkpoint (const std::string& dir,
 
             FullFileName += '/';
             FullFileName += ParticleBase::DataPrefix();
-            FullFileName += BoxLib::Concatenate("", FileNumber, 4);
+            FullFileName += amrex::Concatenate("", FileNumber, 4);
 
             std::ofstream ParticleFile;
 
@@ -2401,7 +2401,7 @@ ParticleContainer<NR,NI,C>::Checkpoint (const std::string& dir,
                     }
 
                     if (!ParticleFile.good())
-                        BoxLib::FileOpenFailed(FullFileName);
+                        amrex::FileOpenFailed(FullFileName);
                     //
                     // Write out all the valid particles we own at the specified level.
                     // Do it grid block by grid block remembering the seek offset
@@ -2414,7 +2414,7 @@ ParticleContainer<NR,NI,C>::Checkpoint (const std::string& dir,
                     ParticleFile.close();
 
                     if (!ParticleFile.good())
-                        BoxLib::Abort("ParticleContainer<NR,NI,C>::Checkpoint(): problem writing ParticleFile");
+                        amrex::Abort("ParticleContainer<NR,NI,C>::Checkpoint(): problem writing ParticleFile");
 
                     int iBuff = 0, wakeUpPID = (MyProc + nOutFiles), tag = (MyProc % nOutFiles);
 
@@ -2470,9 +2470,9 @@ ParticleContainer<NR,NI,C>::Checkpoint (const std::string& dir,
 
                         FullFileName += '/';
                         FullFileName += ParticleBase::DataPrefix();
-                        FullFileName += BoxLib::Concatenate("", i, 4);
+                        FullFileName += amrex::Concatenate("", i, 4);
 
-                        BoxLib::UnlinkFile(FullFileName.c_str());
+                        amrex::UnlinkFile(FullFileName.c_str());
                     }
                 }
             }
@@ -2492,7 +2492,7 @@ ParticleContainer<NR,NI,C>::Checkpoint (const std::string& dir,
             HdrFile.close();
 
             if (!HdrFile.good())
-                BoxLib::Abort("ParticleContainer<NR,NI,C>::Checkpoint(): problem writing HdrFile");
+                amrex::Abort("ParticleContainer<NR,NI,C>::Checkpoint(): problem writing HdrFile");
 
             std::cout << "ParticleContainer<NR,NI,C>::Checkpoint() time: " << stoptime << '\n';
         }
@@ -2723,7 +2723,7 @@ ParticleContainer<NR,NI,C>::Restart (const std::string& dir,
     HdrFile.open(HdrFileName.c_str(), std::ios::in);
 
     if (!HdrFile.good())
-        BoxLib::FileOpenFailed(HdrFileName);
+        amrex::FileOpenFailed(HdrFileName);
     //
     // First value should be the version string.
     //
@@ -2775,14 +2775,14 @@ ParticleContainer<NR,NI,C>::Restart (const std::string& dir,
         {
             std::string msg("ParticleContainer<NR,NI,C>::Restart(): bad version string: ");
             msg += version;
-            BoxLib::Error(version.c_str());
+            amrex::Error(version.c_str());
         }
     }
     else
     {
         std::string msg("ParticleContainer<NR,NI,C>::Restart(): unknown version string: ");
         msg += version;
-        BoxLib::Abort(msg.c_str());
+        amrex::Abort(msg.c_str());
     }
 
     if (m_verbose > 1)
@@ -2819,7 +2819,7 @@ ParticleContainer<NR,NI,C>::Restart_Doit (const std::string& fullname,
         HdrFile >> dm;
 
         if (dm != BL_SPACEDIM)
-            BoxLib::Abort("ParticleContainer<NR,NI,C>::Restart(): dm != BL_SPACEDIM");
+            amrex::Abort("ParticleContainer<NR,NI,C>::Restart(): dm != BL_SPACEDIM");
     }
     ParallelDescriptor::Bcast(&dm, 1, IOProc);
     //
@@ -2832,7 +2832,7 @@ ParticleContainer<NR,NI,C>::Restart_Doit (const std::string& fullname,
         HdrFile >> n;
 
         if (n != NR)
-            BoxLib::Abort("ParticleContainer<NR,NI,C>::Restart(): n != N");
+            amrex::Abort("ParticleContainer<NR,NI,C>::Restart(): n != N");
     }
     ParallelDescriptor::Bcast(&n, 1, IOProc);
 
@@ -2942,17 +2942,17 @@ ParticleContainer<NR,NI,C>::Restart_Doit (const std::string& fullname,
                 name += '/';
 
             name += "Level_";
-            name += BoxLib::Concatenate("", lev, 1);
+            name += amrex::Concatenate("", lev, 1);
             name += '/';
             name += ParticleBase::DataPrefix();
-            name += BoxLib::Concatenate("", which[grid], 4);
+            name += amrex::Concatenate("", which[grid], 4);
 
             std::ifstream ParticleFile;
 
             ParticleFile.open(name.c_str(), std::ios::in);
 
             if (!ParticleFile.good())
-                BoxLib::FileOpenFailed(name);
+                amrex::FileOpenFailed(name);
 
             ParticleFile.seekg(where[grid], std::ios::beg);
 
@@ -2968,13 +2968,13 @@ ParticleContainer<NR,NI,C>::Restart_Doit (const std::string& fullname,
             {
                 std::string msg("ParticleContainer<NR,NI,C>::Restart_Doit(): bad parameter: ");
                 msg += how;
-                BoxLib::Error(msg.c_str());
+                amrex::Error(msg.c_str());
             }
                 
             ParticleFile.close();
 
             if (!ParticleFile.good())
-                BoxLib::Abort("ParticleContainer<NR,NI,C>::Restart_Doit(): problem reading particles");
+                amrex::Abort("ParticleContainer<NR,NI,C>::Restart_Doit(): problem reading particles");
         }
     }
 
@@ -3062,7 +3062,7 @@ ParticleContainer<NR,NI,C>::ReadParticles_DoublePrecision (int            cnt,
                         std::cout << "RESTART:BAD PARTICLE POS(" << d << ") " << p.m_pos[d] << std::endl;
                     }
 
-                    BoxLib::Abort("ParticleContainer<NR,NI,C>::ReadParticles_DoublePrecision(): invalid particle");
+                    amrex::Abort("ParticleContainer<NR,NI,C>::ReadParticles_DoublePrecision(): invalid particle");
                 }
             }
 
@@ -3183,7 +3183,7 @@ ParticleContainer<NR,NI,C>::ReadParticles_SinglePrecision (int            cnt,
                         std::cout << "RESTART:BAD PARTICLE POS(" << d << ") " << p.m_pos[d] << std::endl;
                     }
 
-                    BoxLib::Abort("ParticleContainer<NR,NI,C>::ReadParticles_SinglePrecision(): invalid particle");
+                    amrex::Abort("ParticleContainer<NR,NI,C>::ReadParticles_SinglePrecision(): invalid particle");
                 }
             }
 
@@ -3262,7 +3262,7 @@ ParticleContainer<NR,NI,C>::WriteAsciiFile (const std::string& filename)
         File.open(filename.c_str(), std::ios::out|std::ios::trunc);
 
         if (!File.good())
-            BoxLib::FileOpenFailed(filename);
+            amrex::FileOpenFailed(filename);
 
         File << nparticles << '\n';
             
@@ -3271,7 +3271,7 @@ ParticleContainer<NR,NI,C>::WriteAsciiFile (const std::string& filename)
         File.close();
 
         if (!File.good())
-            BoxLib::Abort("ParticleContainer<NR,NI,C>::WriteAsciiFile(): problem writing file");
+            amrex::Abort("ParticleContainer<NR,NI,C>::WriteAsciiFile(): problem writing file");
     }
 
     ParallelDescriptor::Barrier();
@@ -3296,7 +3296,7 @@ ParticleContainer<NR,NI,C>::WriteAsciiFile (const std::string& filename)
             File.precision(15);
 
             if (!File.good())
-                BoxLib::FileOpenFailed(filename);
+                amrex::FileOpenFailed(filename);
             
             for (const auto& pmap : m_particles)
             {
@@ -3328,7 +3328,7 @@ ParticleContainer<NR,NI,C>::WriteAsciiFile (const std::string& filename)
             File.close();
 
             if (!File.good())
-                BoxLib::Abort("ParticleContainer<NR,NI,C>::WriteAsciiFile(): problem writing file");
+                amrex::Abort("ParticleContainer<NR,NI,C>::WriteAsciiFile(): problem writing file");
 
         }
 
@@ -3394,7 +3394,7 @@ ParticleContainer<NR,NI,C>::WriteCoarsenedAsciiFile (const std::string& filename
         File.open(filename.c_str(), std::ios::out|std::ios::trunc);
 
         if (!File.good())
-            BoxLib::FileOpenFailed(filename);
+            amrex::FileOpenFailed(filename);
 
         File << nparticles << '\n';
             
@@ -3403,7 +3403,7 @@ ParticleContainer<NR,NI,C>::WriteCoarsenedAsciiFile (const std::string& filename
         File.close();
 
         if (!File.good())
-            BoxLib::Abort("ParticleContainer<NR,NI,C>::WriteCoarsenedAsciiFile(): problem writing file");
+            amrex::Abort("ParticleContainer<NR,NI,C>::WriteCoarsenedAsciiFile(): problem writing file");
     }
 
     ParallelDescriptor::Barrier();
@@ -3428,7 +3428,7 @@ ParticleContainer<NR,NI,C>::WriteCoarsenedAsciiFile (const std::string& filename
             File.precision(15);
 
             if (!File.good())
-                BoxLib::FileOpenFailed(filename);
+                amrex::FileOpenFailed(filename);
             
             for (const auto& pmap : m_particles)
             {
@@ -3466,7 +3466,7 @@ ParticleContainer<NR,NI,C>::WriteCoarsenedAsciiFile (const std::string& filename
             File.close();
 
             if (!File.good())
-                BoxLib::Abort("ParticleContainer<NR,NI,C>::WriteCoarsenedAsciiFile(): problem writing file");
+                amrex::Abort("ParticleContainer<NR,NI,C>::WriteCoarsenedAsciiFile(): problem writing file");
 
         }
 
@@ -3635,7 +3635,7 @@ ParticleContainer<NR,NI,C>::AssignDensity (int rho_index, bool sub_cycle,
 					   Array<std::unique_ptr<MultiFab> >& mf_to_be_filled, 
 					   int lev_min, int ncomp, int finest_level) const
 {
-    if (rho_index != 0) BoxLib::Abort("AssignDensity only works if rho_index = 0");
+    if (rho_index != 0) amrex::Abort("AssignDensity only works if rho_index = 0");
 
     BL_PROFILE("ParticleContainer<NR,NI,C>::AssignDensity()");
     BL_ASSERT(NR >= 1);
@@ -3767,7 +3767,7 @@ ParticleContainer<NR,NI,C>::AssignDensity (int rho_index, bool sub_cycle,
         {
             if (gm.isAnyPeriodic())
             {
-                const Box& dest = BoxLib::grow(grids[i],dgrow);
+                const Box& dest = amrex::grow(grids[i],dgrow);
 
                 if ( ! dm.contains(dest))
                 {
@@ -3835,7 +3835,7 @@ ParticleContainer<NR,NI,C>::AssignDensity (int rho_index, bool sub_cycle,
             {
                 if (gm.isAnyPeriodic())
                 {
-                    const Box& dest = BoxLib::grow(cfba[i],mf[lev_index]->nGrow());
+                    const Box& dest = amrex::grow(cfba[i],mf[lev_index]->nGrow());
 
                     if ( ! dm.contains(dest))
                     {
@@ -3872,7 +3872,7 @@ ParticleContainer<NR,NI,C>::AssignDensity (int rho_index, bool sub_cycle,
         // The "+1" is so we enclose the valid region together with any
         //  ghost cells that can be periodically shifted into valid.
         //
-        compfvalid = BoxLib::complementIn(BoxLib::grow(dm,dgrow+1), fvalid);
+        compfvalid = amrex::complementIn(amrex::grow(dm,dgrow+1), fvalid);
 
         compfvalid_grown = compfvalid;
         compfvalid_grown.grow(1);
@@ -3880,7 +3880,7 @@ ParticleContainer<NR,NI,C>::AssignDensity (int rho_index, bool sub_cycle,
             
         if (gm.isAnyPeriodic() && ! gm.isAllPeriodic())
         {
-            BoxLib::Error("AssignDensity: problem must be periodic in no or all directions");
+            amrex::Error("AssignDensity: problem must be periodic in no or all directions");
         }
         //
         // If we're at a lev > 0, this is the coarsened BoxArray.
@@ -3919,7 +3919,7 @@ ParticleContainer<NR,NI,C>::AssignDensity (int rho_index, bool sub_cycle,
                 //
                 if ( ! gm.isAllPeriodic() && ! allow_particles_near_boundary) {
                     if ( ! gm.Domain().contains(cells[0]) || ! gm.Domain().contains(cells[M-1])) {
-                        BoxLib::Error("AssignDensity: if not periodic, all particles must stay away from the domain boundary");
+                        amrex::Error("AssignDensity: if not periodic, all particles must stay away from the domain boundary");
 		    }
 		}
                 //
@@ -4502,7 +4502,7 @@ ParticleContainer<NR,NI,C>::AssignDensityDoit (int rho_index,
 					       int               ncomp,
 					       int               lev_min) const
 {
-    if (rho_index != 0) BoxLib::Abort("AssignDensityDoit only works if rho_index = 0");
+    if (rho_index != 0) amrex::Abort("AssignDensityDoit only works if rho_index = 0");
 
     BL_PROFILE("ParticleContainer<NR,NI,C>::AssignDensityDoit()");
     BL_ASSERT(NR >= ncomp);
@@ -4734,7 +4734,7 @@ ParticleContainer<NR,NI,C>::AssignDensitySingleLevel (int rho_index,
     }
     else
     {
-	BoxLib::Abort("AssignCellDensitySingleLevel: mixed type not supported");
+	amrex::Abort("AssignCellDensitySingleLevel: mixed type not supported");
     }
 }
 
@@ -4749,7 +4749,7 @@ ParticleContainer<NR,NI,C>::AssignCellDensitySingleLevel (int rho_index,
 							int       ncomp,
 							int       particle_lvl_offset) const
 {
-    if (rho_index != 0) BoxLib::Abort("AssignCellDensitySingleLevel only works if rho_index = 0");
+    if (rho_index != 0) amrex::Abort("AssignCellDensitySingleLevel only works if rho_index = 0");
 
     MultiFab* mf_pointer;
 
@@ -4771,7 +4771,7 @@ ParticleContainer<NR,NI,C>::AssignCellDensitySingleLevel (int rho_index,
     //    adjacent grid by first putting the value into ghost cells of its own grid.  The mf->sumBoundary call then
     //    adds the value from one grid's ghost cell to another grid's valid region.
     if (mf_pointer->nGrow() < 1) 
-       BoxLib::Error("Must have at least one ghost cell when in AssignDensitySingleLevel");
+       amrex::Error("Must have at least one ghost cell when in AssignDensitySingleLevel");
 
     const Real      strttime    = ParallelDescriptor::second();
     const Geometry& gm          = m_gdb->Geom(lev);
@@ -4782,7 +4782,7 @@ ParticleContainer<NR,NI,C>::AssignCellDensitySingleLevel (int rho_index,
     const int       ngrids      = pmap.size();
 
     if (gm.isAnyPeriodic() && ! gm.isAllPeriodic()) {
-        BoxLib::Error("AssignDensity: problem must be periodic in no or all directions");
+        amrex::Error("AssignDensity: problem must be periodic in no or all directions");
     }
 
     for (MFIter mfi(*mf_pointer); mfi.isValid(); ++mfi) {
@@ -4835,7 +4835,7 @@ ParticleContainer<NR,NI,C>::AssignCellDensitySingleLevel (int rho_index,
             //
             if ( ! gm.isAllPeriodic() && ! allow_particles_near_boundary) {
                 if ( ! gm.Domain().contains(cells[0]) || ! gm.Domain().contains(cells[M-1])) {
-                    BoxLib::Error("AssignDensity: if not periodic, all particles must stay away from the domain boundary");
+                    amrex::Error("AssignDensity: if not periodic, all particles must stay away from the domain boundary");
 		}
 	    }
 
@@ -4939,7 +4939,7 @@ ParticleContainer<NR,NI,C>::NodalDepositionSingleLevel (int rho_index,
     {
         // If mf_to_be_filled is not defined on the particle_box_array, then we need 
         // to make a temporary here and copy into mf_to_be_filled at the end.
-        mf_pointer = new MultiFab(BoxLib::convert(m_gdb->ParticleBoxArray(lev),
+        mf_pointer = new MultiFab(amrex::convert(m_gdb->ParticleBoxArray(lev),
 						  mf_to_be_filled.boxArray().ixType()),
 				  ncomp, mf_to_be_filled.nGrow(),
 				  m_gdb->ParticleDistributionMap(lev), Fab_allocate);
@@ -4952,7 +4952,7 @@ ParticleContainer<NR,NI,C>::NodalDepositionSingleLevel (int rho_index,
     const int       ngrids      = pmap.size();
 
     if (gm.isAnyPeriodic() && ! gm.isAllPeriodic()) 
-        BoxLib::Error("AssignDensity: problem must be periodic in no or all directions");
+        amrex::Error("AssignDensity: problem must be periodic in no or all directions");
 
     mf_pointer->setVal(0.0);
 

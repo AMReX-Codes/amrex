@@ -94,7 +94,7 @@ void solve_with_HPGMG(MultiFab& soln, MultiFab& gphi, Real a, Real b, MultiFab& 
 
 int main(int argc, char* argv[])
 {
-  BoxLib::Initialize(argc,argv);
+  amrex::Initialize(argc,argv);
 
   BL_PROFILE_VAR("main()", pmain);
 
@@ -121,14 +121,14 @@ int main(int argc, char* argv[])
 #ifdef USE_F90_SOLVERS
       solver_type = BoxLib_F;      
 #else
-      BoxLib::Error("Set USE_FORTRAN=TRUE in GNUmakefile");
+      amrex::Error("Set USE_FORTRAN=TRUE in GNUmakefile");
 #endif
     }
     else if (solver_type_s == "Hypre") {
 #ifdef USEHYPRE
       solver_type = Hypre;
 #else
-      BoxLib::Error("Set USE_HYPRE=TRUE in GNUmakefile");
+      amrex::Error("Set USE_HYPRE=TRUE in GNUmakefile");
 #endif
     }
     else if (solver_type_s == "All") {
@@ -138,7 +138,7 @@ int main(int argc, char* argv[])
       if (ParallelDescriptor::IOProcessor()) {
 	std::cout << "Don't know this solver type: " << solver_type << std::endl;
       }
-      BoxLib::Error("");
+      amrex::Error("");
     }
   }
 
@@ -154,7 +154,7 @@ int main(int argc, char* argv[])
     else if (bc_type_s == "Neumann") {
       bc_type = Neumann;
 #ifdef USEHPGMG
-      BoxLib::Error("HPGMG does not support Neumann boundary conditions");
+      amrex::Error("HPGMG does not support Neumann boundary conditions");
 #endif
     }
     else if (bc_type_s == "Periodic") {
@@ -167,7 +167,7 @@ int main(int argc, char* argv[])
       if (ParallelDescriptor::IOProcessor()) {
 	std::cout << "Don't know this boundary type: " << bc_type << std::endl;
       }
-      BoxLib::Error("");
+      amrex::Error("");
     }
   }
 
@@ -353,7 +353,7 @@ int main(int argc, char* argv[])
  
   BL_PROFILE_VAR_STOP(pmain);
 
-  BoxLib::Finalize();
+  amrex::Finalize();
 }
 
 void compute_analyticSolution(MultiFab& anaSoln, const Array<Real>& offset)
@@ -398,7 +398,7 @@ void setup_coeffs(BoxArray& bs, MultiFab& alpha, const Array<MultiFab*>& beta,
 		bx.loVect(),bx.hiVect(),dx, sigma, w);
   }
 
-  BoxLib::average_cellcenter_to_face(beta, cc_coef, geom);
+  amrex::average_cellcenter_to_face(beta, cc_coef, geom);
 
   if (plot_beta == 1) {
     writePlotFile("BETA", cc_coef, geom);
@@ -650,7 +650,7 @@ void solve(MultiFab& soln, const MultiFab& anaSoln, MultiFab& gphi,
   }
 #endif
   else {
-    BoxLib::Error("Invalid solver");
+    amrex::Error("Invalid solver");
   }
 
   Real run_time = ParallelDescriptor::second() - run_strt;
@@ -723,7 +723,7 @@ void solve_with_Cpp(MultiFab& soln, MultiFab& gphi, Real a, Real b, MultiFab& al
 #endif
 
   // Average edge-centered gradients to cell centers.
-  BoxLib::average_face_to_cellcenter(gphi, amrex::GetArrOfConstPtrs(grad_phi), geom);
+  amrex::average_face_to_cellcenter(gphi, amrex::GetArrOfConstPtrs(grad_phi), geom);
 }
 
 #ifdef USE_F90_SOLVERS
@@ -775,7 +775,7 @@ void solve_with_F90(MultiFab& soln, MultiFab& gphi, Real a, Real b, MultiFab& al
   fmg.get_fluxes(amrex::GetArrOfPtrs(grad_phi));
 
   // Average edge-centered gradients to cell centers.
-  BoxLib::average_face_to_cellcenter(gphi, amrex::GetArrOfConstPtrs(grad_phi), geom);
+  amrex::average_face_to_cellcenter(gphi, amrex::GetArrOfConstPtrs(grad_phi), geom);
 }
 #endif
 
@@ -936,6 +936,6 @@ void solve_with_HPGMG(MultiFab& soln, MultiFab& gphi, Real a, Real b, MultiFab& 
 #endif
 
   // Average edge-centered gradients to cell centers.
-  BoxLib::average_face_to_cellcenter(gphi, grad_phi, geom);
+  amrex::average_face_to_cellcenter(gphi, grad_phi, geom);
 }
 #endif

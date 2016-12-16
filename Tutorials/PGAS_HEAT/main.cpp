@@ -87,7 +87,7 @@ Real compute_dt (Real dx)
 int
 main (int argc, char* argv[])
 {
-    BoxLib::Initialize(argc,argv);
+    amrex::Initialize(argc,argv);
 
     // What time is it now?  We'll use this to compute total run time.
     Real strt_time = ParallelDescriptor::second();
@@ -195,7 +195,7 @@ main (int argc, char* argv[])
     // Write a plotfile of the initial data if plot_int > 0 (plot_int was defined in the inputs file)
     if (plot_int > 0) {
 	int n = 0;
-	const std::string& pltfile = BoxLib::Concatenate("plt",n,5);
+	const std::string& pltfile = amrex::Concatenate("plt",n,5);
 	writePlotFile(pltfile, *new_phi, geom);
     }
 
@@ -215,7 +215,7 @@ main (int argc, char* argv[])
 
 	// Write a plotfile of the current data (plot_int was defined in the inputs file)
 	if (plot_int > 0 && n%plot_int == 0) {
-	    const std::string& pltfile = BoxLib::Concatenate("plt",n,5);
+	    const std::string& pltfile = amrex::Concatenate("plt",n,5);
 	    writePlotFile(pltfile, *new_phi, geom);
 	}
     }
@@ -265,10 +265,10 @@ main (int argc, char* argv[])
     //
     // When MPI3 shared memory is used, the dtor of MultiFab calls MPI functions.
     // Because the scope of phis is beyond the call to 
-    // BoxLib::Finalize(), which in turn calls MPI_Finalize(), we destroy these
+    // amrex::Finalize(), which in turn calls MPI_Finalize(), we destroy these
     // MultiFabs by hand now.
     phis.clear();
 
     // Say goodbye to MPI, etc...
-    BoxLib::Finalize();
+    amrex::Finalize();
 }

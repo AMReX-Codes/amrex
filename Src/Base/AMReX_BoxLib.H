@@ -39,7 +39,7 @@ namespace BoxLib
     void ExecOnFinalize (PTR_TO_VOID_FUNC);
     void ExecOnInitialize (PTR_TO_VOID_FUNC);
     //
-    // Print out message to cerr and exit via BoxLib::Abort().
+    // Print out message to cerr and exit via amrex::Abort().
     //
     void Error (const char * msg = 0);
     //
@@ -62,13 +62,13 @@ namespace BoxLib
     // Prints out an out-of-memory message and aborts.  It is
     //         called by various BoxLib routines when a call to new fails.
     //
-    //        Called as BoxLib::OutOfMemory(__FILE__, __LINE__);
+    //        Called as amrex::OutOfMemory(__FILE__, __LINE__);
     //
     void OutOfMemory (const char* file,
                       int         line);
 
     //
-    // This is used by BoxLib::Error(), BoxLib::Abort(), and BoxLib::Assert()
+    // This is used by amrex::Error(), amrex::Abort(), and amrex::Assert()
     // to ensure that when writing the message to stderr, that no additional
     // heap-based memory is allocated.
     //

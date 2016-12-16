@@ -84,7 +84,7 @@ MCMultiGrid::Initialize ()
 	std::cout << "def_verbose      = " << def_verbose      << '\n';
     }
 
-    BoxLib::ExecOnFinalize(MCMultiGrid::Finalize);
+    amrex::ExecOnFinalize(MCMultiGrid::Finalize);
 
     initialized = true;
 }
@@ -262,7 +262,7 @@ MCMultiGrid::solve (MultiFab&       _sol,
     prepareForLevel(level);
     residualCorrectionForm(*rhs[level],_rhs,*cor[level],_sol,bc_mode,level);
     if (!solve_(_sol, _eps_rel, _eps_abs, MCHomogeneous_BC, level))
-      BoxLib::Error("MCMultiGrid::solve(): failed to converge!");
+      amrex::Error("MCMultiGrid::solve(): failed to converge!");
 }
 
 int
@@ -412,7 +412,7 @@ MCMultiGrid::numLevels () const
 	Box tmp = bs[i];
 
 	if (tmp.shortside() <= 3 )
-	    BoxLib::Error("MCMultiGrid::numLevels(): fine grid too small");
+	    amrex::Error("MCMultiGrid::numLevels(): fine grid too small");
 
 	for (;;)
         {

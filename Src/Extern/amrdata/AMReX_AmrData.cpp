@@ -515,7 +515,7 @@ bool AmrData::ReadData(const string &filename, Amrvis::FileType filetype) {
    bool bRestrictDomain(maxDomain[0].ok());
    if(bRestrictDomain) {
       for(lev = 1; lev <= finestLevel; ++lev) {
-        maxDomain[lev] = BoxLib::refine(maxDomain[lev-1],refRatio[lev-1]);
+        maxDomain[lev] = amrex::refine(maxDomain[lev-1],refRatio[lev-1]);
       }
    }
    Array<Box> restrictDomain(finestLevel + 1);
@@ -526,8 +526,8 @@ bool AmrData::ReadData(const string &filename, Amrvis::FileType filetype) {
       if(bRestrictDomain) {
         restrictDomain[lev] = maxDomain[lev];
       }
-      extendRestrictDomain[lev] = BoxLib::grow(restrictDomain[lev],boundaryWidth);
-      BoxList bndry_boxes = BoxLib::boxDiff(extendRestrictDomain[lev],
+      extendRestrictDomain[lev] = amrex::grow(restrictDomain[lev],boundaryWidth);
+      BoxList bndry_boxes = amrex::boxDiff(extendRestrictDomain[lev],
                                             restrictDomain[lev]);
       nRegions = bndry_boxes.size();
 
@@ -654,15 +654,15 @@ bool AmrData::ReadData(const string &filename, Amrvis::FileType filetype) {
    // get better data from interior or input bndry regions
    for(lev = 0; lev <= finestLevel; ++lev) {
       Box inbox(restrictDomain[lev]);
-      Box reg1(BoxLib::grow(restrictDomain[lev],boundaryWidth));
-      Box reg2(BoxLib::grow(probDomain[lev],width));
-      BoxList outside = BoxLib::boxDiff(reg1, reg2);
+      Box reg1(amrex::grow(restrictDomain[lev],boundaryWidth));
+      Box reg2(amrex::grow(probDomain[lev],width));
+      BoxList outside = amrex::boxDiff(reg1, reg2);
       if(outside.size() > 0) {
          // parts of the bndry have not been filled from the input
 	 // data, must extending from interior regions
 
          for(int idir(0); idir < BL_SPACEDIM; ++idir) {
-            Box bx(BoxLib::adjCellLo(inbox,idir,boundaryWidth));
+            Box bx(amrex::adjCellLo(inbox,idir,boundaryWidth));
 	    Box br(bx);
 	    for(k = 0; k < BL_SPACEDIM; ++k) {
 	      if(k != idir) {
@@ -680,7 +680,7 @@ bool AmrData::ReadData(const string &filename, Amrvis::FileType filetype) {
 	    tmpreg_lo.copy(tmpreg,tmpreg.box(),0,tmpreg_lo.box(),0,nComp);
 
             // now fill out tmp region along idir direction
-	    Box b_lo(BoxLib::adjCellLo(inbox,idir,1));
+	    Box b_lo(amrex::adjCellLo(inbox,idir,1));
 	    for(k = 1; k < boundaryWidth; ++k) {
 	       Box btmp(b_lo);
 	       btmp.shift(idir, -k);
@@ -692,7 +692,7 @@ bool AmrData::ReadData(const string &filename, Amrvis::FileType filetype) {
 	    int n;
 	    for(k = 1; k < BL_SPACEDIM; ++k) {
 	       int kdir = (idir + k) % BL_SPACEDIM;
- 	       b_dest = BoxLib::adjCellLo(bx, kdir, 1);
+ 	       b_dest = amrex::adjCellLo(bx, kdir, 1);
 	       b_src  = b_dest;
 	       b_src  = b_src.shift(kdir, 1);
                for(n = 1; n <= boundaryWidth; ++n) {
@@ -700,7 +700,7 @@ bool AmrData::ReadData(const string &filename, Amrvis::FileType filetype) {
 	          b_dest.shift(kdir, -1);
 	       }
 
-	       b_dest = BoxLib::adjCellHi(bx,kdir,1);
+	       b_dest = amrex::adjCellHi(bx,kdir,1);
 	       b_src = b_dest;
 	       b_src.shift(kdir,-1);
                for(n = 1; n <= boundaryWidth; ++n) {
@@ -727,7 +727,7 @@ bool AmrData::ReadData(const string &filename, Amrvis::FileType filetype) {
 	    }  // end for j
 
             // now work on the high side of the bndry region
-            bx = BoxLib::adjCellHi(inbox,idir,boundaryWidth);
+            bx = amrex::adjCellHi(inbox,idir,boundaryWidth);
 	    br = bx;
 	    for(k = 0; k < BL_SPACEDIM; ++k) {
 	      if(k != idir) br.grow(k, boundaryWidth);
@@ -743,7 +743,7 @@ bool AmrData::ReadData(const string &filename, Amrvis::FileType filetype) {
 	    tmpreg_hi.copy(tmpreg2,tmpreg2.box(),0,tmpreg_hi.box(),0,nComp);
 
             // now fill out tmp region along idir direction
-	    Box b_hi(BoxLib::adjCellHi(inbox,idir,1));
+	    Box b_hi(amrex::adjCellHi(inbox,idir,1));
 	    for(k = 1; k < boundaryWidth; ++k) {
 	       Box btmp(b_hi);
 	       btmp.shift(idir,k);
@@ -753,7 +753,7 @@ bool AmrData::ReadData(const string &filename, Amrvis::FileType filetype) {
 	    // now fill out temp bndry region
 	    for(k = 1; k < BL_SPACEDIM; ++k) {
 	       int kdir = (idir + k) % BL_SPACEDIM;
-	       b_dest = BoxLib::adjCellLo(bx, kdir, 1);
+	       b_dest = amrex::adjCellLo(bx, kdir, 1);
 	       b_src  = b_dest;
 	       b_src.shift(kdir, 1);
                for(n = 1; n <= boundaryWidth; ++n) {
@@ -761,7 +761,7 @@ bool AmrData::ReadData(const string &filename, Amrvis::FileType filetype) {
 	          b_dest.shift(kdir,-1);
 	       }
 
-	       b_dest = BoxLib::adjCellHi(bx, kdir, 1);
+	       b_dest = amrex::adjCellHi(bx, kdir, 1);
 	       b_src  = b_dest;
 	       b_src.shift(kdir, -1);
                for(n = 1; n <= boundaryWidth; ++n) {
@@ -926,7 +926,7 @@ bool AmrData::ReadNonPlotfileData(const string &filename, Amrvis::FileType filet
     plotVars.resize(nComp);
     for(i = 0; i < nComp; ++i) {
       if(snprintf(fabname, N, "%s%d", "Fab_", i) >= N) {
-        BoxLib::Abort("AmrData::ReadNonPlotfileData: fabname buffer too small");
+        amrex::Abort("AmrData::ReadNonPlotfileData: fabname buffer too small");
       }
       plotVars[i] = fabname;
     }
@@ -964,7 +964,7 @@ bool AmrData::ReadNonPlotfileData(const string &filename, Amrvis::FileType filet
 
     for(int iComp(0); iComp < nComp; ++iComp) {
       if(snprintf(fabname, N, "%s%d", "MultiFab_", iComp) >= N) {
-        BoxLib::Abort("AmrData::ReadNonPlotfileData: fabname buffer too small");
+        amrex::Abort("AmrData::ReadNonPlotfileData: fabname buffer too small");
       }
       plotVars[iComp] = fabname;
 
@@ -1145,7 +1145,7 @@ void AmrData::FillVar(MultiFab &destMultiFab, int finestFillLevel,
             cerr << "   Domain is  " << probDomain[finestFillLevel] << std::endl;
             cerr << "   ith box is " << destBoxes[iIndex]           << std::endl;
          }
-         BoxLib::Abort("Error:  AmrData::FillVar");
+         amrex::Abort("Error:  AmrData::FillVar");
       }
    }
 
@@ -1263,7 +1263,7 @@ void AmrData::FillVar(MultiFab &destMultiFab, int finestFillLevel,
 					      srcComp, 0, 1);
 
                   fillBoxIdBAs[ibox][currentLevel][currentBLI][0] =
-                      BoxArray(BoxLib::complementIn(tempCoarseBox,
+                      BoxArray(amrex::complementIn(tempCoarseBox,
 		               tempUnfillableBoxes));
 
                   unfillableBoxesOnThisLevel.catenate(tempUnfillableBoxes);
@@ -1488,7 +1488,7 @@ void AmrData::FillVar(Array<FArrayBox *> &destFabs, const Array<Box> &destBoxes,
 					      srcComp, destComp, numFillComps);
 
                   fillBoxIdBAs[ibox][currentLevel][currentBLI][0] =
-                      BoxArray(BoxLib::complementIn(tempCoarseBox,
+                      BoxArray(amrex::complementIn(tempCoarseBox,
 		               tempUnfillableBoxes));
 
                   unfillableBoxesOnThisLevel.catenate(tempUnfillableBoxes);
@@ -1592,7 +1592,7 @@ void AmrData::FillVar(Array<FArrayBox *> &destFabs, const Array<Box> &destBoxes,
 
 // ---------------------------------------------------------------
 void AmrData::FillInterior(FArrayBox &dest, int level, const Box &subbox) {
-   BoxLib::Abort("Error:  should not be in AmrData::FillInterior");
+   amrex::Abort("Error:  should not be in AmrData::FillInterior");
 }
 
 
@@ -1807,7 +1807,7 @@ bool AmrData::MinMax(const Box &onBox, const string &derived, int level,
 
   } else if(bCartGrid && (compIndex != StateNumber("vfrac"))) {
 #if (BL_SPACEDIM == 1)
-    BoxLib::Abort("AmrData::MinMax:  should not be here for 1d.");
+    amrex::Abort("AmrData::MinMax:  should not be here for 1d.");
 #else
     int iCount(0), iCountAllBody(0);
     int iCountMixedSkipped(0), iCountMixedFort(0);
@@ -1984,7 +1984,7 @@ int AmrData::StateNumber(const string &statename) const {
   if(ParallelDescriptor::IOProcessor()) {
     cerr << "Error:  bad state name:  " << statename << std::endl;
   }
-  BoxLib::Abort("bad state name in AmrData::StateNumber()");
+  amrex::Abort("bad state name in AmrData::StateNumber()");
   return(-1);
 }
 
@@ -1994,11 +1994,11 @@ void AmrData::Interp(FArrayBox &fine, FArrayBox &crse,
                      const Box &fine_box, int lrat)
 {
 #if (BL_SPACEDIM == 1)
-    BoxLib::Abort("AmrData::MinMax:  should not be here for 1d.");
+    amrex::Abort("AmrData::MinMax:  should not be here for 1d.");
 #else
    BL_ASSERT(fine.box().contains(fine_box));
-   Box crse_bx(BoxLib::coarsen(fine_box,lrat));
-   Box fslope_bx(BoxLib::refine(crse_bx,lrat));
+   Box crse_bx(amrex::coarsen(fine_box,lrat));
+   Box fslope_bx(amrex::refine(crse_bx,lrat));
    Box cslope_bx(crse_bx);
    cslope_bx.grow(1);
    BL_ASSERT(crse.box() == cslope_bx);

@@ -18,7 +18,7 @@ Laplacian::norm (int nm, int level, const bool local)
     case 0:
       return 8.0/(h[level][0]*h[level][0]);
     }
-  BoxLib::Error("Bad Laplacian::norm");
+  amrex::Error("Bad Laplacian::norm");
   return -1.0;
 }
 

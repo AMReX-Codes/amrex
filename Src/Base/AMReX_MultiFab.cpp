@@ -348,7 +348,7 @@ MultiFab::Initialize ()
     if (initialized) return;
     initialized = true;
 
-    BoxLib::ExecOnFinalize(MultiFab::Finalize);
+    amrex::ExecOnFinalize(MultiFab::Finalize);
 
 #ifdef BL_MEM_PROFILING
     MemProfiler::add("MultiFab", std::function<MemProfiler::NBuildsInfo()>
@@ -667,7 +667,7 @@ MultiFab::minIndex (int comp,
 
 	for (MFIter mfi(*this); mfi.isValid(); ++mfi)
 	{
-	    const Box& box = BoxLib::grow(mfi.validbox(),nghost);
+	    const Box& box = amrex::grow(mfi.validbox(),nghost);
 	    const Real lmn = get(mfi).min(box,comp);
 
 	    if (lmn < priv_mn)
@@ -752,7 +752,7 @@ MultiFab::maxIndex (int comp,
 	
 	for (MFIter mfi(*this); mfi.isValid(); ++mfi)
 	{
-	    const Box& box = BoxLib::grow(mfi.validbox(),nghost);
+	    const Box& box = amrex::grow(mfi.validbox(),nghost);
 	    const Real lmx = get(mfi).max(box,comp);
 
 	    if (lmx > priv_mx)
@@ -830,7 +830,7 @@ MultiFab::norm0 (int comp, const BoxArray& ba, int nghost, bool local) const
 
 	for (MFIter mfi(*this); mfi.isValid(); ++mfi)
 	{
-	    ba.intersections(BoxLib::grow(mfi.validbox(),nghost),isects);
+	    ba.intersections(amrex::grow(mfi.validbox(),nghost),isects);
 
 	    for (int i = 0, N = isects.size(); i < N; i++)
 	    {
@@ -1288,7 +1288,7 @@ MultiFab::negate (const Box& region,
 }
 
 void
-BoxLib::InterpAddBox (MultiFabCopyDescriptor& fabCopyDesc,
+amrex::InterpAddBox (MultiFabCopyDescriptor& fabCopyDesc,
 		      BoxList*                returnUnfilledBoxes,
 		      Array<FillBoxId>&       returnedFillBoxIds,
 		      const Box&              subbox,
@@ -1350,7 +1350,7 @@ BoxLib::InterpAddBox (MultiFabCopyDescriptor& fabCopyDesc,
 }
 
 void
-BoxLib::InterpFillFab (MultiFabCopyDescriptor& fabCopyDesc,
+amrex::InterpFillFab (MultiFabCopyDescriptor& fabCopyDesc,
 		       const Array<FillBoxId>& fillBoxIds,
 		       MultiFabId              faid1,
 		       MultiFabId              faid2,

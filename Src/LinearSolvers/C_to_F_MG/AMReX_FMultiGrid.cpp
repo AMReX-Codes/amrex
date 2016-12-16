@@ -14,7 +14,7 @@ FMultiGrid::FMultiGrid (const Geometry & geom,
     m_bndry(nullptr)
 {
     if (m_baselevel > 0 && m_crse_ratio == IntVect::TheZeroVector()) 
-	BoxLib::Abort("FMultiGrid: must set crse_ratio if baselevel > 0");
+	amrex::Abort("FMultiGrid: must set crse_ratio if baselevel > 0");
 }
 
 FMultiGrid::FMultiGrid (const Array<Geometry> & geom, 
@@ -31,7 +31,7 @@ FMultiGrid::FMultiGrid (const Array<Geometry> & geom,
     m_bndry(nullptr)
 {
     if (m_baselevel > 0 && m_crse_ratio == IntVect::TheZeroVector()) 
-	BoxLib::Abort("FMultiGrid: must set crse_ratio if baselevel > 0");
+	amrex::Abort("FMultiGrid: must set crse_ratio if baselevel > 0");
 }
 
 void
@@ -331,7 +331,7 @@ FMultiGrid::Boundary::set_bndry_values (MacBndry& bndry, IntVect crse_ratio)
     }
     else
     {
-	BoxLib::Abort("FMultiGrid::Boundary::build_bndry: How did we get here?");
+	amrex::Abort("FMultiGrid::Boundary::build_bndry: How did we get here?");
     }
 }
 
@@ -394,7 +394,7 @@ FMultiGrid::ABecCoeff::set_coeffs (MGT_Solver & mgt_solver, FMultiGrid& fmg)
 	}
         default:
 	{
-	    BoxLib::Abort("FMultiGrid::ABecCoeff::set_coeffs: How did we get here?");
+	    amrex::Abort("FMultiGrid::ABecCoeff::set_coeffs: How did we get here?");
 	}
     }
 }

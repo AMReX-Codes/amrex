@@ -5,19 +5,19 @@
 #include <AMReX_VisMF.H>
 #include <AMReX_PlotFileUtil.H>
 
-std::string BoxLib::LevelPath (int level, const std::string &levelPrefix)
+std::string amrex::LevelPath (int level, const std::string &levelPrefix)
 {
-    return BoxLib::Concatenate(levelPrefix, level, 1);  // e.g., Level_5
+    return amrex::Concatenate(levelPrefix, level, 1);  // e.g., Level_5
 }
 
-std::string BoxLib::MultiFabHeaderPath (int level,
+std::string amrex::MultiFabHeaderPath (int level,
 					const std::string &levelPrefix,
                                         const std::string &mfPrefix)
 {
-    return BoxLib::LevelPath(level, levelPrefix) + '/' + mfPrefix;  // e.g., Level_4/Cell
+    return amrex::LevelPath(level, levelPrefix) + '/' + mfPrefix;  // e.g., Level_4/Cell
 }
 
-std::string BoxLib::LevelFullPath (int level,
+std::string amrex::LevelFullPath (int level,
                                    const std::string &plotfilename,
                                    const std::string &levelPrefix)
 {
@@ -25,11 +25,11 @@ std::string BoxLib::LevelFullPath (int level,
     if ( ! r.empty() && r.back() != '/') {
 	r += '/';
     }
-    r += BoxLib::LevelPath(level, levelPrefix);  // e.g., plt00005/Level_5
+    r += amrex::LevelPath(level, levelPrefix);  // e.g., plt00005/Level_5
     return r;
 }
 
-std::string BoxLib::MultiFabFileFullPrefix (int level,
+std::string amrex::MultiFabFileFullPrefix (int level,
                                             const std::string& plotfilename,
 					    const std::string &levelPrefix,
 					    const std::string &mfPrefix)
@@ -44,14 +44,14 @@ std::string BoxLib::MultiFabFileFullPrefix (int level,
 
 
 void
-BoxLib::PreBuildDirectorHierarchy (const std::string &dirName,
+amrex::PreBuildDirectorHierarchy (const std::string &dirName,
                                    const std::string &subDirPrefix,
                                    int nSubDirs, bool callBarrier)
 {
-  BoxLib::UtilCreateCleanDirectory(dirName, false);  // ---- dont call barrier
+  amrex::UtilCreateCleanDirectory(dirName, false);  // ---- dont call barrier
   for(int i(0); i < nSubDirs; ++i) {
     const std::string &fullpath = LevelFullPath(i, dirName);
-    BoxLib::UtilCreateCleanDirectory(fullpath, false);  // ---- dont call barrier
+    amrex::UtilCreateCleanDirectory(fullpath, false);  // ---- dont call barrier
   }
 
   if(callBarrier) {
@@ -61,7 +61,7 @@ BoxLib::PreBuildDirectorHierarchy (const std::string &dirName,
 
 
 void
-BoxLib::WriteGenericPlotfileHeader (std::ostream &HeaderFile,
+amrex::WriteGenericPlotfileHeader (std::ostream &HeaderFile,
                                     int nlevels,
 				    const Array<BoxArray> &bArray,
 				    const Array<std::string> &varnames,
@@ -146,7 +146,7 @@ BoxLib::WriteGenericPlotfileHeader (std::ostream &HeaderFile,
 
 
 void
-BoxLib::WriteMultiLevelPlotfile (const std::string& plotfilename, int nlevels,
+amrex::WriteMultiLevelPlotfile (const std::string& plotfilename, int nlevels,
 				 const Array<const MultiFab*>& mf,
 				 const Array<std::string>& varnames,
 				 const Array<Geometry>& geom, Real time, const Array<int>& level_steps,
@@ -173,7 +173,7 @@ BoxLib::WriteMultiLevelPlotfile (const std::string& plotfilename, int nlevels,
     const std::string mfPrefix("Cell");
 
     bool callBarrier(true);
-    BoxLib::PreBuildDirectorHierarchy(plotfilename, levelPrefix, nlevels, callBarrier);
+    amrex::PreBuildDirectorHierarchy(plotfilename, levelPrefix, nlevels, callBarrier);
 
     if (ParallelDescriptor::IOProcessor()) {
       std::string HeaderFileName(plotfilename + "/Header");
@@ -181,7 +181,7 @@ BoxLib::WriteMultiLevelPlotfile (const std::string& plotfilename, int nlevels,
 	                                               std::ofstream::trunc |
 						       std::ofstream::binary);
       if( ! HeaderFile.good()) {
-        BoxLib::FileOpenFailed(HeaderFileName);
+        amrex::FileOpenFailed(HeaderFileName);
       }
 
       Array<BoxArray> boxArrays(nlevels);
@@ -189,7 +189,7 @@ BoxLib::WriteMultiLevelPlotfile (const std::string& plotfilename, int nlevels,
 	boxArrays[level] = mf[level]->boxArray();
       }
 
-      BoxLib::WriteGenericPlotfileHeader(HeaderFile, nlevels, boxArrays, varnames,
+      amrex::WriteGenericPlotfileHeader(HeaderFile, nlevels, boxArrays, varnames,
                                          geom, time, level_steps, ref_ratio);
     }
 
@@ -203,7 +203,7 @@ BoxLib::WriteMultiLevelPlotfile (const std::string& plotfilename, int nlevels,
 }
 
 void
-BoxLib::WriteSingleLevelPlotfile (const std::string& plotfilename,
+amrex::WriteSingleLevelPlotfile (const std::string& plotfilename,
 				  const MultiFab& mf, const Array<std::string>& varnames,
 				  const Geometry& geom, Real time, int level_step)
 {
@@ -212,7 +212,7 @@ BoxLib::WriteSingleLevelPlotfile (const std::string& plotfilename,
     Array<int> level_steps(1,level_step);
     Array<IntVect> ref_ratio;
 
-    BoxLib::WriteMultiLevelPlotfile(plotfilename, 1, mfarr, varnames, geomarr, time,
+    amrex::WriteMultiLevelPlotfile(plotfilename, 1, mfarr, varnames, geomarr, time,
 				    level_steps, ref_ratio);
 }
 

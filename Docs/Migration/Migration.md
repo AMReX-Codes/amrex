@@ -88,4 +88,18 @@ AMRex, we have renamed several directories:
 A script `Tools/Migration/step-4-dirname/dirname.sh` can be used to
 the the search and replace.
 
+### Step 5
+
+AMReX `migration/5-namespace` branch should be used in this step.
+BoxLib has a `BoxLib` namspace, but most of BoxLib classes are not in
+the namespace.  In AMReX, all classes and functions have been moved
+into the `amrex` namespace.  In this step, you can use
+`Tools/Migration/step-5-amrex-namespace/amrex-namespace.sh` to replace
+`BoxLib::` with `amrex::` for those already in `BoxLib` namespace.
+However, the rest of work is expected to be performed manually,
+because C++ is too a complicated language for shell scripting.  For
+most `.cpp` files, you can put a `using namespace amrex;` line after
+the last `include` line, or you can add `amrex::` to wherever needed.
+However, for header files, it is considered bad practice to have
+`using namespace` because it pollutes the namespace.
 

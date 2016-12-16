@@ -35,7 +35,7 @@ TagBox::coarsen (const IntVect& ratio, bool owner)
     const int* fhi      = hiv.getVect();
     const int* flen     = d_length.getVect();
 
-    const Box& cbox = BoxLib::coarsen(domain,ratio);
+    const Box& cbox = amrex::coarsen(domain,ratio);
 
     this->resize(cbox);
 
@@ -45,7 +45,7 @@ TagBox::coarsen (const IntVect& ratio, bool owner)
     IntVect    cbox_len = cbox.size();
     const int* clen     = cbox_len.getVect();
 
-    Box b1(BoxLib::refine(cbox,ratio));
+    Box b1(amrex::refine(cbox,ratio));
     const int* lo       = b1.loVect();
     int        longlen  = b1.longside();
 

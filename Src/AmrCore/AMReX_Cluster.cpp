@@ -447,7 +447,7 @@ ClusterList::intersect (const BoxDomain& dom)
         {
             BoxDomain bxdom;
 
-            BoxLib::intersect(bxdom, dom, c->box());
+            amrex::intersect(bxdom, dom, c->box());
 
             if (bxdom.size() > 0)
             {

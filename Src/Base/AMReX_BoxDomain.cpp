@@ -13,7 +13,7 @@ BoxDomain::intersect (const Box& b)
 }
 
 void
-BoxLib::intersect (BoxDomain&       dest,
+amrex::intersect (BoxDomain&       dest,
 		   const BoxDomain& fin,
 		   const Box&       b)
 {
@@ -30,7 +30,7 @@ BoxDomain::refine (int ratio)
 }
 
 void
-BoxLib::refine (BoxDomain&       dest,
+amrex::refine (BoxDomain&       dest,
 		const BoxDomain& fin,
 		int              ratio)
 {
@@ -39,7 +39,7 @@ BoxLib::refine (BoxDomain&       dest,
 }
 
 void
-BoxLib::accrete (BoxDomain&       dest,
+amrex::accrete (BoxDomain&       dest,
 		 const BoxDomain& fin,
 		 int              sz)
 {
@@ -48,7 +48,7 @@ BoxLib::accrete (BoxDomain&       dest,
 }
 
 void
-BoxLib::coarsen (BoxDomain&       dest,
+amrex::coarsen (BoxDomain&       dest,
 		 const BoxDomain& fin,
 		 int              ratio)
 {
@@ -66,7 +66,7 @@ BoxDomain::complementIn (const Box&       b,
 }
 
 BoxDomain
-BoxLib::complementIn (const Box&       b,
+amrex::complementIn (const Box&       b,
 		      const BoxDomain& bl)
 {
     BoxDomain result;
@@ -129,7 +129,7 @@ BoxDomain::add (const Box& b)
                 // part of it that is outside bln and collect
                 // those boxes in the tmp list.
                 //
-                BoxList tmpbl(BoxLib::boxDiff(*ci, *bli));
+                BoxList tmpbl(amrex::boxDiff(*ci, *bli));
                 tmp.splice(tmp.end(), tmpbl.listBox());
                 check.erase(ci++);
             }
@@ -153,7 +153,7 @@ BoxDomain::add (const BoxList& bl)
 {
     BoxList bl2 = bl;
     bl2.catenate(*this);
-    BoxList nbl = BoxLib::removeOverlap(bl2);
+    BoxList nbl = amrex::removeOverlap(bl2);
     this->catenate(nbl);
 }
 
@@ -168,7 +168,7 @@ BoxDomain::rmBox (const Box& b)
     {
         if (bli->intersects(b))
         {
-            BoxList tmpbl(BoxLib::boxDiff(*bli,b));
+            BoxList tmpbl(amrex::boxDiff(*bli,b));
             tmp.splice(tmp.end(), tmpbl.listBox());
             lbox.erase(bli++);
         }
@@ -237,7 +237,7 @@ operator<< (std::ostream&    os,
 {
     os << "(BoxDomain " << bd.boxList() << ")" << std::flush;
     if (os.fail())
-        BoxLib::Error("operator<<(ostream&,BoxDomain&) failed");
+        amrex::Error("operator<<(ostream&,BoxDomain&) failed");
     return os;
 }
 

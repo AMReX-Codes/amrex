@@ -57,7 +57,7 @@ MacOperator::Initialize ()
 
     pp.query("max_order", max_order);
 
-    BoxLib::ExecOnFinalize(MacOperator::Finalize);
+    amrex::ExecOnFinalize(MacOperator::Finalize);
 
     initialized = true;
 }
@@ -378,7 +378,7 @@ mac_level_driver (AmrCore*        parent,
 
     if (the_solver == 1 && mac_op.maxOrder() != 2)
     {
-        BoxLib::Error("Can't use CGSolver with maxorder > 2");
+        amrex::Error("Can't use CGSolver with maxorder > 2");
     }
     //
     // Construct MultiGrid or CGSolver object and solve system.
@@ -403,7 +403,7 @@ mac_level_driver (AmrCore*        parent,
         hp.solve(*mac_phi, Rhs, true);
         hp.clear_solver();
 #else
-        BoxLib::Error("mac_level_driver::HypreABec not in this build");
+        amrex::Error("mac_level_driver::HypreABec not in this build");
 #endif
     }
     else if (the_solver == 3 ) 
@@ -511,7 +511,7 @@ mac_sync_driver (AmrCore*            parent,
 
     if (the_solver == 1 && mac_op.maxOrder() != 2)
     {
-        BoxLib::Error("Can't use CGSolver with maxorder > 2");
+        amrex::Error("Can't use CGSolver with maxorder > 2");
     }
     //
     // Now construct MultiGrid or CGSolver object to solve system.
@@ -536,7 +536,7 @@ mac_sync_driver (AmrCore*            parent,
         hp.solve(*mac_sync_phi, Rhs, true);
         hp.clear_solver();
 #else
-        BoxLib::Error("mac_sync_driver: HypreABec not in this build");
+        amrex::Error("mac_sync_driver: HypreABec not in this build");
 #endif
     }
     else if (the_solver == 3 )

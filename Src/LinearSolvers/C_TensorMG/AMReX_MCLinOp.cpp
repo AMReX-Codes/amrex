@@ -51,7 +51,7 @@ MCLinOp::Initialize ()
     if (ParallelDescriptor::IOProcessor() && def_verbose)
 	std::cout << "def_harmavg = " << def_harmavg << '\n';
 
-    BoxLib::ExecOnFinalize(MCLinOp::Finalize);
+    amrex::ExecOnFinalize(MCLinOp::Finalize);
 
     initialized = true;
 }
@@ -230,7 +230,7 @@ MCLinOp::applyBC (MultiFab& inout,
 	    else if (cdir == 1)
                 perpdir = 0;
 	    else
-                BoxLib::Abort("MCLinOp::applyBC(): bad logic");
+                amrex::Abort("MCLinOp::applyBC(): bad logic");
 
             const Mask& m    = (*maskvals[level][face])[mfi];
 	    const Mask& mphi = (*maskvals[level][Orientation(perpdir,Orientation::high)])[mfi];
@@ -423,7 +423,7 @@ MCLinOp::makeCoefficients (MultiFab&       cs,
     }
 #endif
     else
-        BoxLib::Abort("MCLinOp::makeCoeffients(): Bad index type");
+        amrex::Abort("MCLinOp::makeCoeffients(): Bad index type");
     
     BoxArray d(gbox[level]);
     if (cdir >= 0)
@@ -478,7 +478,7 @@ MCLinOp::makeCoefficients (MultiFab&       cs,
 	    }
 	    break;
 	default:
-	    BoxLib::Error("MCLinOp::makeCoeffients(): bad coefficient coarsening direction!");
+	    amrex::Error("MCLinOp::makeCoeffients(): bad coefficient coarsening direction!");
 	}
     }
 }

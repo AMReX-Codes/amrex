@@ -34,7 +34,7 @@ int
 main (int   argc,
       char* argv[])
 {
-    BoxLib::Initialize(argc,argv);
+    amrex::Initialize(argc,argv);
 //
 //  Parse the command line
 //
@@ -68,7 +68,7 @@ main (int   argc,
         return true;
     }
 
-    BoxLib::Finalize();
+    amrex::Finalize();
     
     return ArrayViewMultiFab(&tmp);
 }

@@ -165,7 +165,7 @@ void main_main ()
   if (plot_int > 0)
   {
     int n = 0;
-    const std::string& pltfile = BoxLib::Concatenate("plt",n,5);
+    const std::string& pltfile = amrex::Concatenate("plt",n,5);
     writePlotFile(pltfile, *phi[init_index], geom, time);
   }
 
@@ -195,7 +195,7 @@ void main_main ()
     // Write a plotfile of the current data (plot_int was defined in the inputs file)
     if (plot_int > 0 && n%plot_int == 0)
     {
-      const std::string& pltfile = BoxLib::Concatenate("plt",n,5);
+      const std::string& pltfile = amrex::Concatenate("plt",n,5);
       writePlotFile(pltfile, *phi[new_index], geom, time);
     }
   }
@@ -214,10 +214,10 @@ void main_main ()
 
 int main (int argc, char* argv[])
 {
-    BoxLib::Initialize(argc,argv);
+    amrex::Initialize(argc,argv);
 
     main_main();
 
-    BoxLib::Finalize();
+    amrex::Finalize();
     return 0;
 }

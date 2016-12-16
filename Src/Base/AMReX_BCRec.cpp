@@ -43,7 +43,7 @@ BCRec::BCRec (const Box&   bx,
 }
 
 void
-BoxLib::setBC (const Box&          bx,
+amrex::setBC (const Box&          bx,
                const Box&          domain,
                int                 src_comp,
                int                 dest_comp,
@@ -70,7 +70,7 @@ BoxLib::setBC (const Box&          bx,
 }           
 
 void
-BoxLib::setBC (const Box&   bx,
+amrex::setBC (const Box&   bx,
                const Box&   domain, 
                const BCRec& bc_dom,
                BCRec&       bcr)

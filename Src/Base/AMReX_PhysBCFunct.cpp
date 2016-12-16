@@ -72,7 +72,7 @@ PhysBCFunct::FillBoundary (MultiFab& mf, int, int, Real time)
     const RealBox& prob_domain = m_geom.ProbDomain();
     const Real*    problo      = prob_domain.lo();
 
-    Box gdomain = BoxLib::convert(domain, mf.boxArray().ixType());
+    Box gdomain = amrex::convert(domain, mf.boxArray().ixType());
     for (int i = 0; i < BL_SPACEDIM; ++i) {
 	if (m_geom.isPeriodic(i)) {
 	    gdomain.grow(i, mf.nGrow());

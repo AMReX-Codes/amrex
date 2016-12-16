@@ -26,7 +26,7 @@ ComputeAmrDataNorms (AmrData&     amrData,
 	ParmParse pp;
 	pp.query("outfile", oFile);
 	if (oFile.empty())
-	    BoxLib::Abort("You must specify `outfile' if run in verbose mode");
+	    amrex::Abort("You must specify `outfile' if run in verbose mode");
     }
     
     int finestLevel = amrData.FinestLevel();
@@ -165,7 +165,7 @@ ComputeAmrDataInt (AmrData&     amrData,
 	ParmParse pp;
 	pp.query("outfile", oFile);
 	if (oFile.empty())
-	    BoxLib::Abort("You must specify `outfile' if run in verbose mode");
+	    amrex::Abort("You must specify `outfile' if run in verbose mode");
     }
     
     int finestLevel = amrData.FinestLevel();

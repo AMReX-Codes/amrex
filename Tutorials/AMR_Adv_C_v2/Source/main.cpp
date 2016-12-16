@@ -9,7 +9,7 @@
 
 int main(int argc, char* argv[])
 {
-    BoxLib::Initialize(argc,argv);
+    amrex::Initialize(argc,argv);
 
     BL_PROFILE_VAR("main()", pmain);
 
@@ -32,5 +32,5 @@ int main(int argc, char* argv[])
 
     BL_PROFILE_VAR_STOP(pmain);
 
-    BoxLib::Finalize();
+    amrex::Finalize();
 }

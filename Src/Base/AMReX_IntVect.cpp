@@ -116,7 +116,7 @@ IntVect::lexGT (const IntVect& s) const
 }
 
 IntVect
-BoxLib::min (const IntVect& p1,
+amrex::min (const IntVect& p1,
 	     const IntVect& p2)
 {
     IntVect p(p1);
@@ -125,7 +125,7 @@ BoxLib::min (const IntVect& p1,
 }
 
 IntVect
-BoxLib::max (const IntVect& p1,
+amrex::max (const IntVect& p1,
 	     const IntVect& p2)
 {
     IntVect p(p1);
@@ -134,7 +134,7 @@ BoxLib::max (const IntVect& p1,
 }
 
 IntVect
-BoxLib::BASISV (int dir)
+amrex::BASISV (int dir)
 {
     BL_ASSERT(dir >= 0 && dir < BL_SPACEDIM);
     IntVect tmp;
@@ -143,13 +143,13 @@ BoxLib::BASISV (int dir)
 }
 
 IntVect
-BoxLib::scale (const IntVect& p, int s)
+amrex::scale (const IntVect& p, int s)
 {
     return IntVect(D_DECL(s * p[0], s * p[1], s * p[2]));
 }
 
 IntVect
-BoxLib::reflect (const IntVect& a,
+amrex::reflect (const IntVect& a,
 		 int            ref_ix,
 		 int            idir)
 {
@@ -160,13 +160,13 @@ BoxLib::reflect (const IntVect& a,
 }
 
 IntVect
-BoxLib::diagShift (const IntVect& p, int s)
+amrex::diagShift (const IntVect& p, int s)
 {
     return IntVect(D_DECL(p[0] + s, p[1] + s, p[2] + s));
 }
 
 IntVect
-BoxLib::coarsen (const IntVect& p,
+amrex::coarsen (const IntVect& p,
 		 int            s)
 {
     BL_ASSERT(s > 0);
@@ -176,7 +176,7 @@ BoxLib::coarsen (const IntVect& p,
 }
 
 IntVect
-BoxLib::coarsen (const IntVect& p1,
+amrex::coarsen (const IntVect& p1,
 		 const IntVect& p2)
 {
     IntVect v = p1;
@@ -216,7 +216,7 @@ operator<< (std::ostream&  os,
                   ',' << p[1] , <<
                   ',' << p[2])  << ')';
     if (os.fail())
-        BoxLib::Error("operator<<(ostream&,IntVect&) failed");
+        amrex::Error("operator<<(ostream&,IntVect&) failed");
     return os;
 }
 
@@ -243,11 +243,11 @@ operator>> (std::istream& is,
     }
     else
     {
-        BoxLib::Error("operator>>(istream&,IntVect&): expected \'(\'");
+        amrex::Error("operator>>(istream&,IntVect&): expected \'(\'");
     }
 
     if (is.fail())
-        BoxLib::Error("operator>>(istream&,IntVect&) failed");
+        amrex::Error("operator>>(istream&,IntVect&) failed");
 
     return is;
 }

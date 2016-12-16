@@ -50,7 +50,7 @@ Adv::writePlotFile (const std::string& dir,
         os << thePlotFileType() << '\n';
 
         if (n_data_items == 0)
-            BoxLib::Error("Must specify at least one valid data item to plot");
+            amrex::Error("Must specify at least one valid data item to plot");
 
         os << n_data_items << '\n';
 
@@ -111,8 +111,8 @@ Adv::writePlotFile (const std::string& dir,
     // Only the I/O processor makes the directory if it doesn't already exist.
     //
     if (ParallelDescriptor::IOProcessor())
-        if (!BoxLib::UtilCreateDirectory(FullPath, 0755))
-            BoxLib::CreateDirectoryFailed(FullPath);
+        if (!amrex::UtilCreateDirectory(FullPath, 0755))
+            amrex::CreateDirectoryFailed(FullPath);
     //
     // Force other processors to wait till directory is built.
     //

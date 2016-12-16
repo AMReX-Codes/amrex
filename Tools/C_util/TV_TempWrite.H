@@ -18,8 +18,8 @@ extern "C" {
 		FullPath += '/';
 	    
 	    if (ParallelDescriptor::IOProcessor())
-		if (!BoxLib::UtilCreateDirectory(FullPath, 0755))
-		    BoxLib::CreateDirectoryFailed(FullPath);
+		if (!amrex::UtilCreateDirectory(FullPath, 0755))
+		    amrex::CreateDirectoryFailed(FullPath);
 	    
 	    static const std::string MultiFabBaseName("MultiFab");
 	    FullPath += MultiFabBaseName;

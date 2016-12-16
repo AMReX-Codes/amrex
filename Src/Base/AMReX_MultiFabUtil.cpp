@@ -140,11 +140,11 @@ namespace BoxLib
   
         if (S_fine.is_nodal() || S_crse.is_nodal())
         {
-            BoxLib::Error("Can't use BoxLib::average_down for nodal MultiFab!");
+            amrex::Error("Can't use amrex::average_down for nodal MultiFab!");
         }
 
 #if (BL_SPACEDIM == 3)
-	BoxLib::average_down(S_fine, S_crse, scomp, ncomp, ratio);
+	amrex::average_down(S_fine, S_crse, scomp, ncomp, ratio);
 	return;
 #else
 
@@ -263,7 +263,7 @@ namespace BoxLib
 
     void fill_boundary(MultiFab& mf, const Geometry& geom, bool cross)
     {
-	BoxLib::fill_boundary(mf, 0, mf.nComp(), geom, cross);
+	amrex::fill_boundary(mf, 0, mf.nComp(), geom, cross);
     }
 
 // *************************************************************************************************************

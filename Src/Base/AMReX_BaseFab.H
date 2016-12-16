@@ -1171,7 +1171,7 @@ BaseFab<T>::define ()
     BL_ASSERT(std::numeric_limits<long>::max()/nvar > numpts);
 
     truesize  = nvar*numpts;
-    dptr      = static_cast<T*>(BoxLib::The_Arena()->alloc(truesize*sizeof(T)));
+    dptr      = static_cast<T*>(amrex::The_Arena()->alloc(truesize*sizeof(T)));
     ptr_owner = true;
     //
     // Now call T::T() on the raw memory so we have valid Ts.
@@ -1185,7 +1185,7 @@ BaseFab<T>::define ()
         new (ptr) T;
     }
 
-    BoxLib::update_fab_stats(numpts, truesize, sizeof(T));
+    amrex::update_fab_stats(numpts, truesize, sizeof(T));
 }
 
 template <class T>
@@ -1239,14 +1239,14 @@ BaseFab<T>::resize (const Box& b,
     if (dptr == 0)
     {
 	if (shared_memory)
-	    BoxLib::Abort("BaseFab::resize: BaseFab in shared memory cannot increase size");
+	    amrex::Abort("BaseFab::resize: BaseFab in shared memory cannot increase size");
 
         define();
     }
     else if (nvar*numpts > truesize)
     {
 	if (shared_memory)
-	    BoxLib::Abort("BaseFab::resize: BaseFab in shared memory cannot increase size");
+	    amrex::Abort("BaseFab::resize: BaseFab in shared memory cannot increase size");
 
         clear();
 
@@ -1275,19 +1275,19 @@ BaseFab<T>::clear ()
 	{
 	    if (shared_memory)
 	    {
-		BoxLib::Abort("BaseFab::clear: BaseFab cannot be owner of shared memory");
+		amrex::Abort("BaseFab::clear: BaseFab cannot be owner of shared memory");
 	    }
 
 	    for (long i = 0; i < truesize; i++, ptr++)
 	    {
 		ptr->~T();
 	    }
-	    BoxLib::The_Arena()->free(dptr);
+	    amrex::The_Arena()->free(dptr);
 	    
 	    if (nvar > 1) {
-		BoxLib::update_fab_stats(-truesize/nvar, -truesize, sizeof(T));
+		amrex::update_fab_stats(-truesize/nvar, -truesize, sizeof(T));
 	    } else {
-		BoxLib::update_fab_stats(0, -truesize, sizeof(T));
+		amrex::update_fab_stats(0, -truesize, sizeof(T));
 	    }
 	}
 
@@ -1730,7 +1730,7 @@ BaseFab<T>::setComplement (T          x,
                            int        ns,
                            int        num)
 {
-    BoxList b_lst = BoxLib::boxDiff(domain,b);
+    BoxList b_lst = amrex::boxDiff(domain,b);
     for (BoxList::iterator bli = b_lst.begin(), End = b_lst.end(); bli != End; ++bli)
         performSetVal(x, *bli, ns, num);
 }
@@ -1834,7 +1834,7 @@ BaseFab<T>::norm (const Box& subbox,
     }
     else
     {
-      BoxLib::Error("BaseFab::norm(): only p == 0 or p == 1 are supported");
+      amrex::Error("BaseFab::norm(): only p == 0 or p == 1 are supported");
     }
 
     delete [] tmp;
@@ -2734,6 +2734,6 @@ namespace BoxLib
     };
 }
 
-static BoxLib::BF_init file_scope_BF_init_object;
+static amrex::BF_init file_scope_BF_init_object;
 
 #endif /*BL_BASEFAB_H*/

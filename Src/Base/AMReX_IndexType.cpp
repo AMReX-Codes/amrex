@@ -39,7 +39,7 @@ operator<< (std::ostream&    os,
                   << ',' << (it.test(2)?'N':'C')) << ')' << std::flush;
 
     if (os.fail())
-        BoxLib::Error("operator<<(ostream&,IndexType&) failed");
+        amrex::Error("operator<<(ostream&,IndexType&) failed");
 
     return os;
 }
@@ -65,7 +65,7 @@ operator>> (std::istream& is,
         BL_ASSERT(t2 == 'C' || t2 == 'N'); t2=='N'?it.set(2):it.unset(2));
 
     if (is.fail())
-        BoxLib::Error("operator>>(ostream&,IndexType&) failed");
+        amrex::Error("operator>>(ostream&,IndexType&) failed");
 
     return is;
 }

@@ -18,7 +18,7 @@
 
 // --------------------------------------------------------------------------
 int main(int argc, char *argv[]) {
-    BoxLib::Initialize(argc,argv);    
+    amrex::Initialize(argc,argv);    
     BL_PROFILE_VAR("main()", pmain);
     const Real tStart(ParallelDescriptor::second());
     int nprocs(ParallelDescriptor::NProcs());
@@ -43,14 +43,14 @@ int main(int argc, char *argv[]) {
       std::stringstream dirname;
       dirname << "dir" << i;
       if(ParallelDescriptor::IOProcessor()) {
-        if( ! BoxLib::UtilCreateDirectory(dirname.str(), 0755)) {
-          BoxLib::CreateDirectoryFailed(dirname.str());
+        if( ! amrex::UtilCreateDirectory(dirname.str(), 0755)) {
+          amrex::CreateDirectoryFailed(dirname.str());
         }
         for(int level(0); level < nlevels; ++level) {
           std::stringstream dirname;
           dirname << "dir" << i << "/Level_" << level;
-          if( ! BoxLib::UtilCreateDirectory(dirname.str(), 0755)) {
-            BoxLib::CreateDirectoryFailed(dirname.str());
+          if( ! amrex::UtilCreateDirectory(dirname.str(), 0755)) {
+            amrex::CreateDirectoryFailed(dirname.str());
           }
         }
       }
@@ -84,7 +84,7 @@ int main(int argc, char *argv[]) {
     }
 
     BL_PROFILE_VAR_STOP(pmain);
-    BoxLib::Finalize();
+    amrex::Finalize();
     return 0;
 }
 // --------------------------------------------------------------------------

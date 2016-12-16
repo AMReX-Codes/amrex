@@ -43,7 +43,7 @@ int
 main (int   argc,
       char* argv[])
 {
-    BoxLib::Initialize(argc,argv);
+    amrex::Initialize(argc,argv);
 
     if (argc == 1)
         PrintUsage(argv[0]);
@@ -59,13 +59,13 @@ main (int   argc,
 
     pp.query("infile", iFile);
     if (iFile.empty())
-        BoxLib::Abort("You must specify `infile'");
+        amrex::Abort("You must specify `infile'");
 
     pp.query("factor", factor);
 
     pp.query("outfile", oFile);
     if (oFile.empty())
-        BoxLib::Abort("You must specify `outfile'");
+        amrex::Abort("You must specify `outfile'");
 
     std::ifstream is(iFile.c_str(),ios::in);
     std::ofstream os(oFile.c_str(),ios::out);
@@ -77,5 +77,5 @@ main (int   argc,
 
     dataI.writeOn(os);
 
-    BoxLib::Finalize();
+    amrex::Finalize();
 }

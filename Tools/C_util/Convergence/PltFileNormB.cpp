@@ -43,7 +43,7 @@ int
 main (int   argc,
       char* argv[])
 {
-    BoxLib::Initialize(argc,argv);
+    amrex::Initialize(argc,argv);
 
     if (argc == 1)
         PrintUsage(argv[0]);
@@ -67,7 +67,7 @@ main (int   argc,
     }
     pp.query("infile", iFile);
     if (iFile.empty())
-        BoxLib::Abort("You must specify `infile'");
+        amrex::Abort("You must specify `infile'");
 
     int norm = 2;
     pp.query("norm", norm);
@@ -78,7 +78,7 @@ main (int   argc,
     DataServices dataServicesC(iFile, fileType);
 
     if (!dataServicesC.AmrDataOk())
-        BoxLib::Abort("ERROR: Dataservices not OK");
+        amrex::Abort("ERROR: Dataservices not OK");
 
 
     //
@@ -203,6 +203,6 @@ main (int   argc,
         }
     }
 
-    BoxLib::Finalize();
+    amrex::Finalize();
 }
 

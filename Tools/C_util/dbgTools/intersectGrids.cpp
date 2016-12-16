@@ -102,17 +102,17 @@ main (int   argc,
 
     pp.query("infile", iFile);                             // Input File
     if (iFile.isNull() && ParallelDescriptor::IOProcessor())
-        BoxLib::Abort("You must specify `infile'");
+        amrex::Abort("You must specify `infile'");
 
     Array<int> loDims(BL_SPACEDIM);
     if (pp.countval("lodims") != BL_SPACEDIM)
-        BoxLib::Abort("You must specify BL_SPACEDIM `lodims'");
+        amrex::Abort("You must specify BL_SPACEDIM `lodims'");
     for (int n = 0; n < BL_SPACEDIM; n++)
         pp.get("lodims", loDims[n], n);
 
     Array<int> hiDims(BL_SPACEDIM);
     if (pp.countval("hidims") != BL_SPACEDIM)
-        BoxLib::Abort("You must specify BL_SPACEDIM `hidims'");
+        amrex::Abort("You must specify BL_SPACEDIM `hidims'");
     for (int n = 0; n < BL_SPACEDIM; n++)
         pp.get("hidims", hiDims[n], n);
 
@@ -122,7 +122,7 @@ main (int   argc,
 
     int nCrsRatio = pp.countval("refratio");
     if (nCrsRatio == 0)
-        BoxLib::Abort("You must specify `refratio'");
+        amrex::Abort("You must specify `refratio'");
 
     Array<int> refRatio(nCrsRatio);
     for (int n = 0; n < nCrsRatio; n++)
@@ -144,7 +144,7 @@ main (int   argc,
     is >> nRefLevels;
 
     if (nCrsRatio != nRefLevels)
-        BoxLib::Abort("nCrsRatio != nRefLevels");
+        amrex::Abort("nCrsRatio != nRefLevels");
 
     cout << nRefLevels << endl;
         

@@ -291,7 +291,7 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
 
             if (gotwork)
             {
-                std::string FileName = BoxLib::Concatenate(basename + '_', MyProc % nOutFiles, 2);
+                std::string FileName = amrex::Concatenate(basename + '_', MyProc % nOutFiles, 2);
 
                 std::ofstream TimeStampFile;
 
@@ -308,7 +308,7 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
                 TimeStampFile.seekp(0, std::ios::end);
 
                 if (!TimeStampFile.good())
-                    BoxLib::FileOpenFailed(FileName);
+                    amrex::FileOpenFailed(FileName);
 
                 const int       M  = indices.size();
                 const BoxArray& ba = mf.boxArray();

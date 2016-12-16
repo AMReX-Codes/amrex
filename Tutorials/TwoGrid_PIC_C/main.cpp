@@ -24,7 +24,7 @@ void                splitBoxes     (BoxArray& ba, Array<long>& newcost, const Ar
 
 int main(int argc, char* argv[])
 {
-    BoxLib::Initialize(argc,argv);
+    amrex::Initialize(argc,argv);
 
     int max_grid_size = 32;
     int min_grid_size = 4;
@@ -94,7 +94,7 @@ int main(int argc, char* argv[])
     geom[0].define(domain, &real_box, coord, is_per);
     for (int lev = 1; lev < nlevs; lev++)
     {
-	geom[lev].define(BoxLib::refine(geom[lev-1].Domain(), rr[lev-1]),
+	geom[lev].define(amrex::refine(geom[lev-1].Domain(), rr[lev-1]),
 			 &real_box, coord, is_per);
     }
 
@@ -292,7 +292,7 @@ int main(int argc, char* argv[])
     MyPC->AssignDensitySingleLevel(0, *PartMF[0], 0, 1, 0);
 
     for (int lev = finest_level - 1 - base_level; lev >= 0; lev--)
-        BoxLib::average_down(*PartMF[lev+1],*PartMF[lev],0,1,rr[lev]);
+        amrex::average_down(*PartMF[lev+1],*PartMF[lev],0,1,rr[lev]);
 
     for (int lev = 0; lev < nlevs; lev++)
         MultiFab::Add(*rhs[base_level+lev], *PartMF[lev], 0, 0, 1, 0);
@@ -387,7 +387,7 @@ int main(int argc, char* argv[])
 
     } // end if (nlevs > 1)
 
-    BoxLib::Finalize();
+    amrex::Finalize();
 }
 
 Real

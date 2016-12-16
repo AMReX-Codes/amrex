@@ -12,7 +12,7 @@ BL_FORT_PROC_DECL(FILLFAB,fillfab)(Real* d, const int* nx, const int* ny);
 int
 main (int argc, char** argv)
 {
-    BoxLib::Initialize(argc, argv);
+    amrex::Initialize(argc, argv);
     //
     // This in only for 2D.
     //
@@ -32,7 +32,7 @@ main (int argc, char** argv)
     ofs.open("out.fab", std::ios::out|std::ios::trunc);
 
     if (!ofs.good())
-        BoxLib::FileOpenFailed("out.fab");
+        amrex::FileOpenFailed("out.fab");
 
     BL_FORT_PROC_CALL(FILLFAB,fillfab)(fab.dataPtr(), &NX, &NY);
 
@@ -41,11 +41,11 @@ main (int argc, char** argv)
     ofs.close();
 
     if (!ofs.good())
-        BoxLib::Error("Write failed");
+        amrex::Error("Write failed");
 
 #endif
 
-    BoxLib::Finalize();
+    amrex::Finalize();
 
     return 0;
 }

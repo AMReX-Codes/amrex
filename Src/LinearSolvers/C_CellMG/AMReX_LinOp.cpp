@@ -50,7 +50,7 @@ LinOp::Initialize ()
         std::cout << "def_maxorder = " << def_maxorder << '\n';
     }
 
-    BoxLib::ExecOnFinalize(LinOp::Finalize);
+    amrex::ExecOnFinalize(LinOp::Finalize);
 
     initialized = true;
 }
@@ -296,7 +296,7 @@ LinOp::jacobi_smooth (MultiFab&       solnL,
 Real
 LinOp::norm (int nm, int level, const bool local)
 {
-    BoxLib::Error("LinOp::norm: Placeholder for pure virtual function");
+    amrex::Error("LinOp::norm: Placeholder for pure virtual function");
     return 0;
 }
 
@@ -320,7 +320,7 @@ LinOp::prepareForLevel (int level)
         h[level][i] = h[level-1][i]*2.0;
     }
     geomarray.resize(level+1);
-    geomarray[level].define(BoxLib::coarsen(geomarray[level-1].Domain(),2));
+    geomarray[level].define(amrex::coarsen(geomarray[level-1].Domain(),2));
     //
     // Add a box to the new coarser level (assign removes old BoxArray).
     //
@@ -402,7 +402,7 @@ LinOp::makeCoefficients (MultiFab&       cs,
     }
     else
     {
-        BoxLib::Error("LinOp::makeCoeffients: Bad index type");
+        amrex::Error("LinOp::makeCoeffients: Bad index type");
     }
 
     BoxArray d(gbox[level]);
@@ -479,7 +479,7 @@ LinOp::makeCoefficients (MultiFab&       cs,
         }
         break;
     default:
-        BoxLib::Error("LinOp:: bad coefficient coarsening direction!");
+        amrex::Error("LinOp:: bad coefficient coarsening direction!");
     }
 }
 
@@ -556,14 +556,14 @@ LinOp::getDx (int level)
 Real
 LinOp::get_alpha () const
 {
-    BoxLib::Abort("LinOp::get_alpha");
+    amrex::Abort("LinOp::get_alpha");
     return 0;
 }   
     
 Real
 LinOp::get_beta () const 
 {   
-    BoxLib::Abort("LinOp::get_beta");
+    amrex::Abort("LinOp::get_beta");
     return 0; 
 }
 
@@ -571,7 +571,7 @@ const MultiFab&
 LinOp::aCoefficients (int level)
 {
     static MultiFab junk;
-    BoxLib::Abort("LinOp::aCoefficients");
+    amrex::Abort("LinOp::aCoefficients");
     return junk;
 }
 
@@ -579,7 +579,7 @@ const MultiFab&
 LinOp::bCoefficients (int dir,int level)
 {
     static MultiFab junk;
-    BoxLib::Abort("LinOp::bCoefficients");
+    amrex::Abort("LinOp::bCoefficients");
     return junk;
 }
 

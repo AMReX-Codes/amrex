@@ -60,14 +60,14 @@ void DirectoryTests() {
       std::stringstream dirname;
       dirname << "dir" << i;
       if(ParallelDescriptor::IOProcessor()) {
-        if( ! BoxLib::UtilCreateDirectory(dirname.str(), 0755, verboseDir)) {
-          BoxLib::CreateDirectoryFailed(dirname.str());
+        if( ! amrex::UtilCreateDirectory(dirname.str(), 0755, verboseDir)) {
+          amrex::CreateDirectoryFailed(dirname.str());
         }
         for(int level(0); level < nlevels; ++level) {
           std::stringstream dirname;
           dirname << "dir" << i << "/Level_" << level;
-          if( ! BoxLib::UtilCreateDirectory(dirname.str(), 0755, verboseDir)) {
-            BoxLib::CreateDirectoryFailed(dirname.str());
+          if( ! amrex::UtilCreateDirectory(dirname.str(), 0755, verboseDir)) {
+            amrex::CreateDirectoryFailed(dirname.str());
           }
         }
       }
@@ -136,20 +136,20 @@ void FileTests() {
 
   std::string dirname("/home/vince/Development/BoxLib/Tests/IOBenchmark/a/b/c/d");
   if(ParallelDescriptor::IOProcessor()) {
-    if( ! BoxLib::UtilCreateDirectory(dirname, 0755, verboseDir)) {
-      BoxLib::CreateDirectoryFailed(dirname);
+    if( ! amrex::UtilCreateDirectory(dirname, 0755, verboseDir)) {
+      amrex::CreateDirectoryFailed(dirname);
     }
   }
   std::string rdirname("relative/e/f/g");
   if(ParallelDescriptor::IOProcessor()) {
-    if( ! BoxLib::UtilCreateDirectory(rdirname, 0755, verboseDir)) {
-      BoxLib::CreateDirectoryFailed(rdirname);
+    if( ! amrex::UtilCreateDirectory(rdirname, 0755, verboseDir)) {
+      amrex::CreateDirectoryFailed(rdirname);
     }
   }
   std::string nsdirname("noslash");
   if(ParallelDescriptor::IOProcessor()) {
-    if( ! BoxLib::UtilCreateDirectory(nsdirname, 0755, verboseDir)) {
-      BoxLib::CreateDirectoryFailed(nsdirname);
+    if( ! amrex::UtilCreateDirectory(nsdirname, 0755, verboseDir)) {
+      amrex::CreateDirectoryFailed(nsdirname);
     }
   }
 
@@ -228,7 +228,7 @@ void TestWriteNFiles(int nfiles, int maxgrid, int ncomps, int nboxes,
       mfName = "TestMFNoFabHeaderFAMinMax";
     break;
     default:
-      BoxLib::Abort("**** Error in TestWriteNFiles:  bad version.");
+      amrex::Abort("**** Error in TestWriteNFiles:  bad version.");
   }
 
   // ---- make the MultiFabs
@@ -247,7 +247,7 @@ void TestWriteNFiles(int nfiles, int maxgrid, int ncomps, int nboxes,
         if(raninit) {
           Real *dp = (*multifabs[nmf])[mfiset].dataPtr(invar);
 	  for(int i(0); i < (*multifabs[nmf])[mfiset].box().numPts(); ++i) {
-	    dp[i] = BoxLib::Random() + (1.0 + static_cast<Real> (invar));
+	    dp[i] = amrex::Random() + (1.0 + static_cast<Real> (invar));
 	  }
         } else {
           (*multifabs[nmf])[mfiset].setVal((100.0 * mfiset.index()) + invar +
@@ -465,9 +465,9 @@ void DSSNFileTests(int noutfiles, const std::string &filePrefixIn,
     if(mySetPosition == 0) {    // ---- write data
       int fileNumber(NFilesIter::FileNumber(nOutFiles, myProc, groupSets));
       std::ofstream csFile;
-      std::string FullName(BoxLib::Concatenate(filePrefix, fileNumber, 5));
+      std::string FullName(amrex::Concatenate(filePrefix, fileNumber, 5));
       csFile.open(FullName.c_str(), std::ios::out | std::ios::trunc | std::ios::binary);
-      if( ! csFile.good()) { BoxLib::FileOpenFailed(FullName); }
+      if( ! csFile.good()) { amrex::FileOpenFailed(FullName); }
       // ----------------------------- write to file here
       csFile.write((const char *) data.dataPtr(), data.size() * sizeof(int));
       // ----------------------------- end write to file here
@@ -549,12 +549,12 @@ void DSSNFileTests(int noutfiles, const std::string &filePrefixIn,
       // ---- wait for signal to start writing
       rmess = ParallelDescriptor::Recv(&fileNumber, 1, MPI_ANY_SOURCE, writeTag);
       coordinatorProc = rmess.pid();
-      std::string FullName(BoxLib::Concatenate(filePrefix, fileNumber, 5));
+      std::string FullName(amrex::Concatenate(filePrefix, fileNumber, 5));
 
       std::ofstream csFile;
       csFile.open(FullName.c_str(), std::ios::out | std::ios::app | std::ios::binary);
       csFile.seekp(0, std::ios::end);   // set to eof
-      if( ! csFile.good()) { BoxLib::FileOpenFailed(FullName); }
+      if( ! csFile.good()) { amrex::FileOpenFailed(FullName); }
       // ----------------------------- write to file here
       csFile.write((const char *) data.dataPtr(), data.size() * sizeof(int));
       // ----------------------------- end write to file here

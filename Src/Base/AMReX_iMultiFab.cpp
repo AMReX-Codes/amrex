@@ -186,7 +186,7 @@ iMultiFab::Initialize ()
 {
     if (initialized) return;
 
-    BoxLib::ExecOnFinalize(iMultiFab::Finalize);
+    amrex::ExecOnFinalize(iMultiFab::Finalize);
 
     initialized = true;
 }
@@ -385,7 +385,7 @@ iMultiFab::minIndex (int comp,
 	
 	for (MFIter mfi(*this); mfi.isValid(); ++mfi)
 	{
-	    const Box& box = BoxLib::grow(mfi.validbox(),nghost);
+	    const Box& box = amrex::grow(mfi.validbox(),nghost);
 	    const int  lmn = get(mfi).min(box,comp);
 	    
 	    if (lmn < priv_mn)
@@ -471,7 +471,7 @@ iMultiFab::maxIndex (int comp,
 
 	for (MFIter mfi(*this); mfi.isValid(); ++mfi)
 	{
-	    const Box& box = BoxLib::grow(mfi.validbox(),nghost);
+	    const Box& box = amrex::grow(mfi.validbox(),nghost);
 	    const int  lmx = get(mfi).max(box,comp);
 	    
 	    if (lmx > priv_mx)
@@ -550,7 +550,7 @@ iMultiFab::norm0 (int comp, const BoxArray& ba, int nghost, bool local) const
 
 	for (MFIter mfi(*this); mfi.isValid(); ++mfi)
 	{
-	    ba.intersections(BoxLib::grow(mfi.validbox(),nghost),isects);
+	    ba.intersections(amrex::grow(mfi.validbox(),nghost),isects);
 	    
 	    for (int i = 0, N = isects.size(); i < N; i++)
 	    {

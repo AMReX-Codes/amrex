@@ -67,7 +67,7 @@ VisMF::Initialize ()
 
     VisMF::SetMFFileInStreams(nMFFileInStreams);
 
-    BoxLib::ExecOnFinalize(VisMF::Finalize);
+    amrex::ExecOnFinalize(VisMF::Finalize);
 
     ParmParse pp("vismf");
     pp.query("v",verbose);
@@ -122,7 +122,7 @@ operator<< (std::ostream&           os,
     os << TheFabOnDiskPrefix << ' ' << fod.m_name << ' ' << fod.m_head;
 
     if( ! os.good()) {
-        BoxLib::Error("Write of VisMF::FabOnDisk failed");
+        amrex::Error("Write of VisMF::FabOnDisk failed");
     }
 
     return os;
@@ -141,7 +141,7 @@ operator>> (std::istream&     is,
     is >> fod.m_head;
 
     if( ! is.good()) {
-        BoxLib::Error("Read of VisMF::FabOnDisk failed");
+        amrex::Error("Read of VisMF::FabOnDisk failed");
     }
 
     return is;
@@ -160,7 +160,7 @@ operator<< (std::ostream&                  os,
     }
 
     if( ! os.good()) {
-        BoxLib::Error("Write of Array<VisMF::FabOnDisk> failed");
+        amrex::Error("Write of Array<VisMF::FabOnDisk> failed");
     }
 
     return os;
@@ -182,7 +182,7 @@ operator>> (std::istream&            is,
     }
 
     if( ! is.good()) {
-        BoxLib::Error("Read of Array<VisMF::FabOnDisk> failed");
+        amrex::Error("Read of Array<VisMF::FabOnDisk> failed");
     }
 
     return is;
@@ -207,7 +207,7 @@ operator<< (std::ostream&               os,
     }
 
     if( ! os.good()) {
-        BoxLib::Error("Write of Array<Array<Real>> failed");
+        amrex::Error("Write of Array<Array<Real>> failed");
     }
 
     return os;
@@ -227,13 +227,13 @@ operator>> (std::istream&         is,
     is >> N >> ch >> M;
 
     if( N < 0 ) {
-      BoxLib::Error("Expected a positive integer, N, got something else");
+      amrex::Error("Expected a positive integer, N, got something else");
     }
     if( M < 0 ) {
-      BoxLib::Error("Expected a positive integer, M, got something else");
+      amrex::Error("Expected a positive integer, M, got something else");
     }
     if( ch != ',' ) {
-      BoxLib::Error("Expected a ',' got something else");
+      amrex::Error("Expected a ',' got something else");
     }
 
     ar.resize(N);
@@ -249,13 +249,13 @@ operator>> (std::istream&         is,
             is >> ar[i][j] >> ch;
 #endif
 	    if( ch != ',' ) {
-	      BoxLib::Error("Expected a ',' got something else");
+	      amrex::Error("Expected a ',' got something else");
 	    }
         }
     }
 
     if( ! is.good()) {
-        BoxLib::Error("Read of Array<Array<Real>> failed");
+        amrex::Error("Read of Array<Array<Real>> failed");
     }
 
     return is;
@@ -319,7 +319,7 @@ operator<< (std::ostream        &os,
     os.precision(oldPrec);
 
     if( ! os.good()) {
-        BoxLib::Error("Write of VisMF::Header failed");
+        amrex::Error("Write of VisMF::Header failed");
     }
 
     return os;
@@ -342,7 +342,7 @@ operator>> (std::istream  &is,
         hd.m_how = VisMF::NFiles;
       break;
       default:
-        BoxLib::Error("Bad case in VisMF::Header.m_how switch");
+        amrex::Error("Bad case in VisMF::Header.m_how switch");
     }
 
     is >> hd.m_ncomp;
@@ -372,13 +372,13 @@ operator>> (std::istream  &is,
       for(int i(0); i < hd.m_famin.size(); ++i) {
         is >> hd.m_famin[i] >> ch;
 	if( ch != ',' ) {
-	  BoxLib::Error("Expected a ',' when reading hd.m_famin");
+	  amrex::Error("Expected a ',' when reading hd.m_famin");
 	}
       }
       for(int i(0); i < hd.m_famax.size(); ++i) {
         is >> hd.m_famax[i] >> ch;
 	if( ch != ',' ) {
-	  BoxLib::Error("Expected a ',' when reading hd.m_famax");
+	  amrex::Error("Expected a ',' when reading hd.m_famax");
 	}
       }
     }
@@ -391,7 +391,7 @@ operator>> (std::istream  &is,
 
 
     if( ! is.good()) {
-        BoxLib::Error("Read of VisMF::Header failed");
+        amrex::Error("Read of VisMF::Header failed");
     }
 
     return is;
@@ -861,7 +861,7 @@ VisMF::WriteHeader (const std::string &mf_name,
         MFHdrFile.open(MFHdrFileName.c_str(), std::ios::out | std::ios::trunc);
 
         if( ! MFHdrFile.good()) {
-            BoxLib::FileOpenFailed(MFHdrFileName);
+            amrex::FileOpenFailed(MFHdrFileName);
 	}
 
         MFHdrFile << hdr;
@@ -1428,7 +1428,7 @@ VisMF::Read (FabArray<FArrayBox> &mf,
     ranksFileOrder[ranksFileOrder.size() - 1] = ParallelDescriptor::MyProc();
 
     Array<int> nRanksPerFile(FileReadChains.size());
-    BoxLib::NItemsPerBin(nProcs, nRanksPerFile);
+    amrex::NItemsPerBin(nProcs, nRanksPerFile);
     int currentFileIndex(0);
 
     for(frcIter = FileReadChains.begin(); frcIter != FileReadChains.end(); ++frcIter) {
@@ -1439,7 +1439,7 @@ VisMF::Read (FabArray<FArrayBox> &mf,
 	                                      { return a.fileOffset < b.fileOffset; } );
 
       Array<int> nBoxesPerRank(nRanksPerFile[currentFileIndex]);
-      BoxLib::NItemsPerBin(frc.size(), nBoxesPerRank);
+      amrex::NItemsPerBin(frc.size(), nBoxesPerRank);
       int frcIndex(0);
 
       for(int nbpr(0); nbpr < nBoxesPerRank.size(); ++nbpr) {
@@ -1655,7 +1655,7 @@ VisMF::Read (FabArray<FArrayBox> &mf,
 	  allReads[findex][whichProc].insert(std::pair<long, int>(iSeekPos, i));
 	} else {
 	  std::cout << "**** Error:  filename not found = " << fname << std::endl;
-	  BoxLib::Abort("**** Error in VisMF::Read");
+	  amrex::Abort("**** Error in VisMF::Read");
 	}
       }
     }
@@ -1945,7 +1945,7 @@ std::ifstream *VisMF::OpenStream(const std::string &fileName) {
     pifs.pstr->open(fileName.c_str(), std::ios::in | std::ios::binary);
     if( ! pifs.pstr->good()) {
       delete pifs.pstr;
-      BoxLib::FileOpenFailed(fileName);
+      amrex::FileOpenFailed(fileName);
     }
     pifs.isOpen = true;
     pifs.currentPosition = 0;

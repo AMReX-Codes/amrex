@@ -49,7 +49,7 @@ static void PrintUsage(const char *progName) {
 // -------------------------------------------------------------
 int main(int argc, char *argv[]) {
 
-  BoxLib::Initialize(argc,argv);
+  amrex::Initialize(argc,argv);
   VisMF::Initialize();
 
   if(argc == 1) {
@@ -133,7 +133,7 @@ int main(int argc, char *argv[]) {
   }
 
 
-  BoxLib::Finalize();
+  amrex::Finalize();
   return 0;
 }
 // -------------------------------------------------------------

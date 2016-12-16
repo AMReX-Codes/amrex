@@ -257,7 +257,7 @@ StateData::restart (std::istream&          is,
 	is >> domain_in;
 	grids_in.readFrom(is);
 	BL_ASSERT(domain_in == domain);
-	BL_ASSERT(BoxLib::match(grids_in,grids));
+	BL_ASSERT(amrex::match(grids_in,grids));
     }
 
     restartDoit(is, chkfile);
@@ -297,7 +297,7 @@ StateData::restartDoit (std::istream& is, const std::string& chkfile)
       } else if(ns == 2) {
 	whichMF = old_data;
       } else {
-        BoxLib::Abort("**** Error in StateData::restart:  invalid nsets.");
+        amrex::Abort("**** Error in StateData::restart:  invalid nsets.");
       }
 
       MultiFab data_in;
@@ -324,7 +324,7 @@ StateData::restartDoit (std::istream& is, const std::string& chkfile)
       }
       VisMF::Read(data_in, FullPathName, faHeader);
       
-      BL_ASSERT(BoxLib::match(grids, data_in.boxArray()));
+      BL_ASSERT(amrex::match(grids, data_in.boxArray()));
       BL_ASSERT(whichMF->nComp() == data_in.nComp());
       BL_ASSERT(whichMF->nGrow() == data_in.nGrow());
       
@@ -368,7 +368,7 @@ BCRec
 StateData::getBC (int comp, int i) const
 {
     BCRec bcr;
-    BoxLib::setBC(grids[i],domain,desc->getBC(comp),bcr);
+    amrex::setBC(grids[i],domain,desc->getBC(comp),bcr);
     return bcr;
 }
 
@@ -381,7 +381,7 @@ StateData::setOldTimeLevel (Real time)
     }
     else
     {
-        BoxLib::Error("StateData::setOldTimeLevel called with Interval");
+        amrex::Error("StateData::setOldTimeLevel called with Interval");
     }
 }
 
@@ -394,7 +394,7 @@ StateData::setNewTimeLevel (Real time)
     }
     else
     {
-        BoxLib::Error("StateData::setNewTimeLevel called with Interval");
+        amrex::Error("StateData::setNewTimeLevel called with Interval");
     }
 }
 
@@ -518,7 +518,7 @@ StateData::FillBoundary (FArrayBox&     dest,
 
                 for (int j = 0; j < groupsize; j++)
                 {
-                    BoxLib::setBC(bx,domain,desc->getBC(sc+j),bcr);
+                    amrex::setBC(bx,domain,desc->getBC(sc+j),bcr);
 
                     const int* bc = bcr.vect();
 
@@ -535,14 +535,14 @@ StateData::FillBoundary (FArrayBox&     dest,
             }
             else
             {
-                BoxLib::setBC(bx,domain,desc->getBC(sc),bcr);
+                amrex::setBC(bx,domain,desc->getBC(sc),bcr);
                 desc->bndryFill(sc)(dat,dlo,dhi,plo,phi,dx,xlo,&time,bcr.vect());
                 i++;
             }
         }
         else
         {
-            BoxLib::setBC(bx,domain,desc->getBC(sc),bcr);
+            amrex::setBC(bx,domain,desc->getBC(sc),bcr);
             desc->bndryFill(sc)(dat,dlo,dhi,plo,phi,dx,xlo,&time,bcr.vect());
             i++;
         }
@@ -584,7 +584,7 @@ StateData::InterpAddBox (MultiFabCopyDescriptor& multiFabCopyDesc,
         }
         else
         {
-            BoxLib::InterpAddBox(multiFabCopyDesc,
+            amrex::InterpAddBox(multiFabCopyDesc,
 				 unfillableBoxes,
 				 returnedFillBoxIds,
 				 subbox,
@@ -627,7 +627,7 @@ StateData::InterpAddBox (MultiFabCopyDescriptor& multiFabCopyDesc,
         }
         else
         {
-            BoxLib::Error("StateData::Interp(): cannot interp");
+            amrex::Error("StateData::Interp(): cannot interp");
         }
    }
 }
@@ -652,7 +652,7 @@ StateData::InterpFillFab (MultiFabCopyDescriptor&  multiFabCopyDesc,
         }
         else
         {
-            BoxLib::InterpFillFab(multiFabCopyDesc,
+            amrex::InterpFillFab(multiFabCopyDesc,
 				  fillBoxIds,
 				  mfid[MFOLDDATA],
 				  mfid[MFNEWDATA],
@@ -682,7 +682,7 @@ StateData::InterpFillFab (MultiFabCopyDescriptor&  multiFabCopyDesc,
         }
         else
         {
-            BoxLib::Error("StateData::Interp(): cannot interp");
+            amrex::Error("StateData::Interp(): cannot interp");
         }
     }
 }
@@ -738,7 +738,7 @@ StateData::getData (Array<MultiFab*>& data,
         }
         else
         {
-            BoxLib::Error("StateData::getData(): how did we get here?");
+            amrex::Error("StateData::getData(): how did we get here?");
         }
     }
 }
@@ -947,10 +947,10 @@ void StateData::AddProcsToComp(const StateDescriptor &sdPtr,
       ParallelDescriptor::Bcast(&old_time.stop,  1, ioProcNumSCS, scsComm);
 
       // ---- Boxes
-      BoxLib::BroadcastBox(domain, scsMyId, ioProcNumSCS, scsComm);
+      amrex::BroadcastBox(domain, scsMyId, ioProcNumSCS, scsComm);
 
       // ---- BoxArrays
-      BoxLib::BroadcastBoxArray(grids, scsMyId, ioProcNumSCS, scsComm);
+      amrex::BroadcastBoxArray(grids, scsMyId, ioProcNumSCS, scsComm);
 
       // ---- MultiFabs
       int makeNewDataId(-7), makeOldDataId(-7);

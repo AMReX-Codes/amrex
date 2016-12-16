@@ -171,7 +171,7 @@ Geometry::Setup (const RealBox* rb, int coord, int* isper)
             is_periodic[n] = isper[n];
     }
 
-    BoxLib::ExecOnFinalize(Geometry::Finalize);
+    amrex::ExecOnFinalize(Geometry::Finalize);
 }
 
 void
@@ -201,7 +201,7 @@ Geometry::GetVolume (FArrayBox&      vol,
                      int             idx,
                      int             ngrow) const
 {
-    CoordSys::GetVolume(vol, BoxLib::grow(grds[idx],ngrow));
+    CoordSys::GetVolume(vol, amrex::grow(grds[idx],ngrow));
 }
 
 #if (BL_SPACEDIM <= 2)
@@ -255,7 +255,7 @@ Geometry::GetFaceArea (FArrayBox&      area,
                        int             dir,
                        int             ngrow) const
 {
-    CoordSys::GetFaceArea(area, BoxLib::grow(grds[idx],ngrow), dir);
+    CoordSys::GetFaceArea(area, amrex::grow(grds[idx],ngrow), dir);
 }
 
 void
@@ -389,13 +389,13 @@ Geometry::BroadcastGeometry (Geometry &geom, int fromProc, MPI_Comm comm, bool b
       is_periodic[n] = geom.isPeriodic(n);
     }
     coord = geom.CoordInt();
-    baseBoxAI = BoxLib::SerializeBox(geom.Domain());
+    baseBoxAI = amrex::SerializeBox(geom.Domain());
   }
 
 
   // ---- do the broadcasts
   if( ! bcastSource) {
-    baseBoxAI.resize(BoxLib::SerializeBoxSize());
+    baseBoxAI.resize(amrex::SerializeBoxSize());
   }
   ParallelDescriptor::Bcast(baseBoxAI.dataPtr(), baseBoxAI.size(), fromProc, comm);
 
@@ -408,7 +408,7 @@ Geometry::BroadcastGeometry (Geometry &geom, int fromProc, MPI_Comm comm, bool b
 
 
   if( ! bcastSource) {    // ---- define the destination geometry
-    Box baseBox(BoxLib::UnSerializeBox(baseBoxAI));
+    Box baseBox(amrex::UnSerializeBox(baseBoxAI));
     RealBox realBox(realBox_lo, realBox_hi);
 
     geom.define(baseBox, &realBox, coord, is_periodic);

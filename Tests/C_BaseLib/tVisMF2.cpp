@@ -8,7 +8,7 @@
 int
 main (int argc, char** argv)
 {
-    BoxLib::Initialize(argc, argv);
+    amrex::Initialize(argc, argv);
 
     if (ParallelDescriptor::IOProcessor())
         std::cout << "Successfully initialized BoxLib" << std::endl;
@@ -39,5 +39,5 @@ main (int argc, char** argv)
     if (ParallelDescriptor::IOProcessor())
         std::cout << "Successfully wrote Rho ..." << std::endl;
 
-    BoxLib::Finalize();
+    amrex::Finalize();
 }

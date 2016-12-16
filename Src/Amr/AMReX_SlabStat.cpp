@@ -133,7 +133,7 @@ Boxes (const std::string& file,
     std::ifstream is(file.c_str(),std::ios::in);
 
     if (!is.good())
-        BoxLib::FileOpenFailed(file);
+        amrex::FileOpenFailed(file);
 
 #define STRIP while( is.get() != '\n' )
 
@@ -180,7 +180,7 @@ Boxes (const std::string& file,
     is.close();
 
     if (ba_dflt.size() == 0 && ba_name.size() == 0)
-        BoxLib::Abort("slabstats.boxes doesn't have appropriate structure");
+        amrex::Abort("slabstats.boxes doesn't have appropriate structure");
 
     boxes =  ba_name.size() ? ba_name : ba_dflt;
     boxesLevel = ba_name.size() ? bxLvl_name : bxLvl_dflt;
@@ -205,7 +205,7 @@ SlabStatRec::SlabStatRec (const std::string&  name,
     std::string file;
 
     if (!pp.query("boxes", file))
-        BoxLib::Abort("SlabStatRec: slabstat.boxes isn't defined");
+        amrex::Abort("SlabStatRec: slabstat.boxes isn't defined");
 
     Boxes(file, m_name, m_boxes, m_level);
 
@@ -308,17 +308,17 @@ SlabStatList::checkPoint (Array<std::unique_ptr<AmrLevel> >& amrLevels, int leve
     //
     std::string statdir = "slabstats";
     if (ParallelDescriptor::IOProcessor())
-        if (!BoxLib::UtilCreateDirectory(statdir, 0755))
-            BoxLib::CreateDirectoryFailed(statdir);
+        if (!amrex::UtilCreateDirectory(statdir, 0755))
+            amrex::CreateDirectoryFailed(statdir);
 
     statdir = statdir + "/stats";
-    statdir = BoxLib::Concatenate(statdir, level0_step);
+    statdir = amrex::Concatenate(statdir, level0_step);
     //
     // Only the I/O processor makes the directory if it doesn't already exist.
     //
     if (ParallelDescriptor::IOProcessor())
-        if (!BoxLib::UtilCreateDirectory(statdir, 0755))
-            BoxLib::CreateDirectoryFailed(statdir);
+        if (!amrex::UtilCreateDirectory(statdir, 0755))
+            amrex::CreateDirectoryFailed(statdir);
     //
     // Force other processors to wait till directory is built.
     //
@@ -336,7 +336,7 @@ SlabStatList::checkPoint (Array<std::unique_ptr<AmrLevel> >& amrLevels, int leve
         HeaderFile.open(HeaderFileName.c_str(), std::ios::out|std::ios::trunc);
 
         if (!HeaderFile.good())
-            BoxLib::FileOpenFailed(HeaderFileName);
+            amrex::FileOpenFailed(HeaderFileName);
 
         int prec = HeaderFile.precision(30);
 
@@ -370,7 +370,7 @@ SlabStatList::checkPoint (Array<std::unique_ptr<AmrLevel> >& amrLevels, int leve
         HeaderFile.precision(prec);
 
         if (!HeaderFile.good())
-            BoxLib::Error("SlabStat::checkPoint() failed");
+            amrex::Error("SlabStat::checkPoint() failed");
     }
     //
     // Write out the SlabStat MultiFabs.

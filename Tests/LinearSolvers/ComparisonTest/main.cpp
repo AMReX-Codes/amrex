@@ -53,7 +53,7 @@ void compute_norm(const Array<MultiFab*>& soln,
 
 int main(int argc, char* argv[])
 {
-  BoxLib::Initialize(argc,argv);
+  amrex::Initialize(argc,argv);
 
   ParmParse pp;
 
@@ -70,7 +70,7 @@ int main(int argc, char* argv[])
 #ifdef USEHYPRE
       solver_type = Hypre;
 #else
-      BoxLib::Error("Set USE_HYPRE=TRUE in GNUmakefile");
+      amrex::Error("Set USE_HYPRE=TRUE in GNUmakefile");
 #endif
     }
     else if (solver_type_s == "All") {
@@ -80,7 +80,7 @@ int main(int argc, char* argv[])
       if (ParallelDescriptor::IOProcessor()) {
 	std::cout << "Don't know this solver type: " << solver_type << std::endl;
       }
-      BoxLib::Error("");
+      amrex::Error("");
     }
   }
 
@@ -100,7 +100,7 @@ int main(int argc, char* argv[])
       if (ParallelDescriptor::IOProcessor()) {
 	std::cout << "Don't know this boundary type: " << bc_type << std::endl;
       }
-      BoxLib::Error("");
+      amrex::Error("");
     }
   }
 
@@ -225,7 +225,7 @@ int main(int argc, char* argv[])
       compute_norm(psoln, pexac, geom, grids, nsoln, iCpp, iF90, iHyp);
   }
 
-  BoxLib::Finalize();
+  amrex::Finalize();
 }
 
 void build_grids(Array<Geometry>& geom, Array<BoxArray>& grids)

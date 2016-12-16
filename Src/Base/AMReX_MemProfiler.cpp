@@ -23,7 +23,7 @@ MemProfiler::add (const std::string& name, std::function<MemInfo()>&& f)
     auto it = std::find(mprofiler.the_names.begin(), mprofiler.the_names.end(), name);
     if (it != mprofiler.the_names.end()) {
         std::string s = "MemProfiler::add (MemInfo) failed because " + name + " already existed";
-        BoxLib::Abort(s.c_str());
+        amrex::Abort(s.c_str());
     }
     mprofiler.the_names.push_back(name);
     mprofiler.the_funcs.push_back(std::forward<std::function<MemInfo()> >(f));
@@ -36,7 +36,7 @@ MemProfiler::add (const std::string& name, std::function<NBuildsInfo()>&& f)
     auto it = std::find(mprofiler.the_names_builds.begin(), mprofiler.the_names_builds.end(), name);
     if (it != mprofiler.the_names_builds.end()) {
         std::string s = "MemProfiler::add (NBuildsInfo) failed because " + name + " already existed";
-        BoxLib::Abort(s.c_str());
+        amrex::Abort(s.c_str());
     }
     mprofiler.the_names_builds.push_back(name);
     mprofiler.the_funcs_builds.push_back(std::forward<std::function<NBuildsInfo()> >(f));

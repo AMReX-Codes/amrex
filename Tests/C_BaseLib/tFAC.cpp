@@ -12,7 +12,7 @@
 int
 main (int argc, char** argv)
 {
-    BoxLib::Initialize(argc, argv);
+    amrex::Initialize(argc, argv);
 
     BL_ASSERT(ParallelDescriptor::NProcs() == 2);
 
@@ -53,5 +53,5 @@ main (int argc, char** argv)
 	std::cout << mf_1[0] << std::endl;
     }
 
-    BoxLib::Finalize();
+    amrex::Finalize();
 }

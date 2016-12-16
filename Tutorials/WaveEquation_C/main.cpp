@@ -52,7 +52,7 @@ Real compute_dt(Real dx)
 int
 main (int argc, char* argv[])
 {
-  BoxLib::Initialize(argc,argv);
+  amrex::Initialize(argc,argv);
 
   // What time is it now?  We'll use this to compute total run time.
   Real strt_time = ParallelDescriptor::second();
@@ -160,7 +160,7 @@ main (int argc, char* argv[])
   if (plot_int > 0)
   {
      int n = 0;
-     const std::string& pltfile = BoxLib::Concatenate("plt",n,5);
+     const std::string& pltfile = amrex::Concatenate("plt",n,5);
      writePlotFile(pltfile, *new_data, geom);
   }
 
@@ -179,7 +179,7 @@ main (int argc, char* argv[])
      // Write a plotfile of the current data (plot_int was defined in the inputs file)
      if (plot_int > 0 && n%plot_int == 0)
      {
-        const std::string& pltfile = BoxLib::Concatenate("plt",n,5);
+        const std::string& pltfile = amrex::Concatenate("plt",n,5);
         writePlotFile(pltfile, *new_data, geom);
      }
   }
@@ -195,6 +195,6 @@ main (int argc, char* argv[])
      std::cout << "Run time = " << stop_time << std::endl;
   
   // Say goodbye to MPI, etc...
-  BoxLib::Finalize();
+  amrex::Finalize();
 
 }

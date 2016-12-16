@@ -42,7 +42,7 @@ int main(int argc, char *argv[]) {
     }
 
     bool bInitParmParse(false);
-    BoxLib::Initialize(argc, argv, bInitParmParse);
+    amrex::Initialize(argc, argv, bInitParmParse);
 
     int myProc(ParallelDescriptor::MyProc());
 
@@ -108,7 +108,7 @@ int main(int argc, char *argv[]) {
 
 
     bool bFinalizeMPI(true);
-    BoxLib::Finalize(bFinalizeMPI);
+    amrex::Finalize(bFinalizeMPI);
 
     return 0;
 }

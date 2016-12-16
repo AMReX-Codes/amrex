@@ -71,7 +71,7 @@ namespace
 // --------------------------------------------------------------------------
 int main(int argc, char *argv[]) {
 
-    BoxLib::Initialize(argc,argv);
+    amrex::Initialize(argc,argv);
 
     // A flag you need for broadcasting across MPI groups. We always broadcast
     // the data to the sidecar group from the IOProcessor on the compute group.
@@ -137,6 +137,6 @@ int main(int argc, char *argv[]) {
     ParallelDescriptor::Barrier();
 
     std::cout << "_calling Finalize()" << std::endl;
-    BoxLib::Finalize();
+    amrex::Finalize();
     return 0;
 }

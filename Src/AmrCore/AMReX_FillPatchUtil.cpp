@@ -101,7 +101,7 @@ namespace BoxLib
 	    }
 	}
 	else {
-	    BoxLib::Abort("FillPatchSingleLevel: high-order interpolation in time not implemented yet");
+	    amrex::Abort("FillPatchSingleLevel: high-order interpolation in time not implemented yet");
 	}
 
 	physbcf.FillBoundary(mf, dcomp, ncomp, time);
@@ -154,7 +154,7 @@ namespace BoxLib
 		    const Box& dbx = fpc.dst_boxes[li];
 		    
 		    Array<BCRec> bcr(ncomp);
-		    BoxLib::setBC(dbx,fdomain,scomp,0,ncomp,bcs,bcr);
+		    amrex::setBC(dbx,fdomain,scomp,0,ncomp,bcs,bcr);
 		    
 		    mapper->interp(mf_crse_patch[mfi],
 				   0,
@@ -204,7 +204,7 @@ namespace BoxLib
 	{  // TODO: later we might want to cache this
 	    for (int i = 0, N = ba.size(); i < N; ++i)
 	    {
-		Box bx = BoxLib::convert(BoxLib::grow(ba[i],ngrow), typ);
+		Box bx = amrex::convert(amrex::grow(ba[i],ngrow), typ);
 		bx &= fdomain_g;
 		ba_crse_patch.set(i, coarsener.doit(bx));
 	    }
@@ -227,7 +227,7 @@ namespace BoxLib
 	    const Box& dbx = dfab.box() & fdomain_g;
 
 	    Array<BCRec> bcr(ncomp);
-	    BoxLib::setBC(dbx,fdomain,scomp,0,ncomp,bcs,bcr);
+	    amrex::setBC(dbx,fdomain,scomp,0,ncomp,bcs,bcr);
 	    
 	    mapper->interp(mf_crse_patch[mfi],
 			   0,

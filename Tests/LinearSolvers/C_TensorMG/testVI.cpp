@@ -34,7 +34,7 @@ int
 main (int   argc,
       char* argv[])
 {
-    BoxLib::Initialize(argc,argv);
+    amrex::Initialize(argc,argv);
 
     std::cout << std::setprecision(10);
 
@@ -65,7 +65,7 @@ main (int   argc,
     {
         std::string msg = "problem opening grids file: ";
         msg += boxfile.c_str();
-        BoxLib::Abort(msg.c_str());
+        amrex::Abort(msg.c_str());
     }
 
     ifs >> domain;

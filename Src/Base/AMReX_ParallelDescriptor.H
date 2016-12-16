@@ -546,7 +546,7 @@ namespace ParallelDescriptor
     {
 	os << color.c;
 	if (os.fail())
-	    BoxLib::Error("operator<<(ostream&,Const Color&) failed");
+	    amrex::Error("operator<<(ostream&,Const Color&) failed");
 	return os;
     }
 

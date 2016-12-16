@@ -123,7 +123,7 @@ BndryData::define (const BoxArray& _grids,
         //
         // Otherwise we'll just abort.  We could make this work but it's just as easy to start with a fresh Bndrydata object.
         //
-        BoxLib::Abort("BndryData::define(): object already built");
+        amrex::Abort("BndryData::define(): object already built");
     }
     geom    = _geom;
     m_ncomp = _ncomp;

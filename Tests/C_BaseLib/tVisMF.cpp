@@ -72,14 +72,14 @@ Write_N_Read (const MultiFab& mf,
 
     if (ParallelDescriptor::IOProcessor())
     {
-        start = BoxLib::wsecond();
+        start = amrex::wsecond();
     }
 
     ParallelDescriptor::Barrier();
 
     if (ParallelDescriptor::IOProcessor())
     {
-        end = BoxLib::wsecond();
+        end = amrex::wsecond();
 
         std::cout << "\nWallclock time for MF write: " << (end-start) << '\n';
 
@@ -117,7 +117,7 @@ Write_N_Read (const MultiFab& mf,
 int
 main (int argc, char** argv)
 {
-    BoxLib::Initialize(argc, argv);
+    amrex::Initialize(argc, argv);
     the_prog_name = argv[0];
     parse_args(argv);
 
@@ -127,7 +127,7 @@ main (int argc, char** argv)
 
     for (int i = 1; i < nBoxs; i++)
     {
-        ba.set(i,BoxLib::grow(ba[i-1],2));
+        ba.set(i,amrex::grow(ba[i-1],2));
     }
 
     MultiFab mf(ba, 2, 1);
@@ -146,5 +146,5 @@ main (int argc, char** argv)
     Write_N_Read (mf,
                   mf_name);
 
-    BoxLib::Finalize();
+    amrex::Finalize();
 }

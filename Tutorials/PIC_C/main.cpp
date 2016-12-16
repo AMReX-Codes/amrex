@@ -18,7 +18,7 @@ void    two_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int nppc
 
 int main(int argc, char* argv[])
 {
-    BoxLib::Initialize(argc,argv);
+    amrex::Initialize(argc,argv);
 
     const Real strt_total = ParallelDescriptor::second();
 
@@ -44,7 +44,7 @@ int main(int argc, char* argv[])
     pp.get("nppc", nppc);
 
     if (nppc < 1 && ParallelDescriptor::IOProcessor())
-       BoxLib::Abort("Must specify at least one particle per cell");
+       amrex::Abort("Must specify at least one particle per cell");
 
     bool verbose = false;
     pp.query("verbose", verbose);
@@ -63,7 +63,7 @@ int main(int argc, char* argv[])
     } else if (nlevs == 2) {
           two_level(nlevs,nx,ny,nz,max_grid_size,nppc,verbose);
     } else {
-       BoxLib::Abort("Right now we only take max_level = 0 or 1");
+       amrex::Abort("Right now we only take max_level = 0 or 1");
     }
 
     Real end_total = ParallelDescriptor::second() - strt_total;
@@ -73,5 +73,5 @@ int main(int argc, char* argv[])
        std::cout << "Total Time           : " << end_total << '\n' << '\n';
 ;
 
-    BoxLib::Finalize();
+    amrex::Finalize();
 }

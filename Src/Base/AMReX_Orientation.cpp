@@ -10,7 +10,7 @@ operator<< (std::ostream&      os,
 {
     os << '('<< int(o) << ')' ;
     if (os.fail())
-        BoxLib::Error("operator<<(ostream&,Orientation&) failed");
+        amrex::Error("operator<<(ostream&,Orientation&) failed");
     return os;
 }
 
@@ -33,11 +33,11 @@ operator>> (std::istream& is,
     }
     else
     {
-        BoxLib::Error("operator>>(istream&,Orientation&): expected \'(\'");
+        amrex::Error("operator>>(istream&,Orientation&): expected \'(\'");
     }
 
     if (is.fail())
-        BoxLib::Error("operator>>(ostream&,Orientation&) failed");
+        amrex::Error("operator>>(ostream&,Orientation&) failed");
 
     return is;
 }

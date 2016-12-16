@@ -25,7 +25,7 @@ solve_with_f90(const Array<MultiFab*>& rhs,
             mg_bc[2*dir + 1] = 0;
         }
     } else {
-	BoxLib::Abort("non periodic boundraies not supported here");
+	amrex::Abort("non periodic boundraies not supported here");
     }
 
     // Have to do some packing because these arrays does not always start with base_level

@@ -104,7 +104,7 @@ DistributionMapping::strategy (DistributionMapping::Strategy how)
         m_BuildMap = &DistributionMapping::RRSFCProcessorMap;
         break;
     default:
-        BoxLib::Error("Bad DistributionMapping::Strategy");
+        amrex::Error("Bad DistributionMapping::Strategy");
     }
 }
 
@@ -181,7 +181,7 @@ DistributionMapping::Initialize ()
         {
             std::string msg("Unknown strategy: ");
             msg += theStrategy;
-            BoxLib::Warning(msg.c_str());
+            amrex::Warning(msg.c_str());
         }
     }
     else
@@ -203,7 +203,7 @@ DistributionMapping::Initialize ()
 
     DistributionMapping::nDistMaps = 0;
 
-    BoxLib::ExecOnFinalize(DistributionMapping::Finalize);
+    amrex::ExecOnFinalize(DistributionMapping::Finalize);
 
     initialized = true;
 }
@@ -251,7 +251,7 @@ DistributionMapping::LeastUsedCPUs (int         nprocs,
 
     Array<long> bytes(ParallelDescriptor::NProcs());
 
-    long thisbyte = BoxLib::TotalBytesAllocatedInFabs()/1024;
+    long thisbyte = amrex::TotalBytesAllocatedInFabs()/1024;
 
     BL_COMM_PROFILE(BLProfiler::Allgather, sizeof(long), BLProfiler::BeforeCall(),
                     BLProfiler::NoTag());
@@ -302,7 +302,7 @@ DistributionMapping::LeastUsedTeams (Array<int>        & rteam,
 
     Array<long> bytes(ParallelDescriptor::NProcs());
 
-    long thisbyte = BoxLib::TotalBytesAllocatedInFabs()/1024;
+    long thisbyte = amrex::TotalBytesAllocatedInFabs()/1024;
 
     BL_COMM_PROFILE(BLProfiler::Allgather, sizeof(long), BLProfiler::BeforeCall(),
                     BLProfiler::NoTag());
@@ -584,7 +584,7 @@ DistributionMapping::~DistributionMapping () { }
 void
 DistributionMapping::FlushCache ()
 {
-    if (BoxLib::verbose) {
+    if (amrex::verbose) {
 	CacheStats(std::cout);
     }
     //
@@ -628,7 +628,7 @@ DistributionMapping::PutInCache ()
     r = m_Cache.insert(std::make_pair(std::make_pair(m_ref->m_pmap.size(),m_color.to_int()),
 				      m_ref));
     if (r.second == false) {
-	BoxLib::Abort("DistributionMapping::PutInCache: pmap of given length already exists");
+	amrex::Abort("DistributionMapping::PutInCache: pmap of given length already exists");
     }
 }
 
@@ -648,7 +648,7 @@ DistributionMapping::RoundRobinDoIt (int                  nboxes,
     nteams = ParallelDescriptor::NTeams();
     nworkers = ParallelDescriptor::TeamSize();
     if (ParallelDescriptor::NColors() > 1) 
-	BoxLib::Abort("Team and color together are not supported yet");
+	amrex::Abort("Team and color together are not supported yet");
 #endif
 
     Array<int> ord;
@@ -965,7 +965,7 @@ DistributionMapping::KnapSackDoIt (const std::vector<long>& wgts,
     nteams = ParallelDescriptor::NTeams();
     nworkers = ParallelDescriptor::TeamSize();
     if (ParallelDescriptor::NColors() > 1) 
-	BoxLib::Abort("Team and color together are not supported yet");
+	amrex::Abort("Team and color together are not supported yet");
 #endif
 
     std::vector< std::vector<int> > vec;
@@ -1210,7 +1210,7 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
     nteams = ParallelDescriptor::NTeams();
     nworkers = ParallelDescriptor::TeamSize();
     if (ParallelDescriptor::NColors() > 1) 
-	BoxLib::Abort("Team and color together are not supported yet");
+	amrex::Abort("Team and color together are not supported yet");
 #else
     if (node_size > 0) {
 	nteams = nprocs/node_size;
@@ -1437,11 +1437,11 @@ DistributionMapping::RRSFCDoIt (const BoxArray&          boxes,
     BL_PROFILE("DistributionMapping::RRSFCDoIt()");
 
 #if defined (BL_USE_TEAM)
-    BoxLib::Abort("Team support is not implemented yet in RRSFC");
+    amrex::Abort("Team support is not implemented yet in RRSFC");
 #endif
 
     if (ParallelDescriptor::NColors() > 1) 
-	BoxLib::Abort("RRSFCMap does not support multi colors");
+	amrex::Abort("RRSFCMap does not support multi colors");
 
     std::vector<SFCToken> tokens;
 
@@ -1543,7 +1543,7 @@ DistributionMapping::CurrentBytesUsed (int nprocs, Array<long>& result)
 #ifdef BL_USE_MPI
     BL_PROFILE("DistributionMapping::CurrentBytesUsed()");
 
-    long thisbyte = BoxLib::TotalBytesAllocatedInFabs();
+    long thisbyte = amrex::TotalBytesAllocatedInFabs();
 
     BL_COMM_PROFILE(BLProfiler::Allgather, sizeof(long), BLProfiler::BeforeCall(),
                     BLProfiler::NoTag());
@@ -1590,7 +1590,7 @@ DistributionMapping::CurrentCellsUsed (int nprocs, Array<long>& result)
 #ifdef BL_USE_MPI
     BL_PROFILE("DistributionMapping::CurrentCellsUsed()");
 
-    long thiscell = BoxLib::TotalCellsAllocatedInFabs();
+    long thiscell = amrex::TotalCellsAllocatedInFabs();
 
     BL_COMM_PROFILE(BLProfiler::Allgather, sizeof(long), BLProfiler::BeforeCall(),
                     BLProfiler::NoTag());
@@ -1619,11 +1619,11 @@ DistributionMapping::PFCProcessorMapDoIt (const BoxArray&          boxes,
     BL_PROFILE("DistributionMapping::PFCProcessorMapDoIt()");
 
 #if defined (BL_USE_TEAM)
-    BoxLib::Abort("Team support is not implemented yet in PFC");
+    amrex::Abort("Team support is not implemented yet in PFC");
 #endif
 
     if (ParallelDescriptor::NColors() > 1) 
-	BoxLib::Abort("PFCProcessorMap does not support multi colors");
+	amrex::Abort("PFCProcessorMap does not support multi colors");
 
     std::vector< std::vector<int> > vec(nprocs);
     std::vector<PFCToken> tokens;
@@ -1665,7 +1665,7 @@ DistributionMapping::PFCProcessorMapDoIt (const BoxArray&          boxes,
         totalNewCellsB += boxes[i].numPts();
       }
       if(totalNewCells != totalNewCellsB) {
-        BoxLib::Abort("tnc");
+        amrex::Abort("tnc");
       }
       volpercpu = static_cast<Real>(totalNewCells) / nprocs;
 
@@ -1877,7 +1877,7 @@ DistributionMapping::MultiLevelMapPFC (const Array<IntVect>  &refRatio,
     for(int level(finestLevel); level >= 0; --level) {
       for(int i(0), N(allBoxes[level].size()); i < N; ++i) {
 	Box box(allBoxes[level][i]);
-	Box fine(BoxLib::refine(box, cRR));
+	Box fine(amrex::refine(box, cRR));
         tokens.push_back(PFCMultiLevelToken(level, idxAll, i,
 	                 box.smallEnd(), fine.smallEnd(), box.numPts()));
       }
@@ -1960,7 +1960,7 @@ DistributionMapping::MultiLevelMapPFC (const Array<IntVect>  &refRatio,
         }
         if(staggeredProxMap[iProc] >= nProcs) {
 	  std::cout << "Stagger:  ERROR!" << std::endl;
-          BoxLib::Abort("*****");
+          amrex::Abort("*****");
 	}
       }
 
@@ -2070,8 +2070,8 @@ DistributionMapping::MultiLevelMapRandom (const Array<IntVect>  &refRatio,
       if(ParallelDescriptor::IOProcessor()) {
 	int range(maxRank - minRank);
         for(int ir(0); ir < localPMaps[n].size() - 1; ++ir) {
-          //localPMaps[n][ir] = BoxLib::Random_int(maxRank + 1);
-          localPMaps[n][ir] = minRank + BoxLib::Random_int(range + 1);
+          //localPMaps[n][ir] = amrex::Random_int(maxRank + 1);
+          localPMaps[n][ir] = minRank + amrex::Random_int(range + 1);
         }
       }
       ParallelDescriptor::Bcast(localPMaps[n].dataPtr(), localPMaps[n].size());
@@ -2164,7 +2164,7 @@ DistributionMapping::PFCMultiLevelMap (const Array<IntVect>  &refRatio,
     for(int level(finestLevel); level >= 0; --level) {
       for(int i(0), N(allBoxes[level].size()); i < N; ++i) {
 	Box box(allBoxes[level][i]);
-	Box fine(BoxLib::refine(box, cRR));
+	Box fine(amrex::refine(box, cRR));
         tokens.push_back(PFCMultiLevelToken(level, idxAll, i,
 	                 box.smallEnd(), fine.smallEnd(), box.numPts()));
       }
@@ -2421,10 +2421,10 @@ DistributionMapping::InitProximityMap(bool makeMap, bool reinit)
 
     } else if(bRandomClusters) {
       if(proximityMap.size() != proximityOrder.size()) {
-        BoxLib::Abort("**** Error:  prox size bad.");
+        amrex::Abort("**** Error:  prox size bad.");
       }
       Array<int> rSS(proximityMap.size());
-      BoxLib::UniqueRandomSubset(rSS, proximityMap.size(), proximityMap.size());
+      amrex::UniqueRandomSubset(rSS, proximityMap.size(), proximityMap.size());
       for(int i(0); i < proximityMap.size(); ++i) {
 	std::cout << "rSS[" << i << "] = " << rSS[i] << std::endl;
         proximityMap[i]   = rSS[i];
@@ -2688,7 +2688,7 @@ DistributionMapping::PrintDiagnostics(const std::string &filename)
     int nprocs(ParallelDescriptor::NProcs());
     Array<long> bytes(nprocs, 0);
 
-    long thisbyte = BoxLib::TotalBytesAllocatedInFabs();
+    long thisbyte = amrex::TotalBytesAllocatedInFabs();
 
     ParallelDescriptor::Gather(&thisbyte,
                                1,
@@ -2748,7 +2748,7 @@ void DistributionMapping::ReadCheckPointHeader(const std::string &filename,
 
     if(spdim != BL_SPACEDIM) {
       std::cerr << "Amr::restart(): bad spacedim = " << spdim << '\n';
-      BoxLib::Abort();
+      amrex::Abort();
     }
 
     is >> calcTime;
@@ -2846,7 +2846,7 @@ DistributionMapping::Check () const
        std::cout << ParallelDescriptor::MyProc() << ":: **** error 1 in DistributionMapping::Check() "
                  << "bad rank:  nProcs dmrank = " << ParallelDescriptor::NProcs() << "  "
 		 << m_ref->m_pmap[i] << std::endl;
-       BoxLib::Abort("Bad DistributionMapping::Check");
+       amrex::Abort("Bad DistributionMapping::Check");
      }
    }
    if(m_ref->m_pmap[m_ref->m_pmap.size() - 1] != ParallelDescriptor::MyProc()) {
@@ -2854,7 +2854,7 @@ DistributionMapping::Check () const
      std::cout << ParallelDescriptor::MyProc() << ":: **** error 2 in DistributionMapping::Check() "
                << "bad sentinel:  myProc sentinel = " << ParallelDescriptor::MyProc() << "  "
 	       << m_ref->m_pmap[m_ref->m_pmap.size() - 1] << std::endl;
-     BoxLib::Abort("Bad DistributionMapping::Check");
+     amrex::Abort("Bad DistributionMapping::Check");
    }
    return ok;
 }
@@ -2929,7 +2929,7 @@ operator<< (std::ostream&              os,
     os << ')' << '\n';
 
     if (os.fail())
-        BoxLib::Error("operator<<(ostream &, DistributionMapping &) failed");
+        amrex::Error("operator<<(ostream &, DistributionMapping &) failed");
 
     return os;
 }

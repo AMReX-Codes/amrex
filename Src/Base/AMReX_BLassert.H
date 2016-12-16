@@ -22,7 +22,7 @@
   expression evaluates to false, a message is output detailing the
   file and line number of the BL_ASSERT(EX) statement, as well as the
   literal expression EX itself, and then exits via abort() using
-  BoxLib::Assert().  The idea is that if the assertion fails, something
+  amrex::Assert().  The idea is that if the assertion fails, something
   has gone terribly wrong somewhere.
 
   If the DEBUG macro is not set to TRUE, the BL_ASSERT(EX) call becomes
@@ -40,9 +40,9 @@
 // void argument to the ternary operator.  Currently SGI's OCC and CC on
 // HP-UX 9.0.1 have this problem.
 //
-#define BL_ASSERT(EX) if ((EX)) ; else BoxLib::Assert( # EX , __FILE__, __LINE__)
+#define BL_ASSERT(EX) if ((EX)) ; else amrex::Assert( # EX , __FILE__, __LINE__)
 #else
-#define BL_ASSERT(EX) (EX)?((void)0):BoxLib::Assert( # EX , __FILE__, __LINE__)
+#define BL_ASSERT(EX) (EX)?((void)0):amrex::Assert( # EX , __FILE__, __LINE__)
 #endif
 #endif
 #endif

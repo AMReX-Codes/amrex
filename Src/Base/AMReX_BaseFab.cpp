@@ -16,19 +16,19 @@
 #include <AMReX_MemProfiler.H>
 #endif
 
-long BoxLib::private_total_bytes_allocated_in_fabs     = 0L;
-long BoxLib::private_total_bytes_allocated_in_fabs_hwm = 0L;
-long BoxLib::private_total_cells_allocated_in_fabs     = 0L;
-long BoxLib::private_total_cells_allocated_in_fabs_hwm = 0L;
+long amrex::private_total_bytes_allocated_in_fabs     = 0L;
+long amrex::private_total_bytes_allocated_in_fabs_hwm = 0L;
+long amrex::private_total_cells_allocated_in_fabs     = 0L;
+long amrex::private_total_cells_allocated_in_fabs_hwm = 0L;
 
-int BoxLib::BF_init::m_cnt = 0;
+int amrex::BF_init::m_cnt = 0;
 
 namespace
 {
     Arena* the_arena = 0;
 }
 
-BoxLib::BF_init::BF_init ()
+amrex::BF_init::BF_init ()
 {
     if (m_cnt++ == 0)
     {
@@ -43,31 +43,31 @@ BoxLib::BF_init::BF_init ()
 #ifdef _OPENMP
 #pragma omp parallel
 	{
-	    BoxLib::private_total_bytes_allocated_in_fabs     = 0;
-	    BoxLib::private_total_bytes_allocated_in_fabs_hwm = 0;
-	    BoxLib::private_total_cells_allocated_in_fabs     = 0;
-	    BoxLib::private_total_cells_allocated_in_fabs_hwm = 0;
+	    amrex::private_total_bytes_allocated_in_fabs     = 0;
+	    amrex::private_total_bytes_allocated_in_fabs_hwm = 0;
+	    amrex::private_total_cells_allocated_in_fabs     = 0;
+	    amrex::private_total_cells_allocated_in_fabs_hwm = 0;
 	}
 #endif
 
 #ifdef BL_MEM_PROFILING
 	MemProfiler::add("Fab", std::function<MemProfiler::MemInfo()>
 			 ([] () -> MemProfiler::MemInfo {
-			     return {BoxLib::TotalBytesAllocatedInFabs(),
-				     BoxLib::TotalBytesAllocatedInFabsHWM()};
+			     return {amrex::TotalBytesAllocatedInFabs(),
+				     amrex::TotalBytesAllocatedInFabsHWM()};
 			 }));
 #endif
     }
 }
 
-BoxLib::BF_init::~BF_init ()
+amrex::BF_init::~BF_init ()
 {
     if (--m_cnt == 0)
         delete the_arena;
 }
 
 long 
-BoxLib::TotalBytesAllocatedInFabs()
+amrex::TotalBytesAllocatedInFabs()
 {
 #ifdef _OPENMP
     long r=0;
@@ -82,7 +82,7 @@ BoxLib::TotalBytesAllocatedInFabs()
 }
 
 long 
-BoxLib::TotalBytesAllocatedInFabsHWM()
+amrex::TotalBytesAllocatedInFabsHWM()
 {
 #ifdef _OPENMP
     long r=0;
@@ -97,7 +97,7 @@ BoxLib::TotalBytesAllocatedInFabsHWM()
 }
 
 long 
-BoxLib::TotalCellsAllocatedInFabs()
+amrex::TotalCellsAllocatedInFabs()
 {
 #ifdef _OPENMP
     long r=0;
@@ -112,7 +112,7 @@ BoxLib::TotalCellsAllocatedInFabs()
 }
 
 long 
-BoxLib::TotalCellsAllocatedInFabsHWM()
+amrex::TotalCellsAllocatedInFabsHWM()
 {
 #ifdef _OPENMP
     long r=0;
@@ -127,7 +127,7 @@ BoxLib::TotalCellsAllocatedInFabsHWM()
 }
 
 void 
-BoxLib::ResetTotalBytesAllocatedInFabsHWM()
+amrex::ResetTotalBytesAllocatedInFabsHWM()
 {
 #ifdef _OPENMP
 #pragma omp parallel
@@ -138,24 +138,24 @@ BoxLib::ResetTotalBytesAllocatedInFabsHWM()
 }
 
 void
-BoxLib::update_fab_stats (long n, long s, size_t szt)
+amrex::update_fab_stats (long n, long s, size_t szt)
 {
     long tst = s*szt;
-    BoxLib::private_total_bytes_allocated_in_fabs += tst;
-    BoxLib::private_total_bytes_allocated_in_fabs_hwm 
-	= std::max(BoxLib::private_total_bytes_allocated_in_fabs_hwm,
-		   BoxLib::private_total_bytes_allocated_in_fabs);
+    amrex::private_total_bytes_allocated_in_fabs += tst;
+    amrex::private_total_bytes_allocated_in_fabs_hwm 
+	= std::max(amrex::private_total_bytes_allocated_in_fabs_hwm,
+		   amrex::private_total_bytes_allocated_in_fabs);
 	
     if(szt == sizeof(Real)) {
-	BoxLib::private_total_cells_allocated_in_fabs += n;
-	BoxLib::private_total_cells_allocated_in_fabs_hwm 
-	    = std::max(BoxLib::private_total_cells_allocated_in_fabs_hwm,
-		       BoxLib::private_total_cells_allocated_in_fabs);
+	amrex::private_total_cells_allocated_in_fabs += n;
+	amrex::private_total_cells_allocated_in_fabs_hwm 
+	    = std::max(amrex::private_total_cells_allocated_in_fabs_hwm,
+		       amrex::private_total_cells_allocated_in_fabs);
     }
 }
 
 Arena*
-BoxLib::The_Arena ()
+amrex::The_Arena ()
 {
     BL_ASSERT(the_arena != 0);
 
@@ -273,7 +273,7 @@ BaseFab<Real>::norm (const Box& bx,
     }
     else
     {
-        BoxLib::Error("BaseFab<Real>::norm(): only p == 0 or p == 1 are supported");
+        amrex::Error("BaseFab<Real>::norm(): only p == 0 or p == 1 are supported");
     }
 
     return nrm;

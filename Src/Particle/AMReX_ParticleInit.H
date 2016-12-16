@@ -68,7 +68,7 @@ ParticleContainer<NR,NI,C>::InitFromAsciiFile (const std::string& file, int extr
         ifs.open(file.c_str(), std::ios::in);
 
         if (!ifs.good())
-            BoxLib::FileOpenFailed(file);
+            amrex::FileOpenFailed(file);
 
         int cnt = 0;
 
@@ -89,7 +89,7 @@ ParticleContainer<NR,NI,C>::InitFromAsciiFile (const std::string& file, int extr
             std::string msg("ParticleContainer::InitFromAsciiFile(");
             msg += file;
             msg += ") failed @ 1";
-            BoxLib::Error(msg.c_str());
+            amrex::Error(msg.c_str());
         }
 
         int MyCnt = Chunk;
@@ -134,7 +134,7 @@ ParticleContainer<NR,NI,C>::InitFromAsciiFile (const std::string& file, int extr
             {
                 std::string msg("ParticleContainer::InitFromAsciiFile(");
                 msg += file; msg += ") failed @ 2";
-                BoxLib::Error(msg.c_str());
+                amrex::Error(msg.c_str());
             }
 
             if (!ParticleBase::Where(p,m_gdb))
@@ -150,7 +150,7 @@ ParticleContainer<NR,NI,C>::InitFromAsciiFile (const std::string& file, int extr
                         std::cout << "BAD PARTICLE POS(" << d << ") " << p.m_pos[d] << std::endl;
                     }
 
-                    BoxLib::Abort("ParticleContainer<NR,NI,C>::InitFromAsciiFile(): invalid particle");
+                    amrex::Abort("ParticleContainer<NR,NI,C>::InitFromAsciiFile(): invalid particle");
                 }
             }
 
@@ -196,7 +196,7 @@ ParticleContainer<NR,NI,C>::InitFromAsciiFile (const std::string& file, int extr
                                 if (!ParticleBase::Where(p_rep,m_gdb))
                                 {
                                     std::cout << "BAD REPLICATED PARTICLE ID WOULD BE " << ParticleBase::NextID() << std::endl;
-                                    BoxLib::Abort("ParticleContainer<NR,NI,C>::InitFromAsciiFile(): invalid replicated particle");
+                                    amrex::Abort("ParticleContainer<NR,NI,C>::InitFromAsciiFile(): invalid replicated particle");
                                 }
                             }
                             //
@@ -421,7 +421,7 @@ ParticleContainer<NR,NI,C>::InitFromBinaryFile (const std::string& file,
         {
             do
             {
-                int n = int(BoxLib::Random() * (NProcs-1));
+                int n = int(amrex::Random() * (NProcs-1));
 
                 BL_ASSERT(n >= 0);
                 BL_ASSERT(n < NProcs);
@@ -468,7 +468,7 @@ ParticleContainer<NR,NI,C>::InitFromBinaryFile (const std::string& file,
         ifs.open(file.c_str(), std::ios::in|std::ios::binary);
 
         if (!ifs.good())
-            BoxLib::FileOpenFailed(file);
+            amrex::FileOpenFailed(file);
 
         ifs.read((char*)&NP, sizeof(NP));
         ifs.read((char*)&DM, sizeof(DM));
@@ -477,22 +477,22 @@ ParticleContainer<NR,NI,C>::InitFromBinaryFile (const std::string& file,
         // NP MUST be positive!
         //
         if (NP <= 0)
-            BoxLib::Abort("ParticleContainer<NR,NI,C>::InitFromBinaryFile(): NP <= 0");
+            amrex::Abort("ParticleContainer<NR,NI,C>::InitFromBinaryFile(): NP <= 0");
         //
         // DM must equal BL_SPACEDIM.
         //
         if (DM != BL_SPACEDIM)
-            BoxLib::Abort("ParticleContainer<NR,NI,C>::InitFromBinaryFile(): DM != BL_SPACEDIM");
+            amrex::Abort("ParticleContainer<NR,NI,C>::InitFromBinaryFile(): DM != BL_SPACEDIM");
         //
         // NX MUST be in [0,N].
         //
         if (NX < 0 || NX > NR)
-            BoxLib::Abort("ParticleContainer<NR,NI,C>::InitFromBinaryFile(): NX < 0 || NX > N");
+            amrex::Abort("ParticleContainer<NR,NI,C>::InitFromBinaryFile(): NX < 0 || NX > N");
         //
         // Can't ask for more data than exists in the file!
         //
         if (extradata > NX)
-            BoxLib::Abort("ParticleContainer<NR,NI,C>::InitFromBinaryFile(): extradata > NX");
+            amrex::Abort("ParticleContainer<NR,NI,C>::InitFromBinaryFile(): extradata > NX");
         //
         // Figure out whether we're dealing with floats or doubles.
         //
@@ -537,7 +537,7 @@ ParticleContainer<NR,NI,C>::InitFromBinaryFile (const std::string& file,
             std::string msg("ParticleContainer::InitFromBinaryFile(");
             msg += file;
             msg += ") failed @ 1";
-            BoxLib::Error(msg.c_str());
+            amrex::Error(msg.c_str());
         }
     }
     //
@@ -667,7 +667,7 @@ ParticleContainer<NR,NI,C>::InitFromBinaryFile (const std::string& file,
                     std::string msg("ParticleContainer::InitFromBinaryFile(");
                     msg += file;
                     msg += ") failed @ 2";
-                    BoxLib::Error(msg.c_str());
+                    amrex::Error(msg.c_str());
                 }
 
                 if (!ParticleBase::Where(p,m_gdb))
@@ -683,7 +683,7 @@ ParticleContainer<NR,NI,C>::InitFromBinaryFile (const std::string& file,
                             std::cout << "BAD PARTICLE POS(" << d << ") " << p.m_pos[d] << std::endl;
                         }
 
-                        BoxLib::Abort("ParticleContainer<NR,NI,C>::InitFromBinaryFile(): invalid particle");
+                        amrex::Abort("ParticleContainer<NR,NI,C>::InitFromBinaryFile(): invalid particle");
                     }
                 }
 
@@ -833,7 +833,7 @@ ParticleContainer<NR,NI,C>::InitRandom (long          icount,
     const Real* xlo = containing_bx.lo();
     const Real* xhi = containing_bx.hi();
 
-    BoxLib::InitRandom(iseed+MyProc);
+    amrex::InitRandom(iseed+MyProc);
 
     m_particles.resize(m_gdb->finestLevel()+1);
 
@@ -861,7 +861,7 @@ ParticleContainer<NR,NI,C>::InitRandom (long          icount,
                 {
                     do
                     {
-                        r = BoxLib::Random();
+                        r = amrex::Random();
                         x = geom.ProbLo(i) + (r * len[i]);
                     }
                     while (x < xlo[i] || x > xhi[i]);
@@ -897,7 +897,7 @@ ParticleContainer<NR,NI,C>::InitRandom (long          icount,
 
             if (!ParticleBase::Where(p,m_gdb))
             {
-                BoxLib::Abort("ParticleContainer<NR,NI,C>::InitRandom(): invalid particle");
+                amrex::Abort("ParticleContainer<NR,NI,C>::InitRandom(): invalid particle");
             }
 
             BL_ASSERT(p.m_lev >= 0 && p.m_lev <= m_gdb->finestLevel());
@@ -944,7 +944,7 @@ ParticleContainer<NR,NI,C>::InitRandom (long          icount,
             {
                 do
                 {
-                    r = BoxLib::Random();
+                    r = amrex::Random();
                     x = geom.ProbLo(i) + (r * len[i]);
                 }
                 while (x < xlo[i] || x > xhi[i]);
@@ -970,7 +970,7 @@ ParticleContainer<NR,NI,C>::InitRandom (long          icount,
 
             if (!ParticleBase::Where(p,m_gdb))
             {
-                BoxLib::Abort("ParticleContainer<NR,NI,C>::InitRandom(): invalid particle");
+                amrex::Abort("ParticleContainer<NR,NI,C>::InitRandom(): invalid particle");
             }
 
             BL_ASSERT(p.m_lev >= 0 && p.m_lev <= m_gdb->finestLevel());
@@ -1071,7 +1071,7 @@ ParticleContainer<NR,NI,C>::InitOnePerCell (Real x_off, Real y_off, Real z_off,
 
             if (!ParticleBase::Where(p,m_gdb))
             {
-                BoxLib::Abort("ParticleContainer<NR,NI,C>::InitOnePerCell(): invalid particle");
+                amrex::Abort("ParticleContainer<NR,NI,C>::InitOnePerCell(): invalid particle");
             }
 
             BL_ASSERT(p.m_lev >= 0 && p.m_lev <= m_gdb->finestLevel());
@@ -1145,11 +1145,11 @@ ParticleContainer<NR,NI,C>::InitNRandomPerCell (int n_per_cell, Real mass, Multi
 
             for (int n = 0; n < n_per_cell; n++)
             {
-               r = BoxLib::Random();
+               r = amrex::Random();
                p.m_pos[0] = grid_box.lo(0) + (r + i)*dx[0];
-               r = BoxLib::Random();
+               r = amrex::Random();
                p.m_pos[1] = grid_box.lo(1) + (r + j)*dx[1];
-               r = BoxLib::Random();
+               r = amrex::Random();
                p.m_pos[2] = grid_box.lo(2) + (r + k)*dx[2];
 
                for (int i = 0; i < BL_SPACEDIM; i++)
@@ -1170,7 +1170,7 @@ ParticleContainer<NR,NI,C>::InitNRandomPerCell (int n_per_cell, Real mass, Multi
                p.m_cpu = ParallelDescriptor::MyProc();
 
                if (!ParticleBase::Where(p,m_gdb))
-                   BoxLib::Abort("ParticleContainer<NR,NI,C>::InitNRandomPerCell(): invalid particle");
+                   amrex::Abort("ParticleContainer<NR,NI,C>::InitNRandomPerCell(): invalid particle");
 
                BL_ASSERT(p.m_lev >= 0 && p.m_lev <= m_gdb->finestLevel());
                //

@@ -50,7 +50,7 @@ Box
 NodeBilinear::CoarseBox (const Box& fine,
                          int        ratio)
 {
-    Box b = BoxLib::coarsen(fine,ratio);
+    Box b = amrex::coarsen(fine,ratio);
 
     for (int i = 0; i < BL_SPACEDIM; i++)
     {
@@ -70,7 +70,7 @@ Box
 NodeBilinear::CoarseBox (const Box&     fine,
                          const IntVect& ratio)
 {
-    Box b = BoxLib::coarsen(fine,ratio);
+    Box b = amrex::coarsen(fine,ratio);
 
     for (int i = 0; i < BL_SPACEDIM; i++)
     {
@@ -142,7 +142,7 @@ CellBilinear::CoarseBox (const Box&     fine,
     const int* lo = fine.loVect();
     const int* hi = fine.hiVect();
 
-    Box crse(BoxLib::coarsen(fine,ratio));
+    Box crse(amrex::coarsen(fine,ratio));
     const int* clo = crse.loVect();
     const int* chi = crse.hiVect();
 
@@ -174,7 +174,7 @@ CellBilinear::interp (const FArrayBox&  crse,
 {
     BL_PROFILE("CellBilinear::interp()");
 #if (BL_SPACEDIM == 3)
-    BoxLib::Error("interp: not implemented");
+    amrex::Error("interp: not implemented");
 #endif
     //
     // Set up to call FORTRAN.
@@ -240,7 +240,7 @@ Box
 CellConservativeLinear::CoarseBox (const Box&     fine,
                                    const IntVect& ratio)
 {
-    Box crse = BoxLib::coarsen(fine,ratio);
+    Box crse = amrex::coarsen(fine,ratio);
     crse.grow(1);
     return crse;
 }
@@ -249,7 +249,7 @@ Box
 CellConservativeLinear::CoarseBox (const Box& fine,
                                    int        ratio)
 {
-    Box crse(BoxLib::coarsen(fine,ratio));
+    Box crse(amrex::coarsen(fine,ratio));
     crse.grow(1);
     return crse;
 }
@@ -287,7 +287,7 @@ CellConservativeLinear::interp (const FArrayBox& crse,
     //
     // Make a refinement of cslope_bx
     //
-    Box fine_version_of_cslope_bx = BoxLib::refine(cslope_bx,ratio);
+    Box fine_version_of_cslope_bx = amrex::refine(cslope_bx,ratio);
     //
     // Get coarse and fine edge-centered volume coordinates.
     //
@@ -397,7 +397,7 @@ Box
 CellQuadratic::CoarseBox (const Box&     fine,
                           const IntVect& ratio)
 {
-    Box crse = BoxLib::coarsen(fine,ratio);
+    Box crse = amrex::coarsen(fine,ratio);
     crse.grow(1);
     return crse;
 }
@@ -406,7 +406,7 @@ Box
 CellQuadratic::CoarseBox (const Box& fine,
                           int        ratio)
 {
-    Box crse = BoxLib::coarsen(fine,ratio);
+    Box crse = amrex::coarsen(fine,ratio);
     crse.grow(1);
     return crse;
 }
@@ -432,8 +432,8 @@ CellQuadratic::interp (const FArrayBox& crse,
     //
     Box target_fine_region = fine_region & fine.box();
 
-    Box crse_bx(BoxLib::coarsen(target_fine_region,ratio));
-    Box fslope_bx(BoxLib::refine(crse_bx,ratio));
+    Box crse_bx(amrex::coarsen(target_fine_region,ratio));
+    Box fslope_bx(amrex::refine(crse_bx,ratio));
     Box cslope_bx(crse_bx);
     cslope_bx.grow(1);
     BL_ASSERT(crse.box().contains(cslope_bx));
@@ -518,14 +518,14 @@ Box
 PCInterp::CoarseBox (const Box& fine,
                      int        ratio)
 {
-    return BoxLib::coarsen(fine,ratio);
+    return amrex::coarsen(fine,ratio);
 }
 
 Box
 PCInterp::CoarseBox (const Box&     fine,
                      const IntVect& ratio)
 {
-    return BoxLib::coarsen(fine,ratio);
+    return amrex::coarsen(fine,ratio);
 }
 
 void
@@ -553,7 +553,7 @@ PCInterp::interp (const FArrayBox& crse,
     const int* fblo = fine_region.loVect();
     const int* fbhi = fine_region.hiVect();
 
-    Box cregion(BoxLib::coarsen(fine_region,ratio));
+    Box cregion(amrex::coarsen(fine_region,ratio));
 
     const int* cblo = cregion.loVect();
     const int* cbhi = cregion.hiVect();
@@ -589,7 +589,7 @@ Box
 CellConservativeProtected::CoarseBox (const Box&     fine,
                                       const IntVect& ratio)
 {
-    Box crse = BoxLib::coarsen(fine,ratio);
+    Box crse = amrex::coarsen(fine,ratio);
     crse.grow(1);
     return crse;
 }
@@ -598,7 +598,7 @@ Box
 CellConservativeProtected::CoarseBox (const Box& fine,
                                       int        ratio)
 {
-    Box crse(BoxLib::coarsen(fine,ratio));
+    Box crse(amrex::coarsen(fine,ratio));
     crse.grow(1);
     return crse;
 }
@@ -635,7 +635,7 @@ CellConservativeProtected::interp (const FArrayBox& crse,
     //
     // Make a refinement of cslope_bx
     //
-    Box fine_version_of_cslope_bx = BoxLib::refine(cslope_bx,ratio);
+    Box fine_version_of_cslope_bx = amrex::refine(cslope_bx,ratio);
     //
     // Get coarse and fine edge-centered volume coordinates.
     //
@@ -838,7 +838,7 @@ Box
 CellConservativeQuartic::CoarseBox (const Box& fine,
 				    int        ratio)
 {
-    Box crse(BoxLib::coarsen(fine,ratio));
+    Box crse(amrex::coarsen(fine,ratio));
     crse.grow(2);
     return crse;
 }
@@ -847,7 +847,7 @@ Box
 CellConservativeQuartic::CoarseBox (const Box&     fine,
 				    const IntVect& ratio)
 {
-    Box crse = BoxLib::coarsen(fine,ratio);
+    Box crse = amrex::coarsen(fine,ratio);
     crse.grow(2);
     return crse;
 }
@@ -887,7 +887,7 @@ CellConservativeQuartic::interp (const FArrayBox&  crse,
 
     Box crse_bx2(crse_bx);
     crse_bx2.grow(-2);
-    Box fine_bx2 = BoxLib::refine(crse_bx2,ratio);
+    Box fine_bx2 = amrex::refine(crse_bx2,ratio);
 
     Real* fdat       = fine.dataPtr(fine_comp);
     const Real* cdat = crse.dataPtr(crse_comp);

@@ -271,7 +271,7 @@ ABec2::smooth (MultiFab&       solnL,
   }
   else
   {
-    BoxLib::Abort("Shouldnt be here");
+    amrex::Abort("Shouldnt be here");
   }
 }
 
@@ -301,7 +301,7 @@ ABec2::jacobi_smooth (MultiFab&       solnL,
   }
   else
   {
-    BoxLib::Abort("Shouldnt be here");
+    amrex::Abort("Shouldnt be here");
   }
 }
 

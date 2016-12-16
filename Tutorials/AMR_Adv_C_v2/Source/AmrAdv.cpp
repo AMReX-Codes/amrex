@@ -169,7 +169,7 @@ AmrAdv::AverageDown ()
 {
     for (int lev = finest_level-1; lev >= 0; --lev)
     {
-	BoxLib::average_down(*phi_new[lev+1], *phi_new[lev],
+	amrex::average_down(*phi_new[lev+1], *phi_new[lev],
 			     geom[lev+1], geom[lev],
 			     0, phi_new[lev]->nComp(), refRatio(lev));
     }
@@ -178,7 +178,7 @@ AmrAdv::AverageDown ()
 void
 AmrAdv::AverageDownTo (int crse_lev)
 {
-    BoxLib::average_down(*phi_new[crse_lev+1], *phi_new[crse_lev],
+    amrex::average_down(*phi_new[crse_lev+1], *phi_new[crse_lev],
 			 geom[crse_lev+1], geom[crse_lev],
 			 0, phi_new[crse_lev]->nComp(), refRatio(crse_lev));
 }
@@ -211,7 +211,7 @@ AmrAdv::FillPatch (int lev, Real time, MultiFab& mf, int icomp, int ncomp)
 	GetData(0, time, smf, stime);
 
 	AmrAdvPhysBC physbc;
-	BoxLib::FillPatchSingleLevel(mf, time, smf, stime, 0, icomp, ncomp,
+	amrex::FillPatchSingleLevel(mf, time, smf, stime, 0, icomp, ncomp,
 				     geom[lev], physbc);
     }
     else
@@ -228,7 +228,7 @@ AmrAdv::FillPatch (int lev, Real time, MultiFab& mf, int icomp, int ncomp)
 	int hi_bc[] = {INT_DIR, INT_DIR, INT_DIR};
 	Array<BCRec> bcs(1, BCRec(lo_bc, hi_bc));
 
-	BoxLib::FillPatchTwoLevels(mf, time, cmf, ctime, fmf, ftime,
+	amrex::FillPatchTwoLevels(mf, time, cmf, ctime, fmf, ftime,
 				   0, icomp, ncomp, geom[lev-1], geom[lev],
 				   cphysbc, fphysbc, refRatio(lev-1),
 				   mapper, bcs);

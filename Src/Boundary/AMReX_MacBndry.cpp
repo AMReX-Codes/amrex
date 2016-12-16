@@ -7,7 +7,7 @@ MacBndry::MacBndry ()
     :
     InterpBndryData()
 {
-    BoxLib::Abort("*** Calling default constructor for MacBndry()");
+    amrex::Abort("*** Calling default constructor for MacBndry()");
 }
 
 MacBndry::MacBndry (const BoxArray& _grids,

@@ -77,10 +77,10 @@ void main_main ()
 
 int main (int argc, char* argv[])
 {
-    BoxLib::Initialize(argc,argv);
+    amrex::Initialize(argc,argv);
 
     main_main();
 
-    BoxLib::Finalize();
+    amrex::Finalize();
     return 0;
 }
