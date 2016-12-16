@@ -133,10 +133,10 @@ I_HEADER=0
 
 # include 'bc_types.fi' in fortran
 old="bc_types\.fi"
-find . -type d \( -name .git -o -path './Tools/Migration/*' -o -path './Docs/Migration/*' \) -prune -o -type f \( -name "*.f" -o -name "*.f90" -o -name "*.F" -o -name "*.F90" \) -exec grep -Iq . {} \; -exec sed -i 's/\(include\s*\(\x27\|\"\)\s*\)'"${old}"'\(\s*\(\x27\|\"\)\)/\1AMReX_'"${old}"'\3/g' {} +
+find . -type d \( -name .git -o -path ./Tools/Migration -o -path ./Docs/Migration \) -prune -o -type f \( -name "*.f" -o -name "*.f90" -o -name "*.F" -o -name "*.F90" \) -exec grep -Iq . {} \; -exec sed -i 's/\(include\s*\(\x27\|\"\)\s*\)'"${old}"'\(\s*\(\x27\|\"\)\)/\1AMReX_'"${old}"'\3/g' {} +
 
 for header in ${BOXLIB_HEADERS}; do
-  find . -type d \( -name .git -o -path './Tools/Migration/*' -o -path './Docs/Migration/*' \) -prune -o -type f \( -name "*.f" -o -name "*.f90" -o -name "*.F" -o -name "*.F90" -o -name "*.H" -o -name "*.h" -o -name "*.cpp" -o -name "*.c" -o -name "*.cc" \) -exec grep -Iq . {} \; -exec sed -i 's/\(#include\s*\(<\|\"\)\s*\)'"${header}"'\(\s*\(>\|\"\)\)/\1AMReX_'"${header}"'\3/g' {} +
+  find . -type d \( -name .git -o -path ./Tools/Migration -o -path ./Docs/Migration \) -prune -o -type f \( -name "*.f" -o -name "*.f90" -o -name "*.F" -o -name "*.F90" -o -name "*.H" -o -name "*.h" -o -name "*.cpp" -o -name "*.c" -o -name "*.cc" \) -exec grep -Iq . {} \; -exec sed -i 's/\(#include\s*\(<\|\"\)\s*\)'"${header}"'\(\s*\(>\|\"\)\)/\1AMReX_'"${header}"'\3/g' {} +
   I_HEADER=$((I_HEADER+1))
   echo -ne "Progress: ${I_HEADER}/${NUM_HEADERS}"\\r
 done

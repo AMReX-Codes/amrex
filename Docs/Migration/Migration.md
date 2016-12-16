@@ -5,12 +5,13 @@ To help C++ BoxLib users migrate to AMReX, we have provided a set of
 tools in `Tools/Migration`.  We recommend you go through the following
 steps in the order listed.  You probably should perform the migration
 in a branch.  For each step, it is recommended that you start with a
-fresh clone of your latest migration branch.  It is assume that the
-environment variable `AMREX_HOME` is set to the AMReX directory. 
+fresh clone of your latest migration branch.  It is assumed that the
+environment variable `AMREX_HOME` is set to the AMReX directory.
 
 **The scripts used in this process typically perform search and
   replace in the directory tree rooted at the current directory.  So
-  do not run them outside your application code.**
+  do not run them outside your application code.  After you run a
+  script, you should do `git diff` to check the results.**
 
 ## Step 0
 
@@ -71,4 +72,20 @@ header file names in the source codes.  For example, `#include
 <Box.H>` needs to be changed to `#include <AMReX_Box.H>`.  A script,
 `Tools/Migration/step-3-amrex-prefix/amrexprefix.sh`, can be used to
 do the search and replace.
+
+### Step 4
+
+AMReX `migration/4-dirname` branch should be used in this step.  In
+AMRex, we have renamed several directories:
+
+* Tools/C_mk --> Tools/GNUMake
+* C_AMRLib --> Amr
+* C_AmrCoreLib --> AmrCore
+* C_BaseLib --> Base
+* C_BoundaryLib --> Boundary
+* C_ParticleLib --> Particle
+
+A script `Tools/Migration/step-4-dirname/dirname.sh` can be used to
+the the search and replace.
+
 
