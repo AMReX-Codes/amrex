@@ -4,6 +4,8 @@
 #include <AMReX_ParmParse.H>
 #include <AMReX_BC_TYPES.H>
 
+using namespace amrex;
+
 void
 Adv::variableCleanUp () 
 {

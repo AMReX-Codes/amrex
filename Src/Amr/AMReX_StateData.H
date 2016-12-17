@@ -16,6 +16,8 @@
 #include <AMReX_RealBox.H>
 #include <AMReX_StateDescriptor.H>
 
+namespace amrex {
+
 //
 // Current and previous level-time data.
 //
@@ -320,5 +322,7 @@ private:
     const Geometry& geom;
     
 };
+
+}
 
 #endif /*_StateData_H_*/

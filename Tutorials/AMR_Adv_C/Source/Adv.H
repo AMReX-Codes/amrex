@@ -19,7 +19,7 @@ enum StateType { State_Type = 0,
 
 class Adv
     :
-    public AmrLevel
+    public amrex::AmrLevel
 {
 public:
     //
@@ -29,10 +29,10 @@ public:
     //
     //The basic constructor.
     //
-    Adv (Amr&            papa,
+    Adv (amrex::Amr&     papa,
 	 int             lev,
-	 const Geometry& level_geom,
-	 const BoxArray& bl,
+	 const amrex::Geometry& level_geom,
+	 const amrex::BoxArray& bl,
 	 Real            time);
     //
     //The destructor.
@@ -41,7 +41,7 @@ public:
     //
     //Restart from a checkpoint file.
     //
-    virtual void restart (Amr&          papa,
+    virtual void restart (amrex::Amr&   papa,
                           std::istream& is,
 			  bool          bReadSpecial = false) override;
 
@@ -56,7 +56,7 @@ public:
     //
     virtual void writePlotFile (const std::string& dir,
                                 std::ostream&      os,
-                                VisMF::How         how) override;
+                                amrex::VisMF::How  how) override;
     //
     //Define data descriptors.
     //
@@ -72,7 +72,7 @@ public:
     //
     //Initialize data on this level from another Adv (during regrid).
     //
-    virtual void init (AmrLevel& old) override;
+    virtual void init (amrex::AmrLevel& old) override;
     //
     //Initialize data on this level after regridding if old level did not previously exist
     //
@@ -101,19 +101,19 @@ public:
     //
     virtual void computeInitialDt (int                   finest_level,
                                    int                   sub_cycle,
-                                   Array<int>&           n_cycle,
-                                   const Array<IntVect>& ref_ratio,
-                                   Array<Real>&          dt_level,
+                                   amrex::Array<int>&           n_cycle,
+                                   const amrex::Array<amrex::IntVect>& ref_ratio,
+                                   amrex::Array<Real>&          dt_level,
                                    Real                  stop_time) override;
     //
     //Compute new `dt'.
     //
     virtual void computeNewDt (int                   finest_level,
                                int                   sub_cycle,
-                               Array<int>&           n_cycle,
-                               const Array<IntVect>& ref_ratio,
-                               Array<Real>&          dt_min,
-                               Array<Real>&          dt_level,
+                               amrex::Array<int>&           n_cycle,
+                               const amrex::Array<amrex::IntVect>& ref_ratio,
+                               amrex::Array<Real>&          dt_min,
+                               amrex::Array<Real>&          dt_level,
                                Real                  stop_time,
                                int                   post_regrid_flag) override;
     //
@@ -135,7 +135,7 @@ public:
     //
     //Error estimation for regridding.
     //
-    virtual void errorEst (TagBoxArray& tb,
+    virtual void errorEst (amrex::TagBoxArray& tb,
                            int          clearval,
                            int          tagval,
                            Real         time,
@@ -150,8 +150,8 @@ protected:
 
     Adv& getLevel (int lev);
 
-    FluxRegister& getFluxReg ();
-    FluxRegister& getFluxReg (int lev);
+    amrex::FluxRegister& getFluxReg ();
+    amrex::FluxRegister& getFluxReg (int lev);
 
     void reflux ();
 
@@ -162,7 +162,7 @@ protected:
     //
     // The data.
     //
-    FluxRegister*        flux_reg;
+    amrex::FluxRegister*        flux_reg;
     //
     // Static data members.
     //
@@ -183,7 +183,7 @@ Adv::getLevel (int lev)
 }
 
 inline
-FluxRegister&
+amrex::FluxRegister&
 Adv::getFluxReg ()
 {
     BL_ASSERT(flux_reg);
@@ -191,7 +191,7 @@ Adv::getFluxReg ()
 }
 
 inline
-FluxRegister&
+amrex::FluxRegister&
 Adv::getFluxReg (int lev)
 {
     return getLevel(lev).getFluxReg();

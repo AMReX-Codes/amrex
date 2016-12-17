@@ -14,6 +14,8 @@ extern "C"
 			    const int& scomp, const int& ncomp);
 }
 
+namespace amrex {
+
 namespace Extrapolater
 {
     void FirstOrderExtrap (MultiFab& mf, const Geometry& geom, int scomp, int ncomp)
@@ -44,4 +46,6 @@ namespace Extrapolater
 			       bx.loVect(), bx.hiVect(), scomp, ncomp);
 	}
     }
+}
+
 }

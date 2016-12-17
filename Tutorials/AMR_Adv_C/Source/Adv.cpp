@@ -5,6 +5,8 @@
 #include <AMReX_TagBox.H>
 #include <AMReX_ParmParse.H>
 
+using namespace amrex;
+
 int      Adv::verbose         = 0;
 Real     Adv::cfl             = 0.9;
 int      Adv::do_reflux       = 1;

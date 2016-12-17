@@ -15,6 +15,8 @@
 #include <omp.h>
 #endif
 
+namespace amrex {
+
 const Real INVALID_TIME = -1.0e200;
 
 const int MFNEWDATA = 0;
@@ -999,4 +1001,4 @@ void StateData::Check() const
       }
 }
 
-
+}

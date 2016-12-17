@@ -5,6 +5,8 @@
 #include <AMReX_SlabStat.H>
 #include <AMReX_Utility.H>
 
+namespace amrex {
+
 SlabStatRec::SlabStatRec (const std::string&  name,
                           int                 ncomp,
                           Array<std::string>& vars,
@@ -387,4 +389,6 @@ SlabStatList::checkPoint (Array<std::unique_ptr<AmrLevel> >& amrLevels, int leve
 
         (*li)->mf().setVal(0);
     }
+}
+
 }

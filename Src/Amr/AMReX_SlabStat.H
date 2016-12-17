@@ -7,10 +7,6 @@
 #include <AMReX_REAL.H>
 #include <AMReX_Box.H>
 #include <AMReX_MultiFab.H>
-//
-// Forward declaration.
-//
-class AmrLevel;
 
 extern "C"
 {
@@ -28,6 +24,10 @@ extern "C"
                                  const Real* dt,
                                  const Real* dx);
 }
+
+namespace amrex {
+
+class AmrLevel;
 
 //
 // Slab Statistics Record
@@ -218,5 +218,7 @@ private:
 
     std::list<SlabStatRec*> m_list;
 };
+
+}
 
 #endif /*_SlabStat_H_*/

@@ -10,6 +10,8 @@
 #include <AMReX_Box.H>
 #include <AMReX_PhysBCFunct.H>
 
+namespace amrex {
+
 class Interpolater;
 
 //
@@ -347,5 +349,7 @@ private:
 
     Array<std::unique_ptr<StateDescriptor> > desc;
 };
+
+}
 
 #endif /*_StateDescriptor_H_*/

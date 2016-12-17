@@ -13,6 +13,8 @@
 #include <AMReX_ParmParse.H>
 #include <AMReX_BLProfiler.H>
 
+namespace amrex {
+
 DescriptorList AmrLevel::desc_lst;
 DeriveList     AmrLevel::derive_lst;
 
@@ -1973,5 +1975,5 @@ AmrLevel::CreateLevelDirectory (const std::string &dir)
     levelDirectoryCreated = true;
 }
 
-
+}
 

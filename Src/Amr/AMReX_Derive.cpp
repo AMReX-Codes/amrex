@@ -5,6 +5,8 @@
 #include <AMReX_Derive.H>
 #include <AMReX_StateDescriptor.H>
 
+namespace amrex {
+
 Box
 DeriveRec::TheSameBox (const Box& box)
 {
@@ -391,3 +393,4 @@ DeriveList::addComponent (const std::string&    name,
     li->addRange(d_list, state_indx, s_comp, n_comp);
 }
 
+}

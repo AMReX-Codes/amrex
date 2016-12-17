@@ -8,8 +8,6 @@
 #include <AMReX_Box.H>
 #include <AMReX_Interpolater.H>
 
-class DescriptorList;
-
 extern "C"
 {
     //
@@ -36,6 +34,10 @@ extern "C"
 				 const int* bcrec,
 				 const int* level, const int* grid_no) ;
 }
+
+namespace amrex {
+
+class DescriptorList;
 
 //
 // Derived Type Record
@@ -304,5 +306,7 @@ private:
 
     std::list<DeriveRec> lst;
 };
+
+}
 
 #endif /*_Derive_H_*/

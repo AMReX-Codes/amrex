@@ -8,7 +8,7 @@
 #include <AMReX_Amr.H>
 #include <AMReX_AmrLevel.H>
 
-extern LevelBld* getLevelBld ();
+namespace amrex {
 
 //
 // Builds problem-specific AmrLevels.
@@ -57,5 +57,9 @@ public:
                                   const BoxArray& ba,
                                   Real            time) = 0;
 };
+
+}
+
+extern amrex::LevelBld* getLevelBld ();
 
 #endif /*_LEVELBLD_H_*/

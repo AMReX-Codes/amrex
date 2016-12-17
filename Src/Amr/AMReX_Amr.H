@@ -17,6 +17,8 @@
 #include <AMReX_StationData.H>
 #endif
 
+namespace amrex {
+
 class AmrLevel;
 class LevelBld;
 class BoxDomain;
@@ -580,5 +582,7 @@ private:
     Amr (const Amr& rhs);
     Amr& operator= (const Amr& rhs);
 };
+
+}
 
 #endif /*_Amr_H_*/
