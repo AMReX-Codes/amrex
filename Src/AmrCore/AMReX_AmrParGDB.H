@@ -4,6 +4,8 @@
 #include <AMReX_ParGDB.H>
 #include <AMReX_AmrCore.H>
 
+namespace amrex {
+
 class AmrParGDB
     : public ParGDBBase
 {
@@ -144,6 +146,8 @@ int
 AmrParGDB::MaxRefRatio (int level) const
 {
     return m_amrcore->MaxRefRatio(level);
+}
+
 }
 
 #endif

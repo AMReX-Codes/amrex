@@ -5,6 +5,8 @@
 #include <AMReX_BCRec.H>
 #include <AMReX_REAL.H>
 
+namespace amrex {
+
 class Geometry;
 class FArrayBox;
 class InterpolaterBoxCoarsener;
@@ -440,5 +442,7 @@ private:
     Interpolater* mapper;
     IntVect ratio;
 };
+
+}
 
 #endif /*_INTERPOLATER_H_*/

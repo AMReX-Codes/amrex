@@ -9,6 +9,8 @@
 
 #include <vector>
 
+namespace amrex {
+
 FluxRegister::FluxRegister ()
 {
     fine_level = ncomp = -1;
@@ -530,3 +532,4 @@ FluxRegister::AddProcsToComp(int ioProcNumSCS, int ioProcNumAll,
                                 scsMyId, scsComm);
 }
 
+}

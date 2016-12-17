@@ -10,6 +10,8 @@
 #include <AMReX_BLProfiler.H>
 #include <AMReX_ccse-mpi.H>
 
+namespace amrex {
+
 TagBox::TagBox () {}
 
 TagBox::TagBox (const Box& bx,
@@ -651,5 +653,5 @@ TagBoxArray::AddProcsToComp (int ioProcNumSCS, int ioProcNumAll,
 				     scsMyId, scsComm);
 }
 
-
+}
 

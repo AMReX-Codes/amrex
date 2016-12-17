@@ -5,6 +5,8 @@
 #include <AMReX_LO_BCTYPES.H>
 #include <AMReX_ParallelDescriptor.H>
 
+namespace amrex {
+
 //
 // Mask info required for this many cells past grid edge
 //  (here, e.g. ref=4, crse stencil width=3, and let stencil slide 2 past grid edge)
@@ -172,3 +174,4 @@ BndryData::define (const BoxArray& _grids,
     m_defined = true;
 }
 
+}

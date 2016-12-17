@@ -3,6 +3,8 @@
 
 #include <AmrAdv.H>
 
+using namespace amrex;
+
 std::string
 AmrAdv::PlotFileName (int lev) const
 {

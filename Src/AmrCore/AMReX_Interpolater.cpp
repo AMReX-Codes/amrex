@@ -7,6 +7,8 @@
 #include <AMReX_Interpolater.H>
 #include <AMReX_INTERP_F.H>
 
+namespace amrex {
+
 //
 // Note that in 1D, CellConservativeProtected and CellQuadratic
 // interpolation are turned off in a hardwired way.
@@ -929,4 +931,6 @@ CellConservativeQuartic::interp (const FArrayBox&  crse,
 		      D_DECL(&ratioV[0],&ratioV[1],&ratioV[2]),
 		      D_DECL(ftmp.dataPtr(), ctmp.dataPtr(), ctmp2.dataPtr()),
 		      bc.dataPtr(),&actual_comp,&actual_state);
+}
+
 }

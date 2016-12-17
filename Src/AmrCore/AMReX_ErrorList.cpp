@@ -4,6 +4,8 @@
 #include <AMReX_ErrorList.H>
 #include <AMReX_SPACE.H>
 
+namespace amrex {
+
 ErrorRec::ErrorFunc::ErrorFunc ()
     :
     m_func(0),
@@ -222,4 +224,6 @@ operator << (std::ostream&    os,
            << '\n';
     }
     return os;
+}
+
 }

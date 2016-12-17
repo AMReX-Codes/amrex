@@ -10,6 +10,8 @@
 
 #include <stdio.h>
 
+namespace amrex {
+
 namespace Amrvis {
 
 const int BUFSIZE = 8192;
@@ -83,6 +85,8 @@ enum ContourType {
 enum FileType { INVALIDTYPE = 0, FAB, MULTIFAB, NEWPLT, NUMDBPTYPES };
 
 }  // end namespace Amrvis
+
+}
 
 #endif
 // -------------------------------------------------------------------

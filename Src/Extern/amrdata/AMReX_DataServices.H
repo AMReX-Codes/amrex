@@ -12,6 +12,8 @@
 #include <string>
 using std::string;
 
+namespace {
+
 class XYPlotDataList;
 
 
@@ -140,5 +142,7 @@ class DataServices {
     static int dsFabOutSize;
     static bool dsBatchMode;
 };
+
+}
 
 #endif

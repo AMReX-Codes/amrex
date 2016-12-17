@@ -5,6 +5,8 @@
 #include <AMReX_Utility.H>
 #include <limits>
 
+namespace amrex {
+
 namespace {
     static const Real BL_SAFE_BOGUS = std::numeric_limits<Real>::quiet_NaN();
 }
@@ -358,5 +360,5 @@ BndryRegister::AddProcsToComp(int ioProcNumSCS, int ioProcNumAll,
   }
 }
 
-
+}
 

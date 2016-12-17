@@ -9,6 +9,8 @@
 #include <omp.h>
 #endif
 
+namespace amrex {
+
 class MultiMaskIter;
 
 class MultiMask
@@ -50,6 +52,8 @@ public:
     explicit MultiMaskIter (const MultiMask& mm) 
 	: MFIter(mm.m_fa) { }
 };
+
+}
 
 #endif
 

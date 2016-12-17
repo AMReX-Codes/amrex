@@ -23,6 +23,8 @@ using std::endl;
 using std::min;
 using std::max;
 
+namespace amrex {
+
 Array<DataServices *> DataServices::dsArray;
 int DataServices::dsArrayIndexCounter = 0;
 int DataServices::dsFabOutSize = 0;
@@ -1208,3 +1210,5 @@ bool DataServices::MinMax(const Box &onBox, const string &derived, int level,
 
 // ---------------------------------------------------------------
 // ---------------------------------------------------------------
+
+}

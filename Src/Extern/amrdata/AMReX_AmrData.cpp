@@ -138,6 +138,7 @@ extern "C" {
 #endif
 }
 
+namespace amrex {
 
 bool AmrData::verbose = false;
 int  AmrData::skipPltLines  = 0;
@@ -2130,3 +2131,5 @@ FArrayBox *AmrData::ReadGrid(std::istream &is, int numVar) {
 }
 // ---------------------------------------------------------------
 // ---------------------------------------------------------------
+
+}

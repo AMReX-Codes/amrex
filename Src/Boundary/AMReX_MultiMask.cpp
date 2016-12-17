@@ -2,6 +2,8 @@
 #include <AMReX_MultiMask.H>
 #include <AMReX_BndryData.H>
 
+namespace amrex {
+
 MultiMask::MultiMask (const BoxArray& ba, const DistributionMapping& dm, int ncomp)
     : m_fa(ba, ncomp, 0, dm)
 { }
@@ -93,3 +95,4 @@ MultiMask::Copy (MultiMask& dst, const MultiMask& src)
     }
 }
 
+}

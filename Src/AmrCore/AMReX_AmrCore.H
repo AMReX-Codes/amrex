@@ -8,6 +8,8 @@
 #include <AMReX_Geometry.H>
 #include <AMReX_TagBox.H>
 
+namespace amrex {
+
 #ifdef USE_PARTICLES
 class AmrParGDB;
 #endif
@@ -128,5 +130,7 @@ private:
 
     void InitAmrCore (int max_level_in, const Array<int>& n_cell_in);
 };
+
+}
 
 #endif

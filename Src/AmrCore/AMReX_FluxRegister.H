@@ -4,6 +4,8 @@
 #include <AMReX_BndryRegister.H>
 #include <AMReX_Geometry.H>
 
+namespace amrex {
+
 //
 // Flux Register.
 //
@@ -199,5 +201,7 @@ private:
     //
     int ncomp;
 };
+
+}
 
 #endif /*_FLUXREGISTER_H_*/

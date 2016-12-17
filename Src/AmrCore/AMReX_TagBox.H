@@ -10,6 +10,8 @@
 #include <AMReX_BoxArray.H>
 #include <AMReX_Geometry.H>
 
+namespace amrex {
+
 //
 // Tagged cells in a Box.
 //
@@ -166,5 +168,7 @@ private:
     TagBoxArray (const TagBoxArray& rhs);
     TagBoxArray& operator= (const TagBoxArray& rhs);
 };
+
+}
 
 #endif /*_TagBox_H_*/

@@ -5,6 +5,8 @@
 #include <AMReX_BoxArray.H>
 #include <AMReX_FabSet.H>
 
+namespace amrex {
+
 class Orientation;
 
 /*
@@ -203,5 +205,7 @@ protected:
     FabSet    bndry[2*BL_SPACEDIM];
     BoxArray  grids;
 };
+
+}
 
 #endif /*_BNDRYREGISTER_H_*/

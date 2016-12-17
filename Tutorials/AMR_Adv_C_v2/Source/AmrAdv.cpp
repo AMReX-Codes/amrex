@@ -7,6 +7,8 @@
 #include <AmrAdv.H>
 #include <AmrAdvBC.H>
 
+using namespace amrex;
+
 AmrAdv::AmrAdv ()
 {
     ReadParameters();

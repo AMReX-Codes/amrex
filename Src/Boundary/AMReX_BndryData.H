@@ -15,6 +15,8 @@
 #include <memory>
 #include <map>
 
+namespace amrex {
+
 //
 //  A BndryData stores and manipulates boundary data
 //  information on each side of each box in a BoxArray.
@@ -43,19 +45,9 @@
 
 class BndryData
     :
-    private BndryRegister
+    public BndryRegister
 {
 public:
-    //
-    // return the array of Boxes
-    //
-    using BndryRegister::boxes;
-    //
-    // return the number of Boxes
-    //
-    using BndryRegister::size;
-    //
-    using BndryRegister::DistributionMap;
     //
     // mask values enumeration
     //
@@ -118,8 +110,6 @@ public:
     //
     int nComp () const { return m_ncomp; }
     //
-    using BndryRegister::color;
-    //
     // return domain used to define masks
     //
     const Box& getDomain () const { return geom.Domain(); }
@@ -170,14 +160,6 @@ protected:
     //
     void init (const BndryData& src);
     //
-    // protect BndryRegister grids.
-    //
-    using BndryRegister::grids;
-    //
-    // protect BndryRegister FabSets.
-    //
-    using BndryRegister::bndry;
-    //
     // Map of boundary condition type specifiers.
     // The outer Array dimension is over Orientation.
     //
@@ -198,6 +180,8 @@ protected:
 private:
     static int NTangHalfWidth;
 };
+
+}
 
 #endif /*_BNDRYDATA_H_*/
 
