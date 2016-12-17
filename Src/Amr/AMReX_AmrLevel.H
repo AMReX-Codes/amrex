@@ -18,6 +18,8 @@
 
 #include <map>
 
+namespace amrex {
+
 class TagBox;
 class TagBoxArray;
 
@@ -599,5 +601,7 @@ private:
     std::map< int,Array< Array<Box> > >                m_cbox; // [grid][level][fillablesubbox]
     std::map< int,Array< Array< Array<FillBoxId> > > > m_fbid; // [grid][level][fillablesubbox][oldnew]
 };
+
+}
 
 #endif /*_AmrLevel_H_*/

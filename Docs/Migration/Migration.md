@@ -100,6 +100,7 @@ However, the rest of work is expected to be performed manually,
 because C++ is too a complicated language for shell scripting.  For
 most `.cpp` files, you can put a `using namespace amrex;` line after
 the last `include` line, or you can add `amrex::` to wherever needed.
-However, for header files, it is considered bad practice to have
-`using namespace` because it pollutes the namespace.
-
+But, for header files, it is considered bad practice to have `using
+namespace amrex` because it pollutes the namespace.  So you need to
+manually add `amrex::` in front of AMReX names likes `MultiFab` and
+`BoxArray`.

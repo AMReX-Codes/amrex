@@ -4,6 +4,8 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_Geometry.H>
 
+namespace amrex {
+
 namespace Extrapolater
 {
     // finebnd: boundary cells covered by fine cells (including periodically shifted fine cells)
@@ -17,6 +19,8 @@ namespace Extrapolater
 
     // It is expected that FillBoundary (w/ periodicity) has been called on mf.
     void FirstOrderExtrap (MultiFab& mf, const Geometry& geom, int scomp, int ncomp);
+}
+
 }
 
 #endif

@@ -8,6 +8,8 @@
 #include <AMReX_Interpolater.H>
 #include <AMReX_BCRec.H>
 
+namespace amrex {
+
 int StateDescriptor::bf_ext_dir_threadsafe = 0;
 
 StateDescriptor::BndryFunc::BndryFunc ()
@@ -663,5 +665,5 @@ StateDescriptor::Print () const
   std::cout << "==== StateDescriptor:  bf_ext_dir_threadsafe  = " << bf_ext_dir_threadsafe << std::endl;
 }
 
-
+}
 

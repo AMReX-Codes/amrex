@@ -56,6 +56,9 @@
 #ifdef BL_USE_SETBUF
 #define pubsetbuf setbuf
 #endif
+
+namespace amrex {
+
 //
 // Static class members.  Set defaults in Initialize()!!!
 //
@@ -3779,4 +3782,5 @@ Amr::BroadcastBCRec(BCRec &bcrec, int myLocalId, int rootId, MPI_Comm localComm)
   }
 }
 
+}
 

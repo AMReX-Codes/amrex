@@ -12,9 +12,9 @@
 #include <AMReX_REAL.H>
 #include <AMReX_StateData.H>
 #include <AMReX_Utility.H>
-//
-// Forward declaration.
-//
+
+namespace amrex {
+
 class AmrLevel;
 
 struct StationRec
@@ -66,6 +66,8 @@ private:
     Array<int>         m_ncomp; // The component of the state_index for m_typ.
     std::ofstream      m_ofile; // Output stream.
 };
+
+}
 
 #endif /*_StationData_H_*/
 

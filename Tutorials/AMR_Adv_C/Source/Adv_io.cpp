@@ -1,6 +1,8 @@
 #include <Adv.H>
 #include <AMReX_Utility.H>
 
+using namespace amrex;
+
 void
 Adv::restart (Amr&          papa,
 	      std::istream& is,

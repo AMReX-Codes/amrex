@@ -5,6 +5,8 @@
 #include <AMReX_Geometry.H>
 #include <AMReX_MultiFab.H>
 
+namespace amrex {
+
 class AuxBoundaryData
 {
 public:
@@ -84,5 +86,7 @@ private:
     // 
     AuxBoundaryData& operator= (const AuxBoundaryData& rhs);
 };
+
+}
 
 #endif

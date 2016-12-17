@@ -8,6 +8,8 @@
 #include <AMReX_StationData.H>
 #include <AMReX_Utility.H>
 
+namespace amrex {
+
 StationRec::StationRec ()
 {
     D_TERM(pos[0],=pos[1],=pos[2]) = -1;
@@ -351,4 +353,6 @@ StationData::findGrid (const Array<std::unique_ptr<AmrLevel> >& levels,
             }
         }
     }
+}
+
 }

@@ -7,6 +7,8 @@
 #include <AMReX_Lazy.H>
 #endif
 
+namespace amrex {
+
 AuxBoundaryData::AuxBoundaryData ()
     :
     m_ngrow(0),
@@ -159,4 +161,6 @@ AuxBoundaryData::copyFrom (const MultiFab& mf,
     {
 	m_fabs.copy(mf,src_comp,dst_comp,num_comp,src_ng,0);
     }
+}
+
 }
