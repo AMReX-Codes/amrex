@@ -10,6 +10,7 @@
 
 #include <ParticleContainer.H>
 #include <WarpXConst.H>
+#include <random>
 
 void
 MyParticleContainer::InitData()
