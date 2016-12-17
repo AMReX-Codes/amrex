@@ -5,6 +5,8 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_Geometry.H>
 
+namespace amrex {
+
 /*
         A FabSet is a group of FArrayBox's.  The grouping is designed
         specifically to represent regions along the boundary of Box's,
@@ -136,5 +138,7 @@ public:
     explicit FabSetIter (const FabSet& fs) 
 	: MFIter(fs.m_mf) { }
 };
+
+}
 
 #endif /*_FABSET_H_*/

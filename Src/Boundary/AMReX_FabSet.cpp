@@ -8,6 +8,8 @@
 #include <omp.h>
 #endif
 
+namespace amrex {
+
 FabSet::FabSet () {}
 
 FabSet::~FabSet () {}
@@ -197,4 +199,6 @@ FabSet::Copy (FabSet& dst, const FabSet& src)
     for (FabSetIter fsi(dst); fsi.isValid(); ++fsi) {
 	dst[fsi].copy(src[fsi], 0, 0, ncomp);
     }
+}
+
 }

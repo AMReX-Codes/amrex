@@ -9,6 +9,8 @@
 #include <AMReX_BoxArray.H>
 #include <AMReX_REAL.H>
 
+namespace amrex {
+
 class BoxDomain;
 class ClusterList;
 
@@ -168,5 +170,7 @@ private:
     //    
     std::list<Cluster*> lst;
 };
+
+}
 
 #endif /*_Cluster_H_*/

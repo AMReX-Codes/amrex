@@ -43,6 +43,8 @@ extern "C"
   
 }
 
+namespace amrex {
+
 //
 // Error Record.
 //
@@ -235,6 +237,8 @@ private:
 };
 
 std::ostream& operator << (std::ostream& os, const ErrorList& elst);
+
+}
 
 #endif
 

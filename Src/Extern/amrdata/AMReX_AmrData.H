@@ -17,6 +17,8 @@ using std::list;
 using std::string;
 using std::vector;
 
+namespace amrex {
+
 class Interpolater;
 
 class AmrData {
@@ -175,5 +177,7 @@ class AmrData {
   FArrayBox *ReadGrid(std::istream &is, int numVar);
   bool DefineFab(int level, int componentIndex, int fabIndex);
 };
+
+}
 
 #endif

@@ -10,6 +10,8 @@
 #include <AMReX_AmrParGDB.H>
 #endif
 
+namespace amrex {
+
 namespace
 {
     bool initialized = false;
@@ -673,4 +675,6 @@ AmrCore::ProjPeriodic (BoxList& blout, const Geometry& geom)
         if (ri != 0 && geom.isPeriodic(0))
             blorig.shift(0,-ri*domain.length(0));
     }
+}
+
 }

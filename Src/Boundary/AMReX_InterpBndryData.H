@@ -10,6 +10,8 @@
 #include <AMReX_BoundCond.H>
 #include <AMReX_BndryData.H>
 
+namespace amrex {
+
 /*
         An InterpBndryData object adds to a BndryData object the ability to
         manipulate and set the data stored in the boundary cells.
@@ -84,7 +86,7 @@ public:
     //
     // set bndry values at fine level, performing necessary interpolations
     //
-    virtual void setBndryValues (::BndryRegister&  crse,
+    virtual void setBndryValues (BndryRegister&  crse,
                                  int             c_start,
                                  const MultiFab& fine,
                                  int             f_start,
@@ -96,7 +98,7 @@ public:
     //
     // set bndry values at fine level, performing necessary interpolations
     //
-    virtual void setBndryValues (::BndryRegister&  crse,
+    virtual void setBndryValues (BndryRegister&  crse,
                                  int             c_start,
                                  const MultiFab& fine,
                                  int             f_start,
@@ -110,6 +112,8 @@ public:
 
     static int maxOrderDEF() {return IBD_max_order_DEF;}
 };
+
+}
 
 #endif /*_INTERPBNDRYDATA_H_*/
 

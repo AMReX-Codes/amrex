@@ -4,6 +4,8 @@
 #include <AMReX_Cluster.H>
 #include <AMReX_BoxDomain.H>
 
+namespace amrex {
+
 enum CutStatus { HoleCut=0, SteepCut, BisectCut, InvalidCut };
 
 Cluster::Cluster ()
@@ -463,4 +465,6 @@ ClusterList::intersect (const BoxDomain& dom)
             lst.erase(cli++);
         }
     }
+}
+
 }

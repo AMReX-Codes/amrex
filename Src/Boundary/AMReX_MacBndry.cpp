@@ -3,6 +3,8 @@
 #include <AMReX_LO_BCTYPES.H>
 #include <AMReX_MacBndry.H>
 
+namespace amrex {
+
 MacBndry::MacBndry ()
     :
     InterpBndryData()
@@ -99,3 +101,4 @@ MacBndry::setHomogValues (const BCRec&   bc,
     }
 }
 
+}

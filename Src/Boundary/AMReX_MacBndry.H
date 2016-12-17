@@ -4,6 +4,8 @@
 
 #include <AMReX_InterpBndryData.H>
 
+namespace amrex {
+
 class MacBndry
     :
     public InterpBndryData
@@ -36,5 +38,7 @@ private:
     // save phys_bc for FMultiGrid
     BCRec m_phys_bc;
 };
+
+}
 
 #endif

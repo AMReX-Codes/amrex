@@ -4,6 +4,8 @@
 #include <AMReX_Mask.H>
 #include <AMReX_Utility.H>
 
+namespace amrex {
+
 const char NL = '\n';
 const char SP = ' ';
 
@@ -195,4 +197,6 @@ Mask::Or (const Mask& src,
         thisR = (thisR ? 1 : srcR);
     } EndForTX;
     return *this;
+}
+
 }

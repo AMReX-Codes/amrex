@@ -4,6 +4,8 @@
 
 #include <AMReX_BLassert.H>
 
+namespace amrex {
+
 /*
    Maintain an identifier for boundary condition types.
 
@@ -46,5 +48,7 @@ private:
     //
     int bctype;
 };
+
+}
 
 #endif /*_BOUNDCOND_H_*/

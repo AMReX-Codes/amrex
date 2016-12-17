@@ -25,6 +25,8 @@ const int* fablo = (fab).loVect();           \
 const int* fabhi = (fab).hiVect();           \
 const Real* fabdat = (fab).dataPtr();
 
+namespace amrex {
+
 //
 // For sliding parabolic interp in bdfuncs
 //
@@ -157,7 +159,7 @@ InterpBndryData::setBndryValues (const MultiFab& mf,
 //
 
 void
-InterpBndryData::setBndryValues (::BndryRegister& crse,
+InterpBndryData::setBndryValues (BndryRegister& crse,
                                  int             c_start,
                                  const MultiFab& fine,
                                  int             f_start,
@@ -269,7 +271,7 @@ InterpBndryData::setBndryValues (::BndryRegister& crse,
 }
 
 void
-InterpBndryData::setBndryValues (::BndryRegister&  crse,
+InterpBndryData::setBndryValues (BndryRegister&  crse,
                                  int             c_start,
                                  const MultiFab& fine,
                                  int             f_start,
@@ -281,4 +283,6 @@ InterpBndryData::setBndryValues (::BndryRegister&  crse,
 {
     const IntVect& ratio_vect = ratio * IntVect::TheUnitVector();
     setBndryValues(crse,c_start,fine,f_start,bnd_start,num_comp,ratio_vect,bc,max_order);
+}
+
 }

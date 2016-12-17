@@ -5,6 +5,8 @@
 #include <AMReX_TracerParticles.H>
 #include <AMReX_AmrParGDB.H>
 
+namespace amrex {
+
 template <int NR, int NI=0, class C = std::deque<Particle<NR,NI> > >
 class AmrParticleContainer
     : public ParticleContainer<NR,NI,C>
@@ -40,5 +42,7 @@ public:
 
     ~AmrTracerParticleContainer () {}
 };
+
+}
 
 #endif

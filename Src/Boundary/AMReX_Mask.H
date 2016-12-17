@@ -5,6 +5,8 @@
 #include <AMReX_BaseFab.H>
 #include <AMReX_FArrayBox.H>
 
+namespace amrex {
+
 /*
         A Mask is a derived Fab class whose elements maintain a logical
         "TRUE" or "FALSE" state.  A Mask can perform several elementary
@@ -133,5 +135,7 @@ private:
     Mask& operator= (const Mask&);
     Mask (const Mask&);
 };
+
+}
 
 #endif /*_MASK_H_*/
