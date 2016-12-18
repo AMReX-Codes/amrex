@@ -5,6 +5,8 @@
 #include <AMReX_BLassert.H>
 #include <upcxx.h>
 
+namespace amrex {
+
 namespace BLPgas
 {
   struct SendInfo {
@@ -77,6 +79,8 @@ namespace BLPgas
 
   void* alloc (std::size_t _sz);
   void free (void* pt);  
+}
+
 }
 
 #endif
