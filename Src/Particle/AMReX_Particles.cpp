@@ -2,6 +2,8 @@
 #include <AMReX_ParmParse.H>
 #include <limits>
 
+namespace amrex {
+
 void
 ParticleBase::CIC_Cells_Fracs_Basic (const ParticleBase& p,
                                      const Real*         plo,
@@ -892,3 +894,4 @@ operator<< (std::ostream& os, const ParticleBase& p)
     return os;
 }
 
+}

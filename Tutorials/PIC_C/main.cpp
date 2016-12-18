@@ -12,6 +12,8 @@
 
 #include "AMReX_Particles.H"
 
+using namespace amrex;
+
 // declare routines below
 void single_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int nppc, bool verbose);
 void    two_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int nppc, bool verbose);

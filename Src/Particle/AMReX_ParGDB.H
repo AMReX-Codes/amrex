@@ -4,6 +4,8 @@
 #include <AMReX_Array.H>
 #include <AMReX_Geometry.H>
 #include <AMReX_MultiFab.H>
+
+namespace amrex {
 				      
 class ParGDBBase
 {
@@ -223,6 +225,8 @@ ParGDB::MaxRefRatio (int level) const
     for (int lev = 0; lev < m_nlevels-1; lev++)
        max_ref_ratio = std::max(max_ref_ratio, m_rr[lev]);
     return max_ref_ratio;
+}
+
 }
 
 #endif
