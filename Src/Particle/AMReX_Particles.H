@@ -31,6 +31,8 @@
 #include <omp.h>
 #endif
 
+namespace amrex {
+
 namespace
 {
     std::string aggregation_type   = "";
@@ -5241,6 +5243,8 @@ ParticleContainer<NR,NI,C>::moveKick (MultiFab&       acceleration,
     //
     // No need for Redistribution(), we only change the velocity.
     //
+}
+
 }
 
 #endif /*_PARTICLES_H_*/

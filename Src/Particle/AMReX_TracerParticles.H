@@ -3,6 +3,8 @@
 
 #include <AMReX_Particles.H>
 
+namespace amrex {
+
 class TracerParticleContainer
     : public ParticleContainer<BL_SPACEDIM,0,std::vector<Particle<BL_SPACEDIM,0> > >
 {
@@ -28,6 +30,7 @@ public:
 		    const std::vector<int>& idx);
 };
 
+}
 
 #endif
 

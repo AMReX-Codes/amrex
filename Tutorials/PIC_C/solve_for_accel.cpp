@@ -11,6 +11,8 @@
 #include <AMReX_stencil_types.H>
 #include <AMReX_VisMF.H>
 
+using namespace amrex;
+
 void solve_with_f90  (const Array<MultiFab*>& rhs, 
 		      const Array<MultiFab*>& phi, 
 		      const Array<Array<MultiFab*> >& grad_phi_edge, 

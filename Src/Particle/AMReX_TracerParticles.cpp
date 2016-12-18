@@ -1,6 +1,8 @@
 
 #include <AMReX_TracerParticles.H>
 
+namespace amrex {
+
 //
 // Uses midpoint method to advance particles using umac.
 //
@@ -401,4 +403,6 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
         });
 #endif
     }
+}
+
 }
