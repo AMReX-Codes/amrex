@@ -13,8 +13,6 @@ using std::string;
 using std::cout;
 using std::cerr;
 using std::endl;
-using std::min;
-using std::max;
 #ifndef WIN32
 using std::strlen;
 #endif
@@ -512,7 +510,7 @@ bool AmrData::ReadData(const string &filename, Amrvis::FileType filetype) {
    dataGridsDefined.resize(finestLevel + 1);
 
    int lev;
-   boundaryWidth = max(width, sBoundaryWidth);
+   boundaryWidth = std::max(width, sBoundaryWidth);
    bool bRestrictDomain(maxDomain[0].ok());
    if(bRestrictDomain) {
       for(lev = 1; lev <= finestLevel; ++lev) {
@@ -985,8 +983,8 @@ bool AmrData::ReadNonPlotfileData(const string &filename, Amrvis::FileType filet
         zvMin = tempVisMF.min(0, iComp);  // init with first value
         zvMax = tempVisMF.max(0, iComp);  // init with first value
         for(int ic(0); ic < tempVisMF.size(); ++ic) {
-          zvMin = min(zvMin, tempVisMF.min(ic, iComp));
-          zvMax = max(zvMax, tempVisMF.max(ic, iComp));
+	    zvMin = std::min(zvMin, tempVisMF.min(ic, iComp));
+	    zvMax = std::max(zvMax, tempVisMF.max(ic, iComp));
         }
         levelZeroValue = zvMin;
         newfab->setVal(levelZeroValue);
@@ -1801,8 +1799,8 @@ bool AmrData::MinMax(const Box &onBox, const string &derived, int level,
           minVal = (*dataGrids[level][compIndex])[gpli].min(overlap, 0);
           maxVal = (*dataGrids[level][compIndex])[gpli].max(overlap, 0);
 
-          dataMin = min(dataMin, minVal);
-          dataMax = max(dataMax, maxVal);
+          dataMin = std::min(dataMin, minVal);
+          dataMax = std::max(dataMax, maxVal);
       }
     }
 
@@ -1831,8 +1829,8 @@ bool AmrData::MinMax(const Box &onBox, const string &derived, int level,
         Real vfVisMFMax(visMF[level][vfWhichVisMF]->max(gdx, vfWhichVisMFComponent));
         if(vfVisMFMin > (1.0 - vfEps[level])) {  // no cg body in this grid
 	  ++cCountAllFluid;
-          dataMin = min(dataMin, visMFMin);
-          dataMax = max(dataMax, visMFMax);
+          dataMin = std::min(dataMin, visMFMin);
+          dataMax = std::max(dataMax, visMFMax);
           valid = true;
 	} else if(vfVisMFMax >= vfEps[level] ) {
 	  ++cCountMixed;
@@ -1853,8 +1851,8 @@ bool AmrData::MinMax(const Box &onBox, const string &derived, int level,
 
               FORT_CARTGRIDMINMAX(ddat, ARLIM(dlo), ARLIM(dhi), vdat, vfEps[level],
                                   minVal, maxVal);
-              dataMin = min(dataMin, minVal);
-              dataMax = max(dataMax, maxVal);
+              dataMin = std::min(dataMin, minVal);
+              dataMax = std::max(dataMax, maxVal);
             }
 	  } else {
 	    ++cCountMixedSkipped;
@@ -1881,8 +1879,8 @@ bool AmrData::MinMax(const Box &onBox, const string &derived, int level,
 
             FORT_CARTGRIDMINMAX(ddat, ARLIM(dlo), ARLIM(dhi), vdat, vfEps[level],
                                 minVal, maxVal);
-            dataMin = min(dataMin, minVal);
-            dataMax = max(dataMax, maxVal);
+            dataMin = std::min(dataMin, minVal);
+            dataMax = std::max(dataMax, maxVal);
           } else {
 	    ++iCountAllBody;
 	  }
@@ -1947,9 +1945,9 @@ bool AmrData::MinMax(const Box &onBox, const string &derived, int level,
 # endif
 #endif
       if(onBox.contains(gpli.validbox())) {
-        dataMin = min(dataMin, visMFMin);
-        dataMax = max(dataMax, visMFMax);
-        valid = true;
+	  dataMin = std::min(dataMin, visMFMin);
+	  dataMax = std::max(dataMax, visMFMax);
+	  valid = true;
       } else if(onBox.intersects(visMF[level][whichVisMF]->
 				 boxArray()[gpli.index()]))
       {
@@ -1961,8 +1959,8 @@ bool AmrData::MinMax(const Box &onBox, const string &derived, int level,
           minVal = (*dataGrids[level][compIndex])[gpli].min(overlap, 0);
           maxVal = (*dataGrids[level][compIndex])[gpli].max(overlap, 0);
 
-          dataMin = min(dataMin, minVal);
-          dataMax = max(dataMax, maxVal);
+          dataMin = std::min(dataMin, minVal);
+          dataMax = std::max(dataMax, maxVal);
         }  // end if(visMFMin...)
       }
     }

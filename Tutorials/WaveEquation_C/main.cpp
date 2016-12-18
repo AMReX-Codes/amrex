@@ -11,6 +11,8 @@
 
 #include <AMReX_ArrayLim.H>
 
+using namespace amrex;
+
 extern "C"
 {
     void init_data(Real* data, const int* lo, const int* hi,

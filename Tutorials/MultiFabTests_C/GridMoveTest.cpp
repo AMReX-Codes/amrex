@@ -30,6 +30,8 @@
 using std::cout;
 using std::endl;
 
+using namespace amrex;
+
 const int maxGrid(32);
 const int nComp(8);
 const int nGhost(1);

@@ -12,6 +12,8 @@
 
 #include "AMReX_Particles.H"
 
+using namespace amrex;
+
 // declare routines below
 void solve_for_accel(const Array<MultiFab*>& rhs,
 		     const Array<MultiFab*>& phi,

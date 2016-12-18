@@ -18,6 +18,8 @@
 #include <AMReX_Utility.H>
 #include <AMReX_ParmParse.H>
 
+using namespace amrex;
+
 namespace
 {
   const unsigned int msps(1000000);

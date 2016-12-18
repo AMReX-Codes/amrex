@@ -13,6 +13,8 @@
 #include <omp.h>
 #endif
 
+using namespace amrex;
+
 BL_FORT_PROC_DECL(ADVANCE_PHI, advance_phi)
     (const int* lo, const int* hi,
      const BL_FORT_FAB_ARG(phiold),

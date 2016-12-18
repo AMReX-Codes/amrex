@@ -20,6 +20,7 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_VisMF.H>
 
+using namespace amrex;
 
 int nComp(6), nGhost(2);
 

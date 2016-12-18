@@ -9,6 +9,8 @@
 
 #include "myfunc_F.H"
 
+using namespace amrex;
+
 void advance (MultiFab& old_phi, MultiFab& new_phi, Array<std::unique_ptr<MultiFab> >& flux,
 	      Real time, Real dt, const Geometry& geom, PhysBCFunct& physbcf,
 	      BCRec& bcr)

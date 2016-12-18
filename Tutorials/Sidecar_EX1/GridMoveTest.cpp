@@ -21,6 +21,8 @@
 #include <AMReX_BoxLib.H>
 #include <InTransitAnalysis.H>
 
+using namespace amrex;
+
 // In this anonymous namespace we define the workflow which occurs when the
 // sidecars receive a particular (user-defined) signal. You have a lot of
 // flexibility here. You could define all of your workflow directly in this

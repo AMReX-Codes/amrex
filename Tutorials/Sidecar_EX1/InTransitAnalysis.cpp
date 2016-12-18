@@ -6,6 +6,8 @@
 
 #include <InTransitAnalysis.H>
 
+using namespace amrex;
+
 void InTransitAnalysis::Initialize (MultiFab &mf_in, Geometry &geom_in, int time_step_in)
 {
     if (ParallelDescriptor::IOProcessor())

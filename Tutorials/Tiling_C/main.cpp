@@ -4,6 +4,8 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_BLFort.H>
 
+using namespace amrex;
+
 // declare a fortran subroutine
 extern "C"
 {
