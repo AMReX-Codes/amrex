@@ -9,5 +9,5 @@
 
 void
 writePlotFile (const std::string& dir, 
-               const MultiFab&    mf, 
-               const Geometry&    geom);
+               const amrex::MultiFab&    mf, 
+               const amrex::Geometry&    geom);

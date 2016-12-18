@@ -6,6 +6,8 @@
 
 #include <AMReX_BLFort.H>
 
+using namespace amrex;
+
 extern "C"
 {
   void work_on_data(Real* data, const int* ng, const int* nc, 

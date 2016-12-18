@@ -6,6 +6,8 @@
 #include <AMReX_BLFort.H>
 #include <AMReX_FMultiGrid.H>
 
+using namespace amrex;
+
 void 
 solve_with_f90(const Array<MultiFab*>& rhs,
 	       const Array<MultiFab*>& phi, 

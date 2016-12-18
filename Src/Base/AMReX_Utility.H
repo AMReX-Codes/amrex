@@ -409,7 +409,6 @@ namespace amrex
     void BroadcastDistributionMapping(DistributionMapping &dM, int sentinelProc,
                                       int myLocalId, int rootId, const MPI_Comm &localComm,
 				      bool addToCache);
-    const unsigned int msps(1000000);
     void USleep(double sleepsec);
 
 }

@@ -13,6 +13,8 @@
 #include <omp.h>
 #endif
 
+using namespace amrex;
+
 extern "C"
 {
   void advance_phi(const int* lo, const int* hi,

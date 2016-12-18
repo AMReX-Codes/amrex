@@ -23,6 +23,8 @@
 #include <AMReX_VisMF.H>
 #include <AMReX_MultiFab.H>
 
+using namespace amrex;
+
 #ifdef BL_USE_SETBUF
 #define pubsetbuf setbuf
 #endif

@@ -12,7 +12,7 @@
 #include <string>
 using std::string;
 
-namespace {
+namespace amrex {
 
 class XYPlotDataList;
 

@@ -97,11 +97,16 @@ into the `amrex` namespace.  In this step, you can use
 `Tools/Migration/step-5-amrex-namespace/amrex-namespace.sh` to replace
 `BoxLib::` with `amrex::` for those already in `BoxLib` namespace.
 However, the rest of work is expected to be performed manually,
-because C++ is too a complicated language for shell scripting.  For
-most `.cpp` files, you can put a `using namespace amrex;` line after
-the last `include` line, or `using amrex::MultiFab` etc., or you can
-add `amrex::` to wherever needed.  Note that `using namespace amrex`
-will expose variables such as `verbose`.  For header files, it is
-considered bad practice to have `using namespace amrex` because it
-pollutes the namespace.  So you need to manually add `amrex::` in
-front of AMReX names likes `MultiFab` and `BoxArray`.
+because C++ is too a complicated language for shell scripting.  
+
+For most `.cpp` files, you can put a `using namespace amrex;` line
+after the last `include` line, or `using amrex::MultiFab` etc., or you
+can add `amrex::` to wherever needed.  Note that having both `using
+namespace std` and `using namespace std` in one file may cause
+conflicts because some names like `min` and `max` exist in both
+namespace. 
+
+For header files, it is considered bad practice to have `using
+namespace amrex` because it pollutes the namespace.  So you need to
+manually add `amrex::` in front of AMReX names likes `MultiFab` and
+`BoxArray`.

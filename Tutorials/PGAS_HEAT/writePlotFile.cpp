@@ -10,6 +10,8 @@
 #include <AMReX_VisMF.H>
 #include <writePlotFile.H>
 
+using namespace amrex;
+
 void
 writePlotFile (const std::string& dir,
                const MultiFab&    mf,

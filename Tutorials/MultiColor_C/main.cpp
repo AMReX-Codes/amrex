@@ -7,6 +7,8 @@
 #include <AMReX_LO_BCTYPES.H>
 #include <AMReX_MultiGrid.H>
 
+using namespace amrex;
+
 namespace {
     int ncomp  = 8;
     Real a     = 1.e-3;

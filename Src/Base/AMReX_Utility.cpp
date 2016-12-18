@@ -60,6 +60,10 @@ extern "C" int gettimeofday (struct timeval*, struct timezone*);
 
 using amrex::Array;
 
+namespace {
+    constexpr unsigned int msps(1000000);
+}
+
 double
 amrex::second (double* t)
 {

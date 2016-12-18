@@ -3,6 +3,8 @@
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_BoxArray.H>
 
+using namespace amrex;
+
 void
 splitBoxes (BoxArray& ba, Array<long>& newcost, const Array<long>& cost_in, int heavy_grid_size)
 {

@@ -22,6 +22,8 @@
 #include <AMReX_Utility.H>
 #include <AMReX_VisMF.H>
 
+using namespace amrex;
+
 #ifdef BL_USE_SETBUF
 #define pubsetbuf setbuf
 #endif

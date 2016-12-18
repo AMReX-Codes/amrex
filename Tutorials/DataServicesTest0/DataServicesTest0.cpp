@@ -18,6 +18,8 @@
 #include <AMReX_DataServices.H>
 #include <AMReX_Utility.H>
 
+using namespace amrex;
+
 const unsigned int msps(1000000);
 
 const int XDIR(0);
