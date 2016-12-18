@@ -12,6 +12,8 @@
 
 #include <AMReX_BndryData.H>
 
+namespace amrex {
+
 enum MCBC_Mode { MCHomogeneous_BC = 0, MCInhomogeneous_BC };
 
 /*
@@ -342,6 +344,8 @@ MCLinOp::maxOrder (int maxorder_)
     int omaxorder = maxorder;
     maxorder = maxorder_;
     return omaxorder;
+}
+
 }
 
 #endif /*_MCLINOP_H_*/

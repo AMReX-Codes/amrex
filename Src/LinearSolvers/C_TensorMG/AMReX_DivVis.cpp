@@ -2,6 +2,8 @@
 #include <AMReX_DivVis.H>
 #include <AMReX_DivVis_F.H>
 
+namespace amrex {
+
 Real DivVis::a_def     = 0.0;
 Real DivVis::b_def     = 1.0;
 Real DivVis::alpha_def = 1.0;
@@ -647,4 +649,6 @@ DivVis::Fapply (MultiFab&       y,
 	    vbx.loVect(), vbx.hiVect(),
 	    h[level]);
     }
+}
+
 }

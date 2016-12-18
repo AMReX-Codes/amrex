@@ -10,6 +10,8 @@
 #include <AMReX_LinOp.H>
 #include <AMReX_ABecLaplacian.H>
 
+namespace amrex {
+
 class MultiGrid;
 
 /*
@@ -201,5 +203,7 @@ private:
     CGSolver (const CGSolver&);
     CGSolver& operator= (const CGSolver&);
 };
+
+}
 
 #endif /*_CGSOLVER_H_*/

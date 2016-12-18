@@ -5,6 +5,8 @@
 #include <AMReX_Tuple.H>
 #include <AMReX_LinOp.H>
 
+namespace amrex {
+
 /*
         An ABecLaplacian tailors the description of a linear operator to apply
         the second-order central difference approximation to the differential
@@ -244,5 +246,7 @@ private:
     ABecLaplacian (const ABecLaplacian&);
     ABecLaplacian& operator= (const ABecLaplacian&);
 };
+
+}
 
 #endif /*_ABecLAPLACIAN_H_*/

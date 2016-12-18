@@ -12,6 +12,8 @@
 #include <AMReX_MCLinOp.H>
 #include <AMReX_MCMultiGrid.H>
 
+namespace amrex {
+
 /*
         A CGColver solves the linear equation, L(phi)=rhs, for a MCLinOp L and
         MultiFabs rhs and phi, using the conjugate gradient algorithm, either
@@ -239,6 +241,8 @@ int
 MCCGSolver::getVerbose ()
 {
     return verbose;
+}
+
 }
 
 #endif /*_MCCGSOLVER_H_*/

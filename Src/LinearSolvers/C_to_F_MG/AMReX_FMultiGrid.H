@@ -51,6 +51,8 @@
 #include <AMReX_MacBndry.H>
 #include <mg_cpp_f.h>
 
+namespace amrex {
+
 class FMultiGrid
 {
 public:
@@ -201,5 +203,7 @@ private:
 
     void init_mgt_solver (const Array<MultiFab*>& phi);
 };
+
+}
 
 #endif

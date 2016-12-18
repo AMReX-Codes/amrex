@@ -33,6 +33,8 @@
 #include <RHS_F.H>
 #include <writePlotFile.H>
 
+using namespace amrex;
+
 int  verbose       = 2;     
 Real tolerance_rel = 1.e-8;
 Real tolerance_abs = 0.0;

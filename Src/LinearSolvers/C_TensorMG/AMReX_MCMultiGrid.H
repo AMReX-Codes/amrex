@@ -8,6 +8,8 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_MCLinOp.H>
 
+namespace amrex {
+
 /*
   A MCMultiGrid solves the linear equation, L(phi)=rhs, for a MCLinOp L and
   MultiFabs rhs and phi using a V-type cycle of the MCMultiGrid algorithm
@@ -540,6 +542,8 @@ int
 MCMultiGrid::get_nu_b () const
 {
     return nu_b;
+}
+
 }
 
 #endif /*_MCMULTIGRID_H_*/

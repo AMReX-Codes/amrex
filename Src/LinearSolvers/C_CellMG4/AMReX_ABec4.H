@@ -6,6 +6,8 @@
 #include <AMReX_LinOp.H>
 #include <AMReX_ABec2.H>
 
+namespace amrex {
+
 /*
         An ABec4 tailors the description of a linear operator to apply
         the fourth-order central difference approximation to the differential
@@ -279,5 +281,7 @@ private:
     ABec4 (const ABec4&);
     ABec4& operator= (const ABec4&);
 };
+
+}
 
 #endif /*_ABec4_H_*/

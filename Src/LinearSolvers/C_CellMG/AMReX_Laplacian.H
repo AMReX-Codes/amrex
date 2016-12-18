@@ -4,6 +4,8 @@
 
 #include <AMReX_LinOp.H>
 
+namespace amrex {
+
 /*
   A Laplacian tailors the description of a linear operator to apply
   the second-order central difference approximation to the laplacian
@@ -82,5 +84,7 @@ protected:
                                  const MultiFab& rhsL,
                                  int             level) override;
 };
+
+}
 
 #endif /*_LAPLACIAN_H_*/

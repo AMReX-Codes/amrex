@@ -12,6 +12,7 @@
 #include <AMReX_BoundCond.H>
 #include <AMReX_BndryData.H>
 
+namespace amrex {
 
 /*
         An MCInterpBndryData object adds to a BndryData object the ability to
@@ -78,5 +79,7 @@ public:
 			 int                  ratio,
 			 const Array<BCRec>&  phys_bc);
 };
+
+}
 
 #endif /*_MCINTERPBNDRYDATA_H_*/

@@ -13,6 +13,8 @@
 #include <omp.h>
 #endif
 
+namespace amrex {
+
 namespace
 {
     bool initialized = false;
@@ -540,3 +542,4 @@ operator<< (std::ostream&  os,
     return os;
 }
 
+}
