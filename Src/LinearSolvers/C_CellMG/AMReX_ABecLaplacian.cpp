@@ -1,8 +1,13 @@
-#include <AMReX_winstd.H>
+
+#include <fstream>
 #include <algorithm>
+
+#include <AMReX_winstd.H>
 #include <AMReX_ABecLaplacian.H>
 #include <AMReX_ABec_F.H>
 #include <AMReX_ParallelDescriptor.H>
+
+namespace amrex {
 
 Real ABecLaplacian::a_def     = 0.0;
 Real ABecLaplacian::b_def     = 1.0;
@@ -626,7 +631,6 @@ ABecLaplacian::Fsmooth_jacobi (MultiFab&       solnL,
     }
 }
 
-#include <fstream>
 void
 ABecLaplacian::Fapply (MultiFab&       y,
                        const MultiFab& x,
@@ -705,4 +709,6 @@ ABecLaplacian::Fapply (MultiFab&       y,
                    h[level]);
 #endif
     }
+}
+
 }

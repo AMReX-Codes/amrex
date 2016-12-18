@@ -9,6 +9,8 @@
 
 #include <mg_cpp_f.h>
 
+namespace amrex {
+
 class MGT_Solver
 {
 public:
@@ -121,4 +123,7 @@ private:
   static bool initialized;
 
 };
+
+}
+
 #endif

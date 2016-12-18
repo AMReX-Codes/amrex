@@ -3,6 +3,8 @@
 #include <AMReX_Laplacian.H>
 #include <AMReX_LP_F.H>
 
+namespace amrex {
+
 Laplacian::Laplacian (const BndryData& bd,
                       Real             _h)
     :
@@ -240,4 +242,6 @@ Laplacian::Fapply (MultiFab&       y,
                    tbx.loVect(), tbx.hiVect(), &num_comp,
                    h[level]);
     }
+}
+
 }

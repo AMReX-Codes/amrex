@@ -11,6 +11,8 @@
 
 #include <algorithm>
 
+namespace amrex {
+
 /*
   A MultiGrid solves the linear equation, L(phi)=rhs, for a LinOp L and
   MultiFabs rhs and phi using a V-type cycle of the MultiGrid algorithm
@@ -375,5 +377,7 @@ private:
     MultiGrid (const MultiGrid&);
     MultiGrid& operator= (const MultiGrid&);
 };
+
+}
 
 #endif /*_MULTIGRID_H_*/

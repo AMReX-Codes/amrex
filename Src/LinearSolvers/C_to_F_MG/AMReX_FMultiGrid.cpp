@@ -1,5 +1,7 @@
 #include <AMReX_FMultiGrid.H>
 
+namespace amrex {
+
 FMultiGrid::FMultiGrid (const Geometry & geom, 
 			int              baselevel,
 			IntVect          crse_ratio)
@@ -457,4 +459,6 @@ FMultiGrid::init_mgt_solver (const Array<MultiFab*>& phi)
     }
 
     m_coeff.set_coeffs(*m_mgt_solver, *this);
+}
+
 }

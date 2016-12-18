@@ -4,6 +4,8 @@
 #include <AMReX_Tuple.H>
 #include <AMReX_MCLinOp.H>
 
+namespace amrex {
+
 /*
 
   A DivVis tailors the description of a linear operator to apply
@@ -285,6 +287,8 @@ DivVis::setCoefficients (const MultiFab& _a,
     aCoefficients(_a);
     for (int n = 0; n < BL_SPACEDIM; ++n)
         bCoefficients(_b[n], n);
+}
+
 }
 
 #endif /*_DivVis_H_*/

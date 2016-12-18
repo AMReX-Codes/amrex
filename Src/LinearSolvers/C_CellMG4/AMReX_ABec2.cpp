@@ -9,6 +9,8 @@
 
 #include <AMReX_BLFort.H>
 
+namespace amrex {
+
 void
 ABec2::altApplyBC (int  level,
                    bool local)
@@ -303,5 +305,7 @@ ABec2::jacobi_smooth (MultiFab&       solnL,
   {
     amrex::Abort("Shouldnt be here");
   }
+}
+
 }
 

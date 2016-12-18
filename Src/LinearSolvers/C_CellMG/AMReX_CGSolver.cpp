@@ -16,6 +16,8 @@
 #include <omp.h>
 #endif
 
+namespace amrex {
+
 //
 // The largest value allowed for SSS - the "S" in the Communicaton-avoiding BiCGStab.
 //
@@ -1381,4 +1383,6 @@ CGSolver::jbb_precond (MultiFab&       sol,
     }
 
     return ret;
+}
+
 }

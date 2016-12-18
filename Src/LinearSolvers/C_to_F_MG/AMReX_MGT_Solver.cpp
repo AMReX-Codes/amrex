@@ -6,32 +6,6 @@
 #include <AMReX_MemProfiler.H>
 #endif
 
-bool  MGT_Solver::initialized = false;
-
-int   MGT_Solver::def_maxiter;
-int   MGT_Solver::def_maxiter_b;
-int   MGT_Solver::def_bottom_solver;
-
-int   MGT_Solver::def_nu_1;
-int   MGT_Solver::def_nu_2;
-int   MGT_Solver::def_nu_b;
-int   MGT_Solver::def_nu_f;
-
-int   MGT_Solver::def_verbose;
-int   MGT_Solver::def_cg_verbose;
-
-int   MGT_Solver::def_min_width;
-int   MGT_Solver::def_max_nlevel;
-
-int   MGT_Solver::def_cycle;
-int   MGT_Solver::def_smoother;
-
-int   MGT_Solver::def_usecg;
-int   MGT_Solver::def_cg_solver;
-
-Real  MGT_Solver::def_bottom_solver_eps;
-Real  MGT_Solver::def_max_L0_growth;
-
 typedef void (*mgt_get)(const int* lev, const int* n, double* uu, 
 			const int* plo, const int* phi, 
 			const int* lo, const int* hi);
@@ -135,6 +109,33 @@ mgt_get     mgt_get_sync_res   = mgt_get_sync_res_3d;
 mgt_set     mgt_set_rhcc_nodal = mgt_set_rhcc_nodal_3d;
 #endif
 
+namespace amrex {
+
+bool  MGT_Solver::initialized = false;
+
+int   MGT_Solver::def_maxiter;
+int   MGT_Solver::def_maxiter_b;
+int   MGT_Solver::def_bottom_solver;
+
+int   MGT_Solver::def_nu_1;
+int   MGT_Solver::def_nu_2;
+int   MGT_Solver::def_nu_b;
+int   MGT_Solver::def_nu_f;
+
+int   MGT_Solver::def_verbose;
+int   MGT_Solver::def_cg_verbose;
+
+int   MGT_Solver::def_min_width;
+int   MGT_Solver::def_max_nlevel;
+
+int   MGT_Solver::def_cycle;
+int   MGT_Solver::def_smoother;
+
+int   MGT_Solver::def_usecg;
+int   MGT_Solver::def_cg_solver;
+
+Real  MGT_Solver::def_bottom_solver_eps;
+Real  MGT_Solver::def_max_L0_growth;
 
 //
 // Constructing a solver for the following operator: 
@@ -1078,4 +1079,6 @@ MGT_Solver::get_gp (MultiFab& mf, int lev, int dir, Real dx)
 		    bx.loVect(), bx.hiVect());
 	fab.mult(dx, bx);
     }
+}
+
 }

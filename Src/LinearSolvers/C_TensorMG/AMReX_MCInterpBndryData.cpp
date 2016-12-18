@@ -6,6 +6,8 @@
 #include <AMReX_MCINTERPBNDRYDATA_F.H>
 #include <AMReX_MCLinOp.H>
 
+namespace amrex {
+
 static BDInterpFunc* bdfunc[2*BL_SPACEDIM];
 static BDPhysDerivative* bdider[2*BL_SPACEDIM];
 static int bdfunc_set = 0;
@@ -256,4 +258,6 @@ MCInterpBndryData::setBndryValues (const ::BndryRegister& crse,
     }
     delete [] derives;
     }
+}
+
 }

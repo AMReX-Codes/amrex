@@ -8,6 +8,8 @@
 #include <AMReX_LO_F.H>
 #include <AMReX_LinOp.H>
 
+namespace amrex {
+
 namespace
 {
     bool initialized = false;
@@ -591,4 +593,6 @@ LinOp::maxOrder (int maxorder_)
     int omaxorder = maxorder;
     maxorder = maxorder_;
     return omaxorder;
+}
+
 }

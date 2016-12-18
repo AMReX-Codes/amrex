@@ -6,6 +6,8 @@
 #include <AMReX_LinOp.H>
 #include <AMReX_ABecLaplacian.H>
 
+namespace amrex {
+
 class ABec2
     : public ABecLaplacian
 {
@@ -54,5 +56,7 @@ protected:
   ABec2 (const ABec2&);
   ABec2& operator= (const ABec2&);
 };
+
+}
 
 #endif /*_ABec2_H_*/

@@ -14,6 +14,8 @@ extern "C" {
     void share_fab_with_f (int i, const Real* p);
 }
 
+namespace amrex {
+
 class MultiFab_C_to_F
 {
 public:
@@ -37,5 +39,6 @@ private:
 
 };
 
+}
 
 #endif

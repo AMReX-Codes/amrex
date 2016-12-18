@@ -10,6 +10,8 @@
 #include <AMReX_MG_F.H>
 #include <AMReX_MultiGrid.H>
 
+namespace amrex {
+
 namespace
 {
     bool initialized = false;
@@ -818,4 +820,6 @@ MultiGrid::getNumLevels (int _numlevels)
     int oldnumlevels = numlevels;
     numlevels = std::min(_numlevels, numLevels());
     return oldnumlevels;
+}
+
 }

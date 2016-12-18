@@ -7,6 +7,8 @@
 #include <AMReX_LO_BCTYPES.H>
 #include <AMReX_LO_F.H>
 
+namespace amrex {
+
 Real ABec4::a_def     = 0.0;
 Real ABec4::b_def     = 1.0;
 Real ABec4::alpha_def = 1.0;
@@ -610,4 +612,6 @@ ABec4::residual (MultiFab&       residL,
       BL_ASSERT(LO_Op != 0);
       LO_Op->residual(residL,rhsL,solnL,level,bc_mode,local);
   }
+}
+
 }

@@ -1,6 +1,8 @@
 #ifndef _STENCIL_TYPES_H_
 #define _STENCIL_TYPES_H_
 
+namespace amrex {
+
    //
    // The values here must be consistent with the values in F_MG/stencil_types.f90.
    //
@@ -14,5 +16,7 @@
    const int ND_CROSS_STENCIL = 21;
    const int ND_DENSE_STENCIL = 22;
    const int ND_VATER_STENCIL = 23;
+
+}
 
 #endif

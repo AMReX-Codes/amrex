@@ -6,6 +6,8 @@
 #include <AMReX_Utility.H>
 #include <AMReX_MCCGSolver.H>
 
+namespace amrex {
+
 namespace
 {
     bool initialized = false;
@@ -354,4 +356,6 @@ MCCGSolver::axp (MultiFab& w,
     Lp.apply(w, p, lev, bc_mode);
     int nghost = 0;
     return MultiFab::Dot(w,0,p,0,p.nComp(),nghost);
+}
+
 }

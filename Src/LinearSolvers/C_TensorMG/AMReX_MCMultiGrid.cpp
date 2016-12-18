@@ -14,6 +14,8 @@
 #include <omp.h>
 #endif
 
+namespace amrex {
+
 namespace
 {
     bool initialized = false;
@@ -545,4 +547,6 @@ MCMultiGrid::interpolate (MultiFab&       f,
 	    cfab.dataPtr(),ARLIM(cfab.loVect()),ARLIM(cfab.hiVect()),
 	    bx.loVect(), bx.hiVect(), &nc);
     }
+}
+
 }

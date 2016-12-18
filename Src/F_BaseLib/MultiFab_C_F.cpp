@@ -1,5 +1,7 @@
 #include <MultiFab_C_F.H>
 
+namespace amrex {
+
 int  MultiFab_C_to_F::count = 0;
 
 MultiFab_C_to_F::MultiFab_C_to_F (const Geometry& geom,
@@ -63,3 +65,4 @@ MultiFab_C_to_F::share (MultiFab& cmf, const std::string& fmf_name)
     }
 }
 
+}

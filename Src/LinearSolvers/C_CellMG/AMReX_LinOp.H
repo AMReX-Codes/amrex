@@ -12,6 +12,8 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_BndryData.H>
 
+namespace amrex {
+
 /*
         A LinOp is a virtual base class for general linear operators capable
         of acting on MultiFabs.  All implementation and access functions are
@@ -340,5 +342,7 @@ private:
     LinOp (const LinOp& rhs);
     void operator = (const LinOp& rhs);
 };
+
+}
 
 #endif /*_LINOP_H_*/
