@@ -74,15 +74,18 @@ namespace amrex
     //
     void write_to_stderr_without_buffering (const char* str);
 
+    namespace system
+    {
 #ifdef NDEBUG
-    const bool NDebug = true;
+	constexpr bool NDebug = true;
 #else
-    const bool NDebug = false;
+	constexpr bool NDebug = false;
 #endif
 
-    extern std::string exename;
-
-    extern int verbose;
+	extern std::string exename;
+	
+	extern int verbose;
+    }
 }
 
 #endif /*BL_BOXLIB_H*/

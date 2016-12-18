@@ -69,10 +69,12 @@ __TIME__;
 #undef bl_str
 #undef bl_xstr
 
-namespace amrex
+namespace amrex {
+namespace system
 {
     std::string exename;
     int verbose = 0;
+}
 }
 
 //
@@ -265,10 +267,10 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi_
 	if(rCheck == 0) {
 	  amrex::Abort("**** Error:  getcwd buffer too small.");
 	}
-	exename = temp;
-	exename += "/";
+	system::exename = temp;
+	system::exename += "/";
     }
-    exename += argv[0];
+    system::exename += argv[0];
 #endif
 
 #ifdef BL_USE_UPCXX
@@ -345,8 +347,8 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi_
 
     {
 	ParmParse pp("boxlib");
-	pp.query("v", verbose);
-	pp.query("verbose", verbose);
+	pp.query("v", system::verbose);
+	pp.query("verbose", system::verbose);
 
 	int invalid = 0, divbyzero=0, overflow=0;
 	pp.query("fpe_trap_invalid", invalid);
@@ -429,7 +431,7 @@ amrex::Finalize (bool finalize_parallel)
     // The MemPool stuff is not using The_Finalize_Function_Stack so that
     // it can be used in Fortran BoxLib.
 #ifndef BL_AMRPROF
-    if (amrex::verbose)
+    if (amrex::system::verbose)
     {
 	int mp_min, mp_max, mp_tot;
 	mempool_get_stats(mp_min, mp_max, mp_tot);  // in MB
