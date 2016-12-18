@@ -20,6 +20,8 @@ using std::endl;
 #include <AMReX_FabConv.H>
 #include <AMReX_FPC.H>
 
+using namespace amrex;
+
 // --------------------------------------------------------------
 void Sleep(unsigned int sleeptime) {
   BL_PROFILE("Sleep()");

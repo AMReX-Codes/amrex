@@ -1,6 +1,8 @@
 #include <AMReX_LO_BCTYPES.H>
 #include <TestMCViscBndry.H>
 
+using namespace amrex;
+
 void
 MCViscBndry::setBndryConds (const BCRec& bc,
 			    int          ratio,

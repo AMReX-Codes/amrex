@@ -5,6 +5,8 @@
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_DistributionMapping.H>
 
+using namespace amrex;
+
 static
 void
 Print (const BoxList& bl, const char* str)

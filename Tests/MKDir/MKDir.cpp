@@ -16,6 +16,8 @@
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_Utility.H>
 
+using namespace amrex;
+
 // --------------------------------------------------------------------------
 int main(int argc, char *argv[]) {
     amrex::Initialize(argc,argv);    

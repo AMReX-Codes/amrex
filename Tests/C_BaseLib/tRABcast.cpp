@@ -3,6 +3,7 @@
 // ------------------------------------------------------------
 #include <AMReX_ParallelDescriptor.H>
 
+using namespace amrex;
 
 // ------------------------------------------------------------
 int main(int argc, char **argv) {

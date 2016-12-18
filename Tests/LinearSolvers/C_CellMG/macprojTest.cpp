@@ -37,6 +37,8 @@
 
 #include <WritePlotFile.H>
 
+using namespace amrex;
+
 static
 Real
 mfnorm_0_valid (const MultiFab& mf)

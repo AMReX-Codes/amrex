@@ -18,6 +18,8 @@
 #include <COEF_F.H>
 #include <RHS_F.H>
 
+using namespace amrex;
+
 Real tolerance_rel = 1.e-8;
 Real tolerance_abs = 0.0;
 int  maxiter       = 1; 

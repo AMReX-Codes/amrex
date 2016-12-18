@@ -17,6 +17,8 @@
 #include <AMReX_stencil_types.H>
 #include <mg_cpp_f.h>
 
+using namespace amrex;
+
 #ifndef _NavierStokes_H_
 enum StateType {State_Type=0, Press_Type};
 #endif

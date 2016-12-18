@@ -7,6 +7,8 @@
 
 #include <AMReX_FMultiGrid.H>
 
+using namespace amrex;
+
 void solve_with_F90(const Array<MultiFab*>& soln, Real a, Real b, 
 		    const Array<MultiFab*>& alph, 
 		    const Array<MultiFab*>& beta, 

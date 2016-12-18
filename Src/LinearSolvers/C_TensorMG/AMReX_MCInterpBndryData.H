@@ -70,7 +70,7 @@ public:
     //
     // Set bndry values at fine level, performing necessary interpolations.
     //
-    void setBndryValues (const ::BndryRegister& crse,
+    void setBndryValues (const BndryRegister& crse,
 			 int                  c_start,
 			 const MultiFab&      fine,
 			 int                  f_start,

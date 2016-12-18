@@ -11,6 +11,8 @@
 #include <new>
 using std::list;
 
+using namespace amrex;
+
 //
 // A simple class emulating how we use FABs.
 //

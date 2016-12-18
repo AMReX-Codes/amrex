@@ -5,6 +5,8 @@
 #include <AMReX_VisMF.H>
 #include <AMReX_Utility.H>
 
+using namespace amrex;
+
 int
 main (int argc, char** argv)
 {

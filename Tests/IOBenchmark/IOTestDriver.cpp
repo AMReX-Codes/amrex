@@ -21,6 +21,7 @@ using std::cout;
 using std::cerr;
 using std::endl;
 
+using namespace amrex;
 
 void DirectoryTests();
 void FileTests();

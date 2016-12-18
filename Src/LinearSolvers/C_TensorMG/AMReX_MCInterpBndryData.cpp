@@ -142,7 +142,7 @@ MCInterpBndryData::setBndryValues(const MultiFab&     mf,
 //     (B) Copy from ghost region of MultiFab at physical bndry
 //
 void
-MCInterpBndryData::setBndryValues (const ::BndryRegister& crse,
+MCInterpBndryData::setBndryValues (const BndryRegister& crse,
 				   int                  c_start,
 				   const MultiFab&      fine,
 				   int                  f_start,

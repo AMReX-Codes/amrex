@@ -20,6 +20,7 @@ using std::cout;
 using std::cerr;
 using std::endl;
 
+using namespace amrex;
 
 void TestWriteNFiles(int nfiles, int nMB, bool raninit, bool mb2);
 void TestReadNFiles(int nfiles, int nMB, bool raninit, bool mb2);

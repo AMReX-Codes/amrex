@@ -6,6 +6,8 @@
 
 #include <COMP_NORM_F.H>
 
+using namespace amrex;
+
 void compute_norm(const Array<MultiFab*>& soln,
 		  const Array<MultiFab*>& exac, 
 		  const Array<Geometry>& geom,

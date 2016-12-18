@@ -31,6 +31,8 @@ using std::ends;
 using std::ofstream;
 using std::streamoff;
 
+using namespace amrex;
+
 const int XDIR(0);
 const int YDIR(1);
 const int ZDIR(2);

@@ -2,6 +2,8 @@
 #include <iomanip>
 #include <AMReX_Utility.H>
 
+using namespace amrex;
+
 // this mersenne_ran_main() outputs first 1000 generated numbers
 // compare against the output of mt19937int.out
 int
