@@ -1216,7 +1216,7 @@ FabArrayBase::Finalize ()
 
     FabArrayBase::flushTileArrayCache();
 
-    if (ParallelDescriptor::IOProcessor() && amrex::verbose) {
+    if (ParallelDescriptor::IOProcessor() && amrex::system::verbose) {
 	m_FA_stats.print();
 	m_TAC_stats.print();
 	m_FBC_stats.print();

@@ -26,10 +26,6 @@
 #include <cstring>
 #include <iomanip>
 
-namespace dmap {
-    bool verbose; // Have to put this in its own namespace to avoid conflict wiht amrex::verbose
-}
-
 namespace amrex {
 
     bool initialized = false;
@@ -43,6 +39,7 @@ namespace amrex {
     //
     // Set default values for these in Initialize()!!!
     //
+    int    verbose;
     int    sfc_threshold;
     Real   max_efficiency;
     int    node_size;
@@ -137,15 +134,15 @@ DistributionMapping::Initialize ()
     //
     // Set defaults here!!!
     //
-    dmap::verbose    = false;
+    verbose          = 0;
     sfc_threshold    = 0;
     max_efficiency   = 0.9;
     node_size        = 0;
 
     ParmParse pp("DistributionMapping");
 
-    pp.query("v"      ,          dmap::verbose);
-    pp.query("verbose",          dmap::verbose);
+    pp.query("v"      ,          verbose);
+    pp.query("verbose",          verbose);
     pp.query("efficiency",       max_efficiency);
     pp.query("sfc_threshold",    sfc_threshold);
     pp.query("node_size",        node_size);
@@ -582,7 +579,7 @@ DistributionMapping::~DistributionMapping () { }
 void
 DistributionMapping::FlushCache ()
 {
-    if (amrex::verbose) {
+    if (amrex::system::verbose) {
 	CacheStats(std::cout);
     }
     //
@@ -1036,7 +1033,7 @@ DistributionMapping::KnapSackDoIt (const std::vector<long>& wgts,
     //
     m_ref->m_pmap[wgts.size()] = ParallelDescriptor::MyProc();
 
-    if (dmap::verbose && ParallelDescriptor::IOProcessor())
+    if (verbose && ParallelDescriptor::IOProcessor())
     {
         std::cout << "KNAPSACK efficiency: " << efficiency << '\n';
     }
@@ -1360,7 +1357,7 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
     //
     m_ref->m_pmap[boxes.size()] = ParallelDescriptor::MyProc();
 
-    if (dmap::verbose && ParallelDescriptor::IOProcessor())
+    if (verbose && ParallelDescriptor::IOProcessor())
     {
         Real sum_wgt = 0, max_wgt = 0;
         for (int i = 0; i < nteams; ++i)

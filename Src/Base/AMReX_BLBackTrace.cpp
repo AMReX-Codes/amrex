@@ -94,7 +94,7 @@ BLBackTrace::print_backtrace_info (FILE* f)
 	    fclose(fp);
 	    have_addr2line = 1;
 	}
-	cmd += " -Cfie " + amrex::exename;
+	cmd += " -Cfie " + amrex::system::exename;
 
 	fprintf(f, "=== If no file names and line numbers are shown below, one can run\n");
 	fprintf(f, "            addr2line -Cfie my_exefile my_line_address\n");
