@@ -5,6 +5,8 @@
 #include <AMReX_Utility.H>
 #include <AMReX_MultiFab.H>
 
+using namespace amrex;
+
 const int nTimes(5);
 const int nStrategies(4);
 

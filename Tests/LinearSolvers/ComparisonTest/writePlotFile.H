@@ -3,11 +3,11 @@
 #include <AMReX_MultiFab.H>
 
 void writePlotFile (const std::string& dir, 
-		    const Array<MultiFab*>& soln,
-		    const Array<MultiFab*>& exac, 
-		    const Array<MultiFab*>& alph,
-		    const Array<MultiFab*>& beta, 
-		    const Array<MultiFab*>& rhs, 
-		    const std::vector<Geometry>& geom, 
-		    const std::vector<BoxArray>& grids,
+		    const amrex::Array<amrex::MultiFab*>& soln,
+		    const amrex::Array<amrex::MultiFab*>& exac, 
+		    const amrex::Array<amrex::MultiFab*>& alph,
+		    const amrex::Array<amrex::MultiFab*>& beta, 
+		    const amrex::Array<amrex::MultiFab*>& rhs, 
+		    const std::vector<amrex::Geometry>& geom, 
+		    const std::vector<amrex::BoxArray>& grids,
 		    int nsoln, int iCpp, int iF90, int iHyp);

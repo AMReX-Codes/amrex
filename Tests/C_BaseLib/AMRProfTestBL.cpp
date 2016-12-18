@@ -9,13 +9,14 @@
 #include <sstream>
 #include <iomanip>
 #include <unistd.h>
-using std::cout;
-using std::endl;
 
 #include <AMReX_BLProfiler.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMRPROFTEST_F.H>
 
+using std::cout;
+using std::endl;
+using namespace amrex;
 
 //===============================================================
 namespace {

@@ -8,6 +8,8 @@
 #include <AMReX_VisMF.H>
 #include <AMReX_Utility.H>
 
+using namespace amrex;
+
 static int nBoxs  = 10;
 
 static char* the_prog_name;

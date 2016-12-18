@@ -10,6 +10,8 @@
 #include <omp.h>
 #endif
 
+using namespace amrex;
+
 int
 main (int argc, char* argv[])
 {

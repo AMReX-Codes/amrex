@@ -11,6 +11,8 @@
 
 #include <writePlotFile.H>
 
+using namespace amrex;
+
 void writePlotFile (const std::string& dir, 
 		    const Array<MultiFab*>& soln,
 		    const Array<MultiFab*>& exac, 

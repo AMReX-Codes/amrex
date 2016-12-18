@@ -11,6 +11,8 @@
 
 #include <HypreABecLap.H>
 
+using namespace amrex;
+
 void setBndryConds(BndryData& levelbd, int ibnd, IntVect ratio);
 
 void solve_with_hypre(const Array<MultiFab*>& soln, Real a, Real b, 

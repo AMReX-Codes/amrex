@@ -14,6 +14,8 @@
 #include <AMReX_VisMF.H>
 #include <COEF_F.H>
 
+using namespace amrex;
+
 static
 Real
 mfnorm_0_valid (const MultiFab& mf)

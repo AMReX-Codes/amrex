@@ -1,6 +1,8 @@
 #include <SMC.H>
 #include <SMC_F.H>
 
+using namespace amrex;
+
 void
 SMC::advance (int istep)
 {

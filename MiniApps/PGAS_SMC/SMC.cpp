@@ -4,6 +4,8 @@
 #include <SMC.H>
 #include <SMC_F.H>
 
+using namespace amrex;
+
 bool        SMC::initialized       = false;
 int         SMC::ncons             = 0;
 int         SMC::nprim             = 0;

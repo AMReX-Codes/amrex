@@ -4,19 +4,19 @@
 #include <AMReX_MCInterpBndryData.H>
 #include <AMReX_BC_TYPES.H>
 
-class MCViscBndry : public MCInterpBndryData
+class MCViscBndry : public amrex::MCInterpBndryData
 {
 public:
-    MCViscBndry() : MCInterpBndryData()  {}
+    MCViscBndry() : amrex::MCInterpBndryData()  {}
 
-    MCViscBndry(const BoxArray& _grids, const Geometry& geom) :
+    MCViscBndry(const amrex::BoxArray& _grids, const amrex::Geometry& geom) :
 #if BL_SPACEDIM == 2
-        MCInterpBndryData(_grids,4,geom) {};
+        amrex::MCInterpBndryData(_grids,4,geom) {};
 #elif BL_SPACEDIM == 3
-        MCInterpBndryData(_grids,3*(1+3),geom) {};
+        amrex::MCInterpBndryData(_grids,3*(1+3),geom) {};
 #endif
 
-    virtual void setBndryConds (const BCRec& phys_bc,
+    virtual void setBndryConds (const amrex::BCRec& phys_bc,
                                 int          ratio,
                                 int          comp=0);
     void setHomogValues();

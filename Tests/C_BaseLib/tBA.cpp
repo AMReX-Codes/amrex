@@ -5,6 +5,8 @@
 #include <AMReX_ParallelDescriptor.H>
 #include <map>
 
+using namespace amrex;
+
 static
 BoxArray
 GetBndryCells_old (const BoxArray& ba,

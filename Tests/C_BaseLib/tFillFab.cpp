@@ -9,6 +9,8 @@
 
 BL_FORT_PROC_DECL(FILLFAB,fillfab)(Real* d, const int* nx, const int* ny);
 
+using namespace amrex;
+
 int
 main (int argc, char** argv)
 {

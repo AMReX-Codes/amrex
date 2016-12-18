@@ -6,6 +6,8 @@
 #include <SMC.H>
 #include <SMC_F.H>
 
+using namespace amrex;
+
 void
 SMC::writePlotFile (int istep)
 {

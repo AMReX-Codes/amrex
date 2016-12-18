@@ -6,6 +6,8 @@
 
 #include <AMReX_VisMF.H>
 
+using namespace amrex;
+
 int
 main (int argc, char** argv)
 {

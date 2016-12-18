@@ -14,6 +14,8 @@
 #include <COEF_F.H>
 #include <writePlotFile.H>
 
+using namespace amrex;
+
 enum solver_t {BoxLib_C, BoxLib_F, Hypre, All};
 enum bc_t {Periodic = 0,
 	   Dirichlet = LO_DIRICHLET, 

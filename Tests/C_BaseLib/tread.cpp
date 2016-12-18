@@ -10,6 +10,8 @@
 #include <AMReX_Utility.H>
 #include <AMReX_FArrayBox.H>
 
+using namespace amrex;
+
 int
 main (int argc, char** argv)
 {

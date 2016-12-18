@@ -4,6 +4,8 @@
 #include <AMReX_Array.H>
 #include <AMReX_ParmParse.H>
 
+using namespace amrex;
+
 int
 main (int argc, char** argv)
 {
