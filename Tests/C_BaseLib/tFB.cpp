@@ -2,8 +2,10 @@
 // A test program for FillBoundary().
 //
 
-#include <Utility.H>
-#include <MultiFab.H>
+#include <AMReX_Utility.H>
+#include <AMReX_MultiFab.H>
+
+using namespace amrex;
 
 const int nTimes(5);
 const int nStrategies(4);
@@ -12,7 +14,7 @@ const int nStrategies(4);
 int
 main (int argc, char** argv)
 {
-  BoxLib::Initialize(argc, argv);
+  amrex::Initialize(argc, argv);
 
   BL_PROFILE_VAR("main()", pmain);
 
@@ -149,7 +151,7 @@ main (int argc, char** argv)
 
     BL_PROFILE_VAR_STOP(pmain);
 
-    BoxLib::Finalize();
+    amrex::Finalize();
 
     return 0;
 }

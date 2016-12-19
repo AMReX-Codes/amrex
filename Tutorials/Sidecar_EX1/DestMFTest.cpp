@@ -14,13 +14,14 @@
 #include <sstream>
 #include <unistd.h>
 
-#include <BoxLib.H>
-#include <ParallelDescriptor.H>
-#include <Utility.H>
-#include <ParmParse.H>
-#include <MultiFab.H>
-#include <VisMF.H>
+#include <AMReX_BoxLib.H>
+#include <AMReX_ParallelDescriptor.H>
+#include <AMReX_Utility.H>
+#include <AMReX_ParmParse.H>
+#include <AMReX_MultiFab.H>
+#include <AMReX_VisMF.H>
 
+using namespace amrex;
 
 int nComp(6), nGhost(2);
 
@@ -101,7 +102,7 @@ namespace
     MPI_Group group_sidecar(MPI_GROUP_NULL), group_all(MPI_GROUP_NULL);
 
     ParallelDescriptor::Barrier(ParallelDescriptor::CommunicatorAll());
-    BoxLib::USleep(myProcAll / 10.0);
+    amrex::USleep(myProcAll / 10.0);
     std::cout << ":::: _in CFATests:  myProcAll myProcComp myProcSidecar = " << myProcAll
               << "  " << myProcComp << "  " << myProcSidecar  << std::endl;
 
@@ -124,7 +125,7 @@ namespace
     }
 
       dm_comp_all.define(pm_comp_all, addToCache);
-      BoxLib::USleep(myProcAll / 10.0);
+      amrex::USleep(myProcAll / 10.0);
       if(myProcAll == 0) {
         std::cout << myProcAll << ":::: _in CFATests:  dm_comp = " << dm << std::endl;
       }
@@ -167,7 +168,7 @@ namespace
 
             DistributionMapping dm_all(pm_all);
             if (ParallelDescriptor::IOProcessor()) {
-              BoxLib::USleep(1);
+              amrex::USleep(1);
               std::cout << "SIDECAR DM = " << dm_sidecar << std::endl << std::flush;
               std::cout << "WORLD DM = " << dm_all << std::endl << std::flush;
             }
@@ -257,7 +258,7 @@ namespace
 // --------------------------------------------------------------------------
 int main(int argc, char *argv[]) {
 
-    BoxLib::Initialize(argc,argv);
+    amrex::Initialize(argc,argv);
 
     // A flag you need for broadcasting across MPI groups. We always broadcast
     // the data to the sidecar group from the IOProcessor on the compute group.
@@ -288,7 +289,7 @@ int main(int argc, char *argv[]) {
 
     if(ParallelDescriptor::InSidecarGroup()) {
 
-      BoxLib::USleep(myProcAll / 10.0);
+      amrex::USleep(myProcAll / 10.0);
       std::cout << myProcAll << ":: Calling SidecarEventLoop()." << std::endl;
       SidecarEventLoop();
 
@@ -409,7 +410,7 @@ int main(int argc, char *argv[]) {
     }
     
     ParallelDescriptor::Barrier();
-    BoxLib::USleep(myProcAll / 10.0);
+    amrex::USleep(myProcAll / 10.0);
     if(ParallelDescriptor::IOProcessor()) {
       std::cout << myProcAll << ":: Finished timesteps" << std::endl;
     }
@@ -418,7 +419,7 @@ int main(int argc, char *argv[]) {
     nSidecarProcs = 0;
     ParallelDescriptor::SetNProcsSidecars(nSidecarProcs);
 
-    BoxLib::Finalize();
+    amrex::Finalize();
 
     return 0;
 }

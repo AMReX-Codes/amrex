@@ -1,8 +1,8 @@
 #include <iostream>
 
-#include <BoxLib.H>
-#include <MultiFab.H>
-#include <BLFort.H>
+#include <AMReX_BoxLib.H>
+#include <AMReX_MultiFab.H>
+#include <AMReX_BLFort.H>
 
 // declare a fortran subroutine
 extern "C"
@@ -12,27 +12,27 @@ extern "C"
 
 int main(int argc, char* argv[])
 {
-    BoxLib::Initialize(argc,argv);
+    amrex::Initialize(argc,argv);
 
     // define the lower and upper corner of a 3D domain
-    IntVect domain_lo(0 , 0, 0); 
-    IntVect domain_hi(63,63,63); 
+    amrex::IntVect domain_lo(0 , 0, 0); 
+    amrex::IntVect domain_hi(63,63,63); 
  
     // build a box for the domain
-    Box domain(domain_lo, domain_hi);
+    amrex::Box domain(domain_lo, domain_hi);
 
     // build a box array from the 64^3 domain box
-    BoxArray ba(domain);
+    amrex::BoxArray ba(domain);
     // break the box array into 32^3 boxes
     ba.maxSize(32);
 
     // build a multifab on the box array with 1 component, 0 ghost cells
-    MultiFab data(ba, 1, 0);  
+    amrex::MultiFab data(ba, 1, 0);  
 
     // loop over boxes and do some work
-    for (MFIter mfi(data); mfi.isValid(); ++mfi)
+    for (amrex::MFIter mfi(data); mfi.isValid(); ++mfi)
     {
-	const Box& bx = mfi.validbox();  // box for this fab
+	const amrex::Box& bx = mfi.validbox();  // box for this fab
 
 	// call a fortran subroutine
 	work(bx.loVect(), bx.hiVect(),
@@ -53,6 +53,6 @@ int main(int argc, char* argv[])
     std::cout << "L1  norm = " << data.norm1() << std::endl;
     std::cout << "L2  norm = " << data.norm2() << std::endl;
 
-    BoxLib::Finalize();
+    amrex::Finalize();
 }
 

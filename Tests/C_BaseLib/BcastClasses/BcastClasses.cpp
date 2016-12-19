@@ -5,16 +5,16 @@
 // --------------------------------------------------------------------------
 #include <iostream>
 #include <fstream>
-#include <BoxArray.H>
-#include <MultiFab.H>
-#include <ParallelDescriptor.H>
+#include <AMReX_BoxArray.H>
+#include <AMReX_MultiFab.H>
+#include <AMReX_ParallelDescriptor.H>
 using std::cout;
 using std::endl;
 
 
 // --------------------------------------------------------------------------
 int main(int argc, char *argv[]) {
-    BoxLib::Initialize(argc, argv);
+    amrex::Initialize(argc, argv);
     
     bool bIOP(ParallelDescriptor::IOProcessor());
     int  myProc(ParallelDescriptor::MyProc());
@@ -25,20 +25,20 @@ int main(int argc, char *argv[]) {
 
     Array<int> aSB;
     if(bIOP) {
-      aSB = BoxLib::SerializeBox(bControl);
+      aSB = amrex::SerializeBox(bControl);
     }
     
-    BoxLib::BroadcastArray(aSB, myProc, ioProcNum, ParallelDescriptor::CommunicatorAll());
+    amrex::BroadcastArray(aSB, myProc, ioProcNum, ParallelDescriptor::CommunicatorAll());
 
     ParallelDescriptor::Barrier();
-    BoxLib::USleep(myProc/10.0);
+    amrex::USleep(myProc/10.0);
     for(int i(0); i < aSB.size(); ++i) {
       cout << myProc << "::  aSB[" << i << "] = " << aSB[i] << endl;
     }
 
-    Box uSB = BoxLib::UnSerializeBox(aSB);
+    Box uSB = amrex::UnSerializeBox(aSB);
     ParallelDescriptor::Barrier();
-    BoxLib::USleep(myProc/10.0);
+    amrex::USleep(myProc/10.0);
     cout << myProc << "::  uSB = " << uSB << endl;
 
     ParallelDescriptor::Barrier();
@@ -52,18 +52,18 @@ int main(int argc, char *argv[]) {
 
     Array<int> aBASerial;
     if(bIOP) {
-      aBASerial = BoxLib::SerializeBoxArray(baControl);
+      aBASerial = amrex::SerializeBoxArray(baControl);
       for(int i(0); i < aSB.size(); ++i) {
         cout << myProc << "::  aBASerial[" << i << "] = " << aBASerial[i] << endl;
       }
     }
     ParallelDescriptor::Barrier();
 
-    BoxLib::BroadcastBoxArray(baBcast, myProc, ioProcNum,
+    amrex::BroadcastBoxArray(baBcast, myProc, ioProcNum,
                               ParallelDescriptor::CommunicatorAll());
 
     ParallelDescriptor::Barrier();
-    BoxLib::USleep(myProc/10.0);
+    amrex::USleep(myProc/10.0);
     cout << myProc << "::  baBcast = " << baBcast << endl;
     if(baBcast != baControl) {
       cout << myProc << "::  **** Error:  bad BoxArrayBroadcast:  baBcast baControl = "
@@ -72,11 +72,11 @@ int main(int argc, char *argv[]) {
 
 /*
     if( ! fba.ok()) {
-        BoxLib::Error("BoxArray is not OK");
+        amrex::Error("BoxArray is not OK");
     }
 
     if( ! fba.isDisjoint()) {
-      BoxLib::Error("BoxArray is not disjoint");
+      amrex::Error("BoxArray is not disjoint");
     }
 
     fba.maxSize(32);
@@ -88,7 +88,7 @@ int main(int argc, char *argv[]) {
 
 
 
-    BoxLib::Finalize();
+    amrex::Finalize();
 
     return 0;
 }

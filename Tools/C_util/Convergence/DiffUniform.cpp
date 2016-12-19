@@ -9,14 +9,14 @@ using std::ios;
 #include <unistd.h>
 
 #include <WritePlotFile.H>
-#include <REAL.H>
-#include <Box.H>
-#include <FArrayBox.H>
-#include <ParmParse.H>
-#include <ParallelDescriptor.H>
-#include <DataServices.H>
-#include <Utility.H>
-#include <VisMF.H>
+#include <AMReX_REAL.H>
+#include <AMReX_Box.H>
+#include <AMReX_FArrayBox.H>
+#include <AMReX_ParmParse.H>
+#include <AMReX_ParallelDescriptor.H>
+#include <AMReX_DataServices.H>
+#include <AMReX_Utility.H>
+#include <AMReX_VisMF.H>
 
 #ifndef NDEBUG
 #include <TV_TempWrite.H>
@@ -61,7 +61,7 @@ int
 main (int   argc,
       char* argv[])
 {
-    BoxLib::Initialize(argc,argv);
+    amrex::Initialize(argc,argv);
 
     if (argc == 1)
         PrintUsage(argv[0]);
@@ -85,15 +85,15 @@ main (int   argc,
     }
     pp.query("infile", iFile);
     if (iFile.empty())
-        BoxLib::Abort("You must specify `infile'");
+        amrex::Abort("You must specify `infile'");
 
     pp.query("exact", eFile);
     if (eFile.empty())
-        BoxLib::Abort("You must specify `exact' file");
+        amrex::Abort("You must specify `exact' file");
 
     pp.query("outfile", oFile);
     if (oFile.empty())
-        BoxLib::Abort("You must specify `outfile'");
+        amrex::Abort("You must specify `outfile'");
 
     DataServices::SetBatchMode();
     Amrvis::FileType fileType(Amrvis::NEWPLT);
@@ -115,7 +115,7 @@ main (int   argc,
     if (exact_level < 0)
     {
 	std::cout << "Exact data does not contain a level covering the domain" << '\n';
-	BoxLib::Abort();
+	amrex::Abort();
     }
     if (verbose)
 	std::cout << "Using level = " << exact_level << " in 'exact' file" << '\n';
@@ -135,7 +135,7 @@ main (int   argc,
 	const Box& domainF     = amrDataF.ProbDomain()[exact_level];
 	IntVect refine_ratio   = getRefRatio(domainC, domainF);
 	if (refine_ratio == IntVect())
-	    BoxLib::Error("Cannot find refinement ratio from data to exact");
+	    amrex::Error("Cannot find refinement ratio from data to exact");
 
 	if (ParallelDescriptor::IOProcessor())
 	  std::cout << "Ratio for level " << iLevel << " is " << refine_ratio << std::endl;
@@ -197,7 +197,7 @@ main (int   argc,
     for (int iLevel = 0; iLevel <= finestLevel; ++iLevel)
 	delete error[iLevel];
 
-    BoxLib::Finalize();
+    amrex::Finalize();
 }
 
 
@@ -214,7 +214,7 @@ finestLevelCoveringDomain(const AmrData& amr_data)
 	const BoxArray& ba = amr_data.boxArray(iLevel);
 	BoxDomain bd;
 	bd.add(BoxList(ba));
-	BoxDomain complement = BoxLib::complementIn(domain_array[iLevel],bd);
+	BoxDomain complement = amrex::complementIn(domain_array[iLevel],bd);
 	if (complement.isEmpty())
 	    return iLevel;
     }

@@ -2,17 +2,19 @@
 // A test program for MultiFab.
 //
 
-#include <winstd.H>
+#include <AMReX_winstd.H>
 #include <map>
 #include <vector>
 
-#include <Utility.H>
-#include <MultiFab.H>
+#include <AMReX_Utility.H>
+#include <AMReX_MultiFab.H>
+
+using namespace amrex;
 
 int
 main (int argc, char** argv)
 {
-    BoxLib::Initialize(argc, argv);
+    amrex::Initialize(argc, argv);
 
     typedef std::map<Array<int>,Array<Real> > OurBinMap;
 
@@ -204,7 +206,7 @@ main (int argc, char** argv)
     }
 #endif
 
-    BoxLib::Finalize();
+    amrex::Finalize();
 
     return 0;
 }

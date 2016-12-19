@@ -1,5 +1,5 @@
-#include <REAL.H>
-#include "LO_BCTYPES.H"
+#include <AMReX_REAL.H>
+#include "AMReX_LO_BCTYPES.H"
 
 
 subroutine comp_asol(asol, a_l1, a_l2, a_l3, a_h1, a_h2, a_h3, &

@@ -1,12 +1,13 @@
-#include <Utility.H>
-#include <Geometry.H>
-#include <PArray.H>
-#include <MultiFab.H>
+#include <AMReX_Utility.H>
+#include <AMReX_Geometry.H>
+#include <AMReX_MultiFab.H>
 
 void writePlotFile (const std::string& dir, 
-		    const PArray<MultiFab>& soln, const PArray<MultiFab>& exac, 
-		    const PArray<MultiFab>& alph, const PArray<MultiFab>& beta, 
-		    const PArray<MultiFab>& rhs, 
-		    const std::vector<Geometry>& geom, 
-		    const std::vector<BoxArray>& grids,
+		    const amrex::Array<amrex::MultiFab*>& soln,
+		    const amrex::Array<amrex::MultiFab*>& exac, 
+		    const amrex::Array<amrex::MultiFab*>& alph,
+		    const amrex::Array<amrex::MultiFab*>& beta, 
+		    const amrex::Array<amrex::MultiFab*>& rhs, 
+		    const std::vector<amrex::Geometry>& geom, 
+		    const std::vector<amrex::BoxArray>& grids,
 		    int nsoln, int iCpp, int iF90, int iHyp);

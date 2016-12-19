@@ -4,13 +4,13 @@
 
 #include <ComputeAmrDataStat.H>
 #include <WritePlotFile.H>
-#include <REAL.H>
-#include <Box.H>
-#include <FArrayBox.H>
-#include <ParmParse.H>
-#include <ParallelDescriptor.H>
-#include <Utility.H>
-#include <VisMF.H>
+#include <AMReX_REAL.H>
+#include <AMReX_Box.H>
+#include <AMReX_FArrayBox.H>
+#include <AMReX_ParmParse.H>
+#include <AMReX_ParallelDescriptor.H>
+#include <AMReX_Utility.H>
+#include <AMReX_VisMF.H>
 
 // Determine the volume-averaged mean for an AMR data.
 void
@@ -28,7 +28,7 @@ ComputeAmrDataMeanVar  (AmrData&     amrData,
       ParmParse pp;
       pp.query("outfile", oFile);
       if (oFile.empty())
-	BoxLib::Abort("You must specify `outfile' if run in verbose mode");
+	amrex::Abort("You must specify `outfile' if run in verbose mode");
     }
     
     int finestLevel = amrData.FinestLevel();
@@ -979,7 +979,7 @@ ComputeAmrDataVAR (AmrData&           amrData,
       
       std::ofstream outputFile;
       outputFile.open(oFile.c_str(),std::ios::out);
-      if (outputFile.fail()) BoxLib::Abort("Output file cannot be opened");
+      if (outputFile.fail()) amrex::Abort("Output file cannot be opened");
       for (int ic=0; ic<nComp; ic++) {
 	for (int ib=0; ib<=nBin; ib++) 		
 	  outputFile << covx[ic][ib] << " ";
@@ -1370,7 +1370,7 @@ VariogramUniformMFG (const MultiFab&      mf,
 	  if (firsttime) {
 	    outputFile.open(oFile.c_str(),std::ios::out);
 	    if (outputFile.fail()) 
-	      BoxLib::Abort("Output file cannot be opened");
+	      amrex::Abort("Output file cannot be opened");
 	    firsttime = false;
 	  }
 	  else 
@@ -1410,7 +1410,7 @@ TakeDifferenceFine(AmrData&             amrDataf,
     Box domainc = amrDatac.ProbDomain()[0];
     for (int i=0;i<BL_SPACEDIM;i++) {
       if (domainf.smallEnd()[i] != domainc.smallEnd()[i])
-	BoxLib::Abort("Domains of coarse and fine do not match!");
+	amrex::Abort("Domains of coarse and fine do not match!");
     }
 
     vector<Real> bbll,bbur;
@@ -1447,7 +1447,7 @@ TakeDifferenceFine(AmrData&             amrDataf,
 
     for (int i=0;i<BL_SPACEDIM;i++) {
       if (domainf.smallEnd()[i] != domainc.smallEnd()[i])
-	BoxLib::Abort("Domains of coarse and fine do not match!");
+	amrex::Abort("Domains of coarse and fine do not match!");
     }
 
     for (int i=1; i<=amrDataf.FinestLevel(); i++)
@@ -1504,7 +1504,7 @@ TakeDifferenceCrse(AmrData&             amrDataf,
     Box domainc = amrDatac.ProbDomain()[0];
     for (int i=0;i<BL_SPACEDIM;i++) {
       if (domainf.smallEnd()[i] != domainc.smallEnd()[i])
-	BoxLib::Abort("Domains of coarse and fine do not match!");
+	amrex::Abort("Domains of coarse and fine do not match!");
     }
 
     vector<Real> bbll,bbur;
@@ -1541,7 +1541,7 @@ TakeDifferenceCrse(AmrData&             amrDataf,
 
     for (int i=0;i<BL_SPACEDIM;i++) {
       if (domainf.smallEnd()[i] != domainc.smallEnd()[i])
-	BoxLib::Abort("Domains of coarse and fine do not match!");
+	amrex::Abort("Domains of coarse and fine do not match!");
     }
 
     for (int i=1; i<=amrDataf.FinestLevel(); i++)
@@ -1603,7 +1603,7 @@ TakeDifferenceSum(AmrData&             amrDataf,
     Box domainc = amrDatac.ProbDomain()[0];
     for (int i=0;i<BL_SPACEDIM;i++) {
       if (domainf.smallEnd()[i] != domainc.smallEnd()[i])
-	BoxLib::Abort("Domains of coarse and fine do not match!");
+	amrex::Abort("Domains of coarse and fine do not match!");
     }
 
     vector<Real> bbll,bbur;
@@ -1640,7 +1640,7 @@ TakeDifferenceSum(AmrData&             amrDataf,
 
     for (int i=0;i<BL_SPACEDIM;i++) {
       if (domainf.smallEnd()[i] != domainc.smallEnd()[i])
-	BoxLib::Abort("Domains of coarse and fine do not match!");
+	amrex::Abort("Domains of coarse and fine do not match!");
     }
 
     for (int i=1; i<=amrDataf.FinestLevel(); i++)

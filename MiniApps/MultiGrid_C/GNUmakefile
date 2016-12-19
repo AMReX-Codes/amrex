@@ -20,9 +20,7 @@ PROFILE      = FALSE
 COMM_PROFILE = FALSE
 USE_DUMPI    = FALSE
 COMP         = gcc
-FCOMP        = gfortran
 #COMP         = Intel
-#FCOMP        = Intel
 DIM	     = 3
 PRECISION    = DOUBLE
 EBASE        = main
@@ -31,16 +29,16 @@ EBASE        = main
 CPPFLAGS += -DCG_USE_OLD_CONVERGENCE_CRITERIA
 
 
-include $(AMREX_HOME)/Tools/C_mk/Make.defs
+include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
 CEXE_sources += $(EBASE).cpp
 
 include Make.package
-include $(AMREX_HOME)/Src/C_BoundaryLib/Make.package
+include $(AMREX_HOME)/Src/Boundary/Make.package
 include $(AMREX_HOME)/Src/LinearSolvers/C_CellMG/Make.package
-include $(AMREX_HOME)/Src/C_BaseLib/Make.package
+include $(AMREX_HOME)/Src/Base/Make.package
 
 all: $(executable)
 	@echo SUCCESS
 
-include $(AMREX_HOME)/Tools/C_mk/Make.rules
+include $(AMREX_HOME)/Tools/GNUMake/Make.rules

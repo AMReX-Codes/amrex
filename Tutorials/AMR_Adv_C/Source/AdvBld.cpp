@@ -1,6 +1,8 @@
 
-#include <LevelBld.H>
+#include <AMReX_LevelBld.H>
 #include <Adv.H>
+
+using namespace amrex;
 
 class AdvBld
     :

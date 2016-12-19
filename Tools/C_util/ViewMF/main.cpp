@@ -3,11 +3,11 @@
 #include <unistd.h>
 #endif
 
-#include <MultiFab.H>
+#include <AMReX_MultiFab.H>
 #include <ArrayView.H>
-#include <ParmParse.H>
-#include <Utility.H>
-#include <ParallelDescriptor.H>
+#include <AMReX_ParmParse.H>
+#include <AMReX_Utility.H>
+#include <AMReX_ParallelDescriptor.H>
 #include <TV_TempWrite.H>
 
 const int NPROCS = 1;
@@ -335,7 +335,7 @@ norm ( const MultiFab& mfab,
 
     } else {
 
-        BoxLib::Error("Invalid exponent to norm function");
+        amrex::Error("Invalid exponent to norm function");
     }
     
     return myNorm;

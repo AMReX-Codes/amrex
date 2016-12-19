@@ -23,19 +23,21 @@
 //
 //
 
-#include <Utility.H>
-#include <ParmParse.H>
-#include <LO_BCTYPES.H>
-#include <MacBndry.H>
-#include <MultiGrid.H>
-#include <CGSolver.H>
-#include <Laplacian.H>
+#include <AMReX_Utility.H>
+#include <AMReX_ParmParse.H>
+#include <AMReX_LO_BCTYPES.H>
+#include <AMReX_MacBndry.H>
+#include <AMReX_MultiGrid.H>
+#include <AMReX_CGSolver.H>
+#include <AMReX_Laplacian.H>
 #include <MacOperator.H>
-#include <ParallelDescriptor.H>
-#include <VisMF.H>
+#include <AMReX_ParallelDescriptor.H>
+#include <AMReX_VisMF.H>
 #include <TV_TempWrite.H>
 
 #include <WritePlotFile.H>
+
+using namespace amrex;
 
 static
 Real
@@ -89,7 +91,7 @@ void mac_driver (const MacBndry& mac_bndry,
 int
 main (int   argc, char* argv[])
 {
-    BoxLib::Initialize(argc, argv);
+    amrex::Initialize(argc, argv);
 
     //
     // Instantiate after we're running in Parallel.
@@ -122,27 +124,27 @@ main (int   argc, char* argv[])
     
     int use_cg_solve;
     if (!pp.query("use_cg_solve", use_cg_solve))
-        BoxLib::Abort("Must specify use_cg_solve");
+        amrex::Abort("Must specify use_cg_solve");
 
     int Density;
     if (!pp.query("Density", Density))
-        BoxLib::Abort("Must specify Density");
+        amrex::Abort("Must specify Density");
 
     Real dt;
     if (!pp.query("dt", dt))
-        BoxLib::Abort("Must specify dt");
+        amrex::Abort("Must specify dt");
 
     Real mac_tol;
     if (!pp.query("mac_tol", mac_tol))
-        BoxLib::Abort("Must specify mac_tol");
+        amrex::Abort("Must specify mac_tol");
 
     Real mac_abs_tol;
     if (!pp.query("mac_abs_tol", mac_abs_tol))
-        BoxLib::Abort("Must specify mac_abs_tol");
+        amrex::Abort("Must specify mac_abs_tol");
 
     Real rhs_scale;
     if (!pp.query("rhs_scale", rhs_scale))
-        BoxLib::Abort("Must specify rhs_scale");
+        amrex::Abort("Must specify rhs_scale");
 
     bool dump_norm = false;
     pp.query("dump_norm", dump_norm);
@@ -191,7 +193,7 @@ main (int   argc, char* argv[])
         }
     }
   
-    BoxLib::Finalize();
+    amrex::Finalize();
 }
 
 BoxList
@@ -201,7 +203,7 @@ readBoxList(const aString file, BOX& domain)
   ifstream boxspec(file.c_str());
   if( !boxspec )
     {
-      BoxLib::Error("readBoxList: unable to open " + *file.c_str());
+      amrex::Error("readBoxList: unable to open " + *file.c_str());
     }
   boxspec >> domain;
     
@@ -253,7 +255,7 @@ mac_driver (const MacBndry& mac_bndry,
 
     if (use_cg_solve && mac_op.maxOrder() != 2)
     {
-        BoxLib::Error("Can't use CGSolver with maxorder > 2");
+        amrex::Error("Can't use CGSolver with maxorder > 2");
     }
     //
     // Construct MultiGrid or CGSolver object and solve system.

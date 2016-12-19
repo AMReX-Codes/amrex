@@ -3,7 +3,7 @@
 // --------------------------------------------------------------------------
 //   this file tests fillboundary.
 // --------------------------------------------------------------------------
-#include <winstd.H>
+#include <AMReX_winstd.H>
 
 #include <new>
 #include <iostream>
@@ -15,12 +15,14 @@
 #include <unistd.h>
 #endif
 
-#include <IntVect.H>
-#include <Box.H>
-#include <BoxArray.H>
-#include <MultiFab.H>
-#include <ParallelDescriptor.H>
-#include <Utility.H>
+#include <AMReX_IntVect.H>
+#include <AMReX_Box.H>
+#include <AMReX_BoxArray.H>
+#include <AMReX_MultiFab.H>
+#include <AMReX_ParallelDescriptor.H>
+#include <AMReX_Utility.H>
+
+using namespace amrex;
 
 #ifdef BL_USE_SETBUF
 #define pubsetbuf setbuf
@@ -31,7 +33,7 @@ const int maxGrid(64);
 // --------------------------------------------------------------------------
 int main(int argc, char *argv[]) {
 
-    BoxLib::Initialize(argc,argv);    
+    amrex::Initialize(argc,argv);    
 
     BL_PROFILE_VAR("main()", pmain);
 
@@ -58,7 +60,7 @@ int main(int argc, char *argv[]) {
       if(ParallelDescriptor::IOProcessor()) {
         std::cerr << "**** Error:  nprocs = " << nprocs << " is not currently supported." << std::endl;
       }
-      BoxLib::Error("We require that the number of processors be a perfect cube");
+      amrex::Error("We require that the number of processors be a perfect cube");
     }
     if(ParallelDescriptor::IOProcessor()) {
       std::cout << "N = " << N << std::endl;
@@ -126,7 +128,7 @@ int main(int argc, char *argv[]) {
 
     BL_PROFILE_VAR_STOP(pmain);
 
-    BoxLib::Finalize();
+    amrex::Finalize();
     return 0;
 }
 // --------------------------------------------------------------------------

@@ -7,12 +7,14 @@
 #error "This code assumes BL_SPACEDIM==2"
 #endif
 
-#include <MultiFab.H>
+#include <AMReX_MultiFab.H>
+
+using namespace amrex;
 
 int
 main (int argc, char** argv)
 {
-    BoxLib::Initialize(argc, argv);
+    amrex::Initialize(argc, argv);
 
     BL_ASSERT(ParallelDescriptor::NProcs() == 2);
 
@@ -53,5 +55,5 @@ main (int argc, char** argv)
 	std::cout << mf_1[0] << std::endl;
     }
 
-    BoxLib::Finalize();
+    amrex::Finalize();
 }

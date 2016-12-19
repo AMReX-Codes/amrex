@@ -52,21 +52,21 @@ USE_OMP=FALSE
 
 EBASE = main
 
-include $(AMREX_HOME)/Tools/C_mk/Make.defs
+include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
 CEXE_sources += $(EBASE).cpp
 
 include Make.package
-include $(AMREX_HOME)/Src/C_BoundaryLib/Make.package
+include $(AMREX_HOME)/Src/Boundary/Make.package
 include $(AMREX_HOME)/Src/LinearSolvers/C_CellMG/Make.package
 include $(AMREX_HOME)/Src/LinearSolvers/C_CellMG4/Make.package
-include $(AMREX_HOME)/Src/C_BaseLib/Make.package
+include $(AMREX_HOME)/Src/Base/Make.package
 
-INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/C_BoundaryLib
-vpathdir += $(AMREX_HOME)/Src/C_BoundaryLib
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Boundary
+vpathdir += $(AMREX_HOME)/Src/Boundary
 
-INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/C_BaseLib
-vpathdir += $(AMREX_HOME)/Src/C_BaseLib
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Base
+vpathdir += $(AMREX_HOME)/Src/Base
 
 INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/LinearSolvers/C_CellMG
 vpathdir += $(AMREX_HOME)/Src/LinearSolvers/C_CellMG
@@ -127,4 +127,4 @@ vpath %.f90 : . $(VPATH_LOCATIONS)
 all: $(executable)
 	@echo SUCCESS
 
-include $(AMREX_HOME)/Tools/C_mk/Make.rules
+include $(AMREX_HOME)/Tools/GNUMake/Make.rules

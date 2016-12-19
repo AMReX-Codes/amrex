@@ -1,7 +1,7 @@
 #ifndef _RHS_H_
 #define _RHS_H_
 
-#include <REAL.H>
+#include <AMReX_REAL.H>
 
 #if        defined(BL_LANG_FORT)
 #define FORT_SET_RHS            set_rhs
@@ -15,7 +15,7 @@
 #define FORT_SET_RHS            set_rhs_
 #endif
 
-#include <ArrayLim.H>
+#include <AMReX_ArrayLim.H>
 
 extern "C"
 {

@@ -6,33 +6,31 @@ DEBUG     = TRUE
 DEBUG     = FALSE
 DIM       = 3
 COMP      = Intel
-FCOMP     = Intel
 COMP      = g++
-FCOMP     = gfortran
 
 USE_MPI=FALSE
 USE_MPI=TRUE
 
-include $(AMREX_HOME)/Tools/C_mk/Make.defs
+include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
 EBASE = bbiotest
 
 HERE = .
 
-include $(AMREX_HOME)/Src/C_BaseLib/Make.package
+include $(AMREX_HOME)/Src/Base/Make.package
 
 INCLUDE_LOCATIONS += $(HERE)
-INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/C_BaseLib
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Base
 
 CEXE_sources += BBIOTestDriver.cpp BBIOTest.cpp
 
-vpath %.H   $(HERE) $(AMREX_HOME)/Src/C_BaseLib
-vpath %.cpp $(HERE) $(AMREX_HOME)/Src/C_BaseLib
-vpath %.F   $(HERE) $(AMREX_HOME)/Src/C_BaseLib
-vpath %.f   $(HERE) $(AMREX_HOME)/Src/C_BaseLib
-vpath %.f90 $(HERE) $(AMREX_HOME)/Src/C_BaseLib
+vpath %.H   $(HERE) $(AMREX_HOME)/Src/Base
+vpath %.cpp $(HERE) $(AMREX_HOME)/Src/Base
+vpath %.F   $(HERE) $(AMREX_HOME)/Src/Base
+vpath %.f   $(HERE) $(AMREX_HOME)/Src/Base
+vpath %.f90 $(HERE) $(AMREX_HOME)/Src/Base
 
 all: $(executable)
 
-include $(AMREX_HOME)/Tools/C_mk/Make.rules
+include $(AMREX_HOME)/Tools/GNUMake/Make.rules
 

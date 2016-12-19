@@ -2,7 +2,7 @@
 #include <HypreABecLap.H>
 #include <HypreABec_F.H>
 
-#include "LO_BCTYPES.H"
+#include "AMReX_LO_BCTYPES.H"
 
 #include "_hypre_sstruct_mv.h"
 #include "HYPRE_krylov.h"
@@ -162,7 +162,7 @@ BndryAuxVar::BndryAuxVar(const BoxArray& _grids, Location loc)
     aux[ori].resize(grids.size(), PArrayManage);
     int ishift = ori.isLow() ? 1-inormal : inormal-1;
     for (int i = firstLocal(); isValid(i); i = nextLocal(i)) {
-      Box b = BoxLib::adjCell(grids[i], ori);
+      Box b = amrex::adjCell(grids[i], ori);
       aux[ori].set(i, new AuxVarBox(b.shift(ori.coordDir(), ishift)));
     }
   }
@@ -249,7 +249,7 @@ CrseBndryAuxVar::CrseBndryAuxVar(const BoxArray& _cgrids,
       list<Box> bl;
       list<int> fi;
       for (int j = 0; j < fgrids.size(); j++) {
-        Box face = BoxLib::adjCell(fgrids[j], ori);
+        Box face = amrex::adjCell(fgrids[j], ori);
         if (cgrids[i].intersects(face)) {
           bl.push_back(face & cgrids[i]);
           fi.push_back(j);
@@ -378,7 +378,7 @@ CrseBndryAuxVar::CrseBndryAuxVar(const BoxArray& _cgrids,
       for (int j = 0; j < n; j++) {
         fine_index[ori][i][j] = other.fine_index[ori][i][j];
 
-        Box face = BoxLib::adjCell(fgrids[fine_index[ori][i][j]], ori);
+        Box face = amrex::adjCell(fgrids[fine_index[ori][i][j]], ori);
         aux[ori][i].set(j, new AuxVarBox(face & cgrids[i]));
 
         Box mask_box = aux[ori][i][j].box();
@@ -570,7 +570,7 @@ HypreABecLap::HypreABecLap(int _crse_level, int _fine_level,
     ObjectType = HYPRE_PARCSR;
   }
   else {
-    BoxLib::Error("No such solver in HypreABecLap");
+    amrex::Error("No such solver in HypreABecLap");
   }
 
   int nparts = fine_level - crse_level + 1;
@@ -740,7 +740,7 @@ TransverseInterpolant(AuxVarBox& cintrp, const Mask& msk,
         for (IntVect v = vf; v <= face.bigEnd(); face.next(v)) {
           cintrp(v).push(clevel, vc,     1.0);
         }
-        //BoxLib::Error("Case not implemented");
+        //amrex::Error("Case not implemented");
       }
 #elif (BL_SPACEDIM == 3)
 
@@ -946,26 +946,26 @@ void HypreABecLap::buildMatrixStructure()
     for (OrientationIter oitr; oitr; ++oitr) {
       Orientation ori = oitr();
       int idir = ori.coordDir();
-      IntVect vin = BoxLib::BASISV(idir);
+      IntVect vin = amrex::BASISV(idir);
       vin = (ori.isLow() ? -vin : vin); // outward normal unit vector
       Real h = geom[level].CellSize(idir); // normal fine grid spacing
       IntVect ve; // default constructor initializes to zero
 #if (BL_SPACEDIM >= 2)
       int jdir = (idir + 1) % BL_SPACEDIM;
-      IntVect vj1 = BoxLib::BASISV(jdir); // tangential unit vector
+      IntVect vj1 = amrex::BASISV(jdir); // tangential unit vector
       IntVect vjr = rat * vj1;
       ve += (vjr - vj1);
 #endif
 #if (BL_SPACEDIM == 3)
       int kdir = (idir + 2) % 3;
-      IntVect vk1 = BoxLib::BASISV(kdir);
+      IntVect vk1 = amrex::BASISV(kdir);
       IntVect vkr = rat * vk1;
       ve += (vkr - vk1);
 #endif
       for (int i = cintrp[level].firstLocal(); cintrp[level].isValid(i);
            i = cintrp[level].nextLocal(i)) {
-        Box reg = BoxLib::adjCell(grids[level][i], ori);
-        Box creg = BoxLib::coarsen(reg, rat); // coarse adjacent cells
+        Box reg = amrex::adjCell(grids[level][i], ori);
+        Box creg = amrex::coarsen(reg, rat); // coarse adjacent cells
         const Mask &msk = *(bd[level].bndryMasks(i)[ori]);
 
         TransverseInterpolant(cintrp[level](ori)[i], msk, reg, creg,
@@ -995,11 +995,11 @@ void HypreABecLap::buildMatrixStructure()
     for (OrientationIter oitr; oitr; ++oitr) {
       Orientation ori = oitr();
       int idir = ori.coordDir();
-      IntVect vin = BoxLib::BASISV(idir);
+      IntVect vin = amrex::BASISV(idir);
       vin = (ori.isLow() ? -vin : vin); // outward normal unit vector
       for (int i = entry.firstLocal(); entry.isValid(i);
            i = entry.nextLocal(i)) {
-        Box reg = BoxLib::adjCell(grids[level][i], ori);
+        Box reg = amrex::adjCell(grids[level][i], ori);
         reg.shift(-vin); // fine interior cells
         for (IntVect v = reg.smallEnd(); v <= reg.bigEnd(); reg.next(v)) {
 #if (0 && !defined(NDEBUG))
@@ -1071,19 +1071,19 @@ void HypreABecLap::buildMatrixStructure()
     for (OrientationIter oitr; oitr; ++oitr) {
       Orientation ori = oitr();
       int idir = ori.coordDir();
-      IntVect vin = BoxLib::BASISV(idir);
+      IntVect vin = amrex::BASISV(idir);
       vin = (ori.isLow() ? -vin : vin); // outward normal unit vector
       Real h = geom[level].CellSize(idir); // normal fine grid spacing
       IntVect ve; // default constructor initializes to zero
 #if (BL_SPACEDIM >= 2)
       int jdir = (idir + 1) % BL_SPACEDIM;
-      IntVect vj1 = BoxLib::BASISV(jdir); // tangential unit vector
+      IntVect vj1 = amrex::BASISV(jdir); // tangential unit vector
       IntVect vjr = rat * vj1;
       ve += (vjr - vj1);
 #endif
 #if (BL_SPACEDIM == 3)
       int kdir = (idir + 2) % 3;
-      IntVect vk1 = BoxLib::BASISV(kdir);
+      IntVect vk1 = amrex::BASISV(kdir);
       IntVect vkr = rat * vk1;
       ve += (vkr - vk1);
 #endif
@@ -1318,7 +1318,7 @@ void HypreABecLap::setInitGuess(int level, const MultiFab& guess)
 void HypreABecLap::solve(PArray<MultiFab>& soln, Real _reltol, Real _abstol, int _maxiter)
 {
   if (!x_loaded || !b_loaded) {
-    BoxLib::Error("Must setRhs and setInitGuess before calling solve");
+    amrex::Error("Must setRhs and setInitGuess before calling solve");
   }
   
   HYPRE_SStructVectorAssemble(b);
@@ -1470,14 +1470,14 @@ void HypreABecLap::loadMatrix()
     for (OrientationIter oitr; oitr; ++oitr) {
       Orientation ori = oitr();
       int idir = ori.coordDir();
-      IntVect vin = BoxLib::BASISV(idir), ves;
+      IntVect vin = amrex::BASISV(idir), ves;
       vin = (ori.isLow() ? -vin : vin);    // outward normal unit vector
       ves = (ori.isLow() ?  ves : vin);    // edge shift vector
       Real h = geom[level].CellSize(idir); // normal fine grid spacing
       Real ffac = (-scalar_b / h);             // divergence factor
       for (int i = cintrp[level].firstLocal(); cintrp[level].isValid(i);
            i = cintrp[level].nextLocal(i)) {
-        Box reg = BoxLib::adjCell(grids[level][i], ori);
+        Box reg = amrex::adjCell(grids[level][i], ori);
         reg.shift(-vin); // fine interior cells
 	const Mask &msk = *(bd[level].bndryMasks(i)[ori]);
         for (IntVect v = reg.smallEnd(); v <= reg.bigEnd(); reg.next(v)) {
@@ -1492,11 +1492,11 @@ void HypreABecLap::loadMatrix()
     for (OrientationIter oitr; oitr; ++oitr) {
       Orientation ori = oitr();
       int idir = ori.coordDir();
-      IntVect vin = BoxLib::BASISV(idir);
+      IntVect vin = amrex::BASISV(idir);
       vin = (ori.isLow() ? -vin : vin);    // outward normal unit vector
       for (int i = cintrp[level].firstLocal(); cintrp[level].isValid(i);
            i = cintrp[level].nextLocal(i)) {
-        Box reg = BoxLib::adjCell(grids[level][i], ori);
+        Box reg = amrex::adjCell(grids[level][i], ori);
         reg.shift(-vin); // fine interior cells
         for (IntVect v = reg.smallEnd(); v <= reg.bigEnd(); reg.next(v)) {
           if (!entry(ori)[i](v).empty() &&
@@ -1555,7 +1555,7 @@ void HypreABecLap::loadMatrix()
       Orientation ori = oitr();
       int idir = ori.coordDir();
       c_entry[level].loadFaceData(ori, bcoefs[level][idir], 0, 0, 1);
-      IntVect vin = BoxLib::BASISV(idir), ves;
+      IntVect vin = amrex::BASISV(idir), ves;
       vin = (ori.isLow() ? -vin : vin); // outward normal unit vector
       ves = (ori.isLow() ? -vin : ves); // edge shift vector (diff from above)
       Real hc = geom[level-1].CellSize(idir); // normal coarse grid spacing
@@ -1566,12 +1566,12 @@ void HypreABecLap::loadMatrix()
       IntVect ve; // default constructor initializes to zero
 #if (BL_SPACEDIM >= 2)
       int jdir = (idir + 1) % BL_SPACEDIM;
-      ve += (rat[jdir] - 1) * BoxLib::BASISV(jdir);
+      ve += (rat[jdir] - 1) * amrex::BASISV(jdir);
       cfac /= rat[jdir]; // will average over fine cells in tangential dir
 #endif
 #if (BL_SPACEDIM == 3)
       int kdir = (idir + 2) % 3;
-      ve += (rat[kdir] - 1) * BoxLib::BASISV(kdir);
+      ve += (rat[kdir] - 1) * amrex::BASISV(kdir);
       cfac /= rat[kdir]; // will average over fine cells in tangential dir
 #endif
       for (int i = c_entry[level].firstLocal(); c_entry[level].isValid(i);
@@ -1731,7 +1731,7 @@ void HypreABecLap::setupSolver()
     }
   }
   else {
-    BoxLib::Error("No such solver in HypreABecLap");
+    amrex::Error("No such solver in HypreABecLap");
   }
 }
 
@@ -1743,7 +1743,7 @@ void HypreABecLap::clearSolver()
     HYPRE_BoomerAMGDestroy(precond);    
   }
   else {
-    BoxLib::Error("No such solver in HypreABecLap");
+    amrex::Error("No such solver in HypreABecLap");
   }  
 }
 
@@ -1773,7 +1773,7 @@ void HypreABecLap::doIt()
         HYPRE_BoomerAMGSetTol(precond, reltol_new);
       }
       else {
-	BoxLib::Error("No such solver in HypreABecLap");
+	amrex::Error("No such solver in HypreABecLap");
       }  
     }
   }
@@ -1792,7 +1792,7 @@ void HypreABecLap::doIt()
     HYPRE_ParCSRGMRESSolve(solver, par_A, par_b, par_x);
   }
   else {
-    BoxLib::Error("No such solver in HypreABecLap");    
+    amrex::Error("No such solver in HypreABecLap");    
   }
 
   HYPRE_SStructVectorGather(x);

@@ -1,8 +1,10 @@
 
-#include <ParmParse.H>
+#include <AMReX_ParmParse.H>
 
 #include <SMC.H>
 #include <SMC_F.H>
+
+using namespace amrex;
 
 bool        SMC::initialized       = false;
 int         SMC::ncons             = 0;

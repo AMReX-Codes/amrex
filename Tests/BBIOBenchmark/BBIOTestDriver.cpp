@@ -10,16 +10,17 @@ using std::ios;
 
 #include <unistd.h>
 
-#include <ParallelDescriptor.H>
-#include <Utility.H>
-#include <ParmParse.H>
-#include <MultiFab.H>
-#include <VisMF.H>
+#include <AMReX_ParallelDescriptor.H>
+#include <AMReX_Utility.H>
+#include <AMReX_ParmParse.H>
+#include <AMReX_MultiFab.H>
+#include <AMReX_VisMF.H>
 
 using std::cout;
 using std::cerr;
 using std::endl;
 
+using namespace amrex;
 
 void TestWriteNFiles(int nfiles, int nMB, bool raninit, bool mb2);
 void TestReadNFiles(int nfiles, int nMB, bool raninit, bool mb2);
@@ -49,7 +50,7 @@ static void PrintUsage(const char *progName) {
 // -------------------------------------------------------------
 int main(int argc, char *argv[]) {
 
-  BoxLib::Initialize(argc,argv);
+  amrex::Initialize(argc,argv);
   VisMF::Initialize();
 
   if(argc == 1) {
@@ -133,7 +134,7 @@ int main(int argc, char *argv[]) {
   }
 
 
-  BoxLib::Finalize();
+  amrex::Finalize();
   return 0;
 }
 // -------------------------------------------------------------

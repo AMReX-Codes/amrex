@@ -3,11 +3,11 @@
 #include <unistd.h>
 #endif
 
-#include <MultiFab.H>
+#include <AMReX_MultiFab.H>
 #include <ArrayView.H>
-#include <ParmParse.H>
-#include <Utility.H>
-#include <ParallelDescriptor.H>
+#include <AMReX_ParmParse.H>
+#include <AMReX_Utility.H>
+#include <AMReX_ParallelDescriptor.H>
 #include <TV_TempWrite.H>
 #include <MFNorm.H>
 
@@ -136,7 +136,7 @@ int main (int   argc,
 
     if (nComp == -1) {
         if (mf0.nComp() != mf1.nComp())
-            BoxLib::Abort("You must specify `ncomp' if (mfab0.nComp() != mfab1.nComp())");
+            amrex::Abort("You must specify `ncomp' if (mfab0.nComp() != mfab1.nComp())");
 
         nComp = mf0.nComp();
     }
