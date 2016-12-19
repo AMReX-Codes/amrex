@@ -1,15 +1,15 @@
 // -------------------------------------------------------------
 // BBIOTest.cpp
 // -------------------------------------------------------------
-#include <Array.H>
-#include <IntVect.H>
-#include <Box.H>
-#include <BoxArray.H>
-#include <FArrayBox.H>
-#include <MultiFab.H>
-#include <ParallelDescriptor.H>
-#include <VisMF.H>
-#include <Utility.H>
+#include <AMReX_Array.H>
+#include <AMReX_IntVect.H>
+#include <AMReX_Box.H>
+#include <AMReX_BoxArray.H>
+#include <AMReX_FArrayBox.H>
+#include <AMReX_MultiFab.H>
+#include <AMReX_ParallelDescriptor.H>
+#include <AMReX_VisMF.H>
+#include <AMReX_Utility.H>
 #include <iostream>
 #include <strstream>
 #include <fstream>
@@ -24,6 +24,8 @@ using std::ostrstream;
 using std::ofstream;
 using std::ifstream;
 using std::streamoff;
+
+using namespace amrex;
 
 const int XDIR(0);
 const int YDIR(1);
@@ -66,7 +68,7 @@ void TestWriteNFiles(int nfiles, int nMB, bool raninit, bool mb2)
   long npts(dataArray.size()), nItemsToWrite(0);
   long totalNBytes(npts * sizeof(long) * nProcs);
   std::string fileName(dirName + "/TestArray_");
-  fileName = BoxLib::Concatenate(fileName, myProc, 4);
+  fileName = amrex::Concatenate(fileName, myProc, 4);
   cout << myProc << "::fileName = " << fileName << endl << endl;
 
   ParallelDescriptor::Barrier();
@@ -167,7 +169,7 @@ void TestReadNFiles(int nfiles, int nMB, bool raninit, bool mb2)
   long npts(dataArray.size()), nItemsToRead(0);
   long totalNBytes(npts * sizeof(long) * nProcs);
   std::string fileName(dirName + "/TestArray_");
-  fileName = BoxLib::Concatenate(fileName, myProc, 4);
+  fileName = amrex::Concatenate(fileName, myProc, 4);
   cout << myProc << "::fileName = " << fileName << endl << endl;
 
   ParallelDescriptor::Barrier();

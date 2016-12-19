@@ -1,13 +1,15 @@
 #include <iostream>
 #include <fstream>
-#include <BoxArray.H>
-#include <MultiFab.H>
-#include <ParallelDescriptor.H>
+#include <AMReX_BoxArray.H>
+#include <AMReX_MultiFab.H>
+#include <AMReX_ParallelDescriptor.H>
+
+using namespace amrex;
 
 int
 main (int argc, char* argv[])
 {
-    BoxLib::Initialize(argc, argv);
+    amrex::Initialize(argc, argv);
     //
     // Use Space Filling Curve algorithm for distributing grids.
     //
@@ -24,20 +26,20 @@ main (int argc, char* argv[])
     std::ifstream ifs(file, std::ios::in);
 
     if (!ifs.good())
-        BoxLib::Error("Unable to open file");
+        amrex::Error("Unable to open file");
 
     BoxArray fba;
 
     fba.readFrom(ifs);
 
     if (!ifs.good())
-        BoxLib::Error("Read of BoxArray failed");
+        amrex::Error("Read of BoxArray failed");
 
     if (!fba.ok())
-        BoxLib::Error("BoxArray is not OK");
+        amrex::Error("BoxArray is not OK");
 
     if (!fba.isDisjoint())
-        BoxLib::Error("BoxArray is not disjoint");
+        amrex::Error("BoxArray is not disjoint");
 
     fba.maxSize(32);
 
@@ -77,7 +79,7 @@ main (int argc, char* argv[])
     if (cmf.DistributionMap()[0] == ParallelDescriptor::MyProc())
         std::cout << cmf[0] << std::endl;
 
-    BoxLib::Finalize();
+    amrex::Finalize();
 
     return 0;
 }

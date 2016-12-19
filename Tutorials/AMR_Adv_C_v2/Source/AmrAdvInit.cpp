@@ -2,6 +2,8 @@
 #include <AmrAdv.H>
 #include <AmrAdv_F.H>
 
+using namespace amrex;
+
 void
 AmrAdv::InitData ()
 {

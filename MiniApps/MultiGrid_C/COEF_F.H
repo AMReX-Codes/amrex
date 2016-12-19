@@ -1,7 +1,7 @@
 #ifndef _COEFF_H_
 #define _COEFF_H_
 
-#include <REAL.H>
+#include <AMReX_REAL.H>
 
 #if        defined(BL_LANG_FORT)
 
@@ -29,7 +29,7 @@
 #define FORT_COEF_TO_EDGES      coef_to_edges_
 #endif
 
-#include <ArrayLim.H>
+#include <AMReX_ArrayLim.H>
 
 extern "C"
 {

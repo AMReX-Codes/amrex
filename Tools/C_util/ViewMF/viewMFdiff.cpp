@@ -1,9 +1,9 @@
 
-#include <MultiFab.H>
+#include <AMReX_MultiFab.H>
 #include <ArrayView.H>
-#include <ParmParse.H>
-#include <Utility.H>
-#include <ParallelDescriptor.H>
+#include <AMReX_ParmParse.H>
+#include <AMReX_Utility.H>
+#include <AMReX_ParallelDescriptor.H>
 #include <TV_TempWrite.H>
 #include <MFNorm.H>
 
@@ -30,7 +30,7 @@ PrintUsage(int argc, char *argv[])
 int main (int   argc,
 	  char* argv[])
 {
-    BoxLib::Initialize(argc,argv);
+    amrex::Initialize(argc,argv);
 
     ParmParse pp;
     
@@ -78,25 +78,25 @@ int main (int   argc,
         //
         BoxList common_bl;
         for (int i=0; i<mf0.boxArray().size(); ++i)
-            common_bl.join(BoxList(BoxLib::intersect(mf1.boxArray(), mf0.boxArray()[i])));
+            common_bl.join(BoxList(amrex::intersect(mf1.boxArray(), mf0.boxArray()[i])));
         compBoxes = BoxArray(common_bl);
     }
     
     if (ngrow != std::min(ngrow,mf0.nGrow()))
     {
-        BoxLib::Warning("Shrinking ngrow to that available in mfab0");
+        amrex::Warning("Shrinking ngrow to that available in mfab0");
         ngrow = mf0.nGrow();
     }
 
     if (ngrow != std::min(ngrow,mf1.nGrow()))
     {
-        BoxLib::Warning("Shrinking ngrow to that available in mfab1");
+        amrex::Warning("Shrinking ngrow to that available in mfab1");
         ngrow = mf1.nGrow();
     }
 
     if (nComp == -1) {
         if (mf0.nComp() != mf1.nComp())
-            BoxLib::Abort("You must specify `ncomp' if (mfab0.nComp() != mfab1.nComp())");
+            amrex::Abort("You must specify `ncomp' if (mfab0.nComp() != mfab1.nComp())");
 
         nComp = mf0.nComp();
     }
@@ -121,13 +121,13 @@ int main (int   argc,
     
         for (MFIter mf0_mfi(mf0); mf0_mfi.isValid(); ++mf0_mfi)
         {
-            const Box& box = BoxLib::grow(mf0_mfi.validbox(),ngrow) & fabs[i].box();
+            const Box& box = amrex::grow(mf0_mfi.validbox(),ngrow) & fabs[i].box();
             if (box.ok())
                 fabs[i].copy(mf0[mf0_mfi],box,comp0,box,0,nComp);
         }
         for (MFIter mf1_mfi(mf1); mf1_mfi.isValid(); ++mf1_mfi)
         {
-            const Box& box = BoxLib::grow(mf1_mfi.validbox(),ngrow) & fabs[i].box();
+            const Box& box = amrex::grow(mf1_mfi.validbox(),ngrow) & fabs[i].box();
             if (box.ok())
                 fabs[i].minus(mf1[mf1_mfi],box,box,comp1,0,nComp);
         }
@@ -169,7 +169,7 @@ int main (int   argc,
 	}
     }
 
-    BoxLib::Finalize();
+    amrex::Finalize();
 
     return 0;
 }

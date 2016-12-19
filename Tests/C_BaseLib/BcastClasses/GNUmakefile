@@ -12,7 +12,6 @@ COMM_PROFILE  = FALSE
 TRACE_PROFILE = FALSE
 
 COMP      = g++
-FCOMP     = gfortran
 DIM       = 3
 PRECISION = DOUBLE
 
@@ -20,9 +19,9 @@ EBASE     = BcastClasses
 
 CEXE_sources += BcastClasses.cpp
 
-include $(AMREX_HOME)/Tools/C_mk/Make.defs
+include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
-include $(AMREX_HOME)/Src/C_BaseLib/Make.package
+include $(AMREX_HOME)/Src/Base/Make.package
 
-include $(AMREX_HOME)/Tools/C_mk/Make.rules
+include $(AMREX_HOME)/Tools/GNUMake/Make.rules
 

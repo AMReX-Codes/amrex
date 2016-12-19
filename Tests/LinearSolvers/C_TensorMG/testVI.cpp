@@ -9,12 +9,12 @@
 #include <unistd.h>
 #endif
 
-#include <Utility.H>
-#include <Box.H>
-#include <BoxArray.H>
-#include <Geometry.H>
-#include <ParmParse.H>
-#include <VisMF.H>
+#include <AMReX_Utility.H>
+#include <AMReX_Box.H>
+#include <AMReX_BoxArray.H>
+#include <AMReX_Geometry.H>
+#include <AMReX_ParmParse.H>
+#include <AMReX_VisMF.H>
 #ifndef NDEBUG
 #ifdef BL_USE_ARRAYVIEW
 #include <ArrayView.H>
@@ -22,19 +22,21 @@
 #endif
 
 #include <TestMCViscBndry.H>
-#include <DivVis.H>
-#include <LO_BCTYPES.H>
-#include <MCMultiGrid.H>
-#include <MCCGSolver.H>
-#include <ParallelDescriptor.H>
+#include <AMReX_DivVis.H>
+#include <AMReX_LO_BCTYPES.H>
+#include <AMReX_MCMultiGrid.H>
+#include <AMReX_MCCGSolver.H>
+#include <AMReX_ParallelDescriptor.H>
 
 #include <main_F.H>
+
+using namespace amrex;
 
 int
 main (int   argc,
       char* argv[])
 {
-    BoxLib::Initialize(argc,argv);
+    amrex::Initialize(argc,argv);
 
     std::cout << std::setprecision(10);
 
@@ -65,7 +67,7 @@ main (int   argc,
     {
         std::string msg = "problem opening grids file: ";
         msg += boxfile.c_str();
-        BoxLib::Abort(msg.c_str());
+        amrex::Abort(msg.c_str());
     }
 
     ifs >> domain;

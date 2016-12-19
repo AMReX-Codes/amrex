@@ -3,7 +3,7 @@
 // --------------------------------------------------------------------------
 //  this file tests the performance for moving grids
 // --------------------------------------------------------------------------
-#include <winstd.H>
+#include <AMReX_winstd.H>
 
 #include <new>
 #include <iostream>
@@ -17,11 +17,11 @@
 #include <unistd.h>
 #endif
 
-#include <ParmParse.H>
-#include <ParallelDescriptor.H>
-#include <Utility.H>
-#include <VisMF.H>
-#include <MultiFab.H>
+#include <AMReX_ParmParse.H>
+#include <AMReX_ParallelDescriptor.H>
+#include <AMReX_Utility.H>
+#include <AMReX_VisMF.H>
+#include <AMReX_MultiFab.H>
 
 #ifdef BL_USE_SETBUF
 #define pubsetbuf setbuf
@@ -29,6 +29,8 @@
 
 using std::cout;
 using std::endl;
+
+using namespace amrex;
 
 const int maxGrid(32);
 const int nComp(8);
@@ -54,7 +56,7 @@ void SetFabValsToPMap(MultiFab &mf) {
 // --------------------------------------------------------------------------
 int main(int argc, char *argv[]) {
 
-    BoxLib::Initialize(argc,argv);    
+    amrex::Initialize(argc,argv);    
 
     BL_PROFILE_VAR("main()", pmain);
     BL_PROFILE_REGION_START("main");
@@ -142,7 +144,7 @@ int main(int argc, char *argv[]) {
 
       Array<int> copyArray;
       if(ParallelDescriptor::IOProcessor()) {
-        BoxLib::UniqueRandomSubset(copyArray, nRanksInSet, nProcs);
+        amrex::UniqueRandomSubset(copyArray, nRanksInSet, nProcs);
       } else {
         copyArray.resize(nRanksInSet);
       }
@@ -187,10 +189,10 @@ int main(int argc, char *argv[]) {
       Array<int> copyArray;
       int nRanksInSet(8);
       if(nRanksInSet % 2 != 0) {
-        BoxLib::Abort("**** Bad nRanksInSet");
+        amrex::Abort("**** Bad nRanksInSet");
       }
       if(ParallelDescriptor::IOProcessor()) {
-        BoxLib::UniqueRandomSubset(copyArray, nRanksInSet, nProcs);
+        amrex::UniqueRandomSubset(copyArray, nRanksInSet, nProcs);
       } else {
         copyArray.resize(nRanksInSet);
       }
@@ -218,7 +220,7 @@ int main(int argc, char *argv[]) {
       Array<int> randomMap(ba16.size());
       if(ParallelDescriptor::IOProcessor()) {
 	for(int ir(0); ir < ba16.size(); ++ ir) {
-          randomMap[ir] = BoxLib::Random_int(nProcs);
+          randomMap[ir] = amrex::Random_int(nProcs);
 	}
       }
       ParallelDescriptor::Bcast(randomMap.dataPtr(), randomMap.size());
@@ -245,7 +247,7 @@ int main(int argc, char *argv[]) {
     BL_PROFILE_REGION_STOP("main");
     BL_PROFILE_VAR_STOP(pmain);
 
-    BoxLib::Finalize();
+    amrex::Finalize();
     return 0;
 }
 // --------------------------------------------------------------------------

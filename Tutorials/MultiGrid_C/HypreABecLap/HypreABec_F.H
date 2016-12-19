@@ -1,7 +1,7 @@
 #ifndef _HYPREABEC_F_H_
 #define _HYPREABEC_F_H_
 
-#include <REAL.H>
+#include <AMReX_REAL.H>
 
 #if        defined(BL_LANG_FORT)
 
@@ -57,7 +57,7 @@
 #endif
 #endif
 
-#include <ArrayLim.H>
+#include <AMReX_ArrayLim.H>
 
 extern "C" {
   void FORT_HPACOEF(Real* mat, Real* acoefs, ARLIM_P(alo), ARLIM_P(ahi),

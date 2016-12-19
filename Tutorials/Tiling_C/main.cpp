@@ -1,8 +1,10 @@
 #include <iostream>
 
-#include <BoxLib.H>
-#include <MultiFab.H>
-#include <BLFort.H>
+#include <AMReX_BoxLib.H>
+#include <AMReX_MultiFab.H>
+#include <AMReX_BLFort.H>
+
+using namespace amrex;
 
 // declare a fortran subroutine
 extern "C"
@@ -12,7 +14,7 @@ extern "C"
 
 int main(int argc, char* argv[])
 {
-    BoxLib::Initialize(argc,argv);
+    amrex::Initialize(argc,argv);
 
     // define the lower and upper corner of a 3D domain
     IntVect domain_lo(0 , 0, 0); 
@@ -107,6 +109,6 @@ int main(int argc, char* argv[])
     std::cout << "L1  norm = " << data2.norm1() << std::endl;
     std::cout << "L2  norm = " << data2.norm2() << std::endl;    
 
-    BoxLib::Finalize();
+    amrex::Finalize();
 }
 

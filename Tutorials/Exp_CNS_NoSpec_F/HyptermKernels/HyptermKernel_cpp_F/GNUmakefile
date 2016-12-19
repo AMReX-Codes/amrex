@@ -20,13 +20,12 @@ USE_MPI     =TRUE
 AIXLARGEMEM =TRUE
 AIXLARGEMEM =FALSE
 COMP      = g++
-FCOMP     = gfortran
 USE_ARRAYVIEW = FALSE
 USE_OMP = TRUE
 
 HERE = .
 
-include $(AMREX_HOME)/Tools/C_mk/Make.defs
+include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
 
 override CXXOPTF = -O3 -msse3
@@ -48,23 +47,23 @@ include ./Make.package
 
 DEFINES += -DBL_PARALLEL_IO
 
-include $(AMREX_HOME)/Src/C_BaseLib/Make.package
+include $(AMREX_HOME)/Src/Base/Make.package
 
 INCLUDE_LOCATIONS += $(HERE)
-INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/C_BaseLib
-INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/C_AMRLib
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Base
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Amr
 INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Extern/amrdata
-INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/C_BoundaryLib
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Boundary
 
 
-include $(AMREX_HOME)/Src/C_BoundaryLib/Make.package
-INCLUDES += $(AMREX_HOME)/Src/C_BoundaryLib
+include $(AMREX_HOME)/Src/Boundary/Make.package
+INCLUDES += $(AMREX_HOME)/Src/Boundary
 
 PATHDIRS  = $(HERE)
-PATHDIRS += $(AMREX_HOME)/Src/C_BaseLib
-PATHDIRS += $(AMREX_HOME)/Src/C_AMRLib
+PATHDIRS += $(AMREX_HOME)/Src/Base
+PATHDIRS += $(AMREX_HOME)/Src/Amr
 PATHDIRS += $(AMREX_HOME)/Src/Extern/amrdata
-PATHDIRS += $(AMREX_HOME)/Src/C_BoundaryLib
+PATHDIRS += $(AMREX_HOME)/Src/Boundary
 
 
 
@@ -80,6 +79,6 @@ vpath %.cpp $(PATHDIRS)
 
 all: $(executable)
 
-include $(AMREX_HOME)/Tools/C_mk/Make.rules
+include $(AMREX_HOME)/Tools/GNUMake/Make.rules
 
 

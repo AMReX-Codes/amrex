@@ -3,7 +3,7 @@
 // --------------------------------------------------------------------------
 //  this file writes and reads multifabs.
 // --------------------------------------------------------------------------
-#include <winstd.H>
+#include <AMReX_winstd.H>
 
 #include <new>
 #include <iostream>
@@ -17,10 +17,12 @@
 #include <unistd.h>
 #endif
 
-#include <ParmParse.H>
-#include <ParallelDescriptor.H>
-#include <Utility.H>
-#include <VisMF.H>
+#include <AMReX_ParmParse.H>
+#include <AMReX_ParallelDescriptor.H>
+#include <AMReX_Utility.H>
+#include <AMReX_VisMF.H>
+
+using namespace amrex;
 
 #ifdef BL_USE_SETBUF
 #define pubsetbuf setbuf
@@ -63,7 +65,7 @@ void PrintL0Grdlog(std::ostream &os, const BoxArray &ba, const Array<int> &map) 
 // --------------------------------------------------------------------------
 int main(int argc, char *argv[]) {
 
-    BoxLib::Initialize(argc,argv);    
+    amrex::Initialize(argc,argv);    
 
     VisMF::SetNOutFiles(nFiles);  // ---- this will enforce the range [1, nprocs]
 
@@ -90,7 +92,7 @@ int main(int argc, char *argv[]) {
     for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
       const int index(mfi.index());
       FArrayBox &fab = mf[index];
-      std::string fname = BoxLib::Concatenate("FAB_", index, 4);
+      std::string fname = amrex::Concatenate("FAB_", index, 4);
       std::ofstream fabs(fname.c_str());
       fab.writeOn(fabs);
       fabs.close();
@@ -138,7 +140,7 @@ int main(int argc, char *argv[]) {
       PrintL0Grdlog(std::cout, mf.boxArray(), dmap.ProcessorMap());
     }
 
-    BoxLib::Finalize();
+    amrex::Finalize();
     return 0;
 }
 // --------------------------------------------------------------------------

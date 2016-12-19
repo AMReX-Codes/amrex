@@ -1,0 +1,15 @@
+
+CEXE_headers += AMReX_AmrCore.H AMReX_Cluster.H AMReX_ErrorList.H AMReX_FillPatchUtil.H AMReX_FluxRegister.H \
+                AMReX_Interpolater.H AMReX_TagBox.H
+CEXE_sources += AMReX_AmrCore.cpp AMReX_Cluster.cpp AMReX_ErrorList.cpp AMReX_FillPatchUtil.cpp AMReX_FluxRegister.cpp \
+                AMReX_Interpolater.cpp AMReX_TagBox.cpp
+
+FEXE_headers += AMReX_FLUXREG_F.H AMReX_INTERP_F.H
+FEXE_sources += AMReX_FLUXREG_$(DIM)D.F AMReX_INTERP_$(DIM)D.F
+
+ifeq ($(USE_PARTICLES), TRUE)
+  CEXE_headers += AMReX_AmrParGDB.H AMReX_AmrParticles.H
+endif
+
+VPATH_LOCATIONS += $(AMREX_HOME)/Src/AmrCore
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/AmrCore

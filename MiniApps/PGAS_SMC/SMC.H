@@ -1,10 +1,10 @@
 #ifndef _SMC_H_
 #define _SMC_H_
 
-#include <Array.H>
-#include <IntVect.H>
-#include <Geometry.H>
-#include <MultiFab.H>
+#include <AMReX_Array.H>
+#include <AMReX_IntVect.H>
+#include <AMReX_Geometry.H>
+#include <AMReX_MultiFab.H>
 
 #ifdef _OPEMP
 #include <omp.h>
@@ -24,15 +24,15 @@ private:
     static bool initialized;
 
     // data
-    Geometry geom;
-    MultiFab U;
-    MultiFab Utmp;
-    MultiFab Uprime;
-    MultiFab Q;
-    MultiFab mu;
-    MultiFab xi;
-    MultiFab lam;
-    MultiFab Ddiag;
+    amrex::Geometry geom;
+    amrex::MultiFab U;
+    amrex::MultiFab Utmp;
+    amrex::MultiFab Uprime;
+    amrex::MultiFab Q;
+    amrex::MultiFab mu;
+    amrex::MultiFab xi;
+    amrex::MultiFab lam;
+    amrex::MultiFab Ddiag;
 
     Real t, dt, courno;
     Real dx[3];
@@ -46,12 +46,12 @@ private:
     static int ngrow;
 
     // runtime parameters;
-    static Array<int> ncell;
-    static Array<int> max_grid_size;
+    static amrex::Array<int> ncell;
+    static amrex::Array<int> max_grid_size;
     static int max_step;
     static Real stop_time;
-    static Array<Real> prob_lo;
-    static Array<Real> prob_hi;
+    static amrex::Array<Real> prob_lo;
+    static amrex::Array<Real> prob_hi;
     //
     static int  verbose;
     //
@@ -82,10 +82,10 @@ private:
     void writePlotFile (int istep);
 
     void advance (int istep);
-    void compute_dUdt(MultiFab& UU, int istep=-1);
+    void compute_dUdt(amrex::MultiFab& UU, int istep=-1);
     void set_dt(int istep);
-    void update_rk3(Real a, MultiFab& Ua, Real b, const MultiFab& Ub, Real c, const MultiFab& Uc);
-    void reset_density(MultiFab& UU);
+    void update_rk3(Real a, amrex::MultiFab& Ua, Real b, const amrex::MultiFab& Ub, Real c, const amrex::MultiFab& Uc);
+    void reset_density(amrex::MultiFab& UU);
 };
 
 #endif

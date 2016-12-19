@@ -1,11 +1,13 @@
 
-#include <ParallelDescriptor.H>
-#include <ParmParse.H>
-#include <MultiFabUtil.H>
-#include <FillPatchUtil.H>
+#include <AMReX_ParallelDescriptor.H>
+#include <AMReX_ParmParse.H>
+#include <AMReX_MultiFabUtil.H>
+#include <AMReX_FillPatchUtil.H>
 
 #include <AmrAdv.H>
 #include <AmrAdvBC.H>
+
+using namespace amrex;
 
 AmrAdv::AmrAdv ()
 {
@@ -82,15 +84,14 @@ AmrAdv::MakeNewLevel (int lev, Real time,
     SetBoxArray(lev, new_grids);
     SetDistributionMap(lev, new_dmap);
 
-    phi_new[lev] = std::unique_ptr<MultiFab>(new MultiFab(grids[lev], ncomp, nghost, dmap[lev]));
-    phi_old[lev] = std::unique_ptr<MultiFab>(new MultiFab(grids[lev], ncomp, nghost, dmap[lev]));
+    phi_new[lev].reset(new MultiFab(grids[lev], ncomp, nghost, dmap[lev]));
+    phi_old[lev].reset(new MultiFab(grids[lev], ncomp, nghost, dmap[lev]));
 
     t_new[lev] = time;
     t_old[lev] = time - 1.e200;
 
     if (lev > 0 && do_reflux) {
-	flux_reg[lev] = std::unique_ptr<FluxRegister>
-	    (new FluxRegister(grids[lev], refRatio(lev-1), lev, ncomp, dmap[lev]));
+	flux_reg[lev].reset(new FluxRegister(grids[lev], refRatio(lev-1), lev, ncomp, dmap[lev]));
     }
 }
 
@@ -101,8 +102,13 @@ AmrAdv::RemakeLevel (int lev, Real time,
     const int ncomp = phi_new[lev]->nComp();
     const int nghost = phi_new[lev]->nGrow();
 
+#if __cplusplus >= 201402L
+    auto new_state = std::make_unique<MultiFab>(new_grids, ncomp, nghost, new_dmap);
+    auto old_state = std::make_unique<MultiFab>(new_grids, ncomp, nghost, new_dmap);
+#else
     auto new_state = std::unique_ptr<MultiFab>(new MultiFab(new_grids, ncomp, nghost, new_dmap));
     auto old_state = std::unique_ptr<MultiFab>(new MultiFab(new_grids, ncomp, nghost, new_dmap));
+#endif
 
     FillPatch(lev, time, *new_state, 0, ncomp);
 
@@ -116,8 +122,7 @@ AmrAdv::RemakeLevel (int lev, Real time,
     t_old[lev] = time - 1.e200;
 
     if (lev > 0 && do_reflux) {
-	flux_reg[lev] = std::unique_ptr<FluxRegister>
-	    (new FluxRegister(grids[lev], refRatio(lev-1), lev, ncomp, dmap[lev]));
+	flux_reg[lev].reset(new FluxRegister(grids[lev], refRatio(lev-1), lev, ncomp, dmap[lev]));
     }    
 }
 
@@ -166,7 +171,7 @@ AmrAdv::AverageDown ()
 {
     for (int lev = finest_level-1; lev >= 0; --lev)
     {
-	BoxLib::average_down(*phi_new[lev+1], *phi_new[lev],
+	amrex::average_down(*phi_new[lev+1], *phi_new[lev],
 			     geom[lev+1], geom[lev],
 			     0, phi_new[lev]->nComp(), refRatio(lev));
     }
@@ -175,7 +180,7 @@ AmrAdv::AverageDown ()
 void
 AmrAdv::AverageDownTo (int crse_lev)
 {
-    BoxLib::average_down(*phi_new[crse_lev+1], *phi_new[crse_lev],
+    amrex::average_down(*phi_new[crse_lev+1], *phi_new[crse_lev],
 			 geom[crse_lev+1], geom[crse_lev],
 			 0, phi_new[crse_lev]->nComp(), refRatio(crse_lev));
 }
@@ -203,18 +208,18 @@ AmrAdv::FillPatch (int lev, Real time, MultiFab& mf, int icomp, int ncomp)
 {
     if (lev == 0)
     {
-	PArray<MultiFab> smf;
-	std::vector<Real> stime;
+	Array<MultiFab*> smf;
+	Array<Real> stime;
 	GetData(0, time, smf, stime);
 
 	AmrAdvPhysBC physbc;
-	BoxLib::FillPatchSingleLevel(mf, time, smf, stime, 0, icomp, ncomp,
+	amrex::FillPatchSingleLevel(mf, time, smf, stime, 0, icomp, ncomp,
 				     geom[lev], physbc);
     }
     else
     {
-	PArray<MultiFab> cmf, fmf;
-	std::vector<Real> ctime, ftime;
+	Array<MultiFab*> cmf, fmf;
+	Array<Real> ctime, ftime;
 	GetData(lev-1, time, cmf, ctime);
 	GetData(lev  , time, fmf, ftime);
 
@@ -225,7 +230,7 @@ AmrAdv::FillPatch (int lev, Real time, MultiFab& mf, int icomp, int ncomp)
 	int hi_bc[] = {INT_DIR, INT_DIR, INT_DIR};
 	Array<BCRec> bcs(1, BCRec(lo_bc, hi_bc));
 
-	BoxLib::FillPatchTwoLevels(mf, time, cmf, ctime, fmf, ftime,
+	amrex::FillPatchTwoLevels(mf, time, cmf, ctime, fmf, ftime,
 				   0, icomp, ncomp, geom[lev-1], geom[lev],
 				   cphysbc, fphysbc, refRatio(lev-1),
 				   mapper, bcs);
@@ -233,7 +238,7 @@ AmrAdv::FillPatch (int lev, Real time, MultiFab& mf, int icomp, int ncomp)
 }
 
 void
-AmrAdv::GetData (int lev, Real time, PArray<MultiFab>& data, std::vector<Real>& datatime)
+AmrAdv::GetData (int lev, Real time, Array<MultiFab*>& data, Array<Real>& datatime)
 {
     data.clear();
     datatime.clear();

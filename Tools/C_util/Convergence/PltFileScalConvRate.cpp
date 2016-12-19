@@ -6,10 +6,10 @@
 #include <unistd.h>
 
 #include <ComputeAmrDataNorms.H>
-#include <ParmParse.H>
-#include <ParallelDescriptor.H>
-#include <DataServices.H>
-#include <Utility.H>
+#include <AMReX_ParmParse.H>
+#include <AMReX_ParallelDescriptor.H>
+#include <AMReX_DataServices.H>
+#include <AMReX_Utility.H>
 
 #ifndef NDEBUG
 #include <TV_TempWrite.H>
@@ -40,7 +40,7 @@ int
 main (int   argc,
       char* argv[])
 {
-    BoxLib::Initialize(argc,argv);
+    amrex::Initialize(argc,argv);
 
     if (argc == 1)
         PrintUsage(argv[0]);
@@ -64,11 +64,11 @@ main (int   argc,
     }
     pp.query("errorC", cFile);
     if (cFile.empty())
-        BoxLib::Abort("You must specify `errorC'");
+        amrex::Abort("You must specify `errorC'");
 
     pp.query("errorF", fFile);
     if (fFile.empty())
-        BoxLib::Abort("You must specify `errorF'");
+        amrex::Abort("You must specify `errorF'");
 
     Array<Real> norm0c, norm1c, norm2c;
     Array<Real> norm0f, norm1f, norm2f;
@@ -94,7 +94,7 @@ main (int   argc,
 	for (int i=0; i<names.size(); ++i)
 	    maxl = std::max(maxl,int(names[i].size()));
 
-        std::string maxl_str = BoxLib::Concatenate("", maxl, 1);
+        std::string maxl_str = amrex::Concatenate("", maxl, 1);
 
 	std::string formatStr =
 	    std::string("\t%") + maxl_str + std::string("s |  %10e   %10e   %10e\n");
@@ -121,7 +121,7 @@ main (int   argc,
 	
     }
     
-    BoxLib::Finalize();
+    amrex::Finalize();
 }
 
 

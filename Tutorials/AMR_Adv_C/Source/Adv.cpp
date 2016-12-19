@@ -1,9 +1,11 @@
 
 #include <Adv.H>
 #include <Adv_F.H>
-#include <VisMF.H>
-#include <TagBox.H>
-#include <ParmParse.H>
+#include <AMReX_VisMF.H>
+#include <AMReX_TagBox.H>
+#include <AMReX_ParmParse.H>
+
+using namespace amrex;
 
 int      Adv::verbose         = 0;
 Real     Adv::cfl             = 0.9;
@@ -29,12 +31,12 @@ Adv::read_params ()
 
     // This tutorial code only supports Cartesian coordinates.
     if (! Geometry::IsCartesian()) {
-	BoxLib::Abort("Please set geom.coord_sys = 0");
+	amrex::Abort("Please set geom.coord_sys = 0");
     }
 
     // This tutorial code only supports periodic boundaries.
     if (! Geometry::isAllPeriodic()) {
-	BoxLib::Abort("Please set geom.is_periodic = 1 1 1");
+	amrex::Abort("Please set geom.is_periodic = 1 1 1");
     }
 
 
@@ -196,7 +198,7 @@ Adv::avgDown (int state_indx)
     MultiFab&  S_fine   = fine_lev.get_new_data(state_indx);
     MultiFab&  S_crse   = get_new_data(state_indx);
     
-    BoxLib::average_down(S_fine,S_crse,
+    amrex::average_down(S_fine,S_crse,
                          fine_lev.geom,geom,
                          0,S_fine.nComp(),parent->refRatio(level));
 }

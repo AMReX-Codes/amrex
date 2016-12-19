@@ -13,13 +13,14 @@
 #include <sstream>
 #include <unistd.h>
 
-#include <BoxLib.H>
-#include <ParallelDescriptor.H>
-#include <Utility.H>
-#include <ParmParse.H>
-#include <MultiFab.H>
-#include <VisMF.H>
+#include <AMReX_BoxLib.H>
+#include <AMReX_ParallelDescriptor.H>
+#include <AMReX_Utility.H>
+#include <AMReX_ParmParse.H>
+#include <AMReX_MultiFab.H>
+#include <AMReX_VisMF.H>
 
+using namespace amrex;
 
 int nComp(6), nGhost(2);
 
@@ -129,7 +130,7 @@ namespace
 
             DistributionMapping dm_all(pm_all);
             if (ParallelDescriptor::IOProcessor()) {
-              BoxLib::USleep(1);
+              amrex::USleep(1);
               std::cout << "SIDECAR " << whichSidecar << " DM = " << dm_sidecar << std::endl << std::flush;
               std::cout << "WORLD DM = " << dm_all << std::endl << std::flush;
             }
@@ -294,7 +295,7 @@ namespace
 // --------------------------------------------------------------------------
 int main(int argc, char *argv[]) {
 
-    BoxLib::Initialize(argc,argv);
+    amrex::Initialize(argc,argv);
 
     // A flag you need for broadcasting across MPI groups. We always broadcast
     // the data to the sidecar group from the IOProcessor on the compute group.
@@ -309,7 +310,7 @@ int main(int argc, char *argv[]) {
     ParmParse pp;
 
     if(nProcs < 8) {
-      BoxLib::Abort("**** Error:  this test must be run with at least 8 processes.");
+      amrex::Abort("**** Error:  this test must be run with at least 8 processes.");
     }
 
     pp.query("maxGrid", maxGrid);
@@ -332,7 +333,7 @@ int main(int argc, char *argv[]) {
     Array<int> randomRanks;
     if(ParallelDescriptor::IOProcessor()) {
       bool printSet(true);
-      BoxLib::UniqueRandomSubset(randomRanks, nProcs, nProcs, printSet);
+      amrex::UniqueRandomSubset(randomRanks, nProcs, nProcs, printSet);
       for(int i(0); i < randomRanks.size(); ++i) {
         if(randomRanks[i] == 0) {  // ---- comprank[0] must be 0
 	  randomRanks[i] = randomRanks[0];
@@ -340,7 +341,7 @@ int main(int argc, char *argv[]) {
 	}
       }
     }
-    BoxLib::BroadcastArray(randomRanks, myProcAll, ioProcNum, ParallelDescriptor::Communicator());
+    amrex::BroadcastArray(randomRanks, myProcAll, ioProcNum, ParallelDescriptor::Communicator());
 
     if(useSequential) {
       for(int i(0); i < randomRanks.size(); ++i) {
@@ -507,7 +508,7 @@ int main(int argc, char *argv[]) {
     }
     
     ParallelDescriptor::Barrier();
-    BoxLib::USleep(myProcAll);
+    amrex::USleep(myProcAll);
     if(ParallelDescriptor::IOProcessor()) {
       std::cout << myProcAll << ":: Finished timesteps" << std::endl;
     }
@@ -517,7 +518,7 @@ int main(int argc, char *argv[]) {
     ParallelDescriptor::SetNProcsSidecars(nSidecars);
 
 
-    BoxLib::Finalize();
+    amrex::Finalize();
     return 0;
 }
 // --------------------------------------------------------------------------

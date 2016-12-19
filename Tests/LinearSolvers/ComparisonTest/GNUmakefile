@@ -34,15 +34,15 @@ USE_MPI=TRUE
 
 EBASE = LST
 
-include $(AMREX_HOME)/Tools/C_mk/Make.defs
+include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
 CEXE_sources += main.cpp
 
 include Make.package
-include $(AMREX_HOME)/Src/C_BoundaryLib/Make.package
+include $(AMREX_HOME)/Src/Boundary/Make.package
 include $(AMREX_HOME)/Src/LinearSolvers/C_CellMG/Make.package
-include $(AMREX_HOME)/Src/C_BaseLib/Make.package
-include $(AMREX_HOME)/Src/C_AmrCoreLib/Make.package
+include $(AMREX_HOME)/Src/Base/Make.package
+include $(AMREX_HOME)/Src/AmrCore/Make.package
 
 include $(AMREX_HOME)/Src/LinearSolvers/C_to_F_MG/Make.package
 include $(AMREX_HOME)/Src/LinearSolvers/F_MG/FParallelMG.mak
@@ -69,4 +69,4 @@ endif
 all: $(executable)
 	@echo SUCCESS
 
-include $(AMREX_HOME)/Tools/C_mk/Make.rules
+include $(AMREX_HOME)/Tools/GNUMake/Make.rules

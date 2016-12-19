@@ -1,14 +1,17 @@
 #include <iomanip>
 
-#include <Utility.H>
-#include <Geometry.H>
-#include <PArray.H>
-#include <MultiFab.H>
+#include <AMReX_Utility.H>
+#include <AMReX_Geometry.H>
+#include <AMReX_MultiFab.H>
 
 #include <COMP_NORM_F.H>
 
-void compute_norm(const PArray<MultiFab>& soln, const PArray<MultiFab>& exac, 
-		  const std::vector<Geometry>& geom, const std::vector<BoxArray>& grids,
+using namespace amrex;
+
+void compute_norm(const Array<MultiFab*>& soln,
+		  const Array<MultiFab*>& exac, 
+		  const Array<Geometry>& geom,
+		  const Array<BoxArray>& grids,
 		  int nsoln, int iCpp, int iF90, int iHyp)
 {
   Array<Real> twonorm(nsoln, 0.0);
@@ -27,7 +30,7 @@ void compute_norm(const PArray<MultiFab>& soln, const PArray<MultiFab>& exac,
       baf.coarsen(ref_ratio);
     }
 
-    for (MFIter mfi(soln[ilev]); mfi.isValid(); ++mfi) {
+    for (MFIter mfi(*soln[ilev]); mfi.isValid(); ++mfi) {
       int i = mfi.index();
       
       const Box& bx = grids[ilev][i];
@@ -35,7 +38,7 @@ void compute_norm(const PArray<MultiFab>& soln, const PArray<MultiFab>& exac,
       FArrayBox mask(bx, 1);
       mask.setVal(1.0);
       if (ilev < nlevel-1) {
-      	std::vector< std::pair<int,Box> > isects = baf.intersections(bx);
+	const std::vector< std::pair<int,Box> > isects = baf.intersections(bx);
 
         for (int ii = 0; ii < isects.size(); ii++) {
           mask.setVal(0.0, isects[ii].second, 0);
@@ -47,8 +50,8 @@ void compute_norm(const PArray<MultiFab>& soln, const PArray<MultiFab>& exac,
 
       BL_FORT_PROC_CALL(LST_COMP_NORM, lst_comp_norm)
 	(bx.loVect(), bx.hiVect(),
-	 BL_TO_FORTRAN(soln[ilev][mfi]),
-	 BL_TO_FORTRAN(exac[ilev][mfi]),
+	 BL_TO_FORTRAN((*soln[ilev])[mfi]),
+	 BL_TO_FORTRAN((*exac[ilev])[mfi]),
 	 BL_TO_FORTRAN(mask),
 	 BL_TO_FORTRAN(volbox),
 	 twonorm.dataPtr(),
@@ -62,7 +65,7 @@ void compute_norm(const PArray<MultiFab>& soln, const PArray<MultiFab>& exac,
   ParallelDescriptor::ReduceRealMax(maxnorm.dataPtr(), nsoln);
 
   for (int i=0; i<nsoln; i++) {
-    twonorm[i] = sqrt(twonorm[i] / volume); 
+      twonorm[i] = std::sqrt(twonorm[i] / volume); 
   }
  
   std::cout << std::setprecision(15);

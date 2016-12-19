@@ -1,7 +1,7 @@
 #ifndef _COMP_NORM_F_H_
 #define _COMP_NORM_F_H_
 
-#include <BLFort.H>
+#include <AMReX_BLFort.H>
 
 BL_FORT_PROC_DECL(LST_COMP_NORM, lst_comp_norm)
   (const int* lo, const int* hi,

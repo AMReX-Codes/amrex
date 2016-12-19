@@ -2,6 +2,8 @@
 #include <Adv.H>
 #include <Adv_F.H>
 
+using namespace amrex;
+
 Real
 Adv::advance (Real time,
               Real dt,
@@ -70,9 +72,9 @@ Adv::advance (Real time,
 
 	    // Allocate fabs for fluxes and Godunov velocities.
 	    for (int i = 0; i < BL_SPACEDIM ; i++) {
-		const Box& bxtmp = BoxLib::surroundingNodes(bx,i);
+		const Box& bxtmp = amrex::surroundingNodes(bx,i);
 		flux[i].resize(bxtmp,NUM_STATE);
-		uface[i].resize(BoxLib::grow(bxtmp,1),1);
+		uface[i].resize(amrex::grow(bxtmp,1),1);
 	    }
 
 	    get_face_velocity(level, ctr_time,

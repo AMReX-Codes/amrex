@@ -1,0 +1,13 @@
+
+BOXLIB_BASE=EXE
+ifeq ($(LBASE),box)
+  BOXLIB_BASE=LIB
+endif
+
+C$(BOXLIB_BASE)_sources += AMReX_Particles.cpp AMReX_TracerParticles.cpp
+C$(BOXLIB_BASE)_headers += AMReX_Particles.H AMReX_ParticleInit.H AMReX_ParGDB.H AMReX_TracerParticles.H
+F$(BOXLIB_BASE)_headers += AMReX_Particles_F.H
+F$(BOXLIB_BASE)_sources += AMReX_Particles_$(DIM)D.F
+
+VPATH_LOCATIONS += $(AMREX_HOME)/Src/Particle
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Particle

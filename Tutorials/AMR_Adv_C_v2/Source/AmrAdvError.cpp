@@ -1,8 +1,10 @@
 
-#include <ParmParse.H>
+#include <AMReX_ParmParse.H>
 
 #include <AmrAdv.H>
 #include <AmrAdv_F.H>
+
+using namespace amrex;
 
 void
 AmrAdv::ErrorEst (int lev, TagBoxArray& tags, Real time, int /*ngrow*/)

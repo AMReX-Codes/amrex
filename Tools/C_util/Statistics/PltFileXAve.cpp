@@ -8,9 +8,9 @@
 #include <PltFileXAve.H>
 #include <WritePlotFile.H>
 #include <ComputeAmrDataStat.H>
-#include <ParmParse.H>
-#include <ParallelDescriptor.H>
-#include <Utility.H>
+#include <AMReX_ParmParse.H>
+#include <AMReX_ParallelDescriptor.H>
+#include <AMReX_Utility.H>
 
 #ifndef NDEBUG
 #include <TV_TempWrite.H>
@@ -161,7 +161,7 @@ main (int   argc,
   if (argc == 1)
         PrintUsage(argv[0]);
     
-    BoxLib::Initialize(argc,argv);
+    amrex::Initialize(argc,argv);
     ParmParse pp;
 
     if (pp.contains("help"))
@@ -185,7 +185,7 @@ main (int   argc,
 
     pp.query("infile", iFile);
     if (iFile.empty())
-      BoxLib::Abort("You must specify `infile'");
+      amrex::Abort("You must specify `infile'");
 
     int nstart = 1;
     pp.query("nstart",nstart);
@@ -230,7 +230,7 @@ main (int   argc,
       Array<Real> xold;
       for (int i = nstart; i < nmax; i++) {
 
-        File = BoxLib::Concatenate(iFile, i*nfac, 5);
+        File = amrex::Concatenate(iFile, i*nfac, 5);
       
 	DataServices dataServices(File, fileType);
 
@@ -259,9 +259,9 @@ main (int   argc,
       }
     }
     else 
-      BoxLib::Abort("Analysis type not defined");
+      amrex::Abort("Analysis type not defined");
 
-    BoxLib::Finalize();
+    amrex::Finalize();
 
 }
 
@@ -288,7 +288,7 @@ compute_flux_all(int nstart,
     
   for (int i = nstart; i < nmax; i++)
   {
-    std::string File = BoxLib::Concatenate(iFile, i*nfac, 5);
+    std::string File = amrex::Concatenate(iFile, i*nfac, 5);
 
 
     //File = hdrFile + idxs + iFile;
@@ -434,7 +434,7 @@ compute_flux_all(int nstart,
     
   for (int i = nstart; i < nmax; i++)
   {
-    std::string File = BoxLib::Concatenate(iFile, i*nfac, 5);
+    std::string File = amrex::Concatenate(iFile, i*nfac, 5);
       
     DataServices dataServices(File, fileType);
 
@@ -613,7 +613,7 @@ compute_flux(AmrData&           amrData,
    //for (int i=1; i<=finestLevel; i++)
    //    domain.refine(amrData.RefRatio()[i]);
 
-    ba = BoxLib::intersect(amrData.boxArray(0),domain);
+    ba = amrex::intersect(amrData.boxArray(0),domain);
   }
 
   tmpmean.define(ba,nComp,0,Fab_allocate);

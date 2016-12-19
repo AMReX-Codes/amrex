@@ -1,8 +1,8 @@
-#include <REAL.H>
+#include <AMReX_REAL.H>
 
-#include "DivVis_F.H"
-#include <LO_BCTYPES.H>
-#include "ArrayLim.H"
+#include "AMReX_DivVis_F.H"
+#include <AMReX_LO_BCTYPES.H>
+#include "AMReX_ArrayLim.H"
 
 c :::: usage:
 c :::: this .mF file is meant to be run through Mathematica.  This converts

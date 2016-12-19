@@ -9,12 +9,12 @@ using std::ios;
 
 #include <unistd.h>
 
-#include <REAL.H>
-#include <Box.H>
-#include <FArrayBox.H>
-#include <ParmParse.H>
-#include <Utility.H>
-#include <VisMF.H>
+#include <AMReX_REAL.H>
+#include <AMReX_Box.H>
+#include <AMReX_FArrayBox.H>
+#include <AMReX_ParmParse.H>
+#include <AMReX_Utility.H>
+#include <AMReX_VisMF.H>
 
 #ifndef NDEBUG
 #include <TV_TempWrite.H>
@@ -43,7 +43,7 @@ int
 main (int   argc,
       char* argv[])
 {
-    BoxLib::Initialize(argc,argv);
+    amrex::Initialize(argc,argv);
 
     if (argc == 1)
         PrintUsage(argv[0]);
@@ -59,13 +59,13 @@ main (int   argc,
 
     pp.query("infile", iFile);
     if (iFile.empty())
-        BoxLib::Abort("You must specify `infile'");
+        amrex::Abort("You must specify `infile'");
 
     pp.query("factor", factor);
 
     pp.query("outfile", oFile);
     if (oFile.empty())
-        BoxLib::Abort("You must specify `outfile'");
+        amrex::Abort("You must specify `outfile'");
 
     std::ifstream is(iFile.c_str(),ios::in);
     std::ofstream os(oFile.c_str(),ios::out);
@@ -77,5 +77,5 @@ main (int   argc,
 
     dataI.writeOn(os);
 
-    BoxLib::Finalize();
+    amrex::Finalize();
 }

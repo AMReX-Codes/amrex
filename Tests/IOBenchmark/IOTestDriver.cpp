@@ -10,17 +10,18 @@ using std::ios;
 
 #include <unistd.h>
 
-#include <ParallelDescriptor.H>
-#include <Utility.H>
-#include <ParmParse.H>
-#include <MultiFab.H>
-#include <VisMF.H>
-#include <FabConv.H>
+#include <AMReX_ParallelDescriptor.H>
+#include <AMReX_Utility.H>
+#include <AMReX_ParmParse.H>
+#include <AMReX_MultiFab.H>
+#include <AMReX_VisMF.H>
+#include <AMReX_FabConv.H>
 
 using std::cout;
 using std::cerr;
 using std::endl;
 
+using namespace amrex;
 
 void DirectoryTests();
 void FileTests();
@@ -80,7 +81,7 @@ static void PrintUsage(const char *progName) {
 // -------------------------------------------------------------
 int main(int argc, char *argv[]) {
 
-  BoxLib::Initialize(argc,argv);
+  amrex::Initialize(argc,argv);
   //VisMF::Initialize();
 
   if(argc == 1) {
@@ -326,12 +327,12 @@ int main(int argc, char *argv[]) {
         hVersion = VisMF::Header::NoFabHeaderFAMinMax_v1;
       break;
       default:
-        BoxLib::Abort("**** Error:  bad hVersion.");
+        amrex::Abort("**** Error:  bad hVersion.");
       }
 
     for(int itimes(0); itimes < ntimes; ++itimes) {
       ParallelDescriptor::Barrier("TestWriteNFiles::BeforeSleep4");
-      BoxLib::USleep(4);
+      amrex::USleep(4);
       ParallelDescriptor::Barrier("TestWriteNFiles::AfterSleep4");
 
       if(ParallelDescriptor::IOProcessor()) {
@@ -358,7 +359,7 @@ int main(int argc, char *argv[]) {
     VisMF::SetMFFileInStreams(nReadStreams);
     for(int itimes(0); itimes < ntimes; ++itimes) {
       ParallelDescriptor::Barrier("TestReadMF::BeforeSleep4");
-      BoxLib::USleep(4);
+      amrex::USleep(4);
       ParallelDescriptor::Barrier("TestReadMF::AfterSleep4");
 
       if(ParallelDescriptor::IOProcessor()) {
@@ -381,7 +382,7 @@ int main(int argc, char *argv[]) {
 
 
 
-  BoxLib::Finalize();
+  amrex::Finalize();
   return 0;
 }
 // -------------------------------------------------------------

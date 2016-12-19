@@ -2,6 +2,8 @@
 #include <Adv.H>
 #include <Adv_F.H>
 
+using namespace amrex;
+
 Real
 Adv::initialTimeStep ()
 {

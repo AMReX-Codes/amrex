@@ -1,6 +1,6 @@
 
-#include <MultiFab.H>
-#include <Geometry.H>
+#include <AMReX_MultiFab.H>
+#include <AMReX_Geometry.H>
 
 extern "C" {
 
