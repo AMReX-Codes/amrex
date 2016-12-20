@@ -4,7 +4,7 @@ DEBUG	= FALSE
 DIM	= 3
 
 COMP    = gcc
-FCOMP   = gfortran -g -O3
+FCOMP   = gfortran
 
 TINY_PROFILE = TRUE
 
