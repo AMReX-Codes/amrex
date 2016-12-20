@@ -1,5 +1,6 @@
 BOXLIB_HOME ?= ../../../BoxLib
 PICSAR_HOME ?= ../../../picsar
+OPENBC_HOME ?= ../../../openbc_poisson
 
 USE_PARTICLES = TRUE
 
@@ -26,6 +27,11 @@ include $(BOXLIB_HOME)/Src/C_BoundaryLib/Make.package
 include $(BOXLIB_HOME)/Src/C_AmrCoreLib/Make.package
 
 include $(PICSAR_HOME)/src/Make.package
+
+ifeq ($(USE_OPENBC_POISSON),TRUE)
+  include $(OPENBC_HOME)/Make.package
+  DEFINES += -DFFT_FFTW -DMPIPARALLEL -DUSE_OPENBC_POISSON
+endif
 
 # job_info support
 CEXE_sources += buildInfo.cpp
