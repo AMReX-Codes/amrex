@@ -46,7 +46,8 @@ extern "C"
 				       const long* nox, const long* noy, const long* noz,
 				       const Real* exg, const Real* eyg, const Real* ezg,
 				       const Real* bxg, const Real* byg, const Real* bzg,
-				       const int* ll4symtry, const int* l_lower_order_in_v,  
+				       const int* ll4symtry, const int* l_lower_order_in_v,
+                                       const long* lvect,  
 				       const long* field_gathe_algo);
 
     // Particle pusher

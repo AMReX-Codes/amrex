@@ -16,7 +16,8 @@
 
 #endif
 
-#define LVECT 8_c_long
+#define LVECT_CURRDEPO 8_c_long
+#define LVECT_FIELDGATHE 64_c_long
 
 ! _________________________________________________________________
 !
@@ -63,17 +64,20 @@ contains
   !> @param[in] nox,noy,noz interpolation order
   !> @param[in] exg,eyg,ezg electric field grid arrays
   !> @param[in] bxg,byg,bzg electric field grid arrays
+  !> @param[in] lvect vector length
   !>
   subroutine warpx_geteb_energy_conserving(np,xp,yp,zp, &
        ex,ey,ez,bx,by,bz,xmin,ymin,zmin,dx,dy,dz,nx,ny,nz,nxguard,nyguard,nzguard, &
        nox,noy,noz,exg,eyg,ezg,bxg,byg,bzg, &
        ll4symtry,l_lower_order_in_v, &  !!!!!!!
+       lvect,&
        field_gathe_algo) &
        bind(C, name="warpx_geteb_energy_conserving")
 
     integer(c_long), intent(in) :: field_gathe_algo
     integer(c_long), intent(in) :: np,nx,ny,nz,nox,noy,noz,nxguard,nyguard,nzguard
     integer(c_int), intent(in)  :: ll4symtry,l_lower_order_in_v
+    integer(c_long),intent(in)   :: lvect
     real(c_real), dimension(np) :: xp,yp,zp,ex,ey,ez,bx,by,bz
     real(c_real), intent(in)    :: xmin,ymin,zmin,dx,dy,dz
     real(c_real), dimension(-nxguard:nx+nxguard,-nyguard:ny+nyguard,-nzguard:nz+nzguard) :: exg,eyg,ezg
@@ -88,6 +92,7 @@ contains
          ex,ey,ez,bx,by,bz,xmin,ymin,zmin,dx,dy,dz,nx,ny,nz,nxguard,nyguard,nzguard, &
          nox,noy,noz,exg,eyg,ezg,bxg,byg,bzg, &
          pxr_ll4symtry, pxr_l_lower_order_in_v, &
+         lvect, &
          field_gathe_algo)
 
   end subroutine warpx_geteb_energy_conserving

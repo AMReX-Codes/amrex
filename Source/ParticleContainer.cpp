@@ -196,6 +196,7 @@ MyParticleContainer::Evolve (int lev,
 	    //
 	    const int ll4symtry          = false;
 	    const int l_lower_order_in_v = true;
+            long lvect_fieldgathe = 64;
 	    BL_PROFILE_VAR_START(blp_pxr_fg);
 	    warpx_geteb_energy_conserving(&np, xp.data(), yp.data(), zp.data(),
 					  Exp.data(),Eyp.data(),Ezp.data(),
@@ -207,6 +208,7 @@ MyParticleContainer::Evolve (int lev,
 					  exfab.dataPtr(), eyfab.dataPtr(), ezfab.dataPtr(),
 					  bxfab.dataPtr(), byfab.dataPtr(), bzfab.dataPtr(),
 					  &ll4symtry, &l_lower_order_in_v,
+                                          &lvect_fieldgathe,
 		                          &WarpX::field_gathering_algo);
 	    BL_PROFILE_VAR_STOP(blp_pxr_fg);
 
