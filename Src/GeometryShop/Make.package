@@ -1,0 +1,14 @@
+
+GEOMETRYSHOP_BASE=EXE
+ifeq ($(LBASE),GeometryShop)
+  GEOMETRYSHOP_BASE=LIB
+endif
+
+
+C$(BOXLIB_BASE)_headers += AMReX_RealVect.H AMReX_BaseIF.H AMReX_BoxIterator.H 
+C$(BOXLIB_BASE)_sources += AMReX_RealVect.cpp AMReX_BoxIterator.cpp 
+
+
+VPATH_LOCATIONS += $(AMREX_HOME)/Src/GeometryShop
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/GeometryShop
+
