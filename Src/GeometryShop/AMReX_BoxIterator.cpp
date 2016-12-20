@@ -1,36 +1,38 @@
-#ifdef CH_LANG_CC
 /*
- *      _______              __
- *     / ___/ /  ___  __ _  / /  ___
- *    / /__/ _ \/ _ \/  V \/ _ \/ _ \
- *    \___/_//_/\___/_/_/_/_.__/\___/
- *    Please refer to Copyright.txt, in Chombo's root directory.
+ *      .o.       ooo        ooooo ooooooooo.             ooooooo  ooooo 
+ *     .888.      `88.       .888' `888   `Y88.            `8888    d8'  
+ *    .8"888.      888b     d'888   888   .d88'  .ooooo.     Y888..8P    
+ *   .8' `888.     8 Y88. .P  888   888ooo88P'  d88' `88b     `8888'     
+ *  .88ooo8888.    8  `888'   888   888`88b.    888ooo888    .8PY888.    
+ * .8'     `888.   8    Y     888   888  `88b.  888    .o   d8'  `888b   
+ *o88o     o8888o o8o        o888o o888o  o888o `Y8bod8P' o888o  o88888o 
+ *
  */
-#endif
 
-#include "BoxIterator.H"
-#include "NamespaceHeader.H"
+#include "AMReX_BoxIterator.H"
 
-void BoxIterator::define (const Box& a_bx)
+namespace amrex
 {
-  // this algorithm breaks for screwy empty boxes
-  if (a_bx.smallEnd() <= a_bx.bigEnd())
+  void BoxIterator::define (const Box& a_bx)
   {
-    m_current = a_bx.smallEnd();
-    m_boxLo   = a_bx.smallEnd();
-    m_boxHi   = a_bx.bigEnd();
+    // this algorithm breaks for screwy empty boxes
+    if (a_bx.smallEnd() <= a_bx.bigEnd())
+      {
+        m_current = a_bx.smallEnd();
+        m_boxLo   = a_bx.smallEnd();
+        m_boxHi   = a_bx.bigEnd();
+      }
+    else
+      {
+        m_current = IntVect::Unit;
+        m_boxLo   = IntVect::Unit;
+        m_boxHi   = IntVect::Zero;
+      }
   }
-  else
+
+  void BoxIterator::setBox(const Box& a_bx)
   {
-    m_current = IntVect::Unit;
-    m_boxLo   = IntVect::Unit;
-    m_boxHi   = IntVect::Zero;
+    define(a_bx);
   }
-}
 
-void BoxIterator::setBox(const Box& a_bx)
-{
-  define(a_bx);
 }
-
-#include "NamespaceFooter.H"
