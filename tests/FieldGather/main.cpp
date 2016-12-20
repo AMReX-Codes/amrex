@@ -95,6 +95,7 @@ int main(int argc, char* argv[])
 
 	const int ll4symtry          = false;
 	const int l_lower_order_in_v = true;
+	long lvect_fieldgathe = 64;
 	warpx_geteb_energy_conserving(&np, xp.data(), yp.data(), zp.data(),
 				      Exp.data(),Eyp.data(),Ezp.data(),
 				      Bxp.data(),Byp.data(),Bzp.data(),
@@ -105,6 +106,7 @@ int main(int argc, char* argv[])
 				      exfab.dataPtr(), eyfab.dataPtr(), ezfab.dataPtr(),
 				      bxfab.dataPtr(), byfab.dataPtr(), bzfab.dataPtr(),
 				      &ll4symtry, &l_lower_order_in_v,
+				      &lvect_fieldgathe,
 				      &field_gathering_algo);
 
 	Box plotbox{IntVect{D_DECL(0,0,0)},IntVect{D_DECL(nx-1,ny-1,nz-1)}};
