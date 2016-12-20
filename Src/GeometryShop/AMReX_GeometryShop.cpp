@@ -1,18 +1,13 @@
-#ifdef CH_LANG_CC
 /*
- *      _______              __
- *     / ___/ /  ___  __ _  / /  ___
- *    / /__/ _ \/ _ \/  V \/ _ \/ _ \
- *    \___/_//_/\___/_/_/_/_.__/\___/
- *    Please refer to Copyright.txt, in Chombo's root directory.
+ *       {_       {__       {__{_______              {__      {__
+ *      {_ __     {_ {__   {___{__    {__             {__   {__  
+ *     {_  {__    {__ {__ { {__{__    {__     {__      {__ {__   
+ *    {__   {__   {__  {__  {__{_ {__       {_   {__     {__     
+ *   {______ {__  {__   {_  {__{__  {__    {_____ {__  {__ {__   
+ *  {__       {__ {__       {__{__    {__  {_         {__   {__  
+ * {__         {__{__       {__{__      {__  {____   {__      {__
+ *
  */
-#endif
-
-#if defined(CH_Darwin) && defined(__GNUC__) && ( __GNUC__ == 3 )
-// deal with the broken isnan()/isinf() in GCC on MacOS
-#include <unistd.h>
-#define _GLIBCPP_USE_C99 1
-#endif
 
 #include <cmath>
 #include <cstdio>
@@ -21,23 +16,18 @@
 #include <iostream>
 #include <string>
 
-#include "GeometryService.H"
-#include "GeometryShop.H"
+#include "AMReX_GeometryShop.H"
+#include "AMReX_RealVect.H"
 
-#include "PolyGeom.H"
-#include "RealVect.H"
 
-#include "NamespaceHeader.H"
-
-bool GeometryShop::s_verbose = false;
+namespace amrex
+{
 
 GeometryShop::GeometryShop(const BaseIF& a_localGeom,
                            int           a_verbosity,
                            RealVect      a_vectDx,
                            Real          a_thrshdVoF)
-  :m_phase(-1)
 {
-  CH_TIME("GeometryShop::GeometryShop");
 
   m_vectDx = a_vectDx;
 
@@ -57,7 +47,6 @@ GeometryShop::GeometryShop(const BaseIF& a_localGeom,
 
   m_threshold = 1.0e-15*pow(arg1, arg2);
 
-  m_numCellsClipped = 0;
 
   m_thrshdVoF = a_thrshdVoF;
 
@@ -69,458 +58,21 @@ GeometryShop::~GeometryShop()
   delete(m_implicitFunction);
 }
 
-bool GeometryShop::twoEdgeIntersections(edgeMo a_edges[4])const
-{
-  bool retval;
-  int count = 0;
-  for (int iedge = 0;iedge<4;++iedge)
-    {
-      if (!a_edges[iedge].isCovered() && a_edges[iedge].getEdgeLength()<1.0)
-        {
-          count += 1;
-        }
-    }
-  if (count >= 2 && count !=0)
-    {
-      retval = true;
-    }
-  else
-    {
-      retval = false;
-    }
-  return retval;
-}
-
-bool GeometryShop::isRegular(const Box&           a_region,
-                             const ProblemDomain& a_domain,
-                             const RealVect&      a_origin,
-                             const Real&          a_dx) const
-{
-  CH_TIME("GeometryShop::isRegular");
-  // set a vectDx
-  RealVect vectDx = m_vectDx;
-
-  // If this isn't an STL description then the value function works
-  if (m_stlIF == NULL)
-  {
-    // first check any of the Box corners is outside, and return false
-    // right away. (bvs)
-    IntVect lo = a_region.smallEnd();
-    IntVect len = a_region.size();
-    Box unitBox(IntVect::Zero, IntVect::Unit);
-    for (BoxIterator bit(unitBox); bit.ok(); ++bit)
-      {
-        IntVect current = lo + len*bit();
-        RealVect physCorner;
-        for (int idir = 0; idir < CH_SPACEDIM; ++idir)
-          {
-            physCorner[idir] = vectDx[idir]*current[idir] + a_origin[idir];
-          }
-        Real functionValue = m_implicitFunction->value(physCorner);
-        if (functionValue > 0.0 )
-          {
-            return false;
-          }
-      }
-  }
-
-  return isRegularEveryPoint(a_region, a_domain, a_origin, a_dx);
-}
-
-bool GeometryShop::isRegularEveryPoint(const Box&           a_region,
-                                       const ProblemDomain& a_domain,
-                                       const RealVect&      a_origin,
-                                       const Real&          a_dx) const
-{
-  CH_TIME("GeometryShop::isRegularEveryPoint");
-  // set a vectDx
-  RealVect vectDx = m_vectDx;
-
-  // All corner indices for the current box
-  Box allCorners(a_region);
-  allCorners.surroundingNodes();
-
-  RealVect physCorner;
-  BoxIterator bit(allCorners);
-  // If every corner is inside, the box is regular
-  for (int i=0; i<2; i++)
-    {
-      for (; bit.ok(); ++bit, ++bit)
-        {
-          // Current corner
-          const IntVect& corner = bit();
-
-          // Compute physical coordinate of corner
-
-
-          for (int idir = 0; idir < CH_SPACEDIM; ++idir)
-            {
-              physCorner[idir] = vectDx[idir]*corner[idir] + a_origin[idir];
-            }
-
-          if (m_stlIF == NULL)
-          {
-            // If the implicit function value is positive then the current
-            // corner is outside the domain
-            Real functionValue = m_implicitFunction->value(physCorner);
-
-            if (functionValue > 0.0 )
-              {
-                return false;
-              }
-          }
-          else
-          {
-            if (!m_STLBoxSet)
-            {
-              m_stlIF->getExplorer()->Explore(a_domain.domainBox(),a_domain,a_origin,vectDx);
-              m_STLBoxSet = true;
-            }
-
-            MayDay::Error("STL not implemented");
-          }
-        }
-      bit.reset();
-      ++bit;
-    }
-
-  return true;
-}
-
-bool GeometryShop::isIrregular(const Box&           a_region,
-                               const ProblemDomain& a_domain,
-                               const RealVect&      a_origin,
-                               const Real&          a_dx) const
-{
-
-  CH_TIME("GeometryShop::isIrregular");
-  // set a vectDx
-  RealVect vectDx = m_vectDx;
-
-  // first check any of the Box corners is outside, and return false
-  // right away. (bvs)
-  RealVect physCorner;
-  IntVect lo = a_region.smallEnd();
-  IntVect len = a_region.size();
-  for (int idir = 0; idir < CH_SPACEDIM; ++idir)
-    {
-      physCorner[idir] = vectDx[idir]*lo[idir] + a_origin[idir];
-    }
-  Real originVal = m_implicitFunction->value(physCorner);
-
-  Box unitBox(IntVect::Zero, IntVect::Unit);
-  for (BoxIterator bit(unitBox); bit.ok(); ++bit)
-    {
-      IntVect current = lo + len*bit();
-      for (int idir = 0; idir < CH_SPACEDIM; ++idir)
-        {
-          physCorner[idir] = vectDx[idir]*current[idir] + a_origin[idir];
-        }
-
-      if (m_stlIF == NULL)
-      {
-        Real functionValue = m_implicitFunction->value(physCorner);
-        if (functionValue * originVal < 0.0 )
-          {
-            return true;
-          }
-      }
-      else
-      {
-        if (!m_STLBoxSet)
-        {
-          m_stlIF->getExplorer()->Explore(a_domain.domainBox(),a_domain,a_origin,vectDx);
-          m_STLBoxSet = true;
-        }
-
-        MayDay::Error("STL not implemented");
-      }
-    }
-
-  // return isIrregularEveryPoint(a_region, a_domain, a_origin, a_dx, originVal);
-  return !(isRegularEveryPoint(a_region, a_domain, a_origin, a_dx) ||
-           isCoveredEveryPoint(a_region, a_domain, a_origin, a_dx));
-}
-
-bool GeometryShop::isIrregularEveryPoint(const Box&           a_region,
-                                         const ProblemDomain& a_domain,
-                                         const RealVect&      a_origin,
-                                         const Real&          a_dx,
-                                         const Real&          a_originVal) const
-{
-  CH_TIME("GeometryShop::isIrregularEveryPoint");
-  // set a vectDx
-  RealVect vectDx = m_vectDx;
-
-  // All corner indices for the current box
-  Box allCorners(a_region);
-  allCorners.surroundingNodes();
-
-  RealVect physCorner;
-  BoxIterator bit(allCorners);
-  // If every corner is inside, the box is regular
-  for (int i=0; i<2; i++)
-    {
-      for (; bit.ok(); ++bit, ++bit)
-        {
-          // Current corner
-          IntVect corner = bit();
-
-          // Compute physical coordinate of corner
-
-          for (int idir = 0; idir < CH_SPACEDIM; ++idir)
-            {
-              physCorner[idir] = vectDx[idir]*corner[idir] + a_origin[idir];
-            }
-
-          if (m_stlIF == NULL)
-          {
-            // If the implicit function value is positive then the current
-            // corner is outside the domain
-            Real functionValue = m_implicitFunction->value(physCorner);
-
-            if (functionValue * a_originVal < 0.0 )
-              {
-                return true;
-              }
-          }
-          else
-          {
-            if (!m_STLBoxSet)
-            {
-              m_stlIF->getExplorer()->Explore(a_domain.domainBox(),a_domain,a_origin,vectDx);
-              m_STLBoxSet = true;
-            }
-
-            MayDay::Error("STL not implemented");
-          }
-        }
-      bit.reset();
-      ++bit;
-    }
-
-  return false;
-}
-
-bool GeometryShop::isCovered(const Box&           a_region,
-                             const ProblemDomain& a_domain,
-                             const RealVect&      a_origin,
-                             const Real&          a_dx) const
-{
-  CH_TIME("GeometryShop::isCovered");
-
-  // set a vectDx
-  RealVect vectDx = m_vectDx;
-
-  // first check any of the Box corners is outside, and return false
-  // right away. (bvs)
-  RealVect physCorner;
-  IntVect lo = a_region.smallEnd();
-  IntVect len = a_region.size();
-  Box unitBox(IntVect::Zero, IntVect::Unit);
-  for (BoxIterator bit(unitBox); bit.ok(); ++bit)
-    {
-      IntVect current = lo + len*bit();
-      for (int idir = 0; idir < CH_SPACEDIM; ++idir)
-        {
-          physCorner[idir] = vectDx[idir]*current[idir] + a_origin[idir];
-        }
-
-      if (m_stlIF == NULL)
-      {
-        Real functionValue = m_implicitFunction->value(physCorner);
-        if (functionValue < 0.0 )
-          {
-            return false;
-          }
-      }
-      else
-      {
-        if (!m_STLBoxSet)
-        {
-          m_stlIF->getExplorer()->Explore(a_domain.domainBox(),a_domain,a_origin,vectDx);
-          m_STLBoxSet = true;
-        }
-
-        MayDay::Error("STL not implemented");
-      }
-    }
-
-  return isCoveredEveryPoint(a_region, a_domain, a_origin, a_dx);
-}
-
-bool GeometryShop::isCoveredEveryPoint(const Box&           a_region,
-                                       const ProblemDomain& a_domain,
-                                       const RealVect&      a_origin,
-                                       const Real&          a_dx) const
-{
-  CH_TIME("GeometryShop::isCoveredEveryPoint");
-  // set a vectDx
-  RealVect vectDx = m_vectDx;
-
-  // All corner indices for the current box
-  Box allCorners(a_region);
-  allCorners.surroundingNodes();
-
-  RealVect physCorner;
-  BoxIterator bit(allCorners);
-  // If every corner is inside, the box is regular
-  for (int i=0; i<2; i++)
-    {
-      for (; bit.ok(); ++bit, ++bit)
-        {
-          // Current corner
-          IntVect corner = bit();
-
-          // Compute physical coordinate of corner
-
-          for (int idir = 0; idir < CH_SPACEDIM; ++idir)
-            {
-              physCorner[idir] = vectDx[idir]*corner[idir] + a_origin[idir];
-            }
-
-          if (m_stlIF == NULL)
-          {
-            // If the implicit function value is positive then the current
-            // corner is outside the domain
-            Real functionValue = m_implicitFunction->value(physCorner);
-
-            if (functionValue < 0.0 )
-              {
-                return false;
-              }
-          }
-          else
-          {
-            if (!m_STLBoxSet)
-            {
-              m_stlIF->getExplorer()->Explore(a_domain.domainBox(),a_domain,a_origin,vectDx);
-              m_STLBoxSet = true;
-            }
-
-            MayDay::Error("STL not implemented");
-          }
-        }
-      bit.reset();
-      ++bit;
-    }
-
-  return true;
-}
-
-GeometryService::InOut GeometryShop::InsideOutside(const Box&           a_region,
-                                                   const ProblemDomain& a_domain,
-                                                   const RealVect&      a_origin,
-                                                   const Real&          a_dx) const
-{
-  CH_TIME("GeometryShop::InsideOutside");
-
-  GeometryService::InOut rtn;
-
-  RealVect vectDx;
-
-  // All corner indices for the current box
-  Box allCorners(a_region);
-  allCorners.surroundingNodes();
-
-  RealVect physCorner(allCorners.smallEnd());
-
-  if (m_vectDx[0] != 0.0)
-    {
-      vectDx[0] = a_dx;
-      for (int idir = 1; idir < SpaceDim; idir++)
-        {
-          vectDx[idir] = vectDx[0] * m_vectDx[idir] / m_vectDx[0];
-        }
-    }
-  else
-    {
-      vectDx = a_dx * RealVect::Unit;
-    }
-
-  physCorner *= vectDx;
-  physCorner += a_origin;
-
-  Real firstValue;
-  Real firstSign;
-
-  firstValue = m_implicitFunction->value(physCorner);
-      
-  firstSign  = copysign(1.0, firstValue);
-
-  if ( firstSign < 0 )
-    {
-      rtn = GeometryService::Regular;
-    }
-  else
-    {
-      rtn = GeometryService::Covered;
-    }
-
-  BoxIterator bit(allCorners);
-
-  for (; bit.ok(); ++bit)
-    {
-      // Current corner
-      IntVect corner = bit();
-
-      Real functionValue;
-      Real functionSign;
-
-
-      // Compute physical coordinate of corner
-      for (int idir = 0; idir < CH_SPACEDIM; ++idir)
-        {
-          physCorner[idir] = vectDx[idir]*corner[idir] + a_origin[idir];
-        }
-
-      // If the implicit function value is positive then the current
-      // corner is outside the domain
-      functionValue = m_implicitFunction->value(physCorner);
-
-      functionSign = copysign(1.0, functionValue);
-
-      if (functionValue == 0 || firstValue == 0)
-        {
-          if (functionSign * firstSign < 0)
-            {
-              rtn = GeometryService::Irregular;
-              return rtn;
-            }
-        }
-      if (functionValue * firstValue < 0.0 )
-        {
-          rtn = GeometryService::Irregular;
-          return rtn;
-        }
-    }
-
-  return rtn;
-}
 
 /**********************************************/
 /*********************************************/
 void
 GeometryShop::fillGraph(BaseFab<int>        & a_regIrregCovered,
-                        Vector<IrregNode>   & a_nodes,
+                        std::vector<IrregNode>   & a_nodes,
                         const Box           & a_validRegion,
                         const Box           & a_ghostRegion,
-                        const ProblemDomain & a_domain,
+                        const Box & a_domain,
                         const RealVect      & a_origin,
                         const Real          & a_dx) const
 {
-  CH_TIMERS("GeometryShop::fillGraph");
-  CH_TIMER("part1",p1);
-  CH_TIMER("part2",p2);
-  CH_TIMER("part3",p3);
-  CH_TIMER("part4",p4);
-
-  CH_START(p1);
-  CH_assert(a_domain.contains(a_ghostRegion));
+  assert(a_domain.contains(a_ghostRegion));
   RealVect vectDx;
 
-  // if (thrshd > 0)
-  //   pout() << "GeometryShop:: Using thrshd: " << thrshd << endl;
   if (m_vectDx == RealVect::Zero)
     {
       vectDx = a_dx*RealVect::Unit;
@@ -532,15 +84,14 @@ GeometryShop::fillGraph(BaseFab<int>        & a_regIrregCovered,
 
   Real thrshd = m_thrshdVoF;
   PolyGeom::setVectDx(vectDx);
-  IntVectSet ivsirreg = IntVectSet(DenseIntVectSet(a_ghostRegion, false));
-  IntVectSet ivsdrop  = IntVectSet(DenseIntVectSet(a_ghostRegion, false));// CP
+  std::set<IntVect> ivsirreg;
+  std::set<IntVect> ivsdrop ;
   long int numCovered=0, numReg=0, numIrreg=0;
-  CH_STOP(p1);
 
   IntVect ivdeblo(D_DECL(62,510,0));
   IntVect ivdebhi(D_DECL(63,513,0));
   Box debbox(ivdeblo, ivdebhi);
-  CH_START(p2);
+
   for (BoxIterator bit(a_ghostRegion); bit.ok(); ++bit)
     {
       const IntVect iv =bit();
@@ -619,10 +170,7 @@ GeometryShop::fillGraph(BaseFab<int>        & a_regIrregCovered,
             }
         }
     }
-  // pout()<< "GeometryShop:: Counting cells:  " << numCovered<< "  "<< numReg<< "  "<< numIrreg  <<endl;
-  CH_STOP(p2);
 
-  CH_START(p3);
   // now loop through irregular cells and make nodes for each  one.
   for (IVSIterator ivsit(ivsirreg); ivsit.ok(); ++ivsit)
     {
@@ -636,12 +184,12 @@ GeometryShop::fillGraph(BaseFab<int>        & a_regIrregCovered,
 
       Real     volFrac, bndryArea;
       RealVect normal, volCentroid, bndryCentroid;
-      Vector<int> loArc[SpaceDim];
-      Vector<int> hiArc[SpaceDim];
-      Vector<Real> loAreaFrac[SpaceDim];
-      Vector<Real> hiAreaFrac[SpaceDim];
-      Vector<RealVect> loFaceCentroid[SpaceDim];
-      Vector<RealVect> hiFaceCentroid[SpaceDim];
+      std::vector<int> loArc[SpaceDim];
+      std::vector<int> hiArc[SpaceDim];
+      std::vector<Real> loAreaFrac[SpaceDim];
+      std::vector<Real> hiAreaFrac[SpaceDim];
+      std::vector<RealVect> loFaceCentroid[SpaceDim];
+      std::vector<RealVect> hiFaceCentroid[SpaceDim];
       computeVoFInternals(volFrac,
                           loArc,
                           hiArc,
@@ -696,9 +244,7 @@ GeometryShop::fillGraph(BaseFab<int>        & a_regIrregCovered,
         }
 
     } // end loop over cut cells in the box
-  CH_STOP(p3);
 
-  CH_START(p4);
   // CP: fix sweep that removes cells with volFrac less than a certain threshold
   for (IVSIterator ivsit(ivsdrop); ivsit.ok(); ++ivsit)
     {
@@ -756,7 +302,6 @@ GeometryShop::fillGraph(BaseFab<int>        & a_regIrregCovered,
             }//sit
         }//facedir
     }//ivsdrop
-  CH_STOP(p4);
 
 }
 
@@ -766,7 +311,7 @@ GeometryShop::
 getFullNodeNextToCovered(IrregNode            & a_newNode, 
                          const BaseFab<int>   & a_regIrregCovered,
                          const IntVect        & a_iv,
-                         const ProblemDomain  & a_domain) const
+                         const Box  & a_domain) const
 {
 
   a_newNode.m_cell          = a_iv;
@@ -785,9 +330,9 @@ getFullNodeNextToCovered(IrregNode            & a_newNode,
         {
           int ishift = sign(sit());
           IntVect ivshift = a_iv + ishift*BASISV(faceDir);
-          Vector<int> arc;
-          Vector<Real> areaFrac;
-          Vector<RealVect> faceCentroid;
+          std::vector<int> arc;
+          std::vector<Real> areaFrac;
+          std::vector<RealVect> faceCentroid;
           if(!a_domain.contains(ivshift))
             {
               // boundary arcs always -1
@@ -836,33 +381,32 @@ getFullNodeNextToCovered(IrregNode            & a_newNode,
 /*********************************************/
 void
 GeometryShop::computeVoFInternals(Real&               a_volFrac,
-                                  Vector<int>         a_loArc[SpaceDim],
-                                  Vector<int>         a_hiArc[SpaceDim],
-                                  Vector<Real>        a_loAreaFrac[SpaceDim],
-                                  Vector<Real>        a_hiAreaFrac[SpaceDim],
+                                  std::vector<int>         a_loArc[SpaceDim],
+                                  std::vector<int>         a_hiArc[SpaceDim],
+                                  std::vector<Real>        a_loAreaFrac[SpaceDim],
+                                  std::vector<Real>        a_hiAreaFrac[SpaceDim],
                                   Real&               a_bndryArea,
                                   RealVect&           a_normal,
                                   RealVect&           a_volCentroid,
                                   RealVect&           a_bndryCentroid,
-                                  Vector<RealVect>    a_loFaceCentroid[SpaceDim],
-                                  Vector<RealVect>    a_hiFaceCentroid[SpaceDim],
+                                  std::vector<RealVect>    a_loFaceCentroid[SpaceDim],
+                                  std::vector<RealVect>    a_hiFaceCentroid[SpaceDim],
                                   const BaseFab<int>& a_regIrregCovered,
-                                  const IntVectSet&   a_ivsIrreg,
+                                  const std::set<IntVect>&   a_ivsIrreg,
                                   const VolIndex&     a_vof,
-                                  const ProblemDomain&a_domain,
+                                  const Box&a_domain,
                                   const RealVect&     a_origin,
                                   const Real&         a_dx,
                                   const RealVect&     a_vectDx,
                                   const IntVect&      a_iv)const
 {
-  CH_TIME("GeometryShop::computeVoFInternals");
 
   // need maxDx to properly scale a_bndryArea
   Real maxDx = 0.0;
 
   for (int idir = 0; idir <SpaceDim; ++idir)
     {
-      CH_assert(a_vectDx[idir] > 0);
+      assert(a_vectDx[idir] > 0);
       if (a_vectDx[idir] >maxDx)
         {
           maxDx = a_vectDx[idir];
@@ -891,16 +435,16 @@ GeometryShop::computeVoFInternals(Real&               a_volFrac,
                  a_domain,
                  a_origin);
 
-      CH_assert(faceRegular || faceCovered || faceDontKnow);
-      CH_assert((!(faceRegular && faceCovered)) && (!(faceRegular && faceDontKnow)) && (!(faceDontKnow && faceCovered)));
+      assert(faceRegular || faceCovered || faceDontKnow);
+      assert((!(faceRegular && faceCovered)) && (!(faceRegular && faceDontKnow)) && (!(faceDontKnow && faceCovered)));
       // define the faceMo
       Face.define(edges,faceNormal,faceCovered,faceRegular,faceDontKnow);
 
       Moments geom;
 
       // answer0,answer1 are vectors whose components contain geometric information
-      Vector<Real> answer0;
-      Vector<Real> answer1;
+      std::vector<Real> answer0;
+      std::vector<Real> answer1;
 
       int order = 0;
       answer0 = geom.momentCalc2D(order,Face);
@@ -1096,8 +640,8 @@ GeometryShop::computeVoFInternals(Real&               a_volFrac,
                          a_domain,
                          a_origin);
 
-              CH_assert(faceRegular || faceCovered || faceDontKnow);
-              CH_assert((!(faceRegular && faceCovered)) && (!(faceRegular && faceDontKnow)) && (!(faceDontKnow && faceCovered)));
+              assert(faceRegular || faceCovered || faceDontKnow);
+              assert((!(faceRegular && faceCovered)) && (!(faceRegular && faceDontKnow)) && (!(faceDontKnow && faceCovered)));
               Faces[index].define(edges,faceNormal,faceCovered,faceRegular,faceDontKnow);
 
               // if the face is covered we will deal with it later
@@ -1105,8 +649,8 @@ GeometryShop::computeVoFInternals(Real&               a_volFrac,
                 {
                   Moments geom;
                   // answer0 and answer1 have all the geometric facts
-                  Vector<Real> answer0;
-                  Vector<Real> answer1;
+                  std::vector<Real> answer0;
+                  std::vector<Real> answer1;
 
                   int order = 0;
                   answer0 = geom.momentCalc2D(order,Faces[index]);
@@ -1156,11 +700,11 @@ GeometryShop::computeVoFInternals(Real&               a_volFrac,
           faceMo& face = Faces[iFace];
 
           // collect exactly two irregular edges or mayday.
-          Vector<RealVect> crossingPt;
+          std::vector<RealVect> crossingPt;
 
-          Vector<int> cPtHiLo;
-          Vector<int> edgeHiLo;
-          Vector<int> edgeDir;
+          std::vector<int> cPtHiLo;
+          std::vector<int> edgeHiLo;
+          std::vector<int> edgeDir;
 
           if (!(face.isCovered()) && !(face.isRegular()))
             {
@@ -1240,13 +784,13 @@ GeometryShop::computeVoFInternals(Real&               a_volFrac,
               // flip area?
               bool complementArea;
 
-              CH_assert (cPtHiLo.size() == 2);
+              assert (cPtHiLo.size() == 2);
 
               // loEdge-loEdge
               if (edgeHiLo[0] == 0 && edgeHiLo[1] == 0)
                 {
                   // both crossingPts must be Hi or both must be Lo
-                  CH_assert((cPtHiLo[0] == 1 && cPtHiLo[1] == 1) ||
+                  assert((cPtHiLo[0] == 1 && cPtHiLo[1] == 1) ||
                          (cPtHiLo[0] == -1 && cPtHiLo[1] == -1));
 
                   // prismArea gives triangle
@@ -1266,7 +810,7 @@ GeometryShop::computeVoFInternals(Real&               a_volFrac,
               else if (edgeHiLo[0] == 1 && edgeHiLo[1] == 1)
                 {
                   // both crossingPts must be Hi or both must be Lo
-                  CH_assert((cPtHiLo[0] == 1 && cPtHiLo[1] == 1) ||
+                  assert((cPtHiLo[0] == 1 && cPtHiLo[1] == 1) ||
                          (cPtHiLo[0] == -1 && cPtHiLo[1] == -1));
                   // prismArea gives the trapezoid
 
@@ -1285,7 +829,7 @@ GeometryShop::computeVoFInternals(Real&               a_volFrac,
               else if (edgeHiLo[0] == 1 && edgeHiLo[1] == 0)
                 {
                   // cpPtHiLo must be the same or the opposite of edgeHiLo
-                  CH_assert((cPtHiLo[0] == 1 && cPtHiLo[1] == -1) ||
+                  assert((cPtHiLo[0] == 1 && cPtHiLo[1] == -1) ||
                          (cPtHiLo[0] == -1 && cPtHiLo[1] == 1));
                   // maxDir > minDir =>prismArea gives trapezoid
                   // maxDir < minDir =>prismArea gives triangle
@@ -1324,19 +868,19 @@ GeometryShop::computeVoFInternals(Real&               a_volFrac,
                   // two trapezoids
                   if (cPtHiLo[1] == 1 && cPtHiLo[0] == 1)
                     {
-                      CH_assert(edgeDir[0] == edgeDir[1]);
+                      assert(edgeDir[0] == edgeDir[1]);
                       complementArea = false;
                     }
                   else if (cPtHiLo[1] == -1 && cPtHiLo[0] == -1)
                     {
-                      CH_assert(edgeDir[0] == edgeDir[1]);
+                      assert(edgeDir[0] == edgeDir[1]);
                       complementArea = true;
                     }
                   // triangle + triangle complement
                   // if the cPtHiLo[0]= loPt then one wants triangle
                   else if (cPtHiLo[0] == -1 && cPtHiLo[1] == 1 )
                     {
-                      CH_assert(edgeDir[0] != edgeDir[1]);
+                      assert(edgeDir[0] != edgeDir[1]);
                       // if maxDir < minDir prismArea gives trapezoid
                       // if maxDir > minDir prismArea gives triangle
                       if (maxDir < minDir)
@@ -1566,12 +1110,12 @@ GeometryShop::computeVoFInternals(Real&               a_volFrac,
 
       Moments geom;
       int order = 0;
-      Vector<Real> answer0;
+      std::vector<Real> answer0;
       answer0 = geom.momentCalc3D(order,Vof);
 
       a_volFrac = answer0[0];
 
-      Vector<Real> answer1;
+      std::vector<Real> answer1;
       order = 1;
       answer1 = geom.momentCalc3D(order,Vof);
 
@@ -2113,17 +1657,8 @@ GeometryShop::computeVoFInternals(Real&               a_volFrac,
         }
     }
 
-  if (thisVofClipped)
-    {
-      GeometryShop* changedThis = (GeometryShop *) this;
-      changedThis->m_numCellsClipped += 1;
-    }
 }
 
-int GeometryShop::getNumCellsClipped()
-{
-  return m_numCellsClipped;
-}
 
 void GeometryShop::edgeData3D(edgeMo a_edges[4],
                               bool& a_faceCovered,
@@ -2134,7 +1669,7 @@ void GeometryShop::edgeData3D(edgeMo a_edges[4],
                               const Real& a_dx,
                               const RealVect& a_vectDx,
                               const IntVect& a_iv,
-                              const ProblemDomain& a_domain,
+                              const Box& a_domain,
                               const RealVect& a_origin) const
 {
   CH_TIME("GeometryShop::edgeData3D");
@@ -2331,10 +1866,10 @@ void GeometryShop::edgeData3D(edgeMo a_edges[4],
                   HiPt[range] =  0.5;
                 }
 
-              CH_assert((!(regular && covered)) && (!(regular && dontKnow)) && (!(dontKnow && covered)));
-              CH_assert(regular || covered || (!(LoPtChanged && HiPtChanged)));
-              CH_assert(regular || covered || dontKnow);
-              CH_assert(regular || covered || LoPtChanged || HiPtChanged);
+              assert((!(regular && covered)) && (!(regular && dontKnow)) && (!(dontKnow && covered)));
+              assert(regular || covered || (!(LoPtChanged && HiPtChanged)));
+              assert(regular || covered || dontKnow);
+              assert(regular || covered || LoPtChanged || HiPtChanged);
               bool intersectLo = LoPtChanged;
               edgeMo Edge;
               // range means the coordinate direction that varies over the length of the edge
@@ -2352,7 +1887,7 @@ void GeometryShop::edgeData2D(edgeMo a_edges[4],
                               const Real& a_dx,
                               const RealVect& a_vectDx,
                               const IntVect& a_iv,
-                              const ProblemDomain& a_domain,
+                              const Box& a_domain,
                               const RealVect& a_origin) const
 {
   CH_TIME("GeometryShop::edgeData2D");
@@ -2491,10 +2026,10 @@ void GeometryShop::edgeData2D(edgeMo a_edges[4],
               HiPt[range] =  0.5;
             }
 
-          CH_assert(regular || covered || (!(LoPtChanged && HiPtChanged)));
-          CH_assert(regular || covered || dontKnow);
-          CH_assert((!(regular && covered)) && (!(regular && dontKnow)) && (!(dontKnow && covered)));
-          CH_assert(regular || covered || LoPtChanged || HiPtChanged);
+          assert(regular || covered || (!(LoPtChanged && HiPtChanged)));
+          assert(regular || covered || dontKnow);
+          assert((!(regular && covered)) && (!(regular && dontKnow)) && (!(dontKnow && covered)));
+          assert(regular || covered || LoPtChanged || HiPtChanged);
           // default is something invalid
           bool intersectLo = LoPtChanged;
 
@@ -2725,47 +2260,6 @@ Real GeometryShop::PrismoidalAreaCalc(RealVect& a_xVec,
   bScale = a_yVec[2] - a_yVec[0];
   cScale = a_yVec[1];
 
-  // If the parabolic extreme isn't between a_xVec[0] and a_xVec[2]
-  // or the parabolic extreme is inside the current cell
-  //
-  //   Note:  The tests below were designed to avoid any division operations
-  //          to avoid numeric problems.  What follows is an explanation of
-  //          the tests.
-  //
-  //   If we put a_xVec[0] at x = -h, a_xVec[1] at x = 0, and a_xVec[2] at
-  //   x = h then the parabolic fit, f(x), to the data is:
-  //
-  //       f(x) = a*x^2 + b*x + c
-  //
-  //   Where:
-  //
-  //       a = aScale / (2*h^2)
-  //       b = bScale / (2*h)
-  //       c = cScale
-  //
-  //   The location of the parabolic extreme is:
-  //
-  //       xExtreme = -b / (2*a) = h * -bScale / (2*aScale)
-  //
-  //   This isn't between a_xVec[0] and a_xVec[2] if |x| > h and this implies:
-  //
-  //       | h * -bScale / (2*aScale) | > h  =>
-  //       | bScale | > 2 * | aScale |
-  //
-  //   Which is the first test below.
-  //
-  //   The value at the parabolic extreme is:
-  //
-  //       f(xExtreme) = (4*a*c - b^2) / (4*a)
-  //                   = (8*aScale*cScale - bScale^2) / (8*aScale)
-  //
-  //   And this is inbounds if it is between -1/2 and 1/2 implying:
-  //
-  //       | f(xExtreme) | <= 1/2                                =>
-  //       | (8*aScale*cScale - bScale^2) / (8*aScale) | <= 1/2  =>
-  //       | (8*aScale*cScale - bScale^2) | <= | 4*aScale |
-  //
-  //   Which is the second test below.
   if ((Abs(bScale) > 2*Abs(aScale)) ||
       (Abs(8*aScale*cScale - bScale*bScale) <= Abs(4*aScale)))
     {
@@ -2794,7 +2288,7 @@ Real GeometryShop::PrismoidalAreaCalc(RealVect& a_xVec,
 
       // Find h
       Real h = 0.5 * (largeX - smallX);
-      CH_assert (h >= 0.0);
+      assert (h >= 0.0);
 
       // Prismoidal rule, which is exact on cubics.
       retval = (h/3.0) * (a_yVec[0] + 4.0 * a_yVec[1] + a_yVec[2]);
@@ -2820,4 +2314,4 @@ Real GeometryShop::PrismoidalAreaCalc(RealVect& a_xVec,
   return retval;
 }
 
-#include "NamespaceFooter.H"
+}//namespace amrex

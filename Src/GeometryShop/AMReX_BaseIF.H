@@ -1,4 +1,3 @@
-#ifdef CH_LANG_CC
 /*
  *      .o.       ooo        ooooo ooooooooo.             ooooooo  ooooo 
  *     .888.      `88.       .888' `888   `Y88.            `8888    d8'  
@@ -9,7 +8,6 @@
  *o88o     o8888o o8o        o888o o888o  o888o `Y8bod8P' o888o  o88888o 
  *
  */
-#endif
 
 #ifndef _BASEIF_H_
 #define _BASEIF_H_

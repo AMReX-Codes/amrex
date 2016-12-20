@@ -1,13 +1,13 @@
-#ifdef CH_LANG_CC
 /*
- *      _______              __
- *     / ___/ /  ___  __ _  / /  ___
- *    / /__/ _ \/ _ \/  V \/ _ \/ _ \
- *    \___/_//_/\___/_/_/_/_.__/\___/
- *    Please refer to Copyright.txt, in Chombo's root directory.
+ *      .o.       ooo        ooooo ooooooooo.             ooooooo  ooooo 
+ *     .888.      `88.       .888' `888   `Y88.            `8888    d8'  
+ *    .8"888.      888b     d'888   888   .d88'  .ooooo.     Y888..8P    
+ *   .8' `888.     8 Y88. .P  888   888ooo88P'  d88' `88b     `8888'     
+ *  .88ooo8888.    8  `888'   888   888`88b.    888ooo888    .8PY888.    
+ * .8'     `888.   8    Y     888   888  `88b.  888    .o   d8'  `888b   
+ *o88o     o8888o o8o        o888o o888o  o888o `Y8bod8P' o888o  o88888o 
+ *
  */
-#endif
-
 #ifndef _REALVECT_H_
 #define _REALVECT_H_
 
@@ -16,15 +16,12 @@
 #include <cstring>
 #include <iostream>
 
-#include "SPACE.H"
-#include "Misc.H"
-#include "REAL.H"
-#include "SPACE.H"
-#include "IntVect.H"
-#include "Vector.H"
-#include "SPMD.H"
-#include "IndexTM.H"
-#include "NamespaceHeader.H"
+#include "AMReX_Box.H"
+#include "AMReX_REAL.H"
+#include "AMReX_SPACE.H"
+#include <vector>
+#include "AMReX_IntVect.H"
+
 
 //template<typename T, int n>
 //class IndexTM;
@@ -37,6 +34,9 @@
   C++ array.  In addition, the basic arithmetic operators have been overloaded
   to implement scaling and translation operations.
 */
+
+namespace amrex
+{
 
 class RealVect
 {
@@ -61,8 +61,7 @@ public:
      coordinates.  D_DECL6 is a macro that sets the constructor to
      take CH_SPACEDIM arguments.
   */
-  RealVect (D_DECL6(Real i, Real j, Real k,
-                    Real l, Real m, Real n));
+  RealVect (D_DECL(Real i, Real j, Real k));
 
   ///
   /**
@@ -70,11 +69,6 @@ public:
   */
   RealVect (const RealVect& rhs);
 
- ///
-  /**
-     Construct a RealVect from an IndexTM<Real,SpaceDim>.
-  */
-  RealVect(const IndexTM<Real,CH_SPACEDIM>& a_tm);
 
   ///
   /**
@@ -520,52 +514,28 @@ protected:
 
 };
 
-#include "NamespaceFooter.H"
-
-#include "BaseNamespaceHeader.H"
-
-#include "NamespaceVar.H"
-// template specialization of linearIn and LinearOut for RealVect
-// RealVect spcializations of linearization
-template < >
-int linearSize(const CH_XDIR::RealVect& vindex);
-
-//VolIndex specialization of linearIn
-template < >
-void linearIn(CH_XDIR::RealVect& a_outputT, const void* const inBuf);
-
-//VolIndex specialization of linearOut
-template < >
-void linearOut(void* const a_outBuf, const CH_XDIR::RealVect& a_inputT);
-
-#include "BaseNamespaceFooter.H"
-
-#include "NamespaceHeader.H"
-
 inline Real& RealVect::operator[] (int i)
 {
-  CH_assert(i>=0 && i < SpaceDim);
+  assert(i>=0 && i < SpaceDim);
   return vect[i];
 }
 
 inline const Real& RealVect::operator[] (int i) const
 {
-  CH_assert(i>=0 && i < SpaceDim);
+  assert(i>=0 && i < SpaceDim);
   return vect[i];
 }
 
 inline RealVect::RealVect (const RealVect &iv)
 {
-  D_EXPR6(vect[0]=iv.vect[0], vect[1]=iv.vect[1], vect[2]=iv.vect[2],
-          vect[3]=iv.vect[3], vect[4]=iv.vect[4], vect[5]=iv.vect[5]);
+  D_EXPR(vect[0]=iv.vect[0], vect[1]=iv.vect[1], vect[2]=iv.vect[2]);
 }
 
 inline
 RealVect&
 RealVect::operator-= (Real s)
 {
-  D_EXPR6(vect[0] -= s, vect[1] -= s, vect[2] -= s,
-          vect[3] -= s, vect[4] -= s, vect[5] -= s);
+  D_EXPR(vect[0] -= s, vect[1] -= s, vect[2] -= s);
   return *this;
 }
 
@@ -573,8 +543,8 @@ inline
 RealVect&
 RealVect::operator-= (const RealVect& p)
 {
-  D_EXPR6(vect[0] -= p[0], vect[1] -= p[1], vect[2] -= p[2],
-          vect[3] -= p[3], vect[4] -= p[4], vect[5] -= p[5]);
+  D_EXPR(vect[0] -= p[0], vect[1] -= p[1], vect[2] -= p[2]);
+
   return *this;
 }
 
@@ -589,16 +559,14 @@ inline
 RealVect
 RealVect::operator- () const
 {
-  return RealVect(D_DECL6(-vect[0], -vect[1], -vect[2],
-                          -vect[3], -vect[4], -vect[5] ));
+  return RealVect(D_DECL(-vect[0], -vect[1], -vect[2]));
 }
 
 inline
 RealVect&
 RealVect::scale (Real s)
 {
-  D_EXPR6(vect[0] *= s, vect[1] *= s, vect[2] *= s,
-          vect[3] *= s, vect[4] *= s, vect[5] *= s);
+  D_EXPR(vect[0] *= s, vect[1] *= s, vect[2] *= s);
   return *this;
 }
 
@@ -606,8 +574,7 @@ inline
 Real
 RealVect::sum () const
 {
-  return D_TERM6(vect[0], + vect[1], + vect[2], +
-                 vect[3], + vect[4], + vect[5]);
+  return D_TERM(vect[0], + vect[1], + vect[2]);
 }
 
 inline
@@ -637,8 +604,7 @@ inline
 Real
 RealVect::product () const
 {
-  return D_TERM6(vect[0], * vect[1], * vect[2], *
-                 vect[3], * vect[4], * vect[5]);
+  return D_TERM(vect[0], * vect[1], * vect[2]);
 }
 
 inline
@@ -646,52 +612,45 @@ RealVect
 scale (const RealVect& p,
        Real            s)
 {
-  return RealVect(D_DECL6(s * p[0], s * p[1], s * p[2],
-                          s * p[3], s * p[4], s * p[5]));
+  return RealVect(D_DECL(s * p[0], s * p[1], s * p[2]));
 }
 
 inline
 bool
 RealVect::operator< (const RealVect& p) const
 {
-  return D_TERM6(vect[0] < p[0], && vect[1] < p[1], && vect[2] < p[2],
-              && vect[3] < p[3], && vect[4] < p[4], && vect[5] < p[5]);
+  return D_TERM(vect[0] < p[0], && vect[1] < p[1], && vect[2] < p[2]);
 }
 
 inline
 bool
 RealVect::operator<= (const RealVect& p) const
 {
-  return D_TERM6(vect[0] <= p[0], && vect[1] <= p[1], && vect[2] <= p[2],
-              && vect[3] <= p[3], && vect[4] <= p[4], && vect[5] <= p[5]);
+  return D_TERM(vect[0] <= p[0], && vect[1] <= p[1], && vect[2] <= p[2]);
 }
 
 inline
 bool
 RealVect::operator> (const RealVect& p) const
 {
-  return D_TERM6(vect[0] > p[0], && vect[1] > p[1], && vect[2] > p[2],
-              && vect[3] > p[3], && vect[4] > p[4], && vect[5] > p[5]);
+  return D_TERM(vect[0] > p[0], && vect[1] > p[1], && vect[2] > p[2]);
 }
 
 inline
 bool
 RealVect::operator>= (const RealVect& p) const
 {
-  return D_TERM6(vect[0] >= p[0], && vect[1] >= p[1], && vect[2] >= p[2],
-              && vect[3] >= p[3], && vect[4] >= p[4], && vect[5] >= p[5]);
+  return D_TERM(vect[0] >= p[0], && vect[1] >= p[1], && vect[2] >= p[2]);
 }
 
 inline
 RealVect&
 RealVect::min (const RealVect& p)
 {
-  D_EXPR6(vect[0] = Min(vect[0], p.vect[0]),
-          vect[1] = Min(vect[1], p.vect[1]),
-          vect[2] = Min(vect[2], p.vect[2]),
-          vect[3] = Min(vect[3], p.vect[3]),
-          vect[4] = Min(vect[4], p.vect[4]),
-          vect[5] = Min(vect[5], p.vect[5]));
+  D_EXPR(vect[0] = std::min(vect[0], p.vect[0]),
+         vect[1] = std::min(vect[1], p.vect[1]),
+         vect[2] = std::min(vect[2], p.vect[2]));
+
   return *this;
 }
 
@@ -699,12 +658,9 @@ inline
 RealVect&
 RealVect::max (const RealVect& p)
 {
-  D_EXPR6(vect[0] = Max(vect[0], p.vect[0]),
-          vect[1] = Max(vect[1], p.vect[1]),
-          vect[2] = Max(vect[2], p.vect[2]),
-          vect[3] = Max(vect[3], p.vect[3]),
-          vect[4] = Max(vect[4], p.vect[4]),
-          vect[5] = Max(vect[5], p.vect[5]));
+  D_EXPR(vect[0] = std::max(vect[0], p.vect[0]),
+         vect[1] = std::max(vect[1], p.vect[1]),
+         vect[2] = std::max(vect[2], p.vect[2]));
   return *this;
 }
 
@@ -728,6 +684,6 @@ max (const RealVect& p1,
 
 extern RealVect BASISREALV(int idir);
 
-#include "NamespaceFooter.H"
+}
 
 #endif
