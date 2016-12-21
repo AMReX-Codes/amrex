@@ -41,7 +41,7 @@ def load_params(args):
     cp = configparser.ConfigParser()    # note, need strict=False for Python3
     cp.optionxform = str
 
-    log = test_util.Log()
+    log = test_util.Log(output_file=args.log_file)
 
     log.bold("loading " + args.input_file[0])
 
