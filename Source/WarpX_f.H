@@ -90,6 +90,18 @@ extern "C"
 			const long* nxguard, const long* nyguard, 
 			const long* nzguard, const int* idecomp, 
 			const int* igfflag, const int* ierr );
+
+       void warpx_procgriddecomp(const int* mprocs,
+                        const int* nxlo,
+                        const int* nxhi, 
+                        const int* nylo,
+                        const int* nyhi,
+                        const int* nzlo,
+                        const int* nzhi,
+                        const int* idecomp,
+                        const int* npx,
+                        const int* npy,
+                        const int* npz);
 #endif
 
 }
