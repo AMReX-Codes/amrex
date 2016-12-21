@@ -521,8 +521,8 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
                                   idecomp,npx,npy,npz) &
       bind(C,name="warpx_procgriddecomp")
 
-      integer(c_int) :: mprocs
-      integer(c_int) :: nxlo,nxhinylo,nyhi,nzlo,nzhi
+      integer(c_int) :: mprocs,np
+      integer(c_int) :: nxlo,nxhi,nylo,nyhi,nzlo,nzhi
       integer(c_int) :: idecomp,npx,npy,npz
 
       call procgriddecomp(mprocs,nxlo,nxhi,nylo,nyhi,nzlo,nzhi, &
