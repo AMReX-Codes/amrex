@@ -97,96 +97,96 @@ contains
 
   end subroutine warpx_geteb_energy_conserving
 
-!   ! _________________________________________________________________
-!   !>
-!   !> @brief
-!   !> Main subroutine for the charge deposition
-!   !>
-!   !> @details
-!   !> This subroutines enable to controle the interpolation order
-!   !> via the parameters nox,noy,noz and the type of algorithm via
-!   !> the parameter charge_depo_algo
-!   !
-!   !> @param[inout] rho charge array
-!   !> @param[in] np number of particles
-!   !> @param[in] xp,yp,zp particle position arrays
-!   !> @param[in] w particle weight arrays
-!   !> @param[in] q particle species charge
-!   !> @param[in] xmin,ymin,zmin tile grid minimum position
-!   !> @param[in] dx,dy,dz space discretization steps
-!   !> @param[in] nx,ny,nz number of cells
-!   !> @param[in] nxguard,nyguard,nzguard number of guard cells
-!   !> @param[in] nox,noy,noz interpolation order
-!   !> @param[in] lvect vector length
-!   !> @param[in] charge_depo_algo algorithm choice for the charge deposition
-!   !>
-!   subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,nx,ny,nz,&
-!      nxguard,nyguard,nzguard,nox,noy,noz,lvect,charge_depo_algo) &
-!     bind(C, name="warpx_charge_deposition")
+! _________________________________________________________________
+!>
+!> @brief
+!> Main subroutine for the charge deposition
+!>
+!> @details
+!> This subroutines enable to controle the interpolation order
+!> via the parameters nox,noy,noz and the type of algorithm via
+!> the parameter charge_depo_algo
+!
+!> @param[inout] rho charge array
+!> @param[in] np number of particles
+!> @param[in] xp,yp,zp particle position arrays
+!> @param[in] w particle weight arrays
+!> @param[in] q particle species charge
+!> @param[in] xmin,ymin,zmin tile grid minimum position
+!> @param[in] dx,dy,dz space discretization steps
+!> @param[in] nx,ny,nz number of cells
+!> @param[in] nxguard,nyguard,nzguard number of guard cells
+!> @param[in] nox,noy,noz interpolation order
+!> @param[in] lvect vector length
+!> @param[in] charge_depo_algo algorithm choice for the charge deposition
+!>
+subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,nx,ny,nz,&
+   nxguard,nyguard,nzguard,nox,noy,noz,lvect,charge_depo_algo) &
+  bind(C, name="warpx_charge_deposition")
 
-!     integer(c_long), intent(IN)                                  :: np
-!     integer(c_long), intent(IN)                                  :: nx,ny,nz
-!     integer(c_long), intent(IN)                                  :: nxguard,nyguard,nzguard
-!     integer(c_long), intent(IN)                                  :: nox,noy,noz
-!     real(c_real), intent(IN OUT), dimension(-nxguard:nx+nxguard,&
-!          &                                  -nyguard:ny+nyguard,&
-!          &                                  -nzguard:nz+nzguard) :: rho
-!     real(c_real), intent(IN)                                     :: q
-!     real(c_real), intent(IN)                                     :: dx,dy,dz
-!     real(c_real), intent(IN)                                     :: xmin,ymin,zmin
-!     real(c_real), dimension(np)                                  :: xp,yp,zp,w
-!     integer(c_long), intent(IN)                                  :: lvect
-!     integer(c_long), intent(IN)                                  :: charge_depo_algo
-
-
-!     ! Dimension 3
-! #if (BL_SPACEDIM==3)
-
-!     SELECT CASE(charge_depo_algo)
-
-!     ! Scalar classical current deposition subroutines
-!     CASE(1)
-!       IF ((nox.eq.1).and.(noy.eq.1).and.(noz.eq.1)) THEN
-
-!         CALL depose_rho_scalar_1_1_1(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,nx,ny,nz,&
-!       nxguard,nyguard,nzguard,lvect)
-
-!       ELSE IF ((nox.eq.2).and.(noy.eq.2).and.(noz.eq.2)) THEN
-
-!         CALL depose_rho_scalar_2_2_2(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,nx,ny,nz,&
-!       nxguard,nyguard,nzguard,lvect)
-
-!       ELSE IF ((nox.eq.3).and.(noy.eq.3).and.(noz.eq.3)) THEN
-
-!         CALL depose_rho_scalar_3_3_3(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,nx,ny,nz,&
-!       nxguard,nyguard,nzguard,lvect)
-
-!       ELSE
-!         CALL pxr_depose_rho_n(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,nx,ny,nz,&
-!                     nxguard,nyguard,nzguard,nox,noy,noz, &
-!                     .TRUE._c_long,.FALSE._c_long)
-!       ENDIF
-
-!     ! Optimized subroutines
-!     CASE DEFAULT
-
-!       IF ((nox.eq.1).and.(noy.eq.1).and.(noz.eq.1)) THEN
-!         CALL depose_rho_vecHVv2_1_1_1(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,nx,ny,nz,&
-!                  nxguard,nyguard,nzguard,lvect)
-!       ELSE
-!         CALL pxr_depose_rho_n(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,nx,ny,nz,&
-!                     nxguard,nyguard,nzguard,nox,noy,noz, &
-!                     .TRUE._c_long,.FALSE._c_long)
-!       ENDIF
-!     END SELECT
-
-!     ! Dimension 2
-! #elif (BL_SPACEDIM==2)
+  integer(c_long), intent(IN)                                  :: np
+  integer(c_long), intent(IN)                                  :: nx,ny,nz
+  integer(c_long), intent(IN)                                  :: nxguard,nyguard,nzguard
+  integer(c_long), intent(IN)                                  :: nox,noy,noz
+  real(c_real), intent(IN OUT), dimension(-nxguard:nx+nxguard,&
+       &                                  -nyguard:ny+nyguard,&
+       &                                  -nzguard:nz+nzguard) :: rho
+  real(c_real), intent(IN)                                     :: q
+  real(c_real), intent(IN)                                     :: dx,dy,dz
+  real(c_real), intent(IN)                                     :: xmin,ymin,zmin
+  real(c_real), dimension(np)                                  :: xp,yp,zp,w
+  integer(c_long), intent(IN)                                  :: lvect
+  integer(c_long), intent(IN)                                  :: charge_depo_algo
 
 
-! #endif
+  ! Dimension 3
+#if (BL_SPACEDIM==3)
 
-!  end subroutine warpx_charge_deposition
+  SELECT CASE(charge_depo_algo)
+
+  ! Scalar classical current deposition subroutines
+  CASE(1)
+    IF ((nox.eq.1).and.(noy.eq.1).and.(noz.eq.1)) THEN
+
+      CALL depose_rho_scalar_1_1_1(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,nx,ny,nz,&
+    nxguard,nyguard,nzguard,lvect)
+
+    ELSE IF ((nox.eq.2).and.(noy.eq.2).and.(noz.eq.2)) THEN
+
+      CALL depose_rho_scalar_2_2_2(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,nx,ny,nz,&
+    nxguard,nyguard,nzguard,lvect)
+
+    ELSE IF ((nox.eq.3).and.(noy.eq.3).and.(noz.eq.3)) THEN
+
+      CALL depose_rho_scalar_3_3_3(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,nx,ny,nz,&
+    nxguard,nyguard,nzguard,lvect)
+
+    ELSE
+      CALL pxr_depose_rho_n(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,nx,ny,nz,&
+                  nxguard,nyguard,nzguard,nox,noy,noz, &
+                  .TRUE._c_long,.FALSE._c_long)
+    ENDIF
+
+  ! Optimized subroutines
+  CASE DEFAULT
+
+    IF ((nox.eq.1).and.(noy.eq.1).and.(noz.eq.1)) THEN
+      CALL depose_rho_vecHVv2_1_1_1(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,nx,ny,nz,&
+               nxguard,nyguard,nzguard,lvect)
+    ELSE
+      CALL pxr_depose_rho_n(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,nx,ny,nz,&
+                  nxguard,nyguard,nzguard,nox,noy,noz, &
+                  .TRUE._c_long,.FALSE._c_long)
+    ENDIF
+  END SELECT
+
+  ! Dimension 2
+#elif (BL_SPACEDIM==2)
+
+
+#endif
+
+ end subroutine warpx_charge_deposition
 
   ! _________________________________________________________________
   !>
@@ -489,5 +489,32 @@ contains
 
 
   end subroutine warpx_push_bvec
+
+  
+  subroutine warpx_openbcpotential(rho,phi,dx,dy,dz,ilo,ihi,jlo,jhi,klo,khi, &
+       ilo_rho_gbl,ihi_rho_gbl,jlo_rho_gbl,jhi_rho_gbl,klo_rho_gbl, &
+	khi_rho_gbl, nxguard, nyguard, nzguard, idecomp,igfflag,ierr) &
+    	bind(C, name="warpx_openbcpotential")
+
+    integer(c_long) :: ilo,ihi,jlo,jhi,klo,khi
+    integer(c_long) :: nxguard, nyguard, nzguard
+    integer(c_long) :: ilo_rho_gbl,ihi_rho_gbl,jlo_rho_gbl,jhi_rho_gbl
+    integer(c_long) :: klo_rho_gbl,khi_rho_gbl
+    real(c_real)    :: dx,dy,dz
+    integer(c_int)  :: idecomp,igfflag,ierr
+    real(c_real), dimension( ilo-nxguard:ihi+nxguard,&
+         	             jlo-nyguard:jhi+nyguard,&
+                             klo-nzguard:khi+nzguard ) :: rho, phi 
+
+    call openbcpotential( &
+      rho(ilo:ihi,jlo:jhi,klo:khi), &
+      phi(ilo:ihi,jlo:jhi,klo:khi), &
+      dx,dy,dz, &
+      int(ilo,4), int(ihi,4), int(jlo,4), int(jhi,4), &
+      int(klo,4), int(khi,4), int(ilo_rho_gbl,4), int(ihi_rho_gbl,4), &
+      int(jlo_rho_gbl,4), int(jhi_rho_gbl,4), int(klo_rho_gbl,4), &
+      int(khi_rho_gbl,4), idecomp, igfflag, ierr)
+
+  end subroutine warpx_openbcpotential
 
 end module warpx_to_pxr_module
