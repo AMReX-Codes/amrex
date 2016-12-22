@@ -11,32 +11,31 @@ class Arena;
 
 Arena* The_Arena ();
 
-//
-// A Virtual Base Class for Dynamic Memory Management
-//
-// This is a virtual base class for objects that manage their own dynamic
-// memory allocation.  Since it is a virtual base class, you have to derive
-// something from it to use it.
-//
+/**
+* A Virtual Base Class for Dynamic Memory Management
+* This is a virtual base class for objects that manage their own dynamic
+* memory allocation.  Since it is a virtual base class, you have to derive
+* something from it to use it.
+*/
 
 class Arena
 {
 public:
 
     virtual ~Arena ();
-    //
-    // Allocate a dynamic memory arena of size sz.
-    // A pointer to this memory should be returned.
-    //
+    /**
+    * Allocate a dynamic memory arena of size sz.
+    * A pointer to this memory should be returned.
+    */
     virtual void* alloc (std::size_t sz) = 0;
-    //
-    // A pure virtual function for deleting the arena pointed to by pt.
-    //
+    /**
+    * A pure virtual function for deleting the arena pointed to by pt.
+    */
     virtual void free (void* pt) = 0;
-    //
-    // Given a minimum required arena size of sz bytes, this returns
-    // the next largest arena size that will align to align_size bytes.
-    //
+    /**
+    * Given a minimum required arena size of sz bytes, this returns
+    * the next largest arena size that will align to align_size bytes.
+    */
     static std::size_t align (std::size_t sz);
 
 protected:
