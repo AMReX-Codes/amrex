@@ -1,26 +1,26 @@
 Regression Testing Management routines
 
-regtest.py is the main regression testing script for BoxLib-based
+regtest.py is the main regression testing script for AMReX-based
 applications.  Typing './regtest.py -h' will give a verbose
 description of usage and setup.  The regtest set of tools is 
-fully documented in the BoxLib Users Guide, but here's a quick
+fully documented in the AMReX Users Guide, but here's a quick
 overview of usage.
 
 Quickstart:
 
 1. Each regression test suite is defined in a separate configuration
-file.  BoxLib is distributed with an example such file in 
+file.  AMReX is distributed with an example such file in 
 Tools/RegressionTesting
 
 2. With example-tests.ini as an example, which builds tests for the
 Castro code.
 
- a. Castro depends on the following addition git repositories: BoxLib,
+ a. Castro depends on the following addition git repositories: AMReX,
     Microphysics, wdmerger
 
  b. In the config blocks of the .ini file, the locations of clones
     of these files to use for testing are set as "dir".  There are 
-    blocks in the ini file for each; BoxLib has its own special
+    blocks in the ini file for each; AMReX has its own special
     block, and Castro is listed as the [source] block, but any 
     additional dependent repos are listed as [extra-XXX].
 
