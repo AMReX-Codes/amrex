@@ -1,255 +1,24 @@
+/*
+ *       {_       {__       {__{_______              {__      {__
+ *      {_ __     {_ {__   {___{__    {__             {__   {__  
+ *     {_  {__    {__ {__ { {__{__    {__     {__      {__ {__   
+ *    {__   {__   {__  {__  {__{_ {__       {_   {__     {__     
+ *   {______ {__  {__   {_  {__{__  {__    {_____ {__  {__ {__   
+ *  {__       {__ {__       {__{__    {__  {_         {__   {__  
+ * {__         {__{__       {__{__      {__  {____   {__      {__
+ *
+ */
 
 #include <cmath>
 
-#include "SphereIF.H"
-#include "EBIndexSpace.H"
-#include "EBISLayout.H"
-#include "BoxIterator.H"
-#include "ParmParse.H"
-#include "BRMeshRefine.H"
-#include "LoadBalance.H"
-#include "GeometryShop.H"
-#include "PolyGeom.H"
-#include "DebugDump.H"
-#include "UsingNamespace.H"
+#include "AMReX_SphereIF.H"
+#include "AMReX_GeometryShop.H"
+#include "AMReX_BoxIterator.H"
+#include "AMReX_ParmParse.H"
 
-/******************/
-/// define grids by splitting up domain
-/******************/
-int
-makeLayout(DisjointBoxLayout& dbl1,
-           const Box& domain);
-/***************/
-// define a sphere EBIS.
-/***************/
-int makeGeometry(Box& domain,
-                 Real& dx,
-                 RealVect& origin,
-                 RealVect& center,
-                 Real& radius,
-                 bool& insideRegular);
-/***************/
-//make the corresponding layout
-/***************/
-int makeEBISL(EBISLayout& a_ebisl,
-              const DisjointBoxLayout& a_grids,
-              const Box& a_domain,
-              const int& nghost);
-/***************/
-/***************/
-int checkEBISL(const EBISLayout& a_ebisl,
-               const DisjointBoxLayout& a_grids,
-               const Box& a_domain,
-               const Real& dx,
-               const RealVect& origin,
-               const Real& radius,
-               const RealVect& center,
-               const bool& insideRegular);
-/***************/
-/***************/
-void dumpmemoryatexit();
-/***************/
-/***************/
-
-int
-main(int argc,char **argv)
+int checkSphere()
 {
-#ifdef CH_MPI
-  MPI_Init(&argc, &argv);
-#endif
-
-  // begin forever present scoping trick
-  {
-    const char* in_file = "sphere.inputs";
-    //parse input file
-    ParmParse pp(0,NULL,NULL,in_file);
-    RealVect center;
-    Real radius;
-    bool insideRegular;
-    RealVect origin;
-    Real dx;
-    Box domain;
-    int eekflag = 0;
-    eekflag = makeGeometry(domain,
-                           dx,
-                           origin,
-                           center,
-                           radius,
-                           insideRegular);
-    if (eekflag != 0)
-      {
-        pout() << "non zero eek detected = " << eekflag << endl;
-        // MayDay::Error("problem in makeGeometry");
-      }
-
-    // make grids
-    DisjointBoxLayout grids;
-    eekflag = makeLayout(grids, domain);
-    if (eekflag != 0)
-      {
-        pout() << "non zero eek detected = " << eekflag << endl;
-        MayDay::Error("problem in makeLayouts");
-      }
-
-    // create ebislayout
-    int nghost = 2;
-    EBISLayout ebisl;
-    eekflag = makeEBISL(ebisl, grids, domain, nghost);
-    if (eekflag != 0)
-      {
-        pout() << "non zero eek detected = " << eekflag << endl;
-        MayDay::Error("problem in makeEBISL");
-      }
-
-    // check volume and surface area of approximate sphere
-    eekflag = checkEBISL(ebisl,
-                         grids,
-                         domain,
-                         dx,
-                         origin,
-                         radius,
-                         center,
-                         insideRegular);
-    if (eekflag != 0)
-      {
-        pout() << "non zero eek detected = " << eekflag << endl;
-        MayDay::Error("problem in checkEBISL");
-      }
-    pout() << "sphere test passed" << endl;
-  } // end scoping trick
-
-  EBIndexSpace* ebisPtr = Chombo_EBIS::instance();
-  ebisPtr->clear();
-
-#ifdef CH_MPI
-  MPI_Finalize();
-#endif
-
-  return 0;
-}
-
-int makeEBISL(EBISLayout& a_ebisl,
-              const DisjointBoxLayout& a_grids,
-              const Box& a_domain,
-              const int& a_nghost)
-{
-  const EBIndexSpace* const ebisPtr = Chombo_EBIS::instance();
- CH_assert(ebisPtr->isDefined());
-
-  ebisPtr->fillEBISLayout(a_ebisl, a_grids, a_domain, a_nghost);
-  return 0;
-}
-
-int makeLayout(DisjointBoxLayout& a_dbl,
-               const Box& a_domain)
-{
-  ParmParse pp;
-  int eekflag = 0;
-  int ipieces;
-  ipieces = Max(ipieces, 1);
-  int maxsize;
-  Vector<Box> vbox(1, a_domain);
-
-  pp.get("maxboxsize",maxsize);
-
-  domainSplit(a_domain, vbox,  maxsize);
-  if (eekflag != 0)
-    {
-      pout() << "problem in domainsplit" << endl;
-      return eekflag;
-    }
-
-  Vector<int>  procAssign;
-  eekflag = LoadBalance(procAssign,vbox);
-  if (eekflag != 0)
-    {
-      pout() << "problem in loadbalance" << endl;
-      return eekflag;
-    }
-  a_dbl.define(vbox, procAssign);
-
-  return eekflag;
-}
-
-int makeGeometry(Box& a_domain,
-                 Real& a_dx,
-                 RealVect& a_origin,
-                 RealVect& a_center,
-                 Real& a_radius,
-                 bool& a_insideRegular)
-{
-  int eekflag =  0;
-  // parse input file
-  ParmParse pp;
-
-  Vector<int> n_cell(SpaceDim);
-  pp.getarr("n_cell",n_cell,0,SpaceDim);
-
- CH_assert(n_cell.size() == SpaceDim);
-
-  IntVect lo = IntVect::Zero;
-  IntVect hi;
-
-  for (int ivec = 0; ivec < SpaceDim; ivec++)
-    {
-      if (n_cell[ivec] <= 0)
-        {
-          pout() << " bogus number of cells input = " << n_cell[ivec];
-          return(-1);
-        }
-      hi[ivec] = n_cell[ivec] - 1;
-    }
-
-  a_domain.setSmall(lo);
-  a_domain.setBig(hi);
-
-  Vector<Real> prob_lo(SpaceDim, 1.0);
-  Real prob_hi;
-
-  pp.getarr("prob_lo",prob_lo,0,SpaceDim);
-  pp.get("prob_hi",prob_hi);
-
-  a_dx = (prob_hi-prob_lo[0])/n_cell[0];
-  for (int idir = 0; idir < SpaceDim; idir++)
-    {
-      a_origin[idir] = prob_lo[idir];
-    }
-
-  pp.get("sphere_radius",a_radius);
-
-  // ParmParse doesn't get RealVects, so work-around with Vector<Real>
-  Vector<Real> vectorCenter;
-  pp.getarr("sphere_center",vectorCenter,0,SpaceDim);
-  for (int idir = 0; idir < SpaceDim; idir++)
-    {
-      a_center[idir] = vectorCenter[idir];
-    }
-
-  // Parm Parse doesn't get bools, so work-around with int
-  int intInsideRegular;
-   pp.get("intInsideRegular",intInsideRegular);
-  if (intInsideRegular ==  1) a_insideRegular = true;
-  if (intInsideRegular == -1) a_insideRegular = false;
-
-  SphereIF mysphereIF(a_radius,a_center,a_insideRegular);
-  RealVect vectDx(D_DECL(a_dx,a_dx,a_dx));
-  int verbosity = 0;
-  GeometryShop workshop(mysphereIF,verbosity,vectDx);
-  // this generates the new EBIS
-  EBIndexSpace* ebisPtr = Chombo_EBIS::instance();
-  ebisPtr->define(a_domain, a_origin, a_dx, workshop);
-  return eekflag;
-}
-
-int checkEBISL(const EBISLayout& a_ebisl,
-               const DisjointBoxLayout& a_grids,
-               const Box& a_domain,
-               const Real& a_dx,
-               const RealVect& a_origin,
-               const Real& a_radius,
-               const RealVect& a_center,
-               const bool& a_insideRegular)
-{
+#if 0
   //check to see that the sum of the volume fractions
   //comes to close to exactly the total volume
   int eekflag =  0;
@@ -375,5 +144,35 @@ int checkEBISL(const EBISLayout& a_ebisl,
     MayDay::Error("Approx. boundary area not within tolerance");
   }
 
+#endif
   return eekflag;
 }
+
+
+int
+main(int argc,char **argv)
+{
+#ifdef CH_MPI
+  MPI_Init(&argc, &argv);
+#endif
+
+  // begin forever present scoping trick
+  {
+    const char* in_file = "sphere.inputs";
+    //parse input file
+    amrex::ParmParse pp(0,NULL,NULL,in_file);
+
+    // check volume and surface area of approximate sphere
+    eekflag = checkSphere();
+    if (eekflag != 0)
+      {
+        cout << "non zero eek detected = " << eekflag << endl;
+      }
+    cout << "sphere test passed" << endl;
+  } // end scoping trick
+
+
+  return 0;
+}
+
+

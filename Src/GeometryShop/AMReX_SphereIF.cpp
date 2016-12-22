@@ -1,22 +1,57 @@
-#ifdef CH_LANG_CC
 /*
- *      _______              __
- *     / ___/ /  ___  __ _  / /  ___
- *    / /__/ _ \/ _ \/  V \/ _ \/ _ \
- *    \___/_//_/\___/_/_/_/_.__/\___/
- *    Please refer to Copyright.txt, in Chombo's root directory.
+ *       {_       {__       {__{_______              {__      {__
+ *      {_ __     {_ {__   {___{__    {__             {__   {__  
+ *     {_  {__    {__ {__ { {__{__    {__     {__      {__ {__   
+ *    {__   {__   {__  {__  {__{_ {__       {_   {__     {__     
+ *   {______ {__  {__   {_  {__{__  {__    {_____ {__  {__ {__   
+ *  {__       {__ {__       {__{__    {__  {_         {__   {__  
+ * {__         {__{__       {__{__      {__  {____   {__      {__
+ *
  */
-#endif
 
-#include "SphereIF.H"
+#include "AMReX_SphereIF.H"
 
-#include "NamespaceHeader.H"
-
-SphereIF::SphereIF(const Real&     a_radius,
-                   const RealVect& a_center,
-                   const bool&     a_inside)
-  : HyperSphereIF(a_radius, IndexTM<Real, SpaceDim>(D_DECL(a_center[0], a_center[1], a_center[2])), a_inside)
+namespace amrex
 {
+
+  SphereIF::
+  SphereIF(const Real&     a_radius,
+           const RealVect& a_center,
+           const bool&     a_inside)
+    
+  {
+    m_radius  = a_radius;
+    m_radius2 = m_radius*m_radius;
+    m_inside  = a_inside;
+    m_center  = a_center;
+  }
+
+  Real
+  SphereIF::
+  value(const RealVect& a_point) const
+  {
+    RealVect dist = a_point - m_center;
+    Real distance2 = dist.radSquared();
+    Real retval = distance2 - m_radius2;
+    // Change the sign to change inside to outside
+    if (!m_inside)
+      {
+        retval = -retval;
+      }
+
+    return retval;
+  }
+
+  BaseIF* 
+  SphereIF::
+  newImplicitFunction() const
+  {
+    SphereIF* spherePtr = new SphereIF(m_radius,
+                                       m_center,
+                                       m_inside);
+
+    return static_cast<BaseIF*>(spherePtr);
+  }
+  
 }
 
-#include "NamespaceFooter.H"

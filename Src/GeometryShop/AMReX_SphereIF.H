@@ -1,53 +1,75 @@
-#ifdef CH_LANG_CC
 /*
- *      _______              __
- *     / ___/ /  ___  __ _  / /  ___
- *    / /__/ _ \/ _ \/  V \/ _ \/ _ \
- *    \___/_//_/\___/_/_/_/_.__/\___/
- *    Please refer to Copyright.txt, in Chombo's root directory.
+ *       {_       {__       {__{_______              {__      {__
+ *      {_ __     {_ {__   {___{__    {__             {__   {__  
+ *     {_  {__    {__ {__ { {__{__    {__     {__      {__ {__   
+ *    {__   {__   {__  {__  {__{_ {__       {_   {__     {__     
+ *   {______ {__  {__   {_  {__{__  {__    {_____ {__  {__ {__   
+ *  {__       {__ {__       {__{__    {__  {_         {__   {__  
+ * {__         {__{__       {__{__      {__  {____   {__      {__
+ *
  */
-#endif
+
 
 #ifndef _SPHEREIF_H_
 #define _SPHEREIF_H_
 
-#include "MayDay.H"
-#include "RealVect.H"
+#include "AMReX_RealVect.H"
+#include "AMReX_BaseIF.H"
 
-#include "HyperSphereIF.H"
 
-#include "NamespaceHeader.H"
-
-///
-/**
-    This implicit function specifies a sphere.
- */
-class SphereIF: public HyperSphereIF
+namespace amrex
 {
-public:
   ///
   /**
-      Constructor specifying sphere radius (a_radius), center (a_center), and
-      whether the domain is on the inside (a_inside).
-   */
-  SphereIF(const Real&     a_radius,
-           const RealVect& a_center,
-           const bool&     a_inside);
-
-  /// Destructor
-  virtual ~SphereIF()
-  {;}
-
-
-
-private:
-  SphereIF();
-
-  void operator=(const SphereIF& a_inputIF)
+     This implicit function specifies a sphere.
+  */
+  class SphereIF: BaseIF
   {
-    MayDay::Abort("SphereIF doesn't allow assignment");
-  }
-};
+  public:
+    ///
+    /**
+       Constructor specifying sphere radius (a_radius), center (a_center), and
+       whether the domain is on the inside (a_inside).
+    */
+    SphereIF(const Real&     a_radius,
+             const RealVect& a_center,
+             const bool&     a_inside);
 
-#include "NamespaceFooter.H"
+    /// Destructor
+    virtual ~SphereIF()
+    {;}
+
+
+    ///
+    /**
+       Return the value of the function at a_point.  When delineating a domain,
+       the level set value=0 represents the boundary and value<0 is inside the
+       fluid.
+    */
+    virtual Real value(const RealVect& a_point) const;
+
+
+    ///
+    /**
+       Return a newly allocated derived class.  The responsibility
+       for deleting the memory is left to the calling function.
+    */
+    virtual BaseIF* newImplicitFunction() const;
+
+
+  protected:
+    Real              m_radius;    // radius
+    RealVect          m_center;    // center
+    bool              m_inside;    // inside flag
+    Real              m_radius2;   // precomputed radius squared
+  private:
+    SphereIF();
+
+    void operator=(const SphereIF& a_inputIF)
+    {
+      //MayDay::Abort("SphereIF doesn't allow assignment");
+    }
+  };
+}//namespace amrex
+
 #endif
