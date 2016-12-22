@@ -1,0 +1,23 @@
+# n_cell = 40 40 40 
+ n_cell = 32 32 32
+#n_cell = 64 64 64
+# n_cell = 128 128 128
+
+maxboxsize = 16
+
+## domain params
+## prob_lo is the origin of the  coord system
+prob_lo = 0.0 0.0 0.0 
+## prob_hi is the high point of the box in the 0 direction
+## dx=dy=dz
+prob_hi = 1.0 
+
+which_geom = 5
+
+sphere_center = 0.5 0.5 0.5
+sphere_radius = 0.4
+sphere_radius = 0.4
+
+# if intInsideRegular =  1 then insideRegular = true
+# if intInsideRegular = -1 then insideRegular = false
+intInsideRegular = 1
