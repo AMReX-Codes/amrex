@@ -1,51 +1,66 @@
-#ifdef CH_LANG_CC
 /*
- *      _______              __
- *     / ___/ /  ___  __ _  / /  ___
- *    / /__/ _ \/ _ \/  V \/ _ \/ _ \
- *    \___/_//_/\___/_/_/_/_.__/\___/
- *    Please refer to Copyright.txt, in Chombo's root directory.
+ *       {_       {__       {__{_______              {__      {__
+ *      {_ __     {_ {__   {___{__    {__             {__   {__  
+ *     {_  {__    {__ {__ { {__{__    {__     {__      {__ {__   
+ *    {__   {__   {__  {__  {__{_ {__       {_   {__     {__     
+ *   {______ {__  {__   {_  {__{__  {__    {_____ {__  {__ {__   
+ *  {__       {__ {__       {__{__    {__  {_         {__   {__  
+ * {__         {__{__       {__{__      {__  {____   {__      {__
+ *
  */
-#endif
 
 #ifndef _PLANEIF_H_
 #define _PLANEIF_H_
 
-#include "MayDay.H"
-#include "RealVect.H"
+#include "AMReX_RealVect.H"
+#include "AMReX_BaseIF.H"
 
-#include "HyperPlaneIF.H"
-
-#include "NamespaceHeader.H"
-
-///
-/**
-    This implicit function specifies a plane.
- */
-class PlaneIF: public HyperPlaneIF
+namespace amrex
 {
-public:
   ///
   /**
-      Constructor specifying plane normal (a_normal), a point on the plance
-      (a_point), and whether the domain is the same side as the normal
-      (a_inside).
-   */
-  PlaneIF(const RealVect& a_normal,
-          const RealVect& a_point,
-          const bool&     a_inside);
-
-  /// Destructor
-  virtual ~PlaneIF()
+     This implicit function specifies a plane.
+  */
+  class PlaneIF: public BaseIF
   {
-  }
+  public:
+    ///
+    /**
+       Constructor specifying plane normal (a_normal), a point on the plance
+       (a_point), and whether the domain is the same side as the normal
+       (a_inside).
+    */
+    PlaneIF(const RealVect& a_normal,
+            const RealVect& a_point,
+            const bool&     a_inside);
 
-protected:
+    /// Destructor
+    virtual ~PlaneIF()
+    {
+    }
 
-private:
-  PlaneIF();
+    ///
+    /**
+       Return the value of the function at a_point.  When delineating a domain,
+       the level set value=0 represents the boundary and value<0 is inside the
+       fluid.
+    */
+    virtual Real value(const RealVect& a_point) const;
 
-};
 
-#include "NamespaceFooter.H"
+    ///
+    /**
+       Return a newly allocated derived class.  The responsibility
+       for deleting the memory is left to the calling function.
+    */
+    virtual BaseIF* newImplicitFunction() const;
+
+  protected:
+
+  private:
+    PlaneIF();
+
+  };
+}
+
 #endif

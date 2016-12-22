@@ -122,7 +122,7 @@ GeometryShop::fillGraph(BaseFab<int>        & a_regIrregCovered,
           a_regIrregCovered(iv, 0) =  0;
           if (a_validRegion.contains(iv))
             {
-              ivsirreg |= iv;
+              ivsirreg.insert(iv);
               numIrreg++;
             }
         }
@@ -172,9 +172,9 @@ GeometryShop::fillGraph(BaseFab<int>        & a_regIrregCovered,
     }
 
   // now loop through irregular cells and make nodes for each  one.
-  for (IVSIterator ivsit(ivsirreg); ivsit.ok(); ++ivsit)
+  for (std::set<IntVect>::iterator it = ivsirreg.begin(); ivsit != ivsirreg.end(); ++ivsit)
     {
-      const IntVect iv = ivsit();
+      const IntVect iv = *ivsit;
       VolIndex vof(iv, 0);
       int istop = 0;
       if(debbox.contains(iv))
@@ -213,7 +213,7 @@ GeometryShop::fillGraph(BaseFab<int>        & a_regIrregCovered,
 
       if (thrshd > 0. && volFrac < thrshd)
         {
-          ivsdrop |= ivsit();
+          ivsdrop.insert(ivsit());
           a_regIrregCovered(ivsit(), 0) = -1;
           if (m_verbosity > 2)
             {
@@ -223,7 +223,7 @@ GeometryShop::fillGraph(BaseFab<int>        & a_regIrregCovered,
       else
         {
           IrregNode newNode;
-          newNode.m_cell          = ivsit();
+          newNode.m_cell          = *ivsit;
           newNode.m_volFrac       = volFrac;
           newNode.m_cellIndex     = 0;
           newNode.m_volCentroid   = volCentroid;
@@ -246,9 +246,9 @@ GeometryShop::fillGraph(BaseFab<int>        & a_regIrregCovered,
     } // end loop over cut cells in the box
 
   // CP: fix sweep that removes cells with volFrac less than a certain threshold
-  for (IVSIterator ivsit(ivsdrop); ivsit.ok(); ++ivsit)
+  for (std::set<IntVect>::iterator ivsit =ivsdrop.begin(); ivsit != ivsdrop.end(); ++ivsit)
     {
-      VolIndex vof(ivsit(), 0);
+      VolIndex vof(*ivsit, 0);
       IntVect iv = vof.gridIndex();
   
       for (int faceDir = 0; faceDir < SpaceDim; faceDir++)
@@ -538,19 +538,11 @@ GeometryShop::computeVoFInternals(Real&               a_volFrac,
               otherIV[edgeNormal] -= 1;
               if (a_domain.contains(otherIV))
                 {
-                  int otherCellIndex;
-                  if (a_ivsIrreg.contains(otherIV))
-                    {
-                      otherCellIndex = 0;
-                    }
-                  else
-                    {
-                      // arc to regular cell
-                      otherCellIndex = -2;
-                    }
-                  a_loArc[edgeNormal][0]=otherCellIndex;
+                  //stuff that uses this does not care whether the arcs go
+                  //to a regular or irregular cell--I am taking away that distinction
+                  a_loArc[edgeNormal][0]= 0
                 }
-              else if (!a_domain.contains(otherIV))
+              else
                 {
                   // boundary arcs always -1
                   a_loArc[edgeNormal][0] = -1;
@@ -582,19 +574,13 @@ GeometryShop::computeVoFInternals(Real&               a_volFrac,
               otherIV[edgeNormal] += 1;
               if (a_domain.contains(otherIV))
                 {
-                  int otherCellIndex;
-                  if (a_ivsIrreg.contains(otherIV))
-                    {
-                      otherCellIndex = 0;
-                    }
-                  else
-                    {
-                      // arc to regular cell
-                      otherCellIndex = -2;
-                    }
-                  a_hiArc[edgeNormal][0] = otherCellIndex;
+                  //stuff that uses this does not care whether the arcs go
+                  //to a regular or irregular cell--I am taking away that distinction.
+                  //It only ever made sense in the context of a geometry gneration package that could
+                  //generate multi-valued cells
+                  a_hiArc[edgeNormal][0] = 0;
                 }
-              else if (!a_domain.contains(otherIV))
+              else
                 {
                   // boundary arcs always -1
                   a_hiArc[edgeNormal][0] = -1;
@@ -1029,19 +1015,13 @@ GeometryShop::computeVoFInternals(Real&               a_volFrac,
 
               if (a_domain.contains(otherIV))
                 {
-                  int otherCellIndex;
-                  if (a_ivsIrreg.contains(otherIV))
-                    {
-                      otherCellIndex = 0;
-                    }
-                  else
-                    {
-                      // arc to regular cell
-                      otherCellIndex = -2;
-                    }
-                  a_loArc[faceNormal][0] = otherCellIndex;
+                  //stuff that uses this does not care whether the arcs go
+                  //to a regular or irregular cell--I am taking away that distinction.
+                  //It only ever made sense in the context of a geometry gneration package that could
+                  //generate multi-valued cells
+                  a_loArc[faceNormal][0] = 0;
                 }
-              else if (!a_domain.contains(otherIV))
+              else
                 {
                   // boundary arcs always -1
                   a_loArc[faceNormal][0] = -1;
@@ -1078,17 +1058,11 @@ GeometryShop::computeVoFInternals(Real&               a_volFrac,
               otherIV[faceNormal] += 1;
               if (a_domain.contains(otherIV))
                 {
-                  int otherCellIndex;
-                  if (a_ivsIrreg.contains(otherIV))
-                    {
-                      otherCellIndex = 0;
-                    }
-                  else
-                    {
-                      // arc to regular cell
-                      otherCellIndex = -2;
-                    }
-                  a_hiArc[faceNormal][0] = otherCellIndex;
+                  //stuff that uses this does not care whether the arcs go
+                  //to a regular or irregular cell--I am taking away that distinction.
+                  //It only ever made sense in the context of a geometry gneration package that could
+                  //generate multi-valued cells
+                  a_hiArc[faceNormal][0] = 0;
                 }
               else if (!a_domain.contains(otherIV))
                 {

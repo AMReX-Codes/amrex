@@ -1,24 +1,57 @@
-#ifdef CH_LANG_CC
 /*
- *      _______              __
- *     / ___/ /  ___  __ _  / /  ___
- *    / /__/ _ \/ _ \/  V \/ _ \/ _ \
- *    \___/_//_/\___/_/_/_/_.__/\___/
- *    Please refer to Copyright.txt, in Chombo's root directory.
+ *       {_       {__       {__{_______              {__      {__
+ *      {_ __     {_ {__   {___{__    {__             {__   {__  
+ *     {_  {__    {__ {__ { {__{__    {__     {__      {__ {__   
+ *    {__   {__   {__  {__  {__{_ {__       {_   {__     {__     
+ *   {______ {__  {__   {_  {__{__  {__    {_____ {__  {__ {__   
+ *  {__       {__ {__       {__{__    {__  {_         {__   {__  
+ * {__         {__{__       {__{__      {__  {____   {__      {__
+ *
  */
-#endif
 
-#include "PlaneIF.H"
 
-#include "NamespaceHeader.H"
+#include "AMReX_PlaneIF.H"
 
-PlaneIF::PlaneIF(const RealVect& a_normal,
-                 const RealVect& a_point,
-                 const bool&     a_inside)
-  :HyperPlaneIF(IndexTM<Real, SpaceDim>(D_DECL(a_normal[0], a_normal[1], a_normal[2])),
-                IndexTM<Real, SpaceDim>(D_DECL(a_point[0],  a_point[1],  a_point[2])),
-                a_inside)
+
+namespace amrex
 {
-}
+  PlaneIF::
+  PlaneIF(const RealVect& a_normal,
+          const RealVect& a_point,
+          const bool&     a_inside)
 
-#include "NamespaceFooter.H"
+  {
+    m_normal = a_normal;
+    m_point  = a_point;
+    m_inside = a_inside;
+  }
+
+  Real 
+  PlaneIF::
+  value(const RealVect & a_point)
+  {
+    Real retval = 0;
+    for (int idir = 0 ; idir < SpaceDim; idir++)
+      {
+        retval += (a_point[idir] - m_point[idir]) * m_normal[idir];
+      }
+    if(m_inside)
+      {
+        retval = -retval;
+      }
+    return retval;
+  }
+
+  BaseIF* 
+  PlaneIF::
+  newImplicitFunction() const
+  {
+    PlaneIF* newPtr = new PlaneIF(m_normal,
+                                     m_point,
+                                     m_inside);
+
+
+    return static_cast<BaseIF*>(newPtr);
+  }
+
+}
