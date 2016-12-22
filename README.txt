@@ -1,4 +1,4 @@
-BoxLib Version 2014-02-28, Copyright (c) 2014, The Regents of the
+AMReX Version 2016-12-14, Copyright (c) 2016, The Regents of the
 University of California, through Lawrence Berkeley National
 Laboratory (subject to receipt of any required approvals from the U.S.
 Dept. of Energy).  All rights reserved.
