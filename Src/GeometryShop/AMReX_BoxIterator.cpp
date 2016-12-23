@@ -24,9 +24,9 @@ namespace amrex
       }
     else
       {
-        m_current = IntVect::Unit;
-        m_boxLo   = IntVect::Unit;
-        m_boxHi   = IntVect::Zero;
+        m_current = IntVect::TheUnitVector();
+        m_boxLo   = IntVect::TheUnitVector();
+        m_boxHi   = IntVect::TheZeroVector();
       }
   }
 

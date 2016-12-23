@@ -18,6 +18,7 @@
 
 #include "AMReX_GeometryShop.H"
 #include "AMReX_RealVect.H"
+#include "AMReX_BoxIterator.H"
 
 
 namespace amrex
@@ -33,12 +34,9 @@ GeometryShop::GeometryShop(const BaseIF& a_localGeom,
 
   RealVect vectDx;
   vectDx = RealVect::Unit;
-  PolyGeom::setVectDx(vectDx);
+
 
   m_implicitFunction = a_localGeom.newImplicitFunction();
-
-  // See if this is an STL description - m_stlIF will be NULL if it isn't
-  m_stlIF = dynamic_cast<const STLIF *>(m_implicitFunction);
 
   m_verbosity = a_verbosity;
 
@@ -50,7 +48,6 @@ GeometryShop::GeometryShop(const BaseIF& a_localGeom,
 
   m_thrshdVoF = a_thrshdVoF;
 
-  m_STLBoxSet = false;
 }
 
 GeometryShop::~GeometryShop()
@@ -83,7 +80,7 @@ GeometryShop::fillGraph(BaseFab<int>        & a_regIrregCovered,
     }
 
   Real thrshd = m_thrshdVoF;
-  PolyGeom::setVectDx(vectDx);
+
   std::set<IntVect> ivsirreg;
   std::set<IntVect> ivsdrop ;
   long int numCovered=0, numReg=0, numIrreg=0;
@@ -175,7 +172,7 @@ GeometryShop::fillGraph(BaseFab<int>        & a_regIrregCovered,
   for (std::set<IntVect>::iterator it = ivsirreg.begin(); ivsit != ivsirreg.end(); ++ivsit)
     {
       const IntVect iv = *ivsit;
-      VolIndex vof(iv, 0);
+
       int istop = 0;
       if(debbox.contains(iv))
         {
@@ -203,21 +200,20 @@ GeometryShop::fillGraph(BaseFab<int>        & a_regIrregCovered,
                           hiFaceCentroid,
                           a_regIrregCovered,
                           ivsirreg,
-                          vof,
                           a_domain,
                           a_origin,
                           a_dx,
                           vectDx,
-                          ivsit());
+                          *ivsit);
 
 
       if (thrshd > 0. && volFrac < thrshd)
         {
-          ivsdrop.insert(ivsit());
-          a_regIrregCovered(ivsit(), 0) = -1;
+          ivsdrop.insert(*ivsit);
+          a_regIrregCovered(*ivsit, 0) = -1;
           if (m_verbosity > 2)
             {
-              pout() << "Removing vof " << vof << " with volFrac " << volFrac << endl;
+              pout() << "Removing vof " << *ivsit << " with volFrac " << volFrac << endl;
             }
         }//CP record these nodes to be removed
       else
@@ -248,8 +244,7 @@ GeometryShop::fillGraph(BaseFab<int>        & a_regIrregCovered,
   // CP: fix sweep that removes cells with volFrac less than a certain threshold
   for (std::set<IntVect>::iterator ivsit =ivsdrop.begin(); ivsit != ivsdrop.end(); ++ivsit)
     {
-      VolIndex vof(*ivsit, 0);
-      IntVect iv = vof.gridIndex();
+      IntVect iv = *ivsit;
   
       for (int faceDir = 0; faceDir < SpaceDim; faceDir++)
         {
@@ -393,7 +388,6 @@ GeometryShop::computeVoFInternals(Real&               a_volFrac,
                                   std::vector<RealVect>    a_hiFaceCentroid[SpaceDim],
                                   const BaseFab<int>& a_regIrregCovered,
                                   const std::set<IntVect>&   a_ivsIrreg,
-                                  const VolIndex&     a_vof,
                                   const Box&a_domain,
                                   const RealVect&     a_origin,
                                   const Real&         a_dx,
@@ -926,65 +920,56 @@ GeometryShop::computeVoFInternals(Real&               a_volFrac,
               bool dropOrder = false;
 
 
-              if (m_stlIF == NULL)
-              {
-                Real fLo = m_implicitFunction->value(physSegLo);
-                Real fHi = m_implicitFunction->value(physSegHi);
 
-                // This guards against the "root must be bracketed" error
-                // by dropping order
-                if (fLo*fHi > 0.0)
-                  {
-                    dropOrder = true;
-                  }
-                else
-                  {
-                    physIntercept = BrentRootFinder(physSegLo, physSegHi, minDir);
-                  }
-              }
-              else
-              {
-                dropOrder = true;
-              }
+              Real fLo = m_implicitFunction->value(physSegLo);
+              Real fHi = m_implicitFunction->value(physSegHi);
 
-              if (!dropOrder)
+              // This guards against the "root must be bracketed" error
+              // by dropping order
+              if (fLo*fHi > 0.0)
                 {
-                  // put physIntercept into relative coordinates
-                  Real intercept = physIntercept - a_origin[minDir];
-                  intercept  /= a_vectDx[minDir];
-                  intercept -= (a_iv[minDir]+0.5);
+                  dropOrder = true;
+                }
+              else
+                {
+                  physIntercept = BrentRootFinder(physSegLo, physSegHi, minDir);
+                }
 
-                  // push_back third pt onto crossingPt
-                  crossingPt.push_back(midPt);
-                  crossingPt[2][minDir] = intercept;
+              // put physIntercept into relative coordinates
+              Real intercept = physIntercept - a_origin[minDir];
+              intercept  /= a_vectDx[minDir];
+              intercept -= (a_iv[minDir]+0.5);
 
-                  // integrate w.r.t xVec using Prismoidal Rule
-                  RealVect xVec;
-                  RealVect yVec;
+              // push_back third pt onto crossingPt
+              crossingPt.push_back(midPt);
+              crossingPt[2][minDir] = intercept;
 
-                  // the order of (xVec,yVec) will be sorted out in PrismoidalAreaCalc
-                  xVec[0] = crossingPt[0][maxDir];
-                  xVec[1] = crossingPt[2][maxDir];
-                  xVec[2] = crossingPt[1][maxDir];
+              // integrate w.r.t xVec using Prismoidal Rule
+              RealVect xVec;
+              RealVect yVec;
 
-                  yVec[0] = crossingPt[0][minDir];
-                  yVec[1] = crossingPt[2][minDir];
-                  yVec[2] = crossingPt[1][minDir];
+              // the order of (xVec,yVec) will be sorted out in PrismoidalAreaCalc
+              xVec[0] = crossingPt[0][maxDir];
+              xVec[1] = crossingPt[2][maxDir];
+              xVec[2] = crossingPt[1][maxDir];
 
-                  // Prismoidal's rule
-                  Real area = PrismoidalAreaCalc(xVec,yVec);
+              yVec[0] = crossingPt[0][minDir];
+              yVec[1] = crossingPt[2][minDir];
+              yVec[2] = crossingPt[1][minDir];
 
-                  // Only use area if it is valid
-                  if (area >= 0.0 && area <= 1.0)
-                  {
-                    // assign area to this value or (1 - this value)
-                    if (complementArea)
-                      {
-                        area = 1.0 - area;
-                      }
+              // Prismoidal's rule
+              Real area = PrismoidalAreaCalc(xVec,yVec);
 
-                    Faces[iFace].setFaceArea(area);
-                  }
+              // Only use area if it is valid
+              if (area >= 0.0 && area <= 1.0)
+                {
+                  // assign area to this value or (1 - this value)
+                  if (complementArea)
+                    {
+                      area = 1.0 - area;
+                    }
+
+                  Faces[iFace].setFaceArea(area);
                 }
             }
         }
@@ -1700,45 +1685,8 @@ void GeometryShop::edgeData3D(edgeMo a_edges[4],
 
               RealVect interceptPt = RealVect::Zero;
 
-              if (m_stlIF == NULL)
-              {
-                funcHi = m_implicitFunction->value(HiPt);
-                funcLo = m_implicitFunction->value(LoPt);
-              }
-              else
-              {
-                IntVect loIV(a_iv);
-                loIV[a_faceNormal] += a_hiLoFace;
-                loIV[dom]          += lohi;
-
-                IntVect hiIV(a_iv);
-                hiIV[a_faceNormal] += a_hiLoFace;
-                hiIV[dom]          += lohi;
-                hiIV[range]        += 1;
-
-                CellEdge curEdge(loIV,hiIV);
-
-                bool loIn,hiIn;
-                m_stlIF->getExplorer()->GetCellEdgeIntersection(curEdge,interceptPt,loIn,hiIn);
-
-                if (loIn)
-                {
-                  funcLo = -1.0;
-                }
-                else
-                {
-                  funcLo = 1.0;
-                }
-
-                if (hiIn)
-                {
-                  funcHi = -1.0;
-                }
-                else
-                {
-                  funcHi = 1.0;
-                }
-              }
+              funcHi = m_implicitFunction->value(HiPt);
+              funcLo = m_implicitFunction->value(LoPt);
 
               // For level set data negative -> in the fluid
               //                    positive -> out of the fluid
@@ -1769,15 +1717,9 @@ void GeometryShop::edgeData3D(edgeMo a_edges[4],
                   a_faceDontKnow = true;
 
                   Real intercept;
-                  if (m_stlIF == NULL)
-                  {
-                    // find where the surface intersects the edge
-                    intercept = BrentRootFinder(LoPt, HiPt, range);
-                  }
-                  else
-                  {
-                    intercept = interceptPt[range];
-                  }
+                  
+                  // find where the surface intersects the edge
+                  intercept = BrentRootFinder(LoPt, HiPt, range);
 
                   if (funcHi >= 0 && funcLo*funcHi <= 0)
                     {
@@ -2082,13 +2024,8 @@ Real GeometryShop::BrentRootFinder(const RealVect& a_x1,
 
   //  Max allowed iterations and floating point precision
   const unsigned int  MAXITER = 100;
-#if defined(CH_USE_DOUBLE)
   const Real      EPS   = 3.0e-15;
-#elif defined(CH_USE_FLOAT)
-  const Real      EPS   = 3.0e-7;
-#else
-#error Unknown Chombo precision
-#endif
+
   unsigned int i;
   RealVect aPt;
   RealVect bPt;

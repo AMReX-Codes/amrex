@@ -20,6 +20,7 @@
 #include "AMReX_REAL.H"
 #include "AMReX_SPACE.H"
 #include <vector>
+#include <cassert>
 #include "AMReX_IntVect.H"
 
 
@@ -53,7 +54,7 @@ public:
   */
   RealVect ();
 
-  explicit RealVect (const Vector<Real>&);
+  explicit RealVect (const std::vector<Real>&);
 
   ///
   /**

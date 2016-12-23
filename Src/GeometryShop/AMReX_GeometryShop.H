@@ -18,8 +18,9 @@
 #include "AMReX_Box.H"
 #include "AMReX_IntVect.H"
 #include "AMReX_BaseIF.H"
-#include "AMReX_GeometryService.H"
+#include "AMReX_BaseFab.H"
 #include "AMReX_Moments.H"
+#include "AMReX_IrregNode.H"
 
 
 namespace amrex
@@ -73,7 +74,6 @@ namespace amrex
                              std::vector<RealVect>     a_hiFaceCentroid[SpaceDim],
                              const BaseFab<int>&  a_regIrregCovered,
                              const std::set<IntVect>&    a_ivsIrreg,
-                             const VolIndex&      a_vof,
                              const Box&           a_domain,
                              const RealVect&      a_origin,
                              const Real&          a_dx,
@@ -94,9 +94,6 @@ namespace amrex
     RealVect m_vectDx;
 
     const BaseIF* m_implicitFunction;
-    const STLIF* m_stlIF;
-    mutable bool m_STLBoxSet;
-
 
 
     void edgeData3D(edgeMo               a_edges[4],
@@ -108,7 +105,7 @@ namespace amrex
                     const Real&          a_dx,
                     const RealVect&      a_vectDx,
                     const IntVect&       a_coord,
-                    const ProblemDomain& a_domain,
+                    const Box& a_domain,
                     const RealVect&      a_origin) const;
 
     void edgeData2D(edgeMo               a_edges[4],
@@ -118,7 +115,7 @@ namespace amrex
                     const Real&          a_dx,
                     const RealVect&      a_vectDx,
                     const IntVect&       a_coord,
-                    const ProblemDomain& a_domain,
+                    const Box& a_domain,
                     const RealVect&      a_origin) const;
 
     void edgeType(bool& a_regular,
@@ -141,15 +138,15 @@ namespace amrex
     //stuff disallowed for all the usual reasons.
     GeometryShop()
     {
-      MayDay::Abort("GeometryShop uses strong construction only");
+      amrex::Abort("GeometryShop uses strong construction only");
     }
     GeometryShop(const GeometryShop& a_workshopin)
     {
-      MayDay::Abort("GeometryShop disallows copy contruction");
+      amrex::Abort("GeometryShop disallows copy contruction");
     }
     void operator=(const GeometryShop& a_workshopin)
     {
-      MayDay::Abort("GeometryShop disallows the assignment operator");
+      amrex::Abort("GeometryShop disallows the assignment operator");
     }
 
   };

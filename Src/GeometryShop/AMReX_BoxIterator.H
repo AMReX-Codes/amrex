@@ -14,7 +14,7 @@
 #define _BOXITERATOR_H_
 
 #include <cstdlib>
-
+#include <cassert>
 #include "AMReX_Box.H"
 #include "AMReX_REAL.H"
 #include "AMReX_SPACE.H"

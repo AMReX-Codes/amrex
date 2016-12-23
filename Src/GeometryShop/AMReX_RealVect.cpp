@@ -38,12 +38,12 @@ namespace amrex
     return vect;
   }
 
-  RealVect::RealVect (D_DECL6(Real i, Real j, Real k))
+  RealVect::RealVect (D_DECL(Real i, Real j, Real k))
   {
-    D_EXPR6(vect[0] = i, vect[1] = j, vect[2] = k);
+    D_EXPR(vect[0] = i, vect[1] = j, vect[2] = k);
   }
 
-  RealVect::RealVect (const Vector<Real>& vr )
+  RealVect::RealVect (const std::vector<Real>& vr )
   {
     D_EXPR(vect[0]=vr[0], vect[1]=vr[1], vect[2] = vr[2]);
   }
@@ -53,16 +53,12 @@ namespace amrex
     D_EXPR(vect[0]=0.0, vect[1]=0.0, vect[2] = 0.0);
   }
 
-  RealVect::RealVect(const IndexTM<Real, CH_SPACEDIM>& a_tm)
-  {
-    D_EXPR(vect[0] = a_tm[0], vect[1] = a_tm[1], vect[2] = a_tm[2]);
-  }
 
   RealVect&
   RealVect::operator= (const RealVect &iv)
   {
-    D_EXPR(vect[0]=iv.vect[0], vect[1]=iv.vect[1], vect[2]=iv.vect[2])
-      return *this;
+    D_EXPR(vect[0]=iv.vect[0], vect[1]=iv.vect[1], vect[2]=iv.vect[2]);
+    return *this;
   }
 
   Real RealVect::dotProduct(const RealVect& a_rhs) const
@@ -205,7 +201,7 @@ namespace amrex
   RealVect
   BASISREALV (int dir)
   {
-    CH_assert(dir >= 0 && dir < SpaceDim);
+    assert(dir >= 0 && dir < SpaceDim);
     RealVect tmp = RealVect::Zero ;
     tmp.vect[dir] = 1;
     return tmp;

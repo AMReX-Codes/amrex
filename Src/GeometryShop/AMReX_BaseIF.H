@@ -67,7 +67,7 @@ namespace amrex
                         RealVect      & a_hi)
     {
       a_lo = a_origin + RealVect(a_region.smallEnd())*a_dx;
-      a_hi = a_origin + RealVect(a_region.bigEnd()+IntVect::Unit)*a_dx;
+      a_hi = a_origin + RealVect(a_region.bigEnd()+IntVect::TheUnitVector())*a_dx;
     }
 
   };
