@@ -224,7 +224,7 @@ namespace amrex
   // construct normal vector
   void faceMo::makeNormal()
   {
-    IntVect zeros = IntVect::Zero;
+    IntVect zeros = IntVect::TheZeroVector();
 
     for (int index = 0; index < 2; ++index)
       {
@@ -365,8 +365,7 @@ namespace amrex
   std::vector<Real> Moments::momentCalc3D(const int& a_order,
                                           vofMo&     a_vof)
   {
-    CH_TIME("momentCalc3D");
-    Vector<IntVect> list(0),listPlus(0);
+    std::vector<IntVect> list(0),listPlus(0);
     listOfMoments(a_order,list);       // this function knows SpaceDim
     listOfMoments(a_order+1,listPlus);
 
@@ -380,7 +379,7 @@ namespace amrex
     Real normalVec[3];
     a_vof.getNormal(normalVec);
 
-    Vector<Real> normal(3);
+    std::vector<Real> normal(3);
     for (int idir = 0; idir < 3; ++idir)
       {
         normal[idir] = normalVec[idir];
@@ -449,7 +448,6 @@ namespace amrex
   std::vector<Real> Moments::momentCalc2D(const int&    a_order,
                                           const faceMo& a_face)
   {
-    CH_TIME("momentCalc2D");
     // 2 vector because 2D, even if SpaceDim=3
     std::vector<Real> normal(2);
     Real normalVec[2];

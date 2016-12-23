@@ -56,6 +56,9 @@ namespace amrex
     virtual BaseIF* newImplicitFunction() const;
 
   protected:
+    RealVect m_normal;
+    RealVect m_point;
+    bool     m_inside;
 
   private:
     PlaneIF();

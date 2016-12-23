@@ -6,11 +6,11 @@ DIM          = 3
 
 COMP         = g++
 
-DEBUG        = TRUE
 DEBUG        = FALSE
+DEBUG        = TRUE
 
-USE_MPI      = FALSE
 USE_MPI      = TRUE
+USE_MPI      = FALSE
 
 PROFILE       = TRUE
 COMM_PROFILE  = TRUE

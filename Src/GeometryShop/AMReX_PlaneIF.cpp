@@ -28,7 +28,7 @@ namespace amrex
 
   Real 
   PlaneIF::
-  value(const RealVect & a_point)
+  value(const RealVect & a_point) const
   {
     Real retval = 0;
     for (int idir = 0 ; idir < SpaceDim; idir++)
