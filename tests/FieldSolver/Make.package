@@ -3,7 +3,7 @@ CEXE_sources += main.cpp
 
 CEXE_headers += WarpX_f.H WarpXConst.H
 
-F90EXE_sources += WarpX_f.F90
+F90EXE_sources += WarpX_picsar.F90
 
 INCLUDE_LOCATIONS += ../../Source
 VPATH_LOCATIONS += ../../Source
