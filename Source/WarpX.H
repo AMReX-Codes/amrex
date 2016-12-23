@@ -63,6 +63,8 @@ private:
     void InitFromCheckpoint () {}
     void InitLevelData (int lev);
     
+    void InitOpenbc ();
+    
     void ComputeDt ();
 
     void WritePlotFile () const;

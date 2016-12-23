@@ -16,5 +16,7 @@ EBASE     = main
 
 USE_PYTHON_MAIN = FALSE
 
+USE_OPENBC_POISSON = TRUE
+
 WARPX_HOME := ../..
 include $(WARPX_HOME)/Exec/Make.WarpX

@@ -1,13 +1,12 @@
 #include <REAL.H>
+#include <BLFort.H>
 
 extern "C" 
 {
 	// Charge deposition
-	void warpx_charge_deposition(Real* rho, const long* np,
-			const Real* xp, const Real* yp, const Real* zp,
-			const Real* gip, const Real* w, const Real* q,
-			const Real* xmin, const Real* ymin, const Real* zmin,
-			const Real* dt, 
+	void warpx_charge_deposition(Real* rho, 
+                        const long* np,	const Real* xp, const Real* yp, const Real* zp,	const Real* w,
+			const Real* q, const Real* xmin, const Real* ymin, const Real* zmin,
 			const Real* dx, const Real* dy, const Real* dz,
 			const long* nx, const long* ny, const long* nz,
 			const long* nxguard, const long* nyguard, const long* nzguard,
@@ -79,29 +78,15 @@ extern "C"
 			const int* l_nodal );
 
 #ifdef USE_OPENBC_POISSON
-	void warpx_openbcpotential( Real* rho, Real* phi, 
-			const Real* dx, const Real* dy, const Real* dz, 
-			const long* ilo, const long* ihi, 
-			const long* jlo, const long* jhi, 
-			const long* klo, const long* khi,
-			const long* ilo_rho_gbl, const long* ihi_rho_gbl, 
-			const long* jlo_rho_gbl, const long* jhi_rho_gbl,
-			const long* klo_rho_gbl, const long* khi_rho_gbl, 
-			const long* nxguard, const long* nyguard, 
-			const long* nzguard, const int* idecomp, 
-			const int* igfflag, const int* ierr );
-
-       void warpx_procgriddecomp(const int* mprocs,
-                        const int* nxlo,
-                        const int* nxhi, 
-                        const int* nylo,
-                        const int* nyhi,
-                        const int* nzlo,
-                        const int* nzhi,
-                        const int* idecomp,
-                        const int* npx,
-                        const int* npy,
-                        const int* npz);
+    void warpx_openbc_potential (Real* rho, Real* phi, const Real* dx);
+    void warpx_openbc_decompose (const int*, const int*, int*, int*);
 #endif
 
+    void warpx_compute_E (const int* lo, const int* hi,
+			  const BL_FORT_FAB_ARG_3D(phi),
+			  BL_FORT_FAB_ARG_3D(Ex),
+			  BL_FORT_FAB_ARG_3D(Ey),
+			  BL_FORT_FAB_ARG_3D(Ez),
+			  const Real* dx);
+			  			  
 }
