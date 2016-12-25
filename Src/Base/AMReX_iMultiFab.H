@@ -316,11 +316,11 @@ public:
 			int             numcomp,
 			int             nghost);
 
-    void define (const BoxArray&            bxs,
-		 const DistributionMapping& dm,
-                 int                        nvar,
-                 int                        ngrow,
-		 const MFInfo&              info = MFInfo());
+    virtual void define (const BoxArray&            bxs,
+			 const DistributionMapping& dm,
+			 int                        nvar,
+			 int                        ngrow,
+			 const MFInfo&              info = MFInfo()) override;
 
     const IArrayBox& operator[] (int K) const;
 

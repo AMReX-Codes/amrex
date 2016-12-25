@@ -806,11 +806,11 @@ public:
     // This is only valid if this FabArray was defined using
     // the default constructor.
     //
-    void define (const BoxArray& bxs,
-		 const DistributionMapping& dm,
-		 int                        nvar,
-		 int                        ngrow,
-		 const MFInfo&              info = MFInfo());
+    virtual void define (const BoxArray& bxs,
+			 const DistributionMapping& dm,
+			 int                        nvar,
+			 int                        ngrow,
+			 const MFInfo&              info = MFInfo());
     //
     // Returns true if the FabArray is well-defined.  That is,
     // if FABs are allocated for each Box in the BoxArray and the
