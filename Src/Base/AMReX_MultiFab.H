@@ -81,11 +81,11 @@ public:
 
     virtual ~MultiFab() override;
 
-    void define (const BoxArray&            bxs,
-		 const DistributionMapping& dm,
-		 int                        nvar,
-		 int                        ngrow,
-		 const MFInfo&              info = MFInfo());
+    virtual void define (const BoxArray&            bxs,
+			 const DistributionMapping& dm,
+			 int                        nvar,
+			 int                        ngrow,
+			 const MFInfo&              info = MFInfo()) override;
 
     void operator= (const Real& r);
     //
