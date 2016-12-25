@@ -1649,7 +1649,7 @@ void amrex::BroadcastDistributionMapping(DistributionMapping &dM, int sentinelPr
   if(dmapA.size() > 0) {
     if(myLocalId != rootId) {
       dmapA[dmapA.size() - 1] = sentinelProc;  // ---- set the sentinel
-      dM.define(dmapA, addToCache);
+      dM.define(dmapA);
     }
   }
   int dmID(dM.DistMapID()), nDM(DistributionMapping::NDistMaps());

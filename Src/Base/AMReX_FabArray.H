@@ -3069,7 +3069,6 @@ FabArray<FAB>::PrintFAPointers ()
 		<< "  " << fabsAllocated << std::endl;
     }
   }
-  DistributionMapping::CacheStats(std::cout, ParallelDescriptor::MyProcAll());
   std::cout << "|||| |||| |||| _out PrintFAPointers: ================ " << std::endl;
 }
 
@@ -3227,15 +3226,9 @@ FabArray<FAB>::MoveAllFabs (const Array<int> &newDistMapArray)
     }
 
     // ---- flush caches
-    DistributionMapping::FlushCache();
     flushCPCache();
     flushFBCache();
     flushTileArrayCache();
-
-    if(lastFAPtr != 0) {
-      lastFAPtr->ModifyDistributionMap().ReplaceCachedProcessorMap(newDistMapArray);
-    }
-
 
     // ---- check the moved fabarray
     for(typename std::map<int, FabArray<FAB> *>::iterator it = faPtrCachedMap.begin();
