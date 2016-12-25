@@ -145,8 +145,9 @@ public:
     */
     long nPts () const { return numpts; }
     /**
-    * \brief long size () const { return nvar*numpts; }
+    * \brief 
     */
+    long size () const { return nvar*numpts; }
     /**
     * \returns the domain (box) where the array is defined.
     */
