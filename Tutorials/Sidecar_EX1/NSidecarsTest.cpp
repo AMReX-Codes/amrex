@@ -149,7 +149,7 @@ namespace
 	                << bac.size() << std::endl;
 	    }
 	    sc_DM.define(bac, ParallelDescriptor::NProcsSidecar(whichSidecar));
-            MultiFab mf(bac, nComp, nGhost, sc_DM, Fab_allocate);
+            MultiFab mf(bac, sc_DM, nComp, nGhost);
 	    mf.setVal(-1.0);
 	    MultiFab *mfSource = 0;
 	    MultiFab *mfDest = &mf;
@@ -167,7 +167,8 @@ namespace
             Box baseBox(IntVect(2,4,6), IntVect(15, 19, 79));
             BoxArray ba(baseBox);
             ba.maxSize(4);
-	    MultiFab mf(ba, nComp, nGhost);
+	    DistributionMapping dm{ba};
+	    MultiFab mf(ba, dm, nComp, nGhost);
 	    for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
 	      for(int i(0); i < mf[mfi].nComp(); ++i) {
 	        mf[mfi].setVal(myProcAll + (Real) i / 1000.0, i);
@@ -414,7 +415,7 @@ int main(int argc, char *argv[]) {
 	  int whichSidecar(2);
 
 	  if((i - ts) == 0) {  // ---- do a simple mf copy test
-	    MultiFab mf(ba, nComp, nGhost, comp_DM, Fab_allocate);
+	    MultiFab mf(ba, comp_DM, nComp, nGhost);
 	    for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
 	      for(int i(0); i < mf[mfi].nComp(); ++i) {
 	        mf[mfi].setVal(myProcAll + (Real) i / 1000.0, i);
@@ -436,7 +437,7 @@ int main(int argc, char *argv[]) {
 	  if((i - ts) == 1) {  // ---- do a shrinked boxarray mf copy test
 	    BoxArray bashrink(ba);
 	    bashrink.grow(-1);
-	    MultiFab mf(bashrink, nComp, nGhost, comp_DM, Fab_allocate);
+	    MultiFab mf(bashrink, comp_DM, nComp, nGhost);
 	    for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
 	      for(int i(0); i < mf[mfi].nComp(); ++i) {
 	        mf[mfi].setVal(myProcAll + (Real) i / 1000.0, i);
@@ -458,7 +459,7 @@ int main(int argc, char *argv[]) {
 	  if((i - ts) == 2) {  // ---- do a shifted boxarray mf copy test
 	    BoxArray bashift(ba);
 	    bashift.shift(IntVect(1,2,3));
-	    MultiFab mf(bashift, nComp, nGhost, comp_DM, Fab_allocate);
+	    MultiFab mf(bashift, comp_DM, nComp, nGhost);
 	    for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
 	      for(int i(0); i < mf[mfi].nComp(); ++i) {
 	        mf[mfi].setVal(myProcAll + (Real) i / 1000.0, i);
@@ -478,7 +479,7 @@ int main(int argc, char *argv[]) {
 
 
 	  if((i - ts) == 3) {  // ---- copy part of a FabArray from the sidecar
-	    MultiFab mf(ba, nComp, nGhost);
+	    MultiFab mf(ba, comp_DM, nComp, nGhost);
 	    mf.setVal(-2.0);
 
 	    sidecarSignal = S_CopyFabArrayFromSidecar;

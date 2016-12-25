@@ -75,17 +75,21 @@ int main(int argc, char* argv[])
 	geom.define(domain,&real_box,coord);
     }
 
-    MultiFab rhs(ba, ncomp, 0);
+    DistributionMapping dm{ba};
+
+    MultiFab rhs(ba, dm, ncomp, 0);
     setup_rhs(rhs, geom);
 
-    MultiFab alpha(ba, ncomp, 0);
+    MultiFab alpha(ba, dm, ncomp, 0);
     Array<std::unique_ptr<MultiFab> > beta(BL_SPACEDIM);
     for (int i = 0; i < BL_SPACEDIM; ++i) {
-	beta[i].reset(new MultiFab(ba, ncomp, 0, Fab_allocate, IntVect::TheDimensionVector(i)));
+	MFInfo info;
+	info.SetNodal(IntVect::TheDimensionVector(i));
+	beta[i].reset(new MultiFab(ba, dm, ncomp, 0, info));
     }
     setup_coeffs(alpha, amrex::GetArrOfPtrs(beta), geom);
 
-    MultiFab soln(ba, ncomp, 0);
+    MultiFab soln(ba, dm, ncomp, 0);
 
     solve(soln, rhs, alpha, amrex::GetArrOfPtrs(beta), geom);
 

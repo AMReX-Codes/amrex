@@ -18,15 +18,6 @@ EBASE     = gridmovetest
 
 include ./Make.package
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
-include $(AMREX_HOME)/Src/Boundary/Make.package
 include $(AMREX_HOME)/Src/Base/Make.package
-
-INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Boundary
-INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Base
-INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Amr
-
-vpathdir += $(AMREX_HOME)/Src/Boundary
-vpathdir += $(AMREX_HOME)/Src/Base
-vpathdir += $(AMREX_HOME)/Src/Amr
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.rules
