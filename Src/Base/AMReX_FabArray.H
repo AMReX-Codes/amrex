@@ -2506,7 +2506,6 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
     if(isSrc)  { BL_ASSERT(src->nGrow() >= snghost);  }
     if(isDest) { BL_ASSERT(dest->nGrow() >= dnghost); }
 
-    bool putInCache(false);
     MPI_Group groupSrc(MPI_GROUP_NULL), groupDest(MPI_GROUP_NULL), groupBoth(MPI_GROUP_NULL);
     MPI_Group groupAll(MPI_GROUP_NULL);
     int myProcAll(ParallelDescriptor::MyProcAll()), myProcBoth(MPI_UNDEFINED);
@@ -2579,8 +2578,8 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
     amrex::BroadcastArray(srcPMapAll,  myProcBoth, bcastRootSrc,  commBoth);
     amrex::BroadcastArray(destPMapAll, myProcBoth, bcastRootDest, commBoth);
 
-    srcDMAll.define(srcPMapAll, putInCache);
-    destDMAll.define(destPMapAll, putInCache);
+    srcDMAll.define(srcPMapAll);
+    destDMAll.define(destPMapAll);
 
     CPC thecpc(destBoxArray, destDMAll, destIndexArray, dnghost,
 	       srcBoxArray ,  srcDMAll,  srcIndexArray, dnghost, 
