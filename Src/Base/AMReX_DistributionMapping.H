@@ -54,7 +54,7 @@ class DistributionMapping
     //
     // Build mapping out of BoxArray over nprocs processors.
     //
-    DistributionMapping (const BoxArray& boxes, int nprocs, 
+    DistributionMapping (const BoxArray& boxes, int nprocs = ParallelDescriptor::NProcs(), 
 			 ParallelDescriptor::Color color = ParallelDescriptor::DefaultColor());
     //
     // This is a very specialized distribution map.

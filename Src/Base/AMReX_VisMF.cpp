@@ -1397,7 +1397,9 @@ VisMF::Read (FabArray<FArrayBox> &mf,
 
     bool noFabHeader(NoFabHeader(hdr));
 
-    mf.define(hdr.m_ba, hdr.m_ncomp, hdr.m_ngrow, Fab_allocate);
+    DistributionMapping dm(hdr.m_ba);
+
+    mf.define(hdr.m_ba, dm, hdr.m_ncomp, hdr.m_ngrow);
 
 #ifdef BL_USE_MPI
 
@@ -1474,7 +1476,7 @@ VisMF::Read (FabArray<FArrayBox> &mf,
         std::cout << "VisMF::Read:  not inFileOrder" << std::endl;
       }
       // ---- make a temporary fabarray in file order
-      fafabFileOrder.define(baFileOrder, hdr.m_ncomp, hdr.m_ngrow, dmFileOrder, Fab_allocate);
+      fafabFileOrder.define(baFileOrder, dmFileOrder, hdr.m_ncomp, hdr.m_ngrow);
     }
 
     FabArray<FArrayBox> &whichFA = inFileOrder ? mf : fafabFileOrder;

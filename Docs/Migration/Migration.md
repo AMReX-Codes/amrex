@@ -110,3 +110,7 @@ For header files, it is considered bad practice to have `using
 namespace amrex` because it pollutes the namespace.  So you need to
 manually add `amrex::` in front of AMReX names likes `MultiFab` and
 `BoxArray`.
+
+### Step 6
+
+AMReX `migration/5-namespace` branch should be used in this step.
