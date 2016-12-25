@@ -1381,7 +1381,7 @@ VisMF::Read (FabArray<FArrayBox> &mf,
     {
         hStartTime = ParallelDescriptor::second();
         std::string fileCharPtrString;
-	if(faHeader == 0) {
+	if(faHeader == nullptr) {
           Array<char> fileCharPtr;
           ParallelDescriptor::ReadAndBcastFile(FullHdrFileName, fileCharPtr);
           fileCharPtrString = fileCharPtr.dataPtr();
@@ -1397,9 +1397,12 @@ VisMF::Read (FabArray<FArrayBox> &mf,
 
     bool noFabHeader(NoFabHeader(hdr));
 
-    DistributionMapping dm(hdr.m_ba);
-
-    mf.define(hdr.m_ba, dm, hdr.m_ncomp, hdr.m_ngrow);
+    if (mf.empty()) {
+	DistributionMapping dm(hdr.m_ba);
+	mf.define(hdr.m_ba, dm, hdr.m_ncomp, hdr.m_ngrow);
+    } else {
+	BL_ASSERT(amrex::match(hdr.m_ba,mf.boxArray()));
+    }
 
 #ifdef BL_USE_MPI
 
