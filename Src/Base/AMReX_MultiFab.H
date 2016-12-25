@@ -72,33 +72,20 @@ public:
     //
     // Constructs a MultiFab with a valid region defined by bxs and
     // a region of definition defined by the grow factor ngrow.
-    // If mem_mode is defined to be Fab_allocate then FArrayBoxes are
-    // allocated for each Box in the BoxArray.  The size of the
-    // FArrayBox is given by the Box grown by ngrow and the number of
-    // components is given by ncomp.  If mem_mode is defined to be
-    // Fab_noallocate then no FArrayBoxes are allocated at this time
-    // but can be defined later.
     //
-    MultiFab (const BoxArray& bs,
-              int             ncomp,
-              int             ngrow,
-              FabAlloc        mem_mode = Fab_allocate,
-	      const IntVect&  nodal = IntVect::TheZeroVector());
-
     MultiFab (const BoxArray&            bs,
+              const DistributionMapping& dm,
               int                        ncomp,
               int                        ngrow,
-              const DistributionMapping& dm,
-              FabAlloc                   mem_mode = Fab_allocate,
-	      const IntVect&             nodal = IntVect::TheZeroVector());
-
-    MultiFab (const BoxArray& bs,
-              int             ncomp,
-              int             ngrow,
-	      ParallelDescriptor::Color color);
+	      const MFInfo&              info = MFInfo());
 
     virtual ~MultiFab() override;
 
+    void define (const BoxArray&            bxs,
+		 const DistributionMapping& dm,
+		 int                        nvar,
+		 int                        ngrow,
+		 const MFInfo&              info = MFInfo());
 
     void operator= (const Real& r);
     //
@@ -486,20 +473,6 @@ public:
 			    int             numcomp,
 			    int             nghost);
 
-    void define (const BoxArray& bxs,
-		 int             nvar,
-		 int             ngrow,
-		 FabAlloc        mem_mode,
-		 const IntVect&  nodal = IntVect::TheZeroVector(),
-		 ParallelDescriptor::Color color = ParallelDescriptor::DefaultColor());
-
-    void define (const BoxArray&            bxs,
-		 int                        nvar,
-		 int                        ngrow,
-		 const DistributionMapping& dm,
-		 FabAlloc                   mem_mode,
-		 const IntVect&             nodal = IntVect::TheZeroVector());
-
     //
     // Are there any NaNs in the MF?
     // This may return false, even if the MF contains NaNs, if the machine
@@ -539,11 +512,8 @@ public:
                                  int scsMyId, MPI_Comm scsComm);
 
 private:
-    //
-    // These are disabled.
-    //
-    MultiFab (const MultiFab& rhs);
-    MultiFab& operator= (const MultiFab& rhs);
+    MultiFab (const MultiFab& rhs) = delete;
+    MultiFab& operator= (const MultiFab& rhs) = delete;
 
     //
     // Some useful typedefs.
