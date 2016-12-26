@@ -446,6 +446,8 @@ FluxRegister::ClearInternalBorders (const Geometry& geom)
     }
 }
 
+// need to make sure they are safe without DistributionMapping cache
+#if 0
 void
 FluxRegister::write (const std::string& name, std::ostream& os) const
 {
@@ -474,6 +476,7 @@ FluxRegister::read (const std::string& name, std::istream& is)
 
     br->read(name,is);
 }
+#endif
 
 void
 FluxRegister::AddProcsToComp(int ioProcNumSCS, int ioProcNumAll,

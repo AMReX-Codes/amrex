@@ -79,7 +79,7 @@ class DistributionMapping
     // You need to call this if you built your DistributionMapping
     // with the default constructor.
     //
-    void define (const BoxArray& boxes, int nprocs,
+    void define (const BoxArray& boxes, int nprocs = ParallelDescriptor::NProcs(),
 		 ParallelDescriptor::Color color = ParallelDescriptor::DefaultColor());
     //
     // Build mapping out of an Array of ints. You need to call this if you
