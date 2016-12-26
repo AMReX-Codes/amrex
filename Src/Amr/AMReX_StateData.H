@@ -36,6 +36,7 @@ public:
     //
     StateData (const Box&             p_domain,
                const BoxArray&        grds,
+	       const DistributionMapping& dm,
                const StateDescriptor* d,
                Real                   cur_time,
                Real                   dt);
@@ -51,12 +52,6 @@ public:
     //
     // Initializes data members if you used default constructor.
     //
-    void define (const Box&             p_domain,
-                 const BoxArray&        grds,
-                 const StateDescriptor& d, 
-                 Real                   cur_time,
-                 Real                   dt);
-
     void define (const Box&             p_domain,
                  const BoxArray&        grds,
 		 const DistributionMapping& dm,
@@ -158,17 +153,12 @@ public:
                      VisMF::How         how,
                      bool               dump_old = true);
     //
-    // Initializes state data from a checkpoint file.
-    //
-    void restart (std::istream&          is,
-                  const StateDescriptor& d,
-                  const std::string&     restart_file);
-    //
-    // with domain box and grids provided
+    // Restart with domain box, grids, and dmap provided
     //
     void restart (std::istream&          is,
 		  const Box&             p_domain,
 		  const BoxArray&        grds,
+		  const DistributionMapping& dm,
                   const StateDescriptor& d,
                   const std::string&     restart_file);
     //
@@ -188,6 +178,8 @@ public:
     // Returns the BoxArray.
     //
     const BoxArray& boxArray () const { return grids; }
+    //
+    const DistributionMapping& DistributionMap () const { return dmap; }
     //
     // Returns the current time.
     //
@@ -281,6 +273,8 @@ private:
     // Grids defined at this level.
     //
     BoxArray grids;
+    //
+    DistributionMapping dmap;
     //
     // Time variable assoc with new data.
     //

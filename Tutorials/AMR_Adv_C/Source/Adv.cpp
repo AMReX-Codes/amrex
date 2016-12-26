@@ -51,13 +51,14 @@ Adv::Adv (Amr&            papa,
 	  int             lev,
 	  const Geometry& level_geom,
 	  const BoxArray& bl,
+	  const DistributionMapping& dm,
 	  Real            time)
     :
-    AmrLevel(papa,lev,level_geom,bl,time) 
+    AmrLevel(papa,lev,level_geom,bl,dm,time) 
 {
     flux_reg = 0;
     if (level > 0 && do_reflux)
-        flux_reg = new FluxRegister(grids,crse_ratio,level,NUM_STATE);
+        flux_reg = new FluxRegister(grids,dmap,crse_ratio,level,NUM_STATE);
 }
 
 Adv::~Adv () 

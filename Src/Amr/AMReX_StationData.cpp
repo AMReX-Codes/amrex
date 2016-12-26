@@ -330,7 +330,7 @@ StationData::findGrid (const Array<std::unique_ptr<AmrLevel> >& levels,
             }
 
 
-            MultiFab mf(levels[level]->boxArray(),1,0,Fab_noallocate);
+            MultiFab mf(levels[level]->boxArray(),levels[level]->DistributionMap(),1,0);
 
             BL_ASSERT(mf.boxArray().size() == boxes.size());
 

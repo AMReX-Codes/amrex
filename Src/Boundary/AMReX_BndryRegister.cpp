@@ -266,6 +266,8 @@ BndryRegister::plusFrom (const MultiFab& src,
     return *this;
 }
 
+// need to make sure they are safe without DistributionMapping cache
+#if 0
 void
 BndryRegister::write (const std::string& name, std::ostream& os) const
 {
@@ -311,6 +313,7 @@ BndryRegister::read (const std::string& name, std::istream& is)
         bndry[face()].read(facename);
     }
 }
+#endif
 
 // Local copy function
 void 
