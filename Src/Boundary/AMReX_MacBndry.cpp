@@ -13,11 +13,11 @@ MacBndry::MacBndry ()
 }
 
 MacBndry::MacBndry (const BoxArray& _grids,
+		    const DistributionMapping& _dmap,
                     int             _ncomp,
-                    const Geometry& _geom,
-		    ParallelDescriptor::Color color)
+                    const Geometry& _geom)
     :
-    InterpBndryData(_grids,_ncomp,_geom,color)
+    InterpBndryData(_grids,_dmap,_ncomp,_geom)
 {}
 
 MacBndry::~MacBndry () {}

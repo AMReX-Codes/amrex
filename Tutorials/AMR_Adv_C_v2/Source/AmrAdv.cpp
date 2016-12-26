@@ -84,14 +84,14 @@ AmrAdv::MakeNewLevel (int lev, Real time,
     SetBoxArray(lev, new_grids);
     SetDistributionMap(lev, new_dmap);
 
-    phi_new[lev].reset(new MultiFab(grids[lev], ncomp, nghost, dmap[lev]));
-    phi_old[lev].reset(new MultiFab(grids[lev], ncomp, nghost, dmap[lev]));
+    phi_new[lev].reset(new MultiFab(grids[lev], dmap[lev], ncomp, nghost));
+    phi_old[lev].reset(new MultiFab(grids[lev], dmap[lev], ncomp, nghost));
 
     t_new[lev] = time;
     t_old[lev] = time - 1.e200;
 
     if (lev > 0 && do_reflux) {
-	flux_reg[lev].reset(new FluxRegister(grids[lev], refRatio(lev-1), lev, ncomp, dmap[lev]));
+	flux_reg[lev].reset(new FluxRegister(grids[lev], dmap[lev], refRatio(lev-1), lev, ncomp));
     }
 }
 
@@ -103,11 +103,11 @@ AmrAdv::RemakeLevel (int lev, Real time,
     const int nghost = phi_new[lev]->nGrow();
 
 #if __cplusplus >= 201402L
-    auto new_state = std::make_unique<MultiFab>(new_grids, ncomp, nghost, new_dmap);
-    auto old_state = std::make_unique<MultiFab>(new_grids, ncomp, nghost, new_dmap);
+    auto new_state = std::make_unique<MultiFab>(new_grids, new_dmap, ncomp, nghost_dmap);
+    auto old_state = std::make_unique<MultiFab>(new_grids, new_dmap, ncomp, nghost);
 #else
-    auto new_state = std::unique_ptr<MultiFab>(new MultiFab(new_grids, ncomp, nghost, new_dmap));
-    auto old_state = std::unique_ptr<MultiFab>(new MultiFab(new_grids, ncomp, nghost, new_dmap));
+    auto new_state = std::unique_ptr<MultiFab>(new MultiFab(new_grids, new_dmap, ncomp, nghost));
+    auto old_state = std::unique_ptr<MultiFab>(new MultiFab(new_grids, new_dmap, ncomp, nghost));
 #endif
 
     FillPatch(lev, time, *new_state, 0, ncomp);
@@ -122,7 +122,7 @@ AmrAdv::RemakeLevel (int lev, Real time,
     t_old[lev] = time - 1.e200;
 
     if (lev > 0 && do_reflux) {
-	flux_reg[lev].reset(new FluxRegister(grids[lev], refRatio(lev-1), lev, ncomp, dmap[lev]));
+	flux_reg[lev].reset(new FluxRegister(grids[lev], dmap[lev], refRatio(lev-1), lev, ncomp));
     }    
 }
 
@@ -146,21 +146,19 @@ AmrAdv::regrid (int lbase, Real time)
 
     BL_ASSERT(new_finest <= finest_level+1);
 
-    DistributionMapping::FlushCache();
-
     for (int lev = lbase+1; lev <= new_finest; ++lev)
     {
 	if (lev <= finest_level) // an old level
 	{
 	    if (new_grids[lev] != grids[lev]) // otherwise nothing
 	    {
-		DistributionMapping new_dmap(new_grids[lev], ParallelDescriptor::NProcs());
+		DistributionMapping new_dmap(new_grids[lev]);
 		RemakeLevel(lev, time, new_grids[lev], new_dmap);
 	    }
 	}
 	else  // a new level
 	{
-	    DistributionMapping new_dmap(new_grids[lev], ParallelDescriptor::NProcs());
+	    DistributionMapping new_dmap(new_grids[lev]);
 	    MakeNewLevel(lev, time, new_grids[lev], new_dmap);
 	}
     }
