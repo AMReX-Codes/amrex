@@ -18,21 +18,13 @@ FluxRegister::FluxRegister ()
     ratio.scale(-1);
 }
 
-FluxRegister::FluxRegister (const BoxArray& fine_boxes, 
-                            const IntVect&  ref_ratio,
-                            int             fine_lev,
-                            int             nvar)
-{
-    define(fine_boxes,ref_ratio,fine_lev,nvar);
-}
-
 FluxRegister::FluxRegister (const BoxArray&            fine_boxes, 
+                            const DistributionMapping& dm,
                             const IntVect&             ref_ratio,
                             int                        fine_lev,
-                            int                        nvar,
-                            const DistributionMapping& dm)
+                            int                        nvar)
 {
-    define(fine_boxes,ref_ratio,fine_lev,nvar,dm);
+    define(fine_boxes,dm,ref_ratio,fine_lev,nvar);
 }
 
 const IntVect&
@@ -66,41 +58,11 @@ FluxRegister::coarsenedBoxes () const
 }
 
 void
-FluxRegister::define (const BoxArray& fine_boxes, 
-                      const IntVect&  ref_ratio,
-                      int             fine_lev,
-                      int             nvar)
-{
-    BL_ASSERT(fine_boxes.isDisjoint());
-    BL_ASSERT(grids.size() == 0);
-
-    ratio      = ref_ratio;
-    fine_level = fine_lev;
-    ncomp      = nvar;
-
-    grids = fine_boxes;
-    grids.coarsen(ratio);
-
-    for (int dir = 0; dir < BL_SPACEDIM; dir++)
-    {
-        const Orientation lo_face(dir,Orientation::low);
-        const Orientation hi_face(dir,Orientation::high);
-
-        IndexType typ(IndexType::TheCellType());
-
-        typ.setType(dir,IndexType::NODE);
-
-        BndryRegister::define(lo_face,typ,0,1,0,nvar);
-        BndryRegister::define(hi_face,typ,0,1,0,nvar);
-    }
-}
-
-void
 FluxRegister::define (const BoxArray&            fine_boxes, 
+                      const DistributionMapping& dm,
                       const IntVect&             ref_ratio,
                       int                        fine_lev,
-                      int                        nvar,
-                      const DistributionMapping& dm)
+                      int                        nvar)
 {
     BL_ASSERT(fine_boxes.isDisjoint());
     BL_ASSERT(grids.size() == 0);
@@ -168,7 +130,7 @@ FluxRegister::CrseInit (const MultiFab& mflx,
     const Orientation face_lo(dir,Orientation::low);
     const Orientation face_hi(dir,Orientation::high);
  
-    MultiFab mf(mflx.boxArray(),numcomp,0);
+    MultiFab mf(mflx.boxArray(),mflx.DistributionMap(),numcomp,0);
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -195,7 +157,7 @@ FluxRegister::CrseInit (const MultiFab& mflx,
         }
         else
         {
-            FabSet fs(bndry[face].boxArray(),numcomp);
+            FabSet fs(bndry[face].boxArray(),bndry[face].DistributionMap(),numcomp);
 
             fs.setVal(0);
 
@@ -222,7 +184,7 @@ FluxRegister::CrseInit (const MultiFab& mflx,
     BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= mflx.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= ncomp);
 
-    MultiFab area(mflx.boxArray(), 1, mflx.nGrow());
+    MultiFab area(mflx.boxArray(), mflx.DistributionMap(), 1, mflx.nGrow());
 
     area.setVal(1, 0, 1, area.nGrow());
 
@@ -375,7 +337,9 @@ FluxRegister::Reflux (MultiFab&       mf,
 	int idir = face.coordDir();
 	int islo = face.isLow();
 
-	MultiFab flux(mf.boxArray(), ncomp, 0, Fab_allocate, IntVect::TheDimensionVector(idir));
+	MFInfo info;
+	info.SetNodal(IntVect::TheDimensionVector(idir));
+	MultiFab flux(mf.boxArray(), mf.DistributionMap(), ncomp, 0, info);
 	flux.setVal(0.0);
 
 	bndry[face].copyTo(flux, 0, scomp, 0, ncomp, geom.periodicity());
@@ -416,7 +380,7 @@ FluxRegister::Reflux (MultiFab&       mf,
 {
     const Real* dx = geom.CellSize();
     
-    MultiFab volume(mf.boxArray(), 1, mf.nGrow());
+    MultiFab volume(mf.boxArray(), mf.DistributionMap(), 1, mf.nGrow());
     
     volume.setVal(D_TERM(dx[0],*dx[1],*dx[2]), 0, 1, mf.nGrow());
 

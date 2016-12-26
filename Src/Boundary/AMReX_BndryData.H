@@ -61,9 +61,9 @@ public:
     // domain (cell-centered)
     //
     BndryData (const BoxArray& grids,
+	       const DistributionMapping& dmap,
                int             ncomp,
-               const Geometry& geom,
-	       ParallelDescriptor::Color color = ParallelDescriptor::DefaultColor());
+               const Geometry& geom);
     //
     // destructor
     //
@@ -80,9 +80,9 @@ public:
     // alocate bndry fabs along given face
     //
     void define (const BoxArray& grids,
+		 const DistributionMapping& dmap,
                  int             ncomp,
-                 const Geometry& geom,
-		 ParallelDescriptor::Color color = ParallelDescriptor::DefaultColor());
+                 const Geometry& geom);
     //
     const MultiMask& bndryMasks (Orientation face) const { return *masks[face]; }
     //
@@ -142,17 +142,6 @@ public:
     // implement public access to BndryRegister::operator[]
     //
     FabSet& operator[] (Orientation face) { return BndryRegister::bndry[face]; }
-#if 0
-//xxxxx
-    //
-    // write the boundary data object to an ostream
-    //
-    void writeOn (std::ostream& os) const;
-    //
-    // read the boundary data object from an istream
-    //
-    void readFrom (std::istream& is);
-#endif
 
 protected:
     //

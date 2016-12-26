@@ -391,7 +391,7 @@ AmrCore::MakeNewGrids (int lbase, Real time, int& new_finest, Array<BoxArray>& n
                 ++ngrow;
             }
         }
-        TagBoxArray tags(grids[levc],n_error_buf[levc]+ngrow);
+        TagBoxArray tags(grids[levc],dmap[levc],n_error_buf[levc]+ngrow);
     
         //
         // Only use error estimation to tag cells for the creation of new grids

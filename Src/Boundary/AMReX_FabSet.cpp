@@ -14,21 +14,15 @@ FabSet::FabSet () {}
 
 FabSet::~FabSet () {}
 
-FabSet::FabSet (const BoxArray& grids, int ncomp, ParallelDescriptor::Color color)
+FabSet::FabSet (const BoxArray& grids, const DistributionMapping& dmap, int ncomp)
     :
-    m_mf(grids,ncomp,0,color)
+    m_mf(grids,dmap,ncomp,0)
 {}
 
 void
-FabSet::define (const BoxArray& grids, int ncomp, ParallelDescriptor::Color color)
+FabSet::define (const BoxArray& grids, const DistributionMapping& dm, int ncomp)
 {
-    m_mf.define(grids, ncomp, 0, Fab_allocate, IntVect::TheZeroVector(), color);
-}
-
-void
-FabSet::define (const BoxArray& grids, int ncomp, const DistributionMapping& dm)
-{
-    m_mf.define(grids, ncomp, 0, dm, Fab_allocate);
+    m_mf.define(grids, dm, ncomp, 0);
 }
 
 FabSet&
@@ -153,8 +147,8 @@ FabSet::linComb (Real a, const MultiFab& mfa, int a_comp,
     BL_ASSERT(mfa.boxArray() == mfb.boxArray());
     BL_ASSERT(boxArray() != mfa.boxArray());
 
-    MultiFab bdrya(boxArray(),ncomp,0,DistributionMap());
-    MultiFab bdryb(boxArray(),ncomp,0,DistributionMap());
+    MultiFab bdrya(boxArray(),DistributionMap(),ncomp,0);
+    MultiFab bdryb(boxArray(),DistributionMap(),ncomp,0);
 
     bdrya.copy(mfa,a_comp,0,ncomp,ngrow,0);
     bdryb.copy(mfb,b_comp,0,ncomp,ngrow,0);

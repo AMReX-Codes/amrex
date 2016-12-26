@@ -406,9 +406,10 @@ TagBox::tags_and_untags (const Array<int>& ar, const Box&tilebx)
 }
 
 TagBoxArray::TagBoxArray (const BoxArray& ba,
+			  const DistributionMapping& dm,
                           int             _ngrow)
     :
-    FabArray<TagBox>(ba,1,_ngrow)
+    FabArray<TagBox>(ba,dm,1,_ngrow)
 {
     if (SharedMemory()) setVal(TagBox::CLEAR);
 }
@@ -447,7 +448,7 @@ TagBoxArray::mapPeriodic (const Geometry& geom)
     // So we can assume that n_grow is 0.
     BL_ASSERT(n_grow == 0);
 
-    TagBoxArray tmp(boxArray()); // note that tmp is filled w/ CLEAR.
+    TagBoxArray tmp(boxArray(),DistributionMap()); // note that tmp is filled w/ CLEAR.
 
     tmp.copy(*this, geom.periodicity(), FabArrayBase::ADD);
 
