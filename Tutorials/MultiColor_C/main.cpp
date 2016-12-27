@@ -192,6 +192,7 @@ void set_boundary(BndryData& bd, const MultiFab& rhs, int comp)
 void solve(MultiFab& soln, const MultiFab& rhs, 
 	   const MultiFab& alpha, const Array<MultiFab*>& beta, const Geometry& geom)
 {
+    int nprocs  = ParallelDescriptor::NProcs();
     int ncolors = ParallelDescriptor::NColors();
     int cncomp = ncomp / ncolors;
     BL_ASSERT(cncomp*ncolors == ncomp);
@@ -206,13 +207,15 @@ void solve(MultiFab& soln, const MultiFab& rhs,
     for (int i = 0; i < ncolors; ++i) {
 	ParallelDescriptor::Color color = ParallelDescriptor::Color(i);
 
+	DistributionMapping dm {ba, nprocs, color};
+
 	// Build colored MFs.
-	csoln[i].reset(new MultiFab(ba, cncomp, 0, color));
-	crhs[i].reset(new MultiFab(ba, cncomp, 0, color));
-	calpha[i].reset(new MultiFab(ba, cncomp, 0, color));
+	csoln [i].reset(new MultiFab(ba, dm, cncomp, 0));
+	crhs  [i].reset(new MultiFab(ba, dm, cncomp, 0));
+	calpha[i].reset(new MultiFab(ba, dm, cncomp, 0));
 	cbeta[i].resize(BL_SPACEDIM);
 	for (int j = 0; j < BL_SPACEDIM; ++j) {
-	    cbeta[i][j].reset(new MultiFab(beta[j]->boxArray(), cncomp, 0, color));
+	    cbeta[i][j].reset(new MultiFab(beta[j]->boxArray(), dm, cncomp, 0));
 	}
 
 	// Parallel copy data into colored MFs.
@@ -247,12 +250,12 @@ void colored_solve(MultiFab& soln, const MultiFab& rhs,
     else
     {	    
 	for (int i = 0; i < soln.nComp(); ++i) {
-	    MultiFab ssoln(ba, 1, 1, dm);
-	    MultiFab srhs(ba, 1, 0, dm);
-	    MultiFab salpha(ba, 1, 0, dm);
+	    MultiFab ssoln (ba, dm, 1, 1);
+	    MultiFab srhs  (ba, dm, 1, 0);
+	    MultiFab salpha(ba, dm, 1, 0);
 	    Array<std::unique_ptr<MultiFab> > sbeta(BL_SPACEDIM);
 	    for (int j = 0; j < BL_SPACEDIM; ++j) {
-		sbeta[j].reset(new MultiFab(beta[j]->boxArray(), 1, 0, dm));
+		sbeta[j].reset(new MultiFab(beta[j]->boxArray(), dm, 1, 0));
 	    }
 	    
 	    MultiFab::Copy(ssoln , soln , i, 0, 1, 0);
@@ -274,11 +277,11 @@ void single_component_solve(MultiFab& soln, const MultiFab& rhs,
 			    const MultiFab& alpha, const Array<MultiFab*>& beta, 
 			    const Geometry& geom)
 {
-    const ParallelDescriptor::Color color = soln.color();
     const BoxArray& ba = soln.boxArray();
+    const DistributionMapping& dm = soln.DistributionMap();
     const Real* dx = geom.CellSize();
 
-    BndryData bd(ba, 1, geom, color);
+    BndryData bd(ba, dm, 1, geom);
     set_boundary(bd, rhs, 0);
 
     ABecLaplacian abec_operator(bd, dx);
