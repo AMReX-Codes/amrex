@@ -219,12 +219,14 @@ MCMultiGrid::prepareForLevel (int level)
     Lp.prepareForLevel(level);
     if (cor[level] == 0)
     {
-	res[level] = new MultiFab(Lp.boxArray(level),numcomps,1);
-	rhs[level] = new MultiFab(Lp.boxArray(level),numcomps,1);
-	cor[level] = new MultiFab(Lp.boxArray(level),numcomps,1);
+	const BoxArray& ba = Lp.boxArray(level);
+	const DistributionMapping& dm = Lp.DistributionMap();
+	res[level] = new MultiFab(ba,dm,numcomps,1);
+	rhs[level] = new MultiFab(ba,dm,numcomps,1);
+	cor[level] = new MultiFab(ba,dm,numcomps,1);
 	if (level == 0)
         {
-	    initialsolution = new MultiFab(Lp.boxArray(0), numcomps, 1);
+	    initialsolution = new MultiFab(ba, dm, numcomps, 1);
 	    
 	}
     }
