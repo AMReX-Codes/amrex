@@ -60,6 +60,8 @@ void solve_with_F90(const Array<MultiFab*>& soln, Real a, Real b,
   Array< Array<std::unique_ptr<MultiFab> > > bcoeffs(nlevel);
   for (int ilev=0; ilev<nlevel; ilev++ ) {
 
+    const DistributionMapping& dm = soln[ilev]->DistributionMap();
+
     bcoeffs[ilev].resize(BL_SPACEDIM);
 
     for (int n = 0; n < BL_SPACEDIM ; n++) 
@@ -67,7 +69,7 @@ void solve_with_F90(const Array<MultiFab*>& soln, Real a, Real b,
       BoxArray edge_boxes(grids[ilev]);
       edge_boxes.surroundingNodes(n);
       
-      bcoeffs[ilev][n].reset(new MultiFab(edge_boxes,1,0,Fab_allocate));
+      bcoeffs[ilev][n].reset(new MultiFab(edge_boxes,dm,1,0));
     }
 
     amrex::average_cellcenter_to_face(amrex::GetArrOfPtrs(bcoeffs[ilev]),

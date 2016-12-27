@@ -132,7 +132,9 @@ main (int argc, char** argv)
         ba.set(i,amrex::grow(ba[i-1],2));
     }
 
-    MultiFab mf(ba, 2, 1);
+    DistributionMapping dm{ba};
+
+    MultiFab mf(ba, dm, 2, 1);
 
     for (MFIter mfi(mf); mfi.isValid(); ++mfi)
     {
