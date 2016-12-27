@@ -30,9 +30,12 @@ solve_for_accel(const Array<MultiFab*>& rhs,
 
     for (int lev = base_level; lev <= finest_level ; lev++)
     {
+	const DistributionMapping& dmap = rhs[lev]->DistributionMap();
         grad_phi_edge[lev].resize(BL_SPACEDIM);
         for (int n = 0; n < BL_SPACEDIM; ++n)
-            grad_phi_edge[lev][n].reset(new MultiFab(BoxArray(rhs[lev]->boxArray()).surroundingNodes(n), 1, 1));
+            grad_phi_edge[lev][n].reset(new MultiFab(BoxArray(rhs[lev]->boxArray()).surroundingNodes(n), 
+						     dmap,
+						     1, 1));
     }
 
     // ***************************************************
