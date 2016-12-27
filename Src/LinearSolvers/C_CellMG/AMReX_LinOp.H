@@ -167,6 +167,8 @@ public:
     //
     ParallelDescriptor::Color color () const { return bgb->color(); }
     //
+    const DistributionMapping& DistributionMap () const { return bgb->DistributionMap(); }
+    //
     // Set the boundary data object.
     //
     void bndryData (const BndryData& bd);
