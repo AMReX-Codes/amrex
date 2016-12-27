@@ -37,23 +37,12 @@ public:
     //
     // Constructs a iMultiFab with a valid region defined by bxs and
     // a region of definition defined by the grow factor ngrow.
-    // If mem_mode is defined to be Fab_allocate then IArrayBoxes are
-    // allocated for each Box in the BoxArray.  The size of the
-    // IArrayBox is given by the Box grown by ngrow and the number of
-    // components is given by ncomp.  If mem_mode is defined to be
-    // Fab_noallocate then no IArrayBoxes are allocated at this time
-    // but can be defined later.
     //
-    iMultiFab (const BoxArray& bs,
-              int             ncomp,
-              int             ngrow,
-              FabAlloc        mem_mode = Fab_allocate);
-
     iMultiFab (const BoxArray&            bs,
-              int                        ncomp,
-              int                        ngrow,
-              const DistributionMapping& dm,
-              FabAlloc                   mem_mode = Fab_allocate);
+	       const DistributionMapping& dm,
+	       int                        ncomp,
+	       int                        ngrow,
+	       const MFInfo&              info = MFInfo());
 
     void operator= (const int& r);
     //
@@ -327,16 +316,11 @@ public:
 			int             numcomp,
 			int             nghost);
 
-    void define (const BoxArray& bxs,
-                 int             nvar,
-                 int             ngrow,
-                 FabAlloc        mem_mode);
-
-    void define (const BoxArray&            bxs,
-                 int                        nvar,
-                 int                        ngrow,
-		 const DistributionMapping& dm,
-                 FabAlloc                   mem_mode);
+    virtual void define (const BoxArray&            bxs,
+			 const DistributionMapping& dm,
+			 int                        nvar,
+			 int                        ngrow,
+			 const MFInfo&              info = MFInfo()) override;
 
     const IArrayBox& operator[] (int K) const;
 

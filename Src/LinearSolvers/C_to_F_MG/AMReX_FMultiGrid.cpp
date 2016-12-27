@@ -326,7 +326,8 @@ FMultiGrid::Boundary::set_bndry_values (MacBndry& bndry, IntVect crse_ratio)
 	BoxArray crse_boxes(phi->boxArray());
 	crse_boxes.coarsen(crse_ratio);
 
-	BndryRegister crse_br(crse_boxes, in_rad, out_rad, extent_rad, ncomp);
+	BndryRegister crse_br(crse_boxes, phi->DistributionMap(),
+			      in_rad, out_rad, extent_rad, ncomp);
 	crse_br.copyFrom(*crse_phi, crse_phi->nGrow(), 0, 0, ncomp);
 
 	bndry.setBndryValues(crse_br, 0, *phi, 0, 0, ncomp, crse_ratio, phys_bc);
@@ -452,7 +453,7 @@ FMultiGrid::init_mgt_solver (const Array<MultiFab*>& phi)
     if (m_maxorder > 0) m_mgt_solver->set_maxorder(m_maxorder);
 
     if (m_bndry == nullptr) {
-	RAII_bndry.reset(new MacBndry (ba[0], ncomp, m_geom[0]));
+	RAII_bndry.reset(new MacBndry (ba[0], dmap[0], ncomp, m_geom[0]));
 	m_bndry = RAII_bndry.get();
 
 	m_bc.set_bndry_values(*m_bndry, m_crse_ratio);

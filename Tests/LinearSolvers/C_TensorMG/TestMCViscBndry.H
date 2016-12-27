@@ -9,11 +9,13 @@ class MCViscBndry : public amrex::MCInterpBndryData
 public:
     MCViscBndry() : amrex::MCInterpBndryData()  {}
 
-    MCViscBndry(const amrex::BoxArray& _grids, const amrex::Geometry& geom) :
+    MCViscBndry(const amrex::BoxArray& _grids, 
+		const amrex::DistributionMapping& _dmap,
+		const amrex::Geometry& geom) :
 #if BL_SPACEDIM == 2
-        amrex::MCInterpBndryData(_grids,4,geom) {};
+        amrex::MCInterpBndryData(_grids,_dmap,4,geom) {};
 #elif BL_SPACEDIM == 3
-        amrex::MCInterpBndryData(_grids,3*(1+3),geom) {};
+        amrex::MCInterpBndryData(_grids,_dmap,3*(1+3),geom) {};
 #endif
 
     virtual void setBndryConds (const amrex::BCRec& phys_bc,

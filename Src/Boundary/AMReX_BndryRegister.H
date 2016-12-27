@@ -73,11 +73,11 @@ public:
     // The constructor, given number of cells in/out, extent and number of components (assumes cell-centered boxes, and allocates cell-centered FABs)
     //
     BndryRegister (const BoxArray& grids,
+		   const DistributionMapping& dmap,
                    int             in_rad,
                    int             out_rad,
                    int             extent_rad,
-                   int             ncomp,
-		   ParallelDescriptor::Color color = ParallelDescriptor::DefaultColor());
+                   int             ncomp);
     //
     // The copy constructor.
     //
@@ -156,20 +156,10 @@ public:
     //
     const DistributionMapping& DistributionMap () const { return bndry[0].DistributionMap(); }
     //
-    // Build FABs along given face.
-    //
-    void define (Orientation face,
-                 IndexType   typ,
-                 int         in_rad,
-                 int         out_rad,
-                 int         extent_rad,
-                 int         ncomp,
-		 ParallelDescriptor::Color color = ParallelDescriptor::DefaultColor());
-    //
     // Build FABs along given face, specifying the DistributionMapping.
     //
-    void define (Orientation               face,
-                 IndexType                 typ,
+    void define (Orientation                face,
+                 IndexType                  typ,
                  int                        in_rad,
                  int                        out_rad,
                  int                        extent_rad,

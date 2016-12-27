@@ -234,6 +234,8 @@ public:
     const BoxArray& getEdgeBoxArray (int dir) const;
     const BoxArray& getNodalBoxArray () const;
     //
+    const DistributionMapping& DistributionMap() const { return dmap; }
+    //
     // Number of grids at this level.
     //
     int numGrids () const { return grids.size(); }
@@ -440,12 +442,6 @@ protected:
               int             lev,
               const Geometry& level_geom,
               const BoxArray& bl,
-              Real            time);
-
-    AmrLevel (Amr&            papa,
-              int             lev,
-              const Geometry& level_geom,
-              const BoxArray& bl,
 	      const DistributionMapping& dm,
               Real            time);
     //
@@ -459,6 +455,7 @@ protected:
     int                   level;        // AMR level (0 is coarsest).
     Geometry              geom;         // Geom at this level.
     BoxArray              grids;        // Cell-centered locations of grids.
+    DistributionMapping   dmap;         // Distribution of grids among processes
     Amr*                  parent;       // Pointer to parent AMR structure.
     IntVect               crse_ratio;   // Refinement ratio to coarser level.
     IntVect               fine_ratio;   // Refinement ratio to finer level.

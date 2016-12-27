@@ -38,11 +38,12 @@ StateData::StateData ()
 
 StateData::StateData (const Box&             p_domain,
                       const BoxArray&        grds,
+		      const DistributionMapping& dm,
                       const StateDescriptor* d,
                       Real                   cur_time,
                       Real                   dt)
 {
-    define(p_domain, grds, *d, cur_time, dt);
+    define(p_domain, grds, dm, *d, cur_time, dt);
 }
 
 void
@@ -51,8 +52,8 @@ StateData::Initialize (StateData& dest, const StateData& src)
 
     // Define the object with the same properties as src.
 
-    dest.define(src.getDomain(), src.boxArray(), *(src.descriptor()),
-                src.curTime(), src.curTime() - src.prevTime());
+    dest.define(src.getDomain(), src.boxArray(), src.DistributionMap(),
+		*(src.descriptor()), src.curTime(), src.curTime() - src.prevTime());
 
     // Now, for both the new data and the old data if it's there,
     // generate a new MultiFab for the dest and remove the previous data.
@@ -70,46 +71,6 @@ StateData::Initialize (StateData& dest, const StateData& src)
 void
 StateData::define (const Box&             p_domain,
                    const BoxArray&        grds,
-                   const StateDescriptor& d,
-                   Real                   time,
-                   Real                   dt)
-{
-    BL_PROFILE("StateData::define()");
-    domain = p_domain;
-    desc = &d;
-    grids = grds;
-    //
-    // Convert to proper type.
-    //
-    IndexType typ(desc->getType());
-    StateDescriptor::TimeCenter t_typ(desc->timeType());
-    if (!typ.cellCentered())
-    {
-        domain.convert(typ);
-        grids.convert(typ);
-    }
-    if (t_typ == StateDescriptor::Point)
-    {
-        new_time.start = new_time.stop = time;
-        old_time.start = old_time.stop = time - dt;
-    }
-    else
-    {
-        new_time.start = time;
-        new_time.stop  = time+dt;
-        old_time.start = time-dt;
-        old_time.stop  = time;
-    }
-    int ncomp = desc->nComp();
-
-    new_data = new MultiFab(grids,ncomp,desc->nExtra(),Fab_allocate);
-
-    old_data = 0;
-}
-
-void
-StateData::define (const Box&             p_domain,
-                   const BoxArray&        grds,
 		   const DistributionMapping& dm,
                    const StateDescriptor& d,
                    Real                   time,
@@ -119,6 +80,7 @@ StateData::define (const Box&             p_domain,
     domain = p_domain;
     desc = &d;
     grids = grds;
+    dmap = dm;
     //
     // Convert to proper type.
     //
@@ -143,7 +105,7 @@ StateData::define (const Box&             p_domain,
     }
     int ncomp = desc->nComp();
 
-    new_data = new MultiFab(grids,ncomp,desc->nExtra(),dm,Fab_allocate);
+    new_data = new MultiFab(grids,dmap,ncomp,desc->nExtra());
 
     old_data = 0;
 }
@@ -224,27 +186,16 @@ StateData::reset ()
 
 void
 StateData::restart (std::istream&          is,
-                    const StateDescriptor& d,
-                    const std::string&     chkfile)
-{
-    BL_PROFILE("StateData::restart()");
-
-    desc = &d;
-    is >> domain;
-    grids.readFrom(is);
-    restartDoit(is, chkfile);
-}
-
-void
-StateData::restart (std::istream&          is,
 		    const Box&             p_domain,
 		    const BoxArray&        grds,
+		    const DistributionMapping& dm,
                     const StateDescriptor& d,
                     const std::string&     chkfile)
 {
     desc = &d;
     domain = p_domain;
     grids = grds;
+    dmap = dm;
 
     // Convert to proper type.
     IndexType typ(desc->getType());
@@ -278,8 +229,8 @@ StateData::restartDoit (std::istream& is, const std::string& chkfile)
     int nsets;
     is >> nsets;
 
-    old_data = (nsets == 2) ? new MultiFab(grids,desc->nComp(),desc->nExtra(),Fab_allocate) : 0;
-    new_data =                new MultiFab(grids,desc->nComp(),desc->nExtra(),Fab_allocate);
+    old_data = (nsets == 2) ? new MultiFab(grids,dmap,desc->nComp(),desc->nExtra()) : 0;
+    new_data =                new MultiFab(grids,dmap,desc->nComp(),desc->nExtra());
     //
     // If no data is written then we just allocate the MF instead of reading it in. 
     // This assumes that the application will do something with it.
@@ -302,7 +253,6 @@ StateData::restartDoit (std::istream& is, const std::string& chkfile)
         amrex::Abort("**** Error in StateData::restart:  invalid nsets.");
       }
 
-      MultiFab data_in;
       is >> mf_name;
       //
       // Note that mf_name is relative to the Header file.
@@ -324,13 +274,8 @@ StateData::restartDoit (std::istream& is, const std::string& chkfile)
 	  faHeader = fahmIter->second.dataPtr();
 	}
       }
-      VisMF::Read(data_in, FullPathName, faHeader);
-      
-      BL_ASSERT(amrex::match(grids, data_in.boxArray()));
-      BL_ASSERT(whichMF->nComp() == data_in.nComp());
-      BL_ASSERT(whichMF->nGrow() == data_in.nGrow());
-      
-      MultiFab::Copy(*whichMF, data_in, 0, 0, whichMF->nComp(), whichMF->nGrow());
+
+      VisMF::Read(*whichMF, FullPathName, faHeader);
     }
 }
 
@@ -346,7 +291,7 @@ StateData::restart (const StateDescriptor& d,
     new_time.start = rhs.new_time.start;
     new_time.stop  = rhs.new_time.stop;
     old_data = 0;
-    new_data = new MultiFab(grids,desc->nComp(),desc->nExtra(),Fab_allocate);
+    new_data = new MultiFab(grids,dmap,desc->nComp(),desc->nExtra());
     new_data->setVal(0.);
 }
 
@@ -362,7 +307,7 @@ StateData::allocOldData ()
 {
     if (old_data == 0)
     {
-        old_data = new MultiFab(grids,desc->nComp(),desc->nExtra());
+        old_data = new MultiFab(grids,dmap,desc->nComp(),desc->nExtra());
     }
 }
 

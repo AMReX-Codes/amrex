@@ -51,6 +51,7 @@ public:
     // Constructor for given BoxArray, etc.
     //
     MCInterpBndryData (const BoxArray& _grids,
+		       const DistributionMapping& _dmap,
 		       int             _ncomp,
 		       const Geometry& geom);
     //

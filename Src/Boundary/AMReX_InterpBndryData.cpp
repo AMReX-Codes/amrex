@@ -85,11 +85,11 @@ InterpBndryData::operator= (const InterpBndryData& rhs)
 }
 
 InterpBndryData::InterpBndryData (const BoxArray& _grids,
+				  const DistributionMapping& _dmap,
                                   int             _ncomp,
-                                  const Geometry& geom,
-				  ParallelDescriptor::Color color)
+                                  const Geometry& geom)
     :
-    BndryData(_grids,_ncomp,geom,color)
+    BndryData(_grids,_dmap,_ncomp,geom)
 {}
 
 InterpBndryData::~InterpBndryData () {}

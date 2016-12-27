@@ -138,11 +138,13 @@ void main_main ()
   // time = starting time in the simulation
   Real time = 0.0;
   
+  DistributionMapping dm(ba);
+
   // we allocate two phi multifabs; one will store the old state, the other the new
   // we swap the indices each time step to avoid copies of new into old
   Array<std::unique_ptr<MultiFab> > phi(2);
-  phi[0].reset(new MultiFab(ba, Ncomp, Nghost));
-  phi[1].reset(new MultiFab(ba, Ncomp, Nghost));
+  phi[0].reset(new MultiFab(ba, dm, Ncomp, Nghost));
+  phi[1].reset(new MultiFab(ba, dm, Ncomp, Nghost));
 
   // Initialize both to zero (just because)
   phi[0]->setVal(0.0);
@@ -178,7 +180,7 @@ void main_main ()
     // flux(dir) has one component, zero ghost cells, and is nodal in direction dir
     BoxArray edge_ba = ba;
     edge_ba.surroundingNodes(dir);
-    flux[dir].reset(new MultiFab(edge_ba, 1, 0));
+    flux[dir].reset(new MultiFab(edge_ba, dm, 1, 0));
   }
 
   int old_index = init_index;

@@ -13,7 +13,7 @@ SMC::writePlotFile (int istep)
 {
     const std::string& dir = amrex::Concatenate("plt",istep,5);
 
-    MultiFab mf(U.boxArray(), nplot, 0);
+    MultiFab mf(U.boxArray(), U.DistributionMap(), nplot, 0);
 #ifdef _OPENMP
 #pragma omp parallel
 #endif

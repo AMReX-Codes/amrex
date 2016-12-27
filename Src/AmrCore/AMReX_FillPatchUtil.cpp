@@ -61,8 +61,8 @@ namespace amrex
 		destcomp = dcomp;
 		sameba = true;
 	    } else {
-		raii.define(smf[0]->boxArray(), ncomp, 0,
-			    smf[0]->DistributionMap(), Fab_allocate);
+		raii.define(smf[0]->boxArray(), smf[0]->DistributionMap(), ncomp, 0);
+			    
 		dmf = &raii;
 		destcomp = 0;
 		sameba = false;
@@ -138,7 +138,7 @@ namespace amrex
 
 	    if ( ! fpc.ba_crse_patch.empty())
 	    {
-		MultiFab mf_crse_patch(fpc.ba_crse_patch, ncomp, 0, fpc.dm_crse_patch);
+		MultiFab mf_crse_patch(fpc.ba_crse_patch, fpc.dm_crse_patch, ncomp, 0);
 		
 		FillPatchSingleLevel(mf_crse_patch, time, cmf, ct, scomp, 0, ncomp, cgeom, cbc);
 		
@@ -210,7 +210,7 @@ namespace amrex
 	    }
 	}
 
-	MultiFab mf_crse_patch(ba_crse_patch, ncomp, 0, dm);
+	MultiFab mf_crse_patch(ba_crse_patch, dm, ncomp, 0);
 
 	mf_crse_patch.copy(cmf, scomp, 0, ncomp, cgeom.periodicity());
 

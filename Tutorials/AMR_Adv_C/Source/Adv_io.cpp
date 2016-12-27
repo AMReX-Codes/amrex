@@ -12,7 +12,7 @@ Adv::restart (Amr&          papa,
 
     BL_ASSERT(flux_reg == 0);
     if (level > 0 && do_reflux)
-        flux_reg = new FluxRegister(grids,crse_ratio,level,NUM_STATE);
+        flux_reg = new FluxRegister(grids,dmap,crse_ratio,level,NUM_STATE);
 }
 
 std::string
@@ -149,7 +149,7 @@ Adv::writePlotFile (const std::string& dir,
     // NOTE: In this tutorial code, there is no derived data
     int       cnt   = 0;
     const int nGrow = 0;
-    MultiFab  plotMF(grids,n_data_items,nGrow);
+    MultiFab  plotMF(grids,dmap,n_data_items,nGrow);
     MultiFab* this_dat = 0;
     //
     // Cull data from state variables -- use no ghost cells.

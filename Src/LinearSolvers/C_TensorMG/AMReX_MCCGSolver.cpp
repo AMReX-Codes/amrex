@@ -136,11 +136,14 @@ MCCGSolver::solve (MultiFab&       sol,
 
     int nghost = 1, ncomp  = sol.nComp();
 
-    MultiFab s(sol.boxArray(), ncomp, nghost);
-    MultiFab r(sol.boxArray(), ncomp, nghost);
-    MultiFab z(sol.boxArray(), ncomp, nghost);
-    MultiFab w(sol.boxArray(), ncomp, nghost);
-    MultiFab p(sol.boxArray(), ncomp, nghost);
+    const BoxArray& ba = sol.boxArray();
+    const DistributionMapping& dm = sol.DistributionMap();
+
+    MultiFab s(ba, dm, ncomp, nghost);
+    MultiFab r(ba, dm, ncomp, nghost);
+    MultiFab z(ba, dm, ncomp, nghost);
+    MultiFab w(ba, dm, ncomp, nghost);
+    MultiFab p(ba, dm, ncomp, nghost);
     //
     // Copy initial guess into a temp multifab guaranteed to have ghost cells.
     //
