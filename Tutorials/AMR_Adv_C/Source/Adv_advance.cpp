@@ -49,12 +49,12 @@ Adv::advance (Real time,
 	{
 	    BoxArray ba = S_new.boxArray();
 	    ba.surroundingNodes(j);
-	    fluxes[j].define(ba, NUM_STATE, 0, Fab_allocate);
+	    fluxes[j].define(ba, dmap, NUM_STATE, 0);
 	}
     }
 
     // State with ghost cells
-    MultiFab Sborder(grids, NUM_STATE, NUM_GROW);
+    MultiFab Sborder(grids, dmap, NUM_STATE, NUM_GROW);
     FillPatch(*this, Sborder, NUM_GROW, time, State_Type, 0, NUM_STATE);
 
 #ifdef _OPENMP

@@ -22,20 +22,13 @@ public:
     //
     FluxRegister();
     //
-    // The constructor. Note that this takes the fine BoxArray.
-    //
-    FluxRegister (const BoxArray& fine_boxes, 
-                  const IntVect&  ref_ratio,
-                  int             fine_lev,
-                  int             nvar);
-    //
     // The constructor. This version allows setting the DistributionMapping.
     //
     FluxRegister (const BoxArray&            fine_boxes, 
+                  const DistributionMapping& dm,
                   const IntVect&             ref_ratio,
                   int                        fine_lev,
-                  int                        nvar,
-                  const DistributionMapping& dm);
+                  int                        nvar);
     //
     // The destructor.
     //
@@ -46,21 +39,13 @@ public:
     enum FrOp {COPY = 0, ADD = 1};
     //
     // Initialize after using default constructor.
-    // Note that this takes the fine BoxArray.
-    //
-    void define (const BoxArray& fine_boxes, 
-                 const IntVect&  ref_ratio,
-                 int             fine_lev,
-                 int             nvar);
-    //
-    // Initialize after using default constructor.
     // This version allows setting the DistributionMapping.
     //
     void define (const BoxArray&            fine_boxes, 
+                 const DistributionMapping& dm,
                  const IntVect&             ref_ratio,
                  int                        fine_lev,
-                 int                        nvar,
-                 const DistributionMapping& dm);
+                 int                        nvar);
     //
     // Returns the refinement ratio.
     //

@@ -110,3 +110,55 @@ For header files, it is considered bad practice to have `using
 namespace amrex` because it pollutes the namespace.  So you need to
 manually add `amrex::` in front of AMReX names likes `MultiFab` and
 `BoxArray`.
+
+### Step 6
+
+AMReX `migration/5-namespace` branch should be used in this step. 
+
+In BoxLib, there is a `DistributionMapping` cache implemented with
+`std::map` with the number of `Box`es as the key.  Utilizing the
+cache, `MultiFab`s can be built with shared `DistributionMapping`
+without explicitly requiring a `DistributionMapping`.  In AMReX, the
+`DistributionMapping` cache is removed for more flexibility.  Because
+of the change, `DistributionMapping` is now a required argument to the
+non-default constructors of `MultiFab`, `FluxRegister`, `BndryData`,
+`AmrLevel`, `LevelBld`, and some other objects.  Many classes
+including `MultiFab`, `AmrLevel`, `AmrCore` have functions returning
+`DistributionMapping`.  One may also explicitly construct
+`DistributionMapping` from `BoxArray`.  For example,
+
+    DistributionMapping dm {a_BoxArray};
+
+It should be emphasized that the result of the code above does **not**
+solely depend on `BoxArray`.  Thus, different `DistributionMapping`s
+may be built when this is called multiple times with the same
+`BoxArray`.  If two `MultiFab`s need to share the same
+`DistributionMapping`, only one `DistributionMapping` should be built.
+
+For extensibility, `MultiFab` constructor now also takes an `MFInfo`
+object.  To construct `MultiFab` without allocating memory for the
+data,
+
+    MFInfo info;
+    info.SetAlloc(false);   // The default MFInfo is true.
+
+To build a `MultiFab` with nodal flags `IntVect nodal`,
+
+    MFInfo info;
+    info.SetNodal(nodal);  // The default MFInfo is cell-centered.
+
+`VisMF::Read` function used to only take an empty `MultiFab` built
+with the default constructor.  The function reads `BoxArray` from
+disk, builds the `MultiFab` with the `BoxArray` and a
+`DistributionMapping` possibly from the `DistributionMapping` cache if
+there is one cached for the same number of boxes, and then read the
+data from the disk into the `MultiFab`.  Because the cache is removed,
+the `VisMF::Read` function has been modified to also take a pre-built
+`MultiFab`.  In that case, it is an error if the `MultiFab`'s
+`BoxArray` does not match the `BoxArray` on the disk.  If an empty
+`MultiFab` is passed into `VisMF::Read`, a **new**
+`DistributionMapping` will be built, and this maybe not be desired
+behavior.  `VisMF::Read` function is rarely called directly by an
+application code.  But if it is, care must be taken to ensure that
+`MultiFab`s read from the disk are distributed correctly among
+processes.

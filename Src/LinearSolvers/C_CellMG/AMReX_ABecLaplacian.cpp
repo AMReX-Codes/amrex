@@ -21,7 +21,7 @@ ABecLaplacian::ABecLaplacian (const BndryData& _bd,
     alpha(alpha_def),
     beta(beta_def)
 {
-    initCoefficients(_bd.boxes());
+    initCoefficients(_bd.boxes(), _bd.DistributionMap());
 }
 
 ABecLaplacian::ABecLaplacian (const BndryData& _bd,
@@ -31,7 +31,7 @@ ABecLaplacian::ABecLaplacian (const BndryData& _bd,
     alpha(alpha_def),
     beta(beta_def)
 {
-    initCoefficients(_bd.boxes());
+    initCoefficients(_bd.boxes(), _bd.DistributionMap());
 }
 
 ABecLaplacian::ABecLaplacian (BndryData*  _bd,
@@ -41,7 +41,7 @@ ABecLaplacian::ABecLaplacian (BndryData*  _bd,
     alpha(alpha_def),
     beta(beta_def)
 {
-    initCoefficients(_bd->boxes());
+    initCoefficients(_bd->boxes(), _bd->DistributionMap());
 }
 
 ABecLaplacian::~ABecLaplacian ()
@@ -195,14 +195,13 @@ ABecLaplacian::prepareForLevel (int level)
 }
 
 void
-ABecLaplacian::initCoefficients (const BoxArray& _ba)
+ABecLaplacian::initCoefficients (const BoxArray& _ba, const DistributionMapping& _dm)
 {
     const int nComp=1;
     const int nGrow=0;
-    ParallelDescriptor::Color clr = color();
     acoefs.resize(1);
     bcoefs.resize(1);
-    acoefs[0] = new MultiFab(_ba, nComp, nGrow, clr);
+    acoefs[0] = new MultiFab(_ba, _dm, nComp, nGrow);
     acoefs[0]->setVal(a_def);
     a_valid.resize(1);
     a_valid[0] = true;
@@ -211,7 +210,7 @@ ABecLaplacian::initCoefficients (const BoxArray& _ba)
     {
         BoxArray edge_boxes(_ba);
         edge_boxes.surroundingNodes(i);
-        bcoefs[0][i] = new MultiFab(edge_boxes, nComp, nGrow, clr);
+        bcoefs[0][i] = new MultiFab(edge_boxes, _dm, nComp, nGrow);
         bcoefs[0][i]->setVal(b_def);
     }
     b_valid.resize(1);

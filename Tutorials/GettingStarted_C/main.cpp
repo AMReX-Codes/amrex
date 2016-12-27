@@ -60,8 +60,10 @@ void main_main ()
   // the "1" means only 1 MultiFab; you can declare more if needed
   Array <std::unique_ptr<MultiFab> > data(1);
 
+  DistributionMapping dm(ba);
+
   // build the "0th" MultiFab
-  data[0].reset(new MultiFab(ba, Ncomp, Nghost));
+  data[0].reset(new MultiFab(ba, dm, Ncomp, Nghost));
 
   // MFIter is a "MultiFab Iterator" that loops over 
   // the grids in the MultiFab

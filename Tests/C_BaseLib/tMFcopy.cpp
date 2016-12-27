@@ -69,14 +69,17 @@ main (int argc, char* argv[])
     //
     const int NComp = 1;
 
-    MultiFab fmf(fba, NComp, 0);
-    MultiFab cmf(cba, NComp, 0);
+    DistributionMapping fdm{fba};
+    DistributionMapping cdm{cba};
+
+    MultiFab fmf(fba, fdm, NComp, 0);
+    MultiFab cmf(cba, cdm, NComp, 0);
 
     fmf.setVal(1.23e45);
 
     cmf.copy(fmf);
 
-    if (cmf.DistributionMap()[0] == ParallelDescriptor::MyProc())
+    if (cdm[0] == ParallelDescriptor::MyProc())
         std::cout << cmf[0] << std::endl;
 
     amrex::Finalize();

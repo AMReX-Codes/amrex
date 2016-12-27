@@ -135,16 +135,15 @@ two_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int nppc, bool v
 
     for (int lev = 0; lev < nlevs; lev++)
     {
-	//                                    # component # ghost cells
-	rhs     [lev].reset(new MultiFab(ba[lev],1          ,0));
-	phi     [lev].reset(new MultiFab(ba[lev],1          ,1));
-	grad_phi[lev].reset(new MultiFab(ba[lev],BL_SPACEDIM,1));
+	dmap[lev] = DistributionMapping{ba[lev]};
+	//                                                 # component # ghost cells
+	rhs     [lev].reset(new MultiFab(ba[lev],dmap[lev],1          ,0));
+	phi     [lev].reset(new MultiFab(ba[lev],dmap[lev],1          ,1));
+	grad_phi[lev].reset(new MultiFab(ba[lev],dmap[lev],BL_SPACEDIM,1));
 
 	rhs     [lev]->setVal(0.0);
 	phi     [lev]->setVal(0.0);
 	grad_phi[lev]->setVal(0.0);
-
-	dmap[lev] = rhs[lev]->DistributionMap();
     }
 
     // Define a new particle container to hold my particles.

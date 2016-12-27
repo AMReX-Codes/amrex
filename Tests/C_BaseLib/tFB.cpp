@@ -48,6 +48,8 @@ main (int argc, char** argv)
     BoxArray ba(bx);
     ba.maxSize(64);
 
+    DistributionMapping dm{ba};
+
     const int N = 2000;  // This should be divisible by 4 !!!
 
     if (ParallelDescriptor::IOProcessor() && iS == 0) {
@@ -63,7 +65,7 @@ main (int argc, char** argv)
         //
         // A test of FillBoundary() on 1 grow cell with cross stencil.
         //
-        MultiFab mf(ba,1,1); mf.setVal(1.23);
+        MultiFab mf(ba,dm,1,1); mf.setVal(1.23);
 
         ParallelDescriptor::Barrier();
         double beg = ParallelDescriptor::second();
@@ -83,7 +85,7 @@ main (int argc, char** argv)
         //
         // A test of FillBoundary() on 1 grow cell with dense stencil.
         //
-        MultiFab mf(ba,1,1); mf.setVal(1.23);
+        MultiFab mf(ba,dm,1,1); mf.setVal(1.23);
 
         ParallelDescriptor::Barrier();
         double beg = ParallelDescriptor::second();
@@ -102,7 +104,7 @@ main (int argc, char** argv)
         //
         // First a test of FillBoundary() on 2 grow cells with dense stencil.
         //
-        MultiFab mf(ba,1,2); mf.setVal(1.23);
+        MultiFab mf(ba,dm,1,2); mf.setVal(1.23);
 
         ParallelDescriptor::Barrier();
         double beg = ParallelDescriptor::second();
@@ -121,7 +123,7 @@ main (int argc, char** argv)
         //
         // First a test of FillBoundary() on 4 grow cells with dense stencil.
         //
-        MultiFab mf(ba,1,4); mf.setVal(1.23);
+        MultiFab mf(ba,dm,1,4); mf.setVal(1.23);
 
         ParallelDescriptor::Barrier();
         double beg = ParallelDescriptor::second();

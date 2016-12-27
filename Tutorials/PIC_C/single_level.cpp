@@ -81,15 +81,14 @@ int single_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int nppc,
     Array<DistributionMapping> dmap(nlevs);
 
     int lev = 0;
-    rhs     [lev].reset(new MultiFab(ba[0],1          ,0));
-    phi     [lev].reset(new MultiFab(ba[0],1          ,1));
-    grad_phi[lev].reset(new MultiFab(ba[0],BL_SPACEDIM,1));
+    dmap[lev] = DistributionMapping{ba[lev]};
+    rhs     [lev].reset(new MultiFab(ba[lev],dmap[lev],1          ,0));
+    phi     [lev].reset(new MultiFab(ba[lev],dmap[lev],1          ,1));
+    grad_phi[lev].reset(new MultiFab(ba[lev],dmap[lev],BL_SPACEDIM,1));
 
     rhs     [lev]->setVal(0.0);
     phi     [lev]->setVal(0.0);
     grad_phi[lev]->setVal(0.0);
-
-    dmap[lev] = rhs[lev]->DistributionMap();
 
     // Define a new particle container to hold my particles.
     // This holds a charge as well as three velocity components, three acceleration components  and three position components.
@@ -147,7 +146,7 @@ int single_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int nppc,
     int finest_level = 0;
 
     Array<std::unique_ptr<MultiFab> > PartMF(1);
-    PartMF[0].reset(new MultiFab(ba[0],1,1));
+    PartMF[0].reset(new MultiFab(ba[0],dmap[0],1,1));
     PartMF[0]->setVal(0.0);
 
     strt_assd = ParallelDescriptor::second();

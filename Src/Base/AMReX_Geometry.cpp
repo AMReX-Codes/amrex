@@ -179,9 +179,10 @@ Geometry::Setup (const RealBox* rb, int coord, int* isper)
 void
 Geometry::GetVolume (MultiFab&       vol,
                      const BoxArray& grds,
+		     const DistributionMapping& dm,
                      int             ngrow) const
 {
-    vol.define(grds,1,ngrow,Fab_allocate);
+    vol.define(grds,dm,1,ngrow);
     GetVolume(vol);
 }
 
@@ -210,10 +211,11 @@ Geometry::GetVolume (FArrayBox&      vol,
 void
 Geometry::GetDLogA (MultiFab&       dloga,
                     const BoxArray& grds, 
+                    const DistributionMapping& dm,
                     int             dir,
                     int             ngrow) const
 {
-    dloga.define(grds,1,ngrow,Fab_allocate);
+    dloga.define(grds,dm,1,ngrow);
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -227,12 +229,13 @@ Geometry::GetDLogA (MultiFab&       dloga,
 void
 Geometry::GetFaceArea (MultiFab&       area,
                        const BoxArray& grds,
+		       const DistributionMapping& dm,
                        int             dir,
                        int             ngrow) const
 {
     BoxArray edge_boxes(grds);
     edge_boxes.surroundingNodes(dir);
-    area.define(edge_boxes,1,ngrow,Fab_allocate);
+    area.define(edge_boxes,dm,1,ngrow);
 
     GetFaceArea(area, dir);
 }

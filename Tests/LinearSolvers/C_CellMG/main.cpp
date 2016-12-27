@@ -249,8 +249,9 @@ main (int argc, char* argv[])
   //
   int Ncomp=1;
   int Nghost=1;
-  MultiFab soln(bs, Ncomp, Nghost, Fab_allocate); soln.setVal(0.0);
-  MultiFab  rhs(bs, Ncomp, Nghost, Fab_allocate);  rhs.setVal(0.0);
+  DistributionMapping dm{bs};
+  MultiFab soln(bs, dm, Ncomp, Nghost); soln.setVal(0.0);
+  MultiFab  rhs(bs, dm, Ncomp, Nghost);  rhs.setVal(0.0);
   for ( MFIter rhsmfi(rhs); rhsmfi.isValid(); ++rhsmfi )
   {
       IntVect ivmid = (rhs[rhsmfi].smallEnd() + rhs[rhsmfi].bigEnd())/2;
@@ -263,7 +264,7 @@ main (int argc, char* argv[])
   // Initialize boundary data, set boundary condition flags and locations:
   // (phys boundaries set to dirichlet on cell walls).
   //
-  BndryData bd(bs, 1, geom);
+  BndryData bd(bs, dm, 1, geom);
   int comp = 0;
   for ( int n=0; n<BL_SPACEDIM; ++n )
     {
@@ -409,13 +410,13 @@ main (int argc, char* argv[])
 #endif
         
       MultiFab  acoefs;
-      acoefs.define(bs, Ncomp, Nghost, Fab_allocate);
+      acoefs.define(bs, dm, Ncomp, Nghost);
       acoefs.setVal(a);
         
       MultiFab bcoefs[BL_SPACEDIM];
 
       if (use_variable_coef) {
-        MultiFab cc_coef(bs,1,1);
+	MultiFab cc_coef(bs,dm,1,1);
         for ( MFIter mfi(cc_coef); mfi.isValid(); ++mfi )
         {
           const int* clo = cc_coef[mfi].loVect();
@@ -430,7 +431,7 @@ main (int argc, char* argv[])
         for ( int n=0; n<BL_SPACEDIM; ++n )
         {
   	  BoxArray bsC(bs);
-	  bcoefs[n].define(bsC.surroundingNodes(n), Ncomp, Nghost, Fab_allocate);
+	  bcoefs[n].define(bsC.surroundingNodes(n), dm, Ncomp, Nghost);
           for ( MFIter mfi(bcoefs[n]); mfi.isValid(); ++mfi )
           {
             Box bx(bs[mfi.index()]);
@@ -448,7 +449,7 @@ main (int argc, char* argv[])
         for ( int n=0; n<BL_SPACEDIM; ++n )
         {
   	  BoxArray bsC(bs);
-	  bcoefs[n].define(bsC.surroundingNodes(n), Ncomp, Nghost, Fab_allocate);
+	  bcoefs[n].define(bsC.surroundingNodes(n), dm, Ncomp, Nghost);
   	  bcoefs[n].setVal(b[n]);
         }
       }
@@ -572,7 +573,7 @@ main (int argc, char* argv[])
   }
   if ( dump_MF || dump_VisMF )
   {
-      MultiFab temp(bs, 2, 0);
+      MultiFab temp(bs, dm, 2, 0);
       temp.setVal(0.0);
       temp.copy(soln, 0, 0, 1);
       temp.copy(rhs,  0, 1, 1);

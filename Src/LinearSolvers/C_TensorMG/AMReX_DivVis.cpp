@@ -50,18 +50,20 @@ DivVis::initConstruct (const Real* _h)
 {
     const int level       = 0;
 
-    initCoefficients(gbox[level]);
+    const DistributionMapping& dm = DistributionMap();
+
+    initCoefficients(gbox[level], dm);
 
     numcomp  = numberComponents(); // wyc
     numphase = numberPhases();     // wyc
 
     undrrelxr.resize(1);
-    undrrelxr[level] = new BndryRegister(gbox[level], 1, 0, 0, numcomp);
+    undrrelxr[level] = new BndryRegister(gbox[level], dm, 1, 0, 0, numcomp);
     tangderiv.resize(1);
 #if BL_SPACEDIM==2
-    tangderiv[level] = new BndryRegister(gbox[level], 0, 1, 0, numcomp);
+    tangderiv[level] = new BndryRegister(gbox[level], dm, 0, 1, 0, numcomp);
 #elif BL_SPACEDIM==3
-    tangderiv[level] = new BndryRegister(gbox[level], 0, 1, 0, numcomp*(1+3));
+    tangderiv[level] = new BndryRegister(gbox[level], dm, 0, 1, 0, numcomp*(1+3));
 #else
 # error "BL_SPACEDIME must be 2 or 3"
 #endif
@@ -152,7 +154,7 @@ DivVis::prepareForLevel (int level)
 }
 
 void
-DivVis::initCoefficients (const BoxArray &_ba)
+DivVis::initCoefficients (const BoxArray &_ba, const DistributionMapping& _dm)
 {
     const int nGrow = 0;
     const int level = 0;
@@ -170,7 +172,7 @@ DivVis::initCoefficients (const BoxArray &_ba)
 	BL_ASSERT(geomarray[level].IsCartesian());
 #endif
 
-    acoefs[level] = new MultiFab(_ba, nComp, nGrow);
+    acoefs[level] = new MultiFab(_ba, _dm, nComp, nGrow);
     acoefs[level]->setVal(a_def);
     a_valid.resize(1);
     a_valid[level] = true;
@@ -179,7 +181,7 @@ DivVis::initCoefficients (const BoxArray &_ba)
     {
 	BoxArray edge_boxes(_ba);
 	edge_boxes.surroundingNodes(i);
-	bcoefs[level][i] = new MultiFab(edge_boxes, 1, nGrow);
+	bcoefs[level][i] = new MultiFab(edge_boxes, _dm, 1, nGrow);
 	bcoefs[level][i]->setVal(b_def);
     }
     b_valid.resize(1);

@@ -157,7 +157,8 @@ void writePlotFile (const std::string& dir,
       //
       // We combine all of the multifabs 
       //
-      MultiFab  plotMF(grids[ilev], n_data_items, 0);
+      const DistributionMapping& dm = soln[ilev]->DistributionMap();
+      MultiFab  plotMF(grids[ilev], dm, n_data_items, 0);
       //
       // Cull data -- use no ghost cells.
       //

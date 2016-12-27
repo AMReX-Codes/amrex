@@ -424,13 +424,13 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
     const BoxArray& ba = sol.boxArray();
     const DistributionMapping& dm = sol.DistributionMap();
 
-    MultiFab PR(ba, 4*SSS_MAX+1, 0, dm);
+    MultiFab PR(ba, dm, 4*SSS_MAX+1, 0);
 
-    MultiFab  p(ba, ncomp, 0, dm);
-    MultiFab  r(ba, ncomp, 0, dm);
-    MultiFab rt(ba, ncomp, 0, dm);
+    MultiFab  p(ba, dm, ncomp, 0);
+    MultiFab  r(ba, dm, ncomp, 0);
+    MultiFab rt(ba, dm, ncomp, 0);
     
-    MultiFab tmp(ba, 4, nghost, dm);
+    MultiFab tmp(ba, dm, 4, nghost);
 
     Lp.residual(r, rhs, sol, lev, bc_mode);
 
@@ -843,16 +843,16 @@ CGSolver::solve_bicgstab (MultiFab&       sol,
     BL_ASSERT(sol.boxArray() == Lp.boxArray(lev));
     BL_ASSERT(rhs.boxArray() == Lp.boxArray(lev));
 
-    MultiFab ph(ba, ncomp, nghost, dm);
-    MultiFab sh(ba, ncomp, nghost, dm);
+    MultiFab ph(ba, dm, ncomp, nghost);
+    MultiFab sh(ba, dm, ncomp, nghost);
 
-    MultiFab sorig(ba, ncomp, 0, dm);
-    MultiFab p    (ba, ncomp, 0, dm);
-    MultiFab r    (ba, ncomp, 0, dm);
-    MultiFab s    (ba, ncomp, 0, dm);
-    MultiFab rh   (ba, ncomp, 0, dm);
-    MultiFab v    (ba, ncomp, 0, dm);
-    MultiFab t    (ba, ncomp, 0, dm);
+    MultiFab sorig(ba, dm, ncomp, 0);
+    MultiFab p    (ba, dm, ncomp, 0);
+    MultiFab r    (ba, dm, ncomp, 0);
+    MultiFab s    (ba, dm, ncomp, 0);
+    MultiFab rh   (ba, dm, ncomp, 0);
+    MultiFab v    (ba, dm, ncomp, 0);
+    MultiFab t    (ba, dm, ncomp, 0);
 
     Lp.residual(r, rhs, sol, lev, bc_mode);
 
@@ -1070,16 +1070,16 @@ CGSolver::solve_cg (MultiFab&       sol,
     BL_ASSERT(sol.boxArray() == Lp.boxArray(lev));
     BL_ASSERT(rhs.boxArray() == Lp.boxArray(lev));
 
-    MultiFab sorig(ba, ncomp, nghost, dm);
-    MultiFab r(ba, ncomp, nghost, dm);
-    MultiFab z(ba, ncomp, nghost, dm);
-    MultiFab q(ba, ncomp, nghost, dm);
-    MultiFab p(ba, ncomp, nghost, dm);
+    MultiFab sorig(ba, dm, ncomp, nghost);
+    MultiFab r(ba, dm, ncomp, nghost);
+    MultiFab z(ba, dm, ncomp, nghost);
+    MultiFab q(ba, dm, ncomp, nghost);
+    MultiFab p(ba, dm, ncomp, nghost);
 
-    MultiFab r1(ba, ncomp, nghost, dm);
-    MultiFab z1(ba, ncomp, nghost, dm);
-    MultiFab r2(ba, ncomp, nghost, dm);
-    MultiFab z2(ba, ncomp, nghost, dm);
+    MultiFab r1(ba, dm, ncomp, nghost);
+    MultiFab z1(ba, dm, ncomp, nghost);
+    MultiFab r2(ba, dm, ncomp, nghost);
+    MultiFab z2(ba, dm, ncomp, nghost);
 
     MultiFab::Copy(sorig,sol,0,0,1,0);
 
@@ -1250,12 +1250,12 @@ CGSolver::jbb_precond (MultiFab&       sol,
     const BoxArray& ba = sol.boxArray();
     const DistributionMapping& dm = sol.DistributionMap();
 
-    MultiFab sorig(ba, ncomp, nghost, dm);
+    MultiFab sorig(ba, dm, ncomp, nghost);
 
-    MultiFab r(ba, ncomp, nghost, dm);
-    MultiFab z(ba, ncomp, nghost, dm);
-    MultiFab q(ba, ncomp, nghost, dm);
-    MultiFab p(ba, ncomp, nghost, dm);
+    MultiFab r(ba, dm, ncomp, nghost);
+    MultiFab z(ba, dm, ncomp, nghost);
+    MultiFab q(ba, dm, ncomp, nghost);
+    MultiFab p(ba, dm, ncomp, nghost);
 
     sorig.copy(sol);
 

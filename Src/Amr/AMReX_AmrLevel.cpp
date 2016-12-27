@@ -73,53 +73,12 @@ AmrLevel::AmrLevel (Amr&            papa,
                     int             lev,
                     const Geometry& level_geom,
                     const BoxArray& ba,
-                    Real            time)
-    :
-    geom(level_geom),
-    grids(ba)
-{
-    BL_PROFILE("AmrLevel::AmrLevel()");
-    level  = lev;
-    parent = &papa;
-
-    fine_ratio = IntVect::TheUnitVector(); fine_ratio.scale(-1);
-    crse_ratio = IntVect::TheUnitVector(); crse_ratio.scale(-1);
-
-    if (level > 0)
-    {
-        crse_ratio = parent->refRatio(level-1);
-    }
-    if (level < parent->maxLevel())
-    {
-        fine_ratio = parent->refRatio(level);
-    }
-
-    state.resize(desc_lst.size());
-
-    // Note that this creates a distribution map associated with grids.
-    for (int i = 0; i < state.size(); i++)
-    {
-        state[i].define(geom.Domain(),
-                        grids,
-                        desc_lst[i],
-                        time,
-                        parent->dtLevel(lev));
-    }
-
-    if (parent->useFixedCoarseGrids()) constructAreaNotToTag();
-
-    finishConstructor();
-}
-
-AmrLevel::AmrLevel (Amr&            papa,
-                    int             lev,
-                    const Geometry& level_geom,
-                    const BoxArray& ba,
 		    const DistributionMapping& dm,
                     Real            time)
     :
     geom(level_geom),
-    grids(ba)
+    grids(ba),
+    dmap(dm)
 {
     BL_PROFILE("AmrLevel::AmrLevel(dm)");
     level  = lev;
@@ -198,11 +157,13 @@ AmrLevel::restart (Amr&          papa,
 	BL_ASSERT(nstate == ndesc);
     }
 
+    dmap.define(grids);
+
     state.resize(ndesc);
     for (int i = 0; i < ndesc; ++i)
     {
 	if (state_in_checkpoint[i]) {
-	    state[i].restart(is, geom.Domain(), grids,
+	    state[i].restart(is, geom.Domain(), grids, dmap,
 			     desc_lst[i], papa.theRestartFile());
 	}
     }
@@ -751,9 +712,8 @@ FillPatchIterator::Initialize (int  boxGrow,
     m_ncomp = ncomp;
     m_range = desc.sameInterps(scomp,ncomp);
 
-    m_fabs.define(m_leveldata.boxArray(),m_ncomp,boxGrow,Fab_allocate);
-
-    BL_ASSERT(m_leveldata.DistributionMap() == m_fabs.DistributionMap());
+    m_fabs.define(m_leveldata.boxArray(),m_leveldata.DistributionMap(),
+		  m_ncomp,boxGrow);
 
     const IndexType& boxType = m_leveldata.boxArray().ixType();
     const int level = m_amrlevel.level;
@@ -1275,6 +1235,7 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
     const StateDescriptor&  desc    = desc_lst[index];
     const Box&              pdomain = state[index].getDomain();
     const BoxArray&         mf_BA   = mf.boxArray();
+    const DistributionMapping& mf_DM = mf.DistributionMap();
     AmrLevel&               clev    = parent->getLevel(level-1);
     const Geometry&         cgeom   = clev.geom;
 
@@ -1304,7 +1265,7 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
             crseBA.set(j,mapper->CoarseBox(bx, crse_ratio));
         }
 
-	MultiFab crseMF(crseBA,NComp,0);
+	MultiFab crseMF(crseBA,mf_DM,NComp,0);
 
 	if ( level == 1 
 	     || amrex::ProperlyNested(crse_ratio, parent->blockingFactor(level),
@@ -1372,7 +1333,7 @@ AmrLevel::derive (const std::string& name,
 
     if (isStateVariable(name, index, scomp))
     {
-        mf = new MultiFab(state[index].boxArray(), 1, ngrow);
+        mf = new MultiFab(state[index].boxArray(), dmap, 1, ngrow);
         FillPatch(*this,*mf,ngrow,time,index,scomp,1);
     }
     else if (const DeriveRec* rec = derive_lst.get(name))
@@ -1392,7 +1353,7 @@ AmrLevel::derive (const std::string& name,
 	    ngrow_src += g;
 	}
 
-        MultiFab srcMF(srcBA, rec->numState(), ngrow_src);
+        MultiFab srcMF(srcBA, dmap, rec->numState(), ngrow_src);
 
         for (int k = 0, dc = 0; k < rec->numRange(); k++, dc += ncomp)
         {
@@ -1400,7 +1361,7 @@ AmrLevel::derive (const std::string& name,
             FillPatch(*this,srcMF,ngrow_src,time,index,scomp,ncomp,dc);
         }
 
-        mf = new MultiFab(dstBA, rec->numDerive(), ngrow);
+        mf = new MultiFab(dstBA, dmap, rec->numDerive(), ngrow);
 
 #ifdef CRSEGRNDOMP
 #ifdef _OPENMP
@@ -1529,7 +1490,7 @@ AmrLevel::derive (const std::string& name,
 	    ngrow_src += g;
 	}
 
-        MultiFab srcMF(srcBA,rec->numState(),ngrow_src);
+        MultiFab srcMF(srcBA,dmap,rec->numState(),ngrow_src);
 
         for (int k = 0, dc = 0; k < rec->numRange(); k++, dc += ncomp)
         {

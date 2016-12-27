@@ -149,6 +149,8 @@ public:
     //
     const BoxArray& boxArray (int level = 0) const;
     //
+    const DistributionMapping& DistributionMap () const;
+    //
     // return the number of grids
     //
     int numGrids () const;
@@ -319,6 +321,13 @@ MCLinOp::boxArray (int level) const
 {
     BL_ASSERT(level < numLevels());
     return gbox[level];
+}
+
+inline
+const DistributionMapping&
+MCLinOp::DistributionMap () const
+{
+    return bgb.DistributionMap();
 }
 
 inline

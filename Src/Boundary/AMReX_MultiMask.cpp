@@ -5,7 +5,7 @@
 namespace amrex {
 
 MultiMask::MultiMask (const BoxArray& ba, const DistributionMapping& dm, int ncomp)
-    : m_fa(ba, ncomp, 0, dm)
+    : m_fa(ba, dm, ncomp, 0)
 { }
 
 MultiMask::MultiMask (const BoxArray& regba, const DistributionMapping& dm, const Geometry& geom,
@@ -13,7 +13,7 @@ MultiMask::MultiMask (const BoxArray& regba, const DistributionMapping& dm, cons
 {
     BndryBATransformer bbatrans(face,IndexType::TheCellType(),in_rad,out_rad,extent_rad);
     BoxArray mskba(regba, bbatrans);
-    m_fa.define(mskba, ncomp, 0, dm, Fab_allocate);
+    m_fa.define(mskba, dm, ncomp, 0);
     
 #ifdef _OPENMP
 #pragma omp parallel
