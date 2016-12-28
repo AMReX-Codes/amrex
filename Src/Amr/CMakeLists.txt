@@ -21,7 +21,7 @@ if(BL_SPACEDIM EQUAL 3)
 endif()
 
 set(CXX_header_files AMReX_Amr.H AMReX_AmrLevel.H AMReX_AuxBoundaryData.H AMReX_Derive.H AMReX_Extrapolater.H AMReX_LevelBld.H AMReX_PROB_AMR_F.H AMReX_SLABSTAT_F.H AMReX_SlabStat.H AMReX_StateData.H AMReX_StateDescriptor.H AMReX_StationData.H )
-set(FPP_header_files AMReX_FLUSH_F.H )
+set(FPP_header_files )
 if(BL_SPACEDIM EQUAL 3)
   list(APPEND FPP_header_files AMReX_MAKESLICE_F.H)
 endif()
