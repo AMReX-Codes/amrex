@@ -103,7 +103,7 @@ AmrAdv::RemakeLevel (int lev, Real time,
     const int nghost = phi_new[lev]->nGrow();
 
 #if __cplusplus >= 201402L
-    auto new_state = std::make_unique<MultiFab>(new_grids, new_dmap, ncomp, nghost_dmap);
+    auto new_state = std::make_unique<MultiFab>(new_grids, new_dmap, ncomp, nghost);
     auto old_state = std::make_unique<MultiFab>(new_grids, new_dmap, ncomp, nghost);
 #else
     auto new_state = std::unique_ptr<MultiFab>(new MultiFab(new_grids, new_dmap, ncomp, nghost));
