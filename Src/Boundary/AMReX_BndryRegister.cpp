@@ -266,8 +266,6 @@ BndryRegister::plusFrom (const MultiFab& src,
     return *this;
 }
 
-// need to make sure they are safe without DistributionMapping cache
-#if 0
 void
 BndryRegister::write (const std::string& name, std::ostream& os) const
 {
@@ -296,7 +294,13 @@ BndryRegister::write (const std::string& name, std::ostream& os) const
 void
 BndryRegister::read (const std::string& name, std::istream& is)
 {
-    grids.readFrom(is);
+    BoxArray grids_in;
+
+    grids_in.readFrom(is);
+
+    if (!amrex::match(grids,grids_in)) {
+	amrex::Abort("BndryRegister::read: grids do not match");
+    }
 
     for (OrientationIter face; face; ++face)
     {
@@ -313,7 +317,6 @@ BndryRegister::read (const std::string& name, std::istream& is)
         bndry[face()].read(facename);
     }
 }
-#endif
 
 // Local copy function
 void 
