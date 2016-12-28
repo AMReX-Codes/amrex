@@ -169,8 +169,6 @@ FabSet::linComb (Real a, const MultiFab& mfa, int a_comp,
     return *this;
 }
 
-// need to make sure they are safe without DistributionMapping cache
-#if 0
 void
 FabSet::write(const std::string& name) const
 {
@@ -180,9 +178,11 @@ FabSet::write(const std::string& name) const
 void
 FabSet::read(const std::string& name)
 {
+    if (m_mf.empty()) {
+	amrex::Abort("FabSet::read: not predefined");
+    }
     VisMF::Read(m_mf,name);
 }
-#endif
 
 void
 FabSet::Copy (FabSet& dst, const FabSet& src)
