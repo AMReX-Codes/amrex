@@ -2364,6 +2364,8 @@ Amr::regrid (int  lbase,
             //       be officially inserted into the hierarchy prior to the call.
             //
             amr_level[lev].reset(a);
+	    this->SetBoxArray(lev, amr_level[lev]->boxArray());
+	    this->SetDistributionMap(lev, amr_level[lev]->DistributionMap());
             amr_level[lev]->initData();
         }
         else if (amr_level[lev])
@@ -2375,15 +2377,17 @@ Amr::regrid (int  lbase,
             //
             a->init(*amr_level[lev]);
             amr_level[lev].reset(a);
+	    this->SetBoxArray(lev, amr_level[lev]->boxArray());
+	    this->SetDistributionMap(lev, amr_level[lev]->DistributionMap());
 	}
         else
         {
             a->init();
             amr_level[lev].reset(a);
+	    this->SetBoxArray(lev, amr_level[lev]->boxArray());
+	    this->SetDistributionMap(lev, amr_level[lev]->DistributionMap());
         }
 
-	this->SetBoxArray(lev, amr_level[lev]->boxArray());
-	this->SetDistributionMap(lev, amr_level[lev]->DistributionMap());
     }
 
 
@@ -2802,9 +2806,6 @@ Amr::bldFineLevels (Real strt_time)
 
 	DistributionMapping new_dm {new_grids[new_finest]};
 
-	this->SetBoxArray(new_finest, new_grids[new_finest]);
-	this->SetDistributionMap(new_finest, new_dm);
-
         AmrLevel* level = (*levelbld)(*this,
                                       new_finest,
                                       Geom(new_finest),
@@ -2813,6 +2814,8 @@ Amr::bldFineLevels (Real strt_time)
                                       strt_time);
 
         amr_level[new_finest].reset(level);
+	this->SetBoxArray(new_finest, new_grids[new_finest]);
+	this->SetDistributionMap(new_finest, new_dm);
 
         amr_level[new_finest]->initData();
     }

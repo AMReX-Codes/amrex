@@ -159,6 +159,9 @@ AmrLevel::restart (Amr&          papa,
 
     dmap.define(grids);
 
+    parent->SetBoxArray(level, grids);
+    parent->SetDistributionMap(level, dmap);
+
     state.resize(ndesc);
     for (int i = 0; i < ndesc; ++i)
     {
