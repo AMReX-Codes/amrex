@@ -113,7 +113,7 @@ manually add `amrex::` in front of AMReX names likes `MultiFab` and
 
 ### Step 6
 
-AMReX `migration/5-namespace` branch should be used in this step. 
+AMReX `migration/6-distributionmap` branch should be used in this step. 
 
 In BoxLib, there is a `DistributionMapping` cache implemented with
 `std::map` with the number of `Box`es as the key.  Utilizing the
