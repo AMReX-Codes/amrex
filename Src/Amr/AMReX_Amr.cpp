@@ -1082,19 +1082,19 @@ Amr::readProbinFile (int& init)
 
 #ifdef DIMENSION_AGNOSTIC
 
-            FORT_PROBINIT(&init,
-                          probin_file_name.dataPtr(),
-                          &probin_file_length,
-                          ZFILL(Geometry::ProbLo()),
-                          ZFILL(Geometry::ProbHi()));
+            amrex_probinit(&init,
+			   probin_file_name.dataPtr(),
+			   &probin_file_length,
+			   ZFILL(Geometry::ProbLo()),
+			   ZFILL(Geometry::ProbHi()));
 
 #else
 
-            FORT_PROBINIT(&init,
-                          probin_file_name.dataPtr(),
-                          &probin_file_length,
-                          Geometry::ProbLo(),
-                          Geometry::ProbHi());
+            amrex_probinit(&init,
+			   probin_file_name.dataPtr(),
+			   &probin_file_length,
+			   Geometry::ProbLo(),
+			   Geometry::ProbHi());
 #endif
 
             piEnd = ParallelDescriptor::second();
@@ -1175,19 +1175,6 @@ Amr::InitializeInit(Real              strt_time,
     if (!probin_file.empty()) {
         readProbinFile(init);
     }
-
-#ifdef BL_SYNC_RANTABLES
-    int iGet(0), iSet(1);
-    const int iTableSize(64);
-    Real *RanAmpl = new Real[iTableSize];
-    Real *RanPhase = new Real[iTableSize];
-    FORT_SYNC_RANTABLES(RanPhase, RanAmpl, &iGet);
-    ParallelDescriptor::Bcast(RanPhase, iTableSize);
-    ParallelDescriptor::Bcast(RanAmpl, iTableSize);
-    FORT_SYNC_RANTABLES(RanPhase, RanAmpl, &iSet);
-    delete [] RanAmpl;
-    delete [] RanPhase;
-#endif
 
     cumtime = strt_time;
     //
@@ -3621,8 +3608,13 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
           probin_file_name[i] = probin_file[i];
         }
         std::cout << "Starting to read probin ... " << std::endl;
-        FORT_PROBINIT(&init, probin_file_name.dataPtr(), &probin_file_length,
-                      Geometry::ProbLo(), Geometry::ProbHi());
+#ifdef DIMENSION_AGNOSTIC
+        amrex_probinit(&init, probin_file_name.dataPtr(), &probin_file_length,
+		       ZFILL(Geometry::ProbLo()), ZFILL(Geometry::ProbHi()));
+#else
+        amrex_probinit(&init, probin_file_name.dataPtr(), &probin_file_length,
+		       Geometry::ProbLo(), Geometry::ProbHi());
+#endif
       }
 
     }  // ---- end if(scsMyId != MPI_UNDEFINED)
