@@ -2942,7 +2942,7 @@ ParticleContainer<NR,NI,C>::Restart_Doit (const std::string& fullname,
 	info.SetAlloc(false);
 	MultiFab state(m_gdb->ParticleBoxArray(lev),
 		       m_gdb->ParticleDistributionMap(lev),
-		       1,0);
+		       1,0,info);
 
         for (MFIter mfi(state); mfi.isValid(); ++mfi)
         {
