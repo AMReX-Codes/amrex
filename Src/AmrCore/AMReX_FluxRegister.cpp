@@ -446,8 +446,6 @@ FluxRegister::ClearInternalBorders (const Geometry& geom)
     }
 }
 
-// need to make sure they are safe without DistributionMapping cache
-#if 0
 void
 FluxRegister::write (const std::string& name, std::ostream& os) const
 {
@@ -467,16 +465,26 @@ FluxRegister::write (const std::string& name, std::ostream& os) const
 void
 FluxRegister::read (const std::string& name, std::istream& is)
 {
+    if (ncomp < 0) {
+	amrex::Abort("FluxRegister::read: FluxRegister not defined");
+    }
 
-    is >> ratio;
-    is >> fine_level;
-    is >> ncomp;
+    IntVect ratio_in;
+    int fine_level_in;
+    int ncomp_in;
+
+    is >> ratio_in;
+    is >> fine_level_in;
+    is >> ncomp_in;
+
+    if (ratio_in != ratio || fine_level_in != fine_level || ncomp_in != ncomp) {
+	amrex::Abort("FluxRegister::read: predefined FluxRegister does not match the one in istream");
+    }
 
     BndryRegister* br = this;
 
     br->read(name,is);
 }
-#endif
 
 void
 FluxRegister::AddProcsToComp(int ioProcNumSCS, int ioProcNumAll,
