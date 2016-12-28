@@ -86,7 +86,7 @@ AMRex, we have renamed several directories:
 * C_ParticleLib --> Particle
 
 A script `Tools/Migration/step-4-dirname/dirname.sh` can be used to
-the the search and replace.
+perform the search and replace.
 
 ### Step 5
 
@@ -162,3 +162,16 @@ behavior.  `VisMF::Read` function is rarely called directly by an
 application code.  But if it is, care must be taken to ensure that
 `MultiFab`s read from the disk are distributed correctly among
 processes.
+
+### Step 7
+
+AMReX `migration/7-bindc` branch should be used in this step.  In
+BoxLib, `Amr` class calls a Fortran subroutine `probinit` to perform
+problem specific initialization on Fortran side.  This is a subroutine
+provided by application codes.  In AMReX, this subroutine is renamed
+to `amrex_probint`, and it is expected to have `bind(c)` making the
+interface of calling it from C++ clean.  A script
+`Tools/Migration/step-7-bindc/bindc.sh` can be used to for the
+migration.
+
+
