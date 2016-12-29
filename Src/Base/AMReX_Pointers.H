@@ -3,7 +3,7 @@
 #define BL_POINTERS_H
 
 #include <AMReX_BLassert.H>
-#include <AMReX_BoxLib.H>
+#include <AMReX.H>
 #include <AMReX_UseCount.H>
 
 namespace amrex {

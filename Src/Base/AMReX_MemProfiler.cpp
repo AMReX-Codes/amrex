@@ -13,7 +13,7 @@
 
 #include <AMReX_MemProfiler.H>
 #include <AMReX_ParallelDescriptor.H>
-#include <AMReX_BoxLib.H>
+#include <AMReX.H>
 #include <AMReX_ParmParse.H>
 
 namespace amrex {

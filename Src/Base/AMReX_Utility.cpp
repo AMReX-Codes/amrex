@@ -16,7 +16,7 @@
 
 #include <AMReX_BLFort.H>
 #include <AMReX_REAL.H>
-#include <AMReX_BoxLib.H>
+#include <AMReX.H>
 #include <AMReX_Utility.H>
 #include <AMReX_BLassert.H>
 #include <AMReX_BLProfiler.H>

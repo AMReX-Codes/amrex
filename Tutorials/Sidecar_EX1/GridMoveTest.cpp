@@ -18,7 +18,7 @@
 #include <AMReX_Utility.H>
 #include <AMReX_ParmParse.H>
 
-#include <AMReX_BoxLib.H>
+#include <AMReX.H>
 #include <InTransitAnalysis.H>
 
 using namespace amrex;

@@ -1,6 +1,6 @@
 
 #include <AMReX_Arena.H>
-#include <AMReX_BoxLib.H>
+#include <AMReX.H>
 
 const unsigned int amrex::Arena::align_size;
 

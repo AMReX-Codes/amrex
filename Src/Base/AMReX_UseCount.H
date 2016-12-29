@@ -3,7 +3,7 @@
 #define BL_USECOUNT_H
 
 #include <AMReX_BLassert.H>
-#include <AMReX_BoxLib.H>
+#include <AMReX.H>
 
 namespace amrex {
 
