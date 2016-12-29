@@ -2,7 +2,6 @@
 // A test program for MultiFab.
 //
 
-#include <AMReX_winstd.H>
 #include <map>
 #include <vector>
 

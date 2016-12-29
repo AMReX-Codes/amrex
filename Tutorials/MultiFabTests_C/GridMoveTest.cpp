@@ -3,7 +3,6 @@
 // --------------------------------------------------------------------------
 //  this file tests the performance for moving grids
 // --------------------------------------------------------------------------
-#include <AMReX_winstd.H>
 
 #include <new>
 #include <iostream>

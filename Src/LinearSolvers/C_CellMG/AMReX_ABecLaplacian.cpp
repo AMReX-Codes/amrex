@@ -2,7 +2,6 @@
 #include <fstream>
 #include <algorithm>
 
-#include <AMReX_winstd.H>
 #include <AMReX_ABecLaplacian.H>
 #include <AMReX_ABec_F.H>
 #include <AMReX_ParallelDescriptor.H>

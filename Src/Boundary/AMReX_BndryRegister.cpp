@@ -1,5 +1,4 @@
 
-#include <AMReX_winstd.H>
 #include <AMReX_BndryRegister.H>
 #include <AMReX_Orientation.H>
 #include <AMReX_Utility.H>

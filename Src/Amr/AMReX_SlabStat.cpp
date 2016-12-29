@@ -1,5 +1,4 @@
 
-#include <AMReX_winstd.H>
 #include <AMReX_AmrLevel.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_SlabStat.H>

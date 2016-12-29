@@ -1,4 +1,3 @@
-#include <AMReX_winstd.H>
 #include <AMReX_DivVis.H>
 #include <AMReX_DivVis_F.H>
 

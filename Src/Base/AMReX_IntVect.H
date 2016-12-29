@@ -2,7 +2,6 @@
 #ifndef BL_INTVECT_H
 #define BL_INTVECT_H
 
-#include <AMReX_winstd.H>
 #include <iosfwd>
 
 #include <AMReX_ccse-mpi.H>

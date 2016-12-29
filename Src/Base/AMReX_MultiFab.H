@@ -2,7 +2,6 @@
 #ifndef BL_MULTIFAB_H
 #define BL_MULTIFAB_H
 
-#include <AMReX_winstd.H>
 
 #include <stdint.h>
 

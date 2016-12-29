@@ -1,4 +1,3 @@
-#include <AMReX_winstd.H>
 #include <cmath>
 
 #include <AMReX_LO_BCTYPES.H>

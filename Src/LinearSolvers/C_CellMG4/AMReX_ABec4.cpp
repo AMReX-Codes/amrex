@@ -1,4 +1,3 @@
-#include <AMReX_winstd.H>
 #include <algorithm>
 #include <AMReX_ABec4.H>
 #include <AMReX_ABec4_F.H>
