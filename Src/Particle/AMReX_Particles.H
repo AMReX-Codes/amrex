@@ -4986,8 +4986,6 @@ ParticleContainer<NR,NI,C>::NodalDepositionSingleLevel (int rho_index,
     Array<int>         pgrd(ngrids);
     Array<const PBox*> pbxs(ngrids);
 
-    Real strt_depose = ParallelDescriptor::second();
-
     int j = 0;
     for (const auto& kv : pmap)
     {
@@ -5113,19 +5111,7 @@ ParticleContainer<NR,NI,C>::NodalDepositionSingleLevel (int rho_index,
         }
     }
 
-    Real end_depose = ParallelDescriptor::second() - strt_depose;
-
-    if (ParallelDescriptor::IOProcessor()) 
-        std::cout << "Time in BoxLibChargeDeposition : Depose " << end_depose << '\n';
-
-    Real strt_sumb = ParallelDescriptor::second();
-
     mf_pointer->SumBoundary(gm.periodicity());
-
-    Real end_sumb = ParallelDescriptor::second() - strt_sumb;
-
-    if (ParallelDescriptor::IOProcessor()) 
-        std::cout << "Time in BoxLibChargeDeposition : SumBoundary " << end_sumb << '\n';
 
     //
     // Only multiply the first component by (1/vol) because this converts mass

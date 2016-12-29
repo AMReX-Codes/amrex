@@ -46,7 +46,7 @@ class DistributionMapping
     // Create an object with the specified mapping.
     // VERY IMPORTANT:  The size of pmap must be (yourboxarray.size() + 1).
     //                  The value in pmap[yourboxarray.size()] is a sentinel used
-    //                  in boxlib and its value must be set to
+    //                  in AMReX and its value must be set to
     //                  ParallelDescriptor::MyProc() by the caller.
     //
     DistributionMapping (const Array<int>& pmap,

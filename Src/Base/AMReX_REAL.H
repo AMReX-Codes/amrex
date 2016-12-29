@@ -9,7 +9,7 @@
   The macro BL_USE_FLOAT indicates that C++ floating-point calculations should
   use "float" variables and Fortran floating-point calculations should use
   "real*4" variables.  One of BL_USE_FLOAT or BL_USE_DOUBLE must always be
-  defined when compiling and using BoxLib.
+  defined when compiling and using AMReX.
 */
 #  define BL_USE_FLOAT 1
 #else
@@ -19,7 +19,7 @@
   The macro BL_USE_DOUBLE indicates that C++ floating-point calculations
   should use "double" variables and Fortran floating-point calculations
   should use "real*8" variables.  One of BL_USE_FLOAT or BL_USE_DOUBLE must
-  always be defined when compiling and using BoxLib.
+  always be defined when compiling and using AMReX.
 */
 #  define BL_USE_DOUBLE 1
 #endif

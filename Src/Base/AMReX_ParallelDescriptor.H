@@ -209,7 +209,7 @@ namespace ParallelDescriptor
     // distribution maps and moving data in FabArrays).
     //
     // The union of ranks in the comp and sidecar arrays must be
-    // equal to the set of ranks in 'all' (the boxlib global
+    // equal to the set of ranks in 'all' (the AMReX global
     // communicator).  The sets must be disjoint.
     // Global rank zero is required to be in compRanksInAll[0],
     // this restriction may be removed in the future.
@@ -503,7 +503,7 @@ namespace ParallelDescriptor
 	}
     }
     //
-    // BoxLib's Parallel Communicators
+    // AMReX's Parallel Communicators
     //    m_comm_all       is for all ranks, probably MPI_COMM_WORLD
     //    m_comm_comp      is for the ranks doing computations
     //    m_comm_sub       m_comm_comp is split into sub communicators

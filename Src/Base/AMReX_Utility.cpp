@@ -582,7 +582,7 @@ amrex::Time::get_time()
 
 
 //
-// BoxLib Interface to Mersenne Twistor
+// AMReX Interface to Mersenne Twistor
 //
 
 /* A C-program for MT19937: Real number version (1999/10/28)    */

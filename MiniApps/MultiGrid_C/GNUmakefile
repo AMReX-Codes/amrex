@@ -1,4 +1,4 @@
-# AMREX_HOME defines the directory in which we will find all the BoxLib code -- if this is already defined
+# AMREX_HOME defines the directory in which we will find all the AMReX code -- if this is already defined
 #    then the line below will be ignored
 AMREX_HOME = ../..
 
