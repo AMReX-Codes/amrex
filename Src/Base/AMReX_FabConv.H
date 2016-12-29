@@ -31,7 +31,7 @@ public:
     //
     // An enumeration describing the two ordering of a "long"
     // that we currently support: NormalOrder and ReverseOrder.
-    // Other ordering may be added as BoxLib is ported to run on
+    // Other ordering may be added as AMReX is ported to run on
     // machines with non-standard "long" orderings.
     //
     enum Ordering { NormalOrder = 1, ReverseOrder = 2 };
@@ -85,7 +85,7 @@ std::istream& operator>> (std::istream& is, IntDescriptor& id);
 
   This class is meant to hold all information needed to completely
   describe the "Real" floating-point type on a machine.  By "Real" here we
-  mean either the "float" or "double" type that this version of BoxLib
+  mean either the "float" or "double" type that this version of AMReX
   was built with, which corresponds to whether BL_USE_FLOAT or
   BL_USE_DOUBLE was used to build the version of the library.
   

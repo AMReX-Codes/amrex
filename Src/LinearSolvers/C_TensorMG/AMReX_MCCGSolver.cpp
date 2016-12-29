@@ -308,9 +308,6 @@ MCCGSolver::solve (MultiFab&       sol,
     }
     //
     // Omit ghost update since maybe not initialized in calling routine.
-    // BoxLib_1.99 has no MultiFab::plus(MultiFab&) member, which would
-    // operate only in valid regions; do explicitly.  Add to boundary
-    // values stored in initialsolution.
     //
     if (ret == 0)
     {

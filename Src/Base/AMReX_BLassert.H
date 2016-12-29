@@ -12,7 +12,7 @@
 
 /*
   The macro BL_ASSERT(EX) is a debugging macro, used to test the
-  internal consistency of BoxLib, that may also be useful in user
+  internal consistency of AMReX, that may also be useful in user
   code.  The argument EX is a C++ expression that you expect to
   always evaluate to true.
 
