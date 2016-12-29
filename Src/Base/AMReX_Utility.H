@@ -2,7 +2,6 @@
 #ifndef BL_UTILITY_H
 #define BL_UTILITY_H
 
-#include <AMReX_winstd.H>
 
 #include <iostream>
 #include <string>

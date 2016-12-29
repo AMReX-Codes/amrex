@@ -1,5 +1,4 @@
 
-#include <AMReX_winstd.H>
 #include <sstream>
 
 #include <unistd.h>

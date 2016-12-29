@@ -1,7 +1,6 @@
 // ---------------------------------------------------------------
 // AmrData.cpp
 // ---------------------------------------------------------------
-#include <AMReX_winstd.H>
 
 #include <AMReX_AmrData.H>
 #include <AMReX_ArrayLim.H>

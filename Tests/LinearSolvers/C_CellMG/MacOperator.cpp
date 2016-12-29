@@ -1,5 +1,4 @@
 
-#include <AMReX_winstd.H>
 
 #include <AMReX_MacBndry.H>
 #include <MacOperator.H>

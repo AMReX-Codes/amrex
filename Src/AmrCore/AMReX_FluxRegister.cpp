@@ -1,5 +1,4 @@
 
-#include <AMReX_winstd.H>
 #include <AMReX_BArena.H>
 #include <AMReX_FluxRegister.H>
 #include <AMReX_FLUXREG_F.H>

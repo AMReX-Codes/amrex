@@ -2,7 +2,6 @@
 #ifndef BL_BASEFAB_H
 #define BL_BASEFAB_H
 
-#include <AMReX_winstd.H>
 #include <cmath>
 #include <cstdlib>
 #include <algorithm>

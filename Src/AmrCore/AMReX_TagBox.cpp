@@ -1,4 +1,3 @@
-#include <AMReX_winstd.H>
 #include <algorithm>
 #include <cstdlib>
 #include <cmath>
