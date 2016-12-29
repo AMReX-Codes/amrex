@@ -14,7 +14,7 @@
 #include <sstream>
 #include <unistd.h>
 
-#include <AMReX_BoxLib.H>
+#include <AMReX.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_Utility.H>
 #include <AMReX_ParmParse.H>

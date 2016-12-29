@@ -24,7 +24,7 @@
 #include <AMReX_Array.H>
 
 #include <AMReX_Box.H>
-#include <AMReX_BoxLib.H>
+#include <AMReX.H>
 #include <AMReX_BoxArray.H>
 #include <AMReX_BoxDomain.H> 
 #include <AMReX_FArrayBox.H>

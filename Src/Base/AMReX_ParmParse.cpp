@@ -12,7 +12,7 @@
 #include <list>
 #include <map>
 
-#include <AMReX_BoxLib.H>
+#include <AMReX.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_Box.H>

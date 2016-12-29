@@ -1,7 +1,7 @@
 
 #include <iostream>
 
-#include <AMReX_BoxLib.H>
+#include <AMReX.H>
 #include <AMReX_BLProfiler.H>
 #include <AMReX_ParallelDescriptor.H>
 

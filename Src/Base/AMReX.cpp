@@ -8,7 +8,7 @@
 #include <stack>
 #include <limits>
 
-#include <AMReX_BoxLib.H>
+#include <AMReX.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_BLProfiler.H>
 #include <AMReX_BLFort.H>

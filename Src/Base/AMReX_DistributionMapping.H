@@ -5,7 +5,7 @@
 #include <limits>
 
 #include <AMReX_Pointers.H>
-#include <AMReX_BoxLib.H>
+#include <AMReX.H>
 #include <AMReX_Array.H>
 #include <AMReX_Box.H>
 #include <AMReX_REAL.H>

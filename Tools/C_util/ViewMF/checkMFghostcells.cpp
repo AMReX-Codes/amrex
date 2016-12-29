@@ -5,7 +5,7 @@
 
 #include <iostream>
 
-#include <AMReX_BoxLib.H>
+#include <AMReX.H>
 #include <AMReX_MultiFab.H>
 #include <ArrayView.H>
 #include <AMReX_ParmParse.H>
