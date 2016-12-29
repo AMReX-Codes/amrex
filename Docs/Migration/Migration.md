@@ -174,4 +174,15 @@ interface of calling it from C++ clean.  A script
 `Tools/Migration/step-7-bindc/bindc.sh` can be used to for the
 migration.
 
+### Step 8
+
+AMReX `migration/8-deboxlib` branch should be used in this step.  In
+the branch, `AMReX_winstd.H` is removed because Windows is not
+supported.  `AMReX_BoxLib.H` is renamed `AMReX.H`.  A script
+`Tools/Migration/step-8-deboxlib/deboxlib.sh` can be used to for the
+migration.
+
+In BoxLib, there are some runtime parameters with the `boxlib.` prefix
+(e.g., `boxlib.fpe_trap_invalid` and `boxlib.verbose`).  The prefix is
+now changed to `amrex.`.
 
