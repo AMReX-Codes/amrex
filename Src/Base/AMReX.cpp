@@ -47,27 +47,6 @@ extern "C" {
 }
 #endif
 
-#define bl_str(s)  # s
-#define bl_xstr(s) bl_str(s)
-//
-// The definition of our version string.
-//    
-// Takes the form:  boxlib version 2.0 built Jun 25 1996 at 14:52:36
-//
-const char * const version =
-
-"boxlib version "
-bl_xstr(BL_VERSION_MAJOR)
-"."
-bl_xstr(BL_VERSION_MINOR)
-" built "
-__DATE__
-" at "
-__TIME__;
-
-#undef bl_str
-#undef bl_xstr
-
 namespace amrex {
 namespace system
 {
@@ -102,19 +81,13 @@ amrex::write_to_stderr_without_buffering (const char* str)
     }
 }
 
-void
-BL_this_is_a_dummy_routine_to_force_version_into_executable ()
-{
-    amrex::write_to_stderr_without_buffering(version);    
-}
-
 static
 void
 write_lib_id(const char* msg)
 {
     fflush(0);
-    const char* const boxlib = "amrex::";
-    fwrite(boxlib, strlen(boxlib), 1, stderr);
+    const char* const s = "amrex::";
+    fwrite(s, strlen(s), 1, stderr);
     if ( msg ) 
     {
 	fwrite(msg, strlen(msg), 1, stderr);
@@ -345,7 +318,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi_
     }
 
     {
-	ParmParse pp("boxlib");
+	ParmParse pp("amrex");
 	pp.query("v", system::verbose);
 	pp.query("verbose", system::verbose);
 
