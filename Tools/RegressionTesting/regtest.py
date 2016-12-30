@@ -81,7 +81,7 @@ def copy_benchmarks(old_full_test_dir, full_web_dir, test_list, bench_dir, log):
             else:
                 p = t.compareFile
 
-        if not p == "":
+        if p != "" and p is not None:
             if p.endswith(".tgz"):
                 try:
                     tg = tarfile.open(name=p, mode="r:gz")
