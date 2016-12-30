@@ -204,9 +204,11 @@ int main(int argc, char *argv[]) {
         newDistMapArray[copyArray[n]] = copyArray[n+1];
       }
 
+#if 0
       if(ParallelDescriptor::IOProcessor()) {
         std::cout << "newDistMapArray = " << newDistMapArray << std::endl;
       }
+#endif
 
       SetFabValsToPMap(mf);
       VisMF::Write(mf, "mfOriginal");

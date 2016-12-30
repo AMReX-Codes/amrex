@@ -49,13 +49,14 @@ class DistributionMapping
     //                  in AMReX and its value must be set to
     //                  ParallelDescriptor::MyProc() by the caller.
     //
-    DistributionMapping (const Array<int>& pmap,
-			 ParallelDescriptor::Color color = ParallelDescriptor::DefaultColor());
+    explicit DistributionMapping (const Array<int>& pmap,
+				  ParallelDescriptor::Color color = ParallelDescriptor::DefaultColor());
     //
     // Build mapping out of BoxArray over nprocs processors.
     //
-    DistributionMapping (const BoxArray& boxes, int nprocs = ParallelDescriptor::NProcs(), 
-			 ParallelDescriptor::Color color = ParallelDescriptor::DefaultColor());
+    explicit DistributionMapping (const BoxArray& boxes,
+				  int nprocs = ParallelDescriptor::NProcs(), 
+				  ParallelDescriptor::Color color = ParallelDescriptor::DefaultColor());
     //
     // This is a very specialized distribution map.
     // Do NOT use it unless you really understand what it does.
