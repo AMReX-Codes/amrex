@@ -178,7 +178,9 @@ migration.
 
 AMReX `migration/8-deboxlib` branch should be used in this step.  In
 the branch, `AMReX_winstd.H` is removed because Windows is not
-supported.  `AMReX_BoxLib.H` is renamed `AMReX.H`.  A script
+supported.  `AMReX_BoxLib.H` is renamed `AMReX.H`.  There are also
+some changes to `buildInfo` related to `AMReX_` prefix for file names
+and `amrex` namespace.  A script
 `Tools/Migration/step-8-deboxlib/deboxlib.sh` can be used to for the
 migration.
 
