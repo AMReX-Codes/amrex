@@ -48,7 +48,6 @@ namespace amrex
     */
     GeometryShop(const BaseIF& a_localGeom,
                  int           a_verbosity,
-                 RealVect      a_vectDx,
                  Real          a_thrshdVoF = 1.0e-16);
 
     ///
@@ -89,7 +88,6 @@ namespace amrex
                              const Box&           a_domain,
                              const RealVect&      a_origin,
                              const Real&          a_dx,
-                             const RealVect&      a_vectDx,
                              const IntVect&       a_iv) const;
 
     void
@@ -103,7 +101,6 @@ namespace amrex
     Real m_threshold;
     Real m_thrshdVoF; //CP, threshold to remove very small VoFs.
 
-    RealVect m_vectDx;
 
     const BaseIF* m_implicitFunction;
 
@@ -115,7 +112,6 @@ namespace amrex
                     const int            a_hiLoFace,
                     const int            a_faceNormal,
                     const Real&          a_dx,
-                    const RealVect&      a_vectDx,
                     const IntVect&       a_coord,
                     const Box& a_domain,
                     const RealVect&      a_origin) const;
@@ -125,7 +121,6 @@ namespace amrex
                     bool&                a_faceRegular,
                     bool&                a_faceDontKnow,
                     const Real&          a_dx,
-                    const RealVect&      a_vectDx,
                     const IntVect&       a_coord,
                     const Box& a_domain,
                     const RealVect&      a_origin) const;

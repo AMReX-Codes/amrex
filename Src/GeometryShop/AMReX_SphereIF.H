@@ -23,7 +23,7 @@ namespace amrex
   /**
      This implicit function specifies a sphere.
   */
-  class SphereIF: BaseIF
+  class SphereIF: public BaseIF
   {
   public:
     ///
