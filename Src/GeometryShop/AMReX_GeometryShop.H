@@ -34,6 +34,14 @@ namespace amrex
   class GeometryShop
   {
   public:
+
+    enum InOut
+      {
+        Regular,
+        Covered,
+        Irregular
+      };
+
     ///
     /**
        Define the workshop using the local geometry description
@@ -59,6 +67,10 @@ namespace amrex
                            const RealVect&      a_origin,
                            const Real&          a_dx) const;
 
+    GeometryShop::InOut InsideOutside(const Box&           a_region,
+                                      const Box&           a_domain,
+                                      const RealVect&      a_origin,
+                                      const Real&          a_dx) const;
     /**
      */
     void computeVoFInternals(Real&                a_volFrac,

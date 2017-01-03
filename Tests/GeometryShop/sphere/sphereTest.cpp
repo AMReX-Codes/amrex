@@ -18,10 +18,10 @@
 
 int checkSphere()
 {
+  int eekflag =  0;
 #if 0
   //check to see that the sum of the volume fractions
   //comes to close to exactly the total volume
-  int eekflag =  0;
   //First: calculate volume of domain
 
   const IntVect& ivSize = a_domain.size();
@@ -149,6 +149,8 @@ int checkSphere()
 }
 
 
+using std::cout;
+using std::endl;
 int
 main(int argc,char **argv)
 {
@@ -156,21 +158,22 @@ main(int argc,char **argv)
   MPI_Init(&argc, &argv);
 #endif
 
-  // begin forever present scoping trick
-  {
-    const char* in_file = "sphere.inputs";
-    //parse input file
-    amrex::ParmParse pp(0,NULL,NULL,in_file);
+  const char* in_file = "sphere.inputs";
+  //parse input file
+  amrex::ParmParse pp;
+  pp.Initialize(argc, argv,in_file);
 
-    // check volume and surface area of approximate sphere
-    eekflag = checkSphere();
-    if (eekflag != 0)
-      {
-        cout << "non zero eek detected = " << eekflag << endl;
-      }
-    cout << "sphere test passed" << endl;
-  } // end scoping trick
-
+  // check volume and surface area of approximate sphere
+  int eekflag = checkSphere();
+  if (eekflag != 0)
+    {
+      cout << "non zero eek detected = " << eekflag << endl;
+      cout << "sphere test failed" << endl;
+    }
+  else
+    {
+      cout << "sphere test passed" << endl;
+    }
 
   return 0;
 }
