@@ -4,7 +4,7 @@ OPENBC_HOME ?= ../../../openbc_poisson
 
 USE_PARTICLES = TRUE
 
-include $(AMREX_HOME)/Tools/C_mk/Make.defs
+include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
 ifndef USE_PYTHON_MAIN
   USE_PYTHON_MAIN = FALSE
@@ -21,10 +21,10 @@ endif
 -include Make.package
 include $(WARPX_HOME)/Source/Make.package
 
-include $(AMREX_HOME)/Src/C_BaseLib/Make.package
-include $(AMREX_HOME)/Src/C_ParticleLib/Make.package
-include $(AMREX_HOME)/Src/C_BoundaryLib/Make.package
-include $(AMREX_HOME)/Src/C_AmrCoreLib/Make.package
+include $(AMREX_HOME)/Src/Base/Make.package
+include $(AMREX_HOME)/Src/Particle/Make.package
+include $(AMREX_HOME)/Src/Boundary/Make.package
+include $(AMREX_HOME)/Src/AmrCore/Make.package
 
 include $(PICSAR_HOME)/src/Make.package
 
@@ -72,7 +72,7 @@ buildInfo.cpp:
           --FCOMP "$(FCOMP)" --FCOMP_VERSION "$(FCOMP_VERSION)" \
           --GIT ". $(AMREX_HOME) $(PICSAR_HOME)"
 
-include $(AMREX_HOME)/Tools/C_mk/Make.rules
+include $(AMREX_HOME)/Tools/GNUMake/Make.rules
 
 clean::
 	$(SILENT) $(RM) buildInfo.cpp
