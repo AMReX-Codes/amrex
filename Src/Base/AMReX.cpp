@@ -285,6 +285,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi_
 #endif
 
 #ifdef _OPENMP
+    static_assert(_OPENMP >= 201107, "OpenMP >= 3.1 is required.");
     if (ParallelDescriptor::IOProcessor())
     {
         std::cout << "OMP initialized with "

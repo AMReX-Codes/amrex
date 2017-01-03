@@ -40,6 +40,11 @@ public:
     //
     RealBox (D_DECL(Real x0, Real y0, Real z0),
              D_DECL(Real x1, Real y1, Real z1));
+
+    //
+    // dtor, copy-ctor, copy-op=, move-ctor, and move-op= are compiler generated.
+    //
+
     //
     // Set epsilon used by contains() function when comparing floating point numbers.
     //
