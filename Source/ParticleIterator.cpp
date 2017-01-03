@@ -63,23 +63,6 @@ PartIter::Initialize ()
     }
 }
 
-void 
-PartIter::foreach (std::function<void(int, MyParticleContainer::ParticleType&)> f)
-{
-    auto& pbox = pmap[index_map[currentIndex]];
-    if (info.tiling)
-    {
-	BoxLib::Abort("PartIter wip");
-    }
-    else
-    {
-	for (int i = 0, N = pbox.size(); i < N; ++i)
-	{
-	    f(i,pbox[i]);
-	}
-    }
-}
-
 int
 PartIter::numParticles () const
 {

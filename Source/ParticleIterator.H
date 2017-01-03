@@ -39,7 +39,22 @@ public:
     Box validbox () const;
 
     // apply function to each particle in current tile
-    void foreach (std::function<void(int, MyParticleContainer::ParticleType&)> f);
+    template <typename F>
+    void foreach (F f)
+    {
+	auto& pbox = pmap[index_map[currentIndex]];
+	if (info.tiling)
+	{
+	    BoxLib::Abort("PartIter wip");
+	}
+	else
+	{
+	    for (int i = 0, N = pbox.size(); i < N; ++i)
+	    {
+		f(i,pbox[i]);
+	    }
+	}
+    }
 
 private:
     void Initialize();
