@@ -10,7 +10,7 @@ int main(int argc, char* argv[])
 
     std::cout << "MPI is initialized " << std::endl;
 
-    boxlib_init_with_inited_mpi(&argc, &argv, MPI_COMM_WORLD);
+    boxlib_init_with_inited_mpi(argc, argv, MPI_COMM_WORLD);
 
     std::cout << "BoxLib is initialized" << std::endl;
 

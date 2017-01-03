@@ -12,6 +12,36 @@ long WarpX::nox = 1;
 long WarpX::noy = 1;
 long WarpX::noz = 1;
 
+#if (BL_SPACEDIM == 3)
+IntVect WarpX::Bx_nodal_flag(1,0,0);
+IntVect WarpX::By_nodal_flag(0,1,0);
+IntVect WarpX::Bz_nodal_flag(0,0,1);
+#elif (BL_SPACEDIM == 2)
+IntVect WarpX::Bx_nodal_flag(1,0);  // x is the first dimension to BoxLib
+IntVect WarpX::By_nodal_flag(0,0);  // y is the missing dimension to 2D BoxLib
+IntVect WarpX::Bz_nodal_flag(0,1);  // z is the second dimension to 2D BoxLib
+#endif
+
+#if (BL_SPACEDIM == 3)
+IntVect WarpX::Ex_nodal_flag(1,0,0);
+IntVect WarpX::Ey_nodal_flag(0,1,0);
+IntVect WarpX::Ez_nodal_flag(0,0,1);
+#elif (BL_SPACEDIM == 2)
+IntVect WarpX::Ex_nodal_flag(0,1);  // x is the first dimension to BoxLib
+IntVect WarpX::Ey_nodal_flag(1,1);  // y is the missing dimension to 2D BoxLib
+IntVect WarpX::Ez_nodal_flag(1,0);  // z is the second dimension to 2D BoxLib
+#endif
+
+#if (BL_SPACEDIM == 3)
+IntVect WarpX::jx_nodal_flag(1,0,0);
+IntVect WarpX::jy_nodal_flag(0,1,0);
+IntVect WarpX::jz_nodal_flag(0,0,1);
+#elif (BL_SPACEDIM == 2)
+IntVect WarpX::jx_nodal_flag(0,1);  // x is the first dimension to BoxLib
+IntVect WarpX::jy_nodal_flag(1,1);  // y is the missing dimension to 2D BoxLib
+IntVect WarpX::jz_nodal_flag(1,0);  // z is the second dimension to 2D BoxLib
+#endif
+
 WarpX* WarpX::m_instance = nullptr;
 
 WarpX&
@@ -100,6 +130,12 @@ WarpX::ReadParameters ()
 	pp.query("nox", nox);
 	pp.query("noy", noy);
 	pp.query("noz", noz);  
+	if (nox != noy || nox != noz) {
+	    BoxLib::Abort("warpx.nox, noy and noz must be equal");
+	}
+	if (nox < 1) {
+	    BoxLib::Abort("warpx.nox must >= 1");
+	}
     }
 
     {
@@ -123,12 +159,12 @@ WarpX::MakeNewLevel (int lev, Real time,
 
     // PICSAR assumes all fields are nodal plus one ghost cell.
     const IntVect& nodalflag = IntVect::TheUnitVector();
-    const int ng = 1;
+    const int ng = WarpX::nox;  // need to update this
 
-    current[lev].resize(BL_SPACEDIM);
-    Efield [lev].resize(BL_SPACEDIM);
-    Bfield [lev].resize(BL_SPACEDIM);
-    for (int i = 0; i < BL_SPACEDIM; ++i) {
+    current[lev].resize(3);
+    Efield [lev].resize(3);
+    Bfield [lev].resize(3);
+    for (int i = 0; i < 3; ++i) {
 	current[lev][i].reset(new MultiFab(grids[lev],1,ng,dmap[lev],Fab_allocate,nodalflag));
 	Efield [lev][i].reset(new MultiFab(grids[lev],1,ng,dmap[lev],Fab_allocate,nodalflag));
 	Bfield [lev][i].reset(new MultiFab(grids[lev],1,ng,dmap[lev],Fab_allocate,nodalflag));
@@ -162,3 +198,20 @@ WarpX::FillBoundary (MultiFab& mf, const Geometry& geom, const IntVect& nodalfla
 	tmpfab.SetBoxType(correct_typ);
     }
 }
+
+void
+WarpX::Copy(MultiFab& dstmf, int dcomp, int ncomp, const MultiFab& srcmf, int scomp)
+{
+    const IndexType& dst_typ = dstmf.boxArray().ixType();
+    const IndexType& src_typ = srcmf.boxArray().ixType();
+
+    for (MFIter mfi(dstmf); mfi.isValid(); ++mfi)
+    {
+	FArrayBox& dfab = dstmf[mfi];
+	const FArrayBox& sfab = srcmf[mfi];
+	dfab.SetBoxType(src_typ);
+	dfab.copy(sfab, scomp, dcomp, ncomp);
+	dfab.SetBoxType(dst_typ);
+    }
+}
+

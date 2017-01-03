@@ -9,7 +9,6 @@
 #include <BLProfiler.H>
 
 #include <ParticleContainer.H>
-#include <PICSAR_f.H>
 #include <WarpXConst.H>
 
 void

@@ -13,7 +13,7 @@ WarpX::InitLevelData (int lev)
 		  "Each problem must have its own version of WarpX::InitLevelData(int lev)");
 
 #if 0
-    for (int i = 0; i < BL_SPACEDIM; ++i) {
+    for (int i = 0; i < 3; ++i) {
 	current[lev][i]->setVal(0.0);
 	Efield[lev][i]->setVal(0.0);
 	Bfield[lev][i]->setVal(0.0);

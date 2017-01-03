@@ -1,0 +1,19 @@
+DEBUG	= FALSE
+#DEBUG	= TRUE
+
+DIM	= 3
+
+COMP    = gcc
+FCOMP   = gfortran
+
+TINY_PROFILE = TRUE
+
+USE_MPI   = TRUE
+USE_OMP   = FALSE
+
+EBASE     = main
+
+USE_PYTHON_MAIN = FALSE
+
+WARPX_HOME := ../..
+include $(WARPX_HOME)/Exec/Make.WarpX

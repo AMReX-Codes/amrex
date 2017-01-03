@@ -6,13 +6,17 @@ CEXE_sources += WarpXWrappers.cpp
 
 CEXE_sources += WarpX.cpp WarpXInitData.cpp WarpXEvolve.cpp WarpXIO.cpp WarpXProb.cpp
 
-CEXE_sources += ParticleContainer.cpp ParticleProb.cpp
+CEXE_sources += ParticleContainer.cpp ParticleIterator.cpp ParticleProb.cpp
 
 CEXE_headers += WarpXWrappers.h
 
-CEXE_headers += WarpX.H ParticleContainer.H PICSAR_f.H WarpXConst.H
+CEXE_headers += WarpX.H ParticleContainer.H ParticleIterator.H WarpX_f.H WarpXConst.H
 
-F90EXE_sources += WarpX_f.F90
+F90EXE_sources += WarpX_f.F90 WarpX_picsar.F90
+
+ifeq ($(USE_OPENBC_POISSON),TRUE)
+  F90EXE_sources += openbc_f.F90
+endif
 
 INCLUDE_LOCATIONS += $(WARPX_HOME)/Source
 VPATH_LOCATIONS   += $(WARPX_HOME)/Source

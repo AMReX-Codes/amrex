@@ -1,0 +1,23 @@
+BOXLIB_HOME ?= ../../BoxLib
+PICSAR_HOME ?= ../../picsar
+
+DEBUG	= FALSE
+#DEBUG	= TRUE
+
+DIM	= 3
+
+COMP    = gcc
+FCOMP   = gfortran
+
+TINY_PROFILE = TRUE
+TINY_PROFILE = FALSE
+
+USE_MPI   = TRUE
+USE_OMP   = FALSE
+
+EBASE     = main
+
+USE_PYTHON_MAIN = TRUE
+
+WARPX_HOME := ..
+include $(WARPX_HOME)/Exec/Make.WarpX

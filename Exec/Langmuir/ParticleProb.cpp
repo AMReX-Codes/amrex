@@ -9,7 +9,6 @@
 #include <BLProfiler.H>
 
 #include <ParticleContainer.H>
-#include <PICSAR_f.H>
 #include <WarpXConst.H>
 
 void
@@ -36,8 +35,14 @@ MyParticleContainer::InitData()
       pp.query("num_particles_per_cell", n_part_per_cell);
       weight = 1.e25;
       pp.query("n_e", weight);
+      #if BL_SPACEDIM==3
       weight *= dx[0]*dx[1]*dx[2]/n_part_per_cell;
+      #elif BL_SPACEDIM==2
+      weight *= dx[0]*dx[1]/n_part_per_cell;
+      #endif
 
+      particle_xmin = particle_ymin = particle_zmin = -2.e-5;
+      particle_xmax = particle_ymax = particle_zmax =  2.e-5;
       pp.query("particle_xmin", particle_xmin);
       pp.query("particle_xmax", particle_xmax);
       pp.query("particle_ymin", particle_ymin);
@@ -67,19 +72,29 @@ MyParticleContainer::InitData()
     {
 	int gid = mfi.index();
         Box grid = ba[gid];
-        RealBox grid_box = RealBox(grid,dx,geom.ProbLo());
+        RealBox grid_box { grid,dx,geom.ProbLo() };
 
-	int nx = grid.length(0), ny = grid.length(1), nz = grid.length(2); 
+#if (BL_SPACEDIM == 3)
+	int nx = grid.length(0), ny = grid.length(1), nz = grid.length(2);
+#elif (BL_SPACEDIM == 2)
+	int nx = grid.length(0), ny = 1, nz = grid.length(1);
+#endif
 
 	for (int k = 0; k < nz; k++) {
 	  for (int j = 0; j < ny; j++) {
 	    for (int i = 0; i < nx; i++) {
 	      for (int i_part=0; i_part<n_part_per_cell;i_part++) {
 		Real particle_shift = (0.5+i_part)/n_part_per_cell;
+#if (BL_SPACEDIM == 3)
 		Real x = grid_box.lo(0) + (i + particle_shift)*dx[0];
 		Real y = grid_box.lo(1) + (j + particle_shift)*dx[1];
 		Real z = grid_box.lo(2) + (k + particle_shift)*dx[2];
-   
+#elif (BL_SPACEDIM == 2)
+		Real x = grid_box.lo(0) + (i + particle_shift)*dx[0];
+		Real y = 0.0;
+		Real z = grid_box.lo(1) + (k + particle_shift)*dx[1];
+#endif   
+
 		if (x >= particle_xmax || x < particle_xmin ||
 		    y >= particle_ymax || y < particle_ymin ||
 		    z >= particle_zmax || z < particle_zmin ) continue;
@@ -91,9 +106,14 @@ MyParticleContainer::InitData()
 		p.m_lev = lev;
 		p.m_grid = gid; 
 
+#if (BL_SPACEDIM == 3)
 		p.m_pos[0] = x;
 		p.m_pos[1] = y;
 		p.m_pos[2] = z;
+#elif (BL_SPACEDIM == 2)
+		p.m_pos[0] = x;
+		p.m_pos[1] = z;
+#endif
 		
 		for (int i = 0; i < BL_SPACEDIM; i++) {
 		  BL_ASSERT(p.m_pos[i] < grid_box.hi(i));

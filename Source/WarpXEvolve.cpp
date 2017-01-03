@@ -1,9 +1,10 @@
 
 #include <cmath>
+#include <limits>
 
 #include <WarpX.H>
 #include <WarpXConst.H>
-#include <PICSAR_f.H>
+#include <WarpX_f.H>
 
 void
 WarpX::Evolve (int numsteps)
@@ -32,6 +33,16 @@ WarpX::Evolve (int numsteps)
 	    
 	    EvolveB(lev, 0.5*dt[lev]); // We now B^{n}
 
+	    if (WarpX::nox > 1 || WarpX::noy > 1 || WarpX::noz > 1) {
+		WarpX::FillBoundary(*Bfield[lev][0], geom[lev], Bx_nodal_flag);
+		WarpX::FillBoundary(*Bfield[lev][1], geom[lev], By_nodal_flag);
+		WarpX::FillBoundary(*Bfield[lev][2], geom[lev], Bz_nodal_flag);
+		WarpX::FillBoundary(*Efield[lev][0], geom[lev], Ex_nodal_flag);
+		WarpX::FillBoundary(*Efield[lev][1], geom[lev], Ey_nodal_flag);
+		WarpX::FillBoundary(*Efield[lev][2], geom[lev], Ez_nodal_flag);
+	    }
+
+
 	    // Evolve particles to p^{n+1/2} and x^{n+1}
 	    // Depose current, j^{n+1/2}
 	    mypc->Evolve(lev,
@@ -44,9 +55,9 @@ WarpX::Evolve (int numsteps)
 	    EvolveB(lev, 0.5*dt[lev]); // We now B^{n+1/2}
 	    
 	    // Fill B's ghost cells because of the next step of evolving E.
-	    WarpX::FillBoundary(*Bfield[lev][0], geom[lev], IntVect(D_DECL(1,0,0)));
-	    WarpX::FillBoundary(*Bfield[lev][1], geom[lev], IntVect(D_DECL(0,1,0)));
-	    WarpX::FillBoundary(*Bfield[lev][2], geom[lev], IntVect(D_DECL(0,0,1)));
+	    WarpX::FillBoundary(*Bfield[lev][0], geom[lev], Bx_nodal_flag);
+	    WarpX::FillBoundary(*Bfield[lev][1], geom[lev], By_nodal_flag);
+	    WarpX::FillBoundary(*Bfield[lev][2], geom[lev], Bz_nodal_flag);
 
 	    EvolveE(lev, dt[lev]); // We now have E^{n+1}
 
@@ -89,9 +100,15 @@ WarpX::EvolveB (int lev, Real dt)
     const Real* dx = geom[lev].CellSize();
 
     Real dtsdx[3];
-    for (int i = 0; i < BL_SPACEDIM; ++i) {
-	dtsdx[i] = dt / dx[i];
-    }
+#if (BL_SPACEDIM == 3)
+    dtsdx[0] = dt / dx[0];
+    dtsdx[1] = dt / dx[1];
+    dtsdx[2] = dt / dx[2];
+#elif (BL_SPACEDIM == 2)
+    dtsdx[0] = dt / dx[0];
+    dtsdx[1] = std::numeric_limits<Real>::quiet_NaN();
+    dtsdx[2] = dt / dx[1];
+#endif
 
     long norder = 2;
     long nstart = 0;
@@ -104,25 +121,41 @@ WarpX::EvolveB (int lev, Real dt)
     BL_ASSERT(nguard == Bfield[lev][1]->nGrow());
     BL_ASSERT(nguard == Bfield[lev][2]->nGrow());
 
+#if (BL_SPACEDIM == 3)
+    long nxguard = nguard;
+    long nyguard = nguard;
+    long nzguard = nguard; 
+#elif (BL_SPACEDIM == 2)
+    long nxguard = nguard;
+    long nyguard = 0;
+    long nzguard = nguard; 
+#endif
+
     for ( MFIter mfi(*Bfield[lev][0]); mfi.isValid(); ++mfi )
     {
-	const Box& box = BoxLib::enclosedCells(mfi.validbox());
-	long nx = box.length(0);
-	long ny = box.length(1);
-	long nz = box.length(2); 
+	const Box& bx = BoxLib::enclosedCells(mfi.validbox());
+#if (BL_SPACEDIM == 3)
+	long nx = bx.length(0);
+	long ny = bx.length(1);
+	long nz = bx.length(2); 
+#elif (BL_SPACEDIM == 2)
+	long nx = bx.length(0);
+	long ny = 0;
+	long nz = bx.length(1); 
+#endif
 
-	warpx_pxrpush_em3d_bvec_norder( (*Efield[lev][0])[mfi].dataPtr(),
-					(*Efield[lev][1])[mfi].dataPtr(),
-					(*Efield[lev][2])[mfi].dataPtr(),
-					(*Bfield[lev][0])[mfi].dataPtr(),
-					(*Bfield[lev][1])[mfi].dataPtr(),
-					(*Bfield[lev][2])[mfi].dataPtr(), 
-					dtsdx, dtsdx+1, dtsdx+2,
-					&nx, &ny, &nz,
-					&norder, &norder, &norder,
-					&nguard, &nguard, &nguard,
-					&nstart, &nstart, &nstart,
-					&l_nodal );
+	warpx_push_bvec( (*Efield[lev][0])[mfi].dataPtr(),
+			 (*Efield[lev][1])[mfi].dataPtr(),
+			 (*Efield[lev][2])[mfi].dataPtr(),
+			 (*Bfield[lev][0])[mfi].dataPtr(),
+			 (*Bfield[lev][1])[mfi].dataPtr(),
+			 (*Bfield[lev][2])[mfi].dataPtr(), 
+			 dtsdx, dtsdx+1, dtsdx+2,
+			 &nx, &ny, &nz,
+			 &norder, &norder, &norder,
+			 &nxguard, &nyguard, &nzguard,
+			 &nstart, &nstart, &nstart,
+			 &l_nodal );
     }
 }
 
@@ -136,9 +169,15 @@ WarpX::EvolveE (int lev, Real dt)
     const Real* dx = geom[lev].CellSize();
 
     Real dtsdx_c2[3];
-    for (int i = 0; i < BL_SPACEDIM; ++i) {
-	dtsdx_c2[i] = (PhysConst::c*PhysConst::c) * dt / dx[i];
-    }
+#if (BL_SPACEDIM == 3)
+    dtsdx_c2[0] = (PhysConst::c*PhysConst::c) * dt / dx[0];
+    dtsdx_c2[1] = (PhysConst::c*PhysConst::c) * dt / dx[1];
+    dtsdx_c2[2] = (PhysConst::c*PhysConst::c) * dt / dx[2];
+#else
+    dtsdx_c2[0] = (PhysConst::c*PhysConst::c) * dt / dx[0];
+    dtsdx_c2[1] = std::numeric_limits<Real>::quiet_NaN();
+    dtsdx_c2[2] = (PhysConst::c*PhysConst::c) * dt / dx[1];
+#endif
 
     long norder = 2;
     long nstart = 0;
@@ -154,28 +193,44 @@ WarpX::EvolveE (int lev, Real dt)
     BL_ASSERT(nguard == current[lev][1]->nGrow());
     BL_ASSERT(nguard == current[lev][2]->nGrow());
 
+#if (BL_SPACEDIM == 3)
+    long nxguard = nguard;
+    long nyguard = nguard;
+    long nzguard = nguard; 
+#elif (BL_SPACEDIM == 2)
+    long nxguard = nguard;
+    long nyguard = 0;
+    long nzguard = nguard; 
+#endif
+
     for ( MFIter mfi(*Efield[lev][0]); mfi.isValid(); ++mfi )
     {
 	const Box & bx = BoxLib::enclosedCells(mfi.validbox());
+#if (BL_SPACEDIM == 3)
 	long nx = bx.length(0);
 	long ny = bx.length(1);
 	long nz = bx.length(2); 
+#elif (BL_SPACEDIM == 2)
+	long nx = bx.length(0);
+	long ny = 0;
+	long nz = bx.length(1); 
+#endif
 
-	warpx_pxrpush_em3d_evec_norder( (*Efield[lev][0])[mfi].dataPtr(),
-					(*Efield[lev][1])[mfi].dataPtr(),
-					(*Efield[lev][2])[mfi].dataPtr(),
-					(*Bfield[lev][0])[mfi].dataPtr(),
-					(*Bfield[lev][1])[mfi].dataPtr(),
-					(*Bfield[lev][2])[mfi].dataPtr(), 
-					(*current[lev][0])[mfi].dataPtr(),
-					(*current[lev][1])[mfi].dataPtr(),
-					(*current[lev][2])[mfi].dataPtr(),
-					&mu_c2_dt, dtsdx_c2, dtsdx_c2+1, dtsdx_c2+2,
-					&nx, &ny, &nz,
-					&norder, &norder, &norder,
-					&nguard, &nguard, &nguard,
-					&nstart, &nstart, &nstart,
-					&l_nodal );
+	warpx_push_evec( (*Efield[lev][0])[mfi].dataPtr(),
+			 (*Efield[lev][1])[mfi].dataPtr(),
+			 (*Efield[lev][2])[mfi].dataPtr(),
+			 (*Bfield[lev][0])[mfi].dataPtr(),
+			 (*Bfield[lev][1])[mfi].dataPtr(),
+			 (*Bfield[lev][2])[mfi].dataPtr(), 
+			 (*current[lev][0])[mfi].dataPtr(),
+			 (*current[lev][1])[mfi].dataPtr(),
+			 (*current[lev][2])[mfi].dataPtr(),
+			 &mu_c2_dt, dtsdx_c2, dtsdx_c2+1, dtsdx_c2+2,
+			 &nx, &ny, &nz,
+			 &norder, &norder, &norder,
+			 &nxguard, &nyguard, &nzguard,
+			 &nstart, &nstart, &nstart,
+			 &l_nodal );
     }
 }
 
@@ -187,9 +242,9 @@ WarpX::ComputeDt ()
     for (int lev = 0; lev <= finest_level; ++lev)
     {
 	const Real* dx = geom[lev].CellSize();
-	dt_tmp[lev]  = cfl * 1./( std::sqrt( 1./(dx[0]*dx[0]) 
-                                           + 1./(dx[1]*dx[1])
-					   + 1./(dx[2]*dx[2])) * PhysConst::c );
+	dt_tmp[lev]  = cfl * 1./( std::sqrt(D_TERM(  1./(dx[0]*dx[0]),
+						   + 1./(dx[1]*dx[1]),
+						   + 1./(dx[2]*dx[2]))) * PhysConst::c );
     }
 
     // Limit dt's by the value of stop_time.

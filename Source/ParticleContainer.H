@@ -41,7 +41,10 @@ public:
 		 const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz,
 		 MultiFab& jx, MultiFab& jy, MultiFab& jz, Real dt);
 
+    std::unique_ptr<MultiFab> GetChargeDensity(int lev, bool local = false);
+
 private:
+
     // The outermost Array is for AMR level.
     // map's key is grid id and value is an Array. The size of map is the size of local grids.
     // The Array (i.e., the value of the map) has npartdata unique_ptr to another Array.  
@@ -52,5 +55,11 @@ private:
 
     Real charge;
     Real mass;
+
+    static void ReadStaticParameters ();
+
+    // runtime parameters
+    static int do_tiling;
+    static IntVect tile_size;
 };
 #endif /*_ParticleContainer_H_*/

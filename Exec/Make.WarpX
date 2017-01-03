@@ -1,5 +1,6 @@
 BOXLIB_HOME ?= ../../../BoxLib
 PICSAR_HOME ?= ../../../picsar
+OPENBC_HOME ?= ../../../openbc_poisson
 
 USE_PARTICLES = TRUE
 
@@ -12,9 +13,9 @@ endif
 ifeq ($(USE_PYTHON_MAIN),TRUE)
   CXXFLAGS += -fPIC
   CFLAGS   += -fPIC
-  fFLAGS   += -fPIC
   FFLAGS   += -fPIC
-  USERSuffix = Lib
+  F90FLAGS += -fPIC
+  USERSuffix = .Lib
 endif
 
 -include Make.package
@@ -27,6 +28,11 @@ include $(BOXLIB_HOME)/Src/C_AmrCoreLib/Make.package
 
 include $(PICSAR_HOME)/src/Make.package
 
+ifeq ($(USE_OPENBC_POISSON),TRUE)
+  include $(OPENBC_HOME)/Make.package
+  DEFINES += -DFFT_FFTW -DMPIPARALLEL -DUSE_OPENBC_POISSON
+endif
+
 # job_info support
 CEXE_sources += buildInfo.cpp
 CEXE_headers += $(BOXLIB_HOME)/Tools/C_scripts/buildInfo.H
@@ -34,9 +40,17 @@ INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Tools/C_scripts
 
 ifeq ($(USE_PYTHON_MAIN),TRUE)
 
+ifeq ($(shell uname),Darwin)
+  SHARED_OPTION = -dynamiclib
+  MY_LINK_LIBRARIES = $(LDFLAGS) $(libraries)
+else
+  SHARED_OPTION = -shared
+  MY_LINK_LIBRARIES =
+endif
+
 libwarpx.so: $(objForExecs)
-	@echo Making shared library $@ ...
-	$(SILENT) $(CXX) -shared -fPIC -o $@ $^
+	@echo Making dynamic library $@ ...
+	$(SILENT) $(CXX) $(SHARED_OPTION) -fPIC -o $@ $^ $(MY_LINK_LIBRARIES)
 	$(SILENT) $(RM) buildInfo.cpp
 	@echo SUCCESS
 
