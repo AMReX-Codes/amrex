@@ -13,7 +13,7 @@
 
 int main(int argc, char* argv[])
 {
-    BoxLib::Initialize(argc,argv);
+    amrex::Initialize(argc,argv);
 
     {
 	long particle_pusher_algo = 0;
@@ -108,8 +108,8 @@ int main(int argc, char* argv[])
 	Geometry geom{plotbox, &realbox, 0, is_per};
 	std::string plotname{"plt00000"};
 	Array<std::string> varnames{"x", "y", "z", "ux", "uy", "uz", "gamma"};
-	BoxLib::WriteSingleLevelPlotfile(plotname, plotmf, varnames, geom, 0.0, 0);
+	amrex::WriteSingleLevelPlotfile(plotname, plotmf, varnames, geom, 0.0, 0);
     }
 
-    BoxLib::Finalize();
+    amrex::Finalize();
 }

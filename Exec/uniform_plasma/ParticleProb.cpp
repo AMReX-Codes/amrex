@@ -125,7 +125,7 @@ MyParticleContainer::InitData()
 
 		if (!ParticleBase::Where(p,m_gdb)) // this will set m_cell
 		{
-		    BoxLib::Abort("invalid particle");
+		    amrex::Abort("invalid particle");
 		}
 
 		BL_ASSERT(p.m_lev >= 0 && p.m_lev <= m_gdb->finestLevel());

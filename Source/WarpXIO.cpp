@@ -11,7 +11,7 @@ WarpX::WritePlotFile () const
 {
     BL_PROFILE("WarpX::WritePlotFile()");
 
-    const std::string& plotfilename = BoxLib::Concatenate(plot_file,istep[0]);
+    const std::string& plotfilename = amrex::Concatenate(plot_file,istep[0]);
 
     if (ParallelDescriptor::IOProcessor()) {
 	std::cout << "  Writing plotfile " << plotfilename << std::endl;
@@ -31,7 +31,7 @@ WarpX::WritePlotFile () const
 	    Array<const MultiFab*> srcmf(BL_SPACEDIM);
 	    PackPlotDataPtrs(srcmf, current[lev]);
 	    int dcomp = 0;
-	    BoxLib::average_edge_to_cellcenter(*mf[lev], dcomp, srcmf);
+	    amrex::average_edge_to_cellcenter(*mf[lev], dcomp, srcmf);
 #if (BL_SPACEDIM == 2)
 	    MultiFab::Copy(*mf[lev], *mf[lev], dcomp+1, dcomp+2, 1, ngrow);
 	    WarpX::Copy(*mf[lev], dcomp+1, 1, *current[lev][1], 0);
@@ -39,7 +39,7 @@ WarpX::WritePlotFile () const
 
 	    PackPlotDataPtrs(srcmf, Efield[lev]);
 	    dcomp += 3;
-	    BoxLib::average_edge_to_cellcenter(*mf[lev], dcomp, srcmf);
+	    amrex::average_edge_to_cellcenter(*mf[lev], dcomp, srcmf);
 #if (BL_SPACEDIM == 2)
 	    MultiFab::Copy(*mf[lev], *mf[lev], dcomp+1, dcomp+2, 1, ngrow);
 	    WarpX::Copy(*mf[lev], dcomp+1, 1, *Efield[lev][1], 0);
@@ -47,7 +47,7 @@ WarpX::WritePlotFile () const
 
 	    PackPlotDataPtrs(srcmf, Bfield[lev]);
 	    dcomp += 3;
-	    BoxLib::average_face_to_cellcenter(*mf[lev], dcomp, srcmf);
+	    amrex::average_face_to_cellcenter(*mf[lev], dcomp, srcmf);
 #if (BL_SPACEDIM == 2)
 	    MultiFab::Copy(*mf[lev], *mf[lev], dcomp+1, dcomp+2, 1, ngrow);
 	    WarpX::Copy(*mf[lev], dcomp+1, 1, *Bfield[lev][1], 0);
@@ -59,7 +59,7 @@ WarpX::WritePlotFile () const
 	    mf2[lev] = mf[lev].get();
 	}
 
-	BoxLib::WriteMultiLevelPlotfile(plotfilename, finest_level+1, mf2, varnames,
+	amrex::WriteMultiLevelPlotfile(plotfilename, finest_level+1, mf2, varnames,
 					Geom(), t_new[0], istep, refRatio());
     }
 

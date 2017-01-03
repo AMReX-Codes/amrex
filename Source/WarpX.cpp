@@ -65,7 +65,7 @@ WarpX::WarpX ()
     ReadParameters();
 
     if (max_level != 0) {
-	BoxLib::Abort("WaprX: max_level must be zero");
+	amrex::Abort("WaprX: max_level must be zero");
     }
 
     // Geometry on all levels has been defined already.
@@ -131,10 +131,10 @@ WarpX::ReadParameters ()
 	pp.query("noy", noy);
 	pp.query("noz", noz);  
 	if (nox != noy || nox != noz) {
-	    BoxLib::Abort("warpx.nox, noy and noz must be equal");
+	    amrex::Abort("warpx.nox, noy and noz must be equal");
 	}
 	if (nox < 1) {
-	    BoxLib::Abort("warpx.nox must >= 1");
+	    amrex::Abort("warpx.nox must >= 1");
 	}
     }
 

@@ -45,7 +45,7 @@ public:
 	auto& pbox = pmap[index_map[currentIndex]];
 	if (info.tiling)
 	{
-	    BoxLib::Abort("PartIter wip");
+	    amrex::Abort("PartIter wip");
 	}
 	else
 	{

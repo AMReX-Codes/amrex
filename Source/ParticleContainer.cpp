@@ -173,7 +173,7 @@ MyParticleContainer::Evolve (int lev,
 	    BL_PROFILE_VAR_STOP(blp_copy);
 
 
-	    const Box& box = BoxLib::enclosedCells(ba[gid]);
+	    const Box& box = amrex::enclosedCells(ba[gid]);
 	    BL_ASSERT(box == vbx);
 #if (BL_SPACEDIM == 3)
 	    long nx = box.length(0);
@@ -317,7 +317,7 @@ MyParticleContainer::GetChargeDensity (int lev, bool local)
 		wp[i]  = p.m_data[PIdx::w]; 
 	    });
 
-	const Box& box = BoxLib::enclosedCells(ba[gid]);
+	const Box& box = amrex::enclosedCells(ba[gid]);
 	BL_ASSERT(box == vbx);
 #if (BL_SPACEDIM == 3)
 	long nx = box.length(0);

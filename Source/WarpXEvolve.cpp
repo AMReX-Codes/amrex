@@ -133,7 +133,7 @@ WarpX::EvolveB (int lev, Real dt)
 
     for ( MFIter mfi(*Bfield[lev][0]); mfi.isValid(); ++mfi )
     {
-	const Box& bx = BoxLib::enclosedCells(mfi.validbox());
+	const Box& bx = amrex::enclosedCells(mfi.validbox());
 #if (BL_SPACEDIM == 3)
 	long nx = bx.length(0);
 	long ny = bx.length(1);
@@ -205,7 +205,7 @@ WarpX::EvolveE (int lev, Real dt)
 
     for ( MFIter mfi(*Efield[lev][0]); mfi.isValid(); ++mfi )
     {
-	const Box & bx = BoxLib::enclosedCells(mfi.validbox());
+	const Box & bx = amrex::enclosedCells(mfi.validbox());
 #if (BL_SPACEDIM == 3)
 	long nx = bx.length(0);
 	long ny = bx.length(1);

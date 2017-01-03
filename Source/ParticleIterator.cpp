@@ -22,7 +22,7 @@ PartIter::Initialize ()
 {
     if (info.tiling)
     {
-	BoxLib::Abort("PartIter wip");
+	amrex::Abort("PartIter wip");
 #if 0
 	for (auto& pbox : pmap)
 	{
@@ -70,7 +70,7 @@ PartIter::numParticles () const
     const auto& pbox = pmap[idx];
     if (info.tiling)
     {
-	BoxLib::Abort("PartIter wip");
+	amrex::Abort("PartIter wip");
 	return 0;
     }
     else

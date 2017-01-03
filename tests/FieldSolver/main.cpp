@@ -13,7 +13,7 @@
 
 int main(int argc, char* argv[])
 {
-    BoxLib::Initialize(argc,argv);
+    amrex::Initialize(argc,argv);
 
     {
 	long nox=1, noy=1, noz=1;
@@ -23,10 +23,10 @@ int main(int argc, char* argv[])
 	    pp.query("noy", noy);
 	    pp.query("noz", noz);  
 	    if (nox != noy || nox != noz) {
-		BoxLib::Abort("warpx.nox, noy and noz must be equal");
+		amrex::Abort("warpx.nox, noy and noz must be equal");
 	    }
 	    if (nox < 1) {
-		BoxLib::Abort("warpx.nox must >= 1");
+		amrex::Abort("warpx.nox must >= 1");
 	    }
 	}
 
@@ -109,7 +109,7 @@ int main(int argc, char* argv[])
 
 	    for ( MFIter mfi(*Bfield[0]); mfi.isValid(); ++mfi )
 	    {
-		const Box& bx = BoxLib::enclosedCells(mfi.validbox());
+		const Box& bx = amrex::enclosedCells(mfi.validbox());
 #if (BL_SPACEDIM == 3)
 		long nx = bx.length(0);
 		long ny = bx.length(1);
@@ -166,7 +166,7 @@ int main(int argc, char* argv[])
 
 	    for ( MFIter mfi(*Efield[0]); mfi.isValid(); ++mfi )
 	    {
-		const Box & bx = BoxLib::enclosedCells(mfi.validbox());
+		const Box & bx = amrex::enclosedCells(mfi.validbox());
 #if (BL_SPACEDIM == 3)
 		long nx = bx.length(0);
 		long ny = bx.length(1);
@@ -217,8 +217,8 @@ int main(int argc, char* argv[])
 	Geometry geom{cc_domain, &realbox, 0, is_per};
 	std::string plotname{"plt00000"};
 	Array<std::string> varnames{"Ex", "Ey", "Ez", "Bx", "By", "Bz"};
-	BoxLib::WriteSingleLevelPlotfile(plotname, plotmf, varnames, geom, 0.0, 0);
+	amrex::WriteSingleLevelPlotfile(plotname, plotmf, varnames, geom, 0.0, 0);
     }
 
-    BoxLib::Finalize();
+    amrex::Finalize();
 }
