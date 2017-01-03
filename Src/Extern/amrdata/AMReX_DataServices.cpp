@@ -2,7 +2,6 @@
 // ---------------------------------------------------------------
 // DataServices.cpp
 // ---------------------------------------------------------------
-#include <AMReX_winstd.H>
 
 #include <AMReX_AmrvisConstants.H>
 #include <AMReX_DataServices.H>

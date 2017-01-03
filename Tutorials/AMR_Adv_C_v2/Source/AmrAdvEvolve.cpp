@@ -138,12 +138,12 @@ AmrAdv::Advance (int lev, Real time, Real dt, int iteration, int ncycle)
 	{
 	    BoxArray ba = grids[lev];
 	    ba.surroundingNodes(i);
-	    fluxes[i].define(ba, S_new.nComp(), 0, dmap[lev], Fab_allocate);
+	    fluxes[i].define(ba, dmap[lev], S_new.nComp(), 0);
 	}
     }
 
     // State with ghost cells
-    MultiFab Sborder(grids[lev], S_new.nComp(), num_grow, dmap[lev]);
+    MultiFab Sborder(grids[lev], dmap[lev], S_new.nComp(), num_grow);
     FillPatch(lev, time, Sborder, 0, Sborder.nComp());
 
 #ifdef _OPENMP

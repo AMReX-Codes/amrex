@@ -7,10 +7,10 @@
 #elif defined(SPACEDIM) && !defined(BL_SPACEDIM)
 
 /*
-  The BL_SPACEDIM macro specifies the dimension of the BoxLib library
+  The BL_SPACEDIM macro specifies the dimension of the AMReX library
   to be built.  Acceptable values are either 1, 2, or 3.  This macro
   must be set for every compilation as many of the data structures of
-  BoxLib rely on it being set.
+  AMReX rely on it being set.
 
   Code that depends on the dimensionality of the problem that you're
   trying to solve should be cast in terms of this macro.
@@ -32,7 +32,7 @@
 
 /*
   The SpaceDim C++ integer constant specifies the dimension of the
-  BoxLib library to be built.  It is initialized to the value of
+  AMReX library to be built.  It is initialized to the value of
   the macro BL_SPACEDIM.  Hence it will have one of the values 1, 2, or 3.
 
   C++ code that depends on the dimensionality of the problem that

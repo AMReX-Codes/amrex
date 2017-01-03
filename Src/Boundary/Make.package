@@ -1,7 +1,4 @@
 BNDRYLIB_BASE=EXE
-ifeq ($(LBASE),bndry)
-    BNDRYLIB_BASE=LIB
-endif
 
 C$(BNDRYLIB_BASE)_sources += AMReX_FabSet.cpp AMReX_BndryRegister.cpp AMReX_Mask.cpp AMReX_MultiMask.cpp\
                              AMReX_BndryData.cpp AMReX_InterpBndryData.cpp AMReX_MacBndry.cpp

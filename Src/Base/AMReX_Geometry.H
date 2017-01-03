@@ -110,6 +110,7 @@ public:
     //
     void GetVolume (MultiFab&       vol,
                     const BoxArray& grds,
+                    const DistributionMapping& dm,
                     int             grow) const;
     // Fill the pre-built multifab with volume
     void GetVolume (MultiFab&       vol) const;
@@ -124,6 +125,7 @@ public:
     //
     void GetDLogA (MultiFab&       dloga,
                    const BoxArray& grds,
+                    const DistributionMapping& dm,
                    int             dir,
                    int             grow) const;
     //
@@ -132,6 +134,7 @@ public:
     //
     void GetFaceArea (MultiFab&       area,
                       const BoxArray& grds,
+		      const DistributionMapping& dm,
                       int             dir,
                       int             grow) const;
     // Fill the pre-built multifab with area

@@ -3,7 +3,6 @@
 // --------------------------------------------------------------------------
 //   this file tests fillboundary.
 // --------------------------------------------------------------------------
-#include <AMReX_winstd.H>
 
 #include <new>
 #include <iostream>
@@ -79,6 +78,8 @@ int main(int argc, char *argv[]) {
     BoxArray ba(Domain);
     ba.maxSize(maxGrid);
 
+    DistributionMapping dm{ba};
+
     // ---- Below we will make a MultiFab and set the values to 1.0
     // ----  (this is arbitrary, just makes the values not be undefined)
     // ---- We will do this for nGhost = 1,...,4 and nComp = 1, 4, 20
@@ -104,7 +105,7 @@ int main(int argc, char *argv[]) {
 		      << std::endl;
 	  }
 
-          MultiFab mf(ba, nComp[icomp], nGhost[ighost]);
+          MultiFab mf(ba, dm, nComp[icomp], nGhost[ighost]);
           mf.setVal(1.0);
 
           BL_COMM_PROFILE_NAMETAG(nametag.str() + "_Start");

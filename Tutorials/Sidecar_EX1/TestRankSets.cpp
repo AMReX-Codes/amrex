@@ -4,7 +4,7 @@
 // An example to test resizing with a disallowed rank set.
 // This test is supposed to fail.
 // --------------------------------------------------------------------------
-#include <AMReX_BoxLib.H>
+#include <AMReX.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_Utility.H>
 

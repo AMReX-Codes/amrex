@@ -1,5 +1,4 @@
 
-#include <AMReX_winstd.H>
 #include <climits>
 
 #include <AMReX_FArrayBox.H>

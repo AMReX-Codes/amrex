@@ -20,7 +20,9 @@ main (int argc, char** argv)
     if (ParallelDescriptor::IOProcessor())
         std::cout << "Successfully read the VisMF header" << std::endl;
 
-    MultiFab rho(vmf.boxArray(),1,0);
+    DistributionMapping dm{vmf.boxArray()};
+
+    MultiFab rho(vmf.boxArray(),dm,1,0);
 
     for (MFIter mfi(rho); mfi.isValid(); ++mfi)
     {

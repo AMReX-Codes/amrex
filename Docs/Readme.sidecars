@@ -6,14 +6,14 @@ Typically main will coordinate resizing and communicating
 with the sidecars as appropriate.
 
 Sidecars are implemented with mpi communicators which are
-separate from the boxlib global communicator.  Extra
-communicators are created in BoxLib when the sicecars
+separate from the AMReX global communicator.  Extra
+communicators are created in AMReX when the sicecars
 are resized to facilitate communication between the
 calculation and the sidecars (inter communicators).
-The BoxLib global communicator is still available and
+The AMReX global communicator is still available and
 the user can create their own communicators at any time.
 
-List of BoxLib functions.
+List of AMReX functions.
   Functions to create and resize sidecars.
 
   // ---- This version makes one sidecar (number zero)
@@ -27,14 +27,14 @@ List of BoxLib functions.
   // ---- be removed in the future
   // ---- the intersection of all ranks in all arrays must
   // ---- be null and the union must include all ranks in
-  // ---- the BoxLib global communicator
+  // ---- the AMReX global communicator
   void SetNProcsSidecars (const Array<int> &compRanksInAll,
                           const Array<Array<int> > &sidecarRanksInAll);
 						   
   Functions to communicate data.
 
 Example code.
-  Example code is in:  BoxLib/Tutorials/Sidecar_EX1
+  Example code is in:  AMReX/Tutorials/Sidecar_EX1
 
 
 Resizing the calculation:

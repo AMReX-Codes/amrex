@@ -135,10 +135,12 @@ main (int argc, char* argv[])
   if (Nghost > max_grid_size)
     std::cout <<  "NGHOST < MAX_GRID_SIZE --  grids are too small! " << std::endl;
 
+  DistributionMapping dm{bs};
+
   // Allocate space for the old_data and new_data -- we define old_data and new_data as
   //   pointers to the MultiFabs
-  MultiFab* old_data = new MultiFab(bs, Ncomp, Nghost);
-  MultiFab* new_data = new MultiFab(bs, Ncomp, Nghost);
+  MultiFab* old_data = new MultiFab(bs, dm, Ncomp, Nghost);
+  MultiFab* new_data = new MultiFab(bs, dm, Ncomp, Nghost);
 
   // Initialize both to zero (just because)
   old_data->setVal(0.0);

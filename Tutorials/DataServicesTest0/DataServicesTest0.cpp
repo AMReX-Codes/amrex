@@ -87,7 +87,8 @@ int main(int argc, char *argv[]) {
     BoxArray fillBoxes(amrData.ProbDomain()[0]);
     fillBoxes.maxSize(128);  // ---- break the boxarray into smaller boxes
     int nVar(1), nGrow(0);
-    MultiFab fillMF(fillBoxes, nVar, nGrow);  // ---- one component
+    DistributionMapping dmap(fillBoxes);
+    MultiFab fillMF(fillBoxes, dmap, nVar, nGrow);  // ---- one component
     if(ParallelDescriptor::IOProcessor()) {
       std::cout << "fillBoxes = " << fillBoxes << std::endl;
       std::cout << "filling multifab for " << plotVarNames[0] << std::endl;

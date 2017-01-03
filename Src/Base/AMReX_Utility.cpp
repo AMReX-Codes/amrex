@@ -16,7 +16,7 @@
 
 #include <AMReX_BLFort.H>
 #include <AMReX_REAL.H>
-#include <AMReX_BoxLib.H>
+#include <AMReX.H>
 #include <AMReX_Utility.H>
 #include <AMReX_BLassert.H>
 #include <AMReX_BLProfiler.H>
@@ -582,7 +582,7 @@ amrex::Time::get_time()
 
 
 //
-// BoxLib Interface to Mersenne Twistor
+// AMReX Interface to Mersenne Twistor
 //
 
 /* A C-program for MT19937: Real number version (1999/10/28)    */
@@ -1649,7 +1649,7 @@ void amrex::BroadcastDistributionMapping(DistributionMapping &dM, int sentinelPr
   if(dmapA.size() > 0) {
     if(myLocalId != rootId) {
       dmapA[dmapA.size() - 1] = sentinelProc;  // ---- set the sentinel
-      dM.define(dmapA, addToCache);
+      dM.define(dmapA);
     }
   }
   int dmID(dM.DistMapID()), nDM(DistributionMapping::NDistMaps());

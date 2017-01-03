@@ -156,6 +156,7 @@ MGT_Solver::MGT_Solver(const Array<Geometry>& geom,
     verbose(_verbose),
     m_nlevel(grids.size()),
     m_grids(grids),
+    m_dmap(dmap),
     m_nodal(nodal),
     have_rhcc(_have_rhcc)
 {
@@ -922,7 +923,9 @@ MGT_Solver::set_cfa_const (Real alpha, int lev)
         // Nothing to do if alpha == 0, because cell coefficients are zero by default.
 	return;
     } else {
-	MultiFab cc(m_grids[lev], 1, 0, Fab_noallocate); // cell-centered MF      
+	MFInfo info;
+	info.SetAlloc(false);
+	MultiFab cc(m_grids[lev], m_dmap[lev], 1, 0, info); // cell-centered MF      
 #ifdef _OPENMP
 #pragma omp parallel
 #endif

@@ -73,7 +73,7 @@ namespace ParallelDescriptor
     //
     ProcessTeam m_Team;
     //
-    // BoxLib's Communicators
+    // AMReX's Communicators
     //
     MPI_Comm m_comm_all     = MPI_COMM_NULL;    // for all ranks, probably MPI_COMM_WORLD
     MPI_Comm m_comm_comp    = MPI_COMM_NULL;    // for the ranks doing computations
@@ -82,7 +82,7 @@ namespace ParallelDescriptor
     Array<MPI_Comm> m_comm_inter;               // for communicating between comp and sidecar
     Array<MPI_Comm> m_comm_both;                // for communicating within comp and a sidecar
     //
-    // BoxLib's Groups
+    // AMReX's Groups
     //
     MPI_Group m_group_all     = MPI_GROUP_NULL;
     MPI_Group m_group_comp    = MPI_GROUP_NULL;
@@ -109,7 +109,7 @@ namespace ParallelDescriptor
     Array<MPI_Comm> m_comm_sidecar;
     Array<MPI_Comm> m_comm_inter;
     //
-    // BoxLib's Groups
+    // AMReX's Groups
     //
     MPI_Group m_group_all     = 0;
     MPI_Group m_group_comp    = 0;
@@ -179,12 +179,12 @@ namespace
 	static char buf[N];
 	if ( status )
 	{
-	    snprintf(buf, N, "BoxLib MPI Error: File %s, line %d, %s: %s",
+	    snprintf(buf, N, "AMReX MPI Error: File %s, line %d, %s: %s",
                      file, line, call, ParallelDescriptor::ErrorString(status));
 	}
 	else
 	{
-	    snprintf(buf, N, "BoxLib MPI Error: File %s, line %d, %s",
+	    snprintf(buf, N, "AMReX MPI Error: File %s, line %d, %s",
                      file, line, call);
 	}
 	return buf;
@@ -588,7 +588,7 @@ ParallelDescriptor::SetNProcsSidecars (const Array<int> &compRanksInAll,
     if(m_nCommColors > 1) {
       m_nProcs_sub = m_nProcs_comp / m_nCommColors;
       if (m_nProcs_sub * m_nCommColors != m_nProcs_comp) {
-        amrex::Abort("# of processors is not divisible by boxlib.ncolors");
+        amrex::Abort("# of processors is not divisible by amrex.ncolors");
       }
       m_MyCommSubColor  = Color(MyProc()/m_nProcs_sub);
       m_MyCommCompColor = Color(m_nCommColors);  // special color for CommComp color
@@ -701,25 +701,25 @@ ParallelDescriptor::SetNProcsSidecars (int nscp)
 void
 ParallelDescriptor::StartSubCommunicator ()
 {
-    ParmParse pp("boxlib");
+    ParmParse pp("amrex");
     pp.query("ncolors", m_nCommColors);
 
     if (m_nCommColors > 1) {
 
 #if defined(BL_USE_MPI3) || defined(BL_USE_UPCXX)
 	//    m_nCommColors = 1;
-	amrex::Abort("boxlib.ncolors > 1 not supported for MPI3 and UPCXX");
+	amrex::Abort("amrex.ncolors > 1 not supported for MPI3 and UPCXX");
 	if (doTeamReduce())
-	    amrex::Abort("boxlib.ncolors > 1 not supported with team.reduce on");	    
+	    amrex::Abort("amrex.ncolors > 1 not supported with team.reduce on");	    
 #endif
 
 #ifdef BL_LAZY
-	amrex::Abort("boxlib.ncolors > 1 not supported for LAZY=TRUE");
+	amrex::Abort("amrex.ncolors > 1 not supported for LAZY=TRUE");
 #endif
 
 	m_nProcs_sub = m_nProcs_comp / m_nCommColors;
 	if (m_nProcs_sub * m_nCommColors != m_nProcs_comp) {
-	    amrex::Abort("# of processors is not divisible by boxlib.ncolors");
+	    amrex::Abort("# of processors is not divisible by amrex.ncolors");
 	}
 	m_MyCommSubColor  = Color(MyProc()/m_nProcs_sub);
 	m_MyCommCompColor = Color(m_nCommColors);  // special color for CommComp color

@@ -1,4 +1,3 @@
-#include <AMReX_winstd.H>
 #include <algorithm>
 #include <AMReX_ABec4.H>
 #include <AMReX_ABec4_F.H>
@@ -23,7 +22,7 @@ ABec4::ABec4 (const BndryData& _bd,
 
     buildWorkSpace();
 
-    initCoefficients(_bd.boxes());
+    initCoefficients(_bd.boxes(),_bd.DistributionMap());
 }
 
 ABec4::~ABec4 ()
@@ -36,8 +35,9 @@ void
 ABec4::buildWorkSpace()
 {
   const BoxArray& ba = boxArray();
+  const DistributionMapping& dm = DistributionMapping();
   BL_ASSERT(resL.size()==0);
-  resL.define(ba, 1, 0, Fab_allocate);
+  resL.define(ba, dm, 1, 0);
 }
 
 int
@@ -285,19 +285,19 @@ ABec4::prepareForLevel (int level)
 }
 
 void
-ABec4::initCoefficients (const BoxArray& _ba)
+ABec4::initCoefficients (const BoxArray& _ba, const DistributionMapping& _dm)
 {
     const int nComp=1;
     const int nGrow=2;
     acoefs.resize(1);
     bcoefs.resize(1);
-    acoefs[0] = new MultiFab(_ba, nComp, nGrow, Fab_allocate);
+    acoefs[0] = new MultiFab(_ba, _dm, nComp, nGrow);
     acoefs[0]->setVal(a_def);
     a_valid.resize(1);
     a_valid[0] = true;
 
     const int nGrowb=2;
-    bcoefs[0] = new MultiFab(_ba, nComp, nGrowb, Fab_allocate);
+    bcoefs[0] = new MultiFab(_ba, _dm, nComp, nGrowb);
     bcoefs[0]->setVal(b_def);
     b_valid.resize(1);
     b_valid[0] = true;
@@ -361,11 +361,12 @@ ABec4::setCoefficients (const MultiFab &_a,
   if (LO_Op) {
     int level = 0;
     const BoxArray& cba = boxArray(level);
+    const DistributionMapping& dm = DistributionMap();
     LO_Op->aCoefficients(_a);
     bool do_harm = true;
     for (int d=0; d<BL_SPACEDIM; ++d) {
       BoxArray eba = BoxArray(cba).surroundingNodes(d);
-      MultiFab btmp(eba,1,0);
+      MultiFab btmp(eba,dm,1,0);
       lo_cc2ec(_b,btmp,0,0,1,d,do_harm);
       LO_Op->bCoefficients(btmp,d);
     }

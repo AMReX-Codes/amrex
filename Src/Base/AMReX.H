@@ -1,6 +1,6 @@
 
-#ifndef BL_BOXLIB_H
-#define BL_BOXLIB_H
+#ifndef BL_AMREX_H
+#define BL_AMREX_H
 
 #include <AMReX_ccse-mpi.H>
 
@@ -11,7 +11,7 @@
 // Error-reporting Functions and Version Number
 //
 // This class consists entirely of static error-reporting functions that
-// are used throughout the BoxLib implementation together with a version
+// are used throughout the AMReX implementation together with a version
 // string.  In the best of all possible worlds we'd use a namespace, but
 // we aren't there, yet :-)  Note that all the output functions add a
 // terminating exclamation mark, so there is no need to add any punctuation
@@ -34,7 +34,7 @@ namespace amrex
     // We maintain a stack of functions that need to be called in Finalize().
     // The functions are called in LIFO order.  The idea here is to allow
     // classes to clean up any "global" state that they maintain when we're
-    // exiting from BoxLib land.
+    // exiting from AMReX land.
     //
     void ExecOnFinalize (PTR_TO_VOID_FUNC);
     void ExecOnInitialize (PTR_TO_VOID_FUNC);
@@ -60,7 +60,7 @@ namespace amrex
                  int         line);
     //
     // Prints out an out-of-memory message and aborts.  It is
-    //         called by various BoxLib routines when a call to new fails.
+    //         called by various AMReX routines when a call to new fails.
     //
     //        Called as amrex::OutOfMemory(__FILE__, __LINE__);
     //
@@ -88,4 +88,4 @@ namespace amrex
     }
 }
 
-#endif /*BL_BOXLIB_H*/
+#endif /*BL_AMREX_H*/

@@ -1,6 +1,6 @@
 #include <iostream>
 
-#include <AMReX_BoxLib.H>
+#include <AMReX.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_BLFort.H>
 
@@ -28,8 +28,10 @@ int main(int argc, char* argv[])
     // break the box array into 32^3 boxes
     ba.maxSize(32);
 
+    DistributionMapping dm{ba};
+
     // build a multifab on the box array with 1 component, 0 ghost cells
-    MultiFab data(ba, 1, 0);  
+    MultiFab data(ba, dm, 1, 0);  
 
     // loop over boxes and initialize the data
 	
@@ -62,7 +64,7 @@ int main(int argc, char* argv[])
     std::cout << "L1  norm = " << data.norm1() << std::endl;
     std::cout << "L2  norm = " << data.norm2() << std::endl;
 
-    MultiFab data2(ba, 1, 0);
+    MultiFab data2(ba, dm, 1, 0);
     MultiFab::Copy(data2, data, 0, 0, 1, 0);
 
 #ifdef _OPENMP

@@ -1,7 +1,6 @@
 // ---------------------------------------------------------------
 // AmrData.cpp
 // ---------------------------------------------------------------
-#include <AMReX_winstd.H>
 
 #include <AMReX_AmrData.H>
 #include <AMReX_ArrayLim.H>
@@ -201,6 +200,9 @@ bool AmrData::ReadData(const string &filename, Amrvis::FileType filetype) {
 
    int i, j, k, width;
    fileName = filename;
+
+   MFInfo Fab_noallocate;
+   Fab_noallocate.SetAlloc(false);
 
     string File = filename;
 
@@ -609,6 +611,8 @@ bool AmrData::ReadData(const string &filename, Amrvis::FileType filetype) {
       dataGrids[i].resize(nComp);
       dataGridsDefined[i].resize(nComp);
 
+      std::unique_ptr<DistributionMapping> dmap;
+
       while(currentIndexComp < nComp) {
 
         string mfNameRelative;
@@ -625,6 +629,8 @@ bool AmrData::ReadData(const string &filename, Amrvis::FileType filetype) {
 
         visMF[i].resize(currentVisMF + 1);  // this preserves previous ones
         visMF[i][currentVisMF] = new VisMF(mfName);
+	const BoxArray& ba = visMF[i][currentVisMF]->boxArray();
+	if (!dmap) dmap.reset(new DistributionMapping(ba));
 	int iComp(currentIndexComp);
         nGrow = visMF[i][currentVisMF]->nGrow();
         currentIndexComp += visMF[i][currentVisMF]->nComp();
@@ -632,7 +638,8 @@ bool AmrData::ReadData(const string &filename, Amrvis::FileType filetype) {
         for( ; iComp < currentIndexComp; ++iComp) {
           // make single component multifabs
           // defer reading the MultiFab data
-          dataGrids[i][iComp] = new MultiFab(visMF[i][currentVisMF]->boxArray(), 1,
+	  dataGrids[i][iComp] = new MultiFab(ba, *dmap,
+					     1,
 			                     visMF[i][currentVisMF]->nGrow(),
 					     Fab_noallocate);
           dataGridsDefined[i][iComp].resize(visMF[i][currentVisMF]->size(),
@@ -895,12 +902,16 @@ bool AmrData::ReadNonPlotfileData(const string &filename, Amrvis::FileType filet
     dataGrids[LevelZero][ComponentZero] = new MultiFab;
     int nGrow(0);
 
-    Array<int> dMap(fabBoxArray.size() + 1);
-    dMap[BoxZero] = iopNum;
-    dMap[dMap.size() - 1] = myProc;
+    Array<int> pMap(fabBoxArray.size() + 1);
+    pMap[BoxZero] = iopNum;
+    pMap[pMap.size() - 1] = myProc;
+    DistributionMapping dMap(pMap);
 
-    dataGrids[LevelZero][ComponentZero]->define(fabBoxArray, NVarZero,
-                                                nGrow, dMap, Fab_noallocate);
+    MFInfo Fab_noallocate;
+    Fab_noallocate.SetAlloc(false);
+
+    dataGrids[LevelZero][ComponentZero]->define(fabBoxArray, dMap, NVarZero,
+                                                nGrow, Fab_noallocate);
     if(ParallelDescriptor::IOProcessor()) {
       dataGrids[LevelZero][ComponentZero]->setFab(FabZero, newfab);
     }
@@ -909,8 +920,8 @@ bool AmrData::ReadNonPlotfileData(const string &filename, Amrvis::FileType filet
     // need to optimize this for lazy i/o
     for(int iComp = 1; iComp < nComp; ++iComp) {
       dataGrids[LevelZero][iComp] = new MultiFab;
-      dataGrids[LevelZero][iComp]->define(fabBoxArray, NVarZero,
-                                          nGrow, dMap, Fab_noallocate);
+      dataGrids[LevelZero][iComp]->define(fabBoxArray, dMap, NVarZero,
+                                          nGrow, Fab_noallocate);
       if(ParallelDescriptor::IOProcessor()) {
         newfab = new FArrayBox;
         is.seekg(0, ios::beg);
@@ -957,9 +968,13 @@ bool AmrData::ReadNonPlotfileData(const string &filename, Amrvis::FileType filet
     char fabname[N];  // arbitrarily
     plotVars.resize(nComp);
 
-    Array<int> dMap(fabBoxArray.size() + 1);
-    dMap[BoxZero] = iopNum;
-    dMap[dMap.size() - 1] = myProc;
+    Array<int> pMap(fabBoxArray.size() + 1);
+    pMap[BoxZero] = iopNum;
+    pMap[pMap.size() - 1] = myProc;
+    DistributionMapping dMap(pMap);
+
+    MFInfo Fab_noallocate;
+    Fab_noallocate.SetAlloc(false);
 
     for(int iComp(0); iComp < nComp; ++iComp) {
       if(snprintf(fabname, N, "%s%d", "MultiFab_", iComp) >= N) {
@@ -975,8 +990,8 @@ bool AmrData::ReadNonPlotfileData(const string &filename, Amrvis::FileType filet
       // set the level zero multifab
       dataGridsDefined[LevelZero][iComp].resize(1, false);
       dataGrids[LevelZero][iComp] = new MultiFab;
-      dataGrids[LevelZero][iComp]->define(levelZeroBoxArray, NVarZero,
-                                          nGrow, dMap, Fab_noallocate);
+      dataGrids[LevelZero][iComp]->define(levelZeroBoxArray, dMap, NVarZero,
+                                          nGrow, Fab_noallocate);
       if(ParallelDescriptor::IOProcessor()) {
         FArrayBox *newfab = new FArrayBox(probDomain[LevelZero], 1);
         Real levelZeroValue, zvMin, zvMax;
@@ -1019,17 +1034,21 @@ bool AmrData::ReadNonPlotfileData(const string &filename, Amrvis::FileType filet
       compIndexToVisMFMap.resize(nComp);
       compIndexToVisMFComponentMap.resize(nComp);
 
+      std::unique_ptr<DistributionMapping> dmap;
+
       while(currentIndexComp < nComp) {
         visMF[LevelOne].resize(currentVisMF + 1);  // this preserves previous ones
         visMF[LevelOne][currentVisMF] = new VisMF(filename);
+	const BoxArray& ba = visMF[LevelOne][currentVisMF]->boxArray();
+	if (!dmap) dmap.reset(new DistributionMapping(ba));
         int iComp(currentIndexComp);
         nGrow = visMF[LevelOne][currentVisMF]->nGrow();
         currentIndexComp += visMF[LevelOne][currentVisMF]->nComp();
         for(int currentVisMFComponent(0); iComp < currentIndexComp; ++iComp) {
           // make single component multifabs for level one
           dataGrids[1][iComp] =
-	      new MultiFab(visMF[LevelOne][currentVisMF]->boxArray(), 1,
-                           visMF[LevelOne][currentVisMF]->nGrow(),
+	      new MultiFab(ba, *dmap,
+			   1, visMF[LevelOne][currentVisMF]->nGrow(),
                            Fab_noallocate);
           dataGridsDefined[LevelOne][iComp].resize(visMF[LevelOne][currentVisMF]->size(), false);
           compIndexToVisMFMap[iComp] = currentVisMF;
@@ -1750,6 +1769,9 @@ bool AmrData::DefineFab(int level, int componentIndex, int fabIndex) {
 // ---------------------------------------------------------------
 void AmrData::FlushGrids(int componentIndex) {
 
+  MFInfo Fab_noallocate;
+  Fab_noallocate.SetAlloc(false);
+
   BL_ASSERT(componentIndex < nComp);
   for(int lev(0); lev <= finestLevel; ++lev) {
     if(dataGrids.size() > lev
@@ -1758,9 +1780,10 @@ void AmrData::FlushGrids(int componentIndex) {
        && dataGrids[lev][componentIndex]->ok())
     {
       BoxArray ba = dataGrids[lev][componentIndex]->boxArray();
+      DistributionMapping dm = dataGrids[lev][componentIndex]->DistributionMap();
       int nGrow = dataGrids[lev][componentIndex]->nGrow();
       delete dataGrids[lev][componentIndex];
-      dataGrids[lev][componentIndex] = new MultiFab(ba, 1, nGrow, Fab_noallocate);
+      dataGrids[lev][componentIndex] = new MultiFab(ba, dm, 1, nGrow, Fab_noallocate);
       for(MFIter mfi(*dataGrids[lev][componentIndex]); mfi.isValid(); ++mfi) {
          dataGridsDefined[lev][componentIndex][mfi.index()] = false;
       }

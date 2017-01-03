@@ -1,7 +1,11 @@
+#ifndef AMREX_BUILDINFO_H_
+#define AMREX_BUILDINFO_H_
+
+namespace amrex {
 const char* buildInfoGetBuildDate();
 const char* buildInfoGetBuildDir();
 const char* buildInfoGetBuildMachine();
-const char* buildInfoGetBoxlibDir();
+const char* buildInfoGetAMReXDir();
 const char* buildInfoGetComp();
 const char* buildInfoGetCompVersion();
 const char* buildInfoGetCompilerLoc(int i);
@@ -19,4 +23,6 @@ const char* buildInfoGetGitBranch(int i);
 const char* buildInfoGetLinkerInfo(int i);
 const char* buildInfoGetBuildGitName();
 const char* buildInfoGetBuildGitHash();
+}
 
+#endif

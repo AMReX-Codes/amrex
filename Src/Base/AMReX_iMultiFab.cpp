@@ -1,5 +1,4 @@
 
-#include <AMReX_winstd.H>
 #include <algorithm>
 #include <cfloat>
 #include <iostream>
@@ -201,22 +200,13 @@ iMultiFab::Finalize ()
 
 iMultiFab::iMultiFab () {}
 
-iMultiFab::iMultiFab (const BoxArray& bxs,
-                    int             ncomp,
-                    int             ngrow,
-                    FabAlloc        alloc)
-    :
-    FabArray<IArrayBox>(bxs,ncomp,ngrow,alloc)
-{
-}
-
 iMultiFab::iMultiFab (const BoxArray&            bxs,
+                      const DistributionMapping& dm,
                       int                        ncomp,
                       int                        ngrow,
-                      const DistributionMapping& dm,
-                      FabAlloc                   alloc)
+		      const MFInfo&              info)
     :
-    FabArray<IArrayBox>(bxs,ncomp,ngrow,dm,alloc)
+    FabArray<IArrayBox>(bxs,dm,ncomp,ngrow,info)
 {
 }
 
@@ -227,22 +217,13 @@ iMultiFab::operator= (const int& r)
 }
 
 void
-iMultiFab::define (const BoxArray& bxs,
-                  int             nvar,
-                  int             ngrow,
-                  FabAlloc        alloc)
-{
-    this->FabArray<IArrayBox>::define(bxs,nvar,ngrow,alloc);
-}
-
-void
 iMultiFab::define (const BoxArray&            bxs,
-                  int                        nvar,
-                  int                        ngrow,
-                  const DistributionMapping& dm,
-                  FabAlloc                   alloc)
+		   const DistributionMapping& dm,
+		   int                        nvar,
+		   int                        ngrow,
+		   const MFInfo&              info)
 {
-    this->FabArray<IArrayBox>::define(bxs,nvar,ngrow,dm,alloc);
+    this->FabArray<IArrayBox>::define(bxs,dm,nvar,ngrow,info);
 }
 
 
