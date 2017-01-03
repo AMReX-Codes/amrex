@@ -102,7 +102,7 @@ because C++ is too a complicated language for shell scripting.
 For most `.cpp` files, you can put a `using namespace amrex;` line
 after the last `include` line, or `using amrex::MultiFab` etc., or you
 can add `amrex::` to wherever needed.  Note that having both `using
-namespace std` and `using namespace std` in one file may cause
+namespace amrex` and `using namespace std` in one file may cause
 conflicts because some names like `min` and `max` exist in both
 namespace. 
 
