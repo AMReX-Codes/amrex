@@ -1,10 +1,10 @@
-BOXLIB_HOME ?= ../../../BoxLib
+AMREX_HOME ?= ../../../BoxLib
 PICSAR_HOME ?= ../../../picsar
 OPENBC_HOME ?= ../../../openbc_poisson
 
 USE_PARTICLES = TRUE
 
-include $(BOXLIB_HOME)/Tools/C_mk/Make.defs
+include $(AMREX_HOME)/Tools/C_mk/Make.defs
 
 ifndef USE_PYTHON_MAIN
   USE_PYTHON_MAIN = FALSE
@@ -21,10 +21,10 @@ endif
 -include Make.package
 include $(WARPX_HOME)/Source/Make.package
 
-include $(BOXLIB_HOME)/Src/C_BaseLib/Make.package
-include $(BOXLIB_HOME)/Src/C_ParticleLib/Make.package
-include $(BOXLIB_HOME)/Src/C_BoundaryLib/Make.package
-include $(BOXLIB_HOME)/Src/C_AmrCoreLib/Make.package
+include $(AMREX_HOME)/Src/C_BaseLib/Make.package
+include $(AMREX_HOME)/Src/C_ParticleLib/Make.package
+include $(AMREX_HOME)/Src/C_BoundaryLib/Make.package
+include $(AMREX_HOME)/Src/C_AmrCoreLib/Make.package
 
 include $(PICSAR_HOME)/src/Make.package
 
@@ -35,8 +35,8 @@ endif
 
 # job_info support
 CEXE_sources += buildInfo.cpp
-CEXE_headers += $(BOXLIB_HOME)/Tools/C_scripts/buildInfo.H
-INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Tools/C_scripts
+CEXE_headers += $(AMREX_HOME)/Tools/C_scripts/buildInfo.H
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Tools/C_scripts
 
 ifeq ($(USE_PYTHON_MAIN),TRUE)
 
@@ -66,13 +66,13 @@ clean::
 	$(SILENT) $(RM) libwarpx.so
 
 buildInfo.cpp: 
-	$(BOXLIB_HOME)/Tools/C_scripts/makebuildinfo_C.py \
-          --boxlib_home "$(BOXLIB_HOME)" \
+	$(AMREX_HOME)/Tools/C_scripts/makebuildinfo_C.py \
+          --boxlib_home "$(AMREX_HOME)" \
           --COMP "$(COMP)" --COMP_VERSION "$(COMP_VERSION)" \
           --FCOMP "$(FCOMP)" --FCOMP_VERSION "$(FCOMP_VERSION)" \
-          --GIT ". $(BOXLIB_HOME) $(PICSAR_HOME)"
+          --GIT ". $(AMREX_HOME) $(PICSAR_HOME)"
 
-include $(BOXLIB_HOME)/Tools/C_mk/Make.rules
+include $(AMREX_HOME)/Tools/C_mk/Make.rules
 
 clean::
 	$(SILENT) $(RM) buildInfo.cpp

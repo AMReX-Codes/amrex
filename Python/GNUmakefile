@@ -1,4 +1,4 @@
-BOXLIB_HOME ?= ../../BoxLib
+AMREX_HOME ?= ../../amrex
 PICSAR_HOME ?= ../../picsar
 
 DEBUG	= FALSE

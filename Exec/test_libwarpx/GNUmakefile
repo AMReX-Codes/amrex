@@ -1,4 +1,4 @@
-BOXLIB_HOME ?= ../../../BoxLib
+AMREX_HOME ?= ../../../amrex
 
 DEBUG	= FALSE
 #DEBUG	= TRUE
@@ -13,11 +13,11 @@ USE_OMP   = FALSE
 
 LIBRARIES += -lwarpx
 
-include $(BOXLIB_HOME)/Tools/C_mk/Make.defs
+include $(AMREX_HOME)/Tools/C_mk/Make.defs
 
 CEXE_sources += main.cpp
 CEXE_headers += WarpXWrappers.h
 
 INCLUDE_LOCATIONS += ../../Source
 
-include $(BOXLIB_HOME)/Tools/C_mk/Make.rules
+include $(AMREX_HOME)/Tools/C_mk/Make.rules
