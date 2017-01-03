@@ -78,6 +78,32 @@ namespace amrex
     ///
     std::vector<RealVect> m_faceCentroid[2*SpaceDim];
 
+    Real bndryArea() const
+    {
+      Real retval;
+
+      Real irregArea=0.0;
+      for (int idir=0; idir < SpaceDim; idir++)
+        {
+          int loindex = index(idir, Side::Lo);
+          int hiindex = index(idir, Side::Hi);
+          Real loArea = 0;   
+          Real hiArea = 0;
+          std::vector<Real> loAreas = m_areaFrac[loindex];
+          std::vector<Real> hiAreas = m_areaFrac[hiindex];
+          for(int ilo = 0; ilo < loAreas.size(); ilo++)
+            {
+              loArea += loAreas[ilo];
+            }
+          for(int ihi = 0; ihi < hiAreas.size(); ihi++)
+            {
+              hiArea += hiAreas[ihi];
+            }
+          irregArea += (hiArea-loArea)*(hiArea-loArea);
+        }
+      retval = sqrt(irregArea);
+      return retval;;
+    }
     ///
     /**
        helper function for construction.  makes irregular cell

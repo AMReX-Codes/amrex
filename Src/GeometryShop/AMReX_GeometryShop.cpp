@@ -27,14 +27,10 @@ namespace amrex
 
   GeometryShop::GeometryShop(const BaseIF& a_localGeom,
                              int           a_verbosity,
-                             RealVect      a_vectDx,
                              Real          a_thrshdVoF)
   {
 
-    m_vectDx = a_vectDx;
 
-    RealVect vectDx;
-    vectDx = RealVect::Unit;
 
 
     m_implicitFunction = a_localGeom.newImplicitFunction();
@@ -65,7 +61,6 @@ namespace amrex
   {
     GeometryShop::InOut rtn;
 
-    RealVect vectDx;
 
     // All corner indices for the current box
     Box allCorners(a_region);
@@ -73,20 +68,7 @@ namespace amrex
 
     RealVect physCorner(allCorners.smallEnd());
 
-    if (m_vectDx[0] != 0.0)
-      {
-        vectDx[0] = a_dx;
-        for (int idir = 1; idir < SpaceDim; idir++)
-          {
-            vectDx[idir] = vectDx[0] * m_vectDx[idir] / m_vectDx[0];
-          }
-      }
-    else
-      {
-        vectDx = a_dx * RealVect::Unit;
-      }
-
-    physCorner *= vectDx;
+    physCorner *= a_dx;
     physCorner += a_origin;
 
     Real firstValue;
@@ -117,7 +99,7 @@ namespace amrex
         // Compute physical coordinate of corner
         for (int idir = 0; idir < SpaceDim; ++idir)
           {
-            physCorner[idir] = vectDx[idir]*corner[idir] + a_origin[idir];
+            physCorner[idir] = a_dx*corner[idir] + a_origin[idir];
           }
 
         // If the implicit function value is positive then the current
@@ -154,16 +136,9 @@ namespace amrex
                           const Real          & a_dx) const
   {
     assert(a_domain.contains(a_ghostRegion));
-    RealVect vectDx;
+    a_nodes.resize(0);
+    a_regIrregCovered.resize(a_ghostRegion, 1);
 
-    if (m_vectDx == RealVect::Zero)
-      {
-        vectDx = a_dx*RealVect::Unit;
-      }
-    else
-      {
-        vectDx = m_vectDx;
-      }
 
     Real thrshd = m_thrshdVoF;
 
@@ -289,7 +264,6 @@ namespace amrex
                             a_domain,
                             a_origin,
                             a_dx,
-                            vectDx,
                             iv);
 
 
@@ -477,21 +451,12 @@ namespace amrex
                                     const Box&a_domain,
                                     const RealVect&     a_origin,
                                     const Real&         a_dx,
-                                    const RealVect&     a_vectDx,
                                     const IntVect&      a_iv)const
   {
 
     // need maxDx to properly scale a_bndryArea
-    Real maxDx = 0.0;
+    Real maxDx = a_dx;
 
-    for (int idir = 0; idir <SpaceDim; ++idir)
-      {
-        assert(a_vectDx[idir] > 0);
-        if (a_vectDx[idir] >maxDx)
-          {
-            maxDx = a_vectDx[idir];
-          }
-      }
 
     if (SpaceDim == 2)
       {
@@ -510,7 +475,6 @@ namespace amrex
                    faceRegular,
                    faceDontKnow,
                    a_dx,
-                   a_vectDx,
                    a_iv,
                    a_domain,
                    a_origin);
@@ -563,7 +527,7 @@ namespace amrex
         for (int idir = 0;idir < SpaceDim;++idir)
           {
             // (nx,ny)->(nxdy,nydx)
-            a_normal[idir] = normalVec[idir]*a_vectDx[1 - idir];
+            a_normal[idir] = normalVec[idir]*a_dx;
           }
         Real anisBd = 0.0;
         for (int idir = 0;idir < SpaceDim;++idir)
@@ -701,7 +665,6 @@ namespace amrex
                            hiLoFace,
                            faceNormal,
                            a_dx,
-                           a_vectDx,
                            a_iv,
                            a_domain,
                            a_origin);
@@ -992,9 +955,9 @@ namespace amrex
                 RealVect physMidPt;
                 for (int idir = 0; idir < SpaceDim; ++idir)
                   {
-                    physSegLo[idir] = a_vectDx[idir]*(segLo[idir] + a_iv[idir] + 0.5) + a_origin[idir];
-                    physSegHi[idir] = a_vectDx[idir]*(segHi[idir] + a_iv[idir] + 0.5) + a_origin[idir];
-                    physMidPt[idir] = a_vectDx[idir]*(midPt[idir] + a_iv[idir] + 0.5) + a_origin[idir];
+                    physSegLo[idir] = a_dx*(segLo[idir] + a_iv[idir] + 0.5) + a_origin[idir];
+                    physSegHi[idir] = a_dx*(segHi[idir] + a_iv[idir] + 0.5) + a_origin[idir];
+                    physMidPt[idir] = a_dx*(midPt[idir] + a_iv[idir] + 0.5) + a_origin[idir];
                   }
 
                 // find upDir
@@ -1023,7 +986,7 @@ namespace amrex
 
                 // put physIntercept into relative coordinates
                 Real intercept = physIntercept - a_origin[minDir];
-                intercept  /= a_vectDx[minDir];
+                intercept  /= a_dx;
                 intercept -= (a_iv[minDir]+0.5);
 
                 // push_back third pt onto crossingPt
@@ -1189,7 +1152,7 @@ namespace amrex
         for (int idir = 0;idir < SpaceDim;++idir)
           {
             // (nx,ny,nz)->(nxdydz,nydxdz,nzdxdy)
-            a_normal[idir] = normalVec[idir]*a_vectDx[((idir-1)*(idir-2))/2]*a_vectDx[2 - ((idir-1)*idir)/2];
+            a_normal[idir] = normalVec[idir]*a_dx*a_dx;
           }
         Real anisBd = 0.0;
         for (int idir = 0;idir < SpaceDim;++idir)
@@ -1715,7 +1678,6 @@ namespace amrex
                                 const int a_hiLoFace,
                                 const int a_faceNormal,
                                 const Real& a_dx,
-                                const RealVect& a_vectDx,
                                 const IntVect& a_iv,
                                 const Box& a_domain,
                                 const RealVect& a_origin) const
@@ -1748,15 +1710,15 @@ namespace amrex
 
                 // put LoPt in physical coordinates
                 LoPt[a_faceNormal] = a_origin[a_faceNormal]+
-                  (a_iv[a_faceNormal]+a_hiLoFace)*a_vectDx[a_faceNormal];
-                LoPt[dom] = a_origin[dom] + (a_iv[dom]+lohi)*a_vectDx[dom];
-                LoPt[range] = a_origin[range] + (a_iv[range])*a_vectDx[range];
+                  (a_iv[a_faceNormal]+a_hiLoFace)*a_dx;
+                LoPt[dom] = a_origin[dom] + (a_iv[dom]+lohi)*a_dx;
+                LoPt[range] = a_origin[range] + (a_iv[range])*a_dx;
 
                 // put HiPt in physical coordinates
                 HiPt[a_faceNormal] = a_origin[a_faceNormal] +
-                  (a_iv[a_faceNormal]+a_hiLoFace)*a_vectDx[a_faceNormal];
-                HiPt[dom] = a_origin[dom] + (a_iv[dom]+lohi)*a_vectDx[dom];
-                HiPt[range] = a_origin[range] + (a_iv[range]+1)*a_vectDx[range];
+                  (a_iv[a_faceNormal]+a_hiLoFace)*a_dx;
+                HiPt[dom] = a_origin[dom] + (a_iv[dom]+lohi)*a_dx;
+                HiPt[range] = a_origin[range] + (a_iv[range]+1)*a_dx;
 
                 // find the midpoint
                 RealVect MidPt = LoPt;
@@ -1788,10 +1750,10 @@ namespace amrex
                   {
                     a_faceRegular=false;
 
-                    LoPt[range] = a_origin[range] + (a_iv[range]+0.5)*a_vectDx[range];
+                    LoPt[range] = a_origin[range] + (a_iv[range]+0.5)*a_dx;
                     LoPtChanged = true;
 
-                    HiPt[range] = a_origin[range] + (a_iv[range]+0.5)*a_vectDx[range];
+                    HiPt[range] = a_origin[range] + (a_iv[range]+0.5)*a_dx;
                     HiPtChanged = true;
                   }
                 else if (regular)
@@ -1851,7 +1813,7 @@ namespace amrex
                 if (LoPtChanged)
                   {
                     LoPt[range] -= a_origin[range];
-                    LoPt[range] /= a_vectDx[range];
+                    LoPt[range] /= a_dx;
                     LoPt[range] -= (a_iv[range] + 0.5);
                   }
                 else
@@ -1862,7 +1824,7 @@ namespace amrex
                 if (HiPtChanged)
                   {
                     HiPt[range] -= a_origin[range];
-                    HiPt[range] /= a_vectDx[range];
+                    HiPt[range] /= a_dx;
                     HiPt[range] -= (a_iv[range] + 0.5);
                   }
                 else
@@ -1889,7 +1851,6 @@ namespace amrex
                                 bool& a_faceRegular,
                                 bool& a_faceDontKnow,
                                 const Real& a_dx,
-                                const RealVect& a_vectDx,
                                 const IntVect& a_iv,
                                 const Box& a_domain,
                                 const RealVect& a_origin) const
@@ -1914,13 +1875,13 @@ namespace amrex
             // Express HiPt. LoPt and MidPt in physical coordinates
             RealVect LoPt;
             bool LoPtChanged = false;
-            LoPt[domain] = a_origin[domain] + (a_iv[domain]+lohi)*a_vectDx[domain];
-            LoPt[range]  = a_origin[range]  + (a_iv[range])*a_vectDx[range];
+            LoPt[domain] = a_origin[domain] + (a_iv[domain]+lohi)*a_dx;
+            LoPt[range]  = a_origin[range]  + (a_iv[range])*a_dx;
 
             RealVect HiPt;
             bool HiPtChanged = false;
-            HiPt[domain] = a_origin[domain] + (a_iv[domain]+lohi)*a_vectDx[domain];
-            HiPt[range] =  a_origin[range] + (a_iv[range]+1)*a_vectDx[range];
+            HiPt[domain] = a_origin[domain] + (a_iv[domain]+lohi)*a_dx;
+            HiPt[range] =  a_origin[range] + (a_iv[range]+1)*a_dx;
 
             RealVect MidPt = HiPt;
             MidPt += LoPt;
@@ -1951,10 +1912,10 @@ namespace amrex
               {
                 a_faceRegular=false;
 
-                LoPt[range] = a_origin[range] + (a_iv[range]+0.5)*a_vectDx[range];
+                LoPt[range] = a_origin[range] + (a_iv[range]+0.5)*a_dx;
                 LoPtChanged = true;
 
-                HiPt[range] = a_origin[range] + (a_iv[range]+0.5)*a_vectDx[range];
+                HiPt[range] = a_origin[range] + (a_iv[range]+0.5)*a_dx;
                 HiPtChanged = true;
               }
             else if (regular)
@@ -2010,7 +1971,7 @@ namespace amrex
             if (LoPtChanged)
               {
                 LoPt[range] -= a_origin[range];
-                LoPt[range] /= a_vectDx[range];
+                LoPt[range] /= a_dx;
                 LoPt[range] -= (a_iv[range] + 0.5);
               }
             else
@@ -2021,7 +1982,7 @@ namespace amrex
             if (HiPtChanged)
               {
                 HiPt[range] -= a_origin[range];
-                HiPt[range] /= a_vectDx[range];
+                HiPt[range] /= a_dx;
                 HiPt[range] -= (a_iv[range] + 0.5);
               }
             else
