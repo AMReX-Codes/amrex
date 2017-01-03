@@ -198,6 +198,11 @@ public:
     Box (const IntVect& small,
          const IntVect& big,
          IndexType      t);
+
+    //
+    // dtor, copy-ctor, copy-op=, move-ctor, and move-op= are compiler generated.
+    //
+
     //
     // Get the smallend of the box.
     //
