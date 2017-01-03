@@ -11,146 +11,159 @@
 
 #include <cmath>
 
-#include "AMReX_SphereIF.H"
 #include "AMReX_GeometryShop.H"
 #include "AMReX_BoxIterator.H"
-#include "AMReX_ParmParse.H"
+//#include "AMReX_ParmParse.H"
+#include "AMReX_RealVect.H"
+#include "AMReX_SphereIF.H"
 
-int checkSphere()
+using namespace amrex;
+using std::cout;
+using std::endl;
+
+void 
+getExactValues(Real             & a_volumeExact, 
+               Real             & a_bndryAreaExact,
+               const Real       & a_radius,
+               const RealVect   & a_center)
 {
-  int eekflag =  0;
-#if 0
-  //check to see that the sum of the volume fractions
-  //comes to close to exactly the total volume
-  //First: calculate volume of domain
-
-  const IntVect& ivSize = a_domain.size();
-  RealVect hiCorn;
-  RealVect domLen;
-  Real cellVolume = 1.0;
-  Real totalVolume = 1.0;
-
-  for (int idir = 0; idir < SpaceDim; idir++)
-    {
-      hiCorn[idir] = a_origin[idir] + a_dx*Real(ivSize[idir]);
-      cellVolume *= a_dx;
-      domLen[idir] = hiCorn[idir] - a_origin[idir];
-      totalVolume *= domLen[idir];
-    }
-
   // Calculate the exact volume of the regular region
   Real volExact;
   Real bndryExact;
 
   if (SpaceDim == 2)
-  {
-    volExact = acos(-1.0) * a_radius*a_radius;
-    bndryExact = 2*acos(-1.0) * a_radius;
-  }
+    {
+      volExact = acos(-1.0) * a_radius*a_radius;
+      bndryExact = 2*acos(-1.0) * a_radius;
+    }
 
   if (SpaceDim == 3)
-  {
-    volExact = 4.0/3.0 * acos(-1.0) * a_radius*a_radius*a_radius;
-    bndryExact = 4.0 * acos(-1.0) * a_radius*a_radius;
-  }
+    {
+      volExact = 4.0/3.0 * acos(-1.0) * a_radius*a_radius*a_radius;
+      bndryExact = 4.0 * acos(-1.0) * a_radius*a_radius;
+    }
 
-  if (a_insideRegular == false)
-  {
-    volExact = totalVolume - volExact;
-  }
-
-  // Now calculate the volume of approximate sphere
-  Real tolerance = 0.01;
+  a_volumeExact     = volExact;
+  a_bndryAreaExact  = bndryExact;
+}
+////////////
+void 
+getComputedValues(Real             & a_volumeCalc, 
+                  Real             & a_bndryAreaCalc,
+                  const Real       & a_radius,
+                  const RealVect   & a_center,
+                  const Box        & a_domain,
+                  const Real       & a_dx)
+{
   Real volTotal = 0.0;
   Real bndryTotal = 0.0;
 
-  for (DataIterator dit = a_grids.dataIterator(); dit.ok(); ++dit)
+  //inside regular tells whether domain is inside or outside the sphere
+  bool insideRegular = true;
+  SphereIF sphere(a_radius, a_center, insideRegular);
+  int verbosity = 0;
+  //ParmParse pp;
+  //  pp.get("verbosity", verbosity);
+
+  GeometryShop gshop(sphere, verbosity);
+  BaseFab<int> regIrregCovered;
+  std::vector<IrregNode> nodes;
+  Box validRegion = a_domain;
+  Box ghostRegion = a_domain; //whole domain so ghosting does not matter
+  RealVect origin = RealVect::Zero;
+  gshop.fillGraph(regIrregCovered, nodes, validRegion, ghostRegion, a_domain, origin, a_dx);
+  //regular volume and face area for uncut cell
+  Real regVolume = D_TERM(a_dx, *a_dx, *a_dx);
+  Real regArea   = D_TERM(1.0 , *a_dx, *a_dx);
+  for (BoxIterator bit(a_domain); bit.ok(); ++bit)
     {
-      const EBISBox& ebisBox = a_ebisl[dit()];
-      for (BoxIterator bit(a_grids.get(dit())); bit.ok(); ++bit)
+      const IntVect& iv = bit();
+      int cellType = regIrregCovered(iv, 0);
+      if(cellType == -1)
         {
-          const IntVect& iv = bit();
-          Vector<VolIndex> vofs = ebisBox.getVoFs(iv);
-
-          if (vofs.size() > 1)
-            {
-              eekflag = 2;
-              return eekflag;
-            }
-
-          for (int ivof = 0; ivof < vofs.size(); ivof++)
-            {
-              Real volFrac = ebisBox.volFrac(vofs[ivof]);
-              volTotal += volFrac * cellVolume;
-
-              Real bndryArea = ebisBox.bndryArea(vofs[ivof]);
-              bndryTotal += bndryArea * cellVolume / a_dx;
-
-              if (volFrac > tolerance && volFrac < 1.0 - tolerance)
-                {
-                  if (!ebisBox.isIrregular(iv))
-                    {
-                      eekflag = 4;
-                      return eekflag;
-                    }
-                }
-            }
+          // covered cell- does not contribute to volume or area
+        }
+      else if(cellType == 1)
+        {
+          // uncut (regular cell) has a full volume but no boundary area
+          volTotal += regVolume;
+        }
+      else if(cellType == 0)
+        {
+          //cut cell--we will account for these by looping through the vector
+        }
+      else
+        {
+          amrex::Error("bogus celltype");
         }
     }
-//                   RealVect normal = ebisBox.normal(vofs[ivof]);
-//                   for (int idir = 0; idir < SpaceDim; idir++)
-//                     {
-//                       if (Abs(normal[idir] - correctNorm[idir]) > tolerance)
-//                         {
-//                           eekflag = 5;
-//                           return eekflag;
-//                         }
-//                     }
-//                   RealVect centroid = ebisBox.centroid(vofs[ivof]);
-//                   for (int idir = 0; idir < SpaceDim; idir++)
-//                     {
-//                       if (Abs(centroid[idir]) > 0.5)
-//                         {
-//                           eekflag = 6;
-//                           return eekflag;
-//                         }
-//                     }
+  //now add in cut cell values
+  for(int ivec = 0; ivec < nodes.size(); ivec++)
+    {
+      const IrregNode& node = nodes[ivec];
+      Real volFrac = node.m_volFrac;
+      Real bndryFrac = node.bndryArea();
+      volTotal   += volFrac*regVolume;
+      bndryTotal += bndryFrac*regArea;
+    }
+
+  a_volumeCalc    = volTotal;
+  a_bndryAreaCalc = bndryTotal;
+}
+
+int checkSphere()
+{
+  int eekflag =  0;
+  Real radius = 0.5;
+  Real domlen = 1;
+  IntVect ncells;
+
+  //ParmParse pp;
+  //pp.get(   "n_cell"       , ncells);
+  //pp.get(   "sphere_radius", radius);
+  //pp.getarr("sphere_center", centervec, 0, SpaceDim);
+  //pp.get("domain_length", domlen);                     // 
+
+  RealVect center = 0.5*RealVect::Unit;
+  IntVect ivlo = IntVect::TheZeroVector();
+  IntVect ivhi = ncells - IntVect::TheUnitVector();
+  Box domain(ivlo, ivhi);
+  
+
+  Real volExact, bndryExact, volTotal, bndryTotal;
+  getExactValues(volExact, bndryExact, radius, center); 
+
+  Real dx = domlen/ncells[0];
+
+  getComputedValues(volTotal, bndryTotal, radius, center, domain, dx); 
   //check how close is the answer
-  pout() << endl;
 
-#ifdef CH_MPI
-  Real vt = volTotal;
-  MPI_Allreduce(&vt, &volTotal, 1, MPI_CH_REAL, MPI_SUM, Chombo_MPI::comm);
-  Real bt = bndryTotal;
-  MPI_Allreduce(&bt, &bndryTotal, 1, MPI_CH_REAL, MPI_SUM, Chombo_MPI::comm);
-#endif
-  pout() << "volTotal = "<< volTotal << endl;
-  pout() << "volExact = "<< volExact << endl;
-  pout() << "error = "   << volTotal - volExact << endl;
-  pout() << endl;
+  cout << "volTotal = "<< volTotal << endl;
+  cout << "volExact = "<< volExact << endl;
+  cout << "error = "   << volTotal - volExact << endl;
+  cout << endl;
 
-  pout() << "bndryTotal = "<< bndryTotal << endl;
-  pout() << "bndryExact = "<< bndryExact << endl;
-  pout() << "error = "   << bndryTotal - bndryExact << endl;
-  pout() << endl;
+  cout << "bndryTotal = "<< bndryTotal << endl;
+  cout << "bndryExact = "<< bndryExact << endl;
+  cout << "error = "   << bndryTotal - bndryExact << endl;
+  cout << endl;
 
-  if (Abs(volTotal - volExact) / volExact > tolerance)
-  {
-    MayDay::Error("Approx. volume not within tolerance");
-  }
+  Real tolerance = 1.0e-2;
+  if (std::abs(volTotal - volExact) / volExact > tolerance)
+    {
+      amrex::Error("Approx. volume not within tolerance");
+    }
 
-  if (Abs(bndryTotal - bndryExact) / bndryExact > tolerance)
-  {
-    MayDay::Error("Approx. boundary area not within tolerance");
-  }
+  if (std::abs(bndryTotal - bndryExact) / bndryExact > tolerance)
+    {
+      amrex::Error("Approx. boundary area not within tolerance");
+    }
 
-#endif
+
   return eekflag;
 }
 
 
-using std::cout;
-using std::endl;
 int
 main(int argc,char **argv)
 {
@@ -160,11 +173,12 @@ main(int argc,char **argv)
 
   const char* in_file = "sphere.inputs";
   //parse input file
-  amrex::ParmParse pp;
-  pp.Initialize(argc, argv,in_file);
+  //  ParmParse pp;
+  //  pp.Initialize(0, NULL, in_file);
 
   // check volume and surface area of approximate sphere
-  int eekflag = checkSphere();
+  //  int eekflag = checkSphere();
+  int eekflag = 0;
   if (eekflag != 0)
     {
       cout << "non zero eek detected = " << eekflag << endl;
