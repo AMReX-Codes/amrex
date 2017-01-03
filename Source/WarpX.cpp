@@ -163,13 +163,16 @@ WarpX::MakeNewLevel (int lev, Real time,
     const IntVect& nodalflag = IntVect::TheUnitVector();
     const int ng = WarpX::nox;  // need to update this
 
+    MFInfo info;
+    info.SetNodal(nodalflag);
+
     current[lev].resize(3);
     Efield [lev].resize(3);
     Bfield [lev].resize(3);
     for (int i = 0; i < 3; ++i) {
-	current[lev][i].reset(new MultiFab(grids[lev],1,ng,dmap[lev],Fab_allocate,nodalflag));
-	Efield [lev][i].reset(new MultiFab(grids[lev],1,ng,dmap[lev],Fab_allocate,nodalflag));
-	Bfield [lev][i].reset(new MultiFab(grids[lev],1,ng,dmap[lev],Fab_allocate,nodalflag));
+	current[lev][i].reset(new MultiFab(grids[lev],dmap[lev],1,ng,info));
+	Efield [lev][i].reset(new MultiFab(grids[lev],dmap[lev],1,ng,info));
+	Bfield [lev][i].reset(new MultiFab(grids[lev],dmap[lev],1,ng,info));
     }
 }
 
@@ -180,7 +183,7 @@ WarpX::FillBoundary (MultiFab& mf, const Geometry& geom, const IntVect& nodalfla
     BoxArray ba = mf.boxArray();
     ba.convert(correct_typ);
 
-    MultiFab tmpmf(ba, mf.nComp(), mf.nGrow(), mf.DistributionMap());
+    MultiFab tmpmf(ba, mf.DistributionMap(), mf.nComp(), mf.nGrow());
 
     const IndexType& mf_typ = mf.boxArray().ixType();
 

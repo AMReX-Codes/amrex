@@ -62,7 +62,7 @@ MyParticleContainer::InitData()
     const BoxArray& ba = m_gdb->ParticleBoxArray(lev);
     const DistributionMapping& dm = m_gdb->ParticleDistributionMap(lev);
 
-    MultiFab dummy_mf(ba, 1, 0, dm, Fab_noallocate);
+    MultiFab dummy_mf(ba, dm, 1, 0, MFInfo().SetAlloc(false));
 
     for (MFIter mfi(dummy_mf,false); mfi.isValid(); ++mfi)
     {

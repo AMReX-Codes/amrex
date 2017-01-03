@@ -112,7 +112,9 @@ int main(int argc, char* argv[])
 				      &field_gathering_algo);
 
 	Box plotbox{IntVect{D_DECL(0,0,0)},IntVect{D_DECL(nx-1,ny-1,nz-1)}};
-	MultiFab plotmf(BoxArray{plotbox}, 6, 0);
+	BoxArray plotba {plotbox};
+	DistributionMapping plotdm {plotba};
+	MultiFab plotmf(plotba, plotdm, 6, 0);
 	FArrayBox& plotfab = plotmf[0];
 	plotfab.setVal(0.0);
 	for (int k = 0; k < nz; ++k) {

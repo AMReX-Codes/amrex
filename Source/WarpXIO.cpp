@@ -28,7 +28,7 @@ WarpX::WritePlotFile () const
 	{
 	    const int ncomp = 3*3;
 	    const int ngrow = 0;
-	    mf[lev].reset(new MultiFab(grids[lev], ncomp, ngrow, dmap[lev]));
+	    mf[lev].reset(new MultiFab(grids[lev], dmap[lev], ncomp, ngrow));
 
 	    Array<const MultiFab*> srcmf(BL_SPACEDIM);
 	    PackPlotDataPtrs(srcmf, current[lev]);

@@ -56,7 +56,7 @@ MyParticleContainer::AllocData ()
 	const BoxArray& ba = m_gdb->ParticleBoxArray(lev);
 	const DistributionMapping& dm = m_gdb->ParticleDistributionMap(lev);
 
-	MultiFab foo(ba, 1, 0, dm, Fab_noallocate);
+	MultiFab foo(ba, dm, 1, 0, MFInfo().SetAlloc(false));
 	for (MFIter mfi(foo); mfi.isValid(); ++mfi)
 	{
 	    int i = mfi.index();
@@ -274,6 +274,7 @@ std::unique_ptr<MultiFab>
 MyParticleContainer::GetChargeDensity (int lev, bool local)
 {
     const Geometry& gm = m_gdb->Geom(lev);
+    const DistributionMapping& dm = m_gdb->ParticleDistributionMap(lev);
     const BoxArray& ba = m_gdb->ParticleBoxArray(lev);
     BoxArray nba = ba;
     nba.surroundingNodes();
@@ -286,7 +287,7 @@ MyParticleContainer::GetChargeDensity (int lev, bool local)
 
     const int ng = WarpX::nox;
 
-    auto rho = std::unique_ptr<MultiFab>(new MultiFab(nba,1,ng));
+    auto rho = std::unique_ptr<MultiFab>(new MultiFab(nba,dm,1,ng));
     rho->setVal(0.0);
 
     Array<Real> xp, yp, zp, wp;

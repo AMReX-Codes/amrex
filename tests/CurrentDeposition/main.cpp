@@ -105,7 +105,9 @@ int main(int argc, char* argv[])
 				 &lvect, &current_deposition_algo);
 
 	Box plotbox{IntVect{D_DECL(0,0,0)},IntVect{D_DECL(nx-1,ny-1,nz-1)}};
-	MultiFab plotmf(BoxArray{plotbox}, 3, 0);
+	BoxArray plotba {plotbox};
+	DistributionMapping plotdm {plotba};
+	MultiFab plotmf(plotba, plotdm, 3, 0);
 	plotmf[0].copy(jxfab,0,0,1);
 	plotmf[0].copy(jyfab,0,1,1);
 	plotmf[0].copy(jzfab,0,2,1);

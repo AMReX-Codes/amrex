@@ -39,7 +39,7 @@ WarpX::InitFromScratch ()
 	finest_level = 0;
 
 	const BoxArray& ba = MakeBaseGrids();
-	DistributionMapping dm(ba, ParallelDescriptor::NProcs());
+	DistributionMapping dm{ba};
 
 	MakeNewLevel(0, time, ba, dm);
 
@@ -95,8 +95,8 @@ WarpX::InitOpenbc ()
 
     DistributionMapping dm{iprocmap};
 
-    MultiFab rho_openbc(ba, 1, 0, dm);
-    MultiFab phi_openbc(ba, 1, 0, dm);
+    MultiFab rho_openbc(ba, dm, 1, 0);
+    MultiFab phi_openbc(ba, dm, 1, 0);
 
     bool local = true;
     const std::unique_ptr<MultiFab>& rho = mypc->GetChargeDensity(lev, local);
@@ -110,7 +110,7 @@ WarpX::InitOpenbc ()
 
     BoxArray nba = boxArray(lev);
     nba.surroundingNodes();
-    MultiFab phi(nba, 1, 0);
+    MultiFab phi(nba, DistributionMap(lev), 1, 0);
     phi.copy(phi_openbc, gm.periodicity());
 
     for (MFIter mfi(phi); mfi.isValid(); ++mfi)
