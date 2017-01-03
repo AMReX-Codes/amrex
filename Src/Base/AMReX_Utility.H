@@ -2,7 +2,6 @@
 #ifndef BL_UTILITY_H
 #define BL_UTILITY_H
 
-#include <AMReX_winstd.H>
 
 #include <iostream>
 #include <string>
@@ -129,7 +128,7 @@ namespace amrex
     //
     // Aborts after printing message indicating out-of-memory;
     // i.e. operator new has failed. This is the "supported"
-    // set_new_handler() function for BoxLib applications.
+    // set_new_handler() function for AMReX applications.
     //
     void OutOfMemory ();
     /*
@@ -487,7 +486,7 @@ template<class T> void amrex::BroadcastArray(Array<T> &aT, int myLocalId, int ro
   BL_IGNORE_MAX is a macro that expands to the literal value 100000.  It is
   defined when compiling either Fortran or C++ code; i.e. when either
   BL_LANG_CC or BL_LANG_FORT is defined.  It is used in calls to
-  istream::ignore() in the BoxLib code when reading in characters from an
+  istream::ignore() in the AMReX code when reading in characters from an
   istream.  We use this macro instead of the more proper INT_MAX from
   <limits.h> since at least one compiler didn't work properly when
   istream::ignore() was passed INT_MAX.

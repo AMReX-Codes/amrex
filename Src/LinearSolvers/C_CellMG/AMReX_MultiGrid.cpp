@@ -1,5 +1,4 @@
 
-#include <AMReX_winstd.H>
 #include <algorithm>
 #include <cstdlib>
 
@@ -235,13 +234,13 @@ MultiGrid::prepareForLevel (int level)
 
     if ( cor[level] == 0 )
     {
-	ParallelDescriptor::Color clr = color();
-	res[level] = new MultiFab(Lp.boxArray(level), 1, Lp.NumGrow(), clr);
-	rhs[level] = new MultiFab(Lp.boxArray(level), 1, Lp.NumGrow(), clr);
-	cor[level] = new MultiFab(Lp.boxArray(level), 1, Lp.NumGrow(), clr);
+	const DistributionMapping& dm = Lp.DistributionMap();
+	res[level] = new MultiFab(Lp.boxArray(level), dm, 1, Lp.NumGrow());
+	rhs[level] = new MultiFab(Lp.boxArray(level), dm, 1, Lp.NumGrow());
+	cor[level] = new MultiFab(Lp.boxArray(level), dm, 1, Lp.NumGrow());
 	if ( level == 0 )
 	{
-	    initialsolution = new MultiFab(Lp.boxArray(0), 1, Lp.NumGrow(), clr);
+	    initialsolution = new MultiFab(Lp.boxArray(0), dm, 1, Lp.NumGrow());
 	}
     }
 }

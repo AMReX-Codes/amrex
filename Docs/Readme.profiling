@@ -125,7 +125,7 @@ regions, add these to your code:
 
 --------------------------------------------- Communications timings.
 Timings for communication functions such as ParallelDescriptor::Send(...)
-are shown in the regular profiling's function timing section.  BoxLib
+are shown in the regular profiling's function timing section.  AMReX
 can also collect additional information such as point to point
 communication timings, amount of data moved, barrier and
 reduction wait times, etc.  To use this part of the profiler,

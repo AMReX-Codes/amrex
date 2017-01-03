@@ -4,7 +4,7 @@
 #include <limits>
 #include <cstring>
 
-#include <AMReX_BoxLib.H>
+#include <AMReX.H>
 #include <AMReX_FabConv.H>
 #include <AMReX_FArrayBox.H>
 #include <AMReX_FPC.H>

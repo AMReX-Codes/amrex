@@ -7,11 +7,11 @@
 #include <memory>
 #include <AMReX_BLassert.H>
 
-//
-// This class is a thin wrapper around std::vector.  Unlike vector,
-// Array::operator[] provides bound checking when compiled with
-// DEBUG=TRUE.
-//
+/**
+* \brief This class is a thin wrapper around std::vector.  Unlike vector,
+* Array::operator[] provides bound checking when compiled with
+* DEBUG=TRUE.
+*/
 
 namespace amrex {
 

@@ -24,7 +24,7 @@
 #include <AMReX_Array.H>
 
 #include <AMReX_Box.H>
-#include <AMReX_BoxLib.H>
+#include <AMReX.H>
 #include <AMReX_BoxArray.H>
 #include <AMReX_BoxDomain.H> 
 #include <AMReX_FArrayBox.H>
@@ -763,12 +763,15 @@ private:
 */
 
 //
-// An enumumeration that controls whether or not the memory for a FAB
-// will actually be allocated on construction of a FabArray.
-// Possible values are: Fab_noallocate and Fab_allocate.
+// nodal: nodal flag, 0: cell-center; 1: nodal
+// alloc: allocate memory or not
 //
-
-enum FabAlloc { Fab_noallocate = 0, Fab_allocate };
+struct MFInfo {
+    IntVect nodal = IntVect::TheZeroVector();
+    bool    alloc = true;
+    MFInfo& SetNodal(const IntVect& iv) { nodal = iv; return *this; }
+    MFInfo& SetAlloc(bool a) { alloc = a; return *this; }
+};
 
 template <class FAB>
 class FabArray
@@ -778,6 +781,7 @@ class FabArray
 public:
 
     typedef typename FAB::value_type value_type;
+
     //
     // Constructs an empty FabArray<FAB>.
     //
@@ -786,32 +790,12 @@ public:
     // Construct a FabArray<FAB> with a valid region defined by bxs
     // and a region of definition defined by the grow factor ngrow
     // and the number of components nvar.
-    // If mem_mode is defined to be Fab_allocate then FABs are
-    // allocated for each Box in the BoxArray.  The size of the Kth
-    // FAB is given by bxs[K] grown by ngrow.  If mem_mode is defined
-    // to be Fab_noallocate, then no FABs are allocated at this time,
-    // but can be defined later.  The number of components in each
-    // FAB is not specified and is expected to be implicit in the
-    // definition of the FAB class.  That is, the FAB constructor will
-    // take only a Box argument.  Call this constructor number two.
     //
-    FabArray (const BoxArray& bxs,
-              int             nvar,
-              int             ngrow,
-              FabAlloc        mem_mode = Fab_allocate,
-	      const IntVect&  nodal = IntVect::TheZeroVector());
-
     FabArray (const BoxArray&            bxs,
+              const DistributionMapping& dm,
               int                        nvar,
               int                        ngrow,
-              const DistributionMapping& dm,
-              FabAlloc                   mem_mode = Fab_allocate,
-	      const IntVect&             nodal = IntVect::TheZeroVector());
-
-    FabArray (const BoxArray& bxs,
-              int             nvar,
-              int             ngrow,
-	      ParallelDescriptor::Color color);
+	      const MFInfo&              info = MFInfo());
     //
     // The destructor -- deletes all FABs in the array.
     //
@@ -822,19 +806,11 @@ public:
     // This is only valid if this FabArray was defined using
     // the default constructor.
     //
-    void define (const BoxArray& bxs,
-		 int             nvar,
-		 int             ngrow,
-		 FabAlloc        mem_mode,
-		 const IntVect&  nodal = IntVect::TheZeroVector(),
-		 ParallelDescriptor::Color color = ParallelDescriptor::DefaultColor());
-
-    void define (const BoxArray&            bxs,
-		 int                        nvar,
-		 int                        ngrow,
-		 const DistributionMapping& dm,
-		 FabAlloc                   mem_mode,
-		 const IntVect&             nodal = IntVect::TheZeroVector());
+    virtual void define (const BoxArray& bxs,
+			 const DistributionMapping& dm,
+			 int                        nvar,
+			 int                        ngrow,
+			 const MFInfo&              info = MFInfo());
     //
     // Returns true if the FabArray is well-defined.  That is,
     // if FABs are allocated for each Box in the BoxArray and the
@@ -1076,16 +1052,6 @@ public:
 
 protected:
     //
-    // Helper function for define().
-    //
-    void defineDoit (const BoxArray&            bxs,
-                     int                        nvar,
-                     int                        ngrow,
-                     FabAlloc                   mem_mode,
-                     const DistributionMapping* dm,
-		     const IntVect&             nodal,
-		     ParallelDescriptor::Color  color);
-    //
     // The data.
     //
     std::vector<FAB*> m_fabs_v;
@@ -1093,7 +1059,7 @@ protected:
     // ---- currently active fabarrays:  <ngrids to find distmap, <aFAPId, FabArray *> >
     static std::map<int, std::map<int, FabArray<FAB> *> > allocatedFAPointers;
 
-    // ---- set of ids of fabarrays created with Fab_noalloc
+    // ---- set of ids of fabarrays created without allocating memory
     static std::set<int> noallocFAPIds;
 
     // for shared memory
@@ -1129,14 +1095,10 @@ protected:
 
 private:
     typedef typename std::vector<FAB*>::iterator    Iterator;
-    //
-    // These are disallowed.
-    //
-    FabArray (const FabArray<FAB>&);
-    FabArray<FAB>& operator= (const FabArray<FAB>&);
-    //
-    // This is used locally in all define functions.
-    //
+
+    FabArray (const FabArray<FAB>&) = delete;
+    FabArray<FAB>& operator= (const FabArray<FAB>&) = delete;
+
     void AllocFabs ();
 
     void FBEP_nowait (int scomp, int ncomp, const Periodicity& period, bool cross,
@@ -1580,39 +1542,15 @@ FabArray<FAB>::FabArray ()
 }
 
 template <class FAB>
-FabArray<FAB>::FabArray (const BoxArray& bxs,
-                         int             nvar,
-                         int             ngrow,
-                         FabAlloc        alloc,
-			 const IntVect&  nodal)
-    : shmem()
-{
-    m_FA_stats.recordBuild();
-    define(bxs,nvar,ngrow,alloc,nodal);
-}
-
-template <class FAB>
 FabArray<FAB>::FabArray (const BoxArray&            bxs,
+                         const DistributionMapping& dm,
                          int                        nvar,
                          int                        ngrow,
-                         const DistributionMapping& dm,
-                         FabAlloc                   alloc,
-			 const IntVect&             nodal)
+			 const MFInfo&              info)
     : shmem()
 {
     m_FA_stats.recordBuild();
-    define(bxs,nvar,ngrow,dm,alloc,nodal);
-}
-
-template <class FAB>
-FabArray<FAB>::FabArray (const BoxArray& bxs,
-                         int             nvar,
-                         int             ngrow,
-			 ParallelDescriptor::Color color)
-    : shmem()
-{
-    m_FA_stats.recordBuild();
-    define(bxs,nvar,ngrow,Fab_allocate,IntVect::TheZeroVector(),color);
+    define(bxs,dm,nvar,ngrow,info);
 }
 
 template <class FAB>
@@ -1676,13 +1614,11 @@ FabArray<FAB>::ok () const
 
 template <class FAB>
 void
-FabArray<FAB>::defineDoit (const BoxArray&            bxs,
-                           int                        nvar,
-                           int                        ngrow,
-                           FabAlloc                   alloc,
-                           const DistributionMapping* dm,
-			   const IntVect&             nodal,
-			   ParallelDescriptor::Color  color)
+FabArray<FAB>::define (const BoxArray&            bxs,
+		       const DistributionMapping& dm,
+		       int                        nvar,
+		       int                        ngrow,
+		       const MFInfo&              info)
 {
     BL_ASSERT(ngrow >= 0);
     BL_ASSERT(boxarray.size() == 0);
@@ -1693,28 +1629,20 @@ FabArray<FAB>::defineDoit (const BoxArray&            bxs,
 
     boxarray = bxs;
 
-    if (nodal != IntVect::TheZeroVector()) {
-	if (nodal == IntVect::TheUnitVector()) {
+    if (info.nodal != IntVect::TheZeroVector()) {
+	if (info.nodal == IntVect::TheUnitVector()) {
 	    boxarray.surroundingNodes();
 	} else {
 	    for (int i=0; i<BL_SPACEDIM; ++i) {
-		if (nodal[i]) {
+		if (info.nodal[i]) {
 		    boxarray.surroundingNodes(i);
 		} 
 	    }
 	}
     }
 
-    if (dm == 0)
-    {
-        distributionMap.define(boxarray,ParallelDescriptor::NProcs(),color);
-    }
-    else
-    {
-        BL_ASSERT(dm->ProcessorMap().size() == bxs.size()+1);
-
-        distributionMap = *dm;
-    }
+    BL_ASSERT(dm.ProcessorMap().size() == bxs.size()+1);
+    distributionMap = dm;
 
     int myProc = ParallelDescriptor::MyProc();
 
@@ -1728,7 +1656,7 @@ FabArray<FAB>::defineDoit (const BoxArray&            bxs,
 
     addThisBD();
 
-    if(alloc == Fab_allocate) {
+    if(info.alloc) {
       AllocFabs();
     }
 
@@ -1745,39 +1673,15 @@ FabArray<FAB>::defineDoit (const BoxArray&            bxs,
       faPtrCachedMap.insert(std::make_pair(aFAPId, this));
     }
 
-    if(alloc == Fab_allocate) {
+    if(info.alloc) {
       noallocFAPIds.erase(aFAPId);
     } else {
       noallocFAPIds.insert(aFAPId);
     }
 
 #ifdef BL_USE_TEAM
-    if (alloc == Fab_allocate) ParallelDescriptor::MyTeam().MemoryBarrier();
+    if (info.alloc) ParallelDescriptor::MyTeam().MemoryBarrier();
 #endif
-}
-
-template <class FAB>
-void
-FabArray<FAB>::define (const BoxArray& bxs,
-                       int             nvar,
-                       int             ngrow,
-                       FabAlloc        alloc,
-		       const IntVect&  nodal,
-		       ParallelDescriptor::Color color)
-{
-    defineDoit(bxs,nvar,ngrow,alloc,0,nodal,color);
-}
-
-template <class FAB>
-void
-FabArray<FAB>::define (const BoxArray&            bxs,
-                       int                        nvar,
-                       int                        ngrow,
-                       const DistributionMapping& dm,
-                       FabAlloc                   alloc,
-		       const IntVect&             nodal)
-{
-    defineDoit(bxs,nvar,ngrow,alloc,&dm,nodal,ParallelDescriptor::DefaultColor());
 }
 
 template <class FAB>
@@ -2602,7 +2506,6 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
     if(isSrc)  { BL_ASSERT(src->nGrow() >= snghost);  }
     if(isDest) { BL_ASSERT(dest->nGrow() >= dnghost); }
 
-    bool putInCache(false);
     MPI_Group groupSrc(MPI_GROUP_NULL), groupDest(MPI_GROUP_NULL), groupBoth(MPI_GROUP_NULL);
     MPI_Group groupAll(MPI_GROUP_NULL);
     int myProcAll(ParallelDescriptor::MyProcAll()), myProcBoth(MPI_UNDEFINED);
@@ -2675,8 +2578,8 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
     amrex::BroadcastArray(srcPMapAll,  myProcBoth, bcastRootSrc,  commBoth);
     amrex::BroadcastArray(destPMapAll, myProcBoth, bcastRootDest, commBoth);
 
-    srcDMAll.define(srcPMapAll, putInCache);
-    destDMAll.define(destPMapAll, putInCache);
+    srcDMAll.define(srcPMapAll);
+    destDMAll.define(destPMapAll);
 
     CPC thecpc(destBoxArray, destDMAll, destIndexArray, dnghost,
 	       srcBoxArray ,  srcDMAll,  srcIndexArray, dnghost, 
@@ -3165,7 +3068,6 @@ FabArray<FAB>::PrintFAPointers ()
 		<< "  " << fabsAllocated << std::endl;
     }
   }
-  DistributionMapping::CacheStats(std::cout, ParallelDescriptor::MyProcAll());
   std::cout << "|||| |||| |||| _out PrintFAPointers: ================ " << std::endl;
 }
 
@@ -3323,15 +3225,9 @@ FabArray<FAB>::MoveAllFabs (const Array<int> &newDistMapArray)
     }
 
     // ---- flush caches
-    DistributionMapping::FlushCache();
     flushCPCache();
     flushFBCache();
     flushTileArrayCache();
-
-    if(lastFAPtr != 0) {
-      lastFAPtr->ModifyDistributionMap().ReplaceCachedProcessorMap(newDistMapArray);
-    }
-
 
     // ---- check the moved fabarray
     for(typename std::map<int, FabArray<FAB> *>::iterator it = faPtrCachedMap.begin();
@@ -3386,11 +3282,11 @@ FabArray<FAB>::MoveFabs (const Array<int> &newDistMapArray)
     return 0;
   }
 
-  // ---- try to resolve fabarrays that were created with Fab_noallocate
+  // ---- try to resolve fabarrays that were created without allocating memory
   std::set<int>::iterator it = noallocFAPIds.find(aFAPId);
   bool fabsNotAllocated(it != noallocFAPIds.end());
   if(fabsNotAllocated) {
-    if(ok()) {  // ---- this fabarray was created with Fab_noallocate then allocated later
+    if(ok()) {  // ---- this fabarray was created without memory allocated then allocated later
       noallocFAPIds.erase(aFAPId);
     } else {
       return 0;

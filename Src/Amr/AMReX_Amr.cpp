@@ -1,5 +1,4 @@
 
-#include <AMReX_winstd.H>
 #include <algorithm>
 #include <cstdio>
 #include <list>
@@ -1082,19 +1081,19 @@ Amr::readProbinFile (int& init)
 
 #ifdef DIMENSION_AGNOSTIC
 
-            FORT_PROBINIT(&init,
-                          probin_file_name.dataPtr(),
-                          &probin_file_length,
-                          ZFILL(Geometry::ProbLo()),
-                          ZFILL(Geometry::ProbHi()));
+            amrex_probinit(&init,
+			   probin_file_name.dataPtr(),
+			   &probin_file_length,
+			   ZFILL(Geometry::ProbLo()),
+			   ZFILL(Geometry::ProbHi()));
 
 #else
 
-            FORT_PROBINIT(&init,
-                          probin_file_name.dataPtr(),
-                          &probin_file_length,
-                          Geometry::ProbLo(),
-                          Geometry::ProbHi());
+            amrex_probinit(&init,
+			   probin_file_name.dataPtr(),
+			   &probin_file_length,
+			   Geometry::ProbLo(),
+			   Geometry::ProbHi());
 #endif
 
             piEnd = ParallelDescriptor::second();
@@ -1175,19 +1174,6 @@ Amr::InitializeInit(Real              strt_time,
     if (!probin_file.empty()) {
         readProbinFile(init);
     }
-
-#ifdef BL_SYNC_RANTABLES
-    int iGet(0), iSet(1);
-    const int iTableSize(64);
-    Real *RanAmpl = new Real[iTableSize];
-    Real *RanPhase = new Real[iTableSize];
-    FORT_SYNC_RANTABLES(RanPhase, RanAmpl, &iGet);
-    ParallelDescriptor::Bcast(RanPhase, iTableSize);
-    ParallelDescriptor::Bcast(RanAmpl, iTableSize);
-    FORT_SYNC_RANTABLES(RanPhase, RanAmpl, &iSet);
-    delete [] RanAmpl;
-    delete [] RanPhase;
-#endif
 
     cumtime = strt_time;
     //
@@ -1470,8 +1456,7 @@ Amr::restart (const std::string& filename)
 	   amr_level[lev].reset((*levelbld)());
            amr_level[lev]->restart(*this, is);
 	   this->SetBoxArray(lev, amr_level[lev]->boxArray());
-	   this->SetDistributionMap(lev, DistributionMapping(amr_level[lev]->boxArray(),
-							     ParallelDescriptor::NProcs()));
+	   this->SetDistributionMap(lev, amr_level[lev]->DistributionMap());
        }
        //
        // Build any additional data structures.
@@ -1539,8 +1524,7 @@ Amr::restart (const std::string& filename)
 	   amr_level[lev].reset((*levelbld)());
            amr_level[lev]->restart(*this, is);
 	   this->SetBoxArray(lev, amr_level[lev]->boxArray());
-	   this->SetDistributionMap(lev, DistributionMapping(amr_level[lev]->boxArray(),
-							     ParallelDescriptor::NProcs()));
+	   this->SetDistributionMap(lev, amr_level[lev]->DistributionMap());
        }
        //
        // Build any additional data structures.
@@ -2252,12 +2236,7 @@ Amr::defBaseLevel (Real              strt_time,
 	    ChopGrids(0,lev0,ParallelDescriptor::NProcs());
 	}
 
-        //
-        // Make sure that the grids all go on the processor as specified by pmap;
-        //      we store this in cache so all level 0 MultiFabs will use this DistributionMap.
-        //
-        const bool put_in_cache = true;
-        DistributionMapping dmap(*pmap,put_in_cache);
+        DistributionMapping dmap(*pmap);
     }
     else
     {
@@ -2265,12 +2244,12 @@ Amr::defBaseLevel (Real              strt_time,
     }
 
     this->SetBoxArray(0, lev0);
-    this->SetDistributionMap(0, DistributionMapping(lev0, ParallelDescriptor::NProcs()));
+    this->SetDistributionMap(0, DistributionMapping(lev0));
 
     //
     // Now build level 0 grids.
     //
-    amr_level[0].reset((*levelbld)(*this,0,Geom(0),lev0,strt_time));
+    amr_level[0].reset((*levelbld)(*this,0,Geom(0),grids[0],dmap[0],strt_time));
     //
     // Now init level 0 grids with data.
     //
@@ -2292,6 +2271,7 @@ Amr::regrid (int  lbase,
     //
     int             new_finest;
     Array<BoxArray> new_grid_places(max_level+1);
+    Array<DistributionMapping> new_dmap(max_level+1);
 
     if (lbase <= std::min(finest_level,max_level-1)) {
       grid_places(lbase,time,new_finest, new_grid_places);
@@ -2306,6 +2286,7 @@ Amr::regrid (int  lbase,
     for (int lev = start, End = std::min(finest_level,new_finest); lev <= End; lev++) {
 	if (new_grid_places[lev] == amr_level[lev]->boxArray()) {
 	    new_grid_places[lev] = amr_level[lev]->boxArray();  // to avoid duplicates
+	    new_dmap[lev] = amr_level[lev]->DistributionMap(); 
 	} else {
 	    grids_unchanged = false;
 	}
@@ -2342,7 +2323,6 @@ Amr::regrid (int  lbase,
     //
     // Flush the caches.
     //
-    DistributionMapping::FlushCache();
 #ifdef MG_USE_FBOXLIB
     mgt_flush_copyassoc_cache();
 #endif
@@ -2355,7 +2335,12 @@ Amr::regrid (int  lbase,
         // Construct skeleton of new level.
         //
 
-        AmrLevel* a = (*levelbld)(*this,lev,Geom(lev),new_grid_places[lev],cumtime);
+	if (new_dmap[lev].empty()) {
+	    new_dmap[lev].define(new_grid_places[lev]);
+	}
+
+        AmrLevel* a = (*levelbld)(*this,lev,Geom(lev),new_grid_places[lev],
+				  new_dmap[lev],cumtime);
 
         if (initial)
         {
@@ -2365,6 +2350,8 @@ Amr::regrid (int  lbase,
             //       be officially inserted into the hierarchy prior to the call.
             //
             amr_level[lev].reset(a);
+	    this->SetBoxArray(lev, amr_level[lev]->boxArray());
+	    this->SetDistributionMap(lev, amr_level[lev]->DistributionMap());
             amr_level[lev]->initData();
         }
         else if (amr_level[lev])
@@ -2376,16 +2363,17 @@ Amr::regrid (int  lbase,
             //
             a->init(*amr_level[lev]);
             amr_level[lev].reset(a);
+	    this->SetBoxArray(lev, amr_level[lev]->boxArray());
+	    this->SetDistributionMap(lev, amr_level[lev]->DistributionMap());
 	}
         else
         {
             a->init();
             amr_level[lev].reset(a);
+	    this->SetBoxArray(lev, amr_level[lev]->boxArray());
+	    this->SetDistributionMap(lev, amr_level[lev]->DistributionMap());
         }
 
-	this->SetBoxArray(lev, amr_level[lev]->boxArray());
-	this->SetDistributionMap(lev, DistributionMapping(amr_level[lev]->boxArray(),
-							  ParallelDescriptor::NProcs()));
     }
 
 
@@ -2497,14 +2485,14 @@ Amr::regrid_level_0_on_restart()
 	//
 	// Construct skeleton of new level.
 	//
-	AmrLevel* a = (*levelbld)(*this,0,Geom(0),lev0,cumtime);
+	DistributionMapping dm(lev0);
+	AmrLevel* a = (*levelbld)(*this,0,Geom(0),lev0,dm,cumtime);
 	
 	a->init(*amr_level[0]);
 	amr_level[0].reset(a);
 	
 	this->SetBoxArray(0, amr_level[0]->boxArray());
-	this->SetDistributionMap(0, DistributionMapping(amr_level[0]->boxArray(),
-							ParallelDescriptor::NProcs()));
+	this->SetDistributionMap(0, amr_level[0]->DistributionMap());
 
 	amr_level[0]->post_regrid(0,0);
 	
@@ -2802,17 +2790,18 @@ Amr::bldFineLevels (Real strt_time)
         //
         finest_level = new_finest;
 
-	this->SetBoxArray(new_finest, new_grids[new_finest]);
-	this->SetDistributionMap(new_finest, DistributionMapping(new_grids[new_finest],
-								 ParallelDescriptor::NProcs()));
+	DistributionMapping new_dm {new_grids[new_finest]};
 
         AmrLevel* level = (*levelbld)(*this,
                                       new_finest,
                                       Geom(new_finest),
                                       new_grids[new_finest],
+				      new_dm,
                                       strt_time);
 
         amr_level[new_finest].reset(level);
+	this->SetBoxArray(new_finest, new_grids[new_finest]);
+	this->SetDistributionMap(new_finest, new_dm);
 
         amr_level[new_finest]->initData();
     }
@@ -3112,8 +3101,6 @@ Amr::RedistributeParticles ()
 void
 Amr::AddProcsToSidecar(int nSidecarProcs, int prevSidecarProcs)
 {
-    DistributionMapping::FlushCache();
-
     Array<BoxArray> allBoxes(finest_level + 1);
 
     for(int ilev(0); ilev < allBoxes.size(); ++ilev) {
@@ -3143,19 +3130,12 @@ Amr::AddProcsToSidecar(int nSidecarProcs, int prevSidecarProcs)
 #ifdef USE_PARTICLES
     RedistributeParticles();
 #endif
-
-    bool inSidecar(ParallelDescriptor::MyProc() > maxRank);
-    if(inSidecar) {
-      DistributionMapping::DeleteCache();
-    }
 }
 
 
 void
 Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
 #if BL_USE_MPI
-    DistributionMapping::FlushCache();
-
     MPI_Group scsGroup, allGroup;
     MPI_Comm  scsComm;
 
@@ -3591,8 +3571,7 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
         amr_level[lev]->AddProcsToComp(this, nSidecarProcs, prevSidecarProcs,
 				       ioProcNumSCS, ioProcNumAll, scsMyId, scsComm);
 	this->SetBoxArray(lev, amr_level[lev]->boxArray());
-	this->SetDistributionMap(lev, DistributionMapping(amr_level[lev]->boxArray(),
-							  ParallelDescriptor::NProcs()));
+	this->SetDistributionMap(lev, amr_level[lev]->DistributionMap());
       }
 
 
@@ -3628,8 +3607,13 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
           probin_file_name[i] = probin_file[i];
         }
         std::cout << "Starting to read probin ... " << std::endl;
-        FORT_PROBINIT(&init, probin_file_name.dataPtr(), &probin_file_length,
-                      Geometry::ProbLo(), Geometry::ProbHi());
+#ifdef DIMENSION_AGNOSTIC
+        amrex_probinit(&init, probin_file_name.dataPtr(), &probin_file_length,
+		       ZFILL(Geometry::ProbLo()), ZFILL(Geometry::ProbHi()));
+#else
+        amrex_probinit(&init, probin_file_name.dataPtr(), &probin_file_length,
+		       Geometry::ProbLo(), Geometry::ProbHi());
+#endif
       }
 
     }  // ---- end if(scsMyId != MPI_UNDEFINED)
@@ -3661,7 +3645,6 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
 
 void
 Amr::RedistributeGrids(int how) {
-    DistributionMapping::FlushCache();
     if( ! ParallelDescriptor::InCompGroup()) {
       return;
     }

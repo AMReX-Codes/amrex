@@ -236,13 +236,14 @@ void TestWriteNFiles(int nfiles, int maxgrid, int ncomps, int nboxes,
   // ---- make the MultiFabs
   Array<std::string> mfNames(nMultiFabs);
   Array<MultiFab *> multifabs(nMultiFabs);
+  DistributionMapping dmap{bArray};
   for(int nmf(0); nmf < nMultiFabs; ++nmf) {
     std::stringstream suffix;
     suffix << "_" << nmf;
     mfNames[nmf] = mfName + suffix.str();
     VisMF::RemoveFiles(mfNames[nmf], false);  // ---- not verbose
 
-    multifabs[nmf] = new MultiFab(bArray, ncomps, 0);
+    multifabs[nmf] = new MultiFab(bArray, dmap, ncomps, 0);
 
     for(MFIter mfiset(*(multifabs[nmf])); mfiset.isValid(); ++mfiset) {
       for(int invar(0); invar < ncomps; ++invar) {
@@ -354,8 +355,14 @@ void TestReadMF(const std::string &mfName, bool useSyncReads,
     bool bExitOnError(false);  // ---- dont exit if this file does not exist
     ParallelDescriptor::ReadAndBcastFile(faHName, faHeaders[nmf], bExitOnError);
   }
-  for(int nmf(0); nmf < nMultiFabs; ++nmf) {
-    VisMF::Read(*multifabs[nmf], mfNames[nmf], faHeaders[nmf].dataPtr(), nmf); 
+  VisMF::Read(*multifabs[0], mfNames[0], faHeaders[0].dataPtr(), 0); 
+  const BoxArray& ba = multifabs[0]->boxArray();
+  const DistributionMapping& dm = multifabs[0]->DistributionMap();
+  const int ncomps = multifabs[0]->nComp();
+  const int ng = multifabs[0]->nGrow();
+  for(int nmf(1); nmf < nMultiFabs; ++nmf) {
+      multifabs[nmf]->define(ba,dm,ncomps,ng);
+      VisMF::Read(*multifabs[nmf], mfNames[nmf], faHeaders[nmf].dataPtr(), nmf); 
   }
 
   double wallTime(ParallelDescriptor::second() - wallTimeStart);

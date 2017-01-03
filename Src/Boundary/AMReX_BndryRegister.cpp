@@ -1,5 +1,4 @@
 
-#include <AMReX_winstd.H>
 #include <AMReX_BndryRegister.H>
 #include <AMReX_Orientation.H>
 #include <AMReX_Utility.H>
@@ -16,11 +15,11 @@ BndryRegister::BndryRegister () {}
 BndryRegister::~BndryRegister () {}
 
 BndryRegister::BndryRegister (const BoxArray& grids,
+			      const DistributionMapping& dmap,
                               int             in_rad,
                               int             out_rad,
                               int             extent_rad,
-                              int             ncomp,
-			      ParallelDescriptor::Color color)
+                              int             ncomp)
     :
     grids(grids)
 {
@@ -29,7 +28,7 @@ BndryRegister::BndryRegister (const BoxArray& grids,
 
     for (OrientationIter face; face; ++face)
     {
-        define(face(),IndexType::TheCellType(),in_rad,out_rad,extent_rad,ncomp,color);
+        define(face(),IndexType::TheCellType(),in_rad,out_rad,extent_rad,ncomp,dmap);
     }
 }
 
@@ -40,7 +39,8 @@ BndryRegister::init (const BndryRegister& src)
 
     for (int i = 0; i < 2*BL_SPACEDIM; i++)
     {
-        bndry[i].define(src.bndry[i].boxArray(), src.bndry[i].nComp(), src.color());
+        bndry[i].define(src.bndry[i].boxArray(), src.DistributionMap(),
+			src.bndry[i].nComp());
 
         for (FabSetIter mfi(src.bndry[i]); mfi.isValid(); ++mfi)
         {
@@ -148,7 +148,7 @@ BndryRegister::define (Orientation _face,
                        int         _out_rad,
                        int         _extent_rad,
                        int         _ncomp,
-		       ParallelDescriptor::Color color)
+		       const DistributionMapping& dmap)
 {
     BndryBATransformer bbatrans(_face,_typ,_in_rad,_out_rad,_extent_rad);
     BoxArray fsBA(grids, bbatrans);
@@ -157,33 +157,7 @@ BndryRegister::define (Orientation _face,
 
     BL_ASSERT(fabs.size() == 0);
 
-    fabs.define(fsBA,_ncomp,color);
-    // 
-    // Go ahead and assign values to the boundary register fabs
-    // since in some places APPLYBC (specifically in the tensor
-    // operator) the boundary registers are used for a few calculations
-    // before the masks are tested to see if you need them.
-    //
-    fabs.setVal(BL_SAFE_BOGUS);
-}
-
-void
-BndryRegister::define (Orientation                _face,
-                       IndexType                  _typ,
-                       int                        _in_rad,
-                       int                        _out_rad,
-                       int                        _extent_rad,
-                       int                        _ncomp,
-                       const DistributionMapping& _dm)
-{
-    BndryBATransformer bbatrans(_face,_typ,_in_rad,_out_rad,_extent_rad);
-    BoxArray fsBA(grids, bbatrans);
-
-    FabSet& fabs = bndry[_face];
-
-    BL_ASSERT(fabs.size() == 0);
-
-    fabs.define(fsBA,_ncomp,_dm);
+    fabs.define(fsBA,dmap,_ncomp);
     // 
     // Go ahead and assign values to the boundary register fabs
     // since in some places APPLYBC (specifically in the tensor
@@ -319,7 +293,13 @@ BndryRegister::write (const std::string& name, std::ostream& os) const
 void
 BndryRegister::read (const std::string& name, std::istream& is)
 {
-    grids.readFrom(is);
+    BoxArray grids_in;
+
+    grids_in.readFrom(is);
+
+    if (!amrex::match(grids,grids_in)) {
+	amrex::Abort("BndryRegister::read: grids do not match");
+    }
 
     for (OrientationIter face; face; ++face)
     {

@@ -13,7 +13,7 @@
 
 #include <AMReX_MemProfiler.H>
 #include <AMReX_ParallelDescriptor.H>
-#include <AMReX_BoxLib.H>
+#include <AMReX.H>
 #include <AMReX_ParmParse.H>
 
 namespace amrex {
@@ -56,7 +56,7 @@ MemProfiler::report (const std::string& prefix)
 {
     static std::string memory_log_name;
     if (memory_log_name.empty()) {
-	ParmParse pp("boxlib");
+	ParmParse pp("amrex");
 	pp.query("memory_log", memory_log_name);
 	if (memory_log_name.empty())
 	    memory_log_name = "memlog";

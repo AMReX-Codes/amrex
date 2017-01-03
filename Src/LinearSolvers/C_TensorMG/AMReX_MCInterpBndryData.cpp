@@ -1,4 +1,3 @@
-#include <AMReX_winstd.H>
 #include <cmath>
 
 #include <AMReX_LO_BCTYPES.H>
@@ -59,10 +58,11 @@ const int* fabhi = (fab).hiVect();           \
 const Real* fabdat = (fab).dataPtr();
 
 MCInterpBndryData::MCInterpBndryData (const BoxArray& _grids,
+				      const DistributionMapping& _dmap,
 				      int             _ncomp,
 				      const Geometry& geom)
     :
-    BndryData(_grids,MCLinOp::bcComponentsNeeded(_ncomp),geom)
+    BndryData(_grids,_dmap,MCLinOp::bcComponentsNeeded(_ncomp),geom)
 {}
 
 //

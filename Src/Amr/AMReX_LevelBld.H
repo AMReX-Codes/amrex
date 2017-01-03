@@ -51,11 +51,12 @@ public:
     // This is a pure virtual function and hence MUST
     // be implemented by derived classes.
     //
-    virtual AmrLevel* operator() (Amr&            papa,
-                                  int             lev,
-                                  const Geometry& geom_lev,
-                                  const BoxArray& ba,
-                                  Real            time) = 0;
+    virtual AmrLevel* operator() (Amr&                       papa,
+                                  int                        lev,
+                                  const Geometry&            geom_lev,
+                                  const BoxArray&            ba,
+                                  const DistributionMapping& dm,
+                                  Real                       time) = 0;
 };
 
 }

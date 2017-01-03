@@ -1,5 +1,4 @@
 
-#include <AMReX_winstd.H>
 #include <AMReX_BndryData.H>
 #include <AMReX_Utility.H>
 #include <AMReX_LO_BCTYPES.H>
@@ -18,15 +17,15 @@ BndryData::BndryData ()
     m_ncomp(-1), m_defined(false) {}
 
 BndryData::BndryData (const BoxArray& _grids,
+		      const DistributionMapping& _dmap,
                       int             _ncomp, 
-                      const Geometry& _geom,
-		      ParallelDescriptor::Color color)
+                      const Geometry& _geom)
     :
     geom(_geom),
     m_ncomp(_ncomp),
     m_defined(false)
 {
-    define(_grids,_ncomp,_geom,color);
+    define(_grids,_dmap,_ncomp,_geom);
 }
 
 void
@@ -109,9 +108,9 @@ BndryData::~BndryData ()
 
 void
 BndryData::define (const BoxArray& _grids,
+		   const DistributionMapping& _dmap,
                    int             _ncomp,
-                   const Geometry& _geom,
-		   ParallelDescriptor::Color color)
+                   const Geometry& _geom)
 {
     BL_PROFILE("BndryData::define()");
 
@@ -138,8 +137,8 @@ BndryData::define (const BoxArray& _grids,
     for (OrientationIter fi; fi; ++fi)
     {
         Orientation face = fi();
-        BndryRegister::define(face,IndexType::TheCellType(),0,1,1,_ncomp,color);
-	masks[face].reset(new MultiMask(grids, bndry[face].DistributionMap(),
+        BndryRegister::define(face,IndexType::TheCellType(),0,1,1,_ncomp,_dmap);
+	masks[face].reset(new MultiMask(grids, _dmap,
 					geom, face, 0, 2, NTangHalfWidth, 1, true));
     }
     //

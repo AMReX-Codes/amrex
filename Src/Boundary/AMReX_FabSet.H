@@ -45,8 +45,7 @@ public:
     //
     // Construct a FabSet of specified number of components on the grids.
     //
-    FabSet (const BoxArray& grids, int ncomp, 
-	    ParallelDescriptor::Color color = ParallelDescriptor::DefaultColor());
+    FabSet (const BoxArray& grids, const DistributionMapping& dmap, int ncomp); 
     //
     // The destructor.
     //
@@ -54,12 +53,7 @@ public:
     //
     // Define a FabSet constructed via default constructor.
     //
-    void define (const BoxArray& grids, int ncomp,
-		 ParallelDescriptor::Color color = ParallelDescriptor::DefaultColor());
-    //
-    // Define a FabSet constructed via default constructor.
-    //
-    void define (const BoxArray& grids, int ncomp, const DistributionMapping& dm);
+    void define (const BoxArray& grids, const DistributionMapping& dmap, int ncomp);
 
     const FArrayBox& operator[] (const MFIter& mfi) const { return m_mf[mfi]; }
 

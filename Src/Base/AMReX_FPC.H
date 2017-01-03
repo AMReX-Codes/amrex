@@ -63,16 +63,16 @@ public:
     static const long ieee_double[];
     //
     // Returns a constant reference to an IntDescriptor describing
-    // the native "long" under which BoxLib was compiled.  Each
-    // BoxLib library will have exactly one of these compiled into it.
+    // the native "long" under which AMReX was compiled.  Each
+    // AMReX library will have exactly one of these compiled into it.
     //
     static const IntDescriptor&  NativeLongDescriptor ();
     //
     // Returns a constant reference to a RealDescriptor describing
-    // the native Real under which BoxLib was compiled.  Each BoxLib
+    // the native Real under which AMReX was compiled.  Each AMReX
     // library will have exactly one of these compiled into it.
     // Note that "Real" will be one of "float" or "double" depending
-    // on how the version of BoxLib was built.
+    // on how the version of AMReX was built.
     //
     static const RealDescriptor& NativeRealDescriptor ();
     static const RealDescriptor& Native32RealDescriptor ();

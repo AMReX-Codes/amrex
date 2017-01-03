@@ -232,16 +232,18 @@ public:
     static void RemoveFiles(const std::string &name, bool verbose = false);
 
     //
-    // Read a FabArray<FArrayBox> from disk written using VisMF::Write().
-    // The FabArray<FArrayBox> fafab must have been defined using the default
-    // constructor.  A pre-read FabArray header can be passed in to
-    // avoid a read and broadcast.
+    // Read a FabArray<FArrayBox> from disk written using
+    // VisMF::Write().  If the FabArray<FArrayBox> fafab has been
+    // fully defined, the BoxArray on the disk must match the BoxArray
+    // in fafab.  If it is constructed with the default constructor,
+    // the BoxArray on the disk will be used and a new
+    // DistributionMapping will be made.  A pre-read FabArray header
+    // can be passed in to avoid a read and broadcast.
     //
     static void Read (FabArray<FArrayBox> &fafab,
                       const std::string &name,
-		      const char *faHeader = 0,
+		      const char *faHeader = nullptr,
 		      int coordinatorProc = ParallelDescriptor::IOProcessorNumber());
-
     //
     // Read only the header of a FabArray, header will be resized here.
     //

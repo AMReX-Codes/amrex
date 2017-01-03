@@ -6,7 +6,7 @@
 
 #include <AMReX_BLBackTrace.H>
 #include <AMReX_ParallelDescriptor.H>
-#include <AMReX_BoxLib.H>
+#include <AMReX.H>
 
 namespace amrex {
 

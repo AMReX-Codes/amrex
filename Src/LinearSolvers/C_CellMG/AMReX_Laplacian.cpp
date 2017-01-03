@@ -1,5 +1,4 @@
 
-#include <AMReX_winstd.H>
 #include <AMReX_Laplacian.H>
 #include <AMReX_LP_F.H>
 

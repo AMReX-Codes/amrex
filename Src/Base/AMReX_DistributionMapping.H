@@ -5,7 +5,7 @@
 #include <limits>
 
 #include <AMReX_Pointers.H>
-#include <AMReX_BoxLib.H>
+#include <AMReX.H>
 #include <AMReX_Array.H>
 #include <AMReX_Box.H>
 #include <AMReX_REAL.H>
@@ -46,16 +46,17 @@ class DistributionMapping
     // Create an object with the specified mapping.
     // VERY IMPORTANT:  The size of pmap must be (yourboxarray.size() + 1).
     //                  The value in pmap[yourboxarray.size()] is a sentinel used
-    //                  in boxlib and its value must be set to
+    //                  in AMReX and its value must be set to
     //                  ParallelDescriptor::MyProc() by the caller.
     //
-    DistributionMapping (const Array<int>& pmap, bool put_in_cache = false,
-			 ParallelDescriptor::Color color = ParallelDescriptor::DefaultColor());
+    explicit DistributionMapping (const Array<int>& pmap,
+				  ParallelDescriptor::Color color = ParallelDescriptor::DefaultColor());
     //
     // Build mapping out of BoxArray over nprocs processors.
     //
-    DistributionMapping (const BoxArray& boxes, int nprocs, 
-			 ParallelDescriptor::Color color = ParallelDescriptor::DefaultColor());
+    explicit DistributionMapping (const BoxArray& boxes,
+				  int nprocs = ParallelDescriptor::NProcs(), 
+				  ParallelDescriptor::Color color = ParallelDescriptor::DefaultColor());
     //
     // This is a very specialized distribution map.
     // Do NOT use it unless you really understand what it does.
@@ -79,14 +80,13 @@ class DistributionMapping
     // You need to call this if you built your DistributionMapping
     // with the default constructor.
     //
-    void define (const BoxArray& boxes, int nprocs,
+    void define (const BoxArray& boxes, int nprocs = ParallelDescriptor::NProcs(),
 		 ParallelDescriptor::Color color = ParallelDescriptor::DefaultColor());
     //
     // Build mapping out of an Array of ints. You need to call this if you
     // built your DistributionMapping with the default constructor.
     //
     void define (const Array<int>& pmap);
-    void define (const Array<int>& pmap, bool put_in_cache);
     //
     // Returns a constant reference to the mapping of boxes in the
     // underlying BoxArray to the CPU that holds the FAB on that Box.
@@ -111,11 +111,6 @@ class DistributionMapping
     //
     int operator[] (int index) const { return m_ref->m_pmap[index]; }
     //
-    // Replace the cached processor map.  This is to support FabArray::MoveAllFabs
-    //   All FabArrays using the cached map must move their fabs before
-    //   calling this function.
-    void ReplaceCachedProcessorMap(const Array<int> &newProcMap);
-    //
     // Set/get the distribution strategy.
     //
     static void strategy (Strategy how);
@@ -127,29 +122,6 @@ class DistributionMapping
     static void SFC_Threshold (int n);
 
     static int SFC_Threshold ();
-    //
-    // Flush the cache of processor maps.  The processor map cache
-    // is only flushed manually.  Only call this after a regridding
-    // before new MultiFabs are alloc()d.  This removes unreferenced
-    // DistributionMaps from the Cache.
-    //
-    static void FlushCache ();
-    //
-    // Delete the cache.  This is to support dynamic sidecars.
-    //
-    static void DeleteCache ();
-    //
-    // The size of the cache.
-    //
-    static int CacheSize ();
-    //
-    // Output some simple cache statistics.
-    //
-    static void CacheStats (std::ostream& os, int whichProc = 0);
-    //
-    // Put in cache
-    //
-    void PutInCache();
     //
     // Are the distributions equal?
     //
@@ -309,11 +281,6 @@ private:
     //
     void LeastUsedTeams (Array<int>& rteam, Array<Array<int> >& rworker, int nteams, int nworkers);
     //
-    // Look for a cached processor map.
-    //
-    bool GetMap (const BoxArray& boxes);
-    bool GetMap (int nBoxes);
-    //
     // A useful typedef.
     //
     typedef void (DistributionMapping::*PVMF)(const BoxArray &, int);
@@ -355,10 +322,6 @@ private:
     //
     LnClassPtr<Ref> m_ref;
     ParallelDescriptor::Color m_color;
-    //
-    // Our cache of processor maps.
-    //
-    static std::map< std::pair<int,int>, LnClassPtr<Ref> > m_Cache;
     //
     // Topological proximity map
     //
