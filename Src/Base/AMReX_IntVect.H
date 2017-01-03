@@ -59,6 +59,11 @@ public:
     // IntVect.
     //
     explicit IntVect (const Array<int>& a);
+
+    //
+    // dtor, copy-ctor, copy-op=, move-ctor, and move-op= are compiler generated.
+    //
+
     //
     // Returns a reference to the i'th coordinate of the IntVect.
     //
