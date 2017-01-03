@@ -1,7 +1,7 @@
 
 #include <numeric>
 
-#include <ParallelDescriptor.H>
+#include <AMReX_ParallelDescriptor.H>
 
 #include <WarpX.H>
 #include <WarpX_f.H>

@@ -2,11 +2,11 @@
 #include <limits>
 #include <random>
 
-#include <BoxLib.H>
-#include <ParmParse.H>
-#include <Array.H>
-#include <MultiFab.H>
-#include <PlotFileUtil.H>
+#include <AMReX_BoxLib.H>
+#include <AMReX_ParmParse.H>
+#include <AMReX_Array.H>
+#include <AMReX_MultiFab.H>
+#include <AMReX_PlotFileUtil.H>
 
 #include <WarpXConst.H>
 #include <WarpX_f.H>

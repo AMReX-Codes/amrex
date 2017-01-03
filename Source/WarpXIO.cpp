@@ -1,6 +1,6 @@
 
-#include <MultiFabUtil.H>
-#include <PlotFileUtil.H>
+#include <AMReX_MultiFabUtil.H>
+#include <AMReX_PlotFileUtil.H>
 
 #include <WarpX.H>
 

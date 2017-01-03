@@ -5,8 +5,8 @@
 #include <memory>
 #include <map>
 
-#include <Particles.H>
-#include <AmrParGDB.H>
+#include <AMReX_Particles.H>
+#include <AMReX_AmrParGDB.H>
 
 struct PIdx
 {

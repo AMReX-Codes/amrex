@@ -8,8 +8,8 @@
 #include <omp.h>
 #endif
 
-#include <AmrCore.H>
-#include <BLProfiler.H>
+#include <AMReX_AmrCore.H>
+#include <AMReX_BLProfiler.H>
 
 #include <ParticleContainer.H>
 

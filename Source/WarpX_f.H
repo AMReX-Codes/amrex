@@ -1,5 +1,5 @@
-#include <REAL.H>
-#include <BLFort.H>
+#include <AMReX_REAL.H>
+#include <AMReX_BLFort.H>
 
 extern "C" 
 {
