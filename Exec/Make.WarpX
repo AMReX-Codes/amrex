@@ -34,8 +34,8 @@ ifeq ($(USE_OPENBC_POISSON),TRUE)
 endif
 
 # job_info support
-CEXE_sources += buildInfo.cpp
-CEXE_headers += $(AMREX_HOME)/Tools/C_scripts/buildInfo.H
+CEXE_sources += AMReX_buildInfo.cpp
+CEXE_headers += $(AMREX_HOME)/Tools/C_scripts/AMReX_buildInfo.H
 INCLUDE_LOCATIONS += $(AMREX_HOME)/Tools/C_scripts
 
 ifeq ($(USE_PYTHON_MAIN),TRUE)
@@ -51,13 +51,13 @@ endif
 libwarpx.so: $(objForExecs)
 	@echo Making dynamic library $@ ...
 	$(SILENT) $(CXX) $(SHARED_OPTION) -fPIC -o $@ $^ $(MY_LINK_LIBRARIES)
-	$(SILENT) $(RM) buildInfo.cpp
+	$(SILENT) $(RM) AMReX_buildInfo.cpp
 	@echo SUCCESS
 
 else
 
 all: $(executable) 
-	$(SILENT) $(RM) buildInfo.cpp
+	$(SILENT) $(RM) AMReX_buildInfo.cpp
 	@echo SUCCESS
 
 endif
@@ -65,9 +65,9 @@ endif
 clean::
 	$(SILENT) $(RM) libwarpx.so
 
-buildInfo.cpp: 
+AMReX_buildInfo.cpp: 
 	$(AMREX_HOME)/Tools/C_scripts/makebuildinfo_C.py \
-          --boxlib_home "$(AMREX_HOME)" \
+          --amrex_home "$(AMREX_HOME)" \
           --COMP "$(COMP)" --COMP_VERSION "$(COMP_VERSION)" \
           --FCOMP "$(FCOMP)" --FCOMP_VERSION "$(FCOMP_VERSION)" \
           --GIT ". $(AMREX_HOME) $(PICSAR_HOME)"
@@ -75,4 +75,4 @@ buildInfo.cpp:
 include $(AMREX_HOME)/Tools/GNUMake/Make.rules
 
 clean::
-	$(SILENT) $(RM) buildInfo.cpp
+	$(SILENT) $(RM) AMReX_buildInfo.cpp

@@ -4,7 +4,7 @@
 
 #include <WarpX.H>
 
-#include "buildInfo.H"
+#include "AMReX_buildInfo.H"
 
 using namespace amrex;
 
@@ -96,7 +96,7 @@ WarpX::WritePlotFile () const
 	jobInfoFile << "build date:    " << buildInfoGetBuildDate() << "\n";
 	jobInfoFile << "build machine: " << buildInfoGetBuildMachine() << "\n";
 	jobInfoFile << "build dir:     " << buildInfoGetBuildDir() << "\n";
-	jobInfoFile << "BoxLib dir:    " << buildInfoGetBoxlibDir() << "\n";
+	jobInfoFile << "BoxLib dir:    " << buildInfoGetAMReXDir() << "\n";
 
 	jobInfoFile << "\n";
 

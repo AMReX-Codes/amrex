@@ -2,7 +2,7 @@
 #include <limits>
 #include <random>
 
-#include <AMReX_BoxLib.H>
+#include <AMReX.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_Array.H>
 #include <AMReX_MultiFab.H>
