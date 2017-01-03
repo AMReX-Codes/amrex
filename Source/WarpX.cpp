@@ -3,6 +3,8 @@
 
 #include <WarpX.H>
 
+using namespace amrex;
+
 long WarpX::current_deposition_algo = 3;
 long WarpX::charge_deposition_algo = 0;
 long WarpX::field_gathering_algo = 1;

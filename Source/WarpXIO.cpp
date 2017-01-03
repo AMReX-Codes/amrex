@@ -6,6 +6,8 @@
 
 #include "buildInfo.H"
 
+using namespace amrex;
+
 void
 WarpX::WritePlotFile () const
 {

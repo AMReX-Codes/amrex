@@ -14,7 +14,7 @@
 #include <ParticleContainer.H>
 
 class WarpX
-    : public AmrCore
+    : public amrex::AmrCore
 {
 public:
 
@@ -30,7 +30,8 @@ public:
 
     void Evolve (int numsteps = -1);
 
-    static void FillBoundary (MultiFab& mf, const Geometry& geom, const IntVect& nodalflag);
+    static void FillBoundary (amrex::MultiFab& mf, const amrex::Geometry& geom,
+			      const amrex::IntVect& nodalflag);
 
     // Algorithms
     static long current_deposition_algo;
@@ -44,7 +45,7 @@ public:
     static long noz;
 
 protected:
-    virtual void ErrorEst (int lev, TagBoxArray& tags, Real time, int /*ngrow*/) override {}
+    virtual void ErrorEst (int lev, amrex::TagBoxArray& tags, Real time, int /*ngrow*/) override {}
 
 private:
 
@@ -57,7 +58,7 @@ private:
     void ReadParameters ();
 
     void MakeNewLevel (int lev, Real time,
-		       const BoxArray& new_grids, const DistributionMapping& new_dmap);
+		       const amrex::BoxArray& new_grids, const amrex::DistributionMapping& new_dmap);
 
     void InitFromScratch ();
     void InitFromCheckpoint () {}
@@ -68,23 +69,23 @@ private:
     void ComputeDt ();
 
     void WritePlotFile () const;
-    static void PackPlotDataPtrs (Array<const MultiFab*>& pmf,
-				  const Array<std::unique_ptr<MultiFab> >& data);
-    static void Copy (MultiFab& dstmf, int dcomp, int ncomp, const MultiFab& srcmf, int scomp);
+    static void PackPlotDataPtrs (amrex::Array<const amrex::MultiFab*>& pmf,
+				  const amrex::Array<std::unique_ptr<amrex::MultiFab> >& data);
+    static void Copy (amrex::MultiFab& dstmf, int dcomp, int ncomp, const amrex::MultiFab& srcmf, int scomp);
 
-    Array<int> istep;      // which step?
-    Array<int> nsubsteps;  // how many substeps on each level?
+    amrex::Array<int> istep;      // which step?
+    amrex::Array<int> nsubsteps;  // how many substeps on each level?
 
-    Array<Real> t_new;
-    Array<Real> t_old;
-    Array<Real> dt;
+    amrex::Array<Real> t_new;
+    amrex::Array<Real> t_old;
+    amrex::Array<Real> dt;
 
     // Particle container
     std::unique_ptr<MyParticleContainer> mypc;
     // Fields: First array for level, second for direction
-    Array<Array< std::unique_ptr<MultiFab> > > current;
-    Array<Array< std::unique_ptr<MultiFab> > > Efield;
-    Array<Array< std::unique_ptr<MultiFab> > > Bfield;
+    amrex::Array<amrex::Array< std::unique_ptr<amrex::MultiFab> > > current;
+    amrex::Array<amrex::Array< std::unique_ptr<amrex::MultiFab> > > Efield;
+    amrex::Array<amrex::Array< std::unique_ptr<amrex::MultiFab> > > Bfield;
 
     // runtime parameters
 
@@ -102,17 +103,17 @@ private:
     int check_int = -1;
     int plot_int = -1;
 
-    static IntVect Bx_nodal_flag;
-    static IntVect By_nodal_flag;
-    static IntVect Bz_nodal_flag;
+    static amrex::IntVect Bx_nodal_flag;
+    static amrex::IntVect By_nodal_flag;
+    static amrex::IntVect Bz_nodal_flag;
 
-    static IntVect Ex_nodal_flag;
-    static IntVect Ey_nodal_flag;
-    static IntVect Ez_nodal_flag;
+    static amrex::IntVect Ex_nodal_flag;
+    static amrex::IntVect Ey_nodal_flag;
+    static amrex::IntVect Ez_nodal_flag;
 
-    static IntVect jx_nodal_flag;
-    static IntVect jy_nodal_flag;
-    static IntVect jz_nodal_flag;
+    static amrex::IntVect jx_nodal_flag;
+    static amrex::IntVect jy_nodal_flag;
+    static amrex::IntVect jz_nodal_flag;
 };
 
 #endif

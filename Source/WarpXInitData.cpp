@@ -6,6 +6,8 @@
 #include <WarpX.H>
 #include <WarpX_f.H>
 
+using namespace amrex;
+
 void
 WarpX::InitData ()
 {

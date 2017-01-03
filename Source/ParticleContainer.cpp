@@ -5,6 +5,8 @@
 #include <WarpX_f.H>
 #include <WarpX.H>
 
+using namespace amrex;
+
 int     MyParticleContainer::do_tiling = 0;
 IntVect MyParticleContainer::tile_size   { D_DECL(1024000,8,8) };
 

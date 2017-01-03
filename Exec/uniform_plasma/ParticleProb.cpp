@@ -12,6 +12,8 @@
 #include <WarpXConst.H>
 #include <random>
 
+using namespace amrex;
+
 void
 MyParticleContainer::InitData()
 {

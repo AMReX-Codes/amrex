@@ -6,6 +6,8 @@
 #include <WarpXConst.H>
 #include <WarpX_f.H>
 
+using namespace amrex;
+
 void
 WarpX::Evolve (int numsteps)
 {

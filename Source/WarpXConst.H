@@ -1,6 +1,8 @@
 #ifndef WARPX_CONST_H_
 #define WARPX_CONST_H_
 
+#include <AMReX_REAL.H>
+
 // Physical constants
 namespace PhysConst
 {

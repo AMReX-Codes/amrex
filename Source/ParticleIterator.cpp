@@ -1,6 +1,8 @@
 
 #include <ParticleIterator.H>
 
+using namespace amrex;
+
 PartIter::PartIter (MyParticleContainer& _mypc, const PartIterInfo& _info)
     : mypc(_mypc),
       pmap(_mypc.GetParticles(_info.level)),

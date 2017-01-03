@@ -7,14 +7,14 @@
 
 struct PartIterInfo
 {
-    PartIterInfo (int _level, bool _tiling, const IntVect& _tilesize)
+    PartIterInfo (int _level, bool _tiling, const amrex::IntVect& _tilesize)
 	: level(_level), tiling(_tiling), tilesize(_tilesize)
 	{ }
     PartIterInfo (const PartIterInfo&) = default;
     PartIterInfo (PartIterInfo&&) = default;
     int  level;
     bool tiling;
-    IntVect tilesize;
+    amrex::IntVect tilesize;
 };
 
 class PartIter
@@ -34,9 +34,9 @@ public:
 
     int numParticles () const;
 
-    Box tilebox () const;
+    amrex::Box tilebox () const;
     
-    Box validbox () const;
+    amrex::Box validbox () const;
 
     // apply function to each particle in current tile
     template <typename F>
@@ -66,7 +66,7 @@ private:
     int currentIndex;
     int beginIndex;
     int endIndex;
-    Array<int> index_map;
+    amrex::Array<int> index_map;
 };
 
 #endif
