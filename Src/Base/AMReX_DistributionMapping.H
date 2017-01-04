@@ -227,7 +227,7 @@ private:
     void PFCProcessorMap        (const BoxArray& boxes, int nprocs);
     void RRSFCProcessorMap      (const BoxArray& boxes, int nprocs);
 
-    typedef std::pair<long,int> LIpair;
+    using LIpair = std::pair<long,int>;
 
     struct LIpairLT
     {
@@ -306,9 +306,9 @@ private:
         //
         Ref () {}
 
-        Ref (int len) : m_pmap(len) {}
+        explicit Ref (int len) : m_pmap(len) {}
 
-        Ref (const Array<int>& pmap) : m_pmap(pmap) {}
+        explicit Ref (const Array<int>& pmap) : m_pmap(pmap) {}
 
 	//
 	// dtor, copy-ctor, copy-op=, move-ctor, and move-op= are compiler generated.

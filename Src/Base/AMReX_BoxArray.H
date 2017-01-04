@@ -52,15 +52,15 @@ namespace amrex
     // Note that two BoxArrays that match are not necessarily equal.
     bool match (const BoxArray& x, const BoxArray& y);
 
-class BARef
+struct BARef
 {
-public:
     BARef ();
     explicit BARef (size_t size);
-    BARef (const BoxList& bl);
-    BARef (std::istream& is);
+    explicit BARef (const BoxList& bl);
+    explicit BARef (std::istream& is);
     BARef (const BARef& rhs);
-
+    BARef& operator= (const BARef& rhs) = delete;
+    
     ~BARef ();
 
     // This gives a unique ID of the reference
@@ -87,7 +87,7 @@ public:
     
     mutable IntVect crsn;
     
-    typedef std::map< IntVect,std::vector<int>,IntVect::Compare > HashType;
+    using HashType = std::map< IntVect,std::vector<int>,IntVect::Compare >;
 
     mutable HashType hash;
     
@@ -100,21 +100,7 @@ public:
         
     static void Initialize ();
     static bool initialized;
-
-private:
-    BARef& operator= (const BARef&); // disallowed
 };
-
-
-template<>
-struct LnClassPtrCallBack<BARef> 
-{
-    // This will be called when a unique ref is about to be deleted.
-    void operator() (BARef* ref) {
-	amrex::clearCoarseBoxArrayCache(ref->getRefID());
-    }
-};
-
 
 //
 // Thess classes are used to transform from cell-centered boxes stored in BARef
@@ -219,11 +205,11 @@ public:
     //
     explicit BoxArray (const BoxList& bl);
     //
+    BoxArray (const BoxArray& rhs, const BATransformer& trans);
+    //
     // The copy constructor.
     //
     BoxArray (const BoxArray& rhs);
-    //
-    BoxArray (const BoxArray& rhs, const BATransformer& trans);
     //
     // The assignment operator.
     //
@@ -465,8 +451,8 @@ public:
     static void RecvBoxArray(BoxArray &ba, int whichSidecar);
 #endif
 
-    typedef std::map<IntVect, BoxArray*, IntVect::Compare> CBAMap;
-    typedef std::map<ptrdiff_t, CBAMap> CBACache;
+    using CBAMap   = std::map<IntVect, BoxArray*, IntVect::Compare>;
+    using CBACache = std::map<ptrdiff_t, CBAMap>;
 
     static CBACache m_CoarseBoxArrayCache;
 
@@ -486,13 +472,12 @@ private:
     //
     void uniqify ();
 
-    // When we move to C++11, we will switch to unique pointer
-    BATransformer* m_transformer;
+    std::unique_ptr<BATransformer> m_transformer;
 
     //
     // The data -- a reference-counted pointer to a Ref.
     //
-    LnClassPtr<BARef> m_ref;    
+    std::shared_ptr<BARef> m_ref;    
 };
 
 //
