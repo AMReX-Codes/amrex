@@ -114,8 +114,6 @@ namespace
       MPI_Comm_group(ParallelDescriptor::CommunicatorSidecar(), &group_sidecar);
       pm_sidecar = dm.ProcessorMap();
       pm_sidecar_all = DistributionMapping::TranslateProcMap(pm_sidecar, group_all, group_sidecar);
-      // Don't forget to set the sentinel to the proc # in the new group!
-      pm_sidecar_all[pm_sidecar_all.size()-1] = ParallelDescriptor::MyProcAll();
 
       dm_sidecar_all.define(pm_sidecar_all, addToCache);
       if(ParallelDescriptor::IOProcessor()) {
@@ -163,8 +161,6 @@ namespace
             const Array<int> pm_sidecar = dm_sidecar.ProcessorMap();
 
             Array<int> pm_all = DistributionMapping::TranslateProcMap(pm_sidecar, group_all, group_sidecar);
-            // Don't forget to set the sentinel to the proc # in the new group!
-            pm_all[pm_all.size()-1] = ParallelDescriptor::MyProcAll();
 
             DistributionMapping dm_all(pm_all);
             if (ParallelDescriptor::IOProcessor()) {

@@ -44,10 +44,6 @@ class DistributionMapping
     DistributionMapping ();
     //
     // Create an object with the specified mapping.
-    // VERY IMPORTANT:  The size of pmap must be (yourboxarray.size() + 1).
-    //                  The value in pmap[yourboxarray.size()] is a sentinel used
-    //                  in AMReX and its value must be set to
-    //                  ParallelDescriptor::MyProc() by the caller.
     //
     explicit DistributionMapping (const Array<int>& pmap,
 				  ParallelDescriptor::Color color = ParallelDescriptor::DefaultColor());
@@ -314,14 +310,6 @@ private:
 	// dtor, copy-ctor, copy-op=, move-ctor, and move-op= are compiler generated.
 	//
 
-        //
-        // Local data -- our processor map.
-        //
-        // The length is always equal to boxes.length()+1 where boxes is
-        // the BoxArray on which the distribution is based.  It is also true
-        // that m_pmap[boxes.length()] == ParallelDescriptor::MyProc().
-        // This latter acts as a sentinel in some FabArray loops.
-        //
         Array<int> m_pmap;
     };
     //

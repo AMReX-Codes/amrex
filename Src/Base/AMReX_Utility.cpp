@@ -1630,7 +1630,7 @@ void amrex::BroadcastBoxArray(BoxArray &bBA, int myLocalId, int rootId, const MP
 }
 
 
-void amrex::BroadcastDistributionMapping(DistributionMapping &dM, int sentinelProc,
+void amrex::BroadcastDistributionMapping(DistributionMapping &dM,
                                           int myLocalId, int rootId, const MPI_Comm &localComm,
 					  bool addToCache)
 {
@@ -1648,7 +1648,6 @@ void amrex::BroadcastDistributionMapping(DistributionMapping &dM, int sentinelPr
   amrex::BroadcastArray(dmapA, myLocalId, rootId, localComm);
   if(dmapA.size() > 0) {
     if(myLocalId != rootId) {
-      dmapA[dmapA.size() - 1] = sentinelProc;  // ---- set the sentinel
       dM.define(dmapA);
     }
   }

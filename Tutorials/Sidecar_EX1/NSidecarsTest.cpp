@@ -125,8 +125,6 @@ namespace
             const Array<int> pm_sidecar = dm_sidecar.ProcessorMap();
 
             Array<int> pm_all = DistributionMapping::TranslateProcMap(pm_sidecar, group_all, group_sidecar);
-            // Don't forget to set the sentinel to the proc # in the new group!
-            pm_all[pm_all.size()-1] = ParallelDescriptor::MyProcAll();
 
             DistributionMapping dm_all(pm_all);
             if (ParallelDescriptor::IOProcessor()) {
