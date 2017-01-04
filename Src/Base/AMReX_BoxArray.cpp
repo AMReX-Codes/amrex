@@ -271,7 +271,6 @@ BoxArray::operator= (const BoxArray& rhs)
 void
 BoxArray::define (const Box& bx)
 {
-    BL_ASSERT(size() == 0);
     clear();
     m_transformer->setIxType(bx.ixType());
     m_ref->define(amrex::enclosedCells(bx));
@@ -280,7 +279,6 @@ BoxArray::define (const Box& bx)
 void
 BoxArray::define (const BoxList& bl)
 {
-    BL_ASSERT(size() == 0);
     clear();
     m_ref->define(bl);
     type_update();
