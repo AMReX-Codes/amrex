@@ -5,7 +5,6 @@
 #include <AMReX_BLassert.H>
 #include <AMReX_Array.H>
 #include <AMReX_Tuple.H>
-#include <AMReX_Pointers.H>
 #include <AMReX_REAL.H>
 #include <AMReX_BoxArray.H>
 #include <AMReX_MultiFab.H>
@@ -245,11 +244,11 @@ protected:
     //
     // Array (on level) of pointers to BndryRegisters along each grid for scratch data required to modify internal stencil on boundary
     //
-    Array< LnClassPtr< BndryRegister > > undrrelxr;
+    Array< std::unique_ptr< BndryRegister > > undrrelxr;
     //
     // Array (on level) of pointers to BndryRegisters along each grid for tangential derivative data
     //
-    Array< LnClassPtr< BndryRegister > > tangderiv;
+    Array< std::unique_ptr< BndryRegister > > tangderiv;
     //
     // Array (on level) of Arrays (on orientation) of MultiMasks for 
     // whether boundary Fabs are covered, not_covered, outside_domain

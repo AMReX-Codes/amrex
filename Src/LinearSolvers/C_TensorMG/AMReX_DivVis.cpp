@@ -57,12 +57,12 @@ DivVis::initConstruct (const Real* _h)
     numphase = numberPhases();     // wyc
 
     undrrelxr.resize(1);
-    undrrelxr[level] = new BndryRegister(gbox[level], dm, 1, 0, 0, numcomp);
+    undrrelxr[level].reset(new BndryRegister(gbox[level], dm, 1, 0, 0, numcomp));
     tangderiv.resize(1);
 #if BL_SPACEDIM==2
-    tangderiv[level] = new BndryRegister(gbox[level], dm, 0, 1, 0, numcomp);
+    tangderiv[level].reset(new BndryRegister(gbox[level], dm, 0, 1, 0, numcomp));
 #elif BL_SPACEDIM==3
-    tangderiv[level] = new BndryRegister(gbox[level], dm, 0, 1, 0, numcomp*(1+3));
+    tangderiv[level].reset(new BndryRegister(gbox[level], dm, 0, 1, 0, numcomp*(1+3)));
 #else
 # error "BL_SPACEDIME must be 2 or 3"
 #endif

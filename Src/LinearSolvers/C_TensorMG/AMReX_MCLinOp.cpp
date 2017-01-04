@@ -356,7 +356,7 @@ MCLinOp::prepareForLevel (int level)
     //
     BL_ASSERT(undrrelxr.size() == level);
     undrrelxr.resize(level+1);
-    undrrelxr[level] = new BndryRegister(gbox[level], DistributionMap(), 1, 0, 0, numcomp);
+    undrrelxr[level].reset(new BndryRegister(gbox[level], DistributionMap(), 1, 0, 0, numcomp));
     //
     // Add the BndryRegister to hold tagential derivatives to the new
     // coarser level.
@@ -367,7 +367,7 @@ MCLinOp::prepareForLevel (int level)
     // Figure out how many components.
     //
     const FabSet& samplefs = (*tangderiv[level-1])[Orientation(0,Orientation::low)];
-    tangderiv[level] = new BndryRegister(gbox[level], DistributionMap(), 0,1,0,samplefs.nComp());
+    tangderiv[level].reset(new BndryRegister(gbox[level], DistributionMap(), 0,1,0,samplefs.nComp()));
     //
     // Add an Array of Array of maskvals to the new coarser level
     // For each orientation, build NULL masks, then use distributed allocation
