@@ -245,13 +245,16 @@ BoxArray::BoxArray (const BoxArray& rhs, const BATransformer& trans)
     m_ref(rhs.m_ref)
 {}
 
-//
-// The copy constructor.
-//
 BoxArray::BoxArray (const BoxArray& rhs)
     :
     m_transformer(rhs.m_transformer->clone()),
     m_ref(rhs.m_ref)
+{}
+
+BoxArray::BoxArray(BoxArray&& rhs) noexcept
+    :
+    m_transformer(std::move(rhs.m_transformer)),
+    m_ref(std::move(rhs.m_ref))
 {}
 
 BoxArray::~BoxArray ()

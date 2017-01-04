@@ -214,7 +214,10 @@ public:
     // The assignment operator.
     //
     BoxArray& operator= (const BoxArray& rhs);
-    
+    //
+    // The move constrctor
+    //
+    BoxArray (BoxArray&& rhs) noexcept;
     //
     // The destructor.
     //
