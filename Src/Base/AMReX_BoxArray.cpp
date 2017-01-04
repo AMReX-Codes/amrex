@@ -289,8 +289,8 @@ BoxArray::define (const BoxList& bl)
 void
 BoxArray::clear ()
 {
-    m_transformer.reset();
-    m_ref.reset();
+    m_transformer.reset(new BATypeTransformer());
+    m_ref.reset(new BARef());
 }
 
 void
