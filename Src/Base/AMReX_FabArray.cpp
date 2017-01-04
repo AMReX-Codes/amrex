@@ -1096,7 +1096,6 @@ FabArrayBase::FPinfo::FPinfo (const FabArrayBase& srcfa,
 
     if (!iprocs.empty()) {
 	ba_crse_patch.define(bl);
-	iprocs.push_back(myproc);
 	dm_crse_patch.define(iprocs);
     }
 }
