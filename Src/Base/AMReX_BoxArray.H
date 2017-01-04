@@ -9,7 +9,6 @@
 #include <AMReX_IndexType.H>
 #include <AMReX_BoxList.H>
 #include <AMReX_Array.H>
-#include <AMReX_Pointers.H>
 #include <AMReX_BaseFab.H>
 
 namespace amrex
