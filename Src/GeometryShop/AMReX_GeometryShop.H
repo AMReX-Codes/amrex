@@ -84,7 +84,6 @@ namespace amrex
                              std::vector<RealVect>     a_loFaceCentroid[SpaceDim],
                              std::vector<RealVect>     a_hiFaceCentroid[SpaceDim],
                              const BaseFab<int>&  a_regIrregCovered,
-                             const std::set<IntVect>&    a_ivsIrreg,
                              const Box&           a_domain,
                              const RealVect&      a_origin,
                              const Real&          a_dx,

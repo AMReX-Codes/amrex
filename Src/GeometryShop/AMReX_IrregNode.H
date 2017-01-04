@@ -67,7 +67,7 @@ namespace amrex
        If the arc is to  an irregular
        cell, the index is the unique index of the vof
        in the cell.
-       For arcs to regular cells, the arc = -2
+       For arcs to regular cells, the arc = 0
        If the arc is to the domain boundary, arc  = -1.
     */
     std::vector<int>      m_arc[2*SpaceDim];

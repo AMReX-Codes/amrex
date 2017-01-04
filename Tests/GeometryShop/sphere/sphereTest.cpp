@@ -1,11 +1,11 @@
 /*
- *       {_       {__       {__{_______              {__      {__
- *      {_ __     {_ {__   {___{__    {__             {__   {__  
- *     {_  {__    {__ {__ { {__{__    {__     {__      {__ {__   
- *    {__   {__   {__  {__  {__{_ {__       {_   {__     {__     
- *   {______ {__  {__   {_  {__{__  {__    {_____ {__  {__ {__   
- *  {__       {__ {__       {__{__    {__  {_         {__   {__  
- * {__         {__{__       {__{__      {__  {____   {__      {__
+ *      .o.       ooo        ooooo ooooooooo.             ooooooo  ooooo 
+ *     .888.      `88.       .888' `888   `Y88.            `8888    d8'  
+ *    .8"888.      888b     d'888   888   .d88'  .ooooo.     Y888..8P    
+ *   .8' `888.     8 Y88. .P  888   888ooo88P'  d88' `88b     `8888'     
+ *  .88ooo8888.    8  `888'   888   888`88b.    888ooo888    .8PY888.    
+ * .8'     `888.   8    Y     888   888  `88b.  888    .o   d8'  `888b   
+ *o88o     o8888o o8o        o888o o888o  o888o `Y8bod8P' o888o  o88888o 
  *
  */
 
@@ -13,7 +13,7 @@
 
 #include "AMReX_GeometryShop.H"
 #include "AMReX_BoxIterator.H"
-//#include "AMReX_ParmParse.H"
+#include "AMReX_ParmParse.H"
 #include "AMReX_RealVect.H"
 #include "AMReX_SphereIF.H"
 
@@ -62,8 +62,8 @@ getComputedValues(Real             & a_volumeCalc,
   bool insideRegular = true;
   SphereIF sphere(a_radius, a_center, insideRegular);
   int verbosity = 0;
-  //ParmParse pp;
-  //  pp.get("verbosity", verbosity);
+  ParmParse pp;
+  pp.get("verbosity", verbosity);
 
   GeometryShop gshop(sphere, verbosity);
   BaseFab<int> regIrregCovered;
@@ -116,24 +116,30 @@ int checkSphere()
   int eekflag =  0;
   Real radius = 0.5;
   Real domlen = 1;
-  IntVect ncells;
+  std::vector<Real> centervec(SpaceDim);
+  std::vector<int>  ncellsvec(SpaceDim);
 
-  //ParmParse pp;
-  //pp.get(   "n_cell"       , ncells);
-  //pp.get(   "sphere_radius", radius);
-  //pp.getarr("sphere_center", centervec, 0, SpaceDim);
-  //pp.get("domain_length", domlen);                     // 
+  ParmParse pp;
+  pp.getarr(  "n_cell"       , ncellsvec, 0, SpaceDim);
+  pp.get(   "sphere_radius", radius);
+  pp.getarr("sphere_center", centervec, 0, SpaceDim);
+  pp.get("domain_length", domlen);                     // 
+
+  IntVect ivlo = IntVect::TheZeroVector();
+  IntVect ivhi;
+  for(int idir = 0; idir < SpaceDim; idir++)
+    {
+      ivhi[idir] = ncellsvec[idir] - 1;
+    }
 
   RealVect center = 0.5*RealVect::Unit;
-  IntVect ivlo = IntVect::TheZeroVector();
-  IntVect ivhi = ncells - IntVect::TheUnitVector();
   Box domain(ivlo, ivhi);
   
 
   Real volExact, bndryExact, volTotal, bndryTotal;
   getExactValues(volExact, bndryExact, radius, center); 
 
-  Real dx = domlen/ncells[0];
+  Real dx = domlen/ncellsvec[0];
 
   getComputedValues(volTotal, bndryTotal, radius, center, domain, dx); 
   //check how close is the answer
@@ -173,12 +179,12 @@ main(int argc,char **argv)
 
   const char* in_file = "sphere.inputs";
   //parse input file
-  //  ParmParse pp;
-  //  pp.Initialize(0, NULL, in_file);
+  ParmParse pp;
+  pp.Initialize(0, NULL, in_file);
 
   // check volume and surface area of approximate sphere
-  //  int eekflag = checkSphere();
-  int eekflag = 0;
+  int eekflag = checkSphere();
+
   if (eekflag != 0)
     {
       cout << "non zero eek detected = " << eekflag << endl;
