@@ -1641,7 +1641,7 @@ FabArray<FAB>::define (const BoxArray&            bxs,
 	}
     }
 
-    BL_ASSERT(dm.ProcessorMap().size() == bxs.size()+1);
+    BL_ASSERT(dm.ProcessorMap().size() == bxs.size());
     distributionMap = dm;
 
     int myProc = ParallelDescriptor::MyProc();
@@ -2559,14 +2559,12 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
       srcDM = src->DistributionMap();
       srcPMap = srcDM.ProcessorMap();
       srcPMapAll = DistributionMapping::TranslateProcMap(srcPMap, groupBoth, groupSrc);
-      srcPMapAll[srcPMapAll.size()-1] = myProcBoth;  // ---- set the sentinel
     }
     if(isDest && myProcBoth == bcastRootDest) {
       destBoxArray = dest->boxArray();
       destDM = dest->DistributionMap();
       destPMap = destDM.ProcessorMap();
       destPMapAll = DistributionMapping::TranslateProcMap(destPMap, groupBoth, groupDest);
-      destPMapAll[destPMapAll.size()-1] = myProcBoth;  // ---- set the sentinel
     }
 
     amrex::BroadcastBoxArray(srcBoxArray,  myProcBoth, bcastRootSrc,  commBoth);
@@ -3083,9 +3081,7 @@ FabArray<FAB>::AddProcsToComp (int ioProcNumSCS, int ioProcNumAll,
   amrex::BroadcastBoxArray(boxarray, scsMyId, ioProcNumSCS, scsComm);
 
   // ---- DistributionMapping
-  int sentinelProc(ParallelDescriptor::MyProcComp());
-  amrex::BroadcastDistributionMapping(distributionMap, sentinelProc,
-                                       scsMyId, ioProcNumSCS, scsComm, true);
+  amrex::BroadcastDistributionMapping(distributionMap, scsMyId, ioProcNumSCS, scsComm, true);
 
   // ---- ints
   ParallelDescriptor::Bcast(&n_grow, 1, ioProcNumSCS, scsComm);
@@ -3266,9 +3262,6 @@ FabArray<FAB>::MoveFabs (const Array<int> &newDistMapArray)
               << distributionMap.size() << std::endl;
     amrex::Abort("**** Error:  bad newDistMap:0");
   }
-  if(newDistMapArray[newDistMapArray.size() - 1] != myProc) {
-    amrex::Abort("**** Error:  bad newDistMap:1");
-  }
   for(int idm(0); idm < newDistMapArray.size(); ++idm) {
     if(newDistMapArray[idm] < 0 ||
        newDistMapArray[idm] > ParallelDescriptor::NProcs() - 1)
@@ -3297,7 +3290,7 @@ FabArray<FAB>::MoveFabs (const Array<int> &newDistMapArray)
 
   // ---- determine which fabs to move
   std::vector<FABMoves> fabMoves;
-  for(int iM(0); iM < distributionMap.size() - 1; ++iM) {  // ---- -1 skips the sentinel
+  for(int iM(0); iM < distributionMap.size(); ++iM) {
     if(newDistMapArray[iM] != distributionMap[iM]) {
       FABMoves moveThisFab;
       moveThisFab.distMapIndex = iM;

@@ -61,7 +61,6 @@ int main(int argc, char *argv[]) {
     BL_PROFILE_REGION_START("main");
 
     int nProcs(ParallelDescriptor::NProcs());
-    int myProc(ParallelDescriptor::MyProc());
     bool copyAll(false), copyRandom(false), moveFabs(true);
 
     // ---- make a box, then a boxarray with maxSize
@@ -96,13 +95,6 @@ int main(int argc, char *argv[]) {
       std::cout << "dmap.size() = " << mf.DistributionMap().size() << std::endl;
     }
 
-    // ------------------------------------------------------------------
-    // ----- very important:  here we are copying a procmap,
-    // -----                  but if you just make your own Array<int>
-    // -----                  it must have an extra value at the end
-    // -----                  set to ParallelDescriptor::MyProc()
-    // -----                  see DistributionMapping.H
-    // ------------------------------------------------------------------
     const Array<int> &procMap = mf.DistributionMap().ProcessorMap();
     if(ParallelDescriptor::IOProcessor()) {
       std::cout << "procMap.size() = " << procMap.size() << std::endl;
@@ -156,13 +148,12 @@ int main(int argc, char *argv[]) {
       }
       ParallelDescriptor::Bcast(copyArray.dataPtr(), copyArray.size());
         
-      Array<int> newMap(nCopies + 1);
+      Array<int> newMap(nCopies);
       BoxArray baCopy(nCopies);
       for(int i(0); i < nCopies; ++i) {
         newMap[i] = copyArray[i];
 	baCopy.set(i, ba[copyArray[i + nCopies]]);
       }
-      newMap[nCopies] = ParallelDescriptor::MyProc();
 
       DistributionMapping newDMap(newMap);
       if(ParallelDescriptor::IOProcessor()) {
@@ -227,11 +218,10 @@ int main(int argc, char *argv[]) {
       }
       ParallelDescriptor::Bcast(randomMap.dataPtr(), randomMap.size());
         
-      Array<int> newMap16(ba16.size() + 1);
-      for(int i(0); i < newMap16.size() - 1; ++i) {
+      Array<int> newMap16(ba16.size());
+      for(int i(0); i < newMap16.size(); ++i) {
         newMap16[i] = randomMap[i];
       }
-      newMap16[newMap16.size() - 1] = myProc;
       DistributionMapping newDMap16(newMap16);
       MultiFab mf16;
       mf16.define(ba16, newDMap16, nComp, nGhost);
