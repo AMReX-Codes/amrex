@@ -5,10 +5,7 @@
 #include <cmath>
 
 #include <AMReX_Array.H>
-#include <AMReX_Pointers.H>
-
 #include <AMReX_MultiFab.H>
-
 #include <AMReX_MCLinOp.H>
 #include <AMReX_MCMultiGrid.H>
 
