@@ -18,7 +18,8 @@
 
 #include "AMReX_GeometryShop.H"
 #include "AMReX_RealVect.H"
-#include "AMReX_BoxLib.H"
+#include "AMReX.H"
+#include "AMReX_IntVectSet.H"
 #include "AMReX_BoxIterator.H"
 
 
@@ -142,8 +143,8 @@ namespace amrex
 
     Real thrshd = m_thrshdVoF;
 
-    std::set<IntVect> ivsirreg;
-    std::set<IntVect> ivsdrop ;
+    IntVectSet ivsirreg;
+    IntVectSet ivsdrop ;
     long int numCovered=0, numReg=0, numIrreg=0;
 
     //IntVect ivdeblo(D_DECL(62,510,0));
@@ -180,7 +181,7 @@ namespace amrex
             a_regIrregCovered(iv, 0) =  0;
             if (a_validRegion.contains(iv))
               {
-                ivsirreg.insert(iv);
+                ivsirreg |= iv;
                 numIrreg++;
               }
           }
@@ -230,9 +231,9 @@ namespace amrex
       }
 
     // now loop through irregular cells and make nodes for each  one.
-    for (std::set<IntVect>::iterator ivsit = ivsirreg.begin(); ivsit != ivsirreg.end(); ++ivsit)
+    for(IVSIterator ivsit(ivsirreg); ivsit.ok(); ++ivsit)
       {
-        const IntVect& iv = *ivsit;
+        const IntVect& iv = ivsit();
 
         //int istop = 0;
         //if(debbox.contains(iv))
@@ -260,7 +261,6 @@ namespace amrex
                             loFaceCentroid,
                             hiFaceCentroid,
                             a_regIrregCovered,
-                            ivsirreg,
                             a_domain,
                             a_origin,
                             a_dx,
@@ -269,17 +269,17 @@ namespace amrex
 
         if (thrshd > 0. && volFrac < thrshd)
           {
-            ivsdrop.insert(*ivsit);
-            a_regIrregCovered(*ivsit, 0) = -1;
+            ivsdrop |= iv;
+            a_regIrregCovered(iv, 0) = -1;
             if (m_verbosity > 2)
               {
-                std::cout << "Removing vof " << *ivsit << " with volFrac " << volFrac << std::endl;
+                std::cout << "Removing vof " << iv << " with volFrac " << volFrac << std::endl;
               }
           }//CP record these nodes to be removed
         else
           {
             IrregNode newNode;
-            newNode.m_cell          = *ivsit;
+            newNode.m_cell          = iv;
             newNode.m_volFrac       = volFrac;
             newNode.m_cellIndex     = 0;
             newNode.m_volCentroid   = volCentroid;
@@ -302,9 +302,9 @@ namespace amrex
       } // end loop over cut cells in the box
 
     // CP: fix sweep that removes cells with volFrac less than a certain threshold
-    for (std::set<IntVect>::iterator ivsit =ivsdrop.begin(); ivsit != ivsdrop.end(); ++ivsit)
+    for(IVSIterator ivsit(ivsdrop); ivsit.ok(); ++ivsit)
       {
-        IntVect iv = *ivsit;
+        const IntVect& iv = ivsit();
   
         for (int faceDir = 0; faceDir < SpaceDim; faceDir++)
           {
@@ -357,7 +357,8 @@ namespace amrex
               }//sit
           }//facedir
       }//ivsdrop
-
+    std::cout << "numIrreg  = " << numIrreg << std::endl;
+    std::cout << "number of nodes  = " << a_nodes.size() << std::endl;
   }
 
   /**********************************************/
@@ -447,7 +448,6 @@ namespace amrex
                                     std::vector<RealVect>    a_loFaceCentroid[SpaceDim],
                                     std::vector<RealVect>    a_hiFaceCentroid[SpaceDim],
                                     const BaseFab<int>& a_regIrregCovered,
-                                    const std::set<IntVect>&   a_ivsIrreg,
                                     const Box&a_domain,
                                     const RealVect&     a_origin,
                                     const Real&         a_dx,

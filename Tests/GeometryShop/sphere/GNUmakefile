@@ -1,8 +1,9 @@
 #
 # Set these to the appropriate value.
 #
-DIM          = 2
 DIM          = 3
+DIM          = 2
+
 
 COMP         = g++
 
@@ -57,3 +58,4 @@ clean::
 	$(RM) *.ex *.o
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.rules
+
