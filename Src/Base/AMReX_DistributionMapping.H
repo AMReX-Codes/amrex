@@ -3,8 +3,8 @@
 
 #include <map>
 #include <limits>
+#include <memory>
 
-#include <AMReX_Pointers.H>
 #include <AMReX.H>
 #include <AMReX_Array.H>
 #include <AMReX_Box.H>
@@ -76,6 +76,10 @@ class DistributionMapping
     //
     DistributionMapping& operator= (const DistributionMapping& rhs);
     //
+    // Move constructor.
+    //
+    DistributionMapping (DistributionMapping&& rhs) noexcept;
+    //
     // Build mapping out of BoxArray over nprocs processors.
     // You need to call this if you built your DistributionMapping
     // with the default constructor.
@@ -105,7 +109,7 @@ class DistributionMapping
     //
     // Number of references to this DistributionMapping
     //
-    int linkCount () const { return m_ref.linkCount(); }
+    long linkCount () const { return m_ref.use_count(); }
     //
     // Equivalent to ProcessorMap()[index].
     //
@@ -294,19 +298,22 @@ private:
     //
     static PVMF m_BuildMap;
 
-    class Ref
+    struct Ref
     {
         friend class DistributionMapping;
         //
         // Constructors to match those in DistributionMapping ....
         //
-        Ref ();
+        Ref () {}
 
-        Ref (int len);
+        Ref (int len) : m_pmap(len) {}
 
-        Ref (const Array<int>& pmap);
+        Ref (const Array<int>& pmap) : m_pmap(pmap) {}
 
-        Ref (const Ref& rhs);
+	//
+	// dtor, copy-ctor, copy-op=, move-ctor, and move-op= are compiler generated.
+	//
+
         //
         // Local data -- our processor map.
         //
@@ -320,8 +327,9 @@ private:
     //
     // The data -- a reference-counted pointer to a Ref.
     //
-    LnClassPtr<Ref> m_ref;
+    std::shared_ptr<Ref> m_ref;
     ParallelDescriptor::Color m_color;
+    int dmID;
     //
     // Topological proximity map
     //
@@ -332,7 +340,6 @@ private:
     static Array<long> totalBoxPoints;  // i == rank
 
     static int nDistMaps;
-    int dmID;
 };
 
 

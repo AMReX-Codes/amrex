@@ -344,11 +344,9 @@ DistributionMapping::LeastUsedTeams (Array<int>        & rteam,
 #endif
 }
 
-DistributionMapping::Ref::Ref () {}
-
 DistributionMapping::DistributionMapping ()
     :
-    m_ref(new DistributionMapping::Ref),
+    m_ref(std::make_shared<Ref>()),
     m_color(ParallelDescriptor::DefaultColor())
 {
   dmID = nDistMaps++;
@@ -371,45 +369,39 @@ DistributionMapping::operator= (const DistributionMapping& rhs)
     return *this;
 }
 
-DistributionMapping::Ref::Ref (const Array<int>& pmap)
+DistributionMapping::DistributionMapping (DistributionMapping&& rhs) noexcept
     :
-    m_pmap(pmap)
-{}
+    m_ref(std::move(rhs.m_ref)),
+    m_color(rhs.m_color),
+    dmID(rhs.dmID)
+{
+}
+
 
 DistributionMapping::DistributionMapping (const Array<int>& pmap, 
 					  ParallelDescriptor::Color color)
     :
-    m_ref(new DistributionMapping::Ref(pmap)),
+    m_ref(std::make_shared<Ref>(pmap)),
     m_color(color)
 {
     dmID = nDistMaps++;
 }
 
-DistributionMapping::Ref::Ref (int len)
-    :
-    m_pmap(len)
-{}
-
 DistributionMapping::DistributionMapping (const BoxArray& boxes,
 					  int nprocs,
 					  ParallelDescriptor::Color color)
     :
-    m_ref(new DistributionMapping::Ref(boxes.size() + 1)),
+    m_ref(std::make_shared<Ref>(boxes.size() + 1)),
     m_color(color)
 {
     dmID = nDistMaps++;
     define(boxes,nprocs,color);
 }
 
-DistributionMapping::Ref::Ref (const Ref& rhs)
-    :
-    m_pmap(rhs.m_pmap)
-{}
-
 DistributionMapping::DistributionMapping (const DistributionMapping& d1,
                                           const DistributionMapping& d2)
     :
-    m_ref(new DistributionMapping::Ref(d1.size() + d2.size() - 1)),
+    m_ref(std::make_shared<Ref>(d1.size() + d2.size() - 1)),
     m_color(ParallelDescriptor::DefaultColor())
 {
     dmID = nDistMaps++;
@@ -2664,7 +2656,7 @@ ptrdiff_t
 DistributionMapping::getRefID () const
 {
     static DistributionMapping dm0(Array<int>(1));
-    return m_ref.operator->() - dm0.m_ref.operator->();
+    return m_ref.get() - dm0.m_ref.get();
 }
 
 #ifdef BL_USE_MPI
