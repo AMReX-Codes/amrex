@@ -6,6 +6,7 @@
 #include <cmath>
 #include <cstring>
 #include <limits>
+#include <memory>
 
 #include <AMReX_FArrayBox.H>
 #include <AMReX_FabConv.H>
@@ -124,7 +125,7 @@ private:
                                const FArrayBox& f,
                                int              nvar) const override;
 
-    CpClassPtr<RealDescriptor> realDesc;
+    std::unique_ptr<RealDescriptor> realDesc;
 };
 
 //
