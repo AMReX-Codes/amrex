@@ -42,16 +42,13 @@ class DistributionMapping
 
     /**
     * \brief Create an object with the specified mapping.
-    * VERY IMPORTANT:  The size of pmap must be (yourboxarray.size() + 1).
-    *                  The value in pmap[yourboxarray.size()] is a sentinel used
-    *                  in boxlib and its value must be set to
-    *                  ParallelDescriptor::MyProc() by the caller.
     */
-    DistributionMapping (const Array<int>& pmap, bool put_in_cache = false,
-			 ParallelDescriptor::Color color = ParallelDescriptor::DefaultColor());
+    explicit DistributionMapping (const Array<int>& pmap,
+				  ParallelDescriptor::Color color = ParallelDescriptor::DefaultColor());
     //! Build mapping out of BoxArray over nprocs processors.
-    DistributionMapping (const BoxArray& boxes, int nprocs, 
-			 ParallelDescriptor::Color color = ParallelDescriptor::DefaultColor());
+    explicit DistributionMapping (const BoxArray& boxes,
+				  int nprocs = ParallelDescriptor::NProcs(),
+				  ParallelDescriptor::Color color = ParallelDescriptor::DefaultColor());
     /**
     * \brief This is a very specialized distribution map.
     * Do NOT use it unless you really understand what it does.
@@ -73,7 +70,7 @@ class DistributionMapping
     * You need to call this if you built your DistributionMapping
     * with the default constructor.
     */
-    void define (const BoxArray& boxes, int nprocs,
+    void define (const BoxArray& boxes, int nprocs = ParallelDescriptor::NProcs(),
 		 ParallelDescriptor::Color color = ParallelDescriptor::DefaultColor());
     /**
     * \brief Build mapping out of an Array of ints. You need to call this if you
