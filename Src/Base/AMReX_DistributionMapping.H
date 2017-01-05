@@ -45,7 +45,6 @@ class DistributionMapping
     //
     // Create an object with the specified mapping.
     //
-    [[deprecated]]
     explicit DistributionMapping (const Array<int>& pmap,
 				  ParallelDescriptor::Color color = ParallelDescriptor::DefaultColor());
     //
@@ -81,7 +80,6 @@ class DistributionMapping
     // You need to call this if you built your DistributionMapping
     // with the default constructor.
     //
-    [[deprecated]]
     void define (const BoxArray& boxes, int nprocs = ParallelDescriptor::NProcs(),
 		 ParallelDescriptor::Color color = ParallelDescriptor::DefaultColor());
     //
