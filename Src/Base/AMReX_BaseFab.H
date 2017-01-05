@@ -138,7 +138,6 @@ public:
     long size () const { return nvar*numpts; }
 
     //! Returns the domain (box) where the array is defined
-    long size () const { return nvar*numpts; }
     const Box& box () const { return domain; }
 
     /**
