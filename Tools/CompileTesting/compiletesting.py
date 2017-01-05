@@ -12,6 +12,8 @@ def compiletesting(arg_string):
 
     parser = argparse.ArgumentParser(description="compile tests")
     parser.add_argument("--redo_failed", action="store_true")
+    parser.add_argument("--full", action="store_true")
+    parser.add_argument("--test_pgas", action="store_true")
     parser.add_argument("--make_flags", type=str, default="")
     if not arg_string is None:
         args = parser.parse_args(arg_string)
@@ -24,7 +26,7 @@ def compiletesting(arg_string):
         for line in f.readlines():
             test_list.append(line[:-1])
         f.close()
-    else:
+    elif args.full:
         test_list = ['Tutorials/AMR_Adv_C/Exec/SingleVortex',
                      'Tutorials/AMR_Adv_C/Exec/UniformVelocity',
                      'Tutorials/AMR_Adv_C_v2/Exec/SingleVortex',
@@ -46,7 +48,6 @@ def compiletesting(arg_string):
                      'Tutorials/MultiFabTests_C',
                      'Tutorials/MultiGrid_C',
                      'Tutorials/MultiGrid_F',
-#                     'Tutorials/PGAS_HEAT',
                      'Tutorials/PIC_C',
                      'Tutorials/Random_F',
                      'Tutorials/Sidecar_EX1',
@@ -68,8 +69,15 @@ def compiletesting(arg_string):
                      'MiniApps/AMR_Adv_Diff_F90',
                      'MiniApps/FillBoundary',
                      'MiniApps/MultiGrid_C',
-#                     'MiniApps/PGAS_SMC',
                      'MiniApps/SMC']
+        if (args.test_pgas):
+            test_list += ['Tutorials/PGAS_HEAT', 'MiniApps/PGAS_SMC']
+    else:
+        test_list = ['Tutorials/AMR_Adv_C/Exec/SingleVortex',
+                     'Tutorials/AMR_Adv_C_v2/Exec/SingleVortex',
+                     'Tutorials/AMR_Adv_F/Exec/SingleVortex',
+                     'Tutorials/PIC_C',
+                     'Tests/LinearSolvers/ComparisonTest']
 
     print "Test List: ", test_list
 
@@ -112,7 +120,7 @@ def compiletesting(arg_string):
             f.write(t+"\n")
         f.close()
     else:
-        print "Tests passed"
+        print "Compile tests passed."
 
 def run(command, outfile=None):
 
