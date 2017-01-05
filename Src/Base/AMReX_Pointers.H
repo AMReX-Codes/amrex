@@ -221,8 +221,8 @@ public:
     /**
     * \brief Sets the wrapped pointer to rhs.  Decrements the count
     * on the previously wrapped pointer and deletes it if there
-    */ was only one reference.
-    //
+    * was only one reference.
+    */
     LnClassPtr<T,F>& operator= (T* rhs);
     //! Applies operator-> to the wrapped pointer.
     T* operator->() const { return LnPtr<T>::ptr; }
