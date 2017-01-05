@@ -66,32 +66,20 @@ public:
     // from FabArray.
     //
     MultiFab ();
-<<<<<<< HEAD
     /**
     * \brief
     * Constructs a MultiFab 
     * \param bs a valid region
+    * \param dm a DistribuionMapping
     * \param ncomp number of components
     * \param ngrow number of cells the region grows
-    * \param mem_mode If mem_mode is defined to be Fab_allocate then FArrayBoxes are
-    * allocated for each Box in the BoxArray.  The size of the
-    * FArrayBox is given by the Box grown by ngrow and the number of
-    * components is given by ncomp.  If mem_mode is defined to be
-    * Fab_noallocate then no FArrayBoxes are allocated at this time
-    * but can be defined later.
-    */
-    MultiFab (const BoxArray& bs,
-              int             ncomp,
-              int             ngrow,
-              FabAlloc        mem_mode = Fab_allocate,
-	      const IntVect&  nodal = IntVect::TheZeroVector());
+    * \param info MFInfo
 
-=======
-    //
-    // Constructs a MultiFab with a valid region defined by bxs and
-    // a region of definition defined by the grow factor ngrow.
-    //
->>>>>>> 5ea14f8272b52b0e1c669ebe04ea6f3938fea406
+    * The size of the FArrayBox is given by the Box grown by ngrow and
+    * the number of components is given by ncomp.  If info is set to
+    * not allocateing memroy, then no FArrayBoxes are allocated at
+    * this time but can be defined later.
+    */
     MultiFab (const BoxArray&            bs,
               const DistributionMapping& dm,
               int                        ncomp,
@@ -494,21 +482,6 @@ public:
 			    int             numcomp,
 			    int             nghost);
 
-<<<<<<< HEAD
-    void define (const BoxArray& bxs,
-		 int             nvar,
-		 int             ngrow,
-		 FabAlloc        mem_mode,
-		 const IntVect&  nodal = IntVect::TheZeroVector(),
-		 ParallelDescriptor::Color color = ParallelDescriptor::DefaultColor());
-
-    void define (const BoxArray&            bxs,
-		 int                        nvar,
-		 int                        ngrow,
-		 const DistributionMapping& dm,
-		 FabAlloc                   mem_mode,
-		 const IntVect&             nodal = IntVect::TheZeroVector());
-
     /**
     * \brief Are there any NaNs in the MF?
     * This may return false, even if the MF contains NaNs, if the machine
@@ -516,15 +489,6 @@ public:
     *
     * This version checks all components and grow cells.
     */
-=======
-    //
-    // Are there any NaNs in the MF?
-    // This may return false, even if the MF contains NaNs, if the machine
-    // doesn't support the appropriate NaN testing functions.
-    //
-    // This version checks all components and grow cells.
-    //
->>>>>>> 5ea14f8272b52b0e1c669ebe04ea6f3938fea406
     bool contains_nan (bool local=false) const;
 
     bool contains_nan (int scomp, int ncomp, int ngrow = 0, bool local=false) const;

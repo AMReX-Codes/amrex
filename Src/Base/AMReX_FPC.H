@@ -51,7 +51,6 @@ public:
 
     //! Array detailing the format of IEEE 64-bit normal order doubles.
     static const long ieee_double[];
-<<<<<<< HEAD
 
     /**
     * \brief Returns a constant reference to an IntDescriptor describing
@@ -67,21 +66,6 @@ public:
     * Note that "Real" will be one of "float" or "double" depending
     * on how the version of BoxLib was built.
     */
-=======
-    //
-    // Returns a constant reference to an IntDescriptor describing
-    // the native "long" under which AMReX was compiled.  Each
-    // AMReX library will have exactly one of these compiled into it.
-    //
-    static const IntDescriptor&  NativeLongDescriptor ();
-    //
-    // Returns a constant reference to a RealDescriptor describing
-    // the native Real under which AMReX was compiled.  Each AMReX
-    // library will have exactly one of these compiled into it.
-    // Note that "Real" will be one of "float" or "double" depending
-    // on how the version of AMReX was built.
-    //
->>>>>>> 5ea14f8272b52b0e1c669ebe04ea6f3938fea406
     static const RealDescriptor& NativeRealDescriptor ();
     static const RealDescriptor& Native32RealDescriptor ();
 

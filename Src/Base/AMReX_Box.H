@@ -204,17 +204,9 @@ public:
          const IntVect& big,
          IndexType      t);
 
-<<<<<<< HEAD
-    //! Get the smallend of the box.
-=======
-    //
     // dtor, copy-ctor, copy-op=, move-ctor, and move-op= are compiler generated.
-    //
 
-    //
-    // Get the smallend of the box.
-    //
->>>>>>> 5ea14f8272b52b0e1c669ebe04ea6f3938fea406
+    //! Get the smallend of the box.
     const IntVect& smallEnd () const& { return smallend; }
     const IntVect& smallEnd () && = delete;
 
