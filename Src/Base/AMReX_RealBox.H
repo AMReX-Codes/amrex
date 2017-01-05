@@ -10,106 +10,61 @@
 
 namespace amrex {
 
-//
-// A Real Box
-//
-//  A Box with real dimensions.  A RealBox is OK iff volume > 0.
-//
+//!A Box with real dimensions.  A RealBox is OK iff volume > 0.
 
 class RealBox
 {
 public:
-    //
-    // The default constructor.  Builds invalid RealBox.
-    //
+    //! The default constructor.  Builds invalid RealBox.
     RealBox ();
-    //
-    // Construct region given diagonal points.
-    //
+
+    //! Construct region given diagonal points.
     RealBox (const Real* lo,
              const Real* hi);
-    //
-    // Construct region given index box, cell spacing
-    // and physical location of index (0,0,0).
-    //
+
+    /**
+    * \brief Construct region given index box, cell spacing
+    * and physical location of index (0,0,0).
+    */
     RealBox (const Box&  bx,
              const Real* dx,
              const Real* base);
-    //
-    // Explicit dimension specific constructors.
-    //
+    //! Explicit dimension specific constructors.
     RealBox (D_DECL(Real x0, Real y0, Real z0),
              D_DECL(Real x1, Real y1, Real z1));
-
-    //
-    // dtor, copy-ctor, copy-op=, move-ctor, and move-op= are compiler generated.
-    //
-
-    //
-    // Set epsilon used by contains() function when comparing floating point numbers.
-    //
+    //! Set epsilon used by contains() function when comparing floating point numbers.
     static void setEpsilon (Real epsilon) { eps = epsilon; }
-    //
-    // Returns epsilon.
-    //
+    //! Returns epsilon.
     static Real epsilon () { return eps; }
-    //
-    // Returns lo side.
-    //
+    //! Returns lo side.
     const Real* lo () const& { return xlo; }
     const Real* lo () && = delete;
-    //
-    // Returns hide side.
-    //
+    //! Returns hide side.
     const Real* hi () const& { return xhi; }
     const Real* hi () && = delete;
-    //
-    // Returns length in specified direction.
-    //
+    //! Returns length in specified direction.
     Real lo (int dir) const { return xlo[dir]; }
-    //
-    // Returns hi side in specified direction.
-    //
+    //! Returns hi side in specified direction.
     Real hi (int dir) const { return xhi[dir]; }
-    //
-    // Returns length in specified direction.
-    //
+    //! Returns length in specified direction.
     Real length (int dir) const { return xhi[dir]-xlo[dir]; }
-    //
-    // Sets lo side.
-    //
+    //! Sets lo side.
     void setLo (const Real* lo) { D_EXPR(xlo[0] = lo[0], xlo[1] = lo[1], xlo[2] = lo[2]); }
-    //
-    // Sets lo side.
-    //
+    //! Sets lo side.
     void setLo (const Array<Real>& lo) { D_EXPR(xlo[0] = lo[0], xlo[1] = lo[1], xlo[2] = lo[2]); }
-    //
-    // Sets lo side in specified direction.
-    //
+    //! Sets lo side in specified direction.
     void setLo (int dir, Real lo) { BL_ASSERT(dir >= 0 && dir < BL_SPACEDIM); xlo[dir] = lo; }
-    //
-    // Sets hi side.
-    //
+    //! Sets hi side.
     void setHi (const Real* hi) { D_EXPR(xhi[0] = hi[0], xhi[1] = hi[1], xhi[2] = hi[2]); }
-    //
-    // Sets hi side.
-    //
+    //! Sets hi side.
     void setHi (const Array<Real>& hi) { D_EXPR(xhi[0] = hi[0], xhi[1] = hi[1], xhi[2] = hi[2]); }
-    //
-    // Sets hi side in specified direction.
-    //
+    //! Sets hi side in specified direction.
     void setHi (int dir, Real hi) { BL_ASSERT(dir >= 0 && dir < BL_SPACEDIM); xhi[dir] = hi; }
-    //
-    // Is the RealBox OK; i.e. does it have positive volume?
-    //
+    //! Is the RealBox OK; i.e. does it have positive volume?
     bool ok () const;
-    //
-    // Is the specified point contained in the RealBox?
-    //
+    //! Is the specified point contained in the RealBox?
     bool contains (const Real* point) const;
-    //
-    // Is the specified RealBox contained in this RealBox?
-    //
+    //! Is the specified RealBox contained in this RealBox?
     bool contains (const RealBox& bx) const;
 
 private:

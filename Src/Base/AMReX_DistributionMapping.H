@@ -16,119 +16,102 @@ namespace amrex {
 class BoxArray;
 class MultiFab;
 
-//
-// Calculates the distribution of FABs to MPI processes.
-//
-//  This class calculates the distribution of FABs to MPI processes in a
-//  FabArray in a multi-processor environment.  By distribution is meant what
-//  MPI process in the multi-processor environment owns what FAB.  Only the BoxArray
-//  on which the FabArray is built is used in determining the distribution.
-//  The three types of distributions supported are round-robin, knapsack, and SFC.
-//  In the round-robin distribution FAB i is owned by CPU i%N where N is total
-//  number of CPUs.  In the knapsack distribution the FABs are partitioned
-//  across CPUs such that the total volume of the Boxes in the underlying
-//  BoxArray are as equal across CPUs as is possible.  The SFC distribution is
-//  based on a space filling curve.
-//
+/**
+* \brief Calculates the distribution of FABs to MPI processes.
+*
+*  This class calculates the distribution of FABs to MPI processes in a
+*  FabArray in a multi-processor environment.  By distribution is meant what
+*  MPI process in the multi-processor environment owns what FAB.  Only the BoxArray
+*  on which the FabArray is built is used in determining the distribution.
+*  The three types of distributions supported are round-robin, knapsack, and SFC.
+*  In the round-robin distribution FAB i is owned by CPU i%N where N is total
+*  number of CPUs.  In the knapsack distribution the FABs are partitioned
+*  across CPUs such that the total volume of the Boxes in the underlying
+*  BoxArray are as equal across CPUs as is possible.  The SFC distribution is
+*  based on a space filling curve.
+*/
 
 class DistributionMapping
 {
   public:
-    //
-    // The distribution strategies
-    //
+    //! The distribution strategies
     enum Strategy { UNDEFINED = -1, ROUNDROBIN, KNAPSACK, SFC, PFC, RRSFC };
-    //
-    // The default constructor.
-    //
+
+    //! The default constructor.
     DistributionMapping ();
-    //
-    // Create an object with the specified mapping.
-    // VERY IMPORTANT:  The size of pmap must be (yourboxarray.size() + 1).
-    //                  The value in pmap[yourboxarray.size()] is a sentinel used
-    //                  in AMReX and its value must be set to
-    //                  ParallelDescriptor::MyProc() by the caller.
-    //
+
+    /**
+    * \brief Create an object with the specified mapping.
+    */
     explicit DistributionMapping (const Array<int>& pmap,
 				  ParallelDescriptor::Color color = ParallelDescriptor::DefaultColor());
-    //
-    // Build mapping out of BoxArray over nprocs processors.
-    //
+    //! Build mapping out of BoxArray over nprocs processors.
     explicit DistributionMapping (const BoxArray& boxes,
 				  int nprocs = ParallelDescriptor::NProcs(), 
 				  ParallelDescriptor::Color color = ParallelDescriptor::DefaultColor());
-    //
-    // This is a very specialized distribution map.
-    // Do NOT use it unless you really understand what it does.
-    //
+    /**
+    * \brief This is a very specialized distribution map.
+    * Do NOT use it unless you really understand what it does.
+    */
     DistributionMapping (const DistributionMapping& d1,
                          const DistributionMapping& d2);
-    //
-    // The destructor.
-    //
+
+    //! The destructor.
     ~DistributionMapping ();
-    //
-    // Copy constructor.
-    //
+
+    //! Copy constructor.
     DistributionMapping (const DistributionMapping& rhs);
-    //
-    // Assignment operator.
-    //
+
+    //! Assignment operator.
     DistributionMapping& operator= (const DistributionMapping& rhs);
-    //
-    // Build mapping out of BoxArray over nprocs processors.
-    // You need to call this if you built your DistributionMapping
-    // with the default constructor.
-    //
+
+    /**
+    * \brief Build mapping out of BoxArray over nprocs processors.
+    * You need to call this if you built your DistributionMapping
+    * with the default constructor.
+    */
     void define (const BoxArray& boxes, int nprocs = ParallelDescriptor::NProcs(),
 		 ParallelDescriptor::Color color = ParallelDescriptor::DefaultColor());
-    //
-    // Build mapping out of an Array of ints. You need to call this if you
-    // built your DistributionMapping with the default constructor.
-    //
+    /**
+    * \brief Build mapping out of an Array of ints. You need to call this if you
+    * built your DistributionMapping with the default constructor.
+    */
     void define (const Array<int>& pmap);
-    //
-    // Returns a constant reference to the mapping of boxes in the
-    // underlying BoxArray to the CPU that holds the FAB on that Box.
-    // ProcessorMap()[i] is an integer in the interval [0, NCPU) where
-    // NCPU is the number of CPUs being used.
-    //
+    /**
+    * \brief Returns a constant reference to the mapping of boxes in the
+    * underlying BoxArray to the CPU that holds the FAB on that Box.
+    * ProcessorMap()[i] is an integer in the interval [0, NCPU) where
+    * NCPU is the number of CPUs being used.
+    */
     const Array<int>& ProcessorMap () const;
     //
     ParallelDescriptor::Color color() const { return m_color; }
-    //
-    // Length of the underlying processor map.
-    //
+
+    //! Length of the underlying processor map.
     long size () const { return m_ref->m_pmap.size(); }
     long capacity () const { return m_ref->m_pmap.capacity(); }
     bool empty () const { return m_ref->m_pmap.empty(); }
-    //
-    // Number of references to this DistributionMapping
-    //
+
+    //! Number of references to this DistributionMapping
     int linkCount () const { return m_ref.linkCount(); }
-    //
-    // Equivalent to ProcessorMap()[index].
-    //
+
+    //! Equivalent to ProcessorMap()[index].
     int operator[] (int index) const { return m_ref->m_pmap[index]; }
-    //
-    // Set/get the distribution strategy.
-    //
+
+    //! Set/get the distribution strategy.
     static void strategy (Strategy how);
 
     static Strategy strategy ();
-    //
-    // Set/get the space filling curve threshold.
-    //
+
+    //! Set/get the space filling curve threshold.
     static void SFC_Threshold (int n);
 
     static int SFC_Threshold ();
-    //
-    // Are the distributions equal?
-    //
+ 
+    //! Are the distributions equal?
     bool operator== (const DistributionMapping& rhs) const;
-    //
-    // Are the distributions different?
-    //
+
+    //! Are the distributions different?
     bool operator!= (const DistributionMapping& rhs) const;
 
     void SFCProcessorMap(const BoxArray& boxes, const std::vector<long>& wgts,
@@ -140,17 +123,17 @@ class DistributionMapping
 			      bool do_full_knapsack = true,
 			      int nmax = std::numeric_limits<int>::max());
     void RoundRobinProcessorMap(int nboxes, int nprocs);
-    //
-    // Initializes distribution strategy from ParmParse.
-    //
-    // ParmParse options are:
-    //
-    //   DistributionMapping.strategy = ROUNDROBIN
-    //   DistributionMapping.strategy = KNAPSACK
-    //   DistributionMapping.strategy = SFC
-    //   DistributionMapping.strategy = PFC
-    //   DistributionMapping.strategy = RRFC
-    //
+    /**
+    * \brief Initializes distribution strategy from ParmParse.
+    *
+    * ParmParse options are:
+    *
+    *   DistributionMapping.strategy = ROUNDROBIN
+    *   DistributionMapping.strategy = KNAPSACK
+    *   DistributionMapping.strategy = SFC
+    *   DistributionMapping.strategy = PFC
+    *   DistributionMapping.strategy = RRFC
+    */
     static void Initialize ();
 
     static void Finalize ();
@@ -160,9 +143,8 @@ class DistributionMapping
 		  { return lhs.m_ref == rhs.m_ref; }
 
     static void PrintDiagnostics(const std::string &filename);
-    //
-    // Initialize the topological proximity map
-    //
+
+    //! Initialize the topological proximity map
     static void InitProximityMap(bool makeMap = false, bool reinit = false);
     static int NHops(const Box &tbox, const IntVect &ivfrom, const IntVect &ivto);
     static int ProcNumberFromRank(const int rank);
@@ -202,9 +184,7 @@ class DistributionMapping
 
     bool Check() const;
 
-    //
-    // This gives a unique ID of the reference, which is different from dmID above.
-    //
+    //! This gives a unique ID of the reference, which is different from dmID above.
     ptrdiff_t getRefID () const;
 
 #ifdef BL_USE_MPI
@@ -214,9 +194,8 @@ class DistributionMapping
     static DistributionMapping makeKnapSack (const MultiFab& weight);
 
 private:
-    //
-    // Ways to create the processor map.
-    //
+
+    //! Ways to create the processor map.
     void RoundRobinProcessorMap (const BoxArray& boxes, int nprocs);
     void KnapSackProcessorMap   (const BoxArray& boxes, int nprocs);
     void SFCProcessorMap        (const BoxArray& boxes, int nprocs);
@@ -266,40 +245,34 @@ private:
     void RRSFCDoIt           (const BoxArray&          boxes,
                               int                      nprocs);
 
-    //
-    // Current # of bytes of FAB data.
-    //
+    //! Current # of bytes of FAB data.
     static void CurrentBytesUsed (int nprocs, Array<long>& result);
     static void CurrentCellsUsed (int nprocs, Array<long>& result);
-    //
-    // Least used ordering of CPUs (by # of bytes of FAB data).
-    //
+
+    //! Least used ordering of CPUs (by # of bytes of FAB data).
     void LeastUsedCPUs (int nprocs, Array<int>& result);
-    //
-    // rteam: Least used ordering of Teams
-    // rworker[i]: Least used ordering of team workers for Team i
-    //
+    /**
+    * \brief rteam: Least used ordering of Teams
+    * rworker[i]: Least used ordering of team workers for Team i
+    */
     void LeastUsedTeams (Array<int>& rteam, Array<Array<int> >& rworker, int nteams, int nworkers);
-    //
-    // A useful typedef.
-    //
+
+    //! A useful typedef.
     typedef void (DistributionMapping::*PVMF)(const BoxArray &, int);
-    //
-    // Everyone uses the same Strategy -- defaults to SFC.
-    //
+
+    //! Everyone uses the same Strategy -- defaults to SFC.
     static Strategy m_Strategy;
-    //
-    // Pointer to one of the CreateProcessorMap() functions.
-    // Corresponds to the one specified by m_Strategy.
-    //
+    /**
+    * \brief Pointer to one of the CreateProcessorMap() functions.
+    * Corresponds to the one specified by m_Strategy.
+    */
     static PVMF m_BuildMap;
 
     class Ref
     {
         friend class DistributionMapping;
-        //
-        // Constructors to match those in DistributionMapping ....
-        //
+
+        //! Constructors to match those in DistributionMapping ....
         Ref ();
 
         Ref (int len);
@@ -307,24 +280,22 @@ private:
         Ref (const Array<int>& pmap);
 
         Ref (const Ref& rhs);
-        //
-        // Local data -- our processor map.
-        //
-        // The length is always equal to boxes.length()+1 where boxes is
-        // the BoxArray on which the distribution is based.  It is also true
-        // that m_pmap[boxes.length()] == ParallelDescriptor::MyProc().
-        // This latter acts as a sentinel in some FabArray loops.
-        //
+        /**
+        * \brief Local data -- our processor map.
+        *
+        * The length is always equal to boxes.length()+1 where boxes is
+        * the BoxArray on which the distribution is based.  It is also true
+        * that m_pmap[boxes.length()] == ParallelDescriptor::MyProc().
+        * This latter acts as a sentinel in some FabArray loops.
+        */
         Array<int> m_pmap;
     };
-    //
-    // The data -- a reference-counted pointer to a Ref.
-    //
+
+    //! The data -- a reference-counted pointer to a Ref.
     LnClassPtr<Ref> m_ref;
     ParallelDescriptor::Color m_color;
-    //
-    // Topological proximity map
-    //
+
+    //! Topological proximity map
     static long totalCells;
     static Real bytesPerCell;
     static Array<int> proximityMap;    // i == rank, pMap[i]   == proximity mapped rank
@@ -335,10 +306,7 @@ private:
     int dmID;
 };
 
-
-//
-// Our output operator.
-//
+//! Our output operator.
 std::ostream& operator<< (std::ostream& os, const DistributionMapping& pmap);
 
 }
