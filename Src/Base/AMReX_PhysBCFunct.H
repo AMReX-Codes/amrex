@@ -28,14 +28,12 @@ public:
     BndryFunctBase (BndryFuncDefault inFunc);
     BndryFunctBase (BndryFunc3DDefault inFunc);
     virtual ~BndryFunctBase ();
-    //
-    // Return a ptr to a clone of this object.
-    // It is the responsibility of the caller to delete the result.
-    //    
+    /**
+    * \brief Return a ptr to a clone of this object.
+    * It is the responsibility of the caller to delete the result.
+    */    
     virtual BndryFunctBase* clone () const;
-    //
-    // Fill boundary cells
-    //
+    //! Fill boundary cells
     virtual void operator () (Real* data, const int* lo, const int* hi,
 			      const int* dom_lo, const int* dom_hi,
 			      const Real* dx, const Real* grd_lo,

@@ -164,74 +164,74 @@ class IntVect;
 // -----------------------------------------------------------------
 
 
-/*
-  Parse Parameters From Command Line and Input Files
-
-  The ParmParse class is used to interpret parameters passed in to a program
-  from the command line and an arbitrary collection of input files.  The
-  parameters are stored in static table that can be queried by any object
-  of type ParmParse.  A parameter is a  "definition".  A definition is
-  of the form "<name> = <value><value>...<value>".  It is stored in the table
-  as a name, value-list pair.
-
-  In the following example, niter is a definition with the single
-  integer value 10; name is a definition with the string value "big
-  code" and dx is a definition with the two floating point values 0.5
-  and 0.75 and iv is an IntVect(5,4)
-
-  prog niter = 10 name = "big code" dx = 0.5 0.75 iv=(5,4)
-
-  The ParmParse class has two constructors.  The first is responsible for
-  building the table and is usually called by the main routine of an
-  application.  It has arguments for the command line argc and argv parameters,
-  as well as an optional filename argument for reading definitions from an
-  input file.  The table is built by reading the input file first (if it
-  exists) with the command line arguments added to the end of the table.
-  The order of a definition in the table is significant, so command line
-  parameters can be used to override definitions in the input file.  A
-  definition of the explicit form: FILE=<filename> is not added to the table
-  but is a directive to include the named file at that point in the table.
-
-  The second constructor is generally used by other classes in the code.  It
-  permits access to the table via a large collection of query functions.
-  Both constructors have an optional prefix argument that narrows the search
-  to entries in the table with the same prefix.  For example, let PlanR be a
-  ParmParse object with code prefix "ope".  PlanR.get("val",v) will look for
-  an entry in the parameter list of the form: ope.val==<value>, and will
-  reject all entries not starting with the correct code prefix.
-
-  The query functions search the table for definition names that match a given
-  string (and prefix) and return values from the corresponding value list.
-  The values can be returned as ints, Array<int>s, floats, Array<float>s,
-  doubles, Array<double>s, std::strings, or Array<aSring>s.  All values in the
-  table are stored as std::string objects, but if an int, float, or double is
-  requested, the translation is done automatically.  In the previous example,
-  the value of niter could be returned as either an std::string, an int, a double,
-  or a float.  The values of dx can be returned as std::strings, floats, or
-  doubles, but the value of name can be returned only as an std::string.
-
-  Comments in an input file include all text from a # character to the
-  end of the line.  Here is a sample input file:
-
-     niter = 100
-
-     title = "Double Wammy"
-
-     cell_size = 0.5 0.75
-
-     plot.var = Density 1 10
-
-     plot.var = Energy  5 12
-
-     bigarray = 1 2 3 4 5 6 7 8
-
-                9 10 11 12
-
-     aBox    = ((0,0) (5,5))		
-
-     test = apple "boy blue" 10 20 30 40
-
-     FILE = prob_file
+/**
+* \brief  Parse Parameters From Command Line and Input Files
+*
+*  The ParmParse class is used to interpret parameters passed in to a program
+*  from the command line and an arbitrary collection of input files.  The
+*  parameters are stored in static table that can be queried by any object
+*  of type ParmParse.  A parameter is a  "definition".  A definition is
+*  of the form "<name> = <value><value>...<value>".  It is stored in the table
+*  as a name, value-list pair.
+*
+*  In the following example, niter is a definition with the single
+*  integer value 10; name is a definition with the string value "big
+*  code" and dx is a definition with the two floating point values 0.5
+*  and 0.75 and iv is an IntVect(5,4)
+*
+*  prog niter = 10 name = "big code" dx = 0.5 0.75 iv=(5,4)
+*
+*  The ParmParse class has two constructors.  The first is responsible for
+*  building the table and is usually called by the main routine of an
+*  application.  It has arguments for the command line argc and argv parameters,
+*  as well as an optional filename argument for reading definitions from an
+*  input file.  The table is built by reading the input file first (if it
+*  exists) with the command line arguments added to the end of the table.
+*  The order of a definition in the table is significant, so command line
+*  parameters can be used to override definitions in the input file.  A
+*  definition of the explicit form: FILE=<filename> is not added to the table
+*  but is a directive to include the named file at that point in the table.
+*
+*  The second constructor is generally used by other classes in the code.  It
+*  permits access to the table via a large collection of query functions.
+*  Both constructors have an optional prefix argument that narrows the search
+*  to entries in the table with the same prefix.  For example, let PlanR be a
+*  ParmParse object with code prefix "ope".  PlanR.get("val",v) will look for
+*  an entry in the parameter list of the form: ope.val==<value>, and will
+*  reject all entries not starting with the correct code prefix.
+*
+*  The query functions search the table for definition names that match a given
+*  string (and prefix) and return values from the corresponding value list.
+*  The values can be returned as ints, Array<int>s, floats, Array<float>s,
+*  doubles, Array<double>s, std::strings, or Array<aSring>s.  All values in the
+*  table are stored as std::string objects, but if an int, float, or double is
+*  requested, the translation is done automatically.  In the previous example,
+*  the value of niter could be returned as either an std::string, an int, a double,
+*  or a float.  The values of dx can be returned as std::strings, floats, or
+*  doubles, but the value of name can be returned only as an std::string.
+*
+*  Comments in an input file include all text from a # character to the
+*  end of the line.  Here is a sample input file:
+*
+*     niter = 100
+*
+*     title = "Double Wammy"
+*
+*     cell_size = 0.5 0.75
+*
+*     plot.var = Density 1 10
+*
+*     plot.var = Energy  5 12
+*
+*     bigarray = 1 2 3 4 5 6 7 8
+*
+*                9 10 11 12
+*
+*     aBox    = ((0,0) (5,5))		
+*
+*     test = apple "boy blue" 10 20 30 40
+*
+*     FILE = prob_file
 */
 
 class ParmParse
@@ -241,698 +241,590 @@ public:
     class Record;
 
     enum { LAST = -1, FIRST = 0, ALL = -1 };
-    //
-    // Construct an additional ParmParse object sharing the same
-    // internal table as any other such objects in existence.  If
-    // prefix is specified, load this string as the code prefix
-    // for this particular ParmParse object.
-    //
+    /**
+    * \brief Construct an additional ParmParse object sharing the same
+    * internal table as any other such objects in existence.  If
+    * prefix is specified, load this string as the code prefix
+    * for this particular ParmParse object.
+    */
     explicit ParmParse (const std::string& prefix = std::string());
-    //
-    // Returns true if name is in table.
-    //
+    //! Returns true if name is in table.
     bool contains (const char* name) const;
-    //
-    // Returns the number of values associated with nth occurence of
-    // name (prepended with the prefix) in the table.  n == -1 implies
-    // the last occurence.
-    //
+    /**
+    * \brief Returns the number of values associated with nth occurence of
+    * name (prepended with the prefix) in the table.  n == -1 implies
+    * the last occurence.
+    */
     int countval (const char* name,
                   int         n = LAST) const;
-    //
-    // Returns the number of times the given name (prepended with
-    // prefix) appears in the table.
-    //
+    /**
+    * \brief Returns the number of times the given name (prepended with
+    * prefix) appears in the table.
+    */
     int countname (const std::string& name) const;
-    //
-    // Returns the number of records of the given name (prepended with prefix) appears
-    // in the table
-    //
+    /**
+    * \brief Returns the number of records of the given name (prepended with prefix) appears
+    * in the table
+    */
     int countRecords (const std::string& name) const;
-    //
-    // Returns the nth record of the given name, or zero if none found.
-    //
+    //! Returns the nth record of the given name, or zero if none found.
     Record getRecord (const std::string& name, int n = LAST) const;
-    //
-    // Write the contents of the table in ASCII to the ostream.
-    //
+    //! Write the contents of the table in ASCII to the ostream.
     static void dumpTable (std::ostream& os, bool prettyPrint = false);
-    //
-    // Get the ival'th value of kth occurrence of the requested name.
-    // If successful, the value is converted to a bool and stored
-    // in reference ref.  If the kth occurrence does not exist or
-    // ival'th value does not exist, or if the printed representation
-    // of the value cannot be converted to an bool, an error message is
-    // output and the program halts.   Note that ival == 0 is the first
-    // value in the list.  ParmParse converte the value 'true', and non-zero
-    // integers or floats to bool(true), and bool(false) for 'false'
-    // or zero integer or float values.
-    //
+    /**
+    * \brief Get the ival'th value of kth occurrence of the requested name.
+    * If successful, the value is converted to a bool and stored
+    * in reference ref.  If the kth occurrence does not exist or
+    * ival'th value does not exist, or if the printed representation
+    * of the value cannot be converted to an bool, an error message is
+    * output and the program halts.   Note that ival == 0 is the first
+    * value in the list.  ParmParse converte the value 'true', and non-zero
+    * integers or floats to bool(true), and bool(false) for 'false'
+    * or zero integer or float values.
+    */
     void getkth (const char* name,
                  int         k,
                  bool&        ref,
                  int         ival = FIRST) const;
-    //
-    // Same as getkth() but searches for the last occurrence of name.
-    //
+    //! Same as getkth() but searches for the last occurrence of name.
     void get (const char* name,
               bool&        ref,
               int         ival = FIRST) const;
-    //
-    // Similar to getkth() but returns 0 if there is no kth occurrence
-    // of name.  If successful, it returns 1 and stores the value in
-    // ref.  If the kth occurrence exists, but ival'th value of that
-    // occurrence does not, or if there is a type mismatch, then the
-    // program signals an error and halts.
-    //
+    /**
+    * \brief Similar to getkth() but returns 0 if there is no kth occurrence
+    * of name.  If successful, it returns 1 and stores the value in
+    * ref.  If the kth occurrence exists, but ival'th value of that
+    * occurrence does not, or if there is a type mismatch, then the
+    * program signals an error and halts.
+    */
     int querykth (const char* name,
                   int         k,
                   bool&       ref,
                   int         ival = FIRST) const;
-    //
-    // Same as querykth() but searches for the last occurrence of name.
-    //
+    //! Same as querykth() but searches for the last occurrence of name.
     int query (const char* name,
                bool&        ref,
                int         ival = FIRST) const;
-    //
-    // Add a key 'name'with value 'ref' to the end of the PP table.
-    //
+    //! Add a key 'name'with value 'ref' to the end of the PP table.
     void add (const char* name,
               const bool  val);
-    //
-    // Get the ival'th value of kth occurrence of the requested name.
-    // If successful, the value is converted to an int and stored
-    // in reference ref.  If the kth occurrence does not exist or
-    // ival'th value does not exist, or if the printed representation
-    // of the value cannot be converted to an int, an error message is
-    // output and the program halts.   Note that ival == 0 is the first
-    // value in the list.
-    //
+    /**
+    * \brief Get the ival'th value of kth occurrence of the requested name.
+    * If successful, the value is converted to an int and stored
+    * in reference ref.  If the kth occurrence does not exist or
+    * ival'th value does not exist, or if the printed representation
+    * of the value cannot be converted to an int, an error message is
+    * output and the program halts.   Note that ival == 0 is the first
+    * value in the list.
+    */
     void getkth (const char* name,
                  int         k,
                  int&        ref,
                  int         ival = FIRST) const;
 
-    // Same as getkth() but searches for the last occurrence of name.
-    //
+    //! Same as getkth() but searches for the last occurrence of name.
     void get (const char* name,
               int&        ref,
               int         ival = FIRST) const;
-    //
-    // Similar to getkth() but returns 0 if there is no kth occurrence
-    // of name.  If successful, it returns 1 and stores the value in
-    // ref.  If the kth occurrence exists, but ival'th value of that
-    // occurrence does not, or if there is a type mismatch, then the
-    // program signals an error and halts.
-    //
+    /**
+    * Similar to getkth() but returns 0 if there is no kth occurrence
+    * of name.  If successful, it returns 1 and stores the value in
+    * ref.  If the kth occurrence exists, but ival'th value of that
+    * occurrence does not, or if there is a type mismatch, then the
+    * program signals an error and halts.
+    */
     int querykth (const char* name,
                   int         k,
                   int&        ref,
                   int         ival = FIRST) const;
-    //
-    // Same as querykth() but searches for the last occurrence of name.
-    //
+    //! Same as querykth() but searches for the last occurrence of name.
     int query (const char* name,
                int&        ref,
                int         ival = FIRST) const;
-    //
-    // Add a key 'name'with value 'ref' to the end of the PP table.
-    //
+    //! Add a key 'name'with value 'ref' to the end of the PP table.
     void add (const char* name,
               const int  val);
-    //
-    // Get the ival'th value of kth occurrence of the requested name.
-    // If successful, the value is converted to an int and stored
-    // in reference ref.  If the kth occurrence does not exist or
-    // ival'th value does not exist, or if the printed representation
-    // of the value cannot be converted to an int, an error message is
-    // output and the program halts.   Note that ival == 0 is the first
-    // value in the list.
-    //
+    /**
+    * \brief Get the ival'th value of kth occurrence of the requested name.
+    * If successful, the value is converted to an int and stored
+    * in reference ref.  If the kth occurrence does not exist or
+    * ival'th value does not exist, or if the printed representation
+    * of the value cannot be converted to an int, an error message is
+    * output and the program halts.   Note that ival == 0 is the first
+    * value in the list.
+    */
     void getkth (const char* name,
                  int         k,
                  long&       ref,
                  int         ival = FIRST) const;
-    //
-    // Same as getkth() but searches for the last occurrence of name.
-    //
+    //! Same as getkth() but searches for the last occurrence of name.
     void get (const char* name,
               long&       ref,
               int         ival = FIRST) const;
-    //
-    // Similar to getkth() but returns 0 if there is no kth occurrence
-    // of name.  If successful, it returns 1 and stores the value in
-    // ref.  If the kth occurrence exists, but ival'th value of that
-    // occurrence does not, or if there is a type mismatch, then the
-    // program signals an error and halts.
-    //
+    /**
+    * \brief Similar to getkth() but returns 0 if there is no kth occurrence
+    * of name.  If successful, it returns 1 and stores the value in
+    * ref.  If the kth occurrence exists, but ival'th value of that
+    * occurrence does not, or if there is a type mismatch, then the
+    * program signals an error and halts.
+    */
     int querykth (const char* name,
                   int         k,
                   long&       ref,
                   int         ival = FIRST) const;
-    //
-    // Same as querykth() but searches for the last occurrence of name.
-    //
+    //! Same as querykth() but searches for the last occurrence of name.
     int query (const char* name,
                long&        ref,
                int         ival = FIRST) const;
-    //
-    // Add a key 'name'with value 'ref' to the end of the PP table.
-    //
+    //! Add a key 'name'with value 'ref' to the end of the PP table.
     void add (const char* name,
               const long  val);
-    //
-    // Get the ival'th value of kth occurrence of the requested name.
-    // If successful, the value is converted to a float and stored
-    // in reference ref.  If the kth occurrence does not exist or
-    // ival'th value does not exist, or if the printed representation
-    // of the value cannot be converted to a float, an error message
-    // is output and the program halts.   Note that ival == 0 is the
-    // first value in the list.
-    //
+    /**
+    * \brief Get the ival'th value of kth occurrence of the requested name.
+    * If successful, the value is converted to a float and stored
+    * in reference ref.  If the kth occurrence does not exist or
+    * ival'th value does not exist, or if the printed representation
+    * of the value cannot be converted to a float, an error message
+    * is output and the program halts.   Note that ival == 0 is the
+    * first value in the list.
+    */
     void getkth (const char* name,
                  int         k,
                  float&      ref,
                  int         ival = FIRST) const;
-    //
-    // Same as getkth() but searches for the last occurrence of name.
-    //
+    //! Same as getkth() but searches for the last occurrence of name.
     void get (const char* name,
               float&      ref,
               int         ival = FIRST) const;
-    //
-    // Similar to getkth() but returns 0 if there is no kth occurrence
-    // of name.  If successful, it returns 1 and stores the value in
-    // ref.  If the kth occurrence exists, but ival'th value of that
-    // occurrence does not, or if there is a type mismatch, then the
-    // program signals an error and halts.
-    //
+    /**
+    * \brief Similar to getkth() but returns 0 if there is no kth occurrence
+    * of name.  If successful, it returns 1 and stores the value in
+    * ref.  If the kth occurrence exists, but ival'th value of that
+    * occurrence does not, or if there is a type mismatch, then the
+    * program signals an error and halts.
+    */
     int querykth (const char* name,
                   int         k,
                   float&      ref,
                   int         ival = FIRST) const;
-    //
-    // Same as querykth() but searches for the last occurrence of name.
-    //
+    //! Same as querykth() but searches for the last occurrence of name.
     int query (const char* name,
                float&      ref,
                int         ival = FIRST) const;
-    //
-    // Add a key 'name'with value 'ref' to the end of the PP table.
-    //
+    //! Add a key 'name'with value 'ref' to the end of the PP table.
     void add (const char* name,
               const float  val);
-    //
-    // Get the ival'th value of kth occurrence of the requested name.
-    // If successful, the value is converted to a double and stored
-    // in reference ref.  If the kth occurrence does not exist or
-    // ival'th value does not exist, or if the printed representation
-    // of the value cannot be converted to a double, an error message
-    // is output and the program halts.   Note that ival = 0 is the
-    // first value in the list.
-    //
+    /**
+    * \brief Get the ival'th value of kth occurrence of the requested name.
+    * If successful, the value is converted to a double and stored
+    * in reference ref.  If the kth occurrence does not exist or
+    * ival'th value does not exist, or if the printed representation
+    * of the value cannot be converted to a double, an error message
+    * is output and the program halts.   Note that ival = 0 is the
+    * first value in the list.
+    */
     void getkth (const char* name,
                  int         k,
                  double&     ref,
                  int         ival = FIRST) const;
-    //
-    // Same as getkth() but searches for the last occurrence of name.
-    //
+    //! Same as getkth() but searches for the last occurrence of name.
     void get (const char* name,
               double&     ref,
               int         ival = FIRST) const;
-    //
-    // Similar to getkth() but returns 0 if there is no kth occurrence
-    // of name.  If successful, it returns 1 and stores the value in
-    // ref.  If the kth occurrence exists, but ival'th value of that
-    // occurrence does not, or if there is a type mismatch, then the
-    // program signals an error and halts.
-    //
+    /**
+    * \brief Similar to getkth() but returns 0 if there is no kth occurrence
+    * of name.  If successful, it returns 1 and stores the value in
+    * ref.  If the kth occurrence exists, but ival'th value of that
+    * occurrence does not, or if there is a type mismatch, then the
+    * program signals an error and halts.
+    */
     int querykth (const char* name,
                   int         k,
                   double&     ref,
                   int         ival = FIRST) const;
-    //
-    // Same as querykth() but searches for the last occurrence of name.
-    //
+    //! Same as querykth() but searches for the last occurrence of name.
     int query (const char* name,
                double&     ref,
                int         ival = FIRST) const;
-    //
-    // Add a key 'name'with value 'ref' to the end of the PP table.
-    //
+    //! Add a key 'name'with value 'ref' to the end of the PP table.
     void add (const char* name,
               const double  val);
-    //
-    // Get the ival'th value of kth occurrence of the requested name.
-    // If successful, the value is converted to a std::string and stored
-    // in reference ref.  If the kth occurrence does not exist or
-    // ival'th value does not exist, or if the printed representation
-    // of the value cannot be converted to a std::string, an error message
-    // is output and the program halts.   Note that ival = 0 is the
-    // first value in the list.
-    //
+    /**
+    * \brief Get the ival'th value of kth occurrence of the requested name.
+    * If successful, the value is converted to a std::string and stored
+    * in reference ref.  If the kth occurrence does not exist or
+    * ival'th value does not exist, or if the printed representation
+    * of the value cannot be converted to a std::string, an error message
+    * is output and the program halts.   Note that ival = 0 is the
+    * first value in the list.
+    */
     void getkth (const char* name,
                  int         k,
                  std::string&    ref,
                  int         ival = FIRST) const;
-    //
-    // Same as getkth() but searches for the last occurrence of name.
-    //
+    
+    //! Same as getkth() but searches for the last occurrence of name.
     void get (const char* name,
               std::string&    ref,
               int         ival = FIRST) const;
-    //
-    // Similar to getkth() but returns 0 if there is no kth occurrence
-    // of name.  If successful, it returns 1 and stores the value in
-    // ref.  If the kth occurrence exists, but ival'th value of that
-    // occurrence does not, or if there is a type mismatch, then the
-    // program signals an error and halts.
-    //
+    /**
+    * \brief Similar to getkth() but returns 0 if there is no kth occurrence
+    * of name.  If successful, it returns 1 and stores the value in
+    * ref.  If the kth occurrence exists, but ival'th value of that
+    * occurrence does not, or if there is a type mismatch, then the
+    * program signals an error and halts.
+    */
     int querykth (const char* name,
                   int         k,
                   std::string&   ref,
                   int         ival = FIRST) const;
-    //
-    // Same as querykth() but searches for the last occurrence of name.
-    //
+    //! Same as querykth() but searches for the last occurrence of name.
     int query (const char* name,
                std::string&    ref,
                int         ival = FIRST) const;
-    //
-    // Add a key 'name'with value 'ref' to the end of the PP table.
-    //
+    //! Add a key 'name'with value 'ref' to the end of the PP table.
     void add (const char* name,
               const std::string&  val);
-    //
-    // Get the ival'th value of kth occurrence of the requested name.
-    // If successful, the value is converted to an IntVect and stored
-    // in reference ref.  If the kth occurrence does not exist or
-    // ival'th value does not exist, or if the printed representation
-    // of the value cannot be converted to a IntVect, an error message
-    // is output and the program halts.   Note that ival = 0 is the
-    // first value in the list.
-    //
+    /**
+    * \brief Get the ival'th value of kth occurrence of the requested name.
+    * If successful, the value is converted to an IntVect and stored
+    * in reference ref.  If the kth occurrence does not exist or
+    * ival'th value does not exist, or if the printed representation
+    * of the value cannot be converted to a IntVect, an error message
+    * is output and the program halts.   Note that ival = 0 is the
+    * first value in the list.
+    */
     void getkth (const char* name,
                  int         k,
                  IntVect&    ref,
                  int         ival = FIRST) const;
-    //
-    // Same as getkth() but searches for the last occurrence of name.
-    //
+    //! Same as getkth() but searches for the last occurrence of name.
     void get (const char* name,
               IntVect&    ref,
               int         ival = FIRST) const;
-    //
-    // Similar to getkth() but returns 0 if there is no kth occurrence
-    // of name.  If successful, it returns 1 and stores the value in
-    // ref.  If the kth occurrence exists, but ival'th value of that
-    // occurrence does not, or if there is a type mismatch, then the
-    // program signals an error and halts.
-    //
+    /**
+    * \brief Similar to getkth() but returns 0 if there is no kth occurrence
+    * of name.  If successful, it returns 1 and stores the value in
+    * ref.  If the kth occurrence exists, but ival'th value of that
+    * occurrence does not, or if there is a type mismatch, then the
+    * program signals an error and halts.
+    */
     int querykth (const char* name,
                   int         k,
                   IntVect&   ref,
                   int         ival = FIRST) const;
-    //
-    // Same as querykth() but searches for the last occurrence of name.
-    //
+    //! Same as querykth() but searches for the last occurrence of name.
     int query (const char* name,
                IntVect&    ref,
                int         ival = FIRST) const;
-    //
-    // Add a key 'name'with value 'ref' to the end of the PP table.
-    //
+    //! Add a key 'name'with value 'ref' to the end of the PP table.
     void add (const char* name,
               const IntVect&  val);
-    //
-    // Get the ival'th value of kth occurrence of the requested name.
-    // If successful, the value is converted to a Box and stored
-    // in reference ref.  If the kth occurrence does not exist or
-    // ival'th value does not exist, or if the printed representation
-    // of the value cannot be converted to a Box, an error message
-    // is output and the program halts.   Note that ival = 0 is the
-    // first value in the list.
-    //
+    /**
+    * \brief Get the ival'th value of kth occurrence of the requested name.
+    * If successful, the value is converted to a Box and stored
+    * in reference ref.  If the kth occurrence does not exist or
+    * ival'th value does not exist, or if the printed representation
+    * of the value cannot be converted to a Box, an error message
+    * is output and the program halts.   Note that ival = 0 is the
+    * first value in the list.
+    */
     void getkth (const char* name,
                  int         k,
                  Box&        ref,
                  int         ival = FIRST) const;
-    //
-    // Same as getkth() but searches for the last occurrence of name.
-    //
+    //! Same as getkth() but searches for the last occurrence of name.
     void get (const char* name,
               Box&        ref,
               int         ival = FIRST) const;
-    //
-    // Similar to getkth() but returns 0 if there is no kth occurrence
-    // of name.  If successful, it returns 1 and stores the value in
-    // ref.  If the kth occurrence exists, but ival'th value of that
-    // occurrence does not, or if there is a type mismatch, then the
-    // program signals an error and halts.
-    //
+    /**
+    * \brief Similar to getkth() but returns 0 if there is no kth occurrence
+    * of name.  If successful, it returns 1 and stores the value in
+    * ref.  If the kth occurrence exists, but ival'th value of that
+    * occurrence does not, or if there is a type mismatch, then the
+    * program signals an error and halts.
+    */
     int querykth (const char* name,
                   int         k,
                   Box&        ref,
                   int         ival = FIRST) const;
-    //
-    // Same as querykth() but searches for the last occurrence of name.
-    //
+    //! Same as querykth() but searches for the last occurrence of name.
     int query (const char* name,
                Box&        ref,
                int         ival = FIRST) const;
-    //
-    // Add a key 'name'with value 'ref' to the end of the PP table.
-    //
+    //! Add a key 'name'with value 'ref' to the end of the PP table.
     void add (const char* name,
               const Box&  val);
-    //
-    // Gets an std::vector<int> of num_val values from kth occurrence of
-    // given name.  If successful, the values are converted to an int
-    // and stored in the std::vector<int> object ref.  ref is resized (if
-    // necessary) to hold num_val values.  The value in the list
-    // indexed by start_ix is copied into std::vector<int>[0], std::vector<int>[1]
-    // holds start_ix+1, etc.  If the kth occurrence does not exist
-    // or there are fewer than start_ix + num_val values associated
-    // with the kth occurrence, or if some of the values cannot be
-    // converted to an int, an error message is reported and the
-    // program halts.
-    //
+    /**
+    * \brief Gets an std::vector<int> of num_val values from kth occurrence of
+    * given name.  If successful, the values are converted to an int
+    * and stored in the std::vector<int> object ref.  ref is resized (if
+    * necessary) to hold num_val values.  The value in the list
+    * indexed by start_ix is copied into std::vector<int>[0], std::vector<int>[1]
+    * holds start_ix+1, etc.  If the kth occurrence does not exist
+    * or there are fewer than start_ix + num_val values associated
+    * with the kth occurrence, or if some of the values cannot be
+    * converted to an int, an error message is reported and the
+    * program halts.
+    */
     void getktharr (const char* name,
                     int         k,
                     std::vector<int>& ref,
                     int         start_ix = FIRST,
                     int         num_val = ALL) const;
-    //
-    // Same as getktharr() but searches for last occurrence of name.
-    //
+    //! Same as getktharr() but searches for last occurrence of name.
     void getarr (const char* name,
                  std::vector<int>& ref,
                  int         start_ix = FIRST,
                  int         num_val = ALL) const;
-    //
-    // queryktharr() is to querykth() as getktharr() is to getkth().
-    //
+    //! queryktharr() is to querykth() as getktharr() is to getkth().
     int queryktharr (const char* name,
                      int         k,
                      std::vector<int>& ref,
                      int         start_ix = FIRST,
                      int         num_val = ALL) const;
-    //
-    // Same as queryktharr() but searches for last occurrence of name.
-    //
+    //! Same as queryktharr() but searches for last occurrence of name.
     int queryarr (const char* name,
                   std::vector<int>& ref,
                   int         start_ix = FIRST,
                   int         num_val = ALL) const;
-    //
-    // Add a key 'name' with vector of values 'ptr' to the end of the PP table.
-    //
+    //! Add a key 'name' with vector of values 'ptr' to the end of the PP table.
     void addarr (const char* name,
                 const std::vector<int>&  ptr);
 
-    //
-    // Gets an std::vector<long> of num_val values from kth occurrence of
-    // given name.  If successful, the values are converted to a long
-    // and stored in the std::vector<long> object ref.  ref is resized (if
-    // necessary) to hold num_val values.  The value in the list
-    // indexed by start_ix is copied into std::vector<long>[0], std::vector<long>[1]
-    // holds start_ix+1, etc.  If the kth occurrence does not exist
-    // or there are fewer than start_ix + num_val values associated
-    // with the kth occurrence, or if some of the values cannot be
-    // converted to a long, an error message is reported and the
-    // program halts.
-    //
+    /**
+    * \brief Gets an std::vector<long> of num_val values from kth occurrence of
+    * given name.  If successful, the values are converted to a long
+    * and stored in the std::vector<long> object ref.  ref is resized (if
+    * necessary) to hold num_val values.  The value in the list
+    * indexed by start_ix is copied into std::vector<long>[0], std::vector<long>[1]
+    * holds start_ix+1, etc.  If the kth occurrence does not exist
+    * or there are fewer than start_ix + num_val values associated
+    * with the kth occurrence, or if some of the values cannot be
+    * converted to a long, an error message is reported and the
+    * program halts.
+    */
     void getktharr (const char* name,
                     int         k,
                     std::vector<long>& ref,
                     int         start_ix = FIRST,
                     int         num_val = ALL) const;
-    //
-    // Same as getktharr() but searches for last occurrence of name.
-    //
+    //! Same as getktharr() but searches for last occurrence of name.
     void getarr (const char* name,
                  std::vector<long>& ref,
                  int         start_ix = FIRST,
                  int         num_val = ALL) const;
-    //
-    // queryktharr() is to querykth() as getktharr() is to getkth().
-    //
+    //! queryktharr() is to querykth() as getktharr() is to getkth().
     int queryktharr (const char* name,
                      int         k,
                      std::vector<long>& ref,
                      int         start_ix = FIRST,
                      int         num_val = ALL) const;
-    //
-    // Same as queryktharr() but searches for last occurrence of name.
-    //
+    //! Same as queryktharr() but searches for last occurrence of name.
     int queryarr (const char* name,
                   std::vector<long>& ref,
                   int         start_ix = FIRST,
                   int         num_val = ALL) const;
-    //
-    // Add a key 'name' with vector of values 'ptr' to the end of the PP table.
-    //
+    //! Add a key 'name' with vector of values 'ptr' to the end of the PP table.
     void addarr (const char* name,
                 const std::vector<long>&  ptr);
 
-    //
-    // Gets an std::vector<float> of num_val values from kth occurrence of
-    // given name.  If successful, the values are converted to a float
-    // and stored in the std::vector<float> object ref.  ref is resized (if
-    // necessary) to hold num_val values.  The value in the list
-    // indexed by start_ix is copied into std::vector<float>[0],
-    // std::vector<float>[1] holds start_ix+1, etc.  If the kth occurrence
-    // does not exist or there are fewer than start_ix + num_val
-    // values associated with the kth occurrence, or if some of the
-    // values cannot be converted to a float, an error message is
-    // reported and the program halts.
-    //
+    /**
+    * \brief Gets an std::vector<float> of num_val values from kth occurrence of
+    * given name.  If successful, the values are converted to a float
+    * and stored in the std::vector<float> object ref.  ref is resized (if
+    * necessary) to hold num_val values.  The value in the list
+    * indexed by start_ix is copied into std::vector<float>[0],
+    * std::vector<float>[1] holds start_ix+1, etc.  If the kth occurrence
+    * does not exist or there are fewer than start_ix + num_val
+    * values associated with the kth occurrence, or if some of the
+    * values cannot be converted to a float, an error message is
+    * reported and the program halts.
+    */
     void getktharr (const char*   name,
                     int           k,
                     std::vector<float>& ref,
                     int           start_ix = FIRST,
                     int           num_val = ALL) const;
-    //
-    // Same as getktharr() but searches for last occurrence of name.
-    //
+    //! Same as getktharr() but searches for last occurrence of name.
     void getarr (const char*   name,
                  std::vector<float>& ref,
                  int           start_ix = FIRST,
                  int           num_val = ALL) const;
-    //
-    // queryktharr() is to querykth() as getktharr() is to getkth().
-    //
+    //! queryktharr() is to querykth() as getktharr() is to getkth().
     int queryktharr (const char*   name,
                      int           k,
                      std::vector<float>& ref,
                      int           start_ix = FIRST,
                      int           num_val = ALL) const;
-    //
-    // Same as queryktharr() but searches for last occurrence of name.
-    //
+    //! Same as queryktharr() but searches for last occurrence of name.
     int queryarr (const char*   name,
                   std::vector<float>& ref,
                   int           start_ix = FIRST,
                   int           num_val = ALL) const;
-    //
-    // Add a key 'name' with vector of values 'ptr' to the end of the PP table.
-    //
+    //! Add a key 'name' with vector of values 'ptr' to the end of the PP table.
     void addarr (const char* name,
                 const std::vector<float>&  ptr);
-    //
-    // Gets an std::vector<double> of num_val values from kth occurrence of
-    // given name.  If successful, the values are converted to a double
-    // and stored in the std::vector<double> object ref.  ref is resized (if
-    // necessary) to hold num_val values.  The value in the list
-    // indexed by start_ix is copied into std::vector<double>[0],
-    // std::vector<double>[1] holds start_ix+1, etc.  If the kth occurrence
-    // does not exist or there are fewer than start_ix + num_val
-    // values associated with the kth occurrence, or if some of the
-    // values cannot be converted to a double, an error message is
-    // reported and the program halts.
-    //
+    /**
+    * \brief Gets an std::vector<double> of num_val values from kth occurrence of
+    * given name.  If successful, the values are converted to a double
+    * and stored in the std::vector<double> object ref.  ref is resized (if
+    * necessary) to hold num_val values.  The value in the list
+    * indexed by start_ix is copied into std::vector<double>[0],
+    * std::vector<double>[1] holds start_ix+1, etc.  If the kth occurrence
+    * does not exist or there are fewer than start_ix + num_val
+    * values associated with the kth occurrence, or if some of the
+    * values cannot be converted to a double, an error message is
+    * reported and the program halts.
+    */
     void getktharr (const char*    name,
                     int            k,
                     std::vector<double>& ref,
                     int            start_ix = FIRST,
                     int            num_val = ALL) const;
-    //
-    // Same as getktharr() but searches for last occurrence of name.
-    //
+    //! Same as getktharr() but searches for last occurrence of name.
     void getarr (const char*    name,
                  std::vector<double>& ref,
                  int            start_ix = FIRST,
                  int            num_val = ALL) const;
-    //
-    // queryktharr() is to querykth() as getktharr() is to getkth().
-    //
+    //! queryktharr() is to querykth() as getktharr() is to getkth().
     int queryktharr (const char*    name,
                      int            k,
                      std::vector<double>& ref,
                      int            start_ix = FIRST,
                      int            num_val = ALL) const;
-    //
-    // Same as queryktharr() but searches for last occurrence of name.
-    //
+    //! Same as queryktharr() but searches for last occurrence of name.
     int queryarr (const char*    name,
                   std::vector<double>& ref,
                   int            start_ix = FIRST,
                   int            num_val = ALL) const;
-    //
-    // Add a key 'name' with vector of values 'ptr' to the end of the PP table.
-    //
+    //! Add a key 'name' with vector of values 'ptr' to the end of the PP table.
     void addarr (const char* name,
                 const std::vector<double>&  ptr);
-    //
-    // Gets an std::vector<std::string> of num_val values from kth occurrence of
-    // given name.  If successful, the values are converted to an
-    // std::string and stored in the std::vector<std::string> object ref.  ref is
-    // resized (if necessary) to hold num_val values.  The value in
-    // the list indexed by start_ix is copied into std::vector<std::string>[0],
-    // std::vector<std::string>[1] holds start_ix+1, etc.  If the kth occurrence
-    // does not exist or there are fewer than start_ix + num_val
-    // values associated with the kth occurrence, or if some of the
-    // values cannot be converted to an std::string, an error message is
-    // reported and the program halts.
-    //
+    /**
+    * \brief Gets an std::vector<std::string> of num_val values from kth occurrence of
+    * given name.  If successful, the values are converted to an
+    * std::string and stored in the std::vector<std::string> object ref.  ref is
+    * resized (if necessary) to hold num_val values.  The value in
+    * the list indexed by start_ix is copied into std::vector<std::string>[0],
+    * std::vector<std::string>[1] holds start_ix+1, etc.  If the kth occurrence
+    * does not exist or there are fewer than start_ix + num_val
+    * values associated with the kth occurrence, or if some of the
+    * values cannot be converted to an std::string, an error message is
+    * reported and the program halts.
+    */
     void getktharr (const char*     name,
                     int             k,
                     std::vector<std::string>& ref,
                     int             start_ix = FIRST,
                     int             num_val = ALL) const;
-    //
-    // Same as getktharr() but searches for last occurrence of name.
-    //
+    //! Same as getktharr() but searches for last occurrence of name.
     void getarr (const char*     name,
                  std::vector<std::string>& ref,
                  int             start_ix = FIRST,
                  int             num_val = ALL) const;
-    //
-    // queryktharr() is to querykth() as getktharr() is to getkth().
-    //
+    //! queryktharr() is to querykth() as getktharr() is to getkth().
     int queryktharr (const char*     name,
                      int             k,
                      std::vector<std::string>& ref,
                      int             start_ix = FIRST,
                      int             num_val = ALL) const;
-    //
-    // Same as queryktharr() but searches for last occurrence of name.2
-    //
+    //! Same as queryktharr() but searches for last occurrence of name.2
     int queryarr (const char*     name,
                   std::vector<std::string>& ref,
                   int             start_ix = FIRST,
                   int             num_val = ALL) const;
-    //
-    // Add a key 'name' with vector of values 'ptr' to the end of the PP table.
-    //
+    //! Add a key 'name' with vector of values 'ptr' to the end of the PP table.
     void addarr (const char* name,
                 const std::vector<std::string>&  ptr);
-    //
-    // Gets an std::vector<IntVect> of num_val values from kth occurrence of
-    // given name.  If successful, the values are converted to an
-    // IntVect and stored in the std::vector<IntVect> object ref.  ref is
-    // resized (if necessary) to hold num_val values.  The value in
-    // the list indexed by start_ix is copied into std::vector<IntVect>[0],
-    // std::vector<IntVect>[1] holds start_ix+1, etc.  If the kth occurrence
-    // does not exist or there are fewer than start_ix + num_val
-    // values associated with the kth occurrence, or if some of the
-    // values cannot be converted to an IntVect, an error message is
-    // reported and the program halts.
-    //
+    /**
+    * \brief Gets an std::vector<IntVect> of num_val values from kth occurrence of
+    * given name.  If successful, the values are converted to an
+    * IntVect and stored in the std::vector<IntVect> object ref.  ref is
+    * resized (if necessary) to hold num_val values.  The value in
+    * the list indexed by start_ix is copied into std::vector<IntVect>[0],
+    * std::vector<IntVect>[1] holds start_ix+1, etc.  If the kth occurrence
+    * does not exist or there are fewer than start_ix + num_val
+    * values associated with the kth occurrence, or if some of the
+    * values cannot be converted to an IntVect, an error message is
+    * reported and the program halts.
+    */
     void getktharr (const char*     name,
                     int             k,
                     std::vector<IntVect>& ref,
                     int             start_ix = FIRST,
                     int             num_val = ALL) const;
-    //
-    // Same as getktharr() but searches for last occurrence of name.
-    //
+    //! Same as getktharr() but searches for last occurrence of name.
     void getarr (const char*     name,
                  std::vector<IntVect>& ref,
                  int             start_ix = FIRST,
                  int             num_val = ALL) const;
-    //
-    // queryktharr() is to querykth() as getktharr() is to getkth().
-    //
+    //! queryktharr() is to querykth() as getktharr() is to getkth().
     int queryktharr (const char*     name,
                      int             k,
                      std::vector<IntVect>& ref,
                      int             start_ix = FIRST,
                      int             num_val = ALL) const;
-    //
-    // Same as queryktharr() but searches for last occurrence of name.2
-    //
+    //! Same as queryktharr() but searches for last occurrence of name.2
     int queryarr (const char*     name,
                   std::vector<IntVect>& ref,
                   int             start_ix = FIRST,
                   int             num_val = ALL) const;
-    //
-    // Add a key 'name' with vector of values 'ptr' to the end of the PP table.
-    //
+    //! Add a key 'name' with vector of values 'ptr' to the end of the PP table.
     void addarr (const char* name,
                 const std::vector<IntVect>&  ptr);
-    //
-    // Gets an std::vector<Box> of num_val values from kth occurrence of
-    // given name.  If successful, the values are converted to an
-    // Box and stored in the std::vector<Box> object ref.  ref is
-    // resized (if necessary) to hold num_val values.  The value in
-    // the list indexed by start_ix is copied into std::vector<Box>[0],
-    // std::vector<Box>[1] holds start_ix+1, etc.  If the kth occurrence
-    // does not exist or there are fewer than start_ix + num_val
-    // values associated with the kth occurrence, or if some of the
-    // values cannot be converted to an Box, an error message is
-    // reported and the program halts.
-    //
+    /**
+    * \brief Gets an std::vector<Box> of num_val values from kth occurrence of
+    * given name.  If successful, the values are converted to an
+    * Box and stored in the std::vector<Box> object ref.  ref is
+    * resized (if necessary) to hold num_val values.  The value in
+    * the list indexed by start_ix is copied into std::vector<Box>[0],
+    * std::vector<Box>[1] holds start_ix+1, etc.  If the kth occurrence
+    * does not exist or there are fewer than start_ix + num_val
+    * values associated with the kth occurrence, or if some of the
+    * values cannot be converted to an Box, an error message is
+    * reported and the program halts.
+    */
     void getktharr (const char*     name,
                     int             k,
                     std::vector<Box>& ref,
                     int             start_ix = FIRST,
                     int             num_val = ALL) const;
-    //
-    // Same as getktharr() but searches for last occurrence of name.
-    //
+    //! Same as getktharr() but searches for last occurrence of name.
     void getarr (const char*     name,
                  std::vector<Box>& ref,
                  int             start_ix = FIRST,
                  int             num_val = ALL) const;
-    //
-    // queryktharr() is to querykth() as getktharr() is to getkth().
-    //
+    //! queryktharr() is to querykth() as getktharr() is to getkth().
     int queryktharr (const char*     name,
                      int             k,
                      std::vector<Box>& ref,
                      int             start_ix = FIRST,
                      int             num_val = ALL) const;
-    //
-    // Same as queryktharr() but searches for last occurrence of name.2
-    //
+    //! Same as queryktharr() but searches for last occurrence of name.2
     int queryarr (const char*     name,
                   std::vector<Box>& ref,
                   int             start_ix = FIRST,
                   int             num_val = ALL) const;
-    //
-    // Add a key 'name' with vector of values 'ptr' to the end of the PP table.
-    //
+    //! Add a key 'name' with vector of values 'ptr' to the end of the PP table.
     void addarr (const char* name,
                 const std::vector<Box>&  ptr);
-    //
-    // Construct an initial ParmParse object from the argc and argv
-    // passed in to main().  An error will be signalled if another
-    // ParmParse object currently exists.  If parfile is specified,
-    // read the parameters in from that file first and then append
-    // those derived from argv to the table.  If prefix is specified,
-    // load this string as the code prefix for this particular
-    // ParmParse object.
-    //
+    /**
+    * \brief Construct an initial ParmParse object from the argc and argv
+    * passed in to main().  An error will be signalled if another
+    * ParmParse object currently exists.  If parfile is specified,
+    * read the parameters in from that file first and then append
+    * those derived from argv to the table.  If prefix is specified,
+    * load this string as the code prefix for this particular
+    * ParmParse object.
+    */
     static void Initialize(int         argc,
 			   char**      argv,
 			   const char* parfile);
-    //
-    // The destructor.  The internal static table will only be deleted
-    // if there are no other ParmParse objects in existence.
-    //
+    /**
+    * \brief The destructor.  The internal static table will only be deleted
+    * if there are no other ParmParse objects in existence.
+    */
     static void Finalize();
 
     struct PP_entry;

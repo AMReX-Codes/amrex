@@ -43,9 +43,7 @@ class MFGhostIter;
 template <class FAB> class FabArray;
 template <class FAB> class FabArrayCopyDescriptor;
 
-//
-// Helper class
-//
+//! Helper class
 
 class FillBoxId
 {
@@ -75,9 +73,7 @@ private:
     int m_fabIndex;
 };
 
-//
-// This is meant to be a concrete class not a polymorphic one.
-//
+//! This is meant to be a concrete class not a polymorphic one.
 
 class FabArrayBase
 {
@@ -89,48 +85,42 @@ public:
     FabArrayBase ();
 
     virtual ~FabArrayBase();
-    //
-    // Returns the grow factor that defines the region of definition.
-    //
+
+    //! Returns the grow factor that defines the region of definition.
     int nGrow () const { return n_grow; }
-    //
-    // Returns number of variables associated with each point (nvar).
-    //
+
+    //! Returns number of variables associated with each point (nvar).
     int nComp () const { return n_comp; }
     //
     ParallelDescriptor::Color color () const { return distributionMap.color(); }
     //
     bool empty () const { return boxarray.empty(); }
-    //
-    // Returns a constant reference to the BoxArray that defines the
-    // valid region associated with this FabArray.
-    //
+    /**
+    * \brief Returns a constant reference to the BoxArray that defines the
+    * valid region associated with this FabArray.
+    */
     const BoxArray& boxArray () const { return boxarray; }
-    //
-    // Returns the Kth Box in the BoxArray.
-    // That is, the valid region of the Kth grid.
-    //
+    /**
+    * \brief Returns the Kth Box in the BoxArray.
+    * That is, the valid region of the Kth grid.
+    */
     Box box (int K) const { return boxarray[K]; }
-    //
-    // Returns the Kth FABs Box in the FabArray.
-    // That is, the region the Kth fab is actually defined on.
-    //
+    /**
+    * \brief Returns the Kth FABs Box in the FabArray.
+    * That is, the region the Kth fab is actually defined on.
+    */
     Box fabbox (int K) const;
-    //
-    // Returns the number of FABs in the FabArray..
-    //
+
+    //! Returns the number of FABs in the FabArray..
     int size () const { return boxarray.size(); }
-    //
-    // Returns the number of local FABs in the FabArray..
-    //
+
+    //! Returns the number of local FABs in the FabArray..
     int local_size () const { return indexArray.size(); }
-    //
-    // Returns constant reference to indices in the FabArray that we have access
-    //
+
+    //! Returns constant reference to indices in the FabArray that we have access
     const Array<int> &IndexArray () const { return indexArray; }
-    //
-    // Returns local index in the vector of FABs.
-    //
+
+    //! Returns local index in the vector of FABs.
     int localindex (int K) const { 
 	std::vector<int>::const_iterator low
 	    = std::lower_bound(indexArray.begin(), indexArray.end(), K);
@@ -141,13 +131,11 @@ public:
 	    return -1;
 	}
     }
-    //
-    // Returns constant reference to associated DistributionMapping.
-    //
+
+    //! Returns constant reference to associated DistributionMapping.
     const DistributionMapping& DistributionMap () const { return distributionMap; }
-    //
-    // Some static member templates used throughout the code.
-    //
+
+    //! Some static member templates used throughout the code.
     template<typename T>
     static void WaitForAsyncSends (int                 N_snds,
                                    Array<MPI_Request>& send_reqs,
@@ -234,9 +222,7 @@ public:
 		      << std::endl;
 	}
     };
-    //
-    // Used by a bunch of routines when communicating via MPI.
-    //
+    //! Used by a bunch of routines when communicating via MPI.
     struct CopyComTag
     {
 	Box dbox;
@@ -253,14 +239,11 @@ public:
 		               || ((dbox.smallEnd() == rhs.dbox.smallEnd()) && (
                    (IntVect::Compare()(sbox.smallEnd(),rhs.sbox.smallEnd())))))))));
 	}
-        //
-        // Some typedefs & helper functions used throughout the code.
-        //
+        //! Some typedefs & helper functions used throughout the code.
         typedef std::vector<CopyComTag> CopyComTagsContainer;
 
         typedef std::map<int,CopyComTagsContainer> MapOfCopyComTagContainers;
     };
-    //
     // Some useful typedefs.
     //
     typedef CopyComTag::CopyComTagsContainer CopyComTagsContainer;
@@ -268,9 +251,10 @@ public:
     //
     static long bytesOfMapOfCopyComTagContainers (const MapOfCopyComTagContainers&);
 
-    // Key for unique combination of BoxArray and DistributionMapping
-    // Note both BoxArray and DistributionMapping are reference counted.
-    // Objects with the same references have the same key.
+    /** \brief Key for unique combination of BoxArray and DistributionMapping
+    * Note both BoxArray and DistributionMapping are reference counted.
+    * Objects with the same references have the same key.
+    */
     typedef std::pair<ptrdiff_t,ptrdiff_t> BDKey;
 
     BDKey getBDKey () const {
@@ -279,9 +263,7 @@ public:
 
     void updateBDKey ();
 
-    //
-    // Tiling
-    //
+    //! Tiling
     struct TileArray
     {
 	int nuse;
@@ -292,9 +274,7 @@ public:
 	long bytes () const;
     };
 
-    //
-    // Used for collecting information used in communicating FABs.
-    //
+    //! Used for collecting information used in communicating FABs.
     struct FabComTag
     {
         int fromProc;
@@ -326,42 +306,32 @@ public:
             procThatNeedsData(0),
             procThatHasData(0) {}
     };
-    //
-    // Default tilesize in MFIter
-    //
+    //! Default tilesize in MFIter
     static IntVect mfiter_tile_size;
-    //
-    // Default tilesize in MFGhostIter
-    //
+    //! Default tilesize in MFGhostIter
     static IntVect mfghostiter_tile_size;
-    //
-    // The maximum number of components to copy() at a time.
-    //
+    //! The maximum number of components to copy() at a time.
     static int MaxComp;
-    //
-    // Use MPI_Asend() instead of MPI_Send() in CollectData() and copy().
-    //
-    // Turn off via ParmParse using "fabarray.do_async_sends=0" in inputs file.
-    //
-    // Default is true.
-    //
+    /*
+    * Use MPI_Asend() instead of MPI_Send() in CollectData() and copy().
+    * Turn off via ParmParse using "fabarray.do_async_sends=0" in inputs file.
+    * Default is true.
+    */
     static bool do_async_sends;
-    //
-    // Initialize from ParmParse with "fabarray" prefix.
-    //
+    //! Initialize from ParmParse with "fabarray" prefix.
     static void Initialize ();
     static void Finalize ();
     bool IsInitialized() const;
     void SetInitialized(bool binit);
-    //
-    // To maximize thread efficiency we now can decompose things like
-    // intersections among boxes into smaller tiles. This sets
-    // their maximum size.
-    //
+
+    /**
+    * \brief To maximize thread efficiency we now can decompose things like
+    * intersections among boxes into smaller tiles. This sets
+    * their maximum size.
+    */
     static IntVect comm_tile_size;  // communication tile size
-    //
-    // The number of FabArrays that have been defined during this run
-    //
+
+    //! The number of FabArrays that have been defined during this run
     static int nFabArrays;
     static int NFabArrays() { return nFabArrays; }
     int AllocatedFAPtrID() const  { return aFAPId; }
@@ -406,20 +376,18 @@ public:
 
     void flushFPinfo (bool no_assertion=false);
 
-    //
-    // parallel copy or add
-    //
+    //! parallel copy or add
     enum CpOp { COPY = 0, ADD = 1 };
 
 protected:
 
     DistributionMapping& ModifyDistributionMap () { return distributionMap; }
 
-    //
-    // Returns owenership of fabs. The concept of ownership only applies when UPC++
-    // team is used. In that case, each fab is shared by team workers, with one
-    // taking the ownership.
-    //
+    /**
+    * \brief Returns owenership of fabs. The concept of ownership only applies when UPC++
+    * team is used. In that case, each fab is shared by team workers, with one
+    * taking the ownership.
+    */
     const std::vector<bool>& OwnerShip () const { return ownership; }
     bool isOwner (int li) const { return ownership[li]; }
 
@@ -437,10 +405,10 @@ protected:
 
     mutable BDKey m_bdkey;
 
-    //
-    // Tiling
-    //
-    // We use tile size as the key for the inner map.
+    /** \brief Tiling
+    *
+    * We use tile size as the key for the inner map.
+    */
     typedef std::map<IntVect, TileArray, IntVect::Compare> TAMap;
     typedef std::map<BDKey, TAMap> TACache;
     //
@@ -454,9 +422,7 @@ protected:
 			 bool no_assertion=false) const;
     static void flushTileArrayCache (); // This flushes the entire cache.
 
-    //
-    // FillBoundary
-    //
+    //! FillBoundary
     struct FB
     {
         FB (const FabArrayBase& fa, bool cross, const Periodicity& period,
@@ -498,9 +464,7 @@ protected:
     void flushFB (bool no_assertion=false) const;       // This flushes its own FB.
     static void flushFBCache (); // This flushes the entire cache.
 
-    //
-    // parallel copy or add
-    //
+    //! parallel copy or add
     struct CPC
     {
 	CPC (const FabArrayBase& dstfa, int dstng,
@@ -554,17 +518,11 @@ protected:
     void flushCPC (bool no_assertion=false) const;      // This flushes its own CPC.
     static void flushCPCache (); // This flusheds the entire cache.
 
-    //
-    // Keep track of how many FabArrays are built with the same BDKey.
-    //
+    //! Keep track of how many FabArrays are built with the same BDKey.
     static std::map<BDKey, int> m_BD_count;
-    //
-    // clear BD count and caches associated with this BD, if no other is using this BD. 
-    // 
+    //! clear BD count and caches associated with this BD, if no other is using this BD. 
     void clearThisBD (bool no_assertion=false);
-    //
-    // add the current BD into BD count database
-    //
+    //! add the current BD into BD count database
     void addThisBD ();
     //
     struct FabArrayStats
@@ -613,65 +571,45 @@ public:
         NoTeamBarrier = 0x04, // For Team only. If on, there is no barrier in MFIter dtor.
 	SkipInit      = 0x08  // Used by MFGhostIter
     };  // All these flags are off by default.
-    //
-    // Construct a MFIter.
-    //
-    // The default is no tiling
+    /**
+    * \brief Construct a MFIter.
+    * The default is no tiling
+    */
     explicit MFIter (const FabArrayBase& fabarray,
 		     unsigned char       flags_=0);
-    // tiling w/ default size, IntVect FabArrayBase::mfiter_tile_size
+    //! tiling w/ default size, IntVect FabArrayBase::mfiter_tile_size
     MFIter (const FabArrayBase& fabarray, 
 	    bool                do_tiling); 
-    // tiling with explicit size and flags
+    //! tiling with explicit size and flags
     MFIter (const FabArrayBase& fabarray, 
 	    const IntVect&      tilesize,
 	    unsigned char       flags_=0);
     // dtor
     ~MFIter ();
-    //
-    // Returns the tile Box at the current index.
-    //
+    //! Returns the tile Box at the current index.
     Box tilebox () const;
-    //
-    // Returns the dir-nodal (or all nodal if dir<0) Box at the current index.
-    //
+    //! Returns the dir-nodal (or all nodal if dir<0) Box at the current index.
     Box nodaltilebox (int dir=-1) const;
-    //
-    // Returns the tile box at the current index grown to include ghost cells.
-    //
+    //! Returns the tile box at the current index grown to include ghost cells.
     Box growntilebox (int ng=-1000000) const;
-    //
-    //  Returns the dir-nodal (or all nodal if dir<0) box grown to include ghost cells.
-    //
+    //!  Returns the dir-nodal (or all nodal if dir<0) box grown to include ghost cells.
     Box grownnodaltilebox (int dir=-1, int ng=-1000000) const;
-    //
-    // Returns the valid Box that current tile resides.
-    //
+    //! Returns the valid Box that current tile resides.
     Box validbox () const { return fabArray.box((*index_map)[currentIndex]); }
-    //
-    // Returns the Box of the FAB at which we currently point.
-    //
+    //! Returns the Box of the FAB at which we currently point.
     Box fabbox () const { return fabArray.fabbox((*index_map)[currentIndex]); }
-    //
-    // Increments iterator to the next tile we own.
-    //
+    //! Increments iterator to the next tile we own.
     void operator++ () { ++currentIndex; }
-    //
-    // Is the iterator valid i.e. is it associated with a FAB?
-    //
+    //! Is the iterator valid i.e. is it associated with a FAB?
     bool isValid () { return currentIndex < endIndex; }
-    //
-    // The index into the underlying BoxArray of the current FAB.
-    //
+    //! The index into the underlying BoxArray of the current FAB.
     int index () const { return (*index_map)[currentIndex]; }
-    //
-    // local index into the vector of fab pointers, m_fabs_v
-    // When AllBoxes is on, local_index_map is a nullptr and local index is current index.
-    //
+    /**
+    * \brief local index into the vector of fab pointers, m_fabs_v
+    * When AllBoxes is on, local_index_map is a nullptr and local index is current index.
+    */
     int LocalIndex () const { return local_index_map ? (*local_index_map)[currentIndex] : currentIndex; }
-    //
-    // Constant reference to FabArray over which we're iterating.
-    //
+    //! Constant reference to FabArray over which we're iterating.
     const FabArrayBase& theFabArrayBase () const { return fabArray; }
 
 protected:
@@ -693,9 +631,7 @@ protected:
     void Initialize ();
 };
 
-/*
- * Iterate over ghost cells.  Lots of MFIter functons do not work.
- */
+//! Iterate over ghost cells.  Lots of MFIter functons do not work.
 class MFGhostIter
     :
     public MFIter
@@ -782,19 +718,19 @@ public:
     // Constructs an empty FabArray<FAB>.
     //
     FabArray ();
-    //
-    // Construct a FabArray<FAB> with a valid region defined by bxs
-    // and a region of definition defined by the grow factor ngrow
-    // and the number of components nvar.
-    // If mem_mode is defined to be Fab_allocate then FABs are
-    // allocated for each Box in the BoxArray.  The size of the Kth
-    // FAB is given by bxs[K] grown by ngrow.  If mem_mode is defined
-    // to be Fab_noallocate, then no FABs are allocated at this time,
-    // but can be defined later.  The number of components in each
-    // FAB is not specified and is expected to be implicit in the
-    // definition of the FAB class.  That is, the FAB constructor will
-    // take only a Box argument.  Call this constructor number two.
-    //
+    /**
+    * \brief Construct a FabArray<FAB> with a valid region defined by bxs
+    * and a region of definition defined by the grow factor ngrow
+    * and the number of components nvar.
+    * If mem_mode is defined to be Fab_allocate then FABs are
+    * allocated for each Box in the BoxArray.  The size of the Kth
+    * FAB is given by bxs[K] grown by ngrow.  If mem_mode is defined
+    * to be Fab_noallocate, then no FABs are allocated at this time,
+    * but can be defined later.  The number of components in each
+    * FAB is not specified and is expected to be implicit in the
+    * definition of the FAB class.  That is, the FAB constructor will
+    * take only a Box argument.  Call this constructor number two.
+    */
     FabArray (const BoxArray& bxs,
               int             nvar,
               int             ngrow,
@@ -812,16 +748,14 @@ public:
               int             nvar,
               int             ngrow,
 	      ParallelDescriptor::Color color);
-    //
-    // The destructor -- deletes all FABs in the array.
-    //
+    //! The destructor -- deletes all FABs in the array.
     virtual ~FabArray ();
-    //
-    // Define this FabArray identically to that performed by
-    // the constructor having an analogous function signature.
-    // This is only valid if this FabArray was defined using
-    // the default constructor.
-    //
+    /**
+    * \brief Define this FabArray identically to that performed by
+    * the constructor having an analogous function signature.
+    * This is only valid if this FabArray was defined using
+    * the default constructor.
+    */
     void define (const BoxArray& bxs,
 		 int             nvar,
 		 int             ngrow,
@@ -835,114 +769,98 @@ public:
 		 const DistributionMapping& dm,
 		 FabAlloc                   mem_mode,
 		 const IntVect&             nodal = IntVect::TheZeroVector());
-    //
-    // Returns true if the FabArray is well-defined.  That is,
-    // if FABs are allocated for each Box in the BoxArray and the
-    // sizes of the FABs and the number of components are consistent
-    // with the definition of the FabArray.
-    //
+    /**
+    * \brief Returns true if the FabArray is well-defined.  That is,
+    * if FABs are allocated for each Box in the BoxArray and the
+    * sizes of the FABs and the number of components are consistent
+    * with the definition of the FabArray.
+    */
     bool ok () const;
-    //
-    // Returns a constant reference to the FAB associated with the Kth element.
-    //
+
+    //! Returns a constant reference to the FAB associated with the Kth element.
     const FAB& operator[] (const MFIter& mfi) const;
 
     const FAB& get (const MFIter& mfi) const { return this->operator[](mfi); }
-    //
-    // Returns a reference to the FAB associated mfi.
-    //
+    //! Returns a reference to the FAB associated mfi.
     FAB& operator[] (const MFIter& mfi);
 
     FAB& get (const MFIter& mfi) { return this->operator[](mfi); }
-    //
-    // Returns a constant reference to the FAB associated with the Kth element.
-    //
+    //! Returns a constant reference to the FAB associated with the Kth element.
     const FAB& operator[] (int K) const;
 
     const FAB& get (int K) const { return this->operator[](K); }
-    //
-    // Returns a reference to the FAB associated with the Kth element.
-    //
+    //! Returns a reference to the FAB associated with the Kth element.
     FAB& operator[] (int K);
 
     FAB& get (int K)  { return this->operator[](K); }
-    //
-    // Explicitly set the Kth FAB in the FabArray to point to elem.
-    //
+    //! Explicitly set the Kth FAB in the FabArray to point to elem.
     void setFab (int K, FAB* elem);
 
     void setFab (const MFIter&mfi, FAB* elem);
-    //
-    // Releases FAB memory in the FabArray.
-    //
+    //! Releases FAB memory in the FabArray.
     void clear ();
-    //
-    // Set all components in the entire region of each FAB to val.
-    //
+    //! Set all components in the entire region of each FAB to val.
     void setVal (value_type val);
     void operator= (const value_type& val);
-    //
-    // Set the value of num_comp components in the valid region of
-    // each FAB in the FabArray, starting at component comp to val.
-    // Also set the value of nghost boundary cells.
-    //
+    /**
+    * \brief Set the value of num_comp components in the valid region of
+    * each FAB in the FabArray, starting at component comp to val.
+    * Also set the value of nghost boundary cells.
+    */
     void setVal (value_type val,
                  int        comp,
                  int        num_comp,
                  int        nghost = 0);
-    //
-    // Set the value of num_comp components in the valid region of
-    // each FAB in the FabArray, starting at component comp, as well
-    // as nghost boundary cells, to val, provided they also intersect
-    // with the Box region.
-    //
+    /**
+    * \brief Set the value of num_comp components in the valid region of
+    * each FAB in the FabArray, starting at component comp, as well
+    * as nghost boundary cells, to val, provided they also intersect
+    * with the Box region.
+    */
     void setVal (value_type val,
                  const Box& region,
                  int        comp,
                  int        num_comp,
                  int        nghost = 0);
-    //
-    // Set all components in the valid region of each FAB in the
-    // FabArray to val, including nghost boundary cells.
-    //
+    /**
+    * \brief Set all components in the valid region of each FAB in the
+    * FabArray to val, including nghost boundary cells.
+    */
     void setVal (value_type val,
                  int        nghost);
-    //
-    // Set all components in the valid region of each FAB in the
-    // FabArray to val, including nghost boundary cells, that also
-    // intersect the Box region.
-    //
+    /**
+    * \brief Set all components in the valid region of each FAB in the
+    * FabArray to val, including nghost boundary cells, that also
+    * intersect the Box region.
+    */
     void setVal (value_type val,
                  const Box& region,
                  int        nghost);
-    //
-    // Set all values in the boundary region to val.
-    //
+    //! Set all values in the boundary region to val.
     void setBndry (value_type val);
-    //
-    // Set ncomp values in the boundary region, starting at start_comp to val.
-    //
+
+    //! Set ncomp values in the boundary region, starting at start_comp to val.
     void setBndry (value_type val,
                    int        strt_comp,
                    int        ncomp);
-    //
-    // This function copies data from fa to this FabArray.  Each FAB
-    // in fa is intersected with all FABs in this FabArray and a copy
-    // is performed on the region of intersection.  The intersection
-    // is restricted to the valid region of destination and the 
-    // valid+src_nghost region of source.
-    //
+    /**
+    * \brief This function copies data from fa to this FabArray.  Each FAB
+    * in fa is intersected with all FABs in this FabArray and a copy
+    * is performed on the region of intersection.  The intersection
+    * is restricted to the valid region of destination and the 
+    * valid+src_nghost region of source.
+    */
     void copy (const FabArray<FAB>& fa,
 	       const Periodicity&   period = Periodicity::NonPeriodic(),
                CpOp                 op = FabArrayBase::COPY);
-    //
-    // This function copies data from src to this FabArray.  Each FAB
-    // in src is intersected with all FABs in this FabArray and a copy
-    // is performed on the region of intersection.  The intersection
-    // is restricted to the num_comp components starting at src_comp
-    // in the FabArray src, with the destination components in this
-    // FabArray starting at dest_comp.
-    //
+    /**
+    * \brief This function copies data from src to this FabArray.  Each FAB
+    * in src is intersected with all FABs in this FabArray and a copy
+    * is performed on the region of intersection.  The intersection
+    * is restricted to the num_comp components starting at src_comp
+    * in the FabArray src, with the destination components in this
+    * FabArray starting at dest_comp.
+    */
     void copy (const FabArray<FAB>& src,
                int                  src_comp,
                int                  dest_comp,
@@ -958,39 +876,38 @@ public:
 	       const Periodicity&   period = Periodicity::NonPeriodic(),
                CpOp                 op = FabArrayBase::COPY);
 
-    //
-    // In the following copyTo functions, the destination FAB is identical on each process!!
-    //
-    // Copies the values contained in the intersection of the
-    // valid + nghost region of this FabArray with the FAB dest into dest.
-    //
+    /**
+    * \brief In the following copyTo functions, the destination FAB is identical on each process!!
+    * Copies the values contained in the intersection of the
+    * valid + nghost region of this FabArray with the FAB dest into dest.
+    */
     void copyTo (FAB& dest,
 		 int  nghost = 0) const;
-    //
-    // Copies the values contained in the intersection of the
-    // valid + nghost region of this FabArray with the FAB dest and the Box
-    // subbox into that subregion of dest.
-    //
+    /**
+    * \brief Copies the values contained in the intersection of the
+    * valid + nghost region of this FabArray with the FAB dest and the Box
+    * subbox into that subregion of dest.
+    */
     void copyTo (FAB&       dest,
                 const Box& subbox,
 		 int        nghost = 0) const;
-    //
-    // Copies the values contained in the intersection of the
-    // num_comp component valid + nghost region of this FabArray, starting at
-    // component src_comp, with the FAB dest into dest, starting at
-    // component dest_comp in dest.
-    //
+    /**
+    * \brief Copies the values contained in the intersection of the
+    * num_comp component valid + nghost region of this FabArray, starting at
+    * component src_comp, with the FAB dest into dest, starting at
+    * component dest_comp in dest.
+    */
     void copyTo (FAB& dest,
 		 int  src_comp,
 		 int  dest_comp,
 		 int  num_comp,
 		 int  nghost = 0) const;
-    //
-    // Copies the values contained in the intersection of the
-    // num_comp component valid + nghost region of this FabArray, starting at
-    // component src_comp, with the FAB dest and the Box subbox, into
-    // dest, starting at component dest_comp in dest.
-    //
+    /**
+    * \brief Copies the values contained in the intersection of the
+    * num_comp component valid + nghost region of this FabArray, starting at
+    * component src_comp, with the FAB dest and the Box subbox, into
+    * dest, starting at component dest_comp in dest.
+    */
     void copyTo (FAB&       dest,
 		 const Box& subbox,
 		 int        src_comp,
@@ -1003,22 +920,20 @@ public:
     bool defined (int i) const;
     bool defined (const MFIter& mfi) const;
 
-    //
-    // Copy on intersection within a FabArray.  Data is copied from
-    // valid regions to intersecting regions of definition.  The
-    // purpose is to fill in the boundary regions of each FAB in
-    // the FabArray.  If cross=true, corner cells are not filled.
-    // If the length of periodic is provided, periodic boundaries are
-    // also filled.  Note that FabArray itself does not contains
-    // any periodicity information.
-    // FillBoundary expects that its cell-centered version of its BoxArray 
-    // is non-overlapping.
-    //
+    /**
+    * \brief Copy on intersection within a FabArray.  Data is copied from
+    * valid regions to intersecting regions of definition.  The
+    * purpose is to fill in the boundary regions of each FAB in
+    * the FabArray.  If cross=true, corner cells are not filled.
+    * If the length of periodic is provided, periodic boundaries are
+    * also filled.  Note that FabArray itself does not contains
+    * any periodicity information.
+    * FillBoundary expects that its cell-centered version of its BoxArray 
+    * is non-overlapping.
+    */
     void FillBoundary (bool cross = false);
     void FillBoundary (const Periodicity& period, bool cross = false);
-    //
-    // Same as FillBoundary(), but only copies ncomp components starting at scomp.
-    //
+    //! Same as FillBoundary(), but only copies ncomp components starting at scomp.
     void FillBoundary (int scomp, int ncomp, bool cross = false);
     void FillBoundary (int scomp, int ncomp, const Periodicity& period, bool cross = false);
 
@@ -1028,26 +943,26 @@ public:
     void FillBoundary_nowait (int scomp, int ncomp, const Periodicity& period, bool cross = false);
     void FillBoundary_finish ();
 
-    // Fill cells outside periodic domains with their corresponding cells inside
-    // the domain.  Ghost cells are treated the same as valid cells.  The BoxArray
-    // is allowed to be overlapping.
+    /**
+    * \brief Fill cells outside periodic domains with their corresponding cells inside
+    * the domain.  Ghost cells are treated the same as valid cells.  The BoxArray
+    * is allowed to be overlapping.
+    */
     void EnforcePeriodicity (const Periodicity& period);
     void EnforcePeriodicity (int scomp, int ncomp, const Periodicity& period);
 
-    // covered   : ghost cells covered by valid cells of this FabArray
-    //             (including periodically shifted valid cells)
-    // notcovered: ghost cells not covered by valid cells
-    //             (including ghost cells outside periodic boundaries)
-    // physbnd   : boundary cells outside the domain (excluding periodic boundaries)
-    // interior  : interior cells (i.e., valid cells)
+    /** \brief covered   : ghost cells covered by valid cells of this FabArray
+    *             (including periodically shifted valid cells)
+    * notcovered: ghost cells not covered by valid cells
+    *             (including ghost cells outside periodic boundaries)
+    * physbnd   : boundary cells outside the domain (excluding periodic boundaries)
+    * interior  : interior cells (i.e., valid cells)
+    */
     void BuildMask (const Box& phys_domain, const Periodicity& period,
 		    value_type covered, value_type notcovered, 
 		    value_type physbnd, value_type interior);
 
-    //
-    // Move FABs in this FabArray to different MPI ranks.
-    //
-
+    //! Move FABs in this FabArray to different MPI ranks.
     struct FABMoves {
       int distMapIndex, fromRank, toRank, seqNum;
     };
@@ -1237,10 +1152,10 @@ FabCopyDescriptor<FAB>::~FabCopyDescriptor ()
         delete localFabSource;
 }
 
-//
-// This class orchestrates filling a destination fab of size destFabBox
-// from fabarray on the local processor (myProc).
-//
+/**
+* \brief This class orchestrates filling a destination fab of size destFabBox
+* from fabarray on the local processor (myProc).
+*/
 
 template <class FAB>
 class FabArrayCopyDescriptor
@@ -1269,9 +1184,7 @@ class FabArrayCopyDescriptor
                       int        srccomp,
                       int        destcomp,
                       int        numcomp);
-    //
-    // Add a box but only from FabArray[fabarrayindex].
-    //
+    //! Add a box but only from FabArray[fabarrayindex].
     FillBoxId AddBox (FabArrayId fabarrayid,
                       const Box& destFabBox,
                       BoxList*   unfilledBoxes,
@@ -1323,9 +1236,7 @@ private:
     FabArrayCopyDescriptor (const FabArrayCopyDescriptor<FAB>&);
 
     FabArrayCopyDescriptor<FAB>& operator= (const FabArrayCopyDescriptor<FAB> &);
-    //
-    // Helper function for AddBox() routines.
-    //
+    //! Helper function for AddBox() routines.
     void AddBoxDoIt (FabArrayId fabarrayid,
                      const Box& destFabBox,
                      BoxList*   returnedUnfilledBoxes,

@@ -17,6 +17,7 @@ namespace amrex {
 namespace ParallelDescriptor
 {
     template <class T>
+    //! Communication datatype (note: this structure also works without MPI)
     struct Mpi_typemap
     {
 	static MPI_Datatype type();
@@ -57,6 +58,7 @@ namespace amrex {
 namespace ParallelDescriptor
 {
     template <class T>
+    //! Communication datatype (note: this structure also works without MPI)
     struct Mpi_typemap
     {
 	static MPI_Datatype type();
