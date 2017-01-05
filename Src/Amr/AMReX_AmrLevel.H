@@ -148,7 +148,8 @@ public:
     /**
     * \brief Operations to be done after regridding (like avgDown).
     * This is a pure virtual function and hence MUST be
-    */ implemented by derived classes.
+    * implemented by derived classes.
+    */
     virtual  void post_regrid (int lbase,
                                int new_finest) = 0;
     /**
