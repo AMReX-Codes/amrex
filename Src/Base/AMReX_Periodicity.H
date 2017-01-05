@@ -7,9 +7,11 @@
 
 namespace amrex {
 
-// This provides length of period for periodic domains.  0 means it is 
-// not periodic in that direction.
-// It is also assumed that the periodic domain starts with index 0.
+/**
+* \brief This provides length of period for periodic domains.  0 means it is 
+* not periodic in that direction.
+* It is also assumed that the periodic domain starts with index 0.
+*/
 class Periodicity
 {
 public:
@@ -26,7 +28,7 @@ public:
     bool operator==(const Periodicity& rhs) const
 	{ return period == rhs.period; }
 
-    // Cell-centered domain Box "infinitely" long in non-periodic directions.
+    //! Cell-centered domain Box "infinitely" long in non-periodic directions.
     Box Domain () const; 
     
     std::vector<IntVect> shiftIntVect () const;

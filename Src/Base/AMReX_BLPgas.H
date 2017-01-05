@@ -7,8 +7,10 @@
 
 namespace amrex {
 
+//! An implementation of MPI Send/Recv using PGAS
 namespace BLPgas
 {
+  //! Internal structure used to implement PGAS-based send/recv
   struct SendInfo {
     upcxx::global_ptr<void> src_ptr;
     upcxx::global_ptr<void> dst_ptr;
