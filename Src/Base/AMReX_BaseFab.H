@@ -40,7 +40,7 @@ namespace amrex
     void update_fab_stats (long n, long s, size_t szt);
 
 /**
-* \brief A Fortran Array-like Object
+*  \brief A Fortran Array-like Object
 *  BaseFab emulates the Fortran array concept.  
 *  Useful operations can be performed upon
 *  BaseFabs in C++, and they provide a convenient interface to
@@ -52,8 +52,7 @@ namespace amrex
 *  real*4s, or real*8s.  Most applications do not use BaseFabs 
 *  directly, but utilize specialized classes derived from BaseFab.
         
-*  It will be easier to use a BaseFab if you understand the following
-*  concepts.  BaseFab objects depend on the dimensionality of space
+*  BaseFab objects depend on the dimensionality of space
 *  (indirectly through the DOMAIN Box member).  It is
 *  typical to define the macro SPACEDIM to be 1, 2, or 3 to indicate
 *  the dimension of space.  See the discussion of class Box for more
@@ -91,109 +90,106 @@ class BaseFab
 public:
 
     typedef T value_type;
-    /**
-    * \brief Construct an invalid BaseFab.  The domain is invalid, the
-    * number of components is zero, and no actually array memory is
-    * allocated. An invalid BaseFab must be resized
-    * (see BaseFab::resize) before use.
-    */
+    //! Construct an empty BaseFab, which must be resized (see BaseFab::resize) before use.
     BaseFab ();
 
     BaseFab& operator= (const T&);
-    /*
-    * \brief Make BaseFab with desired domain and number of components.
-    */
+    //!  Make BaseFab with desired domain (box) and number of components.
     explicit BaseFab (const Box& bx,
                       int        n = 1,
 		      bool       alloc = true,
 		      bool       shared = false);
-    /**
-    * \brief The destructor deletes the array memory.
-    */
+    //! The destructor deletes the array memory.
     ~BaseFab ();
 
+    //! Make an alias that spans ncomp components starting at the component scomp
     void make_alias (BaseFab<T>& alias, int scomp, int ncomp) const;
 
     /**
-    * \brief This function resizes a BaseFab so it covers the Box B
-    * with N components.  The default action
-    * is that under resize()ing, the memory allocated for the
+    * \brief This function resizes a BaseFab so it covers the Box b
+    * with N components.  
+
+    * The default action is that under resizing, the memory allocated for the
     * BaseFab only grows and never shrinks.  This function is
     * particularly useful when a BaseFab is used as a temporary
     * space which must be a different size whenever it is used.
-    * Resize()ing a temp will often be faster than re-allocating a
+    * Resizing is typically faster than re-allocating a
     * BaseFab because memory allocation can often be avoided.
     */
     void resize (const Box& b,
                  int        N = 1);
+
     /**
-    * \brief The function returns the BaseFab to the invalid state.  (See
-    * comments for constructors above.)  The memory is freed.
+    * \brief The function returns the BaseFab to the invalid state.
+    * The memory is freed.
     */
     void clear ();
-    /**
-    * \return how many bytes used
-    */
+
+    //! Returns how many bytes used
     size_t nBytes () const { return truesize*sizeof(T); }
-    /**
-    * \return the number of components.
-    */
+
+    //! Returns the number of components
     int nComp () const { return nvar; }
-    /**
-    * \return the number of points.
-    */
+
+    //! Returns the number of points 
     long nPts () const { return numpts; }
-    /**
-    * \brief 
-    */
+
+    //! Returns the total number of points of all components
     long size () const { return nvar*numpts; }
-    /**
-    * \returns the domain (box) where the array is defined.
-    */
+
+    //! Returns the domain (box) where the array is defined
     const Box& box () const { return domain; }
+
     /**
-    * \return a pointer to an array of SPACEDIM integers
-    * giving the length of the domain in each direction.
+    * \brief Returns a pointer to an array of SPACEDIM integers
+    * giving the length of the domain in each direction
     */
     const int* length () const { return dlen.getVect(); }
+
     /**
-    * \return the lower corner of the domain.
+    * \brief Returns the lower corner of the domain
     * See class Box for analogue.
     */
     const IntVect& smallEnd () const { return domain.smallEnd(); }
-    /**
-    *  \return the upper corner of the domain.  See class Box for analogue.
-    */
+
+    //!  Returns the upper corner of the domain.  See class Box for analogue.
     const IntVect& bigEnd () const { return domain.bigEnd(); }
-    /*
-    * \brief Returns the lower corner of the domain.  Instead of
-    * returning them in the form of INTVECTs, as in smallEnd and
+
+    /**
+    * \brief Returns the lower corner of the domain.  
+  
+    *Instead of returning them in the form of INTVECTs, as in smallEnd and
     * bigEnd, it returns the values as a pointer to an array of
     * constant integers.  This is useful when interfacing to
     * Fortran subroutines.
     */
     const int* loVect () const { return domain.loVect(); }
+
     /**
-    * \brief Returns the upper corner of the domain.  Instead of
-    * returning them in the form of INTVECTs, as in smallEnd and
+    * \brief Returns the upper corner of the domain.  
+
+    *Instead of returning them in the form of INTVECTs, as in smallEnd and
     * bigEnd, it returns the values as a pointer to an array of
     * constant integers.  This is useful when interfacing to
     * Fortran subroutines.
     */
     const int* hiVect () const { return domain.hiVect(); }
+
     /**
-    * \return true if the domain of fab is totally contained within
+    * \brief Returns true if the domain of fab is totally contained within
     * the domain of this BaseFab.
     */
     bool contains (const BaseFab<T>& fab) const
     {
         return box().contains(fab.box()) && nvar <= fab.nvar;
     }
+
     /**
-    * \return true if bx is totally contained
+    * \brief Returns true if bx is totally contained
     * within the domain of this BaseFab.
     */
     bool contains (const Box& bx) const { return box().contains(bx); }
+
     /**
     * \brief Returns a pointer to an object of type T that is the
     * value of the Nth component associated with the cell at the
@@ -204,16 +200,16 @@ public:
     * dataPtr returns a pointer to all the Nth components.
     */
     T* dataPtr (int n = 0) { BL_ASSERT(!(dptr == 0)); return &dptr[n*numpts]; }
-    //
-    // Same as above except works on const FABs.
-    //
+
+    //! Same as above except works on const FABs.
     const T* dataPtr (int n = 0) const { BL_ASSERT(!(dptr == 0)); return &dptr[n*numpts]; }
-    //
+
+    
     void setPtr (T* p, long sz) { BL_ASSERT(dptr == 0 && truesize == 0); dptr = p; truesize = sz; }
-    /**
-    * \return Returns true if the data for the FAB has been allocated.
-    */
+
+    //! Returns true if the data for the FAB has been allocated.
     bool isAllocated () const { return dptr != 0; }
+
     /**
     * \brief Returns a reference to the Nth component value
     * defined at position p in the domain.  This operator may be
@@ -221,18 +217,16 @@ public:
     * C++ code.
     */
     T& operator() (const IntVect& p, int N);
-    //
-    // Same as above, except returns component 0.
-    //
+
+    //! Same as above, except returns component 0.
     T& operator() (const IntVect& p);
-    //
-    // Same as above except works on const FABs.
-    //
-     const T& operator() (const IntVect& p, int N) const;
-    //
-    // Same as above, except returns component 0.
-    //
+
+    //! Same as above except works on const FABs.
+    const T& operator() (const IntVect& p, int N) const;
+
+    //! Same as above, except returns component 0.
     const T& operator() (const IntVect& p) const;
+
     /**
     * \brief This function puts numcomp component values, starting at
     * component N, from position pos in the domain into array data,
@@ -242,14 +236,11 @@ public:
                  const IntVect& pos,
                  int            N,
                  int            numcomp) const;
-    //
-    // Same as above, except that starts at component 0 and
-    // copies ALL comps.
-    //
+    //! Same as above, except that starts at component 0 and copies all comps.
     void getVal (T*             data,
                  const IntVect& pos) const;
     /**
-    * \brief The setVal functions set subregions in the BaseFab to a
+    * \brief The setVal functions set sub-regions in the BaseFab to a
     * constant value.  This most general form specifies the sub-box,
     * the starting component number, and the number of components
     * to be set.
@@ -258,22 +249,16 @@ public:
                  const Box& bx,
                  int        nstart,
                  int        ncomp);
-    //
-    // Same as above, except the number of modified components is one.
-    // N is the component to be modified.
-    //
+    //! Same as above, except the number of modified components is one. N is the component to be modified.
     void setVal (T          x,
                  const Box& bx,
                  int        N);
-    //
-    // Same as above, except the subbox defaults to the entire domain.
-    //
+    //! Same as above, except the sub-box defaults to the entire domain.
     void setVal (T   x,
                  int N);
-    //
-    // Same as above, except ALL components are set.
-    //
+    //! Same as above, except all components are set.
     void setVal (T x);
+
     /**
     * \brief This function is analogous to the fourth form of
     * setVal above, except that instead of setting values on the
@@ -327,6 +312,7 @@ public:
     */
     BaseFab<T>& copy (const BaseFab<T>& src,
                       const Box&        destbox);
+
     /**
     * As above, except that the destbox defaults to the entire domain
     * of the destination BaseFab, and all components are copied.
@@ -334,6 +320,7 @@ public:
     * performCopy() of this class.
     */
     BaseFab<T>& copy (const BaseFab<T>& src);
+
     /**
     * \brief A specialized version of copy() that copies from a FAB to a raw memory
     * destination.  Basically a memcpy() that works with a FAB as source.
@@ -378,6 +365,7 @@ public:
     * There is no effect upon the array memory.
     */
     BaseFab<T>& shiftHalf (const IntVect& num_halfs);
+
     /**
     * \brief Compute the Lp-norm of this FAB using components (scomp : scomp+ncomp-1).
     *   p < 0  -> ERROR
@@ -387,20 +375,15 @@ public:
     Real norm (int p,
                int scomp = 0,
                int ncomp = 1) const;
-    //
-    // Same as above except only on given subbox.
-    //
+    
+    //! Same as above except only on given subbox.
     Real norm (const Box& subbox,
                int        p,
                int        scomp = 0,
                int        ncomp = 1) const;
-    /*
-    ** \brief  Compute absolute value for all components of this FAB.
-    */
+    //!Compute absolute value for all components of this FAB.
     void abs ();
-    //
-    // Same as above except only for components (comp: comp+numcomp-1)
-    //
+    //! Same as above except only for components (comp: comp+numcomp-1)
     void abs (int comp,
               int numcomp=1);
     /**
@@ -456,35 +439,24 @@ public:
     int maskLT (BaseFab<int>& mask,
                 T             val,
                 int           comp = 0) const;
-    //
-    // Same as above except mark cells with value less than
-    // or equal to val.
-    //
+    //! Same as above except mark cells with value less than or equal to val.
     int maskLE (BaseFab<int>& mask,
                 T             val,
                 int           comp = 0) const;
-    //
-    // Same as above except mark cells with value equal to val.
-    //
+    
+    //! Same as above except mark cells with value equal to val.
     int maskEQ (BaseFab<int>& mask,
                 T             val,
                 int           comp = 0) const;
-    //
-    // Same as above except mark cells with value greater than val.
-    //
+    //! Same as above except mark cells with value greater than val.
     int maskGT (BaseFab<int>& mask,
                 T             val,
                 int           comp = 0) const;
-    //
-    // Same as above except mark cells with value greater than
-    // or equal to val.
-    //
+    //! Same as above except mark cells with value greater than or equal to val.
     int maskGE (BaseFab<int>& mask,
                 T             val,
                 int           comp = 0) const;
-    //
-    // Fill with a pattern of numbers.
-    //
+    //! Fill with a pattern of numbers.
     void patternFill (int mark = 0);
     /**
     * \brief Copies with index reversal from srcbox region of src
@@ -496,80 +468,57 @@ public:
                   const Box&        srcbox,
                   int               reversal_index,
                   T*                multiplier);
-    /**
-    * \return sum of given component of FAB state vector.
-    */
+    //! Returns sum of given component of FAB state vector.
     T sum (int comp,
            int numcomp = 1) const;
-    /**
-    * \return Compute sum of given component of FAB state vector in
-    * given subbox.
-    */
+    //! Compute sum of given component of FAB state vector in given subbox.
     T sum (const Box& subbox,
            int        comp,
            int        numcomp = 1) const;
-    //
-    // Most general version, specify subbox and which components.
-    //
+    //! Most general version, specify subbox and which components.
     BaseFab<T>& invert (T          v,
                         const Box& subbox,
                         int        comp=0,
                         int        numcomp=1);
-    //
-    // As above except on entire domain.
-    //
+    //! As above except on entire domain.
     BaseFab<T>& invert (T   v,
                         int comp,
                         int numcomp=1);
-    //
-    // As above except on entire domain, all components.
-    //
+    //! As above except on entire domain, all components.
     BaseFab<T>& invert (T v);
-    //
-    // Negate BaseFab, most general.
-    //
+
+    //! Negate BaseFab, most general.
     BaseFab<T>& negate (const Box& subbox,
                         int        comp=0,
                         int        numcomp=1);
-    //
-    // As above, except on entire domain.
-    //
+    //! As above, except on entire domain.
     BaseFab<T>& negate (int comp,
                         int numcomp=1);
-    //
-    // As above, except on entire domain and all components.
-    //
+    //! As above, except on entire domain and all components.
     BaseFab<T>& negate ();
-    /**
-    * \brief Scalar addition (a[i] <- a[i] + r), most general.
-    */
+
+    //! Scalar addition (a[i] <- a[i] + r), most general.
     BaseFab<T>& plus (T          r,
                       const Box& b,
                       int        comp=0,
                       int        numcomp=1);
-    //
-    // As above, except on entire domain.
-    //
+
+    //! As above, except on entire domain.
     BaseFab<T>& plus (T   r,
                       int comp,
                       int numcomp=1);
-    //
-    // As above, except on entire domain and all components.
-    //
+    //! As above, except on entire domain and all components.
     BaseFab<T>& plus (T r);
-    /**
-    * \brief Addition in place.  This will often be more efficient than
-    // making new BaseFab for result.
-    */
+
+    //! Addition in place.  This will often be more efficient than  making new BaseFab for result.
     BaseFab<T>& operator+= (T r);
-    /**
-    * \brief FAB addition (a[i] <- a[i] + b[i]) in place.
-    */
+
+    //! FAB addition (a[i] <- a[i] + b[i]) in place.
     BaseFab<T>& operator+= (const BaseFab<T>& f);
-    /**
-    * \brief FAB addition (a[i] <- a[i] + b[i]). The same as += operator.
-    */
+
+    //! FAB addition (a[i] <- a[i] + b[i]). The same as += operator.
     BaseFab<T>& plus (const BaseFab<T>& src);
+
     /**
     * \brief Add src components (srccomp:srccomp+numcomp-1) to
     * this FABs components (destcomp:destcomp+numcomp-1)
@@ -599,31 +548,25 @@ public:
                       int               srccomp,
                       int               destcomp,
                       int               numcomp=1);
-    /**
-    * \brief FAB SAXPY (y[i] <- y[i] + a * x[i]), in place.
-    */
+    //! FAB SAXPY (y[i] <- y[i] + a * x[i]), in place.
     BaseFab<T>& saxpy (T a, const BaseFab<T>& x,
                        const Box&        srcbox,
                        const Box&        destbox,
                        int               srccomp,
                        int               destcomp,
                        int               numcomp=1);
-    /*
-    * \brief FAB SAXPY (y[i] <- y[i] + a * x[i]), in place.  All components.
-    */
+    //! FAB SAXPY (y[i] <- y[i] + a * x[i]), in place.  All components.
     BaseFab<T>& saxpy (T a, const BaseFab<T>& x);
-    /**
-    * \brief FAB XPAY (y[i] <- x[i] + a * y[i])
-    */
+
+    //! FAB XPAY (y[i] <- x[i] + a * y[i])
     BaseFab<T>& xpay (T a, const BaseFab<T>& x,
 		      const Box&        srcbox,
 		      const Box&        destbox,
 		      int               srccomp,
 		      int               destcomp,
 		      int               numcomp=1);
-    /*
-    * \brief y[i] <- y[i] + x1[i] * x2[i])
-    */
+
+    //! y[i] <- y[i] + x1[i] * x2[i])
     BaseFab<T>& addproduct (const Box&        destbox,
 			    int               destcomp,
 			    int               numcomp,
@@ -636,14 +579,13 @@ public:
     * Note: use plus(-r) for more general operations.
     */
     BaseFab<T>& operator-= (T r);
-    /**
-    * \brief FAB subtraction (a[i] <- a[i] - b[i]), in place.
-    */
+
+    //! FAB subtraction (a[i] <- a[i] - b[i]), in place.
     BaseFab<T>& operator-= (const BaseFab<T>& f);
-    /**
-    * \brief FAB subtraction (a[i] <- a[i] - b[i]). The same as -= operator.
-    */
+
+    //! FAB subtraction (a[i] <- a[i] - b[i]). The same as -= operator.
     BaseFab<T>& minus (const BaseFab<T>& src);
+
     /**
     * \brief Subtract src components (srccomp:srccomp+numcomp-1) to
     * this FABs components (destcomp:destcomp+numcomp-1) where
@@ -673,18 +615,13 @@ public:
                        int               srccomp,
                        int               destcomp,
                        int               numcomp=1);
-    /**
-    * \brief Scalar multiplication (a[i] <- a[i] * r), in place.
-    */
+    //! Scalar multiplication (a[i] <- a[i] * r), in place.
     BaseFab<T>& operator*= (T r);
-    /**
-    * \brief Scalar multiplication (a[i] <- a[i] * r).  The same as *=.
-    */
+
+    //! Scalar multiplication (a[i] <- a[i] * r).  The same as *=.
     BaseFab<T>& mult (T r);
-    /*
-    * \brief Scalar multiplication, except control which components
-    * are multiplied.
-    */
+
+    //! Scalar multiplication, except control which components are multiplied.
     BaseFab<T>& mult (T   r,
                       int comp,
                       int numcomp=1);
@@ -695,14 +632,13 @@ public:
                       const Box& b,
                       int        comp=0,
                       int        numcomp=1);
-    /**
-    * \brief FAB multiplication (a[i] <- a[i] * b[i]), in place.
-    */
+
+    //! FAB multiplication (a[i] <- a[i] * b[i]), in place.
     BaseFab<T>& operator*= (const BaseFab<T>& f);
-    //
-    // As above.
-    //
+
+    //! As above.
     BaseFab<T>& mult (const BaseFab<T>& src);
+
     /**
     * \brief Multiply src components (srccomp:srccomp+numcomp-1) with
     * this FABs components (destcomp:destcomp+numcomp-1) where
@@ -712,6 +648,7 @@ public:
                       int               srccomp,
                       int               destcomp,
                       int               numcomp=1);
+
     /**
     * \brief Same as above except multiplication is restricted to
     * intersection of subbox and src FAB.  NOTE: subbox must be
@@ -722,6 +659,7 @@ public:
                       int               srccomp,
                       int               destcomp,
                       int               numcomp=1);
+
     /**
     * \brief Multiply srcbox region of src FAB with destbox region
     * of this FAB. The srcbox and destbox must be same size.
@@ -732,35 +670,29 @@ public:
                       int               srccomp,
                       int               destcomp,
                       int               numcomp=1);
-    /**
-    * \brief Scalar division (a[i] <- a[i] / r), in place.
-    */
+    //! Scalar division (a[i] <- a[i] / r), in place.
     BaseFab<T>& operator/= (T r);
-    /**
-    * \brief Scalar division (a[i] <- a[i] / r), in place.
-    */
+
+    //! Scalar division (a[i] <- a[i] / r), in place.
     BaseFab<T>& divide (T r);
-    /**
-    * \brief As above except specify which components.
-    */
+
+    //! As above except specify which components.
     BaseFab<T>& divide (T   r,
                         int comp,
                         int numcomp=1);
-    /**
-    * \brief As above except specify sub-box.
-    */
+
+    //! As above except specify sub-box.
     BaseFab<T>& divide (T          r,
                         const Box& b,
                         int        comp=0,
                         int        numcomp=1);
-    /**
-    * \brief FAB division, in place.
-    */
+
+    //! FAB division, in place.
     BaseFab<T>& operator/= (const BaseFab<T>& src);
-    /**
-    * \brief Same as above.
-    */
+
+    //! Same as above.
     BaseFab<T>& divide (const BaseFab<T>& src);
+
     /**
     * \brief This FAB is numerator, src FAB is denominator
     * divide src components (srccomp:srccomp+numcomp-1) into
@@ -795,6 +727,7 @@ public:
     * \brief Divide wherever "src" is "true" or "non-zero".
     */
     BaseFab<T>& protected_divide (const BaseFab<T>& src);
+
     /**
     * \brief Divide wherever "src" is "true" or "non-zero".
     * This FAB is numerator, src FAB is denominator
@@ -806,6 +739,7 @@ public:
                                   int               srccomp,
                                   int               destcomp,
                                   int               numcomp=1);
+
     /**
     * \brief Divide wherever "src" is "true" or "non-zero".
     * Same as above except division is restricted to
@@ -817,6 +751,7 @@ public:
                                   int               srccomp,
                                   int               destcomp,
                                   int               numcomp=1);
+
     /**
     * Divide wherever "src" is "true" or "non-zero".
     * destbox region of this FAB is numerator. srcbox regions of
@@ -828,6 +763,7 @@ public:
                                   int               srccomp,
                                   int               destcomp,
                                   int               numcomp=1);
+
     /**
     * \brief Linear interpolation / extrapolation.
     * Result is (t2-t)/(t2-t1)*f1 + (t-t1)/(t2-t1)*f2
@@ -850,9 +786,8 @@ public:
                            const Box&        b,
                            int               comp,
                            int               numcomp = 1);
-    /**
-    * \brief Version of linInterp() in which b, b1, & b2 are the same.
-    */
+
+    //! Version of linInterp() in which b, b1, & b2 are the same.
     BaseFab<T>& linInterp (const BaseFab<T>& f1,
                            int               comp1,
                            const BaseFab<T>& f2,
@@ -863,6 +798,7 @@ public:
                            const Box&        b,
                            int               comp,
                            int               numcomp = 1);
+
     /**
     * \brief Linear combination.  Result is alpha*f1 + beta*f2.
     * Data is taken from b1 region of f1, b2 region of f2
@@ -884,33 +820,27 @@ public:
                          int               comp,
                          int               numcomp = 1);
 
-    /** \brief Dot product of x (i.e.,this) and y
-    */
+    //! Dot product of x (i.e.,this) and y
     T dot (const Box& xbx, int xcomp,
 	   const BaseFab<T>& y, const Box& ybx, int ycomp,
 	   int numcomp = 1) const;
 
-    /** \brief Change the Box type without change the length
-    */
+    //! Change the Box type without change the length
     void SetBoxType(const IndexType& typ) { domain.setType(typ); }
     
 protected:
-    //
-    /** \brief Allocates memory for the BaseFab<T>.
-    */
+    //! Allocates memory for the BaseFab<T>.
     void define ();
-    /**
-    * \brief The function called by BaseFab copy operations.
-    */
+
+    //! The function called by BaseFab copy operations.
     void performCopy (const BaseFab<T>& src,
                       const Box&        srcbox,
                       int               srccomp,
                       const Box&        destbox,
                       int               destcomp,
                       int               numcomp);
-    /**
-    * \brief This function is called by the BaseFab setVal operations.
-    */
+
+    //! This function is called by the BaseFab setVal operations.
     void performSetVal (T          x,
                         const Box& bx,
                         int        nstart,

@@ -11,6 +11,7 @@
 
 namespace amrex {
 
+//! A simple profiler that returns basic performance information (e.g. min, max, and average running time)
 class TinyProfiler
 {
 public:
@@ -25,7 +26,8 @@ public:
     static void Finalize ();
 
 private:
-    struct Stats   // stats on a single process
+    //! stats on a single process
+    struct Stats   
     {
 	Stats () : depth(0), n(0L), dtin(0.0), dtex(0.0) { } 
 	int  depth; // recursive depth
@@ -34,7 +36,8 @@ private:
 	Real dtex;  // exclusive dt
     };
 
-    struct ProcStats // stats across processes
+    //! stats across processes
+    struct ProcStats 
     {
 	ProcStats () : nmin(std::numeric_limits<long>::max()), 
 		       navg(0L), nmax(0L), 

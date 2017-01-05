@@ -4,18 +4,18 @@
 
 #include <AMReX_Box.H>
 #include <AMReX_BC_TYPES.H>
+
+namespace amrex {
 /**
 * \brief Boundary Condition Records.
 * Necessary information and functions for computing boundary conditions.
 */
 
-namespace amrex {
-
 class BCRec
 {
 public:
     /**
-    * \brief The default constructor. Does NOT set valid boundary types.
+    * \brief The default constructor, which does NOT set valid boundary types.
     */
     BCRec () {}
     /**

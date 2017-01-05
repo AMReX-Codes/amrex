@@ -37,6 +37,7 @@
 #include <numeric>
 
 namespace amrex {
+//! Parallel frontend that abstracts functionalities needed to spawn processes and handle communication 
 namespace ParallelDescriptor
 {
 #ifdef BL_USE_UPCXX
@@ -68,6 +69,7 @@ namespace ParallelDescriptor
     //
     const std::string Unnamed("Unnamed");
 
+    //! Hold the description and status of communication data 
     class Message
     {
     public:
@@ -100,25 +102,27 @@ namespace ParallelDescriptor
 	MPI_Request        m_req;
 	mutable MPI_Status m_stat;
     };
-    //
-    // Perform any needed parallel initialization.  This MUST be the
-    // first routine in this class called from within a program.
-    //
+    /**
+    * \brief Perform any needed parallel initialization.  This MUST be the
+    * first routine in this class called from within a program.
+    */
     void StartParallel (int*    argc = 0,
 			char*** argv = 0,
                         MPI_Comm mpi_comm = MPI_COMM_WORLD);
 
+    //! Split the process pool into teams
     void StartTeams ();
     void EndTeams ();
 
+    //! Return true if MPI one sided is enabled
     bool MPIOneSided ();
 
     typedef int (*PTR_TO_SIGNAL_HANDLER)(int);
     void AddSignalHandler (PTR_TO_SIGNAL_HANDLER);
-    //
-    // Perform any needed parallel finalization.  This MUST be the
-    // last routine in this class called from within a program.
-    //
+    /**
+    * \brief Perform any needed parallel finalization.  This MUST be the
+    * last routine in this class called from within a program.
+    */
     void EndParallel ();
 
     extern const int myId_undefined;
@@ -137,9 +141,7 @@ namespace ParallelDescriptor
     extern int nSidecars;
     extern int inWhichSidecar;
 
-    //
-    // return the rank number local to the comp or sidecar groups
-    //
+    //! return the rank number local to the comp or sidecar groups
     inline int
     MyProc ()
     {
@@ -154,9 +156,7 @@ namespace ParallelDescriptor
             return m_MyId_sidecar;
         }
     }
-    //
-    // return the rank number for the global group
-    //
+    //! return the rank number for the global group
     inline int
     MyProcAll ()
     {
@@ -200,34 +200,32 @@ namespace ParallelDescriptor
         return (m_MyId_comp >= 0);
     }
 
-    //
-    // This sets the number of MPI ranks in the sidecar and
-    // initializes nProcs, MyId, groups, and communicators
-    // for the comp and sidecar sets of ranks.
-    // The user will need to handle any consequences of changing
-    // the numbers of processors in each group (such as changing
-    // distribution maps and moving data in FabArrays).
-    //
-    // The union of ranks in the comp and sidecar arrays must be
-    // equal to the set of ranks in 'all' (the AMReX global
-    // communicator).  The sets must be disjoint.
-    // Global rank zero is required to be in compRanksInAll[0],
-    // this restriction may be removed in the future.
-    //
+    /**
+    * \brief This sets the number of MPI ranks in the sidecar and
+    * initializes nProcs, MyId, groups, and communicators
+    * for the comp and sidecar sets of ranks.
+    * The user will need to handle any consequences of changing
+    * the numbers of processors in each group (such as changing
+    * distribution maps and moving data in FabArrays).
+    *
+    * The union of ranks in the comp and sidecar arrays must be
+    * equal to the set of ranks in 'all' (the boxlib global
+    * communicator).  The sets must be disjoint.
+    * Global rank zero is required to be in compRanksInAll[0],
+    * this restriction may be removed in the future.
+    */
     void
     SetNProcsSidecars (const Array<int> &compRanksInAll,
                        const Array<Array<int> > &sidecarRanksInAll,
 		       bool printRanks = false); 
-    //
-    // This version makes one sidecar (number zero in the sidecar array)
-    // Sidecar ranks are set to the high end of the range [0, m_nProcs_all)
-    //
+    /**
+    * \brief This version makes one sidecar (number zero in the sidecar array)
+    * Sidecar ranks are set to the high end of the range [0, m_nProcs_all)
+    */
     void
     SetNProcsSidecars (int nscp); 
 
-    //
-    // Team
-    //
+    //! Provide functionalities needed to construct a team of processes to perform a particular job
     struct ProcessTeam
     {
 #ifdef BL_USE_UPCXX
@@ -236,6 +234,7 @@ namespace ParallelDescriptor
 	typedef MPI_Comm team_t;
 #endif
 
+        //! synchronize processes within the team
 	void Barrier () const { 
 	    if (m_size > 1) {
 #ifdef BL_USE_UPCXX
@@ -246,6 +245,7 @@ namespace ParallelDescriptor
 	    }
 	}
 
+        //! memory fence
 	void MemoryBarrier () const {
 	    if (m_size > 1) {
 #ifdef _OPENMP
@@ -266,6 +266,7 @@ namespace ParallelDescriptor
 	    }
 	}
 
+        //! free a communicator
 	void clear () {
 #if defined(BL_USE_UPCXX) || defined(BL_USE_MPI3)
 	    if (m_size > 1) {
@@ -282,6 +283,7 @@ namespace ParallelDescriptor
 	    return m_team_comm;
 #endif
 	}
+        //! return the communicator
 	const MPI_Comm& get_team_comm() const { return m_team_comm; }
 	const MPI_Comm& get_lead_comm() const { return m_lead_comm; }
 
@@ -301,9 +303,7 @@ namespace ParallelDescriptor
 
     extern ProcessTeam m_Team;
 
-    //
-    // return the number of MPI ranks local to the comp or sidecar groups
-    //
+    //! return the number of MPI ranks local to the comp or sidecar groups
     inline int
     NProcs ()
     {
@@ -344,10 +344,10 @@ namespace ParallelDescriptor
         BL_ASSERT(m_nProcs_sidecar[whichSidecar] != nProcs_undefined);
         return m_nProcs_sidecar[whichSidecar];
     }
-    //
-    // The MPI rank number of the I/O Processor (probably rank 0).
-    // This rank is usually used to write to stdout.
-    //
+    /**
+    * \brief The MPI rank number of the I/O Processor (probably rank 0).
+    * This rank is usually used to write to stdout.
+    */
     extern const int ioProcessor;
     inline int
     IOProcessorNumber ()
@@ -359,10 +359,10 @@ namespace ParallelDescriptor
     {
         return ioProcessor;
     }
-    //
-    // Is this CPU the I/O Processor?
-    // To get the rank number, call IOProcessorNumber()
-    //
+    /**
+    * \brief Is this CPU the I/O Processor?
+    * To get the rank number, call IOProcessorNumber()
+    */
     inline bool
     IOProcessor ()
     {
@@ -523,6 +523,7 @@ namespace ParallelDescriptor
 
     extern int m_nCommColors;
 
+    //! A communicator can be split into multiple sub-communicators associated with different colors
     class Color
     {
     public:
@@ -557,7 +558,8 @@ namespace ParallelDescriptor
     void StartSubCommunicator ();
     void EndSubCommunicator ();
 
-    inline MPI_Comm Communicator ()         // ---- return the "local" communicator
+    //! Returns the "local" communicator
+    inline MPI_Comm Communicator ()         
     {
         if (m_MyId_comp != myId_notInGroup)
         {
@@ -660,168 +662,112 @@ namespace ParallelDescriptor
     void Test (MPI_Request& request, int& flag, MPI_Status& status);
 
     void Comm_dup (MPI_Comm comm, MPI_Comm& newcomm);
-    //
-    // Abort with specified error code.
-    //
+    //! Abort with specified error code.
     void Abort (int errorcode = SIGABRT, bool backtrace = true);
-    //
-    // ErrorString return string associated with error internal error condition
-    //
+    //! ErrorString return string associated with error internal error condition
     const char* ErrorString (int errcode);
-    //
-    // Returns wall-clock seconds since start of execution.
-    //
+    //! Returns wall-clock seconds since start of execution.
     double second ();
-    //
-    // And-wise boolean reduction.
-    //
+    //! And-wise boolean reduction.
     void ReduceBoolAnd (bool& rvar, Color color = DefaultColor());
-    //
-    // And-wise boolean reduction to specified cpu.
-    //
+    //! And-wise boolean reduction to specified cpu.
     void ReduceBoolAnd (bool& rvar, int cpu);
-    //
-    // Or-wise boolean reduction.
-    //
+    //! Or-wise boolean reduction.
     void ReduceBoolOr  (bool& rvar, Color color = DefaultColor());
-    //
-    // Or-wise boolean reduction to specified cpu.
-    //
+    //! Or-wise boolean reduction to specified cpu.
     void ReduceBoolOr  (bool& rvar, int cpu);
-    //
-    // Real sum reduction.
-    //
+    //! Real sum reduction.
     void ReduceRealSum (Real& rvar, Color color = DefaultColor());
 
     void ReduceRealSum (Real* rvar, int cnt, Color color = DefaultColor());
-    //
-    // Real sum reduction to specified cpu.
-    //
+    //! Real sum reduction to specified cpu.
     void ReduceRealSum (Real& rvar, int cpu);
 
     void ReduceRealSum (Real* rvar, int cnt, int cpu);
-    //
-    // Real max reduction.
-    //
+    //! Real max reduction.
     void ReduceRealMax (Real& rvar, Color color = DefaultColor());
 
     void ReduceRealMax (Real* rvar, int cnt, Color color = DefaultColor());
-    //
-    // Real max reduction to specified cpu.
-    //
+    //! Real max reduction to specified cpu.
     void ReduceRealMax (Real& rvar, int cpu);
 
     void ReduceRealMax (Real* rvar, int cnt, int cpu);
-    //
-    // Real min reduction.
-    //
+    //! Real min reduction.
     void ReduceRealMin (Real& rvar, Color color = DefaultColor());
 
     void ReduceRealMin (Real* rvar, int cnt, Color color = DefaultColor());
-    //
-    // Real min reduction to specified cpu.
-    //
+    //! Real min reduction to specified cpu.
     void ReduceRealMin (Real& rvar, int cpu);
 
     void ReduceRealMin (Real* rvar, int cnt, int cpu);
-    //
-    // Integer sum reduction.
-    //
+    //! Integer sum reduction.
     void ReduceIntSum (int& rvar, Color color = DefaultColor());
 
     void ReduceIntSum (int* rvar, int cnt, Color color = DefaultColor());
-    //
-    // Integer sum reduction to specified cpu.
-    //
+    //! Integer sum reduction to specified cpu.
     void ReduceIntSum (int& rvar, int cpu);
 
     void ReduceIntSum (int* rvar, int cnt, int cpu);
-    //
-    // Integer max reduction.
-    //
+    //! Integer max reduction.
     void ReduceIntMax (int& rvar, Color color = DefaultColor());
 
     void ReduceIntMax (int* rvar, int cnt, Color color = DefaultColor());
-    //
-    // Integer max reduction to specified cpu.
-    //
+    //! Integer max reduction to specified cpu.
     void ReduceIntMax (int& rvar, int cpu);
 
     void ReduceIntMax (int* rvar, int cnt, int cpu);
-    //
-    // Integer min reduction.
-    //
+    //! Integer min reduction.
     void ReduceIntMin (int& rvar, Color color = DefaultColor());
 
     void ReduceIntMin (int* rvar, int cnt, Color color = DefaultColor());
-    //
-    // Integer min reduction to specified cpu.
-    //
+    //! Integer min reduction to specified cpu.
     void ReduceIntMin (int& rvar, int cpu);
 
     void ReduceIntMin (int* rvar, int cnt, int cpu);
-    //
-    // Long sum reduction.
-    //
+    //! Long sum reduction.
     void ReduceLongSum (long& rvar, Color color = DefaultColor());
 
     void ReduceLongSum (long* rvar, int cnt, Color color = DefaultColor());
-    //
-    // Long sum reduction to specified cpu.
-    //
+    //! Long sum reduction to specified cpu.
     void ReduceLongSum (long& rvar, int cpu);
 
     void ReduceLongSum (long* rvar, int cnt, int cpu);
-    //
-    // Long max reduction.
-    //
+    //! Long max reduction.
     void ReduceLongMax (long& rvar, Color color = DefaultColor());
 
     void ReduceLongMax (long* rvar, int cnt, Color color = DefaultColor());
-    //
-    // Long max reduction to specified cpu.
-    //
+    //! Long max reduction to specified cpu.
     void ReduceLongMax (long& rvar, int cpu);
 
     void ReduceLongMax (long* rvar, int cnt, int cpu);
-    //
-    // Long min reduction.
-    //
+    //! Long min reduction.
     void ReduceLongMin (long& rvar, Color color = DefaultColor());
 
     void ReduceLongMin (long* rvar, int cnt, Color color = DefaultColor());
-    //
-    // Long min reduction to specified cpu.
-    //
+    //! Long min reduction to specified cpu.
     void ReduceLongMin (long& rvar, int cpu);
 
     void ReduceLongMin (long* rvar, int cnt, int cpu);
-    //
-    // Long and-wise reduction.
-    //
+    //! Long and-wise reduction.
     void ReduceLongAnd (long& rvar, Color color = DefaultColor());
 
     void ReduceLongAnd (long* rvar, int cnt, Color color = DefaultColor());
-    //
-    // Long and-wise reduction to specified cpu.
-    //
+    //! Long and-wise reduction to specified cpu.
     void ReduceLongAnd (long& rvar, int cpu);
 
     void ReduceLongAnd (long* rvar, int cnt, int cpu);
-    //
-    // Parallel gather.
-    //
+    //! Parallel gather.
     void Gather (Real* sendbuf,
                  int   sendcount,
                  Real* recvbuf,
                  int   root);
-    //
-    // Returns sequential message sequence numbers, usually used as
-    // tags for send/recv.  getsetinc has these values:
-    // 0:  return the current sequence number and increment
-    // 1:  return the current sequence number
-    // 2:  set the current sequence number to newvalue
-    //
+    /**
+    * \brief Returns sequential message sequence numbers, usually used as
+    * tags for send/recv.  getsetinc has these values:
+    * 0:  return the current sequence number and increment
+    * 1:  return the current sequence number
+    * 2:  set the current sequence number to newvalue
+    */
     int SeqNum (int getsetinc = 0, int newvalue = 0);
     int SubSeqNum (int getsetinc = 0, int newvalue = 0);
 

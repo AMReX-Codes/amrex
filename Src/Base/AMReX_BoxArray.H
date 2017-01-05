@@ -15,32 +15,24 @@ namespace amrex
 {
     class BoxArray;
 
-    //
-    // Makes a BoxArray from the the complement of b2 in b1in.
-    //
+    //! Makes a BoxArray from the the complement of b2 in b1in.
     BoxArray boxComplement (const Box& b1in, const Box& b2);
-    //
-    // Makes a BoxArray from the complement of BoxArray ba in Box b.
-    //
+
+    //! Makes a BoxArray from the complement of BoxArray ba in Box b.
     BoxArray complementIn (const Box& b, const BoxArray& ba);
-    //
-    // Makes a BoxArray from the intersection of Box b and BoxArray(+ghostcells).
-    //
+
+    //! Makes a BoxArray from the intersection of Box b and BoxArray(+ghostcells).
     BoxArray intersect (const BoxArray& ba, const Box& b, int ng = 0);
-    //
-    // Makes a BoxArray from the intersection of two BoxArrays.
-    //
+
+    //! Makes a BoxArray from the intersection of two BoxArrays.
     BoxArray intersect (const BoxArray& lhs, const BoxArray& rhs);
-    //
+
     BoxArray convert (const BoxArray& ba, IndexType typ);
-    //
-    // Find the ghost cells of a given BoxArray.
-    //
+
+    //! Find the ghost cells of a given BoxArray.
     BoxList GetBndryCells (const BoxArray& ba, int ngrow);
-    //
-    // Read a BoxArray from a stream.  If b is true,
-    //   read in a special way
-    //
+
+    //! Read a BoxArray from a stream.  If b is true, read in a special way
     void readBoxArray (BoxArray& ba, std::istream& s, bool b);
 
     void clearCoarseBoxArrayCache (ptrdiff_t key);
@@ -48,7 +40,7 @@ namespace amrex
     Array<int> SerializeBoxArray(const BoxArray &ba);
     BoxArray UnSerializeBoxArray(const Array<int> &serarray);
 
-    // Note that two BoxArrays that match are not necessarily equal.
+    //! Note that two BoxArrays that match are not necessarily equal.
     bool match (const BoxArray& x, const BoxArray& y);
 
 struct BARef
@@ -62,15 +54,14 @@ struct BARef
     
     ~BARef ();
 
-    // This gives a unique ID of the reference
+    //! This gives a unique ID of the reference
     ptrdiff_t getRefID () const;
 
     void define (const Box& bx);
     void define (const BoxList& bl);
     void define (std::istream& is);
-    //
+    //!
     void resize (long n);
-    //
 #ifdef BL_MEM_PROFILING
     void updateMemoryUsage_box (int s);
     void updateMemoryUsage_hash (int s);
@@ -101,10 +92,10 @@ struct BARef
     static bool initialized;
 };
 
-//
-// Thess classes are used to transform from cell-centered boxes stored in BARef
-// (and hidden from the users) to the public boxes BoxArray is supposed to hold.
-//
+/**
+* \brief BATBase, BATransformer, and BATypeTransformer classes are used to transform from cell-centered boxes stored in BARef
+* (and hidden from the users) to the public boxes BoxArray.
+*/
 struct BATransformer
 {
     virtual ~BATransformer () {}
@@ -171,77 +162,62 @@ struct BATypeTransformer
 	{ return m_typ == rhs.m_typ; }
 };
 
-//
-// An Array of Boxes
-//
-// A BoxArray is a collection of Boxes stored in an Array.  It is a
-// reference-counted concrete class, not a polymorphic one; i.e. you
-// cannot use any of the List member functions with a BoxList.
-//
+/**
+* \brief A collection of Boxes stored in an Array.  It is a
+* reference-counted concrete class, not a polymorphic one; i.e. you
+* cannot use any of the List member functions with a BoxList.
+*/
 
 class BoxArray
 {
 public:
-    //
-    // Construct an empty BoxArray.
-    //
+    //! Construct an empty BoxArray.
     BoxArray ();
-    //
-    /// Make a boxarray out of a single box
-    //
+
+    //! Make a boxarray out of a single box
     explicit BoxArray (const Box& bx);
-    //
-    // Construct a BoxArray of the specified size.
-    //
+
+    //! Construct a BoxArray of the specified size.
     explicit BoxArray (size_t size);
-    //
-    // Construct a BoxArray from an array of Boxes of size nbox.
-    //
+
+    //! Construct a BoxArray from an array of Boxes of size nbox.
     BoxArray (const Box* bxvec,
               int        nbox);
-    //
-    // Construct a BoxArray from a BoxList.
-    //
+
+    //! Construct a BoxArray from a BoxList.
     explicit BoxArray (const BoxList& bl);
-    //
+
     BoxArray (const BoxArray& rhs, const BATransformer& trans);
-    //
-    // The copy constructor.
-    //
+
+    //! The copy constructor.
     BoxArray (const BoxArray& rhs);
-    //
-    // The assignment operator.
-    //
+
+    //! The assignment operator.
     BoxArray& operator= (const BoxArray& rhs);
-    //
-    // The move constrctor
-    //
+
+    //! The move constrctor
     BoxArray (BoxArray&& rhs) noexcept;
-    //
-    // The destructor.
-    //
+    
+    //! The destructor.
     ~BoxArray ();
-    //
-    // Initialize the BoxArray from a single box.
-    // It is an error if the BoxArray has already been initialized.
-    //
+    /**
+    * \brief Initialize the BoxArray from a single box.
+    * It is an error if the BoxArray has already been initialized.
+    */
     void define (const Box& bx);
-    //
-    // Initialize the BoxArray from the supplied BoxList.
-    // It is an error if the BoxArray has already been initialized.
-    //
+    /**
+    * \brief Initialize the BoxArray from the supplied BoxList.
+    * It is an error if the BoxArray has already been initialized.
+    */
     void define (const BoxList& bl);
-    //
-    // Remove all Boxes from the BoxArray.
-    //
+
+    //! Remove all Boxes from the BoxArray.
     void clear ();
-    //
-    // Resizes the array.  See Array<T>::resize() for the gory details.
-    //
+
+    //! Resizes the array.  See Array<T>::resize() for the gory details.
     void resize (long len);
-    //
-    // Returns the number of elements in the BoxArray.
-    //
+
+    //! Returns the number of elements in the BoxArray.
     long size () const;
 
     long capacity () const;
@@ -249,203 +225,170 @@ public:
     bool empty () const;
 
     long numPts() const;
-    //
-    // Returns the number of points contained in the BoxArray.
-    // This is inteded for use only in diagnostic messages.
-    //
+    /**
+    * \brief Returns the number of points contained in the BoxArray.
+    * This is inteded for use only in diagnostic messages.
+    */
     double d_numPts () const;
-    //
-    // Initialize the BoxArray from the supplied istream.
-    // It is an error if the BoxArray has already been initialized.
-    // Note that the BoxArray in the istream must have been written
-    // using writeOn().
-    //
+    /**
+    * \brief Initialize the BoxArray from the supplied istream.
+    * It is an error if the BoxArray has already been initialized.
+    * Note that the BoxArray in the istream must have been written
+    * using writeOn().
+    */
     void readFrom (std::istream& is);
-    //
-    // Output this BoxArray to a checkpoint file.
-    //
+
+    //! Output this BoxArray to a checkpoint file.
     std::ostream& writeOn (std::ostream&) const;
-    //
-    // Are the BoxArrays equal?
-    //
+
+    //! Are the BoxArrays equal?
     bool operator== (const BoxArray& rhs) const;
-    //
-    // Are the BoxArrays not equal?
-    //
+
+    //! Are the BoxArrays not equal?
     bool operator!= (const BoxArray& rhs) const;
-    //
-    //  Are the BoxArrays equal after conversion to cell-centered
-    //
+
+    //!  Are the BoxArrays equal after conversion to cell-centered
     bool CellEqual (const BoxArray& rhs) const;
-    //
-    // Forces each Box in BoxArray to have sides <= block_size.
-    //
+
+    //! Forces each Box in BoxArray to have sides <= block_size.
     BoxArray& maxSize (int block_size);
 
     BoxArray& maxSize (const IntVect& block_size);
-    //
-    // Refine each Box in the BoxArray to the specified ratio.
-    //
+
+    //! Refine each Box in the BoxArray to the specified ratio.
     BoxArray& refine (int refinement_ratio);
-    //
-    // Refine each Box in the BoxArray to the specified ratio.
-    //
+
+    //! Refine each Box in the BoxArray to the specified ratio.
     BoxArray& refine (const IntVect& refinement_ratio);
-    //
-    // Coarsen each Box in the BoxArray to the specified ratio.
-    //
+
+    //! Coarsen each Box in the BoxArray to the specified ratio.
     BoxArray& coarsen (int refinement_ratio);
-    //
-    // Coarsen each Box in the BoxArray to the specified ratio.
-    //
+
+    //! Coarsen each Box in the BoxArray to the specified ratio.
     BoxArray& coarsen (const IntVect& refinement_ratio);
-    //
-    // Grow and then coarsen each Box in the BoxArray.
-    //
+
+    //! Grow and then coarsen each Box in the BoxArray.
     BoxArray& growcoarsen (int n, const IntVect& refinement_ratio);
-    //
-    // Grow each Box in the BoxArray by the specified amount.
-    //
+
+    //! Grow each Box in the BoxArray by the specified amount.
     BoxArray& grow (int n);
-    //
-    // Grow each Box in the BoxArray by the specified amount.
-    //
+
+    //! Grow each Box in the BoxArray by the specified amount.
     BoxArray& grow (const IntVect& iv);
-    //
-    // Grow each Box in the BoxArray on the low and high end
-    // by n_cell cells in idir direction.
-    //
+    /**
+    * \brief Grow each Box in the BoxArray on the low and high end
+    * by n_cell cells in idir direction.
+    */
     BoxArray& grow (int idir,
                     int n_cell);
-    //
-    // Applies surroundingNodes(Box) to each Box in BoxArray.
-    // See the documentation of Box for details.
-    //
+    /**
+    * \brief Applies surroundingNodes(Box) to each Box in BoxArray.
+    * See the documentation of Box for details.
+    */
     BoxArray& surroundingNodes ();
-    //
-    // Applies surroundingNodes(Box,int) to each Box in
-    // BoxArray.  See the documentation of Box for details.
-    //
+    /**
+    * \brief Applies surroundingNodes(Box,int) to each Box in
+    * BoxArray.  See the documentation of Box for details.
+    */
     BoxArray& surroundingNodes (int dir);
-    //
-    // Applies Box::enclosedCells() to each Box in the BoxArray.
-    //
+
+    //! Applies Box::enclosedCells() to each Box in the BoxArray.
     BoxArray& enclosedCells ();
-    //
-    // Applies Box::enclosedCells(int) to each Box in the BoxArray.
-    //
+
+    //! Applies Box::enclosedCells(int) to each Box in the BoxArray.
     BoxArray& enclosedCells  (int dir);
-    //
-    // Applies Box::convert(IndexType) to each Box in the BoxArray.
-    //
+
+    //! Applies Box::convert(IndexType) to each Box in the BoxArray.
     BoxArray& convert (IndexType typ);
-    //
-    // Applies function (*fp)(Box) to each Box in the BoxArray.
-    //
+
+    //! Applies function (*fp)(Box) to each Box in the BoxArray.
     BoxArray& convert (Box (*fp)(const Box&));
-    //
-    // Applies Box::shift(int,int) to each Box in the BoxArray.
-    //
+
+    //! Applies Box::shift(int,int) to each Box in the BoxArray.
     BoxArray& shift (int dir,
                      int nzones);
-    //
-    // Applies Box::shift(const IntVect &iv) to each Box in the BoxArray.
-    //
+
+    //! Applies Box::shift(const IntVect &iv) to each Box in the BoxArray.
     BoxArray& shift (const IntVect &iv);
-    //
-    // Applies Box::shiftHalf(int,int) to each Box in the BoxArray.
-    //
+
+    //! Applies Box::shiftHalf(int,int) to each Box in the BoxArray.
     BoxArray& shiftHalf (int dir,
                          int num_halfs);
-    //
-    // Applies Box::shiftHalf(IntVect) to each Box in BoxArray.
-    //
+    //! Applies Box::shiftHalf(IntVect) to each Box in BoxArray.
     BoxArray& shiftHalf (const IntVect &iv);
-    //
-    // Set element i in this BoxArray to Box ibox.
-    //
+
+    //! Set element i in this BoxArray to Box ibox.
     void set (int        i,
               const Box& ibox);
-    //
-    // Returns element index of this BoxArray.
-    //
+
+    //! Returns element index of this BoxArray.
     Box operator[] (int index) const 
 	{ return (*m_transformer)(m_ref->m_abox[index]); }
     Box get        (int index) const 
 	{ return (*m_transformer)(m_ref->m_abox[index]); }
-    //
-    // Returns cell-centered box at element index of this BoxArray.
-    //
+
+    //! Returns cell-centered box at element index of this BoxArray.
     const Box& getCellCenteredBox (int index) const
 	{ return m_ref->m_abox[index]; }    
-    //
-    // Returns true if Box is valid and they all have the same
-    // IndexType.  Is true by default if the BoxArray is empty.
-    //
+    /**
+    * \brief Returns true if Box is valid and they all have the same
+    * IndexType.  Is true by default if the BoxArray is empty.
+    */
     bool ok () const;
-    //
-    // Returns true if set of intersecting Boxes in BoxArray is null.
-    //
+
+    //! Returns true if set of intersecting Boxes in BoxArray is null.
     bool isDisjoint () const;
-    //
-    // Create a BoxList from this BoxArray.
-    //
+
+    //! Create a BoxList from this BoxArray.
     BoxList boxList () const;
-    //
-    // True if the IntVect is within any of the Boxes in this BoxArray.
-    //
+
+    //! True if the IntVect is within any of the Boxes in this BoxArray.
     bool contains (const IntVect& v) const;
-    //
-    // True if the Box is within any of the Boxes in the List.
-    // The Box must also have the same IndexType as those in this
-    // BoxArray.
-    //
+
+    /**
+    * \brief True if the Box is within any of the Boxes in the List.
+    * The Box must also have the same IndexType as those in this
+    * BoxArray.
+    */
     bool contains (const Box& b, bool assume_disjoint_ba = false) const;
-    //
-    // True if all Boxes in bl are contained in this BoxArray.
-    //
+
+    //! True if all Boxes in bl are contained in this BoxArray.
     bool contains (const BoxArray& bl, bool assume_disjoint_ba = false) const;
-    //
-    // Returns smallest Box that contains all Boxes in this BoxArray.
-    //
+
+    //! Returns smallest Box that contains all Boxes in this BoxArray.
     Box minimalBox () const;
-    //
-    // True if the Box intersects with this BoxArray(+ghostcells).
-    // The Box must have the same IndexType as those in this
-    // BoxArray.
-    //
+
+    /**
+    * \brief True if the Box intersects with this BoxArray(+ghostcells).
+    * The Box must have the same IndexType as those in this
+    * BoxArray.
+    */
     bool intersects (const Box& b, int ng = 0) const;
-    //
-    // Returns intersections of Box and BoxArray(+ghsotcells).
-    //
+
+    //! Returns intersections of Box and BoxArray(+ghsotcells).
     std::vector< std::pair<int,Box> > intersections (const Box& bx) const;
     std::vector< std::pair<int,Box> > intersections (const Box& bx, bool first_only, int ng) const;
     //
     void intersections (const Box& bx, std::vector< std::pair<int,Box> >& isects) const; 
     void intersections (const Box& bx, std::vector< std::pair<int,Box> >& isects, 
 			bool first_only, int ng) const;
-    // Return box - boxarray
+    //! Return box - boxarray
     BoxList complement (const Box& b) const;
-    //
-    // Clear out the internal hash table used by intersections.
-    //
+    //! Clear out the internal hash table used by intersections.
     void clear_hash_bin () const;
-    //
-    // Changes the BoxArray to one with no overlap.
-    // Also tries to "simplify" the BoxArray within reason.
-    //
+
+    /**
+    * \brief Changes the BoxArray to one with no overlap.
+    * Also tries to "simplify" the BoxArray within reason.
+    */
     void removeOverlap ();
 
     static bool SameRefs (const BoxArray& lhs, const BoxArray& rhs) { return lhs.m_ref == rhs.m_ref; }
 
-    //
-    // This gives a unique ID of the reference
-    //
+    //! This gives a unique ID of the reference
     ptrdiff_t getRefID () const { return m_ref->getRefID(); }
 
-    //
-    // Returns index type of this BoxArray
-    //
+    //! Returns index type of this BoxArray
     IndexType ixType () const { return m_transformer->ixType(); }
 
 #ifdef BL_USE_MPI
@@ -462,29 +405,21 @@ public:
     static bool initialized;
 
 private:
-    //
-    //  Update BoxArray index type according the box type, and then convert boxes to cell-centered.
-    //
+    //!  Update BoxArray index type according the box type, and then convert boxes to cell-centered.
     void type_update ();
 
     BARef::HashType& getHashMap () const;
 
-    //
-    // Make ourselves unique.
-    //
+    //! Make ourselves unique.
     void uniqify ();
 
     std::unique_ptr<BATransformer> m_transformer;
 
-    //
-    // The data -- a reference-counted pointer to a Ref.
-    //
+    //! The data -- a reference-counted pointer to a Ref.
     std::shared_ptr<BARef> m_ref;    
 };
 
-//
-// Write a BoxArray to an ostream in ASCII format.
-//
+//! Write a BoxArray to an ostream in ASCII format.
 std::ostream& operator<< (std::ostream& os, const BoxArray& ba);
 
 }

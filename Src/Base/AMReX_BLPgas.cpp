@@ -91,6 +91,7 @@ BLPgas::Request(upcxx::rank_t src_rank,
 			 (int *)NULL);
 }
 
+//! A common implementation for the above send and request functions
 void
 BLPgas::Sendrecv(upcxx::global_ptr<void> src,
                  upcxx::global_ptr<void> dst,
@@ -169,6 +170,7 @@ BLPgas::Sendrecv(upcxx::global_ptr<void> src,
   pgas_send_info_map.insert(std::pair<upcxx::rank_t, SendInfo>(dst.where(), send_info));
 }
 
+//! Allocate _sz bytes in the global memory address space
 void*
 BLPgas::alloc (std::size_t _sz)
 {

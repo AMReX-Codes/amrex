@@ -4,42 +4,42 @@
 
 #if (BL_SPACEDIM == 1)
 
-/*
-  The macro ForAllThisPencil(T,b,ns,nc) is intended to facilitate efficient
-  looping over the contents of BaseFabs and objects derived from BaseFab.
-  Special attention has been paid to make it work efficiently on vector
-  supercomputers.
+/**
+* \brief  The macro ForAllThisPencil(T,b,ns,nc) is intended to facilitate efficient
+*  looping over the contents of BaseFabs and objects derived from BaseFab.
+*  Special attention has been paid to make it work efficiently on vector
+*  supercomputers.
 
-  This macro acts upon the BaseFab *this.  Instead of iterating over the
-  entire Box b, it iterates over components starting at component ns and
-  ending at component ns+nc-1, in all directions except the first coordinate
-  direction.  The user must iterate over the first coordinate direction within
-  the ForAllThisPencil loop.  The macro creates two internal reference
-  variables; thisR that references the first element in the pencil, and
-  thisLen that gives the length of the pencil.  The first argument of the
-  macro is a type: the type contained in the BaseFab that is being iterated
-  over.
-
-  We can rewrite the code illustrated in ForAllThisBNN in this form:
-
-    template <class T>
-    void BaseFab<T>::performSetVal(const T val, const Box bx, int ns, int nc)
-    {
-       ForAllThisPencil(T,bx,ns,nc)
-       {
-          T* dog = \&thisR;
-          for (int i = 0; i < thisLen; i++)
-             dog[i] = val;
-       } EndForPencil
-    }
-
-  Looping macro mnemonics:
-
-    This stands for the current object
-    C for a const
-    X stands for a BaseFab
-    B for a Box
-    N for an int
+*  This macro acts upon the BaseFab *this.  Instead of iterating over the
+*  entire Box b, it iterates over components starting at component ns and
+*  ending at component ns+nc-1, in all directions except the first coordinate
+*  direction.  The user must iterate over the first coordinate direction within
+*  the ForAllThisPencil loop.  The macro creates two internal reference
+*  variables; thisR that references the first element in the pencil, and
+*  thisLen that gives the length of the pencil.  The first argument of the
+*  macro is a type: the type contained in the BaseFab that is being iterated
+*  over.
+*
+*  We can rewrite the code illustrated in ForAllThisBNN in this form:
+*
+*    template <class T>
+*    void BaseFab<T>::performSetVal(const T val, const Box bx, int ns, int nc)
+*    {
+*       ForAllThisPencil(T,bx,ns,nc)
+*       {
+*          T* dog = \&thisR;
+*          for (int i = 0; i < thisLen; i++)
+*             dog[i] = val;
+*       } EndForPencil
+*    }
+*
+*  Looping macro mnemonics:
+*
+*    This stands for the current object
+*    C for a const
+*    X stands for a BaseFab
+*    B for a Box
+*    N for an int
 */
 #define ForAllThisPencil(T,b,ns,nc)                                     \
 {                                                                       \
