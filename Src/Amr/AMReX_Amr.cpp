@@ -185,7 +185,7 @@ Amr::numGrids (int lev)
     return amr_level[lev]->numGrids();
 }
 
-MultiFab*
+std::unique_ptr<MultiFab>
 Amr::derive (const std::string& name,
              Real               time,
              int                lev,

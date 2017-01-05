@@ -279,12 +279,12 @@ public:
     //
     Real coarseTimeStepDt (Real stop_time);
     //
-    // Retrieve derived data. User is responsible for deleting pointer.
+    // Retrieve derived data.
     //
-    MultiFab* derive (const std::string& name,
-                      Real           time,
-                      int            lev,
-                      int            ngrow);
+    std::unique_ptr<MultiFab> derive (const std::string& name,
+				      Real           time,
+				      int            lev,
+				      int            ngrow);
     //
     // Name of the restart chkpoint file.
     //

@@ -1322,14 +1322,14 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
     }
 }
 
-MultiFab*
+std::unique_ptr<MultiFab>
 AmrLevel::derive (const std::string& name,
                   Real           time,
                   int            ngrow)
 {
     BL_ASSERT(ngrow >= 0);
 
-    MultiFab* mf = 0;
+    MultiFab* mf = nullptr;
 
     int index, scomp, ncomp;
 
@@ -1459,7 +1459,7 @@ AmrLevel::derive (const std::string& name,
         amrex::Error(msg.c_str());
     }
 
-    return mf;
+    return std::unique_ptr<MultiFab>(mf);
 }
 
 void
