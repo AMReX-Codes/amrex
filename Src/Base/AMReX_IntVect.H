@@ -2,7 +2,6 @@
 #ifndef BL_INTVECT_H
 #define BL_INTVECT_H
 
-#include <AMReX_winstd.H>
 #include <iosfwd>
 
 #include <AMReX_ccse-mpi.H>
@@ -66,6 +65,8 @@ public:
     explicit IntVect (const Array<int>& a);
 
     //! Returns a reference to the i'th coordinate of the IntVect.
+    // dtor, copy-ctor, copy-op=, move-ctor, and move-op= are compiler generated.
+
     int& operator[] (int i) { BL_ASSERT(i>=0 && i < BL_SPACEDIM); return vect[i]; }
 
     //! Returns the i'th coordinate of the IntVect.

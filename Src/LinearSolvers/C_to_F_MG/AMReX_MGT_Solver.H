@@ -117,6 +117,7 @@ private:
   int verbose;
   int m_nlevel;
   Array<BoxArray> m_grids;
+  Array<DistributionMapping> m_dmap;
   bool m_nodal;
   bool have_rhcc;
 

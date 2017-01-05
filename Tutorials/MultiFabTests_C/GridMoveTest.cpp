@@ -3,7 +3,6 @@
 // --------------------------------------------------------------------------
 //  this file tests the performance for moving grids
 // --------------------------------------------------------------------------
-#include <AMReX_winstd.H>
 
 #include <new>
 #include <iostream>
@@ -80,8 +79,10 @@ int main(int argc, char *argv[]) {
       std::cout << "ba[last] = " << ba[ba.size() - 1] << std::endl;
     }
 
+    DistributionMapping dm{ba};
+
     // ---- make a multifab, setval to the index
-    MultiFab mf(ba, nComp, nGhost);
+    MultiFab mf(ba, dm, nComp, nGhost);
     for(int i(0); i < mf.nComp(); ++i) {
       mf.setVal(static_cast<Real> (i), i, 1);
     }
@@ -122,7 +123,7 @@ int main(int argc, char *argv[]) {
 
       // ---- make a new multifab with the new map and copy from mf
       MultiFab mfNewMap;
-      mfNewMap.define(ba, nComp, nGhost, newDMap, Fab_allocate);
+      mfNewMap.define(ba, newDMap, nComp, nGhost);
       mfNewMap.setVal(-42.0);
 
       // ---- now copy from mf
@@ -170,7 +171,7 @@ int main(int argc, char *argv[]) {
 
       // ---- make a new multifab with the new map and copy from mf
       MultiFab mfNewMap;
-      mfNewMap.define(baCopy, nComp, nGhost, newDMap, Fab_allocate);
+      mfNewMap.define(baCopy, newDMap, nComp, nGhost);
       mfNewMap.setVal(-42.0);
 
       // ---- now copy from mf
@@ -203,10 +204,11 @@ int main(int argc, char *argv[]) {
         newDistMapArray[copyArray[n]] = copyArray[n+1];
       }
 
+#if 0
       if(ParallelDescriptor::IOProcessor()) {
         std::cout << "newDistMapArray = " << newDistMapArray << std::endl;
       }
-      DistributionMapping::CacheStats(std::cout);
+#endif
 
       SetFabValsToPMap(mf);
       VisMF::Write(mf, "mfOriginal");
@@ -232,7 +234,7 @@ int main(int argc, char *argv[]) {
       newMap16[newMap16.size() - 1] = myProc;
       DistributionMapping newDMap16(newMap16);
       MultiFab mf16;
-      mf16.define(ba16, nComp, nGhost, newDMap16, Fab_allocate);
+      mf16.define(ba16, newDMap16, nComp, nGhost);
       mf16.setVal(-1.0);
       if(ParallelDescriptor::IOProcessor()) {
         std::cout << "mf16DMA = " << mf16.DistributionMap() << std::endl;

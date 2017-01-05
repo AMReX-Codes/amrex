@@ -15,6 +15,7 @@ class AdvBld
                                   int             lev,
                                   const Geometry& level_geom,
                                   const BoxArray& ba,
+				  const DistributionMapping& dm,
                                   Real            time) override;
 };
 
@@ -49,7 +50,8 @@ AdvBld::operator() (Amr&            papa,
 		    int             lev,
 		    const Geometry& level_geom,
 		    const BoxArray& ba,
+		    const DistributionMapping& dm,
 		    Real            time)
 {
-    return new Adv(papa, lev, level_geom, ba, time);
+    return new Adv(papa, lev, level_geom, ba, dm, time);
 }

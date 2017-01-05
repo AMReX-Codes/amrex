@@ -503,7 +503,7 @@ namespace ParallelDescriptor
 	}
     }
     //
-    // BoxLib's Parallel Communicators
+    // AMReX's Parallel Communicators
     //    m_comm_all       is for all ranks, probably MPI_COMM_WORLD
     //    m_comm_comp      is for the ranks doing computations
     //    m_comm_sub       m_comm_comp is split into sub communicators

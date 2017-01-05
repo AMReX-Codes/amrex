@@ -17,7 +17,7 @@ The "main" block specifies the global test suite parameters:
   testTopDir     = < full path to test output directory >
   webTopDir      = < full path to test web output directory >
 
-  sourceTree = < C_Src, F_Src, or BoxLib -- what type is it? >
+  sourceTree = < C_Src, F_Src, or AMReX -- what type is it? >
 
   suiteName = < descriptive name (i.e. Castro) >
 
@@ -29,8 +29,8 @@ The "main" block specifies the global test suite parameters:
   FCOMP = < name of Fortran compiler >
   COMP  = < name of C/C++ compiler >
 
-  add_to_f_make_command = < any additional defines to add to the make invocation for F_Src BoxLib >
-  add_to_c_make_command = < any additional defines to add to the make invocation for C_Src BoxLib >
+  add_to_f_make_command = < any additional defines to add to the make invocation for F_Src AMReX >
+  add_to_c_make_command = < any additional defines to add to the make invocation for C_Src AMReX >
 
   purge_output = <0: leave all plotfiles in place;
                   1: delete plotfiles after compare >
@@ -55,7 +55,7 @@ The "main" block specifies the global test suite parameters:
 
 
 The source git repositories are defined in separate blocks.  There
-will always be a "BoxLib" block, and usually a "source" block which is
+will always be a "AMReX" block, and usually a "source" block which is
 the default directory used for compiling the tests.  Any extra repos
 (including those where additional tests are to be build) are defined
 in their own block starting with "extra-"
@@ -276,12 +276,12 @@ def get_args(arg_string=None):
                         help="run with valgrind")
     parser.add_argument("--valgrind_options", type=str, default="--leak-check=yes --log-file=vallog.%p",
                         help="valgrind options", metavar="'valgrind options'")
-    parser.add_argument("--boxlib_git_hash", type=str, default=None, metavar="hash",
-                        help="git hash of a version of BoxLib.  If provided, this version will be used to run tests.")
+    parser.add_argument("--amrex_git_hash", type=str, default=None, metavar="hash",
+                        help="git hash of a version of AMReX.  If provided, this version will be used to run tests.")
     parser.add_argument("--source_git_hash", type=str, default=None, metavar="hash",
-                        help="git hash of a version of the main source code.  For BoxLib tests, this will be ignored.")
+                        help="git hash of a version of the main source code.  For AMReX tests, this will be ignored.")
     parser.add_argument("--extra_src_git_hash", type=str, default=None, metavar="hash",
-                        help="git hash of a version of the extra source code.  For BoxLib tests, this will be ignored.")
+                        help="git hash of a version of the extra source code.  For AMReX tests, this will be ignored.")
     parser.add_argument("--note", type=str, default="",
                         help="a note on the resulting test webpages")
     parser.add_argument("--complete_report_from_crash", type=str, default="", metavar="testdir",

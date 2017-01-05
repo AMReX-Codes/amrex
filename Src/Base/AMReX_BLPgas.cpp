@@ -43,7 +43,7 @@ namespace BLPgas {
  * @param src the source (send) buffer address
  * @param dst_rank the destination rank
  * @param nbytes number of bytes for the message
- * @param SeqNum the BoxLib internal sequence number of message
+ * @param SeqNum the AMReX internal sequence number of message
  * @param done_event for notifying the sender when the data transfer is done
  * @param send_counter increment the counter only if the message is sent out
  */
@@ -75,7 +75,7 @@ BLPgas::Send(upcxx::global_ptr<void> src,
  * @param src_rank the source rank
  * @param dst the destination (recv) buffer address
  * @param nbytes number of bytes for the message
- * @param SeqNum the BoxLib internal sequence number of message
+ * @param SeqNum the AMReX internal sequence number of message
  * @param signal_event for notifying the receiver when the data transfer is done
  */
 void

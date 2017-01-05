@@ -1,6 +1,6 @@
 
-#ifndef BL_BOXLIB_H
-#define BL_BOXLIB_H
+#ifndef BL_AMREX_H
+#define BL_AMREX_H
 
 #include <AMReX_ccse-mpi.H>
 
@@ -86,4 +86,4 @@ namespace amrex
     }
 }
 
-#endif /*BL_BOXLIB_H*/
+#endif /*BL_AMREX_H*/

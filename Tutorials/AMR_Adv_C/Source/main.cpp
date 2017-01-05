@@ -40,43 +40,43 @@ main (int   argc,
 	amrex::Abort("Exiting because neither max_step nor stop_time is non-negative.");
     }
 
-    Amr* amrptr = new Amr;
-
-    amrptr->init(strt_time,stop_time);
-
-    // If we set the regrid_on_restart flag and if we are *not* going to take
-    //    a time step then we want to go ahead and regrid here.
-    if ( amrptr->RegridOnRestart() && 
-         ( (amrptr->levelSteps(0) >= max_step) ||
-           (amrptr->cumTime() >= stop_time) ) )
     {
-	//
-	// Regrid only!
-	//
-	amrptr->RegridOnly(amrptr->cumTime());
+	auto amrptr = std::unique_ptr<Amr>(new Amr);
+
+	amrptr->init(strt_time,stop_time);
+
+	// If we set the regrid_on_restart flag and if we are *not* going to take
+	//    a time step then we want to go ahead and regrid here.
+	if ( amrptr->RegridOnRestart() && 
+	     ( (amrptr->levelSteps(0) >= max_step) ||
+	       (amrptr->cumTime() >= stop_time) ) )
+	{
+	    //
+	    // Regrid only!
+	    //
+	    amrptr->RegridOnly(amrptr->cumTime());
+	}
+	
+	while ( amrptr->okToContinue()                            &&
+		(amrptr->levelSteps(0) < max_step || max_step < 0) &&
+		(amrptr->cumTime() < stop_time || stop_time < 0.0) )
+	    
+	{
+	    //
+	    // Do a timestep.
+	    //
+	    amrptr->coarseTimeStep(stop_time);
+	}
+	
+	// Write final checkpoint and plotfile
+	if (amrptr->stepOfLastCheckPoint() < amrptr->levelSteps(0)) {
+	    amrptr->checkPoint();
+	}
+	
+	if (amrptr->stepOfLastPlotFile() < amrptr->levelSteps(0)) {
+	    amrptr->writePlotFile();
+	}
     }
-
-    while ( amrptr->okToContinue()                            &&
-           (amrptr->levelSteps(0) < max_step || max_step < 0) &&
-           (amrptr->cumTime() < stop_time || stop_time < 0.0) )
-
-    {
-        //
-        // Do a timestep.
-        //
-        amrptr->coarseTimeStep(stop_time);
-    }
-
-    // Write final checkpoint and plotfile
-    if (amrptr->stepOfLastCheckPoint() < amrptr->levelSteps(0)) {
-        amrptr->checkPoint();
-    }
-
-    if (amrptr->stepOfLastPlotFile() < amrptr->levelSteps(0)) {
-        amrptr->writePlotFile();
-    }
-
-    delete amrptr;
 
     Real dRunTime2 = ParallelDescriptor::second() - dRunTime1;
 

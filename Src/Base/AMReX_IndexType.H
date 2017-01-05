@@ -44,6 +44,8 @@ public:
     {
         itype = D_TERM(i, | (j<<1), | (k<<2));
     }
+    // dtor, copy-ctor, copy-op=, move-ctor, and move-op= are compiler generated.
+
     //! Set IndexType to be NODE based in direction dir.
     void set (int dir) { itype |= mask(dir); }
     //! Set IndexType to be CELL based in direction dir.

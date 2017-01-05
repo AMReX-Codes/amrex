@@ -1,7 +1,7 @@
 #include <iostream>
 #include <memory>
 
-#include <AMReX_BoxLib.H>
+#include <AMReX.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_BLFort.H>
@@ -32,10 +32,11 @@ solve_for_accel(const Array<MultiFab*>& rhs,
 
     for (int lev = base_level; lev <= finest_level ; lev++)
     {
+	const DistributionMapping& dm = rhs[lev]->DistributionMap();
         grad_phi_edge[lev].resize(BL_SPACEDIM);
         for (int n = 0; n < BL_SPACEDIM; ++n) {
 	    BoxArray ba = rhs[lev]->boxArray();
-	    grad_phi_edge[lev][n].reset(new MultiFab(ba.surroundingNodes(n), 1, 1));
+	    grad_phi_edge[lev][n].reset(new MultiFab(ba.surroundingNodes(n), dm, 1, 1));
 	}
     }
 

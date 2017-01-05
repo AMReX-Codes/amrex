@@ -1,5 +1,5 @@
 
-subroutine PROBINIT (init,name,namlen,problo,probhi)
+subroutine amrex_probinit (init,name,namlen,problo,probhi) bind(c)
 
   implicit none
 
@@ -9,7 +9,7 @@ subroutine PROBINIT (init,name,namlen,problo,probhi)
 
   ! nothing needs to be done here
 
-end subroutine PROBINIT
+end subroutine amrex_probinit
 
 
 subroutine initdata(level, time, lo, hi, &

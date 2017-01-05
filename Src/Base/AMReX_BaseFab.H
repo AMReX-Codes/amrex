@@ -2,7 +2,6 @@
 #ifndef BL_BASEFAB_H
 #define BL_BASEFAB_H
 
-#include <AMReX_winstd.H>
 #include <cmath>
 #include <cstdlib>
 #include <algorithm>
@@ -139,6 +138,7 @@ public:
     long size () const { return nvar*numpts; }
 
     //! Returns the domain (box) where the array is defined
+    long size () const { return nvar*numpts; }
     const Box& box () const { return domain; }
 
     /**

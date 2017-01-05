@@ -204,7 +204,7 @@ protected:
     //
     // initialize a full set (a,b) of coefficients on the box array
     //
-    void initCoefficients (const BoxArray &_ba);
+    void initCoefficients (const BoxArray &_ba, const DistributionMapping& _dm);
     //
     // compute out=L(in) at level=level
     //

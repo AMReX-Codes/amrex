@@ -86,7 +86,7 @@ AMRex, we have renamed several directories:
 * C_ParticleLib --> Particle
 
 A script `Tools/Migration/step-4-dirname/dirname.sh` can be used to
-the the search and replace.
+perform the search and replace.
 
 ### Step 5
 
@@ -102,7 +102,7 @@ because C++ is too a complicated language for shell scripting.
 For most `.cpp` files, you can put a `using namespace amrex;` line
 after the last `include` line, or `using amrex::MultiFab` etc., or you
 can add `amrex::` to wherever needed.  Note that having both `using
-namespace std` and `using namespace std` in one file may cause
+namespace amrex` and `using namespace std` in one file may cause
 conflicts because some names like `min` and `max` exist in both
 namespace. 
 
@@ -110,3 +110,81 @@ For header files, it is considered bad practice to have `using
 namespace amrex` because it pollutes the namespace.  So you need to
 manually add `amrex::` in front of AMReX names likes `MultiFab` and
 `BoxArray`.
+
+### Step 6
+
+AMReX `migration/6-distributionmap` branch should be used in this step. 
+
+In BoxLib, there is a `DistributionMapping` cache implemented with
+`std::map` with the number of `Box`es as the key.  Utilizing the
+cache, `MultiFab`s can be built with shared `DistributionMapping`
+without explicitly requiring a `DistributionMapping`.  In AMReX, the
+`DistributionMapping` cache is removed for more flexibility.  Because
+of the change, `DistributionMapping` is now a required argument to the
+non-default constructors of `MultiFab`, `FluxRegister`, `BndryData`,
+`AmrLevel`, `LevelBld`, and some other objects.  Many classes
+including `MultiFab`, `AmrLevel`, `AmrCore` have functions returning
+`DistributionMapping`.  One may also explicitly construct
+`DistributionMapping` from `BoxArray`.  For example,
+
+    DistributionMapping dm {a_BoxArray};
+
+It should be emphasized that the result of the code above does **not**
+solely depend on `BoxArray`.  Thus, different `DistributionMapping`s
+may be built when this is called multiple times with the same
+`BoxArray`.  If two `MultiFab`s need to share the same
+`DistributionMapping`, only one `DistributionMapping` should be built.
+
+For extensibility, `MultiFab` constructor now also takes an `MFInfo`
+object.  To construct `MultiFab` without allocating memory for the
+data,
+
+    MFInfo info;
+    info.SetAlloc(false);   // The default MFInfo is true.
+
+To build a `MultiFab` with nodal flags `IntVect nodal`,
+
+    MFInfo info;
+    info.SetNodal(nodal);  // The default MFInfo is cell-centered.
+
+`VisMF::Read` function used to only take an empty `MultiFab` built
+with the default constructor.  The function reads `BoxArray` from
+disk, builds the `MultiFab` with the `BoxArray` and a
+`DistributionMapping` possibly from the `DistributionMapping` cache if
+there is one cached for the same number of boxes, and then read the
+data from the disk into the `MultiFab`.  Because the cache is removed,
+the `VisMF::Read` function has been modified to also take a pre-built
+`MultiFab`.  In that case, it is an error if the `MultiFab`'s
+`BoxArray` does not match the `BoxArray` on the disk.  If an empty
+`MultiFab` is passed into `VisMF::Read`, a **new**
+`DistributionMapping` will be built, and this maybe not be desired
+behavior.  `VisMF::Read` function is rarely called directly by an
+application code.  But if it is, care must be taken to ensure that
+`MultiFab`s read from the disk are distributed correctly among
+processes.
+
+### Step 7
+
+AMReX `migration/7-bindc` branch should be used in this step.  In
+BoxLib, `Amr` class calls a Fortran subroutine `probinit` to perform
+problem specific initialization on Fortran side.  This is a subroutine
+provided by application codes.  In AMReX, this subroutine is renamed
+to `amrex_probint`, and it is expected to have `bind(c)` making the
+interface of calling it from C++ clean.  A script
+`Tools/Migration/step-7-bindc/bindc.sh` can be used to for the
+migration.
+
+### Step 8
+
+AMReX `migration/8-deboxlib` branch should be used in this step.  In
+the branch, `AMReX_winstd.H` is removed because Windows is not
+supported.  `AMReX_BoxLib.H` is renamed `AMReX.H`.  There are also
+some changes to `buildInfo` related to `AMReX_` prefix for file names
+and `amrex` namespace.  A script
+`Tools/Migration/step-8-deboxlib/deboxlib.sh` can be used to for the
+migration.
+
+In BoxLib, there are some runtime parameters with the `boxlib.` prefix
+(e.g., `boxlib.fpe_trap_invalid` and `boxlib.verbose`).  The prefix is
+now changed to `amrex.`.
+

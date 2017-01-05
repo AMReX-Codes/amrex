@@ -1,8 +1,5 @@
 
 AMRLIB_BASE=EXE
-ifeq ($(LBASE),amr)
-  AMRLIB_BASE=LIB
-endif
 
 C$(AMRLIB_BASE)_sources += AMReX_Amr.cpp AMReX_AmrLevel.cpp AMReX_Derive.cpp AMReX_StateData.cpp \
                 AMReX_StateDescriptor.cpp AMReX_AuxBoundaryData.cpp AMReX_Extrapolater.cpp

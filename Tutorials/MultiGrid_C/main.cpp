@@ -242,18 +242,20 @@ int main(int argc, char* argv[])
     std::cout << "Number of grids : " << bs.size() << std::endl;
   }
 
+  DistributionMapping dmap{bs};
+
   // Allocate and define the right hand side.
   bool do_4th = (solver_type==BoxLib_C4 || solver_type==All);
   int ngr = (do_4th ? 1 : 0);
-  MultiFab rhs(bs, Ncomp, ngr); 
+  MultiFab rhs(bs, dmap, Ncomp, ngr); 
   setup_rhs(rhs, geom);
 
   // Set up the Helmholtz operator coefficients.
-  MultiFab alpha(bs, Ncomp, 0);
+  MultiFab alpha(bs, dmap, Ncomp, 0);
   Array<std::unique_ptr<MultiFab> > beta(BL_SPACEDIM);
   for ( int n=0; n<BL_SPACEDIM; ++n ) {
       BoxArray bx(bs);
-      beta[n].reset(new MultiFab(bx.surroundingNodes(n), Ncomp, 0, Fab_allocate));
+      beta[n].reset(new MultiFab(bx.surroundingNodes(n), dmap, Ncomp, 0));
   }
 
   // The way HPGMG stores face-centered data is completely different than the
@@ -264,19 +266,19 @@ int main(int argc, char* argv[])
   // than converting directly from BoxLib's face-centered data to HPGMG's, just
   // give HPGMG the cell-centered data and let it interpolate itself.
 
-  MultiFab beta_cc(bs,Ncomp,1); // cell-centered beta
+  MultiFab beta_cc(bs,dmap,Ncomp,1); // cell-centered beta
   setup_coeffs(bs, alpha, amrex::GetArrOfPtrs(beta), geom, beta_cc);
 
   MultiFab alpha4, beta4;
   if (do_4th) {
-    alpha4.define(bs, Ncomp, 4, Fab_allocate);
-    beta4.define(bs, Ncomp, 3, Fab_allocate);
-    setup_coeffs4(bs, alpha4, beta4, geom);
+      alpha4.define(bs, dmap, Ncomp, 4);
+      beta4.define(bs, dmap, Ncomp, 3);
+      setup_coeffs4(bs, alpha4, beta4, geom);
   }
 
   MultiFab anaSoln;
   if (comp_norm || plot_err || plot_asol) {
-    anaSoln.define(bs, Ncomp, 0, Fab_allocate);
+    anaSoln.define(bs, dmap, Ncomp, 0);
     compute_analyticSolution(anaSoln,Array<Real>(BL_SPACEDIM,0.5));
     
     if (plot_asol) {
@@ -286,12 +288,12 @@ int main(int argc, char* argv[])
 
   // Allocate the solution array 
   // Set the number of ghost cells in the solution array.
-  MultiFab soln(bs, Ncomp, 1);
+  MultiFab soln(bs, dmap, Ncomp, 1);
   MultiFab soln4;
   if (do_4th) {
-    soln4.define(bs, Ncomp, 3, Fab_allocate);
+      soln4.define(bs, dmap, Ncomp, 3);
   }
-  MultiFab gphi(bs, BL_SPACEDIM, 0);
+  MultiFab gphi(bs, dmap, BL_SPACEDIM, 0);
 
 #ifdef USEHYPRE
   if (solver_type == Hypre || solver_type == All) {
@@ -554,27 +556,29 @@ void solve4(MultiFab& soln, const MultiFab& anaSoln,
 
   const Real run_strt = ParallelDescriptor::second();
 
-  BndryData bd(bs, 1, geom);
+  const DistributionMapping& dmap = soln.DistributionMap();
+
+  BndryData bd(bs, dmap, 1, geom);
   set_boundary(bd, rhs, 0);
 
   ABec4 abec_operator(bd, dx);
   abec_operator.setScalars(a, b);
 
-  MultiFab betaca(bs,1,2);
+  MultiFab betaca(bs,dmap,1,2);
   ABec4::cc2ca(beta,betaca,0,0,1);
 
-  MultiFab alphaca(bs,1,2);
+  MultiFab alphaca(bs,dmap,1,2);
   ABec4::cc2ca(alpha,alphaca,0,0,1);
   abec_operator.setCoefficients(alphaca, betaca);
 
-  MultiFab rhsca(bs,1,0);
+  MultiFab rhsca(bs,dmap,1,0);
   ABec4::cc2ca(rhs,rhsca,0,0,1);
 
-  MultiFab out(bs,1,0);
+  MultiFab out(bs,dmap,1,0);
 
   compute_analyticSolution(soln,Array<Real>(BL_SPACEDIM,0.5));
 
-  MultiFab solnca(bs,1,2);
+  MultiFab solnca(bs,dmap,1,2);
   solnca.setVal(0);
 
   MultiGrid mg(abec_operator);
@@ -696,7 +700,9 @@ void solve_with_Cpp(MultiFab& soln, MultiFab& gphi, Real a, Real b, MultiFab& al
 {
   BL_PROFILE("solve_with_Cpp()");
 
-  BndryData bd(bs, 1, geom);
+  const DistributionMapping& dmap = soln.DistributionMap();
+
+  BndryData bd(bs, dmap, 1, geom);
   set_boundary(bd, rhs, 0);
 
   ABecLaplacian abec_operator(bd, dx);
@@ -715,7 +721,7 @@ void solve_with_Cpp(MultiFab& soln, MultiFab& gphi, Real a, Real b, MultiFab& al
 
   Array<std::unique_ptr<MultiFab> > grad_phi(BL_SPACEDIM);
   for (int n = 0; n < BL_SPACEDIM; ++n) {
-      grad_phi[n].reset(new MultiFab(BoxArray(soln.boxArray()).surroundingNodes(n), 1, 0));
+      grad_phi[n].reset(new MultiFab(BoxArray(soln.boxArray()).surroundingNodes(n), dmap, 1, 0));
   }
 
 #if (BL_SPACEDIM == 2)
@@ -769,9 +775,11 @@ void solve_with_F90(MultiFab& soln, MultiFab& gphi, Real a, Real b, MultiFab& al
   int need_grad_phi = 1;
   fmg.solve(soln, rhs, tolerance_rel, tolerance_abs, always_use_bnorm, need_grad_phi);
 
+  const DistributionMapping& dmap = soln.DistributionMap();
+
   Array<std::unique_ptr<MultiFab> > grad_phi(BL_SPACEDIM);
   for (int n = 0; n < BL_SPACEDIM; ++n) {
-      grad_phi[n].reset(new MultiFab(BoxArray(soln.boxArray()).surroundingNodes(n), 1, 0));
+      grad_phi[n].reset(new MultiFab(BoxArray(soln.boxArray()).surroundingNodes(n), dmap, 1, 0));
   }
 
   fmg.get_fluxes(amrex::GetArrOfPtrs(grad_phi));
@@ -928,7 +936,7 @@ void solve_with_HPGMG(MultiFab& soln, MultiFab& gphi, Real a, Real b, MultiFab& 
 
   Array<std::unique_ptr<MultiFab> > grad_phi(BL_SPACEDIM);
   for (int n = 0; n < BL_SPACEDIM; ++n) {
-      grad_phi[n].reset(new MultiFab(BoxArray(soln.boxArray()).surroundingNodes(n), 1, 0));
+      grad_phi[n].reset(new MultiFab(BoxArray(soln.boxArray()).surroundingNodes(n), dmap, 1, 0));
   }		   
 
 #if (BL_SPACEDIM == 2)

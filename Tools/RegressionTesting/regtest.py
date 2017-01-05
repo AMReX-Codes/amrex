@@ -1,14 +1,14 @@
 #!/usr/bin/env python
 
 """
-A simple regression test framework for a BoxLib-based code
+A simple regression test framework for a AMReX-based code
 
 There are several major sections to this source: the runtime parameter
 routines, the test suite routines, and the report generation routines.
 They are separated as such in this file.
 
 This test framework understands source based out of the F_Src and
-C_Src BoxLib frameworks.
+C_Src AMReX frameworks.
 
 """
 
@@ -81,7 +81,7 @@ def copy_benchmarks(old_full_test_dir, full_web_dir, test_list, bench_dir, log):
             else:
                 p = t.compareFile
 
-        if not p == "":
+        if p != "" and p is not None:
             if p.endswith(".tgz"):
                 try:
                     tg = tarfile.open(name=p, mode="r:gz")
@@ -291,8 +291,8 @@ def test_suite(argv):
         else:
             suite.log.log("{}".format(d))
             os.chdir(suite.source_dir + d)
-            if suite.sourceTree == "BoxLib":
-                suite.make_realclean(repo="BoxLib")
+            if suite.sourceTree in ["AMReX", "amrex"]:
+                suite.make_realclean(repo="AMReX")
             else:
                 suite.make_realclean()
 
@@ -565,7 +565,7 @@ def test_suite(argv):
                     bench_file = orig_last_file
 
                 # see if it exists
-                # note, with BoxLib, the plotfiles are actually directories
+                # note, with AMReX, the plotfiles are actually directories
 
                 if not os.path.isdir(bench_file):
                     suite.log.warn("no corresponding benchmark found")
@@ -898,7 +898,7 @@ def test_suite(argv):
     # store an output file in the web directory that can be parsed easily by
     # external program
     name = "source"
-    if suite.sourceTree == "BoxLib": name = "BoxLib"
+    if suite.sourceTree in ["AMReX", "amrex"]: name = "AMReX"
     branch = suite.repos[name].branch_wanted.strip("\"")
 
     with open("{}/suite.{}.status".format(suite.webTopDir, branch), "w") as f:
