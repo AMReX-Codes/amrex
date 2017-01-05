@@ -92,11 +92,8 @@ public:
     void tags_and_untags (const Array<int>& ar, const Box&tilebx);
 
 private:
-    //
-    // Disallowed.
-    //
-    TagBox (const TagBox& rhs);
-    TagBox& operator= (const TagBox& rhs);
+    TagBox (const TagBox& rhs) = delete;
+    TagBox& operator= (const TagBox& rhs) = delete;
 };
 
 //
@@ -117,7 +114,7 @@ public:
     //
     // The constructor.
     //
-    TagBoxArray (const BoxArray& bs, int _ngrow=0);
+    TagBoxArray (const BoxArray& bs, const DistributionMapping& dm, int _ngrow=0);
     //
     // Returns the grow factor for the TagBoxArray.
     //
@@ -161,12 +158,8 @@ public:
                                  int scsMyId, MPI_Comm scsComm);
 
 private:
-    //
-    // Disallowed.
-    //
-    TagBoxArray ();
-    TagBoxArray (const TagBoxArray& rhs);
-    TagBoxArray& operator= (const TagBoxArray& rhs);
+    TagBoxArray (const TagBoxArray& rhs) = delete;
+    TagBoxArray& operator= (const TagBoxArray& rhs) = delete;
 };
 
 }

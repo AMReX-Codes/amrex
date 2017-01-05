@@ -1,5 +1,4 @@
 
-#include <AMReX_winstd.H>
 #include <AMReX_AmrLevel.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_SlabStat.H>
@@ -211,9 +210,11 @@ SlabStatRec::SlabStatRec (const std::string&  name,
 
     Boxes(file, m_name, m_boxes, m_level);
 
-    m_mf.define(m_boxes, m_ncomp, 0, Fab_allocate);
+    DistributionMap dm{m_boxes};
 
-    m_tmp_mf.define(m_boxes, m_vars.size(), m_ngrow, Fab_allocate);
+    m_mf.define(m_boxes, dm, m_ncomp, 0);
+
+    m_tmp_mf.define(m_boxes, dm, m_vars.size(), m_ngrow);
 
     m_mf.setVal(0);
 }

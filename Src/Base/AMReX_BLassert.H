@@ -2,7 +2,7 @@
 #ifndef BL_BLASSERT_H
 #define BL_BLASSERT_H
 
-#include <AMReX_BoxLib.H>
+#include <AMReX.H>
 
 #ifdef BL_ASSERT
 #undef BL_ASSERT
@@ -12,7 +12,7 @@
 
 /*
   The macro BL_ASSERT(EX) is a debugging macro, used to test the
-  internal consistency of BoxLib, that may also be useful in user
+  internal consistency of AMReX, that may also be useful in user
   code.  The argument EX is a C++ expression that you expect to
   always evaluate to true.
 

@@ -1,5 +1,4 @@
 
-#include <AMReX_winstd.H>
 #include <algorithm>
 #include <cfloat>
 #include <iostream>
@@ -374,45 +373,15 @@ MultiFab::MultiFab ()
 #endif
 }
 
-MultiFab::MultiFab (const BoxArray& bxs,
-                    int             ncomp,
-                    int             ngrow,
-                    FabAlloc        alloc,
-                    const IntVect&  nodal)
-    :
-    FabArray<FArrayBox>(bxs,ncomp,ngrow,alloc,nodal)
-{
-    if (SharedMemory() && alloc == Fab_allocate) initVal();  // else already done in FArrayBox
-#ifdef BL_MEM_PROFILING
-    ++num_multifabs;
-    num_multifabs_hwm = std::max(num_multifabs_hwm, num_multifabs);
-#endif
-}
-
 MultiFab::MultiFab (const BoxArray&            bxs,
+                    const DistributionMapping& dm,
                     int                        ncomp,
                     int                        ngrow,
-                    const DistributionMapping& dm,
-                    FabAlloc                   alloc,
-                    const IntVect&             nodal)
+		    const MFInfo&              info)
     :
-    FabArray<FArrayBox>(bxs,ncomp,ngrow,dm,alloc,nodal)
+    FabArray<FArrayBox>(bxs,dm,ncomp,ngrow,info)
 {
-    if (SharedMemory() && alloc == Fab_allocate) initVal();  // else already done in FArrayBox
-#ifdef BL_MEM_PROFILING
-    ++num_multifabs;
-    num_multifabs_hwm = std::max(num_multifabs_hwm, num_multifabs);
-#endif
-}
-
-MultiFab::MultiFab (const BoxArray& bxs,
-                    int             ncomp,
-                    int             ngrow,
-		    ParallelDescriptor::Color color)
-    :
-    FabArray<FArrayBox>(bxs,ncomp,ngrow,color)
-{
-    if (SharedMemory()) initVal();  // else already done in FArrayBox
+    if (SharedMemory() && info.alloc) initVal();  // else already done in FArrayBox
 #ifdef BL_MEM_PROFILING
     ++num_multifabs;
     num_multifabs_hwm = std::max(num_multifabs_hwm, num_multifabs);
@@ -433,27 +402,14 @@ MultiFab::operator= (const Real& r)
 }
 
 void
-MultiFab::define (const BoxArray& bxs,
-                  int             nvar,
-                  int             ngrow,
-                  FabAlloc        alloc,
-		  const IntVect&  nodal,
-		  ParallelDescriptor::Color color)
-{
-    this->FabArray<FArrayBox>::define(bxs,nvar,ngrow,alloc,nodal,color);
-    if (SharedMemory() && alloc == Fab_allocate) initVal();  // else already done in FArrayBox
-}
-
-void
 MultiFab::define (const BoxArray&            bxs,
+                  const DistributionMapping& dm,
                   int                        nvar,
                   int                        ngrow,
-                  const DistributionMapping& dm,
-                  FabAlloc                   alloc,
-		  const IntVect&             nodal)
+		  const MFInfo&              info)
 {
-    this->FabArray<FArrayBox>::define(bxs,nvar,ngrow,dm,alloc,nodal);
-    if (SharedMemory() && alloc == Fab_allocate) initVal();  // else already done in FArrayBox
+    this->FabArray<FArrayBox>::define(bxs,dm,nvar,ngrow,info);
+    if (SharedMemory() && info.alloc) initVal();  // else already done in FArrayBox
 }
 
 void
@@ -1418,7 +1374,7 @@ MultiFab::SumBoundary (int scomp, int ncomp, const Periodicity& period)
 	// Self copy is safe only for cell-centered MultiFab
 	this->copy(*this,scomp,scomp,ncomp,n_grow,0,period,FabArrayBase::ADD);
     } else {
-	MultiFab tmp(boxArray(), ncomp, n_grow, DistributionMap());
+	MultiFab tmp(boxArray(), DistributionMap(), ncomp, n_grow);
 	MultiFab::Copy(tmp, *this, scomp, 0, ncomp, n_grow);
 	this->setVal(0.0);
 	this->copy(tmp,0,scomp,ncomp,n_grow,0,period,FabArrayBase::ADD);

@@ -152,12 +152,13 @@ int main(int argc, char* argv[])
     }
 
   for (int ilev=0; ilev < nlevel; ilev++) {
-    soln [ilev].reset(new MultiFab(grids[ilev], nsoln, 1));
-    soln1[ilev].reset(new MultiFab(grids[ilev], 1, 1));
-    exac [ilev].reset(new MultiFab(grids[ilev], 1, 0));
-    alph [ilev].reset(new MultiFab(grids[ilev], 1, 0));
-    beta [ilev].reset(new MultiFab(grids[ilev], 1, 1)); // one ghost cell
-    rhs  [ilev].reset(new MultiFab(grids[ilev], 1, 0));
+    DistributionMapping dm {grids[ilev]};
+    soln [ilev].reset(new MultiFab(grids[ilev], dm, nsoln, 1));
+    soln1[ilev].reset(new MultiFab(grids[ilev], dm, 1, 1));
+    exac [ilev].reset(new MultiFab(grids[ilev], dm, 1, 0));
+    alph [ilev].reset(new MultiFab(grids[ilev], dm, 1, 0));
+    beta [ilev].reset(new MultiFab(grids[ilev], dm, 1, 1)); // one ghost cell
+    rhs  [ilev].reset(new MultiFab(grids[ilev], dm, 1, 0));
   }
 
   auto psoln  = amrex::GetArrOfPtrs(soln);

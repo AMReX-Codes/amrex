@@ -1,4 +1,3 @@
-#include <AMReX_winstd.H>
 
 #include <AMReX_BoxArray.H>
 #include <AMReX_MultiFab.H>
@@ -68,12 +67,6 @@ DistributionMapping::Strategy
 DistributionMapping::strategy ()
 {
     return DistributionMapping::m_Strategy;
-}
-
-int
-DistributionMapping::CacheSize ()
-{
-    return m_Cache.size();
 }
 
 void
@@ -208,17 +201,8 @@ DistributionMapping::Finalize ()
 {
     initialized = false;
 
-    DistributionMapping::FlushCache();
-
     DistributionMapping::m_BuildMap = 0;
-
-    DistributionMapping::m_Cache.clear();
 }
-
-//
-// Our cache of processor maps.
-//
-std::map< std::pair<int,int>, LnClassPtr<DistributionMapping::Ref> > DistributionMapping::m_Cache;
 
 void
 DistributionMapping::Sort (std::vector<LIpair>& vec,
@@ -360,76 +344,6 @@ DistributionMapping::LeastUsedTeams (Array<int>        & rteam,
 #endif
 }
 
-bool
-DistributionMapping::GetMap (const BoxArray& boxes)
-{
-    const int N = boxes.size();
-
-    BL_ASSERT(m_ref->m_pmap.size() == N + 1);
-
-    std::map< std::pair<int,int>, LnClassPtr<Ref> >::const_iterator it 
-	= m_Cache.find(std::make_pair(N+1,m_color.to_int()));
-
-    if (it != m_Cache.end())
-    {
-        m_ref = it->second;
-
-        if(m_ref->m_pmap[N] != ParallelDescriptor::MyProc()) {
-	  CacheStats(std::cout);
-	  std::cout << "********* _in GetMap:  myproc m_Cache.size() N m_pmap[N] = "
-	            << ParallelDescriptor::MyProc() << "  " << m_Cache.size()
-		    << "  " << N << "  " << m_ref->m_pmap[N] << "  m_pmap = "
-		    << m_ref->m_pmap << std::endl;
-	}
-        BL_ASSERT(m_ref->m_pmap[N] == ParallelDescriptor::MyProc());
-
-        return true;
-    }
-
-    return false;
-}
-
-bool
-DistributionMapping::GetMap (int nBoxes)
-{
-    const int N = nBoxes;
-
-    BL_ASSERT(m_ref->m_pmap.size() == N + 1);
-
-    std::map< std::pair<int,int>, LnClassPtr<Ref> >::const_iterator it 
-	= m_Cache.find(std::make_pair(N+1,m_color.to_int()));
-
-    if (it != m_Cache.end())
-    {
-        m_ref = it->second;
-
-        if(m_ref->m_pmap[N] != ParallelDescriptor::MyProc()) {
-	  CacheStats(std::cout);
-	  std::cout << "********* _in GetMap:  myproc m_Cache.size() N m_pmap[N] = "
-	            << ParallelDescriptor::MyProc() << "  " << m_Cache.size()
-		    << "  " << N << "  " << m_ref->m_pmap[N] << std::endl;
-	}
-        BL_ASSERT(m_ref->m_pmap[N] == ParallelDescriptor::MyProc());
-
-        return true;
-    }
-
-    return false;
-}
-
-void
-DistributionMapping::ReplaceCachedProcessorMap (const Array<int>& newProcmapArray)
-{
-    const int N(newProcmapArray.size());
-    BL_ASSERT(m_ref->m_pmap.size() == N);
-    BL_ASSERT(newProcmapArray.size() == N);
-
-    for(int iA(0); iA < N; ++iA) {
-      m_ref->m_pmap[iA] = newProcmapArray[iA];
-    }
-
-}
-
 DistributionMapping::Ref::Ref () {}
 
 DistributionMapping::DistributionMapping ()
@@ -463,14 +377,12 @@ DistributionMapping::Ref::Ref (const Array<int>& pmap)
 {}
 
 DistributionMapping::DistributionMapping (const Array<int>& pmap, 
-					  bool put_in_cache,
 					  ParallelDescriptor::Color color)
     :
     m_ref(new DistributionMapping::Ref(pmap)),
     m_color(color)
 {
     dmID = nDistMaps++;
-    if (put_in_cache) PutInCache();
 }
 
 DistributionMapping::Ref::Ref (int len)
@@ -531,13 +443,9 @@ DistributionMapping::define (const BoxArray& boxes,
         m_ref->m_pmap.resize(boxes.size() + 1);
     }
 
-    if ( ! GetMap(boxes))
-    {
-	BL_ASSERT(m_BuildMap != 0);
+    BL_ASSERT(m_BuildMap != 0);
 	
-	(this->*m_BuildMap)(boxes,nprocs);
-	PutInCache(); // Add the new processor map to the cache.
-    }
+    (this->*m_BuildMap)(boxes,nprocs);
 }
 
 void
@@ -552,80 +460,7 @@ DistributionMapping::define (const Array<int>& pmap)
     }
 }
 
-void
-DistributionMapping::define (const Array<int>& pmap, bool put_in_cache)
-{
-    if( ! put_in_cache) {
-      define(pmap);
-      return;
-    }
-
-    if (m_ref->m_pmap.size() != pmap.size()) {
-        m_ref->m_pmap.resize(pmap.size());
-    }
-
-    if ( ! GetMap(pmap.size() - 1)) {
-	BL_ASSERT(m_BuildMap != 0);
-
-        m_Cache.insert(std::make_pair(std::make_pair(m_ref->m_pmap.size(),m_color.to_int()),m_ref));
-    }
-    for (unsigned int i(0); i < pmap.size(); ++i) {
-        m_ref->m_pmap[i] = pmap[i];
-    }
-}
-
 DistributionMapping::~DistributionMapping () { }
-
-void
-DistributionMapping::FlushCache ()
-{
-    if (amrex::system::verbose) {
-	CacheStats(std::cout);
-    }
-    //
-    // Remove maps that aren't referenced anywhere else.
-    //
-    std::map< std::pair<int,int>,LnClassPtr<Ref> >::iterator it = m_Cache.begin();
-
-    while (it != m_Cache.end())
-    {
-        if (it->second.linkCount() == 1)
-        {
-            m_Cache.erase(it++);
-        }
-        else
-        {
-            ++it;
-        }
-    }
-}
-
-void
-DistributionMapping::DeleteCache ()
-{
-    CacheStats(std::cout);
-    std::map< std::pair<int,int>,LnClassPtr<Ref> >::iterator it = m_Cache.begin();
-
-    while (it != m_Cache.end()) {
-      m_Cache.erase(it++);
-    }
-    CacheStats(std::cout);
-}
-
-void
-DistributionMapping::PutInCache ()
-{
-    //
-    // We want to save this pmap in the cache.
-    // It's an error if a pmap of this length has already been cached.
-    //
-    std::pair<std::map< std::pair<int,int>,LnClassPtr<Ref> >::iterator, bool> r;
-    r = m_Cache.insert(std::make_pair(std::make_pair(m_ref->m_pmap.size(),m_color.to_int()),
-				      m_ref));
-    if (r.second == false) {
-	amrex::Abort("DistributionMapping::PutInCache: pmap of given length already exists");
-    }
-}
 
 void
 DistributionMapping::RoundRobinDoIt (int                  nboxes,
@@ -2253,17 +2088,6 @@ if(IOP) cout << "localPMaps[" << n << "][" << i << "] = " << localPMaps[n][i] <<
     }
     */
 
-
-    DistributionMapping::FlushCache();
-
-    for(int n(0); n < localPMaps.size(); ++n) {
-      LnClassPtr<Ref> m_ref(new DistributionMapping::Ref(localPMaps[n]));
-      m_Cache.insert(std::make_pair(std::make_pair(m_ref->m_pmap.size(),
-						   ParallelDescriptor::DefaultColor().to_int()),
-				    m_ref));
-    }
-
-
     if(ParallelDescriptor::IOProcessor()) {
 
       Array<long> ncells(nprocs, 0);
@@ -2660,24 +2484,6 @@ DistributionMapping::RanksFromTopIV(const IntVect &iv) {
 
 
 void
-DistributionMapping::CacheStats (std::ostream& os, int whichProc)
-{
-    if(ParallelDescriptor::MyProcAll() == whichProc) {
-        os << whichProc << "::DistributionMapping::m_Cache.size() = "
-           << m_Cache.size() << " [ (refs,size): ";
-
-        for (std::map< std::pair<int,int>,LnClassPtr<Ref> >::const_iterator it = m_Cache.begin();
-             it != m_Cache.end();
-             ++it)
-        {
-            os << '(' << it->second.linkCount() << ',' << it->second->m_pmap.size()-1 << ") ";
-        }
-        os << "]\n";
-    }
-}
-
-
-void
 DistributionMapping::PrintDiagnostics(const std::string &filename)
 {
     int nprocs(ParallelDescriptor::NProcs());
@@ -2857,7 +2663,7 @@ DistributionMapping::Check () const
 ptrdiff_t 
 DistributionMapping::getRefID () const
 {
-    static DistributionMapping dm0(Array<int>(1), false);
+    static DistributionMapping dm0(Array<int>(1));
     return m_ref.operator->() - dm0.m_ref.operator->();
 }
 

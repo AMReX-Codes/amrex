@@ -1,6 +1,5 @@
 // TODO: need to work on read for upc++
 
-#include <AMReX_winstd.H>
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -1381,7 +1380,7 @@ VisMF::Read (FabArray<FArrayBox> &mf,
     {
         hStartTime = ParallelDescriptor::second();
         std::string fileCharPtrString;
-	if(faHeader == 0) {
+	if(faHeader == nullptr) {
           Array<char> fileCharPtr;
           ParallelDescriptor::ReadAndBcastFile(FullHdrFileName, fileCharPtr);
           fileCharPtrString = fileCharPtr.dataPtr();
@@ -1397,7 +1396,12 @@ VisMF::Read (FabArray<FArrayBox> &mf,
 
     bool noFabHeader(NoFabHeader(hdr));
 
-    mf.define(hdr.m_ba, hdr.m_ncomp, hdr.m_ngrow, Fab_allocate);
+    if (mf.empty()) {
+	DistributionMapping dm(hdr.m_ba);
+	mf.define(hdr.m_ba, dm, hdr.m_ncomp, hdr.m_ngrow);
+    } else {
+	BL_ASSERT(amrex::match(hdr.m_ba,mf.boxArray()));
+    }
 
 #ifdef BL_USE_MPI
 
@@ -1474,7 +1478,7 @@ VisMF::Read (FabArray<FArrayBox> &mf,
         std::cout << "VisMF::Read:  not inFileOrder" << std::endl;
       }
       // ---- make a temporary fabarray in file order
-      fafabFileOrder.define(baFileOrder, hdr.m_ncomp, hdr.m_ngrow, dmFileOrder, Fab_allocate);
+      fafabFileOrder.define(baFileOrder, dmFileOrder, hdr.m_ncomp, hdr.m_ngrow);
     }
 
     FabArray<FArrayBox> &whichFA = inFileOrder ? mf : fafabFileOrder;

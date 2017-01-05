@@ -1,5 +1,4 @@
 
-#include <AMReX_winstd.H>
 #include <algorithm>
 #include <AMReX_Cluster.H>
 #include <AMReX_BoxDomain.H>

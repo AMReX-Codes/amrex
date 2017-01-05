@@ -1,5 +1,4 @@
 
-#include <AMReX_winstd.H>
 #include <iostream>
 #include <AMReX_AuxBoundaryData.H>
 
@@ -45,7 +44,7 @@ AuxBoundaryData::copy (const AuxBoundaryData& src,
 
 AuxBoundaryData::AuxBoundaryData (const AuxBoundaryData& rhs)
     :
-    m_fabs(rhs.m_fabs.boxArray(),rhs.m_fabs.nComp(),0),
+    m_fabs(rhs.m_fabs.boxArray(),rhs.m_fabs.DistributionMap(),rhs.m_fabs.nComp(),0),
     m_ngrow(rhs.m_ngrow)
 {
     m_fabs.copy(rhs.m_fabs,0,0,rhs.m_fabs.nComp());
@@ -102,12 +101,13 @@ AuxBoundaryData::initialize (const BoxArray& ba,
     }
 
     BoxArray nba(gcells);
+    DistributionMapping ndm{nba};
 
     gcells.clear();
 
     if (nba.size() > 0)
     {
-        m_fabs.define(nba, n_comp, 0, Fab_allocate);
+        m_fabs.define(nba, ndm, n_comp, 0);
     }
     else
     {

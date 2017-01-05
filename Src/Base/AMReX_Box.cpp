@@ -3,7 +3,7 @@
 #include <limits>
 
 #include <AMReX_BLassert.H>
-#include <AMReX_BoxLib.H>
+#include <AMReX.H>
 #include <AMReX_Box.H>
 
 namespace amrex {

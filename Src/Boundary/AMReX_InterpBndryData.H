@@ -50,9 +50,9 @@ public:
     // constructor for given BoxArray, etc
     //
     InterpBndryData (const BoxArray& _grids,
+		     const DistributionMapping& _dmap,
                      int             _ncomp,
-                     const Geometry& geom,
-		     ParallelDescriptor::Color color = ParallelDescriptor::DefaultColor());
+                     const Geometry& geom);
     //
     // Copy constructor.
     //

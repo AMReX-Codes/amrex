@@ -128,28 +128,30 @@ int main(int argc, char* argv[])
      std::cout << "Number of grids : " << bs.size() << std::endl;
   }
 
+  DistributionMapping dm{bs};
+
   // Allocate and define the right hand side.
-  MultiFab rhs(bs, Ncomp, 0, Fab_allocate); 
+  MultiFab rhs(bs, dm, Ncomp, 0); 
   setup_rhs(rhs, geom, a, b);
 
-  MultiFab alpha(bs, Ncomp, 0, Fab_allocate);
+  MultiFab alpha(bs, dm, Ncomp, 0);
   MultiFab beta[BL_SPACEDIM];
   for ( int n=0; n<BL_SPACEDIM; ++n ) {
     BoxArray bx(bs);
-    beta[n].define(bx.surroundingNodes(n), Ncomp, 1, Fab_allocate);
+    beta[n].define(bx.surroundingNodes(n), dm, Ncomp, 1);
   }
 
   setup_coeffs(bs, alpha, beta, geom);
 
   MultiFab anaSoln;
   if (comp_norm) {
-    anaSoln.define(bs, Ncomp, 0, Fab_allocate);
-    compute_analyticSolution(anaSoln);
+      anaSoln.define(bs, dm, Ncomp, 0);
+      compute_analyticSolution(anaSoln);
   }
 
   // Allocate the solution array 
   // Set the number of ghost cells in the solution array.
-  MultiFab soln(bs, Ncomp, 1, Fab_allocate);
+  MultiFab soln(bs, dm, Ncomp, 1);
 
   solve(soln, anaSoln, a, b, alpha, beta, rhs, bs, geom, BoxLib_C);
 
@@ -181,7 +183,7 @@ void setup_coeffs(BoxArray& bs, MultiFab& alpha, MultiFab beta[], const Geometry
   Real sigma = 1.0;
   Real     w = 1.0;
 
-  MultiFab cc_coef(bs,Ncomp,1); // cell-centered beta
+  MultiFab cc_coef(bs,alpha.DistributionMap(), Ncomp,1); // cell-centered beta
 
   for ( MFIter mfi(alpha); mfi.isValid(); ++mfi ) {
     const Box& bx = mfi.validbox();
@@ -313,7 +315,7 @@ void solve(MultiFab& soln, const MultiFab& anaSoln,
 
   const Real run_strt = ParallelDescriptor::second();
 
-  BndryData bd(bs, 1, geom);
+  BndryData bd(bs, soln.DistributionMap(), 1, geom);
   set_boundary(bd, rhs);
 
   ABecLaplacian abec_operator(bd, dx);

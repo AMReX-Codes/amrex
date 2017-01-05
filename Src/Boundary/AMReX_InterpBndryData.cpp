@@ -1,5 +1,4 @@
 
-#include <AMReX_winstd.H>
 #include <AMReX_LO_BCTYPES.H>
 #include <AMReX_InterpBndryData.H>
 #include <AMReX_INTERPBNDRYDATA_F.H>
@@ -85,11 +84,11 @@ InterpBndryData::operator= (const InterpBndryData& rhs)
 }
 
 InterpBndryData::InterpBndryData (const BoxArray& _grids,
+				  const DistributionMapping& _dmap,
                                   int             _ncomp,
-                                  const Geometry& geom,
-				  ParallelDescriptor::Color color)
+                                  const Geometry& geom)
     :
-    BndryData(_grids,_ncomp,geom,color)
+    BndryData(_grids,_dmap,_ncomp,geom)
 {}
 
 InterpBndryData::~InterpBndryData () {}

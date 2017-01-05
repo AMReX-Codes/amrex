@@ -1,5 +1,4 @@
 
-#include <AMReX_winstd.H>
 #include <cstring>
 
 #include <AMReX_Derive.H>

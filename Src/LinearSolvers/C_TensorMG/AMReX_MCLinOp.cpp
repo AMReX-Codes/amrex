@@ -1,4 +1,3 @@
-#include <AMReX_winstd.H>
 #include <iostream>
 #include <cstdlib>
 
@@ -357,7 +356,7 @@ MCLinOp::prepareForLevel (int level)
     //
     BL_ASSERT(undrrelxr.size() == level);
     undrrelxr.resize(level+1);
-    undrrelxr[level] = new BndryRegister(gbox[level], 1, 0, 0, numcomp);
+    undrrelxr[level] = new BndryRegister(gbox[level], DistributionMap(), 1, 0, 0, numcomp);
     //
     // Add the BndryRegister to hold tagential derivatives to the new
     // coarser level.
@@ -368,7 +367,7 @@ MCLinOp::prepareForLevel (int level)
     // Figure out how many components.
     //
     const FabSet& samplefs = (*tangderiv[level-1])[Orientation(0,Orientation::low)];
-    tangderiv[level] = new BndryRegister(gbox[level],0,1,0,samplefs.nComp());
+    tangderiv[level] = new BndryRegister(gbox[level], DistributionMap(), 0,1,0,samplefs.nComp());
     //
     // Add an Array of Array of maskvals to the new coarser level
     // For each orientation, build NULL masks, then use distributed allocation
@@ -383,7 +382,7 @@ MCLinOp::prepareForLevel (int level)
     {
         Orientation face = fi();
 	maskvals[level][face].reset(new MultiMask(gbox[level], 
-						  bgb.DistributionMap(),
+						  DistributionMap(),
 						  geomarray[level],
 						  face, 0, 1, 1, 1, true));
     }
@@ -432,7 +431,7 @@ MCLinOp::makeCoefficients (MultiFab&       cs,
 	d.surroundingNodes(cdir);
 
     int nGrow=0;
-    cs.define(d, nc, nGrow, Fab_allocate);
+    cs.define(d, DistributionMap(), nc, nGrow);
     cs.setVal(0.0);
 
 #ifdef _OPENMP

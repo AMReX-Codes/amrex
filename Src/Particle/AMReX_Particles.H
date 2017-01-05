@@ -851,8 +851,10 @@ ParticleContainer<NR,NI,C>::IncrementWithTotal (MultiFab& mf,
     {
         // If mf is not defined on the particle_box_array, then we need
         // to make a temporary mf_pointer here and copy it into mf at the end.
-        mf_pointer = new MultiFab(m_gdb->ParticleBoxArray(lev),mf.nComp(),mf.nGrow(),
-				  m_gdb->ParticleDistributionMap(lev), Fab_allocate);
+        mf_pointer = new MultiFab(m_gdb->ParticleBoxArray(lev),
+				  m_gdb->ParticleDistributionMap(lev),
+				  mf.nComp(),mf.nGrow());
+				  
     }
 
     for (const auto& kv : pmap)
@@ -2352,7 +2354,11 @@ ParticleContainer<NR,NI,C>::Checkpoint (const std::string& dir,
             ParallelDescriptor::Barrier();
         }
 
-	MultiFab state(m_gdb->ParticleBoxArray(lev),1,0,Fab_noallocate);
+	MFInfo info;
+	info.SetAlloc(false);
+	MultiFab state(m_gdb->ParticleBoxArray(lev),
+		       m_gdb->ParticleDistributionMap(lev),
+		       1,0,info);
         //
         // We eventually want to write out the file name and the offset
         // into that file into which each grid of particles is written.
@@ -2530,7 +2536,11 @@ ParticleContainer<NR,NI,C>::WriteParticles (int            lev,
     BL_PROFILE("ParticleContainer<NR,NI,C>::WriteParticles()");
     const PMap&     pmap  = m_particles[lev];
 
-    MultiFab state(m_gdb->ParticleBoxArray(lev),1,0,Fab_noallocate);
+    MFInfo info;
+    info.SetAlloc(false);
+    MultiFab state(m_gdb->ParticleBoxArray(lev),
+		   m_gdb->ParticleDistributionMap(lev),
+		   1,0,info);
 
     for (MFIter mfi(state); mfi.isValid(); ++mfi)
     {
@@ -2928,7 +2938,11 @@ ParticleContainer<NR,NI,C>::Restart_Doit (const std::string& fullname,
 
         m_particles.resize(m_gdb->finestLevel()+1);
 
-	MultiFab state(m_gdb->ParticleBoxArray(lev),1,0,Fab_noallocate);
+	MFInfo info;
+	info.SetAlloc(false);
+	MultiFab state(m_gdb->ParticleBoxArray(lev),
+		       m_gdb->ParticleDistributionMap(lev),
+		       1,0,info);
 
         for (MFIter mfi(state); mfi.isValid(); ++mfi)
         {
@@ -3663,7 +3677,9 @@ ParticleContainer<NR,NI,C>::AssignDensity (int rho_index, bool sub_cycle,
     for (int lev = lev_min; lev <= finest_level; lev++)
     { 
         const int lev_index = lev - lev_min;
-        mf_to_be_filled[lev_index].reset(new MultiFab(m_gdb->boxArray(lev), ncomp, 1));
+        mf_to_be_filled[lev_index].reset(new MultiFab(m_gdb->boxArray(lev),
+						      m_gdb->DistributionMap(lev),
+						      ncomp, 1));
 	mf_to_be_filled[lev_index]->setVal(0.0);
     }
 
@@ -3685,8 +3701,9 @@ ParticleContainer<NR,NI,C>::AssignDensity (int rho_index, bool sub_cycle,
         for (int lev = lev_min; lev <= finest_level; lev++)
         {
             const int lev_index = lev - lev_min;
-            mf_part[lev_index].reset(new MultiFab(m_gdb->ParticleBoxArray(lev), ncomp, 1,
-						  m_gdb->ParticleDistributionMap(lev)));
+            mf_part[lev_index].reset(new MultiFab(m_gdb->ParticleBoxArray(lev), 
+						  m_gdb->ParticleDistributionMap(lev),
+						  ncomp, 1));
 	    mf_part[lev_index]->setVal(0.0);
         }
     }
@@ -4765,8 +4782,9 @@ ParticleContainer<NR,NI,C>::AssignCellDensitySingleLevel (int rho_index,
     {
         // If mf_to_be_filled is not defined on the particle_box_array, then we need 
         // to make a temporary here and copy into mf_to_be_filled at the end.
-        mf_pointer = new MultiFab(m_gdb->ParticleBoxArray(lev), ncomp, mf_to_be_filled.nGrow(),
-				  m_gdb->ParticleDistributionMap(lev), Fab_allocate);
+        mf_pointer = new MultiFab(m_gdb->ParticleBoxArray(lev), 
+				  m_gdb->ParticleDistributionMap(lev),
+				  ncomp, mf_to_be_filled.nGrow());
     }
 
     // We must have ghost cells for each FAB so that a particle in one grid can spread its effect to an
@@ -4943,8 +4961,8 @@ ParticleContainer<NR,NI,C>::NodalDepositionSingleLevel (int rho_index,
         // to make a temporary here and copy into mf_to_be_filled at the end.
         mf_pointer = new MultiFab(amrex::convert(m_gdb->ParticleBoxArray(lev),
 						  mf_to_be_filled.boxArray().ixType()),
-				  ncomp, mf_to_be_filled.nGrow(),
-				  m_gdb->ParticleDistributionMap(lev), Fab_allocate);
+				  m_gdb->ParticleDistributionMap(lev),
+				  ncomp, mf_to_be_filled.nGrow());
     }
 
     const Real      strttime    = ParallelDescriptor::second();
@@ -4967,8 +4985,6 @@ ParticleContainer<NR,NI,C>::NodalDepositionSingleLevel (int rho_index,
     // TODO: implement tiling with OpenMP in this grid loop.
     Array<int>         pgrd(ngrids);
     Array<const PBox*> pbxs(ngrids);
-
-    Real strt_depose = ParallelDescriptor::second();
 
     int j = 0;
     for (const auto& kv : pmap)
@@ -5095,19 +5111,7 @@ ParticleContainer<NR,NI,C>::NodalDepositionSingleLevel (int rho_index,
         }
     }
 
-    Real end_depose = ParallelDescriptor::second() - strt_depose;
-
-    if (ParallelDescriptor::IOProcessor()) 
-        std::cout << "Time in BoxLibChargeDeposition : Depose " << end_depose << '\n';
-
-    Real strt_sumb = ParallelDescriptor::second();
-
     mf_pointer->SumBoundary(gm.periodicity());
-
-    Real end_sumb = ParallelDescriptor::second() - strt_sumb;
-
-    if (ParallelDescriptor::IOProcessor()) 
-        std::cout << "Time in BoxLibChargeDeposition : SumBoundary " << end_sumb << '\n';
 
     //
     // Only multiply the first component by (1/vol) because this converts mass
@@ -5170,8 +5174,9 @@ ParticleContainer<NR,NI,C>::moveKick (MultiFab&       acceleration,
     }
     else 
     {
-        ac_pointer = new MultiFab(m_gdb->ParticleBoxArray(lev),acceleration.nComp(),acceleration.nGrow(),
-				  m_gdb->ParticleDistributionMap(lev),Fab_allocate);
+        ac_pointer = new MultiFab(m_gdb->ParticleBoxArray(lev),
+				  m_gdb->ParticleDistributionMap(lev),
+				  acceleration.nComp(),acceleration.nGrow());
         for (MFIter mfi(*ac_pointer); mfi.isValid(); ++mfi)
             ac_pointer->setVal(0.);
         ac_pointer->copy(acceleration,0,0,acceleration.nComp());

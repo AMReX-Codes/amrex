@@ -157,10 +157,12 @@ main (int argc, char* argv[])
     int Ncomp  = 1;
     pp.query("ncomp", Ncomp);
 
+    DistributionMapping dm{bs};
+
     // Allocate space for the old_phi and new_phi -- we define old_phi and new_phi as
     Array < std::unique_ptr<MultiFab> > phis(2);
-    phis[0].reset(new MultiFab(bs, Ncomp, Nghost));
-    phis[1].reset(new MultiFab(bs, Ncomp, Nghost));
+    phis[0].reset(new MultiFab(bs, dm, Ncomp, Nghost));
+    phis[1].reset(new MultiFab(bs, dm, Ncomp, Nghost));
     MultiFab* old_phi = phis[0].get();
     MultiFab* new_phi = phis[1].get();
 

@@ -1,6 +1,6 @@
 #include <iostream>
 
-#include <AMReX_BoxLib.H>
+#include <AMReX.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_BLFort.H>
@@ -138,16 +138,15 @@ int main(int argc, char* argv[])
 
     for (int lev = 0; lev < nlevs; lev++)
     {
-	//                                       # component # ghost cells
-	rhs     [lev].reset(new MultiFab(ba[lev],1          ,0));
-	phi     [lev].reset(new MultiFab(ba[lev],1          ,1));
-	grad_phi[lev].reset(new MultiFab(ba[lev],BL_SPACEDIM,1));
+	dmap[lev] = DistributionMapping{ba[lev]};
+	//                                                 # component # ghost cells
+	rhs     [lev].reset(new MultiFab(ba[lev],dmap[lev],1          ,0));
+	phi     [lev].reset(new MultiFab(ba[lev],dmap[lev],1          ,1));
+	grad_phi[lev].reset(new MultiFab(ba[lev],dmap[lev],BL_SPACEDIM,1));
 
 	rhs[lev]->setVal(0.0);
 	phi[lev]->setVal(0.0);
 	grad_phi[lev]->setVal(0.0);
-
-	dmap[lev] = rhs[lev]->DistributionMap();
     }
 
     // Define a new particle container to hold my particles.
@@ -287,7 +286,7 @@ int main(int argc, char* argv[])
     int finest_level = nlevs-1;
 
     Array<std::unique_ptr<MultiFab> > PartMF(nlevs);
-    PartMF[0].reset(new MultiFab(ba[0],1,1));
+    PartMF[0].reset(new MultiFab(ba[0],dmap[0],1,1));
     PartMF[0]->setVal(0.0);
 
 //  MyPC->AssignDensity(0, PartMF, false, base_level, 1, finest_level);

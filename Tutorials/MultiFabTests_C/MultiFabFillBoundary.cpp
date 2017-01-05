@@ -3,7 +3,6 @@
 // --------------------------------------------------------------------------
 //  this file writes and reads multifabs.
 // --------------------------------------------------------------------------
-#include <AMReX_winstd.H>
 
 #include <new>
 #include <iostream>
@@ -77,10 +76,12 @@ int main(int argc, char *argv[]) {
       std::cout << "ba = " << ba << std::endl;
     }
 
+    DistributionMapping dm{ba};
+
     // ---- make a multifab, set interior to the index
     // ---- set the ghost regions to -index
     std::string outfile = "MF_Out";
-    MultiFab mf(ba, nComp, nGhost);
+    MultiFab mf(ba, dm, nComp, nGhost);
     for(int i(0); i < mf.nComp(); ++i) {
       mf.setVal(static_cast<Real> (i), i, 1);
       mf.setBndry(static_cast<Real> (-i), i, 1);
@@ -130,7 +131,7 @@ int main(int argc, char *argv[]) {
 
     // ---- make a new multifab with the new map and copy from mf
     MultiFab mfNewMap;
-    mfNewMap.define(ba, nComp, nGhost, newDMap, Fab_allocate);
+    mfNewMap.define(ba, newDMap, nComp, nGhost);
 
 
     // ---- this will fill the ghost regions from intersecting fabs

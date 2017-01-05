@@ -2,7 +2,6 @@
 #ifndef BL_MULTIFAB_H
 #define BL_MULTIFAB_H
 
-#include <AMReX_winstd.H>
 
 #include <stdint.h>
 
@@ -67,6 +66,7 @@ public:
     // from FabArray.
     //
     MultiFab ();
+<<<<<<< HEAD
     /**
     * \brief
     * Constructs a MultiFab 
@@ -86,20 +86,25 @@ public:
               FabAlloc        mem_mode = Fab_allocate,
 	      const IntVect&  nodal = IntVect::TheZeroVector());
 
+=======
+    //
+    // Constructs a MultiFab with a valid region defined by bxs and
+    // a region of definition defined by the grow factor ngrow.
+    //
+>>>>>>> 5ea14f8272b52b0e1c669ebe04ea6f3938fea406
     MultiFab (const BoxArray&            bs,
+              const DistributionMapping& dm,
               int                        ncomp,
               int                        ngrow,
-              const DistributionMapping& dm,
-              FabAlloc                   mem_mode = Fab_allocate,
-	      const IntVect&             nodal = IntVect::TheZeroVector());
-
-    MultiFab (const BoxArray& bs,
-              int             ncomp,
-              int             ngrow,
-	      ParallelDescriptor::Color color);
+	      const MFInfo&              info = MFInfo());
 
     virtual ~MultiFab() override;
 
+    virtual void define (const BoxArray&            bxs,
+			 const DistributionMapping& dm,
+			 int                        nvar,
+			 int                        ngrow,
+			 const MFInfo&              info = MFInfo()) override;
 
     void operator= (const Real& r);
     //
@@ -489,6 +494,7 @@ public:
 			    int             numcomp,
 			    int             nghost);
 
+<<<<<<< HEAD
     void define (const BoxArray& bxs,
 		 int             nvar,
 		 int             ngrow,
@@ -510,6 +516,15 @@ public:
     *
     * This version checks all components and grow cells.
     */
+=======
+    //
+    // Are there any NaNs in the MF?
+    // This may return false, even if the MF contains NaNs, if the machine
+    // doesn't support the appropriate NaN testing functions.
+    //
+    // This version checks all components and grow cells.
+    //
+>>>>>>> 5ea14f8272b52b0e1c669ebe04ea6f3938fea406
     bool contains_nan (bool local=false) const;
 
     bool contains_nan (int scomp, int ncomp, int ngrow = 0, bool local=false) const;
@@ -541,11 +556,8 @@ public:
                                  int scsMyId, MPI_Comm scsComm);
 
 private:
-    //
-    // These are disabled.
-    //
-    MultiFab (const MultiFab& rhs);
-    MultiFab& operator= (const MultiFab& rhs);
+    MultiFab (const MultiFab& rhs) = delete;
+    MultiFab& operator= (const MultiFab& rhs) = delete;
 
     //
     // Some useful typedefs.

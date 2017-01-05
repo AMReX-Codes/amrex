@@ -49,11 +49,15 @@ public:
               int             ngrow,
               FabAlloc        mem_mode = Fab_allocate);
 
+    /**
+    * \brief Constructs a iMultiFab with a valid region defined by bxs and
+    * a region of definition defined by the grow factor ngrow.
+    */
     iMultiFab (const BoxArray&            bs,
-              int                        ncomp,
-              int                        ngrow,
-              const DistributionMapping& dm,
-              FabAlloc                   mem_mode = Fab_allocate);
+	       const DistributionMapping& dm,
+	       int                        ncomp,
+	       int                        ngrow,
+	       const MFInfo&              info = MFInfo());
 
     void operator= (const int& r);
     /**
@@ -325,16 +329,11 @@ public:
 			int             numcomp,
 			int             nghost);
 
-    void define (const BoxArray& bxs,
-                 int             nvar,
-                 int             ngrow,
-                 FabAlloc        mem_mode);
-
-    void define (const BoxArray&            bxs,
-                 int                        nvar,
-                 int                        ngrow,
-		 const DistributionMapping& dm,
-                 FabAlloc                   mem_mode);
+    virtual void define (const BoxArray&            bxs,
+			 const DistributionMapping& dm,
+			 int                        nvar,
+			 int                        ngrow,
+			 const MFInfo&              info = MFInfo()) override;
 
     const IArrayBox& operator[] (int K) const;
 

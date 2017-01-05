@@ -18,7 +18,7 @@
 #include <AMReX_Utility.H>
 #include <AMReX_ParmParse.H>
 
-#include <AMReX_BoxLib.H>
+#include <AMReX.H>
 #include <InTransitAnalysis.H>
 
 using namespace amrex;
@@ -162,7 +162,7 @@ ParallelDescriptor::Barrier();
     comp_DM.define(ba, ParallelDescriptor::NProcsComp());
 
     // Make a MultiFab and populate it with a bunch of random numbers.
-    MultiFab mf(ba, nComp, nGhost, comp_DM, Fab_allocate);
+    MultiFab mf(ba, comp_DM, nComp, nGhost);
     for(int i(0); i < mf.nComp(); ++i) {
       mf.setVal(rand()%100, i, 1);
     }
