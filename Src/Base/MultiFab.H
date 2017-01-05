@@ -181,7 +181,7 @@ public:
     */
     Array<Real> norm2 (const Array<int>& comps) const;
     /**
-    * \brief Returns the sum of component "comp" over the MultiFab -- no ghost cells are included.
+    * /brief Returns the sum of component "comp" over the MultiFab -- no ghost cells are included.
     */
     Real sum (int comp = 0, bool local = false) const;
     /**
@@ -318,7 +318,7 @@ public:
     void negate (int comp,
                  int num_comp,
                  int nghost = 0);
-    /**
+    /*
     * \brief Identical to the previous version of negate(), with the
     * restriction that the subregion is further constrained to
     * the intersection with Box region.
@@ -360,7 +360,7 @@ public:
                int             strt_comp,
                int             num_comp,
                int             nghost);
-    /**
+    /*
     * \brief This function subtracts the values of the cells in mf from the
     * corresponding cells of this MultiFab.  mf is required to have the
     * same BoxArray or "valid region" as this MultiFab.  The subtraction is
@@ -373,7 +373,7 @@ public:
                 int             strt_comp,
                 int             num_comp,
                 int             nghost);
-    /**
+    /*
     * \brief This function divides the values of the cells in mf from the
     * corresponding cells of this MultiFab.  mf is required to have the
     * same BoxArray or "valid region" as this MultiFab.  The division is
@@ -387,7 +387,7 @@ public:
 		 int             strt_comp,
 		 int             num_comp,
 		 int             nghost);
-    /**
+    /*
     * \brief Returns the dot product of two MultiFabs.
     */
     static Real Dot (const MultiFab& x, int xcomp,
@@ -444,7 +444,7 @@ public:
 			int             dstcomp,
 			int             numcomp,
 			int             nghost);
-    /**
+    /*
     * \brief dst += a*src
     */
     static void Saxpy (MultiFab&       dst,
@@ -464,7 +464,7 @@ public:
 		      int             dstcomp,
 		      int             numcomp,
 		      int             nghost);
-    /**
+    /*
     * \brief dst = a*x + b*y
     */
     static void LinComb (MultiFab&       dst,
@@ -477,7 +477,7 @@ public:
 			 int             dstcomp,
 			 int             numcomp,
 			 int             nghost);
-    /** 
+    /* 
     * \brief dst += src1*src2
     */
     static void AddProduct (MultiFab&       dst,
@@ -504,7 +504,7 @@ public:
 		 const IntVect&             nodal = IntVect::TheZeroVector());
 
     /**
-    * \brief Are there any NaNs in the MF?
+    * /brief Are there any NaNs in the MF?
     * This may return false, even if the MF contains NaNs, if the machine
     * doesn't support the appropriate NaN testing functions.
     *
@@ -513,7 +513,7 @@ public:
     bool contains_nan (bool local=false) const;
 
     bool contains_nan (int scomp, int ncomp, int ngrow = 0, bool local=false) const;
-    /**
+    /*
     * \brief Are there any Infs in the MF?
     * This may return false, even if the MF contains Infs, if the machine
     * doesn't support the appropriate Inf testing functions.
@@ -521,7 +521,7 @@ public:
     */
     bool contains_inf (bool local=false) const;
 
-    /**
+    /*
     * \brief This tests on whether the MultiFab is fully nodal.
     */
     bool is_nodal () const;

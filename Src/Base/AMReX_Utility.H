@@ -24,246 +24,224 @@
 #include <AMReX_DistributionMapping.H>
 #include <AMReX_ParallelDescriptor.H>
 
-//
-// Useful C++ Utility Functions
-//
-// This data-less class is a poor-person's namespace of utility functions.
-// Since we can't assume the existence of namespaces, and we don't
-// like global functions, we put them into a data-less class as
-// static member functions.
-//
-
 namespace amrex
 {
-    //
-    // Returns the total user and system time used by
-    // the calling process up to the point of the call.
-    // If t != 0, it also stores the result in t.
-    //
+/**
+* \brief Useful C++ Utility Functions
+*
+* This data-less class is a poor-person's namespace of utility functions.
+* Since we can't assume the existence of namespaces, and we don't
+* like global functions, we put them into a data-less class as
+* static member functions.
+*/
+
+    /**
+    * \brief Returns the total user and system time used by
+    * the calling process up to the point of the call.
+    * If t != 0, it also stores the result in t.
+    */
     double second (double* t = 0);
-    //
-    // Returns the current time as the number of microseconds
-    // relative to program startup.  If t != 0, it also
-    // stores the result in t.
-    //
+    /**
+    * \brief Returns the current time as the number of microseconds
+    * relative to program startup.  If t != 0, it also
+    * stores the result in t.
+    */
     double wsecond (double* t = 0);
-    //
-    // Reset start of Wall Clock Time for wsecond() to NOW.
-    //
+    //! Reset start of Wall Clock Time for wsecond() to NOW.
     void ResetWallClockTime ();
-    //
-    // Return true if argument is a non-zero length string of digits.
-    //
+    //! Return true if argument is a non-zero length string of digits.
     bool is_integer (const char* str);
-    //
-    // Splits "instr" into separate pieces based on "separators".
-    //
+    //! Splits "instr" into separate pieces based on "separators".
     const std::vector<std::string>& Tokenize (const std::string& instr,
                                               const std::string& separators);
-    //
-    // Returns rootNNNN where NNNN == num.
-    //
+    //! Returns rootNNNN where NNNN == num.
     std::string Concatenate (const std::string& root,
                              int                num,
                              int                mindigits = 5);
-    //
-    //  Creates the specified directories.  path may be either a full pathname
-    //  or a relative pathname.  It will create all the directories in the
-    //  pathname, if they don't already exist, so that on successful return the
-    //  pathname refers to an existing directory.  Returns true or false
-    //  depending upon whether or not it was successful.  Also returns true
-    //  if path is NULL or "/".  mode is the mode passed to mkdir() for
-    //  any directories that must be created (for example:  0755).
-    //  verbose will print out the directory creation steps.
-    // 
-    //  For example, if it is passed the string "/a/b/c/d/e/f/g", it
-    //  will return successfully when all the directories in the pathname
-    //  exist; i.e. when the full pathname is a valid directory.
-    //
-    //  In a Windows environment, the path separator is a '\', so that if using
-    //  the example given above you must pass the string  
-    //  "\\a\\b\\c\\d\\e\\f\\g"  (Note that you must escape the backslash in a
-    //  character string), 
-    //
-    //  Only the last mkdir return value is checked for success as errno may not
-    //  be set to EEXIST if a directory exists but mkdir has other reasons
-    //  to fail such as part of the path being a read-only filesystem (EROFS).
-    //  If this function fails, it will print out an error stack.
-    //
+    /**
+    *  \brief Creates the specified directories.  path may be either a full pathname
+    *  or a relative pathname.  It will create all the directories in the
+    *  pathname, if they don't already exist, so that on successful return the
+    *  pathname refers to an existing directory.  Returns true or false
+    *  depending upon whether or not it was successful.  Also returns true
+    *  if path is NULL or "/".  mode is the mode passed to mkdir() for
+    *  any directories that must be created (for example:  0755).
+    *  verbose will print out the directory creation steps.
+    * 
+    *  For example, if it is passed the string "/a/b/c/d/e/f/g", it
+    *  will return successfully when all the directories in the pathname
+    *  exist; i.e. when the full pathname is a valid directory.
+    *
+    *  In a Windows environment, the path separator is a '\', so that if using
+    *  the example given above you must pass the string  
+    *  "\\a\\b\\c\\d\\e\\f\\g"  (Note that you must escape the backslash in a
+    *  character string), 
+    *
+    *  Only the last mkdir return value is checked for success as errno may not
+    *  be set to EEXIST if a directory exists but mkdir has other reasons
+    *  to fail such as part of the path being a read-only filesystem (EROFS).
+    *  If this function fails, it will print out an error stack.
+    */
     bool UtilCreateDirectory (const std::string& path,
                               mode_t             mode,
 			      bool               verbose = false);
-    //
-    // Output a message and abort when couldn't create the directory.
-    //
+    //! Output a message and abort when couldn't create the directory.
     void CreateDirectoryFailed (const std::string& dir);
-    //
-    // Output a message and abort when couldn't open the file.
-    //
+    //! Output a message and abort when couldn't open the file.
     void FileOpenFailed (const std::string& dir);
-    //
-    // Attempt to unlink the file.  Ignore any errors.
-    //
+    //! Attempt to unlink the file.  Ignore any errors.
     void UnlinkFile (const std::string& file);
-    //
-    // Check if a file already exists.
-    //   Return true if the filename is an existing file, directory,
-    //   or link.  For links, this operates on the link and not what
-    //   the link points to.
-    //
+    /**
+    * \brief Check if a file already exists.
+    *   Return true if the filename is an existing file, directory,
+    *   or link.  For links, this operates on the link and not what
+    *   the link points to.
+    */
     bool FileExists(const std::string &filename);
-    //
-    // Create a (probably) unique string
-    //
+    //! Create a (probably) unique string
     std::string UniqueString();
-    //
-    // Create a new directory, renaming the old one if it exists
-    //
+    //! Create a new directory, renaming the old one if it exists
     void UtilCreateCleanDirectory (const std::string &path,
                                    bool callbarrier = true);
-    //
-    // Rename a current directory if it exists
-    //
+    //! Rename a current directory if it exists
     void UtilRenameDirectoryToOld (const std::string &path,
                                    bool callbarrier = true);
-    //
-    // Aborts after printing message indicating out-of-memory;
-    // i.e. operator new has failed. This is the "supported"
-    // set_new_handler() function for BoxLib applications.
-    //
+    /**
+    * \brief Aborts after printing message indicating out-of-memory;
+    * i.e. operator new has failed. This is the "supported"
+    * set_new_handler() function for BoxLib applications.
+    */
     void OutOfMemory ();
-    /*
-      This function returns an approximation of the inverse cumulative
-      standard normal distribution function.  I.e., given P, it returns
-      an approximation to the X satisfying P = Pr{Z <= X} where Z is a
-      random variable from the standard normal distribution.
+    /**
+    *  \brief This function returns an approximation of the inverse cumulative
+    *  standard normal distribution function.  I.e., given P, it returns
+    *  an approximation to the X satisfying P = Pr{Z <= X} where Z is a
+    *  random variable from the standard normal distribution.
 
-      The algorithm uses a minimax approximation by rational functions
-      and the result has a relative error whose absolute value is less
-      than 1.15e-9.
+    *  The algorithm uses a minimax approximation by rational functions
+    *  and the result has a relative error whose absolute value is less
+    *  than 1.15e-9.
 
-      Author:      Peter J. Acklam
-      Time-stamp:  2002-06-09 18:45:44 +0200
-      E-mail:      jacklam@math.uio.no
-      WWW URL:     http://www.math.uio.no/~jacklam
+    *  \author      Peter J. Acklam
+    *  Time-stamp:  2002-06-09 18:45:44 +0200
+    *  E-mail:      jacklam@math.uio.no
+    *  WWW URL:     http://www.math.uio.no/~jacklam
 
-      "p" MUST be in the open interval (0,1).
+    *  "p" MUST be in the open interval (0,1).
 
-      Entry points for Fortran:
+    *  Entry points for Fortran:
 
-        REAL_T val
-        call blinvnormdist(val)
+    *    REAL_T val
+    *    call blinvnormdist(val)
 
-      Internally, the Fortran entry point calls a static Mersenne Twister
-      object (the same one called by blutilrand()) to get a random number in
-      the open interval (0,1), and then sets "val" to the result of calling
-      amrex::InvNormDist() with that random number.
+    *  Internally, the Fortran entry point calls a static Mersenne Twister
+    *  object (the same one called by blutilrand()) to get a random number in
+    *  the open interval (0,1), and then sets "val" to the result of calling
+    *  amrex::InvNormDist() with that random number.
     */
     double InvNormDist (double p);
-    /*
-      This function returns an approximation of the inverse cumulative
-      standard normal distribution function.  I.e., given P, it returns
-      an approximation to the X satisfying P = Pr{Z <= X} where Z is a
-      random variable from the standard normal distribution.
+    /**
+    * \brief  This function returns an approximation of the inverse cumulative
+    *  standard normal distribution function.  I.e., given P, it returns
+    *  an approximation to the X satisfying P = Pr{Z <= X} where Z is a
+    *  random variable from the standard normal distribution.
+    *
+    *  Original FORTRAN77 version by Michael Wichura.
+    *
+    *  Michael Wichura,
+    *  The Percentage Points of the Normal Distribution,
+    *  Algorithm AS 241,
+    *  Applied Statistics,
+    *  Volume 37, Number 3, pages 477-484, 1988.
+    *
+    *  Our version is based on the C++ version by John Burkardt.
 
-      Original FORTRAN77 version by Michael Wichura.
-
-      Michael Wichura,
-      The Percentage Points of the Normal Distribution,
-      Algorithm AS 241,
-      Applied Statistics,
-      Volume 37, Number 3, pages 477-484, 1988.
-
-      Our version is based on the C++ version by John Burkardt.
-
-      The algorithm uses a minimax approximation by rational functions
-      and the result is good to roughly machine precision.  This routine
-      is roughly 30% more costly than InvNormDist() above.
-
-      "p" MUST be in the open interval (0,1).
-
-      Entry points for Fortran:
-    
-        REAL_T val
-        call blinvnormdistbest(val)
-
-      Internally, the Fortran entry point calls a static Mersenne Twister
-      object (the same one called by blutilrand()) to get a random number in
-      the open interval (0,1), and then sets "val" to the result of calling
-      amrex::InvNormDist() with that random number.
+    *  The algorithm uses a minimax approximation by rational functions
+    *  and the result is good to roughly machine precision.  This routine
+    *  is roughly 30% more costly than InvNormDist() above.
+    *
+    *  "p" MUST be in the open interval (0,1).
+    *
+    *  Entry points for Fortran:
+    * 
+    *    REAL_T val
+    *    call blinvnormdistbest(val)
+    *
+    *  Internally, the Fortran entry point calls a static Mersenne Twister
+    *  object (the same one called by blutilrand()) to get a random number in
+    *  the open interval (0,1), and then sets "val" to the result of calling
+    *  amrex::InvNormDist() with that random number.
     */
     double InvNormDistBest (double p);
-    /*
-      Mersenne Twister pseudo-random number generator.
-
-      Generates one pseudorandom real number (double) which is
-      uniformly distributed on [0,1]-interval for each call.
-
-      Accepts any 32-bit integer as a seed -- uses 4357 as the default.
-
-      Has a period of 2**19937.
-
-      Mersenne Twister Home Page: http://www.math.keio.ac.jp/matumoto/emt.html
-
-      There is also an entry point for Fortran callable as:
-    
-      REAL_T rn
-      call blutilrand(rn)
-
-      Internally, blutilrand() calls a static Mersenne Twister oject (the
-      same one used by amrex::Random()) to get a value in [0,1] and then
-      sets "rn" to that value.
+    /**
+    * \brief  Mersenne Twister pseudo-random number generator.
+    *
+    *  Generates one pseudorandom real number (double) which is
+    *  uniformly distributed on [0,1]-interval for each call.
+    *
+    *  Accepts any 32-bit integer as a seed -- uses 4357 as the default.
+    *
+    *  Has a period of 2**19937.
+    *
+    *  Mersenne Twister Home Page: http://www.math.keio.ac.jp/matumoto/emt.html
+    *
+    *  There is also an entry point for Fortran callable as:
+    * 
+    *  REAL_T rn
+    *  call blutilrand(rn)
+    *
+    *  Internally, blutilrand() calls a static Mersenne Twister oject (the
+    *  same one used by amrex::Random()) to get a value in [0,1] and then
+    *  sets "rn" to that value.
     */
     double Random (); // [0,1]
     double Random1 (); // [0,1)
     double Random2 (); // (0,1)
     unsigned long Random_int(unsigned long n); // [0,n-1], where n<=2^32-1
-    /* Set the seed of the random number generator.
-
-      There is also an entry point for Fortran callable as:
-
-      INTEGER seed
-      call blutilinitrand(seed)
-
-      or
-
-      INTEGER seed
-      call blinitrand(seed)
+    /** \brief Set the seed of the random number generator.
+    *
+    *  There is also an entry point for Fortran callable as:
+    *
+    *  INTEGER seed
+    *  call blutilinitrand(seed)
+    *
+    *  or
+    *
+    *  INTEGER seed
+    *  call blinitrand(seed)
     */
     void InitRandom (unsigned long seed);
     void InitRandom (unsigned long seed, int numprocs);
 
     void ResetRandomSeed(unsigned long seed);
-    //
-    // Save and restore random state.
-    //
-    // state.size() == 626 on return from Save & on entry to Restore.
-    //
+    /**
+    * \brief Save and restore random state.
+    *
+    * state.size() == 626 on return from Save & on entry to Restore.
+    */
     void SaveRandomState (Array<unsigned long>& state);
 
     int sizeofRandomState ();
 
     void RestoreRandomState (const Array<unsigned long>& state);
-    //
-    // Create a unique subset of random numbers from a pool
-    //   of integers in the range [0, poolSize - 1]
-    //   the set will be in the order they are found
-    //   setSize must be <= poolSize
-    //   uSet will be resized to setSize
-    //   if you want all processors to have the same set,
-    //   call this on one processor and broadcast the array
-    //
+    /**
+    * \brief Create a unique subset of random numbers from a pool
+    *   of integers in the range [0, poolSize - 1]
+    *   the set will be in the order they are found
+    *   setSize must be <= poolSize
+    *   uSet will be resized to setSize
+    *   if you want all processors to have the same set,
+    *   call this on one processor and broadcast the array
+    */
     void UniqueRandomSubset (Array<int> &uSet, int setSize, int poolSize,
                              bool printSet = false);
 
-    //
-    // Fill binCounts with the number of items for each bin.
-    //   The remainder items are randomly assigned.
-    //
+    /**
+    * \brief Fill binCounts with the number of items for each bin.
+    *   The remainder items are randomly assigned.
+    */
     void NItemsPerBin (int totalItems, Array<int> &binCounts);
-    //
-    // Helper class for Times, used in Threads, Profiling, and Timers.
-    //
+    //! Helper class for Times, used in Threads, Profiling, and Timers.
     class Time
     {
     public:
@@ -280,15 +258,13 @@ namespace amrex
 	long tv_nsec;
 	void normalize();
     };
-    //
-    // Implements a simple in place Timer:
-    //
     template <double (*FCN)(double*)> class base_Timer;
     template <double (*FCN)(double*)> std::ostream& operator<<(std::ostream&, const base_Timer<FCN>&);
 
     typedef base_Timer<amrex::wsecond> WallTimer;
     typedef base_Timer<amrex::second>  CPUTimer;
 
+    //! Implements a simple in place Timer
     template <double (*FCN)(double*)>
     class base_Timer
     {
@@ -311,9 +287,7 @@ namespace amrex
 	double accum_val;
 	int cnt;
     };
-    //
-    // The Mersenne twistor :
-    //
+    //! The Mersenne twistor :
     class mt19937
     {
     public:

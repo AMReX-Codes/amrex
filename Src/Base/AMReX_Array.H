@@ -7,13 +7,13 @@
 #include <memory>
 #include <AMReX_BLassert.H>
 
+
+namespace amrex {
 /**
 * \brief This class is a thin wrapper around std::vector.  Unlike vector,
 * Array::operator[] provides bound checking when compiled with
 * DEBUG=TRUE.
 */
-
-namespace amrex {
 
 template <class T>
 class Array
@@ -36,8 +36,9 @@ public:
 	return this->std::vector<T>::operator[](i);
     }
 
-
+    //! get access to the underlying array 
     T* dataPtr () { return this->data(); }
+    //! get access to the underlying array 
     const T* dataPtr () const { return this->data(); }
 };
 
