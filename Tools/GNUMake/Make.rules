@@ -92,6 +92,39 @@ $(objEXETempDir)/%.o: %.F90
 #
 # Rules for dependencies in bare object files.
 #
+
+#
+# The sed foo below:
+#
+# First it starts a shell that runs `$MKDEP` command on `$<`, the
+# first prerequisite of make rule, say `/path/to/x.cpp`.  The output
+# of `$MKDEP` are lines like `/path/to/x.o: /path/to/x.cpp`.
+#
+# It is then piped into two `sed` commands and then into the target
+# (i.e., `$(depEXETempDir)/x.d`).  We need sed to modify the output
+# because we do not store `.o` files in where `.cpp` files live.
+# Instead, we put them in directory `$(objEXETempDir)`.
+#
+# The command of `sed` needs to be inside a pair of `'`s.  But the
+# whole `sed -e '......'` is already inside a pair of `'`s for the
+# shell.  So we have to use escape, thus `'\''mycommand'\''`. 
+#
+# The sed command is search and replace, `s,X,Y` that replaces `X` by
+# `Y`. 
+#
+# In the first sed, `X` is `^[^:]*\/`.  This matches the beginning
+# of the line to the last `/` before `:`.  The `Y` contains nothing.
+# So the matched string is removed, and the line becomes `x.o: /path/to/x.xpp`. 
+#
+# In the second sed, we replace `x.o` with `$(objEXETempDir)/o`.  Note
+# that `$*` is make variable set to `%` (i.e., `x` in our example).
+# `&` is sed variable meaning the whole matched string.  The
+# replacement string also includes the target of the make rule (i.e.,
+# `$(depEXETempDir)/x.d`). 
+#
+# The final result is `$(objEXETempDir)/x.o $(depEXETempDir)/x.d: /path/to/x.cpp`.
+#
+
 $(depEXETempDir)/%.d: %.cpp
 	@echo Depending $< ...
 	@if [ ! -d $(depEXETempDir) ]; then mkdir -p $(depEXETempDir); fi
