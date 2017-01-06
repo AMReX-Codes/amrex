@@ -97,8 +97,8 @@ $(objEXETempDir)/%.o: %.F90
 # The sed foo below:
 #
 # First it starts a shell that runs `$MKDEP` command on `$<`, the
-# first prerequisite of make rule, say `/path/to/x.cpp`.  The output
-# of `$MKDEP` are lines like `/path/to/x.o: /path/to/x.cpp`.
+# first prerequisite of make rule, say `/path/to/y.H`.  The output
+# of `$MKDEP` are lines like `/path/to/x.o: /path/to/y.H`.
 #
 # It is then piped into two `sed` commands and then into the target
 # (i.e., `$(depEXETempDir)/x.d`).  We need sed to modify the output
@@ -122,7 +122,7 @@ $(objEXETempDir)/%.o: %.F90
 # replacement string also includes the target of the make rule (i.e.,
 # `$(depEXETempDir)/x.d`). 
 #
-# The final result is `$(objEXETempDir)/x.o $(depEXETempDir)/x.d: /path/to/x.cpp`.
+# The final result is `$(objEXETempDir)/x.o $(depEXETempDir)/x.d: /path/to/y.H`.
 #
 
 $(depEXETempDir)/%.d: %.cpp
