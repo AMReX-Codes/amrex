@@ -31,7 +31,7 @@ namespace amrex {
     std::map<int, int> rankPNumMap;       // [rank, procNumber]
     std::multimap<int, int> pNumRankMM;   // [procNumber, rank]
     std::map<int, IntVect> pNumTopIVMap;  // [procNumber, topological iv position]
-    std::multimap<IntVect, int, IntVect::Compare> topIVpNumMM;
+    std::multimap<IntVect, int> topIVpNumMM;
                                           // [topological iv position, procNumber]
     std::vector<int> ranksSFC;
 
@@ -1296,7 +1296,7 @@ bool
 PFCToken::Compare::operator () (const PFCToken& lhs,
                                 const PFCToken& rhs) const
 {
-  return lhs.m_idx.lexLT(rhs.m_idx);
+  return lhs.m_idx < rhs.m_idx;
 }
 
 
@@ -1602,7 +1602,7 @@ bool
 PFCMultiLevelToken::Compare::operator () (const PFCMultiLevelToken& lhs,
                                           const PFCMultiLevelToken& rhs) const
 {
-  return lhs.m_fineiv.lexLT(rhs.m_fineiv);
+  return lhs.m_fineiv < rhs.m_fineiv;
 }
 
 
@@ -2371,10 +2371,10 @@ DistributionMapping::TopIVFromProcNumber(const int procnum) {
 std::vector<int>
 DistributionMapping::ProcNumbersFromTopIV(const IntVect &iv) {
   std::vector<int> pnums;
-  std::pair<std::multimap<IntVect, int, IntVect::Compare>::iterator,
-            std::multimap<IntVect, int, IntVect::Compare>::iterator> mmiter;
+  std::pair<std::multimap<IntVect, int>::iterator,
+            std::multimap<IntVect, int>::iterator> mmiter;
   mmiter = topIVpNumMM.equal_range(iv);
-  for(std::multimap<IntVect, int, IntVect::Compare>::iterator it = mmiter.first;
+  for(std::multimap<IntVect, int>::iterator it = mmiter.first;
       it != mmiter.second; ++it)
   {
     pnums.push_back(it->second);

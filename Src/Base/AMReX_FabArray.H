@@ -249,9 +249,9 @@ public:
 	bool operator< (const CopyComTag& rhs) const {
 	    return (srcIndex < rhs.srcIndex) || ((srcIndex == rhs.srcIndex) && (
                    (dstIndex < rhs.dstIndex) || ((dstIndex == rhs.dstIndex) && (
-                   (IntVect::Compare()(dbox.smallEnd(),rhs.dbox.smallEnd())
+                   (dbox.smallEnd() < rhs.dbox.smallEnd()
 		               || ((dbox.smallEnd() == rhs.dbox.smallEnd()) && (
-                   (IntVect::Compare()(sbox.smallEnd(),rhs.sbox.smallEnd())))))))));
+                   (sbox.smallEnd() < rhs.sbox.smallEnd()))))))));
 	}
         //
         // Some typedefs & helper functions used throughout the code.
@@ -441,7 +441,7 @@ protected:
     // Tiling
     //
     // We use tile size as the key for the inner map.
-    typedef std::map<IntVect, TileArray, IntVect::Compare> TAMap;
+    typedef std::map<IntVect, TileArray> TAMap;
     typedef std::map<BDKey, TAMap> TACache;
     //
     static TACache     m_TheTileArrayCache;
