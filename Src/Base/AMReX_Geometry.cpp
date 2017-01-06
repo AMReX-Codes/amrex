@@ -55,16 +55,6 @@ Geometry::Geometry (const Box&     dom,
     define(dom,rb,coord,is_per);
 }
 
-Geometry::Geometry (const Geometry& g)
-{
-    ok     = g.ok;
-    domain = g.domain;
-
-    D_TERM(dx[0]=g.dx[0];,dx[1]=g.dx[1];,dx[2]=g.dx[2];)
-}
-
-Geometry::~Geometry() {}
-
 void
 Geometry::define (const Box&     dom,
                   const RealBox* rb,
