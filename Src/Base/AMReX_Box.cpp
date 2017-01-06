@@ -55,13 +55,13 @@ Box::Box (const IntVect& small,
     bigend(big),
     btype(typ)
 {
-    BL_ASSERT(typ >= IntVect::TheZeroVector() && typ <= IntVect::TheUnitVector());
+    BL_ASSERT(typ.allGE(IntVect::TheZeroVector()) && typ.allLE(IntVect::TheUnitVector()));
 }
 
 Box&
 Box::convert (const IntVect& typ)
 {
-    BL_ASSERT(typ >= IntVect::TheZeroVector() && typ <= IntVect::TheUnitVector());
+    BL_ASSERT(typ.allGE(IntVect::TheZeroVector()) && typ.allLE(IntVect::TheUnitVector()));
     IntVect shft(typ - btype.ixType());
     bigend += shft;
     btype = IndexType(typ);
@@ -349,70 +349,20 @@ Box::next (IntVect& p) const
 {
     BL_ASSERT(contains(p));
 
-    p.shift(0,1);
-#if BL_SPACEDIM==2
-    if (!(p <= bigend))
+    ++p[0];
+
+#if (BL_SPACEDIM >= 2)
+    if (p[0] > bigend[0])
     {
-        p.setVal(0,smallend[0]);
-        p.shift(1,1);
-    }
-#elif BL_SPACEDIM==3
-    if (!(p <= bigend))
-    {
-        p.setVal(0,smallend[0]);
-        p.shift(1,1);
-        if (!(p <= bigend))
-        {
-            p.setVal(1,smallend[1]);
-            p.shift(2,1);
-        }
-    }
+	p[0] = smallend[0];
+	++p[1];
+#if (BL_SPACEDIM == 3)
+	if (p[1] > bigend[1])
+	{
+	    p[1] = smallend[1];
+	    ++p[2];
+	}
 #endif
-}
-
-//
-// Scan point over region of object Box with a vector incrment
-// point incrments by 0 direction portion of vector.  When end of
-// Box is reached, an increment is made with the 1 direction portion
-// of the vector, and the 0 direction scan is resumed.
-// effectively, we are scanning a Box, whose length vector is the argument
-// vector over the object Box.
-// when scan is over, the argument point is over edge of object Box
-// this is the signal that we can go no further.
-//
-
-void
-Box::next (IntVect&   p,
-           const int* shv) const
-{
-    BL_ASSERT(contains(p));
-
-#if   BL_SPACEDIM==1
-    p.shift(0,shv[0]);
-#elif BL_SPACEDIM==2
-    p.shift(0,shv[0]);
-    if (!(p <= bigend))
-    {
-        //
-        // Reset 1 coord is on edge, and 2 coord is incremented.
-        //
-        p.setVal(0,smallend[0]);
-        p.shift(1,shv[1]);
-    }
-#elif BL_SPACEDIM==3
-    p.shift(0,shv[0]);
-    if (!(p <= bigend))
-    {
-        //
-        // Reset 1 coord is on edge, and 2 coord is incremented.
-        //
-        p.setVal(0,smallend[0]);
-        p.shift(1,shv[1]);
-        if(!(p <= bigend))
-        {
-            p.setVal(1,smallend[1]);
-            p.shift(2,shv[2]);
-        }
     }
 #endif
 }

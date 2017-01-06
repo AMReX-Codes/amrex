@@ -37,7 +37,7 @@ struct Node
     inline bool operator< (const Node& rhs) const
         {
             if (level < rhs.level) return true;
-            if ((level == rhs.level) && iv.lexLT(rhs.iv)) return true;
+            if ((level == rhs.level) && iv < rhs.iv) return true;
             return false;
         }
     inline bool operator!= (const Node& rhs) const

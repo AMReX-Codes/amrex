@@ -185,7 +185,7 @@ struct ParticleBase
         bool operator () (const ParticleBase& lhs,
                           const ParticleBase& rhs) const
         {
-            return lhs.m_cell.lexLT(rhs.m_cell);
+            return lhs.m_cell < rhs.m_cell;
         }
     };
 };
@@ -1456,7 +1456,7 @@ ParticleContainer<NR,NI,C>::CreateVirtualParticles (int   level,
         //
         // Map for use in Cell aggregation.
         //
-        std::map<IntVect,ParticleType,IntVect::Compare> agg_map;
+        std::map<IntVect,ParticleType> agg_map;
 
 	for (auto it = pbox.cbegin(); it != pbox.cend(); ++it)
         {
