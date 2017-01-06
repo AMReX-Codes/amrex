@@ -212,10 +212,18 @@ public:
                         int        ncomp=1,
 			bool       alloc=true,
 			bool       shared=false);
+
+    //!  The destructor.
+    ~FArrayBox () = default;
+    
+    FArrayBox (FArrayBox&& rhs) = default;
+
+    FArrayBox (const FArrayBox&) = delete;
+    FArrayBox& operator= (const FArrayBox&) = delete;
+    FArrayBox& operator= (FArrayBox&&) = delete;
+
     //! Set the fab to the value r.
     FArrayBox& operator= (const Real& r);
-    //!  The destructor.
-    ~FArrayBox ();
     //
     void initVal ();
     /**
@@ -379,9 +387,6 @@ private:
     static Real initval;
     static bool init_snan;
 
-    //! These are not allowed
-    FArrayBox (const FArrayBox&);
-    FArrayBox& operator= (const FArrayBox&);
 };
 
 }

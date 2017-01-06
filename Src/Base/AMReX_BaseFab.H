@@ -105,7 +105,7 @@ public:
     BaseFab<T>& operator= (const BaseFab<T>& rhs) = delete;
     BaseFab<T>& operator= (BaseFab<T>&& rhs) = delete;
 
-    BaseFab (BaseFab<T>&& rhs);
+    BaseFab (BaseFab<T>&& rhs) noexcept;
 
     BaseFab& operator= (const T&);
 
@@ -1153,7 +1153,7 @@ BaseFab<T>::~BaseFab ()
 }
 
 template <class T>
-BaseFab<T>::BaseFab (BaseFab<T>&& rhs)
+BaseFab<T>::BaseFab (BaseFab<T>&& rhs) noexcept
     :
     domain(rhs.domain),
     dlen(rhs.dlen),
