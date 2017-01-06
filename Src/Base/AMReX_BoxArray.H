@@ -47,6 +47,7 @@ struct BARef
 {
     BARef ();
     explicit BARef (size_t size);
+    explicit BARef (const Box& b);
     explicit BARef (const BoxList& bl);
     explicit BARef (std::istream& is);
     BARef (const BARef& rhs);
