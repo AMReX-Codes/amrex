@@ -26,20 +26,6 @@ class IntVect
     friend MPI_Datatype ParallelDescriptor::Mpi_typemap<IntVect>::type();
 public:
     /**
-    * \brief An IntVect comparison class.  Needed for STL associative
-    * containers indexed by IntVects.  Uses lexicographical comparison.
-    */
-    class Compare
-    {
-    public:
-        bool operator () (const IntVect& lhs,
-                          const IntVect& rhs) const
-        {
-            return lhs.lexLT(rhs);
-        }
-    };
-
-    /**
     * \brief Construct an IntVect whose components are all zero.
     */
     IntVect () { D_EXPR(vect[0] = 0, vect[1] = 0, vect[2] = 0); }
@@ -85,74 +71,76 @@ public:
     const int* getVect () const& { return vect; }
     int*       getVect () &      { return vect; }
     int*       getVect () && = delete;
-    /**
-    * \brief Returns true of IntVect is equivalent to argument IntVect.
-    * All comparisons between analogous components must be satisfied.
-    */
-    bool operator== (const IntVect& p) const
+
+    //! Returns true if this is equivalent to rhs.
+    bool operator== (const IntVect& rhs) const
     {
-        return D_TERM(vect[0] == p[0], && vect[1] == p[1], && vect[2] == p[2]);
+        return D_TERM(vect[0] == rhs[0], && vect[1] == rhs[1], && vect[2] == rhs[2]);
+    }
+    //! Returns true if this is different from rhs.
+    bool operator!= (const IntVect& rhs) const
+    {
+        return D_TERM(vect[0] != rhs[0], || vect[1] != rhs[1], || vect[2] != rhs[2]);
+    }
+    //! Return ture if this is lexicographically less than rhs.
+    bool operator< (const IntVect& rhs) const
+    {
+#if (BL_SPACEDIM == 1)
+    return vect[0] < rhs[0];
+#elif (BL_SPACEDIM == 2)
+    return (vect[1] < rhs[1]) || ((vect[1] == rhs[1]) && (vect[0] < rhs[0]));
+#else
+    return (vect[2] < rhs[2]) || ((vect[2] == rhs[2]) &&
+	(  (vect[1] < rhs[1]) || ((vect[1] == rhs[1]) && (vect[0] < rhs[0])) ));
+#endif
+    }
+    //! Return true if this is lexicographically less than or equal to rhs.
+    bool operator<= (const IntVect& rhs) const
+    {
+	return !(rhs < *this);
+    }
+    //! Retrun true if this is lexicographically greater than rhs.
+    bool operator> (const IntVect& rhs) const
+    {
+	return rhs < *this;
+    }
+    //! Retrun true if this is lexicographically greater than or equal to rhs.
+    bool operator>= (const IntVect& rhs) const
+    {
+	return !(*this < rhs);
     }
     /**
-    * \brief Returns true of IntVect is different from argument IntVect.
-    * All comparisons between analogous components must be satisfied.
-    */
-    bool operator!= (const IntVect& p) const
+    * \brief Returns true if this is less than argument for all components.
+    * NOTE: This is NOT a strict weak ordering usable by STL sorting algorithms.
+    */	
+    bool allLT (const IntVect& rhs) const
     {
-        return D_TERM(vect[0] != p[0], || vect[1] != p[1], || vect[2] != p[2]);
+        return D_TERM(vect[0] < rhs[0], && vect[1] < rhs[1], && vect[2] < rhs[2]);
     }
     /**
-    * \brief Returns true if IntVect is less than argument IntVect.
-    * All comparisons between analogous components must be satisfied.
-    *
+    * \brief Returns true if this is less than or equal to argument for all components.
     * NOTE: This is NOT a strict weak ordering usable by STL sorting algorithms.
     */
-    bool operator< (const IntVect& p) const
+    bool allLE (const IntVect& rhs) const
     {
-        return D_TERM(vect[0] < p[0], && vect[1] < p[1], && vect[2] < p[2]);
+        return D_TERM(vect[0] <= rhs[0], && vect[1] <= rhs[1], && vect[2] <= rhs[2]);
     }
     /**
-    * \brief Returns true if IntVect is less than or equal to argument
-    * IntVect.  All comparisons between analogous components must
-    * be satisfied.
-    *
+    * \brief Returns true if this is greater than argument for all components.
     * NOTE: This is NOT a strict weak ordering usable by STL sorting algorithms.
     */
-    bool operator<= (const IntVect& p) const
+    bool allGT (const IntVect& rhs) const
     {
-        return D_TERM(vect[0] <= p[0], && vect[1] <= p[1], && vect[2] <= p[2]);
+        return D_TERM(vect[0] > rhs[0], && vect[1] > rhs[1], && vect[2] > rhs[2]);
     }
     /**
-    * \brief Returns true if IntVect is greater than argument IntVect.
-    * All comparisons between analogous components must be satisfied.
-    *
+    * \brief Returns true if this is greater than or equal to argument for all components.
     * NOTE: This is NOT a strict weak ordering usable by STL sorting algorithms.
     */
-    bool operator> (const IntVect& p) const
+    bool allGE (const IntVect& rhs) const
     {
-        return D_TERM(vect[0] > p[0], && vect[1] > p[1], && vect[2] > p[2]);
+        return D_TERM(vect[0] >= rhs[0], && vect[1] >= rhs[1], && vect[2] >= rhs[2]);
     }
-    /**
-    * \brief Returns true if IntVect is greater than or equal to argument
-    * IntVect.  All comparisons between analogous components must
-    * be satisfied.
-    *
-    * NOTE: This is NOT a strict weak ordering usable by STL sorting algorithms.
-    */
-    bool operator>= (const IntVect& p) const
-    {
-        return D_TERM(vect[0] >= p[0], && vect[1] >= p[1], && vect[2] >= p[2]);
-    }
-    /**
-    * \brief Returns true if this IntVect is lexically less than the argument.
-    * This is a strict weak ordering usable by STL sorting algorithms.
-    */
-    bool lexLT (const IntVect& s) const;
-    /**
-    * \brief Returns true if this IntVect is lexically greater than the argument.
-    * This is a strict weak ordering usable by STL sorting algorithms.
-    */
-    bool lexGT (const IntVect& s) const;
     //! Unary plus -- for completeness.
     const IntVect operator+ () const { return *this; }
     //! Unary Minus -- negates all components.

@@ -553,7 +553,7 @@ namespace
         bool operator () (const Box& lhs,
                           const Box& rhs) const
             {
-                return lhs.smallEnd().lexLT(rhs.smallEnd());
+                return lhs.smallEnd() < rhs.smallEnd();
             }
     };
 }
