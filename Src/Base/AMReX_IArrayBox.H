@@ -46,11 +46,17 @@ public:
                         int        ncomp=1,
 			bool       alloc=true,
 			bool       shared=false);
+    //!  The destructor.
+    ~IArrayBox () = default;
+
+    IArrayBox (IArrayBox&& rhs) = default;
+
+    IArrayBox (const IArrayBox&) = delete;
+    IArrayBox& operator= (const IArrayBox&) = delete;
+    IArrayBox& operator= (IArrayBox&&) = delete;
+
     //! Set the fab to the value r.
     IArrayBox& operator= (const int& r);
-
-    //!  The destructor.
-    ~IArrayBox ();
 
     //! For debugging purposes we hide BaseFab version and do some extra work.
     void resize (const Box& b,
@@ -80,9 +86,6 @@ private:
 
     static bool do_initval;
 
-    //! These are not allowed.
-    IArrayBox (const IArrayBox&);
-    IArrayBox& operator= (const IArrayBox&);
 };
 
 }
