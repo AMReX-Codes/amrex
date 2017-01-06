@@ -937,6 +937,8 @@ BoxArray::complement (const Box& bx) const
 
         Box cbx(sm,bg);
 
+	if (!cbx.intersects(m_ref->bbox)) return bl;
+
 	BARef::HashType::const_iterator TheEnd = BoxHashMap.end();
 
 	for (IntVect iv = cbx.smallEnd(), End = cbx.bigEnd(); 
