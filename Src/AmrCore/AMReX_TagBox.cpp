@@ -511,8 +511,8 @@ TagBoxArray::collate (std::vector<IntVect>& TheGlobalCollateSpace) const
         //
         // Remove duplicate IntVects.
         //
-	std::set<IntVect, IntVect::Compare> tmp (TheLocalCollateSpace.begin(),
-						 TheLocalCollateSpace.end());
+	std::set<IntVect> tmp (TheLocalCollateSpace.begin(),
+			       TheLocalCollateSpace.end());
 	TheLocalCollateSpace.assign( tmp.begin(), tmp.end() );
 	count = TheLocalCollateSpace.size();
     }
@@ -566,8 +566,8 @@ TagBoxArray::collate (std::vector<IntVect>& TheGlobalCollateSpace) const
         //
         // Remove yet more possible duplicate IntVects.
         //
-	std::set<IntVect, IntVect::Compare> tmp (TheGlobalCollateSpace.begin(),
-						 TheGlobalCollateSpace.end());
+	std::set<IntVect> tmp (TheGlobalCollateSpace.begin(),
+			       TheGlobalCollateSpace.end());
 	TheGlobalCollateSpace.assign( tmp.begin(), tmp.end() );
 	numtags = TheGlobalCollateSpace.size();
     }

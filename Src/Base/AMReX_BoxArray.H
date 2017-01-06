@@ -77,7 +77,7 @@ struct BARef
     
     mutable IntVect crsn;
     
-    using HashType = std::map< IntVect,std::vector<int>,IntVect::Compare >;
+    using HashType = std::map< IntVect,std::vector<int> >;
 
     mutable HashType hash;
     
@@ -396,7 +396,7 @@ public:
     static void RecvBoxArray(BoxArray &ba, int whichSidecar);
 #endif
 
-    using CBAMap   = std::map<IntVect, BoxArray*, IntVect::Compare>;
+    using CBAMap   = std::map<IntVect, BoxArray*>;
     using CBACache = std::map<ptrdiff_t, CBAMap>;
 
     static CBACache m_CoarseBoxArrayCache;
