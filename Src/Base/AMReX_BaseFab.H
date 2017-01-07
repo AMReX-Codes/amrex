@@ -1164,6 +1164,7 @@ BaseFab<T>::BaseFab (BaseFab<T>&& rhs) noexcept
     ptr_owner(rhs.ptr_owner),
     shared_memory(rhs.shared_memory)
 {
+    rhs.dptr = nullptr;
     rhs.ptr_owner = false;
 }
 
@@ -1212,14 +1213,14 @@ BaseFab<T>::clear ()
         //
         // Call T::~T() on the to-be-destroyed memory.
         //
-        T* ptr = dptr;
-
 	if (ptr_owner)
 	{
 	    if (shared_memory)
 	    {
 		amrex::Abort("BaseFab::clear: BaseFab cannot be owner of shared memory");
 	    }
+
+	    T* ptr = dptr;
 
 	    for (long i = 0; i < truesize; i++, ptr++)
 	    {
