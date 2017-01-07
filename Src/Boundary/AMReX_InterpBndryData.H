@@ -64,7 +64,7 @@ public:
     //
     InterpBndryData& operator= (const InterpBndryData& rhs);
 
-    InterpBndryData (InterpBndryData&& rhs) noexcept = default;
+    InterpBndryData (InterpBndryData&& rhs) = delete;
     InterpBndryData& operator= (InterpBndryData&& rhs) = delete;
 
     //
