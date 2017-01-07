@@ -90,7 +90,7 @@ public:
 
     virtual ~FabArrayBase();
 
-    FabArrayBase (FabArrayBase&& rhs) = default;
+    FabArrayBase (FabArrayBase&& rhs) noexcept = default;
     
     FabArrayBase (const FabArrayBase& rhs) = delete;
     FabArrayBase& operator= (const FabArrayBase& rhs) = delete;
