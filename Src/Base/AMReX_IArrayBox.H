@@ -49,7 +49,7 @@ public:
     //!  The destructor.
     ~IArrayBox () = default;
 
-    IArrayBox (IArrayBox&& rhs) = default;
+    IArrayBox (IArrayBox&& rhs) noexcept = default;
 
     IArrayBox (const IArrayBox&) = delete;
     IArrayBox& operator= (const IArrayBox&) = delete;
