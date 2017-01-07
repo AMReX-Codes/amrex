@@ -43,7 +43,7 @@ public:
     explicit TagBox (const Box& bx, int n = 1, bool alloc = true, bool shared = false);
 
     ~TagBox () = default;
-    TagBox (TagBox&& rhs) = default;
+    TagBox (TagBox&& rhs) noexcept = default;
 
     TagBox (const TagBox& rhs) = delete;
     TagBox& operator= (const TagBox& rhs) = delete;

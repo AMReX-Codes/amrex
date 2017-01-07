@@ -216,7 +216,7 @@ public:
     //!  The destructor.
     ~FArrayBox () = default;
     
-    FArrayBox (FArrayBox&& rhs) = default;
+    FArrayBox (FArrayBox&& rhs) noexcept = default;
 
     FArrayBox (const FArrayBox&) = delete;
     FArrayBox& operator= (const FArrayBox&) = delete;
