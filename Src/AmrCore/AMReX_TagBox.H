@@ -119,6 +119,15 @@ public:
     // The constructor.
     //
     TagBoxArray (const BoxArray& bs, const DistributionMapping& dm, int _ngrow=0);
+
+    ~TagBoxArray () override = default;
+
+    TagBoxArray (TagBoxArray&& rhs) noexcept = default;
+
+    TagBoxArray (const TagBoxArray& rhs) = delete;
+    TagBoxArray& operator= (const TagBoxArray& rhs) = delete;
+    TagBoxArray& operator= (TagBoxArray&& rhs) = delete;
+
     //
     // Returns the grow factor for the TagBoxArray.
     //
@@ -160,10 +169,6 @@ public:
 
     virtual void AddProcsToComp (int ioProcNumSCS, int ioProcNumAll,
                                  int scsMyId, MPI_Comm scsComm);
-
-private:
-    TagBoxArray (const TagBoxArray& rhs) = delete;
-    TagBoxArray& operator= (const TagBoxArray& rhs) = delete;
 };
 
 }
