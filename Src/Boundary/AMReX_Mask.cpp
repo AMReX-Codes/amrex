@@ -20,8 +20,6 @@ Mask::Mask (const Box& bx,
     :
     BaseFab<int>(bx,nc,alloc,shared) {}
 
-Mask::~Mask () {}
-
 Mask::Mask (std::istream& is)
 {
     readFrom(is);

@@ -34,18 +34,23 @@ public:
     //
     // allocating constructor (nc=number of components)
     //
-    Mask (const Box& bx,
-          int        nc = 1,
-	  bool       alloc=true,
-	  bool       shared=false);
+    explicit Mask (const Box& bx,
+		   int        nc = 1,
+		   bool       alloc=true,
+		   bool       shared=false);
     //
     // construct from input stream
     //
-    Mask (std::istream& is);
-    //
-    // destructor
-    //
-    ~Mask ();
+    explicit Mask (std::istream& is);
+
+    ~Mask () = default;
+
+    Mask (Mask&& rhs) noexcept = default;
+
+    Mask (const Mask&) = delete;
+    Mask& operator= (const Mask&) = delete;
+    Mask& operator= (Mask&&) = delete;
+
     //
     // Initialize from stream.
     //
@@ -128,12 +133,6 @@ public:
               int         srccomp,
               int         destcomp,
               int         numcomp = 1);
-private:
-    //
-    // Disallow copy constructor and operator.
-    //
-    Mask& operator= (const Mask&);
-    Mask (const Mask&);
 };
 
 }

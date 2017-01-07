@@ -21,6 +21,14 @@ public:
     MultiMask (const BoxArray& regba, const DistributionMapping& dm, const Geometry& geom,
 	       Orientation face, int in_rad, int out_rad, int extent_rad, int ncomp, bool initval);
 
+    ~MultiMask () = default;
+
+    MultiMask (MultiMask&& rhs) noexcept = default;
+
+    MultiMask (const MultiMask& rhs) = delete;
+    MultiMask& operator= (const MultiMask& rhs) = delete;
+    MultiMask& operator= (MultiMask&& rhs) = delete;
+
     Mask& operator[] (const MFIter& mfi) { return m_fa[mfi]; }
     const Mask& operator[] (const MFIter& mfi) const { return m_fa[mfi]; }
 
@@ -37,12 +45,6 @@ public:
 private:
 
     FabArray<Mask> m_fa;
-
-    //
-    // These are disabled.
-    //
-    MultiMask (const MultiMask& rhs);
-    MultiMask& operator= (const MultiMask& rhs);
 };
 
 class MultiMaskIter
