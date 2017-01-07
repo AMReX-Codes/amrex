@@ -59,7 +59,7 @@ Laplacian::compFlux (D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflux),
 #endif
 #endif
 	          &num_comp,
-		  h[level],
+		  h[level].data(),
 		  xfab.dataPtr(dst_comp),
 		  ARLIM(xfab.loVect()), ARLIM(xfab.hiVect())
 #if (BL_SPACEDIM >= 2)
@@ -157,7 +157,7 @@ Laplacian::Fsmooth (MultiFab&       solnL,
             m3.dataPtr(), 
             ARLIM(m3.loVect()), ARLIM(m3.hiVect()),
 	    tbx.loVect(), tbx.hiVect(), vbx.loVect(), vbx.hiVect(),
-            &nc, h[level], &redBlackFlag);
+            &nc, h[level].data(), &redBlackFlag);
 #endif
 
 #if (BL_SPACEDIM == 3)
@@ -191,7 +191,7 @@ Laplacian::Fsmooth (MultiFab&       solnL,
             m5.dataPtr(), 
             ARLIM(m5.loVect()), ARLIM(m5.hiVect()),
 	    tbx.loVect(), tbx.hiVect(), vbx.loVect(), vbx.hiVect(),
-	    &nc, h[level], &redBlackFlag);
+	    &nc, h[level].data(), &redBlackFlag);
 #endif
     }
 }
@@ -239,7 +239,7 @@ Laplacian::Fapply (MultiFab&       y,
                    xfab.dataPtr(src_comp), 
                    ARLIM(xfab.loVect()), ARLIM(xfab.hiVect()),
                    tbx.loVect(), tbx.hiVect(), &num_comp,
-                   h[level]);
+                   h[level].data());
     }
 }
 

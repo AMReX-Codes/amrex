@@ -33,6 +33,13 @@ public:
     // The destructor.
     //
     virtual ~FluxRegister ();
+
+    FluxRegister (FluxRegister&& rhs) noexcept = default;
+
+    FluxRegister (const FluxRegister& rhs) = delete;
+    FluxRegister& operator= (const FluxRegister& rhs) = delete;
+    FluxRegister& operator= (FluxRegister&& rhs) = delete;
+
     //
     // An enum that says whether to add or copy src data to members.
     //

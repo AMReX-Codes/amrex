@@ -63,6 +63,10 @@ public:
     // Copy assignment operator.
     //
     InterpBndryData& operator= (const InterpBndryData& rhs);
+
+    InterpBndryData (InterpBndryData&& rhs) noexcept = default;
+    InterpBndryData& operator= (InterpBndryData&& rhs) = delete;
+
     //
     // interpret user BCs to those expected by LinOp: takes integer ratio and
     // is a wrapper to the IntVect version

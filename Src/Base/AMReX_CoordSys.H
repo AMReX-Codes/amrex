@@ -31,7 +31,13 @@ public:
     CoordSys ();
 
     //! Construct, specify a cell size, and low end of index range.
-    CoordSys (const Real* cell_dx);
+    explicit CoordSys (const Real* cell_dx);
+
+    ~CoordSys () = default;
+    CoordSys (const CoordSys& rhs) = default;
+    CoordSys (CoordSys&& rhs) noexcept = default;
+    CoordSys& operator= (const CoordSys& rhs) = default;
+    CoordSys& operator= (CoordSys&& rhs) = default;
 
     //! Initialize after construction.
     void define (const Real* cell_dx);

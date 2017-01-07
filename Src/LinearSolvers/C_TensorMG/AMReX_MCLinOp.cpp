@@ -250,7 +250,7 @@ MCLinOp::applyBC (MultiFab& inout,
 		exttdptr, ARLIM(fslo), ARLIM(fshi),
 		tdfab.dataPtr(),ARLIM(tdfab.loVect()),ARLIM(tdfab.hiVect()),
 		iobx.loVect(), iobx.hiVect(),
-		&nc, h[level]);
+		&nc, h[level].data());
 #elif BL_SPACEDIM==3
 	    const Mask& mn = (*maskvals[level][Orientation(1,Orientation::high)])[mfi];
 	    const Mask& me = (*maskvals[level][Orientation(0,Orientation::high)])[mfi];
@@ -275,7 +275,7 @@ MCLinOp::applyBC (MultiFab& inout,
 		exttdptr, ARLIM(fslo), ARLIM(fshi),
 		tdfab.dataPtr(),ARLIM(tdfab.loVect()),ARLIM(tdfab.hiVect()),
 		iobx.loVect(), iobx.hiVect(),
-		&nc, h[level]);
+		&nc, h[level].data());
 #endif
 	}
     }

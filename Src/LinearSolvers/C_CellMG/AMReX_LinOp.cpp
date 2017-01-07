@@ -253,7 +253,7 @@ LinOp::applyBC (MultiFab&      inout,
                          ffab.dataPtr(),
                          ARLIM(ffab.loVect()), ARLIM(ffab.hiVect()),
                          vbx.loVect(),
-                         vbx.hiVect(), &num_comp, h[level]);
+                         vbx.hiVect(), &num_comp, h[level].data());
         }
     }
 }
@@ -549,7 +549,7 @@ LinOp::getGeom (int level)
 const Real * 
 LinOp::getDx (int level)
 {
-    return h[level];
+    return h[level].data();
 }
 
 Real

@@ -35,11 +35,17 @@ public:
     //! The default constructor.
     Geometry ();
     //! Constructor taking the rectangular domain.
-    Geometry (const Box&     dom,
-              const RealBox* rb     =  0,
-              int            coord  = -1,
-              int*           is_per =  0);
-    
+    explicit Geometry (const Box&     dom,
+		       const RealBox* rb     =  0,
+		       int            coord  = -1,
+		       int*           is_per =  0);
+
+    ~Geometry () = default;
+    Geometry (const Geometry& rhs) = default;
+    Geometry (Geometry&& rhs) noexcept = default;
+    Geometry& operator= (const Geometry& rhs) = default;
+    Geometry& operator= (Geometry&& rhs) = default;
+
     static void Finalize ();
     //! Read static values from ParmParse database.
     static void Setup (const RealBox* rb = 0, int coord = -1, int* is_per = 0);
