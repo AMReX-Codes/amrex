@@ -89,6 +89,13 @@ public:
     FabArrayBase ();
 
     virtual ~FabArrayBase();
+
+    FabArrayBase (FabArrayBase&& rhs) = default;
+    
+    FabArrayBase (const FabArrayBase& rhs) = delete;
+    FabArrayBase& operator= (const FabArrayBase& rhs) = delete;
+    FabArrayBase& operator= (FabArrayBase&& rhs) = delete;    
+
     //
     // Returns the grow factor that defines the region of definition.
     //
@@ -800,6 +807,13 @@ public:
     // The destructor -- deletes all FABs in the array.
     //
     virtual ~FabArray ();
+
+    FabArray (FabArray<FAB>&& rhs) noexcept;
+
+    FabArray (const FabArray<FAB>& rhs) = delete;
+    FabArray<FAB>& operator= (const FabArray<FAB>& rhs) = delete;
+    FabArray<FAB>& operator= (FabArray<FAB>&& rhs) = delete;
+
     //
     // Define this FabArray identically to that performed by
     // the constructor having an analogous function signature.
@@ -1051,6 +1065,9 @@ public:
 
 
 protected:
+
+    bool moved = false;
+
     //
     // The data.
     //
@@ -1080,6 +1097,24 @@ protected:
 	    if (alloc)
 		amrex::update_fab_stats(-n_points, -n_values, sizeof(value_type));
 	}
+	ShMem (ShMem&& rhs) noexcept
+                 : alloc(rhs.alloc), n_values(rhs.n_values), n_points(rhs.n_points)
+#ifdef BL_USE_UPCXX
+		 , p(rhs.p)
+#elif defined(BL_USE_MPI3)
+		 , win(rhs.win)
+#endif
+	{
+	    rhs.alloc = false;
+#ifdef BL_USE_UPCXX
+	    rhs.p = nullptr;
+#elif defined(BL_USE_MPI3)
+	    rhs.win = MPI_WIN_NULL;
+#endif
+	}
+	ShMem (const ShMem&) = delete;
+	ShMem& operator= (const ShMem&) = delete;
+	ShMem& operator= (ShMem&&) = delete;
 	bool  alloc;
 	long  n_values;
 	long  n_points;
@@ -1095,9 +1130,6 @@ protected:
 
 private:
     typedef typename std::vector<FAB*>::iterator    Iterator;
-
-    FabArray (const FabArray<FAB>&) = delete;
-    FabArray<FAB>& operator= (const FabArray<FAB>&) = delete;
 
     void AllocFabs ();
 
@@ -1554,36 +1586,49 @@ FabArray<FAB>::FabArray (const BoxArray&            bxs,
 }
 
 template <class FAB>
+FabArray<FAB>::FabArray (FabArray<FAB>&& rhs) noexcept
+    : FabArrayBase (std::move(rhs))
+    , m_fabs_v     (std::move(rhs.m_fabs_v))
+    , shmem        (std::move(rhs.shmem))
+    // no need to worry about the data used in non-blocking FillBoundary.
+{
+    rhs.moved = true;
+}
+
+template <class FAB>
 FabArray<FAB>::~FabArray ()
 {
-    m_FA_stats.recordDelete();
+    if (!moved)
+    {
+	m_FA_stats.recordDelete();
 
-    typename std::map<int, std::map<int, FabArray<FAB> *> >::iterator afapIter = 
-                 FabArray<FAB>::allocatedFAPointers.find(distributionMap.size());
-    if(afapIter == FabArray<FAB>::allocatedFAPointers.end()) {
+	typename std::map<int, std::map<int, FabArray<FAB> *> >::iterator afapIter = 
+	    FabArray<FAB>::allocatedFAPointers.find(distributionMap.size());
+	if(afapIter == FabArray<FAB>::allocatedFAPointers.end()) {
 #ifdef DEBUG_AFAP
-      if(ParallelDescriptor::IOProcessor(this->color()) && distributionMap.size() > 0) {
-        std::cout << "**** In FabArray::clear():: map not found:  size = "
-                  << distributionMap.size() << std::endl;
-      }
+	    if(ParallelDescriptor::IOProcessor(this->color()) && distributionMap.size() > 0) {
+		std::cout << "**** In FabArray::clear():: map not found:  size = "
+			  << distributionMap.size() << std::endl;
+	    }
 #endif
-    } else {
-      std::map<int, FabArray<FAB> *> &faPtrCachedMap = afapIter->second;
-      faPtrCachedMap.erase(aFAPId);
+	} else {
+	    std::map<int, FabArray<FAB> *> &faPtrCachedMap = afapIter->second;
+	    faPtrCachedMap.erase(aFAPId);
 #ifdef DEBUG_AFAP
-      if(ParallelDescriptor::IOProcessor() && faPtrCachedMap.size() == 0) {
-        std::cout << "**** In FabArray::~FabArray()::  size distmapngrids = "
-                  << faPtrCachedMap.size() << "  " << afapIter-> first << std::endl;
-      }
+	    if(ParallelDescriptor::IOProcessor() && faPtrCachedMap.size() == 0) {
+		std::cout << "**** In FabArray::~FabArray()::  size distmapngrids = "
+			  << faPtrCachedMap.size() << "  " << afapIter-> first << std::endl;
+	    }
 #endif
-      if(faPtrCachedMap.size() == 0) {  //---- delete unused maps
-        FabArray<FAB>::allocatedFAPointers.erase(afapIter);
-      }
+	    if(faPtrCachedMap.size() == 0) {  //---- delete unused maps
+		FabArray<FAB>::allocatedFAPointers.erase(afapIter);
+	    }
+	}
+
+	noallocFAPIds.erase(aFAPId);
+
+	clear();
     }
-
-    noallocFAPIds.erase(aFAPId);
-
-    clear();
 }
 
 template <class FAB>
