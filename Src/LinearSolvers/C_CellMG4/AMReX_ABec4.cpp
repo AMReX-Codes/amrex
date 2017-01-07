@@ -129,7 +129,7 @@ ABec4::applyBC (MultiFab&     inout,
             FabSet&       f   = (*undrrelxr[level])[o];
             int           cdr = o;
             const FabSet& fs  = bgb->bndryValues(o);
-            const Mask&   m   = local ? (*lmaskvals[level][o])[mfi] : (*maskvals[level][o])[mfi];
+            const Mask&   m   = local ? lmaskvals[level][o][mfi] : maskvals[level][o][mfi];
             Real          bcl = bdl[o];
             BL_ASSERT(bdc[o].size()>bndry_comp);
             int           bct = bdc[o][bndry_comp];

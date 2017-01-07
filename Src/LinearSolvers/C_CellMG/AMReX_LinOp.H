@@ -290,12 +290,12 @@ protected:
     // Array (on level) of Arrays (on orientation) of MultiMasks for 
     // whether boundary Fabs are covered, not_covered, outside_domain
     //
-    Array<Array<std::unique_ptr<MultiMask> > > maskvals;
+    Array<Array<MultiMask> > maskvals;
     //
     // Similar to maskvals, but only for level 0.
     // It's only made if it's needed.  Currently used only in applyBC().
     //
-    Array<Array<std::unique_ptr<MultiMask> > > lmaskvals;
+    Array<Array<MultiMask> > lmaskvals;
     //
     // boundary data class
     //
