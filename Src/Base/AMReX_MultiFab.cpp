@@ -391,8 +391,10 @@ MultiFab::MultiFab (const BoxArray&            bxs,
 MultiFab::~MultiFab()
 {
 #ifdef BL_MEM_PROFILING
-    --num_multifabs;
-#endif    
+    if (!moved) {
+	--num_multifabs;
+    }
+#endif
 }
 
 void
