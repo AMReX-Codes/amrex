@@ -74,9 +74,9 @@ BndryData::init (const BndryData& src)
     masks.resize(2*BL_SPACEDIM);
     for (int i = 0; i < 2*BL_SPACEDIM; i++)
     {
-	const MultiMask& smasks = *src.masks[i];
-	masks[i].reset(new MultiMask(smasks.boxArray(), smasks.DistributionMap(), smasks.nComp()));
-	MultiMask::Copy(*masks[i], smasks);
+	const MultiMask& smasks = src.masks[i];
+	masks[i].define(smasks.boxArray(), smasks.DistributionMap(), smasks.nComp());
+	MultiMask::Copy(masks[i], smasks);
     }
 }
 
@@ -138,8 +138,7 @@ BndryData::define (const BoxArray& _grids,
     {
         Orientation face = fi();
         BndryRegister::define(face,IndexType::TheCellType(),0,1,1,_ncomp,_dmap);
-	masks[face].reset(new MultiMask(grids, _dmap,
-					geom, face, 0, 2, NTangHalfWidth, 1, true));
+	masks[face].define(grids, _dmap, geom, face, 0, 2, NTangHalfWidth, 1, true);
     }
     //
     // Define "bcond" and "bcloc".

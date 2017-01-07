@@ -94,13 +94,13 @@ Laplacian::Fsmooth (MultiFab&       solnL,
 #endif
 
     oitr.rewind();
-    const MultiMask& mm0 = *maskvals[level][oitr()]; oitr++;
-    const MultiMask& mm1 = *maskvals[level][oitr()]; oitr++;
-    const MultiMask& mm2 = *maskvals[level][oitr()]; oitr++;
-    const MultiMask& mm3 = *maskvals[level][oitr()]; oitr++;
+    const MultiMask& mm0 = maskvals[level][oitr()]; oitr++;
+    const MultiMask& mm1 = maskvals[level][oitr()]; oitr++;
+    const MultiMask& mm2 = maskvals[level][oitr()]; oitr++;
+    const MultiMask& mm3 = maskvals[level][oitr()]; oitr++;
 #if (BL_SPACEDIM > 2)
-    const MultiMask& mm4 = *maskvals[level][oitr()]; oitr++;
-    const MultiMask& mm5 = *maskvals[level][oitr()]; oitr++;
+    const MultiMask& mm4 = maskvals[level][oitr()]; oitr++;
+    const MultiMask& mm5 = maskvals[level][oitr()]; oitr++;
 #endif
 
     const int nc = rhsL.nComp();

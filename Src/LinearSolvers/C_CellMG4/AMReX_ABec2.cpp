@@ -46,7 +46,7 @@ ABec2::altApplyBC (int  level,
 
             FabSet&       f   = (*undrrelxr[level])[o];
             int           cdr = o;
-            const Mask&   m   = local ? (*lmaskvals[level][o])[mfi] : (*maskvals[level][o])[mfi];
+            const Mask&   m   = local ? lmaskvals[level][o][mfi] : maskvals[level][o][mfi];
             Real          bcl = bdl[o];
             BL_ASSERT(bdc[o].size()>bndry_comp);
             int           bct = bdc[o][bndry_comp];
@@ -90,13 +90,13 @@ ABec2::Fsmooth (MultiFab&       solnL,
          const MultiFab& bZ = bCoefficients(2,level););
 
   oitr.rewind();
-  const MultiMask& mm0 = *maskvals[level][oitr()]; oitr++;
-  const MultiMask& mm1 = *maskvals[level][oitr()]; oitr++;
-  const MultiMask& mm2 = *maskvals[level][oitr()]; oitr++;
-  const MultiMask& mm3 = *maskvals[level][oitr()]; oitr++;
+  const MultiMask& mm0 = maskvals[level][oitr()]; oitr++;
+  const MultiMask& mm1 = maskvals[level][oitr()]; oitr++;
+  const MultiMask& mm2 = maskvals[level][oitr()]; oitr++;
+  const MultiMask& mm3 = maskvals[level][oitr()]; oitr++;
 #if (BL_SPACEDIM > 2)
-  const MultiMask& mm4 = *maskvals[level][oitr()]; oitr++;
-  const MultiMask& mm5 = *maskvals[level][oitr()]; oitr++;
+  const MultiMask& mm4 = maskvals[level][oitr()]; oitr++;
+  const MultiMask& mm5 = maskvals[level][oitr()]; oitr++;
 #endif
 
   const int nc = 1;
@@ -186,13 +186,13 @@ ABec2::Fsmooth_jacobi (MultiFab&       solnL,
          const MultiFab& bZ = bCoefficients(2,level););
 
   oitr.rewind();
-  const MultiMask& mm0 = *maskvals[level][oitr()]; oitr++;
-  const MultiMask& mm1 = *maskvals[level][oitr()]; oitr++;
-  const MultiMask& mm2 = *maskvals[level][oitr()]; oitr++;
-  const MultiMask& mm3 = *maskvals[level][oitr()]; oitr++;
+  const MultiMask& mm0 = maskvals[level][oitr()]; oitr++;
+  const MultiMask& mm1 = maskvals[level][oitr()]; oitr++;
+  const MultiMask& mm2 = maskvals[level][oitr()]; oitr++;
+  const MultiMask& mm3 = maskvals[level][oitr()]; oitr++;
 #if (BL_SPACEDIM > 2)
-  const MultiMask& mm4 = *maskvals[level][oitr()]; oitr++;
-  const MultiMask& mm5 = *maskvals[level][oitr()]; oitr++;
+  const MultiMask& mm4 = maskvals[level][oitr()]; oitr++;
+  const MultiMask& mm5 = maskvals[level][oitr()]; oitr++;
 #endif
 
   //const int nc = solnL.nComp(); // FIXME: This LinOp only really supports single-component

@@ -84,7 +84,7 @@ public:
                  int             ncomp,
                  const Geometry& geom);
     //
-    const MultiMask& bndryMasks (Orientation face) const { return *masks[face]; }
+    const MultiMask& bndryMasks (Orientation face) const { return masks[face]; }
     //
     // Return FabSet on given face.
     //
@@ -158,7 +158,7 @@ protected:
     //
     // Boundary condition mask
     //
-    Array<std::unique_ptr<MultiMask>> masks;
+    Array<MultiMask> masks;
     //
     // Domain used for mask definitions.
     //
