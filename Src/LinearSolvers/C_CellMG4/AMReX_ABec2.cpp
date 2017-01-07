@@ -60,7 +60,7 @@ ABec2::altApplyBC (int  level,
               ( vbx.loVect(), vbx.hiVect(),
                 BL_TO_FORTRAN(ffab),
                 BL_TO_FORTRAN(m),
-                &cdr, &bct, &bcl, &maxorder, h[level]);
+                &cdr, &bct, &bcl, &maxorder, h[level].data());
         }
     }
 }
@@ -159,7 +159,7 @@ ABec2::Fsmooth (MultiFab&       solnL,
         BL_TO_FORTRAN(f4fab), BL_TO_FORTRAN(m4),
         BL_TO_FORTRAN(f5fab), BL_TO_FORTRAN(m5),
 #endif
-        &nc, h[level], &redBlackFlag);
+        &nc, h[level].data(), &redBlackFlag);
 
   }
 }
@@ -251,7 +251,7 @@ ABec2::Fsmooth_jacobi (MultiFab&       solnL,
         BL_TO_FORTRAN(f4fab), BL_TO_FORTRAN(m4),
         BL_TO_FORTRAN(f5fab), BL_TO_FORTRAN(m5),
 #endif
-        &nc, h[level]);
+        &nc, h[level].data());
 
   }
 }

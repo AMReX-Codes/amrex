@@ -153,7 +153,7 @@ ABec4::applyBC (MultiFab&     inout,
 			  ffab.dataPtr(),
 			  ARLIM(ffab.loVect()), ARLIM(ffab.hiVect()),
 			  vbx.loVect(),
-			  vbx.hiVect(), &num_comp, h[level]);
+			  vbx.hiVect(), &num_comp, h[level].data());
         }
     }
 
@@ -440,7 +440,7 @@ ABec4::compFlux (D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflux),
 		  bfab.dataPtr(), 
 		  ARLIM(bfab.loVect()), ARLIM(bfab.hiVect()),
 		  &num_comp,
-		  h[level],
+		  h[level].data(),
 		  xbx.loVect(), xbx.hiVect(), 
 		  xfluxfab.dataPtr(dst_comp),
 		  ARLIM(xfluxfab.loVect()), ARLIM(xfluxfab.hiVect())
@@ -566,7 +566,7 @@ ABec4::Fapply (MultiFab&       y,
                    bfab.dataPtr(), 
                    ARLIM(bfab.loVect()), ARLIM(bfab.hiVect()),
                    tbx.loVect(), tbx.hiVect(), &num_comp,
-                   h[level]);
+                   h[level].data());
     }
   }
   else {

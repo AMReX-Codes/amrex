@@ -46,10 +46,15 @@ public:
     // Construct a FabSet of specified number of components on the grids.
     //
     FabSet (const BoxArray& grids, const DistributionMapping& dmap, int ncomp); 
-    //
-    // The destructor.
-    //
-    ~FabSet ();
+
+    ~FabSet () = default;
+
+    FabSet (FabSet&& rhs) noexcept = default;
+
+    FabSet (const FabSet& rhs) = delete;
+    FabSet& operator= (const FabSet& rhs) = delete;
+    FabSet& operator= (FabSet&& rhs) = delete;
+
     //
     // Define a FabSet constructed via default constructor.
     //

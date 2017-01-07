@@ -400,7 +400,7 @@ DivVis::Fsmooth (MultiFab&       solnL,
 	    ARLIM(tdbfab.loVect()),ARLIM(tdbfab.hiVect()),
 #endif
 	    vbx.loVect(), vbx.hiVect(),
-	    h[level], nc, phaseflag);
+	    h[level].data(), nc, phaseflag);
     }
 }
 
@@ -531,7 +531,7 @@ DivVis::compFlux (D_DECL(MultiFab& xflux,
 	    ARLIM(tdbfab.loVect()),ARLIM(tdbfab.hiVect()),
 #endif
 	    vbx.loVect(), vbx.hiVect(),
-	    h[level]);
+	    h[level].data());
     }
 }
 
@@ -648,7 +648,7 @@ DivVis::Fapply (MultiFab&       y,
 	    ARLIM(tdbfab.loVect()),ARLIM(tdbfab.hiVect()),
 #endif
 	    vbx.loVect(), vbx.hiVect(),
-	    h[level]);
+	    h[level].data());
     }
 }
 

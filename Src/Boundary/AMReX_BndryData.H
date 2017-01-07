@@ -76,6 +76,11 @@ public:
     // copy assignment operator
     //
     BndryData& operator= (const BndryData& src);
+
+    BndryData (BndryData&& rhs) = default;
+
+    BndryData& operator= (BndryData&& rhs) = delete;
+
     //
     // alocate bndry fabs along given face
     //
@@ -92,7 +97,7 @@ public:
     //
     // Some useful typedefs
     //
-    typedef Tuple<Real,2*BL_SPACEDIM> RealTuple;
+    using RealTuple = Tuple<Real,2*BL_SPACEDIM>;
 
     //
     // Return boundary location on given face for grids we own.

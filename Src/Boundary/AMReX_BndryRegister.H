@@ -90,6 +90,11 @@ public:
     // The destructor.
     //
     virtual ~BndryRegister();
+
+    BndryRegister (BndryRegister&& rhs) noexcept = default;
+
+    BndryRegister& operator= (BndryRegister&& rhs) = delete;
+
     //
     // Get box domain (as an array of boxes).
     //
