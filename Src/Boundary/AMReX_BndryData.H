@@ -77,8 +77,7 @@ public:
     //
     BndryData& operator= (const BndryData& src);
 
-    BndryData (BndryData&& rhs) = default;
-
+    BndryData (BndryData&& rhs) = delete;
     BndryData& operator= (BndryData&& rhs) = delete;
 
     //

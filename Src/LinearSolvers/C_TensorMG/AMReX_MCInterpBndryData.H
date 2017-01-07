@@ -54,6 +54,14 @@ public:
 		       const DistributionMapping& _dmap,
 		       int             _ncomp,
 		       const Geometry& geom);
+
+    virtual ~MCInterpBndryData () = default;
+
+    MCInterpBndryData (MCInterpBndryData&& rhs) = delete;
+    MCInterpBndryData (const MCInterpBndryData& rhs) = delete;
+    MCInterpBndryData& operator= (const MCInterpBndryData& rhs) = delete;
+    MCInterpBndryData& operator= (MCInterpBndryData&& rhs) = delete;
+
     //
     // Interpret user BCs to those expected by LinOp.
     //
