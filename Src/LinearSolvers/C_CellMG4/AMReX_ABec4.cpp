@@ -126,7 +126,7 @@ ABec4::applyBC (MultiFab&     inout,
         {
             const Orientation o = oitr();
 
-            FabSet&       f   = (*undrrelxr[level])[o];
+            FabSet&       f   = undrrelxr[level][o];
             int           cdr = o;
             const FabSet& fs  = bgb->bndryValues(o);
             const Mask&   m   = local ? lmaskvals[level][o][mfi] : maskvals[level][o][mfi];

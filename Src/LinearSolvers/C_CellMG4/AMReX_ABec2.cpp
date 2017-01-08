@@ -44,7 +44,7 @@ ABec2::altApplyBC (int  level,
         {
             const Orientation o = oitr();
 
-            FabSet&       f   = (*undrrelxr[level])[o];
+            FabSet&       f   = undrrelxr[level][o];
             int           cdr = o;
             const Mask&   m   = local ? lmaskvals[level][o][mfi] : maskvals[level][o][mfi];
             Real          bcl = bdl[o];
@@ -75,13 +75,13 @@ ABec2::Fsmooth (MultiFab&       solnL,
 {
   OrientationIter oitr;
 
-  const FabSet& f0 = (*undrrelxr[level])[oitr()]; oitr++;
-  const FabSet& f1 = (*undrrelxr[level])[oitr()]; oitr++;
-  const FabSet& f2 = (*undrrelxr[level])[oitr()]; oitr++;
-  const FabSet& f3 = (*undrrelxr[level])[oitr()]; oitr++;
+  const FabSet& f0 = undrrelxr[level][oitr()]; oitr++;
+  const FabSet& f1 = undrrelxr[level][oitr()]; oitr++;
+  const FabSet& f2 = undrrelxr[level][oitr()]; oitr++;
+  const FabSet& f3 = undrrelxr[level][oitr()]; oitr++;
 #if (BL_SPACEDIM > 2)
-  const FabSet& f4 = (*undrrelxr[level])[oitr()]; oitr++;
-  const FabSet& f5 = (*undrrelxr[level])[oitr()]; oitr++;
+  const FabSet& f4 = undrrelxr[level][oitr()]; oitr++;
+  const FabSet& f5 = undrrelxr[level][oitr()]; oitr++;
 #endif    
   const MultiFab& a = aCoefficients(level);
 
@@ -171,13 +171,13 @@ ABec2::Fsmooth_jacobi (MultiFab&       solnL,
 {
   OrientationIter oitr;
 
-  const FabSet& f0 = (*undrrelxr[level])[oitr()]; oitr++;
-  const FabSet& f1 = (*undrrelxr[level])[oitr()]; oitr++;
-  const FabSet& f2 = (*undrrelxr[level])[oitr()]; oitr++;
-  const FabSet& f3 = (*undrrelxr[level])[oitr()]; oitr++;
+  const FabSet& f0 = undrrelxr[level][oitr()]; oitr++;
+  const FabSet& f1 = undrrelxr[level][oitr()]; oitr++;
+  const FabSet& f2 = undrrelxr[level][oitr()]; oitr++;
+  const FabSet& f3 = undrrelxr[level][oitr()]; oitr++;
 #if (BL_SPACEDIM > 2)
-  const FabSet& f4 = (*undrrelxr[level])[oitr()]; oitr++;
-  const FabSet& f5 = (*undrrelxr[level])[oitr()]; oitr++;
+  const FabSet& f4 = undrrelxr[level][oitr()]; oitr++;
+  const FabSet& f5 = undrrelxr[level][oitr()]; oitr++;
 #endif    
   const MultiFab& a = aCoefficients(level);
 

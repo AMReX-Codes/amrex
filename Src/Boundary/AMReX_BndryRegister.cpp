@@ -14,18 +14,33 @@ BndryRegister::BndryRegister () {}
 
 BndryRegister::~BndryRegister () {}
 
-BndryRegister::BndryRegister (const BoxArray& grids,
+BndryRegister::BndryRegister (const BoxArray& grids_,
 			      const DistributionMapping& dmap,
                               int             in_rad,
                               int             out_rad,
                               int             extent_rad,
                               int             ncomp)
     :
-    grids(grids)
+    grids(grids_)
 {
     BL_ASSERT(ncomp > 0);
     BL_ASSERT(grids[0].cellCentered());
 
+    for (OrientationIter face; face; ++face)
+    {
+        define(face(),IndexType::TheCellType(),in_rad,out_rad,extent_rad,ncomp,dmap);
+    }
+}
+
+void
+BndryRegister::define (const BoxArray& grids_,
+		       const DistributionMapping& dmap,
+		       int             in_rad,
+		       int             out_rad,
+		       int             extent_rad,
+		       int             ncomp)
+{
+    grids = grids_;
     for (OrientationIter face; face; ++face)
     {
         define(face(),IndexType::TheCellType(),in_rad,out_rad,extent_rad,ncomp,dmap);
@@ -143,11 +158,11 @@ BndryBATransformer::operator== (const BndryBATransformer& rhs) const
 
 void
 BndryRegister::define (Orientation _face,
-                       IndexType   _typ,
-                       int         _in_rad,
-                       int         _out_rad,
-                       int         _extent_rad,
-                       int         _ncomp,
+		       IndexType   _typ,
+		       int         _in_rad,
+		       int         _out_rad,
+		       int         _extent_rad,
+		       int         _ncomp,
 		       const DistributionMapping& dmap)
 {
     BndryBATransformer bbatrans(_face,_typ,_in_rad,_out_rad,_extent_rad);

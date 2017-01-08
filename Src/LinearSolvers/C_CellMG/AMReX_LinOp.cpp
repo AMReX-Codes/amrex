@@ -137,7 +137,7 @@ LinOp::initConstruct (const Real* _h)
         h[level][i] = _h[i];
     }
     undrrelxr.resize(1);
-    undrrelxr[0].reset(new BndryRegister(gbox[level], bgb->DistributionMap(), 1, 0, 0, 1));
+    undrrelxr[0].define(gbox[level], bgb->DistributionMap(), 1, 0, 0, 1);
 
     maskvals.resize(1);
     maskvals[0].resize(2*BL_SPACEDIM);
@@ -226,7 +226,7 @@ LinOp::applyBC (MultiFab&      inout,
         {
             const Orientation o = oitr();
 
-            FabSet&       f   = (*undrrelxr[level])[o];
+            FabSet&       f   = undrrelxr[level][o];
             int           cdr = o;
             const FabSet& fs  = bgb->bndryValues(o);
             const Mask&   m   = local ? lmaskvals[level][o][mfi] : maskvals[level][o][mfi];
@@ -333,7 +333,7 @@ LinOp::prepareForLevel (int level)
     //
     BL_ASSERT(undrrelxr.size() == level);
     undrrelxr.resize(level+1);
-    undrrelxr[level].reset(new BndryRegister(gbox[level], bgb->DistributionMap(), 1, 0, 0, 1));
+    undrrelxr[level].define(gbox[level], bgb->DistributionMap(), 1, 0, 0, 1);
     //
     // Add an Array of Array of maskvals to the new coarser level
     // For each orientation, build NULL masks, then use distributed allocation

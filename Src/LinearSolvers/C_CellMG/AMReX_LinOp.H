@@ -285,7 +285,7 @@ protected:
     // Array (on level) of pointers to BndryRegisters along each grid
     //  for scratch data required to modify internal stencil on boundary
     //
-    Array< std::unique_ptr<BndryRegister> > undrrelxr;
+    Array<BndryRegister> undrrelxr;
     //
     // Array (on level) of Arrays (on orientation) of MultiMasks for 
     // whether boundary Fabs are covered, not_covered, outside_domain

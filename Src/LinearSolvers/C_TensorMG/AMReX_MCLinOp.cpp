@@ -126,8 +126,8 @@ MCLinOp::initConstruct (const Real* _h)
     {
 	const Orientation face = oitr();
 	const MultiMask& m = bgb.bndryMasks(face);
-	maskvals[0][face].reset(new MultiMask(m.boxArray(), m.DistributionMap(), 1));
-	MultiMask::Copy(*maskvals[0][face], m);
+	maskvals[0][face].define(m.boxArray(), m.DistributionMap(), 1);
+	MultiMask::Copy(maskvals[0][face], m);
     }
 }
 
@@ -206,8 +206,8 @@ MCLinOp::applyBC (MultiFab& inout,
         for (OrientationIter oitr; oitr; ++oitr)
         {
             const Orientation face = oitr();
-            FabSet& f  = (*undrrelxr[level])[face];
-            FabSet& td = (*tangderiv[level])[face];
+            FabSet& f  = undrrelxr[level][face];
+            FabSet& td = tangderiv[level][face];
             int cdr(face);
             const FabSet& fs = bgb.bndryValues(face);
 	    Real bcl = bdl[face];
@@ -233,9 +233,9 @@ MCLinOp::applyBC (MultiFab& inout,
 	    else
                 amrex::Abort("MCLinOp::applyBC(): bad logic");
 
-            const Mask& m    = (*maskvals[level][face])[mfi];
-	    const Mask& mphi = (*maskvals[level][Orientation(perpdir,Orientation::high)])[mfi];
-	    const Mask& mplo = (*maskvals[level][Orientation(perpdir,Orientation::low) ])[mfi];
+            const Mask& m    = maskvals[level][face][mfi];
+	    const Mask& mphi = maskvals[level][Orientation(perpdir,Orientation::high)][mfi];
+	    const Mask& mplo = maskvals[level][Orientation(perpdir,Orientation::low) ][mfi];
 	    FORT_APPLYBC(
 		&flagden, &flagbc, &maxorder,
 		inoutfab.dataPtr(), 
@@ -252,12 +252,12 @@ MCLinOp::applyBC (MultiFab& inout,
 		iobx.loVect(), iobx.hiVect(),
 		&nc, h[level].data());
 #elif BL_SPACEDIM==3
-	    const Mask& mn = (*maskvals[level][Orientation(1,Orientation::high)])[mfi];
-	    const Mask& me = (*maskvals[level][Orientation(0,Orientation::high)])[mfi];
-	    const Mask& mw = (*maskvals[level][Orientation(0,Orientation::low) ])[mfi];
-	    const Mask& ms = (*maskvals[level][Orientation(1,Orientation::low) ])[mfi];
-	    const Mask& mt = (*maskvals[level][Orientation(2,Orientation::high)])[mfi];
-	    const Mask& mb = (*maskvals[level][Orientation(2,Orientation::low) ])[mfi];
+	    const Mask& mn = maskvals[level][Orientation(1,Orientation::high)][mfi];
+	    const Mask& me = maskvals[level][Orientation(0,Orientation::high)][mfi];
+	    const Mask& mw = maskvals[level][Orientation(0,Orientation::low) ][mfi];
+	    const Mask& ms = maskvals[level][Orientation(1,Orientation::low) ][mfi];
+	    const Mask& mt = maskvals[level][Orientation(2,Orientation::high)][mfi];
+	    const Mask& mb = maskvals[level][Orientation(2,Orientation::low) ][mfi];
 	    FORT_APPLYBC(
 		&flagden, &flagbc, &maxorder,
 		inoutfab.dataPtr(), 
@@ -356,7 +356,7 @@ MCLinOp::prepareForLevel (int level)
     //
     BL_ASSERT(undrrelxr.size() == level);
     undrrelxr.resize(level+1);
-    undrrelxr[level].reset(new BndryRegister(gbox[level], DistributionMap(), 1, 0, 0, numcomp));
+    undrrelxr[level].define(gbox[level], DistributionMap(), 1, 0, 0, numcomp);
     //
     // Add the BndryRegister to hold tagential derivatives to the new
     // coarser level.
@@ -366,8 +366,8 @@ MCLinOp::prepareForLevel (int level)
     //
     // Figure out how many components.
     //
-    const FabSet& samplefs = (*tangderiv[level-1])[Orientation(0,Orientation::low)];
-    tangderiv[level].reset(new BndryRegister(gbox[level], DistributionMap(), 0,1,0,samplefs.nComp()));
+    const FabSet& samplefs = tangderiv[level-1][Orientation(0,Orientation::low)];
+    tangderiv[level].define(gbox[level], DistributionMap(), 0,1,0,samplefs.nComp());
     //
     // Add an Array of Array of maskvals to the new coarser level
     // For each orientation, build NULL masks, then use distributed allocation
@@ -381,10 +381,10 @@ MCLinOp::prepareForLevel (int level)
     for (OrientationIter fi; fi; ++fi)
     {
         Orientation face = fi();
-	maskvals[level][face].reset(new MultiMask(gbox[level], 
-						  DistributionMap(),
-						  geomarray[level],
-						  face, 0, 1, 1, 1, true));
+	maskvals[level][face].define(gbox[level], 
+				     DistributionMap(),
+				     geomarray[level],
+				     face, 0, 1, 1, 1, true);
     }
 }
 
@@ -529,9 +529,9 @@ operator<< (std::ostream&  os,
 		{
 		    const Orientation face = oitr();
 
-		    for (MultiMaskIter mmi(*lp.maskvals[level][face]); mmi.isValid(); ++mmi)
+		    for (MultiMaskIter mmi(lp.maskvals[level][face]); mmi.isValid(); ++mmi)
 		    {
-                        os << (*lp.maskvals[level][face])[mmi];
+                        os << lp.maskvals[level][face][mmi];
                     }
 		}
 	    }
