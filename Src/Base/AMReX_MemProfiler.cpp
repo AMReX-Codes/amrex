@@ -28,7 +28,7 @@ MemProfiler::add (const std::string& name, std::function<MemInfo()>&& f)
         amrex::Abort(s.c_str());
     }
     mprofiler.the_names.push_back(name);
-    mprofiler.the_funcs.push_back(std::forward<std::function<MemInfo()> >(f));
+    mprofiler.the_funcs.push_back(std::move(f));
 }
 
 void 
@@ -41,7 +41,7 @@ MemProfiler::add (const std::string& name, std::function<NBuildsInfo()>&& f)
         amrex::Abort(s.c_str());
     }
     mprofiler.the_names_builds.push_back(name);
-    mprofiler.the_funcs_builds.push_back(std::forward<std::function<NBuildsInfo()> >(f));
+    mprofiler.the_funcs_builds.push_back(std::move(f));
 }
 
 MemProfiler& 
