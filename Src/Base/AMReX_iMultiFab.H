@@ -44,6 +44,14 @@ public:
 	       int                        ngrow,
 	       const MFInfo&              info = MFInfo());
 
+    virtual ~iMultiFab () override = default;
+    
+    iMultiFab (iMultiFab&& rhs) noexcept = default;
+
+    iMultiFab (const iMultiFab& rhs) = delete;
+    iMultiFab& operator= (const iMultiFab& rhs) = delete;
+    iMultiFab& operator= (iMultiFab&& rhs) = delete;
+
     void operator= (const int& r);
     //
     // Returns the minimum value contained in component comp of the
@@ -338,13 +346,6 @@ public:
 
     static void Initialize ();
     static void Finalize ();
-
-private:
-    //
-    // These are disabled.
-    //
-    iMultiFab (const iMultiFab& rhs);
-    iMultiFab& operator= (const iMultiFab& rhs);
 };
 
 }

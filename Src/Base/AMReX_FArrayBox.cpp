@@ -349,8 +349,6 @@ FArrayBox::skipFAB (std::istream& is)
     skipFAB(is, ignore);
 }
 
-FArrayBox::~FArrayBox () {}
-
 void
 FArrayBox::setFormat (FABio::Format fmt)
 {

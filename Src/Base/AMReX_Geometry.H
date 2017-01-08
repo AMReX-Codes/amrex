@@ -39,10 +39,6 @@ public:
               const RealBox* rb     =  0,
               int            coord  = -1,
               int*           is_per =  0);
-    //! The copy constructor.
-    Geometry (const Geometry& g);
-    //! The destructor.
-    ~Geometry();
     
     static void Finalize ();
     //! Read static values from ParmParse database.

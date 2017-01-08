@@ -41,6 +41,14 @@ public:
     // Construct a TagBox on Box bx with number of components n.
     //
     explicit TagBox (const Box& bx, int n = 1, bool alloc = true, bool shared = false);
+
+    ~TagBox () = default;
+    TagBox (TagBox&& rhs) noexcept = default;
+
+    TagBox (const TagBox& rhs) = delete;
+    TagBox& operator= (const TagBox& rhs) = delete;
+    TagBox& operator= (TagBox&& rhs) = delete;
+
     //
     // Construct and return a new tagbox in which the coarsened cell
     // is tagged of any of the corresponding fine cells are tagged.
@@ -90,10 +98,6 @@ public:
     void get_itags(Array<int>& ar, const Box& tilebx) const;
     void tags (const Array<int>& ar, const Box& tilebx);
     void tags_and_untags (const Array<int>& ar, const Box&tilebx);
-
-private:
-    TagBox (const TagBox& rhs) = delete;
-    TagBox& operator= (const TagBox& rhs) = delete;
 };
 
 //
@@ -115,6 +119,15 @@ public:
     // The constructor.
     //
     TagBoxArray (const BoxArray& bs, const DistributionMapping& dm, int _ngrow=0);
+
+    ~TagBoxArray () override = default;
+
+    TagBoxArray (TagBoxArray&& rhs) noexcept = default;
+
+    TagBoxArray (const TagBoxArray& rhs) = delete;
+    TagBoxArray& operator= (const TagBoxArray& rhs) = delete;
+    TagBoxArray& operator= (TagBoxArray&& rhs) = delete;
+
     //
     // Returns the grow factor for the TagBoxArray.
     //
@@ -156,10 +169,6 @@ public:
 
     virtual void AddProcsToComp (int ioProcNumSCS, int ioProcNumAll,
                                  int scsMyId, MPI_Comm scsComm);
-
-private:
-    TagBoxArray (const TagBoxArray& rhs) = delete;
-    TagBoxArray& operator= (const TagBoxArray& rhs) = delete;
 };
 
 }

@@ -86,7 +86,13 @@ public:
               int                        ngrow,
 	      const MFInfo&              info = MFInfo());
 
-    virtual ~MultiFab() override;
+    virtual ~MultiFab () override;
+
+    MultiFab (MultiFab&& rhs) noexcept = default;
+
+    MultiFab (const MultiFab& rhs) = delete;
+    MultiFab& operator= (const MultiFab& rhs) = delete;
+    MultiFab& operator= (MultiFab&& rhs) = delete;
 
     virtual void define (const BoxArray&            bxs,
 			 const DistributionMapping& dm,
@@ -520,9 +526,6 @@ public:
                                  int scsMyId, MPI_Comm scsComm);
 
 private:
-    MultiFab (const MultiFab& rhs) = delete;
-    MultiFab& operator= (const MultiFab& rhs) = delete;
-
     //
     // Some useful typedefs.
     //
@@ -540,14 +543,10 @@ class MultiFabCopyDescriptor
 
     ~MultiFabCopyDescriptor ();
 
-    MultiFabId RegisterMultiFab (MultiFab* mf) { return RegisterFabArray(mf); }
+    MultiFabCopyDescriptor (const MultiFabCopyDescriptor&) = delete;
+    MultiFabCopyDescriptor& operator= (const MultiFabCopyDescriptor&) = delete;
 
-  private:
-    //
-    // These are disallowed.
-    //
-    MultiFabCopyDescriptor (const MultiFabCopyDescriptor&);
-    MultiFabCopyDescriptor& operator= (const MultiFabCopyDescriptor&);
+    MultiFabId RegisterMultiFab (MultiFab* mf) { return RegisterFabArray(mf); }
 };
 
 }
