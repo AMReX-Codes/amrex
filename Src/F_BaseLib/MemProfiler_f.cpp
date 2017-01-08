@@ -2,6 +2,8 @@
 #include <AMReX_MemProfiler.H>
 #include <MemProfiler_f.H>
 
+using namespace amrex;
+
 extern "C"
 {
     extern long memprof_fab_numdoubles ();

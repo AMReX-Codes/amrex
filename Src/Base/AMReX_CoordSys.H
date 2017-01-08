@@ -33,9 +33,6 @@ public:
     //! Construct, specify a cell size, and low end of index range.
     CoordSys (const Real* cell_dx);
 
-    //! The destructor.
-    ~CoordSys ();
-
     //! Initialize after construction.
     void define (const Real* cell_dx);
 

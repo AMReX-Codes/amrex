@@ -43,6 +43,11 @@ BARef::BARef (size_t size)
 #endif	    
 }
  
+BARef::BARef (const Box& b)
+{ 
+    define(b); 
+}
+
 BARef::BARef (const BoxList& bl)
 { 
     define(bl); 
