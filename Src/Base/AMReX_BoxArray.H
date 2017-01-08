@@ -15,16 +15,16 @@ namespace amrex
 {
     class BoxArray;
 
-    //! Makes a BoxArray from the the complement of b2 in b1in.
+    //! Make a BoxArray from the the complement of b2 in b1in.
     BoxArray boxComplement (const Box& b1in, const Box& b2);
 
-    //! Makes a BoxArray from the complement of BoxArray ba in Box b.
+    //! Make a BoxArray from the complement of BoxArray ba in Box b.
     BoxArray complementIn (const Box& b, const BoxArray& ba);
 
-    //! Makes a BoxArray from the intersection of Box b and BoxArray(+ghostcells).
+    //! Make a BoxArray from the intersection of Box b and BoxArray(+ghostcells).
     BoxArray intersect (const BoxArray& ba, const Box& b, int ng = 0);
 
-    //! Makes a BoxArray from the intersection of two BoxArrays.
+    //! Make a BoxArray from the intersection of two BoxArrays.
     BoxArray intersect (const BoxArray& lhs, const BoxArray& rhs);
 
     BoxArray convert (const BoxArray& ba, IndexType typ);
@@ -35,9 +35,13 @@ namespace amrex
     //! Read a BoxArray from a stream.  If b is true, read in a special way
     void readBoxArray (BoxArray& ba, std::istream& s, bool b);
 
+    //! delete entries in the coarseBoxArrayCache, which have key "key"
     void clearCoarseBoxArrayCache (ptrdiff_t key);
 
+    //! Create a 1D Array of cells from all boxes in a BoxArray 
     Array<int> SerializeBoxArray(const BoxArray &ba);
+
+    //! Construct a BoxArray (in BL_SPACEDIM dimensions) from a 1D Array of cells
     BoxArray UnSerializeBoxArray(const Array<int> &serarray);
 
     //! Note that two BoxArrays that match are not necessarily equal.
@@ -195,7 +199,7 @@ public:
     //! The assignment operator.
     BoxArray& operator= (const BoxArray& rhs);
 
-    //! The move constrctor
+    //! The move constructor
     BoxArray (BoxArray&& rhs) noexcept;
     
     //! The destructor.
@@ -214,21 +218,22 @@ public:
     //! Remove all Boxes from the BoxArray.
     void clear ();
 
-    //! Resizes the array.  See Array<T>::resize() for the gory details.
+    //! Resize the BoxArray.  See Array<T>::resize() for the gory details.
     void resize (long len);
 
-    //! Returns the number of elements in the BoxArray.
+    //! Return the number of boxes in the BoxArray.
     long size () const;
 
+    //! Return the number of boxes that can be held in the current allocated storage
     long capacity () const;
 
+    //! Return whether the BoxArray is empty
     bool empty () const;
 
+    //! Returns the total number of cells contained in all boxes in the BoxArray.
     long numPts() const;
-    /**
-    * \brief Returns the number of points contained in the BoxArray.
-    * This is inteded for use only in diagnostic messages.
-    */
+
+    //! Returns the total number of cells (in double type) contained in all boxes in the BoxArray.
     double d_numPts () const;
     /**
     * \brief Initialize the BoxArray from the supplied istream.
@@ -282,61 +287,62 @@ public:
     BoxArray& grow (int idir,
                     int n_cell);
     /**
-    * \brief Applies surroundingNodes(Box) to each Box in BoxArray.
+    * \brief Apply surroundingNodes(Box) to each Box in BoxArray.
     * See the documentation of Box for details.
     */
     BoxArray& surroundingNodes ();
     /**
-    * \brief Applies surroundingNodes(Box,int) to each Box in
+    * \brief Apply surroundingNodes(Box,int) to each Box in
     * BoxArray.  See the documentation of Box for details.
     */
     BoxArray& surroundingNodes (int dir);
 
-    //! Applies Box::enclosedCells() to each Box in the BoxArray.
+    //! Apply Box::enclosedCells() to each Box in the BoxArray.
     BoxArray& enclosedCells ();
 
-    //! Applies Box::enclosedCells(int) to each Box in the BoxArray.
+    //! Apply Box::enclosedCells(int) to each Box in the BoxArray.
     BoxArray& enclosedCells  (int dir);
 
-    //! Applies Box::convert(IndexType) to each Box in the BoxArray.
+    //! Apply Box::convert(IndexType) to each Box in the BoxArray.
     BoxArray& convert (IndexType typ);
 
-    //! Applies function (*fp)(Box) to each Box in the BoxArray.
+    //! Apply function (*fp)(Box) to each Box in the BoxArray.
     BoxArray& convert (Box (*fp)(const Box&));
 
-    //! Applies Box::shift(int,int) to each Box in the BoxArray.
+    //! Apply Box::shift(int,int) to each Box in the BoxArray.
     BoxArray& shift (int dir,
                      int nzones);
 
-    //! Applies Box::shift(const IntVect &iv) to each Box in the BoxArray.
+    //! Apply Box::shift(const IntVect &iv) to each Box in the BoxArray.
     BoxArray& shift (const IntVect &iv);
 
-    //! Applies Box::shiftHalf(int,int) to each Box in the BoxArray.
+    //! Apply Box::shiftHalf(int,int) to each Box in the BoxArray.
     BoxArray& shiftHalf (int dir,
                          int num_halfs);
-    //! Applies Box::shiftHalf(IntVect) to each Box in BoxArray.
+    //! Apply Box::shiftHalf(IntVect) to each Box in BoxArray.
     BoxArray& shiftHalf (const IntVect &iv);
 
     //! Set element i in this BoxArray to Box ibox.
     void set (int        i,
               const Box& ibox);
 
-    //! Returns element index of this BoxArray.
+    //! Return element index of this BoxArray.
     Box operator[] (int index) const 
 	{ return (*m_transformer)(m_ref->m_abox[index]); }
     Box get        (int index) const 
 	{ return (*m_transformer)(m_ref->m_abox[index]); }
 
-    //! Returns cell-centered box at element index of this BoxArray.
+    //! Return cell-centered box at element index of this BoxArray.
     const Box& getCellCenteredBox (int index) const
 	{ return m_ref->m_abox[index]; }    
+
     /**
-    * \brief Returns true if Box is valid and they all have the same
+    * \brief Return true if Box is valid and they all have the same
     * IndexType.  Is true by default if the BoxArray is empty.
     */
     bool ok () const;
 
-    //! Returns true if set of intersecting Boxes in BoxArray is null.
+    //! Return true if set of intersecting Boxes in BoxArray is null.
     bool isDisjoint () const;
 
     //! Create a BoxList from this BoxArray.
@@ -347,52 +353,57 @@ public:
 
     /**
     * \brief True if the Box is within any of the Boxes in the List.
-    * The Box must also have the same IndexType as those in this
-    * BoxArray.
+    * The Box must also have the same IndexType as those in this BoxArray.
     */
     bool contains (const Box& b, bool assume_disjoint_ba = false) const;
 
     //! True if all Boxes in bl are contained in this BoxArray.
     bool contains (const BoxArray& bl, bool assume_disjoint_ba = false) const;
 
-    //! Returns smallest Box that contains all Boxes in this BoxArray.
+    //! Return smallest Box that contains all Boxes in this BoxArray.
     Box minimalBox () const;
 
     /**
     * \brief True if the Box intersects with this BoxArray(+ghostcells).
-    * The Box must have the same IndexType as those in this
-    * BoxArray.
+    * The Box must have the same IndexType as those in this BoxArray.
     */
     bool intersects (const Box& b, int ng = 0) const;
 
-    //! Returns intersections of Box and BoxArray(+ghsotcells).
+    //! Return intersections of Box and BoxArray
     std::vector< std::pair<int,Box> > intersections (const Box& bx) const;
+
+    //! Return intersections of Box and BoxArray(+ghostcells).
     std::vector< std::pair<int,Box> > intersections (const Box& bx, bool first_only, int ng) const;
-    //
+
+    //! intersect Box and BoxArray, then store the result in isects
     void intersections (const Box& bx, std::vector< std::pair<int,Box> >& isects) const; 
+
+    //! intersect Box and BoxArray(+ghostcells), then store the result in isects
     void intersections (const Box& bx, std::vector< std::pair<int,Box> >& isects, 
 			bool first_only, int ng) const;
+
     //! Return box - boxarray
     BoxList complement (const Box& b) const;
+
     //! Clear out the internal hash table used by intersections.
     void clear_hash_bin () const;
 
-    /**
-    * \brief Changes the BoxArray to one with no overlap.
-    * Also tries to "simplify" the BoxArray within reason.
-    */
+    //! Change the BoxArray to one with no overlap and then simplify it (see the simplify function in BoxList).
     void removeOverlap ();
 
+    //! whether two BoxArrays share the same data
     static bool SameRefs (const BoxArray& lhs, const BoxArray& rhs) { return lhs.m_ref == rhs.m_ref; }
 
-    //! This gives a unique ID of the reference
+    //! Return a unique ID of the reference
     ptrdiff_t getRefID () const { return m_ref->getRefID(); }
 
-    //! Returns index type of this BoxArray
+    //! Return index type of this BoxArray
     IndexType ixType () const { return m_transformer->ixType(); }
 
 #ifdef BL_USE_MPI
+    //! Broadcast the BoxArray
     static void SendBoxArray(const BoxArray &ba, int whichSidecar);
+    //! Receive the BoxArray from root
     static void RecvBoxArray(BoxArray &ba, int whichSidecar);
 #endif
 
