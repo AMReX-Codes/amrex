@@ -57,12 +57,12 @@ DivVis::initConstruct (const Real* _h)
     numphase = numberPhases();     // wyc
 
     undrrelxr.resize(1);
-    undrrelxr[level].reset(new BndryRegister(gbox[level], dm, 1, 0, 0, numcomp));
+    undrrelxr[level].define(gbox[level], dm, 1, 0, 0, numcomp);
     tangderiv.resize(1);
 #if BL_SPACEDIM==2
-    tangderiv[level].reset(new BndryRegister(gbox[level], dm, 0, 1, 0, numcomp));
+    tangderiv[level].define(gbox[level], dm, 0, 1, 0, numcomp);
 #elif BL_SPACEDIM==3
-    tangderiv[level].reset(new BndryRegister(gbox[level], dm, 0, 1, 0, numcomp*(1+3)));
+    tangderiv[level].define(gbox[level], dm, 0, 1, 0, numcomp*(1+3));
 #else
 # error "BL_SPACEDIME must be 2 or 3"
 #endif
@@ -269,32 +269,32 @@ DivVis::Fsmooth (MultiFab&       solnL,
 {
     OrientationIter oitr;
 
-    const FabSet& fw  = (*undrrelxr[level])[oitr()]; 
-    const FabSet& tdw = (*tangderiv[level])[oitr()];
-    const MultiMask& mmw = *maskvals[level][oitr()];
+    const FabSet& fw  = undrrelxr[level][oitr()]; 
+    const FabSet& tdw = tangderiv[level][oitr()];
+    const MultiMask& mmw = maskvals[level][oitr()];
     oitr++;
-    const FabSet& fs  = (*undrrelxr[level])[oitr()]; 
-    const FabSet& tds = (*tangderiv[level])[oitr()];
-    const MultiMask& mms = *maskvals[level][oitr()];
+    const FabSet& fs  = undrrelxr[level][oitr()]; 
+    const FabSet& tds = tangderiv[level][oitr()];
+    const MultiMask& mms = maskvals[level][oitr()];
     oitr++;
 #if BL_SPACEDIM>2
-    const FabSet& fb  = (*undrrelxr[level])[oitr()]; 
-    const FabSet& tdb = (*tangderiv[level])[oitr()];
-    const MultiMask& mmb = *maskvals[level][oitr()];
+    const FabSet& fb  = undrrelxr[level][oitr()]; 
+    const FabSet& tdb = tangderiv[level][oitr()];
+    const MultiMask& mmb = maskvals[level][oitr()];
     oitr++;
 #endif
-    const FabSet& fe  = (*undrrelxr[level])[oitr()]; 
-    const FabSet& tde = (*tangderiv[level])[oitr()];
-    const MultiMask& mme = *maskvals[level][oitr()];
+    const FabSet& fe  = undrrelxr[level][oitr()]; 
+    const FabSet& tde = tangderiv[level][oitr()];
+    const MultiMask& mme = maskvals[level][oitr()];
     oitr++;
-    const FabSet& fn  = (*undrrelxr[level])[oitr()]; 
-    const FabSet& tdn = (*tangderiv[level])[oitr()];
-    const MultiMask& mmn = *maskvals[level][oitr()];
+    const FabSet& fn  = undrrelxr[level][oitr()]; 
+    const FabSet& tdn = tangderiv[level][oitr()];
+    const MultiMask& mmn = maskvals[level][oitr()];
     oitr++;
 #if BL_SPACEDIM>2
-    const FabSet& ft  = (*undrrelxr[level])[oitr()]; 
-    const FabSet& tdt = (*tangderiv[level])[oitr()];
-    const MultiMask& mmt = *maskvals[level][oitr()];
+    const FabSet& ft  = undrrelxr[level][oitr()]; 
+    const FabSet& tdt = tangderiv[level][oitr()];
+    const MultiMask& mmt = maskvals[level][oitr()];
     oitr++;
 #endif
     const MultiFab& a  = aCoefficients(level);
@@ -422,26 +422,26 @@ DivVis::compFlux (D_DECL(MultiFab& xflux,
 
     OrientationIter oitr;
 
-    const FabSet& tdw = (*tangderiv[level])[oitr()]; 
-    const MultiMask& mmw = *maskvals[level][oitr()];
+    const FabSet& tdw = tangderiv[level][oitr()]; 
+    const MultiMask& mmw = maskvals[level][oitr()];
     oitr++;
-    const FabSet& tds = (*tangderiv[level])[oitr()];
-    const MultiMask& mms = *maskvals[level][oitr()];
+    const FabSet& tds = tangderiv[level][oitr()];
+    const MultiMask& mms = maskvals[level][oitr()];
     oitr++;
 #if BL_SPACEDIM>2
-    const FabSet& tdb = (*tangderiv[level])[oitr()];
-    const MultiMask& mmb = *maskvals[level][oitr()];
+    const FabSet& tdb = tangderiv[level][oitr()];
+    const MultiMask& mmb = maskvals[level][oitr()];
     oitr++;
 #endif
-    const FabSet& tde = (*tangderiv[level])[oitr()];
-    const MultiMask& mme = *maskvals[level][oitr()];
+    const FabSet& tde = tangderiv[level][oitr()];
+    const MultiMask& mme = maskvals[level][oitr()];
     oitr++;
-    const FabSet& tdn = (*tangderiv[level])[oitr()];
-    const MultiMask& mmn = *maskvals[level][oitr()];
+    const FabSet& tdn = tangderiv[level][oitr()];
+    const MultiMask& mmn = maskvals[level][oitr()];
     oitr++;
 #if BL_SPACEDIM>2
-    const FabSet& tdt = (*tangderiv[level])[oitr()];
-    const MultiMask& mmt = *maskvals[level][oitr()];
+    const FabSet& tdt = tangderiv[level][oitr()];
+    const MultiMask& mmt = maskvals[level][oitr()];
     oitr++;
 #endif
 
@@ -548,26 +548,26 @@ DivVis::Fapply (MultiFab&       y,
 
     OrientationIter oitr;
 
-    const FabSet& tdw = (*tangderiv[level])[oitr()]; 
-    const MultiMask& mmw = *maskvals[level][oitr()];
+    const FabSet& tdw = tangderiv[level][oitr()]; 
+    const MultiMask& mmw = maskvals[level][oitr()];
     oitr++;
-    const FabSet& tds = (*tangderiv[level])[oitr()];
-    const MultiMask& mms = *maskvals[level][oitr()];
+    const FabSet& tds = tangderiv[level][oitr()];
+    const MultiMask& mms = maskvals[level][oitr()];
     oitr++;
 #if BL_SPACEDIM>2
-    const FabSet& tdb = (*tangderiv[level])[oitr()];
-    const MultiMask& mmb = *maskvals[level][oitr()];
+    const FabSet& tdb = tangderiv[level][oitr()];
+    const MultiMask& mmb = maskvals[level][oitr()];
     oitr++;
 #endif
-    const FabSet& tde = (*tangderiv[level])[oitr()];
-    const MultiMask& mme = *maskvals[level][oitr()];
+    const FabSet& tde = tangderiv[level][oitr()];
+    const MultiMask& mme = maskvals[level][oitr()];
     oitr++;
-    const FabSet& tdn = (*tangderiv[level])[oitr()];
-    const MultiMask& mmn = *maskvals[level][oitr()];
+    const FabSet& tdn = tangderiv[level][oitr()];
+    const MultiMask& mmn = maskvals[level][oitr()];
     oitr++;
 #if BL_SPACEDIM>2
-    const FabSet& tdt = (*tangderiv[level])[oitr()];
-    const MultiMask& mmt = *maskvals[level][oitr()];
+    const FabSet& tdt = tangderiv[level][oitr()];
+    const MultiMask& mmt = maskvals[level][oitr()];
     oitr++;
 #endif
 

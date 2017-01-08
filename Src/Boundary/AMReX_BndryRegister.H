@@ -72,7 +72,7 @@ public:
     //
     // The constructor, given number of cells in/out, extent and number of components (assumes cell-centered boxes, and allocates cell-centered FABs)
     //
-    BndryRegister (const BoxArray& grids,
+    BndryRegister (const BoxArray& grids_,
 		   const DistributionMapping& dmap,
                    int             in_rad,
                    int             out_rad,
@@ -95,6 +95,22 @@ public:
 
     BndryRegister& operator= (BndryRegister&& rhs) = delete;
 
+    void define (const BoxArray& grids_,
+		 const DistributionMapping& dmap,
+		 int             in_rad,
+		 int             out_rad,
+		 int             extent_rad,
+		 int             ncomp);
+    //
+    // Build FABs along given face, specifying the DistributionMapping.
+    //
+    void define (Orientation                face,
+		 IndexType                  typ,
+		 int                        in_rad,
+		 int                        out_rad,
+		 int                        extent_rad,
+		 int                        ncomp,
+		 const DistributionMapping& dm);
     //
     // Get box domain (as an array of boxes).
     //
@@ -160,17 +176,6 @@ public:
     // Returns constant reference to associated DistributionMapping.
     //
     const DistributionMapping& DistributionMap () const { return bndry[0].DistributionMap(); }
-    //
-    // Build FABs along given face, specifying the DistributionMapping.
-    //
-    void define (Orientation                face,
-                 IndexType                  typ,
-                 int                        in_rad,
-                 int                        out_rad,
-                 int                        extent_rad,
-                 int                        ncomp,
-                 const DistributionMapping& dm);
-
     //
     // Write (used for writing to checkpoint)
     //

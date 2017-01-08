@@ -409,13 +409,13 @@ ABecLaplacian::Fsmooth (MultiFab&       solnL,
 
     OrientationIter oitr;
 
-    const FabSet& f0 = (*undrrelxr[level])[oitr()]; oitr++;
-    const FabSet& f1 = (*undrrelxr[level])[oitr()]; oitr++;
-    const FabSet& f2 = (*undrrelxr[level])[oitr()]; oitr++;
-    const FabSet& f3 = (*undrrelxr[level])[oitr()]; oitr++;
+    const FabSet& f0 = undrrelxr[level][oitr()]; oitr++;
+    const FabSet& f1 = undrrelxr[level][oitr()]; oitr++;
+    const FabSet& f2 = undrrelxr[level][oitr()]; oitr++;
+    const FabSet& f3 = undrrelxr[level][oitr()]; oitr++;
 #if (BL_SPACEDIM > 2)
-    const FabSet& f4 = (*undrrelxr[level])[oitr()]; oitr++;
-    const FabSet& f5 = (*undrrelxr[level])[oitr()]; oitr++;
+    const FabSet& f4 = undrrelxr[level][oitr()]; oitr++;
+    const FabSet& f5 = undrrelxr[level][oitr()]; oitr++;
 #endif    
     const MultiFab& a = aCoefficients(level);
 
@@ -525,13 +525,13 @@ ABecLaplacian::Fsmooth_jacobi (MultiFab&       solnL,
 
     OrientationIter oitr;
 
-    const FabSet& f0 = (*undrrelxr[level])[oitr()]; oitr++;
-    const FabSet& f1 = (*undrrelxr[level])[oitr()]; oitr++;
-    const FabSet& f2 = (*undrrelxr[level])[oitr()]; oitr++;
-    const FabSet& f3 = (*undrrelxr[level])[oitr()]; oitr++;
+    const FabSet& f0 = undrrelxr[level][oitr()]; oitr++;
+    const FabSet& f1 = undrrelxr[level][oitr()]; oitr++;
+    const FabSet& f2 = undrrelxr[level][oitr()]; oitr++;
+    const FabSet& f3 = undrrelxr[level][oitr()]; oitr++;
 #if (BL_SPACEDIM > 2)
-    const FabSet& f4 = (*undrrelxr[level])[oitr()]; oitr++;
-    const FabSet& f5 = (*undrrelxr[level])[oitr()]; oitr++;
+    const FabSet& f4 = undrrelxr[level][oitr()]; oitr++;
+    const FabSet& f5 = undrrelxr[level][oitr()]; oitr++;
 #endif    
     const MultiFab& a = aCoefficients(level);
 
