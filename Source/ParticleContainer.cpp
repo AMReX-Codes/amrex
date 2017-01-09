@@ -287,7 +287,7 @@ MyParticleContainer::GetChargeDensity (int lev, bool local)
 
     const int ng = WarpX::nox;
 
-    auto rho = std::unique_ptr<MultiFab>(new MultiFab(nba,dm,1,ng));
+    std::unique_ptr<MultiFab> rho (new MultiFab(nba,dm,1,ng));
     rho->setVal(0.0);
 
     Array<Real> xp, yp, zp, wp;
@@ -331,7 +331,7 @@ MyParticleContainer::GetChargeDensity (int lev, bool local)
 	long ny = 0;
 	long nz = box.length(1); 
 #endif
-	RealBox grid_box = RealBox( box, gm.CellSize(), gm.ProbLo() );
+	RealBox grid_box ( box, gm.CellSize(), gm.ProbLo() );
 #if (BL_SPACEDIM == 3)
 	const Real* xyzmin = grid_box.lo();
 #elif (BL_SPACEDIM == 2)
