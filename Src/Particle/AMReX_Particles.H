@@ -4702,7 +4702,7 @@ ParticleContainer<NR,NI,C>::AssignDensityDoit (int rho_index,
         {
             const int     lev  = idata[0];
             const int     grd  = idata[1];
-            const IntVect cell = IntVect(D_DECL(idata[2],idata[3],idata[4]));
+            const IntVect cell (D_DECL(idata[2],idata[3],idata[4]));
 
             BL_ASSERT((*mf[lev]).DistributionMap()[grd] == MyProc);
 	    BL_ASSERT((*mf[lev])[grd].box().contains(cell));

@@ -1033,7 +1033,7 @@ ParticleContainer<NR,NI,C>::InitOnePerCell (Real x_off, Real y_off, Real z_off,
     for (MFIter mfi(particle_mf,false); mfi.isValid(); ++mfi)
     {
         Box grid = m_gdb->ParticleBoxArray(0)[mfi.index()];
-        RealBox grid_box = RealBox(grid,dx,geom.ProbLo());
+        RealBox grid_box (grid,dx,geom.ProbLo());
 
         int nx = 1;
         int ny = 1;
@@ -1133,7 +1133,7 @@ ParticleContainer<NR,NI,C>::InitNRandomPerCell (int n_per_cell, Real mass, Multi
     for (MFIter mfi(particle_mf,false); mfi.isValid(); ++mfi)
     {
         Box grid = m_gdb->ParticleBoxArray(0)[mfi.index()];
-        RealBox grid_box = RealBox(grid,dx,geom.ProbLo());
+        RealBox grid_box (grid,dx,geom.ProbLo());
 
 	int nx = grid.length(0), ny = grid.length(1), nz = grid.length(2); 
 

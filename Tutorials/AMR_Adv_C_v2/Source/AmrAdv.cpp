@@ -106,8 +106,8 @@ AmrAdv::RemakeLevel (int lev, Real time,
     auto new_state = std::make_unique<MultiFab>(new_grids, new_dmap, ncomp, nghost);
     auto old_state = std::make_unique<MultiFab>(new_grids, new_dmap, ncomp, nghost);
 #else
-    auto new_state = std::unique_ptr<MultiFab>(new MultiFab(new_grids, new_dmap, ncomp, nghost));
-    auto old_state = std::unique_ptr<MultiFab>(new MultiFab(new_grids, new_dmap, ncomp, nghost));
+    std::unique_ptr<MultiFab> new_state(new MultiFab(new_grids, new_dmap, ncomp, nghost));
+    std::unique_ptr<MultiFab> old_state(new MultiFab(new_grids, new_dmap, ncomp, nghost));
 #endif
 
     FillPatch(lev, time, *new_state, 0, ncomp);
