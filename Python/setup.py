@@ -8,6 +8,7 @@ from distutils.core import setup, Extension
 
 
 example_module = Extension('pywarpx._warpxC',
+                           swig_opts=['-outdir','pywarpx'],
                            sources=['warpxC.i'],
                            library_dirs=['.'],
                            libraries=['warpx'],
