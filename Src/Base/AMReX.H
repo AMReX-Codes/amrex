@@ -8,7 +8,7 @@
 #include <stdio.h>
 
 //
-// Error-reporting Functions and Version Number
+// Error-reporting Functions and Version String
 
 /*
  This class consists entirely of static error-reporting functions that
@@ -21,6 +21,8 @@
 
 namespace amrex
 {
+    std::string Version ();
+
     void Initialize (int& argc, char**& argv, bool build_parm_parse=true, MPI_Comm mpi_comm = MPI_COMM_WORLD);
 
     void Finalize(bool finalize_parallel = true);

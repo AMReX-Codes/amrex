@@ -56,6 +56,11 @@ namespace system
 }
 }
 
+std::string amrex::Version ()
+{
+    return std::string(AMREX_GIT_VERSION);
+}
+
 //
 // This is used by amrex::Error(), amrex::Abort(), and amrex::Assert()
 // to ensure that when writing the message to stderr, that no additional
