@@ -20,6 +20,8 @@
 #include <cstdlib>
 #include "AMReX_FArrayBox.H"
 #include "AMReX_Box.H"
+#include "AMReX_BaseIndex.H"
+#include "AMReX_VolIndex.H"
 
 namespace amrex
 {
@@ -57,16 +59,25 @@ namespace amrex
     }
 
 
+    const Real& operator()(const VolIndex& a_ndin, int a_nvarLoc) const
+    {
+      const FArrayBox& fabcast = (FArrayBox&)(*this);
+      return fabcast(a_ndin.gridIndex(),  a_nvarLoc);
+    }
+
+
+    Real& operator()(const VolIndex& a_ndin, int a_nvarLoc) 
+    {
+      FArrayBox& fabcast = (FArrayBox&)(*this);
+      return fabcast(a_ndin.gridIndex(),  a_nvarLoc);
+    }
+
   private:
     //disallowed for all the usual reasons
-    EBCellFAB(const EBCellFAB& ebcin)
-    {
-      MayDay::Error("ebcellfab 2 invalid operator");
-    }
-    void operator=(const EBCellFAB& fabin)
-    {
-      MayDay::Error("ebcellfab 3 invalid operator");
-    }
+    EBCellFAB(const EBCellFAB& ebcin);
+
+    void operator=(const EBCellFAB& fabin);
+
 
   };
 

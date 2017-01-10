@@ -17,6 +17,8 @@
 #include "AMReX_IntVect.H"
 #include "AMReX_Stencils.H"
 #include "AMReX_BaseIndex.H"
+#include "AMReX_IrregNode.H"
+#include "AMReX_BaseFab.H"
 
 namespace amrex
 {
@@ -29,43 +31,43 @@ namespace amrex
     ~TestbedUtil(){;}
 
     ///apply a stencil in the slowest possible way
-    static void applyStencilPointwise(EBCellFAB                  & a_dst,
-                                      const EBCellFAB            & a_src,
-                                      const BaseFab<VoFStencil>  & a_stencil,
-                                      const BaseFab<int>         & a_regIrregCovered,
-                                      const Vector<IrregNode>    & a_nodes,
-                                      const Box                  & a_domain,
-                                      const Real                 & a_dx);
+    static void applyStencilPointwise(EBCellFAB                       & a_dst,
+                                      const EBCellFAB                 & a_src,
+                                      const BaseFab<VoFStencil>       & a_stencil,
+                                      const BaseFab<int>              & a_regIrregCovered,
+                                      const std::vector<IrregNode>    & a_nodes,
+                                      const Box                       & a_domain,
+                                      const Real                      & a_dx);
 
 
     ///apply a stencil using fortran on regular cells, pointwise irregular
-    static void applyStencilFortranPlusPointwise(EBCellFAB                  & a_dst,
-                                                 const EBCellFAB            & a_src,
-                                                 const BaseFab<VoFStencil>  & a_stencil,
-                                                 const BaseFab<int>         & a_regIrregCovered,
-                                                 const Vector<IrregNode>    & a_nodes,
-                                                 const Box                  & a_domain,
-                                                 const Real                 & a_dx);
+    static void applyStencilFortranPlusPointwise(EBCellFAB                       & a_dst,
+                                                 const EBCellFAB                 & a_src,
+                                                 const BaseFab<VoFStencil>       & a_stencil,
+                                                 const BaseFab<int>              & a_regIrregCovered,
+                                                 const std::vector<IrregNode>    & a_nodes,
+                                                 const Box                       & a_domain,
+                                                 const Real                      & a_dx);
 
 
     ///apply a stencil using aggstencil everywhere
-    static void applyStencilAllAggSten(EBCellFAB                  & a_dst,
-                                       const EBCellFAB            & a_src,
-                                       const BaseFab<VoFStencil>  & a_stencil,
-                                       const BaseFab<int>         & a_regIrregCovered,
-                                       const Vector<IrregNode>    & a_nodes,
-                                       const Box                  & a_domain,
-                                       const Real                 & a_dx);
+    static void applyStencilAllAggSten(EBCellFAB                       & a_dst,
+                                       const EBCellFAB                 & a_src,
+                                       const BaseFab<VoFStencil>       & a_stencil,
+                                       const BaseFab<int>              & a_regIrregCovered,
+                                       const std::vector<IrregNode>    & a_nodes,
+                                       const Box                       & a_domain,
+                                       const Real                      & a_dx);
 
 
     ///apply a stencil using aggstencil on irregular cells, fortran otherwise
-    static void applyStencilFortranPlusAggSten(EBCellFAB                  & a_dst,
-                                               const EBCellFAB            & a_src,
-                                               const BaseFab<VoFStencil>  & a_stencil,
-                                               const BaseFab<int>         & a_regIrregCovered,
-                                               const Vector<IrregNode>    & a_nodes,
-                                               const Box                  & a_domain,
-                                               const Real                 & a_dx);
+    static void applyStencilFortranPlusAggSten(EBCellFAB                       & a_dst,
+                                               const EBCellFAB                 & a_src,
+                                               const BaseFab<VoFStencil>       & a_stencil,
+                                               const BaseFab<int>              & a_regIrregCovered,
+                                               const std::vector<IrregNode>    & a_nodes,
+                                               const Box                       & a_domain,
+                                               const Real                      & a_dx);
 
     //get the face stencil that goes from face centered fluxes  to centroid fluxes
     static FaceStencil getInterpStencil(const FaceIndex     & a_face,

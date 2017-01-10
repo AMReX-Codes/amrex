@@ -45,6 +45,8 @@ _progs  := stencilTest
 include $(AMREX_HOME)/Src/Base/Make.package
 include $(AMREX_HOME)/Src/GeometryShop/Make.package
 include ../src/Make.package
+VPATH_LOCATIONS   += ../src
+INCLUDE_LOCATIONS += ../src
 all: $(addsuffix $(optionsSuffix).ex, $(_progs))
 
 

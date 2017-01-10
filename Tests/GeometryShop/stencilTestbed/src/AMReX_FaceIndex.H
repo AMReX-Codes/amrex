@@ -86,11 +86,6 @@ namespace amrex
     FaceIndex& operator= (const FaceIndex& a_facein);
 
     ///
-    /** Lexicographic */
-    friend bool operator<( const FaceIndex& f1, const FaceIndex& f2 );
-
-
-    ///
     /**
      */
     bool operator== (const FaceIndex& a_facein) const;

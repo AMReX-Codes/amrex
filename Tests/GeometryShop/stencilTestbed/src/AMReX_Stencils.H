@@ -161,7 +161,6 @@ namespace amrex
         }
     }
 
-    void outputToPout() const;
   protected:
 
     /// the VoFs
@@ -262,7 +261,6 @@ namespace amrex
      */
     void operator*=(const Real& scaling);
 
-    void outputToPout() const;
   private:
 
     /// the Faces

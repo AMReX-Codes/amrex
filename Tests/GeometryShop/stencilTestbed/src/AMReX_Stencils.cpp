@@ -82,28 +82,6 @@ namespace amrex
 
   }
 
-  ///
-  void 
-  VoFStencil::
-  outputToPout() const
-  {
-    pout() << " vof \t  weight \t variable = " << endl;
-    for(int ivof = 0; ivof < this->size(); ivof++)
-      {
-        pout() << vofs[ivof]  << "\t" << weights[ivof]<< "\t" << variables[ivof] << endl;
-      }
-  }
-  ///
-  void 
-  FaceStencil::
-  outputToPout() const
-  {
-    pout() << " face \t  weight = " << endl;
-    for(int ivof = 0; ivof < this->size(); ivof++)
-      {
-        pout() << faces[ivof]  << "\t" << weights[ivof]<< endl;
-      }
-  }
 
   /**************/
   /**************/
@@ -111,11 +89,6 @@ namespace amrex
     : vofs(0),
       weights(0)
   {
-    //just to get stuff into the symbol table
-    if(0)
-      {
-        this->outputToPout();
-      }
   }
   /**************/
   /**************/
@@ -218,11 +191,6 @@ namespace amrex
     : faces(0),
       weights(0)
   {
-    //just to get stuff into the symbol table
-    if(0)
-      {
-        this->outputToPout();
-      }
   }
   /**************/
   /**************/

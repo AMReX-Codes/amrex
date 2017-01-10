@@ -11,11 +11,9 @@
 
 
 #include "AMReX_FaceIndex.H"
-
-
-using std::cerr;
-using std::cout;
-using std::endl;
+#include "AMReX.H"
+#include <cassert>
+#include <iostream>
 
 namespace amrex
 {
@@ -86,10 +84,10 @@ namespace amrex
                     const VolIndex& a_vof2,
                     const int& a_direction)
   {
-    CH_assert((a_direction >= 0) &&
+    assert((a_direction >= 0) &&
               (a_direction < SpaceDim));
     //one vof or the other has to be in the domain.
-    CH_assert((a_vof1.cellIndex() >= 0) || (a_vof2.cellIndex() >= 0));
+    assert((a_vof1.cellIndex() >= 0) || (a_vof2.cellIndex() >= 0));
 
     //if either vof is outside the domain--shown by a negative
     //cell index, the face is a bounary face
@@ -123,9 +121,9 @@ namespace amrex
     //of periodic boundary conditions
     if ((isign*(iv1-iv2)) != BASISV(a_direction))
       {
-        cerr << "FaceIndex constructor--bad arguments" << endl;
-        cerr << "iv1, iv2, direction =" << iv1 << iv2 << a_direction << endl;
-        BL_Error("FaceIndex constructor--bad arguments");
+        std::cerr << "FaceIndex constructor--bad arguments" << std::endl;
+        std::cerr << "iv1, iv2, direction =" << iv1 << iv2 << a_direction << std::endl;
+        Abort("FaceIndex constructor--bad arguments");
       }
   }
   /*****************************************/
@@ -136,7 +134,11 @@ namespace amrex
     const IntVect& iv1 = a_vof1.gridIndex();
     const IntVect& iv2 = a_vof2.gridIndex();
 
-    IntVect div = absolute(iv1 - iv2);
+    IntVect div = (iv1 - iv2);
+    for(int idir = 0; idir < SpaceDim; idir++)
+      {
+        div[idir] = std::abs(div[idir]);
+      }
     int direction = -1;
 
     for (int idir = 0; idir < SpaceDim; idir++)
@@ -149,7 +151,7 @@ namespace amrex
       }
 
     if (direction < 0)
-      BL_Error("a_vof1 and a_vof2 are not neighbors!");
+      Error("a_vof1 and a_vof2 are not neighbors!");
 
     define(a_vof1, a_vof2, direction);
   }
@@ -169,7 +171,7 @@ namespace amrex
   const int&
   FaceIndex::cellIndex(const Side::LoHiSide& a_sd) const
   {
-    CH_assert(isDefined());
+    assert(isDefined());
     const int* retval;
     if (a_sd == Side::Lo)
       retval=  &m_loIndex;
@@ -182,7 +184,7 @@ namespace amrex
   const IntVect&
   FaceIndex::gridIndex(const Side::LoHiSide& a_sd) const
   {
-    CH_assert(isDefined());
+    assert(isDefined());
     const IntVect* retval;
     if (a_sd == Side::Lo)
       retval=  &m_loiv;
@@ -195,7 +197,7 @@ namespace amrex
   VolIndex
   FaceIndex::getVoF(const Side::LoHiSide& a_sd) const
   {
-    CH_assert(isDefined());
+    assert(isDefined());
     VolIndex retval;
     if (a_sd == Side::Lo)
       retval=  VolIndex(m_loiv, m_loIndex);
@@ -215,7 +217,7 @@ namespace amrex
   {
     if (&a_facein != this)
       {
-        //CH_assert(a_facein.isDefined());
+        //assert(a_facein.isDefined());
         //must be allowed to propogate undefinednitude
         //because of vector<vol>
         m_isDefined = a_facein.m_isDefined;
