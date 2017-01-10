@@ -15,60 +15,60 @@ namespace amrex
 {
   void 
   TestbedUtil::
-  applyStencilPointwise(EBCellFAB                  & a_dst,
-                        const EBCellFAB            & a_src,
-                        const BaseFab<VoFStencil>  & a_stencil,
-                        const BaseFab<int>         & a_regIrregCovered,
-                        const Vector<IrregNode>    & a_nodes,
-                        const Box                  & a_domain,
-                        const Real                 & a_dx)
+  applyStencilPointwise(EBCellFAB                       & a_dst,
+                        const EBCellFAB                 & a_src,
+                        const BaseFab<VoFStencil>       & a_stencil,
+                        const BaseFab<int>              & a_regIrregCovered,
+                        const std::vector<IrregNode>    & a_nodes,
+                        const Box                       & a_domain,
+                        const Real                      & a_dx)
   { 
-    BL_Abort("not implemented ");
+    Abort("not implemented ");
   }
 
 
   ///apply a stencil using fortran on regular cells, pointwise irregular
   void 
   TestbedUtil::
-  applyStencilFortranPlusPointwise(EBCellFAB                  & a_dst,
-                                   const EBCellFAB            & a_src,
-                                   const BaseFab<VoFStencil>  & a_stencil,
-                                   const BaseFab<int>         & a_regIrregCovered,
-                                   const Vector<IrregNode>    & a_nodes,
-                                   const Box                  & a_domain,
-                                   const Real                 & a_dx)
+  applyStencilFortranPlusPointwise(EBCellFAB                       & a_dst,
+                                   const EBCellFAB                 & a_src,
+                                   const BaseFab<VoFStencil>       & a_stencil,
+                                   const BaseFab<int>              & a_regIrregCovered,
+                                   const std::vector<IrregNode>    & a_nodes,
+                                   const Box                       & a_domain,
+                                   const Real                      & a_dx)
   { 
-    BL_Abort("not implemented ");
+    Abort("not implemented ");
   }
 
 
   ///apply a stencil using aggstencil everywhere
   void 
   TestbedUtil::
-  applyStencilAllAggSten(EBCellFAB                  & a_dst,
-                         const EBCellFAB            & a_src,
-                         const BaseFab<VoFStencil>  & a_stencil,
-                         const BaseFab<int>         & a_regIrregCovered,
-                         const Vector<IrregNode>    & a_nodes,
-                         const Box                  & a_domain,
-                         const Real                 & a_dx)
+  applyStencilAllAggSten(EBCellFAB                       & a_dst,
+                         const EBCellFAB                 & a_src,
+                         const BaseFab<VoFStencil>       & a_stencil,
+                         const BaseFab<int>              & a_regIrregCovered,
+                         const std::vector<IrregNode>    & a_nodes,
+                         const Box                       & a_domain,
+                         const Real                      & a_dx)
   { 
-    BL_Abort("not implemented ");
+    Abort("not implemented ");
   }
 
 
   ///apply a stencil using aggstencil on irregular cells, fortran otherwise
   void 
   TestbedUtil::
-  applyStencilFortranPlusAggSten(EBCellFAB                  & a_dst,
-                                 const EBCellFAB            & a_src,
-                                 const BaseFab<VoFStencil>  & a_stencil,
-                                 const BaseFab<int>         & a_regIrregCovered,
-                                 const Vector<IrregNode>    & a_nodes,
-                                 const Box                  & a_domain,
-                                 const Real                 & a_dx)
+  applyStencilFortranPlusAggSten(EBCellFAB                       & a_dst,
+                                 const EBCellFAB                 & a_src,
+                                 const BaseFab<VoFStencil>       & a_stencil,
+                                 const BaseFab<int>              & a_regIrregCovered,
+                                 const std::vector<IrregNode>    & a_nodes,
+                                 const Box                       & a_domain,
+                                 const Real                      & a_dx)
   { 
-    BL_Abort("not implemented ");
+    Abort("not implemented ");
   }
 
   //get the face stencil that goes from face centered fluxes  to centroid fluxes
@@ -81,7 +81,7 @@ namespace amrex
                    const Box           & a_domain,
                    const Real          & a_dx)
   { 
-    BL_Abort("not implemented ");
+    Abort("not implemented ");
     FaceStencil retval;
     return retval;
   }

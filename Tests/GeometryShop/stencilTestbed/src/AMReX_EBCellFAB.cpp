@@ -22,7 +22,7 @@ namespace amrex
   offset(const BaseIndex& a_baseInd, const int a_ivar) const
   {
     const VolIndex* vofPtr = dynamic_cast<const VolIndex *>(&a_baseInd);
-    if (vofPtr == NULL) BL_Abort("Trying to index into an EBCellFAB with something that is not a VolIndex");
+    if (vofPtr == NULL) Abort("Trying to index into an EBCellFAB with something that is not a VolIndex");
     long retval = 0;
 
     const IntVect& iv = vofPtr->gridIndex();
@@ -39,7 +39,7 @@ namespace amrex
 
     retval += numpts * a_ivar;
 
-    return retval
+    return retval;
   }
   
 

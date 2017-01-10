@@ -19,7 +19,7 @@
 #include "AMReX_EBCellFAB.H"
 #include "AMReX_VolIndex.H"
 #include "AMReX_FaceIndex.H"
-#include "AMReX_TestbedUtils.H"
+#include "AMReX_TestbedUtil.H"
 
 using namespace amrex;
 using std::cout;
@@ -27,7 +27,7 @@ using std::endl;
 
 ////////////
 //gets regular grid stencil for kappa*div(grad phi) with neumann eb and domamin bcs.
-void getRegularStencil(VoFStencil           & a_stencil
+void getRegularStencil(VoFStencil           & a_stencil,
                        const IntVect        & a_iv,
                        const Box            & a_domain,
                        const Real           & a_dx)
@@ -49,6 +49,7 @@ void getRegularStencil(VoFStencil           & a_stencil
     }
   a_stencil.add(VolIndex(a_iv, 0), -2*SpaceDim*dxinvsq);
 }
+
 
 
 void getFluxStencil(VoFStencil           & a_stencil,
@@ -80,6 +81,7 @@ void getFluxStencil(VoFStencil           & a_stencil,
         {
           //no flux at boundaries for this test
         }
+      faceCentSten *= weight;
       a_stencil += faceCentSten;
     }
 
@@ -99,17 +101,18 @@ void getIrregularStencil(VoFStencil           & a_stencil,
       for (SideIterator sit; sit.ok(); ++sit)
         {
           int index = IrregNode::index(idir, sit());
-          const std::vector<int>& arcs = a_node.m_arcs[index];
+          const std::vector<int>& arcs = a_node.m_arc[index];
           //this checks for both boundary faces and covered cells
           if((arcs.size() > 0) && (arcs[0] >= 0))
             {
               int isign = sign(sit());
+              //assuming no multi-valued stuff here
               IntVect ivneigh = iv + isign*BASISV(idir);
               FaceIndex face(VolIndex(iv, 0), VolIndex(ivneigh, 0));
-              VolIndex fluxStencil;
+              VoFStencil fluxStencil;
               getFluxStencil(fluxStencil, face, a_node, index, a_regIrregCovered, a_domain, a_dx);
-              Real areaFrac = a_node.m_areaFrac[index];
-              fluxStencil *= Real(isign)*areaFrac/m_dx;
+              Real areaFrac = a_node.m_areaFrac[index][0];
+              fluxStencil *= Real(isign)*areaFrac/a_dx;
               a_stencil += fluxStencil;
             }
         }
@@ -124,9 +127,6 @@ defineGeometry(BaseFab<int>           & a_regIrregCovered,
                const Box              & a_domain,
                const Real             & a_dx)
 {
-  Real volTotal = 0.0;
-  Real bndryTotal = 0.0;
-
   //inside regular tells whether domain is inside or outside the sphere
   bool insideRegular = true;
   SphereIF sphere(a_radius, a_center, insideRegular);
@@ -169,7 +169,7 @@ void getStencils(BaseFab<VoFStencil>          & a_stencil,
         }
       else
         {
-          BL_Abort("bogus value in regirregcovered");
+          Abort("bogus value in regirregcovered");
         }
       a_stencil(iv, 0) = pointSten;
     }
@@ -179,16 +179,16 @@ void getStencils(BaseFab<VoFStencil>          & a_stencil,
       const IntVect& iv = a_nodes[ivec].m_cell;
       if(a_regIrregCovered(iv, 0) != 0)
         {
-          BL_Abort("regirregcovered and nodes inconsistent");
+          Abort("regirregcovered and nodes inconsistent");
         }
       VoFStencil pointSten;
-      getIrregularStencil(pointSten, nodes[ivec], a_regIrregCovered, a_domain, a_dx);
+      getIrregularStencil(pointSten, a_nodes[ivec], a_regIrregCovered, a_domain, a_dx);
 
       a_stencil(iv, 0) = pointSten;
     }
 }
 
-int testStuff();
+int testStuff()
 {
   int eekflag =  0;
   Real radius = 0.5;
@@ -214,9 +214,15 @@ int testStuff();
   Real dx = domlen/ncellsvec[0];
 
   BaseFab<int> regIrregCovered;
-  std::vector<IrregNode>  a_nodes;
+  std::vector<IrregNode>  nodes;
+  RealVect center;
+  for(int idir = 0; idir < SpaceDim; idir++)
+    {
+      center[idir] = centervec[idir];
+    }
   defineGeometry(regIrregCovered, nodes, radius, center, domain, dx); 
 
+  
   EBCellFAB src(domain, 1);
   src.setVal(0.0);
   EBCellFAB dst(domain, 1);

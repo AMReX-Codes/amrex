@@ -40,19 +40,19 @@ namespace amrex
     //VolIndex& operator= (const VolIndex& a_vofin);
 
     ///
-    inline
+    
     bool operator== (const VolIndex& a_vofin) const;
 
     ///
-    inline
+    
     const IntVect& gridIndex() const;
 
     ///
-    inline
+    
     int cellIndex() const;
 
     ///
-    inline
+    
     bool isDefined() const;
 
     ///
@@ -62,17 +62,17 @@ namespace amrex
     void define(const VolIndex& a_vofin);
 
     ///
-    inline
+    
     VolIndex(const IntVect& a_ix,const  int& a_vofID);
 
     ///
-    inline
+    
     void define(const IntVect& a_ix,const  int& a_vofID);
 
-    inline
+    
     bool operator<(const VolIndex& rhs) const;
 
-    inline
+    
     bool operator!=(const VolIndex& rhs) const;
 
     ///for stencil gymnastics
