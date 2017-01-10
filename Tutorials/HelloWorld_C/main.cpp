@@ -15,6 +15,8 @@ int main(int argc, char* argv[])
 {
     amrex::Initialize(argc,argv);
 
+    amrex::Print() << "AMReX version " << amrex::Version() << "\n";
+
     {
 	// define the lower and upper corner of a 3D domain
 	amrex::IntVect domain_lo(0 , 0, 0); 
