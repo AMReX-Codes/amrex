@@ -9,10 +9,10 @@ namespace amrex
 
     // Examples:
     //   (1) print on I/O Processor of default communicator
-    //       Print() << " x = " << x << std::endl;  
+    //       Print(Print::IOProc) << " x = " << x << std::endl;  
     //
     //   (2) print on all processors of default communicator
-    //       Print(Print::AllProcs) << " x = " << x << std::endl;
+    //       Print() << " x = " << x << std::endl;
     //
     //   (3) print on process rank_ of communicator comm_
     //       Print(rank_, comm_) << " x = " << x << std::endl;
@@ -24,10 +24,11 @@ namespace amrex
     {
     public:
 
-	static constexpr int AllProcs = -1;
+	static constexpr int IOProc   = -1;
+	static constexpr int AllProcs = -2;
 
 	Print (std::ostream& os_ = std::cout) 
-	    : rank(ParallelDescriptor::IOProcessorNumber())
+	    : rank(AllProcs)
 	    , comm(ParallelDescriptor::Communicator())
 	    , os(os_)
 	    {}
@@ -45,7 +46,10 @@ namespace amrex
 	    {}
 
 	~Print () {
-	    if (rank == AllProcs || rank == ParallelDescriptor::MyProc(comm)) {
+	    if (rank == AllProcs || 
+		(rank == IOProc && ParallelDescriptor::IOProcessor()) ||
+		rank == ParallelDescriptor::MyProc(comm))
+	    {
 		os << ss.str();
 	    }
 	}
