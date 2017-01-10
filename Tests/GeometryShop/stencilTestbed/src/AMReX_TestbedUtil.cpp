@@ -10,7 +10,9 @@
  */
 
 #include "AMReX_TestbedUtil.H"
-
+#include "AMReX_BoxIterator.H"
+#include "AMReX_Stencils.H"
+#include "AMReX_EBCellFAB.H"
 namespace amrex
 {
   void 
@@ -23,7 +25,19 @@ namespace amrex
                         const Box                       & a_domain,
                         const Real                      & a_dx)
   { 
-    Abort("not implemented ");
+    for(BoxIterator boxit(a_domain); boxit.ok(); ++boxit)
+      {
+        const IntVect& iv = boxit();
+        //skip covered cells because they are not part of the solution domain
+        if(a_regIrregCovered(iv, 0) >= 0)
+          {
+            const VoFStencil& sten = a_stencil(iv, 0);
+            Real dstVal = applyVoFStencil(sten, a_src);
+            VolIndex dstVoF(iv,0);
+            int ivar = 0;
+            a_dst(dstVoF, ivar) = dstVal;
+          }
+      }
   }
 
 
@@ -38,7 +52,7 @@ namespace amrex
                                    const Box                       & a_domain,
                                    const Real                      & a_dx)
   { 
-    Abort("not implemented ");
+    Warning("applyStencilFortranPlusPointwise not implemented ");
   }
 
 
@@ -53,7 +67,7 @@ namespace amrex
                          const Box                       & a_domain,
                          const Real                      & a_dx)
   { 
-    Abort("not implemented ");
+    Warning("applyStencilAllAggSten not implemented ");
   }
 
 
@@ -68,7 +82,7 @@ namespace amrex
                                  const Box                       & a_domain,
                                  const Real                      & a_dx)
   { 
-    Abort("not implemented ");
+    Warning("applyStencilFortranPlusAggSten not implemented ");
   }
 
   //get the face stencil that goes from face centered fluxes  to centroid fluxes
@@ -81,8 +95,122 @@ namespace amrex
                    const Box           & a_domain,
                    const Real          & a_dx)
   { 
-    Abort("not implemented ");
+
     FaceStencil retval;
+    int faceDir = a_face.direction();
+    std::vector<RealVect> centroids = a_node.m_faceCentroid[a_arcIndex];
+    //here i am ruling out both multivalued and pointing into a covered cell
+    if(centroids.size() != 1)
+      {
+        Abort("face not found");
+      }
+    const RealVect& centroid = centroids[0];
+    //need the centroids in the non-face direction (and the directions themselves)
+    int   tanDirs[SpaceDim-1];
+    Real tanCents[SpaceDim-1];
+    int index = 0;
+    for(int idir = 0; idir < SpaceDim; idir++)
+      {
+        if(faceDir != idir)
+          {
+            tanDirs[index] = idir;
+            tanCents[index] = centroid[idir];
+            index++;
+          }
+      }
+    //all this stuff ignnores the connectivity walk and just uses box calculus
+    //this will fail in some cases (where the EBArith method will not)
+    if(SpaceDim == 2)
+      {
+        IntVect ivshift;
+        if(tanCents[0] > 0)
+          {
+            ivshift = BASISV(tanDirs[0]);
+          }
+        else
+          {
+            ivshift = -BASISV(tanDirs[0]);
+          }
+        IntVect ivlo = a_face.gridIndex(Side::Lo) + ivshift;
+        IntVect ivhi = a_face.gridIndex(Side::Hi) + ivshift;
+        if((  a_domain.contains(ivlo) && (a_regIrregCovered(ivlo, 0) >= 0))
+           &&(a_domain.contains(ivhi) && (a_regIrregCovered(ivhi, 0) >= 0)))
+          {
+            FaceIndex otherFace(VolIndex(ivlo, 0), VolIndex(ivhi, 0));
+            Real dist = std::abs(tanCents[0]);
+            Real thisWeight = 1.0 - dist;
+            Real otherWeight =  dist;
+            retval.add(a_face, thisWeight);
+            retval.add(otherFace, otherWeight);
+          }
+        else
+          {
+            //the other face is not there
+            retval.add(a_face, 1.0);
+          }
+
+      }
+    else if(SpaceDim == 3)
+      {
+        FaceIndex otherface = a_face;
+        IntVect ivshift[2];
+        for(int ishift = 0; ishift < 2; ishift++)
+          {
+            if(tanCents[ishift] > 0)
+              {
+                ivshift[ishift] = BASISV(tanDirs[ishift]);
+              }
+            else
+              {
+                ivshift[ishift] = -BASISV(tanDirs[ishift]);
+              }
+          }
+        IntVect ivlo00 = a_face.gridIndex(Side::Lo);
+        IntVect ivhi00 = a_face.gridIndex(Side::Hi);
+        IntVect ivlo10 = ivlo00 + ivshift[0];
+        IntVect ivhi10 = ivhi00 + ivshift[0];
+        IntVect ivlo01 = ivlo00 + ivshift[1];
+        IntVect ivhi01 = ivhi00 + ivshift[1];
+        IntVect ivlo11 = ivlo00 + ivshift[0]+ ivshift[1];
+        IntVect ivhi11 = ivhi00 + ivshift[0]+ ivshift[1];
+        if(
+           (  a_domain.contains(ivlo01) && (a_regIrregCovered(ivlo01, 0) >= 0)) 
+           &&(a_domain.contains(ivhi01) && (a_regIrregCovered(ivhi01, 0) >= 0)) &&
+           (  a_domain.contains(ivlo10) && (a_regIrregCovered(ivlo10, 0) >= 0)) 
+           &&(a_domain.contains(ivhi10) && (a_regIrregCovered(ivhi10, 0) >= 0)) &&
+           (  a_domain.contains(ivlo11) && (a_regIrregCovered(ivlo11, 0) >= 0)) 
+           &&(a_domain.contains(ivhi11) && (a_regIrregCovered(ivhi11, 0) >= 0))
+           )
+          {
+            //if we have all the faces, do the second order thing.
+            FaceIndex face00(VolIndex(ivlo00, 0), VolIndex(ivhi00,0));
+            FaceIndex face01(VolIndex(ivlo01, 0), VolIndex(ivhi01,0));
+            FaceIndex face10(VolIndex(ivlo10, 0), VolIndex(ivhi10,0));
+            FaceIndex face11(VolIndex(ivlo11, 0), VolIndex(ivhi11,0));
+
+            Real xbar = std::abs(tanCents[0]);
+            Real ybar = std::abs(tanCents[1]);
+            Real f00coef = 1.0 - xbar - ybar + xbar*ybar;
+            Real f10coef = xbar - xbar*ybar;
+            Real f01coef = ybar - xbar*ybar;
+            Real f11coef = xbar*ybar;
+
+            retval.add(face00, f00coef);
+            retval.add(face01, f01coef);
+            retval.add(face10, f10coef);
+            retval.add(face11, f11coef);
+          }
+        else
+          {
+            //at least one of the other faces is not there
+            retval.add(a_face, 1.0);
+          }
+      }
+    else
+      {
+        Abort("bogus spacedim");
+      }
+    
     return retval;
   }
 }                                        

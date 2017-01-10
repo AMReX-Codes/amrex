@@ -274,8 +274,8 @@ namespace amrex
 
   class EBCellFAB;
 
-  ///variable argument ignored---now uses the variables that live in the stencil
-  extern Real applyVoFStencil(const VoFStencil& a_vofSten, const EBCellFAB& a_fab, const int& a_comp);
+  ///the variables numbers live in the stencil
+  extern Real applyVoFStencil(const VoFStencil& a_vofSten, const EBCellFAB& a_fab);
 
 }
 
