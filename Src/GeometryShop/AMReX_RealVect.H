@@ -15,6 +15,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
+#include <cmath>
 
 #include "AMReX_Box.H"
 #include "AMReX_REAL.H"
@@ -583,7 +584,7 @@ Real
 RealVect::vectorLength () const
 {
   Real len = this->radSquared();
-  len = sqrt(len);
+  len = std::sqrt(len);
 
   return len;
 }
