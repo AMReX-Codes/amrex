@@ -225,11 +225,11 @@ public:
     // make accessing them and doing operations on them more memory efficient since most of our
     // operations on particles are done on a level by level basis or grid by grid basis.
     //
-    typedef C PBox;
+    using PBox = C;
     //
     // A level of particles is stored in a map indexed by the grid number.
     //
-    typedef typename std::map<int,PBox> PMap;
+    using PMap = std::map<int,PBox>;
 
     ParticleContainer ()
 	: m_verbose(1), m_gdb(nullptr), allow_particles_near_boundary(false) {}
