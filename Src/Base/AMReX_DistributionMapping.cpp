@@ -824,9 +824,9 @@ DistributionMapping::KnapSackDoIt (const std::vector<long>& wgts,
 	}
     }
 
-    if (verbose && ParallelDescriptor::IOProcessor())
+    if (verbose)
     {
-        std::cout << "KNAPSACK efficiency: " << efficiency << '\n';
+	amrex::Print() << "KNAPSACK efficiency: " << efficiency << '\n';
     }
 
 }

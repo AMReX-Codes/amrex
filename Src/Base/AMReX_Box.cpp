@@ -5,6 +5,7 @@
 #include <AMReX_BLassert.H>
 #include <AMReX.H>
 #include <AMReX_Box.H>
+#include <AMReX_Print.H>
 
 namespace amrex {
 
@@ -246,7 +247,7 @@ Box::numPts () const
     long result;
     if (!numPtsOK(result))
     {
-        std::cout << "Bad box: " << *this << std::endl;
+	amrex::Print(Print::AllProcs) << "Bad box: " << *this << "\n";
         amrex::Error("Arithmetic overflow in Box::numPts()");
     }
     return result;

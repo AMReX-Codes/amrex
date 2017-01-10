@@ -33,6 +33,7 @@
 #include <AMReX_FabSet.H>
 #include <AMReX_StateData.H>
 #include <AMReX_PlotFileUtil.H>
+#include <AMReX_Print.H>
 
 #ifdef MG_USE_FBOXLIB
 #include <mg_cpp_f.h>
@@ -364,8 +365,7 @@ Amr::InitAmr ()
        }
        else if (numvals == 0)
        {
-           if (ParallelDescriptor::IOProcessor())
-               amrex::Warning("Using default regrid_int = 1 at all levels");
+	   amrex::Print(std::cerr) << "Using default regrid_int = 1 at all levels!\n";
        }
        else if (numvals < max_level)
        {
@@ -414,8 +414,7 @@ Amr::InitAmr ()
             initial_ba[lev-1].define(bl);
         }
         is.close();
-        if (ParallelDescriptor::IOProcessor())
-            std::cout << "Read initial_ba. Size is " << initial_ba.size() << std::endl;
+	amrex::Print() << "Read initial_ba. Size is " << initial_ba.size() << "\n";
 
 #undef STRIP
     }
@@ -446,7 +445,7 @@ Amr::InitAmr ()
                  bx.refine(ref_ratio[lev-1]);
                  if (bx.longside() > max_grid_size[lev])
                  {
-                     std::cout << "Grid " << bx << " too large" << '\n';
+		     amrex::Print() << "Grid " << bx << " too large" << '\n';
                      amrex::Error();
                  }
                  bl.push_back(bx);
@@ -722,8 +721,8 @@ Amr::writePlotFile ()
 
     const std::string& pltfile = amrex::Concatenate(plot_file_root,level_steps[0],file_name_digits);
 
-    if (verbose > 0 && ParallelDescriptor::IOProcessor()) {
-        std::cout << "PLOTFILE: file = " << pltfile << '\n';
+    if (verbose > 0) {
+	amrex::Print() << "PLOTFILE: file = " << pltfile << '\n';
     }
 
     if (record_run_info && ParallelDescriptor::IOProcessor()) {
@@ -746,9 +745,7 @@ Amr::writePlotFile ()
 
     if(precreateDirectories) {    // ---- make all directories at once
       amrex::UtilRenameDirectoryToOld(pltfile, false);      // dont call barrier
-      if(ParallelDescriptor::IOProcessor()) {
-        std::cout << "IOIOIOIO:  precreating directories for " << pltfileTemp << std::endl;
-      }
+      amrex::Print() << "IOIOIOIO:  precreating directories for " << pltfileTemp << "\n";
       amrex::PreBuildDirectorHierarchy(pltfileTemp, "Level_", finest_level + 1, true);  // call barrier
     } else {
       amrex::UtilRenameDirectoryToOld(pltfile, false);     // dont call barrier
@@ -796,9 +793,7 @@ Amr::writePlotFile ()
 
         ParallelDescriptor::ReduceRealMax(dPlotFileTime,IOProc);
 
-        if (ParallelDescriptor::IOProcessor()) {
-            std::cout << "Write plotfile time = " << dPlotFileTime << "  seconds" << "\n\n";
-	}
+	amrex::Print() << "Write plotfile time = " << dPlotFileTime << "  seconds" << "\n\n";
     }
     ParallelDescriptor::Barrier("Amr::writePlotFile::end");
 
@@ -848,8 +843,8 @@ Amr::writeSmallPlotFile ()
                                                      level_steps[0],
                                                      file_name_digits);
 
-    if (verbose > 0 && ParallelDescriptor::IOProcessor()) {
-        std::cout << "SMALL PLOTFILE: file = " << pltfile << '\n';
+    if (verbose > 0) {
+	amrex::Print() << "SMALL PLOTFILE: file = " << pltfile << '\n';
     }
 
     if (record_run_info && ParallelDescriptor::IOProcessor()) {
@@ -923,9 +918,7 @@ Amr::writeSmallPlotFile ()
 
         ParallelDescriptor::ReduceRealMax(dPlotFileTime,IOProc);
 
-        if (ParallelDescriptor::IOProcessor()) {
-            std::cout << "Write small plotfile time = " << dPlotFileTime << "  seconds" << "\n\n";
-	}
+	amrex::Print() << "Write small plotfile time = " << dPlotFileTime << "  seconds" << "\n\n";
     }
     ParallelDescriptor::Barrier("Amr::writeSmallPlotFile::end");
 
@@ -1002,8 +995,8 @@ Amr::checkInput ()
         amrex::Error("checkInput: bad physical problem size");
     }
 
-    if(verbose > 0 && ParallelDescriptor::IOProcessor()) {
-       std::cout << "Successfully read inputs file ... " << '\n';
+    if(verbose > 0) {
+	amrex::Print() << "Successfully read inputs file ... " << '\n';
     }
 }
 
@@ -1059,8 +1052,8 @@ Amr::readProbinFile (int& init)
     for (int i = 0; i < probin_file_length; i++)
         probin_file_name[i] = probin_file[i];
 
-    if (verbose > 0 && ParallelDescriptor::IOProcessor())
-       std::cout << "Starting to read probin ... " << std::endl;
+    if (verbose > 0)
+	amrex::Print() << "Starting to read probin ... \n";
 
     const int nAtOnce = probinit_natonce;
     const int MyProc  = ParallelDescriptor::MyProc();
@@ -1124,15 +1117,12 @@ Amr::readProbinFile (int& init)
         ParallelDescriptor::ReduceRealMax(piTotal,    IOProc);
         ParallelDescriptor::ReduceRealMax(piTotalAll, IOProc);
 
-        if (ParallelDescriptor::IOProcessor())
-        {
-            std::cout << "MFRead::: PROBINIT max time   = " << piTotal    << '\n';
-            std::cout << "MFRead::: PROBINIT total time = " << piTotalAll << '\n';
-        }
+	amrex::Print() << "MFRead::: PROBINIT max time   = " << piTotal    << '\n'
+		       << "MFRead::: PROBINIT total time = " << piTotalAll << '\n';
     }
 
-    if (verbose > 0 && ParallelDescriptor::IOProcessor())
-        std::cout << "Successfully read probin file: \"" << probin_file << "\"\n";
+    if (verbose > 0)
+	amrex::Print() << "Successfully read probin file: \"" << probin_file << "\"\n";
 }
 
 void
@@ -1272,8 +1262,8 @@ Amr::restart (const std::string& filename)
 
     VisMF::SetMFFileInStreams(mffile_nstreams);
 
-    if (verbose > 0 && ParallelDescriptor::IOProcessor()) {
-        std::cout << "restarting calculation from file: " << filename << std::endl;
+    if (verbose > 0) {
+	amrex::Print() << "restarting calculation from file: " << filename << "\n";
     }
 
     if (record_run_info && ParallelDescriptor::IOProcessor()) {
@@ -1311,9 +1301,10 @@ Amr::restart (const std::string& filename)
             std::string faHeaderFullName(filename + '/' + faHeaderName + "_H");
             Array<char> &tempCharArray = faHeaderMap[faHeaderFullName];
             ParallelDescriptor::ReadAndBcastFile(faHeaderFullName, tempCharArray);
-	    if(verbose > 0 && ParallelDescriptor::IOProcessor()) {
-              std::cout << ":::: faHeaderName faHeaderFullName tempCharArray.size() = " << faHeaderName
-	                << "  " << faHeaderFullName << "  " << tempCharArray.size() << std::endl;
+	    if(verbose > 0) {
+		amrex::Print() 
+		    << ":::: faHeaderName faHeaderFullName tempCharArray.size() = " << faHeaderName
+		    << "  " << faHeaderFullName << "  " << tempCharArray.size() << "\n";
 	    }
           }
         }
@@ -1394,9 +1385,9 @@ Amr::restart (const std::string& filename)
        for (int i(0); i <= mx_lev; ++i) {
            if (n_cycle[i] != n_cycle_in[i]) {
                any_changed = true;
-               if (verbose > 0 && ParallelDescriptor::IOProcessor()) {
-                   std::cout << "Warning: n_cycle has changed at level " << i << 
-                                " from " << n_cycle_in[i] << " to " << n_cycle[i] << std::endl;;
+               if (verbose > 0) {
+		   amrex::Print() << "Warning: n_cycle has changed at level " << i << 
+		       " from " << n_cycle_in[i] << " to " << n_cycle[i] << "\n";
 	       }
            }
        }
@@ -1405,8 +1396,8 @@ Amr::restart (const std::string& filename)
        if (max_level > 0 && any_changed)
        {
            level_count[0] = regrid_int[0];
-           if ((verbose > 0) && ParallelDescriptor::IOProcessor()) {
-               std::cout << "Warning: This forces a full regrid " << std::endl;
+           if (verbose > 0) {
+	       amrex::Print() << "Warning: This forces a full regrid \n";
 	   }
        }
 
@@ -1539,14 +1530,12 @@ Amr::restart (const std::string& filename)
 	Box restart_domain(Geom(lev).Domain());
        if ( ! (inputs_domain[lev] == restart_domain) )
        {
-          if (ParallelDescriptor::IOProcessor())
-          {
-             std::cout << "Problem at level " << lev << '\n';
-             std::cout << "Domain according to     inputs file is " <<  inputs_domain[lev] << '\n';
-             std::cout << "Domain according to checkpoint file is " << restart_domain      << '\n';
-             std::cout << "Amr::restart() failed -- box from inputs file does not "
-	               << "equal box from restart file." << std::endl;
-          }
+	   amrex::Print() 
+	       << "Problem at level " << lev << '\n'
+	       << "Domain according to     inputs file is " <<  inputs_domain[lev] << '\n'
+	       << "Domain according to checkpoint file is " << restart_domain      << '\n'
+	       << "Amr::restart() failed -- box from inputs file does not "
+	       << "equal box from restart file. \n";
           amrex::Abort();
        }
     }
@@ -1562,9 +1551,7 @@ Amr::restart (const std::string& filename)
 
         ParallelDescriptor::ReduceRealMax(dRestartTime,ParallelDescriptor::IOProcessorNumber());
 
-        if (ParallelDescriptor::IOProcessor()) {
-            std::cout << "Restart time = " << dRestartTime << " seconds." << '\n';
-	}
+	amrex::Print() << "Restart time = " << dRestartTime << " seconds." << '\n';
     }
     BL_PROFILE_REGION_STOP("Amr::restart()");
 }
@@ -1594,8 +1581,8 @@ Amr::checkPoint ()
 
     const std::string& ckfile = amrex::Concatenate(check_file_root,level_steps[0],file_name_digits);
 
-    if(verbose > 0 && ParallelDescriptor::IOProcessor()) {
-        std::cout << "CHECKPOINT: file = " << ckfile << std::endl;
+    if(verbose > 0) {
+	amrex::Print() << "CHECKPOINT: file = " << ckfile << "\n";
     }
 
     if(record_run_info && ParallelDescriptor::IOProcessor()) {
@@ -1725,9 +1712,7 @@ Amr::checkPoint ()
         ParallelDescriptor::ReduceRealMax(dCheckPointTime,
 	                            ParallelDescriptor::IOProcessorNumber());
 
-        if(ParallelDescriptor::IOProcessor()) {
-            std::cout << "checkPoint() time = " << dCheckPointTime << " secs." << '\n';
-	}
+	amrex::Print() << "checkPoint() time = " << dCheckPointTime << " secs." << '\n';
     }
     ParallelDescriptor::Barrier("Amr::checkPoint::end");
 
@@ -1848,13 +1833,10 @@ Amr::timeStep (int  level,
     //
     // Advance grids at this level.
     //
-    if (verbose > 0 && ParallelDescriptor::IOProcessor())
+    if (verbose > 0)
     {
-	std::cout << "[Level " << level 
-		  << " step " << level_steps[level]+1 << "] ";
-        std::cout << "ADVANCE with dt = "
-                  << dt_level[level]
-                  << std::endl;
+	amrex::Print() << "[Level " << level << " step " << level_steps[level]+1 << "] "
+		       << "ADVANCE with dt = " << dt_level[level] << "\n";
     }
     BL_PROFILE_REGION_START("amr_level.advance");
     Real dt_new = amr_level[level]->advance(time,dt_level[level],iteration,niter);
@@ -1865,14 +1847,10 @@ Amr::timeStep (int  level,
     level_steps[level]++;
     level_count[level]++;
 
-    if (verbose > 0 && ParallelDescriptor::IOProcessor())
+    if (verbose > 0)
     {
-	std::cout << "[Level " << level
-		  << " step " << level_steps[level] << "] ";
-        std::cout << "Advanced "
-                  << amr_level[level]->countCells()
-                  << " cells"
-                  << std::endl;
+	amrex::Print() << "[Level " << level << " step " << level_steps[level] << "] "
+		       << "Advanced " << amr_level[level]->countCells() << " cells\n";
     }
 
 #ifdef USE_STATIONDATA
@@ -1980,8 +1958,7 @@ Amr::coarseTimeStep (Real stop_time)
 	Lazy::QueueReduction( [=] () mutable {
 #endif
         ParallelDescriptor::ReduceRealMax(run_stop,IOProc);
-        if (ParallelDescriptor::IOProcessor())
-            std::cout << "\n[STEP " << istep << "] Coarse TimeStep time: " << run_stop << '\n' ;
+	amrex::Print() << "\n[STEP " << istep << "] Coarse TimeStep time: " << run_stop << '\n';
 #ifdef BL_LAZY
 	});
 #endif
@@ -1996,16 +1973,10 @@ Amr::coarseTimeStep (Real stop_time)
         ParallelDescriptor::ReduceLongMin(min_fab_kilobytes, IOProc);
         ParallelDescriptor::ReduceLongMax(max_fab_kilobytes, IOProc);
 
-        if (ParallelDescriptor::IOProcessor())
-        {
-            std::cout << "[STEP " << istep << "] FAB kilobyte spread across MPI nodes: ["
-                      << min_fab_kilobytes
-                      << " ... "
-                      << max_fab_kilobytes
-                      << "]\n";
-        }
+	amrex::Print() << "[STEP " << istep << "] FAB kilobyte spread across MPI nodes: ["
+		       << min_fab_kilobytes << " ... " << max_fab_kilobytes << "]\n";
 #ifdef BL_LAZY
-	if (ParallelDescriptor::IOProcessor()) std::cout << "\n";
+	amrex::Print() << "\n";
 	});
 #endif
 #endif
@@ -2025,26 +1996,18 @@ Amr::coarseTimeStep (Real stop_time)
     BL_COMM_PROFILE_NAMETAG(stepName.str());
     BL_COMM_PROFILE_FLUSH();
 
-    if (verbose > 0 && ParallelDescriptor::IOProcessor())
+    if (verbose > 0)
     {
-        std::cout << "\nSTEP = "
-                 << level_steps[0]
-                  << " TIME = "
-                  << cumtime
-                  << " DT = "
-                  << dt_level[0]
-                  << '\n'
-                  << std::endl;
+	amrex::Print()
+	    << "\nSTEP = " << level_steps[0]
+	    << " TIME = "  << cumtime
+	    << " DT = "    << dt_level[0] << "\n\n";
     }
     if (record_run_info && ParallelDescriptor::IOProcessor())
     {
-        runlog << "STEP = "
-               << level_steps[0]
-               << " TIME = "
-               << cumtime
-               << " DT = "
-               << dt_level[0]
-               << '\n';
+        runlog << "STEP = "  << level_steps[0]
+               << " TIME = " << cumtime
+               << " DT = "   << dt_level[0] << '\n';
     }
     if (record_run_info_terse && ParallelDescriptor::IOProcessor())
         runlog_terse << level_steps[0] << " " << cumtime << " " << dt_level[0] << '\n';
@@ -2263,8 +2226,8 @@ Amr::regrid (int  lbase,
 {
     BL_PROFILE("Amr::regrid()");
 
-    if (verbose > 0 && ParallelDescriptor::IOProcessor())
-        std::cout << "Now regridding at level lbase = " << lbase << std::endl;
+    if (verbose > 0)
+	amrex::Print() << "Now regridding at level lbase = " << lbase << "\n";
 
     //
     // Compute positions of new grids.
@@ -2297,9 +2260,9 @@ Amr::regrid (int  lbase,
     //
     if (use_efficient_regrid == 1 && grids_unchanged )
     {
-	if (verbose > 0 && ParallelDescriptor::IOProcessor()) {
-	    std::cout << "Regridding at level lbase = " << lbase 
-		      << " but grids unchanged " << std::endl;
+	if (verbose > 0) {
+	    amrex::Print() << "Regridding at level lbase = " << lbase 
+			   << " but grids unchanged\n";
 	}
 	return;
     }
@@ -2513,8 +2476,8 @@ Amr::regrid_level_0_on_restart()
     }
     else
     {
-	if (verbose > 0 && ParallelDescriptor::IOProcessor())
-	    std::cout << "Regridding at level 0 but grids unchanged " << std::endl;
+	if (verbose > 0)
+	    amrex::Print() << "Regridding at level 0 but grids unchanged \n";
     }
 }
 
@@ -2742,8 +2705,7 @@ Amr::grid_places (int              lbase,
 	Lazy::QueueReduction( [=] () mutable {
 #endif
         ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
-        if (ParallelDescriptor::IOProcessor())
-            std::cout << "grid_places() time: " << stoptime << " new finest: " << new_finest<< '\n';
+	amrex::Print() << "grid_places() time: " << stoptime << " new finest: " << new_finest<< '\n';
 #ifdef BL_LAZY
 	});
 #endif
@@ -2848,11 +2810,8 @@ Amr::initSubcycle ()
     sub_cycle = true;
     if (pp.contains("nosub"))
     {
-        if (ParallelDescriptor::IOProcessor())
-        {
-            std::cout << "Warning: The nosub flag has been deprecated.\n ";
-            std::cout << "... please use subcycling_mode to control subcycling.\n";
-        }
+	amrex::Print() << "Warning: The nosub flag has been deprecated.\n "
+				    << "... please use subcycling_mode to control subcycling.\n";
         int nosub;
         pp.query("nosub",nosub);
         if (nosub > 0)
@@ -3110,20 +3069,14 @@ Amr::AddProcsToSidecar(int nSidecarProcs, int prevSidecarProcs)
     Array<Array<int> > mLDM;
     // ---- just use the random map for now
     int maxRank(ParallelDescriptor::NProcsAll() - nSidecarProcs - 1);
-    if(ParallelDescriptor::IOProcessor()) {
-      std::cout << "_______ maxRank = " << maxRank << std::endl;
-    }
+    amrex::Print() << "_______ maxRank = " << maxRank << "\n";
 
     mLDM = DistributionMapping::MultiLevelMapRandom(ref_ratio, allBoxes, maxGridSize(0), maxRank);
 
     for(int iMap(0); iMap < mLDM.size(); ++iMap) {
-      if(ParallelDescriptor::IOProcessor()) {
-        std::cout << "_in Amr::AddProcsToSidecar:  calling MoveAllFabs:" << std::endl;
-      }
-      MultiFab::MoveAllFabs(mLDM[iMap]);
-      if(ParallelDescriptor::IOProcessor()) {
-        std::cout << "_in Amr::AddProcsToSidecar:  after calling MoveAllFabs:" << std::endl;
-      }
+	amrex::Print() << "_in Amr::AddProcsToSidecar:  calling MoveAllFabs:\n";
+	MultiFab::MoveAllFabs(mLDM[iMap]);
+	amrex::Print() << "_in Amr::AddProcsToSidecar:  after calling MoveAllFabs:\n";
     }
     VisMF::SetNOutFiles(checkpoint_nfiles);
 
@@ -3606,7 +3559,7 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
         for(int i(0); i < probin_file_length; ++i) {
           probin_file_name[i] = probin_file[i];
         }
-        std::cout << "Starting to read probin ... " << std::endl;
+	amrex::Print() << "Starting to read probin ... \n";
 #ifdef DIMENSION_AGNOSTIC
         amrex_probinit(&init, probin_file_name.dataPtr(), &probin_file_length,
 		       ZFILL(Geometry::ProbLo()), ZFILL(Geometry::ProbHi()));
@@ -3635,9 +3588,7 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
     bool abortOnError(false);
     MultiFab::CheckFAPointers(abortOnError);
 
-    if(ParallelDescriptor::IOProcessor()) {
-      std::cout << "%%%%%%%% finished AddProcsToComp." << std::endl;
-    }
+    amrex::Print() << "%%%%%%%% finished AddProcsToComp.\n";
 
 #endif
 }
@@ -3739,7 +3690,7 @@ using std::endl;
   }
 
   /*
-  std::cout << "state_plot_vars = " << endl;
+  amrex::Print() << "state_plot_vars = \n";
   for(std::list<std::string>::const_iterator li = state_plot_vars.begin(), End = state_plot_vars.end();
       li != End; ++li)
   {
