@@ -37,11 +37,16 @@ public:
     static long charge_deposition_algo;
     static long field_gathering_algo;
     static long particle_pusher_algo;
-    
+
     // Interpolation order
     static long nox;
     static long noy;
     static long noz;
+
+    // Moving window
+    static Real moving_window_vx;
+    static Real moving_window_vy;
+    static Real moving_window_vz;
 
 protected:
     virtual void ErrorEst (int lev, TagBoxArray& tags, Real time, int /*ngrow*/) override {}
@@ -62,9 +67,9 @@ private:
     void InitFromScratch ();
     void InitFromCheckpoint () {}
     void InitLevelData (int lev);
-    
+
     void InitOpenbc ();
-    
+
     void ComputeDt ();
 
     void WritePlotFile () const;

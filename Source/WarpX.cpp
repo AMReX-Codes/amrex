@@ -2,6 +2,7 @@
 #include <ParmParse.H>
 
 #include <WarpX.H>
+#include <WarpXConst.H>
 
 long WarpX::current_deposition_algo = 3;
 long WarpX::charge_deposition_algo = 0;
@@ -11,6 +12,10 @@ long WarpX::particle_pusher_algo = 0;
 long WarpX::nox = 1;
 long WarpX::noy = 1;
 long WarpX::noz = 1;
+
+Real WarpX::moving_window_vx = 0;
+Real WarpX::moving_window_vy = 0;
+Real WarpX::moving_window_vz = 0;
 
 #if (BL_SPACEDIM == 3)
 IntVect WarpX::Bx_nodal_flag(1,0,0);
@@ -120,7 +125,7 @@ WarpX::ReadParameters ()
 
     {
 	ParmParse pp("warpx");
-	
+
 	pp.query("cfl", cfl);
 	pp.query("verbose", verbose);
     }
@@ -129,7 +134,7 @@ WarpX::ReadParameters ()
 	ParmParse pp("interpolation");
 	pp.query("nox", nox);
 	pp.query("noy", noy);
-	pp.query("noz", noz);  
+	pp.query("noz", noz);
 	if (nox != noy || nox != noz) {
 	    BoxLib::Abort("warpx.nox, noy and noz must be equal");
 	}
@@ -144,6 +149,16 @@ WarpX::ReadParameters ()
 	pp.query("charge_deposition", charge_deposition_algo);
 	pp.query("field_gathering", field_gathering_algo);
 	pp.query("particle_pusher", particle_pusher_algo);
+    }
+
+    {
+  ParmParse pp("moving_window");
+	pp.query("vx", moving_window_vx);
+  pp.query("vy", moving_window_vy);
+  pp.query("vz", moving_window_vz);
+  moving_window_vx *= PhysConst::c;
+  moving_window_vy *= PhysConst::c;
+  moving_window_vz *= PhysConst::c;
     }
 }
 
@@ -171,7 +186,7 @@ WarpX::MakeNewLevel (int lev, Real time,
     }
 }
 
-void 
+void
 WarpX::FillBoundary (MultiFab& mf, const Geometry& geom, const IntVect& nodalflag)
 {
     const IndexType correct_typ(nodalflag);
@@ -214,4 +229,3 @@ WarpX::Copy(MultiFab& dstmf, int dcomp, int ncomp, const MultiFab& srcmf, int sc
 	dfab.SetBoxType(dst_typ);
     }
 }
-
