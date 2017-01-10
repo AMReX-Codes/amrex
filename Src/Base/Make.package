@@ -30,7 +30,7 @@ C$(AMREX_BASE)_headers += AMReX_NFiles.H
 #
 # FAB I/O stuff.
 #
-C${AMREX_BASE}_headers += AMReX_FabConv.H AMReX_FPC.H
+C${AMREX_BASE}_headers += AMReX_FabConv.H AMReX_FPC.H AMReX_Print.H
 C${AMREX_BASE}_sources += AMReX_FabConv.cpp AMReX_FPC.cpp
 
 #
