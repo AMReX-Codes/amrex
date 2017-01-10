@@ -1,18 +1,48 @@
 %module warpxC
 
-%include <argcargv.i>
+%{
+#include <WarpXWrappers.h>
 
+#define SWIG_FILE_WITH_INIT
+%}
+%include "numpy.i"
+%init %{
+import_array();
+%}
+
+// For boxlib_init(int argc, char *argv[]);
+%include <argcargv.i>
 %apply (int ARGC, char **ARGV) { (int argc, char *argv[]) }
 
-void boxlib_init(int argc, char *argv[]);
+%rename (addNParticles) wrapped_addNParticles;
+%ignore addNParticles;
 
-// void boxlib_init_with_inited_mpi (int argc, char** argv, MPI_Comm mpicomm);
+%include "../Source/WarpXWrappers.h"
 
-void boxlib_finalize (int finalize_mpi);
+%apply (int DIM1, double* IN_ARRAY1) {(int lenx, double* x),
+                                      (int leny, double* y),
+                                      (int lenz, double* z),
+                                      (int lenvx, double* vx),
+                                      (int lenvy, double* vy),
+                                      (int lenvz, double* vz)}
+%apply (int DIM1, int DIM2, double* IN_FARRAY2 ) {(int lena, int nattr, double* attr)} // Note Fortran ordering
 
-void warpx_init ();
+%exception wrapped_addNParticles {
+    $action
+    if (PyErr_Occurred()) SWIG_fail;
+}
 
-void warpx_finalize ();
-
-void warpx_evolve (int numsteps = -1);  // -1 means the inputs parameter will be used.
+%inline %{
+void wrapped_addNParticles(int lenx, double* x, int leny, double* y, int lenz, double* z,
+                            int lenvx, double* vx, int lenvy, double* vy, int lenvz, double* vz,
+                            int lena, int nattr, double* attr, int uniqueparticles) {
+    if (lenx != leny || lenx != lenz || lenx != lenvx || lenx != lenvy || lenx != lenvz || lenx != lena ) {
+        PyErr_Format(PyExc_ValueError,
+                     "Lengths of arrays must be the same, (%d, %d, %d, %d, %d, %d, %d)",
+                     lenx, leny, lenz, lenvx, lenvy, lenvz, lena);
+        return;
+    }
+    addNParticles(lenx, x, y, z, vx, vy, vz, nattr, attr, uniqueparticles);
+}
+%}
 
