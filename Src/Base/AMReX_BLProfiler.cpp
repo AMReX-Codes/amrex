@@ -8,6 +8,7 @@
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_Array.H>
 #include <AMReX_NFiles.H>
+#include <AMReX_Print.H>
 #include <iostream>
 #include <iomanip>
 #include <fstream>
@@ -152,8 +153,8 @@ void BLProfiler::Initialize() {
     std::stringstream pname;
     pname << "nid" << procNumber;
     procName = pname.str();
-    std::cout << ParallelDescriptor::MyProc() << "::procNumber = " << procNumber
-              << "  procName = " << procName << std::endl;
+    amrex::Print(Print::AllProcs) << ParallelDescriptor::MyProc() << "::procNumber = " << procNumber
+				  << "  procName = " << procName << "\n";
 #else
     procNumber = ParallelDescriptor::MyProc();
 #endif
@@ -433,10 +434,8 @@ void BLProfiler::RegionStop(const std::string &rname) {
   int rnameNumber;
   std::map<std::string, int>::iterator it = BLProfiler::mRegionNameNumbers.find(rname);
   if(it == BLProfiler::mRegionNameNumbers.end()) {  // ---- error
-    if(ParallelDescriptor::IOProcessor()) {
-      std::cout << "-------- error in RegionStop:  region " << rname
-                << " never started."  << std::endl;
-    }
+    amrex::Print() << "-------- error in RegionStop:  region " << rname
+		   << " never started.\n";
     rnameNumber = BLProfiler::mRegionNameNumbers.size();
     BLProfiler::mRegionNameNumbers.insert(std::pair<std::string, int>(rname, rnameNumber));
   } else {
@@ -505,9 +504,7 @@ void BLProfiler::Finalize() {
   for(int iname(0); iname < addNames.size(); ++iname) {
     std::map<std::string, ProfStats>::iterator it = mProfStats.find(addNames[iname]);
     if(it == mProfStats.end()) {
-      if(ParallelDescriptor::IOProcessor()) {
-        std::cout << "BLProfiler::Finalize:  adding name:  " << addNames[iname] << std::endl;
-      }
+      amrex::Print() << "BLProfiler::Finalize:  adding name:  " << addNames[iname] << "\n";
       ProfStats ps;
       mProfStats.insert(std::pair<std::string, ProfStats>(addNames[iname], ps));
     }
@@ -651,10 +648,8 @@ void BLProfiler::Finalize() {
 
     ParallelDescriptor::Barrier("BLProfiler::Finalize");
   }
-  if(ParallelDescriptor::IOProcessor()) {
-    std::cout << "BLProfiler::Finalize():  time:  "   // time the timer
-              << ParallelDescriptor::second() - finalizeStart << std::endl;
-  }
+  amrex::Print() << "BLProfiler::Finalize():  time:  "   // time the timer
+                 << ParallelDescriptor::second() - finalizeStart << "\n";
 
 #ifdef BL_COMM_PROFILING
   WriteCommStats();
@@ -940,16 +935,12 @@ void BLProfiler::WriteCallTrace(bool bFlushing) {   // ---- write call trace dat
       int nCT(vCallTrace.size());
       ParallelDescriptor::ReduceIntMax(nCT);
       if(nCT < traceFlushSize) {
-        if(ParallelDescriptor::IOProcessor()) {
-          std::cout << "Bypassing call trace flush, nCT < traceFlushSize:  " << nCT
-                    << "  " << traceFlushSize << std::endl;
-        }
-        return;
+	  amrex::Print() << "Bypassing call trace flush, nCT < traceFlushSize:  " << nCT
+			 << "  " << traceFlushSize << "\n";
+	  return;
       } else {
-        if(ParallelDescriptor::IOProcessor()) {
-          std::cout << "Flushing call traces:  nCT traceFlushSize = " << nCT
-                    << "  " << traceFlushSize << std::endl;
-        }
+	  amrex::Print() << "Flushing call traces:  nCT traceFlushSize = " << nCT
+			 << "  " << traceFlushSize << "\n";
       }
     }
 
@@ -976,11 +967,8 @@ void BLProfiler::WriteCallTrace(bool bFlushing) {   // ---- write call trace dat
     amrex::SyncStrings(localStrings, syncedStrings, alreadySynced);
 
     if( ! alreadySynced) {  // ---- need to remap names and numbers
-      if(ParallelDescriptor::IOProcessor()) {
-        std::cout << "**** Warning:  region names not synced:  unsupported."
-                  << std::endl;
-      }
-      // unsupported for now
+	amrex::Print() << "**** Warning:  region names not synced:  unsupported.\n";
+	// unsupported for now
     }
 
     if(ParallelDescriptor::IOProcessor()) {
@@ -1074,7 +1062,7 @@ void BLProfiler::WriteCallTrace(bool bFlushing) {   // ---- write call trace dat
 	CallStatsStack &csStack = callIndexStack[ci];
 	if( ! csStack.bFlushed) {
 	  if(baseSeekPos < 0) {
-	    std::cout << "**** Error:  baseSeekPos = " << baseSeekPos << std::endl;
+	    amrex::Print(Print::AllProcs) << "**** Error:  baseSeekPos = " << baseSeekPos << "\n";
 	    break;
 	  }
 	  long spos(baseSeekPos + csStack.index * sizeof(CallStats));
@@ -1099,10 +1087,11 @@ void BLProfiler::WriteCallTrace(bool bFlushing) {   // ---- write call trace dat
         csDFile.read((char *) &csOnDisk, sizeof(CallStats));
 	bool bReportPatches(false);
 	if(bReportPatches) {
-	  std::cout << myProc << "::PATCH:  csOnDisk.st tt = " << csOnDisk.stackTime
-	            << "  " << csOnDisk.totalTime << '\n'
-		    << myProc << "::PATCH:  csPatch.st tt = " << csPatch.callStats.stackTime
-		    << "  " << csPatch.callStats.totalTime << " :::: " << csPatch.fileName << std::endl;
+	    amrex::Print(Print::AllProcs)
+		<< myProc << "::PATCH:  csOnDisk.st tt = " << csOnDisk.stackTime
+		<< "  " << csOnDisk.totalTime << '\n'
+		<< myProc << "::PATCH:  csPatch.st tt = " << csPatch.callStats.stackTime
+		<< "  " << csPatch.callStats.totalTime << " :::: " << csPatch.fileName << "\n";
 	}
 	csOnDisk.totalTime = csPatch.callStats.totalTime;
 	csOnDisk.stackTime = csPatch.callStats.stackTime;
@@ -1141,16 +1130,12 @@ void BLProfiler::WriteCommStats(bool bFlushing) {
       if( ! bAllCFTypesExcluded) {
         CommStats::cftExclude.erase(AllCFTypes);
       }
-      if(ParallelDescriptor::IOProcessor()) {
-        std::cout << "Bypassing comm stats flush, nCS < csFlushSize:  " << nCS
-	          << "  " << csFlushSize << std::endl;
-      }
+      amrex::Print() << "Bypassing comm stats flush, nCS < csFlushSize:  " << nCS
+		     << "  " << csFlushSize << "\n";
       return;
     } else {
-      if(ParallelDescriptor::IOProcessor()) {
-        std::cout << "Flushing commstats:  nCSmax csFlushSize = " << nCS
-	          << "  " << csFlushSize << std::endl;
-      }
+      amrex::Print() << "Flushing commstats:  nCSmax csFlushSize = " << nCS
+		     << "  " << csFlushSize << "\n";
     }
   }
 
@@ -1298,10 +1283,8 @@ void BLProfiler::WriteCommStats(bool bFlushing) {
 
   ParallelDescriptor::Barrier("BLProfiler::WriteCommStats::end");
 
-  if(ParallelDescriptor::IOProcessor()) {
-    std::cout << "BLProfiler::WriteCommStats():  time:  "
-              << ParallelDescriptor::second() - wcsStart << std::endl;
-  }
+  amrex::Print() << "BLProfiler::WriteCommStats():  time:  "
+		 << ParallelDescriptor::second() - wcsStart << "\n";
 }
 
 

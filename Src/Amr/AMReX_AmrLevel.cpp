@@ -11,6 +11,7 @@
 #include <AMReX_FillPatchUtil.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_BLProfiler.H>
+#include <AMReX_Print.H>
 
 namespace amrex {
 

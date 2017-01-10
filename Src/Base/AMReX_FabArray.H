@@ -34,6 +34,7 @@
 #include <AMReX_ccse-mpi.H>
 #include <AMReX_BLProfiler.H>
 #include <AMReX_Periodicity.H>
+#include <AMReX_Print.H>
 
 namespace amrex {
 
@@ -232,13 +233,12 @@ public:
 	}
 	void recordUse () { ++nuse; }
 	void print () {
-	    std::cout << "### " << name << " ###\n";
-	    std::cout << "    tot # of builds  : " << nbuild  << "\n"
-		      << "    tot # of erasures: " << nerase  << "\n"
-		      << "    tot # of uses    : " << nuse    << "\n"
-		      << "    max cache size   : " << maxsize << "\n"
-		      << "    max # of uses    : " << maxuse
-		      << std::endl;
+	    amrex::Print(Print::AllProcs) << "### " << name << " ###\n"
+					  << "    tot # of builds  : " << nbuild  << "\n"
+					  << "    tot # of erasures: " << nerase  << "\n"
+					  << "    tot # of uses    : " << nuse    << "\n"
+					  << "    max cache size   : " << maxsize << "\n"
+					  << "    max # of uses    : " << maxuse  << "\n";
 	}
     };
     //
@@ -598,12 +598,11 @@ protected:
 	    max_num_ba_use = std::max(max_num_ba_use, n);
 	}
 	void print () {
-	    std::cout << "### FabArray ###\n";
-	    std::cout << "    tot # of builds       : " << num_build         << "\n"
-		      << "    max # of FabArrays    : " << max_num_fabarrays << "\n"
-		      << "    max # of BoxArrays    : " << max_num_boxarrays << "\n"
-		      << "    max # of BoxArray uses: " << max_num_ba_use
-		      << std::endl;
+	    amrex::Print(Print::AllProcs) << "### FabArray ###\n"
+					  << "    tot # of builds       : " << num_build         << "\n"
+					  << "    max # of FabArrays    : " << max_num_fabarrays << "\n"
+					  << "    max # of BoxArrays    : " << max_num_boxarrays << "\n"
+					  << "    max # of BoxArray uses: " << max_num_ba_use    << "\n";
 	}
     };
     static FabArrayStats m_FA_stats;
@@ -3260,10 +3259,8 @@ FabArray<FAB>::MoveAllFabs (const Array<int> &newDistMapArray)
 
     ParallelDescriptor::ReduceIntSum(nFabsMoved);
 
-    if(ParallelDescriptor::IOProcessor()) {
-      std::cout << "FabArray<FAB>::MoveAllFabs:  moved " << nFabsMoved
-	        << " FAB(s) for each FabArray." << std::endl;
-    }
+    amrex::Print() << "FabArray<FAB>::MoveAllFabs:  moved " << nFabsMoved
+		   << " FAB(s) for each FabArray.\n";
 
     // ---- flush caches
     flushCPCache();
@@ -3513,9 +3510,9 @@ FabArrayCopyDescriptor<FAB>::AddBoxDoIt (FabArrayId fabarrayid,
 
         int remoteProc     = fabArray->DistributionMap()[faindex];
 	if(remoteProc >= ParallelDescriptor::NProcs()) {
-	  std::cout << ParallelDescriptor::MyProcAll() << ":: _in AddBoxDoIt:  nProcs remoteProc = "
-	            << ParallelDescriptor::NProcs() << "  " << remoteProc << std::endl;
-	  amrex::Abort("Bad remoteProc");
+	    amrex::Print(Print::AllProcs) << ParallelDescriptor::MyProcAll() << ":: _in AddBoxDoIt:  nProcs remoteProc = "
+					  << ParallelDescriptor::NProcs() << "  " << remoteProc << "\n";
+	    amrex::Abort("Bad remoteProc");
 	}
         fcd->fillBoxId     = nextFillBoxId;
         fcd->subBox        = intersect;

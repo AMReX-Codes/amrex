@@ -5,6 +5,7 @@
 #include <AMReX_ParmParse.H>
 #include <AMReX_TagBox.H>
 #include <AMReX_Cluster.H>
+#include <AMReX_Print.H>
 
 #ifdef USE_PARTICLES
 #include <AMReX_AmrParGDB.H>
@@ -566,22 +567,15 @@ AmrCore::MakeNewGrids (int lbase, Real time, int& new_finest, Array<BoxArray>& n
               while (new_bx.size() < 64 && wcount++ < 4)
               {
                   iLGS /= 2;
-                  if (ParallelDescriptor::IOProcessor())
-                  {
-                      std::cout << "BL_FIX_GATHERV_ERROR:  using iLGS = " << iLGS
-                                << "   largest_grid_size was:  " << largest_grid_size[0]
-                                << '\n';
-                      std::cout << "BL_FIX_GATHERV_ERROR:  new_bx.size() was:   "
-                                << new_bx.size() << '\n';
-                  }
+		  amrex::Print() << "BL_FIX_GATHERV_ERROR:  using iLGS = " << iLGS
+				 << "   largest_grid_size was:  " << largest_grid_size[0] << '\n'
+				 << "BL_FIX_GATHERV_ERROR:  new_bx.size() was:   "
+				 << new_bx.size() << '\n';
 
                   new_bx.maxSize(iLGS);
 
-                  if (ParallelDescriptor::IOProcessor())
-                  {
-                      std::cout << "BL_FIX_GATHERV_ERROR:  new_bx.size() now:   "
-                                << new_bx.size() << '\n';
-                  }
+		  amrex::Print() << "BL_FIX_GATHERV_ERROR:  new_bx.size() now:   "
+				 << new_bx.size() << '\n';
 	      }
 #endif
             //
