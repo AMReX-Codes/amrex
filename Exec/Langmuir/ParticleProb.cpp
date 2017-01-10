@@ -57,10 +57,9 @@ MyParticleContainer::InitData()
       pp.query("uy", uy);
       pp.query("uz", uz);
 
-      Real gamma = 1./std::sqrt(1.0 - ux*ux - uy*uy - uz*uz);
-      ux *= PhysConst::c*gamma;
-      uy *= PhysConst::c*gamma;      
-      uz *= PhysConst::c*gamma;
+      ux *= PhysConst::c;
+      uy *= PhysConst::c;      
+      uz *= PhysConst::c;
     }
 
     const BoxArray& ba = m_gdb->ParticleBoxArray(lev);
