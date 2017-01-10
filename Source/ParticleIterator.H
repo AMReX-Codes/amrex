@@ -40,7 +40,7 @@ public:
 
     // apply function to each particle in current tile
     template <typename F>
-    void foreach (F f)
+    void foreach (F&& f)
     {
 	auto& pbox = pmap[index_map[currentIndex]];
 	if (info.tiling)
