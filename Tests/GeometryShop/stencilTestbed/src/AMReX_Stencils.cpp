@@ -43,7 +43,7 @@ namespace amrex
     return weights[i];
   }
 
-  Real applyVoFStencil(const VoFStencil& a_sten, const EBCellFAB& a_fab, const int& a_comp)
+  Real applyVoFStencil(const VoFStencil& a_sten, const EBCellFAB& a_fab)
   {
     Real retval = 0.;
     for (int isten = 0; isten < a_sten.size(); isten++)

@@ -43,4 +43,23 @@ namespace amrex
   }
   
 
+  const Real& 
+  EBCellFAB::
+  operator() (const VolIndex& a_ndin, int a_nvarLoc) const
+  {
+    FArrayBox& fabcast = (FArrayBox&)(*this);
+    return fabcast(a_ndin.gridIndex(),  a_nvarLoc);
+  }
+
+
+  Real& 
+  EBCellFAB::
+  operator() (const VolIndex& a_ndin, int a_nvarLoc) 
+  {
+    FArrayBox& fabcast = (FArrayBox&)(*this);
+    return fabcast(a_ndin.gridIndex(),  a_nvarLoc);
+  }
+
+
 }
+

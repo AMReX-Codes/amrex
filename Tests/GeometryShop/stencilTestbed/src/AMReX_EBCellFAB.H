@@ -33,7 +33,7 @@ namespace amrex
   class EBCellFAB: public FArrayBox
   {
   public:
-    static bool s_verbose;
+
     ///
     EBCellFAB(): FArrayBox()
     {
@@ -59,18 +59,10 @@ namespace amrex
     }
 
 
-    const Real& operator()(const VolIndex& a_ndin, int a_nvarLoc) const
-    {
-      const FArrayBox& fabcast = (FArrayBox&)(*this);
-      return fabcast(a_ndin.gridIndex(),  a_nvarLoc);
-    }
+    const Real& operator()(const VolIndex& a_ndin, int a_nvarLoc) const;
 
 
-    Real& operator()(const VolIndex& a_ndin, int a_nvarLoc) 
-    {
-      FArrayBox& fabcast = (FArrayBox&)(*this);
-      return fabcast(a_ndin.gridIndex(),  a_nvarLoc);
-    }
+    Real& operator()(const VolIndex& a_ndin, int a_nvarLoc) ;
 
   private:
     //disallowed for all the usual reasons
