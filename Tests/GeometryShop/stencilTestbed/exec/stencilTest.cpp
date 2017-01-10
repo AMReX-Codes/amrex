@@ -18,6 +18,8 @@
 #include "AMReX_SphereIF.H"
 #include "AMReX_EBCellFAB.H"
 #include "AMReX_VolIndex.H"
+#include "AMReX_FaceIndex.H"
+#include "AMReX_TestbedUtils.H"
 
 using namespace amrex;
 using std::cout;
@@ -57,6 +59,30 @@ void getFluxStencil(VoFStencil           & a_stencil,
                     const Box            & a_domain,
                     const Real           & a_dx)
 {
+  
+  FaceStencil interpSten = TestbedUtil::getInterpStencil(a_face, 
+                                                         a_node, a_index, a_regIrregCovered,
+                                                         a_domain, a_dx);
+
+  a_stencil.clear();
+  for (int isten = 0; isten < interpSten.size(); isten++)
+    {
+      const FaceIndex& face = interpSten.face(isten);
+      const Real&    weight = interpSten.weight(isten);
+      VoFStencil faceCentSten;
+      if(!face.isBoundary())
+        {
+          
+          faceCentSten.add(face.getVoF(Side::Hi),  1.0/a_dx, 0);
+          faceCentSten.add(face.getVoF(Side::Lo), -1.0/a_dx, 0);
+        }
+      else
+        {
+          //no flux at boundaries for this test
+        }
+      a_stencil += faceCentSten;
+    }
+
 }
 ////////////
 void getIrregularStencil(VoFStencil           & a_stencil,
@@ -202,19 +228,19 @@ int testStuff();
 
   {
     BL_PROFILE("pointwise_apply_everywhere");
-    applyStencilPointwise(dst, src, stencils, regIrregCovered, nodes, domain, dx);
+    TestbedUtil::applyStencilPointwise(dst, src, stencils, regIrregCovered, nodes, domain, dx);
   }
   {
     BL_PROFILE("fortran_plus_irreg_pointwise_apply");
-    applyStencilFortranPlusPointwise(dst, src, stencils, regIrregCovered, nodes, domain, dx);
+    TestbedUtil::applyStencilFortranPlusPointwise(dst, src, stencils, regIrregCovered, nodes, domain, dx);
   }
   {
     BL_PROFILE("aggsten_everywhere");
-    applyStencilAllAggSten(dst, src, stencils, regIrregCovered, nodes, domain, dx);
+    TestbedUtil::applyStencilAllAggSten(dst, src, stencils, regIrregCovered, nodes, domain, dx);
   }
   {
     BL_PROFILE("fortran_plus_aggsten_at_irreg");
-    applyStencilFortranPlusAggSten(dst, src, stencils, regIrregCovered, nodes, domain, dx);
+    TestbedUtil::applyStencilFortranPlusAggSten(dst, src, stencils, regIrregCovered, nodes, domain, dx);
   }
   return eekflag;
 }

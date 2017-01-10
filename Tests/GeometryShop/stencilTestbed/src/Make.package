@@ -1,0 +1,4 @@
+
+C$(AMREX_BASE)_sources += AMReX_EBCellFAB.cpp  AMReX_FaceIndex.cpp  AMReX_TestbedUtil.cpp  AMReX_VolIndex.cpp AMReX_Stencils.cpp
+C$(AMREX_BASE)_headers += AMReX_EBCellFAB.H    AMReX_FaceIndex.H    AMReX_TestbedUtil.H    AMReX_VolIndex.H   AMReX_Stencils.H
+
