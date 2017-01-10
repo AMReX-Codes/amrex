@@ -52,13 +52,16 @@ int main(int argc, char* argv[])
 	   L1  norm = 8680.319857
 	   L2  norm = 56.24354515
 	*/
-	amrex::Print(amrex::Print::AllProcs)
+	// Print on all processes.
+	amrex::Print()
 	    << " Proc. " << amrex::ParallelDescriptor::MyProc() << "\n"
 	    << "    min      = " << data.min(0)  << "\n"
 	    << "    max      = " << data.max(0)  << "\n"
 	    << "    max norm = " << data.norm0() << "\n"
 	    << "    L1  norm = " << data.norm1() << "\n"
 	    << "    L2  norm = " << data.norm2() << "\n";
+	// Print on IO process
+	amrex::Print(amrex::Print::IOProc) << "Finished\n";
     }
 
     amrex::Finalize();
