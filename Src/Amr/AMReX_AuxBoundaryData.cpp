@@ -1,6 +1,6 @@
 
-#include <iostream>
 #include <AMReX_AuxBoundaryData.H>
+#include <AMReX_Print.H>
 
 #ifdef BL_LAZY
 #include <AMReX_Lazy.H>
@@ -124,8 +124,7 @@ AuxBoundaryData::initialize (const BoxArray& ba,
 	Lazy::QueueReduction( [=] () mutable {
 #endif
         ParallelDescriptor::ReduceRealMax(run_time,IOProc);
-        if (ParallelDescriptor::IOProcessor()) 
-            std::cout << "AuxBoundaryData::initialize() size = " << sz << ", time = " << run_time << '\n';
+	amrex::Print() << "AuxBoundaryData::initialize() size = " << sz << ", time = " << run_time << '\n';
 #ifdef BL_LAZY
 	});
 #endif

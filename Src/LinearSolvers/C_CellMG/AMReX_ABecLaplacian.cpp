@@ -88,7 +88,7 @@ ABecLaplacian::norm (int nm, int level, const bool local)
 		       bxfab.dataPtr(), ARLIM(bxfab.loVect()), ARLIM(bxfab.hiVect()),
 		       byfab.dataPtr(), ARLIM(byfab.loVect()), ARLIM(byfab.hiVect()),
 		       tbx.loVect(), tbx.hiVect(), &nc,
-		       h[level]);
+		       h[level].data());
 #elif (BL_SPACEDIM==3)
 	    
 	    FORT_NORMA(&tres,
@@ -98,7 +98,7 @@ ABecLaplacian::norm (int nm, int level, const bool local)
 		       byfab.dataPtr(), ARLIM(byfab.loVect()), ARLIM(byfab.hiVect()),
 		       bzfab.dataPtr(), ARLIM(bzfab.loVect()), ARLIM(bzfab.hiVect()),
 		       tbx.loVect(), tbx.hiVect(), &nc,
-		       h[level]);
+		       h[level].data());
 #endif
 
 	    res = std::max(res, tres);
@@ -380,7 +380,7 @@ ABecLaplacian::compFlux (D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflu
 #endif
 #endif
 		  &num_comp,
-		  h[level],
+		  h[level].data(),
 		  xfluxfab.dataPtr(dst_comp),
 		  ARLIM(xfluxfab.loVect()), ARLIM(xfluxfab.hiVect())
 #if (BL_SPACEDIM >= 2)
@@ -409,13 +409,13 @@ ABecLaplacian::Fsmooth (MultiFab&       solnL,
 
     OrientationIter oitr;
 
-    const FabSet& f0 = (*undrrelxr[level])[oitr()]; oitr++;
-    const FabSet& f1 = (*undrrelxr[level])[oitr()]; oitr++;
-    const FabSet& f2 = (*undrrelxr[level])[oitr()]; oitr++;
-    const FabSet& f3 = (*undrrelxr[level])[oitr()]; oitr++;
+    const FabSet& f0 = undrrelxr[level][oitr()]; oitr++;
+    const FabSet& f1 = undrrelxr[level][oitr()]; oitr++;
+    const FabSet& f2 = undrrelxr[level][oitr()]; oitr++;
+    const FabSet& f3 = undrrelxr[level][oitr()]; oitr++;
 #if (BL_SPACEDIM > 2)
-    const FabSet& f4 = (*undrrelxr[level])[oitr()]; oitr++;
-    const FabSet& f5 = (*undrrelxr[level])[oitr()]; oitr++;
+    const FabSet& f4 = undrrelxr[level][oitr()]; oitr++;
+    const FabSet& f5 = undrrelxr[level][oitr()]; oitr++;
 #endif    
     const MultiFab& a = aCoefficients(level);
 
@@ -424,13 +424,13 @@ ABecLaplacian::Fsmooth (MultiFab&       solnL,
            const MultiFab& bZ = bCoefficients(2,level););
 
     oitr.rewind();
-    const MultiMask& mm0 = *maskvals[level][oitr()]; oitr++;
-    const MultiMask& mm1 = *maskvals[level][oitr()]; oitr++;
-    const MultiMask& mm2 = *maskvals[level][oitr()]; oitr++;
-    const MultiMask& mm3 = *maskvals[level][oitr()]; oitr++;
+    const MultiMask& mm0 = maskvals[level][oitr()]; oitr++;
+    const MultiMask& mm1 = maskvals[level][oitr()]; oitr++;
+    const MultiMask& mm2 = maskvals[level][oitr()]; oitr++;
+    const MultiMask& mm3 = maskvals[level][oitr()]; oitr++;
 #if (BL_SPACEDIM > 2)
-    const MultiMask& mm4 = *maskvals[level][oitr()]; oitr++;
-    const MultiMask& mm5 = *maskvals[level][oitr()]; oitr++;
+    const MultiMask& mm4 = maskvals[level][oitr()]; oitr++;
+    const MultiMask& mm5 = maskvals[level][oitr()]; oitr++;
 #endif
 
     //const int nc = solnL.nComp(); // FIXME: This LinOp only really supports single-component
@@ -487,7 +487,7 @@ ABecLaplacian::Fsmooth (MultiFab&       solnL,
                   f3fab.dataPtr(), ARLIM(f3fab.loVect()),   ARLIM(f3fab.hiVect()),
                   m3.dataPtr(), ARLIM(m3.loVect()),   ARLIM(m3.hiVect()),
                   tbx.loVect(), tbx.hiVect(), vbx.loVect(), vbx.hiVect(),
-                  &nc, h[level], &redBlackFlag);
+                  &nc, h[level].data(), &redBlackFlag);
 #endif
 
 #if (BL_SPACEDIM == 3)
@@ -511,7 +511,7 @@ ABecLaplacian::Fsmooth (MultiFab&       solnL,
                   f5fab.dataPtr(), ARLIM(f5fab.loVect()), ARLIM(f5fab.hiVect()),
                   m5.dataPtr(), ARLIM(m5.loVect()), ARLIM(m5.hiVect()),
                   tbx.loVect(), tbx.hiVect(), vbx.loVect(), vbx.hiVect(),
-                  &nc, h[level], &redBlackFlag);
+                  &nc, h[level].data(), &redBlackFlag);
 #endif
     }
 }
@@ -525,13 +525,13 @@ ABecLaplacian::Fsmooth_jacobi (MultiFab&       solnL,
 
     OrientationIter oitr;
 
-    const FabSet& f0 = (*undrrelxr[level])[oitr()]; oitr++;
-    const FabSet& f1 = (*undrrelxr[level])[oitr()]; oitr++;
-    const FabSet& f2 = (*undrrelxr[level])[oitr()]; oitr++;
-    const FabSet& f3 = (*undrrelxr[level])[oitr()]; oitr++;
+    const FabSet& f0 = undrrelxr[level][oitr()]; oitr++;
+    const FabSet& f1 = undrrelxr[level][oitr()]; oitr++;
+    const FabSet& f2 = undrrelxr[level][oitr()]; oitr++;
+    const FabSet& f3 = undrrelxr[level][oitr()]; oitr++;
 #if (BL_SPACEDIM > 2)
-    const FabSet& f4 = (*undrrelxr[level])[oitr()]; oitr++;
-    const FabSet& f5 = (*undrrelxr[level])[oitr()]; oitr++;
+    const FabSet& f4 = undrrelxr[level][oitr()]; oitr++;
+    const FabSet& f5 = undrrelxr[level][oitr()]; oitr++;
 #endif    
     const MultiFab& a = aCoefficients(level);
 
@@ -540,13 +540,13 @@ ABecLaplacian::Fsmooth_jacobi (MultiFab&       solnL,
            const MultiFab& bZ = bCoefficients(2,level););
 
     oitr.rewind();
-    const MultiMask& mm0 = *maskvals[level][oitr()]; oitr++;
-    const MultiMask& mm1 = *maskvals[level][oitr()]; oitr++;
-    const MultiMask& mm2 = *maskvals[level][oitr()]; oitr++;
-    const MultiMask& mm3 = *maskvals[level][oitr()]; oitr++;
+    const MultiMask& mm0 = maskvals[level][oitr()]; oitr++;
+    const MultiMask& mm1 = maskvals[level][oitr()]; oitr++;
+    const MultiMask& mm2 = maskvals[level][oitr()]; oitr++;
+    const MultiMask& mm3 = maskvals[level][oitr()]; oitr++;
 #if (BL_SPACEDIM > 2)
-    const MultiMask& mm4 = *maskvals[level][oitr()]; oitr++;
-    const MultiMask& mm5 = *maskvals[level][oitr()]; oitr++;
+    const MultiMask& mm4 = maskvals[level][oitr()]; oitr++;
+    const MultiMask& mm5 = maskvals[level][oitr()]; oitr++;
 #endif
 
     //const int nc = solnL.nComp(); // FIXME: This LinOp only really supports single-component
@@ -600,7 +600,7 @@ ABecLaplacian::Fsmooth_jacobi (MultiFab&       solnL,
                     f3fab.dataPtr(), ARLIM(f3fab.loVect()),   ARLIM(f3fab.hiVect()),
                     m3.dataPtr(), ARLIM(m3.loVect()),   ARLIM(m3.hiVect()),
                     vbx.loVect(), vbx.hiVect(),
-                    &nc, h[level]);
+                    &nc, h[level].data());
 #endif
 
 #if (BL_SPACEDIM == 3)
@@ -624,7 +624,7 @@ ABecLaplacian::Fsmooth_jacobi (MultiFab&       solnL,
                     f5fab.dataPtr(), ARLIM(f5fab.loVect()), ARLIM(f5fab.hiVect()),
                     m5.dataPtr(), ARLIM(m5.loVect()), ARLIM(m5.hiVect()),
                     vbx.loVect(), vbx.hiVect(),
-                    &nc, h[level]);
+                    &nc, h[level].data());
 #endif
     }
 }
@@ -688,7 +688,7 @@ ABecLaplacian::Fapply (MultiFab&       y,
                    byfab.dataPtr(), 
                    ARLIM(byfab.loVect()), ARLIM(byfab.hiVect()),
                    tbx.loVect(), tbx.hiVect(), &num_comp,
-                   h[level]);
+                   h[level].data());
 #endif
 #if (BL_SPACEDIM ==3)
         FORT_ADOTX(yfab.dataPtr(dst_comp),
@@ -704,7 +704,7 @@ ABecLaplacian::Fapply (MultiFab&       y,
                    bzfab.dataPtr(), 
                    ARLIM(bzfab.loVect()), ARLIM(bzfab.hiVect()),
                    tbx.loVect(), tbx.hiVect(), &num_comp,
-                   h[level]);
+                   h[level].data());
 #endif
     }
 }

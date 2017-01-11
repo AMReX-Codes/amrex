@@ -8,15 +8,6 @@
 ** C stuff ...
 */
 
-#ifdef BL_USE_ARLIM
-
-#error "BL_USE_ARLIM is deprecated"
-
-#define ARLIM_P(x)  const int*
-#define ARLIM(x)  x
-
-#else
-
 #if     BL_SPACEDIM==1
 #define ARLIM_P(x)  const int&
 #define ARLIM(x)  x[0]
@@ -36,7 +27,6 @@
 #define ZFILL(x) x
 #define BCREC_3D(x) x
 #endif
-#endif
 
 #define BL_TO_FORTRAN(x) (x).dataPtr(), ARLIM((x).loVect()), ARLIM((x).hiVect())
 #define BL_TO_FORTRAN_N(x,n) (x).dataPtr(n), ARLIM((x).loVect()), ARLIM((x).hiVect())
@@ -51,51 +41,6 @@
 */
 
 #include <AMReX_REAL.H>
-
-#ifdef BL_USE_ARLIM
-
-#error "This section of code is deprecated: BL_USE_ARLIM is invalid"
-
-#if (BL_SPACEDIM == 1)
-#define DIMS(a) a##_lo, a##_hi
-#define DIMDEC(a) a##_lo(1), a##_hi(1)
-#define DIMV(a) a##_lo(1):a##_hi(1)
-#define DIM1(a) a##_lo(1):a##_hi(1)
-#define ARG_L1(a) a##_lo(1)
-#define ARG_H1(a) a##_hi(1)
-#endif
-
-#if (BL_SPACEDIM == 2)
-#define DIMS(a) a##_lo, a##_hi
-#define DIMDEC(a) a##_lo(2), a##_hi(2)
-#define DIMV(a) a##_lo(1):a##_hi(1), a##_lo(2):a##_hi(2)
-#define DIM1(a) a##_lo(1):a##_hi(1)
-#define DIM2(a) a##_lo(2):a##_hi(2)
-#define ARG_L1(a) a##_lo(1)
-#define ARG_L2(a) a##_lo(2)
-#define ARG_H1(a) a##_hi(1)
-#define ARG_H2(a) a##_hi(2)
-#endif
-
-#if (BL_SPACEDIM == 3)
-#define DIMS(a) a##_lo, a##_hi
-#define DIMDEC(a) a##_lo(3), a##_hi(3)
-#define DIMV(a) a##_lo(1):a##_hi(1), a##_lo(2):a##_hi(2), a##_lo(3):a##_hi(3)
-#define DIM1(a) a##_lo(1):a##_hi(1)
-#define DIM2(a) a##_lo(2):a##_hi(2)
-#define DIM3(a) a##_lo(3):a##_hi(3)
-#define DIM12(a) a##_lo(1):a##_hi(1), a##_lo(2):a##_hi(2)
-#define DIM23(a) a##_lo(2):a##_hi(2), a##_lo(3):a##_hi(3)
-#define DIM13(a) a##_lo(1):a##_hi(1), a##_lo(3):a##_hi(3)
-#define ARG_L1(a) a##_lo(1)
-#define ARG_L2(a) a##_lo(2)
-#define ARG_L3(a) a##_lo(3)
-#define ARG_H1(a) a##_hi(1)
-#define ARG_H2(a) a##_hi(2)
-#define ARG_H3(a) a##_hi(3)
-#endif
-
-#else
 
 #if __STDC__==1 || defined(__INTEL_COMPILER)
 
@@ -186,8 +131,6 @@
 #endif
 
 #endif /*__STDC__==1*/
-
-#endif /*BL_USE_ARLIM*/
 
 #endif /*!defined(BL_LANG_FORT)*/
 

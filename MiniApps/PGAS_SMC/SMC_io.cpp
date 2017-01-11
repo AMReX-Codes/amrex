@@ -126,7 +126,7 @@ SMC::writePlotFile (int istep)
 
         for (int i = 0; i < mf.boxArray().size(); ++i)
         {
-            RealBox loc = RealBox(mf.boxArray()[i],geom.CellSize(),geom.ProbLo());
+            RealBox loc(mf.boxArray()[i],geom.CellSize(),geom.ProbLo());
             for (int n = 0; n < BL_SPACEDIM; n++)
                 HeaderFile << loc.lo(n) << ' ' << loc.hi(n) << '\n';
         }

@@ -219,7 +219,7 @@ InterpBndryData::setBndryValues (BndryRegister& crse,
                     //
                     Array<Real> derives(D_TERM(1,*mxlen,*mxlen)*NUMDERIV);
 
-                    const Mask&      mask           = (*masks[face])[fine_mfi];
+                    const Mask&      mask           = masks[face][fine_mfi];
                     const int*       mlo            = mask.loVect();
                     const int*       mhi            = mask.hiVect();
                     const int*       mdat           = mask.dataPtr();

@@ -11,6 +11,7 @@
 #include <AMReX_FillPatchUtil.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_BLProfiler.H>
+#include <AMReX_Print.H>
 
 namespace amrex {
 
@@ -1322,14 +1323,14 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
     }
 }
 
-MultiFab*
+std::unique_ptr<MultiFab>
 AmrLevel::derive (const std::string& name,
                   Real           time,
                   int            ngrow)
 {
     BL_ASSERT(ngrow >= 0);
 
-    MultiFab* mf = 0;
+    MultiFab* mf = nullptr;
 
     int index, scomp, ncomp;
 
@@ -1387,7 +1388,7 @@ AmrLevel::derive (const std::string& name,
             const int*  dom_hi  = state[index].getDomain().hiVect();
             const Real* dx      = geom.CellSize();
             const int*  bcr     = rec->getBC();
-            const RealBox& temp = RealBox(gtbx,geom.CellSize(),geom.ProbLo());
+            const RealBox temp    (gtbx,geom.CellSize(),geom.ProbLo());
             const Real* xlo     = temp.lo();
             Real        dt      = parent->dtLevel(level);
 
@@ -1413,7 +1414,7 @@ AmrLevel::derive (const std::string& name,
         for (MFIter mfi(srcMF); mfi.isValid(); ++mfi)
         {
             int         grid_no = mfi.index();
-            RealBox     gridloc = RealBox(grids[grid_no],geom.CellSize(),geom.ProbLo());
+            const RealBox gridloc(grids[grid_no],geom.CellSize(),geom.ProbLo());
             Real*       ddat    = (*mf)[mfi].dataPtr();
             const int*  dlo     = (*mf)[mfi].loVect();
             const int*  dhi     = (*mf)[mfi].hiVect();
@@ -1459,7 +1460,7 @@ AmrLevel::derive (const std::string& name,
         amrex::Error(msg.c_str());
     }
 
-    return mf;
+    return std::unique_ptr<MultiFab>(mf);
 }
 
 void

@@ -148,7 +148,7 @@ class BndryAuxVarBase {
   int firstLocal();
   int nextLocal(int i);
   bool isValid(int i) {
-    return (i < distributionMap.ProcessorMap().size() - 1);
+    return (i < distributionMap.ProcessorMap().size());
   }
 
  protected:

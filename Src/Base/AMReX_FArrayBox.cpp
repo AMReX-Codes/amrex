@@ -6,6 +6,7 @@
 #include <cmath>
 #include <cstring>
 #include <limits>
+#include <memory>
 
 #include <AMReX_FArrayBox.H>
 #include <AMReX_FabConv.H>
@@ -124,7 +125,7 @@ private:
                                const FArrayBox& f,
                                int              nvar) const override;
 
-    CpClassPtr<RealDescriptor> realDesc;
+    std::unique_ptr<RealDescriptor> realDesc;
 };
 
 //
@@ -184,12 +185,10 @@ FArrayBox::initVal ()
 bool 
 FArrayBox::contains_nan () const
 {
-#ifndef _CRAYC
     const Real* dp = dptr;
     for (int i = 0; i < numpts*nvar; i++)
         if (std::isnan(*dp++))
             return true;
-#endif
     return false;
 }
 
@@ -202,7 +201,6 @@ FArrayBox::contains_nan (const Box& bx, int scomp, int ncomp) const
     BL_ASSERT(ncomp <= nComp());
     BL_ASSERT(domain.contains(bx));
 
-#ifndef _CRAYC
     for (int i = 0; i < ncomp; i++)
     {
         for (IntVect p = bx.smallEnd(); p <= bx.bigEnd(); bx.next(p))
@@ -211,7 +209,6 @@ FArrayBox::contains_nan (const Box& bx, int scomp, int ncomp) const
                 return true;
         }
     }
-#endif
     return false;
 }
 
@@ -230,7 +227,6 @@ FArrayBox::contains_nan (const Box& bx, int scomp, int ncomp, IntVect& where) co
     BL_ASSERT(ncomp <= nComp());
     BL_ASSERT(domain.contains(bx));
 
-#ifndef _CRAYC
     for (int i = 0; i < ncomp; i++)
     {
         for (IntVect p = bx.smallEnd(); p <= bx.bigEnd(); bx.next(p))
@@ -243,7 +239,6 @@ FArrayBox::contains_nan (const Box& bx, int scomp, int ncomp, IntVect& where) co
             }
         }
     }
-#endif
     return false;
 }
 
@@ -347,8 +342,6 @@ FArrayBox::skipFAB (std::istream& is)
     int ignore = 0;
     skipFAB(is, ignore);
 }
-
-FArrayBox::~FArrayBox () {}
 
 void
 FArrayBox::setFormat (FABio::Format fmt)

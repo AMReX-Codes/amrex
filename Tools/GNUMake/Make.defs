@@ -76,6 +76,8 @@ ifndef EBASE
   EBASE = main
 endif
 
+AMREX_GIT_VERSION := $(shell cd $(AMREX_HOME); git describe --abbrev=12 --dirty --always --tags)
+DEFINES += -DAMREX_GIT_VERSION=\"$(AMREX_GIT_VERSION)\"
 
 FORTLINK  	= UNDERSCORE
 

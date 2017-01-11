@@ -55,7 +55,7 @@ PhysBCFunct::define (const Geometry& geom, const BCRec& bcr, const BndryFunctBas
 {
     m_geom = geom;
     m_bcr = bcr;
-    m_bc_func = func.clone();
+    m_bc_func.reset(func.clone());
 }
 
 void

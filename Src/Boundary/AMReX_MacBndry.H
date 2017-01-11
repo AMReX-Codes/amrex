@@ -21,6 +21,11 @@ public:
 
     virtual ~MacBndry ()  override;
 
+    MacBndry (MacBndry&& rhs) = delete;
+    MacBndry (const MacBndry& rhs) = delete;
+    MacBndry& operator= (const MacBndry& rhs) = delete;
+    MacBndry& operator= (MacBndry&& rhs) = delete;
+
     virtual void setBndryConds (const BCRec& phys_bc,
                                 int          ratio) override;
 

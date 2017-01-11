@@ -6,7 +6,6 @@
 
 #include <AMReX_Array.H>
 #include <AMReX_Tuple.H>
-#include <AMReX_Pointers.H>
 #include <AMReX_REAL.H>
 #include <AMReX_BoxArray.H>
 #include <AMReX_MultiFab.H>
@@ -286,17 +285,17 @@ protected:
     // Array (on level) of pointers to BndryRegisters along each grid
     //  for scratch data required to modify internal stencil on boundary
     //
-    Array< LnClassPtr<BndryRegister> > undrrelxr;
+    Array<BndryRegister> undrrelxr;
     //
     // Array (on level) of Arrays (on orientation) of MultiMasks for 
     // whether boundary Fabs are covered, not_covered, outside_domain
     //
-    Array<Array<std::unique_ptr<MultiMask> > > maskvals;
+    Array<Array<MultiMask> > maskvals;
     //
     // Similar to maskvals, but only for level 0.
     // It's only made if it's needed.  Currently used only in applyBC().
     //
-    Array<Array<std::unique_ptr<MultiMask> > > lmaskvals;
+    Array<Array<MultiMask> > lmaskvals;
     //
     // boundary data class
     //

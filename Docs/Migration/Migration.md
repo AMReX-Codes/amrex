@@ -188,3 +188,31 @@ In BoxLib, there are some runtime parameters with the `boxlib.` prefix
 (e.g., `boxlib.fpe_trap_invalid` and `boxlib.verbose`).  The prefix is
 now changed to `amrex.`.
 
+### Step 9
+
+AMReX `migration/9-pointers-n-sentinel` branch should be used in this
+step.
+
+`Amr` and `AmrLevel` used to return `MultiFab *` in `derive`
+function; they now return `std::unique_ptr<MultiFab>` for safety.
+Application codes using `Amr` and `AmrLevel` classes need to update by
+changing `MultiFab* mf = derive(...)` to `auto mf = derive(...)` and
+removing the `delete` call.
+
+AMReX's own smart pointer classes have been removed.  For application
+codes that do not directly use them (which is usually the case), no
+changes are needed.
+
+We have removed the sentinel from the `DistributionMapping` class.
+`DistributionMapping` has an `Array<int>` storing MPI ranks for all
+grids in a `BoxArray`.  It used to be that the length of the `Array`
+is the number of boxes plus one.  The last element was used to store
+the MPI rank of the process as a sentinel.  But that information is no
+longer needed.  Thus we have remove the sentinel, and the length of
+the array equals the number of boxes.  If an application code builds
+its own array of MPI ranks and passes it to `DistributionMapping`,
+update is needed.  One might also search for `ProcessorMap` function
+that returns the array to see if the array is being used and needs
+update.  Most codes probably do not need any changes.
+
+

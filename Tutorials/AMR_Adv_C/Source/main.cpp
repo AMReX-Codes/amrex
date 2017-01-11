@@ -41,7 +41,7 @@ main (int   argc,
     }
 
     {
-	auto amrptr = std::unique_ptr<Amr>(new Amr);
+	std::unique_ptr<Amr> amrptr(new Amr);
 
 	amrptr->init(strt_time,stop_time);
 

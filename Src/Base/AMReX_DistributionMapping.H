@@ -3,8 +3,8 @@
 
 #include <map>
 #include <limits>
+#include <memory>
 
-#include <AMReX_Pointers.H>
 #include <AMReX.H>
 #include <AMReX_Array.H>
 #include <AMReX_Box.H>
@@ -65,6 +65,9 @@ class DistributionMapping
     //! Assignment operator.
     DistributionMapping& operator= (const DistributionMapping& rhs);
 
+    //! Move constructor.
+    DistributionMapping (DistributionMapping&& rhs) noexcept;
+
     /**
     * \brief Build mapping out of BoxArray over nprocs processors.
     * You need to call this if you built your DistributionMapping
@@ -93,7 +96,7 @@ class DistributionMapping
     bool empty () const { return m_ref->m_pmap.empty(); }
 
     //! Number of references to this DistributionMapping
-    int linkCount () const { return m_ref.linkCount(); }
+    long linkCount () const { return m_ref.use_count(); }
 
     //! Equivalent to ProcessorMap()[index].
     int operator[] (int index) const { return m_ref->m_pmap[index]; }
@@ -202,7 +205,7 @@ private:
     void PFCProcessorMap        (const BoxArray& boxes, int nprocs);
     void RRSFCProcessorMap      (const BoxArray& boxes, int nprocs);
 
-    typedef std::pair<long,int> LIpair;
+    using LIpair = std::pair<long,int>;
 
     struct LIpairLT
     {
@@ -268,32 +271,28 @@ private:
     */
     static PVMF m_BuildMap;
 
-    class Ref
+    struct Ref
     {
         friend class DistributionMapping;
 
         //! Constructors to match those in DistributionMapping ....
-        Ref ();
+        Ref () {}
 
-        Ref (int len);
+        explicit Ref (int len) : m_pmap(len) {}
 
-        Ref (const Array<int>& pmap);
+        explicit Ref (const Array<int>& pmap) : m_pmap(pmap) {}
 
-        Ref (const Ref& rhs);
-        /**
-        * \brief Local data -- our processor map.
-        *
-        * The length is always equal to boxes.length()+1 where boxes is
-        * the BoxArray on which the distribution is based.  It is also true
-        * that m_pmap[boxes.length()] == ParallelDescriptor::MyProc().
-        * This latter acts as a sentinel in some FabArray loops.
-        */
+	//! dtor, copy-ctor, copy-op=, move-ctor, and move-op= are compiler generated.
+
+	//! Local data -- our processor map.
         Array<int> m_pmap;
     };
-
-    //! The data -- a reference-counted pointer to a Ref.
-    LnClassPtr<Ref> m_ref;
+    //
+    // The data -- a reference-counted pointer to a Ref.
+    //
+    std::shared_ptr<Ref> m_ref;
     ParallelDescriptor::Color m_color;
+    int dmID;
 
     //! Topological proximity map
     static long totalCells;
@@ -303,7 +302,6 @@ private:
     static Array<long> totalBoxPoints;  // i == rank
 
     static int nDistMaps;
-    int dmID;
 };
 
 //! Our output operator.

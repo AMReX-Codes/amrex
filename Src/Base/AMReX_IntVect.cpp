@@ -91,32 +91,6 @@ IntVect::IntVect (const Array<int> &a)
     D_EXPR(vect[0] = a[0], vect[1] = a[1], vect[2] = a[2]);
 }
 
-bool
-IntVect::lexLT (const IntVect &s) const
-{
-#if (BL_SPACEDIM == 1)
-    return vect[0] < s[0];
-#elif (BL_SPACEDIM == 2)
-    return (vect[1] < s[1]) || ((vect[1] == s[1]) && (vect[0] < s[0]));
-#else
-    return (vect[2] < s[2]) || ((vect[2] == s[2]) &&
-	(  (vect[1] < s[1]) || ((vect[1] == s[1]) && (vect[0] < s[0])) ));
-#endif
-}
-
-bool
-IntVect::lexGT (const IntVect& s) const
-{
-#if (BL_SPACEDIM == 1)
-    return vect[0] > s[0];
-#elif (BL_SPACEDIM == 2)
-    return (vect[1] > s[1]) || ((vect[1] == s[1]) && (vect[0] > s[0]));
-#else
-    return (vect[2] > s[2]) || ((vect[2] == s[2]) &&
-	(  (vect[1] > s[1]) || ((vect[1] == s[1]) && (vect[0] > s[0])) ));
-#endif
-}
-
 IntVect
 min (const IntVect& p1,
 	     const IntVect& p2)
@@ -196,7 +170,7 @@ IntVect::coarsen (int s)
 IntVect&
 IntVect::coarsen (const IntVect& p)
 {
-    BL_ASSERT(p > IntVect::TheZeroVector());
+    BL_ASSERT(p.allGT(IntVect::TheZeroVector()));
     for (int i = 0; i <BL_SPACEDIM; ++i)
     {
         const int s = p.vect[i];

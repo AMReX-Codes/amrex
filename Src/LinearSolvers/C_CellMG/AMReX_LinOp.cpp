@@ -137,7 +137,7 @@ LinOp::initConstruct (const Real* _h)
         h[level][i] = _h[i];
     }
     undrrelxr.resize(1);
-    undrrelxr[level] = new BndryRegister(gbox[level], bgb->DistributionMap(), 1, 0, 0, 1);
+    undrrelxr[0].define(gbox[level], bgb->DistributionMap(), 1, 0, 0, 1);
 
     maskvals.resize(1);
     maskvals[0].resize(2*BL_SPACEDIM);
@@ -149,10 +149,10 @@ LinOp::initConstruct (const Real* _h)
     {
 	const Orientation face = oitr();
 	const MultiMask& m = bgb->bndryMasks(face);
-	maskvals[0][face].reset(new MultiMask(m.boxArray(), m.DistributionMap(), 1));
-	lmaskvals[0][face].reset(new MultiMask(m.boxArray(), m.DistributionMap(), 1));
-	MultiMask::Copy(*maskvals[0][face], m);
-	MultiMask::Copy(*lmaskvals[0][face], m);
+	maskvals[0][face].define(m.boxArray(), m.DistributionMap(), 1);
+	lmaskvals[0][face].define(m.boxArray(), m.DistributionMap(), 1);
+	MultiMask::Copy(maskvals[0][face], m);
+	MultiMask::Copy(lmaskvals[0][face], m);
     }
 }
 
@@ -226,10 +226,10 @@ LinOp::applyBC (MultiFab&      inout,
         {
             const Orientation o = oitr();
 
-            FabSet&       f   = (*undrrelxr[level])[o];
+            FabSet&       f   = undrrelxr[level][o];
             int           cdr = o;
             const FabSet& fs  = bgb->bndryValues(o);
-            const Mask&   m   = local ? (*lmaskvals[level][o])[mfi] : (*maskvals[level][o])[mfi];
+            const Mask&   m   = local ? lmaskvals[level][o][mfi] : maskvals[level][o][mfi];
             Real          bcl = bdl[o];
             BL_ASSERT(bdc[o].size()>bndry_comp);
             int           bct = bdc[o][bndry_comp];
@@ -253,7 +253,7 @@ LinOp::applyBC (MultiFab&      inout,
                          ffab.dataPtr(),
                          ARLIM(ffab.loVect()), ARLIM(ffab.hiVect()),
                          vbx.loVect(),
-                         vbx.hiVect(), &num_comp, h[level]);
+                         vbx.hiVect(), &num_comp, h[level].data());
         }
     }
 }
@@ -333,7 +333,7 @@ LinOp::prepareForLevel (int level)
     //
     BL_ASSERT(undrrelxr.size() == level);
     undrrelxr.resize(level+1);
-    undrrelxr[level] = new BndryRegister(gbox[level], bgb->DistributionMap(), 1, 0, 0, 1);
+    undrrelxr[level].define(gbox[level], bgb->DistributionMap(), 1, 0, 0, 1);
     //
     // Add an Array of Array of maskvals to the new coarser level
     // For each orientation, build NULL masks, then use distributed allocation
@@ -353,13 +353,11 @@ LinOp::prepareForLevel (int level)
     for (OrientationIter fi; fi; ++fi)
     {
         Orientation face = fi();
-	maskvals[level][face].reset(new MultiMask(gbox[level],
-						  bgb->DistributionMap(),
-						  geomarray[level],
-						  face, 0, nGrow, 0, 1, true));
-	lmaskvals[level][face].reset(new MultiMask(maskvals[level][face]->boxArray(),
-						   maskvals[level][face]->DistributionMap(), 1));
-	MultiMask::Copy(*lmaskvals[level][face], *maskvals[level][face]);
+	maskvals[level][face].define(gbox[level], bgb->DistributionMap(), geomarray[level],
+				     face, 0, nGrow, 0, 1, true);
+	lmaskvals[level][face].define(maskvals[level][face].boxArray(),
+				      maskvals[level][face].DistributionMap(), 1);
+	MultiMask::Copy(lmaskvals[level][face], maskvals[level][face]);
     }
 }
 
@@ -530,9 +528,9 @@ operator<< (std::ostream& os,
                 {
                     const Orientation face = oitr();
 
-		    for (MultiMaskIter mmi(*lp.maskvals[level][face]); mmi.isValid(); ++mmi)
+		    for (MultiMaskIter mmi(lp.maskvals[level][face]); mmi.isValid(); ++mmi)
 		    {
-                        os << (*lp.maskvals[level][face])[mmi];
+                        os << lp.maskvals[level][face][mmi];
                     }
                 }
             }
@@ -551,7 +549,7 @@ LinOp::getGeom (int level)
 const Real * 
 LinOp::getDx (int level)
 {
-    return h[level];
+    return h[level].data();
 }
 
 Real

@@ -126,10 +126,10 @@ ABec4::applyBC (MultiFab&     inout,
         {
             const Orientation o = oitr();
 
-            FabSet&       f   = (*undrrelxr[level])[o];
+            FabSet&       f   = undrrelxr[level][o];
             int           cdr = o;
             const FabSet& fs  = bgb->bndryValues(o);
-            const Mask&   m   = local ? (*lmaskvals[level][o])[mfi] : (*maskvals[level][o])[mfi];
+            const Mask&   m   = local ? lmaskvals[level][o][mfi] : maskvals[level][o][mfi];
             Real          bcl = bdl[o];
             BL_ASSERT(bdc[o].size()>bndry_comp);
             int           bct = bdc[o][bndry_comp];
@@ -153,7 +153,7 @@ ABec4::applyBC (MultiFab&     inout,
 			  ffab.dataPtr(),
 			  ARLIM(ffab.loVect()), ARLIM(ffab.hiVect()),
 			  vbx.loVect(),
-			  vbx.hiVect(), &num_comp, h[level]);
+			  vbx.hiVect(), &num_comp, h[level].data());
         }
     }
 
@@ -440,7 +440,7 @@ ABec4::compFlux (D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflux),
 		  bfab.dataPtr(), 
 		  ARLIM(bfab.loVect()), ARLIM(bfab.hiVect()),
 		  &num_comp,
-		  h[level],
+		  h[level].data(),
 		  xbx.loVect(), xbx.hiVect(), 
 		  xfluxfab.dataPtr(dst_comp),
 		  ARLIM(xfluxfab.loVect()), ARLIM(xfluxfab.hiVect())
@@ -566,7 +566,7 @@ ABec4::Fapply (MultiFab&       y,
                    bfab.dataPtr(), 
                    ARLIM(bfab.loVect()), ARLIM(bfab.hiVect()),
                    tbx.loVect(), tbx.hiVect(), &num_comp,
-                   h[level]);
+                   h[level].data());
     }
   }
   else {

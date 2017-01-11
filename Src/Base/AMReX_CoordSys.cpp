@@ -27,8 +27,6 @@ CoordSys::CoordType CoordSys::c_sys = CoordSys::undef;
 
 Real CoordSys::offset[BL_SPACEDIM];
 
-CoordSys::~CoordSys () {}
-
 CoordSys::CoordType
 CoordSys::Coord ()
 {

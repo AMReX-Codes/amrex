@@ -7,14 +7,15 @@ subroutine bl_avg_eg_to_cc (lo, hi, &
      Ex, Exl1, Exl2, Exh1, Exh2, &
      Ey, Eyl1, Eyl2, Eyh1, Eyh2 )
 
+  use bl_fort_module, only : c_real
   implicit none
   integer          :: lo(2),hi(2)
   integer          :: ccl1, ccl2, cch1, cch2
   integer          :: Exl1, Exl2, Exh1, Exh2
   integer          :: Eyl1, Eyl2, Eyh1, Eyh2
-  double precision :: cc(ccl1:cch1, ccl2:cch2, 2)
-  double precision :: Ex(Exl1:Exh1, Exl2:Exh2)
-  double precision :: Ey(Eyl1:Eyh1, Eyl2:Eyh2)
+  real(c_real) :: cc(ccl1:cch1, ccl2:cch2, 2)
+  real(c_real) :: Ex(Exl1:Exh1, Exl2:Exh2)
+  real(c_real) :: Ey(Eyl1:Eyh1, Eyl2:Eyh2)
 
   ! Local variables
   integer          :: i,j
@@ -38,15 +39,16 @@ subroutine bl_avg_fc_to_cc (lo, hi, &
      fy, fyl1, fyl2, fyh1, fyh2, &
      dx, problo, coord_type)
 
+  use bl_fort_module, only : c_real
   implicit none
   integer          :: lo(2),hi(2), coord_type
   integer          :: ccl1, ccl2, cch1, cch2
   integer          :: fxl1, fxl2, fxh1, fxh2
   integer          :: fyl1, fyl2, fyh1, fyh2
-  double precision :: cc(ccl1:cch1, ccl2:cch2, 2)
-  double precision :: fx(fxl1:fxh1, fxl2:fxh2)
-  double precision :: fy(fyl1:fyh1, fyl2:fyh2)
-  double precision :: dx(2), problo(2)
+  real(c_real) :: cc(ccl1:cch1, ccl2:cch2, 2)
+  real(c_real) :: fx(fxl1:fxh1, fxl2:fxh2)
+  real(c_real) :: fy(fyl1:fyh1, fyl2:fyh2)
+  real(c_real) :: dx(2), problo(2)
 
   ! Local variables
   integer          :: i,j
@@ -70,15 +72,16 @@ subroutine bl_avg_cc_to_fc (xlo, xhi, ylo, yhi, &
      cc, ccl1, ccl2, cch1, cch2, &
      dx, problo, coord_type)
 
+  use bl_fort_module, only : c_real
   implicit none
   integer          :: xlo(2),xhi(2), ylo(2),yhi(2), coord_type
   integer          :: fxl1, fxl2, fxh1, fxh2
   integer          :: fyl1, fyl2, fyh1, fyh2
   integer          :: ccl1, ccl2, cch1, cch2
-  double precision :: cc(ccl1:cch1, ccl2:cch2)
-  double precision :: fx(fxl1:fxh1, fxl2:fxh2)
-  double precision :: fy(fyl1:fyh1, fyl2:fyh2)
-  double precision :: dx(2), problo(2)
+  real(c_real) :: cc(ccl1:cch1, ccl2:cch2)
+  real(c_real) :: fx(fxl1:fxh1, fxl2:fxh2)
+  real(c_real) :: fy(fyl1:fyh1, fyl2:fyh2)
+  real(c_real) :: dx(2), problo(2)
 
   ! Local variables
   integer          :: i,j
@@ -106,17 +109,18 @@ subroutine bl_avgdown_faces (lo, hi, &
      c, c_l1, c_l2, c_h1, c_h2, &
      ratio, idir,nc)
 
+  use bl_fort_module, only : c_real
   implicit none
   integer          :: lo(2),hi(2)
   integer          :: f_l1, f_l2, f_h1, f_h2
   integer          :: c_l1, c_l2, c_h1, c_h2
   integer          :: ratio(3), idir,nc
-  double precision :: f(f_l1:f_h1, f_l2:f_h2, nc)
-  double precision :: c(c_l1:c_h1, c_l2:c_h2, nc)
+  real(c_real) :: f(f_l1:f_h1, f_l2:f_h2, nc)
+  real(c_real) :: c(c_l1:c_h1, c_l2:c_h2, nc)
 
   ! Local variables
   integer i,j,n,facx,facy,iref,jref, ii, jj
-  double precision :: facInv
+  real(c_real) :: facInv
 
   facx = ratio(1)
   facy = ratio(2)
@@ -170,17 +174,18 @@ subroutine bl_avgdown (lo,hi,&
      crse,c_l1,c_l2,c_h1,c_h2, &
      lrat,ncomp)
   
+  use bl_fort_module, only : c_real
   implicit none
   
   integer f_l1,f_l2,f_h1,f_h2
   integer c_l1,c_l2,c_h1,c_h2
   integer lo(2), hi(2)
   integer lrat(2), ncomp
-  double precision fine(f_l1:f_h1,f_l2:f_h2,ncomp)
-  double precision crse(c_l1:c_h1,c_l2:c_h2,ncomp)
+  real(c_real) fine(f_l1:f_h1,f_l2:f_h2,ncomp)
+  real(c_real) crse(c_l1:c_h1,c_l2:c_h2,ncomp)
 
   integer :: i, j, ii, jj, n, iref, jref
-  double precision :: volfrac
+  real(c_real) :: volfrac
 
   volfrac = 1.d0 / dble(lrat(1)*lrat(2))
 
@@ -212,6 +217,7 @@ subroutine bl_avgdown_with_vol (lo,hi,&
      fv,fv_l1,fv_l2,fv_h1,fv_h2, &
      lrat,ncomp)
 
+  use bl_fort_module, only : c_real
   implicit none
   
   integer f_l1,f_l2,f_h1,f_h2
@@ -219,12 +225,12 @@ subroutine bl_avgdown_with_vol (lo,hi,&
   integer fv_l1,fv_l2,fv_h1,fv_h2
   integer lo(2), hi(2)
   integer lrat(2), ncomp
-  double precision fine(f_l1:f_h1,f_l2:f_h2,ncomp)
-  double precision crse(c_l1:c_h1,c_l2:c_h2,ncomp)
-  double precision fv(fv_l1:fv_h1,fv_l2:fv_h2)
+  real(c_real) fine(f_l1:f_h1,f_l2:f_h2,ncomp)
+  real(c_real) crse(c_l1:c_h1,c_l2:c_h2,ncomp)
+  real(c_real) fv(fv_l1:fv_h1,fv_l2:fv_h2)
 
   integer :: i, j, ii, jj, n, iref, jref
-  double precision :: cv
+  real(c_real) :: cv
 
   do n = 1, ncomp
      do j     = lo(2), hi(2)

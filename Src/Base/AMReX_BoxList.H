@@ -61,7 +61,7 @@ public:
     BoxList ();
 
     //! Make a boxList consisting of a single Box
-    BoxList (const Box& bx);
+    explicit BoxList (const Box& bx);
 
     //! Construct an empty BoxList with IndexType btyp
     explicit BoxList (IndexType btyp);
@@ -205,12 +205,13 @@ private:
                                 const BoxList& bl);
     //! Core simplify routine.
     int simplify_doit (bool best);
-    //! The list of Boxes.
-    std::list<Box> lbox;
     //! Returns a reference to the List<Box>.
     std::list<Box>& listBox() { return lbox; }
     //! Returns a constant reference to the List<Box>.
     const std::list<Box>& listBox() const { return lbox; }
+
+    //! The list of Boxes.
+    std::list<Box> lbox;
     //! The IndexType of Boxes in the BoxList.
     IndexType btype;
 

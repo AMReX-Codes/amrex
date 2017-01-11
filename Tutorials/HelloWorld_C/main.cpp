@@ -3,6 +3,7 @@
 #include <AMReX.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_BLFort.H>
+#include <AMReX_Print.H>
 
 // declare a fortran subroutine
 extern "C"
@@ -13,6 +14,8 @@ extern "C"
 int main(int argc, char* argv[])
 {
     amrex::Initialize(argc,argv);
+
+    amrex::Print() << "AMReX version " << amrex::Version() << "\n";
 
     {
 	// define the lower and upper corner of a 3D domain
@@ -51,11 +54,13 @@ int main(int argc, char* argv[])
 	   L1  norm = 8680.319857
 	   L2  norm = 56.24354515
 	*/
-	std::cout << "min      = " << data.min(0)  << std::endl;
-	std::cout << "max      = " << data.max(0)  << std::endl;
-	std::cout << "max norm = " << data.norm0() << std::endl;
-	std::cout << "L1  norm = " << data.norm1() << std::endl;
-	std::cout << "L2  norm = " << data.norm2() << std::endl;
+	amrex::Print(amrex::Print::AllProcs)
+	    << " Proc. " << amrex::ParallelDescriptor::MyProc() << "\n"
+	    << "    min      = " << data.min(0)  << "\n"
+	    << "    max      = " << data.max(0)  << "\n"
+	    << "    max norm = " << data.norm0() << "\n"
+	    << "    L1  norm = " << data.norm1() << "\n"
+	    << "    L2  norm = " << data.norm2() << "\n";
     }
 
     amrex::Finalize();

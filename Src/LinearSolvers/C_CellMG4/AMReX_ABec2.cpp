@@ -44,9 +44,9 @@ ABec2::altApplyBC (int  level,
         {
             const Orientation o = oitr();
 
-            FabSet&       f   = (*undrrelxr[level])[o];
+            FabSet&       f   = undrrelxr[level][o];
             int           cdr = o;
-            const Mask&   m   = local ? (*lmaskvals[level][o])[mfi] : (*maskvals[level][o])[mfi];
+            const Mask&   m   = local ? lmaskvals[level][o][mfi] : maskvals[level][o][mfi];
             Real          bcl = bdl[o];
             BL_ASSERT(bdc[o].size()>bndry_comp);
             int           bct = bdc[o][bndry_comp];
@@ -60,7 +60,7 @@ ABec2::altApplyBC (int  level,
               ( vbx.loVect(), vbx.hiVect(),
                 BL_TO_FORTRAN(ffab),
                 BL_TO_FORTRAN(m),
-                &cdr, &bct, &bcl, &maxorder, h[level]);
+                &cdr, &bct, &bcl, &maxorder, h[level].data());
         }
     }
 }
@@ -75,13 +75,13 @@ ABec2::Fsmooth (MultiFab&       solnL,
 {
   OrientationIter oitr;
 
-  const FabSet& f0 = (*undrrelxr[level])[oitr()]; oitr++;
-  const FabSet& f1 = (*undrrelxr[level])[oitr()]; oitr++;
-  const FabSet& f2 = (*undrrelxr[level])[oitr()]; oitr++;
-  const FabSet& f3 = (*undrrelxr[level])[oitr()]; oitr++;
+  const FabSet& f0 = undrrelxr[level][oitr()]; oitr++;
+  const FabSet& f1 = undrrelxr[level][oitr()]; oitr++;
+  const FabSet& f2 = undrrelxr[level][oitr()]; oitr++;
+  const FabSet& f3 = undrrelxr[level][oitr()]; oitr++;
 #if (BL_SPACEDIM > 2)
-  const FabSet& f4 = (*undrrelxr[level])[oitr()]; oitr++;
-  const FabSet& f5 = (*undrrelxr[level])[oitr()]; oitr++;
+  const FabSet& f4 = undrrelxr[level][oitr()]; oitr++;
+  const FabSet& f5 = undrrelxr[level][oitr()]; oitr++;
 #endif    
   const MultiFab& a = aCoefficients(level);
 
@@ -90,13 +90,13 @@ ABec2::Fsmooth (MultiFab&       solnL,
          const MultiFab& bZ = bCoefficients(2,level););
 
   oitr.rewind();
-  const MultiMask& mm0 = *maskvals[level][oitr()]; oitr++;
-  const MultiMask& mm1 = *maskvals[level][oitr()]; oitr++;
-  const MultiMask& mm2 = *maskvals[level][oitr()]; oitr++;
-  const MultiMask& mm3 = *maskvals[level][oitr()]; oitr++;
+  const MultiMask& mm0 = maskvals[level][oitr()]; oitr++;
+  const MultiMask& mm1 = maskvals[level][oitr()]; oitr++;
+  const MultiMask& mm2 = maskvals[level][oitr()]; oitr++;
+  const MultiMask& mm3 = maskvals[level][oitr()]; oitr++;
 #if (BL_SPACEDIM > 2)
-  const MultiMask& mm4 = *maskvals[level][oitr()]; oitr++;
-  const MultiMask& mm5 = *maskvals[level][oitr()]; oitr++;
+  const MultiMask& mm4 = maskvals[level][oitr()]; oitr++;
+  const MultiMask& mm5 = maskvals[level][oitr()]; oitr++;
 #endif
 
   const int nc = 1;
@@ -159,7 +159,7 @@ ABec2::Fsmooth (MultiFab&       solnL,
         BL_TO_FORTRAN(f4fab), BL_TO_FORTRAN(m4),
         BL_TO_FORTRAN(f5fab), BL_TO_FORTRAN(m5),
 #endif
-        &nc, h[level], &redBlackFlag);
+        &nc, h[level].data(), &redBlackFlag);
 
   }
 }
@@ -171,13 +171,13 @@ ABec2::Fsmooth_jacobi (MultiFab&       solnL,
 {
   OrientationIter oitr;
 
-  const FabSet& f0 = (*undrrelxr[level])[oitr()]; oitr++;
-  const FabSet& f1 = (*undrrelxr[level])[oitr()]; oitr++;
-  const FabSet& f2 = (*undrrelxr[level])[oitr()]; oitr++;
-  const FabSet& f3 = (*undrrelxr[level])[oitr()]; oitr++;
+  const FabSet& f0 = undrrelxr[level][oitr()]; oitr++;
+  const FabSet& f1 = undrrelxr[level][oitr()]; oitr++;
+  const FabSet& f2 = undrrelxr[level][oitr()]; oitr++;
+  const FabSet& f3 = undrrelxr[level][oitr()]; oitr++;
 #if (BL_SPACEDIM > 2)
-  const FabSet& f4 = (*undrrelxr[level])[oitr()]; oitr++;
-  const FabSet& f5 = (*undrrelxr[level])[oitr()]; oitr++;
+  const FabSet& f4 = undrrelxr[level][oitr()]; oitr++;
+  const FabSet& f5 = undrrelxr[level][oitr()]; oitr++;
 #endif    
   const MultiFab& a = aCoefficients(level);
 
@@ -186,13 +186,13 @@ ABec2::Fsmooth_jacobi (MultiFab&       solnL,
          const MultiFab& bZ = bCoefficients(2,level););
 
   oitr.rewind();
-  const MultiMask& mm0 = *maskvals[level][oitr()]; oitr++;
-  const MultiMask& mm1 = *maskvals[level][oitr()]; oitr++;
-  const MultiMask& mm2 = *maskvals[level][oitr()]; oitr++;
-  const MultiMask& mm3 = *maskvals[level][oitr()]; oitr++;
+  const MultiMask& mm0 = maskvals[level][oitr()]; oitr++;
+  const MultiMask& mm1 = maskvals[level][oitr()]; oitr++;
+  const MultiMask& mm2 = maskvals[level][oitr()]; oitr++;
+  const MultiMask& mm3 = maskvals[level][oitr()]; oitr++;
 #if (BL_SPACEDIM > 2)
-  const MultiMask& mm4 = *maskvals[level][oitr()]; oitr++;
-  const MultiMask& mm5 = *maskvals[level][oitr()]; oitr++;
+  const MultiMask& mm4 = maskvals[level][oitr()]; oitr++;
+  const MultiMask& mm5 = maskvals[level][oitr()]; oitr++;
 #endif
 
   //const int nc = solnL.nComp(); // FIXME: This LinOp only really supports single-component
@@ -251,7 +251,7 @@ ABec2::Fsmooth_jacobi (MultiFab&       solnL,
         BL_TO_FORTRAN(f4fab), BL_TO_FORTRAN(m4),
         BL_TO_FORTRAN(f5fab), BL_TO_FORTRAN(m5),
 #endif
-        &nc, h[level]);
+        &nc, h[level].data());
 
   }
 }

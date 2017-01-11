@@ -76,6 +76,10 @@ public:
     // copy assignment operator
     //
     BndryData& operator= (const BndryData& src);
+
+    BndryData (BndryData&& rhs) = delete;
+    BndryData& operator= (BndryData&& rhs) = delete;
+
     //
     // alocate bndry fabs along given face
     //
@@ -84,7 +88,7 @@ public:
                  int             ncomp,
                  const Geometry& geom);
     //
-    const MultiMask& bndryMasks (Orientation face) const { return *masks[face]; }
+    const MultiMask& bndryMasks (Orientation face) const { return masks[face]; }
     //
     // Return FabSet on given face.
     //
@@ -92,7 +96,7 @@ public:
     //
     // Some useful typedefs
     //
-    typedef Tuple<Real,2*BL_SPACEDIM> RealTuple;
+    using RealTuple = Tuple<Real,2*BL_SPACEDIM>;
 
     //
     // Return boundary location on given face for grids we own.
@@ -158,7 +162,7 @@ protected:
     //
     // Boundary condition mask
     //
-    Array<std::unique_ptr<MultiMask>> masks;
+    Array<MultiMask> masks;
     //
     // Domain used for mask definitions.
     //

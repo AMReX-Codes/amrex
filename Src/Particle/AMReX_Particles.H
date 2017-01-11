@@ -185,7 +185,7 @@ struct ParticleBase
         bool operator () (const ParticleBase& lhs,
                           const ParticleBase& rhs) const
         {
-            return lhs.m_cell.lexLT(rhs.m_cell);
+            return lhs.m_cell < rhs.m_cell;
         }
     };
 };
@@ -225,11 +225,11 @@ public:
     // make accessing them and doing operations on them more memory efficient since most of our
     // operations on particles are done on a level by level basis or grid by grid basis.
     //
-    typedef C PBox;
+    using PBox = C;
     //
     // A level of particles is stored in a map indexed by the grid number.
     //
-    typedef typename std::map<int,PBox> PMap;
+    using PMap = std::map<int,PBox>;
 
     ParticleContainer ()
 	: m_verbose(1), m_gdb(nullptr), allow_particles_near_boundary(false) {}
@@ -308,10 +308,10 @@ public:
     void InitNRandomPerCell (int n_per_cell, Real particleMass, MultiFab& particle_mf);
 
     void addOneParticle (int id_in, int cpu_in, 
-                         std::vector<double>& xloc, std::vector<double>& attributes); 
-    void addNParticles (int n, D_DECL(Array<double>& x, Array<double>& y, Array<double>& z), 
-                               D_DECL(Array<double>& u, Array<double>& v, Array<double>& w), 
-                        int na, Array<double>& attributes);
+                         std::vector<Real>& xloc, std::vector<Real>& attributes); 
+    void addNParticles (int n, D_DECL(Array<Real>& x, Array<Real>& y, Array<Real>& z), 
+                               D_DECL(Array<Real>& u, Array<Real>& v, Array<Real>& w), 
+                        int na, Array<Real>& attributes);
 
     void GetParticleIDs        (Array<int> & part_ids);
     void GetParticleCPU        (Array<int> & part_cpu);
@@ -1456,7 +1456,7 @@ ParticleContainer<NR,NI,C>::CreateVirtualParticles (int   level,
         //
         // Map for use in Cell aggregation.
         //
-        std::map<IntVect,ParticleType,IntVect::Compare> agg_map;
+        std::map<IntVect,ParticleType> agg_map;
 
 	for (auto it = pbox.cbegin(); it != pbox.cend(); ++it)
         {
@@ -4702,7 +4702,7 @@ ParticleContainer<NR,NI,C>::AssignDensityDoit (int rho_index,
         {
             const int     lev  = idata[0];
             const int     grd  = idata[1];
-            const IntVect cell = IntVect(D_DECL(idata[2],idata[3],idata[4]));
+            const IntVect cell (D_DECL(idata[2],idata[3],idata[4]));
 
             BL_ASSERT((*mf[lev]).DistributionMap()[grd] == MyProc);
 	    BL_ASSERT((*mf[lev])[grd].box().contains(cell));

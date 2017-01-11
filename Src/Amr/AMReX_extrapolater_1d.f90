@@ -1,6 +1,8 @@
 
 module bl_extrapolater
 
+  use bl_fort_module, only : c_real
+
   implicit none
   integer, parameter :: finecell = 1 ! must be consistent with Extrapolater.H
   integer, parameter :: crsecell = 0
@@ -11,8 +13,8 @@ contains
        bind(c,name='first_order_extrap')
 
     integer, intent(in) :: ulo(1), uhi(1), nu, mlo(1), mhi(1), lo(1), hi(1), sc, nc
-    double precision, intent(inout) :: u(ulo(1):uhi(1),0:nu-1)
-    integer, intent(in) :: msk(mlo(1):mhi(1))
+    real(c_real), intent(inout) :: u(ulo(1):uhi(1),0:nu-1)
+    integer     , intent(in)  :: msk(mlo(1):mhi(1))
 
     integer :: n
 

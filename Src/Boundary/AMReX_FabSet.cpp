@@ -12,8 +12,6 @@ namespace amrex {
 
 FabSet::FabSet () {}
 
-FabSet::~FabSet () {}
-
 FabSet::FabSet (const BoxArray& grids, const DistributionMapping& dmap, int ncomp)
     :
     m_mf(grids,dmap,ncomp,0)

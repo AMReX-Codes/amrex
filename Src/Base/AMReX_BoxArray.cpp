@@ -43,6 +43,11 @@ BARef::BARef (size_t size)
 #endif	    
 }
  
+BARef::BARef (const Box& b)
+{ 
+    define(b); 
+}
+
 BARef::BARef (const BoxList& bl)
 { 
     define(bl); 
@@ -63,6 +68,7 @@ BARef::BARef (const BARef& rhs)
 
 BARef::~BARef ()
 {
+    clearCoarseBoxArrayCache(this->getRefID());
 #ifdef BL_MEM_PROFILING
     updateMemoryUsage_box(-1);
     updateMemoryUsage_hash(-1);
@@ -204,21 +210,19 @@ BoxArray::Initialize ()
 BoxArray::BoxArray ()
     :
     m_transformer(new BATypeTransformer()),
-    m_ref(new BARef())
+    m_ref(std::make_shared<BARef>())
 {}
 
 BoxArray::BoxArray (const Box& bx)
     :
     m_transformer(new BATypeTransformer(bx.ixType())),
-    m_ref(new BARef(1))
-{
-    m_ref->m_abox[0] = amrex::enclosedCells(bx);
-}
+    m_ref(std::make_shared<BARef>(amrex::enclosedCells(bx)))
+{}
 
 BoxArray::BoxArray (const BoxList& bl)
     :
     m_transformer(new BATypeTransformer(bl.ixType())),
-    m_ref(new BARef(bl))
+    m_ref(std::make_shared<BARef>(bl))
 {
     type_update();
 }
@@ -226,28 +230,19 @@ BoxArray::BoxArray (const BoxList& bl)
 BoxArray::BoxArray (size_t n)
     :
     m_transformer(new BATypeTransformer()),
-    m_ref(new BARef(n))
+    m_ref(std::make_shared<BARef>(n))
 {}
 
 BoxArray::BoxArray (const Box* bxvec,
                     int        nbox)
     :
     m_transformer(new BATypeTransformer(bxvec->ixType())),
-    m_ref(new BARef(nbox))
+    m_ref(std::make_shared<BARef>(nbox))
 {
     for (int i = 0; i < nbox; i++) {
         m_ref->m_abox[i] = amrex::enclosedCells(*bxvec++);
     }
 }
-
-//
-// The copy constructor.
-//
-BoxArray::BoxArray (const BoxArray& rhs)
-    :
-    m_transformer(rhs.m_transformer->clone()),
-    m_ref(rhs.m_ref)
-{}
 
 BoxArray::BoxArray (const BoxArray& rhs, const BATransformer& trans)
     :
@@ -255,16 +250,25 @@ BoxArray::BoxArray (const BoxArray& rhs, const BATransformer& trans)
     m_ref(rhs.m_ref)
 {}
 
+BoxArray::BoxArray (const BoxArray& rhs)
+    :
+    m_transformer(rhs.m_transformer->clone()),
+    m_ref(rhs.m_ref)
+{}
+
+BoxArray::BoxArray(BoxArray&& rhs) noexcept
+    :
+    m_transformer(std::move(rhs.m_transformer)),
+    m_ref(std::move(rhs.m_ref))
+{}
+
 BoxArray::~BoxArray ()
-{ 
-    delete m_transformer;
-}
+{}
 
 BoxArray&
 BoxArray::operator= (const BoxArray& rhs)
 {
-    delete m_transformer;
-    m_transformer = rhs.m_transformer->clone();
+    m_transformer.reset(rhs.m_transformer->clone());
     m_ref = rhs.m_ref;
     return *this;
 }
@@ -272,7 +276,6 @@ BoxArray::operator= (const BoxArray& rhs)
 void
 BoxArray::define (const Box& bx)
 {
-    BL_ASSERT(size() == 0);
     clear();
     m_transformer->setIxType(bx.ixType());
     m_ref->define(amrex::enclosedCells(bx));
@@ -281,7 +284,6 @@ BoxArray::define (const Box& bx)
 void
 BoxArray::define (const BoxList& bl)
 {
-    BL_ASSERT(size() == 0);
     clear();
     m_ref->define(bl);
     type_update();
@@ -290,15 +292,14 @@ BoxArray::define (const BoxList& bl)
 void
 BoxArray::clear ()
 {
-    delete m_transformer;
-    m_transformer = new BATypeTransformer();
-    m_ref = new BARef();
+    m_transformer.reset(new BATypeTransformer());
+    m_ref.reset(new BARef());
 }
 
 void
 BoxArray::resize (long len)
 {
-    if (m_ref.unique()) {
+    if (m_ref.use_count()==1) {
 	clear_hash_bin();
     } else {
         uniqify();
@@ -415,11 +416,7 @@ BoxArray::maxSize (const IntVect& block_size)
     blst.maxSize(block_size);
     const int N = blst.size();
     if (size() != N) { // If size doesn't change, do nothing.
-	m_ref = new BARef();
-	m_ref->resize(N);
-	BoxList::iterator bli = blst.begin(), End = blst.end();
-	for (int i = 0; bli != End; ++bli)
-	    set(i++, *bli);
+	m_ref = std::make_shared<BARef>(blst);
     }
     return *this;
 }
@@ -433,7 +430,7 @@ BoxArray::refine (int refinement_ratio)
 BoxArray&
 BoxArray::refine (const IntVect& iv)
 {
-    if (m_ref.unique()) {
+    if (m_ref.use_count()==1) {
 	clear_hash_bin();
     } else {
         uniqify();
@@ -494,7 +491,7 @@ BoxArray::coarsen (const IntVect& iv)
 BoxArray&
 BoxArray::growcoarsen (int n, const IntVect& iv)
 {
-    if (m_ref.unique()) {
+    if (m_ref.use_count()==1) {
 	clear_hash_bin();
     } else {
         uniqify();
@@ -511,7 +508,7 @@ BoxArray::growcoarsen (int n, const IntVect& iv)
 BoxArray&
 BoxArray::grow (int n)
 {
-    if (m_ref.unique()) {
+    if (m_ref.use_count()==1) {
 	clear_hash_bin();
     } else {
         uniqify();
@@ -528,7 +525,7 @@ BoxArray::grow (int n)
 BoxArray&
 BoxArray::grow (const IntVect& iv)
 {
-    if (m_ref.unique()) {
+    if (m_ref.use_count()==1) {
 	clear_hash_bin();
     } else {
         uniqify();
@@ -546,7 +543,7 @@ BoxArray&
 BoxArray::grow (int dir,
                 int n_cell)
 {
-    if (m_ref.unique()) {
+    if (m_ref.use_count()==1) {
 	clear_hash_bin();
     } else {
         uniqify();
@@ -601,7 +598,7 @@ BoxArray::convert (Box (*fp)(const Box&))
 {
     BL_ASSERT(!(fp == 0));
 
-    if (m_ref.unique()) {
+    if (m_ref.use_count()==1) {
 	clear_hash_bin();
     } else {
         uniqify();
@@ -616,7 +613,7 @@ BoxArray&
 BoxArray::shift (int dir,
                  int nzones)
 {
-    if (m_ref.unique()) {
+    if (m_ref.use_count()==1) {
 	clear_hash_bin();
     } else {
         uniqify();
@@ -633,7 +630,7 @@ BoxArray::shift (int dir,
 BoxArray&
 BoxArray::shift (const IntVect& iv)
 {
-    if (m_ref.unique()) {
+    if (m_ref.use_count()==1) {
 	clear_hash_bin();
     } else {
         uniqify();
@@ -651,7 +648,7 @@ BoxArray&
 BoxArray::shiftHalf (int dir,
                      int num_halfs)
 {
-    if (m_ref.unique()) {
+    if (m_ref.use_count()==1) {
 	clear_hash_bin();
     } else {
         uniqify();
@@ -668,7 +665,7 @@ BoxArray::shiftHalf (int dir,
 BoxArray&
 BoxArray::shiftHalf (const IntVect& iv)
 {
-    if (m_ref.unique()) {
+    if (m_ref.use_count()==1) {
 	clear_hash_bin();
     } else {
         uniqify();
@@ -689,7 +686,7 @@ BoxArray::set (int        i,
     if (i == 0) {
 	m_transformer->setIxType(ibox.ixType());
 
-	if (m_ref.unique()) {
+	if (m_ref.use_count()==1) {
 	    clear_hash_bin();
 	} else {
 	    uniqify();
@@ -945,6 +942,8 @@ BoxArray::complement (const Box& bx) const
 
         Box cbx(sm,bg);
 
+	if (!cbx.intersects(m_ref->bbox)) return bl;
+
 	BARef::HashType::const_iterator TheEnd = BoxHashMap.end();
 
 	for (IntVect iv = cbx.smallEnd(), End = cbx.bigEnd(); 
@@ -999,7 +998,7 @@ BoxArray::removeOverlap ()
 {
     BL_ASSERT(ixType().cellCentered());
 
-    if (!m_ref.unique()) {
+    if (m_ref.use_count() > 1) {
         uniqify();
     }
 
@@ -1183,8 +1182,10 @@ BoxArray::getHashMap () const
 void
 BoxArray::uniqify ()
 {
-    BL_ASSERT(!m_ref.unique());
-    m_ref = new BARef(*m_ref);
+    if (m_ref.use_count() > 1) {
+	auto p = std::make_shared<BARef>(*m_ref);
+	std::swap(m_ref,p);
+    }
 }
 
 std::ostream&

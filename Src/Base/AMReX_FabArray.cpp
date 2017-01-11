@@ -1096,7 +1096,6 @@ FabArrayBase::FPinfo::FPinfo (const FabArrayBase& srcfa,
 
     if (!iprocs.empty()) {
 	ba_crse_patch.define(bl);
-	iprocs.push_back(myproc);
 	dm_crse_patch.define(iprocs);
     }
 }
@@ -1281,14 +1280,8 @@ FabArrayBase::buildTileArray (const IntVect& tileSize, TileArray& ta) const
     }
     else
     {
-#if defined(BL_USE_TEAM) && !defined(__INTEL_COMPILER)
 	std::vector<int> local_idxs(N);
 	std::iota(std::begin(local_idxs), std::end(local_idxs), 0);
-#else
-	std::vector<int> local_idxs;
-	for (int i = 0; i < N; ++i)
-	    local_idxs.push_back(i);
-#endif
 
 #if defined(BL_USE_TEAM)
 	const int nworkers = ParallelDescriptor::TeamSize();

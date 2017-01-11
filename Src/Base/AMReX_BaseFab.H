@@ -93,7 +93,6 @@ public:
     //! Construct an empty BaseFab, which must be resized (see BaseFab::resize) before use.
     BaseFab ();
 
-    BaseFab& operator= (const T&);
     //!  Make BaseFab with desired domain (box) and number of components.
     explicit BaseFab (const Box& bx,
                       int        n = 1,
@@ -101,6 +100,14 @@ public:
 		      bool       shared = false);
     //! The destructor deletes the array memory.
     ~BaseFab ();
+
+    BaseFab (const BaseFab<T>& rhs) = delete;
+    BaseFab<T>& operator= (const BaseFab<T>& rhs) = delete;
+    BaseFab<T>& operator= (BaseFab<T>&& rhs) = delete;
+
+    BaseFab (BaseFab<T>&& rhs) noexcept;
+
+    BaseFab& operator= (const T&);
 
     //! Make an alias that spans ncomp components starting at the component scomp
     void make_alias (BaseFab<T>& alias, int scomp, int ncomp) const;
@@ -855,13 +862,6 @@ protected:
     T*      dptr;     // The data pointer.
     bool    ptr_owner;// Owner of T*?
     bool    shared_memory;  // Is the memory allocated in shared memory?
-
-private:
-    //
-    // Disable these.
-    //
-    BaseFab (const BaseFab&);
-    BaseFab& operator= (const BaseFab&);
 };
 
 template <class T>
@@ -1129,14 +1129,6 @@ BaseFab<T>::BaseFab ()
 {}
 
 template <class T>
-BaseFab<T>&
-BaseFab<T>::operator= (const T& t)
-{
-    setVal(t);
-    return *this;
-}
-
-template <class T>
 BaseFab<T>::BaseFab (const Box& bx,
                      int        n,
 		     bool       alloc,
@@ -1152,6 +1144,36 @@ BaseFab<T>::BaseFab (const Box& bx,
     shared_memory(shared)
 {
     if (!shared_memory && alloc) define();
+}
+
+template <class T>
+BaseFab<T>::~BaseFab ()
+{
+    clear();
+}
+
+template <class T>
+BaseFab<T>::BaseFab (BaseFab<T>&& rhs) noexcept
+    :
+    domain(rhs.domain),
+    dlen(rhs.dlen),
+    nvar(rhs.nvar),
+    numpts(rhs.numpts),
+    truesize(rhs.truesize),
+    dptr(rhs.dptr),
+    ptr_owner(rhs.ptr_owner),
+    shared_memory(rhs.shared_memory)
+{
+    rhs.dptr = nullptr;
+    rhs.ptr_owner = false;
+}
+
+template <class T>
+BaseFab<T>&
+BaseFab<T>::operator= (const T& t)
+{
+    setVal(t);
+    return *this;
 }
 
 template <class T>
@@ -1183,12 +1205,6 @@ BaseFab<T>::resize (const Box& b,
 }
 
 template <class T>
-BaseFab<T>::~BaseFab ()
-{
-    clear();
-}
-
-template <class T>
 void
 BaseFab<T>::clear ()
 {
@@ -1197,14 +1213,14 @@ BaseFab<T>::clear ()
         //
         // Call T::~T() on the to-be-destroyed memory.
         //
-        T* ptr = dptr;
-
 	if (ptr_owner)
 	{
 	    if (shared_memory)
 	    {
 		amrex::Abort("BaseFab::clear: BaseFab cannot be owner of shared memory");
 	    }
+
+	    T* ptr = dptr;
 
 	    for (long i = 0; i < truesize; i++, ptr++)
 	    {

@@ -151,7 +151,7 @@ two_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int nppc, bool v
     typedef ParticleContainer<1+2*BL_SPACEDIM> MyParticleContainer;
     
     // Build a new particle container to hold my particles.
-    auto MyPC = std::unique_ptr<MyParticleContainer>(new MyParticleContainer(geom,dmap,ba,rr));
+    std::unique_ptr<MyParticleContainer> MyPC(new MyParticleContainer(geom,dmap,ba,rr));
 
     MyPC->SetVerbose(0);
 

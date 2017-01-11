@@ -92,13 +92,6 @@ int main(int argc, char *argv[]) {
       std::cout << "dmap.size() = " << dmap.size() << std::endl;
     }
 
-    // ------------------------------------------------------------------
-    // ----- very important:  here we are copying a procmap,
-    // -----                  but if you just make your own Array<int>
-    // -----                  it must have an extra value at the end
-    // -----                  set to ParallelDescriptor::MyProc()
-    // -----                  see DistributionMapping.H
-    // ------------------------------------------------------------------
     const Array<int> procMap = dmap.ProcessorMap();
     if(ParallelDescriptor::IOProcessor()) {
       std::cout << "procMap.size() = " << procMap.size() << std::endl;

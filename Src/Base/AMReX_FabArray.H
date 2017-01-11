@@ -34,6 +34,7 @@
 #include <AMReX_ccse-mpi.H>
 #include <AMReX_BLProfiler.H>
 #include <AMReX_Periodicity.H>
+#include <AMReX_Print.H>
 
 namespace amrex {
 
@@ -89,6 +90,13 @@ public:
     FabArrayBase ();
 
     virtual ~FabArrayBase();
+
+    FabArrayBase (FabArrayBase&& rhs) noexcept = default;
+    
+    FabArrayBase (const FabArrayBase& rhs) = delete;
+    FabArrayBase& operator= (const FabArrayBase& rhs) = delete;
+    FabArrayBase& operator= (FabArrayBase&& rhs) = delete;    
+
     //
     // Returns the grow factor that defines the region of definition.
     //
@@ -225,13 +233,12 @@ public:
 	}
 	void recordUse () { ++nuse; }
 	void print () {
-	    std::cout << "### " << name << " ###\n";
-	    std::cout << "    tot # of builds  : " << nbuild  << "\n"
-		      << "    tot # of erasures: " << nerase  << "\n"
-		      << "    tot # of uses    : " << nuse    << "\n"
-		      << "    max cache size   : " << maxsize << "\n"
-		      << "    max # of uses    : " << maxuse
-		      << std::endl;
+	    amrex::Print(Print::AllProcs) << "### " << name << " ###\n"
+					  << "    tot # of builds  : " << nbuild  << "\n"
+					  << "    tot # of erasures: " << nerase  << "\n"
+					  << "    tot # of uses    : " << nuse    << "\n"
+					  << "    max cache size   : " << maxsize << "\n"
+					  << "    max # of uses    : " << maxuse  << "\n";
 	}
     };
     //
@@ -249,9 +256,9 @@ public:
 	bool operator< (const CopyComTag& rhs) const {
 	    return (srcIndex < rhs.srcIndex) || ((srcIndex == rhs.srcIndex) && (
                    (dstIndex < rhs.dstIndex) || ((dstIndex == rhs.dstIndex) && (
-                   (IntVect::Compare()(dbox.smallEnd(),rhs.dbox.smallEnd())
+                   (dbox.smallEnd() < rhs.dbox.smallEnd()
 		               || ((dbox.smallEnd() == rhs.dbox.smallEnd()) && (
-                   (IntVect::Compare()(sbox.smallEnd(),rhs.sbox.smallEnd())))))))));
+                   (sbox.smallEnd() < rhs.sbox.smallEnd()))))))));
 	}
         //
         // Some typedefs & helper functions used throughout the code.
@@ -441,7 +448,7 @@ protected:
     // Tiling
     //
     // We use tile size as the key for the inner map.
-    typedef std::map<IntVect, TileArray, IntVect::Compare> TAMap;
+    typedef std::map<IntVect, TileArray> TAMap;
     typedef std::map<BDKey, TAMap> TACache;
     //
     static TACache     m_TheTileArrayCache;
@@ -591,12 +598,11 @@ protected:
 	    max_num_ba_use = std::max(max_num_ba_use, n);
 	}
 	void print () {
-	    std::cout << "### FabArray ###\n";
-	    std::cout << "    tot # of builds       : " << num_build         << "\n"
-		      << "    max # of FabArrays    : " << max_num_fabarrays << "\n"
-		      << "    max # of BoxArrays    : " << max_num_boxarrays << "\n"
-		      << "    max # of BoxArray uses: " << max_num_ba_use
-		      << std::endl;
+	    amrex::Print(Print::AllProcs) << "### FabArray ###\n"
+					  << "    tot # of builds       : " << num_build         << "\n"
+					  << "    max # of FabArrays    : " << max_num_fabarrays << "\n"
+					  << "    max # of BoxArrays    : " << max_num_boxarrays << "\n"
+					  << "    max # of BoxArray uses: " << max_num_ba_use    << "\n";
 	}
     };
     static FabArrayStats m_FA_stats;
@@ -800,6 +806,13 @@ public:
     // The destructor -- deletes all FABs in the array.
     //
     virtual ~FabArray ();
+
+    FabArray (FabArray<FAB>&& rhs) noexcept;
+
+    FabArray (const FabArray<FAB>& rhs) = delete;
+    FabArray<FAB>& operator= (const FabArray<FAB>& rhs) = delete;
+    FabArray<FAB>& operator= (FabArray<FAB>&& rhs) = delete;
+
     //
     // Define this FabArray identically to that performed by
     // the constructor having an analogous function signature.
@@ -1051,6 +1064,9 @@ public:
 
 
 protected:
+
+    bool moved = false;
+
     //
     // The data.
     //
@@ -1080,6 +1096,24 @@ protected:
 	    if (alloc)
 		amrex::update_fab_stats(-n_points, -n_values, sizeof(value_type));
 	}
+	ShMem (ShMem&& rhs) noexcept
+                 : alloc(rhs.alloc), n_values(rhs.n_values), n_points(rhs.n_points)
+#ifdef BL_USE_UPCXX
+		 , p(rhs.p)
+#elif defined(BL_USE_MPI3)
+		 , win(rhs.win)
+#endif
+	{
+	    rhs.alloc = false;
+#ifdef BL_USE_UPCXX
+	    rhs.p = nullptr;
+#elif defined(BL_USE_MPI3)
+	    rhs.win = MPI_WIN_NULL;
+#endif
+	}
+	ShMem (const ShMem&) = delete;
+	ShMem& operator= (const ShMem&) = delete;
+	ShMem& operator= (ShMem&&) = delete;
 	bool  alloc;
 	long  n_values;
 	long  n_points;
@@ -1095,9 +1129,6 @@ protected:
 
 private:
     typedef typename std::vector<FAB*>::iterator    Iterator;
-
-    FabArray (const FabArray<FAB>&) = delete;
-    FabArray<FAB>& operator= (const FabArray<FAB>&) = delete;
 
     void AllocFabs ();
 
@@ -1554,36 +1585,49 @@ FabArray<FAB>::FabArray (const BoxArray&            bxs,
 }
 
 template <class FAB>
+FabArray<FAB>::FabArray (FabArray<FAB>&& rhs) noexcept
+    : FabArrayBase (std::move(rhs))
+    , m_fabs_v     (std::move(rhs.m_fabs_v))
+    , shmem        (std::move(rhs.shmem))
+    // no need to worry about the data used in non-blocking FillBoundary.
+{
+    rhs.moved = true;
+}
+
+template <class FAB>
 FabArray<FAB>::~FabArray ()
 {
-    m_FA_stats.recordDelete();
+    if (!moved)
+    {
+	m_FA_stats.recordDelete();
 
-    typename std::map<int, std::map<int, FabArray<FAB> *> >::iterator afapIter = 
-                 FabArray<FAB>::allocatedFAPointers.find(distributionMap.size());
-    if(afapIter == FabArray<FAB>::allocatedFAPointers.end()) {
+	typename std::map<int, std::map<int, FabArray<FAB> *> >::iterator afapIter = 
+	    FabArray<FAB>::allocatedFAPointers.find(distributionMap.size());
+	if(afapIter == FabArray<FAB>::allocatedFAPointers.end()) {
 #ifdef DEBUG_AFAP
-      if(ParallelDescriptor::IOProcessor(this->color()) && distributionMap.size() > 0) {
-        std::cout << "**** In FabArray::clear():: map not found:  size = "
-                  << distributionMap.size() << std::endl;
-      }
+	    if(ParallelDescriptor::IOProcessor(this->color()) && distributionMap.size() > 0) {
+		std::cout << "**** In FabArray::clear():: map not found:  size = "
+			  << distributionMap.size() << std::endl;
+	    }
 #endif
-    } else {
-      std::map<int, FabArray<FAB> *> &faPtrCachedMap = afapIter->second;
-      faPtrCachedMap.erase(aFAPId);
+	} else {
+	    std::map<int, FabArray<FAB> *> &faPtrCachedMap = afapIter->second;
+	    faPtrCachedMap.erase(aFAPId);
 #ifdef DEBUG_AFAP
-      if(ParallelDescriptor::IOProcessor() && faPtrCachedMap.size() == 0) {
-        std::cout << "**** In FabArray::~FabArray()::  size distmapngrids = "
-                  << faPtrCachedMap.size() << "  " << afapIter-> first << std::endl;
-      }
+	    if(ParallelDescriptor::IOProcessor() && faPtrCachedMap.size() == 0) {
+		std::cout << "**** In FabArray::~FabArray()::  size distmapngrids = "
+			  << faPtrCachedMap.size() << "  " << afapIter-> first << std::endl;
+	    }
 #endif
-      if(faPtrCachedMap.size() == 0) {  //---- delete unused maps
-        FabArray<FAB>::allocatedFAPointers.erase(afapIter);
-      }
+	    if(faPtrCachedMap.size() == 0) {  //---- delete unused maps
+		FabArray<FAB>::allocatedFAPointers.erase(afapIter);
+	    }
+	}
+
+	noallocFAPIds.erase(aFAPId);
+
+	clear();
     }
-
-    noallocFAPIds.erase(aFAPId);
-
-    clear();
 }
 
 template <class FAB>
@@ -1641,7 +1685,7 @@ FabArray<FAB>::define (const BoxArray&            bxs,
 	}
     }
 
-    BL_ASSERT(dm.ProcessorMap().size() == bxs.size()+1);
+    BL_ASSERT(dm.ProcessorMap().size() == bxs.size());
     distributionMap = dm;
 
     int myProc = ParallelDescriptor::MyProc();
@@ -2559,14 +2603,12 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
       srcDM = src->DistributionMap();
       srcPMap = srcDM.ProcessorMap();
       srcPMapAll = DistributionMapping::TranslateProcMap(srcPMap, groupBoth, groupSrc);
-      srcPMapAll[srcPMapAll.size()-1] = myProcBoth;  // ---- set the sentinel
     }
     if(isDest && myProcBoth == bcastRootDest) {
       destBoxArray = dest->boxArray();
       destDM = dest->DistributionMap();
       destPMap = destDM.ProcessorMap();
       destPMapAll = DistributionMapping::TranslateProcMap(destPMap, groupBoth, groupDest);
-      destPMapAll[destPMapAll.size()-1] = myProcBoth;  // ---- set the sentinel
     }
 
     amrex::BroadcastBoxArray(srcBoxArray,  myProcBoth, bcastRootSrc,  commBoth);
@@ -3083,9 +3125,7 @@ FabArray<FAB>::AddProcsToComp (int ioProcNumSCS, int ioProcNumAll,
   amrex::BroadcastBoxArray(boxarray, scsMyId, ioProcNumSCS, scsComm);
 
   // ---- DistributionMapping
-  int sentinelProc(ParallelDescriptor::MyProcComp());
-  amrex::BroadcastDistributionMapping(distributionMap, sentinelProc,
-                                       scsMyId, ioProcNumSCS, scsComm, true);
+  amrex::BroadcastDistributionMapping(distributionMap, scsMyId, ioProcNumSCS, scsComm, true);
 
   // ---- ints
   ParallelDescriptor::Bcast(&n_grow, 1, ioProcNumSCS, scsComm);
@@ -3219,10 +3259,8 @@ FabArray<FAB>::MoveAllFabs (const Array<int> &newDistMapArray)
 
     ParallelDescriptor::ReduceIntSum(nFabsMoved);
 
-    if(ParallelDescriptor::IOProcessor()) {
-      std::cout << "FabArray<FAB>::MoveAllFabs:  moved " << nFabsMoved
-	        << " FAB(s) for each FabArray." << std::endl;
-    }
+    amrex::Print() << "FabArray<FAB>::MoveAllFabs:  moved " << nFabsMoved
+		   << " FAB(s) for each FabArray.\n";
 
     // ---- flush caches
     flushCPCache();
@@ -3266,9 +3304,6 @@ FabArray<FAB>::MoveFabs (const Array<int> &newDistMapArray)
               << distributionMap.size() << std::endl;
     amrex::Abort("**** Error:  bad newDistMap:0");
   }
-  if(newDistMapArray[newDistMapArray.size() - 1] != myProc) {
-    amrex::Abort("**** Error:  bad newDistMap:1");
-  }
   for(int idm(0); idm < newDistMapArray.size(); ++idm) {
     if(newDistMapArray[idm] < 0 ||
        newDistMapArray[idm] > ParallelDescriptor::NProcs() - 1)
@@ -3297,7 +3332,7 @@ FabArray<FAB>::MoveFabs (const Array<int> &newDistMapArray)
 
   // ---- determine which fabs to move
   std::vector<FABMoves> fabMoves;
-  for(int iM(0); iM < distributionMap.size() - 1; ++iM) {  // ---- -1 skips the sentinel
+  for(int iM(0); iM < distributionMap.size(); ++iM) {
     if(newDistMapArray[iM] != distributionMap[iM]) {
       FABMoves moveThisFab;
       moveThisFab.distMapIndex = iM;
@@ -3475,9 +3510,9 @@ FabArrayCopyDescriptor<FAB>::AddBoxDoIt (FabArrayId fabarrayid,
 
         int remoteProc     = fabArray->DistributionMap()[faindex];
 	if(remoteProc >= ParallelDescriptor::NProcs()) {
-	  std::cout << ParallelDescriptor::MyProcAll() << ":: _in AddBoxDoIt:  nProcs remoteProc = "
-	            << ParallelDescriptor::NProcs() << "  " << remoteProc << std::endl;
-	  amrex::Abort("Bad remoteProc");
+	    amrex::Print(Print::AllProcs) << ParallelDescriptor::MyProcAll() << ":: _in AddBoxDoIt:  nProcs remoteProc = "
+					  << ParallelDescriptor::NProcs() << "  " << remoteProc << "\n";
+	    amrex::Abort("Bad remoteProc");
 	}
         fcd->fillBoxId     = nextFillBoxId;
         fcd->subBox        = intersect;
