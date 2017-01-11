@@ -8,7 +8,7 @@
 
 extern "C"
 {
-    void first_order_extrap(double* u, const int* ulo, const int* uhi, const int& nu,
+    void first_order_extrap(Real* u, const int* ulo, const int* uhi, const int& nu,
 			    const int* msk, const int* mlo, const int* mhi,
 			    const int* lo, const int* hi, 
 			    const int& scomp, const int& ncomp);

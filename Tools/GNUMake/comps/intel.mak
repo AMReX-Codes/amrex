@@ -37,7 +37,11 @@ endif
 
 ########################################################################
 
-CXXFLAGS += -std=c++11
+ifeq ($(firstword $(sort 17.0 $(intel_version))), 17.0) 
+  CXXFLAGS += -std=c++14
+else
+  CXXFLAGS += -std=c++11
+endif
 CFLAGS   += -std=c99
 
 F90FLAGS += -module $(fmoddir) -I$(fmoddir) -implicitnone

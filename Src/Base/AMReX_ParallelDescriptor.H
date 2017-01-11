@@ -156,6 +156,17 @@ namespace ParallelDescriptor
             return m_MyId_sidecar;
         }
     }
+    inline int
+    MyProc (MPI_Comm comm)
+    {
+#ifdef BL_USE_MPI
+	int r;
+	MPI_Comm_rank(comm,&r);
+	return r;
+#else
+	return 0;
+#endif	
+    }
     //! return the rank number for the global group
     inline int
     MyProcAll ()

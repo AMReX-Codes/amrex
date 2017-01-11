@@ -1431,7 +1431,6 @@ VisMF::Read (FabArray<FArrayBox> &mf,
     BoxArray baFileOrder(hdr.m_ba.size());
 
     Array<int> ranksFileOrder(mf.DistributionMap().size(), -1);
-    ranksFileOrder[ranksFileOrder.size() - 1] = ParallelDescriptor::MyProc();
 
     Array<int> nRanksPerFile(FileReadChains.size());
     amrex::NItemsPerBin(nProcs, nRanksPerFile);

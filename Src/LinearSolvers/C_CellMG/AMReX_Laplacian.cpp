@@ -59,7 +59,7 @@ Laplacian::compFlux (D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflux),
 #endif
 #endif
 	          &num_comp,
-		  h[level],
+		  h[level].data(),
 		  xfab.dataPtr(dst_comp),
 		  ARLIM(xfab.loVect()), ARLIM(xfab.hiVect())
 #if (BL_SPACEDIM >= 2)
@@ -84,23 +84,23 @@ Laplacian::Fsmooth (MultiFab&       solnL,
 
     OrientationIter oitr;
 
-    const FabSet& f0 = (*undrrelxr[level])[oitr()]; oitr++;
-    const FabSet& f1 = (*undrrelxr[level])[oitr()]; oitr++;
-    const FabSet& f2 = (*undrrelxr[level])[oitr()]; oitr++;
-    const FabSet& f3 = (*undrrelxr[level])[oitr()]; oitr++;
+    const FabSet& f0 = undrrelxr[level][oitr()]; oitr++;
+    const FabSet& f1 = undrrelxr[level][oitr()]; oitr++;
+    const FabSet& f2 = undrrelxr[level][oitr()]; oitr++;
+    const FabSet& f3 = undrrelxr[level][oitr()]; oitr++;
 #if (BL_SPACEDIM > 2)
-    const FabSet& f4 = (*undrrelxr[level])[oitr()]; oitr++;
-    const FabSet& f5 = (*undrrelxr[level])[oitr()]; oitr++;
+    const FabSet& f4 = undrrelxr[level][oitr()]; oitr++;
+    const FabSet& f5 = undrrelxr[level][oitr()]; oitr++;
 #endif
 
     oitr.rewind();
-    const MultiMask& mm0 = *maskvals[level][oitr()]; oitr++;
-    const MultiMask& mm1 = *maskvals[level][oitr()]; oitr++;
-    const MultiMask& mm2 = *maskvals[level][oitr()]; oitr++;
-    const MultiMask& mm3 = *maskvals[level][oitr()]; oitr++;
+    const MultiMask& mm0 = maskvals[level][oitr()]; oitr++;
+    const MultiMask& mm1 = maskvals[level][oitr()]; oitr++;
+    const MultiMask& mm2 = maskvals[level][oitr()]; oitr++;
+    const MultiMask& mm3 = maskvals[level][oitr()]; oitr++;
 #if (BL_SPACEDIM > 2)
-    const MultiMask& mm4 = *maskvals[level][oitr()]; oitr++;
-    const MultiMask& mm5 = *maskvals[level][oitr()]; oitr++;
+    const MultiMask& mm4 = maskvals[level][oitr()]; oitr++;
+    const MultiMask& mm5 = maskvals[level][oitr()]; oitr++;
 #endif
 
     const int nc = rhsL.nComp();
@@ -157,7 +157,7 @@ Laplacian::Fsmooth (MultiFab&       solnL,
             m3.dataPtr(), 
             ARLIM(m3.loVect()), ARLIM(m3.hiVect()),
 	    tbx.loVect(), tbx.hiVect(), vbx.loVect(), vbx.hiVect(),
-            &nc, h[level], &redBlackFlag);
+            &nc, h[level].data(), &redBlackFlag);
 #endif
 
 #if (BL_SPACEDIM == 3)
@@ -191,7 +191,7 @@ Laplacian::Fsmooth (MultiFab&       solnL,
             m5.dataPtr(), 
             ARLIM(m5.loVect()), ARLIM(m5.hiVect()),
 	    tbx.loVect(), tbx.hiVect(), vbx.loVect(), vbx.hiVect(),
-	    &nc, h[level], &redBlackFlag);
+	    &nc, h[level].data(), &redBlackFlag);
 #endif
     }
 }
@@ -239,7 +239,7 @@ Laplacian::Fapply (MultiFab&       y,
                    xfab.dataPtr(src_comp), 
                    ARLIM(xfab.loVect()), ARLIM(xfab.hiVect()),
                    tbx.loVect(), tbx.hiVect(), &num_comp,
-                   h[level]);
+                   h[level].data());
     }
 }
 

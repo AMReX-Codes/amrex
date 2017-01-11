@@ -2,7 +2,6 @@
 #ifndef BL_FARRAYBOX_H
 #define BL_FARRAYBOX_H
 
-#include <AMReX_Pointers.H>
 #include <AMReX_Box.H>
 #include <AMReX_BaseFab.H>
 #include <AMReX_REAL.H>
@@ -213,10 +212,18 @@ public:
                         int        ncomp=1,
 			bool       alloc=true,
 			bool       shared=false);
+
+    //!  The destructor.
+    ~FArrayBox () = default;
+    
+    FArrayBox (FArrayBox&& rhs) noexcept = default;
+
+    FArrayBox (const FArrayBox&) = delete;
+    FArrayBox& operator= (const FArrayBox&) = delete;
+    FArrayBox& operator= (FArrayBox&&) = delete;
+
     //! Set the fab to the value r.
     FArrayBox& operator= (const Real& r);
-    //!  The destructor.
-    ~FArrayBox ();
     //
     void initVal ();
     /**
@@ -380,9 +387,6 @@ private:
     static Real initval;
     static bool init_snan;
 
-    //! These are not allowed
-    FArrayBox (const FArrayBox&);
-    FArrayBox& operator= (const FArrayBox&);
 };
 
 }

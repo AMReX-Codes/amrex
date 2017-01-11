@@ -31,7 +31,7 @@ namespace amrex {
     std::map<int, int> rankPNumMap;       // [rank, procNumber]
     std::multimap<int, int> pNumRankMM;   // [procNumber, rank]
     std::map<int, IntVect> pNumTopIVMap;  // [procNumber, topological iv position]
-    std::multimap<IntVect, int, IntVect::Compare> topIVpNumMM;
+    std::multimap<IntVect, int> topIVpNumMM;
                                           // [topological iv position, procNumber]
     std::vector<int> ranksSFC;
 
@@ -344,11 +344,9 @@ DistributionMapping::LeastUsedTeams (Array<int>        & rteam,
 #endif
 }
 
-DistributionMapping::Ref::Ref () {}
-
 DistributionMapping::DistributionMapping ()
     :
-    m_ref(new DistributionMapping::Ref),
+    m_ref(std::make_shared<Ref>()),
     m_color(ParallelDescriptor::DefaultColor())
 {
   dmID = nDistMaps++;
@@ -371,64 +369,45 @@ DistributionMapping::operator= (const DistributionMapping& rhs)
     return *this;
 }
 
-DistributionMapping::Ref::Ref (const Array<int>& pmap)
+DistributionMapping::DistributionMapping (DistributionMapping&& rhs) noexcept
     :
-    m_pmap(pmap)
-{}
+    m_ref(std::move(rhs.m_ref)),
+    m_color(rhs.m_color),
+    dmID(rhs.dmID)
+{
+}
+
 
 DistributionMapping::DistributionMapping (const Array<int>& pmap, 
 					  ParallelDescriptor::Color color)
     :
-    m_ref(new DistributionMapping::Ref(pmap)),
+    m_ref(std::make_shared<Ref>(pmap)),
     m_color(color)
 {
     dmID = nDistMaps++;
 }
 
-DistributionMapping::Ref::Ref (int len)
-    :
-    m_pmap(len)
-{}
-
 DistributionMapping::DistributionMapping (const BoxArray& boxes,
 					  int nprocs,
 					  ParallelDescriptor::Color color)
     :
-    m_ref(new DistributionMapping::Ref(boxes.size() + 1)),
+    m_ref(std::make_shared<Ref>(boxes.size())),
     m_color(color)
 {
     dmID = nDistMaps++;
     define(boxes,nprocs,color);
 }
 
-DistributionMapping::Ref::Ref (const Ref& rhs)
-    :
-    m_pmap(rhs.m_pmap)
-{}
-
 DistributionMapping::DistributionMapping (const DistributionMapping& d1,
                                           const DistributionMapping& d2)
     :
-    m_ref(new DistributionMapping::Ref(d1.size() + d2.size() - 1)),
+    m_ref(std::make_shared<Ref>()),
     m_color(ParallelDescriptor::DefaultColor())
 {
     dmID = nDistMaps++;
-
-    const Array<int>& pmap_1 = d1.ProcessorMap();
-    const Array<int>& pmap_2 = d2.ProcessorMap();
-
-    const int L1 = pmap_1.size() - 1; // Length not including sentinel.
-    const int L2 = pmap_2.size() - 1; // Length not including sentinel.
-
-    for (int i = 0; i < L1; ++i)
-        m_ref->m_pmap[i] = pmap_1[i];
-
-    for (int i = L1, j = 0; j < L2; ++i, ++j)
-        m_ref->m_pmap[i] = pmap_2[j];
-    //
-    // Set sentinel equal to our processor number.
-    //
-    m_ref->m_pmap[m_ref->m_pmap.size()-1] = ParallelDescriptor::MyProc();
+    m_ref->m_pmap = d1.ProcessorMap();
+    const auto& p2 = d2.ProcessorMap();
+    m_ref->m_pmap.insert(m_ref->m_pmap.end(), p2.begin(), p2.end());
 }
 
 void
@@ -437,11 +416,7 @@ DistributionMapping::define (const BoxArray& boxes,
 			     ParallelDescriptor::Color color)
 {
     m_color = color;
-
-    if (m_ref->m_pmap.size() != boxes.size() + 1)
-    {
-        m_ref->m_pmap.resize(boxes.size() + 1);
-    }
+    m_ref->m_pmap.resize(boxes.size());
 
     BL_ASSERT(m_BuildMap != 0);
 	
@@ -451,13 +426,7 @@ DistributionMapping::define (const BoxArray& boxes,
 void
 DistributionMapping::define (const Array<int>& pmap)
 {
-    if (m_ref->m_pmap.size() != pmap.size()) {
-        m_ref->m_pmap.resize(pmap.size());
-    }
-
-    for (unsigned int i(0); i < pmap.size(); ++i) {
-        m_ref->m_pmap[i] = pmap[i];
-    }
+    m_ref->m_pmap = pmap;
 }
 
 DistributionMapping::~DistributionMapping () { }
@@ -519,22 +488,13 @@ DistributionMapping::RoundRobinDoIt (int                  nboxes,
 	    m_ref->m_pmap[i] = ParallelDescriptor::Translate(rank,m_color);
 	}
     }
-
-    //
-    // Set sentinel equal to our processor number.
-    //
-    m_ref->m_pmap[nboxes] = ParallelDescriptor::MyProc();
 }
 
 void
 DistributionMapping::RoundRobinProcessorMap (int nboxes, int nprocs)
 {
     BL_ASSERT(nboxes > 0);
-
-    if (m_ref->m_pmap.size() != nboxes + 1)
-    {
-        m_ref->m_pmap.resize(nboxes + 1);
-    }
+    m_ref->m_pmap.resize(nboxes);
 
     RoundRobinDoIt(nboxes, nprocs);
 }
@@ -543,7 +503,7 @@ void
 DistributionMapping::RoundRobinProcessorMap (const BoxArray& boxes, int nprocs)
 {
     BL_ASSERT(boxes.size() > 0);
-    BL_ASSERT(m_ref->m_pmap.size() == boxes.size() + 1);
+    BL_ASSERT(m_ref->m_pmap.size() == boxes.size());
     //
     // Create ordering of boxes from largest to smallest.
     // When we round-robin the boxes we want to go from largest
@@ -863,14 +823,10 @@ DistributionMapping::KnapSackDoIt (const std::vector<long>& wgts,
 #endif
 	}
     }
-    //
-    // Set sentinel equal to our processor number.
-    //
-    m_ref->m_pmap[wgts.size()] = ParallelDescriptor::MyProc();
 
-    if (verbose && ParallelDescriptor::IOProcessor())
+    if (verbose)
     {
-        std::cout << "KNAPSACK efficiency: " << efficiency << '\n';
+	amrex::Print() << "KNAPSACK efficiency: " << efficiency << '\n';
     }
 
 }
@@ -884,10 +840,7 @@ DistributionMapping::KnapSackProcessorMap (const std::vector<long>& wgts,
 {
     BL_ASSERT(wgts.size() > 0);
 
-    if (m_ref->m_pmap.size() !=  wgts.size() + 1)
-    {
-        m_ref->m_pmap.resize(wgts.size() + 1);
-    }
+    m_ref->m_pmap.resize(wgts.size());
 
     if (wgts.size() <= nprocs || nprocs < 2)
     {
@@ -908,7 +861,7 @@ DistributionMapping::KnapSackProcessorMap (const BoxArray& boxes,
 					   int             nprocs)
 {
     BL_ASSERT(boxes.size() > 0);
-    BL_ASSERT(m_ref->m_pmap.size() == boxes.size()+1);
+    BL_ASSERT(m_ref->m_pmap.size() == boxes.size());
 
     if (boxes.size() <= nprocs || nprocs < 2)
     {
@@ -1153,7 +1106,7 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
 
 	    std::vector<std::vector<int> > kpres;
 	    Real kpeff;
-	    knapsack(local_wgts, nworkers, kpres, kpeff, true, N+1);
+	    knapsack(local_wgts, nworkers, kpres, kpeff, true, N);
 
 	    // kpres has a size of nworkers. kpres[] contains a vector of indices into vi. 
 
@@ -1187,10 +1140,6 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
 	    }
 	}
     }
-    //
-    // Set sentinel equal to our processor number.
-    //
-    m_ref->m_pmap[boxes.size()] = ParallelDescriptor::MyProc();
 
     if (verbose && ParallelDescriptor::IOProcessor())
     {
@@ -1213,10 +1162,7 @@ DistributionMapping::SFCProcessorMap (const BoxArray& boxes,
 {
     BL_ASSERT(boxes.size() > 0);
 
-    if (m_ref->m_pmap.size() != boxes.size() + 1)
-    {
-        m_ref->m_pmap.resize(boxes.size()+1);
-    }
+    m_ref->m_pmap.resize(boxes.size());
 
     if (boxes.size() < sfc_threshold*nprocs)
     {
@@ -1245,10 +1191,7 @@ DistributionMapping::SFCProcessorMap (const BoxArray&          boxes,
     BL_ASSERT(boxes.size() > 0);
     BL_ASSERT(boxes.size() == wgts.size());
 
-    if (m_ref->m_pmap.size() != wgts.size() + 1)
-    {
-        m_ref->m_pmap.resize(wgts.size()+1);
-    }
+    m_ref->m_pmap.resize(wgts.size());
 
     if (boxes.size() < sfc_threshold*nprocs)
     {
@@ -1313,10 +1256,6 @@ DistributionMapping::RRSFCDoIt (const BoxArray&          boxes,
     for (int i = 0; i < nboxes; ++i) {
 	m_ref->m_pmap[i] = ord[i%nprocs];
     }
-    //
-    // Set sentinel equal to our processor number.
-    //
-    m_ref->m_pmap[nboxes] = ParallelDescriptor::MyProc();
 }
 
 void
@@ -1325,10 +1264,7 @@ DistributionMapping::RRSFCProcessorMap (const BoxArray&          boxes,
 {
     BL_ASSERT(boxes.size() > 0);
  
-    if (m_ref->m_pmap.size() != boxes.size() + 1)
-    {
-        m_ref->m_pmap.resize(boxes.size() + 1);
-    }
+    m_ref->m_pmap.resize(boxes.size());
 
     RRSFCDoIt(boxes,nprocs);
 }
@@ -1360,7 +1296,7 @@ bool
 PFCToken::Compare::operator () (const PFCToken& lhs,
                                 const PFCToken& rhs) const
 {
-  return lhs.m_idx.lexLT(rhs.m_idx);
+  return lhs.m_idx < rhs.m_idx;
 }
 
 
@@ -1589,9 +1525,6 @@ if(ParallelDescriptor::IOProcessor()) {
         }
     }
 
-    // Set sentinel equal to our processor number.
-    m_ref->m_pmap[boxes.size()] = ParallelDescriptor::MyProc();
-
     if(ParallelDescriptor::IOProcessor()) {
         Real sum_wgt = 0, max_wgt = 0;
         for(int i = 0, N = wgts_per_cpu.size(); i < N; ++i) {
@@ -1612,9 +1545,7 @@ DistributionMapping::PFCProcessorMap (const BoxArray& boxes,
 {
     BL_ASSERT(boxes.size() > 0);
 
-    if (m_ref->m_pmap.size() != boxes.size() + 1) {
-        m_ref->m_pmap.resize(boxes.size()+1);
-    }
+    m_ref->m_pmap.resize(boxes.size());
 
     std::vector<long> wgts;
     wgts.reserve(boxes.size());
@@ -1635,9 +1566,8 @@ DistributionMapping::PFCProcessorMap (const BoxArray&          boxes,
     BL_ASSERT(boxes.size() > 0);
     BL_ASSERT(boxes.size() == wgts.size());
 
-    if (m_ref->m_pmap.size() != wgts.size() + 1) {
-        m_ref->m_pmap.resize(wgts.size()+1);
-    }
+    m_ref->m_pmap.resize(wgts.size());
+
     PFCProcessorMapDoIt(boxes,wgts,nprocs);
 }
 
@@ -1672,7 +1602,7 @@ bool
 PFCMultiLevelToken::Compare::operator () (const PFCMultiLevelToken& lhs,
                                           const PFCMultiLevelToken& rhs) const
 {
-  return lhs.m_fineiv.lexLT(rhs.m_fineiv);
+  return lhs.m_fineiv < rhs.m_fineiv;
 }
 
 
@@ -1762,9 +1692,7 @@ DistributionMapping::MultiLevelMapPFC (const Array<IntVect>  &refRatio,
 
     Array<Array<int> > localPMaps(nLevels);
     for(int n(0); n < localPMaps.size(); ++n) {
-      localPMaps[n].resize(allBoxes[n].size() + 1, -1);
-      // Set sentinel equal to our processor number.
-      localPMaps[n][allBoxes[n].size()] = ParallelDescriptor::MyProc();
+      localPMaps[n].resize(allBoxes[n].size(), -1);
     }
 
     bool bStagger(false);
@@ -1829,7 +1757,7 @@ if(ParallelDescriptor::IOProcessor()) {
   std::cout << "nb = " << nb << std::endl;
   Array<long> ncellsPerBox(nb, 0);
   for(int n(0); n < localPMaps.size(); ++n) {
-    for(int i(0); i < localPMaps[n].size() - 1; ++i) {
+    for(int i(0); i < localPMaps[n].size(); ++i) {
       int index(localPMaps[n][i]);
       ncells[index] += allBoxes[n][i].d_numPts() / maxGridPts;
       if(ib > ncellsPerBox.size()) {
@@ -1895,19 +1823,16 @@ DistributionMapping::MultiLevelMapRandom (const Array<IntVect>  &refRatio,
 
     Array<Array<int> > localPMaps(allBoxes.size());
     for(int n(0); n < localPMaps.size(); ++n) {
-      localPMaps[n].resize(allBoxes[n].size() + 1, -1);
+      localPMaps[n].resize(allBoxes[n].size(), -1);
 
       if(ParallelDescriptor::IOProcessor()) {
 	int range(maxRank - minRank);
-        for(int ir(0); ir < localPMaps[n].size() - 1; ++ir) {
+        for(int ir(0); ir < localPMaps[n].size(); ++ir) {
           //localPMaps[n][ir] = amrex::Random_int(maxRank + 1);
           localPMaps[n][ir] = minRank + amrex::Random_int(range + 1);
         }
       }
       ParallelDescriptor::Bcast(localPMaps[n].dataPtr(), localPMaps[n].size());
-
-      // Set sentinel equal to our processor number.
-      localPMaps[n][allBoxes[n].size()] = ParallelDescriptor::MyProc();
     }
 
     return localPMaps;
@@ -1948,17 +1873,14 @@ DistributionMapping::MultiLevelMapKnapSack (const Array<IntVect>  &refRatio,
 
     Array<Array<int> > localPMaps(allBoxes.size());
     for(int n(0); n < localPMaps.size(); ++n) {
-      localPMaps[n].resize(allBoxes[n].size() + 1, -1);
+      localPMaps[n].resize(allBoxes[n].size(), -1);
 
       if(ParallelDescriptor::IOProcessor()) {
-        for(int ir(0); ir < localPMaps[n].size() - 1; ++ir) {
+        for(int ir(0); ir < localPMaps[n].size(); ++ir) {
           localPMaps[n][ir] = weights[count++];
         }
       }
       ParallelDescriptor::Bcast(localPMaps[n].dataPtr(), localPMaps[n].size());
-
-      // Set sentinel equal to our processor number.
-      localPMaps[n][allBoxes[n].size()] = ParallelDescriptor::MyProc();
     }
 
     return localPMaps;
@@ -2053,9 +1975,7 @@ ParallelDescriptor::Barrier();
 
     Array<Array<int> > localPMaps(nLevels);
     for(int n(0); n < localPMaps.size(); ++n) {
-      localPMaps[n].resize(allBoxes[n].size() + 1, -1);
-      // Set sentinel equal to our processor number.
-      localPMaps[n][allBoxes[n].size()] = ParallelDescriptor::MyProc();
+      localPMaps[n].resize(allBoxes[n].size(), -1);
     }
 
     for(int iProc(0); iProc < nprocs; ++iProc) {
@@ -2092,7 +2012,7 @@ if(IOP) cout << "localPMaps[" << n << "][" << i << "] = " << localPMaps[n][i] <<
 
       Array<long> ncells(nprocs, 0);
       for(int n(0); n < localPMaps.size(); ++n) {
-        for(int i(0); i < localPMaps[n].size() - 1; ++i) {
+        for(int i(0); i < localPMaps[n].size(); ++i) {
           int index(localPMaps[n][i]);
           ncells[index] += allBoxes[n][i].numPts();
         }
@@ -2451,10 +2371,10 @@ DistributionMapping::TopIVFromProcNumber(const int procnum) {
 std::vector<int>
 DistributionMapping::ProcNumbersFromTopIV(const IntVect &iv) {
   std::vector<int> pnums;
-  std::pair<std::multimap<IntVect, int, IntVect::Compare>::iterator,
-            std::multimap<IntVect, int, IntVect::Compare>::iterator> mmiter;
+  std::pair<std::multimap<IntVect, int>::iterator,
+            std::multimap<IntVect, int>::iterator> mmiter;
   mmiter = topIVpNumMM.equal_range(iv);
-  for(std::multimap<IntVect, int, IntVect::Compare>::iterator it = mmiter.first;
+  for(std::multimap<IntVect, int>::iterator it = mmiter.first;
       it != mmiter.second; ++it)
   {
     pnums.push_back(it->second);
@@ -2641,7 +2561,7 @@ bool
 DistributionMapping::Check () const
 {
    bool ok(true);
-   for(int i(0); i < m_ref->m_pmap.size() - 1; ++i) {
+   for(int i(0); i < m_ref->m_pmap.size(); ++i) {
      if(m_ref->m_pmap[i] >= ParallelDescriptor::NProcs()) {
        ok = false;
        std::cout << ParallelDescriptor::MyProc() << ":: **** error 1 in DistributionMapping::Check() "
@@ -2650,13 +2570,6 @@ DistributionMapping::Check () const
        amrex::Abort("Bad DistributionMapping::Check");
      }
    }
-   if(m_ref->m_pmap[m_ref->m_pmap.size() - 1] != ParallelDescriptor::MyProc()) {
-     ok = false;
-     std::cout << ParallelDescriptor::MyProc() << ":: **** error 2 in DistributionMapping::Check() "
-               << "bad sentinel:  myProc sentinel = " << ParallelDescriptor::MyProc() << "  "
-	       << m_ref->m_pmap[m_ref->m_pmap.size() - 1] << std::endl;
-     amrex::Abort("Bad DistributionMapping::Check");
-   }
    return ok;
 }
 
@@ -2664,7 +2577,7 @@ ptrdiff_t
 DistributionMapping::getRefID () const
 {
     static DistributionMapping dm0(Array<int>(1));
-    return m_ref.operator->() - dm0.m_ref.operator->();
+    return m_ref.get() - dm0.m_ref.get();
 }
 
 #ifdef BL_USE_MPI
@@ -2720,10 +2633,8 @@ operator<< (std::ostream&              os,
             const DistributionMapping& pmap)
 {
     os << "(DistributionMapping" << '\n';
-    //
-    // Do not print the sentinel value.
-    //
-    for (int i = 0; i < pmap.ProcessorMap().size() - 1; ++i)
+
+    for (int i = 0; i < pmap.ProcessorMap().size(); ++i)
     {
         os << "m_pmap[" << i << "] = " << pmap.ProcessorMap()[i] << '\n';
     }

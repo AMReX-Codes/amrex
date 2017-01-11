@@ -16,6 +16,7 @@
 #include <AMReX_StateData.H>
 #include <AMReX_VisMF.H>
 
+#include <memory>
 #include <map>
 
 namespace amrex {
@@ -258,9 +259,9 @@ public:
     * with it.  If ngrow>0 the MultiFab is built on the appropriately
     * grown BoxArray.
     */
-    virtual MultiFab* derive (const std::string& name,
-                              Real               time,
-                              int                ngrow);
+    virtual std::unique_ptr<MultiFab> derive (const std::string& name,
+					      Real               time,
+					      int                ngrow);
     /**
     * \brief This version of derive() fills the dcomp'th component of mf
     * with the derived quantity.

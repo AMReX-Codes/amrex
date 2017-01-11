@@ -254,26 +254,32 @@ public:
     bool isEmpty () const { return !ok(); }
 
     //! Checks if it is a proper Box (including a valid type).
-    bool ok () const { return (bigend >= smallend) && btype.ok(); }
+    bool ok () const { return bigend.allGE(smallend) && btype.ok(); }
 
     //! Returns true if argument is contained within Box.
-    bool contains (const IntVect& p) const { return p >= smallend && p <= bigend; }
+    bool contains (const IntVect& p) const { return p.allGE(smallend) && p.allLE(bigend); }
 
     /** \brief Returns true if argument is contained within Box.
     * It is an error if the Boxes have different types.
     */
-    bool contains (const Box& b) const { BL_ASSERT(sameType(b)); return b.smallend >= smallend && b.bigend <= bigend; }
+    bool contains (const Box& b) const
+    { 
+	BL_ASSERT(sameType(b)); 
+	return b.smallend.allGE(smallend) && b.bigend.allLE(bigend);
+    } 
 
     //! Returns true if argument is strictly contained within Box.
-    bool strictly_contains (const IntVect& p) const { return p > smallend && p < bigend; }
+    bool strictly_contains (const IntVect& p) const { return p.allGT(smallend) && p.allLT(bigend); }
 
     /**
     * \brief Returns true if argument is strictly contained within Box.
     * It is an error if the Boxes have different types.
     */
     bool strictly_contains (const Box& b) const 
-	{ BL_ASSERT(sameType(b)); return b.smallend > smallend && b.bigend < bigend; }
-
+    { 
+	BL_ASSERT(sameType(b));
+	return b.smallend.allGT(smallend) && b.bigend.allLT(bigend);
+    }
     /**
     * \brief Returns true if Boxes have non-null intersections.
     * It is an error if the Boxes have different types.
@@ -547,14 +553,6 @@ public:
     * a point not inside rectangle.  Iteration may not be efficient.
     */
     void next (IntVect &) const;
-
-    /**
-    * \brief Scan argument IntVect over object second arg is
-    * increment vector.  Runtime error if IntVect is not
-    * contained in object Box.  Iteration may not be efficient.
-    */
-    void next (IntVect&   p,
-               const int* shv) const;
 
     /**
     * \brief This static member function returns a constant reference to 

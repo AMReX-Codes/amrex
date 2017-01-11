@@ -12,9 +12,6 @@ C$(AMREX_BASE)_headers += AMReX_ParmParse.H AMReX_Utility.H AMReX_BLassert.H AMR
 
 C$(AMREX_BASE)_headers += AMReX_REAL.H AMReX_CONSTANTS.H AMReX_SPACE.H AMReX_SPACE_F.H
 
-C$(AMREX_BASE)_sources += AMReX_UseCount.cpp
-C$(AMREX_BASE)_headers += AMReX_UseCount.H
-
 C$(AMREX_BASE)_sources += AMReX_DistributionMapping.cpp AMReX_ParallelDescriptor.cpp
 C$(AMREX_BASE)_headers += AMReX_DistributionMapping.H AMReX_ParallelDescriptor.H
 
@@ -33,7 +30,7 @@ C$(AMREX_BASE)_headers += AMReX_NFiles.H
 #
 # FAB I/O stuff.
 #
-C${AMREX_BASE}_headers += AMReX_FabConv.H AMReX_FPC.H
+C${AMREX_BASE}_headers += AMReX_FabConv.H AMReX_FPC.H AMReX_Print.H
 C${AMREX_BASE}_sources += AMReX_FabConv.cpp AMReX_FPC.cpp
 
 #

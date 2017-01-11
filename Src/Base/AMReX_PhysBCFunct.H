@@ -5,7 +5,6 @@
 #include <AMReX_Geometry.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_ArrayLim.H>
-#include <AMReX_Pointers.H>
 
 extern "C"
 {
@@ -66,7 +65,7 @@ public:
 private:
     Geometry m_geom;
     BCRec    m_bcr;
-    LnPtr<BndryFunctBase> m_bc_func;
+    std::unique_ptr<BndryFunctBase> m_bc_func;
 };
 
 }

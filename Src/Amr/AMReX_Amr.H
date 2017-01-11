@@ -190,10 +190,10 @@ public:
     //! Do a complete integration cycle and return the coarse dt.
     Real coarseTimeStepDt (Real stop_time);
     //! Retrieve derived data. User is responsible for deleting pointer.
-    MultiFab* derive (const std::string& name,
-                      Real           time,
-                      int            lev,
-                      int            ngrow);
+    std::unique_ptr<MultiFab> derive (const std::string& name,
+				      Real           time,
+				      int            lev,
+				      int            ngrow);
     //! Name of the restart chkpoint file.
     const std::string& theRestartFile () const { return restart_chkfile; }
     //! Name of the restart plotfile.

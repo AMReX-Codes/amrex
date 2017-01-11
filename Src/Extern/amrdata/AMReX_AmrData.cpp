@@ -902,9 +902,8 @@ bool AmrData::ReadNonPlotfileData(const string &filename, Amrvis::FileType filet
     dataGrids[LevelZero][ComponentZero] = new MultiFab;
     int nGrow(0);
 
-    Array<int> pMap(fabBoxArray.size() + 1);
+    Array<int> pMap(fabBoxArray.size());
     pMap[BoxZero] = iopNum;
-    pMap[pMap.size() - 1] = myProc;
     DistributionMapping dMap(pMap);
 
     MFInfo Fab_noallocate;
@@ -968,9 +967,8 @@ bool AmrData::ReadNonPlotfileData(const string &filename, Amrvis::FileType filet
     char fabname[N];  // arbitrarily
     plotVars.resize(nComp);
 
-    Array<int> pMap(fabBoxArray.size() + 1);
+    Array<int> pMap(fabBoxArray.size());
     pMap[BoxZero] = iopNum;
-    pMap[pMap.size() - 1] = myProc;
     DistributionMapping dMap(pMap);
 
     MFInfo Fab_noallocate;

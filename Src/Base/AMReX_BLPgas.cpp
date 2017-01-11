@@ -3,6 +3,7 @@
 #include <AMReX_BLPgas.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_BaseFab.H>
+#include <AMReX_Print.H>
 
 //#include <unordered_map>
 #include <map>
@@ -102,11 +103,12 @@ BLPgas::Sendrecv(upcxx::global_ptr<void> src,
                  int *send_counter)
 {
 #ifdef UPCXX_DEBUG
-  std::cout << "myrank " << upcxx::myrank() << " pgas_send: src " << src
-            << " dst " << dst << " nbytes " << nbytes
-            << " SeqNum " << SeqNum << " signal_event " << signal_event
-            << " done_event " << done_event << " send_counter " << send_counter
-            << "\n";
+    amrex::Print(Print::AllProcs) 
+	<< "myrank " << upcxx::myrank() << " pgas_send: src " << src
+	<< " dst " << dst << " nbytes " << nbytes
+	<< " SeqNum " << SeqNum << " signal_event " << signal_event
+	<< " done_event " << done_event << " send_counter " << send_counter
+	<< "\n";
 #endif
 
   // We use dst_rank as the key for the hash table
@@ -134,8 +136,8 @@ BLPgas::Sendrecv(upcxx::global_ptr<void> src,
         send_info.done_event = done_event;
         send_info.send_counter = send_counter;
 #ifdef UPCXX_DEBUG
-        std::cout << "myrank " << upcxx::myrank() << " send found SeqNum match "
-                  << SeqNum << "\n";
+	amrex::Print(Print::AllProcs) << "myrank " << upcxx::myrank() << " send found SeqNum match "
+				      << SeqNum << "\n";
 #endif
       } else {
         // pgas_send request from Send came earlier
@@ -143,8 +145,8 @@ BLPgas::Sendrecv(upcxx::global_ptr<void> src,
         send_info.dst_ptr = dst;
         send_info.signal_event = signal_event;
 #ifdef UPCXX_DEBUG
-        std::cout << "myrank " << upcxx::myrank() << " recv found SeqNum match "
-                  << SeqNum << "\n";
+	amrex::Print(Print::AllProcs) << "myrank " << upcxx::myrank() << " recv found SeqNum match "
+				      << SeqNum << "\n";
 #endif
       }
 
@@ -179,13 +181,14 @@ BLPgas::alloc (std::size_t _sz)
     } else {
 	auto p = upcxx::allocate(_sz);
 	if (p == nullptr) {
-	    std::cout << "===== Proc. " << ParallelDescriptor::MyProc() << " =====\n";
-	    std::cout << "   Failed to allocate " << _sz << " bytes global address space memory!\n";
-	    std::cout << "   Please try to increase the GASNET_MAX_SEGSIZE environment variable.\n";
-	    std::cout << "   For example, export GASNET_MAX_SEGSIZE=512MB\n";
-	    std::cout << "   Total Bytes Allocated in Fabs: " << amrex::TotalBytesAllocatedInFabs();
-	    std::cout << "   Highest Watermark in Fabs: " << amrex::TotalBytesAllocatedInFabsHWM();
-	    std::cout << std::endl;
+	    amrex::Print(Print::AllProcs)
+		<< "===== Proc. " << ParallelDescriptor::MyProc() << " =====\n"
+		<< "   Failed to allocate " << _sz << " bytes global address space memory!\n"
+		<< "   Please try to increase the GASNET_MAX_SEGSIZE environment variable.\n"
+		<< "   For example, export GASNET_MAX_SEGSIZE=512MB\n"
+		<< "   Total Bytes Allocated in Fabs: " << amrex::TotalBytesAllocatedInFabs()
+		<< "   Highest Watermark in Fabs: " << amrex::TotalBytesAllocatedInFabsHWM()
+		<< "\n";
 	    amrex::Abort("BLPgas: upcxx::allocate failed");
 	}
 	return p;

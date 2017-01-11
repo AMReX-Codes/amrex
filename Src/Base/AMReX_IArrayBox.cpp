@@ -66,8 +66,6 @@ IArrayBox::norm (int p,
     return norm(domain,p,comp,numcomp);
 }
 
-IArrayBox::~IArrayBox () {}
-
 #if !defined(NDEBUG)
 bool IArrayBox::do_initval = true;
 #else

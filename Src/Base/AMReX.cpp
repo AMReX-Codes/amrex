@@ -13,6 +13,7 @@
 #include <AMReX_BLProfiler.H>
 #include <AMReX_BLFort.H>
 #include <AMReX_Utility.H>
+#include <AMReX_Print.H>
 
 #ifndef BL_AMRPROF
 #include <AMReX_ParmParse.H>
@@ -53,6 +54,15 @@ namespace system
     std::string exename;
     int verbose = 0;
 }
+}
+
+std::string amrex::Version ()
+{
+#ifdef AMREX_GIT_VERSION
+    return std::string(AMREX_GIT_VERSION);
+#else
+    return std::string("Unknown");
+#endif
 }
 
 //
@@ -178,7 +188,7 @@ amrex::Warning (const char* msg)
 {
     if (msg)
     {
-        std::cerr << msg << '!' << '\n';
+	amrex::Print(Print::AllProcs,std::cerr) << msg << '!' << '\n';
     }
 }
 
@@ -276,22 +286,16 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi_
     amrex::InitRandom(ParallelDescriptor::MyProc()+1, ParallelDescriptor::NProcs());
 
 #ifdef BL_USE_MPI
-    if (ParallelDescriptor::IOProcessor())
-    {
-        std::cout << "MPI initialized with "
-                  << ParallelDescriptor::NProcs()
-                  << " MPI processes\n";
-    }
+    amrex::Print() << "MPI initialized with "
+		   << ParallelDescriptor::NProcs()
+		   << " MPI processes\n";
 #endif
 
 #ifdef _OPENMP
     static_assert(_OPENMP >= 201107, "OpenMP >= 3.1 is required.");
-    if (ParallelDescriptor::IOProcessor())
-    {
-        std::cout << "OMP initialized with "
-                  << omp_get_max_threads()
-                  << " OMP threads\n";
-    }
+    amrex::Print() << "OMP initialized with "
+		   << omp_get_max_threads()
+		   << " OMP threads\n";
 #endif
 
     signal(SIGSEGV, BLBackTrace::handler); // catch seg falult
@@ -362,12 +366,9 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi_
 
     if (double(std::numeric_limits<long>::max()) < 9.e18)
     {
-	if (ParallelDescriptor::IOProcessor())
-	{
-	    std::cout << "!\n! WARNING: Maximum of long int, "
-		      << std::numeric_limits<long>::max() 
-		      << ", might be too small for big runs.\n!\n";
-	}
+	amrex::Print() << "!\n! WARNING: Maximum of long int, "
+		       << std::numeric_limits<long>::max() 
+		       << ", might be too small for big runs.\n!\n";
     }
 
 #if defined(BL_USE_FORTRAN_MPI) || defined(BL_USE_F_INTERFACES)
@@ -423,12 +424,9 @@ amrex::Finalize (bool finalize_parallel)
 	    ParallelDescriptor::ReduceIntMax(global_max);
 	    if (global_max > 0) {
 		ParallelDescriptor::ReduceIntMin(global_min);
-		if (ParallelDescriptor::IOProcessor()) {
-		    std::cout << "MemPool: " 
-			      << "min used in a rank: " << global_min << " MB, "
-			      << "max used in a rank: " << global_max << " MB."
-			      << std::endl;
-		}
+		amrex::Print() << "MemPool: " 
+			       << "min used in a rank: " << global_min << " MB, "
+			       << "max used in a rank: " << global_max << " MB.\n";
 	    }
 	}
     }
