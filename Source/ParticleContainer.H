@@ -59,7 +59,7 @@ private:
     static void ReadStaticParameters ();
 
     // runtime parameters
-    static int do_tiling;
+    static bool do_tiling;
     static IntVect tile_size;
 };
 #endif /*_ParticleContainer_H_*/

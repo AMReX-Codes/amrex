@@ -5,7 +5,7 @@
 #include <WarpX_f.H>
 #include <WarpX.H>
 
-int     MyParticleContainer::do_tiling = 0;
+bool     MyParticleContainer::do_tiling = false;
 IntVect MyParticleContainer::tile_size   { D_DECL(1024000,8,8) };
 
 MyParticleContainer::MyParticleContainer (AmrCore* amr_core)
