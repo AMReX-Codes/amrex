@@ -2,6 +2,7 @@
 #define AMREX_PRINT_H_
 
 #include <sstream>
+
 #include <AMReX_ParallelDescriptor.H>
 
 namespace amrex
@@ -61,6 +62,15 @@ namespace amrex
 	MPI_Comm comm;
 	std::ostream& os;
 	std::ostringstream ss;
+    };
+
+    class AllPrint
+	: public Print
+    {
+    public:
+	AllPrint (std::ostream& os_ = std::cout)
+	    : Print(Print::AllProcs, os_) 
+	    {}
     };
 }
 
