@@ -10,7 +10,7 @@ module mempool_module
   integer, parameter, private :: c_real = 8
 
   ! We could/should use Fortran 2008 c_sizeof here.
-  integer (kind=c_size_t), parameter, private :: szd = c_real
+  integer (kind=c_size_t), parameter, private :: szr = c_real
   integer (kind=c_size_t), parameter, private :: szi = 4_c_size_t
 
   interface bl_allocate
@@ -73,7 +73,7 @@ contains
     real(c_real), pointer :: fp(:)
     n1 = max(hi1-lo1+1, 1)
     sz = int(n1,c_size_t)
-    cp = mempool_alloc(szd*sz)
+    cp = mempool_alloc(szr*sz)
     call real_array_init(cp, sz)
     call c_f_pointer(cp, fp, shape=(/n1/))
     call shift_bound_d1(fp, lo1, a)
@@ -97,7 +97,7 @@ contains
     n1 = max(hi1-lo1+1, 1)
     n2 = max(hi2-lo2+1, 1)
     sz = int(n1,c_size_t) * int(n2,c_size_t) 
-    cp = mempool_alloc(szd*sz)
+    cp = mempool_alloc(szr*sz)
     call real_array_init(cp, sz)
     call c_f_pointer(cp, fp, shape=(/n1,n2/))
     call shift_bound_d2(fp, lo1, lo2, a)
@@ -122,7 +122,7 @@ contains
     n2 = max(hi2-lo2+1, 1)
     n3 = max(hi3-lo3+1, 1)
     sz = int(n1,c_size_t) * int(n2,c_size_t) * int(n3,c_size_t)
-    cp = mempool_alloc(szd*sz)
+    cp = mempool_alloc(szr*sz)
     call real_array_init(cp, sz)
     call c_f_pointer(cp, fp, shape=(/n1,n2,n3/))
     call shift_bound_d3(fp, lo1, lo2, lo3, a)
@@ -149,7 +149,7 @@ contains
     n4 = max(hi4-lo4+1, 1)
     sz = int(n1,c_size_t) * int(n2,c_size_t) * int(n3,c_size_t) &
          * int(n4,c_size_t)
-    cp = mempool_alloc(szd*sz)
+    cp = mempool_alloc(szr*sz)
     call real_array_init(cp, sz)
     call c_f_pointer(cp, fp, shape=(/n1,n2,n3,n4/))
     call shift_bound_d4(fp, lo1, lo2, lo3, lo4, a)
@@ -177,7 +177,7 @@ contains
     n5 = max(hi5-lo5+1, 1)
     sz = int(n1,c_size_t) * int(n2,c_size_t) * int(n3,c_size_t) &
          * int(n4,c_size_t) * int(n5,c_size_t)
-    cp = mempool_alloc(szd*sz)
+    cp = mempool_alloc(szr*sz)
     call real_array_init(cp, sz)
     call c_f_pointer(cp, fp, shape=(/n1,n2,n3,n4,n5/))
     call shift_bound_d5(fp, lo1, lo2, lo3, lo4, lo5, a)
@@ -206,7 +206,7 @@ contains
     n6 = max(hi6-lo6+1, 1)
     sz = int(n1,c_size_t) * int(n2,c_size_t) * int(n3,c_size_t) &
          * int(n4,c_size_t) * int(n5,c_size_t) * int(n6,c_size_t)
-    cp = mempool_alloc(szd*sz)
+    cp = mempool_alloc(szr*sz)
     call real_array_init(cp, sz)
     call c_f_pointer(cp, fp, shape=(/n1,n2,n3,n4,n5,n6/))
     call shift_bound_d6(fp, lo1, lo2, lo3, lo4, lo5, lo6, a)
@@ -229,7 +229,7 @@ contains
     real(c_real), pointer :: fp(:)
     n = hi - lo + 1
     sz = int(n(1),c_size_t)
-    cp = mempool_alloc(szd*sz)
+    cp = mempool_alloc(szr*sz)
     call real_array_init(cp, sz)
     call c_f_pointer(cp, fp, shape=n)
     call shift_bound_d1_v(fp, lo, a)
@@ -251,7 +251,7 @@ contains
     real(c_real), pointer :: fp(:,:)
     n = hi - lo + 1
     sz = int(n(1),c_size_t) * int(n(2),c_size_t)
-    cp = mempool_alloc(szd*sz)
+    cp = mempool_alloc(szr*sz)
     call real_array_init(cp, sz)
     call c_f_pointer(cp, fp, shape=n)
     call shift_bound_d2_v(fp, lo, a)
@@ -273,7 +273,7 @@ contains
     real(c_real), pointer :: fp(:,:,:)
     n = hi - lo + 1
     sz = int(n(1),c_size_t) * int(n(2),c_size_t) * int(n(3),c_size_t)
-    cp = mempool_alloc(szd*sz)
+    cp = mempool_alloc(szr*sz)
     call real_array_init(cp, sz)
     call c_f_pointer(cp, fp, shape=n)
     call shift_bound_d3_v(fp, lo, a)
@@ -296,7 +296,7 @@ contains
     n(1:1) = hi - lo + 1
     n(2) = ncomp
     sz = int(n(1),c_size_t) * int(n(2),c_size_t)
-    cp = mempool_alloc(szd*sz)
+    cp = mempool_alloc(szr*sz)
     call real_array_init(cp, sz)
     call c_f_pointer(cp, fp, shape=n)
     call shift_bound_d1_vc(fp, lo, a)
@@ -319,7 +319,7 @@ contains
     n(1:2) = hi - lo + 1
     n(3) = ncomp
     sz = int(n(1),c_size_t) * int(n(2),c_size_t) * int(n(3),c_size_t)
-    cp = mempool_alloc(szd*sz)
+    cp = mempool_alloc(szr*sz)
     call real_array_init(cp, sz)
     call c_f_pointer(cp, fp, shape=n)
     call shift_bound_d2_vc(fp, lo, a)
@@ -343,7 +343,7 @@ contains
     n(4) = ncomp
     sz = int(n(1),c_size_t) * int(n(2),c_size_t) * int(n(3),c_size_t) &
          * int(n(4),c_size_t)
-    cp = mempool_alloc(szd*sz)
+    cp = mempool_alloc(szr*sz)
     call real_array_init(cp, sz)
     call c_f_pointer(cp, fp, shape=n)
     call shift_bound_d3_vc(fp, lo, a)
