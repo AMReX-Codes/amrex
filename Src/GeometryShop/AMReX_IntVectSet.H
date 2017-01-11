@@ -26,7 +26,8 @@ namespace amrex
   {
     bool operator() (const IntVect& lhs, const IntVect& rhs) const
     {
-      return lhs.lexLT(rhs);
+      //w.c. changed IntVect::operator< to do the right thing
+      return lhs < rhs;
     }
   };
   /// IntVectSet implementation based std::set
