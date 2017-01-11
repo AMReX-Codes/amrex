@@ -308,10 +308,10 @@ public:
     void InitNRandomPerCell (int n_per_cell, Real particleMass, MultiFab& particle_mf);
 
     void addOneParticle (int id_in, int cpu_in, 
-                         std::vector<double>& xloc, std::vector<double>& attributes); 
-    void addNParticles (int n, D_DECL(Array<double>& x, Array<double>& y, Array<double>& z), 
-                               D_DECL(Array<double>& u, Array<double>& v, Array<double>& w), 
-                        int na, Array<double>& attributes);
+                         std::vector<Real>& xloc, std::vector<Real>& attributes); 
+    void addNParticles (int n, D_DECL(Array<Real>& x, Array<Real>& y, Array<Real>& z), 
+                               D_DECL(Array<Real>& u, Array<Real>& v, Array<Real>& w), 
+                        int na, Array<Real>& attributes);
 
     void GetParticleIDs        (Array<int> & part_ids);
     void GetParticleCPU        (Array<int> & part_cpu);
