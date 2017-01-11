@@ -356,16 +356,37 @@ MyParticleContainer::GetChargeDensity (int lev, bool local)
 
 void
 MyParticleContainer::AddNParticles (int n, const Real* x, const Real* y, const Real* z,
-				    const Real* vx, const Real* vy, const Real* vz)
+				    const Real* vx, const Real* vy, const Real* vz,
+				    int nattr, const Real* attr, int uniqueparticles)
 {
     const int lev = 0;
 
-    const Real weight = 1.0; // xxxxx need to update this!
+    BL_ASSERT(nattr == 1);
+    const Real* weight = attr;
 
     auto npart_before = TotalNumberOfParticles();  // xxxxx move this into if (verbose > xxx)
 
     int gid = 0;
-    for (int i = 0; i < n; ++i)
+
+    int ibegin, iend;
+    if (uniqueparticles) {
+	ibegin = 0;
+	iend = n;
+    } else {
+	int myproc = ParallelDescriptor::MyProc();
+	int nprocs = ParallelDescriptor::NProcs();
+	int navg = n/nprocs;
+	int nleft = n - navg * nprocs;
+	if (myproc < nleft) {
+	    ibegin = myproc*(navg+1);
+	    iend = ibegin + navg+1;
+	} else {
+	    ibegin = myproc*navg + nleft;
+	    iend = ibegin + navg;
+	}
+    }
+
+    for (int i = ibegin; i < iend; ++i)
     {
 	ParticleType p;
 	p.m_id  = ParticleBase::NextID();
@@ -377,7 +398,7 @@ MyParticleContainer::AddNParticles (int n, const Real* x, const Real* y, const R
 	p.m_pos[1] = y[i];
 	p.m_pos[2] = z[i];
 	
-	p.m_data[PIdx::w] = weight;
+	p.m_data[PIdx::w] = weight[i];
 	
 	for (int i = 1; i < PIdx::nattribs; i++) {
 	    p.m_data[i] = 0;

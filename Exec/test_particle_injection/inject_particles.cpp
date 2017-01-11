@@ -7,26 +7,27 @@
 
 namespace {
     void make_particles (Array<Real>& x, Array<Real>& y, Array<Real>& z,
-			 Array<Real>& vx, Array<Real>& vy, Array<Real>& vz);
+			 Array<Real>& vx, Array<Real>& vy, Array<Real>& vz,
+			 Array<Real>& w);
 }
 
 void inject_particles ()
 {
-    Array<Real> x, y, z, vx, vy, vz;
-    make_particles(x, y, z, vx, vy, vz);
+    Array<Real> x, y, z, vx, vy, vz, w;
+    make_particles(x, y, z, vx, vy, vz, w);
 
-    int nattr = 0;
-    int uniqueparticles = 0;
-    Real* attr = nullptr;
+    int nattr = 1;
+    int uniqueparticles = 1;
 
     addNParticles(x.size(), x.data(), y.data(), z.data(), vx.data(), vy.data(), vz.data(),
-		  nattr, attr, uniqueparticles);
+		  nattr, w.data(), uniqueparticles);
 }
 
 namespace
 {
     void make_particles (Array<Real>& x, Array<Real>& y, Array<Real>& z,
-			 Array<Real>& vx, Array<Real>& vy, Array<Real>& vz)
+			 Array<Real>& vx, Array<Real>& vy, Array<Real>& vz,
+			 Array<Real>& w)
     {
 	static std::mt19937 rand_eng(42+ParallelDescriptor::MyProc());
 	static std::uniform_real_distribution<Real> rand_real(0.0,1.0);
@@ -37,6 +38,8 @@ namespace
 	static bool first = true;
 	static BoxArray ba;
 	static Array<int> procmap;
+
+	const Real weight = 1.57;
 
 	if (first)
 	{
@@ -102,6 +105,7 @@ namespace
 			vx.push_back(vxt*gam);
 			vy.push_back(vyt*gam);
 			vz.push_back(vzt*gam);
+			w.push_back(weight);
 		    }
 		}
 	    }

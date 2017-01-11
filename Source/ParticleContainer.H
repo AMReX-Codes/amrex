@@ -44,7 +44,8 @@ public:
     std::unique_ptr<MultiFab> GetChargeDensity(int lev, bool local = false);
 
     void AddNParticles (int n, const Real* x, const Real* y, const Real* z,
-			const Real* vx, const Real* vy, const Real* vz);
+			const Real* vx, const Real* vy, const Real* vz,
+			int nattr, const Real* attr, int uniqueparticles);
 
 private:
 
