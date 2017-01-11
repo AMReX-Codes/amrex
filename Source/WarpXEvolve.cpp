@@ -30,7 +30,7 @@ WarpX::Evolve (int numsteps)
 	{
 	    // At the beginning, we have B^{n-1/2} and E^{n}.
 	    // Particles have p^{n-1/2} and x^{n}.
-	    
+
 	    EvolveB(lev, 0.5*dt[lev]); // We now B^{n}
 
 	    if (WarpX::nox > 1 || WarpX::noy > 1 || WarpX::noz > 1) {
@@ -42,6 +42,9 @@ WarpX::Evolve (int numsteps)
 		WarpX::FillBoundary(*Efield[lev][2], geom[lev], Ez_nodal_flag);
 	    }
 
+      // Shift the moving window
+      MoveWindow();
+      mypc->Redistribute(false,true);  // Redistribute particles
 
 	    // Evolve particles to p^{n+1/2} and x^{n+1}
 	    // Depose current, j^{n+1/2}
@@ -49,17 +52,17 @@ WarpX::Evolve (int numsteps)
 			 *Efield[lev][0],*Efield[lev][1],*Efield[lev][2],
 			 *Bfield[lev][0],*Bfield[lev][1],*Bfield[lev][2],
 			 *current[lev][0],*current[lev][1],*current[lev][2],dt[lev]);
-	    
-	    mypc->Redistribute(false,true);  // Redistribute particles
-	    
+
 	    EvolveB(lev, 0.5*dt[lev]); // We now B^{n+1/2}
-	    
+
 	    // Fill B's ghost cells because of the next step of evolving E.
 	    WarpX::FillBoundary(*Bfield[lev][0], geom[lev], Bx_nodal_flag);
 	    WarpX::FillBoundary(*Bfield[lev][1], geom[lev], By_nodal_flag);
 	    WarpX::FillBoundary(*Bfield[lev][2], geom[lev], Bz_nodal_flag);
 
 	    EvolveE(lev, dt[lev]); // We now have E^{n+1}
+
+
 
 	    ++istep[lev];
 	}
@@ -124,11 +127,11 @@ WarpX::EvolveB (int lev, Real dt)
 #if (BL_SPACEDIM == 3)
     long nxguard = nguard;
     long nyguard = nguard;
-    long nzguard = nguard; 
+    long nzguard = nguard;
 #elif (BL_SPACEDIM == 2)
     long nxguard = nguard;
     long nyguard = 0;
-    long nzguard = nguard; 
+    long nzguard = nguard;
 #endif
 
     for ( MFIter mfi(*Bfield[lev][0]); mfi.isValid(); ++mfi )
@@ -137,11 +140,11 @@ WarpX::EvolveB (int lev, Real dt)
 #if (BL_SPACEDIM == 3)
 	long nx = bx.length(0);
 	long ny = bx.length(1);
-	long nz = bx.length(2); 
+	long nz = bx.length(2);
 #elif (BL_SPACEDIM == 2)
 	long nx = bx.length(0);
 	long ny = 0;
-	long nz = bx.length(1); 
+	long nz = bx.length(1);
 #endif
 
 	warpx_push_bvec( (*Efield[lev][0])[mfi].dataPtr(),
@@ -149,7 +152,7 @@ WarpX::EvolveB (int lev, Real dt)
 			 (*Efield[lev][2])[mfi].dataPtr(),
 			 (*Bfield[lev][0])[mfi].dataPtr(),
 			 (*Bfield[lev][1])[mfi].dataPtr(),
-			 (*Bfield[lev][2])[mfi].dataPtr(), 
+			 (*Bfield[lev][2])[mfi].dataPtr(),
 			 dtsdx, dtsdx+1, dtsdx+2,
 			 &nx, &ny, &nz,
 			 &norder, &norder, &norder,
@@ -196,11 +199,11 @@ WarpX::EvolveE (int lev, Real dt)
 #if (BL_SPACEDIM == 3)
     long nxguard = nguard;
     long nyguard = nguard;
-    long nzguard = nguard; 
+    long nzguard = nguard;
 #elif (BL_SPACEDIM == 2)
     long nxguard = nguard;
     long nyguard = 0;
-    long nzguard = nguard; 
+    long nzguard = nguard;
 #endif
 
     for ( MFIter mfi(*Efield[lev][0]); mfi.isValid(); ++mfi )
@@ -209,11 +212,11 @@ WarpX::EvolveE (int lev, Real dt)
 #if (BL_SPACEDIM == 3)
 	long nx = bx.length(0);
 	long ny = bx.length(1);
-	long nz = bx.length(2); 
+	long nz = bx.length(2);
 #elif (BL_SPACEDIM == 2)
 	long nx = bx.length(0);
 	long ny = 0;
-	long nz = bx.length(1); 
+	long nz = bx.length(1);
 #endif
 
 	warpx_push_evec( (*Efield[lev][0])[mfi].dataPtr(),
@@ -221,7 +224,7 @@ WarpX::EvolveE (int lev, Real dt)
 			 (*Efield[lev][2])[mfi].dataPtr(),
 			 (*Bfield[lev][0])[mfi].dataPtr(),
 			 (*Bfield[lev][1])[mfi].dataPtr(),
-			 (*Bfield[lev][2])[mfi].dataPtr(), 
+			 (*Bfield[lev][2])[mfi].dataPtr(),
 			 (*current[lev][0])[mfi].dataPtr(),
 			 (*current[lev][1])[mfi].dataPtr(),
 			 (*current[lev][2])[mfi].dataPtr(),
@@ -258,4 +261,33 @@ WarpX::ComputeDt ()
     for (int lev = 1; lev <= finest_level; ++lev) {
 	dt[lev] = dt[lev-1] / nsubsteps[lev];
     }
+}
+
+void
+WarpX::MoveWindow ()
+{
+
+  for (int dir=0; dir<BL_SPACEDIM; dir++){
+    // Update continuous position of moving window
+
+    // Calculate by how many cells we should move in each direction
+    n_cell =
+
+    // Update the metadata of each grid (e.g. low, high)
+    // Modify geom
+    geom.prob_domain.getLo getHi
+
+    // Shift the values of the fields within one array by one cell + set new cells to 0
+    // Do the corresponding MPI communications
+    shift_values( ncell )
+    fill
+
+
+  }
+
+
+
+  // remove particles that are outside of the box
+
+
 }

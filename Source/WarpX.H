@@ -44,9 +44,8 @@ public:
     static long noz;
 
     // Moving window
-    static Real moving_window_vx;
-    static Real moving_window_vy;
-    static Real moving_window_vz;
+    Array<Real> moving_window_V;
+    Array<Real> moving_window_X;
 
 protected:
     virtual void ErrorEst (int lev, TagBoxArray& tags, Real time, int /*ngrow*/) override {}
@@ -71,6 +70,8 @@ private:
     void InitOpenbc ();
 
     void ComputeDt ();
+
+    void MoveWindow ();
 
     void WritePlotFile () const;
     static void PackPlotDataPtrs (std::vector<MultiFab*>& pmf,

@@ -1,6 +1,5 @@
 
 #include <ParmParse.H>
-
 #include <WarpX.H>
 #include <WarpXConst.H>
 
@@ -12,10 +11,6 @@ long WarpX::particle_pusher_algo = 0;
 long WarpX::nox = 1;
 long WarpX::noy = 1;
 long WarpX::noz = 1;
-
-Real WarpX::moving_window_vx = 0;
-Real WarpX::moving_window_vy = 0;
-Real WarpX::moving_window_vz = 0;
 
 #if (BL_SPACEDIM == 3)
 IntVect WarpX::Bx_nodal_flag(1,0,0);
@@ -128,6 +123,18 @@ WarpX::ReadParameters ()
 
 	pp.query("cfl", cfl);
 	pp.query("verbose", verbose);
+  // Set the velocity of the moving window to 0 by default
+  moving_window_V.resize(BL_SPACEDIM, 0.0);
+  moving_window_X.resize(BL_SPACEDIM, 0.0);
+  pp.queryarr("moving_window_V", moving_window_V, 0, BL_SPACEDIM );
+  for (int dir=0; dir<BL_SPACEDIM; dir++){
+    moving_window_V[dir] *= PhysConst::c;
+  }
+  // Set the position of the moving window to the current position of the Box
+  for (int dir=0; dir<BL_SPACEDIM; dir++){
+    moving_window_X[dir] = geom[0].ProbLo(dir);
+  }
+
     }
 
     {
@@ -151,15 +158,6 @@ WarpX::ReadParameters ()
 	pp.query("particle_pusher", particle_pusher_algo);
     }
 
-    {
-  ParmParse pp("moving_window");
-	pp.query("vx", moving_window_vx);
-  pp.query("vy", moving_window_vy);
-  pp.query("vz", moving_window_vz);
-  moving_window_vx *= PhysConst::c;
-  moving_window_vy *= PhysConst::c;
-  moving_window_vz *= PhysConst::c;
-    }
 }
 
 void
