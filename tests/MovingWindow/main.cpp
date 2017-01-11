@@ -61,7 +61,7 @@ void testMovingWindow() {
 
   const Real* dx = geom.CellSize();
   Real time = 0.0;
-  int Nghost = 0;
+  int Nghost = 1;
 
   MultiFab E(ba, 1, Nghost);
   E.setVal(0.0);
@@ -75,16 +75,31 @@ void testMovingWindow() {
 	   geom.CellSize(), geom.ProbLo(), geom.ProbHi());
   }
 
-  std::string plotname{"plt00000"};
-  Array<std::string> varnames{"E"};
-  BoxLib::WriteSingleLevelPlotfile(plotname, E, varnames, geom, 0.0, 0);
-
   // take some "time steps"
   for (int step = 0; step < n_steps; step++) {
-    
+
+    MultiFab outputE(ba, 1, 0);
+    MultiFab::Copy(outputE, E, 0, 0, 1, 0);
+    const std::string& plotname = BoxLib::Concatenate("plt", step, 5);
+    Array<std::string> varnames{"E"};
+    BoxLib::WriteSingleLevelPlotfile(plotname, outputE, varnames, geom, 0.0, 0);
+
     for (int dir=0; dir<BL_SPACEDIM; dir++) {
       moving_window_x[dir] += moving_window_v[dir] * dt;
     }
+
+    // shift E one cell here.
+    for ( MFIter mfi(E); mfi.isValid(); ++mfi )
+      {
+	const Box& bx = mfi.validbox();
+	
+	shift_E(E[mfi].dataPtr(),
+		bx.loVect(), bx.hiVect(), &Nghost,
+		geom.CellSize(), geom.ProbLo(), geom.ProbHi());
+      }
+
+    E.FillBoundary(geom.periodicity());
+
   }   
 }
 
