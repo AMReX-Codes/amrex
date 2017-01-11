@@ -43,10 +43,6 @@ public:
     static long noy;
     static long noz;
 
-    // Moving window
-    Array<Real> moving_window_V;
-    Array<Real> moving_window_X;
-
 protected:
     virtual void ErrorEst (int lev, TagBoxArray& tags, Real time, int /*ngrow*/) override {}
 
@@ -91,6 +87,10 @@ private:
     Array<Array< std::unique_ptr<MultiFab> > > current;
     Array<Array< std::unique_ptr<MultiFab> > > Efield;
     Array<Array< std::unique_ptr<MultiFab> > > Bfield;
+
+    // Moving window parameters
+    Array<Real> moving_window_x;
+    Array<Real> moving_window_v;
 
     // runtime parameters
 

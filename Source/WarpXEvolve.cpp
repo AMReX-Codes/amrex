@@ -42,16 +42,14 @@ WarpX::Evolve (int numsteps)
 		WarpX::FillBoundary(*Efield[lev][2], geom[lev], Ez_nodal_flag);
 	    }
 
-      // Shift the moving window
-      MoveWindow();
-      mypc->Redistribute(false,true);  // Redistribute particles
-
 	    // Evolve particles to p^{n+1/2} and x^{n+1}
 	    // Depose current, j^{n+1/2}
 	    mypc->Evolve(lev,
 			 *Efield[lev][0],*Efield[lev][1],*Efield[lev][2],
 			 *Bfield[lev][0],*Bfield[lev][1],*Bfield[lev][2],
 			 *current[lev][0],*current[lev][1],*current[lev][2],dt[lev]);
+
+	    mypc->Redistribute(false,true);  // Redistribute particles
 
 	    EvolveB(lev, 0.5*dt[lev]); // We now B^{n+1/2}
 
@@ -62,12 +60,12 @@ WarpX::Evolve (int numsteps)
 
 	    EvolveE(lev, dt[lev]); // We now have E^{n+1}
 
-
-
 	    ++istep[lev];
 	}
 
 	cur_time += dt[0];
+
+	MoveWindow();
 
 	if (ParallelDescriptor::IOProcessor()) {
 	    std::cout << "STEP " << step+1 << " ends." << " TIME = " << cur_time << " DT = " << dt[0]
@@ -267,27 +265,33 @@ void
 WarpX::MoveWindow ()
 {
 
-  for (int dir=0; dir<BL_SPACEDIM; dir++){
+  int n_cell[BL_SPACEDIM];
+  Real new_lo[BL_SPACEDIM];
+  Real new_hi[BL_SPACEDIM];
+  
+  const Real* current_lo = geom[0].ProbLo();
+  const Real* current_hi = geom[0].ProbHi();
+  const Real* dx = geom[0].CellSize();
+  
+  for (int dir=0; dir<BL_SPACEDIM; dir++) {
+    
     // Update continuous position of moving window
-
+    moving_window_x[dir] += moving_window_v[dir] * dt[0];
+    
     // Calculate by how many cells we should move in each direction
-    n_cell =
-
-    // Update the metadata of each grid (e.g. low, high)
-    // Modify geom
-    geom.prob_domain.getLo getHi
-
-    // Shift the values of the fields within one array by one cell + set new cells to 0
-    // Do the corresponding MPI communications
-    shift_values( ncell )
-    fill
-
-
+    n_cell[dir] = (moving_window_x[dir] - current_lo[dir]) / dx[dir];
+    new_lo[dir] = current_lo[dir] + n_cell[dir] * dx[dir];
+    new_hi[dir] = current_hi[dir] + n_cell[dir] * dx[dir];
   }
 
+  // Shift the values of the fields and set new cells to 0
+  // Do the corresponding MPI communications
+  //    shift_values( ncell )
+  //    fill
 
+  RealBox new_box(new_lo, new_hi);
+  // set geom to use new box.
 
   // remove particles that are outside of the box
-
-
+  // (I think taken care of by redistribute particles)
 }
