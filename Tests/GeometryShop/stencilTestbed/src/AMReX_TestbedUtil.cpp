@@ -13,6 +13,7 @@
 #include "AMReX_BoxIterator.H"
 #include "AMReX_Stencils.H"
 #include "AMReX_EBCellFAB.H"
+#include "AMReX_AggStencil.H"
 namespace amrex
 {
   void 
@@ -41,6 +42,42 @@ namespace amrex
   }
 
 
+  ///apply a stencil using aggstencil everywhere
+  void 
+  TestbedUtil::
+  applyStencilAllAggSten(EBCellFAB                       & a_dst,
+                         const EBCellFAB                 & a_src,
+                         const BaseFab<VoFStencil>       & a_stencil,
+                         const BaseFab<int>              & a_regIrregCovered,
+                         const std::vector<IrregNode>    & a_nodes,
+                         const Box                       & a_domain,
+                         const Real                      & a_dx)
+  { 
+    std::vector<std::shared_ptr<BaseIndex  > > dstVoFs;
+    std::vector<std::shared_ptr<BaseStencil> > vofStencils;
+    {
+      BL_PROFILE("boxiterator loop");
+      for(BoxIterator boxit(a_domain); boxit.ok(); ++boxit)
+        {
+          const IntVect& iv = boxit();
+          //exclude covered cells
+          if(a_regIrregCovered(iv, 0) < 0)
+            {
+              std::shared_ptr<BaseIndex>    vofptr(new VolIndex(iv, 0));
+              std::shared_ptr<BaseStencil> stenptr(new VoFStencil(a_stencil(iv, 0)));
+              dstVoFs.push_back(vofptr);
+              vofStencils.push_back(stenptr);
+            }
+        }
+    }
+
+    //define and apply have internal timers 
+    AggStencil<EBCellFAB, EBCellFAB> sten(dstVoFs, vofStencils, a_src, a_dst);
+
+    int isrc = 0; int idst = 0; int inco = a_dst.nComp(); bool incrOnly = false;
+    sten.apply(a_dst, a_src, isrc, idst, inco, incrOnly);
+
+  }
   ///apply a stencil using fortran on regular cells, pointwise irregular
   void 
   TestbedUtil::
@@ -56,19 +93,6 @@ namespace amrex
   }
 
 
-  ///apply a stencil using aggstencil everywhere
-  void 
-  TestbedUtil::
-  applyStencilAllAggSten(EBCellFAB                       & a_dst,
-                         const EBCellFAB                 & a_src,
-                         const BaseFab<VoFStencil>       & a_stencil,
-                         const BaseFab<int>              & a_regIrregCovered,
-                         const std::vector<IrregNode>    & a_nodes,
-                         const Box                       & a_domain,
-                         const Real                      & a_dx)
-  { 
-    Warning("applyStencilAllAggSten not implemented ");
-  }
 
 
   ///apply a stencil using aggstencil on irregular cells, fortran otherwise

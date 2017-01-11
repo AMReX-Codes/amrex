@@ -50,7 +50,33 @@ namespace amrex
     }
     
 
-    //for aggstencil
+    //for aggstencil --this version of EBCellFAB is just a wrapper around FAB so
+    // only one datatype
+    int numDataTypes() const
+    {
+      return 1;
+    }
+
+    /// for AggStencil
+    int   dataType(const BaseIndex& a_baseInd) const
+    {
+      return 0;
+    }
+
+
+    ///for AggStencil
+    Real* dataPtr(int a_dataType, int a_ivar)
+    {
+      return FArrayBox::dataPtr(a_ivar);
+    }
+
+    ///for AggStencil
+    const Real* dataPtr(int a_dataType, int a_ivar) const
+    {
+      return FArrayBox::dataPtr(a_ivar);
+    }
+
+
     virtual long offset(const BaseIndex& a_baseInd, const int a_ivar) const;
 
     ///
@@ -63,6 +89,10 @@ namespace amrex
 
 
     Real& operator()(const VolIndex& a_ndin, int a_nvarLoc) ;
+
+
+    
+
 
   private:
     //disallowed for all the usual reasons
