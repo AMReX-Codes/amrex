@@ -43,6 +43,9 @@ public:
 
     std::unique_ptr<MultiFab> GetChargeDensity(int lev, bool local = false);
 
+    void AddNParticles (int n, const Real* x, const Real* y, const Real* z,
+			const Real* vx, const Real* vy, const Real* vz);
+
 private:
 
     // The outermost Array is for AMR level.

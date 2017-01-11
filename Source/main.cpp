@@ -13,6 +13,8 @@ int main(int argc, char* argv[])
 
     BL_PROFILE_VAR("main()", pmain);
 
+    static_assert(BL_SPACEDIM == 3, "3D only");
+
     const Real strt_total = ParallelDescriptor::second();
 
     {
