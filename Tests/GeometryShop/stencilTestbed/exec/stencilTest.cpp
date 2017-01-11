@@ -20,6 +20,8 @@
 #include "AMReX_VolIndex.H"
 #include "AMReX_FaceIndex.H"
 #include "AMReX_TestbedUtil.H"
+#include <AMReX_ParallelDescriptor.H>
+#include <AMReX_Utility.H>
 
 using namespace amrex;
 using std::cout;
@@ -255,28 +257,25 @@ int testStuff()
 int
 main(int argc,char **argv)
 {
-#ifdef CH_MPI
-  MPI_Init(&argc, &argv);
-#endif
+  amrex::Initialize(argc,argv);
+  {
+    BL_PROFILE_VAR("main()", pmain);
+                                      
+    int eekflag = testStuff();
 
-  const char* in_file = "sphere.inputs";
-  //parse input file
-  ParmParse pp;
-  pp.Initialize(0, NULL, in_file);
+    if (eekflag != 0)
+      {
+        cout << "non zero eek detected = " << eekflag << endl;
+        cout << "sphere test failed" << endl;
+      }
+    else
+      {
+        cout << "stencil test passed" << endl;
+      }
 
-  // check volume and surface area of approximate sphere
-  int eekflag = testStuff();
-
-  if (eekflag != 0)
-    {
-      cout << "non zero eek detected = " << eekflag << endl;
-      cout << "sphere test failed" << endl;
-    }
-  else
-    {
-      cout << "sphere test passed" << endl;
-    }
-
+    BL_PROFILE_VAR_STOP(pmain);
+  }
+  amrex::Finalize();
   return 0;
 }
 
