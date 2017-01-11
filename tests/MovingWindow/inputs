@@ -1,5 +1,6 @@
+n_steps = 10
 n_cell = 64
-max_grid_size = 64
+max_grid_size = 32
 
 prob_lo     = -20.e-6   -20.e-6   -20.e-6    # physical domain
 prob_hi     =  20.e-6    20.e-6    20.e-6
