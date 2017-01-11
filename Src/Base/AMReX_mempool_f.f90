@@ -1,9 +1,13 @@
 module mempool_module
 
   use iso_c_binding
-  use bl_fort_module, only : c_real
+
+! If used by Fortran BoxLib, don't have bl_fort_module.
+!  use bl_fort_module, only : c_real
 
   implicit none
+
+  integer, parameter, private :: c_real = 8
 
   ! We could/should use Fortran 2008 c_sizeof here.
   integer (kind=c_size_t), parameter, private :: szd = c_real
