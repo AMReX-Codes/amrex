@@ -84,23 +84,37 @@ void testMovingWindow() {
     Array<std::string> varnames{"E"};
     BoxLib::WriteSingleLevelPlotfile(plotname, outputE, varnames, geom, 0.0, 0);
 
+    int num_shift[BL_SPACEDIM];
+    Real new_lo[BL_SPACEDIM];
+    Real new_hi[BL_SPACEDIM];
+    
+    const Real* current_lo = geom.ProbLo();
+    const Real* current_hi = geom.ProbHi();
+    const Real* dx = geom.CellSize();
+
     for (int dir=0; dir<BL_SPACEDIM; dir++) {
       moving_window_x[dir] += moving_window_v[dir] * dt;
+      num_shift[dir] = (moving_window_x[dir] - current_lo[dir]) / dx[dir];
+      new_lo[dir] = current_lo[dir] + num_shift[dir] * dx[dir];
+      new_hi[dir] = current_hi[dir] + num_shift[dir] * dx[dir];
+    }
+
+    if (num_shift[0] == 0) continue;
+    if (num_shift[0] > Nghost) {
+      // need to handle this case
     }
 
     // shift E one cell here.
-    for ( MFIter mfi(E); mfi.isValid(); ++mfi )
-      {
-	const Box& bx = mfi.validbox();
-	
-	shift_E(E[mfi].dataPtr(),
-		bx.loVect(), bx.hiVect(), &Nghost,
-		geom.CellSize(), geom.ProbLo(), geom.ProbHi());
-      }
+    for ( MFIter mfi(E); mfi.isValid(); ++mfi ) {
+      const Box& bx = mfi.validbox();
+      shift_E(E[mfi].dataPtr(),
+	      bx.loVect(), bx.hiVect(), &Nghost, &num_shift[0]);
+    }
 
     E.FillBoundary(geom.periodicity());
-
-  }   
+    RealBox new_box(new_lo, new_hi);
+    geom.ProbDomain(new_box);
+  }
 }
 
 int main(int argc, char* argv[])
