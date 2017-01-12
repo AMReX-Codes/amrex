@@ -6,7 +6,7 @@ amr.n_cell =   64  64  64
 
 # Maximum allowable size of each subdomain in the problem domain;
 #    this is used to decompose the domain for parallel calculations.
-amr.max_grid_size = 64
+amr.max_grid_size = 32
 
 # Maximum level in hierarchy (for now must be 0, i.e., one level in total)
 amr.max_level = 0
@@ -15,13 +15,15 @@ amr.plot_int = 1   # How often to write plotfiles.  "<= 0" means no plotfiles.
 
 # Geometry
 geometry.coord_sys   = 0                  # 0: Cartesian
-geometry.is_periodic = 1     1     1      # Is periodic?
+geometry.is_periodic = 0     1     1      # Is periodic?
 geometry.prob_lo     = -20.e-6   -20.e-6   -20.e-6    # physical domain
 geometry.prob_hi     =  20.e-6    20.e-6    20.e-6
 
 # Verbosity
 warpx.verbose = 1
-warpx.moving_window_v = 1.0 0. 0. # in units of the speed of light
+warpx.do_moving_window = 1
+warpx.moving_window_dir = 0
+warpx.moving_window_v = 1.0 # in units of the speed of light
 
 # Algorithms
 algo.current_deposition = 3
