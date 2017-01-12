@@ -41,7 +41,8 @@ extern "C"
 
     void addNParticles(int lenx, double* x, double* y, double* z, double* vx, double* vy, double* vz, int nattr, double* attr, int uniqueparticles)
     {
-        std::cout << "Adding " << lenx << " particles\n";
+	auto & mypc = WarpX::GetInstance().GetPartContainer();
+	mypc.AddNParticles(lenx, x, y, z, vx, vy, vz, nattr, attr, uniqueparticles);
     }
 }
 

@@ -354,3 +354,75 @@ MyParticleContainer::GetChargeDensity (int lev, bool local)
     return rho;
 }
 
+void
+MyParticleContainer::AddNParticles (int n, const Real* x, const Real* y, const Real* z,
+				    const Real* vx, const Real* vy, const Real* vz,
+				    int nattr, const Real* attr, int uniqueparticles)
+{
+    const int lev = 0;
+
+    BL_ASSERT(nattr == 1);
+    const Real* weight = attr;
+
+    auto npart_before = TotalNumberOfParticles();  // xxxxx move this into if (verbose > xxx)
+
+    int gid = 0;
+
+    int ibegin, iend;
+    if (uniqueparticles) {
+	ibegin = 0;
+	iend = n;
+    } else {
+	int myproc = ParallelDescriptor::MyProc();
+	int nprocs = ParallelDescriptor::NProcs();
+	int navg = n/nprocs;
+	int nleft = n - navg * nprocs;
+	if (myproc < nleft) {
+	    ibegin = myproc*(navg+1);
+	    iend = ibegin + navg+1;
+	} else {
+	    ibegin = myproc*navg + nleft;
+	    iend = ibegin + navg;
+	}
+    }
+
+    for (int i = ibegin; i < iend; ++i)
+    {
+	ParticleType p;
+	p.m_id  = ParticleBase::NextID();
+	p.m_cpu = ParallelDescriptor::MyProc();
+	p.m_lev = lev;
+	p.m_grid = gid; 
+	
+	p.m_pos[0] = x[i];
+	p.m_pos[1] = y[i];
+	p.m_pos[2] = z[i];
+	
+	p.m_data[PIdx::w] = weight[i];
+	
+	for (int i = 1; i < PIdx::nattribs; i++) {
+	    p.m_data[i] = 0;
+	}
+	
+	p.m_data[PIdx::ux] = vx[i];
+	p.m_data[PIdx::uy] = vy[i];
+	p.m_data[PIdx::uz] = vz[i];
+	
+	if (!ParticleBase::Where(p,m_gdb)) // this will update m_lev, m_grid, and m_cell
+	{
+	    BoxLib::Abort("Invalid particle in ParticleContainer::AddNParticles()");
+	}
+
+	gid = p.m_grid;
+
+	m_particles[p.m_lev][p.m_grid].push_back(p);
+    }
+
+    Redistribute(true);
+
+    auto npart_after = TotalNumberOfParticles();  // xxxxx move this into if (verbose > xxx)
+    if (ParallelDescriptor::IOProcessor()) {
+	std::cout << "Total number of particles injected: " << npart_after - npart_before << std::endl;
+    }
+}
+

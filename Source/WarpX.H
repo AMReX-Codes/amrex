@@ -30,6 +30,8 @@ public:
 
     void Evolve (int numsteps = -1);
 
+    MyParticleContainer& GetPartContainer () { return *mypc; }
+
     static void FillBoundary (MultiFab& mf, const Geometry& geom, const IntVect& nodalflag);
 
     // Algorithms
