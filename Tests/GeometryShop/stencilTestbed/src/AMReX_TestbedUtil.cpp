@@ -14,6 +14,7 @@
 #include "AMReX_Stencils.H"
 #include "AMReX_EBCellFAB.H"
 #include "AMReX_AggStencil.H"
+#include "lapl_nd_F.H"
 namespace amrex
 {
   void 
@@ -89,7 +90,29 @@ namespace amrex
                                    const Box                       & a_domain,
                                    const Real                      & a_dx)
   { 
-    Warning("applyStencilFortranPlusPointwise not implemented ");
+    {
+      BL_PROFILE("fortran bit");
+      fort_lapl_simple(BL_TO_FORTRAN_N_3D(a_dst, 0), 
+                       BL_TO_FORTRAN_N_3D(a_src, 0), 
+                       ARLIM_3D(a_domain.loVect()),
+                       ARLIM_3D(a_domain.hiVect()), &a_dx);
+    }
+    {
+      BL_PROFILE("pointwise bit");
+      for(BoxIterator boxit(a_domain); boxit.ok(); ++boxit)
+        {
+          const IntVect& iv = boxit();
+          //only applying at irregular cells
+          if(a_regIrregCovered(iv, 0) == 0)
+            {
+              const VoFStencil& sten = a_stencil(iv, 0);
+              Real dstVal = applyVoFStencil(sten, a_src);
+              VolIndex dstVoF(iv,0);
+              int ivar = 0;
+              a_dst(dstVoF, ivar) = dstVal;
+            }
+        }
+    }
   }
 
 
@@ -105,8 +128,41 @@ namespace amrex
                                  const std::vector<IrregNode>    & a_nodes,
                                  const Box                       & a_domain,
                                  const Real                      & a_dx)
+
   { 
-    Warning("applyStencilFortranPlusAggSten not implemented ");
+    {
+      BL_PROFILE("fortran bit");
+      fort_lapl_simple(BL_TO_FORTRAN_N_3D(a_dst, 0), 
+                       BL_TO_FORTRAN_N_3D(a_src, 0), 
+                       ARLIM_3D(a_domain.loVect()),
+                       ARLIM_3D(a_domain.hiVect()), &a_dx);
+    }
+    {
+      BL_PROFILE("aggsten bit");
+      std::vector<std::shared_ptr<BaseIndex  > > dstVoFs;
+      std::vector<std::shared_ptr<BaseStencil> > vofStencils;
+      {
+        BL_PROFILE("boxiterator loop");
+        for(BoxIterator boxit(a_domain); boxit.ok(); ++boxit)
+          {
+            const IntVect& iv = boxit();
+            //only using aggsten for irregular cells
+            if(a_regIrregCovered(iv, 0) == 0)
+              {
+                std::shared_ptr<BaseIndex>    vofptr(new VolIndex(iv, 0));
+                std::shared_ptr<BaseStencil> stenptr(new VoFStencil(a_stencil(iv, 0)));
+                dstVoFs.push_back(vofptr);
+                vofStencils.push_back(stenptr);
+              }
+          }
+      }
+
+      //define and apply have internal timers 
+      AggStencil<EBCellFAB, EBCellFAB> sten(dstVoFs, vofStencils, a_src, a_dst);
+
+      int isrc = 0; int idst = 0; int inco = a_dst.nComp(); bool incrOnly = false;
+      sten.apply(a_dst, a_src, isrc, idst, inco, incrOnly);
+    }
   }
 
   //get the face stencil that goes from face centered fluxes  to centroid fluxes

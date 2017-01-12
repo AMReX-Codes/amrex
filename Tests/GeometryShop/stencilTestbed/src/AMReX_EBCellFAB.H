@@ -77,6 +77,17 @@ namespace amrex
     }
 
 
+    const Real* dataPtr(int a_ivar) const
+    {
+      return FArrayBox::dataPtr(a_ivar);
+    }
+
+
+    Real* dataPtr(int a_ivar)
+    {
+      return FArrayBox::dataPtr(a_ivar);
+    }
+
     virtual long offset(const BaseIndex& a_baseInd, const int a_ivar) const;
 
     ///

@@ -225,8 +225,8 @@ int testStuff()
   defineGeometry(regIrregCovered, nodes, radius, center, domain, dx); 
 
   
-  EBCellFAB src(domain, 1);
-  src.setVal(0.0);
+  EBCellFAB src(grow(domain, 1), 1); //for a ghost cell
+  src.setVal(0.0); //ignoring bcs here
   EBCellFAB dst(domain, 1);
   BaseFab<VoFStencil> stencils;
   {
