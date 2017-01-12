@@ -53,8 +53,8 @@ void testMovingWindow() {
     int coord = 0;  // cartesian
 
     is_periodic[0] = 0;
-    is_periodic[1] = 1;
-    is_periodic[2] = 1;
+    is_periodic[1] = 0;
+    is_periodic[2] = 0;
 
     geom.define(domain, &real_box,coord, is_periodic);
   }
@@ -99,21 +99,77 @@ void testMovingWindow() {
       new_hi[dir] = current_hi[dir] + num_shift[dir] * dx[dir];
     }
 
-    if (num_shift[0] == 0) continue;
-    if (num_shift[0] > Nghost) {
-      // need to handle this case
+    int max_shift = num_shift[0];
+    for (int dir=1; dir<BL_SPACEDIM; dir++) {
+      max_shift = std::max(max_shift, num_shift[dir]);
     }
 
-    // shift E one cell here.
-    for ( MFIter mfi(E); mfi.isValid(); ++mfi ) {
-      const Box& bx = mfi.validbox();
-      shift_E(E[mfi].dataPtr(),
-	      bx.loVect(), bx.hiVect(), &Nghost, &num_shift[0]);
+    if (max_shift == 0) continue;
+    if (max_shift <= Nghost) {
+
+      if (num_shift[0] > 0) {
+	for ( MFIter mfi(E); mfi.isValid(); ++mfi ) {
+	  const Box& bx = mfi.validbox();
+	  shift_x(E[mfi].dataPtr(),
+		  bx.loVect(), bx.hiVect(), &Nghost, &num_shift[0]);
+	}
+      }
+
+      if (num_shift[1] > 0) {
+	for ( MFIter mfi(E); mfi.isValid(); ++mfi ) {
+	  const Box& bx = mfi.validbox();
+	  shift_y(E[mfi].dataPtr(),
+		  bx.loVect(), bx.hiVect(), &Nghost, &num_shift[1]);
+	}
+      }
+
+      if (num_shift[2] > 0) {
+	for ( MFIter mfi(E); mfi.isValid(); ++mfi ) {
+	  const Box& bx = mfi.validbox();
+	  shift_z(E[mfi].dataPtr(),
+		  bx.loVect(), bx.hiVect(), &Nghost, &num_shift[2]);
+	}
+      }
+      E.FillBoundary(geom.periodicity());
     }
 
-    E.FillBoundary(geom.periodicity());
+    if (max_shift > Nghost) {
+
+      MultiFab tmpE(ba, 1, max_shift);
+      MultiFab::Copy(tmpE, E, 0, 0, 1, 0);
+      tmpE.FillBoundary(geom.periodicity());
+      
+      if (num_shift[0] > 0) {
+	for ( MFIter mfi(tmpE); mfi.isValid(); ++mfi ) {
+	  const Box& bx = mfi.validbox();
+	  shift_x(tmpE[mfi].dataPtr(),
+		  bx.loVect(), bx.hiVect(), &max_shift, &num_shift[0]);
+	}
+      }
+
+      if (num_shift[1] > 0) {
+	for ( MFIter mfi(tmpE); mfi.isValid(); ++mfi ) {
+	  const Box& bx = mfi.validbox();
+	  shift_y(tmpE[mfi].dataPtr(),
+		  bx.loVect(), bx.hiVect(), &max_shift, &num_shift[1]);
+	}
+      }
+
+      if (num_shift[2] > 0) {
+	for ( MFIter mfi(tmpE); mfi.isValid(); ++mfi ) {
+	  const Box& bx = mfi.validbox();
+	  shift_z(tmpE[mfi].dataPtr(),
+		  bx.loVect(), bx.hiVect(), &max_shift, &num_shift[2]);
+	}
+      }
+      //      tmpE.FillBoundary(geom.periodicity());
+      MultiFab::Copy(E, tmpE, 0, 0, 1, Nghost);
+      E.FillBoundary(geom.periodicity());
+    }
+
     RealBox new_box(new_lo, new_hi);
     geom.ProbDomain(new_box);
+
   }
 }
 
