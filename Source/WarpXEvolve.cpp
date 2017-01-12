@@ -264,34 +264,58 @@ WarpX::ComputeDt ()
 void
 WarpX::MoveWindow ()
 {
-
-  int n_cell[BL_SPACEDIM];
-  Real new_lo[BL_SPACEDIM];
-  Real new_hi[BL_SPACEDIM];
   
+  if (do_moving_window == 0) return;
+
+  // compute the number of cells to shift
+  int dir = moving_window_dir;
+  Real new_lo[BL_SPACEDIM];
+  Real new_hi[BL_SPACEDIM];    
   const Real* current_lo = geom[0].ProbLo();
   const Real* current_hi = geom[0].ProbHi();
   const Real* dx = geom[0].CellSize();
+  moving_window_x += moving_window_v * dt[0];
+  int num_shift = (moving_window_x - current_lo[dir]) / dx[dir];
   
-  for (int dir=0; dir<BL_SPACEDIM; dir++) {
-    
-    // Update continuous position of moving window
-    moving_window_x[dir] += moving_window_v[dir] * dt[0];
-    
-    // Calculate by how many cells we should move in each direction
-    n_cell[dir] = (moving_window_x[dir] - current_lo[dir]) / dx[dir];
-    new_lo[dir] = current_lo[dir] + n_cell[dir] * dx[dir];
-    new_hi[dir] = current_hi[dir] + n_cell[dir] * dx[dir];
+  if (num_shift == 0) return;
+  
+  // update the problem domain
+  for (int i=0; i<BL_SPACEDIM; i++) {
+    new_lo[i] = current_lo[i];
+    new_hi[i] = current_hi[i];
   }
-
-  // Shift the values of the fields and set new cells to 0
-  // Do the corresponding MPI communications
-  //    shift_values( ncell )
-  //    fill
-
+  new_lo[dir] = current_lo[dir] + num_shift * dx[dir];
+  new_hi[dir] = current_hi[dir] + num_shift * dx[dir];
   RealBox new_box(new_lo, new_hi);
-  // set geom to use new box.
+  geom[0].ProbDomain(new_box);
+  
+  shiftMF(*Bfield[0][0], num_shift, Bx_nodal_flag);
+  shiftMF(*Bfield[0][1], num_shift, By_nodal_flag);
+  shiftMF(*Bfield[0][2], num_shift, Bz_nodal_flag);
+  shiftMF(*Efield[0][0], num_shift, Ex_nodal_flag);
+  shiftMF(*Efield[0][1], num_shift, Ey_nodal_flag);
+  shiftMF(*Efield[0][2], num_shift, Ez_nodal_flag);
 
   // remove particles that are outside of the box
-  // (I think taken care of by redistribute particles)
+  mypc->Redistribute(false,true);  // Redistribute particles
+}
+
+void
+WarpX::shiftMF(MultiFab& mf, int num_shift, const IntVect& nodalflag) {
+  
+  // create tmp copy with num_shift ghost cells
+  BoxArray ba = mf.boxArray();
+  MultiFab tmpmf(ba, mf.nComp(), num_shift, Fab_allocate, nodalflag);
+  tmpmf.setVal(0.0);
+  MultiFab::Copy(tmpmf, mf, 0, 0, 1, 0);
+  tmpmf.FillBoundary(geom[0].periodicity());
+  
+  for (MFIter mfi(mf); mfi.isValid(); ++mfi ) {
+    const Box& dstBox = mfi.validbox();
+    Box srcBox(dstBox.smallEnd(), dstBox.bigEnd());
+    srcBox.shift(moving_window_dir, num_shift);
+    mf[mfi].copy(tmpmf[mfi], srcBox, 0, dstBox, 0, 1);
+  }
+
+  mf.FillBoundary(geom[0].periodicity());
 }

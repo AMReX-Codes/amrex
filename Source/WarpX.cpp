@@ -124,19 +124,14 @@ WarpX::ReadParameters ()
 	pp.query("cfl", cfl);
 	pp.query("verbose", verbose);
 
-	// Set the position of the moving window to the initial ProbLo
-	moving_window_x.resize(BL_SPACEDIM, 0.0);
-	for (int dir=0; dir<BL_SPACEDIM; dir++) {
-	  moving_window_x[dir] = geom[0].ProbLo(dir);
-	}
+	pp.query("do_moving_window", do_moving_window);
+	pp.query("moving_window_dir", moving_window_dir);
+	pp.query("moving_window_v", moving_window_v);
 
-	// Set the velocity of the moving window to 0 by default
-	moving_window_v.resize(BL_SPACEDIM, 0.0);
-	pp.queryarr("moving_window_v", moving_window_v, 0, BL_SPACEDIM);
-	for (int dir=0; dir<BL_SPACEDIM; dir++) {
-	  moving_window_v[dir] *= PhysConst::c;
-	}
-
+	moving_window_x = geom[0].ProbLo(moving_window_dir);
+	moving_window_v = 0.0;
+	pp.query("moving_window_v", moving_window_v);
+	moving_window_v *= PhysConst::c;
     }
 
     {
