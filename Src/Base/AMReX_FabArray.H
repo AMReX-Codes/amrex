@@ -1034,7 +1034,8 @@ public:
 
     /** \brief Fill cells outside periodic domains with their corresponding cells inside
     * the domain.  Ghost cells are treated the same as valid cells.  The BoxArray
-    */ is allowed to be overlapping.
+    * is allowed to be overlapping.
+    */
     void EnforcePeriodicity (const Periodicity& period);
     void EnforcePeriodicity (int scomp, int ncomp, const Periodicity& period);
 
@@ -1048,10 +1049,7 @@ public:
 		    value_type covered, value_type notcovered, 
 		    value_type physbnd, value_type interior);
 
-    //
-    // Move FABs in this FabArray to different MPI ranks.
-    //
-
+    //! Move FABs in this FabArray to different MPI ranks.
     struct FABMoves {
       int distMapIndex, fromRank, toRank, seqNum;
     };
@@ -1245,10 +1243,10 @@ FabCopyDescriptor<FAB>::~FabCopyDescriptor ()
         delete localFabSource;
 }
 
-//
-// This class orchestrates filling a destination fab of size destFabBox
-// from fabarray on the local processor (myProc).
-//
+/**
+* \brief This class orchestrates filling a destination fab of size destFabBox
+* from fabarray on the local processor (myProc).
+*/
 
 template <class FAB>
 class FabArrayCopyDescriptor
