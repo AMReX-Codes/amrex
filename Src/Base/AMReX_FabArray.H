@@ -97,48 +97,46 @@ public:
     FabArrayBase& operator= (const FabArrayBase& rhs) = delete;
     FabArrayBase& operator= (FabArrayBase&& rhs) = delete;    
 
-    //
-    // Returns the grow factor that defines the region of definition.
-    //
+    //! Return the grow factor that defines the region of definition.
     int nGrow () const { return n_grow; }
-    //
-    // Returns number of variables associated with each point (nvar).
-    //
+
+    //! Return number of variables (aka components) associated with each point.
     int nComp () const { return n_comp; }
-    //
+
+    //! Return the communicator associated with this FabArray
     ParallelDescriptor::Color color () const { return distributionMap.color(); }
-    //
+
+    //Return whether this FabArray is empty
     bool empty () const { return boxarray.empty(); }
-    //
-    // Returns a constant reference to the BoxArray that defines the
-    // valid region associated with this FabArray.
-    //
+
+    /**
+    * \brief Return a constant reference to the BoxArray that defines the
+    * valid region associated with this FabArray.
+    */
     const BoxArray& boxArray () const { return boxarray; }
-    //
-    // Returns the Kth Box in the BoxArray.
-    // That is, the valid region of the Kth grid.
-    //
+
+    /**
+    * \brief Return the Kth Box in the BoxArray.
+    * That is, the valid region of the Kth grid.
+    */
     Box box (int K) const { return boxarray[K]; }
-    //
-    // Returns the Kth FABs Box in the FabArray.
-    // That is, the region the Kth fab is actually defined on.
-    //
+
+    /**
+    * \brief Return the Kth FABs Box in the FabArray.
+    * That is, the region the Kth fab is actually defined on.
+    */
     Box fabbox (int K) const;
-    //
-    // Returns the number of FABs in the FabArray..
-    //
+
+    //! Return the number of FABs in the FabArray.
     int size () const { return boxarray.size(); }
-    //
-    // Returns the number of local FABs in the FabArray..
-    //
+
+    //! Return the number of local FABs in the FabArray.
     int local_size () const { return indexArray.size(); }
-    //
-    // Returns constant reference to indices in the FabArray that we have access
-    //
+
+    //! Return constant reference to indices in the FabArray that we have access.
     const Array<int> &IndexArray () const { return indexArray; }
-    //
-    // Returns local index in the vector of FABs.
-    //
+
+    //! Return local index in the vector of FABs.
     int localindex (int K) const { 
 	std::vector<int>::const_iterator low
 	    = std::lower_bound(indexArray.begin(), indexArray.end(), K);
@@ -149,13 +147,13 @@ public:
 	    return -1;
 	}
     }
-    //
-    // Returns constant reference to associated DistributionMapping.
-    //
+
+    //! Return constant reference to associated DistributionMapping.
     const DistributionMapping& DistributionMap () const { return distributionMap; }
-    //
+
     // Some static member templates used throughout the code.
-    //
+
+    //! Block until all send requests complete
     template<typename T>
     static void WaitForAsyncSends (int                 N_snds,
                                    Array<MPI_Request>& send_reqs,
@@ -163,6 +161,7 @@ public:
                                    Array<MPI_Status>&  stats);
 
 #ifdef BL_USE_UPCXX
+    //! Block until all send requests complete
     template<typename T>
     static void WaitForAsyncSends_PGAS (int                 N_snds,
                                         Array<T*>&          send_data,
@@ -170,6 +169,7 @@ public:
                                         volatile int*       send_counter);
 #endif
 
+    //! Prepost nonblocking receives
     template<typename T>
     static void PostRcvs (const std::map<int,int>&               m_RcvVols,
                           T*&                                    the_recv_data,
@@ -422,11 +422,11 @@ protected:
 
     DistributionMapping& ModifyDistributionMap () { return distributionMap; }
 
-    //
-    // Returns owenership of fabs. The concept of ownership only applies when UPC++
-    // team is used. In that case, each fab is shared by team workers, with one
-    // taking the ownership.
-    //
+    /**
+    * \brief Return owenership of fabs. The concept of ownership only applies when UPC++
+    * team is used. In that case, each fab is shared by team workers, with one
+    * taking the ownership.
+    */
     const std::vector<bool>& OwnerShip () const { return ownership; }
     bool isOwner (int li) const { return ownership[li]; }
 
@@ -611,27 +611,24 @@ protected:
 class MFIter
 {
 public:
-    /** \brief Flags that specify tiling modes. All these flags are off by default.
-    *
-    * Tiling: Enabling the tiling mode 
-    *
-    * AllBoxes: If on, all threads/workers loop over all boxes without tiling.
-    * This essentially loops over indexMap.
-    * Note that many functions won't work with this.
-    *
-    * NoTeamBarrier: This option is for Team only. If on, there is no barrier in MFIter dtor.
-    *
-    * SkipInit: Used by MFGhostIter
-    *
-    */
+    //! Flags that specify tiling modes. All these flags are off by default.
     enum Flags {
+        //!Tiling: Enabling the tiling mode 
         Tiling        = 0x01,
+        /** 
+        * \brief AllBoxes: If on, all threads/workers loop over all boxes without tiling.
+        * This essentially loops over indexMap.
+        * Note that many functions won't work with this.
+        */
         AllBoxes      = 0x02, 
+        //! NoTeamBarrier: This option is for Team only. If on, there is no barrier in MFIter dtor.
         NoTeamBarrier = 0x04, 
+        //! SkipInit: Used by MFGhostIter
 	SkipInit      = 0x08  
     };  
 
-    /** The default constructor does not enable tiling (flags_ is set to 0 by default). 
+    /** 
+    * \brief The default constructor does not enable tiling (flags_ is set to 0 by default). 
     * However, the tiling mode can be enabled by explicitly turning the tiling flag on (i.e. flags_ = Tiling). 
     * The tile size in this case is defined by FabArrayBase::mfiter_tile_size
     */
