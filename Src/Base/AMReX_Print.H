@@ -19,9 +19,9 @@ namespace amrex
 
 	static constexpr int AllProcs = -1;
 
-    /** 
+    /**
     * \brief Print on I/O Processor of the default communicator
-    * \example Print() << " x = " << x << std::endl;  
+    * Example: Print() << " x = " << x << std::endl;  
     */
 	Print (std::ostream& os_ = std::cout) 
 	    : rank(ParallelDescriptor::IOProcessorNumber())
@@ -31,7 +31,7 @@ namespace amrex
 
     /**
     * \brief Print on all processors of the default communicator
-    * \example Print(Print::AllProcs) << " x = " << x << std::endl;
+    * Example: Print(Print::AllProcs) << " x = " << x << std::endl;
     */
 	Print (int rank_, std::ostream& os_ = std::cout) 
 	    : rank(rank_)
@@ -41,7 +41,7 @@ namespace amrex
 
     /**   
     * \brief Print on process rank_ of communicator comm_
-    * \example Print(rank_, comm_) << " x = " << x << std::endl;
+    * Example: Print(rank_, comm_) << " x = " << x << std::endl;
     */
 	Print (int rank_, MPI_Comm comm_, std::ostream& os_ = std::cout)
 	    : rank(rank_)
@@ -73,7 +73,7 @@ namespace amrex
 	: public Print
     {
     public:
-        /* \example AllPrint() << " x = " << x << std::endl;*/
+        //! Example: AllPrint() << " x = " << x << std::endl;
 	AllPrint (std::ostream& os_ = std::cout)
 	    : Print(Print::AllProcs, os_) 
 	    {}
