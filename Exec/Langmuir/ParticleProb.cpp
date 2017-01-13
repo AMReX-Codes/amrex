@@ -16,10 +16,15 @@ SingleSpeciesContainer::InitData()
 {
     BL_PROFILE("SPC::InitData()");
 
-    BL_ASSERT(species_id == 0);
-
-    charge = -PhysConst::q_e;
-    mass = PhysConst::m_e;
+    if (species_id == 0) {
+	charge = -PhysConst::q_e;
+	mass = PhysConst::m_e;
+    } else if (species_id == 1) {
+	charge = PhysConst::q_e;
+	mass = PhysConst::m_p;	
+    } else {
+	BoxLib::Abort("SingleSpeciesContainer::InitData(): species_id must be 0 or 1");
+    }
 
     m_particles.resize(m_gdb->finestLevel()+1);
 
@@ -55,9 +60,11 @@ SingleSpeciesContainer::InitData()
       ux = 0.;
       uy = 0.;
       uz = 0.;
-      pp.query("ux", ux);
-      pp.query("uy", uy);
-      pp.query("uz", uz);
+      if (species_id == 0) { // electrons
+	  pp.query("ux", ux);
+	  pp.query("uy", uy);
+	  pp.query("uz", uz);
+      }
 
       ux *= PhysConst::c;
       uy *= PhysConst::c;      

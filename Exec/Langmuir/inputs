@@ -31,6 +31,8 @@ algo.particle_pusher = 0
 # CFL
 warpx.cfl = 1.0
 
+particles.nspecies = 1
+
 langmuirwave.particle_xmin = -20.e-6
 langmuirwave.particle_xmax = 0.e-6
 langmuirwave.particle_ymin = -20.e-6
