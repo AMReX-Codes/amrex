@@ -19,7 +19,7 @@ extern "C" {
 
   void warpx_evolve (int numsteps);  // -1 means the inputs parameter will be used.
 
-  void addNParticles(int lenx, double* x, double* y, double* z, double* vx, double* vy, double* vz, int nattr, double* attr, int uniqueparticles);
+  void addNParticles(int speciesnumber, int lenx, double* x, double* y, double* z, double* vx, double* vy, double* vz, int nattr, double* attr, int uniqueparticles);
 
 #ifdef __cplusplus
 }

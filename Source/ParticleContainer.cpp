@@ -5,15 +5,15 @@
 #include <WarpX_f.H>
 #include <WarpX.H>
 
-int     MyParticleContainer::do_tiling = 0;
-IntVect MyParticleContainer::tile_size   { D_DECL(1024000,8,8) };
+int      MultiSpeciesContainer::nspecies  = 1;
+bool    SingleSpeciesContainer::do_tiling = 0;
+IntVect SingleSpeciesContainer::tile_size   { D_DECL(1024000,8,8) };
 
-MyParticleContainer::MyParticleContainer (AmrCore* amr_core)
+SingleSpeciesContainer::SingleSpeciesContainer (AmrCore* amr_core, int ispecies)
     : ParticleContainer<PIdx::nattribs,0,std::vector<Particle<PIdx::nattribs,0> > >
       (amr_core->GetParGDB())
+    , species_id(ispecies)
 {
-    ReadStaticParameters();
-
     this->SetVerbose(0);
 
     m_particles.reserve(m_gdb->maxLevel()+1);
@@ -24,26 +24,7 @@ MyParticleContainer::MyParticleContainer (AmrCore* amr_core)
 }
 
 void
-MyParticleContainer::ReadStaticParameters ()
-{
-    static bool initialized = false;
-    if (!initialized)
-    {
-	ParmParse pp("particles");
-
-	pp.query("do_tiling",  do_tiling);
-
-	Array<int> ts(BL_SPACEDIM);
-	if (pp.queryarr("tile_size", ts)) {
-	    tile_size = IntVect(ts);
-	}
-
-	initialized = true;
-    }
-}
-
-void
-MyParticleContainer::AllocData ()
+SingleSpeciesContainer::AllocData ()
 {
     m_particles.resize(m_gdb->finestLevel()+1);
     m_partdata.resize(m_gdb->finestLevel()+1);
@@ -67,14 +48,82 @@ MyParticleContainer::AllocData ()
     }
 }
 
+MultiSpeciesContainer::MultiSpeciesContainer (AmrCore* amr_core)
+{
+    ReadStaticParameters();
+
+    species.resize(nspecies);
+    for (int i = 0; i < nspecies; ++i) {
+	species[i].reset(new SingleSpeciesContainer(amr_core, i));
+    }
+}
+
 void
-MyParticleContainer::Evolve (int lev,
+MultiSpeciesContainer::ReadStaticParameters ()
+{
+    static bool initialized = false;
+    if (!initialized)
+    {
+	ParmParse pp("particles");
+
+	pp.query("nspecies", nspecies);
+	BL_ASSERT(nspecies >= 1);
+
+	pp.query("do_tiling",  SingleSpeciesContainer::do_tiling);
+
+	Array<int> ts(BL_SPACEDIM);
+	if (pp.queryarr("tile_size", ts)) {
+	    SingleSpeciesContainer::tile_size = IntVect(ts);
+	}
+
+	initialized = true;
+    }
+}
+
+void
+MultiSpeciesContainer::AllocData ()
+{
+    for (auto& spec : species) {
+	spec->AllocData();
+    }
+}
+
+void
+MultiSpeciesContainer::InitData ()
+{
+    for (auto& spec : species) {
+	spec->InitData();
+    }
+}
+
+void
+MultiSpeciesContainer::Evolve (int lev,
 			     const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
 			     const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz,
 			     MultiFab& jx, MultiFab& jy, MultiFab& jz, Real dt)
 {
-    BL_PROFILE("MyPC::Evolve()");
-    BL_PROFILE_VAR_NS("MyPC::Evolve::Copy", blp_copy);
+    jx.setVal(0.0);
+    jy.setVal(0.0);
+    jz.setVal(0.0);
+
+    for (auto& spec : species) {
+	spec->Evolve(lev, Ex, Ey, Ez, Bx, By, Bz, jx, jy, jz, dt);
+    }    
+
+    const Geometry& gm = species[0]->m_gdb->Geom(lev);
+    jx.SumBoundary(gm.periodicity());
+    jy.SumBoundary(gm.periodicity());
+    jz.SumBoundary(gm.periodicity());
+}
+
+void
+SingleSpeciesContainer::Evolve (int lev,
+				const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
+				const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz,
+				MultiFab& jx, MultiFab& jy, MultiFab& jz, Real dt)
+{
+    BL_PROFILE("SPC::Evolve()");
+    BL_PROFILE_VAR_NS("SPC::Evolve::Copy", blp_copy);
     BL_PROFILE_VAR_NS("PICSAR::FieldGather", blp_pxr_fg);
     BL_PROFILE_VAR_NS("PICSAR::ParticlePush", blp_pxr_pp);
     BL_PROFILE_VAR_NS("PICSAR::CurrentDeposition", blp_pxr_cd);
@@ -105,10 +154,6 @@ MyParticleContainer::Evolve (int lev,
 #endif
     
     BL_ASSERT(OnSameGrids(lev,Ex));
-
-    jx.setVal(0.0);
-    jy.setVal(0.0);
-    jz.setVal(0.0);
 
     //xxxxx not using m_pardata for now. auto& partleveldata = m_partdata[lev];
 
@@ -262,14 +307,24 @@ MyParticleContainer::Evolve (int lev,
             BL_PROFILE_VAR_STOP(blp_copy);
 	}
     }
-
-    jx.SumBoundary(gm.periodicity());
-    jy.SumBoundary(gm.periodicity());
-    jz.SumBoundary(gm.periodicity());
 }
 
 std::unique_ptr<MultiFab>
-MyParticleContainer::GetChargeDensity (int lev, bool local)
+MultiSpeciesContainer::GetChargeDensity (int lev, bool local)
+{
+    std::unique_ptr<MultiFab> rho = species[0]->GetChargeDensity(lev, true);
+    for (int i = 1; i < nspecies; ++i) {
+	std::unique_ptr<MultiFab> rhoi = species[i]->GetChargeDensity(lev, true);
+	MultiFab::Add(*rho, *rhoi, 0, 0, 1, rho->nGrow());
+    }
+    if (!local) {
+	const Geometry& gm = species[0]->m_gdb->Geom(lev);
+	rho->SumBoundary(gm.periodicity());
+    }
+}
+
+std::unique_ptr<MultiFab>
+SingleSpeciesContainer::GetChargeDensity (int lev, bool local)
 {
     const Geometry& gm = m_gdb->Geom(lev);
     const BoxArray& ba = m_gdb->ParticleBoxArray(lev);
@@ -355,9 +410,9 @@ MyParticleContainer::GetChargeDensity (int lev, bool local)
 }
 
 void
-MyParticleContainer::AddNParticles (int n, const Real* x, const Real* y, const Real* z,
-				    const Real* vx, const Real* vy, const Real* vz,
-				    int nattr, const Real* attr, int uniqueparticles)
+SingleSpeciesContainer::AddNParticles (int n, const Real* x, const Real* y, const Real* z,
+				       const Real* vx, const Real* vy, const Real* vz,
+				       int nattr, const Real* attr, int uniqueparticles)
 {
     const int lev = 0;
 
@@ -426,3 +481,19 @@ MyParticleContainer::AddNParticles (int n, const Real* x, const Real* y, const R
     }
 }
 
+void
+MultiSpeciesContainer::Checkpoint (const std::string& dir, const std::string& name)
+{
+    for (int i = 0; i < nspecies; ++i) {
+	std::string diri = dir + std::to_string(i);
+	Checkpoint(diri, name);
+    }
+}
+
+void
+MultiSpeciesContainer::Redistribute (bool where_called)
+{
+    for (auto& spec : species) {
+	spec->Redistribute(where_called,true);
+    }
+}

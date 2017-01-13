@@ -30,7 +30,7 @@ public:
 
     void Evolve (int numsteps = -1);
 
-    MyParticleContainer& GetPartContainer () { return *mypc; }
+    MultiSpeciesContainer& GetPartContainer () { return *mypc; }
 
     static void FillBoundary (MultiFab& mf, const Geometry& geom, const IntVect& nodalflag);
 
@@ -82,7 +82,7 @@ private:
     Array<Real> dt;
 
     // Particle container
-    std::unique_ptr<MyParticleContainer> mypc;
+    std::unique_ptr<MultiSpeciesContainer> mypc;
     // Fields: First array for level, second for direction
     Array<Array< std::unique_ptr<MultiFab> > > current;
     Array<Array< std::unique_ptr<MultiFab> > > Efield;

@@ -1,6 +1,6 @@
 
 //
-// Each problem must have its own version of MyParticleContainer::InitData()
+// Each problem must have its own version of SingleParticleContainer::InitData()
 // to initialize the particle data on this level
 //
 
@@ -12,9 +12,9 @@
 #include <WarpXConst.H>
 
 void
-MyParticleContainer::InitData()
+SingleParticleContainer::InitData()
 {
-    BL_PROFILE("MyPC::InitData()");
+    BL_PROFILE("SPC::InitData()");
 
     charge = -PhysConst::q_e;
     mass = PhysConst::m_e;

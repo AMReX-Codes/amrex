@@ -1,6 +1,6 @@
 
 //
-// Each problem must have its own version of MyParticleContainer::InitData()
+// Each problem must have its own version of SingleParticleContainer::InitData()
 // to initialize the particle data on this level
 //
 
@@ -12,8 +12,8 @@
 #include <WarpXConst.H>
 
 void
-MyParticleContainer::InitData()
+SingleSpeciesContainer::InitData()
 {
     static_assert(false,
-		  "Each problem must have its own version of MyParticleContainer::InitData()");
+		  "Each problem must have its own version of SingleSpeciesContainer::InitData()");
 }

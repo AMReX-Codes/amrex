@@ -86,7 +86,7 @@ WarpX::WarpX ()
     dt.resize(nlevs_max, 1.e100);
 
     // Particle Container
-    mypc = std::unique_ptr<MyParticleContainer> (new MyParticleContainer(this));
+    mypc = std::unique_ptr<MultiSpeciesContainer> (new MultiSpeciesContainer(this));
 
     current.resize(nlevs_max);
     Efield.resize(nlevs_max);

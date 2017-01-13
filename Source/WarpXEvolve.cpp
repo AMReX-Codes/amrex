@@ -50,7 +50,7 @@ WarpX::Evolve (int numsteps)
 			 *Bfield[lev][0],*Bfield[lev][1],*Bfield[lev][2],
 			 *current[lev][0],*current[lev][1],*current[lev][2],dt[lev]);
 	    
-	    mypc->Redistribute(false,true);  // Redistribute particles
+	    mypc->Redistribute();  // Redistribute particles
 	    
 	    EvolveB(lev, 0.5*dt[lev]); // We now B^{n+1/2}
 	    
