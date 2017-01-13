@@ -15,7 +15,7 @@ amr.plot_int = 1   # How often to write plotfiles.  "<= 0" means no plotfiles.
 
 # Geometry
 geometry.coord_sys   = 0                  # 0: Cartesian
-geometry.is_periodic = 0     1     1      # Is periodic?
+geometry.is_periodic = 1     1     1      # Is periodic?
 geometry.prob_lo     = -20.e-6   -20.e-6   -20.e-6    # physical domain
 geometry.prob_hi     =  20.e-6    20.e-6    20.e-6
 
@@ -42,4 +42,4 @@ langmuirwave.particle_zmin = -20.e-6
 langmuirwave.particle_zmax = 20.e-6
 langmuirwave.num_particles_per_cell = 10
 langmuirwave.n_e = 1.e25  # number of electrons per m^3
-langmuirwave.ux  = 10.   # ux = gamma*beta_x
+langmuirwave.ux  = 0.01   # ux = gamma*beta_x
