@@ -69,8 +69,6 @@ private:
 
     void MoveWindow ();
 
-    void shiftMF (MultiFab& mf, int num_shift, const IntVect& nodalflag);
-
     void WritePlotFile () const;
     static void PackPlotDataPtrs (std::vector<MultiFab*>& pmf,
 				  const Array<std::unique_ptr<MultiFab> >& data);

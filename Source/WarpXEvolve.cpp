@@ -3,6 +3,7 @@
 #include <limits>
 
 #include <WarpX.H>
+#include <WarpXUtil.H>
 #include <WarpXConst.H>
 #include <WarpX_f.H>
 
@@ -289,33 +290,14 @@ WarpX::MoveWindow ()
   RealBox new_box(new_lo, new_hi);
   geom[0].ProbDomain(new_box);
   
-  shiftMF(*Bfield[0][0], num_shift, Bx_nodal_flag);
-  shiftMF(*Bfield[0][1], num_shift, By_nodal_flag);
-  shiftMF(*Bfield[0][2], num_shift, Bz_nodal_flag);
-  shiftMF(*Efield[0][0], num_shift, Ex_nodal_flag);
-  shiftMF(*Efield[0][1], num_shift, Ey_nodal_flag);
-  shiftMF(*Efield[0][2], num_shift, Ez_nodal_flag);
+  // shift the mesh fields (Note - only on level 0 for now)
+  shiftMF(*Bfield[0][0], geom[0], num_shift, dir, Bx_nodal_flag);
+  shiftMF(*Bfield[0][1], geom[0], num_shift, dir, By_nodal_flag);
+  shiftMF(*Bfield[0][2], geom[0], num_shift, dir, Bz_nodal_flag);
+  shiftMF(*Efield[0][0], geom[0], num_shift, dir, Ex_nodal_flag);
+  shiftMF(*Efield[0][1], geom[0], num_shift, dir, Ey_nodal_flag);
+  shiftMF(*Efield[0][2], geom[0], num_shift, dir, Ez_nodal_flag);
 
   // remove particles that are outside of the box
-  mypc->Redistribute(false,true);  // Redistribute particles
-}
-
-void
-WarpX::shiftMF(MultiFab& mf, int num_shift, const IntVect& nodalflag) {
-  
-  // create tmp copy with num_shift ghost cells
-  BoxArray ba = mf.boxArray();
-  MultiFab tmpmf(ba, mf.nComp(), num_shift, Fab_allocate, nodalflag);
-  tmpmf.setVal(0.0);
-  MultiFab::Copy(tmpmf, mf, 0, 0, 1, 0);
-  tmpmf.FillBoundary(geom[0].periodicity());
-  
-  for (MFIter mfi(mf); mfi.isValid(); ++mfi ) {
-    const Box& dstBox = mfi.validbox();
-    Box srcBox(dstBox.smallEnd(), dstBox.bigEnd());
-    srcBox.shift(moving_window_dir, num_shift);
-    mf[mfi].copy(tmpmf[mfi], srcBox, 0, dstBox, 0, 1);
-  }
-
-  mf.FillBoundary(geom[0].periodicity());
+  mypc->Redistribute(false, true);  // Redistribute particles
 }

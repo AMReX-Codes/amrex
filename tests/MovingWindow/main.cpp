@@ -6,6 +6,7 @@
 #include <PlotFileUtil.H>
 
 #include <WarpXConst.H>
+#include <WarpXUtil.H>
 
 #include "movingWindow_F.H"
 
@@ -83,6 +84,7 @@ void testMovingWindow() {
     Array<std::string> varnames{"E"};
     BoxLib::WriteSingleLevelPlotfile(plotname, outputE, varnames, geom, 0.0, 0);
 
+    // update the window and figure out how much to shift
     int num_shift;
     int dir = moving_window_dir;
 
@@ -104,19 +106,9 @@ void testMovingWindow() {
     RealBox new_box(new_lo, new_hi);
     geom.ProbDomain(new_box);
 
-    MultiFab tmpE(ba, 1, abs(num_shift));
-    tmpE.setVal(0.0);
-    MultiFab::Copy(tmpE, E, 0, 0, 1, 0);
-    tmpE.FillBoundary(geom.periodicity());
+    // shift the E Multifab
+    shiftMF(E, geom, num_shift, dir, IntVect::TheZeroVector());
 
-    for (MFIter mfi(E); mfi.isValid(); ++mfi ) {
-      const Box& dstBox = mfi.validbox();
-      Box srcBox(dstBox.smallEnd(), dstBox.bigEnd());
-      srcBox.shift(dir, num_shift);
-      E[mfi].copy(tmpE[mfi], srcBox, 0, dstBox, 0, 1);
-    }
-
-    E.FillBoundary(geom.periodicity());
   }
 }
 
