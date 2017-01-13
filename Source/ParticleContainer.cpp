@@ -485,8 +485,8 @@ void
 MultiSpeciesContainer::Checkpoint (const std::string& dir, const std::string& name)
 {
     for (int i = 0; i < nspecies; ++i) {
-	std::string diri = dir + std::to_string(i);
-	Checkpoint(diri, name);
+	std::string namei = name + std::to_string(i);
+	species[i]->Checkpoint(dir, namei);
     }
 }
 
