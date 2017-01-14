@@ -1,7 +1,7 @@
 
 #include <ParticleIterator.H>
 
-PartIter::PartIter (MyParticleContainer& _mypc, const PartIterInfo& _info)
+PartIter::PartIter (SingleSpeciesContainer& _mypc, const PartIterInfo& _info)
     : mypc(_mypc),
       pmap(_mypc.GetParticles(_info.level)),
       info(_info)
@@ -9,7 +9,7 @@ PartIter::PartIter (MyParticleContainer& _mypc, const PartIterInfo& _info)
     Initialize();
 }
 
-PartIter::PartIter (MyParticleContainer& _mypc, PartIterInfo&& _info)
+PartIter::PartIter (SingleSpeciesContainer& _mypc, PartIterInfo&& _info)
     : mypc(_mypc),
       pmap(_mypc.GetParticles(_info.level)),
       info(_info)

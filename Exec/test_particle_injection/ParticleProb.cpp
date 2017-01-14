@@ -30,7 +30,7 @@ SingleParticleContainer::InitData()
     Real particle_xmin, particle_xmax, particle_ymin, particle_ymax, particle_zmin, particle_zmax;
     int n_part_per_cell;
     {
-      ParmParse pp("chargedbeam");
+      ParmParse pp("langmuirwave");
       n_part_per_cell = 1;
       pp.query("num_particles_per_cell", n_part_per_cell);
       weight = 1.e25;
@@ -57,10 +57,9 @@ SingleParticleContainer::InitData()
       pp.query("uy", uy);
       pp.query("uz", uz);
 
-      Real gamma = 1./std::sqrt(1.0 - ux*ux - uy*uy - uz*uz);
-      ux *= PhysConst::c*gamma;
-      uy *= PhysConst::c*gamma;      
-      uz *= PhysConst::c*gamma;
+      ux *= PhysConst::c;
+      uy *= PhysConst::c;      
+      uz *= PhysConst::c;
     }
 
     const BoxArray& ba = m_gdb->ParticleBoxArray(lev);
