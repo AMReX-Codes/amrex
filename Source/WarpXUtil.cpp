@@ -5,7 +5,7 @@ void shiftMF(MultiFab& mf, const Geometry& geom, int num_shift,
 
   // create tmp copy with num_shift ghost cells
   BoxArray ba = mf.boxArray();
-  MultiFab tmpmf(ba, mf.nComp(), num_shift, Fab_allocate, nodalflag);
+  MultiFab tmpmf(ba, mf.nComp(), std::abs(num_shift), Fab_allocate, nodalflag);
   tmpmf.setVal(0.0);
   MultiFab::Copy(tmpmf, mf, 0, 0, 1, 0);
   tmpmf.FillBoundary(geom.periodicity());
