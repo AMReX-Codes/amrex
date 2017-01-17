@@ -1,6 +1,6 @@
 
 //
-// Each problem must have its own version of SingleParticleContainer::InitData()
+// Each problem must have its own version of SingleSpeciesContainer::InitData()
 // to initialize the particle data on this level
 //
 
