@@ -182,7 +182,11 @@ $(tmpEXETempDir)/%.F90.orig: %.F90
 	@if [ ! -d $(tmpEXETempDir) ]; then mkdir -p $(tmpEXETempDir); fi
 	$(SILENT) $(F90) $(F90FLAGS) -DBL_LANG_FORT $(CPPFLAGS) $(fincludes) -fsyntax-only -fdump-fortran-original $< > $@
 
-check_fortran: $(fortran_ir_sources)
+$(tmpEXETempDir)/%-cppd.h: %.H
+	@if [ ! -d $(tmpEXETempDir) ]; then mkdir -p $(tmpEXETempDir); fi
+	$(SILENT) $(CXX) $(CXXFLAGS) $(CPPFLAGS) $(includes) -E $< -o $@
+
+check_fortran: $(fortran_ir_sources) $(fortran_fdecl_headers_cppd)
 	@if [ ! -d $(tmpEXETempDir) ]; then mkdir -p $(tmpEXETempDir); fi
 	@echo "Checking Fortran iso_c_binding interface ..."
 #	$(CHECKFORT) --work_dir $(tmpEXETempDir) \
@@ -195,7 +199,7 @@ ifeq ($(MAKECMDGOALS),check_fortran)
 endif
 
 #
-# </ check_fortran>
+# </check_fortran>
 #
 
 #
