@@ -86,6 +86,7 @@ FORTPREP  	= perl $(AMREX_HOME)/Tools/C_scripts/strip72 -c
 F90PREP  	= cat  # a placeholder in case we have to write something later
 MKDEP		= perl $(AMREX_HOME)/Tools/C_scripts/mkdep
 MODDEP		= $(AMREX_HOME)/Tools/F_scripts/dep.py
+CHECKFORT       = $(AMREX_HOME)/Tools/F_scripts/check_fortran.py
 
 EXE_OUTPUT_OPTION      = -o $(objEXETempDir)/$*.o
 FORT_EXE_OUTPUT_OPTION = -o $(objEXETempDir)/$*.o
@@ -108,6 +109,12 @@ else ifeq ($(lowercase_comp),pgi)
   include        $(AMREX_HOME)/Tools/GNUMake/comps/pgi.mak
 else
   $(error Unknown compiler $(COMP). Supported compilers are gnu, intel, cray, and pgi)
+endif
+
+ifeq ($(MAKECMDGOALS),check_fortran)
+  ifneq ($(lowercase_comp),gnu)
+    $(error make check_fortran only works with COMP=gnu)
+  endif
 endif
 
 ifeq ($(DEBUG),TRUE)
@@ -232,6 +239,13 @@ objStandalone	= 	$(CEXE_sources:%.cpp=%.o)			\
 
 objForExecs	= $(addprefix $(objEXETempDir)/, $(objStandalone))
 
+fortran_ir_sources_alone = $(f90EXE_sources:%.f90=%.f90.orig) \
+                           $(F90EXE_sources:%.F90=%.F90.orig)
+
+fortran_ir_sources = $(addprefix $(tmpEXETempDir)/, $(fortran_ir_sources_alone))
+
+cexe_fortran_headers = $(filter *_f.H *F.H,$(cEXE_headers) $(CEXE_headers) $(f90EXE_headers) $(F90EXE_headers))
+
 DEFINES	+= -DBL_SPACEDIM=$(DIM)				\
            -DBL_FORT_USE_$(FORTLINK)			\
            -DBL_$(shell uname)
@@ -272,6 +286,7 @@ executable	= $(addsuffix $(optionsSuffix).ex, $(EBASE))
 depEXETempDir	= d/$(optionsSuffix).EXE
 objEXETempDir   = o/$(optionsSuffix).EXE
 f77EXETempDir	= f/$(optionsSuffix).EXE
+tmpEXETempDir   = t/$(optionsSuffix).EXE
 
 #
 # For source code manipulation
