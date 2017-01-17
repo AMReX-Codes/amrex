@@ -299,5 +299,5 @@ WarpX::MoveWindow ()
   shiftMF(*Efield[0][2], geom[0], num_shift, dir, Ez_nodal_flag);
 
   // remove particles that are outside of the box
-  mypc->Redistribute(false, true);  // Redistribute particles
+  mypc->Redistribute(false);  // Redistribute particles
 }
