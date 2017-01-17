@@ -103,6 +103,8 @@ private:
     static void ReadStaticParameters ();
 
     // runtime parameters
+    static bool do_tiling;
+    static IntVect tile_size;
     static int nspecies;
 };
 #endif /*_ParticleContainer_H_*/

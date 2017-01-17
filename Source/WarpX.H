@@ -39,7 +39,7 @@ public:
     static long charge_deposition_algo;
     static long field_gathering_algo;
     static long particle_pusher_algo;
-    
+
     // Interpolation order
     static long nox;
     static long noy;
@@ -64,10 +64,12 @@ private:
     void InitFromScratch ();
     void InitFromCheckpoint () {}
     void InitLevelData (int lev);
-    
+
     void InitOpenbc ();
-    
+
     void ComputeDt ();
+
+    void MoveWindow ();
 
     void WritePlotFile () const;
     static void PackPlotDataPtrs (std::vector<MultiFab*>& pmf,
@@ -87,6 +89,12 @@ private:
     Array<Array< std::unique_ptr<MultiFab> > > current;
     Array<Array< std::unique_ptr<MultiFab> > > Efield;
     Array<Array< std::unique_ptr<MultiFab> > > Bfield;
+
+    // Moving window parameters
+    int do_moving_window;
+    int moving_window_dir;
+    Real moving_window_x;
+    Real moving_window_v;
 
     // runtime parameters
 
