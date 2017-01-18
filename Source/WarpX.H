@@ -71,7 +71,9 @@ private:
 
     void MoveWindow ();
 
+    void WriteCheckPointFile() const;
     void WritePlotFile () const;
+    void WriteJobInfo (const std::string& dir) const;
     static void PackPlotDataPtrs (std::vector<MultiFab*>& pmf,
 				  const Array<std::unique_ptr<MultiFab> >& data);
     static void Copy (MultiFab& dstmf, int dcomp, int ncomp, const MultiFab& srcmf, int scomp);

@@ -14,6 +14,7 @@ WarpX::Evolve (int numsteps)
 
     Real cur_time = t_new[0];
     static int last_plot_file_step = 0;
+    static int last_check_file_step = 0;
 
     int numsteps_max = (numsteps >= 0 && numsteps <= max_step) ? numsteps : max_step;
     bool max_time_reached = false;
@@ -83,6 +84,11 @@ WarpX::Evolve (int numsteps)
 	    WritePlotFile();
 	}
 
+	if (check_int > 0 && (step+1) % check_int == 0) {
+	    last_check_file_step = step+1;
+	    WriteCheckPointFile();
+	}
+
 	if (cur_time >= stop_time - 1.e-6*dt[0]) {
 	    max_time_reached = true;
 	    break;
@@ -91,6 +97,10 @@ WarpX::Evolve (int numsteps)
 
     if (plot_int > 0 && istep[0] > last_plot_file_step && (max_time_reached || istep[0] >= max_step)) {
 	WritePlotFile();
+    }
+
+    if (check_int > 0 && istep[0] > last_check_file_step && (max_time_reached || istep[0] >= max_step)) {
+	WriteCheckPointFile();
     }
 }
 

@@ -7,6 +7,125 @@
 #include "buildInfo.H"
 
 void
+WarpX::WriteCheckPointFile() const
+{
+    BL_PROFILE("WarpX::WriteCheckPointFile()");
+
+    const int checkpoint_nfiles = 64;  // could make this parameter
+    VisMF::SetNOutFiles(checkpoint_nfiles);
+    
+    const std::string& checkpointname = BoxLib::Concatenate(check_file,istep[0]);
+
+    if (ParallelDescriptor::IOProcessor()) {
+	std::cout << "  Writing checkpoint " << checkpointname << std::endl;
+    }
+
+    const int nlevels = finestLevel()+1;
+    const std::string level_prefix = "Level_";
+    BoxLib::PreBuildDirectorHierarchy(checkpointname, level_prefix, nlevels, true);
+
+#if 0
+    if (ParallelDescriptor::IOProcessor())
+    {
+	std::string HeaderFileName(checkpointname + "/Header");
+	std::ofstream HeaderFile(HeaderFileName.c_str(), std::ofstream::out   |
+				                         std::ofstream::trunc |
+				                         std::ofstream::binary);
+	if( ! HeaderFile.good()) {
+	    BoxLib::FileOpenFailed(HeaderFileName);
+	}
+
+	Array<std::string> varnames {"Ex", "Ey", "Ez", "Bx", "By", "Bz"};
+
+	BoxLib::WriteGenericPlotfileHeader (HeaderFile, nlevels, boxArray(), varnames,
+					    Geom(), t_new[0], istep, refRatio());
+    }
+#endif
+
+    if (ParallelDescriptor::IOProcessor())
+    {
+	std::string HeaderFileName(checkpointname + "/WarpXHeader");
+	std::ofstream HeaderFile(HeaderFileName.c_str(), std::ofstream::out   |
+				                         std::ofstream::trunc |
+				                         std::ofstream::binary);
+	if( ! HeaderFile.good()) {
+	    BoxLib::FileOpenFailed(HeaderFileName);
+	}
+
+	HeaderFile.precision(17);
+
+	VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+	HeaderFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
+
+	HeaderFile << "Checkpoint version: 1\n";
+
+	HeaderFile << nlevels << "\n";
+
+	for (int i = 0; i < istep.size(); ++i) {
+	    HeaderFile << istep[i] << " ";
+	}
+	HeaderFile << "\n";
+
+	for (int i = 0; i < nsubsteps.size(); ++i) {
+	    HeaderFile << nsubsteps[i] << " ";
+	}
+	HeaderFile << "\n";
+	
+	for (int i = 0; i < t_new.size(); ++i) {
+	    HeaderFile << t_new[i] << " ";
+	}
+	HeaderFile << "\n";
+
+	for (int i = 0; i < t_old.size(); ++i) {
+	    HeaderFile << t_old[i] << " ";
+	}
+	HeaderFile << "\n";
+
+	for (int i = 0; i < dt.size(); ++i) {
+	    HeaderFile << dt[i] << " ";
+	}
+	HeaderFile << "\n";
+	
+	HeaderFile << moving_window_x << "\n";
+
+	// Geometry
+	for (int i = 0; i < BL_SPACEDIM; ++i) {
+            HeaderFile << Geometry::ProbLo(i) << ' ';
+	}
+        HeaderFile << '\n';
+        for (int i = 0; i < BL_SPACEDIM; ++i) {
+            HeaderFile << Geometry::ProbHi(i) << ' ';
+	}
+        HeaderFile << '\n';
+
+	// BoxArray
+	for (int lev = 0; lev < nlevels; ++lev) {
+	    HeaderFile << boxArray(lev) << "\n";
+	}
+    }
+    
+    WriteJobInfo(checkpointname);
+
+    for (int lev = 0; lev < nlevels; ++lev)
+    {
+	VisMF::Write(*Efield[lev][0],
+		     BoxLib::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "Ex"));
+	VisMF::Write(*Efield[lev][1],
+		     BoxLib::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "Ey"));
+	VisMF::Write(*Efield[lev][2],
+		     BoxLib::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "Ez"));
+	VisMF::Write(*Bfield[lev][0],
+		     BoxLib::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "Bx"));
+	VisMF::Write(*Bfield[lev][1],
+		     BoxLib::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "By"));
+	VisMF::Write(*Bfield[lev][2],
+		     BoxLib::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "Bz"));
+    }
+
+    mypc->Checkpoint(checkpointname, "particle");
+}
+
+void
 WarpX::WritePlotFile () const
 {
     BL_PROFILE("WarpX::WritePlotFile()");
@@ -65,10 +184,17 @@ WarpX::WritePlotFile () const
 
     mypc->Checkpoint(plotfilename, "particle");
 
-    if (ParallelDescriptor::IOProcessor()) {
+    WriteJobInfo(plotfilename);
+}
+
+void
+WarpX::WriteJobInfo (const std::string& dir) const
+{
+    if (ParallelDescriptor::IOProcessor())
+    {
 	// job_info file with details about the run
 	std::ofstream jobInfoFile;
-	std::string FullPathJobInfoFile = plotfilename;
+	std::string FullPathJobInfoFile = dir;
 	std::string PrettyLine = "===============================================================================\n";
 
 	FullPathJobInfoFile += "/warpx_job_info";
