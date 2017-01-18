@@ -1,7 +1,5 @@
 
-CEXE_sources += main.cpp WarpXUtil.cpp
-
-CEXE_headers += WarpXConst.H WarpXUtil.H
+CEXE_sources += main.cpp
 
 FEXE_headers += movingWindow_F.H
 f90EXE_sources += init_E_$(DIM)d.f90

@@ -3,7 +3,6 @@
 #include <limits>
 
 #include <WarpX.H>
-#include <WarpXUtil.H>
 #include <WarpXConst.H>
 #include <WarpX_f.H>
 

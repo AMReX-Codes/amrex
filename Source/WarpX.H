@@ -34,6 +34,9 @@ public:
 
     static void FillBoundary (MultiFab& mf, const Geometry& geom, const IntVect& nodalflag);
 
+    static void shiftMF(MultiFab& mf, const Geometry& geom, int num_shift, 
+			int dir, const IntVect& nodalflag);
+
     // Algorithms
     static long current_deposition_algo;
     static long charge_deposition_algo;

@@ -1,21 +1,20 @@
-BOXLIB_HOME ?= ../../../BoxLib
+DEBUG	= FALSE
+#DEBUG	= TRUE
 
-USE_PARTICLES = TRUE
+DIM	= 3
 
-DEBUG     = FALSE
+COMP    = gcc
+FCOMP   = gfortran
+
+TINY_PROFILE = TRUE
+TINY_PROFILE = FALSE
+
 USE_MPI   = TRUE
 USE_OMP   = FALSE
-PROFILE   = FALSE
-COMP      = gnu
-DIM       = 3
-PRECISION = DOUBLE
 
-include $(BOXLIB_HOME)/Tools/C_mk/Make.defs
+EBASE     = main
 
-include ./Make.package
-include $(BOXLIB_HOME)/Src/C_BaseLib/Make.package
+USE_PYTHON_MAIN = FALSE
 
-default: $(executable)
-	@echo SUCCESS
-
-include $(BOXLIB_HOME)/Tools/C_mk/Make.rules
+WARPX_HOME := ../..
+include $(WARPX_HOME)/Exec/Make.WarpX
