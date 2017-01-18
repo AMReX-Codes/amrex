@@ -126,7 +126,9 @@ WarpX::ReadParameters ()
 
 	pp.query("do_moving_window", do_moving_window);
 	pp.query("moving_window_dir", moving_window_dir);
-	pp.query("moving_window_v", moving_window_v);
+	if (do_moving_window) {
+	  pp.get("moving_window_v", moving_window_v);
+	}
 
 	moving_window_x = geom[0].ProbLo(moving_window_dir);
 	moving_window_v = 0.0;
