@@ -1,5 +1,5 @@
 # Maximum number of time steps
-max_step = 40
+max_step = 60
 
 # number of grid points
 amr.n_cell =   64  64  64
@@ -11,11 +11,11 @@ amr.max_grid_size = 32
 # Maximum level in hierarchy (for now must be 0, i.e., one level in total)
 amr.max_level = 0
 
-amr.plot_int = 1   # How often to write plotfiles.  "<= 0" means no plotfiles.
+amr.plot_int = 2   # How often to write plotfiles.  "<= 0" means no plotfiles.
 
 # Geometry
 geometry.coord_sys   = 0                  # 0: Cartesian
-geometry.is_periodic = 1     1     1      # Is periodic?
+geometry.is_periodic = 1     1     0      # Is periodic?
 geometry.prob_lo     = -200.e-6   -200.e-6   -200.e-6    # physical domain
 geometry.prob_hi     =  200.e-6    200.e-6    200.e-6
 
