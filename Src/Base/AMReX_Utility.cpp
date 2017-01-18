@@ -28,15 +28,7 @@
 #include <omp.h>
 #endif
 
-#ifdef WIN32
-#include <direct.h>
-#define mkdir(a,b) _mkdir((a))
-const char* path_sep_str = "\\";
-#else
 const char* path_sep_str = "/";
-#endif
-
-#if !defined(WIN32)
 
 #include <sys/types.h>
 #include <sys/times.h>
@@ -126,108 +118,6 @@ amrex::wsecond (double* t)
 
     return dt;
 }
-
-#elif defined(WIN32)
-
-// minimum requirement of WindowsNT
-#include <windows.h>
-
-namespace
-{
-double rate;
-bool inited = false;
-LONGLONG
-get_initial_wall_clock_time()
-{
-    LARGE_INTEGER li;
-    QueryPerformanceFrequency(&li);
-    rate = 1.0/li.QuadPart;
-    QueryPerformanceCounter(&li);
-    inited = true;
-    return li.QuadPart;
-}
-LONGLONG BL_Initial_Wall_Clock_Time = get_initial_wall_clock_time();
-}
-double
-amrex::wsecond(double* rslt)
-{
-    BL_ASSERT( inited );
-    LARGE_INTEGER li;
-    QueryPerformanceCounter(&li);
-    double result = double(li.QuadPart-BL_Initial_Wall_Clock_Time)*rate;
-    if ( rslt ) *rslt = result;
-    return result;
-}
-
-#include <time.h>
-double
-amrex::second (double* r)
-{
-    static clock_t start = -1;
-
-    clock_t finish = clock();
-
-    if (start == -1)
-        start = finish;
-
-    double rr = double(finish - start)/CLOCKS_PER_SEC;
-
-    if (r)
-        *r = rr;
-
-    return rr;
-}
-
-#else
-
-#include <time.h>
-
-double
-amrex::second (double* r)
-{
-    static clock_t start = -1;
-
-    clock_t finish = clock();
-
-    if (start == -1)
-        start = finish;
-
-    double rr = double(finish - start)/CLOCKS_PER_SEC;
-
-    if (r)
-        *r = rr;
-
-    return rr;
-}
-
-static
-time_t
-get_initial_wall_clock_time ()
-{
-    return ::time(0);
-}
-
-//
-// Attempt to guarantee wsecond() gets initialized on program startup.
-//
-time_t BL_Initial_Wall_Clock_Time = get_initial_wall_clock_time();
-
-double
-amrex::wsecond (double* r)
-{
-    time_t finish;
-
-    time(&finish);
-
-    double rr = double(finish - BL_Initial_Wall_Clock_Time);
-
-    if (r)
-        *r = rr;
-
-    return rr;
-}
-
-#endif
 
 void
 amrex::ResetWallClockTime ()
@@ -328,13 +218,8 @@ amrex::Concatenate (const std::string& root,
 
 
 bool
-#ifdef WIN32
 amrex::UtilCreateDirectory (const std::string& path,
-                             int mode, bool verbose)
-#else
-amrex::UtilCreateDirectory (const std::string& path,
-                             mode_t mode, bool verbose)
-#endif
+			    mode_t mode, bool verbose)
 {
     bool retVal(false);
     Array<std::pair<std::string, int> > pathError;

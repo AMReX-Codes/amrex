@@ -7,13 +7,9 @@
 #include <string>
 #include <map>
 
-#ifndef WIN32
 #include <sys/types.h>
 #include <unistd.h>
-#if !defined(COLUMBIA)
 #include <sys/wait.h>
-#endif
-#endif
 
 #include <AMReX_BLassert.H>
 #include <AMReX_REAL.H>
@@ -462,7 +458,7 @@ template<class T> void amrex::BroadcastArray(Array<T> &aT, int myLocalId, int ro
   BL_LANG_CC or BL_LANG_FORT is defined.  It is used in calls to
   istream::ignore() in the AMReX code when reading in characters from an
   istream.  We use this macro instead of the more proper INT_MAX from
-  <limits.h> since at least one compiler didn't work properly when
+  <limits> since at least one compiler didn't work properly when
   istream::ignore() was passed INT_MAX.
 */
 #define BL_IGNORE_MAX 100000

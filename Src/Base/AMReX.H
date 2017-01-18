@@ -5,7 +5,7 @@
 #include <AMReX_ccse-mpi.H>
 
 #include <string>
-#include <stdio.h>
+#include <cstdio>
 
 //
 // Error-reporting Functions and Version String
