@@ -18,7 +18,7 @@
 #include <stack>
 #include <algorithm>
 #include <limits>
-#include <stdlib.h>
+#include <cstdlib>
 #include <cmath>
 
 namespace amrex {

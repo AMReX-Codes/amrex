@@ -3,7 +3,7 @@
 #define BL_MULTIFAB_H
 
 
-#include <stdint.h>
+#include <cstdint>
 
 #include <AMReX_BLassert.H>
 #include <AMReX_FArrayBox.H>

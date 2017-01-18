@@ -21,7 +21,7 @@ using std::strlen;
 #endif
 
 #ifdef BL_ALWAYS_FIX_DENORMALS
-#include <float.h>
+#include <cfloat>
 #if defined(BL_CRAYX1)
 #  include <ieeefp.h>
 #endif
