@@ -5,6 +5,7 @@
 #include <iostream>
 #include <cstddef>
 #include <map>
+#include <unordered_map>
 
 #include <AMReX_IndexType.H>
 #include <AMReX_BoxList.H>
@@ -82,7 +83,8 @@ struct BARef
     
     mutable IntVect crsn;
     
-    using HashType = std::map< IntVect,std::vector<int> >;
+    typedef std::unordered_map< IntVect, std::vector<int>, IntVect::shift_hasher > HashType;
+    //using HashType = std::map< IntVect,std::vector<int> >;
 
     mutable HashType hash;
     
