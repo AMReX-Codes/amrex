@@ -62,7 +62,7 @@ namespace amrex
         {
           const IntVect& iv = boxit();
           //exclude covered cells
-          if(a_regIrregCovered(iv, 0) < 0)
+          if(a_regIrregCovered(iv, 0) >= 0)
             {
               std::shared_ptr<BaseIndex>    vofptr(new VolIndex(iv, 0));
               std::shared_ptr<BaseStencil> stenptr(new VoFStencil(a_stencil(iv, 0)));
