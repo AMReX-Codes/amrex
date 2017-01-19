@@ -33,7 +33,7 @@ import_array();
 }
 
 %inline %{
-void wrapped_addNParticles(int lenx, double* x, int leny, double* y, int lenz, double* z,
+void wrapped_addNParticles(int speciesnumber, int lenx, double* x, int leny, double* y, int lenz, double* z,
                             int lenvx, double* vx, int lenvy, double* vy, int lenvz, double* vz,
                             int lena, int nattr, double* attr, int uniqueparticles) {
     if (lenx != leny || lenx != lenz || lenx != lenvx || lenx != lenvy || lenx != lenvz || lenx != lena ) {
@@ -42,7 +42,7 @@ void wrapped_addNParticles(int lenx, double* x, int leny, double* y, int lenz, d
                      lenx, leny, lenz, lenvx, lenvy, lenvz, lena);
         return;
     }
-    addNParticles(lenx, x, y, z, vx, vy, vz, nattr, attr, uniqueparticles);
+    addNParticles(speciesnumber, lenx, x, y, z, vx, vy, vz, nattr, attr, uniqueparticles);
 }
 %}
 
