@@ -215,7 +215,7 @@ WarpX::shiftMF(MultiFab& mf, const Geometry& geom, int num_shift,
   const BoxArray& ba = mf.boxArray();
   MultiFab tmpmf(ba, mf.nComp(), std::abs(num_shift), Fab_allocate, nodalflag);
   tmpmf.setVal(0.0);
-  MultiFab::Copy(tmpmf, mf, 0, 0, 1, 0);
+  MultiFab::Copy(tmpmf, mf, 0, 0, mf.nComp(), 0);
   tmpmf.FillBoundary(geom.periodicity());
 
   const IndexType& dst_typ = mf.boxArray().ixType();
@@ -223,11 +223,13 @@ WarpX::shiftMF(MultiFab& mf, const Geometry& geom, int num_shift,
 
   // copy from tmpmf to mf using the shifted boxes
   for (MFIter mfi(mf); mfi.isValid(); ++mfi ) {
-    const Box& dstBox = mfi.validbox();
-    Box srcBox = dstBox;
+    Box srcBox = mfi.fabbox();
     srcBox.shift(dir, num_shift);
+    srcBox &= tmpmf[mfi].box();
+    Box dstBox = srcBox;
+    dstBox.shift(dir, -num_shift);
     mf[mfi].SetBoxType(src_typ);
-    mf[mfi].copy(tmpmf[mfi], srcBox, 0, dstBox, 0, 1);
+    mf[mfi].copy(tmpmf[mfi], srcBox, 0, dstBox, 0, mf.nComp());
     mf[mfi].SetBoxType(dst_typ);
   }
 
