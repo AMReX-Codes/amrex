@@ -126,7 +126,9 @@ WarpX::ReadParameters ()
 
 	pp.query("do_moving_window", do_moving_window);
 	pp.query("moving_window_dir", moving_window_dir);
-	pp.query("moving_window_v", moving_window_v);
+	if (do_moving_window) {
+	  pp.get("moving_window_v", moving_window_v);
+	}
 
 	moving_window_x = geom[0].ProbLo(moving_window_dir);
 	moving_window_v = 0.0;
@@ -203,6 +205,33 @@ WarpX::FillBoundary (MultiFab& mf, const Geometry& geom, const IntVect& nodalfla
 	mf[mfi].copy(tmpmf[mfi]);
 	tmpfab.SetBoxType(correct_typ);
     }
+}
+
+void 
+WarpX::shiftMF(MultiFab& mf, const Geometry& geom, int num_shift, 
+	       int dir, const IntVect& nodalflag) {
+
+  // create tmp copy with num_shift ghost cells
+  const BoxArray& ba = mf.boxArray();
+  MultiFab tmpmf(ba, mf.nComp(), std::abs(num_shift), Fab_allocate, nodalflag);
+  tmpmf.setVal(0.0);
+  MultiFab::Copy(tmpmf, mf, 0, 0, 1, 0);
+  tmpmf.FillBoundary(geom.periodicity());
+
+  const IndexType& dst_typ = mf.boxArray().ixType();
+  const IndexType& src_typ = tmpmf.boxArray().ixType();
+
+  // copy from tmpmf to mf using the shifted boxes
+  for (MFIter mfi(mf); mfi.isValid(); ++mfi ) {
+    const Box& dstBox = mfi.validbox();
+    Box srcBox = dstBox;
+    srcBox.shift(dir, num_shift);
+    mf[mfi].SetBoxType(src_typ);
+    mf[mfi].copy(tmpmf[mfi], srcBox, 0, dstBox, 0, 1);
+    mf[mfi].SetBoxType(dst_typ);
+  }
+
+  mf.FillBoundary(geom.periodicity());
 }
 
 void

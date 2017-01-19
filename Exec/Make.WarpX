@@ -48,11 +48,31 @@ else
   MY_LINK_LIBRARIES =
 endif
 
+pyinstall: libwarpx.a
+	@echo Making and installing python wrapper ...
+	LDFLAGS="$(MY_LINK_LIBRARIES)" python setup.py install
+	@echo SUCCESS
+
+pybuild: libwarpx.a
+	@echo Making python wrapper ...
+	LDFLAGS="$(MY_LINK_LIBRARIES)" python setup.py build
+	@echo SUCCESS
+
+libwarpx.a: $(objForExecs)
+	@echo Making static library $@ ...
+	$(SILENT) $(AR) -crv $@ $^
+	@echo SUCCESS
+
 libwarpx.so: $(objForExecs)
 	@echo Making dynamic library $@ ...
 	$(SILENT) $(CXX) $(SHARED_OPTION) -fPIC -o $@ $^ $(MY_LINK_LIBRARIES)
 	$(SILENT) $(RM) buildInfo.cpp
 	@echo SUCCESS
+
+clean::
+	$(SILENT) $(RM) -rf build
+	$(SILENT) $(RM) libwarpx.a
+	$(SILENT) $(RM) libwarpx.so
 
 else
 
@@ -61,9 +81,6 @@ all: $(executable)
 	@echo SUCCESS
 
 endif
-
-clean::
-	$(SILENT) $(RM) libwarpx.so
 
 buildInfo.cpp: 
 	$(BOXLIB_HOME)/Tools/C_scripts/makebuildinfo_C.py \

@@ -6,7 +6,7 @@
 #include <PlotFileUtil.H>
 
 #include <WarpXConst.H>
-#include <WarpXUtil.H>
+#include <WarpX.H>
 
 #include "movingWindow_F.H"
 
@@ -107,7 +107,7 @@ void testMovingWindow() {
     geom.ProbDomain(new_box);
 
     // shift the E Multifab
-    shiftMF(E, geom, num_shift, dir, IntVect::TheZeroVector());
+    WarpX::shiftMF(E, geom, num_shift, dir, IntVect::TheZeroVector());
 
   }
 }
