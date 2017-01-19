@@ -25,6 +25,26 @@ class IntVect
 {
     friend MPI_Datatype ParallelDescriptor::Mpi_typemap<IntVect>::type();
 public:
+
+    class shift_hasher {
+      public:
+      std::size_t operator()(const IntVect& vec) const {
+        std::size_t ret0 =0, ret1=0, ret2=0;
+        if(sizeof(size_t)==8){
+          ret2 = ((vec[2]<<16) & 0xFFFF0000);
+          ret2 = ret2<< 32;
+          ret1 = vec[1];
+          ret1 = ret1<<16;
+          ret0=  vec[0] & 0x0000FFFF;
+        }else if(sizeof(size_t)==4){
+          ret2 = ((vec[2]<<24) & 0xFF000000);
+          ret1 = (vec[1]<<16) & 0x00FFFF00;
+          ret0=  vec[0] & 0x000000FF;
+        }
+        return ret2 | ret1 | ret0;
+      }
+    };
+
     /**
     * \brief Construct an IntVect whose components are all zero.
     */
