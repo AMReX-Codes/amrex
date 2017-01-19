@@ -48,6 +48,10 @@ public:
     void AddNParticles (int n, const Real* x, const Real* y, const Real* z,
 			const Real* vx, const Real* vy, const Real* vz,
 			int nattr, const Real* attr, int uniqueparticles);
+
+    void ReadHeader (std::istream& is);
+
+    void WriteHeader (std::ostream& os) const;
    
 private:
 
@@ -92,9 +96,13 @@ public:
 
     std::unique_ptr<MultiFab> GetChargeDensity(int lev, bool local = false);
 
-    void Checkpoint (const std::string& dir, const std::string& name);
+    void Checkpoint (const std::string& dir, const std::string& name) const;
 
     void Restart (const std::string& dir, const std::string& name);
+
+    void ReadHeader (std::istream& is);
+
+    void WriteHeader (std::ostream& os) const;
 
     void Redistribute (bool where_called=false);
 

@@ -9,7 +9,13 @@
 namespace
 {
     const std::string level_prefix {"Level_"};
+}
+
+void
+WarpX::GotoNextLine (std::istream& is)
+{
     constexpr std::streamsize bl_ignore_max { 100000 };
+    is.ignore(bl_ignore_max, '\n');
 }
 
 void
@@ -90,6 +96,8 @@ WarpX::WriteCheckPointFile() const
 	    boxArray(lev).writeOn(HeaderFile);
 	    HeaderFile << '\n';
 	}
+
+	mypc->WriteHeader(HeaderFile);
     }
     
     WriteJobInfo(checkpointname);
@@ -143,7 +151,7 @@ WarpX::InitFromCheckpoint ()
 
 	int nlevs;
 	is >> nlevs;
-	is.ignore(bl_ignore_max, '\n');
+	GotoNextLine(is);
 	finest_level = nlevs-1;
 
 	std::getline(is, line);
@@ -192,7 +200,7 @@ WarpX::InitFromCheckpoint ()
 	}
 
 	is >> moving_window_x;
-	is.ignore(bl_ignore_max, '\n');
+	GotoNextLine(is);
 
 	Real prob_lo[BL_SPACEDIM];
 	std::getline(is, line);
@@ -219,10 +227,12 @@ WarpX::InitFromCheckpoint ()
 	for (int lev = 0; lev < nlevs; ++lev) {
 	    BoxArray ba;
 	    ba.readFrom(is);
-	    is.ignore(bl_ignore_max, '\n');
+	    GotoNextLine(is);
 	    DistributionMapping dm { ba, ParallelDescriptor::NProcs() };
 	    MakeNewLevel(lev, ba, dm);
 	}
+
+	mypc->ReadHeader(is);
     }
 
     // Initilize the field data
@@ -270,7 +280,6 @@ WarpX::InitFromCheckpoint ()
     // Initilize particles
     mypc->AllocData();
     mypc->Restart(restart_chkfile, "particle");
-    mypc->Redistribute(false);
 }
 
 

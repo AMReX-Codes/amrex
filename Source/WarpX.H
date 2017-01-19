@@ -37,6 +37,8 @@ public:
     static void shiftMF(MultiFab& mf, const Geometry& geom, int num_shift, 
 			int dir, const IntVect& nodalflag);
 
+    static void GotoNextLine (std::istream& is);
+
     // Algorithms
     static long current_deposition_algo;
     static long charge_deposition_algo;
