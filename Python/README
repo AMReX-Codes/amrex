@@ -1,10 +1,10 @@
 The initial python wrapped version. This has the minimal capability of allowing specification of the
 input parameters (i.e. the input file) in python, passing that into BoxLib and then running the time steps.
 
-Building it requires several steps (which will be cleaned up in the future). Go into the new Python directory and run make to build
-libwarpx.so. Then run "python setup.py install", which builds the wrapper and installs it. For this, you will need to have
-swig installed. (In the future, the swig generated wrapper could be put into the repo so swig wouldn't be needed.)
+To build it, run "make pyinstall" in the Python directory. You will need to have swig installed.
+(In the future, the swig generated wrapper could be put into the repo so swig wouldn't be needed.)
+This will compile the code, create the wrapper, and install the wrapper in the Python site-packages directory.
+There is also "make pybuild" will build the wrapper but not install it.
 
-There is a new input file input.py in tests/Langmuir which can run it. You will need to set either DYLD_LIBRARY_PATH (on mac) or
-LD_LIBRARY_PATH (on linux) to the path where the libwarpx.so (i.e. ../../warpx/Python). (This also will be fixed in the future.)
+There is a new input file input.py in tests/Langmuir which can run it.
 
