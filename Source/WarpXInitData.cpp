@@ -34,15 +34,18 @@ WarpX::InitFromScratch ()
     BL_ASSERT(max_level == 0);
 
     const Real time = 0.0;
-    
+
     // define coarse level BoxArray and DistributionMap
     {
 	finest_level = 0;
 
+	t_new[0] = time;
+	t_old[0] = time - 1.e200;
+    
 	const BoxArray& ba = MakeBaseGrids();
 	DistributionMapping dm(ba, ParallelDescriptor::NProcs());
 
-	MakeNewLevel(0, time, ba, dm);
+	MakeNewLevel(0, ba, dm);
 
 	InitLevelData(0);
     }

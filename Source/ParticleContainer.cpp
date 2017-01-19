@@ -491,6 +491,15 @@ MultiSpeciesContainer::Checkpoint (const std::string& dir, const std::string& na
 }
 
 void
+MultiSpeciesContainer::Restart (const std::string& dir, const std::string& name)
+{
+    for (int i = 0; i < nspecies; ++i) {
+	std::string namei = name + std::to_string(i);
+	species[i]->Restart(dir, namei);
+    }
+}
+
+void
 MultiSpeciesContainer::Redistribute (bool where_called)
 {
     for (auto& spec : species) {

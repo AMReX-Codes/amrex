@@ -94,6 +94,8 @@ public:
 
     void Checkpoint (const std::string& dir, const std::string& name);
 
+    void Restart (const std::string& dir, const std::string& name);
+
     void Redistribute (bool where_called=false);
 
 private:

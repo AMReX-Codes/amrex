@@ -58,11 +58,10 @@ private:
 
     void ReadParameters ();
 
-    void MakeNewLevel (int lev, Real time,
-		       const BoxArray& new_grids, const DistributionMapping& new_dmap);
+    void MakeNewLevel (int lev, const BoxArray& new_grids, const DistributionMapping& new_dmap);
 
     void InitFromScratch ();
-    void InitFromCheckpoint () {}
+    void InitFromCheckpoint ();
     void InitLevelData (int lev);
 
     void InitOpenbc ();

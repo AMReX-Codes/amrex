@@ -158,14 +158,10 @@ WarpX::ReadParameters ()
 }
 
 void
-WarpX::MakeNewLevel (int lev, Real time,
-		      const BoxArray& new_grids, const DistributionMapping& new_dmap)
+WarpX::MakeNewLevel (int lev, const BoxArray& new_grids, const DistributionMapping& new_dmap)
 {
     SetBoxArray(lev, new_grids);
     SetDistributionMap(lev, new_dmap);
-
-    t_new[lev] = time;
-    t_old[lev] = time - 1.e200;
 
     // PICSAR assumes all fields are nodal plus one ghost cell.
     const IntVect& nodalflag = IntVect::TheUnitVector();
