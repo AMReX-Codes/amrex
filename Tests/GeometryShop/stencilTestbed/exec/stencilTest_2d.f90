@@ -43,7 +43,7 @@ contains
              js = SIGN(1.d0, fd0(iface,j,3))
              jn = j + js
              f0 = fac0*(phi(iface,j ) - phi(iface-1,j ))
-             f1 = fac0*(phi(iface,jn) - phi(iface-1,jn))*js
+             f1 = fac0*(phi(iface,jn) - phi(iface-1,jn))
              c0 = ABS(fd0(iface,j,3))
              Fx(ii) = (f0*(1.d0 - c0) + f1*c0)*fd0(iface,j,1)
           enddo
@@ -53,7 +53,7 @@ contains
              is = SIGN(1.d0, fd1(i,jface,2))
              in = i + is
              f0 = fac1*(phi(i ,jface) - phi(i ,jface-1))
-             f1 = fac1*(phi(in,jface) - phi(in,jface-1))*is
+             f1 = fac1*(phi(in,jface) - phi(in,jface-1))
              c0 = ABS(fd1(i,jface,2))
              Fy(jj) = (f0*(1.d0 - c0) + f1*c0)*fd1(i,jface,1)
           enddo
