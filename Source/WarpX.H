@@ -50,6 +50,8 @@ public:
     static long noy;
     static long noz;
 
+    static bool use_laser;
+
 protected:
     virtual void ErrorEst (int lev, TagBoxArray& tags, Real time, int /*ngrow*/) override {}
 

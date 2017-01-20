@@ -5,7 +5,6 @@
 #include <WarpX_f.H>
 #include <WarpX.H>
 
-int      MultiSpeciesContainer::nspecies  = 1;
 bool    SingleSpeciesContainer::do_tiling = 0;
 IntVect SingleSpeciesContainer::tile_size   { D_DECL(1024000,8,8) };
 
@@ -50,16 +49,17 @@ SingleSpeciesContainer::AllocData ()
 
 MultiSpeciesContainer::MultiSpeciesContainer (AmrCore* amr_core)
 {
-    ReadStaticParameters();
-
-    species.resize(nspecies);
-    for (int i = 0; i < nspecies; ++i) {
-	species[i].reset(new SingleSpeciesContainer(amr_core, i));
+    ReadParameters();
+   
+    int n = WarpX::use_laser ? nspecies+1 : nspecies;
+    allspecies.resize(n);
+    for (int i = 0; i < n; ++i) {
+	allspecies[i].reset(new SingleSpeciesContainer(amr_core, i));
     }
 }
 
 void
-MultiSpeciesContainer::ReadStaticParameters ()
+MultiSpeciesContainer::ReadParameters ()
 {
     static bool initialized = false;
     if (!initialized)
@@ -83,7 +83,7 @@ MultiSpeciesContainer::ReadStaticParameters ()
 void
 MultiSpeciesContainer::AllocData ()
 {
-    for (auto& spec : species) {
+    for (auto& spec : allspecies) {
 	spec->AllocData();
     }
 }
@@ -91,7 +91,7 @@ MultiSpeciesContainer::AllocData ()
 void
 MultiSpeciesContainer::InitData ()
 {
-    for (auto& spec : species) {
+    for (auto& spec : allspecies) {
 	spec->InitData();
     }
 }
@@ -106,11 +106,11 @@ MultiSpeciesContainer::Evolve (int lev,
     jy.setVal(0.0);
     jz.setVal(0.0);
 
-    for (auto& spec : species) {
+    for (auto& spec : allspecies) {
 	spec->Evolve(lev, Ex, Ey, Ez, Bx, By, Bz, jx, jy, jz, dt);
     }    
 
-    const Geometry& gm = species[0]->m_gdb->Geom(lev);
+    const Geometry& gm = allspecies[0]->m_gdb->Geom(lev);
     jx.SumBoundary(gm.periodicity());
     jy.SumBoundary(gm.periodicity());
     jz.SumBoundary(gm.periodicity());
@@ -312,13 +312,13 @@ SingleSpeciesContainer::Evolve (int lev,
 std::unique_ptr<MultiFab>
 MultiSpeciesContainer::GetChargeDensity (int lev, bool local)
 {
-    std::unique_ptr<MultiFab> rho = species[0]->GetChargeDensity(lev, true);
+    std::unique_ptr<MultiFab> rho = allspecies[0]->GetChargeDensity(lev, true);
     for (int i = 1; i < nspecies; ++i) {
-	std::unique_ptr<MultiFab> rhoi = species[i]->GetChargeDensity(lev, true);
+	std::unique_ptr<MultiFab> rhoi = allspecies[i]->GetChargeDensity(lev, true);
 	MultiFab::Add(*rho, *rhoi, 0, 0, 1, rho->nGrow());
     }
     if (!local) {
-	const Geometry& gm = species[0]->m_gdb->Geom(lev);
+	const Geometry& gm = allspecies[0]->m_gdb->Geom(lev);
 	rho->SumBoundary(gm.periodicity());
     }
 }
@@ -484,7 +484,7 @@ SingleSpeciesContainer::AddNParticles (int n, const Real* x, const Real* y, cons
 void
 MultiSpeciesContainer::Redistribute (bool where_called)
 {
-    for (auto& spec : species) {
+    for (auto& spec : allspecies) {
 	spec->Redistribute(where_called,true);
     }
 }

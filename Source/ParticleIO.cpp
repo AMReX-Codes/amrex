@@ -5,34 +5,34 @@
 void
 MultiSpeciesContainer::Checkpoint (const std::string& dir, const std::string& name) const
 {
-    for (int i = 0; i < nspecies; ++i) {
+    for (unsigned i = 0, n = allspecies.size(); i < n; ++i) {
 	std::string namei = name + std::to_string(i);
-	species[i]->Checkpoint(dir, namei);
+	allspecies[i]->Checkpoint(dir, namei);
     }
 }
 
 void
 MultiSpeciesContainer::Restart (const std::string& dir, const std::string& name)
 {
-    for (int i = 0; i < nspecies; ++i) {
+    for (unsigned i = 0, n = allspecies.size(); i < n; ++i) {
 	std::string namei = name + std::to_string(i);
-	species[i]->Restart(dir, namei);
+	allspecies[i]->Restart(dir, namei);
     }
 }
 
 void
 MultiSpeciesContainer::ReadHeader (std::istream& is) 
 {
-    for (int i = 0; i < nspecies; ++i) {
-	species[i]->ReadHeader(is);
+    for (auto& spec : allspecies) {
+	spec->ReadHeader(is);
     }
 }
 
 void
 MultiSpeciesContainer::WriteHeader (std::ostream& os) const
 {
-    for (int i = 0; i < nspecies; ++i) {
-	species[i]->WriteHeader(os);
+    for (const auto& spec : allspecies) {
+	spec->WriteHeader(os);
     }
 }
 

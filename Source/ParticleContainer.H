@@ -82,7 +82,7 @@ public:
     virtual ~MultiSpeciesContainer() {}
 
     SingleSpeciesContainer& GetSingleSpeciesContainer (int ispecies) {
-	return *species[ispecies];
+	return *allspecies[ispecies];
     }
 
     void AllocData ();
@@ -108,13 +108,12 @@ public:
 
 private:
 
-    Array<std::unique_ptr<SingleSpeciesContainer> > species;
+    // physical particles (+ laser)
+    Array<std::unique_ptr<SingleSpeciesContainer> > allspecies;
 
-    static void ReadStaticParameters ();
+    void ReadParameters ();
 
     // runtime parameters
-    static bool do_tiling;
-    static IntVect tile_size;
-    static int nspecies;
+    int nspecies;   // physical particles only. If WarpX::use_laser, nspecies+1 == allspecies.size().
 };
 #endif /*_ParticleContainer_H_*/
