@@ -148,7 +148,7 @@ def runcommand(command):
 def get_git_hash(d):
     cwd = os.getcwd()
     os.chdir(d)
-    try: hash = runcommand("git rev-parse HEAD")
+    try: hash = runcommand("git describe --tags --dirty")
     except: hash = ""
     os.chdir(cwd)
     return hash
