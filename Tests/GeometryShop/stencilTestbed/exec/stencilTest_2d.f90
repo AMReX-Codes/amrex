@@ -14,14 +14,12 @@ contains
        phi,phi_l1,phi_l2,phi_h1,phi_h2, &
        fd0,fd0_l1,fd0_l2,fd0_h1,fd0_h2, &
        fd1,fd1_l1,fd1_l2,fd1_h1,fd1_h2, &
-       vd,vd_l1,vd_l2,vd_h1,vd_h2, &
        lo, hi, dx) bind(C,name="lapleb_MSD")
 
     integer, intent(in) :: lph_l1,lph_l2,lph_h1,lph_h2
     integer, intent(in) :: phi_l1,phi_l2,phi_h1,phi_h2
     integer, intent(in) :: fd0_l1,fd0_l2,fd0_h1,fd0_h2
     integer, intent(in) :: fd1_l1,fd1_l2,fd1_h1,fd1_h2
-    integer, intent(in) :: vd_l1,vd_l2,vd_h1,vd_h2
 
     integer, intent(in) :: lo(2),hi(2)
 
@@ -29,7 +27,6 @@ contains
     double precision, intent(in   ) :: phi(phi_l1:phi_h1,phi_l2:phi_h2)
     double precision, intent(in   ) :: fd0(fd0_l1:fd0_h1,fd0_l2:fd0_h2,3)
     double precision, intent(in   ) :: fd1(fd1_l1:fd1_h1,fd1_l2:fd1_h2,3)
-    double precision, intent(in   ) :: vd(vd_l1:vd_h1,vd_l2:vd_h2)
     double precision, intent(in   ) :: dx(2)
 
     integer :: i,j,ip,im,jp,jm, in, jn, ii, jj, iface, jface
@@ -65,7 +62,7 @@ contains
              Fy(jj) = (f(0)*(1.d0 - cent) + f(in)*cent)*fd1(i,jface,1)
           enddo
 
-          lph(i,j) = (Fx(1) - Fx(0) + Fy(1) - Fy(0))/vd(i,j)
+          lph(i,j) = Fx(1) - Fx(0) + Fy(1) - Fy(0)
 
        enddo
     enddo

@@ -46,18 +46,18 @@ void getRegularStencil(VoFStencil           & a_stencil,
   a_stencil.clear();
   Real dxinvsq = 1.0/a_dx/a_dx;
   for(int idir = 0; idir < SpaceDim; idir++)
+  {
+    IntVect ivlo = a_iv - BASISV(idir); 
+    IntVect ivhi = a_iv + BASISV(idir); 
+    if(a_domain.contains(ivlo))
     {
-      IntVect ivlo = a_iv - BASISV(idir); 
-      IntVect ivhi = a_iv + BASISV(idir); 
-      if(a_domain.contains(ivlo))
-        {
-          a_stencil.add(VolIndex(ivlo, 0), dxinvsq);
-        }
-      if(a_domain.contains(ivhi))
-        {
-          a_stencil.add(VolIndex(ivhi, 0), dxinvsq);
-        }
+      a_stencil.add(VolIndex(ivlo, 0), dxinvsq);
     }
+    if(a_domain.contains(ivhi))
+    {
+      a_stencil.add(VolIndex(ivhi, 0), dxinvsq);
+    }
+  }
   a_stencil.add(VolIndex(a_iv, 0), -2*SpaceDim*dxinvsq);
 }
 
@@ -78,23 +78,23 @@ void getFluxStencil(VoFStencil           & a_stencil,
 
   a_stencil.clear();
   for (int isten = 0; isten < interpSten.size(); isten++)
+  {
+    const FaceIndex& face = interpSten.face(isten);
+    const Real&    weight = interpSten.weight(isten);
+    VoFStencil faceCentSten;
+    if(!face.isBoundary())
     {
-      const FaceIndex& face = interpSten.face(isten);
-      const Real&    weight = interpSten.weight(isten);
-      VoFStencil faceCentSten;
-      if(!face.isBoundary())
-        {
           
-          faceCentSten.add(face.getVoF(Side::Hi),  1.0/a_dx, 0);
-          faceCentSten.add(face.getVoF(Side::Lo), -1.0/a_dx, 0);
-        }
-      else
-        {
-          //no flux at boundaries for this test
-        }
-      faceCentSten *= weight;
-      a_stencil += faceCentSten;
+      faceCentSten.add(face.getVoF(Side::Hi),  1.0/a_dx, 0);
+      faceCentSten.add(face.getVoF(Side::Lo), -1.0/a_dx, 0);
     }
+    else
+    {
+      //no flux at boundaries for this test
+    }
+    faceCentSten *= weight;
+    a_stencil += faceCentSten;
+  }
 
 }
 ////////////
@@ -108,26 +108,26 @@ void getIrregularStencil(VoFStencil           & a_stencil,
   a_stencil.clear();
   const IntVect& iv = a_node.m_cell;
   for (int idir = 0; idir < SpaceDim; idir++)
+  {
+    for (SideIterator sit; sit.ok(); ++sit)
     {
-      for (SideIterator sit; sit.ok(); ++sit)
-        {
-          int index = IrregNode::index(idir, sit());
-          const std::vector<int>& arcs = a_node.m_arc[index];
-          //this checks for both boundary faces and covered cells
-          if((arcs.size() > 0) && (arcs[0] >= 0))
-            {
-              int isign = sign(sit());
-              //assuming no multi-valued stuff here
-              IntVect ivneigh = iv + isign*BASISV(idir);
-              FaceIndex face(VolIndex(iv, 0), VolIndex(ivneigh, 0));
-              VoFStencil fluxStencil;
-              getFluxStencil(fluxStencil, face, a_node, index, a_regIrregCovered, a_domain, a_dx);
-              Real areaFrac = a_node.m_areaFrac[index][0];
-              fluxStencil *= Real(isign)*areaFrac/a_dx;
-              a_stencil += fluxStencil;
-            }
-        }
+      int index = IrregNode::index(idir, sit());
+      const std::vector<int>& arcs = a_node.m_arc[index];
+      //this checks for both boundary faces and covered cells
+      if((arcs.size() > 0) && (arcs[0] >= 0))
+      {
+        int isign = sign(sit());
+        //assuming no multi-valued stuff here
+        IntVect ivneigh = iv + isign*BASISV(idir);
+        FaceIndex face(VolIndex(iv, 0), VolIndex(ivneigh, 0));
+        VoFStencil fluxStencil;
+        getFluxStencil(fluxStencil, face, a_node, index, a_regIrregCovered, a_domain, a_dx);
+        Real areaFrac = a_node.m_areaFrac[index][0];
+        fluxStencil *= Real(isign)*areaFrac/a_dx;
+        a_stencil += fluxStencil;
+      }
     }
+  }
 }
 ////////////
 void 
@@ -139,7 +139,7 @@ defineGeometry(BaseFab<int>           & a_regIrregCovered,
                const Real             & a_dx)
 {
   //inside regular tells whether domain is inside or outside the sphere
-    //bool insideRegular = true;
+  //bool insideRegular = true;
   bool insideRegular = false;
   SphereIF sphere(a_radius, a_center, insideRegular);
   int verbosity = 0;
@@ -163,50 +163,50 @@ void getStencils(BaseFab<VoFStencil>          & a_stencil,
 {
   a_stencil.resize(a_domain, 1);
   for(BoxIterator boxit(a_domain); boxit.ok(); ++boxit)
+  {
+    const IntVect& iv = boxit();
+    VoFStencil pointSten;
+    if(a_regIrregCovered(iv, 0) == 1)
     {
-      const IntVect& iv = boxit();
-      VoFStencil pointSten;
-      if(a_regIrregCovered(iv, 0) == 1)
-        {
-          //regular cells are set to 1
-          getRegularStencil(pointSten, iv, a_domain, a_dx);
-        }
-      else if (a_regIrregCovered(iv, 0) == -1)
-        {
-          //coveredCells do not get a stencil
-        }
-      else if(a_regIrregCovered(iv, 0) == 0)
-        {
-          //remaining cells are irregular--doing those separately.
-        }
-      else
-        {
-          Abort("bogus value in regirregcovered");
-        }
-      a_stencil(iv, 0) = pointSten;
+      //regular cells are set to 1
+      getRegularStencil(pointSten, iv, a_domain, a_dx);
     }
+    else if (a_regIrregCovered(iv, 0) == -1)
+    {
+      //coveredCells do not get a stencil
+    }
+    else if(a_regIrregCovered(iv, 0) == 0)
+    {
+      //remaining cells are irregular--doing those separately.
+    }
+    else
+    {
+      Abort("bogus value in regirregcovered");
+    }
+    a_stencil(iv, 0) = pointSten;
+  }
 
   for(int ivec = 0; ivec < a_nodes.size(); ivec++)
+  {
+    const IntVect& iv = a_nodes[ivec].m_cell;
+    if(a_regIrregCovered(iv, 0) != 0)
     {
-      const IntVect& iv = a_nodes[ivec].m_cell;
-      if(a_regIrregCovered(iv, 0) != 0)
-        {
-          Abort("regirregcovered and nodes inconsistent");
-        }
-      VoFStencil pointSten;
-      getIrregularStencil(pointSten, a_nodes[ivec], a_regIrregCovered, a_domain, a_dx);
-
-      a_stencil(iv, 0) = pointSten;
+      Abort("regirregcovered and nodes inconsistent");
     }
+    VoFStencil pointSten;
+    getIrregularStencil(pointSten, a_nodes[ivec], a_regIrregCovered, a_domain, a_dx);
+
+    a_stencil(iv, 0) = pointSten;
+  }
 }
 
 struct FaceData
 {
-    FaceData(const RealVect& a_centroid,
-	     Real            a_aperature) : m_centroid(a_centroid), m_aperature(a_aperature) {}
-    FaceData() {}
-    RealVect m_centroid;
-    Real m_aperature;
+  FaceData(const RealVect& a_centroid,
+           Real            a_aperature) : m_centroid(a_centroid), m_aperature(a_aperature) {}
+  FaceData() {}
+  RealVect m_centroid;
+  Real m_aperature;
 };
 
 void
@@ -218,97 +218,98 @@ applyStencilAllFortran(EBCellFAB                       & a_dst,
 		       const Box                       & a_domain,
 		       Real*                             a_dx)
 {
-    BoxArray ba(a_domain);
-    DistributionMapping dm(ba);
-    MultiFab srcMF(ba,dm,1,1);
-    IntVect tilesize(D_DECL(10240,8,32));
+  BoxArray ba(a_domain);
+  DistributionMapping dm(ba);
+  MultiFab srcMF(ba,dm,1,1);
+  IntVect tilesize(D_DECL(10240,8,32));
 
-    BL_PROFILE_VAR_NS("fortran only prep",fp);
-    BL_PROFILE_VAR_NS("fortran only eb",feb);
-    BL_PROFILE_VAR_NS("fortran only reg",fr);
+  BL_PROFILE_VAR_NS("fortran only prep",fp);
+  BL_PROFILE_VAR_NS("fortran only eb",feb);
+  BL_PROFILE_VAR_NS("fortran only reg",fr);
       
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for (MFIter mfi(srcMF,tilesize); mfi.isValid(); ++mfi) {
-	const Box& tbx = mfi.tilebox();
+  for (MFIter mfi(srcMF,tilesize); mfi.isValid(); ++mfi)
+  {
+    const Box& tbx = mfi.tilebox();
 
-	BL_PROFILE_VAR_START(fp);
-	const Box& ovlp = tbx & srcMF.boxArray()[mfi.index()];
-	if (ovlp.ok()) {
-	    srcMF[mfi].copy(a_src);
-	}
-
-	// Find all partial faces in this tile
-	std::vector<std::map<IntVect,FaceData> > faceData(SpaceDim);
-	bool tile_has_irreg_work = false;
-	for (int idir = 0; idir < SpaceDim; idir++) {
-	    for (int n=0; n<a_nodes.size(); ++n) {
-		const IrregNode& node = a_nodes[n];
-		const IntVect& iv = node.m_cell;
-		if (tbx.contains(iv)) {
-		    for (SideIterator sit; sit.ok(); ++sit) {
-			int index = IrregNode::index(idir, sit());
-			const std::vector<int>& arcs = node.m_arc[index];
-
-			//this excludes boundary and covered faces, as well as those with aperature = 1
-			if((arcs.size() > 0) && (arcs[0] >= 0) && (node.m_areaFrac[index][0] < 1)) {
-			    int isign = sign(sit());
-			    IntVect ivface = isign < 0 ? iv : iv + BASISV(idir);
-			    faceData[idir][ivface] = FaceData(node.m_faceCentroid[index][0],node.m_areaFrac[index][0]);
-			    tile_has_irreg_work = true;
-			}
-		    }
-		}
-	    }
-	}
-	BL_PROFILE_VAR_STOP(fp);
-
-	if (tile_has_irreg_work) {
-	    BL_PROFILE_VAR_START(fp);
-	    FArrayBox fd[BL_SPACEDIM];
-	    for (int idir = 0; idir < SpaceDim; idir++) {
-		fd[idir].resize(amrex::surroundingNodes(tbx,idir),SpaceDim+1); // comps: aperature, centroid[0], centroid[1]
-		fd[idir].setVal(0);
-		fd[idir].setVal(1,0);
-
-		for (std::map<IntVect,FaceData>::const_iterator it=faceData[idir].begin(); it!=faceData[idir].end(); ++it) {
-		    fd[idir](it->first,0) = it->second.m_aperature;
-		    for (int idir1 = 0; idir1 < SpaceDim; ++idir1) {
-			fd[idir](it->first,idir1+1) = it->second.m_centroid[idir1];
-		    }
-		}
-	    }
-	    FArrayBox vd(tbx,1);
-	    vd.setVal(1);
-	    for (int n=0; n<a_nodes.size(); ++n) {
-		const IrregNode& node = a_nodes[n];
-		const IntVect& iv = node.m_cell;
-		if (tbx.contains(iv)) {
-		    vd(iv,0) = node.m_volFrac;
-		}
-	    }
-	    BL_PROFILE_VAR_STOP(fp);
-
-	    BL_PROFILE_VAR_START(feb);
-	    lapleb_MSD(BL_TO_FORTRAN_N(a_dst,0), 
-		       BL_TO_FORTRAN_N(a_src,0),
-		       D_DECL(BL_TO_FORTRAN_N(fd[0],0),
-			      BL_TO_FORTRAN_N(fd[1],0),
-			      BL_TO_FORTRAN_N(fd[2],0)),
-		       BL_TO_FORTRAN_N(vd,0),
-		       tbx.loVect(), tbx.hiVect(), &(a_dx[0]));
-	    BL_PROFILE_VAR_STOP(feb);
-	}
-	else
-	{
-	    BL_PROFILE_VAR_START(fr);
-	    lapl_MSD(BL_TO_FORTRAN_N(a_dst,0), 
-		     BL_TO_FORTRAN_N(a_src,0),
-		     tbx.loVect(), tbx.hiVect(), &(a_dx[0]));
-	    BL_PROFILE_VAR_STOP(fr);
-	}
+    BL_PROFILE_VAR_START(fp);
+    const Box& ovlp = tbx & srcMF.boxArray()[mfi.index()];
+    if (ovlp.ok())
+    {
+      srcMF[mfi].copy(a_src);
     }
+
+    // Find all partial faces in this tile
+    std::vector<std::map<IntVect,FaceData> > faceData(SpaceDim);
+    bool tile_has_irreg_work = false;
+    for (int idir = 0; idir < SpaceDim; idir++)
+    {
+      for (int n=0; n<a_nodes.size(); ++n)
+      {
+        const IrregNode& node = a_nodes[n];
+        const IntVect& iv = node.m_cell;
+        if (tbx.contains(iv))
+        {
+          for (SideIterator sit; sit.ok(); ++sit)
+          {
+            int index = IrregNode::index(idir, sit());
+            const std::vector<int>& arcs = node.m_arc[index];
+
+            //this excludes boundary and covered faces, as well as those with aperature = 1
+            if((arcs.size() > 0) && (arcs[0] >= 0) && (node.m_areaFrac[index][0] < 1))
+            {
+              int isign = sign(sit());
+              IntVect ivface = isign < 0 ? iv : iv + BASISV(idir);
+              faceData[idir][ivface] = FaceData(node.m_faceCentroid[index][0],node.m_areaFrac[index][0]);
+              tile_has_irreg_work = true;
+            }
+          }
+        }
+      }
+    }
+    BL_PROFILE_VAR_STOP(fp);
+
+    if (tile_has_irreg_work)
+    {
+      BL_PROFILE_VAR_START(fp);
+      FArrayBox fd[BL_SPACEDIM];
+      for (int idir = 0; idir < SpaceDim; idir++)
+      {
+        fd[idir].resize(amrex::surroundingNodes(tbx,idir),SpaceDim+1); // comps: aperature, centroid[0], centroid[1]
+        fd[idir].setVal(0);
+        fd[idir].setVal(1,0);
+
+        for (std::map<IntVect,FaceData>::const_iterator it=faceData[idir].begin(); it!=faceData[idir].end(); ++it)
+        {
+          fd[idir](it->first,0) = it->second.m_aperature;
+          for (int idir1 = 0; idir1 < SpaceDim; ++idir1)
+          {
+            fd[idir](it->first,idir1+1) = it->second.m_centroid[idir1];
+          }
+        }
+      }
+      BL_PROFILE_VAR_STOP(fp);
+
+      BL_PROFILE_VAR_START(feb);
+      lapleb_MSD(BL_TO_FORTRAN_N(a_dst,0), 
+                 BL_TO_FORTRAN_N(a_src,0),
+                 D_DECL(BL_TO_FORTRAN_N(fd[0],0),
+                        BL_TO_FORTRAN_N(fd[1],0),
+                        BL_TO_FORTRAN_N(fd[2],0)),
+                 tbx.loVect(), tbx.hiVect(), &(a_dx[0]));
+      BL_PROFILE_VAR_STOP(feb);
+    }
+    else
+    {
+      BL_PROFILE_VAR_START(fr);
+      lapl_MSD(BL_TO_FORTRAN_N(a_dst,0), 
+               BL_TO_FORTRAN_N(a_src,0),
+               tbx.loVect(), tbx.hiVect(), &(a_dx[0]));
+      BL_PROFILE_VAR_STOP(fr);
+    }
+  }
 }
 
 int testStuff()
@@ -328,9 +329,9 @@ int testStuff()
   IntVect ivlo = IntVect::TheZeroVector();
   IntVect ivhi;
   for(int idir = 0; idir < SpaceDim; idir++)
-    {
-      ivhi[idir] = ncellsvec[idir] - 1;
-    }
+  {
+    ivhi[idir] = ncellsvec[idir] - 1;
+  }
 
   Box domain(ivlo, ivhi);
 
@@ -340,9 +341,9 @@ int testStuff()
   std::vector<IrregNode>  nodes;
   RealVect center;
   for(int idir = 0; idir < SpaceDim; idir++)
-    {
-      center[idir] = centervec[idir];
-    }
+  {
+    center[idir] = centervec[idir];
+  }
 
   amrex::Print() << "Define geometry\n";
   BL_PROFILE_VAR("define_geometry",dg);
@@ -398,14 +399,14 @@ main(int argc,char **argv)
     int eekflag = testStuff();
 
     if (eekflag != 0)
-      {
-        cout << "non zero eek detected = " << eekflag << endl;
-        cout << "sphere test failed" << endl;
-      }
+    {
+      cout << "non zero eek detected = " << eekflag << endl;
+      cout << "sphere test failed" << endl;
+    }
     else
-      {
-        cout << "stencil test passed" << endl;
-      }
+    {
+      cout << "stencil test passed" << endl;
+    }
 
     BL_PROFILE_VAR_STOP(pmain);
   }
