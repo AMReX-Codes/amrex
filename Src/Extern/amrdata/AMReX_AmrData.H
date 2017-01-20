@@ -76,6 +76,14 @@ class AmrData {
     }
   }
   
+  const DistributionMapping& DistributionMap (int level) const {
+      if(fileType == Amrvis::FAB || (fileType == Amrvis::MULTIFAB && level == 0)) {
+	  return dataGrids[0][0]->DistributionMap();
+      } else {
+	  return dataGrids[level][0]->DistributionMap();      
+      }
+  }
+
   // limits of interior region of computational domain at each level
   const Array<Box> &ProbDomain() const { return probDomain; }
   // physical size of computational domain
