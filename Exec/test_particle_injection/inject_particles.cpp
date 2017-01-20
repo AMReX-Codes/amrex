@@ -19,7 +19,7 @@ void inject_particles ()
     int nattr = 1;
     int uniqueparticles = 1;
 
-    addNParticles(x.size(), x.data(), y.data(), z.data(), vx.data(), vy.data(), vz.data(),
+    addNParticles(0, x.size(), x.data(), y.data(), z.data(), vx.data(), vy.data(), vz.data(),
 		  nattr, w.data(), uniqueparticles);
 }
 

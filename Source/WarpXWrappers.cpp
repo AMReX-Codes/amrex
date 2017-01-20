@@ -42,7 +42,7 @@ extern "C"
     void addNParticles(int speciesnumber, int lenx, double* x, double* y, double* z, double* vx, double* vy, double* vz, int nattr, double* attr, int uniqueparticles)
     {
 	auto & mypc = WarpX::GetInstance().GetPartContainer();
-	auto & myspc = mypc.GetSingleSpeciesContainer(speciesnumber);
+	auto & myspc = mypc.GetParticleContainer(speciesnumber);
 	myspc.AddNParticles(lenx, x, y, z, vx, vy, vz, nattr, attr, uniqueparticles);
     }
 }

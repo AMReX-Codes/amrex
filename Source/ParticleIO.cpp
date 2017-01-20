@@ -3,51 +3,50 @@
 #include <WarpX.H>
 
 void
-MultiSpeciesContainer::Checkpoint (const std::string& dir, const std::string& name) const
-{
-    for (int i = 0; i < nspecies; ++i) {
-	std::string namei = name + std::to_string(i);
-	species[i]->Checkpoint(dir, namei);
-    }
-}
-
-void
-MultiSpeciesContainer::Restart (const std::string& dir, const std::string& name)
-{
-    for (int i = 0; i < nspecies; ++i) {
-	std::string namei = name + std::to_string(i);
-	species[i]->Restart(dir, namei);
-    }
-}
-
-void
-MultiSpeciesContainer::ReadHeader (std::istream& is) 
-{
-    for (int i = 0; i < nspecies; ++i) {
-	species[i]->ReadHeader(is);
-    }
-}
-
-void
-MultiSpeciesContainer::WriteHeader (std::ostream& os) const
-{
-    for (int i = 0; i < nspecies; ++i) {
-	species[i]->WriteHeader(os);
-    }
-}
-
-void
-SingleSpeciesContainer::ReadHeader (std::istream& is)
+WarpXParticleContainer::ReadHeader (std::istream& is)
 {
     is >> charge >> mass;
     WarpX::GotoNextLine(is);
 }
 
 void
-SingleSpeciesContainer::WriteHeader (std::ostream& os) const
+WarpXParticleContainer::WriteHeader (std::ostream& os) const
 {
     // no need to write species_id
     os << charge << " " << mass << "\n";
 }
 
+void
+MultiParticleContainer::Checkpoint (const std::string& dir, const std::string& name) const
+{
+    for (unsigned i = 0, n = allcontainers.size(); i < n; ++i) {
+	std::string namei = name + std::to_string(i);
+	allcontainers[i]->Checkpoint(dir, namei);
+    }
+}
+
+void
+MultiParticleContainer::Restart (const std::string& dir, const std::string& name)
+{
+    for (unsigned i = 0, n = allcontainers.size(); i < n; ++i) {
+	std::string namei = name + std::to_string(i);
+	allcontainers[i]->Restart(dir, namei);
+    }
+}
+
+void
+MultiParticleContainer::ReadHeader (std::istream& is) 
+{
+    for (auto& pc : allcontainers) {
+	pc->ReadHeader(is);
+    }
+}
+
+void
+MultiParticleContainer::WriteHeader (std::ostream& os) const
+{
+    for (const auto& pc : allcontainers) {
+	pc->WriteHeader(os);
+    }
+}
 
