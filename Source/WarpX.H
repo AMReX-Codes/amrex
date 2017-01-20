@@ -75,6 +75,7 @@ private:
 
     void MoveWindow ();
 
+    void WriteWarpXHeader(const std::string& name) const;
     void WriteCheckPointFile() const;
     void WritePlotFile () const;
     void WriteJobInfo (const std::string& dir) const;
