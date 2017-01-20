@@ -50,3 +50,4 @@ warpx.init()
 warpx.evolve(max_step)
 warpx.finalize()
 
+boxlib.finalize()
