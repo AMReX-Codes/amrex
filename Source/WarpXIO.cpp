@@ -19,25 +19,10 @@ WarpX::GotoNextLine (std::istream& is)
 }
 
 void
-WarpX::WriteCheckPointFile() const
-{
-    BL_PROFILE("WarpX::WriteCheckPointFile()");
-
-    const std::string& checkpointname = BoxLib::Concatenate(check_file,istep[0]);
-
-    if (ParallelDescriptor::IOProcessor()) {
-	std::cout << "  Writing checkpoint " << checkpointname << std::endl;
-    }
-
-    const int checkpoint_nfiles = 64;  // could make this parameter
-    VisMF::SetNOutFiles(checkpoint_nfiles);
-    
-    const int nlevels = finestLevel()+1;
-    BoxLib::PreBuildDirectorHierarchy(checkpointname, level_prefix, nlevels, true);
-
-    if (ParallelDescriptor::IOProcessor())
+WarpX::WriteWarpXHeader(const std::string& name) const {
+   if (ParallelDescriptor::IOProcessor())
     {
-	std::string HeaderFileName(checkpointname + "/WarpXHeader");
+	std::string HeaderFileName(name + "/WarpXHeader");
 	std::ofstream HeaderFile(HeaderFileName.c_str(), std::ofstream::out   |
 				                         std::ofstream::trunc |
 				                         std::ofstream::binary);
@@ -52,6 +37,7 @@ WarpX::WriteCheckPointFile() const
 
 	HeaderFile << "Checkpoint version: 1\n";
 
+	const int nlevels = finestLevel()+1;
 	HeaderFile << nlevels << "\n";
 
 	for (int i = 0; i < istep.size(); ++i) {
@@ -99,6 +85,26 @@ WarpX::WriteCheckPointFile() const
 
 	mypc->WriteHeader(HeaderFile);
     }
+}
+
+void
+WarpX::WriteCheckPointFile() const
+{
+    BL_PROFILE("WarpX::WriteCheckPointFile()");
+
+    const std::string& checkpointname = BoxLib::Concatenate(check_file,istep[0]);
+
+    if (ParallelDescriptor::IOProcessor()) {
+	std::cout << "  Writing checkpoint " << checkpointname << std::endl;
+    }
+
+    const int checkpoint_nfiles = 64;  // could make this parameter
+    VisMF::SetNOutFiles(checkpoint_nfiles);
+    
+    const int nlevels = finestLevel()+1;
+    BoxLib::PreBuildDirectorHierarchy(checkpointname, level_prefix, nlevels, true);
+
+    WriteWarpXHeader(checkpointname);
     
     WriteJobInfo(checkpointname);
 
@@ -235,7 +241,7 @@ WarpX::InitFromCheckpoint ()
 	mypc->ReadHeader(is);
     }
 
-    // Initilize the field data
+    // Initialize the field data
     for (int lev = 0, nlevs=finestLevel()+1; lev < nlevs; ++lev)
     {
 	for (int i = 0; i < 3; ++i) {
@@ -343,6 +349,8 @@ WarpX::WritePlotFile () const
     mypc->Checkpoint(plotfilename, "particle");
 
     WriteJobInfo(plotfilename);
+
+    WriteWarpXHeader(plotfilename);
 }
 
 void
