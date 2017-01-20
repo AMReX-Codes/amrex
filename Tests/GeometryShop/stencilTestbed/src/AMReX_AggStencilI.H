@@ -69,6 +69,7 @@ namespace amrex
   {
 
     BL_PROFILE("AggSten::apply");
+    int count = 0;
     const int numtypelph = a_lph.numDataTypes();
     const int numtypephi = a_phi.numDataTypes();
     std::vector<Real*>       dataPtrsLph(numtypelph);
@@ -103,9 +104,11 @@ namespace amrex
                 const int & dataID = ebstencil[isten].first.dataID;
                 const Real& phiVal = *(dataPtrsPhi[dataID] + offset);
                 lphi += phiVal*weight;
+                count++;
               }
           }
       }
+    std::cout << "count in aggsten = " << count << std::endl;
   }
 
   template <class srcData_t, class dstData_t>
