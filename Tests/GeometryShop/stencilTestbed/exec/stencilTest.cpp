@@ -23,6 +23,15 @@
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_Utility.H>
 
+#include "lapl_nd_F.H"
+#include <AMReX_MultiFab.H>
+#include <AMReX_Print.H>
+#include <AMReX_ArrayLim.H>
+#include <map>
+#include <fstream>
+#include "stencilTest_F.H"
+
+
 using namespace amrex;
 using std::cout;
 using std::endl;
@@ -130,7 +139,8 @@ defineGeometry(BaseFab<int>           & a_regIrregCovered,
                const Real             & a_dx)
 {
   //inside regular tells whether domain is inside or outside the sphere
-  bool insideRegular = true;
+    //bool insideRegular = true;
+  bool insideRegular = false;
   SphereIF sphere(a_radius, a_center, insideRegular);
   int verbosity = 0;
   ParmParse pp;
@@ -190,6 +200,117 @@ void getStencils(BaseFab<VoFStencil>          & a_stencil,
     }
 }
 
+struct FaceData
+{
+    FaceData(const RealVect& a_centroid,
+	     Real            a_aperature) : m_centroid(a_centroid), m_aperature(a_aperature) {}
+    FaceData() {}
+    RealVect m_centroid;
+    Real m_aperature;
+};
+
+void
+applyStencilAllFortran(EBCellFAB                       & a_dst,
+		       const EBCellFAB                 & a_src,
+		       const BaseFab<VoFStencil>       & a_stencil,
+		       const BaseFab<int>              & a_regIrregCovered,
+		       const std::vector<IrregNode>    & a_nodes,
+		       const Box                       & a_domain,
+		       Real*                             a_dx)
+{
+    BoxArray ba(a_domain);
+    DistributionMapping dm(ba);
+    MultiFab srcMF(ba,dm,1,1);
+    IntVect tilesize(D_DECL(10240,8,32));
+
+    BL_PROFILE_VAR_NS("fortran only prep",fp);
+    BL_PROFILE_VAR_NS("fortran only eb",feb);
+    BL_PROFILE_VAR_NS("fortran only reg",fr);
+      
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(srcMF,tilesize); mfi.isValid(); ++mfi) {
+	const Box& tbx = mfi.tilebox();
+
+	BL_PROFILE_VAR_START(fp);
+	const Box& ovlp = tbx & srcMF.boxArray()[mfi.index()];
+	if (ovlp.ok()) {
+	    srcMF[mfi].copy(a_src);
+	}
+
+	// Find all partial faces in this tile
+	std::vector<std::map<IntVect,FaceData> > faceData(SpaceDim);
+	bool tile_has_irreg_work = false;
+	for (int idir = 0; idir < SpaceDim; idir++) {
+	    for (int n=0; n<a_nodes.size(); ++n) {
+		const IrregNode& node = a_nodes[n];
+		const IntVect& iv = node.m_cell;
+		if (tbx.contains(iv)) {
+		    for (SideIterator sit; sit.ok(); ++sit) {
+			int index = IrregNode::index(idir, sit());
+			const std::vector<int>& arcs = node.m_arc[index];
+
+			//this excludes boundary and covered faces, as well as those with aperature = 1
+			if((arcs.size() > 0) && (arcs[0] >= 0) && (node.m_areaFrac[index][0] < 1)) {
+			    int isign = sign(sit());
+			    IntVect ivface = isign < 0 ? iv : iv + BASISV(idir);
+			    faceData[idir][ivface] = FaceData(node.m_faceCentroid[index][0],node.m_areaFrac[index][0]);
+			    tile_has_irreg_work = true;
+			}
+		    }
+		}
+	    }
+	}
+	BL_PROFILE_VAR_STOP(fp);
+
+	if (tile_has_irreg_work) {
+	    BL_PROFILE_VAR_START(fp);
+	    FArrayBox fd[BL_SPACEDIM];
+	    for (int idir = 0; idir < SpaceDim; idir++) {
+		fd[idir].resize(amrex::surroundingNodes(tbx,idir),SpaceDim+1); // comps: aperature, centroid[0], centroid[1]
+		fd[idir].setVal(0);
+		fd[idir].setVal(1,0);
+
+		for (std::map<IntVect,FaceData>::const_iterator it=faceData[idir].begin(); it!=faceData[idir].end(); ++it) {
+		    fd[idir](it->first,0) = it->second.m_aperature;
+		    for (int idir1 = 0; idir1 < SpaceDim; ++idir1) {
+			fd[idir](it->first,idir1+1) = it->second.m_centroid[idir1];
+		    }
+		}
+	    }
+	    FArrayBox vd(tbx,1);
+	    vd.setVal(1);
+	    for (int n=0; n<a_nodes.size(); ++n) {
+		const IrregNode& node = a_nodes[n];
+		const IntVect& iv = node.m_cell;
+		if (tbx.contains(iv)) {
+		    vd(iv,0) = node.m_volFrac;
+		}
+	    }
+	    BL_PROFILE_VAR_STOP(fp);
+
+	    BL_PROFILE_VAR_START(feb);
+	    lapleb_MSD(BL_TO_FORTRAN_N(a_dst,0), 
+		       BL_TO_FORTRAN_N(a_src,0),
+		       D_DECL(BL_TO_FORTRAN_N(fd[0],0),
+			      BL_TO_FORTRAN_N(fd[1],0),
+			      BL_TO_FORTRAN_N(fd[2],0)),
+		       BL_TO_FORTRAN_N(vd,0),
+		       tbx.loVect(), tbx.hiVect(), &(a_dx[0]));
+	    BL_PROFILE_VAR_STOP(feb);
+	}
+	else
+	{
+	    BL_PROFILE_VAR_START(fr);
+	    lapl_MSD(BL_TO_FORTRAN_N(a_dst,0), 
+		     BL_TO_FORTRAN_N(a_src,0),
+		     tbx.loVect(), tbx.hiVect(), &(a_dx[0]));
+	    BL_PROFILE_VAR_STOP(fr);
+	}
+    }
+}
+
 int testStuff()
 {
   int eekflag =  0;
@@ -213,7 +334,7 @@ int testStuff()
 
   Box domain(ivlo, ivhi);
 
-  Real dx = domlen/ncellsvec[0];
+  Real dx[BL_SPACEDIM] = {domlen/ncellsvec[0], domlen/ncellsvec[1]};
 
   BaseFab<int> regIrregCovered;
   std::vector<IrregNode>  nodes;
@@ -222,34 +343,47 @@ int testStuff()
     {
       center[idir] = centervec[idir];
     }
-  defineGeometry(regIrregCovered, nodes, radius, center, domain, dx); 
 
+  amrex::Print() << "Define geometry\n";
+  BL_PROFILE_VAR("define_geometry",dg);
+  defineGeometry(regIrregCovered, nodes, radius, center, domain, dx[0]); 
+  BL_PROFILE_VAR_STOP(dg);
   
   EBCellFAB src(grow(domain, 1), 1); //for a ghost cell
   src.setVal(0.0); //ignoring bcs here
   EBCellFAB dst(domain, 1);
   BaseFab<VoFStencil> stencils;
-  {
-    BL_PROFILE("getting_stencils");
-    getStencils(stencils, regIrregCovered, nodes, domain, dx);
-  }
 
-  {
-    BL_PROFILE("pointwise_apply_everywhere");
-    TestbedUtil::applyStencilPointwise(dst, src, stencils, regIrregCovered, nodes, domain, dx);
-  }
-  {
-    BL_PROFILE("fortran_plus_irreg_pointwise_apply");
-    TestbedUtil::applyStencilFortranPlusPointwise(dst, src, stencils, regIrregCovered, nodes, domain, dx);
-  }
-  {
-    BL_PROFILE("aggsten_everywhere");
-    TestbedUtil::applyStencilAllAggSten(dst, src, stencils, regIrregCovered, nodes, domain, dx);
-  }
-  {
-    BL_PROFILE("fortran_plus_aggsten_at_irreg");
-    TestbedUtil::applyStencilFortranPlusAggSten(dst, src, stencils, regIrregCovered, nodes, domain, dx);
-  }
+  amrex::Print() << "Getting stencils\n";
+  BL_PROFILE_VAR("getting_stencils",gs);
+  getStencils(stencils, regIrregCovered, nodes, domain, dx[0]);
+  BL_PROFILE_VAR_STOP(gs);
+
+  amrex::Print() << "Pointwise apply everywhere\n";
+  BL_PROFILE_VAR("pointwise_apply_everywhere",pae);
+  TestbedUtil::applyStencilPointwise(dst, src, stencils, regIrregCovered, nodes, domain, dx[0]);
+  BL_PROFILE_VAR_STOP(pae);
+
+  amrex::Print() << "Fortran + irreg pointwise\n";
+  BL_PROFILE_VAR("fortran_plus_irreg_pointwise_apply",fpip);
+  TestbedUtil::applyStencilFortranPlusPointwise(dst, src, stencils, regIrregCovered, nodes, domain, dx[0]);
+  BL_PROFILE_VAR_STOP(fpip);
+
+  amrex::Print() << "Aggsten everywhere\n";
+  BL_PROFILE_VAR("aggsten_everywhere",ae);
+  TestbedUtil::applyStencilAllAggSten(dst, src, stencils, regIrregCovered, nodes, domain, dx[0]);
+  BL_PROFILE_VAR_STOP(ae);
+
+  amrex::Print() << "Fortran + irreg aggsten\n";
+  BL_PROFILE_VAR("fortran_plus_aggsten_at_irreg",fpia);
+  TestbedUtil::applyStencilFortranPlusAggSten(dst, src, stencils, regIrregCovered, nodes, domain, dx[0]);
+  BL_PROFILE_VAR_STOP(fpia);
+
+  amrex::Print() << "Fortran everywhere\n";
+  BL_PROFILE_VAR("fortran_everywhere",fe);
+  applyStencilAllFortran(dst, src, stencils, regIrregCovered, nodes, domain, dx);
+  BL_PROFILE_VAR_STOP(fe);
+
   return eekflag;
 }
 

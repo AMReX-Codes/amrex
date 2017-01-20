@@ -1,3 +1,4 @@
 
-CEXE_sources += stencilTest.cpp
+FEXE_headers += stencilTest_F.H
+f90EXE_sources += stencilTest_$(DIM)d.f90
 
