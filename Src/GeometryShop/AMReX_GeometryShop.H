@@ -90,10 +90,18 @@ namespace amrex
                              const IntVect&       a_iv) const;
 
     void
-    getFullNodeNextToCovered(IrregNode            & a_newNode, 
-                             const BaseFab<int>   & a_regIrregCovered,
-                             const IntVect        & a_iv,
-                             const Box            & a_domain) const;
+    getFullNodeWithCoveredFace(IrregNode            & a_newNode, 
+                               const BaseFab<int>   & a_regIrregCovered,
+                               const IntVect        & a_iv,
+                               const Box            & a_domain) const;
+
+    void
+    fixRegularCellsNextToCovered(std::vector<IrregNode>     & a_nodes, 
+                                 BaseFab<int>               & a_regIrregCovered,
+                                 const Box                  & a_validRegion,
+                                 const Box                  & a_domain,
+                                 const IntVect              & a_iv,
+                                 const Real                 & a_dx) const;
 
   private:
     int  m_verbosity;

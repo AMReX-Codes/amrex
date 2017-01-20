@@ -154,11 +154,6 @@ namespace amrex
     for (BoxIterator bit(a_ghostRegion); bit.ok(); ++bit)
       {
         const IntVect iv =bit();
-        //int istop = 0;
-        //if(debbox.contains(iv))
-        //  {
-        //    istop = 1;
-        //  }
 
         Box miniBox(iv, iv);
         GeometryShop::InOut inout = InsideOutside(miniBox, a_domain, a_origin, a_dx);
@@ -191,43 +186,11 @@ namespace amrex
     for (BoxIterator bit(a_ghostRegion); bit.ok(); ++bit)
       {
         const IntVect iv =bit();
-        // int istop = 0;
-        // if(debbox.contains(iv))
-        //   {
-        //     istop = 1;
-        //   }
 
-        if(a_regIrregCovered(iv, 0) == -1)
-          {
-            for(int idir = 0; idir < SpaceDim; idir++)
-              {
-                for(SideIterator sit; sit.ok(); ++sit)
-                  {
-                    int ishift = sign(sit());
-                    IntVect ivshift = iv + ishift*BASISV(idir);
-                    int bfvalshift = -1;
-                    if(a_ghostRegion.contains(ivshift))
-                      {
-                        bfvalshift = a_regIrregCovered(ivshift, 0);
-                      }
-                    if(bfvalshift  == 1)
-                      {
-                        a_regIrregCovered(ivshift, 0) =  0;
-
-                        if(a_validRegion.contains(ivshift))
-                          {
-                            IrregNode newNode;
-                            getFullNodeNextToCovered(newNode, 
-                                                     a_regIrregCovered,
-                                                     ivshift, 
-                                                     a_domain);
-                            a_nodes.push_back(newNode);
-                          }
-
-                      }
-                  }
-              }
-          }
+      if(a_regIrregCovered(iv, 0) == -1)
+        {
+          fixRegularCellsNextToCovered(a_nodes, a_regIrregCovered, a_validRegion, a_domain, iv, a_dx);
+        }
       }
 
     // now loop through irregular cells and make nodes for each  one.
@@ -342,32 +305,90 @@ namespace amrex
                             a_nodes[inode].m_faceCentroid[arcindex].resize(0);
                           }
                       }
-                    else if (a_regIrregCovered(otherIV,0) == 1)
-                      {
-                        a_regIrregCovered(otherIV, 0) = 0;
-                        IrregNode newNode;
-                        getFullNodeNextToCovered(newNode, 
-                                                 a_regIrregCovered,
-                                                 otherIV, 
-                                                 a_domain);
-                        a_nodes.push_back(newNode);
-
-                      }//else if
                   }//valid region
               }//sit
           }//facedir
+        
+        //also need to fix regular cells next to new covered cell
+        fixRegularCellsNextToCovered(a_nodes, a_regIrregCovered, a_validRegion, a_domain, iv, a_dx);
+
       }//ivsdrop
     std::cout << "numIrreg  = " << numIrreg << std::endl;
     std::cout << "number of nodes  = " << a_nodes.size() << std::endl;
   }
+  /*************/
+  void
+  GeometryShop::
+  fixRegularCellsNextToCovered(std::vector<IrregNode>    & a_nodes, 
+                               BaseFab<int>              & a_regIrregCovered,
+                               const Box                 & a_validRegion,
+                               const Box                 & a_domain,
+                               const IntVect             & a_iv,
+                               const Real                & a_dx) const
 
+  {
+    Box grownBox(a_iv, a_iv);
+    grownBox.grow(1);
+    grownBox  &= a_domain;
+    IntVectSet ivstocheck(grownBox);
+    ivstocheck -= a_iv;
+    Box ghostRegion = a_regIrregCovered.box();
+    //first check neighbors in each direction.  
+    //If any of these are regular, they are replaced 
+    //by irregular cells with a boundary face facing the covered cell.
+    for(int idir = 0; idir < SpaceDim; idir++)
+      {
+        for(SideIterator sit; sit.ok(); ++sit)
+          {
+            int ishift = sign(sit());
+            IntVect ivshift = a_iv + ishift*BASISV(idir);
+            ivstocheck -= ivshift;
+            int bfvalshift = -1;
+            if(ghostRegion.contains(ivshift))
+              {
+                bfvalshift = a_regIrregCovered(ivshift, 0);
+              }
+            if(bfvalshift  == 1)
+              {
+                a_regIrregCovered(ivshift, 0) =  0;
+
+                if(a_validRegion.contains(ivshift))
+                  {
+                    IrregNode newNode;
+                    getFullNodeWithCoveredFace(newNode, 
+                                               a_regIrregCovered,
+                                               ivshift, 
+                                               a_domain);
+                    a_nodes.push_back(newNode);
+                  }
+
+              }
+          }
+      }
+    //next we loop through the remaining cells (corner cells in 2d, corner and edge cells in 3D)
+    //if any of these are regular, we change them to irregular 
+    for(IVSIterator ivsit(ivstocheck); ivsit.ok(); ++ivsit)
+      {
+        const IntVect& iv = ivsit();
+        if(ghostRegion.contains(iv))
+          {
+            if(a_regIrregCovered(iv, 0) == 1)
+              {
+                a_regIrregCovered(iv, 0) = 0;
+                IrregNode newNode;
+                newNode.makeRegular(iv, a_dx);
+                a_nodes.push_back(newNode);
+              }
+          }
+      }
+  }
   /**********************************************/
   void
   GeometryShop::
-  getFullNodeNextToCovered(IrregNode            & a_newNode, 
-                           const BaseFab<int>   & a_regIrregCovered,
-                           const IntVect        & a_iv,
-                           const Box  & a_domain) const
+  getFullNodeWithCoveredFace(IrregNode            & a_newNode, 
+                             const BaseFab<int>   & a_regIrregCovered,
+                             const IntVect        & a_iv,
+                             const Box  & a_domain) const
   {
 
     a_newNode.m_cell          = a_iv;
