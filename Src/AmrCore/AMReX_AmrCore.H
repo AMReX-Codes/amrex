@@ -14,6 +14,7 @@ namespace amrex {
 class AmrParGDB;
 #endif
 
+//! Provide basic functionalities to set up an AMR hierarchy
 class AmrCore
 {
 public:
@@ -25,16 +26,25 @@ public:
 
     int Verbose () const { return verbose; }
 
+    //! Return the max level
     int maxLevel () const { return max_level; }
+
+    //! Return the finest level
     int finestLevel () const { return finest_level; }
-    // Refinement ratio for level lev
+
+    //! Return the refinement ratio for level lev
     IntVect refRatio (int lev) const { return ref_ratio[lev]; }
-    // Maximum refinement ratio in any direction.
+
+    //! Return the maximum refinement ratio in any direction.
     int MaxRefRatio (int lev) const;
-    // Refinement ratios between all levels.
+
+    //! Return refinement ratios between all levels.
     const Array<IntVect>& refRatio () const { return ref_ratio; }
-    //
+
+    //! Should we keep the coarser grids fixed (and not regrid those levels) at all?
     bool useFixedCoarseGrids () const { return use_fixed_coarse_grids; }
+
+    //! Up to what level should we keep the coarser grids fixed (and not regrid those levels)?
     int useFixedUpToLevel () const { return use_fixed_upto_level; }
 
     const Array<Geometry>& Geom () const { return geom; }
@@ -58,29 +68,35 @@ public:
     AmrParGDB* GetParGDB () const { return m_gdb.get(); }
 #endif
 
-    // Number of buffer cells in error estimator.
+    //! Return the number of buffer cells in error estimator.
     int nErrorBuf (int lev) const { return n_error_buf[lev]; }
-    // Minimum allowable grid efficiency.
+
+    //! Return the minimum allowable grid efficiency.
     Real gridEff () const { return grid_eff; }
-    // Number of cells to define proper nesting 
+
+    //! Return the number of cells to define proper nesting 
     int nProper () const { return n_proper; }
+
+    //! Return the blocking factor at level lev
     int blockingFactor (int lev) const { return blocking_factor[lev]; }
-    // Largest allowable grid.
+
+    //! Return the largest allowable grid.
     int maxGridSize (int lev) const { return max_grid_size[lev]; }
 
     bool LevelDefined (int lev);
 
-    // "Try" to chop up grids so that the number of boxes in the BoxArray is greater than
-    // the target_size.
+    //! "Try" to chop up grids so that the number of boxes in the BoxArray is greater than the target_size.
     void ChopGrids (int lev, BoxArray& ba, int target_size) const;
 
-    // Make a level 0 grids covering the whole domain.  It does NOT install the new grids.
+    //! Make a level 0 grids covering the whole domain.  It does NOT install the new grids.
     BoxArray MakeBaseGrids () const;
 
-    // Make new grids based on error estimates.  Note that new_finest returns the new finest level.
-    // Also note that this function adds at most one more level to the existing levels.
-    // The current finest level is stored in this->finest_level.  This function does not
-    // change its value, nor does it modifies any BoxArrays stored in this->grids.
+    /**
+    * \brief  Make new grids based on error estimates.  Note that new_finest returns the new finest level.
+    * Also note that this function adds at most one more level to the existing levels.
+    * The current finest level is stored in this->finest_level.  This function does not
+    * change its value, nor does it modifies any BoxArrays stored in this->grids.
+    */
     void MakeNewGrids (int lbase, Real time, int& new_finest, Array<BoxArray>& new_grids);
 
     static void Initialize ();
@@ -106,9 +122,7 @@ protected:
     Real             grid_eff;        // Grid efficiency.
     int              n_proper;        // # cells required for proper nesting.
 
-    // Should we keep the coarser grids fixed (and not regrid those levels) at all?
     bool use_fixed_coarse_grids;
-    // Up to what level should we keep the coarser grids fixed (and not regrid those levels)?
     int use_fixed_upto_level;
 
     bool refine_grid_layout;
