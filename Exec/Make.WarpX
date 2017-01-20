@@ -45,17 +45,17 @@ ifeq ($(shell uname),Darwin)
   MY_LINK_LIBRARIES = $(LDFLAGS) $(libraries)
 else
   SHARED_OPTION = -shared
-  MY_LINK_LIBRARIES =
+  MY_LINK_LIBRARIES = $(LDFLAGS) $(libraries) -lgfortran
 endif
 
 pyinstall: libwarpx.a
 	@echo Making and installing python wrapper ...
-	LDFLAGS="$(MY_LINK_LIBRARIES)" python setup.py install
+	LDFLAGS="$(MY_LINK_LIBRARIES)" CC=$(CXX) python setup.py install
 	@echo SUCCESS
 
 pybuild: libwarpx.a
 	@echo Making python wrapper ...
-	LDFLAGS="$(MY_LINK_LIBRARIES)" python setup.py build
+	LDFLAGS="$(MY_LINK_LIBRARIES)" CC=$(CXX) python setup.py build
 	@echo SUCCESS
 
 libwarpx.a: $(objForExecs)

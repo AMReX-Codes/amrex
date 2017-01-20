@@ -16,7 +16,7 @@ except AttributeError:
 include_dirs = [numpy_include, '../Source']
 
 example_module = Extension('pywarpx._warpxC',
-                           swig_opts=['-outdir','pywarpx'],
+                           swig_opts=['-c++', '-outdir','pywarpx'],
                            sources=['warpxC.i'],
                            library_dirs=['.'],
                            libraries=['warpx'],
