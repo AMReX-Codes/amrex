@@ -16,9 +16,10 @@ PhysicalParticleContainer::AllocData ()
 {
     // have to resize here, not in the constructor because GDB was not
     // ready in constructor.
-    m_particles.resize(GDB().finestLevel()+1);
-    m_partdata.resize (GDB().finestLevel()+1);
-    for (int lev = 0; lev <= GDB().finestLevel(); ++ lev)
+    int nlevs = GDB().finestLevel()+1;
+    m_particles.resize(nlevs);
+    m_partdata.resize (nlevs);
+    for (int lev = 0; lev < nlevs; ++ lev)
     {
 	auto& partleveldata = m_partdata[lev];
 	const BoxArray& ba = GDB().ParticleBoxArray(lev);

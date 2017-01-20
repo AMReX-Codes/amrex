@@ -160,6 +160,6 @@ private:
     void ReadParameters ();
 
     // runtime parameters
-    int nspecies;   // physical particles only. If WarpX::use_laser, nspecies+1 == allcontainers.size().
+    int nspecies = 1;   // physical particles only. If WarpX::use_laser, nspecies+1 == allcontainers.size().
 };
 #endif /*WARPX_ParticleContainer_H_*/
