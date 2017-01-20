@@ -29,37 +29,33 @@ contains
     double precision, intent(in   ) :: fd1(fd1_l1:fd1_h1,fd1_l2:fd1_h2,3)
     double precision, intent(in   ) :: dx(2)
 
-    integer :: i,j,ip,im,jp,jm, in, jn, ii, jj, iface, jface
-    double precision :: fac1, fac2, cent, f(-1:1), Fx(0:1), Fy(0:1)
+    integer :: i,j,ip,im,jp,jm,in,jn,ii,jj,iface,jface,is,js
+    double precision :: fac0, fac1, c0, f0, f1, Fx(0:1), Fy(0:1)
 
-    fac1 = -1.d0 / (dx(1)*dx(1))
-    fac2 = -1.d0 / (dx(2)*dx(2))
+    fac0 = 1.d0 / (dx(1)*dx(1))
+    fac1 = 1.d0 / (dx(2)*dx(2))
 
     do j=lo(2),hi(2)
        do i=lo(1),hi(1)
 
           do ii=0,1
              iface = i+ii
-             jp = j+1
-             jm = j-1
-             f(-1) = fac1*(phi(iface,jm) - phi(iface-1,jm))
-             f( 0) = fac1*(phi(iface,j ) - phi(iface-1,j ))
-             f(+1) = fac1*(phi(iface,jp) - phi(iface-1,jp))
-             cent = ABS(fd0(iface,j,3))
-             jn = SIGN(1.d0,fd0(iface,j,3))
-             Fx(ii) = (f(0)*(1.d0 - cent) + f(jn)*cent)*fd0(iface,j,1)
+             js = SIGN(1.d0, fd0(iface,j,3))
+             jn = j + js
+             f0 = fac0*(phi(iface,j ) - phi(iface-1,j ))
+             f1 = fac0*(phi(iface,jn) - phi(iface-1,jn))*js
+             c0 = ABS(fd0(iface,j,3))
+             Fx(ii) = (f0*(1.d0 - c0) + f1*c0)*fd0(iface,j,1)
           enddo
 
           do jj=0,1
              jface = j+jj
-             ip = i+1
-             im = i-1
-             f(-1) = fac2*(phi(im,jface) - phi(im,jface-1))
-             f( 0) = fac2*(phi(i ,jface) - phi(i ,jface-1))
-             f(+1) = fac2*(phi(ip,jface) - phi(ip,jface-1))
-             cent = ABS(fd0(i,jface,2))
-             in = SIGN(1.d0,fd0(i,jface,2))
-             Fy(jj) = (f(0)*(1.d0 - cent) + f(in)*cent)*fd1(i,jface,1)
+             is = SIGN(1.d0, fd1(i,jface,2))
+             in = i + is
+             f0 = fac1*(phi(i ,jface) - phi(i ,jface-1))
+             f1 = fac1*(phi(in,jface) - phi(in,jface-1))*is
+             c0 = ABS(fd1(i,jface,2))
+             Fy(jj) = (f0*(1.d0 - c0) + f1*c0)*fd1(i,jface,1)
           enddo
 
           lph(i,j) = Fx(1) - Fx(0) + Fy(1) - Fy(0)
@@ -97,5 +93,29 @@ contains
     enddo
 
   end subroutine lapl_MSD
+
+  subroutine init_phi(&
+       phi,phi_l1,phi_l2,phi_h1,phi_h2, &
+       lo, hi, plo, dx) bind(C,name="init_phi")
+
+    integer, intent(in) :: phi_l1,phi_l2,phi_h1,phi_h2
+
+    integer, intent(in) :: lo(2),hi(2)
+
+    double precision, intent(inout) :: phi(phi_l1:phi_h1,phi_l2:phi_h2)
+    double precision, intent(in   ) :: plo(2), dx(2)
+
+    integer :: i,j
+    double precision :: x,y
+
+    do j=lo(2),hi(2)
+       y = plo(2) + (j+0.5d0)*dx(2)
+       do i=lo(1),hi(1)
+          x = plo(1) + (i+0.5d0)*dx(1)
+          phi(i,j) = 0.5d0 * (x-0.5d0)**2
+       enddo
+    enddo
+
+  end subroutine init_phi
 
 end module stencil_test_module

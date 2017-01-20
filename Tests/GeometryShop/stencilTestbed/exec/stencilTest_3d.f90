@@ -5,7 +5,7 @@ module stencil_test_module
 
   private
 
-  public :: lapl_MSD
+  public :: lapleb_MSD, lapl_MSD, init_phi
 
 contains
 
@@ -35,9 +35,9 @@ contains
     integer :: i,j,k,ip,im,jp,jm,kp,km, in, jn, kn, ii, jj, kk, iface, jface, kface, is, js, ks
     double precision :: fac0, fac1, fac2, c0, c1, f00, f01, f10, f11, Fx(0:1), Fy(0:1), Fz(0:1)
 
-    fac0 = -1.d0 / (dx(1)*dx(1))
-    fac1 = -1.d0 / (dx(2)*dx(2))
-    fac2 = -1.d0 / (dx(3)*dx(3))
+    fac0 = 1.d0 / (dx(1)*dx(1))
+    fac1 = 1.d0 / (dx(2)*dx(2))
+    fac2 = 1.d0 / (dx(3)*dx(3))
 
     do i=lo(1),hi(1)
        do j=lo(2),hi(2)
@@ -100,7 +100,7 @@ contains
                 c0 = ABS(fd2(i,j,kface,2))
                 c1 = ABS(fd2(i,j,kface,3))
 
-                Fz(jj) = (f00*(1.d0-c0)*(1.d0-c1) + f10*c0*(1.d0-c1) + f01*(1.d0-c0)*c1 + f11*c0*c1)*fd2(i,j,kface,1)
+                Fz(kk) = (f00*(1.d0-c0)*(1.d0-c1) + f10*c0*(1.d0-c1) + f01*(1.d0-c0)*c1 + f11*c0*c1)*fd2(i,j,kface,1)
              enddo
 
              lph(i,j,k) = Fx(1) - Fx(0) + Fy(1) - Fy(0) + Fz(1) - Fz(0)
@@ -143,5 +143,32 @@ contains
     enddo
 
   end subroutine lapl_MSD
+
+  subroutine init_phi(&
+       phi,phi_l1,phi_l2,phi_l3,phi_h1,phi_h2,phi_h3, &
+       lo, hi, plo, dx) bind(C,name="init_phi")
+
+    integer, intent(in) :: phi_l1,phi_l2,phi_l3,phi_h1,phi_h2,phi_h3
+
+    integer, intent(in) :: lo(3),hi(3)
+
+    double precision, intent(inout) :: phi(phi_l1:phi_h1,phi_l2:phi_h2,phi_l3:phi_h3)
+    double precision, intent(in   ) :: plo(3), dx(3)
+
+    integer :: i,j,k
+    double precision :: x,y,z
+
+    do k=lo(2),hi(2)
+       z = plo(3) + (k+0.5d0)*dx(3)
+       do j=lo(2),hi(2)
+          y = plo(2) + (j+0.5d0)*dx(2)
+          do i=lo(1),hi(1)
+             x = plo(1) + (i+0.5d0)*dx(1)
+             phi(i,j,k) = 0.5d0 * (z-0.5d0)**2
+          enddo
+       enddo
+    enddo
+
+  end subroutine init_phi
 
 end module stencil_test_module
