@@ -24,7 +24,7 @@ class LevelBld;
 class BoxDomain;
 
 /**
-* \brief Manages hierarchy of levels for time-dependent AMR computations.
+* \brief Manage hierarchy of levels for time-dependent AMR computations.
 *
 * The Amr class is designed to manage parts of the computation  which do
 * not belong on a single level, like establishing and updating the hierarchy
