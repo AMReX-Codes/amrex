@@ -1,7 +1,7 @@
 
 //
-// Each problem must have its own version of SingleSpeciesContainer::InitData()
-// to initialize the particle data on this level
+// Each problem must have its own version of PhysicalParticleContainer::InitData()
+// to initialize the particle data.  It must also initialize charge and mass.
 //
 
 #include <cmath>
@@ -12,9 +12,9 @@
 #include <WarpXConst.H>
 
 void
-SingleSpeciesContainer::InitData()
+PhysicalParticleContainer::InitData()
 {
-    BL_PROFILE("SPC::InitData()");
+    BL_PROFILE("PPC::InitData()");
 
     if (species_id == 0) {
 	charge = -PhysConst::q_e;
@@ -23,14 +23,14 @@ SingleSpeciesContainer::InitData()
 	charge = PhysConst::q_e;
 	mass = PhysConst::m_p;	
     } else {
-	BoxLib::Abort("SingleSpeciesContainer::InitData(): species_id must be 0 or 1");
+	BoxLib::Abort("PhysicalParticleContainer::InitData(): species_id must be 0 or 1");
     }
 
-    m_particles.resize(m_gdb->finestLevel()+1);
+    m_particles.resize(GDB().finestLevel()+1);
 
     const int lev = 0;
 
-    const Geometry& geom = m_gdb->Geom(lev);
+    const Geometry& geom = GDB().Geom(lev);
     const Real* dx  = geom.CellSize();
 
     Real weight, ux, uy, uz;
@@ -71,8 +71,8 @@ SingleSpeciesContainer::InitData()
       uz *= PhysConst::c;
     }
 
-    const BoxArray& ba = m_gdb->ParticleBoxArray(lev);
-    const DistributionMapping& dm = m_gdb->ParticleDistributionMap(lev);
+    const BoxArray& ba = GDB().ParticleBoxArray(lev);
+    const DistributionMapping& dm = GDB().ParticleDistributionMap(lev);
 
     MultiFab dummy_mf(ba, 1, 0, dm, Fab_noallocate);
 
@@ -142,7 +142,7 @@ SingleSpeciesContainer::InitData()
 		    BoxLib::Abort("invalid particle");
 		}
 		
-		BL_ASSERT(p.m_lev >= 0 && p.m_lev <= m_gdb->finestLevel());
+		BL_ASSERT(p.m_lev >= 0 && p.m_lev <= GDB().finestLevel());
 		//
 		// Add it to the appropriate PBox at the appropriate level.
 		//

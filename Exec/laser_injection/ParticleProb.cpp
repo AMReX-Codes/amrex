@@ -1,7 +1,7 @@
 
 //
-// Each problem must have its own version of SingleSpeciesContainer::InitData()
-// to initialize the particle data on this level
+// Each problem must have its own version of PhysicalParticleContainer::InitData()
+// to initialize the particle data.  It must also initialize charge and mass.
 //
 
 #include <cmath>
@@ -13,18 +13,18 @@
 #include <random>
 
 void
-SingleSpeciesContainer::InitData()
+PhysicalParticleContainer::InitData()
 {
-    BL_PROFILE("SPC::InitData()");
+    BL_PROFILE("PPC::InitData()");
 
     charge = -PhysConst::q_e;
     mass = PhysConst::m_e;
 
-    m_particles.resize(m_gdb->finestLevel()+1);
+    m_particles.resize(GDB().finestLevel()+1);
 
     const int lev = 0;
 
-    const Geometry& geom = m_gdb->Geom(lev);
+    const Geometry& geom = GDB().Geom(lev);
     const Real* dx  = geom.CellSize();
 
     Real weight, ux, uy, uz, u_th;
@@ -47,8 +47,8 @@ SingleSpeciesContainer::InitData()
       u_th *= PhysConst::c;
     }
 
-    const BoxArray& ba = m_gdb->ParticleBoxArray(lev);
-    const DistributionMapping& dm = m_gdb->ParticleDistributionMap(lev);
+    const BoxArray& ba = GDB().ParticleBoxArray(lev);
+    const DistributionMapping& dm = GDB().ParticleDistributionMap(lev);
 
     MultiFab dummy_mf(ba, 1, 0, dm, Fab_noallocate);
 
@@ -64,10 +64,10 @@ SingleSpeciesContainer::InitData()
 	int nx = grid.length(0), ny = 1, nz = grid.length(1);
 #endif
 
-  // Initialize random generator for normal distribution
-  std::default_random_engine generator;
-  std::normal_distribution<Real> velocity_distribution(0.0, u_th);
-  std::uniform_real_distribution<Real> position_distribution(0.0,1.0);
+	// Initialize random generator for normal distribution
+	std::default_random_engine generator;
+	std::normal_distribution<Real> velocity_distribution(0.0, u_th);
+	std::uniform_real_distribution<Real> position_distribution(0.0,1.0);
 
 	for (int k = 0; k < nz; k++) {
 	  for (int j = 0; j < ny; j++) {
@@ -128,7 +128,7 @@ SingleSpeciesContainer::InitData()
 		    BoxLib::Abort("invalid particle");
 		}
 
-		BL_ASSERT(p.m_lev >= 0 && p.m_lev <= m_gdb->finestLevel());
+		BL_ASSERT(p.m_lev >= 0 && p.m_lev <= GDB().finestLevel());
 		//
 		// Add it to the appropriate PBox at the appropriate level.
 		//
