@@ -9,12 +9,12 @@ PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core, int isp
     : WarpXParticleContainer(amr_core, ispecies)
 {
     m_partdata.reserve(GDB().maxLevel()+1);
-    m_partdata.resize (GDB().finestLevel()+1);
 }
 
 void
 PhysicalParticleContainer::AllocData ()
 {
+    m_partdata.resize (GDB().finestLevel()+1);
     for (int lev = 0; lev <= GDB().finestLevel(); ++ lev)
     {
 	auto& partleveldata = m_partdata[lev];
