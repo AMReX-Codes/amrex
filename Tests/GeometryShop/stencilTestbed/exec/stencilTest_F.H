@@ -20,6 +20,10 @@ extern "C"
     void lapl_MSD(Real* lphi,      ARLIM_P(lphlo), ARLIM_P(lphhi),
 		  const Real* phi, ARLIM_P(philo), ARLIM_P(phihi),
 		  const int* reglo, const int* reghi, const Real* dx);
+
+    void init_phi(Real* phi, ARLIM_P(philo), ARLIM_P(phihi),
+		  const int* reglo, const int* reghi,
+                  const Real* plo, const Real* dx);
 }
 
 #endif // _stencilTest_F_H_

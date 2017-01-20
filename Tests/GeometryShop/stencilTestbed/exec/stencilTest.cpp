@@ -335,7 +335,13 @@ int testStuff()
 
   Box domain(ivlo, ivhi);
 
-  Real dx[BL_SPACEDIM] = {domlen/ncellsvec[0], domlen/ncellsvec[1]};
+  std::vector<Real> dx(SpaceDim);
+
+  for (int idir=0; idir<SpaceDim; ++idir)
+  {
+    dx[idir] = domlen/ncellsvec[idir];
+  }
+  Array<Real> probLo(SpaceDim,0);
 
   BaseFab<int> regIrregCovered;
   std::vector<IrregNode>  nodes;
@@ -351,7 +357,12 @@ int testStuff()
   BL_PROFILE_VAR_STOP(dg);
   
   EBCellFAB src(grow(domain, 1), 1); //for a ghost cell
-  src.setVal(0.0); //ignoring bcs here
+  BL_PROFILE_VAR("init_data",init);
+  init_phi(BL_TO_FORTRAN_N(src,0),
+           src.box().loVect(), src.box().hiVect(),
+           &(probLo[0]), &(dx[0]));
+  BL_PROFILE_VAR_STOP(init);
+
   EBCellFAB dst(domain, 1);
   BaseFab<VoFStencil> stencils;
 
@@ -382,7 +393,7 @@ int testStuff()
 
   amrex::Print() << "Fortran everywhere\n";
   BL_PROFILE_VAR("fortran_everywhere",fe);
-  applyStencilAllFortran(dst, src, stencils, regIrregCovered, nodes, domain, dx);
+  applyStencilAllFortran(dst, src, stencils, regIrregCovered, nodes, domain, &(dx[0]));
   BL_PROFILE_VAR_STOP(fe);
 
   return eekflag;
