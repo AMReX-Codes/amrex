@@ -142,7 +142,9 @@ public:
 
     std::unique_ptr<MultiFab> GetChargeDensity(int lev, bool local = false);
 
-    void Checkpoint (const std::string& dir, const std::string& name) const;
+    void Checkpoint (const std::string& dir,
+		     const std::string& name,
+		     bool is_checkpoint) const;
 
     void Restart (const std::string& dir, const std::string& name);
 

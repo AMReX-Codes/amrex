@@ -124,7 +124,7 @@ WarpX::WriteCheckPointFile() const
 		     BoxLib::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "Bz"));
     }
 
-    mypc->Checkpoint(checkpointname, "particle");
+    mypc->Checkpoint(checkpointname, "particle", true);
 }
 
 
@@ -346,7 +346,7 @@ WarpX::WritePlotFile () const
 					Geom(), t_new[0], istep, refRatio());
     }
 
-    mypc->Checkpoint(plotfilename, "particle");
+    mypc->Checkpoint(plotfilename, "particle", false);
 
     WriteJobInfo(plotfilename);
 
