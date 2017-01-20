@@ -248,32 +248,32 @@ WarpX::InitFromCheckpoint ()
 	{
 	    MultiFab mf;
 	    VisMF::Read(mf, BoxLib::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "Ex"));
-	    Efield[lev][0]->copy(mf, 0, 0, 1, mf.nGrow(), Efield[lev][0]->nGrow());
+	    Efield[lev][0]->copy(mf, 0, 0, 1, 0, 0);
 	}
 	{
 	    MultiFab mf;
 	    VisMF::Read(mf, BoxLib::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "Ey"));
-	    Efield[lev][1]->copy(mf, 0, 0, 1, mf.nGrow(), Efield[lev][1]->nGrow());
+	    Efield[lev][1]->copy(mf, 0, 0, 1, 0, 0);
 	}
 	{
 	    MultiFab mf;
 	    VisMF::Read(mf, BoxLib::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "Ez"));
-	    Efield[lev][2]->copy(mf, 0, 0, 1, mf.nGrow(), Efield[lev][2]->nGrow());
+	    Efield[lev][2]->copy(mf, 0, 0, 1, 0, 0);
 	}
 	{
 	    MultiFab mf;
 	    VisMF::Read(mf, BoxLib::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "Bx"));
-	    Bfield[lev][0]->copy(mf, 0, 0, 1, mf.nGrow(), Bfield[lev][0]->nGrow());
+	    Bfield[lev][0]->copy(mf, 0, 0, 1, 0, 0);
 	}
 	{
 	    MultiFab mf;
 	    VisMF::Read(mf, BoxLib::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "By"));
-	    Bfield[lev][1]->copy(mf, 0, 0, 1, mf.nGrow(), Bfield[lev][1]->nGrow());
+	    Bfield[lev][1]->copy(mf, 0, 0, 1, 0, 0);
 	}
 	{
 	    MultiFab mf;
 	    VisMF::Read(mf, BoxLib::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "Bz"));
-	    Bfield[lev][2]->copy(mf, 0, 0, 1, mf.nGrow(), Bfield[lev][2]->nGrow());
+	    Bfield[lev][2]->copy(mf, 0, 0, 1, 0, 0);
 	}
     }
 
