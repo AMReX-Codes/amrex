@@ -43,20 +43,15 @@ void getRegularStencil(VoFStencil           & a_stencil,
                        const Box            & a_domain,
                        const Real           & a_dx)
 {
+  // Assumes data outside domain lives at cell center as is correct
   a_stencil.clear();
   Real dxinvsq = 1.0/a_dx/a_dx;
   for(int idir = 0; idir < SpaceDim; idir++)
   {
     IntVect ivlo = a_iv - BASISV(idir); 
     IntVect ivhi = a_iv + BASISV(idir); 
-    if(a_domain.contains(ivlo))
-    {
-      a_stencil.add(VolIndex(ivlo, 0), dxinvsq);
-    }
-    if(a_domain.contains(ivhi))
-    {
-      a_stencil.add(VolIndex(ivhi, 0), dxinvsq);
-    }
+    a_stencil.add(VolIndex(ivlo, 0), dxinvsq);
+    a_stencil.add(VolIndex(ivhi, 0), dxinvsq);
   }
   a_stencil.add(VolIndex(a_iv, 0), -2*SpaceDim*dxinvsq);
 }
