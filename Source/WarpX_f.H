@@ -31,8 +31,8 @@ extern "C"
 
 	void warpx_geteb_energy_conserving(const long* np, 
 			const Real* xp, const Real* yp, const Real* zp,
-			const Real* exp, const Real* eyp,const Real* ezp,
-			const Real* bxp, const Real* byp,const Real* bzp,
+			Real* exp, Real* eyp, Real* ezp,
+		        Real* bxp, Real* byp, Real* bzp,
 			const Real* xmin, const Real* ymin, const Real* zmin,
 			const Real* dx, const Real* dy, const Real* dz,
 			const long* nx, const long* ny, const long* nz,
@@ -47,18 +47,25 @@ extern "C"
 	// Particle pusher
 
 	void warpx_particle_pusher(const long* np,
-			const Real* xp, const Real* yp, const Real* zp,
-			const Real* uxp, const Real* uyp, const Real* uzp,
-			const Real* gaminv,
+			Real* xp, Real* yp, Real* zp,
+			Real* uxp, Real* uyp, Real* uzp, Real* gaminv,
 			const Real* exp, const Real* eyp,const Real* ezp,
 			const Real* bxp, const Real* byp,const Real* bzp,
-			const Real* charge, const Real* mass, Real* dt,
+			const Real* charge, const Real* mass, const Real* dt,
 			const long* particle_pusher_algo);
+
+        // Laser pusher
+
+	void warpx_laser_pusher(const long* np,
+				Real* xp, Real* yp, Real* zp,
+				Real* uxp, Real* uyp, Real* uzp, Real* gaminv,
+				const Real* charge, const Real* dt,
+				const long* laser_pusher_algo);
 
 	// Maxwell solver
 
 	void warpx_push_evec( Real* ex, Real* ey, Real* ez,
-			Real* bx, Real* by, Real* bz,
+			const Real* bx, const Real* by, const Real* bz,
 			const Real* jx, const Real* jy, const Real* jz,
 			const Real* mudt,
 			const Real* dtsdx, const Real* dtsdy, const Real* dtsdz, 
@@ -68,7 +75,7 @@ extern "C"
 			const long* nxs, const long* nys, const long* nzs,
 			const int* l_nodal );
 
-	void warpx_push_bvec( Real* ex, Real* ey, Real* ez,
+	void warpx_push_bvec( const Real* ex, const Real* ey, const Real* ez,
 			Real* bx, Real* by, Real* bz,
 			const Real* dtsdx, const Real* dtsdy, const Real* dtsdz, 
 			const long* nxlocal, const long* nylocal, const long* nzlocal,

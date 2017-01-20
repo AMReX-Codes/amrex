@@ -7,6 +7,7 @@ long WarpX::current_deposition_algo = 3;
 long WarpX::charge_deposition_algo = 0;
 long WarpX::field_gathering_algo = 1;
 long WarpX::particle_pusher_algo = 0;
+long WarpX::laser_pusher_algo = -111111111;  // not being used yet
 
 long WarpX::nox = 1;
 long WarpX::noy = 1;
@@ -159,6 +160,7 @@ WarpX::ReadParameters ()
 	pp.query("charge_deposition", charge_deposition_algo);
 	pp.query("field_gathering", field_gathering_algo);
 	pp.query("particle_pusher", particle_pusher_algo);
+	pp.query("laser_pusher", laser_pusher_algo);
     }
 
 }

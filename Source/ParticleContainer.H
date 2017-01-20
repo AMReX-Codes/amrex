@@ -113,8 +113,8 @@ public:
     virtual void InitData () override;
 
     virtual void Evolve (int lev,
-			 const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
-			 const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz,
+			 const MultiFab&, const MultiFab&, const MultiFab&,
+			 const MultiFab&, const MultiFab&, const MultiFab&,
 			 MultiFab& jx, MultiFab& jy, MultiFab& jz, Real dt) override;
 };
 
