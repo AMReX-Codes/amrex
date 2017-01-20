@@ -30,7 +30,7 @@ public:
 
     void Evolve (int numsteps = -1);
 
-    MultiSpeciesContainer& GetPartContainer () { return *mypc; }
+    MultiParticleContainer& GetPartContainer () { return *mypc; }
 
     static void FillBoundary (MultiFab& mf, const Geometry& geom, const IntVect& nodalflag);
 
@@ -49,6 +49,8 @@ public:
     static long nox;
     static long noy;
     static long noz;
+
+    static bool use_laser;
 
 protected:
     virtual void ErrorEst (int lev, TagBoxArray& tags, Real time, int /*ngrow*/) override {}
@@ -91,7 +93,7 @@ private:
     Array<Real> dt;
 
     // Particle container
-    std::unique_ptr<MultiSpeciesContainer> mypc;
+    std::unique_ptr<MultiParticleContainer> mypc;
     // Fields: First array for level, second for direction
     Array<Array< std::unique_ptr<MultiFab> > > current;
     Array<Array< std::unique_ptr<MultiFab> > > Efield;

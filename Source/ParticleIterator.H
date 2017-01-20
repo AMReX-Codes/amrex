@@ -20,8 +20,8 @@ struct PartIterInfo
 class PartIter
 {
 public:
-    PartIter (SingleSpeciesContainer& _mypc, const PartIterInfo& _info);
-    PartIter (SingleSpeciesContainer& _mypc, PartIterInfo&& _info);
+    PartIter (WarpXParticleContainer& _mypc, const PartIterInfo& _info);
+    PartIter (WarpXParticleContainer& _mypc, PartIterInfo&& _info);
     PartIter (const PartIter&) = delete;
     PartIter (PartIter&&) = delete;
     PartIter& operator=(const PartIter&) = delete;
@@ -59,8 +59,8 @@ public:
 private:
     void Initialize();
 
-    SingleSpeciesContainer& mypc;
-    SingleSpeciesContainer::PMap& pmap;
+    WarpXParticleContainer& mypc;
+    WarpXParticleContainer::PMap& pmap;
     PartIterInfo info;
 
     int currentIndex;

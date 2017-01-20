@@ -1,12 +1,20 @@
 
-#ifndef _ParticleContainer_H_
-#define _ParticleContainer_H_
+#ifndef WARPX_ParticleContainer_H_
+#define WARPX_ParticleContainer_H_
 
 #include <memory>
 #include <map>
 
 #include <Particles.H>
 #include <AmrParGDB.H>
+
+//
+// MultiParticleContainer holds multiple (nspecies or npsecies+1 when
+// using laser) WarpXParticleContainer.  WarpXParticlContainer is
+// derived from amrex::ParticleContainer, and it is
+// polymorphic. PhysicalParticleContainer and LaserContainer are
+// concrete class dervied from WarpXParticlContainer.
+//
 
 struct PIdx
 {
@@ -22,26 +30,25 @@ struct PIdx
     };
 };
 
-class MultiSpeciesContainer;
+class MultiParticleContainer;
 
-class SingleSpeciesContainer
+class WarpXParticleContainer
     : public ParticleContainer<PIdx::nattribs,0,std::vector<Particle<PIdx::nattribs,0> > >
 {
-    friend MultiSpeciesContainer;
-
 public:
+    friend MultiParticleContainer;
 
-    SingleSpeciesContainer (AmrCore* amr_core, int ispecies);
-    virtual ~SingleSpeciesContainer() {}
+    WarpXParticleContainer (AmrCore* amr_core, int ispecies);
+    virtual ~WarpXParticleContainer() {}
 
-    void AllocData ();
+    virtual void AllocData () = 0;
 
-    void InitData ();
+    virtual void InitData () = 0;
 
-    void Evolve (int lev,
-		 const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
-		 const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz,
-		 MultiFab& jx, MultiFab& jy, MultiFab& jz, Real dt);
+    virtual void Evolve (int lev,
+			 const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
+			 const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz,
+			 MultiFab& jx, MultiFab& jy, MultiFab& jz, Real dt) = 0;
 
     std::unique_ptr<MultiFab> GetChargeDensity(int lev, bool local = false);
  
@@ -52,16 +59,12 @@ public:
     void ReadHeader (std::istream& is);
 
     void WriteHeader (std::ostream& os) const;
-   
-private:
 
-    // The outermost Array is for AMR level.
-    // map's key is grid id and value is an Array. The size of map is the size of local grids.
-    // The Array (i.e., the value of the map) has npartdata unique_ptr to another Array.  
-    // The size of the map value Array is npartdata.
-    // The innermost Array holds a particular data (say Ex or gaminv) for particles on a grid.
-    // The size of the innermost array is the number of particles.
-    Array<std::map<int, Array<std::unique_ptr<Array<Real> > > > > m_partdata;
+    const ParGDBBase& GDB () const { return *m_gdb; }
+
+    static void ReadParameters ();
+   
+protected:
 
     int species_id;
 
@@ -72,17 +75,60 @@ private:
     static IntVect tile_size;
 };
 
-class MultiSpeciesContainer
+class PhysicalParticleContainer
+    : public WarpXParticleContainer
+{
+public:
+    PhysicalParticleContainer (AmrCore* amr_core, int ispecies);
+    virtual ~PhysicalParticleContainer () {}
+
+    virtual void AllocData () override;
+    
+    virtual void InitData () override;
+
+    virtual void Evolve (int lev,
+			 const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
+			 const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz,
+			 MultiFab& jx, MultiFab& jy, MultiFab& jz, Real dt) override;
+
+private:
+    // The outermost Array is for AMR level.
+    // map's key is grid id and value is an Array. The size of map is the size of local grids.
+    // The Array (i.e., the value of the map) has npartdata unique_ptr to another Array.  
+    // The size of the map value Array is npartdata.
+    // The innermost Array holds a particular data (say Ex or gaminv) for particles on a grid.
+    // The size of the innermost array is the number of particles.
+    Array<std::map<int, Array<std::unique_ptr<Array<Real> > > > > m_partdata;
+};
+
+class LaserContainer
+    : public WarpXParticleContainer
+{
+public:
+    LaserContainer (AmrCore* amr_core, int ispecies);
+    virtual ~LaserContainer () {}
+
+    virtual void AllocData () override;
+    
+    virtual void InitData () override;
+
+    virtual void Evolve (int lev,
+			 const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
+			 const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz,
+			 MultiFab& jx, MultiFab& jy, MultiFab& jz, Real dt) override;
+};
+
+class MultiParticleContainer
 {
 
 public:
 
-    MultiSpeciesContainer (AmrCore* amr_core);
+    MultiParticleContainer (AmrCore* amr_core);
 
-    virtual ~MultiSpeciesContainer() {}
+    ~MultiParticleContainer() {}
 
-    SingleSpeciesContainer& GetSingleSpeciesContainer (int ispecies) {
-	return *species[ispecies];
+    WarpXParticleContainer& GetParticleContainer (int ispecies) {
+	return *allcontainers[ispecies];
     }
 
     void AllocData ();
@@ -108,13 +154,12 @@ public:
 
 private:
 
-    Array<std::unique_ptr<SingleSpeciesContainer> > species;
+    // physical particles (+ laser)
+    Array<std::unique_ptr<WarpXParticleContainer> > allcontainers;
 
-    static void ReadStaticParameters ();
+    void ReadParameters ();
 
     // runtime parameters
-    static bool do_tiling;
-    static IntVect tile_size;
-    static int nspecies;
+    int nspecies;   // physical particles only. If WarpX::use_laser, nspecies+1 == allcontainers.size().
 };
-#endif /*_ParticleContainer_H_*/
+#endif /*WARPX_ParticleContainer_H_*/

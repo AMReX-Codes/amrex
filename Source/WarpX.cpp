@@ -42,6 +42,8 @@ IntVect WarpX::jy_nodal_flag(1,1);  // y is the missing dimension to 2D BoxLib
 IntVect WarpX::jz_nodal_flag(1,0);  // z is the second dimension to 2D BoxLib
 #endif
 
+bool WarpX::use_laser = false;
+
 WarpX* WarpX::m_instance = nullptr;
 
 WarpX&
@@ -86,7 +88,7 @@ WarpX::WarpX ()
     dt.resize(nlevs_max, 1.e100);
 
     // Particle Container
-    mypc = std::unique_ptr<MultiSpeciesContainer> (new MultiSpeciesContainer(this));
+    mypc = std::unique_ptr<MultiParticleContainer> (new MultiParticleContainer(this));
 
     current.resize(nlevs_max);
     Efield.resize(nlevs_max);
@@ -134,6 +136,8 @@ WarpX::ReadParameters ()
 	moving_window_v = 0.0;
 	pp.query("moving_window_v", moving_window_v);
 	moving_window_v *= PhysConst::c;
+
+	pp.query("use_laser", use_laser);
     }
 
     {

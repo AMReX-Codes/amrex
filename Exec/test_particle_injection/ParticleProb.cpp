@@ -1,7 +1,7 @@
 
 //
-// Each problem must have its own version of SingleParticleContainer::InitData()
-// to initialize the particle data on this level
+// Each problem must have its own version of PhysicalParticleContainer::InitData()
+// to initialize the particle data.  It must also initialize charge and mass.
 //
 
 #include <cmath>
@@ -12,18 +12,18 @@
 #include <WarpXConst.H>
 
 void
-SingleParticleContainer::InitData()
+PhysicalParticleContainer::InitData()
 {
-    BL_PROFILE("SPC::InitData()");
+    BL_PROFILE("pPC::InitData()");
 
     charge = -PhysConst::q_e;
     mass = PhysConst::m_e;
 
-    m_particles.resize(m_gdb->finestLevel()+1);
+    m_particles.resize(GDB().finestLevel()+1);
 
     const int lev = 0;
 
-    const Geometry& geom = m_gdb->Geom(lev);
+    const Geometry& geom = GDB().Geom(lev);
     const Real* dx  = geom.CellSize();
 
     Real weight, ux, uy, uz;
@@ -62,8 +62,8 @@ SingleParticleContainer::InitData()
       uz *= PhysConst::c;
     }
 
-    const BoxArray& ba = m_gdb->ParticleBoxArray(lev);
-    const DistributionMapping& dm = m_gdb->ParticleDistributionMap(lev);
+    const BoxArray& ba = GDB().ParticleBoxArray(lev);
+    const DistributionMapping& dm = GDB().ParticleDistributionMap(lev);
 
     MultiFab dummy_mf(ba, 1, 0, dm, Fab_noallocate);
 
@@ -133,7 +133,7 @@ SingleParticleContainer::InitData()
 		    BoxLib::Abort("invalid particle");
 		}
 		
-		BL_ASSERT(p.m_lev >= 0 && p.m_lev <= m_gdb->finestLevel());
+		BL_ASSERT(p.m_lev >= 0 && p.m_lev <= GDB().finestLevel());
 		//
 		// Add it to the appropriate PBox at the appropriate level.
 		//
