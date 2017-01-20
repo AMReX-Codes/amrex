@@ -1,20 +1,22 @@
 #
 # Set these to the appropriate value.
 #
-DIM          = 3
 DIM          = 2
-
+DIM          = 3
 
 COMP         = g++
 
-DEBUG        = FALSE
 DEBUG        = TRUE
+DEBUG        = FALSE
 
 USE_MPI      = TRUE
 USE_MPI      = FALSE
 
-PROFILE       = TRUE
-COMM_PROFILE  = TRUE
+USE_OMP      = TRUE
+USE_OMP      = FALSE
+
+PROFILE       = FALSE
+COMM_PROFILE  = FALSE
 TRACE_PROFILE = FALSE
 TINY_PROFILE  = TRUE
 #DEFINES += -DBL_PROFILING_SPECIAL
@@ -22,27 +24,9 @@ TINY_PROFILE  = TRUE
 AMREX_HOME = ../../../..
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
-#
-# Base name of each of the executables we want to build.
-# I'm assuming that each of these is a stand-alone program,
-# that simply needs to link against BoxLib.
-#
-#_progs += tVisMF tDir t8BIT tFB tFAC tCArena
-#_progs += tRan
-#_progs  := tread
-#_progs  := tParmParse
-#_progs  := tCArena
-#_progs  := tBA
-#_progs  := tDM
-#_progs  := tFillFab
-#_progs  := tMF
-#_progs  := tFB
-#_progs  := tMFcopy
-#_progs  := AMRProfTestBL
-#_progs  := tFB
-#_progs  := tRABcast.cpp
 _progs  := stencilTest
 
+include ./Make.package
 include $(AMREX_HOME)/Src/Base/Make.package
 include $(AMREX_HOME)/Src/GeometryShop/Make.package
 include ../src/Make.package
