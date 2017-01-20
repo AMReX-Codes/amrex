@@ -15,7 +15,6 @@ extern "C"
 		    const Real* fd2, ARLIM_P(f2lo),  ARLIM_P(f2hi),
 #endif
 #endif
-		    const Real*  vd, ARLIM_P(vd),    ARLIM_P(vd),
 		    const int* reglo, const int* reghi, const Real* dx);
 
     void lapl_MSD(Real* lphi,      ARLIM_P(lphlo), ARLIM_P(lphhi),

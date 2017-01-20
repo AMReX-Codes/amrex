@@ -15,7 +15,6 @@ contains
        fd0,fd0_l1,fd0_l2,fd0_l3,fd0_h1,fd0_h2,fd0_h3, &
        fd1,fd1_l1,fd1_l2,fd1_l3,fd1_h1,fd1_h2,fd1_h3, &
        fd2,fd2_l1,fd2_l2,fd2_l3,fd2_h1,fd2_h2,fd2_h3, &
-       vd,vd_l1,vd_l2,vd_l3,vd_h1,vd_h2,vd_h3, &
        lo, hi, dx) bind(C,name="lapleb_MSD")
 
     integer, intent(in) :: lph_l1,lph_l2,lph_l3,lph_h1,lph_h2,lph_h3
@@ -23,7 +22,6 @@ contains
     integer, intent(in) :: fd0_l1,fd0_l2,fd0_l3,fd0_h1,fd0_h2,fd0_h3
     integer, intent(in) :: fd1_l1,fd1_l2,fd1_l3,fd1_h1,fd1_h2,fd1_h3
     integer, intent(in) :: fd2_l1,fd2_l2,fd2_l3,fd2_h1,fd2_h2,fd2_h3
-    integer, intent(in) :: vd_l1,vd_l2,vd_l3,vd_h1,vd_h2,vd_h3
 
     integer, intent(in) :: lo(3),hi(3)
                                                          
@@ -32,7 +30,6 @@ contains
     double precision, intent(in   ) :: fd0(fd0_l1:fd0_h1,fd0_l2:fd0_h2,fd0_l3:fd0_h3,4)
     double precision, intent(in   ) :: fd1(fd1_l1:fd1_h1,fd1_l2:fd1_h2,fd1_l3:fd1_h3,4)
     double precision, intent(in   ) :: fd2(fd2_l1:fd2_h1,fd2_l2:fd2_h2,fd2_l3:fd2_h3,4)
-    double precision, intent(in   ) :: vd(vd_l1:vd_h1,vd_l2:vd_h2,vd_l3:vd_h3)
     double precision, intent(in   ) :: dx(3)
 
     integer :: i,j,k,ip,im,jp,jm,kp,km, in, jn, kn, ii, jj, kk, iface, jface, kface, is, js, ks
@@ -106,7 +103,7 @@ contains
                 Fz(jj) = (f00*(1.d0-c0)*(1.d0-c1) + f10*c0*(1.d0-c1) + f01*(1.d0-c0)*c1 + f11*c0*c1)*fd2(i,j,kface,1)
              enddo
 
-             lph(i,j,k) = (Fx(1) - Fx(0) + Fy(1) - Fy(0) + Fz(1) - Fz(0))/vd(i,j,k)
+             lph(i,j,k) = Fx(1) - Fx(0) + Fy(1) - Fy(0) + Fz(1) - Fz(0)
 
           enddo
        enddo
