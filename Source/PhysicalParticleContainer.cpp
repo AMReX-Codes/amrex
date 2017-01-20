@@ -14,6 +14,9 @@ PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core, int isp
 void
 PhysicalParticleContainer::AllocData ()
 {
+    // have to resize here, not in the constructor because GDB was not
+    // ready in constructor.
+    m_particles.resize(GDB().finestLevel()+1);
     m_partdata.resize (GDB().finestLevel()+1);
     for (int lev = 0; lev <= GDB().finestLevel(); ++ lev)
     {

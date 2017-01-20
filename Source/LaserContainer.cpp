@@ -14,7 +14,9 @@ LaserContainer::LaserContainer (AmrCore* amr_core, int ispecies)
 void
 LaserContainer::AllocData ()
 {
-    // nothing to do
+    // have to resize here, not in the constructor because GDB was not
+    // ready in constructor.
+    m_particles.resize(GDB().finestLevel()+1);
 }
 
 void
