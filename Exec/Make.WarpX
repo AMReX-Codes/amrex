@@ -50,12 +50,12 @@ endif
 
 pyinstall: libwarpx.a
 	@echo Making and installing python wrapper ...
-	LDFLAGS="$(MY_LINK_LIBRARIES)" CC=$(CXX) CXXFLAGS="$(CXXFLAGS)" python setup.py install
+	LDFLAGS="$(MY_LINK_LIBRARIES)" CC=$(CXX) CXXFLAGS="$(CXXFLAGS) $(DEFINES)" python setup.py install
 	@echo SUCCESS
 
 pybuild: libwarpx.a
 	@echo Making python wrapper ...
-	LDFLAGS="$(MY_LINK_LIBRARIES)" CC=$(CXX) CXXFLAGS="$(CXXFLAGS)" python setup.py build
+	LDFLAGS="$(MY_LINK_LIBRARIES)" CC=$(CXX) CXXFLAGS="$(CXXFLAGS) $(DEFINES)" python setup.py build
 	@echo SUCCESS
 
 libwarpx.a: $(objForExecs)
