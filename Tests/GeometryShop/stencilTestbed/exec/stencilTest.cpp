@@ -236,10 +236,6 @@ applyStencilAllFortran(EBCellFAB                       & a_dst,
 
     BL_PROFILE_VAR_START(fp);
     const Box& ovlp = tbx & srcMF.boxArray()[mfi.index()];
-    if (ovlp.ok())
-    {
-      srcMF[mfi].copy(a_src);
-    }
 
     // Find all partial faces in this tile
     std::vector<std::map<IntVect,FaceData> > faceData(SpaceDim);

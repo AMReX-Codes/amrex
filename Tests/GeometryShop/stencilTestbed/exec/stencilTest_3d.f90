@@ -53,9 +53,9 @@ contains
                 kn = k + ks
 
                 f00 = fac0*(phi(iface,j ,k ) - phi(iface-1,j ,k ))
-                f10 = fac0*(phi(iface,jn,k ) - phi(iface-1,jn,k ))*js
-                f01 = fac0*(phi(iface,j ,kn) - phi(iface-1,j ,kn))*ks
-                f11 = fac0*(phi(iface,jn,kn) - phi(iface-1,jn,kn))*js*ks
+                f10 = fac0*(phi(iface,jn,k ) - phi(iface-1,jn,k ))
+                f01 = fac0*(phi(iface,j ,kn) - phi(iface-1,j ,kn))
+                f11 = fac0*(phi(iface,jn,kn) - phi(iface-1,jn,kn))
 
                 c0 = ABS(fd0(iface,j,k,3))
                 c1 = ABS(fd0(iface,j,k,4))
@@ -73,9 +73,9 @@ contains
                 kn = k + ks
 
                 f00 = fac1*(phi(i ,jface,k ) - phi(i ,jface-1,k ))
-                f10 = fac1*(phi(in,jface,k ) - phi(in,jface-1,k ))*is
-                f01 = fac1*(phi(i ,jface,kn) - phi(i ,jface-1,kn))*ks
-                f11 = fac1*(phi(in,jface,kn) - phi(in,jface-1,kn))*is*ks
+                f10 = fac1*(phi(in,jface,k ) - phi(in,jface-1,k ))
+                f01 = fac1*(phi(i ,jface,kn) - phi(i ,jface-1,kn))
+                f11 = fac1*(phi(in,jface,kn) - phi(in,jface-1,kn))
 
                 c0 = ABS(fd1(i,jface,k,2))
                 c1 = ABS(fd1(i,jface,k,4))
@@ -93,9 +93,9 @@ contains
                 jn = j + js
 
                 f00 = fac2*(phi(i ,j ,kface) - phi(i ,j ,kface-1))
-                f10 = fac2*(phi(in,j ,kface) - phi(in,j ,kface-1))*is
-                f01 = fac2*(phi(i ,jn,kface) - phi(i ,jn,kface-1))*js
-                f11 = fac2*(phi(in,jn,kface) - phi(in,jn,kface-1))*is*js
+                f10 = fac2*(phi(in,j ,kface) - phi(in,j ,kface-1))
+                f01 = fac2*(phi(i ,jn,kface) - phi(i ,jn,kface-1))
+                f11 = fac2*(phi(in,jn,kface) - phi(in,jn,kface-1))
 
                 c0 = ABS(fd2(i,j,kface,2))
                 c1 = ABS(fd2(i,j,kface,3))
