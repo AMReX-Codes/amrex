@@ -5,7 +5,7 @@ module stencil_test_module
 
   private
 
-  public :: lapleb_MSD, lapl_MSD
+  public :: lapleb_MSD, lapl_MSD, init_phi
 
 contains
 
