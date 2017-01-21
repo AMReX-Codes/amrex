@@ -39,18 +39,20 @@ contains
     fac1 = 1.d0 / (dx(2)*dx(2))
     fac2 = 1.d0 / (dx(3)*dx(3))
 
-    do i=lo(1),hi(1)
+    ! Here, fd0 is face data associated with the i direction.  Comp-0 is the areaFraction of the 
+    ! face, and (Comp-1,Comp-2,Comp-3) is the coordinate of the face centroid, relative to the
+    ! center of the full face, and in units of the grid spacing.  Thus, for a regular face, 
+    ! fd0 = (1,XX,0,0), where XX is unused here.  Similarly for fd1 and fd2.
+
+    do k=lo(3),hi(3)
        do j=lo(2),hi(2)
-          do k=lo(3),hi(3)
+          do i=lo(1),hi(1)
 
              do ii=0,1
                 iface = i+ii
 
-                js = SIGN(1.d0, fd0(iface,j,k,3))
-                ks = SIGN(1.d0, fd0(iface,j,k,4))
-
-                jn = j + js
-                kn = k + ks
+                jn = j + SIGN(1.d0, fd0(iface,j,k,3))
+                kn = k + SIGN(1.d0, fd0(iface,j,k,4))
 
                 f00 = fac0*(phi(iface,j ,k ) - phi(iface-1,j ,k ))
                 f10 = fac0*(phi(iface,jn,k ) - phi(iface-1,jn,k ))
@@ -66,11 +68,8 @@ contains
              do jj=0,1
                 jface = j+jj
 
-                is = SIGN(1.d0, fd1(i,jface,k,2))
-                ks = SIGN(1.d0, fd1(i,jface,k,4))
-
-                in = i + is
-                kn = k + ks
+                in = i + SIGN(1.d0, fd1(i,jface,k,2))
+                kn = k + SIGN(1.d0, fd1(i,jface,k,4))
 
                 f00 = fac1*(phi(i ,jface,k ) - phi(i ,jface-1,k ))
                 f10 = fac1*(phi(in,jface,k ) - phi(in,jface-1,k ))
@@ -86,11 +85,8 @@ contains
              do kk=0,1
                 kface = k+kk
 
-                is = SIGN(1.d0, fd2(i,j,kface,2))
-                js = SIGN(1.d0, fd2(i,j,kface,3))
-
-                in = i + is
-                jn = j + js
+                in = i + SIGN(1.d0, fd2(i,j,kface,2))
+                jn = j + SIGN(1.d0, fd2(i,j,kface,3))
 
                 f00 = fac2*(phi(i ,j ,kface) - phi(i ,j ,kface-1))
                 f10 = fac2*(phi(in,j ,kface) - phi(in,j ,kface-1))
@@ -158,7 +154,7 @@ contains
     integer :: i,j,k
     double precision :: x,y,z
 
-    do k=lo(2),hi(2)
+    do k=lo(3),hi(3)
        z = plo(3) + (k+0.5d0)*dx(3)
        do j=lo(2),hi(2)
           y = plo(2) + (j+0.5d0)*dx(2)
