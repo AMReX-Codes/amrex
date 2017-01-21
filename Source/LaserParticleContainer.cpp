@@ -7,7 +7,7 @@
 #include <ParticleContainer.H>
 #include <ParticleIterator.H>
 
-LaserContainer::LaserContainer (AmrCore* amr_core, int ispecies)
+LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies)
     : WarpXParticleContainer(amr_core, ispecies)
 {
     charge = PhysConst::q_e; // note that q_e is defined to be positive.
@@ -15,7 +15,7 @@ LaserContainer::LaserContainer (AmrCore* amr_core, int ispecies)
 }
 
 void
-LaserContainer::AllocData ()
+LaserParticleContainer::AllocData ()
 {
     // have to resize here, not in the constructor because GDB was not
     // ready in constructor.
@@ -23,16 +23,16 @@ LaserContainer::AllocData ()
 }
 
 void
-LaserContainer::InitData ()
+LaserParticleContainer::InitData ()
 {
-    BoxLib::Abort("LaserContainer::InitData: Not implemented");
+    
 }
 
 void
-LaserContainer::Evolve (int lev,
-			const MultiFab&, const MultiFab&, const MultiFab&,
-			const MultiFab&, const MultiFab&, const MultiFab&,
-			MultiFab& jx, MultiFab& jy, MultiFab& jz, Real dt)
+LaserParticleContainer::Evolve (int lev,
+				const MultiFab&, const MultiFab&, const MultiFab&,
+				const MultiFab&, const MultiFab&, const MultiFab&,
+				MultiFab& jx, MultiFab& jy, MultiFab& jz, Real dt)
 {
     BL_PROFILE("Laser::Evolve()");
     BL_PROFILE_VAR_NS("Laser::Evolve::Copy", blp_copy);

@@ -12,7 +12,7 @@
 // MultiParticleContainer holds multiple (nspecies or npsecies+1 when
 // using laser) WarpXParticleContainer.  WarpXParticlContainer is
 // derived from amrex::ParticleContainer, and it is
-// polymorphic. PhysicalParticleContainer and LaserContainer are
+// polymorphic. PhysicalParticleContainer and LaserParticleContainer are
 // concrete class dervied from WarpXParticlContainer.
 //
 
@@ -101,12 +101,12 @@ private:
     Array<std::map<int, Array<std::unique_ptr<Array<Real> > > > > m_partdata;
 };
 
-class LaserContainer
+class LaserParticleContainer
     : public WarpXParticleContainer
 {
 public:
-    LaserContainer (AmrCore* amr_core, int ispecies);
-    virtual ~LaserContainer () {}
+    LaserParticleContainer (AmrCore* amr_core, int ispecies);
+    virtual ~LaserParticleContainer () {}
 
     virtual void AllocData () override;
     
