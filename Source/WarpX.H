@@ -105,6 +105,7 @@ private:
     int moving_window_dir = 0;
     Real moving_window_x;
     Real moving_window_v;
+    int do_plasma_injection = 0;
 
     // runtime parameters
 
