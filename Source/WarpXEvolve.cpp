@@ -396,6 +396,6 @@ WarpX::MoveWindow ()
     }
   }
 
-  // Redistribure (note - this removes particles that are outside of the box)
+  // Redistribute (note - this removes particles that are outside of the box)
   mypc->Redistribute(false);
 }
