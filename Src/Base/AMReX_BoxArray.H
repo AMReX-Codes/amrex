@@ -48,7 +48,7 @@ namespace amrex
     //! Note that two BoxArrays that match are not necessarily equal.
     bool match (const BoxArray& x, const BoxArray& y);
 
-// @COND GENDOC
+//@internal 
 struct BARef
 {
     BARef ();
@@ -100,6 +100,7 @@ struct BARef
     static bool initialized;
 };
 
+//@internal 
 struct BATransformer
 {
     virtual ~BATransformer () {}
@@ -116,6 +117,7 @@ struct BATransformer
     virtual Box operator() (const Box& bx) const = 0;
 };
 
+//@internal 
 template <class T>
 struct BATBase
     : public BATransformer
@@ -145,6 +147,7 @@ protected:
     IndexType m_typ;
 };
 
+//@internal 
 struct BATypeTransformer
     : public BATBase<BATypeTransformer>
 {
@@ -165,7 +168,6 @@ struct BATypeTransformer
     bool operator== (const BATypeTransformer& rhs) const
 	{ return m_typ == rhs.m_typ; }
 };
-// @ENDCOND
 
 /**
 * \brief A collection of Boxes stored in an Array.  It is a

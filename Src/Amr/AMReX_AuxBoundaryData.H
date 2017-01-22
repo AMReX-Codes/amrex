@@ -6,7 +6,7 @@
 #include <AMReX_MultiFab.H>
 
 namespace amrex {
-/// @COND GENDOC
+// @internal 
 class AuxBoundaryData
 {
 public:
@@ -86,7 +86,6 @@ private:
     // 
     AuxBoundaryData& operator= (const AuxBoundaryData& rhs);
 };
-/// @endcond
 
 }
 
