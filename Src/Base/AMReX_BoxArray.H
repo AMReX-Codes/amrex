@@ -48,6 +48,7 @@ namespace amrex
     //! Note that two BoxArrays that match are not necessarily equal.
     bool match (const BoxArray& x, const BoxArray& y);
 
+// @COND GENDOC
 struct BARef
 {
     BARef ();
@@ -99,10 +100,6 @@ struct BARef
     static bool initialized;
 };
 
-/**
-* \brief BATBase, BATransformer, and BATypeTransformer classes are used to transform from cell-centered boxes stored in BARef
-* (and hidden from the users) to the public boxes BoxArray.
-*/
 struct BATransformer
 {
     virtual ~BATransformer () {}
@@ -168,6 +165,7 @@ struct BATypeTransformer
     bool operator== (const BATypeTransformer& rhs) const
 	{ return m_typ == rhs.m_typ; }
 };
+// @ENDCOND
 
 /**
 * \brief A collection of Boxes stored in an Array.  It is a
