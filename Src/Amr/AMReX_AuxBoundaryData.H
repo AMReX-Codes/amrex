@@ -6,7 +6,7 @@
 #include <AMReX_MultiFab.H>
 
 namespace amrex {
-// @internal 
+// \cond CODEGEN 
 class AuxBoundaryData
 {
 public:
@@ -86,6 +86,7 @@ private:
     // 
     AuxBoundaryData& operator= (const AuxBoundaryData& rhs);
 };
+// \endcond
 
 }
 
