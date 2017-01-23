@@ -133,6 +133,13 @@ WarpX::ReadParameters ()
 	  pp.get("moving_window_v", moving_window_v);
 	}
 
+	pp.query("do_plasma_injection", do_plasma_injection);
+	if (do_plasma_injection) {
+	  pp.get("injected_plasma_ppc", injected_plasma_ppc);
+	  pp.get("injected_plasma_species", injected_plasma_species);
+	  pp.get("injected_plasma_density", injected_plasma_density);
+	}
+
 	moving_window_x = geom[0].ProbLo(moving_window_dir);
 	moving_window_v = 0.0;
 	pp.query("moving_window_v", moving_window_v);

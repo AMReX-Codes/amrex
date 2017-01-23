@@ -105,10 +105,14 @@ private:
     int moving_window_dir = 0;
     Real moving_window_x;
     Real moving_window_v;
+
+    // Plasma injection parameters
     int do_plasma_injection = 0;
+    int injected_plasma_ppc;
+    int injected_plasma_species;
+    Real injected_plasma_density;  
 
-    // runtime parameters
-
+    // Other runtime parameters
     int verbose = 1;
 
     int max_step   = std::numeric_limits<int>::max();

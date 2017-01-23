@@ -307,11 +307,8 @@ WarpX::MoveWindow ()
   shiftMF(*Efield[0][1], geom[0], num_shift, dir, Ey_nodal_flag);
   shiftMF(*Efield[0][2], geom[0], num_shift, dir, Ez_nodal_flag);
 
-
   // optionally fill the new cells with a uniform plasma 
   // (also level 0 only right now)
-  ParmParse pp("warpx");
-  pp.get("do_plasma_injection", do_plasma_injection);
   if(do_plasma_injection) {
 
     // particleBox encloses the cells where we generate particles
@@ -321,12 +318,9 @@ WarpX::MoveWindow ()
     particleBox.shift(dir, sign*(domainLength - std::abs(num_shift)));
     particleBox &= geom[0].Domain();
 
-    // get information about the plasma to inject
-    int n_part_per_cell, ispecies;
-    pp.get("injected_plasma_ppc", n_part_per_cell);
-    pp.get("injected_plasma_species", ispecies);
-    Real weight;
-    pp.get("injected_plasma_density", weight);
+    int n_part_per_cell = injected_plasma_ppc;
+    int ispecies = injected_plasma_species;
+    Real weight = injected_plasma_density;
 
     const Real* dx  = geom[0].CellSize();
 #if BL_SPACEDIM==3
