@@ -62,7 +62,8 @@ contains
                 c0 = ABS(fd0(iface,j,k,3))
                 c1 = ABS(fd0(iface,j,k,4))
 
-                Fx(ii) = (f00*(1.d0-c0)*(1.d0-c1) + f10*c0*(1.d0-c1) + f01*(1.d0-c0)*c1 + f11*c0*c1)*fd0(iface,j,k,1)
+                Fx(ii) = (f00*(1.d0-c0)*(1.d0-c1) + f10*c0*(1.d0-c1) &
+                     + f01*(1.d0-c0)*c1 + f11*c0*c1)*fd0(iface,j,k,1)
              enddo
 
              do jj=0,1
@@ -79,7 +80,8 @@ contains
                 c0 = ABS(fd1(i,jface,k,2))
                 c1 = ABS(fd1(i,jface,k,4))
 
-                Fy(jj) = (f00*(1.d0-c0)*(1.d0-c1) + f10*c0*(1.d0-c1) + f01*(1.d0-c0)*c1 + f11*c0*c1)*fd1(i,jface,k,1)
+                Fy(jj) = (f00*(1.d0-c0)*(1.d0-c1) + f10*c0*(1.d0-c1) &
+                     + f01*(1.d0-c0)*c1 + f11*c0*c1)*fd1(i,jface,k,1)
              enddo
 
              do kk=0,1
@@ -96,7 +98,8 @@ contains
                 c0 = ABS(fd2(i,j,kface,2))
                 c1 = ABS(fd2(i,j,kface,3))
 
-                Fz(kk) = (f00*(1.d0-c0)*(1.d0-c1) + f10*c0*(1.d0-c1) + f01*(1.d0-c0)*c1 + f11*c0*c1)*fd2(i,j,kface,1)
+                Fz(kk) = (f00*(1.d0-c0)*(1.d0-c1) + f10*c0*(1.d0-c1) &
+                     + f01*(1.d0-c0)*c1 + f11*c0*c1)*fd2(i,j,kface,1)
              enddo
 
              lph(i,j,k) = Fx(1) - Fx(0) + Fy(1) - Fy(0) + Fz(1) - Fz(0)
