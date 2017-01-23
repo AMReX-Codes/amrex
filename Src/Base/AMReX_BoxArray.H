@@ -5,6 +5,7 @@
 #include <iostream>
 #include <cstddef>
 #include <map>
+#include <unordered_map>
 
 #include <AMReX_IndexType.H>
 #include <AMReX_BoxList.H>
@@ -47,6 +48,7 @@ namespace amrex
     //! Note that two BoxArrays that match are not necessarily equal.
     bool match (const BoxArray& x, const BoxArray& y);
 
+// \cond CODEGEN
 struct BARef
 {
     BARef ();
@@ -82,7 +84,8 @@ struct BARef
     
     mutable IntVect crsn;
     
-    using HashType = std::map< IntVect,std::vector<int> >;
+    typedef std::unordered_map< IntVect, std::vector<int>, IntVect::shift_hasher > HashType;
+    //using HashType = std::map< IntVect,std::vector<int> >;
 
     mutable HashType hash;
     
@@ -97,10 +100,6 @@ struct BARef
     static bool initialized;
 };
 
-/**
-* \brief BATBase, BATransformer, and BATypeTransformer classes are used to transform from cell-centered boxes stored in BARef
-* (and hidden from the users) to the public boxes BoxArray.
-*/
 struct BATransformer
 {
     virtual ~BATransformer () {}
@@ -166,6 +165,7 @@ struct BATypeTransformer
     bool operator== (const BATypeTransformer& rhs) const
 	{ return m_typ == rhs.m_typ; }
 };
+// \endcond
 
 /**
 * \brief A collection of Boxes stored in an Array.  It is a
