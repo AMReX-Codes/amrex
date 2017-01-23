@@ -77,6 +77,7 @@ private:
     void ComputeDt ();
 
     void MoveWindow ();
+    void InjectPlasma(int num_shift, int dir);
 
     void WriteWarpXHeader(const std::string& name) const;
     void WriteCheckPointFile() const;
