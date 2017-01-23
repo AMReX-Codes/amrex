@@ -418,6 +418,8 @@ public:
     //
     enum CpOp { COPY = 0, ADD = 1 };
 
+    const TileArray* getTileArray (const IntVect& tilesize) const;
+
 protected:
 
     DistributionMapping& ModifyDistributionMap () { return distributionMap; }
@@ -454,7 +456,7 @@ protected:
     static TACache     m_TheTileArrayCache;
     static CacheStats  m_TAC_stats;
     //
-    const TileArray* getTileArray (const IntVect& tilesize) const;
+    //const TileArray* getTileArray (const IntVect& tilesize) const;
     void buildTileArray (const IntVect& tilesize, TileArray& ta) const;
     //
     void flushTileArray (const IntVect& tilesize = IntVect::TheZeroVector(), 
@@ -682,6 +684,8 @@ public:
 
     //! Constant reference to FabArray over which we're iterating.
     const FabArrayBase& theFabArrayBase () const { return fabArray; }
+
+    int tileIndex () const {return currentIndex;}
 
 protected:
 
