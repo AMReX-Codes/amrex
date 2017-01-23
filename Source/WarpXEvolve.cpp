@@ -345,7 +345,7 @@ WarpX::MoveWindow ()
         int gid = mfi.index();
 	Box grid = ba[gid];
 	Box intersectBox = grid & particleBox;
-	if (intersectBox.numPtsOK() == 0) continue;
+	if (intersectBox.isEmpty()) continue;
 	RealBox intersectRealBox { intersectBox, dx, geom[0].ProbLo() };
 
 #if (BL_SPACEDIM == 3)
