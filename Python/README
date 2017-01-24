@@ -6,5 +6,5 @@ To build it, run "make pyinstall" in the Python directory. You will need to have
 This will compile the code, create the wrapper, and install the wrapper in the Python site-packages directory.
 There is also "make pybuild" will build the wrapper but not install it.
 
-There is a new input file input.py in tests/Langmuir which can run it.
+There is a python script langmuir.py in tests/Langmuir which can run it.
 
