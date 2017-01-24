@@ -13,8 +13,6 @@
 
 #include <ParticleContainer.H>
 
-enum class laser_t { Null, Gaussian };
-
 class WarpX
     : public AmrCore
 {
@@ -52,11 +50,7 @@ public:
     static long noy;
     static long noz;
 
-    static bool        use_laser;
-    static laser_t     laser_type;
-    static Array<Real> laser_position;
-    static Array<Real> laser_direction;
-    static long        laser_pusher_algo;
+    static bool use_laser;
 
 protected:
     virtual void ErrorEst (int lev, TagBoxArray& tags, Real time, int /*ngrow*/) override {}

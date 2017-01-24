@@ -1,6 +1,8 @@
 
 #include <algorithm>
 #include <cctype>
+#include <cmath>
+#include <numeric>
 
 #include <ParmParse.H>
 #include <WarpX.H>
@@ -15,11 +17,7 @@ long WarpX::nox = 1;
 long WarpX::noy = 1;
 long WarpX::noz = 1;
 
-bool        WarpX::use_laser         = false;
-laser_t     WarpX::laser_type        = laser_t::Null;
-Array<Real> WarpX::laser_position(3);
-Array<Real> WarpX::laser_direction(3);
-long        WarpX::laser_pusher_algo = -1;  // not being used yet
+bool WarpX::use_laser         = false;
 
 #if (BL_SPACEDIM == 3)
 IntVect WarpX::Bx_nodal_flag(1,0,0);
@@ -159,24 +157,6 @@ WarpX::ReadParameters ()
 	moving_window_v *= PhysConst::c;
 
 	pp.query("use_laser", use_laser);
-    }
-
-    if (use_laser)
-    {
-	ParmParse pp("laser");
-
-	std::string laser_type_s;
-	pp.get("type", laser_type_s);
-	std::transform(laser_type_s.begin(), laser_type_s.end(), laser_type_s.begin(), ::tolower);
-	if (laser_type_s == "gaussian") {
-	    laser_type = laser_t::Gaussian;
-	} else {
-	    BoxLib::Abort("Unknown laser type");
-	}
-
-	pp.getarr("position", laser_position);
-	pp.getarr("direction", laser_direction);
-	pp.query("pusher_algo", laser_pusher_algo);
     }
 
     {

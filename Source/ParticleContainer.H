@@ -101,6 +101,8 @@ private:
     Array<std::map<int, Array<std::unique_ptr<Array<Real> > > > > m_partdata;
 };
 
+enum class laser_t { Null, Gaussian };
+
 class LaserParticleContainer
     : public WarpXParticleContainer
 {
@@ -116,6 +118,19 @@ public:
 			 const MultiFab&, const MultiFab&, const MultiFab&,
 			 const MultiFab&, const MultiFab&, const MultiFab&,
 			 MultiFab& jx, MultiFab& jy, MultiFab& jz, Real dt) override;
+private:
+    laser_t     profile     = laser_t::Null;
+    Array<Real> position;
+    Array<Real> nvec;
+    Array<Real> p_X;
+    Array<Real> p_Y;
+    Array<Real> u_X;
+    Array<Real> u_Y;
+    long        pusher_algo = -1;
+    Real e_max;
+    Real profile_waist;
+    Real profile_duration;
+    Real wavelength;
 };
 
 class MultiParticleContainer

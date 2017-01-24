@@ -1,5 +1,8 @@
 
 #include <limits>
+#include <cmath>
+#include <algorithm>
+#include <numeric>
 
 #include <WarpX.H>
 #include <WarpXConst.H>
@@ -11,40 +14,12 @@
 //
 // xxxxx need to make this work in 2D!
 //
-// xxxxx also need to think about the effect of roundoff errors
-// 
 
 namespace
 {
-    // The laser plane is described by 
-    // (x-laser_position[0], y-laser_position[1], z-laser_position[2])
-    //   dot (laser_direction[0], laser_direction[1], laser_direction[2]) = 0
-    //
-    // The sign the product tells us which side of the plane a point is.
-    int WhichSideOfLaserPlane (const Array<Real>& pos)
+    Array<Real> CrossProduct (const Array<Real>& a, const Array<Real>& b)
     {
-	return ((pos[0]-WarpX::laser_position[0])*WarpX::laser_direction[0] + 
-		(pos[1]-WarpX::laser_position[1])*WarpX::laser_direction[1] + 
-		(pos[2]-WarpX::laser_position[2])*WarpX::laser_direction[2]) > 0.0
-	? 1 : -1;
-    };
-
-    bool IntersectLaserPlane (const RealBox& rb)
-    {
-	const Real* lo = rb.lo();
-	const Real* hi = rb.hi();
-	Array<int> sign(8);
-	sign[0] = WhichSideOfLaserPlane({lo[0],lo[1],lo[2]});
-	sign[1] = WhichSideOfLaserPlane({hi[0],lo[1],lo[2]});
-	sign[2] = WhichSideOfLaserPlane({lo[0],hi[1],lo[2]});
-	sign[3] = WhichSideOfLaserPlane({hi[0],hi[1],lo[2]});
-	sign[4] = WhichSideOfLaserPlane({lo[0],lo[1],hi[2]});
-	sign[5] = WhichSideOfLaserPlane({hi[0],lo[1],hi[2]});
-	sign[6] = WhichSideOfLaserPlane({lo[0],hi[1],hi[2]});
-	sign[7] = WhichSideOfLaserPlane({hi[0],hi[1],hi[2]});
-	bool same_side = true;
-	for (auto s : sign) same_side = same_side && (s == sign[0]);
-	return !same_side;  // a box intersects the plane if not all corners are on the same side.
+	return { a[1]*b[2]-a[2]*b[1],  a[2]*b[0]-a[0]*b[2],  a[0]*b[1]-a[1]*b[0] };
     }
 }
 
@@ -53,6 +28,53 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies)
 {
     charge = PhysConst::q_e; // note that q_e is defined to be positive.
     mass = std::numeric_limits<Real>::max();
+
+    if (WarpX::use_laser)
+    {
+	ParmParse pp("laser");
+
+	std::string laser_type_s;
+	pp.get("profile", laser_type_s);
+	std::transform(laser_type_s.begin(), laser_type_s.end(), laser_type_s.begin(), ::tolower);
+	if (laser_type_s == "gaussian") {
+	    profile = laser_t::Gaussian;
+	} else {
+	    BoxLib::Abort("Unknown laser type");
+	}
+
+	pp.getarr("position", position);
+	pp.getarr("direction", nvec);
+	pp.getarr("polarization", p_X);
+	pp.query("pusher_algo", pusher_algo);
+
+	pp.get("e_max", e_max);
+	pp.get("profile_waist", profile_waist);
+	pp.get("profile_duration", profile_duration);
+	pp.get("wavelength", wavelength);
+
+	// Plane normal
+	Real s = 1.0/std::sqrt(nvec[0]*nvec[0] + nvec[1]*nvec[1] + nvec[2]*nvec[2]);
+	nvec = { nvec[0]*s, nvec[1]*s, nvec[2]*s };
+
+	// The first polarization vector
+	s = 1.0/std::sqrt(p_X[0]*p_X[0] + p_X[1]*p_X[1] + p_X[2]*p_X[2]);
+	p_X = { p_X[0]*s, p_X[1]*s, p_X[2]*s };
+
+	Real dp = std::inner_product(nvec.begin(), nvec.end(), p_X.begin(), 0.0);
+	if (std::abs(dp) > 1.e-14) {
+	    BoxLib::Abort("Laser plane vector is not perpendicular to the main polarization vector");
+	}
+
+	p_Y = CrossProduct(nvec, p_X);   // The second polarization vector
+
+#if BL_SPACEDIM == 3
+	u_X = p_X;
+	u_Y = p_Y;
+#else
+	u_X = CrossProduct({0., 1., 0.}, nvec);
+	u_Y = {0., 1., 0.};
+#endif
+    }
 }
 
 void
@@ -71,24 +93,46 @@ LaserParticleContainer::InitData ()
     const int lev = 0;
 
     const Geometry& geom = GDB().Geom(lev);
-    const BoxArray& ba = GDB().ParticleBoxArray(lev);
-    const DistributionMapping& dm = GDB().ParticleDistributionMap(lev);
-
     const Real* dx  = geom.CellSize();
 
-    MultiFab dummy_mf(ba, 1, 0, dm, Fab_noallocate);
+    // spacing of laser particles in the laser plane
+    const Real eps = dx[0]*1.e-50;
+    Real S_X = std::min(std::min(dx[0]/(std::abs(p_X[0])+eps),
+				 dx[1]/(std::abs(p_X[1])+eps)),
+                                 dx[2]/(std::abs(p_X[2])+eps));
+    Real S_Y = std::min(std::min(dx[0]/(std::abs(p_Y[0])+eps),
+				 dx[1]/(std::abs(p_Y[1])+eps)),
+                                 dx[2]/(std::abs(p_Y[2])+eps));
 
-    for (MFIter mfi(dummy_mf); mfi.isValid(); ++mfi)
+    // Give integer coordinates in the laser plane, return the real coordinates in the "lab" frame
+    auto Transform = [&](int i, int j) -> Array<Real>
     {
-	int gid = mfi.index();
-        Box grid = ba[gid];
-        RealBox grid_box { grid,dx,geom.ProbLo() };
+	return { position[0] + (S_X*i)*p_X[0] + (S_Y*j)*p_Y[0],
+		 position[1] + (S_X*i)*p_X[1] + (S_Y*j)*p_Y[1],
+		 position[2] + (S_X*i)*p_X[2] + (S_Y*j)*p_Y[2] };
+    };
 
-	if (IntersectLaserPlane(grid_box))
+    // Given the "lab" frame coordinates, return the real coordinates in the laser plane coordinates
+    auto InverseTransform = [&](const Array<Real>& pos) -> Array<Real>
+    {
+	return { p_X[0]*pos[0] + p_X[1]*pos[1] + p_X[2]*pos[2],
+		 p_Y[0]*pos[0] + p_Y[1]*pos[1] + p_Y[2]*pos[2],
+		 nvec[0]*pos[0] + nvec[1]*pos[1] + nvec[2]*pos[2] };
+    };
+
+    Array<int> plane_lo(2, std::numeric_limits<int>::max());
+    Array<int> plane_hi(2, std::numeric_limits<int>::min());
+    {
+	const RealBox& prob_domain = geom.ProbDomain();
+	const Real* prob_lo = prob_domain.lo();
+	const Real* prob_hi = prob_domain.hi();
 	{
-	    
+	    Array<Real> pos_plane;
+	    pos_plane = InverseTransform({prob_lo[0],prob_lo[1],prob_lo[2]});
+//	    plane_lo[0] = std::min(plane_lo[0], pos_plane[0];
 	}
     }
+    
 }
 
 void
@@ -195,7 +239,7 @@ LaserParticleContainer::Evolve (int lev,
 	    warpx_laser_pusher(&np, xp.data(), yp.data(), zp.data(),
 			       uxp.data(), uyp.data(), uzp.data(), giv.data(),
 			       &this->charge, &dt, 
-			       &WarpX::laser_pusher_algo);
+			       &pusher_algo);
 	    BL_PROFILE_VAR_STOP(blp_pxr_pp);
 
 	    //
