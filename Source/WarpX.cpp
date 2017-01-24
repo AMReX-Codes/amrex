@@ -252,8 +252,6 @@ WarpX::shiftMF(MultiFab& mf, const Geometry& geom, int num_shift,
     mf[mfi].copy(tmpmf[mfi], srcBox, 0, dstBox, 0, mf.nComp());
     mf[mfi].SetBoxType(dst_typ);
   }
-
-  mf.FillBoundary(geom.periodicity());
 }
 
 void
