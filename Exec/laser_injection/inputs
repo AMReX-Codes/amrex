@@ -37,7 +37,7 @@ laser.direction    = 0. 0. 1.     # The plane normal direction
 laser.polarization = 0. 1. 0.     # The main polarization vector
 laser.e_max        = 1.e13        # Maximum amplitude of the laser field (in V/m)
 laser.profile_waist = 15.e-6      # The waist of the laser (in meters)
-laser.profile_duration = 30e.-15  # The duration of the laser (in seconds)
+laser.profile_duration = 30.e-15  # The duration of the laser (in seconds)
 laser.wavelength = 0.8e-6         # The wavelength of the laser (in meters)
 
 # I/O
