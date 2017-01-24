@@ -31,6 +31,7 @@ warpx.cfl = 1.0
 
 # Laser
 warpx.use_laser = 1
+laser.type      = Gaussian
 laser.position  = 0. 0. 0.     # This point is on the laser plane
 laser.direction = 0. 0. 1.     # The plane normal direction
 

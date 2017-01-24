@@ -7,6 +7,47 @@
 #include <ParticleContainer.H>
 #include <ParticleIterator.H>
 
+
+//
+// xxxxx need to make this work in 2D!
+//
+// xxxxx also need to think about the effect of roundoff errors
+// 
+
+namespace
+{
+    // The laser plane is described by 
+    // (x-laser_position[0], y-laser_position[1], z-laser_position[2])
+    //   dot (laser_direction[0], laser_direction[1], laser_direction[2]) = 0
+    //
+    // The sign the product tells us which side of the plane a point is.
+    int WhichSideOfLaserPlane (const Array<Real>& pos)
+    {
+	return ((pos[0]-WarpX::laser_position[0])*WarpX::laser_direction[0] + 
+		(pos[1]-WarpX::laser_position[1])*WarpX::laser_direction[1] + 
+		(pos[2]-WarpX::laser_position[2])*WarpX::laser_direction[2]) > 0.0
+	? 1 : -1;
+    };
+
+    bool IntersectLaserPlane (const RealBox& rb)
+    {
+	const Real* lo = rb.lo();
+	const Real* hi = rb.hi();
+	Array<int> sign(8);
+	sign[0] = WhichSideOfLaserPlane({lo[0],lo[1],lo[2]});
+	sign[1] = WhichSideOfLaserPlane({hi[0],lo[1],lo[2]});
+	sign[2] = WhichSideOfLaserPlane({lo[0],hi[1],lo[2]});
+	sign[3] = WhichSideOfLaserPlane({hi[0],hi[1],lo[2]});
+	sign[4] = WhichSideOfLaserPlane({lo[0],lo[1],hi[2]});
+	sign[5] = WhichSideOfLaserPlane({hi[0],lo[1],hi[2]});
+	sign[6] = WhichSideOfLaserPlane({lo[0],hi[1],hi[2]});
+	sign[7] = WhichSideOfLaserPlane({hi[0],hi[1],hi[2]});
+	bool same_side = true;
+	for (auto s : sign) same_side = same_side && (s == sign[0]);
+	return !same_side;  // a box intersects the plane if not all corners are on the same side.
+    }
+}
+
 LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies)
     : WarpXParticleContainer(amr_core, ispecies)
 {
@@ -25,7 +66,29 @@ LaserParticleContainer::AllocData ()
 void
 LaserParticleContainer::InitData ()
 {
-    
+    m_particles.resize(GDB().finestLevel()+1);
+
+    const int lev = 0;
+
+    const Geometry& geom = GDB().Geom(lev);
+    const BoxArray& ba = GDB().ParticleBoxArray(lev);
+    const DistributionMapping& dm = GDB().ParticleDistributionMap(lev);
+
+    const Real* dx  = geom.CellSize();
+
+    MultiFab dummy_mf(ba, 1, 0, dm, Fab_noallocate);
+
+    for (MFIter mfi(dummy_mf); mfi.isValid(); ++mfi)
+    {
+	int gid = mfi.index();
+        Box grid = ba[gid];
+        RealBox grid_box { grid,dx,geom.ProbLo() };
+
+	if (IntersectLaserPlane(grid_box))
+	{
+	    
+	}
+    }
 }
 
 void

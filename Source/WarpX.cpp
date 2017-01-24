@@ -1,4 +1,7 @@
 
+#include <algorithm>
+#include <cctype>
+
 #include <ParmParse.H>
 #include <WarpX.H>
 #include <WarpXConst.H>
@@ -7,11 +10,16 @@ long WarpX::current_deposition_algo = 3;
 long WarpX::charge_deposition_algo = 0;
 long WarpX::field_gathering_algo = 1;
 long WarpX::particle_pusher_algo = 0;
-long WarpX::laser_pusher_algo = -111111111;  // not being used yet
 
 long WarpX::nox = 1;
 long WarpX::noy = 1;
 long WarpX::noz = 1;
+
+bool        WarpX::use_laser         = false;
+laser_t     WarpX::laser_type        = laser_t::Null;
+Array<Real> WarpX::laser_position(3);
+Array<Real> WarpX::laser_direction(3);
+long        WarpX::laser_pusher_algo = -1;  // not being used yet
 
 #if (BL_SPACEDIM == 3)
 IntVect WarpX::Bx_nodal_flag(1,0,0);
@@ -42,8 +50,6 @@ IntVect WarpX::jx_nodal_flag(0,1);  // x is the first dimension to BoxLib
 IntVect WarpX::jy_nodal_flag(1,1);  // y is the missing dimension to 2D BoxLib
 IntVect WarpX::jz_nodal_flag(1,0);  // z is the second dimension to 2D BoxLib
 #endif
-
-bool WarpX::use_laser = false;
 
 WarpX* WarpX::m_instance = nullptr;
 
@@ -155,6 +161,24 @@ WarpX::ReadParameters ()
 	pp.query("use_laser", use_laser);
     }
 
+    if (use_laser)
+    {
+	ParmParse pp("laser");
+
+	std::string laser_type_s;
+	pp.get("type", laser_type_s);
+	std::transform(laser_type_s.begin(), laser_type_s.end(), laser_type_s.begin(), ::tolower);
+	if (laser_type_s == "gaussian") {
+	    laser_type = laser_t::Gaussian;
+	} else {
+	    BoxLib::Abort("Unknown laser type");
+	}
+
+	pp.getarr("position", laser_position);
+	pp.getarr("direction", laser_direction);
+	pp.query("pusher_algo", laser_pusher_algo);
+    }
+
     {
 	ParmParse pp("interpolation");
 	pp.query("nox", nox);
@@ -174,7 +198,6 @@ WarpX::ReadParameters ()
 	pp.query("charge_deposition", charge_deposition_algo);
 	pp.query("field_gathering", field_gathering_algo);
 	pp.query("particle_pusher", particle_pusher_algo);
-	pp.query("laser_pusher", laser_pusher_algo);
     }
 
 }
