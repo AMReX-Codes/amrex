@@ -6,6 +6,7 @@ from .Geometry import geometry
 from .Algo import algo
 from .Langmuirwave import langmuirwave
 from .Interpolation import interpolation
+from .Particles import particles
 
 from . import warpxC
 
@@ -19,6 +20,7 @@ class BoxLib(object):
         argv += algo.attrlist()
         argv += langmuirwave.attrlist()
         argv += interpolation.attrlist()
+        argv += particles.attrlist()
 
         warpxC.boxlib_init(argv)
 
