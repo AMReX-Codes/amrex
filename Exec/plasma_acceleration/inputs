@@ -59,6 +59,7 @@ warpx.moving_window_v = 1.0 # in units of the speed of light
 
 # Particle Injection
 warpx.do_plasma_injection = 1
-warpx.injected_plasma_species = 1
-warpx.injected_plasma_density = 1e22
-warpx.injected_plasma_ppc = 4
+warpx.num_injected_species = 1
+warpx.injected_plasma_species = 1 0
+warpx.injected_plasma_density = 1e22 1e22
+warpx.injected_plasma_ppc = 4 4

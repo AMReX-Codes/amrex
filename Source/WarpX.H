@@ -109,9 +109,10 @@ private:
 
     // Plasma injection parameters
     int do_plasma_injection = 0;
-    int injected_plasma_ppc;
-    int injected_plasma_species;
-    Real injected_plasma_density;  
+    int num_injected_species;
+    Array<int> injected_plasma_ppc;
+    Array<int> injected_plasma_species;
+    Array<Real> injected_plasma_density;
 
     // Other runtime parameters
     int verbose = 1;
