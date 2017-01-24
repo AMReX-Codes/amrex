@@ -133,6 +133,20 @@ WarpX::ReadParameters ()
 	  pp.get("moving_window_v", moving_window_v);
 	}
 
+	pp.query("do_plasma_injection", do_plasma_injection);
+	if (do_plasma_injection) {
+	  pp.get("num_injected_species", num_injected_species);
+	  injected_plasma_ppc.resize(num_injected_species);
+	  pp.getarr("injected_plasma_ppc", injected_plasma_ppc,
+		    0, num_injected_species);
+	  injected_plasma_species.resize(num_injected_species);
+	  pp.getarr("injected_plasma_species", injected_plasma_species,
+		 0, num_injected_species);
+	  injected_plasma_density.resize(num_injected_species);
+	  pp.getarr("injected_plasma_density", injected_plasma_density,
+		    0, num_injected_species);
+	}
+
 	moving_window_x = geom[0].ProbLo(moving_window_dir);
 	moving_window_v = 0.0;
 	pp.query("moving_window_v", moving_window_v);
@@ -238,8 +252,6 @@ WarpX::shiftMF(MultiFab& mf, const Geometry& geom, int num_shift,
     mf[mfi].copy(tmpmf[mfi], srcBox, 0, dstBox, 0, mf.nComp());
     mf[mfi].SetBoxType(dst_typ);
   }
-
-  mf.FillBoundary(geom.periodicity());
 }
 
 void

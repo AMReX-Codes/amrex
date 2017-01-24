@@ -77,6 +77,7 @@ private:
     void ComputeDt ();
 
     void MoveWindow ();
+    void InjectPlasma(int num_shift, int dir);
 
     void WriteWarpXHeader(const std::string& name) const;
     void WriteCheckPointFile() const;
@@ -106,8 +107,14 @@ private:
     Real moving_window_x;
     Real moving_window_v;
 
-    // runtime parameters
+    // Plasma injection parameters
+    int do_plasma_injection = 0;
+    int num_injected_species;
+    Array<int> injected_plasma_ppc;
+    Array<int> injected_plasma_species;
+    Array<Real> injected_plasma_density;
 
+    // Other runtime parameters
     int verbose = 1;
 
     int max_step   = std::numeric_limits<int>::max();
