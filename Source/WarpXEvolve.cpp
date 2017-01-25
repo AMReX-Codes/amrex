@@ -48,10 +48,10 @@ WarpX::Evolve (int numsteps)
 	    mypc->Evolve(lev,
 			 *Efield[lev][0],*Efield[lev][1],*Efield[lev][2],
 			 *Bfield[lev][0],*Bfield[lev][1],*Bfield[lev][2],
-			 *current[lev][0],*current[lev][1],*current[lev][2],dt[lev]);
+			 *current[lev][0],*current[lev][1],*current[lev][2], cur_time, dt[lev]);
 
 	    mypc->Redistribute();  // Redistribute particles
-	    
+
 	    EvolveB(lev, 0.5*dt[lev]); // We now B^{n+1/2}
 
 	    // Fill B's ghost cells because of the next step of evolving E.
@@ -275,7 +275,7 @@ void
 WarpX::InjectPlasma(int num_shift, int dir) {
 
   if(do_plasma_injection) {
-    
+
     // particleBox encloses the cells where we generate particles
     Box particleBox = geom[0].Domain();
     int domainLength = particleBox.length(dir);
@@ -287,7 +287,7 @@ WarpX::InjectPlasma(int num_shift, int dir) {
     const Real* dx  = geom[0].CellSize();
     WarpXParticleContainer* myspc = &(mypc->GetParticleContainer(0));
     const BoxArray& ba = myspc->ParticleBoxArray(0);
-    const DistributionMapping& dm = myspc->ParticleDistributionMap(0); 
+    const DistributionMapping& dm = myspc->ParticleDistributionMap(0);
     MultiFab dummy_mf(ba, 1, 0, dm, Fab_noallocate);
 
     // For each grid, loop only over the cells in the new region
@@ -324,7 +324,7 @@ WarpX::InjectPlasma(int num_shift, int dir) {
 		  Real x = intersectRealBox.lo(0) + (i + particle_shift)*dx[0];
 		  Real y = 0.0;
 		  Real z = intersectRealBox.lo(1) + (k + particle_shift)*dx[1];
-#endif   
+#endif
 
 		  int id  = ParticleBase::NextID();
 		  int cpu = ParallelDescriptor::MyProc();
@@ -361,21 +361,21 @@ WarpX::InjectPlasma(int num_shift, int dir) {
 void
 WarpX::MoveWindow ()
 {
-  
+
   if (do_moving_window == 0) return;
 
   // compute the number of cells to shift
   int dir = moving_window_dir;
   Real new_lo[BL_SPACEDIM];
-  Real new_hi[BL_SPACEDIM];    
+  Real new_hi[BL_SPACEDIM];
   const Real* current_lo = geom[0].ProbLo();
   const Real* current_hi = geom[0].ProbHi();
   const Real* dx = geom[0].CellSize();
   moving_window_x += moving_window_v * dt[0];
   int num_shift = (moving_window_x - current_lo[dir]) / dx[dir];
-  
+
   if (num_shift == 0) return;
-  
+
   // update the problem domain
   for (int i=0; i<BL_SPACEDIM; i++) {
     new_lo[i] = current_lo[i];
@@ -385,7 +385,7 @@ WarpX::MoveWindow ()
   new_hi[dir] = current_hi[dir] + num_shift * dx[dir];
   RealBox new_box(new_lo, new_hi);
   geom[0].ProbDomain(new_box);
-  
+
   // shift the mesh fields (Note - only on level 0 for now)
   shiftMF(*Bfield[0][0], geom[0], num_shift, dir, Bx_nodal_flag);
   shiftMF(*Bfield[0][1], geom[0], num_shift, dir, By_nodal_flag);

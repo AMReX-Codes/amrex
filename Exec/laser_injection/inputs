@@ -4,7 +4,7 @@ max_step = 20
 # number of grid points
 amr.n_cell =  64  64  64
 
-# Maximum allowable size of each subdomain in the problem domain; 
+# Maximum allowable size of each subdomain in the problem domain;
 #    this is used to decompose the domain for parallel calculations.
 amr.max_grid_size = 32
 
@@ -13,7 +13,7 @@ amr.max_level = 0
 
 # Geometry
 geometry.coord_sys   = 0                  # 0: Cartesian
-geometry.is_periodic = 1     1     1      # Is periodic?  
+geometry.is_periodic = 1     1     1      # Is periodic?
 geometry.prob_lo     = -20.e-6   -20.e-6   -20.e-6    # physical domain
 geometry.prob_hi     =  20.e-6    20.e-6    20.e-6
 
@@ -38,6 +38,8 @@ laser.polarization = 0. 1. 0.     # The main polarization vector
 laser.e_max        = 1.e13        # Maximum amplitude of the laser field (in V/m)
 laser.profile_waist = 15.e-6      # The waist of the laser (in meters)
 laser.profile_duration = 30.e-15  # The duration of the laser (in seconds)
+laser.profile_t_peak = 60.e-15    # The time at which the laser reaches its peak (in seconds)
+laser.profile_focal_distance = 0.e-6  # Focal distance from the antenna (in meters)
 laser.wavelength = 0.8e-6         # The wavelength of the laser (in meters)
 
 # I/O

@@ -42,7 +42,7 @@ void
 PhysicalParticleContainer::Evolve (int lev,
 				   const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
 				   const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz,
-				   MultiFab& jx, MultiFab& jy, MultiFab& jz, Real dt)
+				   MultiFab& jx, MultiFab& jy, MultiFab& jz, Real t, Real dt)
 {
     BL_PROFILE("PPC::Evolve()");
     BL_PROFILE_VAR_NS("PPC::Evolve::Copy", blp_copy);
@@ -74,7 +74,7 @@ PhysicalParticleContainer::Evolve (int lev,
     long ngy_j  = 0;
     long ngz_j  = ngx_j;
 #endif
-    
+
     BL_ASSERT(OnSameGrids(lev,Ex));
 
     //xxxxx not using m_pardata for now. auto& partleveldata = m_partdata[lev];
@@ -132,10 +132,10 @@ PhysicalParticleContainer::Evolve (int lev,
 		    yp[i] = std::numeric_limits<Real>::quiet_NaN();
 		    zp[i] = p.m_pos[1];
 #endif
-		    wp[i]  = p.m_data[PIdx::w]; 
-		    uxp[i] = p.m_data[PIdx::ux]; 
-		    uyp[i] = p.m_data[PIdx::uy]; 
-		    uzp[i] = p.m_data[PIdx::uz]; 
+		    wp[i]  = p.m_data[PIdx::w];
+		    uxp[i] = p.m_data[PIdx::ux];
+		    uyp[i] = p.m_data[PIdx::uy];
+		    uzp[i] = p.m_data[PIdx::uz];
 		});
 	    BL_PROFILE_VAR_STOP(blp_copy);
 
@@ -145,11 +145,11 @@ PhysicalParticleContainer::Evolve (int lev,
 #if (BL_SPACEDIM == 3)
 	    long nx = box.length(0);
 	    long ny = box.length(1);
-	    long nz = box.length(2); 
+	    long nz = box.length(2);
 #elif (BL_SPACEDIM == 2)
 	    long nx = box.length(0);
 	    long ny = 0;
-	    long nz = box.length(1); 
+	    long nz = box.length(1);
 #endif
 	    RealBox grid_box = RealBox( box, gm.CellSize(), gm.ProbLo() );
 #if (BL_SPACEDIM == 3)
@@ -157,7 +157,7 @@ PhysicalParticleContainer::Evolve (int lev,
 #elif (BL_SPACEDIM == 2)
 	    Real xyzmin[3] = { grid_box.lo(0), std::numeric_limits<Real>::quiet_NaN(), grid_box.lo(1) };
 #endif
-	    
+
 	    //
 	    // Field Gather
 	    //
@@ -170,8 +170,8 @@ PhysicalParticleContainer::Evolve (int lev,
 					  Bxp.data(),Byp.data(),Bzp.data(),
 					  &xyzmin[0], &xyzmin[1], &xyzmin[2],
 					  &dx[0], &dx[1], &dx[2],
-					  &nx, &ny, &nz, &ngx_eb, &ngy_eb, &ngz_eb, 
-					  &WarpX::nox, &WarpX::noy, &WarpX::noz, 
+					  &nx, &ny, &nz, &ngx_eb, &ngy_eb, &ngz_eb,
+					  &WarpX::nox, &WarpX::noy, &WarpX::noz,
 					  exfab.dataPtr(), eyfab.dataPtr(), ezfab.dataPtr(),
 					  bxfab.dataPtr(), byfab.dataPtr(), bzfab.dataPtr(),
 					  &ll4symtry, &l_lower_order_in_v,
@@ -187,7 +187,7 @@ PhysicalParticleContainer::Evolve (int lev,
 				  uxp.data(), uyp.data(), uzp.data(), giv.data(),
 				  Exp.dataPtr(), Eyp.dataPtr(), Ezp.dataPtr(),
 				  Bxp.dataPtr(), Byp.dataPtr(), Bzp.dataPtr(),
-				  &this->charge, &this->mass, &dt, 
+				  &this->charge, &this->mass, &dt,
                                   &WarpX::particle_pusher_algo);
 	    BL_PROFILE_VAR_STOP(blp_pxr_pp);
 
@@ -198,12 +198,12 @@ PhysicalParticleContainer::Evolve (int lev,
 	    long lvect = 8;
 	    BL_PROFILE_VAR_START(blp_pxr_cd);
 	    warpx_current_deposition(jxfab.dataPtr(), jyfab.dataPtr(), jzfab.dataPtr(),
-				     &np, xp.data(), yp.data(), zp.data(), 
-				     uxp.data(), uyp.data(), uzp.data(), 
-				     giv.data(), wp.data(), &this->charge, 
-				     &xyzmin[0], &xyzmin[1], &xyzmin[2], 
+				     &np, xp.data(), yp.data(), zp.data(),
+				     uxp.data(), uyp.data(), uzp.data(),
+				     giv.data(), wp.data(), &this->charge,
+				     &xyzmin[0], &xyzmin[1], &xyzmin[2],
 				     &dt, &dx[0], &dx[1], &dx[2], &nx, &ny, &nz,
-				     &ngx_j, &ngy_j, &ngz_j, 
+				     &ngx_j, &ngy_j, &ngz_j,
                                      &WarpX::nox,&WarpX::noy,&WarpX::noz,
 				     &lvect,&WarpX::current_deposition_algo);
 	    BL_PROFILE_VAR_STOP(blp_pxr_cd);

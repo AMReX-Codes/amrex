@@ -49,7 +49,9 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies)
 
 	pp.get("e_max", e_max);
 	pp.get("profile_waist", profile_waist);
-	pp.get("profile_duration", profile_duration);
+  pp.get("profile_duration", profile_duration);
+	pp.get("profile_t_peak", profile_t_peak);
+  pp.get("profile_focal_distance", profile_focal_distance);
 	pp.get("wavelength", wavelength);
 
 	// Plane normal
@@ -242,7 +244,7 @@ LaserParticleContainer::Evolve (int lev,
     BL_ASSERT(OnSameGrids(lev,jx));
 
     {
-	Array<Real> xp, yp, zp, wp, uxp, uyp, uzp, giv, plane_Xp, plane_Yp;
+	Array<Real> xp, yp, zp, wp, uxp, uyp, uzp, giv, plane_Xp, plane_Yp, amplitude;
 
 	PartIterInfo info {lev, do_tiling, tile_size};
 	for (PartIter pti(*this, info); pti.isValid(); ++pti)
@@ -265,6 +267,9 @@ LaserParticleContainer::Evolve (int lev,
 	    uyp.resize(np);
 	    uzp.resize(np);
 	    giv.resize(np);
+      plane_Xp.resize(np);
+      plane_Yp.resize(np);
+      amplitude.resize(np);
 
 	    //
 	    // copy data from particle container to temp arrays
@@ -326,10 +331,11 @@ LaserParticleContainer::Evolve (int lev,
 		  });
       // Calculate the laser amplitude to be emitted,
       // at the position of the emission plane
-//      if (profile == laser_t::Gaussian) {
-//        warpx_gaussian_pulse( plane_Xp, plane_Yp, t,
-//                              profile_waist, profile_duration );
-//      }
+      if (profile == laser_t::Gaussian) {
+        warpx_gaussian_laser( &np, plane_Xp.data(), plane_Yp.data(),
+            &t, &wavelength, &profile_waist, &profile_duration,
+            &profile_t_peak, &profile_focal_distance, amplitude.data() );
+      }
       // Calculate the corresponding momentum for the particles
 //      pti.foreach([&](int i, ParticleType& p) {
 //          v_over_c =
@@ -338,12 +344,12 @@ LaserParticleContainer::Evolve (int lev,
 //		  });
 
 
-	    BL_PROFILE_VAR_START(blp_pxr_pp);
-	    warpx_laser_pusher(&np, xp.data(), yp.data(), zp.data(),
-			       uxp.data(), uyp.data(), uzp.data(), giv.data(),
-			       &this->charge, &dt,
-			       &pusher_algo);
-	    BL_PROFILE_VAR_STOP(blp_pxr_pp);
+//	    BL_PROFILE_VAR_START(blp_pxr_pp);
+//	    warpx_laser_pusher(&np, xp.data(), yp.data(), zp.data(),
+//			       uxp.data(), uyp.data(), uzp.data(), giv.data(),
+//			       &this->charge, &dt,
+//			       &pusher_algo);
+//	    BL_PROFILE_VAR_STOP(blp_pxr_pp);
 
 	    //
 	    // Current Deposition

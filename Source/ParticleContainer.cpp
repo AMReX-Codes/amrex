@@ -8,14 +8,14 @@
 MultiParticleContainer::MultiParticleContainer (AmrCore* amr_core)
 {
     ReadParameters();
-   
+
     int n = WarpX::use_laser ? nspecies+1 : nspecies;
     allcontainers.resize(n);
     for (int i = 0; i < nspecies; ++i) {
 	allcontainers[i].reset(new PhysicalParticleContainer(amr_core, i));
     }
     if (WarpX::use_laser) {
-	allcontainers[n-1].reset(new LaserParticleContainer(amr_core,n-1)); 
+	allcontainers[n-1].reset(new LaserParticleContainer(amr_core,n-1));
     }
 }
 
@@ -54,15 +54,15 @@ void
 MultiParticleContainer::Evolve (int lev,
 			     const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
 			     const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz,
-			     MultiFab& jx, MultiFab& jy, MultiFab& jz, Real dt)
+			     MultiFab& jx, MultiFab& jy, MultiFab& jz, Real t, Real dt)
 {
     jx.setVal(0.0);
     jy.setVal(0.0);
     jz.setVal(0.0);
 
     for (auto& pc : allcontainers) {
-	pc->Evolve(lev, Ex, Ey, Ez, Bx, By, Bz, jx, jy, jz, dt);
-    }    
+	pc->Evolve(lev, Ex, Ey, Ez, Bx, By, Bz, jx, jy, jz, t, dt);
+    }
 
     const Geometry& gm = allcontainers[0]->GDB().Geom(lev);
     jx.SumBoundary(gm.periodicity());

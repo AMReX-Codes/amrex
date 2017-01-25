@@ -41,6 +41,7 @@ module warpx_to_pxr_module
 
   use iso_c_binding
   use bl_fort_module, only : c_real
+  use constants
 
   implicit none
 
@@ -396,7 +397,7 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
     END SELECT
 
     !!!! --- push particle species positions a time step
-#if (BL_SPACEDIM == 3)    
+#if (BL_SPACEDIM == 3)
     CALL pxr_pushxyz(np,xp,yp,zp,uxp,uyp,uzp,gaminv,dt)
 #elif (BL_SPACEDIM == 2)
     CALL pxr_pushxz(np,xp,zp,uxp,uzp,gaminv,dt)
@@ -498,4 +499,3 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
   end subroutine warpx_push_bvec
 
 end module warpx_to_pxr_module
-
