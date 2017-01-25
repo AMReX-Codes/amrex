@@ -1,7 +1,7 @@
 
 AMREX_PARTICLE=EXE
 
-C$(AMREX_PARTICLE)_sources += AMReX_Particles.cpp AMReX_TracerParticles.cpp
+C$(AMREX_PARTICLE)_sources += AMReX_TracerParticles.cpp
 C$(AMREX_PARTICLE)_headers += AMReX_Particles.H AMReX_ParticleInit.H AMReX_ParGDB.H AMReX_TracerParticles.H
 F$(AMREX_PARTICLE)_headers += AMReX_Particles_F.H
 F$(AMREX_PARTICLE)_sources += AMReX_Particles_$(DIM)D.F
