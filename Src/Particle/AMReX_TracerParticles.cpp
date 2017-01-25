@@ -101,7 +101,7 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
                         if (efrac[j] < 0) efrac[j] = 0;
                     }
 
-                    const Real vel = ParticleBase::InterpDoit(*fab[d], ecell, efrac, 0);
+                    const Real vel = ParticleType::InterpDoit(*fab[d], ecell, efrac, 0);
 
                     if (ipass == 0)
                     {
@@ -122,7 +122,7 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
                     }
                 }
                 
-                ParticleBase::RestrictedWhere(p,m_gdb, umac[0].nGrow()); 
+                ParticleType::RestrictedWhere(p,m_gdb, umac[0].nGrow()); 
             }
         }
     }
@@ -189,7 +189,7 @@ TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
 
 		Real v[BL_SPACEDIM];
 
-		ParticleBase::Interp(p, geom, fab, idx, v, BL_SPACEDIM);
+		ParticleType::Interp(p, geom, fab, idx, v, BL_SPACEDIM);
 
 		if (ipass == 0) {
 		    //
@@ -212,7 +212,7 @@ TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
                     }
                 }
                 
-                ParticleBase::RestrictedWhere(p,m_gdb, Ucc.nGrow()); 
+                ParticleType::RestrictedWhere(p,m_gdb, Ucc.nGrow()); 
             }
         }
     }
@@ -328,7 +328,7 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
                     {
                         if (p.m_id <= 0) continue;
 
-                        const IntVect& iv = ParticleBase::Index(p, m_gdb->Geom(lev));
+                        const IntVect& iv = ParticleType::Index(p, m_gdb->Geom(lev));
 
                         if (!bx.contains(iv) && !ba.contains(iv)) continue;
 
@@ -351,7 +351,7 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
 
                         if (M > 0)
                         {
-                            ParticleBase::Interp(p,m_gdb->Geom(p.m_lev),fab,&indices[0],&vals[0],M);
+                            ParticleType::Interp(p,m_gdb->Geom(p.m_lev),fab,&indices[0],&vals[0],M);
 
                             for (int i = 0; i < M; i++)
                             {

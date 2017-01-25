@@ -25,7 +25,7 @@ set(F77_header_files)
 set(F90_header_files)
 
 if(BL_USE_PARTICLES EQUAL 1)
-  list(APPEND CXX_source_files AMReX_Particles.cpp AMReX_TracerParticles.cpp)
+  list(APPEND CXX_source_files AMReX_TracerParticles.cpp)
   list(APPEND CXX_header_files AMReX_Particles.H AMReX_ParticleInit.H AMReX_TracerParticles.H AMReX_ParGDB.H)
   list(APPEND FPP_source_files AMReX_Particles_${BL_SPACEDIM}D.F)
   list(APPEND FPP_header_files AMReX_Particles_F.H)
