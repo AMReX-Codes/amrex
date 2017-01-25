@@ -26,7 +26,7 @@ namespace
 LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies)
     : WarpXParticleContainer(amr_core, ispecies)
 {
-    charge = PhysConst::q_e; // note that q_e is defined to be positive.
+    charge = 1.0;
     mass = std::numeric_limits<Real>::max();
 
     if (WarpX::use_laser)
@@ -94,15 +94,18 @@ LaserParticleContainer::InitData ()
 
     const Geometry& geom = GDB().Geom(lev);
     const Real* dx  = geom.CellSize();
+    const RealBox& prob_domain = geom.ProbDomain();
 
     // spacing of laser particles in the laser plane
     const Real eps = dx[0]*1.e-50;
-    Real S_X = std::min(std::min(dx[0]/(std::abs(p_X[0])+eps),
-				 dx[1]/(std::abs(p_X[1])+eps)),
-                                 dx[2]/(std::abs(p_X[2])+eps));
-    Real S_Y = std::min(std::min(dx[0]/(std::abs(p_Y[0])+eps),
-				 dx[1]/(std::abs(p_Y[1])+eps)),
-                                 dx[2]/(std::abs(p_Y[2])+eps));
+    const Real S_X = std::min(std::min(dx[0]/(std::abs(p_X[0])+eps),
+				       dx[1]/(std::abs(p_X[1])+eps)),
+			               dx[2]/(std::abs(p_X[2])+eps));
+    const Real S_Y = std::min(std::min(dx[0]/(std::abs(p_Y[0])+eps),
+				       dx[1]/(std::abs(p_Y[1])+eps)),
+                                       dx[2]/(std::abs(p_Y[2])+eps));
+
+    const Real particle_weight = ComputeWeight(S_X, S_Y);
 
     // Give integer coordinates in the laser plane, return the real coordinates in the "lab" frame
     auto Transform = [&](int i, int j) -> Array<Real>
@@ -123,16 +126,87 @@ LaserParticleContainer::InitData ()
     Array<int> plane_lo(2, std::numeric_limits<int>::max());
     Array<int> plane_hi(2, std::numeric_limits<int>::min());
     {
-	const RealBox& prob_domain = geom.ProbDomain();
+	auto compute_min_max = [&](Real x, Real y, Real z)
+	{
+	    const Array<Real> pos_plane = InverseTransform({x, y, z});
+	    int i = pos_plane[0]/S_X;
+	    int j = pos_plane[1]/S_Y;
+	    plane_lo[0] = std::min(plane_lo[0], i);
+	    plane_lo[1] = std::min(plane_lo[1], j);
+	    plane_hi[0] = std::max(plane_hi[0], i+1);
+	    plane_hi[1] = std::max(plane_hi[1], j+1);
+	};
+
 	const Real* prob_lo = prob_domain.lo();
 	const Real* prob_hi = prob_domain.hi();
-	{
-	    Array<Real> pos_plane;
-	    pos_plane = InverseTransform({prob_lo[0],prob_lo[1],prob_lo[2]});
-//	    plane_lo[0] = std::min(plane_lo[0], pos_plane[0];
-	}
+	compute_min_max(prob_lo[0], prob_lo[1], prob_lo[2]);
+	compute_min_max(prob_hi[0], prob_lo[1], prob_lo[2]);
+	compute_min_max(prob_lo[0], prob_hi[1], prob_lo[2]);
+	compute_min_max(prob_hi[0], prob_hi[1], prob_lo[2]);
+	compute_min_max(prob_lo[0], prob_lo[1], prob_hi[2]);
+	compute_min_max(prob_hi[0], prob_lo[1], prob_hi[2]);
+	compute_min_max(prob_lo[0], prob_hi[1], prob_hi[2]);
+	compute_min_max(prob_hi[0], prob_hi[1], prob_hi[2]);
     }
     
+    const int nprocs = ParallelDescriptor::NProcs();
+    const int myproc = ParallelDescriptor::MyProc();
+
+    const Box plane_box {IntVect(D_DECL(plane_lo[0],plane_lo[1],0)),
+                         IntVect(D_DECL(plane_hi[0],plane_hi[1],0))};
+    BoxArray plane_ba {plane_box};
+    {
+	IntVect chunk(plane_box.size());
+	const int min_size = 8;
+	while (plane_ba.size() < nprocs && chunk[0] > min_size && chunk[1] > min_size)
+	{
+	    for (int j = 1; j >= 0 ; j--)
+	    {
+		chunk[j] /= 2;
+		
+		if (plane_ba.size() < nprocs) {
+		    plane_ba.maxSize(chunk);
+		}
+	    }
+	}
+    }
+
+    Array<Real> particle_x, particle_y, particle_z, particle_w;
+
+    const DistributionMapping plane_dm {plane_ba, nprocs};
+    const Array<int>& procmap = plane_dm.ProcessorMap();
+    for (int i = 0, n = plane_ba.size(); i < n; ++i)
+    {
+	if (procmap[i] == myproc)
+	{
+	    const Box& bx = plane_ba[i];
+	    for (IntVect cell = bx.smallEnd(); cell <= bx.bigEnd(); bx.next(cell))
+	    {
+		const Array<Real>& pos = Transform(cell[0], cell[1]);
+		if (prob_domain.contains(pos.data()))
+		{
+		    for (int k = 0; k<2; ++k) {
+			particle_x.push_back(pos[0]);
+			particle_y.push_back(pos[1]);
+			particle_z.push_back(pos[2]);
+		    }
+		    particle_w.push_back( particle_weight);
+		    particle_w.push_back(-particle_weight);
+		}
+	    }
+	}
+    }
+    const int np = particle_z.size();
+    Array<Real> particle_ux(np, 0.0);
+    Array<Real> particle_uy(np, 0.0);
+    Array<Real> particle_uz(np, 0.0);
+
+    if (ParallelDescriptor::IOProcessor()) {
+	std::cout << "Adding laser particles\n";
+    }
+    AddNParticles(np, particle_x.data(), particle_y.data(), particle_z.data(),
+		  particle_ux.data(), particle_uy.data(), particle_uz.data(),
+		  1, particle_w.data(), 1);
 }
 
 void
@@ -280,4 +354,12 @@ LaserParticleContainer::Evolve (int lev,
             BL_PROFILE_VAR_STOP(blp_copy);
 	}	
     }
+}
+
+Real
+LaserParticleContainer::ComputeWeight (Real Sx, Real Sy) const
+{
+    constexpr Real eps = 0.1;
+    constexpr Real fac = 1.0/(2.0*3.1415926535897932*PhysConst::mu0*PhysConst::c*PhysConst::c*eps);    
+    return fac * wavelength * Sx * Sy / std::min(Sx,Sy) * e_max;
 }

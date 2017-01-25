@@ -131,6 +131,8 @@ private:
     Real profile_waist;
     Real profile_duration;
     Real wavelength;
+
+    Real ComputeWeight (Real Sx, Real Sy) const;
 };
 
 class MultiParticleContainer
