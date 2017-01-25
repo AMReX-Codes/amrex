@@ -148,7 +148,7 @@ LaserParticleContainer::InitData ()
 	compute_min_max(prob_lo[0], prob_hi[1], prob_hi[2]);
 	compute_min_max(prob_hi[0], prob_hi[1], prob_hi[2]);
     }
-    
+
     const int nprocs = ParallelDescriptor::NProcs();
     const int myproc = ParallelDescriptor::MyProc();
 
@@ -163,7 +163,7 @@ LaserParticleContainer::InitData ()
 	    for (int j = 1; j >= 0 ; j--)
 	    {
 		chunk[j] /= 2;
-		
+
 		if (plane_ba.size() < nprocs) {
 		    plane_ba.maxSize(chunk);
 		}
@@ -213,7 +213,7 @@ void
 LaserParticleContainer::Evolve (int lev,
 				const MultiFab&, const MultiFab&, const MultiFab&,
 				const MultiFab&, const MultiFab&, const MultiFab&,
-				MultiFab& jx, MultiFab& jy, MultiFab& jz, Real dt)
+				MultiFab& jx, MultiFab& jy, MultiFab& jz, Real t, Real dt)
 {
     BL_PROFILE("Laser::Evolve()");
     BL_PROFILE_VAR_NS("Laser::Evolve::Copy", blp_copy);
@@ -238,11 +238,11 @@ LaserParticleContainer::Evolve (int lev,
     long ngy_j  = 0;
     long ngz_j  = ngx_j;
 #endif
-    
+
     BL_ASSERT(OnSameGrids(lev,jx));
 
     {
-	Array<Real> xp, yp, zp, wp, uxp, uyp, uzp, giv;
+	Array<Real> xp, yp, zp, wp, uxp, uyp, uzp, giv, plane_Xp, plane_Yp;
 
 	PartIterInfo info {lev, do_tiling, tile_size};
 	for (PartIter pti(*this, info); pti.isValid(); ++pti)
@@ -280,10 +280,10 @@ LaserParticleContainer::Evolve (int lev,
 		    yp[i] = std::numeric_limits<Real>::quiet_NaN();
 		    zp[i] = p.m_pos[1];
 #endif
-		    wp[i]  = p.m_data[PIdx::w]; 
-		    uxp[i] = p.m_data[PIdx::ux]; 
-		    uyp[i] = p.m_data[PIdx::uy]; 
-		    uzp[i] = p.m_data[PIdx::uz]; 
+		    wp[i]  = p.m_data[PIdx::w];
+		    uxp[i] = p.m_data[PIdx::ux];
+		    uyp[i] = p.m_data[PIdx::uy];
+		    uzp[i] = p.m_data[PIdx::uz];
 		});
 	    BL_PROFILE_VAR_STOP(blp_copy);
 
@@ -293,11 +293,11 @@ LaserParticleContainer::Evolve (int lev,
 #if (BL_SPACEDIM == 3)
 	    long nx = box.length(0);
 	    long ny = box.length(1);
-	    long nz = box.length(2); 
+	    long nz = box.length(2);
 #elif (BL_SPACEDIM == 2)
 	    long nx = box.length(0);
 	    long ny = 0;
-	    long nz = box.length(1); 
+	    long nz = box.length(1);
 #endif
 	    RealBox grid_box = RealBox( box, gm.CellSize(), gm.ProbLo() );
 #if (BL_SPACEDIM == 3)
@@ -309,10 +309,39 @@ LaserParticleContainer::Evolve (int lev,
 	    //
 	    // Particle Push
 	    //
+      // Find the coordinates of the particles in the emission plane
+      pti.foreach([&](int i, ParticleType& p) {
+#if (BL_SPACEDIM == 3)
+          plane_Xp[i] = u_X[0]*(xp[i] - position[0])
+                      + u_X[1]*(yp[i] - position[1])
+                      + u_X[2]*(zp[i] - position[2]);
+          plane_Yp[i] = u_Y[0]*(xp[i] - position[0])
+                      + u_Y[1]*(yp[i] - position[1])
+                      + u_Y[2]*(zp[i] - position[2]);
+#elif (BL_SPACEDIM == 2)
+          plane_Xp[i] = u_X[0]*(xp[i] - position[0])
+                      + u_X[2]*(zp[i] - position[2]);
+          plane_Yp[i] = 0;
+#endif
+		  });
+      // Calculate the laser amplitude to be emitted,
+      // at the position of the emission plane
+//      if (profile == laser_t::Gaussian) {
+//        warpx_gaussian_pulse( plane_Xp, plane_Yp, t,
+//                              profile_waist, profile_duration );
+//      }
+      // Calculate the corresponding momentum for the particles
+//      pti.foreach([&](int i, ParticleType& p) {
+//          v_over_c =
+//          gamma = 1./( 1 - v_over_c**2 )
+//
+//		  });
+
+
 	    BL_PROFILE_VAR_START(blp_pxr_pp);
 	    warpx_laser_pusher(&np, xp.data(), yp.data(), zp.data(),
 			       uxp.data(), uyp.data(), uzp.data(), giv.data(),
-			       &this->charge, &dt, 
+			       &this->charge, &dt,
 			       &pusher_algo);
 	    BL_PROFILE_VAR_STOP(blp_pxr_pp);
 
@@ -323,12 +352,12 @@ LaserParticleContainer::Evolve (int lev,
 	    long lvect = 8;
 	    BL_PROFILE_VAR_START(blp_pxr_cd);
 	    warpx_current_deposition(jxfab.dataPtr(), jyfab.dataPtr(), jzfab.dataPtr(),
-				     &np, xp.data(), yp.data(), zp.data(), 
-				     uxp.data(), uyp.data(), uzp.data(), 
-				     giv.data(), wp.data(), &this->charge, 
-				     &xyzmin[0], &xyzmin[1], &xyzmin[2], 
+				     &np, xp.data(), yp.data(), zp.data(),
+				     uxp.data(), uyp.data(), uzp.data(),
+				     giv.data(), wp.data(), &this->charge,
+				     &xyzmin[0], &xyzmin[1], &xyzmin[2],
 				     &dt, &dx[0], &dx[1], &dx[2], &nx, &ny, &nz,
-				     &ngx_j, &ngy_j, &ngz_j, 
+				     &ngx_j, &ngy_j, &ngz_j,
                                      &WarpX::nox,&WarpX::noy,&WarpX::noz,
 				     &lvect,&WarpX::current_deposition_algo);
 	    BL_PROFILE_VAR_STOP(blp_pxr_cd);
@@ -352,7 +381,7 @@ LaserParticleContainer::Evolve (int lev,
 		    p.m_data[PIdx::uz] = uzp[i];
                 });
             BL_PROFILE_VAR_STOP(blp_copy);
-	}	
+	}
     }
 }
 
@@ -360,6 +389,6 @@ Real
 LaserParticleContainer::ComputeWeight (Real Sx, Real Sy) const
 {
     constexpr Real eps = 0.1;
-    constexpr Real fac = 1.0/(2.0*3.1415926535897932*PhysConst::mu0*PhysConst::c*PhysConst::c*eps);    
+    constexpr Real fac = 1.0/(2.0*3.1415926535897932*PhysConst::mu0*PhysConst::c*PhysConst::c*eps);
     return fac * wavelength * Sx * Sy / std::min(Sx,Sy) * e_max;
 }
