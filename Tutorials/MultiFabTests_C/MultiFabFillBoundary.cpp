@@ -23,10 +23,6 @@
 
 using namespace amrex;
 
-#ifdef BL_USE_SETBUF
-#define pubsetbuf setbuf
-#endif
-
 const int maxGrid(32);
 const int pdHi(63);
 const int nComp(5);

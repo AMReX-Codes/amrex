@@ -48,13 +48,6 @@ using std::strlen;
 using std::ios;
 using std::ifstream;
 
-//
-// This MUST be defined if don't have pubsetbuf() in I/O Streams Library.
-//
-#ifdef BL_USE_SETBUF
-#define pubsetbuf setbuf
-#endif
-
 #ifdef SHOWVAL
 #undef SHOWVAL
 #endif
@@ -845,10 +838,6 @@ bool AmrData::ReadNonPlotfileData(const string &filename, Amrvis::FileType filet
 
   fileName = filename;
 
-#ifdef BL_USE_SETBUF
-    VisMF::IO_Buffer io_buffer(VisMF::GetIOBufferSize());
-#endif
-
   time = 0;
   if(fileType == Amrvis::FAB) {
     finestLevel = LevelZero;
@@ -886,10 +875,6 @@ bool AmrData::ReadNonPlotfileData(const string &filename, Amrvis::FileType filet
        cerr << "Unable to open plotfile: " << filename << endl;
        return false;
     }
-
-#ifdef BL_USE_SETBUF
-    is.rdbuf()->setbuf(io_buffer.dataPtr(), io_buffer.size());
-#endif
 
     FArrayBox *newfab = new FArrayBox;
     nComp = newfab->readFrom(is, ComponentZero);  // read the first component

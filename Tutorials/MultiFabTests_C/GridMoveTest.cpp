@@ -22,10 +22,6 @@
 #include <AMReX_VisMF.H>
 #include <AMReX_MultiFab.H>
 
-#ifdef BL_USE_SETBUF
-#define pubsetbuf setbuf
-#endif
-
 using std::cout;
 using std::endl;
 

@@ -11,12 +11,6 @@
 #include <AMReX_Utility.H>
 #include <AMReX_ArrayLim.H>
 #include <AMReX_VisMF.H>
-//
-// This MUST be defined if don't have pubsetbuf() in I/O Streams Library.
-//
-#ifdef BL_USE_SETBUF
-#define pubsetbuf setbuf
-#endif
 
 static
 void

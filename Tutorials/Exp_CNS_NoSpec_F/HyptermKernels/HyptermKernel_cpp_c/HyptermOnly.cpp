@@ -29,10 +29,6 @@ using std::endl;
 #endif
 #define SHOWVAL(val) { cout << #val << " = " << val << endl; }
 
-#ifdef BL_USE_SETBUF
-#define pubsetbuf setbuf
-#endif
-
 extern "C" {
   void init_data(int lo[3], int hi[3], const int fablo[3], const int fabhi[3], int ng, double dx[3],
                  double ** __restrict__ _cons, double ** __restrict__ _q);
