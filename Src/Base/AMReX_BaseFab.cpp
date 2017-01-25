@@ -7,7 +7,7 @@
 #include <AMReX_BArena.H>
 #include <AMReX_CArena.H>
 
-#if !(defined(BL_NO_FORT) || defined(WIN32))
+#if !defined(BL_NO_FORT)
 #include <AMReX_BaseFab_f.H>
 #endif
 
@@ -163,7 +163,7 @@ The_Arena ()
     return the_arena;
 }
 
-#if !(defined(BL_NO_FORT) || defined(WIN32))
+#if !defined(BL_NO_FORT)
 template<>
 void
 BaseFab<Real>::performCopy (const BaseFab<Real>& src,

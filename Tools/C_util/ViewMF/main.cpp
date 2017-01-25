@@ -1,7 +1,5 @@
 
-#ifndef WIN32
 #include <unistd.h>
-#endif
 
 #include <AMReX_MultiFab.H>
 #include <ArrayView.H>
@@ -90,9 +88,7 @@ main (int   argc,
     //
     // Make sure to catch new failures.
     //
-#ifndef WIN32
     set_new_handler(Utility::OutOfMemory);
-#endif
 
     if (argc != 2) print_usage(argc,argv);
 
@@ -134,9 +130,7 @@ main (int   argc,
     //
     // Make sure to catch new failures.
     //
-#ifndef WIN32
     set_new_handler(Utility::OutOfMemory);
-#endif
 
     // Parse command line
     ParmParse pp(argc-1,argv+1,NULL,NULL); 
@@ -192,9 +186,7 @@ int main (int   argc,
     //
     // Make sure to catch new failures.
     //
-#ifndef WIN32
     set_new_handler(Utility::OutOfMemory);
-#endif
     
     if (argc < 6 || argc > 7) print_usage(argc,argv);
 

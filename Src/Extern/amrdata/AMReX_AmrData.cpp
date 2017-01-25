@@ -12,11 +12,9 @@ using std::string;
 using std::cout;
 using std::cerr;
 using std::endl;
-#ifndef WIN32
 using std::strlen;
-#endif
 
-#if ! (defined(BL_Linux) || defined(BL_Darwin) || defined(BL_AIX) || defined(BL_IRIX64) || defined(WIN32) || defined(BL_CYGWIN_NT) || defined(BL_CRAYX1))
+#if ! (defined(BL_Linux) || defined(BL_Darwin) || defined(BL_AIX) || defined(BL_IRIX64) || defined(BL_CYGWIN_NT) || defined(BL_CRAYX1))
 #define BL_ALWAYS_FIX_DENORMALS
 #endif
 

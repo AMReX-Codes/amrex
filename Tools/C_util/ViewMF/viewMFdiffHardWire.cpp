@@ -1,7 +1,5 @@
 
-#ifndef WIN32
 #include <unistd.h>
-#endif
 
 #include <AMReX_MultiFab.H>
 #include <ArrayView.H>
@@ -14,9 +12,7 @@
 #include <new>
 using std::setprecision;
 #include <iostream>
-#ifndef WIN32
 using std::set_new_handler;
-#endif
 
 static
 void 
@@ -42,9 +38,7 @@ int main (int   argc,
     //
     // Make sure to catch new failures.
     //
-#ifndef WIN32
     set_new_handler(Utility::OutOfMemory);
-#endif
 
     ParallelDescriptor::StartParallel(&argc, &argv);
     

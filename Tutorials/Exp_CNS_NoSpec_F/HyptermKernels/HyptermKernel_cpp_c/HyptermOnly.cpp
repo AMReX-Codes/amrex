@@ -12,9 +12,7 @@ using std::ios;
 using std::cout;
 using std::endl;
 
-#ifndef WIN32
 #include <unistd.h>
-#endif
 
 #include <AMReX_IntVect.H>
 #include <AMReX_Box.H>

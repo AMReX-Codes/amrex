@@ -1952,15 +1952,11 @@ void ParallelDescriptor::EndSubCommunicator () {}
 
 void ParallelDescriptor::Abort (int s, bool backtrace)
 { 
-#ifdef WIN32
-    throw;
-#else
     if (backtrace) {
 	BLBackTrace::handler(s);
     } else {
 	std::_Exit(EXIT_FAILURE);
     }
-#endif
 }
 
 const char* ParallelDescriptor::ErrorString (int) { return ""; }
