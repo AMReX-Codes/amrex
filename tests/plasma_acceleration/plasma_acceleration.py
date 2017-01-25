@@ -22,7 +22,7 @@ def get_parallel_indices(Np, rank, size):
     return lo, hi
 
 
-def set_initial_conditions():
+def set_initial_conditions(ncells, domain_min, domain_max):
     '''
 
     Sets initial conditions for the plasma acceleration setup.
@@ -32,32 +32,26 @@ def set_initial_conditions():
 
     comm.Barrier()
 
-    ncells = np.array([nx, ny, nz])
     num_ppc = 4
-
-    domain_min = np.array([xmin, ymin, zmin])
-    domain_max = np.array([xmax, ymax, zmax])
-
-    beam_min = np.array([ -20e-6,  -20e-6, -150e-6])
-    beam_max = np.array([  20e-6,   20e-6, -100e-6])
-    
-    plasma_min = np.array([-200e-6, -200e-6,  0.0e-6])
-    plasma_max = np.array([ 200e-6,  200e-6,  200e-6])
-
+    c = 299792458.0
     dx = (domain_max - domain_min) / ncells
 
-    c = 299792458.0
-
     #  Species 0 - the beam
+    beam_min = np.array([ -20e-6,  -20e-6, -150e-6])
+    beam_max = np.array([  20e-6,   20e-6, -100e-6])
     beam_density = 1.e23
     beam_gamma = 1.e9
     beam_uz = np.sqrt(beam_gamma**2 -1)*c
     beam_weight = beam_density * dx[0] * dx[1] * dx[2] / num_ppc
 
     #  Species 1 - the plasma
+    plasma_min = np.array([-200e-6, -200e-6,  0.0e-6])
+    plasma_max = np.array([ 200e-6,  200e-6,  200e-6])
     plasma_density = 1.e22
     plasma_weight = plasma_density * dx[0] * dx[1] * dx[2] / num_ppc
 
+    # Fill the entire domain with particles. Only a subset of these points
+    # will be selected for each species
     Z, Y, X, P = np.mgrid[0:ncells[0], 0:ncells[1], 0:ncells[2], 0:num_ppc]
     Z = Z.flatten()
     Y = Y.flatten()
@@ -122,26 +116,15 @@ def set_initial_conditions():
 
     comm.Barrier()
 
-nx = 64
-ny = 64
-nz = 64
-
-xmin = -200.e-6
-ymin = -200.e-6
-zmin = -200.e-6
-xmax = +200.e-6
-ymax = +200.e-6
-zmax = +200.e-6
-
-dx = (xmax - xmin)/nx
-dy = (ymax - ymin)/ny
-dz = (zmax - zmin)/nz
+ncells = np.array([64, 64, 64])
+domain_min = np.array([-200e-6, -200e-6, -200e-6])
+domain_max = np.array([ 200e-6,  200e-6,  200e-6])
 
 # Maximum number of time steps
 max_step = 60
 
 # number of grid points
-amr.n_cell =   "%d  %d  %d" % (nx, ny, nz)
+amr.n_cell =   "%d  %d  %d" % tuple(ncells)
 
 # Maximum allowable size of each subdomain in the problem domain; 
 #    this is used to decompose the domain for parallel calculations.
@@ -155,8 +138,8 @@ amr.plot_int = 2   # How often to write plotfiles.  "<= 0" means no plotfiles.
 # Geometry
 geometry.coord_sys   = 0                  # 0: Cartesian
 geometry.is_periodic = "1     1     0"      # Is periodic?  
-geometry.prob_lo     = "%7.0e   %7.0e   %7.0e" % (xmin, ymin, zmin)    # physical domain
-geometry.prob_hi     = "%7.0e   %7.0e   %7.0e" % (xmax, ymax, zmax)
+geometry.prob_lo     = "%7.0e   %7.0e   %7.0e" % tuple(domain_min)    # physical domain
+geometry.prob_hi     = "%7.0e   %7.0e   %7.0e" % tuple(domain_max)
 
 # Algorithms
 algo.current_deposition = 3
@@ -184,7 +167,7 @@ boxlib = BoxLib()
 boxlib.init()
 warpx.init()
 
-set_initial_conditions()
+set_initial_conditions(ncells, domain_min, domain_max)
 
 for i in range(max_step + 1):
     warpx.evolve(i)
