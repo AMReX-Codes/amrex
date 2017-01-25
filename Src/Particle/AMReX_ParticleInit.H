@@ -11,7 +11,7 @@ ParticleContainer<NR,NI,C>::InitFromAsciiFile (const std::string& file, int extr
     const Real strttime = ParallelDescriptor::second();
     //
     // Number of processes that read from the file.  //
-    int NReaders = Particle<NR, NI>::MaxReaders();
+    int NReaders = ParticleType::MaxReaders();
     //
     // Number of chunks we break the redistribution loop into
     // This default is just for the case of NProcs = NReaders = 1.
@@ -137,13 +137,13 @@ ParticleContainer<NR,NI,C>::InitFromAsciiFile (const std::string& file, int extr
                 amrex::Error(msg.c_str());
             }
 
-            if (!Particle<NR, NI>::Where(p,m_gdb))
+            if (!ParticleType::Where(p,m_gdb))
             {
-                Particle<NR, NI>::PeriodicShift(p,m_gdb);
+                ParticleType::PeriodicShift(p,m_gdb);
 
-                if (!Particle<NR, NI>::Where(p,m_gdb))
+                if (!ParticleType::Where(p,m_gdb))
                 {
-                    std::cout << "BAD PARTICLE ID WOULD BE " << Particle<NR, NI>::NextID() << '\n';
+                    std::cout << "BAD PARTICLE ID WOULD BE " << ParticleType::NextID() << '\n';
 
                     for (int d = 0; d < BL_SPACEDIM; d++)
                     {
@@ -154,7 +154,7 @@ ParticleContainer<NR,NI,C>::InitFromAsciiFile (const std::string& file, int extr
                 }
             }
 
-            p.m_id  = Particle<NR, NI>::NextID();
+            p.m_id  = ParticleType::NextID();
             p.m_cpu = MyProc;
 
             nparticles.push_back(p);
@@ -190,19 +190,19 @@ ParticleContainer<NR,NI,C>::InitFromAsciiFile (const std::string& file, int extr
                             for (int n = 0; n < extradata; n++)
                                 p_rep.m_data[n] = p.m_data[n];
 
-                            if (!Particle<NR, NI>::Where(p_rep,m_gdb))
+                            if (!ParticleType::Where(p_rep,m_gdb))
                             {
-                                Particle<NR, NI>::PeriodicShift(p_rep,m_gdb);
-                                if (!Particle<NR, NI>::Where(p_rep,m_gdb))
+                                ParticleType::PeriodicShift(p_rep,m_gdb);
+                                if (!ParticleType::Where(p_rep,m_gdb))
                                 {
-                                    std::cout << "BAD REPLICATED PARTICLE ID WOULD BE " << Particle<NR, NI>::NextID() << std::endl;
+                                    std::cout << "BAD REPLICATED PARTICLE ID WOULD BE " << ParticleType::NextID() << std::endl;
                                     amrex::Abort("ParticleContainer<NR,NI,C>::InitFromAsciiFile(): invalid replicated particle");
                                 }
                             }
                             //
                             // Increment the particle ID.
                             //
-                            p_rep.m_id  = Particle<NR, NI>::NextID();
+                            p_rep.m_id  = ParticleType::NextID();
                             //
                             // Assign to the same processor for now.
                             //
@@ -356,13 +356,13 @@ ParticleContainer<NR,NI,C>::InitFromBinaryFile (const std::string& file,
     // We limit this to a rather small number since there's a limit
     // to the number of independent I/O channels on most filesystems.
     //
-    const int NReaders = Particle<NR, NI>::MaxReaders();
+    const int NReaders = ParticleType::MaxReaders();
 
     BL_ASSERT(NReaders <= NProcs);
     //
     // How many particles each NReaders reads before redistributing.
     //
-    const long NPartPerRedist = Particle<NR, NI>::MaxParticlesPerRead();
+    const long NPartPerRedist = ParticleType::MaxParticlesPerRead();
 
     if (m_verbose > 0 && ParallelDescriptor::IOProcessor())
     {
@@ -670,13 +670,13 @@ ParticleContainer<NR,NI,C>::InitFromBinaryFile (const std::string& file,
                     amrex::Error(msg.c_str());
                 }
 
-                if (!Particle<NR, NI>::Where(p,m_gdb))
+                if (!ParticleType::Where(p,m_gdb))
                 {
-                    Particle<NR, NI>::PeriodicShift(p,m_gdb);
+                    ParticleType::PeriodicShift(p,m_gdb);
 
-                    if (!Particle<NR, NI>::Where(p,m_gdb))
+                    if (!ParticleType::Where(p,m_gdb))
                     {
-                        std::cout << "BAD PARTICLE ID WOULD BE " << Particle<NR, NI>::NextID() << '\n';
+                        std::cout << "BAD PARTICLE ID WOULD BE " << ParticleType::NextID() << '\n';
 
                         for (int d = 0; d < BL_SPACEDIM; d++)
                         {
@@ -687,7 +687,7 @@ ParticleContainer<NR,NI,C>::InitFromBinaryFile (const std::string& file,
                     }
                 }
 
-                p.m_id  = Particle<NR, NI>::NextID();
+                p.m_id  = ParticleType::NextID();
                 p.m_cpu = MyProc;
 
                 m_particles[p.m_lev][p.m_grid].push_back(p);
@@ -895,7 +895,7 @@ ParticleContainer<NR,NI,C>::InitRandom (long          icount,
                     p.m_data[i] = 0;
             }
 
-            if (!Particle<NR, NI>::Where(p,m_gdb))
+            if (!ParticleType::Where(p,m_gdb))
             {
                 amrex::Abort("ParticleContainer<NR,NI,C>::InitRandom(): invalid particle");
             }
@@ -909,7 +909,7 @@ ParticleContainer<NR,NI,C>::InitRandom (long          icount,
                 //
                 // We own it. Add it to the appropriate PBox at the appropriate level.
                 //
-                p.m_id  = Particle<NR, NI>::NextID();
+                p.m_id  = ParticleType::NextID();
                 p.m_cpu = MyProc;
 
                 m_particles[p.m_lev][p.m_grid].push_back(p);
@@ -965,10 +965,10 @@ ParticleContainer<NR,NI,C>::InitRandom (long          icount,
                     p.m_data[i] = 0;
             }
 
-            p.m_id  = Particle<NR, NI>::NextID();
+            p.m_id  = ParticleType::NextID();
             p.m_cpu = MyProc;
 
-            if (!Particle<NR, NI>::Where(p,m_gdb))
+            if (!ParticleType::Where(p,m_gdb))
             {
                 amrex::Abort("ParticleContainer<NR,NI,C>::InitRandom(): invalid particle");
             }
@@ -1066,10 +1066,10 @@ ParticleContainer<NR,NI,C>::InitOnePerCell (Real x_off, Real y_off, Real z_off,
                     p.m_data[i] = 0;
             }
 
-            p.m_id  = Particle<NR, NI>::NextID();
+            p.m_id  = ParticleType::NextID();
             p.m_cpu = ParallelDescriptor::MyProc();
 
-            if (!Particle<NR, NI>::Where(p,m_gdb))
+            if (!ParticleType::Where(p,m_gdb))
             {
                 amrex::Abort("ParticleContainer<NR,NI,C>::InitOnePerCell(): invalid particle");
             }
@@ -1166,10 +1166,10 @@ ParticleContainer<NR,NI,C>::InitNRandomPerCell (int n_per_cell, Real mass, Multi
                        p.m_data[i] = 0;
                }
 
-               p.m_id  = Particle<NR, NI>::NextID();
+               p.m_id  = ParticleType::NextID();
                p.m_cpu = ParallelDescriptor::MyProc();
 
-               if (!Particle<NR, NI>::Where(p,m_gdb))
+               if (!ParticleType::Where(p,m_gdb))
                    amrex::Abort("ParticleContainer<NR,NI,C>::InitNRandomPerCell(): invalid particle");
 
                BL_ASSERT(p.m_lev >= 0 && p.m_lev <= m_gdb->finestLevel());
