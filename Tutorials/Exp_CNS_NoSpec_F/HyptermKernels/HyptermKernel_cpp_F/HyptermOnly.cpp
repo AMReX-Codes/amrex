@@ -30,10 +30,6 @@ using std::endl;
 #endif
 #define SHOWVAL(val) { cout << #val << " = " << val << endl; }
 
-#ifdef BL_USE_SETBUF
-#define pubsetbuf setbuf
-#endif
-
 
 // --------------------------------------------------------------------
 int main(int argc, char *argv[]) {

@@ -17,10 +17,6 @@
 #include <AMReX_Geometry.H>
 #include <WritePlotFile.H>
 
-#ifdef BL_USE_SETBUF
-#define pubsetbuf setbuf
-#endif
-
 std::string
 thePlotFileType ()
 {
