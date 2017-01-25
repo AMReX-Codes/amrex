@@ -6,9 +6,7 @@
 #include <iostream>
 #include <fstream>
 
-#ifndef WIN32
 #include <unistd.h>
-#endif
 
 #include <AMReX_Utility.H>
 #include <AMReX_ParallelDescriptor.H>

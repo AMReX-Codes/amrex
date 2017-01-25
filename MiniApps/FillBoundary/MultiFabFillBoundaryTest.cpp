@@ -10,9 +10,7 @@
 #include <cstdio>
 #include <cstdlib>
 
-#ifndef WIN32
 #include <unistd.h>
-#endif
 
 #include <AMReX_IntVect.H>
 #include <AMReX_Box.H>

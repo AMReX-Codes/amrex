@@ -12,9 +12,7 @@
 #include <cstring>
 #include <cmath>
 
-#ifndef WIN32
 #include <unistd.h>
-#endif
 
 #include <AMReX_ParmParse.H>
 #include <AMReX_ParallelDescriptor.H>

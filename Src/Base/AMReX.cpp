@@ -236,7 +236,6 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi_
 {
     ParallelDescriptor::StartParallel(&argc, &argv, mpi_comm);
 
-#ifndef WIN32
     //
     // Make sure to catch new failures.
     //
@@ -253,7 +252,6 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi_
 	system::exename += "/";
     }
     system::exename += argv[0];
-#endif
 
 #ifdef BL_USE_UPCXX
     upcxx::init(&argc, &argv);

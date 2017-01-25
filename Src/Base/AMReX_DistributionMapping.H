@@ -161,7 +161,7 @@ class DistributionMapping
     static int ProximityMap(const int rank)   { return proximityMap[rank];   }
     static int ProximityOrder(const int rank) { return proximityOrder[rank]; }
 
-#if !(defined(BL_NO_FORT) || defined(WIN32))
+#if !defined(BL_NO_FORT)
     static void ReadCheckPointHeader(const std::string &filename,
 				     Array<IntVect>  &refRatio,
                                      Array<BoxArray> &allBoxes);
