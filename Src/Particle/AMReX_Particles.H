@@ -209,10 +209,10 @@ struct Particle
 template <int NR, int NI>
 void
 Particle<NR, NI>::CIC_Cells_Fracs_Basic (const Particle<NR, NI>& p,
-                                     const Real*         plo,
-                                     const Real*         dx,
-                                     Real*               fracs,
-                                     IntVect*            cells)
+					 const Real*         plo,
+					 const Real*         dx,
+					 Real*               fracs,
+					 IntVect*            cells)
 {
     BL_PROFILE("Particle<NR, NI>::CIC_Cells_Fracs_B()");
     //
@@ -235,11 +235,11 @@ Particle<NR, NI>::CIC_Cells_Fracs_Basic (const Particle<NR, NI>& p,
 template <int NR, int NI>
 int
 Particle<NR, NI>::CIC_Cells_Fracs (const Particle<NR, NI>& p,
-                               const Real*         plo,
-                               const Real*         dx_geom,
-                               const Real*         dx_part,
-                               Array<Real>&        fracs,
-                               Array<IntVect>&     cells)
+				   const Real*         plo,
+				   const Real*         dx_geom,
+				   const Real*         dx_part,
+				   Array<Real>&        fracs,
+				   Array<IntVect>&     cells)
 {
     BL_PROFILE("Particle<NR, NI>::CIC_Cells_Fracs()");
     if (dx_geom == dx_part)
@@ -319,11 +319,11 @@ Particle<NR, NI>::CIC_Cells_Fracs (const Particle<NR, NI>& p,
 template <int NR, int NI>
 bool
 Particle<NR, NI>::CrseToFine (const BoxArray&       cfba,
-                          const Array<IntVect>& cells,
-                          Array<IntVect>&       cfshifts,
-                          const Geometry&       gm,
-                          Array<int>&           which,
-                          Array<IntVect>&       pshifts)
+			      const Array<IntVect>& cells,
+			      Array<IntVect>&       cfshifts,
+			      const Geometry&       gm,
+			      Array<int>&           which,
+			      Array<IntVect>&       pshifts)
 {
     BL_PROFILE("Particle<NR, NI>::CrseToFine()");
     //
@@ -505,14 +505,14 @@ Particle<NR, NI>::FineToCrse (const Particle<NR, NI>&                p,
 template <int NR, int NI>
 void
 Particle<NR, NI>::FineCellsToUpdateFromCrse (const Particle<NR, NI>&                p,
-                                         int                                lev,
-                                         const ParGDBBase*                  gdb,
-                                         const IntVect&                     ccell,
-                                         const IntVect&                     cshift,
-                                         Array<int>&                        fgrid,
-                                         Array<Real>&                       ffrac,
-                                         Array<IntVect>&                    fcells,
-                                         std::vector< std::pair<int,Box> >& isects)
+					     int                                lev,
+					     const ParGDBBase*                  gdb,
+					     const IntVect&                     ccell,
+					     const IntVect&                     cshift,
+					     Array<int>&                        fgrid,
+					     Array<Real>&                       ffrac,
+					     Array<IntVect>&                    fcells,
+					     std::vector< std::pair<int,Box> >& isects)
 {
     BL_PROFILE("Particle<NR, NI>::FineCellsToUpdateFromCrse()");
     BL_ASSERT(lev >= 0);
@@ -1101,11 +1101,6 @@ Particle<NR, NI>::GetGravity (const FArrayBox&    gfab,
     Particle<NR, NI>::Interp(p,geom,gfab,idx,grav,BL_SPACEDIM);
 }
 
-  // template<int NR, int NI>
-  // std::ostream& 
-  // operator<< (std::ostream& os, const Particle<NR, NI>& p);
-
-
 template <int NR, int NI>
 std::ostream&
 operator<< (std::ostream& os, const Particle<NR, NI>& p)
@@ -1567,11 +1562,11 @@ ParticleContainer<NR,NI,C>::addOneParticle (int                  id_in,
         if (p.m_pos[d] >= geom.ProbHi(d)) p.m_pos[d] -= Delta[d];
     }
 
-    if (!Particle<NR, NI>::Where(p,m_gdb))
+    if (!ParticleType::Where(p,m_gdb))
     {
-        Particle<NR, NI>::PeriodicShift(p,m_gdb);
+        ParticleType::PeriodicShift(p,m_gdb);
 
-        if (!Particle<NR, NI>::Where(p,m_gdb))
+        if (!ParticleType::Where(p,m_gdb))
         {
             for (int d = 0; d < BL_SPACEDIM; d++)
             {
@@ -1627,13 +1622,13 @@ ParticleContainer<NR,NI,C>::addNParticles(int n_part, Array<double>& x, Array<do
        p.m_data[j+2] = w[j]; // w
 #endif
 
-       if (!Particle<NR, NI>::Where(p,m_gdb))
+       if (!ParticleType::Where(p,m_gdb))
               amrex::Abort("ParticleContainer<NR,NI,C>::addNParticles(): invalid particle location");
 
        for (int i = 0; i < n_attr; i++)
           p.m_data[BL_SPACEDIM+i] = attributes[n_attr*j + i];
 
-       p.m_id  = Particle<NR, NI>::NextID();
+       p.m_id  = ParticleType::NextID();
        p.m_cpu = ParallelDescriptor::MyProc();
 
        m_particles[p.m_lev][p.m_grid].push_back(p);
@@ -1642,9 +1637,9 @@ ParticleContainer<NR,NI,C>::addNParticles(int n_part, Array<double>& x, Array<do
     Redistribute();
 }
 
-    //
-    // The ParticleContainer<NR,NI,C>::Init... routines have been moved into a separate file.
-    //
+//
+// The ParticleContainer<NR,NI,C>::Init... routines have been moved into a separate file.
+//
 #include "AMReX_ParticleInit.H"
 
 template <int NR, int NI, class C>
@@ -1728,7 +1723,7 @@ ParticleContainer<NR,NI,C>::MoveRandom (int lev)
                 p.m_pos[i] += dist[i]*(2*rn[tid].d_value()-1);
             }
 
-            Particle<NR, NI>::Reset(p,m_gdb,true);
+            ParticleType::Reset(p,m_gdb,true);
         }
     }
 
@@ -2227,7 +2222,7 @@ ParticleContainer<NR,NI,C>::AddParticlesAtLevel (int   level,
                 //
                 p.m_lev = level;
 
-                if (!Particle<NR, NI>::SingleLevelWhere(p, m_gdb, level))
+                if (!ParticleType::SingleLevelWhere(p, m_gdb, level))
                     //
                     // Virtuals shouldn't be in Ghost cells.
                     //
@@ -2505,7 +2500,7 @@ ParticleContainer<NR,NI,C>::CreateGhostParticles (int   level,
             //
             // Find particle location on the finer level.
             //
-            const IntVect& iv = Particle<NR, NI>::Index(*it,m_gdb->Geom(level+1));
+            const IntVect& iv = ParticleType::Index(*it,m_gdb->Geom(level+1));
             //
             // Is it in the grown finer level?
             //
@@ -2599,15 +2594,15 @@ ParticleContainer<NR,NI,C>::Redistribute (bool where_already_called,
 		    {
 			if (!where_already_called)
 			{
-			    if (!Particle<NR, NI>::Where(p,m_gdb, lev_min, theEffectiveFinestLevel))
+			    if (!ParticleType::Where(p,m_gdb, lev_min, theEffectiveFinestLevel))
 			    {                                
 				if (full_where) // Lengthier checks for subcycling.
 				{
-				    if (!Particle<NR, NI>::PeriodicWhere(p, m_gdb, lev_min, theEffectiveFinestLevel))
+				    if (!ParticleType::PeriodicWhere(p, m_gdb, lev_min, theEffectiveFinestLevel))
 				    {
 					if (lev_min != 0) // RestrictedWhere should be unnecessary at top level.
 					{
-					    if (!Particle<NR, NI>::RestrictedWhere(p, m_gdb, nGrow))
+					    if (!ParticleType::RestrictedWhere(p, m_gdb, nGrow))
 						amrex::Abort("ParticleContainer<NR,NI,C>::Redistribute(): invalid particle at non-coarse step");
 					}
 					else
@@ -3072,13 +3067,13 @@ ParticleContainer<NR,NI,C>::OK (bool full_where,
                     const int     lgrid = p.m_grid;
                     const IntVect cell  = p.m_cell;
 
-                    if (!Particle<NR, NI>::Where(p,m_gdb, lev_min, finest_level))
+                    if (!ParticleType::Where(p,m_gdb, lev_min, finest_level))
                     {
                         if (full_where)
                         {
-                            if (!Particle<NR, NI>::PeriodicWhere(p, m_gdb, lev_min, finest_level)) 
+                            if (!ParticleType::PeriodicWhere(p, m_gdb, lev_min, finest_level)) 
                             {
-                                if (!Particle<NR, NI>::RestrictedWhere(p, m_gdb, ngrow))
+                                if (!ParticleType::RestrictedWhere(p, m_gdb, ngrow))
                                     return false;
                             }
                         }
@@ -3118,13 +3113,13 @@ ParticleContainer<NR,NI,C>::OK (bool full_where,
 template <int NR, int NI, class C>
 void
 ParticleContainer<NR,NI,C>::Checkpoint (const std::string& dir,
-				      const std::string& name,
-				      bool               is_checkpoint) const
+					const std::string& name,
+					bool               is_checkpoint) const
 {
     BL_PROFILE("ParticleContainer<NR,NI,C>::Checkpoint()");
     BL_ASSERT(OK());
 
-    BL_ASSERT(sizeof(Particle<NR, NI>::RealType) == 4 || sizeof(Particle<NR, NI>::RealType) == 8);
+    BL_ASSERT(sizeof(ParticleType::RealType) == 4 || sizeof(ParticleType::RealType) == 8);
 
     const int  MyProc   = ParallelDescriptor::MyProc();
     const int  NProcs   = ParallelDescriptor::NProcs();
@@ -3177,9 +3172,9 @@ ParticleContainer<NR,NI,C>::Checkpoint (const std::string& dir,
 
     ParallelDescriptor::ReduceLongSum(nparticles,IOProc);
 
-    int maxnextid = Particle<NR, NI>::NextID();
+    int maxnextid = ParticleType::NextID();
 
-    Particle<NR, NI>::NextID(maxnextid);
+    ParticleType::NextID(maxnextid);
 
     ParallelDescriptor::ReduceIntMax(maxnextid,IOProc);
 
@@ -3203,13 +3198,13 @@ ParticleContainer<NR,NI,C>::Checkpoint (const std::string& dir,
         // whether we're using "float" or "double" floating point data in the
         // particles so that we can Restart from the checkpoint files.
         //
-        if (sizeof(Particle<NR, NI>::RealType) == 4)
+        if (sizeof(ParticleType::RealType) == 4)
         {
-            HdrFile << Particle<NR, NI>::Version() << "_single" << '\n';
+            HdrFile << ParticleType::Version() << "_single" << '\n';
         }
         else
         {
-            HdrFile << Particle<NR, NI>::Version() << "_double" << '\n';
+            HdrFile << ParticleType::Version() << "_double" << '\n';
         }
         //
         // BL_SPACEDIM and N for sanity checking.
@@ -3293,7 +3288,7 @@ ParticleContainer<NR,NI,C>::Checkpoint (const std::string& dir,
             std::string FullFileName = LevelDir;
 
             FullFileName += '/';
-            FullFileName += Particle<NR, NI>::DataPrefix();
+            FullFileName += ParticleType::DataPrefix();
             FullFileName += amrex::Concatenate("", FileNumber, 4);
 
             std::ofstream ParticleFile;
@@ -3397,7 +3392,7 @@ ParticleContainer<NR,NI,C>::Checkpoint (const std::string& dir,
                         std::string FullFileName = LevelDir;
 
                         FullFileName += '/';
-                        FullFileName += Particle<NR, NI>::DataPrefix();
+                        FullFileName += ParticleType::DataPrefix();
                         FullFileName += amrex::Concatenate("", i, 4);
 
                         amrex::UnlinkFile(FullFileName.c_str());
@@ -3567,12 +3562,12 @@ ParticleContainer<NR,NI,C>::WriteParticles (int            lev,
 	int maxItemsToWrite(8192);
 	int cntBufSize(maxItemsToWrite * rChunkSize);
 	int nItems(cnt), nItemsToWrite(0);
-        Array<Particle<NR, NI>::RealType> rstuff(cntBufSize);
+        Array<ParticleType::RealType> rstuff(cntBufSize);
         auto it  = pbox.cbegin();
         auto End = pbox.cend();
 
 	while(nItems > 0) {
-          Particle<NR, NI>::RealType *rptr = rstuff.dataPtr();
+          ParticleType::RealType *rptr = rstuff.dataPtr();
 	  int itemCount(0);
           for( ; it != End && itemCount < maxItemsToWrite; ++it) {
             if(it->m_id > 0) {
@@ -3589,7 +3584,7 @@ ParticleContainer<NR,NI,C>::WriteParticles (int            lev,
           }
 
 	  nItemsToWrite = nItems > maxItemsToWrite ? maxItemsToWrite : nItems;
-          ofs.write((char *) rstuff.dataPtr(), nItemsToWrite * rChunkSize * sizeof(Particle<NR, NI>::RealType));
+          ofs.write((char *) rstuff.dataPtr(), nItemsToWrite * rChunkSize * sizeof(ParticleType::RealType));
 	  nItems -= nItemsToWrite;
 	}
 #else
@@ -3612,7 +3607,7 @@ ParticleContainer<NR,NI,C>::WriteParticles (int            lev,
             }
         }
 
-        ofs.write((char*)rstuff.dataPtr(),rstuff.size()*sizeof(Particle<NR, NI>::RealType));
+        ofs.write((char*)rstuff.dataPtr(),rstuff.size()*sizeof(ParticleType::RealType));
 #endif
     }
 }
@@ -3796,7 +3791,7 @@ ParticleContainer<NR,NI,C>::Restart_Doit (const std::string& fullname,
     //
     // Don't forget to restore it!!!
     //
-    Particle<NR, NI>::NextID(maxnextid);
+    ParticleType::NextID(maxnextid);
     //
     // Then the finest level of the AMR hierarchy.
     //
@@ -3880,7 +3875,7 @@ ParticleContainer<NR,NI,C>::Restart_Doit (const std::string& fullname,
             name += "Level_";
             name += amrex::Concatenate("", lev, 1);
             name += '/';
-            name += Particle<NR, NI>::DataPrefix();
+            name += ParticleType::DataPrefix();
             name += amrex::Concatenate("", which[grid], 4);
 
             std::ifstream ParticleFile;
@@ -3973,7 +3968,7 @@ ParticleContainer<NR,NI,C>::ReadParticles_DoublePrecision (int            cnt,
     if (!is_checkpoint)
     {
         int maxnextid = 1;
-        Particle<NR, NI>::NextID(maxnextid);
+        ParticleType::NextID(maxnextid);
     }
 
     for (int i = 0; i < cnt; i++)
@@ -3985,13 +3980,13 @@ ParticleContainer<NR,NI,C>::ReadParticles_DoublePrecision (int            cnt,
         }
         else
         {
-           if (!Particle<NR, NI>::Where(p,m_gdb))
+           if (!ParticleType::Where(p,m_gdb))
             {
-                Particle<NR, NI>::PeriodicShift(p,m_gdb);
+                ParticleType::PeriodicShift(p,m_gdb);
 
-                if (!Particle<NR, NI>::Where(p,m_gdb))
+                if (!ParticleType::Where(p,m_gdb))
                 {
-                    std::cout << "RESTART:BAD PARTICLE ID WOULD BE " << Particle<NR, NI>::NextID() << '\n';
+                    std::cout << "RESTART:BAD PARTICLE ID WOULD BE " << ParticleType::NextID() << '\n';
 
                     for (int d = 0; d < BL_SPACEDIM; d++)
                     {
@@ -4002,7 +3997,7 @@ ParticleContainer<NR,NI,C>::ReadParticles_DoublePrecision (int            cnt,
                 }
             }
 
-            p.m_id   = Particle<NR, NI>::NextID();
+            p.m_id   = ParticleType::NextID();
             p.m_cpu  = ParallelDescriptor::MyProc();
         }
         p.m_lev  = lev;
@@ -4091,7 +4086,7 @@ ParticleContainer<NR,NI,C>::ReadParticles_SinglePrecision (int            cnt,
     if (!is_checkpoint)
     {
         int maxnextid = 1;
-        Particle<NR, NI>::NextID(maxnextid);
+        ParticleType::NextID(maxnextid);
     }
 
     for (int i = 0; i < cnt; i++)
@@ -4106,13 +4101,13 @@ ParticleContainer<NR,NI,C>::ReadParticles_SinglePrecision (int            cnt,
         }
         else
         {
-           if (!Particle<NR, NI>::Where(p,m_gdb))
+           if (!ParticleType::Where(p,m_gdb))
             {
-                Particle<NR, NI>::PeriodicShift(p,m_gdb);
+                ParticleType::PeriodicShift(p,m_gdb);
 
-                if (!Particle<NR, NI>::Where(p,m_gdb))
+                if (!ParticleType::Where(p,m_gdb))
                 {
-                    std::cout << "RESTART:BAD PARTICLE ID WOULD BE " << Particle<NR, NI>::NextID() << '\n';
+                    std::cout << "RESTART:BAD PARTICLE ID WOULD BE " << ParticleType::NextID() << '\n';
 
                     for (int d = 0; d < BL_SPACEDIM; d++)
                     {
@@ -4123,7 +4118,7 @@ ParticleContainer<NR,NI,C>::ReadParticles_SinglePrecision (int            cnt,
                 }
             }
 
-            p.m_id   = Particle<NR, NI>::NextID();
+            p.m_id   = ParticleType::NextID();
             p.m_cpu  = ParallelDescriptor::MyProc();
         }
 
@@ -4553,10 +4548,10 @@ template<int NR, int NI>
 inline
 int
 Particle<NR, NI>::CIC_Cells_Fracs (const Particle<NR, NI>& p,
-                               const Real*         plo,
-                               const Real*         dx,
-                               Array<Real>&        fracs,
-                               Array<IntVect>&     cells)
+				   const Real*         plo,
+				   const Real*         dx,
+				   Array<Real>&        fracs,
+				   Array<IntVect>&     cells)
 {
     return Particle<NR, NI>::CIC_Cells_Fracs(p,plo,dx,dx,fracs,cells);
 }
@@ -4853,7 +4848,7 @@ ParticleContainer<NR,NI,C>::AssignDensity (int rho_index, bool sub_cycle,
                 //
                 // Get "fracs" and "cells" for the particle "p" at this level.
                 //
-                const int M = Particle<NR, NI>::CIC_Cells_Fracs(p, plo, dx, fracs, cells);
+                const int M = ParticleType::CIC_Cells_Fracs(p, plo, dx, fracs, cells);
                 //
                 // If this is not fully periodic then we have to be careful that no
                 // particle's support leaves the domain. We test this by checking the low
@@ -4935,7 +4930,7 @@ ParticleContainer<NR,NI,C>::AssignDensity (int rho_index, bool sub_cycle,
                             //
                             // get fine cells/fracs
                             //
-                            const int MF = Particle<NR, NI>::CIC_Cells_Fracs(p, plo, dx_fine ,dx, ffracs, fcells);
+                            const int MF = ParticleType::CIC_Cells_Fracs(p, plo, dx_fine ,dx, ffracs, fcells);
 
                             for (int j = 0; j < MF; j++)
                             {
@@ -4997,7 +4992,7 @@ ParticleContainer<NR,NI,C>::AssignDensity (int rho_index, bool sub_cycle,
                             //
                             // We must be at a fine->coarse interface.
                             //
-                            const int MC = Particle<NR, NI>::CIC_Cells_Fracs(p, plo, dx_coarse, dx, cfracs, ccells);
+                            const int MC = ParticleType::CIC_Cells_Fracs(p, plo, dx_coarse, dx, cfracs, ccells);
                             for (int j = 0; j < MC; j++)
                             {
                                 //
@@ -5073,7 +5068,7 @@ ParticleContainer<NR,NI,C>::AssignDensity (int rho_index, bool sub_cycle,
                 {
                     bool AnyCrseToFine = false;
                     if (lev < finest_level) {
-                        AnyCrseToFine = Particle<NR, NI>::CrseToFine(cfba,cells,cfshifts,gm,cwhich,pshifts);
+                        AnyCrseToFine = ParticleType::CrseToFine(cfba,cells,cfshifts,gm,cwhich,pshifts);
 		    }
                     //
                     // lev_index > 0 means that we don't do F->C for lower levels
@@ -5081,7 +5076,7 @@ ParticleContainer<NR,NI,C>::AssignDensity (int rho_index, bool sub_cycle,
                     //
                     bool AnyFineToCrse = false;
                     if (lev_index > 0 && !GridsCoverDomain)
-                        AnyFineToCrse = Particle<NR, NI>::FineToCrse(p,lev,m_gdb,cells,fvalid,compfvalid_grown,ccells,cfracs,fwhich,cgrid,pshifts,isects);
+                        AnyFineToCrse = ParticleType::FineToCrse(p,lev,m_gdb,cells,fvalid,compfvalid_grown,ccells,cfracs,fwhich,cgrid,pshifts,isects);
 
                     BL_ASSERT(!(AnyCrseToFine && AnyFineToCrse));
 
@@ -5308,7 +5303,7 @@ ParticleContainer<NR,NI,C>::AssignDensity (int rho_index, bool sub_cycle,
                                 //
                                 // We're at a Crse->Fine boundary.
                                 //
-                                Particle<NR, NI>::FineCellsToUpdateFromCrse(p,lev,m_gdb,cells[i],cfshifts[i],fgrid,ffracs,fcells,isects);
+                                ParticleType::FineCellsToUpdateFromCrse(p,lev,m_gdb,cells[i],cfshifts[i],fgrid,ffracs,fcells,isects);
 
                                 for (int j = 0, nfcells = fcells.size(); j < nfcells; j++)
                                 {
@@ -5769,7 +5764,7 @@ ParticleContainer<NR,NI,C>::AssignCellDensitySingleLevel (int rho_index,
 	      continue;
 	    }
 
-            const int M = Particle<NR, NI>::CIC_Cells_Fracs(p, plo, dx, dx_particle, fracs, cells);
+            const int M = ParticleType::CIC_Cells_Fracs(p, plo, dx, dx_particle, fracs, cells);
             //
             // If this is not fully periodic then we have to be careful that the
             // particle's support leaves the domain unless we specifically want to ignore
@@ -6128,7 +6123,7 @@ ParticleContainer<NR,NI,C>::moveKick (MultiFab&       acceleration,
                 //
                 Real grav[BL_SPACEDIM];
 
-                Particle<NR, NI>::GetGravity(gfab, m_gdb->Geom(p.m_lev), p, grav);
+                ParticleType::GetGravity(gfab, m_gdb->Geom(p.m_lev), p, grav);
                 //
                 // Define (a u)^new = (a u)^half + dt/2 grav^new
                 //
