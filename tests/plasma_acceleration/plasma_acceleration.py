@@ -116,9 +116,69 @@ def set_initial_conditions(ncells, domain_min, domain_max):
 
     comm.Barrier()
 
+
+def inject_plasma(num_shift, direction):
+    '''
+
+    This injects fresh plasma into the domain after the moving window has been upated.
+
+    '''
+
+    comm.Barrier()
+
+    num_ppc = 4
+    density = 1.e22
+    weight = density * dx[0]*dx[1]*dx[2] / num_ppc
+
+    shift_box = np.array(ncells)
+    shift_box[direction] = abs(num_shift)
+
+    Z, Y, X, P = np.mgrid[0:shift_box[2], 0:shift_box[1], 0:shift_box[0], 0:num_ppc]
+    X = X.flatten()
+    Y = Y.flatten()
+    Z = Z.flatten()
+    P = P.flatten()
+    particle_shift = (0.5 + P) / num_ppc
+
+    pos = [[],[],[]]
+    
+    if (num_shift > 0):
+        pos[0] = (X + particle_shift)*dx[0] + domain_min[0]
+        pos[1] = (Y + particle_shift)*dx[1] + domain_min[1]
+        pos[2] = (Z + particle_shift)*dx[2] + domain_min[2]
+        pos[direction] -= domain_min[direction]
+        pos[direction] += domain_max[direction]
+    
+    if (num_shift < 0):
+        pos[0] = (X + particle_shift)*dx[0] + domain_min[0]
+        pos[1] = (Y + particle_shift)*dx[1] + domain_min[1]
+        pos[2] = (Z + particle_shift)*dx[2] + domain_min[2]
+        pos[direction] += num_shift*dx[direction]
+
+    xp = pos[0]
+    yp = pos[1]
+    zp = pos[2]
+
+    uxp = np.zeros_like(xp)
+    uyp = np.zeros_like(xp)
+    uzp = np.zeros_like(xp)
+
+    Np = xp.shape[0]
+    wp = np.full((Np, 1), weight)
+
+    lo, hi = get_parallel_indices(Np, comm.rank, comm.size)
+
+    warpxC.addNParticles(1, xp[lo:hi], yp[lo:hi], zp[lo:hi],
+                         uxp[lo:hi], uyp[lo:hi], uzp[lo:hi], 
+                         wp[lo:hi], 1)
+
+    comm.Barrier()
+
+
 ncells = np.array([64, 64, 64])
 domain_min = np.array([-200e-6, -200e-6, -200e-6])
 domain_max = np.array([ 200e-6,  200e-6,  200e-6])
+dx = (domain_max - domain_min) / ncells
 
 # Maximum number of time steps
 max_step = 60
@@ -156,11 +216,11 @@ warpx.do_moving_window = 1
 warpx.moving_window_dir = 2
 warpx.moving_window_v = 1.0  # in units of the speed of light
 
-warpx.do_plasma_injection = 1
-warpx.num_injected_species = 1
-warpx.injected_plasma_species = 1
-warpx.injected_plasma_density = 1e22
-warpx.injected_plasma_ppc = 4
+warpx.do_plasma_injection = 0
+#warpx.num_injected_species = 1
+#warpx.injected_plasma_species = 1
+#warpx.injected_plasma_density = 1e22
+#warpx.injected_plasma_ppc = 4
 
 # --- Initialize the simulation
 boxlib = BoxLib()
@@ -169,8 +229,21 @@ warpx.init()
 
 set_initial_conditions(ncells, domain_min, domain_max)
 
-for i in range(max_step + 1):
+old_x = warpx.getProbLo(warpx.moving_window_dir)
+new_x = old_x
+for i in range(1, max_step + 1):
+
+    # check whether the moving window has updated
+    num_shift = int( 0.5 + (new_x - old_x) / dx[warpx.moving_window_dir])
+    if (num_shift != 0):
+        inject_plasma(num_shift, warpx.moving_window_dir)
+        domain_min[warpx.moving_window_dir] += num_shift*dx[warpx.moving_window_dir]
+        domain_max[warpx.moving_window_dir] += num_shift*dx[warpx.moving_window_dir]
+
     warpx.evolve(i)
+
+    old_x = new_x
+    new_x = warpx.getProbLo(warpx.moving_window_dir)
 
 warpx.finalize()
 

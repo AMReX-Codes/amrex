@@ -15,4 +15,10 @@ class WarpX(Bucket):
     def finalize(self):
         warpxC.warpx_finalize()
 
+    def getProbLo(self, direction):
+        return warpxC.warpx_getProbLo(direction)
+
+    def getProbHi(self, direction):
+        return warpxC.warpx_getProbHi(direction)
+
 warpx = WarpX('warpx')
