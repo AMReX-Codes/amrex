@@ -909,7 +909,7 @@ Particle<NR, NI>::SingleLevelWhere (Particle<NR, NI>& p,
 template <int NR, int NI>
 bool
 Particle<NR, NI>::PeriodicShift (Particle<NR, NI>& p,
-                             const ParGDBBase*    gdb)
+				 const ParGDBBase*    gdb)
 {
     BL_PROFILE("Particle<NR, NI>::PeriodicShift()");
     //
@@ -2338,7 +2338,7 @@ ParticleContainer<NR,NI,C>::RemoveParticlesNotAtFinestLevel ()
 template <int NR, int NI, class C>
 void
 ParticleContainer<NR,NI,C>::CreateVirtualParticles (int   level,
-						  PBox& virts) const
+						    PBox& virts) const
 {
     BL_PROFILE("ParticleContainer<NR,NI,C>::CreateVirtualParticles()");
     BL_ASSERT(level > 0);
@@ -3123,7 +3123,7 @@ ParticleContainer<NR,NI,C>::Checkpoint (const std::string& dir,
     BL_PROFILE("ParticleContainer<NR,NI,C>::Checkpoint()");
     BL_ASSERT(OK());
 
-    BL_ASSERT(sizeof(ParticleType::RealType) == 4 || sizeof(ParticleType::RealType) == 8);
+    BL_ASSERT(sizeof(typename ParticleType::RealType) == 4 || sizeof(typename ParticleType::RealType) == 8);
 
     const int  MyProc   = ParallelDescriptor::MyProc();
     const int  NProcs   = ParallelDescriptor::NProcs();
@@ -3202,7 +3202,7 @@ ParticleContainer<NR,NI,C>::Checkpoint (const std::string& dir,
         // whether we're using "float" or "double" floating point data in the
         // particles so that we can Restart from the checkpoint files.
         //
-        if (sizeof(ParticleType::RealType) == 4)
+        if (sizeof(typename ParticleType::RealType) == 4)
         {
             HdrFile << ParticleType::Version() << "_single" << '\n';
         }
@@ -3588,7 +3588,7 @@ ParticleContainer<NR,NI,C>::WriteParticles (int            lev,
           }
 
 	  nItemsToWrite = nItems > maxItemsToWrite ? maxItemsToWrite : nItems;
-          ofs.write((char *) rstuff.dataPtr(), nItemsToWrite * rChunkSize * sizeof(ParticleType::RealType));
+          ofs.write((char *) rstuff.dataPtr(), nItemsToWrite * rChunkSize * sizeof(typename ParticleType::RealType));
 	  nItems -= nItemsToWrite;
 	}
 #else
@@ -3611,7 +3611,7 @@ ParticleContainer<NR,NI,C>::WriteParticles (int            lev,
             }
         }
 
-        ofs.write((char*)rstuff.dataPtr(),rstuff.size()*sizeof(ParticleType::RealType));
+        ofs.write((char*)rstuff.dataPtr(),rstuff.size()*sizeof(typename ParticleType::RealType));
 #endif
     }
 }
