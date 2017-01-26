@@ -133,6 +133,7 @@ private:
     Real profile_t_peak;
     Real profile_focal_distance;
     Real wavelength;
+    Real mobility;
 
     Real ComputeWeight (Real Sx, Real Sy) const;
 };

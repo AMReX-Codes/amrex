@@ -50,7 +50,7 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies)
 	pp.get("e_max", e_max);
 	pp.get("profile_waist", profile_waist);
   pp.get("profile_duration", profile_duration);
-	pp.get("profile_t_peak", profile_t_peak);
+  pp.get("profile_t_peak", profile_t_peak);
   pp.get("profile_focal_distance", profile_focal_distance);
 	pp.get("wavelength", wavelength);
 
@@ -108,6 +108,9 @@ LaserParticleContainer::InitData ()
                                        dx[2]/(std::abs(p_Y[2])+eps));
 
     const Real particle_weight = ComputeWeight(S_X, S_Y);
+    // The mobility is the constant of proportionality between the field to
+    // be emitted, and the corresponding velocity that the particles need to have.
+    mobility = (S_X * S_Y)/( particle_weight * PhysConst::mu0 * PhysConst::c * PhysConst::c);
 
     // Give integer coordinates in the laser plane, return the real coordinates in the "lab" frame
     auto Transform = [&](int i, int j) -> Array<Real>
@@ -244,13 +247,13 @@ LaserParticleContainer::Evolve (int lev,
     BL_ASSERT(OnSameGrids(lev,jx));
 
     {
-	Array<Real> xp, yp, zp, wp, uxp, uyp, uzp, giv, plane_Xp, plane_Yp, amplitude;
+	Array<Real> xp, yp, zp, wp, uxp, uyp, uzp, giv,
+            plane_Xp, plane_Yp, amplitude_E;
 
 	PartIterInfo info {lev, do_tiling, tile_size};
 	for (PartIter pti(*this, info); pti.isValid(); ++pti)
 	{
 	    const int  gid = pti.index();
-	    const Box& tbx = pti.tilebox();
 	    const Box& vbx = pti.validbox();
 	    const long np  = pti.numParticles();
 
@@ -269,7 +272,7 @@ LaserParticleContainer::Evolve (int lev,
 	    giv.resize(np);
       plane_Xp.resize(np);
       plane_Yp.resize(np);
-      amplitude.resize(np);
+      amplitude_E.resize(np);
 
 	    //
 	    // copy data from particle container to temp arrays
@@ -286,12 +289,24 @@ LaserParticleContainer::Evolve (int lev,
 		    zp[i] = p.m_pos[1];
 #endif
 		    wp[i]  = p.m_data[PIdx::w];
-		    uxp[i] = p.m_data[PIdx::ux];
-		    uyp[i] = p.m_data[PIdx::uy];
-		    uzp[i] = p.m_data[PIdx::uz];
+        // Note: the particle momentum is not copied, since it is
+        // overwritten at each timestep, for the laser particles
+
+        // Find the coordinates of the particles in the emission plane
+#if (BL_SPACEDIM == 3)
+        plane_Xp[i] = u_X[0]*(xp[i] - position[0])
+                    + u_X[1]*(yp[i] - position[1])
+                    + u_X[2]*(zp[i] - position[2]);
+        plane_Yp[i] = u_Y[0]*(xp[i] - position[0])
+                    + u_Y[1]*(yp[i] - position[1])
+                    + u_Y[2]*(zp[i] - position[2]);
+#elif (BL_SPACEDIM == 2)
+        plane_Xp[i] = u_X[0]*(xp[i] - position[0])
+                    + u_X[2]*(zp[i] - position[2]);
+        plane_Yp[i] = 0;
+#endif
 		});
 	    BL_PROFILE_VAR_STOP(blp_copy);
-
 
 	    const Box& box = BoxLib::enclosedCells(ba[gid]);
 	    BL_ASSERT(box == vbx);
@@ -314,42 +329,41 @@ LaserParticleContainer::Evolve (int lev,
 	    //
 	    // Particle Push
 	    //
-      // Find the coordinates of the particles in the emission plane
-      pti.foreach([&](int i, ParticleType& p) {
-#if (BL_SPACEDIM == 3)
-          plane_Xp[i] = u_X[0]*(xp[i] - position[0])
-                      + u_X[1]*(yp[i] - position[1])
-                      + u_X[2]*(zp[i] - position[2]);
-          plane_Yp[i] = u_Y[0]*(xp[i] - position[0])
-                      + u_Y[1]*(yp[i] - position[1])
-                      + u_Y[2]*(zp[i] - position[2]);
-#elif (BL_SPACEDIM == 2)
-          plane_Xp[i] = u_X[0]*(xp[i] - position[0])
-                      + u_X[2]*(zp[i] - position[2]);
-          plane_Yp[i] = 0;
-#endif
-		  });
+      BL_PROFILE_VAR_START(blp_pxr_pp);
       // Calculate the laser amplitude to be emitted,
       // at the position of the emission plane
       if (profile == laser_t::Gaussian) {
         warpx_gaussian_laser( &np, plane_Xp.data(), plane_Yp.data(),
-            &t, &wavelength, &profile_waist, &profile_duration,
-            &profile_t_peak, &profile_focal_distance, amplitude.data() );
+            &t, &wavelength, &e_max, &profile_waist, &profile_duration,
+            &profile_t_peak, &profile_focal_distance, amplitude_E.data() );
       }
-      // Calculate the corresponding momentum for the particles
-//      pti.foreach([&](int i, ParticleType& p) {
-//          v_over_c =
-//          gamma = 1./( 1 - v_over_c**2 )
-//
-//		  });
+      // Calculate the corresponding momentum and position for the particles
+      {
+      Real v_over_c, vx, vy, vz, gamma;
 
+      pti.foreach([&](int i, ParticleType& p) {
+          // Calculate the velocity according to the amplitude of E
+          v_over_c = std::copysign( mobility * amplitude_E[i], wp[i] );
+          giv[i] = std::sqrt( 1 - v_over_c * v_over_c );
+          gamma = 1./giv[i];
+          // The velocity is along the laser polarization p_X
+          vx = PhysConst::c * v_over_c * p_X[0];
+          vy = PhysConst::c * v_over_c * p_X[1];
+          vz = PhysConst::c * v_over_c * p_X[2];
+          // Get the corresponding momenta
+          uxp[i] = gamma * vx;
+          uyp[i] = gamma * vy;
+          uzp[i] = gamma * vz;
+          // Push the the particle positions
+          xp[i] += vx * dt;
+#if (BL_SPACEDIM == 3)
+          yp[i] += vy * dt;
+#endif
+          zp[i] += vz * dt;
+		  });
 
-//	    BL_PROFILE_VAR_START(blp_pxr_pp);
-//	    warpx_laser_pusher(&np, xp.data(), yp.data(), zp.data(),
-//			       uxp.data(), uyp.data(), uzp.data(), giv.data(),
-//			       &this->charge, &dt,
-//			       &pusher_algo);
-//	    BL_PROFILE_VAR_STOP(blp_pxr_pp);
+      }
+      BL_PROFILE_VAR_STOP(blp_pxr_pp);
 
 	    //
 	    // Current Deposition
@@ -363,8 +377,7 @@ LaserParticleContainer::Evolve (int lev,
 				     giv.data(), wp.data(), &this->charge,
 				     &xyzmin[0], &xyzmin[1], &xyzmin[2],
 				     &dt, &dx[0], &dx[1], &dx[2], &nx, &ny, &nz,
-				     &ngx_j, &ngy_j, &ngz_j,
-                                     &WarpX::nox,&WarpX::noy,&WarpX::noz,
+				     &ngx_j, &ngy_j, &ngz_j, &WarpX::nox,&WarpX::noy,&WarpX::noz,
 				     &lvect,&WarpX::current_deposition_algo);
 	    BL_PROFILE_VAR_STOP(blp_pxr_cd);
 

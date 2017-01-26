@@ -10,18 +10,18 @@ module warpx_laser_module
 contains
 
   subroutine warpx_gaussian_laser( np, Xp, Yp, t, &
-      wavelength, waist, duration, t_peak, f, amplitude ) &
+      wavelength, e_max, waist, duration, t_peak, f, amplitude ) &
        bind(C, name="warpx_gaussian_laser")
 
-    INTEGER(c_long), INTENT(IN) :: np
-    REAL(c_real), INTENT(IN)    :: Xp(np),Yp(np)
-    REAL(c_real), INTENT(IN)    :: t, t_peak, wavelength, duration, f, waist
-    REAL(c_real), INTENT(INOUT) :: amplitude(np)
+    integer(c_long), intent(in) :: np
+    REAL(c_real), intent(in)    :: Xp(np),Yp(np)
+    REAL(c_real), intent(in)    :: e_max, t, t_peak, wavelength, duration, f, waist
+    REAL(c_real), intent(inout) :: amplitude(np)
 
-    INTEGER      :: i
-    REAL(c_real) :: k0, oscillation_phase, temporal_exponent
-    COMPLEX*16   :: diffract_factor, exp_argument, prefactor, &
-                        inv_complex_waist_2, j=CMPLX(0., 1.)
+    integer      :: i
+    real(c_real) :: k0, oscillation_phase, temporal_exponent
+    complex*16   :: diffract_factor, exp_argument, prefactor, &
+                        inv_complex_waist_2, j=cmplx(0., 1.)
 
     ! This function uses the complex expression of a Gaussian laser
     ! (Including Gouy phase and laser oscillations)
@@ -36,7 +36,8 @@ contains
     inv_complex_waist_2 = 1./( waist**2 * diffract_factor )
 
     ! Calculate amplitude prefactor
-    prefactor = EXP( oscillation_phase - temporal_exponent )
+    prefactor = e_max * exp( oscillation_phase - temporal_exponent )
+
     ! Because diffract_factor is a complex, the code below takes into
     ! account the impact of the dimensionality on both the Gouy phase
     ! and the amplitude of the laser
@@ -47,10 +48,10 @@ contains
 #endif
 
     ! Loop through the macroparticle to calculate the proper amplitude
-    DO i = 1, np
+    do i = 1, np
       exp_argument = - ( Xp(i)*Xp(i) + Yp(i)*Yp(i) ) * inv_complex_waist_2
-      amplitude(i) = REALPART( prefactor * EXP( exp_argument ) )
-    ENDDO
+      amplitude(i) = REALPART( prefactor * exp( exp_argument ) )
+    enddo
 
   end subroutine warpx_gaussian_laser
 

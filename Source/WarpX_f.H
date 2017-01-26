@@ -57,7 +57,7 @@ extern "C"
   // Laser pusher
 
 	void warpx_gaussian_laser( const long* np,
-				Real* Xp, Real* Yp, Real* t, Real* wavelength, Real* waist,
+				Real* Xp, Real* Yp, Real* t, Real* wavelength, Real* e_max, Real* waist,
 				Real* duration, Real* t_peak, Real* f, Real* amplitude );
 
 	// Maxwell solver
