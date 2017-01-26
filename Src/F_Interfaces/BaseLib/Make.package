@@ -4,7 +4,7 @@ endif
 
 CEXE_sources += main.cpp
 
-F90EXE_sources += bl_space_mod.F90 parallel_mod.F90 omp_mod.F90
+F90EXE_sources += parallel_mod.F90 omp_mod.F90
 
 f90EXE_sources += boxlib_mod.f90 box_mod.f90 boxarray_mod.f90 geometry_mod.f90
 f90EXE_sources += multifab_mod.f90
