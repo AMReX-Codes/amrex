@@ -1,7 +1,7 @@
 
 module bl_extrapolater
 
-  use bl_fort_module, only : c_real
+  use amrex_fort_module, only : c_real
 
   implicit none
   integer, parameter :: finecell = 1 ! must be consistent with Extrapolater.H

@@ -1,10 +1,11 @@
-module bl_fort_module
+module amrex_fort_module
 
   use iso_c_binding, only : c_float, c_double
 
   implicit none
 
   integer, parameter :: bl_spacedim = BL_SPACEDIM
+  integer, parameter ::    spacedim = BL_SPACEDIM
 
 #ifdef BL_USE_FLOAT
   integer, parameter :: c_real = c_float
@@ -12,4 +13,4 @@ module bl_fort_module
   integer, parameter :: c_real = c_double
 #endif
 
-end module bl_fort_module
+end module amrex_fort_module
