@@ -37,6 +37,8 @@ extern "C" {
 };
 
 
+using namespace amrex;
+
 // --------------------------------------------------------------------
 int main(int argc, char *argv[]) {
     amrex::Initialize(argc,argv);    
@@ -95,9 +97,9 @@ int main(int argc, char *argv[]) {
     VisMF::Write(mfU, "mfUInit");
 
 
-    double tsleepstart = amrex::wsecond();
+    double tsleepstart = ParallelDescriptor::second();
     sleep(1);
-    double tsleepend = amrex::wsecond();
+    double tsleepend = ParallelDescriptor::second();
     if(ParallelDescriptor::IOProcessor()) {
       cout << "sleep(1) time = " << tsleepend - tsleepstart << endl;
     }
@@ -108,7 +110,7 @@ int main(int argc, char *argv[]) {
 
     init_timer();
 
-    double tstart = amrex::wsecond();
+    double tstart = ParallelDescriptor::second();
 
     int nSteps(1);
     for(int iStep(0); iStep < nSteps; ++iStep) {
@@ -142,11 +144,11 @@ int main(int argc, char *argv[]) {
 	  cout << "-----------------" << endl;
 	}
 
-        double tstart = amrex::wsecond();
+        double tstart = ParallelDescriptor::second();
 
         hypterm_naive(lo,hi,NG,dx,U,Q,F);
 
-        double tend = amrex::wsecond();
+        double tend = ParallelDescriptor::second();
         if(ParallelDescriptor::IOProcessor()) {
 	  cout << "-----------------" << endl;
           cout << "hypterm =  " << tend - tstart << endl;
@@ -155,7 +157,7 @@ int main(int argc, char *argv[]) {
       }
     }
 
-    double tend = amrex::wsecond();
+    double tend = ParallelDescriptor::second();
     if(ParallelDescriptor::IOProcessor()) {
       cout << "-----------------" << endl;
       cout << "runtime tot =  " << tend - tstart << endl;
