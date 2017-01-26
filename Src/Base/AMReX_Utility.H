@@ -23,11 +23,6 @@ namespace amrex
 {
 /**
 * \brief Useful C++ Utility Functions
-*
-* This data-less class is a poor-person's namespace of utility functions.
-* Since we can't assume the existence of namespaces, and we don't
-* like global functions, we put them into a data-less class as
-* static member functions.
 */
 
     /**
