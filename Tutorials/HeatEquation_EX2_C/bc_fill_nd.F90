@@ -12,7 +12,7 @@ contains
   subroutine phifill(phi,phi_lo,phi_hi,domlo,domhi,delta,xlo,time,bc) &
        bind(C, name="phifill")
 
-    use bl_fort_module, only : bl_spacedim, c_real
+    use amrex_fort_module, only : bl_spacedim, c_real
 
     implicit none
 

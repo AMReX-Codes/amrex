@@ -5,7 +5,7 @@
 subroutine bl_avg_eg_to_cc (lo, hi, &
      cc, ccl1, cch1, &
      Ex, Exl1, Exh1 )
-  use bl_fort_module, only : c_real
+  use amrex_fort_module, only : c_real
   implicit none
   integer          :: lo(1),hi(1)
   integer          :: ccl1, cch1
@@ -26,7 +26,7 @@ subroutine bl_avg_fc_to_cc (lo, hi, &
      fx, fxl1, fxh1, &
      dx, problo, coord_type)
 
-  use bl_fort_module, only : c_real
+  use amrex_fort_module, only : c_real
   implicit none
   integer          :: lo(1),hi(1), coord_type
   integer          :: ccl1, cch1
@@ -76,7 +76,7 @@ subroutine bl_avg_cc_to_fc (lo, hi, &
      cc, ccl1, cch1, &
      dx, problo, coord_type)
 
-  use bl_fort_module, only : c_real
+  use amrex_fort_module, only : c_real
   implicit none
   integer          :: lo(1),hi(1), coord_type
   integer          :: ccl1, cch1
@@ -126,7 +126,7 @@ subroutine bl_avgdown_faces (lo, hi, &
      c, c_l1, c_h1, &
      ratio,idir,nc)
 
-  use bl_fort_module, only : c_real
+  use amrex_fort_module, only : c_real
   implicit none
   integer          :: lo(1),hi(1)
   integer          :: f_l1, f_h1
@@ -158,7 +158,7 @@ subroutine bl_avgdown (lo,hi,&
      crse,c_l1,c_h1, &
      lrat,ncomp)
   
-  use bl_fort_module, only : c_real
+  use amrex_fort_module, only : c_real
   implicit none
   
   integer f_l1,f_h1
@@ -196,7 +196,7 @@ subroutine bl_avgdown_with_vol (lo,hi,&
      fv,fv_l1,fv_h1, &
      lrat,ncomp)
 
-  use bl_fort_module, only : c_real
+  use amrex_fort_module, only : c_real
   implicit none
 
   integer f_l1,f_h1

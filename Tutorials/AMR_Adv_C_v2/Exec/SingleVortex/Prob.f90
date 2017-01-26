@@ -3,7 +3,7 @@ subroutine initdata(level, time, lo, hi, &
      phi, phi_lo, phi_hi, &
      dx, prob_lo) bind(C, name="initdata")
 
-  use bl_fort_module, only : bl_spacedim
+  use amrex_fort_module, only : bl_spacedim
 
   implicit none
   integer, intent(in) :: level, lo(3), hi(3), phi_lo(3), phi_hi(3)
