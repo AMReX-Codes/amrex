@@ -74,6 +74,7 @@ CoordSys::define (const Real* cell_dx)
     for (int k = 0; k < BL_SPACEDIM; k++)
     {
         dx[k] = cell_dx[k];
+	inv_dx[k] = 1.0/dx[k];
     }
 }
 
