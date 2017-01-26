@@ -75,6 +75,10 @@ struct Particle
     std::array<RealType,NR> m_data;
     std::array<int     ,NI> m_idata;
 
+    //
+    // This bins the particle based on the cell size and the domain boundary
+    // in the input Geometry.
+    //
     static IntVect Index (const Particle<NR, NI>& p, const Geometry& geom);
 
     //
@@ -82,25 +86,31 @@ struct Particle
     // Returns false if the particle does not exist on that level.
     //
     static bool Where (Particle<NR, NI>& prt, const ParGDBBase* gdb, int lev_min = 0, int finest_level = -1);
+
     //
     // Checks/sets whether the particle has crossed a periodic boundary in such a way
     // that it is on levels lev_min and higher.
     //
     static bool PeriodicWhere (Particle<NR, NI>& prt, const ParGDBBase* gdb, int lev_min = 0, int finest_level = -1);
+
     //
     // Checks/sets whether a particle is within its grid (including grow cells).
     //
     static bool RestrictedWhere (Particle<NR, NI>& p, const ParGDBBase* gdb, int ngrow);
+
     //
     // Checks/sets a particle's location on a specific level.
     // (Yes this is distict from the functionality provided above)
     //
     static bool SingleLevelWhere (Particle<NR, NI>& p, const ParGDBBase* gdb, int level);
+
     //
     // Updates a particle's location (Where), tries to periodic shift any particles
     // that have left the domain. May need work (see inline comments)
     //
+
     static void Reset (Particle<NR, NI>& prt, const ParGDBBase* gdb, bool update, bool verbose=true); 
+
     //
     // Returns true if the particle was shifted.
     //
@@ -121,6 +131,7 @@ struct Particle
     static int MaxReaders ();
 
     static long MaxParticlesPerRead ();
+
     //
     // Returns the next particle ID for this processor.
     // Particle IDs start at 1 and are never reused.
@@ -130,12 +141,15 @@ struct Particle
     // so that we don't reuse particle IDs.
     //
     static int NextID ();
+
     // This version can only be used inside omp critical.
     static int UnprotectedNextID ();
+
     //
     // Reset on restart.
     //
     static void NextID (int nextid);
+
     //
     // Used by AssignDensity.
     //
@@ -146,7 +160,7 @@ struct Particle
                             Array<int>&           which, 
                             Array<IntVect>&       pshifts);
 
-    static bool FineToCrse (const Particle<NR, NI>&                p, 
+    static bool FineToCrse (const Particle<NR, NI>&            p, 
                             int                                flev, 
                             const ParGDBBase*                  gdb, 
                             const Array<IntVect>&              fcells, 
@@ -159,7 +173,7 @@ struct Particle
                             Array<IntVect>&                    pshifts, 
                             std::vector< std::pair<int,Box> >& isects);
 
-    static void FineCellsToUpdateFromCrse (const Particle<NR, NI>&                p, 
+    static void FineCellsToUpdateFromCrse (const Particle<NR, NI>&            p, 
                                            int lev, const ParGDBBase*         gdb, 
                                            const IntVect&                     ccell,
                                            const IntVect&                     cshift, 
@@ -171,10 +185,12 @@ struct Particle
     static void CIC_Fracs (const Real* frac, Real* fracs);
 
     static void CIC_Cells (const IntVect& hicell, IntVect* cells);
+
     //
     // Old, *-based CIC for use in Interp.
     //
     static void CIC_Cells_Fracs_Basic (const Particle<NR, NI>& p, const Real* plo, const Real* dx, Real* fracs,  IntVect* cells);
+
     //
     // Wraps the arbitrary dx function.
     //
@@ -192,18 +208,6 @@ struct Particle
                                 const Real*         dx_part, 
                                 Array<Real>&        fracs,  
                                 Array<IntVect>&     cells);
-    //
-    // Useful for sorting particles into lexicographic order of their cell position.
-    //
-    class Compare
-    {
-    public:
-        bool operator () (const Particle<NR, NI>& lhs,
-                          const Particle<NR, NI>& rhs) const
-        {
-            return lhs.m_cell < rhs.m_cell;
-        }
-    };
 };
 
 template <int NR, int NI>
@@ -388,18 +392,18 @@ Particle<NR, NI>::CrseToFine (const BoxArray&       cfba,
 
 template <int NR, int NI>
 bool
-Particle<NR, NI>::FineToCrse (const Particle<NR, NI>&                p,
-                          int                                flev,
-                          const ParGDBBase*                  gdb,
-                          const Array<IntVect>&              fcells,
-                          const BoxArray&                    fvalid,
-                          const BoxArray&                    compfvalid_grown,
-                          Array<IntVect>&                    ccells,
-                          Array<Real>&                       cfracs,
-                          Array<int>&                        which,
-                          Array<int>&                        cgrid,
-                          Array<IntVect>&                    pshifts,
-                          std::vector< std::pair<int,Box> >& isects)
+Particle<NR, NI>::FineToCrse (const Particle<NR, NI>&            p,
+			      int                                flev,
+			      const ParGDBBase*                  gdb,
+			      const Array<IntVect>&              fcells,
+			      const BoxArray&                    fvalid,
+			      const BoxArray&                    compfvalid_grown,
+			      Array<IntVect>&                    ccells,
+			      Array<Real>&                       cfracs,
+			      Array<int>&                        which,
+			      Array<int>&                        cgrid,
+			      Array<IntVect>&                    pshifts,
+			      std::vector< std::pair<int,Box> >& isects)
 {
     BL_PROFILE("Particle<NR, NI>::FineToCrse()");
     BL_ASSERT(gdb != 0);
@@ -751,13 +755,13 @@ Particle<NR, NI>::NextID (int nextid)
 template <int NR, int NI>
 IntVect
 Particle<NR, NI>::Index (const Particle<NR, NI>& p,
-                     const Geometry&     geom)
+			 const Geometry&     geom)
 {
     IntVect iv;
 
-    D_TERM(iv[0]=floor((p.m_pos[0]-geom.ProbLo(0))/geom.CellSize(0));,
-           iv[1]=floor((p.m_pos[1]-geom.ProbLo(1))/geom.CellSize(1));,
-           iv[2]=floor((p.m_pos[2]-geom.ProbLo(2))/geom.CellSize(2)););
+    D_TERM(iv[0]=floor((p.m_pos[0]-geom.ProbLo(0))*geom.InvCellSize(0));,
+           iv[1]=floor((p.m_pos[1]-geom.ProbLo(1))*geom.InvCellSize(1));,
+           iv[2]=floor((p.m_pos[2]-geom.ProbLo(2))*geom.InvCellSize(2)););
 
     iv += geom.Domain().smallEnd();
 
@@ -811,9 +815,9 @@ Particle<NR, NI>::Where (Particle<NR, NI>& p,
 template <int NR, int NI>
 bool
 Particle<NR, NI>::PeriodicWhere (Particle<NR, NI>& p,
-                             const ParGDBBase*    gdb,
-                             int           lev_min,
-                             int           finest_level)
+				 const ParGDBBase*    gdb,
+				 int           lev_min,
+				 int           finest_level)
 {
     BL_ASSERT(gdb != 0);
 
@@ -859,8 +863,8 @@ Particle<NR, NI>::PeriodicWhere (Particle<NR, NI>& p,
 template <int NR, int NI>
 bool
 Particle<NR, NI>::RestrictedWhere (Particle<NR, NI>& p,
-                               const ParGDBBase*    gdb,
-                               int           ngrow)
+				   const ParGDBBase* gdb,
+				   int               ngrow)
 {
     BL_ASSERT(gdb != 0);
 
@@ -879,8 +883,8 @@ Particle<NR, NI>::RestrictedWhere (Particle<NR, NI>& p,
 template <int NR, int NI>
 bool 
 Particle<NR, NI>::SingleLevelWhere (Particle<NR, NI>& p, 
-                                const ParGDBBase*    gdb,
-                                int           level)
+				    const ParGDBBase* gdb,
+				    int               level)
 {
     BL_ASSERT(gdb != 0);
 
