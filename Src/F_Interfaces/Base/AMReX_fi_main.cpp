@@ -2,7 +2,7 @@
 #include <AMReX.H>
 #include <AMReX_BLProfiler.H>
 
-extern "C" { void fmain(); }
+extern "C" { void amrex_fmain(); }
 
 int main (int argc, char* argv[])
 {
@@ -10,7 +10,7 @@ int main (int argc, char* argv[])
 
     BL_PROFILE_VAR("main()", pmain);
 
-    fmain();
+    amrex_fmain();
 
     BL_PROFILE_VAR_STOP(pmain);
 
