@@ -55,13 +55,6 @@ struct Particle
     typedef double RealType;
 #endif
 
-    int      m_id   = -1;
-    int      m_cpu  = -1;
-    int      m_lev  = -1;
-    int      m_grid = -1;
-    IntVect  m_cell;
-    RealType m_pos[BL_SPACEDIM];
-
     //
     // The amount of floating point data we hold.
     //
@@ -74,6 +67,15 @@ struct Particle
     //
     std::array<RealType,NR> m_data;
     std::array<int     ,NI> m_idata;
+
+    RealType m_pos[BL_SPACEDIM];
+
+    IntVect  m_cell;
+
+    int      m_id   = -1;
+    int      m_cpu  = -1;
+    int      m_lev  = -1;
+    int      m_grid = -1;
 
     static IntVect Index (const Particle<NR, NI>& p, const Geometry& geom);
 
