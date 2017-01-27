@@ -15,30 +15,30 @@ extern "C"
     //
     typedef void (*ErrorFuncDefault)(int* tag, ARLIM_P(tlo), ARLIM_P(thi),
                                      const int* tagval, const int* clearval,
-                                     Real* data, ARLIM_P(data_lo), ARLIM_P(data_hi),
+                                     amrex::Real* data, ARLIM_P(data_lo), ARLIM_P(data_hi),
                                      const int* lo, const int * hi, const int* nvar,
                                      const int* domain_lo, const int* domain_hi,
-                                     const Real* dx, const Real* xlo,
-                                     const Real* prob_lo, const Real* time,
+                                     const amrex::Real* dx, const amrex::Real* xlo,
+                                     const amrex::Real* prob_lo, const amrex::Real* time,
                                      const int* level);
 
     typedef void (*ErrorFunc2Default)(int* tag, ARLIM_P(tlo), ARLIM_P(thi),
                                       const int* tagval, const int* clearval,
-                                      Real* data, ARLIM_P(data_lo), ARLIM_P(data_hi),
+                                      amrex::Real* data, ARLIM_P(data_lo), ARLIM_P(data_hi),
                                       const int* lo, const int * hi, const int* nvar,
                                       const int* domain_lo, const int* domain_hi,
-                                      const Real* dx, const int* level, const Real* avg);
+                                      const amrex::Real* dx, const int* level, const amrex::Real* avg);
 
     // Dimension agnostic version that always has three elements.
     // Note that this is only implemented for the ErrorFunc class, not ErrorFunc2.
 
     typedef void (*ErrorFunc3DDefault)(int* tag, const int* tlo, const int* thi,
                                        const int* tagval, const int* clearval,
-         			       Real* data, const int* data_lo, const int* data_hi, 
+         			       amrex::Real* data, const int* data_lo, const int* data_hi, 
                                        const int* lo, const int * hi, const int* nvar,
                                        const int* domain_lo, const int* domain_hi,
-                                       const Real* dx, const Real* xlo,
-                                       const Real* prob_lo, const Real* time,
+                                       const amrex::Real* dx, const amrex::Real* xlo,
+                                       const amrex::Real* prob_lo, const amrex::Real* time,
                                        const int* level);  
   
 }

@@ -8,4 +8,4 @@ void
 writePlotFile (const std::string& dir, 
                const amrex::MultiFab&    mf, 
                const amrex::Geometry&    geom,
-	       const Real&        time);
+	       const amrex::Real&        time);

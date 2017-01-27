@@ -3,7 +3,7 @@ module mempool_module
   use iso_c_binding
 
 ! If used by Fortran BoxLib, don't have amrex_fort_module.
-!  use amrex_fort_module, only : c_real
+!  use amrex_fort_module, only : c_real=>amrex_real
 
   implicit none
 

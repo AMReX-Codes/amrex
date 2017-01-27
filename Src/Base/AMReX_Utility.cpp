@@ -692,7 +692,7 @@ BL_FORT_PROC_DECL(BLINITRAND,blinitrand)(const int* sd)
     amrex::InitRandom(seed);
 }
 
-BL_FORT_PROC_DECL(BLUTILRAND,blutilrand)(Real* rn)
+BL_FORT_PROC_DECL(BLUTILRAND,blutilrand)(amrex::Real* rn)
 {
     *rn = amrex::Random();
 }
@@ -799,7 +799,7 @@ amrex::InvNormDist (double p)
     return x;
 }
 
-BL_FORT_PROC_DECL(BLINVNORMDIST,blinvnormdist)(Real* result)
+BL_FORT_PROC_DECL(BLINVNORMDIST,blinvnormdist)(amrex::Real* result)
 {
     //
     // Get a random number in (0,1);
@@ -962,7 +962,7 @@ amrex::InvNormDistBest (double p)
   return value;
 }
 
-BL_FORT_PROC_DECL(BLINVNORMDISTBEST,blinvnormdistbest)(Real* result)
+BL_FORT_PROC_DECL(BLINVNORMDISTBEST,blinvnormdistbest)(amrex::Real* result)
 {
     //
     // Get a random number in (0,1);
