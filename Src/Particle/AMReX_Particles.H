@@ -42,6 +42,10 @@ namespace
     const int   VirtualParticleID  = 1000000000;
 }
 
+  //
+  // A struct used for communicating particle data accross processes
+  // during multi-level operations.
+  //
 struct ParticleCommData
 {
 #ifdef BL_SINGLE_PRECISION_PARTICLES
@@ -55,6 +59,9 @@ struct ParticleCommData
   RealType m_data[1 + BL_SPACEDIM];
 };
 
+  //
+  // A struct used for storing a particle's position in the AMR hierarchy.
+  //
 struct ParticleLocData
 {
   int     m_lev;
@@ -66,8 +73,7 @@ template<int NR, int NI=0>
 struct Particle
 {
     //
-    // The floating point type used for particle positions
-    // and the "extra" data in the particles themselves.
+    // The floating point type used for the particles.
     //
 #ifdef BL_SINGLE_PRECISION_PARTICLES
     typedef float RealType;
@@ -76,25 +82,27 @@ struct Particle
 #endif
 
     //
-    // The amount of floating point data we hold.
+    // The real data. We always have SPACEDIM position coordinates,
+    // and optionally we have NR additional real attributes.
     //
-    // In some cases this is:
-    //
-    // 0 - particle mass
-    // 1 - x-velocity
-    // 2 - y-velocity
-    // 3 - z-velocity
-    //
-    std::array<RealType,NR> m_data;
+    union rm_t
+    {
+      RealType pos[BL_SPACEDIM];
+      RealType arr[BL_SPACEDIM+NR];
+    };
 
     //
-    // The integer data
+    // The integer data. We always have id and cpu, and optionally we
+    // have NI additional integer attributes.
     //
-    std::array<int     ,NI> m_idata;
+    union im_t
+    {
+      struct {int id; int cpu;};
+      int arr[2+NI];
+    };
 
-    RealType m_pos[BL_SPACEDIM];
-    int      m_id;
-    int      m_cpu;
+    rm_t rdata;
+    im_t idata;
 
     static IntVect Index (const Particle<NR, NI>& p, const Geometry& geom);
 
@@ -245,9 +253,9 @@ Particle<NR, NI>::CIC_Cells_Fracs_Basic (const Particle<NR, NI>& p,
     //
     // "cells" should be dimensioned: IntVect cells[D_TERM(2,+2,+4)]
     //
-    const Real len[BL_SPACEDIM] = { D_DECL((p.m_pos[0]-plo[0])/dx[0] + Real(0.5),
-                                           (p.m_pos[1]-plo[1])/dx[1] + Real(0.5),
-                                           (p.m_pos[2]-plo[2])/dx[2] + Real(0.5)) };
+    const Real len[BL_SPACEDIM] = { D_DECL((p.rdata.pos[0]-plo[0])/dx[0] + Real(0.5),
+                                           (p.rdata.pos[1]-plo[1])/dx[1] + Real(0.5),
+                                           (p.rdata.pos[2]-plo[2])/dx[2] + Real(0.5)) };
 
     const IntVect cell(D_DECL(floor(len[0]), floor(len[1]), floor(len[2])));
 
@@ -278,13 +286,13 @@ Particle<NR, NI>::CIC_Cells_Fracs (const Particle<NR, NI>& p,
     //
     // The first element in fracs and cells is the lowest corner, the last is the highest.
     //
-    const Real hilen[BL_SPACEDIM] = { D_DECL((p.m_pos[0]-plo[0]+dx_part[0]/2)/dx_geom[0],
-                                             (p.m_pos[1]-plo[1]+dx_part[1]/2)/dx_geom[1],
-                                             (p.m_pos[2]-plo[2]+dx_part[2]/2)/dx_geom[2]) };
+    const Real hilen[BL_SPACEDIM] = { D_DECL((p.rdata.pos[0]-plo[0]+dx_part[0]/2)/dx_geom[0],
+                                             (p.rdata.pos[1]-plo[1]+dx_part[1]/2)/dx_geom[1],
+                                             (p.rdata.pos[2]-plo[2]+dx_part[2]/2)/dx_geom[2]) };
 
-    const Real lolen[BL_SPACEDIM] = { D_DECL((p.m_pos[0]-plo[0]-dx_part[0]/2)/dx_geom[0],
-                                             (p.m_pos[1]-plo[1]-dx_part[1]/2)/dx_geom[1],
-                                             (p.m_pos[2]-plo[2]-dx_part[2]/2)/dx_geom[2]) };
+    const Real lolen[BL_SPACEDIM] = { D_DECL((p.rdata.pos[0]-plo[0]-dx_part[0]/2)/dx_geom[0],
+                                             (p.rdata.pos[1]-plo[1]-dx_part[1]/2)/dx_geom[1],
+                                             (p.rdata.pos[2]-plo[2]-dx_part[2]/2)/dx_geom[2]) };
 
     const IntVect hicell(D_DECL(floor(hilen[0]), floor(hilen[1]), floor(hilen[2])));
     
@@ -577,10 +585,10 @@ Particle<NR, NI>::FineCellsToUpdateFromCrse (const Particle<NR, NI>&            
             const Real celllo = iv[k]  * fdx[k] + plo[k];
             const Real cellhi = celllo + fdx[k];
 
-            if ((p.m_pos[k] < celllo) && (celllo > (p.m_pos[k] + dx[k]/2)))
+            if ((p.rdata.pos[k] < celllo) && (celllo > (p.rdata.pos[k] + dx[k]/2)))
                 touches = false;
 
-            if ((p.m_pos[k] > cellhi) && (cellhi < (p.m_pos[k] - dx[k]/2)))
+            if ((p.rdata.pos[k] > cellhi) && (cellhi < (p.rdata.pos[k] - dx[k]/2)))
                 touches = false;
         }
 
@@ -604,16 +612,16 @@ Particle<NR, NI>::FineCellsToUpdateFromCrse (const Particle<NR, NI>&            
         {
             const Real celllo = (iv[k] * fdx[k] + plo[k]);
 
-            if (p.m_pos[k] <= celllo)
+            if (p.rdata.pos[k] <= celllo)
             {
-                const Real isecthi = p.m_pos[k] + dx[k]/2;
+                const Real isecthi = p.rdata.pos[k] + dx[k]/2;
 
                 the_frac *= std::min((isecthi - celllo),fdx[k]);
             }
             else
             {
                 const Real cellhi  = (iv[k]+1) * fdx[k] + plo[k];
-                const Real isectlo = p.m_pos[k] - dx[k]/2;
+                const Real isectlo = p.rdata.pos[k] - dx[k]/2;
 
                 the_frac *= std::min((cellhi - isectlo),fdx[k]);
             }
@@ -783,9 +791,9 @@ Particle<NR, NI>::Index (const Particle<NR, NI>& p,
 {
     IntVect iv;
 
-    D_TERM(iv[0]=floor((p.m_pos[0]-geom.ProbLo(0))*geom.InvCellSize(0));,
-           iv[1]=floor((p.m_pos[1]-geom.ProbLo(1))*geom.InvCellSize(1));,
-           iv[2]=floor((p.m_pos[2]-geom.ProbLo(2))*geom.InvCellSize(2)););
+    D_TERM(iv[0]=floor((p.rdata.pos[0]-geom.ProbLo(0))*geom.InvCellSize(0));,
+           iv[1]=floor((p.rdata.pos[1]-geom.ProbLo(1))*geom.InvCellSize(1));,
+           iv[2]=floor((p.rdata.pos[2]-geom.ProbLo(2))*geom.InvCellSize(2)););
 
     iv += geom.Domain().smallEnd();
 
@@ -796,7 +804,7 @@ template <int NR, int NI>
 bool
 Particle<NR, NI>::Where (const Particle<NR, NI>&     p,
 			 const ParGDBBase*           gdb,
-			 ParticleLocData&       pld,
+			 ParticleLocData&            pld,
 			 int                         lev_min,
 			 int                         finest_level)
 {
@@ -861,9 +869,9 @@ Particle<NR, NI>::PeriodicWhere (Particle<NR, NI>&           p,
 
             if (!isects.empty())
             {
-                D_TERM(p.m_pos[0] = p_prime.m_pos[0];,
-                       p.m_pos[1] = p_prime.m_pos[1];,
-                       p.m_pos[2] = p_prime.m_pos[2];);
+                D_TERM(p.rdata.pos[0] = p_prime.rdata.pos[0];,
+                       p.rdata.pos[1] = p_prime.rdata.pos[1];,
+                       p.rdata.pos[2] = p_prime.rdata.pos[2];);
 
                 pld.m_lev  = lev;
                 pld.m_grid = isects[0].first;
@@ -949,45 +957,45 @@ Particle<NR, NI>::PeriodicShift (Particle<NR, NI>& p,
 
         if (iv[i] > dmn.bigEnd(i))
         {
-            if (p.m_pos[i] == geom.ProbHi(i))
+            if (p.rdata.pos[i] == geom.ProbHi(i))
                 //
                 // Don't let particles lie exactly on the domain face.
                 // Force the particle to be outside the domain so the
                 // periodic shift will bring it back inside.
                 //
-                p.m_pos[i] += .125*geom.CellSize(i);
+                p.rdata.pos[i] += .125*geom.CellSize(i);
 
-            p.m_pos[i] -= geom.ProbLength(i);
+            p.rdata.pos[i] -= geom.ProbLength(i);
 
-            if (p.m_pos[i] <= geom.ProbLo(i))
+            if (p.rdata.pos[i] <= geom.ProbLo(i))
                 //
                 // This can happen due to precision issues.
                 //
-                p.m_pos[i] += .125*geom.CellSize(i);
+                p.rdata.pos[i] += .125*geom.CellSize(i);
 
-            BL_ASSERT(p.m_pos[i] >= geom.ProbLo(i));
+            BL_ASSERT(p.rdata.pos[i] >= geom.ProbLo(i));
 
             shifted = true;
         }
         else if (iv[i] < dmn.smallEnd(i))
         {
-            if (p.m_pos[i] == geom.ProbLo(i))
+            if (p.rdata.pos[i] == geom.ProbLo(i))
                 //
                 // Don't let particles lie exactly on the domain face.
                 // Force the particle to be outside the domain so the
                 // periodic shift will bring it back inside.
                 //
-                p.m_pos[i] -= .125*geom.CellSize(i);
+                p.rdata.pos[i] -= .125*geom.CellSize(i);
 
-            p.m_pos[i] += geom.ProbLength(i);
+            p.rdata.pos[i] += geom.ProbLength(i);
 
-            if (p.m_pos[i] >= geom.ProbHi(i))
+            if (p.rdata.pos[i] >= geom.ProbHi(i))
                 //
                 // This can happen due to precision issues.
                 //
-                p.m_pos[i] -= .125*geom.CellSize(i);
+                p.rdata.pos[i] -= .125*geom.CellSize(i);
 
-            BL_ASSERT(p.m_pos[i] <= geom.ProbHi(i));
+            BL_ASSERT(p.rdata.pos[i] <= geom.ProbHi(i));
 
             shifted = true;
         }
@@ -1031,9 +1039,9 @@ Particle<NR, NI>::Reset (Particle<NR, NI>& p,
 	    }
 	}
 
-	BL_ASSERT(p.m_id > 0);
+	BL_ASSERT(p.idata.id > 0);
 
-	p.m_id = -p.m_id;
+	p.idata.id = -p.idata.id;
     }
 }
 
@@ -1129,17 +1137,14 @@ template <int NR, int NI>
 std::ostream&
 operator<< (std::ostream& os, const Particle<NR, NI>& p)
 {
-    os << p.m_id   << ' '
-       << p.m_cpu  << ' ';
+    os << p.idata.id   << ' '
+       << p.idata.cpu  << ' ';
 
-    for (int i = 0; i < BL_SPACEDIM; i++)
-        os << p.m_pos[i] << ' ';
+    for (int i = 0; i < BL_SPACEDIM + NR; i++)
+        os << p.rdata.arr[i] << ' ';
 
-    for (int i = 0; i < NR; i++)
-        os << p.m_data[i] << ' ';
-
-    for (int i = 0; i < NI; i++)
-        os << p.m_idata[i] << ' ';
+    for (int i = 2; i < 2 + NI; i++)
+        os << p.idata.arr[i] << ' ';
 
     if (!os.good())
         amrex::Error("operator<<(ostream&,Particle<NR, NI>&) failed");
@@ -1262,7 +1267,7 @@ public:
     void Increment (MultiFab& mf, int level);
     long IncrementWithTotal (MultiFab& mf, int level);
 
-    // rho_index: rho index in m_data
+    // rho_index: rho index in rdata
     Real sumParticleMass (int rho_index, int level) const;
 
     // Set the flag that allows particles to live near the domain boundary and throw away 
@@ -1441,7 +1446,7 @@ ParticleContainer<NR,NI,C>::NumberOfParticlesInGrid (int  lev,
             {
 		for (const auto& p : pbox)
 		{
-		    if (p.m_id > 0) ++nparticles[pgrd];
+		    if (p.idata.id > 0) ++nparticles[pgrd];
 		}
             }
             else
@@ -1477,7 +1482,7 @@ ParticleContainer<NR,NI,C>::NumberOfParticlesAtLevel (int  lev,
             {
 		for (const auto& p : pbox)
 		{
-		    if (p.m_id > 0) ++nparticles;
+		    if (p.idata.id > 0) ++nparticles;
 		}
             }
             else
@@ -1551,20 +1556,20 @@ ParticleContainer<NR,NI,C>::addOneParticle (int                  id_in,
 
     ParticleType p;
 
-    p.m_id  = id_in;
-    p.m_cpu = cpu_in;
+    p.idata.id  = id_in;
+    p.idata.cpu = cpu_in;
 
-    if (p.m_id <= 0)
+    if (p.idata.id <= 0)
         amrex::Abort("Particle ID's must be > 0 in addOneParticle");
  
-    if (ParallelDescriptor::MyProc() != p.m_cpu)
+    if (ParallelDescriptor::MyProc() != p.idata.cpu)
         amrex::Abort("cpu_in must equal MyProc() in addOneParticle");
 
     for (int i = 0; i < BL_SPACEDIM; i++)
-       p.m_pos[i] = xloc[i];
+       p.rdata.pos[i] = xloc[i];
 
-    for (int i = 0; i < NR; i++)
-       p.m_data[i] = attributes[i];
+    for (int i = BL_SPACEDIM; i < BL_SPACEDIM + NR; i++)
+       p.rdata.arr[i] = attributes[i];
     //
     // It's possible that particles are defined to live right on the boundary,
     // so if that's the case we move them ever so slightly inside the domain 
@@ -1580,8 +1585,8 @@ ParticleContainer<NR,NI,C>::addOneParticle (int                  id_in,
     //
     for (int d = 0; d < BL_SPACEDIM; d++)
     {
-        if (p.m_pos[d] <= geom.ProbLo(d)) p.m_pos[d] += Delta[d];
-        if (p.m_pos[d] >= geom.ProbHi(d)) p.m_pos[d] -= Delta[d];
+        if (p.rdata.pos[d] <= geom.ProbLo(d)) p.rdata.pos[d] += Delta[d];
+        if (p.rdata.pos[d] >= geom.ProbHi(d)) p.rdata.pos[d] -= Delta[d];
     }
 
     ParticleLocData pld;
@@ -1593,7 +1598,7 @@ ParticleContainer<NR,NI,C>::addOneParticle (int                  id_in,
         {
             for (int d = 0; d < BL_SPACEDIM; d++)
             {
-                std::cout << "BAD PARTICLE POS(" << d << ") " << p.m_pos[d] << std::endl;
+                std::cout << "BAD PARTICLE POS(" << d << ") " << p.rdata.pos[d] << std::endl;
             }
             amrex::Abort("ParticleContainer<NR,NI,C>::addOneParticle(): invalid particle");
         }
@@ -1633,16 +1638,16 @@ ParticleContainer<NR,NI,C>::addNParticles(int n_part, Array<double>& x, Array<do
     {
        ParticleType p;
 
-       p.m_pos[j  ] = x[j]; // x
-       p.m_pos[j+1] = y[j]; // y
+       p.rdata.pos[j  ] = x[j]; // x
+       p.rdata.pos[j+1] = y[j]; // y
 #if (BL_SPACEDIM == 3)
-       p.m_pos[j+2] = z[j]; // z
+       p.rdata.pos[j+2] = z[j]; // z
 #endif
 
-       p.m_data[j  ] = u[j]; // u
-       p.m_data[j+1] = v[j]; // v
+       p.rdata.arr[BL_SPACEDIM + j]     = u[j]; // u
+       p.rdata.arr[BL_SPACEDIM + j + 1] = v[j]; // v
 #if (BL_SPACEDIM == 3)
-       p.m_data[j+2] = w[j]; // w
+       p.rdata.arr[BL_SPACEDIM + j + 2] = w[j]; // w
 #endif
 
        ParticleLocData pld;
@@ -1650,10 +1655,10 @@ ParticleContainer<NR,NI,C>::addNParticles(int n_part, Array<double>& x, Array<do
               amrex::Abort("ParticleContainer<NR,NI,C>::addNParticles(): invalid particle location");
 
        for (int i = 0; i < n_attr; i++)
-          p.m_data[BL_SPACEDIM+i] = attributes[n_attr*j + i];
+          p.rdata.arr[BL_SPACEDIM+i] = attributes[n_attr*j + i];
 
-       p.m_id  = ParticleType::NextID();
-       p.m_cpu = ParallelDescriptor::MyProc();
+       p.idata.id  = ParticleType::NextID();
+       p.idata.cpu = ParallelDescriptor::MyProc();
 
        m_particles[pld.m_lev][pld.m_grid].push_back(p);
     }
@@ -1735,7 +1740,7 @@ ParticleContainer<NR,NI,C>::MoveRandom (int lev)
         {
             ParticleType& p = pbox[i];
 
-            if (p.m_id <= 0) continue;
+            if (p.idata.id <= 0) continue;
 
 #ifdef _OPENMP
             int tid = omp_get_thread_num();
@@ -1744,7 +1749,7 @@ ParticleContainer<NR,NI,C>::MoveRandom (int lev)
 #endif
             for (int i = 0; i < BL_SPACEDIM; i++)
             {
-                p.m_pos[i] += dist[i]*(2*rn[tid].d_value()-1);
+                p.rdata.pos[i] += dist[i]*(2*rn[tid].d_value()-1);
             }
 
             ParticleType::Reset(p,m_gdb,true);
@@ -1807,7 +1812,7 @@ ParticleContainer<NR,NI,C>::IncrementWithTotal (MultiFab& mf,
 	  ParticleLocData pld;
 	  Particle<NR, NI>::Where(p, m_gdb, pld);
 
-            if (p.m_id > 0)
+            if (p.idata.id > 0)
             {
                 BL_ASSERT(pld.m_grid == grid);
 
@@ -1849,9 +1854,9 @@ ParticleContainer<NR,NI,C>::sumParticleMass (int rho_index, int lev) const
 
 	for (const auto& p : pbox)
         {
-            if (p.m_id > 0)
+            if (p.idata.id > 0)
             {
-                msum += p.m_data[rho_index];
+                msum += p.rdata.arr[BL_SPACEDIM+rho_index];
             }
         }
     }
@@ -1915,10 +1920,10 @@ ParticleContainer<NR,NI,C>::GetParticleIDs (Array<int>& part_ids)
     
 	    for (const auto& p : pbx)
             {
-                if (p.m_id > 0)
+                if (p.idata.id > 0)
                 {
                     // Load the ID
-                    part_ids[cnt] = p.m_id;
+                    part_ids[cnt] = p.idata.id;
 
                     // Update counter
                     cnt++;
@@ -1981,10 +1986,10 @@ ParticleContainer<NR,NI,C>::GetParticleCPU (Array<int>& part_cpu)
     
 	    for (const auto& p : pbx)
             {
-                if (p.m_id > 0)
+                if (p.idata.id > 0)
                 {
                     // Load the ID
-                    part_cpu[cnt] = p.m_cpu;
+                    part_cpu[cnt] = p.idata.cpu;
 
                     // Update counter
                     cnt++;
@@ -2048,11 +2053,11 @@ ParticleContainer<NR,NI,C>::GetParticleLocations (Array<Real>& part_data)
     
 	    for (const auto& p : pbx)
 	    {
-                if (p.m_id > 0)
+                if (p.idata.id > 0)
                 {
                     // Load positions
                     for (int d=0; d < BL_SPACEDIM; d++)
-                        part_data[cnt+d] = p.m_pos[d];
+                        part_data[cnt+d] = p.rdata.pos[d];
 
                     // Update counter
                     cnt += BL_SPACEDIM;
@@ -2079,7 +2084,7 @@ ParticleContainer<NR,NI,C>::GetParticleData (Array<Real>& part_data, int start_c
     //
     // Make sure we don't try to get more than we have
     //
-    if (start_comp + num_comp > NR)
+    if (start_comp + num_comp > BL_SPACEDIM + NR)
         amrex::Error("Tried to grab too many components in GetParticleData!!");
 
 #if BL_USE_MPI
@@ -2122,11 +2127,11 @@ ParticleContainer<NR,NI,C>::GetParticleData (Array<Real>& part_data, int start_c
     
 	    for (const auto& p : pbx)
 	    {
-                if (p.m_id > 0)
+                if (p.idata.id > 0)
                 {
                     // Load particle data, whatever it is.
                     for (int d = 0; d < num_comp; d++)
-                      part_data[cnt+d] = p.m_data[start_comp+d];
+                      part_data[cnt+d] = p.rdata.arr[BL_SPACEDIM + start_comp + d];
 
                     // Update counter
                     cnt += num_comp;
@@ -2196,11 +2201,11 @@ ParticleContainer<NR,NI,C>::SetParticleLocations (Array<Real>& part_data)
     
 	   for (auto& p : pbx)
            {
-              if (p.m_id > 0)
+              if (p.idata.id > 0)
               {
                   // Load positions
                   for (int d=0; d < BL_SPACEDIM; d++)
-                     p.m_pos[d] = part_data[cnt+d];
+                     p.rdata.pos[d] = part_data[cnt+d];
 
                   // Update counter
                   cnt += BL_SPACEDIM;
@@ -2241,7 +2246,7 @@ ParticleContainer<NR,NI,C>::AddParticlesAtLevel (int   level,
         ParticleType& p = virts.back();
 	ParticleLocData pld;
 
-        if (p.m_id > 0)
+        if (p.idata.id > 0)
         {
             if (!where_already_called)
             {
@@ -2414,7 +2419,7 @@ ParticleContainer<NR,NI,C>::CreateVirtualParticles (int   level,
                 //
                 // Set its id to indicate that it's a virt.
                 //
-                virts.back().m_id = VirtualParticleID;
+                virts.back().idata.id = VirtualParticleID;
             }
             else
             {
@@ -2427,12 +2432,12 @@ ParticleContainer<NR,NI,C>::CreateVirtualParticles (int   level,
                     //
                     // Set its id to indicate that it's a virt.
                     //
-                    virts.back().m_id = VirtualParticleID;
+                    virts.back().idata.id = VirtualParticleID;
                 }
                 else if (aggregation_type == "Cell")
                 {
                     //
-                    // Note that Cell aggregation assumes that p.m_data[0] is mass and
+                    // Note that Cell aggregation assumes that p.rdata.arr[BL_SPACEDIM] is mass and
                     // that all other components should be combined in a mass-weighted
                     // average.
                     //
@@ -2447,7 +2452,7 @@ ParticleContainer<NR,NI,C>::CreateVirtualParticles (int   level,
                         //
                         // Set its id to indicate that it's a virt.
                         //
-                        p.m_id = VirtualParticleID;
+                        p.idata.id = VirtualParticleID;
                         agg_map[pld.m_cell] = p;
                     }
                     else
@@ -2455,25 +2460,25 @@ ParticleContainer<NR,NI,C>::CreateVirtualParticles (int   level,
                         BL_ASSERT(agg_map_it != agg_map.end());
                         const ParticleType&  pnew       = *it;
                         ParticleType&        pold       = agg_map_it->second;
-                        const Real           old_mass   = pold.m_data[0];
-                        const Real           new_mass   = pnew.m_data[0];
+                        const Real           old_mass   = pold.rdata.arr[BL_SPACEDIM];
+                        const Real           new_mass   = pnew.rdata.arr[BL_SPACEDIM];
                         const Real           total_mass = old_mass + new_mass;
                         //
                         // Set the position to the center of mass.
                         //
                         for (int i = 0; i < BL_SPACEDIM; i++)
                         {
-                            pold.m_pos[i] = (old_mass*pold.m_pos[i] + new_mass*pnew.m_pos[i])/total_mass;
+                            pold.rdata.pos[i] = (old_mass*pold.rdata.pos[i] + new_mass*pnew.rdata.pos[i])/total_mass;
                         }
                         BL_ASSERT(ParticleType::Index(pold,m_gdb->Geom(level)) == pld.m_cell);
                         //
                         // Set the metadata (presumably velocity) to the mass-weighted average.
                         //
-                        for (int i = 1; i < NR; i++)
+                        for (int i = BL_SPACEDIM + 1; i < BL_SPACEDIM + NR; i++)
                         {
-                            pold.m_data[i] = (old_mass*pold.m_data[i] + new_mass*pnew.m_data[i])/total_mass;
+                            pold.rdata.arr[i] = (old_mass*pold.rdata.arr[i] + new_mass*pnew.rdata.arr[i])/total_mass;
                         }
-                        pold.m_data[0] = total_mass;
+                        pold.rdata.arr[BL_SPACEDIM] = total_mass;
                     }
                 }
                 else if (aggregation_type == "Flow")
@@ -2551,7 +2556,7 @@ ParticleContainer<NR,NI,C>::CreateGhostParticles (int   level,
                 //
                 // Set its id to indicate that it's a ghost.
                 //
-                p.m_id = GhostParticleID;
+                p.idata.id = GhostParticleID;
 
                 //
                 // Store it in the PBox.
@@ -2625,7 +2630,7 @@ ParticleContainer<NR,NI,C>::Redistribute (bool where_already_called,
 		  ParticleLocData pld;
 		  ParticleType& p = *it;
 
-		  if (p.m_id > 0)
+		  if (p.idata.id > 0)
 		    {
 		      if (!where_already_called)
 			{
@@ -2646,7 +2651,7 @@ ParticleContainer<NR,NI,C>::Redistribute (bool where_already_called,
 					  // The particle has left the domain; invalidate it.
 					  // This typically only happens on a coarse timestep.
 					  //
-					  p.m_id = -p.m_id;
+					  p.idata.id = -p.idata.id;
 					}
 				    }
 				}
@@ -2658,7 +2663,7 @@ ParticleContainer<NR,NI,C>::Redistribute (bool where_already_called,
 			    }
 			}
 
-			if (p.m_id > 0)
+			if (p.idata.id > 0)
 			{
 			    //
 			    // The owner of the particle is the CPU owning the finest grid
@@ -2677,7 +2682,7 @@ ParticleContainer<NR,NI,C>::Redistribute (bool where_already_called,
 				    //
 				    // Invalidate the particle so we can reclaim its space.
 				    //
-				    p.m_id = -p.m_id;
+				    p.idata.id = -p.idata.id;
 				}
 			    }
 			    else
@@ -2686,12 +2691,12 @@ ParticleContainer<NR,NI,C>::Redistribute (bool where_already_called,
 				//
 				// Invalidate the particle so we can reclaim its space.
 				//
-				p.m_id = -p.m_id;
+				p.idata.id = -p.idata.id;
 			    }
 			}
 		    }
 
-		    if (p.m_id > 0) // this is a valid particle
+		    if (p.idata.id > 0) // this is a valid particle
 		    {
 			if (it != first) *first = p;
 			++first;
@@ -2887,16 +2892,16 @@ ParticleContainer<NR,NI,C>::RedistributeMPI (PMap& not_ours)
             int ioff = 0;
 	    for (const auto& p : pbox)
             {
-                BL_ASSERT(p.m_id > 0);
+                BL_ASSERT(p.idata.id > 0);
 
 		ParticleLocData pld;
 		Particle<NR, NI>::Where(p, m_gdb, pld);
 
-                senddata[ioff+0] = p.m_id;
-                senddata[ioff+1] = p.m_cpu;
+                senddata[ioff+0] = p.idata.id;
+                senddata[ioff+1] = p.idata.cpu;
 
  		for (int i = 0; i < NI; ++i) {
-		    senddata[i+ioff+2] = p.m_idata[i];
+		    senddata[i+ioff+2] = p.idata.arr[i+2];
 		}
 
                 ioff += iChunkSize;
@@ -2928,11 +2933,11 @@ ParticleContainer<NR,NI,C>::RedistributeMPI (PMap& not_ours)
                 {
 		  BL_ASSERT(rcvp != 0);
 
-		  p.m_id   = rcvp[0];
-		  p.m_cpu  = rcvp[1];
+		  p.idata.id   = rcvp[0];
+		  p.idata.cpu  = rcvp[1];
 
 		  for (int i = 0; i < NI; ++i) {
-		    p.m_idata[i] = rcvp[i+2];
+		    p.idata.arr[i+2] = rcvp[i+2];
 		  }
 
 		  rcvp += iChunkSize;
@@ -2987,16 +2992,16 @@ ParticleContainer<NR,NI,C>::RedistributeMPI (PMap& not_ours)
             int ioff = 0;
 	    for (const auto& p : pbox)
             {
-                BL_ASSERT(p.m_id > 0);
+                BL_ASSERT(p.idata.id > 0);
 
-                D_TERM(senddata[ioff+0] = p.m_pos[0];,
-                       senddata[ioff+1] = p.m_pos[1];,
-                       senddata[ioff+2] = p.m_pos[2];);
+                D_TERM(senddata[ioff+0] = p.rdata.pos[0];,
+                       senddata[ioff+1] = p.rdata.pos[1];,
+                       senddata[ioff+2] = p.rdata.pos[2];);
 
                 ioff += BL_SPACEDIM;
 
                 for (int j = 0; j < NR; j++)
-                    senddata[ioff+j] = p.m_data[j];
+                    senddata[ioff+j] = p.rdata.arr[ioff + j];
 
                 ioff += NR;
             }
@@ -3030,14 +3035,14 @@ ParticleContainer<NR,NI,C>::RedistributeMPI (PMap& not_ours)
                 {
                     BL_ASSERT(rcvp != 0);
 
-                    D_TERM(p.m_pos[0] = rcvp[0];,
-                           p.m_pos[1] = rcvp[1];,
-                           p.m_pos[2] = rcvp[2];);
+                    D_TERM(p.rdata.pos[0] = rcvp[0];,
+                           p.rdata.pos[1] = rcvp[1];,
+                           p.rdata.pos[2] = rcvp[2];);
 
                     rcvp += BL_SPACEDIM;
 
                     for (int j = 0; j < NR; j++)
-                        p.m_data[j] = rcvp[j];
+                        p.rdata.arr[BL_SPACEDIM + j] = rcvp[j];
 
                     rcvp += NR;
 
@@ -3088,7 +3093,7 @@ ParticleContainer<NR,NI,C>::OK (bool full_where,
                 //
                 ParticleType p = *it;
 
-                if (p.m_id > 0)
+                if (p.idata.id > 0)
                 {
 		  
 		  ParticleLocData pld;
@@ -3116,11 +3121,11 @@ ParticleContainer<NR,NI,C>::OK (bool full_where,
                     if ((lev  != pld.m_lev  || lev  != llev)  ||
                         (grid != pld.m_grid || grid != lgrid) || cell != pld.m_cell)
                     {
-                        std::cout << "PARTICLE NUMBER " << p.m_id << '\n';
+                        std::cout << "PARTICLE NUMBER " << p.idata.id << '\n';
 
                         std::cout << "POS IS ";
                         for (int i = 0; i < BL_SPACEDIM; i++)
-                            std::cout << p.m_pos[i] << ' ';
+                            std::cout << p.rdata.pos[i] << ' ';
 
                         if (lev != pld.m_lev || lev != llev)
                            std::cout << "BAD LEV  " << lev  << " " << pld.m_lev << '\n';
@@ -3192,7 +3197,7 @@ ParticleContainer<NR,NI,C>::Checkpoint (const std::string& dir,
 
 	    for (const auto& p : pbox)
             {
-                if (p.m_id > 0)
+                if (p.idata.id > 0)
                     //
                     // Only count (and checkpoint) valid particles.
                     //
@@ -3502,7 +3507,7 @@ ParticleContainer<NR,NI,C>::WriteParticles (int            lev,
         {
 	    for (const auto& p : pmap_it->second)
             {
-                if (p.m_id > 0)
+                if (p.idata.id > 0)
                     cnt++;
             }
         }
@@ -3537,10 +3542,10 @@ ParticleContainer<NR,NI,C>::WriteParticles (int            lev,
               int *iptr = istuff.dataPtr();
 	      int itemCount(0);
               for( ; it != End && itemCount < maxItemsToWrite; ++it) {
-                if(it->m_id > 0) {
+                if(it->idata.id > 0) {
 
-                    iptr[0] = it->m_id;
-                    iptr[1] = it->m_cpu;
+                    iptr[0] = it->idata.id;
+                    iptr[1] = it->idata.cpu;
 
                     iptr += iChunkSize;
                 }
@@ -3557,10 +3562,10 @@ ParticleContainer<NR,NI,C>::WriteParticles (int            lev,
 
 	    for (auto it = pbox.cbegin(); it != pbox.cend(); ++it)
             {
-                if (it->m_id > 0)
+                if (it->idata.id > 0)
                 {
-                    iptr[0] = it->m_id;
-                    iptr[1] = it->m_cpu;
+                    iptr[0] = it->idata.id;
+                    iptr[1] = it->idata.cpu;
 
                     iptr += iChunkSize;
                 }
@@ -3588,14 +3593,9 @@ ParticleContainer<NR,NI,C>::WriteParticles (int            lev,
           ParticleType::RealType *rptr = rstuff.dataPtr();
 	  int itemCount(0);
           for( ; it != End && itemCount < maxItemsToWrite; ++it) {
-            if(it->m_id > 0) {
-                D_TERM(rptr[0] = it->m_pos[0];,
-                       rptr[1] = it->m_pos[1];,
-                       rptr[2] = it->m_pos[2];);
-
-                for (int i = 0; i < NR; i++) {
-                  rptr[BL_SPACEDIM+i] = it->m_data[i];
-		}
+            if(it->idata.id > 0) {
+                for (int i = 0; i < BL_SPACEDIM + NR; i++)
+                  rptr[i] = it->m.rdata.arr[i];
                 rptr += rChunkSize;
             }
 	    ++itemCount;
@@ -3612,16 +3612,11 @@ ParticleContainer<NR,NI,C>::WriteParticles (int            lev,
 
 	for (auto it = pbox.cbegin(); it != pbox.cend(); ++it)
         {
-            if (it->m_id > 0)
+            if (it->idata.id > 0)
             {
-                D_TERM(rptr[0] = it->m_pos[0];,
-                       rptr[1] = it->m_pos[1];,
-                       rptr[2] = it->m_pos[2];);
-
-                for (int i = 0; i < NR; i++)
-                    rptr[BL_SPACEDIM+i] = it->m_data[i];
-
-                rptr += rChunkSize;
+	      for (int i = 0; i < BL_SPACEDIM + NR; i++)
+		rptr[i] = it->m.rdata.arr[i];
+	      rptr += rChunkSize;
             }
         }
 
@@ -3993,8 +3988,8 @@ ParticleContainer<NR,NI,C>::ReadParticles_DoublePrecision (int            cnt,
     {
         if (is_checkpoint)
         {
-            p.m_id   = iptr[0];
-            p.m_cpu  = iptr[1];
+            p.idata.id   = iptr[0];
+            p.idata.cpu  = iptr[1];
         }
         else
         {
@@ -4009,36 +4004,36 @@ ParticleContainer<NR,NI,C>::ReadParticles_DoublePrecision (int            cnt,
 
 		  for (int d = 0; d < BL_SPACEDIM; d++)
                     {
-		      std::cout << "RESTART:BAD PARTICLE POS(" << d << ") " << p.m_pos[d] << std::endl;
+		      std::cout << "RESTART:BAD PARTICLE POS(" << d << ") " << p.rdata.pos[d] << std::endl;
                     }
 
 		  amrex::Abort("ParticleContainer<NR,NI,C>::ReadParticles_DoublePrecision(): invalid particle");
                 }
             }
 	  
-	  p.m_id   = ParticleType::NextID();
-	  p.m_cpu  = ParallelDescriptor::MyProc();
+	  p.idata.id   = ParticleType::NextID();
+	  p.idata.cpu  = ParallelDescriptor::MyProc();
         }
 
-        BL_ASSERT(p.m_id > 0);
+        BL_ASSERT(p.idata.id > 0);
 
         iptr += iChunkSize;
 
-        D_TERM(p.m_pos[0] = rptr[0];,
-               p.m_pos[1] = rptr[1];,
-               p.m_pos[2] = rptr[2];);
+        D_TERM(p.rdata.pos[0] = rptr[0];,
+               p.rdata.pos[1] = rptr[1];,
+               p.rdata.pos[2] = rptr[2];);
         //
         // If we're reading in doubles and storing'm in floats we have
         // to make sure the particles stay in the domain.
         //
         for (int d = 0; d < BL_SPACEDIM; d++)
         {
-            if (p.m_pos[d] <= ProbLo[d]) p.m_pos[d] += Delta[d];
-            if (p.m_pos[d] >= ProbHi[d]) p.m_pos[d] -= Delta[d];
+            if (p.rdata.pos[d] <= ProbLo[d]) p.rdata.pos[d] += Delta[d];
+            if (p.rdata.pos[d] >= ProbHi[d]) p.rdata.pos[d] -= Delta[d];
         }
 
         for (int i = 0; i < NR; i++)
-            p.m_data[i] = rptr[BL_SPACEDIM+i];
+            p.rdata.arr[BL_SPACEDIM+i] = rptr[BL_SPACEDIM+i];
 
         rptr += rChunkSize;
 
@@ -4053,10 +4048,10 @@ ParticleContainer<NR,NI,C>::ReadParticles_DoublePrecision (int            cnt,
 template <int NR, int NI, class C>
 void
 ParticleContainer<NR,NI,C>::ReadParticles_SinglePrecision (int            cnt,
-							 int            grd,
-							 int            lev,
-							 bool           is_checkpoint,
-							 std::ifstream& ifs)
+							   int            grd,
+							   int            lev,
+							   bool           is_checkpoint,
+							   std::ifstream& ifs)
 {
     BL_PROFILE("ParticleContainer<NR,NI,C>::ReadParticles_SinglePrecision()");
     BL_ASSERT(cnt > 0);
@@ -4102,13 +4097,13 @@ ParticleContainer<NR,NI,C>::ReadParticles_SinglePrecision (int            cnt,
 
     for (int i = 0; i < cnt; i++)
     {
-        p.m_id   = iptr[0];
-        p.m_cpu  = iptr[1];
+        p.idata.id   = iptr[0];
+        p.idata.cpu  = iptr[1];
 
         if (is_checkpoint)
         {
-            p.m_id   = iptr[0];
-            p.m_cpu  = iptr[1];
+            p.idata.id    = iptr[0];
+            p.idata.cpu   = iptr[1];
         }
         else
         {
@@ -4122,27 +4117,27 @@ ParticleContainer<NR,NI,C>::ReadParticles_SinglePrecision (int            cnt,
 
                     for (int d = 0; d < BL_SPACEDIM; d++)
                     {
-                        std::cout << "RESTART:BAD PARTICLE POS(" << d << ") " << p.m_pos[d] << std::endl;
+                        std::cout << "RESTART:BAD PARTICLE POS(" << d << ") " << p.rdata.pos[d] << std::endl;
                     }
 
                     amrex::Abort("ParticleContainer<NR,NI,C>::ReadParticles_SinglePrecision(): invalid particle");
                 }
             }
 
-            p.m_id   = ParticleType::NextID();
-            p.m_cpu  = ParallelDescriptor::MyProc();
+            p.idata.id   = ParticleType::NextID();
+            p.idata.cpu  = ParallelDescriptor::MyProc();
         }
 
-        BL_ASSERT(p.m_id > 0);
+        BL_ASSERT(p.idata.id > 0);
 
         iptr += iChunkSize;
 
-        D_TERM(p.m_pos[0] = rptr[0];,
-               p.m_pos[1] = rptr[1];,
-               p.m_pos[2] = rptr[2];);
+        D_TERM(p.rdata.pos[0] = rptr[0];,
+               p.rdata.pos[1] = rptr[1];,
+               p.rdata.pos[2] = rptr[2];);
 
         for (int i = 0; i < NR; i++)
-            p.m_data[i] = rptr[BL_SPACEDIM+i];
+            p.rdata.arr[BL_SPACEDIM + i] = rptr[BL_SPACEDIM + i];
 
         rptr += rChunkSize;
 
@@ -4171,7 +4166,7 @@ ParticleContainer<NR,NI,C>::WriteAsciiFile (const std::string& filename)
 
 	    for (const auto& p : pbox)
             {
-                if (p.m_id > 0)
+                if (p.idata.id > 0)
                     //
                     // Only count (and checkpoint) valid particles.
                     //
@@ -4238,17 +4233,17 @@ ParticleContainer<NR,NI,C>::WriteAsciiFile (const std::string& filename)
 
 		    for (auto it = pbox.cbegin(); it != pbox.cend(); ++it)
                     {
-                        if (it->m_id > 0)
+                        if (it->idata.id > 0)
                         {
-                            D_TERM(File << it->m_pos[0] << ' ',
-                                        << it->m_pos[1] << ' ',
-                                        << it->m_pos[2] << ' ');
+                            D_TERM(File << it->rdata.pos[0] << ' ',
+                                        << it->rdata.pos[1] << ' ',
+                                        << it->rdata.pos[2] << ' ');
 
-                            for (int i = 0; i < NR; i++)
+                            for (int i = BL_SPACEDIM; i < BL_SPACEDIM + NR; i++)
                             {
-                                char ws = (i == NR-1) ? '\n' : ' ';
+                                char ws = (i == BL_SPACEDIM + NR - 1) ? '\n' : ' ';
 
-                                File << it->m_data[i] << ws;
+                                File << it->rdata.arr[i] << ws;
                             }
                         }
                     }
@@ -4702,7 +4697,7 @@ ParticleContainer<NR,NI,C>::AssignDensity (int rho_index, bool sub_cycle,
 
 	    for (const auto& p : pbx)
             {
-                if (p.m_id <= 0) {
+                if (p.idata.id <= 0) {
 		  continue;
 		}
                 //
@@ -4756,7 +4751,7 @@ ParticleContainer<NR,NI,C>::AssignDensity (int rho_index, bool sub_cycle,
                         // Sum up mass in first component.
                         //
                         {
-                            fab(cells[i],0) += p.m_data[0] * fracs[i];
+                            fab(cells[i],0) += p.rdata.arr[BL_SPACEDIM] * fracs[i];
                         }
                         //
                         // Sum up momenta in next components.
@@ -4772,7 +4767,7 @@ ParticleContainer<NR,NI,C>::AssignDensity (int rho_index, bool sub_cycle,
 			}
 
                         for (int n = 1; n < ncomp; n++) {
-                            fab(cells[i],n) += p.m_data[n] * p.m_data[0] * fracs[i];
+                            fab(cells[i],n) += p.rdata.arr[BL_SPACEDIM + n] * p.rdata.arr[BL_SPACEDIM] * fracs[i];
 			}
                     }
                     //
@@ -4817,13 +4812,13 @@ ParticleContainer<NR,NI,C>::AssignDensity (int rho_index, bool sub_cycle,
                                     // Sum up mass in first component.
                                     //
                                     {
-                                        (*mf[lev_index+1])[grid](fcells[j],0) += p.m_data[0] * ffracs[j];
+                                        (*mf[lev_index+1])[grid](fcells[j],0) += p.rdata.arr[BL_SPACEDIM] * ffracs[j];
                                     }
                                     //
                                     // Sum up momenta in next components.
                                     //
                                     for (int n = 1; n < ncomp; n++) {
-                                        (*mf[lev_index+1])[grid](fcells[j],n) += p.m_data[n] * p.m_data[0] * ffracs[j];
+                                        (*mf[lev_index+1])[grid](fcells[j],n) += p.rdata.arr[BL_SPACEDIM+n] * p.rdata.arr[BL_SPACEDIM] * ffracs[j];
 				    }
                                 }
                                 else
@@ -4837,14 +4832,14 @@ ParticleContainer<NR,NI,C>::AssignDensity (int rho_index, bool sub_cycle,
 				  // Sum up mass in first component.
 				  //
 				  {
-				    pb.m_data[0] = p.m_data[0] *  ffracs[j];
+				    pb.m_data[0] = p.rdata.arr[BL_SPACEDIM] *  ffracs[j];
 				  }
 				  
 				  //
 				  // Sum up momenta in next components.
 				  //
 				  for (int n = 1; n < ncomp; n++) {
-				    pb.m_data[n] = p.m_data[n] * p.m_data[0] * ffracs[j];
+				    pb.m_data[n] = p.rdata.arr[BL_SPACEDIM+n] * p.rdata.arr[BL_SPACEDIM] * ffracs[j];
 				  }
 				  
 				  data[who].push_back(pb);
@@ -4891,13 +4886,13 @@ ParticleContainer<NR,NI,C>::AssignDensity (int rho_index, bool sub_cycle,
                                     // Sum up mass in first component.
                                     //
                                     {
-                                        (*mf[lev_index-1])[grid](ccells[j],0) += p.m_data[0] * cfracs[j];
+                                        (*mf[lev_index-1])[grid](ccells[j],0) += p.rdata.arr[BL_SPACEDIM] * cfracs[j];
                                     }
                                     //
                                     // Sum up momenta in next components.
                                     //
                                     for (int n = 1; n < ncomp; n++) {
-                                        (*mf[lev_index-1])[grid](ccells[j],n) += p.m_data[n] * p.m_data[0] * cfracs[j];
+                                        (*mf[lev_index-1])[grid](ccells[j],n) += p.rdata.arr[BL_SPACEDIM+n] * p.rdata.arr[BL_SPACEDIM] * cfracs[j];
 				    }
                                 }
                                 else
@@ -4911,14 +4906,14 @@ ParticleContainer<NR,NI,C>::AssignDensity (int rho_index, bool sub_cycle,
 				  // Sum up mass in first component.
 				  //
 				  {
-				    pb.m_data[0] = p.m_data[0] * cfracs[j];
+				    pb.m_data[0] = p.rdata.arr[BL_SPACEDIM] * cfracs[j];
 				  }
                                   
 				  //
 				  // Sum up momenta in next components.
 				  //
 				  for (int n = 1; n < ncomp; n++) {
-				    pb.m_data[n] = p.m_data[n] * p.m_data[0] * cfracs[j];
+				    pb.m_data[n] = p.rdata.arr[BL_SPACEDIM+n] * p.rdata.arr[BL_SPACEDIM] * cfracs[j];
 				  }
 				  
 				  data[who].push_back(pb);
@@ -4966,13 +4961,13 @@ ParticleContainer<NR,NI,C>::AssignDensity (int rho_index, bool sub_cycle,
                             // Sum up mass in first component.
                             //
                             {
-                                fab(cells[i],0) += p.m_data[0] * fracs[i];
+                                fab(cells[i],0) += p.rdata.arr[BL_SPACEDIM] * fracs[i];
                             }
                             //
                             // Sum up momenta in next components.
                             //
                             for (int n = 1; n < ncomp; n++) {
-                                fab(cells[i],n) += p.m_data[n] * p.m_data[0] * fracs[i];
+                                fab(cells[i],n) += p.rdata.arr[BL_SPACEDIM+n] * p.rdata.arr[BL_SPACEDIM] * fracs[i];
 			    }
                         }
                     }
@@ -5015,13 +5010,13 @@ ParticleContainer<NR,NI,C>::AssignDensity (int rho_index, bool sub_cycle,
                                     // Sum up mass in first component.
                                     //
                                     {
-                                        (*mf[lev_index-1])[cgrid[i]](ccells[i],0) += p.m_data[0] * cfracs[i];
+                                        (*mf[lev_index-1])[cgrid[i]](ccells[i],0) += p.rdata.arr[BL_SPACEDIM] * cfracs[i];
                                     }
                                     //
                                     // Sum up momenta in next components.
                                     //
                                     for (int n = 1; n < ncomp; n++) {
-                                        (*mf[lev_index-1])[cgrid[i]](ccells[i],n) += p.m_data[n] * p.m_data[0] * cfracs[i];
+                                        (*mf[lev_index-1])[cgrid[i]](ccells[i],n) += p.rdata.arr[BL_SPACEDIM+n] * p.rdata.arr[BL_SPACEDIM] * cfracs[i];
 				    }
                                 }
                                 else
@@ -5034,14 +5029,14 @@ ParticleContainer<NR,NI,C>::AssignDensity (int rho_index, bool sub_cycle,
 				  // Sum up mass in first component.
 				  //
 				  {
-				    pb.m_data[0] = p.m_data[0] * cfracs[i];
+				    pb.m_data[0] = p.rdata.arr[BL_SPACEDIM] * cfracs[i];
 				  }
 
 				  //
 				  // Sum up momenta in next components.
 				  //
 				  for (int n = 1; n < ncomp; n++) {
-				    pb.m_data[n] = p.m_data[n] * p.m_data[0] * cfracs[i];
+				    pb.m_data[n] = p.rdata.arr[BL_SPACEDIM+n] * p.rdata.arr[BL_SPACEDIM] * cfracs[i];
 				  }
 				  data[who].push_back(pb);
                                 }
@@ -5052,7 +5047,7 @@ ParticleContainer<NR,NI,C>::AssignDensity (int rho_index, bool sub_cycle,
                         //
                         // We've updated the Crse cells.  Now we have to update the fine
                         // cells in such a way that the total amount of mass we move
-                        // around is precisely p.m_data[0]. In other words, the fractions
+                        // around is precisely p.rdata.arr[BL_SPACEDIM]. In other words, the fractions
                         // we use at crse and fine have to sum to zero.  In the fine
                         // case, we have to account for the case where one or more of the
                         // cell indices is not in the valid region of the box containing 
@@ -5077,13 +5072,13 @@ ParticleContainer<NR,NI,C>::AssignDensity (int rho_index, bool sub_cycle,
                                 // Sum up mass in first component.
                                 //
                                 {
-                                    fab(cells[i],0) += p.m_data[0] * fracs[i];
+                                    fab(cells[i],0) += p.rdata.arr[BL_SPACEDIM] * fracs[i];
                                 }
                                 //
                                 // Sum up momenta in next components.
                                 //
                                 for (int n = 1; n < ncomp; n++) {
-                                    fab(cells[i],n) += p.m_data[n] * p.m_data[0] * fracs[i];
+                                    fab(cells[i],n) += p.rdata.arr[BL_SPACEDIM+n] * p.rdata.arr[BL_SPACEDIM] * fracs[i];
 				}
                                 fwhich[i] = false;
                             }
@@ -5121,13 +5116,13 @@ ParticleContainer<NR,NI,C>::AssignDensity (int rho_index, bool sub_cycle,
                                 // Sum up mass in first component.
                                 //
                                 {
-                                    fab(cells[i],0) += p.m_data[0] * fracs[i] * mult;
+                                    fab(cells[i],0) += p.rdata.arr[BL_SPACEDIM] * fracs[i] * mult;
                                 }
                                 //
                                 // Sum up momenta in next components.
                                 //
                                 for (int n = 1; n < ncomp; n++) {
-                                    fab(cells[i],n) += p.m_data[n] * p.m_data[0] * fracs[i] * mult;
+                                    fab(cells[i],n) += p.rdata.arr[BL_SPACEDIM+n] * p.rdata.arr[BL_SPACEDIM] * fracs[i] * mult;
 				}
 
                                 sum_fine += fracs[i] * mult;
@@ -5156,13 +5151,13 @@ ParticleContainer<NR,NI,C>::AssignDensity (int rho_index, bool sub_cycle,
                                 // Sum up mass in first component.
                                 //
                                 {
-                                    fab(cells[i],0) += p.m_data[0] * fracs[i];
+                                    fab(cells[i],0) += p.rdata.arr[BL_SPACEDIM] * fracs[i];
                                 }
                                 //
                                 // Sum up momenta in next components.
                                 //
                                 for (int n = 1; n < ncomp; n++) {
-                                    fab(cells[i],n) += p.m_data[n] * p.m_data[0] * fracs[i];
+                                    fab(cells[i],n) += p.rdata.arr[BL_SPACEDIM+n] * p.rdata.arr[BL_SPACEDIM] * fracs[i];
 				}
 
                                 sum += fracs[i];
@@ -5184,13 +5179,13 @@ ParticleContainer<NR,NI,C>::AssignDensity (int rho_index, bool sub_cycle,
                                         // Sum up mass in first component.
                                         //
                                         {
-                                            (*mf[lev_index+1])[fgrid[j]](fcells[j],0) += p.m_data[0] * fracs[i] * ffracs[j];
+                                            (*mf[lev_index+1])[fgrid[j]](fcells[j],0) += p.rdata.arr[BL_SPACEDIM] * fracs[i] * ffracs[j];
                                         }
                                         //
                                         // Sum up momenta in next components.
                                         //
                                         for (int n = 1; n < ncomp; n++) {
-                                            (*mf[lev_index+1])[fgrid[j]](fcells[j],n) += p.m_data[n] * p.m_data[0] * fracs[i] * ffracs[j];
+                                            (*mf[lev_index+1])[fgrid[j]](fcells[j],n) += p.rdata.arr[BL_SPACEDIM+n] * p.rdata.arr[BL_SPACEDIM] * fracs[i] * ffracs[j];
 					}
                                     }
                                     else
@@ -5203,14 +5198,14 @@ ParticleContainer<NR,NI,C>::AssignDensity (int rho_index, bool sub_cycle,
 				      // Sum up mass in first component.
 				      //
 				      {
-					pb.m_data[0] = p.m_data[0] * fracs[i] * ffracs[j];
+					pb.m_data[0] = p.rdata.arr[BL_SPACEDIM] * fracs[i] * ffracs[j];
 				      }
 
 				      //
 				      // Sum up momenta in next components.
 				      //
 				      for (int n = 1; n < ncomp; n++) {
-					pb.m_data[n] = p.m_data[n] * p.m_data[0] * fracs[i] * ffracs[j];
+					pb.m_data[0] = p.rdata.arr[BL_SPACEDIM+n] * p.rdata.arr[BL_SPACEDIM] * fracs[i] * ffracs[j];
 					}
 
                                         data[who].push_back(pb);
@@ -5627,7 +5622,7 @@ ParticleContainer<NR,NI,C>::AssignCellDensitySingleLevel (int rho_index,
         {
             const ParticleType& p = pbx[ip];
 
-            if (p.m_id <= 0) {
+            if (p.idata.id <= 0) {
 	      continue;
 	    }
 
@@ -5663,7 +5658,7 @@ ParticleContainer<NR,NI,C>::AssignCellDensitySingleLevel (int rho_index,
 #ifdef _OPENMP
 #pragma omp atomic
 #endif
-                    fab(cells[i],0) += p.m_data[0] * fracs[i];
+                    fab(cells[i],0) += p.rdata.arr[BL_SPACEDIM] * fracs[i];
                 }
                 // 
                 // Sum up momenta in next components.
@@ -5672,7 +5667,7 @@ ParticleContainer<NR,NI,C>::AssignCellDensitySingleLevel (int rho_index,
 #ifdef _OPENMP
 #pragma omp atomic
 #endif
-                   fab(cells[i],n) += p.m_data[n] * p.m_data[0] * fracs[i];
+		  fab(cells[i],n) += p.rdata.arr[BL_SPACEDIM+n] * p.rdata.arr[BL_SPACEDIM] * fracs[i];
             }
         }
     }
@@ -5803,7 +5798,7 @@ ParticleContainer<NR,NI,C>::NodalDepositionSingleLevel (int rho_index,
 
 	for (const auto& p : pbx)
         {
-            if (p.m_id <= 0) {
+            if (p.idata.id <= 0) {
 	      continue;
 	    }
 	    
@@ -5814,7 +5809,7 @@ ParticleContainer<NR,NI,C>::NodalDepositionSingleLevel (int rho_index,
             cells[0] = pld.m_cell;
             cells[1] = pld.m_cell+IntVect(1);
 
-            Real x = p.m_pos[0] / dx[0];
+            Real x = p.rdata.pos[0] / dx[0];
 
             int i = pld.m_cell[0];
 
@@ -5822,8 +5817,8 @@ ParticleContainer<NR,NI,C>::NodalDepositionSingleLevel (int rho_index,
 
             for (int i = 0; i < 2; i++)
             {
-               fab(cells[0],0) += p.m_data[rho_index] * (1.0 - xint);
-               fab(cells[1],0) += p.m_data[rho_index] *        xint ;
+               fab(cells[0],0) += p.rdata.arr[BL_SPACEDIM+rho_index] * (1.0 - xint);
+               fab(cells[1],0) += p.rdata.arr[BL_SPACEDIM+rho_index] *        xint ;
             }
 #elif (BL_SPACEDIM == 2)
             cells[0] = pld.m_cell;
@@ -5831,8 +5826,8 @@ ParticleContainer<NR,NI,C>::NodalDepositionSingleLevel (int rho_index,
             cells[2] = pld.m_cell+IntVect(0,1);
             cells[3] = pld.m_cell+IntVect(1,1);
 
-            Real x = p.m_pos[0] / dx[0];
-            Real y = p.m_pos[1] / dx[1];
+            Real x = p.rdata.pos[0] / dx[0];
+            Real y = p.rdata.pos[1] / dx[1];
 
             int i = pld.m_cell[0];
             int j = pld.m_cell[1];
@@ -5852,7 +5847,7 @@ ParticleContainer<NR,NI,C>::NodalDepositionSingleLevel (int rho_index,
 
             for (int i = 0; i < 4; i++)
             {
-               fab(cells[i],0) += p.m_data[rho_index] * fracs[i];
+               fab(cells[i],0) += p.rdata.arr[BL_SPACEDIM+rho_index] * fracs[i];
             }
 #else
             cells[0] = pld.m_cell;
@@ -5864,9 +5859,9 @@ ParticleContainer<NR,NI,C>::NodalDepositionSingleLevel (int rho_index,
             cells[6] = pld.m_cell+IntVect(0,1,1);
             cells[7] = pld.m_cell+IntVect(1,1,1);
 
-            Real x = p.m_pos[0] / dx[0];
-            Real y = p.m_pos[1] / dx[1];
-            Real z = p.m_pos[2] / dx[2];
+            Real x = p.rdata.pos[0] / dx[0];
+            Real y = p.rdata.pos[1] / dx[1];
+            Real z = p.rdata.pos[2] / dx[2];
 
             int i = pld.m_cell[0];
             int j = pld.m_cell[1];
@@ -5894,7 +5889,7 @@ ParticleContainer<NR,NI,C>::NodalDepositionSingleLevel (int rho_index,
 
             for (int i = 0; i < 8; i++)
             {
-               fab(cells[i],0) += p.m_data[rho_index] * fracs[i];
+               fab(cells[i],0) += p.rdata.arr[BL_SPACEDIM+rho_index] * fracs[i];
             }
 #endif
         }
@@ -5986,10 +5981,10 @@ ParticleContainer<NR,NI,C>::moveKick (MultiFab&       acceleration,
         {
             ParticleType& p = pbox[i];
 
-            if (p.m_id > 0)
+            if (p.idata.id > 0)
             {
                 //
-                // Note: m_data[0] is mass, 1 is v_x, ...
+                // Note: rdata.arr[BL_SPACEDIM] is mass, BL_SPACEDIM+1 is v_x, ...
                 //
                 Real grav[BL_SPACEDIM];
 
@@ -5997,23 +5992,23 @@ ParticleContainer<NR,NI,C>::moveKick (MultiFab&       acceleration,
                 //
                 // Define (a u)^new = (a u)^half + dt/2 grav^new
                 //
-                D_TERM(p.m_data[1] *= a_half;,
-                       p.m_data[2] *= a_half;,
-                       p.m_data[3] *= a_half;);
+                D_TERM(p.rdata.arr[BL_SPACEDIM+1] *= a_half;,
+                       p.rdata.arr[BL_SPACEDIM+2] *= a_half;,
+                       p.rdata.arr[BL_SPACEDIM+3] *= a_half;);
 
-                D_TERM(p.m_data[1] += half_dt * grav[0];,
-                       p.m_data[2] += half_dt * grav[1];,
-                       p.m_data[3] += half_dt * grav[2];);
+                D_TERM(p.rdata.arr[BL_SPACEDIM+1] += half_dt * grav[0];,
+                       p.rdata.arr[BL_SPACEDIM+2] += half_dt * grav[1];,
+                       p.rdata.arr[BL_SPACEDIM+3] += half_dt * grav[2];);
 
-                D_TERM(p.m_data[1] *= a_new_inv;,
-                       p.m_data[2] *= a_new_inv;,
-                       p.m_data[3] *= a_new_inv;);
+                D_TERM(p.rdata.arr[BL_SPACEDIM+1] *= a_new_inv;,
+                       p.rdata.arr[BL_SPACEDIM+2] *= a_new_inv;,
+                       p.rdata.arr[BL_SPACEDIM+3] *= a_new_inv;);
 
                 if (start_comp_for_accel > BL_SPACEDIM)
                 {
-                   D_TERM(p.m_data[start_comp_for_accel  ] = grav[0];,
-                          p.m_data[start_comp_for_accel+1] = grav[1];,
-                          p.m_data[start_comp_for_accel+2] = grav[2];);
+                   D_TERM(p.rdata.arr[BL_SPACEDIM + start_comp_for_accel  ] = grav[0];,
+                          p.rdata.arr[BL_SPACEDIM + start_comp_for_accel+1] = grav[1];,
+                          p.rdata.arr[BL_SPACEDIM + start_comp_for_accel+2] = grav[2];);
                 }
             }
         }
