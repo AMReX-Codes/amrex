@@ -1,7 +1,7 @@
 
 //
-// Each problem must have its own version of MyParticleContainer::InitData()
-// to initialize the particle data on this level
+// Each problem must have its own version of PhysicalParticleContainer::InitData()
+// to initialize the particle data.  It must also initialize charge and mass.
 //
 
 #include <cmath>
@@ -14,18 +14,25 @@
 using namespace amrex;
 
 void
-MyParticleContainer::InitData()
+PhysicalParticleContainer::InitData()
 {
-    BL_PROFILE("MyPC::InitData()");
+    BL_PROFILE("PPC::InitData()");
 
-    charge = -PhysConst::q_e;
-    mass = PhysConst::m_e;
+    if (species_id == 0) {
+	charge = -PhysConst::q_e;
+	mass = PhysConst::m_e;
+    } else if (species_id == 1) {
+	charge = PhysConst::q_e;
+	mass = PhysConst::m_p;	
+    } else {
+	BoxLib::Abort("PhysicalParticleContainer::InitData(): species_id must be 0 or 1");
+    }
 
-    m_particles.resize(m_gdb->finestLevel()+1);
+    m_particles.resize(GDB().finestLevel()+1);
 
     const int lev = 0;
 
-    const Geometry& geom = m_gdb->Geom(lev);
+    const Geometry& geom = GDB().Geom(lev);
     const Real* dx  = geom.CellSize();
 
     Real weight, ux, uy, uz;
@@ -55,18 +62,19 @@ MyParticleContainer::InitData()
       ux = 0.;
       uy = 0.;
       uz = 0.;
-      pp.query("ux", ux);
-      pp.query("uy", uy);
-      pp.query("uz", uz);
+      if (species_id == 0) { // electrons
+	  pp.query("ux", ux);
+	  pp.query("uy", uy);
+	  pp.query("uz", uz);
+      }
 
-      Real gamma = 1./std::sqrt(1.0 - ux*ux - uy*uy - uz*uz);
-      ux *= PhysConst::c*gamma;
-      uy *= PhysConst::c*gamma;      
-      uz *= PhysConst::c*gamma;
+      ux *= PhysConst::c;
+      uy *= PhysConst::c;      
+      uz *= PhysConst::c;
     }
 
-    const BoxArray& ba = m_gdb->ParticleBoxArray(lev);
-    const DistributionMapping& dm = m_gdb->ParticleDistributionMap(lev);
+    const BoxArray& ba = GDB().ParticleBoxArray(lev);
+    const DistributionMapping& dm = GDB().ParticleDistributionMap(lev);
 
     MultiFab dummy_mf(ba, dm, 1, 0, MFInfo().SetAlloc(false));
 
@@ -136,7 +144,7 @@ MyParticleContainer::InitData()
 		    amrex::Abort("invalid particle");
 		}
 		
-		BL_ASSERT(p.m_lev >= 0 && p.m_lev <= m_gdb->finestLevel());
+		BL_ASSERT(p.m_lev >= 0 && p.m_lev <= GDB().finestLevel());
 		//
 		// Add it to the appropriate PBox at the appropriate level.
 		//

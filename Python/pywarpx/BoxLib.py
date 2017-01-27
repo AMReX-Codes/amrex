@@ -6,8 +6,9 @@ from .Geometry import geometry
 from .Algo import algo
 from .Langmuirwave import langmuirwave
 from .Interpolation import interpolation
+from .Particles import particles
 
-from . import _warpxC
+from . import warpxC
 
 class BoxLib(object):
 
@@ -19,8 +20,9 @@ class BoxLib(object):
         argv += algo.attrlist()
         argv += langmuirwave.attrlist()
         argv += interpolation.attrlist()
+        argv += particles.attrlist()
 
-        _warpxC.boxlib_init(argv)
+        warpxC.boxlib_init(argv)
 
     def finalize(self, finalize_mpi=1):
-        _warpxC.boxlib_finalize(finalize_mpi)
+        warpxC.boxlib_finalize(finalize_mpi)

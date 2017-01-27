@@ -1,7 +1,7 @@
 
 //
-// Each problem must have its own version of MyParticleContainer::InitData()
-// to initialize the particle data on this level
+// Each problem must have its own version of PhysicalParticleContainer::InitData()
+// to initialize the particle data.  It must also initialize charge and mass.
 //
 
 #include <cmath>
@@ -14,18 +14,18 @@
 using namespace amrex;
 
 void
-MyParticleContainer::InitData()
+PhysicalParticleContainer::InitData()
 {
-    BL_PROFILE("MyPC::InitData()");
+    BL_PROFILE("pPC::InitData()");
 
     charge = -PhysConst::q_e;
     mass = PhysConst::m_e;
 
-    m_particles.resize(m_gdb->finestLevel()+1);
+    m_particles.resize(GDB().finestLevel()+1);
 
     const int lev = 0;
 
-    const Geometry& geom = m_gdb->Geom(lev);
+    const Geometry& geom = GDB().Geom(lev);
     const Real* dx  = geom.CellSize();
 
     Real weight, ux, uy, uz;
@@ -65,8 +65,8 @@ MyParticleContainer::InitData()
       uz *= PhysConst::c*gamma;
     }
 
-    const BoxArray& ba = m_gdb->ParticleBoxArray(lev);
-    const DistributionMapping& dm = m_gdb->ParticleDistributionMap(lev);
+    const BoxArray& ba = GDB().ParticleBoxArray(lev);
+    const DistributionMapping& dm = GDB().ParticleDistributionMap(lev);
 
     MultiFab dummy_mf(ba, dm, 1, 0, MFInfo().SetAlloc(false));
 
@@ -136,7 +136,7 @@ MyParticleContainer::InitData()
 		    amrex::Abort("invalid particle");
 		}
 		
-		BL_ASSERT(p.m_lev >= 0 && p.m_lev <= m_gdb->finestLevel());
+		BL_ASSERT(p.m_lev >= 0 && p.m_lev <= GDB().finestLevel());
 		//
 		// Add it to the appropriate PBox at the appropriate level.
 		//

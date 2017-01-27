@@ -45,14 +45,34 @@ ifeq ($(shell uname),Darwin)
   MY_LINK_LIBRARIES = $(LDFLAGS) $(libraries)
 else
   SHARED_OPTION = -shared
-  MY_LINK_LIBRARIES =
+  MY_LINK_LIBRARIES = $(LDFLAGS) $(libraries) -lgfortran
 endif
+
+pyinstall: libwarpx.a
+	@echo Making and installing python wrapper ...
+	LDFLAGS="$(MY_LINK_LIBRARIES)" CC=$(CXX) CXXFLAGS="$(CXXFLAGS) $(DEFINES)" python setup.py install
+	@echo SUCCESS
+
+pybuild: libwarpx.a
+	@echo Making python wrapper ...
+	LDFLAGS="$(MY_LINK_LIBRARIES)" CC=$(CXX) CXXFLAGS="$(CXXFLAGS) $(DEFINES)" python setup.py build
+	@echo SUCCESS
+
+libwarpx.a: $(objForExecs)
+	@echo Making static library $@ ...
+	$(SILENT) $(AR) -crv $@ $^
+	@echo SUCCESS
 
 libwarpx.so: $(objForExecs)
 	@echo Making dynamic library $@ ...
 	$(SILENT) $(CXX) $(SHARED_OPTION) -fPIC -o $@ $^ $(MY_LINK_LIBRARIES)
 	$(SILENT) $(RM) AMReX_buildInfo.cpp
 	@echo SUCCESS
+
+clean::
+	$(SILENT) $(RM) -rf build
+	$(SILENT) $(RM) libwarpx.a
+	$(SILENT) $(RM) libwarpx.so
 
 else
 
@@ -62,14 +82,10 @@ all: $(executable)
 
 endif
 
-clean::
-	$(SILENT) $(RM) libwarpx.so
-
 AMReX_buildInfo.cpp: 
 	$(AMREX_HOME)/Tools/C_scripts/makebuildinfo_C.py \
           --amrex_home "$(AMREX_HOME)" \
           --COMP "$(COMP)" --COMP_VERSION "$(COMP_VERSION)" \
-          --FCOMP "$(FCOMP)" --FCOMP_VERSION "$(FCOMP_VERSION)" \
           --GIT ". $(AMREX_HOME) $(PICSAR_HOME)"
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.rules

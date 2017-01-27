@@ -8,6 +8,289 @@
 
 using namespace amrex;
 
+namespace
+{
+    const std::string level_prefix {"Level_"};
+}
+
+void
+WarpX::GotoNextLine (std::istream& is)
+{
+    constexpr std::streamsize bl_ignore_max { 100000 };
+    is.ignore(bl_ignore_max, '\n');
+}
+
+void
+WarpX::WriteWarpXHeader(const std::string& name) const {
+   if (ParallelDescriptor::IOProcessor())
+    {
+	std::string HeaderFileName(name + "/WarpXHeader");
+	std::ofstream HeaderFile(HeaderFileName.c_str(), std::ofstream::out   |
+				                         std::ofstream::trunc |
+				                         std::ofstream::binary);
+	if( ! HeaderFile.good()) {
+	    BoxLib::FileOpenFailed(HeaderFileName);
+	}
+
+	HeaderFile.precision(17);
+
+	VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+	HeaderFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
+
+	HeaderFile << "Checkpoint version: 1\n";
+
+	const int nlevels = finestLevel()+1;
+	HeaderFile << nlevels << "\n";
+
+	for (int i = 0; i < istep.size(); ++i) {
+	    HeaderFile << istep[i] << " ";
+	}
+	HeaderFile << "\n";
+
+	for (int i = 0; i < nsubsteps.size(); ++i) {
+	    HeaderFile << nsubsteps[i] << " ";
+	}
+	HeaderFile << "\n";
+	
+	for (int i = 0; i < t_new.size(); ++i) {
+	    HeaderFile << t_new[i] << " ";
+	}
+	HeaderFile << "\n";
+
+	for (int i = 0; i < t_old.size(); ++i) {
+	    HeaderFile << t_old[i] << " ";
+	}
+	HeaderFile << "\n";
+
+	for (int i = 0; i < dt.size(); ++i) {
+	    HeaderFile << dt[i] << " ";
+	}
+	HeaderFile << "\n";
+	
+	HeaderFile << moving_window_x << "\n";
+
+	// Geometry
+	for (int i = 0; i < BL_SPACEDIM; ++i) {
+            HeaderFile << Geometry::ProbLo(i) << ' ';
+	}
+        HeaderFile << '\n';
+        for (int i = 0; i < BL_SPACEDIM; ++i) {
+            HeaderFile << Geometry::ProbHi(i) << ' ';
+	}
+        HeaderFile << '\n';
+
+	// BoxArray
+	for (int lev = 0; lev < nlevels; ++lev) {
+	    boxArray(lev).writeOn(HeaderFile);
+	    HeaderFile << '\n';
+	}
+
+	mypc->WriteHeader(HeaderFile);
+    }
+}
+
+void
+WarpX::WriteCheckPointFile() const
+{
+    BL_PROFILE("WarpX::WriteCheckPointFile()");
+
+    const std::string& checkpointname = BoxLib::Concatenate(check_file,istep[0]);
+
+    if (ParallelDescriptor::IOProcessor()) {
+	std::cout << "  Writing checkpoint " << checkpointname << std::endl;
+    }
+
+    const int checkpoint_nfiles = 64;  // could make this parameter
+    VisMF::SetNOutFiles(checkpoint_nfiles);
+    
+    const int nlevels = finestLevel()+1;
+    BoxLib::PreBuildDirectorHierarchy(checkpointname, level_prefix, nlevels, true);
+
+    WriteWarpXHeader(checkpointname);
+    
+    WriteJobInfo(checkpointname);
+
+    for (int lev = 0; lev < nlevels; ++lev)
+    {
+	VisMF::Write(*Efield[lev][0],
+		     BoxLib::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "Ex"));
+	VisMF::Write(*Efield[lev][1],
+		     BoxLib::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "Ey"));
+	VisMF::Write(*Efield[lev][2],
+		     BoxLib::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "Ez"));
+	VisMF::Write(*Bfield[lev][0],
+		     BoxLib::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "Bx"));
+	VisMF::Write(*Bfield[lev][1],
+		     BoxLib::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "By"));
+	VisMF::Write(*Bfield[lev][2],
+		     BoxLib::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "Bz"));
+    }
+
+    mypc->Checkpoint(checkpointname, "particle", true);
+}
+
+
+void
+WarpX::InitFromCheckpoint ()
+{
+    BL_PROFILE("WarpX::InitFromCheckpoint()");
+
+    if (ParallelDescriptor::IOProcessor()) {
+	std::cout << "  Restart from checkpoint " << restart_chkfile << std::endl;
+    }
+
+    const int checkpoint_nfiles = 64;  // could make this parameter
+    VisMF::SetNOutFiles(checkpoint_nfiles);
+    
+    // Header
+    {
+	std::string File(restart_chkfile + "/WarpXHeader");
+
+	VisMF::IO_Buffer io_buffer(VisMF::GetIOBufferSize());
+
+	Array<char> fileCharPtr;
+	ParallelDescriptor::ReadAndBcastFile(File, fileCharPtr);
+	std::string fileCharPtrString(fileCharPtr.dataPtr());
+	std::istringstream is(fileCharPtrString, std::istringstream::in);
+
+	std::string line, word;
+
+	std::getline(is, line);
+
+	int nlevs;
+	is >> nlevs;
+	GotoNextLine(is);
+	finest_level = nlevs-1;
+
+	std::getline(is, line);
+	{
+	    std::istringstream lis(line);
+	    int i = 0;
+	    while (lis >> word) {
+		istep[i++] = std::stoi(word);
+	    }
+	}
+
+	std::getline(is, line);
+	{
+	    std::istringstream lis(line);
+	    int i = 0;
+	    while (lis >> word) {
+		nsubsteps[i++] = std::stoi(word);
+	    }
+	}
+
+	std::getline(is, line);
+	{
+	    std::istringstream lis(line);
+	    int i = 0;
+	    while (lis >> word) {
+		t_new[i++] = std::stod(word);
+	    }
+	}
+
+	std::getline(is, line);
+	{
+	    std::istringstream lis(line);
+	    int i = 0;
+	    while (lis >> word) {
+		t_old[i++] = std::stod(word);
+	    }
+	}
+
+	std::getline(is, line);
+	{
+	    std::istringstream lis(line);
+	    int i = 0;
+	    while (lis >> word) {
+		dt[i++] = std::stod(word);
+	    }
+	}
+
+	is >> moving_window_x;
+	GotoNextLine(is);
+
+	Real prob_lo[BL_SPACEDIM];
+	std::getline(is, line);
+	{
+	    std::istringstream lis(line);
+	    int i = 0;
+	    while (lis >> word) {
+		prob_lo[i++] = std::stod(word);
+	    }
+	}
+	
+	Real prob_hi[BL_SPACEDIM];
+	std::getline(is, line);
+	{
+	    std::istringstream lis(line);
+	    int i = 0;
+	    while (lis >> word) {
+		prob_hi[i++] = std::stod(word);
+	    }
+	}
+
+	Geometry::ProbDomain(RealBox(prob_lo,prob_hi));
+
+	for (int lev = 0; lev < nlevs; ++lev) {
+	    BoxArray ba;
+	    ba.readFrom(is);
+	    GotoNextLine(is);
+	    DistributionMapping dm { ba, ParallelDescriptor::NProcs() };
+	    MakeNewLevel(lev, ba, dm);
+	}
+
+	mypc->ReadHeader(is);
+    }
+
+    // Initialize the field data
+    for (int lev = 0, nlevs=finestLevel()+1; lev < nlevs; ++lev)
+    {
+	for (int i = 0; i < 3; ++i) {
+	    Efield[lev][i]->setVal(0.0);
+	    Bfield[lev][i]->setVal(0.0);
+	    current[lev][i]->setVal(0.0);
+	}
+
+	// xxxxx This will be done differently in amrex!
+	{
+	    MultiFab mf;
+	    VisMF::Read(mf, BoxLib::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "Ex"));
+	    Efield[lev][0]->copy(mf, 0, 0, 1, 0, 0);
+	}
+	{
+	    MultiFab mf;
+	    VisMF::Read(mf, BoxLib::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "Ey"));
+	    Efield[lev][1]->copy(mf, 0, 0, 1, 0, 0);
+	}
+	{
+	    MultiFab mf;
+	    VisMF::Read(mf, BoxLib::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "Ez"));
+	    Efield[lev][2]->copy(mf, 0, 0, 1, 0, 0);
+	}
+	{
+	    MultiFab mf;
+	    VisMF::Read(mf, BoxLib::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "Bx"));
+	    Bfield[lev][0]->copy(mf, 0, 0, 1, 0, 0);
+	}
+	{
+	    MultiFab mf;
+	    VisMF::Read(mf, BoxLib::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "By"));
+	    Bfield[lev][1]->copy(mf, 0, 0, 1, 0, 0);
+	}
+	{
+	    MultiFab mf;
+	    VisMF::Read(mf, BoxLib::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "Bz"));
+	    Bfield[lev][2]->copy(mf, 0, 0, 1, 0, 0);
+	}
+    }
+
+    // Initilize particles
+    mypc->AllocData();
+    mypc->Restart(restart_chkfile, "particle");
+}
+
+
 void
 WarpX::WritePlotFile () const
 {
@@ -65,12 +348,21 @@ WarpX::WritePlotFile () const
 					Geom(), t_new[0], istep, refRatio());
     }
 
-    mypc->Checkpoint(plotfilename, "particle");
+    mypc->Checkpoint(plotfilename, "particle", false);
 
-    if (ParallelDescriptor::IOProcessor()) {
+    WriteJobInfo(plotfilename);
+
+    WriteWarpXHeader(plotfilename);
+}
+
+void
+WarpX::WriteJobInfo (const std::string& dir) const
+{
+    if (ParallelDescriptor::IOProcessor())
+    {
 	// job_info file with details about the run
 	std::ofstream jobInfoFile;
-	std::string FullPathJobInfoFile = plotfilename;
+	std::string FullPathJobInfoFile = dir;
 	std::string PrettyLine = "===============================================================================\n";
 
 	FullPathJobInfoFile += "/warpx_job_info";

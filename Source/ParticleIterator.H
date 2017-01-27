@@ -20,8 +20,8 @@ struct PartIterInfo
 class PartIter
 {
 public:
-    PartIter (MyParticleContainer& _mypc, const PartIterInfo& _info);
-    PartIter (MyParticleContainer& _mypc, PartIterInfo&& _info);
+    PartIter (WarpXParticleContainer& _mypc, const PartIterInfo& _info);
+    PartIter (WarpXParticleContainer& _mypc, PartIterInfo&& _info);
     PartIter (const PartIter&) = delete;
     PartIter (PartIter&&) = delete;
     PartIter& operator=(const PartIter&) = delete;
@@ -40,7 +40,7 @@ public:
 
     // apply function to each particle in current tile
     template <typename F>
-    void foreach (F f)
+    void foreach (F&& f)
     {
 	auto& pbox = pmap[index_map[currentIndex]];
 	if (info.tiling)
@@ -59,8 +59,8 @@ public:
 private:
     void Initialize();
 
-    MyParticleContainer& mypc;
-    MyParticleContainer::PMap& pmap;
+    WarpXParticleContainer& mypc;
+    WarpXParticleContainer::PMap& pmap;
     PartIterInfo info;
 
     int currentIndex;

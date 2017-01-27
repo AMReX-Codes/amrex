@@ -1,14 +1,13 @@
 
-#include <AMReX_ParmParse.H>
-
+#include <ParmParse.H>
 #include <WarpX.H>
-
-using namespace amrex;
+#include <WarpXConst.H>
 
 long WarpX::current_deposition_algo = 3;
 long WarpX::charge_deposition_algo = 0;
 long WarpX::field_gathering_algo = 1;
 long WarpX::particle_pusher_algo = 0;
+long WarpX::laser_pusher_algo = -111111111;  // not being used yet
 
 long WarpX::nox = 1;
 long WarpX::noy = 1;
@@ -44,6 +43,8 @@ IntVect WarpX::jy_nodal_flag(1,1);  // y is the missing dimension to 2D BoxLib
 IntVect WarpX::jz_nodal_flag(1,0);  // z is the second dimension to 2D BoxLib
 #endif
 
+bool WarpX::use_laser = false;
+
 WarpX* WarpX::m_instance = nullptr;
 
 WarpX&
@@ -67,7 +68,7 @@ WarpX::WarpX ()
     ReadParameters();
 
     if (max_level != 0) {
-	amrex::Abort("WaprX: max_level must be zero");
+	BoxLib::Abort("WaprX: max_level must be zero");
     }
 
     // Geometry on all levels has been defined already.
@@ -88,7 +89,7 @@ WarpX::WarpX ()
     dt.resize(nlevs_max, 1.e100);
 
     // Particle Container
-    mypc = std::unique_ptr<MyParticleContainer> (new MyParticleContainer(this));
+    mypc = std::unique_ptr<MultiParticleContainer> (new MultiParticleContainer(this));
 
     current.resize(nlevs_max);
     Efield.resize(nlevs_max);
@@ -122,21 +123,48 @@ WarpX::ReadParameters ()
 
     {
 	ParmParse pp("warpx");
-	
+
 	pp.query("cfl", cfl);
 	pp.query("verbose", verbose);
+
+	pp.query("do_moving_window", do_moving_window);
+	pp.query("moving_window_dir", moving_window_dir);
+	if (do_moving_window) {
+	  pp.get("moving_window_v", moving_window_v);
+	}
+
+	pp.query("do_plasma_injection", do_plasma_injection);
+	if (do_plasma_injection) {
+	  pp.get("num_injected_species", num_injected_species);
+	  injected_plasma_ppc.resize(num_injected_species);
+	  pp.getarr("injected_plasma_ppc", injected_plasma_ppc,
+		    0, num_injected_species);
+	  injected_plasma_species.resize(num_injected_species);
+	  pp.getarr("injected_plasma_species", injected_plasma_species,
+		 0, num_injected_species);
+	  injected_plasma_density.resize(num_injected_species);
+	  pp.getarr("injected_plasma_density", injected_plasma_density,
+		    0, num_injected_species);
+	}
+
+	moving_window_x = geom[0].ProbLo(moving_window_dir);
+	moving_window_v = 0.0;
+	pp.query("moving_window_v", moving_window_v);
+	moving_window_v *= PhysConst::c;
+
+	pp.query("use_laser", use_laser);
     }
 
     {
 	ParmParse pp("interpolation");
 	pp.query("nox", nox);
 	pp.query("noy", noy);
-	pp.query("noz", noz);  
+	pp.query("noz", noz);
 	if (nox != noy || nox != noz) {
-	    amrex::Abort("warpx.nox, noy and noz must be equal");
+	    BoxLib::Abort("warpx.nox, noy and noz must be equal");
 	}
 	if (nox < 1) {
-	    amrex::Abort("warpx.nox must >= 1");
+	    BoxLib::Abort("warpx.nox must >= 1");
 	}
     }
 
@@ -146,44 +174,39 @@ WarpX::ReadParameters ()
 	pp.query("charge_deposition", charge_deposition_algo);
 	pp.query("field_gathering", field_gathering_algo);
 	pp.query("particle_pusher", particle_pusher_algo);
+	pp.query("laser_pusher", laser_pusher_algo);
     }
+
 }
 
 void
-WarpX::MakeNewLevel (int lev, Real time,
-		      const BoxArray& new_grids, const DistributionMapping& new_dmap)
+WarpX::MakeNewLevel (int lev, const BoxArray& new_grids, const DistributionMapping& new_dmap)
 {
     SetBoxArray(lev, new_grids);
     SetDistributionMap(lev, new_dmap);
-
-    t_new[lev] = time;
-    t_old[lev] = time - 1.e200;
 
     // PICSAR assumes all fields are nodal plus one ghost cell.
     const IntVect& nodalflag = IntVect::TheUnitVector();
     const int ng = WarpX::nox;  // need to update this
 
-    MFInfo info;
-    info.SetNodal(nodalflag);
-
     current[lev].resize(3);
     Efield [lev].resize(3);
     Bfield [lev].resize(3);
     for (int i = 0; i < 3; ++i) {
-	current[lev][i].reset(new MultiFab(grids[lev],dmap[lev],1,ng,info));
-	Efield [lev][i].reset(new MultiFab(grids[lev],dmap[lev],1,ng,info));
-	Bfield [lev][i].reset(new MultiFab(grids[lev],dmap[lev],1,ng,info));
+	current[lev][i].reset(new MultiFab(grids[lev],1,ng,dmap[lev],Fab_allocate,nodalflag));
+	Efield [lev][i].reset(new MultiFab(grids[lev],1,ng,dmap[lev],Fab_allocate,nodalflag));
+	Bfield [lev][i].reset(new MultiFab(grids[lev],1,ng,dmap[lev],Fab_allocate,nodalflag));
     }
 }
 
-void 
+void
 WarpX::FillBoundary (MultiFab& mf, const Geometry& geom, const IntVect& nodalflag)
 {
     const IndexType correct_typ(nodalflag);
     BoxArray ba = mf.boxArray();
     ba.convert(correct_typ);
 
-    MultiFab tmpmf(ba, mf.DistributionMap(), mf.nComp(), mf.nGrow());
+    MultiFab tmpmf(ba, mf.nComp(), mf.nGrow(), mf.DistributionMap());
 
     const IndexType& mf_typ = mf.boxArray().ixType();
 
@@ -204,6 +227,33 @@ WarpX::FillBoundary (MultiFab& mf, const Geometry& geom, const IntVect& nodalfla
     }
 }
 
+void 
+WarpX::shiftMF(MultiFab& mf, const Geometry& geom, int num_shift, 
+	       int dir, const IntVect& nodalflag) {
+
+  // create tmp copy with num_shift ghost cells
+  const BoxArray& ba = mf.boxArray();
+  MultiFab tmpmf(ba, mf.nComp(), std::abs(num_shift), Fab_allocate, nodalflag);
+  tmpmf.setVal(0.0);
+  MultiFab::Copy(tmpmf, mf, 0, 0, mf.nComp(), 0);
+  tmpmf.FillBoundary(geom.periodicity());
+
+  const IndexType& dst_typ = mf.boxArray().ixType();
+  const IndexType& src_typ = tmpmf.boxArray().ixType();
+
+  // copy from tmpmf to mf using the shifted boxes
+  for (MFIter mfi(mf); mfi.isValid(); ++mfi ) {
+    Box srcBox = mfi.fabbox();
+    srcBox.shift(dir, num_shift);
+    srcBox &= tmpmf[mfi].box();
+    Box dstBox = srcBox;
+    dstBox.shift(dir, -num_shift);
+    mf[mfi].SetBoxType(src_typ);
+    mf[mfi].copy(tmpmf[mfi], srcBox, 0, dstBox, 0, mf.nComp());
+    mf[mfi].SetBoxType(dst_typ);
+  }
+}
+
 void
 WarpX::Copy(MultiFab& dstmf, int dcomp, int ncomp, const MultiFab& srcmf, int scomp)
 {
@@ -219,4 +269,3 @@ WarpX::Copy(MultiFab& dstmf, int dcomp, int ncomp, const MultiFab& srcmf, int sc
 	dfab.SetBoxType(dst_typ);
     }
 }
-

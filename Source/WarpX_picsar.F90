@@ -40,7 +40,7 @@ module warpx_to_pxr_module
 ! _________________________________________________________________
 
   use iso_c_binding
-  use amrex_fort_module, only : amrex_real
+  use bl_fort_module, only : c_real
 
   implicit none
 
@@ -78,10 +78,11 @@ contains
     integer(c_long), intent(in) :: np,nx,ny,nz,nox,noy,noz,nxguard,nyguard,nzguard
     integer(c_int), intent(in)  :: ll4symtry,l_lower_order_in_v
     integer(c_long),intent(in)   :: lvect
-    real(amrex_real), dimension(np) :: xp,yp,zp,ex,ey,ez,bx,by,bz
-    real(amrex_real), intent(in)    :: xmin,ymin,zmin,dx,dy,dz
-    real(amrex_real), dimension(-nxguard:nx+nxguard,-nyguard:ny+nyguard,-nzguard:nz+nzguard) :: exg,eyg,ezg
-    real(amrex_real), dimension(-nxguard:nx+nxguard,-nyguard:ny+nyguard,-nzguard:nz+nzguard) :: bxg,byg,bzg
+    real(c_real), intent(in), dimension(np) :: xp,yp,zp
+    real(c_real), intent(out), dimension(np) :: ex,ey,ez,bx,by,bz
+    real(c_real), intent(in)    :: xmin,ymin,zmin,dx,dy,dz
+    real(c_real), intent(in), dimension(-nxguard:nx+nxguard,-nyguard:ny+nyguard,-nzguard:nz+nzguard) :: exg,eyg,ezg
+    real(c_real), intent(in), dimension(-nxguard:nx+nxguard,-nyguard:ny+nyguard,-nzguard:nz+nzguard) :: bxg,byg,bzg
 
     logical(pxr_logical) :: pxr_ll4symtry, pxr_l_lower_order_in_v
 
@@ -128,15 +129,15 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
   integer(c_long), intent(IN)                                  :: nx,ny,nz
   integer(c_long), intent(IN)                                  :: nxguard,nyguard,nzguard
   integer(c_long), intent(IN)                                  :: nox,noy,noz
-  real(amrex_real), intent(IN OUT), dimension(-nxguard:nx+nxguard,&
-       &                                      -nyguard:ny+nyguard,&
-       &                                      -nzguard:nz+nzguard) :: rho
-  real(amrex_real), intent(IN)                                     :: q
-  real(amrex_real), intent(IN)                                     :: dx,dy,dz
-  real(amrex_real), intent(IN)                                     :: xmin,ymin,zmin
-  real(amrex_real), dimension(np)                                  :: xp,yp,zp,w
-  integer(c_long), intent(IN)                                      :: lvect
-  integer(c_long), intent(IN)                                      :: charge_depo_algo
+  real(c_real), intent(IN OUT), dimension(-nxguard:nx+nxguard,&
+       &                                  -nyguard:ny+nyguard,&
+       &                                  -nzguard:nz+nzguard) :: rho
+  real(c_real), intent(IN)                                     :: q
+  real(c_real), intent(IN)                                     :: dx,dy,dz
+  real(c_real), intent(IN)                                     :: xmin,ymin,zmin
+  real(c_real), intent(IN),  dimension(np)                     :: xp,yp,zp,w
+  integer(c_long), intent(IN)                                  :: lvect
+  integer(c_long), intent(IN)                                  :: charge_depo_algo
 
 
   ! Dimension 3
@@ -144,7 +145,7 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
 
   SELECT CASE(charge_depo_algo)
 
-  ! Scalar classical current deposition subroutines
+  ! Scalar classical charge deposition subroutines
   CASE(1)
     IF ((nox.eq.1).and.(noy.eq.1).and.(noz.eq.1)) THEN
 
@@ -223,18 +224,18 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
     integer(c_long), intent(IN)                                  :: nx,ny,nz
     integer(c_long), intent(IN)                                  :: nxguard,nyguard,nzguard
     integer(c_long), intent(IN)                                  :: nox,noy,noz
-    real(amrex_real), intent(IN OUT), dimension(-nxguard:nx+nxguard,&
-         &                                      -nyguard:ny+nyguard,&
-         &                                      -nzguard:nz+nzguard) :: jx,jy,jz
-    real(amrex_real), intent(IN)                                     :: q
-    real(amrex_real), intent(IN)                                     :: dx,dy,dz
-    real(amrex_real), intent(IN)                                     :: dt
-    real(amrex_real), intent(IN)                                     :: xmin,ymin,zmin
-    real(amrex_real), dimension(np)                                  :: xp,yp,zp,w
-    real(amrex_real), dimension(np)                                  :: uxp,uyp,uzp
-    real(amrex_real), dimension(np)                                  :: gaminv
-    integer(c_int), intent(IN)                                       :: lvect
-    integer(c_int), intent(IN)                                       :: current_depo_algo
+    real(c_real), intent(IN OUT), dimension(-nxguard:nx+nxguard,&
+         &                                  -nyguard:ny+nyguard,&
+         &                                  -nzguard:nz+nzguard) :: jx,jy,jz
+    real(c_real), intent(IN)                                     :: q
+    real(c_real), intent(IN)                                     :: dx,dy,dz
+    real(c_real), intent(IN)                                     :: dt
+    real(c_real), intent(IN)                                     :: xmin,ymin,zmin
+    real(c_real), intent(IN),  dimension(np)                     :: xp,yp,zp,w
+    real(c_real), intent(IN),  dimension(np)                     :: uxp,uyp,uzp
+    real(c_real), intent(IN),  dimension(np)                     :: gaminv
+    integer(c_int), intent(IN)                                   :: lvect
+    integer(c_int), intent(IN)                                   :: current_depo_algo
 
     ! Dimension 3
 #if (BL_SPACEDIM==3)
@@ -357,14 +358,14 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
                                   particle_pusher_algo) &
        bind(C, name="warpx_particle_pusher")
 
-    INTEGER(c_long), INTENT(IN)       :: np
-    REAL(amrex_real),INTENT(INOUT)    :: gaminv(np)
-    REAL(amrex_real),INTENT(INOUT)    :: xp(np),yp(np),zp(np)
-    REAL(amrex_real),INTENT(INOUT)    :: uxp(np),uyp(np),uzp(np)
-    REAL(amrex_real),INTENT(IN)       :: ex(np),ey(np),ez(np)
-    REAL(amrex_real),INTENT(IN)       :: bx(np),by(np),bz(np)
-    REAL(amrex_real),INTENT(IN)       :: q,m,dt
-    INTEGER(c_long), INTENT(IN)       :: particle_pusher_algo
+    INTEGER(c_long), INTENT(IN)   :: np
+    REAL(c_real),INTENT(INOUT)    :: gaminv(np)
+    REAL(c_real),INTENT(INOUT)    :: xp(np),yp(np),zp(np)
+    REAL(c_real),INTENT(INOUT)    :: uxp(np),uyp(np),uzp(np)
+    REAL(c_real),INTENT(IN)       :: ex(np),ey(np),ez(np)
+    REAL(c_real),INTENT(IN)       :: bx(np),by(np),bz(np)
+    REAL(c_real),INTENT(IN)       :: q,m,dt
+    INTEGER(c_long), INTENT(IN)   :: particle_pusher_algo
 
     SELECT CASE (particle_pusher_algo)
 
@@ -381,7 +382,7 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
 
       !! --- Push velocity with E half step
       CALL pxr_epush_v(np,uxp,uyp,uzp,      &
-                      ex,ey,ez,q,m,dt*0.5_amrex_real)
+                      ex,ey,ez,q,m,dt*0.5_c_real)
       !! --- Set gamma of particles
       CALL pxr_set_gamma(np,uxp,uyp,uzp,gaminv)
       !! --- Push velocity with B
@@ -389,7 +390,7 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
                       bx,by,bz,q,m,dt)
       !!! --- Push velocity with E half step
       CALL pxr_epush_v(np,uxp,uyp,uzp,      &
-                      ex,ey,ez,q,m,dt*0.5_amrex_real)
+                      ex,ey,ez,q,m,dt*0.5_c_real)
       !! --- Set gamma of particles
       CALL pxr_set_gamma(np,uxp,uyp,uzp,gaminv)
     END SELECT
@@ -417,13 +418,16 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
        bind(C, name="warpx_push_evec")
 
     integer(c_long) :: nx,ny,nz,nxguard,nyguard,nzguard,nxs,nys,nzs,norderx,nordery,norderz
-    real(amrex_real), intent(IN OUT), dimension(-nxguard:nx+nxguard,&
-         &                                      -nyguard:ny+nyguard,&
-         &                                      -nzguard:nz+nzguard) :: ex,ey,ez,bx,by,bz
-    real(amrex_real), intent(IN), dimension(-nxguard:nx+nxguard,&
+    real(c_real), intent(IN OUT), dimension(-nxguard:nx+nxguard,&
          &                                  -nyguard:ny+nyguard,&
-         &                                  -nzguard:nz+nzguard) :: jx, jy, jz
-    real(amrex_real), intent(IN) :: mudt,dtsdx(norderx/2),dtsdy(nordery/2),dtsdz(norderz/2)
+         &                                  -nzguard:nz+nzguard) :: ex,ey,ez
+    real(c_real), intent(IN), dimension(-nxguard:nx+nxguard,&
+         &                                  -nyguard:ny+nyguard,&
+         &                                  -nzguard:nz+nzguard) :: bx,by,bz
+    real(c_real), intent(IN), dimension(-nxguard:nx+nxguard,&
+         &                              -nyguard:ny+nyguard,&
+         &                              -nzguard:nz+nzguard) :: jx, jy, jz
+    real(c_real), intent(IN) :: mudt,dtsdx(norderx/2),dtsdy(nordery/2),dtsdz(norderz/2)
     integer(c_int)           :: l_nodalgrid
     logical(pxr_logical)     :: pxr_l_nodalgrid
 
@@ -461,10 +465,13 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
        bind(C, name="warpx_push_bvec")
 
     integer(c_long) :: nx,ny,nz,nxguard,nyguard,nzguard,nxs,nys,nzs,norderx,nordery,norderz
-    real(amrex_real), intent(IN OUT), dimension(-nxguard:nx+nxguard,&
-         &                                      -nyguard:ny+nyguard,&
-         &                                      -nzguard:nz+nzguard) :: ex,ey,ez,bx,by,bz
-    real(amrex_real), intent(IN) :: dtsdx(norderx/2),dtsdy(nordery/2),dtsdz(norderz/2)
+    real(c_real), intent(IN OUT), dimension(-nxguard:nx+nxguard,&
+         &                                  -nyguard:ny+nyguard,&
+         &                                  -nzguard:nz+nzguard) :: bx,by,bz
+    real(c_real), intent(IN), dimension(-nxguard:nx+nxguard,&
+         &                              -nyguard:ny+nyguard,&
+         &                              -nzguard:nz+nzguard) :: ex,ey,ez
+    real(c_real), intent(IN) :: dtsdx(norderx/2),dtsdy(nordery/2),dtsdz(norderz/2)
     integer(c_int)           :: l_nodalgrid
     logical(pxr_logical)     :: pxr_l_nodalgrid
 

@@ -1,7 +1,7 @@
 
 //
-// Each problem must have its own version of MyParticleContainer::InitData()
-// to initialize the particle data on this level
+// Each problem must have its own version of PhysicalParticleContainer::InitData()
+// to initialize the particle data.  It must also initialize charge and mass.
 //
 
 #include <cmath>
@@ -12,8 +12,8 @@
 #include <WarpXConst.H>
 
 void
-MyParticleContainer::InitData()
+PhysicalParticleContainer::InitData()
 {
     static_assert(false,
-		  "Each problem must have its own version of MyParticleContainer::InitData()");
+		  "Each problem must have its own version of PhysicalParticleContainer::InitData()");
 }

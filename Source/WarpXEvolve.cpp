@@ -15,6 +15,7 @@ WarpX::Evolve (int numsteps)
 
     Real cur_time = t_new[0];
     static int last_plot_file_step = 0;
+    static int last_check_file_step = 0;
 
     int numsteps_max = (numsteps >= 0 && numsteps <= max_step) ? numsteps : max_step;
     bool max_time_reached = false;
@@ -32,7 +33,7 @@ WarpX::Evolve (int numsteps)
 	{
 	    // At the beginning, we have B^{n-1/2} and E^{n}.
 	    // Particles have p^{n-1/2} and x^{n}.
-	    
+
 	    EvolveB(lev, 0.5*dt[lev]); // We now B^{n}
 
 	    if (WarpX::nox > 1 || WarpX::noy > 1 || WarpX::noz > 1) {
@@ -44,18 +45,17 @@ WarpX::Evolve (int numsteps)
 		WarpX::FillBoundary(*Efield[lev][2], geom[lev], Ez_nodal_flag);
 	    }
 
-
 	    // Evolve particles to p^{n+1/2} and x^{n+1}
 	    // Depose current, j^{n+1/2}
 	    mypc->Evolve(lev,
 			 *Efield[lev][0],*Efield[lev][1],*Efield[lev][2],
 			 *Bfield[lev][0],*Bfield[lev][1],*Bfield[lev][2],
 			 *current[lev][0],*current[lev][1],*current[lev][2],dt[lev]);
-	    
-	    mypc->Redistribute(false,true);  // Redistribute particles
+
+	    mypc->Redistribute();  // Redistribute particles
 	    
 	    EvolveB(lev, 0.5*dt[lev]); // We now B^{n+1/2}
-	    
+
 	    // Fill B's ghost cells because of the next step of evolving E.
 	    WarpX::FillBoundary(*Bfield[lev][0], geom[lev], Bx_nodal_flag);
 	    WarpX::FillBoundary(*Bfield[lev][1], geom[lev], By_nodal_flag);
@@ -67,6 +67,8 @@ WarpX::Evolve (int numsteps)
 	}
 
 	cur_time += dt[0];
+
+	MoveWindow();
 
 	if (ParallelDescriptor::IOProcessor()) {
 	    std::cout << "STEP " << step+1 << " ends." << " TIME = " << cur_time << " DT = " << dt[0]
@@ -83,6 +85,11 @@ WarpX::Evolve (int numsteps)
 	    WritePlotFile();
 	}
 
+	if (check_int > 0 && (step+1) % check_int == 0) {
+	    last_check_file_step = step+1;
+	    WriteCheckPointFile();
+	}
+
 	if (cur_time >= stop_time - 1.e-6*dt[0]) {
 	    max_time_reached = true;
 	    break;
@@ -91,6 +98,10 @@ WarpX::Evolve (int numsteps)
 
     if (plot_int > 0 && istep[0] > last_plot_file_step && (max_time_reached || istep[0] >= max_step)) {
 	WritePlotFile();
+    }
+
+    if (check_int > 0 && istep[0] > last_check_file_step && (max_time_reached || istep[0] >= max_step)) {
+	WriteCheckPointFile();
     }
 }
 
@@ -126,11 +137,11 @@ WarpX::EvolveB (int lev, Real dt)
 #if (BL_SPACEDIM == 3)
     long nxguard = nguard;
     long nyguard = nguard;
-    long nzguard = nguard; 
+    long nzguard = nguard;
 #elif (BL_SPACEDIM == 2)
     long nxguard = nguard;
     long nyguard = 0;
-    long nzguard = nguard; 
+    long nzguard = nguard;
 #endif
 
     for ( MFIter mfi(*Bfield[lev][0]); mfi.isValid(); ++mfi )
@@ -139,11 +150,11 @@ WarpX::EvolveB (int lev, Real dt)
 #if (BL_SPACEDIM == 3)
 	long nx = bx.length(0);
 	long ny = bx.length(1);
-	long nz = bx.length(2); 
+	long nz = bx.length(2);
 #elif (BL_SPACEDIM == 2)
 	long nx = bx.length(0);
 	long ny = 0;
-	long nz = bx.length(1); 
+	long nz = bx.length(1);
 #endif
 
 	warpx_push_bvec( (*Efield[lev][0])[mfi].dataPtr(),
@@ -151,7 +162,7 @@ WarpX::EvolveB (int lev, Real dt)
 			 (*Efield[lev][2])[mfi].dataPtr(),
 			 (*Bfield[lev][0])[mfi].dataPtr(),
 			 (*Bfield[lev][1])[mfi].dataPtr(),
-			 (*Bfield[lev][2])[mfi].dataPtr(), 
+			 (*Bfield[lev][2])[mfi].dataPtr(),
 			 dtsdx, dtsdx+1, dtsdx+2,
 			 &nx, &ny, &nz,
 			 &norder, &norder, &norder,
@@ -198,11 +209,11 @@ WarpX::EvolveE (int lev, Real dt)
 #if (BL_SPACEDIM == 3)
     long nxguard = nguard;
     long nyguard = nguard;
-    long nzguard = nguard; 
+    long nzguard = nguard;
 #elif (BL_SPACEDIM == 2)
     long nxguard = nguard;
     long nyguard = 0;
-    long nzguard = nguard; 
+    long nzguard = nguard;
 #endif
 
     for ( MFIter mfi(*Efield[lev][0]); mfi.isValid(); ++mfi )
@@ -211,11 +222,11 @@ WarpX::EvolveE (int lev, Real dt)
 #if (BL_SPACEDIM == 3)
 	long nx = bx.length(0);
 	long ny = bx.length(1);
-	long nz = bx.length(2); 
+	long nz = bx.length(2);
 #elif (BL_SPACEDIM == 2)
 	long nx = bx.length(0);
 	long ny = 0;
-	long nz = bx.length(1); 
+	long nz = bx.length(1);
 #endif
 
 	warpx_push_evec( (*Efield[lev][0])[mfi].dataPtr(),
@@ -223,7 +234,7 @@ WarpX::EvolveE (int lev, Real dt)
 			 (*Efield[lev][2])[mfi].dataPtr(),
 			 (*Bfield[lev][0])[mfi].dataPtr(),
 			 (*Bfield[lev][1])[mfi].dataPtr(),
-			 (*Bfield[lev][2])[mfi].dataPtr(), 
+			 (*Bfield[lev][2])[mfi].dataPtr(),
 			 (*current[lev][0])[mfi].dataPtr(),
 			 (*current[lev][1])[mfi].dataPtr(),
 			 (*current[lev][2])[mfi].dataPtr(),
@@ -260,4 +271,133 @@ WarpX::ComputeDt ()
     for (int lev = 1; lev <= finest_level; ++lev) {
 	dt[lev] = dt[lev-1] / nsubsteps[lev];
     }
+}
+
+void
+WarpX::InjectPlasma(int num_shift, int dir) {
+
+  if(do_plasma_injection) {
+    
+    // particleBox encloses the cells where we generate particles
+    Box particleBox = geom[0].Domain();
+    int domainLength = particleBox.length(dir);
+    int sign = (num_shift < 0) ? -1 : 1;
+    particleBox.shift(dir, sign*(domainLength - std::abs(num_shift)));
+    particleBox &= geom[0].Domain();
+
+    // get a dummy mf to loop over
+    const Real* dx  = geom[0].CellSize();
+    WarpXParticleContainer* myspc = &(mypc->GetParticleContainer(0));
+    const BoxArray& ba = myspc->ParticleBoxArray(0);
+    const DistributionMapping& dm = myspc->ParticleDistributionMap(0); 
+    MultiFab dummy_mf(ba, 1, 0, dm, Fab_noallocate);
+
+    // For each grid, loop only over the cells in the new region
+    for (MFIter mfi(dummy_mf,false); mfi.isValid(); ++mfi) {
+        int gid = mfi.index();
+	Box grid = ba[gid];
+	Box intersectBox = grid & particleBox;
+	if (intersectBox.isEmpty()) continue;
+	RealBox intersectRealBox { intersectBox, dx, geom[0].ProbLo() };
+
+#if (BL_SPACEDIM == 3)
+	int nx = intersectBox.length(0);
+	int ny = intersectBox.length(1);
+	int nz = intersectBox.length(2);
+#elif (BL_SPACEDIM == 2)
+	int nx = intersectBox.length(0);
+	int ny = 1;
+	int nz = intersectBox.length(1);
+#endif
+
+	for (int k = 0; k < nz; k++) {
+          for (int j = 0; j < ny; j++) {
+            for (int i = 0; i < nx; i++) {
+	      for (int ispec=0; ispec < num_injected_species; ispec++) {
+		int ispecies = injected_plasma_species[ispec];
+		myspc = &(mypc->GetParticleContainer(ispecies));
+		for (int i_part=0; i_part < injected_plasma_ppc[ispec]; i_part++) {
+		  Real particle_shift = (0.5+i_part)/injected_plasma_ppc[ispec];
+#if (BL_SPACEDIM == 3)
+		  Real x = intersectRealBox.lo(0) + (i + particle_shift)*dx[0];
+		  Real y = intersectRealBox.lo(1) + (j + particle_shift)*dx[1];
+		  Real z = intersectRealBox.lo(2) + (k + particle_shift)*dx[2];
+#elif (BL_SPACEDIM == 2)
+		  Real x = intersectRealBox.lo(0) + (i + particle_shift)*dx[0];
+		  Real y = 0.0;
+		  Real z = intersectRealBox.lo(1) + (k + particle_shift)*dx[1];
+#endif   
+
+		  int id  = ParticleBase::NextID();
+		  int cpu = ParallelDescriptor::MyProc();
+
+		  std::vector<Real> pos(3, 0.0);
+#if (BL_SPACEDIM == 3)
+		  pos[0] = x;
+		  pos[1] = y;
+		  pos[2] = z;
+#elif (BL_SPACEDIM == 2)
+		  pos[0] = x;
+		  pos[1] = z;
+#endif
+
+		  std::vector<Real> attributes(PIdx::nattribs, 0.0);
+
+		  Real weight = injected_plasma_density[ispec];
+#if BL_SPACEDIM==3
+		  weight *= dx[0]*dx[1]*dx[2]/injected_plasma_ppc[ispec];
+#elif BL_SPACEDIM==2
+		  weight *= dx[0]*dx[1]/injected_plasma_ppc[ispec];
+#endif
+		  attributes[PIdx::w] = weight;
+		  myspc->addOneParticle(id, cpu, pos, attributes);
+	      }
+	    }
+	  }
+        }
+      }
+    }
+  }
+}
+
+void
+WarpX::MoveWindow ()
+{
+  
+  if (do_moving_window == 0) return;
+
+  // compute the number of cells to shift
+  int dir = moving_window_dir;
+  Real new_lo[BL_SPACEDIM];
+  Real new_hi[BL_SPACEDIM];    
+  const Real* current_lo = geom[0].ProbLo();
+  const Real* current_hi = geom[0].ProbHi();
+  const Real* dx = geom[0].CellSize();
+  moving_window_x += moving_window_v * dt[0];
+  int num_shift = (moving_window_x - current_lo[dir]) / dx[dir];
+  
+  if (num_shift == 0) return;
+  
+  // update the problem domain
+  for (int i=0; i<BL_SPACEDIM; i++) {
+    new_lo[i] = current_lo[i];
+    new_hi[i] = current_hi[i];
+  }
+  new_lo[dir] = current_lo[dir] + num_shift * dx[dir];
+  new_hi[dir] = current_hi[dir] + num_shift * dx[dir];
+  RealBox new_box(new_lo, new_hi);
+  geom[0].ProbDomain(new_box);
+  
+  // shift the mesh fields (Note - only on level 0 for now)
+  shiftMF(*Bfield[0][0], geom[0], num_shift, dir, Bx_nodal_flag);
+  shiftMF(*Bfield[0][1], geom[0], num_shift, dir, By_nodal_flag);
+  shiftMF(*Bfield[0][2], geom[0], num_shift, dir, Bz_nodal_flag);
+  shiftMF(*Efield[0][0], geom[0], num_shift, dir, Ex_nodal_flag);
+  shiftMF(*Efield[0][1], geom[0], num_shift, dir, Ey_nodal_flag);
+  shiftMF(*Efield[0][2], geom[0], num_shift, dir, Ez_nodal_flag);
+
+  InjectPlasma(num_shift, dir);
+
+  // Redistribute (note - this removes particles that are outside of the box)
+  mypc->Redistribute(false);
 }

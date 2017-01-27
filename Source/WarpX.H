@@ -30,19 +30,28 @@ public:
 
     void Evolve (int numsteps = -1);
 
-    static void FillBoundary (amrex::MultiFab& mf, const amrex::Geometry& geom,
-			      const amrex::IntVect& nodalflag);
+    MultiParticleContainer& GetPartContainer () { return *mypc; }
+
+    static void FillBoundary (MultiFab& mf, const Geometry& geom, const IntVect& nodalflag);
+
+    static void shiftMF(MultiFab& mf, const Geometry& geom, int num_shift, 
+			int dir, const IntVect& nodalflag);
+
+    static void GotoNextLine (std::istream& is);
 
     // Algorithms
     static long current_deposition_algo;
     static long charge_deposition_algo;
     static long field_gathering_algo;
     static long particle_pusher_algo;
-    
+    static long laser_pusher_algo;
+
     // Interpolation order
     static long nox;
     static long noy;
     static long noz;
+
+    static bool use_laser;
 
 protected:
     virtual void ErrorEst (int lev, amrex::TagBoxArray& tags, amrex::Real time, int /*ngrow*/) override {}
@@ -57,21 +66,26 @@ private:
 
     void ReadParameters ();
 
-    void MakeNewLevel (int lev, amrex::Real time,
-		       const amrex::BoxArray& new_grids, const amrex::DistributionMapping& new_dmap);
+    void MakeNewLevel (int lev, const BoxArray& new_grids, const DistributionMapping& new_dmap);
 
     void InitFromScratch ();
-    void InitFromCheckpoint () {}
+    void InitFromCheckpoint ();
     void InitLevelData (int lev);
-    
+
     void InitOpenbc ();
-    
+
     void ComputeDt ();
 
+    void MoveWindow ();
+    void InjectPlasma(int num_shift, int dir);
+
+    void WriteWarpXHeader(const std::string& name) const;
+    void WriteCheckPointFile() const;
     void WritePlotFile () const;
-    static void PackPlotDataPtrs (amrex::Array<const amrex::MultiFab*>& pmf,
-				  const amrex::Array<std::unique_ptr<amrex::MultiFab> >& data);
-    static void Copy (amrex::MultiFab& dstmf, int dcomp, int ncomp, const amrex::MultiFab& srcmf, int scomp);
+    void WriteJobInfo (const std::string& dir) const;
+    static void PackPlotDataPtrs (std::vector<MultiFab*>& pmf,
+				  const Array<std::unique_ptr<MultiFab> >& data);
+    static void Copy (MultiFab& dstmf, int dcomp, int ncomp, const MultiFab& srcmf, int scomp);
 
     amrex::Array<int> istep;      // which step?
     amrex::Array<int> nsubsteps;  // how many substeps on each level?
@@ -81,14 +95,26 @@ private:
     amrex::Array<amrex::Real> dt;
 
     // Particle container
-    std::unique_ptr<MyParticleContainer> mypc;
+    std::unique_ptr<MultiParticleContainer> mypc;
     // Fields: First array for level, second for direction
     amrex::Array<amrex::Array< std::unique_ptr<amrex::MultiFab> > > current;
     amrex::Array<amrex::Array< std::unique_ptr<amrex::MultiFab> > > Efield;
     amrex::Array<amrex::Array< std::unique_ptr<amrex::MultiFab> > > Bfield;
 
-    // runtime parameters
+    // Moving window parameters
+    int do_moving_window = 0;
+    int moving_window_dir = 0;
+    Real moving_window_x;
+    Real moving_window_v;
 
+    // Plasma injection parameters
+    int do_plasma_injection = 0;
+    int num_injected_species;
+    Array<int> injected_plasma_ppc;
+    Array<int> injected_plasma_species;
+    Array<Real> injected_plasma_density;
+
+    // Other runtime parameters
     int verbose = 1;
 
     int max_step   = std::numeric_limits<int>::max();

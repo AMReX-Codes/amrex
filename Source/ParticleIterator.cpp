@@ -3,7 +3,7 @@
 
 using namespace amrex;
 
-PartIter::PartIter (MyParticleContainer& _mypc, const PartIterInfo& _info)
+PartIter::PartIter (WarpXParticleContainer& _mypc, const PartIterInfo& _info)
     : mypc(_mypc),
       pmap(_mypc.GetParticles(_info.level)),
       info(_info)
@@ -11,7 +11,7 @@ PartIter::PartIter (MyParticleContainer& _mypc, const PartIterInfo& _info)
     Initialize();
 }
 
-PartIter::PartIter (MyParticleContainer& _mypc, PartIterInfo&& _info)
+PartIter::PartIter (WarpXParticleContainer& _mypc, PartIterInfo&& _info)
     : mypc(_mypc),
       pmap(_mypc.GetParticles(_info.level)),
       info(_info)
