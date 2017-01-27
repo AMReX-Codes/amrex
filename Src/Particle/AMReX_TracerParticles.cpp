@@ -76,13 +76,13 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
 
 		ParticleType::SingleLevelWhere(p, m_gdb, pld, lev);
 
-                if (p.m_id <= 0) continue;
+                if (p.idata.id <= 0) continue;
 
                 BL_ASSERT(pld.m_grid == grid);
 
-                const Real len[BL_SPACEDIM] = { D_DECL((p.m_pos[0]-plo[0])/dx[0] + Real(0.5),
-                                                       (p.m_pos[1]-plo[1])/dx[1] + Real(0.5),
-                                                       (p.m_pos[2]-plo[2])/dx[2] + Real(0.5)) };
+                const Real len[BL_SPACEDIM] = { D_DECL((p.rdata.pos[0]-plo[0])/dx[0] + Real(0.5),
+                                                       (p.rdata.pos[1]-plo[1])/dx[1] + Real(0.5),
+                                                       (p.rdata.pos[2]-plo[2])/dx[2] + Real(0.5)) };
 
                 const IntVect cell(D_DECL(floor(len[0]), floor(len[1]), floor(len[2])));
 
@@ -96,7 +96,7 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
 
                     Real efrac[BL_SPACEDIM] = { D_DECL(frac[0], frac[1], frac[2]) };
 
-                    efrac[d] = (p.m_pos[d]-plo[d])/dx[d] - pld.m_cell[d];
+                    efrac[d] = (p.rdata.pos[d]-plo[d])/dx[d] - pld.m_cell[d];
 
                     for (int j = 0; j < BL_SPACEDIM; j++)
                     {
@@ -111,17 +111,17 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
                         //
                         // Save old position and the vel & predict location at dt/2.
                         //
-                        p.m_data[d] = p.m_pos[d];
-                        p.m_pos[d] += 0.5*dt*vel;
+                        p.rdata.arr[BL_SPACEDIM+d] = p.rdata.pos[d];
+                        p.rdata.pos[d] += 0.5*dt*vel;
                     }
                     else
                     {
                         //
                         // Update to final time using the orig position and the vel at dt/2.
                         //
-                        p.m_pos[d]  = p.m_data[d] + dt*vel;
+                        p.rdata.pos[d]  = p.rdata.arr[BL_SPACEDIM+d] + dt*vel;
                         // Save the velocity for use in Timestamp().
-			p.m_data[d] = vel;
+			p.rdata.arr[BL_SPACEDIM+d] = vel;
                     }
                 }
                 
@@ -187,7 +187,7 @@ TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
                 ParticleType& p = pbox[i];
 		ParticleLocData pld;
 
-                if (p.m_id <= 0) continue;
+                if (p.idata.id <= 0) continue;
 
 		ParticleType::SingleLevelWhere(p, m_gdb, pld, lev);
 
@@ -203,8 +203,8 @@ TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
 		    //
 		    for (int d = 0; d < BL_SPACEDIM; d++)
 		    {
-			p.m_data[d] = p.m_pos[d];
-                        p.m_pos[d] += 0.5*dt*v[d];
+			p.rdata.arr[BL_SPACEDIM+d] = p.rdata.pos[d];
+                        p.rdata.pos[d] += 0.5*dt*v[d];
                     }
 		} else {
 		    //
@@ -212,9 +212,9 @@ TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
 		    //
 		    for (int d = 0; d < BL_SPACEDIM; d++)
 		    {
-                        p.m_pos[d]  = p.m_data[d] + dt*v[d];
+                        p.rdata.pos[d]  = p.rdata.arr[BL_SPACEDIM+d] + dt*v[d];
                         // Save the velocity for use in Timestamp().
-			p.m_data[d] = v[d];
+			p.rdata.arr[BL_SPACEDIM+d] = v[d];
                     }
                 }
                 
@@ -289,7 +289,7 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
 
 	    for (const auto& kv : pmap) {
 		for (const auto& p : kv.second) {
-		    if (p.m_id > 0) {
+		    if (p.idata.id > 0) {
 			gotwork = true;
 			break;
 		    }
@@ -332,7 +332,7 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
 
 		    for (const auto& p : pbox)
                     {
-                        if (p.m_id <= 0) continue;
+                        if (p.idata.id <= 0) continue;
 
 			ParticleLocData pld;
 			ParticleType::SingleLevelWhere(p, m_gdb, pld, lev);
@@ -343,19 +343,19 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
                         BL_ASSERT(pld.m_lev == lev);
                         BL_ASSERT(pld.m_grid == grid);
 
-                        TimeStampFile << p.m_id  << ' ' << p.m_cpu << ' ';
+                        TimeStampFile << p.idata.id  << ' ' << p.idata.cpu << ' ';
 
-                        D_TERM(TimeStampFile << p.m_pos[0] << ' ';,
-                               TimeStampFile << p.m_pos[1] << ' ';,
-                               TimeStampFile << p.m_pos[2] << ' ';);
+                        D_TERM(TimeStampFile << p.rdata.pos[0] << ' ';,
+                               TimeStampFile << p.rdata.pos[1] << ' ';,
+                               TimeStampFile << p.rdata.pos[2] << ' ';);
 
                         TimeStampFile << time;
                         //
-                        // AdvectWithUmac stores the velocity in m_data ...
+                        // AdvectWithUmac stores the velocity in rdata ...
                         //
-                        D_TERM(TimeStampFile << ' ' << p.m_data[0];,
-                               TimeStampFile << ' ' << p.m_data[1];,
-                               TimeStampFile << ' ' << p.m_data[2];);
+                        D_TERM(TimeStampFile << ' ' << p.rdata.arr[BL_SPACEDIM+0];,
+                               TimeStampFile << ' ' << p.rdata.arr[BL_SPACEDIM+1];,
+                               TimeStampFile << ' ' << p.rdata.arr[BL_SPACEDIM+2];);
 
                         if (M > 0)
                         {
