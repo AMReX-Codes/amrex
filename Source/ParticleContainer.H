@@ -39,7 +39,7 @@ public:
     void Evolve (int lev,
 		 const amrex::MultiFab& Ex, const amrex::MultiFab& Ey, const amrex::MultiFab& Ez,
 		 const amrex::MultiFab& Bx, const amrex::MultiFab& By, const amrex::MultiFab& Bz,
-		 amrex::MultiFab& jx, amrex::MultiFab& jy, amrex::MultiFab& jz, Real dt);
+		 amrex::MultiFab& jx, amrex::MultiFab& jy, amrex::MultiFab& jz, amrex::Real dt);
 
     std::unique_ptr<amrex::MultiFab> GetChargeDensity(int lev, bool local = false);
 
@@ -51,10 +51,10 @@ private:
     // The size of the map value Array is npartdata.
     // The innermost Array holds a particular data (say Ex or gaminv) for particles on a grid.
     // The size of the innermost array is the number of particles.
-    amrex::Array<std::map<int, amrex::Array<std::unique_ptr<amrex::Array<Real> > > > > m_partdata;
+    amrex::Array<std::map<int, amrex::Array<std::unique_ptr<amrex::Array<amrex::Real> > > > > m_partdata;
 
-    Real charge;
-    Real mass;
+    amrex::Real charge;
+    amrex::Real mass;
 
     static void ReadStaticParameters ();
 

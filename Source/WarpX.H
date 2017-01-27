@@ -45,19 +45,19 @@ public:
     static long noz;
 
 protected:
-    virtual void ErrorEst (int lev, amrex::TagBoxArray& tags, Real time, int /*ngrow*/) override {}
+    virtual void ErrorEst (int lev, amrex::TagBoxArray& tags, amrex::Real time, int /*ngrow*/) override {}
 
 private:
 
     // Singleton is used when the code is run from python
     static WarpX* m_instance;
 
-    void EvolveE (int lev, Real dt);
-    void EvolveB (int lev, Real dt);
+    void EvolveE (int lev, amrex::Real dt);
+    void EvolveB (int lev, amrex::Real dt);
 
     void ReadParameters ();
 
-    void MakeNewLevel (int lev, Real time,
+    void MakeNewLevel (int lev, amrex::Real time,
 		       const amrex::BoxArray& new_grids, const amrex::DistributionMapping& new_dmap);
 
     void InitFromScratch ();
@@ -76,9 +76,9 @@ private:
     amrex::Array<int> istep;      // which step?
     amrex::Array<int> nsubsteps;  // how many substeps on each level?
 
-    amrex::Array<Real> t_new;
-    amrex::Array<Real> t_old;
-    amrex::Array<Real> dt;
+    amrex::Array<amrex::Real> t_new;
+    amrex::Array<amrex::Real> t_old;
+    amrex::Array<amrex::Real> dt;
 
     // Particle container
     std::unique_ptr<MyParticleContainer> mypc;
@@ -92,9 +92,9 @@ private:
     int verbose = 1;
 
     int max_step   = std::numeric_limits<int>::max();
-    Real stop_time = std::numeric_limits<Real>::max();
+    amrex::Real stop_time = std::numeric_limits<amrex::Real>::max();
 
-    Real cfl = 0.7;
+    amrex::Real cfl = 0.7;
 
     std::string restart_chkfile;
 
