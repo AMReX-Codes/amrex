@@ -12,8 +12,8 @@ DEBUG        = FALSE
 USE_MPI      = TRUE
 USE_MPI      = FALSE
 
-USE_OMP      = TRUE
 USE_OMP      = FALSE
+USE_OMP      = TRUE
 
 PROFILE       = FALSE
 COMM_PROFILE  = FALSE
@@ -24,7 +24,8 @@ TINY_PROFILE  = TRUE
 AMREX_HOME = ../../../..
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
-_progs  := stencilTest
+#_progs  := stencilTest
+_progs  := stencilTestMSD
 
 include ./Make.package
 include $(AMREX_HOME)/Src/Base/Make.package
