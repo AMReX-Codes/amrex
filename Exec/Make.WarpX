@@ -1,4 +1,4 @@
-AMREX_HOME ?= ../../../BoxLib
+AMREX_HOME ?= ../../../amrex
 PICSAR_HOME ?= ../../../picsar
 OPENBC_HOME ?= ../../../openbc_poisson
 

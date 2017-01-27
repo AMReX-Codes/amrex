@@ -2,7 +2,7 @@
 module warpx_laser_module
 
   use iso_c_binding
-  use bl_fort_module, only : c_real
+  use amrex_fort_module, only : amrex_real
 
   implicit none
 
@@ -12,12 +12,12 @@ contains
                                 q,dt,laser_pusher_algo) &
        bind(C, name="warpx_laser_pusher")
 
-    INTEGER(c_long), INTENT(IN)   :: np
-    REAL(c_real),INTENT(INOUT)    :: gaminv(np)
-    REAL(c_real),INTENT(INOUT)    :: xp(np),yp(np),zp(np)
-    REAL(c_real),INTENT(INOUT)    :: uxp(np),uyp(np),uzp(np)
-    REAL(c_real),INTENT(IN)       :: q,dt
-    INTEGER(c_long), INTENT(IN)   :: laser_pusher_algo
+    INTEGER(c_long), INTENT(IN)    :: np
+    REAL(amrex_real),INTENT(INOUT) :: gaminv(np)
+    REAL(amrex_real),INTENT(INOUT) :: xp(np),yp(np),zp(np)
+    REAL(amrex_real),INTENT(INOUT) :: uxp(np),uyp(np),uzp(np)
+    REAL(amrex_real),INTENT(IN)    :: q,dt
+    INTEGER(c_long), INTENT(IN)    :: laser_pusher_algo
 
     ! need to update velocity!
 

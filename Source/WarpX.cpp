@@ -1,7 +1,9 @@
 
-#include <ParmParse.H>
+#include <AMReX_ParmParse.H>
 #include <WarpX.H>
 #include <WarpXConst.H>
+
+using namespace amrex;
 
 long WarpX::current_deposition_algo = 3;
 long WarpX::charge_deposition_algo = 0;
@@ -18,9 +20,9 @@ IntVect WarpX::Bx_nodal_flag(1,0,0);
 IntVect WarpX::By_nodal_flag(0,1,0);
 IntVect WarpX::Bz_nodal_flag(0,0,1);
 #elif (BL_SPACEDIM == 2)
-IntVect WarpX::Bx_nodal_flag(1,0);  // x is the first dimension to BoxLib
-IntVect WarpX::By_nodal_flag(0,0);  // y is the missing dimension to 2D BoxLib
-IntVect WarpX::Bz_nodal_flag(0,1);  // z is the second dimension to 2D BoxLib
+IntVect WarpX::Bx_nodal_flag(1,0);  // x is the first dimension to AMReX
+IntVect WarpX::By_nodal_flag(0,0);  // y is the missing dimension to 2D AMReX
+IntVect WarpX::Bz_nodal_flag(0,1);  // z is the second dimension to 2D AMReX
 #endif
 
 #if (BL_SPACEDIM == 3)
@@ -28,9 +30,9 @@ IntVect WarpX::Ex_nodal_flag(1,0,0);
 IntVect WarpX::Ey_nodal_flag(0,1,0);
 IntVect WarpX::Ez_nodal_flag(0,0,1);
 #elif (BL_SPACEDIM == 2)
-IntVect WarpX::Ex_nodal_flag(0,1);  // x is the first dimension to BoxLib
-IntVect WarpX::Ey_nodal_flag(1,1);  // y is the missing dimension to 2D BoxLib
-IntVect WarpX::Ez_nodal_flag(1,0);  // z is the second dimension to 2D BoxLib
+IntVect WarpX::Ex_nodal_flag(0,1);  // x is the first dimension to AMReX
+IntVect WarpX::Ey_nodal_flag(1,1);  // y is the missing dimension to 2D AMReX
+IntVect WarpX::Ez_nodal_flag(1,0);  // z is the second dimension to 2D AMReX
 #endif
 
 #if (BL_SPACEDIM == 3)
@@ -38,9 +40,9 @@ IntVect WarpX::jx_nodal_flag(1,0,0);
 IntVect WarpX::jy_nodal_flag(0,1,0);
 IntVect WarpX::jz_nodal_flag(0,0,1);
 #elif (BL_SPACEDIM == 2)
-IntVect WarpX::jx_nodal_flag(0,1);  // x is the first dimension to BoxLib
-IntVect WarpX::jy_nodal_flag(1,1);  // y is the missing dimension to 2D BoxLib
-IntVect WarpX::jz_nodal_flag(1,0);  // z is the second dimension to 2D BoxLib
+IntVect WarpX::jx_nodal_flag(0,1);  // x is the first dimension to AMReX
+IntVect WarpX::jy_nodal_flag(1,1);  // y is the missing dimension to 2D AMReX
+IntVect WarpX::jz_nodal_flag(1,0);  // z is the second dimension to 2D AMReX
 #endif
 
 bool WarpX::use_laser = false;
@@ -68,7 +70,7 @@ WarpX::WarpX ()
     ReadParameters();
 
     if (max_level != 0) {
-	BoxLib::Abort("WaprX: max_level must be zero");
+	amrex::Abort("WaprX: max_level must be zero");
     }
 
     // Geometry on all levels has been defined already.
@@ -161,10 +163,10 @@ WarpX::ReadParameters ()
 	pp.query("noy", noy);
 	pp.query("noz", noz);
 	if (nox != noy || nox != noz) {
-	    BoxLib::Abort("warpx.nox, noy and noz must be equal");
+	    amrex::Abort("warpx.nox, noy and noz must be equal");
 	}
 	if (nox < 1) {
-	    BoxLib::Abort("warpx.nox must >= 1");
+	    amrex::Abort("warpx.nox must >= 1");
 	}
     }
 
@@ -186,16 +188,17 @@ WarpX::MakeNewLevel (int lev, const BoxArray& new_grids, const DistributionMappi
     SetDistributionMap(lev, new_dmap);
 
     // PICSAR assumes all fields are nodal plus one ghost cell.
-    const IntVect& nodalflag = IntVect::TheUnitVector();
+    MFInfo info;
+    info.SetNodal(IntVect::TheUnitVector());
     const int ng = WarpX::nox;  // need to update this
 
     current[lev].resize(3);
     Efield [lev].resize(3);
     Bfield [lev].resize(3);
     for (int i = 0; i < 3; ++i) {
-	current[lev][i].reset(new MultiFab(grids[lev],1,ng,dmap[lev],Fab_allocate,nodalflag));
-	Efield [lev][i].reset(new MultiFab(grids[lev],1,ng,dmap[lev],Fab_allocate,nodalflag));
-	Bfield [lev][i].reset(new MultiFab(grids[lev],1,ng,dmap[lev],Fab_allocate,nodalflag));
+	current[lev][i].reset(new MultiFab(grids[lev],dmap[lev],1,ng,info));
+	Efield [lev][i].reset(new MultiFab(grids[lev],dmap[lev],1,ng,info));
+	Bfield [lev][i].reset(new MultiFab(grids[lev],dmap[lev],1,ng,info));
     }
 }
 
@@ -206,7 +209,7 @@ WarpX::FillBoundary (MultiFab& mf, const Geometry& geom, const IntVect& nodalfla
     BoxArray ba = mf.boxArray();
     ba.convert(correct_typ);
 
-    MultiFab tmpmf(ba, mf.nComp(), mf.nGrow(), mf.DistributionMap());
+    MultiFab tmpmf(ba, mf.DistributionMap(), mf.nComp(), mf.nGrow());
 
     const IndexType& mf_typ = mf.boxArray().ixType();
 
@@ -233,7 +236,7 @@ WarpX::shiftMF(MultiFab& mf, const Geometry& geom, int num_shift,
 
   // create tmp copy with num_shift ghost cells
   const BoxArray& ba = mf.boxArray();
-  MultiFab tmpmf(ba, mf.nComp(), std::abs(num_shift), Fab_allocate, nodalflag);
+  MultiFab tmpmf(ba, mf.DistributionMap(), mf.nComp(), std::abs(num_shift), MFInfo().SetNodal(nodalflag));
   tmpmf.setVal(0.0);
   MultiFab::Copy(tmpmf, mf, 0, 0, mf.nComp(), 0);
   tmpmf.FillBoundary(geom.periodicity());

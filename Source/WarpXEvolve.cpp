@@ -290,7 +290,7 @@ WarpX::InjectPlasma(int num_shift, int dir) {
     WarpXParticleContainer* myspc = &(mypc->GetParticleContainer(0));
     const BoxArray& ba = myspc->ParticleBoxArray(0);
     const DistributionMapping& dm = myspc->ParticleDistributionMap(0); 
-    MultiFab dummy_mf(ba, 1, 0, dm, Fab_noallocate);
+    MultiFab dummy_mf(ba, dm, 1, 0, MFInfo().SetAlloc(false));
 
     // For each grid, loop only over the cells in the new region
     for (MFIter mfi(dummy_mf,false); mfi.isValid(); ++mfi) {

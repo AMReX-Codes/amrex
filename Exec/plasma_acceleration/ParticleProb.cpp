@@ -23,7 +23,7 @@ PhysicalParticleContainer::InitData()
 	charge = -PhysConst::q_e;
 	mass = PhysConst::m_e;
     } else {
-	BoxLib::Abort("PhysicalParticleContainer::InitData(): species_id must be 0 or 1");
+	amrex::Abort("PhysicalParticleContainer::InitData(): species_id must be 0 or 1");
     }
 
     m_particles.resize(GDB().finestLevel()+1);
@@ -146,7 +146,7 @@ PhysicalParticleContainer::InitData()
 
 		if (!ParticleBase::Where(p,m_gdb)) // this will set m_cell
 		{
-		    BoxLib::Abort("invalid particle");
+		    amrex::Abort("invalid particle");
 		}
 		
 		BL_ASSERT(p.m_lev >= 0 && p.m_lev <= GDB().finestLevel());

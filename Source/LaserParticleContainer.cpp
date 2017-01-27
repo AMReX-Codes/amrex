@@ -7,6 +7,8 @@
 #include <ParticleContainer.H>
 #include <ParticleIterator.H>
 
+using namespace amrex;
+
 LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies)
     : WarpXParticleContainer(amr_core, ispecies)
 {
@@ -107,7 +109,7 @@ LaserParticleContainer::Evolve (int lev,
 	    BL_PROFILE_VAR_STOP(blp_copy);
 
 
-	    const Box& box = BoxLib::enclosedCells(ba[gid]);
+	    const Box& box = amrex::enclosedCells(ba[gid]);
 	    BL_ASSERT(box == vbx);
 #if (BL_SPACEDIM == 3)
 	    long nx = box.length(0);

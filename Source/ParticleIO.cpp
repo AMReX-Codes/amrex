@@ -2,6 +2,8 @@
 #include <ParticleContainer.H>
 #include <WarpX.H>
 
+using namespace amrex;
+
 void
 WarpXParticleContainer::ReadHeader (std::istream& is)
 {

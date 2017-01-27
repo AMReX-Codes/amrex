@@ -5,6 +5,8 @@
 #include <WarpX_f.H>
 #include <WarpX.H>
 
+using namespace amrex;
+
 PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core, int ispecies)
     : WarpXParticleContainer(amr_core, ispecies)
 {
@@ -25,7 +27,7 @@ PhysicalParticleContainer::AllocData ()
 	const BoxArray& ba = GDB().ParticleBoxArray(lev);
 	const DistributionMapping& dm = GDB().ParticleDistributionMap(lev);
 
-	MultiFab foo(ba, 1, 0, dm, Fab_noallocate);
+	MultiFab foo(ba, dm, 1, 0, MFInfo().SetAlloc(false));
 	for (MFIter mfi(foo); mfi.isValid(); ++mfi)
 	{
 	    int i = mfi.index();
@@ -140,7 +142,7 @@ PhysicalParticleContainer::Evolve (int lev,
 	    BL_PROFILE_VAR_STOP(blp_copy);
 
 
-	    const Box& box = BoxLib::enclosedCells(ba[gid]);
+	    const Box& box = amrex::enclosedCells(ba[gid]);
 	    BL_ASSERT(box == vbx);
 #if (BL_SPACEDIM == 3)
 	    long nx = box.length(0);

@@ -29,7 +29,7 @@ WarpX::WriteWarpXHeader(const std::string& name) const {
 				                         std::ofstream::trunc |
 				                         std::ofstream::binary);
 	if( ! HeaderFile.good()) {
-	    BoxLib::FileOpenFailed(HeaderFileName);
+	    amrex::FileOpenFailed(HeaderFileName);
 	}
 
 	HeaderFile.precision(17);
@@ -94,7 +94,7 @@ WarpX::WriteCheckPointFile() const
 {
     BL_PROFILE("WarpX::WriteCheckPointFile()");
 
-    const std::string& checkpointname = BoxLib::Concatenate(check_file,istep[0]);
+    const std::string& checkpointname = amrex::Concatenate(check_file,istep[0]);
 
     if (ParallelDescriptor::IOProcessor()) {
 	std::cout << "  Writing checkpoint " << checkpointname << std::endl;
@@ -104,7 +104,7 @@ WarpX::WriteCheckPointFile() const
     VisMF::SetNOutFiles(checkpoint_nfiles);
     
     const int nlevels = finestLevel()+1;
-    BoxLib::PreBuildDirectorHierarchy(checkpointname, level_prefix, nlevels, true);
+    amrex::PreBuildDirectorHierarchy(checkpointname, level_prefix, nlevels, true);
 
     WriteWarpXHeader(checkpointname);
     
@@ -113,17 +113,17 @@ WarpX::WriteCheckPointFile() const
     for (int lev = 0; lev < nlevels; ++lev)
     {
 	VisMF::Write(*Efield[lev][0],
-		     BoxLib::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "Ex"));
+		     amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "Ex"));
 	VisMF::Write(*Efield[lev][1],
-		     BoxLib::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "Ey"));
+		     amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "Ey"));
 	VisMF::Write(*Efield[lev][2],
-		     BoxLib::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "Ez"));
+		     amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "Ez"));
 	VisMF::Write(*Bfield[lev][0],
-		     BoxLib::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "Bx"));
+		     amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "Bx"));
 	VisMF::Write(*Bfield[lev][1],
-		     BoxLib::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "By"));
+		     amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "By"));
 	VisMF::Write(*Bfield[lev][2],
-		     BoxLib::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "Bz"));
+		     amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "Bz"));
     }
 
     mypc->Checkpoint(checkpointname, "particle", true);
@@ -255,32 +255,32 @@ WarpX::InitFromCheckpoint ()
 	// xxxxx This will be done differently in amrex!
 	{
 	    MultiFab mf;
-	    VisMF::Read(mf, BoxLib::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "Ex"));
+	    VisMF::Read(mf, amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "Ex"));
 	    Efield[lev][0]->copy(mf, 0, 0, 1, 0, 0);
 	}
 	{
 	    MultiFab mf;
-	    VisMF::Read(mf, BoxLib::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "Ey"));
+	    VisMF::Read(mf, amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "Ey"));
 	    Efield[lev][1]->copy(mf, 0, 0, 1, 0, 0);
 	}
 	{
 	    MultiFab mf;
-	    VisMF::Read(mf, BoxLib::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "Ez"));
+	    VisMF::Read(mf, amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "Ez"));
 	    Efield[lev][2]->copy(mf, 0, 0, 1, 0, 0);
 	}
 	{
 	    MultiFab mf;
-	    VisMF::Read(mf, BoxLib::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "Bx"));
+	    VisMF::Read(mf, amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "Bx"));
 	    Bfield[lev][0]->copy(mf, 0, 0, 1, 0, 0);
 	}
 	{
 	    MultiFab mf;
-	    VisMF::Read(mf, BoxLib::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "By"));
+	    VisMF::Read(mf, amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "By"));
 	    Bfield[lev][1]->copy(mf, 0, 0, 1, 0, 0);
 	}
 	{
 	    MultiFab mf;
-	    VisMF::Read(mf, BoxLib::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "Bz"));
+	    VisMF::Read(mf, amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "Bz"));
 	    Bfield[lev][2]->copy(mf, 0, 0, 1, 0, 0);
 	}
     }
@@ -388,7 +388,7 @@ WarpX::WriteJobInfo (const std::string& dir) const
 	jobInfoFile << "build date:    " << buildInfoGetBuildDate() << "\n";
 	jobInfoFile << "build machine: " << buildInfoGetBuildMachine() << "\n";
 	jobInfoFile << "build dir:     " << buildInfoGetBuildDir() << "\n";
-	jobInfoFile << "BoxLib dir:    " << buildInfoGetAMReXDir() << "\n";
+	jobInfoFile << "AMReX dir:     " << buildInfoGetAMReXDir() << "\n";
 
 	jobInfoFile << "\n";
 

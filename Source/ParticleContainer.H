@@ -33,12 +33,12 @@ struct PIdx
 class MultiParticleContainer;
 
 class WarpXParticleContainer
-    : public amrex::ParticleContainer<PIdx::nattribs,0,std::vector<Particle<PIdx::nattribs,0> > >
+    : public amrex::ParticleContainer<PIdx::nattribs,0,std::vector<amrex::Particle<PIdx::nattribs,0> > >
 {
 public:
     friend MultiParticleContainer;
 
-    WarpXParticleContainer (AmrCore* amr_core, int ispecies);
+    WarpXParticleContainer (amrex::AmrCore* amr_core, int ispecies);
     virtual ~WarpXParticleContainer() {}
 
     virtual void AllocData () = 0;
@@ -46,21 +46,21 @@ public:
     virtual void InitData () = 0;
 
     virtual void Evolve (int lev,
-			 const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
-			 const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz,
-			 MultiFab& jx, MultiFab& jy, MultiFab& jz, Real dt) = 0;
+			 const amrex::MultiFab& Ex, const amrex::MultiFab& Ey, const amrex::MultiFab& Ez,
+			 const amrex::MultiFab& Bx, const amrex::MultiFab& By, const amrex::MultiFab& Bz,
+			 amrex::MultiFab& jx, amrex::MultiFab& jy, amrex::MultiFab& jz, amrex::Real dt) = 0;
 
-    std::unique_ptr<MultiFab> GetChargeDensity(int lev, bool local = false);
+    std::unique_ptr<amrex::MultiFab> GetChargeDensity(int lev, bool local = false);
  
-    void AddNParticles (int n, const Real* x, const Real* y, const Real* z,
-			const Real* vx, const Real* vy, const Real* vz,
-			int nattr, const Real* attr, int uniqueparticles);
+    void AddNParticles (int n, const amrex::Real* x, const amrex::Real* y, const amrex::Real* z,
+			const amrex::Real* vx, const amrex::Real* vy, const amrex::Real* vz,
+			int nattr, const amrex::Real* attr, int uniqueparticles);
 
     void ReadHeader (std::istream& is);
 
     void WriteHeader (std::ostream& os) const;
 
-    const ParGDBBase& GDB () const { return *m_gdb; }
+    const amrex::ParGDBBase& GDB () const { return *m_gdb; }
 
     static void ReadParameters ();
    
@@ -68,18 +68,18 @@ protected:
 
     int species_id;
 
-    Real charge;
-    Real mass;
+    amrex::Real charge;
+    amrex::Real mass;
 
     static bool do_tiling;
-    static IntVect tile_size;
+    static amrex::IntVect tile_size;
 };
 
 class PhysicalParticleContainer
     : public WarpXParticleContainer
 {
 public:
-    PhysicalParticleContainer (AmrCore* amr_core, int ispecies);
+    PhysicalParticleContainer (amrex::AmrCore* amr_core, int ispecies);
     virtual ~PhysicalParticleContainer () {}
 
     virtual void AllocData () override;
@@ -87,9 +87,9 @@ public:
     virtual void InitData () override;
 
     virtual void Evolve (int lev,
-			 const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
-			 const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz,
-			 MultiFab& jx, MultiFab& jy, MultiFab& jz, Real dt) override;
+			 const amrex::MultiFab& Ex, const amrex::MultiFab& Ey, const amrex::MultiFab& Ez,
+			 const amrex::MultiFab& Bx, const amrex::MultiFab& By, const amrex::MultiFab& Bz,
+			 amrex::MultiFab& jx, amrex::MultiFab& jy, amrex::MultiFab& jz, amrex::Real dt) override;
 
 private:
     // The outermost Array is for AMR level.
@@ -98,14 +98,14 @@ private:
     // The size of the map value Array is npartdata.
     // The innermost Array holds a particular data (say Ex or gaminv) for particles on a grid.
     // The size of the innermost array is the number of particles.
-    Array<std::map<int, Array<std::unique_ptr<Array<Real> > > > > m_partdata;
+    amrex::Array<std::map<int, amrex::Array<std::unique_ptr<amrex::Array<amrex::Real> > > > > m_partdata;
 };
 
 class LaserParticleContainer
     : public WarpXParticleContainer
 {
 public:
-    LaserParticleContainer (AmrCore* amr_core, int ispecies);
+    LaserParticleContainer (amrex::AmrCore* amr_core, int ispecies);
     virtual ~LaserParticleContainer () {}
 
     virtual void AllocData () override;
@@ -113,9 +113,9 @@ public:
     virtual void InitData () override;
 
     virtual void Evolve (int lev,
-			 const MultiFab&, const MultiFab&, const MultiFab&,
-			 const MultiFab&, const MultiFab&, const MultiFab&,
-			 MultiFab& jx, MultiFab& jy, MultiFab& jz, Real dt) override;
+			 const amrex::MultiFab&, const amrex::MultiFab&, const amrex::MultiFab&,
+			 const amrex::MultiFab&, const amrex::MultiFab&, const amrex::MultiFab&,
+			 amrex::MultiFab& jx, amrex::MultiFab& jy, amrex::MultiFab& jz, amrex::Real dt) override;
 };
 
 class MultiParticleContainer
@@ -157,7 +157,7 @@ public:
 private:
 
     // physical particles (+ laser)
-    Array<std::unique_ptr<WarpXParticleContainer> > allcontainers;
+    amrex::Array<std::unique_ptr<WarpXParticleContainer> > allcontainers;
 
     void ReadParameters ();
 

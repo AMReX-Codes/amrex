@@ -1,14 +1,16 @@
 
-#include <BoxLib.H>
-#include <ParmParse.H>
-#include <Array.H>
-#include <MultiFab.H>
-#include <PlotFileUtil.H>
+#include <AMReX.H>
+#include <AMReX_ParmParse.H>
+#include <AMReX_Array.H>
+#include <AMReX_MultiFab.H>
+#include <AMReX_PlotFileUtil.H>
 
 #include <WarpXConst.H>
 #include <WarpX.H>
 
 #include "movingWindow_F.H"
+
+using namespace amrex;
 
 void testMovingWindow() {
   
@@ -80,9 +82,9 @@ void testMovingWindow() {
 
     MultiFab outputE(ba, 1, 0);
     MultiFab::Copy(outputE, E, 0, 0, 1, 0);
-    const std::string& plotname = BoxLib::Concatenate("plt", step, 5);
+    const std::string& plotname = amrex::Concatenate("plt", step, 5);
     Array<std::string> varnames{"E"};
-    BoxLib::WriteSingleLevelPlotfile(plotname, outputE, varnames, geom, 0.0, 0);
+    amrex::WriteSingleLevelPlotfile(plotname, outputE, varnames, geom, 0.0, 0);
 
     // update the window and figure out how much to shift
     int num_shift;
@@ -114,9 +116,9 @@ void testMovingWindow() {
 
 int main(int argc, char* argv[])
 {
-  BoxLib::Initialize(argc,argv);
+  amrex::Initialize(argc,argv);
 
   testMovingWindow();
 
-  BoxLib::Finalize();
+  amrex::Finalize();
 }

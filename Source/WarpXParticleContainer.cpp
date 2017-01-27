@@ -6,6 +6,8 @@
 #include <WarpX_f.H>
 #include <WarpX.H>
 
+using namespace amrex;
+
 bool    WarpXParticleContainer::do_tiling = 0;
 IntVect WarpXParticleContainer::tile_size   { D_DECL(1024000,8,8) };
 
@@ -97,7 +99,7 @@ WarpXParticleContainer::AddNParticles (int n, const Real* x, const Real* y, cons
 	
 	if (!ParticleBase::Where(p,m_gdb)) // this will update m_lev, m_grid, and m_cell
 	{
-	    BoxLib::Abort("Invalid particle in ParticleContainer::AddNParticles()");
+	    amrex::Abort("Invalid particle in ParticleContainer::AddNParticles()");
 	}
 
 	gid = p.m_grid;
@@ -116,8 +118,9 @@ WarpXParticleContainer::AddNParticles (int n, const Real* x, const Real* y, cons
 std::unique_ptr<MultiFab>
 WarpXParticleContainer::GetChargeDensity (int lev, bool local)
 {
-    const Geometry& gm = m_gdb->Geom(lev);
-    const BoxArray& ba = m_gdb->ParticleBoxArray(lev);
+    const auto& gm = m_gdb->Geom(lev);
+    const auto& ba = m_gdb->ParticleBoxArray(lev);
+    const auto& dm = m_gdb->DistributionMap(lev);
     BoxArray nba = ba;
     nba.surroundingNodes();
 
@@ -129,7 +132,7 @@ WarpXParticleContainer::GetChargeDensity (int lev, bool local)
 
     const int ng = WarpX::nox;
 
-    auto rho = std::unique_ptr<MultiFab>(new MultiFab(nba,1,ng));
+    auto rho = std::unique_ptr<MultiFab>(new MultiFab(nba,dm,1,ng));
     rho->setVal(0.0);
 
     Array<Real> xp, yp, zp, wp;
@@ -162,7 +165,7 @@ WarpXParticleContainer::GetChargeDensity (int lev, bool local)
 		wp[i]  = p.m_data[PIdx::w]; 
 	    });
 
-	const Box& box = BoxLib::enclosedCells(ba[gid]);
+	const Box& box = amrex::enclosedCells(ba[gid]);
 	BL_ASSERT(box == vbx);
 #if (BL_SPACEDIM == 3)
 	long nx = box.length(0);

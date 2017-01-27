@@ -6,6 +6,8 @@
 
 #include <WarpX.H>
 
+using namespace amrex;
+
 void
 WarpX::InitLevelData (int lev)
 {

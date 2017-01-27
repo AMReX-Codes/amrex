@@ -49,14 +49,14 @@ extern "C"
     double warpx_getProbLo(int dir)
     {
       WarpX& warpx = WarpX::GetInstance();
-      const Geometry& geom = warpx.Geom(0);
+      const amrex::Geometry& geom = warpx.Geom(0);
       return geom.ProbLo(dir);
     }
 
     double warpx_getProbHi(int dir)
     {
       WarpX& warpx = WarpX::GetInstance();
-      const Geometry& geom = warpx.Geom(0);
+      const amrex::Geometry& geom = warpx.Geom(0);
       return geom.ProbHi(dir);
     }
 }

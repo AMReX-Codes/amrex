@@ -32,10 +32,10 @@ public:
 
     MultiParticleContainer& GetPartContainer () { return *mypc; }
 
-    static void FillBoundary (MultiFab& mf, const Geometry& geom, const IntVect& nodalflag);
+    static void FillBoundary (amrex::MultiFab& mf, const amrex::Geometry& geom, const amrex::IntVect& nodalflag);
 
-    static void shiftMF(MultiFab& mf, const Geometry& geom, int num_shift, 
-			int dir, const IntVect& nodalflag);
+    static void shiftMF(amrex::MultiFab& mf, const amrex::Geometry& geom, int num_shift, 
+			int dir, const amrex::IntVect& nodalflag);
 
     static void GotoNextLine (std::istream& is);
 
@@ -66,7 +66,7 @@ private:
 
     void ReadParameters ();
 
-    void MakeNewLevel (int lev, const BoxArray& new_grids, const DistributionMapping& new_dmap);
+    void MakeNewLevel (int lev, const amrex::BoxArray& new_grids, const amrex::DistributionMapping& new_dmap);
 
     void InitFromScratch ();
     void InitFromCheckpoint ();
@@ -83,9 +83,9 @@ private:
     void WriteCheckPointFile() const;
     void WritePlotFile () const;
     void WriteJobInfo (const std::string& dir) const;
-    static void PackPlotDataPtrs (std::vector<MultiFab*>& pmf,
-				  const Array<std::unique_ptr<MultiFab> >& data);
-    static void Copy (MultiFab& dstmf, int dcomp, int ncomp, const MultiFab& srcmf, int scomp);
+    static void PackPlotDataPtrs (amrex::Array<const amrex::MultiFab*>& pmf,
+				  const amrex::Array<std::unique_ptr<amrex::MultiFab> >& data);
+    static void Copy (amrex::MultiFab& dstmf, int dcomp, int ncomp, const amrex::MultiFab& srcmf, int scomp);
 
     amrex::Array<int> istep;      // which step?
     amrex::Array<int> nsubsteps;  // how many substeps on each level?
@@ -104,15 +104,15 @@ private:
     // Moving window parameters
     int do_moving_window = 0;
     int moving_window_dir = 0;
-    Real moving_window_x;
-    Real moving_window_v;
+    amrex::Real moving_window_x;
+    amrex::Real moving_window_v;
 
     // Plasma injection parameters
     int do_plasma_injection = 0;
     int num_injected_species;
-    Array<int> injected_plasma_ppc;
-    Array<int> injected_plasma_species;
-    Array<Real> injected_plasma_density;
+    amrex::Array<int> injected_plasma_ppc;
+    amrex::Array<int> injected_plasma_species;
+    amrex::Array<amrex::Real> injected_plasma_density;
 
     // Other runtime parameters
     int verbose = 1;

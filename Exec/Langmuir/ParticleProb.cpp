@@ -25,7 +25,7 @@ PhysicalParticleContainer::InitData()
 	charge = PhysConst::q_e;
 	mass = PhysConst::m_p;	
     } else {
-	BoxLib::Abort("PhysicalParticleContainer::InitData(): species_id must be 0 or 1");
+	amrex::Abort("PhysicalParticleContainer::InitData(): species_id must be 0 or 1");
     }
 
     m_particles.resize(GDB().finestLevel()+1);
