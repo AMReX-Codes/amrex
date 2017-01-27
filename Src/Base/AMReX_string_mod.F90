@@ -7,11 +7,11 @@ module amrex_string_module
 
   private
 
-  public :: string_f_to_c, string_c_to_f
+  public :: amrex_string_f_to_c, amrex_string_c_to_f
 
 contains
 
-  function string_f_to_c (fstr) result(cstr)
+  function amrex_string_f_to_c (fstr) result(cstr)
     character(*), intent(in) :: fstr
     character(c_char) :: cstr(len_trim(fstr)+1)
     integer :: i, n
@@ -20,9 +20,9 @@ contains
        cstr(i) = fstr(i:i)
     end do
     cstr(n+1) = c_null_char
-  end function string_f_to_c
+  end function amrex_string_f_to_c
 
-  function string_c_to_f (cstr) result(fstr)
+  function amrex_string_c_to_f (cstr) result(fstr)
     character(c_char), intent(in) :: cstr(:)
     character(len=size(cstr)-1) :: fstr
     integer :: i, n
@@ -32,6 +32,6 @@ contains
        if (cstr(i) == c_null_char) exit
        fstr(i:i) = transfer(cstr(i), fstr)
     enddo
-  end function string_c_to_f
+  end function amrex_string_c_to_f
 
 end module amrex_string_module
