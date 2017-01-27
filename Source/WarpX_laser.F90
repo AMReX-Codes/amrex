@@ -14,13 +14,13 @@ contains
        bind(C, name="warpx_gaussian_laser")
 
     integer(c_long), intent(in) :: np
-    REAL(c_real), intent(in)    :: Xp(np),Yp(np)
-    REAL(c_real), intent(in)    :: e_max, t, t_peak, wavelength, duration, f, waist
-    REAL(c_real), intent(inout) :: amplitude(np)
+    real(c_real), intent(in)    :: Xp(np),Yp(np)
+    real(c_real), intent(in)    :: e_max, t, t_peak, wavelength, duration, f, waist
+    real(c_real), intent(inout) :: amplitude(np)
 
-    integer      :: i
-    real(c_real) :: k0, oscillation_phase, temporal_exponent
-    complex*16   :: diffract_factor, exp_argument, prefactor, &
+    integer(c_long)  :: i
+    real(c_real)     :: k0, oscillation_phase, temporal_exponent
+    complex*16       :: diffract_factor, exp_argument, prefactor, &
                         inv_complex_waist_2, j=cmplx(0., 1.)
 
     ! This function uses the complex expression of a Gaussian laser
@@ -28,15 +28,15 @@ contains
 
     ! Calculate a few factors which are independent of the macroparticle
     k0 = 2*pi/wavelength
-    oscillation_phase = j * k0 * clight * ( t - t_peak )
+    oscillation_phase = k0 * clight * ( t - t_peak )
     temporal_exponent = ( (t - t_peak) / duration )**2
     ! The coefficients below contain info about Gouy phase,
     ! laser diffraction, and phase front curvature
-    diffract_factor = 1 - j * f * 2./(k0*waist**2)
+    diffract_factor = 1 + j * f * 2./(k0*waist**2)
     inv_complex_waist_2 = 1./( waist**2 * diffract_factor )
 
     ! Calculate amplitude prefactor
-    prefactor = e_max * exp( oscillation_phase - temporal_exponent )
+    prefactor = e_max * exp( j * oscillation_phase - temporal_exponent )
 
     ! Because diffract_factor is a complex, the code below takes into
     ! account the impact of the dimensionality on both the Gouy phase
