@@ -42,10 +42,11 @@ namespace
     const int   VirtualParticleID  = 1000000000;
 }
 
-  //
-  // A struct used for communicating particle data accross processes
-  // during multi-level operations.
-  //
+
+//
+// A struct used for communicating particle data accross processes
+// during multi-level operations.
+//
 struct ParticleCommData
 {
 #ifdef BL_SINGLE_PRECISION_PARTICLES
@@ -59,9 +60,10 @@ struct ParticleCommData
   RealType m_data[1 + BL_SPACEDIM];
 };
 
-  //
-  // A struct used for storing a particle's position in the AMR hierarchy.
-  //
+
+//
+// A struct used for storing a particle's position in the AMR hierarchy.
+//
 struct ParticleLocData
 {
   int     m_lev;
@@ -69,6 +71,10 @@ struct ParticleLocData
   IntVect m_cell;
 };
 
+
+//
+// The struct used to store particles.
+//
 template<int NR, int NI=0>
 struct Particle
 {
@@ -107,7 +113,7 @@ struct Particle
     static IntVect Index (const Particle<NR, NI>& p, const Geometry& geom);
 
     //
-    // Checks a particles location on levels lev_min and higher.
+    // Checks a particle's location on levels lev_min and higher.
     // Returns false if the particle does not exist on that level.
     //
     static bool Where (const Particle<NR, NI>& prt, const ParGDBBase* gdb, 
