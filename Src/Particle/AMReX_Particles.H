@@ -42,6 +42,26 @@ namespace
     const int   VirtualParticleID  = 1000000000;
 }
 
+struct ParticleCommData
+{
+#ifdef BL_SINGLE_PRECISION_PARTICLES
+    typedef float RealType;
+#else
+    typedef double RealType;
+#endif
+  int     m_lev;
+  int     m_grid;
+  IntVect m_cell;
+  RealType m_data[1 + BL_SPACEDIM];
+};
+
+struct ParticleLocData
+{
+  int     m_lev;
+  int     m_grid;
+  IntVect m_cell;
+};
+
 template<int NR, int NI=0>
 struct Particle
 {
@@ -57,9 +77,6 @@ struct Particle
 
     int      m_id   = -1;
     int      m_cpu  = -1;
-    int      m_lev  = -1;
-    int      m_grid = -1;
-    IntVect  m_cell;
     RealType m_pos[BL_SPACEDIM];
 
     //
@@ -82,27 +99,31 @@ struct Particle
     static IntVect Index (const Particle<NR, NI>& p, const Geometry& geom);
 
     //
-    // Checks/sets a particles location on levels lev_min and higher.
+    // Checks a particles location on levels lev_min and higher.
     // Returns false if the particle does not exist on that level.
     //
-    static bool Where (Particle<NR, NI>& prt, const ParGDBBase* gdb, int lev_min = 0, int finest_level = -1);
+    static bool Where (const Particle<NR, NI>& prt, const ParGDBBase* gdb, 
+		       ParticleLocData& pld, int lev_min = 0, int finest_level = -1);
 
     //
-    // Checks/sets whether the particle has crossed a periodic boundary in such a way
+    // Checks whether the particle has crossed a periodic boundary in such a way
     // that it is on levels lev_min and higher.
     //
-    static bool PeriodicWhere (Particle<NR, NI>& prt, const ParGDBBase* gdb, int lev_min = 0, int finest_level = -1);
+    static bool PeriodicWhere (Particle<NR, NI>& prt, const ParGDBBase* gdb, 
+			       ParticleLocData& pld, int lev_min = 0, int finest_level = -1);
 
     //
-    // Checks/sets whether a particle is within its grid (including grow cells).
+    // Checks whether a particle is within its grid (including grow cells).
     //
-    static bool RestrictedWhere (Particle<NR, NI>& p, const ParGDBBase* gdb, int ngrow);
+    static bool RestrictedWhere (const Particle<NR, NI>& p, const ParGDBBase* gdb, 
+				 ParticleLocData& pld, int ngrow);
 
     //
-    // Checks/sets a particle's location on a specific level.
+    // Checks a particle's location on a specific level.
     // (Yes this is distict from the functionality provided above)
     //
-    static bool SingleLevelWhere (Particle<NR, NI>& p, const ParGDBBase* gdb, int level);
+    static bool SingleLevelWhere (const Particle<NR, NI>& p, const ParGDBBase* gdb, 
+				  ParticleLocData& pld, int level);
 
     //
     // Updates a particle's location (Where), tries to periodic shift any particles
@@ -427,18 +448,21 @@ Particle<NR, NI>::FineToCrse (const Particle<NR, NI>&            p,
         which[i] =  0;
     }
 
-    const Box& ibx = amrex::grow(gdb->ParticleBoxArray(flev)[p.m_grid],-1);
+    ParticleLocData pld;
+    Particle<NR, NI>::Where(p, gdb, pld);
+
+    const Box& ibx = amrex::grow(gdb->ParticleBoxArray(flev)[pld.m_grid],-1);
 
     BL_ASSERT(ibx.ok());
 
-    if (ibx.contains(p.m_cell))
+    if (ibx.contains(pld.m_cell))
         //
         // We're strictly contained in our valid box.
         // We can't cross a fine->crse boundary.
         //
         return false;
 
-    if (!compfvalid_grown.contains(p.m_cell))
+    if (!compfvalid_grown.contains(pld.m_cell))
         //
         // We're strictly contained in our "valid" region. Note that the valid
         // region contains any periodically shifted ghost cells that intersect
@@ -770,10 +794,11 @@ Particle<NR, NI>::Index (const Particle<NR, NI>& p,
 
 template <int NR, int NI>
 bool
-Particle<NR, NI>::Where (Particle<NR, NI>& p,
-			 const ParGDBBase* gdb,
-			 int           lev_min,
-			 int           finest_level)
+Particle<NR, NI>::Where (const Particle<NR, NI>&     p,
+			 const ParGDBBase*           gdb,
+			 ParticleLocData&       pld,
+			 int                         lev_min,
+			 int                         finest_level)
 {
     BL_ASSERT(gdb != 0);
 
@@ -782,29 +807,19 @@ Particle<NR, NI>::Where (Particle<NR, NI>& p,
 
     BL_ASSERT(finest_level <= gdb->finestLevel());
 
-    std::vector< std::pair<int,Box> > isects;
+    std::vector< std::pair<int, Box> > isects;
 
     for (int lev = finest_level; lev >= lev_min; lev--)
     {
-        const IntVect& iv = Particle<NR, NI>::Index(p,gdb->Geom(lev));
+        const IntVect& iv = Particle<NR, NI>::Index(p, gdb->Geom(lev));
 
-	if (lev == p.m_lev) { 
-            // We may take a shortcut because the fact that we are here means 
-            // this particle does not belong to any finer grids.
-	    const BoxArray& ba = gdb->ParticleBoxArray(p.m_lev);
-	    if (0 <= p.m_grid && p.m_grid < ba.size() && ba[p.m_grid].contains(iv)) {
-		p.m_cell = iv;
-		return true;
-	    }
-	}
-
-        gdb->ParticleBoxArray(lev).intersections(Box(iv,iv),isects,true,0);
+        gdb->ParticleBoxArray(lev).intersections(Box(iv, iv), isects, true, 0);
 
         if (!isects.empty())
         {
-            p.m_lev  = lev;
-            p.m_grid = isects[0].first;
-            p.m_cell = iv;
+            pld.m_lev  = lev;
+            pld.m_grid = isects[0].first;
+            pld.m_cell = iv;
 
             return true;
         }
@@ -814,10 +829,11 @@ Particle<NR, NI>::Where (Particle<NR, NI>& p,
 
 template <int NR, int NI>
 bool
-Particle<NR, NI>::PeriodicWhere (Particle<NR, NI>& p,
-				 const ParGDBBase*    gdb,
-				 int           lev_min,
-				 int           finest_level)
+Particle<NR, NI>::PeriodicWhere (Particle<NR, NI>&           p,
+				 const ParGDBBase*           gdb,
+				 ParticleLocData&       pld,
+				 int                         lev_min,
+				 int                         finest_level)
 {
     BL_ASSERT(gdb != 0);
 
@@ -827,6 +843,7 @@ Particle<NR, NI>::PeriodicWhere (Particle<NR, NI>& p,
         finest_level = gdb->finestLevel();
 
     BL_ASSERT(finest_level <= gdb->finestLevel());
+
     //
     // Create a copy "dummy" particle to check for periodic outs.
     //
@@ -848,9 +865,9 @@ Particle<NR, NI>::PeriodicWhere (Particle<NR, NI>& p,
                        p.m_pos[1] = p_prime.m_pos[1];,
                        p.m_pos[2] = p_prime.m_pos[2];);
 
-                p.m_lev  = lev;
-                p.m_grid = isects[0].first;
-                p.m_cell = iv;
+                pld.m_lev  = lev;
+                pld.m_grid = isects[0].first;
+                pld.m_cell = iv;
 
                 return true;
             }
@@ -862,17 +879,18 @@ Particle<NR, NI>::PeriodicWhere (Particle<NR, NI>& p,
 
 template <int NR, int NI>
 bool
-Particle<NR, NI>::RestrictedWhere (Particle<NR, NI>& p,
-				   const ParGDBBase* gdb,
-				   int               ngrow)
+Particle<NR, NI>::RestrictedWhere (const Particle<NR, NI>&     p,
+				   const ParGDBBase*           gdb,
+				   ParticleLocData&       pld,
+				   int                         ngrow)
 {
     BL_ASSERT(gdb != 0);
 
-    const IntVect& iv = Particle<NR, NI>::Index(p,gdb->Geom(p.m_lev));
+    const IntVect& iv = Particle<NR, NI>::Index(p,gdb->Geom(pld.m_lev));
 
-    if (amrex::grow(gdb->ParticleBoxArray(p.m_lev)[p.m_grid], ngrow).contains(iv))
+    if (amrex::grow(gdb->ParticleBoxArray(pld.m_lev)[pld.m_grid], ngrow).contains(iv))
     {
-        p.m_cell = iv;
+        pld.m_cell = iv;
 
         return true;
     }
@@ -882,9 +900,10 @@ Particle<NR, NI>::RestrictedWhere (Particle<NR, NI>& p,
 
 template <int NR, int NI>
 bool 
-Particle<NR, NI>::SingleLevelWhere (Particle<NR, NI>& p, 
-				    const ParGDBBase* gdb,
-				    int               level)
+Particle<NR, NI>::SingleLevelWhere (const Particle<NR, NI>&     p, 
+				    const ParGDBBase*     gdb,
+				    ParticleLocData& pld,
+				    int                   level)
 {
     BL_ASSERT(gdb != 0);
 
@@ -896,9 +915,9 @@ Particle<NR, NI>::SingleLevelWhere (Particle<NR, NI>& p,
 
     if (!isects.empty())
     {
-        p.m_lev  = level;
-        p.m_grid = isects[0].first;
-        p.m_cell = iv;
+        pld.m_lev  = level;
+        pld.m_grid = isects[0].first;
+        pld.m_cell = iv;
 
         return true;
     }
@@ -990,14 +1009,15 @@ Particle<NR, NI>::Reset (Particle<NR, NI>& p,
     BL_PROFILE("Particle<NR, NI>::Reset()");
     BL_ASSERT(gdb != 0);
 
-    bool ok = Particle<NR, NI>::Where(p,gdb);
+    ParticleLocData pld;
+    bool ok = Particle<NR, NI>::Where(p, gdb, pld);
 
     if (!ok && gdb->Geom(0).isAnyPeriodic())
     {
         // Attempt to shift the particle back into the domain if it
         // crossed a periodic boundary.
-	Particle<NR, NI>::PeriodicShift(p,gdb);
-	ok = Particle<NR, NI>::Where(p,gdb);
+      Particle<NR, NI>::PeriodicShift(p, gdb, pld);
+      ok = Particle<NR, NI>::Where(p, gdb, pld);
     }
     
     if (!ok) {
@@ -1110,10 +1130,7 @@ std::ostream&
 operator<< (std::ostream& os, const Particle<NR, NI>& p)
 {
     os << p.m_id   << ' '
-       << p.m_cpu  << ' '
-       << p.m_lev  << ' '
-       << p.m_grid << ' '
-       << p.m_cell << ' ';
+       << p.m_cpu  << ' ';
 
     for (int i = 0; i < BL_SPACEDIM; i++)
         os << p.m_pos[i] << ' ';
@@ -1311,7 +1328,6 @@ public:
     void WritePlotFile (const std::string& dir, const std::string& name) const;
 
     void WriteAsciiFile          (const std::string& file);
-    void WriteCoarsenedAsciiFile (const std::string& file);
 
     int Verbose () { return m_verbose; }
 
@@ -1383,7 +1399,9 @@ protected:
     Array<PMap> m_particles;
 
 private:
-    void AssignDensityDoit (int rho_index, Array<std::unique_ptr<MultiFab> >& mf, PMap& data,
+    void AssignDensityDoit (int rho_index, 
+			    Array<std::unique_ptr<MultiFab> >& mf, 
+			    std::map<int, std::deque<ParticleCommData> >& data,
 			    int ncomp, int lev_min = 0) const;
 };
 
@@ -1521,9 +1539,9 @@ ParticleContainer<NR,NI,C>::ByteSpread () const
 template <int NR, int NI, class C>
 void
 ParticleContainer<NR,NI,C>::addOneParticle (int                  id_in,
-					  int                  cpu_in, 
-					  std::vector<double>& xloc, 
-					  std::vector<double>& attributes)
+					    int                  cpu_in, 
+					    std::vector<double>& xloc, 
+					    std::vector<double>& attributes)
 {
     BL_PROFILE("ParticleContainer<NR,NI,C>::addOneParticle()");
     if (m_particles.size() == 0)
@@ -1566,11 +1584,12 @@ ParticleContainer<NR,NI,C>::addOneParticle (int                  id_in,
         if (p.m_pos[d] >= geom.ProbHi(d)) p.m_pos[d] -= Delta[d];
     }
 
-    if (!ParticleType::Where(p,m_gdb))
+    ParticleLocData pld;
+    if (!ParticleType::Where(p, m_gdb, pld))
     {
-        ParticleType::PeriodicShift(p,m_gdb);
+        ParticleType::PeriodicShift(p, m_gdb);
 
-        if (!ParticleType::Where(p,m_gdb))
+        if (!ParticleType::Where(p, m_gdb, pld))
         {
             for (int d = 0; d < BL_SPACEDIM; d++)
             {
@@ -1580,10 +1599,10 @@ ParticleContainer<NR,NI,C>::addOneParticle (int                  id_in,
         }
     }
 
-    m_particles[p.m_lev][p.m_grid].push_back(p);
+    m_particles[pld.m_lev][pld.m_grid].push_back(p);
 
     // Note that we will need to call Redistribute once we are done adding particles this way.
-    // The Where call above assigns a particle to a grid (p.m_grid) based on the particle location.
+    // The Where call above assigns a particle to a grid (pld.m_grid) based on the particle location.
     // However, the particle may not currently live on the processor that owns that grid.
     // The Redistribute routine should ensure that the particle ends up on the right processor.
 }
@@ -1626,7 +1645,8 @@ ParticleContainer<NR,NI,C>::addNParticles(int n_part, Array<double>& x, Array<do
        p.m_data[j+2] = w[j]; // w
 #endif
 
-       if (!ParticleType::Where(p,m_gdb))
+       ParticleLocData pld;
+       if (!ParticleType::Where(p, m_gdb, pld))
               amrex::Abort("ParticleContainer<NR,NI,C>::addNParticles(): invalid particle location");
 
        for (int i = 0; i < n_attr; i++)
@@ -1635,7 +1655,7 @@ ParticleContainer<NR,NI,C>::addNParticles(int n_part, Array<double>& x, Array<do
        p.m_id  = ParticleType::NextID();
        p.m_cpu = ParallelDescriptor::MyProc();
 
-       m_particles[p.m_lev][p.m_grid].push_back(p);
+       m_particles[pld.m_lev][pld.m_grid].push_back(p);
     }
 
     Redistribute();
@@ -1745,7 +1765,7 @@ ParticleContainer<NR,NI,C>::Increment (MultiFab& mf,
 template <int NR, int NI, class C>
 long
 ParticleContainer<NR,NI,C>::IncrementWithTotal (MultiFab& mf,
-					      int       lev)
+						int       lev)
 {
     BL_PROFILE("ParticleContainer<NR,NI,C>::IncrementWithTotal(lev)");
     BL_ASSERT(OK());
@@ -1784,11 +1804,14 @@ ParticleContainer<NR,NI,C>::IncrementWithTotal (MultiFab& mf,
 
 	for (const auto& p : pbox)
         {
+	  ParticleLocData pld;
+	  Particle<NR, NI>::Where(p, m_gdb, pld);
+
             if (p.m_id > 0)
             {
-                BL_ASSERT(p.m_grid == grid);
+                BL_ASSERT(pld.m_grid == grid);
 
-                fab(p.m_cell) += 1;
+                fab(pld.m_cell) += 1;
                 num_particles_in_domain += 1;
             }
         }
@@ -2216,6 +2239,7 @@ ParticleContainer<NR,NI,C>::AddParticlesAtLevel (int   level,
     while (!virts.empty())
     {
         ParticleType& p = virts.back();
+	ParticleLocData pld;
 
         if (p.m_id > 0)
         {
@@ -2226,7 +2250,7 @@ ParticleContainer<NR,NI,C>::AddParticlesAtLevel (int   level,
                 //
                 p.m_lev = level;
 
-                if (!ParticleType::SingleLevelWhere(p, m_gdb, level))
+                if (!ParticleType::SingleLevelWhere(p, m_gdb, pld, level))
                     //
                     // Virtuals shouldn't be in Ghost cells.
                     //
@@ -2234,14 +2258,14 @@ ParticleContainer<NR,NI,C>::AddParticlesAtLevel (int   level,
             }
             else
             {
-                BL_ASSERT(p.m_lev == level);
+                BL_ASSERT(pld.m_lev == level);
             }
 
-            const int who = m_gdb->ParticleDistributionMap(p.m_lev)[p.m_grid];
+            const int who = m_gdb->ParticleDistributionMap(pld.m_lev)[pld.m_grid];
 
             if (who == MyProc)
             {
-                m_particles[p.m_lev][p.m_grid].push_back(p);
+                m_particles[pld.m_lev][pld.m_grid].push_back(p);
             }
             else
             {
@@ -2379,7 +2403,9 @@ ParticleContainer<NR,NI,C>::CreateVirtualParticles (int   level,
 
 	for (auto it = pbox.cbegin(); it != pbox.cend(); ++it)
         {
-            if (buffer.contains(it->m_cell))
+	  ParticleLocData pld;
+	  Particle<NR, NI>::Where(*it, m_gdb, pld);
+            if (buffer.contains(pld.m_cell))
             {
                 //
                 // It's in the no-aggregation buffer.
@@ -2410,7 +2436,7 @@ ParticleContainer<NR,NI,C>::CreateVirtualParticles (int   level,
                     // that all other components should be combined in a mass-weighted
                     // average.
                     //
-                    auto agg_map_it = agg_map.find(it->m_cell);
+                    auto agg_map_it = agg_map.find(pld.m_cell);
 
                     if (agg_map_it == agg_map.end())
                     {
@@ -2422,7 +2448,7 @@ ParticleContainer<NR,NI,C>::CreateVirtualParticles (int   level,
                         // Set its id to indicate that it's a virt.
                         //
                         p.m_id = VirtualParticleID;
-                        agg_map[p.m_cell] = p;
+                        agg_map[pld.m_cell] = p;
                     }
                     else
                     {
@@ -2439,7 +2465,7 @@ ParticleContainer<NR,NI,C>::CreateVirtualParticles (int   level,
                         {
                             pold.m_pos[i] = (old_mass*pold.m_pos[i] + new_mass*pnew.m_pos[i])/total_mass;
                         }
-                        BL_ASSERT(ParticleType::Index(pold,m_gdb->Geom(level)) == it->m_cell);
+                        BL_ASSERT(ParticleType::Index(pold,m_gdb->Geom(level)) == pld.m_cell);
                         //
                         // Set the metadata (presumably velocity) to the mass-weighted average.
                         //
@@ -2518,16 +2544,15 @@ ParticleContainer<NR,NI,C>::CreateGhostParticles (int   level,
                 // Create a copy.
                 //
                 ParticleType p = *it;
+		ParticleLocData pld;
+		
+		ParticleType::SingleLevelWhere(p, m_gdb, pld, level + 1);
+
                 //
                 // Set its id to indicate that it's a ghost.
                 //
                 p.m_id = GhostParticleID;
-                //
-                // Set its position.
-                //
-                p.m_lev  = level + 1;
-                p.m_grid = isec.first;
-                p.m_cell = iv;
+
                 //
                 // Store it in the PBox.
                 //
@@ -2551,6 +2576,11 @@ ParticleContainer<NR,NI,C>::Redistribute (bool where_already_called,
     BL_PROFILE("ParticleContainer::Redistribute()");
     const int MyProc   = ParallelDescriptor::MyProc();
     Real      strttime = ParallelDescriptor::second();
+
+    // Note - fix this later. It doesn't make sense to have this option
+    // now that the particles don't store the lev, grid, and cell.
+    where_already_called = false;
+
     //
     // On startup there are cases where Redistribute() could be called
     // with a given finestLevel() where that AmrLevel has yet to be defined.
@@ -2592,37 +2622,38 @@ ParticleContainer<NR,NI,C>::Redistribute (bool where_already_called,
 	    {
 		for (auto it = first; it != last; ++it)
 		{
-		    ParticleType& p = *it;
+		  ParticleLocData pld;
+		  ParticleType& p = *it;
 
-		    if (p.m_id > 0)
+		  if (p.m_id > 0)
 		    {
-			if (!where_already_called)
+		      if (!where_already_called)
 			{
-			    if (!ParticleType::Where(p,m_gdb, lev_min, theEffectiveFinestLevel))
+			  if (!ParticleType::Where(p, m_gdb, pld, lev_min, theEffectiveFinestLevel))
 			    {                                
-				if (full_where) // Lengthier checks for subcycling.
+			      if (full_where) // Lengthier checks for subcycling.
 				{
-				    if (!ParticleType::PeriodicWhere(p, m_gdb, lev_min, theEffectiveFinestLevel))
+				  if (!ParticleType::PeriodicWhere(p, m_gdb, pld, lev_min, theEffectiveFinestLevel))
 				    {
-					if (lev_min != 0) // RestrictedWhere should be unnecessary at top level.
+				      if (lev_min != 0) // RestrictedWhere should be unnecessary at top level.
 					{
-					    if (!ParticleType::RestrictedWhere(p, m_gdb, nGrow))
-						amrex::Abort("ParticleContainer<NR,NI,C>::Redistribute(): invalid particle at non-coarse step");
+					  if (!ParticleType::RestrictedWhere(p, m_gdb, pld, nGrow))
+					    amrex::Abort("ParticleContainer<NR,NI,C>::Redistribute(): invalid particle at non-coarse step");
 					}
-					else
+				      else
 					{
-					    //
-					    // The particle has left the domain; invalidate it.
-					    // This typically only happens on a coarse timestep.
-					    //
-					    p.m_id = -p.m_id;
+					  //
+					  // The particle has left the domain; invalidate it.
+					  // This typically only happens on a coarse timestep.
+					  //
+					  p.m_id = -p.m_id;
 					}
 				    }
 				}
-				else
+			      else
 				{
-				    std::cout << "Bad Particle: " << p << '\n';
-				    amrex::Abort("ParticleContainer<NR,NI,C>::Redistribute(): invalid particle in basic check");
+				  std::cout << "Bad Particle: " << p << '\n';
+				  amrex::Abort("ParticleContainer<NR,NI,C>::Redistribute(): invalid particle in basic check");
 				}
 			    }
 			}
@@ -2633,16 +2664,16 @@ ParticleContainer<NR,NI,C>::Redistribute (bool where_already_called,
 			    // The owner of the particle is the CPU owning the finest grid
 			    // in state data that contains the particle.
 			    //
-			    const int who = m_gdb->ParticleDistributionMap(p.m_lev)[p.m_grid];
+			    const int who = m_gdb->ParticleDistributionMap(pld.m_lev)[pld.m_grid];
 			    
 			    if (who == MyProc)
 			    {
-				if (p.m_lev != lev || p.m_grid != grid)
+				if (pld.m_lev != lev || pld.m_grid != grid)
 				{
 				    //
 				    // We own it but must shift it to another place.
 				    //
-				    m_particles[p.m_lev][p.m_grid].push_back(p);
+				    m_particles[pld.m_lev][pld.m_grid].push_back(p);
 				    //
 				    // Invalidate the particle so we can reclaim its space.
 				    //
@@ -2813,7 +2844,7 @@ ParticleContainer<NR,NI,C>::RedistributeMPI (PMap& not_ours)
     //
     {
         const int SeqNum     = ParallelDescriptor::SeqNum();
-        const int iChunkSize = 4 + BL_SPACEDIM + NI;
+        const int iChunkSize = 2 + NI;
         //
         // Allocate data for rcvs as one big chunk.
         //
@@ -2858,18 +2889,14 @@ ParticleContainer<NR,NI,C>::RedistributeMPI (PMap& not_ours)
             {
                 BL_ASSERT(p.m_id > 0);
 
+		ParticleLocData pld;
+		Particle<NR, NI>::Where(p, m_gdb, pld);
+
                 senddata[ioff+0] = p.m_id;
                 senddata[ioff+1] = p.m_cpu;
 
-                senddata[ioff+2] = p.m_lev;
-                senddata[ioff+3] = p.m_grid;
-
-                D_TERM(senddata[ioff+4] = p.m_cell[0];,
-                       senddata[ioff+5] = p.m_cell[1];,
-                       senddata[ioff+6] = p.m_cell[2];);
-
-		for (int i = 0; i < NI; ++i) {
-		    senddata[i+ioff+4+BL_SPACEDIM] = p.m_idata[i];
+ 		for (int i = 0; i < NI; ++i) {
+		    senddata[i+ioff+2] = p.m_idata[i];
 		}
 
                 ioff += iChunkSize;
@@ -2899,23 +2926,16 @@ ParticleContainer<NR,NI,C>::RedistributeMPI (PMap& not_ours)
 
 		for (auto& p : pbox)
                 {
-                    BL_ASSERT(rcvp != 0);
+		  BL_ASSERT(rcvp != 0);
 
-                    p.m_id   = rcvp[0];
-                    p.m_cpu  = rcvp[1];
+		  p.m_id   = rcvp[0];
+		  p.m_cpu  = rcvp[1];
 
-                    p.m_lev  = rcvp[2];
-                    p.m_grid = rcvp[3];
+		  for (int i = 0; i < NI; ++i) {
+		    p.m_idata[i] = rcvp[i+2];
+		  }
 
-                    D_TERM(p.m_cell[0] = rcvp[4];,
-                           p.m_cell[1] = rcvp[5];,
-                           p.m_cell[2] = rcvp[6];);
-
-		    for (int i = 0; i < NI; ++i) {
-			p.m_idata[i] = rcvp[i+4+BL_SPACEDIM];
-		    }
-
-                    rcvp += iChunkSize;
+		  rcvp += iChunkSize;
                 }
             }
         }
@@ -2981,7 +3001,7 @@ ParticleContainer<NR,NI,C>::RedistributeMPI (PMap& not_ours)
                 ioff += NR;
             }
 
-            PBox().swap(pbox);
+	    PBox().swap(pbox);
 
             ParallelDescriptor::Send(senddata.dataPtr(),Cnt,Who,SeqNum);
         }
@@ -3005,6 +3025,7 @@ ParticleContainer<NR,NI,C>::RedistributeMPI (PMap& not_ours)
 
                 BL_ASSERT(int(pbox.size()) == RcvCnts[Who]);
 
+		ParticleLocData pld;
 		for (auto& p : pbox)
                 {
                     BL_ASSERT(rcvp != 0);
@@ -3020,10 +3041,12 @@ ParticleContainer<NR,NI,C>::RedistributeMPI (PMap& not_ours)
 
                     rcvp += NR;
 
-                    m_particles[p.m_lev][p.m_grid].push_back(p);
+		    ParticleType::Where(p, m_gdb, pld);
+
+                    m_particles[pld.m_lev][pld.m_grid].push_back(p);
                 }
 
-                PBox().swap(pbox);
+		PBox().swap(pbox);
             }
         }
     }
@@ -3033,9 +3056,9 @@ ParticleContainer<NR,NI,C>::RedistributeMPI (PMap& not_ours)
 template <int NR, int NI, class C>
 bool
 ParticleContainer<NR,NI,C>::OK (bool full_where,
-			      int  lev_min,
-			      int  ngrow,
-			      int  finest_level) const
+				int  lev_min,
+				int  ngrow,
+				int  finest_level) const
 {
     BL_PROFILE("ParticleContainer<NR,NI,C>::OK()");
     if (finest_level == -1)
@@ -3067,27 +3090,31 @@ ParticleContainer<NR,NI,C>::OK (bool full_where,
 
                 if (p.m_id > 0)
                 {
-                    const int     llev  = p.m_lev;
-                    const int     lgrid = p.m_grid;
-                    const IntVect cell  = p.m_cell;
+		  
+		  ParticleLocData pld;
+		  Particle<NR, NI>::Where(p, m_gdb, pld);
 
-                    if (!ParticleType::Where(p,m_gdb, lev_min, finest_level))
+		  const int     llev  = pld.m_lev;
+		  const int     lgrid = pld.m_grid;
+		  const IntVect cell  = pld.m_cell;
+
+		  if (!ParticleType::Where(p, m_gdb, pld, lev_min, finest_level))
                     {
-                        if (full_where)
+		      if (full_where)
                         {
-                            if (!ParticleType::PeriodicWhere(p, m_gdb, lev_min, finest_level)) 
+			  if (!ParticleType::PeriodicWhere(p, m_gdb, pld, lev_min, finest_level)) 
                             {
-                                if (!ParticleType::RestrictedWhere(p, m_gdb, ngrow))
-                                    return false;
+			      if (!ParticleType::RestrictedWhere(p, m_gdb, pld, ngrow))
+				return false;
                             }
                         }
-                        else
+		      else
                         {
-                            return false;
+			  return false;
                         }
                     }
-                    if ((lev  != p.m_lev  || lev  != llev)  ||
-                        (grid != p.m_grid || grid != lgrid) || cell != p.m_cell)
+                    if ((lev  != pld.m_lev  || lev  != llev)  ||
+                        (grid != pld.m_grid || grid != lgrid) || cell != pld.m_cell)
                     {
                         std::cout << "PARTICLE NUMBER " << p.m_id << '\n';
 
@@ -3095,14 +3122,14 @@ ParticleContainer<NR,NI,C>::OK (bool full_where,
                         for (int i = 0; i < BL_SPACEDIM; i++)
                             std::cout << p.m_pos[i] << ' ';
 
-                        if (lev != p.m_lev || lev != llev)
-                           std::cout << "BAD LEV  " << lev  << " " << p.m_lev << '\n';
+                        if (lev != pld.m_lev || lev != llev)
+                           std::cout << "BAD LEV  " << lev  << " " << pld.m_lev << '\n';
 
-                        if (grid != p.m_grid || grid != lgrid)
-                           std::cout << "BAD GRID " << grid << " " << p.m_grid << '\n';
+                        if (grid != pld.m_grid || grid != lgrid)
+                           std::cout << "BAD GRID " << grid << " " << pld.m_grid << '\n';
 
-                        if (cell != p.m_cell)
-                           std::cout << "BAD CELL " << cell << " " << p.m_cell << '\n';
+                        if (cell != pld.m_cell)
+                           std::cout << "BAD CELL " << cell << " " << pld.m_cell << '\n';
 
                         return false;
                     }
@@ -3496,7 +3523,7 @@ ParticleContainer<NR,NI,C>::WriteParticles (int            lev,
             // info since it's implicit in how the particles
             // are stored.  We can easily recreate them on restart.
             //
-            const int iChunkSize = 2+BL_SPACEDIM;
+            const int iChunkSize = 2;
 
 #ifdef BL_LOWMEMPWRITE
 	    int maxItemsToWrite(8192);
@@ -3511,15 +3538,9 @@ ParticleContainer<NR,NI,C>::WriteParticles (int            lev,
 	      int itemCount(0);
               for( ; it != End && itemCount < maxItemsToWrite; ++it) {
                 if(it->m_id > 0) {
-                    BL_ASSERT(it->m_lev == lev);
-                    BL_ASSERT(it->m_grid == grid);
 
                     iptr[0] = it->m_id;
                     iptr[1] = it->m_cpu;
-
-                    D_TERM(iptr[2] = it->m_cell[0];,
-                           iptr[3] = it->m_cell[1];,
-                           iptr[4] = it->m_cell[2];);
 
                     iptr += iChunkSize;
                 }
@@ -3538,15 +3559,8 @@ ParticleContainer<NR,NI,C>::WriteParticles (int            lev,
             {
                 if (it->m_id > 0)
                 {
-                    BL_ASSERT(it->m_lev == lev);
-                    BL_ASSERT(it->m_grid == grid);
-
                     iptr[0] = it->m_id;
                     iptr[1] = it->m_cpu;
-
-                    D_TERM(iptr[2] = it->m_cell[0];,
-                           iptr[3] = it->m_cell[1];,
-                           iptr[4] = it->m_cell[2];);
 
                     iptr += iChunkSize;
                 }
@@ -3938,7 +3952,7 @@ ParticleContainer<NR,NI,C>::ReadParticles_DoublePrecision (int            cnt,
     // the m_lev and m_grid data on disk.  We can easily recreate
     // that given the structure of the checkpoint file.
     //
-    const int iChunkSize = 2+BL_SPACEDIM;
+    const int iChunkSize = 2;
 
     Array<int> istuff(cnt*iChunkSize);
 
@@ -3984,37 +3998,29 @@ ParticleContainer<NR,NI,C>::ReadParticles_DoublePrecision (int            cnt,
         }
         else
         {
-           if (!ParticleType::Where(p,m_gdb))
+	  ParticleLocData pld;
+	  if (!ParticleType::Where(p, m_gdb, pld))
             {
-                ParticleType::PeriodicShift(p,m_gdb);
+                ParticleType::PeriodicShift(p, m_gdb);
 
-                if (!ParticleType::Where(p,m_gdb))
+                if (!ParticleType::Where(p, m_gdb, pld))
                 {
-                    std::cout << "RESTART:BAD PARTICLE ID WOULD BE " << ParticleType::NextID() << '\n';
+		  std::cout << "RESTART:BAD PARTICLE ID WOULD BE " << ParticleType::NextID() << '\n';
 
-                    for (int d = 0; d < BL_SPACEDIM; d++)
+		  for (int d = 0; d < BL_SPACEDIM; d++)
                     {
-                        std::cout << "RESTART:BAD PARTICLE POS(" << d << ") " << p.m_pos[d] << std::endl;
+		      std::cout << "RESTART:BAD PARTICLE POS(" << d << ") " << p.m_pos[d] << std::endl;
                     }
 
-                    amrex::Abort("ParticleContainer<NR,NI,C>::ReadParticles_DoublePrecision(): invalid particle");
+		  amrex::Abort("ParticleContainer<NR,NI,C>::ReadParticles_DoublePrecision(): invalid particle");
                 }
             }
-
-            p.m_id   = ParticleType::NextID();
-            p.m_cpu  = ParallelDescriptor::MyProc();
+	  
+	  p.m_id   = ParticleType::NextID();
+	  p.m_cpu  = ParallelDescriptor::MyProc();
         }
-        p.m_lev  = lev;
-        p.m_grid = grd;
 
         BL_ASSERT(p.m_id > 0);
-
-        BL_ASSERT(p.m_lev  == lev);
-        BL_ASSERT(p.m_grid == grd);
-
-        D_TERM(p.m_cell[0] = iptr[2];,
-               p.m_cell[1] = iptr[3];,
-               p.m_cell[2] = iptr[4];);
 
         iptr += iChunkSize;
 
@@ -4062,7 +4068,7 @@ ParticleContainer<NR,NI,C>::ReadParticles_SinglePrecision (int            cnt,
     // the m_lev and m_grid data on disk.  We can easily recreate
     // that given the structure of the checkpoint file.
     //
-    const int iChunkSize = 2+BL_SPACEDIM;
+    const int iChunkSize = 2;
 
     Array<int> istuff(cnt*iChunkSize);
 
@@ -4083,6 +4089,7 @@ ParticleContainer<NR,NI,C>::ReadParticles_SinglePrecision (int            cnt,
     float* rptr = rstuff.dataPtr();
     PBox&  pbox = m_particles[lev][grd];
 
+    ParticleLocData pld;
     ParticleType p;
 
     // If we are restarting from a plotfile instead of a checkpoint file, then we do not
@@ -4105,11 +4112,11 @@ ParticleContainer<NR,NI,C>::ReadParticles_SinglePrecision (int            cnt,
         }
         else
         {
-           if (!ParticleType::Where(p,m_gdb))
+	  if (!ParticleType::Where(p, m_gdb, pld))
             {
-                ParticleType::PeriodicShift(p,m_gdb);
+	      ParticleType::PeriodicShift(p, m_gdb);
 
-                if (!ParticleType::Where(p,m_gdb))
+	      if (!ParticleType::Where(p, m_gdb, pld))
                 {
                     std::cout << "RESTART:BAD PARTICLE ID WOULD BE " << ParticleType::NextID() << '\n';
 
@@ -4126,17 +4133,7 @@ ParticleContainer<NR,NI,C>::ReadParticles_SinglePrecision (int            cnt,
             p.m_cpu  = ParallelDescriptor::MyProc();
         }
 
-        p.m_lev  = lev;
-        p.m_grid = grd;
-
         BL_ASSERT(p.m_id > 0);
-
-        BL_ASSERT(p.m_lev  == lev);
-        BL_ASSERT(p.m_grid == grd);
-
-        D_TERM(p.m_cell[0] = iptr[2];,
-               p.m_cell[1] = iptr[3];,
-               p.m_cell[2] = iptr[4];);
 
         iptr += iChunkSize;
 
@@ -4279,144 +4276,6 @@ ParticleContainer<NR,NI,C>::WriteAsciiFile (const std::string& filename)
         if (ParallelDescriptor::IOProcessor())
         {
             std::cout << "ParticleContainer<NR,NI,C>::WriteAsciiFile() time: " << stoptime << '\n';
-        }
-    }
-}
-
-template <int NR, int NI, class C>
-void
-ParticleContainer<NR,NI,C>::WriteCoarsenedAsciiFile (const std::string& filename)
-{
-    BL_PROFILE("ParticleContainer<NR,NI,C>::WriteCoarsenedAsciiFile()");
-    BL_ASSERT(!filename.empty());
-
-    const Real strttime = ParallelDescriptor::second();
-    //
-    // Count # of valid particles.
-    //
-    long nparticles = 0;
-
-    for (const auto& pmap : m_particles)
-    {
-	for (const auto& kv : pmap)
-        {
-            const PBox& pbox = kv.second;
-
-	    for (auto it = pbox.cbegin(); it != pbox.cend(); ++it)
-            {
-                // Only keep particles in even cells
-                if (it->m_id > 0 &&
-                   (it->m_cell[0])%2 == 0 && (it->m_cell[1])%2 == 0 && (it->m_cell[2])%2 == 0)
-                    //
-                    // Only count (and checkpoint) valid particles.
-                    //
-                    nparticles++;
-            }
-        }
-    }
-    //
-    // And send count to I/O processor.
-    //
-    ParallelDescriptor::ReduceLongSum(nparticles,ParallelDescriptor::IOProcessorNumber());
-
-    if (ParallelDescriptor::IOProcessor())
-    {
-        //
-        // Have I/O processor open file and write out particle count.
-        //
-        std::ofstream File;
-
-        File.open(filename.c_str(), std::ios::out|std::ios::trunc);
-
-        if (!File.good())
-            amrex::FileOpenFailed(filename);
-
-        File << nparticles << '\n';
-            
-        File.flush();
-
-        File.close();
-
-        if (!File.good())
-            amrex::Abort("ParticleContainer<NR,NI,C>::WriteCoarsenedAsciiFile(): problem writing file");
-    }
-
-    ParallelDescriptor::Barrier();
-
-    const int MyProc = ParallelDescriptor::MyProc();
-
-    for (int i = 0; i < ParallelDescriptor::NProcs(); i++)
-    {
-        if (MyProc == i)
-        {
-            //
-            // Each CPU opens the file for appending and adds its particles.
-            //
-            std::ofstream File;
-
-            VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
-
-            File.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
-
-            File.open(filename.c_str(), std::ios::out|std::ios::app);
-
-            File.precision(15);
-
-            if (!File.good())
-                amrex::FileOpenFailed(filename);
-            
-            for (const auto& pmap : m_particles)
-            {
-		for (const auto& kv : pmap)
-                {
-                    const PBox& pbox = kv.second;
-
-		    for (auto it = pbox.cbegin(); it != pbox.cend(); ++it)
-                    {
-                        // Only keep particles in even cells
-                        if (it->m_id > 0 &&
-                           (it->m_cell[0])%2 == 0 && (it->m_cell[1])%2 == 0 && (it->m_cell[2])%2 == 0)
-                        {
-                            D_TERM(File << it->m_pos[0] << ' ',
-                                        << it->m_pos[1] << ' ',
-                                        << it->m_pos[2] << ' ');
-
-                            // Multiply mass by 8 since we are only taking 1/8 of the total particles
-                            //   and want to keep the mass in the domain the same.
-                            File << (8.0 * it->m_data[0]) << ' ';
-
-                            // Now write out the velocity of the particle chosen; no weighting here
-                            for (int i = 1; i < NR; i++)
-                            {
-                                char ws = (i == NR-1) ? '\n' : ' ';
-                                File << it->m_data[i] << ws;
-                            }
-                        }
-                    }
-                }
-            }
-
-            File.flush();
-
-            File.close();
-
-            if (!File.good())
-                amrex::Abort("ParticleContainer<NR,NI,C>::WriteCoarsenedAsciiFile(): problem writing file");
-
-        }
-
-        ParallelDescriptor::Barrier();
-    }
-
-    if (m_verbose > 1)
-    {
-        Real stoptime = ParallelDescriptor::second() - strttime;
-
-        ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
-
-        if (ParallelDescriptor::IOProcessor())
-        {
-            std::cout << "ParticleContainer<NR,NI,C>::WriteCoarsenedAsciiFile() time: " << stoptime << '\n';
         }
     }
 }
@@ -4648,12 +4507,9 @@ ParticleContainer<NR,NI,C>::AssignDensity (int rho_index, bool sub_cycle,
     }
     
     //
-    // This'll hold all the info I need for parallel.
-    // // What I'll use: m_lev, m_grid, m_cell & m_data[0..ncomp-1].
-    //
     // This is the "data" needed by other MPI procs.
     //
-    PMap data;
+    std::map<int, std::deque<ParticleCommData> > data;
 
     const Real stime = ParallelDescriptor::second();
     //
@@ -4666,7 +4522,7 @@ ParticleContainer<NR,NI,C>::AssignDensity (int rho_index, bool sub_cycle,
     Array<Real>    fracs(M),  cfracs(M);
     Array<IntVect> cells(M),  ccells(M), cfshifts(M);
 
-    ParticleType pb;
+    ParticleCommData pb;
     //
     // I'm going to allocate these badboys here & pass'm into routines that use'm.
     // This should greatly cut down on memory allocation/deallocation.
@@ -4779,7 +4635,7 @@ ParticleContainer<NR,NI,C>::AssignDensity (int rho_index, bool sub_cycle,
                     const Box& dest = amrex::grow(cfba[i],mf[lev_index]->nGrow());
 
                     if ( ! dm.contains(dest))
-                    {
+                   { 
                         for (int j = 0; j < cgrids.size(); j++)
                         {
                             BL_ASSERT(dm.contains(cgrids[j]));
@@ -4972,22 +4828,26 @@ ParticleContainer<NR,NI,C>::AssignDensity (int rho_index, bool sub_cycle,
                                 }
                                 else
                                 {
-                                    pb.m_lev  = lev+1;
-                                    pb.m_grid = grid;
-                                    pb.m_cell = fcells[j];
-                                    //
-                                    // Sum up mass in first component.
-                                    //
-                                    {
-                                        pb.m_data[0] = p.m_data[0] *  ffracs[j];
-                                    }
-                                    //
-                                    // Sum up momenta in next components.
-                                    //
-                                    for (int n = 1; n < ncomp; n++) {
-                                        pb.m_data[n] = p.m_data[n] * p.m_data[0] * ffracs[j];
-				    }
-                                    data[who].push_back(pb);
+
+				  pb.m_lev  = lev+1;
+				  pb.m_grid = grid;
+				  pb.m_cell = fcells[j];
+
+				  //
+				  // Sum up mass in first component.
+				  //
+				  {
+				    pb.m_data[0] = p.m_data[0] *  ffracs[j];
+				  }
+				  
+				  //
+				  // Sum up momenta in next components.
+				  //
+				  for (int n = 1; n < ncomp; n++) {
+				    pb.m_data[n] = p.m_data[n] * p.m_data[0] * ffracs[j];
+				  }
+				  
+				  data[who].push_back(pb);
                                 }
                             }
                         }
@@ -5042,23 +4902,26 @@ ParticleContainer<NR,NI,C>::AssignDensity (int rho_index, bool sub_cycle,
                                 }
                                 else
                                 {
-                                    pb.m_lev  = lev-1;
-                                    pb.m_grid = grid;
-                                    pb.m_cell = ccells[j];
-                                    //
-                                    // Sum up mass in first component.
-                                    //
-                                    {
-                                        pb.m_data[0] = p.m_data[0] * cfracs[j];
-                                    }
-                                    //
-                                    // Sum up momenta in next components.
-                                    //
-                                    for (int n = 1; n < ncomp; n++) {
-                                        pb.m_data[n] = p.m_data[n] * p.m_data[0] * cfracs[j];
-				    }
 
-                                    data[who].push_back(pb);
+				  pb.m_lev  = lev-1;
+				  pb.m_grid = grid;
+				  pb.m_cell = ccells[j];
+
+                                  //
+				  // Sum up mass in first component.
+				  //
+				  {
+				    pb.m_data[0] = p.m_data[0] * cfracs[j];
+				  }
+                                  
+				  //
+				  // Sum up momenta in next components.
+				  //
+				  for (int n = 1; n < ncomp; n++) {
+				    pb.m_data[n] = p.m_data[n] * p.m_data[0] * cfracs[j];
+				  }
+				  
+				  data[who].push_back(pb);
                                 }
                             }
                         }
@@ -5163,22 +5026,24 @@ ParticleContainer<NR,NI,C>::AssignDensity (int rho_index, bool sub_cycle,
                                 }
                                 else
                                 {
-                                    pb.m_lev  = lev-1;
-                                    pb.m_grid = cgrid[i];
-                                    pb.m_cell = ccells[i];
-                                    //
-                                    // Sum up mass in first component.
-                                    //
-                                    {
-                                        pb.m_data[0] = p.m_data[0] * cfracs[i];
-                                    }
-                                    //
-                                    // Sum up momenta in next components.
-                                    //
-                                    for (int n = 1; n < ncomp; n++) {
-                                        pb.m_data[n] = p.m_data[n] * p.m_data[0] * cfracs[i];
-				    }
-                                    data[who].push_back(pb);
+				  pb.m_lev  = lev-1;
+				  pb.m_grid = cgrid[i];
+				  pb.m_cell = ccells[i];
+
+                                  //
+				  // Sum up mass in first component.
+				  //
+				  {
+				    pb.m_data[0] = p.m_data[0] * cfracs[i];
+				  }
+
+				  //
+				  // Sum up momenta in next components.
+				  //
+				  for (int n = 1; n < ncomp; n++) {
+				    pb.m_data[n] = p.m_data[n] * p.m_data[0] * cfracs[i];
+				  }
+				  data[who].push_back(pb);
                                 }
 
                                 sum_crse += cfracs[i];
@@ -5330,20 +5195,22 @@ ParticleContainer<NR,NI,C>::AssignDensity (int rho_index, bool sub_cycle,
                                     }
                                     else
                                     {
-                                        pb.m_lev  = lev+1;
-                                        pb.m_grid = fgrid[j];
-                                        pb.m_cell = fcells[j];
-                                        //
-                                        // Sum up mass in first component.
-                                        //
-                                        {
-                                            pb.m_data[0] = p.m_data[0] * fracs[i] * ffracs[j];
-                                        }
-                                        //
-                                        // Sum up momenta in next components.
-                                        //
-                                        for (int n = 1; n < ncomp; n++) {
-                                            pb.m_data[n] = p.m_data[n] * p.m_data[0] * fracs[i] * ffracs[j];
+				      pb.m_lev  = lev+1;
+				      pb.m_grid = fgrid[j];
+				      pb.m_cell = fcells[j];
+
+                                      //
+				      // Sum up mass in first component.
+				      //
+				      {
+					pb.m_data[0] = p.m_data[0] * fracs[i] * ffracs[j];
+				      }
+
+				      //
+				      // Sum up momenta in next components.
+				      //
+				      for (int n = 1; n < ncomp; n++) {
+					pb.m_data[n] = p.m_data[n] * p.m_data[0] * fracs[i] * ffracs[j];
 					}
 
                                         data[who].push_back(pb);
@@ -5360,12 +5227,13 @@ ParticleContainer<NR,NI,C>::AssignDensity (int rho_index, bool sub_cycle,
             }
         }
     }
+
     //
     // Send any needed data to other MPI processes.
     // This "may" touch ghost cells so we want to do it before
     // the SumBoundary() stuff.
     //
-    AssignDensityDoit(rho_index, mf,data,ncomp,lev_min);
+    AssignDensityDoit(rho_index, mf, data, ncomp, lev_min);
 
     for (int lev = lev_min; lev <= finest_level; lev++)
     {
@@ -5431,15 +5299,12 @@ ParticleContainer<NR,NI,C>::AssignDensity (int rho_index, bool sub_cycle,
 // real particle level, while mf may start at a fine level (e.g. lvls 1 and 2).
 // Consequently, we must subtract lev_min from m_lev to get the mf lev.
 //
-// We only use: m_lev, m_grid, m_cell & m_data[0..ncomp-1] from the particles.
-//
-//
 
 template <int NR, int NI, class C>
 void
-ParticleContainer<NR,NI,C>::AssignDensityDoit (int rho_index,
-					       Array<std::unique_ptr<MultiFab> >& mf,
-					       PMap&             data,
+ParticleContainer<NR,NI,C>::AssignDensityDoit (int               rho_index,
+					       Array<std::unique_ptr<MultiFab> >&             mf,
+					       std::map<int, std::deque<ParticleCommData> >& data,
 					       int               ncomp,
 					       int               lev_min) const
 {
@@ -5452,8 +5317,8 @@ ParticleContainer<NR,NI,C>::AssignDensityDoit (int rho_index,
 
     if (NProcs == 1)
     {
-        BL_ASSERT(data.empty());
-        return;
+      BL_ASSERT(data.empty());
+      return;
     }
 
 #if BL_USE_MPI
@@ -5523,8 +5388,6 @@ ParticleContainer<NR,NI,C>::AssignDensityDoit (int rho_index,
     //
     // The data we want to receive.
     //
-    // We only use: m_lev, m_grid, m_cell & m_data[0..ncomp-1] from the particles.
-    //
     const int iChunkSize = 2 + BL_SPACEDIM;
     const int rChunkSize = ncomp;
 
@@ -5561,7 +5424,7 @@ ParticleContainer<NR,NI,C>::AssignDensityDoit (int rho_index,
     //
     // Send the data.
     //
-    Array<int>                    isenddata;
+    Array<int>                             isenddata;
     Array<typename ParticleType::RealType> rsenddata;
 
     for (const auto& kv : SndCnts)
@@ -5579,28 +5442,28 @@ ParticleContainer<NR,NI,C>::AssignDensityDoit (int rho_index,
         isenddata.resize(iCnt);
         rsenddata.resize(rCnt);
 
-        PBox& pbox = data[Who];
+	std::deque<ParticleCommData>& pbox = data[Who];
 
         int ioff = 0, roff = 0;
 	for (const auto& p : pbox)
         {
-            isenddata[ioff+0] = p.m_lev  - lev_min;
-            isenddata[ioff+1] = p.m_grid;
+	  isenddata[ioff+0] = p.m_lev  - lev_min;
+	  isenddata[ioff+1] = p.m_grid;
 
-            D_TERM(isenddata[ioff+2] = p.m_cell[0];,
-                   isenddata[ioff+3] = p.m_cell[1];,
-                   isenddata[ioff+4] = p.m_cell[2];);
+	  D_TERM(isenddata[ioff+2] = p.m_cell[0];,
+		 isenddata[ioff+3] = p.m_cell[1];,
+		 isenddata[ioff+4] = p.m_cell[2];);
 
-            ioff += iChunkSize;
+	  ioff += iChunkSize;
 
-            for (int n = 0; n < ncomp; n++) {
-                rsenddata[roff+n] = p.m_data[n];
-	    }
+	  for (int n = 0; n < ncomp; n++) {
+	    rsenddata[roff+n] = p.m_data[n];
+	  }
 
-            roff += ncomp;
+	  roff += ncomp;
         }
 
-        PBox().swap(pbox);
+	std::deque<ParticleCommData>().swap(pbox);
 
         ParallelDescriptor::Send(isenddata.dataPtr(),iCnt,Who,SeqNumI);
         ParallelDescriptor::Send(rsenddata.dataPtr(),rCnt,Who,SeqNumR);
@@ -5943,13 +5806,17 @@ ParticleContainer<NR,NI,C>::NodalDepositionSingleLevel (int rho_index,
             if (p.m_id <= 0) {
 	      continue;
 	    }
+	    
+	    ParticleLocData pld;
+	    Particle<NR, NI>::Where(p, m_gdb, pld);
+
 #if (BL_SPACEDIM == 1)
-            cells[0] = p.m_cell;
-            cells[1] = p.m_cell+IntVect(1);
+            cells[0] = pld.m_cell;
+            cells[1] = pld.m_cell+IntVect(1);
 
             Real x = p.m_pos[0] / dx[0];
 
-            int i = p.m_cell[0];
+            int i = pld.m_cell[0];
 
             Real xint = x - i;
 
@@ -5959,16 +5826,16 @@ ParticleContainer<NR,NI,C>::NodalDepositionSingleLevel (int rho_index,
                fab(cells[1],0) += p.m_data[rho_index] *        xint ;
             }
 #elif (BL_SPACEDIM == 2)
-            cells[0] = p.m_cell;
-            cells[1] = p.m_cell+IntVect(1,0);
-            cells[2] = p.m_cell+IntVect(0,1);
-            cells[3] = p.m_cell+IntVect(1,1);
+            cells[0] = pld.m_cell;
+            cells[1] = pld.m_cell+IntVect(1,0);
+            cells[2] = pld.m_cell+IntVect(0,1);
+            cells[3] = pld.m_cell+IntVect(1,1);
 
             Real x = p.m_pos[0] / dx[0];
             Real y = p.m_pos[1] / dx[1];
 
-            int i = p.m_cell[0];
-            int j = p.m_cell[1];
+            int i = pld.m_cell[0];
+            int j = pld.m_cell[1];
 
             Real xint = x - i;
             Real yint = y - j;
@@ -5988,22 +5855,22 @@ ParticleContainer<NR,NI,C>::NodalDepositionSingleLevel (int rho_index,
                fab(cells[i],0) += p.m_data[rho_index] * fracs[i];
             }
 #else
-            cells[0] = p.m_cell;
-            cells[1] = p.m_cell+IntVect(1,0,0);
-            cells[2] = p.m_cell+IntVect(0,1,0);
-            cells[3] = p.m_cell+IntVect(1,1,0);
-            cells[4] = p.m_cell+IntVect(0,0,1);
-            cells[5] = p.m_cell+IntVect(1,0,1);
-            cells[6] = p.m_cell+IntVect(0,1,1);
-            cells[7] = p.m_cell+IntVect(1,1,1);
+            cells[0] = pld.m_cell;
+            cells[1] = pld.m_cell+IntVect(1,0,0);
+            cells[2] = pld.m_cell+IntVect(0,1,0);
+            cells[3] = pld.m_cell+IntVect(1,1,0);
+            cells[4] = pld.m_cell+IntVect(0,0,1);
+            cells[5] = pld.m_cell+IntVect(1,0,1);
+            cells[6] = pld.m_cell+IntVect(0,1,1);
+            cells[7] = pld.m_cell+IntVect(1,1,1);
 
             Real x = p.m_pos[0] / dx[0];
             Real y = p.m_pos[1] / dx[1];
             Real z = p.m_pos[2] / dx[2];
 
-            int i = p.m_cell[0];
-            int j = p.m_cell[1];
-            int k = p.m_cell[2];
+            int i = pld.m_cell[0];
+            int j = pld.m_cell[1];
+            int k = pld.m_cell[2];
 
             Real xint = x - i;
             Real yint = y - j;
@@ -6068,17 +5935,17 @@ ParticleContainer<NR,NI,C>::NodalDepositionSingleLevel (int rho_index,
 
 //
 // This version takes as input the acceleration vector at cell centers, and has the option of
-//      returning the acceleration at the particle location in the data array, starting at
-//      component start_comp_for_accel
+// returning the acceleration at the particle location in the data array, starting at
+// component start_comp_for_accel
 //
 template <int NR, int NI, class C>
 void
 ParticleContainer<NR,NI,C>::moveKick (MultiFab&       acceleration,
-				    int             lev,
-				    Real            dt,
-				    Real            a_new,
-				    Real            a_half, 
-				    int             start_comp_for_accel)
+				      int             lev,
+				      Real            dt,
+				      Real            a_new,
+				      Real            a_half, 
+				      int             start_comp_for_accel)
 {
     BL_PROFILE("ParticleContainer::moveKick()");
     BL_ASSERT(NR >= BL_SPACEDIM+1);
@@ -6121,13 +5988,12 @@ ParticleContainer<NR,NI,C>::moveKick (MultiFab&       acceleration,
 
             if (p.m_id > 0)
             {
-                BL_ASSERT(p.m_grid == grid);
                 //
                 // Note: m_data[0] is mass, 1 is v_x, ...
                 //
                 Real grav[BL_SPACEDIM];
 
-                ParticleType::GetGravity(gfab, m_gdb->Geom(p.m_lev), p, grav);
+                ParticleType::GetGravity(gfab, m_gdb->Geom(lev), p, grav);
                 //
                 // Define (a u)^new = (a u)^half + dt/2 grav^new
                 //
