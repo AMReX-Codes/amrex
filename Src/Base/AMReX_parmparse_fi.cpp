@@ -1,5 +1,6 @@
 #include <cstring>
 #include <AMReX_ParmParse.H>
+#include <AMReX_REAL.H>
 
 using namespace amrex;
 
@@ -20,7 +21,7 @@ extern "C"
 	pp->get(name, *v);
     }
 
-    void amrex_parmparse_get_double (ParmParse* pp, const char* name, double* v)
+    void amrex_parmparse_get_real (ParmParse* pp, const char* name, Real* v)
     {
 	pp->get(name, *v);
     }
@@ -44,7 +45,7 @@ extern "C"
 	pp->query(name, *v);
     }
 
-    void amrex_parmparse_query_double (ParmParse* pp, const char* name, double* v)
+    void amrex_parmparse_query_real (ParmParse* pp, const char* name, Real* v)
     {
 	pp->query(name, *v);
     }

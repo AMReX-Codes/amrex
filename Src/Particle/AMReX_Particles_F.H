@@ -26,9 +26,9 @@ BL_FORT_PROC_DECL(PART_SUMDENSUP,part_sumdensup)
 
 #if (BL_SPACEDIM==2)
     BL_FORT_PROC_DECL(BICUBICINTERP,bicubicinterp)
-    (const Real* x, const Real* y, const Real* fab,
+    (const amrex::Real* x, const amrex::Real* y, const amrex::Real* fab,
      const int* lo, const int* hi,
-     const Real* plo, const Real* phi, const Real* dx, Real* z);
+     const amrex::Real* plo, const amrex::Real* phi, const amrex::Real* dx, amrex::Real* z);
 #endif
 
 };

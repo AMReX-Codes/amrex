@@ -101,28 +101,28 @@ using std::ifstream;
 
 extern "C" {
 #if (BL_SPACEDIM != 1)
-  void FORT_CINTERP(Real *fine, ARLIM_P(flo), ARLIM_P(fhi),
+  void FORT_CINTERP(amrex::Real *fine, ARLIM_P(flo), ARLIM_P(fhi),
                   const int *fblo, const int *fbhi,
                   const int &nvar, const int &lratio,
-		  const Real *crse, const int &clo, const int &chi,
+		  const amrex::Real *crse, const int &clo, const int &chi,
 		  const int *cslo, const int *cshi,
 		  const int *fslo, const int *fshi,
-		  Real *cslope, const int &c_len,
-		  Real *fslope, Real *fdat, const int &f_len,
-		  Real *foff);
+		  amrex::Real *cslope, const int &c_len,
+		  amrex::Real *fslope, amrex::Real *fdat, const int &f_len,
+		  amrex::Real *foff);
 #endif
 
-  void FORT_PCINTERP(Real *fine, ARLIM_P(flo), ARLIM_P(fhi),
+  void FORT_PCINTERP(amrex::Real *fine, ARLIM_P(flo), ARLIM_P(fhi),
                    const int *fblo, const int *fbhi,
 		   const int &lrat, const int &nvar,
-		   const Real *crse, ARLIM_P(clo), ARLIM_P(chi),
+		   const amrex::Real *crse, ARLIM_P(clo), ARLIM_P(chi),
 		   const int *cblo, const int *cbhi,
-		   Real *temp, const int &tlo, const int &thi);
+		   amrex::Real *temp, const int &tlo, const int &thi);
 
 #if (BL_SPACEDIM != 1)
-  void FORT_CARTGRIDMINMAX (Real *data, ARLIM_P(dlo), ARLIM_P(dhi),
-		            const Real *vfrac, const Real &vfeps,
-		            Real &dmin, Real &dmax);
+  void FORT_CARTGRIDMINMAX (amrex::Real *data, ARLIM_P(dlo), ARLIM_P(dhi),
+		            const amrex::Real *vfrac, const amrex::Real &vfeps,
+		            amrex::Real &dmin, amrex::Real &dmax);
 #endif
 }
 
