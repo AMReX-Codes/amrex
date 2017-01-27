@@ -74,6 +74,7 @@ ParticleContainer<NR,NI,C>::InitFromAsciiFile (const std::string& file, int extr
 
         ifs >> cnt >> std::ws;
 
+	ParticleLocData pld;
         ParticleType p, p_rep;
 
         const int Chunk = cnt / NReaders;
@@ -137,11 +138,11 @@ ParticleContainer<NR,NI,C>::InitFromAsciiFile (const std::string& file, int extr
                 amrex::Error(msg.c_str());
             }
 
-            if (!ParticleType::Where(p,m_gdb))
+            if (!ParticleType::Where(p, m_gdb, pld))
             {
-                ParticleType::PeriodicShift(p,m_gdb);
+                ParticleType::PeriodicShift(p, m_gdb);
 
-                if (!ParticleType::Where(p,m_gdb))
+                if (!ParticleType::Where(p, m_gdb, pld))
                 {
                     std::cout << "BAD PARTICLE ID WOULD BE " << ParticleType::NextID() << '\n';
 
@@ -190,10 +191,10 @@ ParticleContainer<NR,NI,C>::InitFromAsciiFile (const std::string& file, int extr
                             for (int n = 0; n < extradata; n++)
                                 p_rep.m_data[n] = p.m_data[n];
 
-                            if (!ParticleType::Where(p_rep,m_gdb))
+                            if (!ParticleType::Where(p_rep, m_gdb, pld))
                             {
-                                ParticleType::PeriodicShift(p_rep,m_gdb);
-                                if (!ParticleType::Where(p_rep,m_gdb))
+                                ParticleType::PeriodicShift(p_rep, m_gdb);
+                                if (!ParticleType::Where(p_rep, m_gdb, pld))
                                 {
                                     std::cout << "BAD REPLICATED PARTICLE ID WOULD BE " << ParticleType::NextID() << std::endl;
                                     amrex::Abort("ParticleContainer<NR,NI,C>::InitFromAsciiFile(): invalid replicated particle");
@@ -237,8 +238,10 @@ ParticleContainer<NR,NI,C>::InitFromAsciiFile (const std::string& file, int extr
                 while (!nparticles.empty())
                 {
                     ParticleType& p = nparticles.back();
-    
-                    m_particles[p.m_lev][p.m_grid].push_back(p);
+		    ParticleLocData pld;
+		    ParticleType::Where(p, m_gdb, pld);
+
+                    m_particles[pld.m_lev][pld.m_grid].push_back(p);
     
                     nparticles.pop_back();
                 }
@@ -265,8 +268,10 @@ ParticleContainer<NR,NI,C>::InitFromAsciiFile (const std::string& file, int extr
             while (!nparticles.empty())
             {
                 ParticleType& p = nparticles.back();
+		ParticleLocData pld;
+		ParticleType::Where(p, m_gdb, pld);
 
-                m_particles[p.m_lev][p.m_grid].push_back(p);
+                m_particles[pld.m_lev][pld.m_grid].push_back(p);
 
                 nparticles.pop_back();
             }
@@ -587,6 +592,7 @@ ParticleContainer<NR,NI,C>::InitFromBinaryFile (const std::string& file,
         if (readers.find(MyProc) != readers.end())
         {
             ParticleType p;
+	    ParticleLocData pld;
 
             BL_ASSERT(MyCnt > how_many_read);
 
@@ -670,11 +676,11 @@ ParticleContainer<NR,NI,C>::InitFromBinaryFile (const std::string& file,
                     amrex::Error(msg.c_str());
                 }
 
-                if (!ParticleType::Where(p,m_gdb))
+                if (!ParticleType::Where(p, m_gdb, pld))
                 {
-                    ParticleType::PeriodicShift(p,m_gdb);
+                    ParticleType::PeriodicShift(p, m_gdb);
 
-                    if (!ParticleType::Where(p,m_gdb))
+                    if (!ParticleType::Where(p, m_gdb, pld))
                     {
                         std::cout << "BAD PARTICLE ID WOULD BE " << ParticleType::NextID() << '\n';
 
@@ -690,7 +696,7 @@ ParticleContainer<NR,NI,C>::InitFromBinaryFile (const std::string& file,
                 p.m_id  = ParticleType::NextID();
                 p.m_cpu = MyProc;
 
-                m_particles[p.m_lev][p.m_grid].push_back(p);
+                m_particles[pld.m_lev][pld.m_grid].push_back(p);
             }
 
             how_many_read += NRead;
@@ -765,7 +771,7 @@ ParticleContainer<NR,NI,C>::InitFromBinaryFile (const std::string& file,
 template <int NR, int NI, class C>
 void
 ParticleContainer<NR,NI,C>::InitFromBinaryMetaFile (const std::string& metafile,
-                                              int                extradata)
+						    int                extradata)
 {
     BL_PROFILE("ParticleContainer<NR,NI,C>::InitFromBinaryMetaFile()");
     const Real strttime = ParallelDescriptor::second();
@@ -802,10 +808,10 @@ ParticleContainer<NR,NI,C>::InitFromBinaryMetaFile (const std::string& metafile,
 template <int NR, int NI, class C>
 void
 ParticleContainer<NR,NI,C>::InitRandom (long          icount,
-                                  unsigned long iseed,
-                                  Real          mass,
-                                  bool          serialize,
-                                  RealBox       containing_bx)
+					unsigned long iseed,
+					Real          mass,
+					bool          serialize,
+					RealBox       containing_bx)
 {
     BL_PROFILE("ParticleContainer<NR,NI,C>::InitRandom()");
     BL_ASSERT(iseed  > 0);
@@ -878,6 +884,7 @@ ParticleContainer<NR,NI,C>::InitRandom (long          icount,
         for (long j = 0; j < icount; j++)
         {
             ParticleType p;
+	    ParticleLocData pld;
 
             for (int i = 0; i < BL_SPACEDIM; i++)
             {
@@ -895,14 +902,14 @@ ParticleContainer<NR,NI,C>::InitRandom (long          icount,
                     p.m_data[i] = 0;
             }
 
-            if (!ParticleType::Where(p,m_gdb))
+            if (!ParticleType::Where(p, m_gdb, pld))
             {
                 amrex::Abort("ParticleContainer<NR,NI,C>::InitRandom(): invalid particle");
             }
 
-            BL_ASSERT(p.m_lev >= 0 && p.m_lev <= m_gdb->finestLevel());
+            BL_ASSERT(pld.m_lev >= 0 && pld.m_lev <= m_gdb->finestLevel());
 
-            const int who = m_gdb->ParticleDistributionMap(p.m_lev)[p.m_grid];
+            const int who = m_gdb->ParticleDistributionMap(pld.m_lev)[pld.m_grid];
 
             if (who == MyProc)
             {
@@ -912,7 +919,7 @@ ParticleContainer<NR,NI,C>::InitRandom (long          icount,
                 p.m_id  = ParticleType::NextID();
                 p.m_cpu = MyProc;
 
-                m_particles[p.m_lev][p.m_grid].push_back(p);
+                m_particles[pld.m_lev][pld.m_grid].push_back(p);
 
                 cnt++;
             }
@@ -938,8 +945,8 @@ ParticleContainer<NR,NI,C>::InitRandom (long          icount,
 
         for (long icnt = 0; icnt < M; icnt++)
         {
-            ParticleType p;
-
+	  ParticleType p;
+	  ParticleLocData pld;
             for (int i = 0; i < BL_SPACEDIM; i++)
             {
                 do
@@ -968,16 +975,17 @@ ParticleContainer<NR,NI,C>::InitRandom (long          icount,
             p.m_id  = ParticleType::NextID();
             p.m_cpu = MyProc;
 
-            if (!ParticleType::Where(p,m_gdb))
+            if (!ParticleType::Where(p, m_gdb, pld))
             {
                 amrex::Abort("ParticleContainer<NR,NI,C>::InitRandom(): invalid particle");
             }
 
-            BL_ASSERT(p.m_lev >= 0 && p.m_lev <= m_gdb->finestLevel());
+            BL_ASSERT(pld.m_lev >= 0 && pld.m_lev <= m_gdb->finestLevel());
+
             //
             // Add it to the appropriate PBox at the appropriate level.
             //
-            m_particles[p.m_lev][p.m_grid].push_back(p);
+            m_particles[pld.m_lev][pld.m_grid].push_back(p);
         }
         //
         // Let Redistribute() sort out where the particles belong.
@@ -1001,8 +1009,8 @@ ParticleContainer<NR,NI,C>::InitRandom (long          icount,
 template <int NR, int NI, class C>
 void
 ParticleContainer<NR,NI,C>::InitOnePerCell (Real x_off, Real y_off, Real z_off,
-                                      Real      mass, 
-                                      MultiFab& particle_mf)
+					    Real      mass, 
+					    MultiFab& particle_mf)
 {
     BL_PROFILE("ParticleContainer<NR,NI,C>::InitOnePerCell()");
 
@@ -1047,6 +1055,7 @@ ParticleContainer<NR,NI,C>::InitOnePerCell (Real x_off, Real y_off, Real z_off,
           for (int k = 0; k < nz; k++)
           {
             ParticleType p;
+	    ParticleLocData pld;
 
             p.m_pos[0] = grid_box.lo(0) + (x_off + i)*dx[0];
             p.m_pos[1] = grid_box.lo(1) + (y_off + j)*dx[1];
@@ -1069,16 +1078,16 @@ ParticleContainer<NR,NI,C>::InitOnePerCell (Real x_off, Real y_off, Real z_off,
             p.m_id  = ParticleType::NextID();
             p.m_cpu = ParallelDescriptor::MyProc();
 
-            if (!ParticleType::Where(p,m_gdb))
+            if (!ParticleType::Where(p, m_gdb, pld))
             {
                 amrex::Abort("ParticleContainer<NR,NI,C>::InitOnePerCell(): invalid particle");
             }
 
-            BL_ASSERT(p.m_lev >= 0 && p.m_lev <= m_gdb->finestLevel());
+            BL_ASSERT(pld.m_lev >= 0 && pld.m_lev <= m_gdb->finestLevel());
             //
             // Add it to the appropriate PBox at the appropriate level.
             //
-            m_particles[p.m_lev][p.m_grid].push_back(p);
+            m_particles[pld.m_lev][pld.m_grid].push_back(p);
           } 
          } 
         }
@@ -1142,6 +1151,7 @@ ParticleContainer<NR,NI,C>::InitNRandomPerCell (int n_per_cell, Real mass, Multi
           for (int k = 0; k < nz; k++)
           {
             ParticleType p;
+	    ParticleLocData pld;
 
             for (int n = 0; n < n_per_cell; n++)
             {
@@ -1169,14 +1179,14 @@ ParticleContainer<NR,NI,C>::InitNRandomPerCell (int n_per_cell, Real mass, Multi
                p.m_id  = ParticleType::NextID();
                p.m_cpu = ParallelDescriptor::MyProc();
 
-               if (!ParticleType::Where(p,m_gdb))
+               if (!ParticleType::Where(p, m_gdb, pld))
                    amrex::Abort("ParticleContainer<NR,NI,C>::InitNRandomPerCell(): invalid particle");
 
-               BL_ASSERT(p.m_lev >= 0 && p.m_lev <= m_gdb->finestLevel());
+               BL_ASSERT(pld.m_lev >= 0 && pld.m_lev <= m_gdb->finestLevel());
                //
                // Add it to the appropriate PBox at the appropriate level.
                //
-               m_particles[p.m_lev][p.m_grid].push_back(p);
+               m_particles[pld.m_lev][pld.m_grid].push_back(p);
             }
           } 
          } 

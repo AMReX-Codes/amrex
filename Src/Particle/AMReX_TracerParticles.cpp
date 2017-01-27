@@ -72,10 +72,13 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
             for (int i = 0; i < n; i++)
             {
                 ParticleType& p = pbox[i];
-                
+		ParticleLocData pld;
+
+		ParticleType::SingleLevelWhere(p, m_gdb, pld, lev);
+
                 if (p.m_id <= 0) continue;
 
-                BL_ASSERT(p.m_grid == grid);
+                BL_ASSERT(pld.m_grid == grid);
 
                 const Real len[BL_SPACEDIM] = { D_DECL((p.m_pos[0]-plo[0])/dx[0] + Real(0.5),
                                                        (p.m_pos[1]-plo[1])/dx[1] + Real(0.5),
@@ -89,11 +92,11 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
                 {
                     IntVect ecell = cell;
 
-                    ecell[d] = p.m_cell[d] + 1;
+                    ecell[d] = pld.m_cell[d] + 1;
 
                     Real efrac[BL_SPACEDIM] = { D_DECL(frac[0], frac[1], frac[2]) };
 
-                    efrac[d] = (p.m_pos[d]-plo[d])/dx[d] - p.m_cell[d];
+                    efrac[d] = (p.m_pos[d]-plo[d])/dx[d] - pld.m_cell[d];
 
                     for (int j = 0; j < BL_SPACEDIM; j++)
                     {
@@ -122,7 +125,7 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
                     }
                 }
                 
-                ParticleType::RestrictedWhere(p,m_gdb, umac[0].nGrow()); 
+                ParticleType::RestrictedWhere(p, m_gdb, pld, umac[0].nGrow()); 
             }
         }
     }
@@ -182,10 +185,13 @@ TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
             for (int i = 0; i < n; i++)
             {
                 ParticleType& p = pbox[i];
-                
+		ParticleLocData pld;
+
                 if (p.m_id <= 0) continue;
 
-                BL_ASSERT(p.m_grid == grid);
+		ParticleType::SingleLevelWhere(p, m_gdb, pld, lev);
+
+                BL_ASSERT(pld.m_grid == grid);
 
 		Real v[BL_SPACEDIM];
 
@@ -212,7 +218,7 @@ TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
                     }
                 }
                 
-                ParticleType::RestrictedWhere(p,m_gdb, Ucc.nGrow()); 
+                ParticleType::RestrictedWhere(p, m_gdb, pld, Ucc.nGrow()); 
             }
         }
     }
@@ -328,12 +334,14 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
                     {
                         if (p.m_id <= 0) continue;
 
-                        const IntVect& iv = ParticleType::Index(p, m_gdb->Geom(lev));
+			ParticleLocData pld;
+			ParticleType::SingleLevelWhere(p, m_gdb, pld, lev);
+                        const IntVect& iv = pld.m_cell;
 
                         if (!bx.contains(iv) && !ba.contains(iv)) continue;
 
-                        BL_ASSERT(p.m_lev == lev);
-                        BL_ASSERT(p.m_grid == grid);
+                        BL_ASSERT(pld.m_lev == lev);
+                        BL_ASSERT(pld.m_grid == grid);
 
                         TimeStampFile << p.m_id  << ' ' << p.m_cpu << ' ';
 
@@ -351,7 +359,7 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
 
                         if (M > 0)
                         {
-                            ParticleType::Interp(p,m_gdb->Geom(p.m_lev),fab,&indices[0],&vals[0],M);
+                            ParticleType::Interp(p,m_gdb->Geom(pld.m_lev),fab,&indices[0],&vals[0],M);
 
                             for (int i = 0; i < M; i++)
                             {
