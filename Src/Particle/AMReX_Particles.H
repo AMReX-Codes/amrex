@@ -75,10 +75,6 @@ struct Particle
     typedef double RealType;
 #endif
 
-    int      m_id   = -1;
-    int      m_cpu  = -1;
-    RealType m_pos[BL_SPACEDIM];
-
     //
     // The amount of floating point data we hold.
     //
@@ -90,12 +86,16 @@ struct Particle
     // 3 - z-velocity
     //
     std::array<RealType,NR> m_data;
-    std::array<int     ,NI> m_idata;
 
     //
-    // This bins the particle based on the cell size and the domain boundary
-    // in the input Geometry.
+    // The integer data
     //
+    std::array<int     ,NI> m_idata;
+
+    RealType m_pos[BL_SPACEDIM];
+    int      m_id   = -1;
+    int      m_cpu  = -1;
+
     static IntVect Index (const Particle<NR, NI>& p, const Geometry& geom);
 
     //
