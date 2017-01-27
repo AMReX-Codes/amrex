@@ -218,8 +218,6 @@ applyStencilAllFortran(EBCellFAB                       & a_dst,
   MultiFab srcMF(ba,dm,1,1);
   IntVect tilesize(D_DECL(10240,8,32));
 
-
-
   int num_tiles = srcMF.getTileArray(tilesize)->tileArray.size();
   std::vector<std::vector<std::map<IntVect,FaceData> > > faceData(SpaceDim);
   std::vector<bool> has_irreg(num_tiles);
@@ -308,95 +306,6 @@ applyStencilAllFortran(EBCellFAB                       & a_dst,
                tbx.loVect(), tbx.hiVect(), &(a_dx[0]));
     }
   }
-
-
-
-  BL_PROFILE_VAR_NS("fortran only prep",fp);
-  BL_PROFILE_VAR_NS("fortran only eb",feb);
-  BL_PROFILE_VAR_NS("fortran only reg",fr);
-
-// #ifdef _OPENMP
-// #pragma omp parallel
-// #endif
-//   for (MFIter mfi(srcMF,tilesize); mfi.isValid(); ++mfi)
-//   {
-//     const Box& tbx = mfi.tilebox();
-
-    // BL_PROFILE_VAR_START(fp);
-    // const Box& ovlp = tbx & srcMF.boxArray()[mfi.index()];
-
-    // // Find all partial faces in this tile
-    // std::vector<std::map<IntVect,FaceData> > faceData(SpaceDim);
-    // bool tile_has_irreg_work = false;
-    // for (int idir = 0; idir < SpaceDim; idir++)
-    // {
-    //   for (int n=0; n<a_nodes.size(); ++n)
-    //   {
-    //     const IrregNode& node = a_nodes[n];
-    //     const IntVect& iv = node.m_cell;
-    //     if (tbx.contains(iv))
-    //     {
-    //       for (SideIterator sit; sit.ok(); ++sit)
-    //       {
-    //         int index = IrregNode::index(idir, sit());
-    //         const std::vector<int>& arcs = node.m_arc[index];
-
-    //         //this excludes boundary and covered faces, as well as those with aperature = 1
-    //         if((arcs.size() > 0) && (arcs[0] >= 0) && (node.m_areaFrac[index][0] < 1))
-    //         {
-    //           int isign = sign(sit());
-    //           IntVect ivface = isign < 0 ? iv : iv + BASISV(idir);
-    //           faceData[idir][ivface] = FaceData(node.m_faceCentroid[index][0],node.m_areaFrac[index][0]);
-    //           tile_has_irreg_work = true;
-    //           if (! has_irreg[mfi.tileIndex()]) {
-    //             amrex::Abort("Bad tile foo");
-    //           }
-    //         }
-    //       }
-    //     }
-    //   }
-    // }
-    // BL_PROFILE_VAR_STOP(fp);
-
-    // if (tile_has_irreg_work)
-    // {
-    //   BL_PROFILE_VAR_START(fp);
-    //   FArrayBox fd[BL_SPACEDIM];
-    //   for (int idir = 0; idir < SpaceDim; idir++)
-    //   {
-    //     fd[idir].resize(amrex::surroundingNodes(tbx,idir),SpaceDim+1); // comps: aperature, centroid[0], centroid[1]
-    //     fd[idir].setVal(0);
-    //     fd[idir].setVal(1,0);
-
-    //     for (std::map<IntVect,FaceData>::const_iterator it=faceData[idir].begin(); it!=faceData[idir].end(); ++it)
-    //     {
-    //       fd[idir](it->first,0) = it->second.m_aperature;
-    //       for (int idir1 = 0; idir1 < SpaceDim; ++idir1)
-    //       {
-    //         fd[idir](it->first,idir1+1) = it->second.m_centroid[idir1];
-    //       }
-    //     }
-    //   }
-    //   BL_PROFILE_VAR_STOP(fp);
-
-    //   BL_PROFILE_VAR_START(feb);
-    //   lapleb_MSD(BL_TO_FORTRAN_N(a_dst,0), 
-    //              BL_TO_FORTRAN_N(a_src,0),
-    //              D_DECL(BL_TO_FORTRAN_N(fd[0],0),
-    //                     BL_TO_FORTRAN_N(fd[1],0),
-    //                     BL_TO_FORTRAN_N(fd[2],0)),
-    //              tbx.loVect(), tbx.hiVect(), &(a_dx[0]));
-    //   BL_PROFILE_VAR_STOP(feb);
-    // }
-    // else
-    // {
-    //   BL_PROFILE_VAR_START(fr);
-    //   lapl_MSD(BL_TO_FORTRAN_N(a_dst,0), 
-    //            BL_TO_FORTRAN_N(a_src,0),
-    //            tbx.loVect(), tbx.hiVect(), &(a_dx[0]));
-    //   BL_PROFILE_VAR_STOP(fr);
-    // }
-  // }
 }
 
 int testStuff()
