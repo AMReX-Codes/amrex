@@ -1762,7 +1762,7 @@ ParticleContainer<NR,NI,C>::MoveRandom (int lev)
 template <int NR, int NI, class C>
 void
 ParticleContainer<NR,NI,C>::Increment (MultiFab& mf,
-				     int       lev) 
+				       int       lev) 
 {
     IncrementWithTotal(mf,lev);
 }
@@ -2507,8 +2507,8 @@ ParticleContainer<NR,NI,C>::CreateVirtualParticles (int   level,
 template <int NR, int NI, class C>
 void
 ParticleContainer<NR,NI,C>::CreateGhostParticles (int   level,
-						int   ngrow,
-						PBox& ghosts) const
+						  int   ngrow,
+						  PBox& ghosts) const
 {
     BL_PROFILE("ParticleContainer<NR,NI,C>::CreateGhostParticles()");
     BL_ASSERT(ghosts.empty());
@@ -5976,42 +5976,46 @@ ParticleContainer<NR,NI,C>::moveKick (MultiFab&       acceleration,
 #endif
         for (int i = 0; i < n; i++)
         {
-            ParticleType& p = pbox[i];
+	  ParticleLocData pld;
+	  ParticleType& p = pbox[i];
 
-            if (p.idata.id > 0)
+	  if (p.idata.id > 0)
             {
-                //
-                // Note: rdata.arr[BL_SPACEDIM] is mass, BL_SPACEDIM+1 is v_x, ...
-                //
-                Real grav[BL_SPACEDIM];
 
-                ParticleType::GetGravity(gfab, m_gdb->Geom(lev), p, grav);
-                //
-                // Define (a u)^new = (a u)^half + dt/2 grav^new
-                //
-                D_TERM(p.rdata.arr[BL_SPACEDIM+1] *= a_half;,
-                       p.rdata.arr[BL_SPACEDIM+2] *= a_half;,
-                       p.rdata.arr[BL_SPACEDIM+3] *= a_half;);
+	      ParticleType::Where(p, m_gdb, pld);
 
-                D_TERM(p.rdata.arr[BL_SPACEDIM+1] += half_dt * grav[0];,
-                       p.rdata.arr[BL_SPACEDIM+2] += half_dt * grav[1];,
-                       p.rdata.arr[BL_SPACEDIM+3] += half_dt * grav[2];);
+	      //
+	      // Note: rdata.arr[BL_SPACEDIM] is mass, BL_SPACEDIM+1 is v_x, ...
+	      //
+	      Real grav[BL_SPACEDIM];
 
-                D_TERM(p.rdata.arr[BL_SPACEDIM+1] *= a_new_inv;,
-                       p.rdata.arr[BL_SPACEDIM+2] *= a_new_inv;,
-                       p.rdata.arr[BL_SPACEDIM+3] *= a_new_inv;);
+	      ParticleType::GetGravity(gfab, m_gdb->Geom(pld.m_lev), p, grav);
+	      //
+	      // Define (a u)^new = (a u)^half + dt/2 grav^new
+	      //
+	      D_TERM(p.rdata.arr[BL_SPACEDIM+1] *= a_half;,
+		     p.rdata.arr[BL_SPACEDIM+2] *= a_half;,
+		     p.rdata.arr[BL_SPACEDIM+3] *= a_half;);
 
-                if (start_comp_for_accel > BL_SPACEDIM)
+	      D_TERM(p.rdata.arr[BL_SPACEDIM+1] += half_dt * grav[0];,
+		     p.rdata.arr[BL_SPACEDIM+2] += half_dt * grav[1];,
+		     p.rdata.arr[BL_SPACEDIM+3] += half_dt * grav[2];);
+
+	      D_TERM(p.rdata.arr[BL_SPACEDIM+1] *= a_new_inv;,
+		     p.rdata.arr[BL_SPACEDIM+2] *= a_new_inv;,
+		     p.rdata.arr[BL_SPACEDIM+3] *= a_new_inv;);
+
+	      if (start_comp_for_accel > BL_SPACEDIM)
                 {
-                   D_TERM(p.rdata.arr[BL_SPACEDIM + start_comp_for_accel  ] = grav[0];,
-                          p.rdata.arr[BL_SPACEDIM + start_comp_for_accel+1] = grav[1];,
-                          p.rdata.arr[BL_SPACEDIM + start_comp_for_accel+2] = grav[2];);
+		  D_TERM(p.rdata.arr[BL_SPACEDIM + start_comp_for_accel  ] = grav[0];,
+			 p.rdata.arr[BL_SPACEDIM + start_comp_for_accel+1] = grav[1];,
+			 p.rdata.arr[BL_SPACEDIM + start_comp_for_accel+2] = grav[2];);
                 }
             }
         }
     }
 
-
+    
     if (ac_pointer != &acceleration) delete ac_pointer;
 
     if (m_verbose > 1)
