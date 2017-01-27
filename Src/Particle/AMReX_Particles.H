@@ -93,8 +93,8 @@ struct Particle
     std::array<int     ,NI> m_idata;
 
     RealType m_pos[BL_SPACEDIM];
-    int      m_id   = -1;
-    int      m_cpu  = -1;
+    int      m_id;
+    int      m_cpu;
 
     static IntVect Index (const Particle<NR, NI>& p, const Geometry& geom);
 
