@@ -2894,9 +2894,6 @@ ParticleContainer<NR,NI,C>::RedistributeMPI (PMap& not_ours)
             {
                 BL_ASSERT(p.idata.id > 0);
 
-		ParticleLocData pld;
-		Particle<NR, NI>::Where(p, m_gdb, pld);
-
                 senddata[ioff+0] = p.idata.id;
                 senddata[ioff+1] = p.idata.cpu;
 
@@ -3001,7 +2998,7 @@ ParticleContainer<NR,NI,C>::RedistributeMPI (PMap& not_ours)
                 ioff += BL_SPACEDIM;
 
                 for (int j = 0; j < NR; j++)
-                    senddata[ioff+j] = p.rdata.arr[ioff + j];
+                    senddata[ioff+j] = p.rdata.arr[BL_SPACEDIM + j];
 
                 ioff += NR;
             }
