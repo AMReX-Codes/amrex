@@ -13,7 +13,6 @@
 #include <limits>
 
 #include <AMReX_ParmParse.H>
-
 #include <AMReX_ParGDB.H>
 #include <AMReX_REAL.H>
 #include <AMReX_IntVect.H>
@@ -107,8 +106,14 @@ struct Particle
       int arr[2+NI];
     };
 
-    rm_t rdata;
-    im_t idata;
+    rm_t m_rdata;
+    im_t m_idata;
+
+    int& id() {return m_idata.id;}
+    int& cpu() {return m_idata.id;}
+    double& pos(int index) {return m_rdata.pos[index];}
+    double& rdata(int index) {return m_rdata.arr[BL_SPACEDIM + index];}
+    int& idata(int index) {return m_idata.arr[2 + index];}
 
     static IntVect Index (const Particle<NR, NI>& p, const Geometry& geom);
 
@@ -342,8 +347,7 @@ public:
 
     void addOneParticle (int id_in, int cpu_in, 
                          std::vector<Real>& xloc, std::vector<Real>& attributes); 
-    void addNParticles (int n, D_DECL(Array<Real>& x, Array<Real>& y, Array<Real>& z), 
-                               D_DECL(Array<Real>& u, Array<Real>& v, Array<Real>& w), 
+    void addNParticles (int n, D_DECL(Array<Real>& x, Array<Real>& y, Array<Real>& z),
                         int na, Array<Real>& attributes);
 
     void GetParticleIDs        (Array<int> & part_ids);
