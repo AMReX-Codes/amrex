@@ -121,7 +121,7 @@ contains
     if (present(name)) then
        call amrex_new_parmparse(pp%p, amrex_string_f_to_c(name))
     else
-       call amrex_new_parmparse(pp%p, c_char_""//c_null_char)
+       call amrex_new_parmparse(pp%p, amrex_c_null_char_array)
     end if
   end subroutine amrex_parmparse_build
 
