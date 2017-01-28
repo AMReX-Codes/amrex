@@ -23,7 +23,7 @@ module amrex_parmparse_module
      procedure, private :: query_real
      procedure, private :: query_logical
      procedure, private :: query_string
-#ifdef __gfortran__
+#ifdef __gfortran__ && __GNUC__ <= 4
      final :: amrex_parmparse_destroy
 #endif
   end type amrex_parmparse
