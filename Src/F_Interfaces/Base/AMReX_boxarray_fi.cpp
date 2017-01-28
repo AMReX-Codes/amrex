@@ -1,20 +1,28 @@
 
 #include <AMReX_BoxArray.H>
 
+using namespace amrex;
+
 extern "C" {
 
-    void fi_new_boxarray (BoxArray*& ba, int lo[3], int hi[3])
+    void amrex_fi_new_boxarray (BoxArray*& ba, int lo[3], int hi[3])
     {
 	IntVect small(lo), big(hi);
 	ba = new BoxArray(Box(small,big));
     }
 
-    void fi_delete_boxarray (BoxArray* ba)
+    void amrex_fi_delete_boxarray (BoxArray* ba)
     {
 	delete ba;
     }
 
-    void fi_boxarray_maxsize (BoxArray* ba, int sz)
+    void amrex_fi_clone_boxarray (BoxArray*& bao, const BoxArray* bai)
+    {
+	delete bao;
+	bao = new BoxArray(*bai);
+    }
+
+    void amrex_fi_boxarray_maxsize (BoxArray* ba, int sz)
     {
 	ba->maxSize(sz);
     }

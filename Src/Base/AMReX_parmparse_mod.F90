@@ -23,6 +23,9 @@ module amrex_parmparse_module
      procedure, private :: query_real
      procedure, private :: query_logical
      procedure, private :: query_string
+#ifdef __gfortran__
+     final :: amrex_parmparse_destroy
+#endif
   end type amrex_parmparse
 
   ! interfaces to cpp functions
@@ -114,8 +117,12 @@ contains
 
   subroutine amrex_parmparse_build (pp, name)
     type(amrex_parmparse) :: pp
-    character(*), intent(in) :: name
-    call amrex_new_parmparse(pp%p, amrex_string_f_to_c(name))
+    character(*), intent(in), optional :: name
+    if (present(name)) then
+       call amrex_new_parmparse(pp%p, amrex_string_f_to_c(name))
+    else
+       call amrex_new_parmparse(pp%p, c_char_""//c_null_char)
+    end if
   end subroutine amrex_parmparse_build
 
   subroutine amrex_parmparse_destroy (this)

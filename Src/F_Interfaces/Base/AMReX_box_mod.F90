@@ -1,29 +1,29 @@
 
-module box_module
+module amrex_box_module
 
-  use bl_space_module, only : ndims => bl_num_dims
+  use amrex_fort_module, only : ndims => amrex_spacedim;
 
   implicit none
 
   private
 
-  type, public :: Box
+  type, public :: amrex_box
      integer, dimension(3) :: lo = 1
      integer, dimension(3) :: hi = 1
-  end type Box
+  end type amrex_box
 
-  interface Box
-     module procedure build_box
-  end interface Box
+  interface amrex_box
+     module procedure amrex_box_build
+  end interface amrex_box
 
 contains
 
-  function build_box(lo, hi) result(bx)
+  function amrex_box_build(lo, hi) result(bx)
     integer, intent(in) :: lo(:), hi(:)
-    type(Box) :: bx
+    type(amrex_box) :: bx
     bx%lo(1:ndims) = lo(1:ndims)
     bx%hi(1:ndims) = hi(1:ndims)
-  end function build_box
+  end function amrex_box_build
 
-end module box_module
+end module amrex_box_module
 
