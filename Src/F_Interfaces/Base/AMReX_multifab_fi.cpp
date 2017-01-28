@@ -2,21 +2,24 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_Geometry.H>
 
+using namespace amrex;
+
 extern "C" {
 
-    void fi_new_multifab (MultiFab*& mf, BoxArray*& bao, const BoxArray* bai, 
-			  int nc, int ng, const int* nodal)
+    void amrex_fi_new_multifab (MultiFab*& mf, BoxArray*& bao, const BoxArray* bai,
+				const DistributionMapping* dm,
+				int nc, int ng, const int* nodal)
     {
-	mf = new MultiFab(*bai, nc, ng, Fab_allocate, IntVect(nodal));
+	mf = new MultiFab(*bai, *dm, nc, ng, MFInfo().SetNodal(IntVect(nodal)));
 	bao = (BoxArray*)&(mf->boxArray());
     }
 
-    void fi_delete_multifab (MultiFab* mf)
+    void amrex_fi_delete_multifab (MultiFab* mf)
     {
 	delete mf;
     }
 
-    void fi_multifab_dataptr (MultiFab* mf, MFIter* mfi, double*& dp, int lo[3], int hi[3])
+    void amrex_fi_multifab_dataptr (MultiFab* mf, MFIter* mfi, Real*& dp, int lo[3], int hi[3])
     {
 	FArrayBox& fab = (*mf)[*mfi];
 	dp = fab.dataPtr();
@@ -29,61 +32,61 @@ extern "C" {
 	}
     }
 
-    double fi_multifab_min(const MultiFab* mf, int comp, int nghost)
+    Real amrex_fi_multifab_min(const MultiFab* mf, int comp, int nghost)
     {
 	return mf->min(comp,nghost);
     }
 
-    double fi_multifab_max(const MultiFab* mf, int comp, int nghost)
+    Real amrex_fi_multifab_max(const MultiFab* mf, int comp, int nghost)
     {
 	return mf->max(comp,nghost);
     }
 
-    double fi_multifab_norm0(const MultiFab* mf, int comp)
+    Real amrex_fi_multifab_norm0(const MultiFab* mf, int comp)
     {
 	return mf->norm0(comp);
     }
 
-    double fi_multifab_norm1(const MultiFab* mf, int comp)
+    Real amrex_fi_multifab_norm1(const MultiFab* mf, int comp)
     {
 	return mf->norm1(comp);
     }
 
-    double fi_multifab_norm2(const MultiFab* mf, int comp)
+    Real amrex_fi_multifab_norm2(const MultiFab* mf, int comp)
     {
 	return mf->norm2(comp);
     }
 
-    void fi_multifab_fill_boundary (MultiFab* mf, const Geometry* geom, 
-				    int c, int nc, int cross)
+    void amrex_fi_multifab_fill_boundary (MultiFab* mf, const Geometry* geom, 
+					  int c, int nc, int cross)
     {
-	mf->FillBoundary(c, nc, cross, geom.periodicity());
+	mf->FillBoundary(c, nc, geom->periodicity(), cross);
     }
 
     // MFIter routines
 
-    void fi_new_mfiter (MFIter*& mfi, MultiFab* mf, int tiling)
+    void amrex_fi_new_mfiter (MFIter*& mfi, MultiFab* mf, int tiling)
     {
 	mfi = new MFIter(*mf, (bool)tiling);
     }
 
-    void fi_delete_mfiter (MFIter* mfi)
+    void amrex_fi_delete_mfiter (MFIter* mfi)
     {
 	delete mfi;
     }
 
-    void fi_increment_mfiter (MFIter* mfi, int* isvalid)
+    void amrex_fi_increment_mfiter (MFIter* mfi, int* isvalid)
     {
 	++(*mfi);
 	*isvalid = mfi->isValid();
     }
 
-    void fi_mfiter_is_valid (MFIter* mfi, int* isvalid)
+    void amrex_fi_mfiter_is_valid (MFIter* mfi, int* isvalid)
     {
 	*isvalid = mfi->isValid();
     }
 
-    void fi_mfiter_tilebox (MFIter* mfi, int lo[3], int hi[3])
+    void amrex_fi_mfiter_tilebox (MFIter* mfi, int lo[3], int hi[3])
     {
 	const Box& bx = mfi->tilebox();
 	const int* lov = bx.loVect();

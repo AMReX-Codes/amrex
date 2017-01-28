@@ -1,27 +1,27 @@
 
 #ifdef BL_USE_MPI
-module fboxlib_mpi
+module amrex_fi_mpi
   implicit none
   include 'mpif.h'
-end module fboxlib_mpi
+end module amrex_fi_mpi
 #endif
 
-module parallel_module
+module amrex_parallel_module
 
   use iso_c_binding
 #ifdef BL_USE_MPI
-  use fboxlib_mpi
+  use amrex_fi_mpi
 #endif
 
   implicit none
 
   private
 
-  public :: parallel_comm_init_from_c
-  public :: parallel_comm_free_from_c
-  public :: parallel_myproc 
-  public :: parallel_ioprocessor
-  public :: parallel_nprocs
+  public :: amrex_parallel_comm_init_from_c
+  public :: amrex_parallel_comm_free_from_c
+  public :: amrex_parallel_myproc 
+  public :: amrex_parallel_ioprocessor
+  public :: amrex_parallel_nprocs
 
 #ifdef BL_USE_MPI
   integer :: m_nprocs = -1
@@ -35,7 +35,7 @@ module parallel_module
 
 contains
 
-  subroutine parallel_comm_init_from_c (comm) bind(c, name='bl_fortran_mpi_comm_init')
+  subroutine amrex_parallel_comm_init_from_c (comm) bind(c, name='amrex_parallel_comm_init_from_c')
     use iso_c_binding
     integer(c_int), intent(in), value :: comm
 #ifdef BL_USE_MPI
@@ -48,25 +48,25 @@ contains
     m_nprocs = 1
     m_myproc = 0
 #endif
-  end subroutine parallel_comm_init_from_c
+  end subroutine amrex_parallel_comm_init_from_c
 
-  subroutine parallel_comm_free_from_c () bind(c, name='bl_fortran_mpi_comm_free')
+  subroutine amrex_parallel_comm_free_from_c () bind(c, name='amrex_parallel_comm_free_from_c')
 #ifdef BL_USE_MPI
     integer :: ierr
     call MPI_Comm_Free(m_comm, ierr)
 #endif
-  end subroutine parallel_comm_free_from_c
+  end subroutine amrex_parallel_comm_free_from_c
 
-  integer function parallel_myproc ()
-    parallel_myproc = m_myproc
-  end function parallel_myproc
+  integer function amrex_parallel_myproc ()
+    amrex_parallel_myproc = m_myproc
+  end function amrex_parallel_myproc
 
-  logical function parallel_ioprocessor ()
-    parallel_ioprocessor = m_myproc .eq. 0
-  end function parallel_ioprocessor
+  logical function amrex_parallel_ioprocessor ()
+    amrex_parallel_ioprocessor = m_myproc .eq. 0
+  end function amrex_parallel_ioprocessor
 
-  integer function parallel_nprocs ()
-    parallel_nprocs = m_nprocs
-  end function parallel_nprocs
+  integer function amrex_parallel_nprocs ()
+    amrex_parallel_nprocs = m_nprocs
+  end function amrex_parallel_nprocs
 
-end module parallel_module
+end module amrex_parallel_module

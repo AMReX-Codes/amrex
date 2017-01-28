@@ -1,78 +1,80 @@
 
-module geometry_module
+module amrex_geometry_module
 
   use iso_c_binding
-  use bl_space_module, only : ndims => bl_num_dims
-  use box_module
+  use amrex_fort_module, only : ndims => amrex_spacedim, amrex_real
+  use amrex_box_module
 
   implicit none
 
   private
 
-  public :: geometry_build
+  public :: amrex_geometry_build, amrex_geometry_destroy
 
-  type, public :: Geometry
+  type, public :: amrex_geometry
      logical          :: pmask(3)  = .false.
-     double precision :: problo(3) = 0.0d0
-     double precision :: probhi(3) = 1.0d0
-     double precision :: dx(3)     = 0.0d0
-     type(Box)        :: domain
+     real(amrex_real) :: problo(3) = 0.0_amrex_real
+     real(amrex_real) :: probhi(3) = 1.0_amrex_real
+     real(amrex_real) :: dx(3)     = 0.0_amrex_real
+     type(amrex_box)  :: domain
      type(c_ptr)      :: p         = c_null_ptr
    contains
-     final :: geometry_destroy
-  end type Geometry
+#ifdef __gfortran__
+     final :: amrex_geometry_destroy
+#endif
+  end type amrex_geometry
 
   ! interfaces to c++ functions
 
   interface
-     subroutine fi_new_geometry (geom,lo,hi) bind(c)
+     subroutine amrex_fi_new_geometry (geom,lo,hi) bind(c)
        use iso_c_binding
        implicit none
        type(c_ptr) :: geom
        integer, intent(in) :: lo(3), hi(3)
-     end subroutine fi_new_geometry
+     end subroutine amrex_fi_new_geometry
 
-     subroutine fi_delete_geometry (geom) bind(c)
+     subroutine amrex_fi_delete_geometry (geom) bind(c)
        use iso_c_binding
        implicit none
        type(c_ptr), value, intent(in) :: geom
-     end subroutine fi_delete_geometry
+     end subroutine amrex_fi_delete_geometry
 
-     subroutine fi_geometry_get_pmask (geom,pmask) bind(c)
+     subroutine amrex_fi_geometry_get_pmask (geom,pmask) bind(c)
        use iso_c_binding
        implicit none
        type(c_ptr), value, intent(in) :: geom
        integer(c_int) :: pmask(3)
-     end subroutine fi_geometry_get_pmask
+     end subroutine amrex_fi_geometry_get_pmask
 
-     subroutine fi_geometry_get_probdomain (geom,problo,probhi) bind(c)
+     subroutine amrex_fi_geometry_get_probdomain (geom,problo,probhi) bind(c)
        use iso_c_binding
        implicit none
        type(c_ptr), value, intent(in) :: geom
        real(c_double) :: problo(3), probhi(3)
-     end subroutine fi_geometry_get_probdomain
+     end subroutine amrex_fi_geometry_get_probdomain
   end interface
 
 contains
 
-  subroutine geometry_build (geom, domain)
-    type(Geometry) :: geom
-    type(Box), intent(in) :: domain
+  subroutine amrex_geometry_build (geom, domain)
+    type(amrex_geometry) :: geom
+    type(amrex_box), intent(in) :: domain
     integer :: imask(3), i
-    call fi_new_geometry(geom%p, domain%lo, domain%hi)
+    call amrex_fi_new_geometry(geom%p, domain%lo, domain%hi)
     imask = 0
-    call fi_geometry_get_pmask(geom%p, imask)
+    call amrex_fi_geometry_get_pmask(geom%p, imask)
     where (imask .eq. 1) geom%pmask = .true.
-    call fi_geometry_get_probdomain(geom%p, geom%problo, geom%probhi)
+    call amrex_fi_geometry_get_probdomain(geom%p, geom%problo, geom%probhi)
     geom%domain = domain
     do i = 1, ndims
        geom%dx(i) = (geom%probhi(i)-geom%problo(i)) / dble(domain%hi(i)-domain%lo(i)+1)
     end do
-  end subroutine geometry_build
+  end subroutine amrex_geometry_build
 
-  subroutine geometry_destroy (geom)
-    type(Geometry) :: geom
-    call fi_delete_geometry(geom%p)
-  end subroutine geometry_destroy
+  subroutine amrex_geometry_destroy (geom)
+    type(amrex_geometry) :: geom
+    call amrex_fi_delete_geometry(geom%p)
+  end subroutine amrex_geometry_destroy
 
-end module geometry_module
+end module amrex_geometry_module

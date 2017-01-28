@@ -1,94 +1,113 @@
 
-module boxarray_module
+module amrex_boxarray_module
 
   use iso_c_binding
 
-  use box_module
+  use amrex_box_module
 
   implicit none
 
   private
 
-  public :: boxarray_build
+  public :: amrex_boxarray_build, amrex_boxarray_destroy
 
-  type, public :: BoxArray
+  type, public :: amrex_boxarray
      logical     :: owner = .false.
      type(c_ptr) :: p = c_null_ptr
    contains
-     procedure :: move          => boxarray_move 
-     procedure ::                  boxarray_assign
-     procedure :: maxSize       => boxarray_maxSize
-     generic   :: assignment(=) => boxarray_assign
-     final :: boxarray_destroy
-  end type BoxArray
+     procedure :: move          => amrex_boxarray_move     ! take ownship
+     procedure :: clone         => amrex_boxarray_clone    ! deep copy
+     procedure ::                  amrex_boxarray_assign   ! shallow copy
+     generic   :: assignment(=) => amrex_boxarray_assign   ! shallow copy
+     procedure :: maxSize       => amrex_boxarray_maxSize  ! make the boxes smaller
+#ifdef __gfortran__
+     final :: amrex_boxarray_destroy
+#endif
+  end type amrex_boxarray
 
-  interface boxarray_build
-     module procedure boxarray_build_bx
-  end interface boxarray_build
+  interface amrex_boxarray_build
+     module procedure amrex_boxarray_build_bx
+  end interface amrex_boxarray_build
 
   ! interfaces to cpp functions
 
   interface
-     subroutine fi_new_boxarray (ba,lo,hi) bind(c)
+     subroutine amrex_fi_new_boxarray (ba,lo,hi) bind(c)
        use, intrinsic :: iso_c_binding
        implicit none
        type(c_ptr) :: ba
        integer(c_int), intent(in) :: lo(3), hi(3)
-     end subroutine fi_new_boxarray
+     end subroutine amrex_fi_new_boxarray
 
-     subroutine fi_delete_boxarray (ba) bind(c)
+     subroutine amrex_fi_delete_boxarray (ba) bind(c)
        use, intrinsic :: iso_c_binding
        implicit none
        type(c_ptr), value, intent(in) :: ba
-     end subroutine fi_delete_boxarray
+     end subroutine amrex_fi_delete_boxarray
 
-     subroutine fi_boxarray_maxsize (ba,n) bind(c)
+     subroutine amrex_fi_clone_boxarray (bao, bai) bind(c)
+       use, intrinsic :: iso_c_binding
+       implicit none
+       type(c_ptr) :: bao
+       type(c_ptr), value, intent(in) :: bai
+     end subroutine amrex_fi_clone_boxarray
+
+     subroutine amrex_fi_boxarray_maxsize (ba,n) bind(c)
        use, intrinsic :: iso_c_binding
        implicit none
        type(c_ptr), value, intent(in) :: ba
        integer(c_int), value, intent(in) :: n
-     end subroutine fi_boxarray_maxsize
+     end subroutine amrex_fi_boxarray_maxsize
   end interface
 
 contains
 
-  subroutine boxarray_build_bx (ba, bx)
-    type(BoxArray) :: ba
-    type(Box), intent(in ) :: bx
+  subroutine amrex_boxarray_build_bx (ba, bx)
+    type(amrex_boxarray) :: ba
+    type(amrex_box), intent(in ) :: bx
     ba%owner = .true.
-    call fi_new_boxarray(ba%p, bx%lo, bx%hi)
-  end subroutine boxarray_build_bx
+    call amrex_fi_new_boxarray(ba%p, bx%lo, bx%hi)
+  end subroutine amrex_boxarray_build_bx
 
-  subroutine boxarray_destroy (this)
-    type(BoxArray) :: this
+  subroutine amrex_boxarray_destroy (this)
+    type(amrex_boxarray) :: this
     if (this%owner) then
        this%owner = .false.
        if (c_associated(this%p)) then
-          call fi_delete_boxarray(this%p)
+          call amrex_fi_delete_boxarray(this%p)
           this%p = c_null_ptr
        end if
     end if
-  end subroutine boxarray_destroy
+  end subroutine amrex_boxarray_destroy
 
-  subroutine boxarray_assign (dst, src)
-    class(BoxArray), intent(inout) :: dst
-    type (BoxArray), intent(in   ) :: src
+  subroutine amrex_boxarray_assign (dst, src)
+    class(amrex_boxarray), intent(inout) :: dst
+    type (amrex_boxarray), intent(in   ) :: src
+    call amrex_boxarray_destroy(dst)
     dst%owner = .false.
     dst%p = src%p
-  end subroutine boxarray_assign
+  end subroutine amrex_boxarray_assign
 
-  subroutine boxarray_move (dst, src)
-    class(BoxArray) :: dst, src
+  subroutine amrex_boxarray_clone (dst, src)
+    class(amrex_boxarray), intent(inout) :: dst
+    type (amrex_boxarray), intent(in   ) :: src
+    dst%owner = .true.
+    call amrex_fi_clone_boxarray(dst%p, src%p)
+  end subroutine amrex_boxarray_clone
+
+  subroutine amrex_boxarray_move (dst, src)
+    class(amrex_boxarray) :: dst, src
+    call amrex_boxarray_destroy(dst)
     dst%owner = src%owner
     dst%p = src%p
     src%owner = .false.
     src%p = c_null_ptr
-  end subroutine boxarray_move
+  end subroutine amrex_boxarray_move
 
-  subroutine boxarray_maxsize (this, sz)
-    class(BoxArray) this
+  subroutine amrex_boxarray_maxsize (this, sz)
+    class(amrex_boxarray) this
     integer, intent(in)    :: sz
-    call fi_boxarray_maxsize(this%p, sz)
-  end subroutine boxarray_maxsize
+    call amrex_fi_boxarray_maxsize(this%p, sz)
+  end subroutine amrex_boxarray_maxsize
 
-end module boxarray_module
+end module amrex_boxarray_module

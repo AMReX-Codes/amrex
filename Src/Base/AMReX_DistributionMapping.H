@@ -4,6 +4,7 @@
 #include <map>
 #include <limits>
 #include <memory>
+#include <cstddef>
 
 #include <AMReX.H>
 #include <AMReX_Array.H>
