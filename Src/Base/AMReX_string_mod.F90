@@ -7,6 +7,8 @@ module amrex_string_module
 
   private
 
+  character(c_char), public, parameter :: amrex_c_null_char_array(1) = (/ c_null_char /)
+
   public :: amrex_string_f_to_c, amrex_string_c_to_f
 
 contains
