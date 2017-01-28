@@ -232,9 +232,9 @@ contains
   function amrex_multifab_dataPtr (this, mfi) result(dp)
     class(amrex_multifab) :: this
     type(amrex_mfiter), intent(in) :: mfi
-    double precision, pointer, dimension(:,:,:,:) :: dp
+    double precision, contiguous, pointer, dimension(:,:,:,:) :: dp
     type(c_ptr) :: cp
-    double precision, pointer :: fp(:,:,:,:)
+    double precision, contiguous, pointer :: fp(:,:,:,:)
     integer(c_int) :: lo(3), hi(3), n(4)
     lo = 1;  hi = 1
     call amrex_fi_multifab_dataptr(this%p, mfi%p, cp, lo, hi)
