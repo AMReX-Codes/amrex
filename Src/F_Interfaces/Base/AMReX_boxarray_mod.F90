@@ -20,7 +20,7 @@ module amrex_boxarray_module
      procedure ::                  amrex_boxarray_assign   ! shallow copy
      generic   :: assignment(=) => amrex_boxarray_assign   ! shallow copy
      procedure :: maxSize       => amrex_boxarray_maxSize  ! make the boxes smaller
-#ifdef __gfortran__ && __GNUC__ <= 4
+#if defined(__gfortran__) && (__GNUC__ <= 4)
      final :: amrex_boxarray_destroy
 #endif
   end type amrex_boxarray

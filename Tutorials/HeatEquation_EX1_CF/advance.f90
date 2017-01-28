@@ -12,15 +12,15 @@ module advance_module
 contains
 
   subroutine advance (old_phi, new_phi, geom, dt)
-    type(amrex_multifab) :: old_phi, new_phi
-    type(amrex_geometry) :: geom
-    real(amrex_real) :: dt
+    type(amrex_multifab), intent(inout) :: old_phi, new_phi
+    type(amrex_geometry), intent(in) :: geom
+    real(amrex_real), intent(in) :: dt
 
     integer :: plo(4), phi(4)
     real(amrex_real) :: dx
     type(amrex_box) :: bx
     type(amrex_mfiter) :: mfi
-    real(amrex_real), dimension(:,:,:,:), pointer :: po, pn
+    real(amrex_real), contiguous, dimension(:,:,:,:), pointer :: po, pn
 
     ! For simplicity, we assume dx(1) == dx(2) == dx(3)
     dx = geom%dx(1)
@@ -48,6 +48,8 @@ contains
           call update_phi_3d(bx%lo, bx%hi, po, pn, plo, phi, dx, dt)
        end select
     end do
+
+    call amrex_mfiter_destroy(mfi)
     !$omp end parallel
 
   end subroutine advance

@@ -33,6 +33,8 @@ subroutine amrex_fmain () bind(c)
   plot_int = -1 ! default to no plotfiles
   call pp%query("plot_int", plot_int);
   
+  call amrex_parmparse_destroy(pp)
+
   ! Define a single box covering the domain
   domain = amrex_box((/0,0,0/), (/n_cell-1, n_cell-1, n_cell-1/))
 
@@ -51,6 +53,9 @@ subroutine amrex_fmain () bind(c)
   ! Build data multifabs
   call amrex_multifab_build(new_phi, ba, dm, ncomp, nghost)
   call amrex_multifab_build(old_phi, ba, dm, ncomp, nghost)
+
+  call amrex_distromap_destroy(dm)
+  call amrex_boxarray_destroy(ba)
 
   ! Intialize data
   call init_phi(new_phi, geom)
@@ -76,5 +81,10 @@ subroutine amrex_fmain () bind(c)
      time = time + dt
 
   end do
+
+  call amrex_multifab_destroy(new_phi)
+  call amrex_multifab_destroy(old_phi)
+
+  call amrex_geometry_destroy(geom)
 
 end subroutine amrex_fmain

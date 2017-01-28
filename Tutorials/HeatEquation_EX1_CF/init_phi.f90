@@ -20,7 +20,7 @@ contains
     integer :: lo(4), hi(4)
     type(amrex_box) :: bx
     type(amrex_mfiter) :: mfi
-    real(amrex_real), pointer :: p(:,:,:,:)
+    real(amrex_real), contiguous, pointer :: p(:,:,:,:)
 
     !$omp parallel private(bx,p,lo,hi)
     call amrex_mfiter_build(mfi, phi, tiling=.true.)
@@ -38,6 +38,7 @@ contains
                geom%problo, geom%dx)
        end select
     end do
+    call amrex_mfiter_destroy(mfi)
     !$omp end parallel
 
   end subroutine init_phi
