@@ -114,21 +114,21 @@ ParticleContainer<NR,NI,C>::InitFromAsciiFile (const std::string& file, int extr
             // We don't read in idata.id or idata.cpu.  We'll set those later
             // in a manner to guarantee the global uniqueness of the pair.
             //
-            D_TERM(ifs >> p.rdata.pos[0];,
-                   ifs >> p.rdata.pos[1];,
-                   ifs >> p.rdata.pos[2];);
+            D_TERM(ifs >> p.m_rdata.pos[0];,
+                   ifs >> p.m_rdata.pos[1];,
+                   ifs >> p.m_rdata.pos[2];);
             //
             // If particle is right on a domain boundary then move it just inside the boundary.
             //
             for (int d = 0; d < BL_SPACEDIM; d++)
             {
-                if (p.rdata.pos[d] <= ProbLo[d]) p.rdata.pos[d] += Delta[d];
-                if (p.rdata.pos[d] >= ProbHi[d]) p.rdata.pos[d] -= Delta[d];
+                if (p.m_rdata.pos[d] <= ProbLo[d]) p.m_rdata.pos[d] += Delta[d];
+                if (p.m_rdata.pos[d] >= ProbHi[d]) p.m_rdata.pos[d] -= Delta[d];
             }
 
             for (int n = 0; n < extradata; n++)
             {
-                ifs >> p.rdata.arr[BL_SPACEDIM+n];
+                ifs >> p.m_rdata.arr[BL_SPACEDIM+n];
             }
 
             if (!ifs.good())
@@ -148,15 +148,15 @@ ParticleContainer<NR,NI,C>::InitFromAsciiFile (const std::string& file, int extr
 
                     for (int d = 0; d < BL_SPACEDIM; d++)
                     {
-                        std::cout << "BAD PARTICLE POS(" << d << ") " << p.rdata.pos[d] << std::endl;
+                        std::cout << "BAD PARTICLE POS(" << d << ") " << p.m_rdata.pos[d] << std::endl;
                     }
 
                     amrex::Abort("ParticleContainer<NR,NI,C>::InitFromAsciiFile(): invalid particle");
                 }
             }
 
-            p.idata.id  = ParticleType::NextID();
-            p.idata.cpu = MyProc;
+            p.m_idata.id  = ParticleType::NextID();
+            p.m_idata.cpu = MyProc;
 
             nparticles.push_back(p);
 
@@ -183,13 +183,13 @@ ParticleContainer<NR,NI,C>::InitFromAsciiFile (const std::string& file, int extr
                             //
                             for (int d=0; d<BL_SPACEDIM; ++d)
                             {
-                                p_rep.rdata.pos[d] = p.rdata.pos[d] + (rep[d]-1)*DomSize[d];
+                                p_rep.m_rdata.pos[d] = p.m_rdata.pos[d] + (rep[d]-1)*DomSize[d];
                             }
                             //
                             // Copy the mass and velocity.
                             //
                             for (int n = 0; n < extradata; n++)
-                                p_rep.rdata.arr[BL_SPACEDIM+n] = p.rdata.arr[BL_SPACEDIM+n];
+                                p_rep.m_rdata.arr[BL_SPACEDIM+n] = p.m_rdata.arr[BL_SPACEDIM+n];
 
                             if (!ParticleType::Where(p_rep, m_gdb, pld))
                             {
@@ -203,11 +203,11 @@ ParticleContainer<NR,NI,C>::InitFromAsciiFile (const std::string& file, int extr
                             //
                             // Increment the particle ID.
                             //
-                            p_rep.idata.id  = ParticleType::NextID();
+                            p_rep.m_idata.id  = ParticleType::NextID();
                             //
                             // Assign to the same processor for now.
                             //
-                            p_rep.idata.cpu = MyProc;
+                            p_rep.m_idata.cpu = MyProc;
    
                             nparticles.push_back(p_rep);
    
@@ -610,9 +610,9 @@ ParticleContainer<NR,NI,C>::InitFromBinaryFile (const std::string& file,
 
                     ifs.read((char*)&fpos[0], BL_SPACEDIM*sizeof(float));
 
-                    D_TERM(p.rdata.pos[0] = fpos[0];,
-                           p.rdata.pos[1] = fpos[1];,
-                           p.rdata.pos[2] = fpos[2];);
+                    D_TERM(p.m_rdata.pos[0] = fpos[0];,
+                           p.m_rdata.pos[1] = fpos[1];,
+                           p.m_rdata.pos[2] = fpos[2];);
 
                 }
                 else if (RealSizeInFile == sizeof(double))
@@ -621,17 +621,17 @@ ParticleContainer<NR,NI,C>::InitFromBinaryFile (const std::string& file,
 
                     ifs.read((char*)&dpos[0], BL_SPACEDIM*sizeof(double));
 
-                    D_TERM(p.rdata.pos[0] = dpos[0];,
-                           p.rdata.pos[1] = dpos[1];,
-                           p.rdata.pos[2] = dpos[2];);
+                    D_TERM(p.m_rdata.pos[0] = dpos[0];,
+                           p.m_rdata.pos[1] = dpos[1];,
+                           p.m_rdata.pos[2] = dpos[2];);
                 }
                 //
                 // If particle is right on a domain boundary then move it just inside the boundary.
                 //
                 for (int d = 0; d < BL_SPACEDIM; d++)
                 {
-                    if (p.rdata.pos[d] <= ProbLo[d]) p.rdata.pos[d] += Delta[d];
-                    if (p.rdata.pos[d] >= ProbHi[d]) p.rdata.pos[d] -= Delta[d];
+                    if (p.m_rdata.pos[d] <= ProbLo[d]) p.m_rdata.pos[d] += Delta[d];
+                    if (p.m_rdata.pos[d] >= ProbHi[d]) p.m_rdata.pos[d] -= Delta[d];
                 }
                 //
                 // Read in any "extradata".
@@ -643,14 +643,14 @@ ParticleContainer<NR,NI,C>::InitFromBinaryFile (const std::string& file,
                         ifs.read((char*)&fxtra[0], extradata*sizeof(float));
 
                         for (int i = 0; i < extradata; i++)
-                            p.rdata.arr[BL_SPACEDIM+i] = fxtra[i];
+                            p.m_rdata.arr[BL_SPACEDIM+i] = fxtra[i];
                     }
                     else if (RealSizeInFile == sizeof(double))
                     {
                         ifs.read((char*)&dxtra[0], extradata*sizeof(double));
 
                         for (int i = 0; i < extradata; i++)
-                            p.rdata.arr[BL_SPACEDIM+i] = dxtra[i];
+                            p.m_rdata.arr[BL_SPACEDIM+i] = dxtra[i];
                     }
                 }
                 //
@@ -686,15 +686,15 @@ ParticleContainer<NR,NI,C>::InitFromBinaryFile (const std::string& file,
 
                         for (int d = 0; d < BL_SPACEDIM; d++)
                         {
-                            std::cout << "BAD PARTICLE POS(" << d << ") " << p.rdata.pos[d] << std::endl;
+                            std::cout << "BAD PARTICLE POS(" << d << ") " << p.m_rdata.pos[d] << std::endl;
                         }
 
                         amrex::Abort("ParticleContainer<NR,NI,C>::InitFromBinaryFile(): invalid particle");
                     }
                 }
 
-                p.idata.id  = ParticleType::NextID();
-                p.idata.cpu = MyProc;
+                p.m_idata.id  = ParticleType::NextID();
+                p.m_idata.cpu = MyProc;
 
                 m_particles[pld.m_lev][pld.m_grid].push_back(p);
             }
@@ -888,18 +888,18 @@ ParticleContainer<NR,NI,C>::InitRandom (long          icount,
 
             for (int i = 0; i < BL_SPACEDIM; i++)
             {
-                p.rdata.pos[i] = pos[j*BL_SPACEDIM + i];
+                p.m_rdata.pos[i] = pos[j*BL_SPACEDIM + i];
             }
 
             if (NR > 0)
             {
-                p.rdata.arr[BL_SPACEDIM] = mass;
+                p.m_rdata.arr[BL_SPACEDIM] = mass;
 
                 for (int i = 1; i < NR; i++)
                     //
                     // Just zero out the rest of the data for lack of a better value.
                     //
-                    p.rdata.arr[BL_SPACEDIM+i] = 0;
+                    p.m_rdata.arr[BL_SPACEDIM+i] = 0;
             }
 
             if (!ParticleType::Where(p, m_gdb, pld))
@@ -916,8 +916,8 @@ ParticleContainer<NR,NI,C>::InitRandom (long          icount,
                 //
                 // We own it. Add it to the appropriate PBox at the appropriate level.
                 //
-                p.idata.id  = ParticleType::NextID();
-                p.idata.cpu = MyProc;
+                p.m_idata.id  = ParticleType::NextID();
+                p.m_idata.cpu = MyProc;
 
                 m_particles[pld.m_lev][pld.m_grid].push_back(p);
 
@@ -956,24 +956,24 @@ ParticleContainer<NR,NI,C>::InitRandom (long          icount,
                 }
                 while (x < xlo[i] || x > xhi[i]);
 
-                p.rdata.pos[i] = x;
+                p.m_rdata.pos[i] = x;
 
-                BL_ASSERT(p.rdata.pos[i] < geom.ProbHi(i));
+                BL_ASSERT(p.m_rdata.pos[i] < geom.ProbHi(i));
             }
 
             if (NR > 0)
             {
-                p.rdata.arr[BL_SPACEDIM] = mass;
+                p.m_rdata.arr[BL_SPACEDIM] = mass;
 
                 for (int i = 1; i < NR; i++)
                     //
                     // Just zero out the rest of the data for lack of a better value.
                     //
-                    p.rdata.arr[BL_SPACEDIM+i] = 0;
+                    p.m_rdata.arr[BL_SPACEDIM+i] = 0;
             }
 
-            p.idata.id  = ParticleType::NextID();
-            p.idata.cpu = MyProc;
+            p.m_idata.id  = ParticleType::NextID();
+            p.m_idata.cpu = MyProc;
 
             if (!ParticleType::Where(p, m_gdb, pld))
             {
@@ -1057,26 +1057,26 @@ ParticleContainer<NR,NI,C>::InitOnePerCell (Real x_off, Real y_off, Real z_off,
             ParticleType p;
 	    ParticleLocData pld;
 
-            p.rdata.pos[0] = grid_box.lo(0) + (x_off + i)*dx[0];
-            p.rdata.pos[1] = grid_box.lo(1) + (y_off + j)*dx[1];
-            p.rdata.pos[2] = grid_box.lo(2) + (z_off + k)*dx[2];
+            p.m_rdata.pos[0] = grid_box.lo(0) + (x_off + i)*dx[0];
+            p.m_rdata.pos[1] = grid_box.lo(1) + (y_off + j)*dx[1];
+            p.m_rdata.pos[2] = grid_box.lo(2) + (z_off + k)*dx[2];
 
             for (int i = 0; i < BL_SPACEDIM; i++)
-                BL_ASSERT(p.rdata.pos[i] < grid_box.hi(i));
+                BL_ASSERT(p.m_rdata.pos[i] < grid_box.hi(i));
 
             if (NR > 0)
             {
-                p.rdata.arr[BL_SPACEDIM] = mass;
+                p.m_rdata.arr[BL_SPACEDIM] = mass;
 
                 for (int i = 1; i < NR; i++)
                     //
                     // Just zero out the rest of the data for lack of a better value.
                     //
-                    p.rdata.arr[BL_SPACEDIM+i] = 0;
+                    p.m_rdata.arr[BL_SPACEDIM+i] = 0;
             }
 
-            p.idata.id  = ParticleType::NextID();
-            p.idata.cpu = ParallelDescriptor::MyProc();
+            p.m_idata.id  = ParticleType::NextID();
+            p.m_idata.cpu = ParallelDescriptor::MyProc();
 
             if (!ParticleType::Where(p, m_gdb, pld))
             {
@@ -1156,28 +1156,28 @@ ParticleContainer<NR,NI,C>::InitNRandomPerCell (int n_per_cell, Real mass, Multi
             for (int n = 0; n < n_per_cell; n++)
             {
                r = amrex::Random();
-               p.rdata.pos[0] = grid_box.lo(0) + (r + i)*dx[0];
+               p.m_rdata.pos[0] = grid_box.lo(0) + (r + i)*dx[0];
                r = amrex::Random();
-               p.rdata.pos[1] = grid_box.lo(1) + (r + j)*dx[1];
+               p.m_rdata.pos[1] = grid_box.lo(1) + (r + j)*dx[1];
                r = amrex::Random();
-               p.rdata.pos[2] = grid_box.lo(2) + (r + k)*dx[2];
+               p.m_rdata.pos[2] = grid_box.lo(2) + (r + k)*dx[2];
 
                for (int i = 0; i < BL_SPACEDIM; i++)
-                   BL_ASSERT(p.rdata.pos[i] < grid_box.hi(i));
+                   BL_ASSERT(p.m_rdata.pos[i] < grid_box.hi(i));
 
                if (NR > 0)
                {
-                   p.rdata.arr[BL_SPACEDIM] = mass;
+                   p.m_rdata.arr[BL_SPACEDIM] = mass;
    
                    for (int i = 1; i < NR; i++)
                        //
                        // Just zero out the rest of the data for lack of a better value.
                        //
-                       p.rdata.arr[BL_SPACEDIM+i] = 0;
+                       p.m_rdata.arr[BL_SPACEDIM+i] = 0;
                }
 
-               p.idata.id  = ParticleType::NextID();
-               p.idata.cpu = ParallelDescriptor::MyProc();
+               p.m_idata.id  = ParticleType::NextID();
+               p.m_idata.cpu = ParallelDescriptor::MyProc();
 
                if (!ParticleType::Where(p, m_gdb, pld))
                    amrex::Abort("ParticleContainer<NR,NI,C>::InitNRandomPerCell(): invalid particle");

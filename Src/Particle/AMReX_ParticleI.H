@@ -12,9 +12,9 @@ Particle<NR, NI>::CIC_Cells_Fracs_Basic (const Particle<NR, NI>& p,
     //
     // "cells" should be dimensioned: IntVect cells[D_TERM(2,+2,+4)]
     //
-    const Real len[BL_SPACEDIM] = { D_DECL((p.rdata.pos[0]-plo[0])/dx[0] + Real(0.5),
-                                           (p.rdata.pos[1]-plo[1])/dx[1] + Real(0.5),
-                                           (p.rdata.pos[2]-plo[2])/dx[2] + Real(0.5)) };
+    const Real len[BL_SPACEDIM] = { D_DECL((p.m_rdata.pos[0]-plo[0])/dx[0] + Real(0.5),
+                                           (p.m_rdata.pos[1]-plo[1])/dx[1] + Real(0.5),
+                                           (p.m_rdata.pos[2]-plo[2])/dx[2] + Real(0.5)) };
 
     const IntVect cell(D_DECL(floor(len[0]), floor(len[1]), floor(len[2])));
 
@@ -45,13 +45,13 @@ Particle<NR, NI>::CIC_Cells_Fracs (const Particle<NR, NI>& p,
     //
     // The first element in fracs and cells is the lowest corner, the last is the highest.
     //
-    const Real hilen[BL_SPACEDIM] = { D_DECL((p.rdata.pos[0]-plo[0]+dx_part[0]/2)/dx_geom[0],
-                                             (p.rdata.pos[1]-plo[1]+dx_part[1]/2)/dx_geom[1],
-                                             (p.rdata.pos[2]-plo[2]+dx_part[2]/2)/dx_geom[2]) };
+    const Real hilen[BL_SPACEDIM] = { D_DECL((p.m_rdata.pos[0]-plo[0]+dx_part[0]/2)/dx_geom[0],
+                                             (p.m_rdata.pos[1]-plo[1]+dx_part[1]/2)/dx_geom[1],
+                                             (p.m_rdata.pos[2]-plo[2]+dx_part[2]/2)/dx_geom[2]) };
 
-    const Real lolen[BL_SPACEDIM] = { D_DECL((p.rdata.pos[0]-plo[0]-dx_part[0]/2)/dx_geom[0],
-                                             (p.rdata.pos[1]-plo[1]-dx_part[1]/2)/dx_geom[1],
-                                             (p.rdata.pos[2]-plo[2]-dx_part[2]/2)/dx_geom[2]) };
+    const Real lolen[BL_SPACEDIM] = { D_DECL((p.m_rdata.pos[0]-plo[0]-dx_part[0]/2)/dx_geom[0],
+                                             (p.m_rdata.pos[1]-plo[1]-dx_part[1]/2)/dx_geom[1],
+                                             (p.m_rdata.pos[2]-plo[2]-dx_part[2]/2)/dx_geom[2]) };
 
     const IntVect hicell(D_DECL(floor(hilen[0]), floor(hilen[1]), floor(hilen[2])));
     
@@ -344,10 +344,10 @@ Particle<NR, NI>::FineCellsToUpdateFromCrse (const Particle<NR, NI>&            
             const Real celllo = iv[k]  * fdx[k] + plo[k];
             const Real cellhi = celllo + fdx[k];
 
-            if ((p.rdata.pos[k] < celllo) && (celllo > (p.rdata.pos[k] + dx[k]/2)))
+            if ((p.m_rdata.pos[k] < celllo) && (celllo > (p.m_rdata.pos[k] + dx[k]/2)))
                 touches = false;
 
-            if ((p.rdata.pos[k] > cellhi) && (cellhi < (p.rdata.pos[k] - dx[k]/2)))
+            if ((p.m_rdata.pos[k] > cellhi) && (cellhi < (p.m_rdata.pos[k] - dx[k]/2)))
                 touches = false;
         }
 
@@ -371,16 +371,16 @@ Particle<NR, NI>::FineCellsToUpdateFromCrse (const Particle<NR, NI>&            
         {
             const Real celllo = (iv[k] * fdx[k] + plo[k]);
 
-            if (p.rdata.pos[k] <= celllo)
+            if (p.m_rdata.pos[k] <= celllo)
             {
-                const Real isecthi = p.rdata.pos[k] + dx[k]/2;
+                const Real isecthi = p.m_rdata.pos[k] + dx[k]/2;
 
                 the_frac *= std::min((isecthi - celllo),fdx[k]);
             }
             else
             {
                 const Real cellhi  = (iv[k]+1) * fdx[k] + plo[k];
-                const Real isectlo = p.rdata.pos[k] - dx[k]/2;
+                const Real isectlo = p.m_rdata.pos[k] - dx[k]/2;
 
                 the_frac *= std::min((cellhi - isectlo),fdx[k]);
             }
@@ -550,9 +550,9 @@ Particle<NR, NI>::Index (const Particle<NR, NI>& p,
 {
     IntVect iv;
 
-    D_TERM(iv[0]=floor((p.rdata.pos[0]-geom.ProbLo(0))*geom.InvCellSize(0));,
-           iv[1]=floor((p.rdata.pos[1]-geom.ProbLo(1))*geom.InvCellSize(1));,
-           iv[2]=floor((p.rdata.pos[2]-geom.ProbLo(2))*geom.InvCellSize(2)););
+    D_TERM(iv[0]=floor((p.m_rdata.pos[0]-geom.ProbLo(0))*geom.InvCellSize(0));,
+           iv[1]=floor((p.m_rdata.pos[1]-geom.ProbLo(1))*geom.InvCellSize(1));,
+           iv[2]=floor((p.m_rdata.pos[2]-geom.ProbLo(2))*geom.InvCellSize(2)););
 
     iv += geom.Domain().smallEnd();
 
@@ -628,9 +628,9 @@ Particle<NR, NI>::PeriodicWhere (Particle<NR, NI>&           p,
 
             if (!isects.empty())
             {
-                D_TERM(p.rdata.pos[0] = p_prime.rdata.pos[0];,
-                       p.rdata.pos[1] = p_prime.rdata.pos[1];,
-                       p.rdata.pos[2] = p_prime.rdata.pos[2];);
+                D_TERM(p.m_rdata.pos[0] = p_prime.m_rdata.pos[0];,
+                       p.m_rdata.pos[1] = p_prime.m_rdata.pos[1];,
+                       p.m_rdata.pos[2] = p_prime.m_rdata.pos[2];);
 
                 pld.m_lev  = lev;
                 pld.m_grid = isects[0].first;
@@ -716,45 +716,45 @@ Particle<NR, NI>::PeriodicShift (Particle<NR, NI>& p,
 
         if (iv[i] > dmn.bigEnd(i))
         {
-            if (p.rdata.pos[i] == geom.ProbHi(i))
+            if (p.m_rdata.pos[i] == geom.ProbHi(i))
                 //
                 // Don't let particles lie exactly on the domain face.
                 // Force the particle to be outside the domain so the
                 // periodic shift will bring it back inside.
                 //
-                p.rdata.pos[i] += .125*geom.CellSize(i);
+                p.m_rdata.pos[i] += .125*geom.CellSize(i);
 
-            p.rdata.pos[i] -= geom.ProbLength(i);
+            p.m_rdata.pos[i] -= geom.ProbLength(i);
 
-            if (p.rdata.pos[i] <= geom.ProbLo(i))
+            if (p.m_rdata.pos[i] <= geom.ProbLo(i))
                 //
                 // This can happen due to precision issues.
                 //
-                p.rdata.pos[i] += .125*geom.CellSize(i);
+                p.m_rdata.pos[i] += .125*geom.CellSize(i);
 
-            BL_ASSERT(p.rdata.pos[i] >= geom.ProbLo(i));
+            BL_ASSERT(p.m_rdata.pos[i] >= geom.ProbLo(i));
 
             shifted = true;
         }
         else if (iv[i] < dmn.smallEnd(i))
         {
-            if (p.rdata.pos[i] == geom.ProbLo(i))
+            if (p.m_rdata.pos[i] == geom.ProbLo(i))
                 //
                 // Don't let particles lie exactly on the domain face.
                 // Force the particle to be outside the domain so the
                 // periodic shift will bring it back inside.
                 //
-                p.rdata.pos[i] -= .125*geom.CellSize(i);
+                p.m_rdata.pos[i] -= .125*geom.CellSize(i);
 
-            p.rdata.pos[i] += geom.ProbLength(i);
+            p.m_rdata.pos[i] += geom.ProbLength(i);
 
-            if (p.rdata.pos[i] >= geom.ProbHi(i))
+            if (p.m_rdata.pos[i] >= geom.ProbHi(i))
                 //
                 // This can happen due to precision issues.
                 //
-                p.rdata.pos[i] -= .125*geom.CellSize(i);
+                p.m_rdata.pos[i] -= .125*geom.CellSize(i);
 
-            BL_ASSERT(p.rdata.pos[i] <= geom.ProbHi(i));
+            BL_ASSERT(p.m_rdata.pos[i] <= geom.ProbHi(i));
 
             shifted = true;
         }
@@ -768,10 +768,10 @@ Particle<NR, NI>::PeriodicShift (Particle<NR, NI>& p,
 
 template <int NR, int NI>
 void
-Particle<NR, NI>::Reset (Particle<NR, NI>& p,
+Particle<NR, NI>::Reset (Particle<NR, NI>&    p,
 			 const ParGDBBase*    gdb,
-			 bool          update,
-			 bool          verbose)
+			 bool                 update,
+			 bool                 verbose)
 {
     BL_PROFILE("Particle<NR, NI>::Reset()");
     BL_ASSERT(gdb != 0);
@@ -798,9 +798,9 @@ Particle<NR, NI>::Reset (Particle<NR, NI>& p,
 	    }
 	}
 
-	BL_ASSERT(p.idata.id > 0);
+	BL_ASSERT(p.m_idata.id > 0);
 
-	p.idata.id = -p.idata.id;
+	p.m_idata.id = -p.m_idata.id;
     }
 }
 
@@ -896,14 +896,14 @@ template <int NR, int NI>
 std::ostream&
 operator<< (std::ostream& os, const Particle<NR, NI>& p)
 {
-    os << p.idata.id   << ' '
-       << p.idata.cpu  << ' ';
+    os << p.m_idata.id   << ' '
+       << p.m_idata.cpu  << ' ';
 
     for (int i = 0; i < BL_SPACEDIM + NR; i++)
-        os << p.rdata.arr[i] << ' ';
+        os << p.m_rdata.arr[i] << ' ';
 
     for (int i = 2; i < 2 + NI; i++)
-        os << p.idata.arr[i] << ' ';
+        os << p.m_idata.arr[i] << ' ';
 
     if (!os.good())
         amrex::Error("operator<<(ostream&,Particle<NR, NI>&) failed");
