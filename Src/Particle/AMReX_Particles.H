@@ -1280,8 +1280,7 @@ public:
     //     the part of their contribution in AssignDensity that is outside the domain.
     void SetAllowParticlesNearBoundary(bool value);
  
-    void Redistribute (bool full_where           = false, // w.z.: why is default not true?
-		       int  lev_min              = 0, 
+    void Redistribute (int  lev_min              = 0, 
 		       int  nGrow                = 0);
 
     void RedistributeMPI (PMap& not_ours);
@@ -1291,7 +1290,7 @@ public:
     // These flags are used to do proper checking for subcycling particles
     // the default values are fine for non-subcycling methods
     //
-    bool OK (bool full_where = false, int lev_min = 0 , int ngrow = 0, int finest_level = -1) const;
+    bool OK (int lev_min = 0 , int ngrow = 0, int finest_level = -1) const;
 
     void ByteSpread () const;
     //
@@ -2567,8 +2566,7 @@ ParticleContainer<NR,NI,C>::CreateGhostParticles (int   level,
 
 template <int NR, int NI, class C>
 void
-ParticleContainer<NR,NI,C>::Redistribute (bool full_where,
-  					  int  lev_min,
+ParticleContainer<NR,NI,C>::Redistribute (int  lev_min,
 					  int  nGrow)
 {
     BL_PROFILE("ParticleContainer::Redistribute()");
@@ -2623,29 +2621,21 @@ ParticleContainer<NR,NI,C>::Redistribute (bool full_where,
 		    {
 		      if (!ParticleType::Where(p, m_gdb, pld, lev_min, theEffectiveFinestLevel))
 			{                                
-			  if (full_where) // Lengthier checks for subcycling.
+			  if (!ParticleType::PeriodicWhere(p, m_gdb, pld, lev_min, theEffectiveFinestLevel))
 			    {
-			      if (!ParticleType::PeriodicWhere(p, m_gdb, pld, lev_min, theEffectiveFinestLevel))
+			      if (lev_min != 0) // RestrictedWhere should be unnecessary at top level.
 				{
-				  if (lev_min != 0) // RestrictedWhere should be unnecessary at top level.
-				    {
-				      if (!ParticleType::RestrictedWhere(p, m_gdb, pld, nGrow))
-					amrex::Abort("ParticleContainer<NR,NI,C>::Redistribute(): invalid particle at non-coarse step");
-				    }
-				  else
-				    {
-				      //
-				      // The particle has left the domain; invalidate it.
-				      // This typically only happens on a coarse timestep.
-				      //
-				      p.idata.id = -p.idata.id;
-				    }
+				  if (!ParticleType::RestrictedWhere(p, m_gdb, pld, nGrow))
+				    amrex::Abort("ParticleContainer<NR,NI,C>::Redistribute(): invalid particle at non-coarse step");
 				}
-			    }
-			  else
-			    {
-			      std::cout << "Bad Particle: " << p << '\n';
-			      amrex::Abort("ParticleContainer<NR,NI,C>::Redistribute(): invalid particle in basic check");
+			      else
+				{
+				  //
+				  // The particle has left the domain; invalidate it.
+				  // This typically only happens on a coarse timestep.
+				  //
+				  p.idata.id = -p.idata.id;
+				}
 			    }
 			}
 
@@ -2731,7 +2721,7 @@ ParticleContainer<NR,NI,C>::Redistribute (bool full_where,
         RedistributeMPI(not_ours);
       }
     
-    BL_ASSERT(OK(full_where, lev_min, nGrow, theEffectiveFinestLevel));
+    BL_ASSERT(OK(lev_min, nGrow, theEffectiveFinestLevel));
     
     if (m_verbose > 0)
       {
@@ -3043,8 +3033,7 @@ ParticleContainer<NR,NI,C>::RedistributeMPI (PMap& not_ours)
 
 template <int NR, int NI, class C>
 bool
-ParticleContainer<NR,NI,C>::OK (bool full_where,
-				int  lev_min,
+ParticleContainer<NR,NI,C>::OK (int  lev_min,
 				int  ngrow,
 				int  finest_level) const
 {
@@ -3088,44 +3077,37 @@ ParticleContainer<NR,NI,C>::OK (bool full_where,
 
 		  if (!ParticleType::Where(p, m_gdb, pld, lev_min, finest_level))
                     {
-		      if (full_where)
-                        {
-			  if (!ParticleType::PeriodicWhere(p, m_gdb, pld, lev_min, finest_level)) 
-                            {
-			      if (!ParticleType::RestrictedWhere(p, m_gdb, pld, ngrow))
-				return false;
-                            }
-                        }
-		      else
-                        {
-			  return false;
-                        }
+		      if (!ParticleType::PeriodicWhere(p, m_gdb, pld, lev_min, finest_level)) 
+			{
+			  if (!ParticleType::RestrictedWhere(p, m_gdb, pld, ngrow))
+			    return false;
+			}
                     }
-                    if ((lev  != pld.m_lev  || lev  != llev)  ||
-                        (grid != pld.m_grid || grid != lgrid) || cell != pld.m_cell)
+		  if ((lev  != pld.m_lev  || lev  != llev)  ||
+		      (grid != pld.m_grid || grid != lgrid) || cell != pld.m_cell)
                     {
-                        std::cout << "PARTICLE NUMBER " << p.idata.id << '\n';
-
-                        std::cout << "POS IS ";
-                        for (int i = 0; i < BL_SPACEDIM; i++)
-                            std::cout << p.rdata.pos[i] << ' ';
-
-                        if (lev != pld.m_lev || lev != llev)
-                           std::cout << "BAD LEV  " << lev  << " " << pld.m_lev << '\n';
-
-                        if (grid != pld.m_grid || grid != lgrid)
-                           std::cout << "BAD GRID " << grid << " " << pld.m_grid << '\n';
-
-                        if (cell != pld.m_cell)
-                           std::cout << "BAD CELL " << cell << " " << pld.m_cell << '\n';
-
-                        return false;
+		      std::cout << "PARTICLE NUMBER " << p.idata.id << '\n';
+		      
+		      std::cout << "POS IS ";
+		      for (int i = 0; i < BL_SPACEDIM; i++)
+			std::cout << p.rdata.pos[i] << ' ';
+		      
+		      if (lev != pld.m_lev || lev != llev)
+			std::cout << "BAD LEV  " << lev  << " " << pld.m_lev << '\n';
+		      
+		      if (grid != pld.m_grid || grid != lgrid)
+			std::cout << "BAD GRID " << grid << " " << pld.m_grid << '\n';
+		      
+		      if (cell != pld.m_cell)
+			std::cout << "BAD CELL " << cell << " " << pld.m_cell << '\n';
+		      
+		      return false;
                     }
                 }
             }
         }
     }
-
+    
     return true;
 }
 
