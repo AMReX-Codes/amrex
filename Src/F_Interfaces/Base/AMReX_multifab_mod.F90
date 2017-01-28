@@ -33,7 +33,7 @@ module amrex_multifab_module
      procedure :: norm2         => amrex_multifab_norm2
      generic   :: fill_boundary => amrex_multifab_fill_boundary, amrex_multifab_fill_boundary_c
      procedure, private :: amrex_multifab_fill_boundary, amrex_multifab_fill_boundary_c
-#ifdef __gfortran__
+#ifdef __gfortran__ && __GNUC__ <= 4
      final :: amrex_multifab_destroy
 #endif
   end type amrex_multifab
@@ -45,7 +45,7 @@ module amrex_multifab_module
      procedure :: clear   => amrex_mfiter_clear
      procedure :: next    => amrex_mfiter_next
      procedure :: tilebox => amrex_mfiter_tilebox
-#ifdef __gfortran__
+#ifdef __gfortran__ && __GNUC__ <= 4
      final :: amrex_mfiter_destroy
 #endif
   end type amrex_mfiter
