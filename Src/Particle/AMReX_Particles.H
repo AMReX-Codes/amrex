@@ -845,7 +845,7 @@ template <int NR, int NI>
 bool
 Particle<NR, NI>::PeriodicWhere (Particle<NR, NI>&           p,
 				 const ParGDBBase*           gdb,
-				 ParticleLocData&       pld,
+				 ParticleLocData&            pld,
 				 int                         lev_min,
 				 int                         finest_level)
 {
@@ -895,7 +895,7 @@ template <int NR, int NI>
 bool
 Particle<NR, NI>::RestrictedWhere (const Particle<NR, NI>&     p,
 				   const ParGDBBase*           gdb,
-				   ParticleLocData&       pld,
+				   ParticleLocData&            pld,
 				   int                         ngrow)
 {
     BL_ASSERT(gdb != 0);
@@ -942,7 +942,7 @@ Particle<NR, NI>::SingleLevelWhere (const Particle<NR, NI>&     p,
 template <int NR, int NI>
 bool
 Particle<NR, NI>::PeriodicShift (Particle<NR, NI>& p,
-				 const ParGDBBase*    gdb)
+				 const ParGDBBase* gdb)
 {
     BL_PROFILE("Particle<NR, NI>::PeriodicShift()");
     //
@@ -1166,7 +1166,7 @@ public:
     //
     // The type of Particles we hold.
     //
-    typedef Particle<NR,NI> ParticleType;
+    typedef Particle<NR, NI> ParticleType;
     //
     // We want to store the particles on a level by level and grid by grid basis.  This will
     // make accessing them and doing operations on them more memory efficient since most of our
@@ -1176,7 +1176,7 @@ public:
     //
     // A level of particles is stored in a map indexed by the grid number.
     //
-    using PMap = std::map<int,PBox>;
+    using PMap = std::map<int, PBox>;
 
     ParticleContainer ()
 	: m_verbose(1), m_gdb(nullptr), allow_particles_near_boundary(false) {}
@@ -1280,8 +1280,7 @@ public:
     //     the part of their contribution in AssignDensity that is outside the domain.
     void SetAllowParticlesNearBoundary(bool value);
  
-    void Redistribute (bool where_already_called = false,
-		       bool full_where           = false, // w.z.: why is default not true?
+    void Redistribute (bool full_where           = false, // w.z.: why is default not true?
 		       int  lev_min              = 0, 
 		       int  nGrow                = 0);
 
@@ -1330,7 +1329,7 @@ public:
     //
     // Add particles from a pbox to the grid at this level
     //
-    void AddParticlesAtLevel (int level, PBox& virts, bool where_already_called = false);
+    void AddParticlesAtLevel (int level, PBox& virts);
 
     void Checkpoint (const std::string& dir, const std::string& name, bool is_checkpoint = true) const;
 
@@ -1379,6 +1378,7 @@ protected:
                          Array<int>&    count,
                          Array<long>&   where,
                          bool           is_checkpoint) const;
+
     //
     // Helper functions for Restart().
     //
@@ -1398,14 +1398,13 @@ protected:
                                         int            lev,
                                         bool           is_checkpoint,
                                         std::ifstream& ifs);
+
     //
-    // The data.
+    // The member data.
     //
     int         m_verbose;
-
-
     ParGDBBase* m_gdb;
-    bool allow_particles_near_boundary;
+    bool        allow_particles_near_boundary;
     ParGDB      m_gdb_object;
     Array<PMap> m_particles;
 
@@ -1656,12 +1655,12 @@ ParticleContainer<NR,NI,C>::addNParticles(int n_part, Array<double>& x, Array<do
        p.rdata.arr[BL_SPACEDIM + j + 2] = w[j]; // w
 #endif
 
+       for (int i = 0; i < n_attr; i++)
+          p.rdata.arr[BL_SPACEDIM+i] = attributes[n_attr*j + i];
+
        ParticleLocData pld;
        if (!ParticleType::Where(p, m_gdb, pld))
               amrex::Abort("ParticleContainer<NR,NI,C>::addNParticles(): invalid particle location");
-
-       for (int i = 0; i < n_attr; i++)
-          p.rdata.arr[BL_SPACEDIM+i] = attributes[n_attr*j + i];
 
        p.idata.id  = ParticleType::NextID();
        p.idata.cpu = ParallelDescriptor::MyProc();
@@ -1913,7 +1912,7 @@ ParticleContainer<NR,NI,C>::GetParticleIDs (Array<int>& part_ids)
     long npart = TotalNumberOfParticles(true,false);
 
     // Locations
-    part_ids.resize(npart,0);
+    part_ids.resize(npart, 0);
 
     for (int lev = 0; lev <= m_gdb->finestLevel(); lev++)
     {
@@ -2043,7 +2042,7 @@ ParticleContainer<NR,NI,C>::GetParticleLocations (Array<Real>& part_data)
 #endif
 
     // This is the total number of particles on *all* processors
-    long npart = TotalNumberOfParticles(true,false);
+    long npart = TotalNumberOfParticles(true, false);
 
     // Locations
     part_data.resize(BL_SPACEDIM*npart,0);
@@ -2224,9 +2223,7 @@ ParticleContainer<NR,NI,C>::SetParticleLocations (Array<Real>& part_data)
 
 template <int NR, int NI, class C>
 void
-ParticleContainer<NR,NI,C>::AddParticlesAtLevel (int   level,
-					       PBox& virts,
-					       bool  where_already_called)
+ParticleContainer<NR,NI,C>::AddParticlesAtLevel (int level, PBox& virts)
 {
     BL_PROFILE("ParticleContainer<NR,NI,C>::AddParticlesAtLevel()");
     if (int(m_particles.size()) < level+1)
@@ -2254,36 +2251,27 @@ ParticleContainer<NR,NI,C>::AddParticlesAtLevel (int   level,
 
         if (p.idata.id > 0)
         {
-            if (!where_already_called)
-            {
-                //
-                // Put the particle in this level.
-                //
-                p.m_lev = level;
+	  //
+	  // Put the particle in this level.
+	  //
+	  if (!ParticleType::SingleLevelWhere(p, m_gdb, pld, level))
+	    //
+	    // Virtuals shouldn't be in Ghost cells.
+	    //
+	    amrex::Abort("ParticleContainer<NR,NI,C>::AddParticlesAtLevel(): Can't add outside of domain\n");
 
-                if (!ParticleType::SingleLevelWhere(p, m_gdb, pld, level))
-                    //
-                    // Virtuals shouldn't be in Ghost cells.
-                    //
-                    amrex::Abort("ParticleContainer<NR,NI,C>::AddParticlesAtLevel(): Can't add outside of domain\n");
-            }
-            else
-            {
-                BL_ASSERT(pld.m_lev == level);
-            }
+	  const int who = m_gdb->ParticleDistributionMap(pld.m_lev)[pld.m_grid];
 
-            const int who = m_gdb->ParticleDistributionMap(pld.m_lev)[pld.m_grid];
-
-            if (who == MyProc)
+	  if (who == MyProc)
             {
-                m_particles[pld.m_lev][pld.m_grid].push_back(p);
+	      m_particles[pld.m_lev][pld.m_grid].push_back(p);
             }
-            else
-            {
-                not_ours[who].push_back(p);
-            }
+	  else
+	    {
+	      not_ours[who].push_back(p);
+	    }
         }
-
+	
         virts.pop_back();
     }
 
@@ -2579,18 +2567,13 @@ ParticleContainer<NR,NI,C>::CreateGhostParticles (int   level,
 
 template <int NR, int NI, class C>
 void
-ParticleContainer<NR,NI,C>::Redistribute (bool where_already_called,
-					  bool full_where,
+ParticleContainer<NR,NI,C>::Redistribute (bool full_where,
   					  int  lev_min,
 					  int  nGrow)
 {
     BL_PROFILE("ParticleContainer::Redistribute()");
     const int MyProc   = ParallelDescriptor::MyProc();
     Real      strttime = ParallelDescriptor::second();
-
-    // Note - fix this later. It doesn't make sense to have this option
-    // now that the particles don't store the lev, grid, and cell.
-    where_already_called = false;
 
     //
     // On startup there are cases where Redistribute() could be called
@@ -2638,74 +2621,71 @@ ParticleContainer<NR,NI,C>::Redistribute (bool where_already_called,
 
 		  if (p.idata.id > 0)
 		    {
-		      if (!where_already_called)
-			{
-			  if (!ParticleType::Where(p, m_gdb, pld, lev_min, theEffectiveFinestLevel))
-			    {                                
-			      if (full_where) // Lengthier checks for subcycling.
+		      if (!ParticleType::Where(p, m_gdb, pld, lev_min, theEffectiveFinestLevel))
+			{                                
+			  if (full_where) // Lengthier checks for subcycling.
+			    {
+			      if (!ParticleType::PeriodicWhere(p, m_gdb, pld, lev_min, theEffectiveFinestLevel))
 				{
-				  if (!ParticleType::PeriodicWhere(p, m_gdb, pld, lev_min, theEffectiveFinestLevel))
+				  if (lev_min != 0) // RestrictedWhere should be unnecessary at top level.
 				    {
-				      if (lev_min != 0) // RestrictedWhere should be unnecessary at top level.
-					{
-					  if (!ParticleType::RestrictedWhere(p, m_gdb, pld, nGrow))
-					    amrex::Abort("ParticleContainer<NR,NI,C>::Redistribute(): invalid particle at non-coarse step");
-					}
-				      else
-					{
-					  //
-					  // The particle has left the domain; invalidate it.
-					  // This typically only happens on a coarse timestep.
-					  //
-					  p.idata.id = -p.idata.id;
-					}
+				      if (!ParticleType::RestrictedWhere(p, m_gdb, pld, nGrow))
+					amrex::Abort("ParticleContainer<NR,NI,C>::Redistribute(): invalid particle at non-coarse step");
+				    }
+				  else
+				    {
+				      //
+				      // The particle has left the domain; invalidate it.
+				      // This typically only happens on a coarse timestep.
+				      //
+				      p.idata.id = -p.idata.id;
 				    }
 				}
-			      else
-				{
-				  std::cout << "Bad Particle: " << p << '\n';
-				  amrex::Abort("ParticleContainer<NR,NI,C>::Redistribute(): invalid particle in basic check");
-				}
+			    }
+			  else
+			    {
+			      std::cout << "Bad Particle: " << p << '\n';
+			      amrex::Abort("ParticleContainer<NR,NI,C>::Redistribute(): invalid particle in basic check");
 			    }
 			}
 
-			if (p.idata.id > 0)
+		      if (p.idata.id > 0)
 			{
-			    //
-			    // The owner of the particle is the CPU owning the finest grid
-			    // in state data that contains the particle.
-			    //
-			    const int who = m_gdb->ParticleDistributionMap(pld.m_lev)[pld.m_grid];
-			    
-			    if (who == MyProc)
+			  //
+			  // The owner of the particle is the CPU owning the finest grid
+			  // in state data that contains the particle.
+			  //
+			  const int who = m_gdb->ParticleDistributionMap(pld.m_lev)[pld.m_grid];
+			  
+			  if (who == MyProc)
 			    {
-				if (pld.m_lev != lev || pld.m_grid != grid)
+			      if (pld.m_lev != lev || pld.m_grid != grid)
 				{
-				    //
-				    // We own it but must shift it to another place.
-				    //
-				    m_particles[pld.m_lev][pld.m_grid].push_back(p);
-				    //
-				    // Invalidate the particle so we can reclaim its space.
-				    //
-				    p.idata.id = -p.idata.id;
+				  //
+				  // We own it but must shift it to another place.
+				  //
+				  m_particles[pld.m_lev][pld.m_grid].push_back(p);
+				  //
+				  // Invalidate the particle so we can reclaim its space.
+				  //
+				  p.idata.id = -p.idata.id;
 				}
 			    }
-			    else
+			  else
 			    {
-				not_ours[who].push_back(p);
-				//
-				// Invalidate the particle so we can reclaim its space.
-				//
-				p.idata.id = -p.idata.id;
+			      not_ours[who].push_back(p);
+			      //
+			      // Invalidate the particle so we can reclaim its space.
+			      //
+			      p.idata.id = -p.idata.id;
 			    }
 			}
 		    }
-
-		    if (p.idata.id > 0) // this is a valid particle
+		  
+		  if (p.idata.id > 0) // this is a valid particle
 		    {
-			if (it != first) *first = p;
-			++first;
+		      if (it != first) *first = p;
+		      ++first;
 		    }
 		}
 		pbox.erase(first, last);
@@ -2714,61 +2694,61 @@ ParticleContainer<NR,NI,C>::Redistribute (bool where_already_called,
 	    // Remove any map entries for which the particle container is now empty.
 	    //
             if (pmap_it->second.empty())
-            {
+	      {
                 pmap.erase(pmap_it++);
-            }
+	      }
             else
-            {
+	      {
                 ++pmap_it;
-            }
+	      }
         }
     }
-
+    
     if (int(m_particles.size()) > theEffectiveFinestLevel+1)
     {
-        //
-        // Looks like we lost an AmrLevel on a regrid.
-        //
-        if (ParallelDescriptor::IOProcessor())
+      //
+      // Looks like we lost an AmrLevel on a regrid.
+      //
+      if (ParallelDescriptor::IOProcessor())
         {
-            std::cout << "ParticleContainer<NR,NI,C>::Redistribute() resizing m_particles from "
-                      << m_particles.size()
-                      << " to "
-                      << theEffectiveFinestLevel+1 << '\n';
+	  std::cout << "ParticleContainer<NR,NI,C>::Redistribute() resizing m_particles from "
+		    << m_particles.size()
+		    << " to "
+		    << theEffectiveFinestLevel+1 << '\n';
         }
-        BL_ASSERT(int(m_particles.size()) >= 2);
-        BL_ASSERT(m_particles[m_particles.size()-1].empty());
-
-        m_particles.resize(theEffectiveFinestLevel+1);
+      BL_ASSERT(int(m_particles.size()) >= 2);
+      BL_ASSERT(m_particles[m_particles.size()-1].empty());
+      
+      m_particles.resize(theEffectiveFinestLevel+1);
     }
-
+    
     if (ParallelDescriptor::NProcs() == 1)
-    {
+      {
         BL_ASSERT(not_ours.empty());
-    }
+      }
     else
-    {
+      {
         RedistributeMPI(not_ours);
-    }
-
+      }
+    
     BL_ASSERT(OK(full_where, lev_min, nGrow, theEffectiveFinestLevel));
-
+    
     if (m_verbose > 0)
-    {
+      {
         Real stoptime = ParallelDescriptor::second() - strttime;
-
+	
         ByteSpread();
 
 #ifdef BL_LAZY
 	Lazy::QueueReduction( [=] () mutable {
 #endif
-        ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
-        if (ParallelDescriptor::IOProcessor())
-            std::cout << "ParticleContainer<NR,NI,C>::Redistribute() time: " << stoptime << "\n\n";
+	    ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
+	    if (ParallelDescriptor::IOProcessor())
+	      std::cout << "ParticleContainer<NR,NI,C>::Redistribute() time: " << stoptime << "\n\n";
 #ifdef BL_LAZY
-	});
+	  });
 #endif
-    }
+      }
 }
 
 template <int NR, int NI, class C>
