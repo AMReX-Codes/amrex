@@ -154,6 +154,11 @@ public:
 
     void Redistribute (bool where_called=false);
 
+    Array<long> NumberOfParticlesInGrid(int lev);
+
+    void SetParticleBoxArray (int lev, BoxArray& new_ba);
+    void SetParticleDistributionMap (int lev, DistributionMapping& new_dm);
+
 private:
 
     // physical particles (+ laser)

@@ -93,3 +93,27 @@ MultiParticleContainer::Redistribute (bool where_called)
 	pc->Redistribute(where_called,true);
     }
 }
+
+Array<long>
+MultiParticleContainer::NumberOfParticlesInGrid(int lev)
+{
+   return allcontainers[0]->NumberOfParticlesInGrid(lev);
+}
+
+void
+MultiParticleContainer::SetParticleBoxArray (int lev, BoxArray& new_ba)
+{
+    for (auto& pc : allcontainers) {
+	pc->SetParticleBoxArray(lev,new_ba);
+    }
+}
+
+void
+MultiParticleContainer::SetParticleDistributionMap (int lev, DistributionMapping& new_dm)
+{
+    for (auto& pc : allcontainers) {
+	pc->SetParticleDistributionMap(lev,new_dm);
+    }
+}
+
+
