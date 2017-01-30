@@ -250,7 +250,7 @@ ParticleContainer<NR,NI,C>::InitFromAsciiFile (const std::string& file, int extr
         //
         // Let Redistribute() sort'm out.
         //
-        Redistribute(true);
+        Redistribute();
     }
     //
     // Take care of any leftover chunk
@@ -279,7 +279,7 @@ ParticleContainer<NR,NI,C>::InitFromAsciiFile (const std::string& file, int extr
         //
         // Let Redistribute() sort'm out.
         //
-        Redistribute(true);
+        Redistribute();
     }
     //
     // Add up all the particles read in on each processor to get the total number of particles.
@@ -346,7 +346,7 @@ ParticleContainer<NR,NI,C>::InitFromAsciiFile (const std::string& file, int extr
 template <int NR, int NI, class C>
 void
 ParticleContainer<NR,NI,C>::InitFromBinaryFile (const std::string& file,
-                                          int                extradata)
+						int                extradata)
 {
     BL_PROFILE("ParticleContainer<NR,NI,C>::InitFromBinaryFile()");
     BL_ASSERT(!file.empty());
@@ -702,7 +702,7 @@ ParticleContainer<NR,NI,C>::InitFromBinaryFile (const std::string& file,
             how_many_read += NRead;
         }
 
-        Redistribute(true);
+        Redistribute();
         //
         // Move particles in m_particles into tmp_particles so that
         // we don't keep trying to redistribute particles that have
@@ -990,7 +990,7 @@ ParticleContainer<NR,NI,C>::InitRandom (long          icount,
         //
         // Let Redistribute() sort out where the particles belong.
         //
-        Redistribute(true);
+        Redistribute();
     }
 
     if (m_verbose > 1)
@@ -1030,7 +1030,28 @@ ParticleContainer<NR,NI,C>::InitOnePerCell (Real x_off, Real y_off, Real z_off,
     //
     const Real* dx  = geom.CellSize();
 
-    m_particles.resize(m_gdb->finestLevel()+1);
+    int nlevs = m_gdb->finestLevel()+1;
+    m_particles.resize(nlevs);
+    m_partdata.resize(nlevs);
+    for (int lev = 0; lev < nlevs; ++ lev)
+      {
+	auto& partleveldata = m_partdata[lev];
+	const BoxArray& ba = m_gdb->ParticleBoxArray(lev);
+	const DistributionMapping& dm = m_gdb->ParticleDistributionMap(lev);
+
+	MFInfo Fab_noallocate;
+	Fab_noallocate.SetAlloc(false);
+	MultiFab foo(ba, dm, 1, 0, Fab_noallocate);
+	for (MFIter mfi(foo); mfi.isValid(); ++mfi)
+	  {
+	    int i = mfi.index();
+	    partleveldata[i] = Array<std::unique_ptr<Array<Real> > > (npartdata);
+	    for (auto& d : partleveldata[i])
+	      {
+		d.reset(new Array<Real>());
+	      }
+	  }
+      }
 
     for (int lev = 0; lev < m_particles.size(); lev++)
         BL_ASSERT(m_particles[lev].empty());
@@ -1088,8 +1109,10 @@ ParticleContainer<NR,NI,C>::InitOnePerCell (Real x_off, Real y_off, Real z_off,
             // Add it to the appropriate PBox at the appropriate level.
             //
             m_particles[pld.m_lev][pld.m_grid].push_back(p);
-          } 
-         } 
+	    m_partdata[pld.m_lev][pld.m_grid][0]->push_back(p.m_idata.id);
+	    m_partdata[pld.m_lev][pld.m_grid][1]->push_back(p.m_idata.cpu);
+          }
+         }
         }
     }
 
@@ -1097,7 +1120,7 @@ ParticleContainer<NR,NI,C>::InitOnePerCell (Real x_off, Real y_off, Real z_off,
     // We still need to redistribute in order to define each particle's cell, grid and level, but this 
     //    shouldn't require any inter-node communication because the particles should already be in the right grid.
     //
-    Redistribute(true);
+    Redistribute();
 
     if (m_verbose > 1)
     {
@@ -1197,7 +1220,7 @@ ParticleContainer<NR,NI,C>::InitNRandomPerCell (int n_per_cell, Real mass, Multi
     // We still need to redistribute in order to define each particle's cell, grid and level, but this 
     //    shouldn't require any inter-node communication because the particles should already be in the right grid.
     //
-    Redistribute(true);
+    Redistribute();
 
     if (m_verbose > 1)
     {

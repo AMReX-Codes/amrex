@@ -15,8 +15,8 @@ ParticleContainer<NR,NI,C>::TotalNumberOfParticles (bool only_valid, bool only_l
 template <int NR, int NI, class C>
 Array<long>
 ParticleContainer<NR,NI,C>::NumberOfParticlesInGrid (int  lev, 
-						   bool only_valid,
-						   bool only_local) const
+						     bool only_valid,
+						     bool only_local) const
 {
     int ngrids = m_gdb->ParticleBoxArray(lev).size();
     Array<long> nparticles(ngrids,0);
@@ -329,7 +329,7 @@ ParticleContainer<NR,NI,C>::MoveRandom (int lev)
         }
     }
 
-    Redistribute(true);
+    Redistribute();
 }
 
 template <int NR, int NI, class C>
@@ -789,69 +789,69 @@ ParticleContainer<NR,NI,C>::SetParticleLocations (Array<Real>& part_data)
 }
 
 
-template <int NR, int NI, class C>
-void
-ParticleContainer<NR,NI,C>::AddParticlesAtLevel (int level, PBox& virts)
-{
-    BL_PROFILE("ParticleContainer<NR,NI,C>::AddParticlesAtLevel()");
-    if (int(m_particles.size()) < level+1)
-    {
-        if (ParallelDescriptor::IOProcessor())
-        {
-            std::cout << "ParticleContainer<NR,NI,C>::AddParticlesAtLevel resizing m_particles from "
-                      << m_particles.size()
-                      << " to "
-                      << level+1 << '\n';
-        }
-        m_particles.resize(level + 1);
-    }
+// template <int NR, int NI, class C>
+// void
+// ParticleContainer<NR,NI,C>::AddParticlesAtLevel (int level, PBox& virts)
+// {
+//     BL_PROFILE("ParticleContainer<NR,NI,C>::AddParticlesAtLevel()");
+//     if (int(m_particles.size()) < level+1)
+//     {
+//         if (ParallelDescriptor::IOProcessor())
+//         {
+//             std::cout << "ParticleContainer<NR,NI,C>::AddParticlesAtLevel resizing m_particles from "
+//                       << m_particles.size()
+//                       << " to "
+//                       << level+1 << '\n';
+//         }
+//         m_particles.resize(level + 1);
+//     }
 
-    const int MyProc = ParallelDescriptor::MyProc();
-    //
-    // The valid particles that we don't own.
-    //
-    PMap not_ours;
+//     const int MyProc = ParallelDescriptor::MyProc();
+//     //
+//     // The valid particles that we don't own.
+//     //
+//     PMap not_ours;
 
-    while (!virts.empty())
-    {
-        ParticleType& p = virts.back();
-	ParticleLocData pld;
+//     while (!virts.empty())
+//     {
+//         ParticleType& p = virts.back();
+// 	ParticleLocData pld;
 
-        if (p.m_idata.id > 0)
-        {
-	  //
-	  // Put the particle in this level.
-	  //
-	  if (!ParticleType::SingleLevelWhere(p, m_gdb, pld, level))
-	    //
-	    // Virtuals shouldn't be in Ghost cells.
-	    //
-	    amrex::Abort("ParticleContainer<NR,NI,C>::AddParticlesAtLevel(): Can't add outside of domain\n");
+//         if (p.m_idata.id > 0)
+//         {
+// 	  //
+// 	  // Put the particle in this level.
+// 	  //
+// 	  if (!ParticleType::SingleLevelWhere(p, m_gdb, pld, level))
+// 	    //
+// 	    // Virtuals shouldn't be in Ghost cells.
+// 	    //
+// 	    amrex::Abort("ParticleContainer<NR,NI,C>::AddParticlesAtLevel(): Can't add outside of domain\n");
 
-	  const int who = m_gdb->ParticleDistributionMap(pld.m_lev)[pld.m_grid];
+// 	  const int who = m_gdb->ParticleDistributionMap(pld.m_lev)[pld.m_grid];
 
-	  if (who == MyProc)
-            {
-	      m_particles[pld.m_lev][pld.m_grid].push_back(p);
-            }
-	  else
-	    {
-	      not_ours[who].push_back(p);
-	    }
-        }
+// 	  if (who == MyProc)
+//             {
+// 	      m_particles[pld.m_lev][pld.m_grid].push_back(p);
+//             }
+// 	  else
+// 	    {
+// 	      not_ours[who].push_back(p);
+// 	    }
+//         }
 	
-        virts.pop_back();
-    }
+//         virts.pop_back();
+//     }
 
-    if (ParallelDescriptor::NProcs() == 1)
-    {
-        BL_ASSERT(not_ours.empty());
-    }
-    else
-    {
-        RedistributeMPI(not_ours);
-    }
-}
+//     if (ParallelDescriptor::NProcs() == 1)
+//     {
+//         BL_ASSERT(not_ours.empty());
+//     }
+//     else
+//     {
+//       RedistributeMPI(not_ours);
+//     }
+// }
 
 template <int NR, int NI, class C>
 void
@@ -1140,6 +1140,7 @@ ParticleContainer<NR,NI,C>::Redistribute (int  lev_min,
 {
     BL_PROFILE("ParticleContainer::Redistribute()");
     const int MyProc   = ParallelDescriptor::MyProc();
+    const int  NProcs   = ParallelDescriptor::NProcs();
     Real      strttime = ParallelDescriptor::second();
 
     //
@@ -1166,6 +1167,10 @@ ParticleContainer<NR,NI,C>::Redistribute (int  lev_min,
     // The valid particles that we don't own.
     //
     PMap not_ours;
+    std::map<int, Array<Array<Real> > > comm_pdata;
+    for (int i = 0; i < NProcs; i++) {
+      comm_pdata[i].resize(npartdata);
+    }
 
     for (int lev = lev_min, nlevs = m_particles.size(); lev < nlevs; lev++)
     {
@@ -1175,13 +1180,17 @@ ParticleContainer<NR,NI,C>::Redistribute (int  lev_min,
         {
             const int grid = pmap_it->first;
             PBox&     pbox = pmap_it->second;
+	    Array<std::unique_ptr<Array<Real> > >& partdata = m_partdata[lev][grid];
 
 	    auto first = pbox.begin();
 	    auto last  = pbox.end();
 
 	    if (first != last) 
 	    {
-		for (auto it = first; it != last; ++it)
+	      int pfirst = 0;
+	      int plast = pbox.size();
+	      int pindex = 0;
+	      for (auto it = first; it != last; ++it, ++pindex)
 		{
 		  ParticleLocData pld;
 		  ParticleType& p = *it;
@@ -1224,6 +1233,10 @@ ParticleContainer<NR,NI,C>::Redistribute (int  lev_min,
 				  // We own it but must shift it to another place.
 				  //
 				  m_particles[pld.m_lev][pld.m_grid].push_back(p);
+				  for (int comp = 0; comp < npartdata; comp++) {
+				    Real pdata = (*partdata[comp])[pindex];
+				    m_partdata[pld.m_lev][pld.m_grid][comp]->push_back(pdata);
+				  }
 				  //
 				  // Invalidate the particle so we can reclaim its space.
 				  //
@@ -1233,6 +1246,10 @@ ParticleContainer<NR,NI,C>::Redistribute (int  lev_min,
 			  else
 			    {
 			      not_ours[who].push_back(p);
+			      for (int comp = 0; comp < npartdata; comp++) {
+				Real pdata = (*partdata[comp])[pindex];
+				comm_pdata[who][comp].push_back(pdata);
+			      }
 			      //
 			      // Invalidate the particle so we can reclaim its space.
 			      //
@@ -1243,11 +1260,24 @@ ParticleContainer<NR,NI,C>::Redistribute (int  lev_min,
 		  
 		  if (p.m_idata.id > 0) // this is a valid particle
 		    {
-		      if (it != first) *first = p;
+		      if (it != first) {
+			*first = p;
+			for (int comp = 0; comp < npartdata; comp++) {
+			  Array<Real>& vec = *partdata[comp];
+			  vec[pfirst] = vec[pindex];
+			}
+		      }
 		      ++first;
+		      ++pfirst;
 		    }
 		}
 		pbox.erase(first, last);
+		if (pfirst != plast) {
+		  for (int comp = 0; comp < npartdata; comp++) {
+		    Array<Real>& vec = *(partdata[comp]);
+		    vec.erase(vec.begin() + pfirst, vec.begin() + plast);
+		  }
+		}
 	    }
 	    //
 	    // Remove any map entries for which the particle container is now empty.
@@ -1287,7 +1317,7 @@ ParticleContainer<NR,NI,C>::Redistribute (int  lev_min,
       }
     else
       {
-        RedistributeMPI(not_ours);
+        RedistributeMPI(not_ours, comm_pdata);
       }
     
     BL_ASSERT(OK(lev_min, nGrow, theEffectiveFinestLevel));
@@ -1312,7 +1342,8 @@ ParticleContainer<NR,NI,C>::Redistribute (int  lev_min,
 
 template <int NR, int NI, class C>
 void
-ParticleContainer<NR,NI,C>::RedistributeMPI (PMap& not_ours)
+ParticleContainer<NR,NI,C>::RedistributeMPI (PMap& not_ours,
+					     std::map<int, Array<Array<Real> > >& comm_pdata)
 {
     BL_PROFILE("ParticleContainer<NR,NI,C>::RedistributeMPI()");
 #if BL_USE_MPI
@@ -1321,23 +1352,23 @@ ParticleContainer<NR,NI,C>::RedistributeMPI (PMap& not_ours)
     //
     // We may now have particles that are rightfully owned by another CPU.
     //
-    Array<int> Snds(NProcs,0), Rcvs(NProcs,0);
+    Array<int> Snds(NProcs, 0), Rcvs(NProcs, 0);
 
     int NumSnds = 0, NumRcvs = 0;
-
+    
     for (const auto& kv : not_ours)
-    {
+      {
         NumSnds       += kv.second.size();
         Snds[kv.first] = kv.second.size();
-    }
-
+      }
+    
     ParallelDescriptor::ReduceIntMax(NumSnds);
 
     if (NumSnds == 0)
-        //
-        // There's no parallel work to do.
-        //
-        return;
+      //
+      // There's no parallel work to do.
+      //
+      return;
 
     BL_COMM_PROFILE(BLProfiler::Alltoall, sizeof(int),
                     ParallelDescriptor::MyProc(), BLProfiler::BeforeCall());
@@ -1359,32 +1390,34 @@ ParticleContainer<NR,NI,C>::RedistributeMPI (PMap& not_ours)
     IntIntMap SndCnts, RcvCnts, rOffset;
 
     for (int i = 0; i < NProcs; i++)
-        if (Snds[i] > 0)
-            SndCnts[i] = Snds[i];
+      if (Snds[i] > 0)
+	SndCnts[i] = Snds[i];
 
     for (int i = 0; i < NProcs; i++)
-    {
+      {
         if (Rcvs[i] > 0)
-        {
+	  {
             RcvCnts[i] = Rcvs[i];
             rOffset[i] = NumRcvs;
             NumRcvs   += Rcvs[i];
-        }
-    }
+	  }
+      }
+
     //
     // Don't need these anymore.
     //
     Array<int>().swap(Snds);
     Array<int>().swap(Rcvs);
+
     //
     // We'll store the particles we're to receive in a PMap indexed by proc # of receiver.
     //
     PMap nparticles;
 
     for (const auto& kv : RcvCnts)
-    {
+      {
         nparticles[kv.first].resize(kv.second);
-    }
+      }
     Array<int>         owner(RcvCnts.size());
     Array<int>         index(RcvCnts.size());
     Array<MPI_Status>  stats(RcvCnts.size());
@@ -1393,207 +1426,223 @@ ParticleContainer<NR,NI,C>::RedistributeMPI (PMap& not_ours)
     // First send/recv the integer parts of the particles.
     //
     {
-        const int SeqNum     = ParallelDescriptor::SeqNum();
-        const int iChunkSize = 2 + NI;
-        //
-        // Allocate data for rcvs as one big chunk.
-        //
-        Array<int> recvdata(NumRcvs * iChunkSize);
-        //
-        // Post receives.
-        //
-        int idx = 0;
-	for (auto it = RcvCnts.cbegin(); it != RcvCnts.cend(); ++it, ++idx)
+      const int SeqNum     = ParallelDescriptor::SeqNum();
+      const int iChunkSize = 2 + NI;
+      //
+      // Allocate data for rcvs as one big chunk.
+      //
+      Array<int> recvdata(NumRcvs * iChunkSize);
+      //
+      // Post receives.
+      //
+      int idx = 0;
+      for (auto it = RcvCnts.cbegin(); it != RcvCnts.cend(); ++it, ++idx)
         {
-            const int Who = it->first;
-            const int Cnt = it->second   * iChunkSize;
-            const int Idx = rOffset[Who] * iChunkSize;
-
-            BL_ASSERT(Cnt > 0);
-            BL_ASSERT(Who >= 0 && Who < NProcs);
-            BL_ASSERT(Cnt < std::numeric_limits<int>::max());
-
-            owner[idx] = Who;
-            rreqs[idx] = ParallelDescriptor::Arecv(&recvdata[Idx],Cnt,Who,SeqNum).req();
+	  const int Who = it->first;
+	  const int Cnt = it->second   * iChunkSize;
+	  const int Idx = rOffset[Who] * iChunkSize;
+	  
+	  BL_ASSERT(Cnt > 0);
+	  BL_ASSERT(Who >= 0 && Who < NProcs);
+	  BL_ASSERT(Cnt < std::numeric_limits<int>::max());
+	  
+	  owner[idx] = Who;
+	  rreqs[idx] = ParallelDescriptor::Arecv(&recvdata[Idx],Cnt,Who,SeqNum).req();
         }
-        //
-        // Send the integer data.
-        //
-        Array<int> senddata;
-
-	for (const auto& kv : SndCnts)
+      //
+      // Send the integer data.
+      //
+      Array<int> senddata;
+      
+      for (const auto& kv : SndCnts)
         {
-            const int Who = kv.first;
-            const int Cnt = kv.second * iChunkSize;
+	  const int Who = kv.first;
+	  const int Cnt = kv.second * iChunkSize;
+	  
+	  BL_ASSERT(Cnt > 0);
+	  BL_ASSERT(Who >= 0 && Who < NProcs);
+	  BL_ASSERT(Cnt < std::numeric_limits<int>::max());
 
-            BL_ASSERT(Cnt > 0);
-            BL_ASSERT(Who >= 0 && Who < NProcs);
-            BL_ASSERT(Cnt < std::numeric_limits<int>::max());
-
-            senddata.resize(Cnt);
-
-            const PBox& pbox = not_ours[Who];
-
-            int ioff = 0;
-	    for (const auto& p : pbox)
+	  senddata.resize(Cnt);
+	  
+	  const PBox& pbox = not_ours[Who];
+	  
+	  int ioff = 0;
+	  for (const auto& p : pbox)
             {
-                BL_ASSERT(p.m_idata.id > 0);
-
-                senddata[ioff+0] = p.m_idata.id;
-                senddata[ioff+1] = p.m_idata.cpu;
-
- 		for (int i = 0; i < NI; ++i) {
-		    senddata[i+ioff+2] = p.m_idata.arr[i+2];
-		}
-
-                ioff += iChunkSize;
+	      BL_ASSERT(p.m_idata.id > 0);
+	      
+	      senddata[ioff+0] = p.m_idata.id;
+	      senddata[ioff+1] = p.m_idata.cpu;
+	      
+	      for (int i = 0; i < NI; ++i) {
+		senddata[i+ioff+2] = p.m_idata.arr[i+2];
+	      }
+	      
+	      ioff += iChunkSize;
             }
-
-            ParallelDescriptor::Send(senddata.dataPtr(),Cnt,Who,SeqNum);
+	  
+	  ParallelDescriptor::Send(senddata.dataPtr(),Cnt,Who,SeqNum);
         }
-        //
-        // Free up this memory ...
-        //
-        Array<int>().swap(senddata);
-        //
-        // Now receive and unpack the integer data.
-        //
-        for (int NWaits = rreqs.size(), completed; NWaits > 0; NWaits -= completed)
+      //
+      // Free up this memory ...
+      //
+      Array<int>().swap(senddata);
+      //
+      // Now receive and unpack the integer data.
+      //
+      for (int NWaits = rreqs.size(), completed; NWaits > 0; NWaits -= completed)
         {
-            ParallelDescriptor::Waitsome(rreqs, completed, index, stats);
-
-            for (int k = 0; k < completed; k++)
+	  ParallelDescriptor::Waitsome(rreqs, completed, index, stats);
+	  
+	  for (int k = 0; k < completed; k++)
             {
-                const int  Who  = owner[index[k]];
-                const int  Idx  = rOffset[Who] * iChunkSize;
-                const int* rcvp = &recvdata[Idx];
-                PBox&      pbox = nparticles[Who];
-
-                BL_ASSERT(int(pbox.size()) == RcvCnts[Who]);
-
-		for (auto& p : pbox)
+	      const int  Who  = owner[index[k]];
+	      const int  Idx  = rOffset[Who] * iChunkSize;
+	      const int* rcvp = &recvdata[Idx];
+	      PBox&      pbox = nparticles[Who];
+	      
+	      BL_ASSERT(int(pbox.size()) == RcvCnts[Who]);
+	      
+	      for (auto& p : pbox)
                 {
 		  BL_ASSERT(rcvp != 0);
-
+		  
 		  p.m_idata.id   = rcvp[0];
 		  p.m_idata.cpu  = rcvp[1];
-
+		  
 		  for (int i = 0; i < NI; ++i) {
 		    p.m_idata.arr[i+2] = rcvp[i+2];
 		  }
-
+		  
 		  rcvp += iChunkSize;
                 }
             }
         }
     }
+
     //
     // Next send/recv the Real parts of the particles.
     //
     {
-        const int SeqNum     = ParallelDescriptor::SeqNum();
-        const int rChunkSize = BL_SPACEDIM+NR;
-        //
-        // Allocate data for rcvs as one big chunk.
-        //
-        Array<typename ParticleType::RealType> recvdata(NumRcvs * rChunkSize);
-        //
-        // Post receives.
-        //
-        int idx = 0;
-	for (auto it = RcvCnts.cbegin(); it != RcvCnts.cend(); ++it, ++idx)
+      const int SeqNum     = ParallelDescriptor::SeqNum();
+      const int rChunkSize = BL_SPACEDIM+NR+npartdata;
+      //
+      // Allocate data for rcvs as one big chunk.
+      //
+      Array<typename ParticleType::RealType> recvdata(NumRcvs * rChunkSize);
+      //
+      // Post receives.
+      //
+      int idx = 0;
+      for (auto it = RcvCnts.cbegin(); it != RcvCnts.cend(); ++it, ++idx)
         {
-            const int Who = it->first;
-            const int Cnt = it->second   * rChunkSize;
-            const int Idx = rOffset[Who] * rChunkSize;
-
-            BL_ASSERT(Cnt > 0);
-            BL_ASSERT(Who >= 0 && Who < NProcs);
-            BL_ASSERT(Cnt < std::numeric_limits<int>::max());
-
-            rreqs[idx] = ParallelDescriptor::Arecv(&recvdata[Idx],Cnt,Who,SeqNum).req();
+	  const int Who = it->first;
+	  const int Cnt = it->second   * rChunkSize;
+	  const int Idx = rOffset[Who] * rChunkSize;
+	  
+	  BL_ASSERT(Cnt > 0);
+	  BL_ASSERT(Who >= 0 && Who < NProcs);
+	  BL_ASSERT(Cnt < std::numeric_limits<int>::max());
+	  
+	  rreqs[idx] = ParallelDescriptor::Arecv(&recvdata[Idx],Cnt,Who,SeqNum).req();
         }
-        //
-        // Send the Real data.
-        //
-        Array<typename ParticleType::RealType> senddata;
-
-	for (const auto& kv : SndCnts)
+      //
+      // Send the Real data.
+      //
+      Array<typename ParticleType::RealType> senddata;
+      
+      for (const auto& kv : SndCnts)
         {
-            const int Who = kv.first;
-            const int Cnt = kv.second * rChunkSize;
+	  const int Who = kv.first;
+	  const int Cnt = kv.second * rChunkSize;
+	  
+	  BL_ASSERT(Cnt > 0);
+	  BL_ASSERT(Who >= 0 && Who < NProcs);
+	  BL_ASSERT(Cnt < std::numeric_limits<int>::max());
+          
+	  senddata.resize(Cnt);
+	  
+	  PBox& pbox = not_ours[Who];
+	  Array<Array<Real> >& StructOfArrayData = comm_pdata[Who];
 
-            BL_ASSERT(Cnt > 0);
-            BL_ASSERT(Who >= 0 && Who < NProcs);
-            BL_ASSERT(Cnt < std::numeric_limits<int>::max());
-            
-            senddata.resize(Cnt);
-
-            PBox& pbox = not_ours[Who];
-
-            int ioff = 0;
-	    for (const auto& p : pbox)
+	  int ioff = 0;
+	  int pindex = 0;
+	  for (const auto& p : pbox)
             {
-                BL_ASSERT(p.m_idata.id > 0);
+	      BL_ASSERT(p.m_idata.id > 0);
+	      
+	      D_TERM(senddata[ioff+0] = p.m_rdata.pos[0];,
+		     senddata[ioff+1] = p.m_rdata.pos[1];,
+		     senddata[ioff+2] = p.m_rdata.pos[2];);
+	      
+	      ioff += BL_SPACEDIM;
+	      
+	      for (int j = 0; j < NR; j++)
+		senddata[ioff+j] = p.m_rdata.arr[BL_SPACEDIM + j];
+	      
+	      ioff += NR;
 
-                D_TERM(senddata[ioff+0] = p.m_rdata.pos[0];,
-                       senddata[ioff+1] = p.m_rdata.pos[1];,
-                       senddata[ioff+2] = p.m_rdata.pos[2];);
+	      for (int j = 0; j < npartdata; j++) {
+		senddata[ioff+j] = StructOfArrayData[j][pindex];
+	      }
 
-                ioff += BL_SPACEDIM;
-
-                for (int j = 0; j < NR; j++)
-                    senddata[ioff+j] = p.m_rdata.arr[BL_SPACEDIM + j];
-
-                ioff += NR;
+	      ioff += npartdata;
+	      pindex++;
             }
-
-	    PBox().swap(pbox);
-
-            ParallelDescriptor::Send(senddata.dataPtr(),Cnt,Who,SeqNum);
+	  
+	  PBox().swap(pbox);
+	  
+	  ParallelDescriptor::Send(senddata.dataPtr(), Cnt, Who, SeqNum);
         }
-        //
-        // Free up this memory ...
-        //
-        Array<typename ParticleType::RealType>().swap(senddata);
-        //
-        // Now receive and unpack the Real data.
-        //
-        for (int NWaits = rreqs.size(), completed; NWaits > 0; NWaits -= completed)
+      //
+      // Free up this memory ...
+      //
+      Array<typename ParticleType::RealType>().swap(senddata);
+      //
+      // Now receive and unpack the Real data.
+      //
+      for (int NWaits = rreqs.size(), completed; NWaits > 0; NWaits -= completed)
         {
-            ParallelDescriptor::Waitsome(rreqs, completed, index, stats);
-
-            for (int k = 0; k < completed; k++)
+	  ParallelDescriptor::Waitsome(rreqs, completed, index, stats);
+	  
+	  for (int k = 0; k < completed; k++)
             {
-                const int                              Who  = owner[index[k]];
-                const int                              Idx  = rOffset[Who] * rChunkSize;
-                const typename ParticleType::RealType* rcvp = &recvdata[Idx];
-                PBox&                                  pbox = nparticles[Who];
-
-                BL_ASSERT(int(pbox.size()) == RcvCnts[Who]);
-
-		ParticleLocData pld;
-		for (auto& p : pbox)
+	      const int                              Who  = owner[index[k]];
+	      const int                              Idx  = rOffset[Who] * rChunkSize;
+	      const typename ParticleType::RealType* rcvp = &recvdata[Idx];
+	      PBox&                                  pbox = nparticles[Who];
+	      
+	      BL_ASSERT(int(pbox.size()) == RcvCnts[Who]);
+	      
+	      ParticleLocData pld;
+	      for (auto& p : pbox)
                 {
-                    BL_ASSERT(rcvp != 0);
+		  BL_ASSERT(rcvp != 0);
+		  
+		  D_TERM(p.m_rdata.pos[0] = rcvp[0];,
+			 p.m_rdata.pos[1] = rcvp[1];,
+			 p.m_rdata.pos[2] = rcvp[2];);
+		  
+		  rcvp += BL_SPACEDIM;
+		  
+		  for (int j = 0; j < NR; j++)
+		    p.m_rdata.arr[BL_SPACEDIM + j] = rcvp[j];
 
-                    D_TERM(p.m_rdata.pos[0] = rcvp[0];,
-                           p.m_rdata.pos[1] = rcvp[1];,
-                           p.m_rdata.pos[2] = rcvp[2];);
-
-                    rcvp += BL_SPACEDIM;
-
-                    for (int j = 0; j < NR; j++)
-                        p.m_rdata.arr[BL_SPACEDIM + j] = rcvp[j];
-
-                    rcvp += NR;
-
-		    ParticleType::Where(p, m_gdb, pld);
-
-                    m_particles[pld.m_lev][pld.m_grid].push_back(p);
+		  rcvp += NR;
+		  
+		  ParticleType::Where(p, m_gdb, pld);
+		  
+		  m_particles[pld.m_lev][pld.m_grid].push_back(p);
+		  
+		  for (int j = 0; j < npartdata; j++) {
+		    (*m_partdata[pld.m_lev][pld.m_grid][j]).push_back(rcvp[j]);
+		  }
+		  
+		  rcvp += npartdata;
                 }
-
-		PBox().swap(pbox);
+	      
+	      PBox().swap(pbox);
             }
         }
     }
@@ -2759,20 +2808,30 @@ ParticleContainer<NR,NI,C>::WriteAsciiFile (const std::string& filename)
             if (!File.good())
                 amrex::FileOpenFailed(filename);
             
-            for (const auto& pmap : m_particles)
-            {
+	    for (int lev = 0; lev < m_particles.size(); lev++)
+	      {
+		const auto& pmap = m_particles[lev];
 		for (const auto& kv : pmap)
-                {
+		  {
+		    int grid_id = kv.first;
                     const PBox& pbox = kv.second;
-
+		    int index = 0;
 		    for (auto it = pbox.cbegin(); it != pbox.cend(); ++it)
                     {
                         if (it->m_idata.id > 0)
                         {
+
+			  File << it->m_idata.id  << ' ';
+			  File << it->m_idata.cpu << ' ';
+
                             D_TERM(File << it->m_rdata.pos[0] << ' ',
                                         << it->m_rdata.pos[1] << ' ',
                                         << it->m_rdata.pos[2] << ' ');
 
+			    File << (*(m_partdata[lev][grid_id][0]))[index] << ' ';
+			    File << (*(m_partdata[lev][grid_id][1]))[index] << ' ';
+			    index++;
+			    
                             for (int i = BL_SPACEDIM; i < BL_SPACEDIM + NR; i++)
                             {
                                 char ws = (i == BL_SPACEDIM + NR - 1) ? '\n' : ' ';
