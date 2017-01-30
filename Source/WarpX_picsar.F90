@@ -1,17 +1,9 @@
 #if (BL_SPACEDIM == 3)
 
-#define WRPX_PXR_PUSH_BVEC               pxrpush_em3d_bvec
-#define WRPX_PXR_PUSH_BVEC_NORDER        pxrpush_em3d_bvec_norder
-#define WRPX_PXR_PUSH_EVEC               pxrpush_em3d_evec
-#define WRPX_PXR_PUSH_EVEC_NORDER        pxrpush_em3d_evec_norder
 #define WRPX_PXR_GETEB_ENERGY_CONSERVING geteb3d_energy_conserving
 
 #elif (BL_SPACEDIM == 2)
 
-#define WRPX_PXR_PUSH_BVEC               pxrpush_em2d_bvec
-#define WRPX_PXR_PUSH_BVEC_NORDER        pxrpush_em2d_bvec_norder
-#define WRPX_PXR_PUSH_EVEC               pxrpush_em2d_evec
-#define WRPX_PXR_PUSH_EVEC_NORDER        pxrpush_em2d_evec_norder
 #define WRPX_PXR_GETEB_ENERGY_CONSERVING geteb2dxz_energy_conserving
 
 #endif
@@ -418,99 +410,6 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
 #endif
 
   end subroutine
-
-
-  ! _________________________________________________________________
-  !>
-  !> @brief
-  !> Main function in warpx for evolving the electric field
-  !>
-  subroutine warpx_push_evec(ex,ey,ez,bx,by,bz,jx,jy,jz,mudt,    &
-       dtsdx,dtsdy,dtsdz,nx,ny,nz,   &
-       norderx,nordery,norderz,             &
-       nxguard,nyguard,nzguard,nxs,nys,nzs, &
-       l_nodalgrid) &  !!!!!
-       bind(C, name="warpx_push_evec")
-
-    integer(c_long) :: nx,ny,nz,nxguard,nyguard,nzguard,nxs,nys,nzs,norderx,nordery,norderz
-    real(c_real), intent(IN OUT), dimension(-nxguard:nx+nxguard,&
-         &                                  -nyguard:ny+nyguard,&
-         &                                  -nzguard:nz+nzguard) :: ex,ey,ez
-    real(c_real), intent(IN), dimension(-nxguard:nx+nxguard,&
-         &                                  -nyguard:ny+nyguard,&
-         &                                  -nzguard:nz+nzguard) :: bx,by,bz
-    real(c_real), intent(IN), dimension(-nxguard:nx+nxguard,&
-         &                              -nyguard:ny+nyguard,&
-         &                              -nzguard:nz+nzguard) :: jx, jy, jz
-    real(c_real), intent(IN) :: mudt,dtsdx(norderx/2),dtsdy(nordery/2),dtsdz(norderz/2)
-    integer(c_int)           :: l_nodalgrid
-    logical(pxr_logical)     :: pxr_l_nodalgrid
-
-    pxr_l_nodalgrid = l_nodalgrid .eq. 1
-
-    if ((norderx.eq.2).and.(nordery.eq.2).and.(norderz.eq.2)) then
-
-      call WRPX_PXR_PUSH_EVEC(ex,ey,ez,bx,by,bz,jx,jy,jz,mudt, &
-           dtsdx,dtsdy,dtsdz,nx,ny,nz,   &
-           nxguard,nyguard,nzguard,nxs,nys,nzs, &
-           pxr_l_nodalgrid)
-
-    else
-
-     call WRPX_PXR_PUSH_EVEC_NORDER(ex,ey,ez,bx,by,bz,jx,jy,jz,mudt, &
-          dtsdx,dtsdy,dtsdz,nx,ny,nz,   &
-          norderx,nordery,norderz,             &
-          nxguard,nyguard,nzguard,nxs,nys,nzs, &
-          pxr_l_nodalgrid)
-
-   end if
-
- end subroutine warpx_push_evec
-
-  ! _________________________________________________________________
-  !>
-  !> @brief
-  !> Main function in warpx for evolving the magnetic field
-  !>
-  subroutine warpx_push_bvec(ex,ey,ez,bx,by,bz,                  &
-       dtsdx,dtsdy,dtsdz,nx,ny,nz,          &
-       norderx,nordery,norderz,             &
-       nxguard,nyguard,nzguard,nxs,nys,nzs, &
-       l_nodalgrid) &  !!!!!
-       bind(C, name="warpx_push_bvec")
-
-    integer(c_long) :: nx,ny,nz,nxguard,nyguard,nzguard,nxs,nys,nzs,norderx,nordery,norderz
-    real(c_real), intent(IN OUT), dimension(-nxguard:nx+nxguard,&
-         &                                  -nyguard:ny+nyguard,&
-         &                                  -nzguard:nz+nzguard) :: bx,by,bz
-    real(c_real), intent(IN), dimension(-nxguard:nx+nxguard,&
-         &                              -nyguard:ny+nyguard,&
-         &                              -nzguard:nz+nzguard) :: ex,ey,ez
-    real(c_real), intent(IN) :: dtsdx(norderx/2),dtsdy(nordery/2),dtsdz(norderz/2)
-    integer(c_int)           :: l_nodalgrid
-    logical(pxr_logical)     :: pxr_l_nodalgrid
-
-    pxr_l_nodalgrid = l_nodalgrid .eq. 1
-
-    if ((norderx.eq.2).and.(nordery.eq.2).and.(norderz.eq.2)) then
-
-      call WRPX_PXR_PUSH_BVEC(ex,ey,ez,bx,by,bz,                  &
-           dtsdx,dtsdy,dtsdz,nx,ny,nz,          &
-           nxguard,nyguard,nzguard,nxs,nys,nzs, &
-           pxr_l_nodalgrid)
-
-    else
-
-      call WRPX_PXR_PUSH_BVEC_NORDER(ex,ey,ez,bx,by,bz,                  &
-           dtsdx,dtsdy,dtsdz,nx,ny,nz,          &
-           norderx,nordery,norderz,             &
-           nxguard,nyguard,nzguard,nxs,nys,nzs, &
-           pxr_l_nodalgrid)
-
-    endif
-
-
-  end subroutine warpx_push_bvec
 
 end module warpx_to_pxr_module
 

@@ -121,52 +121,23 @@ WarpX::EvolveB (int lev, Real dt)
     dtsdx[2] = dt / dx[1];
 #endif
 
-    long norder = 2;
-    long nstart = 0;
-    int l_nodal = false;
+    const int norder = 2;
 
-    long nguard = Efield[lev][0]->nGrow();
-    BL_ASSERT(nguard == Efield[lev][1]->nGrow());
-    BL_ASSERT(nguard == Efield[lev][2]->nGrow());
-    BL_ASSERT(nguard == Bfield[lev][0]->nGrow());
-    BL_ASSERT(nguard == Bfield[lev][1]->nGrow());
-    BL_ASSERT(nguard == Bfield[lev][2]->nGrow());
-
-#if (BL_SPACEDIM == 3)
-    long nxguard = nguard;
-    long nyguard = nguard;
-    long nzguard = nguard;
-#elif (BL_SPACEDIM == 2)
-    long nxguard = nguard;
-    long nyguard = 0;
-    long nzguard = nguard;
+#ifdef _OPENMP
+#pragma omp parallel
 #endif
-
-    for ( MFIter mfi(*Bfield[lev][0]); mfi.isValid(); ++mfi )
+    for ( MFIter mfi(*Efield[lev][0],true); mfi.isValid(); ++mfi )
     {
-	const Box& bx = BoxLib::enclosedCells(mfi.validbox());
-#if (BL_SPACEDIM == 3)
-	long nx = bx.length(0);
-	long ny = bx.length(1);
-	long nz = bx.length(2);
-#elif (BL_SPACEDIM == 2)
-	long nx = bx.length(0);
-	long ny = 0;
-	long nz = bx.length(1);
-#endif
-
-	warpx_push_bvec( (*Efield[lev][0])[mfi].dataPtr(),
-			 (*Efield[lev][1])[mfi].dataPtr(),
-			 (*Efield[lev][2])[mfi].dataPtr(),
-			 (*Bfield[lev][0])[mfi].dataPtr(),
-			 (*Bfield[lev][1])[mfi].dataPtr(),
-			 (*Bfield[lev][2])[mfi].dataPtr(),
-			 dtsdx, dtsdx+1, dtsdx+2,
-			 &nx, &ny, &nz,
-			 &norder, &norder, &norder,
-			 &nxguard, &nyguard, &nzguard,
-			 &nstart, &nstart, &nstart,
-			 &l_nodal );
+	const Box& tbx = mfi.tilebox();
+	WRPX_PXR_PUSH_BVEC(tbx.loVect(), tbx.hiVect(),
+			   BL_TO_FORTRAN_3D((*Efield[lev][0])[mfi]),
+			   BL_TO_FORTRAN_3D((*Efield[lev][1])[mfi]),
+			   BL_TO_FORTRAN_3D((*Efield[lev][2])[mfi]),
+			   BL_TO_FORTRAN_3D((*Bfield[lev][0])[mfi]),
+			   BL_TO_FORTRAN_3D((*Bfield[lev][1])[mfi]),
+			   BL_TO_FORTRAN_3D((*Bfield[lev][2])[mfi]),
+			   dtsdx, dtsdx+1, dtsdx+2,
+			   &norder);
     }
 }
 
@@ -190,58 +161,27 @@ WarpX::EvolveE (int lev, Real dt)
     dtsdx_c2[2] = (PhysConst::c*PhysConst::c) * dt / dx[1];
 #endif
 
-    long norder = 2;
-    long nstart = 0;
-    int l_nodal = false;
+    const int norder = 2;
 
-    long nguard = Efield[lev][0]->nGrow();
-    BL_ASSERT(nguard == Efield[lev][1]->nGrow());
-    BL_ASSERT(nguard == Efield[lev][2]->nGrow());
-    BL_ASSERT(nguard == Bfield[lev][0]->nGrow());
-    BL_ASSERT(nguard == Bfield[lev][1]->nGrow());
-    BL_ASSERT(nguard == Bfield[lev][2]->nGrow());
-    BL_ASSERT(nguard == current[lev][0]->nGrow());
-    BL_ASSERT(nguard == current[lev][1]->nGrow());
-    BL_ASSERT(nguard == current[lev][2]->nGrow());
-
-#if (BL_SPACEDIM == 3)
-    long nxguard = nguard;
-    long nyguard = nguard;
-    long nzguard = nguard;
-#elif (BL_SPACEDIM == 2)
-    long nxguard = nguard;
-    long nyguard = 0;
-    long nzguard = nguard;
+#ifdef _OPENMP
+#pragma omp parallel
 #endif
-
-    for ( MFIter mfi(*Efield[lev][0]); mfi.isValid(); ++mfi )
+    for ( MFIter mfi(*Efield[lev][0],true); mfi.isValid(); ++mfi )
     {
-	const Box & bx = BoxLib::enclosedCells(mfi.validbox());
-#if (BL_SPACEDIM == 3)
-	long nx = bx.length(0);
-	long ny = bx.length(1);
-	long nz = bx.length(2);
-#elif (BL_SPACEDIM == 2)
-	long nx = bx.length(0);
-	long ny = 0;
-	long nz = bx.length(1);
-#endif
-
-	warpx_push_evec( (*Efield[lev][0])[mfi].dataPtr(),
-			 (*Efield[lev][1])[mfi].dataPtr(),
-			 (*Efield[lev][2])[mfi].dataPtr(),
-			 (*Bfield[lev][0])[mfi].dataPtr(),
-			 (*Bfield[lev][1])[mfi].dataPtr(),
-			 (*Bfield[lev][2])[mfi].dataPtr(),
-			 (*current[lev][0])[mfi].dataPtr(),
-			 (*current[lev][1])[mfi].dataPtr(),
-			 (*current[lev][2])[mfi].dataPtr(),
-			 &mu_c2_dt, dtsdx_c2, dtsdx_c2+1, dtsdx_c2+2,
-			 &nx, &ny, &nz,
-			 &norder, &norder, &norder,
-			 &nxguard, &nyguard, &nzguard,
-			 &nstart, &nstart, &nstart,
-			 &l_nodal );
+	const Box& tbx = mfi.tilebox();
+	WRPX_PXR_PUSH_EVEC(tbx.loVect(), tbx.hiVect(),
+			   BL_TO_FORTRAN_3D((*Efield[lev][0])[mfi]),
+			   BL_TO_FORTRAN_3D((*Efield[lev][1])[mfi]),
+			   BL_TO_FORTRAN_3D((*Efield[lev][2])[mfi]),
+			   BL_TO_FORTRAN_3D((*Bfield[lev][0])[mfi]),
+			   BL_TO_FORTRAN_3D((*Bfield[lev][1])[mfi]),
+			   BL_TO_FORTRAN_3D((*Bfield[lev][2])[mfi]),
+			   BL_TO_FORTRAN_3D((*current[lev][0])[mfi]),
+			   BL_TO_FORTRAN_3D((*current[lev][1])[mfi]),
+			   BL_TO_FORTRAN_3D((*current[lev][2])[mfi]),
+			   &mu_c2_dt,
+			   dtsdx_c2, dtsdx_c2+1, dtsdx_c2+2,
+			   &norder);
     }
 }
 

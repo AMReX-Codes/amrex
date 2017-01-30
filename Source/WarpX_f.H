@@ -1,6 +1,18 @@
 #include <REAL.H>
 #include <BLFort.H>
 
+#if (BL_SPACEDIM == 3)
+
+#define WRPX_PXR_PUSH_BVEC               warpx_pxr_push_em3d_bvec
+#define WRPX_PXR_PUSH_EVEC               warpx_pxr_push_em3d_evec
+
+#elif (BL_SPACEDIM == 2)
+
+#define WRPX_PXR_PUSH_BVEC               warpx_pxr_push_em2d_bvec
+#define WRPX_PXR_PUSH_EVEC               warpx_pxr_push_em2d_evec
+
+#endif
+
 extern "C" 
 {
 	// Charge deposition
@@ -64,25 +76,29 @@ extern "C"
 
 	// Maxwell solver
 
-	void warpx_push_evec( Real* ex, Real* ey, Real* ez,
-			const Real* bx, const Real* by, const Real* bz,
-			const Real* jx, const Real* jy, const Real* jz,
-			const Real* mudt,
-			const Real* dtsdx, const Real* dtsdy, const Real* dtsdz, 
-			const long* nxlocal, const long* nylocal, const long* nzlocal,
-			const long* nxorder, const long* nyorder, const long* nzorder,
-			const long* nxguard, const long* nyguard, const long* nzguard, 
-			const long* nxs, const long* nys, const long* nzs,
-			const int* l_nodal );
+        void WRPX_PXR_PUSH_EVEC(const int* lo, const int* hi,
+				BL_FORT_FAB_ARG_3D(ex),
+				BL_FORT_FAB_ARG_3D(ey),
+				BL_FORT_FAB_ARG_3D(ez),
+				const BL_FORT_FAB_ARG_3D(bx),
+				const BL_FORT_FAB_ARG_3D(by),
+				const BL_FORT_FAB_ARG_3D(bz),
+				const BL_FORT_FAB_ARG_3D(jx),
+				const BL_FORT_FAB_ARG_3D(jy),
+				const BL_FORT_FAB_ARG_3D(jz),
+				const Real* mudt,
+				const Real* dtsdx, const Real* dtsdy, const Real* dtsdz,
+				const int* norder);
 
-	void warpx_push_bvec( const Real* ex, const Real* ey, const Real* ez,
-			Real* bx, Real* by, Real* bz,
-			const Real* dtsdx, const Real* dtsdy, const Real* dtsdz, 
-			const long* nxlocal, const long* nylocal, const long* nzlocal,
-			const long* nxorder, const long* nyorder, const long* nzorder,
-			const long* nxguard, const long* nyguard, const long* nzguard, 
-			const long* nxs, const long* nys, const long* nzs,
-			const int* l_nodal );
+        void WRPX_PXR_PUSH_BVEC(const int* lo, const int* hi,
+				const BL_FORT_FAB_ARG_3D(ex),
+				const BL_FORT_FAB_ARG_3D(ey),
+				const BL_FORT_FAB_ARG_3D(ez),
+				BL_FORT_FAB_ARG_3D(bx),
+				BL_FORT_FAB_ARG_3D(by),
+				BL_FORT_FAB_ARG_3D(bz),
+				const Real* dtsdx, const Real* dtsdy, const Real* dtsdz,
+				const int* norder);
 
 #ifdef USE_OPENBC_POISSON
     void warpx_openbc_potential (Real* rho, Real* phi, const Real* dx);
