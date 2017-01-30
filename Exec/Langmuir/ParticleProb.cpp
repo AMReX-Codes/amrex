@@ -21,7 +21,7 @@ PhysicalParticleContainer::InitData()
 	mass = PhysConst::m_e;
     } else if (species_id == 1) {
 	charge = PhysConst::q_e;
-	mass = PhysConst::m_p;	
+	mass = PhysConst::m_e;
     } else {
 	BoxLib::Abort("PhysicalParticleContainer::InitData(): species_id must be 0 or 1");
     }
