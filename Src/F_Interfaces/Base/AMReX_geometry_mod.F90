@@ -19,7 +19,7 @@ module amrex_geometry_module
      type(amrex_box)  :: domain
      type(c_ptr)      :: p         = c_null_ptr
    contains
-#if defined(__gfortran__) && (__GNUC__ <= 4)
+#if !defined(__GFORTRAN__) || (__GNUC__ > 4)
      final :: amrex_geometry_destroy
 #endif
   end type amrex_geometry
@@ -74,7 +74,10 @@ contains
 
   subroutine amrex_geometry_destroy (geom)
     type(amrex_geometry) :: geom
-    call amrex_fi_delete_geometry(geom%p)
+    if (c_associated(geom%p)) then
+       call amrex_fi_delete_geometry(geom%p)
+       geom%p = c_null_ptr
+    end if
   end subroutine amrex_geometry_destroy
 
 end module amrex_geometry_module
