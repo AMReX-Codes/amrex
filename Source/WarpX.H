@@ -70,7 +70,7 @@ private:
     void MakeNewLevel (int lev, const BoxArray& new_grids, const DistributionMapping& new_dmap);
 
     void RegridBaseLevel ();
-    void LoadBalanceBaseLevel ();
+    bool LoadBalanceBaseLevel ();
     void splitBoxes (BoxArray& ba, Array<long>& newcost, const Array<long>& cost_in, int heavy_grid_size);
 
     Real getEfficiency(const DistributionMapping& dm, const Array<long>& cost);

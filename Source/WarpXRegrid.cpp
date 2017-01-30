@@ -20,7 +20,8 @@ WarpX::RegridBaseLevel ()
 
     const IntVect& nodalflag = IntVect::TheUnitVector();
 
-    // Create temp arrays and copy existing data into these temporary arrays
+    // Create temp arrays and copy existing data into these temporary arrays -- srcMF and destMF
+    //        have the same BoxArray and DistributionMapping here
     for (int i = 0; i < 3; ++i) {
         int ng = current[lev][i]->nGrow();
 	old_current[i].reset(new MultiFab(grids[lev],1,ng,dmap[lev],Fab_allocate,nodalflag));
@@ -33,24 +34,17 @@ WarpX::RegridBaseLevel ()
 
     // This creates a new BoxArray and DistributionMapping and assigns the particles to that 
     // Here we need to re-define the grids for the mesh quantities as well
-    LoadBalanceBaseLevel();
+    bool remapped = LoadBalanceBaseLevel();
 
-    if (debug_lb && ParallelDescriptor::IOProcessor()) 
-    {
-        std::cout << "OLD CURRENT BOXARRAY " << old_current[0]->boxArray(); 
-        std::cout << "NEW CURRENT BOXARRAY " << current[0][0]->boxArray();
-    }
-
-    // @WZ -- why does this core dump??
-    MultiFab::Copy(*current[lev][0],*old_current[0],0,0,current[lev][0]->nComp(),0);
-    exit(0);
-
-    // Copy "old" temp data into the new arrays
-    for (int i = 0; i < 3; ++i) {
-        MultiFab::Copy(*current[lev][i],*old_current[i],0,0,current[lev][i]->nComp(),0);
-        MultiFab::Copy( *Efield[lev][i], *old_Efield[i],0,0, Efield[lev][i]->nComp(),0);
-        MultiFab::Copy( *Bfield[lev][i], *old_Bfield[i],0,0, Bfield[lev][i]->nComp(),0);
-    }
+    // Copy "old" temp data into the new arrays -- here the src and dest do NOT
+    //       have the same BoxArray and DistributionMapping -- only need to do this if 
+    //       the grids have actually changed
+    if (remapped)
+       for (int i = 0; i < 3; ++i) {
+        current[lev][i]->copy(*old_current[i], 0, 0, current[lev][i]->nComp()); 
+         Bfield[lev][i]->copy( *old_Bfield[i], 0, 0,  Bfield[lev][i]->nComp()); 
+         Efield[lev][i]->copy( *old_Efield[i], 0, 0,  Bfield[lev][i]->nComp()); 
+       }
 
     // @WZ -- How do I delete the temp arrays??
 }
@@ -64,42 +58,46 @@ WarpX::okToRegrid(int step)
         return (step%regrid_int == 0);
 }
 
-void
+bool
 WarpX::LoadBalanceBaseLevel()
 {
     int min_grid_size = 4;
 
+    bool remapped;
+
     // **************************************************************************
     // Load Balance
     // **************************************************************************
-	const Real eff_target = 0.8;
-	const int lev = 0;
+    const Real eff_target = 0.8;
+    const int lev = 0;
 
-	Array<long> new_particle_cost = mypc->NumberOfParticlesInGrid(lev);
-	Real neweff = getEfficiency(dmap[0], new_particle_cost);
+    Array<long> new_particle_cost = mypc->NumberOfParticlesInGrid(lev);
+    Real neweff = getEfficiency(dmap[0], new_particle_cost);
 
-        if (debug_lb && ParallelDescriptor::IOProcessor()) 
-        {
-           for (int i = 0; i < new_particle_cost.size(); i++) 
-             std::cout << "OLD PARTICLE COST PER GRID " << i << " " << new_particle_cost[i] << std::endl;
-        }
+    if (debug_lb && ParallelDescriptor::IOProcessor()) 
+    {
+       long min_cost = new_particle_cost[0];
+       long max_cost = new_particle_cost[0];
+       for (int i = 1; i < new_particle_cost.size(); i++) 
+       {
+          min_cost = std::min(new_particle_cost[i],min_cost);
+          max_cost = std::max(new_particle_cost[i],max_cost);
+       }
 
-        if (debug_lb && ParallelDescriptor::IOProcessor()) 
-           std::cout << "INITIAL EFFICIENCY " << neweff << std::endl;
+       std::cout << "ORIG MIN COST / MAX COST / EFF " << min_cost << 
+                                                  " " << max_cost << " " << neweff << std::endl;
+    }
  
-        WarpXParticleContainer* myspc = &(mypc->GetParticleContainer(0));
+    WarpXParticleContainer* myspc = &(mypc->GetParticleContainer(0));
 
-        // This is what we are starting with
-        BoxArray new_ba= myspc->ParticleBoxArray(0);
-        DistributionMapping new_dm = myspc->ParticleDistributionMap(0);
-        if (debug_lb && ParallelDescriptor::IOProcessor()) 
-	{
-           std::cout << "OLD BA " << new_ba << std::endl;
-           std::cout << "OLD DM " << new_dm << std::endl;
-	}
+    // This is what we are starting with
+    BoxArray new_ba= myspc->ParticleBoxArray(0);
+    DistributionMapping new_dm = myspc->ParticleDistributionMap(0);
+    if (debug_lb && ParallelDescriptor::IOProcessor()) 
+       std::cout << "OLD BA HAS " << new_ba.size() << " GRIDS" << std::endl;
 
-  	if (neweff < eff_target) 
-	{
+    if (neweff < eff_target) 
+    {
 	    Real oldeff;
 	    Array<long> old_particle_cost;
 	    int heavy_grid_size = this->maxGridSize(0);
@@ -158,25 +156,38 @@ WarpX::LoadBalanceBaseLevel()
 	    } 
 	    while (neweff < eff_target && neweff > oldeff && heavy_grid_size >= 2*min_grid_size);
 
+        if (debug_lb && ParallelDescriptor::IOProcessor()) 
+        {
+           BoxArray new_ba = myspc->ParticleBoxArray(lev);
+           std::cout << "NEW BA HAS " << new_ba.size() << " GRIDS" << std::endl;
+
+           long min_cost = new_particle_cost[0];
+           long max_cost = new_particle_cost[0];
+           for (int i = 1; i < new_particle_cost.size(); i++) 
+           {
+              min_cost = std::min(new_particle_cost[i],min_cost);
+              max_cost = std::max(new_particle_cost[i],max_cost);
+           }
+
+           std::cout << "NEW  MIN COST / MAX COST / EFF " << min_cost << 
+                 " " << max_cost << " " << neweff << std::endl;
+        }
+
+        MakeNewLevel(0,new_ba,new_dm);
+        remapped = true;
+
     } else {
 
-	    if (ParallelDescriptor::IOProcessor()) 
-	    {
-		std::cout << "*** " << std::endl;
-		std::cout << "*** No remapping required: # of boxes: " << grids[0].size() 
+        if (ParallelDescriptor::IOProcessor()) 
+	{
+	    std::cout << "*** " << std::endl;
+	    std::cout << "*** No remapping required: # of boxes: " << grids[0].size() 
 			  << ", efficiency: " <<  neweff << "\n";
-		std::cout << "*** " << std::endl;
-	    }
-    } 
-
-    if (debug_lb && ParallelDescriptor::IOProcessor()) 
-    {
-        std::cout << "NEW BA " << myspc->ParticleBoxArray(lev) << std::endl;
-        for (int i = 0; i < new_particle_cost.size(); i++) 
-           std::cout << "NEW PARTICLE COST PER GRID " << i << " " << new_particle_cost[i] << std::endl;
+	    std::cout << "*** " << std::endl;
+        }
+        remapped = false;
     }
-
-    MakeNewLevel(0,new_ba,new_dm);
+    return remapped;
 }
 
 Real
