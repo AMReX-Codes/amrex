@@ -18,7 +18,7 @@ module amrex_distromap_module
      procedure :: clone         => amrex_distromap_clone    ! deep copy
      procedure ::                  amrex_distromap_assign   ! shallow copy
      generic   :: assignment(=) => amrex_distromap_assign   ! shallow copy
-#if defined(__gfortran__) && (__GNUC__ <= 4)
+#if !defined(__GFORTRAN__) || (__GNUC__ > 4)
      final :: amrex_distromap_destroy
 #endif
   end type amrex_distromap

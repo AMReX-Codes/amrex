@@ -33,7 +33,7 @@ module amrex_multifab_module
      procedure :: norm2         => amrex_multifab_norm2
      generic   :: fill_boundary => amrex_multifab_fill_boundary, amrex_multifab_fill_boundary_c
      procedure, private :: amrex_multifab_fill_boundary, amrex_multifab_fill_boundary_c
-#if defined(__gfortran__) && (__GNUC__ <= 4)
+#if !defined(__GFORTRAN__) || (__GNUC__ > 4)
      final :: amrex_multifab_destroy
 #endif
   end type amrex_multifab
@@ -45,7 +45,7 @@ module amrex_multifab_module
      procedure :: clear   => amrex_mfiter_clear
      procedure :: next    => amrex_mfiter_next
      procedure :: tilebox => amrex_mfiter_tilebox
-#if defined(__gfortran__) && (__GNUC__ <= 4)
+#if !defined(__GFORTRAN__) || (__GNUC__ > 4)
      final :: amrex_mfiter_destroy
 #endif
   end type amrex_mfiter
@@ -232,9 +232,9 @@ contains
   function amrex_multifab_dataPtr (this, mfi) result(dp)
     class(amrex_multifab) :: this
     type(amrex_mfiter), intent(in) :: mfi
-    double precision, pointer, dimension(:,:,:,:) :: dp
+    double precision, contiguous, pointer, dimension(:,:,:,:) :: dp
     type(c_ptr) :: cp
-    double precision, pointer :: fp(:,:,:,:)
+    double precision, contiguous, pointer :: fp(:,:,:,:)
     integer(c_int) :: lo(3), hi(3), n(4)
     lo = 1;  hi = 1
     call amrex_fi_multifab_dataptr(this%p, mfi%p, cp, lo, hi)
