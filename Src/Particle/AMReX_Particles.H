@@ -373,7 +373,9 @@ public:
     void Redistribute (int  lev_min              = 0, 
 		       int  nGrow                = 0);
 
-    void RedistributeMPI (PMap& not_ours);
+    void RedistributeMPI (PMap& not_ours,
+			  std::map<int, Array<Array<Real> > >& comm_pdata);
+
     //
     // OK checks that all particles are in the right places (for some value of right)
     //
@@ -496,6 +498,12 @@ protected:
     bool        allow_particles_near_boundary;
     ParGDB      m_gdb_object;
     Array<PMap> m_particles;
+
+    //
+    // The struct-of-arrays data
+    //
+    int npartdata = 2;
+    Array<std::map<int, Array<std::unique_ptr<Array<Real> > > > > m_partdata;
 
 private:
     void AssignDensityDoit (int rho_index, 

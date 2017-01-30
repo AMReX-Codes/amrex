@@ -783,7 +783,7 @@ Particle<NR, NI>::Reset (Particle<NR, NI>&    p,
     {
         // Attempt to shift the particle back into the domain if it
         // crossed a periodic boundary.
-      Particle<NR, NI>::PeriodicShift(p, gdb, pld);
+      Particle<NR, NI>::PeriodicShift(p, gdb);
       ok = Particle<NR, NI>::Where(p, gdb, pld);
     }
     
