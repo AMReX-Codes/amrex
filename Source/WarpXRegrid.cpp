@@ -3,6 +3,8 @@
 #include <WarpX.H>
 #include <WarpXConst.H>
 
+const int debug_lb = 1;
+
 void
 WarpX::RegridBaseLevel ()
 {
@@ -24,18 +26,30 @@ WarpX::RegridBaseLevel ()
 	old_current[i].reset(new MultiFab(grids[lev],1,ng,dmap[lev],Fab_allocate,nodalflag));
 	old_Efield [i].reset(new MultiFab(grids[lev],1,ng,dmap[lev],Fab_allocate,nodalflag));
 	old_Bfield [i].reset(new MultiFab(grids[lev],1,ng,dmap[lev],Fab_allocate,nodalflag));
-        WarpX::Copy(*old_current[i],0,1,*current[lev][i],0);
-        WarpX::Copy(*old_Efield[i] ,0,1, *Efield[lev][i],0);
-        WarpX::Copy(*old_Bfield[i] ,0,1, *Bfield[lev][i],0);
+        MultiFab::Copy(*old_current[i],*current[lev][i],0,0,current[lev][i]->nComp(),0);
+        MultiFab::Copy( *old_Efield[i], *Efield[lev][i],0,0, Efield[lev][i]->nComp(),0);
+        MultiFab::Copy( *old_Bfield[i], *Bfield[lev][i],0,0, Bfield[lev][i]->nComp(),0);
     }
 
+    // This creates a new BoxArray and DistributionMapping and assigns the particles to that 
+    // Here we need to re-define the grids for the mesh quantities as well
     LoadBalanceBaseLevel();
+
+    if (debug_lb && ParallelDescriptor::IOProcessor()) 
+    {
+        std::cout << "OLD CURRENT BOXARRAY " << old_current[0]->boxArray(); 
+        std::cout << "NEW CURRENT BOXARRAY " << current[0][0]->boxArray();
+    }
+
+    // @WZ -- why does this core dump??
+    MultiFab::Copy(*current[lev][0],*old_current[0],0,0,current[lev][0]->nComp(),0);
+    exit(0);
 
     // Copy "old" temp data into the new arrays
     for (int i = 0; i < 3; ++i) {
-        Copy(*current[lev][i],0,1,*old_current[i],0);
-        Copy(*Efield[lev][i] ,0,1, *old_Efield[i],0);
-        Copy(*Bfield[lev][i] ,0,1, *old_Bfield[i],0);
+        MultiFab::Copy(*current[lev][i],*old_current[i],0,0,current[lev][i]->nComp(),0);
+        MultiFab::Copy( *Efield[lev][i], *old_Efield[i],0,0, Efield[lev][i]->nComp(),0);
+        MultiFab::Copy( *Bfield[lev][i], *old_Bfield[i],0,0, Bfield[lev][i]->nComp(),0);
     }
 
     // @WZ -- How do I delete the temp arrays??
@@ -54,29 +68,37 @@ void
 WarpX::LoadBalanceBaseLevel()
 {
     int min_grid_size = 4;
-    std::cout << "IN LOAD BALANCE " << std::endl;
-    std::cout << "OLD BA " << grids[0] << std::endl;
-    // This is a hack to test the rest of the algorithm 
-    const BoxArray& new_ba = MakeBaseGrids();
-    DistributionMapping new_dm(new_ba, ParallelDescriptor::NProcs());
 
     // **************************************************************************
     // Load Balance
     // **************************************************************************
-    {
 	const Real eff_target = 0.8;
 	const int lev = 0;
 
 	Array<long> new_particle_cost = mypc->NumberOfParticlesInGrid(lev);
 	Real neweff = getEfficiency(dmap[0], new_particle_cost);
 
-        for (int i = 0; i < new_particle_cost.size(); i++) 
-          std::cout << "OLD PARTICLE COST PER GRID " << i << " " << new_particle_cost[i] << std::endl;
+        if (debug_lb && ParallelDescriptor::IOProcessor()) 
+        {
+           for (int i = 0; i < new_particle_cost.size(); i++) 
+             std::cout << "OLD PARTICLE COST PER GRID " << i << " " << new_particle_cost[i] << std::endl;
+        }
+
+        if (debug_lb && ParallelDescriptor::IOProcessor()) 
+           std::cout << "INITIAL EFFICIENCY " << neweff << std::endl;
  
         WarpXParticleContainer* myspc = &(mypc->GetParticleContainer(0));
 
-//	if (neweff < eff_target) 
-	if (0 == 1)
+        // This is what we are starting with
+        BoxArray new_ba= myspc->ParticleBoxArray(0);
+        DistributionMapping new_dm = myspc->ParticleDistributionMap(0);
+        if (debug_lb && ParallelDescriptor::IOProcessor()) 
+	{
+           std::cout << "OLD BA " << new_ba << std::endl;
+           std::cout << "OLD DM " << new_dm << std::endl;
+	}
+
+  	if (neweff < eff_target) 
 	{
 	    Real oldeff;
 	    Array<long> old_particle_cost;
@@ -93,7 +115,7 @@ WarpX::LoadBalanceBaseLevel()
 			      << ", efficiency: " << neweff << "\n";
 		}
 
-		BoxArray new_ba = myspc->ParticleBoxArray(lev);
+		new_ba = myspc->ParticleBoxArray(lev);
 		// This returns new_particle_cost as an *estimate* of the new cost per grid, based just
 		//      on dividing the cost proportionally as the grid is divided
 		splitBoxes(new_ba, new_particle_cost, old_particle_cost, heavy_grid_size);
@@ -101,7 +123,7 @@ WarpX::LoadBalanceBaseLevel()
 
 		// We use this approximate cost to get a new DistrbutionMapping so we can go ahead 
 		//      and move the particles
-		DistributionMapping new_dm = getCostCountDM(new_particle_cost, new_ba);
+		new_dm = getCostCountDM(new_particle_cost, new_ba);
 
 		// We get an *estimate* of the new efficiency
 		neweff = getEfficiency(new_dm, new_particle_cost);
@@ -135,8 +157,9 @@ WarpX::LoadBalanceBaseLevel()
 		}
 	    } 
 	    while (neweff < eff_target && neweff > oldeff && heavy_grid_size >= 2*min_grid_size);
-	}
-	else {
+
+    } else {
+
 	    if (ParallelDescriptor::IOProcessor()) 
 	    {
 		std::cout << "*** " << std::endl;
@@ -144,16 +167,22 @@ WarpX::LoadBalanceBaseLevel()
 			  << ", efficiency: " <<  neweff << "\n";
 		std::cout << "*** " << std::endl;
 	    }
-	} 
+    } 
+
+    if (debug_lb && ParallelDescriptor::IOProcessor()) 
+    {
+        std::cout << "NEW BA " << myspc->ParticleBoxArray(lev) << std::endl;
+        for (int i = 0; i < new_particle_cost.size(); i++) 
+           std::cout << "NEW PARTICLE COST PER GRID " << i << " " << new_particle_cost[i] << std::endl;
     }
-    std::cout << "NEW BA " << new_ba << std::endl;
+
     MakeNewLevel(0,new_ba,new_dm);
 }
 
 Real
 WarpX::getEfficiency(const DistributionMapping& dm, const Array<long>& cost)
 {
-    Array<long> cpr(ParallelDescriptor::NProcs(), 0);
+    Array<long> cpr(ParallelDescriptor::NProcs(),0);
     Real ctot=0;
     for (int i=0, N=cost.size(); i<N; i++) {
         ctot += cost[i];

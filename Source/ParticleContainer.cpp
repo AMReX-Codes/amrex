@@ -115,5 +115,3 @@ MultiParticleContainer::SetParticleDistributionMap (int lev, DistributionMapping
 	pc->SetParticleDistributionMap(lev,new_dm);
     }
 }
-
-
