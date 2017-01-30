@@ -74,7 +74,10 @@ contains
 
   subroutine amrex_geometry_destroy (geom)
     type(amrex_geometry) :: geom
-    call amrex_fi_delete_geometry(geom%p)
+    if (c_associated(geom%p)) then
+       call amrex_fi_delete_geometry(geom%p)
+       geom%p = c_null_ptr
+    end if
   end subroutine amrex_geometry_destroy
 
 end module amrex_geometry_module
