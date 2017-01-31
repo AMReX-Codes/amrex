@@ -13,48 +13,59 @@ int main(int argc, char* argv[])
 
   amrex::Initialize(argc,argv);
 
-  const int IOProc = ParallelDescriptor::IOProcessorNumber();
-  int verbose = 1;
+  int ncell = 64;
+  int nlevs = 2;
+  int coord = 0;
 
-  RealBox real_box;
+  const int IOProc = ParallelDescriptor::IOProcessorNumber();
+
+  RealBox real_box, fine_box;
   for (int n = 0; n < BL_SPACEDIM; n++)
     {
       real_box.setLo(n,0.0);
       real_box.setHi(n,1.0);
+      fine_box.setLo(n,0.4);
+      fine_box.setHi(n,0.6);
     }
 
-  int nx = 64; int ny = 64; int nz = 64;
   IntVect domain_lo(0 , 0, 0); 
-  IntVect domain_hi(nx-1,ny-1,nz-1); 
+  IntVect domain_hi(ncell-1, ncell-1, ncell-1); 
  
   const Box domain(domain_lo, domain_hi);
+
+  Array<int> rr(nlevs-1);
+  for (int lev = 1; lev < nlevs; lev++)
+    rr[lev-1] = 2;
  
-  int coord = 0;
   int is_per[BL_SPACEDIM];
-  for (int i = 0; i < BL_SPACEDIM; i++) is_per[i] = 1; 
-  int nlevs = 1;
+  for (int i = 0; i < BL_SPACEDIM; i++) is_per[i] = 1;
+
   Array<Geometry> geom(nlevs);
   geom[0].define(domain, &real_box, coord, is_per);
+  geom[1].define(amrex::refine(geom[0].Domain(), rr[0]),
+		 &real_box, coord, is_per);
 
-  Array<BoxArray> ba(1);
+  Array<BoxArray> ba(nlevs);
   ba[0].define(domain);  
-  int max_grid_size = 32;
-  ba[0].maxSize(max_grid_size);
-  
-  if (verbose && ParallelDescriptor::IOProcessor())
-    {
-      std::cout << "Number of boxes              : " << ba[0].size() << '\n' << '\n';
-    }
-  
-  Array<DistributionMapping> dmap(nlevs);
 
-  int lev = 0;
-  dmap[lev].define(ba[lev]);
+  int nfine = ncell*rr[0];
+  IntVect refined_lo(nfine/4,nfine/4,nfine/4); 
+  IntVect refined_hi(3*nfine/4-1,3*nfine/4-1,3*nfine/4-1);
+
+  // Build a box for the level 1 domain
+  Box refined_patch(refined_lo, refined_hi);
+  ba[1].define(refined_patch);
+
+  int max_grid_size = 32;
+  for (int lev = 0; lev < nlevs; lev++)
+    ba[lev].maxSize(max_grid_size);
+
+  Array<DistributionMapping> dmap(nlevs);
+  for (int lev = 0; lev < nlevs; lev++)
+    dmap[lev].define(ba[lev]);
 
   typedef ParticleContainer<1+BL_SPACEDIM> MyParticleContainer;
 
-  Array<int> rr(nlevs-1);
-    
   // Build a new particle container to hold my particles.
   int numSOAAttribs = 2;
   std::unique_ptr<MyParticleContainer> MyPC(new MyParticleContainer(geom, dmap, ba, rr, numSOAAttribs));
