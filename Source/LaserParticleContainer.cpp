@@ -33,6 +33,7 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies)
     {
 	ParmParse pp("laser");
 
+  // Parse the type of laser profile and set the corresponding flag `profile`
 	std::string laser_type_s;
 	pp.get("profile", laser_type_s);
 	std::transform(laser_type_s.begin(), laser_type_s.end(), laser_type_s.begin(), ::tolower);
@@ -42,17 +43,21 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies)
 	    BoxLib::Abort("Unknown laser type");
 	}
 
+  // Parse the properties of the antenna
 	pp.getarr("position", position);
 	pp.getarr("direction", nvec);
 	pp.getarr("polarization", p_X);
 	pp.query("pusher_algo", pusher_algo);
-
 	pp.get("e_max", e_max);
-	pp.get("profile_waist", profile_waist);
-  pp.get("profile_duration", profile_duration);
-  pp.get("profile_t_peak", profile_t_peak);
-  pp.get("profile_focal_distance", profile_focal_distance);
 	pp.get("wavelength", wavelength);
+
+  if ( profile == laser_t::Gaussian ) {
+     // Parse the properties of the Gaussian profile
+	   pp.get("profile_waist", profile_waist);
+     pp.get("profile_duration", profile_duration);
+     pp.get("profile_t_peak", profile_t_peak);
+     pp.get("profile_focal_distance", profile_focal_distance);
+   }
 
 	// Plane normal
 	Real s = 1.0/std::sqrt(nvec[0]*nvec[0] + nvec[1]*nvec[1] + nvec[2]*nvec[2]);
