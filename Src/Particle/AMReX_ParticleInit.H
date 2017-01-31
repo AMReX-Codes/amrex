@@ -1114,7 +1114,7 @@ ParticleContainer<NR, NI>::InitOnePerCell (Real x_off, Real y_off, Real z_off,
 	    if (m_npartdata > 1)
 	      m_partdata[pld.m_lev][pld.m_grid][1]->push_back(p.m_idata.cpu);
 	    for (int i = 2; i < m_npartdata; i++)
-	      m_partdata[pld.m_lev][pld.m_grid][1]->push_back(0.0);
+	      m_partdata[pld.m_lev][pld.m_grid][i]->push_back(0.0);
           }
          }
         }
