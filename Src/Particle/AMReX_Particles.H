@@ -510,7 +510,7 @@ protected:
     //
     // The struct-of-arrays data
     //
-    int m_npartdata = 2;
+    int m_npartdata;
     Array<std::map<int, Array<std::unique_ptr<Array<Real> > > > > m_partdata;
 
 private:
