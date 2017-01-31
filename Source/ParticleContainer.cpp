@@ -28,7 +28,7 @@ MultiParticleContainer::ReadParameters ()
 	ParmParse pp("particles");
 
 	pp.query("nspecies", nspecies);
-	BL_ASSERT(nspecies >= 1);
+	BL_ASSERT(nspecies >= 0);
 
 	initialized = true;
     }
