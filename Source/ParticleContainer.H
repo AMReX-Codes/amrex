@@ -48,10 +48,10 @@ public:
     virtual void Evolve (int lev,
 			 const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
 			 const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz,
-			 MultiFab& jx, MultiFab& jy, MultiFab& jz, Real dt) = 0;
+			 MultiFab& jx, MultiFab& jy, MultiFab& jz, Real t, Real dt) = 0;
 
     std::unique_ptr<MultiFab> GetChargeDensity(int lev, bool local = false);
- 
+
     void AddNParticles (int n, const Real* x, const Real* y, const Real* z,
 			const Real* vx, const Real* vy, const Real* vz,
 			int nattr, const Real* attr, int uniqueparticles);
@@ -63,7 +63,7 @@ public:
     const ParGDBBase& GDB () const { return *m_gdb; }
 
     static void ReadParameters ();
-   
+
 protected:
 
     int species_id;
@@ -83,23 +83,25 @@ public:
     virtual ~PhysicalParticleContainer () {}
 
     virtual void AllocData () override;
-    
+
     virtual void InitData () override;
 
     virtual void Evolve (int lev,
 			 const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
 			 const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz,
-			 MultiFab& jx, MultiFab& jy, MultiFab& jz, Real dt) override;
+			 MultiFab& jx, MultiFab& jy, MultiFab& jz, Real t, Real dt) override;
 
 private:
     // The outermost Array is for AMR level.
     // map's key is grid id and value is an Array. The size of map is the size of local grids.
-    // The Array (i.e., the value of the map) has npartdata unique_ptr to another Array.  
+    // The Array (i.e., the value of the map) has npartdata unique_ptr to another Array.
     // The size of the map value Array is npartdata.
     // The innermost Array holds a particular data (say Ex or gaminv) for particles on a grid.
     // The size of the innermost array is the number of particles.
     Array<std::map<int, Array<std::unique_ptr<Array<Real> > > > > m_partdata;
 };
+
+enum class laser_t { Null, Gaussian };
 
 class LaserParticleContainer
     : public WarpXParticleContainer
@@ -109,13 +111,31 @@ public:
     virtual ~LaserParticleContainer () {}
 
     virtual void AllocData () override;
-    
+
     virtual void InitData () override;
 
     virtual void Evolve (int lev,
 			 const MultiFab&, const MultiFab&, const MultiFab&,
 			 const MultiFab&, const MultiFab&, const MultiFab&,
-			 MultiFab& jx, MultiFab& jy, MultiFab& jz, Real dt) override;
+			 MultiFab& jx, MultiFab& jy, MultiFab& jz, Real t, Real dt) override;
+private:
+    laser_t     profile     = laser_t::Null;
+    Array<Real> position;
+    Array<Real> nvec;
+    Array<Real> p_X;
+    Array<Real> p_Y;
+    Array<Real> u_X;
+    Array<Real> u_Y;
+    long        pusher_algo = -1;
+    Real e_max;
+    Real profile_waist;
+    Real profile_duration;
+    Real profile_t_peak;
+    Real profile_focal_distance;
+    Real wavelength;
+    Real mobility;
+
+    Real ComputeWeight (Real Sx, Real Sy) const;
 };
 
 class MultiParticleContainer
@@ -138,7 +158,7 @@ public:
     void Evolve (int lev,
 		 const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
 		 const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz,
-		 MultiFab& jx, MultiFab& jy, MultiFab& jz, Real dt);
+		 MultiFab& jx, MultiFab& jy, MultiFab& jz, Real t, Real dt);
 
     std::unique_ptr<MultiFab> GetChargeDensity(int lev, bool local = false);
 

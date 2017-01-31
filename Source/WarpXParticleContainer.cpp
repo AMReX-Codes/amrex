@@ -95,21 +95,18 @@ WarpXParticleContainer::AddNParticles (int n, const Real* x, const Real* y, cons
 	p.m_data[PIdx::uy] = vy[i];
 	p.m_data[PIdx::uz] = vz[i];
 	
-	if (!ParticleBase::Where(p,m_gdb)) // this will update m_lev, m_grid, and m_cell
+	if (ParticleBase::Where(p,m_gdb)) // this will update m_lev, m_grid, and m_cell
 	{
-	    BoxLib::Abort("Invalid particle in ParticleContainer::AddNParticles()");
+	    gid = p.m_grid;
+	    m_particles[p.m_lev][p.m_grid].push_back(p);
 	}
-
-	gid = p.m_grid;
-
-	m_particles[p.m_lev][p.m_grid].push_back(p);
     }
 
     Redistribute(true);
 
     auto npart_after = TotalNumberOfParticles();  // xxxxx move this into if (verbose > xxx)
     if (ParallelDescriptor::IOProcessor()) {
-	std::cout << "Total number of particles injected: " << npart_after - npart_before << std::endl;
+	std::cout << "Total number of particles added: " << npart_after - npart_before << std::endl;
     }
 }
 

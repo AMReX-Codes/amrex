@@ -44,7 +44,6 @@ public:
     static long charge_deposition_algo;
     static long field_gathering_algo;
     static long particle_pusher_algo;
-    static long laser_pusher_algo;
 
     // Interpolation order
     static long nox;

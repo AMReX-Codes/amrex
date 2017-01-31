@@ -13,10 +13,10 @@
 
 #endif
 
-extern "C" 
+extern "C"
 {
 	// Charge deposition
-	void warpx_charge_deposition(Real* rho, 
+	void warpx_charge_deposition(Real* rho,
                         const long* np,	const Real* xp, const Real* yp, const Real* zp,	const Real* w,
 			const Real* q, const Real* xmin, const Real* ymin, const Real* zmin,
 			const Real* dx, const Real* dy, const Real* dz,
@@ -32,7 +32,7 @@ extern "C"
 			const Real* uxp, const Real* uyp,const Real* uzp,
 			const Real* gip, const Real* w, const Real* q,
 			const Real* xmin, const Real* ymin, const Real* zmin,
-			const Real* dt, 
+			const Real* dt,
 			const Real* dx, const Real* dy, const Real* dz,
 			const long* nx, const long* ny, const long* nz,
 			const long* nxguard, const long* nyguard, const long* nzguard,
@@ -41,7 +41,7 @@ extern "C"
 
 	// Field gathering
 
-	void warpx_geteb_energy_conserving(const long* np, 
+	void warpx_geteb_energy_conserving(const long* np,
 			const Real* xp, const Real* yp, const Real* zp,
 			Real* exp, Real* eyp, Real* ezp,
 		        Real* bxp, Real* byp, Real* bzp,
@@ -53,7 +53,7 @@ extern "C"
 			const Real* exg, const Real* eyg, const Real* ezg,
 			const Real* bxg, const Real* byg, const Real* bzg,
 			const int* ll4symtry, const int* l_lower_order_in_v,
-			const long* lvect,  
+			const long* lvect,
 			const long* field_gathe_algo);
 
 	// Particle pusher
@@ -66,13 +66,11 @@ extern "C"
 			const Real* charge, const Real* mass, const Real* dt,
 			const long* particle_pusher_algo);
 
-        // Laser pusher
+  // Laser pusher
 
-	void warpx_laser_pusher(const long* np,
-				Real* xp, Real* yp, Real* zp,
-				Real* uxp, Real* uyp, Real* uzp, Real* gaminv,
-				const Real* charge, const Real* dt,
-				const long* laser_pusher_algo);
+	void warpx_gaussian_laser( const long* np,
+				Real* Xp, Real* Yp, Real* t, Real* wavelength, Real* e_max, Real* waist,
+				Real* duration, Real* t_peak, Real* f, Real* amplitude );
 
 	// Maxwell solver
 
@@ -111,5 +109,5 @@ extern "C"
 			  BL_FORT_FAB_ARG_3D(Ey),
 			  BL_FORT_FAB_ARG_3D(Ez),
 			  const Real* dx);
-			  			  
+
 }

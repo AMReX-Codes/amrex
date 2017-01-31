@@ -1,4 +1,9 @@
 
+#include <algorithm>
+#include <cctype>
+#include <cmath>
+#include <numeric>
+
 #include <ParmParse.H>
 #include <WarpX.H>
 #include <WarpXConst.H>
@@ -7,11 +12,12 @@ long WarpX::current_deposition_algo = 3;
 long WarpX::charge_deposition_algo = 0;
 long WarpX::field_gathering_algo = 1;
 long WarpX::particle_pusher_algo = 0;
-long WarpX::laser_pusher_algo = -111111111;  // not being used yet
 
 long WarpX::nox = 1;
 long WarpX::noy = 1;
 long WarpX::noz = 1;
+
+bool WarpX::use_laser         = false;
 
 #if (BL_SPACEDIM == 3)
 IntVect WarpX::Bx_nodal_flag(1,0,0);
@@ -42,8 +48,6 @@ IntVect WarpX::jx_nodal_flag(0,1);  // x is the first dimension to BoxLib
 IntVect WarpX::jy_nodal_flag(1,1);  // y is the missing dimension to 2D BoxLib
 IntVect WarpX::jz_nodal_flag(1,0);  // z is the second dimension to 2D BoxLib
 #endif
-
-bool WarpX::use_laser = false;
 
 WarpX* WarpX::m_instance = nullptr;
 
@@ -174,7 +178,6 @@ WarpX::ReadParameters ()
 	pp.query("charge_deposition", charge_deposition_algo);
 	pp.query("field_gathering", field_gathering_algo);
 	pp.query("particle_pusher", particle_pusher_algo);
-	pp.query("laser_pusher", laser_pusher_algo);
     }
 
 }
