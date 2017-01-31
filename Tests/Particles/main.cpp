@@ -56,7 +56,8 @@ int main(int argc, char* argv[])
   Array<int> rr(nlevs-1);
     
   // Build a new particle container to hold my particles.
-  std::unique_ptr<MyParticleContainer> MyPC(new MyParticleContainer(geom, dmap, ba, rr));
+  int numSOAAttribs = 2;
+  std::unique_ptr<MyParticleContainer> MyPC(new MyParticleContainer(geom, dmap, ba, rr, numSOAAttribs));
 
   MFInfo Fab_noallocate;
   Fab_noallocate.SetAlloc(false);

@@ -1045,7 +1045,7 @@ ParticleContainer<NR,NI,C>::InitOnePerCell (Real x_off, Real y_off, Real z_off,
 	for (MFIter mfi(foo); mfi.isValid(); ++mfi)
 	  {
 	    int i = mfi.index();
-	    partleveldata[i] = Array<std::unique_ptr<Array<Real> > > (npartdata);
+	    partleveldata[i] = Array<std::unique_ptr<Array<Real> > > (m_npartdata);
 	    for (auto& d : partleveldata[i])
 	      {
 		d.reset(new Array<Real>());
@@ -1109,8 +1109,12 @@ ParticleContainer<NR,NI,C>::InitOnePerCell (Real x_off, Real y_off, Real z_off,
             // Add it to the appropriate PBox at the appropriate level.
             //
             m_particles[pld.m_lev][pld.m_grid].push_back(p);
-	    m_partdata[pld.m_lev][pld.m_grid][0]->push_back(p.m_idata.id);
-	    m_partdata[pld.m_lev][pld.m_grid][1]->push_back(p.m_idata.cpu);
+	    if (m_npartdata > 0)
+		m_partdata[pld.m_lev][pld.m_grid][0]->push_back(p.m_idata.id);
+	    if (m_npartdata > 1)
+	      m_partdata[pld.m_lev][pld.m_grid][1]->push_back(p.m_idata.cpu);
+	    for (int i = 2; i < m_npartdata; i++)
+	      m_partdata[pld.m_lev][pld.m_grid][1]->push_back(0.0);
           }
          }
         }

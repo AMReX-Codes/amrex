@@ -1169,7 +1169,7 @@ ParticleContainer<NR,NI,C>::Redistribute (int  lev_min,
     PMap not_ours;
     std::map<int, Array<Array<Real> > > comm_pdata;
     for (int i = 0; i < NProcs; i++) {
-      comm_pdata[i].resize(npartdata);
+      comm_pdata[i].resize(m_npartdata);
     }
 
     for (int lev = lev_min, nlevs = m_particles.size(); lev < nlevs; lev++)
@@ -1180,7 +1180,6 @@ ParticleContainer<NR,NI,C>::Redistribute (int  lev_min,
         {
             const int grid = pmap_it->first;
             PBox&     pbox = pmap_it->second;
-	    Array<std::unique_ptr<Array<Real> > >& partdata = m_partdata[lev][grid];
 
 	    auto first = pbox.begin();
 	    auto last  = pbox.end();
@@ -1233,8 +1232,8 @@ ParticleContainer<NR,NI,C>::Redistribute (int  lev_min,
 				  // We own it but must shift it to another place.
 				  //
 				  m_particles[pld.m_lev][pld.m_grid].push_back(p);
-				  for (int comp = 0; comp < npartdata; comp++) {
-				    Real pdata = (*partdata[comp])[pindex];
+				  for (int comp = 0; comp < m_npartdata; comp++) {
+				    Real pdata = (*m_partdata[lev][grid][comp])[pindex];
 				    m_partdata[pld.m_lev][pld.m_grid][comp]->push_back(pdata);
 				  }
 				  //
@@ -1246,8 +1245,8 @@ ParticleContainer<NR,NI,C>::Redistribute (int  lev_min,
 			  else
 			    {
 			      not_ours[who].push_back(p);
-			      for (int comp = 0; comp < npartdata; comp++) {
-				Real pdata = (*partdata[comp])[pindex];
+			      for (int comp = 0; comp < m_npartdata; comp++) {
+				Real pdata = (*m_partdata[lev][grid][comp])[pindex];
 				comm_pdata[who][comp].push_back(pdata);
 			      }
 			      //
@@ -1262,8 +1261,8 @@ ParticleContainer<NR,NI,C>::Redistribute (int  lev_min,
 		    {
 		      if (it != first) {
 			*first = p;
-			for (int comp = 0; comp < npartdata; comp++) {
-			  Array<Real>& vec = *partdata[comp];
+			for (int comp = 0; comp < m_npartdata; comp++) {
+			  Array<Real>& vec = *m_partdata[lev][grid][comp];
 			  vec[pfirst] = vec[pindex];
 			}
 		      }
@@ -1273,8 +1272,8 @@ ParticleContainer<NR,NI,C>::Redistribute (int  lev_min,
 		}
 		pbox.erase(first, last);
 		if (pfirst != plast) {
-		  for (int comp = 0; comp < npartdata; comp++) {
-		    Array<Real>& vec = *(partdata[comp]);
+		  for (int comp = 0; comp < m_npartdata; comp++) {
+		    Array<Real>& vec = *(m_partdata[lev][grid][comp]);
 		    vec.erase(vec.begin() + pfirst, vec.begin() + plast);
 		  }
 		}
@@ -1526,7 +1525,7 @@ ParticleContainer<NR,NI,C>::RedistributeMPI (PMap& not_ours,
     //
     {
       const int SeqNum     = ParallelDescriptor::SeqNum();
-      const int rChunkSize = BL_SPACEDIM+NR+npartdata;
+      const int rChunkSize = BL_SPACEDIM+NR+m_npartdata;
       //
       // Allocate data for rcvs as one big chunk.
       //
@@ -1583,11 +1582,11 @@ ParticleContainer<NR,NI,C>::RedistributeMPI (PMap& not_ours,
 	      
 	      ioff += NR;
 
-	      for (int j = 0; j < npartdata; j++) {
+	      for (int j = 0; j < m_npartdata; j++) {
 		senddata[ioff+j] = StructOfArrayData[j][pindex];
 	      }
 
-	      ioff += npartdata;
+	      ioff += m_npartdata;
 	      pindex++;
             }
 	  
@@ -1635,11 +1634,11 @@ ParticleContainer<NR,NI,C>::RedistributeMPI (PMap& not_ours,
 		  
 		  m_particles[pld.m_lev][pld.m_grid].push_back(p);
 		  
-		  for (int j = 0; j < npartdata; j++) {
+		  for (int j = 0; j < m_npartdata; j++) {
 		    (*m_partdata[pld.m_lev][pld.m_grid][j]).push_back(rcvp[j]);
 		  }
 		  
-		  rcvp += npartdata;
+		  rcvp += m_npartdata;
                 }
 	      
 	      PBox().swap(pbox);
@@ -2824,19 +2823,18 @@ ParticleContainer<NR,NI,C>::WriteAsciiFile (const std::string& filename)
 			  File << it->m_idata.id  << ' ';
 			  File << it->m_idata.cpu << ' ';
 
-                            D_TERM(File << it->m_rdata.pos[0] << ' ',
-                                        << it->m_rdata.pos[1] << ' ',
-                                        << it->m_rdata.pos[2] << ' ');
+			  D_TERM(File << it->m_rdata.pos[0] << ' ',
+				 << it->m_rdata.pos[1] << ' ',
+				 << it->m_rdata.pos[2] << ' ');
 
-			    File << (*(m_partdata[lev][grid_id][0]))[index] << ' ';
-			    File << (*(m_partdata[lev][grid_id][1]))[index] << ' ';
-			    index++;
+			  for (int i = 0; i < m_npartdata; i++)
+			    File << (*(m_partdata[lev][grid_id][i]))[index] << ' ';
+			  index++;
 			    
-                            for (int i = BL_SPACEDIM; i < BL_SPACEDIM + NR; i++)
+			  for (int i = BL_SPACEDIM; i < BL_SPACEDIM + NR; i++)
                             {
-                                char ws = (i == BL_SPACEDIM + NR - 1) ? '\n' : ' ';
-
-                                File << it->m_rdata.arr[i] << ws;
+			      char ws = (i == BL_SPACEDIM + NR - 1) ? '\n' : ' ';
+			      File << it->m_rdata.arr[i] << ws;
                             }
                         }
                     }
