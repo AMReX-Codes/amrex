@@ -1009,8 +1009,8 @@ ParticleContainer<NR, NI>::InitRandom (long          icount,
 template <int NR, int NI>
 void
 ParticleContainer<NR, NI>::InitOnePerCell (Real x_off, Real y_off, Real z_off,
-					    Real      mass, 
-					    MultiFab& particle_mf)
+					   Real      mass, 
+					   MultiFab& particle_mf)
 {
     BL_PROFILE("ParticleContainer<NR, NI>::InitOnePerCell()");
 

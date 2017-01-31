@@ -272,11 +272,17 @@ public:
     using PMap = std::map<int, PBox>;
 
     ParticleContainer ()
-      : m_verbose(1), m_gdb(nullptr), allow_particles_near_boundary(false), m_npartdata(0) {}
+      : m_verbose(1), m_gdb(nullptr), allow_particles_near_boundary(false), m_npartdata(0) 
+  {
+    communicate_comp.resize(m_npartdata, true);
+  }
 
     ParticleContainer (ParGDBBase* gdb)
         :
-      m_verbose(1), m_gdb(gdb), allow_particles_near_boundary(false), m_npartdata(0) {}
+      m_verbose(1), m_gdb(gdb), allow_particles_near_boundary(false), m_npartdata(0) 
+  {
+    communicate_comp.resize(m_npartdata, true);
+  }
 
     ParticleContainer (const Geometry            & geom, 
 		       const DistributionMapping & dmap,
@@ -289,6 +295,7 @@ public:
 	m_npartdata(npartdata)
     {
 	m_gdb = & m_gdb_object;
+	communicate_comp.resize(m_npartdata, true);
     }
 
     ParticleContainer (const Array<Geometry>            & geom, 
@@ -302,25 +309,29 @@ public:
 	m_gdb_object(geom,dmap,ba,rr),
 	m_npartdata(npartdata)
     {
-	m_gdb = & m_gdb_object;
+      m_gdb = & m_gdb_object;
+      communicate_comp.resize(m_npartdata, true);
     }
 
     ~ParticleContainer () {}
 
     void Define (ParGDBBase* gdb)
     {
-	m_gdb = gdb;
+      m_gdb = gdb;
+      m_npartdata = 0;
+      communicate_comp.resize(m_npartdata, true);
     }
 
     void Define (const Geometry            & geom, 
 		 const DistributionMapping & dmap,
 		 const BoxArray            & ba,
 		 int                         npartdata = 0)
-    {
-	m_gdb_object = ParGDB(geom, dmap, ba);
-	m_gdb = &m_gdb_object;
-	m_npartdata = npartdata;
-    }
+  {
+    m_gdb_object = ParGDB(geom, dmap, ba);
+    m_gdb = &m_gdb_object;
+    m_npartdata = npartdata;
+    communicate_comp.resize(m_npartdata, true);
+  }
 
     void Define (const Array<Geometry>            & geom, 
 		 const Array<DistributionMapping> & dmap,
@@ -331,6 +342,7 @@ public:
 	m_gdb_object = ParGDB(geom, dmap, ba, rr);
 	m_gdb = &m_gdb_object;
 	m_npartdata = npartdata;
+	communicate_comp.resize(m_npartdata, true);
     }
 
     void SetParticleBoxArray (int lev, const BoxArray& new_ba)
@@ -464,6 +476,8 @@ public:
     void moveKick (MultiFab& acceleration, int level, Real timestep, 
 		   Real a_new = 1.0, Real a_half = 1.0,
 		   int start_comp_for_accel = -1);
+
+    std::vector<bool> communicate_comp;
 
 protected:
 

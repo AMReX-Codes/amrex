@@ -1223,7 +1223,8 @@ ParticleContainer<NR, NI>::Redistribute (int  lev_min,
 		not_ours[who].push_back(p);
 		for (int comp = 0; comp < m_npartdata; comp++) {
 		  Real pdata = (*m_partdata[lev][grid][comp])[pindex];
-		  comm_soa_data[who][comp].push_back(pdata);
+		  if (communicate_comp[comp])
+		    comm_soa_data[who][comp].push_back(pdata);
 		}
 		//
 		// Invalidate the particle so we can reclaim its space.
@@ -1491,12 +1492,17 @@ ParticleContainer<NR, NI>::RedistributeMPI (PMap& not_ours,
         }
     }
 
+    int num_soa_comps = 0;
+    for (int i = 0; i < m_npartdata; i++) {
+      num_soa_comps += communicate_comp[i];
+    }
+    
     //
     // Next send/recv the Real parts of the particles.
     //
     {
       const int SeqNum     = ParallelDescriptor::SeqNum();
-      const int rChunkSize = BL_SPACEDIM+NR+m_npartdata;
+      const int rChunkSize = BL_SPACEDIM + NR + num_soa_comps;
       //
       // Allocate data for rcvs as one big chunk.
       //
@@ -1554,10 +1560,11 @@ ParticleContainer<NR, NI>::RedistributeMPI (PMap& not_ours,
 	      ioff += NR;
 
 	      for (int j = 0; j < m_npartdata; j++) {
-		senddata[ioff+j] = StructOfArrayData[j][pindex];
+		if (communicate_comp[j])
+		  senddata[ioff+j] = StructOfArrayData[j][pindex];
 	      }
 
-	      ioff += m_npartdata;
+	      ioff += num_soa_comps;
 	      pindex++;
             }
 	  
@@ -1606,10 +1613,13 @@ ParticleContainer<NR, NI>::RedistributeMPI (PMap& not_ours,
 		  m_particles[pld.m_lev][pld.m_grid].push_back(p);
 		  
 		  for (int j = 0; j < m_npartdata; j++) {
-		    (*m_partdata[pld.m_lev][pld.m_grid][j]).push_back(rcvp[j]);
+		    if (communicate_comp[j])
+		      (*m_partdata[pld.m_lev][pld.m_grid][j]).push_back(rcvp[j]);
+		    else
+		      (*m_partdata[pld.m_lev][pld.m_grid][j]).push_back(0.0);		      
 		  }
 		  
-		  rcvp += m_npartdata;
+		  rcvp += num_soa_comps;
                 }
 	      
 	      PBox().swap(pbox);
