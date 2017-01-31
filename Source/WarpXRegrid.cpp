@@ -39,14 +39,13 @@ WarpX::RegridBaseLevel ()
     // Copy "old" temp data into the new arrays -- here the src and dest do NOT
     //       have the same BoxArray and DistributionMapping -- only need to do this if 
     //       the grids have actually changed
-    if (remapped)
+    if (remapped) {
        for (int i = 0; i < 3; ++i) {
         current[lev][i]->copy(*old_current[i], 0, 0, current[lev][i]->nComp()); 
          Bfield[lev][i]->copy( *old_Bfield[i], 0, 0,  Bfield[lev][i]->nComp()); 
          Efield[lev][i]->copy( *old_Efield[i], 0, 0,  Bfield[lev][i]->nComp()); 
        }
-
-    // @WZ -- How do I delete the temp arrays??
+    }
 }
 
 bool
