@@ -17,8 +17,6 @@ int main(int argc, char* argv[])
   int nlevs = 2;
   int coord = 0;
 
-  const int IOProc = ParallelDescriptor::IOProcessorNumber();
-
   RealBox real_box, fine_box;
   for (int n = 0; n < BL_SPACEDIM; n++)
     {
@@ -67,8 +65,11 @@ int main(int argc, char* argv[])
   typedef ParticleContainer<1+BL_SPACEDIM> MyParticleContainer;
 
   // Build a new particle container to hold my particles.
-  int numSOAAttribs = 2;
+  int numSOAAttribs = 5;
   std::unique_ptr<MyParticleContainer> MyPC(new MyParticleContainer(geom, dmap, ba, rr, numSOAAttribs));
+  MyPC->communicate_comp[2] = false;
+  MyPC->communicate_comp[3] = false;
+  MyPC->communicate_comp[4] = false;
 
   MFInfo Fab_noallocate;
   Fab_noallocate.SetAlloc(false);
