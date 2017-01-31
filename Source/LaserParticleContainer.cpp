@@ -344,18 +344,18 @@ LaserParticleContainer::Evolve (int lev,
       }
       // Calculate the corresponding momentum and position for the particles
       {
-      Real v_over_c, vx, vy, vz, gamma, sign_charge;
 
       pti.foreach([&](int i, ParticleType& p) {
           // Calculate the velocity according to the amplitude of E
-          sign_charge = std::copysign( 1.0, wp[i] );
-          v_over_c = sign_charge * mobility * amplitude_E[i];
+          Real sign_charge = std::copysign( 1.0, wp[i] );
+          Real v_over_c = sign_charge * mobility * amplitude_E[i];
+          BL_ASSERT( v_over_c < 1 );
           giv[i] = std::sqrt( 1 - v_over_c * v_over_c );
-          gamma = 1./giv[i];
+          Real gamma = 1./giv[i];
           // The velocity is along the laser polarization p_X
-          vx = PhysConst::c * v_over_c * p_X[0];
-          vy = PhysConst::c * v_over_c * p_X[1];
-          vz = PhysConst::c * v_over_c * p_X[2];
+          Real vx = PhysConst::c * v_over_c * p_X[0];
+          Real vy = PhysConst::c * v_over_c * p_X[1];
+          Real vz = PhysConst::c * v_over_c * p_X[2];
           // Get the corresponding momenta
           uxp[i] = gamma * vx;
           uyp[i] = gamma * vy;

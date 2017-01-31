@@ -21,7 +21,8 @@ contains
     integer(c_long)  :: i
     real(c_real)     :: k0, oscillation_phase, temporal_exponent
     complex*16       :: diffract_factor, exp_argument, prefactor, &
-                        inv_complex_waist_2, j=cmplx(0., 1.)
+                        inv_complex_waist_2
+    complex*16, parameter :: j=cmplx(0., 1.)
 
     ! This function uses the complex expression of a Gaussian laser
     ! (Including Gouy phase and laser oscillations)
