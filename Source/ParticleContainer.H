@@ -2,11 +2,9 @@
 #ifndef WARPX_ParticleContainer_H_
 #define WARPX_ParticleContainer_H_
 
-#include <memory>
-#include <map>
-
-#include <Particles.H>
-#include <AmrParGDB.H>
+#include <WarpXParticleContainer.H>
+#include <PhysicalParticleContainer.H>
+#include <LaserParticleContainer.H>
 
 //
 // MultiParticleContainer holds multiple (nspecies or npsecies+1 when
@@ -15,128 +13,6 @@
 // polymorphic. PhysicalParticleContainer and LaserParticleContainer are
 // concrete class dervied from WarpXParticlContainer.
 //
-
-struct PIdx
-{
-    enum { // Particle Attributes stored in p.m_data
-	w = 0,  // weight
-	ux, uy, uz,
-	nattribs
-    };
-
-    enum { // Particle data stored in partdata
-	Ex=0, Ey, Ez, Bx, By, Bz,
-	npartdata
-    };
-};
-
-class MultiParticleContainer;
-
-class WarpXParticleContainer
-    : public ParticleContainer<PIdx::nattribs,0,std::vector<Particle<PIdx::nattribs,0> > >
-{
-public:
-    friend MultiParticleContainer;
-
-    WarpXParticleContainer (AmrCore* amr_core, int ispecies);
-    virtual ~WarpXParticleContainer() {}
-
-    virtual void AllocData () = 0;
-
-    virtual void InitData () = 0;
-
-    virtual void Evolve (int lev,
-			 const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
-			 const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz,
-			 MultiFab& jx, MultiFab& jy, MultiFab& jz, Real t, Real dt) = 0;
-
-    std::unique_ptr<MultiFab> GetChargeDensity(int lev, bool local = false);
-
-    void AddNParticles (int n, const Real* x, const Real* y, const Real* z,
-			const Real* vx, const Real* vy, const Real* vz,
-			int nattr, const Real* attr, int uniqueparticles);
-
-    void ReadHeader (std::istream& is);
-
-    void WriteHeader (std::ostream& os) const;
-
-    const ParGDBBase& GDB () const { return *m_gdb; }
-
-    static void ReadParameters ();
-
-protected:
-
-    int species_id;
-
-    Real charge;
-    Real mass;
-
-    static bool do_tiling;
-    static IntVect tile_size;
-};
-
-class PhysicalParticleContainer
-    : public WarpXParticleContainer
-{
-public:
-    PhysicalParticleContainer (AmrCore* amr_core, int ispecies);
-    virtual ~PhysicalParticleContainer () {}
-
-    virtual void AllocData () override;
-
-    virtual void InitData () override;
-
-    virtual void Evolve (int lev,
-			 const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
-			 const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz,
-			 MultiFab& jx, MultiFab& jy, MultiFab& jz, Real t, Real dt) override;
-
-private:
-    // The outermost Array is for AMR level.
-    // map's key is grid id and value is an Array. The size of map is the size of local grids.
-    // The Array (i.e., the value of the map) has npartdata unique_ptr to another Array.
-    // The size of the map value Array is npartdata.
-    // The innermost Array holds a particular data (say Ex or gaminv) for particles on a grid.
-    // The size of the innermost array is the number of particles.
-    Array<std::map<int, Array<std::unique_ptr<Array<Real> > > > > m_partdata;
-};
-
-enum class laser_t { Null, Gaussian };
-
-class LaserParticleContainer
-    : public WarpXParticleContainer
-{
-public:
-    LaserParticleContainer (AmrCore* amr_core, int ispecies);
-    virtual ~LaserParticleContainer () {}
-
-    virtual void AllocData () override;
-
-    virtual void InitData () override;
-
-    virtual void Evolve (int lev,
-			 const MultiFab&, const MultiFab&, const MultiFab&,
-			 const MultiFab&, const MultiFab&, const MultiFab&,
-			 MultiFab& jx, MultiFab& jy, MultiFab& jz, Real t, Real dt) override;
-private:
-    laser_t     profile     = laser_t::Null;
-    Array<Real> position;
-    Array<Real> nvec;
-    Array<Real> p_X;
-    Array<Real> p_Y;
-    Array<Real> u_X;
-    Array<Real> u_Y;
-    long        pusher_algo = -1;
-    Real e_max;
-    Real profile_waist;
-    Real profile_duration;
-    Real profile_t_peak;
-    Real profile_focal_distance;
-    Real wavelength;
-    Real mobility;
-
-    Real ComputeWeight (Real Sx, Real Sy) const;
-};
 
 class MultiParticleContainer
 {
