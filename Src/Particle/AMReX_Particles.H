@@ -250,7 +250,7 @@ struct Particle
                                 Array<IntVect>&     cells);
 };
 
-template <int NR, int NI = 0, class C = std::deque<Particle<NR,NI> > >
+  template <int NR, int NI = 0, class C = std::deque<Particle<NR,NI> > >
 class ParticleContainer
 {
 public:
@@ -270,19 +270,21 @@ public:
     using PMap = std::map<int, PBox>;
 
     ParticleContainer ()
-	: m_verbose(1), m_gdb(nullptr), allow_particles_near_boundary(false) {}
+      : m_verbose(1), m_gdb(nullptr), allow_particles_near_boundary(false), m_npartdata(0) {}
 
     ParticleContainer (ParGDBBase* gdb)
         :
-        m_verbose(1), m_gdb(gdb), allow_particles_near_boundary(false) { }
+      m_verbose(1), m_gdb(gdb), allow_particles_near_boundary(false), m_npartdata(0) {}
 
     ParticleContainer (const Geometry            & geom, 
 		       const DistributionMapping & dmap,
-		       const BoxArray            & ba)
+		       const BoxArray            & ba,
+		       int                         npartdata = 0)
 	:
         m_verbose(1), 
 	allow_particles_near_boundary(false),
-	m_gdb_object(geom,dmap,ba)
+	m_gdb_object(geom,dmap,ba),
+	m_npartdata(npartdata)
     {
 	m_gdb = & m_gdb_object;
     }
@@ -290,11 +292,13 @@ public:
     ParticleContainer (const Array<Geometry>            & geom, 
 		       const Array<DistributionMapping> & dmap,
 		       const Array<BoxArray>            & ba,
-		       const Array<int>                 & rr)
+		       const Array<int>                 & rr,
+		       int                                npartdata = 0)
 	:
         m_verbose(1), 
 	allow_particles_near_boundary(false),
-	m_gdb_object(geom,dmap,ba,rr)
+	m_gdb_object(geom,dmap,ba,rr),
+	m_npartdata(npartdata)
     {
 	m_gdb = & m_gdb_object;
     }
@@ -308,19 +312,23 @@ public:
 
     void Define (const Geometry            & geom, 
 		 const DistributionMapping & dmap,
-		 const BoxArray            & ba)
+		 const BoxArray            & ba,
+		 int                         npartdata = 0)
     {
 	m_gdb_object = ParGDB(geom, dmap, ba);
 	m_gdb = &m_gdb_object;
+	m_npartdata = npartdata;
     }
 
     void Define (const Array<Geometry>            & geom, 
 		 const Array<DistributionMapping> & dmap,
 		 const Array<BoxArray>            & ba,
-		 const Array<int>                 & rr)
+		 const Array<int>                 & rr,
+		 int                                npartdata = 0)
     {
 	m_gdb_object = ParGDB(geom, dmap, ba, rr);
 	m_gdb = &m_gdb_object;
+	m_npartdata = npartdata;
     }
 
     void SetParticleBoxArray (int lev, const BoxArray& new_ba)
@@ -502,7 +510,7 @@ protected:
     //
     // The struct-of-arrays data
     //
-    int npartdata = 2;
+    int m_npartdata = 2;
     Array<std::map<int, Array<std::unique_ptr<Array<Real> > > > > m_partdata;
 
 private:
