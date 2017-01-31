@@ -45,7 +45,7 @@ contains
 #if (BL_SPACEDIM == 3)
     prefactor = prefactor / diffract_factor
 #elif (BL_SPACEDIM == 2)
-    prefactor = prefactor / POW( diffract_factor, 0.5 )
+    prefactor = prefactor / sqrt(diffract_factor)
 #endif
 
     ! Loop through the macroparticle to calculate the proper amplitude

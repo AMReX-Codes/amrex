@@ -33,7 +33,7 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies)
     {
 	ParmParse pp("laser");
 
-  // Parse the type of laser profile and set the corresponding flag `profile`
+	// Parse the type of laser profile and set the corresponding flag `profile`
 	std::string laser_type_s;
 	pp.get("profile", laser_type_s);
 	std::transform(laser_type_s.begin(), laser_type_s.end(), laser_type_s.begin(), ::tolower);
@@ -43,7 +43,7 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies)
 	    BoxLib::Abort("Unknown laser type");
 	}
 
-  // Parse the properties of the antenna
+	// Parse the properties of the antenna
 	pp.getarr("position", position);
 	pp.getarr("direction", nvec);
 	pp.getarr("polarization", p_X);
@@ -51,13 +51,13 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies)
 	pp.get("e_max", e_max);
 	pp.get("wavelength", wavelength);
 
-  if ( profile == laser_t::Gaussian ) {
-     // Parse the properties of the Gaussian profile
+	if ( profile == laser_t::Gaussian ) {
+	    // Parse the properties of the Gaussian profile
 	   pp.get("profile_waist", profile_waist);
-     pp.get("profile_duration", profile_duration);
-     pp.get("profile_t_peak", profile_t_peak);
-     pp.get("profile_focal_distance", profile_focal_distance);
-   }
+	   pp.get("profile_duration", profile_duration);
+	   pp.get("profile_t_peak", profile_t_peak);
+	   pp.get("profile_focal_distance", profile_focal_distance);
+	}
 
 	// Plane normal
 	Real s = 1.0/std::sqrt(nvec[0]*nvec[0] + nvec[1]*nvec[1] + nvec[2]*nvec[2]);
@@ -100,17 +100,28 @@ LaserParticleContainer::InitData ()
     const int lev = 0;
 
     const Geometry& geom = GDB().Geom(lev);
-    const Real* dx  = geom.CellSize();
     const RealBox& prob_domain = geom.ProbDomain();
+
+#if (BL_SPACEDIM == 3)
+    const Real* dx = geom.CellSize();
+#elif (BL_SPACEDIM == 2)
+    Real dx[3] = { geom.CellSize(0), std::numeric_limits<Real>::quiet_NaN(), geom.CellSize(1) };
+#endif
 
     // spacing of laser particles in the laser plane
     const Real eps = dx[0]*1.e-50;
-    const Real S_X = std::min(std::min(dx[0]/(std::abs(p_X[0])+eps),
-				       dx[1]/(std::abs(p_X[1])+eps)),
-			               dx[2]/(std::abs(p_X[2])+eps));
-    const Real S_Y = std::min(std::min(dx[0]/(std::abs(p_Y[0])+eps),
-				       dx[1]/(std::abs(p_Y[1])+eps)),
-                                       dx[2]/(std::abs(p_Y[2])+eps));
+#if (BL_SPACEDIM == 3)
+    const Real S_X = std::min(std::min(dx[0]/(std::abs(u_X[0])+eps),
+				       dx[1]/(std::abs(u_X[1])+eps)),
+			               dx[2]/(std::abs(u_X[2])+eps));
+    const Real S_Y = std::min(std::min(dx[0]/(std::abs(u_Y[0])+eps),
+				       dx[1]/(std::abs(u_Y[1])+eps)),
+                                       dx[2]/(std::abs(u_Y[2])+eps));
+#else
+    const Real S_X = std::min(dx[0]/(std::abs(u_X[0])+eps),
+			      dx[2]/(std::abs(u_X[2])+eps));
+    const Real S_Y = 1.0;
+#endif
 
     const Real particle_weight = ComputeWeight(S_X, S_Y);
     // The mobility is the constant of proportionality between the field to
@@ -120,17 +131,26 @@ LaserParticleContainer::InitData ()
     // Give integer coordinates in the laser plane, return the real coordinates in the "lab" frame
     auto Transform = [&](int i, int j) -> Array<Real>
     {
-	return { position[0] + (S_X*i)*p_X[0] + (S_Y*j)*p_Y[0],
-		 position[1] + (S_X*i)*p_X[1] + (S_Y*j)*p_Y[1],
-		 position[2] + (S_X*i)*p_X[2] + (S_Y*j)*p_Y[2] };
+#if (BL_SPACEDIM == 3)
+	return { position[0] + (S_X*i)*u_X[0] + (S_Y*j)*u_Y[0],
+		 position[1] + (S_X*i)*u_X[1] + (S_Y*j)*u_Y[1],
+		 position[2] + (S_X*i)*u_X[2] + (S_Y*j)*u_Y[2] };
+#else
+	return { position[0] + (S_X*i)*u_X[0],
+		 0.0,
+		 position[2] + (S_X*i)*u_X[2] };
+#endif
     };
 
     // Given the "lab" frame coordinates, return the real coordinates in the laser plane coordinates
     auto InverseTransform = [&](const Array<Real>& pos) -> Array<Real>
     {
-	return { p_X[0]*pos[0] + p_X[1]*pos[1] + p_X[2]*pos[2],
-		 p_Y[0]*pos[0] + p_Y[1]*pos[1] + p_Y[2]*pos[2],
-		 nvec[0]*pos[0] + nvec[1]*pos[1] + nvec[2]*pos[2] };
+#if (BL_SPACEDIM == 3)
+	return {u_X[0]*(pos[0]-position[0])+u_X[1]*(pos[1]-position[1])+u_X[2]*(pos[2]-position[2]),
+		u_Y[0]*(pos[0]-position[0])+u_Y[1]*(pos[1]-position[1])+u_Y[2]*(pos[2]-position[2])};
+#else
+	return {u_X[0]*(pos[0]-position[0])+u_X[2]*(pos[2]-position[2]), 0.0};
+#endif
     };
 
     Array<int> plane_lo(2, std::numeric_limits<int>::max());
@@ -138,7 +158,7 @@ LaserParticleContainer::InitData ()
     {
 	auto compute_min_max = [&](Real x, Real y, Real z)
 	{
-	    const Array<Real> pos_plane = InverseTransform({x, y, z});
+	    const Array<Real>& pos_plane = InverseTransform({x, y, z});
 	    int i = pos_plane[0]/S_X;
 	    int j = pos_plane[1]/S_Y;
 	    plane_lo[0] = std::min(plane_lo[0], i);
@@ -149,6 +169,7 @@ LaserParticleContainer::InitData ()
 
 	const Real* prob_lo = prob_domain.lo();
 	const Real* prob_hi = prob_domain.hi();
+#if (BL_SPACEDIM == 3)
 	compute_min_max(prob_lo[0], prob_lo[1], prob_lo[2]);
 	compute_min_max(prob_hi[0], prob_lo[1], prob_lo[2]);
 	compute_min_max(prob_lo[0], prob_hi[1], prob_lo[2]);
@@ -157,13 +178,20 @@ LaserParticleContainer::InitData ()
 	compute_min_max(prob_hi[0], prob_lo[1], prob_hi[2]);
 	compute_min_max(prob_lo[0], prob_hi[1], prob_hi[2]);
 	compute_min_max(prob_hi[0], prob_hi[1], prob_hi[2]);
+#else
+	compute_min_max(prob_lo[0], 0.0, prob_lo[1]);
+	compute_min_max(prob_hi[0], 0.0, prob_lo[1]);
+	compute_min_max(prob_lo[0], 0.0, prob_hi[1]);
+	compute_min_max(prob_hi[0], 0.0, prob_hi[1]);
+#endif
     }
 
     const int nprocs = ParallelDescriptor::NProcs();
     const int myproc = ParallelDescriptor::MyProc();
 
-    const Box plane_box {IntVect(D_DECL(plane_lo[0],plane_lo[1],0)),
-                         IntVect(D_DECL(plane_hi[0],plane_hi[1],0))};
+#if (BL_SPACEDIM == 3)
+    const Box plane_box {IntVect(plane_lo[0],plane_lo[1],0),
+                         IntVect(plane_hi[0],plane_hi[1],0)};
     BoxArray plane_ba {plane_box};
     {
 	IntVect chunk(plane_box.size());
@@ -180,6 +208,9 @@ LaserParticleContainer::InitData ()
 	    }
 	}
     }
+#else
+    BoxArray plane_ba { Box {IntVect(plane_lo[0],0), IntVect(plane_hi[0],0)} };
+#endif
 
     Array<Real> particle_x, particle_y, particle_z, particle_w;
 
@@ -193,7 +224,12 @@ LaserParticleContainer::InitData ()
 	    for (IntVect cell = bx.smallEnd(); cell <= bx.bigEnd(); bx.next(cell))
 	    {
 		const Array<Real>& pos = Transform(cell[0], cell[1]);
-		if (prob_domain.contains(pos.data()))
+#if (BL_SPACEDIM == 3)
+		const Real* x = pos.data();
+#else
+		const Real x[2] = {pos[0], pos[2]};
+#endif
+		if (prob_domain.contains(x))
 		{
 		    for (int k = 0; k<2; ++k) {
 			particle_x.push_back(pos[0]);
@@ -294,21 +330,21 @@ LaserParticleContainer::Evolve (int lev,
 		    zp[i] = p.m_pos[1];
 #endif
 		    wp[i]  = p.m_data[PIdx::w];
-        // Note: the particle momentum is not copied, since it is
-        // overwritten at each timestep, for the laser particles
-
-        // Find the coordinates of the particles in the emission plane
+		    // Note: the particle momentum is not copied, since it is
+		    // overwritten at each timestep, for the laser particles
+		    
+		    // Find the coordinates of the particles in the emission plane
 #if (BL_SPACEDIM == 3)
-        plane_Xp[i] = u_X[0]*(xp[i] - position[0])
-                    + u_X[1]*(yp[i] - position[1])
-                    + u_X[2]*(zp[i] - position[2]);
-        plane_Yp[i] = u_Y[0]*(xp[i] - position[0])
-                    + u_Y[1]*(yp[i] - position[1])
-                    + u_Y[2]*(zp[i] - position[2]);
+		    plane_Xp[i] = u_X[0]*(xp[i] - position[0])
+                                + u_X[1]*(yp[i] - position[1])
+			        + u_X[2]*(zp[i] - position[2]);
+		    plane_Yp[i] = u_Y[0]*(xp[i] - position[0])
+                                + u_Y[1]*(yp[i] - position[1])
+                                + u_Y[2]*(zp[i] - position[2]);
 #elif (BL_SPACEDIM == 2)
-        plane_Xp[i] = u_X[0]*(xp[i] - position[0])
-                    + u_X[2]*(zp[i] - position[2]);
-        plane_Yp[i] = 0;
+		    plane_Xp[i] = u_X[0]*(xp[i] - position[0])
+                                + u_X[2]*(zp[i] - position[2]);
+		    plane_Yp[i] = 0;
 #endif
 		});
 	    BL_PROFILE_VAR_STOP(blp_copy);
@@ -342,9 +378,8 @@ LaserParticleContainer::Evolve (int lev,
             &t, &wavelength, &e_max, &profile_waist, &profile_duration,
             &profile_t_peak, &profile_focal_distance, amplitude_E.data() );
       }
-      // Calculate the corresponding momentum and position for the particles
-      {
 
+      // Calculate the corresponding momentum and position for the particles
       pti.foreach([&](int i, ParticleType& p) {
           // Calculate the velocity according to the amplitude of E
           Real sign_charge = std::copysign( 1.0, wp[i] );
@@ -366,9 +401,8 @@ LaserParticleContainer::Evolve (int lev,
           yp[i] += vy * dt;
 #endif
           zp[i] += vz * dt;
-		  });
+      });
 
-      }
       BL_PROFILE_VAR_STOP(blp_pxr_pp);
 
 	    //

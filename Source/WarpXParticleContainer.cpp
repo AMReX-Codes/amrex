@@ -80,10 +80,15 @@ WarpXParticleContainer::AddNParticles (int n, const Real* x, const Real* y, cons
 	p.m_cpu = ParallelDescriptor::MyProc();
 	p.m_lev = lev;
 	p.m_grid = gid; 
-	
+
+#if (BL_SPACEDIM == 3)	
 	p.m_pos[0] = x[i];
 	p.m_pos[1] = y[i];
 	p.m_pos[2] = z[i];
+#else
+	p.m_pos[0] = x[i];
+	p.m_pos[1] = z[i];
+#endif
 	
 	p.m_data[PIdx::w] = weight[i];
 	
