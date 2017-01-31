@@ -250,7 +250,7 @@ struct Particle
                                 Array<IntVect>&     cells);
 };
 
-  template <int NR, int NI = 0, class C = std::deque<Particle<NR,NI> > >
+template <int NR, int NI = 0>
 class ParticleContainer
 {
 public:
@@ -258,12 +258,14 @@ public:
     // The type of Particles we hold.
     //
     typedef Particle<NR, NI> ParticleType;
+
     //
     // We want to store the particles on a level by level and grid by grid basis.  This will
     // make accessing them and doing operations on them more memory efficient since most of our
     // operations on particles are done on a level by level basis or grid by grid basis.
     //
-    using PBox = C;
+    using PBox = std::vector<ParticleType>;
+
     //
     // A level of particles is stored in a map indexed by the grid number.
     //
@@ -516,7 +518,7 @@ protected:
 private:
     void AssignDensityDoit (int rho_index, 
 			    Array<std::unique_ptr<MultiFab> >& mf, 
-			    std::map<int, std::deque<ParticleCommData> >& data,
+			    std::map<int, std::vector<ParticleCommData> >& data,
 			    int ncomp, int lev_min = 0) const;
 };
 
