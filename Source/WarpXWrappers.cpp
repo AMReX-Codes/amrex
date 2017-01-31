@@ -45,5 +45,19 @@ extern "C"
 	auto & myspc = mypc.GetParticleContainer(speciesnumber);
 	myspc.AddNParticles(lenx, x, y, z, vx, vy, vz, nattr, attr, uniqueparticles);
     }
+
+    double warpx_getProbLo(int dir)
+    {
+      WarpX& warpx = WarpX::GetInstance();
+      const Geometry& geom = warpx.Geom(0);
+      return geom.ProbLo(dir);
+    }
+
+    double warpx_getProbHi(int dir)
+    {
+      WarpX& warpx = WarpX::GetInstance();
+      const Geometry& geom = warpx.Geom(0);
+      return geom.ProbHi(dir);
+    }
 }
 

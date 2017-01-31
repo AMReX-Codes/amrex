@@ -30,9 +30,9 @@ IntVect WarpX::Bz_nodal_flag(0,1);  // z is the second dimension to 2D BoxLib
 #endif
 
 #if (BL_SPACEDIM == 3)
-IntVect WarpX::Ex_nodal_flag(1,0,0);
-IntVect WarpX::Ey_nodal_flag(0,1,0);
-IntVect WarpX::Ez_nodal_flag(0,0,1);
+IntVect WarpX::Ex_nodal_flag(0,1,1);
+IntVect WarpX::Ey_nodal_flag(1,0,1);
+IntVect WarpX::Ez_nodal_flag(1,1,0);
 #elif (BL_SPACEDIM == 2)
 IntVect WarpX::Ex_nodal_flag(0,1);  // x is the first dimension to BoxLib
 IntVect WarpX::Ey_nodal_flag(1,1);  // y is the missing dimension to 2D BoxLib
@@ -40,9 +40,9 @@ IntVect WarpX::Ez_nodal_flag(1,0);  // z is the second dimension to 2D BoxLib
 #endif
 
 #if (BL_SPACEDIM == 3)
-IntVect WarpX::jx_nodal_flag(1,0,0);
-IntVect WarpX::jy_nodal_flag(0,1,0);
-IntVect WarpX::jz_nodal_flag(0,0,1);
+IntVect WarpX::jx_nodal_flag(0,1,1);
+IntVect WarpX::jy_nodal_flag(1,0,1);
+IntVect WarpX::jz_nodal_flag(1,1,0);
 #elif (BL_SPACEDIM == 2)
 IntVect WarpX::jx_nodal_flag(0,1);  // x is the first dimension to BoxLib
 IntVect WarpX::jy_nodal_flag(1,1);  // y is the missing dimension to 2D BoxLib
