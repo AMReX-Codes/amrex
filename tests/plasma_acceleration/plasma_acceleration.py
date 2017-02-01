@@ -213,7 +213,7 @@ particles.nspecies = 2
 warpx.verbose = 1
 warpx.cfl = 1.0
 warpx.do_moving_window = 1
-warpx.moving_window_dir = 2
+warpx.moving_window_dir = 'z'
 warpx.moving_window_v = 1.0  # in units of the speed of light
 
 warpx.do_plasma_injection = 0
@@ -229,21 +229,22 @@ warpx.init()
 
 set_initial_conditions(ncells, domain_min, domain_max)
 
-old_x = warpx.getProbLo(warpx.moving_window_dir)
+direction = ['x', 'y', 'z'].index(warpx.moving_window_dir)
+old_x = warpx.getProbLo(direction)
 new_x = old_x
 for i in range(1, max_step + 1):
 
     # check whether the moving window has updated
-    num_shift = int( 0.5 + (new_x - old_x) / dx[warpx.moving_window_dir])
+    num_shift = int( 0.5 + (new_x - old_x) / dx[direction])
     if (num_shift != 0):
-        inject_plasma(num_shift, warpx.moving_window_dir)
-        domain_min[warpx.moving_window_dir] += num_shift*dx[warpx.moving_window_dir]
-        domain_max[warpx.moving_window_dir] += num_shift*dx[warpx.moving_window_dir]
+        inject_plasma(num_shift, direction)
+        domain_min[direction] += num_shift*dx[direction]
+        domain_max[direction] += num_shift*dx[direction]
 
     warpx.evolve(i)
 
     old_x = new_x
-    new_x = warpx.getProbLo(warpx.moving_window_dir)
+    new_x = warpx.getProbLo(direction)
 
 warpx.finalize()
 
