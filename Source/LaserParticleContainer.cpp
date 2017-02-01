@@ -455,6 +455,8 @@ LaserParticleContainer::ComputeSpacing (Real& Sx, Real& Sy) const
 		  dx[2]/(std::abs(u_X[2])+eps));
     Sy = 1.0;
 #endif
+    Sx *= 0.99;  // to avoid having particles grid faces
+    Sy *= 0.99;
 }
 
 void
