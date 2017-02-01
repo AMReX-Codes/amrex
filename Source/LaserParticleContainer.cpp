@@ -348,40 +348,40 @@ LaserParticleContainer::Evolve (int lev,
 	    //
 	    // Particle Push
 	    //
-      BL_PROFILE_VAR_START(blp_pxr_pp);
-      // Calculate the laser amplitude to be emitted,
-      // at the position of the emission plane
-      if (profile == laser_t::Gaussian) {
-        warpx_gaussian_laser( &np, plane_Xp.data(), plane_Yp.data(),
-            &t, &wavelength, &e_max, &profile_waist, &profile_duration,
-            &profile_t_peak, &profile_focal_distance, amplitude_E.data() );
-      }
+	    BL_PROFILE_VAR_START(blp_pxr_pp);
+	    // Calculate the laser amplitude to be emitted,
+	    // at the position of the emission plane
+	    if (profile == laser_t::Gaussian) {
+		warpx_gaussian_laser( &np, plane_Xp.data(), plane_Yp.data(),
+				      &t, &wavelength, &e_max, &profile_waist, &profile_duration,
+				      &profile_t_peak, &profile_focal_distance, amplitude_E.data() );
+	    }
 
-      // Calculate the corresponding momentum and position for the particles
-      pti.foreach([&](int i, ParticleType& p) {
-          // Calculate the velocity according to the amplitude of E
-          Real sign_charge = std::copysign( 1.0, wp[i] );
-          Real v_over_c = sign_charge * mobility * amplitude_E[i];
-          BL_ASSERT( v_over_c < 1 );
-          giv[i] = std::sqrt( 1 - v_over_c * v_over_c );
-          Real gamma = 1./giv[i];
-          // The velocity is along the laser polarization p_X
-          Real vx = PhysConst::c * v_over_c * p_X[0];
-          Real vy = PhysConst::c * v_over_c * p_X[1];
-          Real vz = PhysConst::c * v_over_c * p_X[2];
-          // Get the corresponding momenta
-          uxp[i] = gamma * vx;
-          uyp[i] = gamma * vy;
-          uzp[i] = gamma * vz;
-          // Push the the particle positions
-          xp[i] += vx * dt;
+	    // Calculate the corresponding momentum and position for the particles
+	    pti.foreach([&](int i, ParticleType& p) {
+		    // Calculate the velocity according to the amplitude of E
+		    Real sign_charge = std::copysign( 1.0, wp[i] );
+		    Real v_over_c = sign_charge * mobility * amplitude_E[i];
+		    BL_ASSERT( v_over_c < 1 );
+		    giv[i] = std::sqrt( 1 - v_over_c * v_over_c );
+		    Real gamma = 1./giv[i];
+		    // The velocity is along the laser polarization p_X
+		    Real vx = PhysConst::c * v_over_c * p_X[0];
+		    Real vy = PhysConst::c * v_over_c * p_X[1];
+		    Real vz = PhysConst::c * v_over_c * p_X[2];
+		    // Get the corresponding momenta
+		    uxp[i] = gamma * vx;
+		    uyp[i] = gamma * vy;
+		    uzp[i] = gamma * vz;
+		    // Push the the particle positions
+		    xp[i] += vx * dt;
 #if (BL_SPACEDIM == 3)
-          yp[i] += vy * dt;
+		    yp[i] += vy * dt;
 #endif
-          zp[i] += vz * dt;
-      });
+		    zp[i] += vz * dt;
+		});
 
-      BL_PROFILE_VAR_STOP(blp_pxr_pp);
+	    BL_PROFILE_VAR_STOP(blp_pxr_pp);
 
 	    //
 	    // Current Deposition
