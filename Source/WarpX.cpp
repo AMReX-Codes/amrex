@@ -132,9 +132,27 @@ WarpX::ReadParameters ()
 	pp.query("verbose", verbose);
 
 	pp.query("do_moving_window", do_moving_window);
-	pp.query("moving_window_dir", moving_window_dir);
-	if (do_moving_window) {
-	  pp.get("moving_window_v", moving_window_v);
+	if (do_moving_window)
+	{
+	    std::string s;
+	    pp.get("moving_window_dir", s);
+	    if (s == "x" || s == "X") {
+		moving_window_dir = 0;
+	    }
+#if (BL_SPACEDIM == 3)
+	    else if (s == "y" || s == "Y") {
+		moving_window_dir = 1;
+	    }
+#endif
+	    else if (s == "z" || s == "Z") {
+		moving_window_dir = BL_SPACEDIM-1;
+	    }
+	    else {
+		const std::string msg = "Unknown moving_window_dir: "+s;
+		BoxLib::Abort(msg.c_str()); 
+	    }
+
+	    pp.get("moving_window_v", moving_window_v);
 	}
 
 	pp.query("do_plasma_injection", do_plasma_injection);

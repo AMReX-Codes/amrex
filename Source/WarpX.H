@@ -102,7 +102,7 @@ private:
 
     // Moving window parameters
     int do_moving_window = 0;
-    int moving_window_dir = 0;
+    int moving_window_dir;
     Real moving_window_x;
     Real moving_window_v;
 

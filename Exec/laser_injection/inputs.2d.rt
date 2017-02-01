@@ -48,7 +48,7 @@ amr.plot_int = 20
 
 # Moving window
 warpx.do_moving_window = 1
-warpx.moving_window_dir = 0
+warpx.moving_window_dir = x
 warpx.moving_window_v = 1.0 # in units of the speed of light
 
 # Remove species

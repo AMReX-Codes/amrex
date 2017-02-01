@@ -28,7 +28,23 @@ void testMovingWindow() {
     pp.get("n_cell", n_cell);
     pp.get("max_grid_size", max_grid_size);
     pp.get("do_moving_window", do_moving_window);
-    pp.get("moving_window_dir", moving_window_dir);
+    std::string s;
+    pp.get("moving_window_dir", s);
+    if (s == "x" || s == "X") {
+	moving_window_dir = 0;
+    }
+#if (BL_SPACEDIM == 3)
+    else if (s == "y" || s == "Y") {
+	moving_window_dir = 1;
+    }
+#endif
+    else if (s == "z" || s == "Z") {
+	moving_window_dir = BL_SPACEDIM-1;
+    }
+    else {
+	const std::string msg = "Unknown moving_window_dir: "+s;
+	BoxLib::Abort(msg.c_str()); 
+    }
     pp.get("moving_window_v", moving_window_v);
     pp.getarr("prob_lo", prob_lo, 0, BL_SPACEDIM);
     pp.getarr("prob_hi", prob_hi, 0, BL_SPACEDIM);
