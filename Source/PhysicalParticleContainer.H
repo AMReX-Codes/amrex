@@ -21,6 +21,8 @@ public:
 			 const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz,
 			 MultiFab& jx, MultiFab& jy, MultiFab& jz, Real t, Real dt) override;
 
+    virtual void PostRestart () override {}
+
 private:
     // The outermost Array is for AMR level.
     // map's key is grid id and value is an Array. The size of map is the size of local grids.

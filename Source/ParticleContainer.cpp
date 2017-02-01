@@ -93,3 +93,11 @@ MultiParticleContainer::Redistribute (bool where_called)
 	pc->Redistribute(where_called,true);
     }
 }
+
+void
+MultiParticleContainer::PostRestart ()
+{
+    for (auto& pc : allcontainers) {
+	pc->PostRestart();
+    }    
+}

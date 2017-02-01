@@ -70,6 +70,7 @@ private:
     void InitFromScratch ();
     void InitFromCheckpoint ();
     void InitLevelData (int lev);
+    void PostRestart ();
 
     void InitOpenbc ();
 

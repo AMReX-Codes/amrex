@@ -22,6 +22,9 @@ public:
 			 const MultiFab&, const MultiFab&, const MultiFab&,
 			 const MultiFab&, const MultiFab&, const MultiFab&,
 			 MultiFab& jx, MultiFab& jy, MultiFab& jz, Real t, Real dt) override;
+
+    virtual void PostRestart () override;
+
 private:
 
     // runtime paramters
@@ -37,6 +40,7 @@ private:
     Array<Real> p_Y;
     Array<Real> u_X;
     Array<Real> u_Y;
+    Real weight   = std::numeric_limits<Real>::quiet_NaN();
     Real mobility = std::numeric_limits<Real>::quiet_NaN();
 
     // Gaussian profile
@@ -45,7 +49,8 @@ private:
     Real profile_t_peak         = std::numeric_limits<Real>::quiet_NaN();
     Real profile_focal_distance = std::numeric_limits<Real>::quiet_NaN();
 
-    Real ComputeWeight (Real Sx, Real Sy) const;
+    void ComputeSpacing (Real& Sx, Real& Sy) const;
+    void ComputeWeightMobility (Real Sx, Real Sy);
 };
 
 #endif
