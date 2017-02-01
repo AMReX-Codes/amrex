@@ -2,7 +2,7 @@
 max_step = 100
 
 # number of grid points
-amr.n_cell =  64  240
+amr.n_cell =  240 64
 
 # Maximum allowable size of each subdomain in the problem domain;
 #    this is used to decompose the domain for parallel calculations.
@@ -13,9 +13,9 @@ amr.max_level = 0
 
 # Geometry
 geometry.coord_sys   = 0                     # 0: Cartesian
-geometry.is_periodic = 1           0         # Is periodic?
-geometry.prob_lo     = -20.e-6    -12.e-6    # physical domain
-geometry.prob_hi     =  20.e-6     12.e-6
+geometry.is_periodic = 0           1         # Is periodic?
+geometry.prob_lo     = -12.e-6    -20.e-6    # physical domain
+geometry.prob_hi     =  12.e-6	   20.e-6
 
 # Verbosity
 warpx.verbose = 1
@@ -32,22 +32,23 @@ warpx.cfl = 1.0
 # Laser
 warpx.use_laser    = 1
 laser.profile      = Gaussian
-laser.position     = 0. 0. 9.e-6  # This point is on the laser plane
-laser.direction    = 0. 0. 1.     # The plane normal direction
-laser.polarization = 0. 1. 0.     # The main polarization vector
-laser.e_max        = 4.e12        # Maximum amplitude of the laser field (in V/m)
+laser.position     = 9.e-6  0.  0.  # This point is on the laser plane
+laser.direction    = 1.     0.  0.  # The plane normal direction
+laser.polarization = 0.     1.  0.  # The main polarization vector
+laser.e_max        = 4.e12          # Maximum amplitude of the laser field (in V/m)
+laser.wavelength   = 0.8e-6         # The wavelength of the laser (in meters)
+#
 laser.profile_waist = 5.e-6       # The waist of the laser (in meters)
 laser.profile_duration = 15.e-15  # The duration of the laser (in seconds)
 laser.profile_t_peak = 30.e-15    # The time at which the laser reaches its peak (in seconds)
 laser.profile_focal_distance = 100.e-6  # Focal distance from the antenna (in meters)
-laser.wavelength = 0.8e-6         # The wavelength of the laser (in meters)
 
 # I/O
 amr.plot_int = 20
 
 # Moving window
 warpx.do_moving_window = 1
-warpx.moving_window_dir = 1  # 0, 1 for x, z
+warpx.moving_window_dir = 0
 warpx.moving_window_v = 1.0 # in units of the speed of light
 
 # Remove species
