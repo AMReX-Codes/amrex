@@ -14,10 +14,10 @@ module amrex_distromap_module
      logical     :: owner = .false.
      type(c_ptr) :: p = c_null_ptr
    contains
-     procedure :: move          => amrex_distromap_move     ! take ownship
-     procedure :: clone         => amrex_distromap_clone    ! deep copy
-     procedure ::                  amrex_distromap_assign   ! shallow copy
      generic   :: assignment(=) => amrex_distromap_assign   ! shallow copy
+     procedure :: clone         => amrex_distromap_clone    ! deep copy
+     procedure :: move          => amrex_distromap_move     ! transfer ownership
+     procedure, private :: amrex_distromap_assign
 #if !defined(__GFORTRAN__) || (__GNUC__ > 4)
      final :: amrex_distromap_destroy
 #endif
@@ -63,12 +63,12 @@ contains
   subroutine amrex_distromap_destroy (this)
     type(amrex_distromap) :: this
     if (this%owner) then
-       this%owner = .false.
        if (c_associated(this%p)) then
           call amrex_fi_delete_distromap(this%p)
-          this%p = c_null_ptr
        end if
     end if
+    this%owner = .false.
+    this%p = c_null_ptr
   end subroutine amrex_distromap_destroy
 
   subroutine amrex_distromap_assign (dst, src)

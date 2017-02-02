@@ -17,12 +17,15 @@ module amrex_multifab_module
        amrex_multifab_destroy, amrex_mfiter_destroy
 
   type, public   :: amrex_multifab
-     integer(c_int)        :: nc  =  0
-     integer(c_int)        :: ng  =  0
+     logical               :: owner = .false.
+     type   (c_ptr)        :: p     =  c_null_ptr
+     integer(c_int)        :: nc    =  0
+     integer(c_int)        :: ng    =  0
      type(amrex_boxarray)  :: ba
      type(amrex_distromap) :: dm
-     type   (c_ptr)        :: p   =  c_null_ptr
    contains
+     generic   :: assignment(=) => amrex_multifab_assign   ! shallow copy
+     procedure :: move          => amrex_multifab_move     ! transfer ownership
      procedure :: ncomp         => amrex_multifab_ncomp
      procedure :: nghost        => amrex_multifab_nghost
      procedure :: dataPtr       => amrex_multifab_dataptr
@@ -32,19 +35,22 @@ module amrex_multifab_module
      procedure :: norm1         => amrex_multifab_norm1
      procedure :: norm2         => amrex_multifab_norm2
      generic   :: fill_boundary => amrex_multifab_fill_boundary, amrex_multifab_fill_boundary_c
-     procedure, private :: amrex_multifab_fill_boundary, amrex_multifab_fill_boundary_c
+     procedure, private :: amrex_multifab_fill_boundary, amrex_multifab_fill_boundary_c, &
+          amrex_multifab_assign
 #if !defined(__GFORTRAN__) || (__GNUC__ > 4)
      final :: amrex_multifab_destroy
 #endif
   end type amrex_multifab
 
   type, public :: amrex_mfiter
-     integer ,private :: counter = -1 
      type(c_ptr)      :: p       = c_null_ptr
+     integer ,private :: counter = -1 
    contains
+     generic   :: assignment(=) => amrex_mfiter_assign  ! will abort if called
      procedure :: clear   => amrex_mfiter_clear
      procedure :: next    => amrex_mfiter_next
      procedure :: tilebox => amrex_mfiter_tilebox
+     procedure, private :: amrex_mfiter_assign
 #if !defined(__GFORTRAN__) || (__GNUC__ > 4)
      final :: amrex_mfiter_destroy
 #endif
@@ -183,40 +189,63 @@ contains
     integer, intent(in) :: nc, ng
     logical, intent(in), optional :: nodal(:)
     integer :: lnodal(3)
+    mf%owner = .true.
     mf%nc = nc
     mf%ng = ng
-    mf%dm = dm
     lnodal = 0 
     if (present(nodal)) then
        where (nodal .eqv. .true.) lnodal = 1
     end if
+    call mf%dm%clone(dm)
     call amrex_fi_new_multifab(mf%p, mf%ba%p, ba%p, dm%p, mf%nc, mf%ng, lnodal)
   end subroutine amrex_multifab_build
 
   subroutine amrex_multifab_destroy (this)
     type(amrex_multifab) :: this
-    if (c_associated(this%p)) then
-       call amrex_fi_delete_multifab(this%p)
-       this%p = c_null_ptr
+    if (this%owner) then
+       if (c_associated(this%p)) then
+          call amrex_fi_delete_multifab(this%p)
+       end if
     end if
+    this%owner = .false.
+    this%p = c_null_ptr
     call amrex_boxarray_destroy(this%ba)
     call amrex_distromap_destroy(this%dm)
   end subroutine amrex_multifab_destroy
 
+  subroutine amrex_multifab_assign (dst, src)
+    class(amrex_multifab), intent(inout) :: dst
+    type (amrex_multifab), intent(in   ) :: src
+    call amrex_multifab_destroy(dst)
+    dst%owner = .false.
+    dst%p     = src%p
+    dst%nc    = src%nc
+    dst%ng    = src%ng
+    dst%ba    = src%ba
+    dst%dm    = src%dm
+  end subroutine amrex_multifab_assign
+
+  subroutine amrex_multifab_move (dst, src)
+    class(amrex_multifab), intent(inout) :: dst
+    type (amrex_multifab), intent(inout) :: src
+    call amrex_multifab_destroy(dst)
+    dst%owner = src%owner
+    dst%p     = src%p
+    dst%nc    = src%nc
+    dst%ng    = src%ng
+    call dst%ba%move(src%ba)
+    call dst%dm%move(src%dm)
+    src%owner = .false.
+    src%p     = c_null_ptr
+  end subroutine amrex_multifab_move
+
   subroutine amrex_multifab_swap(mf1, mf2)
     type(amrex_multifab), intent(inout) :: mf1, mf2
-    integer :: itmp
-    type(amrex_boxarray) :: batmp
-    type(c_ptr) :: ptmp
-    itmp = mf1%nc;  mf1%nc = mf2%nc;  mf2%nc = itmp
-    itmp = mf1%ng;  mf1%ng = mf2%ng;  mf2%ng = itmp
-    batmp= mf1%ba;  mf1%ba = mf2%ba;  mf2%ba = batmp
-    ptmp = mf1%p;   mf1%p  = mf2%p;   mf2%p  = ptmp
-    ! the code below causes internal compiler error for gfortran 5.2
-    ! tmp = mf1
-    ! mf1 = mf2
-    ! mf2 = tmp
-    ! tmp%p = c_null_ptr
+    type(amrex_multifab) :: mftmp
+    call mftmp%move(mf1)
+    call mf1%move(mf2)
+    call mf2%move(mftmp)
+    call amrex_multifab_destroy(mftmp)
   end subroutine amrex_multifab_swap
 
   pure integer function amrex_multifab_ncomp (this)
@@ -348,13 +377,19 @@ contains
     call this%clear()
   end subroutine amrex_mfiter_destroy
 
+  subroutine amrex_mfiter_assign (dst, src)
+    class(amrex_mfiter), intent(inout) :: dst
+    type (amrex_mfiter), intent(in   ) :: src
+    !
+  end subroutine amrex_mfiter_assign
+
   subroutine amrex_mfiter_clear (this)
     class(amrex_mfiter) :: this
     this%counter = -1
     if (c_associated(this%p)) then
        call amrex_fi_delete_mfiter(this%p)
-       this%p = c_null_ptr
     end if
+    this%p = c_null_ptr
   end subroutine amrex_mfiter_clear
 
   logical function amrex_mfiter_next (this)

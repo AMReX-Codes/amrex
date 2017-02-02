@@ -11,10 +11,13 @@ module amrex_parmparse_module
   public :: amrex_parmparse_build, amrex_parmparse_destroy
 
   type, public :: amrex_parmparse
+     logical     :: owner = .false.
      type(c_ptr) :: p = c_null_ptr
    contains
-     generic :: get      => get_int, get_real, get_logical, get_string
-     generic :: query    => query_int, query_real, query_logical, query_string
+     generic :: assignment(=) => amrex_parmparse_assign  ! shallow copy
+     generic :: get           => get_int, get_real, get_logical, get_string
+     generic :: query         => query_int, query_real, query_logical, query_string
+     procedure, private :: amrex_parmparse_assign
      procedure, private :: get_int
      procedure, private :: get_real
      procedure, private :: get_logical
@@ -118,6 +121,7 @@ contains
   subroutine amrex_parmparse_build (pp, name)
     type(amrex_parmparse) :: pp
     character(*), intent(in), optional :: name
+    pp%owner = .true.
     if (present(name)) then
        call amrex_new_parmparse(pp%p, amrex_string_f_to_c(name))
     else
@@ -127,11 +131,22 @@ contains
 
   subroutine amrex_parmparse_destroy (this)
     type(amrex_parmparse) :: this
-    if (c_associated(this%p)) then
-       call amrex_delete_parmparse(this%p)
-       this%p = c_null_ptr
+    if (this%owner) then
+       if (c_associated(this%p)) then
+          call amrex_delete_parmparse(this%p)
+       end if
     end if
+    this%owner = .false.
+    this%p = c_null_ptr
   end subroutine amrex_parmparse_destroy
+
+  subroutine amrex_parmparse_assign (dst, src)
+    class(amrex_parmparse), intent(inout) :: dst
+    type (amrex_parmparse), intent(in   ) :: src
+    call amrex_parmparse_destroy(dst)
+    dst%owner = .false.
+    dst%p = src%p
+  end subroutine amrex_parmparse_assign
 
   subroutine get_int (this, name, v)
     class(amrex_parmparse), intent(in) :: this
