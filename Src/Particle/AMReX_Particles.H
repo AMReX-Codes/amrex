@@ -42,6 +42,8 @@ namespace
 }
 
 
+
+
 //
 // A struct used for communicating particle data accross processes
 // during multi-level operations.
@@ -456,7 +458,7 @@ public:
 
     void WritePlotFile (const std::string& dir, const std::string& name) const;
 
-    void WriteAsciiFile          (const std::string& file);
+    void WriteAsciiFile (const std::string& file);
 
     int Verbose () { return m_verbose; }
 
@@ -549,6 +551,121 @@ private:
 			    std::map<int, std::vector<ParticleCommData> >& data,
 			    int ncomp, int lev_min = 0) const;
 };
+
+struct PartIterInfo
+{
+  PartIterInfo (int _level, bool _do_tiling, const IntVect& _tile_size)
+    : level(_level), do_tiling(_do_tiling), tile_size(_tile_size)
+  { }
+  PartIterInfo (const PartIterInfo&) = default;
+  PartIterInfo (PartIterInfo&&) = default;
+  int  level;
+  bool do_tiling;
+  IntVect tile_size;
+};
+
+template<int NR, int NI=0>
+class PartIter
+{
+
+public:
+  PartIter (ParticleContainer<NR, NI>& _mypc, PartIterInfo& _info)
+    : mypc(_mypc), 
+      pmap(_mypc.GetParticles(_info.level)),
+      box_array(_mypc.ParticleBoxArray(_info.level)),
+      level(_info.level),
+      do_tiling(_info.do_tiling), 
+      tile_size(_info.tile_size)
+  {
+    Initialize();
+  }
+  
+  bool isValid () {return current_index < num_boxes;}
+
+  void operator++ () {
+    current_tile_index++;
+    if (current_tile_index >= num_tiles[current_index]) {
+      current_index++;
+      current_tile_index = 0;
+    }
+  }
+
+  int gridIndex () const {return grid_ids[current_index];}
+
+  int tileIndex () const {return current_tile_index;}
+
+  Box gridBox () {return box_array[grid_ids[current_index]];}
+
+  Box tileBox () {
+    if (do_tiling) {
+      int grid_id = grid_ids[current_index];
+      const Box& box = box_array[grid_id];
+      const IntVect& small = box.smallEnd();
+      const IntVect& size  = box.size();
+      IntVect ntiles(D_DECL((size[0]+tile_size[0]-1)/tile_size[0],
+			    (size[1]+tile_size[1]-1)/tile_size[1],
+			    (size[2]+tile_size[2]-1)/tile_size[2]));
+      
+      IntVect index = { D_DECL(0, 0, 0) };
+      int linear_index = current_tile_index;
+      for (int i = 0; i < BL_SPACEDIM; i++) {
+	index[i] = linear_index % ntiles[i];
+	linear_index /= ntiles[i];
+      }
+      
+      IntVect tile_lo_corner = small + index*tile_size; 
+      IntVect tile_hi_corner = tile_lo_corner + tile_size - IntVect::TheUnitVector(); 
+      Box tile_box(tile_lo_corner, tile_hi_corner);
+      tile_box &= box;
+      return tile_box;
+    }
+    
+    return box_array[grid_ids[current_index]];
+  }
+
+private:
+
+  void Initialize()
+  {
+    current_index = 0;
+    current_tile_index = 0;
+    num_boxes = pmap.size();
+    num_tiles.resize(num_boxes, 0);
+    grid_ids.resize(num_boxes, 0);
+    int index = 0;
+    for (auto it = pmap.begin(); it != pmap.end(); ++it, ++index) {
+      grid_ids[index] = it->first;
+      if (do_tiling) {
+	const Box& box = box_array[it->first];
+	const IntVect& small = box.smallEnd();
+	const IntVect& size  = box.size();
+	IntVect ntiles(D_DECL((size[0]+tile_size[0]-1)/tile_size[0],
+			      (size[1]+tile_size[1]-1)/tile_size[1],
+			      (size[2]+tile_size[2]-1)/tile_size[2]));
+	int ntottiles = D_TERM(ntiles[0],*ntiles[1],*ntiles[2]);
+	num_tiles[index] = ntottiles;
+      }
+      else {
+	num_tiles[it->first] = 1;
+      }
+    }
+  }
+
+  ParticleContainer<NR, NI>& mypc;
+  typename ParticleContainer<NR, NI>::AoSMap& pmap;
+  const BoxArray& box_array;
+
+  int level;
+  bool do_tiling;
+  IntVect tile_size;
+
+  int current_index;
+  int current_tile_index;
+  int num_boxes;
+  Array<int> grid_ids;
+  Array<int> num_tiles;
+};
+
 
 #include "AMReX_ParticleI.H"
 #include "AMReX_ParticleInit.H"
