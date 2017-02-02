@@ -7,13 +7,11 @@ subroutine amrex_fmain () bind(c)
 
   implicit none
 
-  type(amrex_mfiter) :: mfi, mfi2
-
   call amrex_famrcore_init()
 
   call my_amr_init()
 
-  mfi = mfi2
+  
 
   call my_amr_finalize()
 

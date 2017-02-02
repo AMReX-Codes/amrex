@@ -3,13 +3,12 @@
 
 
 amrex::FAmrCore::FAmrCore ()
+    : amrex::AmrCore()
 {
-    std::cout << "constructor of FAmrCore\n";
 }
 
 amrex::FAmrCore::~FAmrCore ()
 {
-    std::cout << "destructor of FAmrCore\n";
 }
 
 void

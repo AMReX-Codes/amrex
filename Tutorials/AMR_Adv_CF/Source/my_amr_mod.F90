@@ -9,7 +9,6 @@ module my_amr_module
 
   ! runtime parameters
   integer :: max_step   = huge(1)
-  integer :: max_level  = 0
   integer :: regrid_int = 2
   integer :: check_int  = -1
   integer :: plot_int   = -1
@@ -23,6 +22,7 @@ module my_amr_module
   character(len=127) :: plot_file  = "plt"
   character(len=127) :: restart    = ""  
 
+  integer, allocatable :: ref_ratio(:)
   integer, allocatable :: istep(:)
   integer, allocatable :: nsubsteps(:)
   
@@ -32,6 +32,7 @@ contains
 
   subroutine my_amr_init ()
     type(amrex_parmparse) :: pp
+    integer :: ilev
 
     if (.not.amrex_famrcore_initialized()) call amrex_famrcore_init()
 
@@ -43,7 +44,6 @@ contains
     
     ! Parameters amr.*
     call amrex_parmparse_build(pp, "amr")
-    call pp%query("max_level", max_level)
     call pp%query("regrid_int", regrid_int)
     call pp%query("check_int", check_int)
     call pp%query("plot_int", plot_int)
@@ -57,6 +57,15 @@ contains
     call pp%query("cfl", cfl)
     call pp%query("do_reflux", do_reflux)
     call amrex_parmparse_destroy(pp)
+
+    allocate(istep(0:amrex_max_level))
+    istep = 0
+
+    allocate(nsubsteps(0:amrex_max_level))
+    nsubsteps(0) = 1
+    do ilev = 1, amrex_max_level
+       nsubsteps(ilev) = amrex_ref_ratio(ilev-1)
+    end do
 
   end subroutine my_amr_init
 
