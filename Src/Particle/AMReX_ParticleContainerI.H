@@ -15,8 +15,8 @@ ParticleContainer<NR, NI>::TotalNumberOfParticles (bool only_valid, bool only_lo
 template <int NR, int NI>
 Array<long>
 ParticleContainer<NR, NI>::NumberOfParticlesInGrid (int  lev, 
-						     bool only_valid,
-						     bool only_local) const
+						    bool only_valid,
+						    bool only_local) const
 {
     int ngrids = m_gdb->ParticleBoxArray(lev).size();
     Array<long> nparticles(ngrids,0);
@@ -53,8 +53,8 @@ ParticleContainer<NR, NI>::NumberOfParticlesInGrid (int  lev,
 template <int NR, int NI>
 long
 ParticleContainer<NR, NI>::NumberOfParticlesAtLevel (int  lev,
-						      bool only_valid,
-						      bool only_local) const
+						     bool only_valid,
+						     bool only_local) const
 {
     long nparticles = 0;
 
@@ -158,24 +158,6 @@ ParticleContainer<NR, NI>::addOneParticle (int                  id_in,
 
     for (int i = BL_SPACEDIM; i < BL_SPACEDIM + NR; i++)
        p.m_rdata.arr[i] = attributes[i];
-    //
-    // It's possible that particles are defined to live right on the boundary,
-    // so if that's the case we move them ever so slightly inside the domain 
-    // instead.
-    //
-    const Geometry& geom = m_gdb->Geom(0);
-
-    const Real  Delta[BL_SPACEDIM] = { D_DECL(Real(.125)*geom.CellSize(0),
-                                              Real(.125)*geom.CellSize(1),
-                                              Real(.125)*geom.CellSize(2)) };
-    //
-    // If particle is right on a domain boundary then move it just inside the boundary.
-    //
-    for (int d = 0; d < BL_SPACEDIM; d++)
-    {
-        if (p.m_rdata.pos[d] <= geom.ProbLo(d)) p.m_rdata.pos[d] += Delta[d];
-        if (p.m_rdata.pos[d] >= geom.ProbHi(d)) p.m_rdata.pos[d] -= Delta[d];
-    }
 
     ParticleLocData pld;
     if (!ParticleType::Where(p, m_gdb, pld))
@@ -2530,13 +2512,6 @@ ParticleContainer<NR, NI>::ReadParticles_DoublePrecision (int            cnt,
     int*            iptr = istuff.dataPtr();
     double*         rptr = rstuff.dataPtr();
     PBox&           pbox = m_particles[lev][grd];
-    const Geometry& geom = m_gdb->Geom(0);
-
-    const Real ProbLo[BL_SPACEDIM] = { D_DECL(geom.ProbLo(0), geom.ProbLo(1), geom.ProbLo(2)) };
-    const Real ProbHi[BL_SPACEDIM] = { D_DECL(geom.ProbHi(0), geom.ProbHi(1), geom.ProbHi(2)) };
-    const Real  Delta[BL_SPACEDIM] = { D_DECL(Real(.125)*geom.CellSize(0),
-                                              Real(.125)*geom.CellSize(1),
-                                              Real(.125)*geom.CellSize(2)) };
     ParticleType p;
 
     // If we are restarting from a plotfile instead of a checkpoint file, then we do not
@@ -2559,17 +2534,17 @@ ParticleContainer<NR, NI>::ReadParticles_DoublePrecision (int            cnt,
 	  ParticleLocData pld;
 	  if (!ParticleType::Where(p, m_gdb, pld))
             {
-                ParticleType::PeriodicShift(p, m_gdb);
-
-                if (!ParticleType::Where(p, m_gdb, pld))
+	      ParticleType::PeriodicShift(p, m_gdb);
+	      
+	      if (!ParticleType::Where(p, m_gdb, pld))
                 {
 		  std::cout << "RESTART:BAD PARTICLE ID WOULD BE " << ParticleType::NextID() << '\n';
-
+		  
 		  for (int d = 0; d < BL_SPACEDIM; d++)
                     {
 		      std::cout << "RESTART:BAD PARTICLE POS(" << d << ") " << p.m_rdata.pos[d] << std::endl;
                     }
-
+		  
 		  amrex::Abort("ParticleContainer<NR, NI>::ReadParticles_DoublePrecision(): invalid particle");
                 }
             }
@@ -2585,15 +2560,6 @@ ParticleContainer<NR, NI>::ReadParticles_DoublePrecision (int            cnt,
         D_TERM(p.m_rdata.pos[0] = rptr[0];,
                p.m_rdata.pos[1] = rptr[1];,
                p.m_rdata.pos[2] = rptr[2];);
-        //
-        // If we're reading in doubles and storing'm in floats we have
-        // to make sure the particles stay in the domain.
-        //
-        for (int d = 0; d < BL_SPACEDIM; d++)
-        {
-            if (p.m_rdata.pos[d] <= ProbLo[d]) p.m_rdata.pos[d] += Delta[d];
-            if (p.m_rdata.pos[d] >= ProbHi[d]) p.m_rdata.pos[d] -= Delta[d];
-        }
 
         for (int i = 0; i < NR; i++)
             p.m_rdata.arr[BL_SPACEDIM+i] = rptr[BL_SPACEDIM+i];
