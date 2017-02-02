@@ -586,8 +586,8 @@ Particle<NR, NI>::Where (const Particle<NR, NI>&     p,
         {
             pld.m_lev  = lev;
             pld.m_grid = isects[0].first;
+	    pld.m_tile = 0;
             pld.m_cell = iv;
-
             return true;
         }
     }
@@ -634,6 +634,7 @@ Particle<NR, NI>::PeriodicWhere (Particle<NR, NI>&           p,
 
                 pld.m_lev  = lev;
                 pld.m_grid = isects[0].first;
+		pld.m_tile = 0;
                 pld.m_cell = iv;
 
                 return true;
@@ -658,7 +659,7 @@ Particle<NR, NI>::RestrictedWhere (const Particle<NR, NI>&     p,
     if (amrex::grow(gdb->ParticleBoxArray(pld.m_lev)[pld.m_grid], ngrow).contains(iv))
     {
         pld.m_cell = iv;
-
+	pld.m_tile = 0;
         return true;
     }
 
@@ -685,6 +686,7 @@ Particle<NR, NI>::SingleLevelWhere (const Particle<NR, NI>&     p,
         pld.m_lev  = level;
         pld.m_grid = isects[0].first;
         pld.m_cell = iv;
+	pld.m_tile = 0;
 
         return true;
     }

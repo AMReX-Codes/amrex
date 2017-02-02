@@ -67,6 +67,7 @@ struct ParticleLocData
 {
   int     m_lev;
   int     m_grid;
+  int     m_tile;
   IntVect m_cell;
 };
 
@@ -264,19 +265,19 @@ public:
     // make accessing them and doing operations on them more memory efficient since most of our
     // operations on particles are done on a level by level basis or grid by grid basis.
     //
-    using PBox = std::vector<ParticleType>;
+    using PBox = Array<ParticleType>;
 
     //
     // A level of particles is stored in a map indexed by the grid number.
     //
-    using PMap = std::map<int, PBox>;
+    using PMap = std::map<int, Array<PBox> >;
 
     // The struct-of-arrays data is stored as a double array where the first index is the
     // component number and the second is the particle index
     using SoA = Array<Array<Real> >;
 
     // A level's worth of SoA data is stored in a map indexed by grid number
-    using SMap = std::map<int, SoA>;
+    using SMap = std::map<int, Array< SoA> >;
 
     ParticleContainer ()
       : m_verbose(1), m_gdb(nullptr), allow_particles_near_boundary(false), m_npartdata(0) 
@@ -366,6 +367,11 @@ public:
 
     const ParGDBBase* GetParGDB () const { return m_gdb; }
 
+    void allocateData();
+
+    void locateParticle(ParticleType& p, ParticleLocData& pld, int lev_min,
+			int theEffectiveFinestLevel, int nGrow);
+
     void InitFromAsciiFile (const std::string& file, int extradata, const IntVect* Nrep = 0);
     void InitFromBinaryFile (const std::string& file, int extradata);
     void InitFromBinaryMetaFile (const std::string& file, int extradata);
@@ -402,8 +408,8 @@ public:
     void Redistribute (int  lev_min              = 0, 
 		       int  nGrow                = 0);
 
-    void RedistributeMPI (PMap& not_ours,
-			  std::map<int, Array<Array<Real> > >& comm_pdata);
+  void RedistributeMPI (std::map<int, PBox>& not_ours,
+			std::map<int, SoA >& comm_pdata);
 
     //
     // OK checks that all particles are in the right places (for some value of right)
@@ -539,6 +545,10 @@ protected:
     //
     int m_npartdata;
     Array<SMap> m_partdata;
+
+    static bool do_tiling;
+    static IntVect tile_size;
+
 
 private:
     void AssignDensityDoit (int rho_index, 

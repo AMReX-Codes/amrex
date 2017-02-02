@@ -228,7 +228,7 @@ ParticleContainer<NR, NI>::InitFromAsciiFile (const std::string& file, int extra
 		    ParticleLocData pld;
 		    ParticleType::Where(p, m_gdb, pld);
 
-                    m_particles[pld.m_lev][pld.m_grid].push_back(p);
+                    m_particles[pld.m_lev][pld.m_grid][pld.m_tile].push_back(p);
     
                     nparticles.pop_back();
                 }
@@ -258,7 +258,7 @@ ParticleContainer<NR, NI>::InitFromAsciiFile (const std::string& file, int extra
 		ParticleLocData pld;
 		ParticleType::Where(p, m_gdb, pld);
 
-                m_particles[pld.m_lev][pld.m_grid].push_back(p);
+                m_particles[pld.m_lev][pld.m_grid][pld.m_tile].push_back(p);
 
                 nparticles.pop_back();
             }
@@ -670,7 +670,7 @@ ParticleContainer<NR, NI>::InitFromBinaryFile (const std::string& file,
                 p.m_idata.id  = ParticleType::NextID();
                 p.m_idata.cpu = MyProc;
 
-                m_particles[pld.m_lev][pld.m_grid].push_back(p);
+                m_particles[pld.m_lev][pld.m_grid][pld.m_tile].push_back(p);
             }
 
             how_many_read += NRead;
@@ -893,7 +893,7 @@ ParticleContainer<NR, NI>::InitRandom (long          icount,
                 p.m_idata.id  = ParticleType::NextID();
                 p.m_idata.cpu = MyProc;
 
-                m_particles[pld.m_lev][pld.m_grid].push_back(p);
+                m_particles[pld.m_lev][pld.m_grid][pld.m_tile].push_back(p);
 
                 cnt++;
             }
@@ -959,7 +959,7 @@ ParticleContainer<NR, NI>::InitRandom (long          icount,
             //
             // Add it to the appropriate PBox at the appropriate level.
             //
-            m_particles[pld.m_lev][pld.m_grid].push_back(p);
+            m_particles[pld.m_lev][pld.m_grid][pld.m_tile].push_back(p);
         }
         //
         // Let Redistribute() sort out where the particles belong.
@@ -1004,27 +1004,7 @@ ParticleContainer<NR, NI>::InitOnePerCell (Real x_off, Real y_off, Real z_off,
     //
     const Real* dx  = geom.CellSize();
 
-    int nlevs = m_gdb->finestLevel()+1;
-    m_particles.resize(nlevs);
-    m_partdata.resize(nlevs);
-    for (int lev = 0; lev < nlevs; ++ lev)
-      {
-	auto& partleveldata = m_partdata[lev];
-	const BoxArray& ba = m_gdb->ParticleBoxArray(lev);
-	const DistributionMapping& dm = m_gdb->ParticleDistributionMap(lev);
-
-	MFInfo Fab_noallocate;
-	Fab_noallocate.SetAlloc(false);
-	MultiFab foo(ba, dm, 1, 0, Fab_noallocate);
-	for (MFIter mfi(foo); mfi.isValid(); ++mfi)
-	  {
-	    int i = mfi.index();
-	    partleveldata[i] = Array<Array<Real> > (m_npartdata);
-	  }
-      }
-
-    for (int lev = 0; lev < m_particles.size(); lev++)
-        BL_ASSERT(m_particles[lev].empty());
+    allocateData();
 
     //
     // We'll generate the particles in parallel -- but no tiling here.
@@ -1074,17 +1054,19 @@ ParticleContainer<NR, NI>::InitOnePerCell (Real x_off, Real y_off, Real z_off,
                 amrex::Abort("ParticleContainer<NR, NI>::InitOnePerCell(): invalid particle");
             }
 
+	    pld.m_tile = 0;
+
             BL_ASSERT(pld.m_lev >= 0 && pld.m_lev <= m_gdb->finestLevel());
             //
             // Add it to the appropriate PBox at the appropriate level.
             //
-            m_particles[pld.m_lev][pld.m_grid].push_back(p);
+            m_particles[pld.m_lev][pld.m_grid][pld.m_tile].push_back(p);
 	    if (m_npartdata > 0)
-		m_partdata[pld.m_lev][pld.m_grid][0].push_back(p.m_idata.id);
+		m_partdata[pld.m_lev][pld.m_grid][pld.m_tile][0].push_back(p.m_idata.id);
 	    if (m_npartdata > 1)
-	      m_partdata[pld.m_lev][pld.m_grid][1].push_back(p.m_idata.cpu);
+	      m_partdata[pld.m_lev][pld.m_grid][pld.m_tile][1].push_back(p.m_idata.cpu);
 	    for (int i = 2; i < m_npartdata; i++)
-	      m_partdata[pld.m_lev][pld.m_grid][i].push_back(0.0);
+	      m_partdata[pld.m_lev][pld.m_grid][pld.m_tile][i].push_back(0.0);
           }
          }
         }
@@ -1183,7 +1165,7 @@ ParticleContainer<NR, NI>::InitNRandomPerCell (int n_per_cell, Real mass, MultiF
                //
                // Add it to the appropriate PBox at the appropriate level.
                //
-               m_particles[pld.m_lev][pld.m_grid].push_back(p);
+               m_particles[pld.m_lev][pld.m_grid][pld.m_tile].push_back(p);
             }
           } 
          } 
