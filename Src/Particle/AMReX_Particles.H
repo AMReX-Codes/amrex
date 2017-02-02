@@ -271,6 +271,13 @@ public:
     //
     using PMap = std::map<int, PBox>;
 
+    // The struct-of-arrays data is stored as a double array where the first index is the
+    // component number and the second is the particle index
+    using SoA = Array<Array<Real> >;
+
+    // A level's worth of SoA data is stored in a map indexed by grid number
+    using SMap = std::map<int, SoA>;
+
     ParticleContainer ()
       : m_verbose(1), m_gdb(nullptr), allow_particles_near_boundary(false), m_npartdata(0) 
   {
@@ -521,13 +528,17 @@ protected:
     ParGDBBase* m_gdb;
     bool        allow_particles_near_boundary;
     ParGDB      m_gdb_object;
+
+    //
+    // The array-of-structs data
+    //
     Array<PMap> m_particles;
 
     //
     // The struct-of-arrays data
     //
     int m_npartdata;
-    Array<std::map<int, Array<Array<Real> > > > m_partdata;
+    Array<SMap> m_partdata;
 
 private:
     void AssignDensityDoit (int rho_index, 
