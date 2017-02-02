@@ -49,10 +49,10 @@ ParticleContainer<NR, NI>::InitFromAsciiFile (const std::string& file, int extra
     long how_many      = 0;
     long how_many_read = 0;
     //
-    // NReaders will read particles into a PBox.
+    // NReaders will read particles into a AoS.
     // Later they'll each put their chunk into m_particles and call Redistribute().
     //
-    PBox nparticles;
+    AoS nparticles;
 
     if (MyProc < NReaders)
     {
@@ -365,7 +365,7 @@ ParticleContainer<NR, NI>::InitFromBinaryFile (const std::string& file,
     // tmp_particles should mirror how m_particles is built.
     // At the end of this routine it'll be the new m_particles.
     //
-    Array<PMap> tmp_particles;
+    Array<AoSMap> tmp_particles;
 
     tmp_particles.reserve(15);  // So we don't ever have to do any copying on a resize.
     tmp_particles.resize(m_gdb->finestLevel()+1);
@@ -684,22 +684,22 @@ ParticleContainer<NR, NI>::InitFromBinaryFile (const std::string& file,
         //
         for (int lev = 0; lev < m_particles.size(); lev++)
         {
-            PMap& pmap     = m_particles[lev];
-            PMap& tmp_pmap = tmp_particles[lev];
+            AoSMap& pmap     = m_particles[lev];
+            AoSMap& tmp_pmap = tmp_particles[lev];
 
-            for (typename PMap::iterator pmap_it = pmap.begin(), End = pmap.end();
+            for (typename AoSMap::iterator pmap_it = pmap.begin(), End = pmap.end();
                  pmap_it != End;
                  ++pmap_it)
             {
-                PBox& pbox     = pmap_it->second;
-                PBox& tmp_pbox = tmp_pmap[pmap_it->first];
+                AoS& pbox     = pmap_it->second;
+                AoS& tmp_pbox = tmp_pmap[pmap_it->first];
 
                 tmp_pbox.insert(tmp_pbox.end(), pbox.begin(), pbox.end());
 
-                PBox().swap(pbox);
+                AoS().swap(pbox);
             }
 
-            PMap().swap(pmap);
+            AoSMap().swap(pmap);
         }
     }
     //
@@ -888,7 +888,7 @@ ParticleContainer<NR, NI>::InitRandom (long          icount,
             if (who == MyProc)
             {
                 //
-                // We own it. Add it to the appropriate PBox at the appropriate level.
+                // We own it. Add it to the appropriate AoS at the appropriate level.
                 //
                 p.m_idata.id  = ParticleType::NextID();
                 p.m_idata.cpu = MyProc;
@@ -957,7 +957,7 @@ ParticleContainer<NR, NI>::InitRandom (long          icount,
             BL_ASSERT(pld.m_lev >= 0 && pld.m_lev <= m_gdb->finestLevel());
 
             //
-            // Add it to the appropriate PBox at the appropriate level.
+            // Add it to the appropriate AoS at the appropriate level.
             //
             m_particles[pld.m_lev][pld.m_grid][pld.m_tile].push_back(p);
         }
@@ -1058,7 +1058,7 @@ ParticleContainer<NR, NI>::InitOnePerCell (Real x_off, Real y_off, Real z_off,
 
             BL_ASSERT(pld.m_lev >= 0 && pld.m_lev <= m_gdb->finestLevel());
             //
-            // Add it to the appropriate PBox at the appropriate level.
+            // Add it to the appropriate AoS at the appropriate level.
             //
             m_particles[pld.m_lev][pld.m_grid][pld.m_tile].push_back(p);
 	    if (m_npartdata > 0)
@@ -1163,7 +1163,7 @@ ParticleContainer<NR, NI>::InitNRandomPerCell (int n_per_cell, Real mass, MultiF
 
                BL_ASSERT(pld.m_lev >= 0 && pld.m_lev <= m_gdb->finestLevel());
                //
-               // Add it to the appropriate PBox at the appropriate level.
+               // Add it to the appropriate AoS at the appropriate level.
                //
                m_particles[pld.m_lev][pld.m_grid][pld.m_tile].push_back(p);
             }

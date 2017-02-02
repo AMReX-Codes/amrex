@@ -260,24 +260,17 @@ public:
     //
     typedef Particle<NR, NI> ParticleType;
 
-    //
-    // We want to store the particles on a level by level and grid by grid basis.  This will
-    // make accessing them and doing operations on them more memory efficient since most of our
-    // operations on particles are done on a level by level basis or grid by grid basis.
-    //
-    using PBox = Array<ParticleType>;
-
-    //
-    // A level of particles is stored in a map indexed by the grid number.
-    //
-    using PMap = std::map<int, Array<PBox> >;
+    // This defines the array-of-structs datatype.
+    using AoS = Array<ParticleType>;
 
     // The struct-of-arrays data is stored as a double array where the first index is the
-    // component number and the second is the particle index
+    // component number and the second is the particle index.
     using SoA = Array<Array<Real> >;
 
-    // A level's worth of SoA data is stored in a map indexed by grid number
-    using SMap = std::map<int, Array< SoA> >;
+    // A single level worth of particles is indexed first by grid id, 
+    // then by tile id, for both SoA and AoS data.
+    using AoSMap = std::map<int, Array<AoS> >;
+    using SoAMap = std::map<int, Array<SoA> >;
 
     ParticleContainer ()
       : m_verbose(1), m_gdb(nullptr), allow_particles_near_boundary(false), m_npartdata(0) 
@@ -408,8 +401,8 @@ public:
     void Redistribute (int  lev_min              = 0, 
 		       int  nGrow                = 0);
 
-  void RedistributeMPI (std::map<int, PBox>& not_ours,
-			std::map<int, SoA >& comm_pdata);
+  void RedistributeMPI (std::map<int, AoS>& not_ours,
+			std::map<int, SoA>& comm_pdata);
 
     //
     // OK checks that all particles are in the right places (for some value of right)
@@ -446,16 +439,16 @@ public:
     // Creates virtual particles for a given level that represent
     // in some capacity all particles at finer levels
     //
-    void CreateVirtualParticles (int level, PBox& virts) const;
+    void CreateVirtualParticles (int level, AoS& virts) const;
     // 
     // Create ghost particles for a given level that are copies of particles
     // near coarse->fine boundaries in level-1
     //
-    void CreateGhostParticles (int level, int ngrow, PBox& ghosts) const;
+    void CreateGhostParticles (int level, int ngrow, AoS& ghosts) const;
     //
     // Add particles from a pbox to the grid at this level
     //
-    void AddParticlesAtLevel (int level, PBox& virts);
+    void AddParticlesAtLevel (int level, AoS& virts);
 
     void Checkpoint (const std::string& dir, const std::string& name, bool is_checkpoint = true) const;
 
@@ -469,8 +462,8 @@ public:
 
     void SetVerbose (int verbose) { m_verbose = verbose; }
 
-    const PMap& GetParticles(int lev) const { return m_particles[lev]; }
-    PMap& GetParticles(int lev) { return m_particles[lev]; }
+    const AoSMap& GetParticles(int lev) const { return m_particles[lev]; }
+    AoSMap& GetParticles(int lev) { return m_particles[lev]; }
 
     // 
     // Functions depending the layout of the data.  Use with caution.
@@ -536,16 +529,16 @@ protected:
     ParGDB      m_gdb_object;
 
     //
-    // The array-of-structs data
+    // The array-of-structs data for the entire AMR hierarchy
     //
-    Array<PMap> m_particles;
+    Array<AoSMap> m_particles;
 
     //
-    // The struct-of-arrays data
+    // The struct-of-arrays data for the entire AMR hierarchy
     //
+    Array<SoAMap> m_partdata;
+
     int m_npartdata;
-    Array<SMap> m_partdata;
-
     static bool do_tiling;
     static IntVect tile_size;
 
