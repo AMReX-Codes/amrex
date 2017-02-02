@@ -277,32 +277,32 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
     const int   mySet     = (MyProc / nOutFiles);
 
     for (int iSet = 0; iSet < nSets; ++iSet)
-    {
+      {
         if (mySet == iSet)
-        {
+	  {
             //
             // Do we have any particles at this level that need writing?
             //
             bool gotwork = false;
-
+	    
             const AoSMap& pmap = m_particles[lev];
-
+	    
 	    for (const auto& kv : pmap) {
 	      for (const auto& p : kv.second[0]) { // TILE
-		    if (p.m_idata.id > 0) {
-			gotwork = true;
-			break;
-		    }
+		if (p.m_idata.id > 0) {
+		  gotwork = true;
+		  break;
 		}
-		if (gotwork) break;
+	      }
+	      if (gotwork) break;
 	    }
-
+	    
             if (gotwork)
-            {
+	      {
                 std::string FileName = amrex::Concatenate(basename + '_', MyProc % nOutFiles, 2);
-
+		
                 std::ofstream TimeStampFile;
-
+		
                 VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
 
                 TimeStampFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
@@ -325,52 +325,52 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
 
 		for (const auto& kv : pmap)
                 {
-                    const int        grid = kv.first;
-                    const AoS&       pbox = kv.second[0]; // TILE
-                    const Box&       bx   = ba[grid];
-                    const FArrayBox& fab  = mf[grid];
+		  const int        grid = kv.first;
+		  const AoS&       pbox = kv.second[0]; // TILE
+		  const Box&       bx   = ba[grid];
+		  const FArrayBox& fab  = mf[grid];
 
-		    for (const auto& p : pbox)
+		  for (const auto& p : pbox)
                     {
-                        if (p.m_idata.id <= 0) continue;
-
-			ParticleLocData pld;
-			ParticleType::SingleLevelWhere(p, m_gdb, pld, lev);
-                        const IntVect& iv = pld.m_cell;
-
-                        if (!bx.contains(iv) && !ba.contains(iv)) continue;
-
-                        BL_ASSERT(pld.m_lev == lev);
-                        BL_ASSERT(pld.m_grid == grid);
-
-                        TimeStampFile << p.m_idata.id  << ' ' << p.m_idata.cpu << ' ';
-
-                        D_TERM(TimeStampFile << p.m_rdata.pos[0] << ' ';,
-                               TimeStampFile << p.m_rdata.pos[1] << ' ';,
-                               TimeStampFile << p.m_rdata.pos[2] << ' ';);
-
-                        TimeStampFile << time;
-                        //
-                        // AdvectWithUmac stores the velocity in rdata ...
-                        //
-                        D_TERM(TimeStampFile << ' ' << p.m_rdata.arr[BL_SPACEDIM+0];,
-                               TimeStampFile << ' ' << p.m_rdata.arr[BL_SPACEDIM+1];,
-                               TimeStampFile << ' ' << p.m_rdata.arr[BL_SPACEDIM+2];);
-
-                        if (M > 0)
+		      if (p.m_idata.id <= 0) continue;
+		      
+		      ParticleLocData pld;
+		      ParticleType::SingleLevelWhere(p, m_gdb, pld, lev);
+		      const IntVect& iv = pld.m_cell;
+		      
+		      if (!bx.contains(iv) && !ba.contains(iv)) continue;
+		      
+		      BL_ASSERT(pld.m_lev == lev);
+		      BL_ASSERT(pld.m_grid == grid);
+		      
+		      TimeStampFile << p.m_idata.id  << ' ' << p.m_idata.cpu << ' ';
+		      
+		      D_TERM(TimeStampFile << p.m_rdata.pos[0] << ' ';,
+			     TimeStampFile << p.m_rdata.pos[1] << ' ';,
+			     TimeStampFile << p.m_rdata.pos[2] << ' ';);
+		      
+		      TimeStampFile << time;
+		      //
+		      // AdvectWithUmac stores the velocity in rdata ...
+		      //
+		      D_TERM(TimeStampFile << ' ' << p.m_rdata.arr[BL_SPACEDIM+0];,
+			     TimeStampFile << ' ' << p.m_rdata.arr[BL_SPACEDIM+1];,
+			     TimeStampFile << ' ' << p.m_rdata.arr[BL_SPACEDIM+2];);
+		      
+		      if (M > 0)
                         {
-                            ParticleType::Interp(p,m_gdb->Geom(pld.m_lev),fab,&indices[0],&vals[0],M);
-
-                            for (int i = 0; i < M; i++)
+			  ParticleType::Interp(p,m_gdb->Geom(pld.m_lev),fab,&indices[0],&vals[0],M);
+			  
+			  for (int i = 0; i < M; i++)
                             {
-                                TimeStampFile << ' ' << vals[i];
+			      TimeStampFile << ' ' << vals[i];
                             }
                         }
-
-                        TimeStampFile << '\n';
+		      
+		      TimeStampFile << '\n';
                     }
                 }
-
+		
                 TimeStampFile.flush();
                 TimeStampFile.close();
             }
