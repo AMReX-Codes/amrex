@@ -54,12 +54,12 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
 
     for (int ipass = 0; ipass < 2; ipass++)
     {
-        PMap& pmap = m_particles[lev];
+        AoSMap& pmap = m_particles[lev];
 
         for (auto& kv : pmap)
         {
             const int grid = kv.first;
-            PBox&     pbox = kv.second[0]; // TILE
+            AoS&     pbox = kv.second[0]; // TILE
             const int n    = pbox.size();
 
             FArrayBox* fab[BL_SPACEDIM] = { D_DECL(&((*umac_pointer[0])[grid]),
@@ -169,12 +169,12 @@ TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
 
     for (int ipass = 0; ipass < 2; ipass++)
     {
-        PMap& pmap = m_particles[lev];
+        AoSMap& pmap = m_particles[lev];
 
         for (auto& kv : pmap)
         {
             const int grid = kv.first;
-            PBox&     pbox = kv.second[0]; // TILE
+            AoS&     pbox = kv.second[0]; // TILE
             const int n    = pbox.size();
 
 	    const FArrayBox& fab = Ucc[grid];
@@ -285,7 +285,7 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
             //
             bool gotwork = false;
 
-            const PMap& pmap = m_particles[lev];
+            const AoSMap& pmap = m_particles[lev];
 
 	    for (const auto& kv : pmap) {
 	      for (const auto& p : kv.second[0]) { // TILE
@@ -326,7 +326,7 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
 		for (const auto& kv : pmap)
                 {
                     const int        grid = kv.first;
-                    const PBox&      pbox = kv.second[0]; // TILE
+                    const AoS&       pbox = kv.second[0]; // TILE
                     const Box&       bx   = ba[grid];
                     const FArrayBox& fab  = mf[grid];
 
