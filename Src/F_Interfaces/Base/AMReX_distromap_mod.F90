@@ -40,14 +40,14 @@ module amrex_distromap_module
      subroutine amrex_fi_delete_distromap (dm) bind(c)
        use, intrinsic :: iso_c_binding
        implicit none
-       type(c_ptr), value, intent(in) :: dm
+       type(c_ptr), value :: dm
      end subroutine amrex_fi_delete_distromap
 
      subroutine amrex_fi_clone_distromap (dmo, dmi) bind(c)
        use, intrinsic :: iso_c_binding
        implicit none
        type(c_ptr) :: dmo
-       type(c_ptr), value, intent(in) :: dmi
+       type(c_ptr), value :: dmi
      end subroutine amrex_fi_clone_distromap
   end interface
 

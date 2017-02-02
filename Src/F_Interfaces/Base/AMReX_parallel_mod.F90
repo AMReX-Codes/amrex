@@ -37,7 +37,7 @@ contains
 
   subroutine amrex_parallel_comm_init_from_c (comm) bind(c, name='amrex_parallel_comm_init_from_c')
     use iso_c_binding
-    integer(c_int), intent(in), value :: comm
+    integer(c_int), value :: comm
 #ifdef BL_USE_MPI
     integer :: ierr
     call MPI_Comm_Dup(comm, m_comm, ierr)

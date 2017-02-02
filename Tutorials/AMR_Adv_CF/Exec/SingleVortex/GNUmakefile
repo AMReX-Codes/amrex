@@ -8,8 +8,9 @@ USE_MPI3  = FALSE
 MEM_PROFILE  = FALSE
 TINY_PROFILE = FALSE
 
-COMP      = g++
+COMP      = gnu
 
+#DIM       = 2
 DIM       = 3
 
 Bpack   := ./Make.package 

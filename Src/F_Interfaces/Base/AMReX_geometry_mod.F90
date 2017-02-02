@@ -37,20 +37,20 @@ module amrex_geometry_module
      subroutine amrex_fi_delete_geometry (geom) bind(c)
        use iso_c_binding
        implicit none
-       type(c_ptr), value, intent(in) :: geom
+       type(c_ptr), value :: geom
      end subroutine amrex_fi_delete_geometry
 
      subroutine amrex_fi_geometry_get_pmask (geom,pmask) bind(c)
        use iso_c_binding
        implicit none
-       type(c_ptr), value, intent(in) :: geom
+       type(c_ptr), value :: geom
        integer(c_int) :: pmask(3)
      end subroutine amrex_fi_geometry_get_pmask
 
      subroutine amrex_fi_geometry_get_probdomain (geom,problo,probhi) bind(c)
        use iso_c_binding
        implicit none
-       type(c_ptr), value, intent(in) :: geom
+       type(c_ptr), value :: geom
        real(c_double) :: problo(3), probhi(3)
      end subroutine amrex_fi_geometry_get_probdomain
   end interface
