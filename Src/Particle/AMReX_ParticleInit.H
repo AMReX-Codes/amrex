@@ -103,11 +103,6 @@ ParticleContainer<NR, NI>::InitFromAsciiFile (const std::string& file, int extra
 
         const Geometry& geom = m_gdb->Geom(0);
 
-        const Real ProbLo[BL_SPACEDIM] = { D_DECL(geom.ProbLo(0), geom.ProbLo(1), geom.ProbLo(2)) };
-        const Real ProbHi[BL_SPACEDIM] = { D_DECL(geom.ProbHi(0), geom.ProbHi(1), geom.ProbHi(2)) };
-        const Real  Delta[BL_SPACEDIM] = { D_DECL(Real(.125)*geom.CellSize(0),
-                                                  Real(.125)*geom.CellSize(1),
-                                                  Real(.125)*geom.CellSize(2)) };
         for (int i = 0; i < MyCnt; i++)
         {
             //
@@ -117,14 +112,6 @@ ParticleContainer<NR, NI>::InitFromAsciiFile (const std::string& file, int extra
             D_TERM(ifs >> p.m_rdata.pos[0];,
                    ifs >> p.m_rdata.pos[1];,
                    ifs >> p.m_rdata.pos[2];);
-            //
-            // If particle is right on a domain boundary then move it just inside the boundary.
-            //
-            for (int d = 0; d < BL_SPACEDIM; d++)
-            {
-                if (p.m_rdata.pos[d] <= ProbLo[d]) p.m_rdata.pos[d] += Delta[d];
-                if (p.m_rdata.pos[d] >= ProbHi[d]) p.m_rdata.pos[d] -= Delta[d];
-            }
 
             for (int n = 0; n < extradata; n++)
             {
@@ -562,12 +549,6 @@ ParticleContainer<NR, NI>::InitFromBinaryFile (const std::string& file,
 
     const Geometry& geom = m_gdb->Geom(0);
 
-    const Real ProbLo[BL_SPACEDIM] = { D_DECL(geom.ProbLo(0), geom.ProbLo(1), geom.ProbLo(2)) };
-    const Real ProbHi[BL_SPACEDIM] = { D_DECL(geom.ProbHi(0), geom.ProbHi(1), geom.ProbHi(2)) };
-    const Real  Delta[BL_SPACEDIM] = { D_DECL(Real(.125)*geom.CellSize(0),
-                                              Real(.125)*geom.CellSize(1),
-                                              Real(.125)*geom.CellSize(2)) };
-
     long how_many_redists = NP / (NPartPerRedist*NReaders), how_many_read = 0;
 
     if (NP % (NPartPerRedist*NReaders)) how_many_redists++;
@@ -625,14 +606,7 @@ ParticleContainer<NR, NI>::InitFromBinaryFile (const std::string& file,
                            p.m_rdata.pos[1] = dpos[1];,
                            p.m_rdata.pos[2] = dpos[2];);
                 }
-                //
-                // If particle is right on a domain boundary then move it just inside the boundary.
-                //
-                for (int d = 0; d < BL_SPACEDIM; d++)
-                {
-                    if (p.m_rdata.pos[d] <= ProbLo[d]) p.m_rdata.pos[d] += Delta[d];
-                    if (p.m_rdata.pos[d] >= ProbHi[d]) p.m_rdata.pos[d] -= Delta[d];
-                }
+
                 //
                 // Read in any "extradata".
                 //
