@@ -12,13 +12,17 @@ module amrex_geometry_module
   public :: amrex_geometry_build, amrex_geometry_destroy
 
   type, public :: amrex_geometry
+     logical          :: owner     = .false.
+     type(c_ptr)      :: p         = c_null_ptr
+     !
      logical          :: pmask(3)  = .false.
      real(amrex_real) :: problo(3) = 0.0_amrex_real
      real(amrex_real) :: probhi(3) = 1.0_amrex_real
      real(amrex_real) :: dx(3)     = 0.0_amrex_real
      type(amrex_box)  :: domain
-     type(c_ptr)      :: p         = c_null_ptr
    contains
+     generic :: assignment(=) => amrex_geometry_assign  ! shallow copy
+     procedure, private :: amrex_geometry_assign
 #if !defined(__GFORTRAN__) || (__GNUC__ > 4)
      final :: amrex_geometry_destroy
 #endif
@@ -61,6 +65,7 @@ contains
     type(amrex_geometry) :: geom
     type(amrex_box), intent(in) :: domain
     integer :: imask(3), i
+    geom%owner = .true.
     call amrex_fi_new_geometry(geom%p, domain%lo, domain%hi)
     imask = 0
     call amrex_fi_geometry_get_pmask(geom%p, imask)
@@ -74,10 +79,26 @@ contains
 
   subroutine amrex_geometry_destroy (geom)
     type(amrex_geometry) :: geom
-    if (c_associated(geom%p)) then
-       call amrex_fi_delete_geometry(geom%p)
-       geom%p = c_null_ptr
+    if (geom%owner) then
+       if (c_associated(geom%p)) then
+          call amrex_fi_delete_geometry(geom%p)
+       end if
     end if
+    geom%owner = .false.
+    geom%p = c_null_ptr
   end subroutine amrex_geometry_destroy
+
+  subroutine amrex_geometry_assign (dst, src)
+    class(amrex_geometry), intent(inout) :: dst
+    type (amrex_geometry), intent(in   ) :: src
+    call amrex_geometry_destroy(dst)
+    dst%owner  = .false.
+    dst%p      = src%p
+    dst%pmask  = src%pmask
+    dst%problo = src%problo
+    dst%probhi = src%probhi
+    dst%dx     = src%dx
+    dst%domain = src%domain
+  end subroutine amrex_geometry_assign
 
 end module amrex_geometry_module

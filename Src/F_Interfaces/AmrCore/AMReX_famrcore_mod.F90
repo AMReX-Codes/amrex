@@ -7,14 +7,9 @@ module amrex_famrcore_module
 
   private
 
-!  public :: amrex_famrcore_build, amrex_famrcore_destroy
+  type(c_ptr) :: famrcore = c_null_ptr
 
-  type, abstract, public :: amrex_famrcore
-     type(c_ptr) :: p = c_null_ptr
-   contains
-     procedure  ::  famrcore_build
-     procedure  ::  famrcore_destroy
-  end type amrex_famrcore
+  public :: amrex_famrcore_init, amrex_famrcore_finalize, amrex_famrcore_initialized
 
   interface
      subroutine amrex_fi_new_famrcore (famrcore) bind(c)
@@ -32,17 +27,17 @@ module amrex_famrcore_module
 
 contains
 
-  subroutine famrcore_build (this)
-    class(amrex_famrcore) :: this
-    print *, 'in famrcore_build'
-    call amrex_fi_new_famrcore(this%p)
-  end subroutine famrcore_build
+  subroutine amrex_famrcore_init ()
+    call amrex_fi_new_famrcore(famrcore)
+  end subroutine amrex_famrcore_init
 
-  subroutine famrcore_destroy (this)
-    class(amrex_famrcore) :: this
-    print *, 'in famrcore_destroy'
-    call amrex_fi_delete_famrcore(this%p)
-    this%p = c_null_ptr
-  end subroutine famrcore_destroy
+  subroutine amrex_famrcore_finalize ()
+    call amrex_fi_delete_famrcore(famrcore)
+    famrcore = c_null_ptr
+  end subroutine amrex_famrcore_finalize
+
+  logical function amrex_famrcore_initialized ()
+    amrex_famrcore_initialized = c_associated(famrcore)
+  end function amrex_famrcore_initialized
 
 end module amrex_famrcore_module
