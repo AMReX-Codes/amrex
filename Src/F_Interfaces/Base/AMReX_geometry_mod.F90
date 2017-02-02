@@ -9,7 +9,7 @@ module amrex_geometry_module
 
   private
 
-  public :: amrex_geometry_build, amrex_geometry_destroy
+  public :: amrex_geometry_build, amrex_geometry_destroy, amrex_geometry_init_data
 
   type, public :: amrex_geometry
      logical          :: owner     = .false.
@@ -57,6 +57,12 @@ module amrex_geometry_module
        type(c_ptr), value :: geom
        real(c_double) :: problo(3), probhi(3)
      end subroutine amrex_fi_geometry_get_probdomain
+
+     subroutine amrex_fi_geometry_get_intdomain (geom,lo,hi) bind(c)
+       import
+       type(c_ptr), value :: geom
+       integer(c_int), intent(out) :: lo(3), hi(3)
+     end subroutine amrex_fi_geometry_get_intdomain
   end interface
 
 contains
@@ -64,18 +70,24 @@ contains
   subroutine amrex_geometry_build (geom, domain)
     type(amrex_geometry) :: geom
     type(amrex_box), intent(in) :: domain
-    integer :: imask(3), i
     geom%owner = .true.
     call amrex_fi_new_geometry(geom%p, domain%lo, domain%hi)
+    call amrex_geometry_init_data(geom)
+  end subroutine amrex_geometry_build
+
+  subroutine amrex_geometry_init_data (geom)  ! geom%p must be valid!
+    type(amrex_geometry), intent(inout) :: geom
+    integer :: imask(3), i, lo(3), hi(3)
     imask = 0
     call amrex_fi_geometry_get_pmask(geom%p, imask)
     where (imask .eq. 1) geom%pmask = .true.
     call amrex_fi_geometry_get_probdomain(geom%p, geom%problo, geom%probhi)
-    geom%domain = domain
+    call amrex_fi_geometry_get_intdomain(geom%p, lo, hi)
+    geom%domain = amrex_box(lo, hi)
     do i = 1, ndims
-       geom%dx(i) = (geom%probhi(i)-geom%problo(i)) / dble(domain%hi(i)-domain%lo(i)+1)
+       geom%dx(i) = (geom%probhi(i)-geom%problo(i)) / dble(hi(i)-lo(i)+1)
     end do
-  end subroutine amrex_geometry_build
+  end subroutine amrex_geometry_init_data
 
   subroutine amrex_geometry_destroy (geom)
     type(amrex_geometry) :: geom

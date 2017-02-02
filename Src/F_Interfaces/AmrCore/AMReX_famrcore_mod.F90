@@ -8,7 +8,9 @@ module amrex_famrcore_module
   private
 
   ! public routines
-  public :: amrex_famrcore_init, amrex_famrcore_finalize, amrex_famrcore_initialized
+  public :: amrex_famrcore_init, amrex_famrcore_finalize, amrex_famrcore_initialized, &
+       amrex_get_finest_level, amrex_get_boxarray, amrex_get_distromap, amrex_get_geometry, &
+       amrex_make_base_grids
 
   ! public variables
   public :: amrex_max_level, amrex_ref_ratio
@@ -39,6 +41,38 @@ module amrex_famrcore_module
        integer, intent(inout) :: ref_ratio(*)
        type(c_ptr), value :: famrcore
      end subroutine amrex_fi_get_ref_ratio
+
+     integer(c_int) function amrex_fi_get_finest_level (famrcore) bind(c)
+       import
+       type(c_ptr), value :: famrcore
+     end function amrex_fi_get_finest_level
+
+     subroutine amrex_fi_get_boxarray (ba, lev, famrcore) bind(c)
+       import
+       type(c_ptr), intent(out) :: ba
+       integer(c_int), value :: lev
+       type(c_ptr), value :: famrcore
+     end subroutine amrex_fi_get_boxarray
+
+     subroutine amrex_fi_get_distromap (dm, lev, famrcore) bind(c)
+       import
+       type(c_ptr), intent(out) :: dm
+       integer(c_int), value :: lev
+       type(c_ptr), value :: famrcore
+     end subroutine amrex_fi_get_distromap
+
+     subroutine amrex_fi_get_geometry (geom, lev, famrcore) bind(c)
+       import
+       type(c_ptr), intent(out) :: geom
+       integer(c_int), value :: lev
+       type(c_ptr), value :: famrcore
+     end subroutine amrex_fi_get_geometry
+
+     subroutine amrex_fi_make_base_grids (ba, famrcore) bind(c)
+       import
+       type(c_ptr), intent(out) :: ba
+       type(c_ptr), value :: famrcore
+     end subroutine amrex_fi_make_base_grids
   end interface
 
 contains
@@ -59,4 +93,35 @@ contains
     amrex_famrcore_initialized = c_associated(famrcore)
   end function amrex_famrcore_initialized
 
+  integer function amrex_get_finest_level ()
+    amrex_get_finest_level = amrex_fi_get_finest_level(famrcore)
+  end function amrex_get_finest_level
+
+  function amrex_get_boxarray (lev) result(ba)
+    integer, intent(in) :: lev
+    type(amrex_boxarray) :: ba
+    call amrex_fi_get_boxarray(ba%p, lev, famrcore)
+  end function amrex_get_boxarray
+
+  function amrex_get_distromap (lev) result(dm)
+    integer, intent(in) :: lev
+    type(amrex_distromap) :: dm
+    call amrex_fi_get_distromap(dm%p, lev, famrcore)
+  end function amrex_get_distromap
+
+  function amrex_get_geometry (lev) result(geom)
+    integer, intent(in) :: lev
+    type(amrex_geometry) :: geom
+    call amrex_fi_get_geometry(geom%p, lev, famrcore)
+    call amrex_geometry_init_data(geom)
+  end function amrex_get_geometry
+
+  subroutine amrex_make_base_grids (ba)
+    type(amrex_boxarray), intent(inout) :: ba
+    call amrex_boxarray_destroy(ba)
+    ba%owner = .true.
+    call amrex_fi_make_base_grids(ba%p, famrcore)
+  end subroutine amrex_make_base_grids
+  
 end module amrex_famrcore_module
+

@@ -19,7 +19,7 @@ module amrex_box_module
 contains
 
   function amrex_box_build(lo, hi) result(bx)
-    integer, intent(in) :: lo(:), hi(:)
+    integer, intent(in) :: lo(*), hi(*)
     type(amrex_box) :: bx
     bx%lo(1:ndims) = lo(1:ndims)
     bx%hi(1:ndims) = hi(1:ndims)

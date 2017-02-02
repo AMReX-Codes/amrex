@@ -4,6 +4,7 @@ subroutine amrex_fmain () bind(c)
   use amrex_module
   use amrex_famrcore_module
   use my_amr_module
+  use initdata_module
 
   implicit none
 
@@ -11,7 +12,7 @@ subroutine amrex_fmain () bind(c)
 
   call my_amr_init()
 
-  
+  call initdata()
 
   call my_amr_finalize()
 
