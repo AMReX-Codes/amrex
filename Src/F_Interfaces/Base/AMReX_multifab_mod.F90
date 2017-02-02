@@ -2,6 +2,7 @@
 module amrex_multifab_module
 
   use iso_c_binding
+  use amrex_error_module
   use amrex_fort_module, only : ndims => amrex_spacedim, amrex_real
   use amrex_box_module
   use amrex_boxarray_module
@@ -380,7 +381,8 @@ contains
   subroutine amrex_mfiter_assign (dst, src)
     class(amrex_mfiter), intent(inout) :: dst
     type (amrex_mfiter), intent(in   ) :: src
-    !
+    ! No way to disable it at compile time, so ...
+    call amrex_abort("amrex_mfiter assignment is disabled")
   end subroutine amrex_mfiter_assign
 
   subroutine amrex_mfiter_clear (this)

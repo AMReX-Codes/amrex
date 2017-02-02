@@ -1,6 +1,7 @@
 
 module amrex_module
 
+  use amrex_error_module
   use amrex_fort_module
   use amrex_box_module
   use amrex_boxarray_module
