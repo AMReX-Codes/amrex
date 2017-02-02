@@ -65,21 +65,21 @@ module amrex_multifab_module
        use, intrinsic :: iso_c_binding
        implicit none
        type(c_ptr) :: mf, bao
-       type(c_ptr), intent(in), value :: bai, dm
-       integer(c_int), intent(in), value :: nc, ng
+       type(c_ptr), value :: bai, dm
+       integer(c_int), value :: nc, ng
        integer(c_int), intent(in) :: nodal(3)
      end subroutine amrex_fi_new_multifab
      
      subroutine amrex_fi_delete_multifab (mf) bind(c)
        use, intrinsic :: iso_c_binding
        implicit none
-       type(c_ptr), value, intent(in) :: mf
+       type(c_ptr), value :: mf
      end subroutine amrex_fi_delete_multifab
 
      subroutine amrex_fi_multifab_dataptr (mf, mfi, dp, lo, hi) bind(c)
        use, intrinsic :: iso_c_binding
        implicit none
-       type(c_ptr), value, intent(in) :: mf, mfi
+       type(c_ptr), value :: mf, mfi
        type(c_ptr) :: dp
        integer(c_int) :: lo(3), hi(3)
      end subroutine amrex_fi_multifab_dataptr
@@ -89,8 +89,8 @@ module amrex_multifab_module
        use amrex_fort_module, only : amrex_real
        implicit none
        real(amrex_real) :: amrex_fi_multifab_min
-       type(c_ptr), value, intent(in) :: mf
-       integer(c_int), value, intent(in) :: comp, nghost
+       type(c_ptr), value :: mf
+       integer(c_int), value :: comp, nghost
      end function amrex_fi_multifab_min
 
      function amrex_fi_multifab_max (mf, comp, nghost) bind(c)
@@ -98,8 +98,8 @@ module amrex_multifab_module
        use amrex_fort_module, only : amrex_real
        implicit none
        real(amrex_real) :: amrex_fi_multifab_max
-       type(c_ptr), value, intent(in) :: mf
-       integer(c_int), value, intent(in) :: comp, nghost
+       type(c_ptr), value :: mf
+       integer(c_int), value :: comp, nghost
      end function amrex_fi_multifab_max
 
      function amrex_fi_multifab_norm0 (mf, comp) bind(c)
@@ -107,8 +107,8 @@ module amrex_multifab_module
        use amrex_fort_module, only : amrex_real
        implicit none
        real(amrex_real) :: amrex_fi_multifab_norm0
-       type(c_ptr), value, intent(in) :: mf
-       integer(c_int), value, intent(in) :: comp
+       type(c_ptr), value :: mf
+       integer(c_int), value :: comp
      end function amrex_fi_multifab_norm0
 
      function amrex_fi_multifab_norm1 (mf, comp) bind(c)
@@ -116,8 +116,8 @@ module amrex_multifab_module
        use amrex_fort_module, only : amrex_real
        implicit none
        real(amrex_real) :: amrex_fi_multifab_norm1
-       type(c_ptr), value, intent(in) :: mf
-       integer(c_int), value, intent(in) :: comp
+       type(c_ptr), value :: mf
+       integer(c_int), value :: comp
      end function amrex_fi_multifab_norm1
 
      function amrex_fi_multifab_norm2 (mf, comp) bind(c)
@@ -125,8 +125,8 @@ module amrex_multifab_module
        use amrex_fort_module, only : amrex_real
        implicit none
        real(amrex_real) :: amrex_fi_multifab_norm2
-       type(c_ptr), value, intent(in) :: mf
-       integer(c_int), value, intent(in) :: comp
+       type(c_ptr), value :: mf
+       integer(c_int), value :: comp
      end function amrex_fi_multifab_norm2
 
      subroutine amrex_fi_multifab_fill_boundary (mf, geom, c, nc, cross) bind(c)
@@ -142,34 +142,34 @@ module amrex_multifab_module
        use, intrinsic :: iso_c_binding
        implicit none
        type(c_ptr) :: mfi
-       type(c_ptr), intent(in), value :: mf
-       integer(c_int), intent(in), value :: tiling
+       type(c_ptr), value :: mf
+       integer(c_int), value :: tiling
      end subroutine amrex_fi_new_mfiter
 
      subroutine amrex_fi_delete_mfiter (p) bind(c)
        use, intrinsic :: iso_c_binding
        implicit none
-       type(c_ptr), value, intent(in) :: p
+       type(c_ptr), value :: p
      end subroutine amrex_fi_delete_mfiter
 
      subroutine amrex_fi_increment_mfiter (p, iv) bind(c)
        use, intrinsic :: iso_c_binding
        implicit none
-       type(c_ptr), value, intent(in) :: p
+       type(c_ptr), value :: p
        integer(c_int) :: iv
      end subroutine amrex_fi_increment_mfiter
 
      subroutine amrex_fi_mfiter_is_valid (p, iv) bind(c)
        use, intrinsic :: iso_c_binding
        implicit none
-       type(c_ptr), value, intent(in) :: p
+       type(c_ptr), value :: p
        integer(c_int) :: iv
      end subroutine amrex_fi_mfiter_is_valid
 
      subroutine amrex_fi_mfiter_tilebox (p, lo, hi) bind(c)
        use, intrinsic :: iso_c_binding
        implicit none
-       type(c_ptr), value, intent(in) :: p
+       type(c_ptr), value :: p
        integer(c_int) :: lo(3), hi(3)
      end subroutine amrex_fi_mfiter_tilebox
   end interface

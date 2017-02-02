@@ -42,21 +42,21 @@ module amrex_boxarray_module
      subroutine amrex_fi_delete_boxarray (ba) bind(c)
        use, intrinsic :: iso_c_binding
        implicit none
-       type(c_ptr), value, intent(in) :: ba
+       type(c_ptr), value :: ba
      end subroutine amrex_fi_delete_boxarray
 
      subroutine amrex_fi_clone_boxarray (bao, bai) bind(c)
        use, intrinsic :: iso_c_binding
        implicit none
        type(c_ptr) :: bao
-       type(c_ptr), value, intent(in) :: bai
+       type(c_ptr), value :: bai
      end subroutine amrex_fi_clone_boxarray
 
      subroutine amrex_fi_boxarray_maxsize (ba,n) bind(c)
        use, intrinsic :: iso_c_binding
        implicit none
-       type(c_ptr), value, intent(in) :: ba
-       integer(c_int), value, intent(in) :: n
+       type(c_ptr), value :: ba
+       integer(c_int), value :: n
      end subroutine amrex_fi_boxarray_maxsize
   end interface
 
