@@ -3,9 +3,9 @@ module my_amr_module
   use amrex_module
   use amrex_famrcore_module
 
-  implicit none
+  use amrex_fort_module, only : rt => amrex_real
 
-  private
+  implicit none
 
   ! runtime parameters
   integer :: max_step   = huge(1)
@@ -15,8 +15,8 @@ module my_amr_module
   !
   logical :: do_reflux  = .true.
   !
-  real(amrex_real) :: stop_time  = huge(1._amrex_real)
-  real(amrex_real) :: cfl        = 0.7_amrex_real
+  real(rt) :: stop_time  = huge(1._rt)
+  real(rt) :: cfl        = 0.7_rt
   !
   character(len=127) :: check_file = "chk"
   character(len=127) :: plot_file  = "plt"
@@ -25,9 +25,17 @@ module my_amr_module
   integer, allocatable :: ref_ratio(:)
   integer, allocatable :: istep(:)
   integer, allocatable :: nsubsteps(:)
-  
-  public :: my_amr_init, my_amr_finalize
+  integer, allocatable :: last_regrid_step(:)
 
+  real(rt), allocatable :: t_new(:)
+  real(rt), allocatable :: t_old(:)
+  real(rt), allocatable :: dt(:)
+
+  type(amrex_multifab), allocatable :: phi_new(:)
+  type(amrex_multifab), allocatable :: phi_old(:)
+
+  ! type(amrex_fluxregister), allocatable :: flux_reg(:)
+  
 contains
 
   subroutine my_amr_init ()
@@ -67,11 +75,33 @@ contains
        nsubsteps(ilev) = amrex_ref_ratio(ilev-1)
     end do
 
+    allocate(last_regrid_step(0:amrex_max_level))
+    last_regrid_step = 0
+
+    allocate(t_new(0:amrex_max_level))
+    t_new = 0.0_rt
+
+    allocate(t_old(0:amrex_max_level))
+    t_old = -1.0e100_rt
+
+    allocate(dt(0:amrex_max_level))
+    dt = 1.e100
+
+    allocate(phi_new(0:amrex_max_level))
+    allocate(phi_old(0:amrex_max_level))
+
+    ! allocate(flux_reg(0:amrex_max_level))
+
   end subroutine my_amr_init
 
 
   subroutine my_amr_finalize ()
-    
+    integer :: lev
+    do lev = 0, amrex_max_level
+       call amrex_multifab_destroy(phi_new(lev))
+       call amrex_multifab_destroy(phi_old(lev))
+       ! call amrex_fluxregister_destroy(flux_reg(lev))
+    end do
   end subroutine my_amr_finalize
 
 end module my_amr_module

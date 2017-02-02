@@ -27,4 +27,32 @@ extern "C" {
 	    ref_ratio[i] = famrcore->MaxRefRatio(i);
 	}
     }
+
+    int amrex_fi_get_finest_level (const FAmrCore* famrcore)
+    {
+	return famrcore->finestLevel();
+    }
+
+    void amrex_fi_get_boxarray (const BoxArray*& ba, int lev, const FAmrCore* famrcore)
+    {
+	const BoxArray& ba_ = famrcore->boxArray(lev);
+	ba = &ba_;
+    }
+
+    void amrex_fi_get_distromap (const DistributionMapping*& dm, int lev, const FAmrCore* famrcore)
+    {
+	const DistributionMapping& dm_ = famrcore->DistributionMap(lev);
+	dm = &dm_;
+    }
+
+    void amrex_fi_get_geometry (const Geometry*& geom, int lev, const FAmrCore* famrcore)
+    {
+	const Geometry& geom_ = famrcore->Geom(lev);
+	geom = &geom_;
+    }
+
+    void amrex_fi_make_base_grids (BoxArray*& ba, const FAmrCore* famrcore)
+    {
+	ba = new BoxArray(famrcore->MakeBaseGrids());
+    }
 }
