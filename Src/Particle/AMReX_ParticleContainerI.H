@@ -1192,8 +1192,8 @@ ParticleContainer<NR, NI>::Redistribute (int  lev_min,
 		  //
 		  m_particles[pld.m_lev][pld.m_grid].push_back(p);
 		  for (int comp = 0; comp < m_npartdata; comp++) {
-		    Real pdata = (*m_partdata[lev][grid][comp])[pindex];
-		    m_partdata[pld.m_lev][pld.m_grid][comp]->push_back(pdata);
+		    Real pdata = m_partdata[lev][grid][comp][pindex];
+		    m_partdata[pld.m_lev][pld.m_grid][comp].push_back(pdata);
 		  }
 		  //
 		  // Invalidate the particle so we can reclaim its space.
@@ -1204,7 +1204,7 @@ ParticleContainer<NR, NI>::Redistribute (int  lev_min,
 	      else {
 		not_ours[who].push_back(p);
 		for (int comp = 0; comp < m_npartdata; comp++) {
-		  Real pdata = (*m_partdata[lev][grid][comp])[pindex];
+		  Real pdata = m_partdata[lev][grid][comp][pindex];
 		  if (communicate_comp[comp])
 		    comm_soa_data[who][comp].push_back(pdata);
 		}
@@ -1220,7 +1220,7 @@ ParticleContainer<NR, NI>::Redistribute (int  lev_min,
 	    if (pindex != first) {
 	      pbox[first] = p;
 	      for (int comp = 0; comp < m_npartdata; comp++) {
-		Array<Real>& vec = *m_partdata[lev][grid][comp];
+		Array<Real>& vec = m_partdata[lev][grid][comp];
 		vec[first] = vec[pindex];
 	      }
 	    }
@@ -1229,7 +1229,7 @@ ParticleContainer<NR, NI>::Redistribute (int  lev_min,
 	}
 	pbox.erase(pbox.begin() + first, pbox.begin() + npart);
 	for (int comp = 0; comp < m_npartdata; comp++) {
-	  Array<Real>& vec = *(m_partdata[lev][grid][comp]);
+	  Array<Real>& vec = m_partdata[lev][grid][comp];
 	  vec.erase(vec.begin() + first, vec.begin() + npart);
 	}
       }
@@ -1596,9 +1596,9 @@ ParticleContainer<NR, NI>::RedistributeMPI (PMap& not_ours,
 		  
 		  for (int j = 0; j < m_npartdata; j++) {
 		    if (communicate_comp[j])
-		      (*m_partdata[pld.m_lev][pld.m_grid][j]).push_back(rcvp[j]);
+		      m_partdata[pld.m_lev][pld.m_grid][j].push_back(rcvp[j]);
 		    else
-		      (*m_partdata[pld.m_lev][pld.m_grid][j]).push_back(0.0);		      
+		      m_partdata[pld.m_lev][pld.m_grid][j].push_back(0.0);		      
 		  }
 		  
 		  rcvp += num_soa_comps;
@@ -2775,7 +2775,7 @@ ParticleContainer<NR, NI>::WriteAsciiFile (const std::string& filename)
 				 << it->m_rdata.pos[2] << ' ');
 
 			  for (int i = 0; i < m_npartdata; i++)
-			    File << (*(m_partdata[lev][grid_id][i]))[index] << ' ';
+			    File << m_partdata[lev][grid_id][i][index] << ' ';
 			  index++;
 			    
 			  for (int i = BL_SPACEDIM; i < BL_SPACEDIM + NR; i++)
