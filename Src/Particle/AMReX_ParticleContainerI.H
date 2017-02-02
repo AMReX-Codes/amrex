@@ -1148,7 +1148,7 @@ ParticleContainer<NR, NI>::Redistribute (int  lev_min,
   PMap not_ours;
 
   // struct-of-array data that also needs to be communicated
-  std::map<int, Array<Array<Real> > > comm_soa_data;
+  SMap comm_soa_data;
   for (int i = 0; i < NProcs; i++)
     comm_soa_data[i].resize(m_npartdata);
 
@@ -1296,7 +1296,7 @@ ParticleContainer<NR, NI>::Redistribute (int  lev_min,
 template <int NR, int NI>
 void
 ParticleContainer<NR, NI>::RedistributeMPI (PMap& not_ours,
-					     std::map<int, Array<Array<Real> > >& comm_soa_data)
+					    SMap& comm_soa_data)
 {
     BL_PROFILE("ParticleContainer<NR, NI>::RedistributeMPI()");
 #if BL_USE_MPI
@@ -1522,7 +1522,7 @@ ParticleContainer<NR, NI>::RedistributeMPI (PMap& not_ours,
 	  senddata.resize(Cnt);
 	  
 	  PBox& pbox = not_ours[Who];
-	  Array<Array<Real> >& StructOfArrayData = comm_soa_data[Who];
+	  SoA& StructOfArrayData = comm_soa_data[Who];
 
 	  int ioff = 0;
 	  int pindex = 0;
