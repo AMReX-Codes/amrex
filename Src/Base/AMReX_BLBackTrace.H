@@ -23,8 +23,8 @@
 #ifdef BL_BACKTRACING
 #define BL_PASTE2(x, y) x##y
 #define BL_PASTE(x, y) BL_PASTE2(x, y)
-#define BL_BACKTRACE_PUSH( S )  BLBTer BL_PASTE( bl_bter, __COUNTER__ )( S, __FILE__, __LINE__ )
-#define BL_BACKTRACE_POP()   BLBackTrace::bt_stack.pop()
+#define BL_BACKTRACE_PUSH( S )  amrex::BLBTer BL_PASTE( bl_bter, __COUNTER__ )( S, __FILE__, __LINE__ )
+#define BL_BACKTRACE_POP()   amrex::BLBackTrace::bt_stack.pop()
 #else
 #define BL_BACKTRACE_PUSH(S) ((void)0)
 #define BL_BACKTRACE_POP(S) ((void)0)
