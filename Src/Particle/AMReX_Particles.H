@@ -35,10 +35,11 @@ namespace amrex {
 
 namespace
 {
-    std::string aggregation_type   = "";
-    int         aggregation_buffer = 1;
-    const int   GhostParticleID    = 2000000000;
-    const int   VirtualParticleID  = 1000000000;
+    std::string   aggregation_type   = "";
+    int           aggregation_buffer = 1;
+    constexpr int GhostParticleID    = std::numeric_limits<int>::max();
+    constexpr int VirtualParticleID  = std::numeric_limits<int>::max()-1;
+    constexpr int LastParticleID     = std::numeric_limits<int>::max()-2;
 }
 
 template<int NR, int NI> class PartIter;
