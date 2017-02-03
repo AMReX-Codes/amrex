@@ -815,12 +815,7 @@ ParticleContainer<NR, NI>::InitRandom (long          icount,
 
     amrex::InitRandom(iseed+MyProc);
 
-    m_particles.resize(m_gdb->finestLevel()+1);
-
-    for (int lev = 0; lev < m_particles.size(); lev++)
-    {
-        BL_ASSERT(m_particles[lev].empty());
-    }
+    allocateData();
 
     if (serialize)
     {

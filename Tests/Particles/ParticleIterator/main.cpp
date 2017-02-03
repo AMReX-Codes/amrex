@@ -58,8 +58,7 @@ int main(int argc, char* argv[])
 
   MyPC.InitOnePerCell(0.5, 0.5, 0.5, 1.0, dummy_mf);
 
-  PartIterInfo info(0, true, { D_DECL(102400, 8, 8) });
-  for (PartIter<1+BL_SPACEDIM> it(MyPC, info); it.isValid(); ++it) {
+  for (PartIter<1+BL_SPACEDIM> it(MyPC, 0); it.isValid(); ++it) {
     Box tile_box = it.tileBox();
     Box grid_box = it.gridBox();
     std::cout << "Grid number: "  << it.gridIndex() << " " << grid_box << " " << grid_box.size();
