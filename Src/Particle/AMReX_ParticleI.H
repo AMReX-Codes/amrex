@@ -520,7 +520,7 @@ Particle<NR, NI>::NextID ()
 #endif
     next = the_next_id++;
 
-    if (next == std::numeric_limits<int>::max())
+    if (next > LastParticleID)
 	amrex::Abort("Particle<NR, NI>::NextID() -- too many particles");
 
     return next;
@@ -531,7 +531,7 @@ int
 Particle<NR, NI>::UnprotectedNextID ()
 {
     int next = the_next_id++;
-    if (next == std::numeric_limits<int>::max())
+    if (next > LastParticleID)
 	amrex::Abort("Particle<NR, NI>::NextID() -- too many particles");
     return next;
 }
