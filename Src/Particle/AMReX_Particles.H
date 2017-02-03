@@ -395,7 +395,7 @@ public:
     void GetParticleLocations  (Array<Real>& part_locs);
     void GetParticleData       (Array<Real>& part_data, int start_comp, int num_comp);
 
-    void SetParticleLocations  (Array<Real>& part_data);
+    void SetParticleLocations  (Array<Real>& part_locs);
 
     void MoveRandom ();
     void MoveRandom (int level);
@@ -583,9 +583,9 @@ public:
   bool isValid () {return current_index < num_boxes;}
 
   void operator++ () {
-    current_tile_index++;
+    ++current_tile_index;
     if (current_tile_index >= num_tiles[current_index]) {
-      current_index++;
+      ++current_index;
       current_tile_index = 0;
     }
   }
