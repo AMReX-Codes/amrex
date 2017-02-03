@@ -55,4 +55,38 @@ extern "C" {
     {
 	ba = new BoxArray(famrcore->MakeBaseGrids());
     }
+
+    void amrex_fi_set_finest_level (int new_finest_level, FAmrCore* famrcore)
+    {
+	famrcore->SetFinestLevel(new_finest_level);
+    }
+
+    void amrex_fi_set_boxarray (int lev, const BoxArray* ba, FAmrCore* famrcore)
+    {
+	if (ba)	{
+	    famrcore->SetBoxArray(lev, *ba);
+	} else {
+	    famrcore->ClearBoxArray(lev);
+	}
+    }
+
+    void amrex_fi_set_distromap (int lev, const DistributionMapping* dm, FAmrCore* famrcore)
+    {
+	if (dm) {
+	    famrcore->SetDistributionMap(lev, *dm);
+	} else {
+	    famrcore->ClearDistributionMap(lev);
+	}
+    }
+
+    void amrex_fi_make_new_grids (int baselev, Real time, int* new_finest, const BoxArray** ba,
+				  FAmrCore* famrcore)
+    {
+	Array<BoxArray> new_grids(baselev+1);
+	new_grids[baselev] = *ba[baselev];
+	famrcore->MakeNewGrids(baselev, time, *new_finest, new_grids);
+	for (int lev = baselev+1; lev <= *new_finest; ++lev) {
+	    ba[lev] = new BoxArray(new_grids[lev]);
+	}
+    }
 }
