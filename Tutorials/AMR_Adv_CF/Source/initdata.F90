@@ -43,8 +43,10 @@ contains
   end subroutine init_from_scratch
 
 
-  subroutine init_level_data
+  subroutine init_level_data (lev)
+    integer, intent(in) :: lev
 
+    
   end subroutine init_level_data
 
 end module initdata_module
