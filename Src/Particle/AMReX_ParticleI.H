@@ -1,4 +1,7 @@
 template <int NR, int NI>
+int Particle<NR, NI>::the_next_id = 1;
+
+template <int NR, int NI>
 void
 Particle<NR, NI>::CIC_Cells_Fracs_Basic (const Particle<NR, NI>& p,
 					 const Real*         plo,
@@ -506,8 +509,6 @@ Particle<NR, NI>::Version ()
 
     return version;
 }
-
-static int the_next_id = 1;
 
 template <int NR, int NI>
 int
