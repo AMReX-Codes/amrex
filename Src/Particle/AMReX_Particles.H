@@ -112,11 +112,19 @@ struct Particle
     rm_t m_rdata;
     im_t m_idata;
 
-    int& id() {return m_idata.id;}
-    int& cpu() {return m_idata.id;}
-    double& pos(int index) {return m_rdata.pos[index];}
-    double& rdata(int index) {return m_rdata.arr[BL_SPACEDIM + index];}
-    int& idata(int index) {return m_idata.arr[2 + index];}
+    int&  id()       & {return m_idata.id;}
+    int   id() const & {return m_idata.id;}
+    int& cpu()       & {return m_idata.cpu;}
+    int  cpu() const & {return m_idata.cpu;}
+
+    RealType& pos(int index)       & {return m_rdata.pos[index];}
+    RealType  pos(int index) const & {return m_rdata.pos[index];}
+
+    RealType& rdata(int index)       & {return m_rdata.arr[BL_SPACEDIM + index];}
+    RealType  rdata(int index) const & {return m_rdata.arr[BL_SPACEDIM + index];}
+
+    int& idata(int index)       & {return m_idata.arr[2 + index];}
+    int  idata(int index) const & {return m_idata.arr[2 + index];}
 
     static IntVect Index (const Particle<NR, NI>& p, const Geometry& geom);
 
