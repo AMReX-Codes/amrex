@@ -201,8 +201,8 @@ contains
     call amrex_fi_new_multifab(mf%p, mf%ba%p, ba%p, dm%p, mf%nc, mf%ng, lnodal)
   end subroutine amrex_multifab_build
 
-  subroutine amrex_multifab_destroy (this)
-    type(amrex_multifab) :: this
+  impure elemental subroutine amrex_multifab_destroy (this)
+    type(amrex_multifab), intent(inout) :: this
     if (this%owner) then
        if (c_associated(this%p)) then
           call amrex_fi_delete_multifab(this%p)

@@ -79,8 +79,8 @@ contains
     call amrex_fi_new_boxarray(ba%p, bx%lo, bx%hi)
   end subroutine amrex_boxarray_build_bx
 
-  subroutine amrex_boxarray_destroy (this)
-    type(amrex_boxarray) :: this
+  impure elemental subroutine amrex_boxarray_destroy (this)
+    type(amrex_boxarray), intent(inout) :: this
     if (this%owner) then
        if (c_associated(this%p)) then
           call amrex_fi_delete_boxarray(this%p)

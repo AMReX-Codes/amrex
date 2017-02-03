@@ -89,8 +89,8 @@ contains
     end do
   end subroutine amrex_geometry_init_data
 
-  subroutine amrex_geometry_destroy (geom)
-    type(amrex_geometry) :: geom
+  impure elemental subroutine amrex_geometry_destroy (geom)
+    type(amrex_geometry), intent(inout) :: geom
     if (geom%owner) then
        if (c_associated(geom%p)) then
           call amrex_fi_delete_geometry(geom%p)
