@@ -202,8 +202,10 @@ long
 FabArrayBase::TileArray::bytes () const
 {
     return sizeof(*this) 
+	+ (amrex::bytesOf(this->numTiles)      - sizeof(this->numTiles))
 	+ (amrex::bytesOf(this->indexMap)      - sizeof(this->indexMap))
 	+ (amrex::bytesOf(this->localIndexMap) - sizeof(this->localIndexMap))
+	+ (amrex::bytesOf(this->tileIndexMap)  - sizeof(this->tileIndexMap))
 	+ (amrex::bytesOf(this->tileArray)     - sizeof(this->tileArray));
 }
 
@@ -1274,6 +1276,8 @@ FabArrayBase::buildTileArray (const IntVect& tileSize, TileArray& ta) const
 		const Box& bx = boxarray.getCellCenteredBox(K);
 		ta.indexMap.push_back(K);
 		ta.localIndexMap.push_back(i);
+		ta.tileIndexMap.push_back(0);
+		ta.numTiles.push_back(1);
 		ta.tileArray.push_back(bx);
 	    }
 	}
@@ -1314,7 +1318,9 @@ FabArrayBase::buildTileArray (const IntVect& tileSize, TileArray& ta) const
 	    for (int t = 0; t < ntiles; ++t) {
 		ta.indexMap.push_back(K);
 		ta.localIndexMap.push_back(i);
-		
+		ta.tileIndexMap.push_back(t);
+		ta.numTiles.push_back(ntiles);
+
 		for (int d=0; d<BL_SPACEDIM; d++) {
 		    if (ijk[d]<nt_in_fab[d]-1) {
 			ijk[d]++;
@@ -1452,7 +1458,9 @@ MFIter::MFIter (const FabArrayBase& fabarray_,
     flags(flags_),
     index_map(0),
     local_index_map(0),
-    tile_array(0)
+    tile_array(0),
+    tile_index_map(0),
+    num_tiles(0)
 {
     Initialize();
 }
@@ -1465,7 +1473,9 @@ MFIter::MFIter (const FabArrayBase& fabarray_,
     flags(do_tiling_ ? Tiling : 0),
     index_map(0),
     local_index_map(0),
-    tile_array(0)
+    tile_array(0),
+    tile_index_map(0),
+    num_tiles(0)
 {
     Initialize();
 }
@@ -1479,7 +1489,9 @@ MFIter::MFIter (const FabArrayBase& fabarray_,
     flags(flags_ | Tiling),
     index_map(0),
     local_index_map(0),
-    tile_array(0)
+    tile_array(0),
+    tile_index_map(0),
+    num_tiles(0)
 {
     Initialize();
 }
@@ -1512,6 +1524,8 @@ MFIter::Initialize ()
 	index_map       = &(pta->indexMap);
 	local_index_map = &(pta->localIndexMap);
 	tile_array      = &(pta->tileArray);
+	tile_index_map  = &(pta->tileIndexMap);
+	num_tiles       = &(pta->numTiles);
 
 	{
 	    int rit = 0;
