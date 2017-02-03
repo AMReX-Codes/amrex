@@ -8,10 +8,42 @@
 
 using namespace amrex;
 
+void test_POD()
+{
+  const int NR = 4;
+  const int NI = 2;
+
+  std::cout << "Is POD: "      << std::is_pod<Particle<NR, NI> >::value << std::endl;
+  std::cout << "Is trivial: "  << std::is_trivial<Particle<NR, NI> >::value << std::endl;
+  std::cout << "Is standard: " << std::is_standard_layout<Particle<NR, NI> >::value << std::endl;
+  std::cout << "Size: "        << sizeof(Particle<NR, NI>) << std::endl;
+
+  Particle<NR, NI> p;
+  p.id() = 1;
+  p.cpu() = 0;
+  p.pos(0) = 1.0;
+  p.pos(1) = 2.0;
+  p.pos(2) = 3.0;
+  p.rdata(0) = 4.0;
+  p.rdata(1) = -1.0;
+  p.rdata(2) = -2.0;
+  p.rdata(3) = -3.0;
+
+  p.idata(0) = -7;
+  p.idata(1) =  9;
+
+  std::cout << p.id() << " " << p.cpu() << std::endl;
+  std::cout << p.pos(0) << " " << p.pos(1) << " " << p.pos(2) << std::endl;
+  std::cout << p.rdata(0) << " " << p.rdata(1) << " " << p.rdata(2) << " " << p.rdata(3) << std::endl;
+  std::cout << p.idata(0) << " " << p.idata(1) << std::endl;
+}
+
 int main(int argc, char* argv[])
 {
 
   amrex::Initialize(argc,argv);
+
+  test_POD();
 
   int ncell = 64;
   int nlevs = 2;
@@ -84,34 +116,4 @@ int main(int argc, char* argv[])
   MyPC->WriteAsciiFile("particles");
     
   amrex::Finalize();
-}
-
-void test_POD()
-{
-  const int NR = 4;
-  const int NI = 2;
-
-  std::cout << "Is POD: "      << std::is_pod<Particle<NR, NI> >::value << std::endl;
-  std::cout << "Is trivial: "  << std::is_trivial<Particle<NR, NI> >::value << std::endl;
-  std::cout << "Is standard: " << std::is_standard_layout<Particle<NR, NI> >::value << std::endl;
-  std::cout << "Size: "        << sizeof(Particle<NR, NI>) << std::endl;
-
-  Particle<NR, NI> p;
-  p.id() = 1;
-  p.cpu() = 0;
-  p.pos(0) = 1.0;
-  p.pos(1) = 2.0;
-  p.pos(2) = 3.0;
-  p.rdata(0) = 4.0;
-  p.rdata(1) = -1.0;
-  p.rdata(2) = -2.0;
-  p.rdata(3) = -3.0;
-
-  p.idata(0) = -7;
-  p.idata(1) =  9;
-
-  std::cout << p.id() << " " << p.cpu() << std::endl;
-  std::cout << p.pos(0) << " " << p.pos(1) << " " << p.pos(2) << std::endl;
-  std::cout << p.rdata(0) << " " << p.rdata(1) << " " << p.rdata(2) << " " << p.rdata(3) << std::endl;
-  std::cout << p.idata(0) << " " << p.idata(1) << std::endl;
 }
