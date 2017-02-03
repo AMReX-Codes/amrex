@@ -86,6 +86,7 @@ extern "C" {
 	new_grids[baselev] = *ba[baselev];
 	famrcore->MakeNewGrids(baselev, time, *new_finest, new_grids);
 	for (int lev = baselev+1; lev <= *new_finest; ++lev) {
+	    delete ba[lev];
 	    ba[lev] = new BoxArray(new_grids[lev]);
 	}
     }

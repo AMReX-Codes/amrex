@@ -104,4 +104,30 @@ contains
     end do
   end subroutine my_amr_finalize
 
+
+  subroutine make_new_level (lev, time, ba, dm)
+    integer, intent(in) :: lev
+    real(amrex_real), intent(in) :: time
+    type(amrex_boxarray), intent(in) :: ba
+    type(amrex_distromap), intent(in) :: dm
+    
+    integer, parameter :: ncomp = 1, nghost = 0
+
+    call amrex_install_level(lev, ba, dm)
+
+    t_new(lev) = time
+    t_old(lev) = time - 1.e200_amrex_real
+  
+    call amrex_multifab_destroy(phi_new(lev))
+    call amrex_multifab_destroy(phi_old(lev))
+
+    call amrex_multifab_build(phi_new(lev), ba, dm, ncomp, nghost)
+    call amrex_multifab_build(phi_old(lev), ba, dm, ncomp, nghost)
+
+!    if (lev > 0 .and. do_reflux) then
+!       call amrex_fluxregister_destroy(flux_reg(lev))
+!       call amrex_fluxregister_build(flux_reg(lev), ba, dm, ref_ratio(lev-1), lev, ncomp)
+!    end if
+  end subroutine make_new_level
+  
 end module my_amr_module
