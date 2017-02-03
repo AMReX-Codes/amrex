@@ -7,20 +7,24 @@ IntVect ParticleContainer<NR, NI>::tile_size   { D_DECL(1024000,8,8) };
 template <int NR, int NI>
 void
 ParticleContainer<NR, NI>::allocateData() {
+  communicate_comp.resize(m_npartdata, true); 
   int nlevs = m_gdb->finestLevel()+1;
   m_particles.resize(nlevs);
   m_partdata.resize(nlevs);
+  m_dummy_mfs.resize(nlevs);
   for (int lev = 0; lev < nlevs; ++ lev)
     {
       auto& partleveldata = m_partdata[lev];
       const BoxArray& ba = m_gdb->ParticleBoxArray(lev);
       const DistributionMapping& dm = m_gdb->ParticleDistributionMap(lev);
 
-      // This is maybe stupid
-      // First, allocate for one tile per grid so we can use PIter
       MFInfo Fab_noallocate;
       Fab_noallocate.SetAlloc(false);
-      MultiFab foo(ba, dm, 1, 0, Fab_noallocate);
+      m_dummy_mfs[lev] = std::unique_ptr<MultiFab>(new MultiFab(ba, dm, 1, 0, Fab_noallocate));
+
+      // This is maybe stupid
+      // First, allocate for one tile per grid so we can use PIter
+      const MultiFab& foo = *(m_dummy_mfs[lev]);
       for (MFIter mfi(foo); mfi.isValid(); ++mfi)
 	{
 	  int i = mfi.index();
