@@ -815,8 +815,6 @@ ParticleContainer<NR, NI>::InitRandom (long          icount,
 
     amrex::InitRandom(iseed+MyProc);
 
-    allocateData();
-
     if (serialize)
     {
         //
@@ -998,8 +996,6 @@ ParticleContainer<NR, NI>::InitOnePerCell (Real x_off, Real y_off, Real z_off,
     // This assumes level 0 since geom = m_gdb->Geom(0)
     //
     const Real* dx  = geom.CellSize();
-
-    allocateData();
 
     //
     // We'll generate the particles in parallel -- but no tiling here.

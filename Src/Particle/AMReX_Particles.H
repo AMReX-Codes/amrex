@@ -287,16 +287,15 @@ public:
     ParticleContainer ()
       : m_verbose(1), m_gdb(nullptr), allow_particles_near_boundary(false), m_npartdata(0) 
   {
-    communicate_comp.resize(m_npartdata, true);
   }
 
     ParticleContainer (ParGDBBase* gdb)
         :
       m_verbose(1), m_gdb(gdb), allow_particles_near_boundary(false), m_npartdata(0) 
   {
-    communicate_comp.resize(m_npartdata, true);
+    allocateData();
   }
-
+  
     ParticleContainer (const Geometry            & geom, 
 		       const DistributionMapping & dmap,
 		       const BoxArray            & ba,
@@ -308,7 +307,7 @@ public:
 	m_npartdata(npartdata)
     {
 	m_gdb = & m_gdb_object;
-	communicate_comp.resize(m_npartdata, true);
+	allocateData();
     }
 
     ParticleContainer (const Array<Geometry>            & geom, 
@@ -323,7 +322,7 @@ public:
 	m_npartdata(npartdata)
     {
       m_gdb = & m_gdb_object;
-      communicate_comp.resize(m_npartdata, true);
+      allocateData();
     }
 
     ~ParticleContainer () {}
@@ -332,7 +331,7 @@ public:
     {
       m_gdb = gdb;
       m_npartdata = 0;
-      communicate_comp.resize(m_npartdata, true);
+      allocateData();
     }
 
     void Define (const Geometry            & geom, 
@@ -343,7 +342,7 @@ public:
     m_gdb_object = ParGDB(geom, dmap, ba);
     m_gdb = &m_gdb_object;
     m_npartdata = npartdata;
-    communicate_comp.resize(m_npartdata, true);
+    allocateData();
   }
 
     void Define (const Array<Geometry>            & geom, 
@@ -355,14 +354,19 @@ public:
 	m_gdb_object = ParGDB(geom, dmap, ba, rr);
 	m_gdb = &m_gdb_object;
 	m_npartdata = npartdata;
-	communicate_comp.resize(m_npartdata, true);
+	allocateData();
     }
 
     void SetParticleBoxArray (int lev, const BoxArray& new_ba)
-	{ m_gdb->SetParticleBoxArray(lev, new_ba); }
+	{ 
+	  m_gdb->SetParticleBoxArray(lev, new_ba);
+	}
 
     void SetParticleDistributionMap (int lev, const DistributionMapping& new_dmap)
 	{ m_gdb->SetParticleDistributionMap(lev, new_dmap); }
+
+    const MultiFab& getDummyMF(int lev) const 
+        { return *(m_dummy_mfs[lev]);}
 
     const BoxArray& ParticleBoxArray (int lev) const 
 	{ return m_gdb->ParticleBoxArray(lev); }
@@ -413,8 +417,8 @@ public:
     void Redistribute (int  lev_min              = 0, 
 		       int  nGrow                = 0);
 
-  void RedistributeMPI (std::map<int, AoS>& not_ours,
-			std::map<int, SoA>& comm_pdata);
+    void RedistributeMPI (std::map<int, AoS>& not_ours,
+			  std::map<int, SoA>& comm_pdata);
 
     //
     // OK checks that all particles are in the right places (for some value of right)
@@ -555,6 +559,8 @@ protected:
     int m_npartdata;
 
     using PIter = PartIter<NR, NI>;
+
+    Array<std::unique_ptr<MultiFab> > m_dummy_mfs;
 
 private:
     void AssignDensityDoit (int rho_index, 
