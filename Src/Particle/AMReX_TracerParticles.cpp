@@ -55,16 +55,15 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
     for (int ipass = 0; ipass < 2; ipass++)
     {
         AoSMap& pmap = m_particles[lev];
+	for (PIter it(*this, lev); it.isValid(); ++it) {
+	  int grid = it.gridIndex();
+	  int tile = it.tileIndex();
+	  AoS& pbox = pmap[grid][tile];
+	  const int n    = pbox.size();
 
-        for (auto& kv : pmap)
-        {
-            const int grid = kv.first;
-            AoS&     pbox = kv.second[0]; // TILE
-            const int n    = pbox.size();
-
-            FArrayBox* fab[BL_SPACEDIM] = { D_DECL(&((*umac_pointer[0])[grid]),
-						   &((*umac_pointer[1])[grid]),
-						   &((*umac_pointer[2])[grid])) };
+	  FArrayBox* fab[BL_SPACEDIM] = { D_DECL(&((*umac_pointer[0])[grid]),
+						 &((*umac_pointer[1])[grid]),
+						 &((*umac_pointer[2])[grid])) };
 
 #ifdef _OPENMP
 #pragma omp parallel for
@@ -170,15 +169,13 @@ TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
     for (int ipass = 0; ipass < 2; ipass++)
     {
         AoSMap& pmap = m_particles[lev];
-
-        for (auto& kv : pmap)
-        {
-            const int grid = kv.first;
-            AoS&     pbox = kv.second[0]; // TILE
-            const int n    = pbox.size();
-
-	    const FArrayBox& fab = Ucc[grid];
-
+	for (PIter it(*this, lev); it.isValid(); ++it) {
+	  int grid = it.gridIndex();
+	  int tile = it.tileIndex();
+	  AoS& pbox = pmap[grid][tile];
+	  const int n    = pbox.size();
+	  const FArrayBox& fab = Ucc[grid];
+	    
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
@@ -286,9 +283,11 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
             bool gotwork = false;
 	    
             const AoSMap& pmap = m_particles[lev];
-	    
-	    for (const auto& kv : pmap) {
-	      for (const auto& p : kv.second[0]) { // TILE
+	    for (PIter it(*this, lev); it.isValid(); ++it) {
+	      int grid = it.gridIndex();
+	      int tile = it.tileIndex();
+	      const AoS& pbox = pmap.at(grid)[tile];
+	      for (const auto& p : pbox) {
 		if (p.m_idata.id > 0) {
 		  gotwork = true;
 		  break;
@@ -296,7 +295,7 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
 	      }
 	      if (gotwork) break;
 	    }
-	    
+
             if (gotwork)
 	      {
                 std::string FileName = amrex::Concatenate(basename + '_', MyProc % nOutFiles, 2);
@@ -323,10 +322,10 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
 
                 std::vector<Real> vals(M);
 
-		for (const auto& kv : pmap)
-                {
-		  const int        grid = kv.first;
-		  const AoS&       pbox = kv.second[0]; // TILE
+		for (PIter it(*this, lev); it.isValid(); ++it) {
+		  int grid = it.gridIndex();
+		  int tile = it.tileIndex();
+		  const AoS& pbox = pmap.at(grid)[tile];
 		  const Box&       bx   = ba[grid];
 		  const FArrayBox& fab  = mf[grid];
 

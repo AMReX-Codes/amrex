@@ -41,8 +41,7 @@ namespace
     const int   VirtualParticleID  = 1000000000;
 }
 
-
-
+template<int NR, int NI> class PartIter;
 
 //
 // A struct used for communicating particle data accross processes
@@ -486,6 +485,8 @@ public:
 		   int start_comp_for_accel = -1);
 
     std::vector<bool> communicate_comp;
+    static bool do_tiling;
+    static IntVect tile_size;
 
 protected:
 
@@ -541,9 +542,8 @@ protected:
     Array<SoAMap> m_partdata;
 
     int m_npartdata;
-    static bool do_tiling;
-    static IntVect tile_size;
 
+    using PIter = PartIter<NR, NI>;
 
 private:
     void AssignDensityDoit (int rho_index, 
@@ -552,30 +552,19 @@ private:
 			    int ncomp, int lev_min = 0) const;
 };
 
-struct PartIterInfo
-{
-  PartIterInfo (int _level, bool _do_tiling, const IntVect& _tile_size)
-    : level(_level), do_tiling(_do_tiling), tile_size(_tile_size)
-  { }
-  PartIterInfo (const PartIterInfo&) = default;
-  PartIterInfo (PartIterInfo&&) = default;
-  int  level;
-  bool do_tiling;
-  IntVect tile_size;
-};
 
 template<int NR, int NI=0>
 class PartIter
 {
 
 public:
-  PartIter (ParticleContainer<NR, NI>& _mypc, PartIterInfo& _info)
+  PartIter (const ParticleContainer<NR, NI>& _mypc, int _level)
     : mypc(_mypc), 
-      pmap(_mypc.GetParticles(_info.level)),
-      box_array(_mypc.ParticleBoxArray(_info.level)),
-      level(_info.level),
-      do_tiling(_info.do_tiling), 
-      tile_size(_info.tile_size)
+      pmap(_mypc.GetParticles(_level)),
+      box_array(_mypc.ParticleBoxArray(_level)),
+      level(_level),
+      do_tiling(_mypc.do_tiling), 
+      tile_size(_mypc.tile_size)
   {
     Initialize();
   }
@@ -646,13 +635,13 @@ private:
 	num_tiles[index] = ntottiles;
       }
       else {
-	num_tiles[it->first] = 1;
+	num_tiles[index] = 1;
       }
     }
   }
 
-  ParticleContainer<NR, NI>& mypc;
-  typename ParticleContainer<NR, NI>::AoSMap& pmap;
+  const ParticleContainer<NR, NI>& mypc;
+  const typename ParticleContainer<NR, NI>::AoSMap& pmap;
   const BoxArray& box_array;
 
   int level;
