@@ -583,6 +583,14 @@ public:
 
   int tileIndex () const {return current_tile_index;}
 
+  int numTiles(int grid_id) {
+    for (int i = 0; i < num_boxes; i++) {
+      if (grid_ids[i] == grid_id)
+	return num_tiles[i];
+    }
+    return -1;
+  }
+
   Box gridBox () {return box_array[grid_ids[current_index]];}
 
   Box tileBox () {
