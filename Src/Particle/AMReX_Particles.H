@@ -112,6 +112,8 @@ struct Particle
     rm_t m_rdata;
     im_t m_idata;
 
+    static int the_next_id;
+
     int&  id()       & {return m_idata.id;}
     int   id() const & {return m_idata.id;}
     int& cpu()       & {return m_idata.cpu;}
