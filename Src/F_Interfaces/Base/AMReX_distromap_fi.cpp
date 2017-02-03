@@ -1,5 +1,6 @@
 
 #include <AMReX_DistributionMapping.H>
+#include <AMReX_Print.H>
 
 using namespace amrex;
 
@@ -21,4 +22,12 @@ extern "C" {
 	dmo = new DistributionMapping(*dmi);
     }
 
+    void amrex_fi_print_distromap (const DistributionMapping* dm, int all)
+    {
+	if (all) {
+	    AllPrint() << *dm;
+	} else {
+	    Print() << *dm;
+	}
+    }
 }

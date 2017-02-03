@@ -9,7 +9,7 @@ module amrex_boxarray_module
 
   private
 
-  public :: amrex_boxarray_build, amrex_boxarray_destroy
+  public :: amrex_boxarray_build, amrex_boxarray_destroy, amrex_print, amrex_allprint
 
   type, public :: amrex_boxarray
      logical     :: owner = .false.
@@ -29,35 +29,45 @@ module amrex_boxarray_module
      module procedure amrex_boxarray_build_bx
   end interface amrex_boxarray_build
 
+  interface amrex_print
+     module procedure amrex_boxarray_print
+  end interface amrex_print
+
+  interface amrex_allprint
+     module procedure amrex_boxarray_allprint
+  end interface amrex_allprint
+
   ! interfaces to cpp functions
 
   interface
      subroutine amrex_fi_new_boxarray (ba,lo,hi) bind(c)
-       use, intrinsic :: iso_c_binding
-       implicit none
+       import
        type(c_ptr) :: ba
        integer(c_int), intent(in) :: lo(3), hi(3)
      end subroutine amrex_fi_new_boxarray
 
      subroutine amrex_fi_delete_boxarray (ba) bind(c)
-       use, intrinsic :: iso_c_binding
-       implicit none
+       import
        type(c_ptr), value :: ba
      end subroutine amrex_fi_delete_boxarray
 
      subroutine amrex_fi_clone_boxarray (bao, bai) bind(c)
-       use, intrinsic :: iso_c_binding
-       implicit none
+       import
        type(c_ptr) :: bao
        type(c_ptr), value :: bai
      end subroutine amrex_fi_clone_boxarray
 
      subroutine amrex_fi_boxarray_maxsize (ba,n) bind(c)
-       use, intrinsic :: iso_c_binding
-       implicit none
+       import
        type(c_ptr), value :: ba
        integer(c_int), value :: n
      end subroutine amrex_fi_boxarray_maxsize
+
+     subroutine amrex_fi_print_boxarray (ba, all) bind(c)
+       import
+       type(c_ptr), value :: ba
+       integer(c_int), value :: all
+     end subroutine amrex_fi_print_boxarray
   end interface
 
 contains
@@ -109,5 +119,15 @@ contains
     integer, intent(in)    :: sz
     call amrex_fi_boxarray_maxsize(this%p, sz)
   end subroutine amrex_boxarray_maxsize
+
+  subroutine amrex_boxarray_print (ba)
+    type(amrex_boxarray), intent(in) :: ba
+    call amrex_fi_print_boxarray(ba%p, 0)
+  end subroutine amrex_boxarray_print
+
+  subroutine amrex_boxarray_allprint (ba)
+    type(amrex_boxarray), intent(in) :: ba
+    call amrex_fi_print_boxarray(ba%p, 1)
+  end subroutine amrex_boxarray_allprint
 
 end module amrex_boxarray_module

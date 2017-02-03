@@ -8,7 +8,7 @@ module amrex_distromap_module
 
   private
 
-  public :: amrex_distromap_build, amrex_distromap_destroy
+  public :: amrex_distromap_build, amrex_distromap_destroy, amrex_print, amrex_allprint
 
   type, public :: amrex_distromap
      logical     :: owner = .false.
@@ -27,28 +27,45 @@ module amrex_distromap_module
      module procedure amrex_distromap_build_ba
   end interface amrex_distromap_build
 
+  interface amrex_print
+     module procedure amrex_distromap_print
+  end interface amrex_print
+
+  interface amrex_allprint
+     module procedure amrex_distromap_allprint
+  end interface amrex_allprint
+
   ! interfaces to cpp functions
 
   interface
      subroutine amrex_fi_new_distromap (dm,ba) bind(c)
-       use, intrinsic :: iso_c_binding
-       implicit none
+       import
        type(c_ptr) :: dm
        type(c_ptr), value :: ba
      end subroutine amrex_fi_new_distromap
 
      subroutine amrex_fi_delete_distromap (dm) bind(c)
-       use, intrinsic :: iso_c_binding
-       implicit none
+       import
        type(c_ptr), value :: dm
      end subroutine amrex_fi_delete_distromap
 
      subroutine amrex_fi_clone_distromap (dmo, dmi) bind(c)
-       use, intrinsic :: iso_c_binding
-       implicit none
+       import
        type(c_ptr) :: dmo
        type(c_ptr), value :: dmi
      end subroutine amrex_fi_clone_distromap
+
+     subroutine amrex_fi_distromap_maxsize (dm,n) bind(c)
+       import
+       type(c_ptr), value :: dm
+       integer(c_int), value :: n
+     end subroutine amrex_fi_distromap_maxsize
+
+     subroutine amrex_fi_print_distromap (dm, all) bind(c)
+       import
+       type(c_ptr), value :: dm
+       integer(c_int), value :: all
+     end subroutine amrex_fi_print_distromap
   end interface
 
 contains
@@ -92,5 +109,15 @@ contains
     src%owner = .false.
     src%p = c_null_ptr
   end subroutine amrex_distromap_move
+
+  subroutine amrex_distromap_print (dm)
+    type(amrex_distromap), intent(in) :: dm
+    call amrex_fi_print_distromap(dm%p, 0)
+  end subroutine amrex_distromap_print
+
+  subroutine amrex_distromap_allprint (dm)
+    type(amrex_distromap), intent(in) :: dm
+    call amrex_fi_print_distromap(dm%p, 1)
+  end subroutine amrex_distromap_allprint
 
 end module amrex_distromap_module

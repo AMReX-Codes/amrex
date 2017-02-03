@@ -11,7 +11,7 @@ F90EXE_sources += AMReX_parallel_mod.F90
 F90EXE_sources += AMReX_mod.F90 AMReX_box_mod.F90 AMReX_boxarray_mod.F90 AMReX_distromap_mod.F90 AMReX_geometry_mod.F90
 F90EXE_sources += AMReX_multifab_mod.F90
 
-CEXE_sources += AMReX_boxarray_fi.cpp AMReX_distromap_fi.cpp AMReX_geometry_fi.cpp AMReX_multifab_fi.cpp
+CEXE_sources += AMReX_box_fi.cpp AMReX_boxarray_fi.cpp AMReX_distromap_fi.cpp AMReX_geometry_fi.cpp AMReX_multifab_fi.cpp
 
 VPATH_LOCATIONS += $(AMREX_HOME)/Src/F_Interfaces/Base
 INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/F_Interfaces/Base
