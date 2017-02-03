@@ -292,8 +292,10 @@ public:
     struct TileArray
     {
 	int nuse;
+	Array<int> numTiles;
 	Array<int> indexMap;	
 	Array<int> localIndexMap;
+	Array<int> tileIndexMap;
 	Array<Box> tileArray;
 	TileArray () : nuse(-1) {;}
 	long bytes () const;
@@ -674,6 +676,12 @@ public:
     //! The index into the underlying BoxArray of the current FAB.
     int index () const { return (*index_map)[currentIndex]; }
 
+    //! The current tile index of the iterator; 
+    int tileIndex () const {return (*tile_index_map)[currentIndex];}
+  
+    //! The the number of tiles in the current grid;
+    int numTiles() const {return (*num_tiles)[currentIndex];}
+
     /**
     * \brief Return local index into the vector of fab pointers, m_fabs_v
     * When AllBoxes is on, local_index_map is a nullptr and local index is current index.
@@ -698,7 +706,9 @@ protected:
     const Array<int>* index_map;
     const Array<int>* local_index_map;
     const Array<Box>* tile_array;
-
+    const Array<int>* tile_index_map;
+    const Array<int>* num_tiles;
+  
     void Initialize ();
 };
 
