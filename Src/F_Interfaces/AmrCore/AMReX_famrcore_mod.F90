@@ -69,11 +69,35 @@ module amrex_famrcore_module
        type(c_ptr), value :: famrcore
      end subroutine amrex_fi_get_geometry
 
+     subroutine amrex_fi_set_finest_level (lev, famrcore) bind(c)
+       import
+       integer(c_int), value :: lev
+       type(c_ptr), value :: famrcore
+     end subroutine amrex_fi_set_finest_level
+
+     subroutine amrex_fi_set_boxarray (lev, ba, famrcore) bind(c)
+       import
+       integer(c_int), value :: lev
+       type(c_ptr), value :: ba
+       type(c_ptr), value :: famrcore
+     end subroutine amrex_fi_set_boxarray
+
+     subroutine amrex_fi_set_distromap (lev, dm, famrcore) bind(c)
+       import
+       integer(c_int), value :: lev
+       type(c_ptr), value :: dm
+       type(c_ptr), value :: famrcore
+     end subroutine amrex_fi_set_distromap
+     
      subroutine amrex_fi_make_base_grids (ba, famrcore) bind(c)
        import
        type(c_ptr), intent(out) :: ba
        type(c_ptr), value :: famrcore
      end subroutine amrex_fi_make_base_grids
+
+!     subroutine amrex_fi_make_new_grids (baselev, time, new_finest, ba_array)
+!       
+!     end subroutine amrex_fi_make_new_grids
   end interface
 
 contains
@@ -117,12 +141,32 @@ contains
     call amrex_geometry_init_data(geom)
   end function amrex_get_geometry
 
+  subroutine amrex_set_finest_level (lev)
+    integer, intent(in) :: lev
+    call amrex_fi_set_finest_level(lev, famrcore)
+  end subroutine amrex_set_finest_level
+
+  subroutine amrex_set_boxarray (lev, ba)
+    integer, intent(in) :: lev
+    type(amrex_boxarray), intent(in) :: ba
+    call amrex_fi_set_boxarray(lev, ba%p, famrcore)
+  end subroutine amrex_set_boxarray
+
+  subroutine amrex_set_distromap (lev, dm)
+    integer, intent(in) :: lev
+    type(amrex_distromap), intent(in) :: dm
+    call amrex_fi_set_distromap(lev, dm%p, famrcore)
+  end subroutine amrex_set_distromap
+
   subroutine amrex_make_base_grids (ba)
     type(amrex_boxarray), intent(inout) :: ba
     call amrex_boxarray_destroy(ba)
     ba%owner = .true.
     call amrex_fi_make_base_grids(ba%p, famrcore)
   end subroutine amrex_make_base_grids
-  
+
+  subroutine amrex_make_new_grids ()
+  end subroutine amrex_make_new_grids
+
 end module amrex_famrcore_module
 
