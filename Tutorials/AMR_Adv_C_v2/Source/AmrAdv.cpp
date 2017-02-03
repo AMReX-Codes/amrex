@@ -162,6 +162,12 @@ AmrAdv::regrid (int lbase, Real time)
 	    MakeNewLevel(lev, time, new_grids[lev], new_dmap);
 	}
     }
+
+    for (int lev = new_finest+1; lev <= finest_level; ++lev) {
+	ClearLevel(lev);
+    }
+
+    finest_level = new_finest;
 }
 
 void
