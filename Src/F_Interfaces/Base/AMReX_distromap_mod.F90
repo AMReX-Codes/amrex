@@ -77,8 +77,8 @@ contains
     call amrex_fi_new_distromap(dm%p, ba%p)
   end subroutine amrex_distromap_build_ba
 
-  subroutine amrex_distromap_destroy (this)
-    type(amrex_distromap) :: this
+  impure elemental subroutine amrex_distromap_destroy (this)
+    type(amrex_distromap), intent(inout) :: this
     if (this%owner) then
        if (c_associated(this%p)) then
           call amrex_fi_delete_distromap(this%p)
