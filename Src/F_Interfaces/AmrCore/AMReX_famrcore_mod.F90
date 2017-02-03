@@ -10,7 +10,8 @@ module amrex_famrcore_module
   ! public routines
   public :: amrex_famrcore_init, amrex_famrcore_finalize, amrex_famrcore_initialized, &
        amrex_get_finest_level, amrex_get_boxarray, amrex_get_distromap, amrex_get_geometry, &
-       amrex_make_base_grids
+       amrex_set_finest_level, amrex_set_boxarray, amrex_set_distromap, &
+       amrex_make_base_grids, amrex_make_new_grids
 
   ! public variables
   public :: amrex_max_level, amrex_ref_ratio

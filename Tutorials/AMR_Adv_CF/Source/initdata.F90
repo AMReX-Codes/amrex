@@ -21,9 +21,15 @@ contains
   subroutine init_from_scratch ()
     type(amrex_boxarray) :: ba0
     type(amrex_distromap) :: dm0
+    real(amrex_real) :: time
+
+    time = 0
     call amrex_make_base_grids(ba0)
     call amrex_distromap_build(dm0, ba0)
-    call amrex_print(dm0)
+
+    call amrex_set_finest_level(0)
+    
+
   end subroutine init_from_scratch
 
 end module initdata_module
