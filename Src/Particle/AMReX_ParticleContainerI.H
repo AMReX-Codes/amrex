@@ -16,6 +16,8 @@ ParticleContainer<NR, NI>::allocateData() {
       const BoxArray& ba = m_gdb->ParticleBoxArray(lev);
       const DistributionMapping& dm = m_gdb->ParticleDistributionMap(lev);
 
+      // This is maybe stupid
+      // First, allocate for one tile per grid so we can use PIter
       MFInfo Fab_noallocate;
       Fab_noallocate.SetAlloc(false);
       MultiFab foo(ba, dm, 1, 0, Fab_noallocate);
@@ -23,8 +25,25 @@ ParticleContainer<NR, NI>::allocateData() {
 	{
 	  int i = mfi.index();
 	  partleveldata[i].resize(1);
-	  partleveldata[i][0] = SoA(m_npartdata);
-	  m_particles[lev][i].resize(1); // Need to figure out tiling information here
+	  m_particles[lev][i].resize(1);
+	}
+
+      // Now resize for the appropriate number of tiles
+      PIter it(*this, lev);
+      for (MFIter mfi(foo); mfi.isValid(); ++mfi)
+	{
+	  int i = mfi.index();
+	  int num_tiles = it.numTiles(i);
+	  partleveldata[i].resize(num_tiles);
+	  m_particles[lev][i].resize(num_tiles);
+	}
+  
+      // Allocate the SoA data on each tile;
+      for (PIter it(*this, lev); it.isValid(); ++it) 
+	{
+	  int gid = it.gridIndex();
+	  int tid = it.tileIndex();
+	  partleveldata[gid][tid].resize(m_npartdata);
 	}
     }
 }
