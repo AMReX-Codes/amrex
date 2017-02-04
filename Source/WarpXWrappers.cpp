@@ -12,10 +12,12 @@ extern "C"
 	BoxLib::Initialize(argc,argv);
     }
 
+#ifdef BL_USE_MPI
     void boxlib_init_with_inited_mpi (int argc, char* argv[], MPI_Comm mpicomm)
     {
 	BoxLib::Initialize(argc,argv,true,mpicomm);	
     }
+#endif
 
     void boxlib_finalize (int finalize_mpi)
     {
