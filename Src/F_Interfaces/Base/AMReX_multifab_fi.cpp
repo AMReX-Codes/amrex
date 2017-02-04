@@ -6,12 +6,13 @@ using namespace amrex;
 
 extern "C" {
 
-    void amrex_fi_new_multifab (MultiFab*& mf, BoxArray*& bao, const BoxArray* bai,
-				const DistributionMapping* dm,
+    void amrex_fi_new_multifab (MultiFab*& mf, const BoxArray*& ba, 
+				const DistributionMapping*& dm,
 				int nc, int ng, const int* nodal)
     {
-	mf = new MultiFab(*bai, *dm, nc, ng, MFInfo().SetNodal(IntVect(nodal)));
-	bao = (BoxArray*)&(mf->boxArray());
+	mf = new MultiFab(*ba, *dm, nc, ng, MFInfo().SetNodal(IntVect(nodal)));
+	ba = &(mf->boxArray());
+	dm = &(mf->DistributionMap());
     }
 
     void amrex_fi_delete_multifab (MultiFab* mf)

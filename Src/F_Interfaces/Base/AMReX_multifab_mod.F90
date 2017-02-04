@@ -69,10 +69,9 @@ module amrex_multifab_module
   ! interfaces to c++ functions
 
   interface 
-     subroutine amrex_fi_new_multifab (mf,bao,bai,dm,nc,ng,nodal) bind(c)
+     subroutine amrex_fi_new_multifab (mf,ba,dm,nc,ng,nodal) bind(c)
        import
-       type(c_ptr) :: mf, bao
-       type(c_ptr), value :: bai, dm
+       type(c_ptr) :: mf, ba, dm
        integer(c_int), value :: nc, ng
        integer(c_int), intent(in) :: nodal(3)
      end subroutine amrex_fi_new_multifab
@@ -185,8 +184,9 @@ contains
     if (present(nodal)) then
        where (nodal .eqv. .true.) lnodal = 1
     end if
-    call mf%dm%clone(dm)
-    call amrex_fi_new_multifab(mf%p, mf%ba%p, ba%p, dm%p, mf%nc, mf%ng, lnodal)
+    mf%ba = ba
+    mf%dm = dm
+    call amrex_fi_new_multifab(mf%p, mf%ba%p, mf%dm%p, mf%nc, mf%ng, lnodal)
   end subroutine amrex_multifab_build
 
   impure elemental subroutine amrex_multifab_destroy (this)
