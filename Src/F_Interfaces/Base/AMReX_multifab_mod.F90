@@ -8,14 +8,15 @@ module amrex_multifab_module
   use amrex_boxarray_module
   use amrex_distromap_module
   use amrex_geometry_module
+  use amrex_string_module
   use amrex_omp_module
 
   implicit none
 
   private
 
-  public :: amrex_multifab_build, amrex_multifab_swap, amrex_mfiter_build, &
-       amrex_multifab_destroy, amrex_mfiter_destroy
+  public :: amrex_multifab_build, amrex_multifab_swap, amrex_multifab_destroy, amrex_multifab_write
+  public :: amrex_mfiter_build, amrex_mfiter_destroy
 
   type, public   :: amrex_multifab
      logical               :: owner = .false.
@@ -69,8 +70,7 @@ module amrex_multifab_module
 
   interface 
      subroutine amrex_fi_new_multifab (mf,bao,bai,dm,nc,ng,nodal) bind(c)
-       use, intrinsic :: iso_c_binding
-       implicit none
+       import
        type(c_ptr) :: mf, bao
        type(c_ptr), value :: bai, dm
        integer(c_int), value :: nc, ng
@@ -78,104 +78,92 @@ module amrex_multifab_module
      end subroutine amrex_fi_new_multifab
      
      subroutine amrex_fi_delete_multifab (mf) bind(c)
-       use, intrinsic :: iso_c_binding
-       implicit none
+       import
        type(c_ptr), value :: mf
      end subroutine amrex_fi_delete_multifab
 
      subroutine amrex_fi_multifab_dataptr (mf, mfi, dp, lo, hi) bind(c)
-       use, intrinsic :: iso_c_binding
-       implicit none
+       import
        type(c_ptr), value :: mf, mfi
        type(c_ptr) :: dp
        integer(c_int) :: lo(3), hi(3)
      end subroutine amrex_fi_multifab_dataptr
 
      function amrex_fi_multifab_min (mf, comp, nghost) bind(c)
-       use, intrinsic :: iso_c_binding
-       use amrex_fort_module, only : amrex_real
-       implicit none
+       import
        real(amrex_real) :: amrex_fi_multifab_min
        type(c_ptr), value :: mf
        integer(c_int), value :: comp, nghost
      end function amrex_fi_multifab_min
 
      function amrex_fi_multifab_max (mf, comp, nghost) bind(c)
-       use, intrinsic :: iso_c_binding
-       use amrex_fort_module, only : amrex_real
-       implicit none
+       import
        real(amrex_real) :: amrex_fi_multifab_max
        type(c_ptr), value :: mf
        integer(c_int), value :: comp, nghost
      end function amrex_fi_multifab_max
 
      function amrex_fi_multifab_norm0 (mf, comp) bind(c)
-       use, intrinsic :: iso_c_binding
-       use amrex_fort_module, only : amrex_real
-       implicit none
+       import
        real(amrex_real) :: amrex_fi_multifab_norm0
        type(c_ptr), value :: mf
        integer(c_int), value :: comp
      end function amrex_fi_multifab_norm0
 
      function amrex_fi_multifab_norm1 (mf, comp) bind(c)
-       use, intrinsic :: iso_c_binding
-       use amrex_fort_module, only : amrex_real
-       implicit none
+       import
        real(amrex_real) :: amrex_fi_multifab_norm1
        type(c_ptr), value :: mf
        integer(c_int), value :: comp
      end function amrex_fi_multifab_norm1
 
      function amrex_fi_multifab_norm2 (mf, comp) bind(c)
-       use, intrinsic :: iso_c_binding
-       use amrex_fort_module, only : amrex_real
-       implicit none
+       import
        real(amrex_real) :: amrex_fi_multifab_norm2
        type(c_ptr), value :: mf
        integer(c_int), value :: comp
      end function amrex_fi_multifab_norm2
 
      subroutine amrex_fi_multifab_fill_boundary (mf, geom, c, nc, cross) bind(c)
-       use iso_c_binding
-       implicit none
+       import
        type(c_ptr), value :: mf, geom
        integer(c_int), value :: c, nc, cross
      end subroutine amrex_fi_multifab_fill_boundary
+
+     subroutine amrex_fi_write_multifab (mf, name) bind(c)
+       import
+       type(c_ptr), value :: mf
+       character(c_char), intent(in) :: name(*)
+     end subroutine amrex_fi_write_multifab
   end interface
 
   interface
      subroutine amrex_fi_new_mfiter (mfi, mf, tiling) bind(c)
-       use, intrinsic :: iso_c_binding
-       implicit none
+       import
        type(c_ptr) :: mfi
        type(c_ptr), value :: mf
        integer(c_int), value :: tiling
      end subroutine amrex_fi_new_mfiter
 
      subroutine amrex_fi_delete_mfiter (p) bind(c)
-       use, intrinsic :: iso_c_binding
-       implicit none
+       import
        type(c_ptr), value :: p
      end subroutine amrex_fi_delete_mfiter
 
      subroutine amrex_fi_increment_mfiter (p, iv) bind(c)
-       use, intrinsic :: iso_c_binding
-       implicit none
+       import
        type(c_ptr), value :: p
        integer(c_int) :: iv
      end subroutine amrex_fi_increment_mfiter
 
      subroutine amrex_fi_mfiter_is_valid (p, iv) bind(c)
-       use, intrinsic :: iso_c_binding
-       implicit none
+       import
        type(c_ptr), value :: p
        integer(c_int) :: iv
      end subroutine amrex_fi_mfiter_is_valid
 
      subroutine amrex_fi_mfiter_tilebox (p, lo, hi) bind(c)
-       use, intrinsic :: iso_c_binding
-       implicit none
+       import
        type(c_ptr), value :: p
        integer(c_int) :: lo(3), hi(3)
      end subroutine amrex_fi_mfiter_tilebox
@@ -265,13 +253,13 @@ contains
     double precision, contiguous, pointer, dimension(:,:,:,:) :: dp
     type(c_ptr) :: cp
     double precision, contiguous, pointer :: fp(:,:,:,:)
-    integer(c_int) :: lo(3), hi(3), n(4)
-    lo = 1;  hi = 1
-    call amrex_fi_multifab_dataptr(this%p, mfi%p, cp, lo, hi)
-    n(1:3) = hi - lo + 1
+    integer(c_int) :: n(4)
+    type(amrex_box) :: bx
+    call amrex_fi_multifab_dataptr(this%p, mfi%p, cp, bx%lo, bx%hi)
+    n(1:3) = bx%hi - bx%lo + 1
     n(4)   = this%ncomp()
     call c_f_pointer(cp, fp, shape=n)
-    dp(lo(1):,lo(2):,lo(3):,1:) => fp
+    dp(bx%lo(1):,bx%lo(2):,bx%lo(3):,1:) => fp
   end function amrex_multifab_dataPtr
 
   function amrex_multifab_min (this, comp, nghost) result(r)
@@ -354,6 +342,12 @@ contains
     end if
     call amrex_fi_multifab_fill_boundary (this%p, geom%p, c-1, nc, lcross)
   end subroutine amrex_multifab_fill_boundary_c
+
+  subroutine amrex_multifab_write (mf, name)
+    type(amrex_multifab), intent(in) :: mf
+    character(*), intent(in) :: name
+    call amrex_fi_write_multifab(mf%p, amrex_string_f_to_c(name))
+  end subroutine amrex_multifab_write
 
 !------ MFIter routines ------!
 

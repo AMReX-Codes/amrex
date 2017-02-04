@@ -10,8 +10,8 @@ TINY_PROFILE = FALSE
 
 COMP      = gnu
 
-#DIM       = 2
-DIM       = 3
+DIM       = 2
+#DIM       = 3
 
 Bpack   := ./Make.package 
 Blocs   := . 

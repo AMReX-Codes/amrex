@@ -1,6 +1,7 @@
 module initdata_module
 
   use my_amr_module
+  use prob_module
 
   implicit none
 
@@ -40,12 +41,33 @@ contains
  
     call init_level_data(0)
 
+    call amrex_multifab_write(phi_new(0), "phi0")
+
   end subroutine init_from_scratch
 
 
   subroutine init_level_data (lev)
     integer, intent(in) :: lev
 
+    type(amrex_geometry) :: geom
+    type(amrex_mfiter) :: mfi
+    type(amrex_box) :: bx
+    real(amrex_real), contiguous, pointer :: phi(:,:,:,:)
+
+    geom = amrex_get_geometry(lev)
+
+    call amrex_mfiter_build(mfi, phi_new(lev))
+
+    do while (mfi%next())
+       bx = mfi%tilebox()
+       phi => phi_new(lev)%dataptr(mfi)
+       call init_prob_data(lev, t_new(lev), bx%lo, bx%hi, phi, lbound(phi), ubound(phi), &
+            geom%dx, geom%problo)
+    end do
+
+    call amrex_mfiter_destroy(mfi)
+
+    call amrex_geometry_destroy(geom)
     
   end subroutine init_level_data
 
