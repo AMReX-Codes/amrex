@@ -4,21 +4,21 @@ from . import warpxC
 class WarpX(Bucket):
 
     def init(self):
-        warpxC.warpx_init()
+        self.warpx = warpxC.WarpX.GetInstance()
+        self.warpx.InitData()
 
-    def evolve(self, nsteps=None):
-        if nsteps is None:
-            warpxC.warpx_evolve()
-        else:
-            warpxC.warpx_evolve(nsteps)
+    def evolve(self, nsteps=-1):
+        self.warpx.Evolve(nsteps)
 
     def finalize(self):
-        warpxC.warpx_finalize()
+        warpxC.WarpX.ResetInstance()
 
     def getProbLo(self, direction):
-        return warpxC.warpx_getProbLo(direction)
+        return self.warpx.Geom()[0].ProbLo(direction)
+        #return warpxC.warpx_getProbLo(direction)
 
     def getProbHi(self, direction):
-        return warpxC.warpx_getProbHi(direction)
+        return self.warpx.Geom()[0].ProbHi(direction)
+        #return warpxC.warpx_getProbHi(direction)
 
 warpx = WarpX('warpx')

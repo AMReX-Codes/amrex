@@ -4,6 +4,7 @@
 #include <WarpXWrappers.h>
 
 #define SWIG_FILE_WITH_INIT
+#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 %}
 %include "numpy.i"
 %init %{
@@ -46,3 +47,4 @@ void wrapped_addNParticles(int speciesnumber, int lenx, double* x, int leny, dou
 }
 %}
 
+%include classwrapper.i
