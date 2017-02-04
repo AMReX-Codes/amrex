@@ -56,7 +56,7 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
     {
         AoSMap& pmap = m_particles[lev];
 	for (PIter it(*this, lev); it.isValid(); ++it) {
-	  int grid = it.gridIndex();
+	  int grid = it.index();
 	  int tile = it.tileIndex();
 	  AoS& pbox = pmap[grid][tile];
 	  const int n    = pbox.size();
@@ -170,7 +170,7 @@ TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
     {
         AoSMap& pmap = m_particles[lev];
 	for (PIter it(*this, lev); it.isValid(); ++it) {
-	  int grid = it.gridIndex();
+	  int grid = it.index();
 	  int tile = it.tileIndex();
 	  AoS& pbox = pmap[grid][tile];
 	  const int n    = pbox.size();
@@ -284,7 +284,7 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
 	    
             const AoSMap& pmap = m_particles[lev];
 	    for (PIter it(*this, lev); it.isValid(); ++it) {
-	      int grid = it.gridIndex();
+	      int grid = it.index();
 	      int tile = it.tileIndex();
 	      const AoS& pbox = pmap.at(grid)[tile];
 	      for (const auto& p : pbox) {
@@ -323,7 +323,7 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
                 std::vector<Real> vals(M);
 
 		for (PIter it(*this, lev); it.isValid(); ++it) {
-		  int grid = it.gridIndex();
+		  int grid = it.index();
 		  int tile = it.tileIndex();
 		  const AoS& pbox = pmap.at(grid)[tile];
 		  const Box&       bx   = ba[grid];

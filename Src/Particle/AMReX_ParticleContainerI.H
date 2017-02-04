@@ -37,7 +37,7 @@ ParticleContainer<NR, NI>::allocateData() {
       for (MFIter mfi(foo); mfi.isValid(); ++mfi)
 	{
 	  int i = mfi.index();
-	  int num_tiles = it.numTiles(i);
+	  int num_tiles = it.numTiles();
 	  partleveldata[i].resize(num_tiles);
 	  m_particles[lev][i].resize(num_tiles);
 	}
@@ -45,7 +45,7 @@ ParticleContainer<NR, NI>::allocateData() {
       // Allocate the SoA data on each tile;
       for (PIter it(*this, lev); it.isValid(); ++it) 
 	{
-	  int gid = it.gridIndex();
+	  int gid = it.index();
 	  int tid = it.tileIndex();
 	  partleveldata[gid][tid].resize(m_npartdata);
 	}
@@ -99,7 +99,7 @@ ParticleContainer<NR, NI>::NumberOfParticlesInGrid (int  lev,
 
     if (lev >= 0 && lev < int(m_particles.size())) {
       for (PIter it(*this, lev); it.isValid(); ++it) {
-	int gid = it.gridIndex();
+	int gid = it.index();
 	int tid = it.tileIndex();
         const AoS& pbox = m_particles[lev][gid][tid];
 	
@@ -129,7 +129,7 @@ ParticleContainer<NR, NI>::NumberOfParticlesAtLevel (int  lev,
 
     if (lev >= 0 && lev < int(m_particles.size())) {
       for (PIter it(*this, lev); it.isValid(); ++it) {
-	int gid = it.gridIndex();
+	int gid = it.index();
 	int tid = it.tileIndex();
         const AoS& pbox = m_particles[lev][gid][tid];
 	
@@ -163,7 +163,7 @@ ParticleContainer<NR, NI>::ByteSpread () const
     for (unsigned lev = 0; lev < m_particles.size(); lev++) {
       const auto& pmap = m_particles[lev];
       for (PIter it(*this, lev); it.isValid(); ++it) {
-	int gid = it.gridIndex();
+	int gid = it.index();
 	int tid = it.tileIndex();
 	cnt += pmap.at(gid)[tid].size();
       }
@@ -351,7 +351,7 @@ ParticleContainer<NR, NI>::MoveRandom (int lev)
     const Real  dist[BL_SPACEDIM] = { D_DECL(FRAC*dx[0], FRAC*dx[1], FRAC*dx[2]) };
 
     for (PIter it(*this, lev); it.isValid(); ++it) {
-      int gid = it.gridIndex();
+      int gid = it.index();
       int tid = it.tileIndex();
       AoS& pbox = pmap[gid][tid];
       const int n    = pbox.size();
@@ -423,7 +423,7 @@ ParticleContainer<NR, NI>::IncrementWithTotal (MultiFab& mf,
     }
   
   for (PIter it(*this, lev); it.isValid(); ++it) {
-    int gid = it.gridIndex();
+    int gid = it.index();
     int tid = it.tileIndex();
     const AoS& pbox = pmap[gid][tid];
     FArrayBox&  fab  = (*mf_pointer)[gid];
@@ -464,7 +464,7 @@ ParticleContainer<NR, NI>::sumParticleMass (int rho_index, int lev) const
   
   const AoSMap& pmap = m_particles[lev];
   for (PIter it(*this, lev); it.isValid(); ++it) {
-    int gid = it.gridIndex();
+    int gid = it.index();
     int tid = it.tileIndex();
     const AoS& pbox = pmap.at(gid)[tid];
     for (const auto& p : pbox) {
@@ -525,7 +525,7 @@ ParticleContainer<NR, NI>::GetParticleIDs (Array<int>& part_ids)
   for (unsigned lev = 0; lev < m_particles.size(); lev++) {
     const auto& pmap = m_particles[lev];
     for (PIter it(*this, lev); it.isValid(); ++it) {
-      int gid = it.gridIndex();
+      int gid = it.index();
       int tid = it.tileIndex();
       const AoS& pbx = pmap[gid][tid];
       for (const auto& p : pbx) {
@@ -586,7 +586,7 @@ ParticleContainer<NR, NI>::GetParticleCPU (Array<int>& part_cpu)
   for (unsigned lev = 0; lev < m_particles.size(); lev++) {
     const auto& pmap = m_particles[lev];
     for (PIter it(*this, lev); it.isValid(); ++it) {
-      int gid = it.gridIndex();
+      int gid = it.index();
       int tid = it.tileIndex();
       const AoS& pbx = pmap[gid][tid];
       for (const auto& p : pbx) {
@@ -648,7 +648,7 @@ ParticleContainer<NR, NI>::GetParticleLocations (Array<Real>& part_data)
   for (unsigned lev = 0; lev < m_particles.size(); lev++) {
     const auto& pmap = m_particles[lev];
     for (PIter it(*this, lev); it.isValid(); ++it) {
-      int gid = it.gridIndex();
+      int gid = it.index();
       int tid = it.tileIndex();
       const AoS& pbx = pmap[gid][tid];
       for (const auto& p : pbx) {
@@ -717,7 +717,7 @@ ParticleContainer<NR, NI>::GetParticleData (Array<Real>& part_data, int start_co
   for (unsigned lev = 0; lev < m_particles.size(); lev++) {
     const auto& pmap = m_particles[lev];
     for (PIter it(*this, lev); it.isValid(); ++it) {
-      int gid = it.gridIndex();
+      int gid = it.index();
       int tid = it.tileIndex();
       const AoS& pbx = pmap[gid][tid];
       for (const auto& p : pbx) {
@@ -786,7 +786,7 @@ ParticleContainer<NR, NI>::SetParticleLocations (Array<Real>& part_data)
   for (unsigned lev = 0; lev < m_particles.size(); lev++) {
     const auto& pmap = m_particles[lev];
     for (PIter it(*this, lev); it.isValid(); ++it) {
-      int gid = it.gridIndex();
+      int gid = it.index();
       int tid = it.tileIndex();
       const AoS& pbx = pmap[gid][tid];
       for (const auto& p : pbx) {
@@ -831,7 +831,7 @@ ParticleContainer<NR, NI>::RemoveParticlesNotAtFinestLevel ()
     const auto& pmap = m_particles[lev];
     if (!pmap.empty()) {
       for (PIter it(*this, lev); it.isValid(); ++it) {
-	int gid = it.gridIndex();
+	int gid = it.index();
 	int tid = it.tileIndex();
 	const AoS& pbx = pmap[gid][tid];
 	cnt += pbx.size();
@@ -911,7 +911,7 @@ ParticleContainer<NR, NI>::CreateVirtualParticles (int   level,
   const AoSMap& pmap = m_particles[level];
 
   for (PIter it(*this, level); it.isValid(); ++it) {
-    int gid = it.gridIndex();
+    int gid = it.index();
     int tid = it.tileIndex();
     const AoS& pbox = pmap[gid][tid];
   
@@ -1040,7 +1040,7 @@ ParticleContainer<NR, NI>::CreateGhostParticles (int   level,
   
   const AoSMap& pmap = m_particles[level];
   for (PIter it(*this, level); it.isValid(); ++it) {
-    int gid = it.gridIndex();
+    int gid = it.index();
     int tid = it.tileIndex();
     const AoS& pbox = pmap[gid][tid];
 
@@ -1124,7 +1124,7 @@ ParticleContainer<NR, NI>::Redistribute (int  lev_min,
   for (int lev = lev_min, nlevs = m_particles.size(); lev < nlevs; lev++) {
     AoSMap& pmap = m_particles[lev];
     for (PIter it(*this, lev); it.isValid(); ++it) {
-      int grid = it.gridIndex();
+      int grid = it.index();
       int tile = it.tileIndex();
       AoS& pbox = pmap[grid][tile];
       unsigned first = 0;
@@ -1588,7 +1588,7 @@ ParticleContainer<NR, NI>::OK (int  lev_min,
       {
         const AoSMap& pmap = m_particles[lev];
 	for (PIter it(*this, lev); it.isValid(); ++it) {
-	  int grid = it.gridIndex();
+	  int grid = it.index();
 	  int tile = it.tileIndex();
 	  const AoS& pbox = pmap.at(grid)[tile];
 	  for (auto it = pbox.cbegin(); it != pbox.cend(); ++it)
@@ -1692,7 +1692,7 @@ ParticleContainer<NR, NI>::Checkpoint (const std::string& dir,
     for (int lev = 0; lev < m_particles.size();  lev++) {
       AoSMap& pmap = m_particles[lev];
       for (PIter it(*this, lev); it.isValid(); ++it) {
-	int grid = it.gridIndex();
+	int grid = it.index();
 	int tile = it.tileIndex();
 	AoS& pbox = pmap[grid][tile];
 	for (const auto& p : pbox) {
@@ -2644,7 +2644,7 @@ ParticleContainer<NR, NI>::WriteAsciiFile (const std::string& filename)
     for (int lev = 0; lev < m_particles.size();  lev++) {
       AoSMap& pmap = m_particles[lev];
       for (PIter it(*this, lev); it.isValid(); ++it) {
-	int grid = it.gridIndex();
+	int grid = it.index();
 	int tile = it.tileIndex();
 	AoS& pbox = pmap[grid][tile];
 	for (const auto& p : pbox) {
@@ -2711,7 +2711,7 @@ ParticleContainer<NR, NI>::WriteAsciiFile (const std::string& filename)
 	    for (int lev = 0; lev < m_particles.size();  lev++) {
 	      AoSMap& pmap = m_particles[lev];
 	      for (PIter it(*this, lev); it.isValid(); ++it) {
-		int grid = it.gridIndex();
+		int grid = it.index();
 		int tile = it.tileIndex();
 		AoS& pbox = pmap[grid][tile];
 		
@@ -3181,7 +3181,7 @@ ParticleContainer<NR, NI>::AssignDensity (int rho_index, bool sub_cycle,
 
 	const AoSMap& pmap = m_particles[lev];
 	for (PIter it(*this, lev); it.isValid(); ++it) {
-	  int grid = it.gridIndex();
+	  int grid = it.index();
 	  int tile = it.tileIndex();
 	  const AoS& pbx = pmap.at(grid)[tile];
 	  FArrayBox&  fab = (*mf[lev_index])[grid];
@@ -4081,7 +4081,7 @@ ParticleContainer<NR, NI>::AssignCellDensitySingleLevel (int rho_index,
     }
 
     for (PIter it(*this, lev); it.isValid(); ++it) {
-      int grid = it.gridIndex();
+      int grid = it.index();
       int tile = it.tileIndex();
       const AoS& pbx = pmap.at(grid)[tile];
       FArrayBox& fab = (*mf_pointer)[grid];
@@ -4249,7 +4249,7 @@ ParticleContainer<NR, NI>::NodalDepositionSingleLevel (int rho_index,
 #endif
 
     for (PIter it(*this, lev); it.isValid(); ++it) {
-      int grid = it.gridIndex();
+      int grid = it.index();
       int tile = it.tileIndex();
       const AoS& pbx = pmap.at(grid)[tile];
       FArrayBox& fab = (*mf_pointer)[grid];
@@ -4426,7 +4426,7 @@ ParticleContainer<NR, NI>::moveKick (MultiFab&       acceleration,
     }
 
     for (PIter it(*this, lev); it.isValid(); ++it) {
-      int grid = it.gridIndex();
+      int grid = it.index();
       int tile = it.tileIndex();
       AoS& pbox = pmap[grid][tile];
       const int n = pbox.size();
