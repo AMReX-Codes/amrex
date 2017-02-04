@@ -3,6 +3,7 @@
 #include <vector>
 
 #include "AMReX_Array.H"
+#include "AMReX_FabArray.H"
 #include "AMReX_Particles.H"
 
 using namespace amrex;
@@ -57,13 +58,9 @@ int main(int argc, char* argv[])
   MultiFab dummy_mf(ba[0], dmap[0], 1, 0, Fab_noallocate);
 
   MyPC.InitOnePerCell(0.5, 0.5, 0.5, 1.0, dummy_mf);
-
-  for (PartIter<1+BL_SPACEDIM> it(MyPC, 0); it.isValid(); ++it) {
-    Box tile_box = it.tileBox();
-    Box grid_box = it.gridBox();
-    std::cout << "Grid number: "  << it.gridIndex() << " " << grid_box << " " << grid_box.size();
-    std::cout << " Tile number: " << it.tileIndex() << " " << tile_box << " " << tile_box.size();
-    std::cout << std::endl;
+  MyPC.do_tiling = true;
+  for (PIter mfi(MyPC, 0); mfi.isValid(); ++mfi) {
+    std::cout << mfi.index() << " " << mfi.tileIndex() << " " << mfi.numTiles() << std::endl;
   }
       
   amrex::Finalize();
