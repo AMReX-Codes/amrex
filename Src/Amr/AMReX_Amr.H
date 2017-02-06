@@ -349,7 +349,7 @@ protected:
 	{ amrex::Abort("How did we get her!"); }
     virtual void RemakeLevel (int lev, Real time, const BoxArray& ba, const DistributionMapping& dm) override
 	{ amrex::Abort("How did we get her!"); }
-    virtual void ClearLevel (int lev) override;
+    virtual void ClearLevel (int lev) override
 	{ amrex::Abort("How did we get her!"); }
 
     //! Whether to write a plotfile now
