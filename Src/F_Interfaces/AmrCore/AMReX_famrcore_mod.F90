@@ -8,6 +8,7 @@ module amrex_famrcore_module
   private
 
   ! public routines
+  public :: amrex_init_from_scratch, amrex_init_virtual_functions
   public :: amrex_famrcore_init, amrex_famrcore_finalize, amrex_famrcore_initialized, &
        amrex_get_finest_level, amrex_get_boxarray, amrex_get_distromap, amrex_get_geometry, &
        amrex_set_finest_level, amrex_set_boxarray, amrex_set_distromap, &
@@ -99,6 +100,12 @@ module amrex_famrcore_module
 !     subroutine amrex_fi_make_new_grids (baselev, time, new_finest, ba_array)
 !       
 !     end subroutine amrex_fi_make_new_grids
+
+     subroutine amrex_fi_init_from_scratch (t, famrcore) bind(c)
+       import
+       real(amrex_real), value :: t
+       type(c_ptr), value :: famrcore
+     end subroutine amrex_fi_init_from_scratch
   end interface
 
 contains
@@ -183,6 +190,16 @@ contains
     call amrex_fi_set_boxarray(lev, c_null_ptr, famrcore)
     call amrex_fi_set_distromap(lev, c_null_ptr, famrcore)
   end subroutine amrex_remove_level
+
+  subroutine amrex_init_from_scratch (t)
+    real(amrex_real), intent(in) :: t
+    call amrex_fi_init_from_scratch(t, famrcore)
+  end subroutine amrex_init_from_scratch
+
+  subroutine amrex_init_virtual_functions (mk_lev_scrtch)
+    type(c_funptr), intent(in) :: mk_lev_scrtch
+    call amrex_fi_init_virtual_functions (mk_lev_scrtch)
+  end subroutine amrex_init_virtual_functions
 
 end module amrex_famrcore_module
 

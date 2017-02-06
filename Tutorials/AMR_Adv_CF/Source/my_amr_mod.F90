@@ -43,6 +43,8 @@ contains
     integer :: ilev
 
     if (.not.amrex_famrcore_initialized()) call amrex_famrcore_init()
+    
+    call amrex_init_virtual_functions (c_funloc(my_make_new_level_from_scratch))
 
     ! Read parameters
     call amrex_parmparse_build(pp)
@@ -129,5 +131,12 @@ contains
 !       call amrex_fluxregister_build(flux_reg(lev), ba, dm, ref_ratio(lev-1), lev, ncomp)
 !    end if
   end subroutine make_new_level
+
+  subroutine my_make_new_level_from_scratch (lev, time, ba, dm) bind(c)
+    integer, intent(in), value :: lev
+    real(amrex_real), intent(in), value :: time
+    type(c_ptr), value :: ba, dm
+    print *, 'in my_make_new_level_from_scratch'
+  end subroutine my_make_new_level_from_scratch
   
 end module my_amr_module

@@ -106,11 +106,6 @@ public:
     */
     void MakeNewGrids (int lbase, Real time, int& new_finest, Array<BoxArray>& new_grids);
 
-    static void Initialize ();
-    static void Finalize ();
-
-protected:
-
     /**
      * \brief Initialize BoxArray, DistributionMapping and data from scratch.
      * Calling this function requires the derive class implement its own MakeNewLevelFromScratch
@@ -121,6 +116,11 @@ protected:
 
     //! Rebuild levels finer than lbase
     virtual void regrid (int lbase, Real time, bool initial=false);
+
+    static void Initialize ();
+    static void Finalize ();
+
+protected:
 
     //! Make a new level from scratch using provided BoxArray and DistributionMapping.
     //! Only used during initialization.

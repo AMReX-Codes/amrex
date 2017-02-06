@@ -22,8 +22,6 @@ public:
     void InitData ();
     void Evolve ();
 
-protected:
-
     virtual void MakeNewLevelFromScratch (int lev, amrex::Real time, const amrex::BoxArray& ba,
 					  const amrex::DistributionMapping& dm) override;
     virtual void MakeNewLevelFromCoarse (int lev, amrex::Real time, const amrex::BoxArray& ba,
