@@ -18,6 +18,8 @@ int main(int argc, char* argv[])
     amrex::Print() << "AMReX version " << amrex::Version() << "\n";
 
     {
+	auto tstart = amrex::ParallelDescriptor::second();
+
 	// define the lower and upper corner of a 3D domain
 	amrex::IntVect domain_lo(0 , 0, 0); 
 	amrex::IntVect domain_hi(63,63,63); 
@@ -61,6 +63,9 @@ int main(int argc, char* argv[])
 	    << "    max norm = " << data.norm0() << "\n"
 	    << "    L1  norm = " << data.norm1() << "\n"
 	    << "    L2  norm = " << data.norm2() << "\n";
+
+	auto tend = amrex::ParallelDescriptor::second();
+	amrex::Print() << "Run time: " << tend-tstart << "\n";
     }
 
     amrex::Finalize();

@@ -74,14 +74,14 @@ Write_N_Read (const MultiFab& mf,
 
     if (ParallelDescriptor::IOProcessor())
     {
-        start = amrex::wsecond();
+        start = ParallelDescriptor::second();
     }
 
     ParallelDescriptor::Barrier();
 
     if (ParallelDescriptor::IOProcessor())
     {
-        end = amrex::wsecond();
+        end = ParallelDescriptor::second();
 
         std::cout << "\nWallclock time for MF write: " << (end-start) << '\n';
 

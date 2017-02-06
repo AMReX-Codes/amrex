@@ -10,9 +10,7 @@
 #include <cstdio>
 #include <cstdlib>
 
-#ifndef WIN32
 #include <unistd.h>
-#endif
 
 #include <AMReX_IntVect.H>
 #include <AMReX_Box.H>
@@ -22,10 +20,6 @@
 #include <AMReX_Utility.H>
 
 using namespace amrex;
-
-#ifdef BL_USE_SETBUF
-#define pubsetbuf setbuf
-#endif
 
 const int maxGrid(64);
 

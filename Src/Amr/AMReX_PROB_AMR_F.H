@@ -6,8 +6,8 @@ extern "C"
      void amrex_probinit (const int* init,
 			  const int* name,
 			  const int* namelen,
-			  const Real* problo,
-			  const Real* probhi);
+			  const amrex::Real* problo,
+			  const amrex::Real* probhi);
 }
 
 #endif /*_PROB_AMR_F_H_*/
