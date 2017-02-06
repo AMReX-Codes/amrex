@@ -125,11 +125,11 @@ ParticleContainer<NR, NI>::InitFromAsciiFile (const std::string& file, int extra
                 amrex::Error(msg.c_str());
             }
 
-            if (!ParticleType::Where(p, m_gdb, pld))
+            if (!Where(p, pld))
             {
                 ParticleType::PeriodicShift(p, m_gdb);
 
-                if (!ParticleType::Where(p, m_gdb, pld))
+                if (!Where(p, pld))
                 {
                     std::cout << "BAD PARTICLE ID WOULD BE " << ParticleType::NextID() << '\n';
 
@@ -178,10 +178,10 @@ ParticleContainer<NR, NI>::InitFromAsciiFile (const std::string& file, int extra
                             for (int n = 0; n < extradata; n++)
                                 p_rep.m_rdata.arr[BL_SPACEDIM+n] = p.m_rdata.arr[BL_SPACEDIM+n];
 
-                            if (!ParticleType::Where(p_rep, m_gdb, pld))
+                            if (!Where(p_rep, pld))
                             {
                                 ParticleType::PeriodicShift(p_rep, m_gdb);
-                                if (!ParticleType::Where(p_rep, m_gdb, pld))
+                                if (!Where(p_rep, pld))
                                 {
                                     std::cout << "BAD REPLICATED PARTICLE ID WOULD BE " << ParticleType::NextID() << std::endl;
                                     amrex::Abort("ParticleContainer<NR, NI>::InitFromAsciiFile(): invalid replicated particle");
@@ -226,7 +226,7 @@ ParticleContainer<NR, NI>::InitFromAsciiFile (const std::string& file, int extra
                 {
                     ParticleType& p = nparticles.back();
 		    ParticleLocData pld;
-		    ParticleType::Where(p, m_gdb, pld);
+		    Where(p, pld);
 
                     m_particles[pld.m_lev][pld.m_grid][pld.m_tile].push_back(p);
     
@@ -256,7 +256,7 @@ ParticleContainer<NR, NI>::InitFromAsciiFile (const std::string& file, int extra
             {
                 ParticleType& p = nparticles.back();
 		ParticleLocData pld;
-		ParticleType::Where(p, m_gdb, pld);
+		Where(p, pld);
 
                 m_particles[pld.m_lev][pld.m_grid][pld.m_tile].push_back(p);
 
@@ -650,11 +650,11 @@ ParticleContainer<NR, NI>::InitFromBinaryFile (const std::string& file,
                     amrex::Error(msg.c_str());
                 }
 
-                if (!ParticleType::Where(p, m_gdb, pld))
+                if (!Where(p, pld))
                 {
                     ParticleType::PeriodicShift(p, m_gdb);
 
-                    if (!ParticleType::Where(p, m_gdb, pld))
+                    if (!Where(p, pld))
                     {
                         std::cout << "BAD PARTICLE ID WOULD BE " << ParticleType::NextID() << '\n';
 
@@ -869,7 +869,7 @@ ParticleContainer<NR, NI>::InitRandom (long          icount,
                     p.m_rdata.arr[BL_SPACEDIM+i] = 0;
             }
 
-            if (!ParticleType::Where(p, m_gdb, pld))
+            if (!Where(p, pld))
             {
                 amrex::Abort("ParticleContainer<NR, NI>::InitRandom(): invalid particle");
             }
@@ -942,7 +942,7 @@ ParticleContainer<NR, NI>::InitRandom (long          icount,
             p.m_idata.id  = ParticleType::NextID();
             p.m_idata.cpu = MyProc;
 
-            if (!ParticleType::Where(p, m_gdb, pld))
+            if (!Where(p, pld))
             {
                 amrex::Abort("ParticleContainer<NR, NI>::InitRandom(): invalid particle");
             }
@@ -1040,7 +1040,7 @@ ParticleContainer<NR, NI>::InitOnePerCell (Real x_off, Real y_off, Real z_off,
             p.m_idata.id  = ParticleType::NextID();
             p.m_idata.cpu = ParallelDescriptor::MyProc();
 
-            if (!ParticleType::Where(p, m_gdb, pld))
+            if (!Where(p, pld))
             {
                 amrex::Abort("ParticleContainer<NR, NI>::InitOnePerCell(): invalid particle");
             }
@@ -1149,7 +1149,7 @@ ParticleContainer<NR, NI>::InitNRandomPerCell (int n_per_cell, Real mass, MultiF
                p.m_idata.id  = ParticleType::NextID();
                p.m_idata.cpu = ParallelDescriptor::MyProc();
 
-               if (!ParticleType::Where(p, m_gdb, pld))
+               if (!Where(p, pld))
                    amrex::Abort("ParticleContainer<NR, NI>::InitNRandomPerCell(): invalid particle");
 
                BL_ASSERT(pld.m_lev >= 0 && pld.m_lev <= m_gdb->finestLevel());

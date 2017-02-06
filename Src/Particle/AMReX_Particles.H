@@ -128,47 +128,6 @@ struct Particle
     int& idata(int index)       & {return m_idata.arr[2 + index];}
     int  idata(int index) const & {return m_idata.arr[2 + index];}
 
-    static IntVect Index (const Particle<NR, NI>& p, const Geometry& geom);
-
-    //
-    // Checks a particle's location on levels lev_min and higher.
-    // Returns false if the particle does not exist on that level.
-    //
-    static bool Where (const Particle<NR, NI>& prt, const ParGDBBase* gdb, 
-		       ParticleLocData& pld, int lev_min = 0, int finest_level = -1);
-
-    //
-    // Checks whether the particle has crossed a periodic boundary in such a way
-    // that it is on levels lev_min and higher.
-    //
-    static bool PeriodicWhere (Particle<NR, NI>& prt, const ParGDBBase* gdb, 
-			       ParticleLocData& pld, int lev_min = 0, int finest_level = -1);
-
-    //
-    // Checks whether a particle is within its grid (including ngrow ghost cells).
-    //
-    static bool RestrictedWhere (const Particle<NR, NI>& p, const ParGDBBase* gdb, 
-				 ParticleLocData& pld, int ngrow);
-
-    //
-    // Checks a particle's location on a specific level.
-    // (Yes this is distict from the functionality provided above)
-    //
-    static bool SingleLevelWhere (const Particle<NR, NI>& p, const ParGDBBase* gdb, 
-				  ParticleLocData& pld, int level);
-
-    //
-    // Updates a particle's location (Where), tries to periodic shift any particles
-    // that have left the domain. May need work (see inline comments)
-    //
-
-    static void Reset (Particle<NR, NI>& prt, const ParGDBBase* gdb, bool update, bool verbose=true); 
-
-    //
-    // Returns true if the particle was shifted.
-    //
-    static bool PeriodicShift (Particle<NR, NI>& prt, const ParGDBBase* gdb);
-
     static Real InterpDoit (const FArrayBox& fab, const Real* fracs, const IntVect* cells, int comp);
 
     static Real InterpDoit (const FArrayBox& fab, const IntVect& hi, const Real* frac, int comp);
@@ -202,38 +161,6 @@ struct Particle
     // Reset on restart.
     //
     static void NextID (int nextid);
-
-    //
-    // Used by AssignDensity.
-    //
-    static bool CrseToFine (const BoxArray&       cfba, 
-                            const Array<IntVect>& cells, 
-                            Array<IntVect>&       cfshifts, 
-                            const Geometry&       gm, 
-                            Array<int>&           which, 
-                            Array<IntVect>&       pshifts);
-
-    static bool FineToCrse (const Particle<NR, NI>&            p, 
-                            int                                flev, 
-                            const ParGDBBase*                  gdb, 
-                            const Array<IntVect>&              fcells, 
-                            const BoxArray&                    fvalid, 
-                            const BoxArray&                    compfvalid_grown, 
-                            Array<IntVect>&                    ccells, 
-                            Array<Real>&                       cfracs, 
-                            Array<int>&                        which, 
-                            Array<int>&                        cgrid, 
-                            Array<IntVect>&                    pshifts, 
-                            std::vector< std::pair<int,Box> >& isects);
-
-    static void FineCellsToUpdateFromCrse (const Particle<NR, NI>&            p, 
-                                           int lev, const ParGDBBase*         gdb, 
-                                           const IntVect&                     ccell,
-                                           const IntVect&                     cshift, 
-                                           Array<int>&                        fgrid, 
-                                           Array<Real>&                       ffrac, 
-                                           Array<IntVect>&                    fcells, 
-                                           std::vector< std::pair<int,Box> >& isects);
 
     static void CIC_Fracs (const Real* frac, Real* fracs);
 
@@ -498,6 +425,76 @@ public:
     void moveKick (MultiFab& acceleration, int level, Real timestep, 
 		   Real a_new = 1.0, Real a_half = 1.0,
 		   int start_comp_for_accel = -1);
+
+    IntVect Index (const Particle<NR, NI>& p, int lev) const;
+
+    //
+    // Checks a particle's location on levels lev_min and higher.
+    // Returns false if the particle does not exist on that level.
+    //
+    bool Where (const Particle<NR, NI>& prt, ParticleLocData& pld, 
+		int lev_min = 0, int finest_level = -1) const;
+
+    //
+    // Checks whether the particle has crossed a periodic boundary in such a way
+    // that it is on levels lev_min and higher.
+    //
+    bool PeriodicWhere (Particle<NR, NI>& prt, ParticleLocData& pld,
+			int lev_min = 0, int finest_level = -1) const;
+
+    //
+    // Checks whether a particle is within its grid (including ngrow ghost cells).
+    //
+    bool RestrictedWhere (const Particle<NR, NI>& p, ParticleLocData& pld, int ngrow) const;
+
+    //
+    // Checks a particle's location on a specific level.
+    // (Yes this is distict from the functionality provided above)
+    //
+    bool SingleLevelWhere (const Particle<NR, NI>& p, ParticleLocData& pld, int level) const;
+
+    //
+    // Updates a particle's location (Where), tries to periodic shift any particles
+    // that have left the domain. May need work (see inline comments)
+    //
+
+    void Reset (Particle<NR, NI>& prt, bool update, bool verbose=true) const; 
+
+    //
+    // Returns true if the particle was shifted.
+    //
+    bool PeriodicShift (Particle<NR, NI>& prt) const;
+
+    //
+    // Used by AssignDensity.
+    //
+    bool CrseToFine (const BoxArray&       cfba, 
+		     const Array<IntVect>& cells, 
+		     Array<IntVect>&       cfshifts, 
+		     const Geometry&       gm, 
+		     Array<int>&           which, 
+		     Array<IntVect>&       pshifts) const;
+
+    bool FineToCrse (const ParticleType&                p,
+		     int                                flev,
+		     const Array<IntVect>&              fcells,
+		     const BoxArray&                    fvalid,
+		     const BoxArray&                    compfvalid_grown,
+		     Array<IntVect>&                    ccells,
+		     Array<Real>&                       cfracs,
+		     Array<int>&                        which,
+		     Array<int>&                        cgrid,
+		     Array<IntVect>&                    pshifts,
+		     std::vector< std::pair<int,Box> >& isects) const;
+
+    void FineCellsToUpdateFromCrse (const ParticleType&                p,
+				    int                                lev,
+				    const IntVect&                     ccell,
+				    const IntVect&                     cshift,
+				    Array<int>&                        fgrid,
+				    Array<Real>&                       ffrac,
+				    Array<IntVect>&                    fcells,
+				    std::vector< std::pair<int,Box> >& isects) const;
 
     std::vector<bool> communicate_comp;
     static bool do_tiling;

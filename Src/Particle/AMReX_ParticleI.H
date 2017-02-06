@@ -1,6 +1,145 @@
 template <int NR, int NI>
 int Particle<NR, NI>::the_next_id = 1;
 
+template<int NR, int NI>
+inline
+void
+Particle<NR, NI>::CIC_Fracs (const Real* frac, Real* fracs)
+{
+    //
+    // "frac"  should be dimensioned: Real frac[BL_SPACEDIM]
+    //
+    // "fracs" should be dimensioned: Real fracs[D_TERM(2,+2,+4)]
+    //
+#if (BL_SPACEDIM == 1)
+    // High
+    fracs[0] = frac[0];
+
+    // Low
+    fracs[1] = (1-frac[0]);
+
+#elif (BL_SPACEDIM == 2)
+    // HH
+    fracs[0] = frac[0] * frac[1] ;
+    
+    // LH
+    fracs[1] = (1-frac[0]) * frac[1];
+    
+    // LL
+    fracs[2] = (1-frac[0]) * (1-frac[1]);
+    
+    // HL
+    fracs[3] = frac[0] * (1-frac[1]);
+
+#elif (BL_SPACEDIM == 3)
+    // HHH
+    fracs[0] = frac[0] * frac[1] * frac[2];
+
+    // LHH
+    fracs[1] = (1-frac[0]) * frac[1] * frac[2];
+
+    // LLH
+    fracs[2] = (1-frac[0]) * (1-frac[1]) * frac[2];
+    
+    // HLH
+    fracs[3] = frac[0] * (1-frac[1]) * frac[2];
+
+    // HHL
+    fracs[4] = frac[0] * frac[1] * (1-frac[2]);
+    
+    // LHL
+    fracs[5] = (1-frac[0]) * frac[1] * (1-frac[2]);
+
+    // LLL
+    fracs[6] = (1-frac[0]) * (1-frac[1]) * (1-frac[2]);
+    
+    // HLL
+    fracs[7] = frac[0] * (1-frac[1]) * (1-frac[2]);
+#endif
+}
+
+template<int NR, int NI>
+inline
+void
+Particle<NR, NI>::CIC_Cells (const IntVect& hicell, IntVect* cells)
+{
+    //
+    // "cells" should be dimensioned: IntVect cells[D_TERM(2,+2,+4)]
+    //
+    IntVect cell = hicell;
+
+#if (BL_SPACEDIM == 1)
+    // High
+    cells[0] = cell;
+
+    // Low
+    cell[0]  = cell[0] - 1;
+    cells[1] = cell;
+
+#elif (BL_SPACEDIM == 2)
+    // HH
+    cells[0] = cell;
+    
+    // LH
+    cell[0]  = cell[0] - 1;
+    cells[1] = cell;
+    
+    // LL
+    cell[1]  = cell[1] - 1;
+    cells[2] = cell;
+    
+    // HL
+    cell[0]  = cell[0] + 1;
+    cells[3] = cell;
+
+#elif (BL_SPACEDIM == 3)
+    // HHH
+    cells[0] = cell;
+
+    // LHH
+    cell[0]  = cell[0] - 1;
+    cells[1] = cell;
+
+    // LLH
+    cell[1]  = cell[1] - 1;
+    cells[2] = cell;
+    
+    // HLH
+    cell[0]  = cell[0] + 1;
+    cells[3] = cell;
+
+    cell = hicell;
+
+    // HHL
+    cell[2]  = cell[2] - 1;
+    cells[4] = cell;
+    
+    // LHL
+    cell[0]  = cell[0] - 1;
+    cells[5] = cell;
+
+    // LLL
+    cell[1]  = cell[1] - 1;
+    cells[6] = cell;
+    
+    // HLL
+    cell[0]  = cell[0] + 1;
+    cells[7] = cell;
+#endif
+}
+
+template<int NR, int NI>
+inline
+int
+Particle<NR, NI>::CIC_Cells_Fracs (const Particle<NR, NI>& p,
+				   const Real*         plo,
+				   const Real*         dx,
+				   Array<Real>&        fracs,
+				   Array<IntVect>&     cells)
+{
+    return Particle<NR, NI>::CIC_Cells_Fracs(p,plo,dx,dx,fracs,cells);
+}
+
 template <int NR, int NI>
 void
 Particle<NR, NI>::CIC_Cells_Fracs_Basic (const Particle<NR, NI>& p,
@@ -109,317 +248,6 @@ Particle<NR, NI>::CIC_Cells_Fracs (const Particle<NR, NI>& p,
 #endif
 
     return M;
-}
-
-template <int NR, int NI>
-bool
-Particle<NR, NI>::CrseToFine (const BoxArray&       cfba,
-			      const Array<IntVect>& cells,
-			      Array<IntVect>&       cfshifts,
-			      const Geometry&       gm,
-			      Array<int>&           which,
-			      Array<IntVect>&       pshifts)
-{
-    BL_PROFILE("Particle<NR, NI>::CrseToFine()");
-    //
-    // We're in AssignDensity(). We want to know whether or not updating
-    // with a particle, will we cross a  crse->fine boundary of the level
-    // with coarsened fine BoxArray "cfba".  "cells" are as calculated from
-    // CIC_Cells_Fracs().
-    //
-    const int M = cells.size();
-
-    which.resize(M);
-    cfshifts.resize(M);
-
-    for (int i = 0; i < M; i++)
-        which[i] =  0;
-
-    bool result = false;
-
-    for (int i = 0; i < M; i++)
-    {
-        if (cfba.contains(cells[i]))
-        {
-            result      = true;
-            which[i]    = 1;
-            cfshifts[i] = IntVect::TheZeroVector();
-        }
-        else if (!gm.Domain().contains(cells[i]))
-        {
-            BL_ASSERT(gm.isAnyPeriodic());
-            //
-            // Can the cell be shifted into cfba?
-            //
-            const Box bx(cells[i],cells[i]);
-
-            gm.periodicShift(bx, gm.Domain(), pshifts);
-
-            if (!pshifts.empty())
-            {
-                BL_ASSERT(pshifts.size() == 1);
-
-                const Box& dbx = bx - pshifts[0];
-
-                BL_ASSERT(dbx.ok());
-
-                if (cfba.contains(dbx))
-                {
-                    //
-                    // Note that pshifts[0] is from the coarse perspective.
-                    // We'll later need to multiply it by ref ratio to use
-                    // at the fine level.
-                    //
-                    result      = true;
-                    which[i]    = 1;
-                    cfshifts[i] = pshifts[0];
-                }
-            }
-        }
-    }
-
-    return result;
-}
-
-template <int NR, int NI>
-bool
-Particle<NR, NI>::FineToCrse (const Particle<NR, NI>&            p,
-			      int                                flev,
-			      const ParGDBBase*                  gdb,
-			      const Array<IntVect>&              fcells,
-			      const BoxArray&                    fvalid,
-			      const BoxArray&                    compfvalid_grown,
-			      Array<IntVect>&                    ccells,
-			      Array<Real>&                       cfracs,
-			      Array<int>&                        which,
-			      Array<int>&                        cgrid,
-			      Array<IntVect>&                    pshifts,
-			      std::vector< std::pair<int,Box> >& isects)
-{
-    BL_PROFILE("Particle<NR, NI>::FineToCrse()");
-    BL_ASSERT(gdb != 0);
-    BL_ASSERT(flev > 0);
-    //
-    // We're in AssignDensity(). We want to know whether or not updating
-    // with a particle we'll cross a fine->crse boundary.  Note that crossing
-    // a periodic boundary, where the periodic shift lies in our valid region,
-    // is not considered a Fine->Crse crossing.
-    //
-    const int M = fcells.size();
-
-    which.resize(M);
-    cgrid.resize(M);
-    ccells.resize(M);
-    cfracs.resize(M);
-
-    for (int i = 0; i < M; i++)
-    {
-        cgrid[i] = -1;
-        which[i] =  0;
-    }
-
-    ParticleLocData pld;
-    Particle<NR, NI>::Where(p, gdb, pld);
-
-    const Box& ibx = amrex::grow(gdb->ParticleBoxArray(flev)[pld.m_grid],-1);
-
-    BL_ASSERT(ibx.ok());
-
-    if (ibx.contains(pld.m_cell))
-        //
-        // We're strictly contained in our valid box.
-        // We can't cross a fine->crse boundary.
-        //
-        return false;
-
-    if (!compfvalid_grown.contains(pld.m_cell))
-        //
-        // We're strictly contained in our "valid" region. Note that the valid
-        // region contains any periodically shifted ghost cells that intersect
-        // valid region.
-        //
-        return false;
-    //
-    // Otherwise ...
-    //
-    const Geometry& cgm = gdb->Geom(flev-1);
-    const IntVect&  rr  = gdb->refRatio(flev-1);
-    const BoxArray& cba = gdb->ParticleBoxArray(flev-1);
-
-    Particle<NR, NI>::CIC_Cells_Fracs(p, cgm.ProbLo(), cgm.CellSize(), cfracs, ccells);
-
-    bool result = false;
-
-    for (int i = 0; i < M; i++)
-    {
-        IntVect ccell_refined = ccells[i]*rr;
-        //
-        // We've got to protect against the case when we're at the low
-        // end of the domain because coarsening & refining don't work right
-        // when indices go negative.
-        //
-        for (int dm = 0; dm < BL_SPACEDIM; dm++)
-            ccell_refined[dm] = std::max(ccell_refined[dm], -1);
-
-        if (!fvalid.contains(ccell_refined))
-        {
-            result   = true;
-            which[i] = 1;
-
-            Box cbx(ccells[i],ccells[i]);
-    
-            if (!cgm.Domain().contains(ccells[i]))
-            {
-                //
-                // We must be at a periodic boundary.
-                // Find valid box into which we can be periodically shifted.
-                //
-                BL_ASSERT(cgm.isAnyPeriodic());
-
-                cgm.periodicShift(cbx, cgm.Domain(), pshifts);
-
-                BL_ASSERT(pshifts.size() == 1);
-
-                cbx -= pshifts[0];
-
-                ccells[i] -= pshifts[0];
-                BL_ASSERT(cbx.ok());
-                BL_ASSERT(cgm.Domain().contains(cbx));
-            }
-            //
-            // Which grid at the crse level do we need to update?
-            //
-            cba.intersections(cbx,isects,true,0);
-
-            BL_ASSERT(!isects.empty());
-
-            cgrid[i] = isects[0].first;  // The grid ID at crse level that we hit.
-        }
-    }
-
-    return result;
-}
-
-template <int NR, int NI>
-void
-Particle<NR, NI>::FineCellsToUpdateFromCrse (const Particle<NR, NI>&                p,
-					     int                                lev,
-					     const ParGDBBase*                  gdb,
-					     const IntVect&                     ccell,
-					     const IntVect&                     cshift,
-					     Array<int>&                        fgrid,
-					     Array<Real>&                       ffrac,
-					     Array<IntVect>&                    fcells,
-					     std::vector< std::pair<int,Box> >& isects)
-{
-    BL_PROFILE("Particle<NR, NI>::FineCellsToUpdateFromCrse()");
-    BL_ASSERT(lev >= 0);
-    BL_ASSERT(lev < gdb->finestLevel());
-
-    const Box&      fbx = amrex::refine(Box(ccell,ccell),gdb->refRatio(lev));
-    const BoxArray& fba = gdb->ParticleBoxArray(lev+1);
-    const Real*     plo = gdb->Geom(lev).ProbLo();
-    const Real*     dx  = gdb->Geom(lev).CellSize();
-    const Real*     fdx = gdb->Geom(lev+1).CellSize();
-
-    if (cshift == IntVect::TheZeroVector())
-    {
-        BL_ASSERT(fba.contains(fbx));
-    }
-    //
-    // Instead of clear()ing these we'll do a resize(0).
-    // This'll preserve their capacity so that we'll only need
-    // to do any memory allocation when their capacity needs to increase.
-    //
-    fgrid.resize(0);
-    ffrac.resize(0);
-    fcells.resize(0);
-    //
-    // Which fine cells does particle "p" (that wants to update "ccell") do we
-    // touch at the finer level?
-    //
-    for (IntVect iv = fbx.smallEnd(); iv <= fbx.bigEnd(); fbx.next(iv))
-    {
-        bool touches = true;
-
-        for (int k = 0; k < BL_SPACEDIM; k++)
-        {
-            const Real celllo = iv[k]  * fdx[k] + plo[k];
-            const Real cellhi = celllo + fdx[k];
-
-            if ((p.m_rdata.pos[k] < celllo) && (celllo > (p.m_rdata.pos[k] + dx[k]/2)))
-                touches = false;
-
-            if ((p.m_rdata.pos[k] > cellhi) && (cellhi < (p.m_rdata.pos[k] - dx[k]/2)))
-                touches = false;
-        }
-
-        if (touches)
-        {
-            fcells.push_back(iv);
-        }
-    }
-
-    Real sum_fine = 0;
-    //
-    // We need to figure out the fine fractions and the fine grid needed updating.
-    //
-    for (int j = 0; j < fcells.size(); j++)
-    {
-        IntVect& iv = fcells[j];
-
-        Real the_frac = 1;
-
-        for (int k = 0; k < BL_SPACEDIM; k++)
-        {
-            const Real celllo = (iv[k] * fdx[k] + plo[k]);
-
-            if (p.m_rdata.pos[k] <= celllo)
-            {
-                const Real isecthi = p.m_rdata.pos[k] + dx[k]/2;
-
-                the_frac *= std::min((isecthi - celllo),fdx[k]);
-            }
-            else
-            {
-                const Real cellhi  = (iv[k]+1) * fdx[k] + plo[k];
-                const Real isectlo = p.m_rdata.pos[k] - dx[k]/2;
-
-                the_frac *= std::min((cellhi - isectlo),fdx[k]);
-            }
-        }
-
-        ffrac.push_back(the_frac);
-
-        sum_fine += the_frac;
-
-        if (cshift != IntVect::TheZeroVector())
-        {
-            //
-            // Update to the correct fine cell needing updating.
-            // Note that "cshift" is from the coarse perspective.
-            //
-            const IntVect& fshift = cshift * gdb->refRatio(lev);
-            //
-            // Update fcells[j] to indicate a shifted fine cell needing updating.
-            //
-            iv -= fshift;
-        }
-
-        fba.intersections(Box(iv,iv),isects,true,0);
-
-        BL_ASSERT(!isects.empty());
-
-        fgrid.push_back(isects[0].first);
-    }
-
-    BL_ASSERT(ffrac.size() == fcells.size());
-    BL_ASSERT(fgrid.size() == fcells.size());
-    //
-    // Now adjust the fine fractions so they sum to one.
-    //
-    for (int j = 0; j < ffrac.size(); j++)
-        ffrac[j] /= sum_fine;
 }
 
 template <int NR, int NI>
@@ -542,269 +370,6 @@ void
 Particle<NR, NI>::NextID (int nextid)
 {
     the_next_id = nextid;
-}
-
-template <int NR, int NI>
-IntVect
-Particle<NR, NI>::Index (const Particle<NR, NI>& p,
-			 const Geometry&     geom)
-{
-    IntVect iv;
-
-    D_TERM(iv[0]=floor((p.m_rdata.pos[0]-geom.ProbLo(0))*geom.InvCellSize(0));,
-           iv[1]=floor((p.m_rdata.pos[1]-geom.ProbLo(1))*geom.InvCellSize(1));,
-           iv[2]=floor((p.m_rdata.pos[2]-geom.ProbLo(2))*geom.InvCellSize(2)););
-
-    iv += geom.Domain().smallEnd();
-
-    return iv;
-}
-
-template <int NR, int NI>
-bool
-Particle<NR, NI>::Where (const Particle<NR, NI>&     p,
-			 const ParGDBBase*           gdb,
-			 ParticleLocData&            pld,
-			 int                         lev_min,
-			 int                         finest_level)
-{
-    BL_ASSERT(gdb != 0);
-
-    if (finest_level == -1)
-        finest_level = gdb->finestLevel();
-
-    BL_ASSERT(finest_level <= gdb->finestLevel());
-
-    std::vector< std::pair<int, Box> > isects;
-
-    for (int lev = finest_level; lev >= lev_min; lev--)
-    {
-        const IntVect& iv = Particle<NR, NI>::Index(p, gdb->Geom(lev));
-
-        gdb->ParticleBoxArray(lev).intersections(Box(iv, iv), isects, true, 0);
-
-        if (!isects.empty())
-        {
-            pld.m_lev  = lev;
-            pld.m_grid = isects[0].first;
-	    pld.m_tile = 0;
-            pld.m_cell = iv;
-            return true;
-        }
-    }
-    return false;
-}
-
-template <int NR, int NI>
-bool
-Particle<NR, NI>::PeriodicWhere (Particle<NR, NI>&           p,
-				 const ParGDBBase*           gdb,
-				 ParticleLocData&            pld,
-				 int                         lev_min,
-				 int                         finest_level)
-{
-    BL_ASSERT(gdb != 0);
-
-    if (!gdb->Geom(0).isAnyPeriodic()) return false;
-
-    if (finest_level == -1)
-        finest_level = gdb->finestLevel();
-
-    BL_ASSERT(finest_level <= gdb->finestLevel());
-
-    //
-    // Create a copy "dummy" particle to check for periodic outs.
-    //
-    Particle<NR, NI> p_prime = p;
-
-    if (Particle<NR, NI>::PeriodicShift(p_prime, gdb))
-    {
-        std::vector< std::pair<int,Box> > isects;
-
-        for (int lev = finest_level; lev >= lev_min; lev--)
-        {
-            const IntVect& iv = Particle<NR, NI>::Index(p_prime,gdb->Geom(lev));
-
-            gdb->ParticleBoxArray(lev).intersections(Box(iv,iv),isects,true,0);
-
-            if (!isects.empty())
-            {
-                D_TERM(p.m_rdata.pos[0] = p_prime.m_rdata.pos[0];,
-                       p.m_rdata.pos[1] = p_prime.m_rdata.pos[1];,
-                       p.m_rdata.pos[2] = p_prime.m_rdata.pos[2];);
-
-                pld.m_lev  = lev;
-                pld.m_grid = isects[0].first;
-		pld.m_tile = 0;
-                pld.m_cell = iv;
-
-                return true;
-            }
-        }
-    }
-
-    return false;
-}
-
-template <int NR, int NI>
-bool
-Particle<NR, NI>::RestrictedWhere (const Particle<NR, NI>&     p,
-				   const ParGDBBase*           gdb,
-				   ParticleLocData&            pld,
-				   int                         ngrow)
-{
-    BL_ASSERT(gdb != 0);
-
-    const IntVect& iv = Particle<NR, NI>::Index(p,gdb->Geom(pld.m_lev));
-
-    if (amrex::grow(gdb->ParticleBoxArray(pld.m_lev)[pld.m_grid], ngrow).contains(iv))
-    {
-        pld.m_cell = iv;
-	pld.m_tile = 0;
-        return true;
-    }
-
-    return false;
-}
-
-template <int NR, int NI>
-bool 
-Particle<NR, NI>::SingleLevelWhere (const Particle<NR, NI>&     p, 
-				    const ParGDBBase*     gdb,
-				    ParticleLocData& pld,
-				    int                   level)
-{
-    BL_ASSERT(gdb != 0);
-
-    const IntVect& iv = Particle<NR, NI>::Index(p,gdb->Geom(level));
-
-    std::vector< std::pair<int,Box> > isects;
-
-    gdb->ParticleBoxArray(level).intersections(Box(iv,iv),isects,true,0);
-
-    if (!isects.empty())
-    {
-        pld.m_lev  = level;
-        pld.m_grid = isects[0].first;
-        pld.m_cell = iv;
-	pld.m_tile = 0;
-
-        return true;
-    }
-
-    return false;
-}
-
-template <int NR, int NI>
-bool
-Particle<NR, NI>::PeriodicShift (Particle<NR, NI>& p,
-				 const ParGDBBase* gdb)
-{
-    BL_PROFILE("Particle<NR, NI>::PeriodicShift()");
-    //
-    // This routine should only be called when Where() returns false.
-    //
-    BL_ASSERT(gdb != 0);
-    //
-    // We'll use level 0 stuff since ProbLo/ProbHi are the same for every level.
-    //
-    const Geometry& geom    = gdb->Geom(0);
-    const Box&      dmn     = geom.Domain();
-    const IntVect&  iv      = Particle<NR, NI>::Index(p,gdb->Geom(0));
-    bool            shifted = false;  
-
-    for (int i = 0; i < BL_SPACEDIM; i++)
-    {
-        if (!geom.isPeriodic(i)) continue;
-
-        if (iv[i] > dmn.bigEnd(i))
-        {
-            if (p.m_rdata.pos[i] == geom.ProbHi(i))
-                //
-                // Don't let particles lie exactly on the domain face.
-                // Force the particle to be outside the domain so the
-                // periodic shift will bring it back inside.
-                //
-                p.m_rdata.pos[i] += .125*geom.CellSize(i);
-
-            p.m_rdata.pos[i] -= geom.ProbLength(i);
-
-            if (p.m_rdata.pos[i] <= geom.ProbLo(i))
-                //
-                // This can happen due to precision issues.
-                //
-                p.m_rdata.pos[i] += .125*geom.CellSize(i);
-
-            BL_ASSERT(p.m_rdata.pos[i] >= geom.ProbLo(i));
-
-            shifted = true;
-        }
-        else if (iv[i] < dmn.smallEnd(i))
-        {
-            if (p.m_rdata.pos[i] == geom.ProbLo(i))
-                //
-                // Don't let particles lie exactly on the domain face.
-                // Force the particle to be outside the domain so the
-                // periodic shift will bring it back inside.
-                //
-                p.m_rdata.pos[i] -= .125*geom.CellSize(i);
-
-            p.m_rdata.pos[i] += geom.ProbLength(i);
-
-            if (p.m_rdata.pos[i] >= geom.ProbHi(i))
-                //
-                // This can happen due to precision issues.
-                //
-                p.m_rdata.pos[i] -= .125*geom.CellSize(i);
-
-            BL_ASSERT(p.m_rdata.pos[i] <= geom.ProbHi(i));
-
-            shifted = true;
-        }
-    }
-    //
-    // The particle may still be outside the domain in the case
-    // where we aren't periodic on the face out which it travelled.
-    //
-    return shifted;
-}
-
-template <int NR, int NI>
-void
-Particle<NR, NI>::Reset (Particle<NR, NI>&    p,
-			 const ParGDBBase*    gdb,
-			 bool                 update,
-			 bool                 verbose)
-{
-    BL_PROFILE("Particle<NR, NI>::Reset()");
-    BL_ASSERT(gdb != 0);
-
-    ParticleLocData pld;
-    bool ok = Particle<NR, NI>::Where(p, gdb, pld);
-
-    if (!ok && gdb->Geom(0).isAnyPeriodic())
-    {
-        // Attempt to shift the particle back into the domain if it
-        // crossed a periodic boundary.
-      Particle<NR, NI>::PeriodicShift(p, gdb);
-      ok = Particle<NR, NI>::Where(p, gdb, pld);
-    }
-    
-    if (!ok) {
-        // invalidate the particle.
-	if (verbose) {
-#ifdef _OPENMP
-#pragma omp critical(reset_lock)
-#endif
-	    {
-		std::cout << "Invalidating out-of-domain particle: " << p << '\n';
-	    }
-	}
-
-	BL_ASSERT(p.m_idata.id > 0);
-
-	p.m_idata.id = -p.m_idata.id;
-    }
 }
 
 template <int NR, int NI>
