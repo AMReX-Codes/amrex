@@ -21,6 +21,30 @@ ParticleContainer<NR, NI>::Index (const ParticleType& p, int lev) const
 }
 
 template <int NR, int NI>
+int 
+ParticleContainer<NR, NI>::getTileIndex(const IntVect& iv, const Box& box) const {
+  const IntVect& small = box.smallEnd();
+  const IntVect& size = box.size();
+  
+  IntVect ntiles(D_DECL((size[0]+tile_size[0]-1)/tile_size[0],
+			(size[1]+tile_size[1]-1)/tile_size[1],
+			(size[2]+tile_size[2]-1)/tile_size[2]));
+  
+  IntVect ivIndex(D_DECL((iv[0]-small[0])/tile_size[0],
+			 (iv[1]-small[1])/tile_size[1],
+			 (iv[2]-small[2])/tile_size[2]));
+  
+  int factor = 1;
+  int index = 0;
+  for (int i = BL_SPACEDIM-1; i >= 0; i--) {
+    index += factor*ivIndex[i];
+    factor *= ntiles[i];
+  }
+
+  return index;
+}
+
+template <int NR, int NI>
 bool
 ParticleContainer<NR, NI>::Where (const ParticleType&         p,
 				  ParticleLocData&            pld,
@@ -46,7 +70,7 @@ ParticleContainer<NR, NI>::Where (const ParticleType&         p,
         {
             pld.m_lev  = lev;
             pld.m_grid = isects[0].first;
-	    pld.m_tile = 0;
+	    pld.m_tile = getTileIndex(iv, isects[0].second);
             pld.m_cell = iv;
             return true;
         }
@@ -93,7 +117,7 @@ ParticleContainer<NR, NI>::PeriodicWhere (ParticleType&               p,
 
                 pld.m_lev  = lev;
                 pld.m_grid = isects[0].first;
-		pld.m_tile = 0;
+		pld.m_tile = getTileIndex(iv, isects[0].second);
                 pld.m_cell = iv;
 
                 return true;
@@ -114,10 +138,12 @@ ParticleContainer<NR, NI>::RestrictedWhere (const ParticleType&         p,
 
     const IntVect& iv = Index(p, pld.m_lev);
 
-    if (amrex::grow(m_gdb->ParticleBoxArray(pld.m_lev)[pld.m_grid], ngrow).contains(iv))
+    const Box& box = m_gdb->ParticleBoxArray(pld.m_lev)[pld.m_grid];
+
+    if (amrex::grow(box, ngrow).contains(iv))
     {
         pld.m_cell = iv;
-	pld.m_tile = 0;
+	pld.m_tile = getTileIndex(iv, box);
         return true;
     }
 
@@ -142,8 +168,8 @@ ParticleContainer<NR, NI>::SingleLevelWhere (const ParticleType&         p,
     {
         pld.m_lev  = level;
         pld.m_grid = isects[0].first;
-        pld.m_cell = iv;
-	pld.m_tile = 0;
+        pld.m_cell = iv;	
+	pld.m_tile = getTileIndex(iv, isects[0].second);
 
         return true;
     }
