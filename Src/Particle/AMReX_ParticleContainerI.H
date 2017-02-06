@@ -1332,6 +1332,7 @@ ParticleContainer<NR, NI>::RedistributeMPI (std::map<int, AoS>& not_ours,
     Array<MPI_Request> rreqs(RcvCnts.size());
 
     {
+
       const int SeqNum        = ParallelDescriptor::SeqNum();
 
       int num_soa_comps = 0;
@@ -1339,53 +1340,52 @@ ParticleContainer<NR, NI>::RedistributeMPI (std::map<int, AoS>& not_ours,
 	num_soa_comps += communicate_comp[i];
       }
 
-      const int chunk_size = sizeof(ParticleType) + num_soa_comps*sizeof(typename ParticleType::RealType);
+      const int chunk_size = sizeof(ParticleType) + num_soa_comps*sizeof(Real);
       
       // Allocate data for rcvs as one big chunk.
       unsigned char* recvdata = (unsigned char*) malloc(NumRcvs * chunk_size);
 
       // Post receives.
       int idx = 0;
-      for (auto it = RcvCnts.cbegin(); it != RcvCnts.cend(); ++it, ++idx)
-        {
-	  const int Who = it->first;
-	  const int Cnt = it->second * chunk_size;
-	  const int Idx = rOffset[Who] * chunk_size;
-	  
-	  BL_ASSERT(Cnt > 0);
-	  BL_ASSERT(Who >= 0 && Who < NProcs);
-	  BL_ASSERT(Cnt < std::numeric_limits<int>::max());
-	  
-	  owner[idx] = Who;
-	  rreqs[idx] = ParallelDescriptor::Arecv(recvdata + Idx, Cnt, Who, SeqNum).req();
-        }
-
+      for (auto it = RcvCnts.cbegin(); it != RcvCnts.cend(); ++it, ++idx) {
+	const int Who = it->first;
+	const int Cnt = it->second * chunk_size;
+	const int Idx = rOffset[Who] * chunk_size;
+	
+	BL_ASSERT(Cnt > 0);
+	BL_ASSERT(Who >= 0 && Who < NProcs);
+	BL_ASSERT(Cnt < std::numeric_limits<int>::max());
+	
+	owner[idx] = Who;
+	rreqs[idx] = ParallelDescriptor::Arecv(recvdata + Idx, Cnt, Who, SeqNum).req();
+      }
+      
       // Send.
       for (const auto& kv : SndCnts) {
 	const int Who = kv.first;
 	const int Cnt = kv.second * chunk_size;
-
+	
 	BL_ASSERT(Cnt > 0);
 	BL_ASSERT(Who >= 0 && Who < NProcs);
 	BL_ASSERT(Cnt < std::numeric_limits<int>::max());
-
+	
 	unsigned char* data_ptr = (unsigned char*) malloc(Cnt);
 	ParticleType* part_ptr = (ParticleType*) data_ptr;
-   
+	
 	// Pack the AoS data
 	const AoS& pbox = not_ours[Who];
 	for (const auto& p : pbox) {
 	  BL_ASSERT(p.m_idata.id > 0); 
 	  *part_ptr++ = p;
 	}
-
+	
 	// Pack the SoA data
 	SoA& StructOfArrayData = comm_soa_data[Who];
-	typename ParticleType::RealType* real_ptr = (typename ParticleType::RealType*) part_ptr;
+	Real* SoA_ptr = (Real*) part_ptr;
 	for (unsigned i = 0; i < pbox.size(); ++i) {
 	  for (int j = 0; j < m_npartdata; j++) {
 	    if (communicate_comp[j])
-	      *real_ptr++ = StructOfArrayData[j][i];
+	      *SoA_ptr++ = StructOfArrayData[j][i];
 	  }
 	}
 
@@ -1403,26 +1403,21 @@ ParticleContainer<NR, NI>::RedistributeMPI (std::map<int, AoS>& not_ours,
 	  AoS&      pbox = nparticles[Who];
 	  BL_ASSERT(int(pbox.size()) == RcvCnts[Who]);
 
-	  // Unpack the AoS data
-	  ParticleType* rcvp = (ParticleType*) (recvdata + Idx);
+	  ParticleType* AoS_ptr = (ParticleType*) (recvdata + Idx);
+	  Real* SoA_ptr = (Real*) (AoS_ptr + pbox.size());
 	  for (auto& p : pbox) {
-	    BL_ASSERT(rcvp != 0);
-	    
-	    p = *rcvp++;
+	    BL_ASSERT(AoS_ptr != 0);
+	    BL_ASSERT(SoA_ptr != 0);
+
+	    p = *AoS_ptr++;
 	    ParticleLocData pld;
 	    ParticleType::Where(p, m_gdb, pld);
 	    
 	    m_particles[pld.m_lev][pld.m_grid][pld.m_tile].push_back(p);
-	  }
-	  
-	  // Unpack the SoA data
-	  typename ParticleType::RealType* real_ptr = (typename ParticleType::RealType*) rcvp;	      
-	  for (auto& p : pbox) {
-	    ParticleLocData pld;
-	    ParticleType::Where(p, m_gdb, pld);
+
 	    for (int j = 0; j < m_npartdata; j++) {
 	      if (communicate_comp[j]) 
-		m_partdata[pld.m_lev][pld.m_grid][pld.m_tile][j].push_back(*real_ptr++);
+		m_partdata[pld.m_lev][pld.m_grid][pld.m_tile][j].push_back(*SoA_ptr++);
 	      else
 		m_partdata[pld.m_lev][pld.m_grid][pld.m_tile][j].push_back(0.0);
 	    }
