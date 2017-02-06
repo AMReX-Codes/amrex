@@ -54,7 +54,7 @@ pyinstallswig: libwarpx.a warpxC.i classwrapper.i
 	@echo Making and installing python wrapper ...
 	# touch warpxC.i to force the rebuilding of the swig interface
 	touch warpxC.i
-	LDFLAGS="$(MY_LINK_LIBRARIES)" CC=$(CXX) CXXFLAGS="$(CXXFLAGS) $(DEFINES)" python setup.py install
+	LDFLAGS="$(MY_LINK_LIBRARIES)" CC=$(CXX) CXXFLAGS="$(CXXFLAGS) $(DEFINES)" python setup.py install --force
 	@echo SUCCESS
 
 pybuild: libwarpx.a warpxC.i classwrapper.i
