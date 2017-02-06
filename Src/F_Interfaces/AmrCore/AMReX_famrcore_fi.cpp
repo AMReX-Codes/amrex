@@ -90,4 +90,9 @@ extern "C" {
 	    ba[lev] = new BoxArray(new_grids[lev]);
 	}
     }
+
+    void amrex_fi_init_from_scratch (Real t, FAmrCore* famrcore)
+    {
+	famrcore->InitFromScratch(t);
+    }
 }
