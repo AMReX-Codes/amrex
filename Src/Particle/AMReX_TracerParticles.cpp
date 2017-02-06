@@ -73,7 +73,7 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
                 ParticleType& p = pbox[i];
 		ParticleLocData pld;
 
-		ParticleType::SingleLevelWhere(p, m_gdb, pld, lev);
+		SingleLevelWhere(p, pld, lev);
 
                 if (p.m_idata.id <= 0) continue;
 
@@ -124,7 +124,7 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
                     }
                 }
                 
-                ParticleType::RestrictedWhere(p, m_gdb, pld, umac[0].nGrow()); 
+                RestrictedWhere(p, pld, umac[0].nGrow()); 
             }
         }
     }
@@ -186,7 +186,7 @@ TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
 
                 if (p.m_idata.id <= 0) continue;
 
-		ParticleType::SingleLevelWhere(p, m_gdb, pld, lev);
+		SingleLevelWhere(p, pld, lev);
 
                 BL_ASSERT(pld.m_grid == grid);
 
@@ -215,7 +215,7 @@ TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
                     }
                 }
                 
-                ParticleType::RestrictedWhere(p, m_gdb, pld, Ucc.nGrow()); 
+                RestrictedWhere(p, pld, Ucc.nGrow()); 
             }
         }
     }
@@ -334,7 +334,7 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
 		      if (p.m_idata.id <= 0) continue;
 		      
 		      ParticleLocData pld;
-		      ParticleType::SingleLevelWhere(p, m_gdb, pld, lev);
+		      SingleLevelWhere(p, pld, lev);
 		      const IntVect& iv = pld.m_cell;
 		      
 		      if (!bx.contains(iv) && !ba.contains(iv)) continue;
