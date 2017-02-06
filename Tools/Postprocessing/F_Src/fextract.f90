@@ -38,10 +38,11 @@ program fextract3d
   integer :: iloc, jloc, kloc
   integer :: idir
   integer :: narg, farg
-  character(len=256) :: fname, varname, line
+  character(len=256) :: fname, varnames, line, temp
 
   character(len=1) :: dirstr
-  integer :: ivar
+  integer :: ivar, idx
+  integer, allocatable :: var_indices(:)
 
   real(kind=dp_t) :: xmin, xmax, ymin, ymax, zmin, zmax
 
@@ -53,7 +54,7 @@ program fextract3d
   slicefile = ''
   pltfile  = ''
   idir = 1
-  varname = ''
+  varnames = ''
   center = .true.
 
   narg = command_argument_count()
@@ -79,7 +80,7 @@ program fextract3d
 
      case ('-v', '--variable')
         farg = farg + 1
-        call get_command_argument(farg, value = varname)
+        call get_command_argument(farg, value = varnames)
 
      case ('-l', '--lower_left')
         center = .false.
@@ -106,7 +107,8 @@ program fextract3d
      print *, "args [-p|--pltfile]   plotfile   : plot file directory (depreciated, optional)"
      print *, "     [-s|--slicefile] slice file : slice file          (optional)"
      print *, "     [-d|--direction] idir       : slice direction {1 (default), 2, or 3}"
-     print *, "     [-v|--variable]  varname    : only output the values of variable varname"
+     print *, "     [-v|--variable]  varname(s) : only output the values of variable varname"
+     print *, "                                  (space separated string for multiple variables)"
      print *, "     [-l|--lower_left]           : slice through lower left corner instead of center"
      print *, " "
      print *, "Note the plotfile at the end of the commandline is only required if you do"
@@ -129,7 +131,7 @@ program fextract3d
      else
         slicefile = trim(pltfile) // ".slice"
      end if
-     
+
   endif
 
   select case (idir)
@@ -148,8 +150,22 @@ program fextract3d
 
   ! if we are outputting only a single variable, make sure it exists
   ivar = -1
-  if (varname /= '') ivar = plotfile_var_index(pf, trim(varname))
+  if (varnames /= '') then
+     ! flag that indicates we have variable
+     ivar = 0
+     allocate(var_indices(pf%nvars))
+     var_indices(:) = 0
 
+     do while (.not. trim(varnames) == "")
+        ivar = ivar + 1
+
+        idx = index(varnames, " ")
+        temp = varnames(:idx)
+        varnames = trim(adjustl(varnames(idx+1:)))
+
+        var_indices(ivar) = plotfile_var_index(pf, trim(temp))
+     enddo
+  endif
 
   ! get the index bounds and dx for the coarse level.  Note, lo and hi are
   ! ZERO based indicies
@@ -172,7 +188,7 @@ program fextract3d
      ymin = pf%plo(2)
      ymax = pf%phi(2)
   endif
-  
+
   if (dim == 3) then
      zmin = pf%plo(3)
      zmax = pf%phi(3)
@@ -186,7 +202,7 @@ program fextract3d
   ! compute the index of the center or lower left of the domain on the
   ! coarse grid.  These are used to set the position of the slice in
   ! the transverse direction.
-  
+
   if (center) then
      iloc = (hi(1)-lo(1)+1)/2 + lo(1)
      if (dim > 1) jloc = (hi(2)-lo(2)+1)/2 + lo(2)
@@ -226,7 +242,7 @@ program fextract3d
   ! completely refined, and allocate enough storage for that,
   ! although, we won't really need all of this
   !
-  ! note: sv(:,1) will be the coordinate information.  
+  ! note: sv(:,1) will be the coordinate information.
   ! the variables will be stored in sv(:,2:nvvs+1)
   allocate(sv(max_points,nvs+1), isv(max_points))
 
@@ -270,10 +286,10 @@ program fextract3d
               do ii = lo(1), hi(1)
                  if ( any(imask(ii*r1:(ii+1)*r1-1) ) ) then
                     cnt = cnt + 1
-                    
+
                     sv(cnt,1) = xmin + (ii + HALF)*dx(1)/rr
                     sv(cnt,2:) = p(ii,jj,kk,:)
-                    
+
                     imask(ii*r1:(ii+1)*r1-1) = .false.
                  end if
               end do
@@ -326,7 +342,7 @@ program fextract3d
                 kk = 1
               end if
 
-           
+
               ! loop over all of the zones in the slice direction.
               ! Here, we convert the cell-centered indices at the
               ! current level into the corresponding RANGE on the
@@ -355,7 +371,7 @@ program fextract3d
 
               ii = iloc*rr
               jj = jloc*rr
-           
+
               ! loop over all of the zones in the slice direction.
               ! Here, we convert the cell-centered indices at the
               ! current level into the corresponding RANGE on the
@@ -392,7 +408,7 @@ program fextract3d
      dirstr = "x"
   else if (idir == 2) then
      dirstr = "y"
-  else 
+  else
      dirstr = "z"
   endif
 
@@ -416,8 +432,8 @@ program fextract3d
      ! write the header
      un_ji = unit_new()
      write(uno,1000) dirstr, (trim(pf%names(j)),j=1,nvs)
-     
-     ! Use this to protect against a number being xx.e-100 
+
+     ! Use this to protect against a number being xx.e-100
      !   which will print without the "e"
      do i=1,cnt
         do j=2,nvs+1
@@ -431,26 +447,36 @@ program fextract3d
      do i = 1, cnt
         write(uno,1001) sv(isv(i),1), (sv(isv(i),j),j=2,nvs+1)
      end do
-     
+
   else
 
-     ! output a single variable
+     ! output a specific variables
 
      ! write the header
-     write(uno,1000) dirstr, trim(pf%names(ivar))
-     
-     ! Use this to protect against a number being xx.e-100 
+     write(uno,1000, advance="no") dirstr
+     do i = 1, ivar
+        write(uno,fmt="(a24,1x)", advance="no") trim(pf%names(var_indices(i)))
+     enddo
+     write(uno, *) ""
+
+     ! Use this to protect against a number being xx.e-100
      !   which will print without the "e"
-     do i=1,cnt
-        if (abs(sv(isv(i),ivar+1)) .lt. 1.d-99) then
-           sv(isv(i),ivar+1) = 0.d0
-        end if
-     end do
+     do j=1,cnt
+        do i = 1, ivar
+           if (abs(sv(isv(j),var_indices(i)+1)) .lt. 1.d-99) then
+              sv(isv(j),var_indices(i)+1) = 0.d0
+           end if
+        enddo
+     enddo
 
      ! write the data in columns
-     do i = 1, cnt
-        write(uno,1001) sv(isv(i),1), sv(isv(i),ivar+1)        
-     end do
+     do j = 1, cnt
+        write(uno,1001, advance="no") sv(isv(j),1)
+        do i = 1, ivar
+           write(uno, "(g24.12,1x)", advance="no") sv(isv(j), var_indices(i)+1)
+        enddo
+        write(uno, *) ""
+     enddo
 
   endif
 

@@ -37,10 +37,17 @@
   Note that exactly one of these macros must be defined
   when compiling any module that uses floating-point.
 */
+
 #ifdef BL_USE_FLOAT
-    typedef float Real;
+typedef float amrex_real;
 #else
-    typedef double Real;
+typedef double amrex_real;
+#endif
+
+#ifdef __cplusplus
+namespace amrex {
+    using Real = amrex_real;
+}
 #endif
 
 #else

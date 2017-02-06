@@ -7,6 +7,7 @@
 #include <sstream>
 #include <stack>
 #include <list>
+#include <chrono>
 
 #include <AMReX_Utility.H>
 #include <AMReX_BLProfiler.H>
@@ -1952,15 +1953,11 @@ void ParallelDescriptor::EndSubCommunicator () {}
 
 void ParallelDescriptor::Abort (int s, bool backtrace)
 { 
-#ifdef WIN32
-    throw;
-#else
     if (backtrace) {
 	BLBackTrace::handler(s);
     } else {
 	std::_Exit(EXIT_FAILURE);
     }
-#endif
 }
 
 const char* ParallelDescriptor::ErrorString (int) { return ""; }
@@ -2034,13 +2031,16 @@ void ParallelDescriptor::ReduceBoolOr  (bool&,int) {}
 
 void ParallelDescriptor::Bcast(void *, int, MPI_Datatype, int, MPI_Comm) {}
 
-//
-// Here so we don't need to include <Utility.H> in <ParallelDescriptor.H>.
-//
+namespace {
+    static auto clock_time_begin = std::chrono::steady_clock::now();
+}
+
 double
 ParallelDescriptor::second ()
 {
-    return amrex::wsecond();
+    auto t = std::chrono::steady_clock::now();
+    using ds = std::chrono::duration<double>;
+    return std::chrono::duration_cast<ds>(t-clock_time_begin).count();
 }
 
 void
