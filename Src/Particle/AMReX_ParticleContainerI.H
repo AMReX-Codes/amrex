@@ -36,7 +36,7 @@ ParticleContainer<NR, NI>::getTileIndex(const IntVect& iv, const Box& box) const
   
   int factor = 1;
   int index = 0;
-  for (int i = BL_SPACEDIM-1; i >= 0; i--) {
+  for (int i = 0; i < BL_SPACEDIM; i++) {
     index += factor*ivIndex[i];
     factor *= ntiles[i];
   }
@@ -70,7 +70,7 @@ ParticleContainer<NR, NI>::Where (const ParticleType&         p,
         {
             pld.m_lev  = lev;
             pld.m_grid = isects[0].first;
-	    pld.m_tile = getTileIndex(iv, isects[0].second);
+	    pld.m_tile = getTileIndex(iv, m_gdb->ParticleBoxArray(lev)[pld.m_grid]);
             pld.m_cell = iv;
             return true;
         }
@@ -117,7 +117,7 @@ ParticleContainer<NR, NI>::PeriodicWhere (ParticleType&               p,
 
                 pld.m_lev  = lev;
                 pld.m_grid = isects[0].first;
-		pld.m_tile = getTileIndex(iv, isects[0].second);
+		pld.m_tile = getTileIndex(iv, m_gdb->ParticleBoxArray(lev)[pld.m_grid]);
                 pld.m_cell = iv;
 
                 return true;
@@ -169,7 +169,7 @@ ParticleContainer<NR, NI>::SingleLevelWhere (const ParticleType&         p,
         pld.m_lev  = level;
         pld.m_grid = isects[0].first;
         pld.m_cell = iv;	
-	pld.m_tile = getTileIndex(iv, isects[0].second);
+	pld.m_tile = getTileIndex(iv, m_gdb->ParticleBoxArray(level)[pld.m_grid]);
 
         return true;
     }
@@ -297,7 +297,6 @@ ParticleContainer<NR, NI>::allocateData() {
   m_dummy_mfs.resize(nlevs);
   for (int lev = 0; lev < nlevs; ++ lev)
     {
-      auto& partleveldata = m_partdata[lev];
       const BoxArray& ba = m_gdb->ParticleBoxArray(lev);
       const DistributionMapping& dm = m_gdb->ParticleDistributionMap(lev);
 
@@ -305,23 +304,13 @@ ParticleContainer<NR, NI>::allocateData() {
       Fab_noallocate.SetAlloc(false);
       m_dummy_mfs[lev] = std::unique_ptr<MultiFab>(new MultiFab(ba, dm, 1, 0, Fab_noallocate));
 
-      // This is maybe stupid
-      // First, allocate for one tile per grid so we can use PIter
+      // Allocate containers to hold particle data for each tile
       const MultiFab& foo = *(m_dummy_mfs[lev]);
-      for (MFIter mfi(foo); mfi.isValid(); ++mfi)
+      for (MFIter mfi(foo, do_tiling); mfi.isValid(); ++mfi)
 	{
 	  int i = mfi.index();
-	  partleveldata[i].resize(1);
-	  m_particles[lev][i].resize(1);
-	}
-
-      // Now resize for the appropriate number of tiles
-      PIter it(*this, lev);
-      for (MFIter mfi(foo); mfi.isValid(); ++mfi)
-	{
-	  int i = mfi.index();
-	  int num_tiles = it.numTiles();
-	  partleveldata[i].resize(num_tiles);
+	  int num_tiles = mfi.numTiles();
+	  m_partdata[lev][i].resize(num_tiles);
 	  m_particles[lev][i].resize(num_tiles);
 	}
   
@@ -330,7 +319,7 @@ ParticleContainer<NR, NI>::allocateData() {
 	{
 	  int gid = it.index();
 	  int tid = it.tileIndex();
-	  partleveldata[gid][tid].resize(m_npartdata);
+	  m_partdata[lev][gid][tid].resize(m_npartdata);
 	}
     }
 }
@@ -1410,6 +1399,7 @@ ParticleContainer<NR, NI>::Redistribute (int  lev_min,
       int grid = it.index();
       int tile = it.tileIndex();
       AoS& pbox = pmap[grid][tile];
+      SoA& soa  = m_partdata[lev][grid][tile];
       unsigned first = 0;
       unsigned npart = pbox.size();
       if (npart != 0) {
@@ -1431,7 +1421,7 @@ ParticleContainer<NR, NI>::Redistribute (int  lev_min,
 		  m_particles[pld.m_lev][pld.m_grid][pld.m_tile].push_back(p);
 		  for (int comp = 0; comp < m_npartdata; comp++) {
 		    Real pdata = m_partdata[lev][grid][tile][comp][pindex];
-		    m_partdata[pld.m_lev][pld.m_grid][tile][comp].push_back(pdata);
+		    m_partdata[pld.m_lev][pld.m_grid][pld.m_tile][comp].push_back(pdata);
 		  }
 		  //
 		  // Invalidate the particle so we can reclaim its space.
@@ -1465,6 +1455,7 @@ ParticleContainer<NR, NI>::Redistribute (int  lev_min,
 	    ++first;
 	  }
 	}
+
 	pbox.erase(pbox.begin() + first, pbox.begin() + npart);
 	for (int comp = 0; comp < m_npartdata; comp++) {
 	  Array<Real>& vec = m_partdata[lev][grid][tile][comp];
@@ -1765,7 +1756,7 @@ ParticleContainer<NR, NI>::OK (int  lev_min,
                     }
 		  if ((lev  != pld.m_lev  || lev  != llev)  ||
 		      (grid != pld.m_grid || grid != lgrid) || 
-		      cell != pld.m_cell  || ltile != 0)
+		      (tile != pld.m_tile || tile != ltile) || cell != pld.m_cell)
                     {
 		      std::cout << "PARTICLE NUMBER " << p.m_idata.id << '\n';
 		      
@@ -2873,7 +2864,7 @@ ParticleContainer<NR, NI>::WriteAsciiFile (const std::string& filename)
 			     << it->m_rdata.pos[2] << ' ');
 		      
 		      for (int i = 0; i < m_npartdata; i++)
-			File << m_partdata[lev][grid][0][i][index] << ' ';
+			File << m_partdata[lev][grid][tile][i][index] << ' ';
 		      index++;
 		      
 		      for (int i = BL_SPACEDIM; i < BL_SPACEDIM + NR; i++) {
@@ -4811,6 +4802,3 @@ ParticleContainer<NR, NI>::moveKick (MultiFab&       acceleration,
     // No need for Redistribution(), we only change the velocity.
     //
 }
-
-
-
