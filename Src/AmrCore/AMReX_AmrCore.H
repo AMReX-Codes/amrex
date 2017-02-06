@@ -14,7 +14,14 @@ namespace amrex {
 class AmrParGDB;
 #endif
 
-//! Provide basic functionalities to set up an AMR hierarchy
+/**
+ * \brief Provide basic functionalities to set up an AMR hierarchy
+ *
+ * Because it does not own any floating point data, AmrCore used
+ * virtual functions to allocate, initialize and delete data.  It also
+ * requires the derived class to tag cells for refinement.
+ */
+
 class AmrCore
 {
 public:
@@ -104,12 +111,38 @@ public:
 
 protected:
 
-    static void ProjPeriodic (BoxList& bd, const Geometry& geom);
-    
+    /**
+     * \brief Initialize BoxArray, DistributionMapping and data from scratch.
+     * Calling this function requires the derive class implement its own MakeNewLevelFromScratch
+     * to allocate and intialize data. 
+     * Also note usually one needs to average the fine data down to coarse level after this.
+     */
+    void InitFromScratch (Real time);
+
+    //! Rebuild levels finer than lbase
+    virtual void regrid (int lbase, Real time, bool initial=false);
+
+    //! Make a new level from scratch using provided BoxArray and DistributionMapping.
+    //! Only used during initialization.
+    virtual void MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba, const DistributionMapping& dm) = 0;
+
+    //! Make a new level using provided BoxArray and DistributionMapping and fill with interpolated coarse level data.
+    virtual void MakeNewLevelFromCoarse (int lev, Real time, const BoxArray& ba, const DistributionMapping& dm) = 0;
+
+    //! Remake an existing level using provided BoxArray and DistributionMapping and fill with existing fine and coarse data.
+    virtual void RemakeLevel (int lev, Real time, const BoxArray& ba, const DistributionMapping& dm) = 0;
+
+    //! Delete level data
+    virtual void ClearLevel (int lev) = 0;
+
+    //! Tagging cells for refinement
     virtual void ErrorEst (int lev, TagBoxArray& tags, Real time, int ngrow) = 0;
+
     virtual BoxArray GetAreaNotToTag (int lev) { return BoxArray(); }
     virtual void ManualTagsPlacement (int lev, TagBoxArray& tags, Array<IntVect>& bf_lev) {}
 
+    static void ProjPeriodic (BoxList& bd, const Geometry& geom);
+    
     int              verbose;
     int              max_level;    // Maximum allowed level.
     Array<IntVect>   ref_ratio;    // Refinement ratios [0:finest_level-1]

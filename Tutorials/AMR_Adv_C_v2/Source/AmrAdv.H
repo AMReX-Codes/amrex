@@ -23,22 +23,21 @@ public:
     void Evolve ();
 
 protected:
+
+    virtual void MakeNewLevelFromScratch (int lev, amrex::Real time, const amrex::BoxArray& ba,
+					  const amrex::DistributionMapping& dm) override;
+    virtual void MakeNewLevelFromCoarse (int lev, amrex::Real time, const amrex::BoxArray& ba,
+					 const amrex::DistributionMapping& dm) override;
+    virtual void RemakeLevel (int lev, amrex::Real time, const amrex::BoxArray& ba,
+			      const amrex::DistributionMapping& dm) override;
+    virtual void ClearLevel (int lev) override;
     virtual void ErrorEst (int lev, amrex::TagBoxArray& tags, amrex::Real time, int /*ngrow*/) override;
 
 private:
 
     void ReadParameters();
 
-    void MakeNewLevel (int lev, amrex::Real time,
-		       const amrex::BoxArray& new_grids, const amrex::DistributionMapping& new_dmap);
-    void RemakeLevel (int lev, amrex::Real time,
-		      const amrex::BoxArray& new_grids, const amrex::DistributionMapping& new_dmap);
-    void ClearLevel (int lev);
-    void regrid (int lbase, amrex::Real time);
-
-    void InitFromScratch ();
     void InitFromCheckpoint ();
-    void InitLevelData (int lev);
 
     void AverageDown ();
     void AverageDownTo (int crse_lev);
@@ -50,6 +49,7 @@ private:
     void Advance (int lev, amrex::Real time, amrex::Real dt, int iteration, int ncycle);
 
     void FillPatch (int lev, amrex::Real time, amrex::MultiFab& mf, int icomp, int ncomp);
+    void FillCoarsePatch (int lev, amrex::Real time, amrex::MultiFab& mf, int icomp, int ncomp);
     void GetData (int lev, amrex::Real time, amrex::Array<amrex::MultiFab*>& data, amrex::Array<amrex::Real>& datatime);
 
     std::string PlotFileName (int lev) const;
