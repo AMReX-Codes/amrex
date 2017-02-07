@@ -29,8 +29,6 @@ module my_amr_module
   real(rt), allocatable :: t_old(:)
   real(rt), allocatable :: dt(:)
 
-  type(amrex_geometry), allocatable :: geom(:)
-
   type(amrex_multifab), allocatable :: phi_new(:)
   type(amrex_multifab), allocatable :: phi_old(:)
 
@@ -90,11 +88,6 @@ contains
     allocate(dt(0:amrex_max_level))
     dt = 1.e100
 
-    allocate(geom(0:amrex_max_level))
-    do ilev = 0, amrex_max_level
-       geom(ilev) = amrex_get_geometry(ilev)
-    end do
-
     allocate(phi_new(0:amrex_max_level))
     allocate(phi_old(0:amrex_max_level))
 
@@ -145,7 +138,7 @@ contains
        bx = mfi%tilebox()
        phi => phi_new(lev)%dataptr(mfi)
        call init_prob_data(lev, t_new(lev), bx%lo, bx%hi, phi, lbound(phi), ubound(phi), &
-            geom(lev)%dx, geom(lev)%problo)
+            amrex_geom(lev)%dx, amrex_geom(lev)%problo)
     end do
 
     call amrex_mfiter_destroy(mfi)

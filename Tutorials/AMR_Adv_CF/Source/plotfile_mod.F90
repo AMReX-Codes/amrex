@@ -1,7 +1,7 @@
 module plotfile_module
 
   use amrex_amr_module
-  use my_amr_module, only : plot_file, phi_new, geom, t_new, istep
+  use my_amr_module, only : plot_file, phi_new, t_new, istep
 
   implicit none
 
@@ -35,7 +35,7 @@ contains
 
     call amrex_string_build(varname(1), "phi")
 
-    call amrex_write_plotfile(name, nlevs, phi_new, varname, geom, t_new(0), istep, amrex_ref_ratio)
+    call amrex_write_plotfile(name, nlevs, phi_new, varname, amrex_geom, t_new(0), istep, amrex_ref_ratio)
 
   end subroutine writeplotfile
 
