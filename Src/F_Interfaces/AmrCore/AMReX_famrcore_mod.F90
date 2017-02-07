@@ -106,6 +106,12 @@ module amrex_famrcore_module
        real(amrex_real), value :: t
        type(c_ptr), value :: famrcore
      end subroutine amrex_fi_init_from_scratch
+
+     subroutine amrex_fi_init_virtual_functions (mk_lev_scrtch, famrcore) bind(c)
+       import
+       type(c_funptr), value :: mk_lev_scrtch
+       type(c_ptr), value :: famrcore
+     end subroutine amrex_fi_init_virtual_functions
   end interface
 
 contains
@@ -198,7 +204,7 @@ contains
 
   subroutine amrex_init_virtual_functions (mk_lev_scrtch)
     type(c_funptr), intent(in) :: mk_lev_scrtch
-    call amrex_fi_init_virtual_functions (mk_lev_scrtch)
+    call amrex_fi_init_virtual_functions (mk_lev_scrtch, famrcore)
   end subroutine amrex_init_virtual_functions
 
 end module amrex_famrcore_module
