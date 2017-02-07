@@ -1,8 +1,7 @@
 module my_amr_module
 
   use iso_c_binding
-  use amrex_module
-  use amrex_famrcore_module
+  use amrex_amr_module
   use amrex_fort_module, only : rt => amrex_real
 
   use prob_module
