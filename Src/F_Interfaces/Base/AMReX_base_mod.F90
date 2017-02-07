@@ -10,6 +10,7 @@ module amrex_base_module
   use amrex_geometry_module
   use amrex_distromap_module
   use amrex_multifab_module
+  use amrex_multifabutil_module
   use amrex_omp_module
   use amrex_parallel_module
   use amrex_parmparse_module
