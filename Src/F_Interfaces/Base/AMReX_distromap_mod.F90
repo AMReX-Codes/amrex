@@ -40,29 +40,34 @@ module amrex_distromap_module
   interface
      subroutine amrex_fi_new_distromap (dm,ba) bind(c)
        import
+       implicit none
        type(c_ptr) :: dm
        type(c_ptr), value :: ba
      end subroutine amrex_fi_new_distromap
 
      subroutine amrex_fi_delete_distromap (dm) bind(c)
        import
+       implicit none
        type(c_ptr), value :: dm
      end subroutine amrex_fi_delete_distromap
 
      subroutine amrex_fi_clone_distromap (dmo, dmi) bind(c)
        import
+       implicit none
        type(c_ptr) :: dmo
        type(c_ptr), value :: dmi
      end subroutine amrex_fi_clone_distromap
 
      subroutine amrex_fi_distromap_maxsize (dm,n) bind(c)
        import
+       implicit none
        type(c_ptr), value :: dm
        integer(c_int), value :: n
      end subroutine amrex_fi_distromap_maxsize
 
      subroutine amrex_fi_print_distromap (dm, all) bind(c)
        import
+       implicit none
        type(c_ptr), value :: dm
        integer(c_int), value :: all
      end subroutine amrex_fi_print_distromap

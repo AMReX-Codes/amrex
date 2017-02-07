@@ -42,29 +42,34 @@ module amrex_boxarray_module
   interface
      subroutine amrex_fi_new_boxarray (ba,lo,hi) bind(c)
        import
+       implicit none
        type(c_ptr) :: ba
        integer(c_int), intent(in) :: lo(3), hi(3)
      end subroutine amrex_fi_new_boxarray
 
      subroutine amrex_fi_delete_boxarray (ba) bind(c)
        import
+       implicit none
        type(c_ptr), value :: ba
      end subroutine amrex_fi_delete_boxarray
 
      subroutine amrex_fi_clone_boxarray (bao, bai) bind(c)
        import
+       implicit none
        type(c_ptr) :: bao
        type(c_ptr), value :: bai
      end subroutine amrex_fi_clone_boxarray
 
      subroutine amrex_fi_boxarray_maxsize (ba,n) bind(c)
        import
+       implicit none
        type(c_ptr), value :: ba
        integer(c_int), value :: n
      end subroutine amrex_fi_boxarray_maxsize
 
      subroutine amrex_fi_print_boxarray (ba, all) bind(c)
        import
+       implicit none
        type(c_ptr), value :: ba
        integer(c_int), value :: all
      end subroutine amrex_fi_print_boxarray
