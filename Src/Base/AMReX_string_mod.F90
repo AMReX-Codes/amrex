@@ -9,7 +9,11 @@ module amrex_string_module
 
   character(c_char), public, parameter :: amrex_c_null_char_array(1) = (/ c_null_char /)
 
-  public :: amrex_string_f_to_c, amrex_string_c_to_f
+  type, public :: amrex_string
+     character(c_char), allocatable :: data(:)
+  end type amrex_string
+
+  public :: amrex_string_f_to_c, amrex_string_c_to_f, amrex_string_build
 
 contains
 
@@ -35,5 +39,18 @@ contains
        fstr(i:i) = transfer(cstr(i), fstr)
     enddo
   end function amrex_string_c_to_f
+
+  subroutine amrex_string_build (str, fstr)
+    type(amrex_string), intent(inout) :: str
+    character(*), intent(in) :: fstr
+    integer :: i, n
+    if (allocated(str%data)) deallocate(str%data)
+    n = len_trim(fstr)
+    allocate(str%data(n+1))
+    do i = 1, n
+       str%data(i) = fstr(i:i)
+    end do
+    str%data(n+1) = c_null_char
+  end subroutine amrex_string_build
 
 end module amrex_string_module

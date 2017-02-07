@@ -4,9 +4,6 @@ module my_amr_module
   use amrex_amr_module
   use amrex_fort_module, only : rt => amrex_real
 
-  use error_estimate_module, only : error_estimate
-  use prob_module
-
   implicit none
 
   ! runtime parameters
@@ -24,7 +21,6 @@ module my_amr_module
   character(len=127) :: plot_file  = "plt"
   character(len=127) :: restart    = ""  
 
-  integer, allocatable :: ref_ratio(:)
   integer, allocatable :: istep(:)
   integer, allocatable :: nsubsteps(:)
   integer, allocatable :: last_regrid_step(:)
@@ -32,6 +28,8 @@ module my_amr_module
   real(rt), allocatable :: t_new(:)
   real(rt), allocatable :: t_old(:)
   real(rt), allocatable :: dt(:)
+
+  type(amrex_geometry), allocatable :: geom(:)
 
   type(amrex_multifab), allocatable :: phi_new(:)
   type(amrex_multifab), allocatable :: phi_old(:)
@@ -47,7 +45,7 @@ contains
     if (.not.amrex_famrcore_initialized()) call amrex_famrcore_init()
     
     call amrex_init_virtual_functions (c_funloc(my_make_new_level_from_scratch), &
-         &                             c_funloc(error_estimate))
+         &                             c_funloc(my_error_estimate))
 
     ! Read parameters
     call amrex_parmparse_build(pp)
@@ -92,6 +90,11 @@ contains
     allocate(dt(0:amrex_max_level))
     dt = 1.e100
 
+    allocate(geom(0:amrex_max_level))
+    do ilev = 0, amrex_max_level
+       geom(ilev) = amrex_get_geometry(ilev)
+    end do
+
     allocate(phi_new(0:amrex_max_level))
     allocate(phi_old(0:amrex_max_level))
 
@@ -110,13 +113,13 @@ contains
   end subroutine my_amr_finalize
 
   subroutine my_make_new_level_from_scratch (lev, time, pba, pdm) bind(c)
+    use prob_module, only : init_prob_data
     integer, intent(in), value :: lev
     real(amrex_real), intent(in), value :: time
     type(c_ptr), value :: pba, pdm
 
     type(amrex_boxarray) :: ba
     type(amrex_distromap) :: dm
-    type(amrex_geometry) :: geom
     type(amrex_mfiter) :: mfi
     type(amrex_box) :: bx
     real(amrex_real), contiguous, pointer :: phi(:,:,:,:)
@@ -133,10 +136,8 @@ contains
 
 !    if (lev > 0 .and. do_reflux) then
 !       call amrex_fluxregister_destroy(flux_reg(lev))
-!       call amrex_fluxregister_build(flux_reg(lev), ba, dm, ref_ratio(lev-1), lev, ncomp)
+!       call amrex_fluxregister_build(flux_reg(lev), ba, dm, amrex_ref_ratio(lev-1), lev, ncomp)
 !    end if
-
-    geom = amrex_get_geometry(lev)
 
     call amrex_mfiter_build(mfi, phi_new(lev))
 
@@ -144,13 +145,50 @@ contains
        bx = mfi%tilebox()
        phi => phi_new(lev)%dataptr(mfi)
        call init_prob_data(lev, t_new(lev), bx%lo, bx%hi, phi, lbound(phi), ubound(phi), &
-            geom%dx, geom%problo)
+            geom(lev)%dx, geom(lev)%problo)
     end do
 
     call amrex_mfiter_destroy(mfi)
 
-    call amrex_geometry_destroy(geom)
-    
   end subroutine my_make_new_level_from_scratch
+
+  subroutine my_error_estimate (lev, cp, t, settag, cleartag) bind(c)
+    use tagging_module, only : tag_phi_error
+    integer, intent(in), value :: lev
+    type(c_ptr), intent(in), value :: cp
+    real(amrex_real), intent(in), value :: t
+    character(c_char), intent(in), value :: settag, cleartag
+
+    real(amrex_real), allocatable, save :: phierr(:)
+    type(amrex_parmparse) :: pp
+    type(amrex_tagboxarray) :: tag
+    type(amrex_mfiter) :: mfi
+    type(amrex_box) :: bx
+    real(amrex_real), contiguous, pointer :: phiarr(:,:,:,:)
+    character(c_char), contiguous, pointer :: tagarr(:,:,:,:)
+
+    if (.not.allocated(phierr)) then
+       call amrex_parmparse_build(pp, "myamr")
+       call pp%getarr("phierr", phierr)
+       call amrex_parmparse_destroy(pp)
+    end if
+
+    tag%p = cp
+
+    !$omp parallel private(mfi, bx, phiarr, tagarr)
+    call amrex_mfiter_build(mfi, phi_new(lev), tiling=.true.)
+    do while(mfi%next())
+       bx = mfi%tilebox()
+       phiarr => phi_new(lev)%dataptr(mfi)
+       tagarr => tag%dataptr(mfi)
+       call tag_phi_error(bx%lo, bx%hi, &
+            phiarr, lbound(phiarr), ubound(phiarr), &
+            tagarr, lbound(tagarr), ubound(tagarr), &
+            phierr(lev+1), settag, cleartag)  ! +1 because level starts with 0, but phierr starts with 1
+    end do
+    call amrex_mfiter_destroy(mfi)
+    !$omp end parallel
+
+  end subroutine my_error_estimate
   
 end module my_amr_module

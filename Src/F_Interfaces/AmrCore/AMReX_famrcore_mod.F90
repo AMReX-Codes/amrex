@@ -8,7 +8,7 @@ module amrex_famrcore_module
   private
 
   ! public routines
-  public :: amrex_init_from_scratch, amrex_init_virtual_functions
+  public :: amrex_init_from_scratch, amrex_init_virtual_functions, amrex_get_numlevels
   ! xxxxxx need to clean up the following functions
   public :: amrex_famrcore_init, amrex_famrcore_finalize, amrex_famrcore_initialized, &
        amrex_get_finest_level, amrex_get_boxarray, amrex_get_distromap, amrex_get_geometry, &
@@ -137,6 +137,10 @@ contains
   integer function amrex_get_finest_level ()
     amrex_get_finest_level = amrex_fi_get_finest_level(famrcore)
   end function amrex_get_finest_level
+
+  integer function amrex_get_numlevels ()
+    amrex_get_numlevels = amrex_fi_get_finest_level(famrcore)+1
+  end function amrex_get_numlevels
 
   function amrex_get_boxarray (lev) result(ba)
     integer, intent(in) :: lev
