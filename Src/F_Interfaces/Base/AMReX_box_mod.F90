@@ -1,6 +1,7 @@
 
 module amrex_box_module
 
+  use iso_c_binding
   use amrex_fort_module, only : ndims => amrex_spacedim;
 
   implicit none
