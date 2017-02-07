@@ -1,5 +1,6 @@
 #include <cstring>
 #include <AMReX_ParmParse.H>
+#include <AMReX_Array.H>
 #include <AMReX_REAL.H>
 
 using namespace amrex;
@@ -14,6 +15,11 @@ extern "C"
     void amrex_delete_parmparse (ParmParse* pp)
     {
 	delete pp;
+    }
+
+    int amrex_parmparse_get_counts (ParmParse* pp, const char* name)
+    {
+	return pp->countval(name);
     }
 
     void amrex_parmparse_get_int (ParmParse* pp, const char* name, int* v)
@@ -38,6 +44,24 @@ extern "C"
       std::string b;
       pp->get(name, b);
       std::strncpy(v, b.c_str(), *len);
+    }
+
+    void amrex_parmparse_get_intarr (ParmParse* pp, const char* name, int v[], int len)
+    {
+	Array<int> r;
+	pp->getarr(name, r);
+	for (int i = 0; i < len; ++i) {
+	    v[i] = r[i];
+	}
+    }
+
+    void amrex_parmparse_get_realarr (ParmParse* pp, const char* name, Real v[], int len)
+    {
+	Array<Real> r;
+	pp->getarr(name, r);
+	for (int i = 0; i < len; ++i) {
+	    v[i] = r[i];
+	}
     }
 
     void amrex_parmparse_query_int (ParmParse* pp, const char* name, int* v)
