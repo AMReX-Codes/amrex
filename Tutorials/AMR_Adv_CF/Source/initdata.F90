@@ -1,6 +1,9 @@
 module initdata_module
 
-  use my_amr_module
+  use amrex_amr_module
+
+  use my_amr_module, only : restart, plot_int
+  use plotfile_module, only : writeplotfile
 
   implicit none
 
@@ -13,7 +16,8 @@ contains
   subroutine initdata ()
     if (len_trim(restart) .eq. 0) then
        call amrex_init_from_scratch(0.0_amrex_real)
-!xxx       call average_down()
+!       call average_down()
+       if (plot_int .gt. 0) call writeplotfile
     else
        call amrex_abort("init from checkpoint not implemented yet")
     end if

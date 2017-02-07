@@ -1,6 +1,8 @@
 
 module amrex_base_module
 
+  use iso_c_binding
+
   use amrex_error_module
   use amrex_fort_module
   use amrex_box_module
@@ -12,6 +14,7 @@ module amrex_base_module
   use amrex_parallel_module
   use amrex_parmparse_module
   use amrex_string_module
+  use amrex_plotfile_module
 
 contains
 
