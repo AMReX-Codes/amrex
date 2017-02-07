@@ -5,6 +5,7 @@ subroutine amrex_fmain () bind(c)
 
   use my_amr_module
   use initdata_module
+  use evolve_module
 
   implicit none
 
@@ -13,6 +14,8 @@ subroutine amrex_fmain () bind(c)
   call my_amr_init()
 
   call initdata()
+
+  call evolve()
 
   call my_amr_finalize()
 
