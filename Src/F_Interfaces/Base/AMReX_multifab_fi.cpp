@@ -68,8 +68,8 @@ extern "C" {
     // iMultiFab
 
     void amrex_fi_new_imultifab (iMultiFab*& imf, const BoxArray*& ba, 
-				const DistributionMapping*& dm,
-				int nc, int ng, const int* nodal)
+				 const DistributionMapping*& dm,
+				 int nc, int ng)
     {
 	imf = new iMultiFab(*ba, *dm, nc, ng);
 	ba = &(imf->boxArray());
