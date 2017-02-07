@@ -1,5 +1,5 @@
 
-module amrex_module
+module amrex_base_module
 
   use amrex_error_module
   use amrex_fort_module
@@ -13,4 +13,13 @@ module amrex_module
   use amrex_parmparse_module
   use amrex_string_module
 
-end module amrex_module
+contains
+
+  subroutine amrex_fi_init () bind(c)
+  end subroutine amrex_fi_init
+
+
+  subroutine amrex_fi_finalize () bind(c)
+  end subroutine amrex_fi_finalize
+
+end module amrex_base_module

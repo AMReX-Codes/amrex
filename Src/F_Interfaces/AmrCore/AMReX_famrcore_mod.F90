@@ -1,7 +1,7 @@
 module amrex_famrcore_module
 
   use iso_c_binding
-  use amrex_module
+  use amrex_base_module
  
   implicit none
 

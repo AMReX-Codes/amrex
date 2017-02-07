@@ -1,7 +1,7 @@
 
 subroutine amrex_fmain () bind(c)
 
-  use amrex_module
+  use amrex_base_module
 
   use init_phi_module, only : init_phi
   use advance_module, only : advance
