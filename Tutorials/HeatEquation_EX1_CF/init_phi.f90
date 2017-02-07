@@ -1,7 +1,7 @@
 
 module init_phi_module
 
-  use amrex_module
+  use amrex_base_module
 
   implicit none
 
