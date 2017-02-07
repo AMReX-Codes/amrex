@@ -23,6 +23,10 @@ ParticleContainer<NR, NI>::Index (const ParticleType& p, int lev) const
 template <int NR, int NI>
 int 
 ParticleContainer<NR, NI>::getTileIndex(const IntVect& iv, const Box& box) const {
+
+  if (do_tiling == false)
+    return 0;
+
   const IntVect& small = box.smallEnd();
   const IntVect& size = box.size();
   
@@ -1399,7 +1403,6 @@ ParticleContainer<NR, NI>::Redistribute (int  lev_min,
       int grid = it.index();
       int tile = it.tileIndex();
       AoS& pbox = pmap[grid][tile];
-      SoA& soa  = m_partdata[lev][grid][tile];
       unsigned first = 0;
       unsigned npart = pbox.size();
       if (npart != 0) {
