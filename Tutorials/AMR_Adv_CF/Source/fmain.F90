@@ -1,8 +1,8 @@
 
 subroutine amrex_fmain () bind(c)
 
-  use amrex_module
-  use amrex_famrcore_module
+  use amrex_amr_module
+
   use my_amr_module
   use initdata_module
 
