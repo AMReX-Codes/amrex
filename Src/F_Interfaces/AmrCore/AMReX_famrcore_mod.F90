@@ -9,6 +9,7 @@ module amrex_famrcore_module
 
   ! public routines
   public :: amrex_init_from_scratch, amrex_init_virtual_functions
+  ! xxxxxx need to clean up the following functions
   public :: amrex_famrcore_init, amrex_famrcore_finalize, amrex_famrcore_initialized, &
        amrex_get_finest_level, amrex_get_boxarray, amrex_get_distromap, amrex_get_geometry, &
        amrex_set_finest_level, amrex_set_boxarray, amrex_set_distromap, &
@@ -107,9 +108,10 @@ module amrex_famrcore_module
        type(c_ptr), value :: famrcore
      end subroutine amrex_fi_init_from_scratch
 
-     subroutine amrex_fi_init_virtual_functions (mk_lev_scrtch, famrcore) bind(c)
+     subroutine amrex_fi_init_virtual_functions (mk_lev_scrtch, err_est, &
+          &                                      famrcore) bind(c)
        import
-       type(c_funptr), value :: mk_lev_scrtch
+       type(c_funptr), value :: mk_lev_scrtch, err_est
        type(c_ptr), value :: famrcore
      end subroutine amrex_fi_init_virtual_functions
   end interface
@@ -202,9 +204,9 @@ contains
     call amrex_fi_init_from_scratch(t, famrcore)
   end subroutine amrex_init_from_scratch
 
-  subroutine amrex_init_virtual_functions (mk_lev_scrtch)
-    type(c_funptr), intent(in) :: mk_lev_scrtch
-    call amrex_fi_init_virtual_functions (mk_lev_scrtch, famrcore)
+  subroutine amrex_init_virtual_functions (mk_lev_scrtch, err_est)
+    type(c_funptr), intent(in) :: mk_lev_scrtch, err_est
+    call amrex_fi_init_virtual_functions (mk_lev_scrtch, err_est, famrcore)
   end subroutine amrex_init_virtual_functions
 
 end module amrex_famrcore_module

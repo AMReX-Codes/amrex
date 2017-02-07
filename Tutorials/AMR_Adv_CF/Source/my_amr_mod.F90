@@ -4,6 +4,7 @@ module my_amr_module
   use amrex_amr_module
   use amrex_fort_module, only : rt => amrex_real
 
+  use error_estimate_module, only : error_estimate
   use prob_module
 
   implicit none
@@ -45,7 +46,8 @@ contains
 
     if (.not.amrex_famrcore_initialized()) call amrex_famrcore_init()
     
-    call amrex_init_virtual_functions (c_funloc(my_make_new_level_from_scratch))
+    call amrex_init_virtual_functions (c_funloc(my_make_new_level_from_scratch), &
+         &                             c_funloc(error_estimate))
 
     ! Read parameters
     call amrex_parmparse_build(pp)

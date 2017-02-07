@@ -23,7 +23,7 @@ public:
     using clear_level_funptr_t = void(*)(int lev);
     clear_level_funptr_t clear_level = nullptr;
 
-    using error_est_funptr_t = void(*)(int lev, TagBoxArray* tags, Real time, int ngrow);
+    using error_est_funptr_t = void(*)(int lev, TagBoxArray* tags, Real time, char tagval, char clearval);
     error_est_funptr_t error_est = nullptr;
 
     void SetFinestLevel (int new_finest) { finest_level = new_finest; }
