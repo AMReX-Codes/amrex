@@ -17,12 +17,13 @@ module amrex_famrcore_module
        amrex_install_level, amrex_remove_level
 
   ! public variables
-  public :: amrex_max_level, amrex_ref_ratio
+  public :: amrex_max_level, amrex_ref_ratio, amrex_geom
 
   type(c_ptr) :: famrcore = c_null_ptr
 
   integer :: amrex_max_level
   integer, allocatable :: amrex_ref_ratio(:)
+  type(amrex_geometry), allocatable :: amrex_geom(:)
 
   interface
      subroutine amrex_fi_new_famrcore (famrcore) bind(c)
@@ -133,10 +134,15 @@ module amrex_famrcore_module
 contains
 
   subroutine amrex_famrcore_init ()
+    integer :: ilev
     call amrex_fi_new_famrcore(famrcore)
     amrex_max_level = amrex_fi_get_max_level(famrcore)
     allocate(amrex_ref_ratio(0:amrex_max_level-1))
     call amrex_fi_get_ref_ratio(amrex_ref_ratio, famrcore)
+    allocate(amrex_geom(0:amrex_max_level))
+    do ilev = 0, amrex_max_level
+       amrex_geom(ilev) = amrex_get_geometry(ilev)
+    end do
   end subroutine amrex_famrcore_init
 
   subroutine amrex_famrcore_finalize ()

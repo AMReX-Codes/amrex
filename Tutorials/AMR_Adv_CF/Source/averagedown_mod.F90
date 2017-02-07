@@ -2,7 +2,7 @@ module averagedown_module
 
   use amrex_amr_module
 
-  use my_amr_module, only : phi_new, geom
+  use my_amr_module, only : phi_new
 
   implicit none
   private
@@ -15,14 +15,14 @@ contains
     integer :: lev, finest_level
     finest_level = amrex_get_finest_level()
     do lev = finest_level-1, 0, -1
-       call amrex_average_down(phi_new(lev+1), phi_new(lev), geom(lev+1), geom(lev), &
+       call amrex_average_down(phi_new(lev+1), phi_new(lev), amrex_geom(lev+1), amrex_geom(lev), &
             1, 1, amrex_ref_ratio(lev))
     end do
   end subroutine averagedown
 
   subroutine averagedownto (clev)
     integer, intent(in) :: clev
-    call amrex_average_down(phi_new(clev+1), phi_new(clev), geom(clev+1), geom(clev), &
+    call amrex_average_down(phi_new(clev+1), phi_new(clev), amrex_geom(clev+1), amrex_geom(clev), &
          1, 1, amrex_ref_ratio(clev))    
   end subroutine averagedownto
 
