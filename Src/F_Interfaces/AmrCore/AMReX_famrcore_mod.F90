@@ -27,32 +27,38 @@ module amrex_famrcore_module
   interface
      subroutine amrex_fi_new_famrcore (famrcore) bind(c)
        import
+       implicit none
        type(c_ptr) :: famrcore
      end subroutine amrex_fi_new_famrcore
 
      subroutine amrex_fi_delete_famrcore (famrcore) bind(c)
        import
+       implicit none
        type(c_ptr), value :: famrcore
      end subroutine amrex_fi_delete_famrcore
 
      integer(c_int) function amrex_fi_get_max_level (famrcore) bind(c)
        import
+       implicit none
        type(c_ptr), value :: famrcore
      end function amrex_fi_get_max_level
 
      subroutine amrex_fi_get_ref_ratio (ref_ratio, famrcore) bind(c)
        import
+       implicit none
        integer, intent(inout) :: ref_ratio(*)
        type(c_ptr), value :: famrcore
      end subroutine amrex_fi_get_ref_ratio
 
      integer(c_int) function amrex_fi_get_finest_level (famrcore) bind(c)
        import
+       implicit none
        type(c_ptr), value :: famrcore
      end function amrex_fi_get_finest_level
 
      subroutine amrex_fi_get_boxarray (ba, lev, famrcore) bind(c)
        import
+       implicit none
        type(c_ptr), intent(out) :: ba
        integer(c_int), value :: lev
        type(c_ptr), value :: famrcore
@@ -60,6 +66,7 @@ module amrex_famrcore_module
 
      subroutine amrex_fi_get_distromap (dm, lev, famrcore) bind(c)
        import
+       implicit none
        type(c_ptr), intent(out) :: dm
        integer(c_int), value :: lev
        type(c_ptr), value :: famrcore
@@ -67,6 +74,7 @@ module amrex_famrcore_module
 
      subroutine amrex_fi_get_geometry (geom, lev, famrcore) bind(c)
        import
+       implicit none
        type(c_ptr), intent(out) :: geom
        integer(c_int), value :: lev
        type(c_ptr), value :: famrcore
@@ -74,12 +82,14 @@ module amrex_famrcore_module
 
      subroutine amrex_fi_set_finest_level (lev, famrcore) bind(c)
        import
+       implicit none
        integer(c_int), value :: lev
        type(c_ptr), value :: famrcore
      end subroutine amrex_fi_set_finest_level
 
      subroutine amrex_fi_set_boxarray (lev, ba, famrcore) bind(c)
        import
+       implicit none
        integer(c_int), value :: lev
        type(c_ptr), value :: ba
        type(c_ptr), value :: famrcore
@@ -87,6 +97,7 @@ module amrex_famrcore_module
 
      subroutine amrex_fi_set_distromap (lev, dm, famrcore) bind(c)
        import
+       implicit none
        integer(c_int), value :: lev
        type(c_ptr), value :: dm
        type(c_ptr), value :: famrcore
@@ -94,6 +105,7 @@ module amrex_famrcore_module
      
      subroutine amrex_fi_make_base_grids (ba, famrcore) bind(c)
        import
+       implicit none
        type(c_ptr), intent(out) :: ba
        type(c_ptr), value :: famrcore
      end subroutine amrex_fi_make_base_grids
@@ -104,6 +116,7 @@ module amrex_famrcore_module
 
      subroutine amrex_fi_init_from_scratch (t, famrcore) bind(c)
        import
+       implicit none
        real(amrex_real), value :: t
        type(c_ptr), value :: famrcore
      end subroutine amrex_fi_init_from_scratch
@@ -111,6 +124,7 @@ module amrex_famrcore_module
      subroutine amrex_fi_init_virtual_functions (mk_lev_scrtch, err_est, &
           &                                      famrcore) bind(c)
        import
+       implicit none
        type(c_funptr), value :: mk_lev_scrtch, err_est
        type(c_ptr), value :: famrcore
      end subroutine amrex_fi_init_virtual_functions

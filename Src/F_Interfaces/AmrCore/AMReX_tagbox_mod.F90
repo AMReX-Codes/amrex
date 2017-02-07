@@ -17,6 +17,7 @@ module amrex_tagbox_module
   interface
      subroutine amrex_fi_tagboxarray_dataptr (tag, mfi, dp, lo, hi) bind(c)
        import
+       implicit none
        type(c_ptr), value :: tag, mfi
        type(c_ptr) :: dp
        integer(c_int) :: lo(3), hi(3)

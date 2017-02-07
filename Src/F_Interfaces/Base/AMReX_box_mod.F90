@@ -28,7 +28,8 @@ module amrex_box_module
 
   interface
      subroutine amrex_fi_print_box(lo,hi,all) bind(c)
-       use iso_c_binding
+       import
+       implicit none
        integer(c_int), intent(in) :: lo(*), hi(*)
        integer(c_int), value :: all
      end subroutine amrex_fi_print_box
