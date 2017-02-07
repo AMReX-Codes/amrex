@@ -1,5 +1,6 @@
 
 #include <AMReX_MultiFab.H>
+#include <AMReX_iMultiFab.H>
 #include <AMReX_Geometry.H>
 
 using namespace amrex;
@@ -64,11 +65,45 @@ extern "C" {
 	mf->FillBoundary(c, nc, geom->periodicity(), cross);
     }
 
+    // iMultiFab
+
+    void amrex_fi_new_imultifab (iMultiFab*& imf, const BoxArray*& ba, 
+				const DistributionMapping*& dm,
+				int nc, int ng, const int* nodal)
+    {
+	imf = new iMultiFab(*ba, *dm, nc, ng);
+	ba = &(imf->boxArray());
+	dm = &(imf->DistributionMap());
+    }
+
+    void amrex_fi_delete_imultifab (iMultiFab* imf)
+    {
+	delete imf;
+    }
+
+    void amrex_fi_imultifab_dataptr (iMultiFab* imf, MFIter* mfi, int*& dp, int lo[3], int hi[3])
+    {
+	IArrayBox& fab = (*imf)[*mfi];
+	dp = fab.dataPtr();
+	const Box& bx = fab.box();
+	const int* lov = bx.loVect();
+	const int* hiv = bx.hiVect();
+	for (int i = 0; i < BL_SPACEDIM; ++i) {
+	    lo[i] = lov[i];
+	    hi[i] = hiv[i];
+	}
+    }
+
     // MFIter routines
 
-    void amrex_fi_new_mfiter (MFIter*& mfi, MultiFab* mf, int tiling)
+    void amrex_fi_new_mfiter_r (MFIter*& mfi, MultiFab* mf, int tiling)
     {
 	mfi = new MFIter(*mf, (bool)tiling);
+    }
+
+    void amrex_fi_new_mfiter_i (MFIter*& mfi, iMultiFab* imf, int tiling)
+    {
+	mfi = new MFIter(*imf, (bool)tiling);
     }
 
     void amrex_fi_delete_mfiter (MFIter* mfi)

@@ -1,9 +1,11 @@
 module my_amr_module
 
+  use iso_c_binding
   use amrex_module
   use amrex_famrcore_module
-
   use amrex_fort_module, only : rt => amrex_real
+
+  use prob_module
 
   implicit none
 
@@ -106,23 +108,25 @@ contains
     end do
   end subroutine my_amr_finalize
 
+  subroutine my_make_new_level_from_scratch (lev, time, pba, pdm) bind(c)
+    integer, intent(in), value :: lev
+    real(amrex_real), intent(in), value :: time
+    type(c_ptr), value :: pba, pdm
 
-  subroutine make_new_level (lev, time, ba, dm)
-    integer, intent(in) :: lev
-    real(amrex_real), intent(in) :: time
-    type(amrex_boxarray), intent(in) :: ba
-    type(amrex_distromap), intent(in) :: dm
-    
+    type(amrex_boxarray) :: ba
+    type(amrex_distromap) :: dm
+    type(amrex_geometry) :: geom
+    type(amrex_mfiter) :: mfi
+    type(amrex_box) :: bx
+    real(amrex_real), contiguous, pointer :: phi(:,:,:,:)
     integer, parameter :: ncomp = 1, nghost = 0
 
-    call amrex_install_level(lev, ba, dm)
+    ba%p = pba
+    dm%p = pdm
 
     t_new(lev) = time
     t_old(lev) = time - 1.e200_amrex_real
   
-    call amrex_multifab_destroy(phi_new(lev))
-    call amrex_multifab_destroy(phi_old(lev))
-
     call amrex_multifab_build(phi_new(lev), ba, dm, ncomp, nghost)
     call amrex_multifab_build(phi_old(lev), ba, dm, ncomp, nghost)
 
@@ -130,13 +134,22 @@ contains
 !       call amrex_fluxregister_destroy(flux_reg(lev))
 !       call amrex_fluxregister_build(flux_reg(lev), ba, dm, ref_ratio(lev-1), lev, ncomp)
 !    end if
-  end subroutine make_new_level
 
-  subroutine my_make_new_level_from_scratch (lev, time, ba, dm) bind(c)
-    integer, intent(in), value :: lev
-    real(amrex_real), intent(in), value :: time
-    type(c_ptr), value :: ba, dm
-    print *, 'in my_make_new_level_from_scratch'
+    geom = amrex_get_geometry(lev)
+
+    call amrex_mfiter_build(mfi, phi_new(lev))
+
+    do while (mfi%next())
+       bx = mfi%tilebox()
+       phi => phi_new(lev)%dataptr(mfi)
+       call init_prob_data(lev, t_new(lev), bx%lo, bx%hi, phi, lbound(phi), ubound(phi), &
+            geom%dx, geom%problo)
+    end do
+
+    call amrex_mfiter_destroy(mfi)
+
+    call amrex_geometry_destroy(geom)
+    
   end subroutine my_make_new_level_from_scratch
   
 end module my_amr_module

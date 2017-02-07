@@ -16,6 +16,7 @@ module amrex_multifab_module
   private
 
   public :: amrex_multifab_build, amrex_multifab_swap, amrex_multifab_destroy, amrex_multifab_write
+  public :: amrex_imultifab_build, amrex_imultifab_destroy
   public :: amrex_mfiter_build, amrex_mfiter_destroy
 
   type, public   :: amrex_multifab
@@ -44,6 +45,24 @@ module amrex_multifab_module
 #endif
   end type amrex_multifab
 
+  type, public   :: amrex_imultifab
+     logical               :: owner = .false.
+     type   (c_ptr)        :: p     =  c_null_ptr
+     integer(c_int)        :: nc    =  0
+     integer(c_int)        :: ng    =  0
+     type(amrex_boxarray)  :: ba
+     type(amrex_distromap) :: dm
+   contains
+     generic   :: assignment(=) => amrex_imultifab_assign   ! shallow copy
+     procedure :: ncomp         => amrex_imultifab_ncomp
+     procedure :: nghost        => amrex_imultifab_nghost
+     procedure :: dataPtr       => amrex_imultifab_dataptr
+     procedure, private :: amrex_imultifab_assign
+#if !defined(__GFORTRAN__) || (__GNUC__ > 4)
+     final :: amrex_imultifab_destroy
+#endif
+  end type amrex_imultifab
+
   type, public :: amrex_mfiter
      type(c_ptr)      :: p       = c_null_ptr
      integer ,private :: counter = -1 
@@ -58,12 +77,9 @@ module amrex_multifab_module
 #endif
   end type amrex_mfiter
 
-  interface amrex_multifab_build
-     module procedure amrex_multifab_build
-  end interface amrex_multifab_build
-
   interface amrex_mfiter_build
-     module procedure amrex_mfiter_build
+     module procedure amrex_mfiter_build_r
+     module procedure amrex_mfiter_build_i
   end interface amrex_mfiter_build
 
   ! interfaces to c++ functions
@@ -137,12 +153,39 @@ module amrex_multifab_module
   end interface
 
   interface
-     subroutine amrex_fi_new_mfiter (mfi, mf, tiling) bind(c)
+     subroutine amrex_fi_new_imultifab (imf,ba,dm,nc,ng) bind(c)
+       import
+       type(c_ptr) :: imf, ba, dm
+       integer(c_int), value :: nc, ng
+     end subroutine amrex_fi_new_imultifab
+     
+     subroutine amrex_fi_delete_imultifab (imf) bind(c)
+       import
+       type(c_ptr), value :: imf
+     end subroutine amrex_fi_delete_imultifab
+
+     subroutine amrex_fi_imultifab_dataptr (imf, mfi, dp, lo, hi) bind(c)
+       import
+       type(c_ptr), value :: imf, mfi
+       type(c_ptr) :: dp
+       integer(c_int) :: lo(3), hi(3)
+     end subroutine amrex_fi_imultifab_dataptr
+  end interface
+
+  interface
+     subroutine amrex_fi_new_mfiter_r (mfi, mf, tiling) bind(c)
        import
        type(c_ptr) :: mfi
        type(c_ptr), value :: mf
        integer(c_int), value :: tiling
-     end subroutine amrex_fi_new_mfiter
+     end subroutine amrex_fi_new_mfiter_r
+
+     subroutine amrex_fi_new_mfiter_i (mfi, imf, tiling) bind(c)
+       import
+       type(c_ptr) :: mfi
+       type(c_ptr), value :: imf
+       integer(c_int), value :: tiling
+     end subroutine amrex_fi_new_mfiter_i
 
      subroutine amrex_fi_delete_mfiter (p) bind(c)
        import
@@ -250,9 +293,9 @@ contains
   function amrex_multifab_dataPtr (this, mfi) result(dp)
     class(amrex_multifab) :: this
     type(amrex_mfiter), intent(in) :: mfi
-    double precision, contiguous, pointer, dimension(:,:,:,:) :: dp
+    real(amrex_real), contiguous, pointer, dimension(:,:,:,:) :: dp
     type(c_ptr) :: cp
-    double precision, contiguous, pointer :: fp(:,:,:,:)
+    real(amrex_real), contiguous, pointer :: fp(:,:,:,:)
     integer(c_int) :: n(4)
     type(amrex_box) :: bx
     call amrex_fi_multifab_dataptr(this%p, mfi%p, cp, bx%lo, bx%hi)
@@ -266,7 +309,7 @@ contains
     class(amrex_multifab), intent(in) :: this
     integer(c_int), intent(in) :: comp
     integer(c_int), intent(in), optional :: nghost
-    double precision :: r
+    real(amrex_real) :: r
     if (present(nghost)) then
        r = amrex_fi_multifab_min(this%p, comp-1, nghost)
     else
@@ -278,7 +321,7 @@ contains
     class(amrex_multifab), intent(in) :: this
     integer(c_int), intent(in) :: comp
     integer(c_int), intent(in), optional :: nghost
-    double precision :: r
+    real(amrex_real) :: r
     if (present(nghost)) then
        r = amrex_fi_multifab_max(this%p, comp-1, nghost)
     else
@@ -289,7 +332,7 @@ contains
   function amrex_multifab_norm0 (this, comp) result(r)
     class(amrex_multifab), intent(in) :: this
     integer(c_int), intent(in), optional :: comp
-    double precision :: r
+    real(amrex_real) :: r
     if (present(comp)) then
        r = amrex_fi_multifab_norm0(this%p, comp-1)
     else
@@ -300,7 +343,7 @@ contains
   function amrex_multifab_norm1 (this, comp) result(r)
     class(amrex_multifab), intent(in) :: this
     integer(c_int), intent(in), optional :: comp
-    double precision :: r
+    real(amrex_real) :: r
     if (present(comp)) then
        r = amrex_fi_multifab_norm1(this%p, comp-1)
     else
@@ -311,7 +354,7 @@ contains
   function amrex_multifab_norm2 (this, comp) result(r)
     class(amrex_multifab), intent(in) :: this
     integer(c_int), intent(in), optional :: comp
-    double precision :: r
+    real(amrex_real) :: r
     if (present(comp)) then
        r = amrex_fi_multifab_norm2(this%p, comp-1)
     else
@@ -349,9 +392,74 @@ contains
     call amrex_fi_write_multifab(mf%p, amrex_string_f_to_c(name))
   end subroutine amrex_multifab_write
 
+!------ imultifab routines ------!
+
+  subroutine amrex_imultifab_build (imf, ba, dm, nc, ng)
+    type(amrex_imultifab) :: imf
+    type(amrex_boxarray), intent(in ) :: ba
+    type(amrex_distromap), intent(in ) :: dm
+    integer, intent(in) :: nc, ng
+    imf%owner = .true.
+    imf%nc = nc
+    imf%ng = ng
+    imf%ba = ba
+    imf%dm = dm
+    call amrex_fi_new_imultifab(imf%p, imf%ba%p, imf%dm%p, imf%nc, imf%ng)
+  end subroutine amrex_imultifab_build
+
+  impure elemental subroutine amrex_imultifab_destroy (this)
+    type(amrex_imultifab), intent(inout) :: this
+    if (this%owner) then
+       if (c_associated(this%p)) then
+          call amrex_fi_delete_imultifab(this%p)
+       end if
+    end if
+    this%owner = .false.
+    this%p = c_null_ptr
+    call amrex_boxarray_destroy(this%ba)
+    call amrex_distromap_destroy(this%dm)
+  end subroutine amrex_imultifab_destroy
+
+  subroutine amrex_imultifab_assign (dst, src)
+    class(amrex_imultifab), intent(inout) :: dst
+    type (amrex_imultifab), intent(in   ) :: src
+    call amrex_imultifab_destroy(dst)
+    dst%owner = .false.
+    dst%p     = src%p
+    dst%nc    = src%nc
+    dst%ng    = src%ng
+    dst%ba    = src%ba
+    dst%dm    = src%dm
+  end subroutine amrex_imultifab_assign
+
+  pure integer function amrex_imultifab_ncomp (this)
+    class(amrex_imultifab), intent(in) :: this
+    amrex_imultifab_ncomp = this%nc
+  end function amrex_imultifab_ncomp
+
+  pure integer function amrex_imultifab_nghost (this)
+    class(amrex_imultifab), intent(in) :: this
+    amrex_imultifab_nghost = this%ng
+  end function amrex_imultifab_nghost
+
+  function amrex_imultifab_dataPtr (this, mfi) result(dp)
+    class(amrex_imultifab) :: this
+    type(amrex_mfiter), intent(in) :: mfi
+    integer, contiguous, pointer, dimension(:,:,:,:) :: dp
+    type(c_ptr) :: cp
+    integer, contiguous, pointer :: fp(:,:,:,:)
+    integer(c_int) :: n(4)
+    type(amrex_box) :: bx
+    call amrex_fi_imultifab_dataptr(this%p, mfi%p, cp, bx%lo, bx%hi)
+    n(1:3) = bx%hi - bx%lo + 1
+    n(4)   = this%ncomp()
+    call c_f_pointer(cp, fp, shape=n)
+    dp(bx%lo(1):,bx%lo(2):,bx%lo(3):,1:) => fp
+  end function amrex_imultifab_dataPtr
+
 !------ MFIter routines ------!
 
-  subroutine amrex_mfiter_build (mfi, mf, tiling)
+  subroutine amrex_mfiter_build_r (mfi, mf, tiling)
     type(amrex_mfiter) :: mfi
     type(amrex_multifab), intent(in ) :: mf
     logical, intent(in), optional :: tiling
@@ -364,8 +472,24 @@ contains
        t = 0
     end if
     mfi%counter = 0
-    call amrex_fi_new_mfiter(mfi%p, mf%p, t)
-  end subroutine amrex_mfiter_build
+    call amrex_fi_new_mfiter_r(mfi%p, mf%p, t)
+  end subroutine amrex_mfiter_build_r
+
+  subroutine amrex_mfiter_build_i (mfi, imf, tiling)
+    type(amrex_mfiter) :: mfi
+    type(amrex_imultifab), intent(in ) :: imf
+    logical, intent(in), optional :: tiling
+    logical :: ltiling
+    integer(c_int) :: t
+    ltiling = .false.;  if (present(tiling)) ltiling = tiling
+    if (ltiling) then
+       t = 1
+    else
+       t = 0
+    end if
+    mfi%counter = 0
+    call amrex_fi_new_mfiter_i(mfi%p, imf%p, t)
+  end subroutine amrex_mfiter_build_i
 
   subroutine amrex_mfiter_destroy (this)
     type(amrex_mfiter) :: this

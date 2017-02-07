@@ -95,4 +95,10 @@ extern "C" {
     {
 	famrcore->InitFromScratch(t);
     }
+
+    void amrex_fi_init_virtual_functions (FAmrCore::make_level_funptr_t mk_lev_scrtch,
+					  FAmrCore* famrcore)
+    {
+	famrcore->make_new_level_from_scratch = mk_lev_scrtch;
+    }
 }
