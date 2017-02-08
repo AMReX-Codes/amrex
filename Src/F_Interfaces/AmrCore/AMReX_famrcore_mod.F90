@@ -8,7 +8,8 @@ module amrex_famrcore_module
   private
 
   ! public routines
-  public :: amrex_init_from_scratch, amrex_init_virtual_functions, amrex_get_numlevels
+  public :: amrex_init_from_scratch, amrex_init_virtual_functions, amrex_get_numlevels, &
+       amrex_regrid
   ! xxxxxx need to clean up the following functions
   public :: amrex_famrcore_init, amrex_famrcore_finalize, amrex_famrcore_initialized, &
        amrex_get_finest_level, amrex_get_boxarray, amrex_get_distromap, amrex_get_geometry, &
@@ -129,6 +130,14 @@ module amrex_famrcore_module
        type(c_funptr), value :: mk_lev_scrtch, err_est
        type(c_ptr), value :: famrcore
      end subroutine amrex_fi_init_virtual_functions
+
+     subroutine amrex_fi_regrid (baselev, t, famrcore) bind(c)
+       import
+       implicit none
+       integer(c_int), value :: baselev
+       real(amrex_real), value :: t
+       type(c_ptr), value :: famrcore
+     end subroutine amrex_fi_regrid
   end interface
 
 contains
@@ -232,6 +241,12 @@ contains
     type(c_funptr), intent(in) :: mk_lev_scrtch, err_est
     call amrex_fi_init_virtual_functions (mk_lev_scrtch, err_est, famrcore)
   end subroutine amrex_init_virtual_functions
+
+  subroutine amrex_regrid (baselev, t)
+    integer, intent(in) :: baselev
+    real(amrex_real), intent(in) :: t
+    call amrex_fi_regrid(baselev, t, famrcore)
+  end subroutine amrex_regrid
 
 end module amrex_famrcore_module
 

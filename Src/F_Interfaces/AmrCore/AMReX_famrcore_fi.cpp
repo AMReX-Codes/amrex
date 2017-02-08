@@ -103,4 +103,9 @@ extern "C" {
 	famrcore->make_new_level_from_scratch = mk_lev_scrtch;
 	famrcore->error_est = err_est;
     }
+
+    void amrex_fi_regrid (int baselev, Real t, FAmrCore* famrcore)
+    {
+	famrcore->regrid(baselev, t);
+    }
 }
