@@ -42,7 +42,7 @@ contains
     type(amrex_parmparse) :: pp
     integer :: ilev
 
-    if (.not.amrex_famrcore_initialized()) call amrex_famrcore_init()
+    if (.not.amrex_amrcore_initialized()) call amrex_amrcore_init()
     
     call amrex_init_virtual_functions (c_funloc(my_make_new_level_from_scratch), &
          &                             c_funloc(my_error_estimate))
