@@ -11,6 +11,9 @@ module amrex_box_module
   type, public :: amrex_box
      integer, dimension(3) :: lo = 1
      integer, dimension(3) :: hi = 1
+   contains
+     procedure :: numpts => amrex_box_numpts
+     procedure, private :: amrex_box_numpts
   end type amrex_box
 
   public :: amrex_print, amrex_allprint
@@ -55,5 +58,12 @@ contains
     call amrex_fi_print_box(bx%lo, bx%hi, 1)
   end subroutine amrex_box_allprint
 
+  function amrex_box_numpts (this) result(npts)
+    integer(c_long) :: npts
+    class(amrex_box), intent(in) :: this
+    npts = (int(this%hi(1),c_long)-int(this%lo(1),c_long)+1_c_long) &
+         * (int(this%hi(2),c_long)-int(this%lo(2),c_long)+1_c_long) &
+         * (int(this%hi(3),c_long)-int(this%lo(3),c_long)+1_c_long)
+  end function amrex_box_numpts
 end module amrex_box_module
 

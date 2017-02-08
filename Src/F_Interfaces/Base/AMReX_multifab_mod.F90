@@ -67,10 +67,11 @@ module amrex_multifab_module
      type(c_ptr)      :: p       = c_null_ptr
      integer ,private :: counter = -1 
    contains
-     generic   :: assignment(=) => amrex_mfiter_assign  ! will abort if called
-     procedure :: clear   => amrex_mfiter_clear
-     procedure :: next    => amrex_mfiter_next
-     procedure :: tilebox => amrex_mfiter_tilebox
+     generic   :: assignment(=)    => amrex_mfiter_assign  ! will abort if called
+     procedure :: clear            => amrex_mfiter_clear
+     procedure :: next             => amrex_mfiter_next
+     procedure :: tilebox          => amrex_mfiter_tilebox
+     procedure :: nodaltilebox     => amrex_mfiter_nodaltilebox
      procedure, private :: amrex_mfiter_assign
 #if !defined(__GFORTRAN__) || (__GNUC__ > 4)
      final :: amrex_mfiter_destroy
@@ -228,6 +229,14 @@ module amrex_multifab_module
        type(c_ptr), value :: p
        integer(c_int) :: lo(3), hi(3)
      end subroutine amrex_fi_mfiter_tilebox
+
+     subroutine amrex_fi_mfiter_nodaltilebox (p, dir, lo, hi) bind(c)
+       import
+       implicit none
+       type(c_ptr), value :: p
+       integer(c_int), value :: dir
+       integer(c_int) :: lo(3), hi(3)
+     end subroutine amrex_fi_mfiter_nodaltilebox
   end interface
 
 contains
@@ -552,6 +561,19 @@ contains
     class(amrex_mfiter), intent(in) :: this
     call amrex_fi_mfiter_tilebox(this%p, amrex_mfiter_tilebox%lo, amrex_mfiter_tilebox%hi)
   end function amrex_mfiter_tilebox
+
+  type(amrex_box) function amrex_mfiter_nodaltilebox (this,dir_in)
+    class(amrex_mfiter), intent(in) :: this
+    integer, intent(in), optional :: dir_in
+    integer :: dir
+    if (present(dir_in)) then
+       dir = dir_in
+    else
+       dir = -1
+    end if
+    call amrex_fi_mfiter_nodaltilebox(this%p, dir, &
+         amrex_mfiter_nodaltilebox%lo, amrex_mfiter_nodaltilebox%hi)
+  end function amrex_mfiter_nodaltilebox
 
 end module amrex_multifab_module
 
