@@ -30,9 +30,9 @@ module amrex_parallel_module
 
 #ifdef BL_USE_MPI
 #ifdef BL_USE_FLOAT
-  integer, public :: mpi_amrex_real = MPI_REAL
+  integer, public :: amrex_mpi_real = MPI_REAL
 #else
-  integer, public :: mpi_amrex_real = MPI_DOUBLE_PRECISION
+  integer, public :: amrex_mpi_real = MPI_DOUBLE_PRECISION
 #endif
   integer :: m_nprocs = -1
   integer :: m_myproc = -1
@@ -137,9 +137,9 @@ contains
 #ifdef BL_USE_MPI
     tmp = r
     if (present(rank)) then
-       call MPI_Reduce(tmp, r, 1, mpi_amrex_real, MPI_SUM, rank, m_comm, ierr)
+       call MPI_Reduce(tmp, r, 1, amrex_mpi_real, MPI_SUM, rank, m_comm, ierr)
     else
-       call MPI_Allreduce(tmp, r, 1, mpi_amrex_real, MPI_SUM, m_comm, ierr)
+       call MPI_Allreduce(tmp, r, 1, amrex_mpi_real, MPI_SUM, m_comm, ierr)
     end if
 #endif
   end subroutine amrex_parallel_reduce_sum_rs
@@ -153,9 +153,9 @@ contains
 #ifdef BL_USE_MPI
     tmp = r(1:n)
     if (present(rank)) then
-       call MPI_Reduce(tmp, r, n, mpi_amrex_real, MPI_SUM, rank, m_comm, ierr)
+       call MPI_Reduce(tmp, r, n, amrex_mpi_real, MPI_SUM, rank, m_comm, ierr)
     else
-       call MPI_Allreduce(tmp, r, n, mpi_amrex_real, MPI_SUM, m_comm, ierr)
+       call MPI_Allreduce(tmp, r, n, amrex_mpi_real, MPI_SUM, m_comm, ierr)
     end if
 #endif
   end subroutine amrex_parallel_reduce_sum_rv
@@ -197,9 +197,9 @@ contains
 #ifdef BL_USE_MPI
     tmp = r
     if (present(rank)) then
-       call MPI_Reduce(tmp, r, 1, mpi_amrex_real, MPI_MAX, rank, m_comm, ierr)
+       call MPI_Reduce(tmp, r, 1, amrex_mpi_real, MPI_MAX, rank, m_comm, ierr)
     else
-       call MPI_Allreduce(tmp, r, 1, mpi_amrex_real, MPI_MAX, m_comm, ierr)
+       call MPI_Allreduce(tmp, r, 1, amrex_mpi_real, MPI_MAX, m_comm, ierr)
     end if
 #endif
   end subroutine amrex_parallel_reduce_max_rs
@@ -213,9 +213,9 @@ contains
 #ifdef BL_USE_MPI
     tmp = r(1:n)
     if (present(rank)) then
-       call MPI_Reduce(tmp, r, n, mpi_amrex_real, MPI_MAX, rank, m_comm, ierr)
+       call MPI_Reduce(tmp, r, n, amrex_mpi_real, MPI_MAX, rank, m_comm, ierr)
     else
-       call MPI_Allreduce(tmp, r, n, mpi_amrex_real, MPI_MAX, m_comm, ierr)
+       call MPI_Allreduce(tmp, r, n, amrex_mpi_real, MPI_MAX, m_comm, ierr)
     end if
 #endif
   end subroutine amrex_parallel_reduce_max_rv
@@ -257,9 +257,9 @@ contains
 #ifdef BL_USE_MPI
     tmp = r
     if (present(rank)) then
-       call MPI_Reduce(tmp, r, 1, mpi_amrex_real, MPI_MIN, rank, m_comm, ierr)
+       call MPI_Reduce(tmp, r, 1, amrex_mpi_real, MPI_MIN, rank, m_comm, ierr)
     else
-       call MPI_Allreduce(tmp, r, 1, mpi_amrex_real, MPI_MIN, m_comm, ierr)
+       call MPI_Allreduce(tmp, r, 1, amrex_mpi_real, MPI_MIN, m_comm, ierr)
     end if
 #endif
   end subroutine amrex_parallel_reduce_min_rs
@@ -273,9 +273,9 @@ contains
 #ifdef BL_USE_MPI
     tmp = r(1:n)
     if (present(rank)) then
-       call MPI_Reduce(tmp, r, n, mpi_amrex_real, MPI_MIN, rank, m_comm, ierr)
+       call MPI_Reduce(tmp, r, n, amrex_mpi_real, MPI_MIN, rank, m_comm, ierr)
     else
-       call MPI_Allreduce(tmp, r, n, mpi_amrex_real, MPI_MIN, m_comm, ierr)
+       call MPI_Allreduce(tmp, r, n, amrex_mpi_real, MPI_MIN, m_comm, ierr)
     end if
 #endif
   end subroutine amrex_parallel_reduce_min_rv
