@@ -12,6 +12,8 @@ module amrex_parallel_module
 #ifdef BL_USE_MPI
   use amrex_fi_mpi
 #endif
+  
+  use amrex_fort_module, only : amrex_real
 
   implicit none
 
@@ -22,8 +24,16 @@ module amrex_parallel_module
   public :: amrex_parallel_myproc 
   public :: amrex_parallel_ioprocessor
   public :: amrex_parallel_nprocs
+  public :: amrex_parallel_reduce_sum
+  public :: amrex_parallel_reduce_max
+  public :: amrex_parallel_reduce_min
 
 #ifdef BL_USE_MPI
+#ifdef BL_USE_FLOAT
+  integer, public :: mpi_amrex_real = MPI_REAL
+#else
+  integer, public :: mpi_amrex_real = MPI_DOUBLE_PRECISION
+#endif
   integer :: m_nprocs = -1
   integer :: m_myproc = -1
   integer :: m_comm   = -1
@@ -32,6 +42,27 @@ module amrex_parallel_module
   integer :: m_myproc = 0
   integer :: m_comm   = 0
 #endif
+
+  interface amrex_parallel_reduce_sum
+     module procedure amrex_parallel_reduce_sum_is
+     module procedure amrex_parallel_reduce_sum_iv
+     module procedure amrex_parallel_reduce_sum_rs
+     module procedure amrex_parallel_reduce_sum_rv
+  end interface amrex_parallel_reduce_sum
+
+  interface amrex_parallel_reduce_max
+     module procedure amrex_parallel_reduce_max_is
+     module procedure amrex_parallel_reduce_max_iv
+     module procedure amrex_parallel_reduce_max_rs
+     module procedure amrex_parallel_reduce_max_rv
+  end interface amrex_parallel_reduce_max
+
+  interface amrex_parallel_reduce_min
+     module procedure amrex_parallel_reduce_min_is
+     module procedure amrex_parallel_reduce_min_iv
+     module procedure amrex_parallel_reduce_min_rs
+     module procedure amrex_parallel_reduce_min_rv
+  end interface amrex_parallel_reduce_min
 
 contains
 
@@ -68,5 +99,185 @@ contains
   integer function amrex_parallel_nprocs ()
     amrex_parallel_nprocs = m_nprocs
   end function amrex_parallel_nprocs
+
+  subroutine amrex_parallel_reduce_sum_is (i, rank)
+    integer, intent(inout) :: i
+    integer, intent(in), optional :: rank
+    integer :: tmp, ierr
+#ifdef BL_USE_MPI
+    tmp = i
+    if (present(rank)) then
+       call MPI_Reduce(tmp, i, 1, MPI_INTEGER, MPI_SUM, rank, m_comm, ierr)
+    else
+       call MPI_Allreduce(tmp, i, 1, MPI_INTEGER, MPI_SUM, m_comm, ierr)
+    end if
+#endif
+  end subroutine amrex_parallel_reduce_sum_is
+
+  subroutine amrex_parallel_reduce_sum_iv (i, n, rank)
+    integer, intent(inout) :: i(*)
+    integer, intent(in) :: n
+    integer, intent(in), optional :: rank
+    integer :: tmp(n), ierr
+#ifdef BL_USE_MPI
+    tmp = i(1:n)
+    if (present(rank)) then
+       call MPI_Reduce(tmp, i, n, MPI_INTEGER, MPI_SUM, rank, m_comm, ierr)
+    else
+       call MPI_Allreduce(tmp, i, n, MPI_INTEGER, MPI_SUM, m_comm, ierr)
+    end if
+#endif
+  end subroutine amrex_parallel_reduce_sum_iv
+
+  subroutine amrex_parallel_reduce_sum_rs (r, rank)
+    real(amrex_real), intent(inout) :: r
+    integer, intent(in), optional :: rank
+    real(amrex_real) :: tmp
+    integer :: ierr
+#ifdef BL_USE_MPI
+    tmp = r
+    if (present(rank)) then
+       call MPI_Reduce(tmp, r, 1, mpi_amrex_real, MPI_SUM, rank, m_comm, ierr)
+    else
+       call MPI_Allreduce(tmp, r, 1, mpi_amrex_real, MPI_SUM, m_comm, ierr)
+    end if
+#endif
+  end subroutine amrex_parallel_reduce_sum_rs
+
+  subroutine amrex_parallel_reduce_sum_rv (r, n, rank)
+    real(amrex_real), intent(inout) :: r(*)
+    integer, intent(in) :: n
+    integer, intent(in), optional :: rank
+    real(amrex_real) :: tmp(n)
+    integer :: ierr
+#ifdef BL_USE_MPI
+    tmp = r(1:n)
+    if (present(rank)) then
+       call MPI_Reduce(tmp, r, n, mpi_amrex_real, MPI_SUM, rank, m_comm, ierr)
+    else
+       call MPI_Allreduce(tmp, r, n, mpi_amrex_real, MPI_SUM, m_comm, ierr)
+    end if
+#endif
+  end subroutine amrex_parallel_reduce_sum_rv
+
+  subroutine amrex_parallel_reduce_max_is (i, rank)
+    integer, intent(inout) :: i
+    integer, intent(in), optional :: rank
+    integer :: tmp, ierr
+#ifdef BL_USE_MPI
+    tmp = i
+    if (present(rank)) then
+       call MPI_Reduce(tmp, i, 1, MPI_INTEGER, MPI_MAX, rank, m_comm, ierr)
+    else
+       call MPI_Allreduce(tmp, i, 1, MPI_INTEGER, MPI_MAX, m_comm, ierr)
+    end if
+#endif
+  end subroutine amrex_parallel_reduce_max_is
+
+  subroutine amrex_parallel_reduce_max_iv (i, n, rank)
+    integer, intent(inout) :: i(*)
+    integer, intent(in) :: n
+    integer, intent(in), optional :: rank
+    integer :: tmp(n), ierr
+#ifdef BL_USE_MPI
+    tmp = i(1:n)
+    if (present(rank)) then
+       call MPI_Reduce(tmp, i, n, MPI_INTEGER, MPI_MAX, rank, m_comm, ierr)
+    else
+       call MPI_Allreduce(tmp, i, n, MPI_INTEGER, MPI_MAX, m_comm, ierr)
+    end if
+#endif
+  end subroutine amrex_parallel_reduce_max_iv
+
+  subroutine amrex_parallel_reduce_max_rs (r, rank)
+    real(amrex_real), intent(inout) :: r
+    integer, intent(in), optional :: rank
+    real(amrex_real) :: tmp
+    integer :: ierr
+#ifdef BL_USE_MPI
+    tmp = r
+    if (present(rank)) then
+       call MPI_Reduce(tmp, r, 1, mpi_amrex_real, MPI_MAX, rank, m_comm, ierr)
+    else
+       call MPI_Allreduce(tmp, r, 1, mpi_amrex_real, MPI_MAX, m_comm, ierr)
+    end if
+#endif
+  end subroutine amrex_parallel_reduce_max_rs
+
+  subroutine amrex_parallel_reduce_max_rv (r, n, rank)
+    real(amrex_real), intent(inout) :: r(*)
+    integer, intent(in) :: n
+    integer, intent(in), optional :: rank
+    real(amrex_real) :: tmp(n)
+    integer :: ierr
+#ifdef BL_USE_MPI
+    tmp = r(1:n)
+    if (present(rank)) then
+       call MPI_Reduce(tmp, r, n, mpi_amrex_real, MPI_MAX, rank, m_comm, ierr)
+    else
+       call MPI_Allreduce(tmp, r, n, mpi_amrex_real, MPI_MAX, m_comm, ierr)
+    end if
+#endif
+  end subroutine amrex_parallel_reduce_max_rv
+
+  subroutine amrex_parallel_reduce_min_is (i, rank)
+    integer, intent(inout) :: i
+    integer, intent(in), optional :: rank
+    integer :: tmp, ierr
+#ifdef BL_USE_MPI
+    tmp = i
+    if (present(rank)) then
+       call MPI_Reduce(tmp, i, 1, MPI_INTEGER, MPI_MIN, rank, m_comm, ierr)
+    else
+       call MPI_Allreduce(tmp, i, 1, MPI_INTEGER, MPI_MIN, m_comm, ierr)
+    end if
+#endif
+  end subroutine amrex_parallel_reduce_min_is
+
+  subroutine amrex_parallel_reduce_min_iv (i, n, rank)
+    integer, intent(inout) :: i(*)
+    integer, intent(in) :: n
+    integer, intent(in), optional :: rank
+    integer :: tmp(n), ierr
+#ifdef BL_USE_MPI
+    tmp = i(1:n)
+    if (present(rank)) then
+       call MPI_Reduce(tmp, i, n, MPI_INTEGER, MPI_MIN, rank, m_comm, ierr)
+    else
+       call MPI_Allreduce(tmp, i, n, MPI_INTEGER, MPI_MIN, m_comm, ierr)
+    end if
+#endif
+  end subroutine amrex_parallel_reduce_min_iv
+
+  subroutine amrex_parallel_reduce_min_rs (r, rank)
+    real(amrex_real), intent(inout) :: r
+    integer, intent(in), optional :: rank
+    real(amrex_real) :: tmp
+    integer :: ierr
+#ifdef BL_USE_MPI
+    tmp = r
+    if (present(rank)) then
+       call MPI_Reduce(tmp, r, 1, mpi_amrex_real, MPI_MIN, rank, m_comm, ierr)
+    else
+       call MPI_Allreduce(tmp, r, 1, mpi_amrex_real, MPI_MIN, m_comm, ierr)
+    end if
+#endif
+  end subroutine amrex_parallel_reduce_min_rs
+
+  subroutine amrex_parallel_reduce_min_rv (r, n, rank)
+    real(amrex_real), intent(inout) :: r(*)
+    integer, intent(in) :: n
+    integer, intent(in), optional :: rank
+    real(amrex_real) :: tmp(n)
+    integer :: ierr
+#ifdef BL_USE_MPI
+    tmp = r(1:n)
+    if (present(rank)) then
+       call MPI_Reduce(tmp, r, n, mpi_amrex_real, MPI_MIN, rank, m_comm, ierr)
+    else
+       call MPI_Allreduce(tmp, r, n, mpi_amrex_real, MPI_MIN, m_comm, ierr)
+    end if
+#endif
+  end subroutine amrex_parallel_reduce_min_rv
 
 end module amrex_parallel_module
