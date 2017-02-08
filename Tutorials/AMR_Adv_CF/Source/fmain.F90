@@ -9,7 +9,7 @@ subroutine amrex_fmain () bind(c)
 
   implicit none
 
-  call amrex_famrcore_init()
+  call amrex_amrcore_init()
 
   call my_amr_init()
 
@@ -19,6 +19,6 @@ subroutine amrex_fmain () bind(c)
 
   call my_amr_finalize()
 
-  call amrex_famrcore_finalize()
+  call amrex_amrcore_finalize()
 
 end subroutine amrex_fmain
