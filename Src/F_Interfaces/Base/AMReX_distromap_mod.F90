@@ -14,10 +14,10 @@ module amrex_distromap_module
      logical     :: owner = .false.
      type(c_ptr) :: p = c_null_ptr
    contains
-     generic   :: assignment(=) => amrex_distromap_assign   ! shallow copy
+     generic   :: assignment(=) => amrex_distromap_assign, amrex_distromap_install   ! shallow copy
      procedure :: clone         => amrex_distromap_clone    ! deep copy
      procedure :: move          => amrex_distromap_move     ! transfer ownership
-     procedure, private :: amrex_distromap_assign
+     procedure, private :: amrex_distromap_assign, amrex_distromap_install
 #if !defined(__GFORTRAN__) || (__GNUC__ > 4)
      final :: amrex_distromap_destroy
 #endif
@@ -99,6 +99,13 @@ contains
     dst%owner = .false.
     dst%p = src%p
   end subroutine amrex_distromap_assign
+
+  subroutine amrex_distromap_install (this, p)
+    class(amrex_distromap), intent(inout) :: this
+    type(c_ptr), intent(in) :: p
+    this%owner = .false.
+    this%p     = p
+  end subroutine amrex_distromap_install
 
   subroutine amrex_distromap_clone (dst, src)
     class(amrex_distromap), intent(inout) :: dst

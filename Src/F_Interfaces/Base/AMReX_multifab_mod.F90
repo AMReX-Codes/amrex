@@ -27,7 +27,7 @@ module amrex_multifab_module
      type(amrex_boxarray)  :: ba
      type(amrex_distromap) :: dm
    contains
-     generic   :: assignment(=) => amrex_multifab_assign   ! shallow copy
+     generic   :: assignment(=) => amrex_multifab_assign, amrex_multifab_install  ! shallow copy
      procedure :: move          => amrex_multifab_move     ! transfer ownership
      procedure :: ncomp         => amrex_multifab_ncomp
      procedure :: nghost        => amrex_multifab_nghost
@@ -39,7 +39,7 @@ module amrex_multifab_module
      procedure :: norm2         => amrex_multifab_norm2
      generic   :: fill_boundary => amrex_multifab_fill_boundary, amrex_multifab_fill_boundary_c
      procedure, private :: amrex_multifab_fill_boundary, amrex_multifab_fill_boundary_c, &
-          amrex_multifab_assign
+          amrex_multifab_assign, amrex_multifab_install
 #if !defined(__GFORTRAN__) || (__GNUC__ > 4)
      final :: amrex_multifab_destroy
 #endif
@@ -99,6 +99,30 @@ module amrex_multifab_module
        implicit none
        type(c_ptr), value :: mf
      end subroutine amrex_fi_delete_multifab
+
+     integer(c_int) function amrex_fi_multifab_ncomp (mf) bind(c)
+       import
+       implicit none
+       type(c_ptr), value :: mf
+     end function amrex_fi_multifab_ncomp
+
+     integer(c_int) function amrex_fi_multifab_ngrow (mf) bind(c)
+       import
+       implicit none
+       type(c_ptr), value :: mf
+     end function amrex_fi_multifab_ngrow
+
+     type(c_ptr) function amrex_fi_multifab_boxarray (mf) bind(c)
+       import
+       implicit none
+       type(c_ptr), value :: mf
+     end function amrex_fi_multifab_boxarray
+
+     type(c_ptr) function amrex_fi_multifab_distromap (mf) bind(c)
+       import
+       implicit none
+       type(c_ptr), value :: mf
+     end function amrex_fi_multifab_distromap
 
      subroutine amrex_fi_multifab_dataptr (mf, mfi, dp, lo, hi) bind(c)
        import
@@ -284,6 +308,17 @@ contains
     dst%ba    = src%ba
     dst%dm    = src%dm
   end subroutine amrex_multifab_assign
+
+  subroutine amrex_multifab_install (this, p)
+    class(amrex_multifab), intent(inout) :: this
+    type(c_ptr), intent(in) :: p
+    this%owner = .false.
+    this%p     = p
+    this%nc    = amrex_fi_multifab_ncomp(p)
+    this%ng    = amrex_fi_multifab_ngrow(p)
+    this%ba    = amrex_fi_multifab_boxarray(p)
+    this%dm    = amrex_fi_multifab_distromap(p)
+  end subroutine amrex_multifab_install
 
   subroutine amrex_multifab_move (dst, src)
     class(amrex_multifab), intent(inout) :: dst

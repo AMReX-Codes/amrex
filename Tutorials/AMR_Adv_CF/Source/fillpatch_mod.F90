@@ -22,6 +22,10 @@ contains
     real(amrex_real) :: teps
     type(amrex_multifab), allocatable :: crse_mf(:), curr_mf(:)
     real(amrex_real), allocatable :: crse_time(:), curr_time(:)
+    type(amrex_physbc) :: crse_pbc, curr_pbc
+    procedure(amrex_physbc_proc), pointer :: fill
+
+    fill => fill_physbc
 
     if (lev .eq. 0) then
        teps = 1.e-3_amrex_real * (t_new(lev) - t_old(lev))
@@ -43,14 +47,33 @@ contains
           curr_time(1) = t_old(lev)
           curr_time(2) = t_new(lev)
        end if
-       
+ 
+       call amrex_physbc_build(curr_pbc, fill)
+      
 !       call amrex_fillpatch(phi, time, curr_mf, curr_time, src_comp, dst_comp, num_comp, &
-!            &               amrex_geom(lev), physbc)
+!            &               amrex_geom(lev), curr_pbc)
 
+
+       call amrex_physbc_destroy(curr_pbc)
     else
 
     end if
    
+    fill => Null()
+
   end subroutine fillpatch
+
+
+  subroutine fill_physbc (pmf, scomp, ncomp, time) bind(c)
+    type(c_ptr), value :: pmf
+    integer(c_int), value :: scomp, ncomp
+    real(amrex_real), value :: time
+    ! In this test problem, we only have periodic boundaries.
+    ! So there is noting to do.
+    
+!    type(amrex_multifab) :: mf
+!    mf = pmf
+    
+  end subroutine fill_physbc
 
 end module fillpatch_module

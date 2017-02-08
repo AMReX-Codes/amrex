@@ -122,8 +122,8 @@ contains
     real(amrex_real), contiguous, pointer :: phi(:,:,:,:)
     integer, parameter :: ncomp = 1, nghost = 0
 
-    ba%p = pba
-    dm%p = pdm
+    ba = pba
+    dm = pdm
 
     t_new(lev) = time
     t_old(lev) = time - 1.e200_amrex_real
