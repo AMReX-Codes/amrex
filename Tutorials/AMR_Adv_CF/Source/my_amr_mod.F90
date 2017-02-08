@@ -7,6 +7,8 @@ module my_amr_module
   implicit none
 
   ! runtime parameters
+  integer :: verbose    = 0
+
   integer :: max_step   = huge(1)
   integer :: regrid_int = 2
   integer :: check_int  = -1
@@ -21,7 +23,7 @@ module my_amr_module
   character(len=127) :: plot_file  = "plt"
   character(len=127) :: restart    = ""  
 
-  integer, allocatable :: istep(:)
+  integer, allocatable :: stepno(:)
   integer, allocatable :: nsubsteps(:)
   integer, allocatable :: last_regrid_step(:)
 
@@ -63,12 +65,14 @@ contains
     
     ! Parameters myamr.*
     call amrex_parmparse_build(pp, "myamr")
+    call pp%query("v", verbose)
+    call pp%query("verbose", verbose)
     call pp%query("cfl", cfl)
     call pp%query("do_reflux", do_reflux)
     call amrex_parmparse_destroy(pp)
 
-    allocate(istep(0:amrex_max_level))
-    istep = 0
+    allocate(stepno(0:amrex_max_level))
+    stepno = 0
 
     allocate(nsubsteps(0:amrex_max_level))
     nsubsteps(0) = 1
