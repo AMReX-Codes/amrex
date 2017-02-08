@@ -50,8 +50,8 @@ contains
  
        call amrex_physbc_build(curr_pbc, fill)
       
-!       call amrex_fillpatch(phi, time, curr_mf, curr_time, src_comp, dst_comp, num_comp, &
-!            &               amrex_geom(lev), curr_pbc)
+       call amrex_fillpatch(phi, time, curr_mf, curr_time, src_comp, dst_comp, num_comp, &
+            &               amrex_geom(lev), curr_pbc)
 
 
        call amrex_physbc_destroy(curr_pbc)
