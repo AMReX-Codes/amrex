@@ -23,7 +23,7 @@ contains
     do lev = 0, nlevs-1
        dt_tmp(lev) = est_timestep(lev, t_new(lev))
     end do
-!    call amrex_parallel_reduce(dt_tmp, nlevs)
+    call amrex_parallel_reduce_min(dt_tmp, nlevs)
  
     dt_0 = dt_tmp(0)
     n_factor = 1

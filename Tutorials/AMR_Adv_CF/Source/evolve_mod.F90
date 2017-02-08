@@ -31,7 +31,7 @@ contains
 
        lev = 0
        iteration = 1
-!       call timestep(lev, cur_time, iteration)
+       call timestep(lev, cur_time, iteration)
  
        cur_time = cur_time + dt(0)
 
@@ -58,5 +58,12 @@ contains
     end if
 
   end subroutine evolve
+
+  recursive subroutine timestep (lev, time, iteration)
+    
+    integer, intent(in) :: lev, iteration
+    real(amrex_real), intent(in) :: time
+    
+  end subroutine timestep
 
 end module evolve_module
