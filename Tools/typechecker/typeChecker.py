@@ -3,12 +3,13 @@ import sys
 from pycparser import parse_file, c_parser, c_ast, c_generator
 
 
-#we will add more types into the dictionaries later
+#These types are commonly used in AMReX. We will add more types into the dictionaries later if needed
 c_primitive_types= ["char", "short", "int", "long", "float", "double"]
 fortran_primitive_types= ["CHARACTER", "INTEGER", "LOGICAL", "REAL", "COMPLEX", "DOUBLE PRECISION"]
 
 def may_type_safe(ctype, cdim, ftype, fdim):
-  if cdim==0: return False #we can't pass by value 
+  if cdim==0: 
+    return False #we can't pass by value 
   if not ctype in c_primitive_types: return True
   if not ftype in fortran_primitive_types: return true
   #now cdim always >=1
@@ -16,7 +17,7 @@ def may_type_safe(ctype, cdim, ftype, fdim):
     if ctype=="float" or ctype == "double":return True #this is an exception in Boxlib when floating point data in C is represented as 1D array
     elif cdim==1 and fdim==0: return True #passing by reference
     else: return False
-  if ctype== "char": return ftype=="CHARACTER"
+  if ctype=="char": return ftype=="CHARACTER"
   elif ctype=="short": return False
   elif ctype=="int": return ftype=="INTEGER" or ftype=="LOGICAL"
   elif ctype=="long": return ftype=="INTEGER" or ftype=="LOGICAL"
@@ -134,10 +135,11 @@ for file in os.listdir("."):
         else: 
           f1.write(a_line)
       else: 
-        if(a_line[0] != '\n'): 
+        if(a_line.strip() != ''): 
           if(len(state_stack) >0): state= state_stack.pop()
           else: state=-1
-          if state==1: pass  #extern C isn't followed by {
+          if state==1: 
+	    pass  #extern C isn't followed by {
           elif state!=-1: state_stack.append(state)
           replaced_line= a_line.replace('&','')  #remove all & occurences
           f1.write(replaced_line)
