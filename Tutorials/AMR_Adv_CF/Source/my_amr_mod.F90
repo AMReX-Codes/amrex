@@ -170,7 +170,7 @@ contains
        call amrex_parmparse_destroy(pp)
     end if
 
-    tag%p = cp
+    tag = cp
 
     !$omp parallel private(mfi, bx, phiarr, tagarr)
     call amrex_mfiter_build(mfi, phi_new(lev), tiling=.true.)

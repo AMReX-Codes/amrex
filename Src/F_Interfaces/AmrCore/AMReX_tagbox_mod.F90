@@ -11,7 +11,9 @@ module amrex_tagbox_module
   type, public :: amrex_tagboxarray
      type(c_ptr) :: p = c_null_ptr
    contains
-     procedure :: dataPtr => amrex_tagboxarray_dataptr
+     generic   :: assignment(=) => amrex_tagboxarray_assign, amrex_tagboxarray_install
+     procedure :: dataPtr       => amrex_tagboxarray_dataptr
+     procedure, private :: amrex_tagboxarray_assign, amrex_tagboxarray_install
   end type amrex_tagboxarray
 
   interface
@@ -25,6 +27,18 @@ module amrex_tagbox_module
   end interface
 
 contains
+
+  subroutine amrex_tagboxarray_assign (dst, src)
+    class(amrex_tagboxarray), intent(inout) :: dst
+    type(amrex_tagboxarray), intent(in) :: src
+    dst%p = src%p
+  end subroutine amrex_tagboxarray_assign
+
+  subroutine amrex_tagboxarray_install (this, p)
+    class(amrex_tagboxarray), intent(inout) :: this
+    type(c_ptr), intent(in), value :: p
+    this%p = p
+  end subroutine amrex_tagboxarray_install
 
   function amrex_tagboxarray_dataPtr (this, mfi) result(dp)
     class(amrex_tagboxarray) :: this
