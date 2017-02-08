@@ -133,5 +133,15 @@ extern "C" {
 	}
     }
 
+    void amrex_fi_mfiter_nodaltilebox (MFIter* mfi, int dir, int lo[3], int hi[3])
+    {
+	const Box& bx = mfi->nodaltilebox(dir);
+	const int* lov = bx.loVect();
+	const int* hiv = bx.hiVect();
+	for (int i = 0; i < BL_SPACEDIM; ++i) {
+	    lo[i] = lov[i];
+	    hi[i] = hiv[i];
+	}
+    }
 }
 

@@ -17,6 +17,8 @@ module amrex_base_module
   use amrex_string_module
   use amrex_plotfile_module
 
+  use mempool_module
+
 contains
 
   subroutine amrex_fi_init () bind(c)
