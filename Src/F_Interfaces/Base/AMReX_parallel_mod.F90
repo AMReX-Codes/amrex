@@ -12,7 +12,8 @@ module amrex_parallel_module
 #ifdef BL_USE_MPI
   use amrex_fi_mpi
 #endif
-  
+
+  use amrex_error_module
   use amrex_fort_module, only : amrex_real
 
   implicit none
@@ -29,11 +30,7 @@ module amrex_parallel_module
   public :: amrex_parallel_reduce_min
 
 #ifdef BL_USE_MPI
-#ifdef BL_USE_FLOAT
-  integer, public :: amrex_mpi_real = MPI_REAL
-#else
-  integer, public :: amrex_mpi_real = MPI_DOUBLE_PRECISION
-#endif
+  integer, public :: amrex_mpi_real = MPI_DATATYPE_NULL
   integer :: m_nprocs = -1
   integer :: m_myproc = -1
   integer :: m_comm   = -1
@@ -75,6 +72,13 @@ contains
     call MPI_Comm_Size(m_comm, m_nprocs, ierr)
     call MPI_Comm_Rank(m_comm, m_myproc, ierr)
     call MPI_barrier(m_comm, ierr)
+    if (c_sizeof(amrex_real) .eq. c_sizeof(c_double)) then
+       amrex_mpi_real = MPI_DOUBLE_PRECISION
+    else if (c_sizeof(amrex_real) .eq. c_sizeof(c_float)) then
+       amrex_mpi_real = MPI_REAL
+    else
+       call amrex_abort("amrex_parallel_comm_init_from_c: size of amrex_real is unknown")
+    end if
 #else
     m_nprocs = 1
     m_myproc = 0
