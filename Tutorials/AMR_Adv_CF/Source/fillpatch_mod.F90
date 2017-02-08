@@ -23,9 +23,6 @@ contains
     type(amrex_multifab), allocatable :: crse_mf(:), curr_mf(:)
     real(amrex_real), allocatable :: crse_time(:), curr_time(:)
     type(amrex_physbc) :: crse_pbc, curr_pbc
-    procedure(amrex_physbc_proc), pointer :: fill
-
-    fill => fill_physbc
 
     if (lev .eq. 0) then
        teps = 1.e-3_amrex_real * (t_new(lev) - t_old(lev))
@@ -48,7 +45,7 @@ contains
           curr_time(2) = t_new(lev)
        end if
  
-       call amrex_physbc_build(curr_pbc, fill)
+       call amrex_physbc_build(curr_pbc, fill_physbc)
       
        call amrex_fillpatch(phi, time, curr_mf, curr_time, src_comp, dst_comp, num_comp, &
             &               amrex_geom(lev), curr_pbc)
@@ -58,9 +55,6 @@ contains
     else
 
     end if
-   
-    fill => Null()
-
   end subroutine fillpatch
 
 

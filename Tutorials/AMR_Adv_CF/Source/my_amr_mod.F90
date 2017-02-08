@@ -44,8 +44,8 @@ contains
 
     if (.not.amrex_amrcore_initialized()) call amrex_amrcore_init()
     
-    call amrex_init_virtual_functions (c_funloc(my_make_new_level_from_scratch), &
-         &                             c_funloc(my_error_estimate))
+    call amrex_init_virtual_functions (my_make_new_level_from_scratch, &
+         &                             my_error_estimate)
 
     ! Read parameters
     call amrex_parmparse_build(pp)
@@ -113,7 +113,7 @@ contains
     use prob_module, only : init_prob_data
     integer, intent(in), value :: lev
     real(amrex_real), intent(in), value :: time
-    type(c_ptr), value :: pba, pdm
+    type(c_ptr), intent(in), value :: pba, pdm
 
     type(amrex_boxarray) :: ba
     type(amrex_distromap) :: dm

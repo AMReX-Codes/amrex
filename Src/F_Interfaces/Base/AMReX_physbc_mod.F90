@@ -49,7 +49,7 @@ contains
 
   subroutine amrex_physbc_build (pbc, fill)
     type(amrex_physbc), intent(inout) :: pbc
-    procedure(amrex_physbc_proc), pointer, intent(in) :: fill
+    procedure(amrex_physbc_proc) :: fill
     pbc%owner = .true.
     call amrex_fi_new_physbc(pbc%p, c_funloc(fill))
   end subroutine amrex_physbc_build

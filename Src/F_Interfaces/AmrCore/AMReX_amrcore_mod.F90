@@ -20,6 +20,34 @@ module amrex_amrcore_module
   ! public variables
   public :: amrex_max_level, amrex_ref_ratio, amrex_geom
 
+  ! public procedure interfaces
+  public :: amrex_make_level_proc, amrex_clear_level_proc, amrex_error_est_proc
+
+  interface
+     subroutine amrex_make_level_proc (lev, time, ba, dm) bind(c)
+       import
+       implicit none
+       integer, intent(in), value :: lev
+       real(amrex_real), intent(in), value :: time
+       type(c_ptr), intent(in), value :: ba, dm
+     end subroutine amrex_make_level_proc
+
+     subroutine amrex_clear_level_proc (lev) bind(c)
+       import
+       implicit none
+       integer, intent(in) , value :: lev
+     end subroutine amrex_clear_level_proc
+
+     subroutine amrex_error_est_proc (lev, tags, time, tagval, clearval) bind(c)
+       import
+       implicit none
+       integer, intent(in), value :: lev
+       type(c_ptr), intent(in), value :: tags
+       real(amrex_real), intent(in) :: time
+       character(c_char), intent(in), value :: tagval, clearval
+     end subroutine amrex_error_est_proc
+  end interface
+
   type(c_ptr) :: amrcore = c_null_ptr
 
   integer :: amrex_max_level
@@ -238,8 +266,9 @@ contains
   end subroutine amrex_init_from_scratch
 
   subroutine amrex_init_virtual_functions (mk_lev_scrtch, err_est)
-    type(c_funptr), intent(in) :: mk_lev_scrtch, err_est
-    call amrex_fi_init_virtual_functions (mk_lev_scrtch, err_est, amrcore)
+    procedure(amrex_make_level_proc) :: mk_lev_scrtch
+    procedure(amrex_error_est_proc)  :: err_est
+    call amrex_fi_init_virtual_functions (c_funloc(mk_lev_scrtch), c_funloc(err_est), amrcore)
   end subroutine amrex_init_virtual_functions
 
   subroutine amrex_regrid (baselev, t)
