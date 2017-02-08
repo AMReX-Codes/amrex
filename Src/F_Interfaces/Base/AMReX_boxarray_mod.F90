@@ -15,11 +15,11 @@ module amrex_boxarray_module
      logical     :: owner = .false.
      type(c_ptr) :: p = c_null_ptr
    contains
-     generic   :: assignment(=) => amrex_boxarray_assign   ! shallow copy
+     generic   :: assignment(=) => amrex_boxarray_assign, amrex_boxarray_install  ! shallow copy
      procedure :: clone         => amrex_boxarray_clone    ! deep copy
      procedure :: move          => amrex_boxarray_move     ! transfer ownership
      procedure :: maxSize       => amrex_boxarray_maxSize  ! make the boxes smaller
-     procedure, private :: amrex_boxarray_assign
+     procedure, private :: amrex_boxarray_assign, amrex_boxarray_install
 #if !defined(__GFORTRAN__) || (__GNUC__ > 4)
      final :: amrex_boxarray_destroy
 #endif
@@ -102,6 +102,13 @@ contains
     dst%owner = .false.
     dst%p = src%p
   end subroutine amrex_boxarray_assign
+
+  subroutine amrex_boxarray_install (this, p)
+    class(amrex_boxarray), intent(inout) :: this
+    type(c_ptr), intent(in) :: p
+    this%owner = .false.
+    this%p     = p
+  end subroutine amrex_boxarray_install
 
   subroutine amrex_boxarray_clone (dst, src)
     class(amrex_boxarray), intent(inout) :: dst

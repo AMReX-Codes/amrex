@@ -10,12 +10,15 @@ class FPhysBC
     : public PhysBCFunctBase
 {
 public:
-    FPhysBC () {}
+    using fill_physbc_funptr_t = void(*)(MultiFab* mf, int scomp, int ncomp, Real time);
+
+    FPhysBC (fill_physbc_funptr_t fill) : fill_physbc(fill) {}
+
     virtual ~FPhysBC () {}
     virtual void FillBoundary (MultiFab& mf, int scomp, int ncomp, Real time) override;
     using amrex::PhysBCFunctBase::FillBoundary;
 
-    using fill_physbc_funptr_t = void(*)(MultiFab* mf, int scomp, int ncomp, Real time);
+private:
     fill_physbc_funptr_t fill_physbc = nullptr;
 };
 

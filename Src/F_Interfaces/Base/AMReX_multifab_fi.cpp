@@ -21,6 +21,26 @@ extern "C" {
 	delete mf;
     }
 
+    int amrex_fi_multifab_ncomp (const MultiFab* mf)
+    {
+	return mf->nComp();
+    }
+
+    int amrex_fi_multifab_ngrow (const MultiFab* mf)
+    {
+	return mf->nGrow();
+    }
+
+    const BoxArray* amrex_fi_multifab_boxarray (const MultiFab* mf)
+    {
+	return &(mf->boxArray());
+    }
+
+    const DistributionMapping* amrex_fi_multifab_distromap (const MultiFab* mf)
+    {
+	return &(mf->DistributionMap());
+    }
+    
     void amrex_fi_multifab_dataptr (MultiFab* mf, MFIter* mfi, Real*& dp, int lo[3], int hi[3])
     {
 	FArrayBox& fab = (*mf)[*mfi];

@@ -16,6 +16,7 @@ module amrex_base_module
   use amrex_parmparse_module
   use amrex_string_module
   use amrex_plotfile_module
+  use amrex_physbc_module
 
   use mempool_module
 
