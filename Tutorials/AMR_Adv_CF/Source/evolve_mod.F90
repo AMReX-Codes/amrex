@@ -118,6 +118,7 @@ contains
   ! Given phi_old(lev), compute phi_new(lev)
   subroutine advance (lev, time, dt, step, substep, nsub)
     use my_amr_module, only : verbose, phi_new, phi_old
+    use fillpatch_module, only : fillpatch
     integer, intent(in) :: lev, step, substep, nsub
     real(amrex_real), intent(in) :: time, dt
 
@@ -135,7 +136,7 @@ contains
 
     call amrex_multifab_build(phiborder, phi_new(lev)%ba, phi_new(lev)%dm, ncomp, ngrow)
 
-!    call fillpatch(lev, time, 
+    call fillpatch(lev, time, phiborder)
 
     ctr_time = time + 0.5_amrex_real * dt
 
