@@ -110,6 +110,14 @@ MultiParticleContainer::NumberOfParticlesInGrid(int lev) const
 }
 
 void
+MultiParticleContainer::Increment (MultiFab& mf, int lev)
+{
+    for (auto& pc : allcontainers) {
+	pc->Increment(mf,lev);
+    }
+}
+
+void
 MultiParticleContainer::SetParticleBoxArray (int lev, BoxArray& new_ba)
 {
     for (auto& pc : allcontainers) {

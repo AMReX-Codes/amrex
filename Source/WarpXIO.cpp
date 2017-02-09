@@ -301,13 +301,13 @@ WarpX::WritePlotFile () const
     }
     
     {
-	Array<std::string> varnames {"jx", "jy", "jz", "Ex", "Ey", "Ez", "Bx", "By", "Bz"};
+	Array<std::string> varnames {"jx", "jy", "jz", "Ex", "Ey", "Ez", "Bx", "By", "Bz", "numpart"};
 
 	Array<std::unique_ptr<MultiFab> > mf(finest_level+1);
     
 	for (int lev = 0; lev <= finest_level; ++lev)
 	{
-	    const int ncomp = 3*3;
+	    const int ncomp = 3*3+1; // The +1 is for the number of particle 
 	    const int ngrow = 0;
 	    mf[lev].reset(new MultiFab(grids[lev], ncomp, ngrow, dmap[lev]));
 
@@ -335,6 +335,15 @@ WarpX::WritePlotFile () const
 	    MultiFab::Copy(*mf[lev], *mf[lev], dcomp+1, dcomp+2, 1, ngrow);
 	    WarpX::Copy(*mf[lev], dcomp+1, 1, *Bfield[lev][1], 0);
 #endif
+
+            // MultiFab containing number of particles in each cell
+	    dcomp += 3;
+            MultiFab temp_dat(grids[lev],1,0);
+            temp_dat.setVal(0);
+//          mypc->Increment(temp_dat, lev);
+            std::cout << "NCOMP " << mf[lev]->nComp() << std::endl;
+            std::cout << "DCOMP " << dcomp << std::endl;
+            MultiFab::Copy(*mf[lev], temp_dat, 0, dcomp, 1, 0);
 	}
     
 	Array<const MultiFab*> mf2(finest_level+1);
