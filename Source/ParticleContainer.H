@@ -44,6 +44,8 @@ public:
 
     void Restart (const std::string& dir, const std::string& name);
 
+    void PostRestart ();
+
     void ReadHeader (std::istream& is);
 
     void WriteHeader (std::ostream& os) const;

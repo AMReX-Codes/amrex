@@ -124,3 +124,11 @@ MultiParticleContainer::SetParticleDistributionMap (int lev, DistributionMapping
 	pc->SetParticleDistributionMap(lev,new_dm);
     }
 }
+
+void
+MultiParticleContainer::PostRestart ()
+{
+    for (auto& pc : allcontainers) {
+	pc->PostRestart();
+    }    
+}

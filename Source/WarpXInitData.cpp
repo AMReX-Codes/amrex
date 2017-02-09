@@ -25,6 +25,7 @@ WarpX::InitData ()
     else
     {
 	InitFromCheckpoint();
+	PostRestart();
     }
 }
 
@@ -58,6 +59,12 @@ WarpX::InitFromScratch ()
 #ifdef USE_OPENBC_POISSON
     InitOpenbc();
 #endif
+}
+
+void
+WarpX::PostRestart ()
+{
+    mypc->PostRestart();
 }
 
 #ifdef USE_OPENBC_POISSON

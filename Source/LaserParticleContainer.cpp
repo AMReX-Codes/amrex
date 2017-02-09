@@ -98,37 +98,15 @@ LaserParticleContainer::InitData ()
     m_particles.resize(GDB().finestLevel()+1);
 
     const int lev = 0;
-
     const Geometry& geom = GDB().Geom(lev);
     const RealBox& prob_domain = geom.ProbDomain();
 
-#if (BL_SPACEDIM == 3)
-    const Real* dx = geom.CellSize();
-#elif (BL_SPACEDIM == 2)
-    Real dx[3] = { geom.CellSize(0), std::numeric_limits<Real>::quiet_NaN(), geom.CellSize(1) };
-#endif
+    // spacing of laser particles in the laser plane.
+    // has to be done after geometry is set up.
+    Real S_X, S_Y;
+    ComputeSpacing(S_X, S_Y);
+    ComputeWeightMobility(S_X, S_Y);
 
-    // spacing of laser particles in the laser plane
-    const Real eps = dx[0]*1.e-50;
-#if (BL_SPACEDIM == 3)
-    const Real S_X = std::min(std::min(dx[0]/(std::abs(u_X[0])+eps),
-				       dx[1]/(std::abs(u_X[1])+eps)),
-			               dx[2]/(std::abs(u_X[2])+eps));
-    const Real S_Y = std::min(std::min(dx[0]/(std::abs(u_Y[0])+eps),
-				       dx[1]/(std::abs(u_Y[1])+eps)),
-                                       dx[2]/(std::abs(u_Y[2])+eps));
-#else
-    const Real S_X = std::min(dx[0]/(std::abs(u_X[0])+eps),
-			      dx[2]/(std::abs(u_X[2])+eps));
-    const Real S_Y = 1.0;
-#endif
-
-    const Real particle_weight = ComputeWeight(S_X, S_Y);
-    // The mobility is the constant of proportionality between the field to
-    // be emitted, and the corresponding velocity that the particles need to have.
-    mobility = (S_X * S_Y)/( particle_weight * PhysConst::mu0 * PhysConst::c * PhysConst::c);
-
-    // Give integer coordinates in the laser plane, return the real coordinates in the "lab" frame
     auto Transform = [&](int i, int j) -> Array<Real>
     {
 #if (BL_SPACEDIM == 3)
@@ -236,8 +214,8 @@ LaserParticleContainer::InitData ()
 			particle_y.push_back(pos[1]);
 			particle_z.push_back(pos[2]);
 		    }
-		    particle_w.push_back( particle_weight);
-		    particle_w.push_back(-particle_weight);
+		    particle_w.push_back( weight);
+		    particle_w.push_back(-weight);
 		}
 	    }
 	}
@@ -370,40 +348,40 @@ LaserParticleContainer::Evolve (int lev,
 	    //
 	    // Particle Push
 	    //
-      BL_PROFILE_VAR_START(blp_pxr_pp);
-      // Calculate the laser amplitude to be emitted,
-      // at the position of the emission plane
-      if (profile == laser_t::Gaussian) {
-        warpx_gaussian_laser( &np, plane_Xp.data(), plane_Yp.data(),
-            &t, &wavelength, &e_max, &profile_waist, &profile_duration,
-            &profile_t_peak, &profile_focal_distance, amplitude_E.data() );
-      }
+	    BL_PROFILE_VAR_START(blp_pxr_pp);
+	    // Calculate the laser amplitude to be emitted,
+	    // at the position of the emission plane
+	    if (profile == laser_t::Gaussian) {
+		warpx_gaussian_laser( &np, plane_Xp.data(), plane_Yp.data(),
+				      &t, &wavelength, &e_max, &profile_waist, &profile_duration,
+				      &profile_t_peak, &profile_focal_distance, amplitude_E.data() );
+	    }
 
-      // Calculate the corresponding momentum and position for the particles
-      pti.foreach([&](int i, ParticleType& p) {
-          // Calculate the velocity according to the amplitude of E
-          Real sign_charge = std::copysign( 1.0, wp[i] );
-          Real v_over_c = sign_charge * mobility * amplitude_E[i];
-          BL_ASSERT( v_over_c < 1 );
-          giv[i] = std::sqrt( 1 - v_over_c * v_over_c );
-          Real gamma = 1./giv[i];
-          // The velocity is along the laser polarization p_X
-          Real vx = PhysConst::c * v_over_c * p_X[0];
-          Real vy = PhysConst::c * v_over_c * p_X[1];
-          Real vz = PhysConst::c * v_over_c * p_X[2];
-          // Get the corresponding momenta
-          uxp[i] = gamma * vx;
-          uyp[i] = gamma * vy;
-          uzp[i] = gamma * vz;
-          // Push the the particle positions
-          xp[i] += vx * dt;
+	    // Calculate the corresponding momentum and position for the particles
+	    pti.foreach([&](int i, ParticleType& p) {
+		    // Calculate the velocity according to the amplitude of E
+		    Real sign_charge = std::copysign( 1.0, wp[i] );
+		    Real v_over_c = sign_charge * mobility * amplitude_E[i];
+		    BL_ASSERT( v_over_c < 1 );
+		    giv[i] = std::sqrt( 1 - v_over_c * v_over_c );
+		    Real gamma = 1./giv[i];
+		    // The velocity is along the laser polarization p_X
+		    Real vx = PhysConst::c * v_over_c * p_X[0];
+		    Real vy = PhysConst::c * v_over_c * p_X[1];
+		    Real vz = PhysConst::c * v_over_c * p_X[2];
+		    // Get the corresponding momenta
+		    uxp[i] = gamma * vx;
+		    uyp[i] = gamma * vy;
+		    uzp[i] = gamma * vz;
+		    // Push the the particle positions
+		    xp[i] += vx * dt;
 #if (BL_SPACEDIM == 3)
-          yp[i] += vy * dt;
+		    yp[i] += vy * dt;
 #endif
-          zp[i] += vz * dt;
-      });
+		    zp[i] += vz * dt;
+		});
 
-      BL_PROFILE_VAR_STOP(blp_pxr_pp);
+	    BL_PROFILE_VAR_STOP(blp_pxr_pp);
 
 	    //
 	    // Current Deposition
@@ -444,10 +422,52 @@ LaserParticleContainer::Evolve (int lev,
     }
 }
 
-Real
-LaserParticleContainer::ComputeWeight (Real Sx, Real Sy) const
+void
+LaserParticleContainer::PostRestart ()
+{
+    Real Sx, Sy;
+    ComputeSpacing(Sx, Sy);
+    ComputeWeightMobility(Sx, Sy);
+}
+
+void
+LaserParticleContainer::ComputeSpacing (Real& Sx, Real& Sy) const
+{
+    const int lev = 0;
+    const Geometry& geom = GDB().Geom(lev);
+
+#if (BL_SPACEDIM == 3)
+    const Real* dx = geom.CellSize();
+#elif (BL_SPACEDIM == 2)
+    Real dx[3] = { geom.CellSize(0), std::numeric_limits<Real>::quiet_NaN(), geom.CellSize(1) };
+#endif
+
+    const Real eps = dx[0]*1.e-50;
+#if (BL_SPACEDIM == 3)
+    Sx = std::min(std::min(dx[0]/(std::abs(u_X[0])+eps),
+			   dx[1]/(std::abs(u_X[1])+eps)),
+		           dx[2]/(std::abs(u_X[2])+eps));
+    Sy = std::min(std::min(dx[0]/(std::abs(u_Y[0])+eps),
+			   dx[1]/(std::abs(u_Y[1])+eps)),
+		           dx[2]/(std::abs(u_Y[2])+eps));
+#else
+    Sx = std::min(dx[0]/(std::abs(u_X[0])+eps),
+		  dx[2]/(std::abs(u_X[2])+eps));
+    Sy = 1.0;
+#endif
+    Sx *= 0.99;  // to avoid having particles grid faces
+    Sy *= 0.99;
+}
+
+void
+LaserParticleContainer::ComputeWeightMobility (Real Sx, Real Sy)
 {
     constexpr Real eps = 0.1;
     constexpr Real fac = 1.0/(2.0*3.1415926535897932*PhysConst::mu0*PhysConst::c*PhysConst::c*eps);
-    return fac * wavelength * Sx * Sy / std::min(Sx,Sy) * e_max;
+    weight = fac * wavelength * Sx * Sy / std::min(Sx,Sy) * e_max;
+
+    // The mobility is the constant of proportionality between the field to
+    // be emitted, and the corresponding velocity that the particles need to have.
+    mobility = (Sx * Sy)/(weight * PhysConst::mu0 * PhysConst::c * PhysConst::c);
 }
+

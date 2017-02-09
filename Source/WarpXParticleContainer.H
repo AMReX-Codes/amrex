@@ -40,6 +40,8 @@ public:
 			 const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz,
 			 MultiFab& jx, MultiFab& jy, MultiFab& jz, Real t, Real dt) = 0;
 
+    virtual void PostRestart () = 0;
+
     std::unique_ptr<MultiFab> GetChargeDensity(int lev, bool local = false);
 
     void AddNParticles (int n, const Real* x, const Real* y, const Real* z,

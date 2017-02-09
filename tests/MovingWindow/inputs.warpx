@@ -6,5 +6,5 @@ prob_lo     = -20.e-6   -20.e-6   -20.e-6    # physical domain
 prob_hi     =  20.e-6    20.e-6    20.e-6
 
 do_moving_window = 1
-moving_window_dir = 2  # 0, 1, 2, for x, y, z
+moving_window_dir = z
 moving_window_v = 1.0 # in units of the speed of light
