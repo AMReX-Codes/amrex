@@ -17,7 +17,9 @@ module amrex_box_module
      procedure :: nodalize => amrex_box_nodalize
      procedure :: cellize  => amrex_box_cellize
      procedure :: convert  => amrex_box_convert
-     procedure, private :: amrex_box_numpts, amrex_box_nodalize
+     generic   :: grow     => amrex_box_grow_s, amrex_box_grow_v
+     procedure, private :: amrex_box_numpts, amrex_box_nodalize, amrex_box_grow_s, &
+          amrex_box_grow_v
   end type amrex_box
 
   public :: amrex_print
@@ -41,8 +43,8 @@ module amrex_box_module
 contains
 
   function amrex_box_build (lo, hi, nodal) result(bx)
-    integer, intent(in) :: lo(*), hi(*)
-    logical, intent(in), optional :: nodal(*)
+    integer, intent(in) :: lo(ndims), hi(ndims)
+    logical, intent(in), optional :: nodal(ndims)
     type(amrex_box) :: bx
     bx%lo(1:ndims) = lo(1:ndims)
     bx%hi(1:ndims) = hi(1:ndims)
@@ -85,7 +87,7 @@ contains
 
   subroutine amrex_box_convert (this, flag)
     class(amrex_box), intent(inout) :: this
-    logical, intent(in) :: flag(*)
+    logical, intent(in) :: flag(ndims)
     integer :: dir
     do dir = 1, ndims
        if (flag(dir) .and. .not.this%nodal(dir)) then
@@ -97,6 +99,20 @@ contains
        end if
     end do
   end subroutine amrex_box_convert
+
+  subroutine amrex_box_grow_s (this, i)
+    class(amrex_box), intent(inout) :: this
+    integer, intent(in) :: i
+    this%lo = this%lo - i
+    this%hi = this%hi + i
+  end subroutine amrex_box_grow_s
+
+  subroutine amrex_box_grow_v (this, i)
+    class(amrex_box), intent(inout) :: this
+    integer, intent(in) :: i(ndims)
+    this%lo(1:ndims) = this%lo(1:ndims) - i(1:ndims)
+    this%hi(1:ndims) = this%hi(1:ndims) + i(1:ndims)
+  end subroutine amrex_box_grow_v
 
 end module amrex_box_module
 

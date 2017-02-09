@@ -119,6 +119,7 @@ contains
   subroutine advance (lev, time, dt, step, substep, nsub)
     use my_amr_module, only : verbose, phi_new
     use face_velocity_module, only : get_face_velocity
+    use advect_module, only : advect
     use fillpatch_module, only : fillpatch
     integer, intent(in) :: lev, step, substep, nsub
     real(amrex_real), intent(in) :: time, dt
@@ -127,7 +128,7 @@ contains
     integer :: ncomp, idim
     type(amrex_multifab) :: phiborder
     type(amrex_mfiter) :: mfi
-    type(amrex_box) :: bx, bxtmp
+    type(amrex_box) :: bx, tbx
     real(amrex_real), contiguous, pointer, dimension(:,:,:,:) :: pin,pout,pux,puy,puz,pfx,pfy,pfz
     type(amrex_fab) :: uface(amrex_spacedim)
     type(amrex_fab) ::  flux(amrex_spacedim)
@@ -143,7 +144,7 @@ contains
 
     call fillpatch(lev, time, phiborder)
 
-    !$omp parallel private(mfi,bx,bxtmp,pin,pout,pux,puy,puz,pfx,pfy,pfz,uface,flux)
+    !$omp parallel private(mfi,bx,tbx,pin,pout,pux,puy,puz,pfx,pfy,pfz,uface,flux)
     call amrex_mfiter_build(mfi, phi_new(lev), tiling=.true.)
     do while(mfi%next())
        bx = mfi%tilebox()
@@ -152,10 +153,11 @@ contains
        pout => phi_new(lev)%dataptr(mfi)
 
        do idim = 1, amrex_spacedim
-          bxtmp = bx
-          call bxtmp%nodalize(idim)
-          call uface(idim)%resize(bxtmp,1)
-          call  flux(idim)%resize(bxtmp,ncomp)
+          tbx = bx
+          call tbx%nodalize(idim)
+          call flux(idim)%resize(tbx,ncomp)
+          call tbx%grow(1)
+          call uface(idim)%resize(tbx,1)
        end do
 
        pux => uface(1)%dataptr()
@@ -175,11 +177,22 @@ contains
 #endif
             amrex_geom(lev)%dx, amrex_geom(lev)%problo)
 
+       call advect(time, bx%lo, bx%hi, &
+            pin, lbound(pin), ubound(pin), &
+            pout,lbound(pout),ubound(pout), &
+            pux, lbound(pux), ubound(pux), &
+            puy, lbound(puy), ubound(puy), &
+#if BL_SPACEDIM == 3
+            puz, lbound(puz), ubound(puz), &
+#endif
+            pfx, lbound(pfx), ubound(pfx), &
+            pfy, lbound(pfy), ubound(pfy), &
+#if BL_SPACEDIM == 3
+            pfz, lbound(pfz), ubound(pfz), &
+#endif
+            amrex_geom(lev)%dx, dt)
 
-!       call advect(time, bx%lo, bx%hi, &
-!            pin, lbound(pin), ubound(pin), &
-!            pout, lbound(pout), ubound(pout), &
-!            amrex_geom(lev)%dx, dt)
+! if (do_reflux) xxxxx       
 
     end do
     call amrex_mfiter_destroy(mfi)
