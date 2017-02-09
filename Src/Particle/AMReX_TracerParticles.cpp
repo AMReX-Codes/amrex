@@ -10,7 +10,7 @@ void
 TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
 {
     BL_PROFILE("TracerParticleContainer::AdvectWithUmac()");
-    BL_ASSERT(OK(true, lev, umac[0].nGrow()-1));
+    BL_ASSERT(OK(lev, umac[0].nGrow()-1));
     BL_ASSERT(lev >= 0 && lev < m_particles.size());
 
     D_TERM(BL_ASSERT(umac[0].nGrow() >= 1);,
@@ -55,10 +55,9 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
     for (int ipass = 0; ipass < 2; ipass++)
     {
         AoSMap& pmap = m_particles[lev];
-	for (PIter it(*this, lev); it.isValid(); ++it) {
-	  int grid = it.index();
-	  int tile = it.tileIndex();
-	  AoS& pbox = pmap[grid][tile];
+	for (auto& kv : pmap) {
+	  int grid = kv.first.first;
+	  AoS& pbox = kv.second;
 	  const int n    = pbox.size();
 
 	  FArrayBox* fab[BL_SPACEDIM] = { D_DECL(&((*umac_pointer[0])[grid]),
@@ -73,11 +72,10 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
                 ParticleType& p = pbox[i];
 		ParticleLocData pld;
 
-		SingleLevelWhere(p, pld, lev);
+	        bool found_it = SingleLevelWhere(p, pld, lev, umac[0].nGrow());
+		BL_ASSERT(found_it);
 
                 if (p.m_idata.id <= 0) continue;
-
-                BL_ASSERT(pld.m_grid == grid);
 
                 const Real len[BL_SPACEDIM] = { D_DECL((p.m_rdata.pos[0]-plo[0])/dx[0] + Real(0.5),
                                                        (p.m_rdata.pos[1]-plo[1])/dx[1] + Real(0.5),
@@ -103,7 +101,7 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
                         if (efrac[j] < 0) efrac[j] = 0;
                     }
 
-                    const Real vel = ParticleType::InterpDoit(*fab[d], ecell, efrac, 0);
+                    Real vel = ParticleType::InterpDoit(*fab[d], ecell, efrac, 0);
 
                     if (ipass == 0)
                     {
@@ -115,16 +113,16 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
                     }
                     else
                     {
-                        //
+		        //
                         // Update to final time using the orig position and the vel at dt/2.
                         //
-                        p.m_rdata.pos[d]  = p.m_rdata.arr[BL_SPACEDIM+d] + dt*vel;
+		        p.m_rdata.pos[d]  = p.m_rdata.arr[BL_SPACEDIM+d] + dt*vel;
                         // Save the velocity for use in Timestamp().
 			p.m_rdata.arr[BL_SPACEDIM+d] = vel;
                     }
                 }
                 
-                RestrictedWhere(p, pld, umac[0].nGrow()); 
+                RestrictedWhere(p, pld, lev, umac[0].nGrow()); 
             }
         }
     }
@@ -154,7 +152,7 @@ void
 TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
 {
     BL_ASSERT(Ucc.nGrow() > 0);
-    BL_ASSERT(OK(true, lev, Ucc.nGrow()-1));
+    BL_ASSERT(OK(lev, Ucc.nGrow()-1));
      BL_ASSERT(lev >= 0 && lev < m_particles.size());
 
     BL_ASSERT(!Ucc.contains_nan());
@@ -169,10 +167,9 @@ TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
     for (int ipass = 0; ipass < 2; ipass++)
     {
         AoSMap& pmap = m_particles[lev];
-	for (PIter it(*this, lev); it.isValid(); ++it) {
-	  int grid = it.index();
-	  int tile = it.tileIndex();
-	  AoS& pbox = pmap[grid][tile];
+	for (auto& kv : pmap) {
+	  int grid = kv.first.first;
+	  AoS& pbox = kv.second;
 	  const int n    = pbox.size();
 	  const FArrayBox& fab = Ucc[grid];
 	    
@@ -215,7 +212,7 @@ TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
                     }
                 }
                 
-                RestrictedWhere(p, pld, Ucc.nGrow()); 
+                RestrictedWhere(p, pld, lev, Ucc.nGrow()); 
             }
         }
     }
@@ -283,10 +280,8 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
             bool gotwork = false;
 	    
             const AoSMap& pmap = m_particles[lev];
-	    for (PIter it(*this, lev); it.isValid(); ++it) {
-	      int grid = it.index();
-	      int tile = it.tileIndex();
-	      const AoS& pbox = pmap.at(grid)[tile];
+	    for (auto& kv : pmap) {
+	      const AoS& pbox = kv.second;
 	      for (const auto& p : pbox) {
 		if (p.m_idata.id > 0) {
 		  gotwork = true;
@@ -322,10 +317,9 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
 
                 std::vector<Real> vals(M);
 
-		for (PIter it(*this, lev); it.isValid(); ++it) {
-		  int grid = it.index();
-		  int tile = it.tileIndex();
-		  const AoS& pbox = pmap.at(grid)[tile];
+		for (auto& kv : pmap) {
+		  int grid = kv.first.first;
+		  const AoS& pbox = kv.second;
 		  const Box&       bx   = ba[grid];
 		  const FArrayBox& fab  = mf[grid];
 

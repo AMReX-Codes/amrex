@@ -11,6 +11,7 @@
 #include <array>
 #include <memory>
 #include <limits>
+#include <utility>
 
 #include <AMReX_ParmParse.H>
 #include <AMReX_ParGDB.H>
@@ -32,7 +33,7 @@
 #endif
 
 namespace amrex {
-
+  
 namespace
 {
     std::string   aggregation_type   = "";
@@ -41,8 +42,6 @@ namespace
     constexpr int VirtualParticleID  = std::numeric_limits<int>::max()-1;
     constexpr int LastParticleID     = std::numeric_limits<int>::max()-2;
 }
-
-class PIter;
 
 //
 // A struct used for communicating particle data accross processes
@@ -190,7 +189,21 @@ struct Particle
                                 Array<IntVect>&     cells);
 };
 
-template <int NR, int NI = 0>
+template <int NCOMP>
+struct StructOfArrays {
+  
+  std::vector<Real>& operator[] (const int index) {
+    return m_data[index];
+  }
+
+  const std::vector<Real>& operator[] (const int index) const {
+    return m_data[index];
+  }
+
+  std::array<std::vector<Real> , NCOMP> m_data;
+};
+
+template <int NR, int NI = 0, int NCOMP = 0>
 class ParticleContainer
 {
 public:
@@ -204,51 +217,55 @@ public:
 
     // The struct-of-arrays data is stored as a double array where the first index is the
     // component number and the second is the particle index.
-    using SoA = Array<Array<Real> >;
+    typedef StructOfArrays<NCOMP> SoA;
 
     // A single level worth of particles is indexed first by grid id, 
     // then by tile id, for both SoA and AoS data.
-    using AoSMap = std::map<int, Array<AoS> >;
-    using SoAMap = std::map<int, Array<SoA> >;
+    using AoSMap = std::map<std::pair<int, int>, AoS>;
+    using SoAMap = std::map<std::pair<int, int>, SoA>;
 
     ParticleContainer ()
-      : m_verbose(1), m_gdb(nullptr), allow_particles_near_boundary(false), m_npartdata(0) 
+      : m_verbose(1), m_gdb(nullptr), allow_particles_near_boundary(false)
   {
+    for (int i = 0; i < NCOMP; ++i) 
+      communicate_comp[i] = true;
   }
 
     ParticleContainer (ParGDBBase* gdb)
         :
-      m_verbose(1), m_gdb(gdb), allow_particles_near_boundary(false), m_npartdata(0) 
+      m_verbose(1), m_gdb(gdb), allow_particles_near_boundary(false)
   {
+    for (int i = 0; i < NCOMP; ++i) 
+      communicate_comp[i] = true;
     allocateData();
   }
   
     ParticleContainer (const Geometry            & geom, 
 		       const DistributionMapping & dmap,
-		       const BoxArray            & ba,
-		       int                         npartdata = 0)
+		       const BoxArray            & ba)
 	:
         m_verbose(1), 
 	allow_particles_near_boundary(false),
-	m_gdb_object(geom,dmap,ba),
-	m_npartdata(npartdata)
+	m_gdb_object(geom,dmap,ba)
     {
-	m_gdb = & m_gdb_object;
-	allocateData();
+      m_gdb = & m_gdb_object;
+      for (int i = 0; i < NCOMP; ++i) 
+	communicate_comp[i] = true;
+      allocateData();
     }
 
     ParticleContainer (const Array<Geometry>            & geom, 
 		       const Array<DistributionMapping> & dmap,
 		       const Array<BoxArray>            & ba,
-		       const Array<int>                 & rr,
-		       int                                npartdata = 0)
+		       const Array<int>                 & rr)
 	:
         m_verbose(1), 
 	allow_particles_near_boundary(false),
-	m_gdb_object(geom,dmap,ba,rr),
-	m_npartdata(npartdata)
+	m_gdb_object(geom,dmap,ba,rr)
     {
       m_gdb = & m_gdb_object;
+      for (int i = 0; i < NCOMP; ++i) 
+	communicate_comp[i] = true;
       allocateData();
     }
 
@@ -257,30 +274,31 @@ public:
     void Define (ParGDBBase* gdb)
     {
       m_gdb = gdb;
-      m_npartdata = 0;
+      for (int i = 0; i < NCOMP; ++i) 
+	communicate_comp[i] = true;
       allocateData();
     }
 
     void Define (const Geometry            & geom, 
 		 const DistributionMapping & dmap,
-		 const BoxArray            & ba,
-		 int                         npartdata = 0)
+		 const BoxArray            & ba)
   {
     m_gdb_object = ParGDB(geom, dmap, ba);
     m_gdb = &m_gdb_object;
-    m_npartdata = npartdata;
+      for (int i = 0; i < NCOMP; ++i) 
+	communicate_comp[i] = true;
     allocateData();
   }
 
     void Define (const Array<Geometry>            & geom, 
 		 const Array<DistributionMapping> & dmap,
 		 const Array<BoxArray>            & ba,
-		 const Array<int>                 & rr,
-		 int                                npartdata = 0)
+		 const Array<int>                 & rr)
     {
 	m_gdb_object = ParGDB(geom, dmap, ba, rr);
 	m_gdb = &m_gdb_object;
-	m_npartdata = npartdata;
+	for (int i = 0; i < NCOMP; ++i) 
+	  communicate_comp[i] = true;
 	allocateData();
     }
 
@@ -291,9 +309,6 @@ public:
 
     void SetParticleDistributionMap (int lev, const DistributionMapping& new_dmap)
 	{ m_gdb->SetParticleDistributionMap(lev, new_dmap); }
-
-    const MultiFab& getDummyMF(int lev) const 
-        { return *(m_dummy_mfs[lev]);}
 
     const BoxArray& ParticleBoxArray (int lev) const 
 	{ return m_gdb->ParticleBoxArray(lev); }
@@ -313,8 +328,8 @@ public:
     void InitFromBinaryMetaFile (const std::string& file, int extradata);
     void InitRandom (long icount, unsigned long iseed, Real particleMass, bool serialize = false, RealBox bx = RealBox());
     void InitOnePerCell (Real x_off, Real y_off, Real z_off,
-                         Real particleMass, MultiFab& particle_mf);
-    void InitNRandomPerCell (int n_per_cell, Real particleMass, MultiFab& particle_mf);
+                         Real particleMass, const MultiFab& particle_mf);
+    void InitNRandomPerCell (int n_per_cell, Real particleMass, const MultiFab& particle_mf);
 
     void addOneParticle (int id_in, int cpu_in, 
                          std::vector<Real>& xloc, std::vector<Real>& attributes); 
@@ -345,7 +360,8 @@ public:
 		       int  nGrow                = 0);
 
     void RedistributeMPI (std::map<int, AoS>& not_ours,
-			  std::map<int, SoA>& comm_pdata);
+			  std::map<int, Array<Array<Real> > >& comm_pdata,
+			  int lev_min = 0, int finest_level = 0, int nGrow = 0);
 
     //
     // OK checks that all particles are in the right places (for some value of right)
@@ -434,38 +450,38 @@ public:
     // Checks a particle's location on levels lev_min and higher.
     // Returns false if the particle does not exist on that level.
     //
-    bool Where (const Particle<NR, NI>& prt, ParticleLocData& pld, 
+    bool Where (const ParticleType& prt, ParticleLocData& pld, 
 		int lev_min = 0, int finest_level = -1) const;
 
     //
     // Checks whether the particle has crossed a periodic boundary in such a way
     // that it is on levels lev_min and higher.
     //
-    bool PeriodicWhere (Particle<NR, NI>& prt, ParticleLocData& pld,
+    bool PeriodicWhere (ParticleType& prt, ParticleLocData& pld,
 			int lev_min = 0, int finest_level = -1) const;
 
     //
     // Checks whether a particle is within its grid (including ngrow ghost cells).
     //
-    bool RestrictedWhere (const Particle<NR, NI>& p, ParticleLocData& pld, int ngrow) const;
+    bool RestrictedWhere (const ParticleType& p, ParticleLocData& pld, int lev, int ngrow) const;
 
     //
     // Checks a particle's location on a specific level.
     // (Yes this is distict from the functionality provided above)
     //
-    bool SingleLevelWhere (const Particle<NR, NI>& p, ParticleLocData& pld, int level) const;
+    bool SingleLevelWhere (const ParticleType& p, ParticleLocData& pld, int level, int nGrow=0) const;
 
     //
     // Updates a particle's location (Where), tries to periodic shift any particles
     // that have left the domain. May need work (see inline comments)
     //
 
-    void Reset (Particle<NR, NI>& prt, bool update, bool verbose=true) const; 
+    void Reset (ParticleType& prt, bool update, bool verbose=true) const; 
 
     //
     // Returns true if the particle was shifted.
     //
-    bool PeriodicShift (Particle<NR, NI>& prt) const;
+    bool PeriodicShift (ParticleType& prt) const;
 
     //
     // Used by AssignDensity.
@@ -498,7 +514,7 @@ public:
 				    Array<IntVect>&                    fcells,
 				    std::vector< std::pair<int,Box> >& isects) const;
 
-    std::vector<bool> communicate_comp;
+    bool communicate_comp[NCOMP];
     static bool do_tiling;
     static IntVect tile_size;
 
@@ -555,27 +571,11 @@ protected:
     //
     Array<SoAMap> m_partdata;
 
-    int m_npartdata;
-
-    Array<std::unique_ptr<MultiFab> > m_dummy_mfs;
-
 private:
     void AssignDensityDoit (int rho_index, 
 			    Array<std::unique_ptr<MultiFab> >& mf, 
 			    std::map<int, std::vector<ParticleCommData> >& data,
 			    int ncomp, int lev_min = 0) const;
-};
-
-class PIter
-  : 
-  public MFIter
-{
-public:
-  template<int NR, int NI>
-  PIter (const ParticleContainer<NR, NI>& _mypc, int _level)
-    :
-    MFIter(_mypc.getDummyMF(_level), _mypc.do_tiling)
-  {}
 };
 
 #include "AMReX_ParticleI.H"
