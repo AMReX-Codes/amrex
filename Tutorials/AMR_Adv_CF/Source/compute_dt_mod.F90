@@ -55,54 +55,41 @@ contains
     real(amrex_real), intent(in) :: time
 
     real(amrex_real) :: dt_est, umax
-    real(amrex_real), contiguous, pointer :: ux(:), uy(:), uz(:)
-    integer :: npts
     type(amrex_box) :: bx
+    type(amrex_fab) :: u
     type(amrex_mfiter) :: mfi
+    real(amrex_real), contiguous, pointer :: p(:,:,:,:)
 
     dt_est = huge(1._amrex_real)
 
-    !$omp parallel reduction(min:dt_est) private(umax,ux,uy,uz,bx,mfi)
-    nullify(ux,uy,uz)
+    !$omp parallel reduction(min:dt_est) private(umax,bx,u,mfi,p)
     call amrex_mfiter_build(mfi, phi_new(lev), tiling=.true.)
     do while(mfi%next())
        bx = mfi%nodaltilebox()
-       npts = int(bx%numpts())
-       if (.not.associated(ux)) then
-          call bl_allocate(ux, 1, npts)
-          call bl_allocate(uy, 1, npts)
-#if BL_SPACEDIM == 3
-          call bl_allocate(uz, 1, npts)
-#endif
-       else if (size(ux) .lt. npts) then
-          call bl_deallocate(ux)
-          call bl_allocate(ux, 1, npts)          
-          call bl_deallocate(uy)
-          call bl_allocate(uy, 1, npts)
-#if BL_SPACEDIM == 3
-          call bl_deallocate(uz)
-          call bl_allocate(uz, 1, npts)
-#endif
-       end if
 
-       call get_face_velocity(time, ux, bx%lo, bx%hi, uy, bx%lo, bx%hi, &
+       call u%resize(bx,amrex_spacedim)
+       p => u%dataptr()
+
+       call get_face_velocity(time, &
+            p(:,:,:,1), bx%lo, bx%hi, &
+            p(:,:,:,2), bx%lo, bx%hi, &
 #if BL_SPACEDIM == 3
-            &                       uz, bx%lo, bx%hi,                   &
+            p(:,:,:,3), bx%lo, bx%hi, &
 #endif
             amrex_geom(lev)%dx, amrex_geom(lev)%problo)
 
-       umax = maxval(ux(1:npts))
+       umax = u%norminf(1,1)
        if (umax > 1.e-100_amrex_real) then
           dt_est = min(dt_est, amrex_geom(lev)%dx(1) / umax)
        end if
 
-       umax = maxval(uy(1:npts))
+       umax = u%norminf(2,1)
        if (umax > 1.e-100_amrex_real) then
           dt_est = min(dt_est, amrex_geom(lev)%dx(2) / umax)
        end if
 
 #if BL_SPACEDIM == 3
-       umax = maxval(uz(1:npts))
+       umax = u%norminf(3,1)
        if (umax > 1.e-100_amrex_real) then
           dt_est = min(dt_est, amrex_geom(lev)%dx(3) / umax)
        end if
