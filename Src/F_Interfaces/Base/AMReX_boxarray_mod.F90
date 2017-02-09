@@ -9,7 +9,7 @@ module amrex_boxarray_module
 
   private
 
-  public :: amrex_boxarray_build, amrex_boxarray_destroy, amrex_print, amrex_allprint
+  public :: amrex_boxarray_build, amrex_boxarray_destroy, amrex_print
 
   type, public :: amrex_boxarray
      logical     :: owner = .false.
@@ -32,10 +32,6 @@ module amrex_boxarray_module
   interface amrex_print
      module procedure amrex_boxarray_print
   end interface amrex_print
-
-  interface amrex_allprint
-     module procedure amrex_boxarray_allprint
-  end interface amrex_allprint
 
   ! interfaces to cpp functions
 
@@ -67,11 +63,10 @@ module amrex_boxarray_module
        integer(c_int), value :: n
      end subroutine amrex_fi_boxarray_maxsize
 
-     subroutine amrex_fi_print_boxarray (ba, all) bind(c)
+     subroutine amrex_fi_print_boxarray (ba) bind(c)
        import
        implicit none
        type(c_ptr), value :: ba
-       integer(c_int), value :: all
      end subroutine amrex_fi_print_boxarray
   end interface
 
@@ -134,12 +129,7 @@ contains
 
   subroutine amrex_boxarray_print (ba)
     type(amrex_boxarray), intent(in) :: ba
-    call amrex_fi_print_boxarray(ba%p, 0)
+    call amrex_fi_print_boxarray(ba%p)
   end subroutine amrex_boxarray_print
-
-  subroutine amrex_boxarray_allprint (ba)
-    type(amrex_boxarray), intent(in) :: ba
-    call amrex_fi_print_boxarray(ba%p, 1)
-  end subroutine amrex_boxarray_allprint
 
 end module amrex_boxarray_module

@@ -8,7 +8,7 @@ module amrex_distromap_module
 
   private
 
-  public :: amrex_distromap_build, amrex_distromap_destroy, amrex_print, amrex_allprint
+  public :: amrex_distromap_build, amrex_distromap_destroy, amrex_print
 
   type, public :: amrex_distromap
      logical     :: owner = .false.
@@ -30,10 +30,6 @@ module amrex_distromap_module
   interface amrex_print
      module procedure amrex_distromap_print
   end interface amrex_print
-
-  interface amrex_allprint
-     module procedure amrex_distromap_allprint
-  end interface amrex_allprint
 
   ! interfaces to cpp functions
 
@@ -65,11 +61,10 @@ module amrex_distromap_module
        integer(c_int), value :: n
      end subroutine amrex_fi_distromap_maxsize
 
-     subroutine amrex_fi_print_distromap (dm, all) bind(c)
+     subroutine amrex_fi_print_distromap (dm) bind(c)
        import
        implicit none
        type(c_ptr), value :: dm
-       integer(c_int), value :: all
      end subroutine amrex_fi_print_distromap
   end interface
 
@@ -124,12 +119,7 @@ contains
 
   subroutine amrex_distromap_print (dm)
     type(amrex_distromap), intent(in) :: dm
-    call amrex_fi_print_distromap(dm%p, 0)
+    call amrex_fi_print_distromap(dm%p)
   end subroutine amrex_distromap_print
-
-  subroutine amrex_distromap_allprint (dm)
-    type(amrex_distromap), intent(in) :: dm
-    call amrex_fi_print_distromap(dm%p, 1)
-  end subroutine amrex_distromap_allprint
 
 end module amrex_distromap_module
