@@ -1840,7 +1840,12 @@ ParticleContainer<NR, NI, NCOMP>::Checkpoint (const std::string& dir,
         //
         HdrFile << BL_SPACEDIM << '\n';
 	
-        HdrFile << NR << '\n';
+	// The number of extra real parameters
+        HdrFile << NR + NCOMP<< '\n';
+
+	// The number of extra int parameters
+        HdrFile << NI << '\n';
+	
         //
         // The total number of particles.
         //
@@ -2136,18 +2141,25 @@ ParticleContainer<NR, NI, NCOMP>::WriteParticles (int            lev,
       }
       
       // Write the Real data in binary.
-      const int rChunkSize = BL_SPACEDIM+NR;
+      const int rChunkSize = BL_SPACEDIM + NR + NCOMP;
       Array<typename ParticleType::RealType> rstuff(count[grid]*rChunkSize);
       typename ParticleType::RealType* rptr = rstuff.dataPtr();
 
       for (unsigned i = 0; i < tile_map[grid].size(); i++) {
 	const AoS& pbox = m_particles[lev].at(make_pair(grid, tile_map[grid][i]));
+	int pindex = 0;
 	for (const auto& p : pbox) {
 	  if (p.m_idata.id > 0) {
-	    for (int i = 0; i < BL_SPACEDIM + NR; i++)
-	      rptr[i] = p.m_rdata.arr[i];
-	    rptr += rChunkSize;
+	    for (int j = 0; j < BL_SPACEDIM + NR; j++)
+	      rptr[j] = p.m_rdata.arr[j];
+	    rptr += BL_SPACEDIM + NR;
+	    for (int j = 0; j < NCOMP; j++) {
+	      const SoA& soa  = m_partdata[lev].at(make_pair(grid, tile_map[grid][i]));
+	      rptr[j] = (typename ParticleType::RealType) soa[j][pindex];
+	    }
+	    rptr += NCOMP;
 	  }
+	  ++pindex;
 	}
       }
       
