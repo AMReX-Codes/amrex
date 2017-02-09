@@ -94,11 +94,10 @@ int main(int argc, char* argv[])
   for (int lev = 0; lev < nlevs; lev++)
     dmap[lev].define(ba[lev]);
 
-  typedef ParticleContainer<1+BL_SPACEDIM> MyParticleContainer;
+  typedef ParticleContainer<1+BL_SPACEDIM, 0, 5> MyParticleContainer;
 
   // Build a new particle container to hold my particles.
-  int numSOAAttribs = 5;
-  std::unique_ptr<MyParticleContainer> MyPC(new MyParticleContainer(geom, dmap, ba, rr, numSOAAttribs));
+  std::unique_ptr<MyParticleContainer> MyPC(new MyParticleContainer(geom, dmap, ba, rr));
   MyPC->communicate_comp[2] = false;
   MyPC->communicate_comp[3] = false;
   MyPC->communicate_comp[4] = false;
