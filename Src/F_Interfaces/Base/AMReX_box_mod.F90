@@ -20,7 +20,7 @@ module amrex_box_module
      procedure, private :: amrex_box_numpts, amrex_box_nodalize
   end type amrex_box
 
-  public :: amrex_print, amrex_allprint
+  public :: amrex_print
 
   interface amrex_box
      module procedure amrex_box_build
@@ -30,16 +30,11 @@ module amrex_box_module
      module procedure amrex_box_print
   end interface amrex_print
 
-  interface amrex_allprint
-     module procedure amrex_box_allprint
-  end interface amrex_allprint
-
   interface
-     subroutine amrex_fi_print_box(lo,hi,all) bind(c)
+     subroutine amrex_fi_print_box(lo,hi,nodal) bind(c)
        import
        implicit none
-       integer(c_int), intent(in) :: lo(*), hi(*)
-       integer(c_int), value :: all
+       integer(c_int), intent(in) :: lo(*), hi(*), nodal(*)
      end subroutine amrex_fi_print_box
   end interface
 
@@ -56,13 +51,14 @@ contains
 
   subroutine amrex_box_print (bx)
     type(amrex_box), intent(in) :: bx
-    call amrex_fi_print_box(bx%lo, bx%hi, 0)
+    integer :: inodal(3)
+    where (bx%nodal)
+       inodal = 1
+    elsewhere
+       inodal = 0
+    end where
+    call amrex_fi_print_box(bx%lo, bx%hi, inodal)
   end subroutine amrex_box_print
-
-  subroutine amrex_box_allprint (bx)
-    type(amrex_box), intent(in) :: bx
-    call amrex_fi_print_box(bx%lo, bx%hi, 1)
-  end subroutine amrex_box_allprint
 
   function amrex_box_numpts (this) result(npts)
     integer(c_long) :: npts
