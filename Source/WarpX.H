@@ -102,14 +102,14 @@ private:
     Array<Array< std::unique_ptr<MultiFab> > > Bfield;
 
     // Moving window parameters
-    int do_moving_window = 0;
-    int moving_window_dir;
-    Real moving_window_x;
-    Real moving_window_v;
+    int do_moving_window  = 0;
+    int moving_window_dir = -1;
+    Real moving_window_x  = std::numeric_limits<Real>::max();
+    Real moving_window_v  = std::numeric_limits<Real>::max();
 
     // Plasma injection parameters
-    int do_plasma_injection = 0;
-    int num_injected_species;
+    int do_plasma_injection  = 0;
+    int num_injected_species = -1;
     Array<int> injected_plasma_ppc;
     Array<int> injected_plasma_species;
     Array<Real> injected_plasma_density;
