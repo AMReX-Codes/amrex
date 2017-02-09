@@ -96,6 +96,7 @@ contains
 #endif
     end do
     call amrex_mfiter_destroy(mfi)
+    call amrex_fab_destroy(u)
     !$omp end parallel
     
     dt = dt_est * cfl

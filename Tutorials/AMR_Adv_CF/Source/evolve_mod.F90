@@ -118,17 +118,19 @@ contains
   ! update phi_new(lev)
   subroutine advance (lev, time, dt, step, substep, nsub)
     use my_amr_module, only : verbose, phi_new
+    use face_velocity_module, only : get_face_velocity
     use fillpatch_module, only : fillpatch
     integer, intent(in) :: lev, step, substep, nsub
     real(amrex_real), intent(in) :: time, dt
 
     integer, parameter :: ngrow = 3
-    integer :: ncomp
+    integer :: ncomp, idim
     type(amrex_multifab) :: phiborder
     type(amrex_mfiter) :: mfi
-    type(amrex_box) :: bx
-    real(amrex_real), contiguous, pointer, dimension(:,:,:,:) :: pin, pout, xflux, yflux, zflux
-    real(amrex_real), contiguous, pointer, dimension(:,:,:) :: ux, uy, uz
+    type(amrex_box) :: bx, bxtmp
+    real(amrex_real), contiguous, pointer, dimension(:,:,:,:) :: pin,pout,pux,puy,puz,pfx,pfy,pfz
+    type(amrex_fab) :: uface(amrex_spacedim)
+    type(amrex_fab) ::  flux(amrex_spacedim)
 
     if (verbose .gt. 0 .and. amrex_parallel_ioprocessor()) then
        write(*,'(A, 1X, I0, 1X, A, 1X, I0, A, 1X, G0)') &
@@ -141,7 +143,7 @@ contains
 
     call fillpatch(lev, time, phiborder)
 
-    !$omp parallel private(mfi,bx,pin,pout,xflux,yflux,zfluz,ux,uy,uz)
+    !$omp parallel private(mfi,bx,bxtmp,pin,pout,pux,puy,puz,pfx,pfy,pfz,uface,flux)
     call amrex_mfiter_build(mfi, phi_new(lev), tiling=.true.)
     do while(mfi%next())
        bx = mfi%tilebox()
@@ -149,7 +151,30 @@ contains
        pin  => phiborder%dataptr(mfi)
        pout => phi_new(lev)%dataptr(mfi)
 
-!       ctr_time = time + 0.5_amrex_real * dt
+       do idim = 1, amrex_spacedim
+          bxtmp = bx
+          call bxtmp%nodalize(idim)
+          call uface(idim)%resize(bxtmp,1)
+          call  flux(idim)%resize(bxtmp,ncomp)
+       end do
+
+       pux => uface(1)%dataptr()
+       pfx =>  flux(1)%dataptr()
+       puy => uface(2)%dataptr()
+       pfy =>  flux(2)%dataptr()
+#if BL_SPACEDIM == 3
+       puz => uface(3)%dataptr()
+       pfz =>  flux(3)%dataptr()
+#endif
+
+       call get_face_velocity(time+0.5_amrex_real*dt, &
+            pux, lbound(pux), ubound(pux), &
+            puy, lbound(puy), ubound(puy), &
+#if BL_SPACEDIM == 3
+            puz, lbound(puz), ubound(puz), &
+#endif
+            amrex_geom(lev)%dx, amrex_geom(lev)%problo)
+
 
 !       call advect(time, bx%lo, bx%hi, &
 !            pin, lbound(pin), ubound(pin), &
@@ -158,6 +183,10 @@ contains
 
     end do
     call amrex_mfiter_destroy(mfi)
+    do idim = 1, amrex_spacedim
+       call amrex_fab_destroy(uface(idim))
+       call amrex_fab_destroy( flux(idim))
+    end do
     !$omp end parallel
 
     call amrex_multifab_destroy(phiborder)
