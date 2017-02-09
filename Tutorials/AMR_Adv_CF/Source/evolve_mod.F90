@@ -115,17 +115,20 @@ contains
     end if    
   end subroutine timestep
 
-  ! Given phi_old(lev), compute phi_new(lev)
+  ! update phi_new(lev)
   subroutine advance (lev, time, dt, step, substep, nsub)
-    use my_amr_module, only : verbose, phi_new, phi_old
+    use my_amr_module, only : verbose, phi_new
     use fillpatch_module, only : fillpatch
     integer, intent(in) :: lev, step, substep, nsub
     real(amrex_real), intent(in) :: time, dt
 
     integer, parameter :: ngrow = 3
     integer :: ncomp
-    real(amrex_real) :: ctr_time
     type(amrex_multifab) :: phiborder
+    type(amrex_mfiter) :: mfi
+    type(amrex_box) :: bx
+    real(amrex_real), contiguous, pointer, dimension(:,:,:,:) :: pin, pout, xflux, yflux, zflux
+    real(amrex_real), contiguous, pointer, dimension(:,:,:) :: ux, uy, uz
 
     if (verbose .gt. 0 .and. amrex_parallel_ioprocessor()) then
        write(*,'(A, 1X, I0, 1X, A, 1X, I0, A, 1X, G0)') &
@@ -138,7 +141,24 @@ contains
 
     call fillpatch(lev, time, phiborder)
 
-    ctr_time = time + 0.5_amrex_real * dt
+    !$omp parallel private(mfi,bx,pin,pout,xflux,yflux,zfluz,ux,uy,uz)
+    call amrex_mfiter_build(mfi, phi_new(lev), tiling=.true.)
+    do while(mfi%next())
+       bx = mfi%tilebox()
+
+       pin  => phiborder%dataptr(mfi)
+       pout => phi_new(lev)%dataptr(mfi)
+
+!       ctr_time = time + 0.5_amrex_real * dt
+
+!       call advect(time, bx%lo, bx%hi, &
+!            pin, lbound(pin), ubound(pin), &
+!            pout, lbound(pout), ubound(pout), &
+!            amrex_geom(lev)%dx, dt)
+
+    end do
+    call amrex_mfiter_destroy(mfi)
+    !$omp end parallel
 
     call amrex_multifab_destroy(phiborder)
 

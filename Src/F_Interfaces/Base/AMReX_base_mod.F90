@@ -18,6 +18,8 @@ module amrex_base_module
   use amrex_plotfile_module
   use amrex_physbc_module
 
+  use amrex_fab_module
+
   use mempool_module
 
 contains

@@ -266,9 +266,9 @@ module amrex_multifab_module
 contains
 
   subroutine amrex_multifab_build (mf, ba, dm, nc, ng, nodal)
-    type(amrex_multifab) :: mf
-    type(amrex_boxarray), intent(in ) :: ba
-    type(amrex_distromap), intent(in ) :: dm
+    type(amrex_multifab), intent(inout) :: mf
+    type(amrex_boxarray), intent(in )   :: ba
+    type(amrex_distromap),intent(in )   :: dm
     integer, intent(in) :: nc, ng
     logical, intent(in), optional :: nodal(:)
     integer :: lnodal(3)
