@@ -9,8 +9,8 @@ module amrex_box_module
   private
 
   type, public :: amrex_box
-     integer, dimension(3) :: lo = 0
-     integer, dimension(3) :: hi = -1
+     integer, dimension(3) :: lo = 1
+     integer, dimension(3) :: hi = 1
    contains
      procedure :: numpts => amrex_box_numpts
      procedure, private :: amrex_box_numpts
@@ -44,7 +44,6 @@ contains
   function amrex_box_build (lo, hi) result(bx)
     integer, intent(in) :: lo(*), hi(*)
     type(amrex_box) :: bx
-    bx%hi = bx%lo
     bx%lo(1:ndims) = lo(1:ndims)
     bx%hi(1:ndims) = hi(1:ndims)
   end function amrex_box_build

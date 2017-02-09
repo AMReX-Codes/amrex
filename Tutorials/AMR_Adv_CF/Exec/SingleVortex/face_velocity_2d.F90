@@ -11,8 +11,7 @@ contains
        vx, vxlo, vxhi, &
        vy, vylo, vyhi, &
        dx, prob_lo)
-    use amrex_fort_module, only : amrex_real
-    use mempool_module, only : bl_allocate, bl_deallocate
+    use amrex_base_module
 
     real(amrex_real), intent(in) :: time
     integer, intent(in) :: vxlo(2), vxhi(2), vylo(2), vyhi(2)
@@ -30,7 +29,7 @@ contains
     phi(1) = max(vxhi(1)  , vyhi(1)+1)
     phi(2) = max(vxhi(2)+1, vyhi(2)  )
     
-    call bl_allocate(psi, plo(1), phi(1), plo(2), phi(2))
+    call amrex_allocate(psi, plo, phi)
     
     ! streamfunction psi
     do j = plo(2), phi(2)
@@ -59,7 +58,7 @@ contains
        end do
     end do
     
-    call bl_deallocate(psi)
+    call amrex_deallocate(psi)
   
   end subroutine get_face_velocity
 
