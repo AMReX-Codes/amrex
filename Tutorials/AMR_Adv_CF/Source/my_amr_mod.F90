@@ -45,6 +45,7 @@ contains
     if (.not.amrex_amrcore_initialized()) call amrex_amrcore_init()
     
     call amrex_init_virtual_functions (my_make_new_level_from_scratch, &
+         &                             my_clear_level,                 &
          &                             my_error_estimate)
 
     ! Read parameters
@@ -148,6 +149,13 @@ contains
     call amrex_mfiter_destroy(mfi)
 
   end subroutine my_make_new_level_from_scratch
+
+  subroutine my_clear_level (lev) bind(c)
+    integer, intent(in), value :: lev
+    call amrex_multifab_destroy(phi_new(lev))
+    call amrex_multifab_destroy(phi_old(lev))
+    ! xxxxx call amrex_fluxregister_destroy(flux_reg(lev))
+  end subroutine my_clear_level
 
   subroutine my_error_estimate (lev, cp, t, settag, cleartag) bind(c)
     use tagging_module, only : tag_phi_error
