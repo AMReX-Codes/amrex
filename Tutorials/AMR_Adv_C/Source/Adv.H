@@ -1,6 +1,10 @@
 #ifndef _Adv_H_
 #define _Adv_H_
 
+#ifdef PARTICLES
+#include <AMReX_AmrParticles.H>
+#endif
+
 #include <AMReX_AmrLevel.H>
 #include <AMReX_FluxRegister.H>
 
@@ -121,10 +125,11 @@ public:
     //Do work after timestep().
     //
     virtual void post_timestep (int iteration) override;
+
     //
     //Do work after regrid().
     //
-    virtual void post_regrid (int lbase, int new_finest) override { ; }
+    virtual void post_regrid (int lbase, int new_finest) override;
     //
     //Do work after a restart().
     //
@@ -141,6 +146,10 @@ public:
                            int          tagval,
                            amrex::Real         time,
 			   int          n_error_buf = 0, int ngrow = 0) override;
+
+#ifdef PARTICLES
+    static amrex::AmrTracerParticleContainer* theTracerPC () { return TracerPC; }
+#endif
 
     static int  NUM_STATE;
     static int  NUM_GROW;
@@ -167,9 +176,15 @@ protected:
     //
     // Static data members.
     //
-    static int       verbose;
-    static amrex::Real      cfl;
-    static int       do_reflux;
+    static int          verbose;
+    static amrex::Real  cfl;
+    static int          do_reflux;
+
+#ifdef PARTICLES
+    void init_particles ();
+    static int       do_tracers;
+    static amrex::AmrTracerParticleContainer* TracerPC;
+#endif
 };    
 
 //

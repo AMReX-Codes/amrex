@@ -44,6 +44,12 @@ Adv::writePlotFile (const std::string& dir,
 
     Real cur_time = state[State_Type].curTime();
 
+#ifdef PARTICLES
+    if (do_tracers and level == 0) {
+      TracerPC->Checkpoint(dir, "Tracer", true);
+    }
+#endif
+
     if (level == 0 && ParallelDescriptor::IOProcessor())
     {
         //
