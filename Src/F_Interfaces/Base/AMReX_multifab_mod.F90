@@ -354,7 +354,7 @@ contains
   end function amrex_multifab_nghost
 
   function amrex_multifab_dataPtr (this, mfi) result(dp)
-    class(amrex_multifab) :: this
+    class(amrex_multifab), intent(in) :: this
     type(amrex_mfiter), intent(in) :: mfi
     real(amrex_real), contiguous, pointer, dimension(:,:,:,:) :: dp
     type(c_ptr) :: cp
