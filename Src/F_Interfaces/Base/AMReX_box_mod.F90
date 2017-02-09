@@ -52,11 +52,8 @@ contains
   subroutine amrex_box_print (bx)
     type(amrex_box), intent(in) :: bx
     integer :: inodal(3)
-    where (bx%nodal)
-       inodal = 1
-    elsewhere
-       inodal = 0
-    end where
+    inodal = 0
+    where (bx%nodal) inodal = 1
     call amrex_fi_print_box(bx%lo, bx%hi, inodal)
   end subroutine amrex_box_print
 
