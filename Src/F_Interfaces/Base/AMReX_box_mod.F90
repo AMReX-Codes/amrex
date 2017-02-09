@@ -9,11 +9,15 @@ module amrex_box_module
   private
 
   type, public :: amrex_box
-     integer, dimension(3) :: lo = 1
-     integer, dimension(3) :: hi = 1
+     integer, dimension(3) :: lo    = 1
+     integer, dimension(3) :: hi    = 1
+     logical, dimension(3) :: nodal = .false.
    contains
-     procedure :: numpts => amrex_box_numpts
-     procedure, private :: amrex_box_numpts
+     procedure :: numpts   => amrex_box_numpts
+     procedure :: nodalize => amrex_box_nodalize
+     procedure :: cellize  => amrex_box_cellize
+     procedure :: convert  => amrex_box_convert
+     procedure, private :: amrex_box_numpts, amrex_box_nodalize
   end type amrex_box
 
   public :: amrex_print, amrex_allprint
@@ -41,11 +45,13 @@ module amrex_box_module
 
 contains
 
-  function amrex_box_build (lo, hi) result(bx)
+  function amrex_box_build (lo, hi, nodal) result(bx)
     integer, intent(in) :: lo(*), hi(*)
+    logical, intent(in), optional :: nodal(*)
     type(amrex_box) :: bx
     bx%lo(1:ndims) = lo(1:ndims)
     bx%hi(1:ndims) = hi(1:ndims)
+    if (present(nodal)) bx%nodal(1:ndims) = nodal(1:ndims)
   end function amrex_box_build
 
   subroutine amrex_box_print (bx)
@@ -65,5 +71,39 @@ contains
          * (int(this%hi(2),c_long)-int(this%lo(2),c_long)+1_c_long) &
          * (int(this%hi(3),c_long)-int(this%lo(3),c_long)+1_c_long)
   end function amrex_box_numpts
+
+  subroutine amrex_box_nodalize (this, dir)
+    class(amrex_box), intent(inout) :: this
+    integer, intent(in) :: dir
+    if (.not.this%nodal(dir)) then
+       this%hi(dir) = this%hi(dir) + 1
+       this%nodal(dir) = .true.
+    end if
+  end subroutine amrex_box_nodalize
+
+  subroutine amrex_box_cellize (this, dir)
+    class(amrex_box), intent(inout) :: this
+    integer, intent(in) :: dir
+    if (this%nodal(dir)) then
+       this%hi(dir) = this%hi(dir) - 1
+       this%nodal(dir) = .false.
+    end if
+  end subroutine amrex_box_cellize
+
+  subroutine amrex_box_convert (this, flag)
+    class(amrex_box), intent(inout) :: this
+    logical, intent(in) :: flag(*)
+    integer :: dir
+    do dir = 1, ndims
+       if (flag(dir) .and. .not.this%nodal(dir)) then
+          this%hi(dir) = this%hi(dir) + 1
+          this%nodal(dir) = .true.
+       else if (.not.flag(dir) .and. this%nodal(dir)) then
+          this%hi(dir) = this%hi(dir) - 1
+          this%nodal(dir) = .false.
+       end if
+    end do
+  end subroutine amrex_box_convert
+
 end module amrex_box_module
 
