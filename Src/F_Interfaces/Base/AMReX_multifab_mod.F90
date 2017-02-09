@@ -247,19 +247,19 @@ module amrex_multifab_module
        integer(c_int) :: iv
      end subroutine amrex_fi_mfiter_is_valid
 
-     subroutine amrex_fi_mfiter_tilebox (p, lo, hi) bind(c)
+     subroutine amrex_fi_mfiter_tilebox (p, lo, hi, nodal) bind(c)
        import
        implicit none
        type(c_ptr), value :: p
-       integer(c_int) :: lo(3), hi(3)
+       integer(c_int) :: lo(3), hi(3), nodal(3)
      end subroutine amrex_fi_mfiter_tilebox
 
-     subroutine amrex_fi_mfiter_nodaltilebox (p, dir, lo, hi) bind(c)
+     subroutine amrex_fi_mfiter_nodaltilebox (p, dir, lo, hi, nodal) bind(c)
        import
        implicit none
        type(c_ptr), value :: p
        integer(c_int), value :: dir
-       integer(c_int) :: lo(3), hi(3)
+       integer(c_int) :: lo(3), hi(3), nodal(3)
      end subroutine amrex_fi_mfiter_nodaltilebox
   end interface
 
@@ -270,18 +270,20 @@ contains
     type(amrex_boxarray), intent(in )   :: ba
     type(amrex_distromap),intent(in )   :: dm
     integer, intent(in) :: nc, ng
-    logical, intent(in), optional :: nodal(:)
-    integer :: lnodal(3)
+    logical, intent(in), optional :: nodal(*)
+    integer :: inodal(3), dir
     mf%owner = .true.
     mf%nc = nc
     mf%ng = ng
-    lnodal = 0 
+    inodal = 0 
     if (present(nodal)) then
-       where (nodal .eqv. .true.) lnodal = 1
+       do dir = 1, ndims
+          if (nodal(dir)) inodal(dir) = 1
+       end do
     end if
     mf%ba = ba
     mf%dm = dm
-    call amrex_fi_new_multifab(mf%p, mf%ba%p, mf%dm%p, mf%nc, mf%ng, lnodal)
+    call amrex_fi_new_multifab(mf%p, mf%ba%p, mf%dm%p, mf%nc, mf%ng, inodal)
   end subroutine amrex_multifab_build
 
   impure elemental subroutine amrex_multifab_destroy (this)
@@ -592,22 +594,28 @@ contains
     end if
   end function amrex_mfiter_next
 
-  type(amrex_box) function amrex_mfiter_tilebox (this)
+  function amrex_mfiter_tilebox (this) result (bx)
     class(amrex_mfiter), intent(in) :: this
-    call amrex_fi_mfiter_tilebox(this%p, amrex_mfiter_tilebox%lo, amrex_mfiter_tilebox%hi)
+    type(amrex_box) :: bx
+    integer :: inodal(3)
+    inodal = 0
+    call amrex_fi_mfiter_tilebox(this%p, bx%lo, bx%hi, inodal)
+    where (inodal .ne. 0) bx%nodal = .true.  ! note default is false
   end function amrex_mfiter_tilebox
 
-  type(amrex_box) function amrex_mfiter_nodaltilebox (this,dir_in)
+  function amrex_mfiter_nodaltilebox (this,dir_in) result (bx)
     class(amrex_mfiter), intent(in) :: this
+    type(amrex_box) :: bx
     integer, intent(in), optional :: dir_in
-    integer :: dir
+    integer :: dir, inodal(3)
     if (present(dir_in)) then
        dir = dir_in
     else
        dir = -1
     end if
-    call amrex_fi_mfiter_nodaltilebox(this%p, dir, &
-         amrex_mfiter_nodaltilebox%lo, amrex_mfiter_nodaltilebox%hi)
+    inodal = 0
+    call amrex_fi_mfiter_nodaltilebox(this%p, dir, bx%lo, bx%hi, inodal)
+    where (inodal .ne. 0) bx%nodal = .true.  ! note default is false
   end function amrex_mfiter_nodaltilebox
 
 end module amrex_multifab_module
