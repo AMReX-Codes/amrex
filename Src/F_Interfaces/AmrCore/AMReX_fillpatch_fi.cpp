@@ -20,7 +20,8 @@ extern "C"
 				 int scomp, int dcomp, int ncomp,
 				 const Geometry* cgeom, const Geometry* fgeom,
 				 FPhysBC* cbc, FPhysBC* fbc,
-				 int rr, int interp_id, int* lo_bc[], int* hi_bc[])
+				 int rr, int interp_id,
+				 int* lo_bc[], int* hi_bc[])
     {
 	// THIS MUST BE CONSISTENT WITH amrex_interpolater_module in AMReX_interpolater_mod.F90!!!
 	static Array<Interpolater*> interp = {
@@ -34,8 +35,9 @@ extern "C"
 	    &amrex::quartic_interp           // 7
 	};
 
-	Array<BCRec> bcs(scomp);  // skip first scomp components
-	for (int i = 0; i < ncomp; ++i) {
+	Array<BCRec> bcs;
+	// skip first scomp components
+	for (int i = scomp; i < scomp+ncomp; ++i) {
 	    bcs.emplace_back(lo_bc[i], hi_bc[i]);
 	}
 

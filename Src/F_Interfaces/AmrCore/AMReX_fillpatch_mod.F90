@@ -24,13 +24,19 @@ module amrex_fillpatch_module
        real(amrex_real), intent(in) :: stime(*)
        integer(c_int), value :: scomp, dcomp, ncomp, ns
      end subroutine amrex_fi_fillpatch_single
+
+     subroutine amrex_fi_fillpatch_two(mf, time, &
+          cmf, ctime, nc, fmf, ftime, nf, scomp, dcomp, ncomp, &
+          cgeom, fgeom, cbc, fbc, rr, interp, lo_bc, hi_bc) bind(c)
+       import
+       implicit none
+       type(c_ptr), value :: mf, cgeom, fgeom, cbc, fbc
+       type(c_ptr), intent(in) :: cmf(*), fmf(*), lo_bc(*), hi_bc(*)
+       real(amrex_real), value :: time
+       real(amrex_real), intent(in) :: ctime(*), ftime(*)
+       integer, value :: nc, nf, scomp, dcomp, ncomp, rr, interp
+     end subroutine amrex_fi_fillpatch_two
   end interface
-
-  type amrex_interpolater
-  end type amrex_interpolater
-
-  type amrex_bcrec
-  end type amrex_bcrec
 
 contains
 
@@ -48,20 +54,44 @@ contains
     do i = 1, n
        smf_c(i) = smf(i)%p
     end do
-    call amrex_fi_fillpatch_single(mf%p, time, smf_c, stime, n, scomp, dcomp, ncomp, geom%p, pbc%p)
+    call amrex_fi_fillpatch_single(mf%p, time, smf_c, stime, n, &
+         scomp-1, dcomp-1, ncomp, geom%p, pbc%p)
   end subroutine amrex_fillpatch_single
 
 
-  subroutine amrex_fillpatch_two (mf, time, cmf, ctime, fmf, ftime, scomp, dcomp, ncomp, &
-       cgeom, fgeom, cpbc, fpbc, rr, interp, bcs)
+  subroutine amrex_fillpatch_two (mf, time, &
+       cmf, ctime, fmf, ftime, scomp, dcomp, ncomp, &
+       cgeom, fgeom, cpbc, fpbc, rr, interp, lo_bc, hi_bc)
     type(amrex_multifab), intent(inout) :: mf, cmf(:), fmf(:)
     real(amrex_real), intent(in) :: time, ctime(*), ftime(*)
     integer, intent(in) :: scomp, dcomp, ncomp, rr
     type(amrex_geometry), intent(in) :: cgeom, fgeom
     type(amrex_physbc), intent(in) :: cpbc, fpbc
-    type(amrex_interpolater), intent(in) :: interp
-    type(amrex_bcrec), intent(in) :: bcs(*)
-
+    integer, intent(in) :: interp
+    integer, target, intent(in) :: lo_bc(amrex_spacedim,scomp+ncomp-1)
+    integer, target, intent(in) :: hi_bc(amrex_spacedim,scomp+ncomp-1)
+    integer :: i, nc, nf
+    type(c_ptr) :: cmf_c(size(cmf)), fmf_c(size(fmf)), &
+         lo_bc_c(scomp+ncomp-1), hi_bc_c(scomp+ncomp-1)
+    nc = size(cmf)
+    do i = 1, nc
+       cmf_c(i) = cmf(i)%p
+    end do
+    nf = size(fmf)
+    do i = 1, nf
+       fmf_c(i) = fmf(i)%p
+    end do
+    do i = 1, scomp-1
+       lo_bc_c(i) = c_null_ptr
+       hi_bc_c(i) = c_null_ptr
+    end do
+    do i = scomp, scomp+ncomp-1
+       lo_bc_c(i) = c_loc(lo_bc(1,i))
+       hi_bc_c(i) = c_loc(hi_bc(1,i))
+    end do
+    call amrex_fi_fillpatch_two(mf%p, time, &
+         cmf_c, ctime, nc, fmf_c, ftime, nf, scomp-1, dcomp-1, ncomp, &
+         cgeom%p, fgeom%p, cpbc%p, fpbc%p, rr, interp, lo_bc_c, hi_bc_c)
   end subroutine amrex_fillpatch_two
 
 end module amrex_fillpatch_module
