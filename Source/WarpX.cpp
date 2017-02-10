@@ -153,6 +153,11 @@ WarpX::ReadParameters ()
 	    }
 
 	    pp.get("moving_window_v", moving_window_v);
+
+   	    moving_window_x = geom[0].ProbLo(moving_window_dir);
+	    moving_window_v = 0.0;
+	    pp.query("moving_window_v", moving_window_v);
+	    moving_window_v *= PhysConst::c;
 	}
 
 	pp.query("do_plasma_injection", do_plasma_injection);
@@ -168,11 +173,6 @@ WarpX::ReadParameters ()
 	  pp.getarr("injected_plasma_density", injected_plasma_density,
 		    0, num_injected_species);
 	}
-
-	moving_window_x = geom[0].ProbLo(moving_window_dir);
-	moving_window_v = 0.0;
-	pp.query("moving_window_v", moving_window_v);
-	moving_window_v *= PhysConst::c;
 
 	pp.query("use_laser", use_laser);
     }
