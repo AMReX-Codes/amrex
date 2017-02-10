@@ -3,7 +3,7 @@
 #include <WarpX.H>
 #include <WarpXConst.H>
 
-const int debug_lb = 1;
+const int debug_lb = 0;
 
 void
 WarpX::RegridBaseLevel ()
@@ -73,7 +73,7 @@ WarpX::LoadBalanceBaseLevel()
     Array<long> new_particle_cost = mypc->NumberOfParticlesInGrid(lev);
     Real neweff = getEfficiency(dmap[0], new_particle_cost);
 
-    if (debug_lb && ParallelDescriptor::IOProcessor()) 
+    if (debug_lb >= 1 && ParallelDescriptor::IOProcessor()) 
     {
        long min_cost = new_particle_cost[0];
        long max_cost = new_particle_cost[0];
@@ -83,8 +83,8 @@ WarpX::LoadBalanceBaseLevel()
           max_cost = std::max(new_particle_cost[i],max_cost);
        }
 
-       std::cout << "ORIG MIN COST / MAX COST / EFF " << min_cost << 
-                                                  " " << max_cost << " " << neweff << std::endl;
+         std::cout << "ORIG MIN COST / MAX COST / EFF " << min_cost << 
+                                                    " " << max_cost << " " << neweff << std::endl;
     }
  
     WarpXParticleContainer* myspc = &(mypc->GetParticleContainer(0));
@@ -92,7 +92,7 @@ WarpX::LoadBalanceBaseLevel()
     // This is what we are starting with
     BoxArray new_ba= myspc->ParticleBoxArray(0);
     DistributionMapping new_dm = myspc->ParticleDistributionMap(0);
-    if (debug_lb && ParallelDescriptor::IOProcessor()) 
+    if (debug_lb >= 1 && ParallelDescriptor::IOProcessor()) 
        std::cout << "OLD BA HAS " << new_ba.size() << " GRIDS" << std::endl;
 
     if (neweff < eff_target) 
@@ -177,7 +177,7 @@ WarpX::LoadBalanceBaseLevel()
 
     } else {
 
-        if (ParallelDescriptor::IOProcessor()) 
+        if (debug_lb >= 1 && ParallelDescriptor::IOProcessor()) 
 	{
 	    std::cout << "*** " << std::endl;
 	    std::cout << "*** No remapping required: # of boxes: " << grids[0].size() 

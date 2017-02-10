@@ -29,7 +29,7 @@ warpx.moving_window_dir = 0
 warpx.moving_window_v = 0.0 # in units of the speed of light
 
 # Dynamic Load Balancing
-warpx.regrid_int = 1
+warpx.regrid_int = -1
 
 # Algorithms
 algo.current_deposition = 3

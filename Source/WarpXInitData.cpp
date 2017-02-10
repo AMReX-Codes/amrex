@@ -14,18 +14,24 @@ WarpX::InitData ()
     if (restart_chkfile.empty())
     {
 	InitFromScratch();
+    }
+    else
+    {
+	InitFromCheckpoint();
+	PostRestart();
+    }
 
+    if (ParallelDescriptor::NProcs() > 1)
+       if (okToRegrid(0)) RegridBaseLevel();
+
+    if (restart_chkfile.empty())
+    {
 	if (plot_int > 0) {
 	    WritePlotFile();
 	}
 	if (check_int > 0) {
 	    WriteCheckPointFile();
 	}
-    }
-    else
-    {
-	InitFromCheckpoint();
-	PostRestart();
     }
 }
 
