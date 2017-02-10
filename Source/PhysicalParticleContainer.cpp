@@ -107,15 +107,8 @@ PhysicalParticleContainer::FieldGather (int lev,
     Real dx[3] = { gm.CellSize(0), std::numeric_limits<Real>::quiet_NaN(), gm.CellSize(1) };
 #endif
 
-#if (BL_SPACEDIM == 3)
-    long ngx_eb = Ex.nGrow();
-    long ngy_eb = ngx_eb;
-    long ngz_eb = ngx_eb;
-#elif (BL_SPACEDIM == 2)
-    long ngx_eb = Ex.nGrow();
-    long ngy_eb = 0;
-    long ngz_eb = ngx_eb;
-#endif
+    // WarpX assumes the same number of guard cells for Ex, Ey, Ez, Bx, By, Bz
+    long ng = Ex.nGrow();
 
     BL_ASSERT(OnSameGrids(lev,Ex));
 
@@ -163,15 +156,6 @@ PhysicalParticleContainer::FieldGather (int lev,
             yp.resize(np, std::numeric_limits<Real>::quiet_NaN());
 #endif
 
-#if (BL_SPACEDIM == 3)
-	    long nx = box.length(0);
-	    long ny = box.length(1);
-	    long nz = box.length(2);
-#elif (BL_SPACEDIM == 2)
-	    long nx = box.length(0);
-	    long ny = 0;
-	    long nz = box.length(1);
-#endif
 	    RealBox grid_box = RealBox( box, gm.CellSize(), gm.ProbLo() );
 #if (BL_SPACEDIM == 3)
 	    const Real* xyzmin = grid_box.lo();
@@ -184,19 +168,22 @@ PhysicalParticleContainer::FieldGather (int lev,
 	    //
 	    const int ll4symtry          = false;
 	    const int l_lower_order_in_v = true;
-            long lvect_fieldgathe = 64;
-	    warpx_geteb_energy_conserving(&np, xp.data(), yp.data(), zp.data(),
-					  Exp.data(),Eyp.data(),Ezp.data(),
-					  Bxp.data(),Byp.data(),Bzp.data(),
-					  &xyzmin[0], &xyzmin[1], &xyzmin[2],
-					  &dx[0], &dx[1], &dx[2],
-					  &nx, &ny, &nz, &ngx_eb, &ngy_eb, &ngz_eb,
-					  &WarpX::nox, &WarpX::noy, &WarpX::noz,
-					  exfab.dataPtr(), eyfab.dataPtr(), ezfab.dataPtr(),
-					  bxfab.dataPtr(), byfab.dataPtr(), bzfab.dataPtr(),
-					  &ll4symtry, &l_lower_order_in_v,
-                                          &lvect_fieldgathe,
-		                          &WarpX::field_gathering_algo);
+        long lvect_fieldgathe = 64;
+	    warpx_geteb_energy_conserving(
+	       &np, xp.data(), yp.data(), zp.data(),
+	       Exp.data(),Eyp.data(),Ezp.data(),
+	       Bxp.data(),Byp.data(),Bzp.data(),
+	       &xyzmin[0], &xyzmin[1], &xyzmin[2],
+	       &dx[0], &dx[1], &dx[2],
+	       &WarpX::nox, &WarpX::noy, &WarpX::noz,
+	       exfab.dataPtr(), &ng, exfab.length(),
+	       eyfab.dataPtr(), &ng, eyfab.length(),
+	       ezfab.dataPtr(), &ng, ezfab.length(),
+           bxfab.dataPtr(), &ng, bxfab.length(),
+	       byfab.dataPtr(), &ng, byfab.length(),
+	       bzfab.dataPtr(), &ng, bzfab.length(),
+	       &ll4symtry, &l_lower_order_in_v,
+	       &lvect_fieldgathe, &WarpX::field_gathering_algo);
         }
     }
 }
@@ -221,21 +208,10 @@ PhysicalParticleContainer::Evolve (int lev,
     Real dx[3] = { gm.CellSize(0), std::numeric_limits<Real>::quiet_NaN(), gm.CellSize(1) };
 #endif
 
-#if (BL_SPACEDIM == 3)
-    long ngx_eb = Ex.nGrow();
-    long ngy_eb = ngx_eb;
-    long ngz_eb = ngx_eb;
-    long ngx_j  = jx.nGrow();
-    long ngy_j  = ngx_j;
-    long ngz_j  = ngx_j;
-#elif (BL_SPACEDIM == 2)
-    long ngx_eb = Ex.nGrow();
-    long ngy_eb = 0;
-    long ngz_eb = ngx_eb;
-    long ngx_j  = jx.nGrow();;
-    long ngy_j  = 0;
-    long ngz_j  = ngx_j;
-#endif
+    // WarpX assumes the same number of guard cells for Ex, Ey, Ez, Bx, By, Bz
+    long ngE = Ex.nGrow();
+    // WarpX assumes the same number of guard cells for Jx, Jy, Jz
+    long ngJ = jx.nGrow();
 
     BL_ASSERT(OnSameGrids(lev,Ex));
 
@@ -293,15 +269,6 @@ PhysicalParticleContainer::Evolve (int lev,
 #endif
 	    BL_PROFILE_VAR_STOP(blp_copy);
 
-#if (BL_SPACEDIM == 3)
-	    long nx = box.length(0);
-	    long ny = box.length(1);
-	    long nz = box.length(2);
-#elif (BL_SPACEDIM == 2)
-	    long nx = box.length(0);
-	    long ny = 0;
-	    long nz = box.length(1);
-#endif
 	    RealBox grid_box = RealBox( box, gm.CellSize(), gm.ProbLo() );
 #if (BL_SPACEDIM == 3)
 	    const Real* xyzmin = grid_box.lo();
@@ -316,18 +283,21 @@ PhysicalParticleContainer::Evolve (int lev,
 	    const int l_lower_order_in_v = true;
             long lvect_fieldgathe = 64;
 	    BL_PROFILE_VAR_START(blp_pxr_fg);
-	    warpx_geteb_energy_conserving(&np, xp.data(), yp.data(), zp.data(),
-					  Exp.data(),Eyp.data(),Ezp.data(),
-					  Bxp.data(),Byp.data(),Bzp.data(),
-					  &xyzmin[0], &xyzmin[1], &xyzmin[2],
-					  &dx[0], &dx[1], &dx[2],
-					  &nx, &ny, &nz, &ngx_eb, &ngy_eb, &ngz_eb,
-					  &WarpX::nox, &WarpX::noy, &WarpX::noz,
-					  exfab.dataPtr(), eyfab.dataPtr(), ezfab.dataPtr(),
-					  bxfab.dataPtr(), byfab.dataPtr(), bzfab.dataPtr(),
-					  &ll4symtry, &l_lower_order_in_v,
-                                          &lvect_fieldgathe,
-		                          &WarpX::field_gathering_algo);
+	    warpx_geteb_energy_conserving(
+	      &np, xp.data(), yp.data(), zp.data(),
+	      Exp.data(),Eyp.data(),Ezp.data(),
+	      Bxp.data(),Byp.data(),Bzp.data(),
+	      &xyzmin[0], &xyzmin[1], &xyzmin[2],
+	      &dx[0], &dx[1], &dx[2],
+	      &WarpX::nox, &WarpX::noy, &WarpX::noz,
+	      exfab.dataPtr(), &ngE, exfab.length(),
+          eyfab.dataPtr(), &ngE, eyfab.length(),
+          ezfab.dataPtr(), &ngE, ezfab.length(),
+          bxfab.dataPtr(), &ngE, bxfab.length(),
+          byfab.dataPtr(), &ngE, byfab.length(),
+          bzfab.dataPtr(), &ngE, bzfab.length(),
+	      &ll4symtry, &l_lower_order_in_v,
+	      &lvect_fieldgathe, &WarpX::field_gathering_algo);
 	    BL_PROFILE_VAR_STOP(blp_pxr_fg);
 
 	    //
@@ -339,7 +309,7 @@ PhysicalParticleContainer::Evolve (int lev,
 				  Exp.dataPtr(), Eyp.dataPtr(), Ezp.dataPtr(),
 				  Bxp.dataPtr(), Byp.dataPtr(), Bzp.dataPtr(),
 				  &this->charge, &this->mass, &dt,
-                                  &WarpX::particle_pusher_algo);
+				  &WarpX::particle_pusher_algo);
 	    BL_PROFILE_VAR_STOP(blp_pxr_pp);
 
 	    //
@@ -348,15 +318,17 @@ PhysicalParticleContainer::Evolve (int lev,
 	    //
 	    long lvect = 8;
 	    BL_PROFILE_VAR_START(blp_pxr_cd);
-	    warpx_current_deposition(jxfab.dataPtr(), jyfab.dataPtr(), jzfab.dataPtr(),
-				     &np, xp.data(), yp.data(), zp.data(),
-				     uxp.data(), uyp.data(), uzp.data(),
-				     giv.data(), wp.data(), &this->charge,
-				     &xyzmin[0], &xyzmin[1], &xyzmin[2],
-				     &dt, &dx[0], &dx[1], &dx[2], &nx, &ny, &nz,
-				     &ngx_j, &ngy_j, &ngz_j,
-                                     &WarpX::nox,&WarpX::noy,&WarpX::noz,
-				     &lvect,&WarpX::current_deposition_algo);
+	    warpx_current_deposition(
+          jxfab.dataPtr(), &ngJ, jxfab.length(),
+          jyfab.dataPtr(), &ngJ, jyfab.length(),
+          jzfab.dataPtr(), &ngJ, jzfab.length(),
+	      &np, xp.data(), yp.data(), zp.data(),
+	      uxp.data(), uyp.data(), uzp.data(),
+	      giv.data(), wp.data(), &this->charge,
+	      &xyzmin[0], &xyzmin[1], &xyzmin[2],
+	      &dt, &dx[0], &dx[1], &dx[2],
+	      &WarpX::nox,&WarpX::noy,&WarpX::noz,
+	      &lvect,&WarpX::current_deposition_algo);
 	    BL_PROFILE_VAR_STOP(blp_pxr_cd);
 
 	    //

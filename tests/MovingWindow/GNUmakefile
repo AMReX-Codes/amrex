@@ -1,7 +1,7 @@
 DEBUG	= FALSE
-#DEBUG	= TRUE
+DEBUG	= TRUE
 
-DIM	= 3
+DIM	= 2
 
 COMP    = gcc
 FCOMP   = gfortran

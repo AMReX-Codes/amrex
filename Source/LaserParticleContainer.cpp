@@ -245,15 +245,8 @@ LaserParticleContainer::Evolve (int lev,
     Real dx[3] = { gm.CellSize(0), std::numeric_limits<Real>::quiet_NaN(), gm.CellSize(1) };
 #endif
 
-#if (BL_SPACEDIM == 3)
-    long ngx_j  = jx.nGrow();
-    long ngy_j  = ngx_j;
-    long ngz_j  = ngx_j;
-#elif (BL_SPACEDIM == 2)
-    long ngx_j  = jx.nGrow();;
-    long ngy_j  = 0;
-    long ngz_j  = ngx_j;
-#endif
+    // WarpX assumes the same number of guard cells for Jx, Jy, Jz
+    long ngJ  = jx.nGrow();
 
     BL_ASSERT(OnSameGrids(lev,jx));
 
@@ -294,7 +287,7 @@ LaserParticleContainer::Evolve (int lev,
             yp.resize(np, std::numeric_limits<Real>::quiet_NaN());
 #endif
 	    BL_PROFILE_VAR_STOP(blp_copy);
-            
+
 	    for (int i = 0; i < np; ++i)
             {
                 // Find the coordinates of the particles in the emission plane
@@ -312,15 +305,6 @@ LaserParticleContainer::Evolve (int lev,
 #endif
             }
 
-#if (BL_SPACEDIM == 3)
-	    long nx = box.length(0);
-	    long ny = box.length(1);
-	    long nz = box.length(2);
-#elif (BL_SPACEDIM == 2)
-	    long nx = box.length(0);
-	    long ny = 0;
-	    long nz = box.length(1);
-#endif
 	    RealBox grid_box = RealBox( box, gm.CellSize(), gm.ProbLo() );
 #if (BL_SPACEDIM == 3)
 	    const Real* xyzmin = grid_box.lo();
@@ -373,14 +357,17 @@ LaserParticleContainer::Evolve (int lev,
 	    //
 	    long lvect = 8;
 	    BL_PROFILE_VAR_START(blp_pxr_cd);
-	    warpx_current_deposition(jxfab.dataPtr(), jyfab.dataPtr(), jzfab.dataPtr(),
-				     &np, xp.data(), yp.data(), zp.data(),
-				     uxp.data(), uyp.data(), uzp.data(),
-				     giv.data(), wp.data(), &this->charge,
-				     &xyzmin[0], &xyzmin[1], &xyzmin[2],
-				     &dt, &dx[0], &dx[1], &dx[2], &nx, &ny, &nz,
-				     &ngx_j, &ngy_j, &ngz_j, &WarpX::nox,&WarpX::noy,&WarpX::noz,
-				     &lvect,&WarpX::current_deposition_algo);
+	    warpx_current_deposition(
+        jxfab.dataPtr(), &ngJ, jxfab.length(),
+        jyfab.dataPtr(), &ngJ, jyfab.length(),
+        jzfab.dataPtr(), &ngJ, jzfab.length(),
+	    &np, xp.data(), yp.data(), zp.data(),
+	    uxp.data(), uyp.data(), uzp.data(),
+	    giv.data(), wp.data(), &this->charge,
+	    &xyzmin[0], &xyzmin[1], &xyzmin[2],
+	    &dt, &dx[0], &dx[1], &dx[2],
+	    &WarpX::nox,&WarpX::noy,&WarpX::noz,
+	    &lvect,&WarpX::current_deposition_algo);
 	    BL_PROFILE_VAR_STOP(blp_pxr_cd);
 
 	    //
@@ -395,6 +382,7 @@ LaserParticleContainer::Evolve (int lev,
             BL_PROFILE_VAR_STOP(blp_copy);
 	}
     }
+
 }
 
 void
@@ -443,4 +431,3 @@ LaserParticleContainer::ComputeWeightMobility (Real Sx, Real Sy)
     // be emitted, and the corresponding velocity that the particles need to have.
     mobility = (Sx * Sy)/(weight * PhysConst::mu0 * PhysConst::c * PhysConst::c);
 }
-

@@ -44,7 +44,7 @@ WarpX::Evolve (int numsteps)
 
 	    // Beyond one step, we have B^{n-1/2} and E^{n}.
 	    // Particles have p^{n-1/2} and x^{n}.
-	    
+
 	    if (is_synchronized) {
 	        // on first step, push E and X by 0.5*dt
 	        EvolveE(lev, 0.5*dt[lev]);
@@ -56,12 +56,12 @@ WarpX::Evolve (int numsteps)
 	    EvolveB(lev, 0.5*dt[lev]); // We now B^{n}
 
 	    if (WarpX::nox > 1 || WarpX::noy > 1 || WarpX::noz > 1) {
-		WarpX::FillBoundary(*Bfield[lev][0], geom[lev], Bx_nodal_flag);
-		WarpX::FillBoundary(*Bfield[lev][1], geom[lev], By_nodal_flag);
-		WarpX::FillBoundary(*Bfield[lev][2], geom[lev], Bz_nodal_flag);
-		WarpX::FillBoundary(*Efield[lev][0], geom[lev], Ex_nodal_flag);
-		WarpX::FillBoundary(*Efield[lev][1], geom[lev], Ey_nodal_flag);
-		WarpX::FillBoundary(*Efield[lev][2], geom[lev], Ez_nodal_flag);
+	      (*Bfield[lev][0]).FillBoundary( geom[lev].periodicity() );
+	      (*Bfield[lev][1]).FillBoundary( geom[lev].periodicity() );
+	      (*Bfield[lev][2]).FillBoundary( geom[lev].periodicity() );
+	      (*Efield[lev][0]).FillBoundary( geom[lev].periodicity() );
+	      (*Efield[lev][1]).FillBoundary( geom[lev].periodicity() );
+	      (*Efield[lev][2]).FillBoundary( geom[lev].periodicity() );
 	    }
 
 	    // Evolve particles to p^{n+1/2} and x^{n+1}
@@ -74,9 +74,9 @@ WarpX::Evolve (int numsteps)
 	    EvolveB(lev, 0.5*dt[lev]); // We now B^{n+1/2}
 
 	    // Fill B's ghost cells because of the next step of evolving E.
-	    WarpX::FillBoundary(*Bfield[lev][0], geom[lev], Bx_nodal_flag);
-	    WarpX::FillBoundary(*Bfield[lev][1], geom[lev], By_nodal_flag);
-	    WarpX::FillBoundary(*Bfield[lev][2], geom[lev], Bz_nodal_flag);
+	    (*Bfield[lev][0]).FillBoundary( geom[lev].periodicity() );
+	    (*Bfield[lev][1]).FillBoundary( geom[lev].periodicity() );
+	    (*Bfield[lev][2]).FillBoundary( geom[lev].periodicity() );
 
    	    if (cur_time + dt[0] >= stop_time - 1.e-6*dt[0] || step == numsteps_max-1) {
    	        // on last step, push by only 0.5*dt to synchronize all at n+1/2
@@ -88,7 +88,7 @@ WarpX::Evolve (int numsteps)
 	    }
 
 	    mypc->Redistribute();  // Redistribute particles
-            
+
 	    ++istep[lev];
 	}
 
@@ -96,7 +96,7 @@ WarpX::Evolve (int numsteps)
 
 	MoveWindow();
 
-        amrex::Print()<< "STEP " << step+1 << " ends." << " TIME = " << cur_time 
+        amrex::Print()<< "STEP " << step+1 << " ends." << " TIME = " << cur_time
                       << " DT = " << dt[0] << "\n";
 
 	// sync up time
@@ -139,8 +139,9 @@ WarpX::EvolveB (int lev, Real dt)
 {
     BL_PROFILE("WarpX::EvolveB()");
 
+    // Parameters of the solver: order and mesh spacing
+    const int norder = 2;
     const Real* dx = geom[lev].CellSize();
-
     Real dtsdx[3];
 #if (BL_SPACEDIM == 3)
     dtsdx[0] = dt / dx[0];
@@ -152,23 +153,29 @@ WarpX::EvolveB (int lev, Real dt)
     dtsdx[2] = dt / dx[1];
 #endif
 
-    const int norder = 2;
-
+    // Loop through the grids, and over the tiles within each grid
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for ( MFIter mfi(*Efield[lev][0],true); mfi.isValid(); ++mfi )
+    for ( MFIter mfi(*Bfield[lev][0],true); mfi.isValid(); ++mfi )
     {
-	const Box& tbx = mfi.tilebox();
-	WRPX_PXR_PUSH_BVEC(tbx.loVect(), tbx.hiVect(),
-			   BL_TO_FORTRAN_3D((*Efield[lev][0])[mfi]),
-			   BL_TO_FORTRAN_3D((*Efield[lev][1])[mfi]),
-			   BL_TO_FORTRAN_3D((*Efield[lev][2])[mfi]),
-			   BL_TO_FORTRAN_3D((*Bfield[lev][0])[mfi]),
-			   BL_TO_FORTRAN_3D((*Bfield[lev][1])[mfi]),
-			   BL_TO_FORTRAN_3D((*Bfield[lev][2])[mfi]),
-			   dtsdx, dtsdx+1, dtsdx+2,
-			   &norder);
+      const Box& tbx  = mfi.tilebox(Bx_nodal_flag);
+      const Box& tby  = mfi.tilebox(By_nodal_flag);
+      const Box& tbz  = mfi.tilebox(Bz_nodal_flag);
+
+	// Call picsar routine for each tile
+	WRPX_PXR_PUSH_BVEC(
+	    tbx.loVect(), tbx.hiVect(),
+	    tby.loVect(), tby.hiVect(),
+	    tbz.loVect(), tbz.hiVect(),
+	    BL_TO_FORTRAN_3D((*Efield[lev][0])[mfi]),
+	    BL_TO_FORTRAN_3D((*Efield[lev][1])[mfi]),
+	    BL_TO_FORTRAN_3D((*Efield[lev][2])[mfi]),
+	    BL_TO_FORTRAN_3D((*Bfield[lev][0])[mfi]),
+	    BL_TO_FORTRAN_3D((*Bfield[lev][1])[mfi]),
+	    BL_TO_FORTRAN_3D((*Bfield[lev][2])[mfi]),
+	    dtsdx, dtsdx+1, dtsdx+2,
+	    &norder);
     }
 }
 
@@ -177,10 +184,10 @@ WarpX::EvolveE (int lev, Real dt)
 {
     BL_PROFILE("WarpX::EvolveE()");
 
+    // Parameters of the solver: order and mesh spacing
+    const int norder = 2;
     Real mu_c2_dt = (PhysConst::mu0*PhysConst::c*PhysConst::c) * dt;
-
     const Real* dx = geom[lev].CellSize();
-
     Real dtsdx_c2[3];
 #if (BL_SPACEDIM == 3)
     dtsdx_c2[0] = (PhysConst::c*PhysConst::c) * dt / dx[0];
@@ -192,48 +199,35 @@ WarpX::EvolveE (int lev, Real dt)
     dtsdx_c2[2] = (PhysConst::c*PhysConst::c) * dt / dx[1];
 #endif
 
-    const int norder = 2;
-
+  // Loop through the grids, and over the tiles within each grid
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
     for ( MFIter mfi(*Efield[lev][0],true); mfi.isValid(); ++mfi )
     {
-	const Box& tbx = mfi.tilebox();
-	WRPX_PXR_PUSH_EVEC(tbx.loVect(), tbx.hiVect(),
-			   BL_TO_FORTRAN_3D((*Efield[lev][0])[mfi]),
-			   BL_TO_FORTRAN_3D((*Efield[lev][1])[mfi]),
-			   BL_TO_FORTRAN_3D((*Efield[lev][2])[mfi]),
-			   BL_TO_FORTRAN_3D((*Bfield[lev][0])[mfi]),
-			   BL_TO_FORTRAN_3D((*Bfield[lev][1])[mfi]),
-			   BL_TO_FORTRAN_3D((*Bfield[lev][2])[mfi]),
-			   BL_TO_FORTRAN_3D((*current[lev][0])[mfi]),
-			   BL_TO_FORTRAN_3D((*current[lev][1])[mfi]),
-			   BL_TO_FORTRAN_3D((*current[lev][2])[mfi]),
-			   &mu_c2_dt,
-			   dtsdx_c2, dtsdx_c2+1, dtsdx_c2+2,
-			   &norder);
-    }
-}
+	const Box& tex  = mfi.tilebox(Ex_nodal_flag);
+	const Box& tey  = mfi.tilebox(Ey_nodal_flag);
+	const Box& tez  = mfi.tilebox(Ez_nodal_flag);
 
-void
-WarpX::FillBoundaryE(int lev, bool force)
-{
-    if (force || WarpX::nox > 1 || WarpX::noy > 1 || WarpX::noz > 1) {
-        WarpX::FillBoundary(*Efield[lev][0], geom[lev], Ex_nodal_flag);
-        WarpX::FillBoundary(*Efield[lev][1], geom[lev], Ey_nodal_flag);
-        WarpX::FillBoundary(*Efield[lev][2], geom[lev], Ez_nodal_flag);
+  // Call picsar routine for each tile
+	WRPX_PXR_PUSH_EVEC(
+	    tex.loVect(), tex.hiVect(),
+	    tey.loVect(), tey.hiVect(),
+	    tez.loVect(), tez.hiVect(),
+	    BL_TO_FORTRAN_3D((*Efield[lev][0])[mfi]),
+	    BL_TO_FORTRAN_3D((*Efield[lev][1])[mfi]),
+	    BL_TO_FORTRAN_3D((*Efield[lev][2])[mfi]),
+	    BL_TO_FORTRAN_3D((*Bfield[lev][0])[mfi]),
+	    BL_TO_FORTRAN_3D((*Bfield[lev][1])[mfi]),
+	    BL_TO_FORTRAN_3D((*Bfield[lev][2])[mfi]),
+	    BL_TO_FORTRAN_3D((*current[lev][0])[mfi]),
+	    BL_TO_FORTRAN_3D((*current[lev][1])[mfi]),
+	    BL_TO_FORTRAN_3D((*current[lev][2])[mfi]),
+	    &mu_c2_dt,
+	    dtsdx_c2, dtsdx_c2+1, dtsdx_c2+2,
+	    &norder);
     }
-}
 
-void
-WarpX::FillBoundaryB(int lev, bool force)
-{
-    if (force || WarpX::nox > 1 || WarpX::noy > 1 || WarpX::noz > 1) {
-        WarpX::FillBoundary(*Bfield[lev][0], geom[lev], Bx_nodal_flag);
-        WarpX::FillBoundary(*Bfield[lev][1], geom[lev], By_nodal_flag);
-        WarpX::FillBoundary(*Bfield[lev][2], geom[lev], Bz_nodal_flag);
-    }
 }
 
 void
@@ -303,7 +297,7 @@ WarpX::MoveWindow ()
 {
 
     if (do_moving_window == 0) return;
-    
+
     // compute the number of cells to shift
     int dir = moving_window_dir;
     Real new_lo[BL_SPACEDIM];
@@ -313,9 +307,9 @@ WarpX::MoveWindow ()
     const Real* dx = geom[0].CellSize();
     moving_window_x += moving_window_v * dt[0];
     int num_shift = (moving_window_x - current_lo[dir]) / dx[dir];
-    
+
     if (num_shift == 0) return;
-    
+
     // update the problem domain
     for (int i=0; i<BL_SPACEDIM; i++) {
         new_lo[i] = current_lo[i];
@@ -325,7 +319,7 @@ WarpX::MoveWindow ()
     new_hi[dir] = current_hi[dir] + num_shift * dx[dir];
     RealBox new_box(new_lo, new_hi);
     geom[0].ProbDomain(new_box);
-    
+
     // shift the mesh fields (Note - only on level 0 for now)
     shiftMF(*Bfield[0][0], geom[0], num_shift, dir, Bx_nodal_flag);
     shiftMF(*Bfield[0][1], geom[0], num_shift, dir, By_nodal_flag);
@@ -333,9 +327,9 @@ WarpX::MoveWindow ()
     shiftMF(*Efield[0][0], geom[0], num_shift, dir, Ex_nodal_flag);
     shiftMF(*Efield[0][1], geom[0], num_shift, dir, Ey_nodal_flag);
     shiftMF(*Efield[0][2], geom[0], num_shift, dir, Ez_nodal_flag);
-    
+
     InjectPlasma(num_shift, dir);
-    
+
     // Redistribute (note - this removes particles that are outside of the box)
     mypc->Redistribute();
 }

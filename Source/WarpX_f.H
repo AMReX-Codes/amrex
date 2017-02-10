@@ -17,7 +17,7 @@ extern "C"
 {
 	// Charge deposition
 	void warpx_charge_deposition(amrex::Real* rho,
-                        const long* np,	const amrex::Real* xp, const amrex::Real* yp, const amrex::Real* zp,	const amrex::Real* w,
+            const long* np,	const amrex::Real* xp, const amrex::Real* yp, const amrex::Real* zp,	const amrex::Real* w,
 			const amrex::Real* q, const amrex::Real* xmin, const amrex::Real* ymin, const amrex::Real* zmin,
 			const amrex::Real* dx, const amrex::Real* dy, const amrex::Real* dz,
 			const long* nx, const long* ny, const long* nz,
@@ -26,16 +26,17 @@ extern "C"
 			const long* lvect, const long* charge_depo_algo);
 
 	// Current deposition
-
-	void warpx_current_deposition(amrex::Real* jx, amrex::Real* jy, amrex::Real* jz, const long* np,
+	void warpx_current_deposition(
+			amrex::Real* jx, const long* jx_ng, const int* jx_ntot,
+			amrex::Real* jy, const long* jy_ng, const int* jy_ntot,
+			amrex::Real* jz, const long* jz_ng, const int* jz_ntot,
+			const long* np,
 			const amrex::Real* xp, const amrex::Real* yp, const amrex::Real* zp,
 			const amrex::Real* uxp, const amrex::Real* uyp,const amrex::Real* uzp,
 			const amrex::Real* gip, const amrex::Real* w, const amrex::Real* q,
 			const amrex::Real* xmin, const amrex::Real* ymin, const amrex::Real* zmin,
 			const amrex::Real* dt,
 			const amrex::Real* dx, const amrex::Real* dy, const amrex::Real* dz,
-			const long* nx, const long* ny, const long* nz,
-			const long* nxguard, const long* nyguard, const long* nzguard,
 			const long* nox, const long* noy,const long* noz,
 			const long* lvect, const long* current_depo_algo);
 
@@ -44,14 +45,16 @@ extern "C"
 	void warpx_geteb_energy_conserving(const long* np,
 			const amrex::Real* xp, const amrex::Real* yp, const amrex::Real* zp,
 			amrex::Real* exp, amrex::Real* eyp, amrex::Real* ezp,
-		        amrex::Real* bxp, amrex::Real* byp, amrex::Real* bzp,
+		    amrex::Real* bxp, amrex::Real* byp, amrex::Real* bzp,
 			const amrex::Real* xmin, const amrex::Real* ymin, const amrex::Real* zmin,
 			const amrex::Real* dx, const amrex::Real* dy, const amrex::Real* dz,
-			const long* nx, const long* ny, const long* nz,
-			const long* nxguard, const long* nyguard, const long* nzguard,
 			const long* nox, const long* noy, const long* noz,
-			const amrex::Real* exg, const amrex::Real* eyg, const amrex::Real* ezg,
-			const amrex::Real* bxg, const amrex::Real* byg, const amrex::Real* bzg,
+			const amrex::Real* exg, const long* exg_ng, const int* exg_ntot,
+			const amrex::Real* eyg, const long* eyg_ng, const int* eyg_ntot,
+			const amrex::Real* ezg, const long* ezg_ng, const int* ezg_ntot,
+			const amrex::Real* bxg, const long* bxg_ng, const int* bxg_ntot,
+			const amrex::Real* byg, const long* byg_ng, const int* byg_ntot,
+			const amrex::Real* bzg, const long* bzg_ng, const int* bzg_ntot,
 			const int* ll4symtry, const int* l_lower_order_in_v,
 			const long* lvect,
 			const long* field_gathe_algo);
@@ -81,7 +84,10 @@ extern "C"
 
 	// Maxwell solver
 
-        void WRPX_PXR_PUSH_EVEC(const int* lo, const int* hi,
+        void WRPX_PXR_PUSH_EVEC(
+				const int* xlo, const int* xhi,
+				const int* ylo, const int* yhi,
+				const int* zlo, const int* zhi,
 				BL_FORT_FAB_ARG_3D(ex),
 				BL_FORT_FAB_ARG_3D(ey),
 				BL_FORT_FAB_ARG_3D(ez),
@@ -95,7 +101,9 @@ extern "C"
 				const amrex::Real* dtsdx, const amrex::Real* dtsdy, const amrex::Real* dtsdz,
 				const int* norder);
 
-        void WRPX_PXR_PUSH_BVEC(const int* lo, const int* hi,
+        void WRPX_PXR_PUSH_BVEC(const int* xlo, const int* xhi,
+				const int* ylo, const int* yhi,
+				const int* zlo, const int* zhi,
 				const BL_FORT_FAB_ARG_3D(ex),
 				const BL_FORT_FAB_ARG_3D(ey),
 				const BL_FORT_FAB_ARG_3D(ez),
