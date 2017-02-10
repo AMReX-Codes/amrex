@@ -6,12 +6,6 @@
 #include <vector>
 #include <deque>
 #include <cerrno>
-//
-// This MUST be defined if don't have pubsetbuf() in I/O Streams Library.
-//
-#ifdef BL_USE_SETBUF
-#define pubsetbuf setbuf
-#endif
 
 #include <AMReX_ccse-mpi.H>
 #include <AMReX_Utility.H>

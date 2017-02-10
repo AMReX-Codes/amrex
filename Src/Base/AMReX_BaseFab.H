@@ -1552,7 +1552,7 @@ BaseFab<T>::copyFromMem (const Box& dstbox,
     }
 }
 
-#if !(defined(BL_NO_FORT) || defined(WIN32))
+#if !defined(BL_NO_FORT)
 //
 // Forward declaration of template specializatons for Real.
 // Definitions are found in BaseFab.cpp.
@@ -2666,6 +2666,7 @@ BaseFab<T>::linComb (const BaseFab<T>&  f1,
     return *this;
 }
 
+    // \cond CODEGEN
     class BF_init
     {
     public:
@@ -2674,6 +2675,7 @@ BaseFab<T>::linComb (const BaseFab<T>&  f1,
     private:
         static int m_cnt;
     };
+    // \endcond
 }
 
 static amrex::BF_init file_scope_BF_init_object;

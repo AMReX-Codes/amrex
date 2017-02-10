@@ -32,24 +32,24 @@
 extern "C"
 {
      void FORT_SETVOL (ARLIM_P(rlo), ARLIM_P(rhi),
-		       Real* vol, ARLIM_P(vlo), ARLIM_P(vhi),
-                       const Real* offset,
-                       const Real* dx, const int* coord);
+		       amrex::Real* vol, ARLIM_P(vlo), ARLIM_P(vhi),
+                       const amrex::Real* offset,
+                       const amrex::Real* dx, const int* coord);
 
-     void FORT_SETVOLPT (Real* vol, ARLIM_P(vollo), ARLIM_P(volhi),
-			 Real* rolo, ARLIM_P(rolo), ARLIM_P(rohi),
-			 Real* rilo, ARLIM_P(rilo), ARLIM_P(rihi),
-			 const Real* dx, const int* coord);
+     void FORT_SETVOLPT (amrex::Real* vol, ARLIM_P(vollo), ARLIM_P(volhi),
+			 amrex::Real* rolo, ARLIM_P(rolo), ARLIM_P(rohi),
+			 amrex::Real* rilo, ARLIM_P(rilo), ARLIM_P(rihi),
+			 const amrex::Real* dx, const int* coord);
 
-     void FORT_SETDLOGA (Real* vol, ARLIM_P(vlo), ARLIM_P(vhi),
-                         const Real* offset,
-                         const Real* dx, const int* dir,
+     void FORT_SETDLOGA (amrex::Real* vol, ARLIM_P(vlo), ARLIM_P(vhi),
+                         const amrex::Real* offset,
+                         const amrex::Real* dx, const int* dir,
                          const int* coord);
 
      void FORT_SETAREA (ARLIM_P(rlo), ARLIM_P(rhi),
-			Real* area,  ARLIM_P(alo), ARLIM_P(ahi),
-                        const Real* offset,
-                        const Real* dx, const int* dir,
+			amrex::Real* area,  ARLIM_P(alo), ARLIM_P(ahi),
+                        const amrex::Real* offset,
+                        const amrex::Real* dx, const int* dir,
                         const int* coord);
 }
 

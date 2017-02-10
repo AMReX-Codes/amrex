@@ -104,6 +104,8 @@ class Test(object):
         self.compile_successful = False  # filled automatically
         self.compare_successful = False  # filled automatically
 
+        self.customRunCmd = None
+
     def __lt__(self, other):
         return self.value() < other.value()
 

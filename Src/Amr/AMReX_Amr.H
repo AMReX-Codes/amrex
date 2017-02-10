@@ -322,7 +322,7 @@ protected:
     //! Rebuild grid hierarchy finer than lbase.
     virtual void regrid (int  lbase,
                          Real time,
-                         bool initial = false);
+                         bool initial = false) override;
     //! Regrid level 0 on restart. 
     virtual void regrid_level_0_on_restart ();
     //! Define new grid locations (called from regrid) and put into new_grids.
@@ -341,6 +341,16 @@ protected:
                            int  iteration,
                            int  niter,
                            Real stop_time);
+
+    // pure virtural function in AmrCore
+    virtual void MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba, const DistributionMapping& dm) override
+	{ amrex::Abort("How did we get her!"); }
+    virtual void MakeNewLevelFromCoarse (int lev, Real time, const BoxArray& ba, const DistributionMapping& dm) override
+	{ amrex::Abort("How did we get her!"); }
+    virtual void RemakeLevel (int lev, Real time, const BoxArray& ba, const DistributionMapping& dm) override
+	{ amrex::Abort("How did we get her!"); }
+    virtual void ClearLevel (int lev) override
+	{ amrex::Abort("How did we get her!"); }
 
     //! Whether to write a plotfile now
     bool writePlotNow ();

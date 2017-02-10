@@ -75,45 +75,42 @@ AmrAdv::ReadParameters ()
 }
 
 void
-AmrAdv::MakeNewLevel (int lev, Real time,
-		      const BoxArray& new_grids, const DistributionMapping& new_dmap)
+AmrAdv::MakeNewLevelFromCoarse (int lev, Real time, const BoxArray& ba,
+				const DistributionMapping& dm)
 {
-    const int ncomp = 1;
-    const int nghost = 0;
-
-    SetBoxArray(lev, new_grids);
-    SetDistributionMap(lev, new_dmap);
-
-    phi_new[lev].reset(new MultiFab(grids[lev], dmap[lev], ncomp, nghost));
-    phi_old[lev].reset(new MultiFab(grids[lev], dmap[lev], ncomp, nghost));
+    const int ncomp = phi_new[lev-1]->nComp();
+    const int nghost = phi_new[lev-1]->nGrow();
+    
+    phi_new[lev].reset(new MultiFab(ba, dm, ncomp, nghost));
+    phi_old[lev].reset(new MultiFab(ba, dm, ncomp, nghost));
 
     t_new[lev] = time;
     t_old[lev] = time - 1.e200;
 
     if (lev > 0 && do_reflux) {
-	flux_reg[lev].reset(new FluxRegister(grids[lev], dmap[lev], refRatio(lev-1), lev, ncomp));
+	flux_reg[lev].reset(new FluxRegister(ba, dm, refRatio(lev-1), lev, ncomp));
     }
+
+    FillCoarsePatch(lev, time, *phi_new[lev], 0, ncomp);
 }
 
+
 void
-AmrAdv::RemakeLevel (int lev, Real time,
-		     const BoxArray& new_grids, const DistributionMapping& new_dmap)
+AmrAdv::RemakeLevel (int lev, Real time, const BoxArray& ba,
+		     const DistributionMapping& dm)
 {
     const int ncomp = phi_new[lev]->nComp();
     const int nghost = phi_new[lev]->nGrow();
 
 #if __cplusplus >= 201402L
-    auto new_state = std::make_unique<MultiFab>(new_grids, new_dmap, ncomp, nghost);
-    auto old_state = std::make_unique<MultiFab>(new_grids, new_dmap, ncomp, nghost);
+    auto new_state = std::make_unique<MultiFab>(ba, dm, ncomp, nghost);
+    auto old_state = std::make_unique<MultiFab>(ba, dm, ncomp, nghost);
 #else
-    std::unique_ptr<MultiFab> new_state(new MultiFab(new_grids, new_dmap, ncomp, nghost));
-    std::unique_ptr<MultiFab> old_state(new MultiFab(new_grids, new_dmap, ncomp, nghost));
+    std::unique_ptr<MultiFab> new_state(new MultiFab(ba, dm, ncomp, nghost));
+    std::unique_ptr<MultiFab> old_state(new MultiFab(ba, dm, ncomp, nghost));
 #endif
 
     FillPatch(lev, time, *new_state, 0, ncomp);
-
-    SetBoxArray(lev, new_grids);
-    SetDistributionMap(lev, new_dmap);
 
     std::swap(new_state, phi_new[lev]);
     std::swap(old_state, phi_old[lev]);
@@ -122,7 +119,7 @@ AmrAdv::RemakeLevel (int lev, Real time,
     t_old[lev] = time - 1.e200;
 
     if (lev > 0 && do_reflux) {
-	flux_reg[lev].reset(new FluxRegister(grids[lev], dmap[lev], refRatio(lev-1), lev, ncomp));
+	flux_reg[lev].reset(new FluxRegister(ba, dm, refRatio(lev-1), lev, ncomp));
     }    
 }
 
@@ -132,36 +129,6 @@ AmrAdv::ClearLevel (int lev)
     phi_new[lev].reset(nullptr);
     phi_old[lev].reset(nullptr);
     flux_reg[lev].reset(nullptr);
-
-    ClearBoxArray(lev);
-    ClearDistributionMap(lev);
-}
-
-void
-AmrAdv::regrid (int lbase, Real time)
-{
-    int new_finest;
-    Array<BoxArray> new_grids(finest_level+2);
-    MakeNewGrids(lbase, time, new_finest, new_grids);
-
-    BL_ASSERT(new_finest <= finest_level+1);
-
-    for (int lev = lbase+1; lev <= new_finest; ++lev)
-    {
-	if (lev <= finest_level) // an old level
-	{
-	    if (new_grids[lev] != grids[lev]) // otherwise nothing
-	    {
-		DistributionMapping new_dmap(new_grids[lev]);
-		RemakeLevel(lev, time, new_grids[lev], new_dmap);
-	    }
-	}
-	else  // a new level
-	{
-	    DistributionMapping new_dmap(new_grids[lev]);
-	    MakeNewLevel(lev, time, new_grids[lev], new_dmap);
-	}
-    }
 }
 
 void
@@ -233,6 +200,31 @@ AmrAdv::FillPatch (int lev, Real time, MultiFab& mf, int icomp, int ncomp)
 				   cphysbc, fphysbc, refRatio(lev-1),
 				   mapper, bcs);
     }
+}
+
+void
+AmrAdv::FillCoarsePatch (int lev, Real time, MultiFab& mf, int icomp, int ncomp)
+{
+    BL_ASSERT(lev > 0);
+
+    Array<MultiFab*> cmf;
+    Array<Real> ctime, ftime;
+    GetData(lev-1, time, cmf, ctime);
+    
+    if (cmf.size() != 1) {
+	amrex::Abort("FillCoarsePatch: how did this happen?");
+    }
+
+    AmrAdvPhysBC cphysbc, fphysbc;
+    Interpolater* mapper = &cell_cons_interp;
+    
+    int lo_bc[] = {INT_DIR, INT_DIR, INT_DIR}; // periodic boundaryies
+    int hi_bc[] = {INT_DIR, INT_DIR, INT_DIR};
+    Array<BCRec> bcs(1, BCRec(lo_bc, hi_bc));
+
+    amrex::InterpFromCoarseLevel(mf, time, *cmf[0], 0, icomp, ncomp, geom[lev-1], geom[lev],
+				 cphysbc, fphysbc, refRatio(lev-1),
+				 mapper, bcs);
 }
 
 void

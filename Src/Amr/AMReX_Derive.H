@@ -14,23 +14,23 @@ extern "C"
     // Type of extern "C" function called by DeriveRec to compute derived quantity.
     //
     // Note that ARLIM_P will be preprocessed into DIM const int&'s.
-    typedef void (*DeriveFunc)(Real* data, ARLIM_P(dlo), ARLIM_P(dhi),
-                               const int* nvar, const Real* compdat,
+    typedef void (*DeriveFunc)(amrex::Real* data, ARLIM_P(dlo), ARLIM_P(dhi),
+                               const int* nvar, const amrex::Real* compdat,
                                ARLIM_P(compdat_lo), ARLIM_P(compdat_hi),
                                const int* ncomp,
                                const int* lo, const int* hi,
                                const int* domain_lo, const int* domain_hi,
-                               const Real* delta, const Real* xlo,
-                               const Real* time, const Real* dt, 
+                               const amrex::Real* delta, const amrex::Real* xlo,
+                               const amrex::Real* time, const amrex::Real* dt, 
                                const int* bcrec,
                                const int* level, const int* grid_no) ;
     // This is dimension agnostic.  For example, dlo always has three elements.
-    typedef void (*DeriveFunc3D)(Real* data, const int* dlo, const int* dhi, const int* nvar, 
-				 const Real* compdat, const int* clo, const int* chi, const int* ncomp,
+    typedef void (*DeriveFunc3D)(amrex::Real* data, const int* dlo, const int* dhi, const int* nvar, 
+				 const amrex::Real* compdat, const int* clo, const int* chi, const int* ncomp,
 				 const int* lo, const int* hi,
 				 const int* domain_lo, const int* domain_hi,
-				 const Real* delta, const Real* xlo,
-				 const Real* time, const Real* dt, 
+				 const amrex::Real* delta, const amrex::Real* xlo,
+				 const amrex::Real* time, const amrex::Real* dt, 
 				 const int* bcrec,
 				 const int* level, const int* grid_no) ;
 }

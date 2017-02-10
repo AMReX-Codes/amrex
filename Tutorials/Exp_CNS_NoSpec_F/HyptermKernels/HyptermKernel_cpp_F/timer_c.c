@@ -50,47 +50,6 @@ WALL_SECOND(double* rslt)
   *rslt = (double)(time(0)-start);
 }
 
-#elif defined(WIN32)
-
-#include <windows.h>
-#include <time.h>
-
-void
-WALL_SECOND(double* rslt)
-{
-  static int inited = 0;
-  static LONGLONG llStart;
-  static double rate;
-  LARGE_INTEGER li;
-
-  if ( inited == 0 )
-    {
-      LARGE_INTEGER lii;
-      inited = 1;
-      QueryPerformanceFrequency(&lii);
-      rate = 1.0/lii.QuadPart;
-      QueryPerformanceCounter(&lii);
-      llStart = lii.QuadPart;
-    }
-  QueryPerformanceCounter(&li);
-  *rslt = (double)((li.QuadPart-llStart)*rate);
-}
-
-void
-CPU_SECOND (double* r)
-{
-  static int inited = 0;
-  static clock_t start;
-
-  if (inited == 0 )
-    {
-      inited = 1;
-      start = clock();
-    }
-
-  *r = (double)(clock() - start)/CLOCKS_PER_SEC;
-}
-
 #else
 
 #include <assert.h>

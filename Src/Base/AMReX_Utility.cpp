@@ -28,15 +28,7 @@
 #include <omp.h>
 #endif
 
-#ifdef WIN32
-#include <direct.h>
-#define mkdir(a,b) _mkdir((a))
-const char* path_sep_str = "\\";
-#else
 const char* path_sep_str = "/";
-#endif
-
-#if !defined(WIN32)
 
 #include <sys/types.h>
 #include <sys/times.h>
@@ -50,190 +42,6 @@ const char* path_sep_str = "/";
 #endif
 #include <sys/param.h>
 #include <unistd.h>
-
-//
-// This doesn't seem to be defined on SunOS when using g++.
-//
-#if defined(__GNUG__) && defined(__sun) && defined(BL_SunOS)
-extern "C" int gettimeofday (struct timeval*, struct timezone*);
-#endif
-
-using amrex::Array;
-
-namespace {
-    constexpr unsigned int msps(1000000);
-}
-
-double
-amrex::second (double* t)
-{
-    struct tms buffer;
-
-    times(&buffer);
-
-    static long CyclesPerSecond = 0;
-
-    if (CyclesPerSecond == 0)
-    {
-#if defined(_SC_CLK_TCK)
-        CyclesPerSecond = sysconf(_SC_CLK_TCK);
-        if (CyclesPerSecond == -1)
-            amrex::Error("second(double*): sysconf() failed");
-#elif defined(HZ)
-        CyclesPerSecond = HZ;
-#else
-        CyclesPerSecond = 100;
-        amrex::Warning("second(): sysconf(): default value of 100 for hz, worry about timings");
-#endif
-    }
-
-    double dt = (buffer.tms_utime + buffer.tms_stime)/(1.0*CyclesPerSecond);
-
-    if (t != 0)
-        *t = dt;
-
-    return dt;
-}
-
-static
-double
-get_initial_wall_clock_time ()
-{
-    struct timeval tp;
-
-    if (gettimeofday(&tp, 0) != 0)
-        amrex::Abort("get_time_of_day(): gettimeofday() failed");
-
-    return tp.tv_sec + tp.tv_usec/1000000.0;
-}
-
-//
-// Attempt to guarantee wsecond() gets initialized on program startup.
-//
-double BL_Initial_Wall_Clock_Time = get_initial_wall_clock_time();
-
-double
-amrex::wsecond (double* t)
-{
-    struct timeval tp;
-
-    gettimeofday(&tp,0);
-
-    double dt = tp.tv_sec + tp.tv_usec/1000000.0 - BL_Initial_Wall_Clock_Time;
-
-    if (t != 0)
-        *t = dt;
-
-    return dt;
-}
-
-#elif defined(WIN32)
-
-// minimum requirement of WindowsNT
-#include <windows.h>
-
-namespace
-{
-double rate;
-bool inited = false;
-LONGLONG
-get_initial_wall_clock_time()
-{
-    LARGE_INTEGER li;
-    QueryPerformanceFrequency(&li);
-    rate = 1.0/li.QuadPart;
-    QueryPerformanceCounter(&li);
-    inited = true;
-    return li.QuadPart;
-}
-LONGLONG BL_Initial_Wall_Clock_Time = get_initial_wall_clock_time();
-}
-double
-amrex::wsecond(double* rslt)
-{
-    BL_ASSERT( inited );
-    LARGE_INTEGER li;
-    QueryPerformanceCounter(&li);
-    double result = double(li.QuadPart-BL_Initial_Wall_Clock_Time)*rate;
-    if ( rslt ) *rslt = result;
-    return result;
-}
-
-#include <time.h>
-double
-amrex::second (double* r)
-{
-    static clock_t start = -1;
-
-    clock_t finish = clock();
-
-    if (start == -1)
-        start = finish;
-
-    double rr = double(finish - start)/CLOCKS_PER_SEC;
-
-    if (r)
-        *r = rr;
-
-    return rr;
-}
-
-#else
-
-#include <time.h>
-
-double
-amrex::second (double* r)
-{
-    static clock_t start = -1;
-
-    clock_t finish = clock();
-
-    if (start == -1)
-        start = finish;
-
-    double rr = double(finish - start)/CLOCKS_PER_SEC;
-
-    if (r)
-        *r = rr;
-
-    return rr;
-}
-
-static
-time_t
-get_initial_wall_clock_time ()
-{
-    return ::time(0);
-}
-
-//
-// Attempt to guarantee wsecond() gets initialized on program startup.
-//
-time_t BL_Initial_Wall_Clock_Time = get_initial_wall_clock_time();
-
-double
-amrex::wsecond (double* r)
-{
-    time_t finish;
-
-    time(&finish);
-
-    double rr = double(finish - BL_Initial_Wall_Clock_Time);
-
-    if (r)
-        *r = rr;
-
-    return rr;
-}
-
-#endif
-
-void
-amrex::ResetWallClockTime ()
-{
-    BL_Initial_Wall_Clock_Time = get_initial_wall_clock_time();
-}
 
 //
 // Return true if argument is a non-zero length string of digits.
@@ -328,13 +136,8 @@ amrex::Concatenate (const std::string& root,
 
 
 bool
-#ifdef WIN32
 amrex::UtilCreateDirectory (const std::string& path,
-                             int mode, bool verbose)
-#else
-amrex::UtilCreateDirectory (const std::string& path,
-                             mode_t mode, bool verbose)
-#endif
+			    mode_t mode, bool verbose)
 {
     bool retVal(false);
     Array<std::pair<std::string, int> > pathError;
@@ -502,82 +305,6 @@ void
 amrex::OutOfMemory ()
 {
     amrex::Error("Sorry, out of memory, bye ...");
-}
-
-//
-// Encapsulates Time
-//
-
-namespace
-{
-const long billion = 1000000000L;
-}
-
-amrex::Time::Time()
-{
-    tv_sec = 0;
-    tv_nsec = 0;
-}
-
-amrex::Time::Time(long s, long n)
-{
-    BL_ASSERT(s >= 0);
-    BL_ASSERT(n >= 0);
-    BL_ASSERT(n < billion);
-    tv_sec = s;
-    tv_nsec = n;
-    normalize();
-}
-
-amrex::Time::Time(double d)
-{
-    tv_sec = long(d);
-    tv_nsec = long((d-tv_sec)*billion);
-    normalize();
-}
-
-double
-amrex::Time::as_double() const
-{
-    return tv_sec + tv_nsec/double(billion);
-}
-
-long
-amrex::Time::as_long() const
-{
-    return tv_sec + tv_nsec/billion;
-}
-
-amrex::Time&
-amrex::Time::operator+=(const Time& r)
-{
-    tv_sec += r.tv_sec;
-    tv_nsec += r.tv_nsec;
-    normalize();
-    return *this;
-}
-
-amrex::Time
-amrex::Time::operator+(const Time& r) const
-{
-    Time result(*this);
-    return result+=r;
-}
-
-void
-amrex::Time::normalize()
-{
-    if ( tv_nsec > billion )
-    {
-	tv_nsec -= billion;
-	tv_sec += 1;
-    }
-}
-
-amrex::Time
-amrex::Time::get_time()
-{
-    return Time(amrex::wsecond());
 }
 
 
@@ -965,7 +692,7 @@ BL_FORT_PROC_DECL(BLINITRAND,blinitrand)(const int* sd)
     amrex::InitRandom(seed);
 }
 
-BL_FORT_PROC_DECL(BLUTILRAND,blutilrand)(Real* rn)
+BL_FORT_PROC_DECL(BLUTILRAND,blutilrand)(amrex::Real* rn)
 {
     *rn = amrex::Random();
 }
@@ -1072,7 +799,7 @@ amrex::InvNormDist (double p)
     return x;
 }
 
-BL_FORT_PROC_DECL(BLINVNORMDIST,blinvnormdist)(Real* result)
+BL_FORT_PROC_DECL(BLINVNORMDIST,blinvnormdist)(amrex::Real* result)
 {
     //
     // Get a random number in (0,1);
@@ -1235,7 +962,7 @@ amrex::InvNormDistBest (double p)
   return value;
 }
 
-BL_FORT_PROC_DECL(BLINVNORMDISTBEST,blinvnormdistbest)(Real* result)
+BL_FORT_PROC_DECL(BLINVNORMDISTBEST,blinvnormdistbest)(amrex::Real* result)
 {
     //
     // Get a random number in (0,1);
@@ -1568,7 +1295,7 @@ void amrex::SyncStrings(const Array<std::string> &localStrings,
 
 
 
-Array<char> amrex::SerializeStringArray(const Array<std::string> &stringArray)
+amrex::Array<char> amrex::SerializeStringArray(const Array<std::string> &stringArray)
 {
   std::ostringstream stringStream;
   for(int i(0); i < stringArray.size(); ++i) {
@@ -1585,7 +1312,7 @@ Array<char> amrex::SerializeStringArray(const Array<std::string> &stringArray)
 
 
 
-Array<std::string> amrex::UnSerializeStringArray(const Array<char> &charArray)
+amrex::Array<std::string> amrex::UnSerializeStringArray(const Array<char> &charArray)
 {
   Array<std::string> stringArray;
   std::istringstream stringStream(charArray.dataPtr());
@@ -1662,6 +1389,7 @@ void amrex::BroadcastDistributionMapping(DistributionMapping &dM,
 
 
 void amrex::USleep(double sleepsec) {
+  constexpr unsigned int msps = 1000000;
   //usleep(sleepsec * msps);
   usleep(sleepsec * msps / 10.0);
 }

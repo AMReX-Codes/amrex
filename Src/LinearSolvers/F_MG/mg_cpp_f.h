@@ -445,347 +445,347 @@ extern "C"
       		           const int* pm,
 		           const int* pmap);
 
-  void mgt_finalize(const Real* dx, const int* bc);
-  void mgt_finalize_n(const Real* dx, const int* bc, const int* nc_in);
-  void mgt_nodal_finalize(const Real* dx, const int* bc);
+  void mgt_finalize(const amrex_real* dx, const int* bc);
+  void mgt_finalize_n(const amrex_real* dx, const int* bc, const int* nc_in);
+  void mgt_nodal_finalize(const amrex_real* dx, const int* bc);
 
   void mgt_init_coeffs_lev(const int* lev);
   void mgt_init_mc_coeffs_lev(const int* lev, const int* nc, int* nc_opt);
   void mgt_init_nodal_coeffs_lev(const int* lev);
-  void mgt_init_const_nodal_coeffs_lev(const int* lev, const Real* val);
+  void mgt_init_const_nodal_coeffs_lev(const int* lev, const amrex_real* val);
   
   void mgt_finalize_stencil();
   void mgt_finalize_nodal_stencil();
   
   void mgt_finalize_stencil_lev(const int* lev,
-			    const Real* xa, const Real* xb,
-			    const Real* pxa, const Real* pxb,
+			    const amrex_real* xa, const amrex_real* xb,
+			    const amrex_real* pxa, const amrex_real* pxb,
 			    const int* dm);
   
   void mgt_finalize_const_stencil_lev(const int* lev,
-			         const Real* alpha_const, const Real* beta_const,
-			         const Real* xa, const Real* xb,
-     			         const Real* pxa, const Real* pxb,
+			         const amrex_real* alpha_const, const amrex_real* beta_const,
+			         const amrex_real* xa, const amrex_real* xb,
+     			         const amrex_real* pxa, const amrex_real* pxb,
          			 const int* dm);
 
   void mgt_mc_finalize_stencil_lev(const int* lev,
-				   const Real* xa, const Real* xb,
-				   const Real* pxa, const Real* pxb,
+				   const amrex_real* xa, const amrex_real* xb,
+				   const amrex_real* pxa, const amrex_real* pxb,
 				   const int* dm,
 			    	   const int* nc_opt);
 
   void mgt_finalize_nodal_stencil_lev(const int* lev);
     
-  void mgt_set_rh_1d(const int* lev, const int* n, const Real* rh, 
+  void mgt_set_rh_1d(const int* lev, const int* n, const amrex_real* rh, 
 		     const int* plo, const int* phi, 
 		     const int* lo, const int* hi);
   
-  void mgt_add_rh_nodal_1d(const int* lev, const int* n, const Real* rh, 
+  void mgt_add_rh_nodal_1d(const int* lev, const int* n, const amrex_real* rh, 
 		     const int* plo, const int* phi, 
 		     const int* lo, const int* hi,
-                     const Real* rhmax);
+                     const amrex_real* rhmax);
   
-  void mgt_get_uu_1d(const int* lev, const int* n, Real* uu, 
+  void mgt_get_uu_1d(const int* lev, const int* n, amrex_real* uu, 
 		     const int* plo, const int* phi, 
 		     const int* lo, const int* hi);
   
-  void mgt_get_res_1d(const int* lev, const int* n, Real* uu, 
+  void mgt_get_res_1d(const int* lev, const int* n, amrex_real* uu, 
 		      const int* plo, const int* phi, 
 		      const int* lo, const int* hi);
   
-  void mgt_set_uu_1d(const int* lev, const int* n, const Real* uu, 
+  void mgt_set_uu_1d(const int* lev, const int* n, const amrex_real* uu, 
 		     const int* plo, const int* phi, 
 		     const int* lo, const int* hi);
   
   void mgt_get_gp_1d(const int* lev, const int* dir, const int* n,
-		     Real* gp,
+		     amrex_real* gp,
 		     const int* plo, const int* phi, 
 		     const int* lo, const int* hi);
   
-  void mgt_get_pr_1d(const int* lev, const int* n, Real* uu, 
+  void mgt_get_pr_1d(const int* lev, const int* n, amrex_real* uu, 
 		     const int* plo, const int* phi, 
 		     const int* lo, const int* hi,
 		     const int& np, const int& ip);
   
-  void mgt_set_pr_1d(const int* lev, const int* n, const Real* uu, 
+  void mgt_set_pr_1d(const int* lev, const int* n, const amrex_real* uu, 
 		     const int* plo, const int* phi, 
 		     const int* lo, const int* hi,
 		     const int& np, const int& ip);
   
-  void mgt_set_cfa_1d(const int* lev, const int* n, const Real* cf,
+  void mgt_set_cfa_1d(const int* lev, const int* n, const amrex_real* cf,
 		      const int* plo, const int* phi, 
 		      const int* lo, const int* hi);
 
-  void mgt_set_cfaa_1d(const int* lev, const int* n, const Real* cf,
+  void mgt_set_cfaa_1d(const int* lev, const int* n, const amrex_real* cf,
 		       const int* plo, const int* phi, 
-		       const int* lo, const int* hi, const Real* a);
+		       const int* lo, const int* hi, const amrex_real* a);
   
-  void mgt_set_cfa2_1d(const int* lev, const int* n, const Real* cf,
+  void mgt_set_cfa2_1d(const int* lev, const int* n, const amrex_real* cf,
 		       const int* plo, const int* phi, 
 		       const int* lo, const int* hi, const int& ncomps);
   
-  void mgt_set_cfbx_1d(const int* lev, const int* n, const Real* cf,
-		       const Real* b,
+  void mgt_set_cfbx_1d(const int* lev, const int* n, const amrex_real* cf,
+		       const amrex_real* b,
 		       const int* plo, const int* phi, 
 		       const int* lo, const int* hi);
   
-  void mgt_set_cfbnx_1d(const int* lev, const int* n, const Real* cf,
-		        const Real* b,
+  void mgt_set_cfbnx_1d(const int* lev, const int* n, const amrex_real* cf,
+		        const amrex_real* b,
 		        const int* plo, const int* phi, 
 		        const int* lo, const int* hi, const int& ncomps);
   
   void mgt_set_cfa_1d_const(const int* lev, const int* n, 
-		            const int* lo, const int* hi, const Real* value);
+		            const int* lo, const int* hi, const amrex_real* value);
   
   void mgt_set_cfbx_1d_const(const int* lev, const int* n, 
-		             const int* lo, const int* hi, const Real* value);
+		             const int* lo, const int* hi, const amrex_real* value);
   
-  void mgt_set_cfs_1d(const int* lev, const int* n, const Real* cf,
+  void mgt_set_cfs_1d(const int* lev, const int* n, const amrex_real* cf,
 		      const int* plo, const int* phi, 
 		      const int* lo, const int* hi);
   
-  void mgt_get_vel_1d(const int* lev, const int* n, Real* cf,
+  void mgt_get_vel_1d(const int* lev, const int* n, amrex_real* cf,
 		      const int* plo, const int* phi, 
 		      const int* lo, const int* hi,
 		      const int& nv, const int& iv);
   
-  void mgt_set_vel_1d(const int* lev, const int* n, const Real* cf,
+  void mgt_set_vel_1d(const int* lev, const int* n, const amrex_real* cf,
 		      const int* plo, const int* phi, 
 		      const int* lo, const int* hi,
 		      const int& nv, const int& iv);
 
-  void mgt_set_rh_2d(const int* lev, const int* n, const Real* rh, 
+  void mgt_set_rh_2d(const int* lev, const int* n, const amrex_real* rh, 
 		     const int* plo, const int* phi, 
 		     const int* lo, const int* hi);
 
-  void mgt_add_rh_nodal_2d(const int* lev, const int* n, const Real* rh, 
+  void mgt_add_rh_nodal_2d(const int* lev, const int* n, const amrex_real* rh, 
 		     const int* plo, const int* phi, 
 		     const int* lo, const int* hi,
-                     const Real* rhmax);
+                     const amrex_real* rhmax);
   
-  void mgt_get_uu_2d(const int* lev, const int* n, Real* uu, 
+  void mgt_get_uu_2d(const int* lev, const int* n, amrex_real* uu, 
 		     const int* plo, const int* phi, 
 		     const int* lo, const int* hi);
   
-  void mgt_get_res_2d(const int* lev, const int* n, Real* uu, 
+  void mgt_get_res_2d(const int* lev, const int* n, amrex_real* uu, 
 		      const int* plo, const int* phi, 
 		      const int* lo, const int* hi);
   
-  void mgt_set_uu_2d(const int* lev, const int* n, const Real* uu, 
+  void mgt_set_uu_2d(const int* lev, const int* n, const amrex_real* uu, 
 		     const int* plo, const int* phi, 
 		     const int* lo, const int* hi);
   
   void mgt_get_gp_2d(const int* lev, const int* dir, const int* n,
-		     Real* gp,
+		     amrex_real* gp,
 		     const int* plo, const int* phi, 
 		     const int* lo, const int* hi);
   
-  void mgt_get_pr_2d(const int* lev, const int* n, Real* uu, 
+  void mgt_get_pr_2d(const int* lev, const int* n, amrex_real* uu, 
 		     const int* plo, const int* phi, 
 		     const int* lo, const int* hi,
 		     const int& np, const int& ip);
   
-  void mgt_set_pr_2d(const int* lev, const int* n, const Real* uu, 
+  void mgt_set_pr_2d(const int* lev, const int* n, const amrex_real* uu, 
 		     const int* plo, const int* phi, 
 		     const int* lo, const int* hi,
 		     const int& np, const int& ip);
   
-  void mgt_set_cfa_2d(const int* lev, const int* n, const Real* cf,
+  void mgt_set_cfa_2d(const int* lev, const int* n, const amrex_real* cf,
 		      const int* plo, const int* phi, 
 		      const int* lo, const int* hi);
 
-  void mgt_set_cfaa_2d(const int* lev, const int* n, const Real* cf,
+  void mgt_set_cfaa_2d(const int* lev, const int* n, const amrex_real* cf,
 		       const int* plo, const int* phi, 
-		       const int* lo, const int* hi, const Real* a);
+		       const int* lo, const int* hi, const amrex_real* a);
   
-  void mgt_set_cfa2_2d(const int* lev, const int* n, const Real* cf,
+  void mgt_set_cfa2_2d(const int* lev, const int* n, const amrex_real* cf,
 		       const int* plo, const int* phi, 
 		       const int* lo, const int* hi, const int& ncomps);
   
-  void mgt_set_cfbx_2d(const int* lev, const int* n, const Real* cf,
-		       const Real* b,
+  void mgt_set_cfbx_2d(const int* lev, const int* n, const amrex_real* cf,
+		       const amrex_real* b,
 		       const int* plo, const int* phi, 
 		       const int* lo, const int* hi);
   
-  void mgt_set_cfby_2d(const int* lev, const int* n, const Real* cf,
-		       const Real* b,
+  void mgt_set_cfby_2d(const int* lev, const int* n, const amrex_real* cf,
+		       const amrex_real* b,
 		       const int* plo, const int* phi, 
 		       const int* lo, const int* hi);
   
-  void mgt_set_cfbnx_2d(const int* lev, const int* n, const Real* cf,
-		        const Real* b,
+  void mgt_set_cfbnx_2d(const int* lev, const int* n, const amrex_real* cf,
+		        const amrex_real* b,
 		        const int* plo, const int* phi, 
 		        const int* lo, const int* hi, const int& ncomps);
   
-  void mgt_set_cfbny_2d(const int* lev, const int* n, const Real* cf,
-		        const Real* b,
+  void mgt_set_cfbny_2d(const int* lev, const int* n, const amrex_real* cf,
+		        const amrex_real* b,
 		        const int* plo, const int* phi, 
 		        const int* lo, const int* hi, const int& ncomps);
   
   void mgt_set_cfa_2d_const(const int* lev, const int* n, 
-		            const int* lo, const int* hi, const Real* value);
+		            const int* lo, const int* hi, const amrex_real* value);
   
   void mgt_set_cfbx_2d_const(const int* lev, const int* n, 
-		             const int* lo, const int* hi, const Real* value);
+		             const int* lo, const int* hi, const amrex_real* value);
   
   void mgt_set_cfby_2d_const(const int* lev, const int* n,
-		             const int* lo, const int* hi, const Real* value);
+		             const int* lo, const int* hi, const amrex_real* value);
   
-  void mgt_set_cfs_2d(const int* lev, const int* n, const Real* cf,
+  void mgt_set_cfs_2d(const int* lev, const int* n, const amrex_real* cf,
 		      const int* plo, const int* phi, 
 		      const int* lo, const int* hi);
   
-  void mgt_get_vel_2d(const int* lev, const int* n, Real* cf,
+  void mgt_get_vel_2d(const int* lev, const int* n, amrex_real* cf,
 		      const int* plo, const int* phi, 
 		      const int* lo, const int* hi,
 		      const int& nv, const int& iv);
   
-  void mgt_set_vel_2d(const int* lev, const int* n, const Real* v,
+  void mgt_set_vel_2d(const int* lev, const int* n, const amrex_real* v,
 		      const int* plo, const int* phi, 
 		      const int* lo, const int* hi,
 		      const int& nv, const int& iv);
 
-  void mgt_set_rh_3d(const int* lev, const int* n, const Real* rh, 
+  void mgt_set_rh_3d(const int* lev, const int* n, const amrex_real* rh, 
 		     const int* plo, const int* phi, 
 		     const int* lo, const int* hi);
 
-  void mgt_add_rh_nodal_3d(const int* lev, const int* n, const Real* rh, 
+  void mgt_add_rh_nodal_3d(const int* lev, const int* n, const amrex_real* rh, 
 		     const int* plo, const int* phi, 
 		     const int* lo, const int* hi,
-                     const Real* rhmax);
+                     const amrex_real* rhmax);
   
-  void mgt_get_uu_3d(const int* lev, const int* n, Real* uu, 
+  void mgt_get_uu_3d(const int* lev, const int* n, amrex_real* uu, 
 		     const int* plo, const int* phi, 
 		     const int* lo, const int* hi);
   
-  void mgt_set_uu_3d(const int* lev, const int* n, const Real* uu, 
+  void mgt_set_uu_3d(const int* lev, const int* n, const amrex_real* uu, 
 		     const int* plo, const int* phi, 
 		     const int* lo, const int* hi);
   
-  void mgt_get_res_3d(const int* lev, const int* n, Real* uu, 
+  void mgt_get_res_3d(const int* lev, const int* n, amrex_real* uu, 
 		      const int* plo, const int* phi, 
 		      const int* lo, const int* hi);
   
   void mgt_get_gp_3d(const int* lev, const int* dir, const int* n, 
-		     Real* gp,
+		     amrex_real* gp,
 		     const int* plo, const int* phi, 
 		     const int* lo, const int* hi);
   
-  void mgt_get_pr_3d(const int* lev, const int* n, Real* uu, 
+  void mgt_get_pr_3d(const int* lev, const int* n, amrex_real* uu, 
 		     const int* plo, const int* phi, 
 		     const int* lo, const int* hi,
 		     const int& np, const int& ip);
   
-  void mgt_set_pr_3d(const int* lev, const int* n, const Real* uu, 
+  void mgt_set_pr_3d(const int* lev, const int* n, const amrex_real* uu, 
 		     const int* plo, const int* phi, 
 		     const int* lo, const int* hi,
 		     const int& np, const int& ip);
   
-  void mgt_set_cfa_3d(const int* lev, const int* n, const Real* cf,
+  void mgt_set_cfa_3d(const int* lev, const int* n, const amrex_real* cf,
 		      const int* plo, const int* phi, 
 		      const int* lo, const int* hi);
 
-  void mgt_set_cfaa_3d(const int* lev, const int* n, const Real* cf,
+  void mgt_set_cfaa_3d(const int* lev, const int* n, const amrex_real* cf,
 		       const int* plo, const int* phi, 
-		       const int* lo, const int* hi, const Real* a);
+		       const int* lo, const int* hi, const amrex_real* a);
   
-  void mgt_set_cfa2_3d(const int* lev, const int* n, const Real* cf,
+  void mgt_set_cfa2_3d(const int* lev, const int* n, const amrex_real* cf,
 		       const int* plo, const int* phi, 
 		       const int* lo, const int* hi, const int& ncomps);
   
-  void mgt_set_cfbx_3d(const int* lev, const int* n, const Real* cf,
-		       const Real* b,
+  void mgt_set_cfbx_3d(const int* lev, const int* n, const amrex_real* cf,
+		       const amrex_real* b,
 		       const int* plo, const int* phi, 
 		       const int* lo, const int* hi);
   
-  void mgt_set_cfby_3d(const int* lev, const int* n, const Real* cf,
-		       const Real* b,
+  void mgt_set_cfby_3d(const int* lev, const int* n, const amrex_real* cf,
+		       const amrex_real* b,
 		       const int* plo, const int* phi, 
 		       const int* lo, const int* hi);
   
-  void mgt_set_cfbz_3d(const int* lev, const int* n, const Real* cf,
-		       const Real* b,
+  void mgt_set_cfbz_3d(const int* lev, const int* n, const amrex_real* cf,
+		       const amrex_real* b,
 		       const int* plo, const int* phi, 
 		       const int* lo, const int* hi);
   
-  void mgt_set_cfbnx_3d(const int* lev, const int* n, const Real* cf,
-		        const Real* b,
+  void mgt_set_cfbnx_3d(const int* lev, const int* n, const amrex_real* cf,
+		        const amrex_real* b,
 		        const int* plo, const int* phi, 
 		        const int* lo, const int* hi, const int& ncomps);
   
-  void mgt_set_cfbny_3d(const int* lev, const int* n, const Real* cf,
-		        const Real* b,
+  void mgt_set_cfbny_3d(const int* lev, const int* n, const amrex_real* cf,
+		        const amrex_real* b,
 		        const int* plo, const int* phi, 
 		        const int* lo, const int* hi, const int& ncomps);
   
-  void mgt_set_cfbnz_3d(const int* lev, const int* n, const Real* cf,
-		        const Real* b,
+  void mgt_set_cfbnz_3d(const int* lev, const int* n, const amrex_real* cf,
+		        const amrex_real* b,
 		        const int* plo, const int* phi, 
 		        const int* lo, const int* hi, const int& ncomps);
   
   void mgt_set_cfa_3d_const(const int* lev, const int* n, 
-		            const int* lo, const int* hi, const Real* value);
+		            const int* lo, const int* hi, const amrex_real* value);
   
   void mgt_set_cfbx_3d_const(const int* lev, const int* n, 
-		             const int* lo, const int* hi, const Real* value);
+		             const int* lo, const int* hi, const amrex_real* value);
   
   void mgt_set_cfby_3d_const(const int* lev, const int* n, 
-		             const int* lo, const int* hi, const Real* value);
+		             const int* lo, const int* hi, const amrex_real* value);
   
   void mgt_set_cfbz_3d_const(const int* lev, const int* n, 
-		             const int* lo, const int* hi, const Real* value);
+		             const int* lo, const int* hi, const amrex_real* value);
   
-  void mgt_set_cfs_3d(const int* lev, const int* n, const Real* cf,
+  void mgt_set_cfs_3d(const int* lev, const int* n, const amrex_real* cf,
 		      const int* plo, const int* phi, 
 		      const int* lo, const int* hi);
   
-  void mgt_get_vel_3d(const int* lev, const int* n, Real* cf,
+  void mgt_get_vel_3d(const int* lev, const int* n, amrex_real* cf,
 		      const int* plo, const int* phi, 
 		      const int* lo, const int* hi,
 		      const int& nv, const int& iv);
   
-  void mgt_set_vel_3d(const int* lev, const int* n, const Real* cf,
+  void mgt_set_vel_3d(const int* lev, const int* n, const amrex_real* cf,
 		      const int* plo, const int* phi, 
 		      const int* lo, const int* hi,
 		      const int& nv, const int& iv);
 
-  void mgt_set_sync_msk_1d(const int* lev, const int* n, const Real* cf,
+  void mgt_set_sync_msk_1d(const int* lev, const int* n, const amrex_real* cf,
 			   const int* plo, const int* phi, 
 			   const int* lo, const int* hi);
-  void mgt_set_sync_msk_2d(const int* lev, const int* n, const Real* cf,
+  void mgt_set_sync_msk_2d(const int* lev, const int* n, const amrex_real* cf,
 			   const int* plo, const int* phi, 
 			   const int* lo, const int* hi);
-  void mgt_set_sync_msk_3d(const int* lev, const int* n, const Real* cf,
-			   const int* plo, const int* phi, 
-			   const int* lo, const int* hi);
-
-  void mgt_set_vold_1d(const int* lev, const int* n, const Real* cf,
-		       const int* plo, const int* phi, 
-		       const int* lo, const int* hi);
-  void mgt_set_vold_2d(const int* lev, const int* n, const Real* cf,
-		       const int* plo, const int* phi, 
-		       const int* lo, const int* hi);
-  void mgt_set_vold_3d(const int* lev, const int* n, const Real* cf,
-		       const int* plo, const int* phi, 
-		       const int* lo, const int* hi);
-
-  void mgt_get_sync_res_1d(const int* lev, const int* n, Real* cf,
-			   const int* plo, const int* phi, 
-			   const int* lo, const int* hi);
-  void mgt_get_sync_res_2d(const int* lev, const int* n, Real* cf,
-			   const int* plo, const int* phi, 
-			   const int* lo, const int* hi);
-  void mgt_get_sync_res_3d(const int* lev, const int* n, Real* cf,
+  void mgt_set_sync_msk_3d(const int* lev, const int* n, const amrex_real* cf,
 			   const int* plo, const int* phi, 
 			   const int* lo, const int* hi);
 
-  void mgt_set_rhcc_nodal_1d(const int* lev, const int* n, const Real* cf,
+  void mgt_set_vold_1d(const int* lev, const int* n, const amrex_real* cf,
 		       const int* plo, const int* phi, 
 		       const int* lo, const int* hi);
-  void mgt_set_rhcc_nodal_2d(const int* lev, const int* n, const Real* cf,
+  void mgt_set_vold_2d(const int* lev, const int* n, const amrex_real* cf,
 		       const int* plo, const int* phi, 
 		       const int* lo, const int* hi);
-  void mgt_set_rhcc_nodal_3d(const int* lev, const int* n, const Real* cf,
+  void mgt_set_vold_3d(const int* lev, const int* n, const amrex_real* cf,
+		       const int* plo, const int* phi, 
+		       const int* lo, const int* hi);
+
+  void mgt_get_sync_res_1d(const int* lev, const int* n, amrex_real* cf,
+			   const int* plo, const int* phi, 
+			   const int* lo, const int* hi);
+  void mgt_get_sync_res_2d(const int* lev, const int* n, amrex_real* cf,
+			   const int* plo, const int* phi, 
+			   const int* lo, const int* hi);
+  void mgt_get_sync_res_3d(const int* lev, const int* n, amrex_real* cf,
+			   const int* plo, const int* phi, 
+			   const int* lo, const int* hi);
+
+  void mgt_set_rhcc_nodal_1d(const int* lev, const int* n, const amrex_real* cf,
+		       const int* plo, const int* phi, 
+		       const int* lo, const int* hi);
+  void mgt_set_rhcc_nodal_2d(const int* lev, const int* n, const amrex_real* cf,
+		       const int* plo, const int* phi, 
+		       const int* lo, const int* hi);
+  void mgt_set_rhcc_nodal_3d(const int* lev, const int* n, const amrex_real* cf,
 		       const int* plo, const int* phi, 
 		       const int* lo, const int* hi);
 
@@ -802,7 +802,7 @@ extern "C"
 
   void mgt_nodal_dealloc();
   
-  void mgt_solve(const Real& tol, const Real& abs_tol, const int* need_grad_phi, Real* final_resnorm,
+  void mgt_solve(const amrex_real& tol, const amrex_real& abs_tol, const int* need_grad_phi, amrex_real* final_resnorm,
                  int* status, const int* always_use_bnorm);
 
   void mgt_applyop();
@@ -813,7 +813,7 @@ extern "C"
   
   void mgt_compute_residual();
   
-  void mgt_nodal_solve(const Real& tol, const Real& abs_tol);
+  void mgt_nodal_solve(const amrex_real& tol, const amrex_real& abs_tol);
   
   void mgt_divu(int* lo_inflow, int* hi_inflow);
   
@@ -821,15 +821,15 @@ extern "C"
 
   void mgt_set_defaults(const int* nu1, const int* nu2, const int* nub, const int* nuf,
                         const int* max_iter, const int* bottom_max_iter,
-                        const int* bottom_solver, const Real* bottom_solver_eps,
-                        const Real* max_L0_growth,
+                        const int* bottom_solver, const amrex_real* bottom_solver_eps,
+                        const amrex_real* max_L0_growth,
                         const int* verbose, const int* cg_verbose,
                         const int* max_nlevel, const int* min_width,
                         const int* cycle, const int* smoother, const int* stencil_type);
 
   void mgt_set_nodal_defaults(const int* nu1, const int* nu2, const int* nub, const int* nuf,
                               const int* max_iter, const int* bottom_max_iter,
-                              const int* bottom_solver, const Real* bottom_solver_eps,
+                              const int* bottom_solver, const amrex_real* bottom_solver_eps,
                               const int* verbose, const int* cg_verbose,
                               const int* max_nlevel, const int* min_width,
                               const int* cycle, const int* smoother, const int* stencil_type);
@@ -837,7 +837,7 @@ extern "C"
   void mgt_get_defaults(const int* nu1, const int* nu2, const int* nub, const int* nuf,
                         const int* max_iter, const int* bottom_max_iter,
                         const int* bottom_solver,
-                        const Real* max_L0_growth,
+                        const amrex_real* max_L0_growth,
                         const int* verbose, const int* cg_verbose,
                         const int* max_nlevel, const int* min_width,
                         const int* cycle, const int* smoother);
