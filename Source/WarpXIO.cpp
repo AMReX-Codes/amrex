@@ -346,21 +346,19 @@ WarpX::WritePlotFile () const
             MultiFab::Copy(*mf[lev], temp_dat, 0, dcomp, 1, 0);
 
             // MultiFab containing number of particles per grid (stored as constant for all cells in each grid)
-            Array<long> new_particle_cost = mypc->NumberOfParticlesInGrid(lev);
+            const Array<long>& new_particle_cost = mypc->NumberOfParticlesInGrid(lev);
 
 	    dcomp += 1;
-            for (MFIter mfi(temp_dat); mfi.isValid(); ++mfi) 
-                temp_dat[mfi].setVal(new_particle_cost[mfi.index()]);
-            MultiFab::Copy(*mf[lev], temp_dat, 0, dcomp, 1, 0);
+            for (MFIter mfi(*mf[lev]); mfi.isValid(); ++mfi) 
+		(*mf[lev])[mfi].setVal(static_cast<Real>(new_particle_cost[mfi.index()]), dcomp);
 
             // MultiFab containing number of particles per process (stored as constant for all cells in each grid)
 	    dcomp += 1;
-            int n_per_proc(ParallelDescriptor::NProcs());
-            for (MFIter mfi(temp_dat); mfi.isValid(); ++mfi) 
+            long n_per_proc = 0;
+            for (MFIter mfi(*mf[lev]); mfi.isValid(); ++mfi) 
                 n_per_proc += new_particle_cost[mfi.index()];
-            for (MFIter mfi(temp_dat); mfi.isValid(); ++mfi) 
-                temp_dat[mfi].setVal(n_per_proc);
-            MultiFab::Copy(*mf[lev], temp_dat, 0, dcomp, 1, 0);
+            for (MFIter mfi(*mf[lev]); mfi.isValid(); ++mfi) 
+		(*mf[lev])[mfi].setVal(static_cast<Real>(n_per_proc), dcomp);
 	}
     
 	Array<const MultiFab*> mf2(finest_level+1);
