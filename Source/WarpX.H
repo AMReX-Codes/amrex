@@ -25,6 +25,7 @@ public:
     ~WarpX ();
 
     int Verbose () const { return verbose; }
+    int RegridInt () const { return regrid_int; }
 
     void InitData ();
 
@@ -67,6 +68,13 @@ private:
 
     void MakeNewLevel (int lev, const BoxArray& new_grids, const DistributionMapping& new_dmap);
 
+    void RegridBaseLevel ();
+    bool LoadBalanceBaseLevel ();
+    void splitBoxes (BoxArray& ba, Array<long>& newcost, const Array<long>& cost_in, int heavy_grid_size);
+
+    Real getEfficiency(const DistributionMapping& dm, const Array<long>& cost);
+    DistributionMapping getCostCountDM (const Array<long>& cost, const BoxArray& ba);
+
     void InitFromScratch ();
     void InitFromCheckpoint ();
     void InitLevelData (int lev);
@@ -86,6 +94,8 @@ private:
     static void PackPlotDataPtrs (std::vector<MultiFab*>& pmf,
 				  const Array<std::unique_ptr<MultiFab> >& data);
     static void Copy (MultiFab& dstmf, int dcomp, int ncomp, const MultiFab& srcmf, int scomp);
+
+    bool okToRegrid(int step);
 
     Array<int> istep;      // which step?
     Array<int> nsubsteps;  // how many substeps on each level?
@@ -119,6 +129,8 @@ private:
 
     int max_step   = std::numeric_limits<int>::max();
     Real stop_time = std::numeric_limits<Real>::max();
+
+    int regrid_int = -1;
 
     Real cfl = 0.7;
 

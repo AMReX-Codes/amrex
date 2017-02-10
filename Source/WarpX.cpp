@@ -130,6 +130,7 @@ WarpX::ReadParameters ()
 
 	pp.query("cfl", cfl);
 	pp.query("verbose", verbose);
+	pp.query("regrid_int", regrid_int);
 
 	pp.query("do_moving_window", do_moving_window);
 	if (do_moving_window)

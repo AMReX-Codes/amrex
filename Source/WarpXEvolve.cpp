@@ -24,6 +24,9 @@ WarpX::Evolve (int numsteps)
 	    std::cout << "\nSTEP " << step+1 << " starts ..." << std::endl;
 	}
 
+        if (ParallelDescriptor::NProcs() > 1)
+           if (okToRegrid(step)) RegridBaseLevel();
+
 	ComputeDt();
 
 	// Advance level 0 by dt
