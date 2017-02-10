@@ -14,15 +14,15 @@ module amrex_fillpatch_module
   end interface amrex_fillpatch
 
   interface
-     subroutine amrex_fi_fillpatch_single(mf, time, smf, stime, scomp, dcomp, ncomp, &
-          geom, pbc, n) bind(c)
+     subroutine amrex_fi_fillpatch_single(mf, time, smf, stime, ns, scomp, dcomp, ncomp, &
+          geom, pbc) bind(c)
        import
        implicit none
        type(c_ptr), value :: mf, geom, pbc
        type(c_ptr), intent(in) :: smf(*)
        real(amrex_real), value :: time
        real(amrex_real), intent(in) :: stime(*)
-       integer(c_int), value :: scomp, dcomp, ncomp, n
+       integer(c_int), value :: scomp, dcomp, ncomp, ns
      end subroutine amrex_fi_fillpatch_single
   end interface
 
@@ -48,7 +48,7 @@ contains
     do i = 1, n
        smf_c(i) = smf(i)%p
     end do
-    call amrex_fi_fillpatch_single(mf%p, time, smf_c, stime, scomp, dcomp, ncomp, geom%p, pbc%p, n)
+    call amrex_fi_fillpatch_single(mf%p, time, smf_c, stime, n, scomp, dcomp, ncomp, geom%p, pbc%p)
   end subroutine amrex_fillpatch_single
 
 
