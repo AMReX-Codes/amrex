@@ -94,6 +94,45 @@ MultiParticleContainer::Redistribute (bool where_called)
     }
 }
 
+Array<long>
+MultiParticleContainer::NumberOfParticlesInGrid(int lev) const
+{
+    const bool only_valid=true, only_local=true;
+    Array<long> r = allcontainers[0]->NumberOfParticlesInGrid(lev,only_valid,only_local);
+    for (unsigned i = 1, n = allcontainers.size(); i < n; ++i) {
+	const auto& ri = allcontainers[i]->NumberOfParticlesInGrid(lev,only_valid,only_local);
+	for (unsigned j=0, m=ri.size(); j<m; ++j) {
+	    r[j] += ri[j];
+	}
+    }
+    ParallelDescriptor::ReduceLongSum(r.data(),r.size());
+    return r;
+}
+
+void
+MultiParticleContainer::Increment (MultiFab& mf, int lev)
+{
+    for (auto& pc : allcontainers) {
+	pc->Increment(mf,lev);
+    }
+}
+
+void
+MultiParticleContainer::SetParticleBoxArray (int lev, BoxArray& new_ba)
+{
+    for (auto& pc : allcontainers) {
+	pc->SetParticleBoxArray(lev,new_ba);
+    }
+}
+
+void
+MultiParticleContainer::SetParticleDistributionMap (int lev, DistributionMapping& new_dm)
+{
+    for (auto& pc : allcontainers) {
+	pc->SetParticleDistributionMap(lev,new_dm);
+    }
+}
+
 void
 MultiParticleContainer::PostRestart ()
 {
