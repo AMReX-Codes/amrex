@@ -8,14 +8,14 @@
 
 extern "C"
 {
-    typedef void (*BndryFuncDefault)(Real* data, ARLIM_P(lo), ARLIM_P(hi),
+    typedef void (*BndryFuncDefault)(amrex::Real* data, ARLIM_P(lo), ARLIM_P(hi),
                                      const int* dom_lo, const int* dom_hi,
-                                     const Real* dx, const Real* grd_lo,
-                                     const Real* time, const int* bc);
-    typedef void (*BndryFunc3DDefault)(Real* data, const int* lo, const int* hi,
+                                     const amrex::Real* dx, const amrex::Real* grd_lo,
+                                     const amrex::Real* time, const int* bc);
+    typedef void (*BndryFunc3DDefault)(amrex::Real* data, const int* lo, const int* hi,
                                        const int* dom_lo, const int* dom_hi,
-                                       const Real* dx, const Real* grd_lo,
-                                       const Real* time, const int* bc);
+                                       const amrex::Real* dx, const amrex::Real* grd_lo,
+                                       const amrex::Real* time, const int* bc);
 }
 
 namespace amrex {

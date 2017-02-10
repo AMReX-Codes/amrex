@@ -8,7 +8,7 @@
 #include <AMReX_REAL.H>
 #include <cfloat>
 
-#include <stdio.h>
+#include <cstdio>
 
 namespace amrex {
 

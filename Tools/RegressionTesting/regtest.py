@@ -377,7 +377,8 @@ def test_suite(argv):
         suite.log.log("copying files to run directory...")
 
         needed_files = []
-        needed_files.append((executable, "move"))
+        if executable is not None:
+            needed_files.append((executable, "move"))
 
         needed_files.append((test.inputFile, "copy"))
         # strip out any sub-directory from the build dir
@@ -466,6 +467,9 @@ def test_suite(argv):
 
         if args.with_valgrind:
             base_cmd = "valgrind " + args.valgrind_options + " " + base_cmd
+
+        if test.customRunCmd is not None:
+            base_cmd = test.customRunCmd
 
         suite.run_test(test, base_cmd)
 

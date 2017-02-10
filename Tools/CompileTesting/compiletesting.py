@@ -44,6 +44,7 @@ def compiletesting(arg_string):
                      'Tutorials/HeatEquation_EX4_F',
                      'Tutorials/HeatEquation_EX5_F',
                      'Tutorials/HelloWorld_C',
+                     'Tutorials/HelloWorld_CF',
                      'Tutorials/MultiColor_C',
                      'Tutorials/MultiFabTests_C',
                      'Tutorials/MultiGrid_C',
