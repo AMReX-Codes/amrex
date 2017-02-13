@@ -227,17 +227,13 @@ public:
     ParticleContainer ()
       : m_verbose(1), m_gdb(nullptr), allow_particles_near_boundary(false)
   {
-    for (int i = 0; i < NCOMP; ++i) 
-      communicate_comp[i] = true;
   }
 
     ParticleContainer (ParGDBBase* gdb)
         :
       m_verbose(1), m_gdb(gdb), allow_particles_near_boundary(false)
   {
-    for (int i = 0; i < NCOMP; ++i) 
-      communicate_comp[i] = true;
-    allocateData();
+      allocateData();
   }
   
     ParticleContainer (const Geometry            & geom, 
@@ -249,8 +245,6 @@ public:
 	m_gdb_object(geom,dmap,ba)
     {
       m_gdb = & m_gdb_object;
-      for (int i = 0; i < NCOMP; ++i) 
-	communicate_comp[i] = true;
       allocateData();
     }
 
@@ -264,8 +258,6 @@ public:
 	m_gdb_object(geom,dmap,ba,rr)
     {
       m_gdb = & m_gdb_object;
-      for (int i = 0; i < NCOMP; ++i) 
-	communicate_comp[i] = true;
       allocateData();
     }
 
@@ -274,8 +266,6 @@ public:
     void Define (ParGDBBase* gdb)
     {
       m_gdb = gdb;
-      for (int i = 0; i < NCOMP; ++i) 
-	communicate_comp[i] = true;
       allocateData();
     }
 
@@ -285,8 +275,6 @@ public:
   {
     m_gdb_object = ParGDB(geom, dmap, ba);
     m_gdb = &m_gdb_object;
-      for (int i = 0; i < NCOMP; ++i) 
-	communicate_comp[i] = true;
     allocateData();
   }
 
@@ -297,8 +285,6 @@ public:
     {
 	m_gdb_object = ParGDB(geom, dmap, ba, rr);
 	m_gdb = &m_gdb_object;
-	for (int i = 0; i < NCOMP; ++i) 
-	  communicate_comp[i] = true;
 	allocateData();
     }
 
@@ -514,7 +500,7 @@ public:
 				    Array<IntVect>&                    fcells,
 				    std::vector< std::pair<int,Box> >& isects) const;
 
-    bool communicate_comp[NCOMP];
+    std::vector<bool> communicate_comp {NCOMP,true};
     static bool do_tiling;
     static IntVect tile_size;
 
