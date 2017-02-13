@@ -225,13 +225,13 @@ public:
     using SoAMap = std::map<std::pair<int, int>, SoA>;
 
     ParticleContainer ()
-      : m_verbose(1), m_gdb(nullptr), allow_particles_near_boundary(false)
+      : m_verbose(1), m_gdb(nullptr), allow_particles_near_boundary(false), communicate_comp(NA, true)
   {
   }
 
     ParticleContainer (ParGDBBase* gdb)
         :
-      m_verbose(1), m_gdb(gdb), allow_particles_near_boundary(false)
+      m_verbose(1), m_gdb(gdb), allow_particles_near_boundary(false), communicate_comp(NA, true)
   {
     allocateData();
   }
@@ -242,7 +242,8 @@ public:
 	:
         m_verbose(1), 
 	allow_particles_near_boundary(false),
-	m_gdb_object(geom,dmap,ba)
+	m_gdb_object(geom,dmap,ba), 
+	communicate_comp(NA, true)
     {
       m_gdb = & m_gdb_object;
       allocateData();
@@ -255,7 +256,8 @@ public:
 	:
         m_verbose(1), 
 	allow_particles_near_boundary(false),
-	m_gdb_object(geom,dmap,ba,rr)
+	m_gdb_object(geom,dmap,ba,rr),
+	communicate_comp(NA, true)
     {
       m_gdb = & m_gdb_object;
       allocateData();
@@ -500,7 +502,7 @@ public:
 				    Array<IntVect>&                    fcells,
 				    std::vector< std::pair<int,Box> >& isects) const;
 
-    std::vector<bool> communicate_comp {NA, true};
+    std::vector<bool> communicate_comp;
     static bool do_tiling;
     static IntVect tile_size;
 
