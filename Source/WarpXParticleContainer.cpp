@@ -92,8 +92,8 @@ WarpXParticleContainer::AddNParticles (int n, const Real* x, const Real* y, cons
 	
 	p.m_data[PIdx::w] = weight[i];
 	
-	for (int i = 1; i < PIdx::nattribs; i++) {
-	    p.m_data[i] = 0;
+	for (int j = 1; j < PIdx::nattribs; ++j) {
+	    p.m_data[j] = 0;
 	}
 	
 	p.m_data[PIdx::ux] = vx[i];
