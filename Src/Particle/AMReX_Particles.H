@@ -66,10 +66,10 @@ struct ParticleCommData
 //
 struct ParticleLocData
 {
-  int     m_lev;
-  int     m_grid;
-  int     m_tile;
-  IntVect m_cell;
+  int     m_lev  = -1;
+  int     m_grid = -1;
+  int     m_tile = -1;
+  IntVect m_cell {D_DECL(-1,-1,-1)};
 };
 
 

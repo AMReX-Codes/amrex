@@ -214,6 +214,8 @@ ParticleContainer<NR, NI, NA>::InitFromAsciiFile (const std::string& file, int e
     //
     int NRedist_chunk = NReaders / NRedist;
 
+    ParticleLocData pld;
+
     for (int nr = 0; nr < NRedist; nr++)
     {
         if (m_verbose > 0 && ParallelDescriptor::IOProcessor())
@@ -226,7 +228,6 @@ ParticleContainer<NR, NI, NA>::InitFromAsciiFile (const std::string& file, int e
                 while (!nparticles.empty())
                 {
                     ParticleType& p = nparticles.back();
-		    ParticleLocData pld;
 		    Where(p, pld);
 
                     m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
@@ -256,7 +257,6 @@ ParticleContainer<NR, NI, NA>::InitFromAsciiFile (const std::string& file, int e
             while (!nparticles.empty())
             {
                 ParticleType& p = nparticles.back();
-		ParticleLocData pld;
 		Where(p, pld);
 
                 m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
@@ -569,12 +569,13 @@ ParticleContainer<NR, NI, NA>::InitFromBinaryFile (const std::string& file,
         dignore.resize(NX-extradata);
     }
 
+    ParticleLocData pld;
+
     for (int j = 0; j < how_many_redists; j++)
     {
         if (readers.find(MyProc) != readers.end())
         {
             ParticleType p;
-	    ParticleLocData pld;
 
             BL_ASSERT(MyCnt > how_many_read);
 
@@ -847,12 +848,13 @@ ParticleContainer<NR, NI, NA>::InitRandom (long          icount,
 
         ParallelDescriptor::Bcast(pos.dataPtr(), icount*BL_SPACEDIM, IOProc);
 
+        ParticleLocData pld;
+
         int cnt = 0;
 
         for (long j = 0; j < icount; j++)
         {
             ParticleType p;
-	    ParticleLocData pld;
 
             for (int i = 0; i < BL_SPACEDIM; i++)
             {
@@ -911,10 +913,11 @@ ParticleContainer<NR, NI, NA>::InitRandom (long          icount,
             M += (icount % NProcs);
         }
 
+        ParticleLocData pld;
+
         for (long icnt = 0; icnt < M; icnt++)
         {
 	  ParticleType p;
-	  ParticleLocData pld;
             for (int i = 0; i < BL_SPACEDIM; i++)
             {
                 do
@@ -997,6 +1000,8 @@ ParticleContainer<NR, NI, NA>::InitOnePerCell (Real x_off, Real y_off, Real z_of
     //
     const Real* dx  = geom.CellSize();
 
+    ParticleLocData pld;
+
     //
     // We'll generate the particles in parallel -- but no tiling here.
     //
@@ -1017,7 +1022,6 @@ ParticleContainer<NR, NI, NA>::InitOnePerCell (Real x_off, Real y_off, Real z_of
           for (int k = 0; k < nz; k++)
           {
             ParticleType p;
-	    ParticleLocData pld;
 
             p.m_rdata.pos[0] = grid_box.lo(0) + (x_off + i)*dx[0];
             p.m_rdata.pos[1] = grid_box.lo(1) + (y_off + j)*dx[1];
@@ -1104,6 +1108,8 @@ ParticleContainer<NR, NI, NA>::InitNRandomPerCell (int n_per_cell, Real mass, co
     for (int lev = 0; lev < m_particles.size(); lev++)
         BL_ASSERT(m_particles[lev].empty());
 
+    ParticleLocData pld;
+
     //
     // We'll generate the particles in parallel -- but no tiling here.
     //
@@ -1119,7 +1125,6 @@ ParticleContainer<NR, NI, NA>::InitNRandomPerCell (int n_per_cell, Real mass, co
           for (int k = 0; k < nz; k++)
           {
             ParticleType p;
-	    ParticleLocData pld;
 
             for (int n = 0; n < n_per_cell; n++)
             {
