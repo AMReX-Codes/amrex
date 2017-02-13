@@ -189,7 +189,7 @@ struct Particle
                                 Array<IntVect>&     cells);
 };
 
-template <int NCOMP>
+template <int NA>
 struct StructOfArrays {
   
   std::vector<Real>& operator[] (const int index) {
@@ -200,10 +200,10 @@ struct StructOfArrays {
     return m_data[index];
   }
 
-  std::array<std::vector<Real> , NCOMP> m_data;
+  std::array<std::vector<Real> , NA> m_data;
 };
 
-template <int NR, int NI = 0, int NCOMP = 0>
+template <int NR, int NI = 0, int NA = 0>
 class ParticleContainer
 {
 public:
@@ -217,7 +217,7 @@ public:
 
     // The struct-of-arrays data is stored as a double array where the first index is the
     // component number and the second is the particle index.
-    typedef StructOfArrays<NCOMP> SoA;
+    typedef StructOfArrays<NA> SoA;
 
     // A single level worth of particles is indexed first by grid id, 
     // then by tile id, for both SoA and AoS data.
@@ -227,7 +227,7 @@ public:
     ParticleContainer ()
       : m_verbose(1), m_gdb(nullptr), allow_particles_near_boundary(false)
   {
-    for (int i = 0; i < NCOMP; ++i) 
+    for (int i = 0; i < NA; ++i) 
       communicate_comp[i] = true;
   }
 
@@ -235,7 +235,7 @@ public:
         :
       m_verbose(1), m_gdb(gdb), allow_particles_near_boundary(false)
   {
-    for (int i = 0; i < NCOMP; ++i) 
+    for (int i = 0; i < NA; ++i) 
       communicate_comp[i] = true;
     allocateData();
   }
@@ -249,7 +249,7 @@ public:
 	m_gdb_object(geom,dmap,ba)
     {
       m_gdb = & m_gdb_object;
-      for (int i = 0; i < NCOMP; ++i) 
+      for (int i = 0; i < NA; ++i) 
 	communicate_comp[i] = true;
       allocateData();
     }
@@ -264,7 +264,7 @@ public:
 	m_gdb_object(geom,dmap,ba,rr)
     {
       m_gdb = & m_gdb_object;
-      for (int i = 0; i < NCOMP; ++i) 
+      for (int i = 0; i < NA; ++i) 
 	communicate_comp[i] = true;
       allocateData();
     }
@@ -274,7 +274,7 @@ public:
     void Define (ParGDBBase* gdb)
     {
       m_gdb = gdb;
-      for (int i = 0; i < NCOMP; ++i) 
+      for (int i = 0; i < NA; ++i) 
 	communicate_comp[i] = true;
       allocateData();
     }
@@ -285,7 +285,7 @@ public:
   {
     m_gdb_object = ParGDB(geom, dmap, ba);
     m_gdb = &m_gdb_object;
-      for (int i = 0; i < NCOMP; ++i) 
+      for (int i = 0; i < NA; ++i) 
 	communicate_comp[i] = true;
     allocateData();
   }
@@ -297,7 +297,7 @@ public:
     {
 	m_gdb_object = ParGDB(geom, dmap, ba, rr);
 	m_gdb = &m_gdb_object;
-	for (int i = 0; i < NCOMP; ++i) 
+	for (int i = 0; i < NA; ++i) 
 	  communicate_comp[i] = true;
 	allocateData();
     }
@@ -514,7 +514,7 @@ public:
 				    Array<IntVect>&                    fcells,
 				    std::vector< std::pair<int,Box> >& isects) const;
 
-    bool communicate_comp[NCOMP];
+    bool communicate_comp[NA];
     static bool do_tiling;
     static IntVect tile_size;
 
@@ -569,7 +569,7 @@ protected:
     //
     // The struct-of-arrays data for the entire AMR hierarchy
     //
-    Array<SoAMap> m_partdata;
+    Array<SoAMap> m_arraydata;
 
 private:
     void AssignDensityDoit (int rho_index, 

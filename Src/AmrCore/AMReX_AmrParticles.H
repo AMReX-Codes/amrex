@@ -7,19 +7,19 @@
 
 namespace amrex {
 
-  template <int NR, int NI=0, int NCOMP=0>
+  template <int NR, int NI=0, int NA=0>
 class AmrParticleContainer
-    : public ParticleContainer<NR, NI, NCOMP>
+    : public ParticleContainer<NR, NI, NA>
 {
 
 public:
 
   typedef Particle<NR,NI> ParticleType;
-  typedef typename ParticleContainer<NR,NI,NCOMP>::PBox PBox;
-  typedef typename ParticleContainer<NR,NI,NCOMP>::PMap PMap;
+  typedef typename ParticleContainer<NR,NI,NA>::PBox PBox;
+  typedef typename ParticleContainer<NR,NI,NA>::PMap PMap;
     
     AmrParticleContainer (AmrCore* amr_core)
-      : ParticleContainer<NR, NI, NCOMP>(amr_core->GetParGDB())
+      : ParticleContainer<NR, NI, NA>(amr_core->GetParGDB())
     {
 	this->m_particles.reserve(this->m_gdb->maxLevel()+1);	
 	this->m_particles.resize(this->m_gdb->finestLevel()+1);
