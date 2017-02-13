@@ -202,11 +202,11 @@ long
 FabArrayBase::TileArray::bytes () const
 {
     return sizeof(*this) 
-	+ (amrex::bytesOf(this->numTiles)      - sizeof(this->numTiles))
-	+ (amrex::bytesOf(this->indexMap)      - sizeof(this->indexMap))
-	+ (amrex::bytesOf(this->localIndexMap) - sizeof(this->localIndexMap))
-	+ (amrex::bytesOf(this->tileIndexMap)  - sizeof(this->tileIndexMap))
-	+ (amrex::bytesOf(this->tileArray)     - sizeof(this->tileArray));
+	+ (amrex::bytesOf(this->numLocalTiles)     - sizeof(this->numLocalTiles))
+	+ (amrex::bytesOf(this->indexMap)          - sizeof(this->indexMap))
+	+ (amrex::bytesOf(this->localIndexMap)     - sizeof(this->localIndexMap))
+	+ (amrex::bytesOf(this->localTileIndexMap) - sizeof(this->localTileIndexMap))
+	+ (amrex::bytesOf(this->tileArray)         - sizeof(this->tileArray));
 }
 
 //
@@ -1276,8 +1276,8 @@ FabArrayBase::buildTileArray (const IntVect& tileSize, TileArray& ta) const
 		const Box& bx = boxarray.getCellCenteredBox(K);
 		ta.indexMap.push_back(K);
 		ta.localIndexMap.push_back(i);
-		ta.tileIndexMap.push_back(0);
-		ta.numTiles.push_back(1);
+		ta.localTileIndexMap.push_back(0);
+		ta.numLocalTiles.push_back(1);
 		ta.tileArray.push_back(bx);
 	    }
 	}
@@ -1318,8 +1318,8 @@ FabArrayBase::buildTileArray (const IntVect& tileSize, TileArray& ta) const
 	    for (int t = 0; t < ntiles; ++t) {
 		ta.indexMap.push_back(K);
 		ta.localIndexMap.push_back(i);
-		ta.tileIndexMap.push_back(t);
-		ta.numTiles.push_back(ntiles);
+		ta.localTileIndexMap.push_back(t);
+		ta.numLocalTiles.push_back(ntiles);
 
 		for (int d=0; d<BL_SPACEDIM; d++) {
 		    if (ijk[d]<nt_in_fab[d]-1) {
@@ -1456,11 +1456,11 @@ MFIter::MFIter (const FabArrayBase& fabarray_,
     fabArray(fabarray_),
     tile_size((flags_ & Tiling) ? FabArrayBase::mfiter_tile_size : IntVect::TheZeroVector()),
     flags(flags_),
-    index_map(0),
-    local_index_map(0),
-    tile_array(0),
-    tile_index_map(0),
-    num_tiles(0)
+    index_map(nullptr),
+    local_index_map(nullptr),
+    tile_array(nullptr),
+    local_tile_index_map(nullptr),
+    num_local_tiles(nullptr)
 {
     Initialize();
 }
@@ -1471,11 +1471,11 @@ MFIter::MFIter (const FabArrayBase& fabarray_,
     fabArray(fabarray_),
     tile_size((do_tiling_) ? FabArrayBase::mfiter_tile_size : IntVect::TheZeroVector()),
     flags(do_tiling_ ? Tiling : 0),
-    index_map(0),
-    local_index_map(0),
-    tile_array(0),
-    tile_index_map(0),
-    num_tiles(0)
+    index_map(nullptr),
+    local_index_map(nullptr),
+    tile_array(nullptr),
+    local_tile_index_map(nullptr),
+    num_local_tiles(nullptr)
 {
     Initialize();
 }
@@ -1487,11 +1487,11 @@ MFIter::MFIter (const FabArrayBase& fabarray_,
     fabArray(fabarray_),
     tile_size(tilesize_),
     flags(flags_ | Tiling),
-    index_map(0),
-    local_index_map(0),
-    tile_array(0),
-    tile_index_map(0),
-    num_tiles(0)
+    index_map(nullptr),
+    local_index_map(nullptr),
+    tile_array(nullptr),
+    local_tile_index_map(nullptr),
+    num_local_tiles(nullptr)
 {
     Initialize();
 }
@@ -1521,11 +1521,11 @@ MFIter::Initialize ()
     {
 	const FabArrayBase::TileArray* pta = fabArray.getTileArray(tile_size);
 	
-	index_map       = &(pta->indexMap);
-	local_index_map = &(pta->localIndexMap);
-	tile_array      = &(pta->tileArray);
-	tile_index_map  = &(pta->tileIndexMap);
-	num_tiles       = &(pta->numTiles);
+	index_map            = &(pta->indexMap);
+	local_index_map      = &(pta->localIndexMap);
+	tile_array           = &(pta->tileArray);
+	local_tile_index_map = &(pta->localTileIndexMap);
+	num_local_tiles      = &(pta->numLocalTiles);
 
 	{
 	    int rit = 0;
