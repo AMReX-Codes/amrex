@@ -1,4 +1,3 @@
-using std::make_pair;
 
 template <int NR, int NI, int NCOMP>
 void
@@ -230,7 +229,7 @@ ParticleContainer<NR, NI, NCOMP>::InitFromAsciiFile (const std::string& file, in
 		    ParticleLocData pld;
 		    Where(p, pld);
 
-                    m_particles[pld.m_lev][make_pair(pld.m_grid, pld.m_tile)].push_back(p);
+                    m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
     
                     nparticles.pop_back();
                 }
@@ -260,7 +259,7 @@ ParticleContainer<NR, NI, NCOMP>::InitFromAsciiFile (const std::string& file, in
 		ParticleLocData pld;
 		Where(p, pld);
 
-                m_particles[pld.m_lev][make_pair(pld.m_grid, pld.m_tile)].push_back(p);
+                m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
 
                 nparticles.pop_back();
             }
@@ -672,7 +671,7 @@ ParticleContainer<NR, NI, NCOMP>::InitFromBinaryFile (const std::string& file,
                 p.m_idata.id  = ParticleType::NextID();
                 p.m_idata.cpu = MyProc;
 
-                m_particles[pld.m_lev][make_pair(pld.m_grid, pld.m_tile)].push_back(p);
+                m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
             }
 
             how_many_read += NRead;
@@ -888,7 +887,7 @@ ParticleContainer<NR, NI, NCOMP>::InitRandom (long          icount,
                 p.m_idata.id  = ParticleType::NextID();
                 p.m_idata.cpu = MyProc;
 
-                m_particles[pld.m_lev][make_pair(pld.m_grid, pld.m_tile)].push_back(p);
+                m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
 
                 cnt++;
 	      }
@@ -954,7 +953,7 @@ ParticleContainer<NR, NI, NCOMP>::InitRandom (long          icount,
             //
             // Add it to the appropriate AoS at the appropriate level.
             //
-            m_particles[pld.m_lev][make_pair(pld.m_grid, pld.m_tile)].push_back(p);
+            m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
         }
         //
         // Let Redistribute() sort out where the particles belong.
@@ -1053,13 +1052,13 @@ ParticleContainer<NR, NI, NCOMP>::InitOnePerCell (Real x_off, Real y_off, Real z
             //
             // Add it to the appropriate AoS at the appropriate level.
             //
-            m_particles[pld.m_lev][make_pair(pld.m_grid, pld.m_tile)].push_back(p);
+            m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
 	    if (NCOMP > 0)
-		m_partdata[pld.m_lev][make_pair(pld.m_grid, pld.m_tile)][0].push_back(p.m_idata.id);
+		m_partdata[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)][0].push_back(p.m_idata.id);
 	    if (NCOMP > 1)
-	      m_partdata[pld.m_lev][make_pair(pld.m_grid, pld.m_tile)][1].push_back(p.m_idata.cpu);
+	      m_partdata[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)][1].push_back(p.m_idata.cpu);
 	    for (int i = 2; i < NCOMP; i++)
-	      m_partdata[pld.m_lev][make_pair(pld.m_grid, pld.m_tile)][i].push_back(0.0);
+	      m_partdata[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)][i].push_back(0.0);
           }
          }
         }
@@ -1158,7 +1157,7 @@ ParticleContainer<NR, NI, NCOMP>::InitNRandomPerCell (int n_per_cell, Real mass,
                //
                // Add it to the appropriate AoS at the appropriate level.
                //
-               m_particles[pld.m_lev][make_pair(pld.m_grid, pld.m_tile)].push_back(p);
+               m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
             }
           } 
          } 
