@@ -92,9 +92,8 @@ Adv::advance (Real time,
 			      dx, prob_lo);
 
 	    for (int i = 0; i < BL_SPACEDIM ; i++) {
-	      const Box& bxtmp = amrex::surroundingNodes(bx,i);	     
-	      Umac[i][mfi].copy(uface[i], amrex::grow(bxtmp, iteration));
-
+                const Box& bxtmp = mfi.grownnodaltilebox(i, iteration);
+                Umac[i][mfi].copy(uface[i], bxtmp);
 	    }
             advect(time, bx.loVect(), bx.hiVect(),
 		   BL_TO_FORTRAN_3D(statein), 

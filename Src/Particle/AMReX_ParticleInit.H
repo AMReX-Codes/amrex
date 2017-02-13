@@ -1,4 +1,3 @@
-using std::make_pair;
 
 template <int NR, int NI, int NA>
 void
@@ -230,7 +229,7 @@ ParticleContainer<NR, NI, NA>::InitFromAsciiFile (const std::string& file, int e
 		    ParticleLocData pld;
 		    Where(p, pld);
 
-                    m_particles[pld.m_lev][make_pair(pld.m_grid, pld.m_tile)].push_back(p);
+                    m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
     
                     nparticles.pop_back();
                 }
@@ -260,7 +259,7 @@ ParticleContainer<NR, NI, NA>::InitFromAsciiFile (const std::string& file, int e
 		ParticleLocData pld;
 		Where(p, pld);
 
-                m_particles[pld.m_lev][make_pair(pld.m_grid, pld.m_tile)].push_back(p);
+                m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
 
                 nparticles.pop_back();
             }
@@ -672,7 +671,7 @@ ParticleContainer<NR, NI, NA>::InitFromBinaryFile (const std::string& file,
                 p.m_idata.id  = ParticleType::NextID();
                 p.m_idata.cpu = MyProc;
 
-                m_particles[pld.m_lev][make_pair(pld.m_grid, pld.m_tile)].push_back(p);
+                m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
             }
 
             how_many_read += NRead;
@@ -888,7 +887,7 @@ ParticleContainer<NR, NI, NA>::InitRandom (long          icount,
                 p.m_idata.id  = ParticleType::NextID();
                 p.m_idata.cpu = MyProc;
 
-                m_particles[pld.m_lev][make_pair(pld.m_grid, pld.m_tile)].push_back(p);
+                m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
 
                 cnt++;
 	      }
@@ -954,7 +953,7 @@ ParticleContainer<NR, NI, NA>::InitRandom (long          icount,
             //
             // Add it to the appropriate AoS at the appropriate level.
             //
-            m_particles[pld.m_lev][make_pair(pld.m_grid, pld.m_tile)].push_back(p);
+            m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
         }
         //
         // Let Redistribute() sort out where the particles belong.
@@ -1050,18 +1049,18 @@ ParticleContainer<NR, NI, NA>::InitOnePerCell (Real x_off, Real y_off, Real z_of
             //
             // Add it to the appropriate AoS at the appropriate level.
             //
-            m_particles[pld.m_lev][make_pair(pld.m_grid, pld.m_tile)].push_back(p);
+	    m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
 	    if (NA > 0)
-	      m_arraydata[pld.m_lev][make_pair(pld.m_grid, pld.m_tile)][0].push_back(p.m_idata.id);
+	      m_arraydata[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)][0].push_back(p.m_idata.id);
 	    if (NA > 1)
-	      m_arraydata[pld.m_lev][make_pair(pld.m_grid, pld.m_tile)][1].push_back(p.m_idata.cpu);
+	      m_arraydata[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)][1].push_back(p.m_idata.cpu);
 	    for (int i = 2; i < NA; i++)
-	      m_arraydata[pld.m_lev][make_pair(pld.m_grid, pld.m_tile)][i].push_back(0.0);
+	      m_arraydata[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)][i].push_back(0.0);
           }
          }
         }
     }
-
+    
     //
     // We still need to redistribute in order to define each particle's cell, grid and level, but this 
     //    shouldn't require any inter-node communication because the particles should already be in the right grid.
@@ -1155,7 +1154,7 @@ ParticleContainer<NR, NI, NA>::InitNRandomPerCell (int n_per_cell, Real mass, co
                //
                // Add it to the appropriate AoS at the appropriate level.
                //
-               m_particles[pld.m_lev][make_pair(pld.m_grid, pld.m_tile)].push_back(p);
+               m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
             }
           } 
          } 
