@@ -1,10 +1,10 @@
 using std::make_pair;
 
-template <int NR, int NI, int NCOMP>
+template <int NR, int NI, int NA>
 void
-ParticleContainer<NR, NI, NCOMP>::InitFromAsciiFile (const std::string& file, int extradata, const IntVect* Nrep)
+ParticleContainer<NR, NI, NA>::InitFromAsciiFile (const std::string& file, int extradata, const IntVect* Nrep)
 {
-    BL_PROFILE("ParticleContainer<NR, NI, NCOMP>::InitFromAsciiFile()");
+    BL_PROFILE("ParticleContainer<NR, NI, NA>::InitFromAsciiFile()");
     BL_ASSERT(!file.empty());
     BL_ASSERT(extradata <= NR);
 
@@ -140,7 +140,7 @@ ParticleContainer<NR, NI, NCOMP>::InitFromAsciiFile (const std::string& file, in
                         std::cout << "BAD PARTICLE POS(" << d << ") " << p.m_rdata.pos[d] << std::endl;
                     }
 
-                    amrex::Abort("ParticleContainer<NR, NI, NCOMP>::InitFromAsciiFile(): invalid particle");
+                    amrex::Abort("ParticleContainer<NR, NI, NA>::InitFromAsciiFile(): invalid particle");
                 }
             }
 
@@ -186,7 +186,7 @@ ParticleContainer<NR, NI, NCOMP>::InitFromAsciiFile (const std::string& file, in
                                 if (!Where(p_rep, pld))
                                 {
                                     std::cout << "BAD REPLICATED PARTICLE ID WOULD BE " << ParticleType::NextID() << std::endl;
-                                    amrex::Abort("ParticleContainer<NR, NI, NCOMP>::InitFromAsciiFile(): invalid replicated particle");
+                                    amrex::Abort("ParticleContainer<NR, NI, NA>::InitFromAsciiFile(): invalid replicated particle");
                                 }
                             }
                             //
@@ -332,12 +332,12 @@ ParticleContainer<NR, NI, NCOMP>::InitFromAsciiFile (const std::string& file, in
 // They're packed into the binary file like sardines.
 //
 
-template <int NR, int NI, int NCOMP>
+template <int NR, int NI, int NA>
 void
-ParticleContainer<NR, NI, NCOMP>::InitFromBinaryFile (const std::string& file,
+ParticleContainer<NR, NI, NA>::InitFromBinaryFile (const std::string& file,
 						int                extradata)
 {
-    BL_PROFILE("ParticleContainer<NR, NI, NCOMP>::InitFromBinaryFile()");
+    BL_PROFILE("ParticleContainer<NR, NI, NA>::InitFromBinaryFile()");
     BL_ASSERT(!file.empty());
     BL_ASSERT(extradata <= NR);
 
@@ -471,22 +471,22 @@ ParticleContainer<NR, NI, NCOMP>::InitFromBinaryFile (const std::string& file,
         // NP MUST be positive!
         //
         if (NP <= 0)
-            amrex::Abort("ParticleContainer<NR, NI, NCOMP>::InitFromBinaryFile(): NP <= 0");
+            amrex::Abort("ParticleContainer<NR, NI, NA>::InitFromBinaryFile(): NP <= 0");
         //
         // DM must equal BL_SPACEDIM.
         //
         if (DM != BL_SPACEDIM)
-            amrex::Abort("ParticleContainer<NR, NI, NCOMP>::InitFromBinaryFile(): DM != BL_SPACEDIM");
+            amrex::Abort("ParticleContainer<NR, NI, NA>::InitFromBinaryFile(): DM != BL_SPACEDIM");
         //
         // NX MUST be in [0,N].
         //
         if (NX < 0 || NX > NR)
-            amrex::Abort("ParticleContainer<NR, NI, NCOMP>::InitFromBinaryFile(): NX < 0 || NX > N");
+            amrex::Abort("ParticleContainer<NR, NI, NA>::InitFromBinaryFile(): NX < 0 || NX > N");
         //
         // Can't ask for more data than exists in the file!
         //
         if (extradata > NX)
-            amrex::Abort("ParticleContainer<NR, NI, NCOMP>::InitFromBinaryFile(): extradata > NX");
+            amrex::Abort("ParticleContainer<NR, NI, NA>::InitFromBinaryFile(): extradata > NX");
         //
         // Figure out whether we're dealing with floats or doubles.
         //
@@ -665,7 +665,7 @@ ParticleContainer<NR, NI, NCOMP>::InitFromBinaryFile (const std::string& file,
                             std::cout << "BAD PARTICLE POS(" << d << ") " << p.m_rdata.pos[d] << std::endl;
                         }
 
-                        amrex::Abort("ParticleContainer<NR, NI, NCOMP>::InitFromBinaryFile(): invalid particle");
+                        amrex::Abort("ParticleContainer<NR, NI, NA>::InitFromBinaryFile(): invalid particle");
                     }
                 }
 
@@ -744,12 +744,12 @@ ParticleContainer<NR, NI, NCOMP>::InitFromBinaryFile (const std::string& file,
 // one file name per line.
 //
 
-template <int NR, int NI, int NCOMP>
+template <int NR, int NI, int NA>
 void
-ParticleContainer<NR, NI, NCOMP>::InitFromBinaryMetaFile (const std::string& metafile,
+ParticleContainer<NR, NI, NA>::InitFromBinaryMetaFile (const std::string& metafile,
 						    int                extradata)
 {
-    BL_PROFILE("ParticleContainer<NR, NI, NCOMP>::InitFromBinaryMetaFile()");
+    BL_PROFILE("ParticleContainer<NR, NI, NA>::InitFromBinaryMetaFile()");
     const Real strttime = ParallelDescriptor::second();
 
     std::ifstream ifs(metafile.c_str(), std::ios::in);
@@ -781,15 +781,15 @@ ParticleContainer<NR, NI, NCOMP>::InitFromBinaryMetaFile (const std::string& met
     }
 }
 
-template <int NR, int NI, int NCOMP>
+template <int NR, int NI, int NA>
 void
-ParticleContainer<NR, NI, NCOMP>::InitRandom (long          icount,
+ParticleContainer<NR, NI, NA>::InitRandom (long          icount,
 					      unsigned long iseed,
 					      Real          mass,
 					      bool          serialize,
 					      RealBox       containing_bx)
 {
-    BL_PROFILE("ParticleContainer<NR, NI, NCOMP>::InitRandom()");
+    BL_PROFILE("ParticleContainer<NR, NI, NA>::InitRandom()");
     BL_ASSERT(iseed  > 0);
     BL_ASSERT(icount > 0);
 
@@ -873,7 +873,7 @@ ParticleContainer<NR, NI, NCOMP>::InitRandom (long          icount,
 
             if (!Where(p, pld))
             {
-                amrex::Abort("ParticleContainer<NR, NI, NCOMP>::InitRandom(): invalid particle");
+                amrex::Abort("ParticleContainer<NR, NI, NA>::InitRandom(): invalid particle");
             }
 
             BL_ASSERT(pld.m_lev >= 0 && pld.m_lev <= m_gdb->finestLevel());
@@ -946,7 +946,7 @@ ParticleContainer<NR, NI, NCOMP>::InitRandom (long          icount,
 
             if (!Where(p, pld))
             {
-                amrex::Abort("ParticleContainer<NR, NI, NCOMP>::InitRandom(): invalid particle");
+                amrex::Abort("ParticleContainer<NR, NI, NA>::InitRandom(): invalid particle");
             }
 
             BL_ASSERT(pld.m_lev >= 0 && pld.m_lev <= m_gdb->finestLevel());
@@ -970,18 +970,17 @@ ParticleContainer<NR, NI, NCOMP>::InitRandom (long          icount,
 
         if (ParallelDescriptor::IOProcessor())
         {
-            std::cout << "ParticleContainer<NR, NI, NCOMP>::InitRandom() time: " << stoptime << '\n';
+            std::cout << "ParticleContainer<NR, NI, NA>::InitRandom() time: " << stoptime << '\n';
         }
     }
 }
 
-template <int NR, int NI, int NCOMP>
+template <int NR, int NI, int NA>
 void
-ParticleContainer<NR, NI, NCOMP>::InitOnePerCell (Real x_off, Real y_off, Real z_off,
-						  Real      mass, 
-						  const MultiFab& particle_mf)
+ParticleContainer<NR, NI, NA>::InitOnePerCell (Real x_off, Real y_off, Real z_off,
+					       Real mass, const MultiFab& particle_mf)
 {
-    BL_PROFILE("ParticleContainer<NR, NI, NCOMP>::InitOnePerCell()");
+    BL_PROFILE("ParticleContainer<NR, NI, NA>::InitOnePerCell()");
 
     BL_ASSERT(m_gdb != 0);
 
@@ -1044,22 +1043,20 @@ ParticleContainer<NR, NI, NCOMP>::InitOnePerCell (Real x_off, Real y_off, Real z
 
             if (!Where(p, pld))
             {
-                amrex::Abort("ParticleContainer<NR, NI, NCOMP>::InitOnePerCell(): invalid particle");
+                amrex::Abort("ParticleContainer<NR, NI, NA>::InitOnePerCell(): invalid particle");
             }
-
-	    pld.m_tile = 0;
 
             BL_ASSERT(pld.m_lev >= 0 && pld.m_lev <= m_gdb->finestLevel());
             //
             // Add it to the appropriate AoS at the appropriate level.
             //
             m_particles[pld.m_lev][make_pair(pld.m_grid, pld.m_tile)].push_back(p);
-	    if (NCOMP > 0)
-		m_partdata[pld.m_lev][make_pair(pld.m_grid, pld.m_tile)][0].push_back(p.m_idata.id);
-	    if (NCOMP > 1)
-	      m_partdata[pld.m_lev][make_pair(pld.m_grid, pld.m_tile)][1].push_back(p.m_idata.cpu);
-	    for (int i = 2; i < NCOMP; i++)
-	      m_partdata[pld.m_lev][make_pair(pld.m_grid, pld.m_tile)][i].push_back(0.0);
+	    if (NA > 0)
+	      m_arraydata[pld.m_lev][make_pair(pld.m_grid, pld.m_tile)][0].push_back(p.m_idata.id);
+	    if (NA > 1)
+	      m_arraydata[pld.m_lev][make_pair(pld.m_grid, pld.m_tile)][1].push_back(p.m_idata.cpu);
+	    for (int i = 2; i < NA; i++)
+	      m_arraydata[pld.m_lev][make_pair(pld.m_grid, pld.m_tile)][i].push_back(0.0);
           }
          }
         }
@@ -1079,16 +1076,16 @@ ParticleContainer<NR, NI, NCOMP>::InitOnePerCell (Real x_off, Real y_off, Real z
 
         if (ParallelDescriptor::IOProcessor())
         {
-            std::cout << "ParticleContainer<NR, NI, NCOMP>::InitOnePerCell() time: " << stoptime << '\n';
+            std::cout << "ParticleContainer<NR, NI, NA>::InitOnePerCell() time: " << stoptime << '\n';
         }
     }
 }
 
-template <int NR, int NI, int NCOMP>
+template <int NR, int NI, int NA>
 void
-ParticleContainer<NR, NI, NCOMP>::InitNRandomPerCell (int n_per_cell, Real mass, const MultiFab& particle_mf)
+ParticleContainer<NR, NI, NA>::InitNRandomPerCell (int n_per_cell, Real mass, const MultiFab& particle_mf)
 {
-    BL_PROFILE("ParticleContainer<NR, NI, NCOMP>::InitNRandomPerCell()");
+    BL_PROFILE("ParticleContainer<NR, NI, NA>::InitNRandomPerCell()");
 
     BL_ASSERT(m_gdb != 0);
 
@@ -1152,7 +1149,7 @@ ParticleContainer<NR, NI, NCOMP>::InitNRandomPerCell (int n_per_cell, Real mass,
                p.m_idata.cpu = ParallelDescriptor::MyProc();
 
                if (!Where(p, pld))
-                   amrex::Abort("ParticleContainer<NR, NI, NCOMP>::InitNRandomPerCell(): invalid particle");
+                   amrex::Abort("ParticleContainer<NR, NI, NA>::InitNRandomPerCell(): invalid particle");
 
                BL_ASSERT(pld.m_lev >= 0 && pld.m_lev <= m_gdb->finestLevel());
                //
@@ -1179,7 +1176,7 @@ ParticleContainer<NR, NI, NCOMP>::InitNRandomPerCell (int n_per_cell, Real mass,
 
         if (ParallelDescriptor::IOProcessor())
         {
-            std::cout << "ParticleContainer<NR, NI, NCOMP>::InitNRandomPerCell() time: " << stoptime << '\n';
+            std::cout << "ParticleContainer<NR, NI, NA>::InitNRandomPerCell() time: " << stoptime << '\n';
         }
     }
 }

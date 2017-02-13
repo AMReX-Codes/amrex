@@ -1,14 +1,14 @@
 using std::make_pair;
 
-template <int NR, int NI, int NCOMP>
-bool    ParticleContainer<NR, NI, NCOMP>::do_tiling = false;
+template <int NR, int NI, int NA>
+bool    ParticleContainer<NR, NI, NA>::do_tiling = false;
 
-template <int NR, int NI, int NCOMP>
-IntVect ParticleContainer<NR, NI, NCOMP>::tile_size   { D_DECL(1024000,8,8) };
+template <int NR, int NI, int NA>
+IntVect ParticleContainer<NR, NI, NA>::tile_size   { D_DECL(1024000,8,8) };
 
-template <int NR, int NI, int NCOMP>
+template <int NR, int NI, int NA>
 IntVect
-ParticleContainer<NR, NI, NCOMP>::Index (const ParticleType& p, int lev) const
+ParticleContainer<NR, NI, NA>::Index (const ParticleType& p, int lev) const
 {
     IntVect iv;
     const Geometry& geom = m_gdb->Geom(lev);
@@ -22,9 +22,9 @@ ParticleContainer<NR, NI, NCOMP>::Index (const ParticleType& p, int lev) const
     return iv;
 }
 
-template <int NR, int NI, int NCOMP>
+template <int NR, int NI, int NA>
 int 
-ParticleContainer<NR, NI, NCOMP>::getTileIndex(const IntVect& iv, const Box& box) const {
+ParticleContainer<NR, NI, NA>::getTileIndex(const IntVect& iv, const Box& box) const {
 
   if (do_tiling == false)
     return 0;
@@ -49,9 +49,9 @@ ParticleContainer<NR, NI, NCOMP>::getTileIndex(const IntVect& iv, const Box& box
   return index;
 }
 
-template <int NR, int NI, int NCOMP>
+template <int NR, int NI, int NA>
 bool
-ParticleContainer<NR, NI, NCOMP>::Where (const ParticleType&         p,
+ParticleContainer<NR, NI, NA>::Where (const ParticleType&         p,
 					 ParticleLocData&            pld,
 					 int                         lev_min,
 					 int                         finest_level) const
@@ -83,9 +83,9 @@ ParticleContainer<NR, NI, NCOMP>::Where (const ParticleType&         p,
     return false;
 }
 
-template <int NR, int NI, int NCOMP>
+template <int NR, int NI, int NA>
 bool
-ParticleContainer<NR, NI, NCOMP>::PeriodicWhere (ParticleType&               p,
+ParticleContainer<NR, NI, NA>::PeriodicWhere (ParticleType&               p,
 						 ParticleLocData&            pld,
 						 int                         lev_min,
 						 int                         finest_level) const
@@ -133,9 +133,9 @@ ParticleContainer<NR, NI, NCOMP>::PeriodicWhere (ParticleType&               p,
     return false;
 }
 
-template <int NR, int NI, int NCOMP>
+template <int NR, int NI, int NA>
 bool
-ParticleContainer<NR, NI, NCOMP>::RestrictedWhere (const ParticleType&         p,
+ParticleContainer<NR, NI, NA>::RestrictedWhere (const ParticleType&         p,
 						   ParticleLocData&            pld,
 						   int                         lev,
 						   int                         ngrow) const
@@ -160,9 +160,9 @@ ParticleContainer<NR, NI, NCOMP>::RestrictedWhere (const ParticleType&         p
     return false;
 }
 
-template <int NR, int NI, int NCOMP>
+template <int NR, int NI, int NA>
 bool 
-ParticleContainer<NR, NI, NCOMP>::SingleLevelWhere (const ParticleType&         p, 
+ParticleContainer<NR, NI, NA>::SingleLevelWhere (const ParticleType&         p, 
 						    ParticleLocData&            pld,
 						    int                         level,
 						    int                         nGrow) const
@@ -200,11 +200,11 @@ ParticleContainer<NR, NI, NCOMP>::SingleLevelWhere (const ParticleType&         
     return false;
 }
 
-template <int NR, int NI, int NCOMP>
+template <int NR, int NI, int NA>
 bool
-ParticleContainer<NR, NI, NCOMP>::PeriodicShift (ParticleType& p) const
+ParticleContainer<NR, NI, NA>::PeriodicShift (ParticleType& p) const
 {
-    BL_PROFILE("ParticleContainer<NR, NI, NCOMP>::PeriodicShift()");
+    BL_PROFILE("ParticleContainer<NR, NI, NA>::PeriodicShift()");
     //
     // This routine should only be called when Where() returns false.
     //
@@ -273,13 +273,13 @@ ParticleContainer<NR, NI, NCOMP>::PeriodicShift (ParticleType& p) const
     return shifted;
 }
 
-template <int NR, int NI, int NCOMP>
+template <int NR, int NI, int NA>
 void
-ParticleContainer<NR, NI, NCOMP>::Reset (ParticleType&        p,
+ParticleContainer<NR, NI, NA>::Reset (ParticleType&        p,
 				  bool                 update,
 				  bool                 verbose) const
 {
-    BL_PROFILE("ParticleContainer<NR, NI, NCOMP>::Reset()");
+    BL_PROFILE("ParticleContainer<NR, NI, NA>::Reset()");
     BL_ASSERT(m_gdb != 0);
 
     ParticleLocData pld;
@@ -310,17 +310,17 @@ ParticleContainer<NR, NI, NCOMP>::Reset (ParticleType&        p,
     }
 }
 
-template <int NR, int NI, int NCOMP>
+template <int NR, int NI, int NA>
 void
-ParticleContainer<NR, NI, NCOMP>::allocateData () {
+ParticleContainer<NR, NI, NA>::allocateData () {
   int nlevs = m_gdb->finestLevel()+1;
   m_particles.resize(nlevs);
-  m_partdata.resize(nlevs);
+  m_arraydata.resize(nlevs);
 }
 
-template <int NR, int NI, int NCOMP>
+template <int NR, int NI, int NA>
 void
-ParticleContainer<NR, NI, NCOMP>::locateParticle(ParticleType& p, ParticleLocData& pld, 
+ParticleContainer<NR, NI, NA>::locateParticle(ParticleType& p, ParticleLocData& pld, 
 						 int lev_min, int theEffectiveFinestLevel,
 						 int nGrow) {
   if (!Where(p, pld, lev_min, theEffectiveFinestLevel)) {
@@ -328,7 +328,7 @@ ParticleContainer<NR, NI, NCOMP>::locateParticle(ParticleType& p, ParticleLocDat
       if (lev_min != 0) // RestrictedWhere should be unnecessary at top level.
 	{
 	  if (!RestrictedWhere(p, pld, lev_min, nGrow))
-	    amrex::Abort("ParticleContainer<NR, NI, NCOMP>::locateParticle(): invalid particle.");
+	    amrex::Abort("ParticleContainer<NR, NI, NA>::locateParticle(): invalid particle.");
 	}
       else {
 	//
@@ -341,9 +341,9 @@ ParticleContainer<NR, NI, NCOMP>::locateParticle(ParticleType& p, ParticleLocDat
   }
 }
 
-template <int NR, int NI, int NCOMP>
+template <int NR, int NI, int NA>
 long
-ParticleContainer<NR, NI, NCOMP>::TotalNumberOfParticles (bool only_valid, bool only_local) const
+ParticleContainer<NR, NI, NA>::TotalNumberOfParticles (bool only_valid, bool only_local) const
 {
     long nparticles = 0;
     for (int lev = 0; lev <= m_gdb->finestLevel(); lev++) {
@@ -355,9 +355,9 @@ ParticleContainer<NR, NI, NCOMP>::TotalNumberOfParticles (bool only_valid, bool 
     return nparticles;
 }
 
-template <int NR, int NI, int NCOMP>
+template <int NR, int NI, int NA>
 Array<long>
-ParticleContainer<NR, NI, NCOMP>::NumberOfParticlesInGrid (int  lev, 
+ParticleContainer<NR, NI, NA>::NumberOfParticlesInGrid (int  lev, 
 							   bool only_valid,
 							   bool only_local) const
 {
@@ -385,9 +385,9 @@ ParticleContainer<NR, NI, NCOMP>::NumberOfParticlesInGrid (int  lev,
     return nparticles;
 }
 
-template <int NR, int NI, int NCOMP>
+template <int NR, int NI, int NA>
 long
-ParticleContainer<NR, NI, NCOMP>::NumberOfParticlesAtLevel (int  lev,
+ParticleContainer<NR, NI, NA>::NumberOfParticlesAtLevel (int  lev,
 							    bool only_valid,
 							    bool only_local) const
 {
@@ -418,9 +418,9 @@ ParticleContainer<NR, NI, NCOMP>::NumberOfParticlesAtLevel (int  lev,
 // This includes both valid and invalid particles since invalid particles still take up space.
 //
 
-template <int NR, int NI, int NCOMP>
+template <int NR, int NI, int NA>
 void
-ParticleContainer<NR, NI, NCOMP>::ByteSpread () const
+ParticleContainer<NR, NI, NA>::ByteSpread () const
 {
     long cnt = 0;
 
@@ -446,7 +446,7 @@ ParticleContainer<NR, NI, NCOMP>::ByteSpread () const
 
     if (ParallelDescriptor::IOProcessor())
     {
-        std::cout << "ParticleContainer<NR, NI, NCOMP> byte spread across MPI nodes: ["
+        std::cout << "ParticleContainer<NR, NI, NA> byte spread across MPI nodes: ["
                   << mn*sz
 		  << " (" << mn << ")"
                   << " ... "
@@ -459,14 +459,14 @@ ParticleContainer<NR, NI, NCOMP>::ByteSpread () const
 #endif
 }
 
-template <int NR, int NI, int NCOMP>
+template <int NR, int NI, int NA>
 void
-ParticleContainer<NR, NI, NCOMP>::addOneParticle (int                  id_in,
+ParticleContainer<NR, NI, NA>::addOneParticle (int                  id_in,
 					   int                  cpu_in, 
 					   std::vector<double>& xloc, 
 					   std::vector<double>& attributes)
 {
-    BL_PROFILE("ParticleContainer<NR, NI, NCOMP>::addOneParticle()");
+    BL_PROFILE("ParticleContainer<NR, NI, NA>::addOneParticle()");
     if (m_particles.size() == 0)
     {
        m_particles.resize(m_gdb->finestLevel()+1);
@@ -500,7 +500,7 @@ ParticleContainer<NR, NI, NCOMP>::addOneParticle (int                  id_in,
 	      {
                 std::cout << "BAD PARTICLE POS(" << d << ") " << p.m_rdata.pos[d] << std::endl;
 	      }
-            amrex::Abort("ParticleContainer<NR, NI, NCOMP>::addOneParticle(): invalid particle");
+            amrex::Abort("ParticleContainer<NR, NI, NA>::addOneParticle(): invalid particle");
 	  }
       }
     
@@ -512,15 +512,15 @@ ParticleContainer<NR, NI, NCOMP>::addOneParticle (int                  id_in,
     // The Redistribute routine should ensure that the particle ends up on the right processor.
 }
 
-template <int NR, int NI, int NCOMP>
+template <int NR, int NI, int NA>
 void
-ParticleContainer<NR, NI, NCOMP>::addNParticles(int n_part, Array<double>& x, Array<double>& y, 
+ParticleContainer<NR, NI, NA>::addNParticles(int n_part, Array<double>& x, Array<double>& y, 
 #if (BL_SPACEDIM == 3)
                                                       Array<double>& z, 
 #endif
                                           int n_attr, Array<double>& attributes)
 {
-    BL_PROFILE("ParticleContainer<NR, NI, NCOMP>::addNParticles()");
+    BL_PROFILE("ParticleContainer<NR, NI, NA>::addNParticles()");
 
     BL_ASSERT(OK());
     BL_ASSERT(NR >= BL_SPACEDIM+n_attr);
@@ -545,7 +545,7 @@ ParticleContainer<NR, NI, NCOMP>::addNParticles(int n_part, Array<double>& x, Ar
 
        ParticleLocData pld;
        if (!Where(p, pld))
-	 amrex::Abort("ParticleContainer<NR, NI, NCOMP>::addNParticles(): invalid particle location");
+	 amrex::Abort("ParticleContainer<NR, NI, NA>::addNParticles(): invalid particle location");
 
        p.m_idata.id  = ParticleType::NextID();
        p.m_idata.cpu = ParallelDescriptor::MyProc();
@@ -556,9 +556,9 @@ ParticleContainer<NR, NI, NCOMP>::addNParticles(int n_part, Array<double>& x, Ar
     Redistribute();
 }
 
-template <int NR, int NI, int NCOMP>
+template <int NR, int NI, int NA>
 void
-ParticleContainer<NR, NI, NCOMP>::MoveRandom ()
+ParticleContainer<NR, NI, NA>::MoveRandom ()
 {
     //
     // Move particles randomly at all levels
@@ -569,11 +569,11 @@ ParticleContainer<NR, NI, NCOMP>::MoveRandom ()
     }
 }
 
-template <int NR, int NI, int NCOMP>
+template <int NR, int NI, int NA>
 void
-ParticleContainer<NR, NI, NCOMP>::MoveRandom (int lev)
+ParticleContainer<NR, NI, NA>::MoveRandom (int lev)
 {
-    BL_PROFILE("ParticleContainer<NR, NI, NCOMP>::MoveRandom(lev)");
+    BL_PROFILE("ParticleContainer<NR, NI, NA>::MoveRandom(lev)");
     BL_ASSERT(OK());
     BL_ASSERT(m_gdb != 0);
     // 
@@ -643,20 +643,20 @@ ParticleContainer<NR, NI, NCOMP>::MoveRandom (int lev)
     Redistribute();
 }
 
-template <int NR, int NI, int NCOMP>
+template <int NR, int NI, int NA>
 void
-ParticleContainer<NR, NI, NCOMP>::Increment (MultiFab& mf,
+ParticleContainer<NR, NI, NA>::Increment (MultiFab& mf,
 				      int       lev) 
 {
   IncrementWithTotal(mf,lev);
 }
 
-template <int NR, int NI, int NCOMP>
+template <int NR, int NI, int NA>
 long
-ParticleContainer<NR, NI, NCOMP>::IncrementWithTotal (MultiFab& mf,
+ParticleContainer<NR, NI, NA>::IncrementWithTotal (MultiFab& mf,
 					       int       lev)
 {
-  BL_PROFILE("ParticleContainer<NR, NI, NCOMP>::IncrementWithTotal(lev)");
+  BL_PROFILE("ParticleContainer<NR, NI, NA>::IncrementWithTotal(lev)");
   BL_ASSERT(OK());
   
   if (m_particles.empty()) return 0;
@@ -713,11 +713,11 @@ ParticleContainer<NR, NI, NCOMP>::IncrementWithTotal (MultiFab& mf,
   return num_particles_in_domain;
 }
 
-template <int NR, int NI, int NCOMP>
+template <int NR, int NI, int NA>
 Real
-ParticleContainer<NR, NI, NCOMP>::sumParticleMass (int rho_index, int lev) const
+ParticleContainer<NR, NI, NA>::sumParticleMass (int rho_index, int lev) const
 {
-  BL_PROFILE("ParticleContainer<NR, NI, NCOMP>::sumParticleMass(lev)");
+  BL_PROFILE("ParticleContainer<NR, NI, NA>::sumParticleMass(lev)");
   BL_ASSERT(NR >= 1);
   BL_ASSERT(lev >= 0 && lev < int(m_particles.size()));
   
@@ -738,11 +738,11 @@ ParticleContainer<NR, NI, NCOMP>::sumParticleMass (int rho_index, int lev) const
   return msum;
 }
 
-template <int NR, int NI, int NCOMP>
+template <int NR, int NI, int NA>
 void
-ParticleContainer<NR, NI, NCOMP>::GetParticleIDs (Array<int>& part_ids)
+ParticleContainer<NR, NI, NA>::GetParticleIDs (Array<int>& part_ids)
 {
-  BL_PROFILE("ParticleContainer<NR, NI, NCOMP>::GetParticleIDs()");
+  BL_PROFILE("ParticleContainer<NR, NI, NA>::GetParticleIDs()");
   //
   // This gives us the starting point into the part_ids array
   // If only one processor (or no MPI), then that's all we need.
@@ -800,11 +800,11 @@ ParticleContainer<NR, NI, NCOMP>::GetParticleIDs (Array<int>& part_ids)
   ParallelDescriptor::ReduceIntSum(part_ids.dataPtr(),part_ids.size()); 
 }
 
-template <int NR, int NI, int NCOMP>
+template <int NR, int NI, int NA>
 void
-ParticleContainer<NR, NI, NCOMP>::GetParticleCPU (Array<int>& part_cpu)
+ParticleContainer<NR, NI, NA>::GetParticleCPU (Array<int>& part_cpu)
 {
-  BL_PROFILE("ParticleContainer<NR, NI, NCOMP>::GetParticleCPU()");
+  BL_PROFILE("ParticleContainer<NR, NI, NA>::GetParticleCPU()");
   //
   // This gives us the starting point into the part_cpu array
   // If only one processor (or no MPI), then that's all we need.
@@ -859,11 +859,11 @@ ParticleContainer<NR, NI, NCOMP>::GetParticleCPU (Array<int>& part_cpu)
   ParallelDescriptor::ReduceIntSum(part_cpu.dataPtr(),part_cpu.size()); 
 }
 
-template <int NR, int NI, int NCOMP>
+template <int NR, int NI, int NA>
 void
-ParticleContainer<NR, NI, NCOMP>::GetParticleLocations (Array<Real>& part_data)
+ParticleContainer<NR, NI, NA>::GetParticleLocations (Array<Real>& part_data)
 {
-  BL_PROFILE("ParticleContainer<NR, NI, NCOMP>::GetParticleLocations()");
+  BL_PROFILE("ParticleContainer<NR, NI, NA>::GetParticleLocations()");
   //
   // This gives us the starting point into the part_data array
   // If only one processor (or no MPI), then that's all we need.
@@ -921,11 +921,11 @@ ParticleContainer<NR, NI, NCOMP>::GetParticleLocations (Array<Real>& part_data)
 }
 
 
-template <int NR, int NI, int NCOMP>
+template <int NR, int NI, int NA>
 void
-ParticleContainer<NR, NI, NCOMP>::GetParticleData (Array<Real>& part_data, int start_comp, int num_comp)
+ParticleContainer<NR, NI, NA>::GetParticleData (Array<Real>& part_data, int start_comp, int num_comp)
 {
-  BL_PROFILE("ParticleContainer<NR, NI, NCOMP>::GetParticleData()");
+  BL_PROFILE("ParticleContainer<NR, NI, NA>::GetParticleData()");
   //
   // This gives us the starting point into the part_data array
   // If only one processor (or no MPI), then that's all we need.
@@ -987,18 +987,18 @@ ParticleContainer<NR, NI, NCOMP>::GetParticleData (Array<Real>& part_data, int s
   ParallelDescriptor::ReduceRealSum(part_data.dataPtr(),part_data.size()); 
 }
 
-template <int NR, int NI, int NCOMP>
+template <int NR, int NI, int NA>
 void
-ParticleContainer<NR, NI, NCOMP>::SetAllowParticlesNearBoundary (bool value)
+ParticleContainer<NR, NI, NA>::SetAllowParticlesNearBoundary (bool value)
 {
   allow_particles_near_boundary = value; 
 }
 
-template <int NR, int NI, int NCOMP>
+template <int NR, int NI, int NA>
 void
-ParticleContainer<NR, NI, NCOMP>::SetParticleLocations (Array<Real>& part_data)
+ParticleContainer<NR, NI, NA>::SetParticleLocations (Array<Real>& part_data)
 {
-  BL_PROFILE("ParticleContainer<NR, NI, NCOMP>::SetParticleLocations()");
+  BL_PROFILE("ParticleContainer<NR, NI, NA>::SetParticleLocations()");
   // This gives us the starting point into the part_data array
   // If only one processor (or no MPI), then that's all we need
   int cnt = 0;
@@ -1053,11 +1053,11 @@ ParticleContainer<NR, NI, NCOMP>::SetParticleLocations (Array<Real>& part_data)
 }
 
 
-template <int NR, int NI, int NCOMP>
+template <int NR, int NI, int NA>
 void
-ParticleContainer<NR, NI, NCOMP>::RemoveParticlesAtLevel (int level)
+ParticleContainer<NR, NI, NA>::RemoveParticlesAtLevel (int level)
 {
-  BL_PROFILE("ParticleContainer<NR, NI, NCOMP>::RemoveParticlesAtLevel()");
+  BL_PROFILE("ParticleContainer<NR, NI, NA>::RemoveParticlesAtLevel()");
   if (level >= int(this->m_particles.size()))
     return;
   
@@ -1067,11 +1067,11 @@ ParticleContainer<NR, NI, NCOMP>::RemoveParticlesAtLevel (int level)
     }
 }
 
-template <int NR, int NI, int NCOMP>
+template <int NR, int NI, int NA>
 void
-ParticleContainer<NR, NI, NCOMP>::RemoveParticlesNotAtFinestLevel ()
+ParticleContainer<NR, NI, NA>::RemoveParticlesNotAtFinestLevel ()
 {
-  BL_PROFILE("ParticleContainer<NR, NI, NCOMP>::RemoveParticlesNotAtFinestLevel()");
+  BL_PROFILE("ParticleContainer<NR, NI, NA>::RemoveParticlesNotAtFinestLevel()");
   BL_ASSERT(this->m_gdb->finestLevel()+1 == int(this->m_particles.size()));
   
   int cnt = 0;
@@ -1123,12 +1123,12 @@ ParticleContainer<NR, NI, NCOMP>::RemoveParticlesNotAtFinestLevel ()
     }
 }
 
-template <int NR, int NI, int NCOMP>
+template <int NR, int NI, int NA>
 void
-ParticleContainer<NR, NI, NCOMP>::CreateVirtualParticles (int   level,
+ParticleContainer<NR, NI, NA>::CreateVirtualParticles (int   level,
 						   AoS& virts) const
 {
-  BL_PROFILE("ParticleContainer<NR, NI, NCOMP>::CreateVirtualParticles()");
+  BL_PROFILE("ParticleContainer<NR, NI, NA>::CreateVirtualParticles()");
   BL_ASSERT(level > 0);
   BL_ASSERT(virts.empty());
   
@@ -1263,13 +1263,13 @@ ParticleContainer<NR, NI, NCOMP>::CreateVirtualParticles (int   level,
   }
 }
 
-template <int NR, int NI, int NCOMP>
+template <int NR, int NI, int NA>
 void
-ParticleContainer<NR, NI, NCOMP>::CreateGhostParticles (int   level,
+ParticleContainer<NR, NI, NA>::CreateGhostParticles (int   level,
 						 int   ngrow,
 						 AoS& ghosts) const
 {
-  BL_PROFILE("ParticleContainer<NR, NI, NCOMP>::CreateGhostParticles()");
+  BL_PROFILE("ParticleContainer<NR, NI, NA>::CreateGhostParticles()");
   BL_ASSERT(ghosts.empty());
   BL_ASSERT(level < m_gdb->finestLevel());
   
@@ -1326,9 +1326,9 @@ ParticleContainer<NR, NI, NCOMP>::CreateGhostParticles (int   level,
 //
 // This redistributes valid particles and discards invalid ones.
 //
-template <int NR, int NI, int NCOMP>
+template <int NR, int NI, int NA>
 void
-ParticleContainer<NR, NI, NCOMP>::Redistribute (int  lev_min,
+ParticleContainer<NR, NI, NA>::Redistribute (int  lev_min,
 						int  nGrow)
 {
   BL_PROFILE("ParticleContainer::Redistribute()");
@@ -1347,7 +1347,7 @@ ParticleContainer<NR, NI, NCOMP>::Redistribute (int  lev_min,
   
   if (int(m_particles.size()) < theEffectiveFinestLevel+1) {
     if (ParallelDescriptor::IOProcessor()) {
-      std::cout << "ParticleContainer<NR, NI, NCOMP>::Redistribute() resizing m_particles from "
+      std::cout << "ParticleContainer<NR, NI, NA>::Redistribute() resizing m_particles from "
 		<< m_particles.size()
 		<< " to "
 		<< theEffectiveFinestLevel+1 << '\n';
@@ -1361,7 +1361,7 @@ ParticleContainer<NR, NI, NCOMP>::Redistribute (int  lev_min,
   // struct-of-array data that also needs to be communicated
   std::map<int, Array<Array<Real > > > comm_soa_data;
   for (int i = 0; i < NProcs; i++)
-    comm_soa_data[i].resize(NCOMP);
+    comm_soa_data[i].resize(NA);
 
   for (int lev = lev_min, nlevs = m_particles.size(); lev < nlevs; lev++) {
     AoSMap& pmap = m_particles[lev];
@@ -1388,9 +1388,9 @@ ParticleContainer<NR, NI, NCOMP>::Redistribute (int  lev_min,
 		  // We own it but must shift it to another place.
 		  //
 		  m_particles[pld.m_lev][make_pair(pld.m_grid, pld.m_tile)].push_back(p);
-		  for (int comp = 0; comp < NCOMP; comp++) {
-		    Real pdata = m_partdata[lev][make_pair(grid, tile)][comp][pindex];
-		    m_partdata[pld.m_lev][make_pair(pld.m_grid, pld.m_tile)][comp].push_back(pdata);
+		  for (int comp = 0; comp < NA; comp++) {
+		    Real pdata = m_arraydata[lev][make_pair(grid, tile)][comp][pindex];
+		    m_arraydata[pld.m_lev][make_pair(pld.m_grid, pld.m_tile)][comp].push_back(pdata);
 		  }
 		  //
 		  // Invalidate the particle so we can reclaim its space.
@@ -1400,8 +1400,8 @@ ParticleContainer<NR, NI, NCOMP>::Redistribute (int  lev_min,
 	      }
 	      else {
 		not_ours[who].push_back(p);
-		for (int comp = 0; comp < NCOMP; comp++) {
-		  Real pdata = m_partdata[lev][make_pair(grid, tile)][comp][pindex];
+		for (int comp = 0; comp < NA; comp++) {
+		  Real pdata = m_arraydata[lev][make_pair(grid, tile)][comp][pindex];
 		  if (communicate_comp[comp])
 		    comm_soa_data[who][comp].push_back(pdata);
 		}
@@ -1416,8 +1416,8 @@ ParticleContainer<NR, NI, NCOMP>::Redistribute (int  lev_min,
 	  if (p.m_idata.id > 0) {
 	    if (pindex != first) {
 	      pbox[first] = p;
-	      for (int comp = 0; comp < NCOMP; comp++) {
-		std::vector<Real>& vec = m_partdata[lev][make_pair(grid, tile)][comp];
+	      for (int comp = 0; comp < NA; comp++) {
+		std::vector<Real>& vec = m_arraydata[lev][make_pair(grid, tile)][comp];
 		vec[first] = vec[pindex];
 	      }
 	    }
@@ -1426,8 +1426,8 @@ ParticleContainer<NR, NI, NCOMP>::Redistribute (int  lev_min,
 	}
 
 	pbox.erase(pbox.begin() + first, pbox.begin() + npart);
-	for (int comp = 0; comp < NCOMP; comp++) {
-	  std::vector<Real>& vec = m_partdata[lev][make_pair(grid, tile)][comp];
+	for (int comp = 0; comp < NA; comp++) {
+	  std::vector<Real>& vec = m_arraydata[lev][make_pair(grid, tile)][comp];
 	  vec.erase(vec.begin() + first, vec.begin() + npart);
 	}
       }
@@ -1436,7 +1436,7 @@ ParticleContainer<NR, NI, NCOMP>::Redistribute (int  lev_min,
       // Remove any map entries for which the particle container is now empty.
       //
       if (pmap_it->second.empty()) {
-	m_partdata[lev].erase(pmap_it->first);     
+	m_arraydata[lev].erase(pmap_it->first);     
  	pmap.erase(pmap_it++);
       }
       else {
@@ -1452,7 +1452,7 @@ ParticleContainer<NR, NI, NCOMP>::Redistribute (int  lev_min,
       //
       if (ParallelDescriptor::IOProcessor())
         {
-	  std::cout << "ParticleContainer<NR, NI, NCOMP>::Redistribute() resizing m_particles from "
+	  std::cout << "ParticleContainer<NR, NI, NA>::Redistribute() resizing m_particles from "
 		    << m_particles.size()
 		    << " to "
 		    << theEffectiveFinestLevel+1 << '\n';
@@ -1485,20 +1485,20 @@ ParticleContainer<NR, NI, NCOMP>::Redistribute (int  lev_min,
 #endif
 	  ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
 	  if (ParallelDescriptor::IOProcessor())
-	    std::cout << "ParticleContainer<NR, NI, NCOMP>::Redistribute() time: " << stoptime << "\n\n";
+	    std::cout << "ParticleContainer<NR, NI, NA>::Redistribute() time: " << stoptime << "\n\n";
 #ifdef BL_LAZY
 	});
 #endif
     }
 }
 
-template <int NR, int NI, int NCOMP>
+template <int NR, int NI, int NA>
 void
-ParticleContainer<NR, NI, NCOMP>::RedistributeMPI (std::map<int, AoS>& not_ours,
+ParticleContainer<NR, NI, NA>::RedistributeMPI (std::map<int, AoS>& not_ours,
 						   std::map<int, Array<Array<Real> > >& comm_soa_data,
 						   int lev_min, int finest_level, int nGrow)
 {
-    BL_PROFILE("ParticleContainer<NR, NI, NCOMP>::RedistributeMPI()");
+    BL_PROFILE("ParticleContainer<NR, NI, NA>::RedistributeMPI()");
 #if BL_USE_MPI
     const int MyProc = ParallelDescriptor::MyProc();
     const int NProcs = ParallelDescriptor::NProcs();
@@ -1581,7 +1581,7 @@ ParticleContainer<NR, NI, NCOMP>::RedistributeMPI (std::map<int, AoS>& not_ours,
       const int SeqNum        = ParallelDescriptor::SeqNum();
 
       int num_soa_comps = 0;
-      for (int i = 0; i < NCOMP; i++)
+      for (int i = 0; i < NA; i++)
 	num_soa_comps += communicate_comp[i];
 
       const int chunk_size = sizeof(ParticleType) + num_soa_comps*sizeof(Real);
@@ -1619,7 +1619,7 @@ ParticleContainer<NR, NI, NCOMP>::RedistributeMPI (std::map<int, AoS>& not_ours,
 	// Pack the AoS data
 	const AoS& pbox = not_ours[Who];
 	for (const auto& p : pbox) {
-	  BL_ASSERT(p.m_idata.id > 0); 
+	  BL_ASSERT(p.m_idata.id > 0);
 	  *part_ptr++ = p;
 	}
 	
@@ -1627,7 +1627,7 @@ ParticleContainer<NR, NI, NCOMP>::RedistributeMPI (std::map<int, AoS>& not_ours,
 	Array<Array<Real> >& StructOfArrayData = comm_soa_data[Who];
 	Real* SoA_ptr = (Real*) part_ptr;
 	for (unsigned i = 0; i < pbox.size(); ++i) {
-	  for (int j = 0; j < NCOMP; j++) {
+	  for (int j = 0; j < NA; j++) {
 	    if (communicate_comp[j])
 	      *SoA_ptr++ = StructOfArrayData[j][i];
 	  }
@@ -1660,11 +1660,11 @@ ParticleContainer<NR, NI, NCOMP>::RedistributeMPI (std::map<int, AoS>& not_ours,
 	    
 	    m_particles[pld.m_lev][make_pair(pld.m_grid, pld.m_tile)].push_back(p);
 
-	    for (int j = 0; j < NCOMP; j++) {
+	    for (int j = 0; j < NA; j++) {
 	      if (communicate_comp[j]) 
-		m_partdata[pld.m_lev][make_pair(pld.m_grid, pld.m_tile)][j].push_back(*SoA_ptr++);
+		m_arraydata[pld.m_lev][make_pair(pld.m_grid, pld.m_tile)][j].push_back(*SoA_ptr++);
 	      else
-		m_partdata[pld.m_lev][make_pair(pld.m_grid, pld.m_tile)][j].push_back(0.0);
+		m_arraydata[pld.m_lev][make_pair(pld.m_grid, pld.m_tile)][j].push_back(0.0);
 	    }
 	  }
 	}
@@ -1674,13 +1674,13 @@ ParticleContainer<NR, NI, NCOMP>::RedistributeMPI (std::map<int, AoS>& not_ours,
 #endif /*BL_USE_MPI*/
 }
 
-template <int NR, int NI, int NCOMP>
+template <int NR, int NI, int NA>
 bool
-ParticleContainer<NR, NI, NCOMP>::OK (int  lev_min,
+ParticleContainer<NR, NI, NA>::OK (int  lev_min,
 				      int  ngrow,
 				      int  finest_level) const
 {
-    BL_PROFILE("ParticleContainer<NR, NI, NCOMP>::OK()");
+    BL_PROFILE("ParticleContainer<NR, NI, NA>::OK()");
     if (finest_level == -1)
         finest_level = m_gdb->finestLevel();
 
@@ -1742,13 +1742,13 @@ ParticleContainer<NR, NI, NCOMP>::OK (int  lev_min,
     return true;
 }
 
-template <int NR, int NI, int NCOMP>
+template <int NR, int NI, int NA>
 void
-ParticleContainer<NR, NI, NCOMP>::Checkpoint (const std::string& dir,
-				       const std::string& name,
-				       bool               is_checkpoint) const
+ParticleContainer<NR, NI, NA>::Checkpoint (const std::string& dir,
+					      const std::string& name,
+					      bool               is_checkpoint) const
 {
-    BL_PROFILE("ParticleContainer<NR, NI, NCOMP>::Checkpoint()");
+    BL_PROFILE("ParticleContainer<NR, NI, NA>::Checkpoint()");
     BL_ASSERT(OK());
 
     BL_ASSERT(sizeof(typename ParticleType::RealType) == 4 || sizeof(typename ParticleType::RealType) == 8);
@@ -1841,7 +1841,7 @@ ParticleContainer<NR, NI, NCOMP>::Checkpoint (const std::string& dir,
         HdrFile << BL_SPACEDIM << '\n';
 	
 	// The number of extra real parameters
-        HdrFile << NR + NCOMP<< '\n';
+        HdrFile << NR + NA<< '\n';
 
 	// The number of extra int parameters
         HdrFile << NI << '\n';
@@ -1971,7 +1971,7 @@ ParticleContainer<NR, NI, NCOMP>::Checkpoint (const std::string& dir,
                     ParticleFile.close();
 
                     if (!ParticleFile.good())
-                        amrex::Abort("ParticleContainer<NR, NI, NCOMP>::Checkpoint(): problem writing ParticleFile");
+                        amrex::Abort("ParticleContainer<NR, NI, NA>::Checkpoint(): problem writing ParticleFile");
 
                     int iBuff = 0, wakeUpPID = (MyProc + nOutFiles), tag = (MyProc % nOutFiles);
 
@@ -2049,19 +2049,19 @@ ParticleContainer<NR, NI, NCOMP>::Checkpoint (const std::string& dir,
             HdrFile.close();
 
             if (!HdrFile.good())
-                amrex::Abort("ParticleContainer<NR, NI, NCOMP>::Checkpoint(): problem writing HdrFile");
+                amrex::Abort("ParticleContainer<NR, NI, NA>::Checkpoint(): problem writing HdrFile");
 
-            std::cout << "ParticleContainer<NR, NI, NCOMP>::Checkpoint() time: " << stoptime << '\n';
+            std::cout << "ParticleContainer<NR, NI, NA>::Checkpoint() time: " << stoptime << '\n';
         }
     }
 }
 
-template <int NR, int NI, int NCOMP>
+template <int NR, int NI, int NA>
 void
-ParticleContainer<NR, NI, NCOMP>::WritePlotFile (const std::string& dir,
+ParticleContainer<NR, NI, NA>::WritePlotFile (const std::string& dir,
 					 const std::string& name) const
 {
-    BL_PROFILE("ParticleContainer<NR, NI, NCOMP>::WritePlotFile()");
+    BL_PROFILE("ParticleContainer<NR, NI, NA>::WritePlotFile()");
     BL_ASSERT(OK());
     bool is_checkpoint = false;
 
@@ -2072,9 +2072,9 @@ ParticleContainer<NR, NI, NCOMP>::WritePlotFile (const std::string& dir,
     Checkpoint(dir,name,is_checkpoint);
 }
 
-template <int NR, int NI, int NCOMP>
+template <int NR, int NI, int NA>
 void
-ParticleContainer<NR, NI, NCOMP>::WriteParticles (int            lev,
+ParticleContainer<NR, NI, NA>::WriteParticles (int            lev,
 						  std::ofstream& ofs,
 						  int            fnum,
 						  Array<int>&    which,
@@ -2083,7 +2083,7 @@ ParticleContainer<NR, NI, NCOMP>::WriteParticles (int            lev,
 						  bool           is_checkpoint) const
 {
 
-    BL_PROFILE("ParticleContainer<NR, NI, NCOMP>::WriteParticles()");
+    BL_PROFILE("ParticleContainer<NR, NI, NA>::WriteParticles()");
     const AoSMap&     pmap  = m_particles[lev];
 
     // For a each grid, the tiles it contains
@@ -2141,7 +2141,7 @@ ParticleContainer<NR, NI, NCOMP>::WriteParticles (int            lev,
       }
       
       // Write the Real data in binary.
-      const int rChunkSize = BL_SPACEDIM + NR + NCOMP;
+      const int rChunkSize = BL_SPACEDIM + NR + NA;
       Array<typename ParticleType::RealType> rstuff(count[grid]*rChunkSize);
       typename ParticleType::RealType* rptr = rstuff.dataPtr();
 
@@ -2153,11 +2153,11 @@ ParticleContainer<NR, NI, NCOMP>::WriteParticles (int            lev,
 	    for (int j = 0; j < BL_SPACEDIM + NR; j++)
 	      rptr[j] = p.m_rdata.arr[j];
 	    rptr += BL_SPACEDIM + NR;
-	    for (int j = 0; j < NCOMP; j++) {
-	      const SoA& soa  = m_partdata[lev].at(make_pair(grid, tile_map[grid][i]));
+	    for (int j = 0; j < NA; j++) {
+	      const SoA& soa  = m_arraydata[lev].at(make_pair(grid, tile_map[grid][i]));
 	      rptr[j] = (typename ParticleType::RealType) soa[j][pindex];
 	    }
-	    rptr += NCOMP;
+	    rptr += NA;
 	  }
 	  ++pindex;
 	}
@@ -2167,13 +2167,13 @@ ParticleContainer<NR, NI, NCOMP>::WriteParticles (int            lev,
     }
 }
 
-template <int NR, int NI, int NCOMP>
+template <int NR, int NI, int NA>
 void
-ParticleContainer<NR, NI, NCOMP>::Restart (const std::string& dir,
+ParticleContainer<NR, NI, NA>::Restart (const std::string& dir,
 					   const std::string& file,
 					   bool is_checkpoint)
 {
-    BL_PROFILE("ParticleContainer<NR, NI, NCOMP>::Restart()");
+    BL_PROFILE("ParticleContainer<NR, NI, NA>::Restart()");
     BL_ASSERT(!dir.empty());
     BL_ASSERT(!file.empty());
 
@@ -2255,14 +2255,14 @@ ParticleContainer<NR, NI, NCOMP>::Restart (const std::string& dir,
         }
         else
         {
-            std::string msg("ParticleContainer<NR, NI, NCOMP>::Restart(): bad version string: ");
+            std::string msg("ParticleContainer<NR, NI, NA>::Restart(): bad version string: ");
             msg += version;
             amrex::Error(version.c_str());
         }
     }
     else
     {
-        std::string msg("ParticleContainer<NR, NI, NCOMP>::Restart(): unknown version string: ");
+        std::string msg("ParticleContainer<NR, NI, NA>::Restart(): unknown version string: ");
         msg += version;
         amrex::Abort(msg.c_str());
     }
@@ -2275,19 +2275,19 @@ ParticleContainer<NR, NI, NCOMP>::Restart (const std::string& dir,
 
         if (ParallelDescriptor::IOProcessor())
         {
-            std::cout << "ParticleContainer<NR, NI, NCOMP>::Restart() time: " << stoptime << '\n';
+            std::cout << "ParticleContainer<NR, NI, NA>::Restart() time: " << stoptime << '\n';
         }
     }
 }
 
-template <int NR, int NI, int NCOMP>
+template <int NR, int NI, int NA>
 void
-ParticleContainer<NR, NI, NCOMP>::Restart_Doit (const std::string& fullname,
+ParticleContainer<NR, NI, NA>::Restart_Doit (const std::string& fullname,
 					std::ifstream&     HdrFile,
 					const std::string& how,
 					bool is_checkpoint)
 {
-    BL_PROFILE("ParticleContainer<NR, NI, NCOMP>::RestartDoit()");
+    BL_PROFILE("ParticleContainer<NR, NI, NA>::RestartDoit()");
     BL_ASSERT(!fullname.empty());
 
     const int IOProc = ParallelDescriptor::IOProcessorNumber();
@@ -2301,7 +2301,7 @@ ParticleContainer<NR, NI, NCOMP>::Restart_Doit (const std::string& fullname,
         HdrFile >> dm;
 
         if (dm != BL_SPACEDIM)
-            amrex::Abort("ParticleContainer<NR, NI, NCOMP>::Restart(): dm != BL_SPACEDIM");
+            amrex::Abort("ParticleContainer<NR, NI, NA>::Restart(): dm != BL_SPACEDIM");
     }
     ParallelDescriptor::Bcast(&dm, 1, IOProc);
     //
@@ -2314,7 +2314,7 @@ ParticleContainer<NR, NI, NCOMP>::Restart_Doit (const std::string& fullname,
         HdrFile >> n;
 
         if (n != NR)
-            amrex::Abort("ParticleContainer<NR, NI, NCOMP>::Restart(): n != N");
+            amrex::Abort("ParticleContainer<NR, NI, NA>::Restart(): n != N");
     }
     ParallelDescriptor::Bcast(&n, 1, IOProc);
 
@@ -2452,7 +2452,7 @@ ParticleContainer<NR, NI, NCOMP>::Restart_Doit (const std::string& fullname,
             }
             else
             {
-                std::string msg("ParticleContainer<NR, NI, NCOMP>::Restart_Doit(): bad parameter: ");
+                std::string msg("ParticleContainer<NR, NI, NA>::Restart_Doit(): bad parameter: ");
                 msg += how;
                 amrex::Error(msg.c_str());
             }
@@ -2460,7 +2460,7 @@ ParticleContainer<NR, NI, NCOMP>::Restart_Doit (const std::string& fullname,
             ParticleFile.close();
 
             if (!ParticleFile.good())
-                amrex::Abort("ParticleContainer<NR, NI, NCOMP>::Restart_Doit(): problem reading particles");
+                amrex::Abort("ParticleContainer<NR, NI, NA>::Restart_Doit(): problem reading particles");
         }
     }
 
@@ -2471,15 +2471,15 @@ ParticleContainer<NR, NI, NCOMP>::Restart_Doit (const std::string& fullname,
 // This one stores real data as doubles.
 //
 
-template <int NR, int NI, int NCOMP>
+template <int NR, int NI, int NA>
 void
-ParticleContainer<NR, NI, NCOMP>::ReadParticles_DoublePrecision (int            cnt,
+ParticleContainer<NR, NI, NA>::ReadParticles_DoublePrecision (int            cnt,
 								 int            grd,
 								 int            lev,
 								 bool           is_checkpoint,
 								 std::ifstream& ifs)
 {
-    BL_PROFILE("ParticleContainer<NR, NI, NCOMP>::ReadParticles_DoublePrecision()");
+    BL_PROFILE("ParticleContainer<NR, NI, NA>::ReadParticles_DoublePrecision()");
     BL_ASSERT(cnt > 0);
     BL_ASSERT(lev < int(m_particles.size()));
     BL_ASSERT(lev >= 0 && lev <= m_gdb->finestLevel());
@@ -2542,7 +2542,7 @@ ParticleContainer<NR, NI, NCOMP>::ReadParticles_DoublePrecision (int            
 		      std::cout << "RESTART:BAD PARTICLE POS(" << d << ") " << p.m_rdata.pos[d] << std::endl;
                     }
 		  
-		  amrex::Abort("ParticleContainer<NR, NI, NCOMP>::ReadParticles_DoublePrecision(): invalid particle");
+		  amrex::Abort("ParticleContainer<NR, NI, NA>::ReadParticles_DoublePrecision(): invalid particle");
                 }
             }
 	  
@@ -2571,15 +2571,15 @@ ParticleContainer<NR, NI, NCOMP>::ReadParticles_DoublePrecision (int            
 // This one stores real data as floats.
 //
 
-template <int NR, int NI, int NCOMP>
+template <int NR, int NI, int NA>
 void
-ParticleContainer<NR, NI, NCOMP>::ReadParticles_SinglePrecision (int            cnt,
+ParticleContainer<NR, NI, NA>::ReadParticles_SinglePrecision (int            cnt,
 							   int            grd,
 							   int            lev,
 							   bool           is_checkpoint,
 							   std::ifstream& ifs)
 {
-    BL_PROFILE("ParticleContainer<NR, NI, NCOMP>::ReadParticles_SinglePrecision()");
+    BL_PROFILE("ParticleContainer<NR, NI, NA>::ReadParticles_SinglePrecision()");
     BL_ASSERT(cnt > 0);
     BL_ASSERT(lev < int(m_particles.size()));
     BL_ASSERT(lev >= 0 && lev <= m_gdb->finestLevel());
@@ -2646,7 +2646,7 @@ ParticleContainer<NR, NI, NCOMP>::ReadParticles_SinglePrecision (int            
                         std::cout << "RESTART:BAD PARTICLE POS(" << d << ") " << p.m_rdata.pos[d] << std::endl;
                     }
 
-                    amrex::Abort("ParticleContainer<NR, NI, NCOMP>::ReadParticles_SinglePrecision(): invalid particle");
+                    amrex::Abort("ParticleContainer<NR, NI, NA>::ReadParticles_SinglePrecision(): invalid particle");
                 }
             }
 
@@ -2671,11 +2671,11 @@ ParticleContainer<NR, NI, NCOMP>::ReadParticles_SinglePrecision (int            
     }
 }
 
-template <int NR, int NI, int NCOMP>
+template <int NR, int NI, int NA>
 void
-ParticleContainer<NR, NI, NCOMP>::WriteAsciiFile (const std::string& filename)
+ParticleContainer<NR, NI, NA>::WriteAsciiFile (const std::string& filename)
 {
-    BL_PROFILE("ParticleContainer<NR, NI, NCOMP>::WriteAsciiFile()");
+    BL_PROFILE("ParticleContainer<NR, NI, NA>::WriteAsciiFile()");
     BL_ASSERT(!filename.empty());
 
     const Real strttime = ParallelDescriptor::second();
@@ -2722,7 +2722,7 @@ ParticleContainer<NR, NI, NCOMP>::WriteAsciiFile (const std::string& filename)
         File.close();
 
         if (!File.good())
-            amrex::Abort("ParticleContainer<NR, NI, NCOMP>::WriteAsciiFile(): problem writing file");
+            amrex::Abort("ParticleContainer<NR, NI, NA>::WriteAsciiFile(): problem writing file");
     }
 
     ParallelDescriptor::Barrier();
@@ -2765,8 +2765,8 @@ ParticleContainer<NR, NI, NCOMP>::WriteAsciiFile (const std::string& filename)
 			     << it->m_rdata.pos[1] << ' ',
 			     << it->m_rdata.pos[2] << ' ');
 		      
-		      for (int i = 0; i < NCOMP; i++)
-			File << m_partdata[lev][kv.first][i][index] << ' ';
+		      for (int i = 0; i < NA; i++)
+			File << m_arraydata[lev][kv.first][i][index] << ' ';
 		      index++;
 		      
 		      for (int i = BL_SPACEDIM; i < BL_SPACEDIM + NR; i++) {
@@ -2783,7 +2783,7 @@ ParticleContainer<NR, NI, NCOMP>::WriteAsciiFile (const std::string& filename)
             File.close();
 
             if (!File.good())
-	      amrex::Abort("ParticleContainer<NR, NI, NCOMP>::WriteAsciiFile(): problem writing file");
+	      amrex::Abort("ParticleContainer<NR, NI, NA>::WriteAsciiFile(): problem writing file");
 	    
         }
 	
@@ -2798,21 +2798,21 @@ ParticleContainer<NR, NI, NCOMP>::WriteAsciiFile (const std::string& filename)
 	
         if (ParallelDescriptor::IOProcessor())
 	  {
-            std::cout << "ParticleContainer<NR, NI, NCOMP>::WriteAsciiFile() time: " << stoptime << '\n';
+            std::cout << "ParticleContainer<NR, NI, NA>::WriteAsciiFile() time: " << stoptime << '\n';
 	  }
       }
 }
 
-template <int NR, int NI, int NCOMP>
+template <int NR, int NI, int NA>
 bool
-ParticleContainer<NR, NI, NCOMP>::CrseToFine (const BoxArray&       cfba,
+ParticleContainer<NR, NI, NA>::CrseToFine (const BoxArray&       cfba,
 				       const Array<IntVect>& cells,
 				       Array<IntVect>&       cfshifts,
 				       const Geometry&       gm,
 				       Array<int>&           which,
 				       Array<IntVect>&       pshifts) const
 {
-    BL_PROFILE("ParticleContainer<NR, NI, NCOMP>::CrseToFine()");
+    BL_PROFILE("ParticleContainer<NR, NI, NA>::CrseToFine()");
     //
     // We're in AssignDensity(). We want to know whether or not updating
     // with a particle, will we cross a  crse->fine boundary of the level
@@ -2873,9 +2873,9 @@ ParticleContainer<NR, NI, NCOMP>::CrseToFine (const BoxArray&       cfba,
     return result;
 }
 
-template <int NR, int NI, int NCOMP>
+template <int NR, int NI, int NA>
 bool
-ParticleContainer<NR, NI, NCOMP>::FineToCrse (const ParticleType&                p,
+ParticleContainer<NR, NI, NA>::FineToCrse (const ParticleType&                p,
 				       int                                flev,
 				       const Array<IntVect>&              fcells,
 				       const BoxArray&                    fvalid,
@@ -2887,7 +2887,7 @@ ParticleContainer<NR, NI, NCOMP>::FineToCrse (const ParticleType&               
 				       Array<IntVect>&                    pshifts,
 				       std::vector< std::pair<int,Box> >& isects) const
 {
-    BL_PROFILE("ParticleContainer<NR, NI, NCOMP>::FineToCrse()");
+    BL_PROFILE("ParticleContainer<NR, NI, NA>::FineToCrse()");
     BL_ASSERT(m_gdb != 0);
     BL_ASSERT(flev > 0);
     //
@@ -2991,9 +2991,9 @@ ParticleContainer<NR, NI, NCOMP>::FineToCrse (const ParticleType&               
     return result;
 }
 
-template <int NR, int NI, int NCOMP>
+template <int NR, int NI, int NA>
 void
-ParticleContainer<NR, NI, NCOMP>::FineCellsToUpdateFromCrse (const ParticleType&                p,
+ParticleContainer<NR, NI, NA>::FineCellsToUpdateFromCrse (const ParticleType&                p,
 						      int                                lev,
 						      const IntVect&                     ccell,
 						      const IntVect&                     cshift,
@@ -3002,7 +3002,7 @@ ParticleContainer<NR, NI, NCOMP>::FineCellsToUpdateFromCrse (const ParticleType&
 						      Array<IntVect>&                    fcells,
 						      std::vector< std::pair<int,Box> >& isects) const
 {
-    BL_PROFILE("ParticleContainer<NR, NI, NCOMP>::FineCellsToUpdateFromCrse()");
+    BL_PROFILE("ParticleContainer<NR, NI, NA>::FineCellsToUpdateFromCrse()");
     BL_ASSERT(lev >= 0);
     BL_ASSERT(lev < m_gdb->finestLevel());
 
@@ -3120,15 +3120,15 @@ ParticleContainer<NR, NI, NCOMP>::FineCellsToUpdateFromCrse (const ParticleType&
 //
 // There'll be finest_level+1 of them.
 //
-template <int NR, int NI, int NCOMP>
+template <int NR, int NI, int NA>
 void
-ParticleContainer<NR, NI, NCOMP>::AssignDensity (int rho_index, bool sub_cycle,
+ParticleContainer<NR, NI, NA>::AssignDensity (int rho_index, bool sub_cycle,
 					   Array<std::unique_ptr<MultiFab> >& mf_to_be_filled, 
 					   int lev_min, int ncomp, int finest_level) const
 {
     if (rho_index != 0) amrex::Abort("AssignDensity only works if rho_index = 0");
 
-    BL_PROFILE("ParticleContainer<NR, NI, NCOMP>::AssignDensity()");
+    BL_PROFILE("ParticleContainer<NR, NI, NA>::AssignDensity()");
     BL_ASSERT(NR >= 1);
     BL_ASSERT(NR >= ncomp);
     BL_ASSERT(ncomp == 1 || ncomp == BL_SPACEDIM+1);
@@ -3979,7 +3979,7 @@ ParticleContainer<NR, NI, NCOMP>::AssignDensity (int rho_index, bool sub_cycle,
 
         if (ParallelDescriptor::IOProcessor())
         {
-            std::cout << "ParticleContainer<NR, NI, NCOMP>::AssignDensity(multi-level) time: " << etime << '\n';
+            std::cout << "ParticleContainer<NR, NI, NA>::AssignDensity(multi-level) time: " << etime << '\n';
         }
     }
 }
@@ -3994,9 +3994,9 @@ ParticleContainer<NR, NI, NCOMP>::AssignDensity (int rho_index, bool sub_cycle,
 // Consequently, we must subtract lev_min from m_lev to get the mf lev.
 //
 
-template <int NR, int NI, int NCOMP>
+template <int NR, int NI, int NA>
 void
-ParticleContainer<NR, NI, NCOMP>::AssignDensityDoit (int               rho_index,
+ParticleContainer<NR, NI, NA>::AssignDensityDoit (int               rho_index,
 					       Array<std::unique_ptr<MultiFab> >&             mf,
 					       std::map<int, std::vector<ParticleCommData> >& data,
 					       int               ncomp,
@@ -4004,7 +4004,7 @@ ParticleContainer<NR, NI, NCOMP>::AssignDensityDoit (int               rho_index
 {
     if (rho_index != 0) amrex::Abort("AssignDensityDoit only works if rho_index = 0");
 
-    BL_PROFILE("ParticleContainer<NR, NI, NCOMP>::AssignDensityDoit()");
+    BL_PROFILE("ParticleContainer<NR, NI, NA>::AssignDensityDoit()");
     BL_ASSERT(NR >= ncomp);
 
     const int NProcs = ParallelDescriptor::NProcs();
@@ -4201,15 +4201,15 @@ ParticleContainer<NR, NI, NCOMP>::AssignDensityDoit (int               rho_index
 //
 // This is the single-level version -- it takes either cell-centered or node-centered MF's
 //
-template <int NR, int NI, int NCOMP>
+template <int NR, int NI, int NA>
 void
-ParticleContainer<NR, NI, NCOMP>::AssignDensitySingleLevel (int rho_index,
+ParticleContainer<NR, NI, NA>::AssignDensitySingleLevel (int rho_index,
 						    MultiFab& mf_to_be_filled,
 						    int       lev,
 						    int       ncomp,
 						    int       particle_lvl_offset) const
 {
-    BL_PROFILE("ParticleContainer<NR, NI, NCOMP>::AssignDensitySingleLevel()");
+    BL_PROFILE("ParticleContainer<NR, NI, NA>::AssignDensitySingleLevel()");
     BL_ASSERT(NR >= 1);
     BL_ASSERT(ncomp == 1 || ncomp == BL_SPACEDIM+1);
 
@@ -4239,9 +4239,9 @@ ParticleContainer<NR, NI, NCOMP>::AssignDensitySingleLevel (int rho_index,
 //
 // This is the single-level version for cell-centered density
 //
-template <int NR, int NI, int NCOMP>
+template <int NR, int NI, int NA>
 void
-ParticleContainer<NR, NI, NCOMP>::AssignCellDensitySingleLevel (int rho_index,
+ParticleContainer<NR, NI, NA>::AssignCellDensitySingleLevel (int rho_index,
 							MultiFab& mf_to_be_filled,
 							int       lev,
 							int       ncomp,
@@ -4393,7 +4393,7 @@ ParticleContainer<NR, NI, NCOMP>::AssignCellDensitySingleLevel (int rho_index,
 
         if (ParallelDescriptor::IOProcessor())
         {
-            std::cout << "ParticleContainer<NR, NI, NCOMP>::AssignDensity(single-level) time: " << stoptime << '\n';
+            std::cout << "ParticleContainer<NR, NI, NA>::AssignDensity(single-level) time: " << stoptime << '\n';
         }
     }
 }
@@ -4401,9 +4401,9 @@ ParticleContainer<NR, NI, NCOMP>::AssignCellDensitySingleLevel (int rho_index,
 //
 // This is the single-level version for nodal density
 //
-template <int NR, int NI, int NCOMP>
+template <int NR, int NI, int NA>
 void
-ParticleContainer<NR, NI, NCOMP>::NodalDepositionSingleLevel (int rho_index,
+ParticleContainer<NR, NI, NA>::NodalDepositionSingleLevel (int rho_index,
 						      MultiFab& mf_to_be_filled,
 					              int       lev,
            					      int       ncomp,
@@ -4596,9 +4596,9 @@ ParticleContainer<NR, NI, NCOMP>::NodalDepositionSingleLevel (int rho_index,
 // returning the acceleration at the particle location in the data array, starting at
 // component start_comp_for_accel
 //
-template <int NR, int NI, int NCOMP>
+template <int NR, int NI, int NA>
 void
-ParticleContainer<NR, NI, NCOMP>::moveKick (MultiFab&       acceleration,
+ParticleContainer<NR, NI, NA>::moveKick (MultiFab&       acceleration,
 					    int             lev,
 					    Real            dt,
 					    Real            a_new,
@@ -4691,10 +4691,10 @@ ParticleContainer<NR, NI, NCOMP>::moveKick (MultiFab&       acceleration,
 
         if (ParallelDescriptor::IOProcessor())
         {
-            std::cout << "ParticleContainer<NR, NI, NCOMP>::moveKick() time: " << stoptime << '\n';
+            std::cout << "ParticleContainer<NR, NI, NA>::moveKick() time: " << stoptime << '\n';
         }
     }
     //
-    // No need for Redistribution(), we only change the velocity.
+    // No need for Redistribute(), we only change the velocity.
     //
 }
