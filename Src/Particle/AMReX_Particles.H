@@ -210,14 +210,14 @@ public:
     //
     // The type of Particles we hold.
     //
-    typedef Particle<NR, NI> ParticleType;
+    using ParticleType = Particle<NR, NI>;
 
     // This defines the array-of-structs datatype.
     using AoS = Array<ParticleType>;
 
     // The struct-of-arrays data is stored as a double array where the first index is the
     // component number and the second is the particle index.
-    typedef StructOfArrays<NCOMP> SoA;
+    using SoA = StructOfArrays<NCOMP>;
 
     // A single level worth of particles is indexed first by grid id, 
     // then by tile id, for both SoA and AoS data.
