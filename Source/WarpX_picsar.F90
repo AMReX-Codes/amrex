@@ -227,8 +227,8 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
     real(c_real), intent(IN),  dimension(np)                     :: xp,yp,zp,w
     real(c_real), intent(IN),  dimension(np)                     :: uxp,uyp,uzp
     real(c_real), intent(IN),  dimension(np)                     :: gaminv
-    integer(c_int), intent(IN)                                   :: lvect
-    integer(c_int), intent(IN)                                   :: current_depo_algo
+    integer(c_long), intent(IN)                                  :: lvect
+    integer(c_long), intent(IN)                                  :: current_depo_algo
 
     ! Dimension 3
 #if (BL_SPACEDIM==3)
