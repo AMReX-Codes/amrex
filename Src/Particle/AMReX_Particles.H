@@ -192,15 +192,15 @@ struct Particle
 template <int NA>
 struct StructOfArrays {
   
-  std::vector<Real>& operator[] (const int index) {
+  Array<Real>& operator[] (const int index) {
     return m_data[index];
   }
 
-  const std::vector<Real>& operator[] (const int index) const {
+  const Array<Real>& operator[] (const int index) const {
     return m_data[index];
   }
 
-  std::array<std::vector<Real> , NA> m_data;
+  std::array<Array<Real>, NA> m_data;
 };
 
 template <int NR, int NI = 0, int NA = 0>
@@ -210,14 +210,14 @@ public:
     //
     // The type of Particles we hold.
     //
-    typedef Particle<NR, NI> ParticleType;
+    using ParticleType = Particle<NR, NI>;
 
     // This defines the array-of-structs datatype.
     using AoS = Array<ParticleType>;
 
     // The struct-of-arrays data is stored as a double array where the first index is the
     // component number and the second is the particle index.
-    typedef StructOfArrays<NA> SoA;
+    using SoA = StructOfArrays<NA>;
 
     // A single level worth of particles is indexed first by grid id, 
     // then by tile id, for both SoA and AoS data.
@@ -227,16 +227,12 @@ public:
     ParticleContainer ()
       : m_verbose(1), m_gdb(nullptr), allow_particles_near_boundary(false)
   {
-    for (int i = 0; i < NA; ++i) 
-      communicate_comp[i] = true;
   }
 
     ParticleContainer (ParGDBBase* gdb)
         :
       m_verbose(1), m_gdb(gdb), allow_particles_near_boundary(false)
   {
-    for (int i = 0; i < NA; ++i) 
-      communicate_comp[i] = true;
     allocateData();
   }
   
@@ -249,8 +245,6 @@ public:
 	m_gdb_object(geom,dmap,ba)
     {
       m_gdb = & m_gdb_object;
-      for (int i = 0; i < NA; ++i) 
-	communicate_comp[i] = true;
       allocateData();
     }
 
@@ -264,8 +258,6 @@ public:
 	m_gdb_object(geom,dmap,ba,rr)
     {
       m_gdb = & m_gdb_object;
-      for (int i = 0; i < NA; ++i) 
-	communicate_comp[i] = true;
       allocateData();
     }
 
@@ -274,8 +266,6 @@ public:
     void Define (ParGDBBase* gdb)
     {
       m_gdb = gdb;
-      for (int i = 0; i < NA; ++i) 
-	communicate_comp[i] = true;
       allocateData();
     }
 
@@ -285,8 +275,6 @@ public:
   {
     m_gdb_object = ParGDB(geom, dmap, ba);
     m_gdb = &m_gdb_object;
-      for (int i = 0; i < NA; ++i) 
-	communicate_comp[i] = true;
     allocateData();
   }
 
@@ -297,8 +285,6 @@ public:
     {
 	m_gdb_object = ParGDB(geom, dmap, ba, rr);
 	m_gdb = &m_gdb_object;
-	for (int i = 0; i < NA; ++i) 
-	  communicate_comp[i] = true;
 	allocateData();
     }
 
@@ -514,7 +500,7 @@ public:
 				    Array<IntVect>&                    fcells,
 				    std::vector< std::pair<int,Box> >& isects) const;
 
-    bool communicate_comp[NA];
+    std::vector<bool> communicate_comp {NA, true};
     static bool do_tiling;
     static IntVect tile_size;
 
@@ -574,7 +560,7 @@ protected:
 private:
     void AssignDensityDoit (int rho_index, 
 			    Array<std::unique_ptr<MultiFab> >& mf, 
-			    std::map<int, std::vector<ParticleCommData> >& data,
+			    std::map<int, Array<ParticleCommData> >& data,
 			    int ncomp, int lev_min = 0) const;
 };
 

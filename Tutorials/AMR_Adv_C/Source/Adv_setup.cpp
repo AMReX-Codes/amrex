@@ -10,6 +10,8 @@ void
 Adv::variableCleanUp () 
 {
     desc_lst.clear();
+    delete TracerPC;
+    TracerPC = nullptr;
 }
 
 void

@@ -1,4 +1,3 @@
-using std::make_pair;
 
 template <int NR, int NI, int NA>
 bool    ParticleContainer<NR, NI, NA>::do_tiling = false;
@@ -504,7 +503,7 @@ ParticleContainer<NR, NI, NA>::addOneParticle (int                  id_in,
 	  }
       }
     
-    m_particles[pld.m_lev][make_pair(pld.m_grid, pld.m_tile)].push_back(p);
+    m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
 
     // Note that we will need to call Redistribute once we are done adding particles this way.
     // The Where call above assigns a particle to a grid (pld.m_grid) based on the particle location.
@@ -550,7 +549,7 @@ ParticleContainer<NR, NI, NA>::addNParticles(int n_part, Array<double>& x, Array
        p.m_idata.id  = ParticleType::NextID();
        p.m_idata.cpu = ParallelDescriptor::MyProc();
 
-       m_particles[pld.m_lev][make_pair(pld.m_grid, pld.m_tile)].push_back(p);
+       m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
     }
 
     Redistribute();
@@ -1387,10 +1386,10 @@ ParticleContainer<NR, NI, NA>::Redistribute (int  lev_min,
 		  //
 		  // We own it but must shift it to another place.
 		  //
-		  m_particles[pld.m_lev][make_pair(pld.m_grid, pld.m_tile)].push_back(p);
+		  m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
 		  for (int comp = 0; comp < NA; comp++) {
-		    Real pdata = m_arraydata[lev][make_pair(grid, tile)][comp][pindex];
-		    m_arraydata[pld.m_lev][make_pair(pld.m_grid, pld.m_tile)][comp].push_back(pdata);
+		    Real pdata = m_arraydata[lev][std::make_pair(grid, tile)][comp][pindex];
+		    m_arraydata[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)][comp].push_back(pdata);
 		  }
 		  //
 		  // Invalidate the particle so we can reclaim its space.
@@ -1401,7 +1400,7 @@ ParticleContainer<NR, NI, NA>::Redistribute (int  lev_min,
 	      else {
 		not_ours[who].push_back(p);
 		for (int comp = 0; comp < NA; comp++) {
-		  Real pdata = m_arraydata[lev][make_pair(grid, tile)][comp][pindex];
+		  Real pdata = m_arraydata[lev][std::make_pair(grid, tile)][comp][pindex];
 		  if (communicate_comp[comp])
 		    comm_soa_data[who][comp].push_back(pdata);
 		}
@@ -1417,7 +1416,7 @@ ParticleContainer<NR, NI, NA>::Redistribute (int  lev_min,
 	    if (pindex != first) {
 	      pbox[first] = p;
 	      for (int comp = 0; comp < NA; comp++) {
-		std::vector<Real>& vec = m_arraydata[lev][make_pair(grid, tile)][comp];
+		std::vector<Real>& vec = m_arraydata[lev][std::make_pair(grid, tile)][comp];
 		vec[first] = vec[pindex];
 	      }
 	    }
@@ -1427,7 +1426,7 @@ ParticleContainer<NR, NI, NA>::Redistribute (int  lev_min,
 
 	pbox.erase(pbox.begin() + first, pbox.begin() + npart);
 	for (int comp = 0; comp < NA; comp++) {
-	  std::vector<Real>& vec = m_arraydata[lev][make_pair(grid, tile)][comp];
+	  std::vector<Real>& vec = m_arraydata[lev][std::make_pair(grid, tile)][comp];
 	  vec.erase(vec.begin() + first, vec.begin() + npart);
 	}
       }
@@ -1658,13 +1657,13 @@ ParticleContainer<NR, NI, NA>::RedistributeMPI (std::map<int, AoS>& not_ours,
 	    locateParticle(p, pld, lev_min, finest_level, nGrow);
 	    Where(p, pld);
 	    
-	    m_particles[pld.m_lev][make_pair(pld.m_grid, pld.m_tile)].push_back(p);
+	    m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
 
 	    for (int j = 0; j < NA; j++) {
 	      if (communicate_comp[j]) 
-		m_arraydata[pld.m_lev][make_pair(pld.m_grid, pld.m_tile)][j].push_back(*SoA_ptr++);
+		m_arraydata[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)][j].push_back(*SoA_ptr++);
 	      else
-		m_arraydata[pld.m_lev][make_pair(pld.m_grid, pld.m_tile)][j].push_back(0.0);
+		m_arraydata[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)][j].push_back(0.0);
 	    }
 	  }
 	}
@@ -2087,7 +2086,7 @@ ParticleContainer<NR, NI, NA>::WriteParticles (int            lev,
     const AoSMap&     pmap  = m_particles[lev];
 
     // For a each grid, the tiles it contains
-    std::map<int, std::vector<int> > tile_map;
+    std::map<int, Array<int> > tile_map;
 
     for (const auto& kv : m_particles[lev]) {
       const int grid = kv.first.first;
@@ -2128,7 +2127,7 @@ ParticleContainer<NR, NI, NA>::WriteParticles (int            lev,
 	int* iptr = istuff.dataPtr();
 
 	for (unsigned i = 0; i < tile_map[grid].size(); i++) {
-	  const AoS& pbox = m_particles[lev].at(make_pair(grid, tile_map[grid][i]));
+	  const AoS& pbox = m_particles[lev].at(std::make_pair(grid, tile_map[grid][i]));
 	  for (const auto& p : pbox) {
 	    if (p.m_idata.id > 0) {
 	      iptr[0] = p.m_idata.id;
@@ -2146,7 +2145,7 @@ ParticleContainer<NR, NI, NA>::WriteParticles (int            lev,
       typename ParticleType::RealType* rptr = rstuff.dataPtr();
 
       for (unsigned i = 0; i < tile_map[grid].size(); i++) {
-	const AoS& pbox = m_particles[lev].at(make_pair(grid, tile_map[grid][i]));
+	const AoS& pbox = m_particles[lev].at(std::make_pair(grid, tile_map[grid][i]));
 	int pindex = 0;
 	for (const auto& p : pbox) {
 	  if (p.m_idata.id > 0) {
@@ -2154,7 +2153,7 @@ ParticleContainer<NR, NI, NA>::WriteParticles (int            lev,
 	      rptr[j] = p.m_rdata.arr[j];
 	    rptr += BL_SPACEDIM + NR;
 	    for (int j = 0; j < NA; j++) {
-	      const SoA& soa  = m_arraydata[lev].at(make_pair(grid, tile_map[grid][i]));
+	      const SoA& soa  = m_arraydata[lev].at(std::make_pair(grid, tile_map[grid][i]));
 	      rptr[j] = (typename ParticleType::RealType) soa[j][pindex];
 	    }
 	    rptr += NA;
@@ -2508,7 +2507,7 @@ ParticleContainer<NR, NI, NA>::ReadParticles_DoublePrecision (int            cnt
     //
     int*            iptr = istuff.dataPtr();
     double*         rptr = rstuff.dataPtr();
-    AoS&           pbox = m_particles[lev][make_pair(grd, 0)]; // tile
+    AoS&           pbox = m_particles[lev][std::make_pair(grd, 0)]; // tile
     ParticleType p;
 
     // If we are restarting from a plotfile instead of a checkpoint file, then we do not
@@ -2608,7 +2607,7 @@ ParticleContainer<NR, NI, NA>::ReadParticles_SinglePrecision (int            cnt
     //
     int*   iptr = istuff.dataPtr();
     float* rptr = rstuff.dataPtr();
-    AoS&  pbox = m_particles[lev][make_pair(grd, 0)]; //Tile
+    AoS&  pbox = m_particles[lev][std::make_pair(grd, 0)]; //Tile
 
     ParticleLocData pld;
     ParticleType p;
@@ -3203,7 +3202,7 @@ ParticleContainer<NR, NI, NA>::AssignDensity (int rho_index, bool sub_cycle,
     //
     // This is the "data" needed by other MPI procs.
     //
-    std::map<int, std::vector<ParticleCommData> > data;
+    std::map<int, Array<ParticleCommData> > data;
 
     const Real stime = ParallelDescriptor::second();
     //
@@ -3998,7 +3997,7 @@ template <int NR, int NI, int NA>
 void
 ParticleContainer<NR, NI, NA>::AssignDensityDoit (int               rho_index,
 					       Array<std::unique_ptr<MultiFab> >&             mf,
-					       std::map<int, std::vector<ParticleCommData> >& data,
+					       std::map<int, Array<ParticleCommData> >& data,
 					       int               ncomp,
 					       int               lev_min) const
 {
@@ -4136,7 +4135,7 @@ ParticleContainer<NR, NI, NA>::AssignDensityDoit (int               rho_index,
         isenddata.resize(iCnt);
         rsenddata.resize(rCnt);
 
-	std::vector<ParticleCommData>& pbox = data[Who];
+	auto& pbox = data[Who];
 
         int ioff = 0, roff = 0;
 	for (const auto& p : pbox)
@@ -4157,7 +4156,7 @@ ParticleContainer<NR, NI, NA>::AssignDensityDoit (int               rho_index,
 	  roff += ncomp;
         }
 
-	std::vector<ParticleCommData>().swap(pbox);
+	Array<ParticleCommData>().swap(pbox);
 
         ParallelDescriptor::Send(isenddata.dataPtr(),iCnt,Who,SeqNumI);
         ParallelDescriptor::Send(rsenddata.dataPtr(),rCnt,Who,SeqNumR);
