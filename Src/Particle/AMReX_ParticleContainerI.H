@@ -1417,7 +1417,7 @@ ParticleContainer<NR, NI, NCOMP>::Redistribute (int  lev_min,
 	    if (pindex != first) {
 	      pbox[first] = p;
 	      for (int comp = 0; comp < NCOMP; comp++) {
-		std::vector<Real>& vec = m_partdata[lev][make_pair(grid, tile)][comp];
+		auto& vec = m_partdata[lev][make_pair(grid, tile)][comp];
 		vec[first] = vec[pindex];
 	      }
 	    }
@@ -1427,7 +1427,7 @@ ParticleContainer<NR, NI, NCOMP>::Redistribute (int  lev_min,
 
 	pbox.erase(pbox.begin() + first, pbox.begin() + npart);
 	for (int comp = 0; comp < NCOMP; comp++) {
-	  std::vector<Real>& vec = m_partdata[lev][make_pair(grid, tile)][comp];
+          auto& vec = m_partdata[lev][make_pair(grid, tile)][comp];
 	  vec.erase(vec.begin() + first, vec.begin() + npart);
 	}
       }
@@ -2087,7 +2087,7 @@ ParticleContainer<NR, NI, NCOMP>::WriteParticles (int            lev,
     const AoSMap&     pmap  = m_particles[lev];
 
     // For a each grid, the tiles it contains
-    std::map<int, std::vector<int> > tile_map;
+    std::map<int, Array<int> > tile_map;
 
     for (const auto& kv : m_particles[lev]) {
       const int grid = kv.first.first;
@@ -3203,7 +3203,7 @@ ParticleContainer<NR, NI, NCOMP>::AssignDensity (int rho_index, bool sub_cycle,
     //
     // This is the "data" needed by other MPI procs.
     //
-    std::map<int, std::vector<ParticleCommData> > data;
+    std::map<int, Array<ParticleCommData> > data;
 
     const Real stime = ParallelDescriptor::second();
     //
@@ -3998,7 +3998,7 @@ template <int NR, int NI, int NCOMP>
 void
 ParticleContainer<NR, NI, NCOMP>::AssignDensityDoit (int               rho_index,
 					       Array<std::unique_ptr<MultiFab> >&             mf,
-					       std::map<int, std::vector<ParticleCommData> >& data,
+					       std::map<int, Array<ParticleCommData> >& data,
 					       int               ncomp,
 					       int               lev_min) const
 {
@@ -4136,7 +4136,7 @@ ParticleContainer<NR, NI, NCOMP>::AssignDensityDoit (int               rho_index
         isenddata.resize(iCnt);
         rsenddata.resize(rCnt);
 
-	std::vector<ParticleCommData>& pbox = data[Who];
+	auto& pbox = data[Who];
 
         int ioff = 0, roff = 0;
 	for (const auto& p : pbox)
@@ -4157,7 +4157,7 @@ ParticleContainer<NR, NI, NCOMP>::AssignDensityDoit (int               rho_index
 	  roff += ncomp;
         }
 
-	std::vector<ParticleCommData>().swap(pbox);
+	Array<ParticleCommData>().swap(pbox);
 
         ParallelDescriptor::Send(isenddata.dataPtr(),iCnt,Who,SeqNumI);
         ParallelDescriptor::Send(rsenddata.dataPtr(),rCnt,Who,SeqNumR);

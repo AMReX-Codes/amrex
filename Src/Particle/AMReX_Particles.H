@@ -192,15 +192,15 @@ struct Particle
 template <int NCOMP>
 struct StructOfArrays {
   
-  std::vector<Real>& operator[] (const int index) {
+  Array<Real>& operator[] (const int index) {
     return m_data[index];
   }
 
-  const std::vector<Real>& operator[] (const int index) const {
+  const Array<Real>& operator[] (const int index) const {
     return m_data[index];
   }
 
-  std::array<std::vector<Real> , NCOMP> m_data;
+  std::array<Array<Real> , NCOMP> m_data;
 };
 
 template <int NR, int NI = 0, int NCOMP = 0>
@@ -574,7 +574,7 @@ protected:
 private:
     void AssignDensityDoit (int rho_index, 
 			    Array<std::unique_ptr<MultiFab> >& mf, 
-			    std::map<int, std::vector<ParticleCommData> >& data,
+			    std::map<int, Array<ParticleCommData> >& data,
 			    int ncomp, int lev_min = 0) const;
 };
 
