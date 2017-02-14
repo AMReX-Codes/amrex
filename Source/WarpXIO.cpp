@@ -302,13 +302,19 @@ WarpX::WritePlotFile () const
     
     {
 	Array<std::string> varnames {"jx", "jy", "jz", "Ex", "Ey", "Ez", "Bx", "By", "Bz", 
-                                     "part_per_cell", "part_per_grid", "part_per_proc"};
+                                     "part_per_cell", "part_per_grid", "part_per_proc", "proc_number"};
 
 	Array<std::unique_ptr<MultiFab> > mf(finest_level+1);
     
 	for (int lev = 0; lev <= finest_level; ++lev)
 	{
-	    const int ncomp = 3*3 + 3; // The +3 is for the number of particles per cell/grid/process
+            int ncomp;
+            if (ParallelDescriptor::NProcs() > 1) {
+	       ncomp = 3*3 + 4; // The +4 is for the number of particles per cell/grid/process + Processor ID
+            } else {
+	       ncomp = 3*3 + 3; // The +4 is for the number of particles per cell/grid/process + Processor ID
+            }
+
 	    const int ngrow = 0;
             mf[lev].reset(new MultiFab(grids[lev], ncomp, ngrow, dmap[lev]));
 
@@ -359,6 +365,13 @@ WarpX::WritePlotFile () const
                 n_per_proc += new_particle_cost[mfi.index()];
             for (MFIter mfi(*mf[lev]); mfi.isValid(); ++mfi) 
 		(*mf[lev])[mfi].setVal(static_cast<Real>(n_per_proc), dcomp);
+
+            if (ParallelDescriptor::NProcs() > 1) {
+              // MultiFab containing the Processor ID 
+  	      dcomp += 1;
+              for (MFIter mfi(*mf[lev]); mfi.isValid(); ++mfi) 
+		(*mf[lev])[mfi].setVal(static_cast<Real>(ParallelDescriptor::MyProc()), dcomp);
+	    }
 	}
     
 	Array<const MultiFab*> mf2(finest_level+1);
