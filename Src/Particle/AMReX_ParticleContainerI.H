@@ -1202,8 +1202,6 @@ ParticleContainer<NR, NI, NA>::Redistribute (bool where_already_called, int lev_
 
   // struct-of-array data that also needs to be communicated
   std::map<int, Array<Array<Real > > > comm_soa_data;
-  for (int i = 0; i < NProcs; i++)
-    comm_soa_data[i].resize(NA);
 
   ParticleLocData pld;
 
@@ -1213,13 +1211,20 @@ ParticleContainer<NR, NI, NA>::Redistribute (bool where_already_called, int lev_
       int grid = pmap_it->first.first;
       int tile = pmap_it->first.second;
       AoS& pbox = pmap_it->second;
+      SoA& arrs = m_arraydata[lev][pmap_it->first];
       unsigned first = 0;
       unsigned npart = pbox.size();
       if (npart != 0) {
 	for (unsigned pindex = 0; pindex < npart; ++pindex) {
 	  ParticleType& p = pbox[pindex];
 	  if (p.m_idata.id > 0) {
-	    locateParticle(p, pld, lev_min, theEffectiveFinestLevel, nGrow);
+            if (where_already_called) {
+                pld.m_lev  = lev;
+                pld.m_grid = grid;
+                pld.m_tile = tile;
+            } else {
+                locateParticle(p, pld, lev_min, theEffectiveFinestLevel, nGrow);
+            }
 	    if (p.m_idata.id > 0) {
 
 	      // The owner of the particle is the CPU owning the finest grid
@@ -1232,7 +1237,7 @@ ParticleContainer<NR, NI, NA>::Redistribute (bool where_already_called, int lev_
 		  //
 		  m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
 		  for (int comp = 0; comp < NA; comp++) {
-		    Real pdata = m_arraydata[lev][std::make_pair(grid, tile)][comp][pindex];
+		    Real pdata = arrs[comp][pindex];
 		    m_arraydata[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)][comp].push_back(pdata);
 		  }
 		  //
@@ -1243,10 +1248,13 @@ ParticleContainer<NR, NI, NA>::Redistribute (bool where_already_called, int lev_
 	      }
 	      else {
 		not_ours[who].push_back(p);
+                auto& soa_data = comm_soa_data[who];
+                if (soa_data.size() < NA) soa_data.resize(NA);
 		for (int comp = 0; comp < NA; comp++) {
-		  Real pdata = m_arraydata[lev][std::make_pair(grid, tile)][comp][pindex];
-		  if (communicate_comp[comp])
-		    comm_soa_data[who][comp].push_back(pdata);
+		  if (communicate_comp[comp]) {
+                      Real pdata = arrs[comp][pindex];
+                      soa_data[comp].push_back(pdata);
+                  }
 		}
 		//
 		// Invalidate the particle so we can reclaim its space.
@@ -1260,8 +1268,7 @@ ParticleContainer<NR, NI, NA>::Redistribute (bool where_already_called, int lev_
 	    if (pindex != first) {
 	      pbox[first] = p;
 	      for (int comp = 0; comp < NA; comp++) {
-		std::vector<Real>& vec = m_arraydata[lev][std::make_pair(grid, tile)][comp];
-		vec[first] = vec[pindex];
+                  arrs[comp][first] = arrs[comp][pindex];
 	      }
 	    }
 	    ++first;
@@ -1270,8 +1277,7 @@ ParticleContainer<NR, NI, NA>::Redistribute (bool where_already_called, int lev_
 
 	pbox.erase(pbox.begin() + first, pbox.begin() + npart);
 	for (int comp = 0; comp < NA; comp++) {
-	  std::vector<Real>& vec = m_arraydata[lev][std::make_pair(grid, tile)][comp];
-	  vec.erase(vec.begin() + first, vec.begin() + npart);
+            arrs[comp].erase(arrs[comp].begin() + first, arrs[comp].begin() + npart);
 	}
       }
 	
@@ -1297,6 +1303,7 @@ ParticleContainer<NR, NI, NA>::Redistribute (bool where_already_called, int lev_
       BL_ASSERT(m_particles[m_particles.size()-1].empty());
       
       m_particles.resize(theEffectiveFinestLevel+1);
+      m_arraydata.resize(theEffectiveFinestLevel+1);
   }
   
   if (ParallelDescriptor::NProcs() == 1)
