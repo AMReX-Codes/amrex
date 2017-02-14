@@ -364,7 +364,7 @@ ParticleContainer<NR, NI, NA>::NumberOfParticlesInGrid (int  lev,
 							   bool only_valid,
 							   bool only_local) const
 {
-    int ngrids = m_gdb->ParticleBoxArray(lev).size();
+    auto ngrids = m_gdb->ParticleBoxArray(lev).size();
     Array<long> nparticles(ngrids, 0);
 
     if (lev >= 0 && lev < int(m_particles.size())) {
@@ -378,7 +378,7 @@ ParticleContainer<NR, NI, NA>::NumberOfParticlesInGrid (int  lev,
 	  }
 	}
 	else {
-	  nparticles[gid] = pbox.size();
+	  nparticles[gid] += pbox.size();
 	}
       }
       
