@@ -335,16 +335,17 @@ public:
     void MoveRandom (int level);
 
     void Increment (MultiFab& mf, int level);
-    long IncrementWithTotal (MultiFab& mf, int level);
+    long IncrementWithTotal (MultiFab& mf, int level, bool local = false);
 
     // rho_index: rho index in rdata
-    Real sumParticleMass (int rho_index, int level) const;
+    Real sumParticleMass (int rho_index, int level, bool local = false) const;
 
     // Set the flag that allows particles to live near the domain boundary and throw away 
     //     the part of their contribution in AssignDensity that is outside the domain.
     void SetAllowParticlesNearBoundary(bool value);
  
-    void Redistribute (int  lev_min              = 0, 
+    void Redistribute (bool where_already_called = false,
+                       int  lev_min              = 0, 
 		       int  nGrow                = 0);
 
     void RedistributeMPI (std::map<int, AoS>& not_ours,
