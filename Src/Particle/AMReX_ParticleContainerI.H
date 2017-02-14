@@ -438,7 +438,7 @@ ParticleContainer<NR, NI, NA>::ByteSpread () const
     long mn = cnt, mx = mn;
 
     const int IOProc = ParallelDescriptor::IOProcessorNumber();
-    const std::size_t sz = sizeof(ParticleType);
+    const std::size_t sz = sizeof(ParticleType) + NA*sizeof(Real);
 
 #ifdef BL_LAZY
     Lazy::QueueReduction( [=] () mutable {
