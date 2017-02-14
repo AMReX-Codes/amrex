@@ -32,6 +32,8 @@ public:
 
     MultiParticleContainer& GetPartContainer () { return *mypc; }
 
+    void fillSlice(Real z_coord);
+
     static void FillBoundary (MultiFab& mf, const Geometry& geom, const IntVect& nodalflag);
 
     static void shiftMF(MultiFab& mf, const Geometry& geom, int num_shift, 
@@ -54,6 +56,8 @@ public:
 
 protected:
     virtual void ErrorEst (int lev, TagBoxArray& tags, Real time, int /*ngrow*/) override {}
+
+    Box getIndexBox(const RealBox& real_box);
 
 private:
 
