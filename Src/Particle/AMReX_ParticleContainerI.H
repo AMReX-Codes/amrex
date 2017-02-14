@@ -51,9 +51,9 @@ ParticleContainer<NR, NI, NA>::getTileIndex(const IntVect& iv, const Box& box) c
 template <int NR, int NI, int NA>
 bool
 ParticleContainer<NR, NI, NA>::Where (const ParticleType&         p,
-					 ParticleLocData&            pld,
-					 int                         lev_min,
-					 int                         finest_level) const
+				      ParticleLocData&            pld,
+				      int                         lev_min,
+				      int                         finest_level) const
 {
     BL_ASSERT(m_gdb != 0);
 
@@ -275,8 +275,8 @@ ParticleContainer<NR, NI, NA>::PeriodicShift (ParticleType& p) const
 template <int NR, int NI, int NA>
 void
 ParticleContainer<NR, NI, NA>::Reset (ParticleType&        p,
-				  bool                 update,
-				  bool                 verbose) const
+				      bool                 update,
+				      bool                 verbose) const
 {
     BL_PROFILE("ParticleContainer<NR, NI, NA>::Reset()");
     BL_ASSERT(m_gdb != 0);
@@ -461,9 +461,9 @@ ParticleContainer<NR, NI, NA>::ByteSpread () const
 template <int NR, int NI, int NA>
 void
 ParticleContainer<NR, NI, NA>::addOneParticle (int                  id_in,
-					   int                  cpu_in, 
-					   std::vector<double>& xloc, 
-					   std::vector<double>& attributes)
+					       int                  cpu_in, 
+					       std::vector<double>& xloc, 
+					       std::vector<double>& attributes)
 {
     BL_PROFILE("ParticleContainer<NR, NI, NA>::addOneParticle()");
     if (m_particles.size() == 0)
@@ -1655,7 +1655,6 @@ ParticleContainer<NR, NI, NA>::RedistributeMPI (std::map<int, AoS>& not_ours,
 	    p = *AoS_ptr++;
 	    ParticleLocData pld;
 	    locateParticle(p, pld, lev_min, finest_level, nGrow);
-	    Where(p, pld);
 	    
 	    m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
 
