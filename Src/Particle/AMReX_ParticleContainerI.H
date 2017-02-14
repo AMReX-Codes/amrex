@@ -933,6 +933,7 @@ ParticleContainer<NR, NI, NA>::RemoveParticlesAtLevel (int level)
   if (!this->m_particles[level].empty())
     {
       AoSMap().swap(this->m_particles[level]);
+      SoAMap().swap(this->m_arraydata[level]);
     }
 }
 
@@ -943,40 +944,27 @@ ParticleContainer<NR, NI, NA>::RemoveParticlesNotAtFinestLevel ()
   BL_PROFILE("ParticleContainer<NR, NI, NA>::RemoveParticlesNotAtFinestLevel()");
   BL_ASSERT(this->m_gdb->finestLevel()+1 == int(this->m_particles.size()));
   
-  int cnt = 0;
+  long cnt = 0;
   
-  for (unsigned lev = 0; lev < m_particles.size() - 1; lev++) {
-    const auto& pmap = m_particles[lev];
+  for (unsigned lev = 0; lev < m_particles.size() - 1; ++lev) {
+    auto& pmap = m_particles[lev];
     if (!pmap.empty()) {
       for (auto& kv : pmap) {
 	const AoS& pbx = kv.second;
 	cnt += pbx.size();
       }
       AoSMap().swap(pmap);
+      SoAMap().swap(m_arraydata[lev]);
     }
   }
   
   //
   // Print how many particles removed on each processor if any were removed.
   //
-  if (this->m_verbose > 1)
-    {
-      int maxcnt = cnt;
-      
-#ifdef BL_LAZY
-      Lazy::QueueReduction( [=] () mutable {
-#endif
-	  ParallelDescriptor::ReduceIntMax(maxcnt);
-	  
-	  if (maxcnt > 0 && cnt > 0)
-          {
-              amrex::AllPrint() << "Processor " << ParallelDescriptor::MyProc() << " removed " << cnt
-                                << " particles not in finest level\n";
-          }
-#ifdef BL_LAZY
-	});
-#endif
-    }
+  if (this->m_verbose > 1 && cnt > 0) {
+      amrex::AllPrint() << "Processor " << ParallelDescriptor::MyProc() << " removed " << cnt
+                        << " particles not in finest level\n";
+  }
 }
 
 template <int NR, int NI, int NA>
