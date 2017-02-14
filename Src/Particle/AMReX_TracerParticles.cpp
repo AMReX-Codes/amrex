@@ -52,6 +52,8 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
         }
     }
 
+    ParticleLocData pld;
+
     for (int ipass = 0; ipass < 2; ipass++)
     {
         AoSMap& pmap = m_particles[lev];
@@ -65,12 +67,11 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
 						 &((*umac_pointer[2])[grid])) };
 
 #ifdef _OPENMP
-#pragma omp parallel for
+#pragma omp parallel for private(pld)
 #endif
             for (int i = 0; i < n; i++)
             {
                 ParticleType& p = pbox[i];
-		ParticleLocData pld;
 
 	        bool found_it = SingleLevelWhere(p, pld, lev, umac[0].nGrow());
 		BL_ASSERT(found_it);
@@ -164,6 +165,8 @@ TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
 
     int idx[BL_SPACEDIM] = {D_DECL(0,1,2)};
 
+    ParticleLocData pld;
+
     for (int ipass = 0; ipass < 2; ipass++)
     {
         AoSMap& pmap = m_particles[lev];
@@ -174,12 +177,11 @@ TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
 	  const FArrayBox& fab = Ucc[grid];
 	    
 #ifdef _OPENMP
-#pragma omp parallel for
+#pragma omp parallel for private(pld)
 #endif
             for (int i = 0; i < n; i++)
             {
                 ParticleType& p = pbox[i];
-		ParticleLocData pld;
 
                 if (p.m_idata.id <= 0) continue;
 
@@ -270,6 +272,8 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
     const int   nSets     = ((NProcs + (nOutFiles - 1)) / nOutFiles);
     const int   mySet     = (MyProc / nOutFiles);
 
+    ParticleLocData pld;
+
     for (int iSet = 0; iSet < nSets; ++iSet)
       {
         if (mySet == iSet)
@@ -327,7 +331,6 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
                     {
 		      if (p.m_idata.id <= 0) continue;
 		      
-		      ParticleLocData pld;
 		      SingleLevelWhere(p, pld, lev);
 		      const IntVect& iv = pld.m_cell;
 		      
