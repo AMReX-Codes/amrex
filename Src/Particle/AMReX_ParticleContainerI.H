@@ -32,20 +32,13 @@ ParticleContainer<NR, NI, NA>::getTileIndex(const IntVect& iv, const Box& box) c
   const IntVect& size = box.size();
   IntVect ntiles(D_DECL((size[0]+tile_size[0]-1)/tile_size[0],
 			(size[1]+tile_size[1]-1)/tile_size[1],
-			(size[2]+tile_size[2]-1)/tile_size[2]));
+			0));  // Don't need the last component of ntile
   IntVect ivIndex(D_DECL((iv[0]-small[0])/tile_size[0],
 			 (iv[1]-small[1])/tile_size[1],
 			 (iv[2]-small[2])/tile_size[2]));
 
   // convert IntVect index into a linear one
-  int factor = 1;
-  int index = 0;
-  for (int i = 0; i < BL_SPACEDIM; i++) {
-    index += factor*ivIndex[i];
-    factor *= ntiles[i];
-  }
-
-  return index;
+  return D_TERM(ivIndex[0], + ntiles[0]*ivIndex[1], + ntiles[0]*ntiles[1]*ivIndex[2]);
 }
 
 template <int NR, int NI, int NA>
