@@ -23,6 +23,7 @@
 #include <AMReX_VisMF.H>
 #include <AMReX_Particles_F.H>
 #include <AMReX_RealBox.H>
+#include <AMReX_Print.H>
 
 #ifdef BL_LAZY
 #include <AMReX_Lazy.H>

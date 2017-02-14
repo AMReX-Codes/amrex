@@ -750,7 +750,7 @@ ParticleContainer<NR, NI, NA>::GetParticleIDs (Array<int>& part_ids)
   // This gives us the starting point into the part_ids array
   // If only one processor (or no MPI), then that's all we need.
   //
-  int cnt = 0;
+  long cnt = 0;
   
 #if BL_USE_MPI
   Array<long> cnts(ParallelDescriptor::NProcs());
@@ -773,7 +773,7 @@ ParticleContainer<NR, NI, NA>::GetParticleIDs (Array<int>& part_ids)
     cnt += cnts[iproc];
   }
   
-  std::cout << "PROC CNT " << ParallelDescriptor::MyProc() << " " << cnt << std::endl;
+//  std::cout << "PROC CNT " << ParallelDescriptor::MyProc() << " " << cnt << std::endl;
   
   // Each particle takes up 1 int so no need to multiply cnt by anything
 #endif
@@ -790,11 +790,7 @@ ParticleContainer<NR, NI, NA>::GetParticleIDs (Array<int>& part_ids)
       const AoS& pbx = kv.second;
       for (const auto& p : pbx) {
 	if (p.m_idata.id > 0) {
-	  // Load the ID
-	  part_ids[cnt] = p.m_idata.id;
-	  
-	  // Update counter
-	  cnt++;
+            part_ids[cnt++] = p.m_idata.id;
 	}
       }
     }
@@ -812,7 +808,7 @@ ParticleContainer<NR, NI, NA>::GetParticleCPU (Array<int>& part_cpu)
   // This gives us the starting point into the part_cpu array
   // If only one processor (or no MPI), then that's all we need.
   //
-  int cnt = 0;
+  long cnt = 0;
   
 #if BL_USE_MPI
   Array<long> cnts(ParallelDescriptor::NProcs());
@@ -849,11 +845,7 @@ ParticleContainer<NR, NI, NA>::GetParticleCPU (Array<int>& part_cpu)
       const AoS& pbx = kv.second;
       for (const auto& p : pbx) {
 	if (p.m_idata.id > 0) {
-	  // Load the ID
-	  part_cpu[cnt] = p.m_idata.cpu;
-	  
-	  // Update counter
-	  cnt++;
+            part_cpu[cnt++] = p.m_idata.cpu;
 	}
       }
     }
@@ -871,7 +863,7 @@ ParticleContainer<NR, NI, NA>::GetParticleLocations (Array<Real>& part_data)
   // This gives us the starting point into the part_data array
   // If only one processor (or no MPI), then that's all we need.
   //
-  int cnt = 0;
+  long cnt = 0;
 
 #if BL_USE_MPI
   Array<long> cnts(ParallelDescriptor::NProcs());
@@ -910,11 +902,8 @@ ParticleContainer<NR, NI, NA>::GetParticleLocations (Array<Real>& part_data)
       for (const auto& p : pbx) {
 	if (p.m_idata.id > 0) {
 	  // Load positions
-	  for (int d=0; d < BL_SPACEDIM; d++)
-	    part_data[cnt+d] = p.m_rdata.pos[d];
-	  
-	  // Update counter
-	  cnt += BL_SPACEDIM;
+            for (int d=0; d < BL_SPACEDIM; d++)
+                part_data[cnt++] = p.m_rdata.pos[d];
 	}
       }
     }
@@ -933,7 +922,7 @@ ParticleContainer<NR, NI, NA>::GetParticleData (Array<Real>& part_data, int star
   // This gives us the starting point into the part_data array
   // If only one processor (or no MPI), then that's all we need.
   //
-  int cnt = 0;
+  long cnt = 0;
   
   //
   // Make sure we don't try to get more than we have
@@ -977,11 +966,8 @@ ParticleContainer<NR, NI, NA>::GetParticleData (Array<Real>& part_data, int star
       for (const auto& p : pbx) {
 	if (p.m_idata.id > 0) {
 	  // Load particle data, whatever it is.
-	  for (int d = 0; d < num_comp; d++)
-	    part_data[cnt+d] = p.m_rdata.arr[BL_SPACEDIM + start_comp + d];
-	  
-	  // Update counter
-	  cnt += num_comp;
+            for (int d = 0; d < num_comp; d++)
+                part_data[cnt++] = p.m_rdata.arr[BL_SPACEDIM + start_comp + d];
 	}
       }
     }
@@ -1004,7 +990,7 @@ ParticleContainer<NR, NI, NA>::SetParticleLocations (Array<Real>& part_data)
   BL_PROFILE("ParticleContainer<NR, NI, NA>::SetParticleLocations()");
   // This gives us the starting point into the part_data array
   // If only one processor (or no MPI), then that's all we need
-  int cnt = 0;
+  long cnt = 0;
 
 #if BL_USE_MPI
   Array<long> cnts(ParallelDescriptor::NProcs());
@@ -1045,10 +1031,7 @@ ParticleContainer<NR, NI, NA>::SetParticleLocations (Array<Real>& part_data)
 	if (p.m_idata.id > 0) {
 	  // Load positions
 	  for (int d=0; d < BL_SPACEDIM; d++)
-	    p.m_rdata.pos[d] = part_data[cnt+d];
-	  
-	  // Update counter
-	  cnt += BL_SPACEDIM;
+              p.m_rdata.pos[d] = part_data[cnt++];
 	}
       }
     }
@@ -1332,8 +1315,7 @@ ParticleContainer<NR, NI, NA>::CreateGhostParticles (int   level,
 //
 template <int NR, int NI, int NA>
 void
-ParticleContainer<NR, NI, NA>::Redistribute (int  lev_min,
-						int  nGrow)
+ParticleContainer<NR, NI, NA>::Redistribute (bool where_already_called, int lev_min, int nGrow)
 {
   BL_PROFILE("ParticleContainer::Redistribute()");
   const int MyProc    = ParallelDescriptor::MyProc();
@@ -1350,13 +1332,11 @@ ParticleContainer<NR, NI, NA>::Redistribute (int  lev_min,
     theEffectiveFinestLevel--;
   
   if (int(m_particles.size()) < theEffectiveFinestLevel+1) {
-    if (ParallelDescriptor::IOProcessor()) {
-      std::cout << "ParticleContainer<NR, NI, NA>::Redistribute() resizing m_particles from "
-		<< m_particles.size()
-		<< " to "
-		<< theEffectiveFinestLevel+1 << '\n';
-    }
-    allocateData();
+      if (Verbose()) {
+          amrex::Print() << "ParticleContainer<NR, NI, NA>::Redistribute() resizing containers from "
+                         << m_particles.size() << " to " << theEffectiveFinestLevel+1 << '\n';
+      }
+      allocateData();
   }
 
   // The valid particles that we don't own.
