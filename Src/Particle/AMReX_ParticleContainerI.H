@@ -733,44 +733,46 @@ ParticleContainer<NR, NI, NA>::sumParticleMass (int rho_index, int lev, bool loc
 }
 
 template <int NR, int NI, int NA>
+std::pair<long,long>
+ParticleContainer<NR, NI, NA>::StartIndexInGlobalArray () const
+{
+    // This returns the number of particles on this processor
+    long lcnt = TotalNumberOfParticles(true,true);
+
+#if BL_USE_MPI
+    Array<long> cnts(ParallelDescriptor::NProcs());
+        
+    // This accumulates the "lcnt" values into "cnts"
+    MPI_Gather(&lcnt,1,              
+               ParallelDescriptor::Mpi_typemap<long>::type(),
+               cnts.dataPtr(),
+               1,
+               ParallelDescriptor::Mpi_typemap<long>::type(),
+               ParallelDescriptor::IOProcessorNumber(),
+               ParallelDescriptor::Communicator());
+    
+    ParallelDescriptor::Bcast(cnts.dataPtr(), cnts.size(), ParallelDescriptor::IOProcessorNumber());
+
+    long start = 0L;
+    for (int iproc = 0; iproc < ParallelDescriptor::MyProc(); ++iproc) {
+        start += cnts[iproc];
+    }
+    long tot = std::accumulate(cnts.begin(), cnts.end(), 0L);
+#else
+    long start = 0L;
+    long tot = lcnt;
+#endif
+    return std::make_pair(start,tot);
+}
+
+template <int NR, int NI, int NA>
 void
 ParticleContainer<NR, NI, NA>::GetParticleIDs (Array<int>& part_ids)
 {
   BL_PROFILE("ParticleContainer<NR, NI, NA>::GetParticleIDs()");
-  //
-  // This gives us the starting point into the part_ids array
-  // If only one processor (or no MPI), then that's all we need.
-  //
-  long cnt = 0;
-  
-#if BL_USE_MPI
-  Array<long> cnts(ParallelDescriptor::NProcs());
-  
-  // This returns the number of particles on this processor
-  long lcnt = TotalNumberOfParticles(true,true);
-  
-  // This accumulates the "lcnt" values into "cnts"
-  MPI_Gather(&lcnt,1,              
-	     ParallelDescriptor::Mpi_typemap<long>::type(),
-	     cnts.dataPtr(),
-	     1,
-	     ParallelDescriptor::Mpi_typemap<long>::type(),
-	     ParallelDescriptor::IOProcessorNumber(),
-	     ParallelDescriptor::Communicator());
-  
-  ParallelDescriptor::Bcast(cnts.dataPtr(), cnts.size(), ParallelDescriptor::IOProcessorNumber());
-  
-  for (int iproc = 0; iproc < ParallelDescriptor::MyProc(); iproc++) {
-    cnt += cnts[iproc];
-  }
-  
-//  std::cout << "PROC CNT " << ParallelDescriptor::MyProc() << " " << cnt << std::endl;
-  
-  // Each particle takes up 1 int so no need to multiply cnt by anything
-#endif
 
-  // This is the total number of particles on *all* processors
-  long npart = TotalNumberOfParticles(true,false);
+  long start, npart;
+  std::tie(start,npart) = StartIndexInGlobalArray();
 
   // Locations
   part_ids.resize(npart, 0);
@@ -781,7 +783,7 @@ ParticleContainer<NR, NI, NA>::GetParticleIDs (Array<int>& part_ids)
       const AoS& pbx = kv.second;
       for (const auto& p : pbx) {
 	if (p.m_idata.id > 0) {
-            part_ids[cnt++] = p.m_idata.id;
+            part_ids[start++] = p.m_idata.id;
 	}
       }
     }
@@ -795,38 +797,10 @@ void
 ParticleContainer<NR, NI, NA>::GetParticleCPU (Array<int>& part_cpu)
 {
   BL_PROFILE("ParticleContainer<NR, NI, NA>::GetParticleCPU()");
-  //
-  // This gives us the starting point into the part_cpu array
-  // If only one processor (or no MPI), then that's all we need.
-  //
-  long cnt = 0;
-  
-#if BL_USE_MPI
-  Array<long> cnts(ParallelDescriptor::NProcs());
-  
-  // This returns the number of particles on this processor
-  long lcnt = TotalNumberOfParticles(true,true);
-  
-  // This accumulates the "lcnt" values into "cnts"
-  MPI_Gather(&lcnt,1,              
-	     ParallelDescriptor::Mpi_typemap<long>::type(),
-	     cnts.dataPtr(),
-	     1,
-	     ParallelDescriptor::Mpi_typemap<long>::type(),
-	     ParallelDescriptor::IOProcessorNumber(),
-	     ParallelDescriptor::Communicator());
-  
-  ParallelDescriptor::Bcast(cnts.dataPtr(), cnts.size(), ParallelDescriptor::IOProcessorNumber());
-  
-  for (int iproc = 0; iproc < ParallelDescriptor::MyProc(); iproc++)
-    cnt += cnts[iproc];
 
-  // Each particle takes up 1 int so no need to multiply cnt by anything
-#endif
-  
-  // This is the total number of particles on *all* processors
-  long npart = TotalNumberOfParticles(true,false);
-  
+  long start, npart;
+  std::tie(start,npart) = StartIndexInGlobalArray();
+
   // Locations
   part_cpu.resize(npart,0);
   
@@ -836,7 +810,7 @@ ParticleContainer<NR, NI, NA>::GetParticleCPU (Array<int>& part_cpu)
       const AoS& pbx = kv.second;
       for (const auto& p : pbx) {
 	if (p.m_idata.id > 0) {
-            part_cpu[cnt++] = p.m_idata.cpu;
+            part_cpu[start++] = p.m_idata.cpu;
 	}
       }
     }
@@ -850,38 +824,12 @@ void
 ParticleContainer<NR, NI, NA>::GetParticleLocations (Array<Real>& part_data)
 {
   BL_PROFILE("ParticleContainer<NR, NI, NA>::GetParticleLocations()");
-  //
-  // This gives us the starting point into the part_data array
-  // If only one processor (or no MPI), then that's all we need.
-  //
-  long cnt = 0;
-
-#if BL_USE_MPI
-  Array<long> cnts(ParallelDescriptor::NProcs());
-  
-  // This returns the number of particles on this processor
-  long lcnt = TotalNumberOfParticles(true,true);
-  
-  // This accumulates the "lcnt" values into "cnts"
-  MPI_Gather(&lcnt,1,              
-	     ParallelDescriptor::Mpi_typemap<long>::type(),
-	     cnts.dataPtr(),
-	     1,
-	     ParallelDescriptor::Mpi_typemap<long>::type(),
-	     ParallelDescriptor::IOProcessorNumber(),
-	     ParallelDescriptor::Communicator());
-  
-  ParallelDescriptor::Bcast(cnts.dataPtr(), cnts.size(), ParallelDescriptor::IOProcessorNumber());
-
-  for (int iproc = 0; iproc < ParallelDescriptor::MyProc(); iproc++)
-    cnt += cnts[iproc];
+ 
+  long start, npart;
+  std::tie(start,npart) = StartIndexInGlobalArray();
   
   // Each particle takes up BL_SPACEDIM Reals
-  cnt *= (BL_SPACEDIM);
-#endif
-
-  // This is the total number of particles on *all* processors
-  long npart = TotalNumberOfParticles(true, false);
+  start *= (BL_SPACEDIM);
   
   // Locations
   part_data.resize(BL_SPACEDIM*npart,0);
@@ -894,7 +842,7 @@ ParticleContainer<NR, NI, NA>::GetParticleLocations (Array<Real>& part_data)
 	if (p.m_idata.id > 0) {
 	  // Load positions
             for (int d=0; d < BL_SPACEDIM; d++)
-                part_data[cnt++] = p.m_rdata.pos[d];
+                part_data[start++] = p.m_rdata.pos[d];
 	}
       }
     }
@@ -909,44 +857,12 @@ void
 ParticleContainer<NR, NI, NA>::GetParticleData (Array<Real>& part_data, int start_comp, int num_comp)
 {
   BL_PROFILE("ParticleContainer<NR, NI, NA>::GetParticleData()");
-  //
-  // This gives us the starting point into the part_data array
-  // If only one processor (or no MPI), then that's all we need.
-  //
-  long cnt = 0;
-  
-  //
-  // Make sure we don't try to get more than we have
-  //
-  if (start_comp + num_comp > BL_SPACEDIM + NR)
-    amrex::Error("Tried to grab too many components in GetParticleData!!");
-  
-#if BL_USE_MPI
-  Array<long> cnts(ParallelDescriptor::NProcs());
-  
-  // This returns the number of particles on this processor
-  long lcnt = TotalNumberOfParticles(true,true);
-  
-  // This accumulates the "lcnt" values into "cnts"
-  MPI_Gather(&lcnt,1,              
-	     ParallelDescriptor::Mpi_typemap<long>::type(),
-	     cnts.dataPtr(),
-	     1,
-	     ParallelDescriptor::Mpi_typemap<long>::type(),
-	     ParallelDescriptor::IOProcessorNumber(),
-	     ParallelDescriptor::Communicator());
-  
-  ParallelDescriptor::Bcast(cnts.dataPtr(), cnts.size(), ParallelDescriptor::IOProcessorNumber());
-  
-  for (int iproc = 0; iproc < ParallelDescriptor::MyProc(); iproc++)
-    cnt += cnts[iproc];
+
+  long start, npart;
+  std::tie(start,npart) = StartIndexInGlobalArray();
   
   // Each particle takes up num_comp Reals
-  cnt*= num_comp;
-#endif
-
-  // This is the total number of particles on *all* processors
-  long npart = TotalNumberOfParticles(true,false);
+  start*= num_comp;
 
   part_data.resize(num_comp*npart,0);
 
@@ -958,7 +874,7 @@ ParticleContainer<NR, NI, NA>::GetParticleData (Array<Real>& part_data, int star
 	if (p.m_idata.id > 0) {
 	  // Load particle data, whatever it is.
             for (int d = 0; d < num_comp; d++)
-                part_data[cnt++] = p.m_rdata.arr[BL_SPACEDIM + start_comp + d];
+                part_data[start++] = p.m_rdata.arr[BL_SPACEDIM + start_comp + d];
 	}
       }
     }
@@ -979,36 +895,12 @@ void
 ParticleContainer<NR, NI, NA>::SetParticleLocations (Array<Real>& part_data)
 {
   BL_PROFILE("ParticleContainer<NR, NI, NA>::SetParticleLocations()");
-  // This gives us the starting point into the part_data array
-  // If only one processor (or no MPI), then that's all we need
-  long cnt = 0;
 
-#if BL_USE_MPI
-  Array<long> cnts(ParallelDescriptor::NProcs());
-  
-  // This returns the number of particles on this processor
-  long lcnt = TotalNumberOfParticles(true,true);
-  
-  // This accumulates the "lcnt" values into "cnts"
-  MPI_Gather(&lcnt,1,              
-	     ParallelDescriptor::Mpi_typemap<long>::type(),
-	     cnts.dataPtr(),
-	     1,
-	     ParallelDescriptor::Mpi_typemap<long>::type(),
-	     ParallelDescriptor::IOProcessorNumber(),
-	     ParallelDescriptor::Communicator());
-
-  ParallelDescriptor::Bcast(cnts.dataPtr(), cnts.size(), ParallelDescriptor::IOProcessorNumber());
-  
-  for (int iproc = 0; iproc < ParallelDescriptor::MyProc(); iproc++)
-    cnt += cnts[iproc];
+  long start, npart;
+  std::tie(start,npart) = StartIndexInGlobalArray();
   
   // Each particle takes up BL_SPACEDIM Reals
-  cnt*= BL_SPACEDIM;
-#endif
-  
-  // This is the total number of particles on *all* processors
-  long npart = TotalNumberOfParticles(true,false);
+  start*= BL_SPACEDIM;
   
   // Mass + locations
   if (part_data.size() != npart*BL_SPACEDIM)
@@ -1022,7 +914,7 @@ ParticleContainer<NR, NI, NA>::SetParticleLocations (Array<Real>& part_data)
 	if (p.m_idata.id > 0) {
 	  // Load positions
 	  for (int d=0; d < BL_SPACEDIM; d++)
-              p.m_rdata.pos[d] = part_data[cnt++];
+              p.m_rdata.pos[d] = part_data[start++];
 	}
       }
     }
@@ -1675,7 +1567,7 @@ ParticleContainer<NR, NI, NA>::OK (int  lev_min,
 
 		  if (lev  != pld.m_lev  || grid != pld.m_grid || tile != pld.m_tile) {
                       amrex::AllPrint() << "PARTICLE NUMBER " << p.m_idata.id << '\n'
-                                        << "POS  " << D_TERM(p.m_rdata.pos[0], << p.m_rdata.pos[1], p.m_rdata.pos[2]) << "\n"
+                                        << "POS  " << D_TERM(p.m_rdata.pos[0], << p.m_rdata.pos[1], << p.m_rdata.pos[2]) << "\n"
                                         << "LEV  " << lev  << " " << pld.m_lev << '\n'
                                         << "GRID " << grid << " " << pld.m_grid << '\n';
                       return false;
