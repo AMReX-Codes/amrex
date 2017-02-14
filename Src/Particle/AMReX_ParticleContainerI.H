@@ -555,7 +555,7 @@ ParticleContainer<NR, NI, NA>::addNParticles(int n_part, Array<double>& x, Array
        m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
     }
 
-    Redistribute();
+    Redistribute(true);
 }
 
 template <int NR, int NI, int NA>
@@ -656,7 +656,8 @@ ParticleContainer<NR, NI, NA>::Increment (MultiFab& mf,
 template <int NR, int NI, int NA>
 long
 ParticleContainer<NR, NI, NA>::IncrementWithTotal (MultiFab& mf,
-					       int       lev)
+                                                   int       lev,
+                                                   bool      local)
 {
   BL_PROFILE("ParticleContainer<NR, NI, NA>::IncrementWithTotal(lev)");
   BL_ASSERT(OK());
@@ -710,14 +711,14 @@ ParticleContainer<NR, NI, NA>::IncrementWithTotal (MultiFab& mf,
       delete mf_pointer;
     }
   
-  ParallelDescriptor::ReduceLongSum(num_particles_in_domain);
+  if (!local) ParallelDescriptor::ReduceLongSum(num_particles_in_domain);
   
   return num_particles_in_domain;
 }
 
 template <int NR, int NI, int NA>
 Real
-ParticleContainer<NR, NI, NA>::sumParticleMass (int rho_index, int lev) const
+ParticleContainer<NR, NI, NA>::sumParticleMass (int rho_index, int lev, bool local) const
 {
   BL_PROFILE("ParticleContainer<NR, NI, NA>::sumParticleMass(lev)");
   BL_ASSERT(NR >= 1);
@@ -735,7 +736,7 @@ ParticleContainer<NR, NI, NA>::sumParticleMass (int rho_index, int lev) const
     }
   }
   
-  ParallelDescriptor::ReduceRealSum(msum);
+  if (!local) ParallelDescriptor::ReduceRealSum(msum);
   
   return msum;
 }
