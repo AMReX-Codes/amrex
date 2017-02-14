@@ -101,7 +101,7 @@ contains
        i = baseiv(1,L)
        j = baseiv(2,L)
 
-       dudn(L) = b(L) * stencilB(L) &
+       dudn(L) = fac * (b(L) * stencilB(L) &
             + u(i  ,j  ) * stencil(0,0,L) &
             + u(i+1,j  ) * stencil(1,0,L) &
             + u(i+2,j  ) * stencil(2,0,L) &
@@ -110,7 +110,7 @@ contains
             + u(i+2,j+1) * stencil(2,1,L) &
             + u(i  ,j+2) * stencil(0,2,L) &
             + u(i+1,j+2) * stencil(1,2,L) &
-            + u(i+2,j+2) * stencil(2,2,L)
+            + u(i+2,j+2) * stencil(2,2,L) )
     enddo
 
   end subroutine apply_bndry_grad_stencil
