@@ -294,13 +294,13 @@ applyStencilAllFortran(EBCellFAB                       & a_dst,
       }
 
       get_bndry_grad_stencil(&(stencilData[tid][0]), &(stencilBData[tid][0]), &(stencilBase[tid][0]),
-			     &(bndry_normals[0]), &(bndry_centroids[0]), &(ivs[0]), &num_tileNodes);
+			     &(bndry_normals[0]), &(bndry_centroids[0]), &(ivs[0]), &num_tileNodes, &a_dx);
 
       gtmp.resize(num_tileNodes);
       apply_bndry_grad_stencil(&(gtmp[0]), &(bndry_values[0]),
                                BL_TO_FORTRAN_N(a_src,0),
                                &(stencilData[tid][0]), &(stencilBData[tid][0]), &(stencilBase[tid][0]),
-                               &num_tileNodes, &a_dx);
+                               &num_tileNodes);
     }
   }
 }
