@@ -290,7 +290,7 @@ WarpX::Copy(MultiFab& dstmf, int dcomp, int ncomp, const MultiFab& srcmf, int sc
 }
 
 Box
-WarpX::getIndexBox(const RealBox& real_box) {
+WarpX::getIndexBox(const RealBox& real_box) const {
   BL_ASSERT(max_level == 0);
 
   IntVect slice_lo, slice_hi;
@@ -307,7 +307,7 @@ WarpX::getIndexBox(const RealBox& real_box) {
 }
 
 void
-WarpX::fillSlice(Real z_coord) {
+WarpX::fillSlice(Real z_coord) const {
   BL_ASSERT(max_level == 0);
   
   // Get our slice and convert to index space
@@ -352,8 +352,6 @@ WarpX::fillSlice(Real z_coord) {
   
   // Fill the slice with sampled data
   const Real* dx      = geom[0].CellSize();
-  const MultiFab& mf  = *(Efield[0][0]);
-  const IntVect& flag = Ex_nodal_flag;
   const Geometry& g   = geom[0];
   for (MFIter mfi(slice); mfi.isValid(); ++mfi) {
     int slice_gid = mfi.index();
@@ -383,5 +381,62 @@ WarpX::fillSlice(Real z_coord) {
 	}
       }
     }
+  }
+}
+
+void WarpX::sampleAtPoints(const Array<Real>& x,
+			   const Array<Real>& y,
+			   const Array<Real>& z,
+			   Array<Array<Real> >& result) const {
+  BL_ASSERT((x.size() == y.size()) and (y.size() == z.size()));
+  BL_ASSERT(max_level == 0);
+
+  const MultiFab* mfs[6];
+  mfs[0] = Efield[0][0].get();
+  mfs[1] = Efield[0][1].get();
+  mfs[2] = Efield[0][2].get();
+  mfs[3] = Bfield[0][0].get();
+  mfs[4] = Bfield[0][1].get();
+  mfs[5] = Bfield[0][2].get();
+  
+  IntVect flags[6];
+  flags[0] = WarpX::Ex_nodal_flag;
+  flags[1] = WarpX::Ey_nodal_flag;
+  flags[2] = WarpX::Ez_nodal_flag;
+  flags[3] = WarpX::Bx_nodal_flag;
+  flags[4] = WarpX::By_nodal_flag;
+  flags[5] = WarpX::Bz_nodal_flag;
+
+  const unsigned npoints = x.size();
+  const int ncomps = 6;
+  result.resize(ncomps);
+  for (int i = 0; i < ncomps; i++) {
+    result[i].resize(npoints, 0);
+  }
+
+  BoxArray ba = Efield[0][0]->boxArray();
+  const IndexType correct_typ(IntVect::TheZeroVector());
+  ba.convert(correct_typ);
+  std::vector< std::pair<int, Box> > isects;
+
+  IntVect iv;
+  const Geometry& g   = geom[0];
+  for (int i = 0; i < npoints; ++i) {
+    for (int comp = 0; comp < ncomps; comp++) {
+      D_TERM(iv[0]=floor((x[i] - g.ProbLo(0) + 0.5*g.CellSize(0)*flags[comp][0])/g.CellSize(0));,
+	     iv[1]=floor((y[i] - g.ProbLo(1) + 0.5*g.CellSize(1)*flags[comp][1])/g.CellSize(1));,
+	     iv[2]=floor((z[i] - g.ProbLo(2) + 0.5*g.CellSize(2)*flags[comp][2])/g.CellSize(2)););
+
+      ba.intersections(Box(iv, iv), isects, true, 0);
+      const int grid = isects[0].first;
+      const int who = dmap[0][grid];
+      if (who == ParallelDescriptor::MyProc()) {
+	result[comp][i] = (*mfs[comp])[grid](iv);
+      }
+    }
+  }
+
+  for (int i = 0; i < ncomps; i++) {
+    ParallelDescriptor::ReduceRealSum(result[i].dataPtr(), result[i].size());
   }
 }

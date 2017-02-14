@@ -32,7 +32,12 @@ public:
 
     MultiParticleContainer& GetPartContainer () { return *mypc; }
 
-    void fillSlice(Real z_coord);
+    void fillSlice(Real z_coord) const;
+
+    void sampleAtPoints(const Array<Real>& x,
+			const Array<Real>& y,
+			const Array<Real>& z,
+			Array<Array<Real> >& result) const;
 
     static void FillBoundary (MultiFab& mf, const Geometry& geom, const IntVect& nodalflag);
 
@@ -57,7 +62,7 @@ public:
 protected:
     virtual void ErrorEst (int lev, TagBoxArray& tags, Real time, int /*ngrow*/) override {}
 
-    Box getIndexBox(const RealBox& real_box);
+    Box getIndexBox(const RealBox& real_box) const;
 
 private:
 
@@ -100,6 +105,7 @@ private:
 
     // Particle container
     std::unique_ptr<MultiParticleContainer> mypc;
+
     // Fields: First array for level, second for direction
     Array<Array< std::unique_ptr<MultiFab> > > current;
     Array<Array< std::unique_ptr<MultiFab> > > Efield;
