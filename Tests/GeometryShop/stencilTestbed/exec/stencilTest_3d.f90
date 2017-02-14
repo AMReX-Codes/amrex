@@ -12,6 +12,7 @@ contains
   subroutine lapleb_MSD(&
        lph,lph_l1,lph_l2,lph_l3,lph_h1,lph_h2,lph_h3, &
        phi,phi_l1,phi_l2,phi_l3,phi_h1,phi_h2,phi_h3, &
+       cd , cd_l1, cd_l2, cd_l3, cd_h1, cd_h2, cd_h3, &
        fd0,fd0_l1,fd0_l2,fd0_l3,fd0_h1,fd0_h2,fd0_h3, &
        fd1,fd1_l1,fd1_l2,fd1_l3,fd1_h1,fd1_h2,fd1_h3, &
        fd2,fd2_l1,fd2_l2,fd2_l3,fd2_h1,fd2_h2,fd2_h3, &
@@ -19,6 +20,7 @@ contains
 
     integer, intent(in) :: lph_l1,lph_l2,lph_l3,lph_h1,lph_h2,lph_h3
     integer, intent(in) :: phi_l1,phi_l2,phi_l3,phi_h1,phi_h2,phi_h3
+    integer, intent(in) ::  cd_l1, cd_l2, cd_l3, cd_h1, cd_h2, cd_h3
     integer, intent(in) :: fd0_l1,fd0_l2,fd0_l3,fd0_h1,fd0_h2,fd0_h3
     integer, intent(in) :: fd1_l1,fd1_l2,fd1_l3,fd1_h1,fd1_h2,fd1_h3
     integer, intent(in) :: fd2_l1,fd2_l2,fd2_l3,fd2_h1,fd2_h2,fd2_h3
@@ -27,6 +29,7 @@ contains
                                                          
     double precision, intent(inout) :: lph(lph_l1:lph_h1,lph_l2:lph_h2,lph_l3:lph_h3)
     double precision, intent(in   ) :: phi(phi_l1:phi_h1,phi_l2:phi_h2,phi_l3:phi_h3)
+    double precision, intent(in   ) ::  cd( cd_l1: cd_h1, cd_l2: cd_h2, cd_l3: cd_h3,7)
     double precision, intent(in   ) :: fd0(fd0_l1:fd0_h1,fd0_l2:fd0_h2,fd0_l3:fd0_h3,4)
     double precision, intent(in   ) :: fd1(fd1_l1:fd1_h1,fd1_l2:fd1_h2,fd1_l3:fd1_h3,4)
     double precision, intent(in   ) :: fd2(fd2_l1:fd2_h1,fd2_l2:fd2_h2,fd2_l3:fd2_h3,4)
@@ -39,10 +42,12 @@ contains
     fac1 = 1.d0 / (dx(2)*dx(2))
     fac2 = 1.d0 / (dx(3)*dx(3))
 
-    ! Here, fd0 is face data associated with the i direction.  Comp-0 is the areaFraction of the 
-    ! face, and (Comp-1,Comp-2,Comp-3) is the coordinate of the face centroid, relative to the
+    ! Here, fd0 is face data associated with the i direction.  Comp-1 is the areaFraction of the 
+    ! face, and (Comp-2,Comp-3,Comp-4) is the coordinate of the face centroid, relative to the
     ! center of the full face, and in units of the grid spacing.  Thus, for a regular face, 
-    ! fd0 = (1,XX,0,0), where XX is unused here.  Similarly for fd1 and fd2.
+    ! fd0 = (1,XX,0,0), where XX is unused here.  Similarly for fd1 and fd2. cd is cell data.
+    ! Comp-1 is the Dirichlet value to apply, (Comp-2,Comp-3,Comp-4) is the normal (pointing in),
+    ! and (Comp-5,Comp-6,Comp-7)
 
     do k=lo(3),hi(3)
        do j=lo(2),hi(2)
@@ -104,6 +109,13 @@ contains
 
              lph(i,j,k) = Fx(1) - Fx(0) + Fy(1) - Fy(0) + Fz(1) - Fz(0)
 
+          enddo
+       enddo
+    enddo
+
+    do k=lo(3),hi(3)
+       do j=lo(2),hi(2)
+          do i=lo(1),hi(1)
           enddo
        enddo
     enddo

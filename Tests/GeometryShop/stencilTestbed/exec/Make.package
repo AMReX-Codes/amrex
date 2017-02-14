@@ -1,4 +1,5 @@
 
 FEXE_headers += stencilTest_F.H
-f90EXE_sources += stencilTest_$(DIM)d.f90
+#f90EXE_sources += stencilTest_$(DIM)d.f90
+f90EXE_sources += dirichletTest_$(DIM)d.f90
 

@@ -1,13 +1,13 @@
 #
 # Set these to the appropriate value.
 #
-DIM          = 2
 DIM          = 3
+DIM          = 2
 
 COMP         = g++
 
-DEBUG        = TRUE
 DEBUG        = FALSE
+DEBUG        = TRUE
 
 USE_MPI      = TRUE
 USE_MPI      = FALSE
@@ -25,7 +25,8 @@ AMREX_HOME = ../../../..
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
 #_progs  := stencilTest
-_progs  := stencilTestMSD
+#_progs  := stencilTestMSD
+_progs  := dirichletTest
 
 include ./Make.package
 include $(AMREX_HOME)/Src/Base/Make.package
