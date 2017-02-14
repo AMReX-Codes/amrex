@@ -12,6 +12,7 @@
 #include <memory>
 #include <limits>
 #include <utility>
+#include <tuple>
 
 #include <AMReX_ParmParse.H>
 #include <AMReX_ParGDB.H>
@@ -566,6 +567,7 @@ private:
 			    Array<std::unique_ptr<MultiFab> >& mf, 
 			    std::map<int, Array<ParticleCommData> >& data,
 			    int ncomp, int lev_min = 0) const;
+    std::pair<long,long> StartIndexInGlobalArray () const;
 };
 
 #include "AMReX_ParticleI.H"
