@@ -299,12 +299,7 @@ ParticleContainer<NR, NI, NA>::Reset (ParticleType&        p,
     if (!ok) {
         // invalidate the particle.
 	if (verbose) {
-#ifdef _OPENMP
-#pragma omp critical(reset_lock)
-#endif
-	    {
-		std::cout << "Invalidating out-of-domain particle: " << p << '\n';
-	    }
+            amrex::AllPrint()<< "Invalidating out-of-domain particle: " << p << '\n'; 
 	}
 
 	BL_ASSERT(p.m_idata.id > 0);
@@ -447,16 +442,13 @@ ParticleContainer<NR, NI, NA>::ByteSpread () const
     ParallelDescriptor::ReduceLongMax(mx, IOProc);
     ParallelDescriptor::ReduceLongSum(cnt,IOProc);
 
-    if (ParallelDescriptor::IOProcessor())
-    {
-        std::cout << "ParticleContainer<NR, NI, NA> byte spread across MPI nodes: ["
-                  << mn*sz
-		  << " (" << mn << ")"
-                  << " ... "
-                  << mx*sz
-		  << " (" << mx << ")"
-                  << "] total particles: (" << cnt << ")\n";
-    }
+    amrex::Print() << "ParticleContainer<NR, NI, NA> byte spread across MPI nodes: ["
+                   << mn*sz
+                   << " (" << mn << ")"
+                   << " ... "
+                   << mx*sz
+                   << " (" << mx << ")"
+                   << "] total particles: (" << cnt << ")\n";
 #ifdef BL_LAZY
     });
 #endif
@@ -494,18 +486,17 @@ ParticleContainer<NR, NI, NA>::addOneParticle (int                  id_in,
 
     ParticleLocData pld;
     if (!Where(p, pld))
-      {
+    {
 	PeriodicShift(p);
 	
         if (!Where(p, pld))
-	  {
-            for (int d = 0; d < BL_SPACEDIM; d++)
-	      {
-                std::cout << "BAD PARTICLE POS(" << d << ") " << p.m_rdata.pos[d] << std::endl;
-	      }
+        {
+            amrex::AllPrint() << "BAD PARTICLE POS " << D_TERM(   p.m_rdata.pos[0],
+                                                               << p.m_rdata.pos[2],
+                                                               << p.m_rdata.pos[3]) << "\n";
             amrex::Abort("ParticleContainer<NR, NI, NA>::addOneParticle(): invalid particle");
-	  }
-      }
+        }
+    }
     
     m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
 
@@ -1085,24 +1076,11 @@ ParticleContainer<NR, NI, NA>::RemoveParticlesNotAtFinestLevel ()
 #endif
 	  ParallelDescriptor::ReduceIntMax(maxcnt);
 	  
-	  if (maxcnt > 0)
-	    {
-	      for (int i = 0; i < ParallelDescriptor::NProcs(); i++)
-		{
-		  if (ParallelDescriptor::MyProc() == i)
-		    {
-		      if (cnt > 0)
-			{
-			  std::cout << "Processor "
-				    << i
-				    << " removed "
-				    << cnt
-				    << " particles not in finest level" << std::endl;
-			}
-		    }
-		  ParallelDescriptor::Barrier();
-		}
-	    }
+	  if (maxcnt > 0 && cnt > 0)
+          {
+              amrex::AllPrint() << "Processor " << ParallelDescriptor::MyProc() << " removed " << cnt
+                                << " particles not in finest level\n";
+          }
 #ifdef BL_LAZY
 	});
 #endif
@@ -1431,22 +1409,15 @@ ParticleContainer<NR, NI, NA>::Redistribute (bool where_already_called, int lev_
   }
   
   if (int(m_particles.size()) > theEffectiveFinestLevel+1)
-    {
-      //
+  {
       // Looks like we lost an AmrLevel on a regrid.
-      //
-      if (ParallelDescriptor::IOProcessor())
-        {
-	  std::cout << "ParticleContainer<NR, NI, NA>::Redistribute() resizing m_particles from "
-		    << m_particles.size()
-		    << " to "
-		    << theEffectiveFinestLevel+1 << '\n';
-        }
+      amrex::Print() << "ParticleContainer<NR, NI, NA>::Redistribute() resizing m_particles from "
+                     << m_particles.size() << " to " << theEffectiveFinestLevel+1 << '\n';
       BL_ASSERT(int(m_particles.size()) >= 2);
       BL_ASSERT(m_particles[m_particles.size()-1].empty());
       
       m_particles.resize(theEffectiveFinestLevel+1);
-    }
+  }
   
   if (ParallelDescriptor::NProcs() == 1)
     {
@@ -1469,8 +1440,7 @@ ParticleContainer<NR, NI, NA>::Redistribute (bool where_already_called, int lev_
       Lazy::QueueReduction( [=] () mutable {
 #endif
 	  ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
-	  if (ParallelDescriptor::IOProcessor())
-	    std::cout << "ParticleContainer<NR, NI, NA>::Redistribute() time: " << stoptime << "\n\n";
+          amrex::Print() << "ParticleContainer<NR, NI, NA>::Redistribute() time: " << stoptime << "\n\n";
 #ifdef BL_LAZY
 	});
 #endif
@@ -1704,19 +1674,11 @@ ParticleContainer<NR, NI, NA>::OK (int  lev_min,
                     }
 
 		  if (lev  != pld.m_lev  || grid != pld.m_grid || tile != pld.m_tile) {
-		    std::cout << "PARTICLE NUMBER " << p.m_idata.id << '\n';
-		    
-		    std::cout << "POS IS ";
-		    for (int i = 0; i < BL_SPACEDIM; i++)
-		      std::cout << p.m_rdata.pos[i] << ' ';
-		    
-		    if (lev != pld.m_lev)
-		      std::cout << "BAD LEV  " << lev  << " " << pld.m_lev << '\n';
-		    
-		    if (grid != pld.m_grid)
-		      std::cout << "BAD GRID " << grid << " " << pld.m_grid << '\n';
-		    
-		    return false;
+                      amrex::AllPrint() << "PARTICLE NUMBER " << p.m_idata.id << '\n'
+                                        << "POS  " << D_TERM(p.m_rdata.pos[0], << p.m_rdata.pos[1], p.m_rdata.pos[2]) << "\n"
+                                        << "LEV  " << lev  << " " << pld.m_lev << '\n'
+                                        << "GRID " << grid << " " << pld.m_grid << '\n';
+                      return false;
 		  }
                 }
             }
@@ -2257,10 +2219,7 @@ ParticleContainer<NR, NI, NA>::Restart (const std::string& dir,
 
         ParallelDescriptor::ReduceRealMax(stoptime,IOProc);
 
-        if (ParallelDescriptor::IOProcessor())
-        {
-            std::cout << "ParticleContainer<NR, NI, NA>::Restart() time: " << stoptime << '\n';
-        }
+        amrex::Print() << "ParticleContainer<NR, NI, NA>::Restart() time: " << stoptime << '\n';
     }
 }
 
@@ -2519,14 +2478,13 @@ ParticleContainer<NR, NI, NA>::ReadParticles_DoublePrecision (int            cnt
 	      
 	      if (!Where(p, pld))
                 {
-		  std::cout << "RESTART:BAD PARTICLE ID WOULD BE " << ParticleType::NextID() << '\n';
-		  
-		  for (int d = 0; d < BL_SPACEDIM; d++)
-                    {
-		      std::cout << "RESTART:BAD PARTICLE POS(" << d << ") " << p.m_rdata.pos[d] << std::endl;
-                    }
-		  
-		  amrex::Abort("ParticleContainer<NR, NI, NA>::ReadParticles_DoublePrecision(): invalid particle");
+                    amrex::AllPrint() << "RESTART:BAD PARTICLE ID WOULD BE " << ParticleType::NextID() << '\n'
+                                      << "RESTART:BAD PARTICLE POS " 
+                                      << D_TERM(   p.m_rdata.pos[0],
+                                                << p.m_rdata.pos[2],
+                                                << p.m_rdata.pos[3])
+                                      << "\n";
+                    amrex::Abort("ParticleContainer<NR, NI, NA>::ReadParticles_DoublePrecision(): invalid particle");
                 }
             }
 	  
@@ -2622,16 +2580,15 @@ ParticleContainer<NR, NI, NA>::ReadParticles_SinglePrecision (int            cnt
 	      PeriodicShift(p);
 
 	      if (!Where(p, pld))
-                {
-                    std::cout << "RESTART:BAD PARTICLE ID WOULD BE " << ParticleType::NextID() << '\n';
-
-                    for (int d = 0; d < BL_SPACEDIM; d++)
-                    {
-                        std::cout << "RESTART:BAD PARTICLE POS(" << d << ") " << p.m_rdata.pos[d] << std::endl;
-                    }
-
-                    amrex::Abort("ParticleContainer<NR, NI, NA>::ReadParticles_SinglePrecision(): invalid particle");
-                }
+              {
+                  amrex::AllPrint() << "RESTART:BAD PARTICLE ID WOULD BE " << ParticleType::NextID() << '\n'
+                                    << "RESTART:BAD PARTICLE POS " 
+                                    << D_TERM(   p.m_rdata.pos[0],
+                                              << p.m_rdata.pos[2],
+                                              << p.m_rdata.pos[3])
+                                    << "\n";
+                  amrex::Abort("ParticleContainer<NR, NI, NA>::ReadParticles_SinglePrecision(): invalid particle");
+              }
             }
 
             p.m_idata.id   = ParticleType::NextID();
@@ -2780,10 +2737,7 @@ ParticleContainer<NR, NI, NA>::WriteAsciiFile (const std::string& filename)
 	
         ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
 	
-        if (ParallelDescriptor::IOProcessor())
-	  {
-            std::cout << "ParticleContainer<NR, NI, NA>::WriteAsciiFile() time: " << stoptime << '\n';
-	  }
+        amrex::Print() << "ParticleContainer<NR, NI, NA>::WriteAsciiFile() time: " << stoptime << '\n';
       }
 }
 
@@ -3961,10 +3915,7 @@ ParticleContainer<NR, NI, NA>::AssignDensity (int rho_index, bool sub_cycle,
 
         ParallelDescriptor::ReduceRealMax(etime,ParallelDescriptor::IOProcessorNumber());
 
-        if (ParallelDescriptor::IOProcessor())
-        {
-            std::cout << "ParticleContainer<NR, NI, NA>::AssignDensity(multi-level) time: " << etime << '\n';
-        }
+        amrex::Print() << "ParticleContainer<NR, NI, NA>::AssignDensity(multi-level) time: " << etime << '\n';
     }
 }
 
@@ -4375,10 +4326,7 @@ ParticleContainer<NR, NI, NA>::AssignCellDensitySingleLevel (int rho_index,
 
         ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
 
-        if (ParallelDescriptor::IOProcessor())
-        {
-            std::cout << "ParticleContainer<NR, NI, NA>::AssignDensity(single-level) time: " << stoptime << '\n';
-        }
+        amrex::Print() << "ParticleContainer<NR, NI, NA>::AssignDensity(single-level) time: " << stoptime << '\n';
     }
 }
 
@@ -4569,10 +4517,7 @@ ParticleContainer<NR, NI, NA>::NodalDepositionSingleLevel (int rho_index,
 
         ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
 
-        if (ParallelDescriptor::IOProcessor())
-        {
-            std::cout << "ParticleContainer<N>::NodalDepositionSingleLevel time: " << stoptime << '\n';
-        }
+        amrex::Print() << "ParticleContainer<N>::NodalDepositionSingleLevel time: " << stoptime << '\n';
     }
 }
 
@@ -4675,10 +4620,7 @@ ParticleContainer<NR, NI, NA>::moveKick (MultiFab&       acceleration,
 
         ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
 
-        if (ParallelDescriptor::IOProcessor())
-        {
-            std::cout << "ParticleContainer<NR, NI, NA>::moveKick() time: " << stoptime << '\n';
-        }
+        amrex::Print() << "ParticleContainer<NR, NI, NA>::moveKick() time: " << stoptime << '\n';
     }
     //
     // No need for Redistribute(), we only change the velocity.
