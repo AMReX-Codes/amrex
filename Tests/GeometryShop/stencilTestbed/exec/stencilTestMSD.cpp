@@ -60,6 +60,25 @@ struct FaceData
     }
 };
 
+struct EBBndryData
+{
+  EBBndryData(const RealVect& a_normal,
+              const RealVect& a_bndry_centroid,
+              Real            a_value)
+    : m_normal(a_normal), m_bndry_centroid(a_bndry_centroid), m_value(a_value) {}
+  EBBndryData() {}
+  RealVect m_normal, m_bndry_centroid;
+  Real m_value;
+
+  std::ostream& Write(std::ostream& ofs) const
+    {
+      ofs.write((char*)(&m_value), sizeof(Real));
+      ofs.write((char*)(m_normal.dataPtr()), SpaceDim * sizeof(Real));
+      ofs.write((char*)(m_bndry_centroid.dataPtr()), SpaceDim * sizeof(Real));
+      return ofs;
+    }
+};
+
 void
 applyStencilAllFortran(EBCellFAB                       & a_dst,
 		       const EBCellFAB                 & a_src,
@@ -82,9 +101,13 @@ applyStencilAllFortran(EBCellFAB                       & a_dst,
   BL_PROFILE_VAR_START(fp);
   int num_tiles = srcMF.getTileArray(tilesize)->tileArray.size();
   std::vector<bool> has_irreg(num_tiles);
+  std::vector<bool> has_eb(num_tiles);
 
-  FArrayBox fd[BL_SPACEDIM];
   std::vector<std::vector<std::map<IntVect,FaceData> > > faceData(SpaceDim);
+  std::vector<std::map<IntVect,EBBndryData> > bndryData;
+
+  Real eb_dirichlet_value = 1;
+
 
   bool compute_geom = true;
   ParmParse pp;
@@ -95,6 +118,7 @@ applyStencilAllFortran(EBCellFAB                       & a_dst,
     {
       faceData[idir].resize(num_tiles);
     }
+    bndryData.resize(num_tiles);
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -102,11 +126,12 @@ applyStencilAllFortran(EBCellFAB                       & a_dst,
     for (MFIter mfi(srcMF,tilesize); mfi.isValid(); ++mfi)
     {
       const Box& tbx = mfi.tilebox();
+      int tid = mfi.tileIndex();
 
       const Box& ovlp = tbx & srcMF.boxArray()[mfi.index()];
 
       // Find all partial faces in this tile
-      has_irreg[mfi.tileIndex()] = false;
+      has_irreg[tid] = false;
       for (int idir = 0; idir < SpaceDim; idir++)
       {
         for (int n=0; n<a_nodes.size(); ++n)
@@ -125,14 +150,26 @@ applyStencilAllFortran(EBCellFAB                       & a_dst,
               {
                 int isign = sign(sit());
                 IntVect ivface = isign < 0 ? iv : iv + BASISV(idir);
-                faceData[idir][mfi.tileIndex()][ivface] = 
-                                         FaceData(node.m_faceCentroid[index][0],node.m_areaFrac[index][0]);
-                has_irreg[mfi.tileIndex()] = true;
+                faceData[idir][tid][ivface] = FaceData(node.m_faceCentroid[index][0],node.m_areaFrac[index][0]);
+                has_irreg[tid] = true;
               }
             }
           }
         }
       }
+
+      has_eb[tid] = false;
+      for (int n=0; n<a_nodes.size(); ++n)
+      {
+        const IrregNode& node = a_nodes[n];
+        const IntVect& iv = node.m_cell;
+        if (tbx.contains(iv))
+        {
+          has_eb[tid] = true;
+          bndryData[tid][iv] = EBBndryData(node.m_normal,node.m_bndryCentroid,eb_dirichlet_value);
+        }
+      }
+
     }
 
     // Write faceData to TD files
@@ -154,6 +191,26 @@ applyStencilAllFortran(EBCellFAB                       & a_dst,
           ofs.write((char*)(&face_data.m_aperature), sizeof(Real));
           ofs.write((char*)(face_data.m_centroid.dataPtr()), SpaceDim * sizeof(Real));
         }
+      }
+    }
+
+    // Write eb bndry data to TD file
+    std::string filename("TD_C");
+    std::ofstream ofs(filename.c_str(),std::ofstream::binary);
+
+    int num_tiles = bndryData.size();
+    ofs.write((char*)(&num_tiles), sizeof(int));
+    for (int i=0; i<bndryData.size(); ++i)
+    {
+      int num_ivs = bndryData[i].size();
+      ofs.write((char*)(&num_ivs), sizeof(int));
+      for (std::map<IntVect,EBBndryData>::const_iterator it=bndryData[i].begin(); it!= bndryData[i].end(); ++it)
+      {
+        ofs.write((char*)(it->first.getVect()), SpaceDim * sizeof(int));
+        const EBBndryData& bndry_data = it->second;
+        ofs.write((char*)(&bndry_data.m_value), sizeof(Real));
+        ofs.write((char*)(bndry_data.m_normal.dataPtr()), SpaceDim * sizeof(Real));
+        ofs.write((char*)(bndry_data.m_bndry_centroid.dataPtr()), SpaceDim * sizeof(Real));
       }
     }
   }
@@ -207,6 +264,51 @@ applyStencilAllFortran(EBCellFAB                       & a_dst,
         amrex::Abort("Re-run with compute_geom=t first");
       }
     }
+
+    std::string filename("TD_C");
+    std::ifstream ifs(filename.c_str(),std::ofstream::binary);
+    if ( ifs.is_open() )
+    {
+      int num_tiles = -1;
+      ifs.read((char*)(&num_tiles), sizeof(int));
+
+      if (num_tiles > 0)
+      {
+        bndryData.resize(num_tiles);
+        has_eb.resize(num_tiles, false);
+
+        for (int i=0; i<bndryData.size(); ++i)
+        {
+          int num_ivs = -1;
+          ifs.read((char*)(&num_ivs), sizeof(int));
+
+          if (num_ivs > 0) has_eb[i] = true;
+
+          for (int niv=0; niv<num_ivs; ++niv)
+          {
+            int idxs[SpaceDim];
+            ifs.read((char*)(idxs), SpaceDim * sizeof(int));
+            IntVect iv(D_DECL(idxs[0],idxs[1],idxs[2]));
+            
+            Real val;
+            ifs.read((char*)(&val), sizeof(Real));
+
+            Real c[SpaceDim];
+            ifs.read((char*)(c), SpaceDim * sizeof(Real));
+            RealVect normal(D_DECL(c[0],c[1],c[2]));
+
+            ifs.read((char*)(c), SpaceDim * sizeof(Real));
+            RealVect centroid(D_DECL(c[0],c[1],c[2]));
+
+            bndryData[i][iv] = EBBndryData(normal, centroid, val);
+          }
+        }
+      }
+    }
+    else
+    {
+      amrex::Abort("Re-run with compute_geom=t first");
+    }
   }
   BL_PROFILE_VAR_STOP(fp);
 
@@ -221,11 +323,11 @@ applyStencilAllFortran(EBCellFAB                       & a_dst,
     {
       const Box& tbx = mfi.tilebox();
       int i = mfi.tileIndex();
-      if (has_irreg[i])
+      if (has_irreg[i] || has_eb[i])
       {
         // Build regular version of sparse irregular data
         BL_PROFILE_VAR_START(fp2);
-        FArrayBox fd[BL_SPACEDIM];
+        FArrayBox fd[BL_SPACEDIM], cd;
         for (int idir = 0; idir < SpaceDim; idir++)
         {
           fd[idir].resize(amrex::surroundingNodes(tbx,idir),SpaceDim+1);
@@ -242,12 +344,27 @@ applyStencilAllFortran(EBCellFAB                       & a_dst,
             }
           }
         }
+        cd.resize(tbx,2*SpaceDim+1); // value, normal, centroid
+        cd.setVal(0); // normal = 0 => no eb
+        for (std::map<IntVect,EBBndryData>::const_iterator it=bndryData[i].begin();
+             it!=bndryData[i].end(); ++it)
+        {
+          cd(it->first,0) = it->second.m_value;
+          for (int idir1 = 0; idir1 < SpaceDim; ++idir1)
+          {
+            cd(it->first,idir1+1) = it->second.m_normal[idir1];
+            cd(it->first,idir1+1+SpaceDim) = it->second.m_bndry_centroid[idir1];
+          }
+        }
+        
+
         BL_PROFILE_VAR_STOP(fp2);
 
         // Apply irregular operator
         BL_PROFILE_VAR_START(feb);
         lapleb_MSD(BL_TO_FORTRAN_N(a_dst,0), 
                    BL_TO_FORTRAN_N(a_src,0),
+                   BL_TO_FORTRAN_N(cd,0),
                    D_DECL(BL_TO_FORTRAN_N(fd[0],0),
                           BL_TO_FORTRAN_N(fd[1],0),
                           BL_TO_FORTRAN_N(fd[2],0)),
