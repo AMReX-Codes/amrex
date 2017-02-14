@@ -10,8 +10,9 @@ void
 Adv::variableCleanUp () 
 {
     desc_lst.clear();
-    delete TracerPC;
-    TracerPC = nullptr;
+#ifdef PARTICLES
+    TracerPC.reset();
+#endif
 }
 
 void

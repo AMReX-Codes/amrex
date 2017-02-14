@@ -8,6 +8,7 @@
 #include <AMReX_AmrLevel.H>
 #include <AMReX_FluxRegister.H>
 
+#include <memory>
 #include <iostream>
 
 #ifdef _OPENMP
@@ -148,7 +149,7 @@ public:
 			   int          n_error_buf = 0, int ngrow = 0) override;
 
 #ifdef PARTICLES
-    static amrex::AmrTracerParticleContainer* theTracerPC () { return TracerPC; }
+    static amrex::AmrTracerParticleContainer* theTracerPC () { return TracerPC.get(); }
 #endif
 
     static int  NUM_STATE;
@@ -183,7 +184,7 @@ protected:
 #ifdef PARTICLES
     void init_particles ();
     static int       do_tracers;
-    static amrex::AmrTracerParticleContainer* TracerPC;
+    static std::unique_ptr<amrex::AmrTracerParticleContainer> TracerPC;
 #endif
 };    
 

@@ -15,7 +15,7 @@ int      Adv::NUM_STATE       = 1;  // One variable in the state
 int      Adv::NUM_GROW        = 3;  // number of ghost cells
 
 #ifdef PARTICLES
-AmrTracerParticleContainer* Adv::TracerPC =  0;
+std::unique_ptr<AmrTracerParticleContainer> Adv::TracerPC =  nullptr;
 int Adv::do_tracers                       =  0;
 #endif
 
@@ -243,9 +243,9 @@ Adv::init_particles ()
 {
   if (do_tracers and level == 0)
     {
-      BL_ASSERT(TracerPC == 0);
+      BL_ASSERT(TracerPC == nullptr);
       
-      TracerPC = new AmrTracerParticleContainer(parent);
+      TracerPC.reset(new AmrTracerParticleContainer(parent));
       TracerPC->do_tiling = true;
       TracerPC->tile_size = IntVect(D_DECL(1024000,4,4));
 
