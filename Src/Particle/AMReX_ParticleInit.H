@@ -132,13 +132,12 @@ ParticleContainer<NR, NI, NA>::InitFromAsciiFile (const std::string& file, int e
 
                 if (!Where(p, pld))
                 {
-                    std::cout << "BAD PARTICLE ID WOULD BE " << ParticleType::NextID() << '\n';
-
-                    for (int d = 0; d < BL_SPACEDIM; d++)
-                    {
-                        std::cout << "BAD PARTICLE POS(" << d << ") " << p.m_rdata.pos[d] << std::endl;
-                    }
-
+                    amrex::AllPrint() << "BAD PARTICLE ID WOULD BE " << ParticleType::NextID() << '\n'
+                                      << "BAD PARTICLE POS " 
+                                      << D_TERM(   p.m_rdata.pos[0],
+                                                << p.m_rdata.pos[2],
+                                                << p.m_rdata.pos[3])
+                                      << "\n";
                     amrex::Abort("ParticleContainer<NR, NI, NA>::InitFromAsciiFile(): invalid particle");
                 }
             }
@@ -184,7 +183,7 @@ ParticleContainer<NR, NI, NA>::InitFromAsciiFile (const std::string& file, int e
                                 ParticleType::PeriodicShift(p_rep, m_gdb);
                                 if (!Where(p_rep, pld))
                                 {
-                                    std::cout << "BAD REPLICATED PARTICLE ID WOULD BE " << ParticleType::NextID() << std::endl;
+                                    amrex::AllPrint() << "BAD REPLICATED PARTICLE ID WOULD BE " << ParticleType::NextID() << "\n";
                                     amrex::Abort("ParticleContainer<NR, NI, NA>::InitFromAsciiFile(): invalid replicated particle");
                                 }
                             }
@@ -218,9 +217,10 @@ ParticleContainer<NR, NI, NA>::InitFromAsciiFile (const std::string& file, int e
 
     for (int nr = 0; nr < NRedist; nr++)
     {
-        if (m_verbose > 0 && ParallelDescriptor::IOProcessor())
-            std::cout << "Redistributing from processor " << nr*NRedist_chunk << " to " 
-                                                          << (nr+1)*NRedist_chunk-1 << '\n';
+        if (m_verbose > 0) {
+            amrex::Print() << "Redistributing from processor " << nr*NRedist_chunk << " to " 
+                                                           << (nr+1)*NRedist_chunk-1 << '\n';
+        }
         for (int which = nr*NRedist_chunk; which < (nr+1)*NRedist_chunk; which++)
         {
             if (which == MyProc)
@@ -244,11 +244,12 @@ ParticleContainer<NR, NI, NA>::InitFromAsciiFile (const std::string& file, int e
     //
     // Take care of any leftover chunk
     //
-    if (m_verbose > 0 && ParallelDescriptor::IOProcessor())
+    if (m_verbose > 0)
     {
-        if (NRedist*NRedist_chunk < NReaders)
-            std::cout << "Redistributing from processor " << NRedist*NRedist_chunk << " to " 
-                                                          << NReaders << '\n';
+        if (NRedist*NRedist_chunk < NReaders) {
+            amrex::Print() << "Redistributing from processor " << NRedist*NRedist_chunk << " to " 
+                           << NReaders << '\n';
+        }
     }
     for (int which = NRedist*NRedist_chunk; which < NReaders; which++)
     {
@@ -282,8 +283,7 @@ ParticleContainer<NR, NI, NA>::InitFromAsciiFile (const std::string& file, int e
 
         if (D_TERM(lNrep[0] == 1, && lNrep[1] == 1, && lNrep[2] == 1))
         {
-            if (ParallelDescriptor::IOProcessor())
-                std::cout << "Total number of particles: " << num_particles << '\n';
+            amrex::Print() << "Total number of particles: " << num_particles << '\n';
         }
         else
         {
@@ -291,16 +291,10 @@ ParticleContainer<NR, NI, NA>::InitFromAsciiFile (const std::string& file, int e
 
             ParallelDescriptor::ReduceLongSum(num_particles_read, IOProcNumber);
 
-            if (ParallelDescriptor::IOProcessor())
-            {
-                std::cout << "Replication the domain with vector           ";
-                for (int d=0; d<BL_SPACEDIM; ++d) {
-                    std::cout << lNrep[d] << " ";
-                }
-                std::cout << '\n';
-                std::cout << "Total number of particles read in          : " << num_particles_read << '\n';
-                std::cout << "Total number of particles after replication: " << num_particles      << '\n';
-            }
+            amrex::Print() << "Replication the domain with vector           "
+                           << D_TERM(lNrep[0] << " ", << lNrep[1] << " ", << lNrep[2]) << "\n"
+                           << "Total number of particles read in          : " << num_particles_read << '\n'
+                           << "Total number of particles after replication: " << num_particles      << '\n';
         }
     }
 
@@ -314,8 +308,7 @@ ParticleContainer<NR, NI, NA>::InitFromAsciiFile (const std::string& file, int e
 
         ParallelDescriptor::ReduceRealMax(runtime, ParallelDescriptor::IOProcessorNumber());
 
-        if (ParallelDescriptor::IOProcessor())
-            std::cout << "InitFromAsciiFile() time: " << runtime << '\n';
+        amrex::Print() << "InitFromAsciiFile() time: " << runtime << '\n';
     }
 }
 
@@ -357,10 +350,10 @@ ParticleContainer<NR, NI, NA>::InitFromBinaryFile (const std::string& file,
     //
     const long NPartPerRedist = ParticleType::MaxParticlesPerRead();
 
-    if (m_verbose > 0 && ParallelDescriptor::IOProcessor())
+    if (m_verbose > 0)
     {
-        std::cout << "Reading with " << NReaders << " readers\n";
-        std::cout << "Redistributing after every " << NPartPerRedist << " particles for each reader\n";
+        amrex::Print() << "Reading with " << NReaders << " readers\n"
+                       << "Redistributing after every " << NPartPerRedist << " particles for each reader\n";
     }
     //
     // tmp_particles should mirror how m_particles is built.
@@ -658,13 +651,12 @@ ParticleContainer<NR, NI, NA>::InitFromBinaryFile (const std::string& file,
 
                     if (!Where(p, pld))
                     {
-                        std::cout << "BAD PARTICLE ID WOULD BE " << ParticleType::NextID() << '\n';
-
-                        for (int d = 0; d < BL_SPACEDIM; d++)
-                        {
-                            std::cout << "BAD PARTICLE POS(" << d << ") " << p.m_rdata.pos[d] << std::endl;
-                        }
-
+                        amrex::AllPrint() << "BAD PARTICLE ID WOULD BE " << ParticleType::NextID() << '\n'
+                                          << "BAD PARTICLE POS " 
+                                          << D_TERM(   p.m_rdata.pos[0],
+                                                    << p.m_rdata.pos[2],
+                                                    << p.m_rdata.pos[3])
+                                          << "\n";
                         amrex::Abort("ParticleContainer<NR, NI, NA>::InitFromBinaryFile(): invalid particle");
                     }
                 }
@@ -717,10 +709,7 @@ ParticleContainer<NR, NI, NA>::InitFromBinaryFile (const std::string& file,
 
         ParallelDescriptor::ReduceLongSum(num_particles_read, ParallelDescriptor::IOProcessorNumber());
 
-        if (ParallelDescriptor::IOProcessor())
-        {
-            std::cout << "\nTotal number of particles: " << num_particles_read << '\n';
-        }
+        amrex::Print() << "\nTotal number of particles: " << num_particles_read << '\n';
     }
 
     BL_ASSERT(OK());
@@ -733,8 +722,7 @@ ParticleContainer<NR, NI, NA>::InitFromBinaryFile (const std::string& file,
 
         ParallelDescriptor::ReduceRealMax(runtime, ParallelDescriptor::IOProcessorNumber());
 
-        if (ParallelDescriptor::IOProcessor())
-            std::cout << "InitFromBinaryFile() time: " << runtime << '\n';
+        amrex::Print() << "InitFromBinaryFile() time: " << runtime << '\n';
     }
 }
 
@@ -762,8 +750,8 @@ ParticleContainer<NR, NI, NA>::InitFromBinaryMetaFile (const std::string& metafi
 
         if (!ifs.good()) break;
 
-        if (m_verbose > 1 && ParallelDescriptor::IOProcessor())
-            std::cout << "InitFromBinaryMetaFile: processing file: " << file << '\n';
+        if (m_verbose > 1)
+            amrex::Print() << "InitFromBinaryMetaFile: processing file: " << file << '\n';
 
         InitFromBinaryFile(file, extradata);
     }
@@ -776,8 +764,7 @@ ParticleContainer<NR, NI, NA>::InitFromBinaryMetaFile (const std::string& metafi
 
         ParallelDescriptor::ReduceRealMax(runtime, ParallelDescriptor::IOProcessorNumber());
 
-        if (ParallelDescriptor::IOProcessor())
-            std::cout << "InitFromBinaryMetaFile() time: " << runtime << '\n';
+        amrex::Print() << "InitFromBinaryMetaFile() time: " << runtime << '\n';
     }
 }
 
@@ -970,10 +957,7 @@ ParticleContainer<NR, NI, NA>::InitRandom (long          icount,
 
         ParallelDescriptor::ReduceRealMax(stoptime,IOProc);
 
-        if (ParallelDescriptor::IOProcessor())
-        {
-            std::cout << "ParticleContainer<NR, NI, NA>::InitRandom() time: " << stoptime << '\n';
-        }
+        amrex::Print() << "ParticleContainer<NR, NI, NA>::InitRandom() time: " << stoptime << '\n';
     }
 }
 
@@ -1077,10 +1061,7 @@ ParticleContainer<NR, NI, NA>::InitOnePerCell (Real x_off, Real y_off, Real z_of
 
         ParallelDescriptor::ReduceRealMax(stoptime,IOProc);
 
-        if (ParallelDescriptor::IOProcessor())
-        {
-            std::cout << "ParticleContainer<NR, NI, NA>::InitOnePerCell() time: " << stoptime << '\n';
-        }
+        amrex::Print() << "ParticleContainer<NR, NI, NA>::InitOnePerCell() time: " << stoptime << '\n';
     }
 }
 
@@ -1178,9 +1159,6 @@ ParticleContainer<NR, NI, NA>::InitNRandomPerCell (int n_per_cell, Real mass, co
 
         ParallelDescriptor::ReduceRealMax(stoptime,IOProc);
 
-        if (ParallelDescriptor::IOProcessor())
-        {
-            std::cout << "ParticleContainer<NR, NI, NA>::InitNRandomPerCell() time: " << stoptime << '\n';
-        }
+        amrex::Print() << "ParticleContainer<NR, NI, NA>::InitNRandomPerCell() time: " << stoptime << '\n';
     }
 }
