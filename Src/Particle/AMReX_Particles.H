@@ -230,15 +230,17 @@ public:
 
     ParticleContainer ()
       : m_verbose(0), m_gdb(nullptr), allow_particles_near_boundary(false), communicate_comp(NA, true)
-  {
-  }
+    {
+        Initialize ();
+    }
 
     ParticleContainer (ParGDBBase* gdb)
         :
       m_verbose(0), m_gdb(gdb), allow_particles_near_boundary(false), communicate_comp(NA, true)
-  {
-    allocateData();
-  }
+    {
+        Initialize ();
+        allocateData();
+    }
   
     ParticleContainer (const Geometry            & geom, 
 		       const DistributionMapping & dmap,
@@ -249,8 +251,9 @@ public:
 	m_gdb_object(geom,dmap,ba), 
 	communicate_comp(NA, true)
     {
-      m_gdb = & m_gdb_object;
-      allocateData();
+        Initialize ();
+        m_gdb = & m_gdb_object;
+        allocateData();
     }
 
     ParticleContainer (const Array<Geometry>            & geom, 
@@ -263,8 +266,9 @@ public:
 	m_gdb_object(geom,dmap,ba,rr),
 	communicate_comp(NA, true)
     {
-      m_gdb = & m_gdb_object;
-      allocateData();
+        Initialize ();
+        m_gdb = & m_gdb_object;
+        allocateData();
     }
 
     ~ParticleContainer () {}
@@ -570,6 +574,7 @@ private:
     void RedistributeMPI (std::map<int, Array<char> >& not_ours,
 			  int lev_min = 0, int finest_level = 0, int nGrow = 0);
 
+    static void Initialize ();
 };
 
 #include "AMReX_ParticleI.H"
