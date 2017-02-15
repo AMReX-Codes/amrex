@@ -1409,17 +1409,17 @@ ParticleContainer<NR, NI, NA>::RedistributeMPI (std::map<int, Array<char> >& not
     Array<char> recvdata(TotRcvBytes);
 
     // Post receives.
-    for (int idx = 0; idx < nrcvs; ++idx)
+    for (int i = 0; i < nrcvs; ++i)
     {
-	const auto Who    = RcvProc[idx];
-	const auto offset = rOffset[idx];
+	const auto Who    = RcvProc[i];
+	const auto offset = rOffset[i];
 	const auto Cnt    = Rcvs[Who];
 	
 	BL_ASSERT(Cnt > 0);
 	BL_ASSERT(Cnt < std::numeric_limits<int>::max());
 	BL_ASSERT(Who >= 0 && Who < NProcs);
 	
-	rreqs[idx] = ParallelDescriptor::Arecv(&recvdata[offset], Cnt, Who, SeqNum).req();
+	rreqs[i] = ParallelDescriptor::Arecv(&recvdata[offset], Cnt, Who, SeqNum).req();
     }
       
     // Send.
@@ -1448,7 +1448,6 @@ ParticleContainer<NR, NI, NA>::RedistributeMPI (std::map<int, Array<char> >& not
         const auto particle_size = sizeof(ParticleType);
         const auto superparticle_size = particle_size + num_soa_comps*sizeof(Real);
 
-        int npart = recvdata.size() / superparticle_size;
         if (recvdata.size() % superparticle_size != 0) {
             amrex::AllPrint() << "ParticleContainer::RedistributeMPI: sizes = "
                               << recvdata.size() << ", " << superparticle_size << "\n";
@@ -1456,6 +1455,7 @@ ParticleContainer<NR, NI, NA>::RedistributeMPI (std::map<int, Array<char> >& not
         }
 
         char* pbuf = recvdata.data();
+        int npart = recvdata.size() / superparticle_size;
         for (int i = 0; i < npart; ++i)
         {
             ParticleType p;
