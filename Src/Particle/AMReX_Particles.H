@@ -1,6 +1,7 @@
 #ifndef _PARTICLES_H_
 #define _PARTICLES_H_ 
 
+#include <cstring>
 #include <map>
 #include <deque>
 #include <vector>
@@ -350,11 +351,6 @@ public:
     void Redistribute (bool where_already_called = false,
                        int  lev_min              = 0, 
 		       int  nGrow                = 0);
-
-    void RedistributeMPI (std::map<int, AoS>& not_ours,
-			  std::map<int, Array<Array<Real> > >& comm_pdata,
-			  int lev_min = 0, int finest_level = 0, int nGrow = 0);
-
     //
     // OK checks that all particles are in the right places (for some value of right)
     //
@@ -568,7 +564,12 @@ private:
 			    Array<std::unique_ptr<MultiFab> >& mf, 
 			    std::map<int, Array<ParticleCommData> >& data,
 			    int ncomp, int lev_min = 0) const;
+
     std::pair<long,long> StartIndexInGlobalArray () const;
+
+    void RedistributeMPI (std::map<int, Array<char> >& not_ours,
+			  int lev_min = 0, int finest_level = 0, int nGrow = 0);
+
 };
 
 #include "AMReX_ParticleI.H"
