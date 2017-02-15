@@ -83,11 +83,15 @@ ParticleContainer<NR, NI, NA>::Where (const ParticleType&         p,
 
         if (lev == pld.m_lev) {
             // The fact that we are here means this particle does not belong to any finer grids.
-            if (0 <= pld.m_grid && pld.m_grid < ba.size() && ba[pld.m_grid].contains(iv))
+            if (0 <= pld.m_grid && pld.m_grid < ba.size())
             {
-                pld.m_tile = getTileIndex(iv, ba[pld.m_grid]);
-                pld.m_cell = iv;
-                return true;
+                const Box& bx = ba[pld.m_grid];
+                if (bx.contains(iv))
+                {
+                    pld.m_tile = getTileIndex(iv, bx);
+                    pld.m_cell = iv;
+                    return true;
+                }
             }
         }
 
