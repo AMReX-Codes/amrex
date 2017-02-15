@@ -19,12 +19,14 @@ contains
     double precision, intent(in   ) :: centroids(dim,num)
     integer,          intent(in   ) ::       ivs(dim,num)
     double precision, intent(in   ) :: dx
-    integer :: i, c(dim), s(dim), iv(dim)
+    integer :: i, c(dim), s(dim), iv(dim), sh(dim)
     double precision :: n(dim), b(dim), x(2), y(2), d(2), fac
 
-    ! Rotate work to 1st quadrant, where 1-component is "indepenent".  Find 2 quadratically 
-    ! interpolated values at x1=1 and x1=2 along ray normal to boundary, and intersecting
-    ! eb at centroid.  These two values, plus the Dirichlet value at the eb are then used
+    ! Rotate work to 1st quadrant, where 1-component is "independent" such that ABS(n(1)/n(2)) > 1.
+    ! Find 2 quadratically interpolated values at a=(x1a,x2a)=(1,x2a) and b=(x1b,x2b)=(2,x2b) along
+    ! ray normal to boundary, and intersecting eb at centroid.  By construction, x2a<x1a and x2b<x1b
+    ! so x2a will lay between (x1a,0) and (x1a,2), and x2b will lay between (x1b,0) and (x1b,2).
+    ! These interpolated values at a and b, plus the Dirichlet value at the eb are then used
     ! to compute a normal gradient at the eb.  The resulting stencil contains 6+1 points, and 
     ! is stored in a 3x3 matrix plus an aux value.  The normal gradient will then be evaluated:
     !
@@ -51,6 +53,15 @@ contains
        x(1) = 1
        x(2) = 2
        y(:) = b(2) + (x(:) - b(1))*ABS(n(c(2))/n(c(1)))
+
+       ! Is there a way to avoid this "if"?  Not sure
+       sh(:) = 0
+       if (y(1)<0 .or. y(2)<0) then
+          sh(c(2)) = -s(2) ! Slide stencil down to avoid extraploting, push up eb, shift down base later
+          b(2) = b(2) + 1
+          y(:) = b(2) + (x(:) - b(1))*ABS(n(c(2))/n(c(1)))
+       endif
+
        d(:) = SQRT( (x(:)-b(1))**2 + (y(:)-b(2))**2)
 
        iv(c(1)) = 1 * s(1) + ivs(c(1),i) - baseiv(c(1),i)
@@ -75,6 +86,8 @@ contains
        stencil(iv(1),iv(2),i) = fac * (0.5d0 * y(2) * (y(2)-1.d0))        * (-d(1)/(d(2)*(d(2)-d(1))))
 
        stencilB(i) = - fac * (d(2)+d(1))/(d(2)*d(1))
+
+       baseiv(:,i) = baseiv(:,i) + sh(:) ! Shift base down, if required
        
     enddo
 
