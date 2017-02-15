@@ -1198,10 +1198,15 @@ ParticleContainer<NR, NI, NA>::Redistribute (bool where_already_called, int lev_
   }
 
   // The valid particles that we don't own.
-  std::map<int, AoS> not_ours;
+  std::map<int, Array<char> > not_ours;
 
-  // struct-of-array data that also needs to be communicated
-  std::map<int, Array<Array<Real > > > comm_soa_data;
+  int num_soa_comps = 0;
+  for (int i = 0; i < NA; ++i) {
+      if (communicate_comp[i]) ++num_soa_comps;
+  }
+
+  const auto particle_size = sizeof(ParticleType);
+  const auto superparticle_size = particle_size + num_soa_comps*sizeof(Real);
 
   ParticleLocData pld;
 
@@ -1247,19 +1252,22 @@ ParticleContainer<NR, NI, NA>::Redistribute (bool where_already_called, int lev_
 		}
 	      }
 	      else {
-		not_ours[who].push_back(p);
-                auto& soa_data = comm_soa_data[who];
-                if (soa_data.size() < NA) soa_data.resize(NA);
-		for (int comp = 0; comp < NA; comp++) {
-		  if (communicate_comp[comp]) {
-                      Real pdata = arrs[comp][pindex];
-                      soa_data[comp].push_back(pdata);
+                  auto& particles_to_send = not_ours[who];
+                  auto old_size = particles_to_send.size();
+                  auto new_size = old_size + superparticle_size;
+                  particles_to_send.resize(new_size);
+                  std::memcpy(&particles_to_send[old_size], &p, particle_size);
+                  char* dst = &particles_to_send[old_size+particle_size];
+                  for (int comp = 0; comp < NA; comp++) {
+                      if (communicate_comp[comp]) {
+                          std::memcpy(dst, &arrs[comp][pindex], sizeof(Real));
+                          dst += sizeof(Real);
+                      }
                   }
-		}
-		//
-		// Invalidate the particle so we can reclaim its space.
-		//
-		p.m_idata.id = -p.m_idata.id;
+                  //
+                  // Invalidate the particle so we can reclaim its space.
+                  //
+                  p.m_idata.id = -p.m_idata.id;
 	      }
 	    }
 	  }
@@ -1312,7 +1320,7 @@ ParticleContainer<NR, NI, NA>::Redistribute (bool where_already_called, int lev_
     }
   else
     {
-      RedistributeMPI(not_ours, comm_soa_data, lev_min, theEffectiveFinestLevel, nGrow);
+      RedistributeMPI(not_ours, lev_min, theEffectiveFinestLevel, nGrow);
     }
   
   BL_ASSERT(OK(lev_min, nGrow, theEffectiveFinestLevel));
@@ -1336,35 +1344,27 @@ ParticleContainer<NR, NI, NA>::Redistribute (bool where_already_called, int lev_
 
 template <int NR, int NI, int NA>
 void
-ParticleContainer<NR, NI, NA>::RedistributeMPI (std::map<int, AoS>& not_ours,
-                                                std::map<int, Array<Array<Real> > >& comm_soa_data,
+ParticleContainer<NR, NI, NA>::RedistributeMPI (std::map<int, Array<char> >& not_ours,
                                                 int lev_min, int finest_level, int nGrow)
 {
     BL_PROFILE("ParticleContainer<NR, NI, NA>::RedistributeMPI()");
 #if BL_USE_MPI
-
-#if !defined(__GNUC__) || (__GNUC__ > 4)
-    if (! std::is_trivially_copyable<ParticleType>::value) {
-        amrex::Abort("Particle is not trivially copyable");
-    }
-#endif
-
     const int MyProc = ParallelDescriptor::MyProc();
     const int NProcs = ParallelDescriptor::NProcs();
     //
     // We may now have particles that are rightfully owned by another CPU.
     //
-    Array<int> Snds(NProcs, 0), Rcvs(NProcs, 0);
+    Array<long> Snds(NProcs, 0), Rcvs(NProcs, 0);  // bytes!
 
-    int NumSnds = 0, NumRcvs = 0;
+    long NumSnds = 0;
     
     for (const auto& kv : not_ours)
-      {
+    {
         NumSnds       += kv.second.size();
         Snds[kv.first] = kv.second.size();
-      }
+    }
     
-    ParallelDescriptor::ReduceIntMax(NumSnds);
+    ParallelDescriptor::ReduceLongMax(NumSnds);
 
     if (NumSnds == 0)
       //
@@ -1372,143 +1372,111 @@ ParticleContainer<NR, NI, NA>::RedistributeMPI (std::map<int, AoS>& not_ours,
       //
       return;
 
-    BL_COMM_PROFILE(BLProfiler::Alltoall, sizeof(int),
+    BL_COMM_PROFILE(BLProfiler::Alltoall, sizeof(long),
                     ParallelDescriptor::MyProc(), BLProfiler::BeforeCall());
 
     BL_MPI_REQUIRE( MPI_Alltoall(Snds.dataPtr(),
                                  1,
-                                 ParallelDescriptor::Mpi_typemap<int>::type(),
+                                 ParallelDescriptor::Mpi_typemap<long>::type(),
                                  Rcvs.dataPtr(),
                                  1,
-                                 ParallelDescriptor::Mpi_typemap<int>::type(),
+                                 ParallelDescriptor::Mpi_typemap<long>::type(),
                                  ParallelDescriptor::Communicator()) );
     BL_ASSERT(Rcvs[MyProc] == 0);
 
-    BL_COMM_PROFILE(BLProfiler::Alltoall, sizeof(int),
+    BL_COMM_PROFILE(BLProfiler::Alltoall, sizeof(long),
                     ParallelDescriptor::MyProc(), BLProfiler::AfterCall());
 
-    typedef std::map<int,int> IntIntMap;
+    Array<int> RcvProc;
+    Array<std::size_t> rOffset; // Offset (in bytes) in the receive buffer
+    
+    std::size_t TotRcvBytes = 0;
+    for (int i = 0; i < NProcs; ++i) {
+        if (Rcvs[i] > 0) {
+            RcvProc.push_back(i);
+            rOffset.push_back(TotRcvBytes);
+            TotRcvBytes += Rcvs[i];
+        }
+    }
 
-    IntIntMap SndCnts, RcvCnts, rOffset;
+    const int nrcvs = RcvProc.size();
+    Array<MPI_Status>  stats(nrcvs);
+    Array<MPI_Request> rreqs(nrcvs);
 
-    for (int i = 0; i < NProcs; i++)
-      if (Snds[i] > 0)
-	SndCnts[i] = Snds[i];
+    const int SeqNum = ParallelDescriptor::SeqNum();
 
-    for (int i = 0; i < NProcs; i++)
-      {
-        if (Rcvs[i] > 0)
-	  {
-            RcvCnts[i] = Rcvs[i];
-            rOffset[i] = NumRcvs;
-            NumRcvs   += Rcvs[i];
-	  }
-      }
+    // Allocate data for rcvs as one big chunk.
+    Array<char> recvdata(TotRcvBytes);
 
-    //
-    // Don't need these anymore.
-    //
-    Array<int>().swap(Snds);
-    Array<int>().swap(Rcvs);
-
-    Array<int>         owner(RcvCnts.size());
-    Array<int>         index(RcvCnts.size());
-    Array<MPI_Status>  stats(RcvCnts.size());
-    Array<MPI_Request> rreqs(RcvCnts.size());
-
+    // Post receives.
+    for (int idx = 0; idx < nrcvs; ++idx)
     {
-
-      const int SeqNum        = ParallelDescriptor::SeqNum();
-
-      int num_soa_comps = 0;
-      for (int i = 0; i < NA; i++) {
-          if (communicate_comp[i]) ++num_soa_comps;
-      }
-
-      const int chunk_size = sizeof(ParticleType) + num_soa_comps*sizeof(Real);
-      
-      // Allocate data for rcvs as one big chunk.
-      unsigned char* recvdata = (unsigned char*) malloc(NumRcvs * chunk_size);
-
-      // Post receives.
-      int idx = 0;
-      for (auto it = RcvCnts.cbegin(); it != RcvCnts.cend(); ++it, ++idx) {
-	const int Who = it->first;
-	const int Cnt = it->second * chunk_size;
-	const int Idx = rOffset[Who] * chunk_size;
+	const auto Who    = RcvProc[idx];
+	const auto offset = rOffset[idx];
+	const auto Cnt    = Rcvs[Who];
 	
+	BL_ASSERT(Cnt > 0);
+	BL_ASSERT(Cnt < std::numeric_limits<int>::max());
+	BL_ASSERT(Who >= 0 && Who < NProcs);
+	
+	rreqs[idx] = ParallelDescriptor::Arecv(&recvdata[offset], Cnt, Who, SeqNum).req();
+    }
+      
+    // Send.
+    for (const auto& kv : not_ours)
+    {
+	const auto Who = kv.first;
+	const auto Cnt = kv.second.size();
+
 	BL_ASSERT(Cnt > 0);
 	BL_ASSERT(Who >= 0 && Who < NProcs);
 	BL_ASSERT(Cnt < std::numeric_limits<int>::max());
-	
-	owner[idx] = Who;
-	rreqs[idx] = ParallelDescriptor::Arecv(recvdata + Idx, Cnt, Who, SeqNum).req();
-      }
-      
-      // Send.
-      for (const auto& kv : SndCnts) {
-	const int Who = kv.first;
-	const int Cnt = kv.second * chunk_size;
-	
-	BL_ASSERT(Cnt > 0);
-	BL_ASSERT(Who >= 0 && Who < NProcs);
-	BL_ASSERT(Cnt < std::numeric_limits<int>::max());
-	
-	unsigned char* data_ptr = (unsigned char*) malloc(Cnt);
-	ParticleType* part_ptr = (ParticleType*) data_ptr;
-	
-	// Pack the AoS data
-	const AoS& pbox = not_ours[Who];
-	for (const auto& p : pbox) {
-	  BL_ASSERT(p.m_idata.id > 0);
-	  *part_ptr++ = p;
-	}
-	
-	// Pack the SoA data
-	Array<Array<Real> >& StructOfArrayData = comm_soa_data[Who];
-	Real* SoA_ptr = (Real*) part_ptr;
-	for (unsigned i = 0; i < pbox.size(); ++i) {
-	  for (int j = 0; j < NA; j++) {
-	    if (communicate_comp[j])
-	      *SoA_ptr++ = StructOfArrayData[j][i];
-	  }
-	}
 
-	ParallelDescriptor::Send(data_ptr, Cnt, Who, SeqNum);
-	free(data_ptr);
-      }
+	ParallelDescriptor::Send(kv.second.data(), Cnt, Who, SeqNum);
+    }
 
-      ParticleLocData pld;
-      
-      // Now receive and unpack the data.
-      for (int NWaits = rreqs.size(), completed; NWaits > 0; NWaits -= completed) {
-	ParallelDescriptor::Waitsome(rreqs, completed, index, stats);
-	
-	for (int k = 0; k < completed; k++) {
-	  const int  Who  = owner[index[k]];
-	  const int  Idx  = rOffset[Who] * chunk_size;
-          const int npart = RcvCnts[Who];
+    if (nrcvs > 0)
+    {
+        BL_MPI_REQUIRE( MPI_Waitall(nrcvs, rreqs.data(), stats.data()) );
 
-	  ParticleType* AoS_ptr = (ParticleType*) (recvdata + Idx);
-	  Real* SoA_ptr = (Real*) (AoS_ptr + npart);
-          for (int i = 0; i < npart; ++i)
-          {
-            auto p = *AoS_ptr++;
-	    locateParticle(p, pld, lev_min, finest_level, nGrow);
-	    
-	    m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
+        ParticleLocData pld;
+
+        int num_soa_comps = 0;
+        for (int i = 0; i < NA; ++i) {
+            if (communicate_comp[i]) ++num_soa_comps;
+        }
+        const auto particle_size = sizeof(ParticleType);
+        const auto superparticle_size = particle_size + num_soa_comps*sizeof(Real);
+
+        int npart = recvdata.size() / superparticle_size;
+        if (recvdata.size() % superparticle_size != 0) {
+            amrex::AllPrint() << "ParticleContainer::RedistributeMPI: sizes = "
+                              << recvdata.size() << ", " << superparticle_size << "\n";
+            amrex::Abort("ParticleContainer::RedistributeMPI: How did this happen?");
+        }
+
+        char* pbuf = recvdata.data();
+        for (int i = 0; i < npart; ++i)
+        {
+            ParticleType p;
+            std::memcpy(&p, pbuf, particle_size);
+            
+            locateParticle(p, pld, lev_min, finest_level, nGrow);
+
+            m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
 
             auto& arrs = m_arraydata[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)];
-	    for (int j = 0; j < NA; j++) {
-	      if (communicate_comp[j]) 
-                  arrs[j].push_back(*SoA_ptr++);
-	      else
-                  arrs[j].push_back(0.0);
-	    }
-	  }
-	}
-      }
-      free(recvdata);
+            Real* d = (Real*)(pbuf + particle_size);
+            for (int comp = 0; comp < NA; ++comp) {
+                if (communicate_comp[comp]) {
+                    arrs[comp].push_back(*d++);
+                } else {
+                    arrs[comp].push_back(0.0);
+                }
+            }
+
+            pbuf += superparticle_size;
+        }
     }
 #endif /*BL_USE_MPI*/
 }
