@@ -74,6 +74,8 @@ struct ParticleLocData
   int     m_grid = -1;
   int     m_tile = -1;
   IntVect m_cell {D_DECL(-1,-1,-1)};
+  Box     m_gridbox;
+  Box     m_tilebox;
 };
 
 
@@ -436,7 +438,7 @@ public:
 
     IntVect Index (const Particle<NR, NI>& p, int lev) const;
 
-    int getTileIndex(const IntVect& iv, const Box& box) const;
+    int getTileIndex(const IntVect& iv, const Box& box, Box& tbx) const;
 
     //
     // Checks a particle's location on levels lev_min and higher.
