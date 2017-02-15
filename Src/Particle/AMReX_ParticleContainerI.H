@@ -1876,7 +1876,7 @@ ParticleContainer<NR, NI, NA>::Checkpoint (const std::string& dir,
 template <int NR, int NI, int NA>
 void
 ParticleContainer<NR, NI, NA>::WritePlotFile (const std::string& dir,
-					 const std::string& name) const
+					      const std::string& name) const
 {
     BL_PROFILE("ParticleContainer<NR, NI, NA>::WritePlotFile()");
     BL_ASSERT(OK());
@@ -1892,12 +1892,12 @@ ParticleContainer<NR, NI, NA>::WritePlotFile (const std::string& dir,
 template <int NR, int NI, int NA>
 void
 ParticleContainer<NR, NI, NA>::WriteParticles (int            lev,
-						  std::ofstream& ofs,
-						  int            fnum,
-						  Array<int>&    which,
-						  Array<int>&    count,
-						  Array<long>&   where,
-						  bool           is_checkpoint) const
+					       std::ofstream& ofs,
+					       int            fnum,
+					       Array<int>&    which,
+					       Array<int>&    count,
+					       Array<long>&   where,
+					       bool           is_checkpoint) const
 {
 
     BL_PROFILE("ParticleContainer<NR, NI, NA>::WriteParticles()");
@@ -1987,8 +1987,8 @@ ParticleContainer<NR, NI, NA>::WriteParticles (int            lev,
 template <int NR, int NI, int NA>
 void
 ParticleContainer<NR, NI, NA>::Restart (const std::string& dir,
-					   const std::string& file,
-					   bool is_checkpoint)
+					const std::string& file,
+					bool is_checkpoint)
 {
     BL_PROFILE("ParticleContainer<NR, NI, NA>::Restart()");
     BL_ASSERT(!dir.empty());
@@ -2097,9 +2097,9 @@ ParticleContainer<NR, NI, NA>::Restart (const std::string& dir,
 template <int NR, int NI, int NA>
 void
 ParticleContainer<NR, NI, NA>::Restart_Doit (const std::string& fullname,
-					std::ifstream&     HdrFile,
-					const std::string& how,
-					bool is_checkpoint)
+					     std::ifstream&     HdrFile,
+					     const std::string& how,
+					     bool is_checkpoint)
 {
     BL_PROFILE("ParticleContainer<NR, NI, NA>::RestartDoit()");
     BL_ASSERT(!fullname.empty());
@@ -2288,10 +2288,10 @@ ParticleContainer<NR, NI, NA>::Restart_Doit (const std::string& fullname,
 template <int NR, int NI, int NA>
 void
 ParticleContainer<NR, NI, NA>::ReadParticles_DoublePrecision (int            cnt,
-								 int            grd,
-								 int            lev,
-								 bool           is_checkpoint,
-								 std::ifstream& ifs)
+							      int            grd,
+							      int            lev,
+							      bool           is_checkpoint,
+							      std::ifstream& ifs)
 {
     BL_PROFILE("ParticleContainer<NR, NI, NA>::ReadParticles_DoublePrecision()");
     BL_ASSERT(cnt > 0);
@@ -2312,7 +2312,7 @@ ParticleContainer<NR, NI, NA>::ReadParticles_DoublePrecision (int            cnt
     //
     // Then the double data in binary.
     //
-    const int rChunkSize = BL_SPACEDIM+NR;
+    const int rChunkSize = BL_SPACEDIM + NR + NA;
 
     Array<double> rstuff(cnt*rChunkSize);
 
@@ -2322,61 +2322,49 @@ ParticleContainer<NR, NI, NA>::ReadParticles_DoublePrecision (int            cnt
     //
     int*            iptr = istuff.dataPtr();
     double*         rptr = rstuff.dataPtr();
-    AoS&           pbox = m_particles[lev][std::make_pair(grd, 0)]; // tile
-    ParticleType p;
-    ParticleLocData pld;
 
     // If we are restarting from a plotfile instead of a checkpoint file, then we do not
     //    read in the particle id's, so we need to reset the id counter to zero and renumber them
-    if (!is_checkpoint)
-    {
-        int maxnextid = 1;
-        ParticleType::NextID(maxnextid);
+    if (!is_checkpoint) {
+      int maxnextid = 1;
+      ParticleType::NextID(maxnextid);
     }
 
-    for (int i = 0; i < cnt; i++)
-    {
-        if (is_checkpoint)
-        {
-            p.m_idata.id   = iptr[0];
-            p.m_idata.cpu  = iptr[1];
-        }
-        else
-        {
-	  if (!Where(p, pld))
-            {
-	      PeriodicShift(p);
-	      
-	      if (!Where(p, pld))
-                {
-                    amrex::AllPrint() << "RESTART:BAD PARTICLE ID WOULD BE " << ParticleType::NextID() << '\n'
-                                      << "RESTART:BAD PARTICLE POS " 
-                                      << D_TERM(   p.m_rdata.pos[0],
-                                                << p.m_rdata.pos[2],
-                                                << p.m_rdata.pos[3])
-                                      << "\n";
-                    amrex::Abort("ParticleContainer<NR, NI, NA>::ReadParticles_DoublePrecision(): invalid particle");
-                }
-            }
-	  
-	  p.m_idata.id   = ParticleType::NextID();
-	  p.m_idata.cpu  = ParallelDescriptor::MyProc();
-        }
+    ParticleType p;
+    ParticleLocData pld;
+    for (int i = 0; i < cnt; i++) {
+      if (is_checkpoint) {
+	p.m_idata.id   = iptr[0];
+	p.m_idata.cpu  = iptr[1];
+      }
+      else {
+	p.m_idata.id   = ParticleType::NextID();
+	p.m_idata.cpu  = ParallelDescriptor::MyProc();
+      }
 
-        BL_ASSERT(p.m_idata.id > 0);
+      BL_ASSERT(p.m_idata.id > 0);
 
-        iptr += iChunkSize;
+      iptr += iChunkSize;
 
-        D_TERM(p.m_rdata.pos[0] = rptr[0];,
-               p.m_rdata.pos[1] = rptr[1];,
-               p.m_rdata.pos[2] = rptr[2];);
+      D_TERM(p.m_rdata.pos[0] = rptr[0];,
+	     p.m_rdata.pos[1] = rptr[1];,
+	     p.m_rdata.pos[2] = rptr[2];);
 
-        for (int i = 0; i < NR; i++)
-            p.m_rdata.arr[BL_SPACEDIM+i] = rptr[BL_SPACEDIM+i];
+      for (int j = 0; j < NR; j++)
+	p.m_rdata.arr[BL_SPACEDIM+j] = rptr[BL_SPACEDIM+j];
 
-        rptr += rChunkSize;
+      rptr += BL_SPACEDIM + NR;
+      
+      locateParticle(p, pld);
 
-        pbox.push_back(p);
+      for (int j = 0; j < NA; j++) {
+	SoA& soa  = m_arraydata[lev][std::make_pair(grd, pld.m_tile)];
+	soa[j][i] = rptr[j];
+      }
+      rptr += NA;
+
+      AoS& pbox = m_particles[lev][std::make_pair(grd, pld.m_tile)];
+      pbox.push_back(p);
     }
 }
 
@@ -2387,10 +2375,10 @@ ParticleContainer<NR, NI, NA>::ReadParticles_DoublePrecision (int            cnt
 template <int NR, int NI, int NA>
 void
 ParticleContainer<NR, NI, NA>::ReadParticles_SinglePrecision (int            cnt,
-							   int            grd,
-							   int            lev,
-							   bool           is_checkpoint,
-							   std::ifstream& ifs)
+							      int            grd,
+							      int            lev,
+							      bool           is_checkpoint,
+							      std::ifstream& ifs)
 {
     BL_PROFILE("ParticleContainer<NR, NI, NA>::ReadParticles_SinglePrecision()");
     BL_ASSERT(cnt > 0);
@@ -2411,7 +2399,7 @@ ParticleContainer<NR, NI, NA>::ReadParticles_SinglePrecision (int            cnt
     //
     // Then the float data in binary.
     //
-    const int rChunkSize = BL_SPACEDIM+NR;
+    const int rChunkSize = BL_SPACEDIM + NR + NA;
 
     Array<float> rstuff(cnt*rChunkSize);
 
@@ -2421,65 +2409,53 @@ ParticleContainer<NR, NI, NA>::ReadParticles_SinglePrecision (int            cnt
     //
     int*   iptr = istuff.dataPtr();
     float* rptr = rstuff.dataPtr();
-    AoS&  pbox = m_particles[lev][std::make_pair(grd, 0)]; //Tile
-
-    ParticleLocData pld;
-    ParticleType p;
 
     // If we are restarting from a plotfile instead of a checkpoint file, then we do not
     //    read in the particle id's, so we need to reset the id counter to zero and renumber them
     if (!is_checkpoint)
     {
-        int maxnextid = 1;
-        ParticleType::NextID(maxnextid);
+      int maxnextid = 1;
+      ParticleType::NextID(maxnextid);
     }
+    
+    ParticleLocData pld;
+    ParticleType p;
+    for (int i = 0; i < cnt; i++) {
+      p.m_idata.id   = iptr[0];
+      p.m_idata.cpu  = iptr[1];
 
-    for (int i = 0; i < cnt; i++)
-    {
-        p.m_idata.id   = iptr[0];
-        p.m_idata.cpu  = iptr[1];
+      if (is_checkpoint) {
+	p.m_idata.id    = iptr[0];
+	p.m_idata.cpu   = iptr[1];
+      }
+      else {
+	p.m_idata.id   = ParticleType::NextID();
+	p.m_idata.cpu  = ParallelDescriptor::MyProc();
+      }
 
-        if (is_checkpoint)
-        {
-            p.m_idata.id    = iptr[0];
-            p.m_idata.cpu   = iptr[1];
-        }
-        else
-        {
-	  if (!Where(p, pld))
-            {
-	      PeriodicShift(p);
+      BL_ASSERT(p.m_idata.id > 0);
 
-	      if (!Where(p, pld))
-              {
-                  amrex::AllPrint() << "RESTART:BAD PARTICLE ID WOULD BE " << ParticleType::NextID() << '\n'
-                                    << "RESTART:BAD PARTICLE POS " 
-                                    << D_TERM(   p.m_rdata.pos[0],
-                                              << p.m_rdata.pos[2],
-                                              << p.m_rdata.pos[3])
-                                    << "\n";
-                  amrex::Abort("ParticleContainer<NR, NI, NA>::ReadParticles_SinglePrecision(): invalid particle");
-              }
-            }
+      iptr += iChunkSize;
 
-            p.m_idata.id   = ParticleType::NextID();
-            p.m_idata.cpu  = ParallelDescriptor::MyProc();
-        }
+      D_TERM(p.m_rdata.pos[0] = rptr[0];,
+	     p.m_rdata.pos[1] = rptr[1];,
+	     p.m_rdata.pos[2] = rptr[2];);
 
-        BL_ASSERT(p.m_idata.id > 0);
+      for (int j = 0; j < NR; j++)
+	p.m_rdata.arr[BL_SPACEDIM + j] = rptr[BL_SPACEDIM + j];
+      
+      rptr += BL_SPACEDIM + NR;
 
-        iptr += iChunkSize;
+      locateParticle(p, pld);
 
-        D_TERM(p.m_rdata.pos[0] = rptr[0];,
-               p.m_rdata.pos[1] = rptr[1];,
-               p.m_rdata.pos[2] = rptr[2];);
+      for (int j = 0; j < NA; j++) {
+	SoA& soa  = m_arraydata[lev][std::make_pair(grd, pld.m_tile)];
+	soa[j][i] = rptr[j];
+      }
+      rptr += NA;
 
-        for (int i = 0; i < NR; i++)
-            p.m_rdata.arr[BL_SPACEDIM + i] = rptr[BL_SPACEDIM + i];
-
-        rptr += rChunkSize;
-
-        pbox.push_back(p);
+      AoS& pbox = m_particles[lev][std::make_pair(grd, pld.m_tile)];
+      pbox.push_back(p);
     }
 }
 
