@@ -42,7 +42,7 @@ ParticleContainer<NR, NI, NA>::Index (const ParticleType& p, int lev) const
 
 template <int NR, int NI, int NA>
 int 
-ParticleContainer<NR, NI, NA>::getTileIndex(const IntVect& iv, const Box& box) const {
+ParticleContainer<NR, NI, NA>::getTileIndex(const IntVect& iv, const Box& box, Box& tbx) const {
 
   if (do_tiling == false)
     return 0;
@@ -55,6 +55,8 @@ ParticleContainer<NR, NI, NA>::getTileIndex(const IntVect& iv, const Box& box) c
   IntVect ivIndex(D_DECL((iv[0]-small[0])/tile_size[0],
 			 (iv[1]-small[1])/tile_size[1],
 			 (iv[2]-small[2])/tile_size[2]));
+
+  tbx = Box(small+ivIndex*tile_size, small+(ivIndex+1)*tile_size-1);
 
   // convert IntVect index into a linear one
   return D_TERM(ivIndex[0], + ntiles[0]*ivIndex[1], + ntiles[0]*ntiles[1]*ivIndex[2]);
@@ -88,8 +90,11 @@ ParticleContainer<NR, NI, NA>::Where (const ParticleType&         p,
                 const Box& bx = ba[pld.m_grid];
                 if (bx.contains(iv))
                 {
-                    pld.m_tile = getTileIndex(iv, bx);
                     pld.m_cell = iv;
+                    if (bx != pld.m_gridbox || !pld.m_tilebox.contains(iv)) {
+                        pld.m_tile = getTileIndex(iv, bx, pld.m_tilebox);
+                        pld.m_gridbox = bx;
+                    }
                     return true;
                 }
             }
@@ -99,10 +104,12 @@ ParticleContainer<NR, NI, NA>::Where (const ParticleType&         p,
 
         if (!isects.empty())
         {
+            const Box& bx = ba[isects[0].first];
             pld.m_lev  = lev;
             pld.m_grid = isects[0].first;
-	    pld.m_tile = getTileIndex(iv, ba[pld.m_grid]);
+	    pld.m_tile = getTileIndex(iv, bx, pld.m_tilebox);
             pld.m_cell = iv;
+            pld.m_gridbox = bx;
             return true;
         }
     }
@@ -146,10 +153,13 @@ ParticleContainer<NR, NI, NA>::PeriodicWhere (ParticleType&               p,
                        p.m_rdata.pos[1] = p_prime.m_rdata.pos[1];,
                        p.m_rdata.pos[2] = p_prime.m_rdata.pos[2];);
 
+                const Box& bx = m_gdb->ParticleBoxArray(lev)[isects[0].first];
+
                 pld.m_lev  = lev;
                 pld.m_grid = isects[0].first;
-		pld.m_tile = getTileIndex(iv, m_gdb->ParticleBoxArray(lev)[pld.m_grid]);
+		pld.m_tile = getTileIndex(iv, bx, pld.m_tilebox);
                 pld.m_cell = iv;
+                pld.m_gridbox = bx;
 
                 return true;
             }
@@ -175,10 +185,12 @@ ParticleContainer<NR, NI, NA>::RestrictedWhere (const ParticleType&         p,
 
     if (!isects.empty())
     {
+        const Box& bx = m_gdb->ParticleBoxArray(lev)[isects[0].first];
         pld.m_lev  = lev;
         pld.m_grid = isects[0].first;
         pld.m_cell = iv;	
-	pld.m_tile = getTileIndex(iv, m_gdb->ParticleBoxArray(lev)[pld.m_grid]);
+	pld.m_tile = getTileIndex(iv, bx, pld.m_tilebox);
+        pld.m_gridbox = bx;
 
         return true;
     }
@@ -203,10 +215,12 @@ ParticleContainer<NR, NI, NA>::SingleLevelWhere (const ParticleType&         p,
 
     if (!isects.empty())
     {
+        const Box& bx = m_gdb->ParticleBoxArray(level)[isects[0].first];
         pld.m_lev  = level;
         pld.m_grid = isects[0].first;
         pld.m_cell = iv;	
-	pld.m_tile = getTileIndex(iv, m_gdb->ParticleBoxArray(level)[pld.m_grid]);
+	pld.m_tile = getTileIndex(iv, bx, pld.m_tilebox);
+        pld.m_gridbox = bx;
 
         return true;
     }
@@ -215,10 +229,12 @@ ParticleContainer<NR, NI, NA>::SingleLevelWhere (const ParticleType&         p,
 
     if (!isects.empty())
     {
+        const Box& bx = m_gdb->ParticleBoxArray(level)[isects[0].first];
         pld.m_lev  = level;
         pld.m_grid = isects[0].first;
         pld.m_cell = iv;	
-	pld.m_tile = getTileIndex(iv, m_gdb->ParticleBoxArray(level)[pld.m_grid]);
+	pld.m_tile = getTileIndex(iv, bx, pld.m_tilebox);
+        pld.m_gridbox = bx;
 
         return true;
     }
