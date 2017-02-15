@@ -1495,19 +1495,17 @@ ParticleContainer<NR, NI, NA>::RedistributeMPI (std::map<int, AoS>& not_ours,
 	  ParticleType* AoS_ptr = (ParticleType*) (recvdata + Idx);
 	  Real* SoA_ptr = (Real*) (AoS_ptr + pbox.size());
 	  for (auto& p : pbox) {
-	    BL_ASSERT(AoS_ptr != 0);
-	    BL_ASSERT(SoA_ptr != 0);
-
 	    p = *AoS_ptr++;
 	    locateParticle(p, pld, lev_min, finest_level, nGrow);
 	    
 	    m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
 
+            auto& arrs = m_arraydata[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)];
 	    for (int j = 0; j < NA; j++) {
 	      if (communicate_comp[j]) 
-		m_arraydata[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)][j].push_back(*SoA_ptr++);
+                  arrs[j].push_back(*SoA_ptr++);
 	      else
-		m_arraydata[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)][j].push_back(0.0);
+                  arrs[j].push_back(0.0);
 	    }
 	  }
 	}
