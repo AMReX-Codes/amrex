@@ -6,8 +6,8 @@ DIM          = 2
 
 COMP         = g++
 
-DEBUG        = FALSE
 DEBUG        = TRUE
+DEBUG        = FALSE
 
 USE_MPI      = TRUE
 USE_MPI      = FALSE
@@ -24,9 +24,9 @@ TINY_PROFILE  = TRUE
 AMREX_HOME = ../../../..
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
-#_progs  := stencilTest
+_progs  := stencilTest
 #_progs  := stencilTestMSD
-_progs  := dirichletTest
+#_progs  := dirichletTest
 
 include ./Make.package
 include $(AMREX_HOME)/Src/Base/Make.package

@@ -57,7 +57,7 @@ contains
        ! Is there a way to avoid this "if"?  Not sure
        sh(:) = 0
        if (y(1)<0 .or. y(2)<0) then
-          sh(c(2)) = -s(2) ! Slide stencil down to avoid extraploting, push up eb, shift down base later
+          sh(c(2)) = -s(2) ! Slide stencil down to avoid extrapolating, push up eb, shift down base later
           b(2) = b(2) + 1
           y(:) = b(2) + (x(:) - b(1))*ABS(n(c(2))/n(c(1)))
        endif

@@ -211,7 +211,7 @@ applyStencilAllFortran(EBCellFAB                       & a_dst,
 		       const BaseFab<int>              & a_regIrregCovered,
 		       const std::vector<IrregNode>    & a_nodes,
 		       const Box                       & a_domain,
-		       Real*                             a_dx)
+		       const Real                      & a_dx)
 {
   BoxArray ba(a_domain);
   DistributionMapping dm(ba);
@@ -232,8 +232,6 @@ applyStencilAllFortran(EBCellFAB                       & a_dst,
   for (MFIter mfi(srcMF,tilesize); mfi.isValid(); ++mfi)
   {
     const Box& tbx = mfi.tilebox();
-
-    const Box& ovlp = tbx & srcMF.boxArray()[mfi.index()];
 
     // Find all partial faces in this tile
     has_irreg[mfi.tileIndex()] = false;
@@ -297,13 +295,13 @@ applyStencilAllFortran(EBCellFAB                       & a_dst,
                  D_DECL(BL_TO_FORTRAN_N(fd[0],0),
                         BL_TO_FORTRAN_N(fd[1],0),
                         BL_TO_FORTRAN_N(fd[2],0)),
-                 tbx.loVect(), tbx.hiVect(), &(a_dx[0]));
+                 tbx.loVect(), tbx.hiVect(), &a_dx);
     }
     else
     {
       lapl_MSD(BL_TO_FORTRAN_N(a_dst,0), 
                BL_TO_FORTRAN_N(a_src,0),
-               tbx.loVect(), tbx.hiVect(), &(a_dx[0]));
+               tbx.loVect(), tbx.hiVect(), &a_dx);
     }
   }
 }
@@ -331,12 +329,8 @@ int testStuff()
 
   Box domain(ivlo, ivhi);
 
-  std::vector<Real> dx(SpaceDim);
-
-  for (int idir=0; idir<SpaceDim; ++idir)
-  {
-    dx[idir] = domlen/ncellsvec[idir];
-  }
+  Real dx;
+  dx = domlen/ncellsvec[0];
   Array<Real> probLo(SpaceDim,0);
 
   BaseFab<int> regIrregCovered;
@@ -349,14 +343,14 @@ int testStuff()
 
   amrex::Print() << "Define geometry\n";
   BL_PROFILE_VAR("define_geometry",dg);
-  defineGeometry(regIrregCovered, nodes, radius, center, domain, dx[0]); 
+  defineGeometry(regIrregCovered, nodes, radius, center, domain, dx); 
   BL_PROFILE_VAR_STOP(dg);
   
   EBCellFAB src(grow(domain, 1), 1); //for a ghost cell
   BL_PROFILE_VAR("init_data",init);
   init_phi(BL_TO_FORTRAN_N(src,0),
            src.box().loVect(), src.box().hiVect(),
-           &(probLo[0]), &(dx[0]));
+           &(probLo[0]), &dx);
   BL_PROFILE_VAR_STOP(init);
 
   EBCellFAB dst(domain, 1);
@@ -364,37 +358,34 @@ int testStuff()
 
   amrex::Print() << "Getting stencils\n";
   BL_PROFILE_VAR("getting_stencils",gs);
-  getStencils(stencils, regIrregCovered, nodes, domain, dx[0]);
+  getStencils(stencils, regIrregCovered, nodes, domain, dx);
   BL_PROFILE_VAR_STOP(gs);
 
-#if 0
   amrex::Print() << "Pointwise apply everywhere\n";
   BL_PROFILE_VAR("pointwise_apply_everywhere",pae);
-  TestbedUtil::applyStencilPointwise(dst, src, stencils, regIrregCovered, nodes, domain, dx[0]);
+  TestbedUtil::applyStencilPointwise(dst, src, stencils, regIrregCovered, nodes, domain, dx);
   BL_PROFILE_VAR_STOP(pae);
 
   amrex::Print() << "Fortran + irreg pointwise\n";
   BL_PROFILE_VAR("fortran_plus_irreg_pointwise_apply",fpip);
-  TestbedUtil::applyStencilFortranPlusPointwise(dst, src, stencils, regIrregCovered, nodes, domain, dx[0]);
+  TestbedUtil::applyStencilFortranPlusPointwise(dst, src, stencils, regIrregCovered, nodes, domain, dx);
   BL_PROFILE_VAR_STOP(fpip);
 
   amrex::Print() << "Aggsten everywhere\n";
   BL_PROFILE_VAR("aggsten_everywhere",ae);
-  TestbedUtil::applyStencilAllAggSten(dst, src, stencils, regIrregCovered, nodes, domain, dx[0]);
+  TestbedUtil::applyStencilAllAggSten(dst, src, stencils, regIrregCovered, nodes, domain, dx);
   BL_PROFILE_VAR_STOP(ae);
-#endif
 
   amrex::Print() << "Fortran + irreg aggsten\n";
   BL_PROFILE_VAR("fortran_plus_aggsten_at_irreg",fpia);
-  TestbedUtil::applyStencilFortranPlusAggSten(dst, src, stencils, regIrregCovered, nodes, domain, dx[0]);
+  TestbedUtil::applyStencilFortranPlusAggSten(dst, src, stencils, regIrregCovered, nodes, domain, dx);
   BL_PROFILE_VAR_STOP(fpia);
 
-#if 0
   amrex::Print() << "Fortran everywhere\n";
   BL_PROFILE_VAR("fortran_everywhere",fe);
-  applyStencilAllFortran(dst, src, stencils, regIrregCovered, nodes, domain, &(dx[0]));
+  applyStencilAllFortran(dst, src, stencils, regIrregCovered, nodes, domain, dx);
   BL_PROFILE_VAR_STOP(fe);
-#endif
+
   return eekflag;
 }
 

@@ -12,12 +12,14 @@ contains
   subroutine lapleb_MSD(&
        lph,lph_l1,lph_l2,lph_h1,lph_h2, &
        phi,phi_l1,phi_l2,phi_h1,phi_h2, &
+       cd ,cd_l1, cd_l2, cd_h1, cd_h2, &
        fd0,fd0_l1,fd0_l2,fd0_h1,fd0_h2, &
        fd1,fd1_l1,fd1_l2,fd1_h1,fd1_h2, &
        lo, hi, dx) bind(C,name="lapleb_MSD")
 
     integer, intent(in) :: lph_l1,lph_l2,lph_h1,lph_h2
     integer, intent(in) :: phi_l1,phi_l2,phi_h1,phi_h2
+    integer, intent(in) ::  cd_l1, cd_l2, cd_h1, cd_h2
     integer, intent(in) :: fd0_l1,fd0_l2,fd0_h1,fd0_h2
     integer, intent(in) :: fd1_l1,fd1_l2,fd1_h1,fd1_h2
 
@@ -25,6 +27,7 @@ contains
 
     double precision, intent(inout) :: lph(lph_l1:lph_h1,lph_l2:lph_h2)
     double precision, intent(in   ) :: phi(phi_l1:phi_h1,phi_l2:phi_h2)
+    double precision, intent(in   ) ::  cd( cd_l1:cd_h1 , cd_l2:cd_h2, 5)
     double precision, intent(in   ) :: fd0(fd0_l1:fd0_h1,fd0_l2:fd0_h2,3)
     double precision, intent(in   ) :: fd1(fd1_l1:fd1_h1,fd1_l2:fd1_h2,3)
     double precision, intent(in   ) :: dx
@@ -64,6 +67,48 @@ contains
 
        enddo
     enddo
+
+    do j=lo(2),hi(2)
+       do i=lo(1),hi(1)
+          n(1) = cd(i,j,2)
+          n(2) = cd(i,j,3)
+
+          if (ABS(n(1)).ne.0.d0 .and. ABS(n(2)).ne.0.d0) then
+
+             c1 = 1 + INT( MIN(1.d0, ABS(n(2)/n(1)) ) ) ! Either 1 or 2 only
+             c2 = 3 - c1 ! Either 1 or 2 only
+
+             s1 = SIGN(1.d0,n(c1))
+             s2 = SIGN(1.d0,n(c2))
+
+             xbc = cd(i,j,3+c1) * s1
+             ybc = cd(i,j,3+c2) * s2
+             vbc = cd(i,j,1)
+             
+             do M=1,2
+                iv(c1) = M * s1
+                do L=1,3
+                   iv(c2) = (L - 1)*s2
+                   u(L) = phi(iv(1)+i,iv(2)+j)
+                enddo
+                x = M
+                y = ybc + (x - xbc)*ABS(cd(i,j,1+c2)/cd(i,j,1+c1))
+
+                v(M) =   0.5d0 * (y-1.d0) * (y-2.d0) * u(1) &
+                     -               y    * (y-2.d0) * u(2) &
+                     +      0.5d0 *  y    * (y-1.d0) * u(3)
+
+                d(M) = SQRT( (x-xbc)**2 + (y-ybc)**2)
+             enddo
+
+             dVdn = - vbc  * (d(2)+d(1))/(d(2)*d(1)) &
+                  +   v(1) * d(2)/(d(1)*(d(2)-d(1))) &
+                  -   v(2) * d(1)/(d(2)*(d(2)-d(1)))
+          endif
+
+       enddo
+    enddo
+
   end subroutine lapleb_MSD
 
   subroutine lapl_MSD(&

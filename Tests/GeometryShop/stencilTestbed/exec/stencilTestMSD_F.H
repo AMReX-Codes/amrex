@@ -8,6 +8,7 @@ extern "C"
 {
     void lapleb_MSD(Real* lphi,      ARLIM_P(lphlo), ARLIM_P(lphhi),
 		    const Real* phi, ARLIM_P(philo), ARLIM_P(phihi),
+		    const Real*  cd, ARLIM_P(cdlo),  ARLIM_P(cdhi),
 		    const Real* fd0, ARLIM_P(f0lo),  ARLIM_P(f0hi),
 #if BL_SPACEDIM>1
 		    const Real* fd1, ARLIM_P(f1lo),  ARLIM_P(f1hi),
