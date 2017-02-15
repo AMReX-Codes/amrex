@@ -1342,6 +1342,11 @@ ParticleContainer<NR, NI, NA>::RedistributeMPI (std::map<int, AoS>& not_ours,
 {
     BL_PROFILE("ParticleContainer<NR, NI, NA>::RedistributeMPI()");
 #if BL_USE_MPI
+
+    if (! std::is_trivially_copyable(ParticleType)) {
+        amrex::Abort("Particle is not trivially copyable");
+    }
+
     const int MyProc = ParallelDescriptor::MyProc();
     const int NProcs = ParallelDescriptor::NProcs();
     //
@@ -1404,15 +1409,6 @@ ParticleContainer<NR, NI, NA>::RedistributeMPI (std::map<int, AoS>& not_ours,
     Array<int>().swap(Snds);
     Array<int>().swap(Rcvs);
 
-    //
-    // We'll store the particles we're to receive in a map indexed by proc # of receiver.
-    //
-    std::map<int, AoS> nparticles;
-
-    for (const auto& kv : RcvCnts)
-      {
-        nparticles[kv.first].resize(kv.second);
-      }
     Array<int>         owner(RcvCnts.size());
     Array<int>         index(RcvCnts.size());
     Array<MPI_Status>  stats(RcvCnts.size());
@@ -1489,13 +1485,13 @@ ParticleContainer<NR, NI, NA>::RedistributeMPI (std::map<int, AoS>& not_ours,
 	for (int k = 0; k < completed; k++) {
 	  const int  Who  = owner[index[k]];
 	  const int  Idx  = rOffset[Who] * chunk_size;
-	  AoS&      pbox = nparticles[Who];
-	  BL_ASSERT(int(pbox.size()) == RcvCnts[Who]);
+          const int npart = RcvCnts[Who];
 
 	  ParticleType* AoS_ptr = (ParticleType*) (recvdata + Idx);
-	  Real* SoA_ptr = (Real*) (AoS_ptr + pbox.size());
-	  for (auto& p : pbox) {
-	    p = *AoS_ptr++;
+	  Real* SoA_ptr = (Real*) (AoS_ptr + npart);
+          for (int i = 0; i < npart; ++i)
+          {
+            auto p = *AoS_ptr++;
 	    locateParticle(p, pld, lev_min, finest_level, nGrow);
 	    
 	    m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
