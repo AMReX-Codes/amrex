@@ -6,6 +6,25 @@ template <int NR, int NI, int NA>
 IntVect ParticleContainer<NR, NI, NA>::tile_size   { D_DECL(1024000,8,8) };
 
 template <int NR, int NI, int NA>
+void
+ParticleContainer<NR, NI, NA> :: Initialize ()
+{
+    static bool initialized = false;
+    if (!initialized) {
+        ParmParse pp("particles");
+        pp.query("do_tiling", do_tiling);
+        Array<int> tilesize(BL_SPACEDIM);
+        if (pp.queryarr("tile_size", tilesize, 0, BL_SPACEDIM)) {
+            for (int i=0; i<BL_SPACEDIM; ++i) tile_size[i] = tilesize[i];
+        }
+        if (! std::is_pod<ParticleType>::value) {
+            amrex::Abort("Particle is not POD");
+        }
+        initialized = true;
+    }
+}
+
+template <int NR, int NI, int NA>
 IntVect
 ParticleContainer<NR, NI, NA>::Index (const ParticleType& p, int lev) const
 {
