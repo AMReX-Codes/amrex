@@ -1337,8 +1337,8 @@ ParticleContainer<NR, NI, NA>::Redistribute (bool where_already_called, int lev_
 template <int NR, int NI, int NA>
 void
 ParticleContainer<NR, NI, NA>::RedistributeMPI (std::map<int, AoS>& not_ours,
-						   std::map<int, Array<Array<Real> > >& comm_soa_data,
-						   int lev_min, int finest_level, int nGrow)
+                                                std::map<int, Array<Array<Real> > >& comm_soa_data,
+                                                int lev_min, int finest_level, int nGrow)
 {
     BL_PROFILE("ParticleContainer<NR, NI, NA>::RedistributeMPI()");
 #if BL_USE_MPI
@@ -1423,8 +1423,9 @@ ParticleContainer<NR, NI, NA>::RedistributeMPI (std::map<int, AoS>& not_ours,
       const int SeqNum        = ParallelDescriptor::SeqNum();
 
       int num_soa_comps = 0;
-      for (int i = 0; i < NA; i++)
-	num_soa_comps += communicate_comp[i];
+      for (int i = 0; i < NA; i++) {
+          if (communicate_comp[i]) ++num_soa_comps;
+      }
 
       const int chunk_size = sizeof(ParticleType) + num_soa_comps*sizeof(Real);
       
