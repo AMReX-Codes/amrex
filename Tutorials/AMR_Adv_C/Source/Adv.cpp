@@ -166,7 +166,7 @@ Adv::post_timestep (int iteration)
 	  {
             int ngrow = (level == 0) ? 0 : iteration;
 	    
-	    TracerPC->Redistribute(level, ngrow);
+	    TracerPC->Redistribute(false, level, ngrow);
 	  }
       }
 #endif
@@ -176,7 +176,7 @@ void
 Adv::post_regrid (int lbase, int new_finest) {
 #ifdef PARTICLES
   if (TracerPC && level == lbase) {
-    TracerPC->Redistribute(lbase);
+      TracerPC->Redistribute(false, lbase);
   }
 #endif
 }
