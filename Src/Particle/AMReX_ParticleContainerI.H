@@ -1257,7 +1257,7 @@ ParticleContainer<NR, NI, NA>::Redistribute (bool where_already_called, int lev_
                   auto new_size = old_size + superparticle_size;
                   particles_to_send.resize(new_size);
                   std::memcpy(&particles_to_send[old_size], &p, particle_size);
-                  char* dst = &particles_to_send[old_size+particle_size];
+                  char* dst = &particles_to_send[old_size] + particle_size;
                   for (int comp = 0; comp < NA; comp++) {
                       if (communicate_comp[comp]) {
                           std::memcpy(dst, &arrs[comp][pindex], sizeof(Real));
