@@ -13,6 +13,7 @@
 #include <limits>
 #include <utility>
 #include <tuple>
+#include <type_traits>
 
 #include <AMReX_ParmParse.H>
 #include <AMReX_ParGDB.H>

@@ -1343,9 +1343,11 @@ ParticleContainer<NR, NI, NA>::RedistributeMPI (std::map<int, AoS>& not_ours,
     BL_PROFILE("ParticleContainer<NR, NI, NA>::RedistributeMPI()");
 #if BL_USE_MPI
 
-    if (! std::is_trivially_copyable(ParticleType)) {
+#if !defined(__GNUC__) || (__GNUC__ > 4)
+    if (! std::is_trivially_copyable<ParticleType>::value) {
         amrex::Abort("Particle is not trivially copyable");
     }
+#endif
 
     const int MyProc = ParallelDescriptor::MyProc();
     const int NProcs = ParallelDescriptor::NProcs();
