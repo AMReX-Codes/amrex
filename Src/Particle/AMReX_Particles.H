@@ -440,7 +440,7 @@ public:
 
     IntVect Index (const Particle<NR, NI>& p, int lev) const;
 
-    int getTileIndex(const IntVect& iv, const Box& box, Box& tbx) const;
+    static int getTileIndex(const IntVect& iv, const Box& box, Box& tbx);
 
     //
     // Checks a particle's location on levels lev_min and higher.
