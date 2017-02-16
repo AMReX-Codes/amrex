@@ -51,6 +51,11 @@ public:
                           std::istream& is,
 			  bool          bReadSpecial = false) override;
 
+    virtual void checkPoint (const std::string& dir,
+			     std::ostream&      os,
+			     amrex::VisMF::How  how = amrex::VisMF::NFiles,
+			     bool               dump_old = true);
+
     /*A string written as the first item in writePlotFile() at
                level zero. It is so we can distinguish between different
                types of plot files. For Adv it has the form: Adv-Vnnn
@@ -134,7 +139,7 @@ public:
     //
     //Do work after a restart().
     //
-    virtual void post_restart () override { ; }
+    virtual void post_restart () override;
     //
     //Do work after init().
     //
