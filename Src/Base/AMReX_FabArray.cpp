@@ -1302,6 +1302,10 @@ FabArrayBase::buildTileArray (const IntVect& tileSize, TileArray& ta) const
 	    const int i = *it;         // local index 
 	    const int K = indexArray[i]; // global index
 	    const Box& bx = boxarray.getCellCenteredBox(K);
+
+            //
+            //  This must be consistent with ParticleContainer::getTileIndex function!!!
+            //
 	    
 	    IntVect nt_in_fab, tsize, nleft;
 	    int ntiles = 1;
