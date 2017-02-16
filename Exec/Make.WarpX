@@ -28,6 +28,8 @@ include $(AMREX_HOME)/Src/AmrCore/Make.package
 
 include $(PICSAR_HOME)/src/Make.package
 
+DEFINES += -DPICSAR_NO_ASSUMED_ALIGNMENT
+
 ifeq ($(USE_OPENBC_POISSON),TRUE)
   include $(OPENBC_HOME)/Make.package
   DEFINES += -DFFT_FFTW -DMPIPARALLEL -DUSE_OPENBC_POISSON
@@ -48,12 +50,14 @@ else
   MY_LINK_LIBRARIES = $(LDFLAGS) $(libraries) -lgfortran
 endif
 
-pyinstall: libwarpx.a
+pyinstallswig: libwarpx.a warpxC.i classwrapper.i
 	@echo Making and installing python wrapper ...
-	LDFLAGS="$(MY_LINK_LIBRARIES)" CC=$(CXX) CXXFLAGS="$(CXXFLAGS) $(DEFINES)" python setup.py install
+	# touch warpxC.i to force the rebuilding of the swig interface
+	touch warpxC.i
+	LDFLAGS="$(MY_LINK_LIBRARIES)" CC=$(CXX) CXXFLAGS="$(CXXFLAGS) $(DEFINES)" python setup.py install --force
 	@echo SUCCESS
 
-pybuild: libwarpx.a
+pybuild: libwarpx.a warpxC.i classwrapper.i
 	@echo Making python wrapper ...
 	LDFLAGS="$(MY_LINK_LIBRARIES)" CC=$(CXX) CXXFLAGS="$(CXXFLAGS) $(DEFINES)" python setup.py build
 	@echo SUCCESS

@@ -82,36 +82,38 @@ WarpXParticleContainer::AddNParticles (int n, const Real* x, const Real* y, cons
 	p.m_cpu = ParallelDescriptor::MyProc();
 	p.m_lev = lev;
 	p.m_grid = gid; 
-	
+
+#if (BL_SPACEDIM == 3)	
 	p.m_pos[0] = x[i];
 	p.m_pos[1] = y[i];
 	p.m_pos[2] = z[i];
+#else
+	p.m_pos[0] = x[i];
+	p.m_pos[1] = z[i];
+#endif
 	
 	p.m_data[PIdx::w] = weight[i];
 	
-	for (int i = 1; i < PIdx::nattribs; i++) {
-	    p.m_data[i] = 0;
+	for (int j = 1; j < PIdx::nattribs; ++j) {
+	    p.m_data[j] = 0;
 	}
 	
 	p.m_data[PIdx::ux] = vx[i];
 	p.m_data[PIdx::uy] = vy[i];
 	p.m_data[PIdx::uz] = vz[i];
 	
-	if (!ParticleBase::Where(p,m_gdb)) // this will update m_lev, m_grid, and m_cell
+	if (ParticleBase::Where(p,m_gdb)) // this will update m_lev, m_grid, and m_cell
 	{
-	    amrex::Abort("Invalid particle in ParticleContainer::AddNParticles()");
+	    gid = p.m_grid;
+	    m_particles[p.m_lev][p.m_grid].push_back(p);
 	}
-
-	gid = p.m_grid;
-
-	m_particles[p.m_lev][p.m_grid].push_back(p);
     }
 
     Redistribute(true);
 
     auto npart_after = TotalNumberOfParticles();  // xxxxx move this into if (verbose > xxx)
     if (ParallelDescriptor::IOProcessor()) {
-	std::cout << "Total number of particles injected: " << npart_after - npart_before << std::endl;
+	std::cout << "Total number of particles added: " << npart_after - npart_before << std::endl;
     }
 }
 

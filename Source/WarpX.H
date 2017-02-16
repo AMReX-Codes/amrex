@@ -25,6 +25,7 @@ public:
     ~WarpX ();
 
     int Verbose () const { return verbose; }
+    int RegridInt () const { return regrid_int; }
 
     void InitData ();
 
@@ -44,7 +45,6 @@ public:
     static long charge_deposition_algo;
     static long field_gathering_algo;
     static long particle_pusher_algo;
-    static long laser_pusher_algo;
 
     // Interpolation order
     static long nox;
@@ -68,9 +68,17 @@ private:
 
     void MakeNewLevel (int lev, const amrex::BoxArray& new_grids, const amrex::DistributionMapping& new_dmap);
 
+    void RegridBaseLevel ();
+    bool LoadBalanceBaseLevel ();
+    void splitBoxes (BoxArray& ba, Array<long>& newcost, const Array<long>& cost_in, int heavy_grid_size);
+
+    Real getEfficiency(const DistributionMapping& dm, const Array<long>& cost);
+    DistributionMapping getCostCountDM (const Array<long>& cost, const BoxArray& ba);
+
     void InitFromScratch ();
     void InitFromCheckpoint ();
     void InitLevelData (int lev);
+    void PostRestart ();
 
     void InitOpenbc ();
 
@@ -87,6 +95,8 @@ private:
 				  const amrex::Array<std::unique_ptr<amrex::MultiFab> >& data);
     static void Copy (amrex::MultiFab& dstmf, int dcomp, int ncomp, const amrex::MultiFab& srcmf, int scomp);
 
+    bool okToRegrid(int step);
+
     amrex::Array<int> istep;      // which step?
     amrex::Array<int> nsubsteps;  // how many substeps on each level?
 
@@ -102,14 +112,14 @@ private:
     amrex::Array<amrex::Array< std::unique_ptr<amrex::MultiFab> > > Bfield;
 
     // Moving window parameters
-    int do_moving_window = 0;
-    int moving_window_dir = 0;
-    amrex::Real moving_window_x;
-    amrex::Real moving_window_v;
+    int do_moving_window  = 0;
+    int moving_window_dir = -1;
+    amrex::Real moving_window_x  = std::numeric_limits<Real>::max();
+    amrex::Real moving_window_v  = std::numeric_limits<Real>::max();
 
     // Plasma injection parameters
-    int do_plasma_injection = 0;
-    int num_injected_species;
+    int do_plasma_injection  = 0;
+    int num_injected_species = -1;
     amrex::Array<int> injected_plasma_ppc;
     amrex::Array<int> injected_plasma_species;
     amrex::Array<amrex::Real> injected_plasma_density;
@@ -119,6 +129,8 @@ private:
 
     int max_step   = std::numeric_limits<int>::max();
     amrex::Real stop_time = std::numeric_limits<amrex::Real>::max();
+
+    int regrid_int = -1;
 
     amrex::Real cfl = 0.7;
 

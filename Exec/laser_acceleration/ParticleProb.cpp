@@ -6,26 +6,23 @@
 
 #include <cmath>
 
-#include <AMReX_BLProfiler.H>
+#include <BLProfiler.H>
 
 #include <ParticleContainer.H>
 #include <WarpXConst.H>
 
-using namespace amrex;
-
 void
 PhysicalParticleContainer::InitData()
 {
-    BL_PROFILE("PPC::InitData()");
+    BL_PROFILE("SPC::InitData()");
 
+    // species_id 0 : the electrons of the plasma
+    // Note: the ions of the plasma are implicitly motionless, and so are not part of the simulation
     if (species_id == 0) {
 	charge = -PhysConst::q_e;
 	mass = PhysConst::m_e;
-    } else if (species_id == 1) {
-	charge = PhysConst::q_e;
-	mass = PhysConst::m_e;
     } else {
-	amrex::Abort("PhysicalParticleContainer::InitData(): species_id must be 0 or 1");
+	BoxLib::Abort("PhysicalParticleContainer::InitData(): species_id must be 0 or 1");
     }
 
     m_particles.resize(GDB().finestLevel()+1);
@@ -35,48 +32,44 @@ PhysicalParticleContainer::InitData()
     const Geometry& geom = GDB().Geom(lev);
     const Real* dx  = geom.CellSize();
 
-    Real weight, ux, uy, uz;
+    Real weight, gamma, uz;
     Real particle_xmin, particle_xmax, particle_ymin, particle_ymax, particle_zmin, particle_zmax;
     int n_part_per_cell;
     {
-      ParmParse pp("langmuirwave");
+      ParmParse pp("lwfa");
+
+      // Calculate the particle weight
       n_part_per_cell = 1;
       pp.query("num_particles_per_cell", n_part_per_cell);
-      weight = 1.e25;
-      pp.query("n_e", weight);
+      weight = 1.e22;
+      if (species_id == 0) {
+	pp.query("plasma_density", weight);
+      }
       #if BL_SPACEDIM==3
       weight *= dx[0]*dx[1]*dx[2]/n_part_per_cell;
       #elif BL_SPACEDIM==2
       weight *= dx[0]*dx[1]/n_part_per_cell;
       #endif
 
+      // Calculate the limits between which the particles will be initialized
       particle_xmin = particle_ymin = particle_zmin = -2.e-5;
       particle_xmax = particle_ymax = particle_zmax =  2.e-5;
-      pp.query("particle_xmin", particle_xmin);
-      pp.query("particle_xmax", particle_xmax);
-      pp.query("particle_ymin", particle_ymin);
-      pp.query("particle_ymax", particle_ymax);
-      pp.query("particle_zmin", particle_zmin);
-      pp.query("particle_zmax", particle_zmax);   
- 
-      ux = 0.;
-      uy = 0.;
-      uz = 0.;
-      if (species_id == 0) { // electrons
-	  pp.query("ux", ux);
-	  pp.query("uy", uy);
-	  pp.query("uz", uz);
+      if (species_id == 0) {
+	pp.query("plasma_xmin", particle_xmin);
+	pp.query("plasma_xmax", particle_xmax);
+	pp.query("plasma_ymin", particle_ymin);
+	pp.query("plasma_ymax", particle_ymax);
+	pp.query("plasma_zmin", particle_zmin);
+	pp.query("plasma_zmax", particle_zmax);
       }
-
-      ux *= PhysConst::c;
-      uy *= PhysConst::c;      
+      uz = 0.;
       uz *= PhysConst::c;
     }
 
     const BoxArray& ba = GDB().ParticleBoxArray(lev);
     const DistributionMapping& dm = GDB().ParticleDistributionMap(lev);
 
-    MultiFab dummy_mf(ba, dm, 1, 0, MFInfo().SetAlloc(false));
+    MultiFab dummy_mf(ba, 1, 0, dm, Fab_noallocate);
 
     for (MFIter mfi(dummy_mf,false); mfi.isValid(); ++mfi)
     {
@@ -103,18 +96,18 @@ PhysicalParticleContainer::InitData()
 		Real x = grid_box.lo(0) + (i + particle_shift)*dx[0];
 		Real y = 0.0;
 		Real z = grid_box.lo(1) + (k + particle_shift)*dx[1];
-#endif   
+#endif
 
 		if (x >= particle_xmax || x < particle_xmin ||
 		    y >= particle_ymax || y < particle_ymin ||
 		    z >= particle_zmax || z < particle_zmin ) continue;
-	      
+
 		ParticleType p;
 
 		p.m_id  = ParticleBase::NextID();
 		p.m_cpu = ParallelDescriptor::MyProc();
 		p.m_lev = lev;
-		p.m_grid = gid; 
+		p.m_grid = gid;
 
 #if (BL_SPACEDIM == 3)
 		p.m_pos[0] = x;
@@ -124,26 +117,23 @@ PhysicalParticleContainer::InitData()
 		p.m_pos[0] = x;
 		p.m_pos[1] = z;
 #endif
-		
+
 		for (int i = 0; i < BL_SPACEDIM; i++) {
 		  BL_ASSERT(p.m_pos[i] < grid_box.hi(i));
 		}
-		
+
 		p.m_data[PIdx::w] = weight;
-	      
+
 		for (int i = 1; i < PIdx::nattribs; i++) {
 		  p.m_data[i] = 0;
 		}
-	      
-		p.m_data[PIdx::ux] = ux;
-		p.m_data[PIdx::uy] = uy;
 		p.m_data[PIdx::uz] = uz;
 
 		if (!ParticleBase::Where(p,m_gdb)) // this will set m_cell
 		{
-		    amrex::Abort("invalid particle");
+		    BoxLib::Abort("invalid particle");
 		}
-		
+
 		BL_ASSERT(p.m_lev >= 0 && p.m_lev <= GDB().finestLevel());
 		//
 		// Add it to the appropriate PBox at the appropriate level.
@@ -151,12 +141,12 @@ PhysicalParticleContainer::InitData()
 		m_particles[p.m_lev][p.m_grid].push_back(p);
 	      }
 	    }
-	  } 
+	  }
         }
     }
 
     //
-    // We still need to redistribute in order to define each particle's cell, grid and level, but this 
+    // We still need to redistribute in order to define each particle's cell, grid and level, but this
     //    shouldn't require any inter-node communication because the particles should already be in the right grid.
     //
     Redistribute(true);

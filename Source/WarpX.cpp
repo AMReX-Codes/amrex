@@ -1,5 +1,11 @@
 
+#include <algorithm>
+#include <cctype>
+#include <cmath>
+#include <numeric>
+
 #include <AMReX_ParmParse.H>
+
 #include <WarpX.H>
 #include <WarpXConst.H>
 
@@ -9,11 +15,12 @@ long WarpX::current_deposition_algo = 3;
 long WarpX::charge_deposition_algo = 0;
 long WarpX::field_gathering_algo = 1;
 long WarpX::particle_pusher_algo = 0;
-long WarpX::laser_pusher_algo = -111111111;  // not being used yet
 
 long WarpX::nox = 1;
 long WarpX::noy = 1;
 long WarpX::noz = 1;
+
+bool WarpX::use_laser         = false;
 
 #if (BL_SPACEDIM == 3)
 IntVect WarpX::Bx_nodal_flag(1,0,0);
@@ -26,9 +33,9 @@ IntVect WarpX::Bz_nodal_flag(0,1);  // z is the second dimension to 2D AMReX
 #endif
 
 #if (BL_SPACEDIM == 3)
-IntVect WarpX::Ex_nodal_flag(1,0,0);
-IntVect WarpX::Ey_nodal_flag(0,1,0);
-IntVect WarpX::Ez_nodal_flag(0,0,1);
+IntVect WarpX::Ex_nodal_flag(0,1,1);
+IntVect WarpX::Ey_nodal_flag(1,0,1);
+IntVect WarpX::Ez_nodal_flag(1,1,0);
 #elif (BL_SPACEDIM == 2)
 IntVect WarpX::Ex_nodal_flag(0,1);  // x is the first dimension to AMReX
 IntVect WarpX::Ey_nodal_flag(1,1);  // y is the missing dimension to 2D AMReX
@@ -36,16 +43,14 @@ IntVect WarpX::Ez_nodal_flag(1,0);  // z is the second dimension to 2D AMReX
 #endif
 
 #if (BL_SPACEDIM == 3)
-IntVect WarpX::jx_nodal_flag(1,0,0);
-IntVect WarpX::jy_nodal_flag(0,1,0);
-IntVect WarpX::jz_nodal_flag(0,0,1);
+IntVect WarpX::jx_nodal_flag(0,1,1);
+IntVect WarpX::jy_nodal_flag(1,0,1);
+IntVect WarpX::jz_nodal_flag(1,1,0);
 #elif (BL_SPACEDIM == 2)
 IntVect WarpX::jx_nodal_flag(0,1);  // x is the first dimension to AMReX
 IntVect WarpX::jy_nodal_flag(1,1);  // y is the missing dimension to 2D AMReX
 IntVect WarpX::jz_nodal_flag(1,0);  // z is the second dimension to 2D AMReX
 #endif
-
-bool WarpX::use_laser = false;
 
 WarpX* WarpX::m_instance = nullptr;
 
@@ -128,11 +133,33 @@ WarpX::ReadParameters ()
 
 	pp.query("cfl", cfl);
 	pp.query("verbose", verbose);
+	pp.query("regrid_int", regrid_int);
 
 	pp.query("do_moving_window", do_moving_window);
-	pp.query("moving_window_dir", moving_window_dir);
-	if (do_moving_window) {
-	  pp.get("moving_window_v", moving_window_v);
+	if (do_moving_window)
+	{
+	    std::string s;
+	    pp.get("moving_window_dir", s);
+	    if (s == "x" || s == "X") {
+		moving_window_dir = 0;
+	    }
+#if (BL_SPACEDIM == 3)
+	    else if (s == "y" || s == "Y") {
+		moving_window_dir = 1;
+	    }
+#endif
+	    else if (s == "z" || s == "Z") {
+		moving_window_dir = BL_SPACEDIM-1;
+	    }
+	    else {
+		const std::string msg = "Unknown moving_window_dir: "+s;
+		BoxLib::Abort(msg.c_str()); 
+	    }
+
+	    moving_window_x = geom[0].ProbLo(moving_window_dir);
+
+	    pp.get("moving_window_v", moving_window_v);
+	    moving_window_v *= PhysConst::c;
 	}
 
 	pp.query("do_plasma_injection", do_plasma_injection);
@@ -148,11 +175,6 @@ WarpX::ReadParameters ()
 	  pp.getarr("injected_plasma_density", injected_plasma_density,
 		    0, num_injected_species);
 	}
-
-	moving_window_x = geom[0].ProbLo(moving_window_dir);
-	moving_window_v = 0.0;
-	pp.query("moving_window_v", moving_window_v);
-	moving_window_v *= PhysConst::c;
 
 	pp.query("use_laser", use_laser);
     }
@@ -176,7 +198,6 @@ WarpX::ReadParameters ()
 	pp.query("charge_deposition", charge_deposition_algo);
 	pp.query("field_gathering", field_gathering_algo);
 	pp.query("particle_pusher", particle_pusher_algo);
-	pp.query("laser_pusher", laser_pusher_algo);
     }
 
 }

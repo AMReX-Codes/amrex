@@ -26,6 +26,9 @@ WarpX::Evolve (int numsteps)
 	    std::cout << "\nSTEP " << step+1 << " starts ..." << std::endl;
 	}
 
+        if (ParallelDescriptor::NProcs() > 1)
+           if (okToRegrid(step)) RegridBaseLevel();
+
 	ComputeDt();
 
 	// Advance level 0 by dt
@@ -50,10 +53,10 @@ WarpX::Evolve (int numsteps)
 	    mypc->Evolve(lev,
 			 *Efield[lev][0],*Efield[lev][1],*Efield[lev][2],
 			 *Bfield[lev][0],*Bfield[lev][1],*Bfield[lev][2],
-			 *current[lev][0],*current[lev][1],*current[lev][2],dt[lev]);
+			 *current[lev][0],*current[lev][1],*current[lev][2], cur_time, dt[lev]);
 
 	    mypc->Redistribute();  // Redistribute particles
-	    
+
 	    EvolveB(lev, 0.5*dt[lev]); // We now B^{n+1/2}
 
 	    // Fill B's ghost cells because of the next step of evolving E.
@@ -123,52 +126,23 @@ WarpX::EvolveB (int lev, Real dt)
     dtsdx[2] = dt / dx[1];
 #endif
 
-    long norder = 2;
-    long nstart = 0;
-    int l_nodal = false;
+    const int norder = 2;
 
-    long nguard = Efield[lev][0]->nGrow();
-    BL_ASSERT(nguard == Efield[lev][1]->nGrow());
-    BL_ASSERT(nguard == Efield[lev][2]->nGrow());
-    BL_ASSERT(nguard == Bfield[lev][0]->nGrow());
-    BL_ASSERT(nguard == Bfield[lev][1]->nGrow());
-    BL_ASSERT(nguard == Bfield[lev][2]->nGrow());
-
-#if (BL_SPACEDIM == 3)
-    long nxguard = nguard;
-    long nyguard = nguard;
-    long nzguard = nguard;
-#elif (BL_SPACEDIM == 2)
-    long nxguard = nguard;
-    long nyguard = 0;
-    long nzguard = nguard;
+#ifdef _OPENMP
+#pragma omp parallel
 #endif
-
-    for ( MFIter mfi(*Bfield[lev][0]); mfi.isValid(); ++mfi )
+    for ( MFIter mfi(*Efield[lev][0],true); mfi.isValid(); ++mfi )
     {
-	const Box& bx = amrex::enclosedCells(mfi.validbox());
-#if (BL_SPACEDIM == 3)
-	long nx = bx.length(0);
-	long ny = bx.length(1);
-	long nz = bx.length(2);
-#elif (BL_SPACEDIM == 2)
-	long nx = bx.length(0);
-	long ny = 0;
-	long nz = bx.length(1);
-#endif
-
-	warpx_push_bvec( (*Efield[lev][0])[mfi].dataPtr(),
-			 (*Efield[lev][1])[mfi].dataPtr(),
-			 (*Efield[lev][2])[mfi].dataPtr(),
-			 (*Bfield[lev][0])[mfi].dataPtr(),
-			 (*Bfield[lev][1])[mfi].dataPtr(),
-			 (*Bfield[lev][2])[mfi].dataPtr(),
-			 dtsdx, dtsdx+1, dtsdx+2,
-			 &nx, &ny, &nz,
-			 &norder, &norder, &norder,
-			 &nxguard, &nyguard, &nzguard,
-			 &nstart, &nstart, &nstart,
-			 &l_nodal );
+	const Box& tbx = mfi.tilebox();
+	WRPX_PXR_PUSH_BVEC(tbx.loVect(), tbx.hiVect(),
+			   BL_TO_FORTRAN_3D((*Efield[lev][0])[mfi]),
+			   BL_TO_FORTRAN_3D((*Efield[lev][1])[mfi]),
+			   BL_TO_FORTRAN_3D((*Efield[lev][2])[mfi]),
+			   BL_TO_FORTRAN_3D((*Bfield[lev][0])[mfi]),
+			   BL_TO_FORTRAN_3D((*Bfield[lev][1])[mfi]),
+			   BL_TO_FORTRAN_3D((*Bfield[lev][2])[mfi]),
+			   dtsdx, dtsdx+1, dtsdx+2,
+			   &norder);
     }
 }
 
@@ -192,58 +166,27 @@ WarpX::EvolveE (int lev, Real dt)
     dtsdx_c2[2] = (PhysConst::c*PhysConst::c) * dt / dx[1];
 #endif
 
-    long norder = 2;
-    long nstart = 0;
-    int l_nodal = false;
+    const int norder = 2;
 
-    long nguard = Efield[lev][0]->nGrow();
-    BL_ASSERT(nguard == Efield[lev][1]->nGrow());
-    BL_ASSERT(nguard == Efield[lev][2]->nGrow());
-    BL_ASSERT(nguard == Bfield[lev][0]->nGrow());
-    BL_ASSERT(nguard == Bfield[lev][1]->nGrow());
-    BL_ASSERT(nguard == Bfield[lev][2]->nGrow());
-    BL_ASSERT(nguard == current[lev][0]->nGrow());
-    BL_ASSERT(nguard == current[lev][1]->nGrow());
-    BL_ASSERT(nguard == current[lev][2]->nGrow());
-
-#if (BL_SPACEDIM == 3)
-    long nxguard = nguard;
-    long nyguard = nguard;
-    long nzguard = nguard;
-#elif (BL_SPACEDIM == 2)
-    long nxguard = nguard;
-    long nyguard = 0;
-    long nzguard = nguard;
+#ifdef _OPENMP
+#pragma omp parallel
 #endif
-
-    for ( MFIter mfi(*Efield[lev][0]); mfi.isValid(); ++mfi )
+    for ( MFIter mfi(*Efield[lev][0],true); mfi.isValid(); ++mfi )
     {
-	const Box & bx = amrex::enclosedCells(mfi.validbox());
-#if (BL_SPACEDIM == 3)
-	long nx = bx.length(0);
-	long ny = bx.length(1);
-	long nz = bx.length(2);
-#elif (BL_SPACEDIM == 2)
-	long nx = bx.length(0);
-	long ny = 0;
-	long nz = bx.length(1);
-#endif
-
-	warpx_push_evec( (*Efield[lev][0])[mfi].dataPtr(),
-			 (*Efield[lev][1])[mfi].dataPtr(),
-			 (*Efield[lev][2])[mfi].dataPtr(),
-			 (*Bfield[lev][0])[mfi].dataPtr(),
-			 (*Bfield[lev][1])[mfi].dataPtr(),
-			 (*Bfield[lev][2])[mfi].dataPtr(),
-			 (*current[lev][0])[mfi].dataPtr(),
-			 (*current[lev][1])[mfi].dataPtr(),
-			 (*current[lev][2])[mfi].dataPtr(),
-			 &mu_c2_dt, dtsdx_c2, dtsdx_c2+1, dtsdx_c2+2,
-			 &nx, &ny, &nz,
-			 &norder, &norder, &norder,
-			 &nxguard, &nyguard, &nzguard,
-			 &nstart, &nstart, &nstart,
-			 &l_nodal );
+	const Box& tbx = mfi.tilebox();
+	WRPX_PXR_PUSH_EVEC(tbx.loVect(), tbx.hiVect(),
+			   BL_TO_FORTRAN_3D((*Efield[lev][0])[mfi]),
+			   BL_TO_FORTRAN_3D((*Efield[lev][1])[mfi]),
+			   BL_TO_FORTRAN_3D((*Efield[lev][2])[mfi]),
+			   BL_TO_FORTRAN_3D((*Bfield[lev][0])[mfi]),
+			   BL_TO_FORTRAN_3D((*Bfield[lev][1])[mfi]),
+			   BL_TO_FORTRAN_3D((*Bfield[lev][2])[mfi]),
+			   BL_TO_FORTRAN_3D((*current[lev][0])[mfi]),
+			   BL_TO_FORTRAN_3D((*current[lev][1])[mfi]),
+			   BL_TO_FORTRAN_3D((*current[lev][2])[mfi]),
+			   &mu_c2_dt,
+			   dtsdx_c2, dtsdx_c2+1, dtsdx_c2+2,
+			   &norder);
     }
 }
 
@@ -277,7 +220,7 @@ void
 WarpX::InjectPlasma(int num_shift, int dir) {
 
   if(do_plasma_injection) {
-    
+
     // particleBox encloses the cells where we generate particles
     Box particleBox = geom[0].Domain();
     int domainLength = particleBox.length(dir);
@@ -289,7 +232,7 @@ WarpX::InjectPlasma(int num_shift, int dir) {
     const Real* dx  = geom[0].CellSize();
     WarpXParticleContainer* myspc = &(mypc->GetParticleContainer(0));
     const BoxArray& ba = myspc->ParticleBoxArray(0);
-    const DistributionMapping& dm = myspc->ParticleDistributionMap(0); 
+    const DistributionMapping& dm = myspc->ParticleDistributionMap(0);
     MultiFab dummy_mf(ba, dm, 1, 0, MFInfo().SetAlloc(false));
 
     // For each grid, loop only over the cells in the new region
@@ -326,7 +269,7 @@ WarpX::InjectPlasma(int num_shift, int dir) {
 		  Real x = intersectRealBox.lo(0) + (i + particle_shift)*dx[0];
 		  Real y = 0.0;
 		  Real z = intersectRealBox.lo(1) + (k + particle_shift)*dx[1];
-#endif   
+#endif
 
 		  int id  = ParticleBase::NextID();
 		  int cpu = ParallelDescriptor::MyProc();
@@ -363,21 +306,21 @@ WarpX::InjectPlasma(int num_shift, int dir) {
 void
 WarpX::MoveWindow ()
 {
-  
+
   if (do_moving_window == 0) return;
 
   // compute the number of cells to shift
   int dir = moving_window_dir;
   Real new_lo[BL_SPACEDIM];
-  Real new_hi[BL_SPACEDIM];    
+  Real new_hi[BL_SPACEDIM];
   const Real* current_lo = geom[0].ProbLo();
   const Real* current_hi = geom[0].ProbHi();
   const Real* dx = geom[0].CellSize();
   moving_window_x += moving_window_v * dt[0];
   int num_shift = (moving_window_x - current_lo[dir]) / dx[dir];
-  
+
   if (num_shift == 0) return;
-  
+
   // update the problem domain
   for (int i=0; i<BL_SPACEDIM; i++) {
     new_lo[i] = current_lo[i];
@@ -387,7 +330,7 @@ WarpX::MoveWindow ()
   new_hi[dir] = current_hi[dir] + num_shift * dx[dir];
   RealBox new_box(new_lo, new_hi);
   geom[0].ProbDomain(new_box);
-  
+
   // shift the mesh fields (Note - only on level 0 for now)
   shiftMF(*Bfield[0][0], geom[0], num_shift, dir, Bx_nodal_flag);
   shiftMF(*Bfield[0][1], geom[0], num_shift, dir, By_nodal_flag);

@@ -97,46 +97,20 @@ int main(int argc, char* argv[])
 	    dtsdx[2] = dt / dx[1];
 #endif
 
-	    long norder = 2;
-	    long nstart = 0;
-	    int l_nodal = false;
-	    long nguard = Efield[0]->nGrow();
+	    const int norder = 2;
 
-#if (BL_SPACEDIM == 3)
-	    long nxguard = nguard;
-	    long nyguard = nguard;
-	    long nzguard = nguard; 
-#elif (BL_SPACEDIM == 2)
-	    long nxguard = nguard;
-	    long nyguard = 0;
-	    long nzguard = nguard; 
-#endif
-
-	    for ( MFIter mfi(*Bfield[0]); mfi.isValid(); ++mfi )
+	    for ( MFIter mfi(*Bfield[0],true); mfi.isValid(); ++mfi )
 	    {
-		const Box& bx = amrex::enclosedCells(mfi.validbox());
-#if (BL_SPACEDIM == 3)
-		long nx = bx.length(0);
-		long ny = bx.length(1);
-		long nz = bx.length(2); 
-#elif (BL_SPACEDIM == 2)
-		long nx = bx.length(0);
-		long ny = 0;
-		long nz = bx.length(1); 
-#endif
-
-		warpx_push_bvec( (*Efield[0])[mfi].dataPtr(),
-				 (*Efield[1])[mfi].dataPtr(),
-				 (*Efield[2])[mfi].dataPtr(),
-				 (*Bfield[0])[mfi].dataPtr(),
-				 (*Bfield[1])[mfi].dataPtr(),
-				 (*Bfield[2])[mfi].dataPtr(), 
-				 dtsdx, dtsdx+1, dtsdx+2,
-				 &nx, &ny, &nz,
-				 &norder, &norder, &norder,
-				 &nxguard, &nyguard, &nzguard,
-				 &nstart, &nstart, &nstart,
-				 &l_nodal );
+		const Box& tbx = mfi.tilebox();
+		WRPX_PXR_PUSH_BVEC(tbx.loVect(), tbx.hiVect(),
+				   BL_TO_FORTRAN_3D((*Efield[0])[mfi]),
+				   BL_TO_FORTRAN_3D((*Efield[1])[mfi]),
+				   BL_TO_FORTRAN_3D((*Efield[2])[mfi]),
+				   BL_TO_FORTRAN_3D((*Bfield[0])[mfi]),
+				   BL_TO_FORTRAN_3D((*Bfield[1])[mfi]),
+				   BL_TO_FORTRAN_3D((*Bfield[2])[mfi]),
+				   dtsdx, dtsdx+1, dtsdx+2,
+				   &norder);
 	    }	    
 	}
 
@@ -154,49 +128,24 @@ int main(int argc, char* argv[])
 	    dtsdx_c2[2] = (PhysConst::c*PhysConst::c) * dt / dx[1];
 #endif
 
-	    long norder = 2;
-	    long nstart = 0;
-	    int l_nodal = false;	    
-	    long nguard = Efield[0]->nGrow();
+	    const int norder = 2;
 
-#if (BL_SPACEDIM == 3)
-	    long nxguard = nguard;
-	    long nyguard = nguard;
-	    long nzguard = nguard; 
-#elif (BL_SPACEDIM == 2)
-	    long nxguard = nguard;
-	    long nyguard = 0;
-	    long nzguard = nguard; 
-#endif
-
-	    for ( MFIter mfi(*Efield[0]); mfi.isValid(); ++mfi )
+	    for ( MFIter mfi(*Efield[0],true); mfi.isValid(); ++mfi )
 	    {
-		const Box & bx = amrex::enclosedCells(mfi.validbox());
-#if (BL_SPACEDIM == 3)
-		long nx = bx.length(0);
-		long ny = bx.length(1);
-		long nz = bx.length(2); 
-#elif (BL_SPACEDIM == 2)
-		long nx = bx.length(0);
-		long ny = 0;
-		long nz = bx.length(1); 
-#endif
-
-		warpx_push_evec( (*Efield[0])[mfi].dataPtr(),
-				 (*Efield[1])[mfi].dataPtr(),
-				 (*Efield[2])[mfi].dataPtr(),
-				 (*Bfield[0])[mfi].dataPtr(),
-				 (*Bfield[1])[mfi].dataPtr(),
-				 (*Bfield[2])[mfi].dataPtr(), 
-				 (*current[0])[mfi].dataPtr(),
-				 (*current[1])[mfi].dataPtr(),
-				 (*current[2])[mfi].dataPtr(),
-				 &mu_c2_dt, dtsdx_c2, dtsdx_c2+1, dtsdx_c2+2,
-				 &nx, &ny, &nz,
-				 &norder, &norder, &norder,
-				 &nxguard, &nyguard, &nzguard,
-				 &nstart, &nstart, &nstart,
-				 &l_nodal );
+		const Box& tbx = mfi.tilebox();
+		WRPX_PXR_PUSH_EVEC(tbx.loVect(), tbx.hiVect(),
+				   BL_TO_FORTRAN_3D((*Efield[0])[mfi]),
+				   BL_TO_FORTRAN_3D((*Efield[1])[mfi]),
+				   BL_TO_FORTRAN_3D((*Efield[2])[mfi]),
+				   BL_TO_FORTRAN_3D((*Bfield[0])[mfi]),
+				   BL_TO_FORTRAN_3D((*Bfield[1])[mfi]),
+				   BL_TO_FORTRAN_3D((*Bfield[2])[mfi]),
+				   BL_TO_FORTRAN_3D((*current[0])[mfi]),
+				   BL_TO_FORTRAN_3D((*current[1])[mfi]),
+				   BL_TO_FORTRAN_3D((*current[2])[mfi]),
+				   &mu_c2_dt,
+				   dtsdx_c2, dtsdx_c2+1, dtsdx_c2+2,
+				   &norder);
 	    }
 	}
 

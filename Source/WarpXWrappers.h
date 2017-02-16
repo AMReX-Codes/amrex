@@ -1,7 +1,9 @@
 #ifndef WARPX_WRAPPERS_H_
 #define WARPX_WRAPPERS_H_
 
+#ifdef BL_USE_MPI
 #include <mpi.h>
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -9,7 +11,9 @@ extern "C" {
 
   void boxlib_init (int argc, char* argv[]);
 
+#ifdef BL_USE_MPI
   void boxlib_init_with_inited_mpi (int argc, char* argv[], MPI_Comm mpicomm);
+#endif
 
   void boxlib_finalize (int finalize_mpi);
 

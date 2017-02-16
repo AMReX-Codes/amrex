@@ -1,10 +1,22 @@
 
 #include <AMReX_BLFort.H>
 
-extern "C" 
+#if (BL_SPACEDIM == 3)
+
+#define WRPX_PXR_PUSH_BVEC               warpx_pxr_push_em3d_bvec
+#define WRPX_PXR_PUSH_EVEC               warpx_pxr_push_em3d_evec
+
+#elif (BL_SPACEDIM == 2)
+
+#define WRPX_PXR_PUSH_BVEC               warpx_pxr_push_em2d_bvec
+#define WRPX_PXR_PUSH_EVEC               warpx_pxr_push_em2d_evec
+
+#endif
+
+extern "C"
 {
 	// Charge deposition
-	void warpx_charge_deposition(amrex::Real* rho, 
+	void warpx_charge_deposition(amrex::Real* rho,
                         const long* np,	const amrex::Real* xp, const amrex::Real* yp, const amrex::Real* zp,	const amrex::Real* w,
 			const amrex::Real* q, const amrex::Real* xmin, const amrex::Real* ymin, const amrex::Real* zmin,
 			const amrex::Real* dx, const amrex::Real* dy, const amrex::Real* dz,
@@ -20,7 +32,7 @@ extern "C"
 			const amrex::Real* uxp, const amrex::Real* uyp,const amrex::Real* uzp,
 			const amrex::Real* gip, const amrex::Real* w, const amrex::Real* q,
 			const amrex::Real* xmin, const amrex::Real* ymin, const amrex::Real* zmin,
-			const amrex::Real* dt, 
+			const amrex::Real* dt,
 			const amrex::Real* dx, const amrex::Real* dy, const amrex::Real* dz,
 			const long* nx, const long* ny, const long* nz,
 			const long* nxguard, const long* nyguard, const long* nzguard,
@@ -29,7 +41,7 @@ extern "C"
 
 	// Field gathering
 
-	void warpx_geteb_energy_conserving(const long* np, 
+	void warpx_geteb_energy_conserving(const long* np,
 			const amrex::Real* xp, const amrex::Real* yp, const amrex::Real* zp,
 			amrex::Real* exp, amrex::Real* eyp, amrex::Real* ezp,
 		        amrex::Real* bxp, amrex::Real* byp, amrex::Real* bzp,
@@ -41,7 +53,7 @@ extern "C"
 			const amrex::Real* exg, const amrex::Real* eyg, const amrex::Real* ezg,
 			const amrex::Real* bxg, const amrex::Real* byg, const amrex::Real* bzg,
 			const int* ll4symtry, const int* l_lower_order_in_v,
-			const long* lvect,  
+			const long* lvect,
 			const long* field_gathe_algo);
 
 	// Particle pusher
@@ -54,35 +66,37 @@ extern "C"
 			const amrex::Real* charge, const amrex::Real* mass, const amrex::Real* dt,
 			const long* particle_pusher_algo);
 
-        // Laser pusher
+  // Laser pusher
 
-	void warpx_laser_pusher(const long* np,
-				amrex::Real* xp, amrex::Real* yp, amrex::Real* zp,
-				amrex::Real* uxp, amrex::Real* uyp, amrex::Real* uzp, amrex::Real* gaminv,
-				const amrex::Real* charge, const amrex::Real* dt,
-				const long* laser_pusher_algo);
+	void warpx_gaussian_laser( const long* np,
+				amrex::Real* Xp, amrex::Real* Yp, amrex::Real* t, amrex::Real* wavelength, amrex::Real* e_max, amrex::Real* waist,
+				amrex::Real* duration, amrex::Real* t_peak, amrex::Real* f, amrex::Real* amplitude );
 
 	// Maxwell solver
 
-	void warpx_push_evec( amrex::Real* ex, amrex::Real* ey, amrex::Real* ez,
-			const amrex::Real* bx, const amrex::Real* by, const amrex::Real* bz,
-			const amrex::Real* jx, const amrex::Real* jy, const amrex::Real* jz,
-			const amrex::Real* mudt,
-			const amrex::Real* dtsdx, const amrex::Real* dtsdy, const amrex::Real* dtsdz, 
-			const long* nxlocal, const long* nylocal, const long* nzlocal,
-			const long* nxorder, const long* nyorder, const long* nzorder,
-			const long* nxguard, const long* nyguard, const long* nzguard, 
-			const long* nxs, const long* nys, const long* nzs,
-			const int* l_nodal );
+        void WRPX_PXR_PUSH_EVEC(const int* lo, const int* hi,
+				BL_FORT_FAB_ARG_3D(ex),
+				BL_FORT_FAB_ARG_3D(ey),
+				BL_FORT_FAB_ARG_3D(ez),
+				const BL_FORT_FAB_ARG_3D(bx),
+				const BL_FORT_FAB_ARG_3D(by),
+				const BL_FORT_FAB_ARG_3D(bz),
+				const BL_FORT_FAB_ARG_3D(jx),
+				const BL_FORT_FAB_ARG_3D(jy),
+				const BL_FORT_FAB_ARG_3D(jz),
+				const amrex::Real* mudt,
+				const amrex::Real* dtsdx, const amrex::Real* dtsdy, const amrex::Real* dtsdz,
+				const int* norder);
 
-	void warpx_push_bvec( const amrex::Real* ex, const amrex::Real* ey, const amrex::Real* ez,
-			amrex::Real* bx, amrex::Real* by, amrex::Real* bz,
-			const amrex::Real* dtsdx, const amrex::Real* dtsdy, const amrex::Real* dtsdz, 
-			const long* nxlocal, const long* nylocal, const long* nzlocal,
-			const long* nxorder, const long* nyorder, const long* nzorder,
-			const long* nxguard, const long* nyguard, const long* nzguard, 
-			const long* nxs, const long* nys, const long* nzs,
-			const int* l_nodal );
+        void WRPX_PXR_PUSH_BVEC(const int* lo, const int* hi,
+				const BL_FORT_FAB_ARG_3D(ex),
+				const BL_FORT_FAB_ARG_3D(ey),
+				const BL_FORT_FAB_ARG_3D(ez),
+				BL_FORT_FAB_ARG_3D(bx),
+				BL_FORT_FAB_ARG_3D(by),
+				BL_FORT_FAB_ARG_3D(bz),
+				const amrex::Real* dtsdx, const amrex::Real* dtsdy, const amrex::Real* dtsdz,
+				const int* norder);
 
 #ifdef USE_OPENBC_POISSON
     void warpx_openbc_potential (amrex::Real* rho, amrex::Real* phi, const amrex::Real* dx);
@@ -95,5 +109,4 @@ extern "C"
 			  BL_FORT_FAB_ARG_3D(Ey),
 			  BL_FORT_FAB_ARG_3D(Ez),
 			  const amrex::Real* dx);
-			  			  
 }

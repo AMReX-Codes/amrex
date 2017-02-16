@@ -54,7 +54,7 @@ pwfa.plasma_density = 1e22   # number of electrons per m^3
 
 # Moving window
 warpx.do_moving_window = 1
-warpx.moving_window_dir = 2  # 0, 1, 2, for x, y, z
+warpx.moving_window_dir = z
 warpx.moving_window_v = 1.0 # in units of the speed of light
 
 # Particle Injection
