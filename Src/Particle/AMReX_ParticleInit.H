@@ -41,6 +41,8 @@ ParticleContainer<NR, NI, NA>::InitFromAsciiFile (const std::string& file, int e
     }
 
     m_particles.resize(m_gdb->finestLevel()+1);
+    m_arraydata.resize(m_gdb->finestLevel()+1);
+    m_dummy_mf.resize (m_gdb->finestLevel()+1);
 
     IntVect lNrep(D_DECL(1,1,1));
 
@@ -364,6 +366,8 @@ ParticleContainer<NR, NI, NA>::InitFromBinaryFile (const std::string& file,
     tmp_particles.reserve(15);  // So we don't ever have to do any copying on a resize.
     tmp_particles.resize(m_gdb->finestLevel()+1);
       m_particles.resize(m_gdb->finestLevel()+1);
+      m_arraydata.resize(m_gdb->finestLevel()+1);
+      m_dummy_mf.resize(m_gdb->finestLevel()+1);
     //
     // All the processors need to participate in Redistribute() though.
     //
@@ -1085,6 +1089,8 @@ ParticleContainer<NR, NI, NA>::InitNRandomPerCell (int n_per_cell, Real mass, co
     Real r;
 
     m_particles.resize(m_gdb->finestLevel()+1);
+    m_arraydata.resize(m_gdb->finestLevel()+1);
+    m_dummy_mf.resize(m_gdb->finestLevel()+1);
 
     for (int lev = 0; lev < m_particles.size(); lev++)
         BL_ASSERT(m_particles[lev].empty());
