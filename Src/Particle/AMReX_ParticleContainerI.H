@@ -1710,7 +1710,7 @@ ParticleContainer<NR, NI, NA>::Checkpoint (const std::string& dir,
         HdrFile << BL_SPACEDIM << '\n';
 	
 	// The number of extra real parameters
-        HdrFile << NR + NA<< '\n';
+        HdrFile << NR + NA << '\n';
 
 	// The number of extra int parameters
         HdrFile << NI << '\n';
@@ -2099,10 +2099,15 @@ ParticleContainer<NR, NI, NA>::Restart (const std::string& dir,
   if (dm != BL_SPACEDIM)
     amrex::Abort("ParticleContainer<NR, NI, NA>::Restart(): dm != BL_SPACEDIM");
   
-  int n;
-  HdrFile >> n;
-  if (n != NR)
-    amrex::Abort("ParticleContainer<NR, NI, NA>::Restart(): n != N");
+  int nr;
+  HdrFile >> nr;
+  if (nr != NR + NA)
+    amrex::Abort("ParticleContainer<NR, NI, NA>::Restart(): nr != NR + NA");
+
+  int ni;
+  HdrFile >> ni;
+  if (ni != NI)
+    amrex::Abort("ParticleContainer<NR, NI, NA>::Restart(): ni != NI");
   
   long nparticles;
   HdrFile >> nparticles;
