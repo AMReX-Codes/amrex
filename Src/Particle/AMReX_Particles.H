@@ -518,9 +518,8 @@ protected:
 
     bool OnSameGrids (int level, const MultiFab& mf) const { return m_gdb->OnSameGrids(level, mf); }
 
-    //
+
     // Helper function for Checkpoint() and WritePlotFile().
-    //
     void WriteParticles (int            level,
                          std::ofstream& ofs,
                          int            fnum,
@@ -528,14 +527,6 @@ protected:
                          Array<int>&    count,
                          Array<long>&   where,
                          bool           is_checkpoint) const;
-
-    //
-    // Helper functions for Restart().
-    //
-    void Restart_Doit (const std::string& fullname,
-                       std::ifstream&     HdrFile,
-                       const std::string& how,
-                       bool           is_checkpoint);
 
     template <class RTYPE>
     void ReadParticles (int            cnt,
