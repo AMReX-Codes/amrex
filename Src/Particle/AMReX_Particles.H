@@ -533,17 +533,12 @@ protected:
                        const std::string& how,
                        bool           is_checkpoint);
 
-    void ReadParticles_DoublePrecision (int            cnt,
-                                        int            grd,
-                                        int            lev,
-                                        bool           is_checkpoint,
-                                        std::ifstream& ifs);
-
-    void ReadParticles_SinglePrecision (int            cnt,
-                                        int            grd,
-                                        int            lev,
-                                        bool           is_checkpoint,
-                                        std::ifstream& ifs);
+    template <class RTYPE>
+    void ReadParticles (int            cnt,
+			int            grd,
+			int            lev,
+			bool           is_checkpoint,
+			std::ifstream& ifs);
 
     //
     // The member data.
