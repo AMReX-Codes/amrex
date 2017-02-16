@@ -37,7 +37,7 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies)
 	if (laser_type_s == "gaussian") {
 	    profile = laser_t::Gaussian;
 	} else {
-	    BoxLib::Abort("Unknown laser type");
+	    amrex::Abort("Unknown laser type");
 	}
 
 	// Parse the properties of the antenna
@@ -66,7 +66,7 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies)
 
 	Real dp = std::inner_product(nvec.begin(), nvec.end(), p_X.begin(), 0.0);
 	if (std::abs(dp) > 1.e-14) {
-	    BoxLib::Abort("Laser plane vector is not perpendicular to the main polarization vector");
+	    amrex::Abort("Laser plane vector is not perpendicular to the main polarization vector");
 	}
 
 	p_Y = CrossProduct(nvec, p_X);   // The second polarization vector

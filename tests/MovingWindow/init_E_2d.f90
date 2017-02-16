@@ -16,7 +16,7 @@ subroutine init_E(E, lo, hi, ng, dx, prob_lo, prob_hi) bind(C, name="init_E")
      do i = lo(1), hi(1)
         x = prob_lo(1) + (dble(i)+0.5d0) * dx(1)
 
-        E(i,j) = z
+        E(i,j) = 0.d0
 
      end do
   end do

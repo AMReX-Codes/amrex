@@ -153,7 +153,7 @@ WarpX::ReadParameters ()
 	    }
 	    else {
 		const std::string msg = "Unknown moving_window_dir: "+s;
-		BoxLib::Abort(msg.c_str()); 
+		amrex::Abort(msg.c_str()); 
 	    }
 
 	    moving_window_x = geom[0].ProbLo(moving_window_dir);

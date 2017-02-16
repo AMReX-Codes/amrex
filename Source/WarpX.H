@@ -55,6 +55,13 @@ public:
 
 protected:
     virtual void ErrorEst (int lev, amrex::TagBoxArray& tags, amrex::Real time, int /*ngrow*/) override {}
+    virtual void MakeNewLevelFromScratch (int lev, amrex::Real time, const amrex::BoxArray& ba,
+					  const amrex::DistributionMapping& dm) override {}
+    virtual void MakeNewLevelFromCoarse (int lev, amrex::Real time, const amrex::BoxArray& ba,
+					 const amrex::DistributionMapping& dm) override {}
+    virtual void RemakeLevel (int lev, amrex::Real time, const amrex::BoxArray& ba,
+			      const amrex::DistributionMapping& dm) override {}
+    virtual void ClearLevel (int lev) override {}
 
 private:
 
@@ -70,10 +77,10 @@ private:
 
     void RegridBaseLevel ();
     bool LoadBalanceBaseLevel ();
-    void splitBoxes (BoxArray& ba, Array<long>& newcost, const Array<long>& cost_in, int heavy_grid_size);
+    void splitBoxes (amrex::BoxArray& ba, amrex::Array<long>& newcost, const amrex::Array<long>& cost_in, int heavy_grid_size);
 
-    Real getEfficiency(const DistributionMapping& dm, const Array<long>& cost);
-    DistributionMapping getCostCountDM (const Array<long>& cost, const BoxArray& ba);
+    amrex::Real getEfficiency(const amrex::DistributionMapping& dm, const amrex::Array<long>& cost);
+    amrex::DistributionMapping getCostCountDM (const amrex::Array<long>& cost, const amrex::BoxArray& ba);
 
     void InitFromScratch ();
     void InitFromCheckpoint ();
@@ -114,8 +121,8 @@ private:
     // Moving window parameters
     int do_moving_window  = 0;
     int moving_window_dir = -1;
-    amrex::Real moving_window_x  = std::numeric_limits<Real>::max();
-    amrex::Real moving_window_v  = std::numeric_limits<Real>::max();
+    amrex::Real moving_window_x  = std::numeric_limits<amrex::Real>::max();
+    amrex::Real moving_window_v  = std::numeric_limits<amrex::Real>::max();
 
     // Plasma injection parameters
     int do_plasma_injection  = 0;

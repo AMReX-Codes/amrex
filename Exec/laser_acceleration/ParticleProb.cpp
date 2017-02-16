@@ -6,10 +6,12 @@
 
 #include <cmath>
 
-#include <BLProfiler.H>
+#include <AMReX_BLProfiler.H>
 
 #include <ParticleContainer.H>
 #include <WarpXConst.H>
+
+using namespace amrex;
 
 void
 PhysicalParticleContainer::InitData()
@@ -22,7 +24,7 @@ PhysicalParticleContainer::InitData()
 	charge = -PhysConst::q_e;
 	mass = PhysConst::m_e;
     } else {
-	BoxLib::Abort("PhysicalParticleContainer::InitData(): species_id must be 0 or 1");
+	amrex::Abort("PhysicalParticleContainer::InitData(): species_id must be 0 or 1");
     }
 
     m_particles.resize(GDB().finestLevel()+1);
@@ -69,7 +71,7 @@ PhysicalParticleContainer::InitData()
     const BoxArray& ba = GDB().ParticleBoxArray(lev);
     const DistributionMapping& dm = GDB().ParticleDistributionMap(lev);
 
-    MultiFab dummy_mf(ba, 1, 0, dm, Fab_noallocate);
+    MultiFab dummy_mf(ba, dm, 1, 0, MFInfo().SetAlloc(false));
 
     for (MFIter mfi(dummy_mf,false); mfi.isValid(); ++mfi)
     {
@@ -131,7 +133,7 @@ PhysicalParticleContainer::InitData()
 
 		if (!ParticleBase::Where(p,m_gdb)) // this will set m_cell
 		{
-		    BoxLib::Abort("invalid particle");
+		    amrex::Abort("invalid particle");
 		}
 
 		BL_ASSERT(p.m_lev >= 0 && p.m_lev <= GDB().finestLevel());

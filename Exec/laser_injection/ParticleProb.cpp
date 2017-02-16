@@ -6,11 +6,13 @@
 
 #include <cmath>
 
-#include <BLProfiler.H>
+#include <AMReX_BLProfiler.H>
 
 #include <ParticleContainer.H>
 #include <WarpXConst.H>
 #include <random>
+
+using namespace amrex;
 
 void
 PhysicalParticleContainer::InitData()
@@ -50,7 +52,7 @@ PhysicalParticleContainer::InitData()
     const BoxArray& ba = GDB().ParticleBoxArray(lev);
     const DistributionMapping& dm = GDB().ParticleDistributionMap(lev);
 
-    MultiFab dummy_mf(ba, 1, 0, dm, Fab_noallocate);
+    MultiFab dummy_mf(ba, dm, 1, 0, MFInfo().SetAlloc(false));
 
     for (MFIter mfi(dummy_mf,false); mfi.isValid(); ++mfi)
     {

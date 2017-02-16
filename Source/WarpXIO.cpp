@@ -345,7 +345,7 @@ WarpX::WritePlotFile () const
 	    WarpX::Copy(*mf[lev], dcomp+1, 1, *Bfield[lev][1], 0);
 #endif
 
-            MultiFab temp_dat(grids[lev],1,0,mf[lev]->DistributionMap());
+            MultiFab temp_dat(grids[lev],mf[lev]->DistributionMap(),1,0);
             temp_dat.setVal(0);
 
             // MultiFab containing number of particles in each cell

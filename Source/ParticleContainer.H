@@ -57,12 +57,12 @@ public:
 
     void Redistribute (bool where_called=false);
 
-    Array<long> NumberOfParticlesInGrid(int lev) const;
+    amrex::Array<long> NumberOfParticlesInGrid(int lev) const;
 
-    void Increment (MultiFab& mf, int lev);
+    void Increment (amrex::MultiFab& mf, int lev);
 
-    void SetParticleBoxArray (int lev, BoxArray& new_ba);
-    void SetParticleDistributionMap (int lev, DistributionMapping& new_dm);
+    void SetParticleBoxArray (int lev, amrex::BoxArray& new_ba);
+    void SetParticleDistributionMap (int lev, amrex::DistributionMapping& new_dm);
 
 private:
 

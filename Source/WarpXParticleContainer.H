@@ -3,8 +3,8 @@
 
 #include <memory>
 
-#include <Particles.H>
-#include <AmrParGDB.H>
+#include <AMReX_Particles.H>
+#include <AMReX_AmrParGDB.H>
 
 struct PIdx
 {
@@ -23,12 +23,12 @@ struct PIdx
 class MultiParticleContainer;
 
 class WarpXParticleContainer
-    : public ParticleContainer<PIdx::nattribs,0,std::vector<Particle<PIdx::nattribs,0> > >
+    : public amrex::ParticleContainer<PIdx::nattribs,0,std::vector<amrex::Particle<PIdx::nattribs,0> > >
 {
 public:
     friend MultiParticleContainer;
 
-    WarpXParticleContainer (AmrCore* amr_core, int ispecies);
+    WarpXParticleContainer (amrex::AmrCore* amr_core, int ispecies);
     virtual ~WarpXParticleContainer() {}
 
     virtual void AllocData () = 0;
@@ -36,23 +36,23 @@ public:
     virtual void InitData () = 0;
 
     virtual void Evolve (int lev,
-			 const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
-			 const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz,
-			 MultiFab& jx, MultiFab& jy, MultiFab& jz, Real t, Real dt) = 0;
+			 const amrex::MultiFab& Ex, const amrex::MultiFab& Ey, const amrex::MultiFab& Ez,
+			 const amrex::MultiFab& Bx, const amrex::MultiFab& By, const amrex::MultiFab& Bz,
+			 amrex::MultiFab& jx, amrex::MultiFab& jy, amrex::MultiFab& jz, amrex::Real t, amrex::Real dt) = 0;
 
     virtual void PostRestart () = 0;
 
-    std::unique_ptr<MultiFab> GetChargeDensity(int lev, bool local = false);
+    std::unique_ptr<amrex::MultiFab> GetChargeDensity(int lev, bool local = false);
 
-    void AddNParticles (int n, const Real* x, const Real* y, const Real* z,
-			const Real* vx, const Real* vy, const Real* vz,
-			int nattr, const Real* attr, int uniqueparticles);
+    void AddNParticles (int n, const amrex::Real* x, const amrex::Real* y, const amrex::Real* z,
+			const amrex::Real* vx, const amrex::Real* vy, const amrex::Real* vz,
+			int nattr, const amrex::Real* attr, int uniqueparticles);
 
     void ReadHeader (std::istream& is);
 
     void WriteHeader (std::ostream& os) const;
 
-    const ParGDBBase& GDB () const { return *m_gdb; }
+    const amrex::ParGDBBase& GDB () const { return *m_gdb; }
 
     static void ReadParameters ();
 
@@ -60,11 +60,11 @@ protected:
 
     int species_id;
 
-    Real charge;
-    Real mass;
+    amrex::Real charge;
+    amrex::Real mass;
 
     static bool do_tiling;
-    static IntVect tile_size;
+    static amrex::IntVect tile_size;
 };
 
 #endif

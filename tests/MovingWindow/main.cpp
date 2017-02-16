@@ -45,7 +45,7 @@ void testMovingWindow() {
     }
     else {
 	const std::string msg = "Unknown moving_window_dir: "+s;
-	BoxLib::Abort(msg.c_str()); 
+	amrex::Abort(msg.c_str()); 
     }
     pp.get("moving_window_v", moving_window_v);
     pp.getarr("prob_lo", prob_lo, 0, BL_SPACEDIM);
@@ -81,7 +81,8 @@ void testMovingWindow() {
   Real time = 0.0;
   int Nghost = 1;
 
-  MultiFab E(ba, 1, Nghost);
+  DistributionMapping dm {ba};
+  MultiFab E(ba, dm, 1, Nghost);
   E.setVal(0.0);
 
   for ( MFIter mfi(E); mfi.isValid(); ++mfi )
@@ -96,7 +97,7 @@ void testMovingWindow() {
   // take some "time steps"
   for (int step = 0; step < n_steps; step++) {
 
-    MultiFab outputE(ba, 1, 0);
+    MultiFab outputE(ba, dm, 1, 0);
     MultiFab::Copy(outputE, E, 0, 0, 1, 0);
     const std::string& plotname = amrex::Concatenate("plt", step, 5);
     Array<std::string> varnames{"E"};
