@@ -42,24 +42,45 @@ ParticleContainer<NR, NI, NA>::Index (const ParticleType& p, int lev) const
 
 template <int NR, int NI, int NA>
 int 
-ParticleContainer<NR, NI, NA>::getTileIndex(const IntVect& iv, const Box& box, Box& tbx) const {
+ParticleContainer<NR, NI, NA>::getTileIndex(const IntVect& iv, const Box& box, Box& tbx)
+{
+    if (do_tiling == false) {
+        tbx = box;
+        return 0;
+    } else {
+        //
+        // This function must be consistent with FabArrayBase::buildTileArray function!!!
+        //
+        auto tiling_1d = [](int i, int lo, int hi, int tilesize,
+                            int& ntile, int& tileidx, int& tlo, int& thi) {
+            int ncells = hi-lo+1;
+            ntile = std::max(ncells/tilesize, 1);
+            int ts_right = ncells/ntile;
+            int ts_left  = ts_right+1;
+            int nleft = ncells - ntile*ts_right;
+            int ii = i - lo;
+            int nbndry = nleft*ts_left;
+            if (ii < nbndry) {
+                tileidx = ii / ts_left; // tiles on the left of nbndry have size of ts_left
+                tlo = lo + tileidx * ts_left;
+                thi = tlo + ts_left - 1;
+            } else {
+                tileidx = nleft + (ii-nbndry) / ts_right;  // tiles on the right: ts_right
+                tlo = lo + tileidx * ts_right + nleft;
+                thi = tlo + ts_right - 1;
+            }
+        };
+        const IntVect& small = box.smallEnd();
+        const IntVect& big   = box.bigEnd();
+        IntVect ntiles, ivIndex, tilelo, tilehi;
+        D_TERM(tiling_1d(iv[0], small[0], big[0], tile_size[0], ntiles[0], ivIndex[0], tilelo[0], tilehi[0]);,
+               tiling_1d(iv[1], small[1], big[1], tile_size[1], ntiles[1], ivIndex[1], tilelo[1], tilehi[1]);,
+               tiling_1d(iv[2], small[2], big[2], tile_size[2], ntiles[2], ivIndex[2], tilelo[2], tilehi[2]););
+        
+        tbx = Box(tilelo, tilehi);
 
-  if (do_tiling == false)
-    return 0;
-
-  const IntVect& small = box.smallEnd();
-  const IntVect& size = box.size();
-  IntVect ntiles(D_DECL((size[0]+tile_size[0]-1)/tile_size[0],
-			(size[1]+tile_size[1]-1)/tile_size[1],
-			0));  // Don't need the last component of ntile
-  IntVect ivIndex(D_DECL((iv[0]-small[0])/tile_size[0],
-			 (iv[1]-small[1])/tile_size[1],
-			 (iv[2]-small[2])/tile_size[2]));
-
-  tbx = Box(small+ivIndex*tile_size, small+(ivIndex+1)*tile_size-1);
-
-  // convert IntVect index into a linear one
-  return D_TERM(ivIndex[0], + ntiles[0]*ivIndex[1], + ntiles[0]*ntiles[1]*ivIndex[2]);
+        return D_TERM(ivIndex[0], + ntiles[0]*ivIndex[1], + ntiles[0]*ntiles[1]*ivIndex[2]);
+    }
 }
 
 template <int NR, int NI, int NA>
@@ -83,11 +104,13 @@ ParticleContainer<NR, NI, NA>::Where (const ParticleType&         p,
         const IntVect& iv = Index(p, lev);
         const BoxArray& ba = m_gdb->ParticleBoxArray(lev);
 
+        BL_ASSERT(ba.ixType().cellCentered());
+
         if (lev == pld.m_lev) {
             // The fact that we are here means this particle does not belong to any finer grids.
             if (0 <= pld.m_grid && pld.m_grid < ba.size())
             {
-                const Box& bx = ba[pld.m_grid];
+                const Box& bx = ba.getCellCenteredBox(pld.m_grid);
                 if (bx.contains(iv))
                 {
                     pld.m_cell = iv;
@@ -104,7 +127,7 @@ ParticleContainer<NR, NI, NA>::Where (const ParticleType&         p,
 
         if (!isects.empty())
         {
-            const Box& bx = ba[isects[0].first];
+            const Box& bx = ba.getCellCenteredBox(isects[0].first);
             pld.m_lev  = lev;
             pld.m_grid = isects[0].first;
 	    pld.m_tile = getTileIndex(iv, bx, pld.m_tilebox);
