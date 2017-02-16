@@ -362,7 +362,8 @@ ParticleContainer<NR, NI, NA>::RedefineDummyMF (int lev)
 {
     if (lev > m_dummy_mf.size()-1) m_dummy_mf.resize(lev+1);
     
-    if (ParticleBoxArray(lev) != m_dummy_mf[lev]->boxArray() ||
+    if (m_dummy_mf[lev] == nullptr ||
+        ParticleBoxArray(lev) != m_dummy_mf[lev]->boxArray() ||
         ParticleDistributionMap(lev) != m_dummy_mf[lev]->DistributionMap())
     {
 	MFInfo info;
