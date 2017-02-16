@@ -377,8 +377,8 @@ ParticleContainer<NR, NI, NA>::RedefineDummyMF (int lev)
 template <int NR, int NI, int NA>
 void
 ParticleContainer<NR, NI, NA>::locateParticle(ParticleType& p, ParticleLocData& pld, 
-						 int lev_min, int theEffectiveFinestLevel,
-						 int nGrow) {
+					      int lev_min, int theEffectiveFinestLevel,
+					      int nGrow) {
   if (!Where(p, pld, lev_min, theEffectiveFinestLevel)) {
     if (!PeriodicWhere(p, pld, lev_min, theEffectiveFinestLevel)) {
       if (lev_min != 0) // RestrictedWhere should be unnecessary at top level.
@@ -1242,7 +1242,6 @@ ParticleContainer<NR, NI, NA>::Redistribute (bool where_already_called, int lev_
 {
   BL_PROFILE("ParticleContainer::Redistribute()");
   const int MyProc    = ParallelDescriptor::MyProc();
-  const int  NProcs   = ParallelDescriptor::NProcs();
   Real      strttime  = ParallelDescriptor::second();
   
   //
@@ -1614,8 +1613,8 @@ ParticleContainer<NR, NI, NA>::OK (int  lev_min,
 template <int NR, int NI, int NA>
 void
 ParticleContainer<NR, NI, NA>::Checkpoint (const std::string& dir,
-					      const std::string& name,
-					      bool               is_checkpoint) const
+					   const std::string& name,
+					   bool               is_checkpoint) const
 {
     BL_PROFILE("ParticleContainer<NR, NI, NA>::Checkpoint()");
     BL_ASSERT(OK());
@@ -2263,7 +2262,7 @@ ParticleContainer<NR, NI, NA>::ReadParticles (int            cnt,
 
       rptr += BL_SPACEDIM + NR;
       
-      locateParticle(p, pld);
+      locateParticle(p, pld, 0, m_gdb->finestLevel(), 0);
 
       for (int j = 0; j < NA; j++) {
 	SoA& soa  = m_arraydata[lev][std::make_pair(grd, pld.m_tile)];

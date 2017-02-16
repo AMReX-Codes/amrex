@@ -231,14 +231,21 @@ public:
     using SoAMap = std::map<std::pair<int, int>, SoA>;
 
     ParticleContainer ()
-      : m_verbose(0), m_gdb(nullptr), allow_particles_near_boundary(false), communicate_comp(NA, true)
+      : 
+      communicate_comp(NA, true),
+      m_verbose(0), 
+      m_gdb(nullptr),
+      allow_particles_near_boundary(false)
     {
         Initialize ();
     }
 
     ParticleContainer (ParGDBBase* gdb)
         :
-      m_verbose(0), m_gdb(gdb), allow_particles_near_boundary(false), communicate_comp(NA, true)
+        communicate_comp(NA, true),
+	m_verbose(0),
+	m_gdb(gdb), 
+	allow_particles_near_boundary(false)
     {
         Initialize ();
         allocateData();
@@ -248,10 +255,10 @@ public:
 		       const DistributionMapping & dmap,
 		       const BoxArray            & ba)
 	:
+        communicate_comp(NA, true),
         m_verbose(0), 
 	allow_particles_near_boundary(false),
-	m_gdb_object(geom,dmap,ba), 
-	communicate_comp(NA, true)
+	m_gdb_object(geom,dmap,ba)
     {
         Initialize ();
         m_gdb = & m_gdb_object;
@@ -263,10 +270,10 @@ public:
 		       const Array<BoxArray>            & ba,
 		       const Array<int>                 & rr)
 	:
+        communicate_comp(NA, true),
         m_verbose(0), 
 	allow_particles_near_boundary(false),
-	m_gdb_object(geom,dmap,ba,rr),
-	communicate_comp(NA, true)
+	m_gdb_object(geom,dmap,ba,rr)
     {
         Initialize ();
         m_gdb = & m_gdb_object;
