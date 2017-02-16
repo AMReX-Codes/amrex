@@ -11,7 +11,7 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_Print.H>
 #include <AMReX_ArrayLim.H>
-#include "stencilTest_F.H"
+#include "stencilTestMSD_F.H"
 
 #include <fstream>
 
@@ -84,7 +84,7 @@ applyStencilAllFortran(EBCellFAB                       & a_dst,
 		       const EBCellFAB                 & a_src,
 		       const std::vector<IrregNode>    & a_nodes,
 		       const Box                       & a_domain,
-		       Real*                             a_dx)
+		       const Real                      & a_dx)
 {
 
   BL_PROFILE_VAR_NS("fortran only prep",fp);
@@ -166,7 +166,22 @@ applyStencilAllFortran(EBCellFAB                       & a_dst,
         if (tbx.contains(iv))
         {
           has_eb[tid] = true;
-          bndryData[tid][iv] = EBBndryData(node.m_normal,node.m_bndryCentroid,eb_dirichlet_value);
+
+          RealVect normal(D_DECL(0,0,0));
+          for (int idir=0; idir<SpaceDim; ++idir)
+          {
+            for (SideIterator sit; sit.ok(); ++sit)
+            {
+              int index = IrregNode::index(idir, sit());
+              const std::vector<int>& arcs = node.m_arc[index];
+              if((arcs.size() > 0) && (arcs[0] >= 0))
+              {
+                normal[idir] += sign(sit()) * node.m_areaFrac[index][0];
+              }
+            }
+          }
+
+          bndryData[tid][iv] = EBBndryData(normal,node.m_bndryCentroid,eb_dirichlet_value);
         }
       }
 
@@ -368,7 +383,7 @@ applyStencilAllFortran(EBCellFAB                       & a_dst,
                    D_DECL(BL_TO_FORTRAN_N(fd[0],0),
                           BL_TO_FORTRAN_N(fd[1],0),
                           BL_TO_FORTRAN_N(fd[2],0)),
-                   tbx.loVect(), tbx.hiVect(), &(a_dx[0]));
+                   tbx.loVect(), tbx.hiVect(), &a_dx);
         BL_PROFILE_VAR_STOP(feb);
       }
       else
@@ -377,7 +392,7 @@ applyStencilAllFortran(EBCellFAB                       & a_dst,
         BL_PROFILE_VAR_START(fr);
         lapl_MSD(BL_TO_FORTRAN_N(a_dst,0), 
                  BL_TO_FORTRAN_N(a_src,0),
-                 tbx.loVect(), tbx.hiVect(), &(a_dx[0]));
+                 tbx.loVect(), tbx.hiVect(), &a_dx);
         BL_PROFILE_VAR_STOP(fr);
       }
     }
@@ -407,12 +422,7 @@ int testStuff()
 
   Box domain(ivlo, ivhi);
 
-  std::vector<Real> dx(SpaceDim);
-
-  for (int idir=0; idir<SpaceDim; ++idir)
-  {
-    dx[idir] = domlen/ncellsvec[idir];
-  }
+  Real dx = domlen/ncellsvec[0];
   Array<Real> probLo(SpaceDim,0);
 
   BaseFab<int> regIrregCovered;
@@ -427,7 +437,7 @@ int testStuff()
   BL_PROFILE_VAR("init_data",init);
   init_phi(BL_TO_FORTRAN_N(src,0),
            src.box().loVect(), src.box().hiVect(),
-           &(probLo[0]), &(dx[0]));
+           &(probLo[0]), &dx);
   BL_PROFILE_VAR_STOP(init);
 
   EBCellFAB dst(domain, 1);
@@ -437,13 +447,13 @@ int testStuff()
   if (compute_geom) {
     amrex::Print() << "Define geometry\n";
     BL_PROFILE_VAR("define_geometry",dg);
-    defineGeometry(regIrregCovered, nodes, radius, center, domain, dx[0]); 
+    defineGeometry(regIrregCovered, nodes, radius, center, domain, dx); 
     BL_PROFILE_VAR_STOP(dg);
   }
 
   amrex::Print() << "Fortran everywhere\n";
   BL_PROFILE_VAR("fortran_everywhere",fe);
-  applyStencilAllFortran(dst, src, nodes, domain, &(dx[0]));
+  applyStencilAllFortran(dst, src, nodes, domain, dx);
   BL_PROFILE_VAR_STOP(fe);
 
   if (pp.countval("outfile"))
