@@ -2256,19 +2256,16 @@ ParticleContainer<NR, NI, NA>::Restart_Doit (const std::string& fullname,
 
             ParticleFile.seekg(where[grid], std::ios::beg);
 
-            if (how == "single")
-            {
-                ReadParticles_SinglePrecision(count[grid],grid,lev,is_checkpoint,ParticleFile);
+            if (how == "single") {
+	      ReadParticles<float>(count[grid], grid, lev, is_checkpoint, ParticleFile);
             }
-            else if (how == "double")
-            {
-                ReadParticles_DoublePrecision(count[grid],grid,lev,is_checkpoint,ParticleFile);
+            else if (how == "double") {
+	      ReadParticles<double>(count[grid], grid, lev, is_checkpoint, ParticleFile);
             }
-            else
-            {
-                std::string msg("ParticleContainer<NR, NI, NA>::Restart_Doit(): bad parameter: ");
-                msg += how;
-                amrex::Error(msg.c_str());
+            else {
+	      std::string msg("ParticleContainer<NR, NI, NA>::Restart_Doit(): bad parameter: ");
+	      msg += how;
+	      amrex::Error(msg.c_str());
             }
                 
             ParticleFile.close();
@@ -2278,50 +2275,41 @@ ParticleContainer<NR, NI, NA>::Restart_Doit (const std::string& fullname,
         }
     }
 
-    BL_ASSERT(OK());        
+    BL_ASSERT(OK());
 }
 
-//
-// This one stores real data as doubles.
-//
-
+// Read a batch of particles from the checkpoint file
 template <int NR, int NI, int NA>
+template <class RTYPE>
 void
-ParticleContainer<NR, NI, NA>::ReadParticles_DoublePrecision (int            cnt,
-							      int            grd,
-							      int            lev,
-							      bool           is_checkpoint,
-							      std::ifstream& ifs)
+ParticleContainer<NR, NI, NA>::ReadParticles (int            cnt,
+					      int            grd,
+					      int            lev,
+					      bool           is_checkpoint,
+					      std::ifstream& ifs) 
 {
-    BL_PROFILE("ParticleContainer<NR, NI, NA>::ReadParticles_DoublePrecision()");
+    BL_PROFILE("ParticleContainer<NR, NI, NA>::ReadParticles()");
     BL_ASSERT(cnt > 0);
     BL_ASSERT(lev < int(m_particles.size()));
     BL_ASSERT(lev >= 0 && lev <= m_gdb->finestLevel());
     BL_ASSERT(grd >= 0 && grd < m_gdb->ParticleBoxArray(lev).size());
-    //
+
     // First read in the integer data in binary.  We do not store
     // the m_lev and m_grid data on disk.  We can easily recreate
     // that given the structure of the checkpoint file.
-    //
     const int iChunkSize = 2;
-
     Array<int> istuff(cnt*iChunkSize);
-
     if (is_checkpoint)
         ifs.read((char*)istuff.dataPtr(),istuff.size()*sizeof(int));
-    //
-    // Then the double data in binary.
-    //
+
+    // Then the real data in binary.
     const int rChunkSize = BL_SPACEDIM + NR + NA;
+    Array<RTYPE> rstuff(cnt*rChunkSize);
+    ifs.read((char*)rstuff.dataPtr(),rstuff.size()*sizeof(RTYPE));
 
-    Array<double> rstuff(cnt*rChunkSize);
-
-    ifs.read((char*)rstuff.dataPtr(),rstuff.size()*sizeof(double));
-    //
     // Now reassemble the particles.
-    //
-    int*            iptr = istuff.dataPtr();
-    double*         rptr = rstuff.dataPtr();
+    int*   iptr = istuff.dataPtr();
+    RTYPE* rptr = rstuff.dataPtr();
 
     // If we are restarting from a plotfile instead of a checkpoint file, then we do not
     //    read in the particle id's, so we need to reset the id counter to zero and renumber them
@@ -2355,97 +2343,6 @@ ParticleContainer<NR, NI, NA>::ReadParticles_DoublePrecision (int            cnt
 
       rptr += BL_SPACEDIM + NR;
       
-      locateParticle(p, pld);
-
-      for (int j = 0; j < NA; j++) {
-	SoA& soa  = m_arraydata[lev][std::make_pair(grd, pld.m_tile)];
-	soa[j][i] = rptr[j];
-      }
-      rptr += NA;
-
-      AoS& pbox = m_particles[lev][std::make_pair(grd, pld.m_tile)];
-      pbox.push_back(p);
-    }
-}
-
-//
-// This one stores real data as floats.
-//
-
-template <int NR, int NI, int NA>
-void
-ParticleContainer<NR, NI, NA>::ReadParticles_SinglePrecision (int            cnt,
-							      int            grd,
-							      int            lev,
-							      bool           is_checkpoint,
-							      std::ifstream& ifs)
-{
-    BL_PROFILE("ParticleContainer<NR, NI, NA>::ReadParticles_SinglePrecision()");
-    BL_ASSERT(cnt > 0);
-    BL_ASSERT(lev < int(m_particles.size()));
-    BL_ASSERT(lev >= 0 && lev <= m_gdb->finestLevel());
-    BL_ASSERT(grd >= 0 && grd < m_gdb->ParticleBoxArray(lev).size());
-    //
-    // First read in the integer data in binary.  We do not store
-    // the m_lev and m_grid data on disk.  We can easily recreate
-    // that given the structure of the checkpoint file.
-    //
-    const int iChunkSize = 2;
-
-    Array<int> istuff(cnt*iChunkSize);
-
-    if (is_checkpoint)
-        ifs.read((char*)istuff.dataPtr(),istuff.size()*sizeof(int));
-    //
-    // Then the float data in binary.
-    //
-    const int rChunkSize = BL_SPACEDIM + NR + NA;
-
-    Array<float> rstuff(cnt*rChunkSize);
-
-    ifs.read((char*)rstuff.dataPtr(),rstuff.size()*sizeof(float));
-    //
-    // Now reassemble the particles.
-    //
-    int*   iptr = istuff.dataPtr();
-    float* rptr = rstuff.dataPtr();
-
-    // If we are restarting from a plotfile instead of a checkpoint file, then we do not
-    //    read in the particle id's, so we need to reset the id counter to zero and renumber them
-    if (!is_checkpoint)
-    {
-      int maxnextid = 1;
-      ParticleType::NextID(maxnextid);
-    }
-    
-    ParticleLocData pld;
-    ParticleType p;
-    for (int i = 0; i < cnt; i++) {
-      p.m_idata.id   = iptr[0];
-      p.m_idata.cpu  = iptr[1];
-
-      if (is_checkpoint) {
-	p.m_idata.id    = iptr[0];
-	p.m_idata.cpu   = iptr[1];
-      }
-      else {
-	p.m_idata.id   = ParticleType::NextID();
-	p.m_idata.cpu  = ParallelDescriptor::MyProc();
-      }
-
-      BL_ASSERT(p.m_idata.id > 0);
-
-      iptr += iChunkSize;
-
-      D_TERM(p.m_rdata.pos[0] = rptr[0];,
-	     p.m_rdata.pos[1] = rptr[1];,
-	     p.m_rdata.pos[2] = rptr[2];);
-
-      for (int j = 0; j < NR; j++)
-	p.m_rdata.arr[BL_SPACEDIM + j] = rptr[BL_SPACEDIM + j];
-      
-      rptr += BL_SPACEDIM + NR;
-
       locateParticle(p, pld);
 
       for (int j = 0; j < NA; j++) {
@@ -2591,11 +2488,11 @@ ParticleContainer<NR, NI, NA>::WriteAsciiFile (const std::string& filename)
 template <int NR, int NI, int NA>
 bool
 ParticleContainer<NR, NI, NA>::CrseToFine (const BoxArray&       cfba,
-				       const Array<IntVect>& cells,
-				       Array<IntVect>&       cfshifts,
-				       const Geometry&       gm,
-				       Array<int>&           which,
-				       Array<IntVect>&       pshifts) const
+					   const Array<IntVect>& cells,
+					   Array<IntVect>&       cfshifts,
+					   const Geometry&       gm,
+					   Array<int>&           which,
+					   Array<IntVect>&       pshifts) const
 {
     BL_PROFILE("ParticleContainer<NR, NI, NA>::CrseToFine()");
     //
@@ -2661,16 +2558,16 @@ ParticleContainer<NR, NI, NA>::CrseToFine (const BoxArray&       cfba,
 template <int NR, int NI, int NA>
 bool
 ParticleContainer<NR, NI, NA>::FineToCrse (const ParticleType&                p,
-				       int                                flev,
-				       const Array<IntVect>&              fcells,
-				       const BoxArray&                    fvalid,
-				       const BoxArray&                    compfvalid_grown,
-				       Array<IntVect>&                    ccells,
-				       Array<Real>&                       cfracs,
-				       Array<int>&                        which,
-				       Array<int>&                        cgrid,
-				       Array<IntVect>&                    pshifts,
-				       std::vector< std::pair<int,Box> >& isects) const
+					   int                                flev,
+					   const Array<IntVect>&              fcells,
+					   const BoxArray&                    fvalid,
+					   const BoxArray&                    compfvalid_grown,
+					   Array<IntVect>&                    ccells,
+					   Array<Real>&                       cfracs,
+					   Array<int>&                        which,
+					   Array<int>&                        cgrid,
+					   Array<IntVect>&                    pshifts,
+					   std::vector< std::pair<int,Box> >& isects) const
 {
     BL_PROFILE("ParticleContainer<NR, NI, NA>::FineToCrse()");
     BL_ASSERT(m_gdb != 0);
