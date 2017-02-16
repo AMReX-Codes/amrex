@@ -4376,11 +4376,11 @@ ParticleContainer<NR, NI, NA>::NodalDepositionSingleLevel (int rho_index,
 template <int NR, int NI, int NA>
 void
 ParticleContainer<NR, NI, NA>::moveKick (MultiFab&       acceleration,
-					    int             lev,
-					    Real            dt,
-					    Real            a_new,
-					    Real            a_half, 
-					    int             start_comp_for_accel)
+					 int             lev,
+					 Real            dt,
+					 Real            a_new,
+					 Real            a_half, 
+					 int             start_comp_for_accel)
 {
     BL_PROFILE("ParticleContainer::moveKick()");
     BL_ASSERT(NR >= BL_SPACEDIM+1);
@@ -4409,7 +4409,7 @@ ParticleContainer<NR, NI, NA>::moveKick (MultiFab&       acceleration,
 
     ParticleLocData pld;
 
-    for (const auto& kv : pmap) {
+    for (auto& kv : pmap) {
       AoS& pbox = kv.second;
       const int grid = kv.first.first;
       const int n = pbox.size();
