@@ -318,6 +318,8 @@ public:
 
     void allocateData();
 
+    void RedefineDummyMF (int lev);
+
     void locateParticle(ParticleType& p, ParticleLocData& pld, int lev_min,
 			int theEffectiveFinestLevel, int nGrow);
 
@@ -564,6 +566,8 @@ protected:
     // The struct-of-arrays data for the entire AMR hierarchy
     //
     Array<SoAMap> m_arraydata;
+
+    Array<std::unique_ptr<MultiFab> > m_dummy_mf;
 
 private:
     void AssignDensityDoit (int rho_index, 

@@ -353,7 +353,25 @@ ParticleContainer<NR, NI, NA>::allocateData () {
   int nlevs = m_gdb->finestLevel()+1;
   m_particles.resize(nlevs);
   m_arraydata.resize(nlevs);
+  m_dummy_mf.resize(nlevs);
 }
+
+template <int NR, int NI, int NA>
+void
+ParticleContainer<NR, NI, NA>::RedefineDummyMF (int lev) 
+{
+    if (lev > m_dummy_mf.size()-1) m_dummy_mf.resize(lev+1);
+    
+    if (ParticleBoxArray(lev) != m_dummy_mf[lev]->boxArray() ||
+        ParticleDistributionMap(lev) != m_dummy_mf[lev]->DistributionMap())
+    {
+	MFInfo info;
+	info.SetAlloc(false);
+        m_dummy_mf[lev].reset(new MultiFab(ParticleBoxArray(lev),
+                                           ParticleDistributionMap(lev),
+                                           1,0,info));
+    }
+}  
 
 template <int NR, int NI, int NA>
 void
@@ -504,6 +522,8 @@ ParticleContainer<NR, NI, NA>::addOneParticle (int                  id_in,
     if (m_particles.size() == 0)
     {
        m_particles.resize(m_gdb->finestLevel()+1);
+       m_arraydata.resize(m_gdb->finestLevel()+1);
+       m_dummy_mf.resize(m_gdb->finestLevel()+1);
     }
 
     ParticleType p;
@@ -539,6 +559,8 @@ ParticleContainer<NR, NI, NA>::addOneParticle (int                  id_in,
     
     m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
 
+    RedefineDummyMF(pld.m_lev);
+    
     // Note that we will need to call Redistribute once we are done adding particles this way.
     // The Where call above assigns a particle to a grid (pld.m_grid) based on the particle location.
     // However, the particle may not currently live on the processor that owns that grid.
@@ -558,8 +580,11 @@ ParticleContainer<NR, NI, NA>::addNParticles(int n_part, Array<double>& x, Array
     BL_ASSERT(OK());
     BL_ASSERT(NR >= BL_SPACEDIM+n_attr);
 
-    if (m_particles.size() == 0)
-       m_particles.resize(m_gdb->finestLevel()+1);
+    if (m_particles.size() == 0) {
+        m_particles.resize(m_gdb->finestLevel()+1);
+        m_arraydata.resize(m_gdb->finestLevel()+1);
+        m_dummy_mf.resize(m_gdb->finestLevel()+1);
+    }
 
     ParticleLocData pld;
 
@@ -1236,6 +1261,11 @@ ParticleContainer<NR, NI, NA>::Redistribute (bool where_already_called, int lev_
       allocateData();
   }
 
+  for (int lev = lev_min; lev <= theEffectiveFinestLevel; ++lev)
+  {
+      RedefineDummyMF(lev);
+  }
+
   // The valid particles that we don't own.
   std::map<int, Array<char> > not_ours;
 
@@ -1351,6 +1381,7 @@ ParticleContainer<NR, NI, NA>::Redistribute (bool where_already_called, int lev_
       
       m_particles.resize(theEffectiveFinestLevel+1);
       m_arraydata.resize(theEffectiveFinestLevel+1);
+      m_dummy_mf.resize(theEffectiveFinestLevel+1);
   }
   
   if (ParallelDescriptor::NProcs() == 1)
@@ -2220,6 +2251,11 @@ ParticleContainer<NR, NI, NA>::Restart_Doit (const std::string& fullname,
     //
     // We rebuild the filename from which and level.
     //
+
+    m_particles.resize(m_gdb->finestLevel()+1);
+    m_arraydata.resize(m_gdb->finestLevel()+1);
+    m_dummy_mf.resize(m_gdb->finestLevel()+1);
+
     for (int lev = 0; lev <= finest_level; lev++)
     {
         //
@@ -2240,15 +2276,9 @@ ParticleContainer<NR, NI, NA>::Restart_Doit (const std::string& fullname,
         ParallelDescriptor::Bcast(count.dataPtr(), count.size(), IOProc);
         ParallelDescriptor::Bcast(where.dataPtr(), where.size(), IOProc);
 
-        m_particles.resize(m_gdb->finestLevel()+1);
+        RedefineDummyMF(lev);
 
-	MFInfo info;
-	info.SetAlloc(false);
-	MultiFab state(m_gdb->ParticleBoxArray(lev),
-		       m_gdb->ParticleDistributionMap(lev),
-		       1,0,info);
-
-        for (MFIter mfi(state); mfi.isValid(); ++mfi)
+        for (MFIter mfi(*m_dummy_mf[lev]); mfi.isValid(); ++mfi)
         {
             const int grid = mfi.index();
 
