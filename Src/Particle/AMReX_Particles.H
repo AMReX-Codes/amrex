@@ -74,6 +74,8 @@ struct ParticleLocData
   int     m_grid = -1;
   int     m_tile = -1;
   IntVect m_cell {D_DECL(-1,-1,-1)};
+  Box     m_gridbox;
+  Box     m_tilebox;
 };
 
 
@@ -316,6 +318,8 @@ public:
 
     void allocateData();
 
+    void RedefineDummyMF (int lev);
+
     void locateParticle(ParticleType& p, ParticleLocData& pld, int lev_min,
 			int theEffectiveFinestLevel, int nGrow);
 
@@ -436,7 +440,7 @@ public:
 
     IntVect Index (const Particle<NR, NI>& p, int lev) const;
 
-    int getTileIndex(const IntVect& iv, const Box& box) const;
+    int getTileIndex(const IntVect& iv, const Box& box, Box& tbx) const;
 
     //
     // Checks a particle's location on levels lev_min and higher.
@@ -557,6 +561,8 @@ protected:
     // The struct-of-arrays data for the entire AMR hierarchy
     //
     Array<SoAMap> m_arraydata;
+
+    Array<std::unique_ptr<MultiFab> > m_dummy_mf;
 
 private:
     void AssignDensityDoit (int rho_index, 
