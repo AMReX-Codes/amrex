@@ -83,11 +83,13 @@ ParticleContainer<NR, NI, NA>::Where (const ParticleType&         p,
         const IntVect& iv = Index(p, lev);
         const BoxArray& ba = m_gdb->ParticleBoxArray(lev);
 
+        BL_ASSERT(ba.ixType().cellCentered());
+
         if (lev == pld.m_lev) {
             // The fact that we are here means this particle does not belong to any finer grids.
             if (0 <= pld.m_grid && pld.m_grid < ba.size())
             {
-                const Box& bx = ba[pld.m_grid];
+                const Box& bx = ba.getCellCenteredBox(pld.m_grid);
                 if (bx.contains(iv))
                 {
                     pld.m_cell = iv;
@@ -104,7 +106,7 @@ ParticleContainer<NR, NI, NA>::Where (const ParticleType&         p,
 
         if (!isects.empty())
         {
-            const Box& bx = ba[isects[0].first];
+            const Box& bx = ba.getCellCenteredBox(isects[0].first);
             pld.m_lev  = lev;
             pld.m_grid = isects[0].first;
 	    pld.m_tile = getTileIndex(iv, bx, pld.m_tilebox);
