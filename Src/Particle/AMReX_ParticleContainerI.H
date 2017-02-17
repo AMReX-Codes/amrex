@@ -218,7 +218,7 @@ ParticleContainer<NR, NI, NA>::SingleLevelGrownWhere (const ParticleType&       
             if (gbx.contains(iv))
             {
                 pld.m_cell = iv;
-                if (bx != pld.m_gridbox || !amrex::grow(pld.m_tilebox,ngrow).contains(iv)) {
+                if (bx != pld.m_gridbox || !pld.m_tilebox.contains(iv)) {
                     pld.m_tile = getTileIndex(iv, bx, pld.m_tilebox);
                     pld.m_gridbox = bx;
                 }
