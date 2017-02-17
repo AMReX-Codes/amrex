@@ -8,9 +8,6 @@
 
 using namespace amrex;
 
-bool    WarpXParticleContainer::do_tiling = 0;
-IntVect WarpXParticleContainer::tile_size   { D_DECL(1024000,8,8) };
-
 WarpXParticleContainer::WarpXParticleContainer (AmrCore* amr_core, int ispecies)
     : ParticleContainer<PIdx::nattribs,0,std::vector<Particle<PIdx::nattribs,0> > >
       (amr_core->GetParGDB())
@@ -32,6 +29,7 @@ WarpXParticleContainer::ReadParameters ()
     {
 	ParmParse pp("particles");
 
+        do_tiling = true;
 	pp.query("do_tiling",  do_tiling);
 
 	Array<int> ts(BL_SPACEDIM);

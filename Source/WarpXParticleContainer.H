@@ -8,22 +8,17 @@
 
 struct PIdx
 {
-    enum { // Particle Attributes stored in p.m_data
+    enum { // Particle Attributes stored in amrex::ParticleContainer's struct of array
 	w = 0,  // weight
-	ux, uy, uz,
+	ux, uy, uz, Ex, Ey, Ez, Bx, By, Bz,
 	nattribs
-    };
-
-    enum { // Particle data stored in partdata
-	Ex=0, Ey, Ez, Bx, By, Bz,
-	npartdata
     };
 };
 
 class MultiParticleContainer;
 
 class WarpXParticleContainer
-    : public amrex::ParticleContainer<PIdx::nattribs,0,std::vector<amrex::Particle<PIdx::nattribs,0> > >
+    : public amrex::ParticleContainer<0,0,PIdx::nattribs>
 {
 public:
     friend MultiParticleContainer;
@@ -62,9 +57,6 @@ protected:
 
     amrex::Real charge;
     amrex::Real mass;
-
-    static bool do_tiling;
-    static amrex::IntVect tile_size;
 };
 
 #endif
