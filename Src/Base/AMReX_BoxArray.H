@@ -113,6 +113,8 @@ struct BATransformer
     virtual IntVect doiLo () const = 0; // doi: Domain of Influence
     virtual IntVect doiHi () const = 0; // doi: Domain of Influence
 
+    virtual bool simple () const = 0; // Is this simply a type transformer
+
     virtual Box operator() (const Box& bx) const = 0;
 };
 
@@ -141,6 +143,8 @@ struct BATBase
 	m_typ = typ;
     }
 
+    virtual bool simple () const override { return false; }
+
 protected:
     IndexType m_typ;
 };
@@ -158,6 +162,8 @@ struct BATypeTransformer
 
     virtual IntVect doiHi () const override 
         { return m_typ.ixType(); }
+
+    virtual bool simple () const override { return true; }
 
     virtual Box operator() (const Box& bx) const override
         { return amrex::convert(bx, m_typ); }
@@ -328,10 +334,14 @@ public:
               const Box& ibox);
 
     //! Return element index of this BoxArray.
-    Box operator[] (int index) const 
-	{ return (*m_transformer)(m_ref->m_abox[index]); }
-    Box get        (int index) const 
-	{ return (*m_transformer)(m_ref->m_abox[index]); }
+    Box operator[] (int index) const {
+        if (m_simple) {
+            return amrex::convert(m_ref->m_abox[index], m_typ);
+        } else {
+            return (*m_transformer)(m_ref->m_abox[index]); 
+        }
+    }
+    Box get (int index) const { return operator[](index); }
 
     //! Return cell-centered box at element index of this BoxArray.
     const Box& getCellCenteredBox (int index) const
@@ -399,7 +409,7 @@ public:
     ptrdiff_t getRefID () const { return m_ref->getRefID(); }
 
     //! Return index type of this BoxArray
-    IndexType ixType () const { return m_transformer->ixType(); }
+    IndexType ixType () const { return m_typ; }
 
 #ifdef BL_USE_MPI
     //! Broadcast the BoxArray
@@ -425,7 +435,15 @@ private:
     //! Make ourselves unique.
     void uniqify ();
 
+    IntVect getDoiLo () const
+        { return m_simple ? IntVect::TheZeroVector() : m_transformer->doiLo(); }
+
+    IntVect getDoiHi () const
+        { return m_simple ?           m_typ.ixType() : m_transformer->doiHi(); }
+
     std::unique_ptr<BATransformer> m_transformer;
+    IndexType m_typ;
+    bool m_simple;
 
     //! The data -- a reference-counted pointer to a Ref.
     std::shared_ptr<BARef> m_ref;    
