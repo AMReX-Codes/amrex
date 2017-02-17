@@ -301,9 +301,7 @@ WarpX::WritePlotFile () const
     }
     
     {
-	Array<std::string> varnames {"jx", "jy", "jz", "Ex", "Ey", "Ez", "Bx", "By", "Bz", 
-                                     "part_per_cell", "part_per_grid", "part_per_proc", "proc_number"};
-
+	Array<std::string> varnames;
 	Array<std::unique_ptr<MultiFab> > mf(finest_level+1);
     
 	for (int lev = 0; lev <= finest_level; ++lev)
@@ -326,6 +324,12 @@ WarpX::WritePlotFile () const
 	    MultiFab::Copy(*mf[lev], *mf[lev], dcomp+1, dcomp+2, 1, ngrow);
 	    WarpX::Copy(*mf[lev], dcomp+1, 1, *current[lev][1], 0);
 #endif
+            if (lev == 0)
+            {
+                varnames.push_back("jx");
+                varnames.push_back("jy");
+                varnames.push_back("jz");
+            }
 
 	    PackPlotDataPtrs(srcmf, Efield[lev]);
 	    dcomp += 3;
@@ -334,6 +338,12 @@ WarpX::WritePlotFile () const
 	    MultiFab::Copy(*mf[lev], *mf[lev], dcomp+1, dcomp+2, 1, ngrow);
 	    WarpX::Copy(*mf[lev], dcomp+1, 1, *Efield[lev][1], 0);
 #endif
+            if (lev == 0)
+            {
+                varnames.push_back("Ex");
+                varnames.push_back("Ey");
+                varnames.push_back("Ez");
+            }
 
 	    PackPlotDataPtrs(srcmf, Bfield[lev]);
 	    dcomp += 3;
@@ -342,6 +352,12 @@ WarpX::WritePlotFile () const
 	    MultiFab::Copy(*mf[lev], *mf[lev], dcomp+1, dcomp+2, 1, ngrow);
 	    WarpX::Copy(*mf[lev], dcomp+1, 1, *Bfield[lev][1], 0);
 #endif
+            if (lev == 0)
+            {
+                varnames.push_back("Bx");
+                varnames.push_back("By");
+                varnames.push_back("Bz");
+            }
 
             MultiFab temp_dat(grids[lev],1,0,mf[lev]->DistributionMap());
             temp_dat.setVal(0);
@@ -350,28 +366,48 @@ WarpX::WritePlotFile () const
 	    dcomp += 3;
             mypc->Increment(temp_dat, lev);
             MultiFab::Copy(*mf[lev], temp_dat, 0, dcomp, 1, 0);
+            if (lev == 0)
+            {
+                varnames.push_back("part_per_cell");
+            }
 
             // MultiFab containing number of particles per grid (stored as constant for all cells in each grid)
-            const Array<long>& new_particle_cost = mypc->NumberOfParticlesInGrid(lev);
+            const Array<long>& npart_in_grid = mypc->NumberOfParticlesInGrid(lev);
 
 	    dcomp += 1;
-            for (MFIter mfi(*mf[lev]); mfi.isValid(); ++mfi) 
-		(*mf[lev])[mfi].setVal(static_cast<Real>(new_particle_cost[mfi.index()]), dcomp);
+            for (MFIter mfi(*mf[lev]); mfi.isValid(); ++mfi) {
+		(*mf[lev])[mfi].setVal(static_cast<Real>(npart_in_grid[mfi.index()]), dcomp);
+            }
+            if (lev == 0)
+            {
+                varnames.push_back("part_per_grid");
+            }
 
             // MultiFab containing number of particles per process (stored as constant for all cells in each grid)
 	    dcomp += 1;
             long n_per_proc = 0;
-            for (MFIter mfi(*mf[lev]); mfi.isValid(); ++mfi) 
-                n_per_proc += new_particle_cost[mfi.index()];
-            for (MFIter mfi(*mf[lev]); mfi.isValid(); ++mfi) 
+            for (MFIter mfi(*mf[lev]); mfi.isValid(); ++mfi) {
+                n_per_proc += npart_in_grid[mfi.index()];
+            }
+            for (MFIter mfi(*mf[lev]); mfi.isValid(); ++mfi) {
 		(*mf[lev])[mfi].setVal(static_cast<Real>(n_per_proc), dcomp);
+            }
+            if (lev == 0)
+            {
+                varnames.push_back("part_per_proc");
+            }
 
             if (ParallelDescriptor::NProcs() > 1) {
-              // MultiFab containing the Processor ID 
-  	      dcomp += 1;
-              for (MFIter mfi(*mf[lev]); mfi.isValid(); ++mfi) 
-		(*mf[lev])[mfi].setVal(static_cast<Real>(ParallelDescriptor::MyProc()), dcomp);
-	    }
+                // MultiFab containing the Processor ID 
+                dcomp += 1;
+                for (MFIter mfi(*mf[lev]); mfi.isValid(); ++mfi) {
+                    (*mf[lev])[mfi].setVal(static_cast<Real>(ParallelDescriptor::MyProc()), dcomp);
+                }
+                if (lev == 0)
+                {
+                    varnames.push_back("proc_number");
+                }
+            }
 	}
     
 	Array<const MultiFab*> mf2(finest_level+1);
