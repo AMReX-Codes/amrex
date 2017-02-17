@@ -73,9 +73,12 @@ ParticleContainer<NR, NI, NA>::getTileIndex(const IntVect& iv, const Box& box, B
         const IntVect& small = box.smallEnd();
         const IntVect& big   = box.bigEnd();
         IntVect ntiles, ivIndex, tilelo, tilehi;
-        D_TERM(tiling_1d(iv[0], small[0], big[0], tile_size[0], ntiles[0], ivIndex[0], tilelo[0], tilehi[0]);,
-               tiling_1d(iv[1], small[1], big[1], tile_size[1], ntiles[1], ivIndex[1], tilelo[1], tilehi[1]);,
-               tiling_1d(iv[2], small[2], big[2], tile_size[2], ntiles[2], ivIndex[2], tilelo[2], tilehi[2]););
+        D_TERM(int iv0 = std::min(std::max(iv[0], small[0]), big[0]);,
+               int iv1 = std::min(std::max(iv[1], small[1]), big[1]);,
+               int iv2 = std::min(std::max(iv[2], small[2]), big[2]););
+        D_TERM(tiling_1d(iv0, small[0], big[0], tile_size[0], ntiles[0], ivIndex[0], tilelo[0], tilehi[0]);,
+               tiling_1d(iv1, small[1], big[1], tile_size[1], ntiles[1], ivIndex[1], tilelo[1], tilehi[1]);,
+               tiling_1d(iv2, small[2], big[2], tile_size[2], ntiles[2], ivIndex[2], tilelo[2], tilehi[2]););
         
         tbx = Box(tilelo, tilehi);
 
@@ -140,10 +143,10 @@ ParticleContainer<NR, NI, NA>::Where (const ParticleType&         p,
 
 template <int NR, int NI, int NA>
 bool
-ParticleContainer<NR, NI, NA>::PeriodicWhere (ParticleType&               p,
-						 ParticleLocData&            pld,
-						 int                         lev_min,
-						 int                         finest_level) const
+ParticleContainer<NR, NI, NA>::EnforcePeriodicWhere (ParticleType&         p,
+                                                     ParticleLocData&      pld,
+                                                     int                   lev_min,
+                                                     int                   finest_level) const
 {
     BL_ASSERT(m_gdb != 0);
 
@@ -195,16 +198,34 @@ ParticleContainer<NR, NI, NA>::PeriodicWhere (ParticleType&               p,
 
 template <int NR, int NI, int NA>
 bool
-ParticleContainer<NR, NI, NA>::RestrictedWhere (const ParticleType&         p,
-                                                ParticleLocData&            pld,
-                                                int                         lev,
-                                                int                         ngrow) const
+ParticleContainer<NR, NI, NA>::SingleLevelGrownWhere (const ParticleType&         p,
+                                                      ParticleLocData&            pld,
+                                                      int                         lev,
+                                                      int                         ngrow) const
 {
     BL_ASSERT(m_gdb != 0);
 
     const IntVect& iv = Index(p, lev);
     const BoxArray& ba = m_gdb->ParticleBoxArray(lev);
     BL_ASSERT(ba.ixType().cellCentered());
+
+    if (lev == pld.m_lev)
+    {
+        if (0 <= pld.m_grid && pld.m_grid < ba.size())
+        {
+            const Box&  bx = ba.getCellCenteredBox(pld.m_grid);
+            const Box& gbx = amrex::grow(bx,ngrow);
+            if (gbx.contains(iv))
+            {
+                pld.m_cell = iv;
+                if (bx != pld.m_gridbox || !amrex::grow(pld.m_tilebox,ngrow).contains(iv)) {
+                    pld.m_tile = getTileIndex(iv, bx, pld.m_tilebox);
+                    pld.m_gridbox = bx;
+                }
+                return true;
+            }
+        }
+    }
 
     std::vector< std::pair<int,Box> > isects;
     ba.intersections(Box(iv,iv),isects,true,ngrow);
@@ -361,10 +382,10 @@ template <int NR, int NI, int NA>
 void
 ParticleContainer<NR, NI, NA>::locateParticle(ParticleType& p, ParticleLocData& pld, 
 					      int lev_min, int theEffectiveFinestLevel,
-					      int nGrow)
+					      int nGrow) const
 {
     if (!Where(p, pld, lev_min, theEffectiveFinestLevel)) {
-        if (!PeriodicWhere(p, pld, lev_min, theEffectiveFinestLevel)) {
+        if (!EnforcePeriodicWhere(p, pld, lev_min, theEffectiveFinestLevel)) {
             if (lev_min == 0)
             {
                 //
@@ -374,7 +395,7 @@ ParticleContainer<NR, NI, NA>::locateParticle(ParticleType& p, ParticleLocData& 
             }
             else
             {
-                if (!RestrictedWhere(p, pld, lev_min, nGrow)) {
+                if (nGrow == 0 || !SingleLevelGrownWhere(p, pld, lev_min, nGrow)) {
                     amrex::Abort("ParticleContainer<NR, NI, NA>::locateParticle(): invalid particle.");
                 }
             }
@@ -1539,8 +1560,8 @@ ParticleContainer<NR, NI, NA>::RedistributeMPI (std::map<int, Array<char> >& not
 template <int NR, int NI, int NA>
 bool
 ParticleContainer<NR, NI, NA>::OK (int  lev_min,
-				      int  ngrow,
-				      int  finest_level) const
+                                   int  ngrow,
+                                   int  finest_level) const
 {
     BL_PROFILE("ParticleContainer<NR, NI, NA>::OK()");
     if (finest_level == -1)
@@ -1548,49 +1569,38 @@ ParticleContainer<NR, NI, NA>::OK (int  lev_min,
 
     BL_ASSERT(finest_level <= m_gdb->finestLevel());
     //
-    // Check that the integer data in each valid particle is what it should be.
-    // This includes checking that particles are in the proper place in the particle
-    // container based on what Where() says they should be.
-    //
-    // Particles are copied to avoid accidentally moving them with where.
+    // Check that each valid particle is in the proper container.
     //
     ParticleLocData pld;
     for (int lev = lev_min, nlevs=m_particles.size(); lev < nlevs; lev++)
-      {
+    {
         const AoSMap& pmap = m_particles[lev];
 	for (const auto& kv : pmap) {
-	  const int grid = kv.first.first;
-	  const int tile = kv.first.second;
-	  const AoS& pbox = kv.second;
-	  for (auto it = pbox.cbegin(); it != pbox.cend(); ++it)
+            const int grid = kv.first.first;
+            const int tile = kv.first.second;
+            const AoS& pbox = kv.second;
+            for (auto it = pbox.cbegin(); it != pbox.cend(); ++it)
             {
-	      //
-	      // Yes I want to make a copy of the particle.
-	      //
-	      ParticleType p = *it;
-	      
-	      if (p.m_idata.id > 0)
-                {		  
-		  if (!Where(p, pld, lev_min, finest_level))
-                    {
-		      if (!PeriodicWhere(p, pld, lev_min, finest_level)) 
-			{
-			  if (!RestrictedWhere(p, pld, lev_min, ngrow))
-			    return false;
-			}
+                //
+                // Yes I want to make a copy of the particle.
+                //
+                ParticleType p = *it;
+                
+                if (p.m_idata.id > 0)
+                {		 
+                    locateParticle(p, pld, lev_min, finest_level, ngrow);
+                    
+                    if (lev  != pld.m_lev  || grid != pld.m_grid || tile != pld.m_tile) {
+                        amrex::AllPrint() << "PARTICLE NUMBER " << p.m_idata.id << '\n'
+                                          << "POS  " << D_TERM(p.m_rdata.pos[0], << p.m_rdata.pos[1], << p.m_rdata.pos[2]) << "\n"
+                                          << "LEV  " << lev  << " " << pld.m_lev << '\n'
+                                          << "GRID " << grid << " " << pld.m_grid << '\n';
+                        return false;
                     }
-
-		  if (lev  != pld.m_lev  || grid != pld.m_grid || tile != pld.m_tile) {
-                      amrex::AllPrint() << "PARTICLE NUMBER " << p.m_idata.id << '\n'
-                                        << "POS  " << D_TERM(p.m_rdata.pos[0], << p.m_rdata.pos[1], << p.m_rdata.pos[2]) << "\n"
-                                        << "LEV  " << lev  << " " << pld.m_lev << '\n'
-                                        << "GRID " << grid << " " << pld.m_grid << '\n';
-                      return false;
-		  }
                 }
             }
         }
-      }
+    }
     
     return true;
 }

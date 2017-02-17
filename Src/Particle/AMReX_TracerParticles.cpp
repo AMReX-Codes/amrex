@@ -52,8 +52,6 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
         }
     }
 
-    ParticleLocData pld;
-
     for (int ipass = 0; ipass < 2; ipass++)
     {
         AoSMap& pmap = m_particles[lev];
@@ -67,7 +65,7 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
 						 &((*umac_pointer[2])[grid])) };
 
 #ifdef _OPENMP
-#pragma omp parallel for private(pld)
+#pragma omp parallel for
 #endif
             for (int i = 0; i < n; i++)
             {
@@ -121,8 +119,6 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
 			p.m_rdata.arr[BL_SPACEDIM+d] = vel;
                     }
                 }
-                
-                RestrictedWhere(p, pld, lev, umac[0].nGrow()); 
             }
         }
     }
@@ -164,8 +160,6 @@ TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
 
     int idx[BL_SPACEDIM] = {D_DECL(0,1,2)};
 
-    ParticleLocData pld;
-
     for (int ipass = 0; ipass < 2; ipass++)
     {
         AoSMap& pmap = m_particles[lev];
@@ -176,7 +170,7 @@ TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
 	  const FArrayBox& fab = Ucc[grid];
 	    
 #ifdef _OPENMP
-#pragma omp parallel for private(pld)
+#pragma omp parallel for
 #endif
             for (int i = 0; i < n; i++)
             {
@@ -208,8 +202,6 @@ TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
 			p.m_rdata.arr[BL_SPACEDIM+d] = v[d];
                     }
                 }
-                
-                RestrictedWhere(p, pld, lev, Ucc.nGrow()); 
             }
         }
     }
