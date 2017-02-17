@@ -384,12 +384,12 @@ ParticleContainer<NR, NI, NA>::locateParticle(ParticleType& p, ParticleLocData& 
 					      int lev_min, int theEffectiveFinestLevel,
 					      int nGrow) const
 {
-    bool outside = D_TERM(   p.m_rdata.pos[0] < Geometry::ProbLo(0)
-                          || p.m_rdata.pos[0] > Geometry::ProbHi(0),
-                          || p.m_rdata.pos[1] < Geometry::ProbLo(1)
-                          || p.m_rdata.pos[1] > Geometry::ProbHi(1),
-                          || p.m_rdata.pos[2] < Geometry::ProbLo(2)
-                          || p.m_rdata.pos[2] > Geometry::ProbHi(2));
+    bool outside = D_TERM(   p.m_rdata.pos[0] <  Geometry::ProbLo(0)
+                          || p.m_rdata.pos[0] >= Geometry::ProbHi(0),
+                          || p.m_rdata.pos[1] <  Geometry::ProbLo(1)
+                          || p.m_rdata.pos[1] >= Geometry::ProbHi(1),
+                          || p.m_rdata.pos[2] <  Geometry::ProbLo(2)
+                          || p.m_rdata.pos[2] >= Geometry::ProbHi(2));
 
     bool success;
     if (outside)
