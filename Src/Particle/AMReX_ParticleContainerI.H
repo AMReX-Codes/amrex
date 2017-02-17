@@ -384,22 +384,38 @@ ParticleContainer<NR, NI, NA>::locateParticle(ParticleType& p, ParticleLocData& 
 					      int lev_min, int theEffectiveFinestLevel,
 					      int nGrow) const
 {
-    if (!Where(p, pld, lev_min, theEffectiveFinestLevel)) {
-        if (!EnforcePeriodicWhere(p, pld, lev_min, theEffectiveFinestLevel)) {
-            if (lev_min == 0)
-            {
-                //
-                // The particle has left the domain; invalidate it.
-                 //
-                p.m_idata.id = -p.m_idata.id;
-            }
-            else
-            {
-                if (nGrow == 0 || !SingleLevelGrownWhere(p, pld, lev_min, nGrow)) {
-                    amrex::Abort("ParticleContainer<NR, NI, NA>::locateParticle(): invalid particle.");
-                }
-            }
+    bool outside = D_TERM(   p.m_rdata.pos[0] < Geometry::ProbLo(0)
+                          || p.m_rdata.pos[0] > Geometry::ProbHi(0),
+                          || p.m_rdata.pos[1] < Geometry::ProbLo(1)
+                          || p.m_rdata.pos[1] > Geometry::ProbHi(1),
+                          || p.m_rdata.pos[2] < Geometry::ProbLo(2)
+                          || p.m_rdata.pos[2] > Geometry::ProbHi(2));
+
+    bool success;
+    if (outside)
+    {
+        // Note that EnforcePeriodicWhere may shift the particle if it is successful.
+        success = EnforcePeriodicWhere(p, pld, lev_min, theEffectiveFinestLevel);
+        if (!success && lev_min == 0)
+        {
+            // The particle has left the domain; invalidate it.
+            p.m_idata.id = -p.m_idata.id;
+            success = true;
         }
+    }
+    else
+    {
+        success = Where(p, pld, lev_min, theEffectiveFinestLevel);
+    }
+
+    if (!success)
+    {
+        success = (nGrow > 0) && SingleLevelGrownWhere(p, pld, lev_min, nGrow);
+    }
+
+    if (!success)
+    {
+        amrex::Abort("ParticleContainer<NR, NI, NA>::locateParticle(): invalid particle.");
     }
 }
 
@@ -1579,23 +1595,38 @@ ParticleContainer<NR, NI, NA>::OK (int  lev_min,
             const int grid = kv.first.first;
             const int tile = kv.first.second;
             const AoS& pbox = kv.second;
-            for (auto it = pbox.cbegin(); it != pbox.cend(); ++it)
+            const BoxArray& ba = ParticleBoxArray(lev);
+            BL_ASSERT(ba.ixType().cellCentered());
+            for (const auto& p : pbox)
             {
-                //
-                // Yes I want to make a copy of the particle.
-                //
-                ParticleType p = *it;
-                
                 if (p.m_idata.id > 0)
-                {		 
-                    locateParticle(p, pld, lev_min, finest_level, ngrow);
-                    
-                    if (lev  != pld.m_lev  || grid != pld.m_grid || tile != pld.m_tile) {
-                        amrex::AllPrint() << "PARTICLE NUMBER " << p.m_idata.id << '\n'
-                                          << "POS  " << D_TERM(p.m_rdata.pos[0], << p.m_rdata.pos[1], << p.m_rdata.pos[2]) << "\n"
-                                          << "LEV  " << lev  << " " << pld.m_lev << '\n'
-                                          << "GRID " << grid << " " << pld.m_grid << '\n';
-                        return false;
+                {
+                    if (grid < 0 || grid >= ba.size()) return false;
+
+                    if (Where(p, pld, lev_min, finest_level))
+                    {
+                        if (lev != pld.m_lev  || grid != pld.m_grid || tile != pld.m_tile)
+                        {
+                            amrex::AllPrint() << "PARTICLE NUMBER " << p.m_idata.id << '\n'
+                                              << "POS  " << D_TERM(p.m_rdata.pos[0], << p.m_rdata.pos[1], << p.m_rdata.pos[2]) << "\n"
+                                              << "LEV  " << lev  << " " << pld.m_lev << '\n'
+                                              << "GRID " << grid << " " << pld.m_grid << '\n';
+                            return false;
+                        }
+                    }
+                    else
+                    {
+                        const IntVect& iv = Index(p, lev);
+                        const Box& gridbox = ba.getCellCenteredBox(grid);
+                        if (!amrex::grow(gridbox,ngrow).contains(iv))
+                        {
+                            return false;
+                        }
+                        Box tbx;
+                        if (getTileIndex(iv, gridbox, tbx) != tile)
+                        {
+                            return false;
+                        }
                     }
                 }
             }
