@@ -103,7 +103,6 @@ ParticleContainer<NR, NI, NA>::Where (const ParticleType&         p,
     {
         const IntVect& iv = Index(p, lev);
         const BoxArray& ba = m_gdb->ParticleBoxArray(lev);
-
         BL_ASSERT(ba.ixType().cellCentered());
 
         if (lev == pld.m_lev) {
@@ -167,8 +166,10 @@ ParticleContainer<NR, NI, NA>::PeriodicWhere (ParticleType&               p,
         for (int lev = finest_level; lev >= lev_min; lev--)
         {
             const IntVect& iv = Index(p_prime, lev);
+            const BoxArray& ba = m_gdb->ParticleBoxArray(lev);
+            BL_ASSERT(ba.ixType().cellCentered());
 
-            m_gdb->ParticleBoxArray(lev).intersections(Box(iv,iv),isects,true,0);
+            ba.intersections(Box(iv,iv),isects,true,0);
 
             if (!isects.empty())
             {
@@ -176,7 +177,7 @@ ParticleContainer<NR, NI, NA>::PeriodicWhere (ParticleType&               p,
                        p.m_rdata.pos[1] = p_prime.m_rdata.pos[1];,
                        p.m_rdata.pos[2] = p_prime.m_rdata.pos[2];);
 
-                const Box& bx = m_gdb->ParticleBoxArray(lev)[isects[0].first];
+                const Box& bx = ba.getCellCenteredBox(isects[0].first);
 
                 pld.m_lev  = lev;
                 pld.m_grid = isects[0].first;
@@ -202,13 +203,15 @@ ParticleContainer<NR, NI, NA>::RestrictedWhere (const ParticleType&         p,
     BL_ASSERT(m_gdb != 0);
 
     const IntVect& iv = Index(p, lev);
+    const BoxArray& ba = m_gdb->ParticleBoxArray(lev);
+    BL_ASSERT(ba.ixType().cellCentered());
 
     std::vector< std::pair<int,Box> > isects;
-    m_gdb->ParticleBoxArray(lev).intersections(Box(iv,iv),isects,true,ngrow);
+    ba.intersections(Box(iv,iv),isects,true,ngrow);
 
     if (!isects.empty())
     {
-        const Box& bx = m_gdb->ParticleBoxArray(lev)[isects[0].first];
+        const Box& bx = ba.getCellCenteredBox(isects[0].first);
         pld.m_lev  = lev;
         pld.m_grid = isects[0].first;
         pld.m_cell = iv;	
@@ -231,14 +234,16 @@ ParticleContainer<NR, NI, NA>::SingleLevelWhere (const ParticleType&         p,
     BL_ASSERT(m_gdb != 0);
 
     const IntVect& iv = Index(p, level);
+    const BoxArray& ba = m_gdb->ParticleBoxArray(level);
+    BL_ASSERT(ba.ixType().cellCentered());
 
     std::vector< std::pair<int,Box> > isects;
 
-    m_gdb->ParticleBoxArray(level).intersections(Box(iv,iv),isects,true,0);
+    ba.intersections(Box(iv,iv),isects,true,0);
 
     if (!isects.empty())
     {
-        const Box& bx = m_gdb->ParticleBoxArray(level)[isects[0].first];
+        const Box& bx = ba.getCellCenteredBox(isects[0].first);
         pld.m_lev  = level;
         pld.m_grid = isects[0].first;
         pld.m_cell = iv;	
@@ -248,11 +253,11 @@ ParticleContainer<NR, NI, NA>::SingleLevelWhere (const ParticleType&         p,
         return true;
     }
 
-    m_gdb->ParticleBoxArray(level).intersections(Box(iv,iv),isects,true,nGrow);
+    ba.intersections(Box(iv,iv),isects,true,nGrow);
 
     if (!isects.empty())
     {
-        const Box& bx = m_gdb->ParticleBoxArray(level)[isects[0].first];
+        const Box& bx = ba.getCellCenteredBox(isects[0].first);
         pld.m_lev  = level;
         pld.m_grid = isects[0].first;
         pld.m_cell = iv;	
