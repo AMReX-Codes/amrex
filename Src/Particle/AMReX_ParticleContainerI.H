@@ -196,9 +196,9 @@ ParticleContainer<NR, NI, NA>::PeriodicWhere (ParticleType&               p,
 template <int NR, int NI, int NA>
 bool
 ParticleContainer<NR, NI, NA>::RestrictedWhere (const ParticleType&         p,
-						   ParticleLocData&            pld,
-						   int                         lev,
-						   int                         ngrow) const
+                                                ParticleLocData&            pld,
+                                                int                         lev,
+                                                int                         ngrow) const
 {
     BL_ASSERT(m_gdb != 0);
 
@@ -224,51 +224,6 @@ ParticleContainer<NR, NI, NA>::RestrictedWhere (const ParticleType&         p,
     return false;
 }
 
-template <int NR, int NI, int NA>
-bool 
-ParticleContainer<NR, NI, NA>::SingleLevelWhere (const ParticleType&         p, 
-						    ParticleLocData&            pld,
-						    int                         level,
-						    int                         nGrow) const
-{
-    BL_ASSERT(m_gdb != 0);
-
-    const IntVect& iv = Index(p, level);
-    const BoxArray& ba = m_gdb->ParticleBoxArray(level);
-    BL_ASSERT(ba.ixType().cellCentered());
-
-    std::vector< std::pair<int,Box> > isects;
-
-    ba.intersections(Box(iv,iv),isects,true,0);
-
-    if (!isects.empty())
-    {
-        const Box& bx = ba.getCellCenteredBox(isects[0].first);
-        pld.m_lev  = level;
-        pld.m_grid = isects[0].first;
-        pld.m_cell = iv;	
-	pld.m_tile = getTileIndex(iv, bx, pld.m_tilebox);
-        pld.m_gridbox = bx;
-
-        return true;
-    }
-
-    ba.intersections(Box(iv,iv),isects,true,nGrow);
-
-    if (!isects.empty())
-    {
-        const Box& bx = ba.getCellCenteredBox(isects[0].first);
-        pld.m_lev  = level;
-        pld.m_grid = isects[0].first;
-        pld.m_cell = iv;	
-	pld.m_tile = getTileIndex(iv, bx, pld.m_tilebox);
-        pld.m_gridbox = bx;
-
-        return true;
-    }
-
-    return false;
-}
 
 template <int NR, int NI, int NA>
 bool
@@ -406,23 +361,25 @@ template <int NR, int NI, int NA>
 void
 ParticleContainer<NR, NI, NA>::locateParticle(ParticleType& p, ParticleLocData& pld, 
 					      int lev_min, int theEffectiveFinestLevel,
-					      int nGrow) {
-  if (!Where(p, pld, lev_min, theEffectiveFinestLevel)) {
-    if (!PeriodicWhere(p, pld, lev_min, theEffectiveFinestLevel)) {
-      if (lev_min != 0) // RestrictedWhere should be unnecessary at top level.
-	{
-	  if (!RestrictedWhere(p, pld, lev_min, nGrow))
-	    amrex::Abort("ParticleContainer<NR, NI, NA>::locateParticle(): invalid particle.");
-	}
-      else {
-	//
-	// The particle has left the domain; invalidate it.
-	// This typically only happens on a coarse timestep.
-	//
-	p.m_idata.id = -p.m_idata.id;
-      }
+					      int nGrow)
+{
+    if (!Where(p, pld, lev_min, theEffectiveFinestLevel)) {
+        if (!PeriodicWhere(p, pld, lev_min, theEffectiveFinestLevel)) {
+            if (lev_min == 0)
+            {
+                //
+                // The particle has left the domain; invalidate it.
+                 //
+                p.m_idata.id = -p.m_idata.id;
+            }
+            else
+            {
+                if (!RestrictedWhere(p, pld, lev_min, nGrow)) {
+                    amrex::Abort("ParticleContainer<NR, NI, NA>::locateParticle(): invalid particle.");
+                }
+            }
+        }
     }
-  }
 }
 
 template <int NR, int NI, int NA>
@@ -1245,7 +1202,7 @@ ParticleContainer<NR, NI, NA>::CreateGhostParticles (int   level,
 	    //
 	    ParticleType p = *it;
 	    
-	    SingleLevelWhere(p, pld, level + 1);
+            Where(p, pld, level+1, level+1);
 	    
 	    //
 	    // Set its id to indicate that it's a ghost.
