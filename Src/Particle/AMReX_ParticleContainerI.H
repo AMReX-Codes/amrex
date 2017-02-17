@@ -1603,6 +1603,25 @@ ParticleContainer<NR, NI, NA>::OK (int  lev_min,
                 {
                     if (grid < 0 || grid >= ba.size()) return false;
 
+                    //
+                    // First, make sure the particle COULD be in this container
+                    // 
+                    const IntVect& iv = Index(p, lev);
+                    const Box& gridbox = ba.getCellCenteredBox(grid);
+                    if (!amrex::grow(gridbox,ngrow).contains(iv))
+                    {
+                        return false;
+                    }
+                    Box tbx;
+                    if (getTileIndex(iv, gridbox, tbx) != tile)
+                    {
+                        return false;
+                    }
+
+                    //
+                    // Then, we need to make sure it cannot be stored in finer level 
+                    // or valid box of current level.
+                    //
                     if (Where(p, pld, lev_min, finest_level))
                     {
                         if (lev != pld.m_lev  || grid != pld.m_grid || tile != pld.m_tile)
@@ -1611,20 +1630,6 @@ ParticleContainer<NR, NI, NA>::OK (int  lev_min,
                                               << "POS  " << D_TERM(p.m_rdata.pos[0], << p.m_rdata.pos[1], << p.m_rdata.pos[2]) << "\n"
                                               << "LEV  " << lev  << " " << pld.m_lev << '\n'
                                               << "GRID " << grid << " " << pld.m_grid << '\n';
-                            return false;
-                        }
-                    }
-                    else
-                    {
-                        const IntVect& iv = Index(p, lev);
-                        const Box& gridbox = ba.getCellCenteredBox(grid);
-                        if (!amrex::grow(gridbox,ngrow).contains(iv))
-                        {
-                            return false;
-                        }
-                        Box tbx;
-                        if (getTileIndex(iv, gridbox, tbx) != tile)
-                        {
                             return false;
                         }
                     }
