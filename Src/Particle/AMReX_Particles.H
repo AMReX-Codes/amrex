@@ -209,9 +209,15 @@ struct StructOfArrays {
   std::array<Array<Real>, NA> m_data;
 };
 
+template <int NR, int NI, int NA> class ParIter;
+template <int NR, int NI, int NA> class ParConstIter;
+
 template <int NR, int NI = 0, int NA = 0>
 class ParticleContainer
 {
+    friend class ParIter<NR,NI,NA>;
+    friend class ParConstIter<NR,NI,NA>;
+
 public:
     //
     // The type of Particles we hold.
@@ -571,6 +577,67 @@ private:
     static int getTileIndex(const IntVect& iv, const Box& box, Box& tbx);
 
     static void Initialize ();
+};
+
+template <int NR, int NI = 0, int NA = 0>
+class ParIter
+    : public MFIter
+{
+public:
+    using ContainerType = ParticleContainer<NR,NI,NA>;
+    using ParticleType  = typename ContainerType::ParticleType;
+    using AoS           = typename ContainerType::AoS;
+    using SoA           = typename ContainerType::SoA;
+
+    ParIter (ContainerType& pc, int level) 
+        : 
+        MFIter(*pc.m_dummy_mf[level],
+               pc.do_tiling ? pc.tile_size : IntVect::TheZeroVector()),
+        m_aos_map(pc.m_particles[level]),
+        m_soa_map(pc.m_arraydata[level]),
+        m_level(level) 
+        {}
+
+    AoS& GetParticleData () {
+        auto r = m_aos_map.find(std::make_pair(index(),LocalTileIndex()));
+        BL_ASSERT(r != m_aos_map.end());
+        return r->second;
+    }
+
+    const AoS& GetParticleData () const {
+        auto r = m_aos_map.find(std::make_pair(index(),LocalTileIndex()));
+        BL_ASSERT(r != m_aos_map.end());
+        return r->second;
+    }
+
+    SoA& GetArrayData () {
+        auto r = m_soa_map.find(std::make_pair(index(),LocalTileIndex()));
+        BL_ASSERT(r != m_soa_map.end());
+        return r->second;
+    }
+
+    Array<Real>& GetArrayData (int comp) {
+        auto r = m_soa_map.find(std::make_pair(index(),LocalTileIndex()));
+        BL_ASSERT(r != m_soa_map.end());
+        return r->second[comp];
+    }
+
+    const SoA& GetArrayData () const {
+        auto r = m_soa_map.find(std::make_pair(index(),LocalTileIndex()));
+        BL_ASSERT(r != m_soa_map.end());
+        return r->second;
+    }
+
+    const Array<Real>& GetArrayData (int comp) const {
+        auto r = m_soa_map.find(std::make_pair(index(),LocalTileIndex()));
+        BL_ASSERT(r != m_soa_map.end());
+        return r->second[comp];
+    }
+
+private:
+    typename ContainerType::AoSMap m_aos_map;
+    typename ContainerType::SoAMap m_soa_map;
+    int m_level;
 };
 
 #include "AMReX_ParticleI.H"
