@@ -52,8 +52,6 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
         }
     }
 
-    ParticleLocData pld;
-
     for (int ipass = 0; ipass < 2; ipass++)
     {
         AoSMap& pmap = m_particles[lev];
@@ -67,16 +65,15 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
 						 &((*umac_pointer[2])[grid])) };
 
 #ifdef _OPENMP
-#pragma omp parallel for private(pld)
+#pragma omp parallel for
 #endif
             for (int i = 0; i < n; i++)
             {
                 ParticleType& p = pbox[i];
 
-	        bool found_it = SingleLevelWhere(p, pld, lev, umac[0].nGrow());
-		BL_ASSERT(found_it);
-
                 if (p.m_idata.id <= 0) continue;
+
+                const IntVect& cc_cell = Index(p, lev);
 
                 const Real len[BL_SPACEDIM] = { D_DECL((p.m_rdata.pos[0]-plo[0])/dx[0] + Real(0.5),
                                                        (p.m_rdata.pos[1]-plo[1])/dx[1] + Real(0.5),
@@ -90,11 +87,11 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
                 {
                     IntVect ecell = cell;
 
-                    ecell[d] = pld.m_cell[d] + 1;
+                    ecell[d] = cc_cell[d] + 1;
 
                     Real efrac[BL_SPACEDIM] = { D_DECL(frac[0], frac[1], frac[2]) };
 
-                    efrac[d] = (p.m_rdata.pos[d]-plo[d])/dx[d] - pld.m_cell[d];
+                    efrac[d] = (p.m_rdata.pos[d]-plo[d])/dx[d] - cc_cell[d];
 
                     for (int j = 0; j < BL_SPACEDIM; j++)
                     {
@@ -122,8 +119,6 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
 			p.m_rdata.arr[BL_SPACEDIM+d] = vel;
                     }
                 }
-                
-                RestrictedWhere(p, pld, lev, umac[0].nGrow()); 
             }
         }
     }
@@ -165,8 +160,6 @@ TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
 
     int idx[BL_SPACEDIM] = {D_DECL(0,1,2)};
 
-    ParticleLocData pld;
-
     for (int ipass = 0; ipass < 2; ipass++)
     {
         AoSMap& pmap = m_particles[lev];
@@ -177,17 +170,13 @@ TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
 	  const FArrayBox& fab = Ucc[grid];
 	    
 #ifdef _OPENMP
-#pragma omp parallel for private(pld)
+#pragma omp parallel for
 #endif
             for (int i = 0; i < n; i++)
             {
                 ParticleType& p = pbox[i];
 
                 if (p.m_idata.id <= 0) continue;
-
-		SingleLevelWhere(p, pld, lev);
-
-                BL_ASSERT(pld.m_grid == grid);
 
 		Real v[BL_SPACEDIM];
 
@@ -213,8 +202,6 @@ TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
 			p.m_rdata.arr[BL_SPACEDIM+d] = v[d];
                     }
                 }
-                
-                RestrictedWhere(p, pld, lev, Ucc.nGrow()); 
             }
         }
     }
@@ -271,8 +258,6 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
     nOutFiles = std::max(1, std::min(nOutFiles,NProcs));
     const int   nSets     = ((NProcs + (nOutFiles - 1)) / nOutFiles);
     const int   mySet     = (MyProc / nOutFiles);
-
-    ParticleLocData pld;
 
     for (int iSet = 0; iSet < nSets; ++iSet)
       {
@@ -331,13 +316,9 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
                     {
 		      if (p.m_idata.id <= 0) continue;
 		      
-		      SingleLevelWhere(p, pld, lev);
-		      const IntVect& iv = pld.m_cell;
+		      const IntVect& iv = Index(p,lev);
 		      
 		      if (!bx.contains(iv) && !ba.contains(iv)) continue;
-		      
-		      BL_ASSERT(pld.m_lev == lev);
-		      BL_ASSERT(pld.m_grid == grid);
 		      
 		      TimeStampFile << p.m_idata.id  << ' ' << p.m_idata.cpu << ' ';
 		      
@@ -355,7 +336,7 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
 		      
 		      if (M > 0)
                         {
-			  ParticleType::Interp(p,m_gdb->Geom(pld.m_lev),fab,&indices[0],&vals[0],M);
+			  ParticleType::Interp(p,m_gdb->Geom(lev),fab,&indices[0],&vals[0],M);
 			  
 			  for (int i = 0; i < M; i++)
                             {
