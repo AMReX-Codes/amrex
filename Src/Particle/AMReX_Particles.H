@@ -217,6 +217,7 @@ public:
     // The type of Particles we hold.
     //
     using ParticleType = Particle<NR, NI>;
+    using RealType = typename Particle<NR, NI>::RealType;
 
     // This defines the array-of-structs datatype.
     using AoS = Array<ParticleType>;

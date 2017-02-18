@@ -10,7 +10,11 @@ void
 ParticleContainer<NR, NI, NA> :: Initialize ()
 {
     static bool initialized = false;
-    if (!initialized) {
+    if (!initialized)
+    {
+        static_assert(sizeof(ParticleType)%sizeof(RealType) == 0,
+                      "sizeof ParticleType is not a multiple of sizeof RealType");
+
         ParmParse pp("particles");
         pp.query("do_tiling", do_tiling);
         Array<int> tilesize(BL_SPACEDIM);
