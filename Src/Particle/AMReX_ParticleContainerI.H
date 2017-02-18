@@ -58,7 +58,7 @@ ParticleContainer<NR, NI, NA>::getTileIndex(const IntVect& iv, const Box& box, B
             int ts_right = ncells/ntile;
             int ts_left  = ts_right+1;
             int nleft = ncells - ntile*ts_right;
-            int ii = i - lo;
+	    int ii = i - lo;
             int nbndry = nleft*ts_left;
             if (ii < nbndry) {
                 tileidx = ii / ts_left; // tiles on the left of nbndry have size of ts_left
@@ -76,7 +76,7 @@ ParticleContainer<NR, NI, NA>::getTileIndex(const IntVect& iv, const Box& box, B
         D_TERM(tiling_1d(iv[0], small[0], big[0], tile_size[0], ntiles[0], ivIndex[0], tilelo[0], tilehi[0]);,
                tiling_1d(iv[1], small[1], big[1], tile_size[1], ntiles[1], ivIndex[1], tilelo[1], tilehi[1]);,
                tiling_1d(iv[2], small[2], big[2], tile_size[2], ntiles[2], ivIndex[2], tilelo[2], tilehi[2]););
-        
+
         tbx = Box(tilelo, tilehi);
 
         return D_TERM(ivIndex[0], + ntiles[0]*ivIndex[1], + ntiles[0]*ntiles[1]*ivIndex[2]);
@@ -90,61 +90,61 @@ ParticleContainer<NR, NI, NA>::Where (const ParticleType&         p,
 				      int                         lev_min,
 				      int                         finest_level) const
 {
-    BL_ASSERT(m_gdb != 0);
-
-    if (finest_level == -1)
-        finest_level = m_gdb->finestLevel();
-
-    BL_ASSERT(finest_level <= m_gdb->finestLevel());
-
-    std::vector< std::pair<int, Box> > isects;
-
-    for (int lev = finest_level; lev >= lev_min; lev--)
+  BL_ASSERT(m_gdb != 0);
+  
+  if (finest_level == -1)
+    finest_level = m_gdb->finestLevel();
+  
+  BL_ASSERT(finest_level <= m_gdb->finestLevel());
+  
+  std::vector< std::pair<int, Box> > isects;
+  
+  for (int lev = finest_level; lev >= lev_min; lev--)
     {
-        const IntVect& iv = Index(p, lev);
-        const BoxArray& ba = m_gdb->ParticleBoxArray(lev);
-
-        BL_ASSERT(ba.ixType().cellCentered());
-
-        if (lev == pld.m_lev) {
-            // The fact that we are here means this particle does not belong to any finer grids.
-            if (0 <= pld.m_grid && pld.m_grid < ba.size())
-            {
-                const Box& bx = ba.getCellCenteredBox(pld.m_grid);
-                if (bx.contains(iv))
-                {
-                    pld.m_cell = iv;
-                    if (bx != pld.m_gridbox || !pld.m_tilebox.contains(iv)) {
-                        pld.m_tile = getTileIndex(iv, bx, pld.m_tilebox);
-                        pld.m_gridbox = bx;
-                    }
-                    return true;
-                }
-            }
-        }
-
-        ba.intersections(Box(iv, iv), isects, true, 0);
-
-        if (!isects.empty())
+      const IntVect& iv = Index(p, lev);
+      const BoxArray& ba = m_gdb->ParticleBoxArray(lev);
+      
+      BL_ASSERT(ba.ixType().cellCentered());
+      
+      if (lev == pld.m_lev) {
+      	// The fact that we are here means this particle does not belong to any finer grids.
+      	if (0 <= pld.m_grid && pld.m_grid < ba.size())
+      	  {
+      	    const Box& bx = ba.getCellCenteredBox(pld.m_grid);
+      	    if (bx.contains(iv))
+      	      {
+      		pld.m_cell = iv;
+		if (bx != pld.m_gridbox || !pld.m_tilebox.contains(iv)) {
+      		  pld.m_tile = getTileIndex(iv, bx, pld.m_tilebox);
+      		  pld.m_gridbox = bx;
+		}
+      		return true;
+      	      }
+      	  }
+      }
+      
+      ba.intersections(Box(iv, iv), isects, true, 0);
+      
+      if (!isects.empty())
         {
-            const Box& bx = ba.getCellCenteredBox(isects[0].first);
-            pld.m_lev  = lev;
-            pld.m_grid = isects[0].first;
-	    pld.m_tile = getTileIndex(iv, bx, pld.m_tilebox);
-            pld.m_cell = iv;
-            pld.m_gridbox = bx;
-            return true;
+	  const Box& bx = ba.getCellCenteredBox(isects[0].first);
+	  pld.m_lev  = lev;
+	  pld.m_grid = isects[0].first;
+	  pld.m_tile = getTileIndex(iv, bx, pld.m_tilebox);
+	  pld.m_cell = iv;
+	  pld.m_gridbox = bx;
+	  return true;
         }
     }
-    return false;
+  return false;
 }
 
 template <int NR, int NI, int NA>
 bool
 ParticleContainer<NR, NI, NA>::PeriodicWhere (ParticleType&               p,
-						 ParticleLocData&            pld,
-						 int                         lev_min,
-						 int                         finest_level) const
+					      ParticleLocData&            pld,
+					      int                         lev_min,
+					      int                         finest_level) const
 {
     BL_ASSERT(m_gdb != 0);
 
@@ -224,9 +224,9 @@ ParticleContainer<NR, NI, NA>::RestrictedWhere (const ParticleType&         p,
 template <int NR, int NI, int NA>
 bool 
 ParticleContainer<NR, NI, NA>::SingleLevelWhere (const ParticleType&         p, 
-						    ParticleLocData&            pld,
-						    int                         level,
-						    int                         nGrow) const
+						 ParticleLocData&            pld,
+						 int                         level,
+						 int                         nGrow) const
 {
     BL_ASSERT(m_gdb != 0);
 
@@ -1323,15 +1323,12 @@ ParticleContainer<NR, NI, NA>::Redistribute (bool where_already_called, int lev_
                 locateParticle(p, pld, lev_min, theEffectiveFinestLevel, nGrow);
             }
 	    if (p.m_idata.id > 0) {
-
 	      // The owner of the particle is the CPU owning the finest grid
 	      // in state data that contains the particle.
 	      const int who = m_gdb->ParticleDistributionMap(pld.m_lev)[pld.m_grid];
 	      if (who == MyProc) {
 		if (pld.m_lev != lev || pld.m_grid != grid || pld.m_tile != tile) {
-		  //
 		  // We own it but must shift it to another place.
-		  //
 		  m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
 		  for (int comp = 0; comp < NA; comp++) {
 		    Real pdata = arrs[comp][pindex];
@@ -1356,9 +1353,7 @@ ParticleContainer<NR, NI, NA>::Redistribute (bool where_already_called, int lev_
                           dst += sizeof(Real);
                       }
                   }
-                  //
                   // Invalidate the particle so we can reclaim its space.
-                  //
                   p.m_idata.id = -p.m_idata.id;
 	      }
 	    }
@@ -1444,9 +1439,8 @@ ParticleContainer<NR, NI, NA>::RedistributeMPI (std::map<int, Array<char> >& not
 #if BL_USE_MPI
     const int MyProc = ParallelDescriptor::MyProc();
     const int NProcs = ParallelDescriptor::NProcs();
-    //
+
     // We may now have particles that are rightfully owned by another CPU.
-    //
     Array<long> Snds(NProcs, 0), Rcvs(NProcs, 0);  // bytes!
 
     long NumSnds = 0;
@@ -1460,9 +1454,7 @@ ParticleContainer<NR, NI, NA>::RedistributeMPI (std::map<int, Array<char> >& not
     ParallelDescriptor::ReduceLongMax(NumSnds);
 
     if (NumSnds == 0)
-      //
       // There's no parallel work to do.
-      //
       return;
 
     BL_COMM_PROFILE(BLProfiler::Alltoall, sizeof(long),
@@ -1485,13 +1477,13 @@ ParticleContainer<NR, NI, NA>::RedistributeMPI (std::map<int, Array<char> >& not
     
     std::size_t TotRcvBytes = 0;
     for (int i = 0; i < NProcs; ++i) {
-        if (Rcvs[i] > 0) {
-            RcvProc.push_back(i);
-            rOffset.push_back(TotRcvBytes);
-            TotRcvBytes += Rcvs[i];
-        }
+      if (Rcvs[i] > 0) {
+	RcvProc.push_back(i);
+	rOffset.push_back(TotRcvBytes);
+	TotRcvBytes += Rcvs[i];
+      }
     }
-
+    
     const int nrcvs = RcvProc.size();
     Array<MPI_Status>  stats(nrcvs);
     Array<MPI_Request> rreqs(nrcvs);
@@ -1502,74 +1494,70 @@ ParticleContainer<NR, NI, NA>::RedistributeMPI (std::map<int, Array<char> >& not
     Array<char> recvdata(TotRcvBytes);
 
     // Post receives.
-    for (int i = 0; i < nrcvs; ++i)
-    {
-	const auto Who    = RcvProc[i];
-	const auto offset = rOffset[i];
-	const auto Cnt    = Rcvs[Who];
-	
-	BL_ASSERT(Cnt > 0);
-	BL_ASSERT(Cnt < std::numeric_limits<int>::max());
-	BL_ASSERT(Who >= 0 && Who < NProcs);
-	
-	rreqs[i] = ParallelDescriptor::Arecv(&recvdata[offset], Cnt, Who, SeqNum).req();
-    }
+    for (int i = 0; i < nrcvs; ++i) {
+      const auto Who    = RcvProc[i];
+      const auto offset = rOffset[i];
+      const auto Cnt    = Rcvs[Who];
       
-    // Send.
-    for (const auto& kv : not_ours)
-    {
-	const auto Who = kv.first;
-	const auto Cnt = kv.second.size();
-
-	BL_ASSERT(Cnt > 0);
-	BL_ASSERT(Who >= 0 && Who < NProcs);
-	BL_ASSERT(Cnt < std::numeric_limits<int>::max());
-
-	ParallelDescriptor::Send(kv.second.data(), Cnt, Who, SeqNum);
+      BL_ASSERT(Cnt > 0);
+      BL_ASSERT(Cnt < std::numeric_limits<int>::max());
+      BL_ASSERT(Who >= 0 && Who < NProcs);
+      
+      rreqs[i] = ParallelDescriptor::Arecv(&recvdata[offset], Cnt, Who, SeqNum).req();
     }
-
-    if (nrcvs > 0)
-    {
-        BL_MPI_REQUIRE( MPI_Waitall(nrcvs, rreqs.data(), stats.data()) );
-
-        ParticleLocData pld;
-
-        int num_soa_comps = 0;
-        for (int i = 0; i < NA; ++i) {
-            if (communicate_comp[i]) ++num_soa_comps;
-        }
-        const auto particle_size = sizeof(ParticleType);
-        const auto superparticle_size = particle_size + num_soa_comps*sizeof(Real);
-
-        if (recvdata.size() % superparticle_size != 0) {
-            amrex::AllPrint() << "ParticleContainer::RedistributeMPI: sizes = "
-                              << recvdata.size() << ", " << superparticle_size << "\n";
-            amrex::Abort("ParticleContainer::RedistributeMPI: How did this happen?");
-        }
-
-        char* pbuf = recvdata.data();
-        int npart = recvdata.size() / superparticle_size;
-        for (int i = 0; i < npart; ++i)
-        {
-            ParticleType p;
-            std::memcpy(&p, pbuf, particle_size);
-            
-            locateParticle(p, pld, lev_min, finest_level, nGrow);
-
-            m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
-
-            auto& arrs = m_arraydata[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)];
-            Real* d = (Real*)(pbuf + particle_size);
-            for (int comp = 0; comp < NA; ++comp) {
-                if (communicate_comp[comp]) {
-                    arrs[comp].push_back(*d++);
-                } else {
-                    arrs[comp].push_back(0.0);
-                }
-            }
-
-            pbuf += superparticle_size;
-        }
+    
+    // Send.
+    for (const auto& kv : not_ours) {
+      const auto Who = kv.first;
+      const auto Cnt = kv.second.size();
+      
+      BL_ASSERT(Cnt > 0);
+      BL_ASSERT(Who >= 0 && Who < NProcs);
+      BL_ASSERT(Cnt < std::numeric_limits<int>::max());
+      
+      ParallelDescriptor::Send(kv.second.data(), Cnt, Who, SeqNum);
+    }
+    
+    if (nrcvs > 0) {
+      BL_MPI_REQUIRE( MPI_Waitall(nrcvs, rreqs.data(), stats.data()) );
+      
+      ParticleLocData pld;
+      
+      int num_soa_comps = 0;
+      for (int i = 0; i < NA; ++i) {
+	if (communicate_comp[i]) ++num_soa_comps;
+      }
+      const auto particle_size = sizeof(ParticleType);
+      const auto superparticle_size = particle_size + num_soa_comps*sizeof(Real);
+      
+      if (recvdata.size() % superparticle_size != 0) {
+	amrex::AllPrint() << "ParticleContainer::RedistributeMPI: sizes = "
+			  << recvdata.size() << ", " << superparticle_size << "\n";
+	amrex::Abort("ParticleContainer::RedistributeMPI: How did this happen?");
+      }
+      
+      char* pbuf = recvdata.data();
+      int npart = recvdata.size() / superparticle_size;
+      for (int i = 0; i < npart; ++i) {
+	ParticleType p;
+	std::memcpy(&p, pbuf, particle_size);
+	
+	locateParticle(p, pld, lev_min, finest_level, nGrow);
+	
+	m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
+	
+	auto& arrs = m_arraydata[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)];
+	Real* d = (Real*)(pbuf + particle_size);
+	for (int comp = 0; comp < NA; ++comp) {
+	  if (communicate_comp[comp]) {
+	    arrs[comp].push_back(*d++);
+	  } else {
+	    arrs[comp].push_back(0.0);
+	  }
+	}
+	
+	pbuf += superparticle_size;
+      }
     }
 #endif /*BL_USE_MPI*/
 }
@@ -1577,8 +1565,8 @@ ParticleContainer<NR, NI, NA>::RedistributeMPI (std::map<int, Array<char> >& not
 template <int NR, int NI, int NA>
 bool
 ParticleContainer<NR, NI, NA>::OK (int  lev_min,
-				      int  ngrow,
-				      int  finest_level) const
+				   int  ngrow,
+				   int  finest_level) const
 {
     BL_PROFILE("ParticleContainer<NR, NI, NA>::OK()");
     if (finest_level == -1)
@@ -1600,33 +1588,31 @@ ParticleContainer<NR, NI, NA>::OK (int  lev_min,
 	  const int grid = kv.first.first;
 	  const int tile = kv.first.second;
 	  const AoS& pbox = kv.second;
-	  for (auto it = pbox.cbegin(); it != pbox.cend(); ++it)
-            {
-	      //
-	      // Yes I want to make a copy of the particle.
-	      //
-	      ParticleType p = *it;
+	  for (auto it = pbox.cbegin(); it != pbox.cend(); ++it) {
+	    // Yes I want to make a copy of the particle.
+	    ParticleType p = *it;
+	    
+	    if (p.m_idata.id > 0) {		  
+	      if (!Where(p, pld, lev_min, finest_level)) {
+		if (!PeriodicWhere(p, pld, lev_min, finest_level)) {
+		  if (!RestrictedWhere(p, pld, lev_min, ngrow))
+		    return false;
+		}
+	      }
 	      
-	      if (p.m_idata.id > 0)
-                {		  
-		  if (!Where(p, pld, lev_min, finest_level))
-                    {
-		      if (!PeriodicWhere(p, pld, lev_min, finest_level)) 
-			{
-			  if (!RestrictedWhere(p, pld, lev_min, ngrow))
-			    return false;
-			}
-                    }
-
-		  if (lev  != pld.m_lev  || grid != pld.m_grid || tile != pld.m_tile) {
-                      amrex::AllPrint() << "PARTICLE NUMBER " << p.m_idata.id << '\n'
-                                        << "POS  " << D_TERM(p.m_rdata.pos[0], << p.m_rdata.pos[1], << p.m_rdata.pos[2]) << "\n"
-                                        << "LEV  " << lev  << " " << pld.m_lev << '\n'
-                                        << "GRID " << grid << " " << pld.m_grid << '\n';
-                      return false;
-		  }
-                }
-            }
+	      if (lev  != pld.m_lev  || grid != pld.m_grid || tile != pld.m_tile) {
+		amrex::AllPrint() << "PARTICLE NUMBER " << p.m_idata.id << '\n'
+				  << "POS  " << D_TERM(p.m_rdata.pos[0]  << " ", 
+						       << p.m_rdata.pos[1]  << " ", 
+						       << p.m_rdata.pos[2]) << "\n"
+				  << "LEV  " << lev  << " " << pld.m_lev << '\n'
+				  << "GRID " << grid << " " << pld.m_grid << '\n'
+				  << "TILE " << tile << " " << pld.m_tile << '\n';
+		
+		return false;
+	      }
+	    }
+	  }
         }
       }
     
@@ -2739,16 +2725,14 @@ ParticleContainer<NR, NI, NA>::FineCellsToUpdateFromCrse (const ParticleType&   
 
 //
 // This is the multi-level version.
-//
 // The Array should be empty on input.
-//
 // There'll be finest_level+1 of them.
 //
 template <int NR, int NI, int NA>
 void
 ParticleContainer<NR, NI, NA>::AssignDensity (int rho_index, bool sub_cycle,
-					   Array<std::unique_ptr<MultiFab> >& mf_to_be_filled, 
-					   int lev_min, int ncomp, int finest_level) const
+					      Array<std::unique_ptr<MultiFab> >& mf_to_be_filled, 
+					      int lev_min, int ncomp, int finest_level) const
 {
     if (rho_index != 0) amrex::Abort("AssignDensity only works if rho_index = 0");
 
@@ -2757,13 +2741,11 @@ ParticleContainer<NR, NI, NA>::AssignDensity (int rho_index, bool sub_cycle,
     BL_ASSERT(NR >= ncomp);
     BL_ASSERT(ncomp == 1 || ncomp == BL_SPACEDIM+1);
 
-    if (finest_level == -1)
-    {
-        finest_level = m_gdb->finestLevel();
+    if (finest_level == -1) {
+      finest_level = m_gdb->finestLevel();
     }
-    while (!m_gdb->LevelDefined(finest_level))
-    {
-        finest_level--;
+    while (!m_gdb->LevelDefined(finest_level)) {
+      finest_level--;
     }
     //
     // The size of the returned multifab is limited by lev_min and 
@@ -3825,71 +3807,65 @@ ParticleContainer<NR, NI, NA>::AssignDensityDoit (int               rho_index,
 template <int NR, int NI, int NA>
 void
 ParticleContainer<NR, NI, NA>::AssignDensitySingleLevel (int rho_index,
-						    MultiFab& mf_to_be_filled,
-						    int       lev,
-						    int       ncomp,
-						    int       particle_lvl_offset) const
+							 MultiFab& mf_to_be_filled,
+							 int       lev,
+							 int       ncomp,
+							 int       particle_lvl_offset) const
 {
-    BL_PROFILE("ParticleContainer<NR, NI, NA>::AssignDensitySingleLevel()");
-    BL_ASSERT(NR >= 1);
-    BL_ASSERT(ncomp == 1 || ncomp == BL_SPACEDIM+1);
-
-    if (lev >= int(m_particles.size()))
+  BL_PROFILE("ParticleContainer<NR, NI, NA>::AssignDensitySingleLevel()");
+  BL_ASSERT(NR >= 1);
+  BL_ASSERT(ncomp == 1 || ncomp == BL_SPACEDIM+1);
+  
+  if (lev >= int(m_particles.size()))
     {
-        //
-        // Don't do anything if there are no particles at this level.
-        //
-        return;
+      // Don't do anything if there are no particles at this level.
+      return;
     }
 
-    // Keep the same external interface to the applications, but if the
-    if (mf_to_be_filled.is_nodal())
-    {
-        NodalDepositionSingleLevel(rho_index, mf_to_be_filled,lev,ncomp,particle_lvl_offset);
-    }
-    else if (mf_to_be_filled.boxArray().ixType().cellCentered())
-    {
-        AssignCellDensitySingleLevel(rho_index, mf_to_be_filled,lev,ncomp,particle_lvl_offset);
-    }
-    else
-    {
-	amrex::Abort("AssignCellDensitySingleLevel: mixed type not supported");
-    }
+  // Keep the same external interface to the applications, but if the
+  if (mf_to_be_filled.is_nodal()) {
+    NodalDepositionSingleLevel(rho_index, mf_to_be_filled,lev,ncomp,particle_lvl_offset);
+  }
+  else if (mf_to_be_filled.boxArray().ixType().cellCentered()) {
+    AssignCellDensitySingleLevel(rho_index, mf_to_be_filled,lev,ncomp,particle_lvl_offset);
+  }
+  else {
+    amrex::Abort("AssignCellDensitySingleLevel: mixed type not supported");
+  }
 }
 
-//
 // This is the single-level version for cell-centered density
-//
 template <int NR, int NI, int NA>
 void
-ParticleContainer<NR, NI, NA>::AssignCellDensitySingleLevel (int rho_index,
-							MultiFab& mf_to_be_filled,
-							int       lev,
-							int       ncomp,
-							int       particle_lvl_offset) const
+ParticleContainer<NR, NI, NA>::AssignCellDensitySingleLevelFort (int rho_index,
+								 MultiFab& mf_to_be_filled,
+								 int       lev,
+								 int       ncomp,
+								 int       particle_lvl_offset) const
 {
+    BL_PROFILE("ParticleContainer<NR, NI, NA>::AssignCellDensitySingleLevelFort()");
+
     if (rho_index != 0) amrex::Abort("AssignCellDensitySingleLevel only works if rho_index = 0");
 
     MultiFab* mf_pointer;
 
-    if (OnSameGrids(lev, mf_to_be_filled))
-    {
-        // If we are already working with the internal mf defined on the 
-        // particle_box_array, then we just work with this.
-        mf_pointer = &mf_to_be_filled;
+    if (OnSameGrids(lev, mf_to_be_filled)) {
+      // If we are already working with the internal mf defined on the 
+      // particle_box_array, then we just work with this.
+      mf_pointer = &mf_to_be_filled;
     }
-    else
-    {
-        // If mf_to_be_filled is not defined on the particle_box_array, then we need 
-        // to make a temporary here and copy into mf_to_be_filled at the end.
-        mf_pointer = new MultiFab(m_gdb->ParticleBoxArray(lev), 
-				  m_gdb->ParticleDistributionMap(lev),
-				  ncomp, mf_to_be_filled.nGrow());
+    else {
+      // If mf_to_be_filled is not defined on the particle_box_array, then we need 
+      // to make a temporary here and copy into mf_to_be_filled at the end.
+      mf_pointer = new MultiFab(m_gdb->ParticleBoxArray(lev), 
+				m_gdb->ParticleDistributionMap(lev),
+				ncomp, mf_to_be_filled.nGrow());
     }
 
-    // We must have ghost cells for each FAB so that a particle in one grid can spread its effect to an
-    //    adjacent grid by first putting the value into ghost cells of its own grid.  The mf->sumBoundary call then
-    //    adds the value from one grid's ghost cell to another grid's valid region.
+    // We must have ghost cells for each FAB so that a particle in one grid can spread 
+    // its effect to an adjacent grid by first putting the value into ghost cells of its
+    // own grid.  The mf->sumBoundary call then adds the value from one grid's ghost cell
+    // to another grid's valid region.
     if (mf_pointer->nGrow() < 1) 
        amrex::Error("Must have at least one ghost cell when in AssignDensitySingleLevel");
 
@@ -3908,6 +3884,99 @@ ParticleContainer<NR, NI, NA>::AssignCellDensitySingleLevel (int rho_index,
       (*mf_pointer)[mfi].setVal(0);
     }
 
+    for (const auto& kv : pmap) {
+      const int grid = kv.first.first;
+      const AoS& pbx = kv.second;
+      FArrayBox& fab = (*mf_pointer)[grid];
+      const Box& box = fab.box();
+      auto N = pbx.size();
+	
+      deposit(pbx.dataPtr(), pbx.size(), fab.dataPtr(), box.loVect(), box.hiVect(), plo, dx);
+    }
+    
+    mf_pointer->SumBoundary(gm.periodicity());
+    
+    // If ncomp > 1, first divide the momenta (component n) 
+    // by the mass (component 0) in order to get velocities.
+    // Be careful not to divide by zero.
+    for (int n = 1; n < ncomp; n++){
+      for (MFIter mfi(*mf_pointer); mfi.isValid(); ++mfi) {
+	(*mf_pointer)[mfi].protected_divide((*mf_pointer)[mfi],0,n,1);
+      }
+    }
+
+    // Only multiply the first component by (1/vol) because this converts mass
+    // to density. If there are additional components (like velocity), we don't
+    // want to divide those by volume.
+    const Real vol = D_TERM(dx[0], *dx[1], *dx[2]);
+
+    mf_pointer->mult(1/vol, 0, 1);
+
+    // If mf_to_be_filled is not defined on the particle_box_array, then we need
+    // to copy here from mf_pointer into mf_to_be_filled.   I believe that we don't
+    // need any information in ghost cells so we don't copy those.
+    if (mf_pointer != &mf_to_be_filled) {
+      mf_to_be_filled.copy(*mf_pointer,0,0,ncomp);
+      delete mf_pointer;
+    }
+    
+    if (m_verbose > 1) {
+      Real stoptime = ParallelDescriptor::second() - strttime;
+      
+      ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
+      
+      amrex::Print() << "ParticleContainer<NR, NI, NA>::AssignDensity(single-level) time: " << stoptime << '\n';
+    }
+}
+
+// This is the single-level version for cell-centered density
+template <int NR, int NI, int NA>
+void
+ParticleContainer<NR, NI, NA>::AssignCellDensitySingleLevel (int rho_index,
+							     MultiFab& mf_to_be_filled,
+							     int       lev,
+							     int       ncomp,
+							     int       particle_lvl_offset) const
+{
+    BL_PROFILE("ParticleContainer<NR, NI, NA>::AssignCellDensitySingleLevel()");
+    if (rho_index != 0) amrex::Abort("AssignCellDensitySingleLevel only works if rho_index = 0");
+
+    MultiFab* mf_pointer;
+
+    if (OnSameGrids(lev, mf_to_be_filled)) {
+      // If we are already working with the internal mf defined on the 
+      // particle_box_array, then we just work with this.
+      mf_pointer = &mf_to_be_filled;
+    }
+    else {
+      // If mf_to_be_filled is not defined on the particle_box_array, then we need 
+      // to make a temporary here and copy into mf_to_be_filled at the end.
+      mf_pointer = new MultiFab(m_gdb->ParticleBoxArray(lev), 
+				m_gdb->ParticleDistributionMap(lev),
+				ncomp, mf_to_be_filled.nGrow());
+    }
+
+    // We must have ghost cells for each FAB so that a particle in one grid can spread 
+    // its effect to an adjacent grid by first putting the value into ghost cells of its
+    // own grid.  The mf->sumBoundary call then adds the value from one grid's ghost cell
+    // to another grid's valid region.
+    if (mf_pointer->nGrow() < 1) 
+       amrex::Error("Must have at least one ghost cell when in AssignDensitySingleLevel");
+
+    const Real      strttime    = ParallelDescriptor::second();
+    const Geometry& gm          = m_gdb->Geom(lev);
+    const Real*     plo         = gm.ProbLo();
+    const Real*     dx_particle = m_gdb->Geom(lev + particle_lvl_offset).CellSize();
+    const Real*     dx          = gm.CellSize();
+    const AoSMap&   pmap        = m_particles[lev];
+
+    if (gm.isAnyPeriodic() && ! gm.isAllPeriodic()) {
+      amrex::Error("AssignDensity: problem must be periodic in no or all directions");
+    }
+    
+    for (MFIter mfi(*mf_pointer); mfi.isValid(); ++mfi) {
+      (*mf_pointer)[mfi].setVal(0);
+    }
 
     for (const auto& kv : pmap) {
       const int grid = kv.first.first;
@@ -3921,98 +3990,87 @@ ParticleContainer<NR, NI, NA>::AssignCellDensitySingleLevel (int rho_index,
 #ifdef _OPENMP
 #pragma omp parallel for default(none) private(fracs,cells) shared(N,plo,dx,dx_particle,gm,fab,ncomp,pbx)
 #endif
-	for (size_t ip = 0; ip < N; ++ip)
-	  {
-            const ParticleType& p = pbx[ip];
+	for (size_t ip = 0; ip < N; ++ip) {
+	  const ParticleType& p = pbx[ip];
+	  
+	  if (p.m_idata.id <= 0)
+	    continue;
 	    
-            if (p.m_idata.id <= 0) {
+	  const int M = ParticleType::CIC_Cells_Fracs(p, plo, dx, dx_particle, fracs, cells);
+
+	  // If this is not fully periodic then we have to be careful that the
+	  // particle's support leaves the domain unless we specifically want to ignore
+	  // any contribution outside the boundary (i.e. if allow_particles_near_boundary = true). 
+	  // We test this by checking the low and high corners respectively.
+	  if ( ! gm.isAllPeriodic() && ! allow_particles_near_boundary) {
+	    if ( ! gm.Domain().contains(cells[0]) || ! gm.Domain().contains(cells[M-1])) {
+	      amrex::Error("AssignDensity: if not periodic, all particles must stay away from the domain boundary");
+	    }
+	  }
+	  
+	  for (int i = 0; i < M; i++) {
+	    if ( !fab.box().contains(cells[i]) )
+	      continue;
+
+	    // If the domain is not periodic and we want to let particles
+	    // live near the boundary but "throw away" the contribution that 
+	    // does not fall into the domain ...
+	    if ( ! gm.isAllPeriodic() && allow_particles_near_boundary && ! gm.Domain().contains(cells[i])) {
 	      continue;
 	    }
-	    
-            const int M = ParticleType::CIC_Cells_Fracs(p, plo, dx, dx_particle, fracs, cells);
-            //
-            // If this is not fully periodic then we have to be careful that the
-            // particle's support leaves the domain unless we specifically want to ignore
-            // any contribution outside the boundary (i.e. if allow_particles_near_boundary = true). 
-            // We test this by checking the low and high corners respectively.
-            //
-            if ( ! gm.isAllPeriodic() && ! allow_particles_near_boundary) {
-                if ( ! gm.Domain().contains(cells[0]) || ! gm.Domain().contains(cells[M-1])) {
-                    amrex::Error("AssignDensity: if not periodic, all particles must stay away from the domain boundary");
-		}
+	    //
+	    // Sum up mass in first component.
+	    //
+	    {
+#ifdef _OPENMP
+#pragma omp atomic
+#endif
+	      fab(cells[i],0) += p.m_rdata.arr[BL_SPACEDIM] * fracs[i];
 	    }
-
-            for (int i = 0; i < M; i++)
-            {
-                if ( ! fab.box().contains(cells[i])) {
-		  continue;
-		}
-
-                // If the domain is not periodic and we want to let particles
-                //    live near the boundary but "throw away" the contribution that 
-                //    does not fall into the domain ...
-                if ( ! gm.isAllPeriodic() && allow_particles_near_boundary && ! gm.Domain().contains(cells[i])) {
-		  continue;
-		}
-                //
-                // Sum up mass in first component.
-                //
-                {
+	    // 
+	    // Sum up momenta in next components.
+	    //
+	    for (int n = 1; n < ncomp; n++)
 #ifdef _OPENMP
 #pragma omp atomic
 #endif
-                    fab(cells[i],0) += p.m_rdata.arr[BL_SPACEDIM] * fracs[i];
-                }
-                // 
-                // Sum up momenta in next components.
-                //
-                for (int n = 1; n < ncomp; n++)
-#ifdef _OPENMP
-#pragma omp atomic
-#endif
-		  fab(cells[i],n) += p.m_rdata.arr[BL_SPACEDIM+n] * p.m_rdata.arr[BL_SPACEDIM] * fracs[i];
-            }
+	      fab(cells[i],n) += p.m_rdata.arr[BL_SPACEDIM+n] * p.m_rdata.arr[BL_SPACEDIM] * fracs[i];
+	  }
         }
     }
-
+    
     mf_pointer->SumBoundary(gm.periodicity());
-    //
+
     // If ncomp > 1, first divide the momenta (component n) 
     // by the mass (component 0) in order to get velocities.
     // Be careful not to divide by zero.
-    //
-    for (int n = 1; n < ncomp; n++)
-    {
-        for (MFIter mfi(*mf_pointer); mfi.isValid(); ++mfi)
-        {
-            (*mf_pointer)[mfi].protected_divide((*mf_pointer)[mfi],0,n,1);
-        }
+    for (int n = 1; n < ncomp; n++){
+      for (MFIter mfi(*mf_pointer); mfi.isValid(); ++mfi) {
+	(*mf_pointer)[mfi].protected_divide((*mf_pointer)[mfi],0,n,1);
+      }
     }
-    //
+
     // Only multiply the first component by (1/vol) because this converts mass
     // to density. If there are additional components (like velocity), we don't
     // want to divide those by volume.
-    //
     const Real vol = D_TERM(dx[0], *dx[1], *dx[2]);
 
-    mf_pointer->mult(1/vol,0,1);
+    mf_pointer->mult(1/vol, 0, 1);
 
     // If mf_to_be_filled is not defined on the particle_box_array, then we need
     // to copy here from mf_pointer into mf_to_be_filled.   I believe that we don't
     // need any information in ghost cells so we don't copy those.
-    if (mf_pointer != &mf_to_be_filled)
-    {
-        mf_to_be_filled.copy(*mf_pointer,0,0,ncomp);
-	delete mf_pointer;
+    if (mf_pointer != &mf_to_be_filled) {
+      mf_to_be_filled.copy(*mf_pointer,0,0,ncomp);
+      delete mf_pointer;
     }
-
-    if (m_verbose > 1)
-    {
-        Real stoptime = ParallelDescriptor::second() - strttime;
-
-        ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
-
-        amrex::Print() << "ParticleContainer<NR, NI, NA>::AssignDensity(single-level) time: " << stoptime << '\n';
+    
+    if (m_verbose > 1) {
+      Real stoptime = ParallelDescriptor::second() - strttime;
+      
+      ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
+      
+      amrex::Print() << "ParticleContainer<NR, NI, NA>::AssignDensity(single-level) time: " << stoptime << '\n';
     }
 }
 

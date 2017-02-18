@@ -329,7 +329,7 @@ ParticleContainer<NR, NI, NA>::InitFromAsciiFile (const std::string& file, int e
 template <int NR, int NI, int NA>
 void
 ParticleContainer<NR, NI, NA>::InitFromBinaryFile (const std::string& file,
-						int                extradata)
+                                                   int                extradata)
 {
     BL_PROFILE("ParticleContainer<NR, NI, NA>::InitFromBinaryFile()");
     BL_ASSERT(!file.empty());
