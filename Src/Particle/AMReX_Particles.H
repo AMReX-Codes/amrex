@@ -327,9 +327,6 @@ public:
 
     void RedefineDummyMF (int lev);
 
-    void locateParticle(ParticleType& p, ParticleLocData& pld, int lev_min,
-			int theEffectiveFinestLevel, int nGrow);
-
     void InitFromAsciiFile (const std::string& file, int extradata, const IntVect* Nrep = 0);
     void InitFromBinaryFile (const std::string& file, int extradata);
     void InitFromBinaryMetaFile (const std::string& file, int extradata);
@@ -449,33 +446,6 @@ public:
 
     IntVect Index (const Particle<NR, NI>& p, int lev) const;
 
-    static int getTileIndex(const IntVect& iv, const Box& box, Box& tbx);
-
-    //
-    // Checks a particle's location on levels lev_min and higher.
-    // Returns false if the particle does not exist on that level.
-    //
-    bool Where (const ParticleType& prt, ParticleLocData& pld, 
-		int lev_min = 0, int finest_level = -1) const;
-
-    //
-    // Checks whether the particle has crossed a periodic boundary in such a way
-    // that it is on levels lev_min and higher.
-    //
-    bool PeriodicWhere (ParticleType& prt, ParticleLocData& pld,
-			int lev_min = 0, int finest_level = -1) const;
-
-    //
-    // Checks whether a particle is within its grid (including ngrow ghost cells).
-    //
-    bool RestrictedWhere (const ParticleType& p, ParticleLocData& pld, int lev, int ngrow) const;
-
-    //
-    // Checks a particle's location on a specific level.
-    // (Yes this is distict from the functionality provided above)
-    //
-    bool SingleLevelWhere (const ParticleType& p, ParticleLocData& pld, int level, int nGrow=0) const;
-
     //
     // Updates a particle's location (Where), tries to periodic shift any particles
     // that have left the domain. May need work (see inline comments)
@@ -524,6 +494,25 @@ public:
     static IntVect tile_size;
 
 protected:
+
+    //
+    // Checks a particle's location on levels lev_min and higher.
+    // Returns false if the particle does not exist on that level.
+    //
+    bool Where (const ParticleType& prt, ParticleLocData& pld, 
+		int lev_min = 0, int finest_level = -1) const;
+
+    //
+    // Checks whether the particle has crossed a periodic boundary in such a way
+    // that it is on levels lev_min and higher.
+    //
+    bool EnforcePeriodicWhere (ParticleType& prt, ParticleLocData& pld,
+                               int lev_min = 0, int finest_level = -1) const;
+
+    //
+    // Checks whether a particle is within its grid (including ngrow ghost cells).
+    //
+    bool SingleLevelGrownWhere (const ParticleType& p, ParticleLocData& pld, int lev, int ngrow) const;
 
     bool OnSameGrids (int level, const MultiFab& mf) const { return m_gdb->OnSameGrids(level, mf); }
 
@@ -574,6 +563,11 @@ private:
 
     void RedistributeMPI (std::map<int, Array<char> >& not_ours,
 			  int lev_min = 0, int finest_level = 0, int nGrow = 0);
+
+    void locateParticle(ParticleType& p, ParticleLocData& pld, int lev_min,
+			int theEffectiveFinestLevel, int nGrow) const;
+
+    static int getTileIndex(const IntVect& iv, const Box& box, Box& tbx);
 
     static void Initialize ();
 };
