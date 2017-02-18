@@ -30,6 +30,8 @@ if(BL_USE_PARTICLES EQUAL 1)
   list(APPEND CXX_header_files AMReXParticleI.H AMReX_ParticleInit.H AMReX_ParticleContainerI.H)
   list(APPEND FPP_source_files AMReX_Particles_${BL_SPACEDIM}D.F)
   list(APPEND FPP_header_files AMReX_Particles_F.H)
+  list(APPEND F90_source_files AMReX_Deposition_F.F90)
+  list(APPEND F90_header_files AMReX_Deposition_F.H)
 endif()
 
 preprocess_boxlib_fortran(FPP_out_files ${FPP_source_files})
