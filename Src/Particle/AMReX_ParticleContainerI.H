@@ -1346,9 +1346,10 @@ ParticleContainer<NR, NI, NA>::Redistribute (bool where_already_called, int lev_
 		if (pld.m_lev != lev || pld.m_grid != grid || pld.m_tile != tile) {
 		  // We own it but must shift it to another place.
                   m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)]().push_back(p);
-		  for (int comp = 0; comp < NA; comp++) {
-		    Real pdata = arrs[comp][pindex];
-		    m_arraydata[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)][comp].push_back(pdata);
+                  auto& this_arrdata = m_arraydata[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)];
+		  for (int comp = 0; comp < NA; ++comp) {
+                      Real pdata = arrs[comp][pindex];
+                      this_arrdata[comp].push_back(pdata);
 		  }
 		  //
 		  // Invalidate the particle so we can reclaim its space.
@@ -2300,8 +2301,8 @@ ParticleContainer<NR, NI, NA>::ReadParticles (int            cnt,
       
       locateParticle(p, pld, 0, m_gdb->finestLevel(), 0);
 
+      SoA& soa  = m_arraydata[lev][std::make_pair(grd, pld.m_tile)];
       for (int j = 0; j < NA; j++) {
-	SoA& soa  = m_arraydata[lev][std::make_pair(grd, pld.m_tile)];
 	soa[j][i] = rptr[j];
       }
       rptr += NA;
