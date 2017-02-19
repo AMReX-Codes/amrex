@@ -8,7 +8,6 @@
 #include <WarpXConst.H>
 #include <WarpX_f.H>
 #include <ParticleContainer.H>
-#include <ParticleIterator.H>
 
 using namespace amrex;
 
@@ -263,28 +262,35 @@ LaserParticleContainer::Evolve (int lev,
     BL_ASSERT(OnSameGrids(lev,jx));
 
     {
-	Array<Real> xp, yp, zp, wp, uxp, uyp, uzp, giv,
-            plane_Xp, plane_Yp, amplitude_E;
+	Array<Real> xp, yp, zp, giv, plane_Xp, plane_Yp, amplitude_E;
 
-	PartIterInfo info {lev, do_tiling, tile_size};
-	for (PartIter pti(*this, info); pti.isValid(); ++pti)
+        for (WarpXParIter pti(*this, lev); pti.isValid; ++pti)
 	{
-	    const int  gid = pti.index();
-	    const Box& vbx = pti.validbox();
-	    const long np  = pti.numParticles();
+	    const Box& box = pti.tilebox();
+
+            auto& aos_data = pti.GetAoSData();
+            auto& soa_data = pti.GetSoAData();
+
+            auto& uxp = soa_data[PIdx::ux];
+            auto& uyp = soa_data[PIdx::uy];
+            auto& uzp = soa_data[PIdx::uz];
+            auto& Exp = soa_data[PIdx::Ex];
+            auto& Eyp = soa_data[PIdx::Ey];
+            auto& Ezp = soa_data[PIdx::Ez];
+            auto& Bxp = soa_data[PIdx::Bx];
+            auto& Byp = soa_data[PIdx::By];
+            auto& Bzp = soa_data[PIdx::Bz];
+
+	    const long np  = aos_data.numParticles();
 
 	    // Data on the grid
-	    FArrayBox& jxfab = jx[gid];
-	    FArrayBox& jyfab = jy[gid];
-	    FArrayBox& jzfab = jz[gid];
+	    FArrayBox& jxfab = jx[pti];
+	    FArrayBox& jyfab = jy[pti];
+	    FArrayBox& jzfab = jz[pti];
 
 	    xp.resize(np);
 	    yp.resize(np);
 	    zp.resize(np);
-	    wp.resize(np);
-	    uxp.resize(np);
-	    uyp.resize(np);
-	    uzp.resize(np);
 	    giv.resize(np);
       plane_Xp.resize(np);
       plane_Yp.resize(np);
@@ -294,38 +300,35 @@ LaserParticleContainer::Evolve (int lev,
 	    // copy data from particle container to temp arrays
 	    //
 	    BL_PROFILE_VAR_START(blp_copy);
-	    pti.foreach([&](int i, ParticleType& p) {
+	    for (int i = 0; i < np; ++i)
+            {
+                const auto& p = aos_data()[i];
 #if (BL_SPACEDIM == 3)
-		    xp[i] = p.m_pos[0];
-		    yp[i] = p.m_pos[1];
-		    zp[i] = p.m_pos[2];
+                xp[i] = p.pos(0);
+                yp[i] = p.pos(1);
+                zp[i] = p.pos(2);
 #elif (BL_SPACEDIM == 2)
-		    xp[i] = p.m_pos[0];
-		    yp[i] = std::numeric_limits<Real>::quiet_NaN();
-		    zp[i] = p.m_pos[1];
+                xp[i] = p.pos(0);
+                yp[i] = std::numeric_limits<Real>::quiet_NaN();
+                zp[i] = p.pos(1);
 #endif
-		    wp[i]  = p.m_data[PIdx::w];
-		    // Note: the particle momentum is not copied, since it is
-		    // overwritten at each timestep, for the laser particles
 		    
-		    // Find the coordinates of the particles in the emission plane
+                // Find the coordinates of the particles in the emission plane
 #if (BL_SPACEDIM == 3)
-		    plane_Xp[i] = u_X[0]*(xp[i] - position[0])
-                                + u_X[1]*(yp[i] - position[1])
-			        + u_X[2]*(zp[i] - position[2]);
-		    plane_Yp[i] = u_Y[0]*(xp[i] - position[0])
-                                + u_Y[1]*(yp[i] - position[1])
-                                + u_Y[2]*(zp[i] - position[2]);
+                plane_Xp[i] = u_X[0]*(xp[i] - position[0])
+                            + u_X[1]*(yp[i] - position[1])
+                            + u_X[2]*(zp[i] - position[2]);
+                plane_Yp[i] = u_Y[0]*(xp[i] - position[0])
+                            + u_Y[1]*(yp[i] - position[1])
+                            + u_Y[2]*(zp[i] - position[2]);
 #elif (BL_SPACEDIM == 2)
-		    plane_Xp[i] = u_X[0]*(xp[i] - position[0])
-                                + u_X[2]*(zp[i] - position[2]);
-		    plane_Yp[i] = 0;
+                plane_Xp[i] = u_X[0]*(xp[i] - position[0])
+                            + u_X[2]*(zp[i] - position[2]);
+                plane_Yp[i] = 0;
 #endif
-		});
+            }
 	    BL_PROFILE_VAR_STOP(blp_copy);
 
-	    const Box& box = amrex::enclosedCells(ba[gid]);
-	    BL_ASSERT(box == vbx);
 #if (BL_SPACEDIM == 3)
 	    long nx = box.length(0);
 	    long ny = box.length(1);
@@ -355,28 +358,29 @@ LaserParticleContainer::Evolve (int lev,
 	    }
 
 	    // Calculate the corresponding momentum and position for the particles
-	    pti.foreach([&](int i, ParticleType& p) {
-		    // Calculate the velocity according to the amplitude of E
-		    Real sign_charge = std::copysign( 1.0, wp[i] );
-		    Real v_over_c = sign_charge * mobility * amplitude_E[i];
-		    BL_ASSERT( v_over_c < 1 );
-		    giv[i] = std::sqrt( 1 - v_over_c * v_over_c );
-		    Real gamma = 1./giv[i];
-		    // The velocity is along the laser polarization p_X
-		    Real vx = PhysConst::c * v_over_c * p_X[0];
-		    Real vy = PhysConst::c * v_over_c * p_X[1];
-		    Real vz = PhysConst::c * v_over_c * p_X[2];
-		    // Get the corresponding momenta
-		    uxp[i] = gamma * vx;
-		    uyp[i] = gamma * vy;
-		    uzp[i] = gamma * vz;
-		    // Push the the particle positions
-		    xp[i] += vx * dt;
+            for (int i = 0; i < np; ++i)
+            {
+                // Calculate the velocity according to the amplitude of E
+                Real sign_charge = std::copysign( 1.0, wp[i] );
+                Real v_over_c = sign_charge * mobility * amplitude_E[i];
+                BL_ASSERT( v_over_c < 1 );
+                giv[i] = std::sqrt( 1 - v_over_c * v_over_c );
+                Real gamma = 1./giv[i];
+                // The velocity is along the laser polarization p_X
+                Real vx = PhysConst::c * v_over_c * p_X[0];
+                Real vy = PhysConst::c * v_over_c * p_X[1];
+                Real vz = PhysConst::c * v_over_c * p_X[2];
+                // Get the corresponding momenta
+                uxp[i] = gamma * vx;
+                uyp[i] = gamma * vy;
+                uzp[i] = gamma * vz;
+                // Push the the particle positions
+                xp[i] += vx * dt;
 #if (BL_SPACEDIM == 3)
-		    yp[i] += vy * dt;
+                yp[i] += vy * dt;
 #endif
-		    zp[i] += vz * dt;
-		});
+                zp[i] += vz * dt;
+            )
 
 	    BL_PROFILE_VAR_STOP(blp_pxr_pp);
 

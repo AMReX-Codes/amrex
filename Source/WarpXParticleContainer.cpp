@@ -13,11 +13,9 @@ WarpXParticleContainer::WarpXParticleContainer (AmrCore* amr_core, int ispecies)
       (amr_core->GetParGDB())
     , species_id(ispecies)
 {
-    this->SetVerbose(0);
-
-    m_particles.reserve(m_gdb->maxLevel()+1);
-    m_particles.resize (m_gdb->finestLevel()+1);
-
+    for (unsigned int i = PIdx::Ex; i < PIdx::nattribs; ++i) {
+        communicate_comp[i] = false; // Don't need to communicate E and B.
+    }
     ReadParameters();
 }
 
@@ -29,13 +27,8 @@ WarpXParticleContainer::ReadParameters ()
     {
 	ParmParse pp("particles");
 
-        do_tiling = true;
+        do_tiling = true;  // because the default in amrex is false
 	pp.query("do_tiling",  do_tiling);
-
-	Array<int> ts(BL_SPACEDIM);
-	if (pp.queryarr("tile_size", ts)) {
-	    tile_size = IntVect(ts);
-	}
 
 	initialized = true;
     }

@@ -271,7 +271,7 @@ WarpX::InjectPlasma(int num_shift, int dir) {
 		  Real z = intersectRealBox.lo(1) + (k + particle_shift)*dx[1];
 #endif
 
-		  int id  = ParticleBase::NextID();
+		  int id  = myspc->NextID();
 		  int cpu = ParallelDescriptor::MyProc();
 
 		  std::vector<Real> pos(3, 0.0);

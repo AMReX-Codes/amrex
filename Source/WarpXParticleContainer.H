@@ -15,6 +15,8 @@ struct PIdx
     };
 };
 
+using WarpXParIter = amrex::ParIter<0,0,PIdx::nattribs>
+
 class MultiParticleContainer;
 
 class WarpXParticleContainer
@@ -50,6 +52,8 @@ public:
     const amrex::ParGDBBase& GDB () const { return *m_gdb; }
 
     static void ReadParameters ();
+
+    static int NextID () { return ParticleType::NextID(); }
 
 protected:
 
