@@ -671,7 +671,7 @@ public:
     void operator++ () { ++currentIndex; }
 
     //! Is the iterator valid i.e. is it associated with a FAB?
-    bool isValid () { return currentIndex < endIndex; }
+    bool isValid () const { return currentIndex < endIndex; }
 
     //! The index into the underlying BoxArray of the current FAB.
     int index () const { return (*index_map)[currentIndex]; }
