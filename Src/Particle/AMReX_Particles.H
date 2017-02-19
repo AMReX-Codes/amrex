@@ -255,7 +255,8 @@ public:
 	allow_particles_near_boundary(false)
     {
         Initialize ();
-        allocateData();
+        reserveData();
+        resizeData();
     }
   
     ParticleContainer (const Geometry            & geom, 
@@ -269,7 +270,8 @@ public:
     {
         Initialize ();
         m_gdb = & m_gdb_object;
-        allocateData();
+        reserveData();
+        resizeData();
     }
 
     ParticleContainer (const Array<Geometry>            & geom, 
@@ -284,7 +286,8 @@ public:
     {
         Initialize ();
         m_gdb = & m_gdb_object;
-        allocateData();
+        reserveData();
+        resizeData();
     }
 
     ~ParticleContainer () {}
@@ -292,7 +295,8 @@ public:
     void Define (ParGDBBase* gdb)
     {
       m_gdb = gdb;
-      allocateData();
+        reserveData();
+      resizeData();
     }
 
     void Define (const Geometry            & geom, 
@@ -301,7 +305,8 @@ public:
   {
     m_gdb_object = ParGDB(geom, dmap, ba);
     m_gdb = &m_gdb_object;
-    allocateData();
+    reserveData();
+    resizeData();
   }
 
     void Define (const Array<Geometry>            & geom, 
@@ -311,7 +316,8 @@ public:
     {
 	m_gdb_object = ParGDB(geom, dmap, ba, rr);
 	m_gdb = &m_gdb_object;
-	allocateData();
+        reserveData();
+	resizeData();
     }
 
     void SetParticleBoxArray (int lev, const BoxArray& new_ba)
@@ -330,7 +336,8 @@ public:
 
     const ParGDBBase* GetParGDB () const { return m_gdb; }
 
-    void allocateData();
+    void reserveData();
+    void resizeData();
 
     void RedefineDummyMF (int lev);
 
@@ -616,22 +623,10 @@ public:
         return r->second;
     }
 
-    Array<Real>& GetArrayData (int comp) {
-        auto r = m_soa_map.find(std::make_pair(index(),LocalTileIndex()));
-        BL_ASSERT(r != m_soa_map.end());
-        return r->second[comp];
-    }
-
     const SoA& GetArrayData () const {
         auto r = m_soa_map.find(std::make_pair(index(),LocalTileIndex()));
         BL_ASSERT(r != m_soa_map.end());
         return r->second;
-    }
-
-    const Array<Real>& GetArrayData (int comp) const {
-        auto r = m_soa_map.find(std::make_pair(index(),LocalTileIndex()));
-        BL_ASSERT(r != m_soa_map.end());
-        return r->second[comp];
     }
 
 private:

@@ -359,11 +359,22 @@ ParticleContainer<NR, NI, NA>::Reset (ParticleType&        p,
 
 template <int NR, int NI, int NA>
 void
-ParticleContainer<NR, NI, NA>::allocateData () {
-  int nlevs = m_gdb->finestLevel()+1;
-  m_particles.resize(nlevs);
-  m_arraydata.resize(nlevs);
-  m_dummy_mf.resize(nlevs);
+ParticleContainer<NR, NI, NA>::reserveData ()
+{
+    int nlevs = m_gdb->maxLevel() + 1;
+    m_particles.reserve(nlevs);
+    m_arraydata.reserve(nlevs);
+    m_dummy_mf.reserve(nlevs);
+}
+
+template <int NR, int NI, int NA>
+void
+ParticleContainer<NR, NI, NA>::resizeData ()
+{
+    int nlevs = m_gdb->finestLevel()+1;
+    m_particles.resize(nlevs);
+    m_arraydata.resize(nlevs);
+    m_dummy_mf.resize(nlevs);
 }
 
 template <int NR, int NI, int NA>
@@ -1286,7 +1297,7 @@ ParticleContainer<NR, NI, NA>::Redistribute (bool where_already_called, int lev_
           amrex::Print() << "ParticleContainer<NR, NI, NA>::Redistribute() resizing containers from "
                          << m_particles.size() << " to " << theEffectiveFinestLevel+1 << '\n';
       }
-      allocateData();
+      resizeData();
   }
 
   for (int lev = lev_min; lev <= theEffectiveFinestLevel; ++lev)
