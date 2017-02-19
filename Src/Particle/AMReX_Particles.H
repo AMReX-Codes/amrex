@@ -632,25 +632,25 @@ public:
         m_level(level) 
         {}
 
-    AoS& GetParticleData () {
+    AoS& GetAosData () {
         auto r = m_aos_map.find(std::make_pair(index(),LocalTileIndex()));
         BL_ASSERT(r != m_aos_map.end());
         return r->second;
     }
 
-    const AoS& GetParticleData () const {
+    const AoS& GetAosData () const {
         auto r = m_aos_map.find(std::make_pair(index(),LocalTileIndex()));
         BL_ASSERT(r != m_aos_map.end());
         return r->second;
     }
 
-    SoA& GetArrayData () {
+    SoA& GetSoAData () {
         auto r = m_soa_map.find(std::make_pair(index(),LocalTileIndex()));
         BL_ASSERT(r != m_soa_map.end());
         return r->second;
     }
 
-    const SoA& GetArrayData () const {
+    const SoA& GetSoAData () const {
         auto r = m_soa_map.find(std::make_pair(index(),LocalTileIndex()));
         BL_ASSERT(r != m_soa_map.end());
         return r->second;
