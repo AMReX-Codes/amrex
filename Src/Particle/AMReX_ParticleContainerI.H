@@ -462,7 +462,7 @@ ParticleContainer<NR, NI, NA>::NumberOfParticlesInGrid (int  lev,
     if (lev >= 0 && lev < int(m_particles.size())) {
       for (auto& kv : m_particles[lev]) {
 	int gid = kv.first.first;
-        const AoS& pbox = kv.second;
+        const auto& pbox = kv.second();
 	
 	if (only_valid) {
 	  for (const auto& p : pbox) {
@@ -490,7 +490,7 @@ ParticleContainer<NR, NI, NA>::NumberOfParticlesAtLevel (int  lev,
 
     if (lev >= 0 && lev < int(m_particles.size())) {
       for (const auto& kv : m_particles[lev]) {
-	const AoS& pbox = kv.second;
+	const auto& pbox = kv.second();
 	
 	if (only_valid) {
 	  for (const auto& p : pbox) {
@@ -522,7 +522,7 @@ ParticleContainer<NR, NI, NA>::ByteSpread () const
     for (unsigned lev = 0; lev < m_particles.size(); lev++) {
       const auto& pmap = m_particles[lev];
       for (const auto& kv : pmap) {
-	const AoS& pbox = kv.second;
+	const auto& pbox = kv.second();
 	cnt += pbox.size();
       }
     }
@@ -597,7 +597,7 @@ ParticleContainer<NR, NI, NA>::addOneParticle (int                  id_in,
         }
     }
     
-    m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
+    m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)]().push_back(p);
 
     RedefineDummyMF(pld.m_lev);
     
@@ -647,7 +647,7 @@ ParticleContainer<NR, NI, NA>::addNParticles(int n_part, Array<double>& x, Array
        p.m_idata.id  = ParticleType::NextID();
        p.m_idata.cpu = ParallelDescriptor::MyProc();
 
-       m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
+       m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)]().push_back(p);
     }
 
     Redistribute(true);
@@ -712,7 +712,7 @@ ParticleContainer<NR, NI, NA>::MoveRandom (int lev)
 
     for (auto& kv : pmap) {
       int gid = kv.first.first;
-      AoS& pbox = kv.second;
+      auto& pbox = kv.second();
       const int n    = pbox.size();
 	
 #ifdef _OPENMP
@@ -785,7 +785,7 @@ ParticleContainer<NR, NI, NA>::IncrementWithTotal (MultiFab& mf,
   ParticleLocData pld;
   for (auto& kv : pmap) {
     int gid = kv.first.first;
-    const AoS& pbox = kv.second;
+    const auto& pbox = kv.second();
     FArrayBox&  fab  = (*mf_pointer)[gid];
     for (const auto& p : pbox) {
       Where(p, pld);
@@ -823,7 +823,7 @@ ParticleContainer<NR, NI, NA>::sumParticleMass (int rho_index, int lev, bool loc
   
   const AoSMap& pmap = m_particles[lev];
   for (const auto& kv : pmap) {
-    const AoS& pbox = kv.second;
+    const auto& pbox = kv.second();
     for (const auto& p : pbox) {
       if (p.m_idata.id > 0) {
 	msum += p.m_rdata.arr[BL_SPACEDIM+rho_index];
@@ -884,7 +884,7 @@ ParticleContainer<NR, NI, NA>::GetParticleIDs (Array<int>& part_ids)
   for (unsigned lev = 0; lev < m_particles.size(); lev++) {
     const auto& pmap = m_particles[lev];
     for (auto& kv : pmap) {
-      const AoS& pbx = kv.second;
+      const auto& pbx = kv.second();
       for (const auto& p : pbx) {
 	if (p.m_idata.id > 0) {
             part_ids[start++] = p.m_idata.id;
@@ -911,7 +911,7 @@ ParticleContainer<NR, NI, NA>::GetParticleCPU (Array<int>& part_cpu)
   for (unsigned lev = 0; lev < m_particles.size(); lev++) {
     const auto& pmap = m_particles[lev];
     for (auto& kv : pmap) {
-      const AoS& pbx = kv.second;
+      const auto& pbx = kv.second();
       for (const auto& p : pbx) {
 	if (p.m_idata.id > 0) {
             part_cpu[start++] = p.m_idata.cpu;
@@ -941,7 +941,7 @@ ParticleContainer<NR, NI, NA>::GetParticleLocations (Array<Real>& part_data)
   for (unsigned lev = 0; lev < m_particles.size(); lev++) {
     const auto& pmap = m_particles[lev];
     for (auto& kv : pmap) {
-      const AoS& pbx = kv.second;
+      const auto& pbx = kv.second();
       for (const auto& p : pbx) {
 	if (p.m_idata.id > 0) {
 	  // Load positions
@@ -973,7 +973,7 @@ ParticleContainer<NR, NI, NA>::GetParticleData (Array<Real>& part_data, int star
   for (unsigned lev = 0; lev < m_particles.size(); lev++) {
     const auto& pmap = m_particles[lev];
     for (auto& kv : pmap) {
-      const AoS& pbx = kv.second;
+      const auto& pbx = kv.second();
       for (const auto& p : pbx) {
 	if (p.m_idata.id > 0) {
 	  // Load particle data, whatever it is.
@@ -1013,7 +1013,7 @@ ParticleContainer<NR, NI, NA>::SetParticleLocations (Array<Real>& part_data)
   for (unsigned lev = 0; lev < m_particles.size(); lev++) {
     const auto& pmap = m_particles[lev];
     for (auto& kv : pmap) {
-      const AoS& pbx = kv.second;
+      const auto& pbx = kv.second();
       for (const auto& p : pbx) {
 	if (p.m_idata.id > 0) {
 	  // Load positions
@@ -1054,7 +1054,7 @@ ParticleContainer<NR, NI, NA>::RemoveParticlesNotAtFinestLevel ()
     auto& pmap = m_particles[lev];
     if (!pmap.empty()) {
       for (auto& kv : pmap) {
-	const AoS& pbx = kv.second;
+	const auto& pbx = kv.second();
 	cnt += pbx.size();
       }
       AoSMap().swap(pmap);
@@ -1108,7 +1108,7 @@ ParticleContainer<NR, NI, NA>::CreateVirtualParticles (int   level,
   ParticleLocData pld;
 
   for (const auto& kv : pmap) {
-    const AoS& pbox = kv.second;
+    const auto& pbox = kv.second();
     
     //
     // Map for use in Cell aggregation.
@@ -1235,7 +1235,7 @@ ParticleContainer<NR, NI, NA>::CreateGhostParticles (int   level,
   
   const AoSMap& pmap = m_particles[level];
   for (const auto& kv : pmap) {
-    const AoS& pbox = kv.second;
+    const auto& pbox = kv.second();
     for (auto it = pbox.cbegin(); it != pbox.cend(); ++it)
       {
 	//
@@ -1266,7 +1266,7 @@ ParticleContainer<NR, NI, NA>::CreateGhostParticles (int   level,
 	    //
 	    // Store it in the AoS.
 	    //
-	    ghosts.push_back(p);
+	    ghosts().push_back(p);
 	  }
       }
   }
@@ -1323,7 +1323,7 @@ ParticleContainer<NR, NI, NA>::Redistribute (bool where_already_called, int lev_
     for (auto pmap_it = pmap.begin(); pmap_it != pmap.end(); /* no ++ */) {
       int grid = pmap_it->first.first;
       int tile = pmap_it->first.second;
-      AoS& pbox = pmap_it->second;
+      auto& pbox = pmap_it->second();
       SoA& arrs = m_arraydata[lev][pmap_it->first];
       unsigned first = 0;
       unsigned npart = pbox.size();
@@ -1345,7 +1345,7 @@ ParticleContainer<NR, NI, NA>::Redistribute (bool where_already_called, int lev_
 	      if (who == MyProc) {
 		if (pld.m_lev != lev || pld.m_grid != grid || pld.m_tile != tile) {
 		  // We own it but must shift it to another place.
-		  m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
+                  m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)]().push_back(p);
 		  for (int comp = 0; comp < NA; comp++) {
 		    Real pdata = arrs[comp][pindex];
 		    m_arraydata[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)][comp].push_back(pdata);
@@ -1395,7 +1395,7 @@ ParticleContainer<NR, NI, NA>::Redistribute (bool where_already_called, int lev_
       //
       // Remove any map entries for which the particle container is now empty.
       //
-      if (pmap_it->second.empty()) {
+      if (pmap_it->second().empty()) {
 	m_arraydata[lev].erase(pmap_it->first);     
  	pmap.erase(pmap_it++);
       }
@@ -1560,7 +1560,7 @@ ParticleContainer<NR, NI, NA>::RedistributeMPI (std::map<int, Array<char> >& not
 	
 	locateParticle(p, pld, lev_min, finest_level, nGrow);
 	
-	m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
+	m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)]().push_back(p);
 	
 	auto& arrs = m_arraydata[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)];
 	Real* d = (Real*)(pbuf + particle_size);
@@ -1599,7 +1599,7 @@ ParticleContainer<NR, NI, NA>::OK (int  lev_min,
 	for (const auto& kv : pmap) {
             const int grid = kv.first.first;
             const int tile = kv.first.second;
-            const AoS& pbox = kv.second;
+            const auto& pbox = kv.second();
             const BoxArray& ba = ParticleBoxArray(lev);
             BL_ASSERT(ba.ixType().cellCentered());
             for (const auto& p : pbox)
@@ -1692,7 +1692,7 @@ ParticleContainer<NR, NI, NA>::Checkpoint (const std::string& dir,
     for (int lev = 0; lev < m_particles.size();  lev++) {
       const AoSMap& pmap = m_particles[lev];
       for (const auto& kv : pmap) {
-	const AoS& pbox = kv.second;
+	const auto& pbox = kv.second();
 	for (const auto& p : pbox) {
 	  if (p.m_idata.id > 0)
 	    //
@@ -2003,7 +2003,7 @@ ParticleContainer<NR, NI, NA>::WriteParticles (int            lev,
       auto pmap_it = pmap.find(std::make_pair(grid, tile));
 
       if (pmap_it != pmap.end()) {
-	for (const auto& p : pmap_it->second) {
+        for (const auto& p : pmap_it->second()) {
 	  if (p.m_idata.id > 0)
 	    cnt++;
 	}
@@ -2032,7 +2032,7 @@ ParticleContainer<NR, NI, NA>::WriteParticles (int            lev,
 	int* iptr = istuff.dataPtr();
 
 	for (unsigned i = 0; i < tile_map[grid].size(); i++) {
-	  const AoS& pbox = m_particles[lev].at(std::make_pair(grid, tile_map[grid][i]));
+          const auto& pbox = m_particles[lev].at(std::make_pair(grid, tile_map[grid][i]))();
 	  for (const auto& p : pbox) {
 	    if (p.m_idata.id > 0) {
 	      iptr[0] = p.m_idata.id;
@@ -2050,7 +2050,7 @@ ParticleContainer<NR, NI, NA>::WriteParticles (int            lev,
       typename ParticleType::RealType* rptr = rstuff.dataPtr();
 
       for (unsigned i = 0; i < tile_map[grid].size(); i++) {
-	const AoS& pbox = m_particles[lev].at(std::make_pair(grid, tile_map[grid][i]));
+        const auto& pbox = m_particles[lev].at(std::make_pair(grid, tile_map[grid][i]))();
 	int pindex = 0;
 	for (const auto& p : pbox) {
 	  if (p.m_idata.id > 0) {
@@ -2306,7 +2306,7 @@ ParticleContainer<NR, NI, NA>::ReadParticles (int            cnt,
       }
       rptr += NA;
 
-      AoS& pbox = m_particles[lev][std::make_pair(grd, pld.m_tile)];
+      auto& pbox = m_particles[lev][std::make_pair(grd, pld.m_tile)]();
       pbox.push_back(p);
     }
 }
@@ -2327,7 +2327,7 @@ ParticleContainer<NR, NI, NA>::WriteAsciiFile (const std::string& filename)
     for (int lev = 0; lev < m_particles.size();  lev++) {
       AoSMap& pmap = m_particles[lev];
       for (const auto& kv : pmap) {
-	const AoS& pbox = kv.second;
+	const auto& pbox = kv.second();
 	for (const auto& p : pbox) {
 	  if (p.m_idata.id > 0)
 	    //
@@ -2392,7 +2392,7 @@ ParticleContainer<NR, NI, NA>::WriteAsciiFile (const std::string& filename)
 	    for (int lev = 0; lev < m_particles.size();  lev++) {
 	      AoSMap& pmap = m_particles[lev];
 	      for (const auto& kv : pmap) {
-		const AoS& pbox = kv.second;
+		const auto& pbox = kv.second();
 		
 		int index = 0;
 		for (auto it = pbox.cbegin(); it != pbox.cend(); ++it) {
@@ -3025,7 +3025,7 @@ ParticleContainer<NR, NI, NA>::AssignDensity (int rho_index, bool sub_cycle,
 	const AoSMap& pmap = m_particles[lev];
 	for (const auto& kv : pmap) {
 	  const int grid = kv.first.first;
-	  const AoS& pbx = kv.second;
+	  const auto& pbx = kv.second();
 	  FArrayBox&  fab = (*mf[lev_index])[grid];
 	  for (const auto& p : pbx)
             {
@@ -3913,7 +3913,7 @@ ParticleContainer<NR, NI, NA>::AssignCellDensitySingleLevelFort (int rho_index,
 
     for (const auto& kv : pmap) {
       const int grid = kv.first.first;
-      const AoS& pbx = kv.second;
+      const auto& pbx = kv.second();
       FArrayBox& fab = (*mf_pointer)[grid];
       const Box& box = fab.box();
       auto N = pbx.size();
@@ -4007,7 +4007,7 @@ ParticleContainer<NR, NI, NA>::AssignCellDensitySingleLevel (int rho_index,
 
     for (const auto& kv : pmap) {
       const int grid = kv.first.first;
-      const AoS& pbx = kv.second;
+      const auto& pbx = kv.second();
       FArrayBox& fab = (*mf_pointer)[grid];
       auto N = pbx.size();
 	
@@ -4160,7 +4160,7 @@ ParticleContainer<NR, NI, NA>::NodalDepositionSingleLevel (int rho_index,
     ParticleLocData pld;
 
     for (const auto& kv : pmap) {
-      const AoS& pbx = kv.second;
+      const auto& pbx = kv.second();
       const int grid = kv.first.first;
       FArrayBox& fab = (*mf_pointer)[grid];
 
@@ -4334,7 +4334,7 @@ ParticleContainer<NR, NI, NA>::moveKick (MultiFab&       acceleration,
     ParticleLocData pld;
 
     for (auto& kv : pmap) {
-      AoS& pbox = kv.second;
+      auto& pbox = kv.second();
       const int grid = kv.first.first;
       const int n = pbox.size();
       const FArrayBox& gfab = (*ac_pointer)[grid];

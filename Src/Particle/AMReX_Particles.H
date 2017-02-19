@@ -195,18 +195,45 @@ struct Particle
                                 Array<IntVect>&     cells);
 };
 
+template <int NR, int NI>
+class ArrayOfStructs {
+public:
+    using ParticleType = Particle<NR, NI>;
+    using RealType     = typename ParticleType::RealType;
+
+    Array<ParticleType>& operator()() { return m_data; }
+    const Array<ParticleType>& operator()() const { return m_data; }
+
+    int numParticles () const { return m_data.size(); }
+
+    RealType*       data ()       { return &(m_data[0].m_rdata.arr[0]); }
+    const RealType* data () const { return &(m_data[0].m_rdata.arr[0]); }
+
+    std::pair<int,int> dataShape () const {
+	return std::make_pair(SizeInReal, static_cast<int>(m_data.size()));
+    }
+    
+    static constexpr int SizeInReal = sizeof(ParticleType) / sizeof(RealType);
+
+private:
+    Array<ParticleType> m_data;
+};
+
 template <int NA>
 struct StructOfArrays {
   
-  Array<Real>& operator[] (const int index) {
-    return m_data[index];
-  }
+    Array<Real>& operator[] (const int index) {
+        return m_data[index];
+    }
+    
+    const Array<Real>& operator[] (const int index) const {
+        return m_data[index];
+    }
+    
+    int numParticles () const { return NA>0 ? m_data[0].size() : 0; }
 
-  const Array<Real>& operator[] (const int index) const {
-    return m_data[index];
-  }
-
-  std::array<Array<Real>, NA> m_data;
+private:
+    std::array<Array<Real>, NA> m_data;
 };
 
 template <int NR, int NI, int NA> class ParIter;
@@ -226,7 +253,7 @@ public:
     using RealType = typename Particle<NR, NI>::RealType;
 
     // This defines the array-of-structs datatype.
-    using AoS = Array<ParticleType>;
+    using AoS = ArrayOfStructs<NR,NI>;
 
     // The struct-of-arrays data is stored as a double array where the first index is the
     // component number and the second is the particle index.
