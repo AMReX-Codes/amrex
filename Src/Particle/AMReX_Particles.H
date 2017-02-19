@@ -623,48 +623,30 @@ public:
     using AoS           = typename ContainerType::AoS;
     using SoA           = typename ContainerType::SoA;
 
-    ParIter (ContainerType& pc, int level) 
-        : 
-        MFIter(*pc.m_dummy_mf[level],
-               pc.do_tiling ? pc.tile_size : IntVect::TheZeroVector()),
-        m_aos_map(pc.m_particles[level]),
-        m_soa_map(pc.m_arraydata[level]),
-        m_level(level) 
-        {}
+    ParIter (ContainerType& pc, int level);
 
-    AoS& GetAosData () {
-        auto r = m_aos_map.find(std::make_pair(index(),LocalTileIndex()));
-        BL_ASSERT(r != m_aos_map.end());
-        return r->second;
+    void operator++ () {
+        ++m_pariter_index;
+        currentIndex = m_valid_index[m_pariter_index];
     }
-
-    const AoS& GetAosData () const {
-        auto r = m_aos_map.find(std::make_pair(index(),LocalTileIndex()));
-        BL_ASSERT(r != m_aos_map.end());
-        return r->second;
-    }
-
-    SoA& GetSoAData () {
-        auto r = m_soa_map.find(std::make_pair(index(),LocalTileIndex()));
-        BL_ASSERT(r != m_soa_map.end());
-        return r->second;
-    }
-
-    const SoA& GetSoAData () const {
-        auto r = m_soa_map.find(std::make_pair(index(),LocalTileIndex()));
-        BL_ASSERT(r != m_soa_map.end());
-        return r->second;
-    }
+    
+    AoS&       GetAoSData ()       { return *m_aos[m_pariter_index]; }
+    const AoS& GetAoSData () const { return *m_aos[m_pariter_index]; }
+    SoA&       GetSoAData ()       { return *m_soa[m_pariter_index]; }
+    const SoA& GetSoAData () const { return *m_soa[m_pariter_index]; }
 
 private:
-    typename ContainerType::AoSMap m_aos_map;
-    typename ContainerType::SoAMap m_soa_map;
     int m_level;
+    int m_pariter_index;
+    Array<int> m_valid_index;
+    Array<AoS*> m_aos;
+    Array<SoA*> m_soa;
 };
 
 #include "AMReX_ParticleI.H"
 #include "AMReX_ParticleInit.H"
 #include "AMReX_ParticleContainerI.H"
+#include "AMReX_ParIterI.H"
 
 }
 
