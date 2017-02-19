@@ -147,7 +147,7 @@ ParticleContainer<NR, NI, NA>::InitFromAsciiFile (const std::string& file, int e
             p.m_idata.id  = ParticleType::NextID();
             p.m_idata.cpu = MyProc;
 
-            nparticles.push_back(p);
+            nparticles().push_back(p);
 
             how_many++;
             how_many_read++;
@@ -198,7 +198,7 @@ ParticleContainer<NR, NI, NA>::InitFromAsciiFile (const std::string& file, int e
                             //
                             p_rep.m_idata.cpu = MyProc;
    
-                            nparticles.push_back(p_rep);
+                            nparticles().push_back(p_rep);
    
                             how_many++;
                         }
@@ -227,14 +227,14 @@ ParticleContainer<NR, NI, NA>::InitFromAsciiFile (const std::string& file, int e
         {
             if (which == MyProc)
             {
-                while (!nparticles.empty())
+                while (!nparticles().empty())
                 {
-                    ParticleType& p = nparticles.back();
+                    ParticleType& p = nparticles().back();
 		    Where(p, pld);
 
-                    m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
+                    m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)]().push_back(p);
     
-                    nparticles.pop_back();
+                    nparticles().pop_back();
                 }
             }
         }
@@ -257,14 +257,14 @@ ParticleContainer<NR, NI, NA>::InitFromAsciiFile (const std::string& file, int e
     {
         if (which == MyProc)
         {
-            while (!nparticles.empty())
+            while (!nparticles().empty())
             {
-                ParticleType& p = nparticles.back();
+                ParticleType& p = nparticles().back();
 		Where(p, pld);
 
-                m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
+                m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)]().push_back(p);
 
-                nparticles.pop_back();
+                nparticles().pop_back();
             }
         }
         //
@@ -668,7 +668,7 @@ ParticleContainer<NR, NI, NA>::InitFromBinaryFile (const std::string& file,
                 p.m_idata.id  = ParticleType::NextID();
                 p.m_idata.cpu = MyProc;
 
-                m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
+                m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)]().push_back(p);
             }
 
             how_many_read += NRead;
@@ -880,7 +880,7 @@ ParticleContainer<NR, NI, NA>::InitRandom (long          icount,
                 p.m_idata.id  = ParticleType::NextID();
                 p.m_idata.cpu = MyProc;
 
-                m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
+                m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)]().push_back(p);
 
                 cnt++;
 	      }
@@ -947,7 +947,7 @@ ParticleContainer<NR, NI, NA>::InitRandom (long          icount,
             //
             // Add it to the appropriate AoS at the appropriate level.
             //
-            m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
+            m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)]().push_back(p);
         }
         //
         // Let Redistribute() sort out where the particles belong.
@@ -1041,7 +1041,7 @@ ParticleContainer<NR, NI, NA>::InitOnePerCell (Real x_off, Real y_off, Real z_of
             //
             // Add it to the appropriate AoS at the appropriate level.
             //
-	    m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
+	    m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)]().push_back(p);
 	    if (NA > 0)
 	      m_arraydata[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)][0].push_back(p.m_idata.id);
 	    if (NA > 1)
@@ -1146,7 +1146,7 @@ ParticleContainer<NR, NI, NA>::InitNRandomPerCell (int n_per_cell, Real mass, co
                //
                // Add it to the appropriate AoS at the appropriate level.
                //
-               m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
+               m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)]().push_back(p);
             }
           } 
          } 
