@@ -404,20 +404,17 @@ LaserParticleContainer::Evolve (int lev,
 	    // copy particle data back
 	    //
 	    BL_PROFILE_VAR_START(blp_copy);
-	    pti.foreach([&](int i, ParticleType& p) {
-                    BL_ASSERT(p.m_id > 0);
+            for (int i = 0; i < np; ++i)
+            {
 #if (BL_SPACEDIM == 3)
-		    p.m_pos[0] = xp[i];
-		    p.m_pos[1] = yp[i];
-		    p.m_pos[2] = zp[i];
+                p.pos(0) = xp[i];
+                p.pos(1) = yp[i];
+                p.pos(2) = zp[i];
 #elif (BL_SPACEDIM == 2)
-		    p.m_pos[0] = xp[i];
-		    p.m_pos[1] = zp[i];
+                p.pos(0) = xp[i];
+                p.pos(1) = zp[i];
 #endif
-		    p.m_data[PIdx::ux] = uxp[i];
-		    p.m_data[PIdx::uy] = uyp[i];
-		    p.m_data[PIdx::uz] = uzp[i];
-                });
+            }
             BL_PROFILE_VAR_STOP(blp_copy);
 	}
     }
