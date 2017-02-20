@@ -467,8 +467,11 @@ public:
 
     void SetVerbose (int verbose) { m_verbose = verbose; }
 
-    const AoSMap& GetParticles(int lev) const { return m_particles[lev]; }
-    AoSMap& GetParticles(int lev) { return m_particles[lev]; }
+    const AoSMap& GetAoSMap (int lev) const { return m_particles[lev]; }
+    AoSMap&       GetAoSMap (int lev)       { return m_particles[lev]; }
+
+    const SoAMap& GetSoAMap (int lev) const { return m_arraydata[lev]; }
+    SoAMap&       GetSoAMap (int lev)       { return m_arraydata[lev]; }
 
     // 
     // Functions depending the layout of the data.  Use with caution.
