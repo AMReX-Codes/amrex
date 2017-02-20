@@ -28,11 +28,9 @@ PhysicalParticleContainer::InitData()
 	amrex::Abort("PhysicalParticleContainer::InitData(): species_id must be 0 or 1");
     }
 
-    m_particles.resize(GDB().finestLevel()+1);
-
     const int lev = 0;
 
-    const Geometry& geom = GDB().Geom(lev);
+    const Geometry& geom = Geom(lev);
     const Real* dx  = geom.CellSize();
 
     Real weight, ux, uy, uz;
@@ -73,8 +71,8 @@ PhysicalParticleContainer::InitData()
       uz *= PhysConst::c;
     }
 
-    const BoxArray& ba = GDB().ParticleBoxArray(lev);
-    const DistributionMapping& dm = GDB().ParticleDistributionMap(lev);
+    const BoxArray& ba = ParticleBoxArray(lev);
+    const DistributionMapping& dm = ParticleDistributionMap(lev);
 
     MultiFab dummy_mf(ba, dm, 1, 0, MFInfo().SetAlloc(false));
 
@@ -144,7 +142,7 @@ PhysicalParticleContainer::InitData()
 		    amrex::Abort("invalid particle");
 		}
 		
-		BL_ASSERT(p.m_lev >= 0 && p.m_lev <= GDB().finestLevel());
+		BL_ASSERT(p.m_lev >= 0 && p.m_lev <= finestLevel());
 		//
 		// Add it to the appropriate PBox at the appropriate level.
 		//

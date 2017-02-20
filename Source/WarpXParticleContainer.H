@@ -4,7 +4,6 @@
 #include <memory>
 
 #include <AMReX_Particles.H>
-#include <AMReX_AmrParGDB.H>
 
 struct PIdx
 {
@@ -48,8 +47,6 @@ public:
     void ReadHeader (std::istream& is);
 
     void WriteHeader (std::ostream& os) const;
-
-    const amrex::ParGDBBase& GDB () const { return *m_gdb; }
 
     static void ReadParameters ();
 

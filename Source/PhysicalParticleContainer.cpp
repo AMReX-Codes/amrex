@@ -10,34 +10,15 @@ using namespace amrex;
 PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core, int ispecies)
     : WarpXParticleContainer(amr_core, ispecies)
 {
-    m_partdata.reserve(GDB().maxLevel()+1);
 }
 
 void
 PhysicalParticleContainer::AllocData ()
 {
-    // have to resize here, not in the constructor because GDB was not
-    // ready in constructor.
-    int nlevs = GDB().finestLevel()+1;
-    m_particles.resize(nlevs);
-    m_partdata.resize (nlevs);
-    for (int lev = 0; lev < nlevs; ++ lev)
-    {
-	auto& partleveldata = m_partdata[lev];
-	const BoxArray& ba = GDB().ParticleBoxArray(lev);
-	const DistributionMapping& dm = GDB().ParticleDistributionMap(lev);
-
-	MultiFab foo(ba, dm, 1, 0, MFInfo().SetAlloc(false));
-	for (MFIter mfi(foo); mfi.isValid(); ++mfi)
-	{
-	    int i = mfi.index();
-	    partleveldata[i] = Array<std::unique_ptr<Array<Real> > > (PIdx::npartdata);
-	    for (auto& d : partleveldata[i])
-	    {
-		d.reset(new Array<Real>());
-	    }
-	}
-    }
+    // have to resize here, not in the constructor because grids have not
+    // been built when constructor was called.
+    reserveData();
+    resizeData();
 }
 
 void
@@ -79,30 +60,38 @@ PhysicalParticleContainer::Evolve (int lev,
 
     BL_ASSERT(OnSameGrids(lev,Ex));
 
-    //xxxxx not using m_pardata for now. auto& partleveldata = m_partdata[lev];
-
     {
-	Array<Real> xp, yp, zp, wp, uxp, uyp, uzp, giv;
-	Array<Real> Exp, Eyp, Ezp, Bxp, Byp, Bzp;
+	Array<Real> xp, yp, zp, giv;
 
-	PartIterInfo info {lev, do_tiling, tile_size};
-	for (PartIter pti(*this, info); pti.isValid(); ++pti)
+	for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
 	{
-	    const int  gid = pti.index();
-	    const Box& tbx = pti.tilebox();
-	    const Box& vbx = pti.validbox();
-	    const long np  = pti.numParticles();
+	    const Box& box = pti.tilebox();
+
+            auto& aos_data = pti.GetAoSData();
+            auto& soa_data = pti.GetSoAData();
+
+            auto& uxp = soa_data[PIdx::ux];
+            auto& uyp = soa_data[PIdx::uy];
+            auto& uzp = soa_data[PIdx::uz];
+            auto& Exp = soa_data[PIdx::Ex];
+            auto& Eyp = soa_data[PIdx::Ey];
+            auto& Ezp = soa_data[PIdx::Ez];
+            auto& Bxp = soa_data[PIdx::Bx];
+            auto& Byp = soa_data[PIdx::By];
+            auto& Bzp = soa_data[PIdx::Bz];
+            
+            const long np  = aos_data.numParticles();
 
 	    // Data on the grid
-	    const FArrayBox& exfab = Ex[gid];
-	    const FArrayBox& eyfab = Ey[gid];
-	    const FArrayBox& ezfab = Ez[gid];
-	    const FArrayBox& bxfab = Bx[gid];
-	    const FArrayBox& byfab = By[gid];
-	    const FArrayBox& bzfab = Bz[gid];
-	    FArrayBox&       jxfab = jx[gid];
-	    FArrayBox&       jyfab = jy[gid];
-	    FArrayBox&       jzfab = jz[gid];
+	    const FArrayBox& exfab = Ex[pti];
+	    const FArrayBox& eyfab = Ey[pti];
+	    const FArrayBox& ezfab = Ez[pti];
+	    const FArrayBox& bxfab = Bx[pti];
+	    const FArrayBox& byfab = By[pti];
+	    const FArrayBox& bzfab = Bz[pti];
+	    FArrayBox&       jxfab = jx[pti];
+	    FArrayBox&       jyfab = jy[pti];
+	    FArrayBox&       jzfab = jz[pti];
 
 	    Exp.assign(np,0.0);
 	    Eyp.assign(np,0.0);
@@ -124,25 +113,21 @@ PhysicalParticleContainer::Evolve (int lev,
 	    // copy data from particle container to temp arrays
 	    //
 	    BL_PROFILE_VAR_START(blp_copy);
-	    pti.foreach([&](int i, ParticleType& p) {
+	    for (int i = 0; i < np; ++i)
+            {
+                const auto& p = aos_data()[i];
 #if (BL_SPACEDIM == 3)
-		    xp[i] = p.m_pos[0];
-		    yp[i] = p.m_pos[1];
-		    zp[i] = p.m_pos[2];
+                xp[i] = p.pos(0);
+                yp[i] = p.pos(1);
+                zp[i] = p.pos(2);
 #elif (BL_SPACEDIM == 2)
-		    xp[i] = p.m_pos[0];
-		    yp[i] = std::numeric_limits<Real>::quiet_NaN();
-		    zp[i] = p.m_pos[1];
+                xp[i] = p.pos(0);
+                yp[i] = std::numeric_limits<Real>::quiet_NaN();
+                zp[i] = p.pos(1);
 #endif
-		    wp[i]  = p.m_data[PIdx::w];
-		    uxp[i] = p.m_data[PIdx::ux];
-		    uyp[i] = p.m_data[PIdx::uy];
-		    uzp[i] = p.m_data[PIdx::uz];
-		});
+            }
 	    BL_PROFILE_VAR_STOP(blp_copy);
 
-
-	    const Box& box = amrex::enclosedCells(ba[gid]);
 	    BL_ASSERT(box == vbx);
 #if (BL_SPACEDIM == 3)
 	    long nx = box.length(0);
@@ -214,20 +199,18 @@ PhysicalParticleContainer::Evolve (int lev,
 	    // copy particle data back
 	    //
 	    BL_PROFILE_VAR_START(blp_copy);
-	    pti.foreach([&](int i, ParticleType& p) {
-                    BL_ASSERT(p.m_id > 0);
+            for (int i = 0; i < np; ++i)
+            {
+                auto& p = aos_data()[i];
 #if (BL_SPACEDIM == 3)
-		    p.m_pos[0] = xp[i];
-		    p.m_pos[1] = yp[i];
-		    p.m_pos[2] = zp[i];
+		    p.pos(0) = xp[i];
+		    p.pos(1) = yp[i];
+		    p.pos(2) = zp[i];
 #elif (BL_SPACEDIM == 2)
-		    p.m_pos[0] = xp[i];
-		    p.m_pos[1] = zp[i];
+		    p.pos(0) = xp[i];
+		    p.pos(1) = zp[i];
 #endif
-		    p.m_data[PIdx::ux] = uxp[i];
-		    p.m_data[PIdx::uy] = uyp[i];
-		    p.m_data[PIdx::uz] = uzp[i];
-                });
+            }
             BL_PROFILE_VAR_STOP(blp_copy);
 	}
     }

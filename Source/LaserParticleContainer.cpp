@@ -83,16 +83,15 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies)
 void
 LaserParticleContainer::AllocData ()
 {
-    // have to resize here, not in the constructor because GDB was not
-    // ready in constructor.
-    m_particles.resize(GDB().finestLevel()+1);
+    // have to resize here, not in the constructor because grids have not
+    // been built when constructor was called.
+    reserveData();
+    resizeData();
 }
 
 void
 LaserParticleContainer::InitData ()
 {
-    m_particles.resize(GDB().finestLevel()+1);
-
     const int lev = 0;
     const Geometry& geom = GDB().Geom(lev);
     const RealBox& prob_domain = geom.ProbDomain();
@@ -406,6 +405,7 @@ LaserParticleContainer::Evolve (int lev,
 	    BL_PROFILE_VAR_START(blp_copy);
             for (int i = 0; i < np; ++i)
             {
+                auto& p = aos_data()[i];
 #if (BL_SPACEDIM == 3)
                 p.pos(0) = xp[i];
                 p.pos(1) = yp[i];
