@@ -1,7 +1,6 @@
 #include <limits>
 
 #include <ParticleContainer.H>
-#include <ParticleIterator.H>
 #include <WarpX_f.H>
 #include <WarpX.H>
 
@@ -33,7 +32,7 @@ PhysicalParticleContainer::Evolve (int lev,
     BL_PROFILE_VAR_NS("PICSAR::ParticlePush", blp_pxr_pp);
     BL_PROFILE_VAR_NS("PICSAR::CurrentDeposition", blp_pxr_cd);
 
-    const Geometry& gm  = GDB().Geom(lev);
+    const Geometry& gm  = Geom(lev);
     const BoxArray& ba  = Ex.boxArray();
 
 #if (BL_SPACEDIM == 3)

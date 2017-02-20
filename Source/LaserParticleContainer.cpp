@@ -93,7 +93,7 @@ void
 LaserParticleContainer::InitData ()
 {
     const int lev = 0;
-    const Geometry& geom = GDB().Geom(lev);
+    const Geometry& geom = Geom(lev);
     const RealBox& prob_domain = geom.ProbDomain();
 
     // spacing of laser particles in the laser plane.
@@ -239,7 +239,7 @@ LaserParticleContainer::Evolve (int lev,
     BL_PROFILE_VAR_NS("PICSAR::LaserParticlePush", blp_pxr_pp);
     BL_PROFILE_VAR_NS("PICSAR::LaserCurrentDepo", blp_pxr_cd);
 
-    const Geometry& gm  = GDB().Geom(lev);
+    const Geometry& gm  = Geom(lev);
     const BoxArray& ba  = jx.boxArray();
 
 #if (BL_SPACEDIM == 3)
@@ -263,7 +263,7 @@ LaserParticleContainer::Evolve (int lev,
     {
 	Array<Real> xp, yp, zp, giv, plane_Xp, plane_Yp, amplitude_E;
 
-        for (WarpXParIter pti(*this, lev); pti.isValid; ++pti)
+        for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
 	{
 	    const Box& box = pti.tilebox();
 
@@ -380,7 +380,7 @@ LaserParticleContainer::Evolve (int lev,
                 yp[i] += vy * dt;
 #endif
                 zp[i] += vz * dt;
-            )
+            }
 
 	    BL_PROFILE_VAR_STOP(blp_pxr_pp);
 
@@ -433,7 +433,7 @@ void
 LaserParticleContainer::ComputeSpacing (Real& Sx, Real& Sy) const
 {
     const int lev = 0;
-    const Geometry& geom = GDB().Geom(lev);
+    const Geometry& geom = Geom(lev);
 
 #if (BL_SPACEDIM == 3)
     const Real* dx = geom.CellSize();

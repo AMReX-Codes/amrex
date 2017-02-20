@@ -2,6 +2,7 @@
 #include <limits>
 
 #include <ParticleContainer.H>
+#include <AMReX_AmrParGDB.H>
 #include <WarpX_f.H>
 #include <WarpX.H>
 
@@ -64,41 +65,42 @@ WarpXParticleContainer::AddNParticles (int n, const Real* x, const Real* y, cons
 	}
     }
 
+    auto& aos_map = GetAoSMap(lev);
+    auto& soa_map = GetSoAMap(lev);
+
+    //  Add to grid 0 and tile 0
+    // Redistribute() will move them to proper places.
+    std::pair<int,int> key {0,0};
+    auto& aos_data = aos_map[key];
+    auto& soa_data = soa_map[key];
+    
     for (int i = ibegin; i < iend; ++i)
     {
 	ParticleType p;
-	p.m_id  = ParticleBase::NextID();
-	p.m_cpu = ParallelDescriptor::MyProc();
-	p.m_lev = lev;
-	p.m_grid = gid; 
+	p.id()  = NextID();
+	p.cpu() = ParallelDescriptor::MyProc();
 
 #if (BL_SPACEDIM == 3)	
-	p.m_pos[0] = x[i];
-	p.m_pos[1] = y[i];
-	p.m_pos[2] = z[i];
+	p.pos(0) = x[i];
+	p.pos(1) = y[i];
+	p.pos(2) = z[i];
 #else
-	p.m_pos[0] = x[i];
-	p.m_pos[1] = z[i];
+	p.pos(0) = x[i];
+	p.pos(1) = z[i];
 #endif
-	
-	p.m_data[PIdx::w] = weight[i];
-	
-	for (int j = 1; j < PIdx::nattribs; ++j) {
-	    p.m_data[j] = 0;
-	}
-	
-	p.m_data[PIdx::ux] = vx[i];
-	p.m_data[PIdx::uy] = vy[i];
-	p.m_data[PIdx::uz] = vz[i];
-	
-	if (ParticleBase::Where(p,m_gdb)) // this will update m_lev, m_grid, and m_cell
-	{
-	    gid = p.m_grid;
-	    m_particles[p.m_lev][p.m_grid].push_back(p);
-	}
+
+        aos_data().push_back(p);
+
+        soa_data[PIdx::w ].push_back(weight[i]);
+        soa_data[PIdx::ux].push_back(vx[i]);
+        soa_data[PIdx::uy].push_back(vy[i]);
+        soa_data[PIdx::uz].push_back(vz[i]);
+        for (int idx = PIdx::Ex; idx < PIdx::nattribs; ++idx) {
+            soa_data[idx].push_back(0.0);
+        }
     }
 
-    Redistribute(true);
+    Redistribute(false);
 
     auto npart_after = TotalNumberOfParticles();  // xxxxx move this into if (verbose > xxx)
     if (ParallelDescriptor::IOProcessor()) {
@@ -135,7 +137,7 @@ WarpXParticleContainer::GetChargeDensity (int lev, bool local)
         auto& aos_data = pti.GetAoSData();
         auto& soa_data = pti.GetSoAData();
 
-        auto& wp = soa_data[PIdx::wx];
+        auto& wp = soa_data[PIdx::w];
             
         const long np  = aos_data.numParticles();
 

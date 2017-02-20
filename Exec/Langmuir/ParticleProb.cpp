@@ -74,21 +74,22 @@ PhysicalParticleContainer::InitData()
     const BoxArray& ba = ParticleBoxArray(lev);
     const DistributionMapping& dm = ParticleDistributionMap(lev);
 
-#if 0
-    MultiFab dummy_mf(ba, dm, 1, 0, MFInfo().SetAlloc(false));
-
-    for (MFIter mfi(dummy_mf,false); mfi.isValid(); ++mfi)
+    auto& aos_map = GetAoSMap(lev);
+    auto& soa_map = GetSoAMap(lev);
+    
+    for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
-	int gid = mfi.index();
-        Box grid = ba[gid];
-        RealBox grid_box { grid,dx,geom.ProbLo() };
+        const Box& tile_box = mfi.tilebox();
+        RealBox tile_real_box { tile_box, dx, geom.ProbLo() };
 
 #if (BL_SPACEDIM == 3)
-	int nx = grid.length(0), ny = grid.length(1), nz = grid.length(2);
+	int nx = tile_box.length(0), ny = tile_box.length(1), nz = tile_box.length(2);
 #elif (BL_SPACEDIM == 2)
-	int nx = grid.length(0), ny = 1, nz = grid.length(1);
+	int nx = tile_box.length(0), ny = 1, nz = tile_box.length(1);
 #endif
 
+        auto& aos_data = aos_map[std::make_pair(gid,mfi.LocalTileIndex());
+        
 	for (int k = 0; k < nz; k++) {
 	  for (int j = 0; j < ny; j++) {
 	    for (int i = 0; i < nx; i++) {
@@ -153,7 +154,6 @@ PhysicalParticleContainer::InitData()
 	  } 
         }
     }
-#endif
     //
     // We still need to redistribute in order to define each particle's cell, grid and level, but this 
     //    shouldn't require any inter-node communication because the particles should already be in the right grid.
