@@ -363,7 +363,7 @@ public:
 
     const Geometry& Geom (int lev) const { return m_gdb->Geom(lev); }
 
-    int finestLevel () const { return m_gdb->finetLevel(); }
+    int finestLevel () const { return m_gdb->finestLevel(); }
     int maxLevel () const { m_gdb->maxLevel(); }
     
     const ParGDBBase* GetParGDB () const { return m_gdb; }
