@@ -535,8 +535,10 @@ public:
 				    Array<IntVect>&                    fcells,
 				    std::vector< std::pair<int,Box> >& isects) const;
 
-    MFIter MakeMFIter (int lev) const
-        { return MFIter(*m_dummy_mf[lev], do_tiling ? tile_size : IntVect::TheZeroVector()); }
+    MFIter MakeMFIter (int lev) const {
+        BL_ASSERT(m_dummy_mf[lev] != nullptr);
+        return MFIter(*m_dummy_mf[lev], do_tiling ? tile_size : IntVect::TheZeroVector());
+    }
     
     std::vector<bool> communicate_comp;
     static bool do_tiling;

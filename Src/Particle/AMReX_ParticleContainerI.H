@@ -375,6 +375,9 @@ ParticleContainer<NR, NI, NA>::resizeData ()
     m_particles.resize(nlevs);
     m_arraydata.resize(nlevs);
     m_dummy_mf.resize(nlevs);
+    for (int lev = 0; lev < nlevs; ++lev) {
+        RedefineDummyMF(lev);
+    }
 }
 
 template <int NR, int NI, int NA>
@@ -383,9 +386,7 @@ ParticleContainer<NR, NI, NA>::RedefineDummyMF (int lev)
 {
     if (lev > m_dummy_mf.size()-1) m_dummy_mf.resize(lev+1);
     
-    if (m_dummy_mf[lev] == nullptr ||
-        ParticleBoxArray(lev) != m_dummy_mf[lev]->boxArray() ||
-        ParticleDistributionMap(lev) != m_dummy_mf[lev]->DistributionMap())
+    if (m_dummy_mf[lev] == nullptr)
     {
 	MFInfo info;
 	info.SetAlloc(false);
@@ -559,11 +560,8 @@ ParticleContainer<NR, NI, NA>::addOneParticle (int                  id_in,
 					       std::vector<double>& attributes)
 {
     BL_PROFILE("ParticleContainer<NR, NI, NA>::addOneParticle()");
-    if (m_particles.size() == 0)
-    {
-       m_particles.resize(m_gdb->finestLevel()+1);
-       m_arraydata.resize(m_gdb->finestLevel()+1);
-       m_dummy_mf.resize(m_gdb->finestLevel()+1);
+    if (m_particles.size() == 0) {
+        resizeData();
     }
 
     ParticleType p;
@@ -598,7 +596,7 @@ ParticleContainer<NR, NI, NA>::addOneParticle (int                  id_in,
     }
     
     m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)]().push_back(p);
-
+    auto& soa_data = m_arraydata[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)];
     RedefineDummyMF(pld.m_lev);
     
     // Note that we will need to call Redistribute once we are done adding particles this way.
@@ -621,9 +619,7 @@ ParticleContainer<NR, NI, NA>::addNParticles(int n_part, Array<double>& x, Array
     BL_ASSERT(NR >= BL_SPACEDIM+n_attr);
 
     if (m_particles.size() == 0) {
-        m_particles.resize(m_gdb->finestLevel()+1);
-        m_arraydata.resize(m_gdb->finestLevel()+1);
-        m_dummy_mf.resize(m_gdb->finestLevel()+1);
+        resizeData();
     }
 
     ParticleLocData pld;
@@ -648,6 +644,7 @@ ParticleContainer<NR, NI, NA>::addNParticles(int n_part, Array<double>& x, Array
        p.m_idata.cpu = ParallelDescriptor::MyProc();
 
        m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)]().push_back(p);
+       auto& soa_data = m_arraydata[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)];
     }
 
     Redistribute(true);
@@ -1413,7 +1410,7 @@ ParticleContainer<NR, NI, NA>::Redistribute (bool where_already_called, int lev_
                      << m_particles.size() << " to " << theEffectiveFinestLevel+1 << '\n';
       BL_ASSERT(int(m_particles.size()) >= 2);
       BL_ASSERT(m_particles[m_particles.size()-1].empty());
-      
+
       m_particles.resize(theEffectiveFinestLevel+1);
       m_arraydata.resize(theEffectiveFinestLevel+1);
       m_dummy_mf.resize(theEffectiveFinestLevel+1);
@@ -2165,10 +2162,8 @@ ParticleContainer<NR, NI, NA>::Restart (const std::string& dir,
     BL_ASSERT(ngrids[lev] > 0);
     BL_ASSERT(ngrids[lev] == int(m_gdb->ParticleBoxArray(lev).size()));
   }
-  
-  m_particles.resize(m_gdb->finestLevel()+1);
-  m_arraydata.resize(m_gdb->finestLevel()+1);
-  m_dummy_mf.resize(m_gdb->finestLevel()+1);
+
+  resizeData();
   
   for (int lev = 0; lev <= finest_level; lev++) {
     Array<int>  which(ngrids[lev]);
@@ -2177,8 +2172,6 @@ ParticleContainer<NR, NI, NA>::Restart (const std::string& dir,
     for (int i = 0; i < ngrids[lev]; i++) {
       HdrFile >> which[i] >> count[i] >> where[i];
     }
-    
-    RedefineDummyMF(lev);
     
     for (MFIter mfi(*m_dummy_mf[lev]); mfi.isValid(); ++mfi) {
       const int grid = mfi.index();
