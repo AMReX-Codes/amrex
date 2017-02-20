@@ -74,6 +74,7 @@ PhysicalParticleContainer::InitData()
     const BoxArray& ba = ParticleBoxArray(lev);
     const DistributionMapping& dm = ParticleDistributionMap(lev);
 
+#if 0
     MultiFab dummy_mf(ba, dm, 1, 0, MFInfo().SetAlloc(false));
 
     for (MFIter mfi(dummy_mf,false); mfi.isValid(); ++mfi)
@@ -152,7 +153,7 @@ PhysicalParticleContainer::InitData()
 	  } 
         }
     }
-
+#endif
     //
     // We still need to redistribute in order to define each particle's cell, grid and level, but this 
     //    shouldn't require any inter-node communication because the particles should already be in the right grid.

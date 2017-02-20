@@ -70,6 +70,7 @@ PhysicalParticleContainer::Evolve (int lev,
             auto& aos_data = pti.GetAoSData();
             auto& soa_data = pti.GetSoAData();
 
+            auto&  wp = soa_data[PIdx::w];
             auto& uxp = soa_data[PIdx::ux];
             auto& uyp = soa_data[PIdx::uy];
             auto& uzp = soa_data[PIdx::uz];
@@ -103,10 +104,6 @@ PhysicalParticleContainer::Evolve (int lev,
 	    xp.resize(np);
 	    yp.resize(np);
 	    zp.resize(np);
-	    wp.resize(np);
-	    uxp.resize(np);
-	    uyp.resize(np);
-	    uzp.resize(np);
 	    giv.resize(np);
 
 	    //

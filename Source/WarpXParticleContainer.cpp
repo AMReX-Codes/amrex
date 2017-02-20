@@ -2,15 +2,13 @@
 #include <limits>
 
 #include <ParticleContainer.H>
-#include <ParticleIterator.H>
 #include <WarpX_f.H>
 #include <WarpX.H>
 
 using namespace amrex;
 
 WarpXParticleContainer::WarpXParticleContainer (AmrCore* amr_core, int ispecies)
-    : ParticleContainer<PIdx::nattribs,0,std::vector<Particle<PIdx::nattribs,0> > >
-      (amr_core->GetParGDB())
+    : ParticleContainer<0,0,PIdx::nattribs>(amr_core->GetParGDB())
     , species_id(ispecies)
 {
     for (unsigned int i = PIdx::Ex; i < PIdx::nattribs; ++i) {
@@ -128,38 +126,40 @@ WarpXParticleContainer::GetChargeDensity (int lev, bool local)
     auto rho = std::unique_ptr<MultiFab>(new MultiFab(nba,dm,1,ng));
     rho->setVal(0.0);
 
-    Array<Real> xp, yp, zp, wp;
+    Array<Real> xp, yp, zp;
 
-    PartIterInfo info {lev, do_tiling, tile_size};
-    for (PartIter pti(*this, info); pti.isValid(); ++pti)
+    for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
     {
-	const int  gid = pti.index();
-	const Box& vbx = pti.validbox();
-	const long np  = pti.numParticles();
-	
+        const Box& box = pti.tilebox();
+
+        auto& aos_data = pti.GetAoSData();
+        auto& soa_data = pti.GetSoAData();
+
+        auto& wp = soa_data[PIdx::wx];
+            
+        const long np  = aos_data.numParticles();
+
 	// Data on the grid
-	FArrayBox& rhofab = (*rho)[gid];
+	FArrayBox& rhofab = (*rho)[pti];
 
 	xp.resize(np);
 	yp.resize(np);
 	zp.resize(np);
-	wp.resize(np);
 
-	pti.foreach([&](int i, ParticleType& p) {
+        for (int i = 0; i < np; ++i)
+        {
+            const auto& p = aos_data()[i];
 #if (BL_SPACEDIM == 3)
-		xp[i] = p.m_pos[0];
-		yp[i] = p.m_pos[1];
-		zp[i] = p.m_pos[2];
+                xp[i] = p.pos(0);
+                yp[i] = p.pos(1);
+                zp[i] = p.pos(2);
 #elif (BL_SPACEDIM == 2)
-		xp[i] = p.m_pos[0];
-		yp[i] = std::numeric_limits<Real>::quiet_NaN();
-		zp[i] = p.m_pos[1];
+                xp[i] = p.pos(0);
+                yp[i] = std::numeric_limits<Real>::quiet_NaN();
+                zp[i] = p.pos(1);
 #endif
-		wp[i]  = p.m_data[PIdx::w]; 
-	    });
+        }
 
-	const Box& box = amrex::enclosedCells(ba[gid]);
-	BL_ASSERT(box == vbx);
 #if (BL_SPACEDIM == 3)
 	long nx = box.length(0);
 	long ny = box.length(1);

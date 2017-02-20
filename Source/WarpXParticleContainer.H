@@ -4,6 +4,7 @@
 #include <memory>
 
 #include <AMReX_Particles.H>
+#include <AMReX_AmrCore.H>
 
 struct PIdx
 {
@@ -14,7 +15,7 @@ struct PIdx
     };
 };
 
-using WarpXParIter = amrex::ParIter<0,0,PIdx::nattribs>
+using WarpXParIter = amrex::ParIter<0,0,PIdx::nattribs>;
 
 class MultiParticleContainer;
 

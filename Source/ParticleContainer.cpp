@@ -1,7 +1,6 @@
 #include <limits>
 
 #include <ParticleContainer.H>
-#include <ParticleIterator.H>
 #include <WarpX_f.H>
 #include <WarpX.H>
 
