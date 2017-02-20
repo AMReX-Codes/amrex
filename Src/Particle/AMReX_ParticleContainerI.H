@@ -371,7 +371,7 @@ template <int NR, int NI, int NA>
 void
 ParticleContainer<NR, NI, NA>::resizeData ()
 {
-    int nlevs = m_gdb->finestLevel()+1;
+    int nlevs = std::max(0, m_gdb->finestLevel()+1);
     m_particles.resize(nlevs);
     m_arraydata.resize(nlevs);
     m_dummy_mf.resize(nlevs);

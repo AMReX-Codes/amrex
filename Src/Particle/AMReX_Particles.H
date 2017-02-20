@@ -361,6 +361,11 @@ public:
     const DistributionMapping& ParticleDistributionMap (int lev) const 
 	{ return m_gdb->ParticleDistributionMap(lev); }
 
+    const Geometry& Geom (int lev) const { return m_gdb->Geom(lev); }
+
+    int finestLevel () const { return m_gdb->finetLevel(); }
+    int maxLevel () const { m_gdb->maxLevel(); }
+    
     const ParGDBBase* GetParGDB () const { return m_gdb; }
 
     void reserveData();
