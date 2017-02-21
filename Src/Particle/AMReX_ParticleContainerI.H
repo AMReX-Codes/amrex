@@ -386,13 +386,15 @@ ParticleContainer<NR, NI, NA>::RedefineDummyMF (int lev)
 {
     if (lev > m_dummy_mf.size()-1) m_dummy_mf.resize(lev+1);
     
-    if (m_dummy_mf[lev] == nullptr)
+    if (m_dummy_mf[lev] == nullptr || 
+        ! BoxArray::SameRefs(m_dummy_mf[lev]->boxArray(),
+                             ParticleBoxArray(lev))          ||
+        ! DistributionMapping::SameRefs(m_dummy_mf[lev]->DistributionMap(), 
+                                        ParticleDistributionMap(lev)))
     {
-	MFInfo info;
-	info.SetAlloc(false);
         m_dummy_mf[lev].reset(new MultiFab(ParticleBoxArray(lev),
                                            ParticleDistributionMap(lev),
-                                           1,0,info));
+                                           1,0,MFInfo().SetAlloc(false)));
     }
 }  
 
