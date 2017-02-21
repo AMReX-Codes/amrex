@@ -406,9 +406,7 @@ public:
     //     the part of their contribution in AssignDensity that is outside the domain.
     void SetAllowParticlesNearBoundary(bool value);
  
-    void Redistribute (bool where_already_called = false,
-                       int  lev_min              = 0, 
-		       int  nGrow                = 0);
+    void Redistribute (int lev_min = 0, int nGrow = 0);
     //
     // OK checks that all particles are in the right places (for some value of right)
     //

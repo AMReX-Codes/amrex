@@ -647,7 +647,7 @@ ParticleContainer<NR, NI, NA>::addNParticles(int n_part, Array<double>& x, Array
        auto& soa_data = m_arraydata[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)];
     }
 
-    Redistribute(true);
+    Redistribute();
 }
 
 template <int NR, int NI, int NA>
@@ -1274,7 +1274,7 @@ ParticleContainer<NR, NI, NA>::CreateGhostParticles (int   level,
 //
 template <int NR, int NI, int NA>
 void
-ParticleContainer<NR, NI, NA>::Redistribute (bool where_already_called, int lev_min, int nGrow)
+ParticleContainer<NR, NI, NA>::Redistribute (int lev_min, int nGrow)
 {
   BL_PROFILE("ParticleContainer::Redistribute()");
   const int MyProc    = ParallelDescriptor::MyProc();
@@ -1327,14 +1327,10 @@ ParticleContainer<NR, NI, NA>::Redistribute (bool where_already_called, int lev_
       if (npart != 0) {
 	for (unsigned pindex = 0; pindex < npart; ++pindex) {
 	  ParticleType& p = pbox[pindex];
-	  if (p.m_idata.id > 0) {
-            if (where_already_called) {
-                pld.m_lev  = lev;
-                pld.m_grid = grid;
-                pld.m_tile = tile;
-            } else {
-                locateParticle(p, pld, lev_min, theEffectiveFinestLevel, nGrow);
-            }
+	  if (p.m_idata.id > 0)
+          {
+            locateParticle(p, pld, lev_min, theEffectiveFinestLevel, nGrow);
+
 	    if (p.m_idata.id > 0) {
 	      // The owner of the particle is the CPU owning the finest grid
 	      // in state data that contains the particle.
