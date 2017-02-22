@@ -11,7 +11,7 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
 {
     BL_PROFILE("TracerParticleContainer::AdvectWithUmac()");
     BL_ASSERT(OK(lev, umac[0].nGrow()-1));
-    BL_ASSERT(lev >= 0 && lev < m_particles.size());
+    BL_ASSERT(lev >= 0 && lev < GetParticles().size());
 
     D_TERM(BL_ASSERT(umac[0].nGrow() >= 1);,
            BL_ASSERT(umac[1].nGrow() >= 1);,
@@ -54,11 +54,11 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
 
     for (int ipass = 0; ipass < 2; ipass++)
     {
-        AoSMap& pmap = m_particles[lev];
+        auto& pmap = GetParticles(lev);
 	for (auto& kv : pmap) {
 	  int grid = kv.first.first;
-	  auto& pbox = kv.second();
-	  const int n    = pbox.size();
+	  auto& pbox = kv.second.GetAoS();
+	  const int n = pbox.size();
 
 	  FArrayBox* fab[BL_SPACEDIM] = { D_DECL(&((*umac_pointer[0])[grid]),
 						 &((*umac_pointer[1])[grid]),
@@ -149,7 +149,7 @@ TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
 {
     BL_ASSERT(Ucc.nGrow() > 0);
     BL_ASSERT(OK(lev, Ucc.nGrow()-1));
-     BL_ASSERT(lev >= 0 && lev < m_particles.size());
+    BL_ASSERT(lev >= 0 && lev < GetParticles().size());
 
     BL_ASSERT(!Ucc.contains_nan());
 
@@ -162,10 +162,10 @@ TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
 
     for (int ipass = 0; ipass < 2; ipass++)
     {
-        AoSMap& pmap = m_particles[lev];
+        auto& pmap = GetParticles(lev);
 	for (auto& kv : pmap) {
 	  int grid = kv.first.first;
-	  auto& pbox = kv.second();
+	  auto& pbox = kv.second.GetAoS();
 	  const int n    = pbox.size();
 	  const FArrayBox& fab = Ucc[grid];
 	    
@@ -268,9 +268,9 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
             //
             bool gotwork = false;
 	    
-            const AoSMap& pmap = m_particles[lev];
+            const auto& pmap = GetParticles(lev);
 	    for (auto& kv : pmap) {
-              const auto& pbox = kv.second();
+              const auto& pbox = kv.second.GetAoS();
 	      for (const auto& p : pbox) {
 		if (p.m_idata.id > 0) {
 		  gotwork = true;
@@ -308,7 +308,7 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
 
 		for (auto& kv : pmap) {
 		  int grid = kv.first.first;
-		  const auto& pbox = kv.second();
+		  const auto& pbox = kv.second.GetAoS();
 		  const Box&       bx   = ba[grid];
 		  const FArrayBox& fab  = mf[grid];
 
