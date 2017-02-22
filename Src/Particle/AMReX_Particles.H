@@ -201,18 +201,34 @@ public:
     using ParticleType = Particle<NR, NI>;
     using RealType     = typename ParticleType::RealType;
 
-    Array<ParticleType>& operator()() { return m_data; }
     const Array<ParticleType>& operator()() const { return m_data; }
+    Array      <ParticleType>& operator()()       { return m_data; }
 
+    std::size_t size () const { return m_data.size(); }
     int numParticles () const { return m_data.size(); }
 
-    RealType*       data ()       { return &(m_data[0].m_rdata.arr[0]); }
+    bool empty () const { return m_data.empty(); }
+
     const RealType* data () const { return &(m_data[0].m_rdata.arr[0]); }
+    RealType*       data ()       { return &(m_data[0].m_rdata.arr[0]); }
 
     std::pair<int,int> dataShape () const {
 	return std::make_pair(SizeInReal, static_cast<int>(m_data.size()));
     }
+
+    void push_back (const ParticleType& p) { return m_data.push_back(p); }
+
+    const ParticleType& operator[] (int i) const { return m_data[i]; }
+    ParticleType      & operator[] (int i)       { return m_data[i]; }
     
+    typename Array<ParticleType>::iterator begin () { return m_data.begin(); }
+    typename Array<ParticleType>::const_iterator begin () const { return m_data.begin(); }
+    typename Array<ParticleType>::const_iterator cbegin () const { return m_data.cbegin(); }
+        
+    typename Array<ParticleType>::iterator end () { return m_data.end(); }
+    typename Array<ParticleType>::const_iterator end () const { return m_data.end(); }
+    typename Array<ParticleType>::const_iterator cend () const { return m_data.cend(); }
+
     static constexpr int SizeInReal = sizeof(ParticleType) / sizeof(RealType);
 
 private:
@@ -229,21 +245,45 @@ struct StructOfArrays {
     const Array<Real>& operator[] (const int index) const {
         return m_data[index];
     }
-    
+
     int numParticles () const { return NA>0 ? m_data[0].size() : 0; }
 
 private:
     std::array<Array<Real>, NA> m_data;
 };
 
+template <int NR, int NI, int NA>
+struct ParticleTile
+{
+    using ParticleType = Particle<NR, NI>;
+    using AoS = ArrayOfStructs<NR,NI>;
+    using SoA = StructOfArrays<NA>;
+
+    AoS&       GetAoS ()       { return m_aos_tile; }
+    const AoS& GetAoS () const { return m_aos_tile; }
+
+    SoA&       GetSoA ()       { return m_soa_tile; }
+    const SoA& GetSoA () const { return m_soa_tile; }
+
+    bool empty () const { return m_aos_tile.empty(); }
+    
+    std::size_t size () const { return m_aos_tile.size(); }
+    int numParticles () const { return m_aos_tile.numParticles(); }
+
+    void push_back (const ParticleType& p) { m_aos_tile().push_back(p); }
+    void push_back (int comp, Real v) { m_soa_tile[comp].push_back(v); }
+
+private:
+    AoS m_aos_tile;
+    SoA m_soa_tile;
+};
+
 template <int NR, int NI, int NA> class ParIter;
-template <int NR, int NI, int NA> class ParConstIter;
 
 template <int NR, int NI = 0, int NA = 0>
 class ParticleContainer
 {
     friend class ParIter<NR,NI,NA>;
-    friend class ParConstIter<NR,NI,NA>;
 
 public:
     //
@@ -252,17 +292,13 @@ public:
     using ParticleType = Particle<NR, NI>;
     using RealType = typename Particle<NR, NI>::RealType;
 
-    // This defines the array-of-structs datatype.
-    using AoS = ArrayOfStructs<NR,NI>;
+    using ParticleTileType = ParticleTile<NR,NI,NA>;
 
-    // The struct-of-arrays data is stored as a double array where the first index is the
-    // component number and the second is the particle index.
-    using SoA = StructOfArrays<NA>;
-
-    // A single level worth of particles is indexed first by grid id, 
-    // then by tile id, for both SoA and AoS data.
-    using AoSMap = std::map<std::pair<int, int>, AoS>;
-    using SoAMap = std::map<std::pair<int, int>, SoA>;
+    // A single level worth of particles is indexed (grid id, tile id)
+    // for both SoA and AoS data.
+    using ParticleLevel = std::map<std::pair<int, int>, ParticleTileType>;
+    using AoS = typename ParticleTileType::AoS;
+    using SoA = typename ParticleTileType::SoA;
 
     ParticleContainer ()
       : 
@@ -321,19 +357,19 @@ public:
 
     void Define (ParGDBBase* gdb)
     {
-      m_gdb = gdb;
+        m_gdb = gdb;
         reserveData();
-      resizeData();
+        resizeData();
     }
 
     void Define (const Geometry            & geom, 
 		 const DistributionMapping & dmap,
 		 const BoxArray            & ba)
   {
-    m_gdb_object = ParGDB(geom, dmap, ba);
-    m_gdb = &m_gdb_object;
-    reserveData();
-    resizeData();
+      m_gdb_object = ParGDB(geom, dmap, ba);
+      m_gdb = &m_gdb_object;
+      reserveData();
+      resizeData();
   }
 
     void Define (const Array<Geometry>            & geom, 
@@ -348,9 +384,7 @@ public:
     }
 
     void SetParticleBoxArray (int lev, const BoxArray& new_ba)
-	{ 
-	  m_gdb->SetParticleBoxArray(lev, new_ba);
-	}
+	{ m_gdb->SetParticleBoxArray(lev, new_ba); }
 
     void SetParticleDistributionMap (int lev, const DistributionMapping& new_dmap)
 	{ m_gdb->SetParticleDistributionMap(lev, new_dmap); }
@@ -364,7 +398,7 @@ public:
     const Geometry& Geom (int lev) const { return m_gdb->Geom(lev); }
 
     int finestLevel () const { return m_gdb->finestLevel(); }
-    int maxLevel () const { m_gdb->maxLevel(); }
+    int maxLevel ()    const { return m_gdb->maxLevel(); }
     
     const ParGDBBase* GetParGDB () const { return m_gdb; }
 
@@ -465,11 +499,11 @@ public:
 
     void SetVerbose (int verbose) { m_verbose = verbose; }
 
-    const AoSMap& GetAoSMap (int lev) const { return m_particles[lev]; }
-    AoSMap&       GetAoSMap (int lev)       { return m_particles[lev]; }
+    const Array<ParticleLevel>& GetParticles () const { return m_particles; }
+    Array      <ParticleLevel>& GetParticles ()       { return m_particles; }
 
-    const SoAMap& GetSoAMap (int lev) const { return m_arraydata[lev]; }
-    SoAMap&       GetSoAMap (int lev)       { return m_arraydata[lev]; }
+    const ParticleLevel& GetParticles (int lev) const { return m_particles[lev]; }
+    ParticleLevel      & GetParticles (int lev)       { return m_particles[lev]; }
 
     // 
     // Functions depending the layout of the data.  Use with caution.
@@ -540,11 +574,11 @@ public:
         BL_ASSERT(m_dummy_mf[lev] != nullptr);
         return MFIter(*m_dummy_mf[lev], do_tiling ? tile_size : IntVect::TheZeroVector());
     }
-    
+
     std::vector<bool> communicate_comp;
     static bool do_tiling;
     static IntVect tile_size;
-
+    
 protected:
 
     //
@@ -593,18 +627,6 @@ protected:
     bool        allow_particles_near_boundary;
     ParGDB      m_gdb_object;
 
-    //
-    // The array-of-structs data for the entire AMR hierarchy
-    //
-    Array<AoSMap> m_particles;
-
-    //
-    // The struct-of-arrays data for the entire AMR hierarchy
-    //
-    Array<SoAMap> m_arraydata;
-
-    Array<std::unique_ptr<MultiFab> > m_dummy_mf;
-
 private:
     void AssignDensityDoit (int rho_index, 
 			    Array<std::unique_ptr<MultiFab> >& mf, 
@@ -622,6 +644,9 @@ private:
     static int getTileIndex(const IntVect& iv, const Box& box, Box& tbx);
 
     static void Initialize ();
+
+    Array<ParticleLevel> m_particles;
+    Array<std::unique_ptr<MultiFab> > m_dummy_mf;
 };
 
 template <int NR, int NI = 0, int NA = 0>
@@ -629,10 +654,11 @@ class ParIter
     : public MFIter
 {
 public:
-    using ContainerType = ParticleContainer<NR,NI,NA>;
-    using ParticleType  = typename ContainerType::ParticleType;
-    using AoS           = typename ContainerType::AoS;
-    using SoA           = typename ContainerType::SoA;
+    using ContainerType    = ParticleContainer<NR,NI,NA>;
+    using ParticleTileType = typename ContainerType::ParticleTileType;
+    using AoS              = typename ContainerType::AoS;
+    using SoA              = typename ContainerType::SoA;
+    using ParticleType     = typename ContainerType::ParticleType;
 
     ParIter (ContainerType& pc, int level);
 
@@ -641,17 +667,20 @@ public:
         currentIndex = m_valid_index[m_pariter_index];
     }
     
-    AoS&       GetAoSData ()       { return *m_aos[m_pariter_index]; }
-    const AoS& GetAoSData () const { return *m_aos[m_pariter_index]; }
-    SoA&       GetSoAData ()       { return *m_soa[m_pariter_index]; }
-    const SoA& GetSoAData () const { return *m_soa[m_pariter_index]; }
+    const ParticleTileType& GetParticleTile () const { return *m_particle_tiles[m_pariter_index]; }
+    ParticleTileType      & GetParticleTile ()       { return *m_particle_tiles[m_pariter_index]; }
+
+    const AoS& GetAoS () const { return GetParticleTile().GetAoS(); }
+    AoS&       GetAoS ()       { return GetParticleTile().GetAoS(); }
+
+    const SoA& GetSoA () const { return GetParticleTile().GetSoA(); }
+    SoA&       GetSoA ()       { return GetParticleTile().GetSoA(); }
 
 private:
     int m_level;
     int m_pariter_index;
     Array<int> m_valid_index;
-    Array<AoS*> m_aos;
-    Array<SoA*> m_soa;
+    Array<ParticleTileType*> m_particle_tiles;
 };
 
 #include "AMReX_ParticleI.H"
