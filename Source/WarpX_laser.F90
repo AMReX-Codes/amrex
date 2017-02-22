@@ -51,7 +51,7 @@ contains
     ! Loop through the macroparticle to calculate the proper amplitude
     do i = 1, np
       exp_argument = - ( Xp(i)*Xp(i) + Yp(i)*Yp(i) ) * inv_complex_waist_2
-      amplitude(i) = REALPART( prefactor * exp( exp_argument ) )
+      amplitude(i) = DREAL( prefactor * exp( exp_argument ) )
     enddo
 
   end subroutine warpx_gaussian_laser
