@@ -24,7 +24,7 @@ public:
 
     MacOperator (amrex::AmrCore*             Parent,
                  const amrex::BndryData& mgb,
-                 const Real*      _h);
+                 const amrex::Real*      _h);
 
     virtual ~MacOperator ();
     //
@@ -32,8 +32,8 @@ public:
     //
     void setCoefficients (amrex::MultiFab*   area,
                           amrex::MultiFab&   rho,
-                          int         rho_comp,
-                          const Real* dx);
+                          int                rho_comp,
+                          const amrex::Real* dx);
     //
     // Initialize the rhs for the level solves.
     //
@@ -41,23 +41,23 @@ public:
                  amrex::MultiFab& vol,
                  amrex::MultiFab& rhs,
                  amrex::MultiFab* vel,
-                 Real      scale);
+                 amrex::Real      scale);
     //
     // Apply the pressure gradient to the mac velocities.
     //
     void velUpdate (amrex::MultiFab*       vel,
                     amrex::MultiFab&       phi,
                     const amrex::MultiFab& Rho,
-                    int             rho_comp,
-                    const Real*     dx,
-                    Real            scale);
+                    int                    rho_comp,
+                    const amrex::Real*     dx,
+                    amrex::Real            scale);
     //
     // Scale the rhs for the sync solves.
     //
     void syncRhs (const amrex::MultiFab& Volume,
                   amrex::MultiFab&       Rhs,
-                  Real            rhs_scale,
-                  const Real*     dx);
+                  amrex::Real            rhs_scale,
+                  const amrex::Real*     dx);
 
     static void Initialize ();
     static void Finalize ();

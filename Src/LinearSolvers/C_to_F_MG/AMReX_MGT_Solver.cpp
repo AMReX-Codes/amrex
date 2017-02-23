@@ -24,7 +24,7 @@ typedef void (*mgt_setn)(const int* lev, const int* n, const double* uu,
 			 const int* lo, const int* hi, const int& nc);
 typedef void (*mgt_setr)(const int* lev, const int* n, const double* uu, 
 			 const int* plo, const int* phi, 
-			 const int* lo, const int* hi, const Real* r);
+			 const int* lo, const int* hi, const amrex::Real* r);
 typedef void (*mgt_setni)(const int* lev, const int* n, const double* uu, 
 			  const int* plo, const int* phi, 
 			  const int* lo, const int* hi, const int& nuu, const int& iuu);
@@ -37,7 +37,7 @@ typedef void (*mgt_set_cfn)(const int* lev, const int* n, const double* uu,
                             const int* plo, const int* phi, 
                             const int* lo, const int* hi, const int& nc);
 typedef void (*mgt_set_c)(const int* lev, const int* n, 
-		          const int* lo, const int* hi, const Real* value);
+		          const int* lo, const int* hi, const amrex::Real* value);
 #if BL_SPACEDIM == 1
 mgt_get     mgt_get_uu         = mgt_get_uu_1d;
 mgt_set     mgt_set_uu         = mgt_set_uu_1d;

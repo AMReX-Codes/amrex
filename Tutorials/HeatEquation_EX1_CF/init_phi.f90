@@ -1,7 +1,7 @@
 
 module init_phi_module
 
-  use boxlib_module
+  use amrex_module
 
   implicit none
 
@@ -13,23 +13,23 @@ contains
   
   subroutine init_phi(phi,geom)
     
-    type(multifab), intent(inout) :: phi
-    type(geometry), intent(in   ) :: geom
+    type(amrex_multifab), intent(inout) :: phi
+    type(amrex_geometry), intent(in   ) :: geom
 
     ! local variables
     integer :: lo(4), hi(4)
-    type(Box) :: bx
-    type(mfiter) :: mfi
-    double precision, pointer :: p(:,:,:,:)
+    type(amrex_box) :: bx
+    type(amrex_mfiter) :: mfi
+    real(amrex_real), contiguous, pointer :: p(:,:,:,:)
 
     !$omp parallel private(bx,p,lo,hi)
-    call mfiter_build(mfi, phi, tiling=.true.)
+    call amrex_mfiter_build(mfi, phi, tiling=.true.)
     do while(mfi%next())
        bx = mfi%tilebox()
        p => phi%dataPtr(mfi)
        lo = lbound(p)
        hi = ubound(p)
-       select case (bl_num_dims)
+       select case (amrex_spacedim)
        case (2)
           call init_phi_2d(bx%lo(1:2), bx%hi(1:2), p(:,:,1,1), lo(1:2), hi(1:2), &
                geom%problo(1:2), geom%dx(1:2))
@@ -38,19 +38,20 @@ contains
                geom%problo, geom%dx)
        end select
     end do
+    call amrex_mfiter_destroy(mfi)
     !$omp end parallel
 
   end subroutine init_phi
 
   subroutine init_phi_2d(lo, hi, phi, dlo, dhi, prob_lo, dx)
     integer          :: lo(2), hi(2), dlo(2), dhi(2)
-    double precision :: phi(dlo(1):dhi(1),dlo(2):dhi(2))
-    double precision :: prob_lo(2)
-    double precision :: dx(2)
+    real(amrex_real) :: phi(dlo(1):dhi(1),dlo(2):dhi(2))
+    real(amrex_real) :: prob_lo(2)
+    real(amrex_real) :: dx(2)
  
     ! local varables
     integer          :: i,j
-    double precision :: x,y,r2
+    real(amrex_real) :: x,y,r2
 
     do j=lo(2),hi(2)
        y = prob_lo(2) + (dble(j)+0.5d0) * dx(2)
@@ -67,13 +68,13 @@ contains
 
   subroutine init_phi_3d(lo, hi, phi, dlo, dhi, prob_lo, dx)
     integer          :: lo(3), hi(3), dlo(3), dhi(3)
-    double precision :: phi(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3))
-    double precision :: prob_lo(3)
-    double precision :: dx(3)
+    real(amrex_real) :: phi(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3))
+    real(amrex_real) :: prob_lo(3)
+    real(amrex_real) :: dx(3)
 
     ! local varables
     integer          :: i,j,k
-    double precision :: x,y,z,r2
+    real(amrex_real) :: x,y,z,r2
 
     do k=lo(3),hi(3)
        z = prob_lo(3) + (dble(k)+0.5d0) * dx(3)

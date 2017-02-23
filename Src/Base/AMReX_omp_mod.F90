@@ -1,6 +1,6 @@
 #ifdef BL_USE_OMP
 
-module omp_module
+module amrex_omp_module
 
   implicit none
 
@@ -9,11 +9,11 @@ module omp_module
   integer, external :: omp_get_thread_num
   logical, external :: omp_in_parallel
 
-end module omp_module
+end module amrex_omp_module
 
 #else
 
-module omp_module
+module amrex_omp_module
 
   implicit none
 
@@ -35,7 +35,7 @@ contains
     omp_in_parallel = .false.
   end function omp_in_parallel
 
-end module omp_module
+end module amrex_omp_module
 
 #endif
 

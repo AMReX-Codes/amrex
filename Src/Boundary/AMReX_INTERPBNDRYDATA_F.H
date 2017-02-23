@@ -51,14 +51,14 @@
 
 #include <AMReX_ArrayLim.H>
 
-typedef void BDInterpFunc(Real* bndr, ARLIM_P(blo), ARLIM_P(bhi),
+typedef void BDInterpFunc(amrex::Real* bndr, ARLIM_P(blo), ARLIM_P(bhi),
                           const int* lo, const int* hi,
                           ARLIM_P(cblo), ARLIM_P(cbhi),
                           const int* nvar, const int* ratio,
                           const int* not_covered,
                           const int* mask,  ARLIM_P(mlo), ARLIM_P(mhi),
-                          const Real* crse, ARLIM_P(clo), ARLIM_P(chi),
-                          Real* derives, int* max_order);
+                          const amrex::Real* crse, ARLIM_P(clo), ARLIM_P(chi),
+                          amrex::Real* derives, int* max_order);
 extern "C"
 {
     BDInterpFunc FORT_BDINTERPXLO;

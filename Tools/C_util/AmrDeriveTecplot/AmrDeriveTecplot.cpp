@@ -12,9 +12,7 @@
 using std::cout;
 using std::endl;
 
-#ifndef WIN32
 #include <unistd.h>
-#endif
 
 #ifdef USE_TEC_BIN_IO
 #include "TECIO.h"

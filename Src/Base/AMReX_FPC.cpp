@@ -27,7 +27,6 @@ IntDescriptor&
 FPC::NativeLongDescriptor ()
 {
 #if defined(__i486__) || \
-    defined(WIN32) || \
     defined(i386) || \
     defined(__i386__) || \
     defined(__x86_64) || \
@@ -54,7 +53,6 @@ RealDescriptor&
 FPC::NativeRealDescriptor ()
 {
 #if defined(__i486__) || \
-    defined(WIN32) || \
     defined(i386) || \
     defined(__i386__) || \
     defined(__amd64__) || \
@@ -89,7 +87,6 @@ RealDescriptor&
 FPC::Native32RealDescriptor ()
 {
 #if defined(__i486__) || \
-    defined(WIN32) || \
     defined(i386) || \
     defined(__i386__) || \
     defined(__amd64__) || \

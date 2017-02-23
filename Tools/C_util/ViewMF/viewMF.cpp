@@ -1,7 +1,5 @@
 
-#ifndef WIN32
 #include <unistd.h>
-#endif
 
 #include <AMReX_TagBox.H>
 #include <AMReX_MultiFab.H>

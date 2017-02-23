@@ -12,16 +12,14 @@ using std::string;
 using std::cout;
 using std::cerr;
 using std::endl;
-#ifndef WIN32
 using std::strlen;
-#endif
 
-#if ! (defined(BL_Linux) || defined(BL_Darwin) || defined(BL_AIX) || defined(BL_IRIX64) || defined(WIN32) || defined(BL_CYGWIN_NT) || defined(BL_CRAYX1))
+#if ! (defined(BL_Linux) || defined(BL_Darwin) || defined(BL_AIX) || defined(BL_IRIX64) || defined(BL_CYGWIN_NT) || defined(BL_CRAYX1))
 #define BL_ALWAYS_FIX_DENORMALS
 #endif
 
 #ifdef BL_ALWAYS_FIX_DENORMALS
-#include <float.h>
+#include <cfloat>
 #if defined(BL_CRAYX1)
 #  include <ieeefp.h>
 #endif
@@ -47,13 +45,6 @@ using std::strlen;
 #include <cstdio>
 using std::ios;
 using std::ifstream;
-
-//
-// This MUST be defined if don't have pubsetbuf() in I/O Streams Library.
-//
-#ifdef BL_USE_SETBUF
-#define pubsetbuf setbuf
-#endif
 
 #ifdef SHOWVAL
 #undef SHOWVAL
@@ -110,28 +101,28 @@ using std::ifstream;
 
 extern "C" {
 #if (BL_SPACEDIM != 1)
-  void FORT_CINTERP(Real *fine, ARLIM_P(flo), ARLIM_P(fhi),
+  void FORT_CINTERP(amrex::Real *fine, ARLIM_P(flo), ARLIM_P(fhi),
                   const int *fblo, const int *fbhi,
                   const int &nvar, const int &lratio,
-		  const Real *crse, const int &clo, const int &chi,
+		  const amrex::Real *crse, const int &clo, const int &chi,
 		  const int *cslo, const int *cshi,
 		  const int *fslo, const int *fshi,
-		  Real *cslope, const int &c_len,
-		  Real *fslope, Real *fdat, const int &f_len,
-		  Real *foff);
+		  amrex::Real *cslope, const int &c_len,
+		  amrex::Real *fslope, amrex::Real *fdat, const int &f_len,
+		  amrex::Real *foff);
 #endif
 
-  void FORT_PCINTERP(Real *fine, ARLIM_P(flo), ARLIM_P(fhi),
+  void FORT_PCINTERP(amrex::Real *fine, ARLIM_P(flo), ARLIM_P(fhi),
                    const int *fblo, const int *fbhi,
 		   const int &lrat, const int &nvar,
-		   const Real *crse, ARLIM_P(clo), ARLIM_P(chi),
+		   const amrex::Real *crse, ARLIM_P(clo), ARLIM_P(chi),
 		   const int *cblo, const int *cbhi,
-		   Real *temp, const int &tlo, const int &thi);
+		   amrex::Real *temp, const int &tlo, const int &thi);
 
 #if (BL_SPACEDIM != 1)
-  void FORT_CARTGRIDMINMAX (Real *data, ARLIM_P(dlo), ARLIM_P(dhi),
-		            const Real *vfrac, const Real &vfeps,
-		            Real &dmin, Real &dmax);
+  void FORT_CARTGRIDMINMAX (amrex::Real *data, ARLIM_P(dlo), ARLIM_P(dhi),
+		            const amrex::Real *vfrac, const amrex::Real &vfeps,
+		            amrex::Real &dmin, amrex::Real &dmax);
 #endif
 }
 
@@ -845,10 +836,6 @@ bool AmrData::ReadNonPlotfileData(const string &filename, Amrvis::FileType filet
 
   fileName = filename;
 
-#ifdef BL_USE_SETBUF
-    VisMF::IO_Buffer io_buffer(VisMF::GetIOBufferSize());
-#endif
-
   time = 0;
   if(fileType == Amrvis::FAB) {
     finestLevel = LevelZero;
@@ -886,10 +873,6 @@ bool AmrData::ReadNonPlotfileData(const string &filename, Amrvis::FileType filet
        cerr << "Unable to open plotfile: " << filename << endl;
        return false;
     }
-
-#ifdef BL_USE_SETBUF
-    is.rdbuf()->setbuf(io_buffer.dataPtr(), io_buffer.size());
-#endif
 
     FArrayBox *newfab = new FArrayBox;
     nComp = newfab->readFrom(is, ComponentZero);  // read the first component
