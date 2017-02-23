@@ -10,7 +10,7 @@
 
 #include <AmrCore.H>
 #include <BLProfiler.H>
-
+#include <PlasmaInjector.H>
 #include <ParticleContainer.H>
 
 class WarpX
@@ -133,6 +133,7 @@ private:
     Array<int> injected_plasma_ppc;
     Array<int> injected_plasma_species;
     Array<Real> injected_plasma_density;
+    std::unique_ptr<PlasmaInjector> plasma_injector;
 
     // Other runtime parameters
     int verbose = 1;
