@@ -50,12 +50,6 @@
 #ifdef BL_USE_ARRAYVIEW
 #include <DatasetClient.H>
 #endif
-//
-// This MUST be defined if don't have pubsetbuf() in I/O Streams Library.
-//
-#ifdef BL_USE_SETBUF
-#define pubsetbuf setbuf
-#endif
 
 namespace amrex {
 

@@ -6,9 +6,7 @@
 #include <iostream>
 #include <fstream>
 
-#ifndef WIN32
 #include <unistd.h>
-#endif
 
 #include <AMReX_Utility.H>
 #include <AMReX_ParallelDescriptor.H>
@@ -16,10 +14,6 @@
 #include <AMReX_RealBox.H>
 #include <AMReX_Geometry.H>
 #include <WritePlotFile.H>
-
-#ifdef BL_USE_SETBUF
-#define pubsetbuf setbuf
-#endif
 
 std::string
 thePlotFileType ()

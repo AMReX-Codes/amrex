@@ -1,0 +1,7 @@
+F90EXE_sources += AMReX_famrcore_mod.F90
+
+CEXE_headers += AMReX_FAmrCore.H
+CEXE_sources += AMReX_FAmrCore.cpp AMReX_famrcore_fi.cpp
+
+VPATH_LOCATIONS += $(AMREX_HOME)/Src/F_Interfaces/AmrCore
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/F_Interfaces/AmrCore

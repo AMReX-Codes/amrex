@@ -12,9 +12,7 @@
 #include <cstring>
 #include <cmath>
 
-#ifndef WIN32
 #include <unistd.h>
-#endif
 
 #include <AMReX_ParmParse.H>
 #include <AMReX_ParallelDescriptor.H>
@@ -23,10 +21,6 @@
 #include <AMReX_MultiFab.H>
 
 using namespace amrex;
-
-#ifdef BL_USE_SETBUF
-#define pubsetbuf setbuf
-#endif
 
 const int maxGrid(64);
 const int pdHi(512);
