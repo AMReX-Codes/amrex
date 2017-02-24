@@ -194,7 +194,7 @@ two_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int nppc, bool v
     if (geom[0].isAllPeriodic()) 
     {
         for (int lev = 0; lev < nlevs; lev++)
-            offset = MyPC->sumParticleMass(0,lev);
+            offset += MyPC->sumParticleMass(0,lev);
         offset /= geom[0].ProbSize();
     }
 
