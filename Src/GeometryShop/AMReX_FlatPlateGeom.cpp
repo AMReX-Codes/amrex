@@ -151,17 +151,160 @@ namespace amrex
   {
     if(a_numVolumes(a_iv, 0) == 2)
     {
-/*
       IrregNode loNode, hiNode;
       Real areaFracLo, areaFracHi;
-      for(int idir = 0; idir < SpaceDim; idir++)
-      bool isCut = isFaceCut(areaFracLo, areaFracHi, a_iv, idir, sit(), a_domain, a_origin, a_dx);
-*/
-      //STUFF STILL TO CODE HERE.
-      
+      loNode.m_cell = a_iv;
+      hiNode.m_cell = a_iv;
+      loNode.m_cellIndex = 0;
+      hiNode.m_cellIndex = 1;
+      for(int faceDir = 0; faceDir < SpaceDim; faceDir++)
+      {
+        if(faceDir != m_normalDir)
+        {
+          for(SideIterator sit; sit.ok(); ++sit)
+          {
+            int arcInd = loNode.index(faceDir, sit());
+            isFaceCut(areaFracLo, areaFracHi, a_iv, faceDir, sit(), a_domain, a_origin, a_dx);
+            IntVect otherIV= a_iv + sign(sit())*BASISV(faceDir);
+            int numVolumesOtherCell = -1;
+            //low points at low, high points at high
+            //unless outside boundary so sigh
+            int otherVolLo = -1;
+            int otherVolHi = -1;
+            if(a_domain.contains(otherIV))
+            {
+              numVolumesOtherCell = a_numVolumes(otherIV, 0);
+              if(numVolumesOtherCell == 2)
+              {
+                otherVolLo = 0;
+                otherVolHi = 1;
+              }
+              else
+              {
+                otherVolLo = 0;
+                otherVolHi = 0;
+              }
+            }
+            RealVect bndryCentroid  = RealVect::Zero;
+            RealVect faceCentroidLo = RealVect::Zero;
+            RealVect faceCentroidHi = RealVect::Zero;
+            RealVect volCentroidLo  = RealVect::Zero;
+            RealVect volCentroidHi  = RealVect::Zero;
+            bndryCentroid [m_normalDir] = (areaFracLo- 1.0)/2.;
+            faceCentroidLo[m_normalDir] = (areaFracLo- 1.0)/2.;
+            faceCentroidHi[m_normalDir] = (1.0 - areaFracHi)/2.;
+            volCentroidLo [m_normalDir] = (bndryCentroid[m_normalDir]-1.0)/2.;
+            volCentroidHi [m_normalDir] = (1.0-bndryCentroid[m_normalDir])/2.;
+            loNode.m_volFrac = areaFracLo;
+            hiNode.m_volFrac = areaFracHi; 
+            loNode.m_bndryCentroid = bndryCentroid;
+            hiNode.m_bndryCentroid = bndryCentroid; 
+            loNode.m_volCentroid   = volCentroidLo;
+            hiNode.m_volCentroid   = volCentroidHi;
+
+            loNode.m_arc         [arcInd] = std::vector<int>(1,otherVolLo);
+            hiNode.m_arc         [arcInd] = std::vector<int>(1,otherVolHi);
+            loNode.m_areaFrac    [arcInd] = std::vector<Real>(1,areaFracLo);
+            hiNode.m_areaFrac    [arcInd] = std::vector<Real>(1,areaFracHi);
+            loNode.m_faceCentroid[arcInd] = std::vector<RealVect>(1,faceCentroidLo);
+            hiNode.m_faceCentroid[arcInd] = std::vector<RealVect>(1,faceCentroidHi);
+          } // end loop over sides
+        } //end if faceDir != normaldir
+        else
+        {
+          int arcIndLo = loNode.index(faceDir, Side::Lo);
+          int arcIndHi = loNode.index(faceDir, Side::Hi);
+          //here there is only one face -- the low one has a high face and so on.
+          //the faces point to regular cells
+          loNode.m_arc[     arcIndLo].resize(0);
+          loNode.m_areaFrac[arcIndLo].resize(0);
+          hiNode.m_arc[     arcIndHi].resize(0);
+          hiNode.m_areaFrac[arcIndHi].resize(0);
+
+          loNode.m_arc[         arcIndHi] = std::vector<int>(1,0);
+          hiNode.m_arc[         arcIndLo] = std::vector<int>(1,0);
+          loNode.m_areaFrac[    arcIndHi] = std::vector<Real>(1,1.0);
+          hiNode.m_areaFrac[    arcIndLo] = std::vector<Real>(1,1.0);
+          loNode.m_faceCentroid[arcIndHi] = std::vector<RealVect>(1,RealVect::Zero);
+          hiNode.m_faceCentroid[arcIndLo] = std::vector<RealVect>(1,RealVect::Zero);
+        }//end faceDir == normaldir
+      } //end loop over directions
+      a_nodes.push_back(loNode);
+      a_nodes.push_back(hiNode);
+    } //end num volumes == 2
+    else //i am one volume but I point into two on at least one side
+    {
+      IrregNode edgeNode;
+      edgeNode.m_cell = a_iv;
+      edgeNode.m_volFrac = 1.;
+      edgeNode.m_cellIndex = 0;
+      edgeNode.m_volCentroid   = RealVect::Zero;
+      edgeNode.m_bndryCentroid = RealVect::Zero;
+        
+      for(int faceDir = 0; faceDir < SpaceDim; faceDir++)
+      {
+        for(SideIterator sit; sit.ok(); ++sit)
+        {
+          int arcInd = edgeNode.index(faceDir, sit());
+          Real areaFracLo, areaFracHi;
+          bool isCut = isFaceCut(areaFracLo, areaFracHi, a_iv, faceDir, sit(), a_domain, a_origin, a_dx);
+          if(!isCut)
+          {
+            edgeNode.m_arc         [arcInd] = std::vector<int>(1,0);
+            edgeNode.m_areaFrac    [arcInd] = std::vector<Real>(1,0);
+            edgeNode.m_faceCentroid[arcInd] = std::vector<RealVect>(1,RealVect::Zero);
+            edgeNode.m_faceCentroid[arcInd] = std::vector<RealVect>(1,RealVect::Zero);
+          }
+          else
+          {
+            IntVect otherIV= a_iv + sign(sit())*BASISV(faceDir);
+            int numVolumesOtherCell = -1;
+            //low points at low, high points at high
+            //unless outside boundary so sigh
+            int otherVolLo = -1;
+            int otherVolHi = -1;
+            if(a_domain.contains(otherIV))
+            {
+              numVolumesOtherCell = a_numVolumes(otherIV, 0);
+              if(numVolumesOtherCell == 2)
+              {
+                otherVolLo = 0;
+                otherVolHi = 1;
+              }
+              else
+              {
+                otherVolLo = 0;
+                otherVolHi = 0;
+              }
+            }
+            RealVect bndryCentroid = RealVect::Zero;
+            RealVect faceCentroidLo = RealVect::Zero;
+            RealVect faceCentroidHi = RealVect::Zero;
+            RealVect volCentroidLo = RealVect::Zero;
+            RealVect volCentroidHi = RealVect::Zero;
+            bndryCentroid [m_normalDir] = (areaFracLo- 1.0)/2.;
+            faceCentroidLo[m_normalDir] = bndryCentroid[m_normalDir];
+            faceCentroidHi[m_normalDir] = (1.0 - areaFracHi)/2.;
+            volCentroidLo [m_normalDir] = (bndryCentroid[m_normalDir]-1.0)/2.;
+            volCentroidHi [m_normalDir] = (1.0-bndryCentroid[m_normalDir])/2.;
+
+            edgeNode.m_arc         [arcInd].resize(2);
+            edgeNode.m_areaFrac    [arcInd].resize(2);
+            edgeNode.m_faceCentroid[arcInd].resize(2);;
+            edgeNode.m_arc         [arcInd][0] =      otherVolLo;
+            edgeNode.m_areaFrac    [arcInd][0] =      areaFracLo;
+            edgeNode.m_faceCentroid[arcInd][0] =  faceCentroidLo;
+            edgeNode.m_arc         [arcInd][1] =      otherVolHi;
+            edgeNode.m_areaFrac    [arcInd][1] =      areaFracHi;
+            edgeNode.m_faceCentroid[arcInd][1] =  faceCentroidHi;
+
+          }//end if face is cut
+        }//loop over sides
+      } //end loop over face directions
+      a_nodes.push_back(edgeNode);
     }
   }
-
+  /////
   void
   FlatPlateGeom::
   fillGraph(BaseFab<int>             & a_regIrregCovered,
@@ -220,8 +363,8 @@ namespace amrex
       }
     }
 
-    std::cout << "num Regular   cells  = " << numIrreg << std::endl;
-    std::cout << "num Irregular cells  = " << numReg   << std::endl;
+    std::cout << "num Regular   cells  = " << numReg     << std::endl;
+    std::cout << "num Irregular cells  = " << numIrreg   << std::endl;
     std::cout << "number of nodes  = " << a_nodes.size() << std::endl;
   }
 }
