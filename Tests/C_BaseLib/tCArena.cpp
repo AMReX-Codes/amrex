@@ -1,7 +1,5 @@
 
-#ifndef WIN32
 #include <unistd.h>
-#endif
 
 #include <AMReX_REAL.H>
 #include <AMReX_CArena.H>

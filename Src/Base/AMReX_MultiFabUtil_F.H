@@ -16,7 +16,7 @@ BL_FORT_PROC_DECL(BL_AVG_FC_TO_CC, bl_avg_fc_to_cc)
    D_DECL(const BL_FORT_FAB_ARG(fx),
 	  const BL_FORT_FAB_ARG(fy),
 	  const BL_FORT_FAB_ARG(fz)),
-   const Real* dx, const Real* problo, const int& coord_type);
+   const amrex::Real* dx, const amrex::Real* problo, const int& coord_type);
 
 BL_FORT_PROC_DECL(BL_AVG_CC_TO_FC, bl_avg_cc_to_fc)
   (const int* xlo, const int* xhi,
@@ -30,7 +30,7 @@ BL_FORT_PROC_DECL(BL_AVG_CC_TO_FC, bl_avg_cc_to_fc)
 	  BL_FORT_FAB_ARG(fy),
 	  BL_FORT_FAB_ARG(fz)),
    const BL_FORT_FAB_ARG(cc),
-   const Real* dx, const Real* problo, const int& coord_type);
+   const amrex::Real* dx, const amrex::Real* problo, const int& coord_type);
 
 BL_FORT_PROC_DECL(BL_AVGDOWN_FACES, bl_avgdown_faces)
   (const int* lo, const int* hi,

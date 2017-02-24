@@ -214,18 +214,17 @@ main (int   argc,
                 //
                 int index = mfi.index();
 
-                FArrayBox data2Coarse(ba2Coarse[index], 1);
+		const Box& bx = ba2Coarse[index];
+                FArrayBox data2Coarse(bx, 1);
                 int ncCoarse = 1;
 
                 FORT_CV_AVGDOWN(data2Coarse.dataPtr(),
-                                ARLIM(data2Coarse.loVect()),
-                                ARLIM(data2Coarse.hiVect()),
+				ARLIM(bx.loVect()), ARLIM(bx.hiVect()),
                                 &ncCoarse,
                                 data2Fine[mfi].dataPtr(),
                                 ARLIM(data2Fine[mfi].loVect()),
                                 ARLIM(data2Fine[mfi].hiVect()), 
-                                ba2Coarse[index].loVect(), 
-                                ba2Coarse[index].hiVect(),
+                                bx.loVect(), bx.hiVect(),
                                 refine_ratio.getVect());
 
 

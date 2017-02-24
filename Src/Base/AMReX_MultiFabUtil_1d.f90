@@ -5,13 +5,13 @@
 subroutine bl_avg_eg_to_cc (lo, hi, &
      cc, ccl1, cch1, &
      Ex, Exl1, Exh1 )
-  use bl_fort_module, only : c_real
+  use amrex_fort_module, only : amrex_real
   implicit none
   integer          :: lo(1),hi(1)
   integer          :: ccl1, cch1
   integer          :: Exl1, Exh1
-  real(c_real) :: cc(ccl1:cch1)
-  real(c_real) :: Ex(Exl1:Exh1)
+  real(amrex_real) :: cc(ccl1:cch1)
+  real(amrex_real) :: Ex(Exl1:Exh1)
 
   cc(lo(1):hi(1)) = Ex(lo(1):hi(1))
 end subroutine bl_avg_eg_to_cc
@@ -26,18 +26,18 @@ subroutine bl_avg_fc_to_cc (lo, hi, &
      fx, fxl1, fxh1, &
      dx, problo, coord_type)
 
-  use bl_fort_module, only : c_real
+  use amrex_fort_module, only : amrex_real
   implicit none
   integer          :: lo(1),hi(1), coord_type
   integer          :: ccl1, cch1
   integer          :: fxl1, fxh1
-  real(c_real) :: cc(ccl1:cch1)
-  real(c_real) :: fx(fxl1:fxh1)
-  real(c_real) :: dx(1), problo(1)
+  real(amrex_real) :: cc(ccl1:cch1)
+  real(amrex_real) :: fx(fxl1:fxh1)
+  real(amrex_real) :: dx(1), problo(1)
 
   ! Local variables
   integer          :: i
-  real(c_real) :: rlo,rhi,rcen
+  real(amrex_real) :: rlo,rhi,rcen
 
   if (coord_type .eq. 0) then ! Cartesian
 
@@ -76,18 +76,18 @@ subroutine bl_avg_cc_to_fc (lo, hi, &
      cc, ccl1, cch1, &
      dx, problo, coord_type)
 
-  use bl_fort_module, only : c_real
+  use amrex_fort_module, only : amrex_real
   implicit none
   integer          :: lo(1),hi(1), coord_type
   integer          :: ccl1, cch1
   integer          :: fxl1, fxh1
-  real(c_real) :: cc(ccl1:cch1)
-  real(c_real) :: fx(fxl1:fxh1)
-  real(c_real) :: dx(1), problo(1)
+  real(amrex_real) :: cc(ccl1:cch1)
+  real(amrex_real) :: fx(fxl1:fxh1)
+  real(amrex_real) :: dx(1), problo(1)
 
   ! Local variables
   integer          :: i
-  real(c_real) :: rlo,rhi,rcen
+  real(amrex_real) :: rlo,rhi,rcen
 
   if (coord_type .eq. 0) then ! Cartesian
 
@@ -126,14 +126,14 @@ subroutine bl_avgdown_faces (lo, hi, &
      c, c_l1, c_h1, &
      ratio,idir,nc)
 
-  use bl_fort_module, only : c_real
+  use amrex_fort_module, only : amrex_real
   implicit none
   integer          :: lo(1),hi(1)
   integer          :: f_l1, f_h1
   integer          :: c_l1, c_h1
   integer          :: ratio(1), idir, nc
-  real(c_real) :: f(f_l1:f_h1,nc)
-  real(c_real) :: c(c_l1:c_h1,nc)
+  real(amrex_real) :: f(f_l1:f_h1,nc)
+  real(amrex_real) :: c(c_l1:c_h1,nc)
 
   ! Local variables
   integer i,n,facx
@@ -158,18 +158,18 @@ subroutine bl_avgdown (lo,hi,&
      crse,c_l1,c_h1, &
      lrat,ncomp)
   
-  use bl_fort_module, only : c_real
+  use amrex_fort_module, only : amrex_real
   implicit none
   
   integer f_l1,f_h1
   integer c_l1,c_h1
   integer lo(1), hi(1)
   integer lrat(1), ncomp
-  real(c_real) fine(f_l1:f_h1,ncomp)
-  real(c_real) crse(c_l1:c_h1,ncomp)
+  real(amrex_real) fine(f_l1:f_h1,ncomp)
+  real(amrex_real) crse(c_l1:c_h1,ncomp)
   
   integer :: i, ii, n, iref
-  real(c_real) :: volfrac
+  real(amrex_real) :: volfrac
   
   volfrac = 1.d0 / dble(lrat(1))
   
@@ -196,7 +196,7 @@ subroutine bl_avgdown_with_vol (lo,hi,&
      fv,fv_l1,fv_h1, &
      lrat,ncomp)
 
-  use bl_fort_module, only : c_real
+  use amrex_fort_module, only : amrex_real
   implicit none
 
   integer f_l1,f_h1
@@ -204,12 +204,12 @@ subroutine bl_avgdown_with_vol (lo,hi,&
   integer fv_l1,fv_h1
   integer lo(1), hi(1)
   integer lrat(1), ncomp
-  real(c_real) fine(f_l1:f_h1,ncomp)
-  real(c_real) crse(c_l1:c_h1,ncomp)
-  real(c_real) fv(fv_l1:fv_h1)
+  real(amrex_real) fine(f_l1:f_h1,ncomp)
+  real(amrex_real) crse(c_l1:c_h1,ncomp)
+  real(amrex_real) fv(fv_l1:fv_h1)
 
   integer :: i, ii, n, iref
-  real(c_real) :: cv
+  real(amrex_real) :: cv
 
   do n = 1, ncomp
      do i = lo(1), hi(1)

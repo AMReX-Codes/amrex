@@ -12,9 +12,7 @@ using std::ios;
 using std::cout;
 using std::endl;
 
-#ifndef WIN32
 #include <unistd.h>
-#endif
 
 #include <AMReX_IntVect.H>
 #include <AMReX_Box.H>
@@ -30,10 +28,7 @@ using std::endl;
 #endif
 #define SHOWVAL(val) { cout << #val << " = " << val << endl; }
 
-#ifdef BL_USE_SETBUF
-#define pubsetbuf setbuf
-#endif
-
+using namespace amrex;
 
 // --------------------------------------------------------------------
 int main(int argc, char *argv[]) {
@@ -88,9 +83,9 @@ int main(int argc, char *argv[]) {
     VisMF::Write(mfU, "mfUInit");
 
 
-    double tsleepstart = amrex::wsecond();
+    double tsleepstart = ParallelDescriptor::second();
     sleep(1);
-    double tsleepend = amrex::wsecond();
+    double tsleepend = ParallelDescriptor::second();
     if(ParallelDescriptor::IOProcessor()) {
       cout << "sleep(1) time = " << tsleepend - tsleepstart << endl;
     }
@@ -100,7 +95,7 @@ int main(int argc, char *argv[]) {
       }
     }
 
-    double tstart = amrex::wsecond();
+    double tstart = ParallelDescriptor::second();
 
     int nSteps(1);
     for(int iStep(0); iStep < nSteps; ++iStep) {
@@ -133,7 +128,7 @@ int main(int argc, char *argv[]) {
       }
     }
 
-    double tend = amrex::wsecond();
+    double tend = ParallelDescriptor::second();
     if(ParallelDescriptor::IOProcessor()) {
       cout << "-----------------" << endl;
       cout << "Hypterm time    =  " << tend - tstart << endl;

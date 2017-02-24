@@ -7,13 +7,9 @@
 #include <string>
 #include <map>
 
-#ifndef WIN32
 #include <sys/types.h>
 #include <unistd.h>
-#if !defined(COLUMBIA)
 #include <sys/wait.h>
-#endif
-#endif
 
 #include <AMReX_BLassert.H>
 #include <AMReX_REAL.H>
@@ -27,27 +23,8 @@ namespace amrex
 {
 /**
 * \brief Useful C++ Utility Functions
-*
-* This data-less class is a poor-person's namespace of utility functions.
-* Since we can't assume the existence of namespaces, and we don't
-* like global functions, we put them into a data-less class as
-* static member functions.
 */
 
-    /**
-    * \brief Returns the total user and system time used by
-    * the calling process up to the point of the call.
-    * If t != 0, it also stores the result in t.
-    */
-    double second (double* t = 0);
-    /**
-    * \brief Returns the current time as the number of microseconds
-    * relative to program startup.  If t != 0, it also
-    * stores the result in t.
-    */
-    double wsecond (double* t = 0);
-    //! Reset start of Wall Clock Time for wsecond() to NOW.
-    void ResetWallClockTime ();
     //! Return true if argument is a non-zero length string of digits.
     bool is_integer (const char* str);
     //! Splits "instr" into separate pieces based on "separators".
@@ -240,52 +217,6 @@ namespace amrex
     *   The remainder items are randomly assigned.
     */
     void NItemsPerBin (int totalItems, Array<int> &binCounts);
-    //! Helper class for Times, used in Threads, Profiling, and Timers.
-    class Time
-    {
-    public:
-	Time();
-	Time(long s, long n = 0);
-	Time(double d);
-	double as_double() const;
-	long as_long() const;
-	Time& operator+=(const Time&);
-	Time operator+(const Time&) const;
-	static Time get_time();
-    private:
-	long tv_sec;
-	long tv_nsec;
-	void normalize();
-    };
-    template <double (*FCN)(double*)> class base_Timer;
-    template <double (*FCN)(double*)> std::ostream& operator<<(std::ostream&, const base_Timer<FCN>&);
-
-    typedef base_Timer<amrex::wsecond> WallTimer;
-    typedef base_Timer<amrex::second>  CPUTimer;
-
-    //! Implements a simple in place Timer
-    template <double (*FCN)(double*)>
-    class base_Timer
-    {
-    public:
-	class bad_timer;
-	base_Timer();
-	~base_Timer();
-	void start();
-	void stop();
-	void reset();
-	double time() const;
-	double accum_time() const;
-	int count() const;
-	bool is_running() const;
-	static double tick();
-    private:
-	bool running;
-	double val;
-	double held;
-	double accum_val;
-	int cnt;
-    };
     //! The Mersenne twistor :
     class mt19937
     {
@@ -462,129 +393,10 @@ template<class T> void amrex::BroadcastArray(Array<T> &aT, int myLocalId, int ro
   BL_LANG_CC or BL_LANG_FORT is defined.  It is used in calls to
   istream::ignore() in the AMReX code when reading in characters from an
   istream.  We use this macro instead of the more proper INT_MAX from
-  <limits.h> since at least one compiler didn't work properly when
+  <limits> since at least one compiler didn't work properly when
   istream::ignore() was passed INT_MAX.
 */
 #define BL_IGNORE_MAX 100000
-
-// Implementation of the Timer
-
-template <double (*FCN)(double*)>
-amrex::base_Timer<FCN>::base_Timer()
-    : running(false), val(0.0), accum_val(0.0), cnt(0)
-{
-}
-
-template <double (*FCN)(double*)>
-amrex::base_Timer<FCN>::~base_Timer()
-{
-    BL_ASSERT( !running );
-}
-
-template <double (*FCN)(double*)>
-bool
-amrex::base_Timer<FCN>::is_running() const
-{
-    return running;
-}
-
-template <double (*FCN)(double*)>
-inline
-void
-amrex::base_Timer<FCN>::start()
-{
-    BL_ASSERT( !running );
-    held = FCN(0);
-    running = true;
-}
-
-template <double (*FCN)(double*)>
-inline
-void
-amrex::base_Timer<FCN>::stop()
-{
-    BL_ASSERT( running );
-    val = (FCN(0) - held);
-#ifndef NDEBUG
-    if ( val < 0 )
-    {
-	std::cout << "Got a negative time " << val << "!" << std::endl;
-    }
-#endif
-    accum_val += val;
-    cnt += 1;
-    running = false;
-}
-
-template <double (*FCN)(double*)>
-void
-amrex::base_Timer<FCN>::reset()
-{
-    BL_ASSERT( !running );
-    accum_val = 0;
-    cnt = 0;
-}
-
-template <double (*FCN)(double*)>
-double
-amrex::base_Timer<FCN>::accum_time() const
-{
-    BL_ASSERT( !running );
-    return accum_val;
-}
-
-template <double (*FCN)(double*)>
-double
-amrex::base_Timer<FCN>::time() const
-{
-    BL_ASSERT( !running );
-    return val;
-}
-
-template <double (*FCN)(double*)>
-int
-amrex::base_Timer<FCN>::count() const
-{
-    BL_ASSERT( !running );
-    return cnt;
-}
-
-// I stole this code from someplace, but I don't know where.
-template <double (*FCN)(double*)>
-double
-amrex::base_Timer<FCN>::tick()
-{
-    const int M = 100;
-    double timesfound[M];
-
-    //  Collect a sequence of M unique time values from the system.
-
-    for ( int i = 0; i < M; ++i )
-    {
-	double t2;
-	double t1 = FCN(0);
-	while( ((t2 = FCN(0)) - t1) == 0 )
-	{
-	}
-	timesfound[i] = t2;
-    }
-
-    double minDelta = timesfound[1] - timesfound[0];
-    for ( int i = 2; i < M; i++ )
-    {
-	minDelta = std::min(minDelta, std::max(timesfound[i]-timesfound[i-1], 0.0));
-    }
-    return minDelta;
-}
-
-template <double (*FCN)(double*)>
-std::ostream& amrex::operator<<(std::ostream& os, const amrex::base_Timer<FCN>& bt)
-{
-    return os << "["
-	      << bt.accum_time() << "/"
-	      << bt.count()
-	      << "]";
-}
 
 template <typename T> 
 long 

@@ -7,11 +7,6 @@
 
 namespace amrex
 {
-
-    //   Not sure if this is implemented
-    //   print on all processes of communicator comm_
-    //   example: Print(Print::AllProcs, comm_) << " x = " << x << std::endl;
-    
     //! This class provides the user with a few print options
     class Print
     {
@@ -54,6 +49,11 @@ namespace amrex
 		os << ss.str();
 	    }
 	}
+
+        Print& SetPrecision(int p) {
+            ss.precision(p);
+            return *this;
+        }
 
 	template <typename T>
 	Print& operator<< (const T& x) {

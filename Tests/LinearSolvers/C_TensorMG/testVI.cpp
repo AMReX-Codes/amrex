@@ -5,9 +5,7 @@
 #include <cstdio>
 #include <string>
 
-#ifndef WIN32
 #include <unistd.h>
-#endif
 
 #include <AMReX_Utility.H>
 #include <AMReX_Box.H>

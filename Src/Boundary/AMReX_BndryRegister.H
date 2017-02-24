@@ -9,29 +9,8 @@ namespace amrex {
 
 class Orientation;
 
-/*
-        A BndryRegister organizes FabSets bounding each grid in a BoxArray.
-        A FabSet is maintained for each boundary orientation, as well as
-        the BoxArray domain of definition.
 
-        A BndryRegister object contains a list of FabSets bounding the grids
-        in a BoxArray.  The FabSet FABs are at the same refinement level
-        as the grids they bound, and are accessed and modified via a variety
-        of member functions.
-
-        Non-default instantiation allocates a set of FABs, grown into and
-        out of the bounding surfaces of each box in the BoxArray.  The width of
-        the layer (in/out), as well as the "extent" of a bounding FABs (the
-        number of nodes beyond the box boundaries, parallel to the grid
-        surface) are determined by constructor argument.  All boxes and
-        FABs in this context are assumed to be cell-centered.
-
-        A small number of linear mathematical operations are provided for
-        BndryRegisters, as well as overloaded [] operators for access based
-        on grid boundary orientation.  The BoxArray domain of definition is
-        accessible, but not resettable,
-*/
-
+// \cond GENCODE
 struct BndryBATransformer
     : public BATBase<BndryBATransformer>
 {
@@ -60,18 +39,38 @@ private:
     IntVect m_doilo;
     IntVect m_doihi;
 };
+// \endcond
 
+/**
+* \brief A BndryRegister organizes FabSets bounding each grid in a BoxArray.
+*        A FabSet is maintained for each boundary orientation, as well as
+*        the BoxArray domain of definition.
+*
+*        A BndryRegister object contains a list of FabSets bounding the grids
+*        in a BoxArray.  The FabSet FABs are at the same refinement level
+*        as the grids they bound, and are accessed and modified via a variety
+*        of member functions.
+*
+*        Non-default instantiation allocates a set of FABs, grown into and
+*        out of the bounding surfaces of each box in the BoxArray.  The width of
+*        the layer (in/out), as well as the "extent" of a bounding FABs (the
+*        number of nodes beyond the box boundaries, parallel to the grid
+*        surface) are determined by constructor argument.  All boxes and
+*        FABs in this context are assumed to be cell-centered.
+*
+*        A small number of linear mathematical operations are provided for
+*        BndryRegisters, as well as overloaded [] operators for access based
+*        on grid boundary orientation.  The BoxArray domain of definition is
+*        accessible, but not resettable,
+*/
 class BndryRegister
 {
 
 public:
-    //
-    // The default constructor.
-    //
+    //! The default constructor.
     BndryRegister ();
-    //
-    // The constructor, given number of cells in/out, extent and number of components (assumes cell-centered boxes, and allocates cell-centered FABs)
-    //
+
+    //! The constructor, given number of cells in/out, extent and number of components (assumes cell-centered boxes, and allocates cell-centered FABs)
     BndryRegister (const BoxArray& grids_,
 		   const DistributionMapping& dmap,
                    int             in_rad,
@@ -82,13 +81,11 @@ public:
     // The copy constructor.
     //
     BndryRegister (const BndryRegister& src);
-    //
-    // The copy assignment operator.
-    //
+
+    //! The copy assignment operator.
     BndryRegister& operator= (const BndryRegister& src);
-    //
+
     // The destructor.
-    //
     virtual ~BndryRegister();
 
     BndryRegister (BndryRegister&& rhs) noexcept = default;
@@ -101,9 +98,7 @@ public:
 		 int             out_rad,
 		 int             extent_rad,
 		 int             ncomp);
-    //
-    // Build FABs along given face, specifying the DistributionMapping.
-    //
+    //! Build FABs along given face, specifying the DistributionMapping.
     void define (Orientation                face,
 		 IndexType                  typ,
 		 int                        in_rad,
@@ -111,54 +106,44 @@ public:
 		 int                        extent_rad,
 		 int                        ncomp,
 		 const DistributionMapping& dm);
-    //
-    // Get box domain (as an array of boxes).
-    //
+
+    //! Get box domain (as an array of boxes).
     const BoxArray& boxes () const { return grids; }
-    //
-    // Return the number of grids in this domain.
-    //
+
+    //! Return the number of grids in this domain.
     int size () const { return grids.size(); }
-    //
-    // Return color
-    //
+
+    //! Return color
     ParallelDescriptor::Color color() const { return bndry[0].color(); }
-    //
-    // Return const set of FABs bounding the domain grid boxes on a given orientation
-    //
+
+    //! Return const set of FABs bounding the domain grid boxes on a given orientation
     const FabSet& operator[] (Orientation face) const { return bndry[face]; }
-    //
-    // Return set of FABs bounding the domain grid boxes on a given orientation
-    //
+
+    //! Return set of FABs bounding the domain grid boxes on a given orientation
     FabSet& operator[] (Orientation face) { return bndry[face]; }
-    //
-    // Set all boundary FABs to given value.
-    //
+
+    //! Set all boundary FABs to given value.
     void setVal (Real v);
-    //
-    // register += rhs
-    //
+
+    //! register += rhs
     BndryRegister& operator+= (const BndryRegister& rhs);
     BndryRegister& plus (const BndryRegister& rhs);
-    //
-    // Fill the boundary FABs on intersection with given MultiFab.
-    //
+
+    //! Fill the boundary FABs on intersection with given MultiFab.
     BndryRegister& copyFrom (const MultiFab& src,
                              int             nghost,
                              int             src_comp,
                              int             dest_comp,
                              int             num_comp);
-    //
-    // Increment the boundary FABs on intersect with given MultiFab.
-    //
+
+    //! Increment the boundary FABs on intersect with given MultiFab.
     BndryRegister& plusFrom (const MultiFab& src,
                              int             nghost,
                              int             src_comp,
                              int             dest_comp,
                              int             num_comp);
-    //
-    // Linear combination: this := a*mfa + b*mfb on intersection of MultiFabs with the boundary FABs
-    //
+
+    //! Linear combination: this := a*mfa + b*mfb on intersection of MultiFabs with the boundary FABs
     BndryRegister& linComb (Real            a,
                             const MultiFab& mfa,
                             int             a_comp,
@@ -168,40 +153,31 @@ public:
                             int             dest_comp,
                             int             num_comp,
                             int             n_ghost = 0);
-    //
-    // Set box domain, if not set previously.
-    //
+
+    //! Set box domain, if not set previously.
     void setBoxes (const BoxArray& grids);
-    //
-    // Returns constant reference to associated DistributionMapping.
-    //
+
+    //! Returns constant reference to associated DistributionMapping.
     const DistributionMapping& DistributionMap () const { return bndry[0].DistributionMap(); }
-    //
-    // Write (used for writing to checkpoint)
-    //
+
+    //! Write (used for writing to checkpoint)
     void write (const std::string& name, std::ostream& os) const;
-    //
-    // Read (used for reading from checkpoint)
-    //
+
+    //! Read (used for reading from checkpoint)
     void read (const std::string& name, std::istream& is);
 
-    // Local copy function
+    //! Local copy function
     static void Copy (BndryRegister& dst, const BndryRegister& src);
 
-    //
-    // AddProcsToComp
-    //
+    //! AddProcsToComp
     virtual void AddProcsToComp(int ioProcNumSCS, int ioProcNumAll,
                                 int scsMyId, MPI_Comm scsComm);
 
 protected:
-    //
-    // Used by the copy constructor and assignment operator.
-    //
+    //! Used by the copy constructor and assignment operator.
     void init (const BndryRegister& src);
-    //
-    // The data.
-    //
+
+    //! The data.
     FabSet    bndry[2*BL_SPACEDIM];
     BoxArray  grids;
 };
