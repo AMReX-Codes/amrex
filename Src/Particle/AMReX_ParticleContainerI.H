@@ -2039,7 +2039,7 @@ ParticleContainer<NR, NI, NA>::WriteParticles (int            lev,
       
       if (is_checkpoint) {
 	// First write out the integer data in binary.
-	const int iChunkSize = 2;
+	const int iChunkSize = 2 + NI;
 	Array<int> istuff(count[grid]*iChunkSize);
 	int* iptr = istuff.dataPtr();
 
@@ -2047,9 +2047,9 @@ ParticleContainer<NR, NI, NA>::WriteParticles (int            lev,
           const auto& pbox = m_particles[lev].at(std::make_pair(grid, tile_map[grid][i]));
 	  for (const auto& p : pbox.GetAoS()) {
 	    if (p.m_idata.id > 0) {
-	      iptr[0] = p.m_idata.id;
-	      iptr[1] = p.m_idata.cpu;
-	      iptr += iChunkSize;
+                for (int j = 0; j < iChunkSize; j++)
+                    iptr[j] = p.m_idata.arr[j];
+                iptr += iChunkSize;
 	    }
 	  }
 	}
