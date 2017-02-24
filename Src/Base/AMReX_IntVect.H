@@ -25,6 +25,25 @@ class IntVect
 {
     friend MPI_Datatype ParallelDescriptor::Mpi_typemap<IntVect>::type();
 public:
+
+    class shift_hasher {
+    private:
+	static constexpr unsigned shift1 = sizeof(size_t)>=8 ? 20 : 10;
+	static constexpr unsigned shift2 = sizeof(size_t)>=8 ? 40 : 20;
+    public:
+	std::size_t operator()(const IntVect& vec) const
+        {
+	    D_DECL(std::size_t ret0 = vec[0], ret1 = vec[1], ret2 = vec[2]);
+#if BL_SPACEDIM == 1
+	    return ret0;
+#elif BL_SPACEDIM == 2
+	    return ret0 ^ (ret1 << shift1);
+#else
+	    return ret0 ^ (ret1 << shift1) ^ (ret2 << shift2);	    
+#endif
+	}
+    };
+
     /**
     * \brief Construct an IntVect whose components are all zero.
     */

@@ -74,18 +74,18 @@
 
 #include <AMReX_ArrayLim.H>
 
-typedef void BDInterpFunc(Real* bndr, ARLIM_P(blo), ARLIM_P(bhi),
+typedef void BDInterpFunc(amrex::Real* bndr, ARLIM_P(blo), ARLIM_P(bhi),
 			  const int* lo, const int* hi,
 			  ARLIM_P(cblo), ARLIM_P(cbhi),
 			  const int* nvar, const int* ratio,
 			  const int* not_covered,
 			  const int* mask,  ARLIM_P(mlo), ARLIM_P(mhi),
-			  const Real* crse, ARLIM_P(clo), ARLIM_P(chi),
-			  Real* derives, const Real* hfine);
-typedef void BDPhysDerivative(Real* bndr, ARLIM_P(blo), ARLIM_P(bhi),
+			  const amrex::Real* crse, ARLIM_P(clo), ARLIM_P(chi),
+			  amrex::Real* derives, const amrex::Real* hfine);
+typedef void BDPhysDerivative(amrex::Real* bndr, ARLIM_P(blo), ARLIM_P(bhi),
 			      const int* lo, const int* hi,
-			      const Real* finefab, ARLIM_P(flo), ARLIM_P(fhi),
-			      const int* nvar, const Real* hfine);
+			      const amrex::Real* finefab, ARLIM_P(flo), ARLIM_P(fhi),
+			      const int* nvar, const amrex::Real* hfine);
 extern "C"
 {
     BDInterpFunc FORT_BDINTERPXLO;

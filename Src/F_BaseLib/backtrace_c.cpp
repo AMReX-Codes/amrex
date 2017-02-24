@@ -12,8 +12,8 @@
 #include <execinfo.h>
 #endif
 
-#include <signal.h>
-#include <fenv.h>
+#include <csignal>
+#include <cfenv>
 
 #ifdef _OPENMP
 #include <omp.h>

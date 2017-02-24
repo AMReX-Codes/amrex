@@ -34,8 +34,8 @@ private:
     amrex::MultiFab lam;
     amrex::MultiFab Ddiag;
 
-    Real t, dt, courno;
-    Real dx[3];
+    amrex::Real t, dt, courno;
+    amrex::Real dx[3];
 
     // number of components
     static int ncons;
@@ -49,27 +49,27 @@ private:
     static amrex::Array<int> ncell;
     static amrex::Array<int> max_grid_size;
     static int max_step;
-    static Real stop_time;
-    static amrex::Array<Real> prob_lo;
-    static amrex::Array<Real> prob_hi;
+    static amrex::Real stop_time;
+    static amrex::Array<amrex::Real> prob_lo;
+    static amrex::Array<amrex::Real> prob_hi;
     //
     static int  verbose;
     //
     static int  cfl_int;
-    static Real cfl;
-    static Real init_shrink;
-    static Real fixed_dt;
+    static amrex::Real cfl;
+    static amrex::Real init_shrink;
+    static amrex::Real fixed_dt;
     //
     static int  plot_int;
     //
     static int overlap;
 
     // timers
-    Real wt_fb1;
-    Real wt_fb2;
-    Real wt_chem1;
-    Real wt_chem2;
-    Real wt_hypdiff;
+    amrex::Real wt_fb1;
+    amrex::Real wt_fb2;
+    amrex::Real wt_chem1;
+    amrex::Real wt_chem2;
+    amrex::Real wt_hypdiff;
 
     static void init_runtime ();
     static void init_stencil ();
@@ -84,7 +84,7 @@ private:
     void advance (int istep);
     void compute_dUdt(amrex::MultiFab& UU, int istep=-1);
     void set_dt(int istep);
-    void update_rk3(Real a, amrex::MultiFab& Ua, Real b, const amrex::MultiFab& Ub, Real c, const amrex::MultiFab& Uc);
+    void update_rk3(amrex::Real a, amrex::MultiFab& Ua, amrex::Real b, const amrex::MultiFab& Ub, amrex::Real c, const amrex::MultiFab& Uc);
     void reset_density(amrex::MultiFab& UU);
 };
 

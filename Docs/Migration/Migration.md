@@ -216,3 +216,14 @@ that returns the array to see if the array is being used and needs
 update.  Most codes probably do not need any changes.
 
 
+### Step 10
+
+AMReX `migration/10-amrex-real` branch should be used in this step.
+
+AMReX can be compiled with `PRECISION = DOUBLE` (default) or `FALSE`.
+It used to be that `Real` was either `double` or `float`.  This has
+now been put into the `amrex` namespace and becomes `amrex::Real`.
+Fortran code can do `use amrex_fort_module, only : amrex_real` and
+define variables as `real(amrex_real) :: x`.  C code can do `#include
+<AMReX_REAL.H>` and use `amrex_real`.
+

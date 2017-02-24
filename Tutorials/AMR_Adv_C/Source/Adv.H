@@ -34,7 +34,7 @@ public:
 	 const amrex::Geometry& level_geom,
 	 const amrex::BoxArray& bl,
 	 const amrex::DistributionMapping& dm,
-	 Real            time);
+	 amrex::Real            time);
     //
     //The destructor.
     //
@@ -85,18 +85,18 @@ public:
     //
     //Advance grids at this level in time.
     //
-    virtual Real advance (Real time,
-                          Real dt,
+    virtual amrex::Real advance (amrex::Real time,
+                          amrex::Real dt,
                           int  iteration,
                           int  ncycle) override;
     //
     //Estimate time step.
     //
-    Real estTimeStep (Real dt_old);
+    amrex::Real estTimeStep (amrex::Real dt_old);
     //
     //Compute initial time step.
     //
-    Real initialTimeStep ();
+    amrex::Real initialTimeStep ();
     //
     //Compute initial `dt'.
     //
@@ -104,8 +104,8 @@ public:
                                    int                   sub_cycle,
                                    amrex::Array<int>&           n_cycle,
                                    const amrex::Array<amrex::IntVect>& ref_ratio,
-                                   amrex::Array<Real>&          dt_level,
-                                   Real                  stop_time) override;
+                                   amrex::Array<amrex::Real>&          dt_level,
+                                   amrex::Real                  stop_time) override;
     //
     //Compute new `dt'.
     //
@@ -113,9 +113,9 @@ public:
                                int                   sub_cycle,
                                amrex::Array<int>&           n_cycle,
                                const amrex::Array<amrex::IntVect>& ref_ratio,
-                               amrex::Array<Real>&          dt_min,
-                               amrex::Array<Real>&          dt_level,
-                               Real                  stop_time,
+                               amrex::Array<amrex::Real>&          dt_min,
+                               amrex::Array<amrex::Real>&          dt_level,
+                               amrex::Real                  stop_time,
                                int                   post_regrid_flag) override;
     //
     //Do work after timestep().
@@ -132,14 +132,14 @@ public:
     //
     //Do work after init().
     //
-    virtual void post_init (Real stop_time) override;
+    virtual void post_init (amrex::Real stop_time) override;
     //
     //Error estimation for regridding.
     //
     virtual void errorEst (amrex::TagBoxArray& tb,
                            int          clearval,
                            int          tagval,
-                           Real         time,
+                           amrex::Real         time,
 			   int          n_error_buf = 0, int ngrow = 0) override;
 
     static int  NUM_STATE;
@@ -168,7 +168,7 @@ protected:
     // Static data members.
     //
     static int       verbose;
-    static Real      cfl;
+    static amrex::Real      cfl;
     static int       do_reflux;
 };    
 

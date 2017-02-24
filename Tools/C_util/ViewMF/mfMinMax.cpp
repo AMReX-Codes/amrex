@@ -11,9 +11,7 @@ using std::cout;
 using std::endl;
 using std::cerr;
 
-#ifndef WIN32
 using std::set_new_handler;
-#endif
 
 static
 void 

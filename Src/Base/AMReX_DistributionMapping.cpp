@@ -5,7 +5,7 @@
 #include <AMReX_ParmParse.H>
 #include <AMReX_BLProfiler.H>
 #include <AMReX_FArrayBox.H>
-#if !(defined(BL_NO_FORT) || defined(WIN32))
+#if !defined(BL_NO_FORT)
 #include <AMReX_Geometry.H>
 #endif
 #include <AMReX_VisMF.H>
@@ -2428,7 +2428,7 @@ DistributionMapping::PrintDiagnostics(const std::string &filename)
 }
 
 
-#if !(defined(BL_NO_FORT) || defined(WIN32))
+#if !defined(BL_NO_FORT)
 void DistributionMapping::ReadCheckPointHeader(const std::string &filename,
                                                Array<IntVect>  &refRatio,
                                                Array<BoxArray> &allBoxes)

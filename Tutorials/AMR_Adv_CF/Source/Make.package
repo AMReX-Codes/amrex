@@ -1,3 +1,3 @@
 
-f90EXE_sources += fmain.f90
+F90EXE_sources += fmain.F90 my_amr_mod.F90 initdata.F90
 

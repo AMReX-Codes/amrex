@@ -91,33 +91,33 @@ extern "C"
 {
     void FORT_APPLYBC(
         const int *flagden, const int *flagbc, const int *maxorder,
-        Real *phi, ARLIM_P(phi_lo), ARLIM_P(phi_hi),
+        amrex::Real *phi, ARLIM_P(phi_lo), ARLIM_P(phi_hi),
         const int *cdr,
         const int *bct,
-        const Real *bcl,
-        const Real *bcval, ARLIM_P(bcval_lo), ARLIM_P(bcval_hi),
+        const amrex::Real *bcl,
+        const amrex::Real *bcval, ARLIM_P(bcval_lo), ARLIM_P(bcval_hi),
         const int *mask,   ARLIM_P(mask_lo),  ARLIM_P(mask_hi), 
-        Real *den,         ARLIM_P(den_lo),   ARLIM_P(den_hi),
+        amrex::Real *den,         ARLIM_P(den_lo),   ARLIM_P(den_hi),
         const int *lo, const int *hi, const int *nc,
-        const Real *h
+        const amrex::Real *h
         );
 
     void FORT_AVERAGECC (
-        Real* crseX,       ARLIM_P(crseX_lo), ARLIM_P(crseX_hi),
-        const Real* fineX, ARLIM_P(fineX_lo), ARLIM_P(fineX_hi),
+        amrex::Real* crseX,       ARLIM_P(crseX_lo), ARLIM_P(crseX_hi),
+        const amrex::Real* fineX, ARLIM_P(fineX_lo), ARLIM_P(fineX_hi),
         const int *tlo, const int *thi, const int *nc
         );
 
     void FORT_AVERAGEEC (
-        Real* crseX,       ARLIM_P(crseX_lo), ARLIM_P(crseX_hi),
-        const Real* fineX, ARLIM_P(fineX_lo), ARLIM_P(fineX_hi),
+        amrex::Real* crseX,       ARLIM_P(crseX_lo), ARLIM_P(crseX_hi),
+        const amrex::Real* fineX, ARLIM_P(fineX_lo), ARLIM_P(fineX_hi),
         const int *tlo, const int *thi, const int *nc,
         const int *axis
         );
 
     void FORT_HARMONIC_AVERAGEEC (
-        Real* crseX,       ARLIM_P(crseX_lo), ARLIM_P(crseX_hi),
-        const Real* fineX, ARLIM_P(fineX_lo), ARLIM_P(fineX_hi),
+        amrex::Real* crseX,       ARLIM_P(crseX_lo), ARLIM_P(crseX_hi),
+        const amrex::Real* fineX, ARLIM_P(fineX_lo), ARLIM_P(fineX_hi),
         const int *tlo, const int *thi, const int *nc,
         const int *axis
         );
