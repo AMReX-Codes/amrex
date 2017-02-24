@@ -775,10 +775,10 @@ ParticleContainer<NR, NI, NA>::InitFromBinaryMetaFile (const std::string& metafi
 template <int NR, int NI, int NA>
 void
 ParticleContainer<NR, NI, NA>::InitRandom (long          icount,
-					      unsigned long iseed,
-					      Real          mass,
-					      bool          serialize,
-					      RealBox       containing_bx)
+                                           unsigned long iseed,
+                                           Real          mass,
+                                           bool          serialize,
+                                           RealBox       containing_bx)
 {
     BL_PROFILE("ParticleContainer<NR, NI, NA>::InitRandom()");
     BL_ASSERT(iseed  > 0);

@@ -5,9 +5,11 @@
 
 extern "C"
 {
-  void deposit(const void *, int np, 
-	       amrex::Real* rho, const int* lo, const int* hi,
-	       const amrex::Real* plo, const amrex::Real* dx);
+    
+    void deposit(const amrex::Real*, int ns, int np,
+                 amrex::Real* rho, const int* lo, const int* hi,
+                 const amrex::Real* plo, const amrex::Real* dx);
+
 }
 
 #endif
