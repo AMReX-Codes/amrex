@@ -30,6 +30,8 @@ public:
 		    const std::vector<int>& idx);
 };
 
+using TracerParIter = ParIter<BL_SPACEDIM>;
+
 }
 
 #endif
