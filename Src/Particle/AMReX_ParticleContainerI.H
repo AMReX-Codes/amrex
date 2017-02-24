@@ -565,8 +565,8 @@ ParticleContainer<NR, NI, NA>::addOneParticle (int                  id_in,
     for (int i = 0; i < BL_SPACEDIM; i++)
        p.m_rdata.pos[i] = xloc[i];
 
-    for (int i = BL_SPACEDIM; i < BL_SPACEDIM + NR; i++)
-       p.m_rdata.arr[i] = attributes[i];
+    for (int i = 0; i < NR; i++)
+       p.m_rdata.arr[i+BL_SPACEDIM] = attributes[i];
 
     ParticleLocData pld;
     if (!Where(p, pld))
@@ -3813,6 +3813,53 @@ ParticleContainer<NR, NI, NA>::AssignDensityDoit (int               rho_index,
 #endif /*BL_USE_MPI*/
 }
 
+template <int NR, int NI, int NA>
+void
+ParticleContainer<NR, NI, NA>::AssignDensityFort (int rho_index,
+                                                  Array<std::unique_ptr<MultiFab> >& mf_to_be_filled, 
+                                                  int lev_min, int ncomp, int finest_level) const
+{
+
+  BL_PROFILE("ParticleContainer<NR, NI, NA>::AssignDensityFort()");
+
+  PhysBCFunct cphysbc, fphysbc;
+  int lo_bc[] = {INT_DIR, INT_DIR, INT_DIR}; // periodic boundaries
+  int hi_bc[] = {INT_DIR, INT_DIR, INT_DIR};
+  Array<BCRec> bcs(1, BCRec(lo_bc, hi_bc));
+//  PCInterp mapper;
+  CellConservativeLinear mapper;
+    
+  Array<std::unique_ptr<MultiFab> > tmp(finest_level+1);
+  for (int lev = lev_min; lev <= finest_level; ++lev) {
+      const BoxArray& ba = mf_to_be_filled[lev]->boxArray();
+      const DistributionMapping& dm = mf_to_be_filled[lev]->DistributionMap();
+      tmp[lev].reset(new MultiFab(ba, dm, 1, 0));
+      tmp[lev]->setVal(0.0);
+  }
+
+  for (int lev = lev_min; lev <= finest_level; ++lev) {
+      AssignCellDensitySingleLevelFort(rho_index, *mf_to_be_filled[lev], lev, 1, 0);
+
+      if (lev < finest_level) {
+          amrex::InterpFromCoarseLevel(*tmp[lev+1], 0.0, *mf_to_be_filled[lev],
+                                       rho_index, rho_index, ncomp, 
+                                       m_gdb->Geom(lev), m_gdb->Geom(lev+1),
+                                       cphysbc, fphysbc,
+                                       m_gdb->refRatio(lev), &mapper, bcs);
+      }
+
+      if (lev > lev_min) {
+          amrex::sum_fine_to_coarse(*mf_to_be_filled[lev],
+                                    *mf_to_be_filled[lev-1],
+                                    0, 1, m_gdb->refRatio(lev-1),
+                                    m_gdb->Geom(lev-1), m_gdb->Geom(lev));
+          Real after = mf_to_be_filled[lev-1]->sum()/128.0/128.0/128.0;
+      }
+
+      mf_to_be_filled[lev]->plus(*tmp[lev], rho_index, ncomp, 0);
+  }
+}
+
 //
 // This is the single-level version -- it takes either cell-centered or node-centered MF's
 //
@@ -3884,7 +3931,6 @@ ParticleContainer<NR, NI, NA>::AssignCellDensitySingleLevelFort (int rho_index,
     const Real      strttime    = ParallelDescriptor::second();
     const Geometry& gm          = m_gdb->Geom(lev);
     const Real*     plo         = gm.ProbLo();
-    const Real*     dx_particle = m_gdb->Geom(lev + particle_lvl_offset).CellSize();
     const Real*     dx          = gm.CellSize();
     const AoSMap&   pmap        = m_particles[lev];
 
@@ -3893,7 +3939,7 @@ ParticleContainer<NR, NI, NA>::AssignCellDensitySingleLevelFort (int rho_index,
     }
     
     for (MFIter mfi(*mf_pointer); mfi.isValid(); ++mfi) {
-      (*mf_pointer)[mfi].setVal(0);
+        (*mf_pointer)[mfi].setVal(0);
     }
 
     for (const auto& kv : pmap) {
@@ -3902,8 +3948,10 @@ ParticleContainer<NR, NI, NA>::AssignCellDensitySingleLevelFort (int rho_index,
       FArrayBox& fab = (*mf_pointer)[grid];
       const Box& box = fab.box();
       auto N = pbx.size();
-	
-      deposit(pbx.dataPtr(), pbx.size(), fab.dataPtr(), box.loVect(), box.hiVect(), plo, dx);
+
+      int nstride = sizeof(ParticleType)/sizeof(typename ParticleType::RealType);
+      const typename ParticleType::RealType* p = &(pbx.dataPtr()->m_rdata.pos[0]);
+      deposit(p, nstride, N, fab.dataPtr(), box.loVect(), box.hiVect(), plo, dx);
     }
     
     mf_pointer->SumBoundary(gm.periodicity());
@@ -3922,10 +3970,10 @@ ParticleContainer<NR, NI, NA>::AssignCellDensitySingleLevelFort (int rho_index,
     // want to divide those by volume.
     const Real vol = D_TERM(dx[0], *dx[1], *dx[2]);
 
-    mf_pointer->mult(1/vol, 0, 1);
+    mf_pointer->mult(1.0/vol, 0, 1, mf_pointer->nGrow());
 
     // If mf_to_be_filled is not defined on the particle_box_array, then we need
-    // to copy here from mf_pointer into mf_to_be_filled.   I believe that we don't
+    // to copy here from mf_pointer into mf_to_be_filled. I believe that we don't
     // need any information in ghost cells so we don't copy those.
     if (mf_pointer != &mf_to_be_filled) {
       mf_to_be_filled.copy(*mf_pointer,0,0,ncomp);
@@ -3986,9 +4034,9 @@ ParticleContainer<NR, NI, NA>::AssignCellDensitySingleLevel (int rho_index,
       amrex::Error("AssignDensity: problem must be periodic in no or all directions");
     }
     
-    for (MFIter mfi(*mf_pointer); mfi.isValid(); ++mfi) {
-      (*mf_pointer)[mfi].setVal(0);
-    }
+    //    for (MFIter mfi(*mf_pointer); mfi.isValid(); ++mfi) {
+    //      (*mf_pointer)[mfi].setVal(0);
+    //    }
 
     for (const auto& kv : pmap) {
       const int grid = kv.first.first;

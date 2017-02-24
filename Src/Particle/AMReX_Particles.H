@@ -27,6 +27,9 @@
 #include <AMReX_Deposition_F.H>
 #include <AMReX_RealBox.H>
 #include <AMReX_Print.H>
+#include <AMReX_MultiFabUtil.H>
+#include <AMReX_Interpolater.H>
+#include <AMReX_FillPatchUtil.H>
 
 #ifdef BL_LAZY
 #include <AMReX_Lazy.H>
@@ -433,6 +436,11 @@ public:
     // Single-level version
     void AssignDensitySingleLevel (int rho_index, MultiFab& mf, int level,
 				   int ncomp=1, int particle_lvl_offset = 0) const;
+    
+    void AssignDensityFort (int rho_index,
+                            Array<std::unique_ptr<MultiFab> >& mf_to_be_filled, 
+                            int lev_min, int ncomp, int finest_level) const;
+
     void AssignCellDensitySingleLevelFort (int rho_index, MultiFab& mf, int level,
 					   int ncomp=1, int particle_lvl_offset = 0) const;
     void AssignCellDensitySingleLevel (int rho_index, MultiFab& mf, int level,
