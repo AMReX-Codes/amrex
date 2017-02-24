@@ -1635,9 +1635,9 @@ ParticleContainer<NR, NI, NA>::OK (int  lev_min,
 
 template <int NR, int NI, int NA>
 void
-ParticleContainer<NR, NI, NA>::Checkpoint (const std::string& dir,
-					   const std::string& name,
-					   bool               is_checkpoint,
+ParticleContainer<NR, NI, NA>::Checkpoint (const std::string&          dir,
+					   const std::string&          name,
+					   bool                        is_checkpoint,
                                            const Array<std::string>&   real_comp_names,
                                            const Array<std::string>&   int_comp_names) const
 {
@@ -1762,6 +1762,8 @@ ParticleContainer<NR, NI, NA>::Checkpoint (const std::string& dir,
                 HdrFile << int_comp_names[i] << '\n';
             }
         }
+
+        HdrFile << is_checkpoint << '\n';
 
         //
         // The total number of particles.
