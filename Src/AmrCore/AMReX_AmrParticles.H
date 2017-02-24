@@ -14,15 +14,11 @@ class AmrParticleContainer
 
 public:
 
-  typedef Particle<NR,NI> ParticleType;
-  typedef typename ParticleContainer<NR,NI,NA>::PBox PBox;
-  typedef typename ParticleContainer<NR,NI,NA>::PMap PMap;
+    typedef Particle<NR,NI> ParticleType;
     
     AmrParticleContainer (AmrCore* amr_core)
       : ParticleContainer<NR, NI, NA>(amr_core->GetParGDB())
     {
-	this->m_particles.reserve(this->m_gdb->maxLevel()+1);	
-	this->m_particles.resize(this->m_gdb->finestLevel()+1);
     }
 
     ~AmrParticleContainer () {}
@@ -36,8 +32,6 @@ public:
     AmrTracerParticleContainer (AmrCore* amr_core)
 	: TracerParticleContainer(amr_core->GetParGDB())
     {
-	this->m_particles.reserve(this->m_gdb->maxLevel()+1);
-	this->m_particles.resize(this->m_gdb->finestLevel()+1);
     }
 
     ~AmrTracerParticleContainer () {}

@@ -40,9 +40,7 @@ ParticleContainer<NR, NI, NA>::InitFromAsciiFile (const std::string& file, int e
        NRedist = 48;
     }
 
-    m_particles.resize(m_gdb->finestLevel()+1);
-    m_arraydata.resize(m_gdb->finestLevel()+1);
-    m_dummy_mf.resize (m_gdb->finestLevel()+1);
+    resizeData();
 
     IntVect lNrep(D_DECL(1,1,1));
 
@@ -104,7 +102,7 @@ ParticleContainer<NR, NI, NA>::InitFromAsciiFile (const std::string& file, int e
             //
             MyCnt += cnt % NReaders;
 
-        const Geometry& geom = m_gdb->Geom(0);
+        const Geometry& geom = Geom(0);
 
         for (int i = 0; i < MyCnt; i++)
         {
@@ -229,12 +227,12 @@ ParticleContainer<NR, NI, NA>::InitFromAsciiFile (const std::string& file, int e
             {
                 while (!nparticles.empty())
                 {
-                    ParticleType& p = nparticles.back();
+                    ParticleType& p = nparticles().back();
 		    Where(p, pld);
 
                     m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
     
-                    nparticles.pop_back();
+                    nparticles().pop_back();
                 }
             }
         }
@@ -257,14 +255,14 @@ ParticleContainer<NR, NI, NA>::InitFromAsciiFile (const std::string& file, int e
     {
         if (which == MyProc)
         {
-            while (!nparticles.empty())
+            while (!nparticles().empty())
             {
-                ParticleType& p = nparticles.back();
+                ParticleType& p = nparticles().back();
 		Where(p, pld);
 
                 m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
 
-                nparticles.pop_back();
+                nparticles().pop_back();
             }
         }
         //
@@ -361,13 +359,13 @@ ParticleContainer<NR, NI, NA>::InitFromBinaryFile (const std::string& file,
     // tmp_particles should mirror how m_particles is built.
     // At the end of this routine it'll be the new m_particles.
     //
-    Array<AoSMap> tmp_particles;
+    Array<ParticleLevel> tmp_particles;
 
     tmp_particles.reserve(15);  // So we don't ever have to do any copying on a resize.
-    tmp_particles.resize(m_gdb->finestLevel()+1);
-      m_particles.resize(m_gdb->finestLevel()+1);
-      m_arraydata.resize(m_gdb->finestLevel()+1);
-      m_dummy_mf.resize(m_gdb->finestLevel()+1);
+    tmp_particles.resize(finestLevel()+1);
+    
+    resizeData();
+
     //
     // All the processors need to participate in Redistribute() though.
     //
@@ -545,7 +543,7 @@ ParticleContainer<NR, NI, NA>::InitFromBinaryFile (const std::string& file,
         //
         MyCnt += NP % NReaders;
 
-    const Geometry& geom = m_gdb->Geom(0);
+    const Geometry& geom = Geom(0);
 
     long how_many_redists = NP / (NPartPerRedist*NReaders), how_many_read = 0;
 
@@ -682,22 +680,19 @@ ParticleContainer<NR, NI, NA>::InitFromBinaryFile (const std::string& file,
         //
         for (int lev = 0; lev < m_particles.size(); lev++)
         {
-            AoSMap& pmap     = m_particles[lev];
-            AoSMap& tmp_pmap = tmp_particles[lev];
+            auto& pmap     = m_particles[lev];
+            auto& tmp_pmap = tmp_particles[lev];
 
-            for (typename AoSMap::iterator pmap_it = pmap.begin(), End = pmap.end();
-                 pmap_it != End;
-                 ++pmap_it)
+            for (auto pmap_it = pmap.begin(); pmap_it != pmap_it.end(); ++pmap_it)
             {
-                AoS& pbox     = pmap_it->second;
-                AoS& tmp_pbox = tmp_pmap[pmap_it->first];
+                auto& aos = pmap_it->second.GetAoS()();
+                auto& tmp_aos = tmp_pmap[pmap_it->first]().GetAoS()();
 
-                tmp_pbox.insert(tmp_pbox.end(), pbox.begin(), pbox.end());
-
-                AoS().swap(pbox);
+                tmp_aos.insert(tmp_aos.end(), aos.being(), aos.end());
+                Array<ParticleType>().swap(aos);
             }
 
-            AoSMap().swap(pmap);
+            ParticleLevel().swap(pmap);
         }
     }
     //
@@ -739,7 +734,7 @@ ParticleContainer<NR, NI, NA>::InitFromBinaryFile (const std::string& file,
 template <int NR, int NI, int NA>
 void
 ParticleContainer<NR, NI, NA>::InitFromBinaryMetaFile (const std::string& metafile,
-						    int                extradata)
+                                                       int                extradata)
 {
     BL_PROFILE("ParticleContainer<NR, NI, NA>::InitFromBinaryMetaFile()");
     const Real strttime = ParallelDescriptor::second();
@@ -790,7 +785,7 @@ ParticleContainer<NR, NI, NA>::InitRandom (long          icount,
     const int       NProcs   = ParallelDescriptor::NProcs();
     const int       IOProc   = ParallelDescriptor::IOProcessorNumber();
     const Real      strttime = ParallelDescriptor::second();
-    const Geometry& geom     = m_gdb->Geom(0);
+    const Geometry& geom     = Geom(0);
 
     Real r, x, len[BL_SPACEDIM] = { D_DECL(geom.ProbLength(0),
                                            geom.ProbLength(1),
@@ -868,9 +863,9 @@ ParticleContainer<NR, NI, NA>::InitRandom (long          icount,
                 amrex::Abort("ParticleContainer<NR, NI, NA>::InitRandom(): invalid particle");
             }
 
-            BL_ASSERT(pld.m_lev >= 0 && pld.m_lev <= m_gdb->finestLevel());
+            BL_ASSERT(pld.m_lev >= 0 && pld.m_lev <= finestLevel());
 
-            const int who = m_gdb->ParticleDistributionMap(pld.m_lev)[pld.m_grid];
+            const int who = ParticleDistributionMap(pld.m_lev)[pld.m_grid];
 
             if (who == MyProc)
 	      {
@@ -942,7 +937,7 @@ ParticleContainer<NR, NI, NA>::InitRandom (long          icount,
                 amrex::Abort("ParticleContainer<NR, NI, NA>::InitRandom(): invalid particle");
             }
 
-            BL_ASSERT(pld.m_lev >= 0 && pld.m_lev <= m_gdb->finestLevel());
+            BL_ASSERT(pld.m_lev >= 0 && pld.m_lev <= finestLevel());
 
             //
             // Add it to the appropriate AoS at the appropriate level.
@@ -981,10 +976,10 @@ ParticleContainer<NR, NI, NA>::InitOnePerCell (Real x_off, Real y_off, Real z_of
 
     const int       IOProc   = ParallelDescriptor::IOProcessorNumber();
     const Real      strttime = ParallelDescriptor::second();
-    const Geometry& geom     = m_gdb->Geom(0);
+    const Geometry& geom     = Geom(0);
 
     //
-    // This assumes level 0 since geom = m_gdb->Geom(0)
+    // This assumes level 0 since geom = Geom(0)
     //
     const Real* dx  = geom.CellSize();
 
@@ -995,7 +990,7 @@ ParticleContainer<NR, NI, NA>::InitOnePerCell (Real x_off, Real y_off, Real z_of
     //
     for (MFIter mfi(particle_mf,false); mfi.isValid(); ++mfi)
     {
-        Box grid = m_gdb->ParticleBoxArray(0)[mfi.index()];
+        Box grid = ParticleBoxArray(0)[mfi.index()];
         RealBox grid_box (grid,dx,geom.ProbLo());
 
         int nx = 1;
@@ -1037,17 +1032,17 @@ ParticleContainer<NR, NI, NA>::InitOnePerCell (Real x_off, Real y_off, Real z_of
                 amrex::Abort("ParticleContainer<NR, NI, NA>::InitOnePerCell(): invalid particle");
             }
 
-            BL_ASSERT(pld.m_lev >= 0 && pld.m_lev <= m_gdb->finestLevel());
+            BL_ASSERT(pld.m_lev >= 0 && pld.m_lev <= finestLevel());
             //
             // Add it to the appropriate AoS at the appropriate level.
             //
 	    m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
 	    if (NA > 0)
-	      m_arraydata[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)][0].push_back(p.m_idata.id);
+                m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(0,p.m_idata.id);
 	    if (NA > 1)
-	      m_arraydata[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)][1].push_back(p.m_idata.cpu);
+                m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(1,p.m_idata.cpu);
 	    for (int i = 2; i < NA; i++)
-	      m_arraydata[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)][i].push_back(0.0);
+                m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(i,0.0);
           }
          }
         }
@@ -1079,18 +1074,16 @@ ParticleContainer<NR, NI, NA>::InitNRandomPerCell (int n_per_cell, Real mass, co
 
     const int       IOProc   = ParallelDescriptor::IOProcessorNumber();
     const Real      strttime = ParallelDescriptor::second();
-    const Geometry& geom     = m_gdb->Geom(0);
+    const Geometry& geom     = Geom(0);
 
     //
-    // This assumes level 0 since geom = m_gdb->Geom(0)
+    // This assumes level 0 since geom = Geom(0)
     //
     const Real* dx  = geom.CellSize();
 
     Real r;
 
-    m_particles.resize(m_gdb->finestLevel()+1);
-    m_arraydata.resize(m_gdb->finestLevel()+1);
-    m_dummy_mf.resize(m_gdb->finestLevel()+1);
+    resizeData();
 
     for (int lev = 0; lev < m_particles.size(); lev++)
         BL_ASSERT(m_particles[lev].empty());
@@ -1102,7 +1095,7 @@ ParticleContainer<NR, NI, NA>::InitNRandomPerCell (int n_per_cell, Real mass, co
     //
     for (MFIter mfi(particle_mf,false); mfi.isValid(); ++mfi)
     {
-        Box grid = m_gdb->ParticleBoxArray(0)[mfi.index()];
+        Box grid = ParticleBoxArray(0)[mfi.index()];
         RealBox grid_box (grid,dx,geom.ProbLo());
 
 	int nx = grid.length(0), ny = grid.length(1), nz = grid.length(2); 
@@ -1142,7 +1135,7 @@ ParticleContainer<NR, NI, NA>::InitNRandomPerCell (int n_per_cell, Real mass, co
                if (!Where(p, pld))
                    amrex::Abort("ParticleContainer<NR, NI, NA>::InitNRandomPerCell(): invalid particle");
 
-               BL_ASSERT(pld.m_lev >= 0 && pld.m_lev <= m_gdb->finestLevel());
+               BL_ASSERT(pld.m_lev >= 0 && pld.m_lev <= finestLevel());
                //
                // Add it to the appropriate AoS at the appropriate level.
                //
