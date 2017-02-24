@@ -1,8 +1,6 @@
 import os
 import sys
-import re
 from pycparser import parse_file, c_parser, c_ast, c_generator
-
 
 #These types are commonly used in AMReX. We will add more types into the dictionaries later if needed
 c_primitive_types= ["char", "short", "int", "long", "float", "double"]
@@ -10,16 +8,14 @@ fortran_primitive_types= ["CHARACTER", "BYTE", "INTEGER 1", "INTEGER 2", "INTEGE
 
 def may_type_safe(ctype, cdim, ftype, fdim):
   if cdim==0: 
-    print ctype,ftype
-    print cdim, fdim
     return False #we can't pass by value 
   if not ctype in c_primitive_types: return True
   if not ftype in fortran_primitive_types: return True 
   #now cdim always >=1
   if cdim!=fdim: 
-    if ctype=="float" or ctype == "double":return True #this is an exception in Boxlib when floating point data in C is represented as 1D array
-    elif cdim==1 and fdim==0: return True #passing by reference
-    else: return False
+    if cdim==1 and fdim==0: return True #passing by reference
+    else: return cdim < fdim #in C BoxLib users often employ flattened arrays
+  #now cdim ==fdim
   if ctype=="char": return ftype=="CHARACTER" or ftype=="BYTE" or ftype=="INTEGER 1" or ftype=="LOGICAL 1"
   elif ctype=="short": return ftype=="INTEGER 2" or ftype=="LOGICAL 2"
   elif ctype=="int": return ftype=="INTEGER 4" or ftype=="LOGICAL 4"
@@ -30,7 +26,7 @@ def may_type_safe(ctype, cdim, ftype, fdim):
 def checkFortranArguments(funcName, functionNode):
   str= "symtree: '"+funcName+"'"
   for file in os.listdir("."):
-    if file.endswith("f90.orig"):
+    if file.endswith(('F90.orig', 'f90.orig')):
       f = open(file, 'r')
       a_line = f.readline()
       arglist = ""
@@ -140,7 +136,7 @@ for file in os.listdir("."):
                   keyword = "id=\""+typeID+"\""
 	  	  before, keyword, after = wholeFileStr.partition(keyword)
                   tag = before.split()[-1]
-                  if tag == "<PointerType":
+                  if tag == "<PointerType" or tag == "<ReferenceType":
                     typeID = after.split()[0]
                     typeID = typeID[6:-1]
 		    dimension= dimension+1
