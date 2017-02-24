@@ -128,6 +128,9 @@ void test_assign_density(TestParams& parms)
     Array<std::string> varnames;
     varnames.push_back("density");
 
+    Array<std::string> particle_varnames;
+    particle_varnames.push_back("mass");
+
     Array<int> level_steps;
     level_steps.push_back(0);
     level_steps.push_back(0);
@@ -143,7 +146,7 @@ void test_assign_density(TestParams& parms)
     
     WriteMultiLevelPlotfile("plt00000", output_levs, outputMF, 
                             varnames, geom, 0.0, level_steps, outputRR);
-    myPC.Checkpoint("plt00000", "particle0", true);
+    myPC.Checkpoint("plt00000", "particle0", true, particle_varnames);
 }
 
 int main(int argc, char* argv[])
