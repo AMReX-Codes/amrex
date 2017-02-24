@@ -490,7 +490,9 @@ public:
     //
     void AddParticlesAtLevel (int level, AoS& virts);
 
-    void Checkpoint (const std::string& dir, const std::string& name, bool is_checkpoint = true) const;
+    void Checkpoint (const std::string& dir, const std::string& name, bool is_checkpoint = true,
+                     const Array<std::string>& real_comp_names = Array<std::string>(),
+                     const Array<std::string>&  int_comp_names = Array<std::string>()) const;
 
     void Restart (const std::string& dir, const std::string& file, bool is_checkpoint = true);
 
@@ -634,7 +636,7 @@ protected:
     ParGDBBase* m_gdb;
     bool        allow_particles_near_boundary;
     ParGDB      m_gdb_object;
-
+    
 private:
     void AssignDensityDoit (int rho_index, 
 			    Array<std::unique_ptr<MultiFab> >& mf, 

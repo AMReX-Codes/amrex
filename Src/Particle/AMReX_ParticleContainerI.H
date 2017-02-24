@@ -398,9 +398,9 @@ ParticleContainer<NR, NI, NA>::RedefineDummyMF (int lev)
 
 template <int NR, int NI, int NA>
 void
-ParticleContainer<NR, NI, NA>::locateParticle(ParticleType& p, ParticleLocData& pld, 
-					      int lev_min, int theEffectiveFinestLevel,
-					      int nGrow) const
+ParticleContainer<NR, NI, NA>::locateParticle (ParticleType& p, ParticleLocData& pld, 
+                                               int lev_min, int theEffectiveFinestLevel,
+                                               int nGrow) const
 {
     bool outside = D_TERM(   p.m_rdata.pos[0] <  Geometry::ProbLo(0)
                           || p.m_rdata.pos[0] >= Geometry::ProbHi(0),
@@ -1637,7 +1637,9 @@ template <int NR, int NI, int NA>
 void
 ParticleContainer<NR, NI, NA>::Checkpoint (const std::string& dir,
 					   const std::string& name,
-					   bool               is_checkpoint) const
+					   bool               is_checkpoint,
+                                           const Array<std::string>&   real_comp_names,
+                                           const Array<std::string>&   int_comp_names) const
 {
     BL_PROFILE("ParticleContainer<NR, NI, NA>::Checkpoint()");
     BL_ASSERT(OK());
@@ -1734,9 +1736,33 @@ ParticleContainer<NR, NI, NA>::Checkpoint (const std::string& dir,
 	// The number of extra real parameters
         HdrFile << NR + NA << '\n';
 
+        // Real component names
+        if (real_comp_names.size() == 0) {
+            for (int i = 0; i < NR + NA; ++i ) {
+                HdrFile << "real_comp" << i << '\n';
+            }
+        } else {
+            BL_ASSERT(real_comp_names.size() == NR + NA);
+            for (int i = 0; i < NR + NA; ++i ) {
+                HdrFile << real_comp_names[i] << '\n';
+            }
+        }
+
 	// The number of extra int parameters
         HdrFile << NI << '\n';
-	
+
+        // int component names
+        if (int_comp_names.size() == 0) {
+            for (int i = 0; i < NI; ++i ) {
+                HdrFile << "int_comp" << i << '\n';
+            }
+        } else {
+            BL_ASSERT(int_comp_names.size() == NI);
+            for (int i = 0; i < NI; ++i ) {
+                HdrFile << int_comp_names[i] << '\n';
+            }
+        }
+
         //
         // The total number of particles.
         //
