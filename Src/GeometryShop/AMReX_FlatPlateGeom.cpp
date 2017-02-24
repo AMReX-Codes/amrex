@@ -216,17 +216,17 @@ namespace amrex
           int arcIndHi = loNode.index(faceDir, Side::Hi);
           //here there is only one face -- the low one has a high face and so on.
           //the faces point to regular cells
-          loNode.m_arc[     arcIndLo].resize(0);
-          loNode.m_areaFrac[arcIndLo].resize(0);
-          hiNode.m_arc[     arcIndHi].resize(0);
-          hiNode.m_areaFrac[arcIndHi].resize(0);
+          loNode.m_arc[     arcIndHi].resize(0);
+          loNode.m_areaFrac[arcIndHi].resize(0);
+          hiNode.m_arc[     arcIndLo].resize(0);
+          hiNode.m_areaFrac[arcIndLo].resize(0);
 
-          loNode.m_arc[         arcIndHi] = std::vector<int>(1,0);
-          hiNode.m_arc[         arcIndLo] = std::vector<int>(1,0);
-          loNode.m_areaFrac[    arcIndHi] = std::vector<Real>(1,1.0);
-          hiNode.m_areaFrac[    arcIndLo] = std::vector<Real>(1,1.0);
-          loNode.m_faceCentroid[arcIndHi] = std::vector<RealVect>(1,RealVect::Zero);
-          hiNode.m_faceCentroid[arcIndLo] = std::vector<RealVect>(1,RealVect::Zero);
+          loNode.m_arc[         arcIndLo] = std::vector<int>(1,0);
+          hiNode.m_arc[         arcIndHi] = std::vector<int>(1,0);
+          loNode.m_areaFrac[    arcIndLo] = std::vector<Real>(1,1.0);
+          hiNode.m_areaFrac[    arcIndHi] = std::vector<Real>(1,1.0);
+          loNode.m_faceCentroid[arcIndLo] = std::vector<RealVect>(1,RealVect::Zero);
+          hiNode.m_faceCentroid[arcIndHi] = std::vector<RealVect>(1,RealVect::Zero);
         }//end faceDir == normaldir
       } //end loop over directions
       a_nodes.push_back(loNode);
