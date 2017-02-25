@@ -443,7 +443,7 @@ ParticleContainer<NR, NI, NA>::TotalNumberOfParticles (bool only_valid, bool onl
 {
     long nparticles = 0;
     for (int lev = 0; lev <= finestLevel(); lev++) {
-        nparticles += NumberOfParticlesAtLevel(lev,only_valid,false);
+        nparticles += NumberOfParticlesAtLevel(lev,only_valid,true);
     }
     if (!only_local) {
 	ParallelDescriptor::ReduceLongSum(nparticles);
