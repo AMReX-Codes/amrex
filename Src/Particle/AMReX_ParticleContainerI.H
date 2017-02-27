@@ -4073,7 +4073,7 @@ ParticleContainer<NR, NI, NA>::AssignCellDensitySingleLevel (int rho_index,
 
     for (const auto& kv : pmap) {
       const int grid = kv.first.first;
-      const auto& pbx = kv.second.GetAoS()();
+      const auto& pbx = kv.second.GetAoS();
       FArrayBox& fab = (*mf_pointer)[grid];
       auto N = pbx.size();
 	
@@ -4226,7 +4226,7 @@ ParticleContainer<NR, NI, NA>::NodalDepositionSingleLevel (int rho_index,
     ParticleLocData pld;
 
     for (const auto& kv : pmap) {
-      const auto& pbx = kv.second.GetAoS()();
+      const auto& pbx = kv.second.GetAoS();
       const int grid = kv.first.first;
       FArrayBox& fab = (*mf_pointer)[grid];
 
@@ -4400,7 +4400,7 @@ ParticleContainer<NR, NI, NA>::moveKick (MultiFab&       acceleration,
     ParticleLocData pld;
 
     for (auto& kv : pmap) {
-      auto& pbox = kv.second.GetAoS()();
+      auto& pbox = kv.second.GetAoS();
       const int grid = kv.first.first;
       const int n = pbox.size();
       const FArrayBox& gfab = (*ac_pointer)[grid];
