@@ -3978,14 +3978,13 @@ ParticleContainer<NR, NI, NA>::AssignCellDensitySingleLevelFort (int rho_index,
 
     for (const auto& kv : pmap) {
       const int grid = kv.first.first;
-      const auto& pbx = kv.second.GetAoS()();
+      const auto& pbx = kv.second.GetAoS();
       FArrayBox& fab = (*mf_pointer)[grid];
       const Box& box = fab.box();
       auto N = pbx.size();
 
-      int nstride = sizeof(ParticleType)/sizeof(typename ParticleType::RealType);
-      const typename ParticleType::RealType* p = &(pbx.dataPtr()->m_rdata.pos[0]);
-      deposit(p, nstride, N, fab.dataPtr(), box.loVect(), box.hiVect(), plo, dx);
+      int nstride = pbx.dataShape().first;
+      deposit(pbx.data(), nstride, N, fab.dataPtr(), box.loVect(), box.hiVect(), plo, dx);
     }
     
     mf_pointer->SumBoundary(gm.periodicity());
@@ -4068,9 +4067,9 @@ ParticleContainer<NR, NI, NA>::AssignCellDensitySingleLevel (int rho_index,
       amrex::Error("AssignDensity: problem must be periodic in no or all directions");
     }
     
-    //    for (MFIter mfi(*mf_pointer); mfi.isValid(); ++mfi) {
-    //      (*mf_pointer)[mfi].setVal(0);
-    //    }
+    for (MFIter mfi(*mf_pointer); mfi.isValid(); ++mfi) {
+        (*mf_pointer)[mfi].setVal(0);
+    }
 
     for (const auto& kv : pmap) {
       const int grid = kv.first.first;
