@@ -203,7 +203,7 @@ namespace amrex
                             const Geometry& cgeom, const Geometry& fgeom) 
     {
         BL_ASSERT(S_crse.nComp() == S_fine.nComp());
-        BL_ASSERT(ratio[0] == ratio[1] and ratio[1] == ratio[2]);
+        BL_ASSERT(ratio == ratio[0]);
         BL_ASSERT(S_fine.nGrow() % ratio == 0);
 
         const int nGrow = S_fine.nGrow() / ratio[0];
