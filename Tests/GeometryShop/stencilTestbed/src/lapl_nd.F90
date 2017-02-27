@@ -12,7 +12,7 @@ contains
   subroutine lapl_simple(lph, lph_lo, lph_hi, phi,phi_lo,phi_hi,reglo,reghi,dx) &
        bind(C, name="fort_lapl_simple")
 
-    use bl_fort_module, only : bl_spacedim, c_real
+    use amrex_fort_module, only : amrex_spacedim, c_real=>amrex_real
 
     implicit none
 
