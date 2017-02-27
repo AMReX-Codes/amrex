@@ -203,8 +203,8 @@ namespace amrex
                             const Geometry& cgeom, const Geometry& fgeom) 
     {
         BL_ASSERT(S_crse.nComp() == S_fine.nComp());
-        BL_ASSERT(S_crse.nGrow() == S_fine.nGrow());
         BL_ASSERT(ratio[0] == ratio[1] and ratio[1] == ratio[2]);
+        BL_ASSERT(S_fine.nGrow() % ratio == 0);
 
         const int nGrow = S_fine.nGrow() / ratio[0];
 
@@ -225,12 +225,12 @@ namespace amrex
             
             BL_FORT_PROC_CALL(BL_AVGDOWN, bl_avgdown)
                 (tbx.loVect(), tbx.hiVect(),
-                 BL_TO_FORTRAN_N(S_fine[mfi] , 0),
+                 BL_TO_FORTRAN_N(S_fine[mfi] , scomp),
                  BL_TO_FORTRAN_N(crse_S_fine[mfi], 0),
                  ratio.getVect(),&ncomp);
         }
         
-        S_crse.copy(crse_S_fine, 0, 0, ncomp, nGrow, 0,
+        S_crse.copy(crse_S_fine, 0, scomp, ncomp, nGrow, 0,
                     cgeom.periodicity(), FabArrayBase::ADD);
     }
 
