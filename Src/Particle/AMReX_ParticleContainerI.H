@@ -3853,7 +3853,6 @@ ParticleContainer<NR, NI, NA>::AssignDensityFort (int rho_index,
   int lo_bc[] = {INT_DIR, INT_DIR, INT_DIR}; // periodic boundaries
   int hi_bc[] = {INT_DIR, INT_DIR, INT_DIR};
   Array<BCRec> bcs(1, BCRec(lo_bc, hi_bc));
-//  PCInterp mapper;
   CellConservativeLinear mapper;
     
   Array<std::unique_ptr<MultiFab> > tmp(finest_level+1);
@@ -3876,14 +3875,21 @@ ParticleContainer<NR, NI, NA>::AssignDensityFort (int rho_index,
       }
 
       if (lev > lev_min) {
+          // Note - this will double count the mass on the coarse level in 
+          // regions covered by the fine level, but this will be corrected
+          // below in the call to average_down.
           amrex::sum_fine_to_coarse(*mf_to_be_filled[lev],
                                     *mf_to_be_filled[lev-1],
-                                    0, 1, m_gdb->refRatio(lev-1),
+                                    rho_index, 1, m_gdb->refRatio(lev-1),
                                     m_gdb->Geom(lev-1), m_gdb->Geom(lev));
-          Real after = mf_to_be_filled[lev-1]->sum()/128.0/128.0/128.0;
       }
 
       mf_to_be_filled[lev]->plus(*tmp[lev], rho_index, ncomp, 0);
+  }
+
+  for (int lev = finest_level - 1; lev >= lev_min; --lev) {
+      amrex::average_down(*mf_to_be_filled[lev+1], 
+                          *mf_to_be_filled[lev], rho_index, ncomp, m_gdb->refRatio(lev));
   }
 }
 
