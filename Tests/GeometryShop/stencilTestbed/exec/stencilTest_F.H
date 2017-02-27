@@ -3,7 +3,8 @@
 
 #include <AMReX_REAL.H>
 #include <AMReX_ArrayLim.H>
-
+namespace amrex
+{
 extern "C"
 {
     void lapleb_MSD(Real* lphi,      ARLIM_P(lphlo), ARLIM_P(lphhi),
@@ -25,5 +26,5 @@ extern "C"
 		  const int* reglo, const int* reghi,
                   const Real* plo, const Real* dx);
 }
-
+}
 #endif // _stencilTest_F_H_
