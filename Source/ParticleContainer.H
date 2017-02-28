@@ -36,6 +36,8 @@ public:
 		 const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz,
 		 MultiFab& jx, MultiFab& jy, MultiFab& jz, Real t, Real dt);
 
+    void PushX (int lev, Real dt);
+
     std::unique_ptr<MultiFab> GetChargeDensity(int lev, bool local = false);
 
     void Checkpoint (const std::string& dir,
