@@ -2,6 +2,7 @@
 #include <limits>
 
 #include <ParticleContainer.H>
+#include <WarpXParticleContainer.H>
 #include <AMReX_AmrParGDB.H>
 #include <WarpX_f.H>
 #include <WarpX.H>
@@ -31,6 +32,37 @@ WarpXParticleContainer::ReadParameters ()
 
 	initialized = true;
     }
+}
+
+
+void
+WarpXParticleContainer::AddOneParticle (int lev, int grid, int tile,
+                                        Real x, Real y, Real z,
+                                        const std::array<Real,PIdx::nattribs>& attribs)
+{
+    auto& particle_tile = GetParticles(lev)[std::make_pair(grid,tile)];
+    AddOneParticle(particle_tile, x, y, z, attribs); 
+}
+
+void
+WarpXParticleContainer::AddOneParticle (ParticleTileType& particle_tile,
+                                        Real x, Real y, Real z,
+                                        const std::array<Real,PIdx::nattribs>& attribs)
+{
+    ParticleType p;
+    p.id()  = ParticleType::NextID();
+    p.cpu() = ParallelDescriptor::MyProc();
+#if (BL_SPACEDIM == 3)
+    p.pos(0) = x;
+    p.pos(1) = y;
+    p.pos(2) = z;
+#elif (BL_SPACEDIM == 2)
+    p.pos(0) = x;
+    p.pos(1) = z;
+#endif
+    
+    particle_tile.push_back(p);
+    particle_tile.push_back(attribs);
 }
 
 void
@@ -65,47 +97,42 @@ WarpXParticleContainer::AddNParticles (int n, const Real* x, const Real* y, cons
 	}
     }
 
-    auto& aos_map = GetAoSMap(lev);
-    auto& soa_map = GetSoAMap(lev);
-
     //  Add to grid 0 and tile 0
     // Redistribute() will move them to proper places.
     std::pair<int,int> key {0,0};
-    auto& aos_data = aos_map[key];
-    auto& soa_data = soa_map[key];
-    
+    auto& particle_tile = GetParticles(lev)[key];
+
     for (int i = ibegin; i < iend; ++i)
     {
-	ParticleType p;
-	p.id()  = NextID();
-	p.cpu() = ParallelDescriptor::MyProc();
-
-#if (BL_SPACEDIM == 3)	
-	p.pos(0) = x[i];
-	p.pos(1) = y[i];
-	p.pos(2) = z[i];
-#else
-	p.pos(0) = x[i];
-	p.pos(1) = z[i];
+        ParticleType p;
+        p.id()  = ParticleType::NextID();
+        p.cpu() = ParallelDescriptor::MyProc();
+#if (BL_SPACEDIM == 3)
+        p.pos(0) = x[i];
+        p.pos(1) = y[i];
+        p.pos(2) = z[i];
+#elif (BL_SPACEDIM == 2)
+        p.pos(0) = x[i];
+        p.pos(1) = z[i];
 #endif
-
-        aos_data().push_back(p);
-
-        soa_data[PIdx::w ].push_back(weight[i]);
-        soa_data[PIdx::ux].push_back(vx[i]);
-        soa_data[PIdx::uy].push_back(vy[i]);
-        soa_data[PIdx::uz].push_back(vz[i]);
-        for (int idx = PIdx::Ex; idx < PIdx::nattribs; ++idx) {
-            soa_data[idx].push_back(0.0);
-        }
+        particle_tile.push_back(p);
     }
 
-    Redistribute(false);
+    particle_tile.push_back(PIdx::w , weight + ibegin, weight + iend);
+    particle_tile.push_back(PIdx::ux,     vx + ibegin,     vx + iend);
+    particle_tile.push_back(PIdx::uy,     vy + ibegin,     vy + iend);
+    particle_tile.push_back(PIdx::uz,     vz + ibegin,     vz + iend);
+
+    std::size_t np = iend-ibegin;
+    for (int comp = PIdx::uz+1; comp < PIdx::nattribs; ++comp)
+    {
+        particle_tile.push_back(comp, np, 0.0);
+    }
+
+    Redistribute();
 
     auto npart_after = TotalNumberOfParticles();  // xxxxx move this into if (verbose > xxx)
-    if (ParallelDescriptor::IOProcessor()) {
-	std::cout << "Total number of particles added: " << npart_after - npart_before << std::endl;
-    }
+    amrex::Print() << "Total number of particles added: " << npart_after - npart_before << "\n";
 }
 
 std::unique_ptr<MultiFab>
@@ -134,8 +161,8 @@ WarpXParticleContainer::GetChargeDensity (int lev, bool local)
     {
         const Box& box = pti.tilebox();
 
-        auto& aos_data = pti.GetAoSData();
-        auto& soa_data = pti.GetSoAData();
+        auto& aos_data = pti.GetAoS();
+        auto& soa_data = pti.GetSoA();
 
         auto& wp = soa_data[PIdx::w];
             

@@ -55,6 +55,14 @@ public:
 
 protected:
 
+    void AddOneParticle (int lev, int grid, int tile,
+                         amrex::Real x, amrex::Real y, amrex::Real z,
+                         const std::array<amrex::Real,PIdx::nattribs>& attribs);
+
+    void AddOneParticle (ParticleTileType& particle_tile,
+                         amrex::Real x, amrex::Real y, amrex::Real z,
+                         const std::array<amrex::Real,PIdx::nattribs>& attribs);
+
     int species_id;
 
     amrex::Real charge;

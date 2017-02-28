@@ -66,8 +66,8 @@ PhysicalParticleContainer::Evolve (int lev,
 	{
 	    const Box& box = pti.tilebox();
 
-            auto& aos_data = pti.GetAoSData();
-            auto& soa_data = pti.GetSoAData();
+            auto& aos_data = pti.GetAoS();
+            auto& soa_data = pti.GetSoA();
 
             auto&  wp = soa_data[PIdx::w];
             auto& uxp = soa_data[PIdx::ux];

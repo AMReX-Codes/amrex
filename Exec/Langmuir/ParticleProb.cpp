@@ -74,89 +74,47 @@ PhysicalParticleContainer::InitData()
     const BoxArray& ba = ParticleBoxArray(lev);
     const DistributionMapping& dm = ParticleDistributionMap(lev);
 
-    auto& aos_map = GetAoSMap(lev);
-    auto& soa_map = GetSoAMap(lev);
-    
+    std::array<Real,PIdx::nattribs> attribs;
+    attribs.fill(0.0);
+    attribs[PIdx::w ] = weight;
+    attribs[PIdx::ux] = ux;
+    attribs[PIdx::uy] = uy;
+    attribs[PIdx::uz] = uz;
+
     for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
         const Box& tile_box = mfi.tilebox();
         RealBox tile_real_box { tile_box, dx, geom.ProbLo() };
 
-#if (BL_SPACEDIM == 3)
-	int nx = tile_box.length(0), ny = tile_box.length(1), nz = tile_box.length(2);
-#elif (BL_SPACEDIM == 2)
-	int nx = tile_box.length(0), ny = 1, nz = tile_box.length(1);
-#endif
+        const int grid_id = mfi.index();
+        const int tile_id = mfi.LocalTileIndex();
 
-        auto& aos_data = aos_map[std::make_pair(gid,mfi.LocalTileIndex());
-        
-	for (int k = 0; k < nz; k++) {
-	  for (int j = 0; j < ny; j++) {
-	    for (int i = 0; i < nx; i++) {
-	      for (int i_part=0; i_part<n_part_per_cell;i_part++) {
-		Real particle_shift = (0.5+i_part)/n_part_per_cell;
+        for (IntVect iv = tile_box.smallEnd(); iv <= tile_box.bigEnd(); tile_box.next(iv))
+        {
+            for (int i_part=0; i_part<n_part_per_cell;i_part++)
+            {
+                Real particle_shift = (0.5+i_part)/n_part_per_cell;
 #if (BL_SPACEDIM == 3)
-		Real x = grid_box.lo(0) + (i + particle_shift)*dx[0];
-		Real y = grid_box.lo(1) + (j + particle_shift)*dx[1];
-		Real z = grid_box.lo(2) + (k + particle_shift)*dx[2];
+                Real x = tile_real_box.lo(0) + (iv[0] + particle_shift)*dx[0];
+                Real y = tile_real_box.lo(1) + (iv[1] + particle_shift)*dx[1];
+                Real z = tile_real_box.lo(2) + (iv[2] + particle_shift)*dx[2];
 #elif (BL_SPACEDIM == 2)
-		Real x = grid_box.lo(0) + (i + particle_shift)*dx[0];
-		Real y = 0.0;
-		Real z = grid_box.lo(1) + (k + particle_shift)*dx[1];
+                Real x = tile_real_box.lo(0) + (iv[0] + particle_shift)*dx[0];
+                Real y = 0.0;
+                Real z = tile_real_box.lo(1) + (iv[1] + particle_shift)*dx[1];
 #endif   
-
-		if (x >= particle_xmax || x < particle_xmin ||
-		    y >= particle_ymax || y < particle_ymin ||
-		    z >= particle_zmax || z < particle_zmin ) continue;
-	      
-		ParticleType p;
-
-		p.m_id  = ParticleBase::NextID();
-		p.m_cpu = ParallelDescriptor::MyProc();
-		p.m_lev = lev;
-		p.m_grid = gid; 
-
-#if (BL_SPACEDIM == 3)
-		p.m_pos[0] = x;
-		p.m_pos[1] = y;
-		p.m_pos[2] = z;
-#elif (BL_SPACEDIM == 2)
-		p.m_pos[0] = x;
-		p.m_pos[1] = z;
-#endif
-		
-		for (int i = 0; i < BL_SPACEDIM; i++) {
-		  BL_ASSERT(p.m_pos[i] < grid_box.hi(i));
-		}
-		
-		p.m_data[PIdx::w] = weight;
-	      
-		for (int i = 1; i < PIdx::nattribs; i++) {
-		  p.m_data[i] = 0;
-		}
-	      
-		p.m_data[PIdx::ux] = ux;
-		p.m_data[PIdx::uy] = uy;
-		p.m_data[PIdx::uz] = uz;
-
-		if (!ParticleBase::Where(p,m_gdb)) // this will set m_cell
-		{
-		    amrex::Abort("invalid particle");
-		}
-		
-		BL_ASSERT(p.m_lev >= 0 && p.m_lev <= finestLevel());
-		//
-		// Add it to the appropriate PBox at the appropriate level.
-		//
-		m_particles[p.m_lev][p.m_grid].push_back(p);
-	      }
-	    }
-	  } 
+                
+                if (x >= particle_xmax || x < particle_xmin ||
+                    y >= particle_ymax || y < particle_ymin ||
+                    z >= particle_zmax || z < particle_zmin ) 
+                {
+                    continue;
+                }
+                else
+                {
+                    AddOneParticle(lev, grid_id, tile_id, x, y, z, attribs);
+                }
+            } 
         }
     }
-    //
-    // We still need to redistribute in order to define each particle's cell, grid and level, but this 
-    //    shouldn't require any inter-node communication because the particles should already be in the right grid.
-    //
-    Redistribute(true);
 }
