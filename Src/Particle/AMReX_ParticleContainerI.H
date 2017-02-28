@@ -464,7 +464,7 @@ ParticleContainer<NR, NI, NA>::NumberOfParticlesInGrid (int lev, bool only_valid
             const auto& ptile = kv.second;
 	
             if (only_valid) {
-                for (const auto& p : ptile.GetAoS()) {
+                for (const auto& p : ptile.GetArrayOfStructs()) {
                     if (p.m_idata.id > 0) ++nparticles[gid];
                 }
             } else {
@@ -487,7 +487,7 @@ ParticleContainer<NR, NI, NA>::NumberOfParticlesAtLevel (int lev, bool only_vali
         for (const auto& kv : GetParticles(lev)) {
             const auto& ptile = kv.second;	
             if (only_valid) {
-                for (const auto& p : ptile.GetAoS()) {
+                for (const auto& p : ptile.GetArrayOfStructs()) {
                     if (p.m_idata.id > 0) ++nparticles;
                 }
             } else {
@@ -697,7 +697,7 @@ ParticleContainer<NR, NI, NA>::MoveRandom (int lev)
     const Real  dist[BL_SPACEDIM] = { D_DECL(FRAC*dx[0], FRAC*dx[1], FRAC*dx[2]) };
 
     for (auto& kv : pmap) {
-        auto& aos = kv.second.GetAoS();
+        auto& aos = kv.second.GetArrayOfStructs();
         const int n = aos.size();
 #ifdef _OPENMP
 #pragma omp parallel for
@@ -766,7 +766,7 @@ ParticleContainer<NR, NI, NA>::IncrementWithTotal (MultiFab& mf, int lev, bool l
   ParticleLocData pld;
   for (auto& kv : pmap) {
       int gid = kv.first.first;
-      const auto& pbox = kv.second.GetAoS();
+      const auto& pbox = kv.second.GetArrayOfStructs();
       FArrayBox&  fab  = (*mf_pointer)[gid];
       for (const auto& p : pbox) {
           if (p.m_idata.id > 0) {
@@ -804,7 +804,7 @@ ParticleContainer<NR, NI, NA>::sumParticleMass (int rho_index, int lev, bool loc
   
   const auto& pmap = m_particles[lev];
   for (const auto& kv : pmap) {
-      const auto& pbox = kv.second.GetAoS();
+      const auto& pbox = kv.second.GetArrayOfStructs();
       for (const auto& p : pbox) {
           if (p.m_idata.id > 0) {
               msum += p.m_rdata.arr[BL_SPACEDIM+rho_index];
@@ -865,7 +865,7 @@ ParticleContainer<NR, NI, NA>::GetParticleIDs (Array<int>& part_ids)
   for (unsigned lev = 0; lev < m_particles.size(); lev++) {
       const auto& pmap = m_particles[lev];
       for (auto& kv : pmap) {
-          const auto& pbx = kv.second.GetAoS();
+          const auto& pbx = kv.second.GetArrayOfStructs();
           for (const auto& p : pbx) {
               if (p.m_idata.id > 0) {
                   part_ids[start++] = p.m_idata.id;
@@ -892,7 +892,7 @@ ParticleContainer<NR, NI, NA>::GetParticleCPU (Array<int>& part_cpu)
   for (unsigned lev = 0; lev < m_particles.size(); lev++) {
       const auto& pmap = m_particles[lev];
       for (auto& kv : pmap) {
-          const auto& pbx = kv.second.GetAoS();
+          const auto& pbx = kv.second.GetArrayOfStructs();
           for (const auto& p : pbx) {
               if (p.m_idata.id > 0) {
                   part_cpu[start++] = p.m_idata.cpu;
@@ -922,7 +922,7 @@ ParticleContainer<NR, NI, NA>::GetParticleLocations (Array<Real>& part_data)
   for (unsigned lev = 0; lev < m_particles.size(); lev++) {
       const auto& pmap = m_particles[lev];
       for (auto& kv : pmap) {
-          const auto& pbx = kv.second.GetAoS();
+          const auto& pbx = kv.second.GetArrayOfStructs();
           for (const auto& p : pbx) {
               if (p.m_idata.id > 0) {
                   // Load positions
@@ -954,7 +954,7 @@ ParticleContainer<NR, NI, NA>::GetParticleData (Array<Real>& part_data, int star
   for (unsigned lev = 0; lev < m_particles.size(); lev++) {
       const auto& pmap = m_particles[lev];
       for (auto& kv : pmap) {
-          const auto& pbx = kv.second.GetAoS();
+          const auto& pbx = kv.second.GetArrayOfStructs();
           for (const auto& p : pbx) {
               if (p.m_idata.id > 0) {
                   // Load particle data, whatever it is.
@@ -994,7 +994,7 @@ ParticleContainer<NR, NI, NA>::SetParticleLocations (Array<Real>& part_data)
   for (unsigned lev = 0; lev < m_particles.size(); lev++) {
       const auto& pmap = m_particles[lev];
       for (auto& kv : pmap) {
-          const auto& pbx = kv.second.GetAoS();
+          const auto& pbx = kv.second.GetArrayOfStructs();
           for (const auto& p : pbx) {
               if (p.m_idata.id > 0) {
                   // Load positions
@@ -1086,7 +1086,7 @@ ParticleContainer<NR, NI, NA>::CreateVirtualParticles (int   level,
   ParticleLocData pld;
 
   for (const auto& kv : pmap) {
-    const auto& pbox = kv.second.GetAoS();
+    const auto& pbox = kv.second.GetArrayOfStructs();
     
     //
     // Map for use in Cell aggregation.
@@ -1213,7 +1213,7 @@ ParticleContainer<NR, NI, NA>::CreateGhostParticles (int   level,
   
   const auto& pmap = m_particles[level];
   for (const auto& kv : pmap) {
-    const auto& pbox = kv.second.GetAos();
+    const auto& pbox = kv.second.GetArrayOfStructs();
     for (auto it = pbox.cbegin(); it != pbox.cend(); ++it)
       {
 	//
@@ -1303,8 +1303,8 @@ ParticleContainer<NR, NI, NA>::Redistribute (int lev_min, int nGrow)
       {
           int grid = pmap_it->first.first;
           int tile = pmap_it->first.second;
-          auto& aos = pmap_it->second.GetAoS();
-          auto& soa = pmap_it->second.GetSoA();
+          auto& aos = pmap_it->second.GetArrayOfStructs();
+          auto& soa = pmap_it->second.GetStructOfArrays();
           unsigned first = 0;
           unsigned npart = aos.numParticles();
           if (npart != 0)
@@ -1586,7 +1586,7 @@ ParticleContainer<NR, NI, NA>::OK (int  lev_min,
         {
             const int grid = kv.first.first;
             const int tile = kv.first.second;
-            const auto& aos = kv.second.GetAoS();
+            const auto& aos = kv.second.GetArrayOfStructs();
             const BoxArray& ba = ParticleBoxArray(lev);
             BL_ASSERT(ba.ixType().cellCentered());
             for (const auto& p : aos)
@@ -1681,7 +1681,7 @@ ParticleContainer<NR, NI, NA>::Checkpoint (const std::string&          dir,
     for (int lev = 0; lev < m_particles.size();  lev++) {
         const auto& pmap = m_particles[lev];
         for (const auto& kv : pmap) {
-            const auto& aos = kv.second.GetAoS();
+            const auto& aos = kv.second.GetArrayOfStructs();
             for (const auto& p : aos) {
                 if (p.m_idata.id > 0)
                     //
@@ -2015,7 +2015,7 @@ ParticleContainer<NR, NI, NA>::WriteParticles (int            lev,
 
         // Only write out valid particles.
         int cnt = 0;	
-        for (const auto& p : kv.second.GetAoS()) {
+        for (const auto& p : kv.second.GetArrayOfStructs()) {
             if (p.m_idata.id > 0)
                 cnt++;
 	}
@@ -2045,7 +2045,7 @@ ParticleContainer<NR, NI, NA>::WriteParticles (int            lev,
 
 	for (unsigned i = 0; i < tile_map[grid].size(); i++) {
           const auto& pbox = m_particles[lev].at(std::make_pair(grid, tile_map[grid][i]));
-	  for (const auto& p : pbox.GetAoS()) {
+	  for (const auto& p : pbox.GetArrayOfStructs()) {
 	    if (p.m_idata.id > 0) {
                 for (int j = 0; j < iChunkSize; j++)
                     iptr[j] = p.m_idata.arr[j];
@@ -2064,13 +2064,13 @@ ParticleContainer<NR, NI, NA>::WriteParticles (int            lev,
       for (unsigned i = 0; i < tile_map[grid].size(); i++) {
         const auto& pbox = m_particles[lev].at(std::make_pair(grid, tile_map[grid][i]));
 	int pindex = 0;
-	for (const auto& p : pbox.GetAoS()) {
+	for (const auto& p : pbox.GetArrayOfStructs()) {
 	  if (p.m_idata.id > 0) {
               for (int j = 0; j < BL_SPACEDIM + NR; j++) {
                   rptr[j] = p.m_rdata.arr[j];
               }
               rptr += BL_SPACEDIM + NR;
-              const auto& soa  = pbox.GetSoA();
+              const auto& soa  = pbox.GetStructOfArrays();
               for (int j = 0; j < NA; j++) {
                   rptr[j] = (typename ParticleType::RealType) soa[j][pindex];
               }
@@ -2337,7 +2337,7 @@ ParticleContainer<NR, NI, NA>::WriteAsciiFile (const std::string& filename)
     for (int lev = 0; lev < m_particles.size();  lev++) {
         auto& pmap = m_particles[lev];
         for (const auto& kv : pmap) {
-            const auto& aos = kv.second.GetAoS();
+            const auto& aos = kv.second.GetArrayOfStructs();
             for (const auto& p : aos) {
                 if (p.m_idata.id > 0)
                     //
@@ -2402,8 +2402,8 @@ ParticleContainer<NR, NI, NA>::WriteAsciiFile (const std::string& filename)
 	    for (int lev = 0; lev < m_particles.size();  lev++) {
 	      auto& pmap = m_particles[lev];
 	      for (const auto& kv : pmap) {
-                const auto& aos = kv.second.GetAoS();
-                const auto& soa = kv.second.GetSoA();
+                const auto& aos = kv.second.GetArrayOfStructs();
+                const auto& soa = kv.second.GetStructOfArrays();
 
 		int index = 0;
 		for (auto it = aos.cbegin(); it != aos.cend(); ++it) {
@@ -3037,7 +3037,7 @@ ParticleContainer<NR, NI, NA>::AssignDensity (int rho_index, bool sub_cycle,
 	const auto& pmap = m_particles[lev];
 	for (const auto& kv : pmap) {
 	  const int grid = kv.first.first;
-	  const auto& aos = kv.second.GetAoS();
+	  const auto& aos = kv.second.GetArrayOfStructs();
 	  FArrayBox&  fab = (*mf[lev_index])[grid];
 	  for (const auto& p : aos)
             {
@@ -3978,7 +3978,7 @@ ParticleContainer<NR, NI, NA>::AssignCellDensitySingleLevelFort (int rho_index,
 
     for (const auto& kv : pmap) {
       const int grid = kv.first.first;
-      const auto& pbx = kv.second.GetAoS();
+      const auto& pbx = kv.second.GetArrayOfStructs();
       FArrayBox& fab = (*mf_pointer)[grid];
       const Box& box = fab.box();
       auto N = pbx.size();
@@ -4073,7 +4073,7 @@ ParticleContainer<NR, NI, NA>::AssignCellDensitySingleLevel (int rho_index,
 
     for (const auto& kv : pmap) {
       const int grid = kv.first.first;
-      const auto& pbx = kv.second.GetAoS();
+      const auto& pbx = kv.second.GetArrayOfStructs();
       FArrayBox& fab = (*mf_pointer)[grid];
       auto N = pbx.size();
 	
@@ -4226,7 +4226,7 @@ ParticleContainer<NR, NI, NA>::NodalDepositionSingleLevel (int rho_index,
     ParticleLocData pld;
 
     for (const auto& kv : pmap) {
-      const auto& pbx = kv.second.GetAoS();
+      const auto& pbx = kv.second.GetArrayOfStructs();
       const int grid = kv.first.first;
       FArrayBox& fab = (*mf_pointer)[grid];
 
@@ -4400,7 +4400,7 @@ ParticleContainer<NR, NI, NA>::moveKick (MultiFab&       acceleration,
     ParticleLocData pld;
 
     for (auto& kv : pmap) {
-      auto& pbox = kv.second.GetAoS();
+      auto& pbox = kv.second.GetArrayOfStructs();
       const int grid = kv.first.first;
       const int n = pbox.size();
       const FArrayBox& gfab = (*ac_pointer)[grid];

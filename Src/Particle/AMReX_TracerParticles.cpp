@@ -57,7 +57,7 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
         auto& pmap = GetParticles(lev);
 	for (auto& kv : pmap) {
 	  int grid = kv.first.first;
-	  auto& pbox = kv.second.GetAoS();
+	  auto& pbox = kv.second.GetArrayOfStructs();
 	  const int n = pbox.size();
 
 	  FArrayBox* fab[BL_SPACEDIM] = { D_DECL(&((*umac_pointer[0])[grid]),
@@ -165,7 +165,7 @@ TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
         auto& pmap = GetParticles(lev);
 	for (auto& kv : pmap) {
 	  int grid = kv.first.first;
-	  auto& pbox = kv.second.GetAoS();
+	  auto& pbox = kv.second.GetArrayOfStructs();
 	  const int n    = pbox.size();
 	  const FArrayBox& fab = Ucc[grid];
 	    
@@ -270,7 +270,7 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
 	    
             const auto& pmap = GetParticles(lev);
 	    for (auto& kv : pmap) {
-              const auto& pbox = kv.second.GetAoS();
+              const auto& pbox = kv.second.GetArrayOfStructs();
 	      for (const auto& p : pbox) {
 		if (p.m_idata.id > 0) {
 		  gotwork = true;
@@ -308,7 +308,7 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
 
 		for (auto& kv : pmap) {
 		  int grid = kv.first.first;
-		  const auto& pbox = kv.second.GetAoS();
+		  const auto& pbox = kv.second.GetArrayOfStructs();
 		  const Box&       bx   = ba[grid];
 		  const FArrayBox& fab  = mf[grid];
 
