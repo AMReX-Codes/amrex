@@ -73,6 +73,12 @@ namespace amrex
     bool operator<(const VolIndex& rhs) const;
 
     
+    /*@{*/
+    int linearSize() const;
+    void linearOut(void* const a_outBuf) const;
+    void linearIn(const void* const inBuf);
+    /*@}*/
+
     bool operator!=(const VolIndex& rhs) const;
 
     ///for stencil gymnastics
