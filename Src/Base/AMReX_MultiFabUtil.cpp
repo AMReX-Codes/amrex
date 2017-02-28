@@ -204,7 +204,7 @@ namespace amrex
     {
         BL_ASSERT(S_crse.nComp() == S_fine.nComp());
         BL_ASSERT(ratio == ratio[0]);
-        BL_ASSERT(S_fine.nGrow() % ratio == 0);
+        BL_ASSERT(S_fine.nGrow() % ratio[0] == 0);
 
         const int nGrow = S_fine.nGrow() / ratio[0];
 
