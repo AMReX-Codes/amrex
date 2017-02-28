@@ -89,19 +89,20 @@ PhysicalParticleContainer::InitData()
         const int grid_id = mfi.index();
         const int tile_id = mfi.LocalTileIndex();
 
+        const auto& boxlo = tile_box.smallEnd();
         for (IntVect iv = tile_box.smallEnd(); iv <= tile_box.bigEnd(); tile_box.next(iv))
         {
             for (int i_part=0; i_part<n_part_per_cell;i_part++)
             {
                 Real particle_shift = (0.5+i_part)/n_part_per_cell;
 #if (BL_SPACEDIM == 3)
-                Real x = tile_real_box.lo(0) + (iv[0] + particle_shift)*dx[0];
-                Real y = tile_real_box.lo(1) + (iv[1] + particle_shift)*dx[1];
-                Real z = tile_real_box.lo(2) + (iv[2] + particle_shift)*dx[2];
+                Real x = tile_real_box.lo(0) + (iv[0]-boxlo[0] + particle_shift)*dx[0];
+                Real y = tile_real_box.lo(1) + (iv[1]-boxlo[1] + particle_shift)*dx[1];
+                Real z = tile_real_box.lo(2) + (iv[2]-boxlo[2] + particle_shift)*dx[2];
 #elif (BL_SPACEDIM == 2)
-                Real x = tile_real_box.lo(0) + (iv[0] + particle_shift)*dx[0];
+                Real x = tile_real_box.lo(0) + (iv[0]-boxlo[0] + particle_shift)*dx[0];
                 Real y = 0.0;
-                Real z = tile_real_box.lo(1) + (iv[1] + particle_shift)*dx[1];
+                Real z = tile_real_box.lo(1) + (iv[1]-boxlo[1] + particle_shift)*dx[1];
 #endif   
                 
                 if (x >= particle_xmax || x < particle_xmin ||

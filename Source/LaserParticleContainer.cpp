@@ -240,7 +240,6 @@ LaserParticleContainer::Evolve (int lev,
     BL_PROFILE_VAR_NS("PICSAR::LaserCurrentDepo", blp_pxr_cd);
 
     const Geometry& gm  = Geom(lev);
-    const BoxArray& ba  = jx.boxArray();
 
 #if (BL_SPACEDIM == 3)
     const Real* dx = gm.CellSize();
@@ -265,7 +264,7 @@ LaserParticleContainer::Evolve (int lev,
 
         for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
 	{
-	    const Box& box = pti.tilebox();
+	    const Box& box = pti.validbox();
 
             auto& aos_data = pti.GetAoS();
             auto& soa_data = pti.GetSoA();

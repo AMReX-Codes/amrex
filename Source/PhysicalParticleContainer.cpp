@@ -64,7 +64,7 @@ PhysicalParticleContainer::Evolve (int lev,
 
 	for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
 	{
-	    const Box& box = pti.tilebox();
+	    const Box& box = pti.validbox();
 
             auto& aos_data = pti.GetAoS();
             auto& soa_data = pti.GetSoA();
@@ -124,7 +124,6 @@ PhysicalParticleContainer::Evolve (int lev,
             }
 	    BL_PROFILE_VAR_STOP(blp_copy);
 
-	    BL_ASSERT(box == vbx);
 #if (BL_SPACEDIM == 3)
 	    long nx = box.length(0);
 	    long ny = box.length(1);

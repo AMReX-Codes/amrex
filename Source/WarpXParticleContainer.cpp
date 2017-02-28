@@ -159,7 +159,7 @@ WarpXParticleContainer::GetChargeDensity (int lev, bool local)
 
     for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
     {
-        const Box& box = pti.tilebox();
+        const Box& box = pti.validbox();
 
         auto& aos_data = pti.GetAoS();
         auto& soa_data = pti.GetSoA();
