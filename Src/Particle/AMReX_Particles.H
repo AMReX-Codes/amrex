@@ -262,11 +262,11 @@ struct ParticleTile
     using AoS = ArrayOfStructs<NR,NI>;
     using SoA = StructOfArrays<NA>;
 
-    AoS&       GetAoS ()       { return m_aos_tile; }
-    const AoS& GetAoS () const { return m_aos_tile; }
+    AoS&       GetArrayOfStructs ()       { return m_aos_tile; }
+    const AoS& GetArrayOfStructs () const { return m_aos_tile; }
 
-    SoA&       GetSoA ()       { return m_soa_tile; }
-    const SoA& GetSoA () const { return m_soa_tile; }
+    SoA&       GetStructOfArrays ()       { return m_soa_tile; }
+    const SoA& GetStructOfArrays () const { return m_soa_tile; }
 
     bool empty () const { return m_aos_tile.empty(); }
     
@@ -698,11 +698,11 @@ public:
     const ParticleTileType& GetParticleTile () const { return *m_particle_tiles[m_pariter_index]; }
     ParticleTileType      & GetParticleTile ()       { return *m_particle_tiles[m_pariter_index]; }
 
-    const AoS& GetAoS () const { return GetParticleTile().GetAoS(); }
-    AoS&       GetAoS ()       { return GetParticleTile().GetAoS(); }
+    const AoS& GetArrayOfStructs () const { return GetParticleTile().GetArrayOfStructs(); }
+    AoS&       GetArrayOfStructs ()       { return GetParticleTile().GetArrayOfStructs(); }
 
-    const SoA& GetSoA () const { return GetParticleTile().GetSoA(); }
-    SoA&       GetSoA ()       { return GetParticleTile().GetSoA(); }
+    const SoA& GetStructOfArrays () const { return GetParticleTile().GetStructOfArrays(); }
+    SoA&       GetStructOfArrays ()       { return GetParticleTile().GetStructOfArrays(); }
 
 private:
     int m_level;

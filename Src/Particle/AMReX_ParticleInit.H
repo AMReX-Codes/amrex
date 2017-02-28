@@ -685,8 +685,8 @@ ParticleContainer<NR, NI, NA>::InitFromBinaryFile (const std::string& file,
 
             for (auto pmap_it = pmap.begin(); pmap_it != pmap_it.end(); ++pmap_it)
             {
-                auto& aos = pmap_it->second.GetAoS()();
-                auto& tmp_aos = tmp_pmap[pmap_it->first]().GetAoS()();
+                auto& aos = pmap_it->second.GetArrayOfStructs()();
+                auto& tmp_aos = tmp_pmap[pmap_it->first]().GetArrayOfStructs()();
 
                 tmp_aos.insert(tmp_aos.end(), aos.being(), aos.end());
                 Array<ParticleType>().swap(aos);
