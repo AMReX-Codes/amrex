@@ -328,7 +328,8 @@ public:
 			 const DistributionMapping& dm,
 			 int                        nvar,
 			 int                        ngrow,
-			 const MFInfo&              info = MFInfo()) override;
+			 const MFInfo&              info = MFInfo(),
+                         const FabFactory<IArrayBox>& factory = DefaultFabFactory<IArrayBox>()) override;
 
     const IArrayBox& operator[] (int K) const;
 

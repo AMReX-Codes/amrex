@@ -63,6 +63,8 @@ C$(AMREX_BASE)_headers += AMReX_IArrayBox.H
 C$(AMREX_BASE)_headers += AMReX_Looping.H
 
 C$(AMREX_BASE)_sources += AMReX_BaseFab.cpp
+C$(AMREX_BASE)_headers += AMReX_BaseFab.H
+C$(AMREX_BASE)_headers += AMReX_FabFactory.H
 
 #
 # FORTRAN data defined on unions of rectangles.
@@ -74,6 +76,7 @@ C$(AMREX_BASE)_sources += AMReX_iMultiFab.cpp
 C$(AMREX_BASE)_headers += AMReX_iMultiFab.H
 
 C$(AMREX_BASE)_sources += AMReX_FabArray.cpp
+C$(AMREX_BASE)_headers += AMReX_FabArray.H
 
 #
 # Geometry / Coordinate system routines.
