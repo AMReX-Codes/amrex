@@ -22,11 +22,11 @@
 
 #include <AMReX_BLassert.H>
 #include <AMReX_Array.H>
-
 #include <AMReX_Box.H>
 #include <AMReX.H>
 #include <AMReX_BoxArray.H>
 #include <AMReX_BoxDomain.H> 
+#include <AMReX_FabFactory.H>
 #include <AMReX_FArrayBox.H>
 #include <AMReX_DistributionMapping.H>
 #include <AMReX_ParallelDescriptor.H>
@@ -807,7 +807,8 @@ public:
               const DistributionMapping& dm,
               int                        nvar,
               int                        ngrow,
-	      const MFInfo&              info = MFInfo());
+	      const MFInfo&              info = MFInfo(),
+              const FabFactory<FAB>&     factory = DefaultFabFactory<FAB>());
 
     //! The destructor -- deletes all FABs in the array.
     virtual ~FabArray ();
@@ -828,7 +829,8 @@ public:
 			 const DistributionMapping& dm,
 			 int                        nvar,
 			 int                        ngrow,
-			 const MFInfo&              info = MFInfo());
+			 const MFInfo&              info = MFInfo(),
+                         const FabFactory<FAB>&     factory = DefaultFabFactory<FAB>());
 
     /**
     * \brief Return true if the FabArray is well-defined.  That is,
@@ -1144,7 +1146,7 @@ protected:
 private:
     typedef typename std::vector<FAB*>::iterator    Iterator;
 
-    void AllocFabs ();
+    void AllocFabs (const FabFactory<FAB>& factory);
 
     void FBEP_nowait (int scomp, int ncomp, const Periodicity& period, bool cross,
 		      bool enforce_periodicity_only = false);
@@ -1591,11 +1593,12 @@ FabArray<FAB>::FabArray (const BoxArray&            bxs,
                          const DistributionMapping& dm,
                          int                        nvar,
                          int                        ngrow,
-			 const MFInfo&              info)
+			 const MFInfo&              info,
+                         const FabFactory<FAB>&     factory)
     : shmem()
 {
     m_FA_stats.recordBuild();
-    define(bxs,dm,nvar,ngrow,info);
+    define(bxs,dm,nvar,ngrow,info,factory);
 }
 
 template <class FAB>
@@ -1676,7 +1679,8 @@ FabArray<FAB>::define (const BoxArray&            bxs,
 		       const DistributionMapping& dm,
 		       int                        nvar,
 		       int                        ngrow,
-		       const MFInfo&              info)
+		       const MFInfo&              info,
+                       const FabFactory<FAB>&     factory)
 {
     BL_ASSERT(ngrow >= 0);
     BL_ASSERT(boxarray.size() == 0);
@@ -1715,7 +1719,7 @@ FabArray<FAB>::define (const BoxArray&            bxs,
     addThisBD();
 
     if(info.alloc) {
-      AllocFabs();
+        AllocFabs(factory);
     }
 
     typename std::map<int, std::map<int, FabArray<FAB> *> >::iterator afapIter = 
@@ -1744,20 +1748,25 @@ FabArray<FAB>::define (const BoxArray&            bxs,
 
 template <class FAB>
 void
-FabArray<FAB>::AllocFabs ()
+FabArray<FAB>::AllocFabs (const FabFactory<FAB>& factory)
 {
     const int n = indexArray.size();
     const int nworkers = ParallelDescriptor::TeamSize();
     shmem.alloc = (nworkers > 1);
+
+    bool alloc = !shmem.alloc;
+
+    FabInfo fab_info;
+    fab_info.SetAlloc(alloc).SetShared(shmem.alloc);
+    
 
     m_fabs_v.reserve(n);
 
     for (int i = 0; i < n; ++i)
     {
 	int K = indexArray[i];
-        const Box& tmp = fabbox(K);
-	bool alloc = !shmem.alloc;
-	m_fabs_v.push_back(new FAB(tmp, n_comp, alloc, shmem.alloc));
+        const Box& tmpbox = fabbox(K);
+        m_fabs_v.push_back(factory.create(tmpbox, n_comp, fab_info, K));
     }
     
 #ifdef BL_USE_TEAM
