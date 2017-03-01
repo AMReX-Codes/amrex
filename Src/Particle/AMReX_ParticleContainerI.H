@@ -1641,7 +1641,7 @@ ParticleContainer<NR,NI,NA>::AddParticlesAtLevel (AoS& particles, int level, int
         {
             pld.m_lev = level;
             
-            if (!SingleLevelGrownWhere(p, pld, level, nGrow))
+            if (!SingleLevelWhere(p, pld, level, nGrow))
                 amrex::Abort("ParticleContainer<NR,NI,NA>::AddParticlesAtLevel(): Can't add outside of domain\n");
             
             m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
