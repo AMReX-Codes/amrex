@@ -204,10 +204,10 @@ ParticleContainer<NR, NI, NA>::EnforcePeriodicWhere (ParticleType&         p,
 
 template <int NR, int NI, int NA>
 bool
-ParticleContainer<NR, NI, NA>::SingleLevelGrownWhere (const ParticleType&         p,
-                                                      ParticleLocData&            pld,
-                                                      int                         lev,
-                                                      int                         ngrow) const
+ParticleContainer<NR, NI, NA>::SingleLevelWhere (const ParticleType&         p,
+                                                 ParticleLocData&            pld,
+                                                 int                         lev,
+                                                 int                         nGrow) const
 {
     BL_ASSERT(m_gdb != 0);
 
@@ -220,7 +220,7 @@ ParticleContainer<NR, NI, NA>::SingleLevelGrownWhere (const ParticleType&       
         if (0 <= pld.m_grid && pld.m_grid < ba.size())
         {
             const Box&  bx = ba.getCellCenteredBox(pld.m_grid);
-            const Box& gbx = amrex::grow(bx,ngrow);
+            const Box& gbx = amrex::grow(bx,nGrow);
             if (gbx.contains(iv))
             {
                 pld.m_cell = iv;
@@ -234,7 +234,7 @@ ParticleContainer<NR, NI, NA>::SingleLevelGrownWhere (const ParticleType&       
     }
     
     std::vector< std::pair<int,Box> > isects;
-    ba.intersections(Box(iv,iv),isects,true,ngrow);
+    ba.intersections(Box(iv,iv),isects,true,nGrow);
     
     if (!isects.empty())
     {
@@ -428,7 +428,7 @@ ParticleContainer<NR, NI, NA>::locateParticle (ParticleType& p, ParticleLocData&
 
     if (!success)
     {
-        success = (nGrow > 0) && SingleLevelGrownWhere(p, pld, lev_min, nGrow);
+        success = (nGrow > 0) && SingleLevelWhere(p, pld, lev_min, nGrow);
     }
 
     if (!success)
