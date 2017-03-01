@@ -24,12 +24,14 @@
 #include <AMReX_Utility.H>
 #include <AMReX_Geometry.H>
 #include <AMReX_VisMF.H>
-#include <AMReX_Deposition_F.H>
 #include <AMReX_RealBox.H>
 #include <AMReX_Print.H>
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_Interpolater.H>
 #include <AMReX_FillPatchUtil.H>
+
+#include <AMReX_Deposition_F.H>
+#include <AMReX_Particles_F.H>
 
 #ifdef BL_LAZY
 #include <AMReX_Lazy.H>
@@ -703,6 +705,16 @@ public:
 
     const SoA& GetStructOfArrays () const { return GetParticleTile().GetStructOfArrays(); }
     SoA&       GetStructOfArrays ()       { return GetParticleTile().GetStructOfArrays(); }
+
+    void SetPosition (D_DECL(const Array<Real>& x,
+                             const Array<Real>& y,
+                             const Array<Real>& z));
+
+    void GetPosition (D_DECL(Array<Real>& x,
+                             Array<Real>& y,
+                             Array<Real>& z)) const;
+
+    int numParticles () const { return GetArrayOfStructs().numParticles(); }    
 
 private:
     int m_level;
