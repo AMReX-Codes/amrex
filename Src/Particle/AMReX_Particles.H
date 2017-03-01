@@ -506,7 +506,7 @@ public:
     //
     // Add particles from a pbox to the grid at this level
     //
-    void AddParticlesAtLevel (int level, AoS& virts);
+    void AddParticlesAtLevel (AoS& particles, int level, int nGrow=0);
 
     void Checkpoint (const std::string& dir, const std::string& name, bool is_checkpoint = true,
                      const Array<std::string>& real_comp_names = Array<std::string>(),
