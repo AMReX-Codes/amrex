@@ -631,9 +631,9 @@ protected:
                                int lev_min = 0, int lev_max = -1) const;
 
     //
-    // Checks whether a particle is within its grid (including ngrow ghost cells).
+    // Locate a particle on the given level (including ngrow ghost cells).
     //
-    bool SingleLevelGrownWhere (const ParticleType& p, ParticleLocData& pld, int lev, int nGrow) const;
+    bool SingleLevelWhere (const ParticleType& p, ParticleLocData& pld, int lev, int nGrow=0) const;
 
     bool OnSameGrids (int level, const MultiFab& mf) const { return m_gdb->OnSameGrids(level, mf); }
 
