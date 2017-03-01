@@ -543,8 +543,6 @@ ParticleContainer<NR, NI, NA>::InitFromBinaryFile (const std::string& file,
         //
         MyCnt += NP % NReaders;
 
-    const Geometry& geom = Geom(0);
-
     long how_many_redists = NP / (NPartPerRedist*NReaders), how_many_read = 0;
 
     if (NP % (NPartPerRedist*NReaders)) how_many_redists++;
