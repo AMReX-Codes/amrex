@@ -212,6 +212,13 @@ namespace amrex
   }
 
   /*****************************************/
+  bool 
+  FaceIndex::
+  operator< (const FaceIndex& a_rhs) const
+  {
+    return (m_loiv < a_rhs.m_loiv);
+  }
+  /*****************************************/
   FaceIndex&
   FaceIndex::operator= (const FaceIndex& a_facein)
   {

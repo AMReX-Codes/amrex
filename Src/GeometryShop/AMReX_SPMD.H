@@ -29,7 +29,7 @@
 
 namespace amrex
 {
-  static MPI_Comm comm;
+//  static MPI_Comm comm;
 
 
   extern unsigned long long CH_MAX_MPI_MESSAGE_SIZE;

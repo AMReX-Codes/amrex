@@ -55,8 +55,7 @@ namespace amrex
         }
         else
         {
-          pout() << "EBGraph::getMultiValuedFaces --  Domain does not contain either ivHi or ivLo" << endl;
-          MayDay::Error("EBGraph::getMultiValuedFaces --  domain does not contain either ivHi or ivLo");
+          amrex::Error("EBGraph::getMultiValuedFaces --  domain does not contain either ivHi or ivLo");
         }
         if (isMulti)
         {
@@ -80,7 +79,7 @@ namespace amrex
   {
     Box ghostRegion = a_ghostGraph.getRegion();
     Box region = getRegion();
-    CH_assert(ghostRegion.contains(region));
+    assert(ghostRegion.contains(region));
 
     //loop through multiply-valued vofs in the grown region
     //if any of the vofs next to the multiply-valued vofs
@@ -125,19 +124,19 @@ namespace amrex
   {
     if (!a_vofsToChange.isEmpty())
     {
-      CH_assert(isDefined());
-      CH_assert(isDomainSet());
+      assert(isDefined());
+      assert(isDomainSet());
       //this is all supposed to be called for covered vofs
       //to be changed to empty irregular vofs
-      CH_assert(!isAllRegular());
+      assert(!isAllRegular());
       if (isAllCovered())
       {
         m_tag = HasIrregular;
         if (m_irregIVS != NULL) delete m_irregIVS;
         if (m_multiIVS != NULL) delete m_multiIVS;
-        m_multiIVS = new IntVectSet(DenseIntVectSet(m_region, false));
-        m_irregIVS = new IntVectSet(DenseIntVectSet(m_region, false));
-        m_graph.define(m_region, 1);
+        m_multiIVS = new IntVectSet();
+        m_irregIVS = new IntVectSet();
+        m_graph.resize(m_region, 1);
         for (BoxIterator bit(m_region); bit.ok(); ++bit)
         {
           m_graph(bit(), 0).defineAsCovered();
@@ -149,7 +148,7 @@ namespace amrex
       {
         const IntVect&  iv = ivsit();
         //needs to be a covered cell to start with
-        CH_assert(isCovered(iv));
+        assert(isCovered(iv));
         VolIndex vof(iv, 0);
 
         GraphNode coveredNode;
@@ -180,7 +179,7 @@ namespace amrex
         (*m_irregIVS) |= iv;
         if (m_graph(iv, 0).size() > 1)
         {
-          MayDay::Error("that vof was already irregular");
+          amrex::Error("that vof was already irregular");
         }
       }
     }
@@ -192,19 +191,19 @@ namespace amrex
   {
     if (!a_vofsToChange.isEmpty())
     {
-      CH_assert(isDefined());
-      CH_assert(isDomainSet());
+      assert(isDefined());
+      assert(isDomainSet());
       //this is all supposed to be called for regular vofs
       //to be changed to full irregular vofs
-      CH_assert(!isAllCovered());
+      assert(!isAllCovered());
       if (isAllRegular())
       {
         m_tag = HasIrregular;
         if (m_irregIVS != NULL) delete m_irregIVS;
         if (m_multiIVS != NULL) delete m_multiIVS;
-        m_multiIVS = new IntVectSet(DenseIntVectSet(m_region, false));
-        m_irregIVS = new IntVectSet(DenseIntVectSet(m_region, false));
-        m_graph.define(m_region, 1);
+        m_multiIVS = new IntVectSet();
+        m_irregIVS = new IntVectSet();
+        m_graph.resize(m_region, 1);
         for (BoxIterator bit(m_region); bit.ok(); ++bit)
         {
           m_graph(bit(), 0).defineAsRegular();
@@ -216,7 +215,7 @@ namespace amrex
       {
         const IntVect&  iv = ivsit();
         //needs to be a regular cell to start with
-        CH_assert(isRegular(iv));
+        assert(isRegular(iv));
         VolIndex vof(iv, 0);
 
         GraphNode regularNode;
@@ -258,8 +257,7 @@ namespace amrex
               }
               if (!found)
               {
-                pout() << iv << " was specified as regular  but is not connected to anything in " << otherIV << endl;
-                MayDay::Error("former regular vof not connected to anything");
+                amrex::Error("former regular vof not connected to anything");
               }
             }
             else
@@ -276,7 +274,7 @@ namespace amrex
         (*m_irregIVS) |= iv;
         if (m_graph(iv, 0).size() > 1)
         {
-          MayDay::Error("that vof was already irregular");
+          amrex::Error("that vof was already irregular");
         }
       }
     }
@@ -285,17 +283,27 @@ namespace amrex
 /*******************************/
   IntVectSet EBGraphImplem::getIrregCells(const Box& a_subbox) const
   {
-    static IntVectSet emptySet;
-    if (m_irregIVS == NULL) return emptySet;
-    return (*m_irregIVS) & a_subbox;
+    IntVectSet retval;
+    if (m_irregIVS == NULL)
+    {
+      return retval;
+    }
+    retval = *m_irregIVS;
+    retval &= a_subbox;
+    return retval;
   }
 
 /*******************************/
   IntVectSet EBGraphImplem::getMultiCells(const Box& a_subbox) const
   {
-    static IntVectSet emptySet;
-    if (m_multiIVS == NULL) return emptySet;
-    return (*m_multiIVS) & a_subbox;
+    IntVectSet retval;
+    if (m_multiIVS == NULL)
+    {
+      return retval;
+    }
+    retval = *m_multiIVS;
+    retval &= a_subbox;
+    return retval;
   }
 
   bool EBGraphImplem::isMultiValued(const IntVect& a_iv) const
@@ -307,8 +315,8 @@ namespace amrex
 /*******************************/
   void EBGraphImplem::setToAllRegular()
   {
-    CH_assert(isDefined());
-    CH_assert(isDomainSet());
+    assert(isDefined());
+    assert(isDomainSet());
     m_tag = AllRegular;
     if (m_irregIVS != NULL) delete m_irregIVS;
     if (m_multiIVS != NULL) delete m_multiIVS;
@@ -319,8 +327,8 @@ namespace amrex
 /*******************************/
   void EBGraphImplem::setToAllCovered()
   {
-    CH_assert(isDefined());
-    CH_assert(isDomainSet());
+    assert(isDefined());
+    assert(isDomainSet());
     m_tag = AllCovered;
     if (m_irregIVS != NULL) delete m_irregIVS;
     if (m_multiIVS != NULL) delete m_multiIVS;
@@ -328,199 +336,12 @@ namespace amrex
     m_multiIVS = NULL;
   }
 
-/*******************************/
-  void EBGraphImplem::checkGraph(const BaseFab<int>&      a_regIrregCovered,
-                                 const std::vector<IrregNode>& a_irregGraph,
-                                 const Box&               a_validRegion,
-                                 const ProblemDomain&     a_domain)
-  {
-    ///account for regular and covered cells
-    for (BoxIterator bit(a_validRegion); bit.ok(); ++bit)
-    {
-      IntVect iv = bit();
-      //-1 is covered, 0 is irregular, and 1 is regular
-      int valCen = a_regIrregCovered(iv, 0);
-      //the only valid values are 0, 1 and -1
-      if (!((valCen == 1) || (valCen == -1) || (valCen == 0)))
-      {
-        pout() << "EBGraph::checkgraph error 1" << endl;
-        MayDay::Error("invalid flag in graph regirregcover3ed");
-      }
-      //check to see that there is never a regular cell next
-      //to a covered cell
-      if ((valCen == 1) || (valCen == -1))
-      {
-        for (int idir = 0; idir < SpaceDim; idir++)
-        {
-          for (SideIterator sit; sit.ok(); ++sit)
-          {
-            IntVect ivshift = BASISV(idir);
-            ivshift[idir] *= sign(sit());
-            IntVect ivneigh = iv + ivshift;
-            if (a_domain.contains(ivneigh))
-            {
-              int valNeigh = a_regIrregCovered(ivneigh, 0);
-              //only way this can happen is if one value is -1 and one is 1
-              //which implies regular next to covered.
-              bool regNextToCovered = (valCen*valNeigh < 0);
-              if (regNextToCovered)
-              {
-                pout() << "EBGraph::checkgraph error 2" << endl;
-                pout() << "graph inconsistent between cells " << iv
-                       << "and " << ivneigh <<  endl;
-                MayDay::Error("regular cell put next to covered cell");
-              }
-            }
-          }
-        }
-      }
-    }
-
-    //now check to see that the graph is internally consistent.
-    //and that the real data associated with it is reasonable.
-    Real eps = 1.0e-6;
-    for (int ivec = 0; ivec < a_irregGraph.size(); ivec++)
-    {
-      const IrregNode& inputNode = a_irregGraph[ivec];
-      if ((inputNode.m_volFrac < -eps) || (inputNode.m_volFrac > 1.+eps))
-      {
-        pout() << "EBGraph::checkgraph error 3 at cell " << inputNode.m_cell << endl;
-        MayDay::Error("invalid volume fraction");
-      }
-      for (int idir = 0; idir < SpaceDim; idir++)
-      {
-        if ((inputNode.m_volCentroid[idir]   < -0.5-eps) || (inputNode.m_volCentroid[idir]   > 0.5+eps))
-        {
-          pout() << "EBGraph::checkgraph error 4 at cell " << inputNode.m_cell << endl;
-          MayDay::Error("invalid volume centroid");
-        }
-        if ((inputNode.m_bndryCentroid[idir] < -0.5-eps) || (inputNode.m_bndryCentroid[idir] > 0.5+eps))
-        {
-          pout() << "EBGraph::checkgraph error 5 at cell " << inputNode.m_cell << endl;
-          MayDay::Error("invalid boundary centroid");
-        }
-      }
-      //now check arcs and whether stuff associated with that is internally consistent
-      for (int idir = 0; idir < SpaceDim; idir++)
-      {
-        for (SideIterator sit; sit.ok(); ++sit)
-        {
-          int vecIndex = IrregNode::index(idir, sit());
-          const std::vector<int>&      arcs  = inputNode.m_arc[vecIndex];
-          const std::vector<Real>&     areas = inputNode.m_areaFrac[vecIndex];
-          const std::vector<RealVect>& cents = inputNode.m_faceCentroid[vecIndex];
-          if ((arcs.size() != areas.size() ) || (arcs.size() != cents.size()))
-          {
-            pout() << "EBGraph::checkgraph error 6 at cell " << inputNode.m_cell
-                   << "faces for direction " << idir
-                   << "inconsistent with lengths of areas or centroids" << endl;
-            MayDay::Error("inconsistent face information");
-          }
-
-          for (int ivec = 0; ivec < arcs.size(); ivec++)
-          {
-            const int     &  arc  =  arcs[ivec];
-            const Real    &  area = areas[ivec];
-            const RealVect&  cent = cents[ivec];
-            if ((area < -eps) || (area > 1.+eps))
-            {
-              pout() << "EBGraph::checkgraph error 7 at cell " << inputNode.m_cell << endl;
-              MayDay::Error("invalid area fraction");
-            }
-            for (int jdir = 0; jdir < SpaceDim; jdir++)
-            {
-              if ((jdir != idir) && (((cent[jdir]   < -0.5-eps)) || ((cent[jdir]   > 0.5+eps))))
-              {
-                pout() << "EBGraph::checkgraph error 8 at cell " << inputNode.m_cell << endl;
-                MayDay::Error("invalid face centroid");
-              }
-            }
-
-            //now see if arc value is consistent with what the basefab thinks is there
-            IntVect ivshift = BASISV(idir);
-            ivshift[idir] *= sign(sit());
-            IntVect ivneigh = inputNode.m_cell + ivshift;
-//                   if (inputNode.m_cell[0]==38 && inputNode.m_cell[1]==52 && inputNode.m_cell[2]==40
-//                      && ivneigh[0]==38 && ivneigh[1]==52 && ivneigh[2]==41)
-//                     {
-//                       pout() << "this is the cell" << endl;
-//                       pout() << "a_domain " << a_domain << endl;
-//                       pout() << "inputNode.m_cell " << inputNode.m_cell << endl;
-//                       pout() << "ivneigh " << ivneigh << endl;
-//                     }
-            if (a_domain.contains(ivneigh))
-            {
-              int valNeigh = a_regIrregCovered(ivneigh, 0);
-              int otherNodeInd = arc;
-//                       if (inputNode.m_cell[0]==38 && inputNode.m_cell[1]==52 && inputNode.m_cell[2]==40
-//                          && ivneigh[0]==38 && ivneigh[1]==52 && ivneigh[2]==41)
-//                         {
-//                           pout() << " valNeigh " << valNeigh << endl;
-//                           pout() << " otherNodeInd " << otherNodeInd << endl;
-//                         }
-              if (otherNodeInd < -2)
-              {
-                pout() << "EBGraph::checkgraph error 8.5 at cell " << inputNode.m_cell << endl;
-                pout() << "arc has invalid value " << endl;
-                MayDay::Error("arc list whacked ");
-              }
-
-              if (valNeigh == -1)
-              {
-                pout() << "EBGraph::checkgraph error 9 at cell " << inputNode.m_cell << endl;
-                pout() << "arc reaches into covered cell " << endl;
-                MayDay::Error("arc list inconsistent with basefab ");
-              }
-
-              if (otherNodeInd == -1)
-              {
-                pout() << "EBGraph::checkgraph error 10 at cell " << inputNode.m_cell << endl;
-                pout() << "arc does not reach  outside domain but is set to -1 " << endl;
-                MayDay::Error("arc list inconsistent with domain ");
-              }
-              else if (otherNodeInd == -2)
-              {
-                if ((a_validRegion.contains(ivneigh)) && (valNeigh != 1))
-                {
-                  pout() << "EBGraph::checkgraph error 11 at cell " << inputNode.m_cell << endl;
-                  pout() << "arc points to a regular cell but the cell is not regular" << endl;
-                  MayDay::Error("arc list inconsistent with basefab ");
-                }
-              }
-              else if (otherNodeInd >= 0)
-              {
-//                           if ((a_validRegion.contains(ivneigh)) && (valNeigh != 0) && (area != 1.))//it's ok to have a regular cell over there
-                if ((a_validRegion.contains(ivneigh)) && (valNeigh != 0) && ((area < 1.-eps) || (area > 1.+eps)))//it's ok to have a regular cell over there
-//                           if ((a_validRegion.contains(ivneigh)) && (valNeigh != 0) && (area < 1.-eps))//it's ok to have a regular cell over there
-                {
-                  pout() << "EBGraph::checkgraph error 12 at cell " << inputNode.m_cell << endl;
-                  pout() << "arc points to an irregular cell but the cell is not irregular" << endl;
-                  MayDay::Error("arc list inconsistent with basefab ");
-                }
-              }
-
-            }
-            else
-            {
-              //check to see if arc knows that it is reaching outside the domain
-              if (arc != -1)
-              {
-                pout() << "EBGraph::checkgraph error 13 at cell " << inputNode.m_cell << endl;
-                pout() << "arc reaches outside domain but is not set to -1 " << endl;
-                MayDay::Error("arc list inconsistent with domain ");
-              }
-            }
-          }
-        }
-      }
-    }
-  }
 
 /*******************************/
   void EBGraphImplem::buildGraph(const BaseFab<int>&      a_regIrregCovered,
                                  const std::vector<IrregNode>& a_irregGraph,
                                  const Box&               a_validRegion,
-                                 const ProblemDomain&     a_domain)
+                                 const Box&     a_domain)
   {
     define(a_validRegion);
     setDomain(a_domain);
@@ -529,9 +350,9 @@ namespace amrex
     m_tag = HasIrregular;
     if (m_irregIVS != NULL) delete m_irregIVS;
     if (m_multiIVS != NULL) delete m_multiIVS;
-    m_multiIVS = new IntVectSet(DenseIntVectSet(m_region, false));
-    m_irregIVS = new IntVectSet(DenseIntVectSet(m_region, false));
-    m_graph.define(m_region, 1);
+    m_multiIVS = new IntVectSet();
+    m_irregIVS = new IntVectSet();
+    m_graph.resize(m_region, 1);
 
     //set regular and covered cells
     for (BoxIterator bit(m_region); bit.ok(); ++bit)
@@ -547,7 +368,7 @@ namespace amrex
       }
       else if (a_regIrregCovered(iv, 0) != 0)
       {
-        MayDay::Error("invalid flag");
+        amrex::Error("invalid flag");
       }
     }
 
@@ -590,7 +411,7 @@ namespace amrex
       }
       if (!foundNode)
       {
-        MayDay::Error("EBGraph: internal error in construction");
+        amrex::Error("EBGraph: internal error in construction");
       }
       //now add the arcs in the input to the node
       GraphNodeImplem& node = *nodePtr;
@@ -638,7 +459,7 @@ namespace amrex
   }
 
 /*******************************/
-  const ProblemDomain& EBGraphImplem::getDomain() const
+  const Box& EBGraphImplem::getDomain() const
   {
     return m_domain;
   }
@@ -653,7 +474,7 @@ namespace amrex
 /*******************************/
   void EBGraphImplem::define(const Box& a_region)
   {
-    CH_assert(!a_region.isEmpty());
+    assert(!a_region.isEmpty());
 
     m_tag = AllRegular;
     m_region = a_region;
@@ -667,7 +488,7 @@ namespace amrex
   }
 
 /*******************************/
-  void EBGraphImplem::setDomain(const ProblemDomain& a_domain)
+  void EBGraphImplem::setDomain(const Box& a_domain)
   {
     m_isDomainSet = true;
     m_domain = a_domain;
@@ -717,7 +538,7 @@ namespace amrex
       if (!m_isMaskBuilt)
       {
         Box maskBox = m_region & m_domain;
-        m_mask.define(maskBox, 1);
+        m_mask.resize(maskBox, 1);
         fillMask(m_mask);
         m_isMaskBuilt = true;
       }
@@ -728,8 +549,8 @@ namespace amrex
 /*******************************/
   std::vector<VolIndex> EBGraphImplem::getVoFs(const IntVect& a_iv) const
   {
-    CH_assert(isDefined());
-    CH_assert(isDomainSet());
+    assert(isDefined());
+    assert(isDomainSet());
     std::vector<VolIndex> retvec;
     if (m_tag == AllRegular)
     {
@@ -741,8 +562,8 @@ namespace amrex
     }
     else if (m_tag == HasIrregular)
     {
-      CH_assert(m_region.contains(a_iv));
-      CH_assert(m_domain.contains(a_iv));
+      assert(m_region.contains(a_iv));
+      assert(m_domain.contains(a_iv));
       const GraphNode& node = m_graph(a_iv, 0);
       retvec = node.getVoFs(a_iv);
     }
@@ -752,8 +573,8 @@ namespace amrex
 /*******************************/
   bool EBGraphImplem::isRegular(const IntVect& a_iv) const
   {
-    CH_assert(isDefined());
-    CH_assert(isDomainSet());
+    assert(isDefined());
+    assert(isDomainSet());
     bool retval;
     if (m_tag == AllRegular)
     {
@@ -765,15 +586,15 @@ namespace amrex
     }
     else if (m_tag == HasIrregular)
     {
-      //CH_assert(m_region.contains(a_iv)); //picked up my m_graph already
-      //CH_assert(m_domain.contains(a_iv));
+      //assert(m_region.contains(a_iv)); //picked up my m_graph already
+      //assert(m_domain.contains(a_iv));
       const GraphNode& node = m_graph(a_iv, 0);
       retval = node.isRegular();
     }
     else
     {
       retval = false;
-      MayDay::Error("EBGraphImplem::isRegular:Bogus Tag");
+      amrex::Error("EBGraphImplem::isRegular:Bogus Tag");
     }
     return retval;
   }
@@ -787,7 +608,11 @@ namespace amrex
     std::vector<VolIndex> vofs = getVoFs(a_iv);
     for (int ivof= 0; ivof < vofs.size(); ivof++)
     {
-      retval.append(getFaces(vofs[ivof], a_idir, a_sd));
+      std::vector<FaceIndex> faces = getFaces(vofs[ivof], a_idir, a_sd);
+      for(int iface = 0; iface < faces.size(); iface++)
+      {
+        retval.push_back(faces[iface]);
+      }
     }
     return retval;
   }
@@ -795,8 +620,8 @@ namespace amrex
 /*******************************/
   bool EBGraphImplem::isIrregular(const IntVect& a_iv) const
   {
-    CH_assert(isDefined());
-    CH_assert(isDomainSet());
+    assert(isDefined());
+    assert(isDomainSet());
     bool retval;
     if (m_tag == AllRegular)
     {
@@ -808,15 +633,15 @@ namespace amrex
     }
     else if (m_tag == HasIrregular)
     {
-      CH_assert(m_region.contains(a_iv));
-      CH_assert(m_domain.contains(a_iv));
+      assert(m_region.contains(a_iv));
+      assert(m_domain.contains(a_iv));
       const GraphNode& node = m_graph(a_iv, 0);
       retval = node.isIrregular();
     }
     else
     {
       retval = false;
-      MayDay::Error("EBGraphImplem::isIrregular:Bogus Tag");
+      amrex::Error("EBGraphImplem::isIrregular:Bogus Tag");
     }
     return retval;
   }
@@ -833,12 +658,13 @@ namespace amrex
     return m_tag == AllRegular;
   }
 
+#if 0
 /*******************************/
   int EBGraphImplem::size(const Box&      a_region,
                           const Interval& a_comps) const
   {
-    CH_assert(isDefined());
-    CH_assert(isDomainSet());
+    assert(isDefined());
+    assert(isDomainSet());
     //regular irregular covered code
     int linearSize = sizeof(int);
     if (!isRegular(a_region) && !isCovered(a_region))
@@ -858,8 +684,8 @@ namespace amrex
                                 const Box&      a_region,
                                 const Interval& a_comps) const
   {
-    CH_assert(isDefined());
-    CH_assert(isDomainSet());
+    assert(isDefined());
+    assert(isDomainSet());
     int secretCode;
     if (isCovered(a_region))
     {
@@ -898,10 +724,10 @@ namespace amrex
                                const Box&      a_region,
                                const Interval& a_comps)
   {
-    CH_assert(isDefined());
-    CH_assert(isDomainSet());
-    CH_assert(isDefined());
-    CH_assert(isDomainSet());
+    assert(isDefined());
+    assert(isDomainSet());
+    assert(isDefined());
+    assert(isDomainSet());
     int* intbuf = (int*) a_buf;
     int secretCode = *intbuf;
     intbuf++;
@@ -925,7 +751,7 @@ namespace amrex
     }
     else
     {
-      CH_assert(secretCode==2);
+      assert(secretCode==2);
       unsigned char* buffer = (unsigned char*) intbuf;
 
       if (isAllRegular() || isAllCovered())
@@ -949,7 +775,7 @@ namespace amrex
       }
     }
   }
-
+#endif
 /*******************************/
   bool EBGraph::hasIrregular() const
   {
@@ -965,8 +791,8 @@ namespace amrex
 /*******************************/
   bool EBGraphImplem::isCovered(const IntVect& a_iv) const
   {
-    CH_assert(isDefined());
-    CH_assert(isDomainSet());
+    assert(isDefined());
+    assert(isDomainSet());
     bool retval;
     if (m_tag == AllRegular)
     {
@@ -978,15 +804,15 @@ namespace amrex
     }
     else if (m_tag == HasIrregular)
     {
-      //CH_assert(m_region.contains(a_iv)); this check picked up by m_graph
-      //CH_assert(m_domain.contains(a_iv));
+      //assert(m_region.contains(a_iv)); this check picked up by m_graph
+      //assert(m_domain.contains(a_iv));
       const GraphNode& node = m_graph(a_iv, 0);
       retval = node.isCovered();
     }
     else
     {
       retval = false;
-      MayDay::Error("EBGraphImplem::isIrregular:Bogus Tag");
+      amrex::Error("EBGraphImplem::isIrregular:Bogus Tag");
     }
     return retval;
   }
@@ -994,8 +820,8 @@ namespace amrex
 /*******************************/
   bool EBGraphImplem::isCovered(const Box& a_box) const
   {
-    CH_assert(isDefined());
-    CH_assert(isDomainSet());
+    assert(isDefined());
+    assert(isDomainSet());
     bool retval;
     if (m_tag == AllRegular)
     {
@@ -1007,8 +833,8 @@ namespace amrex
     }
     else if (m_tag == HasIrregular)
     {
-      CH_assert(m_region.contains(a_box));
-      CH_assert(m_domain.contains(a_box));
+      assert(m_region.contains(a_box));
+      assert(m_domain.contains(a_box));
       retval = true;
       BoxIterator bit(a_box);
       for (bit.reset(); bit.ok() && retval; ++bit)
@@ -1022,7 +848,7 @@ namespace amrex
     else
     {
       retval = false;
-      MayDay::Error("EBGraphImplem::isCovered:Bogus Tag");
+      amrex::Error("EBGraphImplem::isCovered:Bogus Tag");
     }
     return retval;
   }
@@ -1030,8 +856,8 @@ namespace amrex
 /*******************************/
   bool EBGraphImplem::isRegular(const Box& a_box) const
   {
-    CH_assert(isDefined());
-    CH_assert(isDomainSet());
+    assert(isDefined());
+    assert(isDomainSet());
     bool retval;
     if (m_tag == AllRegular)
     {
@@ -1043,8 +869,8 @@ namespace amrex
     }
     else if (m_tag == HasIrregular)
     {
-      CH_assert(m_region.contains(a_box));
-      CH_assert(m_domain.contains(a_box));
+      assert(m_region.contains(a_box));
+      assert(m_domain.contains(a_box));
       BoxIterator bit(a_box);
       retval = true;
       for (bit.reset(); bit.ok() && retval; ++bit)
@@ -1058,7 +884,7 @@ namespace amrex
     else
     {
       retval = false;
-      MayDay::Error("EBGraphImplem::isRegular:Bogus Tag");
+      amrex::Error("EBGraphImplem::isRegular:Bogus Tag");
     }
     return retval;
   }
@@ -1068,12 +894,12 @@ namespace amrex
                                                  const int&            a_idir,
                                                  const Side::LoHiSide& a_sd) const
   {
-    CH_assert(isDefined());
-    CH_assert(isDomainSet());
-    CH_assert(m_region.contains(a_vof.gridIndex()));
-    CH_assert(m_domain.contains(a_vof.gridIndex()));
-    CH_assert((a_idir >= 0) && (a_idir < SpaceDim));
-    CH_assert((a_sd == Side::Lo) || (a_sd == Side::Hi));
+    assert(isDefined());
+    assert(isDomainSet());
+    assert(m_region.contains(a_vof.gridIndex()));
+    assert(m_domain.contains(a_vof.gridIndex()));
+    assert((a_idir >= 0) && (a_idir < SpaceDim));
+    assert((a_sd == Side::Lo) || (a_sd == Side::Hi));
 
     std::vector<FaceIndex> retvec;
     if (m_tag == AllRegular)
@@ -1208,10 +1034,14 @@ namespace amrex
       {
         const GraphNode& node = m_graph(it(), 0);
         IntVect hi = it() + BASISV(a_dir);
-        CH_assert(node.isIrregular());
+        assert(node.isIrregular());
         if (b.contains(hi) && m_graph(hi, 0).isIrregular())
         {
-          faces.append(node.getFaces(it(), a_dir, Side::Hi, m_domain));
+          std::vector<FaceIndex> faces = node.getFaces(it(), a_dir, Side::Hi, m_domain);
+          for(int iface = 0; iface < faces.size(); iface++)
+          {
+            faces.push_back(faces[iface]);
+          }
         }
       }
     }
@@ -1232,11 +1062,11 @@ namespace amrex
   {
 #ifndef NDEBUG
     // This code was originally:
-    //     CH_assert( CH_XD::refine(m_domain, 2) == a_fineGraph.m_domain );
+    //     assert( CH_XD::refine(m_domain, 2) == a_fineGraph.m_domain );
     // This failed to compile with gcc 4.1.x because this is a "const" method
-    ProblemDomain fineDomain = m_domain;
+    Box fineDomain = m_domain;
     fineDomain.refine(2);
-    CH_assert( fineDomain == a_fineGraph.m_domain );
+    assert( fineDomain == a_fineGraph.m_domain );
 #endif
     std::vector<FaceIndex> retval;
     IntVect ivLoCoar = a_coarFace.gridIndex(Side::Lo);
@@ -1264,7 +1094,8 @@ namespace amrex
     {
       //boundary face on the hi side of the domain
       std::vector<VolIndex> loVoFsFine = refine(a_coarFace.getVoF(Side::Lo));
-      Box fineRegion = ebrefine(m_region, 2);
+      Box fineRegion = m_region;
+      fineRegion.refine(2);
       for (int ivof = 0; ivof < loVoFsFine.size(); ivof++)
       {
         VolIndex& loVoFFine = loVoFsFine[ivof];
@@ -1272,7 +1103,7 @@ namespace amrex
         if (!fineRegion.contains(ivHiFine))
         {
           std::vector<FaceIndex> fineFaces = a_fineGraph.getFaces(loVoFFine, direction, Side::Hi);
-          retval.append(fineFaces);
+          retval.insert(retval.end(), fineFaces.begin(), fineFaces.end());
         }
       }
     }
@@ -1280,7 +1111,9 @@ namespace amrex
     {
       //boundary face on the low side of the domain
       std::vector<VolIndex> hiVoFsFine = refine(a_coarFace.getVoF(Side::Hi));
-      Box fineRegion = ebrefine(m_region, 2);
+      Box fineRegion = m_region;
+      fineRegion.refine(2);
+
       for (int ivof = 0; ivof < hiVoFsFine.size(); ivof++)
       {
         VolIndex& hiVoFFine = hiVoFsFine[ivof];
@@ -1288,13 +1121,13 @@ namespace amrex
         if (!fineRegion.contains(ivLoFine) )
         {
           std::vector<FaceIndex> fineFaces = a_fineGraph.getFaces(hiVoFFine, direction, Side::Lo);
-          retval.append(fineFaces);
+          retval.insert(retval.end(), fineFaces.begin(), fineFaces.end());
         }
       }
     }
     else
     {
-      MayDay::Error("neither vof of the face is inside the domain");
+      amrex::Error("neither vof of the face is inside the domain");
     }
     return retval;
   }
@@ -1303,19 +1136,15 @@ namespace amrex
   bool EBGraphImplem::isConnected(const VolIndex& a_vof1,
                                   const VolIndex& a_vof2) const
   {
-    CH_TIME("EBGraphImplem::isConnected");
-
-    CH_assert(isDefined());
+    assert(isDefined());
     const IntVect& iv1 = a_vof1.gridIndex();
     const IntVect& iv2 = a_vof2.gridIndex();
 
-    CH_assert(m_region.contains(iv1));
-    CH_assert(m_region.contains(iv2));
+    assert(m_region.contains(iv1));
+    assert(m_region.contains(iv2));
     VolIndex vofLo, vofHi;
-    //use the lexical greaterThan because it will
-    //always give the correct answer since only one component
-    //is different.
-    if (iv1.lexGT(iv2))
+
+    if (iv1 > iv2)
     {
       vofLo = a_vof2;
       vofHi = a_vof1;
@@ -1395,7 +1224,8 @@ namespace amrex
   {
     VolIndex retval;
     IntVect ivfine = a_fineVoF.gridIndex();
-    IntVect ivcoar = ebcoarsen(ivfine, 2);
+    IntVect ivcoar = ivfine;
+    ivcoar.coarsen(2);
     if (!m_domain.contains(ivfine))
     {
       //boundary vof
@@ -1407,7 +1237,7 @@ namespace amrex
     }
     else
     {
-      CH_assert(m_tag == HasIrregular);
+      assert(m_tag == HasIrregular);
       const IntVect& iv = a_fineVoF.gridIndex();
       const GraphNode& node = m_graph(iv, 0);
       retval = node.coarsen(a_fineVoF);
@@ -1418,21 +1248,18 @@ namespace amrex
 /*******************************/
   std::vector<VolIndex> EBGraphImplem::refine(const VolIndex& a_coarVoF) const
   {
-    CH_assert(isDefined());
-    CH_assert(isDomainSet());
+    assert(isDefined());
+    assert(isDomainSet());
 
     std::vector<VolIndex> retval(0);
     IntVect ivCoar = a_coarVoF.gridIndex();
-    CH_assert(m_domain.contains(ivCoar));
+    assert(m_domain.contains(ivCoar));
 
     if (m_tag == AllRegular)
     {
-      if (s_verbose)
-      {
-        pout() << "tag is all regular" << endl;
-      }
       const IntVect& iv = a_coarVoF.gridIndex();
-      Box refbox = ebrefine(Box(iv,iv),2);
+      Box refbox = Box(iv,iv);
+      refbox.refine(2);
       BoxIterator bit(refbox);
       for (bit.reset(); bit.ok(); ++bit)
       {
@@ -1442,35 +1269,18 @@ namespace amrex
     else if (m_tag == AllCovered)
     {
       //return empty vector
-      if (s_verbose)
-      {
-        pout() << "tag is all covered" << endl;
-      }
     }
     else
     {
-      CH_assert(m_tag == HasIrregular);
+      assert(m_tag == HasIrregular);
       const IntVect& iv = a_coarVoF.gridIndex();
       const GraphNode& node = m_graph(iv, 0);
-      if (s_verbose)
-      {
-        pout() << "tag is has irregular" << endl;
-        if (node.isIrregular())
-        {
-          pout() << " node has " << node.m_cellList->size() << " elements" << endl;
-          const std::vector<GraphNodeImplem>& nodes = *node.m_cellList;
-          for (int inode = 0; inode < nodes.size(); inode++)
-          {
-            const GraphNodeImplem node = nodes[inode];
-            pout() << "finernodes size  = " <<  node.m_finerNodes.size() << endl;
-          }
-        }
-      }
       retval = node.refine(a_coarVoF);
     }
     return retval;
   }
 
+#if 0
 /*******************************/
   void EBGraphImplem::copy(const Box&           a_regionFrom,
                            const Interval&      a_intDst,
@@ -1479,8 +1289,8 @@ namespace amrex
                            const Interval&      a_intSrc)
   {
     CH_TIME("EBGraphImplem::copy");
-    CH_assert(isDefined());
-    CH_assert(isDomainSet());
+    assert(isDefined());
+    assert(isDomainSet());
     if (isRegular(a_regionTo) && a_source.isRegular(a_regionFrom))
     {
       return;
@@ -1563,7 +1373,7 @@ namespace amrex
         else
         {
           //this really has to be true
-          CH_assert(a_source.isAllCovered());
+          assert(a_source.isAllCovered());
           srcVal.defineAsCovered();
         }
         srcFabPtr->setVal(srcVal);
@@ -1613,65 +1423,60 @@ namespace amrex
       }
     }
   }
-
+#endif
 /*******************************/
   void EBGraphImplem::coarsenVoFs(const EBGraphImplem& a_fineGraph,
                                   const Box&           a_coarRegion)
   {
-    CH_TIME("EBGraphImplem::coarsenVoFs");
-
     //this also defines the boxes
     m_region = a_coarRegion;
-    m_domain = ebcoarsen(a_fineGraph.getDomain(), 2);
+    m_domain = a_fineGraph.getDomain();
+    m_domain.coarsen(2);
     m_isDomainSet = true;
     m_isDefined = true;
-    if (a_fineGraph.isCovered(ebrefine(m_region, 2)))
+    Box refRegion = m_region;
+    refRegion.refine(2);
+    if (a_fineGraph.isCovered(refRegion))
     {
       m_tag = AllCovered;
     }
-    else if (a_fineGraph.isRegular(ebrefine(m_region, 2)))
+    else if (a_fineGraph.isRegular(refRegion))
     {
       m_tag = AllRegular;
     }
     else
     {
-      Box fineRegion = a_coarRegion;
-      fineRegion.refine(2);
+      Box fineRegion = refRegion;
+
       int numFineVoFs = a_fineGraph.numVoFs(fineRegion);
       int numCoarVoFs = 0;
       m_tag = HasIrregular;
       m_region = a_coarRegion;
-      m_domain = ebcoarsen(a_fineGraph.m_domain, 2);
+      m_domain = a_fineGraph.m_domain;
+      m_domain.coarsen(2);
       if (m_irregIVS != NULL) delete m_irregIVS;
       if (m_multiIVS != NULL) delete m_multiIVS;
-      m_multiIVS = new IntVectSet(DenseIntVectSet(m_region, false));
-      m_irregIVS = new IntVectSet(DenseIntVectSet(m_region, false));
-      m_graph.define(m_region, 1);
+      m_multiIVS = new IntVectSet();
+      m_irregIVS = new IntVectSet();
+      m_graph.resize(m_region, 1);
       for (BoxIterator bit(m_region); bit.ok(); ++bit)
       {
-        CH_TIME("EBGraphImplem::coarsenVoFs_BoxIterator");
-        bool blab = ((bit() == s_ivDebug) && (m_domain.domainBox() == s_doDebug));
-        blab = false;
-        Box fineBox = ebrefine(Box(bit(), bit()), 2);
+
+        Box fineBox = Box(bit(), bit());
+        fineBox.refine(2);
         if (a_fineGraph.isRegular(fineBox))
         {
           m_graph(bit(), 0).defineAsRegular();
-          if (blab)
-            pout() << s_ivDebug << " is regular" << endl;
         }
         else if (a_fineGraph.isCovered(fineBox))
         {
           m_graph(bit(), 0).defineAsCovered();
-          if (blab)
-            pout() << s_ivDebug << " is covered" << endl;
         }
         else
         {
           //get sets of all connected vofs in the box
           //the number of sets will be the number of
           //vofs in the coarse cell
-          if (blab)
-            pout() << s_ivDebug << " is covered" << endl;
 
           std::vector<std::vector<VolIndex> > fineVoFSets
             = a_fineGraph.getVoFSets(fineBox);
@@ -1690,7 +1495,7 @@ namespace amrex
           }
         }
       }
-      if (numCoarVoFs > numFineVoFs) MayDay::Error("Coarsening generated more VoFs");
+      if (numCoarVoFs > numFineVoFs) amrex::Error("Coarsening generated more VoFs");
     }
   }
 
@@ -1702,7 +1507,8 @@ namespace amrex
     std::vector<VolIndex> allVoFs;
     for (BoxIterator bit(a_region); bit.ok(); ++bit)
     {
-      allVoFs.append(getVoFs(bit()));
+      std::vector<VolIndex> newVoFs = getVoFs(bit());
+      allVoFs.insert(allVoFs.begin(), newVoFs.begin(), newVoFs.end());
     }
 
     std::vector<bool> beenAdded(allVoFs.size(), false);
@@ -1754,7 +1560,7 @@ namespace amrex
     {
       if (!beenAdded[ivof])
       {
-        MayDay::Error("We seem to have missed a vof in getVoFSets");
+        amrex::Error("We seem to have missed a vof in getVoFSets");
       }
     }
 
@@ -1768,8 +1574,6 @@ namespace amrex
                                                const int&            a_idir,
                                                const Side::LoHiSide& a_sd)
   {
-    CH_TIME("EBGraphImplem::coarsenFaces_1");
-
     std::vector<int> retval;
 
     IntVect coarIV = a_coarVoF.gridIndex();
@@ -1777,7 +1581,6 @@ namespace amrex
     std::vector<VolIndex> theseFineVoFs = a_coarGhostGraph.refine(a_coarVoF);
     if (m_domain.contains(otherIV))
     {
-      CH_TIME("EBGraphImplem::coarsenFaces_1_contains_otherIV");
 
       //interior faces.
       //just get all possible vofs to connect to and
@@ -1810,7 +1613,6 @@ namespace amrex
     }
     else
     {
-      CH_TIME("EBGraphImplem::coarsenFaces_1_no_otherIV");
 
       //boundary faces.
       //if there are any boundary faces on the fine level,
@@ -1843,11 +1645,9 @@ namespace amrex
   void EBGraphImplem::coarsenFaces(const EBGraphImplem& a_coarGhostGraph,
                                    const EBGraphImplem& a_fineGraph)
   {
-    CH_TIME("EBGraphImplem::coarsenFaces_2");
-
     if (hasIrregular())
     {
-      CH_assert(a_coarGhostGraph.getDomain() == m_domain);
+      assert(a_coarGhostGraph.getDomain() == m_domain);
       for (BoxIterator bit(m_region); bit.ok(); ++bit)
       {
         if (isIrregular(bit()))
@@ -1934,8 +1734,8 @@ namespace amrex
   {
 //   std::vector<VolIndex> vofs = getVoFs(a_iv);
 //   return vofs.size();
-    CH_assert(isDefined());
-    CH_assert(isDomainSet());
+    assert(isDefined());
+    assert(isDomainSet());
     long long count = 0;
     if (m_tag == AllRegular)
     {
@@ -1947,8 +1747,8 @@ namespace amrex
     }
     else
     {
-      CH_assert(m_region.contains(a_iv));
-      CH_assert(m_domain.contains(a_iv));
+      assert(m_region.contains(a_iv));
+      assert(m_domain.contains(a_iv));
       count = m_graph(a_iv, 0).size();
     }
     return count;
@@ -1956,13 +1756,13 @@ namespace amrex
 
 /*******************************/
   EBGraph::EBGraph(const Box& a_box, int a_comps)
-    : m_implem( RefCountedPtr<EBGraphImplem>( new EBGraphImplem(a_box) ) )
+    : m_implem( std::shared_ptr<EBGraphImplem>( new EBGraphImplem(a_box) ) )
   {
   }
 
 /*******************************/
   EBGraph::EBGraph(const Box& a_box)
-    :  m_implem( RefCountedPtr<EBGraphImplem>( new EBGraphImplem(a_box) ) )
+    :  m_implem( std::shared_ptr<EBGraphImplem>( new EBGraphImplem(a_box) ) )
   {
   }
 
@@ -1974,7 +1774,7 @@ namespace amrex
 
 /*******************************/
   EBGraph::EBGraph()
-    : m_implem( RefCountedPtr<EBGraphImplem>( new EBGraphImplem() ) )
+    : m_implem( std::shared_ptr<EBGraphImplem>( new EBGraphImplem() ) )
   {
   }
 
@@ -1992,8 +1792,8 @@ namespace amrex
 /*******************************/
   long long EBGraphImplem::numVoFs(const Box& a_box) const
   {
-    CH_assert(isDefined());
-    CH_assert(isDomainSet());
+    assert(isDefined());
+    assert(isDomainSet());
     long long count = 0;
     if (m_tag == AllRegular)
     {
@@ -2016,28 +1816,12 @@ namespace amrex
   }
 
 /*******************************/
-/* This is going to be expensive.  Let's see if pointer comparison is enough.
-   bool
-   EBGraphImplem::operator<(const EBGraphImplem & that) const
-   {
-// Data members:
-Box m_region;
-ProblemDomain m_domain;
-TAG m_tag;
-BaseFab<GraphNode> m_graph;
-bool m_isDefined;
-bool m_isDomainSet;
-IntVectSet* m_irregIVS;
-IntVectSet* m_multiIVS;
-}
-*/
-
-/*******************************/
   void EBGraph::define(const Box& a_box)
   {
     m_implem->define(a_box);
   }
 
+#if 0
 /*******************************/
   int EBGraph::size(const Box& R, const Interval& comps) const
   {
@@ -2055,44 +1839,6 @@ IntVectSet* m_multiIVS;
   {
     m_implem->linearIn(buf, R, comps);
   }
-
-/*******************************/
-  template <> void dataTypes(std::vector<hid_t>& a_types,
-                             const EBGraph& a_dummySpecializationArg)
-  {
-#ifdef CH_USE_HDF5
-    a_types.resize(1); a_types[0] = H5T_NATIVE_INT;
 #endif
-  }
-
-  template <> void dataSize(const EBGraph&  a_item,
-                            std::vector<int>&    a_sizes,
-                            const Box&      a_box,
-                            const Interval& a_comps)
-  {
-    a_sizes[0] = a_item.size(a_box, a_comps) / sizeof(int);
-  }
-
-  template <> void write(const EBGraph&  a_item,
-                         std::vector<void*>&  a_allocatedBuffers,
-                         const Box&      a_box,
-                         const Interval& a_comps)
-  {
-    a_item.linearOut(a_allocatedBuffers[0], a_box, a_comps);
-  }
-
-  template <> void read(EBGraph&        a_item,
-                        std::vector<void*>&  a_allocatedBuffers,
-                        const Box&      a_box,
-                        const Interval& a_comps)
-  {
-    a_item.linearIn(a_allocatedBuffers[0], a_box, a_comps);
-  }
-
-  template <> const char* name(const EBGraph& a_dummySpecializationArg)
-  {
-    static const char* name = "EBGraph";
-    return name;
-  }
+/*******************************/
 }
-
