@@ -33,3 +33,32 @@ ParIter<NR,NI,NA>::ParIter (ContainerType& pc, int level)
     }
 }
 
+template <int NR, int NI, int NA>
+void
+ParIter<NR,NI,NA>::SetPosition (D_DECL(const Array<Real>& x,
+                                       const Array<Real>& y,
+                                       const Array<Real>& z))
+{
+    auto& aos = GetArrayOfStructs();
+    BL_ASSERT(D_DECL(x.size() == aos.size(), x.size() == y.size(), x.size() == z.size()));
+    const auto  p     = aos.data();
+    const auto& shape = aos.dataShape();
+    amrex_particle_set_position(p, shape.first, shape.second,
+                                D_DECL(x.data(), y.data(), z.data()));
+}
+
+template <int NR, int NI, int NA>
+void
+ParIter<NR,NI,NA>::GetPosition (D_DECL(Array<Real>& x,
+                                       Array<Real>& y,
+                                       Array<Real>& z)) const
+{
+    const auto& aos = GetArrayOfStructs();
+    const auto  p     = aos.data();
+    const auto& shape = aos.dataShape();
+    D_TERM(x.resize(shape.second);,
+           y.resize(shape.second);,
+           z.resize(shape.second););
+    amrex_particle_get_position(p, shape.first, shape.second,
+                                D_DECL(x.data(), y.data(), z.data()));    
+}
