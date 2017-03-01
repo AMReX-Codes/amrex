@@ -223,6 +223,9 @@ public:
 
     void push_back (const ParticleType& p) { return m_data.push_back(p); }
 
+    const ParticleType& back() const {return m_data.back(); }
+    ParticleType      & back()       {return m_data.back(); }
+
     const ParticleType& operator[] (int i) const { return m_data[i]; }
     ParticleType      & operator[] (int i)       { return m_data[i]; }
     
@@ -458,14 +461,14 @@ public:
     //     the part of their contribution in AssignDensity that is outside the domain.
     void SetAllowParticlesNearBoundary(bool value);
  
-    void Redistribute (int lev_min = 0, int nGrow = 0);
+    void Redistribute (int lev_min = 0, int lev_max = -1, int nGrow = 0);
     //
     // OK checks that all particles are in the right places (for some value of right)
     //
     // These flags are used to do proper checking for subcycling particles
     // the default values are fine for non-subcycling methods
     //
-    bool OK (int lev_min = 0 , int ngrow = 0, int finest_level = -1) const;
+    bool OK (int lev_min = 0, int lev_max = -1, int nGrow = 0) const;
 
     void ByteSpread () const;
     //
@@ -514,6 +517,8 @@ public:
     void WritePlotFile (const std::string& dir, const std::string& name) const;
 
     void WriteAsciiFile (const std::string& file);
+
+    void WriteCoarsenedAsciiFile (const std::string& filename);
 
     int Verbose () { return m_verbose; }
 
@@ -616,19 +621,19 @@ protected:
     // Returns false if the particle does not exist on that level.
     //
     bool Where (const ParticleType& prt, ParticleLocData& pld, 
-		int lev_min = 0, int finest_level = -1) const;
+		int lev_min = 0, int lev_max = -1) const;
 
     //
     // Checks whether the particle has crossed a periodic boundary in such a way
     // that it is on levels lev_min and higher.
     //
     bool EnforcePeriodicWhere (ParticleType& prt, ParticleLocData& pld,
-                               int lev_min = 0, int finest_level = -1) const;
+                               int lev_min = 0, int lev_max = -1) const;
 
     //
     // Checks whether a particle is within its grid (including ngrow ghost cells).
     //
-    bool SingleLevelGrownWhere (const ParticleType& p, ParticleLocData& pld, int lev, int ngrow) const;
+    bool SingleLevelGrownWhere (const ParticleType& p, ParticleLocData& pld, int lev, int nGrow) const;
 
     bool OnSameGrids (int level, const MultiFab& mf) const { return m_gdb->OnSameGrids(level, mf); }
 
@@ -666,10 +671,10 @@ private:
     std::pair<long,long> StartIndexInGlobalArray () const;
 
     void RedistributeMPI (std::map<int, Array<char> >& not_ours,
-			  int lev_min = 0, int finest_level = 0, int nGrow = 0);
+			  int lev_min = 0, int lev_max = 0, int nGrow = 0);
 
-    void locateParticle(ParticleType& p, ParticleLocData& pld, int lev_min,
-			int theEffectiveFinestLevel, int nGrow) const;
+    void locateParticle(ParticleType& p, ParticleLocData& pld,
+                        int lev_min, int lev_max, int nGrow) const;
 
     static int getTileIndex(const IntVect& iv, const Box& box, Box& tbx);
 
