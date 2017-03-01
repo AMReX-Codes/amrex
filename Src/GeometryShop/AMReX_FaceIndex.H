@@ -90,6 +90,8 @@ namespace amrex
      */
     bool operator== (const FaceIndex& a_facein) const;
 
+    bool operator< (const FaceIndex& a_rhs) const;
+
     ///
     /**
      */

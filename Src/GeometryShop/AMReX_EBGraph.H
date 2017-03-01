@@ -22,8 +22,6 @@
 #include "AMReX_FaceIndex.H"
 #include "AMReX_IrregNode.H"
 #include "AMReX_GraphNode.H"
-#include "AMReX_FaceIterator.H"
-#include "AMReX_VoFIterator.H"
 
 namespace amrex
 {
@@ -193,14 +191,8 @@ namespace amrex
     buildGraph(const BaseFab<int>&      a_regIrregCovered,
                const std::vector<IrregNode>& a_irregGraph,
                const Box&               a_validRegion,
-               const ProblemDomain&     a_domain);
+               const Box&     a_domain);
 
-    ///check if  a box worth of graph is self consistent
-    static void
-    checkGraph(const BaseFab<int>&      a_regIrregCovered,
-               const std::vector<IrregNode>& a_irregGraph,
-               const Box&               a_validRegion,
-               const ProblemDomain&     a_domain)  ;
 
     ///
     /**
@@ -230,22 +222,24 @@ namespace amrex
        the box of a_source.  The Interval arguments are ignored.
        This function is required by LevelData.
     */
+#if 0
     void copy(const Box& a_regionFrom,
               const Interval& Cd,
               const Box& a_regionto,
               const EBGraphImplem& a_source,
               const Interval& Cs);
-
+#endif
     ///
     const Box& getRegion() const;
 
     ///
-    const ProblemDomain& getDomain() const;
+    const Box& getDomain() const;
 
     ///
     /**
        This stuff required by LevelData in parallel:
     */
+#if 0
     int size(const Box& R, const Interval& comps) const;
 
     ///
@@ -259,7 +253,7 @@ namespace amrex
       {
         return 2; // dyanmic allocatable.
       }
-
+#endif
     ///
     bool isDefined() const;
 
@@ -289,7 +283,7 @@ namespace amrex
                  const Side::LoHiSide& a_sd);
 
     ///
-    void setDomain(const ProblemDomain& a_domain);
+    void setDomain(const Box& a_domain);
 
     ///
     IntVectSet getIrregCells(const Box& a_subbox) const;
@@ -341,14 +335,6 @@ namespace amrex
 
     //bool operator<(const EBGraphImplem& ebiin) const;
 
-    const FaceIterator& FaceIteratorCache(const Box& a_region, int a_direction,
-                                          FaceStop::WhichFaces a_loc, const EBGraph& parent) const;
-
-    const FaceIterator& FaceIteratorCache(const IntVectSet& ivs, int a_direction,
-                                          FaceStop::WhichFaces a_loc, const EBGraph& parent) const;
-
-    const VoFIterator& VoFIteratorCache(const IntVectSet& ivs,
-                                        const EBGraph& parent) const;
 
   private:
 
@@ -356,7 +342,7 @@ namespace amrex
     Box m_region;
 
     ///computational domain at this level of refinement
-    ProblemDomain m_domain;
+    Box m_domain;
 
     ///
     /**
@@ -395,11 +381,11 @@ namespace amrex
 
     void operator=(const EBGraphImplem& ebiin)
       {
-        MayDay::Error("invalid operator");
+
       }
     EBGraphImplem(const EBGraphImplem& ebiin)
       {
-        MayDay::Error("invalid operator");
+
       }
 
     friend class EBIndexSpace;
@@ -579,7 +565,7 @@ namespace amrex
     buildGraph(const BaseFab<int>&      a_regIrregCovered,
                const std::vector<IrregNode>& a_irregGraph,
                const Box&               a_validRegion,
-               const ProblemDomain&     a_domain);
+               const Box&     a_domain);
 
     ///
     /**
@@ -607,17 +593,18 @@ namespace amrex
        the box of a_source.  The Interval arguments are ignored.
        This function is required by LevelData.
     */
+#if 0
     void copy(const Box& a_regionFrom,
               const Interval& Cd,
               const Box& a_regionto,
               const EBGraph& a_source,
               const Interval& Cs);
-
+#endif
     ///
     const Box& getRegion() const;
 
     ///
-    const ProblemDomain& getDomain() const;
+    const Box& getDomain() const;
 
     ///
     bool isDefined() const;
@@ -648,7 +635,7 @@ namespace amrex
                  const Side::LoHiSide& a_sd);
 
     ///
-    void setDomain(const ProblemDomain& a_domain);
+    void setDomain(const Box& a_domain);
 
     ///
     IntVectSet getIrregCells(const Box& a_subbox) const;
@@ -704,6 +691,7 @@ namespace amrex
     /**
        This stuff required by LevelData in parallel:
     */
+#if 0
     int size(const Box& R, const Interval& comps) const;
 
     ///
@@ -717,7 +705,7 @@ namespace amrex
       {
         return 2; // dyanmic allocatable.
       }
-
+#endif
     ///
     void addFullIrregularVoFs(const IntVectSet& a_vofsToChange,
                               const EBGraph&    a_ghostGraph);
@@ -736,14 +724,6 @@ namespace amrex
 
     long long numFaces(const Box& a_box, int a_dir) const ;
 
-    const FaceIterator& FaceIteratorCache(const IntVectSet& ivs, int a_direction,
-                                          FaceStop::WhichFaces a_loc) const;
-
-    const FaceIterator& FaceIteratorCache(const Box& a_region, int a_direction,
-                                          FaceStop::WhichFaces a_loc) const;
-
-    const VoFIterator& VoFIteratorCache(const IntVectSet& ivs) const;
-
   private:
 
     ///
@@ -753,25 +733,6 @@ namespace amrex
     friend class EBISLevel;
   };
 
-// new code for binary portable IO of EBGraph objects.  bvs
-
-  template <>
-  void dataTypes(std::vector<hid_t>& a_types, const EBGraph& a_dummySpecializationArg);
-
-  template <>
-  void dataSize(const EBGraph& item, std::vector<int>& a_sizes,
-                const Box& box, const Interval& comps);
-
-  template <>
-  void write(const EBGraph& item, std::vector<void*>& a_allocatedBuffers,
-             const Box& box, const Interval& comps);
-
-  template <>
-  void read(EBGraph& item, std::vector<void*>& a_allocatedBuffers, const Box& box,
-            const Interval& comps);
-
-  template <>
-  const char* name(const EBGraph& a_dummySpecializationArg);
 
 
 /*******************************/
@@ -789,10 +750,11 @@ namespace amrex
   EBGraph::buildGraph(const BaseFab<int>&      a_regIrregCovered,
                       const std::vector<IrregNode>& a_irregGraph,
                       const Box&               a_validRegion,
-                      const ProblemDomain&     a_domain)
+                      const Box&     a_domain)
   {
     m_implem->buildGraph(a_regIrregCovered, a_irregGraph, a_validRegion, a_domain);
   }
+#if 0
 /*******************************/
   inline void EBGraph::copy(const Box& a_regionFrom,
                             const Interval& Cd,
@@ -803,6 +765,7 @@ namespace amrex
     m_implem->copy(a_regionFrom, Cd, a_regionTo,
                    *(a_source.m_implem), Cs);
   }
+#endif
 /*******************************/
   inline bool EBGraph::isDefined() const
   {
@@ -828,7 +791,6 @@ namespace amrex
     }
     return *this;
   }
-
 /*******************************/
   inline IntVectSet EBGraph::getMultiCells(const Box& a_subbox) const
   {
@@ -925,12 +887,12 @@ namespace amrex
     return (m_implem < a_ebiin.m_implem);
   }
 /*******************************/
-  inline const ProblemDomain& EBGraph::getDomain() const
+  inline const Box& EBGraph::getDomain() const
   {
     return (m_implem->getDomain());
   }
 /*******************************/
-  inline void EBGraph::setDomain(const ProblemDomain& a_domain)
+  inline void EBGraph::setDomain(const Box& a_domain)
   {
     m_implem->setDomain(a_domain);
   }
@@ -980,24 +942,6 @@ namespace amrex
     return m_implem->numVoFs(a_iv);
   }
 
-  inline
-  const FaceIterator& EBGraph::FaceIteratorCache(const Box& a_region, int a_direction,
-                                                 FaceStop::WhichFaces a_loc) const
-  {
-    return m_implem->FaceIteratorCache(a_region, a_direction, a_loc, *this);
-  }
-
-  inline
-  const FaceIterator& EBGraph::FaceIteratorCache(const IntVectSet& a_region, int a_direction,
-                                                 FaceStop::WhichFaces a_loc) const
-  {
-    return m_implem->FaceIteratorCache(a_region, a_direction, a_loc, *this);
-  }
-  inline
-  const VoFIterator& EBGraph::VoFIteratorCache(const IntVectSet& ivs) const
-  {
-    return m_implem->VoFIteratorCache(ivs, *this);
-  }
 
 }
 #endif
