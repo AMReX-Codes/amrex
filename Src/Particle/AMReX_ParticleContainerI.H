@@ -1148,7 +1148,7 @@ ParticleContainer<NR, NI, NA>::CreateVirtualParticles (int   level,
 		      {
 			pold.m_rdata.pos[i] = (old_mass*pold.m_rdata.pos[i] + new_mass*pnew.m_rdata.pos[i])/total_mass;
 		      }
-		    BL_ASSERT(ParticleType::Index(pold,Geom(level)) == pld.m_cell);
+		    BL_ASSERT(this->Index(pold, level) == pld.m_cell);
 		    //
 		    // Set the metadata (presumably velocity) to the mass-weighted average.
 		    //
