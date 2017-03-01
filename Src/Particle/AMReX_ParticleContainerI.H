@@ -1632,22 +1632,31 @@ void
 ParticleContainer<NR,NI,NA>::AddParticlesAtLevel (AoS& particles, int level, int nGrow)
 {
     BL_PROFILE("ParticleContainer<NR,NI,NA>::AddParticlesAtLevel()");
-    
+    if (int(m_particles.size()) < level+1)
+        {
+            if (ParallelDescriptor::IOProcessor())
+                {
+                    std::cout << "ParticleContainer<NR,NI,C>::AddParticlesAtLevel resizing m_particles from "
+                              << m_particles.size()
+                              << " to "
+                              << level+1 << '\n';
+                }
+            m_particles.resize(level + 1);
+        }    
+
     ParticleLocData pld;
 
     for (auto& p : particles)
     {
         if (p.id() > 0)
         {
-            pld.m_lev = level;
-            
             if (!SingleLevelWhere(p, pld, level, nGrow))
                 amrex::Abort("ParticleContainer<NR,NI,NA>::AddParticlesAtLevel(): Can't add outside of domain\n");
             
             m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
         }
     }
-    Redistribute(level, level, 0);
+    Redistribute(level, level, nGrow);
 }
 
 template <int NR, int NI, int NA>
