@@ -20,7 +20,9 @@ int main(int argc, char* argv[])
 	
 	warpx.InitData();
 
-	warpx.Evolve();
+    for (int i = 0; i<100; ++i) {
+	warpx.Evolve(10);
+    }
 	
 	Real end_total = ParallelDescriptor::second() - strt_total;
 	
