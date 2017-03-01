@@ -24,12 +24,14 @@
 #include <AMReX_Utility.H>
 #include <AMReX_Geometry.H>
 #include <AMReX_VisMF.H>
-#include <AMReX_Deposition_F.H>
 #include <AMReX_RealBox.H>
 #include <AMReX_Print.H>
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_Interpolater.H>
 #include <AMReX_FillPatchUtil.H>
+
+#include <AMReX_Deposition_F.H>
+#include <AMReX_Particles_F.H>
 
 #ifdef BL_LAZY
 #include <AMReX_Lazy.H>
@@ -221,6 +223,9 @@ public:
 
     void push_back (const ParticleType& p) { return m_data.push_back(p); }
 
+    const ParticleType& back() const {return m_data.back(); }
+    ParticleType      & back()       {return m_data.back(); }
+
     const ParticleType& operator[] (int i) const { return m_data[i]; }
     ParticleType      & operator[] (int i)       { return m_data[i]; }
     
@@ -262,11 +267,11 @@ struct ParticleTile
     using AoS = ArrayOfStructs<NR,NI>;
     using SoA = StructOfArrays<NA>;
 
-    AoS&       GetAoS ()       { return m_aos_tile; }
-    const AoS& GetAoS () const { return m_aos_tile; }
+    AoS&       GetArrayOfStructs ()       { return m_aos_tile; }
+    const AoS& GetArrayOfStructs () const { return m_aos_tile; }
 
-    SoA&       GetSoA ()       { return m_soa_tile; }
-    const SoA& GetSoA () const { return m_soa_tile; }
+    SoA&       GetStructOfArrays ()       { return m_soa_tile; }
+    const SoA& GetStructOfArrays () const { return m_soa_tile; }
 
     bool empty () const { return m_aos_tile.empty(); }
     
@@ -275,6 +280,19 @@ struct ParticleTile
 
     void push_back (const ParticleType& p) { m_aos_tile().push_back(p); }
     void push_back (int comp, Real v) { m_soa_tile[comp].push_back(v); }
+    void push_back (const std::array<Real,NA>& v) { 
+        for (int i = 0; i < NA; ++i) {
+            m_soa_tile[i].push_back(v[i]);
+        }
+    }
+    void push_back (int comp, const Real* beg, const Real* end) {
+        auto it = m_soa_tile[comp].end();
+        m_soa_tile[comp].insert(it, beg, end);
+    }
+    void push_back (int comp, std::size_t npar, Real v) {
+        auto new_size = m_soa_tile[comp].size() + npar;
+        m_soa_tile[comp].resize(new_size, v);
+    }
 
 private:
     AoS m_aos_tile;
@@ -443,14 +461,14 @@ public:
     //     the part of their contribution in AssignDensity that is outside the domain.
     void SetAllowParticlesNearBoundary(bool value);
  
-    void Redistribute (int lev_min = 0, int nGrow = 0);
+    void Redistribute (int lev_min = 0, int lev_max = -1, int nGrow = 0);
     //
     // OK checks that all particles are in the right places (for some value of right)
     //
     // These flags are used to do proper checking for subcycling particles
     // the default values are fine for non-subcycling methods
     //
-    bool OK (int lev_min = 0 , int ngrow = 0, int finest_level = -1) const;
+    bool OK (int lev_min = 0, int lev_max = -1, int nGrow = 0) const;
 
     void ByteSpread () const;
     //
@@ -500,6 +518,8 @@ public:
 
     void WriteAsciiFile (const std::string& file);
 
+    void WriteCoarsenedAsciiFile (const std::string& filename);
+
     int Verbose () { return m_verbose; }
 
     void SetVerbose (int verbose) { m_verbose = verbose; }
@@ -509,6 +529,11 @@ public:
 
     const ParticleLevel& GetParticles (int lev) const { return m_particles[lev]; }
     ParticleLevel      & GetParticles (int lev)       { return m_particles[lev]; }
+
+    const ParticleTileType& ParticlesAt (int lev, int grid, int tile) const 
+        { return m_particles[lev].at(std::make_pair(grid,tile)); }
+    ParticleTileType&       ParticlesAt (int lev, int grid, int tile)
+        { return m_particles[lev].at(std::make_pair(grid, tile)); }
 
     // 
     // Functions depending the layout of the data.  Use with caution.
@@ -596,14 +621,14 @@ protected:
     // Returns false if the particle does not exist on that level.
     //
     bool Where (const ParticleType& prt, ParticleLocData& pld, 
-		int lev_min = 0, int finest_level = -1) const;
+		int lev_min = 0, int lev_max = -1) const;
 
     //
     // Checks whether the particle has crossed a periodic boundary in such a way
     // that it is on levels lev_min and higher.
     //
     bool EnforcePeriodicWhere (ParticleType& prt, ParticleLocData& pld,
-                               int lev_min = 0, int finest_level = -1) const;
+                               int lev_min = 0, int lev_max = -1) const;
 
     //
     // Locate a particle on the given level (including ngrow ghost cells).
@@ -646,10 +671,10 @@ private:
     std::pair<long,long> StartIndexInGlobalArray () const;
 
     void RedistributeMPI (std::map<int, Array<char> >& not_ours,
-			  int lev_min = 0, int finest_level = 0, int nGrow = 0);
+			  int lev_min = 0, int lev_max = 0, int nGrow = 0);
 
-    void locateParticle(ParticleType& p, ParticleLocData& pld, int lev_min,
-			int theEffectiveFinestLevel, int nGrow) const;
+    void locateParticle(ParticleType& p, ParticleLocData& pld,
+                        int lev_min, int lev_max, int nGrow) const;
 
     static int getTileIndex(const IntVect& iv, const Box& box, Box& tbx);
 
@@ -680,11 +705,21 @@ public:
     const ParticleTileType& GetParticleTile () const { return *m_particle_tiles[m_pariter_index]; }
     ParticleTileType      & GetParticleTile ()       { return *m_particle_tiles[m_pariter_index]; }
 
-    const AoS& GetAoS () const { return GetParticleTile().GetAoS(); }
-    AoS&       GetAoS ()       { return GetParticleTile().GetAoS(); }
+    const AoS& GetArrayOfStructs () const { return GetParticleTile().GetArrayOfStructs(); }
+    AoS&       GetArrayOfStructs ()       { return GetParticleTile().GetArrayOfStructs(); }
 
-    const SoA& GetSoA () const { return GetParticleTile().GetSoA(); }
-    SoA&       GetSoA ()       { return GetParticleTile().GetSoA(); }
+    const SoA& GetStructOfArrays () const { return GetParticleTile().GetStructOfArrays(); }
+    SoA&       GetStructOfArrays ()       { return GetParticleTile().GetStructOfArrays(); }
+
+    void SetPosition (D_DECL(const Array<Real>& x,
+                             const Array<Real>& y,
+                             const Array<Real>& z));
+
+    void GetPosition (D_DECL(Array<Real>& x,
+                             Array<Real>& y,
+                             Array<Real>& z)) const;
+
+    int numParticles () const { return GetArrayOfStructs().numParticles(); }    
 
 private:
     int m_level;
