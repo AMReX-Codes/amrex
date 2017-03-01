@@ -1253,32 +1253,29 @@ ParticleContainer<NR, NI, NA>::Redistribute (int lev_min, int lev_max, int nGrow
   const int MyProc    = ParallelDescriptor::MyProc();
   Real      strttime  = ParallelDescriptor::second();
   
-  if (lev_max == -1)
-      lev_max = finestLevel();
-
-  BL_ASSERT(lev_max <= finestLevel());
-
   //
   // On startup there are cases where Redistribute() could be called
   // with a given finestLevel() where that AmrLevel has yet to be defined.
   //
-  
-  while (!m_gdb->LevelDefined(lev_max))
-    lev_max--;
-  
-  if (int(m_particles.size()) < lev_max + 1) {
-      if (Verbose()) {
-          amrex::Print() << "ParticleContainer<NR, NI, NA>::Redistribute() resizing containers from "
-                         << m_particles.size() << " to " << lev_max + 1 << '\n';
-      }
-      resizeData();
-  }
-  
-  for (int lev = lev_min; lev <= lev_max; ++lev)
-  {
-      RedefineDummyMF(lev);
-  }
+  int theEffectiveFinestLevel = m_gdb->finestLevel();
 
+  while (!m_gdb->LevelDefined(theEffectiveFinestLevel))
+      theEffectiveFinestLevel--;
+
+  if (int(m_particles.size()) < theEffectiveFinestLevel+1)
+      {
+          if (Verbose()) {
+              amrex::Print() << "ParticleContainer<NR, NI, NA>::Redistribute() resizing containers from "
+                             << m_particles.size() << " to " << finestLevel() + 1 << '\n';
+          }
+          resizeData();
+      }
+  
+  if (lev_max == -1)
+      lev_max = theEffectiveFinestLevel;
+  
+  BL_ASSERT(lev_max <= finestLevel());
+  
   // The valid particles that we don't own.
   std::map<int, Array<char> > not_ours;
 
@@ -1388,7 +1385,7 @@ ParticleContainer<NR, NI, NA>::Redistribute (int lev_min, int lev_max, int nGrow
       }
   }
   
-  if (int(m_particles.size()) > lev_max+1)
+  if (int(m_particles.size()) > theEffectiveFinestLevel+1)
   {
       // Looks like we lost an AmrLevel on a regrid.
       amrex::Print() << "ParticleContainer<NR, NI, NA>::Redistribute() resizing m_particles from "
