@@ -161,33 +161,19 @@ WarpXParticleContainer::GetChargeDensity (int lev, bool local)
     {
         const Box& box = pti.validbox();
 
-        auto& aos_data = pti.GetAoS();
-        auto& soa_data = pti.GetSoA();
-
-        auto& wp = soa_data[PIdx::w];
+        auto& wp = pti.GetAttribs(PIdx::w);
             
-        const long np  = aos_data.numParticles();
+        const long np  = pti.numParticles();
 
 	// Data on the grid
 	FArrayBox& rhofab = (*rho)[pti];
 
-	xp.resize(np);
-	yp.resize(np);
-	zp.resize(np);
-
-        for (int i = 0; i < np; ++i)
-        {
-            const auto& p = aos_data()[i];
 #if (BL_SPACEDIM == 3)
-                xp[i] = p.pos(0);
-                yp[i] = p.pos(1);
-                zp[i] = p.pos(2);
+        pti.GetPosition(xp, yp, zp);
 #elif (BL_SPACEDIM == 2)
-                xp[i] = p.pos(0);
-                yp[i] = std::numeric_limits<Real>::quiet_NaN();
-                zp[i] = p.pos(1);
+        pti.GetPosition(xp, zp);
+        yp.resize(np, std::numeric_limits<Real>::quiet_NaN());
 #endif
-        }
 
 #if (BL_SPACEDIM == 3)
 	long nx = box.length(0);

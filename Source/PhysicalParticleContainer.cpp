@@ -66,21 +66,20 @@ PhysicalParticleContainer::Evolve (int lev,
 	{
 	    const Box& box = pti.validbox();
 
-            auto& aos_data = pti.GetAoS();
-            auto& soa_data = pti.GetSoA();
+            auto& attribs = pti.GetAttribs();
 
-            auto&  wp = soa_data[PIdx::w];
-            auto& uxp = soa_data[PIdx::ux];
-            auto& uyp = soa_data[PIdx::uy];
-            auto& uzp = soa_data[PIdx::uz];
-            auto& Exp = soa_data[PIdx::Ex];
-            auto& Eyp = soa_data[PIdx::Ey];
-            auto& Ezp = soa_data[PIdx::Ez];
-            auto& Bxp = soa_data[PIdx::Bx];
-            auto& Byp = soa_data[PIdx::By];
-            auto& Bzp = soa_data[PIdx::Bz];
+            auto&  wp = attribs[PIdx::w];
+            auto& uxp = attribs[PIdx::ux];
+            auto& uyp = attribs[PIdx::uy];
+            auto& uzp = attribs[PIdx::uz];
+            auto& Exp = attribs[PIdx::Ex];
+            auto& Eyp = attribs[PIdx::Ey];
+            auto& Ezp = attribs[PIdx::Ez];
+            auto& Bxp = attribs[PIdx::Bx];
+            auto& Byp = attribs[PIdx::By];
+            auto& Bzp = attribs[PIdx::Bz];
             
-            const long np  = aos_data.numParticles();
+            const long np = pti.numParticles();
 
 	    // Data on the grid
 	    const FArrayBox& exfab = Ex[pti];
@@ -100,28 +99,18 @@ PhysicalParticleContainer::Evolve (int lev,
 	    Byp.assign(np,0.0);
 	    Bzp.assign(np,0.0);
 
-	    xp.resize(np);
-	    yp.resize(np);
-	    zp.resize(np);
 	    giv.resize(np);
 
 	    //
 	    // copy data from particle container to temp arrays
 	    //
 	    BL_PROFILE_VAR_START(blp_copy);
-	    for (int i = 0; i < np; ++i)
-            {
-                const auto& p = aos_data()[i];
 #if (BL_SPACEDIM == 3)
-                xp[i] = p.pos(0);
-                yp[i] = p.pos(1);
-                zp[i] = p.pos(2);
+            pti.GetPosition(xp, yp, zp);
 #elif (BL_SPACEDIM == 2)
-                xp[i] = p.pos(0);
-                yp[i] = std::numeric_limits<Real>::quiet_NaN();
-                zp[i] = p.pos(1);
+            pti.GetPosition(xp, zp);
+            yp.resize(np, std::numeric_limits<Real>::quiet_NaN());
 #endif
-            }
 	    BL_PROFILE_VAR_STOP(blp_copy);
 
 #if (BL_SPACEDIM == 3)
@@ -194,18 +183,11 @@ PhysicalParticleContainer::Evolve (int lev,
 	    // copy particle data back
 	    //
 	    BL_PROFILE_VAR_START(blp_copy);
-            for (int i = 0; i < np; ++i)
-            {
-                auto& p = aos_data()[i];
 #if (BL_SPACEDIM == 3)
-		    p.pos(0) = xp[i];
-		    p.pos(1) = yp[i];
-		    p.pos(2) = zp[i];
+            pti.SetPosition(xp, yp, zp);
 #elif (BL_SPACEDIM == 2)
-		    p.pos(0) = xp[i];
-		    p.pos(1) = zp[i];
+            pti.SetPosition(xp, zp);
 #endif
-            }
             BL_PROFILE_VAR_STOP(blp_copy);
 	}
     }

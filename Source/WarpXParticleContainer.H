@@ -15,7 +15,17 @@ struct PIdx
     };
 };
 
-using WarpXParIter = amrex::ParIter<0,0,PIdx::nattribs>;
+class WarpXParIter
+    : public amrex::ParIter<0,0,PIdx::nattribs>
+{
+public:
+    WarpXParIter (ContainerType& pc, int level) : ParIter<0,0,PIdx::nattribs>(pc,level) {}
+
+    const SoA& GetAttribs () const { return GetStructOfArrays(); }
+    SoA&       GetAttribs ()       { return GetStructOfArrays(); }
+    const amrex::Array<amrex::Real>& GetAttribs (int comp) const { return GetStructOfArrays()[comp]; }
+    amrex::Array      <amrex::Real>& GetAttribs (int comp)       { return GetStructOfArrays()[comp]; }
+};
 
 class MultiParticleContainer;
 
