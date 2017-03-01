@@ -40,7 +40,7 @@ public:
 			 const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz,
 			 MultiFab& jx, MultiFab& jy, MultiFab& jz, Real t, Real dt) = 0;
 
-    virtual void PushX (int lev, Real dt) = 0;
+    void PushX (int lev, Real dt);
 
     virtual void PostRestart () = 0;
 

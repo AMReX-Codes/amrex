@@ -8,7 +8,7 @@
 
 //
 // MultiParticleContainer holds multiple (nspecies or npsecies+1 when
-// using laser) WarpXParticleContainer.  WarpXParticlContainer is
+// using laser) WarpXParticleContainer.  WarpXParticleContainer is
 // derived from amrex::ParticleContainer, and it is
 // polymorphic. PhysicalParticleContainer and LaserParticleContainer are
 // concrete class dervied from WarpXParticlContainer.

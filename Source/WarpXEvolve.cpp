@@ -17,9 +17,13 @@ WarpX::Evolve (int numsteps)
 
     int numsteps_max = (numsteps >= 0 && numsteps <= max_step) ? numsteps : max_step;
     bool max_time_reached = false;
+    bool last_step = false;
 
     for (int step = istep[0]; step < numsteps_max && cur_time < stop_time; ++step)
     {
+	// Start loop on time steps
+
+
 	if (ParallelDescriptor::IOProcessor()) {
 	    std::cout << "\nSTEP " << step+1 << " starts ..." << std::endl;
 	}
@@ -32,8 +36,17 @@ WarpX::Evolve (int numsteps)
 	// Advance level 0 by dt
 	const int lev = 0;
 	{
-	    // At the beginning, we have B^{n-1/2} and E^{n}.
+	    // At the beginning, we have B^{n-1/2} and E^{n-1/2}.
+	    // Particles have p^{n-1/2} and x^{n-1/2}.
+
+	    // Beyond one step, we have B^{n-1/2} and E^{n}.
 	    // Particles have p^{n-1/2} and x^{n}.
+	    
+	    if (step == istep[0]) {
+	        // on first step, push E and X by 0.5*dt
+	        EvolveE(lev, 0.5*dt[lev]);
+	        mypc->PushX(lev, 0.5*dt[lev]);
+	    }
 
 	    EvolveB(lev, 0.5*dt[lev]); // We now B^{n}
 
@@ -62,7 +75,13 @@ WarpX::Evolve (int numsteps)
 	    WarpX::FillBoundary(*Bfield[lev][1], geom[lev], By_nodal_flag);
 	    WarpX::FillBoundary(*Bfield[lev][2], geom[lev], Bz_nodal_flag);
 
-	    EvolveE(lev, dt[lev]); // We now have E^{n+1}
+   	    if (cur_time + dt[0]>= stop_time - 1.e-6*dt[0]) {
+   	        // on last step, push by only 0.5*dt to synchronize all at n+1/2
+	        EvolveE(lev, 0.5*dt[lev]); // We now have E^{n+1/2}
+	        mypc->PushX(lev, -0.5*dt[lev]);
+        } else {
+	        EvolveE(lev, dt[lev]); // We now have E^{n+1}
+	    }
 
 	    ++istep[lev];
 	}
@@ -95,6 +114,8 @@ WarpX::Evolve (int numsteps)
 	    max_time_reached = true;
 	    break;
 	}
+
+	// End loop on time steps
     }
 
     if (plot_int > 0 && istep[0] > last_plot_file_step && (max_time_reached || istep[0] >= max_step)) {
