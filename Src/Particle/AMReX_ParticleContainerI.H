@@ -1629,7 +1629,7 @@ ParticleContainer<NR, NI, NA>::OK (int lev_min, int lev_max, int nGrow) const
 
 template <int NR, int NI, int NA>
 void
-ParticleContainer<NR,NI,NA>::AddParticlesAtLevel (int  level, AoS& particles)
+ParticleContainer<NR,NI,NA>::AddParticlesAtLevel (AoS& particles, int level, int nGrow)
 {
     BL_PROFILE("ParticleContainer<NR,NI,NA>::AddParticlesAtLevel()");
     
@@ -1641,7 +1641,7 @@ ParticleContainer<NR,NI,NA>::AddParticlesAtLevel (int  level, AoS& particles)
         {
             pld.m_lev = level;
             
-            if (!SingleLevelGrownWhere(p, pld, level, 0))
+            if (!SingleLevelGrownWhere(p, pld, level, nGrow))
                 amrex::Abort("ParticleContainer<NR,NI,NA>::AddParticlesAtLevel(): Can't add outside of domain\n");
             
             m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
