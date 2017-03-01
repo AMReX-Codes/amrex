@@ -166,7 +166,7 @@ Adv::post_timestep (int iteration)
 	  {
             int ngrow = (level == 0) ? 0 : iteration;
 	    
-	    TracerPC->Redistribute(level, ngrow);
+	    TracerPC->Redistribute(level, TracerPC->finestLevel(), ngrow);
 	  }
       }
 #endif
