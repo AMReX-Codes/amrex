@@ -4577,8 +4577,6 @@ ParticleContainer<NR, NI, NA>::moveKick (MultiFab&       acceleration,
         ac_pointer->FillBoundary(); // DO WE NEED GHOST CELLS FILLED ???
     }
 
-    ParticleLocData pld;
-
     for (auto& kv : pmap) {
       auto& pbox = kv.second.GetArrayOfStructs();
       const int grid = kv.first.first;
@@ -4586,7 +4584,7 @@ ParticleContainer<NR, NI, NA>::moveKick (MultiFab&       acceleration,
       const FArrayBox& gfab = (*ac_pointer)[grid];
 
 #ifdef _OPENMP
-#pragma omp parallel for private(pld)
+#pragma omp parallel for
 #endif
       for (int i = 0; i < n; i++)
         {
@@ -4595,14 +4593,12 @@ ParticleContainer<NR, NI, NA>::moveKick (MultiFab&       acceleration,
 	  if (p.m_idata.id > 0)
             {
 
-	      Where(p, pld);
-
 	      //
 	      // Note: rdata.arr[BL_SPACEDIM] is mass, BL_SPACEDIM+1 is v_x, ...
 	      //
 	      Real grav[BL_SPACEDIM];
 
-	      ParticleType::GetGravity(gfab, Geom(pld.m_lev), p, grav);
+	      ParticleType::GetGravity(gfab, m_gdb->Geom(lev), p, grav);
 	      //
 	      // Define (a u)^new = (a u)^half + dt/2 grav^new
 	      //
