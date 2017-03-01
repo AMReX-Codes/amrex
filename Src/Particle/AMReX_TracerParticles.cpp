@@ -10,7 +10,7 @@ void
 TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
 {
     BL_PROFILE("TracerParticleContainer::AdvectWithUmac()");
-    BL_ASSERT(OK(lev, umac[0].nGrow()-1));
+    BL_ASSERT(OK(lev, lev, umac[0].nGrow()-1));
     BL_ASSERT(lev >= 0 && lev < GetParticles().size());
 
     D_TERM(BL_ASSERT(umac[0].nGrow() >= 1);,
@@ -148,7 +148,7 @@ void
 TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
 {
     BL_ASSERT(Ucc.nGrow() > 0);
-    BL_ASSERT(OK(lev, Ucc.nGrow()-1));
+    BL_ASSERT(OK(lev, lev, Ucc.nGrow()-1));
     BL_ASSERT(lev >= 0 && lev < GetParticles().size());
 
     BL_ASSERT(!Ucc.contains_nan());
@@ -156,7 +156,7 @@ TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
     const Real      strttime = ParallelDescriptor::second();
     const Geometry& geom     = m_gdb->Geom(lev);
 
-    BL_ASSERT(OnSameGrids(lev,Ucc));
+    BL_ASSERT(OnSameGrids(lev, Ucc));
 
     int idx[BL_SPACEDIM] = {D_DECL(0,1,2)};
 
