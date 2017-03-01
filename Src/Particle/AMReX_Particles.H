@@ -278,6 +278,19 @@ struct ParticleTile
 
     void push_back (const ParticleType& p) { m_aos_tile().push_back(p); }
     void push_back (int comp, Real v) { m_soa_tile[comp].push_back(v); }
+    void push_back (const std::array<Real,NA>& v) { 
+        for (int i = 0; i < NA; ++i) {
+            m_soa_tile[i].push_back(v[i]);
+        }
+    }
+    void push_back (int comp, const Real* beg, const Real* end) {
+        auto it = m_soa_tile[comp].end();
+        m_soa_tile[comp].insert(it, beg, end);
+    }
+    void push_back (int comp, std::size_t npar, Real v) {
+        auto new_size = m_soa_tile[comp].size() + npar;
+        m_soa_tile[comp].resize(new_size, v);
+    }
 
 private:
     AoS m_aos_tile;
@@ -514,6 +527,11 @@ public:
 
     const ParticleLevel& GetParticles (int lev) const { return m_particles[lev]; }
     ParticleLevel      & GetParticles (int lev)       { return m_particles[lev]; }
+
+    const ParticleTileType& ParticlesAt (int lev, int grid, int tile) const 
+        { return m_particles[lev].at(std::make_pair(grid,tile)); }
+    ParticleTileType&       ParticlesAt (int lev, int grid, int tile)
+        { return m_particles[lev].at(std::make_pair(grid, tile)); }
 
     // 
     // Functions depending the layout of the data.  Use with caution.
