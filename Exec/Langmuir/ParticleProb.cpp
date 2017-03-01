@@ -71,9 +71,6 @@ PhysicalParticleContainer::InitData()
       uz *= PhysConst::c;
     }
 
-    const BoxArray& ba = ParticleBoxArray(lev);
-    const DistributionMapping& dm = ParticleDistributionMap(lev);
-
     std::array<Real,PIdx::nattribs> attribs;
     attribs.fill(0.0);
     attribs[PIdx::w ] = weight;
