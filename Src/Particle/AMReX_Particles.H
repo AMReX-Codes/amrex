@@ -222,6 +222,8 @@ public:
     }
 
     void push_back (const ParticleType& p) { return m_data.push_back(p); }
+    void pop_back() {m_data.pop_back(); }
+    bool empty() {return m_data.empty(); }
 
     const ParticleType& back() const {return m_data.back(); }
     ParticleType      & back()       {return m_data.back(); }

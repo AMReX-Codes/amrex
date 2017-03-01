@@ -1636,7 +1636,7 @@ ParticleContainer<NR,NI,NA>::AddParticlesAtLevel (AoS& particles, int level, int
         {
             if (ParallelDescriptor::IOProcessor())
                 {
-                    std::cout << "ParticleContainer<NR,NI,C>::AddParticlesAtLevel resizing m_particles from "
+                    std::cout << "ParticleContainer<NR,NI,NA>::AddParticlesAtLevel resizing m_particles from "
                               << m_particles.size()
                               << " to "
                               << level+1 << '\n';
@@ -1646,8 +1646,9 @@ ParticleContainer<NR,NI,NA>::AddParticlesAtLevel (AoS& particles, int level, int
 
     ParticleLocData pld;
 
-    for (auto& p : particles)
-    {
+    while (!particles.empty()) {
+        ParticleType& p = particles.back();
+
         if (p.id() > 0)
         {
             if (!SingleLevelWhere(p, pld, level, nGrow))
@@ -1655,6 +1656,8 @@ ParticleContainer<NR,NI,NA>::AddParticlesAtLevel (AoS& particles, int level, int
             
             m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
         }
+
+        particles.pop_back();
     }
     Redistribute(level, level, nGrow);
 }
