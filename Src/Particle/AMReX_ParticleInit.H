@@ -128,7 +128,7 @@ ParticleContainer<NR, NI, NA>::InitFromAsciiFile (const std::string& file, int e
 
             if (!Where(p, pld))
             {
-                ParticleType::PeriodicShift(p, m_gdb);
+                PeriodicShift(p);
 
                 if (!Where(p, pld))
                 {
@@ -180,7 +180,7 @@ ParticleContainer<NR, NI, NA>::InitFromAsciiFile (const std::string& file, int e
 
                             if (!Where(p_rep, pld))
                             {
-                                ParticleType::PeriodicShift(p_rep, m_gdb);
+                                PeriodicShift(p_rep);
                                 if (!Where(p_rep, pld))
                                 {
                                     amrex::AllPrint() << "BAD REPLICATED PARTICLE ID WOULD BE " << ParticleType::NextID() << "\n";
@@ -543,8 +543,6 @@ ParticleContainer<NR, NI, NA>::InitFromBinaryFile (const std::string& file,
         //
         MyCnt += NP % NReaders;
 
-    const Geometry& geom = Geom(0);
-
     long how_many_redists = NP / (NPartPerRedist*NReaders), how_many_read = 0;
 
     if (NP % (NPartPerRedist*NReaders)) how_many_redists++;
@@ -649,7 +647,7 @@ ParticleContainer<NR, NI, NA>::InitFromBinaryFile (const std::string& file,
 
                 if (!Where(p, pld))
                 {
-                    ParticleType::PeriodicShift(p, m_gdb);
+                    PeriodicShift(p);
 
                     if (!Where(p, pld))
                     {
@@ -683,12 +681,11 @@ ParticleContainer<NR, NI, NA>::InitFromBinaryFile (const std::string& file,
             auto& pmap     = m_particles[lev];
             auto& tmp_pmap = tmp_particles[lev];
 
-            for (auto pmap_it = pmap.begin(); pmap_it != pmap_it.end(); ++pmap_it)
-            {
-                auto& aos = pmap_it->second.GetArrayOfStructs()();
-                auto& tmp_aos = tmp_pmap[pmap_it->first]().GetArrayOfStructs()();
+            for (auto kv : pmap) {
+                auto& aos = kv.second.GetArrayOfStructs()();
+                auto& tmp_aos = tmp_pmap[kv.first].GetArrayOfStructs()();
 
-                tmp_aos.insert(tmp_aos.end(), aos.being(), aos.end());
+                tmp_aos.insert(tmp_aos.end(), aos.begin(), aos.end());
                 Array<ParticleType>().swap(aos);
             }
 
