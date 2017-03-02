@@ -22,9 +22,9 @@ namespace amrex
 ////////////
   int checkGraph(const EBGraph& a_ebgraph)
   {
-    const Box& region = a_ebgraph.getDomain();
+    const Box& domain = a_ebgraph.getDomain();
     ///account for regular and covered cells
-    for (BoxIterator bit(region); bit.ok(); ++bit)
+    for (BoxIterator bit(domain); bit.ok(); ++bit)
     {
       IntVect iv = bit();
       //check to see that there is never a regular cell next
@@ -36,33 +36,54 @@ namespace amrex
           IntVect ivshift = BASISV(idir);
           ivshift[idir] *= sign(sit());
           IntVect ivneigh = iv + ivshift;
-          if (a_domain.contains(ivneigh))
+          if (domain.contains(ivneigh))
           {
-            if((isRegular(iv) && isCovered(ivneigh) )  ||
-               (isCovered(iv) && isRegular(ivneigh)))
+            if((a_ebgraph.isRegular(iv) && a_ebgraph.isCovered(ivneigh) )  ||
+               (a_ebgraph.isCovered(iv) && a_ebgraph.isRegular(ivneigh)))
             {
               return -2;
             }
 
-            if((isRegular(iv)     && isMultiValued(ivneigh)) ||
-               (isRegular(ivneigh) && isMultiValued(iv)     ))
+            if((a_ebgraph.isRegular(iv)      && a_ebgraph.isMultiValued(ivneigh)) ||
+               (a_ebgraph.isRegular(ivneigh) && a_ebgraph.isMultiValued(iv)     ))
             {
               return -3;
             }
-
+          }
+          std::vector<VolIndex> vofs = a_ebgraph.getVoFs(iv);
+          for(int ivof = 0; ivof < vofs.size(); ivof++)
+          {
+            const VolIndex& vof = vofs[ivof];
+            if(vof.gridIndex() != iv)
+            {
+              return -6;
+            }
+            if(vof.cellIndex() < 0)
+            {
+              return -7;
+            }
             //check to see if the vof matches the faces
-            std::vector<FaceIndex> faces = a_ebgraph.getFaces(iv, idir, sit());
+            std::vector<FaceIndex> faces = a_ebgraph.getFaces(vof, idir, sit());
             for(int iface = 0; iface < faces.size(); iface++)
             {
               const FaceIndex& face = faces[iface];
+              VolIndex startVoF = face.getVoF(flip(sit()));
+              if(startVoF != vof)
+              {
+                return -8;
+              }
               VolIndex neighVoF = face.getVoF(sit());
-              if(neighVoF.gridIndex() != ivshift)
+              if(neighVoF.gridIndex() != ivneigh)
               {
                 return -4;
               }
-              if(neighVoF.cellIndex() < 0)
+              if(domain.contains(ivneigh) && (neighVoF.cellIndex() < 0))
               {
                 return -5;
+              }
+              if(!domain.contains(ivneigh) && (neighVoF.cellIndex() >= 0))
+              {
+                return -9;
               }
             }
           }
@@ -83,11 +104,16 @@ namespace amrex
     pp.getarr(  "n_cell"       , ncellsvec, 0, SpaceDim);
     pp.get(   "sphere_radius", radius);
     pp.getarr("sphere_center", centervec, 0, SpaceDim);
-    pp.get("domain_length", domlen);                     // 
-
-    SphereIF sphere(a_radius, a_center, insideRegular);
+    pp.get("domain_length", domlen);                     
+    RealVect center;
+    for(int idir = 0; idir < SpaceDim; idir++)
+    {
+      center[idir] = centervec[idir];
+    }
+    bool insideRegular = false;
+    SphereIF sphere(radius, center, insideRegular);
     int verbosity = 0;
-    ParmParse pp;
+
     pp.get("verbosity", verbosity);
     GeometryShop gshop(sphere, verbosity);
     BaseFab<int> regIrregCovered;
@@ -100,12 +126,13 @@ namespace amrex
       ivhi[idir] = ncellsvec[idir] - 1;
     }
 
-    RealVect center = 0.5*RealVect::Unit;
+
     Box domain(ivlo, ivhi);
     Box validRegion = domain;
     Box ghostRegion = domain; //whole domain so ghosting does not matter
     RealVect origin = RealVect::Zero;
-    gshop.fillGraph(regIrregCovered, nodes, validRegion, ghostRegion, domain, origin, a_dx);
+    Real dx = domlen/ncellsvec[0];
+    gshop.fillGraph(regIrregCovered, nodes, validRegion, ghostRegion, domain, origin, dx);
   
 
     EBGraph ebgraph(domain, 1);
@@ -124,7 +151,8 @@ main(int argc,char **argv)
 
   const char* in_file = "sphere.inputs";
   //parse input file
-  ParmParse pp;
+  
+  amrex::ParmParse pp;
   pp.Initialize(0, NULL, in_file);
 
   // check volume and surface area of approximate sphere
