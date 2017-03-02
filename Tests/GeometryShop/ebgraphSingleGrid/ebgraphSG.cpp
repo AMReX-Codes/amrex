@@ -133,11 +133,52 @@ namespace amrex
     RealVect origin = RealVect::Zero;
     Real dx = domlen/ncellsvec[0];
     gshop.fillGraph(regIrregCovered, nodes, validRegion, ghostRegion, domain, origin, dx);
-  
+
 
     EBGraph ebgraph(domain, 1);
     ebgraph.buildGraph(regIrregCovered, nodes, domain, domain);
     int eekflag = checkGraph(ebgraph);
+    if(eekflag != 0)
+    {
+      return eekflag;
+    }
+    //now check coarsened versions
+    Box testBox =  domain;
+    testBox.coarsen(2);
+    testBox.refine(2);
+    bool coarsenable = (testBox == domain);
+    std::vector<EBGraph> graphsSoFar(1, ebgraph);
+    int ilev = 0;
+    while(coarsenable)
+    {
+
+      domain.coarsen(2);
+      EBGraph coarGraph(domain, 1);
+      const EBGraph& finerGraph = graphsSoFar[ilev];
+      coarGraph.coarsenVoFs(finerGraph, domain);
+      coarGraph.coarsenFaces(coarGraph, finerGraph);
+
+      if(coarGraph.getDomain() != domain)
+      {
+        return -10;
+      }
+      if(coarGraph.getRegion() != domain)
+      {
+        return -11;
+      }
+
+      eekflag = checkGraph(ebgraph);
+      if(eekflag != 0)
+      {
+        return eekflag;
+      }
+      graphsSoFar.push_back(coarGraph);
+      testBox =  domain;
+      testBox.coarsen(2);
+      testBox.refine(2);
+      coarsenable = (testBox == domain);
+      ilev++;
+    }
     return eekflag;
   }
 
