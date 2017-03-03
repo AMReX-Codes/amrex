@@ -37,7 +37,7 @@ namespace amrex
     long TotalCellsAllocatedInFabs();
     long TotalCellsAllocatedInFabsHWM();
     void ResetTotalBytesAllocatedInFabsHWM();
-    void update_fab_stats (long n, long s, size_t szt);
+    void update_fab_stats (long n, long s, std::size_t szt);
 
 /**
 *  \brief A Fortran Array-like Object
@@ -133,7 +133,11 @@ public:
     void clear ();
 
     //! Returns how many bytes used
-    size_t nBytes () const { return truesize*sizeof(T); }
+    std::size_t nBytes () const { return truesize*sizeof(T); }
+
+    //! Returns bytes used in the Box for those components
+    std::size_t nBytes (const Box& bx, int start_comp, int ncomps) const
+        { return bx.numPts() * sizeof(T) * ncomps; }
 
     //! Returns the number of components
     int nComp () const { return nvar; }
@@ -328,24 +332,16 @@ public:
     */
     BaseFab<T>& copy (const BaseFab<T>& src);
 
-    /**
-    * \brief A specialized version of copy() that copies from a FAB to a raw memory
-    * destination.  Basically a memcpy() that works with a FAB as source.
-    * It is the user's responsibility to ensure that dest has enough space
-    * to hold the copy.
-    */
-    void copyToMem (const Box& srcbox,
-                    int        srccomp,
-                    int        numcomp,
-                    T*         dst) const;
-    /**
-    * \brief A specialized version of copy() that copies from raw memory to a FAB.
-    * Basically a memcpy() that works with a FAB as destination.
-    */
-    void copyFromMem (const Box& dstbox,
-                      int        dstcomp,
-                      int        numcomp,
-                      const T*   src);
+    //! Copy from the srcbox of this Fab to raw memory and return the number of bytes copied
+    std::size_t copyToMem (const Box& srcbox,
+                           int        srccomp,
+                           int        numcomp,
+                           void*      dst) const;
+    //! Copy from raw memory to the dstbox of this Fab and return the number of bytes copied
+    std::size_t copyFromMem (const Box&  dstbox,
+                             int         dstcomp,
+                             int         numcomp,
+                             const void* src);
     /**
     * \brief Perform shifts upon the domain of the BaseFab. They are
     * completely analogous to the corresponding Box functions.
@@ -1407,11 +1403,11 @@ BaseFab<T>::performSetVal (T          val,
 }
 
 template <class T>
-void
+std::size_t
 BaseFab<T>::copyToMem (const Box& srcbox,
                        int        srccomp,
                        int        numcomp,
-                       T*         dst) const
+                       void*      dst) const
 {
     BL_ASSERT(box().contains(srcbox));
     BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= nComp());
@@ -1423,7 +1419,7 @@ BaseFab<T>::copyToMem (const Box& srcbox,
         IntVect    _subbox_length = srcbox.size();
         const int* _subbox_len    = _subbox_length.getVect(); 
         const int* _bx_lo         = (srcbox).loVect(); 
-        T*         _th_p          = dst;
+        T*         _th_p          = static_cast<T*>(dst);
         const T*   _x_p           = dataPtr(srccomp); 
 
 #if (BL_SPACEDIM == 1)
@@ -1478,15 +1474,20 @@ BaseFab<T>::copyToMem (const Box& srcbox,
             }
         }
 #endif
+        return sizeof(T)*numcomp*srcbox.numPts();
+    }
+    else
+    {
+        return 0;
     }
 }
 
 template <class T>
-void
-BaseFab<T>::copyFromMem (const Box& dstbox,
-                         int        dstcomp,
-                         int        numcomp,
-                         const T*   src)
+std::size_t
+BaseFab<T>::copyFromMem (const Box&  dstbox,
+                         int         dstcomp,
+                         int         numcomp,
+                         const void* src)
 {
     BL_ASSERT(box().contains(dstbox));
     BL_ASSERT(dstcomp >= 0 && dstcomp+numcomp <= nComp());
@@ -1498,7 +1499,7 @@ BaseFab<T>::copyFromMem (const Box& dstbox,
         IntVect    _subbox_length = dstbox.size();
         const int* _subbox_len    = _subbox_length.getVect(); 
         const int* _bx_lo         = (dstbox).loVect(); 
-        const T*   _th_p          = src;
+        const T*   _th_p          = static_cast<const T*>(src);
         T*         _x_p           = dataPtr(dstcomp); 
 
 #if (BL_SPACEDIM == 1)
@@ -1549,6 +1550,11 @@ BaseFab<T>::copyFromMem (const Box& dstbox,
             }
         }
 #endif
+        return sizeof(T)*numcomp*dstbox.numPts();
+    }
+    else
+    {
+        return 0;
     }
 }
 
@@ -1572,17 +1578,17 @@ BaseFab<Real>::performCopy (const BaseFab<Real>& src,
                             int                  destcomp,
                             int                  numcomp);
 template <>
-void
+std::size_t
 BaseFab<Real>::copyToMem (const Box& srcbox,
                           int        srccomp,
                           int        numcomp,
-                          Real*      dst) const;
+                          void*      dst) const;
 template <>
-void
+std::size_t
 BaseFab<Real>::copyFromMem (const Box&  dstbox,
                             int         dstcomp,
                             int         numcomp,
-                            const Real* src);
+                            const void* src);
 template <>
 void
 BaseFab<Real>::performSetVal (Real       val,
