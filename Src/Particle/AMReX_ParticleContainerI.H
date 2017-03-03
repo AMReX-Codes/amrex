@@ -241,7 +241,7 @@ ParticleContainer<NR, NI, NA>::SingleLevelWhere (const ParticleType&         p,
         const Box& bx = ba.getCellCenteredBox(isects[0].first);
         pld.m_lev  = lev;
         pld.m_grid = isects[0].first;
-        pld.m_cell = iv;	
+        pld.m_cell = iv;
 	pld.m_tile = getTileIndex(iv, bx, pld.m_tilebox);
         pld.m_gridbox = bx;
 
@@ -1081,9 +1081,6 @@ ParticleContainer<NR, NI, NA>::CreateVirtualParticles (int   level,
   buffer.grow(aggregation_buffer);
   
   const auto& pmap = m_particles[level];
-
-  ParticleLocData pld;
-
   for (const auto& kv : pmap) {
     const auto& pbox = kv.second.GetArrayOfStructs();
     
@@ -1094,8 +1091,8 @@ ParticleContainer<NR, NI, NA>::CreateVirtualParticles (int   level,
     
     for (auto it = pbox.cbegin(); it != pbox.cend(); ++it)
       {
-	Where(*it, pld);
-	if (buffer.contains(pld.m_cell))
+          IntVect cell = Index(*it, level);
+	if (buffer.contains(cell))
 	  {
               // It's in the no-aggregation buffer.
               // Set its id to indicate that it's a virt.
@@ -1119,7 +1116,7 @@ ParticleContainer<NR, NI, NA>::CreateVirtualParticles (int   level,
 		// that all other components should be combined in a mass-weighted
 		// average.
 		//
-		auto agg_map_it = agg_map.find(pld.m_cell);
+		auto agg_map_it = agg_map.find(cell);
 		
 		if (agg_map_it == agg_map.end())
 		  {
@@ -1131,7 +1128,7 @@ ParticleContainer<NR, NI, NA>::CreateVirtualParticles (int   level,
 		    // Set its id to indicate that it's a virt.
 		    //
 		    p.m_idata.id = VirtualParticleID;
-		    agg_map[pld.m_cell] = p;
+		    agg_map[cell] = p;
 		  }
 		else
 		  {
@@ -1148,7 +1145,7 @@ ParticleContainer<NR, NI, NA>::CreateVirtualParticles (int   level,
 		      {
 			pold.m_rdata.pos[i] = (old_mass*pold.m_rdata.pos[i] + new_mass*pnew.m_rdata.pos[i])/total_mass;
 		      }
-		    BL_ASSERT(this->Index(pold, level) == pld.m_cell);
+		    BL_ASSERT(this->Index(pold, level) == cell);
 		    //
 		    // Set the metadata (presumably velocity) to the mass-weighted average.
 		    //
@@ -1201,7 +1198,6 @@ ParticleContainer<NR, NI, NA>::CreateGhostParticles (int   level,
   const BoxArray& fine = ParticleBoxArray(level + 1);
   
   std::vector< std::pair<int,Box> > isects;
-  ParticleLocData pld;
   
   const auto& pmap = m_particles[level];
   for (const auto& kv : pmap) {
@@ -1225,8 +1221,6 @@ ParticleContainer<NR, NI, NA>::CreateGhostParticles (int   level,
 	    // Create a copy.
 	    //
 	    ParticleType p = *it;
-	    
-            Where(p, pld, level+1, level+1);
 	    
 	    //
 	    // Set its id to indicate that it's a ghost.
@@ -1266,9 +1260,14 @@ ParticleContainer<NR, NI, NA>::Redistribute (int lev_min, int lev_max, int nGrow
       {
           if (Verbose()) {
               amrex::Print() << "ParticleContainer<NR, NI, NA>::Redistribute() resizing containers from "
-                             << m_particles.size() << " to " << finestLevel() + 1 << '\n';
+                             << m_particles.size() << " to " 
+                             << theEffectiveFinestLevel + 1 << '\n';
           }
-          resizeData();
+          m_particles.resize(theEffectiveFinestLevel+1);
+          m_dummy_mf.resize(theEffectiveFinestLevel+1);
+          for (int lev = 0; lev < theEffectiveFinestLevel+1; ++lev) {
+              RedefineDummyMF(lev);
+          }
       }
   
   if (lev_max == -1)
@@ -1289,7 +1288,7 @@ ParticleContainer<NR, NI, NA>::Redistribute (int lev_min, int lev_max, int nGrow
 
   ParticleLocData pld;
 
-  for (int lev = lev_min, nlevs = m_particles.size(); lev < nlevs; lev++)
+  for (int lev = lev_min; lev <= lev_max; lev++)
   {
       auto& pmap = m_particles[lev];
       for (auto pmap_it = pmap.begin(); pmap_it != pmap.end(); /* no ++ */)
@@ -1389,12 +1388,12 @@ ParticleContainer<NR, NI, NA>::Redistribute (int lev_min, int lev_max, int nGrow
   {
       // Looks like we lost an AmrLevel on a regrid.
       amrex::Print() << "ParticleContainer<NR, NI, NA>::Redistribute() resizing m_particles from "
-                     << m_particles.size() << " to " << lev_max+1 << '\n';
+                     << m_particles.size() << " to " << theEffectiveFinestLevel+1 << '\n';
       BL_ASSERT(int(m_particles.size()) >= 2);
       BL_ASSERT(m_particles[m_particles.size()-1].empty());
 
-      m_particles.resize(lev_max+1);
-      m_dummy_mf.resize(lev_max+1);
+      m_particles.resize(theEffectiveFinestLevel + 1);
+      m_dummy_mf.resize(theEffectiveFinestLevel + 1);
   }
   
   if (ParallelDescriptor::NProcs() == 1)
@@ -1650,7 +1649,6 @@ ParticleContainer<NR,NI,NA>::AddParticlesAtLevel (AoS& particles, int level, int
         {
             if (!SingleLevelWhere(p, pld, level, nGrow))
                 amrex::Abort("ParticleContainer<NR,NI,NA>::AddParticlesAtLevel(): Can't add outside of domain\n");
-            
             m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
         }
 
