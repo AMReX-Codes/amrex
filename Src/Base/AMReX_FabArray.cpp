@@ -394,8 +394,8 @@ FabArrayBase::CPC::define (const BoxArray& ba_dst, const DistributionMapping& dm
 		// We need to fix the order so that the send and recv processes match.
 		std::sort(cctv.begin(), cctv.end());
 		
-		std::vector<CopyComTag> new_cctv;
-		new_cctv.reserve(cctv.size());
+		std::vector<CopyComTag> cctv_tags;
+		cctv_tags.reserve(cctv.size());
 		
                 for (auto const& tag : cctv)
 		{
@@ -405,12 +405,12 @@ FabArrayBase::CPC::define (const BoxArray& ba_dst, const DistributionMapping& dm
 		    const BoxList tilelist(bx, FabArrayBase::comm_tile_size);
                     for (auto const& tile : tilelist)
 		    {
-			new_cctv.push_back(CopyComTag(tile, tile+d2s, 
+			cctv_tags.push_back(CopyComTag(tile, tile+d2s, 
 						      tag.dstIndex, tag.srcIndex));
 		    }
 		}
 		
-		Tags[key].swap(new_cctv);
+		Tags[key].swap(cctv_tags);
 	    }
 	}    
     }
@@ -699,8 +699,11 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa)
 	    // We need to fix the order so that the send and recv processes match.
 	    std::sort(cctv.begin(), cctv.end());
 		
-	    std::vector<CopyComTag> new_cctv;
-	    new_cctv.reserve(cctv.size());
+	    std::vector<CopyComTag> cctv_tags;
+	    cctv_tags.reserve(cctv.size());
+
+            std::vector<CopyComTag> cctv_vols_cross;
+            cctv_vols_cross.reserve(cctv.size());
 
             for (auto const& tag : cctv)
             {
@@ -736,19 +739,29 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa)
 		{
                     for (auto const& cross_box : boxes)
                     {
+                        if (m_cross)
+                        {
+                            cctv_vols_cross.push_back(CopyComTag(cross_box, cross_box+d2s, 
+                                                                 tag.dstIndex, tag.srcIndex));
+                        }
+
 			const BoxList tilelist(cross_box, FabArrayBase::comm_tile_size);
                         for (auto const& tile : tilelist)
 			{
-			    new_cctv.push_back(CopyComTag(tile, tile+d2s, 
+			    cctv_tags.push_back(CopyComTag(tile, tile+d2s, 
 							  tag.dstIndex, tag.srcIndex));
 			}
 		    }
 		}
 	    }
 		
-	    if (!new_cctv.empty()) {
-		Tags[key].swap(new_cctv);
+	    if (!cctv_tags.empty()) {
+		Tags[key].swap(cctv_tags);
 	    }
+
+            if (!cctv_vols_cross.empty()) {
+                cctv.swap(cctv_vols_cross);
+            }
 	}
     }
 }
@@ -910,8 +923,8 @@ FabArrayBase::FB::define_epo (const FabArrayBase& fa)
 	    // We need to fix the order so that the send and recv processes match.
 	    std::sort(cctv.begin(), cctv.end());
 		
-	    std::vector<CopyComTag> new_cctv;
-	    new_cctv.reserve(cctv.size());
+	    std::vector<CopyComTag> cctv_tags;
+	    cctv_tags.reserve(cctv.size());
 
             for (auto const& tag : cctv)
             {
@@ -921,13 +934,13 @@ FabArrayBase::FB::define_epo (const FabArrayBase& fa)
 		const BoxList tilelist(bx, FabArrayBase::comm_tile_size);
                 for (auto const& tile : tilelist)
                 {
-		    new_cctv.push_back(CopyComTag(tile, tile+d2s, 
+		    cctv_tags.push_back(CopyComTag(tile, tile+d2s, 
                                                   tag.dstIndex, tag.srcIndex));
 		}
 	    }
 
-	    if (!new_cctv.empty()) {
-		Tags[key].swap(new_cctv);
+	    if (!cctv_tags.empty()) {
+		Tags[key].swap(cctv_tags);
 	    }
 	}
     }
