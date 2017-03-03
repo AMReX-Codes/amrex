@@ -4641,6 +4641,9 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const Periodicity& period, boo
     int actual_n_snds = 0;
     if (N_snds > 0)
     {
+        fb_send_data.clear();
+        fb_send_reqs.clear();
+
         Array<char*> &                     send_data = fb_send_data;
 	Array<int>                         send_size;
 	Array<int>                         send_rank;
