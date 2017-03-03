@@ -2176,11 +2176,21 @@ ParticleContainer<NR, NI, NA>::Restart (const std::string& dir,
   if (nr != NR + NA)
     amrex::Abort("ParticleContainer<NR, NI, NA>::Restart(): nr != NR + NA");
 
+  std::string comp_name;
+  for (int i = 0; i < nr; ++i)
+      HdrFile >> comp_name;
+
   int ni;
   HdrFile >> ni;
   if (ni != NI)
     amrex::Abort("ParticleContainer<NR, NI, NA>::Restart(): ni != NI");
   
+  for (int i = 0; i < ni; ++i)
+      HdrFile >> comp_name;
+
+  bool checkpoint;
+  HdrFile >> checkpoint;
+
   long nparticles;
   HdrFile >> nparticles;
   BL_ASSERT(nparticles >= 0);
