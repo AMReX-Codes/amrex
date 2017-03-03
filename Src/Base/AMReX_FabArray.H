@@ -416,7 +416,6 @@ protected:
     static TACache     m_TheTileArrayCache;
     static CacheStats  m_TAC_stats;
     //
-    const TileArray* getTileArray (const IntVect& tilesize) const;
     void buildTileArray (const IntVect& tilesize, TileArray& ta) const;
     //
     void flushTileArray (const IntVect& tilesize = IntVect::TheZeroVector(), 
