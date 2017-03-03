@@ -644,6 +644,8 @@ public:
     //! Constant reference to FabArray over which we're iterating.
     const FabArrayBase& theFabArrayBase () const { return fabArray; }
 
+    int tileIndex () const {return currentIndex;}
+
 protected:
 
     const FabArrayBase& fabArray;
