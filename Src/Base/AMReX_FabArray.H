@@ -2125,7 +2125,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
                 std::size_t nbytes = 0;
                 for (auto const& cct : kv.second)
                 {
-                    nbytes += (*this)[cct.srcIndex].nBytes(cct.sbox,SC,NC);
+                    nbytes += src[cct.srcIndex].nBytes(cct.sbox,SC,NC);
                 }
 		
 		BL_ASSERT(nbytes < std::numeric_limits<int>::max());
