@@ -2690,7 +2690,7 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
 
         Array<MPI_Status>  stats;
         Array<int>         recv_from;
-        Array<value_type*> recv_data;
+        Array<char*>       recv_data;
         Array<int>         recv_size;
         Array<MPI_Request> recv_reqs;
         //
@@ -2700,9 +2700,9 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
         const int N_rcvs = thecpc.m_RcvTags->size();
         int actual_n_rcvs = 0;
         if (N_rcvs > 0) {
-            PostRcvs(*thecpc.m_RcvVols, the_recv_data, recv_data,
-                     recv_size, recv_from, recv_reqs, 
-                     SC, NC, SeqNum, commBoth);
+            dest->PostRcvs(*thecpc.m_RcvVols, the_recv_data, recv_data,
+                           recv_size, recv_from, recv_reqs, 
+                           SC, NC, SeqNum, commBoth);
             actual_n_rcvs = N_rcvs - std::count(recv_size.begin(), recv_size.end(), 0);
         }
 
@@ -2762,7 +2762,7 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
                     for (auto const& tag : cctc)
                     {
                         const Box& bx = tag.sbox;
-                        auto n = src[tag.srcIndex].copyToMem(bx,SC,NC,dptr);
+                        auto n = (*src)[tag.srcIndex].copyToMem(bx,SC,NC,dptr);
                         dptr += n;
                     }
                     BL_ASSERT(dptr == send_data[j] + send_size[j]);
@@ -2854,13 +2854,13 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
                             std::size_t n;
                             if (op == FabArrayBase::COPY)
                             {
-                                n = get(tag.dstIndex).copyFromMem(bx,DC,NC,dptr);
+                                n = (*dest)[tag.dstIndex].copyFromMem(bx,DC,NC,dptr);
                             }
                             else
                             {
                                 fab.resize(bx,NC);
                                 n = fab.copyFromMem(bx,0,NC,dptr);
-                                get(tag.dstIndex).plus(fab,bx,bx,0,DC,NC);
+                                (*dest)[tag.dstIndex].plus(fab,bx,bx,0,DC,NC);
                             }
                             dptr += n;
                         }
