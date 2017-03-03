@@ -222,38 +222,50 @@ namespace amrex
        the box of a_source.  The Interval arguments are ignored.
        This function is required by LevelData.
     */
-#if 0
-    void copy(const Box& a_regionFrom,
-              const Interval& Cd,
-              const Box& a_regionto,
-              const EBGraphImplem& a_source,
-              const Interval& Cs);
-#endif
     ///
     const Box& getRegion() const;
 
     ///
     const Box& getDomain() const;
 
-    ///
-    /**
-       This stuff required by LevelData in parallel:
-    */
-#if 0
-    int size(const Box& R, const Interval& comps) const;
+    EBGraphImplem& copy(const EBGraphImplem& src,
+                        const Box&        srcbox,
+                        int               srccomp,
+                        const Box&        destbox,
+                        int               destcomp,
+                        int               numcomp);
 
-    ///
-    void linearOut(void* buf, const Box& R, const Interval& comps) const;
 
-    ///
-    void linearIn(void* buf, const Box& R, const Interval& comps);
-
-    ///
-    static int preAllocatable()
+    //null op because this does not make any sense in this context
+    EBGraphImplem& plus(const EBGraphImplem& src,
+                        const Box&        srcbox,
+                        const Box&        destbox,
+                        int               srccomp,
+                        int               destcomp,
+                        int               numcomp=1)
       {
-        return 2; // dyanmic allocatable.
+        amrex::Error("this function should not be called");
+        return *this;
       }
-#endif
+
+
+    std::size_t nBytes () const
+      {
+        return nBytes(m_region, 0, 1);
+      }
+
+    std::size_t nBytes (const Box& bx, int start_comp, int ncomps) const;
+
+    std::size_t copyToMem (const Box& srcbox,
+                           int        srccomp,
+                           int        numcomp,
+                           void*      dst) const;
+
+
+    std::size_t copyFromMem (const Box&  dstbox,
+                             int         dstcomp,
+                             int         numcomp,
+                             const void* src);
     ///
     bool isDefined() const;
 
@@ -593,13 +605,60 @@ namespace amrex
        the box of a_source.  The Interval arguments are ignored.
        This function is required by LevelData.
     */
-#if 0
-    void copy(const Box& a_regionFrom,
-              const Interval& Cd,
-              const Box& a_regionto,
-              const EBGraph& a_source,
-              const Interval& Cs);
-#endif
+
+    EBGraph& copy(const EBGraph   & src,
+                  const Box&        srcbox,
+                  int               srccomp,
+                  const Box&        destbox,
+                  int               destcomp,
+                  int               numcomp)
+      {
+        m_implem->copy(*src.m_implem, srcbox, srccomp, destbox, destcomp, numcomp);
+        return *this;
+      }
+
+
+    //null op because this does not make any sense in this context
+    EBGraph& plus(const EBGraph   & src,
+                  const Box&        srcbox,
+                  const Box&        destbox,
+                  int               srccomp,
+                  int               destcomp,
+                  int               numcomp=1)
+      {
+        amrex::Error("this function should not be called");
+        return *this;
+      }
+
+
+    std::size_t copyToMem (const Box& srcbox,
+                           int        srccomp,
+                           int        numcomp,
+                           void*      dst) const
+      {
+        return m_implem->copyToMem(srcbox, srccomp, numcomp, dst);
+      }
+
+
+    std::size_t copyFromMem (const Box&  dstbox,
+                             int         dstcomp,
+                             int         numcomp,
+                             const void* src)
+      {
+        return m_implem->copyFromMem(dstbox, dstcomp, numcomp, src);
+      }
+
+    //! Returns how many bytes used
+    std::size_t nBytes () const
+      {
+        return nBytes(m_implem->getRegion(), 0, 1);
+      }
+
+    std::size_t nBytes (const Box& bx, int start_comp, int ncomps) const
+      {
+        return m_implem->nBytes(bx, start_comp, ncomps);
+      }
+
     ///
     const Box& getRegion() const;
 
@@ -691,21 +750,7 @@ namespace amrex
     /**
        This stuff required by LevelData in parallel:
     */
-#if 0
-    int size(const Box& R, const Interval& comps) const;
 
-    ///
-    void linearOut(void* buf, const Box& R, const Interval& comps) const;
-
-    ///
-    void linearIn(void* buf, const Box& R, const Interval& comps);
-
-    ///
-    static int preAllocatable()
-      {
-        return 2; // dyanmic allocatable.
-      }
-#endif
     ///
     void addFullIrregularVoFs(const IntVectSet& a_vofsToChange,
                               const EBGraph&    a_ghostGraph);
@@ -754,18 +799,6 @@ namespace amrex
   {
     m_implem->buildGraph(a_regIrregCovered, a_irregGraph, a_validRegion, a_domain);
   }
-#if 0
-/*******************************/
-  inline void EBGraph::copy(const Box& a_regionFrom,
-                            const Interval& Cd,
-                            const Box& a_regionTo,
-                            const EBGraph& a_source,
-                            const Interval& Cs)
-  {
-    m_implem->copy(a_regionFrom, Cd, a_regionTo,
-                   *(a_source.m_implem), Cs);
-  }
-#endif
 /*******************************/
   inline bool EBGraph::isDefined() const
   {
