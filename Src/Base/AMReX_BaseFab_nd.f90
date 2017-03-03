@@ -30,13 +30,16 @@ contains
     
   
   ! copy from multi-d array to 1d array
-  subroutine fort_fab_copytomem (lo, hi, dst, src, slo, shi, ncomp) &
+  function fort_fab_copytomem (lo, hi, dst, src, slo, shi, ncomp) result(nelems) &
        bind(c,name='fort_fab_copytomem')
+    use iso_c_binding, only : c_long
+    integer(c_long) :: nelems
     integer, intent(in) :: lo(3), hi(3), slo(3), shi(3), ncomp
     real(amrex_real)             :: dst(*)
     real(amrex_real), intent(in) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
 
-    integer :: i, j, k, n, nx, offset
+    integer :: i, j, k, n, nx
+    integer(c_long) :: offset
 
     nx = hi(1)-lo(1)+1
     offset = 1-lo(1)
@@ -50,17 +53,22 @@ contains
           end do
        end do
     end do    
-  end subroutine fort_fab_copytomem
+
+    nelems = offset - (1-lo(1))
+  end function fort_fab_copytomem
 
 
   ! copy from 1d array to multi-d array
-  subroutine fort_fab_copyfrommem (lo, hi, dst, dlo, dhi, ncomp, src) &
+  function fort_fab_copyfrommem (lo, hi, dst, dlo, dhi, ncomp, src) result(nelems) &
        bind(c,name='fort_fab_copyfrommem')
+    use iso_c_binding, only : c_long
+    integer(c_long) :: nelems
     integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), ncomp
     real(amrex_real), intent(in   ) :: src(*)
     real(amrex_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
 
-    integer :: i, j, k, n, nx, offset
+    integer :: i, j, k, n, nx
+    integer(c_long) :: offset
 
     nx = hi(1)-lo(1)+1
     offset = 1-lo(1)
@@ -74,7 +82,10 @@ contains
           end do
        end do
     end do    
-  end subroutine fort_fab_copyfrommem
+
+    nelems = offset - (1-lo(1))
+  end function fort_fab_copyfrommem
+  
 
 
   subroutine fort_fab_setval(lo, hi, dst, dlo, dhi, ncomp, val) &
