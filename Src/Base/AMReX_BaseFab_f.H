@@ -11,14 +11,14 @@ extern "C"
 			const amrex::Real* src, const int* slo, const int* shi, const int* sblo,
 			const int* ncomp);
 
-    void fort_fab_copytomem (const int* lo, const int* hi,
-			     amrex::Real* dst,
-			     const amrex::Real* src, const int* slo, const int* shi,
-			     const int* ncomp);
+    long fort_fab_copytomem (const int* lo, const int* hi,
+                             amrex::Real* dst,
+                             const amrex::Real* src, const int* slo, const int* shi,
+                             const int* ncomp);
 
-    void fort_fab_copyfrommem (const int* lo, const int* hi,
-			       const amrex::Real* dst, const int* dlo, const int* dhi, const int* ncomp,
-			       const amrex::Real* src);
+    long fort_fab_copyfrommem (const int* lo, const int* hi,
+                               const amrex::Real* dst, const int* dlo, const int* dhi, const int* ncomp,
+                               const amrex::Real* src);
 
     void fort_fab_setval (const int* lo, const int* hi, 
 			  const amrex::Real* dst, const int* dlo, const int* dhi, const int* ncomp,

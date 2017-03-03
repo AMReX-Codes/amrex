@@ -187,39 +187,49 @@ BaseFab<Real>::performCopy (const BaseFab<Real>& src,
 }
 
 template <>
-void
+std::size_t
 BaseFab<Real>::copyToMem (const Box& srcbox,
                           int        srccomp,
                           int        numcomp,
-                          Real*      dst) const
+                          void*      dst) const
 {
     BL_ASSERT(box().contains(srcbox));
     BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= nComp());
 
     if (srcbox.ok())
     {
-	fort_fab_copytomem(ARLIM_3D(srcbox.loVect()), ARLIM_3D(srcbox.hiVect()),
-			   dst,
-			   BL_TO_FORTRAN_N_3D(*this,srccomp),
-			   &numcomp);
+	long nreal =  fort_fab_copytomem(ARLIM_3D(srcbox.loVect()), ARLIM_3D(srcbox.hiVect()),
+                                         static_cast<Real*>(dst),
+                                         BL_TO_FORTRAN_N_3D(*this,srccomp),
+                                         &numcomp);
+        return sizeof(Real) * nreal;
+    }
+    else
+    {
+        return 0;
     }
 }
 
 template <>
-void
+std::size_t
 BaseFab<Real>::copyFromMem (const Box&  dstbox,
                             int         dstcomp,
                             int         numcomp,
-                            const Real* src)
+                            const void* src)
 {
     BL_ASSERT(box().contains(dstbox));
     BL_ASSERT(dstcomp >= 0 && dstcomp+numcomp <= nComp());
 
     if (dstbox.ok()) 
     {
-	fort_fab_copyfrommem(ARLIM_3D(dstbox.loVect()), ARLIM_3D(dstbox.hiVect()),
-			     BL_TO_FORTRAN_N_3D(*this,dstcomp), &numcomp,
-			     src);
+	long nreal = fort_fab_copyfrommem(ARLIM_3D(dstbox.loVect()), ARLIM_3D(dstbox.hiVect()),
+                                          BL_TO_FORTRAN_N_3D(*this,dstcomp), &numcomp,
+                                          static_cast<const Real*>(src));
+        return sizeof(Real) * nreal;
+    }
+    else
+    {
+        return 0;
     }
 }
 
