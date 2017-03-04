@@ -205,6 +205,8 @@ public:
     using ParticleType = Particle<NR, NI>;
     using RealType     = typename ParticleType::RealType;
 
+    static constexpr int SizeInReal = sizeof(ParticleType) / sizeof(RealType);
+
     const Array<ParticleType>& operator()() const { return m_data; }
     Array      <ParticleType>& operator()()       { return m_data; }
 
@@ -221,6 +223,8 @@ public:
     }
 
     void push_back (const ParticleType& p) { return m_data.push_back(p); }
+    void pop_back() {m_data.pop_back(); }
+    bool empty() {return m_data.empty(); }
 
     const ParticleType& back() const {return m_data.back(); }
     ParticleType      & back()       {return m_data.back(); }
@@ -236,11 +240,10 @@ public:
     typename Array<ParticleType>::const_iterator end () const { return m_data.end(); }
     typename Array<ParticleType>::const_iterator cend () const { return m_data.cend(); }
 
-    static constexpr int SizeInReal = sizeof(ParticleType) / sizeof(RealType);
-
 private:
     Array<ParticleType> m_data;
 };
+template <int NR, int NI> constexpr int ArrayOfStructs<NR,NI>::SizeInReal;
 
 template <int NA>
 struct StructOfArrays {
@@ -505,7 +508,7 @@ public:
     //
     // Add particles from a pbox to the grid at this level
     //
-    void AddParticlesAtLevel (int level, AoS& virts);
+    void AddParticlesAtLevel (AoS& particles, int level, int nGrow=0);
 
     void Checkpoint (const std::string& dir, const std::string& name, bool is_checkpoint = true,
                      const Array<std::string>& real_comp_names = Array<std::string>(),
