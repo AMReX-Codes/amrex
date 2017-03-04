@@ -30,7 +30,6 @@
 #include <AMReX_Interpolater.H>
 #include <AMReX_FillPatchUtil.H>
 
-#include <AMReX_Deposition_F.H>
 #include <AMReX_Particles_F.H>
 
 #ifdef BL_LAZY
