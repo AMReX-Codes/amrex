@@ -272,12 +272,6 @@ LaserParticleContainer::Evolve (int lev,
             auto& uxp = attribs[PIdx::ux];
             auto& uyp = attribs[PIdx::uy];
             auto& uzp = attribs[PIdx::uz];
-            auto& Exp = attribs[PIdx::Ex];
-            auto& Eyp = attribs[PIdx::Ey];
-            auto& Ezp = attribs[PIdx::Ez];
-            auto& Bxp = attribs[PIdx::Bx];
-            auto& Byp = attribs[PIdx::By];
-            auto& Bzp = attribs[PIdx::Bz];
 
 	    const long np  = pti.numParticles();
 

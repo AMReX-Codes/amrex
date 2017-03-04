@@ -77,8 +77,6 @@ WarpXParticleContainer::AddNParticles (int n, const Real* x, const Real* y, cons
 
     auto npart_before = TotalNumberOfParticles();  // xxxxx move this into if (verbose > xxx)
 
-    int gid = 0;
-
     int ibegin, iend;
     if (uniqueparticles) {
 	ibegin = 0;
