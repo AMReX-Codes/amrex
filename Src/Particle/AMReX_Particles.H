@@ -206,6 +206,8 @@ public:
     using ParticleType = Particle<NR, NI>;
     using RealType     = typename ParticleType::RealType;
 
+    static constexpr int SizeInReal = sizeof(ParticleType) / sizeof(RealType);
+
     const Array<ParticleType>& operator()() const { return m_data; }
     Array      <ParticleType>& operator()()       { return m_data; }
 
@@ -239,11 +241,10 @@ public:
     typename Array<ParticleType>::const_iterator end () const { return m_data.end(); }
     typename Array<ParticleType>::const_iterator cend () const { return m_data.cend(); }
 
-    static constexpr int SizeInReal = sizeof(ParticleType) / sizeof(RealType);
-
 private:
     Array<ParticleType> m_data;
 };
+template <int NR, int NI> constexpr int ArrayOfStructs<NR,NI>::SizeInReal;
 
 template <int NA>
 struct StructOfArrays {
