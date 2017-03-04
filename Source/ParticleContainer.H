@@ -55,7 +55,7 @@ public:
 
     void WriteHeader (std::ostream& os) const;
 
-    void Redistribute (bool where_called=false);
+    void Redistribute ();
 
     amrex::Array<long> NumberOfParticlesInGrid(int lev) const;
 

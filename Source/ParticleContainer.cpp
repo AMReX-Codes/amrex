@@ -88,7 +88,7 @@ MultiParticleContainer::GetChargeDensity (int lev, bool local)
 }
 
 void
-MultiParticleContainer::Redistribute (bool where_called)
+MultiParticleContainer::Redistribute ()
 {
     for (auto& pc : allcontainers) {
 	pc->Redistribute();

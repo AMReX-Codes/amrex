@@ -342,5 +342,5 @@ WarpX::MoveWindow ()
   InjectPlasma(num_shift, dir);
 
   // Redistribute (note - this removes particles that are outside of the box)
-  mypc->Redistribute(false);
+  mypc->Redistribute();
 }
