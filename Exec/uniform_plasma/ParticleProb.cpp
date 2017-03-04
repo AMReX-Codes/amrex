@@ -22,14 +22,12 @@ PhysicalParticleContainer::InitData()
     charge = -PhysConst::q_e;
     mass = PhysConst::m_e;
 
-    m_particles.resize(GDB().finestLevel()+1);
-
     const int lev = 0;
 
-    const Geometry& geom = GDB().Geom(lev);
+    const Geometry& geom = Geom(lev);
     const Real* dx  = geom.CellSize();
 
-    Real weight, ux, uy, uz, u_th;
+    Real weight, u_th;
     Real particle_shift_x, particle_shift_y, particle_shift_z;
     int n_part_per_cell;
     {
@@ -49,101 +47,54 @@ PhysicalParticleContainer::InitData()
       u_th *= PhysConst::c;
     }
 
-    const BoxArray& ba = GDB().ParticleBoxArray(lev);
-    const DistributionMapping& dm = GDB().ParticleDistributionMap(lev);
+    std::array<Real,PIdx::nattribs> attribs;
+    attribs.fill(0.0);
+    attribs[PIdx::w ] = weight;
 
-    MultiFab dummy_mf(ba, dm, 1, 0, MFInfo().SetAlloc(false));
+    // Initialize random generator for normal distribution
+    std::default_random_engine generator;
+    std::normal_distribution<Real> velocity_distribution(0.0, u_th);
+    std::uniform_real_distribution<Real> position_distribution(0.0,1.0);
 
-    for (MFIter mfi(dummy_mf,false); mfi.isValid(); ++mfi)
+    for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
-	int gid = mfi.index();
-        Box grid = ba[gid];
-        RealBox grid_box { grid,dx,geom.ProbLo() };
+        const Box& tile_box = mfi.tilebox();
+        RealBox tile_real_box { tile_box, dx, geom.ProbLo() };
+
+        const int grid_id = mfi.index();
+        const int tile_id = mfi.LocalTileIndex();
+
+        const auto& boxlo = tile_box.smallEnd();
+        for (IntVect iv = tile_box.smallEnd(); iv <= tile_box.bigEnd(); tile_box.next(iv))
+        {
+            for (int i_part=0; i_part<n_part_per_cell;i_part++)
+            {
+                // Randomly generate the speed according to a normal distribution
+                Real ux = velocity_distribution(generator);
+                Real uy = velocity_distribution(generator);
+                Real uz = velocity_distribution(generator);
+
+                // Randomly generate the positions (uniformly inside each cell)
+                Real particle_shift_x = position_distribution(generator);
+                Real particle_shift_y = position_distribution(generator);
+                Real particle_shift_z = position_distribution(generator);
 
 #if (BL_SPACEDIM == 3)
-	int nx = grid.length(0), ny = grid.length(1), nz = grid.length(2);
+                Real x = tile_real_box.lo(0) + (iv[0]-boxlo[0] + particle_shift_x)*dx[0];
+                Real y = tile_real_box.lo(1) + (iv[1]-boxlo[1] + particle_shift_y)*dx[1];
+                Real z = tile_real_box.lo(2) + (iv[2]-boxlo[2] + particle_shift_z)*dx[2];
 #elif (BL_SPACEDIM == 2)
-	int nx = grid.length(0), ny = 1, nz = grid.length(1);
-#endif
+                Real x = tile_real_box.lo(0) + (iv[0]-boxlo[0] + particle_shift_x)*dx[0];
+                Real y = 0.0;
+                Real z = tile_real_box.lo(1) + (iv[1]-boxlo[1] + particle_shift_z)*dx[1];
+#endif   
 
-  // Initialize random generator for normal distribution
-  std::default_random_engine generator;
-  std::normal_distribution<Real> velocity_distribution(0.0, u_th);
-  std::uniform_real_distribution<Real> position_distribution(0.0,1.0);
+                attribs[PIdx::ux] = ux;
+                attribs[PIdx::uy] = uy;
+                attribs[PIdx::uz] = uz;
 
-	for (int k = 0; k < nz; k++) {
-	  for (int j = 0; j < ny; j++) {
-	    for (int i = 0; i < nx; i++) {
-	      for (int i_part=0; i_part<n_part_per_cell;i_part++) {
-
-          // Randomly generate the speed according to a normal distribution
-          ux = velocity_distribution(generator);
-          uy = velocity_distribution(generator);
-          uz = velocity_distribution(generator);
-
-          // Randomly generate the positions (uniformly inside each cell)
-          particle_shift_x = position_distribution(generator);
-          particle_shift_y = position_distribution(generator);
-          particle_shift_z = position_distribution(generator);
-#if (BL_SPACEDIM == 3)
-		Real x = grid_box.lo(0) + (i + particle_shift_x)*dx[0];
-		Real y = grid_box.lo(1) + (j + particle_shift_y)*dx[1];
-		Real z = grid_box.lo(2) + (k + particle_shift_z)*dx[2];
-#elif (BL_SPACEDIM == 2)
-		Real x = grid_box.lo(0) + (i + particle_shift_x)*dx[0];
-		Real y = 0.0;
-		Real z = grid_box.lo(1) + (k + particle_shift_z)*dx[1];
-#endif
-
-		ParticleType p;
-
-		p.m_id  = ParticleBase::NextID();
-		p.m_cpu = ParallelDescriptor::MyProc();
-		p.m_lev = lev;
-		p.m_grid = gid;
-
-#if (BL_SPACEDIM == 3)
-		p.m_pos[0] = x;
-		p.m_pos[1] = y;
-		p.m_pos[2] = z;
-#elif (BL_SPACEDIM == 2)
-		p.m_pos[0] = x;
-		p.m_pos[1] = z;
-#endif
-
-		for (int i = 0; i < BL_SPACEDIM; i++) {
-		  BL_ASSERT(p.m_pos[i] < grid_box.hi(i));
-		}
-
-		p.m_data[PIdx::w] = weight;
-
-		for (int i = 1; i < PIdx::nattribs; i++) {
-		  p.m_data[i] = 0;
-		}
-
-		p.m_data[PIdx::ux] = ux;
-		p.m_data[PIdx::uy] = uy;
-		p.m_data[PIdx::uz] = uz;
-
-		if (!ParticleBase::Where(p,m_gdb)) // this will set m_cell
-		{
-		    amrex::Abort("invalid particle");
-		}
-
-		BL_ASSERT(p.m_lev >= 0 && p.m_lev <= GDB().finestLevel());
-		//
-		// Add it to the appropriate PBox at the appropriate level.
-		//
-		m_particles[p.m_lev][p.m_grid].push_back(p);
-	      }
-	    }
-	  }
+                AddOneParticle(lev, grid_id, tile_id, x, y, z, attribs);
+            }
         }
     }
-
-    //
-    // We still need to redistribute in order to define each particle's cell, grid and level, but this
-    //    shouldn't require any inter-node communication because the particles should already be in the right grid.
-    //
-    Redistribute(true);
 }
