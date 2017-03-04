@@ -55,6 +55,14 @@ public:
 			const amrex::Real* vx, const amrex::Real* vy, const amrex::Real* vz,
 			int nattr, const amrex::Real* attr, int uniqueparticles);
 
+    void AddOneParticle (int lev, int grid, int tile,
+                         amrex::Real x, amrex::Real y, amrex::Real z,
+                         const std::array<amrex::Real,PIdx::nattribs>& attribs);
+
+    void AddOneParticle (ParticleTileType& particle_tile,
+                         amrex::Real x, amrex::Real y, amrex::Real z,
+                         const std::array<amrex::Real,PIdx::nattribs>& attribs);
+
     void ReadHeader (std::istream& is);
 
     void WriteHeader (std::ostream& os) const;
@@ -64,14 +72,6 @@ public:
     static int NextID () { return ParticleType::NextID(); }
 
 protected:
-
-    void AddOneParticle (int lev, int grid, int tile,
-                         amrex::Real x, amrex::Real y, amrex::Real z,
-                         const std::array<amrex::Real,PIdx::nattribs>& attribs);
-
-    void AddOneParticle (ParticleTileType& particle_tile,
-                         amrex::Real x, amrex::Real y, amrex::Real z,
-                         const std::array<amrex::Real,PIdx::nattribs>& attribs);
 
     int species_id;
 

@@ -86,8 +86,8 @@ PhysicalParticleContainer::InitData()
         const int grid_id = mfi.index();
         const int tile_id = mfi.LocalTileIndex();
 
-        const auto& boxlo = tile_box.smallEnd();
-        for (IntVect iv = tile_box.smallEnd(); iv <= tile_box.bigEnd(); tile_box.next(iv))
+        const IntVect& boxlo = tile_box.smallEnd();
+        for (IntVect iv = boxlo; iv <= tile_box.bigEnd(); tile_box.next(iv))
         {
             for (int i_part=0; i_part<n_part_per_cell;i_part++)
             {
