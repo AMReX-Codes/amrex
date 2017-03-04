@@ -4152,7 +4152,7 @@ ParticleContainer<NR, NI, NA>::AssignCellDensitySingleLevelFort (int rho_index,
       auto N = pbx.size();
 
       int nstride = pbx.dataShape().first;
-      deposit(pbx.data(), nstride, N, fab.dataPtr(), box.loVect(), box.hiVect(), plo, dx);
+      amrex_deposit_cic(pbx.data(), nstride, N, fab.dataPtr(), box.loVect(), box.hiVect(), plo, dx);
     }
     
     mf_pointer->SumBoundary(gm.periodicity());
