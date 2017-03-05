@@ -97,7 +97,8 @@ bool
 ParticleContainer<NR, NI, NA>::Where (const ParticleType&         p,
 				      ParticleLocData&            pld,
 				      int                         lev_min,
-				      int                         lev_max) const
+				      int                         lev_max,
+                                      int                         nGrow) const
 {
   BL_ASSERT(m_gdb != 0);
   
@@ -105,6 +106,8 @@ ParticleContainer<NR, NI, NA>::Where (const ParticleType&         p,
     lev_max = finestLevel();
   
   BL_ASSERT(lev_max <= finestLevel());
+
+  BL_ASSERT(nGrow == 0 || (nGrow >= 0 && lev_min == lev_max));
   
   std::vector< std::pair<int, Box> > isects;
   
@@ -119,7 +122,8 @@ ParticleContainer<NR, NI, NA>::Where (const ParticleType&         p,
             if (0 <= pld.m_grid && pld.m_grid < ba.size())
             {
                 const Box& bx = ba.getCellCenteredBox(pld.m_grid);
-                if (bx.contains(iv))
+                const Box& gbx = amrex::grow(bx,nGrow);
+                if (gbx.contains(iv))
                 {
                     pld.m_cell = iv;
                     if (bx != pld.m_gridbox || !pld.m_tilebox.contains(iv)) {
@@ -131,7 +135,7 @@ ParticleContainer<NR, NI, NA>::Where (const ParticleType&         p,
             }
         }
 
-        ba.intersections(Box(iv, iv), isects, true, 0);
+        ba.intersections(Box(iv, iv), isects, true, nGrow);
 
         if (!isects.empty())
         {
@@ -197,55 +201,6 @@ ParticleContainer<NR, NI, NA>::EnforcePeriodicWhere (ParticleType&         p,
                 return true;
             }
         }
-    }
-
-    return false;
-}
-
-template <int NR, int NI, int NA>
-bool
-ParticleContainer<NR, NI, NA>::SingleLevelWhere (const ParticleType&         p,
-                                                 ParticleLocData&            pld,
-                                                 int                         lev,
-                                                 int                         nGrow) const
-{
-    BL_ASSERT(m_gdb != 0);
-
-    const IntVect& iv = Index(p, lev);
-    const BoxArray& ba = ParticleBoxArray(lev);
-    BL_ASSERT(ba.ixType().cellCentered());
-
-    if (lev == pld.m_lev)
-    {
-        if (0 <= pld.m_grid && pld.m_grid < ba.size())
-        {
-            const Box&  bx = ba.getCellCenteredBox(pld.m_grid);
-            const Box& gbx = amrex::grow(bx,nGrow);
-            if (gbx.contains(iv))
-            {
-                pld.m_cell = iv;
-                if (bx != pld.m_gridbox || !pld.m_tilebox.contains(iv)) {
-                    pld.m_tile = getTileIndex(iv, bx, pld.m_tilebox);
-                    pld.m_gridbox = bx;
-                }
-                return true;
-            }
-        }
-    }
-    
-    std::vector< std::pair<int,Box> > isects;
-    ba.intersections(Box(iv,iv),isects,true,nGrow);
-    
-    if (!isects.empty())
-    {
-        const Box& bx = ba.getCellCenteredBox(isects[0].first);
-        pld.m_lev  = lev;
-        pld.m_grid = isects[0].first;
-        pld.m_cell = iv;
-	pld.m_tile = getTileIndex(iv, bx, pld.m_tilebox);
-        pld.m_gridbox = bx;
-
-        return true;
     }
 
     return false;
@@ -427,7 +382,7 @@ ParticleContainer<NR, NI, NA>::locateParticle (ParticleType& p, ParticleLocData&
 
     if (!success)
     {
-        success = (nGrow > 0) && SingleLevelWhere(p, pld, lev_min, nGrow);
+        success = (nGrow > 0) && Where(p, pld, lev_min, lev_min, nGrow);
     }
 
     if (!success)
@@ -1647,7 +1602,7 @@ ParticleContainer<NR,NI,NA>::AddParticlesAtLevel (AoS& particles, int level, int
 
         if (p.id() > 0)
         {
-            if (!SingleLevelWhere(p, pld, level, nGrow))
+            if (!Where(p, pld, level, level, nGrow))
                 amrex::Abort("ParticleContainer<NR,NI,NA>::AddParticlesAtLevel(): Can't add outside of domain\n");
             m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
         }

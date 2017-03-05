@@ -621,9 +621,11 @@ protected:
     //
     // Checks a particle's location on levels lev_min and higher.
     // Returns false if the particle does not exist on that level.
+    // Only if lev_min == lev_max, nGrow can be > 0 (i.e., including
+    // nGrow ghost cells).
     //
     bool Where (const ParticleType& prt, ParticleLocData& pld, 
-		int lev_min = 0, int lev_max = -1) const;
+		int lev_min = 0, int lev_max = -1, int nGrow=0) const;
 
     //
     // Checks whether the particle has crossed a periodic boundary in such a way
@@ -631,11 +633,6 @@ protected:
     //
     bool EnforcePeriodicWhere (ParticleType& prt, ParticleLocData& pld,
                                int lev_min = 0, int lev_max = -1) const;
-
-    //
-    // Locate a particle on the given level (including ngrow ghost cells).
-    //
-    bool SingleLevelWhere (const ParticleType& p, ParticleLocData& pld, int lev, int nGrow=0) const;
 
     bool OnSameGrids (int level, const MultiFab& mf) const { return m_gdb->OnSameGrids(level, mf); }
 
