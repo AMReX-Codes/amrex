@@ -408,9 +408,10 @@ MultiFab::define (const BoxArray&            bxs,
                   const DistributionMapping& dm,
                   int                        nvar,
                   int                        ngrow,
-		  const MFInfo&              info)
+		  const MFInfo&              info,
+                  const FabFactory<FArrayBox>& factory)
 {
-    this->FabArray<FArrayBox>::define(bxs,dm,nvar,ngrow,info);
+    this->FabArray<FArrayBox>::define(bxs,dm,nvar,ngrow,info,factory);
     if (SharedMemory() && info.alloc) initVal();  // else already done in FArrayBox
 }
 

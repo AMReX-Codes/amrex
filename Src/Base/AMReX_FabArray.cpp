@@ -167,10 +167,10 @@ FabArrayBase::CPC::bytes () const
 	cnt += FabArrayBase::bytesOfMapOfCopyComTagContainers(*m_RcvTags);
 
     if (m_SndVols)
-	cnt += amrex::bytesOf(*m_SndVols);
+	cnt += FabArrayBase::bytesOfMapOfCopyComTagContainers(*m_SndVols);
 
     if (m_RcvVols)
-	cnt += amrex::bytesOf(*m_RcvVols);
+	cnt += FabArrayBase::bytesOfMapOfCopyComTagContainers(*m_RcvVols);
 
     return cnt;
 }
@@ -190,10 +190,10 @@ FabArrayBase::FB::bytes () const
 	cnt += FabArrayBase::bytesOfMapOfCopyComTagContainers(*m_RcvTags);
 
     if (m_SndVols)
-	cnt += amrex::bytesOf(*m_SndVols);
+	cnt += FabArrayBase::bytesOfMapOfCopyComTagContainers(*m_SndVols);
 
     if (m_RcvVols)
-	cnt += amrex::bytesOf(*m_RcvVols);
+	cnt += FabArrayBase::bytesOfMapOfCopyComTagContainers(*m_RcvVols);
 
     return cnt;
 }
@@ -272,8 +272,8 @@ FabArrayBase::CPC::define (const BoxArray& ba_dst, const DistributionMapping& dm
     m_LocTags = new CopyComTag::CopyComTagsContainer;
     m_SndTags = new CopyComTag::MapOfCopyComTagContainers;
     m_RcvTags = new CopyComTag::MapOfCopyComTagContainers;
-    m_SndVols = new std::map<int,int>;
-    m_RcvVols = new std::map<int,int>;
+    m_SndVols = new CopyComTag::MapOfCopyComTagContainers;
+    m_RcvVols = new CopyComTag::MapOfCopyComTagContainers;
 
     if (!(imap_dst.empty() && imap_src.empty())) 
     {
@@ -286,7 +286,7 @@ FabArrayBase::CPC::define (const BoxArray& ba_dst, const DistributionMapping& dm
 
 	const std::vector<IntVect>& pshifts = m_period.shiftIntVect();
 
-	CopyComTag::MapOfCopyComTagContainers send_tags; // temp copy
+	auto& send_tags = *m_SndVols;
 	
 	for (int i = 0; i < nlocal_src; ++i)
 	{
@@ -312,7 +312,7 @@ FabArrayBase::CPC::define (const BoxArray& ba_dst, const DistributionMapping& dm
 	    }
 	}
 
-	CopyComTag::MapOfCopyComTagContainers recv_tags; // temp copy
+	auto& recv_tags = *m_RcvVols;
 
 	BaseFab<int> localtouch, remotetouch;
 	bool check_local = false, check_remote = false;
@@ -385,43 +385,34 @@ FabArrayBase::CPC::define (const BoxArray& ba_dst, const DistributionMapping& dm
 	
 	for (int ipass = 0; ipass < 2; ++ipass) // pass 0: send; pass 1: recv
 	{
-	    CopyComTag::MapOfCopyComTagContainers & Tags    = (ipass == 0) ? *m_SndTags : *m_RcvTags;
-	    CopyComTag::MapOfCopyComTagContainers & tmpTags = (ipass == 0) ?  send_tags :  recv_tags;
-	    std::map<int,int>                     & Vols    = (ipass == 0) ? *m_SndVols : *m_RcvVols;
+	    CopyComTag::MapOfCopyComTagContainers & Tags = (ipass == 0) ? *m_SndTags : *m_RcvTags;
+	    CopyComTag::MapOfCopyComTagContainers & Vols = (ipass == 0) ? *m_SndVols : *m_RcvVols;
 	    
-	    for (CopyComTag::MapOfCopyComTagContainers::iterator 
-		     it  = tmpTags.begin(), 
-		     End = tmpTags.end();   it != End; ++it)
+            for (auto& kv : Vols)
 	    {
-		const int key = it->first;
-		std::vector<CopyComTag>& cctv = it->second;
+		const int key = kv.first;
+		std::vector<CopyComTag>& cctv = kv.second;
 		
 		// We need to fix the order so that the send and recv processes match.
 		std::sort(cctv.begin(), cctv.end());
 		
-		std::vector<CopyComTag> new_cctv;
-		new_cctv.reserve(cctv.size());
+		std::vector<CopyComTag> cctv_tags;
+		cctv_tags.reserve(cctv.size());
 		
-		for (std::vector<CopyComTag>::const_iterator 
-			 it2  = cctv.begin(),
-			 End2 = cctv.end();   it2 != End2; ++it2)
+                for (auto const& tag : cctv)
 		{
-		    const Box& bx = it2->dbox;
-		    const IntVect& d2s = it2->sbox.smallEnd() - it2->dbox.smallEnd();
-		    
-		    Vols[key] += bx.numPts();
+		    const Box& bx = tag.dbox;
+		    const IntVect& d2s = tag.sbox.smallEnd() - tag.dbox.smallEnd();
 		    
 		    const BoxList tilelist(bx, FabArrayBase::comm_tile_size);
-		    for (BoxList::const_iterator 
-			     it_tile  = tilelist.begin(), 
-			     End_tile = tilelist.end();    it_tile != End_tile; ++it_tile)
+                    for (auto const& tile : tilelist)
 		    {
-			new_cctv.push_back(CopyComTag(*it_tile, (*it_tile)+d2s, 
-						      it2->dstIndex, it2->srcIndex));
+			cctv_tags.push_back(CopyComTag(tile, tile+d2s, 
+						      tag.dstIndex, tag.srcIndex));
 		    }
 		}
 		
-		Tags[key].swap(new_cctv);
+		Tags[key].swap(cctv_tags);
 	    }
 	}    
     }
@@ -548,8 +539,8 @@ FabArrayBase::FB::FB (const FabArrayBase& fa, bool cross, const Periodicity& per
       m_LocTags(new CopyComTag::CopyComTagsContainer),
       m_SndTags(new CopyComTag::MapOfCopyComTagContainers),
       m_RcvTags(new CopyComTag::MapOfCopyComTagContainers),
-      m_SndVols(new std::map<int,int>),
-      m_RcvVols(new std::map<int,int>),
+      m_SndVols(new CopyComTag::MapOfCopyComTagContainers),
+      m_RcvVols(new CopyComTag::MapOfCopyComTagContainers),
       m_nuse(0)
 {
     BL_PROFILE("FabArrayBase::FB::FB()");
@@ -584,7 +575,7 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa)
     
     const std::vector<IntVect>& pshifts = m_period.shiftIntVect();
     
-    CopyComTag::MapOfCopyComTagContainers send_tags; // temp copy
+    auto& send_tags = *m_SndVols;
     
     for (int i = 0; i < nlocal; ++i)
     {
@@ -612,7 +603,7 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa)
 	}
     }
 
-    CopyComTag::MapOfCopyComTagContainers recv_tags; // temp copy
+    auto& recv_tags = *m_RcvVols;
 
     BaseFab<int> localtouch, remotetouch;
     bool check_local = false, check_remote = false;
@@ -699,35 +690,31 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa)
 
     for (int ipass = 0; ipass < 2; ++ipass) // pass 0: send; pass 1: recv
     {
-	CopyComTag::MapOfCopyComTagContainers & Tags    = (ipass == 0) ? *m_SndTags : *m_RcvTags;
-	CopyComTag::MapOfCopyComTagContainers & tmpTags = (ipass == 0) ?  send_tags :  recv_tags;
-	std::map<int,int>                     & Vols    = (ipass == 0) ? *m_SndVols : *m_RcvVols;
+	CopyComTag::MapOfCopyComTagContainers & Tags = (ipass == 0) ? *m_SndTags : *m_RcvTags;
+	CopyComTag::MapOfCopyComTagContainers & Vols = (ipass == 0) ? *m_SndVols : *m_RcvVols;
 	    
-	for (CopyComTag::MapOfCopyComTagContainers::iterator 
-		 it  = tmpTags.begin(), 
-		 End = tmpTags.end();   it != End; ++it)
+        for (auto& kv : Vols)
 	{
-	    const int key = it->first;
-	    std::vector<CopyComTag>& cctv = it->second;
+            const int key = kv.first;
+            std::vector<CopyComTag>& cctv = kv.second;
 		
 	    // We need to fix the order so that the send and recv processes match.
 	    std::sort(cctv.begin(), cctv.end());
 		
-	    std::vector<CopyComTag> new_cctv;
-	    new_cctv.reserve(cctv.size());
-		
-	    for (std::vector<CopyComTag>::const_iterator 
-		     it2  = cctv.begin(),
-		     End2 = cctv.end();   it2 != End2; ++it2)
-	    {
-		const Box& bx = it2->dbox;
-		const IntVect& d2s = it2->sbox.smallEnd() - it2->dbox.smallEnd();
+	    std::vector<CopyComTag> cctv_tags;
+	    cctv_tags.reserve(cctv.size());
+
+            std::vector<CopyComTag> cctv_vols_cross;
+            cctv_vols_cross.reserve(cctv.size());
+
+            for (auto const& tag : cctv)
+            {
+		const Box& bx = tag.dbox;
+		const IntVect& d2s = tag.sbox.smallEnd() - tag.dbox.smallEnd();
 
 		std::vector<Box> boxes;
-		int vol = 0;
-		    
 		if (m_cross) {
-		    const Box& dstvbx = ba[it2->dstIndex];
+		    const Box& dstvbx = ba[tag.dstIndex];
 		    for (int dir = 0; dir < BL_SPACEDIM; dir++)
 		    {
 			Box lo = dstvbx;
@@ -736,7 +723,6 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa)
 			lo &= bx;
 			if (lo.ok()) {
 			    boxes.push_back(lo);
-			    vol += lo.numPts();
 			}
 			    
 			Box hi = dstvbx;
@@ -745,37 +731,39 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa)
 			hi &= bx;
 			if (hi.ok()) {
 			    boxes.push_back(hi);
-			    vol += hi.numPts();
 			}
 		    }
 		} else {
 		    boxes.push_back(bx);
-		    vol += bx.numPts();
 		}
 		
-		if (vol > 0) 
+		if (!boxes.empty()) 
 		{
-		    Vols[key] += vol;
+                    for (auto const& cross_box : boxes)
+                    {
+                        if (m_cross)
+                        {
+                            cctv_vols_cross.push_back(CopyComTag(cross_box, cross_box+d2s, 
+                                                                 tag.dstIndex, tag.srcIndex));
+                        }
 
-		    for (std::vector<Box>::const_iterator 
-			     it_bx  = boxes.begin(),
-			     End_bx = boxes.end();    it_bx != End_bx; ++it_bx)
-		    {
-			const BoxList tilelist(*it_bx, FabArrayBase::comm_tile_size);
-			for (BoxList::const_iterator 
-				 it_tile  = tilelist.begin(), 
-				 End_tile = tilelist.end();   it_tile != End_tile; ++it_tile)
+			const BoxList tilelist(cross_box, FabArrayBase::comm_tile_size);
+                        for (auto const& tile : tilelist)
 			{
-			    new_cctv.push_back(CopyComTag(*it_tile, (*it_tile)+d2s, 
-							  it2->dstIndex, it2->srcIndex));
+			    cctv_tags.push_back(CopyComTag(tile, tile+d2s, 
+							  tag.dstIndex, tag.srcIndex));
 			}
 		    }
 		}
 	    }
 		
-	    if (!new_cctv.empty()) {
-		Tags[key].swap(new_cctv);
+	    if (!cctv_tags.empty()) {
+		Tags[key].swap(cctv_tags);
 	    }
+
+            if (!cctv_vols_cross.empty()) {
+                cctv.swap(cctv_vols_cross);
+            }
 	}
     }
 }
@@ -798,7 +786,7 @@ FabArrayBase::FB::define_epo (const FabArrayBase& fa)
     
     const std::vector<IntVect>& pshifts = m_period.shiftIntVect();
     
-    CopyComTag::MapOfCopyComTagContainers send_tags; // temp copy
+    auto& send_tags = *m_SndVols;
 
     Box pdomain = m_period.Domain();
     pdomain.convert(typ);
@@ -836,7 +824,7 @@ FabArrayBase::FB::define_epo (const FabArrayBase& fa)
 	}
     }
 
-    CopyComTag::MapOfCopyComTagContainers recv_tags; // temp copy
+    auto& recv_tags = *m_RcvVols;
 
     BaseFab<int> localtouch, remotetouch;
     bool check_local = false, check_remote = false;
@@ -926,44 +914,35 @@ FabArrayBase::FB::define_epo (const FabArrayBase& fa)
 
     for (int ipass = 0; ipass < 2; ++ipass) // pass 0: send; pass 1: recv
     {
-	CopyComTag::MapOfCopyComTagContainers & Tags    = (ipass == 0) ? *m_SndTags : *m_RcvTags;
-	CopyComTag::MapOfCopyComTagContainers & tmpTags = (ipass == 0) ?  send_tags :  recv_tags;
-	std::map<int,int>                     & Vols    = (ipass == 0) ? *m_SndVols : *m_RcvVols;
-	    
-	for (CopyComTag::MapOfCopyComTagContainers::iterator 
-		 it  = tmpTags.begin(), 
-		 End = tmpTags.end();   it != End; ++it)
+	CopyComTag::MapOfCopyComTagContainers & Tags = (ipass == 0) ? *m_SndTags : *m_RcvTags;
+	CopyComTag::MapOfCopyComTagContainers & Vols = (ipass == 0) ? *m_SndVols : *m_RcvVols;
+
+        for (auto& kv : Vols)
 	{
-	    const int key = it->first;
-	    std::vector<CopyComTag>& cctv = it->second;
+            const int key = kv.first;
+	    std::vector<CopyComTag>& cctv = kv.second;
 		
 	    // We need to fix the order so that the send and recv processes match.
 	    std::sort(cctv.begin(), cctv.end());
 		
-	    std::vector<CopyComTag> new_cctv;
-	    new_cctv.reserve(cctv.size());
-		
-	    for (std::vector<CopyComTag>::const_iterator 
-		     it2  = cctv.begin(),
-		     End2 = cctv.end();   it2 != End2; ++it2)
-	    {
-		const Box& bx = it2->dbox;
-		const IntVect& d2s = it2->sbox.smallEnd() - it2->dbox.smallEnd();
-		
-		Vols[key] += bx.numPts();
+	    std::vector<CopyComTag> cctv_tags;
+	    cctv_tags.reserve(cctv.size());
 
+            for (auto const& tag : cctv)
+            {
+		const Box& bx = tag.dbox;
+		const IntVect& d2s = tag.sbox.smallEnd() - tag.dbox.smallEnd();
+		
 		const BoxList tilelist(bx, FabArrayBase::comm_tile_size);
-		for (BoxList::const_iterator 
-			 it_tile  = tilelist.begin(), 
-			 End_tile = tilelist.end();   it_tile != End_tile; ++it_tile)
-		{
-		    new_cctv.push_back(CopyComTag(*it_tile, (*it_tile)+d2s, 
-							  it2->dstIndex, it2->srcIndex));
+                for (auto const& tile : tilelist)
+                {
+		    cctv_tags.push_back(CopyComTag(tile, tile+d2s, 
+                                                  tag.dstIndex, tag.srcIndex));
 		}
 	    }
-		
-	    if (!new_cctv.empty()) {
-		Tags[key].swap(new_cctv);
+
+	    if (!cctv_tags.empty()) {
+		Tags[key].swap(cctv_tags);
 	    }
 	}
     }
@@ -1453,6 +1432,61 @@ FabArrayBase::updateBDKey ()
 	addThisBD();
     }
 }
+
+
+void
+FabArrayBase::WaitForAsyncSends (int                 N_snds,
+                                 Array<MPI_Request>& send_reqs,
+                                 Array<char*>&       send_data,
+                                 Array<MPI_Status>&  stats)
+{
+#ifdef BL_USE_MPI
+    BL_ASSERT(N_snds > 0);
+
+    stats.resize(N_snds);
+
+    BL_ASSERT(send_reqs.size() == N_snds);
+    BL_ASSERT(send_data.size() == N_snds);
+
+    Array<int> indx;
+    BL_COMM_PROFILE_WAITSOME(BLProfiler::Waitall, send_reqs, N_snds, indx, stats, false);
+
+    BL_MPI_REQUIRE( MPI_Waitall(N_snds, send_reqs.dataPtr(), stats.dataPtr()) );
+
+    BL_COMM_PROFILE_WAITSOME(BLProfiler::Waitall, send_reqs, N_snds, indx, stats, false);
+
+    for (int i = 0; i < N_snds; i++) {
+        if (send_data[i]) {
+            amrex::The_Arena()->free(send_data[i]);
+        }
+    }
+#endif /*BL_USE_MPI*/
+}
+
+
+#ifdef BL_USE_UPCXX
+void
+FabArrayBase::WaitForAsyncSends_PGAS (int                 N_snds,
+                                      Array<char*>&       send_data,
+                                      upcxx::event*       send_event,
+                                      volatile int*       send_counter)
+{
+    BL_ASSERT(N_snds > 0);
+    BL_ASSERT(send_data.size() == N_snds);
+    int N_null = std::count(send_data.begin(), send_data.begin()+N_snds, nullptr);
+    // Need to make sure all sends have been started
+    while ((*send_counter) < N_snds-N_null) {
+        upcxx::advance();
+    }
+    send_event->wait(); // wait for the sends
+    for (int i = 0; i < N_snds; i++) {
+        if (send_data[i]) {
+            BLPgas::free(send_data[i]);
+        }
+    }
+}
+#endif
+
 
 MFIter::MFIter (const FabArrayBase& fabarray_, 
 		unsigned char       flags_)
