@@ -7,7 +7,8 @@ module amrex_particle_module
 
   private
 
-  public :: amrex_particle_set_position, amrex_particle_get_position
+  public :: amrex_particle_set_position, amrex_particle_get_position, &
+       amrex_deposit_cic
 
 contains
 
