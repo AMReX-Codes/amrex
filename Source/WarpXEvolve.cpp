@@ -221,66 +221,31 @@ WarpX::InjectPlasma (int num_shift, int dir)
 {
     if(do_plasma_injection)
     {
+        const int lev = 0;
+
         // particleBox encloses the cells where we generate particles
-        Box particleBox = geom[0].Domain();
+        Box particleBox = geom[lev].Domain();
         int domainLength = particleBox.length(dir);
         int sign = (num_shift < 0) ? -1 : 1;
         particleBox.shift(dir, sign*(domainLength - std::abs(num_shift)));
-        particleBox &= geom[0].Domain();
+        particleBox &= geom[lev].Domain();
 
-        const Real* dx  = geom[0].CellSize();
+        const Real* dx = geom[lev].CellSize();
 
-        const int lev = 0;
-
-        std::array<Real,PIdx::nattribs> attribs;
-        attribs.fill(0.0);
-
-        WarpXParticleContainer& pc0 = mypc->GetParticleContainer(0);        
-        for (MFIter mfi = pc0.MakeMFIter(lev); mfi.isValid(); ++mfi)
+        for (int i = 0; i < num_injected_species; ++i)
         {
-            const Box& tile_box     = mfi.tilebox();
-            const Box& intersectBox = tile_box & particleBox;
-            if (intersectBox.ok())
-            {
-                RealBox real_box { intersectBox, dx, geom[0].ProbLo() };
-
-                const int grid_id = mfi.index();
-                const int tile_id = mfi.LocalTileIndex();
-
-                for (int ispec=0; ispec < num_injected_species; ispec++)
-                {
-                    int ispecies = injected_plasma_species[ispec];
-                    WarpXParticleContainer& pc = mypc->GetParticleContainer(ispecies);
-
-                    const IntVect& boxlo = tile_box.smallEnd();
-                    for (IntVect iv = boxlo; iv <= tile_box.bigEnd(); tile_box.next(iv))
-                    {
-                        for (int i_part=0; i_part < injected_plasma_ppc[ispec]; i_part++)
-                        {
-                            Real particle_shift = (0.5+i_part)/injected_plasma_ppc[ispec];
-#if (BL_SPACEDIM == 3)
-                            Real x = real_box.lo(0) + (iv[0]-boxlo[0] + particle_shift)*dx[0];
-                            Real y = real_box.lo(1) + (iv[1]-boxlo[1] + particle_shift)*dx[1];
-                            Real z = real_box.lo(2) + (iv[2]-boxlo[2] + particle_shift)*dx[2];
-#elif (BL_SPACEDIM == 2)
-                            Real x = real_box.lo(0) + (iv[0]-boxlo[0] + particle_shift)*dx[0];
-                            Real y = 0.0;
-                            Real z = real_box.lo(1) + (iv[1]-boxlo[1] + particle_shift)*dx[1];
-#endif
-
-                            Real weight = injected_plasma_density[ispec];
+            int ppc = injected_plasma_ppc[i];
+            Real density = injected_plasma_density[i];
 #if BL_SPACEDIM==3
-                            weight *= dx[0]*dx[1]*dx[2]/injected_plasma_ppc[ispec];
+            Real weight = density * dx[0]*dx[1]*dx[2]/ppc;
 #elif BL_SPACEDIM==2
-                            weight *= dx[0]*dx[1]/injected_plasma_ppc[ispec];
+            Real weight = density * dx[0]*dx[1]/ppc;
 #endif
-                            attribs[PIdx::w] = weight;
 
-                            pc.AddOneParticle(lev, grid_id, tile_id, x, y, z, attribs);
-                        }
-                    }
-                }
-            }
+            int ispecies = injected_plasma_species[i];
+            WarpXParticleContainer& pc = mypc->GetParticleContainer(ispecies);
+
+            pc.AddParticles(lev, particleBox, weight, ppc);
         }
     }
 }
@@ -289,40 +254,40 @@ void
 WarpX::MoveWindow ()
 {
 
-  if (do_moving_window == 0) return;
-
-  // compute the number of cells to shift
-  int dir = moving_window_dir;
-  Real new_lo[BL_SPACEDIM];
-  Real new_hi[BL_SPACEDIM];
-  const Real* current_lo = geom[0].ProbLo();
-  const Real* current_hi = geom[0].ProbHi();
-  const Real* dx = geom[0].CellSize();
-  moving_window_x += moving_window_v * dt[0];
-  int num_shift = (moving_window_x - current_lo[dir]) / dx[dir];
-
-  if (num_shift == 0) return;
-
-  // update the problem domain
-  for (int i=0; i<BL_SPACEDIM; i++) {
-    new_lo[i] = current_lo[i];
-    new_hi[i] = current_hi[i];
-  }
-  new_lo[dir] = current_lo[dir] + num_shift * dx[dir];
-  new_hi[dir] = current_hi[dir] + num_shift * dx[dir];
-  RealBox new_box(new_lo, new_hi);
-  geom[0].ProbDomain(new_box);
-
-  // shift the mesh fields (Note - only on level 0 for now)
-  shiftMF(*Bfield[0][0], geom[0], num_shift, dir, Bx_nodal_flag);
-  shiftMF(*Bfield[0][1], geom[0], num_shift, dir, By_nodal_flag);
-  shiftMF(*Bfield[0][2], geom[0], num_shift, dir, Bz_nodal_flag);
-  shiftMF(*Efield[0][0], geom[0], num_shift, dir, Ex_nodal_flag);
-  shiftMF(*Efield[0][1], geom[0], num_shift, dir, Ey_nodal_flag);
-  shiftMF(*Efield[0][2], geom[0], num_shift, dir, Ez_nodal_flag);
-
-  InjectPlasma(num_shift, dir);
-
-  // Redistribute (note - this removes particles that are outside of the box)
-  mypc->Redistribute();
+    if (do_moving_window == 0) return;
+    
+    // compute the number of cells to shift
+    int dir = moving_window_dir;
+    Real new_lo[BL_SPACEDIM];
+    Real new_hi[BL_SPACEDIM];
+    const Real* current_lo = geom[0].ProbLo();
+    const Real* current_hi = geom[0].ProbHi();
+    const Real* dx = geom[0].CellSize();
+    moving_window_x += moving_window_v * dt[0];
+    int num_shift = (moving_window_x - current_lo[dir]) / dx[dir];
+    
+    if (num_shift == 0) return;
+    
+    // update the problem domain
+    for (int i=0; i<BL_SPACEDIM; i++) {
+        new_lo[i] = current_lo[i];
+        new_hi[i] = current_hi[i];
+    }
+    new_lo[dir] = current_lo[dir] + num_shift * dx[dir];
+    new_hi[dir] = current_hi[dir] + num_shift * dx[dir];
+    RealBox new_box(new_lo, new_hi);
+    geom[0].ProbDomain(new_box);
+    
+    // shift the mesh fields (Note - only on level 0 for now)
+    shiftMF(*Bfield[0][0], geom[0], num_shift, dir, Bx_nodal_flag);
+    shiftMF(*Bfield[0][1], geom[0], num_shift, dir, By_nodal_flag);
+    shiftMF(*Bfield[0][2], geom[0], num_shift, dir, Bz_nodal_flag);
+    shiftMF(*Efield[0][0], geom[0], num_shift, dir, Ex_nodal_flag);
+    shiftMF(*Efield[0][1], geom[0], num_shift, dir, Ey_nodal_flag);
+    shiftMF(*Efield[0][2], geom[0], num_shift, dir, Ez_nodal_flag);
+    
+    InjectPlasma(num_shift, dir);
+    
+    // Redistribute (note - this removes particles that are outside of the box)
+    mypc->Redistribute();
 }
