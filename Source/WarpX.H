@@ -170,6 +170,8 @@ private:
     int check_int = -1;
     int plot_int = -1;
 
+    bool is_synchronized;
+
     static amrex::IntVect Bx_nodal_flag;
     static amrex::IntVect By_nodal_flag;
     static amrex::IntVect Bz_nodal_flag;

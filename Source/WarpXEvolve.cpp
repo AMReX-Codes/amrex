@@ -18,12 +18,8 @@ WarpX::Evolve (int numsteps)
     static int last_check_file_step = 0;
 
     int numsteps_max = (numsteps >= 0 && istep[0]+numsteps <= max_step) ? istep[0]+numsteps : max_step;
-
-    int istep0;
     bool max_time_reached = false;
     bool last_step = false;
-
-    istep0 = istep[0];
 
     for (int step = istep[0]; step < numsteps_max && cur_time < stop_time; ++step)
     {
@@ -44,11 +40,12 @@ WarpX::Evolve (int numsteps)
 	    // Beyond one step, we have B^{n-1/2} and E^{n}.
 	    // Particles have p^{n-1/2} and x^{n}.
 	    
-	    if (step == istep0) {
+	    if (is_synchronized) {
 	        // on first step, push E and X by 0.5*dt
 	        EvolveE(lev, 0.5*dt[lev]);
 	        mypc->PushX(lev, 0.5*dt[lev]);
                 mypc->Redistribute();  // Redistribute particles
+                is_synchronized = false;
 	    }
 
 	    EvolveB(lev, 0.5*dt[lev]); // We now B^{n}
@@ -80,6 +77,7 @@ WarpX::Evolve (int numsteps)
    	        // on last step, push by only 0.5*dt to synchronize all at n+1/2
 	        EvolveE(lev, 0.5*dt[lev]); // We now have E^{n+1/2}
 	        mypc->PushX(lev, -0.5*dt[lev]);
+                is_synchronized = true;
             } else {
 	        EvolveE(lev, dt[lev]); // We now have E^{n+1}
 	    }

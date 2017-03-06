@@ -70,6 +70,8 @@ WarpX::WriteWarpXHeader(const std::string& name) const
 	
 	HeaderFile << moving_window_x << "\n";
 
+        HeaderFile << is_synchronized << "\n";
+
 	// Geometry
 	for (int i = 0; i < BL_SPACEDIM; ++i) {
             HeaderFile << Geometry::ProbLo(i) << ' ';
@@ -205,6 +207,9 @@ WarpX::InitFromCheckpoint ()
 	}
 
 	is >> moving_window_x;
+	GotoNextLine(is);
+
+        is >> is_synchronized;
 	GotoNextLine(is);
 
 	Real prob_lo[BL_SPACEDIM];
