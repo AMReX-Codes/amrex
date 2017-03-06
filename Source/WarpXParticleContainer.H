@@ -19,7 +19,7 @@ class WarpXParIter
     : public amrex::ParIter<0,0,PIdx::nattribs>
 {
 public:
-    WarpXParIter (ContainerType& pc, int level) : ParIter<0,0,PIdx::nattribs>(pc,level) {}
+    using amrex::ParIter<0,0,PIdx::nattribs>::ParIter;
 
     const SoA& GetAttribs () const { return GetStructOfArrays(); }
     SoA&       GetAttribs ()       { return GetStructOfArrays(); }

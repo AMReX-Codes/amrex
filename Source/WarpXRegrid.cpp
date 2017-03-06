@@ -178,7 +178,10 @@ WarpX::LoadBalanceBaseLevel()
                  " " << max_cost << " " << neweff << std::endl;
         }
 
-        MakeNewLevel(0,new_ba,new_dm);
+        AllocLevelData(0,new_ba,new_dm);
+        SetBoxArray(0, new_ba);
+        SetDistributionMap(0, new_dm);
+
         remapped = true;
 
     } else {

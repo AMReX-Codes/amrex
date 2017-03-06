@@ -44,22 +44,7 @@ WarpX::InitFromScratch ()
 
     const Real time = 0.0;
 
-    // define coarse level BoxArray and DistributionMap
-    {
-	finest_level = 0;
-
-	t_new[0] = time;
-	t_old[0] = time - 1.e200;
-    
-	const BoxArray& ba = MakeBaseGrids();
-	DistributionMapping dm{ba};
-
-	MakeNewLevel(0, ba, dm);
-
-	InitLevelData(0);
-    }
-
-    // if max_level > 0, define fine levels
+    AmrCore::InitFromScratch(time);  // This will call MakeNewLevelFromScratch
 
     mypc->AllocData();
     mypc->InitData();

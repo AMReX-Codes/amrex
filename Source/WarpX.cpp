@@ -202,12 +202,28 @@ WarpX::ReadParameters ()
 
 }
 
+// This is a virtual function.
 void
-WarpX::MakeNewLevel (int lev, const BoxArray& new_grids, const DistributionMapping& new_dmap)
+WarpX::MakeNewLevelFromScratch (int lev, Real time, const BoxArray& new_grids,
+                                const DistributionMapping& new_dmap)
 {
-    SetBoxArray(lev, new_grids);
-    SetDistributionMap(lev, new_dmap);
+    AllocLevelData(lev, new_grids, new_dmap);
+    InitLevelData(time);
+}
 
+void
+WarpX::ClearLevel (int lev)
+{
+    for (int i = 0; i < 3; ++i) {
+	current[lev][i].reset();
+	Efield [lev][i].reset();
+	Bfield [lev][i].reset();
+    }    
+}
+
+void
+WarpX::AllocLevelData (int lev, const BoxArray& new_grids, const DistributionMapping& new_dmap)
+{
     // PICSAR assumes all fields are nodal plus one ghost cell.
     MFInfo info;
     info.SetNodal(IntVect::TheUnitVector());
@@ -217,9 +233,9 @@ WarpX::MakeNewLevel (int lev, const BoxArray& new_grids, const DistributionMappi
     Efield [lev].resize(3);
     Bfield [lev].resize(3);
     for (int i = 0; i < 3; ++i) {
-	current[lev][i].reset(new MultiFab(grids[lev],dmap[lev],1,ng,info));
-	Efield [lev][i].reset(new MultiFab(grids[lev],dmap[lev],1,ng,info));
-	Bfield [lev][i].reset(new MultiFab(grids[lev],dmap[lev],1,ng,info));
+	current[lev][i].reset(new MultiFab(new_grids,new_dmap,1,ng,info));
+	Efield [lev][i].reset(new MultiFab(new_grids,new_dmap,1,ng,info));
+	Bfield [lev][i].reset(new MultiFab(new_grids,new_dmap,1,ng,info));
     }
 }
 

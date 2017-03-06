@@ -54,14 +54,33 @@ public:
     static bool use_laser;
 
 protected:
-    virtual void ErrorEst (int lev, amrex::TagBoxArray& tags, amrex::Real time, int /*ngrow*/) override {}
+
+    //! Tagging cells for refinement
+    virtual void ErrorEst (int lev, amrex::TagBoxArray& tags, amrex::Real time, int /*ngrow*/) override 
+        { amrex::Abort("ErrorEst: To be implemented"); }
+
+    //! Make a new level from scratch using provided BoxArray and
+    //! DistributionMapping.  Only used during initialization.  Called
+    //! by AmrCoreInitFromScratch.
     virtual void MakeNewLevelFromScratch (int lev, amrex::Real time, const amrex::BoxArray& ba,
-					  const amrex::DistributionMapping& dm) override {}
+					  const amrex::DistributionMapping& dm) override;
+
+    //! Make a new level using provided BoxArray and
+    //! DistributionMapping and fill with interpolated coarse level
+    //! data.  Called by AmrCore::regrid.
     virtual void MakeNewLevelFromCoarse (int lev, amrex::Real time, const amrex::BoxArray& ba,
-					 const amrex::DistributionMapping& dm) override {}
+					 const amrex::DistributionMapping& dm) override 
+        { amrex::Abort("MakeNewLevelFromCoarse: To be implemented"); }
+
+    //! Remake an existing level using provided BoxArray and
+    //! DistributionMapping and fill with existing fine and coarse
+    //! data.  Called by AmrCore::regrid.
     virtual void RemakeLevel (int lev, amrex::Real time, const amrex::BoxArray& ba,
-			      const amrex::DistributionMapping& dm) override {}
-    virtual void ClearLevel (int lev) override {}
+			      const amrex::DistributionMapping& dm) override
+        { amrex::Abort("RemakeLevel: To be implemented"); }
+
+    //! Delete level data.  Called by AmrCore::regrid.
+    virtual void ClearLevel (int lev) override;
 
 private:
 
@@ -73,8 +92,6 @@ private:
 
     void ReadParameters ();
 
-    void MakeNewLevel (int lev, const amrex::BoxArray& new_grids, const amrex::DistributionMapping& new_dmap);
-
     void RegridBaseLevel ();
     bool LoadBalanceBaseLevel ();
     void splitBoxes (amrex::BoxArray& ba, amrex::Array<long>& newcost, const amrex::Array<long>& cost_in, int heavy_grid_size);
@@ -83,8 +100,12 @@ private:
     amrex::DistributionMapping getCostCountDM (const amrex::Array<long>& cost, const amrex::BoxArray& ba);
 
     void InitFromScratch ();
-    void InitFromCheckpoint ();
+
+    void AllocLevelData (int lev, const amrex::BoxArray& new_grids,
+                         const amrex::DistributionMapping& new_dmap);
     void InitLevelData (int lev);
+
+    void InitFromCheckpoint ();
     void PostRestart ();
 
     void InitOpenbc ();

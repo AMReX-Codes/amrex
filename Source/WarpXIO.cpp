@@ -238,7 +238,9 @@ WarpX::InitFromCheckpoint ()
 	    ba.readFrom(is);
 	    GotoNextLine(is);
 	    DistributionMapping dm { ba, ParallelDescriptor::NProcs() };
-	    MakeNewLevel(lev, ba, dm);
+            SetBoxArray(lev, ba);
+            SetDistributionMap(lev, dm);
+	    AllocLevelData(lev, ba, dm);
 	}
 
 	mypc->ReadHeader(is);
