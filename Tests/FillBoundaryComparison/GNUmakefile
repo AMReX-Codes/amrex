@@ -1,8 +1,7 @@
 
 DIM          = 3
 
-COMP         = Intel
-FCOMP        = Intel
+COMP         = gnu
 
 DEBUG        = FALSE
 
@@ -10,19 +9,19 @@ USE_MPI      = TRUE
 USE_OMP      = FALSE
 USE_UPCXX    = TRUE
 
-BOXLIB_HOME = ../..
+AMREX_HOME = ../..
 
 EBASE = main
 
 include ./Make.package
 
-include $(BOXLIB_HOME)/Tools/C_mk/Make.defs
+include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
-include $(BOXLIB_HOME)/Src/C_BaseLib/Make.package
+include $(AMREX_HOME)/Src/Base/Make.package
 
-INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/C_BaseLib
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Base
 
-vpathdir += $(BOXLIB_HOME)/Src/C_BaseLib
+vpathdir += $(AMREX_HOME)/Src/Base
 
 vpath %.c   : . $(vpathdir)
 vpath %.h   : . $(vpathdir)
@@ -34,4 +33,4 @@ vpath %.f90 : . $(vpathdir)
 
 all: $(executable)
 
-include $(BOXLIB_HOME)/Tools/C_mk/Make.rules
+include $(AMREX_HOME)/Tools/GNUMake/Make.rules

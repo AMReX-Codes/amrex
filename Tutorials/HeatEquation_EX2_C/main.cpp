@@ -1,15 +1,17 @@
 #include <fstream>
 #include <iomanip>
 
-#include <ParmParse.H>
+#include <AMReX_ParmParse.H>
 #include <writePlotFile.H>
-#include <Geometry.H>
-#include <VisMF.H>
-#include <PhysBCFunct.H>
+#include <AMReX_Geometry.H>
+#include <AMReX_VisMF.H>
+#include <AMReX_PhysBCFunct.H>
 
 #include "myfunc_F.H"
 
-void advance (MultiFab& old_phi, MultiFab& new_phi, PArray<MultiFab>& flux,
+using namespace amrex;
+
+void advance (MultiFab& old_phi, MultiFab& new_phi, Array<std::unique_ptr<MultiFab> >& flux,
 	      Real time, Real dt, const Geometry& geom, PhysBCFunct& physbcf,
 	      BCRec& bcr)
 {
@@ -22,7 +24,7 @@ void advance (MultiFab& old_phi, MultiFab& new_phi, PArray<MultiFab>& flux,
 
   int Ncomp = old_phi.nComp();
   int ng_p = old_phi.nGrow();
-  int ng_f = flux[0].nGrow();
+  int ng_f = flux[0]->nGrow();
 
   const Real* dx = geom.CellSize();
 
@@ -39,10 +41,10 @@ void advance (MultiFab& old_phi, MultiFab& new_phi, PArray<MultiFab>& flux,
 
     compute_flux(old_phi[mfi].dataPtr(),
 		 &ng_p,
-		 flux[0][mfi].dataPtr(),
-		 flux[1][mfi].dataPtr(),
+		 (*flux[0])[mfi].dataPtr(),
+		 (*flux[1])[mfi].dataPtr(),
 #if (BL_SPACEDIM == 3)   
-		 flux[2][mfi].dataPtr(),
+		 (*flux[2])[mfi].dataPtr(),
 #endif
 		 &ng_f, bx.loVect(), bx.hiVect(), 
 		 (geom.Domain()).loVect(),
@@ -59,10 +61,10 @@ void advance (MultiFab& old_phi, MultiFab& new_phi, PArray<MultiFab>& flux,
     update_phi(old_phi[mfi].dataPtr(),
 	       new_phi[mfi].dataPtr(),
 	       &ng_p,
-	       flux[0][mfi].dataPtr(),
-	       flux[1][mfi].dataPtr(),
+	       (*flux[0])[mfi].dataPtr(),
+	       (*flux[1])[mfi].dataPtr(),
 #if (BL_SPACEDIM == 3)   
-	       flux[2][mfi].dataPtr(),
+	       (*flux[2])[mfi].dataPtr(),
 #endif
 	       &ng_f, bx.loVect(), bx.hiVect(), &dx[0] , &dt);
   }
@@ -164,24 +166,26 @@ void main_main ()
   // time = starting time in the simulation
   Real time = 0.0;
   
+  DistributionMapping dm{ba};
+
   // we allocate two phi multifabs; one will store the old state, the other the new
   // we swap the indices each time step to avoid copies of new into old
-  PArray<MultiFab> phi(2, PArrayManage);
-  phi.set(0, new MultiFab(ba, Ncomp, Nghost));
-  phi.set(1, new MultiFab(ba, Ncomp, Nghost));
+  Array<std::unique_ptr<MultiFab> > phi(2);
+  phi[0].reset(new MultiFab(ba, dm, Ncomp, Nghost));
+  phi[1].reset(new MultiFab(ba, dm, Ncomp, Nghost));
 
   // Initialize both to zero (just because)
-  phi[0].setVal(0.0);
-  phi[1].setVal(0.0);
+  phi[0]->setVal(0.0);
+  phi[1]->setVal(0.0);
 
   // Initialize phi[init_index] by calling a Fortran routine.
   // MFIter = MultiFab Iterator
   int init_index = 0;
-  for ( MFIter mfi(phi[init_index]); mfi.isValid(); ++mfi )
+  for ( MFIter mfi(*phi[init_index]); mfi.isValid(); ++mfi )
   {
     const Box& bx = mfi.validbox();
 
-    init_phi(phi[init_index][mfi].dataPtr(),
+    init_phi((*phi[init_index])[mfi].dataPtr(),
 	     bx.loVect(), bx.hiVect(), &Nghost,
 	     geom.CellSize(), geom.ProbLo(), geom.ProbHi());
   }
@@ -193,18 +197,18 @@ void main_main ()
   if (plot_int > 0)
   {
     int n = 0;
-    const std::string& pltfile = BoxLib::Concatenate("plt",n,5);
-    writePlotFile(pltfile, phi[init_index], geom, time);
+    const std::string& pltfile = amrex::Concatenate("plt",n,5);
+    writePlotFile(pltfile, *phi[init_index], geom, time);
   }
 
   // build the flux multifabs
-  PArray<MultiFab> flux(BL_SPACEDIM, PArrayManage);
+  Array<std::unique_ptr<MultiFab> > flux(BL_SPACEDIM);
   for (int dir = 0; dir < BL_SPACEDIM; dir++)
   {
     // flux(dir) has one component, zero ghost cells, and is nodal in direction dir
     BoxArray edge_ba = ba;
     edge_ba.surroundingNodes(dir);
-    flux.set(dir, new MultiFab(edge_ba, 1, 0));
+    flux[dir].reset(new MultiFab(edge_ba, dm, 1, 0));
   }
 
   int old_index = init_index;
@@ -213,7 +217,7 @@ void main_main ()
     int new_index = 1 - old_index;
 
     // new_phi = old_phi + dt * (something)
-    advance(phi[old_index], phi[new_index], flux, time, dt, geom, physbcf, bcr); 
+    advance(*phi[old_index], *phi[new_index], flux, time, dt, geom, physbcf, bcr); 
     time = time + dt;
 
     // Tell the I/O Processor to write out which step we're doing
@@ -223,8 +227,8 @@ void main_main ()
     // Write a plotfile of the current data (plot_int was defined in the inputs file)
     if (plot_int > 0 && n%plot_int == 0)
     {
-      const std::string& pltfile = BoxLib::Concatenate("plt",n,5);
-      writePlotFile(pltfile, phi[new_index], geom, time);
+      const std::string& pltfile = amrex::Concatenate("plt",n,5);
+      writePlotFile(pltfile, *phi[new_index], geom, time);
     }
   }
 
@@ -242,10 +246,10 @@ void main_main ()
 
 int main (int argc, char* argv[])
 {
-    BoxLib::Initialize(argc,argv);
+    amrex::Initialize(argc,argv);
 
     main_main();
 
-    BoxLib::Finalize();
+    amrex::Finalize();
     return 0;
 }

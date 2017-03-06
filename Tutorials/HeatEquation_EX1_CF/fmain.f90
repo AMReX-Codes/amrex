@@ -1,7 +1,7 @@
 
-subroutine fmain () bind(c)
+subroutine amrex_fmain () bind(c)
 
-  use boxlib_module
+  use amrex_module
 
   use init_phi_module, only : init_phi
   use advance_module, only : advance
@@ -11,17 +11,18 @@ subroutine fmain () bind(c)
   integer :: n_cell, max_grid_size, nsteps, plot_int
   integer, parameter :: ncomp = 1, nghost = 1  ! one component, one ghost
   integer :: istep
-  double precision :: dt, time
-  type(ParmParse) :: pp
-  type(Box) :: domain
-  type(BoxArray) :: bs
-  type(Geometry) :: geom
-  type(MultiFab) :: new_phi, old_phi
+  real(amrex_real) :: dt, time
+  type(amrex_parmparse) :: pp
+  type(amrex_box) :: domain
+  type(amrex_boxarray)  :: ba
+  type(amrex_distromap) :: dm
+  type(amrex_geometry)  :: geom
+  type(amrex_multifab)  :: new_phi, old_phi
 
-  ! ParmParse is way of reading inputs from the inputs file
+  ! amrex_parmparse is way of reading inputs from the inputs file
   ! "get" means it must be set in the inputs file, whereas
   ! "query" means it may not may not be in the inputs file
-  call parmparse_build(pp)
+  call amrex_parmparse_build(pp)
 
   call pp%get("n_cell", n_cell);  ! # of cells in each dimension
   call pp%get("nsteps", nsteps) ! # of steps
@@ -32,21 +33,29 @@ subroutine fmain () bind(c)
   plot_int = -1 ! default to no plotfiles
   call pp%query("plot_int", plot_int);
   
+  call amrex_parmparse_destroy(pp)
+
   ! Define a single box covering the domain
-  domain = Box((/0,0,0/), (/n_cell-1, n_cell-1, n_cell-1/))
+  domain = amrex_box((/0,0,0/), (/n_cell-1, n_cell-1, n_cell-1/))
 
-  ! Initialize the boxarray "bs" from the single box "bx"
-  call boxarray_build(bs, domain)
+  ! Initialize the boxarray "ba" from the single box "bx"
+  call amrex_boxarray_build(ba, domain)
 
-  ! Break up boxarray "bs" into chunks no larger than "max_grid_size" along a direction
-  call bs%maxSize(max_grid_size)
+  ! Break up boxarray "ba" into chunks no larger than "max_grid_size" along a direction
+  call ba%maxSize(max_grid_size)
 
-  ! This defines a Geometry object.
-  call geometry_build(geom, domain)
+  ! Build a DistributionMapping for the boxarray
+  call amrex_distromap_build(dm, ba)
+  
+  ! This defines a amrex_geometry object.
+  call amrex_geometry_build(geom, domain)
 
   ! Build data multifabs
-  call multifab_build(new_phi, bs, ncomp, nghost)
-  call multifab_build(old_phi, bs, ncomp, nghost)
+  call amrex_multifab_build(new_phi, ba, dm, ncomp, nghost)
+  call amrex_multifab_build(old_phi, ba, dm, ncomp, nghost)
+
+  call amrex_distromap_destroy(dm)
+  call amrex_boxarray_destroy(ba)
 
   ! Intialize data
   call init_phi(new_phi, geom)
@@ -55,16 +64,16 @@ subroutine fmain () bind(c)
   time = 0.d0
 
   ! choose a time step with a diffusive CFL of 0.9
-  dt = 0.9d0*geom%dx(1)**2/(2.d0*bl_num_dims)
+  dt = 0.9d0*geom%dx(1)**2/(2.d0*amrex_spacedim)
 
   do istep = 1, nsteps
 
-     if ( parallel_IOProcessor() ) then
+     if ( amrex_parallel_IOProcessor() ) then
         print*,'Advancing time step',istep,'with dt=',dt
      end if
 
      ! Swap the guts of multifabs so we don't have to allocate and de-allocate data
-     call multifab_swap(new_phi, old_phi)
+     call amrex_multifab_swap(new_phi, old_phi)
 
      ! advance phi
      call advance(old_phi, new_phi, geom, dt)
@@ -73,4 +82,9 @@ subroutine fmain () bind(c)
 
   end do
 
-end subroutine fmain
+  call amrex_multifab_destroy(new_phi)
+  call amrex_multifab_destroy(old_phi)
+
+  call amrex_geometry_destroy(geom)
+
+end subroutine amrex_fmain

@@ -1,13 +1,15 @@
 
 #include <iostream>
 
-#include <Array.H>
-#include <ParmParse.H>
+#include <AMReX_Array.H>
+#include <AMReX_ParmParse.H>
+
+using namespace amrex;
 
 int
 main (int argc, char** argv)
 {
-    BoxLib::Initialize(argc,argv);
+    amrex::Initialize(argc,argv);
 
     ParmParse pp;
 
@@ -20,5 +22,5 @@ main (int argc, char** argv)
         std::cout << arr[i] << std::endl;
     }
 
-    BoxLib::Finalize();
+    amrex::Finalize();
 }

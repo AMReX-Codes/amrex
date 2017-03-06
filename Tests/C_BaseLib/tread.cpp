@@ -7,13 +7,15 @@
 #include <fstream>
 #include <iostream>
 
-#include <Utility.H>
-#include <FArrayBox.H>
+#include <AMReX_Utility.H>
+#include <AMReX_FArrayBox.H>
+
+using namespace amrex;
 
 int
 main (int argc, char** argv)
 {
-    BoxLib::Initialize(argc, argv);
+    amrex::Initialize(argc, argv);
 
     if (argc < 2)
     {
@@ -30,7 +32,7 @@ main (int argc, char** argv)
     ifs.open(argv[idx], std::ios::in);
 
     if (!ifs.good())
-        BoxLib::FileOpenFailed(argv[idx]);
+        amrex::FileOpenFailed(argv[idx]);
 
     std::cout << "Reading " << argv[idx] << " ..." << std::endl;
 
@@ -49,7 +51,7 @@ main (int argc, char** argv)
         ifs.open(argv[idx], std::ios::in);
 
         if (!ifs.good())
-            BoxLib::FileOpenFailed(argv[idx]);
+            amrex::FileOpenFailed(argv[idx]);
 
         std::cout << "Reading " << argv[idx] << " ..." << std::endl;
 
@@ -62,11 +64,11 @@ main (int argc, char** argv)
 
     ofs.open("SUM",std::ios::out|std::ios::trunc);
 
-    if (!ofs.good()) BoxLib::FileOpenFailed("SUM");
+    if (!ofs.good()) amrex::FileOpenFailed("SUM");
 
     sum.writeOn(ofs);
 
-    BoxLib::Finalize();
+    amrex::Finalize();
 
     return 0;
 }

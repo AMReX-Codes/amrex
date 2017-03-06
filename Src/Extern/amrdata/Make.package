@@ -1,7 +1,6 @@
-CEXE_sources += AmrData.cpp DataServices.cpp
-CEXE_headers += AmrData.H AmrvisConstants.H DataServices.H
-FEXE_headers += 
-FEXE_sources += FABUTIL_${DIM}D.F
+CEXE_sources += AMReX_AmrData.cpp AMReX_DataServices.cpp
+CEXE_headers += AMReX_AmrData.H AMReX_AmrvisConstants.H AMReX_DataServices.H
+FEXE_sources += AMReX_FABUTIL_${DIM}D.F
 
-VPATH_LOCATIONS += $(BOXLIB_HOME)/Src/Extern/amrdata
-INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/Extern/amrdata
+VPATH_LOCATIONS += $(AMREX_HOME)/Src/Extern/amrdata
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Extern/amrdata

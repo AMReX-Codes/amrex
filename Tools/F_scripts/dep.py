@@ -27,6 +27,11 @@ import sys
 if sys.version_info < (2, 7):
     sys.exit("ERROR: need python 2.7 or later for dep.py")
 
+if sys.version[0] == "2":
+    reload(sys)
+    sys.setdefaultencoding('utf8')
+
+
 import re
 import os
 import argparse
@@ -72,7 +77,7 @@ def run(command, stdin=False, outfile=None):
         else:
             for line in stdout0:
                 if line is not None:
-                    cf.write(line.decode("ascii"))
+                    cf.write(line.decode("utf8"))
             cf.close()
 
     return stdout0, rc
@@ -327,10 +332,17 @@ if __name__ == "__main__":
 
     if args.prefix != "":
         prefix_pass = "{}/".format(os.path.normpath(args.prefix))
+    else:
+        prefix_pass = "./"
+
+    if args.temp_dir != "":
+        temp_dir = args.temp_dir
+    else:
+        temp_dir = "./"
 
     # create a preprocessor object
     if args.cpp != "":
-        cpp_pass = Preprocessor(temp_dir=args.temp_dir, cpp_cmd=args.cpp,
+        cpp_pass = Preprocessor(temp_dir=temp_dir, cpp_cmd=args.cpp,
                                 defines=args.defines, f90_preprocess=args.f90_preprocess)
     else:
         cpp_pass = None

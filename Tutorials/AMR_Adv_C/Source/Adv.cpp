@@ -1,9 +1,11 @@
 
 #include <Adv.H>
 #include <Adv_F.H>
-#include <VisMF.H>
-#include <TagBox.H>
-#include <ParmParse.H>
+#include <AMReX_VisMF.H>
+#include <AMReX_TagBox.H>
+#include <AMReX_ParmParse.H>
+
+using namespace amrex;
 
 int      Adv::verbose         = 0;
 Real     Adv::cfl             = 0.9;
@@ -11,6 +13,11 @@ int      Adv::do_reflux       = 1;
 
 int      Adv::NUM_STATE       = 1;  // One variable in the state
 int      Adv::NUM_GROW        = 3;  // number of ghost cells
+
+#ifdef PARTICLES
+std::unique_ptr<AmrTracerParticleContainer> Adv::TracerPC =  nullptr;
+int Adv::do_tracers                       =  0;
+#endif
 
 void
 Adv::read_params ()
@@ -29,15 +36,17 @@ Adv::read_params ()
 
     // This tutorial code only supports Cartesian coordinates.
     if (! Geometry::IsCartesian()) {
-	BoxLib::Abort("Please set geom.coord_sys = 0");
+	amrex::Abort("Please set geom.coord_sys = 0");
     }
 
     // This tutorial code only supports periodic boundaries.
     if (! Geometry::isAllPeriodic()) {
-	BoxLib::Abort("Please set geom.is_periodic = 1 1 1");
+	amrex::Abort("Please set geom.is_periodic = 1 1 1");
     }
 
-
+#ifdef PARTICLES
+    pp.query("do_tracers", do_tracers);
+#endif 
 }
 
 Adv::Adv ()
@@ -49,13 +58,14 @@ Adv::Adv (Amr&            papa,
 	  int             lev,
 	  const Geometry& level_geom,
 	  const BoxArray& bl,
+	  const DistributionMapping& dm,
 	  Real            time)
     :
-    AmrLevel(papa,lev,level_geom,bl,time) 
+    AmrLevel(papa,lev,level_geom,bl,dm,time) 
 {
     flux_reg = 0;
     if (level > 0 && do_reflux)
-        flux_reg = new FluxRegister(grids,crse_ratio,level,NUM_STATE);
+        flux_reg = new FluxRegister(grids,dmap,crse_ratio,level,NUM_STATE);
 }
 
 Adv::~Adv () 
@@ -87,6 +97,10 @@ Adv::initData ()
 		   BL_TO_FORTRAN_3D(S_new[mfi]), ZFILL(dx),
 		   ZFILL(prob_lo));
     }
+
+#ifdef PARTICLES
+    init_particles();
+#endif
 
     if (verbose && ParallelDescriptor::IOProcessor())
 	std::cout << "Done initializing the level " << level << " data " << std::endl;
@@ -128,7 +142,6 @@ Adv::init ()
     FillCoarsePatch(S_new, 0, cur_time, State_Type, 0, NUM_STATE);
 }
 
-
 void
 Adv::post_timestep (int iteration)
 {
@@ -143,6 +156,29 @@ Adv::post_timestep (int iteration)
 
     if (level < finest_level)
         avgDown();
+
+#ifdef PARTICLES    
+    if (TracerPC)
+      {
+        const int ncycle = parent->nCycle(level);
+	
+        if (iteration < ncycle || level == 0)
+	  {
+            int ngrow = (level == 0) ? 0 : iteration;
+	    
+	    TracerPC->Redistribute(level, TracerPC->finestLevel(), ngrow);
+	  }
+      }
+#endif
+}
+
+void
+Adv::post_regrid (int lbase, int new_finest) {
+#ifdef PARTICLES
+  if (TracerPC && level == lbase) {
+      TracerPC->Redistribute(lbase);
+  }
+#endif
 }
 
 void
@@ -196,10 +232,37 @@ Adv::avgDown (int state_indx)
     MultiFab&  S_fine   = fine_lev.get_new_data(state_indx);
     MultiFab&  S_crse   = get_new_data(state_indx);
     
-    BoxLib::average_down(S_fine,S_crse,
+    amrex::average_down(S_fine,S_crse,
                          fine_lev.geom,geom,
                          0,S_fine.nComp(),parent->refRatio(level));
 }
+
+#ifdef PARTICLES
+void
+Adv::init_particles ()
+{
+  if (do_tracers and level == 0)
+    {
+      BL_ASSERT(TracerPC == nullptr);
+      
+      TracerPC.reset(new AmrTracerParticleContainer(parent));
+      TracerPC->do_tiling = true;
+      TracerPC->tile_size = IntVect(D_DECL(1024000,4,4));
+
+      const BoxArray& ba = TracerPC->ParticleBoxArray(0);
+      const DistributionMapping& dm = TracerPC->ParticleDistributionMap(0);
+
+      MFInfo Fab_noallocate;
+      Fab_noallocate.SetAlloc(false);
+      MultiFab dummy_mf(ba, dm, 1, 0, Fab_noallocate);
+
+      TracerPC->SetVerbose(0);
+      TracerPC->InitOnePerCell(0.5, 0.5, 0.5, 1.0, dummy_mf);
+
+      TracerPC->Redistribute();
+    }
+}
+#endif
 
 void
 Adv::errorEst (TagBoxArray& tags,

@@ -1,0 +1,16 @@
+BNDRYLIB_BASE=EXE
+
+C$(BNDRYLIB_BASE)_sources += AMReX_FabSet.cpp AMReX_BndryRegister.cpp AMReX_Mask.cpp AMReX_MultiMask.cpp\
+                             AMReX_BndryData.cpp AMReX_InterpBndryData.cpp AMReX_MacBndry.cpp
+
+C$(BNDRYLIB_BASE)_headers += AMReX_FabSet.H AMReX_BndryRegister.H AMReX_Mask.H AMReX_MultiMask.H\
+			     AMReX_BndryData.H AMReX_BoundCond.H AMReX_InterpBndryData.H \
+			     AMReX_LO_BCTYPES.H AMReX_MacBndry.H 
+
+F$(BNDRYLIB_BASE)_headers += AMReX_INTERPBNDRYDATA_F.H
+
+F$(BNDRYLIB_BASE)_sources += AMReX_INTERPBNDRYDATA_$(DIM)D.F AMReX_LO_UTIL.F
+
+VPATH_LOCATIONS += $(AMREX_HOME)/Src/Boundary
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Boundary
+

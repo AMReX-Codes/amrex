@@ -2,8 +2,8 @@
 #define _MultiFab_C_F_H_
 
 #include <string>
-#include <MultiFab.H>
-#include <Geometry.H>
+#include <AMReX_MultiFab.H>
+#include <AMReX_Geometry.H>
 
 extern "C" {
     void build_layout_from_c (int nb, int dm, const int* lo, const int* hi, 
@@ -11,8 +11,10 @@ extern "C" {
 			      const int* pmask, const int* pmap);
     void destroy_multifab_c ();
     void share_multifab_with_f (const char* fmf_name, int nc, int ng, const int* nodal);
-    void share_fab_with_f (int i, const Real* p);
+    void share_fab_with_f (int i, const amrex::Real* p);
 }
+
+namespace amrex {
 
 class MultiFab_C_to_F
 {
@@ -37,5 +39,6 @@ private:
 
 };
 
+}
 
 #endif

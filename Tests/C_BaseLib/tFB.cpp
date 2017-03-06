@@ -2,8 +2,10 @@
 // A test program for FillBoundary().
 //
 
-#include <Utility.H>
-#include <MultiFab.H>
+#include <AMReX_Utility.H>
+#include <AMReX_MultiFab.H>
+
+using namespace amrex;
 
 const int nTimes(5);
 const int nStrategies(4);
@@ -12,7 +14,7 @@ const int nStrategies(4);
 int
 main (int argc, char** argv)
 {
-  BoxLib::Initialize(argc, argv);
+  amrex::Initialize(argc, argv);
 
   BL_PROFILE_VAR("main()", pmain);
 
@@ -46,6 +48,8 @@ main (int argc, char** argv)
     BoxArray ba(bx);
     ba.maxSize(64);
 
+    DistributionMapping dm{ba};
+
     const int N = 2000;  // This should be divisible by 4 !!!
 
     if (ParallelDescriptor::IOProcessor() && iS == 0) {
@@ -61,7 +65,7 @@ main (int argc, char** argv)
         //
         // A test of FillBoundary() on 1 grow cell with cross stencil.
         //
-        MultiFab mf(ba,1,1); mf.setVal(1.23);
+        MultiFab mf(ba,dm,1,1); mf.setVal(1.23);
 
         ParallelDescriptor::Barrier();
         double beg = ParallelDescriptor::second();
@@ -81,7 +85,7 @@ main (int argc, char** argv)
         //
         // A test of FillBoundary() on 1 grow cell with dense stencil.
         //
-        MultiFab mf(ba,1,1); mf.setVal(1.23);
+        MultiFab mf(ba,dm,1,1); mf.setVal(1.23);
 
         ParallelDescriptor::Barrier();
         double beg = ParallelDescriptor::second();
@@ -100,7 +104,7 @@ main (int argc, char** argv)
         //
         // First a test of FillBoundary() on 2 grow cells with dense stencil.
         //
-        MultiFab mf(ba,1,2); mf.setVal(1.23);
+        MultiFab mf(ba,dm,1,2); mf.setVal(1.23);
 
         ParallelDescriptor::Barrier();
         double beg = ParallelDescriptor::second();
@@ -119,7 +123,7 @@ main (int argc, char** argv)
         //
         // First a test of FillBoundary() on 4 grow cells with dense stencil.
         //
-        MultiFab mf(ba,1,4); mf.setVal(1.23);
+        MultiFab mf(ba,dm,1,4); mf.setVal(1.23);
 
         ParallelDescriptor::Barrier();
         double beg = ParallelDescriptor::second();
@@ -149,7 +153,7 @@ main (int argc, char** argv)
 
     BL_PROFILE_VAR_STOP(pmain);
 
-    BoxLib::Finalize();
+    amrex::Finalize();
 
     return 0;
 }

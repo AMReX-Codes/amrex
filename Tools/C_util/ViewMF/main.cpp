@@ -1,13 +1,11 @@
 
-#ifndef WIN32
 #include <unistd.h>
-#endif
 
-#include <MultiFab.H>
+#include <AMReX_MultiFab.H>
 #include <ArrayView.H>
-#include <ParmParse.H>
-#include <Utility.H>
-#include <ParallelDescriptor.H>
+#include <AMReX_ParmParse.H>
+#include <AMReX_Utility.H>
+#include <AMReX_ParallelDescriptor.H>
 #include <TV_TempWrite.H>
 
 const int NPROCS = 1;
@@ -90,9 +88,7 @@ main (int   argc,
     //
     // Make sure to catch new failures.
     //
-#ifndef WIN32
     set_new_handler(Utility::OutOfMemory);
-#endif
 
     if (argc != 2) print_usage(argc,argv);
 
@@ -134,9 +130,7 @@ main (int   argc,
     //
     // Make sure to catch new failures.
     //
-#ifndef WIN32
     set_new_handler(Utility::OutOfMemory);
-#endif
 
     // Parse command line
     ParmParse pp(argc-1,argv+1,NULL,NULL); 
@@ -192,9 +186,7 @@ int main (int   argc,
     //
     // Make sure to catch new failures.
     //
-#ifndef WIN32
     set_new_handler(Utility::OutOfMemory);
-#endif
     
     if (argc < 6 || argc > 7) print_usage(argc,argv);
 
@@ -335,7 +327,7 @@ norm ( const MultiFab& mfab,
 
     } else {
 
-        BoxLib::Error("Invalid exponent to norm function");
+        amrex::Error("Invalid exponent to norm function");
     }
     
     return myNorm;

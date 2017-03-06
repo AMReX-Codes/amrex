@@ -13,10 +13,12 @@
 #include <sstream>
 #include <unistd.h>
 
-#include <BoxLib.H>
-#include <ParallelDescriptor.H>
-#include <Utility.H>
-#include <ParmParse.H>
+#include <AMReX.H>
+#include <AMReX_ParallelDescriptor.H>
+#include <AMReX_Utility.H>
+#include <AMReX_ParmParse.H>
+
+using namespace amrex;
 
 namespace
 {
@@ -71,7 +73,7 @@ namespace
 // --------------------------------------------------------------------------
 int main(int argc, char *argv[]) {
 
-    BoxLib::Initialize(argc,argv);
+    amrex::Initialize(argc,argv);
 
     // A flag you need for broadcasting across MPI groups. We always broadcast
     // the data to the sidecar group from the IOProcessor on the compute group.
@@ -137,6 +139,6 @@ int main(int argc, char *argv[]) {
     ParallelDescriptor::Barrier();
 
     std::cout << "_calling Finalize()" << std::endl;
-    BoxLib::Finalize();
+    amrex::Finalize();
     return 0;
 }

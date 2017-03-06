@@ -9,14 +9,14 @@ using std::ios;
 #include <unistd.h>
 
 #include <WritePlotFile.H>
-#include <REAL.H>
-#include <Box.H>
-#include <FArrayBox.H>
-#include <ParmParse.H>
-#include <ParallelDescriptor.H>
-#include <DataServices.H>
-#include <Utility.H>
-#include <VisMF.H>
+#include <AMReX_REAL.H>
+#include <AMReX_Box.H>
+#include <AMReX_FArrayBox.H>
+#include <AMReX_ParmParse.H>
+#include <AMReX_ParallelDescriptor.H>
+#include <AMReX_DataServices.H>
+#include <AMReX_Utility.H>
+#include <AMReX_VisMF.H>
 #include <AVGDOWN_F.H>
 
 #ifndef NDEBUG
@@ -70,7 +70,7 @@ int
 main (int   argc,
       char* argv[])
 {
-    BoxLib::Initialize(argc,argv);
+    amrex::Initialize(argc,argv);
 
     if (argc == 1)
         PrintUsage(argv[0]);
@@ -93,11 +93,11 @@ main (int   argc,
     }
     pp.query("infile1", iFile1);
     if (iFile1.empty())
-        BoxLib::Abort("You must specify `infile1'");
+        amrex::Abort("You must specify `infile1'");
 
     pp.query("reffile", iFile2);
     if (iFile2.empty())
-        BoxLib::Abort("You must specify `reffile'");
+        amrex::Abort("You must specify `reffile'");
 
     pp.query("diffile", difFile);
 
@@ -111,7 +111,7 @@ main (int   argc,
     DataServices dataServices2(iFile2, fileType);
 
     if (!dataServices1.AmrDataOk() || !dataServices2.AmrDataOk())
-        BoxLib::Abort("ERROR: Dataservices not OK");
+        amrex::Abort("ERROR: Dataservices not OK");
 
     //
     // Generate AmrData Objects 
@@ -123,7 +123,7 @@ main (int   argc,
     // Initial Tests 
     //
     if (amrData1.FinestLevel() != amrData2.FinestLevel())
-        BoxLib::Abort("ERROR: Finest level is not the same in the two plotfiles");
+        amrex::Abort("ERROR: Finest level is not the same in the two plotfiles");
 
     int nComp1      = amrData1.NComp();
     int nComp2      = amrData2.NComp();
@@ -184,13 +184,13 @@ main (int   argc,
 	std::cout << "Nodal Direction = " << nodal_dir << std::endl;
 	if (nodal_dir == -1)
 	  {
-	    BoxLib::Error("Data is not nodal in any direction");
+	    amrex::Error("Data is not nodal in any direction");
 	  }
 
         IntVect refine_ratio   = getRefRatio(domain1, domain2);
 
         if (refine_ratio == IntVect())
-            BoxLib::Error("Cannot find refinement ratio from data to exact");
+            amrex::Error("Cannot find refinement ratio from data to exact");
 
         if (verbose)
             std::cerr << "level = " << iLevel << "  Ref_Ratio = " << refine_ratio
@@ -345,7 +345,7 @@ main (int   argc,
     for (int iLevel = 0; iLevel <= finestLevel; ++iLevel)
 	delete error[iLevel];
 
-    BoxLib::Finalize();
+    amrex::Finalize();
 }
 
 

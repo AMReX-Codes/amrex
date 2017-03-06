@@ -1,4 +1,4 @@
-BOXLIB_HOME := ../..
+AMREX_HOME := ../..
 
 NDEBUG := t
 PROF   := 
@@ -9,7 +9,7 @@ COMP := gfortran
 
 MKVERBOSE := t
 
-include $(BOXLIB_HOME)/Tools/F_mk/GMakedefs.mak
+include $(AMREX_HOME)/Tools/F_mk/GMakedefs.mak
 
 include ./GPackage.mak
 VPATH_LOCATIONS += .
@@ -36,8 +36,8 @@ BOXLIB_CORE := Src/F_BaseLib
 # we need to tell the compiler about.
 
 # BoxLib
-Fmpack += $(foreach dir, $(BOXLIB_CORE), $(BOXLIB_HOME)/$(dir)/GPackage.mak)
-Fmlocs += $(foreach dir, $(BOXLIB_CORE), $(BOXLIB_HOME)/$(dir))
+Fmpack += $(foreach dir, $(BOXLIB_CORE), $(AMREX_HOME)/$(dir)/GPackage.mak)
+Fmlocs += $(foreach dir, $(BOXLIB_CORE), $(AMREX_HOME)/$(dir))
 
 # include the necessary GPackage.mak files that define this setup
 include $(Fmpack)
@@ -76,17 +76,17 @@ PROBIN_TEMPLATE := ./probin.template
 PROBIN_PARAMETER_DIRS = ./
 
 # list of all valid _parameters files for probin
-PROBIN_PARAMETERS := $(shell $(BOXLIB_HOME)/Tools/F_scripts/findparams.py $(PROBIN_PARAMETER_DIRS))
+PROBIN_PARAMETERS := $(shell $(AMREX_HOME)/Tools/F_scripts/findparams.py $(PROBIN_PARAMETER_DIRS))
 
 probin.f90: $(PROBIN_PARAMETERS) $(PROBIN_TEMPLATE)
 	@echo " "
 	@echo "${bold}WRITING probin.f90${normal}"
 ifdef MKVERBOSE
-	$(BOXLIB_HOME)/Tools/F_scripts/write_probin.py \
+	$(AMREX_HOME)/Tools/F_scripts/write_probin.py \
            -t $(PROBIN_TEMPLATE) -o probin.f90 -n probin \
            --pa "$(PROBIN_PARAMETERS)"
 else
-	@$(BOXLIB_HOME)/Tools/F_scripts/write_probin.py \
+	@$(AMREX_HOME)/Tools/F_scripts/write_probin.py \
            -t $(PROBIN_TEMPLATE) -o probin.f90 -n probin \
            --pa "$(PROBIN_PARAMETERS)"
 endif
@@ -101,17 +101,17 @@ build_info.f90:
 	@echo " "
 	@echo "${bold}WRITING build_info.f90${normal}"
 ifdef MKVERBOSE
-	$(BOXLIB_HOME)/Tools/F_scripts/make_build_info2 \
+	$(AMREX_HOME)/Tools/F_scripts/make_build_info2 \
             "$(Fmdirs)" "$(COMP)" "$(FCOMP_VERSION)" \
             "$(COMPILE.f90)" "$(COMPILE.f)" \
             "$(COMPILE.c)" "$(LINK.f90)" \
-            "GIT=$(BOXLIB_HOME)"
+            "GIT=$(AMREX_HOME)"
 else
-	@$(BOXLIB_HOME)/Tools/F_scripts/make_build_info2 \
+	@$(AMREX_HOME)/Tools/F_scripts/make_build_info2 \
             "$(Fmdirs)" "$(COMP)" "$(FCOMP_VERSION)" \
             "$(COMPILE.f90)" "$(COMPILE.f)" \
             "$(COMPILE.c)" "$(LINK.f90)" \
-            "GIT=$(BOXLIB_HOME)"
+            "GIT=$(AMREX_HOME)"
 endif
 	@echo " "
 
@@ -128,7 +128,7 @@ endif
 
 #-----------------------------------------------------------------------------
 # include the BoxLib Fortran Makefile rules
-include $(BOXLIB_HOME)/Tools/F_mk/GMakerules.mak
+include $(AMREX_HOME)/Tools/F_mk/GMakerules.mak
 
 ifeq ($(findstring bint01.nersc.gov, $(HOSTNAMEF)), bint01.nersc.gov)
 #  F90FLAGS += -no-prec-div -fno-alias -fimf-precision=low -fimf-domain-exclusion=15 -align array64byte -opt-assume-safe-padding -opt-streaming-stores always -opt-streaming-cache-evict=0

@@ -49,7 +49,7 @@ For main, add these:
 
 int main(...) {
 
-  BoxLib::Initialize(argc,argv);
+  amrex::Initialize(argc,argv);
 
   BL_PROFILE_VAR("main()", pmain);  // add this
 
@@ -58,7 +58,7 @@ int main(...) {
   BL_PROFILE_VAR_STOP(pmain);  // add this
   BL_PROFILE_SET_RUN_TIME(Your_timers_time_for_the_run);  // optional
 
-  BoxLib::Finalize();
+  amrex::Finalize();
 }
 
 
@@ -125,7 +125,7 @@ regions, add these to your code:
 
 --------------------------------------------- Communications timings.
 Timings for communication functions such as ParallelDescriptor::Send(...)
-are shown in the regular profiling's function timing section.  BoxLib
+are shown in the regular profiling's function timing section.  AMReX
 can also collect additional information such as point to point
 communication timings, amount of data moved, barrier and
 reduction wait times, etc.  To use this part of the profiler,

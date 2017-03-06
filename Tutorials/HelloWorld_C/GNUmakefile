@@ -1,4 +1,4 @@
-BOXLIB_HOME ?= ../../
+AMREX_HOME ?= ../../
 
 DEBUG	= FALSE
 DEBUG	= TRUE
@@ -12,9 +12,9 @@ PRECISION = DOUBLE
 USE_MPI   = FALSE
 USE_OMP   = FALSE
 
-include $(BOXLIB_HOME)/Tools/C_mk/Make.defs
+include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
 include ./Make.package
-include $(BOXLIB_HOME)/Src/C_BaseLib/Make.package
+include $(AMREX_HOME)/Src/Base/Make.package
 
-include $(BOXLIB_HOME)/Tools/C_mk/Make.rules
+include $(AMREX_HOME)/Tools/GNUMake/Make.rules

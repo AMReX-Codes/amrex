@@ -1,19 +1,23 @@
 #include <iostream>
 
-#include <BoxLib.H>
-#include <MultiFab.H>
-#include <MultiFabUtil.H>
-#include <BLFort.H>
-#include <MacBndry.H>
-#include <MGT_Solver.H>
+#include <AMReX.H>
+#include <AMReX_MultiFab.H>
+#include <AMReX_MultiFabUtil.H>
+#include <AMReX_BLFort.H>
+#include <AMReX_MacBndry.H>
+#include <AMReX_MGT_Solver.H>
 #include <mg_cpp_f.h>
-#include <stencil_types.H>
-#include <MultiFabUtil.H>
+#include <AMReX_stencil_types.H>
+#include <AMReX_MultiFabUtil.H>
 
-#include "Particles.H"
+#include "AMReX_Particles.H"
+
+using namespace amrex;
 
 // declare routines below
-void solve_for_accel(PArray<MultiFab>& rhs, PArray<MultiFab>& phi, PArray<MultiFab>& grad_phi, 
+void solve_for_accel(const Array<MultiFab*>& rhs,
+		     const Array<MultiFab*>& phi,
+		     const Array<MultiFab*>& grad_phi, 
                      const Array<Geometry>& geom, int base_level, int finest_level, Real offset);
 
 Real                getEfficiency  (const DistributionMapping& dm, const Array<long>& cost);
@@ -22,7 +26,7 @@ void                splitBoxes     (BoxArray& ba, Array<long>& newcost, const Ar
 
 int main(int argc, char* argv[])
 {
-    BoxLib::Initialize(argc,argv);
+    amrex::Initialize(argc,argv);
 
     int max_grid_size = 32;
     int min_grid_size = 4;
@@ -92,7 +96,7 @@ int main(int argc, char* argv[])
     geom[0].define(domain, &real_box, coord, is_per);
     for (int lev = 1; lev < nlevs; lev++)
     {
-	geom[lev].define(BoxLib::refine(geom[lev-1].Domain(), rr[lev-1]),
+	geom[lev].define(amrex::refine(geom[lev-1].Domain(), rr[lev-1]),
 			 &real_box, coord, is_per);
     }
 
@@ -127,27 +131,22 @@ int main(int argc, char* argv[])
     // ********************************************************************************************
 
     // build a multifab for the rhs on the box array with 
-    PArray<MultiFab> rhs; 
-    PArray<MultiFab> phi;
-    PArray<MultiFab> grad_phi;
+    Array<std::unique_ptr<MultiFab> > rhs(nlevs); 
+    Array<std::unique_ptr<MultiFab> > phi(nlevs);
+    Array<std::unique_ptr<MultiFab> > grad_phi(nlevs);
     Array<DistributionMapping> dmap(nlevs);
-
-    rhs.resize(nlevs,PArrayManage);
-    phi.resize(nlevs,PArrayManage);
-    grad_phi.resize(nlevs,PArrayManage);
 
     for (int lev = 0; lev < nlevs; lev++)
     {
-	//                                    # component # ghost cells
-	rhs.set     (lev,new MultiFab(ba[lev],1          ,0));
-	phi.set     (lev,new MultiFab(ba[lev],1          ,1));
-	grad_phi.set(lev,new MultiFab(ba[lev],BL_SPACEDIM,1));
+	dmap[lev] = DistributionMapping{ba[lev]};
+	//                                                 # component # ghost cells
+	rhs     [lev].reset(new MultiFab(ba[lev],dmap[lev],1          ,0));
+	phi     [lev].reset(new MultiFab(ba[lev],dmap[lev],1          ,1));
+	grad_phi[lev].reset(new MultiFab(ba[lev],dmap[lev],BL_SPACEDIM,1));
 
-	rhs[lev].setVal(0.0);
-	phi[lev].setVal(0.0);
-	grad_phi[lev].setVal(0.0);
-
-	dmap[lev] = rhs[lev].DistributionMap();
+	rhs[lev]->setVal(0.0);
+	phi[lev]->setVal(0.0);
+	grad_phi[lev]->setVal(0.0);
     }
 
     // Define a new particle container to hold my particles.
@@ -155,7 +154,7 @@ int main(int argc, char* argv[])
     typedef ParticleContainer<1+2*BL_SPACEDIM> MyParticleContainer;
     
     // Build a new particle container to hold my particles.
-    MyParticleContainer* MyPC = new MyParticleContainer(geom,dmap,ba,rr);
+    std::unique_ptr<MyParticleContainer> MyPC(new MyParticleContainer(geom,dmap,ba,rr));
     MyPC->SetVerbose(0);
 
     // This allows us to write the gravitational acceleration into these components 
@@ -286,19 +285,18 @@ int main(int argc, char* argv[])
     int base_level   = 0;
     int finest_level = nlevs-1;
 
-    PArray<MultiFab> PartMF;
-    PartMF.resize(nlevs,PArrayManage);
-    PartMF.set(0,new MultiFab(ba[0],1,1));
-    PartMF[0].setVal(0.0);
+    Array<std::unique_ptr<MultiFab> > PartMF(nlevs);
+    PartMF[0].reset(new MultiFab(ba[0],dmap[0],1,1));
+    PartMF[0]->setVal(0.0);
 
 //  MyPC->AssignDensity(0, PartMF, false, base_level, 1, finest_level);
-    MyPC->AssignDensitySingleLevel(0, PartMF[0], 0, 1, 0);
+    MyPC->AssignDensitySingleLevel(0, *PartMF[0], 0, 1, 0);
 
     for (int lev = finest_level - 1 - base_level; lev >= 0; lev--)
-        BoxLib::average_down(PartMF[lev+1],PartMF[lev],0,1,rr[lev]);
+        amrex::average_down(*PartMF[lev+1],*PartMF[lev],0,1,rr[lev]);
 
     for (int lev = 0; lev < nlevs; lev++)
-        MultiFab::Add(rhs[base_level+lev], PartMF[lev], 0, 0, 1, 0);
+        MultiFab::Add(*rhs[base_level+lev], *PartMF[lev], 0, 0, 1, 0);
  
     // **************************************************************************
     // Define this to be solve at level 0 only
@@ -310,12 +308,15 @@ int main(int argc, char* argv[])
     // Use multigrid to solve Lap(phi) = rhs with periodic boundary conditions (set above)
     if (ParallelDescriptor::IOProcessor())
        std::cout << "Solving for phi at level 0 ... " << std::endl;
-    solve_for_accel(rhs,phi,grad_phi,geom,base_level,finest_level,offset);
+    solve_for_accel(amrex::GetArrOfPtrs(rhs),
+		    amrex::GetArrOfPtrs(phi),
+		    amrex::GetArrOfPtrs(grad_phi),
+		    geom,base_level,finest_level,offset);
 
     // Fill the particle data with the acceleration at the particle location
     // Note that we are calling moveKick with accel_comp > BL_SPACEDIM
     //      which means with dt = 0 we don't move the particle or set a velocity
-    MyPC->moveKick(grad_phi[0],nlevs-1,dummy_dt,1.0,1.0,accel_comp);
+    MyPC->moveKick(*grad_phi[0],nlevs-1,dummy_dt,1.0,1.0,accel_comp);
 
     // Write out the positions, masses and accelerations of each particle.
     MyPC->WriteAsciiFile("Particles_after_level0_solve");
@@ -333,7 +334,10 @@ int main(int argc, char* argv[])
     // Use multigrid to solve Lap(phi) = rhs with boundary conditions from level 0
     if (ParallelDescriptor::IOProcessor())
        std::cout << "Solving for phi at level 1 ... " << std::endl;
-    solve_for_accel(rhs,phi,grad_phi,geom,base_level,finest_level,offset);
+    solve_for_accel(amrex::GetArrOfPtrs(rhs),
+		    amrex::GetArrOfPtrs(phi),
+		    amrex::GetArrOfPtrs(grad_phi),
+		    geom,base_level,finest_level,offset);
     if (ParallelDescriptor::IOProcessor())
        std::cout << "Solved  for phi at level 1 ... " << std::endl;
 
@@ -341,7 +345,7 @@ int main(int argc, char* argv[])
     // Note that we are calling moveKick with accel_comp > BL_SPACEDIM
     //      which means with dt = 0 we don't move the particle or set a velocity
     for (int lev = 0; lev < nlevs; lev++)
-        MyPC->moveKick(grad_phi[lev],lev,dummy_dt,1.0,1.0,accel_comp);
+        MyPC->moveKick(*grad_phi[lev],lev,dummy_dt,1.0,1.0,accel_comp);
 
     // Write out the positions, masses and accelerations of each particle.
     MyPC->WriteAsciiFile("Particles_after_level1_solve");
@@ -353,8 +357,8 @@ int main(int argc, char* argv[])
     // Reset everything to 0
     for (int lev = 0; lev < nlevs; lev++)
     {
-	phi[lev].setVal(0.0);
-	grad_phi[lev].setVal(0.0);
+	phi[lev]->setVal(0.0);
+	grad_phi[lev]->setVal(0.0);
     }
 
     // Define this to be solve at multi-level solve
@@ -368,22 +372,23 @@ int main(int argc, char* argv[])
     MyPC->AssignDensity(0, false, rhs, base_level,1,finest_level);
 
     // Use multigrid to solve Lap(phi) = rhs with periodic boundary conditions (set above)
-    solve_for_accel(rhs,phi,grad_phi,geom,base_level,finest_level,offset);
+    solve_for_accel(amrex::GetArrOfPtrs(rhs),
+		    amrex::GetArrOfPtrs(phi),
+		    amrex::GetArrOfPtrs(grad_phi),
+		    geom,base_level,finest_level,offset);
 
     // Fill the particle data with the acceleration at the particle location
     // Note that we are calling moveKick with accel_comp > BL_SPACEDIM
     //      which means with dt = 0 we don't move the particle or set a velocity
     for (int lev = 0; lev < nlevs; lev++)
-        MyPC->moveKick(grad_phi[lev],lev,dummy_dt,1.0,1.0,accel_comp);
+        MyPC->moveKick(*grad_phi[lev],lev,dummy_dt,1.0,1.0,accel_comp);
 
     // Write out the positions, masses and accelerations of each particle.
     MyPC->WriteAsciiFile("Particles_after_multilevel_solve");
 
     } // end if (nlevs > 1)
 
-    delete MyPC;
-
-    BoxLib::Finalize();
+    amrex::Finalize();
 }
 
 Real

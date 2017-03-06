@@ -15,8 +15,8 @@ MAESTRO_TOP_DIR := $(MAESTRO_HOME)
 
 
 # include the main Makefile stuff
-BOXLIB_HOME := ../../..
-include $(BOXLIB_HOME)/Tools/F_mk/GMakedefs.mak
+AMREX_HOME := ../../..
+include $(AMREX_HOME)/Tools/F_mk/GMakedefs.mak
 
 # core BoxLib directories
 BOXLIB_CORE := Src/F_BaseLib
@@ -64,8 +64,8 @@ Fmpack := $(foreach dir, $(Fmdirs), $(MAESTRO_TOP_DIR)/$(dir)/GPackage.mak)
 Fmlocs := $(foreach dir, $(Fmdirs), $(MAESTRO_TOP_DIR)/$(dir))
 
 # BoxLib stuff
-Fmpack += $(foreach dir, $(BOXLIB_CORE), $(BOXLIB_HOME)/$(dir)/GPackage.mak)
-Fmlocs += $(foreach dir, $(BOXLIB_CORE), $(BOXLIB_HOME)/$(dir))
+Fmpack += $(foreach dir, $(BOXLIB_CORE), $(AMREX_HOME)/$(dir)/GPackage.mak)
+Fmlocs += $(foreach dir, $(BOXLIB_CORE), $(AMREX_HOME)/$(dir))
 
 # Microphysics
 Fmpack += $(foreach dir, $(MICROPHYS_CORE), $(dir)/GPackage.mak)
@@ -105,19 +105,19 @@ all: $(pnames)
 ifdef NEED_EOS_NETWORK
   PROBIN_PARAMETER_DIRS :=
   EXTERN_PARAMETER_DIRS += $(MICROPHYS_CORE)
-  EXTERN_PARAMETERS := $(shell $(BOXLIB_HOME)/Tools/F_scripts/findparams.py $(EXTERN_PARAMETER_DIRS))
+  EXTERN_PARAMETERS := $(shell $(AMREX_HOME)/Tools/F_scripts/findparams.py $(EXTERN_PARAMETER_DIRS))
 
   PROBIN_TEMPLATE := $(MAESTRO_TOP_DIR)/Util/parameters/dummy.probin.template
 endif
 
 probin.f90: $(PROBIN_PARAMETERS) $(EXTERN_PARAMETERS) $(PROBIN_TEMPLATE)
 	@echo " "
-	$(BOXLIB_HOME)/Tools/F_scripts/write_probin.py \
+	$(AMREX_HOME)/Tools/F_scripts/write_probin.py \
            -t $(PROBIN_TEMPLATE) -o probin.f90 -n probin \
            --pa "$(PROBIN_PARAMETERS)" --pb "$(EXTERN_PARAMETERS)"
 
 
-include $(BOXLIB_HOME)/Tools/F_mk/GMakerules.mak
+include $(AMREX_HOME)/Tools/F_mk/GMakerules.mak
 
 
 # for debugging.  To see the value of a Makefile variable,

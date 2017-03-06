@@ -1,13 +1,18 @@
 
 #include <Adv.H>
 #include <Adv_F.H>
-#include <ParmParse.H>
-#include <BC_TYPES.H>
+#include <AMReX_ParmParse.H>
+#include <AMReX_BC_TYPES.H>
+
+using namespace amrex;
 
 void
 Adv::variableCleanUp () 
 {
     desc_lst.clear();
+#ifdef PARTICLES
+    TracerPC.reset();
+#endif
 }
 
 void

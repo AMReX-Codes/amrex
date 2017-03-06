@@ -2,19 +2,23 @@
 #include <fstream>
 #include <iomanip>
 
-#include <Utility.H>
-#include <IntVect.H>
-#include <Geometry.H>
-#include <ParmParse.H>
-#include <ParallelDescriptor.H>
-#include <VisMF.H>
+#include <AMReX_Utility.H>
+#include <AMReX_IntVect.H>
+#include <AMReX_Geometry.H>
+#include <AMReX_ParmParse.H>
+#include <AMReX_ParallelDescriptor.H>
+#include <AMReX_VisMF.H>
 
 #include <writePlotFile.H>
 
+using namespace amrex;
+
 void writePlotFile (const std::string& dir, 
-		    const PArray<MultiFab>& soln, const PArray<MultiFab>& exac, 
-		    const PArray<MultiFab>& alph, const PArray<MultiFab>& beta, 
-		    const PArray<MultiFab>& rhs, 
+		    const Array<MultiFab*>& soln,
+		    const Array<MultiFab*>& exac, 
+		    const Array<MultiFab*>& alph,
+		    const Array<MultiFab*>& beta, 
+		    const Array<MultiFab*>& rhs, 
 		    const std::vector<Geometry>& geom, 
 		    const std::vector<BoxArray>& grids,
 		    int nsoln, int iCpp, int iF90, int iHyp)
@@ -31,8 +35,8 @@ void writePlotFile (const std::string& dir,
     // Only the I/O processor makes the directory if it doesn't already exist.
     //
     if (ParallelDescriptor::IOProcessor())
-        if (!BoxLib::UtilCreateDirectory(dir, 0755))
-            BoxLib::CreateDirectoryFailed(dir);
+        if (!amrex::UtilCreateDirectory(dir, 0755))
+            amrex::CreateDirectoryFailed(dir);
     //
     // Force other processors to wait till directory is built.
     //
@@ -53,7 +57,7 @@ void writePlotFile (const std::string& dir,
         //
         HeaderFile.open(HeaderFileName.c_str(), std::ios::out|std::ios::trunc|std::ios::binary);
         if (!HeaderFile.good())
-            BoxLib::FileOpenFailed(HeaderFileName);
+            amrex::FileOpenFailed(HeaderFileName);
         HeaderFile << "HyperCLaw-V1.1\n";
 
         HeaderFile << n_data_items << '\n';
@@ -110,7 +114,7 @@ void writePlotFile (const std::string& dir,
       //
       static const std::string BaseName = "/Cell";
 
-      std::string Level = BoxLib::Concatenate("Level_", ilev, 1);
+      std::string Level = amrex::Concatenate("Level_", ilev, 1);
       //
       // Now for the full pathname of that directory.
       //
@@ -122,8 +126,8 @@ void writePlotFile (const std::string& dir,
       // Only the I/O processor makes the directory if it doesn't already exist.
       //
       if (ParallelDescriptor::IOProcessor())
-        if (!BoxLib::UtilCreateDirectory(FullPath, 0755))
-	  BoxLib::CreateDirectoryFailed(FullPath);
+        if (!amrex::UtilCreateDirectory(FullPath, 0755))
+	  amrex::CreateDirectoryFailed(FullPath);
       //
       // Force other processors to wait till directory is built.
       //
@@ -153,22 +157,23 @@ void writePlotFile (const std::string& dir,
       //
       // We combine all of the multifabs 
       //
-      MultiFab  plotMF(grids[ilev], n_data_items, 0);
+      const DistributionMapping& dm = soln[ilev]->DistributionMap();
+      MultiFab  plotMF(grids[ilev], dm, n_data_items, 0);
       //
       // Cull data -- use no ghost cells.
       //
       int cnt=0;
       for (int isoln=0; isoln < nsoln; isoln++) {
-	MultiFab::Copy(plotMF, soln[ilev], isoln, cnt, 1, 0);
+	MultiFab::Copy(plotMF, *soln[ilev], isoln, cnt, 1, 0);
 	cnt++;
       }
-      MultiFab::Copy(plotMF, exac[ilev], 0, cnt, 1, 0);
+      MultiFab::Copy(plotMF, *exac[ilev], 0, cnt, 1, 0);
       cnt++;
-      MultiFab::Copy(plotMF, alph[ilev], 0, cnt, 1, 0);
+      MultiFab::Copy(plotMF, *alph[ilev], 0, cnt, 1, 0);
       cnt++;
-      MultiFab::Copy(plotMF, beta[ilev], 0, cnt, 1, 0);
+      MultiFab::Copy(plotMF, *beta[ilev], 0, cnt, 1, 0);
       cnt++;
-      MultiFab::Copy(plotMF,  rhs[ilev], 0, cnt, 1, 0);
+      MultiFab::Copy(plotMF,  *rhs[ilev], 0, cnt, 1, 0);
 
       //
       // Use the Full pathname when naming the MultiFab.

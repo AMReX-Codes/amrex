@@ -1,5 +1,7 @@
 #include <writePlotFile.H>
 
+using namespace amrex;
+
 void
 writePlotFile (const std::string& dir,
                const MultiFab&    mf,
@@ -14,8 +16,8 @@ writePlotFile (const std::string& dir,
     // Only the I/O processor makes the directory if it doesn't already exist.
     //
     if (ParallelDescriptor::IOProcessor())
-        if (!BoxLib::UtilCreateDirectory(dir, 0755))
-            BoxLib::CreateDirectoryFailed(dir);
+        if (!amrex::UtilCreateDirectory(dir, 0755))
+            amrex::CreateDirectoryFailed(dir);
     //
     // Force other processors to wait till directory is built.
     //
@@ -36,7 +38,7 @@ writePlotFile (const std::string& dir,
         //
         HeaderFile.open(HeaderFileName.c_str(), std::ios::out|std::ios::trunc|std::ios::binary);
         if (!HeaderFile.good())
-            BoxLib::FileOpenFailed(HeaderFileName);
+            amrex::FileOpenFailed(HeaderFileName);
         HeaderFile << "NavierStokes-V1.1\n";
 
         HeaderFile << mf.nComp() << '\n';
@@ -73,7 +75,7 @@ writePlotFile (const std::string& dir,
     //
     static const std::string BaseName = "/Cell";
 
-    std::string Level = BoxLib::Concatenate("Level_", 0, 1);
+    std::string Level = amrex::Concatenate("Level_", 0, 1);
     //
     // Now for the full pathname of that directory.
     //
@@ -85,8 +87,8 @@ writePlotFile (const std::string& dir,
     // Only the I/O processor makes the directory if it doesn't already exist.
     //
     if (ParallelDescriptor::IOProcessor())
-        if (!BoxLib::UtilCreateDirectory(FullPath, 0755))
-            BoxLib::CreateDirectoryFailed(FullPath);
+        if (!amrex::UtilCreateDirectory(FullPath, 0755))
+            amrex::CreateDirectoryFailed(FullPath);
     //
     // Force other processors to wait till directory is built.
     //

@@ -1,21 +1,22 @@
 
-#include <winstd.H>
 
-#include <MacBndry.H>
+#include <AMReX_MacBndry.H>
 #include <MacOperator.H>
 #include <MacOpMacDrivers.H>
 #include <MACOPERATOR_F.H>
-#include <CGSolver.H>
-#include <MultiGrid.H>
-#include <ParmParse.H>
+#include <AMReX_CGSolver.H>
+#include <AMReX_MultiGrid.H>
+#include <AMReX_ParmParse.H>
 
 #ifdef MG_USE_HYPRE
 #include <HypreABec.H>
 #endif
 
-#include <MGT_Solver.H>
-#include <stencil_types.H>
+#include <AMReX_MGT_Solver.H>
+#include <AMReX_stencil_types.H>
 #include <mg_cpp_f.h>
+
+using namespace amrex;
 
 #ifndef _NavierStokes_H_
 enum StateType {State_Type=0, Press_Type};
@@ -57,7 +58,7 @@ MacOperator::Initialize ()
 
     pp.query("max_order", max_order);
 
-    BoxLib::ExecOnFinalize(MacOperator::Finalize);
+    amrex::ExecOnFinalize(MacOperator::Finalize);
 
     initialized = true;
 }
@@ -93,8 +94,10 @@ MacOperator::setCoefficients (MultiFab*   area,
     //
     // Should check that all BoxArrays are consistant.
     //
-    const BoxArray& ba = gbox[0];
+    const BoxArray& ba = boxArray(0);
+    const DistributionMapping& dm = DistributionMap();
     BL_ASSERT(rho.boxArray() == ba);
+    BL_ASSERT(rho.DistributionMap() == dm);
     //
     // First set scalar coeficients.
     //
@@ -104,9 +107,9 @@ MacOperator::setCoefficients (MultiFab*   area,
     //
     const int n_grow = 0;
 
-    D_TERM(MultiFab bxcoef(area[0].boxArray(),area[0].nComp(),n_grow);,
-           MultiFab bycoef(area[1].boxArray(),area[1].nComp(),n_grow);,
-           MultiFab bzcoef(area[2].boxArray(),area[2].nComp(),n_grow););
+    D_TERM(MultiFab bxcoef(area[0].boxArray(),dm,area[0].nComp(),n_grow);,
+           MultiFab bycoef(area[1].boxArray(),dm,area[1].nComp(),n_grow);,
+           MultiFab bzcoef(area[2].boxArray(),dm,area[2].nComp(),n_grow););
     D_TERM(bxcoef.setVal(0);,
            bycoef.setVal(0);,
            bzcoef.setVal(0););
@@ -351,7 +354,7 @@ MacOperator::syncRhs (const MultiFab& Volume,
 //
 
 void
-mac_level_driver (AmrCore*            parent,
+mac_level_driver (AmrCore*        parent,
                   const MacBndry& mac_bndry,
 		  const BCRec&    phys_bc,
                   const BoxArray& grids,
@@ -378,7 +381,7 @@ mac_level_driver (AmrCore*            parent,
 
     if (the_solver == 1 && mac_op.maxOrder() != 2)
     {
-        BoxLib::Error("Can't use CGSolver with maxorder > 2");
+        amrex::Error("Can't use CGSolver with maxorder > 2");
     }
     //
     // Construct MultiGrid or CGSolver object and solve system.
@@ -403,18 +406,18 @@ mac_level_driver (AmrCore*            parent,
         hp.solve(*mac_phi, Rhs, true);
         hp.clear_solver();
 #else
-        BoxLib::Error("mac_level_driver::HypreABec not in this build");
+        amrex::Error("mac_level_driver::HypreABec not in this build");
 #endif
     }
     else if (the_solver == 3 ) 
     {
-        std::vector<BoxArray> bav(1);
+        Array<BoxArray> bav(1);
         bav[0] = mac_phi->boxArray();
-        std::vector<DistributionMapping> dmv(1);
+        Array<DistributionMapping> dmv(1);
         dmv[0] = Rhs.DistributionMap();
         bool nodal = false;
 	int stencil = CC_CROSS_STENCIL;
-        std::vector<Geometry> geom(1);
+        Array<Geometry> geom(1);
         geom[0] = mac_bndry.getGeom();
 
         int mg_bc[2*BL_SPACEDIM];
@@ -454,19 +457,17 @@ mac_level_driver (AmrCore*            parent,
         }
 
         // Set alpha and beta as in (alpha - del dot beta grad)
-	Array<PArray<MultiFab> > bb_p(1);
-	bb_p[0].resize(BL_SPACEDIM, PArrayNoManage);
+	Array<Array<MultiFab*> > bb_p(1);
+	bb_p[0].resize(BL_SPACEDIM);
         for ( int i = 0; i < BL_SPACEDIM; ++i )
         {
-            bb_p[0].set(i, &(mac_op.bCoefficients(i)));
+            bb_p[0][i] = const_cast<MultiFab*>(&(mac_op.bCoefficients(i)));
         }
 
         mgt_solver.set_mac_coefficients(bb_p, xa, xb);
 
-        MultiFab* mac_phi_p[1];
-        MultiFab* Rhs_p[1];
-        mac_phi_p[0] = mac_phi;
-        Rhs_p[0] = &Rhs;
+	Array<MultiFab*> mac_phi_p = { mac_phi };
+	Array<MultiFab*> Rhs_p = { &Rhs };
 
 	int always_use_bnorm = 0;
         Real final_resnorm;
@@ -513,7 +514,7 @@ mac_sync_driver (AmrCore*            parent,
 
     if (the_solver == 1 && mac_op.maxOrder() != 2)
     {
-        BoxLib::Error("Can't use CGSolver with maxorder > 2");
+        amrex::Error("Can't use CGSolver with maxorder > 2");
     }
     //
     // Now construct MultiGrid or CGSolver object to solve system.
@@ -538,18 +539,18 @@ mac_sync_driver (AmrCore*            parent,
         hp.solve(*mac_sync_phi, Rhs, true);
         hp.clear_solver();
 #else
-        BoxLib::Error("mac_sync_driver: HypreABec not in this build");
+        amrex::Error("mac_sync_driver: HypreABec not in this build");
 #endif
     }
     else if (the_solver == 3 )
     {
-        std::vector<BoxArray> bav(1);
+        Array<BoxArray> bav(1);
         bav[0] = mac_sync_phi->boxArray();
-        std::vector<DistributionMapping> dmv(1);
+        Array<DistributionMapping> dmv(1);
         dmv[0] = Rhs.DistributionMap();
         bool nodal = false;
 	int stencil = CC_CROSS_STENCIL;
-        std::vector<Geometry> geom(1);
+        Array<Geometry> geom(1);
         geom[0] = mac_bndry.getGeom();
 
         int mg_bc[2*BL_SPACEDIM];
@@ -590,19 +591,17 @@ mac_sync_driver (AmrCore*            parent,
         }
 
         // Set alpha and beta as in (alpha - del dot beta grad)
-	Array<PArray<MultiFab> > bb_p(1);
-	bb_p[0].resize(BL_SPACEDIM, PArrayNoManage);
+	Array<Array<MultiFab*> > bb_p(1);
+	bb_p[0].resize(BL_SPACEDIM);
         for ( int i = 0; i < BL_SPACEDIM; ++i )
         {
-            bb_p[0].set(i, &(mac_op.bCoefficients(i)));
+            bb_p[0][i] = const_cast<MultiFab*>(&(mac_op.bCoefficients(i)));
         }
 
         mgt_solver.set_mac_coefficients(bb_p, xa, xb);
 
-        MultiFab* mac_phi_p[1];
-        MultiFab* Rhs_p[1];
-        mac_phi_p[0] = mac_sync_phi;
-        Rhs_p[0] = &Rhs;
+        Array<MultiFab*> mac_phi_p = { mac_sync_phi };
+        Array<MultiFab*> Rhs_p = { &Rhs };
 
 	int always_use_bnorm = 0;
         Real final_resnorm;

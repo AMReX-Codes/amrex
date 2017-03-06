@@ -3,7 +3,6 @@
 // --------------------------------------------------------------------------
 //  this file tests the performance for moving grids
 // --------------------------------------------------------------------------
-#include <winstd.H>
 
 #include <new>
 #include <iostream>
@@ -13,21 +12,18 @@
 #include <cstring>
 #include <cmath>
 
-#ifndef WIN32
 #include <unistd.h>
-#endif
 
-#include <ParmParse.H>
-#include <ParallelDescriptor.H>
-#include <Utility.H>
-#include <VisMF.H>
-
-#ifdef BL_USE_SETBUF
-#define pubsetbuf setbuf
-#endif
+#include <AMReX_ParmParse.H>
+#include <AMReX_ParallelDescriptor.H>
+#include <AMReX_Utility.H>
+#include <AMReX_VisMF.H>
+#include <AMReX_MultiFab.H>
 
 using std::cout;
 using std::endl;
+
+using namespace amrex;
 
 const int maxGrid(32);
 const int nComp(8);
@@ -53,13 +49,12 @@ void SetFabValsToPMap(MultiFab &mf) {
 // --------------------------------------------------------------------------
 int main(int argc, char *argv[]) {
 
-    BoxLib::Initialize(argc,argv);    
+    amrex::Initialize(argc,argv);    
 
     BL_PROFILE_VAR("main()", pmain);
     BL_PROFILE_REGION_START("main");
 
     int nProcs(ParallelDescriptor::NProcs());
-    int myProc(ParallelDescriptor::MyProc());
     bool copyAll(false), copyRandom(false), moveFabs(true);
 
     // ---- make a box, then a boxarray with maxSize
@@ -77,8 +72,10 @@ int main(int argc, char *argv[]) {
       std::cout << "ba[last] = " << ba[ba.size() - 1] << std::endl;
     }
 
+    DistributionMapping dm{ba};
+
     // ---- make a multifab, setval to the index
-    MultiFab mf(ba, nComp, nGhost);
+    MultiFab mf(ba, dm, nComp, nGhost);
     for(int i(0); i < mf.nComp(); ++i) {
       mf.setVal(static_cast<Real> (i), i, 1);
     }
@@ -92,13 +89,6 @@ int main(int argc, char *argv[]) {
       std::cout << "dmap.size() = " << mf.DistributionMap().size() << std::endl;
     }
 
-    // ------------------------------------------------------------------
-    // ----- very important:  here we are copying a procmap,
-    // -----                  but if you just make your own Array<int>
-    // -----                  it must have an extra value at the end
-    // -----                  set to ParallelDescriptor::MyProc()
-    // -----                  see DistributionMapping.H
-    // ------------------------------------------------------------------
     const Array<int> &procMap = mf.DistributionMap().ProcessorMap();
     if(ParallelDescriptor::IOProcessor()) {
       std::cout << "procMap.size() = " << procMap.size() << std::endl;
@@ -119,7 +109,7 @@ int main(int argc, char *argv[]) {
 
       // ---- make a new multifab with the new map and copy from mf
       MultiFab mfNewMap;
-      mfNewMap.define(ba, nComp, nGhost, newDMap, Fab_allocate);
+      mfNewMap.define(ba, newDMap, nComp, nGhost);
       mfNewMap.setVal(-42.0);
 
       // ---- now copy from mf
@@ -141,7 +131,7 @@ int main(int argc, char *argv[]) {
 
       Array<int> copyArray;
       if(ParallelDescriptor::IOProcessor()) {
-        BoxLib::UniqueRandomSubset(copyArray, nRanksInSet, nProcs);
+        amrex::UniqueRandomSubset(copyArray, nRanksInSet, nProcs);
       } else {
         copyArray.resize(nRanksInSet);
       }
@@ -152,13 +142,12 @@ int main(int argc, char *argv[]) {
       }
       ParallelDescriptor::Bcast(copyArray.dataPtr(), copyArray.size());
         
-      Array<int> newMap(nCopies + 1);
+      Array<int> newMap(nCopies);
       BoxArray baCopy(nCopies);
       for(int i(0); i < nCopies; ++i) {
         newMap[i] = copyArray[i];
 	baCopy.set(i, ba[copyArray[i + nCopies]]);
       }
-      newMap[nCopies] = ParallelDescriptor::MyProc();
 
       DistributionMapping newDMap(newMap);
       if(ParallelDescriptor::IOProcessor()) {
@@ -167,7 +156,7 @@ int main(int argc, char *argv[]) {
 
       // ---- make a new multifab with the new map and copy from mf
       MultiFab mfNewMap;
-      mfNewMap.define(baCopy, nComp, nGhost, newDMap, Fab_allocate);
+      mfNewMap.define(baCopy, newDMap, nComp, nGhost);
       mfNewMap.setVal(-42.0);
 
       // ---- now copy from mf
@@ -186,10 +175,10 @@ int main(int argc, char *argv[]) {
       Array<int> copyArray;
       int nRanksInSet(8);
       if(nRanksInSet % 2 != 0) {
-        BoxLib::Abort("**** Bad nRanksInSet");
+        amrex::Abort("**** Bad nRanksInSet");
       }
       if(ParallelDescriptor::IOProcessor()) {
-        BoxLib::UniqueRandomSubset(copyArray, nRanksInSet, nProcs);
+        amrex::UniqueRandomSubset(copyArray, nRanksInSet, nProcs);
       } else {
         copyArray.resize(nRanksInSet);
       }
@@ -200,10 +189,11 @@ int main(int argc, char *argv[]) {
         newDistMapArray[copyArray[n]] = copyArray[n+1];
       }
 
+#if 0
       if(ParallelDescriptor::IOProcessor()) {
         std::cout << "newDistMapArray = " << newDistMapArray << std::endl;
       }
-      DistributionMapping::CacheStats(std::cout);
+#endif
 
       SetFabValsToPMap(mf);
       VisMF::Write(mf, "mfOriginal");
@@ -217,19 +207,18 @@ int main(int argc, char *argv[]) {
       Array<int> randomMap(ba16.size());
       if(ParallelDescriptor::IOProcessor()) {
 	for(int ir(0); ir < ba16.size(); ++ ir) {
-          randomMap[ir] = BoxLib::Random_int(nProcs);
+          randomMap[ir] = amrex::Random_int(nProcs);
 	}
       }
       ParallelDescriptor::Bcast(randomMap.dataPtr(), randomMap.size());
         
-      Array<int> newMap16(ba16.size() + 1);
-      for(int i(0); i < newMap16.size() - 1; ++i) {
+      Array<int> newMap16(ba16.size());
+      for(int i(0); i < newMap16.size(); ++i) {
         newMap16[i] = randomMap[i];
       }
-      newMap16[newMap16.size() - 1] = myProc;
       DistributionMapping newDMap16(newMap16);
       MultiFab mf16;
-      mf16.define(ba16, nComp, nGhost, newDMap16, Fab_allocate);
+      mf16.define(ba16, newDMap16, nComp, nGhost);
       mf16.setVal(-1.0);
       if(ParallelDescriptor::IOProcessor()) {
         std::cout << "mf16DMA = " << mf16.DistributionMap() << std::endl;
@@ -244,7 +233,7 @@ int main(int argc, char *argv[]) {
     BL_PROFILE_REGION_STOP("main");
     BL_PROFILE_VAR_STOP(pmain);
 
-    BoxLib::Finalize();
+    amrex::Finalize();
     return 0;
 }
 // --------------------------------------------------------------------------

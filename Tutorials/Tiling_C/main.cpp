@@ -1,8 +1,10 @@
 #include <iostream>
 
-#include <BoxLib.H>
-#include <MultiFab.H>
-#include <BLFort.H>
+#include <AMReX.H>
+#include <AMReX_MultiFab.H>
+#include <AMReX_BLFort.H>
+
+using namespace amrex;
 
 // declare a fortran subroutine
 extern "C"
@@ -12,7 +14,7 @@ extern "C"
 
 int main(int argc, char* argv[])
 {
-    BoxLib::Initialize(argc,argv);
+    amrex::Initialize(argc,argv);
 
     // define the lower and upper corner of a 3D domain
     IntVect domain_lo(0 , 0, 0); 
@@ -26,8 +28,10 @@ int main(int argc, char* argv[])
     // break the box array into 32^3 boxes
     ba.maxSize(32);
 
+    DistributionMapping dm{ba};
+
     // build a multifab on the box array with 1 component, 0 ghost cells
-    MultiFab data(ba, 1, 0);  
+    MultiFab data(ba, dm, 1, 0);  
 
     // loop over boxes and initialize the data
 	
@@ -60,7 +64,7 @@ int main(int argc, char* argv[])
     std::cout << "L1  norm = " << data.norm1() << std::endl;
     std::cout << "L2  norm = " << data.norm2() << std::endl;
 
-    MultiFab data2(ba, 1, 0);
+    MultiFab data2(ba, dm, 1, 0);
     MultiFab::Copy(data2, data, 0, 0, 1, 0);
 
 #ifdef _OPENMP
@@ -107,6 +111,6 @@ int main(int argc, char* argv[])
     std::cout << "L1  norm = " << data2.norm1() << std::endl;
     std::cout << "L2  norm = " << data2.norm2() << std::endl;    
 
-    BoxLib::Finalize();
+    amrex::Finalize();
 }
 

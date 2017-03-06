@@ -1,11 +1,11 @@
-BOXLIB_HOME ?= ../../../..
-ADR_DIR  ?= $(BOXLIB_HOME)/Tutorials/AMR_Adv_C
+AMREX_HOME ?= ../../../..
+ADR_DIR  ?= $(AMREX_HOME)/Tutorials/AMR_Adv_C
 
 TOP := $(ADR_DIR)
 
 EBASE := main
 
-include $(BOXLIB_HOME)/Tools/C_mk/Make.defs
+include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
 
 Bdirs 	:= Source Source/Src_nd Source/Src_$(DIM)d
@@ -18,8 +18,8 @@ INCLUDE_LOCATIONS += $(Blocs)
 VPATH_LOCATIONS   += $(Blocs)
 
 
-Pdirs 	:= C_BaseLib C_AmrCoreLib C_AMRLib C_BoundaryLib 
-Ppack	+= $(foreach dir, $(Pdirs), $(BOXLIB_HOME)/Src/$(dir)/Make.package)
+Pdirs 	:= Base AmrCore Amr Boundary Particle
+Ppack	+= $(foreach dir, $(Pdirs), $(AMREX_HOME)/Src/$(dir)/Make.package)
 
 include $(Ppack)
 
@@ -27,5 +27,5 @@ include $(Ppack)
 all: $(executable) 
 	@echo SUCCESS
 
-include $(BOXLIB_HOME)/Tools/C_mk/Make.rules
+include $(AMREX_HOME)/Tools/GNUMake/Make.rules
 

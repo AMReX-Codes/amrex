@@ -1,4 +1,4 @@
--include $(BOXLIB_HOME)/Tools/F_mk/Make.local
+-include $(AMREX_HOME)/Tools/F_mk/Make.local
 
 vpath %.f   . $(VPATH_LOCATIONS)
 vpath %.c   . $(VPATH_LOCATIONS)
@@ -47,7 +47,7 @@ realclean:: clean
 	$(RM) *.exe
 
 file_locations:
-	$(BOXLIB_HOME)/Tools/F_scripts/find_files_vpath.py --vpath "$(VPATH_LOCATIONS)" --files "$(sources)"
+	$(AMREX_HOME)/Tools/F_scripts/find_files_vpath.py --vpath "$(VPATH_LOCATIONS)" --files "$(sources)"
 
 TAGS:	$(sources)
 	ctags -e --verbose=yes --fortran-kinds=+i $(abspath $^)

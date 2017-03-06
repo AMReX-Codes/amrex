@@ -1,7 +1,7 @@
 #ifndef _COEFF_H_
 #define _COEFF_H_
 
-#include <REAL.H>
+#include <AMReX_REAL.H>
 
 #if        defined(BL_LANG_FORT)
 
@@ -29,25 +29,25 @@
 #define FORT_COEF_TO_EDGES      coef_to_edges_
 #endif
 
-#include <ArrayLim.H>
+#include <AMReX_ArrayLim.H>
 
 extern "C"
 {
     void FORT_COMP_ASOL (
-        Real* asol      , ARLIM_P(asol_lo), ARLIM_P(asol_hi),
-        const int* lo, const int* hi, const Real* dx, const int& ibnd);
+        amrex::Real* asol      , ARLIM_P(asol_lo), ARLIM_P(asol_hi),
+        const int* lo, const int* hi, const amrex::Real* dx, const int& ibnd);
 
     void FORT_SET_ALPHA (
-        Real* alpha     , ARLIM_P(alpha_lo), ARLIM_P(alpha_hi),
-        const int* lo, const int* hi, const Real* dx);
+        amrex::Real* alpha     , ARLIM_P(alpha_lo), ARLIM_P(alpha_hi),
+        const int* lo, const int* hi, const amrex::Real* dx);
 
     void FORT_SET_CC_COEF (
-        Real* coef     , ARLIM_P(coef_lo), ARLIM_P(coef_hi),
-        const int* lo, const int* hi, const Real* dx, const Real& sigma, const Real& w);
+        amrex::Real* coef     , ARLIM_P(coef_lo), ARLIM_P(coef_hi),
+        const int* lo, const int* hi, const amrex::Real* dx, const amrex::Real& sigma, const amrex::Real& w);
 
     void FORT_COEF_TO_EDGES (int * dir, 
-        Real* edge     , ARLIM_P(edge_lo), ARLIM_P(edge_hi),
-        Real* coef     , ARLIM_P(coef_lo), ARLIM_P(coef_hi),
+        amrex::Real* edge     , ARLIM_P(edge_lo), ARLIM_P(edge_hi),
+        amrex::Real* coef     , ARLIM_P(coef_lo), ARLIM_P(coef_hi),
         const int* lo, const int* hi);
 }
 #endif

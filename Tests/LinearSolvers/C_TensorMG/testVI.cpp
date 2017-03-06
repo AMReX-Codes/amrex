@@ -5,16 +5,14 @@
 #include <cstdio>
 #include <string>
 
-#ifndef WIN32
 #include <unistd.h>
-#endif
 
-#include <Utility.H>
-#include <Box.H>
-#include <BoxArray.H>
-#include <Geometry.H>
-#include <ParmParse.H>
-#include <VisMF.H>
+#include <AMReX_Utility.H>
+#include <AMReX_Box.H>
+#include <AMReX_BoxArray.H>
+#include <AMReX_Geometry.H>
+#include <AMReX_ParmParse.H>
+#include <AMReX_VisMF.H>
 #ifndef NDEBUG
 #ifdef BL_USE_ARRAYVIEW
 #include <ArrayView.H>
@@ -22,19 +20,21 @@
 #endif
 
 #include <TestMCViscBndry.H>
-#include <DivVis.H>
-#include <LO_BCTYPES.H>
-#include <MCMultiGrid.H>
-#include <MCCGSolver.H>
-#include <ParallelDescriptor.H>
+#include <AMReX_DivVis.H>
+#include <AMReX_LO_BCTYPES.H>
+#include <AMReX_MCMultiGrid.H>
+#include <AMReX_MCCGSolver.H>
+#include <AMReX_ParallelDescriptor.H>
 
 #include <main_F.H>
+
+using namespace amrex;
 
 int
 main (int   argc,
       char* argv[])
 {
-    BoxLib::Initialize(argc,argv);
+    amrex::Initialize(argc,argv);
 
     std::cout << std::setprecision(10);
 
@@ -65,7 +65,7 @@ main (int   argc,
     {
         std::string msg = "problem opening grids file: ";
         msg += boxfile.c_str();
-        BoxLib::Abort(msg.c_str());
+        amrex::Abort(msg.c_str());
     }
 
     ifs >> domain;
@@ -82,13 +82,15 @@ main (int   argc,
     const Real* H = geom.CellSize();
     int ratio=2; pp.query("ratio", ratio);
 
+    DistributionMapping dm {bs};
+    
     // allocate/init soln and rhs
     int Ncomp=BL_SPACEDIM;
     int Nghost=0;
     int Ngrids=bs.size();
-    MultiFab soln(bs, Ncomp, Nghost, Fab_allocate); soln.setVal(0.0);
-    MultiFab out(bs, Ncomp, Nghost, Fab_allocate); 
-    MultiFab rhs(bs, Ncomp, Nghost, Fab_allocate); rhs.setVal(0.0);
+    MultiFab soln(bs, dm, Ncomp, Nghost); soln.setVal(0.0);
+    MultiFab out (bs, dm, Ncomp, Nghost); 
+    MultiFab rhs (bs, dm, Ncomp, Nghost); rhs.setVal(0.0);
     for(MFIter rhsmfi(rhs); rhsmfi.isValid(); ++rhsmfi)
     {
 	FORT_FILLRHS(rhs[rhsmfi].dataPtr(),
@@ -97,7 +99,7 @@ main (int   argc,
     }
     
     // Create the boundary object
-    MCViscBndry vbd(bs,geom);
+    MCViscBndry vbd(bs,dm,geom);
 
     BCRec phys_bc;
     Array<int> lo_bc(BL_SPACEDIM), hi_bc(BL_SPACEDIM);
@@ -153,7 +155,7 @@ main (int   argc,
 #endif
     
     Nghost = 1; // need space for bc info
-    MultiFab fine(bs,Ncomp,Nghost,Fab_allocate);
+    MultiFab fine(bs,dm,Ncomp,Nghost);
     for(MFIter finemfi(fine); finemfi.isValid(); ++finemfi)
     {
 	FORT_FILLFINE(fine[finemfi].dataPtr(),
@@ -168,7 +170,9 @@ main (int   argc,
     Real h_crse[BL_SPACEDIM];
     for (n=0; n<BL_SPACEDIM; n++) h_crse[n] = H[n]*ratio;
 
-    MultiFab crse_mf(cba, Ncomp, 0);
+    DistributionMapping cdm{cba};
+
+    MultiFab crse_mf(cba, cdm, Ncomp, 0);
 //    FArrayBox crse_fab(crse_bx,Ncomp);
 
     for (MFIter mfi(crse_mf); mfi.isValid(); ++mfi)
@@ -185,7 +189,7 @@ main (int   argc,
     int bndry_OutRad=1;
     int bndry_Extent=1;
     BoxArray cbs = BoxArray(bs).coarsen(ratio);
-    BndryRegister cbr(cbs,bndry_InRad,bndry_OutRad,bndry_Extent,Ncomp);
+    BndryRegister cbr(cbs,dm,bndry_InRad,bndry_OutRad,bndry_Extent,Ncomp);
     for (OrientationIter face; face; ++face)
     {
 	Orientation f = face();
@@ -213,14 +217,13 @@ main (int   argc,
 #endif
     MultiFab  acoefs;
     int NcompA = (BL_SPACEDIM == 2  ?  2  :  1);
-    acoefs.define(bs, NcompA, Nghost, Fab_allocate);
+    acoefs.define(bs, dm, NcompA, Nghost);
     acoefs.setVal(a);
     MultiFab bcoefs[BL_SPACEDIM];
     for (n=0; n<BL_SPACEDIM; ++n)
     {
 	BoxArray bsC(bs);
-	bcoefs[n].define(bsC.surroundingNodes(n), 1,
-			 Nghost, Fab_allocate);
+	bcoefs[n].define(bsC.surroundingNodes(n), dm, 1, Nghost);
 #if 1
 	for(MFIter bmfi(bcoefs[n]); bmfi.isValid(); ++bmfi)
 	{
@@ -237,7 +240,7 @@ main (int   argc,
 #endif
     
     Nghost = 1;
-    MultiFab tsoln(bs, Ncomp, Nghost, Fab_allocate); 
+    MultiFab tsoln(bs, dm, Ncomp, Nghost); 
     tsoln.setVal(0.0);
 #if 1
     tsoln.copy(fine);
@@ -280,16 +283,16 @@ main (int   argc,
     // testing flux computation
     BoxArray xfluxbox(bs);
     xfluxbox.surroundingNodes(0);
-    MultiFab xflux(xfluxbox,Ncomp,Nghost,Fab_allocate);
+    MultiFab xflux(xfluxbox,dm,Ncomp,Nghost);
     xflux.setVal(1.e30);
     BoxArray yfluxbox(bs);
     yfluxbox.surroundingNodes(1);
-    MultiFab yflux(yfluxbox,Ncomp,Nghost,Fab_allocate);
+    MultiFab yflux(yfluxbox,dm,Ncomp,Nghost);
     yflux.setVal(1.e30);
 #if BL_SPACEDIM>2
     BoxArray zfluxbox(bs);
     zfluxbox.surroundingNodes(2);
-    MultiFab zflux(zfluxbox,Ncomp,Nghost,Fab_allocate);
+    MultiFab zflux(zfluxbox,dm,Ncomp,Nghost);
     zflux.setVal(1.e30);
 #endif
     lp.compFlux(xflux,

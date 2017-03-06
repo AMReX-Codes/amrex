@@ -1,12 +1,14 @@
 
-#include <PlotFileUtil.H>
+#include <AMReX_PlotFileUtil.H>
 
 #include <AmrAdv.H>
+
+using namespace amrex;
 
 std::string
 AmrAdv::PlotFileName (int lev) const
 {
-    return BoxLib::Concatenate(plot_file, lev, 5);
+    return amrex::Concatenate(plot_file, lev, 5);
 }
 
 Array<const MultiFab*>
@@ -32,13 +34,13 @@ AmrAdv::WritePlotFile () const
     const auto& mf = PlotFileMF();
     const auto& varnames = PlotFileVarNames();
     
-    BoxLib::WriteMultiLevelPlotfile(plotfilename, finest_level+1, mf, varnames,
+    amrex::WriteMultiLevelPlotfile(plotfilename, finest_level+1, mf, varnames,
 				    Geom(), t_new[0], istep, refRatio());
 }
 
 void
 AmrAdv::InitFromCheckpoint ()
 {
-    BoxLib::Abort("AmrAdv::InitFromCheckpoint: todo");
+    amrex::Abort("AmrAdv::InitFromCheckpoint: todo");
 }
 

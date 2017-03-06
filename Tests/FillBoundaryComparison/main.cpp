@@ -1,8 +1,7 @@
-#include <Utility.H>
-#include <ParallelDescriptor.H>
-#include <MultiFab.H>
-#include <PArray.H>
-#include <ParmParse.H>
+#include <AMReX_Utility.H>
+#include <AMReX_ParallelDescriptor.H>
+#include <AMReX_MultiFab.H>
+#include <AMReX_ParmParse.H>
 
 #include <algorithm>
 #include <fstream>
@@ -11,10 +10,12 @@
 #include <omp.h>
 #endif
 
+using namespace amrex;
+
 int
 main (int argc, char* argv[])
 {
-    BoxLib::Initialize(argc,argv);
+    amrex::Initialize(argc,argv);
 
     BoxArray ba;
 
@@ -101,21 +102,22 @@ main (int argc, char* argv[])
 
     ParallelDescriptor::Barrier();
 
-    PArray<MultiFab> mfs(nlevels, PArrayManage);
-    PArray<BoxArray> bas(nlevels, PArrayManage);
-    bas.set(0, new BoxArray(ba));
-    mfs.set(0, new MultiFab(ba, 1, 1));
-    mfs[0].setVal(1.0);
+    Array<std::unique_ptr<MultiFab> > mfs(nlevels);
+    Array<BoxArray> bas(nlevels);
+    bas[0] = ba;
+    DistributionMapping dm{ba};
+    mfs[0].reset(new MultiFab(ba, dm, 1, 1));
+    mfs[0]->setVal(1.0);
     for (int lev=1; lev<nlevels; ++lev) {
-	bas.set(lev, new BoxArray(bas[lev-1]));
+	bas[lev] = BoxArray(bas[lev-1]);
 	bas[lev].coarsen(2);
-	mfs.set(lev, new MultiFab(bas[lev], 1, 1));
-	mfs[lev].setVal(1.0);
+	mfs[lev].reset(new MultiFab(bas[lev], dm, 1, 1));
+	mfs[lev]->setVal(1.0);
     }
 
     Array<Real> points(nlevels);
     for (int lev=0; lev<nlevels; ++lev) {
-	points[lev] = mfs[lev].norm1();
+	points[lev] = mfs[lev]->norm1();
 	if (ParallelDescriptor::IOProcessor()) {
 	    std::cout << points[lev] << " points on level " << lev << std::endl; 
 	}
@@ -135,12 +137,12 @@ main (int argc, char* argv[])
     for (int iround = 0; iround < nrounds; ++iround) {
 	for (int c=0; c<2; ++c) {
 	    for (int lev = 0; lev < nlevels; ++lev) {
-		mfs[lev].FillBoundary_nowait(true);
-		mfs[lev].FillBoundary_finish();
+		mfs[lev]->FillBoundary_nowait(true);
+		mfs[lev]->FillBoundary_finish();
 	    }
 	    for (int lev = nlevels-1; lev >= 0; --lev) {
-		mfs[lev].FillBoundary_nowait(true);
-		mfs[lev].FillBoundary_finish();
+		mfs[lev]->FillBoundary_nowait(true);
+		mfs[lev]->FillBoundary_finish();
 	    }
 	}
 	Real e = double(iround+ParallelDescriptor::MyProc());
@@ -168,12 +170,12 @@ main (int argc, char* argv[])
     }
 
     //
-    // When MPI3 shared memory is used, the dtor of MultiFab calls MPI functions.
-    // Because the scope of PArray < MultiFab > mfs is beyond the call to 
-    // BoxLib::Finalize(), which in turn calls MPI_Finalize(), we destroy these
-    // MultiFabs by hand now.
+    // When MPI3 shared memory is used, the dtor of MultiFab calls MPI
+    // functions.  Because the scope of mfs is beyond the call to
+    // amrex::Finalize(), which in turn calls MPI_Finalize(), we
+    // destroy these MultiFabs by hand now.
     //
     mfs.clear();
 
-    BoxLib::Finalize();
+    amrex::Finalize();
 }

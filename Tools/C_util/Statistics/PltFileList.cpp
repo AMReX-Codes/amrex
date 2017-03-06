@@ -7,10 +7,10 @@
 
 #include <WritePlotFile.H>
 #include <ComputeAmrDataStat.H>
-#include <ParmParse.H>
-#include <ParallelDescriptor.H>
-#include <DataServices.H>
-#include <Utility.H>
+#include <AMReX_ParmParse.H>
+#include <AMReX_ParallelDescriptor.H>
+#include <AMReX_DataServices.H>
+#include <AMReX_Utility.H>
 
 #ifndef NDEBUG
 #include <TV_TempWrite.H>
@@ -43,7 +43,7 @@ main (int   argc,
     if (argc == 1)
         PrintUsage(argv[0]);
     
-    BoxLib::Initialize(argc,argv);
+    amrex::Initialize(argc,argv);
     ParmParse pp;
 
     if (pp.contains("help"))
@@ -67,11 +67,11 @@ main (int   argc,
 
     pp.query("infile", iFile);
     if (iFile.empty())
-        BoxLib::Abort("You must specify `infile'");
+        amrex::Abort("You must specify `infile'");
 
     pp.query("outfile", outfile);
     if (outfile.empty())
-        BoxLib::Abort("You must specify `outfile'");
+        amrex::Abort("You must specify `outfile'");
 
     int iFile_type = 0;
     pp.query("infile_type", iFile_type);
@@ -97,7 +97,7 @@ main (int   argc,
     {
       for (int i = 1; i <= nmax; i++)
       {
-        File  = BoxLib::Concatenate(hdrFile, i, 1);
+        File  = amrex::Concatenate(hdrFile, i, 1);
         File += '/';
         File += iFile;
       
@@ -149,7 +149,7 @@ main (int   argc,
     {
       for (int i = 1; i <= nmax; i++)
       {
-        File  = BoxLib::Concatenate(hdrFile, i, 1);
+        File  = amrex::Concatenate(hdrFile, i, 1);
         File += '/';
         File += iFile;
 
@@ -194,8 +194,8 @@ main (int   argc,
 
     // The I/O processor makes the directory if it doesn't already exist.
     if (ParallelDescriptor::IOProcessor())
-      if (!BoxLib::UtilCreateDirectory(outfile, 0755))
-	BoxLib::CreateDirectoryFailed(outfile);
+      if (!amrex::UtilCreateDirectory(outfile, 0755))
+	amrex::CreateDirectoryFailed(outfile);
     ParallelDescriptor::Barrier();
     std::string mfile = outfile + "/" + iFile + "_mean";
     std::string vfile = outfile + "/" + iFile + "_var";
@@ -203,7 +203,7 @@ main (int   argc,
     VisMF::Write(mean,mfile);
     VisMF::Write(variance,vfile);
 
-    BoxLib::Finalize();
+    amrex::Finalize();
 }
 
 

@@ -1,9 +1,14 @@
 #ifndef _Adv_H_
 #define _Adv_H_
 
-#include <AmrLevel.H>
-#include <FluxRegister.H>
+#ifdef PARTICLES
+#include <AMReX_AmrParticles.H>
+#endif
 
+#include <AMReX_AmrLevel.H>
+#include <AMReX_FluxRegister.H>
+
+#include <memory>
 #include <iostream>
 
 #ifdef _OPENMP
@@ -19,7 +24,7 @@ enum StateType { State_Type = 0,
 
 class Adv
     :
-    public AmrLevel
+    public amrex::AmrLevel
 {
 public:
     //
@@ -29,11 +34,12 @@ public:
     //
     //The basic constructor.
     //
-    Adv (Amr&            papa,
+    Adv (amrex::Amr&     papa,
 	 int             lev,
-	 const Geometry& level_geom,
-	 const BoxArray& bl,
-	 Real            time);
+	 const amrex::Geometry& level_geom,
+	 const amrex::BoxArray& bl,
+	 const amrex::DistributionMapping& dm,
+	 amrex::Real            time);
     //
     //The destructor.
     //
@@ -41,9 +47,14 @@ public:
     //
     //Restart from a checkpoint file.
     //
-    virtual void restart (Amr&          papa,
+    virtual void restart (amrex::Amr&   papa,
                           std::istream& is,
 			  bool          bReadSpecial = false) override;
+
+    virtual void checkPoint (const std::string& dir,
+			     std::ostream&      os,
+			     amrex::VisMF::How  how = amrex::VisMF::NFiles,
+			     bool               dump_old = true);
 
     /*A string written as the first item in writePlotFile() at
                level zero. It is so we can distinguish between different
@@ -56,7 +67,7 @@ public:
     //
     virtual void writePlotFile (const std::string& dir,
                                 std::ostream&      os,
-                                VisMF::How         how) override;
+                                amrex::VisMF::How  how) override;
     //
     //Define data descriptors.
     //
@@ -72,7 +83,7 @@ public:
     //
     //Initialize data on this level from another Adv (during regrid).
     //
-    virtual void init (AmrLevel& old) override;
+    virtual void init (amrex::AmrLevel& old) override;
     //
     //Initialize data on this level after regridding if old level did not previously exist
     //
@@ -84,62 +95,67 @@ public:
     //
     //Advance grids at this level in time.
     //
-    virtual Real advance (Real time,
-                          Real dt,
+    virtual amrex::Real advance (amrex::Real time,
+                          amrex::Real dt,
                           int  iteration,
                           int  ncycle) override;
     //
     //Estimate time step.
     //
-    Real estTimeStep (Real dt_old);
+    amrex::Real estTimeStep (amrex::Real dt_old);
     //
     //Compute initial time step.
     //
-    Real initialTimeStep ();
+    amrex::Real initialTimeStep ();
     //
     //Compute initial `dt'.
     //
     virtual void computeInitialDt (int                   finest_level,
                                    int                   sub_cycle,
-                                   Array<int>&           n_cycle,
-                                   const Array<IntVect>& ref_ratio,
-                                   Array<Real>&          dt_level,
-                                   Real                  stop_time) override;
+                                   amrex::Array<int>&           n_cycle,
+                                   const amrex::Array<amrex::IntVect>& ref_ratio,
+                                   amrex::Array<amrex::Real>&          dt_level,
+                                   amrex::Real                  stop_time) override;
     //
     //Compute new `dt'.
     //
     virtual void computeNewDt (int                   finest_level,
                                int                   sub_cycle,
-                               Array<int>&           n_cycle,
-                               const Array<IntVect>& ref_ratio,
-                               Array<Real>&          dt_min,
-                               Array<Real>&          dt_level,
-                               Real                  stop_time,
+                               amrex::Array<int>&           n_cycle,
+                               const amrex::Array<amrex::IntVect>& ref_ratio,
+                               amrex::Array<amrex::Real>&          dt_min,
+                               amrex::Array<amrex::Real>&          dt_level,
+                               amrex::Real                  stop_time,
                                int                   post_regrid_flag) override;
     //
     //Do work after timestep().
     //
     virtual void post_timestep (int iteration) override;
+
     //
     //Do work after regrid().
     //
-    virtual void post_regrid (int lbase, int new_finest) override { ; }
+    virtual void post_regrid (int lbase, int new_finest) override;
     //
     //Do work after a restart().
     //
-    virtual void post_restart () override { ; }
+    virtual void post_restart () override;
     //
     //Do work after init().
     //
-    virtual void post_init (Real stop_time) override;
+    virtual void post_init (amrex::Real stop_time) override;
     //
     //Error estimation for regridding.
     //
-    virtual void errorEst (TagBoxArray& tb,
+    virtual void errorEst (amrex::TagBoxArray& tb,
                            int          clearval,
                            int          tagval,
-                           Real         time,
+                           amrex::Real         time,
 			   int          n_error_buf = 0, int ngrow = 0) override;
+
+#ifdef PARTICLES
+    static amrex::AmrTracerParticleContainer* theTracerPC () { return TracerPC.get(); }
+#endif
 
     static int  NUM_STATE;
     static int  NUM_GROW;
@@ -150,8 +166,8 @@ protected:
 
     Adv& getLevel (int lev);
 
-    FluxRegister& getFluxReg ();
-    FluxRegister& getFluxReg (int lev);
+    amrex::FluxRegister& getFluxReg ();
+    amrex::FluxRegister& getFluxReg (int lev);
 
     void reflux ();
 
@@ -162,13 +178,19 @@ protected:
     //
     // The data.
     //
-    FluxRegister*        flux_reg;
+    amrex::FluxRegister*        flux_reg;
     //
     // Static data members.
     //
-    static int       verbose;
-    static Real      cfl;
-    static int       do_reflux;
+    static int          verbose;
+    static amrex::Real  cfl;
+    static int          do_reflux;
+
+#ifdef PARTICLES
+    void init_particles ();
+    static int       do_tracers;
+    static std::unique_ptr<amrex::AmrTracerParticleContainer> TracerPC;
+#endif
 };    
 
 //
@@ -183,7 +205,7 @@ Adv::getLevel (int lev)
 }
 
 inline
-FluxRegister&
+amrex::FluxRegister&
 Adv::getFluxReg ()
 {
     BL_ASSERT(flux_reg);
@@ -191,7 +213,7 @@ Adv::getFluxReg ()
 }
 
 inline
-FluxRegister&
+amrex::FluxRegister&
 Adv::getFluxReg (int lev)
 {
     return getLevel(lev).getFluxReg();

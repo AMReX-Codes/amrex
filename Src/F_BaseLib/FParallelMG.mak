@@ -5,7 +5,7 @@
 #
 # Note: you can do a parallel make if you are using this file if you
 # are using the MODDEP dependency evaluater that is in Tools/C_scripts 
-# and is used in the default Tools/C_mk/Make.{rules,defs}. Otherwise,
+# and is used in the default Tools/GNUMake/Make.{rules,defs}. Otherwise,
 # you can't since the dependencies for the object/module files can not be
 # inferred from the names or ordering of thes files.
 #
@@ -79,5 +79,5 @@ CEXE_sources += MemProfiler_f.cpp
 f90EXE_sources += memprof.f90
 endif
 
-VPATH_LOCATIONS += $(BOXLIB_HOME)/Src/F_BaseLib
-INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/F_BaseLib
+VPATH_LOCATIONS += $(AMREX_HOME)/Src/F_BaseLib
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/F_BaseLib

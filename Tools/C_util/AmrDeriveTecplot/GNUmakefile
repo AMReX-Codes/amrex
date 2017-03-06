@@ -1,4 +1,4 @@
-BOXLIB_HOME ?= ../../../../BoxLib
+AMREX_HOME ?= ../../../../amrex
 
 BL_NOFAST   = TRUE
 EBASE       = AmrDeriveTecplot
@@ -9,10 +9,9 @@ DIM         = 2
 USE_MPI     = FALSE
 AIXLARGEMEM = FALSE
 COMP        = g++
-FCOMP       = gfortran
 BINARY_OUTPUT = FALSE
 
-include $(BOXLIB_HOME)/Tools/C_mk/Make.defs
+include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
 DEFINES     += -DBL_NOLINEVALUES
 
@@ -32,15 +31,15 @@ endif
 
 DEFINES += -DBL_PARALLEL_IO
 
-include $(BOXLIB_HOME)/Src/C_BaseLib/Make.package
+include $(AMREX_HOME)/Src/Base/Make.package
 
 INCLUDE_LOCATIONS += .
-INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/C_BaseLib
-INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/Extern/amrdata
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Base
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Extern/amrdata
 
 PATHDIRS  = .
-PATHDIRS += $(BOXLIB_HOME)/Src/C_BaseLib
-PATHDIRS += $(BOXLIB_HOME)/Src/Extern/amrdata
+PATHDIRS += $(AMREX_HOME)/Src/Base
+PATHDIRS += $(AMREX_HOME)/Src/Extern/amrdata
 
 
 ifeq ($(BINARY_OUTPUT),TRUE)
@@ -60,7 +59,7 @@ vpath %.f90 $(PATHDIRS)
 
 all: $(executable)
 
-include $(BOXLIB_HOME)/Tools/C_mk/Make.rules
+include $(AMREX_HOME)/Tools/GNUMake/Make.rules
 
 
 

@@ -1,11 +1,13 @@
 
-#include <MultiFab.H>
-#include <ParmParse.H>
-#include <VisMF.H>
-#include <Geometry.H>
-#include <BndryData.H>
-#include <LO_BCTYPES.H>
-#include <MultiGrid.H>
+#include <AMReX_MultiFab.H>
+#include <AMReX_ParmParse.H>
+#include <AMReX_VisMF.H>
+#include <AMReX_Geometry.H>
+#include <AMReX_BndryData.H>
+#include <AMReX_LO_BCTYPES.H>
+#include <AMReX_MultiGrid.H>
+
+using namespace amrex;
 
 namespace {
     int ncomp  = 8;
@@ -29,21 +31,21 @@ extern "C"
 }
 
 void setup_rhs(MultiFab& rhs, const Geometry& geom);
-void setup_coeffs(MultiFab& alpha, PArray<MultiFab>& beta, const Geometry& geom);
+void setup_coeffs(MultiFab& alpha, const Array<MultiFab*>& beta, const Geometry& geom);
 void set_boundary(BndryData& bd, const MultiFab& rhs, int comp);
 void solve(MultiFab& soln, const MultiFab& rhs, 
-	   const MultiFab& alpha, const PArray<MultiFab>& beta,
+	   const MultiFab& alpha, const Array<MultiFab*>& beta,
 	   const Geometry& geom);
 void colored_solve(MultiFab& soln, const MultiFab& rhs, 
-		   const MultiFab& alpha, const PArray<MultiFab>& beta, 
+		   const MultiFab& alpha, const Array<MultiFab*>& beta, 
 		   const Geometry& geom);
 void single_component_solve(MultiFab& soln, const MultiFab& rhs, 
-			    const MultiFab& alpha, const PArray<MultiFab>& beta, 
+			    const MultiFab& alpha, const Array<MultiFab*>& beta, 
 			    const Geometry& geom);
 
 int main(int argc, char* argv[])
 {
-    BoxLib::Initialize(argc,argv);
+    amrex::Initialize(argc,argv);
 
     BoxArray ba;
     Geometry geom;
@@ -73,23 +75,27 @@ int main(int argc, char* argv[])
 	geom.define(domain,&real_box,coord);
     }
 
-    MultiFab rhs(ba, ncomp, 0);
+    DistributionMapping dm{ba};
+
+    MultiFab rhs(ba, dm, ncomp, 0);
     setup_rhs(rhs, geom);
 
-    MultiFab alpha(ba, ncomp, 0);
-    PArray<MultiFab> beta(BL_SPACEDIM, PArrayManage);
+    MultiFab alpha(ba, dm, ncomp, 0);
+    Array<std::unique_ptr<MultiFab> > beta(BL_SPACEDIM);
     for (int i = 0; i < BL_SPACEDIM; ++i) {
-	beta.set(i, new MultiFab(ba, ncomp, 0, Fab_allocate, IntVect::TheDimensionVector(i)));
+	MFInfo info;
+	info.SetNodal(IntVect::TheDimensionVector(i));
+	beta[i].reset(new MultiFab(ba, dm, ncomp, 0, info));
     }
-    setup_coeffs(alpha, beta, geom);
+    setup_coeffs(alpha, amrex::GetArrOfPtrs(beta), geom);
 
-    MultiFab soln(ba, ncomp, 0);
+    MultiFab soln(ba, dm, ncomp, 0);
 
-    solve(soln, rhs, alpha, beta, geom);
+    solve(soln, rhs, alpha, amrex::GetArrOfPtrs(beta), geom);
 
     VisMF::Write(soln, "soln");
 
-    BoxLib::Finalize();
+    amrex::Finalize();
 }
 
 void setup_rhs(MultiFab& rhs, const Geometry& geom)
@@ -106,24 +112,24 @@ void setup_rhs(MultiFab& rhs, const Geometry& geom)
     }
 }
 
-void setup_coeffs(MultiFab& alpha, PArray<MultiFab>& beta, const Geometry& geom)
+void setup_coeffs(MultiFab& alpha, const Array<MultiFab*>& beta, const Geometry& geom)
 {
     const Real* dx = geom.CellSize();
 
     alpha.setVal(1.0);
 
 #if (BL_SPACEDIM == 3)
-    BoxLib::Abort("2D only");
+    amrex::Abort("2D only");
 #endif
 
     for ( MFIter mfi(alpha); mfi.isValid(); ++mfi ) 
     {
-	FArrayBox& betax = beta[0][mfi];
-	FArrayBox& betay = beta[1][mfi];
+	FArrayBox& betax = (*beta[0])[mfi];
+	FArrayBox& betay = (*beta[1])[mfi];
 
 	fort_set_coef(betax.dataPtr(), betax.loVect(), betax.hiVect(),
 		      betay.dataPtr(), betay.loVect(), betay.hiVect(),
-		      beta[0].nComp(), dx, sigma, w);
+		      beta[0]->nComp(), dx, sigma, w);
     }
 }
 
@@ -184,50 +190,54 @@ void set_boundary(BndryData& bd, const MultiFab& rhs, int comp)
 }
 
 void solve(MultiFab& soln, const MultiFab& rhs, 
-	   const MultiFab& alpha, const PArray<MultiFab>& beta, const Geometry& geom)
+	   const MultiFab& alpha, const Array<MultiFab*>& beta, const Geometry& geom)
 {
+    int nprocs  = ParallelDescriptor::NProcs();
     int ncolors = ParallelDescriptor::NColors();
     int cncomp = ncomp / ncolors;
     BL_ASSERT(cncomp*ncolors == ncomp);
 
     const BoxArray& ba = rhs.boxArray();
 
-    PArray<MultiFab> csoln(ncolors, PArrayManage);
-    PArray<MultiFab> crhs(ncolors, PArrayManage);
-    PArray<MultiFab> calpha(ncolors, PArrayManage);
-    Array<PArray<MultiFab> > cbeta(ncolors);
+    Array<std::unique_ptr<MultiFab> > csoln(ncolors);
+    Array<std::unique_ptr<MultiFab> > crhs(ncolors);
+    Array<std::unique_ptr<MultiFab> > calpha(ncolors);
+    Array<Array<std::unique_ptr<MultiFab> > > cbeta(ncolors);
 
     for (int i = 0; i < ncolors; ++i) {
 	ParallelDescriptor::Color color = ParallelDescriptor::Color(i);
 
+	DistributionMapping dm {ba, nprocs, color};
+
 	// Build colored MFs.
-	csoln.set(i, new MultiFab(ba, cncomp, 0, color));
-	crhs.set(i, new MultiFab(ba, cncomp, 0, color));
-	calpha.set(i, new MultiFab(ba, cncomp, 0, color));
-	cbeta[i].resize(BL_SPACEDIM, PArrayManage);
+	csoln [i].reset(new MultiFab(ba, dm, cncomp, 0));
+	crhs  [i].reset(new MultiFab(ba, dm, cncomp, 0));
+	calpha[i].reset(new MultiFab(ba, dm, cncomp, 0));
+	cbeta[i].resize(BL_SPACEDIM);
 	for (int j = 0; j < BL_SPACEDIM; ++j) {
-	    cbeta[i].set(j, new MultiFab(beta[j].boxArray(), cncomp, 0, color));
+	    cbeta[i][j].reset(new MultiFab(beta[j]->boxArray(), dm, cncomp, 0));
 	}
 
 	// Parallel copy data into colored MFs.
-	crhs[i].copy(rhs, cncomp*i, 0, cncomp);
-	calpha[i].copy(alpha, cncomp*i, 0, cncomp);
+	crhs[i]->copy(rhs, cncomp*i, 0, cncomp);
+	calpha[i]->copy(alpha, cncomp*i, 0, cncomp);
 	for (int j = 0; j < BL_SPACEDIM; ++j) {
-	    cbeta[i][j].copy(beta[j], cncomp*i, 0, cncomp);
+	    cbeta[i][j]->copy(*beta[j], cncomp*i, 0, cncomp);
 	}
     }
 
     int icolor = ParallelDescriptor::SubCommColor().to_int();
-    colored_solve(csoln[icolor], crhs[icolor], calpha[icolor], cbeta[icolor], geom);
+    colored_solve(*csoln[icolor], *crhs[icolor], *calpha[icolor],
+		  amrex::GetArrOfPtrs(cbeta[icolor]), geom);
 
     // Copy solution back from colored MFs.
     for (int i = 0; i < ncolors; ++i) {
-	soln.copy(csoln[i], 0, cncomp*i, cncomp);
+	soln.copy(*csoln[i], 0, cncomp*i, cncomp);
     }
 }
 
 void colored_solve(MultiFab& soln, const MultiFab& rhs, 
-		   const MultiFab& alpha, const PArray<MultiFab>& beta, 
+		   const MultiFab& alpha, const Array<MultiFab*>& beta, 
 		   const Geometry& geom)
 {
     const BoxArray& ba = soln.boxArray();
@@ -240,22 +250,23 @@ void colored_solve(MultiFab& soln, const MultiFab& rhs,
     else
     {	    
 	for (int i = 0; i < soln.nComp(); ++i) {
-	    MultiFab ssoln(ba, 1, 1, dm);
-	    MultiFab srhs(ba, 1, 0, dm);
-	    MultiFab salpha(ba, 1, 0, dm);
-	    PArray<MultiFab> sbeta(BL_SPACEDIM, PArrayManage);
+	    MultiFab ssoln (ba, dm, 1, 1);
+	    MultiFab srhs  (ba, dm, 1, 0);
+	    MultiFab salpha(ba, dm, 1, 0);
+	    Array<std::unique_ptr<MultiFab> > sbeta(BL_SPACEDIM);
 	    for (int j = 0; j < BL_SPACEDIM; ++j) {
-		sbeta.set(j, new MultiFab(beta[j].boxArray(), 1, 0, dm));
+		sbeta[j].reset(new MultiFab(beta[j]->boxArray(), dm, 1, 0));
 	    }
 	    
 	    MultiFab::Copy(ssoln , soln , i, 0, 1, 0);
 	    MultiFab::Copy(srhs  , rhs  , i, 0, 1, 0);
 	    MultiFab::Copy(salpha, alpha, i, 0, 1, 0);
 	    for (int j = 0; j < BL_SPACEDIM; ++j) {
-		MultiFab::Copy(sbeta[j], beta[j], i, 0, 1, 0);
+		MultiFab::Copy(*sbeta[j], *beta[j], i, 0, 1, 0);
 	    }
 	    
-	    single_component_solve(ssoln, srhs, salpha, sbeta, geom);
+	    single_component_solve(ssoln, srhs, salpha,
+				   amrex::GetArrOfPtrs(sbeta), geom);
 	    
 	    MultiFab::Copy(soln, ssoln, 0, i, 1, 0);
 	}
@@ -263,14 +274,14 @@ void colored_solve(MultiFab& soln, const MultiFab& rhs,
 }
 
 void single_component_solve(MultiFab& soln, const MultiFab& rhs, 
-			    const MultiFab& alpha, const PArray<MultiFab>& beta, 
+			    const MultiFab& alpha, const Array<MultiFab*>& beta, 
 			    const Geometry& geom)
 {
-    const ParallelDescriptor::Color color = soln.color();
     const BoxArray& ba = soln.boxArray();
+    const DistributionMapping& dm = soln.DistributionMap();
     const Real* dx = geom.CellSize();
 
-    BndryData bd(ba, 1, geom, color);
+    BndryData bd(ba, dm, 1, geom);
     set_boundary(bd, rhs, 0);
 
     ABecLaplacian abec_operator(bd, dx);

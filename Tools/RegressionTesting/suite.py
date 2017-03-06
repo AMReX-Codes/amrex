@@ -104,6 +104,8 @@ class Test(object):
         self.compile_successful = False  # filled automatically
         self.compare_successful = False  # filled automatically
 
+        self.customRunCmd = None
+
     def __lt__(self, other):
         return self.value() < other.value()
 
@@ -150,7 +152,7 @@ class Suite(object):
 
         self.args = args
 
-        # this will hold all of the Repo() objects for the BoxLib, source,
+        # this will hold all of the Repo() objects for the AMReX, source,
         # and build directories
         self.repos = {}
 
@@ -165,7 +167,7 @@ class Suite(object):
 
         # set automatically
         self.source_dir = ""
-        self.boxlib_dir = ""
+        self.amrex_dir = ""
 
         self.MPIcommand = ""
         self.MPIhost = ""
@@ -508,14 +510,14 @@ class Suite(object):
         if not self.extra_src_comp_string is None:
             extra_src_comp_string = self.extra_src_comp_string
 
-        cmd = "{} BOXLIB_HOME={} {} {} realclean".format(
-            self.MAKE, self.boxlib_dir,
+        cmd = "{} AMREX_HOME={} {} {} realclean".format(
+            self.MAKE, self.amrex_dir,
             extra_src_comp_string, build_comp_string)
 
         test_util.run(cmd)
 
     def build_f(self, test=None, opts="", target="", outfile=None):
-        """ build an executable with the Fortran BoxLib build system """
+        """ build an executable with the Fortran AMReX build system """
 
         build_opts = ""
         if test is not None:
@@ -532,8 +534,8 @@ class Suite(object):
 
         all_opts = "{} {} {}".format(self.extra_src_comp_string, build_opts, opts)
 
-        comp_string = "{} -j{} BOXLIB_HOME={} COMP={} {} {} {}".format(
-            self.MAKE, self.numMakeJobs, self.boxlib_dir,
+        comp_string = "{} -j{} AMREX_HOME={} COMP={} {} {} {}".format(
+            self.MAKE, self.numMakeJobs, self.amrex_dir,
             self.FCOMP, self.add_to_f_make_command, all_opts, target)
 
         self.log.log(comp_string)
@@ -564,8 +566,8 @@ class Suite(object):
 
         all_opts = "{} {} {}".format(self.extra_src_comp_string, build_opts, opts)
 
-        comp_string = "{} -j{} BOXLIB_HOME={} {} COMP={} FCOMP={} {}".format(
-            self.MAKE, self.numMakeJobs, self.boxlib_dir,
+        comp_string = "{} -j{} AMREX_HOME={} {} COMP={} FCOMP={} {}".format(
+            self.MAKE, self.numMakeJobs, self.amrex_dir,
             all_opts, self.COMP, self.FCOMP, self.add_to_c_make_command)
 
         self.log.log(comp_string)
@@ -613,11 +615,11 @@ class Suite(object):
     def build_tools(self, test_list):
 
         self.compare_tool_dir = "{}/Tools/Postprocessing/F_Src/".format(
-            os.path.normpath(self.boxlib_dir))
+            os.path.normpath(self.amrex_dir))
 
         os.chdir(self.compare_tool_dir)
 
-        self.make_realclean(repo="BoxLib")
+        self.make_realclean(repo="AMReX")
 
         tools = ["fcompare", "fboxinfo"]
         if any([t for t in test_list if t.dim == 2]): tools.append("fsnapshot2d")

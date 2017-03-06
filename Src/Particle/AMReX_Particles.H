@@ -1,0 +1,737 @@
+#ifndef _PARTICLES_H_
+#define _PARTICLES_H_ 
+
+#include <cstring>
+#include <map>
+#include <deque>
+#include <vector>
+#include <fstream>
+#include <iostream>
+#include <numeric>
+#include <algorithm>
+#include <array>
+#include <memory>
+#include <limits>
+#include <utility>
+#include <tuple>
+#include <type_traits>
+
+#include <AMReX_ParmParse.H>
+#include <AMReX_ParGDB.H>
+#include <AMReX_REAL.H>
+#include <AMReX_IntVect.H>
+#include <AMReX_Array.H>
+#include <AMReX_Utility.H>
+#include <AMReX_Geometry.H>
+#include <AMReX_VisMF.H>
+#include <AMReX_RealBox.H>
+#include <AMReX_Print.H>
+#include <AMReX_MultiFabUtil.H>
+#include <AMReX_Interpolater.H>
+#include <AMReX_FillPatchUtil.H>
+
+#include <AMReX_Particles_F.H>
+
+#ifdef BL_LAZY
+#include <AMReX_Lazy.H>
+#endif
+
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
+namespace amrex {
+  
+namespace
+{
+    std::string   aggregation_type   = "";
+    int           aggregation_buffer = 1;
+    constexpr int GhostParticleID    = std::numeric_limits<int>::max();
+    constexpr int VirtualParticleID  = std::numeric_limits<int>::max()-1;
+    constexpr int LastParticleID     = std::numeric_limits<int>::max()-2;
+}
+
+//
+// A struct used for communicating particle data accross processes
+// during multi-level operations.
+//
+struct ParticleCommData
+{
+#ifdef BL_SINGLE_PRECISION_PARTICLES
+    typedef float RealType;
+#else
+    typedef double RealType;
+#endif
+  int     m_lev;
+  int     m_grid;
+  IntVect m_cell;
+  RealType m_data[1 + BL_SPACEDIM];
+};
+
+
+//
+// A struct used for storing a particle's position in the AMR hierarchy.
+//
+struct ParticleLocData
+{
+  int     m_lev  = -1;
+  int     m_grid = -1;
+  int     m_tile = -1;
+  IntVect m_cell {D_DECL(-1,-1,-1)};
+  Box     m_gridbox;
+  Box     m_tilebox;
+};
+
+
+//
+// The struct used to store particles.
+//
+template<int NR, int NI=0>
+struct Particle
+{
+    //
+    // The floating point type used for the particles.
+    //
+#ifdef BL_SINGLE_PRECISION_PARTICLES
+    typedef float RealType;
+#else
+    typedef double RealType;
+#endif
+
+    //
+    // The real data. We always have SPACEDIM position coordinates,
+    // and optionally we have NR additional real attributes.
+    //
+    union rm_t
+    {
+      RealType pos[BL_SPACEDIM];
+      RealType arr[BL_SPACEDIM+NR];
+    };
+
+    //
+    // The integer data. We always have id and cpu, and optionally we
+    // have NI additional integer attributes.
+    //
+    union im_t
+    {
+      struct {int id; int cpu;};
+      int arr[2+NI];
+    };
+
+    rm_t m_rdata;
+    im_t m_idata;
+
+    static int the_next_id;
+
+    int&  id()       & {return m_idata.id;}
+    int   id() const & {return m_idata.id;}
+    int& cpu()       & {return m_idata.cpu;}
+    int  cpu() const & {return m_idata.cpu;}
+
+    RealType& pos(int index)       & {return m_rdata.pos[index];}
+    RealType  pos(int index) const & {return m_rdata.pos[index];}
+
+    RealType& rdata(int index)       & {return m_rdata.arr[BL_SPACEDIM + index];}
+    RealType  rdata(int index) const & {return m_rdata.arr[BL_SPACEDIM + index];}
+
+    int& idata(int index)       & {return m_idata.arr[2 + index];}
+    int  idata(int index) const & {return m_idata.arr[2 + index];}
+
+    static Real InterpDoit (const FArrayBox& fab, const Real* fracs, const IntVect* cells, int comp);
+
+    static Real InterpDoit (const FArrayBox& fab, const IntVect& hi, const Real* frac, int comp);
+
+    static void Interp (const Particle<NR, NI>& prt, const Geometry& geom, const FArrayBox& fab, const int* idx, Real* val, int cnt);
+
+    static const std::string& Version ();
+
+    static const std::string& DataPrefix ();
+
+    static void GetGravity (const FArrayBox& gfab, const Geometry& geom, const Particle<NR, NI>& p, Real* grav);
+
+    static int MaxReaders ();
+
+    static long MaxParticlesPerRead ();
+
+    //
+    // Returns the next particle ID for this processor.
+    // Particle IDs start at 1 and are never reused.
+    // The pair, consisting of the ID and the CPU on which the particle is "born",
+    // is a globally unique identifier for a particle.  The maximum of this value
+    // across all processors must be checkpointed and then restored on restart
+    // so that we don't reuse particle IDs.
+    //
+    static int NextID ();
+
+    // This version can only be used inside omp critical.
+    static int UnprotectedNextID ();
+
+    //
+    // Reset on restart.
+    //
+    static void NextID (int nextid);
+
+    static void CIC_Fracs (const Real* frac, Real* fracs);
+
+    static void CIC_Cells (const IntVect& hicell, IntVect* cells);
+
+    //
+    // Old, *-based CIC for use in Interp.
+    //
+    static void CIC_Cells_Fracs_Basic (const Particle<NR, NI>& p, const Real* plo, const Real* dx, Real* fracs,  IntVect* cells);
+
+    //
+    // Wraps the arbitrary dx function.
+    //
+    static int CIC_Cells_Fracs (const Particle<NR, NI>& p, 
+                                const Real*         plo, 
+                                const Real*         dx, 
+                                Array<Real>&        fracs,  
+                                Array<IntVect>&     cells);
+    //
+    // Does CIC computations for arbitrary particle/grid dx's.
+    //
+    static int CIC_Cells_Fracs (const Particle<NR, NI>& p, 
+                                const Real*         plo, 
+                                const Real*         dx_geom, 
+                                const Real*         dx_part, 
+                                Array<Real>&        fracs,  
+                                Array<IntVect>&     cells);
+};
+
+template <int NR, int NI>
+class ArrayOfStructs {
+public:
+    using ParticleType = Particle<NR, NI>;
+    using RealType     = typename ParticleType::RealType;
+
+    static constexpr int SizeInReal = sizeof(ParticleType) / sizeof(RealType);
+
+    const Array<ParticleType>& operator()() const { return m_data; }
+    Array      <ParticleType>& operator()()       { return m_data; }
+
+    std::size_t size () const { return m_data.size(); }
+    int numParticles () const { return m_data.size(); }
+
+    bool empty () const { return m_data.empty(); }
+
+    const RealType* data () const { return &(m_data[0].m_rdata.arr[0]); }
+    RealType*       data ()       { return &(m_data[0].m_rdata.arr[0]); }
+
+    std::pair<int,int> dataShape () const {
+	return std::make_pair(SizeInReal, static_cast<int>(m_data.size()));
+    }
+
+    void push_back (const ParticleType& p) { return m_data.push_back(p); }
+    void pop_back() {m_data.pop_back(); }
+    bool empty() {return m_data.empty(); }
+
+    const ParticleType& back() const {return m_data.back(); }
+    ParticleType      & back()       {return m_data.back(); }
+
+    const ParticleType& operator[] (int i) const { return m_data[i]; }
+    ParticleType      & operator[] (int i)       { return m_data[i]; }
+    
+    typename Array<ParticleType>::iterator begin () { return m_data.begin(); }
+    typename Array<ParticleType>::const_iterator begin () const { return m_data.begin(); }
+    typename Array<ParticleType>::const_iterator cbegin () const { return m_data.cbegin(); }
+        
+    typename Array<ParticleType>::iterator end () { return m_data.end(); }
+    typename Array<ParticleType>::const_iterator end () const { return m_data.end(); }
+    typename Array<ParticleType>::const_iterator cend () const { return m_data.cend(); }
+
+private:
+    Array<ParticleType> m_data;
+};
+template <int NR, int NI> constexpr int ArrayOfStructs<NR,NI>::SizeInReal;
+
+template <int NA>
+struct StructOfArrays {
+  
+    Array<Real>& operator[] (const int index) {
+        return m_data[index];
+    }
+    
+    const Array<Real>& operator[] (const int index) const {
+        return m_data[index];
+    }
+
+    int numParticles () const { return NA>0 ? m_data[0].size() : 0; }
+
+private:
+    std::array<Array<Real>, NA> m_data;
+};
+
+template <int NR, int NI, int NA>
+struct ParticleTile
+{
+    using ParticleType = Particle<NR, NI>;
+    using AoS = ArrayOfStructs<NR,NI>;
+    using SoA = StructOfArrays<NA>;
+
+    AoS&       GetArrayOfStructs ()       { return m_aos_tile; }
+    const AoS& GetArrayOfStructs () const { return m_aos_tile; }
+
+    SoA&       GetStructOfArrays ()       { return m_soa_tile; }
+    const SoA& GetStructOfArrays () const { return m_soa_tile; }
+
+    bool empty () const { return m_aos_tile.empty(); }
+    
+    std::size_t size () const { return m_aos_tile.size(); }
+    int numParticles () const { return m_aos_tile.numParticles(); }
+
+    void push_back (const ParticleType& p) { m_aos_tile().push_back(p); }
+    void push_back (int comp, Real v) { m_soa_tile[comp].push_back(v); }
+    void push_back (const std::array<Real,NA>& v) { 
+        for (int i = 0; i < NA; ++i) {
+            m_soa_tile[i].push_back(v[i]);
+        }
+    }
+    void push_back (int comp, const Real* beg, const Real* end) {
+        auto it = m_soa_tile[comp].end();
+        m_soa_tile[comp].insert(it, beg, end);
+    }
+    void push_back (int comp, std::size_t npar, Real v) {
+        auto new_size = m_soa_tile[comp].size() + npar;
+        m_soa_tile[comp].resize(new_size, v);
+    }
+
+private:
+    AoS m_aos_tile;
+    SoA m_soa_tile;
+};
+
+template <int NR, int NI, int NA> class ParIter;
+
+template <int NR, int NI = 0, int NA = 0>
+class ParticleContainer
+{
+    friend class ParIter<NR,NI,NA>;
+
+public:
+    //
+    // The type of Particles we hold.
+    //
+    using ParticleType = Particle<NR, NI>;
+    using RealType = typename Particle<NR, NI>::RealType;
+
+    using ParticleTileType = ParticleTile<NR,NI,NA>;
+
+    // A single level worth of particles is indexed (grid id, tile id)
+    // for both SoA and AoS data.
+    using ParticleLevel = std::map<std::pair<int, int>, ParticleTileType>;
+    using AoS = typename ParticleTileType::AoS;
+    using SoA = typename ParticleTileType::SoA;
+
+    ParticleContainer ()
+      : 
+      communicate_comp(NA, true),
+      m_verbose(0), 
+      m_gdb(nullptr),
+      allow_particles_near_boundary(false)
+    {
+        Initialize ();
+    }
+
+    ParticleContainer (ParGDBBase* gdb)
+        :
+        communicate_comp(NA, true),
+	m_verbose(0),
+	m_gdb(gdb), 
+	allow_particles_near_boundary(false)
+    {
+        Initialize ();
+        reserveData();
+        resizeData();
+    }
+  
+    ParticleContainer (const Geometry            & geom, 
+		       const DistributionMapping & dmap,
+		       const BoxArray            & ba)
+	:
+        communicate_comp(NA, true),
+        m_verbose(0), 
+	allow_particles_near_boundary(false),
+	m_gdb_object(geom,dmap,ba)
+    {
+        Initialize ();
+        m_gdb = & m_gdb_object;
+        reserveData();
+        resizeData();
+    }
+
+    ParticleContainer (const Array<Geometry>            & geom, 
+		       const Array<DistributionMapping> & dmap,
+		       const Array<BoxArray>            & ba,
+		       const Array<int>                 & rr)
+	:
+        communicate_comp(NA, true),
+        m_verbose(0), 
+	allow_particles_near_boundary(false),
+	m_gdb_object(geom,dmap,ba,rr)
+    {
+        Initialize ();
+        m_gdb = & m_gdb_object;
+        reserveData();
+        resizeData();
+    }
+
+    ~ParticleContainer () {}
+
+    void Define (ParGDBBase* gdb)
+    {
+        m_gdb = gdb;
+        reserveData();
+        resizeData();
+    }
+
+    void Define (const Geometry            & geom, 
+		 const DistributionMapping & dmap,
+		 const BoxArray            & ba)
+  {
+      m_gdb_object = ParGDB(geom, dmap, ba);
+      m_gdb = &m_gdb_object;
+      reserveData();
+      resizeData();
+  }
+
+    void Define (const Array<Geometry>            & geom, 
+		 const Array<DistributionMapping> & dmap,
+		 const Array<BoxArray>            & ba,
+		 const Array<int>                 & rr)
+    {
+	m_gdb_object = ParGDB(geom, dmap, ba, rr);
+	m_gdb = &m_gdb_object;
+        reserveData();
+	resizeData();
+    }
+
+    void SetParticleBoxArray (int lev, const BoxArray& new_ba)
+	{ m_gdb->SetParticleBoxArray(lev, new_ba); }
+
+    void SetParticleDistributionMap (int lev, const DistributionMapping& new_dmap)
+	{ m_gdb->SetParticleDistributionMap(lev, new_dmap); }
+
+    const BoxArray& ParticleBoxArray (int lev) const 
+	{ return m_gdb->ParticleBoxArray(lev); }
+
+    const DistributionMapping& ParticleDistributionMap (int lev) const 
+	{ return m_gdb->ParticleDistributionMap(lev); }
+
+    const Geometry& Geom (int lev) const { return m_gdb->Geom(lev); }
+
+    int finestLevel () const { return m_gdb->finestLevel(); }
+    int maxLevel ()    const { return m_gdb->maxLevel(); }
+    
+    const ParGDBBase* GetParGDB () const { return m_gdb; }
+
+    void reserveData();
+    void resizeData();
+
+    void RedefineDummyMF (int lev);
+
+    void InitFromAsciiFile (const std::string& file, int extradata, const IntVect* Nrep = 0);
+    void InitFromBinaryFile (const std::string& file, int extradata);
+    void InitFromBinaryMetaFile (const std::string& file, int extradata);
+    void InitRandom (long icount, unsigned long iseed, Real particleMass, bool serialize = false, RealBox bx = RealBox());
+    void InitOnePerCell (Real x_off, Real y_off, Real z_off,
+                         Real particleMass, const MultiFab& particle_mf);
+    void InitNRandomPerCell (int n_per_cell, Real particleMass, const MultiFab& particle_mf);
+
+    void addOneParticle (int id_in, int cpu_in, 
+                         std::vector<Real>& xloc, std::vector<Real>& attributes); 
+    void addNParticles (int n, D_DECL(Array<Real>& x, Array<Real>& y, Array<Real>& z),
+                        int na, Array<Real>& attributes);
+
+    void GetParticleIDs        (Array<int> & part_ids);
+    void GetParticleCPU        (Array<int> & part_cpu);
+    void GetParticleLocations  (Array<Real>& part_locs);
+    void GetParticleData       (Array<Real>& part_data, int start_comp, int num_comp);
+
+    void SetParticleLocations  (Array<Real>& part_locs);
+
+    void MoveRandom ();
+    void MoveRandom (int level);
+
+    void Increment (MultiFab& mf, int level);
+    long IncrementWithTotal (MultiFab& mf, int level, bool local = false);
+
+    // rho_index: rho index in rdata
+    Real sumParticleMass (int rho_index, int level, bool local = false) const;
+
+    // Set the flag that allows particles to live near the domain boundary and throw away 
+    //     the part of their contribution in AssignDensity that is outside the domain.
+    void SetAllowParticlesNearBoundary(bool value);
+ 
+    void Redistribute (int lev_min = 0, int lev_max = -1, int nGrow = 0);
+    //
+    // OK checks that all particles are in the right places (for some value of right)
+    //
+    // These flags are used to do proper checking for subcycling particles
+    // the default values are fine for non-subcycling methods
+    //
+    bool OK (int lev_min = 0, int lev_max = -1, int nGrow = 0) const;
+
+    void ByteSpread () const;
+    //
+    // Returns # of particles at specified the level.
+    //
+    // If "only_valid" is true it only counts valid particles.
+    //
+    long NumberOfParticlesAtLevel (int level, bool only_valid = true, bool only_local = false) const;
+    Array<long> NumberOfParticlesInGrid  (int level, bool only_valid = true, bool only_local = false) const;
+    //
+    // Returns # of particles at all levels
+    //
+    // If "only_valid" is true it only counts valid particles.
+    //
+    long TotalNumberOfParticles (bool only_valid=true, bool only_local=false) const;
+
+    //
+    // The Following methods are for managing Virtual and Ghost Particles.
+    //
+    // Removes all particles at a given level
+    //
+    void RemoveParticlesAtLevel (int level);
+    // 
+    void RemoveParticlesNotAtFinestLevel ();
+    //
+    // Creates virtual particles for a given level that represent
+    // in some capacity all particles at finer levels
+    //
+    void CreateVirtualParticles (int level, AoS& virts) const;
+    // 
+    // Create ghost particles for a given level that are copies of particles
+    // near coarse->fine boundaries in level-1
+    //
+    void CreateGhostParticles (int level, int ngrow, AoS& ghosts) const;
+    //
+    // Add particles from a pbox to the grid at this level
+    //
+    void AddParticlesAtLevel (AoS& particles, int level, int nGrow=0);
+
+    void Checkpoint (const std::string& dir, const std::string& name, bool is_checkpoint = true,
+                     const Array<std::string>& real_comp_names = Array<std::string>(),
+                     const Array<std::string>&  int_comp_names = Array<std::string>()) const;
+
+    void Restart (const std::string& dir, const std::string& file, bool is_checkpoint = true);
+
+    void WritePlotFile (const std::string& dir, const std::string& name) const;
+
+    void WriteAsciiFile (const std::string& file);
+
+    void WriteCoarsenedAsciiFile (const std::string& filename);
+
+    int Verbose () { return m_verbose; }
+
+    void SetVerbose (int verbose) { m_verbose = verbose; }
+
+    const Array<ParticleLevel>& GetParticles () const { return m_particles; }
+    Array      <ParticleLevel>& GetParticles ()       { return m_particles; }
+
+    const ParticleLevel& GetParticles (int lev) const { return m_particles[lev]; }
+    ParticleLevel      & GetParticles (int lev)       { return m_particles[lev]; }
+
+    const ParticleTileType& ParticlesAt (int lev, int grid, int tile) const 
+        { return m_particles[lev].at(std::make_pair(grid,tile)); }
+    ParticleTileType&       ParticlesAt (int lev, int grid, int tile)
+        { return m_particles[lev].at(std::make_pair(grid, tile)); }
+
+    // 
+    // Functions depending the layout of the data.  Use with caution.
+    //
+    // Multi-level version
+    void AssignDensity (int rho_index, bool sub_cycle, Array<std::unique_ptr<MultiFab> >& mf, 
+			int lev_min = 0, int ncomp = 1, int finest_level = -1) const;
+    // Single-level version
+    void AssignDensitySingleLevel (int rho_index, MultiFab& mf, int level,
+				   int ncomp=1, int particle_lvl_offset = 0) const;
+    
+    void AssignDensityFort (int rho_index,
+                            Array<std::unique_ptr<MultiFab> >& mf_to_be_filled, 
+                            int lev_min, int ncomp, int finest_level) const;
+
+    void AssignCellDensitySingleLevelFort (int rho_index, MultiFab& mf, int level,
+					   int ncomp=1, int particle_lvl_offset = 0) const;
+    void AssignCellDensitySingleLevel (int rho_index, MultiFab& mf, int level,
+				       int ncomp=1, int particle_lvl_offset = 0) const;
+    void NodalDepositionSingleLevel   (int rho_index, MultiFab& mf, int level,
+				       int ncomp=1, int particle_lvl_offset = 0) const;
+    //
+    void moveKick (MultiFab& acceleration, int level, Real timestep, 
+		   Real a_new = 1.0, Real a_half = 1.0,
+		   int start_comp_for_accel = -1);
+
+    IntVect Index (const Particle<NR, NI>& p, int lev) const;
+
+    //
+    // Updates a particle's location (Where), tries to periodic shift any particles
+    // that have left the domain. May need work (see inline comments)
+    //
+
+    void Reset (ParticleType& prt, bool update, bool verbose=true) const; 
+
+    //
+    // Returns true if the particle was shifted.
+    //
+    bool PeriodicShift (ParticleType& prt) const;
+
+    //
+    // Used by AssignDensity.
+    //
+    bool CrseToFine (const BoxArray&       cfba, 
+		     const Array<IntVect>& cells, 
+		     Array<IntVect>&       cfshifts, 
+		     const Geometry&       gm, 
+		     Array<int>&           which, 
+		     Array<IntVect>&       pshifts) const;
+
+    bool FineToCrse (const ParticleType&                p,
+		     int                                flev,
+		     const Array<IntVect>&              fcells,
+		     const BoxArray&                    fvalid,
+		     const BoxArray&                    compfvalid_grown,
+		     Array<IntVect>&                    ccells,
+		     Array<Real>&                       cfracs,
+		     Array<int>&                        which,
+		     Array<int>&                        cgrid,
+		     Array<IntVect>&                    pshifts,
+		     std::vector< std::pair<int,Box> >& isects) const;
+
+    void FineCellsToUpdateFromCrse (const ParticleType&                p,
+				    int                                lev,
+				    const IntVect&                     ccell,
+				    const IntVect&                     cshift,
+				    Array<int>&                        fgrid,
+				    Array<Real>&                       ffrac,
+				    Array<IntVect>&                    fcells,
+				    std::vector< std::pair<int,Box> >& isects) const;
+
+    MFIter MakeMFIter (int lev) const {
+        BL_ASSERT(m_dummy_mf[lev] != nullptr);
+        return MFIter(*m_dummy_mf[lev], do_tiling ? tile_size : IntVect::TheZeroVector());
+    }
+
+    std::vector<bool> communicate_comp;
+    static bool do_tiling;
+    static IntVect tile_size;
+    
+protected:
+
+    //
+    // Checks a particle's location on levels lev_min and higher.
+    // Returns false if the particle does not exist on that level.
+    // Only if lev_min == lev_max, nGrow can be > 0 (i.e., including
+    // nGrow ghost cells).
+    //
+    bool Where (const ParticleType& prt, ParticleLocData& pld, 
+		int lev_min = 0, int lev_max = -1, int nGrow=0) const;
+
+    //
+    // Checks whether the particle has crossed a periodic boundary in such a way
+    // that it is on levels lev_min and higher.
+    //
+    bool EnforcePeriodicWhere (ParticleType& prt, ParticleLocData& pld,
+                               int lev_min = 0, int lev_max = -1) const;
+
+    bool OnSameGrids (int level, const MultiFab& mf) const { return m_gdb->OnSameGrids(level, mf); }
+
+
+    // Helper function for Checkpoint() and WritePlotFile().
+    void WriteParticles (int            level,
+                         std::ofstream& ofs,
+                         int            fnum,
+                         Array<int>&    which,
+                         Array<int>&    count,
+                         Array<long>&   where,
+                         bool           is_checkpoint) const;
+
+    template <class RTYPE>
+    void ReadParticles (int            cnt,
+			int            grd,
+			int            lev,
+			bool           is_checkpoint,
+			std::ifstream& ifs);
+
+    //
+    // The member data.
+    //
+    int         m_verbose;
+    ParGDBBase* m_gdb;
+    bool        allow_particles_near_boundary;
+    ParGDB      m_gdb_object;
+    
+private:
+    void AssignDensityDoit (int rho_index, 
+			    Array<std::unique_ptr<MultiFab> >& mf, 
+			    std::map<int, Array<ParticleCommData> >& data,
+			    int ncomp, int lev_min = 0) const;
+
+    std::pair<long,long> StartIndexInGlobalArray () const;
+
+    void RedistributeMPI (std::map<int, Array<char> >& not_ours,
+			  int lev_min = 0, int lev_max = 0, int nGrow = 0);
+
+    void locateParticle(ParticleType& p, ParticleLocData& pld,
+                        int lev_min, int lev_max, int nGrow) const;
+
+    static int getTileIndex(const IntVect& iv, const Box& box, Box& tbx);
+
+    static void Initialize ();
+
+    Array<ParticleLevel> m_particles;
+    Array<std::unique_ptr<MultiFab> > m_dummy_mf;
+};
+
+template <int NR, int NI = 0, int NA = 0>
+class ParIter
+    : public MFIter
+{
+public:
+    using ContainerType    = ParticleContainer<NR,NI,NA>;
+    using ParticleTileType = typename ContainerType::ParticleTileType;
+    using AoS              = typename ContainerType::AoS;
+    using SoA              = typename ContainerType::SoA;
+    using ParticleType     = typename ContainerType::ParticleType;
+
+    ParIter (ContainerType& pc, int level);
+
+    void operator++ () {
+        ++m_pariter_index;
+        currentIndex = m_valid_index[m_pariter_index];
+    }
+    
+    const ParticleTileType& GetParticleTile () const { return *m_particle_tiles[m_pariter_index]; }
+    ParticleTileType      & GetParticleTile ()       { return *m_particle_tiles[m_pariter_index]; }
+
+    const AoS& GetArrayOfStructs () const { return GetParticleTile().GetArrayOfStructs(); }
+    AoS&       GetArrayOfStructs ()       { return GetParticleTile().GetArrayOfStructs(); }
+
+    const SoA& GetStructOfArrays () const { return GetParticleTile().GetStructOfArrays(); }
+    SoA&       GetStructOfArrays ()       { return GetParticleTile().GetStructOfArrays(); }
+
+    void SetPosition (D_DECL(const Array<Real>& x,
+                             const Array<Real>& y,
+                             const Array<Real>& z));
+
+    void GetPosition (D_DECL(Array<Real>& x,
+                             Array<Real>& y,
+                             Array<Real>& z)) const;
+
+    int numParticles () const { return GetArrayOfStructs().numParticles(); }    
+
+private:
+    int m_level;
+    int m_pariter_index;
+    Array<int> m_valid_index;
+    Array<ParticleTileType*> m_particle_tiles;
+};
+
+#include "AMReX_ParticleI.H"
+#include "AMReX_ParticleInit.H"
+#include "AMReX_ParticleContainerI.H"
+#include "AMReX_ParIterI.H"
+
+}
+
+#endif /*_PARTICLES_H_*/

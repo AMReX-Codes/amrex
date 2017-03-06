@@ -1,8 +1,0 @@
-CEXE_sources += driver.cpp
-CEXE_sources += Solver.cpp 
-CEXE_sources += SolverBoundary.cpp 
-CEXE_sources += writePlotFile.cpp
-
-CEXE_headers += Solver.H
-CEXE_headers += writePlotFile.H
-

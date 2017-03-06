@@ -1,4 +1,4 @@
-BOXLIB_HOME ?= ../../../..
+AMREX_HOME ?= ../../../..
 
 PRECISION  = DOUBLE
 PROFILE    = FALSE
@@ -9,7 +9,7 @@ DEBUG      = FALSE
 DIM        = 2
 #DIM       = 3
 
-COMP	   = g++
+COMP	   = gnu
 
 USE_MPI    = TRUE
 USE_OMP    = FALSE

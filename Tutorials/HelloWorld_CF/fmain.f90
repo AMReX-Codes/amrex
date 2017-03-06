@@ -1,39 +1,45 @@
 
-subroutine fmain () bind(c)
+subroutine amrex_fmain () bind(c)
 
-  use boxlib_module
+  use amrex_module
 
   implicit none
 
   integer, parameter :: ncell=64, sz=32
 
   integer :: lo(3), hi(3), i, j, k
-  double precision :: rmin, rmax, rnm0, rnm1, rnm2
-  type(Box)      :: domain, bx
-  type(BoxArray) :: ba
-  type(MultiFab) :: mf
-  type(MFIter)   :: mfi
-  double precision, pointer, dimension(:,:,:,:) :: p
+  real(amrex_real)      :: rmin, rmax, rnm0, rnm1, rnm2
+  type(amrex_box)       :: domain, bx
+  type(amrex_boxarray)  :: ba
+  type(amrex_distromap) :: dm
+  type(amrex_multifab)  :: mf
+  type(amrex_mfiter)    :: mfi
+  real(amrex_real), contiguous, pointer, dimension(:,:,:,:) :: p
 
   ! define the lower and upper corner of a 3D domain
   lo = 0
   hi = ncell-1
 
   ! build a box for the domain
-  domain = Box(lo,hi)
+  domain = amrex_box(lo,hi)
 
   ! build a box array from the domain box
-  call boxarray_build(ba, domain)
+  call amrex_boxarray_build(ba, domain)
   ! break the box array into smaller boxes
   call ba%maxSize(sz)
 
+  call amrex_distromap_build(dm, ba)
+
   ! build a multifab on the box array with 1 component, 0 ghost cells
-  call multifab_build(mf, ba, 1, 0)
+  call amrex_multifab_build(mf, ba, dm, 1, 0)
+
+  call amrex_distromap_destroy(dm)
+  call amrex_boxarray_destroy(ba)
 
   !$OMP PARALLEL PRIVATE(mfi,bx,p,i,j,k)
   !
   ! build a multifab iterator with tiling
-  call mfiter_build(mfi, mf, tiling=.true.)
+  call amrex_mfiter_build(mfi, mf, tiling=.true.)
   !
   ! loop over tiles
   do while (mfi%next())
@@ -47,6 +53,8 @@ subroutine fmain () bind(c)
         end do
      end do
   end do
+
+  call amrex_mfiter_destroy(mfi)
   !$OMP END PARALLEL
 
   rmin = mf%min(1)    ! min of component 1
@@ -55,7 +63,9 @@ subroutine fmain () bind(c)
   rnm1 = mf%norm1()
   rnm2 = mf%norm2()
   
-  if (parallel_ioprocessor()) then
+  call amrex_multifab_destroy(mf)
+
+  if (amrex_parallel_ioprocessor()) then
      print *, "min      = ", rmin
      print *, "max      = ", rmax
      print *, "max norm = ", rnm0
@@ -63,4 +73,4 @@ subroutine fmain () bind(c)
      print *, "L2  norm = ", rnm2
   end if
 
-end subroutine fmain
+end subroutine amrex_fmain

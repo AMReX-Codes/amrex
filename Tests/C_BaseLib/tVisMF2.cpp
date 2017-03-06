@@ -2,13 +2,15 @@
 #include <cstdlib>
 #include <string>
 
-#include <VisMF.H>
-#include <Utility.H>
+#include <AMReX_VisMF.H>
+#include <AMReX_Utility.H>
+
+using namespace amrex;
 
 int
 main (int argc, char** argv)
 {
-    BoxLib::Initialize(argc, argv);
+    amrex::Initialize(argc, argv);
 
     if (ParallelDescriptor::IOProcessor())
         std::cout << "Successfully initialized BoxLib" << std::endl;
@@ -18,7 +20,9 @@ main (int argc, char** argv)
     if (ParallelDescriptor::IOProcessor())
         std::cout << "Successfully read the VisMF header" << std::endl;
 
-    MultiFab rho(vmf.boxArray(),1,0);
+    DistributionMapping dm{vmf.boxArray()};
+
+    MultiFab rho(vmf.boxArray(),dm,1,0);
 
     for (MFIter mfi(rho); mfi.isValid(); ++mfi)
     {
@@ -39,5 +43,5 @@ main (int argc, char** argv)
     if (ParallelDescriptor::IOProcessor())
         std::cout << "Successfully wrote Rho ..." << std::endl;
 
-    BoxLib::Finalize();
+    amrex::Finalize();
 }

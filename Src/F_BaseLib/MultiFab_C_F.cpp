@@ -1,5 +1,7 @@
 #include <MultiFab_C_F.H>
 
+namespace amrex {
+
 int  MultiFab_C_to_F::count = 0;
 
 MultiFab_C_to_F::MultiFab_C_to_F (const Geometry& geom,
@@ -17,7 +19,7 @@ MultiFab_C_to_F::MultiFab_C_to_F (const Geometry& geom,
     std::vector<int> hi(nb*dm);
 
     for ( int i = 0; i < nb; ++i ) {
-	const Box& bx = BoxLib::enclosedCells(ba[i]);
+	const Box& bx = amrex::enclosedCells(ba[i]);
         for ( int j = 0; j < dm; ++j ) {
 	    lo[j + i*dm] = bx.smallEnd(j);
 	    hi[j + i*dm] = bx.bigEnd(j);
@@ -63,3 +65,4 @@ MultiFab_C_to_F::share (MultiFab& cmf, const std::string& fmf_name)
     }
 }
 
+}

@@ -8,37 +8,37 @@
 
 
 // the driver functions for the MAC solves
-void mac_level_driver( AmrCore* parent, const MacBndry &mac_bndry, const BCRec& phys_bc,
-                       const BoxArray &grids,
+void mac_level_driver( amrex::AmrCore* parent, const amrex::MacBndry &mac_bndry, const amrex::BCRec& phys_bc,
+                       const amrex::BoxArray &grids,
                        int use_cg_solve, int level, int Density,
-                       const Real *dx, Real dt,
-                       Real mac_tol, Real mac_abs_tol, Real rhs_scale,
-                       MultiFab *area,  MultiFab &volume,
-                       MultiFab &S,     MultiFab &Rhs,
-                       MultiFab *u_mac, MultiFab *mac_phi );
+                       const amrex::Real *dx, amrex::Real dt,
+                       amrex::Real mac_tol, amrex::Real mac_abs_tol, amrex::Real rhs_scale,
+                       amrex::MultiFab *area,  amrex::MultiFab &volume,
+                       amrex::MultiFab &S,     amrex::MultiFab &Rhs,
+                       amrex::MultiFab *u_mac, amrex::MultiFab *mac_phi );
 
 // a driver function for computing a sync MAC solve
-void mac_sync_driver( AmrCore* parent, const MacBndry &mac_bndry, const BCRec& phys_bc,
-                      const BoxArray &grids,
+void mac_sync_driver( amrex::AmrCore* parent, const amrex::MacBndry &mac_bndry, const amrex::BCRec& phys_bc,
+                      const amrex::BoxArray &grids,
                       int use_cg_solve, int level, 
-                      const Real *dx, Real dt,
-                      Real mac_sync_tol, Real mac_abs_tol, Real rhs_scale,
-                      MultiFab *area,  MultiFab &volume,
-                      MultiFab &Rhs,   MultiFab *rho_half,
-                      MultiFab *mac_sync_phi );
+                      const amrex::Real *dx, amrex::Real dt,
+                      amrex::Real mac_sync_tol, amrex::Real mac_abs_tol, amrex::Real rhs_scale,
+                      amrex::MultiFab *area,  amrex::MultiFab &volume,
+                      amrex::MultiFab &Rhs,   amrex::MultiFab *rho_half,
+                      amrex::MultiFab *mac_sync_phi );
 
 
 // apply the mac pressure gradient to a velocity field
 // init, means that velocities are initialized here
 void mac_vel_update( int init,
-                     FArrayBox &uvel,
-                     FArrayBox &vvel,
+                     amrex::FArrayBox &uvel,
+                     amrex::FArrayBox &vvel,
 #if (BL_SPACEDIM == 3 )
-                     FArrayBox &wvel,
+                     amrex::FArrayBox &wvel,
 #endif
-                     const FArrayBox &phi,
-                     const FArrayBox *rho, int rho_comp,  
-                     const Box &grd, int level, int n,
-                     const Real *dx, Real scale );
+                     const amrex::FArrayBox &phi,
+                     const amrex::FArrayBox *rho, int rho_comp,  
+                     const amrex::Box &grd, int level, int n,
+                     const amrex::Real *dx, amrex::Real scale );
 
 #endif

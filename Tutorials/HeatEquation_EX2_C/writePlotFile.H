@@ -1,11 +1,11 @@
 #include <fstream>
 #include <iomanip>
 
-#include <Geometry.H>
-#include <VisMF.H>
+#include <AMReX_Geometry.H>
+#include <AMReX_VisMF.H>
 
 void
 writePlotFile (const std::string& dir, 
-               const MultiFab&    mf, 
-               const Geometry&    geom,
-	       const Real&        time);
+               const amrex::MultiFab&    mf, 
+               const amrex::Geometry&    geom,
+	       const amrex::Real&        time);

@@ -1,7 +1,7 @@
 #ifndef _COMP_NORM_F_H_
 #define _COMP_NORM_F_H_
 
-#include <BLFort.H>
+#include <AMReX_BLFort.H>
 
 BL_FORT_PROC_DECL(LST_COMP_NORM, lst_comp_norm)
   (const int* lo, const int* hi,
@@ -9,7 +9,7 @@ BL_FORT_PROC_DECL(LST_COMP_NORM, lst_comp_norm)
    const BL_FORT_FAB_ARG(exac),
    const BL_FORT_FAB_ARG(mask),
    const BL_FORT_FAB_ARG(volb),
-   Real* norm2, Real* norm0,
-   Real* volume, int* nsoln);
+   amrex::Real* norm2, amrex::Real* norm0,
+   amrex::Real* volume, int* nsoln);
 
 #endif

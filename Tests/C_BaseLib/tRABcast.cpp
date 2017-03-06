@@ -1,12 +1,13 @@
 // ------------------------------------------------------------
 // A test program for ReadAndBcastFile().
 // ------------------------------------------------------------
-#include <ParallelDescriptor.H>
+#include <AMReX_ParallelDescriptor.H>
 
+using namespace amrex;
 
 // ------------------------------------------------------------
 int main(int argc, char **argv) {
-  BoxLib::Initialize(argc, argv);
+  amrex::Initialize(argc, argv);
 
   BL_PROFILE_VAR("main()", pmain);
 
@@ -45,7 +46,7 @@ int main(int argc, char **argv) {
 
     BL_PROFILE_VAR_STOP(pmain);
 
-    BoxLib::Finalize();
+    amrex::Finalize();
 
     return 0;
 }

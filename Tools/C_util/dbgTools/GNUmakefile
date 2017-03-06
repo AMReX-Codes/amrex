@@ -1,6 +1,6 @@
-BOXLIB_HOME = ../../
+AMREX_HOME = ../../
 
-TOP = $(BOXLIB_HOME)
+TOP = $(AMREX_HOME)
 #
 # Variables for the user to set ...
 #
@@ -15,17 +15,17 @@ EBASE = crsGrids
 CEXE_sources += $(EBASE).cpp
 
 DEFINES += -DBL_PARALLEL_IO
-include $(TOP)/Tools/C_mk/Make.defs ./Make.package
+include $(TOP)/Tools/GNUMake/Make.defs ./Make.package
 
-include $(TOP)/Src/C_BaseLib/Make.package
+include $(TOP)/Src/Base/Make.package
 
 INCLUDE_LOCATIONS += . 
-INCLUDE_LOCATIONS += $(TOP)/Src/C_BaseLib 
+INCLUDE_LOCATIONS += $(TOP)/Src/Base 
 
-vpath %.H   . $(TOP)/Source/C_BaseLib
-vpath %.cpp . $(TOP)/Source/C_BaseLib
-vpath %.F   . $(TOP)/Source/C_BaseLib
-vpath %.f   . $(TOP)/Source/C_BaseLib
+vpath %.H   . $(TOP)/Source/Base
+vpath %.cpp . $(TOP)/Source/Base
+vpath %.F   . $(TOP)/Source/Base
+vpath %.f   . $(TOP)/Source/Base
 
 all: $(executable)
 

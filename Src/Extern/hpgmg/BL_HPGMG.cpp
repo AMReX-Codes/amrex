@@ -23,7 +23,7 @@ void CreateHPGMGLevel (level_type* level,
     {
         const Box& bx = mfi.validbox();
         if (!bx.isSquare()) {
-             BoxLib::Error("All boxes must be square in HPGMG");
+             amrex::Error("All boxes must be square in HPGMG");
         }
     }
 
@@ -37,7 +37,7 @@ void CreateHPGMGLevel (level_type* level,
             const Box& bx2 = mfi2.validbox();
             if (!(bx1.sameSize(bx2)))
             {
-                BoxLib::Error("All boxes must be identical in HPGMG!");
+                amrex::Error("All boxes must be identical in HPGMG!");
             }
         }
     }
@@ -51,7 +51,7 @@ void CreateHPGMGLevel (level_type* level,
     const int box_dim = bx.length(0); /* Since we've already checked that all boxes are the same size, we can just use the size from one of them here. */
 
     if (TotalBoxes / num_ranks == 0)
-      BoxLib::Error("Must have at least one box per MPI task when using HPGMG");
+      amrex::Error("Must have at least one box per MPI task when using HPGMG");
 
     if (ParallelDescriptor::IOProcessor())
     {
@@ -66,7 +66,7 @@ void CreateHPGMGLevel (level_type* level,
       }
       else
       {
-        BoxLib::Error("Unknown boundary condition supplied");
+        amrex::Error("Unknown boundary condition supplied");
       }
     }
 
@@ -111,7 +111,7 @@ void CreateHPGMGLevel (level_type* level,
     // allocate 3D array of integers to hold the MPI rank of the corresponding box and initialize to -1 (unassigned)
     level->rank_of_box = (int*)malloc(level->boxes_in.i*level->boxes_in.j*level->boxes_in.k*sizeof(int));
     if(level->rank_of_box==NULL)
-        BoxLib::Error("malloc of level->rank_of_box failed");
+        amrex::Error("malloc of level->rank_of_box failed");
     for(box=0;box<level->boxes_in.i*level->boxes_in.j*level->boxes_in.k;box++){level->rank_of_box[box]=-1;}  // -1 denotes that there is no actual box assigned to this region
 
 
@@ -186,7 +186,7 @@ void CreateHPGMGLevel (level_type* level,
     for(box=0;box<level->boxes_in.i*level->boxes_in.j*level->boxes_in.k;box++){if(level->rank_of_box[box]==level->my_rank)level->num_my_boxes++;}
     level->my_boxes = (box_type*)malloc(level->num_my_boxes*sizeof(box_type));
     if((level->num_my_boxes>0)&&(level->my_boxes==NULL))
-        BoxLib::Error("malloc failed - create_level/level->my_boxes");
+        amrex::Error("malloc failed - create_level/level->my_boxes");
 
     // allocate flattened vector FP data and create pointers...
     if (ParallelDescriptor::IOProcessor())
@@ -312,7 +312,7 @@ void SetupHPGMGCoefficients(const double a,
       }
       if (!found)
       {
-        BoxLib::Error("Could not find matching boxes between HPGMG and BoxLib");
+        amrex::Error("Could not find matching boxes between HPGMG and BoxLib");
       }
 
       const Box &fabbox = mfi.fabbox();
@@ -361,7 +361,7 @@ void SetupHPGMGCoefficients(const double a,
       }
       if (!found)
       {
-        BoxLib::Error("Could not find matching boxes between HPGMG and BoxLib");
+        amrex::Error("Could not find matching boxes between HPGMG and BoxLib");
       }
 
       const Box &fabbox = mfi.fabbox();
@@ -428,7 +428,7 @@ void ConvertToHPGMGLevel (const MultiFab& mf,
 
       if (!found)
       {
-        BoxLib::Error("Could not find matching boxes between HPGMG and BoxLib");
+        amrex::Error("Could not find matching boxes between HPGMG and BoxLib");
       }
 
       const Box &fabbox = mfi.fabbox();

@@ -3,16 +3,18 @@
 #include <iostream>
 #include <iomanip>
 
-#include <Amr.H>
-#include <ParmParse.H>
-#include <ParallelDescriptor.H>
-#include <AmrLevel.H>
+#include <AMReX_Amr.H>
+#include <AMReX_ParmParse.H>
+#include <AMReX_ParallelDescriptor.H>
+#include <AMReX_AmrLevel.H>
+
+using namespace amrex;
 
 int
 main (int   argc,
       char* argv[])
 {
-    BoxLib::Initialize(argc,argv);
+    amrex::Initialize(argc,argv);
     Real dRunTime1 = ParallelDescriptor::second();
 
     std::cout << std::setprecision(10);
@@ -31,50 +33,50 @@ main (int   argc,
     pp.query("stop_time",stop_time);
 
     if (strt_time < 0.0) {
-        BoxLib::Abort("MUST SPECIFY a non-negative strt_time"); 
+        amrex::Abort("MUST SPECIFY a non-negative strt_time"); 
     }
 
     if (max_step < 0 && stop_time < 0.0) {
-	BoxLib::Abort("Exiting because neither max_step nor stop_time is non-negative.");
+	amrex::Abort("Exiting because neither max_step nor stop_time is non-negative.");
     }
-
-    Amr* amrptr = new Amr;
-
-    amrptr->init(strt_time,stop_time);
-
-    // If we set the regrid_on_restart flag and if we are *not* going to take
-    //    a time step then we want to go ahead and regrid here.
-    if ( amrptr->RegridOnRestart() && 
-         ( (amrptr->levelSteps(0) >= max_step) ||
-           (amrptr->cumTime() >= stop_time) ) )
-    {
-	//
-	// Regrid only!
-	//
-	amrptr->RegridOnly(amrptr->cumTime());
-    }
-
-    while ( amrptr->okToContinue()                            &&
-           (amrptr->levelSteps(0) < max_step || max_step < 0) &&
-           (amrptr->cumTime() < stop_time || stop_time < 0.0) )
 
     {
-        //
-        // Do a timestep.
-        //
-        amrptr->coarseTimeStep(stop_time);
-    }
+	std::unique_ptr<Amr> amrptr(new Amr);
 
-    // Write final checkpoint and plotfile
-    if (amrptr->stepOfLastCheckPoint() < amrptr->levelSteps(0)) {
-        amrptr->checkPoint();
-    }
+	amrptr->init(strt_time,stop_time);
 
-    if (amrptr->stepOfLastPlotFile() < amrptr->levelSteps(0)) {
-        amrptr->writePlotFile();
+	// If we set the regrid_on_restart flag and if we are *not* going to take
+	//    a time step then we want to go ahead and regrid here.
+	if ( amrptr->RegridOnRestart() && 
+	     ( (amrptr->levelSteps(0) >= max_step) ||
+	       (amrptr->cumTime() >= stop_time) ) )
+	{
+	    //
+	    // Regrid only!
+	    //
+	    amrptr->RegridOnly(amrptr->cumTime());
+	}
+	
+	while ( amrptr->okToContinue()                            &&
+		(amrptr->levelSteps(0) < max_step || max_step < 0) &&
+		(amrptr->cumTime() < stop_time || stop_time < 0.0) )
+	    
+	{
+	    //
+	    // Do a timestep.
+	    //
+	    amrptr->coarseTimeStep(stop_time);
+	}
+	
+	// Write final checkpoint and plotfile
+	if (amrptr->stepOfLastCheckPoint() < amrptr->levelSteps(0)) {
+	    amrptr->checkPoint();
+	}
+	
+	if (amrptr->stepOfLastPlotFile() < amrptr->levelSteps(0)) {
+	    amrptr->writePlotFile();
+	}
     }
-
-    delete amrptr;
 
     Real dRunTime2 = ParallelDescriptor::second() - dRunTime1;
 
@@ -85,7 +87,7 @@ main (int   argc,
         std::cout << "Run time = " << dRunTime2 << std::endl;
     }
 
-    BoxLib::Finalize();
+    amrex::Finalize();
 
     return 0;
 }

@@ -1,6 +1,6 @@
-# BOXLIB_HOME defines the directory in which we will find all the BoxLib code -- if this is already defined
+# AMREX_HOME defines the directory in which we will find all the BoxLib code -- if this is already defined
 #    then the line below will be ignored
-BOXLIB_HOME ?= ../../..
+AMREX_HOME ?= ../../..
 
 # HYPRE_DIR defines the directory in which you can find hypre -- if this is already defined 
 #    then the line below will be ignored
@@ -34,19 +34,19 @@ USE_MPI=TRUE
 
 EBASE = LST
 
-include $(BOXLIB_HOME)/Tools/C_mk/Make.defs
+include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
 CEXE_sources += main.cpp
 
 include Make.package
-include $(BOXLIB_HOME)/Src/C_BoundaryLib/Make.package
-include $(BOXLIB_HOME)/Src/LinearSolvers/C_CellMG/Make.package
-include $(BOXLIB_HOME)/Src/C_BaseLib/Make.package
-include $(BOXLIB_HOME)/Src/C_AmrCoreLib/Make.package
+include $(AMREX_HOME)/Src/Boundary/Make.package
+include $(AMREX_HOME)/Src/LinearSolvers/C_CellMG/Make.package
+include $(AMREX_HOME)/Src/Base/Make.package
+include $(AMREX_HOME)/Src/AmrCore/Make.package
 
-include $(BOXLIB_HOME)/Src/LinearSolvers/C_to_F_MG/Make.package
-include $(BOXLIB_HOME)/Src/LinearSolvers/F_MG/FParallelMG.mak
-include $(BOXLIB_HOME)/Src/F_BaseLib/FParallelMG.mak
+include $(AMREX_HOME)/Src/LinearSolvers/C_to_F_MG/Make.package
+include $(AMREX_HOME)/Src/LinearSolvers/F_MG/FParallelMG.mak
+include $(AMREX_HOME)/Src/F_BaseLib/FParallelMG.mak
 
 ifeq ($(USE_HYPRE), TRUE)
   # USE_MPI must be TRUE if USE_HYPRE
@@ -69,4 +69,4 @@ endif
 all: $(executable)
 	@echo SUCCESS
 
-include $(BOXLIB_HOME)/Tools/C_mk/Make.rules
+include $(AMREX_HOME)/Tools/GNUMake/Make.rules

@@ -11,21 +11,11 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <errno.h>
-#if !defined(WIN32)
 #include <unistd.h>
-#else
-#include <io.h>
-typedef int mode_t;
-#endif
 
-#ifndef WIN32
 #define FILE_MODE  (            S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)
 #define DIR_MODE   (FILE_MODE | S_IXUSR |           S_IXGRP | S_IXOTH)
 #define O_BINARY   0
-#else
-#define FILE_MODE (-1)
-#define DIR_MODE  (-1)
-#endif
 
 #if defined(BL_FORT_USE_UNDERSCORE)
 #define FABIO_UNLINK_IF_EMPTY_STR fabio_unlink_if_empty_str_
@@ -718,14 +708,6 @@ FABIO_CLOSE(const int* fdp)
       exit(1);
     }
 }
-
-#if defined(WIN32)
-#include <direct.h>
-#define mkdir(a,b) _mkdir((a))
-/* static const char* path_sep_str = "\\"; */
-#else
-/* static const char* path_sep_str = "/"; */
-#endif
 
 void
 FABIO_MKDIR_STR(const int* idirname, int* statp)

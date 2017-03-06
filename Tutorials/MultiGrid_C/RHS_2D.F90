@@ -1,5 +1,5 @@
-#include <REAL.H>
-#include "LO_BCTYPES.H"
+#include <AMReX_REAL.H>
+#include "AMReX_LO_BCTYPES.H"
 
 subroutine set_rhs(rhs, r_l1, r_l2, r_h1, r_h2, &
                    lo, hi, dx, a, b, sigma, w, ibnd) bind(C, name="set_rhs")
