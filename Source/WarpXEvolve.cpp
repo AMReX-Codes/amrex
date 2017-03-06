@@ -47,6 +47,7 @@ WarpX::Evolve (int numsteps)
 	        // on first step, push E and X by 0.5*dt
 	        EvolveE(lev, 0.5*dt[lev]);
 	        mypc->PushX(lev, 0.5*dt[lev]);
+                mypc->Redistribute();  // Redistribute particles
 	    }
 
 	    EvolveB(lev, 0.5*dt[lev]); // We now B^{n}
@@ -67,8 +68,6 @@ WarpX::Evolve (int numsteps)
 			 *Bfield[lev][0],*Bfield[lev][1],*Bfield[lev][2],
 			 *current[lev][0],*current[lev][1],*current[lev][2], cur_time, dt[lev]);
 
-	    mypc->Redistribute();  // Redistribute particles
-
 	    EvolveB(lev, 0.5*dt[lev]); // We now B^{n+1/2}
 
 	    // Fill B's ghost cells because of the next step of evolving E.
@@ -83,6 +82,8 @@ WarpX::Evolve (int numsteps)
             } else {
 	        EvolveE(lev, dt[lev]); // We now have E^{n+1}
 	    }
+
+	    mypc->Redistribute();  // Redistribute particles
             
 	    ++istep[lev];
 	}
