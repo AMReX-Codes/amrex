@@ -428,10 +428,10 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
        bind(C, name="warpx_particle_pusher_positions")
 
     INTEGER(c_long), INTENT(IN)   :: np
-    REAL(c_real),INTENT(INOUT)    :: gaminv(np)
-    REAL(c_real),INTENT(INOUT)    :: xp(np),yp(np),zp(np)
-    REAL(c_real),INTENT(INOUT)    :: uxp(np),uyp(np),uzp(np)
-    REAL(c_real),INTENT(IN)       :: dt
+    REAL(amrex_real),INTENT(INOUT)    :: gaminv(np)
+    REAL(amrex_real),INTENT(INOUT)    :: xp(np),yp(np),zp(np)
+    REAL(amrex_real),INTENT(INOUT)    :: uxp(np),uyp(np),uzp(np)
+    REAL(amrex_real),INTENT(IN)       :: dt
 
     !!!! --- push particle species positions a time step
 #if (BL_SPACEDIM == 3)
