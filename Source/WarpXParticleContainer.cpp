@@ -255,77 +255,52 @@ void
 WarpXParticleContainer::PushX (int lev,
                                   Real dt)
 {
-    BL_PROFILE("PPC::Evolve()");
-    BL_PROFILE_VAR_NS("PPC::Evolve::Copy", blp_copy);
-    BL_PROFILE_VAR_NS("PICSAR::ParticlePush", blp_pxr_pp);
+    BL_PROFILE("WPC::PushX()");
+    BL_PROFILE_VAR_NS("WPC::PushX::Copy", blp_copy);
+    BL_PROFILE_VAR_NS("WPC:PushX::Push", blp_pxr_pp);
 
-    //xxxxx not using m_pardata for now. auto& partleveldata = m_partdata[lev];
+    Array<Real> xp, yp, zp, giv;
 
+    for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
     {
-	Array<Real> xp, yp, zp, wp, uxp, uyp, uzp, giv;
+        auto& attribs = pti.GetAttribs();
+        auto& uxp = attribs[PIdx::ux];
+        auto& uyp = attribs[PIdx::uy];
+        auto& uzp = attribs[PIdx::uz];
+        
+        const long np = pti.numParticles();
 
-	PartIterInfo info {lev, do_tiling, tile_size};
-	for (PartIter pti(*this, info); pti.isValid(); ++pti)
-	{
-	    const int  gid = pti.index();
-	    const Box& tbx = pti.tilebox();
-	    const Box& vbx = pti.validbox();
-	    const long np  = pti.numParticles();
+        giv.resize(np);
 
-	    xp.resize(np);
-	    yp.resize(np);
-	    zp.resize(np);
-	    wp.resize(np);
-	    uxp.resize(np);
-	    uyp.resize(np);
-	    uzp.resize(np);
-	    giv.resize(np);
-
-	    //
-	    // copy data from particle container to temp arrays
-	    //
-	    BL_PROFILE_VAR_START(blp_copy);
-	    pti.foreach([&](int i, ParticleType& p) {
+        //
+        // copy data from particle container to temp arrays
+        //
+        BL_PROFILE_VAR_START(blp_copy);
 #if (BL_SPACEDIM == 3)
-		    xp[i] = p.m_pos[0];
-		    yp[i] = p.m_pos[1];
-		    zp[i] = p.m_pos[2];
+        pti.GetPosition(xp, yp, zp);
 #elif (BL_SPACEDIM == 2)
-		    xp[i] = p.m_pos[0];
-		    yp[i] = std::numeric_limits<Real>::quiet_NaN();
-		    zp[i] = p.m_pos[1];
+        pti.GetPosition(xp, zp);
+        yp.resize(np, std::numeric_limits<Real>::quiet_NaN());
 #endif
-		    wp[i]  = p.m_data[PIdx::w];
-		    uxp[i] = p.m_data[PIdx::ux];
-		    uyp[i] = p.m_data[PIdx::uy];
-		    uzp[i] = p.m_data[PIdx::uz];
-		});
-	    BL_PROFILE_VAR_STOP(blp_copy);
+        BL_PROFILE_VAR_STOP(blp_copy);
 
-	    //
-	    // Particle Push
-	    //
-	    BL_PROFILE_VAR_START(blp_pxr_pp);
-	    warpx_particle_pusher_positions(&np, xp.data(), yp.data(), zp.data(),
-				  uxp.data(), uyp.data(), uzp.data(), giv.data(), &dt);
-	    BL_PROFILE_VAR_STOP(blp_pxr_pp);
+        //
+        // Particle Push
+        //
+        BL_PROFILE_VAR_START(blp_pxr_pp);
+        warpx_particle_pusher_positions(&np, xp.data(), yp.data(), zp.data(),
+                                        uxp.data(), uyp.data(), uzp.data(), giv.data(), &dt);
+        BL_PROFILE_VAR_STOP(blp_pxr_pp);
 
-	    //
-	    // copy particle data back
-	    //
-	    BL_PROFILE_VAR_START(blp_copy);
-	    pti.foreach([&](int i, ParticleType& p) {
-                    BL_ASSERT(p.m_id > 0);
+        //
+        // copy particle data back
+        //
+        BL_PROFILE_VAR_START(blp_copy);
 #if (BL_SPACEDIM == 3)
-		    p.m_pos[0] = xp[i];
-		    p.m_pos[1] = yp[i];
-		    p.m_pos[2] = zp[i];
+        pti.SetPosition(xp, yp, zp);
 #elif (BL_SPACEDIM == 2)
-		    p.m_pos[0] = xp[i];
-		    p.m_pos[1] = zp[i];
+        pti.SetPosition(xp, zp);
 #endif
-                });
-            BL_PROFILE_VAR_STOP(blp_copy);
-	}
+        BL_PROFILE_VAR_STOP(blp_copy);
     }
 }

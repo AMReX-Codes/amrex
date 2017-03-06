@@ -69,9 +69,9 @@ extern "C"
 	// Particle pusher (position)
 
 	void warpx_particle_pusher_positions(const long* np,
-			Real* xp, Real* yp, Real* zp,
-			Real* uxp, Real* uyp, Real* uzp, Real* gaminv,
-            const Real* dt);
+                                             Real* xp, Real* yp, Real* zp,
+                                             Real* uxp, Real* uyp, Real* uzp, Real* gaminv,
+                                             const Real* dt);
 
     // Laser pusher
 

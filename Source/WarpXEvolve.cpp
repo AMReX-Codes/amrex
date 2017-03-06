@@ -81,16 +81,14 @@ WarpX::Evolve (int numsteps)
 	    WarpX::FillBoundary(*Bfield[lev][1], geom[lev], By_nodal_flag);
 	    WarpX::FillBoundary(*Bfield[lev][2], geom[lev], Bz_nodal_flag);
 
-   	    if (cur_time + dt[0]>= stop_time - 1.e-6*dt[0] || step == numsteps_max-1) {
+   	    if (cur_time + dt[0] >= stop_time - 1.e-6*dt[0] || step == numsteps_max-1) {
    	        // on last step, push by only 0.5*dt to synchronize all at n+1/2
 	        EvolveE(lev, 0.5*dt[lev]); // We now have E^{n+1/2}
 	        mypc->PushX(lev, -0.5*dt[lev]);
-	        std::cout << "Last step " << std::endl;
-        } else {
+            } else {
 	        EvolveE(lev, dt[lev]); // We now have E^{n+1}
-
 	    }
-
+            
 	    ++istep[lev];
 	}
 
