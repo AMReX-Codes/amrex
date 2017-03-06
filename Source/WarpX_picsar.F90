@@ -433,6 +433,8 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
     REAL(amrex_real),INTENT(INOUT)    :: uxp(np),uyp(np),uzp(np)
     REAL(amrex_real),INTENT(IN)       :: dt
 
+    CALL pxr_set_gamma(np,uxp,uyp,uzp,gaminv)
+
     !!!! --- push particle species positions a time step
 #if (BL_SPACEDIM == 3)
     CALL pxr_pushxyz(np,xp,yp,zp,uxp,uyp,uzp,gaminv,dt)
