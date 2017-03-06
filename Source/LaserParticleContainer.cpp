@@ -220,9 +220,7 @@ LaserParticleContainer::InitData ()
     Array<Real> particle_uy(np, 0.0);
     Array<Real> particle_uz(np, 0.0);
 
-    if (ParallelDescriptor::IOProcessor()) {
-	std::cout << "Adding laser particles\n";
-    }
+    amrex::Print() << "Adding laser particles\n";
     AddNParticles(np, particle_x.data(), particle_y.data(), particle_z.data(),
 		  particle_ux.data(), particle_uy.data(), particle_uz.data(),
 		  1, particle_w.data(), 1);
