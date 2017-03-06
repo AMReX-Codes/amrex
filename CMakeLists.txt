@@ -52,7 +52,7 @@ OPTION (ENABLE_FORTRAN_MPI "Enable Fortran MPI Communicator" ON)
 OPTION (ENABLE_MG_FBOXLIB "Enable Fortran for MultiGrid Solver" OFF)
 OPTION (ENABLE_FBASELIB "Enable Fortran BaseLib" OFF)
 OPTION (ENABLE_CXX11 "Enable C++11" ON)
-
+OPTION (ENABLE_POSITION_INDEPENDENT_CODE "Compile with position-independent code enabled" OFF)
 
 # Below, we have set some of the switches for reasonable default behavior, these can be 
 # overridden at the cmake command line, ie  "cmake -DVAR=VALUE", or by editing the values
