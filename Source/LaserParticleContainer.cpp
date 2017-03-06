@@ -8,12 +8,8 @@
 #include <WarpXConst.H>
 #include <WarpX_f.H>
 #include <ParticleContainer.H>
-#include <ParticleIterator.H>
 
-
-//
-// xxxxx need to make this work in 2D!
-//
+using namespace amrex;
 
 namespace
 {
@@ -40,7 +36,7 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies)
 	if (laser_type_s == "gaussian") {
 	    profile = laser_t::Gaussian;
 	} else {
-	    BoxLib::Abort("Unknown laser type");
+	    amrex::Abort("Unknown laser type");
 	}
 
 	// Parse the properties of the antenna
@@ -69,7 +65,7 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies)
 
 	Real dp = std::inner_product(nvec.begin(), nvec.end(), p_X.begin(), 0.0);
 	if (std::abs(dp) > 1.e-14) {
-	    BoxLib::Abort("Laser plane vector is not perpendicular to the main polarization vector");
+	    amrex::Abort("Laser plane vector is not perpendicular to the main polarization vector");
 	}
 
 	p_Y = CrossProduct(nvec, p_X);   // The second polarization vector
@@ -87,18 +83,17 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies)
 void
 LaserParticleContainer::AllocData ()
 {
-    // have to resize here, not in the constructor because GDB was not
-    // ready in constructor.
-    m_particles.resize(GDB().finestLevel()+1);
+    // have to resize here, not in the constructor because grids have not
+    // been built when constructor was called.
+    reserveData();
+    resizeData();
 }
 
 void
 LaserParticleContainer::InitData ()
 {
-    m_particles.resize(GDB().finestLevel()+1);
-
     const int lev = 0;
-    const Geometry& geom = GDB().Geom(lev);
+    const Geometry& geom = Geom(lev);
     const RealBox& prob_domain = geom.ProbDomain();
 
     // spacing of laser particles in the laser plane.
@@ -244,8 +239,7 @@ LaserParticleContainer::Evolve (int lev,
     BL_PROFILE_VAR_NS("PICSAR::LaserParticlePush", blp_pxr_pp);
     BL_PROFILE_VAR_NS("PICSAR::LaserCurrentDepo", blp_pxr_cd);
 
-    const Geometry& gm  = GDB().Geom(lev);
-    const BoxArray& ba  = jx.boxArray();
+    const Geometry& gm  = Geom(lev);
 
 #if (BL_SPACEDIM == 3)
     const Real* dx = gm.CellSize();
@@ -266,69 +260,60 @@ LaserParticleContainer::Evolve (int lev,
     BL_ASSERT(OnSameGrids(lev,jx));
 
     {
-	Array<Real> xp, yp, zp, wp, uxp, uyp, uzp, giv,
-            plane_Xp, plane_Yp, amplitude_E;
+	Array<Real> xp, yp, zp, giv, plane_Xp, plane_Yp, amplitude_E;
 
-	PartIterInfo info {lev, do_tiling, tile_size};
-	for (PartIter pti(*this, info); pti.isValid(); ++pti)
+        for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
 	{
-	    const int  gid = pti.index();
-	    const Box& vbx = pti.validbox();
+	    const Box& box = pti.validbox();
+
+            auto& attribs = pti.GetAttribs();
+
+            auto&  wp = attribs[PIdx::w ];
+            auto& uxp = attribs[PIdx::ux];
+            auto& uyp = attribs[PIdx::uy];
+            auto& uzp = attribs[PIdx::uz];
+
 	    const long np  = pti.numParticles();
 
 	    // Data on the grid
-	    FArrayBox& jxfab = jx[gid];
-	    FArrayBox& jyfab = jy[gid];
-	    FArrayBox& jzfab = jz[gid];
+	    FArrayBox& jxfab = jx[pti];
+	    FArrayBox& jyfab = jy[pti];
+	    FArrayBox& jzfab = jz[pti];
 
-	    xp.resize(np);
-	    yp.resize(np);
-	    zp.resize(np);
-	    wp.resize(np);
-	    uxp.resize(np);
-	    uyp.resize(np);
-	    uzp.resize(np);
-	    giv.resize(np);
-      plane_Xp.resize(np);
-      plane_Yp.resize(np);
-      amplitude_E.resize(np);
+	            giv.resize(np);
+               plane_Xp.resize(np);
+               plane_Yp.resize(np);
+            amplitude_E.resize(np);
 
 	    //
 	    // copy data from particle container to temp arrays
 	    //
 	    BL_PROFILE_VAR_START(blp_copy);
-	    pti.foreach([&](int i, ParticleType& p) {
 #if (BL_SPACEDIM == 3)
-		    xp[i] = p.m_pos[0];
-		    yp[i] = p.m_pos[1];
-		    zp[i] = p.m_pos[2];
+            pti.GetPosition(xp, yp, zp);
 #elif (BL_SPACEDIM == 2)
-		    xp[i] = p.m_pos[0];
-		    yp[i] = std::numeric_limits<Real>::quiet_NaN();
-		    zp[i] = p.m_pos[1];
+            pti.GetPosition(xp, zp);
+            yp.resize(np, std::numeric_limits<Real>::quiet_NaN());
 #endif
-		    wp[i]  = p.m_data[PIdx::w];
-		    // Note: the particle momentum is not copied, since it is
-		    // overwritten at each timestep, for the laser particles
-		    
-		    // Find the coordinates of the particles in the emission plane
-#if (BL_SPACEDIM == 3)
-		    plane_Xp[i] = u_X[0]*(xp[i] - position[0])
-                                + u_X[1]*(yp[i] - position[1])
-			        + u_X[2]*(zp[i] - position[2]);
-		    plane_Yp[i] = u_Y[0]*(xp[i] - position[0])
-                                + u_Y[1]*(yp[i] - position[1])
-                                + u_Y[2]*(zp[i] - position[2]);
-#elif (BL_SPACEDIM == 2)
-		    plane_Xp[i] = u_X[0]*(xp[i] - position[0])
-                                + u_X[2]*(zp[i] - position[2]);
-		    plane_Yp[i] = 0;
-#endif
-		});
 	    BL_PROFILE_VAR_STOP(blp_copy);
+            
+	    for (int i = 0; i < np; ++i)
+            {
+                // Find the coordinates of the particles in the emission plane
+#if (BL_SPACEDIM == 3)
+                plane_Xp[i] = u_X[0]*(xp[i] - position[0])
+                            + u_X[1]*(yp[i] - position[1])
+                            + u_X[2]*(zp[i] - position[2]);
+                plane_Yp[i] = u_Y[0]*(xp[i] - position[0])
+                            + u_Y[1]*(yp[i] - position[1])
+                            + u_Y[2]*(zp[i] - position[2]);
+#elif (BL_SPACEDIM == 2)
+                plane_Xp[i] = u_X[0]*(xp[i] - position[0])
+                            + u_X[2]*(zp[i] - position[2]);
+                plane_Yp[i] = 0;
+#endif
+            }
 
-	    const Box& box = BoxLib::enclosedCells(ba[gid]);
-	    BL_ASSERT(box == vbx);
 #if (BL_SPACEDIM == 3)
 	    long nx = box.length(0);
 	    long ny = box.length(1);
@@ -358,28 +343,29 @@ LaserParticleContainer::Evolve (int lev,
 	    }
 
 	    // Calculate the corresponding momentum and position for the particles
-	    pti.foreach([&](int i, ParticleType& p) {
-		    // Calculate the velocity according to the amplitude of E
-		    Real sign_charge = std::copysign( 1.0, wp[i] );
-		    Real v_over_c = sign_charge * mobility * amplitude_E[i];
-		    BL_ASSERT( v_over_c < 1 );
-		    giv[i] = std::sqrt( 1 - v_over_c * v_over_c );
-		    Real gamma = 1./giv[i];
-		    // The velocity is along the laser polarization p_X
-		    Real vx = PhysConst::c * v_over_c * p_X[0];
-		    Real vy = PhysConst::c * v_over_c * p_X[1];
-		    Real vz = PhysConst::c * v_over_c * p_X[2];
-		    // Get the corresponding momenta
-		    uxp[i] = gamma * vx;
-		    uyp[i] = gamma * vy;
-		    uzp[i] = gamma * vz;
-		    // Push the the particle positions
-		    xp[i] += vx * dt;
+            for (int i = 0; i < np; ++i)
+            {
+                // Calculate the velocity according to the amplitude of E
+                Real sign_charge = std::copysign( 1.0, wp[i] );
+                Real v_over_c = sign_charge * mobility * amplitude_E[i];
+                BL_ASSERT( v_over_c < 1 );
+                giv[i] = std::sqrt( 1 - v_over_c * v_over_c );
+                Real gamma = 1./giv[i];
+                // The velocity is along the laser polarization p_X
+                Real vx = PhysConst::c * v_over_c * p_X[0];
+                Real vy = PhysConst::c * v_over_c * p_X[1];
+                Real vz = PhysConst::c * v_over_c * p_X[2];
+                // Get the corresponding momenta
+                uxp[i] = gamma * vx;
+                uyp[i] = gamma * vy;
+                uzp[i] = gamma * vz;
+                // Push the the particle positions
+                xp[i] += vx * dt;
 #if (BL_SPACEDIM == 3)
-		    yp[i] += vy * dt;
+                yp[i] += vy * dt;
 #endif
-		    zp[i] += vz * dt;
-		});
+                zp[i] += vz * dt;
+            }
 
 	    BL_PROFILE_VAR_STOP(blp_pxr_pp);
 
@@ -403,20 +389,11 @@ LaserParticleContainer::Evolve (int lev,
 	    // copy particle data back
 	    //
 	    BL_PROFILE_VAR_START(blp_copy);
-	    pti.foreach([&](int i, ParticleType& p) {
-                    BL_ASSERT(p.m_id > 0);
 #if (BL_SPACEDIM == 3)
-		    p.m_pos[0] = xp[i];
-		    p.m_pos[1] = yp[i];
-		    p.m_pos[2] = zp[i];
+            pti.SetPosition(xp, yp, zp);
 #elif (BL_SPACEDIM == 2)
-		    p.m_pos[0] = xp[i];
-		    p.m_pos[1] = zp[i];
+            pti.SetPosition(xp, zp);
 #endif
-		    p.m_data[PIdx::ux] = uxp[i];
-		    p.m_data[PIdx::uy] = uyp[i];
-		    p.m_data[PIdx::uz] = uzp[i];
-                });
             BL_PROFILE_VAR_STOP(blp_copy);
 	}
     }
@@ -434,7 +411,7 @@ void
 LaserParticleContainer::ComputeSpacing (Real& Sx, Real& Sy) const
 {
     const int lev = 0;
-    const Geometry& geom = GDB().Geom(lev);
+    const Geometry& geom = Geom(lev);
 
 #if (BL_SPACEDIM == 3)
     const Real* dx = geom.CellSize();

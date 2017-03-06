@@ -1,15 +1,17 @@
 
 #include <iostream>
 
-#include <BoxLib.H>
-#include <BLProfiler.H>
-#include <ParallelDescriptor.H>
+#include <AMReX.H>
+#include <AMReX_BLProfiler.H>
+#include <AMReX_ParallelDescriptor.H>
 
 #include <WarpX.H>
 
+using namespace amrex;
+
 int main(int argc, char* argv[])
 {
-    BoxLib::Initialize(argc,argv);
+    amrex::Initialize(argc,argv);
 
     BL_PROFILE_VAR("main()", pmain);
 
@@ -32,5 +34,5 @@ int main(int argc, char* argv[])
 
     BL_PROFILE_VAR_STOP(pmain);
 
-    BoxLib::Finalize();
+    amrex::Finalize();
 }

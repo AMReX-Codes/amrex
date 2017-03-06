@@ -1,6 +1,6 @@
 
-#include <BoxLib.H>
-#include <BLProfiler.H>
+#include <AMReX.H>
+#include <AMReX_BLProfiler.H>
 
 #include <WarpXWrappers.h>
 #include <WarpX.H>
@@ -9,19 +9,19 @@ extern "C"
 {
     void boxlib_init (int argc, char* argv[])
     {
-	BoxLib::Initialize(argc,argv);
+	amrex::Initialize(argc,argv);
     }
 
 #ifdef BL_USE_MPI
     void boxlib_init_with_inited_mpi (int argc, char* argv[], MPI_Comm mpicomm)
     {
-	BoxLib::Initialize(argc,argv,true,mpicomm);	
+	amrex::Initialize(argc,argv,true,mpicomm);	
     }
 #endif
 
     void boxlib_finalize (int finalize_mpi)
     {
-	BoxLib::Finalize(finalize_mpi);
+	amrex::Finalize(finalize_mpi);
     }
 
     void warpx_init ()
@@ -51,14 +51,14 @@ extern "C"
     double warpx_getProbLo(int dir)
     {
       WarpX& warpx = WarpX::GetInstance();
-      const Geometry& geom = warpx.Geom(0);
+      const amrex::Geometry& geom = warpx.Geom(0);
       return geom.ProbLo(dir);
     }
 
     double warpx_getProbHi(int dir)
     {
       WarpX& warpx = WarpX::GetInstance();
-      const Geometry& geom = warpx.Geom(0);
+      const amrex::Geometry& geom = warpx.Geom(0);
       return geom.ProbHi(dir);
     }
 }

@@ -6,7 +6,7 @@
 
 #include <cmath>
 
-#include <BLProfiler.H>
+#include <AMReX_BLProfiler.H>
 
 #include <ParticleContainer.H>
 #include <WarpXConst.H>

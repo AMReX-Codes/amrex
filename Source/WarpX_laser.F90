@@ -2,7 +2,7 @@
 module warpx_laser_module
 
   use iso_c_binding
-  use bl_fort_module, only : c_real
+  use amrex_fort_module, only : amrex_real
   use constants
 
   implicit none
@@ -14,12 +14,12 @@ contains
        bind(C, name="warpx_gaussian_laser")
 
     integer(c_long), intent(in) :: np
-    real(c_real), intent(in)    :: Xp(np),Yp(np)
-    real(c_real), intent(in)    :: e_max, t, t_peak, wavelength, duration, f, waist
-    real(c_real), intent(inout) :: amplitude(np)
+    real(amrex_real), intent(in)    :: Xp(np),Yp(np)
+    real(amrex_real), intent(in)    :: e_max, t, t_peak, wavelength, duration, f, waist
+    real(amrex_real), intent(inout) :: amplitude(np)
 
     integer(c_long)  :: i
-    real(c_real)     :: k0, oscillation_phase, temporal_exponent
+    real(amrex_real) :: k0, oscillation_phase, temporal_exponent
     complex*16       :: diffract_factor, exp_argument, prefactor, &
                         inv_complex_waist_2
     complex*16, parameter :: j=cmplx(0., 1.)

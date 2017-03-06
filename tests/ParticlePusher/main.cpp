@@ -2,18 +2,20 @@
 #include <limits>
 #include <random>
 
-#include <BoxLib.H>
-#include <ParmParse.H>
-#include <Array.H>
-#include <MultiFab.H>
-#include <PlotFileUtil.H>
+#include <AMReX.H>
+#include <AMReX_ParmParse.H>
+#include <AMReX_Array.H>
+#include <AMReX_MultiFab.H>
+#include <AMReX_PlotFileUtil.H>
 
 #include <WarpXConst.H>
 #include <WarpX_f.H>
 
+using namespace amrex;
+
 int main(int argc, char* argv[])
 {
-    BoxLib::Initialize(argc,argv);
+    amrex::Initialize(argc,argv);
 
     {
 	long particle_pusher_algo = 0;
@@ -84,7 +86,9 @@ int main(int argc, char* argv[])
 			      &particle_pusher_algo);
 
 	Box plotbox{IntVect{D_DECL(0,0,0)},IntVect{D_DECL(nx-1,ny-1,nz-1)}};
-	MultiFab plotmf(BoxArray{plotbox}, 7, 0);
+	BoxArray plotba {plotbox};
+	DistributionMapping plotdm {plotba};
+	MultiFab plotmf(plotba, plotdm, 7, 0);
 	FArrayBox& plotfab = plotmf[0];
 	plotfab.setVal(0.0);
 	for (int k = 0; k < nz; ++k) {
@@ -108,8 +112,8 @@ int main(int argc, char* argv[])
 	Geometry geom{plotbox, &realbox, 0, is_per};
 	std::string plotname{"plt00000"};
 	Array<std::string> varnames{"x", "y", "z", "ux", "uy", "uz", "gamma"};
-	BoxLib::WriteSingleLevelPlotfile(plotname, plotmf, varnames, geom, 0.0, 0);
+	amrex::WriteSingleLevelPlotfile(plotname, plotmf, varnames, geom, 0.0, 0);
     }
 
-    BoxLib::Finalize();
+    amrex::Finalize();
 }

@@ -5,6 +5,8 @@
 #include <WarpX.H>
 #include <WarpXWrappers.h>
 
+using namespace amrex;
+
 namespace {
     void make_particles (Array<Real>& x, Array<Real>& y, Array<Real>& z,
 			 Array<Real>& vx, Array<Real>& vy, Array<Real>& vz,

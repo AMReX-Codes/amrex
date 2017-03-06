@@ -1,7 +1,10 @@
 
-#include <ParmParse.H>
+#include <AMReX_ParmParse.H>
+
 #include <WarpX.H>
 #include <WarpXConst.H>
+
+using namespace amrex;
 
 const int debug_lb = 0;
 
@@ -20,13 +23,16 @@ WarpX::RegridBaseLevel ()
 
     const IntVect& nodalflag = IntVect::TheUnitVector();
 
+    MFInfo info;
+    info.SetNodal(nodalflag);
+
     // Create temp arrays and copy existing data into these temporary arrays -- srcMF and destMF
     //        have the same BoxArray and DistributionMapping here
     for (int i = 0; i < 3; ++i) {
         int ng = current[lev][i]->nGrow();
-	old_current[i].reset(new MultiFab(grids[lev],1,ng,dmap[lev],Fab_allocate,nodalflag));
-	old_Efield [i].reset(new MultiFab(grids[lev],1,ng,dmap[lev],Fab_allocate,nodalflag));
-	old_Bfield [i].reset(new MultiFab(grids[lev],1,ng,dmap[lev],Fab_allocate,nodalflag));
+	old_current[i].reset(new MultiFab(grids[lev],dmap[lev],1,ng,info));
+	old_Efield [i].reset(new MultiFab(grids[lev],dmap[lev],1,ng,info));
+	old_Bfield [i].reset(new MultiFab(grids[lev],dmap[lev],1,ng,info));
         MultiFab::Copy(*old_current[i],*current[lev][i],0,0,current[lev][i]->nComp(),0);
         MultiFab::Copy( *old_Efield[i], *Efield[lev][i],0,0, Efield[lev][i]->nComp(),0);
         MultiFab::Copy( *old_Bfield[i], *Bfield[lev][i],0,0, Bfield[lev][i]->nComp(),0);

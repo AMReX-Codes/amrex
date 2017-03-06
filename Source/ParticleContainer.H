@@ -2,6 +2,11 @@
 #ifndef WARPX_ParticleContainer_H_
 #define WARPX_ParticleContainer_H_
 
+#include <memory>
+#include <map>
+
+#include <AMReX_Particles.H>
+
 #include <WarpXParticleContainer.H>
 #include <PhysicalParticleContainer.H>
 #include <LaserParticleContainer.H>
@@ -19,7 +24,7 @@ class MultiParticleContainer
 
 public:
 
-    MultiParticleContainer (AmrCore* amr_core);
+    MultiParticleContainer (amrex::AmrCore* amr_core);
 
     ~MultiParticleContainer() {}
 
@@ -32,11 +37,11 @@ public:
     void InitData ();
 
     void Evolve (int lev,
-		 const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
-		 const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz,
-		 MultiFab& jx, MultiFab& jy, MultiFab& jz, Real t, Real dt);
+		 const amrex::MultiFab& Ex, const amrex::MultiFab& Ey, const amrex::MultiFab& Ez,
+		 const amrex::MultiFab& Bx, const amrex::MultiFab& By, const amrex::MultiFab& Bz,
+		 amrex::MultiFab& jx, amrex::MultiFab& jy, amrex::MultiFab& jz, amrex::Real, amrex::Real dt);
 
-    std::unique_ptr<MultiFab> GetChargeDensity(int lev, bool local = false);
+    std::unique_ptr<amrex::MultiFab> GetChargeDensity(int lev, bool local = false);
 
     void Checkpoint (const std::string& dir,
 		     const std::string& name,
@@ -50,19 +55,19 @@ public:
 
     void WriteHeader (std::ostream& os) const;
 
-    void Redistribute (bool where_called=false);
+    void Redistribute ();
 
-    Array<long> NumberOfParticlesInGrid(int lev) const;
+    amrex::Array<long> NumberOfParticlesInGrid(int lev) const;
 
-    void Increment (MultiFab& mf, int lev);
+    void Increment (amrex::MultiFab& mf, int lev);
 
-    void SetParticleBoxArray (int lev, BoxArray& new_ba);
-    void SetParticleDistributionMap (int lev, DistributionMapping& new_dm);
+    void SetParticleBoxArray (int lev, amrex::BoxArray& new_ba);
+    void SetParticleDistributionMap (int lev, amrex::DistributionMapping& new_dm);
 
 private:
 
     // physical particles (+ laser)
-    Array<std::unique_ptr<WarpXParticleContainer> > allcontainers;
+    amrex::Array<std::unique_ptr<WarpXParticleContainer> > allcontainers;
 
     void ReadParameters ();
 
