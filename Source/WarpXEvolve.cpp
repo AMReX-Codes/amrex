@@ -27,11 +27,7 @@ WarpX::Evolve (int numsteps)
     for (int step = istep[0]; step < numsteps_max && cur_time < stop_time; ++step)
     {
 	// Start loop on time steps
-
-
-	if (ParallelDescriptor::IOProcessor()) {
-	    std::cout << "\nSTEP " << step+1 << " starts ..." << std::endl;
-	}
+        amrex::Print() << "\nSTEP " << step+1 << " starts ...\n";
 
         if (ParallelDescriptor::NProcs() > 1)
            if (okToRegrid(step)) RegridBaseLevel();
@@ -95,10 +91,8 @@ WarpX::Evolve (int numsteps)
 
 	MoveWindow();
 
-	if (ParallelDescriptor::IOProcessor()) {
-	    std::cout << "STEP " << step+1 << " ends." << " TIME = " << cur_time << " DT = " << dt[0]
-		      << std::endl;
-	}
+        amrex::Print()<< "STEP " << step+1 << " ends." << " TIME = " << cur_time 
+                      << " DT = " << dt[0] << "\n";
 
 	// sync up time
 	for (int i = 0; i <= finest_level; ++i) {

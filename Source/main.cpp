@@ -27,8 +27,8 @@ int main(int argc, char* argv[])
 	Real end_total = ParallelDescriptor::second() - strt_total;
 	
 	ParallelDescriptor::ReduceRealMax(end_total ,ParallelDescriptor::IOProcessorNumber());
-	if (warpx.Verbose() && ParallelDescriptor::IOProcessor()) {
-	    std::cout << "Total Time                     : " << end_total << '\n';
+	if (warpx.Verbose()) {
+            amrex::Print() << "Total Time                     : " << end_total << '\n';
 	}
     }
 

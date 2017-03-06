@@ -97,9 +97,7 @@ WarpX::WriteCheckPointFile() const
 
     const std::string& checkpointname = amrex::Concatenate(check_file,istep[0]);
 
-    if (ParallelDescriptor::IOProcessor()) {
-	std::cout << "  Writing checkpoint " << checkpointname << std::endl;
-    }
+    amrex::Print() << "  Writing checkpoint " << checkpointname << "\n";
 
     const int checkpoint_nfiles = 64;  // could make this parameter
     VisMF::SetNOutFiles(checkpoint_nfiles);
@@ -136,9 +134,7 @@ WarpX::InitFromCheckpoint ()
 {
     BL_PROFILE("WarpX::InitFromCheckpoint()");
 
-    if (ParallelDescriptor::IOProcessor()) {
-	std::cout << "  Restart from checkpoint " << restart_chkfile << std::endl;
-    }
+    amrex::Print() << "  Restart from checkpoint " << restart_chkfile << "\n";
 
     const int checkpoint_nfiles = 64;  // could make this parameter
     VisMF::SetNOutFiles(checkpoint_nfiles);
@@ -277,9 +273,7 @@ WarpX::WritePlotFile () const
 
     const std::string& plotfilename = amrex::Concatenate(plot_file,istep[0]);
 
-    if (ParallelDescriptor::IOProcessor()) {
-	std::cout << "  Writing plotfile " << plotfilename << std::endl;
-    }
+    amrex::Print() << "  Writing plotfile " << plotfilename << "\n";
     
     {
 	Array<std::string> varnames;
