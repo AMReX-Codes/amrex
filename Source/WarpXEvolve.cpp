@@ -51,7 +51,6 @@ WarpX::Evolve (int numsteps)
 	        // on first step, push E and X by 0.5*dt
 	        EvolveE(lev, 0.5*dt[lev]);
 	        mypc->PushX(lev, 0.5*dt[lev]);
-	        std::cout << "First step " << step << istep0 << std::endl;
 	    }
 
 	    EvolveB(lev, 0.5*dt[lev]); // We now B^{n}
