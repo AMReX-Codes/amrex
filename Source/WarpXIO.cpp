@@ -255,37 +255,13 @@ WarpX::InitFromCheckpoint ()
 	    current[lev][i]->setVal(0.0);
 	}
 
-	// xxxxx This will be done differently in amrex!
-	{
-	    MultiFab mf;
-	    VisMF::Read(mf, amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "Ex"));
-	    Efield[lev][0]->copy(mf, 0, 0, 1, 0, 0);
-	}
-	{
-	    MultiFab mf;
-	    VisMF::Read(mf, amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "Ey"));
-	    Efield[lev][1]->copy(mf, 0, 0, 1, 0, 0);
-	}
-	{
-	    MultiFab mf;
-	    VisMF::Read(mf, amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "Ez"));
-	    Efield[lev][2]->copy(mf, 0, 0, 1, 0, 0);
-	}
-	{
-	    MultiFab mf;
-	    VisMF::Read(mf, amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "Bx"));
-	    Bfield[lev][0]->copy(mf, 0, 0, 1, 0, 0);
-	}
-	{
-	    MultiFab mf;
-	    VisMF::Read(mf, amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "By"));
-	    Bfield[lev][1]->copy(mf, 0, 0, 1, 0, 0);
-	}
-	{
-	    MultiFab mf;
-	    VisMF::Read(mf, amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "Bz"));
-	    Bfield[lev][2]->copy(mf, 0, 0, 1, 0, 0);
-	}
+        VisMF::Read(*Efield[lev][0], amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "Ex"));
+        VisMF::Read(*Efield[lev][1], amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "Ey"));
+        VisMF::Read(*Efield[lev][2], amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "Ez"));
+
+        VisMF::Read(*Bfield[lev][0], amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "Bx"));
+        VisMF::Read(*Bfield[lev][1], amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "By"));
+        VisMF::Read(*Bfield[lev][2], amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "Bz"));
     }
 
     // Initilize particles
