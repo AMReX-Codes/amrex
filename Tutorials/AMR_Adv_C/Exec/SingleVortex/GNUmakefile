@@ -1,10 +1,12 @@
-BOXLIB_HOME ?= ../../../..
+AMREX_HOME ?= ../../../..
 
 PRECISION  = DOUBLE
 PROFILE    = FALSE
 
 DEBUG      = TRUE
 DEBUG      = FALSE
+
+USE_PARTICLES = TRUE
 
 DIM        = 2
 #DIM       = 3

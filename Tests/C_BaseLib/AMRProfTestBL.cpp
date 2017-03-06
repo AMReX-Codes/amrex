@@ -9,13 +9,14 @@
 #include <sstream>
 #include <iomanip>
 #include <unistd.h>
-using std::cout;
-using std::endl;
 
-#include <BLProfiler.H>
-#include <ParallelDescriptor.H>
+#include <AMReX_BLProfiler.H>
+#include <AMReX_ParallelDescriptor.H>
 #include <AMRPROFTEST_F.H>
 
+using std::cout;
+using std::endl;
+using namespace amrex;
 
 //===============================================================
 namespace {
@@ -171,7 +172,7 @@ int main(int argc, char *argv[]) {
   MPI_Init(&argc, &argv);
 #endif
 
-  BoxLib::Initialize(argc, argv);
+  amrex::Initialize(argc, argv);
   BL_PROFILE_INIT_PARAMS(3.0, true, true);
   BL_PROFILE_REGION_START("R::main");
   BL_PROFILE_VAR("main()", pmain);
@@ -274,7 +275,7 @@ int main(int argc, char *argv[]) {
   usleep(0.1 * msps);
 
   bool finalizeMPI(false);
-  BoxLib::Finalize(finalizeMPI);
+  amrex::Finalize(finalizeMPI);
 
 #ifdef BL_USE_MPI
   MPI_Finalize();

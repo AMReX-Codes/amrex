@@ -2,17 +2,19 @@
 #include <fstream>
 #include <iomanip>
 
-#include <Utility.H>
-#include <ParmParse.H>
-#include <LO_BCTYPES.H>
-#include <BndryData.H>
-#include <MultiGrid.H>
-#include <CGSolver.H>
-#include <Laplacian.H>
-#include <ABecLaplacian.H>
-#include <ParallelDescriptor.H>
-#include <VisMF.H>
+#include <AMReX_Utility.H>
+#include <AMReX_ParmParse.H>
+#include <AMReX_LO_BCTYPES.H>
+#include <AMReX_BndryData.H>
+#include <AMReX_MultiGrid.H>
+#include <AMReX_CGSolver.H>
+#include <AMReX_Laplacian.H>
+#include <AMReX_ABecLaplacian.H>
+#include <AMReX_ParallelDescriptor.H>
+#include <AMReX_VisMF.H>
 #include <COEF_F.H>
+
+using namespace amrex;
 
 static
 Real
@@ -56,7 +58,7 @@ readBoxList (const std::string file, Box& domain)
     {
         std::string msg = "readBoxList: unable to open ";
         msg += file;
-        BoxLib::Error(msg.c_str());
+        amrex::Error(msg.c_str());
     }
     boxspec >> domain;
     
@@ -93,8 +95,8 @@ writePlotFile (const std::string& dir,
     // Only the I/O processor makes the directory if it doesn't already exist.
     //
     if (ParallelDescriptor::IOProcessor())
-        if (!BoxLib::UtilCreateDirectory(dir, 0755))
-            BoxLib::CreateDirectoryFailed(dir);
+        if (!amrex::UtilCreateDirectory(dir, 0755))
+            amrex::CreateDirectoryFailed(dir);
     //
     // Force other processors to wait till directory is built.
     //
@@ -115,7 +117,7 @@ writePlotFile (const std::string& dir,
         //
         HeaderFile.open(HeaderFileName.c_str(), std::ios::out|std::ios::trunc|std::ios::binary);
         if (!HeaderFile.good())
-            BoxLib::FileOpenFailed(HeaderFileName);
+            amrex::FileOpenFailed(HeaderFileName);
         HeaderFile << "NavierStokes-V1.1\n";
         HeaderFile << 2 << '\n';
         HeaderFile << "soln\nrhs\n";
@@ -144,7 +146,7 @@ writePlotFile (const std::string& dir,
     //
     static const std::string BaseName = "/Cell";
 
-    std::string Level = BoxLib::Concatenate("Level_", 0, 1);
+    std::string Level = amrex::Concatenate("Level_", 0, 1);
     //
     // Now for the full pathname of that directory.
     //
@@ -156,8 +158,8 @@ writePlotFile (const std::string& dir,
     // Only the I/O processor makes the directory if it doesn't already exist.
     //
     if (ParallelDescriptor::IOProcessor())
-        if (!BoxLib::UtilCreateDirectory(FullPath, 0755))
-            BoxLib::CreateDirectoryFailed(FullPath);
+        if (!amrex::UtilCreateDirectory(FullPath, 0755))
+            amrex::CreateDirectoryFailed(FullPath);
     //
     // Force other processors to wait till directory is built.
     //
@@ -190,7 +192,7 @@ writePlotFile (const std::string& dir,
 int
 main (int argc, char* argv[])
 {
-  BoxLib::Initialize(argc,argv);
+  amrex::Initialize(argc,argv);
 
   std::cout << std::setprecision(15);
 
@@ -214,7 +216,7 @@ main (int argc, char* argv[])
       int maxgrid = -1 ; pp.query("max_grid_size", maxgrid);
 
       if (maxgrid < 0)
-          BoxLib::Abort("max_grid_size must be positive");
+          amrex::Abort("max_grid_size must be positive");
 
       bs = BoxArray(dmn);
 
@@ -247,8 +249,9 @@ main (int argc, char* argv[])
   //
   int Ncomp=1;
   int Nghost=1;
-  MultiFab soln(bs, Ncomp, Nghost, Fab_allocate); soln.setVal(0.0);
-  MultiFab  rhs(bs, Ncomp, Nghost, Fab_allocate);  rhs.setVal(0.0);
+  DistributionMapping dm{bs};
+  MultiFab soln(bs, dm, Ncomp, Nghost); soln.setVal(0.0);
+  MultiFab  rhs(bs, dm, Ncomp, Nghost);  rhs.setVal(0.0);
   for ( MFIter rhsmfi(rhs); rhsmfi.isValid(); ++rhsmfi )
   {
       IntVect ivmid = (rhs[rhsmfi].smallEnd() + rhs[rhsmfi].bigEnd())/2;
@@ -261,7 +264,7 @@ main (int argc, char* argv[])
   // Initialize boundary data, set boundary condition flags and locations:
   // (phys boundaries set to dirichlet on cell walls).
   //
-  BndryData bd(bs, 1, geom);
+  BndryData bd(bs, dm, 1, geom);
   int comp = 0;
   for ( int n=0; n<BL_SPACEDIM; ++n )
     {
@@ -407,13 +410,13 @@ main (int argc, char* argv[])
 #endif
         
       MultiFab  acoefs;
-      acoefs.define(bs, Ncomp, Nghost, Fab_allocate);
+      acoefs.define(bs, dm, Ncomp, Nghost);
       acoefs.setVal(a);
         
       MultiFab bcoefs[BL_SPACEDIM];
 
       if (use_variable_coef) {
-        MultiFab cc_coef(bs,1,1);
+	MultiFab cc_coef(bs,dm,1,1);
         for ( MFIter mfi(cc_coef); mfi.isValid(); ++mfi )
         {
           const int* clo = cc_coef[mfi].loVect();
@@ -428,7 +431,7 @@ main (int argc, char* argv[])
         for ( int n=0; n<BL_SPACEDIM; ++n )
         {
   	  BoxArray bsC(bs);
-	  bcoefs[n].define(bsC.surroundingNodes(n), Ncomp, Nghost, Fab_allocate);
+	  bcoefs[n].define(bsC.surroundingNodes(n), dm, Ncomp, Nghost);
           for ( MFIter mfi(bcoefs[n]); mfi.isValid(); ++mfi )
           {
             Box bx(bs[mfi.index()]);
@@ -446,7 +449,7 @@ main (int argc, char* argv[])
         for ( int n=0; n<BL_SPACEDIM; ++n )
         {
   	  BoxArray bsC(bs);
-	  bcoefs[n].define(bsC.surroundingNodes(n), Ncomp, Nghost, Fab_allocate);
+	  bcoefs[n].define(bsC.surroundingNodes(n), dm, Ncomp, Nghost);
   	  bcoefs[n].setVal(b[n]);
         }
       }
@@ -570,7 +573,7 @@ main (int argc, char* argv[])
   }
   if ( dump_MF || dump_VisMF )
   {
-      MultiFab temp(bs, 2, 0);
+      MultiFab temp(bs, dm, 2, 0);
       temp.setVal(0.0);
       temp.copy(soln, 0, 0, 1);
       temp.copy(rhs,  0, 1, 1);
@@ -600,7 +603,7 @@ main (int argc, char* argv[])
       }
   }
 
-  BoxLib::Finalize();
+  amrex::Finalize();
 
 }
 

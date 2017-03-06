@@ -1,0 +1,160 @@
+
+AMREX_BASE=EXE
+
+#
+# Utility classes.
+#
+C$(AMREX_BASE)_headers += AMReX.H
+C$(AMREX_BASE)_sources += AMReX.cpp AMReX_error_fi.cpp
+
+C$(AMREX_BASE)_sources += AMReX_ParmParse.cpp AMReX_parmparse_fi.cpp AMReX_Utility.cpp
+C$(AMREX_BASE)_headers += AMReX_ParmParse.H AMReX_Utility.H AMReX_BLassert.H AMReX_ArrayLim.H
+
+C$(AMREX_BASE)_headers += AMReX_REAL.H AMReX_CONSTANTS.H AMReX_SPACE.H AMReX_SPACE_F.H
+
+C$(AMREX_BASE)_sources += AMReX_DistributionMapping.cpp AMReX_ParallelDescriptor.cpp
+C$(AMREX_BASE)_headers += AMReX_DistributionMapping.H AMReX_ParallelDescriptor.H
+
+C$(AMREX_BASE)_sources += AMReX_VisMF.cpp AMReX_Arena.cpp AMReX_BArena.cpp AMReX_CArena.cpp
+C$(AMREX_BASE)_headers += AMReX_VisMF.H AMReX_Arena.H AMReX_BArena.H AMReX_CArena.H
+
+C$(AMREX_BASE)_headers += AMReX_BLProfiler.H
+
+C$(AMREX_BASE)_headers += AMReX_BLBackTrace.H
+
+C$(AMREX_BASE)_headers += AMReX_BLFort.H
+
+C$(AMREX_BASE)_sources += AMReX_NFiles.cpp
+C$(AMREX_BASE)_headers += AMReX_NFiles.H
+
+#
+# FAB I/O stuff.
+#
+C${AMREX_BASE}_headers += AMReX_FabConv.H AMReX_FPC.H AMReX_Print.H
+C${AMREX_BASE}_sources += AMReX_FabConv.cpp AMReX_FPC.cpp
+
+#
+# Index space.
+#
+C$(AMREX_BASE)_sources += AMReX_Box.cpp AMReX_IntVect.cpp AMReX_IndexType.cpp AMReX_Orientation.cpp AMReX_Periodicity.cpp
+C$(AMREX_BASE)_headers += AMReX_Box.H AMReX_IntVect.H AMReX_IndexType.H AMReX_Orientation.H AMReX_Periodicity.H
+
+#
+# Real space.
+#
+C$(AMREX_BASE)_sources += AMReX_RealBox.cpp 
+C$(AMREX_BASE)_headers += AMReX_RealBox.H 
+
+#
+# Unions of rectangles.
+#
+C$(AMREX_BASE)_sources += AMReX_BoxList.cpp AMReX_BoxArray.cpp AMReX_BoxDomain.cpp
+C$(AMREX_BASE)_headers += AMReX_BoxList.H AMReX_BoxArray.H AMReX_BoxDomain.H
+
+#
+# FORTRAN array data.
+#
+C$(AMREX_BASE)_sources += AMReX_FArrayBox.cpp
+C$(AMREX_BASE)_headers += AMReX_FArrayBox.H
+
+C$(AMREX_BASE)_sources += AMReX_IArrayBox.cpp
+C$(AMREX_BASE)_headers += AMReX_IArrayBox.H
+
+C$(AMREX_BASE)_headers += AMReX_Looping.H
+
+C$(AMREX_BASE)_sources += AMReX_BaseFab.cpp
+C$(AMREX_BASE)_headers += AMReX_BaseFab.H
+C$(AMREX_BASE)_headers += AMReX_FabFactory.H
+
+#
+# FORTRAN data defined on unions of rectangles.
+#
+C$(AMREX_BASE)_sources += AMReX_MultiFab.cpp
+C$(AMREX_BASE)_headers += AMReX_MultiFab.H
+
+C$(AMREX_BASE)_sources += AMReX_iMultiFab.cpp
+C$(AMREX_BASE)_headers += AMReX_iMultiFab.H
+
+C$(AMREX_BASE)_sources += AMReX_FabArray.cpp
+C$(AMREX_BASE)_headers += AMReX_FabArray.H
+
+#
+# Geometry / Coordinate system routines.
+#
+ifneq ($(BL_NO_FORT),TRUE)
+  C$(AMREX_BASE)_sources += AMReX_CoordSys.cpp AMReX_Geometry.cpp AMReX_MultiFabUtil.cpp
+  C$(AMREX_BASE)_headers += AMReX_CoordSys.H AMReX_Geometry.H AMReX_MultiFabUtil.H
+endif
+
+#
+# Boundary-related 
+#
+C$(AMREX_BASE)_sources += AMReX_BCRec.cpp AMReX_PhysBCFunct.cpp
+C$(AMREX_BASE)_headers += AMReX_BCRec.H AMReX_PhysBCFunct.H
+C$(AMREX_BASE)_headers += AMReX_BC_TYPES.H
+
+#
+# Plotfile
+#
+C$(AMREX_BASE)_sources += AMReX_PlotFileUtil.cpp
+C$(AMREX_BASE)_headers += AMReX_PlotFileUtil.H
+
+#
+# Fortran interface routines.
+#
+ifneq ($(BL_NO_FORT),TRUE)
+  F$(AMREX_BASE)_sources += AMReX_COORDSYS_$(DIM)D.F
+  F$(AMREX_BASE)_headers += AMReX_COORDSYS_F.H
+  F$(AMREX_BASE)_sources += AMReX_FILCC_${DIM}D.F
+
+  f$(AMREX_BASE)_sources += AMReX_BLutil_F.f
+  f$(AMREX_BASE)_sources += AMReX_BLParmParse_F.f
+  f$(AMREX_BASE)_sources += AMReX_BLBoxLib_F.f
+  f$(AMREX_BASE)_sources += AMReX_BLProfiler_F.f
+
+  f90$(AMREX_BASE)_sources += AMReX_BaseFab_nd.f90
+  f90$(AMREX_BASE)_headers += AMReX_BaseFab_f.H
+
+  f90$(AMREX_BASE)_sources += AMReX_MultiFabUtil_$(DIM)d.f90
+
+  F90$(AMREX_BASE)_sources += AMReX_omp_mod.F90
+  F90$(AMREX_BASE)_sources += AMReX_fort_mod.F90 AMReX_error_mod.F90
+  F90$(AMREX_BASE)_sources += AMReX_parmparse_mod.F90 AMReX_string_mod.F90
+endif
+
+C$(AMREX_BASE)_sources += AMReX_BLProfiler.cpp
+C$(AMREX_BASE)_sources += AMReX_BLBackTrace.cpp
+
+ifeq ($(LAZY),TRUE)
+  C$(AMREX_BASE)_sources += AMReX_Lazy.cpp
+  C$(AMREX_BASE)_headers += AMReX_Lazy.H
+endif
+
+# Memory pool
+C$(AMREX_BASE)_headers += AMReX_MemPool.H
+C$(AMREX_BASE)_sources += AMReX_MemPool.cpp
+ifneq ($(BL_NO_FORT),TRUE)
+  f90$(AMREX_BASE)_sources += AMReX_mempool_f.f90
+endif
+
+# UPCXX
+ifeq ($(USE_UPCXX),TRUE)
+  C$(AMREX_BASE)_sources += AMReX_BLPgas.cpp
+  C$(AMREX_BASE)_headers += AMReX_BLPgas.H
+endif
+
+# Memory Profiler
+ifeq ($(MEM_PROFILE),TRUE)
+  C$(AMREX_BASE)_sources += AMReX_MemProfiler.cpp
+  C$(AMREX_BASE)_headers += AMReX_MemProfiler.H
+endif
+
+# Basic Profiler
+ifeq ($(TINY_PROFILE),TRUE)
+  C$(AMREX_BASE)_headers += AMReX_TinyProfiler.H
+  C$(AMREX_BASE)_sources += AMReX_TinyProfiler.cpp
+endif
+
+VPATH_LOCATIONS += $(AMREX_HOME)/Src/Base
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Base
+

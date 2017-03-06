@@ -1,5 +1,4 @@
 
-#include <winstd.H>
 
 #include <new>
 #include <iostream>
@@ -13,20 +12,18 @@
 using std::cout;
 using std::endl;
 
-#ifndef WIN32
 #include <unistd.h>
-#endif
 
 #ifdef USE_TEC_BIN_IO
 #include "TECIO.h"
 #endif
 
-#include "ParmParse.H"
-#include "ParallelDescriptor.H"
-#include "DataServices.H"
-#include "Utility.H"
-#include "FArrayBox.H"
-#include "Geometry.H"
+#include "AMReX_ParmParse.H"
+#include "AMReX_ParallelDescriptor.H"
+#include "AMReX_DataServices.H"
+#include "AMReX_Utility.H"
+#include "AMReX_FArrayBox.H"
+#include "AMReX_Geometry.H"
 
 struct Node
 {
@@ -38,7 +35,7 @@ struct Node
     inline bool operator< (const Node& rhs) const
         {
             if (level < rhs.level) return true;
-            if ((level == rhs.level) && iv.lexLT(rhs.iv)) return true;
+            if ((level == rhs.level) && iv < rhs.iv) return true;
             return false;
         }
     inline bool operator!= (const Node& rhs) const
@@ -61,7 +58,7 @@ std::ostream& operator<< (std::ostream&  os, const Node& node)
     else
         os << "VALID";
     if (os.fail())
-        BoxLib::Error("operator<<(std::ostream&,Node&) failed");
+        amrex::Error("operator<<(std::ostream&,Node&) failed");
     return os;
 }
 
@@ -123,7 +120,7 @@ print_usage (int,
 	<< "    geometry.prob_lo = <lower limits for the axes>" << endl
 	<< "    geometry.prob_hi = <upper limits for the axes>" << endl
 	<< endl;
-    BoxLib::Finalize();
+    amrex::Finalize();
     exit(1);
 }
 
@@ -139,7 +136,7 @@ GetBndryCells (const BoxArray& ba,
     BoxList gcells, bcells;
 
     for (int i = 0; i < ba.size(); ++i)
-	gcells.join(BoxLib::boxDiff(BoxLib::grow(ba[i],ngrow),ba[i]));
+	gcells.join(amrex::boxDiff(amrex::grow(ba[i],ngrow),ba[i]));
     //
     // Now strip out intersections with original BoxArray.
     //
@@ -157,7 +154,7 @@ GetBndryCells (const BoxArray& ba,
             BoxList pieces;
             for (int i = 0; i < isects.size(); i++)
                 pieces.push_back(isects[i].second);
-            BoxList leftover = BoxLib::complementIn(*it,pieces);
+            BoxList leftover = amrex::complementIn(*it,pieces);
             bcells.catenate(leftover);
         }
     }
@@ -165,7 +162,7 @@ GetBndryCells (const BoxArray& ba,
     // Now strip out overlaps.
     //
     gcells.clear();
-    gcells = BoxLib::removeOverlap(bcells);
+    gcells = amrex::removeOverlap(bcells);
     bcells.clear();
 
     if (geom.isAnyPeriodic())
@@ -188,7 +185,7 @@ GetBndryCells (const BoxArray& ba,
                     const Box& shftbox = *it + pshifts[i];
 
                     const Box& ovlp = domain & shftbox;
-                    BoxList bl = BoxLib::complementIn(ovlp,BoxList(ba));
+                    BoxList bl = amrex::complementIn(ovlp,BoxList(ba));
                     bcells.catenate(bl);
                 }
             }
@@ -309,7 +306,7 @@ int
 main (int   argc,
       char* argv[])
 {
-    BoxLib::Initialize(argc,argv);
+    amrex::Initialize(argc,argv);
 
     if (argc < 2)
         print_usage(argc,argv);
@@ -422,7 +419,7 @@ main (int   argc,
             }
         }
 
-        gridArray[lev] = BoxLib::intersect(amrData.boxArray(lev), subboxArray[lev]);
+        gridArray[lev] = amrex::intersect(amrData.boxArray(lev), subboxArray[lev]);
 
         if (nGrowPer>0 && geom[lev].isAnyPeriodic() && gridArray[lev].size()>0)
         {
@@ -488,7 +485,7 @@ main (int   argc,
 
             for (MFIter fai(nodes[lev]); fai.isValid(); ++fai)
             {
-                const Box& box = BoxLib::grow(fai.validbox(),ref) & subboxArray[lev];
+                const Box& box = amrex::grow(fai.validbox(),ref) & subboxArray[lev];
                 NodeFab& ifab = nodes[lev][fai];
                 std::vector< std::pair<int,Box> > isects = bndryCells.intersections(box);
                 for (int i = 0; i < isects.size(); i++)
@@ -498,7 +495,7 @@ main (int   argc,
                         std::cout << "BAD ISECTS: " << co << std::endl;
 
                     const Box& dstBox = isects[i].second;
-                    const Box& srcBox = BoxLib::coarsen(dstBox,ref);
+                    const Box& srcBox = amrex::coarsen(dstBox,ref);
 
                     NodeFab dst(dstBox,1);
                     for (IntVect iv(srcBox.smallEnd());
@@ -578,22 +575,22 @@ main (int   argc,
             {
 #if (BL_SPACEDIM == 2)
                 const Node& n1 = ifab(iv,0);
-                const Node& n2 = ifab(IntVect(iv).shift(BoxLib::BASISV(0)),0);
+                const Node& n2 = ifab(IntVect(iv).shift(amrex::BASISV(0)),0);
                 const Node& n3 = ifab(IntVect(iv).shift(IntVect::TheUnitVector()),0);
-                const Node& n4 = ifab(IntVect(iv).shift(BoxLib::BASISV(1)),0);
+                const Node& n4 = ifab(IntVect(iv).shift(amrex::BASISV(1)),0);
                 if (n1.type==Node::VALID && n2.type==Node::VALID &&
                     n3.type==Node::VALID && n4.type==Node::VALID )
                     elements.insert(Element(n1,n2,n3,n4));
 #else
-                const IntVect& ivu = IntVect(iv).shift(BoxLib::BASISV(2));
+                const IntVect& ivu = IntVect(iv).shift(amrex::BASISV(2));
                 const Node& n1 = ifab(iv ,0);
-                const Node& n2 = ifab(IntVect(iv ).shift(BoxLib::BASISV(0)),0);
-                const Node& n3 = ifab(IntVect(iv ).shift(BoxLib::BASISV(0)).shift(BoxLib::BASISV(1)),0);
-                const Node& n4 = ifab(IntVect(iv ).shift(BoxLib::BASISV(1)),0);
+                const Node& n2 = ifab(IntVect(iv ).shift(amrex::BASISV(0)),0);
+                const Node& n3 = ifab(IntVect(iv ).shift(amrex::BASISV(0)).shift(amrex::BASISV(1)),0);
+                const Node& n4 = ifab(IntVect(iv ).shift(amrex::BASISV(1)),0);
                 const Node& n5 = ifab(ivu,0);
-                const Node& n6 = ifab(IntVect(ivu).shift(BoxLib::BASISV(0)),0);
-                const Node& n7 = ifab(IntVect(ivu).shift(BoxLib::BASISV(0)).shift(BoxLib::BASISV(1)),0);
-                const Node& n8 = ifab(IntVect(ivu).shift(BoxLib::BASISV(1)),0);
+                const Node& n6 = ifab(IntVect(ivu).shift(amrex::BASISV(0)),0);
+                const Node& n7 = ifab(IntVect(ivu).shift(amrex::BASISV(0)).shift(amrex::BASISV(1)),0);
+                const Node& n8 = ifab(IntVect(ivu).shift(amrex::BASISV(1)),0);
                 if (n1.type==Node::VALID && n2.type==Node::VALID &&
                     n3.type==Node::VALID && n4.type==Node::VALID &&
                     n5.type==Node::VALID && n6.type==Node::VALID &&
@@ -677,14 +674,14 @@ main (int   argc,
                 if (geom[lev].isPeriodic(i))
                     shrunkenDomain.grow(i,-ng);
 
-            const BoxArray edgeVBoxes = BoxLib::boxComplement(pd,shrunkenDomain);
+            const BoxArray edgeVBoxes = amrex::boxComplement(pd,shrunkenDomain);
             pData.define(edgeVBoxes,1,ng,Fab_allocate);
             pDataNG.define(BoxArray(edgeVBoxes).grow(ng),1,0,Fab_allocate);
         }
 
         for (int i=0; i<comps.size(); ++i)
         {
-            BoxArray tmpBA = BoxLib::intersect(fileData[lev].boxArray(),amrData.ProbDomain()[lev]);
+            BoxArray tmpBA = amrex::intersect(fileData[lev].boxArray(),amrData.ProbDomain()[lev]);
             MultiFab tmpMF(tmpBA,1,0);
             tmpMF.setVal(2.e30);
             amrData.FillVar(tmpMF,lev,names[comps[i]],0);
@@ -707,7 +704,7 @@ main (int   argc,
         {
             std::cerr << "Bad mf data" << std::endl;
             VisMF::Write(fileData[lev],"out.mfab");
-            BoxLib::Abort();
+            amrex::Abort();
         }
     }
     std::cerr << "File data loaded" << endl;
@@ -781,12 +778,12 @@ main (int   argc,
             ivt.resize(1,iv);
         } else {
             ivt.resize(D_PICK(1,4,8),iv);
-            ivt[1] += BoxLib::BASISV(0);
-            ivt[2] = ivt[1] + BoxLib::BASISV(1);
-            ivt[3] += BoxLib::BASISV(1);
+            ivt[1] += amrex::BASISV(0);
+            ivt[2] = ivt[1] + amrex::BASISV(1);
+            ivt[3] += amrex::BASISV(1);
 #if BLSPACEDIM==3
             for (int n=0; n<4; ++n) {
-                ivt[4+n] = iv[n] + BoxLib::BASISV(2);
+                ivt[4+n] = iv[n] + amrex::BASISV(2);
             }
 #endif
         }
@@ -850,7 +847,7 @@ main (int   argc,
             TECNOD(connData.dataPtr());
             TECEND();
 #else
-            BoxLib::Abort("Need to recompile with USE_TEC_BIN_IO defined");
+            amrex::Abort("Need to recompile with USE_TEC_BIN_IO defined");
 #endif
         }
         else
@@ -898,6 +895,6 @@ main (int   argc,
             ofs.close();
     }
 
-    BoxLib::Finalize();
+    amrex::Finalize();
     return 0;
 }

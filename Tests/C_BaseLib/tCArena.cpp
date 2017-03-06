@@ -1,15 +1,15 @@
 
-#ifndef WIN32
 #include <unistd.h>
-#endif
 
-#include <REAL.H>
-#include <CArena.H>
-#include <Utility.H>
+#include <AMReX_REAL.H>
+#include <AMReX_CArena.H>
+#include <AMReX_Utility.H>
 
 #include <list>
 #include <new>
 using std::list;
+
+using namespace amrex;
 
 //
 // A simple class emulating how we use FABs.
@@ -41,7 +41,7 @@ CArena FB::m_CArena(100*CHUNKSIZE);
 
 FB::FB ()
 {
-    m_size = size_t(CHUNKSIZE*BoxLib::Random());
+    m_size = size_t(CHUNKSIZE*amrex::Random());
     m_data = (double*) m_CArena.alloc(m_size*sizeof(double));
     //
     // Set specific values in the data.

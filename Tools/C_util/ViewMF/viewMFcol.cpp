@@ -1,12 +1,10 @@
 
-#ifndef WIN32
 #include <unistd.h>
-#endif
 
-#include <MultiFab.H>
-#include <ParmParse.H>
-#include <Utility.H>
-#include <ParallelDescriptor.H>
+#include <AMReX_MultiFab.H>
+#include <AMReX_ParmParse.H>
+#include <AMReX_Utility.H>
+#include <AMReX_ParallelDescriptor.H>
 #include <TV_TempWrite.H>
 
 #include <iostream>
@@ -33,7 +31,7 @@ int
 main (int   argc,
       char* argv[])
 {
-    BoxLib::Initialize(argc,argv);
+    amrex::Initialize(argc,argv);
 //
 //  Parse the command line
 //
@@ -73,7 +71,7 @@ main (int   argc,
     cout << "Components: " << sComp << " : " << sComp + nComp - 1 << endl;
     cout << fab << endl;
 
-    BoxLib::Finalize();
+    amrex::Finalize();
     
     return 0;
 }

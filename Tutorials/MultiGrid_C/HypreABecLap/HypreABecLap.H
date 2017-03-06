@@ -4,11 +4,11 @@
 #include <iomanip>
 #include <iostream>
 
-#include <Tuple.H>
-#include <Geometry.H>
-#include <MultiFab.H>
-#include <MacBndry.H>
-#include <ParmParse.H>
+#include <AMReX_Tuple.H>
+#include <AMReX_Geometry.H>
+#include <AMReX_MultiFab.H>
+#include <AMReX_MacBndry.H>
+#include <AMReX_ParmParse.H>
 
 #include <HYPRE_struct_ls.h>
 

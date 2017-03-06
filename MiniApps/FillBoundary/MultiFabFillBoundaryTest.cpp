@@ -3,7 +3,6 @@
 // --------------------------------------------------------------------------
 //   this file tests fillboundary.
 // --------------------------------------------------------------------------
-#include <winstd.H>
 
 #include <new>
 #include <iostream>
@@ -11,27 +10,23 @@
 #include <cstdio>
 #include <cstdlib>
 
-#ifndef WIN32
 #include <unistd.h>
-#endif
 
-#include <IntVect.H>
-#include <Box.H>
-#include <BoxArray.H>
-#include <MultiFab.H>
-#include <ParallelDescriptor.H>
-#include <Utility.H>
+#include <AMReX_IntVect.H>
+#include <AMReX_Box.H>
+#include <AMReX_BoxArray.H>
+#include <AMReX_MultiFab.H>
+#include <AMReX_ParallelDescriptor.H>
+#include <AMReX_Utility.H>
 
-#ifdef BL_USE_SETBUF
-#define pubsetbuf setbuf
-#endif
+using namespace amrex;
 
 const int maxGrid(64);
 
 // --------------------------------------------------------------------------
 int main(int argc, char *argv[]) {
 
-    BoxLib::Initialize(argc,argv);    
+    amrex::Initialize(argc,argv);    
 
     BL_PROFILE_VAR("main()", pmain);
 
@@ -58,7 +53,7 @@ int main(int argc, char *argv[]) {
       if(ParallelDescriptor::IOProcessor()) {
         std::cerr << "**** Error:  nprocs = " << nprocs << " is not currently supported." << std::endl;
       }
-      BoxLib::Error("We require that the number of processors be a perfect cube");
+      amrex::Error("We require that the number of processors be a perfect cube");
     }
     if(ParallelDescriptor::IOProcessor()) {
       std::cout << "N = " << N << std::endl;
@@ -76,6 +71,8 @@ int main(int argc, char *argv[]) {
     Box Domain(IntVect(0,0,0), IntVect(domain_hi,domain_hi,domain_hi));
     BoxArray ba(Domain);
     ba.maxSize(maxGrid);
+
+    DistributionMapping dm{ba};
 
     // ---- Below we will make a MultiFab and set the values to 1.0
     // ----  (this is arbitrary, just makes the values not be undefined)
@@ -102,7 +99,7 @@ int main(int argc, char *argv[]) {
 		      << std::endl;
 	  }
 
-          MultiFab mf(ba, nComp[icomp], nGhost[ighost]);
+          MultiFab mf(ba, dm, nComp[icomp], nGhost[ighost]);
           mf.setVal(1.0);
 
           BL_COMM_PROFILE_NAMETAG(nametag.str() + "_Start");
@@ -126,7 +123,7 @@ int main(int argc, char *argv[]) {
 
     BL_PROFILE_VAR_STOP(pmain);
 
-    BoxLib::Finalize();
+    amrex::Finalize();
     return 0;
 }
 // --------------------------------------------------------------------------

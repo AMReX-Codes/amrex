@@ -1,7 +1,6 @@
 // --------------------------------------------------------------------
 // HyptermOnly.cpp
 // --------------------------------------------------------------------
-#include <winstd.H>
 
 #include <new>
 #include <iostream>
@@ -13,26 +12,20 @@ using std::ios;
 using std::cout;
 using std::endl;
 
-#ifndef WIN32
 #include <unistd.h>
-#endif
 
-#include <IntVect.H>
-#include <Box.H>
-#include <FArrayBox.H>
-#include <MultiFab.H>
-#include <ParallelDescriptor.H>
-#include <Utility.H>
-#include <VisMF.H>
+#include <AMReX_IntVect.H>
+#include <AMReX_Box.H>
+#include <AMReX_FArrayBox.H>
+#include <AMReX_MultiFab.H>
+#include <AMReX_ParallelDescriptor.H>
+#include <AMReX_Utility.H>
+#include <AMReX_VisMF.H>
 
 #ifdef SHOWVAL
 #undef SHOWVAL
 #endif
 #define SHOWVAL(val) { cout << #val << " = " << val << endl; }
-
-#ifdef BL_USE_SETBUF
-#define pubsetbuf setbuf
-#endif
 
 extern "C" {
   void init_data(int lo[3], int hi[3], const int fablo[3], const int fabhi[3], int ng, double dx[3],
@@ -44,9 +37,11 @@ extern "C" {
 };
 
 
+using namespace amrex;
+
 // --------------------------------------------------------------------
 int main(int argc, char *argv[]) {
-    BoxLib::Initialize(argc,argv);    
+    amrex::Initialize(argc,argv);    
 
     int maxgrid(64), nComps(5), nGhost(4);
     int ioProc(ParallelDescriptor::IOProcessorNumber());
@@ -102,9 +97,9 @@ int main(int argc, char *argv[]) {
     VisMF::Write(mfU, "mfUInit");
 
 
-    double tsleepstart = BoxLib::wsecond();
+    double tsleepstart = ParallelDescriptor::second();
     sleep(1);
-    double tsleepend = BoxLib::wsecond();
+    double tsleepend = ParallelDescriptor::second();
     if(ParallelDescriptor::IOProcessor()) {
       cout << "sleep(1) time = " << tsleepend - tsleepstart << endl;
     }
@@ -115,7 +110,7 @@ int main(int argc, char *argv[]) {
 
     init_timer();
 
-    double tstart = BoxLib::wsecond();
+    double tstart = ParallelDescriptor::second();
 
     int nSteps(1);
     for(int iStep(0); iStep < nSteps; ++iStep) {
@@ -149,11 +144,11 @@ int main(int argc, char *argv[]) {
 	  cout << "-----------------" << endl;
 	}
 
-        double tstart = BoxLib::wsecond();
+        double tstart = ParallelDescriptor::second();
 
         hypterm_naive(lo,hi,NG,dx,U,Q,F);
 
-        double tend = BoxLib::wsecond();
+        double tend = ParallelDescriptor::second();
         if(ParallelDescriptor::IOProcessor()) {
 	  cout << "-----------------" << endl;
           cout << "hypterm =  " << tend - tstart << endl;
@@ -162,7 +157,7 @@ int main(int argc, char *argv[]) {
       }
     }
 
-    double tend = BoxLib::wsecond();
+    double tend = ParallelDescriptor::second();
     if(ParallelDescriptor::IOProcessor()) {
       cout << "-----------------" << endl;
       cout << "runtime tot =  " << tend - tstart << endl;
@@ -172,7 +167,7 @@ int main(int argc, char *argv[]) {
 
     VisMF::Write(mfFlux, "mfFluxFinal");
 
-    BoxLib::Finalize();
+    amrex::Finalize();
     return 0;
 }
 // --------------------------------------------------------------------

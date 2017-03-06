@@ -4,15 +4,16 @@
 // An example to test resizing with a disallowed rank set.
 // This test is supposed to fail.
 // --------------------------------------------------------------------------
-#include <BoxLib.H>
-#include <ParallelDescriptor.H>
-#include <Utility.H>
+#include <AMReX.H>
+#include <AMReX_ParallelDescriptor.H>
+#include <AMReX_Utility.H>
 
+using namespace amrex;
 
 // --------------------------------------------------------------------------
 int main(int argc, char *argv[]) {
 
-    BoxLib::Initialize(argc,argv);
+    amrex::Initialize(argc,argv);
 
     int myProcAll(ParallelDescriptor::MyProcAll());
     int nProcs(ParallelDescriptor::NProcs());
@@ -20,7 +21,7 @@ int main(int argc, char *argv[]) {
     bool printRanks(true);
 
     if(nProcs < 8) {
-      BoxLib::Abort("**** Error:  must use at least 8 processes.");
+      amrex::Abort("**** Error:  must use at least 8 processes.");
     }
 
     Array<int> compProcsInAll;
@@ -37,7 +38,7 @@ int main(int argc, char *argv[]) {
       std::cout << myProcAll << ":: Set initial sidecar sizes." << std::endl;
       std::cout << std::endl;
     }
-    BoxLib::USleep(myProcAll);
+    amrex::USleep(myProcAll);
     ParallelDescriptor::SetNProcsSidecars(compProcsInAll, sidecarProcsInAll, printRanks);
 
 
@@ -49,7 +50,7 @@ int main(int argc, char *argv[]) {
       std::cout << myProcAll << ":: Move elements from comp to sidecar." << std::endl;
       std::cout << std::endl;
     }
-    BoxLib::USleep(myProcAll);
+    amrex::USleep(myProcAll);
     ParallelDescriptor::SetNProcsSidecars(compProcsInAll, sidecarProcsInAll, printRanks);
 
 
@@ -62,7 +63,7 @@ int main(int argc, char *argv[]) {
       std::cout << myProcAll << ":: Move elements both from and to comp.  This test should fail." << std::endl;
       std::cout << std::endl;
     }
-    BoxLib::USleep(myProcAll);
+    amrex::USleep(myProcAll);
     ParallelDescriptor::SetNProcsSidecars(compProcsInAll, sidecarProcsInAll, printRanks);
 
     
@@ -73,7 +74,7 @@ int main(int argc, char *argv[]) {
       std::cout << myProcAll << ":: Finished." << std::endl;
     }
 
-    BoxLib::Finalize();
+    amrex::Finalize();
     return 0;
 }
 // --------------------------------------------------------------------------

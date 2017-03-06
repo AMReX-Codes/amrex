@@ -1,6 +1,6 @@
-# BOXLIB_HOME defines the directory in which we will find all the BoxLib code -- if this is already defined
+# AMREX_HOME defines the directory in which we will find all the BoxLib code -- if this is already defined
 #    then the line below will be ignored
-BOXLIB_HOME ?= ../..
+AMREX_HOME ?= ../..
 
 # HYPRE_DIR defines the directory in which you can find hypre -- if this is already defined 
 #    then the line below will be ignored
@@ -52,40 +52,40 @@ USE_OMP=FALSE
 
 EBASE = main
 
-include $(BOXLIB_HOME)/Tools/C_mk/Make.defs
+include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
 CEXE_sources += $(EBASE).cpp
 
 include Make.package
-include $(BOXLIB_HOME)/Src/C_BoundaryLib/Make.package
-include $(BOXLIB_HOME)/Src/LinearSolvers/C_CellMG/Make.package
-include $(BOXLIB_HOME)/Src/LinearSolvers/C_CellMG4/Make.package
-include $(BOXLIB_HOME)/Src/C_BaseLib/Make.package
+include $(AMREX_HOME)/Src/Boundary/Make.package
+include $(AMREX_HOME)/Src/LinearSolvers/C_CellMG/Make.package
+include $(AMREX_HOME)/Src/LinearSolvers/C_CellMG4/Make.package
+include $(AMREX_HOME)/Src/Base/Make.package
 
-INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/C_BoundaryLib
-vpathdir += $(BOXLIB_HOME)/Src/C_BoundaryLib
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Boundary
+vpathdir += $(AMREX_HOME)/Src/Boundary
 
-INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/C_BaseLib
-vpathdir += $(BOXLIB_HOME)/Src/C_BaseLib
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Base
+vpathdir += $(AMREX_HOME)/Src/Base
 
-INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/LinearSolvers/C_CellMG
-vpathdir += $(BOXLIB_HOME)/Src/LinearSolvers/C_CellMG
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/LinearSolvers/C_CellMG
+vpathdir += $(AMREX_HOME)/Src/LinearSolvers/C_CellMG
 
-INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/LinearSolvers/C_CellMG4
-vpathdir += $(BOXLIB_HOME)/Src/LinearSolvers/C_CellMG4
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/LinearSolvers/C_CellMG4
+vpathdir += $(AMREX_HOME)/Src/LinearSolvers/C_CellMG4
 
 ifeq ($(USE_F90_SOLVERS), TRUE)
-  include $(BOXLIB_HOME)/Src/LinearSolvers/C_to_F_MG/Make.package
-  INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/LinearSolvers/C_to_F_MG
-  vpathdir          += $(BOXLIB_HOME)/Src/LinearSolvers/C_to_F_MG
+  include $(AMREX_HOME)/Src/LinearSolvers/C_to_F_MG/Make.package
+  INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/LinearSolvers/C_to_F_MG
+  vpathdir          += $(AMREX_HOME)/Src/LinearSolvers/C_to_F_MG
 
-  include $(BOXLIB_HOME)/Src/LinearSolvers/F_MG/FParallelMG.mak
-  INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/LinearSolvers/F_MG
-  vpathdir          += $(BOXLIB_HOME)/Src/LinearSolvers/F_MG
+  include $(AMREX_HOME)/Src/LinearSolvers/F_MG/FParallelMG.mak
+  INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/LinearSolvers/F_MG
+  vpathdir          += $(AMREX_HOME)/Src/LinearSolvers/F_MG
 
-  include $(BOXLIB_HOME)/Src/F_BaseLib/FParallelMG.mak
-  INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/F_BaseLib
-  vpathdir          += $(BOXLIB_HOME)/Src/F_BaseLib
+  include $(AMREX_HOME)/Src/F_BaseLib/FParallelMG.mak
+  INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/F_BaseLib
+  vpathdir          += $(AMREX_HOME)/Src/F_BaseLib
 
   DEFINES += -DUSE_F90_SOLVERS
 endif
@@ -127,4 +127,4 @@ vpath %.f90 : . $(VPATH_LOCATIONS)
 all: $(executable)
 	@echo SUCCESS
 
-include $(BOXLIB_HOME)/Tools/C_mk/Make.rules
+include $(AMREX_HOME)/Tools/GNUMake/Make.rules

@@ -1,7 +1,7 @@
 #ifndef _COEFF_H_
 #define _COEFF_H_
 
-#include <REAL.H>
+#include <AMReX_REAL.H>
 
 #if        defined(BL_LANG_FORT)
 #define FORT_SET_COEF        set_coef
@@ -15,14 +15,14 @@
 #define FORT_SET_COEF        set_coef_
 #endif
 
-#include <ArrayLim.H>
+#include <AMReX_ArrayLim.H>
 
 extern "C"
 {
-  void FORT_SET_COEF(Real* exac, Real* alph, Real* beta, Real* rhs,
-		     const int* lo, const int* hi, const Real* prob_lo, const Real* prob_hi, 
-		     const Real* dx, const Real& a, const Real& b, 
-		     const Real& sigma, const Real& w, int& ibnd);
+  void FORT_SET_COEF(amrex::Real* exac, amrex::Real* alph, amrex::Real* beta, amrex::Real* rhs,
+		     const int* lo, const int* hi, const amrex::Real* prob_lo, const amrex::Real* prob_hi, 
+		     const amrex::Real* dx, const amrex::Real& a, const amrex::Real& b, 
+		     const amrex::Real& sigma, const amrex::Real& w, int& ibnd);
 }
 #endif
 

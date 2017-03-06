@@ -1,19 +1,20 @@
-#include <Utility.H>
-#include <ParmParse.H>
-#include <PArray.H>
-#include <LO_BCTYPES.H>
-#include <MultiFab.H>
-#include <Geometry.H>
-#include <MultiFabUtil.H>
+#include <AMReX_Utility.H>
+#include <AMReX_ParmParse.H>
+#include <AMReX_LO_BCTYPES.H>
+#include <AMReX_MultiFab.H>
+#include <AMReX_Geometry.H>
+#include <AMReX_MultiFabUtil.H>
 
-#include <FMultiGrid.H>
+#include <AMReX_FMultiGrid.H>
 
-void solve_with_F90(PArray<MultiFab>& soln, Real a, Real b, 
-		    const PArray<MultiFab>& alph, 
-		    const PArray<MultiFab>& beta, 
-		    PArray<MultiFab>& rhs, 
-		    const std::vector<Geometry>& geom, 
-		    const std::vector<BoxArray>& grids,
+using namespace amrex;
+
+void solve_with_F90(const Array<MultiFab*>& soln, Real a, Real b, 
+		    const Array<MultiFab*>& alph, 
+		    const Array<MultiFab*>& beta, 
+		    const Array<MultiFab*>& rhs, 
+		    const Array<Geometry>& geom, 
+		    const Array<BoxArray>& grids,
 		    int ibnd)
 {
   const Real run_strt = ParallelDescriptor::second();
@@ -56,31 +57,34 @@ void solve_with_F90(PArray<MultiFab>& soln, Real a, Real b,
     }
   }
    
-  Array< PArray<MultiFab> > bcoeffs(nlevel);
+  Array< Array<std::unique_ptr<MultiFab> > > bcoeffs(nlevel);
   for (int ilev=0; ilev<nlevel; ilev++ ) {
 
-    bcoeffs[ilev].resize(BL_SPACEDIM, PArrayManage);
+    const DistributionMapping& dm = soln[ilev]->DistributionMap();
+
+    bcoeffs[ilev].resize(BL_SPACEDIM);
 
     for (int n = 0; n < BL_SPACEDIM ; n++) 
     {
       BoxArray edge_boxes(grids[ilev]);
       edge_boxes.surroundingNodes(n);
       
-      bcoeffs[ilev].set(n, new MultiFab(edge_boxes,1,0,Fab_allocate));
+      bcoeffs[ilev][n].reset(new MultiFab(edge_boxes,dm,1,0));
     }
 
-    BoxLib::average_cellcenter_to_face(bcoeffs[ilev], beta[ilev], geom[ilev]);
+    amrex::average_cellcenter_to_face(amrex::GetArrOfPtrs(bcoeffs[ilev]),
+				       *beta[ilev], geom[ilev]);
   }
 
   if (composite_solve) 
   {
       FMultiGrid fmg(geom);
       
-      fmg.set_bc(mg_bc, soln[0]);
+      fmg.set_bc(mg_bc, *soln[0]);
       fmg.set_maxorder(maxorder);
 
       fmg.set_scalars(a, b);
-      fmg.set_coefficients(const_cast<PArray<MultiFab>&>(alph), bcoeffs);
+      fmg.set_coefficients(alph, amrex::GetArrOfArrOfPtrs(bcoeffs));
 
       fmg.solve(soln, rhs, tolerance_rel, tolerance_abs); 
   }
@@ -92,16 +96,16 @@ void solve_with_F90(PArray<MultiFab>& soln, Real a, Real b,
 	  FMultiGrid fmg(geom[ilev], ilev, crse_ratio);
 
 	  if (ilev == 0) {
-	      fmg.set_bc(mg_bc, soln[0]);
+	      fmg.set_bc(mg_bc, *soln[0]);
 	  } else {
-	      fmg.set_bc(mg_bc, soln[ilev-1], soln[ilev]);
+	      fmg.set_bc(mg_bc, *soln[ilev-1], *soln[ilev]);
 	  }
 	  fmg.set_maxorder(maxorder);
 
 	  fmg.set_scalars(a, b);
-	  fmg.set_coefficients(const_cast<MultiFab&>(alph[ilev]), bcoeffs[ilev]);
+	  fmg.set_coefficients(*alph[ilev], amrex::GetArrOfPtrs(bcoeffs[ilev]));
 	  
-	  fmg.solve(soln[ilev], rhs[ilev], tolerance_rel, tolerance_abs);
+	  fmg.solve(*soln[ilev], *rhs[ilev], tolerance_rel, tolerance_abs);
       }
   }
 

@@ -6,10 +6,10 @@
 #include <unistd.h>
 
 #include <ComputeAmrDataStat.H>
-#include <ParmParse.H>
-#include <ParallelDescriptor.H>
-#include <DataServices.H>
-#include <Utility.H>
+#include <AMReX_ParmParse.H>
+#include <AMReX_ParallelDescriptor.H>
+#include <AMReX_DataServices.H>
+#include <AMReX_Utility.H>
 
 #ifndef NDEBUG
 #include <TV_TempWrite.H>
@@ -42,7 +42,7 @@ main (int   argc,
     if (argc == 1)
       PrintUsage(argv[0]);
     
-    BoxLib::Initialize(argc,argv);
+    amrex::Initialize(argc,argv);
     ParmParse pp;
 
     if (pp.contains("help"))
@@ -63,21 +63,21 @@ main (int   argc,
     std::string tmpFile;
     pp.query("infile", iFile);
     if (iFile.empty())
-      BoxLib::Abort("You must specify `infile'");
+      amrex::Abort("You must specify `infile'");
     else
       tmpFile = iFile;
 
     int analysis_type = 0;
     pp.query("analysis", analysis_type);
     if (analysis_type == 0)
-      BoxLib::Abort("Analysis type is not specified.");
+      amrex::Abort("Analysis type is not specified.");
 
     if (analysis_type == 4) {
 
       int nstart = 10;
       pp.query("nstart",nstart);
 
-      tmpFile = BoxLib::Concatenate(iFile, nstart, 5);
+      tmpFile = amrex::Concatenate(iFile, nstart, 5);
     }
 
     int iFile_type = 0;
@@ -120,7 +120,7 @@ main (int   argc,
 	  }
 	  if (var_match[ic] == 0) {
 	    std::cout << "Component " << cNames[ic] << " is not defined!\n";
-	    BoxLib::Abort("Please check that the specified component is defined.");
+	    amrex::Abort("Please check that the specified component is defined.");
 	  }
 	}
       }
@@ -176,7 +176,7 @@ main (int   argc,
       bas.resize(Nlev);
       for (int iLevel=0; (iLevel<=finestLevel)&&(bas.size()==Nlev); ++iLevel)
       {
-        BoxArray baThisLev = BoxLib::intersect(amrData.boxArray(iLevel),levelDomain);
+        BoxArray baThisLev = amrex::intersect(amrData.boxArray(iLevel),levelDomain);
 
         if (baThisLev.size() > 0) {
 	  bas.set(iLevel,baThisLev);
@@ -255,7 +255,7 @@ main (int   argc,
 
 	for (int i = nstart; i<nmax;i++) {
 
-          tmpFile = BoxLib::Concatenate(iFile, i*nfac, 5);
+          tmpFile = amrex::Concatenate(iFile, i*nfac, 5);
 
 	  DataServices tmpdataServices(tmpFile, fileType);
 	  if (!tmpdataServices.AmrDataOk())
@@ -277,7 +277,7 @@ main (int   argc,
 	
 	int nvarg = pp.countname("varg");
 	if (nvarg == 0)
-	  BoxLib::Abort("No variogram is specified");
+	  amrex::Abort("No variogram is specified");
 
 	Array< Array<int> > ivoption(nvarg);
 	for (int i=0; i<nvarg; i++) {
@@ -305,7 +305,7 @@ main (int   argc,
 	std::string crsefile;
 	pp.query("crsefile",crsefile);
 	if (crsefile.empty()) 
-	  BoxLib::Abort("You must specify `crsefile'");
+	  amrex::Abort("You must specify `crsefile'");
 
 	std::string oFile = iFile + "_diffine";
 	pp.query("outfile",oFile);
@@ -318,8 +318,8 @@ main (int   argc,
 	
 	// The I/O processor makes the directory if it doesn't already exist.
 	if (ParallelDescriptor::IOProcessor())
-	  if (!BoxLib::UtilCreateDirectory(oFile, 0755))
-	  BoxLib::CreateDirectoryFailed(oFile);
+	  if (!amrex::UtilCreateDirectory(oFile, 0755))
+	  amrex::CreateDirectoryFailed(oFile);
 	ParallelDescriptor::Barrier();
 	std::string mFile = iFile + "_dif";
 	TakeDifferenceFine(amrData,amrDataCrse,cNames,barr,mFile);
@@ -332,7 +332,7 @@ main (int   argc,
 	std::string crsefile;
 	pp.query("crsefile",crsefile);
 	if (crsefile.empty()) 
-	  BoxLib::Abort("You must specify `crsefile'");
+	  amrex::Abort("You must specify `crsefile'");
 	
 	std::string oFile;
 	pp.query("outfile",oFile);
@@ -345,8 +345,8 @@ main (int   argc,
 	
 	// The I/O processor makes the directory if it doesn't already exist.
 	if (ParallelDescriptor::IOProcessor())
-	  if (!BoxLib::UtilCreateDirectory(oFile, 0755))
-	    BoxLib::CreateDirectoryFailed(oFile);
+	  if (!amrex::UtilCreateDirectory(oFile, 0755))
+	    amrex::CreateDirectoryFailed(oFile);
 	ParallelDescriptor::Barrier();
 	std::string mFile = iFile + "_dif";
 	TakeDifferenceCrse(amrData,amrDataCrse,cNames,barr,mFile);
@@ -358,7 +358,7 @@ main (int   argc,
 	std::string crsefile;
 	pp.query("crsefile",crsefile);
 	if (crsefile.empty()) 
-	  BoxLib::Abort("You must specify `crsefile'");
+	  amrex::Abort("You must specify `crsefile'");
 
 	std::string oFile;
 	pp.query("outfile",oFile);
@@ -371,8 +371,8 @@ main (int   argc,
 
 	// The I/O processor makes the directory if it doesn't already exist.
 	if (ParallelDescriptor::IOProcessor())
-	  if (!BoxLib::UtilCreateDirectory(oFile, 0755))
-	    BoxLib::CreateDirectoryFailed(oFile);
+	  if (!amrex::UtilCreateDirectory(oFile, 0755))
+	    amrex::CreateDirectoryFailed(oFile);
 	ParallelDescriptor::Barrier();
 	std::string mFile = iFile + "_dif";
 	TakeDifferenceSum(amrData,amrDataCrse,cNames,barr,mFile);
@@ -391,7 +391,7 @@ main (int   argc,
 	
 	int nvarg = pp.countname("varg");
 	if (nvarg == 0)
-	  BoxLib::Abort("No variogram is specified");
+	  amrex::Abort("No variogram is specified");
 
 	Array< Array<int> > ivoption(nvarg);
 	for (int i=0; i<nvarg; i++) {
@@ -440,12 +440,12 @@ main (int   argc,
 	if (int nx=pp.countval("rratio"))
 	  pp.getarr("rratio",rratio,0,BL_SPACEDIM);
 	for (int i=0;i<BL_SPACEDIM; i++)
-	  if (rratio[i] == 0) BoxLib::Abort("rratio must be nonzero.");
+	  if (rratio[i] == 0) amrex::Abort("rratio must be nonzero.");
 
 	// The I/O processor makes the directory if it doesn't already exist.
 	if (ParallelDescriptor::IOProcessor())
-	  if (!BoxLib::UtilCreateDirectory(oFile, 0755))
-	    BoxLib::CreateDirectoryFailed(oFile);
+	  if (!amrex::UtilCreateDirectory(oFile, 0755))
+	    amrex::CreateDirectoryFailed(oFile);
 	ParallelDescriptor::Barrier();
 	std::string mFile = iFile + "_dif";
 	TakeDifferenceMean(amrData,cNames,barr,rratio,mFile);
@@ -467,7 +467,7 @@ main (int   argc,
 	
 	int nvarg = pp.countname("varg");
 	if (nvarg == 0)
-	  BoxLib::Abort("No variogram is specified");
+	  amrex::Abort("No variogram is specified");
 
 	Array< Array<int> > ivoption(nvarg);
 	for (int i=0; i<nvarg; i++) {
@@ -494,7 +494,7 @@ main (int   argc,
       }     
     }
 
-    BoxLib::Finalize();
+    amrex::Finalize();
     std::cout << "Done ...\n";
 
 }

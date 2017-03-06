@@ -1,20 +1,26 @@
 #include <iostream>
+#include <memory>
 
-#include <BoxLib.H>
-#include <MultiFab.H>
-#include <MultiFabUtil.H>
-#include <BLFort.H>
-#include <MacBndry.H>
-#include <MGT_Solver.H>
+#include <AMReX.H>
+#include <AMReX_MultiFab.H>
+#include <AMReX_MultiFabUtil.H>
+#include <AMReX_BLFort.H>
+#include <AMReX_MacBndry.H>
+#include <AMReX_MGT_Solver.H>
 #include <mg_cpp_f.h>
-#include <stencil_types.H>
-#include <MultiFabUtil.H>
+#include <AMReX_stencil_types.H>
+#include <AMReX_MultiFabUtil.H>
 
-#include "Particles.H"
+#include "AMReX_Particles.H"
+
+using namespace amrex;
 
 // declare routines below
-void solve_for_accel(PArray<MultiFab>& rhs, PArray<MultiFab>& phi, PArray<MultiFab>& grad_phi,
-                     const Array<Geometry>& geom, int base_level, int finest_level, Real offset);
+void solve_for_accel(const Array<MultiFab*>& rhs,
+		     const Array<MultiFab*>& phi,
+		     const Array<MultiFab*>& grad_phi,
+                     const Array<Geometry>& geom,
+		     int base_level, int finest_level, Real offset);
 
 int single_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int nppc, bool verbose) 
 {
@@ -69,26 +75,20 @@ int single_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int nppc,
     // ********************************************************************************************
 
     // build a multifab for the rhs on the box array with 
-    PArray<MultiFab> rhs; 
-    PArray<MultiFab> phi;
-    PArray<MultiFab> grad_phi;
+    Array<std::unique_ptr<MultiFab> > rhs(nlevs);
+    Array<std::unique_ptr<MultiFab> > phi(nlevs);
+    Array<std::unique_ptr<MultiFab> > grad_phi(nlevs);
     Array<DistributionMapping> dmap(nlevs);
 
-    rhs.resize(nlevs,PArrayManage);
-    phi.resize(nlevs,PArrayManage);
-    grad_phi.resize(nlevs,PArrayManage);
-
     int lev = 0;
+    dmap[lev] = DistributionMapping{ba[lev]};
+    rhs     [lev].reset(new MultiFab(ba[lev],dmap[lev],1          ,0));
+    phi     [lev].reset(new MultiFab(ba[lev],dmap[lev],1          ,1));
+    grad_phi[lev].reset(new MultiFab(ba[lev],dmap[lev],BL_SPACEDIM,1));
 
-    rhs.set     (lev,new MultiFab(ba[0],1          ,0));
-    phi.set     (lev,new MultiFab(ba[0],1          ,1));
-    grad_phi.set(lev,new MultiFab(ba[0],BL_SPACEDIM,1));
-
-    rhs[lev].setVal(0.0);
-    phi[lev].setVal(0.0);
-    grad_phi[lev].setVal(0.0);
-
-    dmap[lev] = rhs[lev].DistributionMap();
+    rhs     [lev]->setVal(0.0);
+    phi     [lev]->setVal(0.0);
+    grad_phi[lev]->setVal(0.0);
 
     // Define a new particle container to hold my particles.
     // This holds a charge as well as three velocity components, three acceleration components  and three position components.
@@ -99,7 +99,7 @@ int single_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int nppc,
     Array<int> rr(nlevs-1);
     
     // Build a new particle container to hold my particles.
-    MyParticleContainer* MyPC = new MyParticleContainer(geom,dmap,ba,rr);
+    std::unique_ptr<MyParticleContainer> MyPC(new MyParticleContainer(geom,dmap,ba,rr));
 
     MyPC->SetVerbose(0);
 
@@ -145,18 +145,17 @@ int single_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int nppc,
     int base_level   = 0;
     int finest_level = 0;
 
-    PArray<MultiFab> PartMF;
-    PartMF.resize(nlevs,PArrayManage);
-    PartMF.set(0,new MultiFab(ba[0],1,1));
-    PartMF[0].setVal(0.0);
+    Array<std::unique_ptr<MultiFab> > PartMF(1);
+    PartMF[0].reset(new MultiFab(ba[0],dmap[0],1,1));
+    PartMF[0]->setVal(0.0);
 
     strt_assd = ParallelDescriptor::second();
 
-    MyPC->AssignDensitySingleLevel(0,PartMF[0],0,1,0); 
+    MyPC->AssignDensitySingleLevel(0,*PartMF[0],0,1,0); 
 
     end_assd = ParallelDescriptor::second() - strt_assd;
 
-    MultiFab::Add(rhs[0], PartMF[0], 0, 0, 1, 0);
+    MultiFab::Add(*rhs[0], *PartMF[0], 0, 0, 1, 0);
  
     // **************************************************************************
     // Define this to be solve at level 0 only
@@ -168,7 +167,10 @@ int single_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int nppc,
     strt_solve = ParallelDescriptor::second();
 
     // Use multigrid to solve Lap(phi) = rhs with periodic boundary conditions (set above)
-    solve_for_accel(rhs,phi,grad_phi,geom,base_level,finest_level,offset);
+    solve_for_accel(amrex::GetArrOfPtrs(rhs),
+		    amrex::GetArrOfPtrs(phi),
+		    amrex::GetArrOfPtrs(grad_phi),
+		    geom,base_level,finest_level,offset);
 
     end_solve = ParallelDescriptor::second() - strt_solve;
 
@@ -178,14 +180,12 @@ int single_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int nppc,
 
     strt_mK = ParallelDescriptor::second();
 
-    MyPC->moveKick(grad_phi[0],nlevs-1,dummy_dt,1.0,1.0,accel_comp);
+    MyPC->moveKick(*grad_phi[0],nlevs-1,dummy_dt,1.0,1.0,accel_comp);
 
     end_mK = ParallelDescriptor::second() - strt_mK;
 
     // Write out the positions, masses and accelerations of each particle.
     // if (verbose) MyPC->WriteAsciiFile("Particles_after_level0_solve");
-
-    delete MyPC;
 
     ParallelDescriptor::ReduceRealMax(end_init ,IOProc);
     ParallelDescriptor::ReduceRealMax(end_assd,IOProc);

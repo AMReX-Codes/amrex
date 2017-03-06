@@ -11,15 +11,17 @@
 #include <sstream>
 #include <unistd.h>
 
-#include <Geometry.H>
-#include <ParallelDescriptor.H>
-#include <ParmParse.H>
-#include <RealBox.H>
-#include <Utility.H>
-#include <ParmParse.H>
+#include <AMReX_Geometry.H>
+#include <AMReX_ParallelDescriptor.H>
+#include <AMReX_ParmParse.H>
+#include <AMReX_RealBox.H>
+#include <AMReX_Utility.H>
+#include <AMReX_ParmParse.H>
 
-#include <BoxLib.H>
+#include <AMReX.H>
 #include <InTransitAnalysis.H>
+
+using namespace amrex;
 
 // In this anonymous namespace we define the workflow which occurs when the
 // sidecars receive a particular (user-defined) signal. You have a lot of
@@ -63,7 +65,7 @@ namespace
     {
       std::ostringstream ss_error_msg;
       ss_error_msg << "Unknown signal sent to sidecars: -----> " << in_signal << " <-----" << std::endl;
-      BoxLib::Error(const_cast<const char*>(ss_error_msg.str().c_str()));
+      amrex::Error(const_cast<const char*>(ss_error_msg.str().c_str()));
     }
 
     return out_signal;
@@ -83,8 +85,8 @@ namespace
   }
 
   static void RunAtStatic () {
-    BoxLib::ExecOnInitialize(STATIC_INIT);
-    BoxLib::ExecOnFinalize(STATIC_CLEAN);
+    amrex::ExecOnInitialize(STATIC_INIT);
+    amrex::ExecOnFinalize(STATIC_CLEAN);
   };
 #endif
 }
@@ -108,7 +110,7 @@ int main(int argc, char *argv[]) {
     //ParallelDescriptor::SetNProcsSidecar(nSidecarProcs);
 #endif
 
-    BoxLib::Initialize(argc,argv);
+    amrex::Initialize(argc,argv);
 
     int myProcAll(ParallelDescriptor::MyProcAll());
 
@@ -119,8 +121,8 @@ std::cout << myProcAll << "::_here 0." << std::endl;
 #endif
 
 std::cout << myProcAll << "::_here 1." << std::endl;
-    // The sidecar group has already called BoxLib::Finalize() by the time we
-    // are out of BoxLib::Initialize(), so make them quit immediately.
+    // The sidecar group has already called amrex::Finalize() by the time we
+    // are out of amrex::Initialize(), so make them quit immediately.
     // Everything below this point is done on the compute group only.
 #ifdef IN_TRANSIT
     if (ParallelDescriptor::InSidecarGroup()) {
@@ -160,7 +162,7 @@ ParallelDescriptor::Barrier();
     comp_DM.define(ba, ParallelDescriptor::NProcsComp());
 
     // Make a MultiFab and populate it with a bunch of random numbers.
-    MultiFab mf(ba, nComp, nGhost, comp_DM, Fab_allocate);
+    MultiFab mf(ba, comp_DM, nComp, nGhost);
     for(int i(0); i < mf.nComp(); ++i) {
       mf.setVal(rand()%100, i, 1);
     }
@@ -216,6 +218,6 @@ ParallelDescriptor::Barrier();
 #endif
 
     std::cout << "_calling Finalize()" << std::endl;
-    BoxLib::Finalize();
+    amrex::Finalize();
     return 0;
 }

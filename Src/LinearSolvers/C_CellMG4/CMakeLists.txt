@@ -14,14 +14,14 @@ project(CMGLIB)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(${CBOXLIB_INCLUDE_DIRS})
 
-set(CXX_source_files ABecLaplacian.cpp CGSolver.cpp Laplacian.cpp LinOp.cpp MultiGrid.cpp)
-set(FPP_source_files ABec_${BL_SPACEDIM}D.F ABec_UTIL.F LO_${BL_SPACEDIM}D.F LP_${BL_SPACEDIM}D.F MG_${BL_SPACEDIM}D.F)
+set(CXX_source_files AMReX_ABecLaplacian.cpp AMReX_CGSolver.cpp AMReX_Laplacian.cpp AMReX_LinOp.cpp AMReX_MultiGrid.cpp)
+set(FPP_source_files AMReX_ABec_${BL_SPACEDIM}D.F AMReX_ABec_UTIL.F AMReX_LO_${BL_SPACEDIM}D.F AMReX_LP_${BL_SPACEDIM}D.F AMReX_MG_${BL_SPACEDIM}D.F)
 set(F77_source_files)
 set(F90_source_files)
 
-set(CXX_header_files ABecLaplacian.H CGSolver.H Laplacian.H LinOp.H MultiGrid.H)
-set(FPP_header_files ABec_F.H LO_F.H LP_F.H MG_F.H)
-set(F77_header_files lo_bctypes.fi)
+set(CXX_header_files AMReX_ABecLaplacian.H AMReX_CGSolver.H AMReX_Laplacian.H AMReX_LinOp.H AMReX_MultiGrid.H)
+set(FPP_header_files AMReX_ABec_F.H AMReX_LO_F.H AMReX_LP_F.H AMReX_MG_F.H)
+set(F77_header_files AMReX_lo_bctypes.fi)
 set(F90_header_files)
 
 

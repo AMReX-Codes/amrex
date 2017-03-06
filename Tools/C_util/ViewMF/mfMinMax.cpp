@@ -1,8 +1,8 @@
-#include <MultiFab.H>
-#include <ParmParse.H>
-#include <Utility.H>
-#include <ParallelDescriptor.H>
-#include <VisMF.H>
+#include <AMReX_MultiFab.H>
+#include <AMReX_ParmParse.H>
+#include <AMReX_Utility.H>
+#include <AMReX_ParallelDescriptor.H>
+#include <AMReX_VisMF.H>
 
 #include <new>
 #include <iostream>
@@ -11,9 +11,7 @@ using std::cout;
 using std::endl;
 using std::cerr;
 
-#ifndef WIN32
 using std::set_new_handler;
-#endif
 
 static
 void 
@@ -31,7 +29,7 @@ int
 main (int   argc,
       char* argv[])
 {
-    BoxLib::Initialize(argc,argv);
+    amrex::Initialize(argc,argv);
 //
 //  Parse the command line
 //
@@ -76,5 +74,5 @@ main (int   argc,
             cout << "Comp: " << comps[n] << ", (min,max): " << mf.min(comps[n]) << ", " << mf.max(comps[n])  << endl;
     }
     
-    BoxLib::Finalize();
+    amrex::Finalize();
 }

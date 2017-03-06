@@ -1,6 +1,6 @@
-# BOXLIB_HOME defines the directory in which we will find all the BoxLib code -- if this is already defined
+# AMREX_HOME defines the directory in which we will find all the AMReX code -- if this is already defined
 #    then the line below will be ignored
-BOXLIB_HOME = ../..
+AMREX_HOME = ../..
 
 # If you try to build with USE_MPI = TRUE and the make system can not find your mpi files, it may be because
 #    MPI_HOME is not already defined on your machine.  In that case, you may need to set
@@ -20,9 +20,7 @@ PROFILE      = FALSE
 COMM_PROFILE = FALSE
 USE_DUMPI    = FALSE
 COMP         = gcc
-FCOMP        = gfortran
 #COMP         = Intel
-#FCOMP        = Intel
 DIM	     = 3
 PRECISION    = DOUBLE
 EBASE        = main
@@ -31,16 +29,16 @@ EBASE        = main
 CPPFLAGS += -DCG_USE_OLD_CONVERGENCE_CRITERIA
 
 
-include $(BOXLIB_HOME)/Tools/C_mk/Make.defs
+include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
 CEXE_sources += $(EBASE).cpp
 
 include Make.package
-include $(BOXLIB_HOME)/Src/C_BoundaryLib/Make.package
-include $(BOXLIB_HOME)/Src/LinearSolvers/C_CellMG/Make.package
-include $(BOXLIB_HOME)/Src/C_BaseLib/Make.package
+include $(AMREX_HOME)/Src/Boundary/Make.package
+include $(AMREX_HOME)/Src/LinearSolvers/C_CellMG/Make.package
+include $(AMREX_HOME)/Src/Base/Make.package
 
 all: $(executable)
 	@echo SUCCESS
 
-include $(BOXLIB_HOME)/Tools/C_mk/Make.rules
+include $(AMREX_HOME)/Tools/GNUMake/Make.rules

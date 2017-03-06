@@ -1,15 +1,17 @@
 #include <fstream>
 #include <iomanip>
 
-#include <Utility.H>
-#include <IntVect.H>
-#include <Geometry.H>
-#include <ParmParse.H>
-#include <ParallelDescriptor.H>
-#include <VisMF.H>
+#include <AMReX_Utility.H>
+#include <AMReX_IntVect.H>
+#include <AMReX_Geometry.H>
+#include <AMReX_ParmParse.H>
+#include <AMReX_ParallelDescriptor.H>
+#include <AMReX_VisMF.H>
 #include <writePlotFile.H>
 
-#include <ArrayLim.H>
+#include <AMReX_ArrayLim.H>
+
+using namespace amrex;
 
 extern "C"
 {
@@ -52,7 +54,7 @@ Real compute_dt(Real dx)
 int
 main (int argc, char* argv[])
 {
-  BoxLib::Initialize(argc,argv);
+  amrex::Initialize(argc,argv);
 
   // What time is it now?  We'll use this to compute total run time.
   Real strt_time = ParallelDescriptor::second();
@@ -133,10 +135,12 @@ main (int argc, char* argv[])
   if (Nghost > max_grid_size)
     std::cout <<  "NGHOST < MAX_GRID_SIZE --  grids are too small! " << std::endl;
 
+  DistributionMapping dm{bs};
+
   // Allocate space for the old_data and new_data -- we define old_data and new_data as
   //   pointers to the MultiFabs
-  MultiFab* old_data = new MultiFab(bs, Ncomp, Nghost);
-  MultiFab* new_data = new MultiFab(bs, Ncomp, Nghost);
+  MultiFab* old_data = new MultiFab(bs, dm, Ncomp, Nghost);
+  MultiFab* new_data = new MultiFab(bs, dm, Ncomp, Nghost);
 
   // Initialize both to zero (just because)
   old_data->setVal(0.0);
@@ -160,7 +164,7 @@ main (int argc, char* argv[])
   if (plot_int > 0)
   {
      int n = 0;
-     const std::string& pltfile = BoxLib::Concatenate("plt",n,5);
+     const std::string& pltfile = amrex::Concatenate("plt",n,5);
      writePlotFile(pltfile, *new_data, geom);
   }
 
@@ -179,7 +183,7 @@ main (int argc, char* argv[])
      // Write a plotfile of the current data (plot_int was defined in the inputs file)
      if (plot_int > 0 && n%plot_int == 0)
      {
-        const std::string& pltfile = BoxLib::Concatenate("plt",n,5);
+        const std::string& pltfile = amrex::Concatenate("plt",n,5);
         writePlotFile(pltfile, *new_data, geom);
      }
   }
@@ -195,6 +199,6 @@ main (int argc, char* argv[])
      std::cout << "Run time = " << stop_time << std::endl;
   
   // Say goodbye to MPI, etc...
-  BoxLib::Finalize();
+  amrex::Finalize();
 
 }

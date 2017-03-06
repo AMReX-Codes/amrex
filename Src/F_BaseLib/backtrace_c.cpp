@@ -12,15 +12,15 @@
 #include <execinfo.h>
 #endif
 
-#include <signal.h>
-#include <fenv.h>
+#include <csignal>
+#include <cfenv>
 
 #ifdef _OPENMP
 #include <omp.h>
 #endif
 
 #ifndef FORTRAN_BOXLIB
-#include <BLBackTrace.H>
+#include <AMReX_BLBackTrace.H>
 #endif
 
 extern "C" {
@@ -91,6 +91,7 @@ namespace
 #endif
 }
 
+
 extern "C"
 {
 #ifdef FORTRAN_BOXLIB
@@ -131,7 +132,7 @@ extern "C"
 #else
     void backtrace_handler (int s)
     { 
-	BLBackTrace::handler(s); 
+	amrex::BLBackTrace::handler(s); 
     }
 #endif
 

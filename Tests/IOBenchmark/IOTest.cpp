@@ -1,16 +1,16 @@
 // -------------------------------------------------------------
 // IOTest.cpp
 // -------------------------------------------------------------
-#include <Array.H>
-#include <IntVect.H>
-#include <Box.H>
-#include <BoxArray.H>
-#include <FArrayBox.H>
-#include <MultiFab.H>
-#include <VisMF.H>
-#include <ParallelDescriptor.H>
-#include <Utility.H>
-#include <NFiles.H>
+#include <AMReX_Array.H>
+#include <AMReX_IntVect.H>
+#include <AMReX_Box.H>
+#include <AMReX_BoxArray.H>
+#include <AMReX_FArrayBox.H>
+#include <AMReX_MultiFab.H>
+#include <AMReX_VisMF.H>
+#include <AMReX_ParallelDescriptor.H>
+#include <AMReX_Utility.H>
+#include <AMReX_NFiles.H>
 
 #include <iostream>
 #include <sstream>
@@ -30,6 +30,8 @@ using std::endl;
 using std::ends;
 using std::ofstream;
 using std::streamoff;
+
+using namespace amrex;
 
 const int XDIR(0);
 const int YDIR(1);
@@ -60,14 +62,14 @@ void DirectoryTests() {
       std::stringstream dirname;
       dirname << "dir" << i;
       if(ParallelDescriptor::IOProcessor()) {
-        if( ! BoxLib::UtilCreateDirectory(dirname.str(), 0755, verboseDir)) {
-          BoxLib::CreateDirectoryFailed(dirname.str());
+        if( ! amrex::UtilCreateDirectory(dirname.str(), 0755, verboseDir)) {
+          amrex::CreateDirectoryFailed(dirname.str());
         }
         for(int level(0); level < nlevels; ++level) {
           std::stringstream dirname;
           dirname << "dir" << i << "/Level_" << level;
-          if( ! BoxLib::UtilCreateDirectory(dirname.str(), 0755, verboseDir)) {
-            BoxLib::CreateDirectoryFailed(dirname.str());
+          if( ! amrex::UtilCreateDirectory(dirname.str(), 0755, verboseDir)) {
+            amrex::CreateDirectoryFailed(dirname.str());
           }
         }
       }
@@ -136,20 +138,20 @@ void FileTests() {
 
   std::string dirname("/home/vince/Development/BoxLib/Tests/IOBenchmark/a/b/c/d");
   if(ParallelDescriptor::IOProcessor()) {
-    if( ! BoxLib::UtilCreateDirectory(dirname, 0755, verboseDir)) {
-      BoxLib::CreateDirectoryFailed(dirname);
+    if( ! amrex::UtilCreateDirectory(dirname, 0755, verboseDir)) {
+      amrex::CreateDirectoryFailed(dirname);
     }
   }
   std::string rdirname("relative/e/f/g");
   if(ParallelDescriptor::IOProcessor()) {
-    if( ! BoxLib::UtilCreateDirectory(rdirname, 0755, verboseDir)) {
-      BoxLib::CreateDirectoryFailed(rdirname);
+    if( ! amrex::UtilCreateDirectory(rdirname, 0755, verboseDir)) {
+      amrex::CreateDirectoryFailed(rdirname);
     }
   }
   std::string nsdirname("noslash");
   if(ParallelDescriptor::IOProcessor()) {
-    if( ! BoxLib::UtilCreateDirectory(nsdirname, 0755, verboseDir)) {
-      BoxLib::CreateDirectoryFailed(nsdirname);
+    if( ! amrex::UtilCreateDirectory(nsdirname, 0755, verboseDir)) {
+      amrex::CreateDirectoryFailed(nsdirname);
     }
   }
 
@@ -228,26 +230,27 @@ void TestWriteNFiles(int nfiles, int maxgrid, int ncomps, int nboxes,
       mfName = "TestMFNoFabHeaderFAMinMax";
     break;
     default:
-      BoxLib::Abort("**** Error in TestWriteNFiles:  bad version.");
+      amrex::Abort("**** Error in TestWriteNFiles:  bad version.");
   }
 
   // ---- make the MultiFabs
   Array<std::string> mfNames(nMultiFabs);
   Array<MultiFab *> multifabs(nMultiFabs);
+  DistributionMapping dmap{bArray};
   for(int nmf(0); nmf < nMultiFabs; ++nmf) {
     std::stringstream suffix;
     suffix << "_" << nmf;
     mfNames[nmf] = mfName + suffix.str();
     VisMF::RemoveFiles(mfNames[nmf], false);  // ---- not verbose
 
-    multifabs[nmf] = new MultiFab(bArray, ncomps, 0);
+    multifabs[nmf] = new MultiFab(bArray, dmap, ncomps, 0);
 
     for(MFIter mfiset(*(multifabs[nmf])); mfiset.isValid(); ++mfiset) {
       for(int invar(0); invar < ncomps; ++invar) {
         if(raninit) {
           Real *dp = (*multifabs[nmf])[mfiset].dataPtr(invar);
 	  for(int i(0); i < (*multifabs[nmf])[mfiset].box().numPts(); ++i) {
-	    dp[i] = BoxLib::Random() + (1.0 + static_cast<Real> (invar));
+	    dp[i] = amrex::Random() + (1.0 + static_cast<Real> (invar));
 	  }
         } else {
           (*multifabs[nmf])[mfiset].setVal((100.0 * mfiset.index()) + invar +
@@ -352,8 +355,14 @@ void TestReadMF(const std::string &mfName, bool useSyncReads,
     bool bExitOnError(false);  // ---- dont exit if this file does not exist
     ParallelDescriptor::ReadAndBcastFile(faHName, faHeaders[nmf], bExitOnError);
   }
-  for(int nmf(0); nmf < nMultiFabs; ++nmf) {
-    VisMF::Read(*multifabs[nmf], mfNames[nmf], faHeaders[nmf].dataPtr(), nmf); 
+  VisMF::Read(*multifabs[0], mfNames[0], faHeaders[0].dataPtr(), 0); 
+  const BoxArray& ba = multifabs[0]->boxArray();
+  const DistributionMapping& dm = multifabs[0]->DistributionMap();
+  const int ncomps = multifabs[0]->nComp();
+  const int ng = multifabs[0]->nGrow();
+  for(int nmf(1); nmf < nMultiFabs; ++nmf) {
+      multifabs[nmf]->define(ba,dm,ncomps,ng);
+      VisMF::Read(*multifabs[nmf], mfNames[nmf], faHeaders[nmf].dataPtr(), nmf); 
   }
 
   double wallTime(ParallelDescriptor::second() - wallTimeStart);
@@ -465,9 +474,9 @@ void DSSNFileTests(int noutfiles, const std::string &filePrefixIn,
     if(mySetPosition == 0) {    // ---- write data
       int fileNumber(NFilesIter::FileNumber(nOutFiles, myProc, groupSets));
       std::ofstream csFile;
-      std::string FullName(BoxLib::Concatenate(filePrefix, fileNumber, 5));
+      std::string FullName(amrex::Concatenate(filePrefix, fileNumber, 5));
       csFile.open(FullName.c_str(), std::ios::out | std::ios::trunc | std::ios::binary);
-      if( ! csFile.good()) { BoxLib::FileOpenFailed(FullName); }
+      if( ! csFile.good()) { amrex::FileOpenFailed(FullName); }
       // ----------------------------- write to file here
       csFile.write((const char *) data.dataPtr(), data.size() * sizeof(int));
       // ----------------------------- end write to file here
@@ -549,12 +558,12 @@ void DSSNFileTests(int noutfiles, const std::string &filePrefixIn,
       // ---- wait for signal to start writing
       rmess = ParallelDescriptor::Recv(&fileNumber, 1, MPI_ANY_SOURCE, writeTag);
       coordinatorProc = rmess.pid();
-      std::string FullName(BoxLib::Concatenate(filePrefix, fileNumber, 5));
+      std::string FullName(amrex::Concatenate(filePrefix, fileNumber, 5));
 
       std::ofstream csFile;
       csFile.open(FullName.c_str(), std::ios::out | std::ios::app | std::ios::binary);
       csFile.seekp(0, std::ios::end);   // set to eof
-      if( ! csFile.good()) { BoxLib::FileOpenFailed(FullName); }
+      if( ! csFile.good()) { amrex::FileOpenFailed(FullName); }
       // ----------------------------- write to file here
       csFile.write((const char *) data.dataPtr(), data.size() * sizeof(int));
       // ----------------------------- end write to file here

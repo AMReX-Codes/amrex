@@ -9,55 +9,55 @@
 // through a few driver functions which scale variables.
 //==========================================================================
 
-#include <ABecLaplacian.H>
-#include <BndryData.H>
-#include <AmrCore.H>
+#include <AMReX_ABecLaplacian.H>
+#include <AMReX_BndryData.H>
+#include <AMReX_AmrCore.H>
 
 class MacOperator
     :
-    public ABecLaplacian
+    public amrex::ABecLaplacian
 {
 protected:
 
-    AmrCore*      parent;
+    amrex::AmrCore*      parent;
 public:
 
-    MacOperator (AmrCore*             Parent,
-                 const BndryData& mgb,
-                 const Real*      _h);
+    MacOperator (amrex::AmrCore*             Parent,
+                 const amrex::BndryData& mgb,
+                 const amrex::Real*      _h);
 
     virtual ~MacOperator ();
     //
     // Define the gradient coeficients used by the multigrid object.
     //
-    void setCoefficients (MultiFab*   area,
-                          MultiFab&   rho,
-                          int         rho_comp,
-                          const Real* dx);
+    void setCoefficients (amrex::MultiFab*   area,
+                          amrex::MultiFab&   rho,
+                          int                rho_comp,
+                          const amrex::Real* dx);
     //
     // Initialize the rhs for the level solves.
     //
-    void defRHS (MultiFab* area,
-                 MultiFab& vol,
-                 MultiFab& rhs,
-                 MultiFab* vel,
-                 Real      scale);
+    void defRHS (amrex::MultiFab* area,
+                 amrex::MultiFab& vol,
+                 amrex::MultiFab& rhs,
+                 amrex::MultiFab* vel,
+                 amrex::Real      scale);
     //
     // Apply the pressure gradient to the mac velocities.
     //
-    void velUpdate (MultiFab*       vel,
-                    MultiFab&       phi,
-                    const MultiFab& Rho,
-                    int             rho_comp,
-                    const Real*     dx,
-                    Real            scale);
+    void velUpdate (amrex::MultiFab*       vel,
+                    amrex::MultiFab&       phi,
+                    const amrex::MultiFab& Rho,
+                    int                    rho_comp,
+                    const amrex::Real*     dx,
+                    amrex::Real            scale);
     //
     // Scale the rhs for the sync solves.
     //
-    void syncRhs (const MultiFab& Volume,
-                  MultiFab&       Rhs,
-                  Real            rhs_scale,
-                  const Real*     dx);
+    void syncRhs (const amrex::MultiFab& Volume,
+                  amrex::MultiFab&       Rhs,
+                  amrex::Real            rhs_scale,
+                  const amrex::Real*     dx);
 
     static void Initialize ();
     static void Finalize ();

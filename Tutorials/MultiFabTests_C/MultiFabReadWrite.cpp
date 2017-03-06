@@ -3,7 +3,6 @@
 // --------------------------------------------------------------------------
 //  this file writes and reads multifabs.
 // --------------------------------------------------------------------------
-#include <winstd.H>
 
 #include <new>
 #include <iostream>
@@ -13,18 +12,15 @@
 #include <cstring>
 #include <cmath>
 
-#ifndef WIN32
 #include <unistd.h>
-#endif
 
-#include <ParmParse.H>
-#include <ParallelDescriptor.H>
-#include <Utility.H>
-#include <VisMF.H>
+#include <AMReX_ParmParse.H>
+#include <AMReX_ParallelDescriptor.H>
+#include <AMReX_Utility.H>
+#include <AMReX_VisMF.H>
+#include <AMReX_MultiFab.H>
 
-#ifdef BL_USE_SETBUF
-#define pubsetbuf setbuf
-#endif
+using namespace amrex;
 
 const int maxGrid(64);
 const int pdHi(512);
@@ -35,7 +31,7 @@ const int nFiles(64);
 // --------------------------------------------------------------------------
 int main(int argc, char *argv[]) {
 
-    BoxLib::Initialize(argc,argv);    
+    amrex::Initialize(argc,argv);    
 
     BL_PROFILE_VAR("main()", pmain);
     BL_PROFILE_REGION_START("main");
@@ -50,10 +46,12 @@ int main(int argc, char *argv[]) {
       std::cout << "ba = " << ba << std::endl;
     }
 
+    DistributionMapping dmap{ba};
+
     // ---- make a multifab, set interior to the index
     // ---- set the ghost regions to -index
     std::string outfile = "MF_Out";
-    MultiFab mf(ba, nComp, nGhost);
+    MultiFab mf(ba, dmap, nComp, nGhost);
     for(int i(0); i < mf.nComp(); ++i) {
       mf.setVal(static_cast<Real> (i), i, 1);
       mf.setBndry(static_cast<Real> (-i), i, 1);
@@ -65,7 +63,7 @@ int main(int argc, char *argv[]) {
     for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
       const int index(mfi.index());
       FArrayBox &fab = mf[mfi];
-      std::string fname = BoxLib::Concatenate("FAB_", index, 4);
+      std::string fname = amrex::Concatenate("FAB_", index, 4);
       std::ofstream fabs(fname.c_str());
       fab.writeOn(fabs);
       fabs.close();
@@ -83,19 +81,11 @@ int main(int argc, char *argv[]) {
     BL_PROFILE_REGION_STOP("VisMF::Write()");
 
     // ---- make a new distribution map
-    DistributionMapping dmap(mf.DistributionMap());
     if(ParallelDescriptor::IOProcessor()) {
       std::cout << "dmap = " << dmap << std::endl;
       std::cout << "dmap.size() = " << dmap.size() << std::endl;
     }
 
-    // ------------------------------------------------------------------
-    // ----- very important:  here we are copying a procmap,
-    // -----                  but if you just make your own Array<int>
-    // -----                  it must have an extra value at the end
-    // -----                  set to ParallelDescriptor::MyProc()
-    // -----                  see DistributionMapping.H
-    // ------------------------------------------------------------------
     const Array<int> procMap = dmap.ProcessorMap();
     if(ParallelDescriptor::IOProcessor()) {
       std::cout << "procMap.size() = " << procMap.size() << std::endl;
@@ -112,8 +102,7 @@ int main(int argc, char *argv[]) {
     }
 
     // ---- make a new multifab with the new map and copy from mf
-    MultiFab mfNewMap;
-    mfNewMap.define(ba, nComp, nGhost, newDMap, Fab_allocate);
+    MultiFab mfNewMap(ba, newDMap, nComp, nGhost);
     mfNewMap.setVal(-42.0);
 
     // ---- now copy from mf
@@ -132,7 +121,7 @@ int main(int argc, char *argv[]) {
     BL_PROFILE_REGION_STOP("main");
     BL_PROFILE_VAR_STOP(pmain);
 
-    BoxLib::Finalize();
+    amrex::Finalize();
     return 0;
 }
 // --------------------------------------------------------------------------

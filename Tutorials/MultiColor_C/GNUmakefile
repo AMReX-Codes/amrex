@@ -1,4 +1,4 @@
-BOXLIB_HOME ?= ../..
+AMREX_HOME ?= ../..
 
 DEBUG	= TRUE
 
@@ -10,16 +10,16 @@ USE_MPI=TRUE
 
 EBASE = main
 
-include $(BOXLIB_HOME)/Tools/C_mk/Make.defs
+include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
 CEXE_sources += $(EBASE).cpp
 
 include Make.package
-include $(BOXLIB_HOME)/Src/C_BoundaryLib/Make.package
-include $(BOXLIB_HOME)/Src/LinearSolvers/C_CellMG/Make.package
-include $(BOXLIB_HOME)/Src/C_BaseLib/Make.package
+include $(AMREX_HOME)/Src/Boundary/Make.package
+include $(AMREX_HOME)/Src/LinearSolvers/C_CellMG/Make.package
+include $(AMREX_HOME)/Src/Base/Make.package
 
 all: $(executable)
 	@echo SUCCESS
 
-include $(BOXLIB_HOME)/Tools/C_mk/Make.rules
+include $(AMREX_HOME)/Tools/GNUMake/Make.rules

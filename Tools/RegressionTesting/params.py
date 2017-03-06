@@ -41,7 +41,7 @@ def load_params(args):
     cp = configparser.ConfigParser()    # note, need strict=False for Python3
     cp.optionxform = str
 
-    log = test_util.Log()
+    log = test_util.Log(output_file=args.log_file)
 
     log.bold("loading " + args.input_file[0])
 
@@ -64,7 +64,7 @@ def load_params(args):
         if opt in valid_options:
 
             if opt == "sourceTree":
-                if not value in ["C_Src", "F_Src", "BoxLib"]:
+                if not value in ["C_Src", "F_Src", "AMReX", "amrex"]:
                     mysuite.log.fail("ERROR: invalid sourceTree")
                 else:
                     mysuite.sourceTree = value
@@ -82,19 +82,19 @@ def load_params(args):
             mysuite.log.warn("suite parameter {} not valid".format(opt))
 
 
-    # BoxLib -- this will always be defined
-    rdir = mysuite.check_test_dir(safe_get(cp, "BoxLib", "dir"))
+    # AMReX -- this will always be defined
+    rdir = mysuite.check_test_dir(safe_get(cp, "AMReX", "dir"))
 
-    branch = convert_type(safe_get(cp, "BoxLib", "branch"))
-    rhash = convert_type(safe_get(cp, "BoxLib", "hash"))
+    branch = convert_type(safe_get(cp, "AMReX", "branch"))
+    rhash = convert_type(safe_get(cp, "AMReX", "hash"))
 
-    mysuite.repos["BoxLib"] = repo.Repo(mysuite, rdir, "BoxLib",
+    mysuite.repos["AMReX"] = repo.Repo(mysuite, rdir, "AMReX",
                                         branch_wanted=branch, hash_wanted=rhash)
 
 
     # now all the other build and source directories
     other_srcs = [s for s in cp.sections() if s.startswith("extra-")]
-    if not mysuite.sourceTree == "BoxLib": other_srcs.append("source")
+    if not mysuite.sourceTree in ["AMReX", "amrex"]: other_srcs.append("source")
 
     for s in other_srcs:
         if s.startswith("extra-"):
@@ -118,11 +118,11 @@ def load_params(args):
                                      build=build, comp_string=comp_string)
 
 
-    # BoxLib-only tests don't have a sourceDir
-    mysuite.boxlib_dir = mysuite.repos["BoxLib"].dir
+    # AMReX-only tests don't have a sourceDir
+    mysuite.amrex_dir = mysuite.repos["AMReX"].dir
 
-    if mysuite.sourceTree == "BoxLib":
-        mysuite.source_dir = mysuite.repos["BoxLib"].dir
+    if mysuite.sourceTree in ["AMReX", "amrex"]:
+        mysuite.source_dir = mysuite.repos["AMReX"].dir
     else:
         mysuite.source_dir = mysuite.repos["source"].dir
 
@@ -167,10 +167,10 @@ def load_params(args):
                 mysuite.slack_webhook_url = str(f.readline())
                 f.close()
 
-    if (mysuite.sourceTree == "" or mysuite.boxlib_dir == "" or
+    if (mysuite.sourceTree == "" or mysuite.amrex_dir == "" or
         mysuite.source_dir == "" or mysuite.testTopDir == ""):
         mysuite.log.fail("ERROR: required suite-wide directory not specified\n" + \
-                         "(sourceTree, boxLibDir, sourceDir, testTopDir)")
+                         "(sourceTree, amrexDir, sourceDir, testTopDir)")
 
     # Make sure the web dir is valid (or use the default is none specified)
     if mysuite.webTopDir == "":
@@ -188,7 +188,7 @@ def load_params(args):
 
     for sec in cp.sections():
 
-        if sec in ["main", "BoxLib", "source"] or sec.startswith("extra-"): continue
+        if sec in ["main", "AMReX", "source"] or sec.startswith("extra-"): continue
 
         # maximum test name length -- used for HTML formatting
         mysuite.lenTestName = max(mysuite.lenTestName, len(sec))
@@ -273,8 +273,8 @@ def load_params(args):
             mysuite.log.warn("test {} has visualization, needs visVar".format(sec))
             invalid = 1
 
-        if mysuite.sourceTree == "BoxLib" and mytest.testSrcTree == "":
-            mysuite.log.warn("testSrcTree not set for BoxLib test {}".format(sec))
+        if mysuite.sourceTree in ["AMReX", "amrex"] and mytest.testSrcTree == "":
+            mysuite.log.warn("testSrcTree not set for AMReX test {}".format(sec))
             invalid = 1
 
 

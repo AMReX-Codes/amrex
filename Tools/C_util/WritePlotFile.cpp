@@ -3,24 +3,17 @@
 // level 1 data. All this could be cleaner, but this is throw-away code
 // anyway, so why bother?
 
-#include <winstd.H>
 #include <iostream>
 #include <fstream>
 
-#ifndef WIN32
 #include <unistd.h>
-#endif
 
-#include <Utility.H>
-#include <ParallelDescriptor.H>
-#include <VisMF.H>
-#include <RealBox.H>
-#include <Geometry.H>
+#include <AMReX_Utility.H>
+#include <AMReX_ParallelDescriptor.H>
+#include <AMReX_VisMF.H>
+#include <AMReX_RealBox.H>
+#include <AMReX_Geometry.H>
 #include <WritePlotFile.H>
-
-#ifdef BL_USE_SETBUF
-#define pubsetbuf setbuf
-#endif
 
 std::string
 thePlotFileType ()
@@ -53,7 +46,7 @@ writePlotFile (const std::string&        dir,
     Array< Box > domain(finestLevel+1);
     const IndexType& ixType = mf.boxArray().ixType();
     if (ixType != IndexType::TheCellType())
-	BoxLib::Error("writePlotfile unable to handle non cell-centered data for now");
+	amrex::Error("writePlotfile unable to handle non cell-centered data for now");
     Box tmpb = Box(geom.Domain()).convert(ixType);
     Array<int> corr(BL_SPACEDIM);
     for (int d = 0; d < BL_SPACEDIM; d++)
@@ -112,7 +105,7 @@ writePlotFile (const std::string&        dir,
     // Build the directory to hold the MultiFabs at this level.
     // The name is relative to the directory containing the Header file.
     //
-    std::string Level = BoxLib::Concatenate("Level_", level, 1);
+    std::string Level = amrex::Concatenate("Level_", level, 1);
     //
     // Now for the full pathname of that directory.
     //
@@ -124,8 +117,8 @@ writePlotFile (const std::string&        dir,
     // Only the I/O processor makes the directory if it doesn't already exist.
     //
     if (ParallelDescriptor::IOProcessor())
-	if (!BoxLib::UtilCreateDirectory(FullPath, 0755))
-	    BoxLib::CreateDirectoryFailed(FullPath);
+	if (!amrex::UtilCreateDirectory(FullPath, 0755))
+	    amrex::CreateDirectoryFailed(FullPath);
     //
     // Force other processors to wait till directory is built.
     //
@@ -146,7 +139,7 @@ writePlotFile (const std::string&        dir,
 	    {
                 if (names.size()==0)
                 {
-                    std::string name = BoxLib::Concatenate("state_", n, 1);
+                    std::string name = amrex::Concatenate("state_", n, 1);
 
                     os << name << '\n';
                 }
@@ -241,8 +234,8 @@ writePlotFile (const char*               name,
     // Only the I/O processor makes the directory if it doesn't already exist.
     //
     if (ParallelDescriptor::IOProcessor())
-        if (!BoxLib::UtilCreateDirectory(pltfile, 0755))
-            BoxLib::CreateDirectoryFailed(pltfile);
+        if (!amrex::UtilCreateDirectory(pltfile, 0755))
+            amrex::CreateDirectoryFailed(pltfile);
     //
     // Force other processors to wait till directory is built.
     //
@@ -266,7 +259,7 @@ writePlotFile (const char*               name,
         HeaderFile.open(HeaderFileName.c_str(), std::ios::out|std::ios::trunc);
 
         if (!HeaderFile.good())
-            BoxLib::FileOpenFailed(HeaderFileName);
+            amrex::FileOpenFailed(HeaderFileName);
 
         old_prec = HeaderFile.precision(30);
     }
@@ -282,7 +275,7 @@ writePlotFile (const char*               name,
         HeaderFile.precision(old_prec);
 
         if (!HeaderFile.good())
-            BoxLib::Error("Amr::writePlotFile() failed");
+            amrex::Error("Amr::writePlotFile() failed");
     }
 
     double dPlotFileTime1(ParallelDescriptor::second());
@@ -304,8 +297,8 @@ void WritePlotFile(const Array<MultiFab*> mfa,
     int finestLevel = amrdToMimic.FinestLevel();    
     
     if (ParallelDescriptor::IOProcessor())
-        if (!BoxLib::UtilCreateDirectory(oFile,0755))
-            BoxLib::CreateDirectoryFailed(oFile);
+        if (!amrex::UtilCreateDirectory(oFile,0755))
+            amrex::CreateDirectoryFailed(oFile);
     //
     // Force other processors to wait till directory is built.
     //
@@ -326,7 +319,7 @@ void WritePlotFile(const Array<MultiFab*> mfa,
     os.open(oFileHeader.c_str(), std::ios::out|std::ios::binary);
 
     if (os.fail())
-        BoxLib::FileOpenFailed(oFileHeader);
+        amrex::FileOpenFailed(oFileHeader);
     //
     // Start writing plotfile.
     //
@@ -366,7 +359,7 @@ void WritePlotFile(const Array<MultiFab*> mfa,
         //
         int nGrids = amrdToMimic.boxArray(iLevel).size();
 
-        std::string LevelStr = BoxLib::Concatenate("Level_", iLevel, 1);
+        std::string LevelStr = amrex::Concatenate("Level_", iLevel, 1);
     
         if (ParallelDescriptor::IOProcessor())
         {
@@ -390,8 +383,8 @@ void WritePlotFile(const Array<MultiFab*> mfa,
             Level += '/';
             Level += LevelStr;
     
-            if (!BoxLib::UtilCreateDirectory(Level, 0755))
-                BoxLib::CreateDirectoryFailed(Level);
+            if (!amrex::UtilCreateDirectory(Level, 0755))
+                amrex::CreateDirectoryFailed(Level);
         }
         //
         // Force other processors to wait till directory is built.

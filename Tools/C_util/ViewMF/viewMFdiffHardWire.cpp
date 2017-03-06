@@ -1,22 +1,18 @@
 
-#ifndef WIN32
 #include <unistd.h>
-#endif
 
-#include <MultiFab.H>
+#include <AMReX_MultiFab.H>
 #include <ArrayView.H>
-#include <ParmParse.H>
-#include <Utility.H>
-#include <ParallelDescriptor.H>
+#include <AMReX_ParmParse.H>
+#include <AMReX_Utility.H>
+#include <AMReX_ParallelDescriptor.H>
 #include <TV_TempWrite.H>
 #include <MFNorm.H>
 
 #include <new>
 using std::setprecision;
 #include <iostream>
-#ifndef WIN32
 using std::set_new_handler;
-#endif
 
 static
 void 
@@ -42,9 +38,7 @@ int main (int   argc,
     //
     // Make sure to catch new failures.
     //
-#ifndef WIN32
     set_new_handler(Utility::OutOfMemory);
-#endif
 
     ParallelDescriptor::StartParallel(&argc, &argv);
     
@@ -136,7 +130,7 @@ int main (int   argc,
 
     if (nComp == -1) {
         if (mf0.nComp() != mf1.nComp())
-            BoxLib::Abort("You must specify `ncomp' if (mfab0.nComp() != mfab1.nComp())");
+            amrex::Abort("You must specify `ncomp' if (mfab0.nComp() != mfab1.nComp())");
 
         nComp = mf0.nComp();
     }

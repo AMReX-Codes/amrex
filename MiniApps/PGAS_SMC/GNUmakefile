@@ -1,9 +1,8 @@
 
-BOXLIB_HOME ?= ../..
+AMREX_HOME ?= ../..
 
 # compilation options
 COMP    = g++
-FCOMP   = gfortran
 
 USE_MPI   = TRUE
 USE_UPCXX = TRUE
@@ -22,15 +21,15 @@ Bpack := ./Make.package
 
 EBASE = SMC
 
-include $(BOXLIB_HOME)/Tools/C_mk/Make.defs
+include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
 all: $(executable)
 	@echo SUCCESS
 
 include ./Make.package
-include $(BOXLIB_HOME)/Src/C_BaseLib/Make.package
+include $(AMREX_HOME)/Src/Base/Make.package
 
-include $(BOXLIB_HOME)/Tools/C_mk/Make.rules
+include $(AMREX_HOME)/Tools/GNUMake/Make.rules
 
 
 #-----------------------------------------------------------------------------

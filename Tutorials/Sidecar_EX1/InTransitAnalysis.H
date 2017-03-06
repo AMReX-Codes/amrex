@@ -4,14 +4,14 @@
 class InTransitAnalysis
 {
     public:
-        void Initialize (MultiFab&, Geometry&, int);
+        void Initialize (amrex::MultiFab&, amrex::Geometry&, int);
         void DoAnalysis ();
         void Finalize ();
         void PrintResults () const;
 
     private:
-        MultiFab* mf;
-        Geometry* geom;
+        amrex::MultiFab* mf;
+        amrex::Geometry* geom;
         Real norm0;
         Real probsize;
         int time_step;

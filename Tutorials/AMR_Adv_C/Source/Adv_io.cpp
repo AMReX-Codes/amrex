@@ -1,5 +1,7 @@
 #include <Adv.H>
-#include <Utility.H>
+#include <AMReX_Utility.H>
+
+using namespace amrex;
 
 void
 Adv::restart (Amr&          papa,
@@ -10,8 +12,35 @@ Adv::restart (Amr&          papa,
 
     BL_ASSERT(flux_reg == 0);
     if (level > 0 && do_reflux)
-        flux_reg = new FluxRegister(grids,crse_ratio,level,NUM_STATE);
+        flux_reg = new FluxRegister(grids,dmap,crse_ratio,level,NUM_STATE);
 }
+
+void
+Adv::post_restart() 
+{
+#ifdef PARTICLES
+    if (do_tracers and level == 0) {
+      BL_ASSERT(TracerPC == 0);
+      TracerPC.reset(new AmrTracerParticleContainer(parent));
+      TracerPC->Restart(parent->theRestartFile(), "Tracer");
+    }
+#endif
+}
+
+void 
+Adv::checkPoint (const std::string& dir,
+		 std::ostream&      os,
+		 VisMF::How         how,
+		 bool               dump_old) 
+{
+  AmrLevel::checkPoint(dir, os, how, dump_old);
+#ifdef PARTICLES
+  if (do_tracers and level == 0) {
+    TracerPC->Checkpoint(dir, "Tracer", true);
+  }
+#endif
+}
+
 
 std::string
 Adv::thePlotFileType () const
@@ -19,6 +48,7 @@ Adv::thePlotFileType () const
     static const std::string the_plot_file_type("HyperCLaw-V1.1");
     return the_plot_file_type;
 }
+
 
 void
 Adv::writePlotFile (const std::string& dir,
@@ -42,6 +72,12 @@ Adv::writePlotFile (const std::string& dir,
 
     Real cur_time = state[State_Type].curTime();
 
+#ifdef PARTICLES
+    if (do_tracers and level == 0) {
+      TracerPC->Checkpoint(dir, "Tracer", true);
+    }
+#endif
+
     if (level == 0 && ParallelDescriptor::IOProcessor())
     {
         //
@@ -50,7 +86,7 @@ Adv::writePlotFile (const std::string& dir,
         os << thePlotFileType() << '\n';
 
         if (n_data_items == 0)
-            BoxLib::Error("Must specify at least one valid data item to plot");
+            amrex::Error("Must specify at least one valid data item to plot");
 
         os << n_data_items << '\n';
 
@@ -111,8 +147,8 @@ Adv::writePlotFile (const std::string& dir,
     // Only the I/O processor makes the directory if it doesn't already exist.
     //
     if (ParallelDescriptor::IOProcessor())
-        if (!BoxLib::UtilCreateDirectory(FullPath, 0755))
-            BoxLib::CreateDirectoryFailed(FullPath);
+        if (!amrex::UtilCreateDirectory(FullPath, 0755))
+            amrex::CreateDirectoryFailed(FullPath);
     //
     // Force other processors to wait till directory is built.
     //
@@ -147,7 +183,7 @@ Adv::writePlotFile (const std::string& dir,
     // NOTE: In this tutorial code, there is no derived data
     int       cnt   = 0;
     const int nGrow = 0;
-    MultiFab  plotMF(grids,n_data_items,nGrow);
+    MultiFab  plotMF(grids,dmap,n_data_items,nGrow);
     MultiFab* this_dat = 0;
     //
     // Cull data from state variables -- use no ghost cells.

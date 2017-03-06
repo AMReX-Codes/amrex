@@ -1,7 +1,7 @@
 #ifndef BL_HPGMG_H
 #define BL_HPGMG_H
 
-#include <MultiFab.H>
+#include <AMReX_MultiFab.H>
 
 #ifdef USEHPGMG
 

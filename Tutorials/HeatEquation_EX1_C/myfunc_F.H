@@ -1,27 +1,27 @@
 #ifndef MYFUNC_F_H__ 
 #define MUFUNC_F_H__ 
 
-#include <BLFort.H>
+#include <AMReX_BLFort.H>
 
 extern "C"
 {
-  void init_phi(Real* data, const int* lo, const int* hi, const int* ng, 
-		const Real* dx, const Real* prob_lo, const Real* prob_hi);
+  void init_phi(amrex::Real* data, const int* lo, const int* hi, const int* ng, 
+		const amrex::Real* dx, const amrex::Real* prob_lo, const amrex::Real* prob_hi);
 
-  void compute_flux(Real* phi, const int* ng_p,
-		    Real* fluxx, 
-		    Real* fluxy,
+  void compute_flux(amrex::Real* phi, const int* ng_p,
+		    amrex::Real* fluxx, 
+		    amrex::Real* fluxy,
 #if (BL_SPACEDIM == 3)   
-		    Real* fluxz,
+		    amrex::Real* fluxz,
 #endif
-		    const int* ng_f, const int* lo, const int* hi, const Real* dx);
+		    const int* ng_f, const int* lo, const int* hi, const amrex::Real* dx);
   
-  void update_phi(Real* phiold, Real* phinew, const int* ng_p,
-		  Real* fluxx, 
-		  Real* fluxy,
+  void update_phi(amrex::Real* phiold, amrex::Real* phinew, const int* ng_p,
+		  amrex::Real* fluxx, 
+		  amrex::Real* fluxy,
 #if (BL_SPACEDIM == 3)   
-		  Real* fluxz,
+		  amrex::Real* fluxz,
 #endif
-		  const int* ng_f, const int* lo, const int* hi, const Real* dx, const Real* dt);
+		  const int* ng_f, const int* lo, const int* hi, const amrex::Real* dx, const amrex::Real* dt);
 }
 #endif

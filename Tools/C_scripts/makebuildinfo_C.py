@@ -13,6 +13,8 @@ import subprocess
 
 
 source = """
+namespace amrex {
+
 const char* buildInfoGetBuildDate() {
 
   static const char BUILD_DATE[] = "@@BUILD_DATE@@";
@@ -31,10 +33,10 @@ const char* buildInfoGetBuildMachine() {
   return BUILD_MACHINE;
 }
 
-const char* buildInfoGetBoxlibDir() {
+const char* buildInfoGetAMReXDir() {
 
-  static const char BOXLIB_DIR[] = "@@BOXLIB_DIR@@";
-  return BOXLIB_DIR;
+  static const char AMREX_DIR[] = "@@AMREX_DIR@@";
+  return AMREX_DIR;
 }
 
 const char* buildInfoGetComp() {
@@ -134,6 +136,8 @@ const char* buildInfoGetBuildGitName() {
 
   return NAME;
 }
+
+}
 """
 
 def runcommand(command):
@@ -144,7 +148,7 @@ def runcommand(command):
 def get_git_hash(d):
     cwd = os.getcwd()
     os.chdir(d)
-    try: hash = runcommand("git rev-parse HEAD")
+    try: hash = runcommand("git describe --always --tags --dirty")
     except: hash = ""
     os.chdir(cwd)
     return hash
@@ -155,12 +159,12 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("--boxlib_home",
-                        help="path to the BoxLib source",
+    parser.add_argument("--amrex_home",
+                        help="path to the AMReX source",
                         type=str, default="")
 
     parser.add_argument("--COMP",
-                        help="Compiler as defined by BoxLib's build system (deprecated)",
+                        help="Compiler as defined by AMReX's build system (deprecated)",
                         type=str, default="")
 
     parser.add_argument("--COMP_VERSION",
@@ -168,7 +172,7 @@ if __name__ == "__main__":
                         type=str, default="")
 
     parser.add_argument("--FCOMP",
-                        help="Fortran compiler as defined by BoxLib's build system (deprecated)",
+                        help="Fortran compiler as defined by AMReX's build system (deprecated)",
                         type=str, default="")
 
     parser.add_argument("--FCOMP_VERSION",
@@ -253,7 +257,7 @@ if __name__ == "__main__":
         AUX = args.AUX.split()
 
 
-    fout = open("buildInfo.cpp", "w")
+    fout = open("AMReX_buildInfo.cpp", "w")
 
     for line in source.splitlines():
 
@@ -275,8 +279,8 @@ if __name__ == "__main__":
                 newline = line.replace("@@BUILD_MACHINE@@", build_machine)
                 fout.write(newline)
 
-            elif keyword == "BOXLIB_DIR":
-                newline = line.replace("@@BOXLIB_DIR@@", args.boxlib_home)
+            elif keyword == "AMREX_DIR":
+                newline = line.replace("@@AMREX_DIR@@", args.amrex_home)
                 fout.write(newline)
 
             elif keyword == "COMP":

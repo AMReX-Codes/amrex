@@ -1,17 +1,19 @@
 
-#include <BLFort.H>
-#include <Utility.H>
-#include <IntVect.H>
-#include <Geometry.H>
-#include <ParmParse.H>
-#include <ParallelDescriptor.H>
-#include <VisMF.H>
+#include <AMReX_BLFort.H>
+#include <AMReX_Utility.H>
+#include <AMReX_IntVect.H>
+#include <AMReX_Geometry.H>
+#include <AMReX_ParmParse.H>
+#include <AMReX_ParallelDescriptor.H>
+#include <AMReX_VisMF.H>
 
 #include <writePlotFile.H>
 
 #ifdef _OPENMP
 #include <omp.h>
 #endif
+
+using namespace amrex;
 
 extern "C"
 {
@@ -83,7 +85,7 @@ Real compute_dt (Real dx)
 int
 main (int argc, char* argv[])
 {
-    BoxLib::Initialize(argc,argv);
+    amrex::Initialize(argc,argv);
 
     // What time is it now?  We'll use this to compute total run time.
     Real strt_time = ParallelDescriptor::second();
@@ -155,12 +157,14 @@ main (int argc, char* argv[])
     int Ncomp  = 1;
     pp.query("ncomp", Ncomp);
 
+    DistributionMapping dm{bs};
+
     // Allocate space for the old_phi and new_phi -- we define old_phi and new_phi as
-    PArray < MultiFab > phis(2, PArrayManage);
-    phis.set(0, new MultiFab(bs, Ncomp, Nghost));
-    phis.set(1, new MultiFab(bs, Ncomp, Nghost));
-    MultiFab* old_phi = &phis[0];
-    MultiFab* new_phi = &phis[1];
+    Array < std::unique_ptr<MultiFab> > phis(2);
+    phis[0].reset(new MultiFab(bs, dm, Ncomp, Nghost));
+    phis[1].reset(new MultiFab(bs, dm, Ncomp, Nghost));
+    MultiFab* old_phi = phis[0].get();
+    MultiFab* new_phi = phis[1].get();
 
     // Initialize both to zero (just because)
     old_phi->setVal(0.0);
@@ -186,7 +190,7 @@ main (int argc, char* argv[])
     // Write a plotfile of the initial data if plot_int > 0 (plot_int was defined in the inputs file)
     if (plot_int > 0) {
 	int n = 0;
-	const std::string& pltfile = BoxLib::Concatenate("plt",n,5);
+	const std::string& pltfile = amrex::Concatenate("plt",n,5);
 	writePlotFile(pltfile, *new_phi, geom);
     }
 
@@ -206,7 +210,7 @@ main (int argc, char* argv[])
 
 	// Write a plotfile of the current data (plot_int was defined in the inputs file)
 	if (plot_int > 0 && n%plot_int == 0) {
-	    const std::string& pltfile = BoxLib::Concatenate("plt",n,5);
+	    const std::string& pltfile = amrex::Concatenate("plt",n,5);
 	    writePlotFile(pltfile, *new_phi, geom);
 	}
     }
@@ -230,5 +234,5 @@ main (int argc, char* argv[])
     }
     
     // Say goodbye to MPI, etc...
-    BoxLib::Finalize();
+    amrex::Finalize();
 }

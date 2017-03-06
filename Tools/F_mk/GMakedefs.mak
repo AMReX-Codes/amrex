@@ -109,24 +109,24 @@ hdir = t/html
 
 
 ifeq ($(COMP),g95)
-  include $(BOXLIB_HOME)/Tools/F_mk/comps/g95.mak
+  include $(AMREX_HOME)/Tools/F_mk/comps/g95.mak
 endif
 
 ifeq ($(findstring gfortran, $(COMP)), gfortran)
-  include $(BOXLIB_HOME)/Tools/F_mk/comps/gfortran.mak
+  include $(AMREX_HOME)/Tools/F_mk/comps/gfortran.mak
 endif
 
 ifeq ($(COMP),xlf)
-  include $(BOXLIB_HOME)/Tools/F_mk/comps/xlf.mak
+  include $(AMREX_HOME)/Tools/F_mk/comps/xlf.mak
 endif
 
 ifeq ($(ARCH),Darwin)
   ifeq ($(COMP),IBM)
-    include $(BOXLIB_HOME)/Tools/F_mk/comps/Darwin_ibm.mak
+    include $(AMREX_HOME)/Tools/F_mk/comps/Darwin_ibm.mak
   endif
 
   ifeq ($(COMP),Intel)
-    include $(BOXLIB_HOME)/Tools/F_mk/comps/Darwin_intel.mak
+    include $(AMREX_HOME)/Tools/F_mk/comps/Darwin_intel.mak
   endif
 endif
 
@@ -135,45 +135,45 @@ endif
 
 ifeq ($(ARCH),Linux)
   ifeq ($(COMP),Cray)
-    include $(BOXLIB_HOME)/Tools/F_mk/comps/Linux_cray.mak
+    include $(AMREX_HOME)/Tools/F_mk/comps/Linux_cray.mak
   endif
 
   ifeq ($(COMP),PGI)
-    include $(BOXLIB_HOME)/Tools/F_mk/comps/Linux_pgi.mak
+    include $(AMREX_HOME)/Tools/F_mk/comps/Linux_pgi.mak
   endif
 
   ifeq ($(COMP),SunStudio)
-    include $(BOXLIB_HOME)/Tools/F_mk/comps/Linux_sunstudio.mak
+    include $(AMREX_HOME)/Tools/F_mk/comps/Linux_sunstudio.mak
   endif
 
   ifeq ($(COMP),PathScale)
-    include $(BOXLIB_HOME)/Tools/F_mk/comps/Linux_pathscale.mak
+    include $(AMREX_HOME)/Tools/F_mk/comps/Linux_pathscale.mak
   endif
 
   ifeq ($(COMP),Intel)
-    include $(BOXLIB_HOME)/Tools/F_mk/comps/Linux_intel.mak
+    include $(AMREX_HOME)/Tools/F_mk/comps/Linux_intel.mak
   endif
 
   # Gottingen machines
   ifeq ($(HOST),hicegate0)
-    include $(BOXLIB_HOME)/Tools/F_mk/comps/Linux_intel.mak
+    include $(AMREX_HOME)/Tools/F_mk/comps/Linux_intel.mak
   endif
 
   ifeq ($(COMP),NAG)
-    include $(BOXLIB_HOME)/Tools/F_mk/comps/Linux_nag.mak
+    include $(AMREX_HOME)/Tools/F_mk/comps/Linux_nag.mak
   endif
 
   ifeq ($(COMP),Lahey)
-    include $(BOXLIB_HOME)/Tools/F_mk/comps/Linux_lahey.mak
+    include $(AMREX_HOME)/Tools/F_mk/comps/Linux_lahey.mak
   endif
 endif
 
 ifeq ($(ARCH),AIX)
-  include $(BOXLIB_HOME)/Tools/F_mk/comps/aix.mak
+  include $(AMREX_HOME)/Tools/F_mk/comps/aix.mak
 endif
 
 ifeq ($(findstring mira, $(HOSTNAMEF)), mira)
-  include $(BOXLIB_HOME)/Tools/F_mk/comps/bgq.mak
+  include $(AMREX_HOME)/Tools/F_mk/comps/bgq.mak
 endif
 
 ifeq ($(strip $(F90)),)
@@ -187,7 +187,7 @@ endif
 endif
 
 ifdef MPI
-  include $(BOXLIB_HOME)/Tools/F_mk/GMakeMPI.mak
+  include $(AMREX_HOME)/Tools/F_mk/GMakeMPI.mak
 endif
 
 ifdef mpi_include_dir
@@ -203,9 +203,9 @@ c_includes = $(addprefix -I , $(INCLUDE_LOCATIONS))
 
 # MODDEP is for .f90, .f, and .F90.  
 # MKDEP is for c
-MODDEP  :=  $(BOXLIB_HOME)/Tools/F_scripts/dep.py
-MKDEP   :=  $(BOXLIB_HOME)/Tools/F_scripts/mkdep.pl
-F90DOC  :=  $(BOXLIB_HOME)/Tools/F_scripts/f90doc/f90doc
+MODDEP  :=  $(AMREX_HOME)/Tools/F_scripts/dep.py
+MKDEP   :=  $(AMREX_HOME)/Tools/F_scripts/mkdep.pl
+F90DOC  :=  $(AMREX_HOME)/Tools/F_scripts/f90doc/f90doc
 
 FPPFLAGS += $(fpp_flags) $(addprefix -I, $(FINCLUDE_LOCATIONS))
 LDFLAGS  += $(fld_flags)

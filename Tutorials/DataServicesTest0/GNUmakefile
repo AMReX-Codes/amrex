@@ -1,4 +1,4 @@
-BOXLIB_HOME ?= ../../../BoxLib
+AMREX_HOME ?= ../../../amrex
 
 EBASE = DataServicesTest0
 
@@ -9,28 +9,27 @@ DIM       = 3
 USE_MPI     =FALSE
 USE_MPI     =TRUE
 COMP      = g++
-FCOMP     = gfortran
 
 HERE = .
 
 DEFINES += -DBL_NOLINEVALUES
 
-include $(BOXLIB_HOME)/Tools/C_mk/Make.defs
+include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
 
 CEXE_sources += $(EBASE).cpp
 
-include $(BOXLIB_HOME)/Src/C_BaseLib/Make.package
+include $(AMREX_HOME)/Src/Base/Make.package
 
 INCLUDE_LOCATIONS += $(HERE)
-INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/C_BaseLib
-INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/Extern/amrdata
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Base
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Extern/amrdata
 
-include $(BOXLIB_HOME)/Src/Extern/amrdata/Make.package
+include $(AMREX_HOME)/Src/Extern/amrdata/Make.package
 
 PATHDIRS  = $(HERE)
-PATHDIRS += $(BOXLIB_HOME)/Src/C_BaseLib
-PATHDIRS += $(BOXLIB_HOME)/Src/Extern/amrdata
+PATHDIRS += $(AMREX_HOME)/Src/Base
+PATHDIRS += $(AMREX_HOME)/Src/Extern/amrdata
 
 
 vpath %.f   $(PATHDIRS)
@@ -42,5 +41,5 @@ vpath %.cpp $(PATHDIRS)
 
 all: $(executable)
 
-include $(BOXLIB_HOME)/Tools/C_mk/Make.rules
+include $(AMREX_HOME)/Tools/GNUMake/Make.rules
 

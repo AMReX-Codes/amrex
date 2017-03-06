@@ -4,6 +4,8 @@
 #include <AmrAdv.H>
 #include <AmrAdv_F.H>
 
+using namespace amrex;
+
 void
 AmrAdv::Evolve ()
 {
@@ -136,12 +138,12 @@ AmrAdv::Advance (int lev, Real time, Real dt, int iteration, int ncycle)
 	{
 	    BoxArray ba = grids[lev];
 	    ba.surroundingNodes(i);
-	    fluxes[i].define(ba, S_new.nComp(), 0, dmap[lev], Fab_allocate);
+	    fluxes[i].define(ba, dmap[lev], S_new.nComp(), 0);
 	}
     }
 
     // State with ghost cells
-    MultiFab Sborder(grids[lev], S_new.nComp(), num_grow, dmap[lev]);
+    MultiFab Sborder(grids[lev], dmap[lev], S_new.nComp(), num_grow);
     FillPatch(lev, time, Sborder, 0, Sborder.nComp());
 
 #ifdef _OPENMP
@@ -159,9 +161,9 @@ AmrAdv::Advance (int lev, Real time, Real dt, int iteration, int ncycle)
 
 	    // Allocate fabs for fluxes and Godunov velocities.
 	    for (int i = 0; i < BL_SPACEDIM ; i++) {
-		const Box& bxtmp = BoxLib::surroundingNodes(bx,i);
+		const Box& bxtmp = amrex::surroundingNodes(bx,i);
 		flux[i].resize(bxtmp,S_new.nComp());
-		uface[i].resize(BoxLib::grow(bxtmp,1),1);
+		uface[i].resize(amrex::grow(bxtmp,1),1);
 	    }
 
 	    get_face_velocity(lev, ctr_time,

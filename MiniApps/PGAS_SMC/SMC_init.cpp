@@ -2,6 +2,8 @@
 #include <SMC.H>
 #include <SMC_F.H>
 
+using namespace amrex;
+
 void
 SMC::build_multifabs ()
 {
@@ -37,14 +39,16 @@ SMC::build_multifabs ()
     Array<int> is_per(3, 1); // triply periodic
     geom.define(bx, &real_box, 0, &is_per[0]);
 
-         U.define(ba, ncons, ngrow, Fab_allocate);
-      Utmp.define(ba, ncons, ngrow, Fab_allocate);
-    Uprime.define(ba, ncons, 0    , Fab_allocate);
-         Q.define(ba, nprim, ngrow, Fab_allocate);
-        mu.define(ba, 1    , ngrow, Fab_allocate);
-        xi.define(ba, 1    , ngrow, Fab_allocate);
-       lam.define(ba, 1    , ngrow, Fab_allocate);
-     Ddiag.define(ba, nspec, ngrow, Fab_allocate);
+    DistributionMapping dm{ba};
+
+         U.define(ba, dm, ncons, ngrow);
+      Utmp.define(ba, dm, ncons, ngrow);
+    Uprime.define(ba, dm, ncons, 0    );
+         Q.define(ba, dm, nprim, ngrow);
+        mu.define(ba, dm, 1    , ngrow);
+        xi.define(ba, dm, 1    , ngrow);
+       lam.define(ba, dm, 1    , ngrow);
+     Ddiag.define(ba, dm, nspec, ngrow);
 
     Q.setVal(0.0);
 }

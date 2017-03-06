@@ -14,6 +14,8 @@ program fboxinfo
   integer :: unit
   integer :: i, j, f
 
+  integer :: ncells, ncells_domain
+
   integer :: lo(MAX_SPACEDIM), hi(MAX_SPACEDIM)
   integer :: dim
 
@@ -97,7 +99,7 @@ program fboxinfo
 
 
      ! output the number of boxes at each level
-1000 format(1x,"level ", i3, ": number of boxes = ", i5)
+1000 format(1x,"level ", i3, ": number of boxes = ", i5, ", volume = ", f6.2, "%")
 1001 format(1x,"      ", 1x, "  maximum zones =   ", i5)
 1002 format(1x,"      ", 1x, "  maximum zones =   ", i5, " x ", i5)
 1003 format(1x,"      ", 1x, "  maximum zones =   ", i5, " x ", i5, " x " i5)
@@ -110,7 +112,13 @@ program fboxinfo
 
      if (.not. gridfile .and. .not. castro) then
         do i = 1, pf%flevel
-           write (*,1000) i, nboxes(pf, i)
+           ncells = 0
+           do j = 1, nboxes(pf, i)
+              ncells = ncells + volume(get_pbox(pf, i, j))
+           enddo
+           ncells_domain = volume(plotfile_get_pd_box(pf, i)) 
+
+           write (*,1000) i, nboxes(pf, i), 100.0*dble(ncells)/ncells_domain
 
            lo = lwb(plotfile_get_pd_box(pf, i))
            hi = upb(plotfile_get_pd_box(pf, i))

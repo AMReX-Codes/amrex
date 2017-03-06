@@ -12,15 +12,15 @@ contains
   subroutine phifill(phi,phi_lo,phi_hi,domlo,domhi,delta,xlo,time,bc) &
        bind(C, name="phifill")
 
-    use bl_fort_module, only : bl_spacedim, c_real
+    use amrex_fort_module, only : bl_spacedim, amrex_real
 
     implicit none
 
     integer      :: phi_lo(3),phi_hi(3)
     integer      :: bc(bl_spacedim,2)
     integer      :: domlo(3), domhi(3)
-    real(c_real) :: delta(3), xlo(3), time
-    real(c_real) :: phi(phi_lo(1):phi_hi(1),phi_lo(2):phi_hi(2),phi_lo(3):phi_hi(3))
+    real(amrex_real) :: delta(3), xlo(3), time
+    real(amrex_real) :: phi(phi_lo(1):phi_hi(1),phi_lo(2):phi_hi(2),phi_lo(3):phi_hi(3))
 
 #if (BL_SPACEDIM == 1)
        call filcc(phi,phi_lo(1),phi_hi(1),domlo,domhi,delta,xlo,bc)

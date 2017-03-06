@@ -9,14 +9,14 @@ using std::ios;
 #include <unistd.h>
 
 #include <WritePlotFile.H>
-#include <REAL.H>
-#include <Box.H>
-#include <FArrayBox.H>
-#include <ParmParse.H>
-#include <ParallelDescriptor.H>
-#include <DataServices.H>
-#include <Utility.H>
-#include <VisMF.H>
+#include <AMReX_REAL.H>
+#include <AMReX_Box.H>
+#include <AMReX_FArrayBox.H>
+#include <AMReX_ParmParse.H>
+#include <AMReX_ParallelDescriptor.H>
+#include <AMReX_DataServices.H>
+#include <AMReX_Utility.H>
+#include <AMReX_VisMF.H>
 #include <AVGDOWN_F.H>
 
 #ifndef NDEBUG
@@ -69,7 +69,7 @@ int
 main (int   argc,
       char* argv[])
 {
-    BoxLib::Initialize(argc,argv);
+    amrex::Initialize(argc,argv);
 
     if (argc == 1)
         PrintUsage(argv[0]);
@@ -92,11 +92,11 @@ main (int   argc,
     }
     pp.query("infile1", iFile1);
     if (iFile1.empty())
-        BoxLib::Abort("You must specify `infile1'");
+        amrex::Abort("You must specify `infile1'");
 
     pp.query("reffile", iFile2);
     if (iFile2.empty())
-        BoxLib::Abort("You must specify `reffile'");
+        amrex::Abort("You must specify `reffile'");
 
     pp.query("diffile", difFile);
 
@@ -110,7 +110,7 @@ main (int   argc,
     DataServices dataServices2(iFile2, fileType);
 
     if (!dataServices1.AmrDataOk() || !dataServices2.AmrDataOk())
-        BoxLib::Abort("ERROR: Dataservices not OK");
+        amrex::Abort("ERROR: Dataservices not OK");
 
 
     //
@@ -123,10 +123,10 @@ main (int   argc,
     // Initial Tests 
     //
     if (!amrDatasHaveSameDerives(amrData1,amrData2))
-        BoxLib::Abort("ERROR: Plotfiles do not have the same state variables");
+        amrex::Abort("ERROR: Plotfiles do not have the same state variables");
 
     if (amrData1.FinestLevel() != amrData2.FinestLevel())
-        BoxLib::Abort("ERROR: Finest level is not the same in the two plotfiles");
+        amrex::Abort("ERROR: Finest level is not the same in the two plotfiles");
 
     int nComp       = amrData1.NComp();
     int finestLevel = amrData1.FinestLevel();
@@ -174,7 +174,7 @@ main (int   argc,
         const Box& domain2     = amrData2.ProbDomain()[iLevel];
         IntVect refine_ratio   = getRefRatio(domain1, domain2);
         if (refine_ratio == IntVect())
-            BoxLib::Error("Cannot find refinement ratio from data to exact");
+            amrex::Error("Cannot find refinement ratio from data to exact");
 
         if (verbose)
             std::cerr << "level = " << iLevel << "  Ref_Ratio = " << refine_ratio
@@ -207,18 +207,17 @@ main (int   argc,
                 //
                 int index = mfi.index();
 
-                FArrayBox data2Coarse(ba2Coarse[index], 1);
+		const Box& bx = ba2Coarse[index];
+                FArrayBox data2Coarse(bx, 1);
                 int ncCoarse = data2Coarse.nComp();
 
                 FORT_CV_AVGDOWN(data2Coarse.dataPtr(),
-                                  ARLIM(data2Coarse.loVect()),
-                                  ARLIM(data2Coarse.hiVect()),
+                                  ARLIM(bx.loVect()), ARLIM(bx.hiVect()),
                                 &ncCoarse,
                                 data2Fine[mfi].dataPtr(),
                                   ARLIM(data2Fine[mfi].loVect()),
                                   ARLIM(data2Fine[mfi].hiVect()), 
-                                ba2Coarse[index].loVect(), 
-                                ba2Coarse[index].hiVect(),
+                                bx.loVect(), bx.hiVect(),
                                 refine_ratio.getVect());
 
 
@@ -318,7 +317,7 @@ main (int   argc,
     for (int iLevel = 0; iLevel <= finestLevel; ++iLevel)
 	delete error[iLevel];
 
-    BoxLib::Finalize();
+    amrex::Finalize();
 }
 
 

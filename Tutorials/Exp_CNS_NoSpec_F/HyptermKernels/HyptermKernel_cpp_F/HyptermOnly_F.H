@@ -23,24 +23,24 @@
 #    define FORT_INITDATA     initdata_
 #  endif
 
-#include <ArrayLim.H>
+#include <AMReX_ArrayLim.H>
 
 extern "C" {
 
-    void FORT_HYPTERM(const Real *cons, ARLIM_P(cons_lo), ARLIM_P(cons_hi),
+    void FORT_HYPTERM(const amrex::Real *cons, ARLIM_P(cons_lo), ARLIM_P(cons_hi),
 		      ARLIM_P(grid_lo), ARLIM_P(grid_hi),
-                      const Real *dx,
-                      const Real *qx, const Real *flux,
+                      const amrex::Real *dx,
+                      const amrex::Real *qx, const amrex::Real *flux,
                       const int *nComp);
 
-    void FORT_HYPTERM_UNOPT(const Real *cons, ARLIM_P(cons_lo), ARLIM_P(cons_hi),
+    void FORT_HYPTERM_UNOPT(const amrex::Real *cons, ARLIM_P(cons_lo), ARLIM_P(cons_hi),
 		      ARLIM_P(grid_lo), ARLIM_P(grid_hi),
-                      const Real *dx,
-                      const Real *qx, const Real *flux,
+                      const amrex::Real *dx,
+                      const amrex::Real *qx, const amrex::Real *flux,
                       const int *nComp);
 
-    void FORT_INITDATA(const Real *cons, ARLIM_P(cons_lo), ARLIM_P(cons_hi),
-                       const Real *q, const Real *dx, const int *nComp);
+    void FORT_INITDATA(const amrex::Real *cons, ARLIM_P(cons_lo), ARLIM_P(cons_hi),
+                       const amrex::Real *q, const amrex::Real *dx, const int *nComp);
 }
 #endif
 

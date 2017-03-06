@@ -5,14 +5,14 @@
 #include <string>
 
 #include <WritePlotFile.H>
-#include <REAL.H>
-#include <Box.H>
-#include <FArrayBox.H>
-#include <ParmParse.H>
-#include <ParallelDescriptor.H>
-#include <DataServices.H>
-#include <Utility.H>
-#include <VisMF.H>
+#include <AMReX_REAL.H>
+#include <AMReX_Box.H>
+#include <AMReX_FArrayBox.H>
+#include <AMReX_ParmParse.H>
+#include <AMReX_ParallelDescriptor.H>
+#include <AMReX_DataServices.H>
+#include <AMReX_Utility.H>
+#include <AMReX_VisMF.H>
 
 #ifndef NDEBUG
 #include <TV_TempWrite.H>
@@ -60,7 +60,7 @@ int
 main (int   argc,
       char* argv[])
 {
-    BoxLib::Initialize(argc,argv);
+    amrex::Initialize(argc,argv);
 
     if (argc == 1)
         PrintUsage(argv[0]);
@@ -81,11 +81,11 @@ main (int   argc,
 
     pp.query("infile1", iFile1);
     if (iFile1.empty())
-        BoxLib::Abort("You must specify `infile1'");
+        amrex::Abort("You must specify `infile1'");
 
     pp.query("infile2", iFile2);
     if (iFile2.empty())
-        BoxLib::Abort("You must specify `infile2'");
+        amrex::Abort("You must specify `infile2'");
 
     pp.query("diffile", difFile);
 
@@ -99,7 +99,7 @@ main (int   argc,
     DataServices dataServicesF(iFile2, fileType);
 
     if (!dataServicesC.AmrDataOk() || !dataServicesF.AmrDataOk())
-        BoxLib::Abort("ERROR: Dataservices not OK");
+        amrex::Abort("ERROR: Dataservices not OK");
     //
     // Generate AmrData Objects 
     //
@@ -109,10 +109,10 @@ main (int   argc,
     // Initial Tests 
     //
     if (!amrDatasHaveSameDerives(amrDataI,amrDataE))
-        BoxLib::Abort("ERROR: Plotfiles do not have the same state variables");
+        amrex::Abort("ERROR: Plotfiles do not have the same state variables");
 
     if (amrDataI.FinestLevel() != amrDataE.FinestLevel())
-        BoxLib::Abort("ERROR: Finest level is not the same in the two plotfiles");
+        amrex::Abort("ERROR: Finest level is not the same in the two plotfiles");
 
     int nComp       = amrDataI.NComp();
     int finestLevel = amrDataI.FinestLevel();
@@ -244,7 +244,7 @@ main (int   argc,
     for (int iLevel = 0; iLevel <= finestLevel; ++iLevel)
 	delete error[iLevel];
 
-    BoxLib::Finalize();
+    amrex::Finalize();
 
     return 0;
 }

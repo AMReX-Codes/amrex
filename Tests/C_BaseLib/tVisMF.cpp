@@ -5,8 +5,10 @@
 #include <cstdlib>
 #include <string>
 
-#include <VisMF.H>
-#include <Utility.H>
+#include <AMReX_VisMF.H>
+#include <AMReX_Utility.H>
+
+using namespace amrex;
 
 static int nBoxs  = 10;
 
@@ -72,14 +74,14 @@ Write_N_Read (const MultiFab& mf,
 
     if (ParallelDescriptor::IOProcessor())
     {
-        start = BoxLib::wsecond();
+        start = ParallelDescriptor::second();
     }
 
     ParallelDescriptor::Barrier();
 
     if (ParallelDescriptor::IOProcessor())
     {
-        end = BoxLib::wsecond();
+        end = ParallelDescriptor::second();
 
         std::cout << "\nWallclock time for MF write: " << (end-start) << '\n';
 
@@ -117,7 +119,7 @@ Write_N_Read (const MultiFab& mf,
 int
 main (int argc, char** argv)
 {
-    BoxLib::Initialize(argc, argv);
+    amrex::Initialize(argc, argv);
     the_prog_name = argv[0];
     parse_args(argv);
 
@@ -127,10 +129,12 @@ main (int argc, char** argv)
 
     for (int i = 1; i < nBoxs; i++)
     {
-        ba.set(i,BoxLib::grow(ba[i-1],2));
+        ba.set(i,amrex::grow(ba[i-1],2));
     }
 
-    MultiFab mf(ba, 2, 1);
+    DistributionMapping dm{ba};
+
+    MultiFab mf(ba, dm, 2, 1);
 
     for (MFIter mfi(mf); mfi.isValid(); ++mfi)
     {
@@ -146,5 +150,5 @@ main (int argc, char** argv)
     Write_N_Read (mf,
                   mf_name);
 
-    BoxLib::Finalize();
+    amrex::Finalize();
 }

@@ -1,0 +1,43 @@
+#ifndef _MultiFabUtil_H_
+#define _MultiFabUtil_H_
+
+#include <AMReX_MultiFab.H>
+#include <AMReX_Geometry.H>
+
+namespace amrex
+{
+    //! Average face-based MultiFab onto cell-centered MultiFab.
+    void average_edge_to_cellcenter (MultiFab& cc, int dcomp, const Array<const MultiFab*>& edge);
+
+    //! Average face-based MultiFab onto cell-centered MultiFab.
+    void average_face_to_cellcenter (MultiFab& cc, int dcomp, const Array<const MultiFab*>& fc);
+    void average_face_to_cellcenter (MultiFab& cc, const Array<const MultiFab*>& fc, const Geometry& geom);
+
+    //! Average cell-centered MultiFab onto face-based MultiFab.
+    void average_cellcenter_to_face (const Array<MultiFab*>& fc, const MultiFab& cc, const Geometry& geom);
+
+    //! Average fine face-based MultiFab onto crse fine-centered MultiFab.
+    //! This routine assumes that the crse BoxArray is a coarsened version of the fine BoxArray.
+    void average_down_faces (const Array<const MultiFab*>& fine, const Array<MultiFab*>& crse, const IntVect& ratio);
+
+    //! Average fine cell-based MultiFab onto crse cell-centered MultiFab using volume-weighting.
+    //! This routine DOES NOT assume that the crse BoxArray is a coarsened version of the fine BoxArray.
+    void average_down(const MultiFab& S_fine, MultiFab& S_crse, const Geometry& fine_geom, const Geometry& crse_geom,
+                      int scomp, int ncomp, const IntVect& ratio);
+    void average_down(const MultiFab& S_fine, MultiFab& S_crse, const Geometry& fine_geom, const Geometry& crse_geom,
+                      int scomp, int ncomp, const int ratio);
+
+    //! Average fine cell-based MultiFab onto crse cell-centered MultiFab without volume weighting.
+    //! This routine DOES NOT assume that the crse BoxArray is a coarsened version of the fine BoxArray.
+    void average_down(const MultiFab& S_fine, MultiFab& S_crse, int scomp, int ncomp, const IntVect& ratio);
+    void average_down(const MultiFab& S_fine, MultiFab& S_crse, int scomp, int ncomp,       int      ratio);
+
+    // This adds a coarsened version of the data in S_fine to S_crse, including ghost cells.
+    void sum_fine_to_coarse(const MultiFab& S_Fine, MultiFab& S_crse, int scomp, int ncomp, const IntVect& ratio, const Geometry& cgeom, const Geometry& fgeom);
+
+    //! Fill MultiFab boundaries except for physical boundaries.
+    void fill_boundary(MultiFab& mf, const Geometry& geom, bool cross = false);
+    void fill_boundary(MultiFab& mf, int scomp, int ncomp, const Geometry& geom, bool cross = false);
+}
+
+#endif
