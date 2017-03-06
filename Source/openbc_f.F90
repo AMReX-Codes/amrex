@@ -23,7 +23,7 @@ contains
     call MPI_Comm_size(MPI_COMM_WORLD, mprocs, ierr);
     call MPI_COMM_RANK(MPI_COMM_WORLD,myrank,ierr)
 
-    gb_lo = glo + 1  ! +1 because BoxLib's domain index starts with 0
+    gb_lo = glo + 1  ! +1 because AMReX's domain index starts with 0
     gb_hi = ghi + 2  ! +2 to nodalize it
 
     call procgriddecomp(mprocs, gb_lo(1),gb_hi(1), &
@@ -38,7 +38,7 @@ contains
          &                        lc_lo(2), lc_hi(2), &
          &                        lc_lo(3), lc_hi(3))
 
-    lo = lc_lo - 1  ! BoxLib's domain index starts with zero.
+    lo = lc_lo - 1  ! AMReX's domain index starts with zero.
     hi = lc_hi - 1
 
   end subroutine warpx_openbc_decompose

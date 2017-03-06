@@ -4,7 +4,7 @@
 
 This repository is a project to build an **electromagnetic Particle-In-Cell (PIC) code** with mesh refinement, based on:
 
-- The block-structure adaptive mesh refinement code [BoxLib](http://boxlib-codes.github.io/)
+- The block-structure adaptive mesh refinement code [AMReX](https://bitbucket.org/berkeleylab/amrex)
 - The highly-optimized PIC code PICSAR
 - The Python interface of the code Warp
 
@@ -14,17 +14,17 @@ NB: [Regression tests](https://ccse.lbl.gov/pub/RegressionTesting/WarpX/) are ru
 
 ### Downloading the code
 
-You should clone the source codes of Boxlib, PICSAR and WarpX into one single directory (e.g. `warpx_directory`):
+You should clone the source codes of AMReX, PICSAR and WarpX into one single directory (e.g. `warpx_directory`):
 ```
 mkdir warpx_directory
 cd warpx_directory
-git clone https://github.com/BoxLib-Codes/BoxLib.git
+git clone https://bitbucket.org/berkeleylab/amrex.git
 git clone https://bitbucket.org/berkeleylab/picsar.git
 git clone https://bitbucket.org/berkeleylab/warpx.git
 ```
-You should then switch to the branch `development` of BoxLib
+You should then switch to the branch `development` of AMReX
 ```
-cd BoxLib/
+cd amrex/
 git checkout development
 cd ..
 ```

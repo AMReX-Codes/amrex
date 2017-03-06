@@ -1,17 +1,19 @@
 
 #include <random>
 
-#include <BoxLib.H>
-#include <ParmParse.H>
-#include <Array.H>
-#include <MultiFab.H>
-#include <PlotFileUtil.H>
+#include <AMReX.H>
+#include <AMReX_ParmParse.H>
+#include <AMReX_Array.H>
+#include <AMReX_MultiFab.H>
+#include <AMReX_PlotFileUtil.H>
 
 #include <WarpX_f.H>
 
+using namespace amrex;
+
 int main(int argc, char* argv[])
 {
-    BoxLib::Initialize(argc,argv);
+    amrex::Initialize(argc,argv);
 
     {
 	long nox=1, noy=1, noz=1;
@@ -21,10 +23,10 @@ int main(int argc, char* argv[])
 	    pp.query("noy", noy);
 	    pp.query("noz", noz);  
 	    if (nox != noy || nox != noz) {
-		BoxLib::Abort("warpx.nox, noy and noz must be equal");
+		amrex::Abort("warpx.nox, noy and noz must be equal");
 	    }
 	    if (nox < 1) {
-		BoxLib::Abort("warpx.nox must >= 1");
+		amrex::Abort("warpx.nox must >= 1");
 	    }
 	}
 
@@ -68,7 +70,7 @@ int main(int argc, char* argv[])
 
 	const int ng = nox;
 	Box domain_box {IntVect{D_DECL(0,0,0)}, IntVect{D_DECL(nx,ny,nz)}};
-	Box grown_box = BoxLib::grow(domain_box, ng);
+	Box grown_box = amrex::grow(domain_box, ng);
 
 	long ngx = ng;
 	long ngy = ng;
@@ -110,7 +112,9 @@ int main(int argc, char* argv[])
 				      &field_gathering_algo);
 
 	Box plotbox{IntVect{D_DECL(0,0,0)},IntVect{D_DECL(nx-1,ny-1,nz-1)}};
-	MultiFab plotmf(BoxArray{plotbox}, 6, 0);
+	BoxArray plotba {plotbox};
+	DistributionMapping plotdm {plotba};
+	MultiFab plotmf(plotba, plotdm, 6, 0);
 	FArrayBox& plotfab = plotmf[0];
 	plotfab.setVal(0.0);
 	for (int k = 0; k < nz; ++k) {
@@ -133,8 +137,8 @@ int main(int argc, char* argv[])
 	Geometry geom{plotbox, &realbox, 0, is_per};
 	std::string plotname{"plt00000"};
 	Array<std::string> varnames{"Ex", "Ey", "Ez", "Bx", "By", "Bz"};
-	BoxLib::WriteSingleLevelPlotfile(plotname, plotmf, varnames, geom, 0.0, 0);
+	amrex::WriteSingleLevelPlotfile(plotname, plotmf, varnames, geom, 0.0, 0);
     }
 
-    BoxLib::Finalize();
+    amrex::Finalize();
 }

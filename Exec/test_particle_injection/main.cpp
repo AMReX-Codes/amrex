@@ -5,7 +5,7 @@ extern void inject_particles ();
 
 int main(int argc, char* argv[])
 {
-    boxlib_init(argc, argv);
+    amrex_init(argc, argv);
 
     static_assert(BL_SPACEDIM == 3, "3D only");
 
@@ -19,5 +19,5 @@ int main(int argc, char* argv[])
 
     warpx_finalize();
 
-    boxlib_finalize(1);
+    amrex_finalize(1);
 }

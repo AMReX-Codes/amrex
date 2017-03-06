@@ -1,10 +1,12 @@
 
-#include <MultiFabUtil.H>
-#include <PlotFileUtil.H>
+#include <AMReX_MultiFabUtil.H>
+#include <AMReX_PlotFileUtil.H>
 
 #include <WarpX.H>
 
-#include "buildInfo.H"
+#include "AMReX_buildInfo.H"
+
+using namespace amrex;
 
 namespace
 {
@@ -19,7 +21,8 @@ WarpX::GotoNextLine (std::istream& is)
 }
 
 void
-WarpX::WriteWarpXHeader(const std::string& name) const {
+WarpX::WriteWarpXHeader(const std::string& name) const
+{
    if (ParallelDescriptor::IOProcessor())
     {
 	std::string HeaderFileName(name + "/WarpXHeader");
@@ -27,7 +30,7 @@ WarpX::WriteWarpXHeader(const std::string& name) const {
 				                         std::ofstream::trunc |
 				                         std::ofstream::binary);
 	if( ! HeaderFile.good()) {
-	    BoxLib::FileOpenFailed(HeaderFileName);
+	    amrex::FileOpenFailed(HeaderFileName);
 	}
 
 	HeaderFile.precision(17);
@@ -92,7 +95,7 @@ WarpX::WriteCheckPointFile() const
 {
     BL_PROFILE("WarpX::WriteCheckPointFile()");
 
-    const std::string& checkpointname = BoxLib::Concatenate(check_file,istep[0]);
+    const std::string& checkpointname = amrex::Concatenate(check_file,istep[0]);
 
     if (ParallelDescriptor::IOProcessor()) {
 	std::cout << "  Writing checkpoint " << checkpointname << std::endl;
@@ -102,7 +105,7 @@ WarpX::WriteCheckPointFile() const
     VisMF::SetNOutFiles(checkpoint_nfiles);
     
     const int nlevels = finestLevel()+1;
-    BoxLib::PreBuildDirectorHierarchy(checkpointname, level_prefix, nlevels, true);
+    amrex::PreBuildDirectorHierarchy(checkpointname, level_prefix, nlevels, true);
 
     WriteWarpXHeader(checkpointname);
     
@@ -111,17 +114,17 @@ WarpX::WriteCheckPointFile() const
     for (int lev = 0; lev < nlevels; ++lev)
     {
 	VisMF::Write(*Efield[lev][0],
-		     BoxLib::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "Ex"));
+		     amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "Ex"));
 	VisMF::Write(*Efield[lev][1],
-		     BoxLib::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "Ey"));
+		     amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "Ey"));
 	VisMF::Write(*Efield[lev][2],
-		     BoxLib::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "Ez"));
+		     amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "Ez"));
 	VisMF::Write(*Bfield[lev][0],
-		     BoxLib::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "Bx"));
+		     amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "Bx"));
 	VisMF::Write(*Bfield[lev][1],
-		     BoxLib::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "By"));
+		     amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "By"));
 	VisMF::Write(*Bfield[lev][2],
-		     BoxLib::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "Bz"));
+		     amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "Bz"));
     }
 
     mypc->Checkpoint(checkpointname, "particle", true);
@@ -235,7 +238,9 @@ WarpX::InitFromCheckpoint ()
 	    ba.readFrom(is);
 	    GotoNextLine(is);
 	    DistributionMapping dm { ba, ParallelDescriptor::NProcs() };
-	    MakeNewLevel(lev, ba, dm);
+            SetBoxArray(lev, ba);
+            SetDistributionMap(lev, dm);
+	    AllocLevelData(lev, ba, dm);
 	}
 
 	mypc->ReadHeader(is);
@@ -250,37 +255,13 @@ WarpX::InitFromCheckpoint ()
 	    current[lev][i]->setVal(0.0);
 	}
 
-	// xxxxx This will be done differently in amrex!
-	{
-	    MultiFab mf;
-	    VisMF::Read(mf, BoxLib::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "Ex"));
-	    Efield[lev][0]->copy(mf, 0, 0, 1, 0, 0);
-	}
-	{
-	    MultiFab mf;
-	    VisMF::Read(mf, BoxLib::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "Ey"));
-	    Efield[lev][1]->copy(mf, 0, 0, 1, 0, 0);
-	}
-	{
-	    MultiFab mf;
-	    VisMF::Read(mf, BoxLib::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "Ez"));
-	    Efield[lev][2]->copy(mf, 0, 0, 1, 0, 0);
-	}
-	{
-	    MultiFab mf;
-	    VisMF::Read(mf, BoxLib::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "Bx"));
-	    Bfield[lev][0]->copy(mf, 0, 0, 1, 0, 0);
-	}
-	{
-	    MultiFab mf;
-	    VisMF::Read(mf, BoxLib::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "By"));
-	    Bfield[lev][1]->copy(mf, 0, 0, 1, 0, 0);
-	}
-	{
-	    MultiFab mf;
-	    VisMF::Read(mf, BoxLib::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "Bz"));
-	    Bfield[lev][2]->copy(mf, 0, 0, 1, 0, 0);
-	}
+        VisMF::Read(*Efield[lev][0], amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "Ex"));
+        VisMF::Read(*Efield[lev][1], amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "Ey"));
+        VisMF::Read(*Efield[lev][2], amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "Ez"));
+
+        VisMF::Read(*Bfield[lev][0], amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "Bx"));
+        VisMF::Read(*Bfield[lev][1], amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "By"));
+        VisMF::Read(*Bfield[lev][2], amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "Bz"));
     }
 
     // Initilize particles
@@ -294,7 +275,7 @@ WarpX::WritePlotFile () const
 {
     BL_PROFILE("WarpX::WritePlotFile()");
 
-    const std::string& plotfilename = BoxLib::Concatenate(plot_file,istep[0]);
+    const std::string& plotfilename = amrex::Concatenate(plot_file,istep[0]);
 
     if (ParallelDescriptor::IOProcessor()) {
 	std::cout << "  Writing plotfile " << plotfilename << std::endl;
@@ -314,12 +295,12 @@ WarpX::WritePlotFile () const
             }
 
 	    const int ngrow = 0;
-            mf[lev].reset(new MultiFab(grids[lev], ncomp, ngrow, dmap[lev]));
+	    mf[lev].reset(new MultiFab(grids[lev], dmap[lev], ncomp, ngrow));
 
-	    std::vector<MultiFab*> srcmf(BL_SPACEDIM);
+	    Array<const MultiFab*> srcmf(BL_SPACEDIM);
 	    PackPlotDataPtrs(srcmf, current[lev]);
 	    int dcomp = 0;
-	    BoxLib::average_edge_to_cellcenter(*mf[lev], dcomp, srcmf);
+	    amrex::average_edge_to_cellcenter(*mf[lev], dcomp, srcmf);
 #if (BL_SPACEDIM == 2)
 	    MultiFab::Copy(*mf[lev], *mf[lev], dcomp+1, dcomp+2, 1, ngrow);
 	    WarpX::Copy(*mf[lev], dcomp+1, 1, *current[lev][1], 0);
@@ -333,7 +314,7 @@ WarpX::WritePlotFile () const
 
 	    PackPlotDataPtrs(srcmf, Efield[lev]);
 	    dcomp += 3;
-	    BoxLib::average_edge_to_cellcenter(*mf[lev], dcomp, srcmf);
+	    amrex::average_edge_to_cellcenter(*mf[lev], dcomp, srcmf);
 #if (BL_SPACEDIM == 2)
 	    MultiFab::Copy(*mf[lev], *mf[lev], dcomp+1, dcomp+2, 1, ngrow);
 	    WarpX::Copy(*mf[lev], dcomp+1, 1, *Efield[lev][1], 0);
@@ -347,7 +328,7 @@ WarpX::WritePlotFile () const
 
 	    PackPlotDataPtrs(srcmf, Bfield[lev]);
 	    dcomp += 3;
-	    BoxLib::average_face_to_cellcenter(*mf[lev], dcomp, srcmf);
+	    amrex::average_face_to_cellcenter(*mf[lev], dcomp, srcmf);
 #if (BL_SPACEDIM == 2)
 	    MultiFab::Copy(*mf[lev], *mf[lev], dcomp+1, dcomp+2, 1, ngrow);
 	    WarpX::Copy(*mf[lev], dcomp+1, 1, *Bfield[lev][1], 0);
@@ -359,7 +340,7 @@ WarpX::WritePlotFile () const
                 varnames.push_back("Bz");
             }
 
-            MultiFab temp_dat(grids[lev],1,0,mf[lev]->DistributionMap());
+            MultiFab temp_dat(grids[lev],mf[lev]->DistributionMap(),1,0);
             temp_dat.setVal(0);
 
             // MultiFab containing number of particles in each cell
@@ -415,7 +396,7 @@ WarpX::WritePlotFile () const
 	    mf2[lev] = mf[lev].get();
 	}
 
-	BoxLib::WriteMultiLevelPlotfile(plotfilename, finest_level+1, mf2, varnames,
+	amrex::WriteMultiLevelPlotfile(plotfilename, finest_level+1, mf2, varnames,
 					Geom(), t_new[0], istep, refRatio());
     }
 
@@ -459,7 +440,7 @@ WarpX::WriteJobInfo (const std::string& dir) const
 	jobInfoFile << "build date:    " << buildInfoGetBuildDate() << "\n";
 	jobInfoFile << "build machine: " << buildInfoGetBuildMachine() << "\n";
 	jobInfoFile << "build dir:     " << buildInfoGetBuildDir() << "\n";
-	jobInfoFile << "BoxLib dir:    " << buildInfoGetBoxlibDir() << "\n";
+	jobInfoFile << "AMReX dir:     " << buildInfoGetAMReXDir() << "\n";
 
 	jobInfoFile << "\n";
 
@@ -477,7 +458,7 @@ WarpX::WriteJobInfo (const std::string& dir) const
 	  jobInfoFile << "WarpX  git hash: " << githash1 << "\n";
 	}
 	if (strlen(githash2) > 0) {
-	  jobInfoFile << "BoxLib git hash: " << githash2 << "\n";
+	  jobInfoFile << "AMReX git hash: " << githash2 << "\n";
 	}
 	if (strlen(githash3) > 0) {
 	  jobInfoFile << "PICSAR git hash: " << githash3 << "\n";
@@ -530,7 +511,7 @@ WarpX::WriteJobInfo (const std::string& dir) const
 }
 
 void
-WarpX::PackPlotDataPtrs(std::vector<MultiFab*>& pmf,
+WarpX::PackPlotDataPtrs(Array<const MultiFab*>& pmf,
 			const Array<std::unique_ptr<MultiFab> >& data)
 {
     BL_ASSERT(pmf.size() == BL_SPACEDIM);

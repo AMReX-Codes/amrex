@@ -1,9 +1,10 @@
 #include <limits>
 
 #include <ParticleContainer.H>
-#include <ParticleIterator.H>
 #include <WarpX_f.H>
 #include <WarpX.H>
+
+using namespace amrex;
 
 MultiParticleContainer::MultiParticleContainer (AmrCore* amr_core)
 {
@@ -64,7 +65,7 @@ MultiParticleContainer::Evolve (int lev,
 	pc->Evolve(lev, Ex, Ey, Ez, Bx, By, Bz, jx, jy, jz, t, dt);
     }
 
-    const Geometry& gm = allcontainers[0]->GDB().Geom(lev);
+    const Geometry& gm = allcontainers[0]->Geom(lev);
     jx.SumBoundary(gm.periodicity());
     jy.SumBoundary(gm.periodicity());
     jz.SumBoundary(gm.periodicity());
@@ -88,17 +89,17 @@ MultiParticleContainer::GetChargeDensity (int lev, bool local)
 	MultiFab::Add(*rho, *rhoi, 0, 0, 1, rho->nGrow());
     }
     if (!local) {
-	const Geometry& gm = allcontainers[0]->GDB().Geom(lev);
+	const Geometry& gm = allcontainers[0]->Geom(lev);
 	rho->SumBoundary(gm.periodicity());
     }
     return rho;
 }
 
 void
-MultiParticleContainer::Redistribute (bool where_called)
+MultiParticleContainer::Redistribute ()
 {
     for (auto& pc : allcontainers) {
-	pc->Redistribute(where_called,true);
+	pc->Redistribute();
     }
 }
 

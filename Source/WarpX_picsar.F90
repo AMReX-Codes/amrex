@@ -14,12 +14,12 @@
 ! _________________________________________________________________
 !
 !> @brief
-!> Module that contains subroutines to be called with Boxlib
+!> Module that contains subroutines to be called with AMReX
 !> and that uses subroutines of Picsar
 !>
 !> @details
 !> This avoids the use of interface with bind in the core of Picsar
-!> This enables the use of integer in Boxlib and Logical in Picsar
+!> This enables the use of integer in AMReX and Logical in Picsar
 !> wihtout compatibility issue
 !>
 !> @author
@@ -32,7 +32,7 @@ module warpx_to_pxr_module
 ! _________________________________________________________________
 
   use iso_c_binding
-  use bl_fort_module, only : c_real
+  use amrex_fort_module, only : amrex_real
   use constants
 
   implicit none
@@ -71,11 +71,11 @@ contains
     integer(c_long), intent(in) :: np,nx,ny,nz,nox,noy,noz,nxguard,nyguard,nzguard
     integer(c_int), intent(in)  :: ll4symtry,l_lower_order_in_v
     integer(c_long),intent(in)   :: lvect
-    real(c_real), intent(in), dimension(np) :: xp,yp,zp
-    real(c_real), intent(out), dimension(np) :: ex,ey,ez,bx,by,bz
-    real(c_real), intent(in)    :: xmin,ymin,zmin,dx,dy,dz
-    real(c_real), intent(in), dimension(-nxguard:nx+nxguard,-nyguard:ny+nyguard,-nzguard:nz+nzguard) :: exg,eyg,ezg
-    real(c_real), intent(in), dimension(-nxguard:nx+nxguard,-nyguard:ny+nyguard,-nzguard:nz+nzguard) :: bxg,byg,bzg
+    real(amrex_real), intent(in), dimension(np) :: xp,yp,zp
+    real(amrex_real), intent(out), dimension(np) :: ex,ey,ez,bx,by,bz
+    real(amrex_real), intent(in)    :: xmin,ymin,zmin,dx,dy,dz
+    real(amrex_real), intent(in), dimension(-nxguard:nx+nxguard,-nyguard:ny+nyguard,-nzguard:nz+nzguard) :: exg,eyg,ezg
+    real(amrex_real), intent(in), dimension(-nxguard:nx+nxguard,-nyguard:ny+nyguard,-nzguard:nz+nzguard) :: bxg,byg,bzg
 
     logical(pxr_logical) :: pxr_ll4symtry, pxr_l_lower_order_in_v
 
@@ -122,13 +122,13 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
   integer(c_long), intent(IN)                                  :: nx,ny,nz
   integer(c_long), intent(IN)                                  :: nxguard,nyguard,nzguard
   integer(c_long), intent(IN)                                  :: nox,noy,noz
-  real(c_real), intent(IN OUT), dimension(-nxguard:nx+nxguard,&
+  real(amrex_real), intent(IN OUT), dimension(-nxguard:nx+nxguard,&
        &                                  -nyguard:ny+nyguard,&
        &                                  -nzguard:nz+nzguard) :: rho
-  real(c_real), intent(IN)                                     :: q
-  real(c_real), intent(IN)                                     :: dx,dy,dz
-  real(c_real), intent(IN)                                     :: xmin,ymin,zmin
-  real(c_real), intent(IN),  dimension(np)                     :: xp,yp,zp,w
+  real(amrex_real), intent(IN)                                     :: q
+  real(amrex_real), intent(IN)                                     :: dx,dy,dz
+  real(amrex_real), intent(IN)                                     :: xmin,ymin,zmin
+  real(amrex_real), intent(IN),  dimension(np)                     :: xp,yp,zp,w
   integer(c_long), intent(IN)                                  :: lvect
   integer(c_long), intent(IN)                                  :: charge_depo_algo
 
@@ -217,16 +217,16 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
     integer(c_long), intent(IN)                                  :: nx,ny,nz
     integer(c_long), intent(IN)                                  :: nxguard,nyguard,nzguard
     integer(c_long), intent(IN)                                  :: nox,noy,noz
-    real(c_real), intent(IN OUT), dimension(-nxguard:nx+nxguard,&
+    real(amrex_real), intent(IN OUT), dimension(-nxguard:nx+nxguard,&
          &                                  -nyguard:ny+nyguard,&
          &                                  -nzguard:nz+nzguard) :: jx,jy,jz
-    real(c_real), intent(IN)                                     :: q
-    real(c_real), intent(IN)                                     :: dx,dy,dz
-    real(c_real), intent(IN)                                     :: dt
-    real(c_real), intent(IN)                                     :: xmin,ymin,zmin
-    real(c_real), intent(IN),  dimension(np)                     :: xp,yp,zp,w
-    real(c_real), intent(IN),  dimension(np)                     :: uxp,uyp,uzp
-    real(c_real), intent(IN),  dimension(np)                     :: gaminv
+    real(amrex_real), intent(IN)                                 :: q
+    real(amrex_real), intent(IN)                                 :: dx,dy,dz
+    real(amrex_real), intent(IN)                                 :: dt
+    real(amrex_real), intent(IN)                                 :: xmin,ymin,zmin
+    real(amrex_real), intent(IN),  dimension(np)                 :: xp,yp,zp,w
+    real(amrex_real), intent(IN),  dimension(np)                 :: uxp,uyp,uzp
+    real(amrex_real), intent(IN),  dimension(np)                 :: gaminv
     integer(c_long), intent(IN)                                  :: lvect
     integer(c_long), intent(IN)                                  :: current_depo_algo
 
@@ -352,12 +352,12 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
        bind(C, name="warpx_particle_pusher")
 
     INTEGER(c_long), INTENT(IN)   :: np
-    REAL(c_real),INTENT(INOUT)    :: gaminv(np)
-    REAL(c_real),INTENT(INOUT)    :: xp(np),yp(np),zp(np)
-    REAL(c_real),INTENT(INOUT)    :: uxp(np),uyp(np),uzp(np)
-    REAL(c_real),INTENT(IN)       :: ex(np),ey(np),ez(np)
-    REAL(c_real),INTENT(IN)       :: bx(np),by(np),bz(np)
-    REAL(c_real),INTENT(IN)       :: q,m,dt
+    REAL(amrex_real),INTENT(INOUT)    :: gaminv(np)
+    REAL(amrex_real),INTENT(INOUT)    :: xp(np),yp(np),zp(np)
+    REAL(amrex_real),INTENT(INOUT)    :: uxp(np),uyp(np),uzp(np)
+    REAL(amrex_real),INTENT(IN)       :: ex(np),ey(np),ez(np)
+    REAL(amrex_real),INTENT(IN)       :: bx(np),by(np),bz(np)
+    REAL(amrex_real),INTENT(IN)       :: q,m,dt
     INTEGER(c_long), INTENT(IN)   :: particle_pusher_algo
 
     SELECT CASE (particle_pusher_algo)
