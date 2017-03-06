@@ -480,7 +480,7 @@ WarpX::WriteJobInfo (const std::string& dir) const
 	  jobInfoFile << "WarpX  git hash: " << githash1 << "\n";
 	}
 	if (strlen(githash2) > 0) {
-	  jobInfoFile << "BoxLib git hash: " << githash2 << "\n";
+	  jobInfoFile << "AMReX git hash: " << githash2 << "\n";
 	}
 	if (strlen(githash3) > 0) {
 	  jobInfoFile << "PICSAR git hash: " << githash3 << "\n";
