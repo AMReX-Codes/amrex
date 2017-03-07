@@ -1769,7 +1769,7 @@ namespace amrex
   }
 
 /*******************************/
-  EBGraph::EBGraph(const Box& a_box, int a_comps)
+  EBGraph::EBGraph(const Box& a_box, int a_comps, bool alloc, bool shared)
     : m_implem( std::shared_ptr<EBGraphImplem>( new EBGraphImplem(a_box) ) )
   {
   }

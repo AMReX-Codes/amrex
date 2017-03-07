@@ -415,6 +415,9 @@ namespace amrex
   class EBGraph
   {
   public:
+    ///sure hope this does not matter
+    typedef int value_type;
+
     ///
     /**
        The EBGraph can be all regular or all
@@ -556,7 +559,10 @@ namespace amrex
        region.  The component argument is ignored.
        This function is required by LevelData.
     */
-    EBGraph(const Box& a_box, int a_comps);
+    EBGraph(const Box& a_box, int a_comps, 
+            bool       alloc = true,
+            bool       shared = false);
+
 
     ///
     /**
@@ -598,6 +604,11 @@ namespace amrex
     */
     void define(const Box& box);
 
+///need for fabarray
+    void resize(const Box& box, const int & _ncomp)
+      {
+        define(box);
+      }
     ///
     /**
        Copy the information from a_source to the over the intersection
