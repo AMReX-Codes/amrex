@@ -24,9 +24,11 @@ namespace amrex
 ////////////
   int checkGraph(const EBGraph& a_ebgraph)
   {
-    const Box& domain = a_ebgraph.getRegion();
+    const Box& domain = a_ebgraph.getDomain();
+    Box region = a_ebgraph.getRegion();
+    region &= domain;
     ///account for regular and covered cells
-    for (BoxIterator bit(domain); bit.ok(); ++bit)
+    for (BoxIterator bit(region); bit.ok(); ++bit)
     {
       IntVect iv = bit();
       //check to see that there is never a regular cell next
@@ -38,7 +40,7 @@ namespace amrex
           IntVect ivshift = BASISV(idir);
           ivshift[idir] *= sign(sit());
           IntVect ivneigh = iv + ivshift;
-          if (domain.contains(ivneigh))
+          if (region.contains(ivneigh))
           {
             if((a_ebgraph.isRegular(iv) && a_ebgraph.isCovered(ivneigh) )  ||
                (a_ebgraph.isCovered(iv) && a_ebgraph.isRegular(ivneigh)))
@@ -163,6 +165,7 @@ namespace amrex
     //now lets make a second one and see if copy works
     FabArray<EBGraph> secondgraph(ba, dm, 1, 4);
     secondgraph.copy(allgraphs, 0, 0, 1);
+    secondgraph.FillBoundary();
     for(MFIter mfi(allgraphs); mfi.isValid(); ++mfi)
     {
       EBGraph& ebgraph = secondgraph[mfi];

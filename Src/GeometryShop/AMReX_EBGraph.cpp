@@ -1300,7 +1300,10 @@ namespace amrex
        int                  a_numcomp)
   {
     assert(isDefined());
-    assert(isDomainSet());
+    if(!isDomainSet())
+    {
+      setDomain(a_source.m_domain);
+    }
     Box regionTo  = a_destbox;
     Box regionFrom= a_srcbox;
     if (isRegular(regionTo) && a_source.isRegular(regionFrom))
