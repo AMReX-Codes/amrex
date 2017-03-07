@@ -28,10 +28,10 @@ endif()
 #
 # An example cmake input file to build an app that links to the libs built as above:
 #
-#              BoxLib/Tutorials/MultiGrid_C/CMakeLists.txt
+#              ./Tutorials/MultiGrid_C/CMakeLists.txt
 #
 # To build this tutorial with cmake, follow instructions similar to the above for building
-# BoxLib:
+# AMReX:
 #
 #     #> mkdir <new_build_dir>
 #     #> cd <new_build_dir>
@@ -49,7 +49,7 @@ project(CCSE)
 
 # Compile options:
 OPTION (ENABLE_FORTRAN_MPI "Enable Fortran MPI Communicator" ON)
-OPTION (ENABLE_MG_FBOXLIB "Enable Fortran for MultiGrid Solver" OFF)
+OPTION (ENABLE_FMG "Enable Fortran for MultiGrid Solver" OFF)
 OPTION (ENABLE_FBASELIB "Enable Fortran BaseLib" OFF)
 OPTION (ENABLE_CXX11 "Enable C++11" ON)
 OPTION (ENABLE_POSITION_INDEPENDENT_CODE "Compile with position-independent code enabled" OFF)
@@ -59,18 +59,18 @@ OPTION (ENABLE_POSITION_INDEPENDENT_CODE "Compile with position-independent code
 # directly below.  NOTE: If the C++ classes are to be used, the BL_SPACEDIM value must
 # agree between the lib and the app (at the moment this is not checked)
 #
-set(BL_SPACEDIM 3 CACHE INT "Dimension of BoxLib build")
+set(BL_SPACEDIM 3 CACHE INT "Dimension of AMReX build")
 set(ENABLE_MPI 1 CACHE INT "Enable build with MPI")
 set(ENABLE_OpenMP 0 CACHE INT "Enable build with OpenMP")
-set(BL_PRECISION "DOUBLE" CACHE INT "Precision of BoxLib build")
-set(BL_USE_PARTICLES 0 CACHE INT "Include Particles classes in BoxLib build")
-set(ENABLE_PROFILING 0 CACHE INT "Include profiling information in BoxLib build")
-set(ENABLE_BACKTRACE 1 CACHE INT "Include backtrace information in BoxLib build")
+set(BL_PRECISION "DOUBLE" CACHE INT "Precision of AMReX build")
+set(BL_USE_PARTICLES 0 CACHE INT "Include Particles classes in AMReX build")
+set(ENABLE_PROFILING 0 CACHE INT "Include profiling information in AMReX build")
+set(ENABLE_BACKTRACE 1 CACHE INT "Include backtrace information in AMReX build")
 
 # None, Debug, Release, RelWithDebInfo, MinSizeRel
 set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Type of CMake build")
 
-set(CMAKE_INSTALL_PREFIX "${CURRENT_CMAKE_BINDARY_DIR}" CACHE STRING "Root dir where BoxLib files installed")
+set(CMAKE_INSTALL_PREFIX "${CURRENT_CMAKE_BINDARY_DIR}" CACHE STRING "Root dir where AMReX files installed")
 
 # Enable testing, ctest needs this
 # all add_test commands are ignored unless this is called!
@@ -87,7 +87,7 @@ set(CCSE_MODULE_PATH "${CCSE_TOOLS_DIR}/CMake")
 set(CMAKE_MODULE_PATH  ${CCSE_MODULE_PATH})
 
 # Addtional build options
-include(BoxLib_Version)
+include(AMReX_Version)
 include(CCSEOptions)
 
 # A property for accumulating the a global CCSE link line.
@@ -108,8 +108,8 @@ ADD_INSTALL_PERLSCRIPT(${CCSE_PERL_DIR}/strip72)
 ADD_INSTALL_INCLUDE_FILE(${CCSE_PERL_DIR}/buildInfo.H)
 ADD_INSTALL_CMAKE_FILES(${CCSE_MODULE_PATH}/CCSEOptions.cmake)
 ADD_INSTALL_CMAKE_FILES(${CCSE_MODULE_PATH}/FindCCSE.cmake)
-ADD_INSTALL_CMAKE_FILES(${CCSE_MODULE_PATH}/PreprocessBoxLibFortran.cmake)
-ADD_INSTALL_CMAKE_FILES(${CCSE_MODULE_PATH}/PreprocessBoxLibFortran90.cmake)
+ADD_INSTALL_CMAKE_FILES(${CCSE_MODULE_PATH}/PreprocessAMReXFortran.cmake)
+ADD_INSTALL_CMAKE_FILES(${CCSE_MODULE_PATH}/PreprocessAMReXFortran90.cmake)
 ADD_INSTALL_CMAKE_FILES(${CCSE_MODULE_PATH}/CCSEConfigVersion-install.cmake.in)
 
 option(ENABLE_Config_Report "Print out detailed information at the end of a configuration")
