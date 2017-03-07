@@ -19,15 +19,23 @@ PhysicalParticleContainer::InitData()
 {
     BL_PROFILE("PPC::InitData()");
 
-    charge = -PhysConst::q_e;
-    mass = PhysConst::m_e;
+    // species_id 0 : electrons
+    // species_id 1 : Hydrogen ions
+    // Note: the ions of the plasma are implicitly motionless, and so are not part of the simulation
+    if (species_id == 0) {
+        charge = -PhysConst::q_e;
+    	mass = PhysConst::m_e;
+    } else {
+        charge = PhysConst::q_e;
+        mass = PhysConst::m_p;
+    }
 
     const int lev = 0;
 
     const Geometry& geom = Geom(lev);
     const Real* dx  = geom.CellSize();
 
-    Real weight, u_th;
+    Real weight, u_th, ux_m, uy_m, uz_m;
     Real particle_shift_x, particle_shift_y, particle_shift_z;
     int n_part_per_cell;
     {
@@ -43,8 +51,17 @@ PhysicalParticleContainer::InitData()
       #endif
 
       u_th = 0.;
+      ux_m = 0.;
+      uy_m = 0.;
+      uz_m = 0.;
       pp.query("u_th", u_th);
+      pp.query("ux_m", ux_m);
+      pp.query("uy_m", uy_m);
+      pp.query("uz_m", uz_m);
       u_th *= PhysConst::c;
+      ux_m *= PhysConst::c;
+      uy_m *= PhysConst::c;
+      uz_m *= PhysConst::c;
     }
 
     std::array<Real,PIdx::nattribs> attribs;
@@ -54,7 +71,6 @@ PhysicalParticleContainer::InitData()
     // Initialize random generator for normal distribution
     std::default_random_engine generator;
     std::normal_distribution<Real> velocity_distribution(0.0, u_th);
-    std::uniform_real_distribution<Real> position_distribution(0.0,1.0);
 
     for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
@@ -70,28 +86,26 @@ PhysicalParticleContainer::InitData()
             for (int i_part=0; i_part<n_part_per_cell;i_part++)
             {
                 // Randomly generate the speed according to a normal distribution
-                Real ux = velocity_distribution(generator);
-                Real uy = velocity_distribution(generator);
-                Real uz = velocity_distribution(generator);
+                Real ux_th = velocity_distribution(generator);
+                Real uy_th = velocity_distribution(generator);
+                Real uz_th = velocity_distribution(generator);
 
                 // Randomly generate the positions (uniformly inside each cell)
-                Real particle_shift_x = position_distribution(generator);
-                Real particle_shift_y = position_distribution(generator);
-                Real particle_shift_z = position_distribution(generator);
+                Real particle_shift = (0.5+i_part)/n_part_per_cell;
 
 #if (BL_SPACEDIM == 3)
-                Real x = tile_real_box.lo(0) + (iv[0]-boxlo[0] + particle_shift_x)*dx[0];
-                Real y = tile_real_box.lo(1) + (iv[1]-boxlo[1] + particle_shift_y)*dx[1];
-                Real z = tile_real_box.lo(2) + (iv[2]-boxlo[2] + particle_shift_z)*dx[2];
+                Real x = tile_real_box.lo(0) + (iv[0]-boxlo[0] + particle_shift)*dx[0];
+                Real y = tile_real_box.lo(1) + (iv[1]-boxlo[1] + particle_shift)*dx[1];
+                Real z = tile_real_box.lo(2) + (iv[2]-boxlo[2] + particle_shift)*dx[2];
 #elif (BL_SPACEDIM == 2)
-                Real x = tile_real_box.lo(0) + (iv[0]-boxlo[0] + particle_shift_x)*dx[0];
+                Real x = tile_real_box.lo(0) + (iv[0]-boxlo[0] + particle_shift)*dx[0];
                 Real y = 0.0;
-                Real z = tile_real_box.lo(1) + (iv[1]-boxlo[1] + particle_shift_z)*dx[1];
-#endif   
+                Real z = tile_real_box.lo(1) + (iv[1]-boxlo[1] + particle_shift)*dx[1];
+#endif
 
-                attribs[PIdx::ux] = ux;
-                attribs[PIdx::uy] = uy;
-                attribs[PIdx::uz] = uz;
+                attribs[PIdx::ux] = ux_m + ux_th;
+                attribs[PIdx::uy] = uy_m + uy_th;
+                attribs[PIdx::uz] = uz_m + uz_th;
 
                 AddOneParticle(lev, grid_id, tile_id, x, y, z, attribs);
             }
