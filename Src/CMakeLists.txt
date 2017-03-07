@@ -47,5 +47,4 @@ SET_TARGET_PROPERTIES(fboxlib PROPERTIES LINKER_LANGUAGE C)
 
 add_subdirectory(${CAMRDATADIR})
 
-add_subdirectory(Extern/gslib)
 
