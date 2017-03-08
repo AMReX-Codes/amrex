@@ -45,6 +45,8 @@ contains
     if (.not.amrex_amrcore_initialized()) call amrex_amrcore_init()
     
     call amrex_init_virtual_functions (my_make_new_level_from_scratch, &
+         &                             my_make_new_level_from_coarse,  &
+         &                             my_remake_level,                &
          &                             my_clear_level,                 &
          &                             my_error_estimate)
 
@@ -97,7 +99,6 @@ contains
     allocate(phi_old(0:amrex_max_level))
 
     ! allocate(flux_reg(0:amrex_max_level))
-
   end subroutine my_amr_init
 
 
@@ -147,8 +148,21 @@ contains
     end do
 
     call amrex_mfiter_destroy(mfi)
-
   end subroutine my_make_new_level_from_scratch
+
+  subroutine my_make_new_level_from_coarse (lev, time, pba, pdm) bind(c)
+    integer, intent(in), value :: lev
+    real(amrex_real), intent(in), value :: time
+    type(c_ptr), intent(in), value :: pba, pdm
+    call amrex_abort("my_remake_level not imlemented")
+  end subroutine my_make_new_level_from_coarse
+
+  subroutine my_remake_level (lev, time, pba, pdm) bind(c)
+    integer, intent(in), value :: lev
+    real(amrex_real), intent(in), value :: time
+    type(c_ptr), intent(in), value :: pba, pdm
+    call amrex_abort("my_remake_level not imlemented")
+  end subroutine my_remake_level
 
   subroutine my_clear_level (lev) bind(c)
     integer, intent(in), value :: lev
