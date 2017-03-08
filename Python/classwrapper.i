@@ -24,8 +24,8 @@
 %inline %{
   std::ifstream & open_ifstream(const char *filename) {
     std::ifstream *infile = new std::ifstream(filename);
-    return *infile; 
-  } 
+    return *infile;
+  }
 %}
 
 %inline %{
@@ -52,7 +52,7 @@
 
 typedef double Real;
 
-%include "../../BoxLib/Src/C_BaseLib/Array.H"
+%include "../../amrex/Src/C_BaseLib/Array.H"
 
 %extend Array {
     T& __getitem__ (size_t i)
@@ -103,7 +103,7 @@ typedef double Real;
 }
 
 // Note that IntVect.H cannot be directly included since swig cannot parse the line setting up "const int* getVect".
-//%include "../../BoxLib/Src/C_BaseLib/IntVect.H"
+//%include "../../amrex/Src/C_BaseLib/IntVect.H"
 class IntVect {
 public:
 
@@ -168,20 +168,20 @@ public:
     //}
 }
 
-//%include "../../BoxLib/Src/C_BaseLib/Box.H"
-//%include "../../BoxLib/Src/C_BaseLib/FArrayBox.H"
-//%include "../../BoxLib/Src/C_BaseLib/BoxArray.H"
-//%include "../../BoxLib/Src/C_BaseLib/MultiFab.H"
+//%include "../../amrex/Src/C_BaseLib/Box.H"
+//%include "../../amrex/Src/C_BaseLib/FArrayBox.H"
+//%include "../../amrex/Src/C_BaseLib/BoxArray.H"
+//%include "../../amrex/Src/C_BaseLib/MultiFab.H"
 
 //#if (BL_SPACEDIM > 2)
 %ignore GetDLogA;
 //#endif
 
-%include "../../BoxLib/Src/C_BaseLib/Geometry.H"
+%include "../../amrex/Src/C_BaseLib/Geometry.H"
 
 %template(arrayBoxArray) Array<BoxArray>;
 
-%include "../../BoxLib/Src/C_ParticleLib/Particles.H"
+%include "../../amrex/Src/C_ParticleLib/Particles.H"
 
 //%template("WarpXParticleBase") Particle<PIdx::nattribs,0>;
 %template("WarpXParticleContainerBase") ParticleContainer<PIdx::nattribs,0,std::vector<Particle<PIdx::nattribs,0> > >;
@@ -201,7 +201,7 @@ public:
                                              result.dataPtr(), NPY_ARRAY_F_CONTIGUOUS|NPY_ARRAY_WRITEABLE, NULL);
         Py_INCREF(arr);
         return arr;
-    } 
+    }
     PyObject * getData(int start_comp, int num_comp) {
         Array<Real> result(0);
         self->GetParticleData(result, start_comp, num_comp);
@@ -225,6 +225,5 @@ public:
     }
 };
 
-%include "../../BoxLib/Src/C_AmrCoreLib/AmrCore.H"
+%include "../../amrex/Src/C_AmrCoreLib/AmrCore.H"
 %include "../Source/WarpX.H"
-
