@@ -1,0 +1,26 @@
+
+GEOMETRYSHOP_BASE=EXE
+ifeq ($(LBASE),GeometryShop)
+  GEOMETRYSHOP_BASE=LIB
+endif
+
+
+C$(GEOMETRYSHOP_BASE)_headers += AMReX_RealVect.H  AMReX_BaseIF.H AMReX_BoxIterator.H    AMReX_GeometryShop.H   AMReX_Moments.H
+C$(GEOMETRYSHOP_BASE)_sources += AMReX_RealVect.cpp               AMReX_BoxIterator.cpp  AMReX_GeometryShop.cpp AMReX_Moments.cpp 
+
+C$(GEOMETRYSHOP_BASE)_headers +=  AMReX_LSquares.H   AMReX_SphereIF.H    AMReX_PlaneIF.H    AMReX_IrregNode.H   AMReX_LoHiSide.H 
+C$(GEOMETRYSHOP_BASE)_sources +=  AMReX_LSquares.cpp AMReX_SphereIF.cpp  AMReX_PlaneIF.cpp  AMReX_IrregNode.cpp AMReX_LoHiSide.cpp
+
+C$(GEOMETRYSHOP_BASE)_headers += AMReX_IntVectSet.H     AMReX_FlatPlateGeom.H    AMReX_EBCellFAB.H    AMReX_FaceIndex.H     AMReX_VolIndex.H 
+C$(GEOMETRYSHOP_BASE)_sources +=  AMReX_IntVectSet.cpp  AMReX_FlatPlateGeom.cpp  AMReX_EBCellFAB.cpp  AMReX_FaceIndex.cpp   AMReX_VolIndex.cpp
+
+C$(GEOMETRYSHOP_BASE)_headers +=   AMReX_Stencils.H   AMReX_GraphNode.H   AMReX_SPMD.H AMReX_SPMDI.H  AMReX_EBGraph.H
+C$(GEOMETRYSHOP_BASE)_sources +=   AMReX_Stencils.cpp AMReX_GraphNode.cpp AMReX_SPMD.cpp              AMReX_EBGraph.cpp
+
+C$(GEOMETRYSHOP_BASE)_headers +=   AMReX_VoFIterator.H   AMReX_FaceIterator.H
+C$(GEOMETRYSHOP_BASE)_sources +=   AMReX_VoFIterator.cpp AMReX_FaceIterator.cpp
+
+
+VPATH_LOCATIONS   += $(AMREX_HOME)/Src/GeometryShop
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/GeometryShop
+

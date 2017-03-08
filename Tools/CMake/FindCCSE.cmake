@@ -64,7 +64,7 @@ else(CCSE_LIBRARIES AND CCSE_INCLUDE_DIRS AND CCSE_PERL_DIR)
     #  (2) CCSE_DIR/include
     #  (3) Default CMake paths See cmake --html-help=out.html file for more information.
     #
-    set(ccse_inc_names "BoxLib.H")
+    set(ccse_inc_names "AMReX.H")
 
     if (CCSE_INCLUDE_DIR)
 
@@ -168,7 +168,7 @@ else(CCSE_LIBRARIES AND CCSE_INCLUDE_DIRS AND CCSE_PERL_DIR)
     endif()
 
     # Now, make sure the rest are in the same place
-    set(CCSE_LIBRARIES cboxlib;fboxlib;cfboxlib;box_camrdata;gslib)
+    set(CCSE_LIBRARIES cboxlib;fboxlib;cfboxlib;box_camrdata)
 
     foreach (L ${CCSE_LIBRARIES})
 

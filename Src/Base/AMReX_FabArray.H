@@ -22,11 +22,11 @@
 
 #include <AMReX_BLassert.H>
 #include <AMReX_Array.H>
-
 #include <AMReX_Box.H>
 #include <AMReX.H>
 #include <AMReX_BoxArray.H>
 #include <AMReX_BoxDomain.H> 
+#include <AMReX_FabFactory.H>
 #include <AMReX_FArrayBox.H>
 #include <AMReX_DistributionMapping.H>
 #include <AMReX_ParallelDescriptor.H>
@@ -151,60 +151,6 @@ public:
     //! Return constant reference to associated DistributionMapping.
     const DistributionMapping& DistributionMap () const { return distributionMap; }
 
-    // Some static member templates used throughout the code.
-
-    //! Block until all send requests complete
-    template<typename T>
-    static void WaitForAsyncSends (int                 N_snds,
-                                   Array<MPI_Request>& send_reqs,
-                                   Array<T*>&          send_data,
-                                   Array<MPI_Status>&  stats);
-
-#ifdef BL_USE_UPCXX
-    //! Block until all send requests complete
-    template<typename T>
-    static void WaitForAsyncSends_PGAS (int                 N_snds,
-                                        Array<T*>&          send_data,
-                                        upcxx::event*       send_event,
-                                        volatile int*       send_counter);
-#endif
-
-    //! Prepost nonblocking receives
-    template<typename T>
-    static void PostRcvs (const std::map<int,int>&               m_RcvVols,
-                          T*&                                    the_recv_data,
-                          Array<T*>&                             recv_data,
-                          Array<int>&                            recv_from,
-                          Array<MPI_Request>&                    recv_reqs,
-                          int                                    ncomp,
-                          int                                    SeqNum,
-			  MPI_Comm   comm = ParallelDescriptor::Communicator());
-
-#ifdef BL_USE_MPI3
-    template<typename T>
-    static void PostRcvs_MPI_Onesided (
-			  const std::map<int,int>&               m_RcvVols,
-                          T*&                                    the_recv_data,
-                          Array<T*>&                             recv_data,
-                          Array<int>&                            recv_from,
-                          Array<MPI_Request>&                    recv_reqs,
-                          Array<MPI_Aint>          &             recv_disp,
-                          int                                    ncomp,
-                          int                                    SeqNum,
-			  MPI_Win &                              win);
-#endif
-  
-#ifdef BL_USE_UPCXX
-    template<typename T>
-    static void PostRcvs_PGAS (const std::map<int,int>&               m_RcvVols,
-                               T*&                                    the_recv_data,
-                               Array<T*>&                             recv_data,
-                               Array<int>&                            recv_from,
-                               int                                    ncomp,
-                               int                                    SeqNum,
-                               upcxx::event*                          recv_event);
-#endif
-
     //
     struct CacheStats
     {
@@ -292,8 +238,10 @@ public:
     struct TileArray
     {
 	int nuse;
+	Array<int> numLocalTiles;
 	Array<int> indexMap;	
 	Array<int> localIndexMap;
+	Array<int> localTileIndexMap;
 	Array<Box> tileArray;
 	TileArray () : nuse(-1) {;}
 	long bytes () const;
@@ -418,6 +366,22 @@ public:
     //
     enum CpOp { COPY = 0, ADD = 1 };
 
+    const TileArray* getTileArray (const IntVect& tilesize) const;
+
+    //! Block until all send requests complete
+    static void WaitForAsyncSends (int                 N_snds,
+                                   Array<MPI_Request>& send_reqs,
+                                   Array<char*>&       send_data,
+                                   Array<MPI_Status>&  stats);
+
+#ifdef BL_USE_UPCXX
+    //! Block until all send requests complete
+    static void WaitForAsyncSends_PGAS (int                 N_snds,
+                                        Array<char*>&       send_data,
+                                        upcxx::event*       send_event,
+                                        volatile int*       send_counter);
+#endif
+
 protected:
 
     DistributionMapping& ModifyDistributionMap () { return distributionMap; }
@@ -454,7 +418,6 @@ protected:
     static TACache     m_TheTileArrayCache;
     static CacheStats  m_TAC_stats;
     //
-    const TileArray* getTileArray (const IntVect& tilesize) const;
     void buildTileArray (const IntVect& tilesize, TileArray& ta) const;
     //
     void flushTileArray (const IntVect& tilesize = IntVect::TheZeroVector(), 
@@ -483,8 +446,8 @@ protected:
         CopyComTagsContainer*      m_LocTags;
         MapOfCopyComTagContainers* m_SndTags;
         MapOfCopyComTagContainers* m_RcvTags;
-        std::map<int,int>*         m_SndVols;
-        std::map<int,int>*         m_RcvVols;
+        MapOfCopyComTagContainers* m_SndVols;
+        MapOfCopyComTagContainers* m_RcvVols;
 	//
 	int                 m_nuse;
 	//
@@ -537,8 +500,8 @@ protected:
         CopyComTagsContainer*      m_LocTags;
         MapOfCopyComTagContainers* m_SndTags;
         MapOfCopyComTagContainers* m_RcvTags;
-        std::map<int,int>*         m_SndVols;
-        std::map<int,int>*         m_RcvVols;
+        MapOfCopyComTagContainers* m_SndVols;
+        MapOfCopyComTagContainers* m_RcvVols;
 	//
         int         m_nuse;
 
@@ -669,10 +632,16 @@ public:
     void operator++ () { ++currentIndex; }
 
     //! Is the iterator valid i.e. is it associated with a FAB?
-    bool isValid () { return currentIndex < endIndex; }
+    bool isValid () const { return currentIndex < endIndex; }
 
     //! The index into the underlying BoxArray of the current FAB.
     int index () const { return (*index_map)[currentIndex]; }
+
+    //! The current local tile index in the current grid;
+    int LocalTileIndex () const {return local_tile_index_map ? (*local_tile_index_map)[currentIndex] : 0;}
+  
+    //! The the number of tiles in the current grid;
+    int numLocalTiles() const {return num_local_tiles ? (*num_local_tiles)[currentIndex] : 1;}
 
     /**
     * \brief Return local index into the vector of fab pointers, m_fabs_v
@@ -682,6 +651,8 @@ public:
 
     //! Constant reference to FabArray over which we're iterating.
     const FabArrayBase& theFabArrayBase () const { return fabArray; }
+
+    int tileIndex () const {return currentIndex;}
 
 protected:
 
@@ -698,7 +669,9 @@ protected:
     const Array<int>* index_map;
     const Array<int>* local_index_map;
     const Array<Box>* tile_array;
-
+    const Array<int>* local_tile_index_map;
+    const Array<int>* num_local_tiles;
+  
     void Initialize ();
 };
 
@@ -803,7 +776,8 @@ public:
               const DistributionMapping& dm,
               int                        nvar,
               int                        ngrow,
-	      const MFInfo&              info = MFInfo());
+	      const MFInfo&              info = MFInfo(),
+              const FabFactory<FAB>&     factory = DefaultFabFactory<FAB>());
 
     //! The destructor -- deletes all FABs in the array.
     virtual ~FabArray ();
@@ -824,7 +798,8 @@ public:
 			 const DistributionMapping& dm,
 			 int                        nvar,
 			 int                        ngrow,
-			 const MFInfo&              info = MFInfo());
+			 const MFInfo&              info = MFInfo(),
+                         const FabFactory<FAB>&     factory = DefaultFabFactory<FAB>());
 
     /**
     * \brief Return true if the FabArray is well-defined.  That is,
@@ -1140,10 +1115,48 @@ protected:
 private:
     typedef typename std::vector<FAB*>::iterator    Iterator;
 
-    void AllocFabs ();
+    void AllocFabs (const FabFactory<FAB>& factory);
 
     void FBEP_nowait (int scomp, int ncomp, const Periodicity& period, bool cross,
 		      bool enforce_periodicity_only = false);
+
+    //! Prepost nonblocking receives
+    void PostRcvs (const MapOfCopyComTagContainers&       m_RcvVols,
+                   char*&                                 the_recv_data,
+                   Array<char*>&                          recv_data,
+                   Array<int>&                            recv_size,
+                   Array<int>&                            recv_from,
+                   Array<MPI_Request>&                    recv_reqs,
+                   int                                    icomp,
+                   int                                    ncomp,
+                   int                                    SeqNum,
+                   MPI_Comm   comm = ParallelDescriptor::Communicator());
+    
+#ifdef BL_USE_MPI3
+    void PostRcvs_MPI_Onesided (const MapOfCopyComTagContainers&  m_RcvVols,
+                                char*&                            the_recv_data,
+                                Array<char*>&                     recv_data,
+                                Array<int>&                       recv_size,
+                                Array<int>&                       recv_from,
+                                Array<MPI_Request>&               recv_reqs,
+                                Array<MPI_Aint>          &        recv_disp,
+                                int                               icomp,
+                                int                               ncomp,
+                                int                               SeqNum,
+                                MPI_Win &                         win);
+#endif
+  
+#ifdef BL_USE_UPCXX
+    void PostRcvs_PGAS (const MapOfCopyComTagContainers&  m_RcvVols,
+                        char*&                            the_recv_data,
+                        Array<char*>&                     recv_data,
+                        Array<int>&                       recv_size,
+                        Array<int>&                       recv_from,
+                        int                               icomp,
+                        int                               ncomp,
+                        int                               SeqNum,
+                        upcxx::event*                     recv_event);
+#endif
 
 public:
     // Data used in non-blocking FillBoundary
@@ -1152,15 +1165,16 @@ public:
     Periodicity fb_period;
 
     //
-    value_type*        fb_the_recv_data;
+    char*              fb_the_recv_data;
     Array<int>         fb_recv_from;
-    Array<value_type*> fb_recv_data;
+    Array<char*>       fb_recv_data;
+    Array<int>         fb_recv_size;
     Array<MPI_Request> fb_recv_reqs;
 #ifdef BL_USE_MPI3
     Array<MPI_Aint>    fb_recv_disp;
 #endif
     //
-    Array<value_type*> fb_send_data;
+    Array<char*>       fb_send_data;
     Array<MPI_Request> fb_send_reqs;
 };
 
@@ -1354,135 +1368,134 @@ private:
     bool                        dataAvailable;
 };
 
-template<typename T>
+template <class FAB>
 void
-FabArrayBase::PostRcvs (const std::map<int,int>&               m_RcvVols,
-                        T*&                                    the_recv_data,
-                        Array<T*>&                             recv_data,
-                        Array<int>&                            recv_from,
-                        Array<MPI_Request>&                    recv_reqs,
-                        int                                    ncomp,
-                        int                                    SeqNum,
-			MPI_Comm                               comm)
+FabArray<FAB>::PostRcvs (const MapOfCopyComTagContainers&  m_RcvVols,
+                         char*&                            the_recv_data,
+                         Array<char*>&                     recv_data,
+                         Array<int>&                       recv_size,
+                         Array<int>&                       recv_from,
+                         Array<MPI_Request>&               recv_reqs,
+                         int                               icomp,
+                         int                               ncomp,
+                         int                               SeqNum,
+                         MPI_Comm                          comm)
 {
-    int TotalRcvsVolume = 0;
+    recv_data.clear();
+    recv_size.clear();
+    recv_from.clear();
+    recv_reqs.clear();
 
-    for (std::map<int,int>::const_iterator it = m_RcvVols.begin(),
-             End = m_RcvVols.end();
-         it != End;
-         ++it)
+    std::size_t TotalRcvsVolume = 0;
+    for (const auto& kv : m_RcvVols) // loop over senders
     {
-        TotalRcvsVolume += it->second;
+        std::size_t nbytes = 0;
+        for (auto const& cct : kv.second)
+        {
+            nbytes += (*this)[cct.dstIndex].nBytes(cct.dbox,icomp,ncomp);
+        }
+
+        BL_ASSERT(nbytes < std::numeric_limits<int>::max());
+
+        TotalRcvsVolume += nbytes;
+
+        recv_data.push_back(nullptr);
+        recv_size.push_back(static_cast<int>(nbytes));
+        recv_from.push_back(kv.first);
+        recv_reqs.push_back(MPI_REQUEST_NULL);
     }
 
-    TotalRcvsVolume *= ncomp;
-
-    BL_ASSERT((TotalRcvsVolume*sizeof(T)) < std::numeric_limits<int>::max());
-
-    the_recv_data = static_cast<T*>(amrex::The_Arena()->alloc(TotalRcvsVolume*sizeof(T)));
-
-    int Offset = 0;
-
-    for (std::map<int,int>::const_iterator it = m_RcvVols.begin(),
-             End = m_RcvVols.end();
-         it != End;
-         ++it)
+    if (TotalRcvsVolume == 0)
     {
-        const int N = it->second*ncomp;
+        the_recv_data = nullptr;
+    }
+    else
+    {
+        the_recv_data = static_cast<char*>(amrex::The_Arena()->alloc(TotalRcvsVolume));
 
-        BL_ASSERT(N < std::numeric_limits<int>::max());
-
-        recv_data.push_back(&the_recv_data[Offset]);
-        recv_from.push_back(it->first);
-        recv_reqs.push_back(ParallelDescriptor::Arecv(recv_data.back(),N,it->first,SeqNum,comm).req());
-
-        Offset += N;
+        int nrecv = recv_from.size();
+        
+        std::size_t offset = 0;
+        for (int i = 0; i < nrecv; ++i)
+        {
+            if (recv_size[i] > 0)
+            {
+                recv_data[i] = the_recv_data + offset;
+                recv_reqs[i] = ParallelDescriptor::Arecv(recv_data[i], recv_size[i],
+                                                         recv_from[i], SeqNum, comm).req();
+                offset += recv_size[i];
+            }
+        }
     }
 }
 
 #ifdef BL_USE_MPI3
-template<typename T>
+template <class FAB>
 void
-FabArrayBase::PostRcvs_MPI_Onesided (
-			const std::map<int,int>&               m_RcvVols,
-                        T*&                                    the_recv_data,
-                        Array<T*>&                             recv_data,
-                        Array<int>&                            recv_from,
-                        Array<MPI_Request>&                    recv_reqs,
-                        Array<MPI_Aint> &                      recv_disp,
-                        int                                    ncomp,
-			int                                    SeqNum,
-			MPI_Win &                              win)
+FabArray<FAB>::PostRcvs_MPI_Onesided (const MapOfCopyComTagContainers&  m_RcvVols,
+                                      char*&                            the_recv_data,
+                                      Array<char*>&                     recv_data,
+                                      Array<int>&                       recv_size,
+                                      Array<int>&                       recv_from,
+                                      Array<MPI_Request>&               recv_reqs,
+                                      Array<MPI_Aint> &                 recv_disp,
+                                      int                               icomp,
+                                      int                               ncomp,
+                                      int                               SeqNum,
+                                      MPI_Win &                         win)
 {
-    int TotalRcvsVolume = 0;
+    recv_data.clear();
+    recv_size.clear();
+    recv_from.clear();
+    recv_reqs.clear();
+    recv_disp.clear();
 
-    for (std::map<int,int>::const_iterator it = m_RcvVols.begin(),
-             End = m_RcvVols.end();
-         it != End;
-         ++it)
+    std::size_t TotalRcvsVolume = 0;
+    for (const auto& kv : m_RcvVols) // loop over senders
     {
-        TotalRcvsVolume += it->second;
+        std::size_t nbytes = 0;
+        for (const auto& cct : kv.second)
+        {
+            nbytes += (*this)[cct.dstIndex].nBytes(cct.dbox,icomp,ncomp);
+        }
+
+        BL_ASSERT(nbytes < std::numeric_limits<int>::max());
+
+        TotalRcvsVolume += nbytes;
+
+        recv_data.push_back(nullptr);
+        recv_size.push_back(static_cast<int>(nbytes));
+        recv_from.push_back(kv.first);
+        recv_reqs.push_back(MPI_REQUEST_NULL);
+        recv_disp.push_back(0);
     }
 
-    TotalRcvsVolume *= ncomp;
-
-    BL_ASSERT((TotalRcvsVolume*sizeof(T)) < std::numeric_limits<int>::max());
-
-    the_recv_data = static_cast<T*>(amrex::The_Arena()->alloc(TotalRcvsVolume*sizeof(T)));
-
-    MPI_Win_attach(win, the_recv_data, TotalRcvsVolume*sizeof(T));
-
-    int Offset = 0;
-    int i = 0;
-
-    recv_disp.resize(m_RcvVols.size());  /// Must resize it now, otherwise push_back may reallocate the vector
-
-    for (std::map<int,int>::const_iterator it = m_RcvVols.begin(),
-             End = m_RcvVols.end();
-         it != End;
-         ++it)
+    if (TotalRcvsVolume == 0)
     {
-        const int N = it->second*ncomp;
+        the_recv_data = nullptr;
+    }
+    else
+    {
+        the_recv_data = static_cast<char*>(amrex::The_Arena()->alloc(TotalRcvsVolume));
 
-        BL_ASSERT(N < std::numeric_limits<int>::max());
+        MPI_Win_attach(win, the_recv_data, TotalRcvsVolume);
 
-        recv_data.push_back(&the_recv_data[Offset]);
-        recv_from.push_back(it->first);
-	MPI_Get_address(&the_recv_data[Offset], &recv_disp[i]);
-        recv_reqs.push_back(ParallelDescriptor::Asend(&recv_disp[i],1,it->first,SeqNum).req());
-
-	i++;
-        Offset += N;
+        int nrecv = recv_from.size();
+        
+        std::size_t offset = 0;
+        for (int i = 0; i < nrecv; ++i)
+        {
+            if (recv_size[i] > 0)
+            {
+                recv_data[i] = the_recv_data + offset;
+                MPI_Get_address(recv_data[i], &recv_disp[i]);
+                recv_reqs[i] = ParallelDescriptor::Asend(&recv_disp[i],1,recv_from[i],SeqNum).req();
+                offset += recv_size[i];
+            }
+        }
     }
 }
 #endif   // BL_USE_MPI3
-
-template<typename T>
-void
-FabArrayBase::WaitForAsyncSends (int                 N_snds,
-                                 Array<MPI_Request>& send_reqs,
-                                 Array<T*>&          send_data,
-                                 Array<MPI_Status>&  stats)
-{
-#ifdef BL_USE_MPI
-    BL_ASSERT(N_snds > 0);
-
-    stats.resize(N_snds);
-
-    BL_ASSERT(send_reqs.size() == N_snds);
-    BL_ASSERT(send_data.size() == N_snds);
-
-    Array<int> indx;
-    BL_COMM_PROFILE_WAITSOME(BLProfiler::Waitall, send_reqs, N_snds, indx, stats, false);
-
-    BL_MPI_REQUIRE( MPI_Waitall(N_snds, send_reqs.dataPtr(), stats.dataPtr()) );
-
-    BL_COMM_PROFILE_WAITSOME(BLProfiler::Waitall, send_reqs, N_snds, indx, stats, false);
-
-    for (int i = 0; i < N_snds; i++)
-        amrex::The_Arena()->free(send_data[i]);
-#endif /*BL_USE_MPI*/
-}
 
 template <class FAB>
 bool
@@ -1587,11 +1600,12 @@ FabArray<FAB>::FabArray (const BoxArray&            bxs,
                          const DistributionMapping& dm,
                          int                        nvar,
                          int                        ngrow,
-			 const MFInfo&              info)
+			 const MFInfo&              info,
+                         const FabFactory<FAB>&     factory)
     : shmem()
 {
     m_FA_stats.recordBuild();
-    define(bxs,dm,nvar,ngrow,info);
+    define(bxs,dm,nvar,ngrow,info,factory);
 }
 
 template <class FAB>
@@ -1672,7 +1686,8 @@ FabArray<FAB>::define (const BoxArray&            bxs,
 		       const DistributionMapping& dm,
 		       int                        nvar,
 		       int                        ngrow,
-		       const MFInfo&              info)
+		       const MFInfo&              info,
+                       const FabFactory<FAB>&     factory)
 {
     BL_ASSERT(ngrow >= 0);
     BL_ASSERT(boxarray.size() == 0);
@@ -1711,7 +1726,7 @@ FabArray<FAB>::define (const BoxArray&            bxs,
     addThisBD();
 
     if(info.alloc) {
-      AllocFabs();
+        AllocFabs(factory);
     }
 
     typename std::map<int, std::map<int, FabArray<FAB> *> >::iterator afapIter = 
@@ -1740,20 +1755,25 @@ FabArray<FAB>::define (const BoxArray&            bxs,
 
 template <class FAB>
 void
-FabArray<FAB>::AllocFabs ()
+FabArray<FAB>::AllocFabs (const FabFactory<FAB>& factory)
 {
     const int n = indexArray.size();
     const int nworkers = ParallelDescriptor::TeamSize();
     shmem.alloc = (nworkers > 1);
+
+    bool alloc = !shmem.alloc;
+
+    FabInfo fab_info;
+    fab_info.SetAlloc(alloc).SetShared(shmem.alloc);
+    
 
     m_fabs_v.reserve(n);
 
     for (int i = 0; i < n; ++i)
     {
 	int K = indexArray[i];
-        const Box& tmp = fabbox(K);
-	bool alloc = !shmem.alloc;
-	m_fabs_v.push_back(new FAB(tmp, n_comp, alloc, shmem.alloc));
+        const Box& tmpbox = fabbox(K);
+        m_fabs_v.push_back(factory.create(tmpbox, n_comp, fab_info, K));
     }
     
 #ifdef BL_USE_TEAM
@@ -2044,8 +2064,9 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
 #ifdef BL_USE_MPI3
     MPI_Group tgroup, rgroup, sgroup;
-    if (ParallelDescriptor::MPIOneSided())
+    if (ParallelDescriptor::MPIOneSided()) {
 	MPI_Comm_group(ParallelDescriptor::Communicator(this->color()), &tgroup);
+    }
 #endif
 
     //
@@ -2058,7 +2079,8 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
         const int NC = std::min(NCompLeft,FabArrayBase::MaxComp);
 
         Array<int>         recv_from;
-        Array<value_type*> recv_data;
+        Array<char*>       recv_data;
+        Array<int>         recv_size;
         Array<MPI_Request> recv_reqs;
 #ifdef BL_USE_MPI3
 	Array<MPI_Aint>    recv_disp;
@@ -2066,87 +2088,95 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
         //
         // Post rcvs. Allocate one chunk of space to hold'm all.
         //
-        value_type* the_recv_data = 0;
+        char* the_recv_data = nullptr;
 
+        int actual_n_rcvs = 0;
 	if (N_rcvs > 0) {
 #ifdef BL_USE_UPCXX
-	    FabArrayBase::PostRcvs_PGAS(*thecpc.m_RcvVols,the_recv_data,
-					recv_data,recv_from,NC,SeqNum,&BLPgas::cp_recv_event);
+	    PostRcvs_PGAS(*thecpc.m_RcvVols, the_recv_data, recv_data,
+                          recv_size, recv_from, 
+                          SC, NC, SeqNum, &BLPgas::cp_recv_event);
 #else
 	    if (ParallelDescriptor::MPIOneSided()) {
 #if defined(BL_USE_MPI3)
-		FabArrayBase::PostRcvs_MPI_Onesided(*thecpc.m_RcvVols,the_recv_data,
-						    recv_data,recv_from,recv_reqs,
-						    recv_disp,NC,SeqNum,ParallelDescriptor::cp_win);
+                PostRcvs_MPI_Onesided(*thecpc.m_RcvVols, the_recv_data, recv_data, 
+                                      recv_size, recv_from, recv_reqs, recv_disp,
+                                      SC, NC, SeqNum, ParallelDescriptor::cp_win);
 		MPI_Group_incl(tgroup, recv_from.size(), recv_from.dataPtr(), &rgroup);
 		MPI_Win_post(rgroup, 0, ParallelDescriptor::cp_win);
 #endif
 	    } else {
-		FabArrayBase::PostRcvs(*thecpc.m_RcvVols,the_recv_data,
-				       recv_data,recv_from,recv_reqs,NC,SeqNum);
+                PostRcvs(*thecpc.m_RcvVols, the_recv_data, recv_data,
+                         recv_size, recv_from, recv_reqs, SC, NC, SeqNum);
 	    }
 #endif
+            actual_n_rcvs = N_rcvs - std::count(recv_size.begin(), recv_size.end(), 0);
 	}
 
 	//
 	// Post send's
 	// 
-	Array<value_type*>                 send_data;
-	Array<int>                         send_N;
+	Array<char*>                       send_data;
+	Array<int>                         send_size;
 	Array<int>                         send_rank;
 	Array<MPI_Request>                 send_reqs;
 	Array<const CopyComTagsContainer*> send_cctc;
 
+        int actual_n_snds = 0;
 	if (N_snds > 0)
 	{
 	    send_data.reserve(N_snds);
-	    send_N   .reserve(N_snds);
+	    send_size.reserve(N_snds);
 	    send_rank.reserve(N_snds);
+            send_reqs.reserve(N_snds);
 	    send_cctc.reserve(N_snds);
 
-	    for (MapOfCopyComTagContainers::const_iterator m_it = thecpc.m_SndTags->begin(),
-		     m_End = thecpc.m_SndTags->end();
-		 m_it != m_End;
-		 ++m_it)
+            for (auto const& kv : *thecpc.m_SndVols)
 	    {
-		std::map<int,int>::const_iterator vol_it = thecpc.m_SndVols->find(m_it->first);
+                std::size_t nbytes = 0;
+                for (auto const& cct : kv.second)
+                {
+                    nbytes += src[cct.srcIndex].nBytes(cct.sbox,SC,NC);
+                }
 		
-		BL_ASSERT(vol_it != thecpc.m_SndVols->end());
-		
-		const int N = vol_it->second*NC;
-		
-		BL_ASSERT(N < std::numeric_limits<int>::max());
+		BL_ASSERT(nbytes < std::numeric_limits<int>::max());
 
-		value_type* data = static_cast<value_type*>
+                char* data = nullptr;
+                if (nbytes > 0)
+                {
+                    data = static_cast<char*>
 #ifdef BL_USE_UPCXX
-		    (BLPgas::alloc(N*sizeof(value_type)));
+                        (BLPgas::alloc(nbytes));
 #else
-		    (amrex::The_Arena()->alloc(N*sizeof(value_type)));
+                        (amrex::The_Arena()->alloc(nbytes));
 #endif
- 
-		    send_data.push_back(data);
-		    send_N   .push_back(N);
-		    send_rank.push_back(m_it->first);
-		    send_cctc.push_back(&(m_it->second));
+                }
+                    
+		send_data.push_back(data);
+                send_size.push_back(static_cast<int>(nbytes));
+                send_rank.push_back(kv.first);
+                send_reqs.push_back(MPI_REQUEST_NULL);
+                send_cctc.push_back(&(thecpc.m_SndTags->at(kv.first)));
 	    }
+
+            actual_n_snds = N_snds - std::count(send_size.begin(), send_size.end(), 0);
 
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
 	    for (int j=0; j<N_snds; ++j)
 	    {
-		value_type* dptr = send_data[j];
-		BL_ASSERT(dptr != 0);
-
-		const CopyComTagsContainer& cctc = *send_cctc[j];
-		
-		for (CopyComTagsContainer::const_iterator it = cctc.begin();
-		     it != cctc.end(); ++it)
-		{
-		    const Box& bx = it->sbox;
-		    src[it->srcIndex].copyToMem(bx,SC,NC,dptr);
-		    const int Cnt = bx.numPts()*NC;
-		    dptr += Cnt;
+		char* dptr = send_data[j];
+                if (dptr != nullptr)
+                {
+                    auto const& cctc = *send_cctc[j];
+                    for (auto const& tag : cctc)
+                    {
+                        const Box& bx = tag.sbox;
+                        auto n = src[tag.srcIndex].copyToMem(bx,SC,NC,dptr);
+                        dptr += n;
+                    }
+                    BL_ASSERT(dptr == send_data[j] + send_size[j]);
 		}
 	    }
 
@@ -2155,37 +2185,37 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 	    BLPgas::cp_send_counter = 0;
 
 	    for (int i=0; i<N_snds; ++i) {
-		BLPgas::Send(upcxx::global_ptr<void>((void *)send_data[i], upcxx::myrank()),
-			     send_rank[i],
-			     send_N[i]*sizeof(value_type),
-			     SeqNum,
-			     &BLPgas::cp_send_event,
-			     &BLPgas::cp_send_counter);
+                if (send_size[i] > 0) {
+                    BLPgas::Send(upcxx::global_ptr<void>((void *)send_data[i], upcxx::myrank()),
+                                 send_rank[i], send_size[i], SeqNum,
+                                 &BLPgas::cp_send_event, &BLPgas::cp_send_counter);
+                }
 	    }
 	    
 	    // Need to make sure at least half of the sends have been started
-	    while (BLPgas::cp_send_counter < N_snds)
+	    while (BLPgas::cp_send_counter < actual_n_snds) {
 		upcxx::advance();
+            }
 
 #else
 	    
 	    if (ParallelDescriptor::MPIOneSided())
 	    {
 #if defined(BL_USE_MPI3)
-		Array<MPI_Aint> send_disp;
-		send_reqs.reserve(N_snds);
-		send_disp.resize (N_snds);
-		
+		Array<MPI_Aint> send_disp(N_snds,0);
+
 		for (int i=0; i<N_snds; ++i) {
-		    send_reqs.push_back(ParallelDescriptor::Arecv
-					(&send_disp[i],1,send_rank[i],SeqNum).req());
+                    if (send_size[i] > 0) {
+                        send_reqs[i] = ParallelDescriptor::Arecv
+                            (&send_disp[i],1,send_rank[i],SeqNum).req();
+                    }
 		}
 		
-		MPI_Group_incl(tgroup, send_rank.size(), send_rank.dataPtr(), &sgroup);
+		MPI_Group_incl(tgroup, N_snds, send_rank.data(), &sgroup);
 		MPI_Win_start(sgroup,0,ParallelDescriptor::cp_win);
 		
 		int send_counter = 0;	
-		while (send_counter < N_snds) {
+		while (send_counter < actual_n_snds) {
 		    MPI_Status status;
 		    int index;
 		    
@@ -2194,27 +2224,31 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 		    BL_ASSERT(status.MPI_TAG == SeqNum);
 		    BL_ASSERT(status.MPI_SOURCE == send_rank[index]);
 		    
-		    MPI_Put(send_data[index], send_N[index]*sizeof(value_type), MPI_CHAR, send_rank[index],
-			    send_disp[index], send_N[index]*sizeof(value_type), MPI_CHAR, 
-			    ParallelDescriptor::cp_win);
+		    MPI_Put(send_data[index], send_size[index], MPI_CHAR, send_rank[index],
+			    send_disp[index], send_size[index], MPI_CHAR, ParallelDescriptor::cp_win);
 		    
-		    send_counter++;
+		    ++send_counter;
 		}
 #endif
-	    } else {
+	    }
+            else
+            {
 		if (FabArrayBase::do_async_sends)
 		{
-		    send_reqs.reserve(N_snds);
 		    for (int j=0; j<N_snds; ++j)
 		    {
-			send_reqs.push_back(ParallelDescriptor::Asend
-					    (send_data[j],send_N[j],send_rank[j],SeqNum).req());
+                        if (send_size[j] > 0) {
+                            send_reqs[j] = ParallelDescriptor::Asend
+                                (send_data[j],send_size[j],send_rank[j],SeqNum).req();
+                        }
 		    }
 		} else {
 		    for (int j=0; j<N_snds; ++j)
 		    {
-			ParallelDescriptor::Send(send_data[j],send_N[j],send_rank[j],SeqNum);
-			amrex::The_Arena()->free(send_data[j]);
+                        if (send_size[j] > 0) {
+                            ParallelDescriptor::Send(send_data[j],send_size[j],send_rank[j],SeqNum);
+                            amrex::The_Arena()->free(send_data[j]);
+                        }
 		    }
 		}
 	    }
@@ -2276,7 +2310,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 	//  wait and unpack
 	//
 #ifdef BL_USE_UPCXX
-        if (N_rcvs > 0) BLPgas::cp_recv_event.wait();
+        if (actual_n_rcvs > 0) BLPgas::cp_recv_event.wait();
 #else
 	if (ParallelDescriptor::MPIOneSided()) {
 #if defined(BL_USE_MPI3)
@@ -2284,7 +2318,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 	    if (N_rcvs > 0) MPI_Win_wait    (ParallelDescriptor::cp_win);
 #endif
 	} else {
-	    if (N_rcvs > 0) {
+	    if (actual_n_rcvs > 0) {
 		Array<MPI_Status> stats(N_rcvs);
 		BL_MPI_REQUIRE( MPI_Waitall(N_rcvs, recv_reqs.dataPtr(), stats.dataPtr()) );
 	    }
@@ -2293,14 +2327,15 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
 	if (N_rcvs > 0)
 	{
-	    Array<const CopyComTagsContainer*> recv_cctc;
-	    recv_cctc.reserve(N_rcvs);
+	    Array<const CopyComTagsContainer*> recv_cctc(N_rcvs,nullptr);
 
-	    for (int k = 0; k < N_rcvs; k++)
+	    for (int k = 0; k < N_rcvs; ++k)
 	    {
-		MapOfCopyComTagContainers::const_iterator m_it = thecpc.m_RcvTags->find(recv_from[k]);
-		BL_ASSERT(m_it != thecpc.m_RcvTags->end());
-		recv_cctc.push_back(&(m_it->second));
+                if (recv_size[k] > 0)
+                {
+                    auto const& cctc = thecpc.m_RcvTags->at(recv_from[k]);
+                    recv_cctc[k] = &cctc;
+                }
 	    }
 
 	    
@@ -2313,51 +2348,46 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 #ifdef _OPENMP
 #pragma omp for
 #endif
-                for (int k = 0; k < N_rcvs; k++)
+                for (int k = 0; k < N_rcvs; ++k)
 		{
-		    const value_type* dptr = recv_data[k];
-		    BL_ASSERT(dptr != 0);
-		    
-		    const CopyComTagsContainer& cctc = *recv_cctc[k];
-		    
-		    for (CopyComTagsContainer::const_iterator it = cctc.begin();
-			 it != cctc.end(); ++it)
-		    {
-			const Box& bx  = it->dbox;
-			const int  Cnt = bx.numPts()*NC;
-			
-			if (op == FabArrayBase::COPY)
-			{
-			    get(it->dstIndex).copyFromMem(bx,DC,NC,dptr);
-			}
-			else
-			{
-			    fab.resize(bx,NC);
-			    memcpy(fab.dataPtr(), dptr, Cnt*sizeof(value_type));
-			    get(it->dstIndex).plus(fab,bx,bx,0,DC,NC);
-			}
-			
-			dptr += Cnt;
+		    const char* dptr = recv_data[k];
+                    if (dptr != nullptr)
+                    {
+                        auto const& cctc = *recv_cctc[k];
+                        for (auto const& tag : cctc)
+                        {
+                            const Box& bx  = tag.dbox;
+                            std::size_t n;
+                            if (op == FabArrayBase::COPY)
+                            {
+                                n = get(tag.dstIndex).copyFromMem(bx,DC,NC,dptr);
+                            }
+                            else
+                            {
+                                fab.resize(bx,NC);
+                                n = fab.copyFromMem(bx,0,NC,dptr);
+                                get(tag.dstIndex).plus(fab,bx,bx,0,DC,NC);
+                            }
+                            dptr += n;
+                        }
+                        BL_ASSERT(dptr == recv_data[k] + recv_size[k]);
 		    }
 		}
 	    }
 
+            if (the_recv_data)
+            {
 #ifdef BL_USE_UPCXX
-	    BLPgas::free(the_recv_data);
+                BLPgas::free(the_recv_data);
 #else
-	    if (ParallelDescriptor::MPIOneSided()) {
+                if (ParallelDescriptor::MPIOneSided()) {
 #if defined(BL_USE_MPI3)
-		MPI_Win_detach(ParallelDescriptor::cp_win, the_recv_data);
-		amrex::The_Arena()->free(the_recv_data);
-		recv_disp.clear();
+                    MPI_Win_detach(ParallelDescriptor::cp_win, the_recv_data);
 #endif
-	    } else {
-		amrex::The_Arena()->free(the_recv_data);
-	    }
+                }
+                amrex::The_Arena()->free(the_recv_data);
 #endif
-	    recv_from.clear();
-	    recv_data.clear();
-	    recv_reqs.clear();
+            }
 	}
 	
         if (N_snds > 0) {
@@ -2368,18 +2398,17 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 #else
 	    if (ParallelDescriptor::MPIOneSided()) {
 #if defined(BL_USE_MPI3)
-		for (int i = 0; i < N_snds; ++i)
-		    amrex::The_Arena()->free(send_data[i]);
+		for (int i = 0; i < N_snds; ++i) {
+		    if (send_data[i]) amrex::The_Arena()->free(send_data[i]);
+                }
 #endif
 	    } else {
 		if (FabArrayBase::do_async_sends && ! thecpc.m_SndTags->empty()) {
 		    Array<MPI_Status> stats;
-		    FabArrayBase::WaitForAsyncSends(thecpc.m_SndTags->size(),send_reqs,send_data,stats);
+		    FabArrayBase::WaitForAsyncSends(N_snds,send_reqs,send_data,stats);
 		}
 	    }
 #endif
-            send_data.clear();
-	    send_reqs.clear();
         }
 
         ipass     += NC;
@@ -2670,87 +2699,102 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
 
         Array<MPI_Status>  stats;
         Array<int>         recv_from;
-        Array<value_type*> recv_data;
+        Array<char*>       recv_data;
+        Array<int>         recv_size;
         Array<MPI_Request> recv_reqs;
         //
         // Post rcvs. Allocate one chunk of space to hold'm all.
         //
-        value_type* the_recv_data = 0;
-
-        FabArrayBase::PostRcvs(*thecpc.m_RcvVols, the_recv_data, recv_data,
-	                       recv_from, recv_reqs, NC, SeqNum, commBoth);
+        char* the_recv_data = nullptr;
+        const int N_rcvs = thecpc.m_RcvTags->size();
+        int actual_n_rcvs = 0;
+        if (N_rcvs > 0) {
+            dest->PostRcvs(*thecpc.m_RcvVols, the_recv_data, recv_data,
+                           recv_size, recv_from, recv_reqs, 
+                           SC, NC, SeqNum, commBoth);
+            actual_n_rcvs = N_rcvs - std::count(recv_size.begin(), recv_size.end(), 0);
+        }
 
 	//
 	// Post sends
 	// 
 	const int N_snds = thecpc.m_SndTags->size();
 
-	Array<value_type*>                 send_data;
-	Array<int>                         send_N;
+	Array<char*>                       send_data;
+	Array<int>                         send_size;
 	Array<int>                         send_rank;
+	Array<MPI_Request>                 send_reqs;
 	Array<const CopyComTagsContainer*> send_cctc;
 
-	send_data.reserve(N_snds);
-	send_N   .reserve(N_snds);
-	send_rank.reserve(N_snds);
-	send_cctc.reserve(N_snds);
-
-        for (MapOfCopyComTagContainers::const_iterator m_it = thecpc.m_SndTags->begin(),
-                 m_End = thecpc.m_SndTags->end();
-             m_it != m_End;
-             ++m_it)
+        int actual_n_snds = 0;
+        if (N_snds > 0)
         {
-            std::map<int,int>::const_iterator vol_it = thecpc.m_SndVols->find(m_it->first);
+            send_data.reserve(N_snds);
+            send_size.reserve(N_snds);
+            send_rank.reserve(N_snds);
+            send_reqs.reserve(N_snds);
+            send_cctc.reserve(N_snds);
+            
+            for (auto const& kv : *thecpc.m_SndVols)
+            {
+                std::size_t nbytes = 0;
+                for (auto const& cct : kv.second)
+                {
+                    nbytes += (*src)[cct.srcIndex].nBytes(cct.sbox,SC,NC);
+                }
+                
+                BL_ASSERT(nbytes < std::numeric_limits<int>::max());
+                
+                char* data = nullptr;
+                if (nbytes > 0) {
+                    data = static_cast<char*>(amrex::The_Arena()->alloc(nbytes));
+                }
+                    
+                send_data.push_back(data);
+                send_size.push_back(static_cast<int>(nbytes));
+                send_rank.push_back(kv.first);
+                send_reqs.push_back(MPI_REQUEST_NULL);
+                send_cctc.push_back(&(thecpc.m_SndTags->at(kv.first)));
+            }
 
-            BL_ASSERT(vol_it != thecpc.m_SndVols->end());
-
-            const int N = vol_it->second*NC;
-
-            BL_ASSERT(N < std::numeric_limits<int>::max());
-
-            value_type* data = static_cast<value_type*>(amrex::The_Arena()->alloc(N*sizeof(value_type)));
- 
-	    send_data.push_back(data);
-	    send_N   .push_back(N);
-	    send_rank.push_back(m_it->first);
-	    send_cctc.push_back(&(m_it->second));
-	}
+            actual_n_snds = N_snds - std::count(send_size.begin(), send_size.end(), 0);
 
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (int j=0; j<N_snds; ++j)
-	{
-	    value_type* dptr = send_data[j];
-	    BL_ASSERT(dptr != 0);
-
-	    const CopyComTagsContainer& cctc = *send_cctc[j];
-
-            for (CopyComTagsContainer::const_iterator it = cctc.begin();
-                 it != cctc.end(); ++it)
+            for (int j=0; j<N_snds; ++j)
             {
-                const Box& bx = it->sbox;
-                (*src)[it->srcIndex].copyToMem(bx,SC,NC,dptr);
-                const int Cnt = bx.numPts()*NC;
-                dptr += Cnt;
+                char* dptr = send_data[j];
+                if (dptr != nullptr)
+                {
+                    auto const& cctc = *send_cctc[j];
+                    for (auto const& tag : cctc)
+                    {
+                        const Box& bx = tag.sbox;
+                        auto n = (*src)[tag.srcIndex].copyToMem(bx,SC,NC,dptr);
+                        dptr += n;
+                    }
+                    BL_ASSERT(dptr == send_data[j] + send_size[j]);
+                }
             }
-	}
 
-	Array<MPI_Request> send_reqs;
-
-	if (FabArrayBase::do_async_sends)
-	{
-	    send_reqs.reserve(N_snds);
-	    for (int j=0; j<N_snds; ++j)
-	    {
-                send_reqs.push_back(ParallelDescriptor::Asend
-				    (send_data[j],send_N[j],send_rank[j],SeqNum, commBoth).req());
-            }
-	} else {
-	    for (int j=0; j<N_snds; ++j)
-	    {
-                ParallelDescriptor::Send(send_data[j],send_N[j],send_rank[j],SeqNum, commBoth);
-                amrex::The_Arena()->free(send_data[j]);
+            if (FabArrayBase::do_async_sends)
+            {
+                for (int j=0; j<N_snds; ++j)
+                {
+                    if (send_size[j] > 0) {
+                        send_reqs[j] = ParallelDescriptor::Asend
+                            (send_data[j],send_size[j],send_rank[j],SeqNum, commBoth).req();
+                    }
+                }
+            } else {
+                for (int j=0; j<N_snds; ++j)
+                {
+                    if (send_size[j] > 0) {
+                        ParallelDescriptor::Send(send_data[j],send_size[j],send_rank[j],SeqNum, commBoth);
+                        amrex::The_Arena()->free(send_data[j]);
+                    }
+                }
             }
         }
 
@@ -2780,69 +2824,70 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
 	//  wait and unpack
 	//
 
-        const int N_rcvs = thecpc.m_RcvTags->size();
-
 	if (N_rcvs > 0)
 	{
-	    Array<const CopyComTagsContainer*> recv_cctc;
-	    recv_cctc.reserve(N_rcvs);
+	    Array<const CopyComTagsContainer*> recv_cctc(N_rcvs,nullptr);
 
-	    for (int k = 0; k < N_rcvs; k++)
+	    for (int k = 0; k < N_rcvs; ++k)
 	    {
-		MapOfCopyComTagContainers::const_iterator m_it = thecpc.m_RcvTags->find(recv_from[k]);
-		BL_ASSERT(m_it != thecpc.m_RcvTags->end());
-	    
-		recv_cctc.push_back(&(m_it->second));
+                if (recv_size[k] > 0)
+                {
+                    auto const& cctc = thecpc.m_RcvTags->at(recv_from[k]);
+                    recv_cctc[k] = &cctc;
+                }
 	    }
 
-	    stats.resize(N_rcvs);
-	    BL_MPI_REQUIRE( MPI_Waitall(N_rcvs, recv_reqs.dataPtr(), stats.dataPtr()) );
+            if (actual_n_rcvs > 0) {
+                stats.resize(N_rcvs);
+                BL_MPI_REQUIRE( MPI_Waitall(N_rcvs, recv_reqs.dataPtr(), stats.dataPtr()) );
+            }
 	    
 #ifdef _OPENMP
 #pragma omp parallel if (thecpc.m_threadsafe_rcv)
 #endif
-        {
-	    FAB fab;
-
+            {
+                FAB fab;
+                
 #ifdef _OPENMP
 #pragma omp for
 #endif
-	    for (int k = 0; k < N_rcvs; k++)
-	    {
-		const value_type* dptr = recv_data[k];
-		BL_ASSERT(dptr != 0);
-		
-		const CopyComTagsContainer& cctc = *recv_cctc[k];
-		
-		for (CopyComTagsContainer::const_iterator it = cctc.begin();
-		     it != cctc.end(); ++it)
-		{
-		    const Box& bx  = it->dbox;
-		    const int  Cnt = bx.numPts()*NC;
-		    
-		    if (op == FabArrayBase::COPY)
-		    {
-			dest->get(it->dstIndex).copyFromMem(bx,DC,NC,dptr);
-		    }
-		    else
-		    {
-			fab.resize(bx,NC);
-			memcpy(fab.dataPtr(), dptr, Cnt*sizeof(value_type));
-			
-			dest->get(it->dstIndex).plus(fab,bx,bx,0,DC,NC);
-		    }
-		    
-		    dptr += Cnt;
-		}
+                for (int k = 0; k < N_rcvs; ++k)
+                {
+                    const char* dptr = recv_data[k];
+                    if (dptr != nullptr)
+                    {
+                        auto const& cctc = *recv_cctc[k];
+                        for (auto const& tag : cctc)
+                        {
+                            const Box& bx  = tag.dbox;
+                            std::size_t n;
+                            if (op == FabArrayBase::COPY)
+                            {
+                                n = (*dest)[tag.dstIndex].copyFromMem(bx,DC,NC,dptr);
+                            }
+                            else
+                            {
+                                fab.resize(bx,NC);
+                                n = fab.copyFromMem(bx,0,NC,dptr);
+                                (*dest)[tag.dstIndex].plus(fab,bx,bx,0,DC,NC);
+                            }
+                            dptr += n;
+                        }
+                        BL_ASSERT(dptr == recv_data[k] + recv_size[k]);
+                    }
+                }
 	    }
-	}
-	}
 	
-        amrex::The_Arena()->free(the_recv_data);
+            if (the_recv_data) {
+                amrex::The_Arena()->free(the_recv_data);
+            }
+        }
 	
-        if (FabArrayBase::do_async_sends && ! thecpc.m_SndTags->empty()) {
-            FabArrayBase::WaitForAsyncSends(thecpc.m_SndTags->size(),send_reqs,send_data,stats);
-	}
+        if (N_snds > 9) {
+            if (FabArrayBase::do_async_sends && ! thecpc.m_SndTags->empty()) {
+                FabArrayBase::WaitForAsyncSends(thecpc.m_SndTags->size(),send_reqs,send_data,stats);
+            }
+        }
 
         ipass     += NC;
         SC        += NC;
@@ -2853,8 +2898,6 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
     return;
 #endif /*BL_USE_MPI*/
 }
-
-
 
 
 template <class FAB>
@@ -4574,90 +4617,103 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const Periodicity& period, boo
     //
 #ifdef BL_USE_MPI3
     MPI_Group tgroup, rgroup, sgroup;
-    if (ParallelDescriptor::MPIOneSided())
+    if (ParallelDescriptor::MPIOneSided()) {
 	MPI_Comm_group(ParallelDescriptor::Communicator(), &tgroup);
+    }
 #endif
 
+    fb_the_recv_data = nullptr;
+    int actual_n_rcvs = 0;
     if (N_rcvs > 0) {
 #ifdef BL_USE_UPCXX
-	FabArrayBase::PostRcvs_PGAS(*TheFB.m_RcvVols,fb_the_recv_data,
-				    fb_recv_data,fb_recv_from,ncomp,SeqNum,&BLPgas::fb_recv_event);
+	PostRcvs_PGAS(*TheFB.m_RcvVols, fb_the_recv_data, fb_recv_data,
+                      fb_recv_size, fb_recv_from,
+                      scomp, ncomp, SeqNum, &BLPgas::fb_recv_event);
 #else
 	if (ParallelDescriptor::MPIOneSided()) {
 #if defined(BL_USE_MPI3)
-	    FabArrayBase::PostRcvs_MPI_Onesided(*TheFB.m_RcvVols, fb_the_recv_data,
-						fb_recv_data, fb_recv_from, fb_recv_reqs, 
-						fb_recv_disp, ncomp, SeqNum, ParallelDescriptor::fb_win);
+	    PostRcvs_MPI_Onesided(*TheFB.m_RcvVols, fb_the_recv_data, fb_recv_data,
+                                  fb_recv_size, fb_recv_from, fb_recv_reqs, fb_recv_disp,
+                                  scomp, ncomp, SeqNum, ParallelDescriptor::fb_win);
 	    MPI_Group_incl(tgroup, fb_recv_from.size(), fb_recv_from.dataPtr(), &rgroup);
 	    MPI_Win_post(rgroup, 0, ParallelDescriptor::fb_win);
 #endif
 	} else {
-	    FabArrayBase::PostRcvs(*TheFB.m_RcvVols,fb_the_recv_data,
-				   fb_recv_data,fb_recv_from,fb_recv_reqs,ncomp,SeqNum);
+	    PostRcvs(*TheFB.m_RcvVols, fb_the_recv_data, fb_recv_data,
+                     fb_recv_size, fb_recv_from, fb_recv_reqs, scomp, ncomp, SeqNum);
 	}
 #endif
+        actual_n_rcvs = N_rcvs - std::count(fb_recv_size.begin(), fb_recv_size.end(), 0);
     }
 
     //
     // Post send's
     //
+    int actual_n_snds = 0;
     if (N_snds > 0)
     {
-        Array<value_type*> &               send_data = fb_send_data;
-	Array<int>                         send_N;
+        fb_send_data.clear();
+        fb_send_reqs.clear();
+
+        Array<char*> &                     send_data = fb_send_data;
+	Array<int>                         send_size;
 	Array<int>                         send_rank;
+        Array<MPI_Request>&                send_reqs = fb_send_reqs;
 	Array<const CopyComTagsContainer*> send_cctc;
 
 	send_data.reserve(N_snds);
-	send_N   .reserve(N_snds);
+	send_size.reserve(N_snds);
 	send_rank.reserve(N_snds);
+        send_reqs.reserve(N_snds);
 	send_cctc.reserve(N_snds);
 
-	for (MapOfCopyComTagContainers::const_iterator m_it = TheFB.m_SndTags->begin(),
-		 m_End = TheFB.m_SndTags->end();
-	     m_it != m_End;
-	     ++m_it)
-	{
-	    std::map<int,int>::const_iterator vol_it = TheFB.m_SndVols->find(m_it->first);
-
-	    BL_ASSERT(vol_it != TheFB.m_SndVols->end());
-	    
-	    const int N = vol_it->second*ncomp;
-	    
-	    BL_ASSERT(N < std::numeric_limits<int>::max());
-	    
-	    value_type* data = static_cast<value_type*>
+        for (auto const& kv : *TheFB.m_SndVols)
+        {
+            std::size_t nbytes = 0;
+            for (auto const& cct : kv.second)
+            {
+                nbytes += (*this)[cct.srcIndex].nBytes(cct.sbox,scomp,ncomp);
+            }
+            
+            BL_ASSERT(nbytes < std::numeric_limits<int>::max());
+            
+            char* data = nullptr;
+            if (nbytes > 0)
+            {
+                data = static_cast<char*>
 #ifdef BL_USE_UPCXX
-		(BLPgas::alloc(N*sizeof(value_type)));
+                    (BLPgas::alloc(nbytes));
 #else
-	        (amrex::The_Arena()->alloc(N*sizeof(value_type)));
+                    (amrex::The_Arena()->alloc(nbytes));
 #endif
-
-	    send_data.push_back(data);
-	    send_N   .push_back(N);
-	    send_rank.push_back(m_it->first);
-	    send_cctc.push_back(&(m_it->second));
-	}
+            }
+                    
+            send_data.push_back(data);
+            send_size.push_back(static_cast<int>(nbytes));
+            send_rank.push_back(kv.first);
+            send_reqs.push_back(MPI_REQUEST_NULL);
+            send_cctc.push_back(&(TheFB.m_SndTags->at(kv.first)));
+        }
+        
+        actual_n_snds = N_snds - std::count(send_size.begin(), send_size.end(), 0);
 
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (int i=0; i<N_snds; ++i)
+	for (int j=0; j<N_snds; ++j)
 	{
-	    value_type* dptr = send_data[i];
-	    BL_ASSERT(dptr != 0);
-	    
-	    const CopyComTagsContainer& cctc = *send_cctc[i];
-	    
-	    for (CopyComTagsContainer::const_iterator it = cctc.begin();
-		 it != cctc.end(); ++it)
-	    {
-		BL_ASSERT(distributionMap[it->srcIndex] == ParallelDescriptor::MyProc());
-		const Box& bx = it->sbox;
-		get(it->srcIndex).copyToMem(bx,scomp,ncomp,dptr);
-		const int Cnt = bx.numPts()*ncomp;
-		dptr += Cnt;
-	    }
+            char* dptr = send_data[j];
+            if (dptr != nullptr)
+            {
+                auto const& cctc = *send_cctc[j];
+                for (auto const& tag : cctc)
+                {
+                    const Box& bx = tag.sbox;
+                    auto n = (*this)[tag.srcIndex].copyToMem(bx,scomp,ncomp,dptr);
+                    dptr += n;
+                }
+                BL_ASSERT(dptr == send_data[j] + send_size[j]);
+            }
 	}
 
 #ifdef BL_USE_UPCXX
@@ -4665,38 +4721,37 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const Periodicity& period, boo
 	BLPgas::fb_send_counter = 0;
 
 	for (int i=0; i<N_snds; ++i) {
-	    BLPgas::Send(upcxx::global_ptr<void>((void *)send_data[i], upcxx::myrank()),
-			 send_rank[i],
-			 send_N[i]*sizeof(value_type),
-			 SeqNum,
-			 &BLPgas::fb_send_event,
-			 &BLPgas::fb_send_counter);
-	}
+            if (send_size[i] > 0) {
+                BLPgas::Send(upcxx::global_ptr<void>((void *)send_data[i], upcxx::myrank()),
+                             send_rank[i], send_size[i], SeqNum,
+                             &BLPgas::fb_send_event, &BLPgas::fb_send_counter);
+            }
+        }
 
 	// Need to make sure at least half of the sends have been started
-	while (BLPgas::fb_send_counter < N_snds)
+	while (BLPgas::fb_send_counter < actual_n_snds) {
 	    upcxx::advance();
+        }
 
 #else  // MPI
 
 	if (ParallelDescriptor::MPIOneSided())
 	{
 #if defined(BL_USE_MPI3)
-	    Array<MPI_Request> send_reqs;
-	    Array<MPI_Aint>    send_disp;
-	    send_reqs.reserve(N_snds);
-	    send_disp.resize (N_snds);
+	    Array<MPI_Aint> send_disp(N_snds,0);
 	    
 	    for (int i=0; i<N_snds; ++i) {
-		send_reqs.push_back(ParallelDescriptor::Arecv
-				    (&send_disp[i],1,send_rank[i],SeqNum).req());
+                if (send_size[i] > 0) {
+                    send_reqs.push_back(ParallelDescriptor::Arecv
+                                        (&send_disp[i],1,send_rank[i],SeqNum).req());
+                }
 	    }
 		
-	    MPI_Group_incl(tgroup, send_rank.size(), send_rank.dataPtr(), &sgroup);
+	    MPI_Group_incl(tgroup, N_snds, send_rank.dataPtr(), &sgroup);
 	    MPI_Win_start(sgroup,0,ParallelDescriptor::fb_win);
 	    
 	    int send_counter = 0;	
-	    while (send_counter < N_snds) {
+	    while (send_counter < actual_n_snds) {
 		MPI_Status status;
 		int index;
 		
@@ -4704,23 +4759,23 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const Periodicity& period, boo
 		
 		BL_ASSERT(status.MPI_TAG == SeqNum);
 		BL_ASSERT(status.MPI_SOURCE == send_rank[index]);
+
+                MPI_Put(send_data[index], send_size[index], MPI_CHAR, send_rank[index],
+                        send_disp[index], send_size[index], MPI_CHAR, ParallelDescriptor::fb_win);
 		
-		MPI_Put(send_data[index], send_N[index]*sizeof(value_type), MPI_CHAR, send_rank[index],
-			send_disp[index], send_N[index]*sizeof(value_type), MPI_CHAR, 
-			ParallelDescriptor::fb_win);
-		
-		send_counter++;
+		++send_counter;
 	    }
 #endif // BL_USE_MPI3
 	} 
 	else 
 	{
-	    fb_send_reqs.reserve(N_snds);
-
-	    for (int i=0; i<N_snds; ++i) {
-		fb_send_reqs.push_back(ParallelDescriptor::Asend
-				       (send_data[i],send_N[i],send_rank[i],SeqNum).req());
-	    }
+	    for (int i=0; i<N_snds; ++i)
+            {
+                if (send_size[i] > 0) {
+                    send_reqs[i] = ParallelDescriptor::Asend
+                        (send_data[i],send_size[i],send_rank[i],SeqNum).req();
+                }
+            }
 	}
 #endif // #ifdef BL_USE_UPCXX #else 
     }
@@ -4797,8 +4852,10 @@ FabArray<FAB>::FillBoundary_finish ()
     const int N_rcvs = TheFB.m_RcvTags->size();
     const int N_snds = TheFB.m_SndTags->size();
 
+    int actual_n_rcvs = N_rcvs - std::count(fb_recv_data.begin(), fb_recv_data.end(), nullptr);
+
 #ifdef BL_USE_UPCXX
-    if (N_rcvs > 0) BLPgas::fb_recv_event.wait();
+    if (actual_n_rcvs > 0) BLPgas::fb_recv_event.wait();
 #else 
     if (ParallelDescriptor::MPIOneSided()) {
 #if defined(BL_USE_MPI3)
@@ -4806,7 +4863,7 @@ FabArray<FAB>::FillBoundary_finish ()
 	if (N_rcvs > 0) MPI_Win_wait    (ParallelDescriptor::fb_win);
 #endif
     } else {
-	if (N_rcvs > 0) {
+	if (actual_n_rcvs > 0) {
 	    Array<MPI_Status> stats(N_rcvs);
 	    BL_MPI_REQUIRE( MPI_Waitall(N_rcvs, fb_recv_reqs.dataPtr(), stats.dataPtr()) );
 	}
@@ -4815,14 +4872,15 @@ FabArray<FAB>::FillBoundary_finish ()
 
     if (N_rcvs > 0)
     {
-	Array<const CopyComTagsContainer*> recv_cctc;
-	recv_cctc.reserve(N_rcvs);
+	Array<const CopyComTagsContainer*> recv_cctc(N_rcvs,nullptr);
 
 	for (int k = 0; k < N_rcvs; k++) 
 	{
-	    MapOfCopyComTagContainers::const_iterator m_it = TheFB.m_RcvTags->find(fb_recv_from[k]);
-	    BL_ASSERT(m_it != TheFB.m_RcvTags->end());
-	    recv_cctc.push_back(&(m_it->second));
+            if (fb_recv_size[k] > 0)
+            {
+                auto const& cctc = TheFB.m_RcvTags->at(fb_recv_from[k]);
+                recv_cctc[k] = &cctc;
+            }
 	}	
 
 #ifdef _OPENMP
@@ -4830,38 +4888,33 @@ FabArray<FAB>::FillBoundary_finish ()
 #endif
 	for (int k = 0; k < N_rcvs; k++) 
 	{
-	    value_type* dptr = fb_recv_data[k];
-	    BL_ASSERT(dptr != 0);
-
-	    const CopyComTagsContainer& cctc = *recv_cctc[k];
-	    
-	    for (CopyComTagsContainer::const_iterator it = cctc.begin();
-		 it != cctc.end(); ++it)
-	    {
-		const Box& bx  = it->dbox;
-		const int  Cnt = bx.numPts()*fb_ncomp;
-		get(it->dstIndex).copyFromMem(bx,fb_scomp,fb_ncomp,dptr);
-		dptr += Cnt;
-	    }	    
+	    const char* dptr = fb_recv_data[k];
+            if (dptr != nullptr)
+            {
+                auto const& cctc = *recv_cctc[k];
+                for (auto const& tag : cctc)
+                {
+                    const Box& bx  = tag.dbox;
+                    std::size_t n = (*this)[tag.dstIndex].copyFromMem(bx,fb_scomp,fb_ncomp,dptr);
+                    dptr += n;
+                }
+                BL_ASSERT(dptr == fb_recv_data[k] + fb_recv_size[k]);
+            }
 	}
 
+        if (fb_the_recv_data)
+        {
 #ifdef BL_USE_UPCXX
-	BLPgas::free(fb_the_recv_data);
+            BLPgas::free(fb_the_recv_data);
 #else
-	if (ParallelDescriptor::MPIOneSided()) {
+            if (ParallelDescriptor::MPIOneSided()) {
 #if defined(BL_USE_MPI3)
-	    MPI_Win_detach(ParallelDescriptor::fb_win, fb_the_recv_data);
-	    amrex::The_Arena()->free(fb_the_recv_data);
-	    fb_recv_disp.clear();
+                MPI_Win_detach(ParallelDescriptor::fb_win, fb_the_recv_data);
 #endif
-	} else {
+            }
 	    amrex::The_Arena()->free(fb_the_recv_data);
+#endif
 	}
-#endif
-
-	fb_recv_from.clear();
-	fb_recv_data.clear();
-	fb_recv_reqs.clear();
     }
 
     if (N_snds > 0) {
@@ -4872,16 +4925,15 @@ FabArray<FAB>::FillBoundary_finish ()
 #else
 	if (ParallelDescriptor::MPIOneSided()) {
 #if defined(BL_USE_MPI3)
-	    for (int i = 0; i < N_snds; ++i)
-		amrex::The_Arena()->free(fb_send_data[i]);
+	    for (int i = 0; i < N_snds; ++i) {
+		if (fb_send_data[i]) amrex::The_Arena()->free(fb_send_data[i]);
+            }
 #endif
-	} else {
-	    Array<MPI_Status> stats;
-	    FabArrayBase::WaitForAsyncSends(N_snds,fb_send_reqs,fb_send_data,stats);
-	}
+        } else {
+            Array<MPI_Status> stats;
+            FabArrayBase::WaitForAsyncSends(N_snds,fb_send_reqs,fb_send_data,stats);
+        }
 #endif
-	fb_send_data.clear();
-	fb_send_reqs.clear();
     }
 
 #ifdef BL_USE_TEAM
@@ -4892,70 +4944,69 @@ FabArray<FAB>::FillBoundary_finish ()
 }
 
 #ifdef BL_USE_UPCXX
-template<typename T>
+template <class FAB>
 void
-FabArrayBase::PostRcvs_PGAS (const std::map<int,int>&               m_RcvVols,
-                             T*&                                    the_recv_data,
-                             Array<T*>&                             recv_data,
-                             Array<int>&                            recv_from,
-                             int                                    ncomp,
-                             int                                    SeqNum,
-                             upcxx::event*                          recv_event)
+FabArray<FAB>::PostRcvs_PGAS (const MapOfCopyComTagContainers&  m_RcvVols,
+                              char*&                            the_recv_data,
+                              Array<char*>&                     recv_data,
+                              Array<int>&                       recv_size,
+                              Array<int>&                       recv_from,
+                              int                               icomp,
+                              int                               ncomp,
+                              int                               SeqNum,
+                              upcxx::event*                     recv_event)
 {
-  int TotalRcvsVolume = 0;
+    recv_data.clear();
+    recv_size.clear();
+    recv_from.clear();
 
-  for (auto it = m_RcvVols.begin(); it != m_RcvVols.end(); ++it)
-  {
-      TotalRcvsVolume += it->second;
-  }
+    std::size_t TotalRcvsVolume = 0;
+    for (const auto& kv : m_RcvVols) // loop over senders
+    {
+        std::size_t nbytes = 0;
+        for (const auto& cct : kv.second)
+        {
+            nbytes += (*this)[cct.dstIndex].nBytes(cct.dbox,icomp,ncomp);
+        }
 
-  TotalRcvsVolume *= ncomp;
+        BL_ASSERT(nbytes < std::numeric_limits<int>::max());
 
-  BL_ASSERT((TotalRcvsVolume*sizeof(T)) < std::numeric_limits<int>::max());
+        TotalRcvsVolume += nbytes;
 
-  the_recv_data = (T*) BLPgas::alloc(TotalRcvsVolume*sizeof(T));
-
-  int Offset = 0;
-
-  for (auto it = m_RcvVols.begin(); it != m_RcvVols.end(); ++it)
-  {
-      const int N = it->second*ncomp;
-
-      BL_ASSERT(N < std::numeric_limits<int>::max());
-
-      recv_data.push_back(&the_recv_data[Offset]);
-      recv_from.push_back(it->first);
-      /// Send an AM to the sender it->first with the recv pointer being &the_recv_data[Offset]
-      upcxx::global_ptr<void> dst_ptr =
-        upcxx::global_ptr<void>(&the_recv_data[Offset], upcxx::myrank());
-      // Increment the event reference before launching the remote task
-      recv_event->incref();
-      // Launch a remote task on the sender to send me data
-      BLPgas::Request(it->first,
-                      dst_ptr,
-                      N*sizeof(T),
-                      SeqNum,
-                      recv_event);
-      upcxx::advance(); // poll the UPC++ progress engine and the network
-      Offset += N;
+        recv_data.push_back(nullptr);
+        recv_size.push_back(static_cast<int>(nbytes));
+        recv_from.push_back(kv.first);
     }
-}
 
-template<typename T>
-void
-FabArrayBase::WaitForAsyncSends_PGAS (int                 N_snds,
-                                      Array<T*>&          send_data,
-                                      upcxx::event*       send_event,
-                                      volatile int*       send_counter)
-{
-  BL_ASSERT(N_snds > 0);
-  BL_ASSERT(send_data.size() == N_snds);
-  // Need to make sure all sends have been started
-  while ((*send_counter) < N_snds)
-      upcxx::advance();
-  send_event->wait(); // wait for the sends
-  for (int i = 0; i < N_snds; i++)
-      BLPgas::free(send_data[i]);
+    if (TotalRcvsVolume == 0)
+    {
+        the_recv_data = nullptr;
+    }
+    else
+    {
+        the_recv_data = static_cast<char*>(BLPgas::alloc(TotalRcvsVolume));
+
+        int nrecv = recv_from.size();
+
+        std::size_t offset = 0;
+        for (int i = 0; i < nrecv; ++i)
+        {
+            if (recv_size[i] > 0)
+            {
+                recv_data[i] = the_recv_data + offset;
+
+                /// Send an AM to the sender with the recv pointer
+                upcxx::global_ptr<void> dst_ptr =
+                    upcxx::global_ptr<void>(recv_data[i], upcxx::myrank());
+                // Increment the event reference before launching the remote task
+                recv_event->incref();
+                // Launch a remote task on the sender to send me data
+                BLPgas::Request(recv_from[i], dst_ptr, recv_size[i], SeqNum, recv_event);
+                upcxx::advance(); // poll the UPC++ progress engine and the network
+                offset += recv_size[i];
+            }
+        }
+    }
 }
 #endif /* BL_USE_UPCXX */
 

@@ -2585,7 +2585,8 @@ Array<int>
 DistributionMapping::TranslateProcMap(const Array<int> &pm_old, const MPI_Group group_new, const MPI_Group group_old)
 {
     Array<int> pm_new(pm_old.size());
-    BL_MPI_REQUIRE( MPI_Group_translate_ranks(group_old, pm_old.size(), pm_old.dataPtr(), group_new, pm_new.dataPtr()) );
+    int* castptr = (int *) pm_old.dataPtr();
+    BL_MPI_REQUIRE( MPI_Group_translate_ranks(group_old, pm_old.size(), castptr, group_new, pm_new.dataPtr()) );
     return pm_new;
 }
 #endif

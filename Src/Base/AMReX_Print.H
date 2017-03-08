@@ -50,6 +50,11 @@ namespace amrex
 	    }
 	}
 
+        Print& SetPrecision(int p) {
+            ss.precision(p);
+            return *this;
+        }
+
 	template <typename T>
 	Print& operator<< (const T& x) {
 	    ss << x;
