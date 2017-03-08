@@ -1,5 +1,7 @@
 #undef  BL_LANG_CC
+#ifndef BL_LANG_FORT
 #define BL_LANG_FORT
+#endif
 
 #include "AMReX_CONSTANTS.H"
 #include "AMReX_BC_TYPES.H"

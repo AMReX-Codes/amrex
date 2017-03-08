@@ -6,18 +6,18 @@
 namespace amrex {
 
 class TracerParticleContainer
-    : public ParticleContainer<BL_SPACEDIM,0,std::vector<Particle<BL_SPACEDIM,0> > >
+    : public ParticleContainer<BL_SPACEDIM>
 {
 public:
 
     TracerParticleContainer (ParGDBBase* gdb)
-	: ParticleContainer<BL_SPACEDIM,0,std::vector<Particle<BL_SPACEDIM,0> > >(gdb)
+	: ParticleContainer<BL_SPACEDIM>(gdb)
 	{}
 
     TracerParticleContainer (const Geometry            & geom, 
 			     const DistributionMapping & dmap,
 			     const BoxArray            & ba)
-	: ParticleContainer<BL_SPACEDIM,0,std::vector<Particle<BL_SPACEDIM,0> > >(geom,dmap,ba)
+	: ParticleContainer<BL_SPACEDIM>(geom,dmap,ba)
 	{}
 
     ~TracerParticleContainer () {}
@@ -29,6 +29,8 @@ public:
     void Timestamp (const std::string& file, const MultiFab& mf, int lev, Real time,
 		    const std::vector<int>& idx);
 };
+
+using TracerParIter = ParIter<BL_SPACEDIM>;
 
 }
 
