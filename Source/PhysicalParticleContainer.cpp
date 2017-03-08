@@ -82,14 +82,12 @@ PhysicalParticleContainer::FieldGather (int lev,
 	    //
 	    // copy data from particle container to temp arrays
 	    //
-	    BL_PROFILE_VAR_START(blp_copy);
 #if (BL_SPACEDIM == 3)
             pti.GetPosition(xp, yp, zp);
 #elif (BL_SPACEDIM == 2)
             pti.GetPosition(xp, zp);
             yp.resize(np, std::numeric_limits<Real>::quiet_NaN());
 #endif
-	    BL_PROFILE_VAR_STOP(blp_copy);
 
 #if (BL_SPACEDIM == 3)
 	    long nx = box.length(0);
@@ -113,7 +111,6 @@ PhysicalParticleContainer::FieldGather (int lev,
 	    const int ll4symtry          = false;
 	    const int l_lower_order_in_v = true;
             long lvect_fieldgathe = 64;
-	    BL_PROFILE_VAR_START(blp_pxr_fg);
 	    warpx_geteb_energy_conserving(&np, xp.data(), yp.data(), zp.data(),
 					  Exp.data(),Eyp.data(),Ezp.data(),
 					  Bxp.data(),Byp.data(),Bzp.data(),
@@ -126,7 +123,6 @@ PhysicalParticleContainer::FieldGather (int lev,
 					  &ll4symtry, &l_lower_order_in_v,
                                           &lvect_fieldgathe,
 		                          &WarpX::field_gathering_algo);
-	    BL_PROFILE_VAR_STOP(blp_pxr_fg);
         }
     }
 }
