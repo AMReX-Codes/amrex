@@ -37,6 +37,7 @@ module amrex_multifab_module
      procedure :: norm0         => amrex_multifab_norm0
      procedure :: norm1         => amrex_multifab_norm1
      procedure :: norm2         => amrex_multifab_norm2
+     procedure :: copy          => amrex_multifab_copy     ! This copies the data
      generic   :: fill_boundary => amrex_multifab_fill_boundary, amrex_multifab_fill_boundary_c
      procedure, private :: amrex_multifab_fill_boundary, amrex_multifab_fill_boundary_c, &
           amrex_multifab_assign, amrex_multifab_install
@@ -171,6 +172,13 @@ module amrex_multifab_module
        type(c_ptr), value :: mf
        integer(c_int), value :: comp
      end function amrex_fi_multifab_norm2
+
+     subroutine amrex_fi_multifab_copy (dstmf, srcmf, srccomp, dstcomp, nc, ng) bind(c)
+       import
+       implicit none
+       type(c_ptr), value :: dstmf, srcmf
+       integer(c_int), value :: srccomp, dstcomp, nc, ng
+     end subroutine amrex_fi_multifab_copy
 
      subroutine amrex_fi_multifab_fill_boundary (mf, geom, c, nc, cross) bind(c)
        import
@@ -426,6 +434,13 @@ contains
        r = amrex_fi_multifab_norm2(this%p, 0)
     end if
   end function amrex_multifab_norm2
+
+  subroutine amrex_multifab_copy (this, srcmf, srccomp, dstcomp, nc, ng)
+    class(amrex_multifab) :: this
+    type(amrex_multifab), intent(in) :: srcmf
+    integer, intent(in) :: srccomp, dstcomp, nc, ng
+    call amrex_fi_multifab_copy(this%p, srcmf%p, srccomp, dstcomp, nc, ng)
+  end subroutine amrex_multifab_copy
 
   subroutine amrex_multifab_fill_boundary (this, geom, cross)
     class(amrex_multifab) :: this

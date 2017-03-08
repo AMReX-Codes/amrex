@@ -40,6 +40,11 @@ module amrex_fillpatch_module
 
 contains
 
+  subroutine amrex_fillpatch_single (mf, told, mfold, tnew, mfnew, geom, fill_physbc, &
+       time, scomp, dcomp, ncomp)
+    type(amrex_multifab), intent(inout) :: mf
+    type(amrex_multifab), intent(in   ) :: mfold, mfnew
+
   subroutine amrex_fillpatch_single (mf, time, smf, stime, scomp, dcomp, ncomp, geom, pbc)
     type(amrex_multifab), intent(inout) :: mf, smf(:)
     real(amrex_real) :: time, stime(*)

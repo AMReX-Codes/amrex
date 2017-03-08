@@ -35,6 +35,8 @@ module my_amr_module
   type(amrex_multifab), allocatable :: phi_old(:)
 
   ! type(amrex_fluxregister), allocatable :: flux_reg(:)
+
+  integer, private, parameter :: ncomp = 1, nghost = 0
   
 contains
 
@@ -122,7 +124,6 @@ contains
     type(amrex_mfiter) :: mfi
     type(amrex_box) :: bx
     real(amrex_real), contiguous, pointer :: phi(:,:,:,:)
-    integer, parameter :: ncomp = 1, nghost = 0
 
     ba = pba
     dm = pdm
@@ -154,13 +155,29 @@ contains
     integer, intent(in), value :: lev
     real(amrex_real), intent(in), value :: time
     type(c_ptr), intent(in), value :: pba, pdm
-    call amrex_abort("my_remake_level not imlemented")
+    call amrex_abort("my_make_new_level_from_coarse not imlemented")
   end subroutine my_make_new_level_from_coarse
 
   subroutine my_remake_level (lev, time, pba, pdm) bind(c)
+    use fillpatch_module, only : fillpatch
     integer, intent(in), value :: lev
     real(amrex_real), intent(in), value :: time
     type(c_ptr), intent(in), value :: pba, pdm
+    
+    type(amrex_boxarray) :: ba
+    type(amrex_distromap) :: dm
+    type(amrex_multifab) :: new_phi_new
+
+    call amrex_multifab_build(new_phi_new, ba, dm, ncomp, 0)
+    call fillpatch(lev, time, new_phi_new)
+
+    call my_clear_level(lev)
+    call amrex_multifab_build(phi_new(lev), ba, dm, ncomp, nghost)
+    call amrex_multifab_build(phi_old(lev), ba, dm, ncomp, nghost)
+
+    call phi_new(lev)%copy(new_phi_new, 0, 0, ncomp, 0)
+
+    call amrex_multifab_destroy(new_phi_new)
     call amrex_abort("my_remake_level not imlemented")
   end subroutine my_remake_level
 

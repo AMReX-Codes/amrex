@@ -54,29 +54,35 @@ extern "C" {
 	}
     }
 
-    Real amrex_fi_multifab_min(const MultiFab* mf, int comp, int nghost)
+    Real amrex_fi_multifab_min (const MultiFab* mf, int comp, int nghost)
     {
 	return mf->min(comp,nghost);
     }
 
-    Real amrex_fi_multifab_max(const MultiFab* mf, int comp, int nghost)
+    Real amrex_fi_multifab_max (const MultiFab* mf, int comp, int nghost)
     {
 	return mf->max(comp,nghost);
     }
 
-    Real amrex_fi_multifab_norm0(const MultiFab* mf, int comp)
+    Real amrex_fi_multifab_norm0 (const MultiFab* mf, int comp)
     {
 	return mf->norm0(comp);
     }
 
-    Real amrex_fi_multifab_norm1(const MultiFab* mf, int comp)
+    Real amrex_fi_multifab_norm1 (const MultiFab* mf, int comp)
     {
 	return mf->norm1(comp);
     }
 
-    Real amrex_fi_multifab_norm2(const MultiFab* mf, int comp)
+    Real amrex_fi_multifab_norm2 (const MultiFab* mf, int comp)
     {
 	return mf->norm2(comp);
+    }
+
+    void amrex_fi_multifab_copy (MultiFab* dstmf, const MultiFab* srcmf,
+                                 int srccomp, int dstcomp, int nc, int ng)
+    {
+        MultiFab::Copy(*dstmf, *srcmf, srccomp, dstcomp, nc, ng);
     }
 
     void amrex_fi_multifab_fill_boundary (MultiFab* mf, const Geometry* geom, 
