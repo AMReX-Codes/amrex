@@ -60,14 +60,6 @@ namespace amrex
         if(m_vofs) return true;
         return false;
       }
-    ///
-    /**
-
-       This aliased BaseIVFAB will have a_comps.size() components, starting at zero.
-    */
-    BaseIVFAB(const Interval& a_comps,
-              BaseIVFAB<T>&   a_original);
-
 
     ///
     virtual ~BaseIVFAB();
@@ -84,13 +76,21 @@ namespace amrex
                         const EBGraph&    a_ebgraph,
                         const int&        a_nvarin);
 
+    BaseIVFAB<T>& copy(const BaseIVFAB<T> & src,
+                       const Box&        srcbox,
+                       int               srccomp,
+                       const Box&        destbox,
+                       int               destcomp,
+                       int               numcomp);
 
-    ///
-    void copy(const Box& a_fromBox,
-              const Interval& a_dstInterval,
-              const Box& a_toBox,
-              const BaseIVFAB<T>& a_src,
-              const Interval& a_srcInterval);
+
+
+    BaseIVFAB<T>& plus(const BaseIVFAB<T>& src,
+                       const Box&        srcbox,
+                       const Box&        destbox,
+                       int               srccomp,
+                       int               destcomp,
+                       int               numcomp=1);
 
     std::size_t nBytes (const Box& bx, int start_comp, int ncomps) const;
 
@@ -136,7 +136,7 @@ namespace amrex
     long offset(const BaseIndex& a_vof, const int& a_ivar) const
       {
         const VolIndex* vof = dynamic_cast< const VolIndex* >(&a_vof);
-        if (vof == NULL) MayDay::Error("cast failed:BaseIVFAB only takes vofs for indexing");
+        if (vof == NULL) amrex::Error("cast failed:BaseIVFAB only takes vofs for indexing");
         unsigned int i = 0;
         for(;i<m_vofs->size(); i++)
           if(*vof == (*m_vofs)[i]) break;

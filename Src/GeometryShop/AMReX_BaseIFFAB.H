@@ -47,7 +47,7 @@ namespace amrex
    must lie completely within the EBGraph.  The
    contents are uninitialized.  Calls full define function.
 */
-    BaseIFFAB(const Box& a_box,
+    BaseIFFAB(const IntVectSet& a_ivs,
               const EBGraph& a_ebgraph,
               const int& a_direction,
               const int& a_nvarin);
@@ -63,7 +63,7 @@ namespace amrex
    are uninitialized.  If it has previously been defined, the old definition
    data is overwritten and lost.
 */
-    void define(const Box& a_box,
+    void define(const IntVectSet& a_ivs,
                 const EBGraph& a_ebgraph,
                 const int& a_direction,
                 const int& a_nvarin);
@@ -92,16 +92,16 @@ namespace amrex
 /**
    define over surrounding nodes of invectset (ivs is cell-centered).
 */
-    BaseIFFAB<T>& copy(const EBGraphImplem& src,
-                        const Box&        srcbox,
-                        int               srccomp,
-                        const Box&        destbox,
-                        int               destcomp,
-                        int               numcomp);
+    BaseIFFAB<T>& copy(const BaseIFFAB<T> & src,
+                       const Box&        srcbox,
+                       int               srccomp,
+                       const Box&        destbox,
+                       int               destcomp,
+                       int               numcomp);
 
 
 
-    BaseIFFAB<T>& plus(const EBGraphImplem& src,
+    BaseIFFAB<T>& plus(const BaseIFFAB<T>& src,
                        const Box&        srcbox,
                        const Box&        destbox,
                        int               srccomp,
@@ -118,7 +118,7 @@ namespace amrex
 ///invalid but necessary for leveldata to compile
     BaseIFFAB(const Box& a_region, int a_nVar)
       {
-        MayDay::Error("invalid constructor called for baseebcellfab");
+        amrex::Error("invalid constructor called for baseebcellfab");
       }
 
 ///
@@ -143,6 +143,10 @@ namespace amrex
         return m_nComp;
       }
 
+    int direction() const
+      {
+        return m_direction;
+      }
 ///
 /**
    Indexing operator.  Return a reference to the contents of this IFFAB,
@@ -186,24 +190,24 @@ namespace amrex
       }
 
 ///
-    const Vector<FaceIndex>& getFaces() const
+    const std::vector<FaceIndex>& getFaces() const
       {
         return m_faces;
       }
 
     static bool s_verbose;
 
-    Box m_box;
     EBGraph m_ebgraph;
 
   private:
     void   setDefaultValues();
 
-    void   getFaceSubset(Vector<FaceIndex>& a_subFaces, const Box& a_subBox) const;
+    void   getFaceSubset(std::vector<FaceIndex>& a_subFaces, const Box& a_subBox) const;
   protected:
 
+    IntVectSet m_ivs;
     T* m_data;
-    Vector<FaceIndex> m_faces;
+    std::vector<FaceIndex> m_faces;
     int m_nFaces;
     int m_nComp;
     int m_direction;
@@ -213,11 +217,11 @@ namespace amrex
 //we disallow copy construction and assigment for data holders
     void operator= (const BaseIFFAB<T>&)
       {
-        MayDay::Error("invalid operator");
+        amrex::Error("invalid operator");
       }
     BaseIFFAB (const BaseIFFAB<T>&)
       {
-        MayDay::Error("invalid operator");
+        amrex::Error("invalid operator");
       }
   };
 
