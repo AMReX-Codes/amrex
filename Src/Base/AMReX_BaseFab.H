@@ -875,7 +875,7 @@ BaseFab<T>::make_alias (BaseFab<T>& alias, int scomp, int ncomp) const
     alias.nvar          = ncomp;
     alias.numpts        = numpts;
     alias.truesize      = alias.nvar * alias.numpts;
-    alias.dptr          = dataPtr(scomp);
+    alias.dptr          = const_cast<T*>(dataPtr(scomp));
     alias.ptr_owner     = false;
     alias.shared_memory = shared_memory;
 }
