@@ -80,6 +80,9 @@ WarpX::Evolve (int numsteps)
 	}
 
 	if (plot_int > 0 && (step+1) % plot_int == 0) {
+            mypc->FieldGather(lev,
+                              *Efield[lev][0],*Efield[lev][1],*Efield[lev][2],
+                              *Bfield[lev][0],*Bfield[lev][1],*Bfield[lev][2]);
 	    last_plot_file_step = step+1;
 	    WritePlotFile();
 	}
