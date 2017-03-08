@@ -47,16 +47,19 @@ contains
     end if
  
     if (lev .eq. 0) then
-
-       call amrex_physbc_build(f_pbc, fill_physbc)
-      
-       call amrex_fillpatch(phi, time, f_mf, f_time, src_comp, dst_comp, num_comp, &
-            &               amrex_geom(lev), f_pbc)
-
-
-       call amrex_physbc_destroy(f_pbc)
-
+       call amrex_fillpatch(phi, t_old(lev), phi_old(lev), &
+            &                    t_new(lev), phi_new(lev), &
+            &               amrex_geom(lev), fill_physbc , &
+            time, src_comp, dst_domp, num_comp)
     else
+       call amrex_fillpatch(phi, t_old(lev-1), phi_old(lev-1), &
+            &                    t_new(lev-1), phi_new(lev-1), &
+            &               amrex_geom(lev-1), fill_physbc   , &
+            &                    t_old(lev  ), phi_old(lev  ), &
+            &                    t_new(lev  ), phi_new(lev  ), &
+            &               amrex_geom(lev  ), fill_physbc   , &
+            time, src_comp, dst_domp, num_comp)
+
 
        teps = 1.e-3_amrex_real * (t_new(lev-1) - t_old(lev-1))
        if (abs(time-t_new(lev-1)) .lt. teps) then
