@@ -7,10 +7,12 @@ Welcome to WarpX's documentation!
 =================================
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Contents:
 
-
+   cpp_class
+   python_class
+   theory
 
 Indices and tables
 ==================
