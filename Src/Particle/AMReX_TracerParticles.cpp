@@ -10,8 +10,8 @@ void
 TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
 {
     BL_PROFILE("TracerParticleContainer::AdvectWithUmac()");
-    BL_ASSERT(OK(true, lev, umac[0].nGrow()-1));
-    BL_ASSERT(lev >= 0 && lev < m_particles.size());
+    BL_ASSERT(OK(lev, lev, umac[0].nGrow()-1));
+    BL_ASSERT(lev >= 0 && lev < GetParticles().size());
 
     D_TERM(BL_ASSERT(umac[0].nGrow() >= 1);,
            BL_ASSERT(umac[1].nGrow() >= 1);,
@@ -54,17 +54,15 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
 
     for (int ipass = 0; ipass < 2; ipass++)
     {
-        PMap& pmap = m_particles[lev];
+        auto& pmap = GetParticles(lev);
+	for (auto& kv : pmap) {
+	  int grid = kv.first.first;
+	  auto& pbox = kv.second.GetArrayOfStructs();
+	  const int n = pbox.size();
 
-        for (auto& kv : pmap)
-        {
-            const int grid = kv.first;
-            PBox&     pbox = kv.second;
-            const int n    = pbox.size();
-
-            FArrayBox* fab[BL_SPACEDIM] = { D_DECL(&((*umac_pointer[0])[grid]),
-						   &((*umac_pointer[1])[grid]),
-						   &((*umac_pointer[2])[grid])) };
+	  FArrayBox* fab[BL_SPACEDIM] = { D_DECL(&((*umac_pointer[0])[grid]),
+						 &((*umac_pointer[1])[grid]),
+						 &((*umac_pointer[2])[grid])) };
 
 #ifdef _OPENMP
 #pragma omp parallel for
@@ -72,14 +70,14 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
             for (int i = 0; i < n; i++)
             {
                 ParticleType& p = pbox[i];
-                
-                if (p.m_id <= 0) continue;
 
-                BL_ASSERT(p.m_grid == grid);
+                if (p.m_idata.id <= 0) continue;
 
-                const Real len[BL_SPACEDIM] = { D_DECL((p.m_pos[0]-plo[0])/dx[0] + Real(0.5),
-                                                       (p.m_pos[1]-plo[1])/dx[1] + Real(0.5),
-                                                       (p.m_pos[2]-plo[2])/dx[2] + Real(0.5)) };
+                const IntVect& cc_cell = Index(p, lev);
+
+                const Real len[BL_SPACEDIM] = { D_DECL((p.m_rdata.pos[0]-plo[0])/dx[0] + Real(0.5),
+                                                       (p.m_rdata.pos[1]-plo[1])/dx[1] + Real(0.5),
+                                                       (p.m_rdata.pos[2]-plo[2])/dx[2] + Real(0.5)) };
 
                 const IntVect cell(D_DECL(floor(len[0]), floor(len[1]), floor(len[2])));
 
@@ -89,11 +87,11 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
                 {
                     IntVect ecell = cell;
 
-                    ecell[d] = p.m_cell[d] + 1;
+                    ecell[d] = cc_cell[d] + 1;
 
                     Real efrac[BL_SPACEDIM] = { D_DECL(frac[0], frac[1], frac[2]) };
 
-                    efrac[d] = (p.m_pos[d]-plo[d])/dx[d] - p.m_cell[d];
+                    efrac[d] = (p.m_rdata.pos[d]-plo[d])/dx[d] - cc_cell[d];
 
                     for (int j = 0; j < BL_SPACEDIM; j++)
                     {
@@ -101,28 +99,26 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
                         if (efrac[j] < 0) efrac[j] = 0;
                     }
 
-                    const Real vel = ParticleBase::InterpDoit(*fab[d], ecell, efrac, 0);
+                    Real vel = ParticleType::InterpDoit(*fab[d], ecell, efrac, 0);
 
                     if (ipass == 0)
                     {
                         //
                         // Save old position and the vel & predict location at dt/2.
                         //
-                        p.m_data[d] = p.m_pos[d];
-                        p.m_pos[d] += 0.5*dt*vel;
+                        p.m_rdata.arr[BL_SPACEDIM+d] = p.m_rdata.pos[d];
+                        p.m_rdata.pos[d] += 0.5*dt*vel;
                     }
                     else
                     {
-                        //
+		        //
                         // Update to final time using the orig position and the vel at dt/2.
                         //
-                        p.m_pos[d]  = p.m_data[d] + dt*vel;
+		        p.m_rdata.pos[d]  = p.m_rdata.arr[BL_SPACEDIM+d] + dt*vel;
                         // Save the velocity for use in Timestamp().
-			p.m_data[d] = vel;
+			p.m_rdata.arr[BL_SPACEDIM+d] = vel;
                     }
                 }
-                
-                ParticleBase::RestrictedWhere(p,m_gdb, umac[0].nGrow()); 
             }
         }
     }
@@ -152,44 +148,39 @@ void
 TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
 {
     BL_ASSERT(Ucc.nGrow() > 0);
-    BL_ASSERT(OK(true, lev, Ucc.nGrow()-1));
-     BL_ASSERT(lev >= 0 && lev < m_particles.size());
+    BL_ASSERT(OK(lev, lev, Ucc.nGrow()-1));
+    BL_ASSERT(lev >= 0 && lev < GetParticles().size());
 
     BL_ASSERT(!Ucc.contains_nan());
 
     const Real      strttime = ParallelDescriptor::second();
     const Geometry& geom     = m_gdb->Geom(lev);
 
-    BL_ASSERT(OnSameGrids(lev,Ucc));
+    BL_ASSERT(OnSameGrids(lev, Ucc));
 
     int idx[BL_SPACEDIM] = {D_DECL(0,1,2)};
 
     for (int ipass = 0; ipass < 2; ipass++)
     {
-        PMap& pmap = m_particles[lev];
-
-        for (auto& kv : pmap)
-        {
-            const int grid = kv.first;
-            PBox&     pbox = kv.second;
-            const int n    = pbox.size();
-
-	    const FArrayBox& fab = Ucc[grid];
-
+        auto& pmap = GetParticles(lev);
+	for (auto& kv : pmap) {
+	  int grid = kv.first.first;
+	  auto& pbox = kv.second.GetArrayOfStructs();
+	  const int n    = pbox.size();
+	  const FArrayBox& fab = Ucc[grid];
+	    
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
             for (int i = 0; i < n; i++)
             {
                 ParticleType& p = pbox[i];
-                
-                if (p.m_id <= 0) continue;
 
-                BL_ASSERT(p.m_grid == grid);
+                if (p.m_idata.id <= 0) continue;
 
 		Real v[BL_SPACEDIM];
 
-		ParticleBase::Interp(p, geom, fab, idx, v, BL_SPACEDIM);
+		ParticleType::Interp(p, geom, fab, idx, v, BL_SPACEDIM);
 
 		if (ipass == 0) {
 		    //
@@ -197,8 +188,8 @@ TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
 		    //
 		    for (int d = 0; d < BL_SPACEDIM; d++)
 		    {
-			p.m_data[d] = p.m_pos[d];
-                        p.m_pos[d] += 0.5*dt*v[d];
+			p.m_rdata.arr[BL_SPACEDIM+d] = p.m_rdata.pos[d];
+                        p.m_rdata.pos[d] += 0.5*dt*v[d];
                     }
 		} else {
 		    //
@@ -206,13 +197,11 @@ TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
 		    //
 		    for (int d = 0; d < BL_SPACEDIM; d++)
 		    {
-                        p.m_pos[d]  = p.m_data[d] + dt*v[d];
+                        p.m_rdata.pos[d]  = p.m_rdata.arr[BL_SPACEDIM+d] + dt*v[d];
                         // Save the velocity for use in Timestamp().
-			p.m_data[d] = v[d];
+			p.m_rdata.arr[BL_SPACEDIM+d] = v[d];
                     }
                 }
-                
-                ParticleBase::RestrictedWhere(p,m_gdb, Ucc.nGrow()); 
             }
         }
     }
@@ -271,32 +260,32 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
     const int   mySet     = (MyProc / nOutFiles);
 
     for (int iSet = 0; iSet < nSets; ++iSet)
-    {
+      {
         if (mySet == iSet)
-        {
+	  {
             //
             // Do we have any particles at this level that need writing?
             //
             bool gotwork = false;
-
-            const PMap& pmap = m_particles[lev];
-
-	    for (const auto& kv : pmap) {
-		for (const auto& p : kv.second) {
-		    if (p.m_id > 0) {
-			gotwork = true;
-			break;
-		    }
+	    
+            const auto& pmap = GetParticles(lev);
+	    for (auto& kv : pmap) {
+              const auto& pbox = kv.second.GetArrayOfStructs();
+	      for (const auto& p : pbox) {
+		if (p.m_idata.id > 0) {
+		  gotwork = true;
+		  break;
 		}
-		if (gotwork) break;
+	      }
+	      if (gotwork) break;
 	    }
 
             if (gotwork)
-            {
+	      {
                 std::string FileName = amrex::Concatenate(basename + '_', MyProc % nOutFiles, 2);
-
+		
                 std::ofstream TimeStampFile;
-
+		
                 VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
 
                 TimeStampFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
@@ -317,52 +306,48 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
 
                 std::vector<Real> vals(M);
 
-		for (const auto& kv : pmap)
-                {
-                    const int        grid = kv.first;
-                    const PBox&      pbox = kv.second;
-                    const Box&       bx   = ba[grid];
-                    const FArrayBox& fab  = mf[grid];
+		for (auto& kv : pmap) {
+		  int grid = kv.first.first;
+		  const auto& pbox = kv.second.GetArrayOfStructs();
+		  const Box&       bx   = ba[grid];
+		  const FArrayBox& fab  = mf[grid];
 
-		    for (const auto& p : pbox)
+		  for (const auto& p : pbox)
                     {
-                        if (p.m_id <= 0) continue;
-
-                        const IntVect& iv = ParticleBase::Index(p, m_gdb->Geom(lev));
-
-                        if (!bx.contains(iv) && !ba.contains(iv)) continue;
-
-                        BL_ASSERT(p.m_lev == lev);
-                        BL_ASSERT(p.m_grid == grid);
-
-                        TimeStampFile << p.m_id  << ' ' << p.m_cpu << ' ';
-
-                        D_TERM(TimeStampFile << p.m_pos[0] << ' ';,
-                               TimeStampFile << p.m_pos[1] << ' ';,
-                               TimeStampFile << p.m_pos[2] << ' ';);
-
-                        TimeStampFile << time;
-                        //
-                        // AdvectWithUmac stores the velocity in m_data ...
-                        //
-                        D_TERM(TimeStampFile << ' ' << p.m_data[0];,
-                               TimeStampFile << ' ' << p.m_data[1];,
-                               TimeStampFile << ' ' << p.m_data[2];);
-
-                        if (M > 0)
+		      if (p.m_idata.id <= 0) continue;
+		      
+		      const IntVect& iv = Index(p,lev);
+		      
+		      if (!bx.contains(iv) && !ba.contains(iv)) continue;
+		      
+		      TimeStampFile << p.m_idata.id  << ' ' << p.m_idata.cpu << ' ';
+		      
+		      D_TERM(TimeStampFile << p.m_rdata.pos[0] << ' ';,
+			     TimeStampFile << p.m_rdata.pos[1] << ' ';,
+			     TimeStampFile << p.m_rdata.pos[2] << ' ';);
+		      
+		      TimeStampFile << time;
+		      //
+		      // AdvectWithUmac stores the velocity in rdata ...
+		      //
+		      D_TERM(TimeStampFile << ' ' << p.m_rdata.arr[BL_SPACEDIM+0];,
+			     TimeStampFile << ' ' << p.m_rdata.arr[BL_SPACEDIM+1];,
+			     TimeStampFile << ' ' << p.m_rdata.arr[BL_SPACEDIM+2];);
+		      
+		      if (M > 0)
                         {
-                            ParticleBase::Interp(p,m_gdb->Geom(p.m_lev),fab,&indices[0],&vals[0],M);
-
-                            for (int i = 0; i < M; i++)
+			  ParticleType::Interp(p,m_gdb->Geom(lev),fab,&indices[0],&vals[0],M);
+			  
+			  for (int i = 0; i < M; i++)
                             {
-                                TimeStampFile << ' ' << vals[i];
+			      TimeStampFile << ' ' << vals[i];
                             }
                         }
-
-                        TimeStampFile << '\n';
+		      
+		      TimeStampFile << '\n';
                     }
                 }
-
+		
                 TimeStampFile.flush();
                 TimeStampFile.close();
             }

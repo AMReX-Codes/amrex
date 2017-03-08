@@ -210,18 +210,24 @@ BoxArray::Initialize ()
 BoxArray::BoxArray ()
     :
     m_transformer(new BATypeTransformer()),
+    m_typ(),
+    m_simple(true),
     m_ref(std::make_shared<BARef>())
 {}
 
 BoxArray::BoxArray (const Box& bx)
     :
     m_transformer(new BATypeTransformer(bx.ixType())),
+    m_typ(bx.ixType()),
+    m_simple(true),
     m_ref(std::make_shared<BARef>(amrex::enclosedCells(bx)))
 {}
 
 BoxArray::BoxArray (const BoxList& bl)
     :
     m_transformer(new BATypeTransformer(bl.ixType())),
+    m_typ(bl.ixType()),
+    m_simple(true),
     m_ref(std::make_shared<BARef>(bl))
 {
     type_update();
@@ -230,6 +236,8 @@ BoxArray::BoxArray (const BoxList& bl)
 BoxArray::BoxArray (size_t n)
     :
     m_transformer(new BATypeTransformer()),
+    m_typ(),
+    m_simple(true),
     m_ref(std::make_shared<BARef>(n))
 {}
 
@@ -237,6 +245,8 @@ BoxArray::BoxArray (const Box* bxvec,
                     int        nbox)
     :
     m_transformer(new BATypeTransformer(bxvec->ixType())),
+    m_typ(bxvec->ixType()),
+    m_simple(true),
     m_ref(std::make_shared<BARef>(nbox))
 {
     for (int i = 0; i < nbox; i++) {
@@ -247,18 +257,24 @@ BoxArray::BoxArray (const Box* bxvec,
 BoxArray::BoxArray (const BoxArray& rhs, const BATransformer& trans)
     :
     m_transformer(trans.clone()),
+    m_typ(trans.ixType()),
+    m_simple(trans.simple()),
     m_ref(rhs.m_ref)
 {}
 
 BoxArray::BoxArray (const BoxArray& rhs)
     :
     m_transformer(rhs.m_transformer->clone()),
+    m_typ(rhs.m_typ),
+    m_simple(rhs.m_simple),
     m_ref(rhs.m_ref)
 {}
 
 BoxArray::BoxArray(BoxArray&& rhs) noexcept
     :
     m_transformer(std::move(rhs.m_transformer)),
+    m_typ(rhs.m_typ),
+    m_simple(rhs.m_simple),
     m_ref(std::move(rhs.m_ref))
 {}
 
@@ -269,6 +285,8 @@ BoxArray&
 BoxArray::operator= (const BoxArray& rhs)
 {
     m_transformer.reset(rhs.m_transformer->clone());
+    m_typ = rhs.m_typ;
+    m_simple = rhs.m_simple;
     m_ref = rhs.m_ref;
     return *this;
 }
@@ -278,6 +296,8 @@ BoxArray::define (const Box& bx)
 {
     clear();
     m_transformer->setIxType(bx.ixType());
+    m_typ = bx.ixType();
+    m_simple = true;
     m_ref->define(amrex::enclosedCells(bx));
 }
 
@@ -286,6 +306,7 @@ BoxArray::define (const BoxList& bl)
 {
     clear();
     m_ref->define(bl);
+    m_simple = true;
     type_update();
 }
 
@@ -360,6 +381,7 @@ BoxArray::readFrom (std::istream& is)
 {
     BL_ASSERT(size() == 0);
     clear();
+    m_simple = true;
     m_ref->define(is);
     type_update();
 }
@@ -388,6 +410,7 @@ bool
 BoxArray::operator== (const BoxArray& rhs) const
 {
     return m_transformer->equal(*rhs.m_transformer)
+        && m_typ == rhs.m_typ && m_simple == rhs.m_simple
 	&& (m_ref == rhs.m_ref || m_ref->m_abox == rhs.m_ref->m_abox);
 }
 
@@ -590,6 +613,7 @@ BoxArray&
 BoxArray::convert (IndexType typ)
 {
     m_transformer->setIxType(typ);
+    m_typ = typ;
     return *this;
 }
 
@@ -685,6 +709,7 @@ BoxArray::set (int        i,
 {
     if (i == 0) {
 	m_transformer->setIxType(ibox.ixType());
+        m_typ = ibox.ixType();
 
 	if (m_ref.use_count()==1) {
 	    clear_hash_bin();
@@ -877,8 +902,8 @@ BoxArray::intersections (const Box&                         bx,
 
 	IntVect glo = gbx.smallEnd();
 	IntVect ghi = gbx.bigEnd();
-	const IntVect& doilo = m_transformer->doiLo();
-	const IntVect& doihi = m_transformer->doiHi();
+	const IntVect& doilo = getDoiLo();
+	const IntVect& doihi = getDoiHi();
 
 	gbx.setSmall(glo - doihi).setBig(ghi + doilo);
         gbx.coarsen(m_ref->crsn);
@@ -931,8 +956,8 @@ BoxArray::complement (const Box& bx) const
 
 	IntVect glo = gbx.smallEnd();
 	IntVect ghi = gbx.bigEnd();
-	const IntVect& doilo = m_transformer->doiLo();
-	const IntVect& doihi = m_transformer->doiHi();
+	const IntVect& doilo = getDoiLo();
+	const IntVect& doihi = getDoiHi();
 
 	gbx.setSmall(glo - doihi).setBig(ghi + doilo);
         gbx.coarsen(m_ref->crsn);
@@ -1118,10 +1143,10 @@ BoxArray::type_update ()
 {
     if (!empty())
     {
-	IndexType typ = m_ref->m_abox[0].ixType();
-	if (!typ.cellCentered())
+	m_typ = m_ref->m_abox[0].ixType();
+        m_transformer->setIxType(m_typ);
+	if (!m_typ.cellCentered())
 	{
-	    m_transformer->setIxType(typ);
 	    for (Array<Box>::iterator it = m_ref->m_abox.begin(), End = m_ref->m_abox.end(); 
 		 it != End; ++it)
 	    {

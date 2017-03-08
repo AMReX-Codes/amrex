@@ -11,6 +11,10 @@ enable_language(C)
 enable_language(CXX)
 enable_language(Fortran)
 
+if (ENABLE_POSITION_INDEPENDENT_CODE)
+  set(CMAKE_POSITION_INDEPENDENT_CODE TRUE)
+endif ()
+
 # No idea why we need this.
 # I think it was required for Franklin build. -- lpritch
 if(PREFER_STATIC_LIBRARIES)
@@ -148,17 +152,17 @@ if (ENABLE_MPI)
   list(APPEND BOXLIB_EXTRA_Fortran_INCLUDE_PATH "${MPI_Fortran_INCLUDE_PATH}")
   list(APPEND BOXLIB_EXTRA_C_INCLUDE_PATH "${MPI_CXX_INCLUDE_PATH}")
   list(APPEND BOXLIB_EXTRA_CXX_INCLUDE_PATH "${MPI_CXX_INCLUDE_PATH}")
-  list(APPEND CMAKE_CC_FLAGS "${MPI_C_FLAGS}")
-  list(APPEND CMAKE_CXX_FLAGS "${MPI_CXX_FLAGS}")
-  list(APPEND CMAKE_Fortran_FLAGS "${MPI_Fortran_FLAGS}")
+  set(CMAKE_CC_FLAGS "${CMAKE_CC_FLAGS} ${MPI_C_FLAGS}")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${MPI_CXX_FLAGS}")
+  set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} ${MPI_Fortran_FLAGS}")
 endif()
 
 if (ENABLE_OpenMP)
   set(ENABLE_OMP TRUE)
   list(APPEND BL_DEFINES BL_USE_OMP)
   find_package(OpenMP REQUIRED)
-  list(APPEND CMAKE_CC_FLAGS "${OpenMP_C_FLAGS}")
-  list(APPEND CMAKE_CXX_FLAGS "${OpenMP_CXX_FLAGS}")
+  set(CMAKE_CC_FLAGS "${CMAKE_CC_FLAGS} ${OpenMP_C_FLAGS}")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 endif()
 
 if (NOT BL_DEBUG)
@@ -190,5 +194,5 @@ endif (ENABLE_CXX11)
 
 
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-  set(APPEND CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ftemplate-depth-64 -Wno-deprecated")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ftemplate-depth-64 -Wno-deprecated")
 endif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
