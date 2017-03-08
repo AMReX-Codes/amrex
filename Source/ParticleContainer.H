@@ -45,7 +45,8 @@ public:
 
     void Checkpoint (const std::string& dir,
 		     const std::string& name,
-		     bool is_checkpoint) const;
+		     bool is_checkpoint,
+                     const amrex::Array<std::string>& varnames = amrex::Array<std::string>()) const;
 
     void Restart (const std::string& dir, const std::string& name);
 
