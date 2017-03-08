@@ -20,6 +20,8 @@ C$(GEOMETRYSHOP_BASE)_sources +=   AMReX_Stencils.cpp AMReX_GraphNode.cpp AMReX_
 C$(GEOMETRYSHOP_BASE)_headers +=   AMReX_VoFIterator.H   AMReX_FaceIterator.H
 C$(GEOMETRYSHOP_BASE)_sources +=   AMReX_VoFIterator.cpp AMReX_FaceIterator.cpp
 
+C$(GEOMETRYSHOP_BASE)_headers +=   AMReX_BaseIFFAB.H AMReX_BaseIFFABI.H 
+C$(GEOMETRYSHOP_BASE)_headers +=   AMReX_BaseIVFAB.H AMReX_BaseIVFABI.H 
 
 VPATH_LOCATIONS   += $(AMREX_HOME)/Src/GeometryShop
 INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/GeometryShop

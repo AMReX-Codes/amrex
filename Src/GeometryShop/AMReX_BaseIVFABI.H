@@ -32,14 +32,6 @@ namespace amrex
  
   }
 
-  template <class T> inline
-  BaseIVFAB<T>::BaseIVFAB(const Interval& a_comps,
-                          BaseIVFAB<T>&   a_original)
-    :m_vofs(a_original.m_vofs),
-     m_Memory(a_original.m_Memory),
-     m_nComp(a_comps.size()),
-     m_data(a_original.dataPtr(a_comps.begin())){ ; }
-
 /******************/
   template <class T> inline
   BaseIVFAB<T>::BaseIVFAB(const IntVectSet& a_ivsin,
@@ -56,7 +48,7 @@ namespace amrex
                        const int&        a_nvarin)
   {
  
-    BL_assert(a_nvarin > 0);
+    assert(a_nvarin > 0);
 
     m_nComp=a_nvarin;
 
@@ -65,7 +57,7 @@ namespace amrex
       int nVoFs = 0;
       //figure out how long vector has to be
       IVSIterator ivsit(a_ivsin);
-      for (ivsit.reset(); ivsit.ok(); ++ivsit)
+      for (ivsit.begin(); ivsit.ok(); ++ivsit)
       {
         nVoFs += a_ebGraph.numVoFs(ivsit());
       }
@@ -81,7 +73,7 @@ namespace amrex
           m_data = &(m_Memory->operator[](0));
               
           VoFIterator vofit(a_ivsin, a_ebGraph);
-          *m_vofs = vofit.getstd::vector();
+          *m_vofs = vofit.getVector();
         }
       }
       else
@@ -92,31 +84,62 @@ namespace amrex
   }
 
   template <class T> inline
-  void
-  BaseIVFAB<T>::copy(const Box& a_fromBox,
-                     const Interval& a_dstInterval,
-                     const Box& a_toBox,
-                     const BaseIVFAB<T>& a_src,
-                     const Interval& a_srcInterval)
+  BaseIVFAB<T>&
+  BaseIVFAB<T>::copy(const BaseIVFAB<T> & a_src,
+                     const Box&        srcbox,
+                     int               srccomp,
+                     const Box&        destbox,
+                     int               destcomp,
+                     int               numcomp)
   {
     T* to=NULL;
     if(m_vofs)
     {
-      to = getIndex((*m_vofs)[0],a_dstInterval.begin());
+      to = getIndex((*m_vofs)[0],destcomp);
     }
     for(unsigned int i=0; i<m_vofs->size(); i++, to++)
     {
       const VolIndex& vof = (*m_vofs)[i];
-      if(a_fromBox.contains(vof.gridIndex()))
+      if(srcbox.contains(vof.gridIndex()))
       {
-        const T* from= a_src.getIndex(vof,a_srcInterval.begin());
-        //T* to  = getIndex(vof,a_dstInterval.begin());
-        for(unsigned int c=0; c<a_srcInterval.size(); c++)
+        const T* from= a_src.getIndex(vof,srccomp);
+
+        for(unsigned int c=0; c<numcomp; c++)
         {
           to[c*m_vofs->size()]=from[c*a_src.m_vofs->size()];
         }
       }
     }
+    return *this;
+  }
+  template <class T> inline
+  BaseIVFAB<T>&
+  BaseIVFAB<T>::plus(const BaseIVFAB<T> & a_src,
+                     const Box&        srcbox,
+                     const Box&        destbox,
+                     int               srccomp,
+                     int               destcomp,
+                     int               numcomp)
+  {
+    T* to=NULL;
+    if(m_vofs)
+    {
+      to = getIndex((*m_vofs)[0],destcomp);
+    }
+    for(unsigned int i=0; i<m_vofs->size(); i++, to++)
+    {
+      const VolIndex& vof = (*m_vofs)[i];
+      if(srcbox.contains(vof.gridIndex()))
+      {
+        const T* from= a_src.getIndex(vof,srccomp);
+
+        for(unsigned int c=0; c<numcomp; c++)
+        {
+          to[c*m_vofs->size()]+=from[c*a_src.m_vofs->size()];
+        }
+      }
+    }
+    return *this;
   }
 
   
@@ -165,7 +188,7 @@ namespace amrex
         {
           count++;
           linearOut(buffer, v);
-          buffer+= CH_XD::linearSize(v);
+          buffer+= linearSize(v);
           int endcomp = srccomp + numcomp -1;
           for (int c= srccomp; c<=endcomp; c++)
           {
@@ -188,7 +211,7 @@ namespace amrex
   copyFromMem (const Box&  a_region,
                int         dstcomp,
                int         numcomp,
-               const void* a_buf);
+               const void* a_buf)
   {
     int* b = (int*)a_buf;
     int count = *b;
@@ -200,7 +223,7 @@ namespace amrex
       linearIn(v, buffer);
       buffer += linearSize(v);
       int endcomp = dstcomp + numcomp -1;
-      for (int c= srccomp; c<=endcomp; c++)
+      for (int c= dstcomp; c<= endcomp; c++)
       {
         T* ptr = getIndex(v, c);
         linearIn(*ptr, buffer);
@@ -216,7 +239,7 @@ namespace amrex
   BaseIVFAB<T>::getIndex(const VolIndex& a_vof, const int& a_comp) const
   {
 
-    BL_assert((a_comp >= 0) && (a_comp < this->m_nComp));
+    assert((a_comp >= 0) && (a_comp < this->m_nComp));
 
     T* dataPtr =  (T*)&(this->m_data[0]);
     for (unsigned int i=0; i<m_vofs->size(); ++i)
