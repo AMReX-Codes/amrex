@@ -97,13 +97,17 @@ extern "C" {
     }
 
     void amrex_fi_init_virtual_functions (FAmrCore::make_level_funptr_t mk_lev_scrtch,
+                                          FAmrCore::make_level_funptr_t mk_lev_crse,
+                                          FAmrCore::make_level_funptr_t mk_lev_re,
 					  FAmrCore::clear_level_funptr_t clr_lev,
 					  FAmrCore::error_est_funptr_t err_est,
 					  FAmrCore* amrcore)
     {
 	amrcore->make_new_level_from_scratch = mk_lev_scrtch;
-	amrcore->clear_level = clr_lev;
-	amrcore->error_est = err_est;
+        amrcore->make_new_level_from_coarse  = mk_lev_crse;
+        amrcore->remake_level                = mk_lev_re;
+	amrcore->clear_level                 = clr_lev;
+	amrcore->error_est                   = err_est;
     }
 
     void amrex_fi_regrid (int baselev, Real t, FAmrCore* amrcore)

@@ -151,11 +151,11 @@ module amrex_amrcore_module
        type(c_ptr), value :: amrcore
      end subroutine amrex_fi_init_from_scratch
 
-     subroutine amrex_fi_init_virtual_functions (mk_lev_scrtch, clr_lev, err_est, &
-          &                                      amrcore) bind(c)
+     subroutine amrex_fi_init_virtual_functions (mk_lev_scrtch, mk_lev_crse, mk_lev_re,&
+          clr_lev, err_est, amrcore) bind(c)
        import
        implicit none
-       type(c_funptr), value :: mk_lev_scrtch, clr_lev, err_est
+       type(c_funptr), value :: mk_lev_scrtch, mk_lev_crse, mk_lev_re, clr_lev, err_est
        type(c_ptr), value :: amrcore
      end subroutine amrex_fi_init_virtual_functions
 
@@ -265,11 +265,14 @@ contains
     call amrex_fi_init_from_scratch(t, amrcore)
   end subroutine amrex_init_from_scratch
 
-  subroutine amrex_init_virtual_functions (mk_lev_scrtch, clr_lev, err_est)
-    procedure(amrex_make_level_proc) :: mk_lev_scrtch
+  subroutine amrex_init_virtual_functions (mk_lev_scrtch, mk_lev_crse, mk_lev_re, &
+       &                                   clr_lev, err_est)
+    procedure(amrex_make_level_proc) :: mk_lev_scrtch, mk_lev_crse, mk_lev_re
     procedure(amrex_clear_level_proc) :: clr_lev
     procedure(amrex_error_est_proc)  :: err_est
     call amrex_fi_init_virtual_functions (c_funloc(mk_lev_scrtch), &
+         &                                c_funloc(mk_lev_crse),   &
+         &                                c_funloc(mk_lev_re),     &
          &                                c_funloc(clr_lev),       &
          &                                c_funloc(err_est),       &
          amrcore)
