@@ -399,21 +399,15 @@ WarpX::WritePlotFile () const
 
     particle_varnames.push_back("velocity_x");
     particle_varnames.push_back("velocity_y");
-#if (BL_SPACEDIM == 3)
     particle_varnames.push_back("velocity_z");
-#endif
 
     particle_varnames.push_back("Ex");
     particle_varnames.push_back("Ey");
-#if (BL_SPACEDIM == 3)
     particle_varnames.push_back("Ez");
-#endif
 
     particle_varnames.push_back("Bx");
     particle_varnames.push_back("By");
-#if (BL_SPACEDIM == 3)
     particle_varnames.push_back("Bz");
-#endif
 
     mypc->Checkpoint(plotfilename, "particle", true, particle_varnames);
 
