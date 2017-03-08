@@ -32,6 +32,9 @@ namespace amrex
     void average_down(const MultiFab& S_fine, MultiFab& S_crse, int scomp, int ncomp, const IntVect& ratio);
     void average_down(const MultiFab& S_fine, MultiFab& S_crse, int scomp, int ncomp,       int      ratio);
 
+    // This adds a coarsened version of the data in S_fine to S_crse, including ghost cells.
+    void sum_fine_to_coarse(const MultiFab& S_Fine, MultiFab& S_crse, int scomp, int ncomp, const IntVect& ratio, const Geometry& cgeom, const Geometry& fgeom);
+
     //! Fill MultiFab boundaries except for physical boundaries.
     void fill_boundary(MultiFab& mf, const Geometry& geom, bool cross = false);
     void fill_boundary(MultiFab& mf, int scomp, int ncomp, const Geometry& geom, bool cross = false);

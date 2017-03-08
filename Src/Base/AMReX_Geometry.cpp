@@ -70,6 +70,7 @@ Geometry::define (const Box&     dom,
     for (int k = 0; k < BL_SPACEDIM; k++)
     {
         dx[k] = prob_domain.length(k)/(Real(domain.length(k)));
+	inv_dx[k] = 1.0/dx[k];
     }
     if (Geometry::spherical_origin_fix == 1)
     {
@@ -80,6 +81,7 @@ Geometry::define (const Box&     dom,
             for (int k = 0; k < BL_SPACEDIM; k++)
             {
                 dx[k] = prob_domain.length(k)/(Real(domain.length(k)));
+		inv_dx[k] = 1.0/dx[k];
             }
 	}
     } 

@@ -768,9 +768,21 @@ def test_suite(argv):
 
                         shutil.copy(tool, os.getcwd())
 
-                        option = eval("suite.{}".format(test.analysisMainArgs))
-                        test_util.run("{} {} {}".format(os.path.basename(test.analysisRoutine),
-                                                        option, output_file))
+                        if test.analysisMainArgs == "":
+                            option = ""
+                        else:
+                            option = eval("suite.{}".format(test.analysisMainArgs))
+
+                        cmd_name = os.path.basename(test.analysisRoutine)
+                        cmd_string = "./{} {} {}".format(cmd_name, option, output_file)
+                        _, _, rc = test_util.run(cmd_string)
+
+                        if rc == 0:
+                            analysis_successful = True
+                        else:
+                            analysis_successful = False
+
+                        test.compare_successful = test.compare_successful and analysis_successful
 
             else:
                 if test.doVis or test.analysisRoutine != "":

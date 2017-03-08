@@ -7,22 +7,18 @@
 
 namespace amrex {
 
-template <int NR, int NI=0, class C = std::deque<Particle<NR,NI> > >
+  template <int NR, int NI=0, int NA=0>
 class AmrParticleContainer
-    : public ParticleContainer<NR,NI,C>
+    : public ParticleContainer<NR, NI, NA>
 {
 
 public:
 
     typedef Particle<NR,NI> ParticleType;
-    typedef typename ParticleContainer<NR,NI,C>::PBox PBox;
-    typedef typename ParticleContainer<NR,NI,C>::PMap PMap;
     
     AmrParticleContainer (AmrCore* amr_core)
-	: ParticleContainer<NR,NI,C>(amr_core->GetParGDB())
+      : ParticleContainer<NR, NI, NA>(amr_core->GetParGDB())
     {
-	this->m_particles.reserve(this->m_gdb->maxLevel()+1);	
-	this->m_particles.resize(this->m_gdb->finestLevel()+1);
     }
 
     ~AmrParticleContainer () {}
@@ -36,8 +32,6 @@ public:
     AmrTracerParticleContainer (AmrCore* amr_core)
 	: TracerParticleContainer(amr_core->GetParGDB())
     {
-	this->m_particles.reserve(this->m_gdb->maxLevel()+1);
-	this->m_particles.resize(this->m_gdb->finestLevel()+1);
     }
 
     ~AmrTracerParticleContainer () {}

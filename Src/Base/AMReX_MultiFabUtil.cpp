@@ -1,4 +1,5 @@
 
+#include <AMReX_VisMF.H>
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_MultiFabUtil_F.H>
 
@@ -194,6 +195,43 @@ namespace amrex
     void average_down (const MultiFab& S_fine, MultiFab& S_crse, int scomp, int ncomp, int rr)
     {
          average_down(S_fine,S_crse,scomp,ncomp,rr*IntVect::TheUnitVector());
+    }
+
+
+    void sum_fine_to_coarse(const MultiFab& S_fine, MultiFab& S_crse,
+                            int scomp, int ncomp, const IntVect& ratio,
+                            const Geometry& cgeom, const Geometry& fgeom) 
+    {
+        BL_ASSERT(S_crse.nComp() == S_fine.nComp());
+        BL_ASSERT(ratio == ratio[0]);
+        BL_ASSERT(S_fine.nGrow() % ratio[0] == 0);
+
+        const int nGrow = S_fine.nGrow() / ratio[0];
+
+        //
+        // Coarsen() the fine stuff on processors owning the fine data.
+        //
+        BoxArray crse_S_fine_BA = S_fine.boxArray(); crse_S_fine_BA.coarsen(ratio);
+
+        MultiFab crse_S_fine(crse_S_fine_BA, S_fine.DistributionMap(), ncomp, nGrow);
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+        for (MFIter mfi(crse_S_fine, true); mfi.isValid(); ++mfi)
+        {
+            //  NOTE: The tilebox is defined at the coarse level.
+            const Box& tbx = mfi.growntilebox(nGrow);
+            
+            BL_FORT_PROC_CALL(BL_AVGDOWN, bl_avgdown)
+                (tbx.loVect(), tbx.hiVect(),
+                 BL_TO_FORTRAN_N(S_fine[mfi] , scomp),
+                 BL_TO_FORTRAN_N(crse_S_fine[mfi], 0),
+                 ratio.getVect(),&ncomp);
+        }
+        
+        S_crse.copy(crse_S_fine, 0, scomp, ncomp, nGrow, 0,
+                    cgeom.periodicity(), FabArrayBase::ADD);
     }
 
     void average_down (const MultiFab& S_fine, MultiFab& S_crse, 

@@ -1,6 +1,5 @@
-#ifndef _Particles_F_H_
-
-#define _Particles_F_H_
+#ifndef AMREX_Particles_F_H_
+#define AMREX_Particles_F_H_
 
 #include <AMReX_BLFort.H>
 
@@ -8,6 +7,21 @@
 
 extern "C"
 {
+
+    void amrex_particle_set_position (amrex::Real*, int ns, int np,
+                                      D_DECL(const amrex::Real* x,
+                                             const amrex::Real* y,
+                                             const amrex::Real* z));
+
+    void amrex_particle_get_position (const amrex::Real*, int ns, int np,
+                                      D_DECL(amrex::Real* x,
+                                             amrex::Real* y,
+                                             amrex::Real* z));
+
+    void amrex_deposit_cic(const amrex::Real*, int ns, int np,
+                           amrex::Real* rho, const int* lo, const int* hi,
+                           const amrex::Real* plo, const amrex::Real* dx);
+
 
 BL_FORT_PROC_DECL(PART_SUMMASSDOWN,part_summassdown)
     (BL_FORT_FAB_ARG(crse_fab),
