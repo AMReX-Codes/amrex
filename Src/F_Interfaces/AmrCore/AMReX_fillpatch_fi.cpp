@@ -6,12 +6,13 @@ using namespace amrex;
 extern "C"
 {
     void amrex_fi_fillpatch_single (MultiFab* mf, Real time, MultiFab* smf[], Real stime[], int ns,
-				    int scomp, int dcomp, int ncomp, 
-				    const Geometry* geom, FPhysBC* pbc)
+				    int scomp, int dcomp, int ncomp, const Geometry* geom, 
+                                    FPhysBC::fill_physbc_funptr_t fill)
     {
+        FPhysBC pbc(fill);
 	amrex::FillPatchSingleLevel(*mf, time, Array<MultiFab*>{smf, smf+ns}, 
 				    Array<Real>{stime, stime+ns},
-				    scomp, dcomp, ncomp, *geom, *pbc);
+				    scomp, dcomp, ncomp, *geom, pbc);
     }
 
     void amrex_fi_fillpatch_two (MultiFab* mf, Real time,
@@ -19,7 +20,8 @@ extern "C"
 				 MultiFab* fmf[], Real ft[], int nf,
 				 int scomp, int dcomp, int ncomp,
 				 const Geometry* cgeom, const Geometry* fgeom,
-				 FPhysBC* cbc, FPhysBC* fbc,
+				 FPhysBC::fill_physbc_funptr_t cfill,
+                                 FPhysBC::fill_physbc_funptr_t ffill,
 				 int rr, int interp_id,
 				 int* lo_bc[], int* hi_bc[])
     {
@@ -41,12 +43,14 @@ extern "C"
 	    bcs.emplace_back(lo_bc[i], hi_bc[i]);
 	}
 
+        FPhysBC cbc(cfill);
+        FPhysBC fbc(ffill);
 	amrex::FillPatchTwoLevels(*mf, time,
 				  Array<MultiFab*>{cmf, cmf+nc}, Array<Real>{ct, ct+nc},
 				  Array<MultiFab*>{fmf, fmf+nf}, Array<Real>{ft, ft+nf},
 				  scomp, dcomp, ncomp,
 				  *cgeom, *fgeom,
-				  *cbc, *fbc,
+				  cbc, fbc,
 				  IntVect{D_DECL(rr,rr,rr)},
 				  interp[interp_id], bcs);
     }

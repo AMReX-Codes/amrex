@@ -4,6 +4,8 @@ module my_amr_module
   use amrex_amr_module
   use amrex_fort_module, only : rt => amrex_real
 
+  use amr_data_module
+
   implicit none
 
   ! runtime parameters
@@ -27,14 +29,7 @@ module my_amr_module
   integer, allocatable :: nsubsteps(:)
   integer, allocatable :: last_regrid_step(:)
 
-  real(rt), allocatable :: t_new(:)
-  real(rt), allocatable :: t_old(:)
   real(rt), allocatable :: dt(:)
-
-  type(amrex_multifab), allocatable :: phi_new(:)
-  type(amrex_multifab), allocatable :: phi_old(:)
-
-  ! type(amrex_fluxregister), allocatable :: flux_reg(:)
 
   integer, private, parameter :: ncomp = 1, nghost = 0
   
@@ -88,29 +83,15 @@ contains
     allocate(last_regrid_step(0:amrex_max_level))
     last_regrid_step = 0
 
-    allocate(t_new(0:amrex_max_level))
-    t_new = 0.0_rt
-
-    allocate(t_old(0:amrex_max_level))
-    t_old = -1.0e100_rt
-
     allocate(dt(0:amrex_max_level))
     dt = 1.e100
 
-    allocate(phi_new(0:amrex_max_level))
-    allocate(phi_old(0:amrex_max_level))
-
-    ! allocate(flux_reg(0:amrex_max_level))
+    call amr_data_init()
   end subroutine my_amr_init
 
 
   subroutine my_amr_finalize ()
-    integer :: lev
-    do lev = 0, amrex_max_level
-       call amrex_multifab_destroy(phi_new(lev))
-       call amrex_multifab_destroy(phi_old(lev))
-       ! call amrex_fluxregister_destroy(flux_reg(lev))
-    end do
+    call amr_data_finalize()
   end subroutine my_amr_finalize
 
   subroutine my_make_new_level_from_scratch (lev, time, pba, pdm) bind(c)
