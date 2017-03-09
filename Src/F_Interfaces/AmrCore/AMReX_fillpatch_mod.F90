@@ -73,7 +73,8 @@ contains
        stime(2) =  tnew
     end if
 
-    call amrex_fi_fillpatch_single(mf%p, time, smf, stime, ns, scomp, dcomp, ncomp, geom%p, &
+    ! scomp-1 and dcomp-1 because of Fortran index starts with 1
+    call amrex_fi_fillpatch_single(mf%p, time, smf, stime, ns, scomp-1, dcomp-1, ncomp, geom%p, &
          &                         c_funloc(fill_physbc))
     
   end subroutine amrex_fillpatch_single
@@ -140,9 +141,10 @@ contains
        hi_bc_ptr(i) = c_loc(hi_bc(1,i))
     end do
 
+    ! scomp-1 and dcomp-1 because of Fortran index starts with 1
     call amrex_fi_fillpatch_two(mf%p, time, c_mf, c_time, ncrse, &
          &                                  f_mf, f_time, nfine, &
-         &                      scomp, dcomp, ncomp,             &
+         &                      scomp-1, dcomp-1, ncomp,         &
          &                      geom_c%p, geom_f%p,              &
          &                      c_funloc(fill_physbc_c),         &
          &                      c_funloc(fill_physbc_f),         &
