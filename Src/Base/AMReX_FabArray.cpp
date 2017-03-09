@@ -692,6 +692,8 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa)
     {
 	CopyComTag::MapOfCopyComTagContainers & Tags = (ipass == 0) ? *m_SndTags : *m_RcvTags;
 	CopyComTag::MapOfCopyComTagContainers & Vols = (ipass == 0) ? *m_SndVols : *m_RcvVols;
+
+        Array<int> to_be_deleted;
 	    
         for (auto& kv : Vols)
 	{
@@ -757,7 +759,9 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa)
 		}
 	    }
 		
-	    if (!cctv_tags.empty()) {
+	    if (cctv_tags.empty()) {
+                to_be_deleted.push_back(key);
+            } else {
 		Tags[key].swap(cctv_tags);
 	    }
 
@@ -765,6 +769,10 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa)
                 cctv.swap(cctv_vols_cross);
             }
 	}
+
+        for (int key : to_be_deleted) {
+            Vols.erase(key);
+        }
     }
 }
 
@@ -941,9 +949,7 @@ FabArrayBase::FB::define_epo (const FabArrayBase& fa)
 		}
 	    }
 
-	    if (!cctv_tags.empty()) {
-		Tags[key].swap(cctv_tags);
-	    }
+            Tags[key].swap(cctv_tags);
 	}
     }
 }
