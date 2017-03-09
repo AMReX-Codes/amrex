@@ -149,6 +149,9 @@ contains
     type(amrex_distromap) :: dm
     type(amrex_multifab) :: new_phi_new
 
+    ba = pba
+    dm = pdm
+
     call amrex_multifab_build(new_phi_new, ba, dm, ncomp, 0)
     call fillpatch(lev, time, new_phi_new)
 
@@ -159,7 +162,6 @@ contains
     call phi_new(lev)%copy(new_phi_new, 0, 0, ncomp, 0)
 
     call amrex_multifab_destroy(new_phi_new)
-    call amrex_abort("my_remake_level not imlemented")
   end subroutine my_remake_level
 
   subroutine my_clear_level (lev) bind(c)
