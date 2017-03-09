@@ -9,4 +9,5 @@ from .Particles import particles
 from .AMReX import AMReX
 
 from .timestepper import TimeStepper
+from .PGroup import PGroup
 

@@ -69,6 +69,8 @@ public:
     void SetParticleBoxArray (int lev, amrex::BoxArray& new_ba);
     void SetParticleDistributionMap (int lev, amrex::DistributionMapping& new_dm);
 
+    int nSpecies() {return nspecies;}
+
 private:
 
     // physical particles (+ laser)
