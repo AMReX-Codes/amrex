@@ -10,7 +10,8 @@ module evolve_module
 contains
 
   subroutine evolve ()
-    use my_amr_module, only : phi_old, phi_new, stepno, max_step, t_new, stop_time, dt, plot_int
+    use my_amr_module, only : stepno, max_step, stop_time, dt, plot_int
+    use amr_data_module, only : phi_old, phi_new, t_new
     use compute_dt_module, only : compute_dt
     use plotfile_module, only : writeplotfile
     real(amrex_real) :: cur_time
@@ -60,8 +61,8 @@ contains
   end subroutine evolve
 
   recursive subroutine timestep (lev, time, substep)
-    use my_amr_module, only : regrid_int, stepno, nsubsteps, last_regrid_step, dt, do_reflux, &
-         t_old, t_new, phi_old, phi_new
+    use my_amr_module, only : regrid_int, stepno, nsubsteps, last_regrid_step, dt, do_reflux
+    use amr_data_module, only : t_old, t_new, phi_old, phi_new
     use averagedown_module, only : averagedownto
     integer, intent(in) :: lev, substep
     real(amrex_real), intent(in) :: time
@@ -191,9 +192,10 @@ contains
             pfz, lbound(pfz), ubound(pfz), &
 #endif
             amrex_geom(lev)%dx, dt)
-
-! if (do_reflux) xxxxx       
-
+       
+!       if (do_reflux) then
+!          if (lev
+!       end if
     end do
     call amrex_mfiter_destroy(mfi)
     do idim = 1, amrex_spacedim
