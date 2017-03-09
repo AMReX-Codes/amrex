@@ -8,7 +8,7 @@ module amr_data_module
   implicit none
 
   private
-  public :: t_new, t_old, phi_new, phi_old
+  public :: t_new, t_old, phi_new, phi_old, flux_reg
   public :: amr_data_init, amr_data_finalize
 
   real(rt), allocatable :: t_new(:)
@@ -17,7 +17,7 @@ module amr_data_module
   type(amrex_multifab), allocatable :: phi_new(:)
   type(amrex_multifab), allocatable :: phi_old(:)
 
-  ! type(amrex_fluxregister), allocatable :: flux_reg(:)
+  type(amrex_fluxregister), allocatable :: flux_reg(:)
 
 contains
 
@@ -31,7 +31,7 @@ contains
     allocate(phi_new(0:amrex_max_level))
     allocate(phi_old(0:amrex_max_level))
 
-    ! allocate(flux_reg(0:amrex_max_level))
+    allocate(flux_reg(0:amrex_max_level))
   end subroutine amr_data_init
 
   subroutine amr_data_finalize
@@ -39,7 +39,9 @@ contains
     do lev = 0, amrex_max_level
        call amrex_multifab_destroy(phi_new(lev))
        call amrex_multifab_destroy(phi_old(lev))
-       ! call amrex_fluxregister_destroy(flux_reg(lev))
+    end do
+    do lev = 1, amrex_max_level
+       call amrex_fluxregister_destroy(flux_reg(lev))
     end do
   end subroutine amr_data_finalize
   

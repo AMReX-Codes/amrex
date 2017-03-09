@@ -115,10 +115,9 @@ contains
     call amrex_multifab_build(phi_new(lev), ba, dm, ncomp, nghost)
     call amrex_multifab_build(phi_old(lev), ba, dm, ncomp, nghost)
 
-!    if (lev > 0 .and. do_reflux) then
-!       call amrex_fluxregister_destroy(flux_reg(lev))
-!       call amrex_fluxregister_build(flux_reg(lev), ba, dm, amrex_ref_ratio(lev-1), lev, ncomp)
-!    end if
+   if (lev > 0 .and. do_reflux) then
+      call amrex_fluxregister_build(flux_reg(lev), ba, dm, amrex_ref_ratio(lev-1), lev, ncomp)
+   end if
 
     call amrex_mfiter_build(mfi, phi_new(lev))
 
@@ -158,6 +157,9 @@ contains
     call my_clear_level(lev)
     call amrex_multifab_build(phi_new(lev), ba, dm, ncomp, nghost)
     call amrex_multifab_build(phi_old(lev), ba, dm, ncomp, nghost)
+    if (lev > 0 .and. do_reflux) then
+       call amrex_fluxregister_build(flux_reg(lev), ba, dm, amrex_ref_ratio(lev-1), lev, ncomp)
+    end if
 
     call phi_new(lev)%copy(new_phi_new, 0, 0, ncomp, 0)
 
@@ -168,7 +170,7 @@ contains
     integer, intent(in), value :: lev
     call amrex_multifab_destroy(phi_new(lev))
     call amrex_multifab_destroy(phi_old(lev))
-    ! xxxxx call amrex_fluxregister_destroy(flux_reg(lev))
+    call amrex_fluxregister_destroy(flux_reg(lev))
   end subroutine my_clear_level
 
   subroutine my_error_estimate (lev, cp, t, settag, cleartag) bind(c)
