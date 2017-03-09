@@ -223,8 +223,8 @@ warpx.do_plasma_injection = 0
 #warpx.injected_plasma_ppc = 4
 
 # --- Initialize the simulation
-boxlib = BoxLib()
-boxlib.init()
+amrex = AMReX()
+amrex.init()
 warpx.init()
 
 set_initial_conditions(ncells, domain_min, domain_max)
@@ -248,4 +248,4 @@ for i in range(1, max_step + 1):
 
 warpx.finalize()
 
-boxlib.finalize()
+amrex.finalize()
