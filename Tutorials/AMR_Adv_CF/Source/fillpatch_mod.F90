@@ -13,37 +13,30 @@ contains
 
   ! Fill phi with data from phi_old and phi_new of current level and one level below.
   subroutine fillpatch (lev, time, phi)
-    use my_amr_module, only : t_old, t_new, phi_old, phi_new
+    use amr_data_module, only : t_old, t_new, phi_old, phi_new
+    use bc_module, only : lo_bc, hi_bc
     integer, intent(in) :: lev
     real(amrex_real), intent(in) :: time
     type(amrex_multifab), intent(inout) :: phi
     
     integer, parameter :: src_comp=1, dst_comp=1, num_comp=1  ! for this test code
-    real(amrex_real) :: teps
-    type(amrex_multifab), allocatable :: c_mf(:), f_mf(:)
-    real(amrex_real), allocatable :: c_time(:), f_time(:)
-    type(amrex_physbc) :: c_pbc, f_pbc
-    integer :: lo_bc(amrex_spacedim,src_comp+num_comp-1)
-    integer :: hi_bc(amrex_spacedim,src_comp+num_comp-1)
 
     if (lev .eq. 0) then
        call amrex_fillpatch(phi, t_old(lev), phi_old(lev), &
             &                    t_new(lev), phi_new(lev), &
             &               amrex_geom(lev), fill_physbc , &
-            time, src_comp, dst_domp, num_comp)
+            &               time, src_comp, dst_comp, num_comp)
     else
-       ! periodic bc.  See amrex_bc_types_module for a list of bc types.
-       lo_bc = amrex_bc_int_dir
-       hi_bc = amrex_bc_int_dir
-#if 0
        call amrex_fillpatch(phi, t_old(lev-1), phi_old(lev-1), &
             &                    t_new(lev-1), phi_new(lev-1), &
             &               amrex_geom(lev-1), fill_physbc   , &
             &                    t_old(lev  ), phi_old(lev  ), &
             &                    t_new(lev  ), phi_new(lev  ), &
             &               amrex_geom(lev  ), fill_physbc   , &
-            time, src_comp, dst_domp, num_comp, lo_bc, hi_bc)
-#endif
+            &               time, src_comp, dst_comp, num_comp, &
+            &               amrex_ref_ratio(lev-1), amrex_interp_cell_cons, &
+            &               lo_bc, hi_bc)
+       ! see amrex_interpolater_module for a list of interpolaters
     end if
   end subroutine fillpatch
 
