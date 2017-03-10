@@ -61,5 +61,23 @@ extern "C"
       const amrex::Geometry& geom = warpx.Geom(0);
       return geom.ProbHi(dir);
     }
+
+  long warpx_getNumParticles(int speciesnumber) {
+    auto & mypc = WarpX::GetInstance().GetPartContainer();
+    auto & myspc = mypc.GetParticleContainer(speciesnumber);
+    return myspc.TotalNumberOfParticles();
+  }
+
+  double* warpx_getParticlePositions(int speciesnumber) {
+    amrex::Array<amrex::Real> part_data;
+    auto & mypc = WarpX::GetInstance().GetPartContainer();
+    auto & myspc = mypc.GetParticleContainer(speciesnumber);
+    myspc.GetParticleLocations(part_data);
+    double* buffer = (double*) malloc(part_data.size()*sizeof(double));
+    for (long i = 0; i < part_data.size(); ++i) {
+      buffer[i] = part_data[i];
+    }
+    return buffer;
+  }
 }
 

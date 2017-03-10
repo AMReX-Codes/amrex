@@ -29,6 +29,8 @@ extern "C" {
 
   double warpx_getProbHi(int dir);
 
+  double* warpx_getArray();
+
 #ifdef __cplusplus
 }
 #endif
