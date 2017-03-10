@@ -551,6 +551,11 @@ public:
                             Array<std::unique_ptr<MultiFab> >& mf_to_be_filled, 
                             int lev_min, int ncomp, int finest_level) const;
 
+    void InterpolateFort (Array<std::unique_ptr<MultiFab> >& mesh_data, 
+                          int lev_min, int lev_max);
+
+    void InterpolateSingleLevelFort (MultiFab& mesh_data, int lev);
+
     void AssignCellDensitySingleLevelFort (int rho_index, MultiFab& mf, int level,
 					   int ncomp=1, int particle_lvl_offset = 0) const;
     void AssignCellDensitySingleLevel (int rho_index, MultiFab& mf, int level,
