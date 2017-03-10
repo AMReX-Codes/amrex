@@ -15,4 +15,29 @@ extern "C"
     {
         delete flux_reg;
     }
+
+    void amrex_fi_fluxregister_fineadd (FluxRegister* flux_reg, MultiFab* flxs[], Real scale)
+    {
+        for (int dir = 0; dir < BL_SPACEDIM; ++dir) {
+            BL_ASSERT(flux_reg->nComp() == flxs[dir]->nComp());
+            flux_reg->FineAdd(*flxs[dir], dir, 0, 0, flux_reg->nComp(), scale);
+        }
+    }
+
+    void amrex_fi_fluxregister_crseinit (FluxRegister* flux_reg, MultiFab* flxs[], Real scale)
+    {
+        for (int dir = 0; dir < BL_SPACEDIM; ++dir) {
+            BL_ASSERT(flux_reg->nComp() == flxs[dir]->nComp());
+            flux_reg->CrseInit(*flxs[dir], dir, 0, 0, flux_reg->nComp(), scale);
+        }
+    }
+
+    void amrex_fi_fluxregister_reflux (FluxRegister* flux_reg, MultiFab* mf, Real scale, 
+                                       const Geometry* geom)
+    {
+        MultiFab vol;
+        geom->GetVolume(vol, mf->boxArray(), mf->DistributionMap(), 0);
+        BL_ASSERT(flux_reg->nComp() == mf->nComp());
+        flux_reg->Reflux(*mf, vol, scale, 0, 0, flux_reg->nComp(), *geom);
+    }
 }

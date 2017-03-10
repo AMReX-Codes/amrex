@@ -629,7 +629,7 @@ contains
        dir = -1
     end if
     inodal = 0
-    call amrex_fi_mfiter_nodaltilebox(this%p, dir, bx%lo, bx%hi, inodal)
+    call amrex_fi_mfiter_nodaltilebox(this%p, dir-1, bx%lo, bx%hi, inodal)
     where (inodal .ne. 0) bx%nodal = .true.  ! note default is false
   end function amrex_mfiter_nodaltilebox
 

@@ -62,7 +62,7 @@ contains
 
   recursive subroutine timestep (lev, time, substep)
     use my_amr_module, only : regrid_int, stepno, nsubsteps, last_regrid_step, dt, do_reflux
-    use amr_data_module, only : t_old, t_new, phi_old, phi_new
+    use amr_data_module, only : t_old, t_new, phi_old, phi_new, flux_reg
     use averagedown_module, only : averagedownto
     integer, intent(in) :: lev, substep
     real(amrex_real), intent(in) :: time
@@ -107,9 +107,7 @@ contains
        end do
 
        if (do_reflux) then
-          if (amrex_parallel_ioprocessor()) then
-             print *, "TODO: reflux"
-          end if
+          call flux_reg(lev+1)%reflux(phi_new(lev), 1.0_amrex_real)
        end if
 
        call averagedownto(lev)
@@ -118,7 +116,8 @@ contains
 
   ! update phi_new(lev)
   subroutine advance (lev, time, dt, step, substep, nsub)
-    use my_amr_module, only : verbose, phi_new
+    use my_amr_module, only : verbose, do_reflux
+    use amr_data_module, only : phi_new, flux_reg
     use face_velocity_module, only : get_face_velocity
     use advect_module, only : advect
     use fillpatch_module, only : fillpatch
@@ -127,12 +126,15 @@ contains
 
     integer, parameter :: ngrow = 3
     integer :: ncomp, idim
+    logical :: nodal(3)
     type(amrex_multifab) :: phiborder
     type(amrex_mfiter) :: mfi
     type(amrex_box) :: bx, tbx
-    real(amrex_real), contiguous, pointer, dimension(:,:,:,:) :: pin,pout,pux,puy,puz,pfx,pfy,pfz
+    real(amrex_real), contiguous, pointer, dimension(:,:,:,:) :: pin,pout,pux,puy,puz,pfx,pfy,pfz, &
+         pf, pfab
     type(amrex_fab) :: uface(amrex_spacedim)
     type(amrex_fab) ::  flux(amrex_spacedim)
+    type(amrex_multifab) :: fluxes(amrex_spacedim)
 
     if (verbose .gt. 0 .and. amrex_parallel_ioprocessor()) then
        write(*,'(A, 1X, I0, 1X, A, 1X, I0, A, 1X, G0)') &
@@ -140,6 +142,14 @@ contains
     end if
 
     ncomp = phi_new(lev)%ncomp()
+
+    if (do_reflux) then
+       do idim = 1, amrex_spacedim
+          nodal = .false.
+          nodal(idim) = .true.
+          call amrex_multifab_build(fluxes(idim), phi_new(lev)%ba, phi_new(lev)%dm, ncomp, 0, nodal)
+       end do
+    end if
 
     call amrex_multifab_build(phiborder, phi_new(lev)%ba, phi_new(lev)%dm, ncomp, ngrow)
 
@@ -193,9 +203,15 @@ contains
 #endif
             amrex_geom(lev)%dx, dt)
        
-!       if (do_reflux) then
-!          if (lev
-!       end if
+       if (do_reflux) then
+          do idim = 1, amrex_spacedim
+             pf => fluxes(idim)%dataptr(mfi)
+             pfab => flux(idim)%dataptr()
+             tbx = mfi%nodaltilebox(idim)
+             pf       (tbx%lo(1):tbx%hi(1),tbx%lo(2):tbx%hi(2),tbx%lo(3):tbx%hi(3),:) = &
+                  pfab(tbx%lo(1):tbx%hi(1),tbx%lo(2):tbx%hi(2),tbx%lo(3):tbx%hi(3),:)
+          end do
+       end if
     end do
     call amrex_mfiter_destroy(mfi)
     do idim = 1, amrex_spacedim
@@ -204,8 +220,22 @@ contains
     end do
     !$omp end parallel
 
-    call amrex_multifab_destroy(phiborder)
+    if (do_reflux) then
+       ! Note that the fluxes have already been scaled by dt and area.
+       if (lev > 0) then
+          call flux_reg(lev)%fineadd(fluxes, 1.0_amrex_real)
+       end if
 
+       if (lev < amrex_get_finest_level()) then
+          call flux_reg(lev+1)%crseinit(fluxes, -1.0_amrex_real)
+       end if
+
+       do idim = 1, amrex_spacedim
+          call amrex_multifab_destroy(fluxes(idim))
+       end do
+    end if
+
+    call amrex_multifab_destroy(phiborder)
   end subroutine advance
 
 end module evolve_module
