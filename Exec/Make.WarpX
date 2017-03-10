@@ -48,17 +48,19 @@ else
   SHARED_OPTION = -shared
 endif
 
-pyinstallswig: libwarpx.a warpxC.i classwrapper.i
-	@echo Making and installing python wrapper ...
-	# touch warpxC.i to force the rebuilding of the swig interface
-	touch warpxC.i
-	LDFLAGS="$(LDFLAGS) $(libraries)" CC=$(CXX) CXX=$(CXX) CFLAGS="$(CXXFLAGS) $(CPPFLAGS)" CXXFLAGS="$(CXXFLAGS) $(CPPFLAGS)" DEFINES="$(DEFINES)" python setup.py install --force
-	@echo SUCCESS
+all: libwarpx.so
 
-pybuild: libwarpx.a warpxC.i classwrapper.i
-	@echo Making python wrapper ...
-	LDFLAGS="$(LDFLAGS) $(libraries)" CC=$(CXX) CXX=$(CXX) CFLAGS="$(CXXFLAGS) $(CPPFLAGS)" CXXFLAGS="$(CXXFLAGS) $(CPPFLAGS)" DEFINES="$(DEFINES)" python setup.py build
-	@echo SUCCESS
+#pyinstallswig: libwarpx.a warpxC.i classwrapper.i
+#	@echo Making and installing python wrapper ...
+#	# touch warpxC.i to force the rebuilding of the swig interface
+#	touch warpxC.i
+#	LDFLAGS="$(LDFLAGS) $(libraries)" CC=$(CXX) CXX=$(CXX) CFLAGS="$(CXXFLAGS) $(CPPFLAGS)" CXXFLAGS="$(CXXFLAGS) $(CPPFLAGS)" DEFINES="$(DEFINES)" python setup.py install --force
+#	@echo SUCCESS
+#
+#pybuild: libwarpx.a warpxC.i classwrapper.i
+#	@echo Making python wrapper ...
+#	LDFLAGS="$(LDFLAGS) $(libraries)" CC=$(CXX) CXX=$(CXX) CFLAGS="$(CXXFLAGS) $(CPPFLAGS)" CXXFLAGS="$(CXXFLAGS) $(CPPFLAGS)" DEFINES="$(DEFINES)" python setup.py build
+#	@echo SUCCESS
 
 libwarpx.a: $(objForExecs)
 	@echo Making static library $@ ...
