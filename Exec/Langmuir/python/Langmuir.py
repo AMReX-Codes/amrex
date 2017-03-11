@@ -7,6 +7,8 @@ import matplotlib.pyplot as plt
 
 libwarpx = ctypes.CDLL("libwarpx.so")
 
+# first define some wrapper functions - these can be moved to 
+# a separate python module
 def get_positions(species_number):
     '''
 
@@ -33,7 +35,7 @@ def get_particle_data(species_number, start_comp, num_comp):
     num_particles = libwarpx.warpx_getNumParticles(species_number)
     f = libwarpx.warpx_getParticleData
     f.restype = np.ctypeslib.ndpointer(dtype=ctypes.c_double, ndim=2, 
-                                       shape=(num_particles, num_comp), flags="OWNDATA")
+                                       shape=(num_comp, num_particles), flags="OWNDATA")
     return libwarpx.warpx_getParticleData(species_number, start_comp, num_comp)
 
 
@@ -79,7 +81,9 @@ def get_electric_field(level, direction):
     grid_data = []
     for i in range(size.value):
         shape=(shapes[3*i+0], shapes[3*i+1], shapes[3*i+2])
-        grid_data.append(np.ctypeslib.as_array(data[i], shape))
+        arr = np.ctypeslib.as_array(data[i], shape)
+        arr.setflags(write=0)
+        grid_data.append(arr)
 
     del shapes
     del data
@@ -97,25 +101,34 @@ for i, arg in enumerate(sys.argv):
     enc_arg = arg.encode('utf-8')
     argv[i] = ctypes.create_string_buffer(enc_arg)
 
+#  here begins the actual simulation script
 libwarpx.amrex_init(argc, argv)
 
 libwarpx.warpx_init()
 
+#  get the positions of the particles and plot them in matplotlib
 positions = get_positions(0)
 plt.plot(positions[:,0], positions[:,1], '.')
 plt.savefig('particles.png')
 
+#  run for ten time steps
 libwarpx.warpx_evolve(10)
 
+# get the first two components of the particle data - these are
+# the particle weights and the x-velocity
 data = get_particle_data(0, 0, 2)
 print(data)
 print(data.shape)
 
+# the particle integer id numbers
 print(get_particle_ids(0))
 print(get_particle_cpu(0))
 
+# this returns a list of numpy arrays that hold the electric field 
+# data in the x-direction on each grid
 grid_data = get_electric_field(0, 0)
 
+# plot a slice through the second grid 
 plt.clf()
 plt.pcolormesh(grid_data[1][8,:,:])
 plt.savefig("field.png")
