@@ -915,7 +915,9 @@ def test_suite(argv):
     # external program
     name = "source"
     if suite.sourceTree in ["AMReX", "amrex"]: name = "AMReX"
-    branch = suite.repos[name].branch_wanted.strip("\"")
+    branch = ''
+    if suite.repos[name].branch_wanted:
+        branch = suite.repos[name].branch_wanted.strip("\"")
 
     with open("{}/suite.{}.status".format(suite.webTopDir, branch), "w") as f:
         f.write("{}; num failed: {}; source hash: {}".format(
@@ -952,4 +954,5 @@ def test_suite(argv):
 
 
 if __name__ == "__main__":
-    test_suite(sys.argv[1:])
+    n = test_suite(sys.argv[1:])
+    sys.exit(n)
