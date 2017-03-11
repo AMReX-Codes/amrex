@@ -929,21 +929,23 @@ ParticleContainer<NR, NI, NA>::GetArrayData (Array<Real>& part_data, int start_c
   BL_PROFILE("ParticleContainer<NR, NI, NA>::GetArrayData()");
 
   long start, npart;
-  std::tie(start,npart) = StartIndexInGlobalArray();
-  
-  // Each particle takes up num_comp Reals
-  start*= num_comp;
-
+  std::tie(start,npart) = StartIndexInGlobalArray();  
   part_data.resize(num_comp*npart,0);
 
-  for (unsigned lev = 0; lev < m_particles.size(); lev++) {
-      const auto& pmap = m_particles[lev];
-      for (auto& kv : pmap) {
-          const auto& soa = kv.second.GetStructOfArrays();
-          for (int comp = start_comp; comp < start_comp + num_comp; ++comp) {
-              const Array<Real>& arr = soa[comp];
+  // Each particle takes up num_comp Reals
+  start*= num_comp;
+  
+  for (int comp = 0; comp < num_comp; ++comp) {
+      for (unsigned lev = 0; lev < m_particles.size(); lev++) {
+          const auto& pmap = m_particles[lev];
+          for (auto& kv : pmap) {
+              const auto& pbx = kv.second.GetArrayOfStructs();
+              const auto& soa = kv.second.GetStructOfArrays();
+              const Array<Real>& arr = soa[start_comp + comp];
               for (unsigned i = 0; i < arr.size(); ++i) {
-                  part_data[start++] = arr[i];
+                  if (pbx[i].m_idata.id > 0) {
+                      part_data[start++] = arr[i];
+                  }
               }
           }
       }
