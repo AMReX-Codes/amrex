@@ -23,13 +23,27 @@ extern "C" {
 
   void warpx_evolve (int numsteps);  // -1 means the inputs parameter will be used.
 
-  void addNParticles(int speciesnumber, int lenx, double* x, double* y, double* z, double* vx, double* vy, double* vz, int nattr, double* attr, int uniqueparticles);
+  void addNParticles(int speciesnumber, int lenx,
+                     double* x, double* y, double* z,
+                     double* vx, double* vy, double* vz,
+                     int nattr, double* attr, int uniqueparticles);
   
   double warpx_getProbLo(int dir);
 
   double warpx_getProbHi(int dir);
 
-  //  double* warpx_getArray();
+  long warpx_getNumParticles(int speciesnumber);
+
+  double** warpx_getEfield(int lev, int direction, 
+                           int *return_size, int **shapes);
+
+  double* warpx_getParticlePositions(int speciesnumber);
+
+  double* warpx_getParticleData(int speciesnumber, int start_comp, int num_comp);
+
+  int* warpx_getParticleIDs(int speciesnumber);
+   
+  int* warpx_getParticleCPU(int speciesnumber);
 
 #ifdef __cplusplus
 }
