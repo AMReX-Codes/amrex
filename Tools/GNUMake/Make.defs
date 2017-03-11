@@ -68,6 +68,10 @@ ifeq ($(USE_MPI3),TRUE)
   USE_MPI = TRUE
 endif
 
+ifndef USE_CUDA
+  USE_CUDA = FALSE
+endif
+
 ifndef DIMENSION_AGNOSTIC
   DIMENSION_AGNOSTIC = FALSE
 endif
@@ -108,6 +112,19 @@ else ifeq ($(lowercase_comp),pgi)
   include        $(AMREX_HOME)/Tools/GNUMake/comps/pgi.mak
 else
   $(error Unknown compiler $(COMP). Supported compilers are gnu, intel, cray, and pgi)
+endif
+
+# If we are using CUDA, then the C/C++ compiler needs to be nvcc,
+# using the requested compiler as the host code compiler.
+
+ifeq ($(USE_CUDA),TRUE)
+
+  CXXFLAGS := -ccbin=$(CXX) -Xcompiler="$(CXXFLAGS)"
+  CXX = nvcc
+
+  CFLAGS := -ccbin=$(CC) -Xcompiler="$(CFLAGS)"
+  CC = nvcc
+
 endif
 
 ifeq ($(DEBUG),TRUE)
@@ -214,6 +231,10 @@ ifeq ($(USE_OMP),TRUE)
     CPPFLAGS	+= -DBL_USE_OMP
 else
     OMPSuffix	:=
+endif
+
+ifeq ($(USE_CUDA),TRUE)
+    CPPFLAGS    += -DCUDA
 endif
 
 ifeq ($(PRECISION),FLOAT)
