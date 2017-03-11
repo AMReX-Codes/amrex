@@ -4192,6 +4192,44 @@ ParticleContainer<NR, NI, NA>::AssignCellDensitySingleLevelFort (int rho_index,
     }
 }
 
+template <int NR, int NI, int NA>
+void
+ParticleContainer<NR, NI, NA>::InterpolateFort (Array<std::unique_ptr<MultiFab> >& mesh_data, 
+                                                int lev_min, int lev_max)
+{
+    BL_PROFILE("ParticleContainer<NR, NI, NA>::InterpolateFort()");
+    for (int lev = lev_min; lev <= lev_max; ++lev) {
+        InterpolateSingleLevelFort(*mesh_data[lev], lev); 
+    }
+}
+
+template <int NR, int NI, int NA>
+void
+ParticleContainer<NR, NI, NA>::InterpolateSingleLevelFort (MultiFab& mesh_data, int lev)
+{
+    BL_PROFILE("ParticleContainer<NR, NI, NA>::InterpolateSingleLevelFort()");
+
+    if (mesh_data.nGrow() < 1)
+        amrex::Error("Must have at least one ghost cell when in InterpolateSingleLevelFort");
+    
+    const Geometry& gm          = Geom(lev);
+    const Real*     plo         = gm.ProbLo();
+    const Real*     dx          = gm.CellSize();
+    const auto&     pmap        = m_particles[lev];
+
+    for (const auto& kv : pmap) {
+      const int grid = kv.first.first;
+      const auto& pbx = kv.second.GetArrayOfStructs();
+      FArrayBox& fab = mesh_data[grid];
+      const Box& box = fab.box();
+      auto N = pbx.size();
+      int nstride = pbx.dataShape().first;
+      int nComp = fab.nComp();
+      amrex_interpolate_cic(pbx.data(), nstride, N, 
+                            fab.dataPtr(), box.loVect(), box.hiVect(), nComp, plo, dx);
+    }
+}
+
 // This is the single-level version for cell-centered density
 template <int NR, int NI, int NA>
 void
