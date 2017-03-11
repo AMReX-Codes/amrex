@@ -924,6 +924,36 @@ ParticleContainer<NR, NI, NA>::GetParticleData (Array<Real>& part_data, int star
 
 template <int NR, int NI, int NA>
 void
+ParticleContainer<NR, NI, NA>::GetArrayData (Array<Real>& part_data, int start_comp, int num_comp)
+{
+  BL_PROFILE("ParticleContainer<NR, NI, NA>::GetArrayData()");
+
+  long start, npart;
+  std::tie(start,npart) = StartIndexInGlobalArray();
+  
+  // Each particle takes up num_comp Reals
+  start*= num_comp;
+
+  part_data.resize(num_comp*npart,0);
+
+  for (unsigned lev = 0; lev < m_particles.size(); lev++) {
+      const auto& pmap = m_particles[lev];
+      for (auto& kv : pmap) {
+          const auto& soa = kv.second.GetStructOfArrays();
+          for (int comp = start_comp; comp < start_comp + num_comp; ++comp) {
+              const Array<Real>& arr = soa[comp];
+              for (unsigned i = 0; i < arr.size(); ++i) {
+                  part_data[start++] = arr[i];
+              }
+          }
+      }
+  }
+  
+  ParallelDescriptor::ReduceRealSum(part_data.dataPtr(),part_data.size()); 
+}
+
+template <int NR, int NI, int NA>
+void
 ParticleContainer<NR, NI, NA>::SetAllowParticlesNearBoundary (bool value)
 {
   allow_particles_near_boundary = value; 
