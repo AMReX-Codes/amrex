@@ -150,6 +150,9 @@ void test_assign_density(TestParams& parms)
 
   DistributionMapping dmap(ba);
 
+  MultiFab acceleration(ba, dmap, 3, 1);
+  acceleration.setVal(5.0, 1);
+
   MultiFab density(ba, dmap, 1, 0);
   density.setVal(0.0);
 
@@ -170,6 +173,8 @@ void test_assign_density(TestParams& parms)
   myPC.InitRandom(num_particles, iseed, mass, serialize);
   myPC.AssignCellDensitySingleLevelFort(0, partMF, 0, 1, 0);
   
+  myPC.InterpolateSingleLevelFort(acceleration, 0);
+
   MultiFab::Copy(density, partMF, 0, 0, 1, 0);
 
   writePlotFile("plt00000", density, geom, 0.0);

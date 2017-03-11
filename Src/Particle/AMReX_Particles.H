@@ -447,6 +447,7 @@ public:
     void GetParticleCPU        (Array<int> & part_cpu);
     void GetParticleLocations  (Array<Real>& part_locs);
     void GetParticleData       (Array<Real>& part_data, int start_comp, int num_comp);
+    void GetArrayData          (Array<Real>& part_data, int start_comp, int num_comp);
 
     void SetParticleLocations  (Array<Real>& part_locs);
 
@@ -550,6 +551,11 @@ public:
     void AssignDensityFort (int rho_index,
                             Array<std::unique_ptr<MultiFab> >& mf_to_be_filled, 
                             int lev_min, int ncomp, int finest_level) const;
+
+    void InterpolateFort (Array<std::unique_ptr<MultiFab> >& mesh_data, 
+                          int lev_min, int lev_max);
+
+    void InterpolateSingleLevelFort (MultiFab& mesh_data, int lev);
 
     void AssignCellDensitySingleLevelFort (int rho_index, MultiFab& mf, int level,
 					   int ncomp=1, int particle_lvl_offset = 0) const;
