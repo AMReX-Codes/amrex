@@ -22,6 +22,9 @@ extern "C"
                            amrex::Real* rho, const int* lo, const int* hi,
                            const amrex::Real* plo, const amrex::Real* dx);
 
+    void amrex_interpolate_cic(const amrex::Real*, int ns, int np,
+                               amrex::Real* rho, const int* lo, const int* hi, int ncomp,
+                               const amrex::Real* plo, const amrex::Real* dx);
 
 BL_FORT_PROC_DECL(PART_SUMMASSDOWN,part_summassdown)
     (BL_FORT_FAB_ARG(crse_fab),
