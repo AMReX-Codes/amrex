@@ -42,7 +42,7 @@ namespace amrex
       const VolIndex& vof = vofit();
       int correct = rightAns(vof.gridIndex());
       int val1 = a_dat1(vof, 0);
-      int val2 = a_dat1(vof, 0);
+      int val2 = a_dat2(vof, 0);
       if(val1 != correct)
       {
         return -1;
