@@ -37,6 +37,7 @@ namespace amrex
   class BaseIVFAB 
   {
   public:
+    typedef T value_type;
     ///
     /**
        Null constructor.  

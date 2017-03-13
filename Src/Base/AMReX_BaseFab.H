@@ -914,11 +914,6 @@ BaseFab<T>::operator() (const IntVect& p,
     BL_ASSERT(n >= 0);
     BL_ASSERT(n < nvar);
     BL_ASSERT(!(dptr == 0));
-    int istop = 0;
-    if(!domain.contains(p))
-    {
-      istop = 1;
-    }
     BL_ASSERT(domain.contains(p));
 
     return dptr[domain.index(p)+n*numpts];

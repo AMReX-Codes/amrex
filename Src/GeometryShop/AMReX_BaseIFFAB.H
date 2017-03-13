@@ -33,6 +33,8 @@ namespace amrex
   class BaseIFFAB
   {
   public:
+    typedef T value_type;
+
 ///
 /**
    Default constructor.  Constructs an uninitialized IFFAB.  You must
