@@ -2,10 +2,12 @@
 
 import sys
 import ctypes
+from ctypes.util import find_library
 import numpy as np
 import matplotlib.pyplot as plt
 
 libwarpx = ctypes.CDLL("libwarpx.so")
+libc = ctypes.CDLL(find_library('c'))
 
 # first define some wrapper functions - these can be moved to 
 # a separate python module
@@ -85,8 +87,8 @@ def get_electric_field(level, direction):
         arr.setflags(write=0)
         grid_data.append(arr)
 
-    del shapes
-    del data
+    libc.free(shapes)
+    libc.free(data)
     return grid_data
 
 
