@@ -107,7 +107,7 @@ contains
        c_mf  (1) = mfold_c%p
        c_time(1) =  told_c
     else
-       ncrse= 1
+       ncrse= 2
        c_mf  (1) = mfold_c%p
        c_mf  (2) = mfnew_c%p
        c_time(1) =  told_c
