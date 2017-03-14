@@ -518,9 +518,9 @@ def report_single_test(suite, test, tests, failure_msg=None):
         box_error = False
         grid_error = False
         variables_error = False
-
+        no_bench_error = False
+        
         for line in diff_lines:
-
             if "number of boxes do not match" in line:
                 box_error = True
                 break
@@ -532,6 +532,10 @@ def report_single_test(suite, test, tests, failure_msg=None):
             if "number of variables do not match" in line:
                 variables_error = True
 
+            if "no corresponding benchmark found" in line:
+                no_bench_error = True
+                break
+            
             if not in_diff_region:
                 if line.find("fcompare") > 1:
                     hf.write("<tt>"+line+"</tt>\n")
@@ -539,7 +543,10 @@ def report_single_test(suite, test, tests, failure_msg=None):
                     ht.start_table()
                     continue
 
-                if line.strip().startswith("diff"):
+                if line.strip().startswith("diff "):
+                    # this catches the start of a plain text diff --
+                    # we need the space here to not match variables
+                    # that start with diff
                     ht.end_table()
                     hf.write("<pre>\n")
 
@@ -601,6 +608,9 @@ def report_single_test(suite, test, tests, failure_msg=None):
 
         if grid_error:
             hf.write("<p>grids do not match</p>\n")
+
+        if no_bench_error:
+            hf.write("<p>no corresponding benchmark found</p>\n")
 
         if variables_error:
             hf.write("<p>variables differ in files</p>\n")
