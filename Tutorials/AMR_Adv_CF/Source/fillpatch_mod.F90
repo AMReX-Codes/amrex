@@ -7,7 +7,7 @@ module fillpatch_module
 
   private
 
-  public :: fillpatch
+  public :: fillpatch, fillcoarsepatch
 
 contains
 
@@ -40,6 +40,24 @@ contains
     end if
   end subroutine fillpatch
 
+  subroutine fillcoarsepatch (lev, time, phi)
+    use amr_data_module, only : t_old, t_new, phi_old, phi_new
+    use bc_module, only : lo_bc, hi_bc
+    integer, intent(in) :: lev
+    real(amrex_real), intent(in) :: time
+    type(amrex_multifab), intent(inout) :: phi
+
+    integer, parameter :: src_comp=1, dst_comp=1, num_comp=1  ! for this test code
+    
+    call amrex_fillcoarsepatch(phi, t_old(lev-1), phi_old(lev-1),  &
+         &                          t_new(lev-1), phi_new(lev-1),  &
+         &                     amrex_geom(lev-1),    fill_physbc,  &
+         &                     amrex_geom(lev  ),    fill_physbc,  &
+         &                     time, src_comp, dst_comp, num_comp, &
+         &                     amrex_ref_ratio(lev-1), amrex_interp_cell_cons, &
+         &                     lo_bc, hi_bc)
+       ! see amrex_interpolater_module for a list of interpolaters
+  end subroutine fillcoarsepatch
 
   subroutine fill_physbc (pmf, scomp, ncomp, time) bind(c)
     type(c_ptr), value :: pmf
