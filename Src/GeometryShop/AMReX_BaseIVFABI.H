@@ -92,6 +92,12 @@ namespace amrex
                      int               destcomp,
                      int               numcomp)
   {
+    int istop = 0;
+    IntVect ivdeb(D_DECL(17,3,0));
+    if(srcbox.contains(ivdeb))
+    {
+      istop =1;
+    }
     T* to=NULL;
     if(m_vofs)
     {
