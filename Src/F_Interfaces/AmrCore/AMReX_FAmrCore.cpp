@@ -55,11 +55,16 @@ amrex::FAmrCore::ClearLevel (int lev)
 }
 
 void
-amrex::FAmrCore::ErrorEst (int lev, TagBoxArray& tags, Real time, int ngrow)
+amrex::FAmrCore::ErrorEst (int lev, TagBoxArray& tags, Real time, int)
 {
-    if (error_est != nullptr) {
-	error_est(lev, &tags, time, ngrow);
-    } else {
+    if (error_est != nullptr)
+    {
+	const char   tagval = TagBox::SET;
+	const char clearval = TagBox::CLEAR;
+	error_est(lev, &tags, time, tagval, clearval);
+    }
+    else
+    {
 	amrex::Abort("FAmrCore::error_est is null");
     }
 }

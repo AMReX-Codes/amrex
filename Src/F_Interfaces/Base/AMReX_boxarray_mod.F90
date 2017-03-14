@@ -9,17 +9,17 @@ module amrex_boxarray_module
 
   private
 
-  public :: amrex_boxarray_build, amrex_boxarray_destroy, amrex_print, amrex_allprint
+  public :: amrex_boxarray_build, amrex_boxarray_destroy, amrex_print
 
   type, public :: amrex_boxarray
      logical     :: owner = .false.
      type(c_ptr) :: p = c_null_ptr
    contains
-     generic   :: assignment(=) => amrex_boxarray_assign   ! shallow copy
+     generic   :: assignment(=) => amrex_boxarray_assign, amrex_boxarray_install  ! shallow copy
      procedure :: clone         => amrex_boxarray_clone    ! deep copy
      procedure :: move          => amrex_boxarray_move     ! transfer ownership
      procedure :: maxSize       => amrex_boxarray_maxSize  ! make the boxes smaller
-     procedure, private :: amrex_boxarray_assign
+     procedure, private :: amrex_boxarray_assign, amrex_boxarray_install
 #if !defined(__GFORTRAN__) || (__GNUC__ > 4)
      final :: amrex_boxarray_destroy
 #endif
@@ -33,40 +33,40 @@ module amrex_boxarray_module
      module procedure amrex_boxarray_print
   end interface amrex_print
 
-  interface amrex_allprint
-     module procedure amrex_boxarray_allprint
-  end interface amrex_allprint
-
   ! interfaces to cpp functions
 
   interface
      subroutine amrex_fi_new_boxarray (ba,lo,hi) bind(c)
        import
+       implicit none
        type(c_ptr) :: ba
        integer(c_int), intent(in) :: lo(3), hi(3)
      end subroutine amrex_fi_new_boxarray
 
      subroutine amrex_fi_delete_boxarray (ba) bind(c)
        import
+       implicit none
        type(c_ptr), value :: ba
      end subroutine amrex_fi_delete_boxarray
 
      subroutine amrex_fi_clone_boxarray (bao, bai) bind(c)
        import
+       implicit none
        type(c_ptr) :: bao
        type(c_ptr), value :: bai
      end subroutine amrex_fi_clone_boxarray
 
      subroutine amrex_fi_boxarray_maxsize (ba,n) bind(c)
        import
+       implicit none
        type(c_ptr), value :: ba
        integer(c_int), value :: n
      end subroutine amrex_fi_boxarray_maxsize
 
-     subroutine amrex_fi_print_boxarray (ba, all) bind(c)
+     subroutine amrex_fi_print_boxarray (ba) bind(c)
        import
+       implicit none
        type(c_ptr), value :: ba
-       integer(c_int), value :: all
      end subroutine amrex_fi_print_boxarray
   end interface
 
@@ -98,6 +98,13 @@ contains
     dst%p = src%p
   end subroutine amrex_boxarray_assign
 
+  subroutine amrex_boxarray_install (this, p)
+    class(amrex_boxarray), intent(inout) :: this
+    type(c_ptr), intent(in) :: p
+    this%owner = .false.
+    this%p     = p
+  end subroutine amrex_boxarray_install
+
   subroutine amrex_boxarray_clone (dst, src)
     class(amrex_boxarray), intent(inout) :: dst
     type (amrex_boxarray), intent(in   ) :: src
@@ -122,12 +129,7 @@ contains
 
   subroutine amrex_boxarray_print (ba)
     type(amrex_boxarray), intent(in) :: ba
-    call amrex_fi_print_boxarray(ba%p, 0)
+    call amrex_fi_print_boxarray(ba%p)
   end subroutine amrex_boxarray_print
-
-  subroutine amrex_boxarray_allprint (ba)
-    type(amrex_boxarray), intent(in) :: ba
-    call amrex_fi_print_boxarray(ba%p, 1)
-  end subroutine amrex_boxarray_allprint
 
 end module amrex_boxarray_module
