@@ -208,7 +208,7 @@ AmrAdv::FillCoarsePatch (int lev, Real time, MultiFab& mf, int icomp, int ncomp)
     BL_ASSERT(lev > 0);
 
     Array<MultiFab*> cmf;
-    Array<Real> ctime, ftime;
+    Array<Real> ctime;
     GetData(lev-1, time, cmf, ctime);
     
     if (cmf.size() != 1) {

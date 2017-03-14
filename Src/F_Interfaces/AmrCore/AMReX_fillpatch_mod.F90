@@ -6,7 +6,7 @@ module amrex_fillpatch_module
   implicit none
   private
 
-  public :: amrex_fillpatch
+  public :: amrex_fillpatch, amrex_fillcoarsepatch
 
   interface amrex_fillpatch
      module procedure amrex_fillpatch_single
@@ -38,6 +38,17 @@ module amrex_fillpatch_module
        real(amrex_real), intent(in) :: ctime(*), ftime(*)
        integer, value :: nc, nf, scomp, dcomp, ncomp, rr, interp
      end subroutine amrex_fi_fillpatch_two
+
+     subroutine amrex_fi_fillcoarsepatch(mf, time, cmf, scomp, dcomp, ncomp, &
+          cgeom, fgeom, cfill, ffill, rr, interp, lo_bc, hi_bc) bind(c)
+       import
+       implicit none
+       type(c_ptr), value :: mf, cmf, cgeom, fgeom
+       type(c_ptr), intent(in) :: lo_bc(*), hi_bc(*)
+       type(c_funptr), value :: cfill, ffill
+       real(amrex_real), value :: time
+       integer, value :: scomp, dcomp, ncomp, rr, interp
+     end subroutine amrex_fi_fillcoarsepatch
   end interface
 
 contains
@@ -150,5 +161,48 @@ contains
          &                      c_funloc(fill_physbc_f),         &
          &                      rr, interp, lo_bc_ptr, hi_bc_ptr)
   end subroutine amrex_fillpatch_two
+
+  subroutine amrex_fillcoarsepatch (mf, told_c, mfold_c, tnew_c, mfnew_c, &
+       &                            geom_c, fill_physbc_c, geom_f, fill_physbc_f, &
+       &                            time, scomp, dcomp, ncomp, rr, interp, lo_bc, hi_bc)
+    type(amrex_multifab), intent(inout) :: mf
+    type(amrex_multifab), intent(in   ) :: mfold_c, mfnew_c
+    integer, intent(in) :: scomp, dcomp, ncomp, rr, interp
+    integer, dimension(amrex_spacedim,scomp+ncomp-1), target, intent(in) :: lo_bc, hi_bc
+    real(amrex_real), intent(in) :: told_c, tnew_c, time
+    type(amrex_geometry), intent(in) :: geom_c, geom_f
+    procedure(amrex_physbc_proc) :: fill_physbc_c, fill_physbc_f
+
+    real(amrex_real) :: teps
+    type(c_ptr) :: c_mf
+    type(c_ptr) :: lo_bc_ptr(scomp+ncomp-1), hi_bc_ptr(scomp+ncomp-1)
+    integer :: i
+    
+    ! coarse level
+    teps = 1.e-4_amrex_real * (tnew_c - told_c)
+    if (abs(time-tnew_c) .lt. teps) then
+       c_mf = mfnew_c%p
+    else if (abs(time-told_c) .lt. teps) then
+       c_mf = mfold_c%p
+    else
+       call amrex_abort("amrex_fillcoarsepatch: how did this happen?")
+    end if
+
+    do i = 1, scomp-1
+       lo_bc_ptr(i) = c_null_ptr
+       hi_bc_ptr(i) = c_null_ptr
+    end do
+    do i = scomp, scomp+ncomp-1
+       lo_bc_ptr(i) = c_loc(lo_bc(1,i))
+       hi_bc_ptr(i) = c_loc(hi_bc(1,i))
+    end do
+
+    ! scomp-1 and dcomp-1 because of Fortran index starts with 1
+    call amrex_fi_fillcoarsepatch(mf%p, time, c_mf, scomp-1, dcomp-1, ncomp, &
+         &                        geom_c%p, geom_f%p,              &
+         &                        c_funloc(fill_physbc_c),         &
+         &                        c_funloc(fill_physbc_f),         &
+         &                        rr, interp, lo_bc_ptr, hi_bc_ptr)
+  end subroutine amrex_fillcoarsepatch
 
 end module amrex_fillpatch_module

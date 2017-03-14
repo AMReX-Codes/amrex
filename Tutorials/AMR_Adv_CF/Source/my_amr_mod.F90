@@ -132,10 +132,29 @@ contains
   end subroutine my_make_new_level_from_scratch
 
   subroutine my_make_new_level_from_coarse (lev, time, pba, pdm) bind(c)
+    use fillpatch_module, only : fillcoarsepatch
     integer, intent(in), value :: lev
     real(amrex_real), intent(in), value :: time
     type(c_ptr), intent(in), value :: pba, pdm
-    call amrex_abort("my_make_new_level_from_coarse not imlemented")
+
+    type(amrex_boxarray) :: ba
+    type(amrex_distromap) :: dm
+
+    ba = pba
+    dm = pdm
+
+    call my_clear_level(lev)
+
+    t_new(lev) = time
+    t_old(lev) = time - 1.e200_amrex_real
+
+    call amrex_multifab_build(phi_new(lev), ba, dm, ncomp, nghost)
+    call amrex_multifab_build(phi_old(lev), ba, dm, ncomp, nghost)
+    if (lev > 0 .and. do_reflux) then
+       call amrex_fluxregister_build(flux_reg(lev), ba, dm, amrex_ref_ratio(lev-1), lev, ncomp)
+    end if
+
+    call fillcoarsepatch(lev, time, phi_new(lev))
   end subroutine my_make_new_level_from_coarse
 
   subroutine my_remake_level (lev, time, pba, pdm) bind(c)
@@ -155,6 +174,10 @@ contains
     call fillpatch(lev, time, new_phi_new)
 
     call my_clear_level(lev)
+
+    t_new(lev) = time
+    t_old(lev) = time - 1.e200_amrex_real
+
     call amrex_multifab_build(phi_new(lev), ba, dm, ncomp, nghost)
     call amrex_multifab_build(phi_old(lev), ba, dm, ncomp, nghost)
     if (lev > 0 .and. do_reflux) then
@@ -202,7 +225,7 @@ contains
        bx = mfi%tilebox()
        phiarr => phi_new(lev)%dataptr(mfi)
        tagarr => tag%dataptr(mfi)
-       call tag_phi_error(bx%lo, bx%hi, &
+       call tag_phi_error(lev, t, bx%lo, bx%hi, &
             phiarr, lbound(phiarr), ubound(phiarr), &
             tagarr, lbound(tagarr), ubound(tagarr), &
             phierr(lev+1), settag, cleartag)  ! +1 because level starts with 0, but phierr starts with 1
