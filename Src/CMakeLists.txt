@@ -41,6 +41,10 @@ add_library(fboxlib $<TARGET_OBJECTS:box_f> $<TARGET_OBJECTS:box_fmg>)
 add_install_library(cboxlib)
 add_install_library(cfboxlib)
 add_install_library(fboxlib)
+
+# Move Tools dir to install location
+install(CODE "MESSAGE(\"-- Copying   : ${CCSE_TOOLS_DIR} --> ${CCSE_INSTALL_DIR}\")" )
+install(CODE "FILE( COPY ${CCSE_TOOLS_DIR} DESTINATION ${CCSE_INSTALL_DIR} )")
 SET_TARGET_PROPERTIES(cboxlib PROPERTIES LINKER_LANGUAGE C)
 SET_TARGET_PROPERTIES(cfboxlib PROPERTIES LINKER_LANGUAGE C)
 SET_TARGET_PROPERTIES(fboxlib PROPERTIES LINKER_LANGUAGE C)
