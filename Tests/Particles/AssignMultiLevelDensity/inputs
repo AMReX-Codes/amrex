@@ -22,3 +22,6 @@ nppc = 10
 
 # Verbosity
 verbose = true   # set to true to get more verbosity 
+
+# Number of levels
+nlevs = 1
