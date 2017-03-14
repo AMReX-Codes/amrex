@@ -13,7 +13,6 @@
 #include <AMReX_Print.H>
 
 #include <ParticleContainer.H>
-#include <PlasmaInjector.H>
 
 class WarpX
     : public amrex::AmrCore
@@ -183,7 +182,6 @@ private:
     amrex::Array<int> injected_plasma_ppc;
     amrex::Array<int> injected_plasma_species;
     amrex::Array<amrex::Real> injected_plasma_density;
-    std::unique_ptr<PlasmaInjector> plasma_injector;
 
     // Other runtime parameters
     int verbose = 1;

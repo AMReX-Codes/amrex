@@ -1,6 +1,8 @@
 #include <limits>
+#include <sstream>
 
 #include <ParticleContainer.H>
+#include <AMReX_ParmParse.H>
 #include <WarpX_f.H>
 #include <WarpX.H>
 
@@ -9,6 +11,28 @@ using namespace amrex;
 PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core, int ispecies)
     : WarpXParticleContainer(amr_core, ispecies)
 {
+    std::stringstream ss;
+    ss << "species" << ispecies; 
+    ParmParse pp(ss.str());
+
+    std::string plasma_profile_s;
+    pp.get("profile", plasma_profile_s);
+    std::transform(plasma_profile_s.begin(), plasma_profile_s.end(), plasma_profile_s.begin(), ::tolower);
+    if (plasma_profile_s == "constant") {
+	plasma_injector.reset(new ConstantPlasmaInjector);
+    } 
+    
+    else if (plasma_profile_s == "double_ramp") {
+	plasma_injector.reset(new DoubleRampPlasmaInjector);
+    }
+    
+    else if (plasma_profile_s == "custom") {
+	plasma_injector.reset(new CustomPlasmaInjector);
+    }
+    
+    else {
+	amrex::Abort("Unknown plasma injector type");
+    }
 }
 
 void

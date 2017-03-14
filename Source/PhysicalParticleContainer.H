@@ -3,6 +3,7 @@
 
 #include <map>
 
+#include <PlasmaInjector.H>
 #include <WarpXParticleContainer.H>
 
 class PhysicalParticleContainer
@@ -26,6 +27,10 @@ public:
 			 amrex::MultiFab& jx, amrex::MultiFab& jy, amrex::MultiFab& jz, amrex::Real t, amrex::Real dt) override;
 
     virtual void PostRestart () override {}
+
+protected:
+
+    std::unique_ptr<PlasmaInjector> plasma_injector;
 };
 
 #endif
