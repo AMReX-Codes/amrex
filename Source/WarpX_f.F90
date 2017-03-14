@@ -2,7 +2,7 @@
 module warpx_module
 
   use iso_c_binding
-  use bl_fort_module, only : c_real
+  use amrex_fort_module, only : amrex_real
 
   implicit none
 
@@ -16,14 +16,14 @@ contains
        dx) bind(c,name='warpx_compute_E')
     integer(c_int), intent(in) :: lo(3), hi(3), phlo(3), phhi(3), Exlo(3), Exhi(3),  &
          Eylo(3), Eyhi(3), Ezlo(3), Ezhi(3)
-    real(c_real), intent(in) :: dx(3)
-    real(c_real), intent(in   ) :: phi(phlo(1):phhi(1),phlo(2):phhi(2),phlo(3):phhi(3))
-    real(c_real), intent(inout) :: Ex (Exlo(1):Exhi(1),Exlo(2):Exhi(2),Exlo(3):Exhi(3))
-    real(c_real), intent(inout) :: Ey (Eylo(1):Eyhi(1),Eylo(2):Eyhi(2),Eylo(3):Eyhi(3))
-    real(c_real), intent(inout) :: Ez (Ezlo(1):Ezhi(1),Ezlo(2):Ezhi(2),Ezlo(3):Ezhi(3))
+    real(amrex_real), intent(in) :: dx(3)
+    real(amrex_real), intent(in   ) :: phi(phlo(1):phhi(1),phlo(2):phhi(2),phlo(3):phhi(3))
+    real(amrex_real), intent(inout) :: Ex (Exlo(1):Exhi(1),Exlo(2):Exhi(2),Exlo(3):Exhi(3))
+    real(amrex_real), intent(inout) :: Ey (Eylo(1):Eyhi(1),Eylo(2):Eyhi(2),Eylo(3):Eyhi(3))
+    real(amrex_real), intent(inout) :: Ez (Ezlo(1):Ezhi(1),Ezlo(2):Ezhi(2),Ezlo(3):Ezhi(3))
 
     integer :: i, j, k
-    real(c_real) :: dxinv(3)
+    real(amrex_real) :: dxinv(3)
 
     dxinv = 1.0 / dx
 

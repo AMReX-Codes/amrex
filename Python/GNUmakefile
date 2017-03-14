@@ -1,4 +1,4 @@
-BOXLIB_HOME ?= ../../BoxLib
+AMREX_HOME ?= ../../amrex
 PICSAR_HOME ?= ../../picsar
 
 DEBUG	= FALSE
@@ -7,7 +7,6 @@ DEBUG	= FALSE
 DIM	= 3
 
 COMP    = gcc
-FCOMP   = gfortran
 
 TINY_PROFILE = TRUE
 TINY_PROFILE = FALSE

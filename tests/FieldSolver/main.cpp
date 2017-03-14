@@ -2,18 +2,20 @@
 #include <limits>
 #include <random>
 
-#include <BoxLib.H>
-#include <ParmParse.H>
-#include <Array.H>
-#include <MultiFab.H>
-#include <PlotFileUtil.H>
+#include <AMReX.H>
+#include <AMReX_ParmParse.H>
+#include <AMReX_Array.H>
+#include <AMReX_MultiFab.H>
+#include <AMReX_PlotFileUtil.H>
 
 #include <WarpXConst.H>
 #include <WarpX_f.H>
 
+using namespace amrex;
+
 int main(int argc, char* argv[])
 {
-    BoxLib::Initialize(argc,argv);
+    amrex::Initialize(argc,argv);
 
     {
 	long nox=1, noy=1, noz=1;
@@ -23,10 +25,10 @@ int main(int argc, char* argv[])
 	    pp.query("noy", noy);
 	    pp.query("noz", noz);  
 	    if (nox != noy || nox != noz) {
-		BoxLib::Abort("warpx.nox, noy and noz must be equal");
+		amrex::Abort("warpx.nox, noy and noz must be equal");
 	    }
 	    if (nox < 1) {
-		BoxLib::Abort("warpx.nox must >= 1");
+		amrex::Abort("warpx.nox must >= 1");
 	    }
 	}
 
@@ -41,16 +43,19 @@ int main(int argc, char* argv[])
 	BoxArray grids{cc_domain};
 	grids.maxSize(32);
 
+	DistributionMapping dmap {grids};
+
+	MFInfo info;
+	info.SetNodal(IntVect::TheUnitVector());
 	const int ng = nox;
 
 	Array<std::unique_ptr<MultiFab> > current(3);
 	Array<std::unique_ptr<MultiFab> > Efield(3);
 	Array<std::unique_ptr<MultiFab> > Bfield(3);
 	for (int i = 0; i < 3; ++i) {
-	    const IntVect& nodalflag = IntVect::TheUnitVector();
-	    current[i].reset(new MultiFab(grids,1,ng,Fab_allocate,nodalflag));
-	    Efield [i].reset(new MultiFab(grids,1,ng,Fab_allocate,nodalflag));
-	    Bfield [i].reset(new MultiFab(grids,1,ng,Fab_allocate,nodalflag));
+	    current[i].reset(new MultiFab(grids,dmap,1,ng,info));
+	    Efield [i].reset(new MultiFab(grids,dmap,1,ng,info));
+	    Bfield [i].reset(new MultiFab(grids,dmap,1,ng,info));
 	}
 
 	for (MFIter mfi(*current[0]); mfi.isValid(); ++mfi)
@@ -144,7 +149,7 @@ int main(int argc, char* argv[])
 	    }
 	}
 
-	MultiFab plotmf(grids, 6, 0);
+	MultiFab plotmf(grids, dmap, 6, 0);
 	const auto& src_typ = (*Efield[0]).boxArray().ixType();
 	const auto& dst_typ = grids.ixType();
 	for (MFIter mfi(plotmf); mfi.isValid(); ++mfi)
@@ -166,8 +171,8 @@ int main(int argc, char* argv[])
 	Geometry geom{cc_domain, &realbox, 0, is_per};
 	std::string plotname{"plt00000"};
 	Array<std::string> varnames{"Ex", "Ey", "Ez", "Bx", "By", "Bz"};
-	BoxLib::WriteSingleLevelPlotfile(plotname, plotmf, varnames, geom, 0.0, 0);
+	amrex::WriteSingleLevelPlotfile(plotname, plotmf, varnames, geom, 0.0, 0);
     }
 
-    BoxLib::Finalize();
+    amrex::Finalize();
 }

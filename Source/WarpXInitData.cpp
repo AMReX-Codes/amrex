@@ -1,10 +1,12 @@
 
 #include <numeric>
 
-#include <ParallelDescriptor.H>
+#include <AMReX_ParallelDescriptor.H>
 
 #include <WarpX.H>
 #include <WarpX_f.H>
+
+using namespace amrex;
 
 void
 WarpX::InitData ()
@@ -42,22 +44,7 @@ WarpX::InitFromScratch ()
 
     const Real time = 0.0;
 
-    // define coarse level BoxArray and DistributionMap
-    {
-	finest_level = 0;
-
-	t_new[0] = time;
-	t_old[0] = time - 1.e200;
-    
-	const BoxArray& ba = MakeBaseGrids();
-	DistributionMapping dm(ba, ParallelDescriptor::NProcs());
-
-	MakeNewLevel(0, ba, dm);
-
-	InitLevelData(0);
-    }
-
-    // if max_level > 0, define fine levels
+    AmrCore::InitFromScratch(time);  // This will call MakeNewLevelFromScratch
 
     mypc->AllocData();
     mypc->InitData();
@@ -112,8 +99,8 @@ WarpX::InitOpenbc ()
 
     DistributionMapping dm{iprocmap};
 
-    MultiFab rho_openbc(ba, 1, 0, dm);
-    MultiFab phi_openbc(ba, 1, 0, dm);
+    MultiFab rho_openbc(ba, dm, 1, 0);
+    MultiFab phi_openbc(ba, dm, 1, 0);
 
     bool local = true;
     const std::unique_ptr<MultiFab>& rho = mypc->GetChargeDensity(lev, local);
@@ -127,7 +114,7 @@ WarpX::InitOpenbc ()
 
     BoxArray nba = boxArray(lev);
     nba.surroundingNodes();
-    MultiFab phi(nba, 1, 0);
+    MultiFab phi(nba, DistributionMap(lev), 1, 0);
     phi.copy(phi_openbc, gm.periodicity());
 
     for (MFIter mfi(phi); mfi.isValid(); ++mfi)

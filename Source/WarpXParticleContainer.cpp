@@ -2,23 +2,20 @@
 #include <limits>
 
 #include <ParticleContainer.H>
-#include <ParticleIterator.H>
+#include <WarpXParticleContainer.H>
+#include <AMReX_AmrParGDB.H>
 #include <WarpX_f.H>
 #include <WarpX.H>
 
-bool    WarpXParticleContainer::do_tiling = 0;
-IntVect WarpXParticleContainer::tile_size   { D_DECL(1024000,8,8) };
+using namespace amrex;
 
 WarpXParticleContainer::WarpXParticleContainer (AmrCore* amr_core, int ispecies)
-    : ParticleContainer<PIdx::nattribs,0,std::vector<Particle<PIdx::nattribs,0> > >
-      (amr_core->GetParGDB())
+    : ParticleContainer<0,0,PIdx::nattribs>(amr_core->GetParGDB())
     , species_id(ispecies)
 {
-    this->SetVerbose(0);
-
-    m_particles.reserve(m_gdb->maxLevel()+1);
-    m_particles.resize (m_gdb->finestLevel()+1);
-
+    for (unsigned int i = PIdx::Ex; i < PIdx::nattribs; ++i) {
+        communicate_comp[i] = false; // Don't need to communicate E and B.
+    }
     ReadParameters();
 }
 
@@ -30,14 +27,84 @@ WarpXParticleContainer::ReadParameters ()
     {
 	ParmParse pp("particles");
 
+        do_tiling = true;  // because the default in amrex is false
 	pp.query("do_tiling",  do_tiling);
 
-	Array<int> ts(BL_SPACEDIM);
-	if (pp.queryarr("tile_size", ts)) {
-	    tile_size = IntVect(ts);
-	}
-
 	initialized = true;
+    }
+}
+
+
+void
+WarpXParticleContainer::AddOneParticle (int lev, int grid, int tile,
+                                        Real x, Real y, Real z,
+                                        const std::array<Real,PIdx::nattribs>& attribs)
+{
+    auto& particle_tile = GetParticles(lev)[std::make_pair(grid,tile)];
+    AddOneParticle(particle_tile, x, y, z, attribs); 
+}
+
+void
+WarpXParticleContainer::AddOneParticle (ParticleTileType& particle_tile,
+                                        Real x, Real y, Real z,
+                                        const std::array<Real,PIdx::nattribs>& attribs)
+{
+    ParticleType p;
+    p.id()  = ParticleType::NextID();
+    p.cpu() = ParallelDescriptor::MyProc();
+#if (BL_SPACEDIM == 3)
+    p.pos(0) = x;
+    p.pos(1) = y;
+    p.pos(2) = z;
+#elif (BL_SPACEDIM == 2)
+    p.pos(0) = x;
+    p.pos(1) = z;
+#endif
+    
+    particle_tile.push_back(p);
+    particle_tile.push_back(attribs);
+}
+
+void
+WarpXParticleContainer::AddParticles (int lev, const Box& part_box, Real weight, int ppc)
+{
+    const Geometry& geom = Geom(lev);    
+    const Real* dx  = geom.CellSize();
+
+    std::array<Real,PIdx::nattribs> attribs;
+    attribs.fill(0.0);
+    attribs[PIdx::w] = weight;
+
+    for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
+    {
+        const Box& tile_box     = mfi.tilebox();
+        const Box& intersectBox = tile_box & part_box;
+        if (intersectBox.ok())
+        {
+            RealBox real_box { intersectBox, dx, geom.ProbLo() };
+            
+            const int grid_id = mfi.index();
+            const int tile_id = mfi.LocalTileIndex();
+            
+            const IntVect& boxlo = tile_box.smallEnd();
+            for (IntVect iv = boxlo; iv <= tile_box.bigEnd(); tile_box.next(iv))
+            {
+                for (int i_part=0; i_part < ppc; i_part++)
+                {
+                    Real particle_shift = (0.5+i_part)/ppc;
+#if (BL_SPACEDIM == 3)
+                    Real x = real_box.lo(0) + (iv[0]-boxlo[0] + particle_shift)*dx[0];
+                    Real y = real_box.lo(1) + (iv[1]-boxlo[1] + particle_shift)*dx[1];
+                    Real z = real_box.lo(2) + (iv[2]-boxlo[2] + particle_shift)*dx[2];
+#elif (BL_SPACEDIM == 2)
+                    Real x = real_box.lo(0) + (iv[0]-boxlo[0] + particle_shift)*dx[0];
+                    Real y = 0.0;
+                    Real z = real_box.lo(1) + (iv[1]-boxlo[1] + particle_shift)*dx[1];
+#endif
+                    AddOneParticle(lev, grid_id, tile_id, x, y, z, attribs);
+                }
+            }
+        }
     }
 }
 
@@ -52,8 +119,6 @@ WarpXParticleContainer::AddNParticles (int n, const Real* x, const Real* y, cons
     const Real* weight = attr;
 
     auto npart_before = TotalNumberOfParticles();  // xxxxx move this into if (verbose > xxx)
-
-    int gid = 0;
 
     int ibegin, iend;
     if (uniqueparticles) {
@@ -73,53 +138,50 @@ WarpXParticleContainer::AddNParticles (int n, const Real* x, const Real* y, cons
 	}
     }
 
+    //  Add to grid 0 and tile 0
+    // Redistribute() will move them to proper places.
+    std::pair<int,int> key {0,0};
+    auto& particle_tile = GetParticles(lev)[key];
+
     for (int i = ibegin; i < iend; ++i)
     {
-	ParticleType p;
-	p.m_id  = ParticleBase::NextID();
-	p.m_cpu = ParallelDescriptor::MyProc();
-	p.m_lev = lev;
-	p.m_grid = gid; 
-
-#if (BL_SPACEDIM == 3)	
-	p.m_pos[0] = x[i];
-	p.m_pos[1] = y[i];
-	p.m_pos[2] = z[i];
-#else
-	p.m_pos[0] = x[i];
-	p.m_pos[1] = z[i];
+        ParticleType p;
+        p.id()  = ParticleType::NextID();
+        p.cpu() = ParallelDescriptor::MyProc();
+#if (BL_SPACEDIM == 3)
+        p.pos(0) = x[i];
+        p.pos(1) = y[i];
+        p.pos(2) = z[i];
+#elif (BL_SPACEDIM == 2)
+        p.pos(0) = x[i];
+        p.pos(1) = z[i];
 #endif
-	
-	p.m_data[PIdx::w] = weight[i];
-	
-	for (int j = 1; j < PIdx::nattribs; ++j) {
-	    p.m_data[j] = 0;
-	}
-	
-	p.m_data[PIdx::ux] = vx[i];
-	p.m_data[PIdx::uy] = vy[i];
-	p.m_data[PIdx::uz] = vz[i];
-	
-	if (ParticleBase::Where(p,m_gdb)) // this will update m_lev, m_grid, and m_cell
-	{
-	    gid = p.m_grid;
-	    m_particles[p.m_lev][p.m_grid].push_back(p);
-	}
+        particle_tile.push_back(p);
     }
 
-    Redistribute(true);
+    particle_tile.push_back(PIdx::w , weight + ibegin, weight + iend);
+    particle_tile.push_back(PIdx::ux,     vx + ibegin,     vx + iend);
+    particle_tile.push_back(PIdx::uy,     vy + ibegin,     vy + iend);
+    particle_tile.push_back(PIdx::uz,     vz + ibegin,     vz + iend);
+
+    std::size_t np = iend-ibegin;
+    for (int comp = PIdx::uz+1; comp < PIdx::nattribs; ++comp)
+    {
+        particle_tile.push_back(comp, np, 0.0);
+    }
+
+    Redistribute();
 
     auto npart_after = TotalNumberOfParticles();  // xxxxx move this into if (verbose > xxx)
-    if (ParallelDescriptor::IOProcessor()) {
-	std::cout << "Total number of particles added: " << npart_after - npart_before << std::endl;
-    }
+    amrex::Print() << "Total number of particles added: " << npart_after - npart_before << "\n";
 }
 
 std::unique_ptr<MultiFab>
 WarpXParticleContainer::GetChargeDensity (int lev, bool local)
 {
-    const Geometry& gm = m_gdb->Geom(lev);
-    const BoxArray& ba = m_gdb->ParticleBoxArray(lev);
+    const auto& gm = m_gdb->Geom(lev);
+    const auto& ba = m_gdb->ParticleBoxArray(lev);
+    const auto& dm = m_gdb->DistributionMap(lev);
     BoxArray nba = ba;
     nba.surroundingNodes();
 
@@ -131,41 +193,29 @@ WarpXParticleContainer::GetChargeDensity (int lev, bool local)
 
     const int ng = WarpX::nox;
 
-    auto rho = std::unique_ptr<MultiFab>(new MultiFab(nba,1,ng));
+    auto rho = std::unique_ptr<MultiFab>(new MultiFab(nba,dm,1,ng));
     rho->setVal(0.0);
 
-    Array<Real> xp, yp, zp, wp;
+    Array<Real> xp, yp, zp;
 
-    PartIterInfo info {lev, do_tiling, tile_size};
-    for (PartIter pti(*this, info); pti.isValid(); ++pti)
+    for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
     {
-	const int  gid = pti.index();
-	const Box& vbx = pti.validbox();
-	const long np  = pti.numParticles();
-	
+        const Box& box = pti.validbox();
+
+        auto& wp = pti.GetAttribs(PIdx::w);
+            
+        const long np  = pti.numParticles();
+
 	// Data on the grid
-	FArrayBox& rhofab = (*rho)[gid];
+	FArrayBox& rhofab = (*rho)[pti];
 
-	xp.resize(np);
-	yp.resize(np);
-	zp.resize(np);
-	wp.resize(np);
-
-	pti.foreach([&](int i, ParticleType& p) {
 #if (BL_SPACEDIM == 3)
-		xp[i] = p.m_pos[0];
-		yp[i] = p.m_pos[1];
-		zp[i] = p.m_pos[2];
+        pti.GetPosition(xp, yp, zp);
 #elif (BL_SPACEDIM == 2)
-		xp[i] = p.m_pos[0];
-		yp[i] = std::numeric_limits<Real>::quiet_NaN();
-		zp[i] = p.m_pos[1];
+        pti.GetPosition(xp, zp);
+        yp.resize(np, std::numeric_limits<Real>::quiet_NaN());
 #endif
-		wp[i]  = p.m_data[PIdx::w]; 
-	    });
 
-	const Box& box = BoxLib::enclosedCells(ba[gid]);
-	BL_ASSERT(box == vbx);
 #if (BL_SPACEDIM == 3)
 	long nx = box.length(0);
 	long ny = box.length(1);

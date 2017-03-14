@@ -1,15 +1,17 @@
 
 #include <iostream>
 
-#include <BoxLib.H>
-#include <BLProfiler.H>
-#include <ParallelDescriptor.H>
+#include <AMReX.H>
+#include <AMReX_BLProfiler.H>
+#include <AMReX_ParallelDescriptor.H>
 
 #include <WarpX.H>
 
+using namespace amrex;
+
 int main(int argc, char* argv[])
 {
-    BoxLib::Initialize(argc,argv);
+    amrex::Initialize(argc,argv);
 
     BL_PROFILE_VAR("main()", pmain);
 
@@ -25,12 +27,12 @@ int main(int argc, char* argv[])
 	Real end_total = ParallelDescriptor::second() - strt_total;
 	
 	ParallelDescriptor::ReduceRealMax(end_total ,ParallelDescriptor::IOProcessorNumber());
-	if (warpx.Verbose() && ParallelDescriptor::IOProcessor()) {
-	    std::cout << "Total Time                     : " << end_total << '\n';
+	if (warpx.Verbose()) {
+            amrex::Print() << "Total Time                     : " << end_total << '\n';
 	}
     }
 
     BL_PROFILE_VAR_STOP(pmain);
 
-    BoxLib::Finalize();
+    amrex::Finalize();
 }

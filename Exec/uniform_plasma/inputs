@@ -1,19 +1,22 @@
 # Maximum number of time steps
-max_step = 20
+max_step = 100
 
 # number of grid points
-amr.n_cell =  128 128 128
+amr.n_cell =  64 64 64
 
-# Maximum allowable size of each subdomain in the problem domain; 
+amr.plot_int = 5   # How often to write plotfiles.
+
+# Maximum allowable size of each subdomain in the problem domain;
 #    this is used to decompose the domain for parallel calculations.
 amr.max_grid_size = 32
 
 # Maximum level in hierarchy (for now must be 0, i.e., one level in total)
 amr.max_level = 0
+particles.nspecies = 2
 
 # Geometry
 geometry.coord_sys   = 0                  # 0: Cartesian
-geometry.is_periodic = 1     1     1      # Is periodic?  
+geometry.is_periodic = 1     1     1      # Is periodic?
 geometry.prob_lo     = -20.e-6   -20.e-6   -20.e-6    # physical domain
 geometry.prob_hi     =  20.e-6    20.e-6    20.e-6
 
@@ -32,3 +35,4 @@ warpx.cfl = 1.0
 uniform_plasma.num_particles_per_cell = 40
 uniform_plasma.n_e = 1.e25  # number of electrons per m^3
 uniform_plasma.u_th  = 0.01 # uth the std of the (unitless) momentum
+uniform_plasma.uz_m  = 10.  # Mean momentum along x (unitless)

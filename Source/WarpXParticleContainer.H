@@ -3,68 +3,87 @@
 
 #include <memory>
 
-#include <Particles.H>
-#include <AmrParGDB.H>
+#include <AMReX_Particles.H>
+#include <AMReX_AmrCore.H>
 
 struct PIdx
 {
-    enum { // Particle Attributes stored in p.m_data
+    enum { // Particle Attributes stored in amrex::ParticleContainer's struct of array
 	w = 0,  // weight
-	ux, uy, uz,
+	ux, uy, uz, Ex, Ey, Ez, Bx, By, Bz,
 	nattribs
     };
+};
 
-    enum { // Particle data stored in partdata
-	Ex=0, Ey, Ez, Bx, By, Bz,
-	npartdata
-    };
+class WarpXParIter
+    : public amrex::ParIter<0,0,PIdx::nattribs>
+{
+public:
+    using amrex::ParIter<0,0,PIdx::nattribs>::ParIter;
+
+    const SoA& GetAttribs () const { return GetStructOfArrays(); }
+    SoA&       GetAttribs ()       { return GetStructOfArrays(); }
+    const amrex::Array<amrex::Real>& GetAttribs (int comp) const { return GetStructOfArrays()[comp]; }
+    amrex::Array      <amrex::Real>& GetAttribs (int comp)       { return GetStructOfArrays()[comp]; }
 };
 
 class MultiParticleContainer;
 
 class WarpXParticleContainer
-    : public ParticleContainer<PIdx::nattribs,0,std::vector<Particle<PIdx::nattribs,0> > >
+    : public amrex::ParticleContainer<0,0,PIdx::nattribs>
 {
 public:
     friend MultiParticleContainer;
 
-    WarpXParticleContainer (AmrCore* amr_core, int ispecies);
+    WarpXParticleContainer (amrex::AmrCore* amr_core, int ispecies);
     virtual ~WarpXParticleContainer() {}
 
     virtual void AllocData () = 0;
 
     virtual void InitData () = 0;
 
+    virtual void FieldGather (int lev,
+                              const amrex::MultiFab& Ex, const amrex::MultiFab& Ey, const amrex::MultiFab& Ez,
+                              const amrex::MultiFab& Bx, const amrex::MultiFab& By, const amrex::MultiFab& Bz) {}
+
     virtual void Evolve (int lev,
-			 const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
-			 const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz,
-			 MultiFab& jx, MultiFab& jy, MultiFab& jz, Real t, Real dt) = 0;
+			 const amrex::MultiFab& Ex, const amrex::MultiFab& Ey, const amrex::MultiFab& Ez,
+			 const amrex::MultiFab& Bx, const amrex::MultiFab& By, const amrex::MultiFab& Bz,
+			 amrex::MultiFab& jx, amrex::MultiFab& jy, amrex::MultiFab& jz, amrex::Real t, amrex::Real dt) = 0;
 
     virtual void PostRestart () = 0;
 
-    std::unique_ptr<MultiFab> GetChargeDensity(int lev, bool local = false);
+    std::unique_ptr<amrex::MultiFab> GetChargeDensity(int lev, bool local = false);
 
-    void AddNParticles (int n, const Real* x, const Real* y, const Real* z,
-			const Real* vx, const Real* vy, const Real* vz,
-			int nattr, const Real* attr, int uniqueparticles);
+    void AddNParticles (int n, const amrex::Real* x, const amrex::Real* y, const amrex::Real* z,
+			const amrex::Real* vx, const amrex::Real* vy, const amrex::Real* vz,
+			int nattr, const amrex::Real* attr, int uniqueparticles);
 
+    void AddOneParticle (int lev, int grid, int tile,
+                         amrex::Real x, amrex::Real y, amrex::Real z,
+                         const std::array<amrex::Real,PIdx::nattribs>& attribs);
+
+    void AddOneParticle (ParticleTileType& particle_tile,
+                         amrex::Real x, amrex::Real y, amrex::Real z,
+                         const std::array<amrex::Real,PIdx::nattribs>& attribs);
+
+    // Inject 'ppc' particles per cell in Box 'part_box'
+    void AddParticles (int lev, const amrex::Box& part_box, amrex::Real weight, int ppc);
+    
     void ReadHeader (std::istream& is);
 
     void WriteHeader (std::ostream& os) const;
 
-    const ParGDBBase& GDB () const { return *m_gdb; }
-
     static void ReadParameters ();
+
+    static int NextID () { return ParticleType::NextID(); }
 
 protected:
 
     int species_id;
 
-    Real charge;
-    Real mass;
-
-    static bool do_tiling;
-    static IntVect tile_size;
+    amrex::Real charge;
+    amrex::Real mass;
 };
 
 #endif

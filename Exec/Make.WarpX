@@ -1,10 +1,10 @@
-BOXLIB_HOME ?= ../../../BoxLib
+AMREX_HOME ?= ../../../amrex
 PICSAR_HOME ?= ../../../picsar
 OPENBC_HOME ?= ../../../openbc_poisson
 
 USE_PARTICLES = TRUE
 
-include $(BOXLIB_HOME)/Tools/C_mk/Make.defs
+include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
 ifndef USE_PYTHON_MAIN
   USE_PYTHON_MAIN = FALSE
@@ -21,10 +21,10 @@ endif
 -include Make.package
 include $(WARPX_HOME)/Source/Make.package
 
-include $(BOXLIB_HOME)/Src/C_BaseLib/Make.package
-include $(BOXLIB_HOME)/Src/C_ParticleLib/Make.package
-include $(BOXLIB_HOME)/Src/C_BoundaryLib/Make.package
-include $(BOXLIB_HOME)/Src/C_AmrCoreLib/Make.package
+include $(AMREX_HOME)/Src/Base/Make.package
+include $(AMREX_HOME)/Src/Particle/Make.package
+include $(AMREX_HOME)/Src/Boundary/Make.package
+include $(AMREX_HOME)/Src/AmrCore/Make.package
 
 include $(PICSAR_HOME)/src/Make.package
 
@@ -36,41 +36,40 @@ ifeq ($(USE_OPENBC_POISSON),TRUE)
 endif
 
 # job_info support
-CEXE_sources += buildInfo.cpp
-CEXE_headers += $(BOXLIB_HOME)/Tools/C_scripts/buildInfo.H
-INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Tools/C_scripts
+CEXE_sources += AMReX_buildInfo.cpp
+CEXE_headers += $(AMREX_HOME)/Tools/C_scripts/AMReX_buildInfo.H
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Tools/C_scripts
 
 ifeq ($(USE_PYTHON_MAIN),TRUE)
 
 ifeq ($(shell uname),Darwin)
   SHARED_OPTION = -dynamiclib
-  MY_LINK_LIBRARIES = $(LDFLAGS) $(libraries)
 else
   SHARED_OPTION = -shared
-  MY_LINK_LIBRARIES = $(LDFLAGS) $(libraries) -lgfortran
 endif
 
 pyinstallswig: libwarpx.a warpxC.i classwrapper.i
 	@echo Making and installing python wrapper ...
 	# touch warpxC.i to force the rebuilding of the swig interface
 	touch warpxC.i
-	LDFLAGS="$(MY_LINK_LIBRARIES)" CC=$(CXX) CXXFLAGS="$(CXXFLAGS) $(DEFINES)" python setup.py install --force
+	LDFLAGS="$(LDFLAGS) $(libraries)" CC=$(CXX) CXX=$(CXX) CFLAGS="$(CXXFLAGS) $(CPPFLAGS)" CXXFLAGS="$(CXXFLAGS) $(CPPFLAGS)" DEFINES="$(DEFINES)" python setup.py install --force
 	@echo SUCCESS
 
 pybuild: libwarpx.a warpxC.i classwrapper.i
 	@echo Making python wrapper ...
-	LDFLAGS="$(MY_LINK_LIBRARIES)" CC=$(CXX) CXXFLAGS="$(CXXFLAGS) $(DEFINES)" python setup.py build
+	LDFLAGS="$(LDFLAGS) $(libraries)" CC=$(CXX) CXX=$(CXX) CFLAGS="$(CXXFLAGS) $(CPPFLAGS)" CXXFLAGS="$(CXXFLAGS) $(CPPFLAGS)" DEFINES="$(DEFINES)" python setup.py build
 	@echo SUCCESS
 
 libwarpx.a: $(objForExecs)
 	@echo Making static library $@ ...
 	$(SILENT) $(AR) -crv $@ $^
+	$(SILENT) $(RM) AMReX_buildInfo.cpp
 	@echo SUCCESS
 
 libwarpx.so: $(objForExecs)
 	@echo Making dynamic library $@ ...
-	$(SILENT) $(CXX) $(SHARED_OPTION) -fPIC -o $@ $^ $(MY_LINK_LIBRARIES)
-	$(SILENT) $(RM) buildInfo.cpp
+	$(SILENT) $(CXX) $(SHARED_OPTION) -fPIC -o $@ $^ $(LDFLAGS) $(libraries)
+	$(SILENT) $(RM) AMReX_buildInfo.cpp
 	@echo SUCCESS
 
 clean::
@@ -81,19 +80,18 @@ clean::
 else
 
 all: $(executable) 
-	$(SILENT) $(RM) buildInfo.cpp
+	$(SILENT) $(RM) AMReX_buildInfo.cpp
 	@echo SUCCESS
 
 endif
 
-buildInfo.cpp: 
-	$(BOXLIB_HOME)/Tools/C_scripts/makebuildinfo_C.py \
-          --boxlib_home "$(BOXLIB_HOME)" \
+AMReX_buildInfo.cpp: 
+	$(AMREX_HOME)/Tools/C_scripts/makebuildinfo_C.py \
+          --amrex_home "$(AMREX_HOME)" \
           --COMP "$(COMP)" --COMP_VERSION "$(COMP_VERSION)" \
-          --FCOMP "$(FCOMP)" --FCOMP_VERSION "$(FCOMP_VERSION)" \
-          --GIT ". $(BOXLIB_HOME) $(PICSAR_HOME)"
+          --GIT ". $(AMREX_HOME) $(PICSAR_HOME)"
 
-include $(BOXLIB_HOME)/Tools/C_mk/Make.rules
+include $(AMREX_HOME)/Tools/GNUMake/Make.rules
 
 clean::
-	$(SILENT) $(RM) buildInfo.cpp
+	$(SILENT) $(RM) AMReX_buildInfo.cpp
