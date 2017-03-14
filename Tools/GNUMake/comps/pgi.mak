@@ -67,5 +67,5 @@ F90FLAGS += $(GENERIC_COMP_FLAGS)
 ########################################################################
 
 # Because we do not have a Fortran main
-override XTRALIBS += -pgf90libs
+override XTRALIBS += -pgf90libs -latomic
 
