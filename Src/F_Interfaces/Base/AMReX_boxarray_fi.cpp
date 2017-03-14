@@ -28,12 +28,8 @@ extern "C" {
 	ba->maxSize(sz);
     }
 
-    void amrex_fi_print_boxarray (const BoxArray* ba, int all)
+    void amrex_fi_print_boxarray (const BoxArray* ba)
     {
-	if (all) {
-	    AllPrint() << *ba;
-	} else {
-	    Print() << *ba;
-	}
+	AllPrint() << *ba;
     }
 }

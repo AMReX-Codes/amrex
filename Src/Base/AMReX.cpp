@@ -354,7 +354,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi_
 
     ParallelDescriptor::StartSubCommunicator();
 
-    mempool_init();
+    amrex_mempool_init();
 
     // For thread safety, we should do these initializations here.
     BoxArray::Initialize();
@@ -422,7 +422,7 @@ amrex::Finalize (bool finalize_parallel)
     if (amrex::system::verbose)
     {
 	int mp_min, mp_max, mp_tot;
-	mempool_get_stats(mp_min, mp_max, mp_tot);  // in MB
+	amrex_mempool_get_stats(mp_min, mp_max, mp_tot);  // in MB
 	if (ParallelDescriptor::NProcs() == 1) {
 	    if (mp_tot > 0) {
 		std::cout << "MemPool: " 
