@@ -35,12 +35,12 @@ public:
 
     MultiParticleContainer& GetPartContainer () { return *mypc; }
 
-    void fillSlice(Real z_coord) const;
+    void fillSlice(amrex::Real z_coord) const;
 
-    void sampleAtPoints(const Array<Real>& x,
-			const Array<Real>& y,
-			const Array<Real>& z,
-			Array<Array<Real> >& result) const;
+    void sampleAtPoints(const amrex::Array<amrex::Real>& x,
+			const amrex::Array<amrex::Real>& y,
+			const amrex::Array<amrex::Real>& z,
+			amrex::Array<amrex::Array<amrex::Real> >& result) const;
 
     static void FillBoundary (amrex::MultiFab& mf, const amrex::Geometry& geom, const amrex::IntVect& nodalflag);
 
@@ -119,7 +119,7 @@ protected:
     //! Delete level data.  Called by AmrCore::regrid.
     virtual void ClearLevel (int lev) override;
 
-    Box getIndexBox(const RealBox& real_box) const;
+    amrex::Box getIndexBox(const amrex::RealBox& real_box) const;
 
 private:
 

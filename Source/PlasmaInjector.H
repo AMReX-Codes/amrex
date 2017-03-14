@@ -1,46 +1,46 @@
 #ifndef PLASMA_INJECTOR_H_
 #define PLASMA_INJECTOR_H_
 
-#include "Real.H"
-#include "ParmParse.H"
+#include "AMReX_Real.H"
+#include "AMReX_ParmParse.H"
 
 class PlasmaInjector
 {
 public:
   PlasmaInjector();
 
-  virtual Real getDensity(Real x, Real y, Real z) = 0;
+  virtual amrex::Real getDensity(amrex::Real x, amrex::Real y, amrex::Real z) = 0;
 
-  bool insideBounds(Real x, Real y, Real z);
+  bool insideBounds(amrex::Real x, amrex::Real y, amrex::Real z);
 
 protected:
 
-  Real xmin, xmax;
-  Real ymin, ymax;
-  Real zmin, zmax;
+  amrex::Real xmin, xmax;
+  amrex::Real ymin, ymax;
+  amrex::Real zmin, zmax;
 
-  Real density;
+  amrex::Real density;
 
 };
 
 class ConstantPlasmaInjector : public PlasmaInjector {
 public:
-  Real getDensity( Real x, Real y, Real z);
+  amrex::Real getDensity( amrex::Real x, amrex::Real y, amrex::Real z);
 };
 
 class CustomPlasmaInjector : public PlasmaInjector {
 public:
-  Real getDensity( Real x, Real y, Real z);
+  amrex::Real getDensity( amrex::Real x, amrex::Real y, amrex::Real z);
 };
 
 class DoubleRampPlasmaInjector : public PlasmaInjector {
 public:
   DoubleRampPlasmaInjector();
-  Real getDensity( Real x, Real y, Real z);
+  amrex::Real getDensity( amrex::Real x, amrex::Real y, amrex::Real z);
 
 protected:
-  Real plateau_length;
-  Real ramp_length;
+  amrex::Real plateau_length;
+  amrex::Real ramp_length;
 };
 
 #endif

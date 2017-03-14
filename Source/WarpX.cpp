@@ -197,7 +197,7 @@ WarpX::ReadParameters ()
       }
 
       else {
-	BoxLib::Abort("Unknown plasma injector type");
+	amrex::Abort("Unknown plasma injector type");
       }
     }
     
@@ -375,7 +375,7 @@ WarpX::fillSlice(Real z_coord) const {
   procs.push_back(ParallelDescriptor::MyProc());
   BoxArray slice_ba(&boxes[0], boxes.size());
   DistributionMapping slice_dmap(procs);
-  MultiFab slice(slice_ba, 6, 0, slice_dmap);
+  MultiFab slice(slice_ba, slice_dmap, 6, 0);
   
   const MultiFab* mfs[6];
   mfs[0] = Efield[0][0].get();

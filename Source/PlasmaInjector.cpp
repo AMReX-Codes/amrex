@@ -2,6 +2,8 @@
 
 #include <iostream>
 
+using namespace amrex;
+
 PlasmaInjector::PlasmaInjector() {
   ParmParse pp("plasma");
 
