@@ -165,15 +165,9 @@ WarpX::ReadParameters ()
 	pp.query("do_plasma_injection", do_plasma_injection);
 	if (do_plasma_injection) {
 	  pp.get("num_injected_species", num_injected_species);
-	  injected_plasma_ppc.resize(num_injected_species);
-	  pp.getarr("injected_plasma_ppc", injected_plasma_ppc,
-		    0, num_injected_species);
 	  injected_plasma_species.resize(num_injected_species);
 	  pp.getarr("injected_plasma_species", injected_plasma_species,
 		 0, num_injected_species);
-	  injected_plasma_density.resize(num_injected_species);
-	  pp.getarr("injected_plasma_density", injected_plasma_density,
-		    0, num_injected_species);
 	}
 
 	pp.query("use_laser", use_laser);

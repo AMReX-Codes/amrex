@@ -10,7 +10,9 @@ class PhysicalParticleContainer
     : public WarpXParticleContainer
 {
 public:
-    PhysicalParticleContainer (amrex::AmrCore* amr_core, int ispecies, const std::string& name);
+    PhysicalParticleContainer (amrex::AmrCore* amr_core,
+                               int ispecies,
+                               const std::string& name);
     virtual ~PhysicalParticleContainer () {}
 
     virtual void AllocData () override;
@@ -18,20 +20,36 @@ public:
     virtual void InitData () override;
 
     virtual void FieldGather(int lev,
-                             const amrex::MultiFab& Ex, const amrex::MultiFab& Ey, const amrex::MultiFab& Ez,
-                             const amrex::MultiFab& Bx, const amrex::MultiFab& By, const amrex::MultiFab& Bz) override;
+                             const amrex::MultiFab& Ex,
+                             const amrex::MultiFab& Ey,
+                             const amrex::MultiFab& Ez,
+                             const amrex::MultiFab& Bx,
+                             const amrex::MultiFab& By,
+                             const amrex::MultiFab& Bz) override;
 
     virtual void Evolve (int lev,
-			 const amrex::MultiFab& Ex, const amrex::MultiFab& Ey, const amrex::MultiFab& Ez,
-			 const amrex::MultiFab& Bx, const amrex::MultiFab& By, const amrex::MultiFab& Bz,
-			 amrex::MultiFab& jx, amrex::MultiFab& jy, amrex::MultiFab& jz, amrex::Real t, amrex::Real dt) override;
+			 const amrex::MultiFab& Ex,
+                         const amrex::MultiFab& Ey,
+                         const amrex::MultiFab& Ez,
+			 const amrex::MultiFab& Bx,
+                         const amrex::MultiFab& By,
+                         const amrex::MultiFab& Bz,
+			 amrex::MultiFab& jx,
+                         amrex::MultiFab& jy,
+                         amrex::MultiFab& jz,
+                         amrex::Real t,
+                         amrex::Real dt) override;
 
     virtual void PostRestart () override {}
 
+    // Inject 'ppc' particles per cell in Box 'part_box'
+    void AddParticles (int lev, const amrex::Box& part_box);
+
 protected:
 
-    std::string species_name;
+    void InitNPerCell ();
 
+    std::string species_name;
     std::unique_ptr<PlasmaInjector> plasma_injector;
 };
 

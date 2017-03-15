@@ -262,20 +262,11 @@ WarpX::InjectPlasma (int num_shift, int dir)
 
         const Real* dx = geom[lev].CellSize();
 
-        for (int i = 0; i < num_injected_species; ++i)
-        {
-            int ppc = injected_plasma_ppc[i];
-            Real density = injected_plasma_density[i];
-#if BL_SPACEDIM==3
-            Real weight = density * dx[0]*dx[1]*dx[2]/ppc;
-#elif BL_SPACEDIM==2
-            Real weight = density * dx[0]*dx[1]/ppc;
-#endif
-
+        for (int i = 0; i < num_injected_species; ++i) {
             int ispecies = injected_plasma_species[i];
             WarpXParticleContainer& pc = mypc->GetParticleContainer(ispecies);
-
-            pc.AddParticles(lev, particleBox, weight, ppc);
+            PhysicalParticleContainer* ppc = (PhysicalParticleContainer*) &pc;
+            ppc->AddParticles(lev, particleBox);
         }
     }
 }

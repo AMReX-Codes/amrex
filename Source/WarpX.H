@@ -179,9 +179,7 @@ private:
     // Plasma injection parameters
     int do_plasma_injection  = 0;
     int num_injected_species = -1;
-    amrex::Array<int> injected_plasma_ppc;
     amrex::Array<int> injected_plasma_species;
-    amrex::Array<amrex::Real> injected_plasma_density;
 
     // Other runtime parameters
     int verbose = 1;

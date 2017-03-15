@@ -38,27 +38,22 @@ particles.species_names = beam plasma
 # The beam species information
 beam.charge = -q_e
 beam.mass = m_e
-
 beam.xmin = -20.e-6
 beam.xmax = 20.e-6
 beam.ymin = -20.e-6
 beam.ymax = 20.e-6
 beam.zmin = -150.e-6
 beam.zmax = -100.e-6
-
 beam.profile = "constant"
 beam.density = 1e23                    # number of particles per m^3
 beam.num_particles_per_cell = 4
-
 beam.ux = 0.0
 beam.uy = 0.0
 beam.uz = 1e9
 
-
 # The plasma species information
 plasma.charge = -q_e
 plasma.mass = m_e
-
 plasma.profile = "constant"
 plasma.xmin = -200.e-6
 plasma.xmax = 200.e-6
@@ -66,7 +61,6 @@ plasma.ymin = -200.e-6
 plasma.ymax = 200.e-6
 plasma.zmin = 0.e-6
 plasma.zmax = 200.e-6
-
 plasma.profile = "constant"
 plasma.density = 1e22                  # number of particles per m^3
 plasma.num_particles_per_cell = 4
@@ -84,5 +78,3 @@ warpx.moving_window_v = 1.0 # in units of the speed of light
 warpx.do_plasma_injection = 1
 warpx.num_injected_species = 1
 warpx.injected_plasma_species = 1 0
-warpx.injected_plasma_density = 1e22 1e22
-warpx.injected_plasma_ppc = 4 4
