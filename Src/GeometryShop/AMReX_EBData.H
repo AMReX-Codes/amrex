@@ -46,6 +46,11 @@ namespace amrex
     */
     void define(const Box& box, int comps);
 
+    //this is the define to use when you are just going to copy the data into it.  region should include ghost cells
+    //this just defines the data holders
+    void define(const EBGraph&           a_graph,
+                const Box&               a_region);
+
     ///
     /**
        Noop
@@ -68,32 +73,19 @@ namespace amrex
                        int               a_srccomp,
                        int               a_destcomp,
                        int               a_numcomp=1);
-    ///
-    /**
-       Copy the information from a_source to the over the intersection
-       of the box a_region, the box of the current EBDataImplem and
-       the box of a_source.  The Interval arguments are ignored.
-       This function is required by LevelData.
-    */
-    void copy(const Box&      a_regionFrom,
-              const Interval& a_Cd,
-              const Box&      a_regionto,
-              const EBDataImplem&   a_source,
-              const Interval& a_Cs);
+      {
+        amrex::Error("this operation makes no sense here");
+        return *this;
+      }
 
-    /// each data holder is defined over the irregular cells of the graph
-    void
-    defineVoFData(const EBGraph& a_graph, const Box& a_region);
 
-    /// each data holder is defined over the irregular cells of the graph
-    void
-    defineFaceData(const EBGraph& a_graph, const Box& a_region);
 
-    ///define the whole thing
+    ///define the whole thing. valid box= no ghost, region has ghost, defines data holders and fills them
     void
     define(const EBGraph&           a_graph,
            const Vector<IrregNode>& a_irregData,
-           const Box&               a_validBox);
+           const Box&               a_validBox,
+           const Box&               a_region);
 
     ///
     void
@@ -163,8 +155,10 @@ namespace amrex
     void addEmptyIrregularVoFs(const IntVectSet& a_vofsToChange,
                                const EBGraph&    a_newGraph);
 
+
   private:
 
+    EBGraph m_graph;
     ///
     BaseIVFAB<Real>   m_volData;
 
@@ -172,10 +166,8 @@ namespace amrex
     BaseIFFAB<Real>   m_faceData[SpaceDim];
 
     ///
-    bool m_isFaceDataDefined;
+    bool m_isDefined;
 
-    ///
-    bool m_isVoFDataDefined;
 
     void operator=(const EBDataImplem& ebiin)
       {;}
@@ -232,22 +224,28 @@ namespace amrex
   public:
 
     ///
-    EBData();
+    EBData() : m_implem( RefCountedPtr<EBDataImplem>( new EBDataImplem() ) )
+      {
+      }
 
     ///
-    ~EBData();
+    ~EBData()
+      {
+      }
+
+    ///
+    void define(const Box& box, int comps)
+      {
+        m_implem->define(a_box, a_comps);
+      }
 
     ///
     /**
-       Noop.
     */
-    void define(const Box& box, int comps);
-
-    ///
-    /**
-       Noop
-    */
-    EBData(const Box& a_box, int a_comps);
+    EBData(const Box& a_box, int a_comps)
+      : m_implem( shared_ptr<EBDataImplem>( new EBDataImplem(a_box, a_comps) ) )
+      {
+      }
 
     ///
     /**
@@ -280,32 +278,44 @@ namespace amrex
         return *this;
       }
 
-    /// each data holder is defined over the irregular cells of the graph
-    void
-    defineVoFData(const EBGraph& a_graph, const Box& a_region);
-
-    /// each data holder is defined over the irregular cells of the graph
-    void
-    defineFaceData(const EBGraph& a_graph, const Box& a_region);
-
-    ///define the whole thing
+    ///define the whole thing from primitive objects--region should include ghost cells--
+    //but it is ok for the valid box to be smaller
     void
     define(const EBGraph&           a_graph,
            const Vector<IrregNode>& a_irregData,
-           const Box&               a_validBox);
+           const Box&               a_validBox,
+           const Box&               a_region)
+    
+      {
+        m_implem->define(a_graph, a_irregData, a_validBox, a_region);
+      }
+
+    //this is the define to use when you are just going to copy the data into it.  region should include ghost cells
+    void define(const EBGraph&           a_graph,
+                const Box&               a_region)
+      {
+        m_implem->define(a_graph, a_region);
+      }
 
     ///
     void
     coarsenVoFs(const EBData&   a_fineEBData,
                 const EBGraph&  a_fineGraph,
                 const EBGraph&  a_coarGraph,
-                const Box&      a_validRegion);
+                const Box&      a_validRegion)
+      {
+        m_implem->coarsenVoFs(*a_fineEBData.m_implem, a_fineGraph, a_coarGraph, a_validRegion);
+      }
 
     void
     coarsenFaces(const EBData&  a_fineEBData,
                  const EBGraph& a_fineGraph,
                  const EBGraph& a_coarGraph,
-                 const Box&     a_validRegion);
+                 const Box&     a_validRegion)
+      {
+        m_implem->coarsenFaces(*a_fineEBData.m_implem, a_fineGraph, a_coarGraph, a_validRegion);
+      }
+
     ///
     const Real& volFrac(const VolIndex& a_vof) const;
 
@@ -328,16 +338,29 @@ namespace amrex
     const RealVect& normal(const VolIndex& a_vof) const;
  
     ///
-    EBData(const EBData& a_ebiin);
+    EBData(const EBData& a_ebiin)
+      {
+        m_implem = a_ebiin.m_implem;
+      }
 
     ///
     /**
        This is a pointer comparison.
     */
-    bool operator==(const EBData& a_ebiin);
+    bool operator==(const EBData& a_ebiin)
+      {
+        return ((&(*m_implem)) == (&(*a_ebiin.m_implem)));
+      }
 
     ///
-    EBData& operator=(const EBData& a_ebiin);
+    EBData& operator=(const EBData& a_ebiin)
+      {
+        if (&a_ebiin != this)
+        {
+          m_implem = a_ebiin.m_implem;
+        }
+        return *this;
+      }
 
     std::size_t nBytes (const Box& bx, int start_comp, int ncomps) const
       {
