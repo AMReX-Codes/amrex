@@ -9,15 +9,21 @@ module amrex_geometry_module
 
   private
 
+  public :: amrex_pmask, amrex_problo, amrex_probhi
   public :: amrex_geometry_build, amrex_geometry_destroy, amrex_geometry_init_data
+
+  logical, save :: amrex_pmask(3)  = .false.  
+  real(amrex_real), save :: amrex_problo(3) = 0.0_amrex_real
+  real(amrex_real), save :: amrex_probhi(3) = 1.0_amrex_real
+
+  logical, save :: amrex_geometry_initialzied = .false.
+
+!$omp threadprivate(amrex_geometry_initialzied,amrex_pmask,amrex_problo,amrex_probhi)
 
   type, public :: amrex_geometry
      logical          :: owner     = .false.
      type(c_ptr)      :: p         = c_null_ptr
      !
-     logical          :: pmask(3)  = .false.
-     real(amrex_real) :: problo(3) = 0.0_amrex_real
-     real(amrex_real) :: probhi(3) = 1.0_amrex_real
      real(amrex_real) :: dx(3)     = 0.0_amrex_real
      type(amrex_box)  :: domain
    contains
@@ -44,18 +50,16 @@ module amrex_geometry_module
        type(c_ptr), value :: geom
      end subroutine amrex_fi_delete_geometry
 
-     subroutine amrex_fi_geometry_get_pmask (geom,pmask) bind(c)
+     subroutine amrex_fi_geometry_get_pmask (pmask) bind(c)
        import
        implicit none
-       type(c_ptr), value :: geom
        integer(c_int) :: pmask(3)
      end subroutine amrex_fi_geometry_get_pmask
 
-     subroutine amrex_fi_geometry_get_probdomain (geom,problo,probhi) bind(c)
+     subroutine amrex_fi_geometry_get_probdomain (problo,probhi) bind(c)
        import
        implicit none
-       type(c_ptr), value :: geom
-       real(c_double) :: problo(3), probhi(3)
+       real(amrex_real) :: problo(3), probhi(3)
      end subroutine amrex_fi_geometry_get_probdomain
 
      subroutine amrex_fi_geometry_get_intdomain (geom,lo,hi) bind(c)
@@ -68,6 +72,14 @@ module amrex_geometry_module
 
 contains
 
+  subroutine amrex_geometry_init ()
+    integer :: imask(3)
+    imask = 0
+    call amrex_fi_geometry_get_pmask(imask)
+    where (imask .eq. 1) amrex_pmask = .true.
+    call amrex_fi_geometry_get_probdomain(amrex_problo, amrex_probhi)
+  end subroutine amrex_geometry_init
+
   subroutine amrex_geometry_build (geom, domain)
     type(amrex_geometry) :: geom
     type(amrex_box), intent(in) :: domain
@@ -78,15 +90,15 @@ contains
 
   subroutine amrex_geometry_init_data (geom)  ! geom%p must be valid!
     type(amrex_geometry), intent(inout) :: geom
-    integer :: imask(3), i, lo(3), hi(3)
-    imask = 0
-    call amrex_fi_geometry_get_pmask(geom%p, imask)
-    where (imask .eq. 1) geom%pmask = .true.
-    call amrex_fi_geometry_get_probdomain(geom%p, geom%problo, geom%probhi)
+    integer :: i, lo(3), hi(3)
+    if (.not.amrex_geometry_initialzied) then
+       call amrex_geometry_init()
+       amrex_geometry_initialzied = .true.
+    end if
     call amrex_fi_geometry_get_intdomain(geom%p, lo, hi)
     geom%domain = amrex_box(lo, hi)
     do i = 1, ndims
-       geom%dx(i) = (geom%probhi(i)-geom%problo(i)) / dble(hi(i)-lo(i)+1)
+       geom%dx(i) = (amrex_probhi(i)-amrex_problo(i)) / dble(hi(i)-lo(i)+1)
     end do
   end subroutine amrex_geometry_init_data
 
@@ -107,9 +119,6 @@ contains
     call amrex_geometry_destroy(dst)
     dst%owner  = .false.
     dst%p      = src%p
-    dst%pmask  = src%pmask
-    dst%problo = src%problo
-    dst%probhi = src%probhi
     dst%dx     = src%dx
     dst%domain = src%domain
   end subroutine amrex_geometry_assign

@@ -123,7 +123,7 @@ contains
        bx = mfi%tilebox()
        phi => phi_new(lev)%dataptr(mfi)
        call init_prob_data(lev, t_new(lev), bx%lo, bx%hi, phi, lbound(phi), ubound(phi), &
-            amrex_geom(lev)%dx, amrex_geom(lev)%problo)
+            amrex_geom(lev)%dx, amrex_problo)
     end do
 
     call amrex_mfiter_destroy(mfi)
