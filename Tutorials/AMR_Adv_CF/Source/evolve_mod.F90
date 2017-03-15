@@ -190,7 +190,7 @@ contains
 #if BL_SPACEDIM == 3
             puz, lbound(puz), ubound(puz), &
 #endif
-            amrex_geom(lev)%dx, amrex_geom(lev)%problo)
+            amrex_geom(lev)%dx, amrex_problo)
 
        call advect(time, bx%lo, bx%hi, &
             pin, lbound(pin), ubound(pin), &
