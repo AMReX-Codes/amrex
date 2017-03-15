@@ -71,6 +71,10 @@ public:
 
     int nSpecies() {return nspecies;}
 
+protected:
+
+    std::vector<std::string> species_names;
+
 private:
 
     // physical particles (+ laser)
@@ -80,5 +84,6 @@ private:
 
     // runtime parameters
     int nspecies = 1;   // physical particles only. If WarpX::use_laser, nspecies+1 == allcontainers.size().
+
 };
 #endif /*WARPX_ParticleContainer_H_*/

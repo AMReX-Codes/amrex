@@ -10,7 +10,7 @@ class PhysicalParticleContainer
     : public WarpXParticleContainer
 {
 public:
-    PhysicalParticleContainer (amrex::AmrCore* amr_core, int ispecies);
+    PhysicalParticleContainer (amrex::AmrCore* amr_core, int ispecies, const std::string& name);
     virtual ~PhysicalParticleContainer () {}
 
     virtual void AllocData () override;
@@ -29,6 +29,8 @@ public:
     virtual void PostRestart () override {}
 
 protected:
+
+    std::string species_name;
 
     std::unique_ptr<PlasmaInjector> plasma_injector;
 };

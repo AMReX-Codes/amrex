@@ -16,7 +16,7 @@ using namespace amrex;
 void
 PhysicalParticleContainer::InitData()
 {
-    BL_PROFILE("SPC::InitData()");
+    BL_PROFILE("PhysicalParticleContainer::InitData()");
 
     // species_id 0 : the beam
     // species_id 1 : the electrons of the plasma
@@ -33,64 +33,32 @@ PhysicalParticleContainer::InitData()
     const Geometry& geom = Geom(lev);
     const Real* dx  = geom.CellSize();
 
-    Real weight, gamma, uz;
-    Real particle_xmin, particle_xmax, particle_ymin, particle_ymax, particle_zmin, particle_zmax;
-    int n_part_per_cell;
-    {
-      ParmParse pp("pwfa");
+    Real weight, gamma, uz, scale_fac;
+    Real particle_xmin, particle_xmax, 
+         particle_ymin, particle_ymax, 
+         particle_zmin, particle_zmax;
+    int n_part_per_cell = plasma_injector->numParticlesPerCell();
 
-      // Calculate the particle weight
-      n_part_per_cell = 1;
-      pp.query("num_particles_per_cell", n_part_per_cell);
-      weight = 1.e22;
-      if (species_id == 0) {
-	pp.query("beam_density", weight);
-      } else if (species_id == 1) {
-	pp.query("plasma_density", weight);
-      }
-      #if BL_SPACEDIM==3
-      weight *= dx[0]*dx[1]*dx[2]/n_part_per_cell;
-      #elif BL_SPACEDIM==2
-      weight *= dx[0]*dx[1]/n_part_per_cell;
-      #endif
+#if BL_SPACEDIM==3
+    scale_fac = dx[0]*dx[1]*dx[2]/n_part_per_cell;
+#elif BL_SPACEDIM==2
+    scale_face = dx[0]*dx[1]/n_part_per_cell;
+#endif
 
-      // Calculate the limits between which the particles will be initialized
-      particle_xmin = particle_ymin = particle_zmin = -2.e-5;
-      particle_xmax = particle_ymax = particle_zmax =  2.e-5;
-      if (species_id == 0) {
-	pp.query("beam_xmin", particle_xmin);
-	pp.query("beam_xmax", particle_xmax);
-	pp.query("beam_ymin", particle_ymin);
-	pp.query("beam_ymax", particle_ymax);
-	pp.query("beam_zmin", particle_zmin);
-	pp.query("beam_zmax", particle_zmax);
-      } else if (species_id == 1) {
-	pp.query("plasma_xmin", particle_xmin);
-	pp.query("plasma_xmax", particle_xmax);
-	pp.query("plasma_ymin", particle_ymin);
-	pp.query("plasma_ymax", particle_ymax);
-	pp.query("plasma_zmin", particle_zmin);
-	pp.query("plasma_zmax", particle_zmax);
-      }
-      uz = 0.;
-      if (species_id == 0) { // relativistic beam
-	gamma = 1.;
-	pp.query("beam_gamma", gamma);
-	uz = std::sqrt( gamma*gamma - 1 );
-      }     
-      uz *= PhysConst::c;
+    // Calculate the limits between which the particles will be initialized
+    uz = 0.;
+    if (species_id == 0) { // relativistic beam
+        gamma = plasma_injector->getGamma();
+        uz = std::sqrt( gamma*gamma - 1 );
     }
-
+    uz *= PhysConst::c;
+    
     std::array<Real,PIdx::nattribs> attribs;
     attribs.fill(0.0);
-    attribs[PIdx::w ] = weight;
-    attribs[PIdx::uz] = uz;
-
-    for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
-    {
+    for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi) {
         const Box& tile_box = mfi.tilebox();
         RealBox tile_real_box { tile_box, dx, geom.ProbLo() };
-
+        
         const int grid_id = mfi.index();
         const int tile_id = mfi.LocalTileIndex();
 
@@ -110,14 +78,11 @@ PhysicalParticleContainer::InitData()
                 Real z = tile_real_box.lo(1) + (iv[1]-boxlo[1] + particle_shift)*dx[1];
 #endif   
                 
-                if (x >= particle_xmax || x < particle_xmin ||
-                    y >= particle_ymax || y < particle_ymin ||
-                    z >= particle_zmax || z < particle_zmin ) 
+                if (plasma_injector->insideBounds(x, y, z))
                 {
-                    continue;
-                }
-                else
-                {
+                    weight = plasma_injector->getDensity(x, y, z) * scale_fac;
+                    attribs[PIdx::w ] = weight;
+                    attribs[PIdx::uz] = uz;
                     AddOneParticle(lev, grid_id, tile_id, x, y, z, attribs);
                 }
             } 

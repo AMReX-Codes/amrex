@@ -8,26 +8,27 @@
 
 using namespace amrex;
 
-PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core, int ispecies)
-    : WarpXParticleContainer(amr_core, ispecies)
+PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core, int ispecies,
+                                                      const std::string& name)
+    : WarpXParticleContainer(amr_core, ispecies),
+      species_name(name)
 {
-    std::stringstream ss;
-    ss << "species" << ispecies; 
-    ParmParse pp(ss.str());
+
+    ParmParse pp(species_name);
 
     std::string plasma_profile_s;
     pp.get("profile", plasma_profile_s);
     std::transform(plasma_profile_s.begin(), plasma_profile_s.end(), plasma_profile_s.begin(), ::tolower);
     if (plasma_profile_s == "constant") {
-	plasma_injector.reset(new ConstantPlasmaInjector);
+	plasma_injector.reset(new ConstantPlasmaInjector(species_id, species_name));
     } 
     
     else if (plasma_profile_s == "double_ramp") {
-	plasma_injector.reset(new DoubleRampPlasmaInjector);
+	plasma_injector.reset(new DoubleRampPlasmaInjector(species_id, species_name));
     }
     
     else if (plasma_profile_s == "custom") {
-	plasma_injector.reset(new CustomPlasmaInjector);
+	plasma_injector.reset(new CustomPlasmaInjector(species_id, species_name));
     }
     
     else {

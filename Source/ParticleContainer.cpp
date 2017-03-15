@@ -13,7 +13,7 @@ MultiParticleContainer::MultiParticleContainer (AmrCore* amr_core)
     int n = WarpX::use_laser ? nspecies+1 : nspecies;
     allcontainers.resize(n);
     for (int i = 0; i < nspecies; ++i) {
-	allcontainers[i].reset(new PhysicalParticleContainer(amr_core, i));
+	allcontainers[i].reset(new PhysicalParticleContainer(amr_core, i, species_names[i]));
     }
     if (WarpX::use_laser) {
 	allcontainers[n-1].reset(new LaserParticleContainer(amr_core,n-1));
@@ -30,6 +30,9 @@ MultiParticleContainer::ReadParameters ()
 
 	pp.query("nspecies", nspecies);
 	BL_ASSERT(nspecies >= 0);
+
+        pp.getarr("species_names", species_names);
+        BL_ASSERT(species_names.size() == nspecies);
 
 	initialized = true;
     }

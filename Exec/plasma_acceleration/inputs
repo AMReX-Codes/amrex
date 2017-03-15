@@ -30,30 +30,35 @@ algo.particle_pusher = 0
 
 # CFL
 warpx.cfl = 1.0
+
+
+# Information about the particle species
 particles.nspecies = 2
+particles.species_names = beam plasma
 
 # The beam
-species0.profile = "constant"
-species0.xmin = -20.e-6
-species0.xmax = 20.e-6
-species0.ymin = -20.e-6
-species0.ymax = 20.e-6
-species0.zmin = -150.e-6
-species0.zmax = -100.e-6
-species0.density = 1e23   # number of electrons per m^3
-species0.gamma = 1e9
-species0.num_particles_per_cell = 4
+beam.profile = "constant"
+beam.xmin = -20.e-6
+beam.xmax = 20.e-6
+beam.ymin = -20.e-6
+beam.ymax = 20.e-6
+beam.zmin = -150.e-6
+beam.zmax = -100.e-6
+beam.density = 1e23                    # number of particles per m^3
+beam.gamma = 1e9
+beam.num_particles_per_cell = 4
 
 # The plasma
-species1.profile = "constant"
-species1.xmin = -200.e-6
-species1.xmax = 200.e-6
-species1.ymin = -200.e-6
-species1.ymax = 200.e-6
-species1.zmin = 0.e-6
-species1.zmax = 200.e-6
-species1.density = 1e22   # number of electrons per m^3
-species1.num_particles_per_cell = 4
+plasma.profile = "constant"
+plasma.xmin = -200.e-6
+plasma.xmax = 200.e-6
+plasma.ymin = -200.e-6
+plasma.ymax = 200.e-6
+plasma.zmin = 0.e-6
+plasma.zmax = 200.e-6
+plasma.density = 1e22                  # number of particles per m^3
+plasma.gamma = 1
+plasma.num_particles_per_cell = 4
 
 # Moving window
 warpx.do_moving_window = 1
