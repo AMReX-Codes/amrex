@@ -29,14 +29,10 @@ PhysicalParticleContainer::InitData()
     }
 
     const int lev = 0;
-
     const Geometry& geom = Geom(lev);
     const Real* dx  = geom.CellSize();
 
     Real weight, gamma, uz, scale_fac;
-    Real particle_xmin, particle_xmax, 
-         particle_ymin, particle_ymax, 
-         particle_zmin, particle_zmax;
     int n_part_per_cell = plasma_injector->numParticlesPerCell();
 
 #if BL_SPACEDIM==3
