@@ -57,7 +57,6 @@ private:
 
     amrex::Array<int> istep;      // which step?
     amrex::Array<int> nsubsteps;  // how many substeps on each level?
-    amrex::Array<int> last_regrid_step;  // last time the grid was built
 
     amrex::Array<amrex::Real> t_new;
     amrex::Array<amrex::Real> t_old;

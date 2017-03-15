@@ -27,7 +27,6 @@ module my_amr_module
 
   integer, allocatable :: stepno(:)
   integer, allocatable :: nsubsteps(:)
-  integer, allocatable :: last_regrid_step(:)
 
   real(rt), allocatable :: dt(:)
 
@@ -79,9 +78,6 @@ contains
     do ilev = 1, amrex_max_level
        nsubsteps(ilev) = amrex_ref_ratio(ilev-1)
     end do
-
-    allocate(last_regrid_step(0:amrex_max_level))
-    last_regrid_step = 0
 
     allocate(dt(0:amrex_max_level))
     dt = 1.e100
