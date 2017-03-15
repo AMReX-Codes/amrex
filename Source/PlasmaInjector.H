@@ -15,9 +15,14 @@ public:
 
     int numParticlesPerCell() {return num_particles_per_cell;};
 
-    amrex::Real getGamma() {return gamma;}
+    void getMomentum(amrex::Real* u);
+
+    amrex::Real getCharge() {return charge;}
+    amrex::Real getMass() {return mass;}
 
 protected:
+
+    amrex::Real mass, charge;
 
     amrex::Real xmin, xmax;
     amrex::Real ymin, ymax;
@@ -26,7 +31,9 @@ protected:
     amrex::Real density;
     int num_particles_per_cell;
 
-    amrex::Real gamma;
+    amrex::Real ux;
+    amrex::Real uy;
+    amrex::Real uz;
 
     int species_id;
     std::string species_name;

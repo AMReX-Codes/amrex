@@ -18,21 +18,14 @@ PhysicalParticleContainer::InitData()
 {
     BL_PROFILE("PhysicalParticleContainer::InitData()");
 
-    // species_id 0 : the beam
-    // species_id 1 : the electrons of the plasma
-    // Note: the ions of the plasma are implicitly motionless, and so are not part of the simulation
-    if (species_id == 0 or species_id == 1) {
-	charge = -PhysConst::q_e;
-	mass = PhysConst::m_e;
-    } else {
-	amrex::Abort("PhysicalParticleContainer::InitData(): species_id must be 0 or 1");
-    }
+    charge = plasma_injector->getCharge();
+    mass = plasma_injector->getMass();
 
     const int lev = 0;
     const Geometry& geom = Geom(lev);
     const Real* dx  = geom.CellSize();
 
-    Real weight, gamma, uz, scale_fac;
+    Real scale_fac;
     int n_part_per_cell = plasma_injector->numParticlesPerCell();
 
 #if BL_SPACEDIM==3
@@ -41,14 +34,6 @@ PhysicalParticleContainer::InitData()
     scale_face = dx[0]*dx[1]/n_part_per_cell;
 #endif
 
-    // Calculate the limits between which the particles will be initialized
-    uz = 0.;
-    if (species_id == 0) { // relativistic beam
-        gamma = plasma_injector->getGamma();
-        uz = std::sqrt( gamma*gamma - 1 );
-    }
-    uz *= PhysConst::c;
-    
     std::array<Real,PIdx::nattribs> attribs;
     attribs.fill(0.0);
     for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi) {
@@ -74,14 +59,18 @@ PhysicalParticleContainer::InitData()
                 Real z = tile_real_box.lo(1) + (iv[1]-boxlo[1] + particle_shift)*dx[1];
 #endif   
                 
-                if (plasma_injector->insideBounds(x, y, z))
-                {
+                if (plasma_injector->insideBounds(x, y, z)) {
+                    Real weight;
+                    Real u[3];
                     weight = plasma_injector->getDensity(x, y, z) * scale_fac;
+                    plasma_injector->getMomentum(u);
                     attribs[PIdx::w ] = weight;
-                    attribs[PIdx::uz] = uz;
+                    attribs[PIdx::ux] = u[0];
+                    attribs[PIdx::uy] = u[1];
+                    attribs[PIdx::uz] = u[2];
                     AddOneParticle(lev, grid_id, tile_id, x, y, z, attribs);
                 }
-            } 
+            }
         }
     }
 }
