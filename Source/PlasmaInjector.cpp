@@ -48,10 +48,18 @@ PlasmaInjector::PlasmaInjector(int ispecies, const std::string& name)
 
     std::string charge_s;
     pp.get("charge", charge_s);
+    std::transform(charge_s.begin(), 
+                   charge_s.end(), 
+                   charge_s.begin(), 
+                   ::tolower);
     charge = parseChargeString(charge_s);
 
     std::string mass_s;
     pp.get("mass", mass_s);
+    std::transform(mass_s.begin(), 
+                   mass_s.end(), 
+                   mass_s.begin(), 
+                   ::tolower);
     mass = parseMassString(mass_s);
         
     pp.get("xmin", xmin);
