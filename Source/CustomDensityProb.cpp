@@ -2,8 +2,9 @@
 
 #include <iostream>
 
-Real CustomPlasmaInjector::getDensity(Real x, Real y, Real z) {
-  static_assert(false,
-		"If running with a custom density profile, you must supply a CustomDensityProb.cpp file");
-  return 0.0;
+#include <AMReX.H>
+
+amrex::Real CustomPlasmaInjector::getDensity(amrex::Real x, amrex::Real y, amrex::Real z) {
+    amrex::Abort("If running with a custom density profile, you must supply a CustomDensityProb.cpp file");
+    return 0.0;
 }
