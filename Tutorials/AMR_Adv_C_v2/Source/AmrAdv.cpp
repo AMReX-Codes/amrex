@@ -25,7 +25,6 @@ AmrAdv::AmrAdv ()
     for (int lev = 1; lev <= maxLevel(); ++lev) {
 	nsubsteps[lev] = MaxRefRatio(lev-1);
     }
-    last_regrid_step.resize(nlevs_max, 0);
 
     t_new.resize(nlevs_max, 0.0);
     t_old.resize(nlevs_max, -1.e100);
