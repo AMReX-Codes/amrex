@@ -76,7 +76,7 @@ contains
 #if BL_SPACEDIM == 3
             p(:,:,:,3), bx%lo, bx%hi, &
 #endif
-            amrex_geom(lev)%dx, amrex_geom(lev)%problo)
+            amrex_geom(lev)%dx, amrex_problo)
 
        umax = u%norminf(1,1)
        if (umax > 1.e-100_amrex_real) then
