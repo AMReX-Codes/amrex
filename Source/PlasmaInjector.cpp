@@ -7,38 +7,40 @@
 
 using namespace amrex;
 
-void StringParseAbortMessage(const std::string& var,
-                             const std::string& name) {
-    std::stringstream stringstream;
-    std::string string;
-    stringstream << var << " string '" << name << "' not recognized."; 
-    string = stringstream.str();
-    amrex::Abort(string.c_str());    
-}
-
-Real parseChargeName(const std::string& name) {
-    if (name == "q_e") {
-        return PhysConst::q_e;
-    } else {
-        StringParseAbortMessage("Charge", name);
-        return 0.0;
+namespace {
+    void StringParseAbortMessage(const std::string& var,
+                                 const std::string& name) {
+        std::stringstream stringstream;
+        std::string string;
+        stringstream << var << " string '" << name << "' not recognized."; 
+        string = stringstream.str();
+        amrex::Abort(string.c_str());    
     }
-}
-
-Real parseChargeString(const std::string& name) {
-    if(name.substr(0, 1) == "-")
-        return -1.0 * parseChargeName(name.substr(1, name.size() - 1)); 
-    return parseChargeName(name);
-}
-
-Real parseMassString(const std::string& name) {
-    if (name == "m_e") {
-        return PhysConst::m_e;
-    } else if (name == "m_p"){
-        return PhysConst::m_p;
-    } else {
-        StringParseAbortMessage("Mass", name);
-        return 0.0;
+    
+    Real parseChargeName(const std::string& name) {
+        if (name == "q_e") {
+            return PhysConst::q_e;
+        } else {
+            StringParseAbortMessage("Charge", name);
+            return 0.0;
+        }
+    }
+    
+    Real parseChargeString(const std::string& name) {
+        if(name.substr(0, 1) == "-")
+            return -1.0 * parseChargeName(name.substr(1, name.size() - 1)); 
+        return parseChargeName(name);
+    }
+    
+    Real parseMassString(const std::string& name) {
+        if (name == "m_e") {
+            return PhysConst::m_e;
+        } else if (name == "m_p"){
+            return PhysConst::m_p;
+        } else {
+            StringParseAbortMessage("Mass", name);
+            return 0.0;
+        }
     }
 }
 
