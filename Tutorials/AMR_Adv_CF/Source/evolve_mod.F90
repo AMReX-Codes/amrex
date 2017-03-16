@@ -61,34 +61,38 @@ contains
   end subroutine evolve
 
   recursive subroutine timestep (lev, time, substep)
-    use my_amr_module, only : regrid_int, stepno, nsubsteps, last_regrid_step, dt, do_reflux
+    use my_amr_module, only : regrid_int, stepno, nsubsteps, dt, do_reflux
     use amr_data_module, only : t_old, t_new, phi_old, phi_new, flux_reg
     use averagedown_module, only : averagedownto
     integer, intent(in) :: lev, substep
     real(amrex_real), intent(in) :: time
     
-    integer :: i, k, old_finest_level, finest_level, fine_substep
+    integer, allocatable, save :: last_regrid_step(:)
+    integer :: k, old_finest_level, finest_level, fine_substep
 
-    if (regrid_int .ge. 0) then
-       do i = lev, amrex_max_level-1
-          finest_level = amrex_get_finest_level()
-          if (i .gt. finest_level) exit
+    if (regrid_int .gt. 0) then
+       if (.not.allocated(last_regrid_step)) then
+          allocate(last_regrid_step(0:amrex_max_level))
+          last_regrid_step = 0
+       end if
 
-          if (stepno(i) .gt. last_regrid_step(i) .and. mod(stepno(i), regrid_int) .eq. 0) then
-             old_finest_level = finest_level
-             call amrex_regrid(i, time)
-             ! note that finest level can change during regrid
+       ! regrid doesn't change the base level, so we don't regrid on amrex_max_level
+       if (lev .lt. amrex_max_level .and. stepno(lev) .gt. last_regrid_step(lev)) then
+          if (mod(stepno(lev), regrid_int) .eq. 0) then
+
+             old_finest_level = amrex_get_finest_level()
+             call amrex_regrid(lev, time) ! the finest level may change during regrid
              finest_level = amrex_get_finest_level()
 
-             do k = i, finest_level
+             do k = lev, finest_level
                 last_regrid_step(k) = stepno(k)
              end do
 
              do k = old_finest_level+1, finest_level
-                dt(k) = dt(k-1) / amrex_ref_ratio(k-1)
+                dt(k) = dt(k-1) / amrex_ref_ratio(k-1)             
              end do
           end if
-       end do
+       end if
     end if
 
     stepno(lev) = stepno(lev)+1
@@ -186,7 +190,7 @@ contains
 #if BL_SPACEDIM == 3
             puz, lbound(puz), ubound(puz), &
 #endif
-            amrex_geom(lev)%dx, amrex_geom(lev)%problo)
+            amrex_geom(lev)%dx, amrex_problo)
 
        call advect(time, bx%lo, bx%hi, &
             pin, lbound(pin), ubound(pin), &

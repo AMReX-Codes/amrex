@@ -8,14 +8,10 @@ module amrex_amrcore_module
   private
 
   ! public routines
-  public :: amrex_init_from_scratch, amrex_init_virtual_functions, amrex_get_numlevels, &
-       amrex_regrid
-  ! xxxxxx need to clean up the following functions
   public :: amrex_amrcore_init, amrex_amrcore_finalize, amrex_amrcore_initialized, &
-       amrex_get_finest_level, amrex_get_boxarray, amrex_get_distromap, amrex_get_geometry, &
-       amrex_set_finest_level, amrex_set_boxarray, amrex_set_distromap, &
-       amrex_make_base_grids, amrex_make_new_grids, &
-       amrex_install_level, amrex_remove_level
+       amrex_get_finest_level, amrex_get_numlevels, &
+       amrex_get_boxarray, amrex_get_distromap, amrex_get_geometry, &
+       amrex_init_from_scratch, amrex_init_virtual_functions, amrex_regrid
 
   ! public variables
   public :: amrex_max_level, amrex_ref_ratio, amrex_geom
@@ -133,17 +129,6 @@ module amrex_amrcore_module
        type(c_ptr), value :: amrcore
      end subroutine amrex_fi_set_distromap
      
-     subroutine amrex_fi_make_base_grids (ba, amrcore) bind(c)
-       import
-       implicit none
-       type(c_ptr), intent(out) :: ba
-       type(c_ptr), value :: amrcore
-     end subroutine amrex_fi_make_base_grids
-
-!     subroutine amrex_fi_make_new_grids (baselev, time, new_finest, ba_array)
-!       
-!     end subroutine amrex_fi_make_new_grids
-
      subroutine amrex_fi_init_from_scratch (t, amrcore) bind(c)
        import
        implicit none
@@ -217,48 +202,6 @@ contains
     call amrex_fi_get_geometry(geom%p, lev, amrcore)
     call amrex_geometry_init_data(geom)
   end function amrex_get_geometry
-
-  subroutine amrex_set_finest_level (lev)
-    integer, intent(in) :: lev
-    call amrex_fi_set_finest_level(lev, amrcore)
-  end subroutine amrex_set_finest_level
-
-  subroutine amrex_set_boxarray (lev, ba)
-    integer, intent(in) :: lev
-    type(amrex_boxarray), intent(in) :: ba
-    call amrex_fi_set_boxarray(lev, ba%p, amrcore)
-  end subroutine amrex_set_boxarray
-
-  subroutine amrex_set_distromap (lev, dm)
-    integer, intent(in) :: lev
-    type(amrex_distromap), intent(in) :: dm
-    call amrex_fi_set_distromap(lev, dm%p, amrcore)
-  end subroutine amrex_set_distromap
-
-  subroutine amrex_make_base_grids (ba)
-    type(amrex_boxarray), intent(inout) :: ba
-    call amrex_boxarray_destroy(ba)
-    ba%owner = .true.
-    call amrex_fi_make_base_grids(ba%p, amrcore)
-  end subroutine amrex_make_base_grids
-
-  subroutine amrex_make_new_grids ()
-  end subroutine amrex_make_new_grids
-
-  subroutine amrex_install_level (lev, ba, dm)
-    integer, intent(in) :: lev
-    type(amrex_boxarray), intent(in) :: ba
-    type(amrex_distromap), intent(in) :: dm
-    if (lev < amrex_get_finest_level()) call amrex_set_finest_level(lev)
-    call amrex_set_boxarray(lev, ba)
-    call amrex_set_distromap(lev, dm)
-  end subroutine amrex_install_level
-
-  subroutine amrex_remove_level (lev)
-    integer, intent(in) :: lev
-    call amrex_fi_set_boxarray(lev, c_null_ptr, amrcore)
-    call amrex_fi_set_distromap(lev, c_null_ptr, amrcore)
-  end subroutine amrex_remove_level
 
   subroutine amrex_init_from_scratch (t)
     real(amrex_real), intent(in) :: t
