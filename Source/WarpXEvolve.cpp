@@ -265,8 +265,8 @@ WarpX::InjectPlasma (int num_shift, int dir)
         for (int i = 0; i < num_injected_species; ++i) {
             int ispecies = injected_plasma_species[i];
             WarpXParticleContainer& pc = mypc->GetParticleContainer(ispecies);
-            PhysicalParticleContainer* ppc = (PhysicalParticleContainer*) &pc;
-            ppc->AddParticles(lev, particleBox);
+            auto& ppc = dynamic_cast<PhysicalParticleContainer&>(pc);
+            ppc.AddParticles(lev, particleBox);
         }
     }
 }
