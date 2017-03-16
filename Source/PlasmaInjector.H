@@ -108,6 +108,7 @@ private:
     amrex::Real _uz_m;    
     amrex::Real _u_th;    
 
+    // xxxxx These random number generators are not thread safe.
     std::normal_distribution<amrex::Real> momentum_distribution;
     std::default_random_engine generator;
 };
