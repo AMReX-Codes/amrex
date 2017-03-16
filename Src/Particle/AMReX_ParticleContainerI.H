@@ -2130,11 +2130,13 @@ ParticleContainer<NR, NI, NA>::Restart (const std::string& dir,
   // "Version_One_Dot_One" -- can write out either as either single or double precision.
   // Appended to the latter version string are either "_single" or "_double" to
   // indicate how the particles were written.
+  // "Version_Two_Dot_Zero" -- this is the AMReX particle file format
   std::string how;
   if (version.find("Version_One_Dot_Zero") != std::string::npos) {
     how = "double";
   }
-  else if (version.find("Version_One_Dot_One") != std::string::npos) {
+  else if (version.find("Version_One_Dot_One")  != std::string::npos or
+           version.find("Version_Two_Dot_Zero") != std::string::npos) {
     if (version.find("_single") != std::string::npos) {
       how = "single";
     }
