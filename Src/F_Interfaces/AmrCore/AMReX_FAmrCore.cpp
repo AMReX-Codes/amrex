@@ -1,10 +1,54 @@
 
 #include <AMReX_FAmrCore.H>
-
+#include <AMReX_Print.H>
+#include <string>
 
 amrex::FAmrCore::FAmrCore ()
     : amrex::AmrCore()
 {
+    for (int lev = 0; lev <= maxLevel(); ++lev)
+    {
+        if (maxGridSize(lev) % blockingFactor(lev) != 0)
+        {
+            amrex::Abort("On level " + std::to_string(lev) 
+                         + " amr.max_grid_size = " + std::to_string(maxGridSize(lev)) 
+                         + " is not a multiple of amr.blocking_factor = "
+                         + std::to_string(blockingFactor(lev)));
+        }
+
+        if (blockingFactor(lev) < 8)
+        {
+            amrex::Print() << "amr.blocking_factor < 8 not recommended\n";
+        }
+    }
+
+    for (int lev = 0; lev < maxLevel(); ++lev)
+    {
+        const IntVect& rr = refRatio(lev);
+        if (!(rr == rr[0]))
+        {
+            amrex::Abort("On level " + std::to_string(lev) + " amr.ref_ratio is different for different directions."
+);
+        }
+    }
+
+    for (int lev = 0; lev < maxLevel(); ++lev)
+    {
+        const int rr = refRatio(lev)[0];
+        const int bf = blockingFactor(lev+1);
+
+        if (bf % rr != 0)
+        {
+            amrex::Abort(" blocking_fact = " + std::to_string(bf)
+                         + " is not a multiple of ref_ratio = " + std::to_string(rr));
+        }
+
+        if (bf / rr < 2)
+        {
+            amrex::Abort(" blocking_fact = " + std::to_string(bf)
+                         + " is too small relative to ref_ratio = " + std::to_string(rr));
+        }
+    }
 }
 
 amrex::FAmrCore::~FAmrCore ()
