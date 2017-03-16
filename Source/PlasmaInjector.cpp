@@ -65,7 +65,7 @@ ConstantMomentumDistribution::ConstantMomentumDistribution(Real ux,
     : _ux(ux), _uy(uy), _uz(uz)
 {}
 
-void ConstantMomentumDistribution::getMomentum(Real* u) {
+void ConstantMomentumDistribution::getMomentum(vec3& u) {
     u[0] = _ux;
     u[1] = _uy;
     u[2] = _uz;
@@ -80,7 +80,7 @@ GaussianRandomMomentumDistribution::GaussianRandomMomentumDistribution(Real ux_m
 {
 }
 
-void GaussianRandomMomentumDistribution::getMomentum(Real* u) {
+void GaussianRandomMomentumDistribution::getMomentum(vec3& u) {
     Real ux_th = momentum_distribution(generator);
     Real uy_th = momentum_distribution(generator);
     Real uz_th = momentum_distribution(generator);
@@ -189,7 +189,7 @@ PlasmaInjector::PlasmaInjector(int ispecies, const std::string& name)
     }
 }
 
-void PlasmaInjector::getMomentum(Real* u) {
+void PlasmaInjector::getMomentum(vec3& u) {
     mom_dist->getMomentum(u);
     u[0] *= PhysConst::c;
     u[1] *= PhysConst::c;

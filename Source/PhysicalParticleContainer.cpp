@@ -89,7 +89,7 @@ PhysicalParticleContainer::InitNRandomUniformPerCell () {
 
                 if (plasma_injector->insideBounds(x, y, z)) {
                     Real weight;
-                    Real u[3];
+                    std::array<Real, 3> u;
                     weight = plasma_injector->getDensity(x, y, z) * scale_fac;
                     plasma_injector->getMomentum(u);
                     attribs[PIdx::w ] = weight;
@@ -156,7 +156,7 @@ PhysicalParticleContainer::InitNDiagPerCell () {
                 
                 if (plasma_injector->insideBounds(x, y, z)) {
                     Real weight;
-                    Real u[3];
+                    std::array<Real, 3> u;
                     weight = plasma_injector->getDensity(x, y, z) * scale_fac;
                     plasma_injector->getMomentum(u);
                     attribs[PIdx::w ] = weight;
@@ -322,7 +322,7 @@ PhysicalParticleContainer::AddParticles (int lev, const Box& part_box)
                     Real z = real_box.lo(1) + (iv[1]-boxlo[1] + particle_shift)*dx[1];
 #endif
                     Real weight;
-                    Real u[3];
+                    std::array<Real, 3> u;
                     weight = plasma_injector->getDensity(x, y, z) * scale_fac;
                     plasma_injector->getMomentum(u);
                     attribs[PIdx::w ] = weight;

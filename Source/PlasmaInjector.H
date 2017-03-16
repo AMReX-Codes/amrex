@@ -2,6 +2,7 @@
 #define PLASMA_INJECTOR_H_
 
 #include <random>
+#include <array>
 
 #include "AMReX_Real.H"
 #include "AMReX_Array.H"
@@ -63,8 +64,9 @@ private:
 class PlasmaMomentumDistribution
 {
 public:
+    using vec3 = std::array<amrex::Real, 3>;
     virtual ~PlasmaMomentumDistribution() {};
-    virtual void getMomentum(amrex::Real* u) = 0;
+    virtual void getMomentum(vec3& u) = 0;
 };
 
 ///
@@ -77,7 +79,7 @@ public:
     ConstantMomentumDistribution(amrex::Real ux,
                                  amrex::Real uy,
                                  amrex::Real uz);
-    virtual void getMomentum(amrex::Real* u) override;
+    virtual void getMomentum(vec3& u) override;
     
 private:
     amrex::Real _ux;
@@ -99,7 +101,7 @@ public:
                                        amrex::Real uy_m, 
                                        amrex::Real uz_m,
                                        amrex::Real u_th);
-    virtual void getMomentum(amrex::Real* u) override;
+    virtual void getMomentum(vec3& u) override;
 private:
     amrex::Real _ux_m;
     amrex::Real _uy_m;
@@ -119,6 +121,9 @@ class PlasmaInjector
 {
 
 public:
+
+    using vec3 = std::array<amrex::Real, 3>;
+
     PlasmaInjector(int ispecies, const std::string& name);
 
     amrex::Real getDensity(amrex::Real x, amrex::Real y, amrex::Real z);
@@ -127,7 +132,7 @@ public:
 
     int numParticlesPerCell() {return num_particles_per_cell;};
 
-    void getMomentum(amrex::Real* u);
+    void getMomentum(vec3& u);
 
     amrex::Real getCharge() {return charge;}
     amrex::Real getMass() {return mass;}
