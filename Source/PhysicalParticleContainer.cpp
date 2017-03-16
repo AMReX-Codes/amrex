@@ -2,7 +2,6 @@
 #include <sstream>
 
 #include <ParticleContainer.H>
-#include <AMReX_ParmParse.H>
 #include <WarpX_f.H>
 #include <WarpX.H>
 
@@ -13,27 +12,7 @@ PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core, int isp
     : WarpXParticleContainer(amr_core, ispecies),
       species_name(name)
 {
-
-    ParmParse pp(species_name);
-
-    std::string plasma_profile_s;
-    pp.get("profile", plasma_profile_s);
-    std::transform(plasma_profile_s.begin(), plasma_profile_s.end(), plasma_profile_s.begin(), ::tolower);
-    if (plasma_profile_s == "constant") {
-	plasma_injector.reset(new ConstantPlasmaInjector(species_id, species_name));
-    } 
-    
-    else if (plasma_profile_s == "double_ramp") {
-	plasma_injector.reset(new DoubleRampPlasmaInjector(species_id, species_name));
-    }
-    
-    else if (plasma_profile_s == "custom") {
-	plasma_injector.reset(new CustomPlasmaInjector(species_id, species_name));
-    }
-    
-    else {
-	amrex::Abort("Unknown plasma injector type");
-    }
+    plasma_injector.reset(new PlasmaInjector(species_id, species_name));
 }
 
 void

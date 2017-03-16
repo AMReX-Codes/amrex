@@ -7,15 +7,20 @@
 
 using namespace amrex;
 
+void StringParseAbortMessage(const std::string& var,
+                             const std::string& name) {
+    std::stringstream stringstream;
+    std::string string;
+    stringstream << var << " string '" << name << "' not recognized."; 
+    string = stringstream.str();
+    amrex::Abort(string.c_str());    
+}
+
 Real parseChargeName(const std::string& name) {
     if (name == "q_e") {
         return PhysConst::q_e;
     } else {
-        std::stringstream stringstream;
-        std::string string;
-        stringstream << "Charge string '" << name << "' not recognized."; 
-        string = stringstream.str();
-        amrex::Abort(string.c_str());
+        StringParseAbortMessage("Charge", name);
         return 0.0;
     }
 }
@@ -32,21 +37,25 @@ Real parseMassString(const std::string& name) {
     } else if (name == "m_p"){
         return PhysConst::m_p;
     } else {
-        std::stringstream stringstream;
-        std::string string;
-        stringstream << "Mass string '" << name << "' not recognized."; 
-        string = stringstream.str();
-        amrex::Abort(string.c_str());
+        StringParseAbortMessage("Mass", name);
         return 0.0;
     }
+}
+
+ConstantDensityDistribution::ConstantDensityDistribution(Real density)
+    : _density(density)
+{}
+
+Real ConstantDensityDistribution::getDensity(Real x, Real y, Real z) const
+{
+    return _density;
 }
 
 ConstantMomentumDistribution::ConstantMomentumDistribution(Real ux,
                                                            Real uy,
                                                            Real uz) 
     : _ux(ux), _uy(uy), _uz(uz)
-{
-}
+{}
 
 void ConstantMomentumDistribution::getMomentum(Real* u) {
     u[0] = _ux;
@@ -77,6 +86,7 @@ PlasmaInjector::PlasmaInjector(int ispecies, const std::string& name)
 {
     ParmParse pp(species_name);
 
+    // parse charge and mass
     std::string charge_s;
     pp.get("charge", charge_s);
     std::transform(charge_s.begin(), 
@@ -93,6 +103,7 @@ PlasmaInjector::PlasmaInjector(int ispecies, const std::string& name)
                    ::tolower);
     mass = parseMassString(mass_s);
 
+    // parse plasma boundaries
     xmin = std::numeric_limits<amrex::Real>::lowest();
     ymin = std::numeric_limits<amrex::Real>::lowest();
     zmin = std::numeric_limits<amrex::Real>::lowest();
@@ -107,10 +118,24 @@ PlasmaInjector::PlasmaInjector(int ispecies, const std::string& name)
     pp.query("xmax", xmax);
     pp.query("ymax", ymax);
     pp.query("zmax", zmax);
-    
+
+    // parse density information
+    std::string rho_dist_s;
+    pp.get("profile", rho_dist_s);
+    std::transform(rho_dist_s.begin(), 
+                   rho_dist_s.end(), 
+                   rho_dist_s.begin(), 
+                   ::tolower);
+    if (rho_dist_s == "constant") {
+        Real density;
+        pp.get("density", density);
+        rho_dist.reset(new ConstantDensityDistribution(density));  
+    } else {
+        StringParseAbortMessage("Density distribution type", rho_dist_s);
+    }
     pp.get("num_particles_per_cell", num_particles_per_cell);
-    pp.get("density", density);
     
+    // parse momentum information
     std::string mom_dist_s;
     pp.get("momentum_distribution_type", mom_dist_s);
     std::transform(mom_dist_s.begin(), 
@@ -136,11 +161,15 @@ PlasmaInjector::PlasmaInjector(int ispecies, const std::string& name)
         pp.query("u_th", u_th);
         mom_dist.reset(new GaussianRandomMomentumDistribution(ux_m, uy_m, uz_m, u_th));
     } else {
-        std::stringstream stringstream;
-        std::string string;
-        stringstream << "Momentum distribution type '" << mom_dist_s << "' not recognized."; 
-        string = stringstream.str();
-        amrex::Abort(string.c_str());        
+        StringParseAbortMessage("Momentum distribution type", mom_dist_s);
+    }
+
+    // get injection style
+    pp.get("injection_style", injection_style);
+    if (injection_style != "nrandom" or
+        injection_style != "nrandompercell" or
+        injection_style != "ndiagpercell") {
+        StringParseAbortMessage("Injection style", injection_style);        
     }
 }
 
@@ -158,28 +187,6 @@ bool PlasmaInjector::insideBounds(Real x, Real y, Real z) {
   return true;
 }
 
-ConstantPlasmaInjector::ConstantPlasmaInjector(int ispecies, const std::string& name) 
-    : PlasmaInjector(ispecies, name)
-{
-}
-
-Real ConstantPlasmaInjector::getDensity(Real x, Real y, Real z) {
-  return density;
-}
-
-CustomPlasmaInjector::CustomPlasmaInjector(int ispecies, const std::string& name) 
-    : PlasmaInjector(ispecies, name)
-{
-}
-
-DoubleRampPlasmaInjector::DoubleRampPlasmaInjector(int ispecies, const std::string& name) 
-    : PlasmaInjector(ispecies, name)
-{
-  ParmParse pp(species_name);
-  pp.get("ramp_length", ramp_length);
-  pp.get("plateau_length", plateau_length);
-}
-
-Real DoubleRampPlasmaInjector::getDensity(Real x, Real y, Real z) {
-  return density;
+Real PlasmaInjector::getDensity(Real x, Real y, Real z) {
+    return rho_dist->getDensity(x, y, z);
 }

@@ -47,7 +47,9 @@ public:
 
 protected:
 
-    void InitNPerCell ();
+    void InitNDiagPerCell ();
+    void InitNRandomUniformPerCell ();
+    void InitNRandom ();
 
     std::string species_name;
     std::unique_ptr<PlasmaInjector> plasma_injector;

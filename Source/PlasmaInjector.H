@@ -6,19 +6,71 @@
 #include "AMReX_Real.H"
 #include "AMReX_ParmParse.H"
 
+///
+/// PlasmaDensityDistribution describes how the charge density
+/// is set in particle initialization. Subclasses must define a
+/// getDensity function that describes the charge density as a
+/// function of x, y, and z.
+///
+class PlasmaDensityDistribution
+{
+public:
+    virtual amrex::Real getDensity(amrex::Real x,
+                                   amrex::Real y,
+                                   amrex::Real z) const = 0;
+};
+
+///
+/// This describes a constant density distribution.
+///
+class ConstantDensityDistribution : public PlasmaDensityDistribution
+{
+public:
+    ConstantDensityDistribution(amrex::Real density);
+    virtual amrex::Real getDensity(amrex::Real x,
+                                   amrex::Real y,
+                                   amrex::Real z) const override;
+
+private:
+    amrex::Real _density;
+};
+
+///
+/// This describes a custom density distribution. Users can supply
+/// a getDensity function.
+///
+///
+class CustomDensityDistribution : public PlasmaDensityDistribution
+{
+public:
+    CustomDensityDistribution(amrex::Real density);
+    virtual amrex::Real getDensity(amrex::Real x,
+                                   amrex::Real y,
+                                   amrex::Real z) const override;
+};
+
+///
+/// PlasmaMomentumDistribution describes how the particle momenta
+/// are set. Subclasses must define a getMomentum method that fills
+/// a u with the 3 components of the particle momentum
+///
 class PlasmaMomentumDistribution
 {
 public:
     virtual void getMomentum(amrex::Real* u) = 0;
 };
 
+///
+/// This is a constant momentum distribution - all particles will
+/// have the same ux, uy, and uz
+///
 class ConstantMomentumDistribution : public PlasmaMomentumDistribution
 {
 public:
     ConstantMomentumDistribution(amrex::Real ux,
                                  amrex::Real uy,
                                  amrex::Real uz);
-    void getMomentum(amrex::Real* u);
+    virtual void getMomentum(amrex::Real* u) override;
     
 private:
     amrex::Real _ux;
@@ -26,6 +78,13 @@ private:
     amrex::Real _uz;
 };
 
+///
+/// This is a Gaussian Random momentum distribution. 
+/// Particles will get random momenta, drawn from a normal.
+/// ux_m, ux_y, and ux_z describe the mean components in the x, y, and z
+/// directions, while u_th is the standard deviation of the random 
+/// component.
+///
 class GaussianRandomMomentumDistribution : public PlasmaMomentumDistribution
 {
 public:
@@ -33,7 +92,7 @@ public:
                                        amrex::Real uy_m, 
                                        amrex::Real uz_m,
                                        amrex::Real u_th);
-    void getMomentum(amrex::Real* u);
+    virtual void getMomentum(amrex::Real* u) override;
 private:
     amrex::Real _ux_m;
     amrex::Real _uy_m;
@@ -50,7 +109,7 @@ class PlasmaInjector
 public:
     PlasmaInjector(int ispecies, const std::string& name);
 
-    virtual amrex::Real getDensity(amrex::Real x, amrex::Real y, amrex::Real z) = 0;
+    amrex::Real getDensity(amrex::Real x, amrex::Real y, amrex::Real z);
 
     bool insideBounds(amrex::Real x, amrex::Real y, amrex::Real z);
 
@@ -74,30 +133,10 @@ protected:
 
     int species_id;
     std::string species_name;
-
-    std::unique_ptr<PlasmaMomentumDistribution> mom_dist;
-};
-
-class ConstantPlasmaInjector : public PlasmaInjector {
-public:
-    ConstantPlasmaInjector(int ispecies, const std::string& name);
-    amrex::Real getDensity( amrex::Real x, amrex::Real y, amrex::Real z);
-};
-
-class CustomPlasmaInjector : public PlasmaInjector {
-public:
-    CustomPlasmaInjector(int ispecies, const std::string& name);
-    amrex::Real getDensity( amrex::Real x, amrex::Real y, amrex::Real z);
-};
-
-class DoubleRampPlasmaInjector : public PlasmaInjector {
-public:
-    DoubleRampPlasmaInjector(int ispecies, const std::string& name);
-    amrex::Real getDensity( amrex::Real x, amrex::Real y, amrex::Real z);
+    std::string injection_style;
     
-protected:
-    amrex::Real plateau_length;
-    amrex::Real ramp_length;
+    std::unique_ptr<PlasmaDensityDistribution>  rho_dist;
+    std::unique_ptr<PlasmaMomentumDistribution> mom_dist;
 };
 
 #endif
