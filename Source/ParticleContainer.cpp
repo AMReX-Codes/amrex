@@ -31,8 +31,10 @@ MultiParticleContainer::ReadParameters ()
 	pp.query("nspecies", nspecies);
 	BL_ASSERT(nspecies >= 0);
 
-        pp.getarr("species_names", species_names);
-        BL_ASSERT(species_names.size() == nspecies);
+        if (nspecies > 0) {
+            pp.getarr("species_names", species_names);
+            BL_ASSERT(species_names.size() == nspecies);
+        }
 
 	initialized = true;
     }

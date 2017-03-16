@@ -42,13 +42,19 @@ Real parseMassString(const std::string& name) {
     }
 }
 
-ConstantDensityDistribution::ConstantDensityDistribution(Real density)
+ConstantDensityProfile::ConstantDensityProfile(Real density)
     : _density(density)
 {}
 
-Real ConstantDensityDistribution::getDensity(Real x, Real y, Real z) const
+Real ConstantDensityProfile::getDensity(Real x, Real y, Real z) const
 {
     return _density;
+}
+
+CustomDensityProfile::CustomDensityProfile(const std::string& species_name)
+{
+    ParmParse pp(species_name);
+    pp.getarr("custom_profile_params", params);
 }
 
 ConstantMomentumDistribution::ConstantMomentumDistribution(Real ux,
@@ -120,18 +126,20 @@ PlasmaInjector::PlasmaInjector(int ispecies, const std::string& name)
     pp.query("zmax", zmax);
 
     // parse density information
-    std::string rho_dist_s;
-    pp.get("profile", rho_dist_s);
-    std::transform(rho_dist_s.begin(), 
-                   rho_dist_s.end(), 
-                   rho_dist_s.begin(), 
+    std::string rho_prof_s;
+    pp.get("profile", rho_prof_s);
+    std::transform(rho_prof_s.begin(), 
+                   rho_prof_s.end(), 
+                   rho_prof_s.begin(), 
                    ::tolower);
-    if (rho_dist_s == "constant") {
+    if (rho_prof_s == "constant") {
         Real density;
         pp.get("density", density);
-        rho_dist.reset(new ConstantDensityDistribution(density));  
+        rho_prof.reset(new ConstantDensityProfile(density));
+    } else if (rho_prof_s == "custom") {
+        rho_prof.reset(new CustomDensityProfile(species_name));
     } else {
-        StringParseAbortMessage("Density distribution type", rho_dist_s);
+        StringParseAbortMessage("Density profile type", rho_prof_s);
     }
     pp.get("num_particles_per_cell", num_particles_per_cell);
     
@@ -166,10 +174,16 @@ PlasmaInjector::PlasmaInjector(int ispecies, const std::string& name)
 
     // get injection style
     pp.get("injection_style", injection_style);
-    if (injection_style != "nrandom" or
-        injection_style != "nrandompercell" or
-        injection_style != "ndiagpercell") {
-        StringParseAbortMessage("Injection style", injection_style);        
+    std::transform(injection_style.begin(), 
+                   injection_style.end(), 
+                   injection_style.begin(), 
+                   ::tolower);
+    if (injection_style == "nrandomnormal" or
+        injection_style == "nrandomuniformpercell" or
+        injection_style == "ndiagpercell") {
+        return;
+    } else {
+        StringParseAbortMessage("Injection style", injection_style);
     }
 }
 
@@ -188,5 +202,5 @@ bool PlasmaInjector::insideBounds(Real x, Real y, Real z) {
 }
 
 Real PlasmaInjector::getDensity(Real x, Real y, Real z) {
-    return rho_dist->getDensity(x, y, z);
+    return rho_prof->getDensity(x, y, z);
 }

@@ -7,26 +7,28 @@
 #include "AMReX_ParmParse.H"
 
 ///
-/// PlasmaDensityDistribution describes how the charge density
+/// PlasmaDensityProfile describes how the charge density
 /// is set in particle initialization. Subclasses must define a
 /// getDensity function that describes the charge density as a
 /// function of x, y, and z.
 ///
-class PlasmaDensityDistribution
+class PlasmaDensityProfile
 {
 public:
     virtual amrex::Real getDensity(amrex::Real x,
                                    amrex::Real y,
                                    amrex::Real z) const = 0;
+protected:
+    std::string _species_name;
 };
 
 ///
 /// This describes a constant density distribution.
 ///
-class ConstantDensityDistribution : public PlasmaDensityDistribution
+class ConstantDensityProfile : public PlasmaDensityProfile
 {
 public:
-    ConstantDensityDistribution(amrex::Real density);
+    ConstantDensityProfile(amrex::Real _density);
     virtual amrex::Real getDensity(amrex::Real x,
                                    amrex::Real y,
                                    amrex::Real z) const override;
@@ -37,16 +39,18 @@ private:
 
 ///
 /// This describes a custom density distribution. Users can supply
-/// a getDensity function.
+/// in their problem directory.
 ///
 ///
-class CustomDensityDistribution : public PlasmaDensityDistribution
+class CustomDensityProfile : public PlasmaDensityProfile
 {
 public:
-    CustomDensityDistribution(amrex::Real density);
+    CustomDensityProfile(const std::string& species_name);
     virtual amrex::Real getDensity(amrex::Real x,
                                    amrex::Real y,
                                    amrex::Real z) const override;
+private:
+    std::vector<amrex::Real> params;
 };
 
 ///
@@ -103,6 +107,11 @@ private:
     std::default_random_engine generator;
 };
 
+///
+/// The PlasmaInjector class parses and stores information about the plasma
+/// type used in the particle container. This information is used to create the
+/// particles on initialization and whenever the window moves.
+///
 class PlasmaInjector
 {
 
@@ -120,6 +129,8 @@ public:
     amrex::Real getCharge() {return charge;}
     amrex::Real getMass() {return mass;}
 
+    std::string injection_style;
+
 protected:
 
     amrex::Real mass, charge;
@@ -133,9 +144,8 @@ protected:
 
     int species_id;
     std::string species_name;
-    std::string injection_style;
     
-    std::unique_ptr<PlasmaDensityDistribution>  rho_dist;
+    std::unique_ptr<PlasmaDensityProfile> rho_prof;
     std::unique_ptr<PlasmaMomentumDistribution> mom_dist;
 };
 
