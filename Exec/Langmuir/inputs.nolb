@@ -54,4 +54,5 @@ electrons.zmax = 20.e-6
 electrons.num_particles_per_cell = 10
 electrons.profile = constant
 electrons.density = 1.e25  # number of electrons per m^3
+electrons.momentum_distribution_type = "constant"
 electrons.ux  = 1.0   # ux = gamma*beta_x

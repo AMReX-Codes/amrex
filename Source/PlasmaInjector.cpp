@@ -41,6 +41,37 @@ Real parseMassString(const std::string& name) {
     }
 }
 
+ConstantMomentumDistribution::ConstantMomentumDistribution(Real ux,
+                                                           Real uy,
+                                                           Real uz) 
+    : _ux(ux), _uy(uy), _uz(uz)
+{
+}
+
+void ConstantMomentumDistribution::getMomentum(Real* u) {
+    u[0] = _ux;
+    u[1] = _uy;
+    u[2] = _uz;
+}
+
+GaussianRandomMomentumDistribution::GaussianRandomMomentumDistribution(Real ux_m,
+                                                                       Real uy_m,
+                                                                       Real uz_m,
+                                                                       Real u_th) 
+    : _ux_m(ux_m), _uy_m(uy_m), _uz_m(uz_m), _u_th(u_th), 
+      momentum_distribution(0.0, u_th)
+{
+}
+
+void GaussianRandomMomentumDistribution::getMomentum(Real* u) {
+    Real ux_th = momentum_distribution(generator);
+    Real uy_th = momentum_distribution(generator);
+    Real uz_th = momentum_distribution(generator);
+    u[0] = _ux_m + ux_th;
+    u[1] = _uy_m + uy_th;
+    u[2] = _uz_m + uz_th;
+}
+
 PlasmaInjector::PlasmaInjector(int ispecies, const std::string& name) 
     : species_id(ispecies), species_name(name)
 {
@@ -61,29 +92,63 @@ PlasmaInjector::PlasmaInjector(int ispecies, const std::string& name)
                    mass_s.begin(), 
                    ::tolower);
     mass = parseMassString(mass_s);
-        
-    pp.get("xmin", xmin);
-    pp.get("ymin", ymin);
-    pp.get("zmin", zmin);
-    pp.get("xmax", xmax);
-    pp.get("ymax", ymax);
-    pp.get("zmax", zmax);
+
+    xmin = std::numeric_limits<amrex::Real>::lowest();
+    ymin = std::numeric_limits<amrex::Real>::lowest();
+    zmin = std::numeric_limits<amrex::Real>::lowest();
+
+    xmax = std::numeric_limits<amrex::Real>::max();
+    ymax = std::numeric_limits<amrex::Real>::max();
+    zmax = std::numeric_limits<amrex::Real>::max();
+
+    pp.query("xmin", xmin);
+    pp.query("ymin", ymin);
+    pp.query("zmin", zmin);
+    pp.query("xmax", xmax);
+    pp.query("ymax", ymax);
+    pp.query("zmax", zmax);
     
     pp.get("num_particles_per_cell", num_particles_per_cell);
     pp.get("density", density);
     
-    ux = 0.;
-    uy = 0.;
-    uz = 0.;
-    pp.query("ux", ux);
-    pp.query("uy", uy);
-    pp.query("uz", uz);
+    std::string mom_dist_s;
+    pp.get("momentum_distribution_type", mom_dist_s);
+    std::transform(mom_dist_s.begin(), 
+                   mom_dist_s.end(), 
+                   mom_dist_s.begin(), 
+                   ::tolower);
+    if (mom_dist_s == "constant") {
+        Real ux = 0.;
+        Real uy = 0.;
+        Real uz = 0.;
+        pp.query("ux", ux);
+        pp.query("uy", uy);
+        pp.query("uz", uz);
+        mom_dist.reset(new ConstantMomentumDistribution(ux, uy, uz));
+    } else if (mom_dist_s == "gaussian") {
+        Real ux_m = 0.;
+        Real uy_m = 0.;
+        Real uz_m = 0.;
+        Real u_th = 0.;
+        pp.query("ux_m", ux_m);
+        pp.query("uy_m", uy_m);
+        pp.query("uz_m", uz_m);
+        pp.query("u_th", u_th);
+        mom_dist.reset(new GaussianRandomMomentumDistribution(ux_m, uy_m, uz_m, u_th));
+    } else {
+        std::stringstream stringstream;
+        std::string string;
+        stringstream << "Momentum distribution type '" << mom_dist_s << "' not recognized."; 
+        string = stringstream.str();
+        amrex::Abort(string.c_str());        
+    }
 }
 
 void PlasmaInjector::getMomentum(Real* u) {
-    u[0] = ux * PhysConst::c;
-    u[1] = uy * PhysConst::c;
-    u[2] = uz * PhysConst::c;
+    mom_dist->getMomentum(u);
+    u[0] *= PhysConst::c;
+    u[1] *= PhysConst::c;
+    u[2] *= PhysConst::c;
 }
 
 bool PlasmaInjector::insideBounds(Real x, Real y, Real z) {
@@ -118,5 +183,3 @@ DoubleRampPlasmaInjector::DoubleRampPlasmaInjector(int ispecies, const std::stri
 Real DoubleRampPlasmaInjector::getDensity(Real x, Real y, Real z) {
   return density;
 }
-
-
