@@ -120,6 +120,12 @@ amrex::Error (const char* msg)
     ParallelDescriptor::Abort();
 }
 
+void
+amrex::Error (const std::string& msg)
+{
+    Error(msg.c_str());
+}
+
 namespace
 {
   const int EOS = -1;
@@ -191,12 +197,24 @@ amrex::Abort (const char* msg)
 }
 
 void
+amrex::Abort (const std::string& msg)
+{
+    Abort(msg.c_str());
+}
+
+void
 amrex::Warning (const char* msg)
 {
     if (msg)
     {
 	amrex::Print(Print::AllProcs,std::cerr) << msg << '!' << '\n';
     }
+}
+
+void
+amrex::Warning (const std::string& msg)
+{
+    Warning(msg.c_str());
 }
 
 void
