@@ -15,6 +15,7 @@
 class PlasmaDensityProfile
 {
 public:
+    virtual ~PlasmaDensityProfile() {};
     virtual amrex::Real getDensity(amrex::Real x,
                                    amrex::Real y,
                                    amrex::Real z) const = 0;
@@ -61,6 +62,7 @@ private:
 class PlasmaMomentumDistribution
 {
 public:
+    virtual ~PlasmaMomentumDistribution() {};
     virtual void getMomentum(amrex::Real* u) = 0;
 };
 
