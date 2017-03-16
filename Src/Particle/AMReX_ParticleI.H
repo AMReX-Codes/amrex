@@ -334,7 +334,7 @@ Particle<NR, NI>::Version ()
     //    "Version_One_Dot_Zero"
     //    "Version_One_Dot_One"
     //
-    static const std::string version("Version_Two_Dot_One");
+    static const std::string version("Version_Two_Dot_Zero");
 
     return version;
 }
