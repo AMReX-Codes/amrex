@@ -43,12 +43,15 @@ namespace amrex
 
     //! Print out message to cerr and exit via amrex::Abort().
     void Error (const char * msg = 0);
+    void Error (const std::string& msg);
 
     //! Print out warning message to cerr.
     void Warning (const char * msg);
+    void Warning (const std::string& msg);
 
     //! Print out message to cerr and exit via abort().
     void Abort (const char * msg = 0);
+    void Abort (const std::string& msg);
 
     /**
     * \brief Prints assertion failed messages to cerr and exits

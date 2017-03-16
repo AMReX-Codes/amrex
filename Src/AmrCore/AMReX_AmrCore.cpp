@@ -494,10 +494,14 @@ AmrCore::MakeNewGrids (int lbase, Real time, int& new_finest, Array<BoxArray>& n
         // Coarsen the taglist by blocking_factor/ref_ratio.
         //
         int bl_max = 0;
-        for (int n=0; n<BL_SPACEDIM; n++)
+        for (int n=0; n<BL_SPACEDIM; n++) {
             bl_max = std::max(bl_max,bf_lev[levc][n]);
-        if (bl_max > 1) 
+        }
+        if (bl_max >= 1) {
             tags.coarsen(bf_lev[levc]);
+        } else {
+            amrex::Abort("blocking factor is too small relative to ref_ratio");
+        }
         //
         // Remove or add tagged points which violate/satisfy additional 
         // user-specified criteria.
