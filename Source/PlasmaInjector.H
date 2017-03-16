@@ -4,6 +4,7 @@
 #include <random>
 
 #include "AMReX_Real.H"
+#include "AMReX_Array.H"
 #include "AMReX_ParmParse.H"
 
 ///
@@ -51,7 +52,7 @@ public:
                                    amrex::Real y,
                                    amrex::Real z) const override;
 private:
-    std::vector<amrex::Real> params;
+    amrex::Array<amrex::Real> params;
 };
 
 ///
