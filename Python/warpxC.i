@@ -1,6 +1,7 @@
 %module warpxC
 
 %{
+#include <WarpXConst.H>
 #include <WarpXWrappers.h>
 
 #define SWIG_FILE_WITH_INIT
@@ -11,7 +12,9 @@
 import_array();
 %}
 
-// For boxlib_init(int argc, char *argv[]);
+%include "../Source/WarpXConst.H"
+
+// For amrex_init(int argc, char *argv[]);
 %include <argcargv.i>
 %apply (int ARGC, char **ARGV) { (int argc, char *argv[]) }
 

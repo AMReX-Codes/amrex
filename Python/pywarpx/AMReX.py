@@ -10,7 +10,7 @@ from .Particles import particles
 
 from . import warpxC
 
-class BoxLib(object):
+class AMReX(object):
 
     def init(self):
         argv = []
@@ -22,7 +22,7 @@ class BoxLib(object):
         argv += interpolation.attrlist()
         argv += particles.attrlist()
 
-        warpxC.boxlib_init(argv)
+        warpxC.amrex_init(argv)
 
     def finalize(self, finalize_mpi=1):
-        warpxC.boxlib_finalize(finalize_mpi)
+        warpxC.amrex_finalize(finalize_mpi)

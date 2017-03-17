@@ -100,6 +100,9 @@ WarpX::Evolve (int numsteps)
 	}
 
 	if (plot_int > 0 && (step+1) % plot_int == 0) {
+            mypc->FieldGather(lev,
+                              *Efield[lev][0],*Efield[lev][1],*Efield[lev][2],
+                              *Bfield[lev][0],*Bfield[lev][1],*Bfield[lev][2]);
 	    last_plot_file_step = step+1;
 	    WritePlotFile();
 	}
@@ -206,6 +209,37 @@ WarpX::EvolveE (int lev, Real dt)
 			   dtsdx_c2, dtsdx_c2+1, dtsdx_c2+2,
 			   &norder);
     }
+}
+
+void
+WarpX::FillBoundaryE(int lev, bool force)
+{
+    if (force || WarpX::nox > 1 || WarpX::noy > 1 || WarpX::noz > 1) {
+        WarpX::FillBoundary(*Efield[lev][0], geom[lev], Ex_nodal_flag);
+        WarpX::FillBoundary(*Efield[lev][1], geom[lev], Ey_nodal_flag);
+        WarpX::FillBoundary(*Efield[lev][2], geom[lev], Ez_nodal_flag);
+    }
+}
+
+void
+WarpX::FillBoundaryB(int lev, bool force)
+{
+    if (force || WarpX::nox > 1 || WarpX::noy > 1 || WarpX::noz > 1) {
+        WarpX::FillBoundary(*Bfield[lev][0], geom[lev], Bx_nodal_flag);
+        WarpX::FillBoundary(*Bfield[lev][1], geom[lev], By_nodal_flag);
+        WarpX::FillBoundary(*Bfield[lev][2], geom[lev], Bz_nodal_flag);
+    }
+}
+
+void
+WarpX::PushParticlesandDepose(int lev, Real cur_time)
+{
+    // Evolve particles to p^{n+1/2} and x^{n+1}
+    // Depose current, j^{n+1/2}
+    mypc->Evolve(lev,
+		 *Efield[lev][0],*Efield[lev][1],*Efield[lev][2],
+		 *Bfield[lev][0],*Bfield[lev][1],*Bfield[lev][2],
+		 *current[lev][0],*current[lev][1],*current[lev][2], cur_time, dt[lev]);
 }
 
 void

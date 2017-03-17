@@ -36,6 +36,10 @@ public:
 
     void InitData ();
 
+    void FieldGather (int lev,
+                      const amrex::MultiFab& Ex, const amrex::MultiFab& Ey, const amrex::MultiFab& Ez,
+                      const amrex::MultiFab& Bx, const amrex::MultiFab& By, const amrex::MultiFab& Bz);    
+
     void Evolve (int lev,
 		 const amrex::MultiFab& Ex, const amrex::MultiFab& Ey, const amrex::MultiFab& Ez,
 		 const amrex::MultiFab& Bx, const amrex::MultiFab& By, const amrex::MultiFab& Bz,
@@ -47,7 +51,8 @@ public:
 
     void Checkpoint (const std::string& dir,
 		     const std::string& name,
-		     bool is_checkpoint) const;
+		     bool is_checkpoint,
+                     const amrex::Array<std::string>& varnames = amrex::Array<std::string>()) const;
 
     void Restart (const std::string& dir, const std::string& name);
 
@@ -65,6 +70,8 @@ public:
 
     void SetParticleBoxArray (int lev, amrex::BoxArray& new_ba);
     void SetParticleDistributionMap (int lev, amrex::DistributionMapping& new_dm);
+
+    int nSpecies() {return nspecies;}
 
 private:
 

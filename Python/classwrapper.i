@@ -1,31 +1,16 @@
 %{
 
-#include <iostream>
-#include <ostream>
-#include <fstream>
-#include <sstream>
-#include <stdio.h>
-
-#include <Array.H>
-#include <IntVect.H>
-
-#include <Particles.H>
-
-#include <Box.H>
-#include <FArrayBox.H>
-#include <BoxArray.H>
-#include <MultiFab.H>
-#include <Geometry.H>
-
 #include <WarpX.H>
+
+using namespace amrex;
 
 %}
 
 %inline %{
   std::ifstream & open_ifstream(const char *filename) {
     std::ifstream *infile = new std::ifstream(filename);
-    return *infile; 
-  } 
+    return *infile;
+  }
 %}
 
 %inline %{
@@ -50,11 +35,9 @@
 %include <std_string.i>
 %rename(__str__) display;
 
-typedef double Real;
+%include "../../amrex/Src/Base/AMReX_Array.H"
 
-%include "../../BoxLib/Src/C_BaseLib/Array.H"
-
-%extend Array {
+%extend amrex::Array {
     T& __getitem__ (size_t i)
     {
         BL_ASSERT(i >= 0);
@@ -73,15 +56,19 @@ typedef double Real;
     }
 }
 
-%template(arrayReal) Array<Real>;
-%template(arrayInt) Array<int>;
-%template(arrayGeometry) Array<Geometry>;
+// This is needed so that swig knows the amrex::Real is just a float or double
+%include "../../amrex/Src/Base/AMReX_REAL.H"
 
-%extend Array<Real> {
+%template(arrayReal) amrex::Array<amrex::Real>;
+%template(arrayInt) amrex::Array<int>;
+%template(arrayGeometry) amrex::Array<amrex::Geometry>;
+
+%extend amrex::Array<amrex::Real> {
     PyObject *get_real() {
+      // Get the data as a writeable numpy array, directly accessing the memory.
       PyObject *arr = 0;
       npy_intp dims[1];
-      dims[0] = self->std::vector<Real>::size();
+      dims[0] = self->std::vector<amrex::Real>::size();
       arr = PyArray_NewFromDescr(&PyArray_Type,
                                  PyArray_DescrFromType(NPY_DOUBLE), 1, dims, NULL,
                                  self->dataPtr(), NPY_FORTRANORDER|NPY_ARRAY_WRITEABLE, NULL);
@@ -89,8 +76,9 @@ typedef double Real;
       return arr;
     }
 }
-%extend Array<int> {
+%extend amrex::Array<int> {
     PyObject *get_int() {
+      // Get the data as a writeable numpy array, directly accessing the memory.
       PyObject *arr = 0;
       npy_intp dims[1];
       dims[0] = self->std::vector<int>::size();
@@ -102,24 +90,31 @@ typedef double Real;
     }
 }
 
-// Note that IntVect.H cannot be directly included since swig cannot parse the line setting up "const int* getVect".
-//%include "../../BoxLib/Src/C_BaseLib/IntVect.H"
-class IntVect {
+// This is needed by swig to define the macro D_DECL when including AMReX_IntVect.H
+%include "../../amrex/Src/Base/AMReX_SPACE.H"
+
+// This include can only be done with the modified AMReX_IntVect.H file that hides the ref-qualifiers from swig.
+%include "../../amrex/Src/Base/AMReX_IntVect.H"
+// Save this code, which is needed if AMReX_IntVect.H cannot be included.
+// AMReX_IntVect.H uses ref-qualifiers in the lines setting up getVect that cannot be parsed by swig.
+/*
+class amrex::IntVect {
 public:
 
     IntVect(int i, int j, int k);
-    IntVect(const IntVect& rhs);
+    IntVect(const amrex::IntVect& rhs);
 
     IntVect& shift(int coord, int s);
 
     // static functions
-    static const IntVect& TheZeroVector();
-    static const IntVect& TheUnitVector();
-    static const IntVect& TheNodeVector();
-    static const IntVect& TheCellVector();
+    static const amrex::IntVect& TheZeroVector();
+    static const amrex::IntVect& TheUnitVector();
+    static const amrex::IntVect& TheNodeVector();
+    static const amrex::IntVect& TheCellVector();
 };
+*/
 
-%extend IntVect {
+%extend amrex::IntVect {
     //void writeOn(std::ofstream *os){
     //    *os << *self;
     //}
@@ -141,7 +136,7 @@ public:
           (*self).setVal(index,val);
         }
     }
-    int __cmp__(const IntVect* other){
+    int __cmp__(const amrex::IntVect* other){
         if( (*self) == (*other) ) {
             return 0;
         }
@@ -168,32 +163,89 @@ public:
     //}
 }
 
-//%include "../../BoxLib/Src/C_BaseLib/Box.H"
-//%include "../../BoxLib/Src/C_BaseLib/FArrayBox.H"
-//%include "../../BoxLib/Src/C_BaseLib/BoxArray.H"
-//%include "../../BoxLib/Src/C_BaseLib/MultiFab.H"
+//%include "../../amrex/Src/Base/AMReX_Box.H"
+%include "../../amrex/Src/Base/AMReX_BaseFab.H"
 
-//#if (BL_SPACEDIM > 2)
+%template(BaseFabReal) amrex::BaseFab<amrex::Real>;
+
+%extend amrex::BaseFab<amrex::Real> {
+    PyObject * get(size_t n=0) {
+        PyObject *arr = 0;
+        npy_intp dims[BL_SPACEDIM];
+        amrex::IntVect size = self->box().size();
+        dims[0] = size[0];
+        dims[1] = size[1];
+        dims[2] = size[2];
+        arr = PyArray_NewFromDescr(&PyArray_Type,
+                                   PyArray_DescrFromType(NPY_DOUBLE), BL_SPACEDIM, dims, NULL,
+                                   self->dataPtr(n), NPY_FORTRANORDER|NPY_ARRAY_WRITEABLE, NULL);
+        Py_INCREF(arr);
+        return arr;
+    }
+}
+
+//%include "../../amrex/Src/Base/AMReX_FArrayBox.H"
+//%include "../../amrex/Src/Base/AMReX_BoxArray.H"
+
+%include "../../amrex/Src/Base/AMReX_FabArray.H"
+
+%extend amrex::FabArray {
+    FAB& __getitem__ (size_t i)
+    {
+        BL_ASSERT(i >= 0);
+        BL_ASSERT(i < self->size());
+        return self->get(i);
+    }
+
+    //
+    // Same as above, except acts on const Array's.
+    //
+    const FAB& __getitem__ (size_t i) const
+    {
+        BL_ASSERT(i >= 0);
+        BL_ASSERT(i < self->size());
+        return self->get(i);
+    }
+}
+
+%template(FabArrayFArrayBox) amrex::FabArray< amrex::FArrayBox >;
+
+%include "../../amrex/Src/Base/AMReX_MultiFab.H"
+
+%template(arrayMultifab) amrex::Array< std::unique_ptr<amrex::MultiFab> >;
+%template(arrayarrayMultifab) amrex::Array<amrex::Array< std::unique_ptr<amrex::MultiFab> > >;
+
+#if (BL_SPACEDIM > 2)
+// GetDLogA is only defined with BL_SPACEDIM <= 2
 %ignore GetDLogA;
-//#endif
+#endif
 
-%include "../../BoxLib/Src/C_BaseLib/Geometry.H"
+%include "../../amrex/Src/Base/AMReX_Geometry.H"
 
-%template(arrayBoxArray) Array<BoxArray>;
+%template(arrayBoxArray) amrex::Array<amrex::BoxArray>;
 
-%include "../../BoxLib/Src/C_ParticleLib/Particles.H"
+%include "../../amrex/Src/Particle/AMReX_Particles.H"
 
-//%template("WarpXParticleBase") Particle<PIdx::nattribs,0>;
-%template("WarpXParticleContainerBase") ParticleContainer<PIdx::nattribs,0,std::vector<Particle<PIdx::nattribs,0> > >;
+// Becuase of an apparent problem in swig, the macro around the wrapping of tile_size gives an error during compilation
+%ignore tile_size;
 
+// Swig doesn't handle the unique_ptr return value causing an error during compilation
 %ignore GetChargeDensity;
+
+// Wrapping WarpXParIter fails since swig doesn't handle the alias SoA properly causing an error during compilation
+%ignore WarpXParIter;
+
+%template("WarpXParticleContainerBase") amrex::ParticleContainer<0,0,PIdx::nattribs>;
 
 %include "../Source/ParticleContainer.H"
 %include "../Source/WarpXParticleContainer.H"
 
 %extend WarpXParticleContainer {
+    int getNattribs() {
+        return PIdx::nattribs;
+    }
     PyObject * getLocations() {
-        Array<Real> result(0);
+        amrex::Array<amrex::Real> result(0);
         self->GetParticleLocations(result);
         npy_intp dims[2] = {BL_SPACEDIM, self->TotalNumberOfParticles()};
         PyObject *arr = PyArray_NewFromDescr(&PyArray_Type,
@@ -201,9 +253,9 @@ public:
                                              result.dataPtr(), NPY_ARRAY_F_CONTIGUOUS|NPY_ARRAY_WRITEABLE, NULL);
         Py_INCREF(arr);
         return arr;
-    } 
+    }
     PyObject * getData(int start_comp, int num_comp) {
-        Array<Real> result(0);
+        amrex::Array<amrex::Real> result(0);
         self->GetParticleData(result, start_comp, num_comp);
         npy_intp dims[2] = {num_comp, self->TotalNumberOfParticles()};
         PyObject *arr = PyArray_NewFromDescr(&PyArray_Type,
@@ -214,7 +266,7 @@ public:
     }
     PyObject * getAllData() {
         int num_comp = PIdx::nattribs;
-        Array<Real> result(0);
+        amrex::Array<amrex::Real> result(0);
         self->GetParticleData(result, 0, num_comp);
         npy_intp dims[2] = {num_comp, self->TotalNumberOfParticles()};
         PyObject *arr = PyArray_NewFromDescr(&PyArray_Type,
@@ -225,6 +277,6 @@ public:
     }
 };
 
-%include "../../BoxLib/Src/C_AmrCoreLib/AmrCore.H"
+%include "../../amrex/Src/AmrCore/AMReX_AmrCore.H"
 %include "../Source/WarpX.H"
 
