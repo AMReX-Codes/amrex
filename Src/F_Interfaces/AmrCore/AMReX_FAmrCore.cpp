@@ -8,7 +8,8 @@ amrex::FAmrCore::FAmrCore ()
 {
     for (int lev = 0; lev <= maxLevel(); ++lev)
     {
-        if (maxGridSize(lev) % blockingFactor(lev) != 0)
+        if (maxGridSize(lev) % blockingFactor(lev) != 0 &&
+            blockingFactor(lev) % maxGridSize(lev) != 0)
         {
             amrex::Abort("On level " + std::to_string(lev) 
                          + " amr.max_grid_size = " + std::to_string(maxGridSize(lev)) 
