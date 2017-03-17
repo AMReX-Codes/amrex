@@ -592,6 +592,8 @@ AmrCore::MakeNewGrids (int lbase, Real time, int& new_finest, Array<BoxArray>& n
 		if ( !(Geom(levf).Domain().contains(BoxArray(new_bx).minimalBox())) ) {
 		    new_bx = amrex::intersect(new_bx,Geom(levf).Domain());
 		}
+#if 0
+// Let's not check this, because of the hack that uses blocking factor larger than max grid size.
 		if (ParallelDescriptor::IOProcessor()) {
 		    for (int d=0; d<BL_SPACEDIM; ++d) {
 			bool ok = true;
@@ -605,6 +607,7 @@ AmrCore::MakeNewGrids (int lbase, Real time, int& new_finest, Array<BoxArray>& n
 			}
 		    }
 		}
+#endif
 	    }
 
             if(levf > useFixedUpToLevel()) {
