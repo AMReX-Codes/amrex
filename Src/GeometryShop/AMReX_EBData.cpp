@@ -19,24 +19,6 @@ namespace amrex
 {
 /************************/
   void 
-  EBData::
-  addFullIrregularVoFs(const IntVectSet& a_vofsToChange,
-                       const EBGraph&    a_newGraph,
-                       const BaseIVFAB<VolData>& a_grownData,
-                       const EBGraph&    a_oldGraph)
-  {
-    m_implem->addFullIrregularVoFs(a_vofsToChange, a_newGraph, a_grownData, a_oldGraph);
-  }
-/************************/
-  void
-  EBData::
-  addEmptyIrregularVoFs(const IntVectSet& a_vofsToChange,
-                        const EBGraph&    a_newGraph)
-  {
-    m_implem->addEmptyIrregularVoFs(a_vofsToChange, a_newGraph);
-  }
-/************************/
-  void 
   EBDataImplem::
   addFullIrregularVoFs(const IntVectSet     &    a_vofsToChange,
                        const EBGraph        &    a_newGraph,
@@ -109,7 +91,7 @@ namespace amrex
           {
             IntVect ivhi = faceit().gridIndex(Side::Hi);
             IntVect ivlo = faceit().gridIndex(Side::Lo);
-            Vector<FaceIndex> allFaces = a_newGraph.getAllFaces(ivhi, idir, Side::Lo);
+            std::vector<FaceIndex> allFaces = a_newGraph.getAllFaces(ivhi, idir, Side::Lo);
             if (allFaces.size() > 1)
             {
               //now we have the wacky case where two full, single-valued faces were coarsened
@@ -119,7 +101,7 @@ namespace amrex
               //0.5 so i just need to get the sign.
               //doing the best i can here.   there might be cases where this gets the
               //centroid wrong but i cannot think of them
-              m_areaFrac = 1.0/Real(allFaces.size());
+              Real areaFrac = 1.0/Real(allFaces.size());
               VolIndex otherVoF;
               if (a_vofsToChange.contains(ivlo) && (!a_vofsToChange.contains(ivhi)))
               {
@@ -135,13 +117,13 @@ namespace amrex
                 //face between them
                 MayDay::Error("vofsToChange contains internal mutlivalued face");
               }
+              faceCentroid[idir] = 0.0;
               for (int tandir = 0; tandir < SpaceDim; tandir++)
               {
-                faceCentroid[tandir] = 1.0/Real(allFaces.size());
-                Real tancentroid = a_grownData(otherVoF, V_VOLCENTROIDX + tandir);
-                if (tancentroid  < 0)
+                if(tandir != idir)
                 {
-                  fullFace.m_faceCentroid[tandir] *= -1;
+                  Real tancentroid = a_grownData(otherVoF, V_VOLCENTROIDX + tandir);
+                  facecentroid = tancentroid;
                 }
               }
             }
@@ -243,10 +225,10 @@ namespace amrex
     assert(m_isDefined);
     assert(a_source.m_isDefined);
 
-    m_volData.copy(a_src.m_volData, a_srcbox, 0, a_dstcomp, 0,  V_VOLNUMBER);
+    m_volData.copy(a_src.m_volData, a_srcbox, 0, a_dstbox, 0,  V_VOLNUMBER);
     for (int idir = 0; idir < SpaceDim; idir++)
     {
-      m_faceData[idir].copy(a_src.m_faceData[idir], a_srcbox, 0, a_dstcomp, 0,  F_FACENUMBER);
+      m_faceData[idir].copy(a_src.m_faceData[idir], a_srcbox, 0, a_dstbox, 0,  F_FACENUMBER);
     }
   }
 /************************/
@@ -268,7 +250,7 @@ namespace amrex
   void
   EBDataImplem::
   define(const EBGraph&           a_graph,
-         const Vector<IrregNode>& a_irregGraph,
+         const std::vector<IrregNode>& a_irregGraph,
          const Box&               a_validBox,
          const Box&               a_region)
 
@@ -286,29 +268,31 @@ namespace amrex
           const int&  cellInd = node.m_cellIndex;
           VolIndex vof(iv, cellInd);
 
-          VolData& vol = m_volData(vof, 0);
-          vol.m_volFrac       = node.m_volFrac;
-          vol.m_volCentroid   = node.m_volCentroid;
-          vol.m_averageFace.m_volIndex      = vof;
-          vol.m_averageFace.m_bndryCentroid = node.m_bndryCentroid;
-          vol.m_averageFace.m_bndryPhase    = -1;  // EB
-
+          m_volData(vof, V_VOLFRAC) = node.m_volFrac;
+          for (int faceDir = 0; faceDir < SpaceDim; faceDir++)
+          {
+            m_volData(vof, V_VOLCENTROIDX+faceDir) =   node.m_volCentroid[faceDir];
+            m_volData(vof, V_BNDCENTROIDX+faceDir) = node.m_bndryCentroid[faceDir];
+          }
           for (int faceDir = 0; faceDir < SpaceDim; faceDir++)
           {
             for (SideIterator sit; sit.ok(); ++sit)
             {
-              Vector<FaceIndex> faces = a_graph.getFaces(vof, faceDir, sit());
+              std::vector<FaceIndex> faces = a_graph.getFaces(vof, faceDir, sit());
               int nodeind = node.index(faceDir, sit());
-              Vector<Real> areaFracs         = node.m_areaFrac[nodeind];
-              Vector<RealVect> faceCentroids = node.m_faceCentroid[nodeind];
+              std::vector<Real> areaFracs         = node.m_areaFrac[nodeind];
+              std::vector<RealVect> faceCentroids = node.m_faceCentroid[nodeind];
               for (int iface = 0; iface < faces.size(); iface++)
               {
                 const Real&     areaFracNode     = areaFracs[iface];
                 const RealVect& faceCentroidNode = faceCentroids[iface];
                 const FaceIndex& face = faces[iface];
 
-                m_faceData[faceDir](face,0).m_areaFrac     = areaFracNode;
-                m_faceData[faceDir](face,0).m_faceCentroid = faceCentroidNode;
+                m_faceData[faceDir](face,F_AREAFRAC)  = areaFracNode;
+                for(int idir = 0; idir < SpaceDim; idir++)
+                {
+                  m_faceData[faceDir](face,F_FACECENTROIDX+idir)= faceCentroidNode[idir];
+                }
               }
             }
           }
@@ -320,117 +304,77 @@ namespace amrex
 /*******************************/
   const Real& EBDataImplem::volFrac(const VolIndex& a_vof) const
   {
-    return m_volData(a_vof, 0).m_volFrac;
+    return m_volData(a_vof, V_VOLFRAC);
   }
 
 /*******************************/
-  const Real& EBDataImplem::bndryArea(const VolIndex& a_vof, int face) const
-  {
-    const VolData& v =  m_volData(a_vof, 0);
-    if (v.m_phaseFaces.size()>0)
-      return v.m_phaseFaces[face].m_bndryArea;
-    assert(face == 0);
-    return v.m_averageFace.m_bndryArea;
-  }
-
   const Real& EBDataImplem::bndryArea(const VolIndex& a_vof) const
   {
-    static Real zero = 0;
-    if (m_volData.getIVS().contains(a_vof.gridIndex()))
-      return m_volData(a_vof, 0).m_averageFace.m_bndryArea;
-
-    return zero;
+    return m_volData(a_vof, V_BNDAREA);
   }
 
 /*******************************/
-  const RealVect& EBDataImplem::normal(const VolIndex& a_vof) const
+  RealVect EBDataImplem::normal(const VolIndex& a_vof) const
   {
-    return m_volData(a_vof, 0).m_averageFace.m_normal;
+    RealVect retval;
+    for(int idir = 0; idir < SpaceDim; idir++)
+    {
+      retval[idir] = m_volData(a_vof, V_NORMALX+idir);
+    }
+    return retval;
 
-  }
-  const RealVect& EBDataImplem::normal(const VolIndex& a_vof, int face) const
-  {
-    const VolData& v =  m_volData(a_vof, 0);
-    if (v.m_phaseFaces.size()>0)
-      return v.m_phaseFaces[face].m_normal;
-    assert(face == 0);
-    return v.m_averageFace.m_normal;
-  }
-
-/*******************************/
-  const RealVect& EBDataImplem::centroid(const VolIndex& a_vof) const
-  {
-    return m_volData(a_vof, 0).m_volCentroid;
   }
 /*******************************/
-  const RealVect& EBDataImplem::bndryCentroid(const VolIndex& a_vof) const
+  RealVect EBDataImplem::centroid(const VolIndex& a_vof) const
   {
-    return m_volData(a_vof, 0).m_averageFace.m_bndryCentroid;
+    RealVect retval;
+    for(int idir = 0; idir < SpaceDim; idir++)
+    {
+      retval[idir] = m_volData(a_vof, V_VOLCENTROIDX+idir);
+    }
+    return retval;
   }
-  const RealVect& EBDataImplem::bndryCentroid(const VolIndex& a_vof, int face) const
-  {
-    const VolData& v =  m_volData(a_vof, 0);
-    if (v.m_phaseFaces.size()>0)
-      return v.m_phaseFaces[face].m_bndryCentroid;
-    assert(face == 0);
-    return v.m_averageFace.m_bndryCentroid;
-
-  }
-
-  /// used by multi-fluid code
-  int EBDataImplem::facePhase(const VolIndex& a_vof, int face) const
-  {
-    return m_volData(a_vof, 0).m_phaseFaces[face].m_bndryPhase;
-  }
-
-  /// used by multi-fluid code
-  const VolIndex& EBDataImplem::faceIndex(const VolIndex& a_vof, int face) const
-  {
-    return m_volData(a_vof, 0).m_phaseFaces[face].m_volIndex;
-  }
-
-  /// used by multi-fluid code
-  void EBDataImplem::setFacePhase(const VolIndex& a_vof, int face, int phase)
-  {
-    VolData& voldat = m_volData(a_vof, 0);
-    voldat.m_phaseFaces[face].m_bndryPhase=phase;
-  }
-
-  /// used by multi-fluid code
-  void EBDataImplem::setFaceIndex(const VolIndex& a_vof, int face, const VolIndex& index)
-  {
-    m_volData(a_vof, 0).m_phaseFaces[face].m_volIndex = index;
-  }
-
-///
-  int EBDataImplem::numFacePhase(const VolIndex& a_vof) const
-  {
-    return  m_volData(a_vof, 0).m_phaseFaces.size();
-  }
-
 /*******************************/
-  const RealVect& EBDataImplem::centroid(const FaceIndex& a_face) const
+  RealVect EBDataImplem::bndryCentroid(const VolIndex& a_vof) const
+  {
+    RealVect retval;
+
+    for(int idir = 0; idir < SpaceDim; idir++)
+    {
+      retval[idir] = m_volData(a_vof, V_BNDCENTROIDX+idir);
+    }
+    return retval;
+  }
+/*******************************/
+  RealVect EBDataImplem::centroid(const FaceIndex& a_face) const
   {
     int faceDir = a_face.direction();
-    return m_faceData[faceDir](a_face, 0).m_faceCentroid;
+    RealVect retval;
+    for(int idir = 0; idir < SpaceDim; idir++)
+    {
+      retval[idir] = m_faceData[faceDir](a_face, F_FACECENTROIDX + idir);
+    }
+    return retval;
   }
 /*******************************/
   const Real& EBDataImplem::areaFrac(const FaceIndex& a_face) const
   {
     int faceDir = a_face.direction();
-    return m_faceData[faceDir](a_face, 0).m_areaFrac;
+    return m_faceData[faceDir](a_face, F_AREAFRAC);
   }
 /*******************************/
-  void EBData::
+  void 
+  EBDataImplem::
   computeNormalsAndBoundaryAreas(const EBGraph& a_graph,
-                                 const Box&     a_validRegion)
+                                 const Box&     a_region)
   {
     EBISBox ebisBox;
-    ebisBox.define(a_graph, *this);
+    EBData tempData(this);
+    ebisBox.define(a_graph, tempData);
     BaseIVFAB<VolData>& volData = m_implem->getVolData();
     if (a_graph.hasIrregular())
     {
-      IntVectSet ivsIrreg = a_graph.getIrregCells(a_validRegion);
+      IntVectSet ivsIrreg = a_graph.getIrregCells(a_region);
       for (VoFIterator vofit(ivsIrreg, a_graph); vofit.ok(); ++vofit)
       {
         const VolIndex& vof = vofit();
@@ -438,19 +382,21 @@ namespace amrex
         RealVect normal =  PolyGeom::normal(   vof, ebisBox, bndryArea);
 
         //copy results to volData
-        volData(vof,0).m_averageFace.m_bndryArea = bndryArea;
-        volData(vof,0).m_averageFace.m_normal    = normal;
+        volData(vof,V_BNDAREA) = bndryArea;
+        for(int idir = 0; idir < SpaceDim; idir++)
+        {
+          volData(vof,V_NORMALX+idir) = normal[idir];
+        }
       }
     }
-
   }
 /*******************************/
   void
   EBDataImplem::
   coarsenBoundaryAreaAndNormal(Real&                    a_bndryAreaCoar,
                                RealVect&                a_normalCoar,
-                               const Vector<Real>&      a_bndryAreaFine,
-                               const Vector<RealVect>&  a_normalFine)
+                               const std::vector<Real>&      a_bndryAreaFine,
+                               const std::vector<RealVect>&  a_normalFine)
   {
     BL_PROFILE("EBDataImplem::coarsenBoundaryAreaAndNormal");
 
@@ -476,12 +422,6 @@ namespace amrex
       a_bndryAreaCoar += bndryAreaVec[idir]*bndryAreaVec[idir];
     }
     a_bndryAreaCoar = sqrt(a_bndryAreaCoar);
-//  for (int ifine = 0; ifine < a_normalFine.size(); ifine++)
-//    {
-//      a_bndryAreaCoar += a_bndryAreaFine[ifine];
-//    }
-//  a_bndryAreaCoar *= faceCoarsenFactor;
-
 
     //n_xi, C = A^B_xi,C/AB,c
     if (a_bndryAreaCoar > 0.)
@@ -517,14 +457,14 @@ namespace amrex
       {
         BL_PROFILE("EBDataImplem::coarsenVoFs_VoFIterator");
         const VolIndex& vofCoar = vofit();
-        Vector<VolIndex> vofsFine = a_coarGraph.refine(vofCoar);
+        std::vector<VolIndex> vofsFine = a_coarGraph.refine(vofCoar);
         int nFine = vofsFine.size();
-        Vector<Real> bndryAreaFine(nFine);
-        Vector<Real> volFracFine(nFine);
-        Vector<int>  phase(nFine);
-        Vector<RealVect> bndryCentroidFine(nFine);
-        Vector<RealVect> volCentroidFine(nFine);
-        Vector<RealVect> normalFine(nFine);
+        std::vector<Real> bndryAreaFine(nFine);
+        std::vector<Real> volFracFine(nFine);
+        std::vector<int>  phase(nFine);
+        std::vector<RealVect> bndryCentroidFine(nFine);
+        std::vector<RealVect> volCentroidFine(nFine);
+        std::vector<RealVect> normalFine(nFine);
 
         for (int ifine = 0; ifine < nFine; ifine++)
         {
@@ -533,30 +473,12 @@ namespace amrex
 
           if (a_fineGraph.isIrregular(vofFine.gridIndex()))
           {
-            const VolData& vol = a_fineEBDataImplem.m_volData(vofFine,0);
-            bndryAreaFine[ifine] = vol.m_averageFace.m_bndryArea;
-            //a_fineEBDataImplem.bndryArea(vofFine);
+            bndryAreaFine[ifine] = a_fineEBDataImplem.bndryArea(vofFine);
 
-            volFracFine[ifine] = vol.m_volFrac;
-            //  a_fineEBDataImplem.volFrac(vofFine);
-            bndryCentroidFine[ifine] = vol.m_averageFace.m_bndryCentroid;
-            // a_fineEBDataImplem.bndryCentroid(vofFine);
-            volCentroidFine[ifine] = vol.m_volCentroid;
-            // a_fineEBDataImplem.centroid(vofFine);
-            normalFine[ifine] = vol.m_averageFace.m_normal;
-            //  a_fineEBDataImplem.normal(vofFine);
-            if (vol.m_phaseFaces.size()>0)
-            {
-              for (int i=0; i<vol.m_phaseFaces.size(); i++)
-              {
-                boundary.push_back(vol.m_phaseFaces[i]);
-              }
-            }
-            else
-            {
-              boundary.push_back(vol.m_averageFace);
-            }
-
+            volFracFine[ifine]       = a_fineEBDataImplem.volFrac(vofFine);
+            bndryCentroidFine[ifine] = a_fineEBDataImplem.bndryCentroid(vofFine);
+            volCentroidFine[ifine]   = a_fineEBDataImplem.centroid(vofFine);
+            normalFine[ifine]        = a_fineEBDataImplem.normal(vofFine);
           }
           else
           {
@@ -591,20 +513,13 @@ namespace amrex
                              vofCoar);
 
         VolData& vol = m_volData(vofCoar,0);
-
-        vol.m_volFrac       = volFracCoar;
-        vol.m_averageFace.m_bndryArea     = bndryAreaCoar;
-        vol.m_averageFace.m_volIndex      = vofCoar;
-        vol.m_averageFace.m_bndryCentroid = bndryCentroidCoar;
-        vol.m_averageFace.m_normal        = normalCoar;
-        vol.m_volCentroid   = volCentroidCoar;
-
-        vol.m_phaseFaces.resize(boundary.size());
-        for (int i=0; i<vol.m_phaseFaces.size(); ++i)
+        m_volData(vofCoar, V_VOLFRAC)     = volFracCoar;
+        m_volData(vofCoar, V_BNDAREA)     = bndryAreaCoar;
+        for(int idir = 0; idir < SpaceDim; idir++)
         {
-          vol.m_phaseFaces[i] = boundary.front();
-          boundary.pop_front();
-          //vol.m_bndryPhase = phase[0];  // two-phase flow assumption
+          m_volData(vofCoar, V_VOLCENTROIDX+idir) =   volCentroidCoar[idir];
+          m_volData(vofCoar, V_BNDCENTROIDX+idir) = bndryCentroidCoar[idir];
+          m_volData(vofCoar, V_NORMALX     +idir) =        normalCoar[idir];
         }
       }
     }
@@ -637,10 +552,10 @@ namespace amrex
           BL_PROFILE("EBDataImplem::coarsenFaces_FaceIterator");
 
           const FaceIndex&  faceCoar  = faceit();
-          Vector<FaceIndex> facesFine = a_coarGraph.refine(faceCoar, a_fineGraph);
+          std::vector<FaceIndex> facesFine = a_coarGraph.refine(faceCoar, a_fineGraph);
 
-          Vector<Real>     areaFracsFine(facesFine.size());
-          Vector<RealVect> centroidsFine(facesFine.size());
+          std::vector<Real>     areaFracsFine(facesFine.size());
+          std::vector<RealVect> centroidsFine(facesFine.size());
           for (int ifine = 0; ifine < facesFine.size(); ifine++)
           {
             BL_PROFILE("EBDataImplem::coarsenFaces_fine");
@@ -668,8 +583,11 @@ namespace amrex
                               areaFracsFine, facesFine,
                               faceCoar);
 
-          m_faceData[faceDir](faceCoar, 0).m_areaFrac     = areaFracCoar;
-          m_faceData[faceDir](faceCoar, 0).m_faceCentroid = centroidCoar;
+          m_faceData[faceDir](faceCoar, F_AREAFRAC)       = areaFracCoar;
+          for(int idir = 0; idir < SpaceDim; idir++)
+          {
+            m_faceData[faceDir](faceCoar, F_FACECENTROIDX+idir) = centroidCoar[idir];
+          }
         } //end loop over faces
       } //end loop over face directions
     }
@@ -677,9 +595,9 @@ namespace amrex
 /*******************************/
   void EBDataImplem::
   coarsenFaceCentroid(RealVect&                a_centroidCoar,
-                      const Vector<RealVect>&  a_centroidsFine,
-                      const Vector<Real>&      a_areaFracFine,
-                      const Vector<FaceIndex>& a_facesFine,
+                      const std::vector<RealVect>&  a_centroidsFine,
+                      const std::vector<Real>&      a_areaFracFine,
+                      const std::vector<FaceIndex>& a_facesFine,
                       const FaceIndex&         a_faceCoar)
   {
     BL_PROFILE("EBDataImplem::coarsenFaceCentroid");
@@ -715,7 +633,7 @@ namespace amrex
 /*******************************/
   void EBDataImplem::
   coarsenAreaFrac(Real& a_areaFracCoar,
-                  const Vector<Real>& a_areaFracFine)
+                  const std::vector<Real>& a_areaFracFine)
   {
     BL_PROFILE("EBDataImplem::coarsenAreaFrac");
     //this is the factor by which the area of a fine
@@ -737,9 +655,9 @@ namespace amrex
   EBDataImplem::
   coarsenVolFracAndCentroid(Real&                   a_volFracCoar,
                             RealVect&               a_volCentroidCoar,
-                            const Vector<Real>&     a_volFracFine,
-                            const Vector<RealVect>& a_volCentroidFine,
-                            const Vector<VolIndex>& a_fineVoFs,
+                            const std::vector<Real>&     a_volFracFine,
+                            const std::vector<RealVect>& a_volCentroidFine,
+                            const std::vector<VolIndex>& a_fineVoFs,
                             const VolIndex&         a_coarVoF)
   {
     BL_PROFILE("EBDataImplem::coarsenVolFracAndCentroid");
@@ -804,9 +722,9 @@ namespace amrex
   void
   EBDataImplem::
   coarsenBndryCentroid(RealVect&               a_bndryCentroidCoar,
-                       const Vector<RealVect>& a_bndryCentroidFine,
-                       const Vector<Real>&     a_bndryAreaFine,
-                       const Vector<VolIndex>& a_fineVoFs,
+                       const std::vector<RealVect>& a_bndryCentroidFine,
+                       const std::vector<Real>&     a_bndryAreaFine,
+                       const std::vector<VolIndex>& a_fineVoFs,
                        const VolIndex&         a_coarVoF)
   {
     BL_PROFILE("EBDataImplem::coarsenBndryCentroid");
