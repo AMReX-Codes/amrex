@@ -58,21 +58,21 @@ namespace amrex
     EBDataImplem(const Box& a_box, int a_comps);
 
     ///
-    EBDataImplem& copy(const EBData&   a_source,
-                       const Box&      a_regionFrom,
-                       int             a_srccomp,
-                       const Box&      a_regionto,
-                       int             a_destcomp,
-                       int             a_numcomp);
+    EBDataImplem& copy(const EBDataImplem&   a_source,
+                       const Box&            a_regionFrom,
+                       int                   a_srccomp,
+                       const Box&            a_regionto,
+                       int                   a_destcomp,
+                       int                   a_numcomp);
 
 
 
-    EBDataImplem& plus(const EBData    & a_src,
-                       const Box&        a_srcbox,
-                       const Box&        a_destbox,
-                       int               a_srccomp,
-                       int               a_destcomp,
-                       int               a_numcomp=1);
+    EBDataImplem& plus(const EBDataImplem & a_src,
+                       const Box&           a_srcbox,
+                       const Box&           a_destbox,
+                       int                  a_srccomp,
+                       int                  a_destcomp,
+                       int                  a_numcomp=1)
       {
         amrex::Error("this operation makes no sense here");
         return *this;
@@ -83,7 +83,7 @@ namespace amrex
     ///define the whole thing. valid box= no ghost, region has ghost, defines data holders and fills them
     void
     define(const EBGraph&           a_graph,
-           const Vector<IrregNode>& a_irregData,
+           const std::vector<IrregNode>& a_irregData,
            const Box&               a_validBox,
            const Box&               a_region);
 
@@ -107,19 +107,19 @@ namespace amrex
     const Real& areaFrac(const FaceIndex& a_face1) const;
 
     ///
-    const RealVect& centroid(const FaceIndex& facein) const;
+    RealVect centroid(const FaceIndex& facein) const;
 
     ///
-    const RealVect& centroid(const VolIndex& a_vof) const;
+    RealVect centroid(const VolIndex& a_vof) const;
 
     ///
-    const RealVect& bndryCentroid(const VolIndex& a_vof) const;
+    RealVect bndryCentroid(const VolIndex& a_vof) const;
 
     ///
     const Real& bndryArea(const VolIndex& a_vof) const;
 
     ///
-    const RealVect& normal(const VolIndex& a_vof) const;
+    RealVect normal(const VolIndex& a_vof) const;
 
     std::size_t nBytes (const Box& bx, int start_comp, int ncomps) const;
 
@@ -146,15 +146,40 @@ namespace amrex
     */
 
     ///
-    void addFullIrregularVoFs(const IntVectSet& a_vofsToChange,
-                              const EBGraph&    a_newGhostGraph,
-                              const BaseIVFAB<VolData>&     a_newGhostData,
-                              const EBGraph&    a_oldGhostGraph);
+    void addFullIrregularVoFs(const IntVectSet&         a_vofsToChange,
+                              const EBGraph&            a_newGhostGraph,
+                              const BaseIVFAB<Real>&    a_newGhostData,
+                              const EBGraph&            a_oldGhostGraph);
 
     ///multifluid angels dancing on the heads of pins.
     void addEmptyIrregularVoFs(const IntVectSet& a_vofsToChange,
                                const EBGraph&    a_newGraph);
 
+
+    ///
+    void
+    computeNormalsAndBoundaryAreas(const EBGraph& a_graph,
+                                   const Box&     a_validRegion);
+
+    BaseIVFAB<Real>& getVolData()
+      {
+        return m_volData;
+      }
+
+    const BaseIVFAB<Real>& getVolData() const
+      {
+        return m_volData;
+      }
+
+    BaseIFFAB<Real>& getFaceData(int a_idir)
+      {
+        return m_faceData[a_idir];
+      }
+
+    const BaseIFFAB<Real>& getFaceData(int a_idir) const
+      {
+        return m_faceData[a_idir];
+      }
 
   private:
 
@@ -177,27 +202,27 @@ namespace amrex
 
     void
     coarsenFaceCentroid(RealVect&                a_centroidCoar,
-                        const Vector<RealVect>&  a_centroidsFine,
-                        const Vector<Real>&      a_areaFracFine,
-                        const Vector<FaceIndex>& a_facesFine,
+                        const std::vector<RealVect>&  a_centroidsFine,
+                        const std::vector<Real>&      a_areaFracFine,
+                        const std::vector<FaceIndex>& a_facesFine,
                         const FaceIndex&         a_faceCoar);
     void
     coarsenAreaFrac(Real& a_areaFracCoar,
-                    const Vector<Real>& a_areaFracFine);
+                    const std::vector<Real>& a_areaFracFine);
 
     void
     coarsenVolFracAndCentroid(Real&                   a_volFracCoar,
                               RealVect&               a_volCentroidCoar,
-                              const Vector<Real>&     a_volFracFine,
-                              const Vector<RealVect>& a_volCentroidFine,
-                              const Vector<VolIndex>& a_fineVoFs,
+                              const std::vector<Real>&     a_volFracFine,
+                              const std::vector<RealVect>& a_volCentroidFine,
+                              const std::vector<VolIndex>& a_fineVoFs,
                               const VolIndex&         a_coarVoF);
 
     void
     coarsenBoundaryAreaAndNormal(Real&                    a_bndryAreaCoar,
                                  RealVect&                a_normalCoar,
-                                 const Vector<Real>&      a_bndryAreaFine,
-                                 const Vector<RealVect>&  a_normalFine);
+                                 const std::vector<Real>&      a_bndryAreaFine,
+                                 const std::vector<RealVect>&  a_normalFine);
 
     RealVect
     fineToCoarseTransform(const RealVect& a_finePoint,
@@ -206,15 +231,17 @@ namespace amrex
 
     void
     coarsenBndryCentroid(RealVect&               a_bndryCentroidCoar,
-                         const Vector<RealVect>& a_bndryCentroidFine,
-                         const Vector<Real>&     a_bndryAreaFine,
-                         const Vector<VolIndex>& a_fineVoFs,
+                         const std::vector<RealVect>& a_bndryCentroidFine,
+                         const std::vector<Real>&     a_bndryAreaFine,
+                         const std::vector<VolIndex>& a_fineVoFs,
                          const VolIndex&         a_coarVoF);
 
     friend class EBIndexSpace;
     friend class EBISLevel;
   };
 
+void null_deleter(EBDataImplem *)
+ {}
 ///
 /**
    Ref-counted version of EBDataImplem.
@@ -224,7 +251,7 @@ namespace amrex
   public:
 
     ///
-    EBData() : m_implem( RefCountedPtr<EBDataImplem>( new EBDataImplem() ) )
+    EBData() : m_implem( std::shared_ptr<EBDataImplem>( new EBDataImplem() ) )
       {
       }
 
@@ -233,8 +260,15 @@ namespace amrex
       {
       }
 
+
+    ///this is just a way around smart pointers being too smart.
+    ///this keeps the input pointer from being deleted.  Not for the faint of heart.
+    EBData(EBDataImplem* a_implemPtr)
+      {
+        m_implem = std::shared_ptr<EBDataImplem>(a_implemPtr, &null_deleter);
+      }
     ///
-    void define(const Box& box, int comps)
+    void define(const Box& a_box, int a_comps)
       {
         m_implem->define(a_box, a_comps);
       }
@@ -282,7 +316,7 @@ namespace amrex
     //but it is ok for the valid box to be smaller
     void
     define(const EBGraph&           a_graph,
-           const Vector<IrregNode>& a_irregData,
+           const std::vector<IrregNode>& a_irregData,
            const Box&               a_validBox,
            const Box&               a_region)
     
@@ -323,19 +357,19 @@ namespace amrex
     const Real& areaFrac(const FaceIndex& a_face1) const;
 
     ///
-    const RealVect& centroid(const FaceIndex& facein) const;
+    RealVect centroid(const FaceIndex& facein) const;
 
     ///
-    const RealVect& centroid(const VolIndex& a_vof) const;
+    RealVect centroid(const VolIndex& a_vof) const;
 
     ///
-    const RealVect& bndryCentroid(const VolIndex& a_vof) const;
+    RealVect bndryCentroid(const VolIndex& a_vof) const;
  
     ///
     const Real& bndryArea(const VolIndex& a_vof) const;
  
     ///
-    const RealVect& normal(const VolIndex& a_vof) const;
+    RealVect normal(const VolIndex& a_vof) const;
  
     ///
     EBData(const EBData& a_ebiin)
@@ -397,35 +431,52 @@ namespace amrex
     */
 
     ///
-    void addFullIrregularVoFs(const IntVectSet& a_vofsToChange,
-                              const EBGraph&    a_newGhostGraph,
-                              const BaseIVFAB<VolData>& a_grownData,
-                              const EBGraph&    a_oldGhostGraph);
+    void addFullIrregularVoFs(const IntVectSet&      a_vofsToChange,
+                              const EBGraph&         a_newGhostGraph,
+                              const BaseIVFAB<Real>& a_grownData,
+                              const EBGraph&         a_oldGhostGraph)
+      {
+        m_implem->addFullIrregularVoFs(a_vofsToChange, a_newGraph, a_grownData, a_oldGraph);
+      }
+
 
     ///multifluid angels dancing on the heads of pins.
     void addEmptyIrregularVoFs(const IntVectSet& a_vofsToChange,
-                               const EBGraph&    a_newGraph);
+                               const EBGraph&    a_newGraph)
+      {
+        m_implem->addEmptyIrregularVoFs(a_vofsToChange, a_newGraph);
+      }
 
     ///
     void
     computeNormalsAndBoundaryAreas(const EBGraph& a_graph,
-                                   const Box&     a_validRegion);
+                                   const Box&     a_validRegion)
+      {
+        return m_implem->computeNormalsAndBoundaryAreas(a_ebgraph, a_validRegion);
+      }
 
-    BaseIVFAB<VolData>& getVolData()
+    BaseIVFAB<Real>& getVolData()
       {
         return m_implem->getVolData();
       }
 
-    const BaseIVFAB<VolData>& getVolData() const
+    const BaseIVFAB<Real>& getVolData() const
       {
         return m_implem->getVolData();
       }
 
-    ///
-    static int preAllocatable()
+
+    BaseIFFAB<Real>& getFaceData(int a_idir)
       {
-        return 2; // dyanmic allocatable.
+        return m_implem->getVolData(idir);
       }
+
+    const BaseIFFAB<Real>& getFaceData() const
+      {
+        return m_implem->getFaceData();
+      }
+
+
   private:
 
     ///
@@ -446,22 +497,22 @@ namespace amrex
     return m_implem->bndryArea(a_vof);
   }
 /*******************************/
-  inline const RealVect& EBData::normal(const VolIndex& a_vof) const
+  inline RealVect EBData::normal(const VolIndex& a_vof) const
   {
     return m_implem->normal(a_vof);
   }
 /*******************************/
-  inline const RealVect& EBData::centroid(const VolIndex& a_vof) const
+  inline RealVect EBData::centroid(const VolIndex& a_vof) const
   {
     return m_implem->centroid(a_vof);
   }
 /*******************************/
-  inline const RealVect& EBData::bndryCentroid(const VolIndex& a_vof) const
+  inline RealVect EBData::bndryCentroid(const VolIndex& a_vof) const
   {
     return m_implem->bndryCentroid(a_vof);
   }
 /*******************************/
-  inline const RealVect& EBData::centroid(const FaceIndex& a_face) const
+  inline  RealVect EBData::centroid(const FaceIndex& a_face) const
   {
     return m_implem->centroid(a_face);
   }
