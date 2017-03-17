@@ -105,13 +105,13 @@ LaserParticleContainer::InitData ()
     auto Transform = [&](int i, int j) -> Array<Real>
     {
 #if (BL_SPACEDIM == 3)
-	return { position[0] + (S_X*i)*u_X[0] + (S_Y*j)*u_Y[0],
-		 position[1] + (S_X*i)*u_X[1] + (S_Y*j)*u_Y[1],
-		 position[2] + (S_X*i)*u_X[2] + (S_Y*j)*u_Y[2] };
+	return { position[0] + (S_X*(i+0.5))*u_X[0] + (S_Y*(j+0.5))*u_Y[0],
+		 position[1] + (S_X*(i+0.5))*u_X[1] + (S_Y*(j+0.5))*u_Y[1],
+		 position[2] + (S_X*(i+0.5))*u_X[2] + (S_Y*(j+0.5))*u_Y[2] };
 #else
-	return { position[0] + (S_X*i)*u_X[0],
+	return { position[0] + (S_X*(i+0.5))*u_X[0],
 		 0.0,
-		 position[2] + (S_X*i)*u_X[2] };
+		 position[2] + (S_X*(i+0.5))*u_X[2] };
 #endif
     };
 
@@ -136,8 +136,8 @@ LaserParticleContainer::InitData ()
 	    int j = pos_plane[1]/S_Y;
 	    plane_lo[0] = std::min(plane_lo[0], i);
 	    plane_lo[1] = std::min(plane_lo[1], j);
-	    plane_hi[0] = std::max(plane_hi[0], i+1);
-	    plane_hi[1] = std::max(plane_hi[1], j+1);
+	    plane_hi[0] = std::max(plane_hi[0], i);
+	    plane_hi[1] = std::max(plane_hi[1], j);
 	};
 
 	const Real* prob_lo = prob_domain.lo();
@@ -430,8 +430,6 @@ LaserParticleContainer::ComputeSpacing (Real& Sx, Real& Sy) const
 		  dx[2]/(std::abs(u_X[2])+eps));
     Sy = 1.0;
 #endif
-    Sx *= 0.99;  // to avoid having particles grid faces
-    Sy *= 0.99;
 }
 
 void
