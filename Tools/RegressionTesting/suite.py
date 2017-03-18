@@ -566,9 +566,9 @@ class Suite(object):
 
         all_opts = "{} {} {}".format(self.extra_src_comp_string, build_opts, opts)
 
-        comp_string = "{} -j{} AMREX_HOME={} {} COMP={} FCOMP={} {}".format(
+        comp_string = "{} -j{} AMREX_HOME={} {} COMP={} {}".format(
             self.MAKE, self.numMakeJobs, self.amrex_dir,
-            all_opts, self.COMP, self.FCOMP, self.add_to_c_make_command)
+            all_opts, self.COMP, self.add_to_c_make_command)
 
         self.log.log(comp_string)
         stdout, stderr, rc = test_util.run(comp_string, outfile=outfile)
