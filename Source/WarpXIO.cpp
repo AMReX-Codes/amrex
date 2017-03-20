@@ -399,6 +399,52 @@ WarpX::WritePlotFile () const
 					Geom(), t_new[0], istep, refRatio());
     }
 
+    if (plot_raw_fields)
+    {
+        const int raw_plot_nfiles = 64;  // could make this parameter
+        VisMF::SetNOutFiles(raw_plot_nfiles);
+
+        const int nlevels = finestLevel()+1;
+        const std::string raw_plotfilename = plotfilename + "/raw_fields";
+        amrex::PreBuildDirectorHierarchy(raw_plotfilename, level_prefix, nlevels, true);
+
+        for (int lev = 0; lev < nlevels; ++lev)
+        {
+            const BoxArray& ba = boxArray(lev);
+            const DistributionMapping& dm = DistributionMap(lev);
+
+            MultiFab Ex(ba, dm, 1, 0, MFInfo().SetNodal(Ex_nodal_flag));
+            MultiFab Ey(ba, dm, 1, 0, MFInfo().SetNodal(Ey_nodal_flag));
+            MultiFab Ez(ba, dm, 1, 0, MFInfo().SetNodal(Ez_nodal_flag));
+            MultiFab Bx(ba, dm, 1, 0, MFInfo().SetNodal(Bx_nodal_flag));
+            MultiFab By(ba, dm, 1, 0, MFInfo().SetNodal(By_nodal_flag));
+            MultiFab Bz(ba, dm, 1, 0, MFInfo().SetNodal(Bz_nodal_flag));
+            MultiFab jx(ba, dm, 1, 0, MFInfo().SetNodal(jx_nodal_flag));
+            MultiFab jy(ba, dm, 1, 0, MFInfo().SetNodal(jy_nodal_flag));
+            MultiFab jz(ba, dm, 1, 0, MFInfo().SetNodal(jz_nodal_flag));
+
+            WarpX::Copy(Ex, 0, 1, *Efield[lev][0], 0);
+            WarpX::Copy(Ey, 0, 1, *Efield[lev][1], 0);
+            WarpX::Copy(Ez, 0, 1, *Efield[lev][2], 0);
+            WarpX::Copy(Bx, 0, 1, *Bfield[lev][0], 0);
+            WarpX::Copy(By, 0, 1, *Bfield[lev][1], 0);
+            WarpX::Copy(Bz, 0, 1, *Bfield[lev][2], 0);
+            WarpX::Copy(jx, 0, 1, *current[lev][0], 0);
+            WarpX::Copy(jy, 0, 1, *current[lev][1], 0);
+            WarpX::Copy(jz, 0, 1, *current[lev][2], 0);
+
+            VisMF::Write(Ex, amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Ex"));
+            VisMF::Write(Ey, amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Ey"));
+            VisMF::Write(Ez, amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Ez"));
+            VisMF::Write(Bx, amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Bx"));
+            VisMF::Write(By, amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "By"));
+            VisMF::Write(Bz, amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Bz"));
+            VisMF::Write(jx, amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "jx"));
+            VisMF::Write(jy, amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "jy"));
+            VisMF::Write(jz, amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "jz"));
+        }
+    }
+
     Array<std::string> particle_varnames;
     particle_varnames.push_back("weight");
 

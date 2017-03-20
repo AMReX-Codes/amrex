@@ -190,6 +190,8 @@ private:
     int check_int = -1;
     int plot_int = -1;
 
+    bool plot_raw_fields = false;
+
     bool is_synchronized;
 
     static amrex::IntVect Bx_nodal_flag;

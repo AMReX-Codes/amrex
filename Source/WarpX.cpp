@@ -177,6 +177,8 @@ WarpX::ReadParameters ()
 	}
 
 	pp.query("use_laser", use_laser);
+
+        pp.query("plot_raw_fields", plot_raw_fields);
     }
 
     {
