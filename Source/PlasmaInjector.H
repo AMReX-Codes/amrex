@@ -4,7 +4,7 @@
 #include <random>
 #include <array>
 
-#include "AMReX_Real.H"
+#include "AMReX_REAL.H"
 #include "AMReX_Array.H"
 #include "AMReX_ParmParse.H"
 
