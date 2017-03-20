@@ -558,8 +558,9 @@ AmrCore::MakeNewGrids (int lbase, Real time, int& new_finest, Array<BoxArray>& n
 	    }
 
             IntVect largest_grid_size;
-            for (int n = 0; n < BL_SPACEDIM; n++)
+            for (int n = 0; n < BL_SPACEDIM; n++) {
                 largest_grid_size[n] = max_grid_size[levf] / ref_ratio[levc][n];
+            }
             //
             // Ensure new grid boxes are at most max_grid_size in index dirs.
             //
