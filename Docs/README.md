@@ -8,7 +8,7 @@ This explains how to generate the documentation for Warpx, and contribute to it.
 
 Install the Python requirements for compiling the documentation:
 ```
-pip install sphinx breathe
+pip install sphinx sphinx_rtd_theme breathe
 ```
 and install Doxygen. Doxygen can be installed under Linux Debian by using
 ```
