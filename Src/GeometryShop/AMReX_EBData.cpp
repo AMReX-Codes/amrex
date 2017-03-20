@@ -13,10 +13,13 @@
 #include "AMReX_VoFIterator.H"
 #include "AMReX_FaceIterator.H"
 #include "AMReX_EBISBox.H"
+#include "AMReX_PolyGeom.H"
 #include "AMReX_EBDataVarMacros.H"
 
 namespace amrex
 {
+  void null_deleter(EBDataImplem *)
+ {}
 /************************/
   void 
   EBDataImplem::
@@ -28,14 +31,14 @@ namespace amrex
     if (!a_vofsToChange.isEmpty())
     {
       //calculate set by adding in new intvects
-      const IntVectSet& ivsOld = m_volData.getIVS();
-      IntVectSet ivsNew = ivsOld | a_vofsToChange;
+      const IntVectSet& ivsOld = a_oldGraph.getIrregCells(m_region);
+      IntVectSet ivsNew = ivsOld;
+      ivsNew |= a_vofsToChange;
       int nfaccomp = F_FACENUMBER;
       int nvolcomp = V_VOLNUMBER;
 
       //for copying purposes
-      Box minBox = ivsOld.minBox();
-      Interval interv(0,0);
+      Box minBox = m_region;
 
       //save old data into temporarys
       BaseIVFAB<Real>  oldVolData(ivsOld, a_oldGraph, nvolcomp);
@@ -101,7 +104,6 @@ namespace amrex
               //0.5 so i just need to get the sign.
               //doing the best i can here.   there might be cases where this gets the
               //centroid wrong but i cannot think of them
-              Real areaFrac = 1.0/Real(allFaces.size());
               VolIndex otherVoF;
               if (a_vofsToChange.contains(ivlo) && (!a_vofsToChange.contains(ivhi)))
               {
@@ -115,7 +117,7 @@ namespace amrex
               {
                 //you really should only be changing one of the vofs if there is a multivalued
                 //face between them
-                MayDay::Error("vofsToChange contains internal mutlivalued face");
+                amrex::Error("vofsToChange contains internal mutlivalued face");
               }
               faceCentroid[idir] = 0.0;
               for (int tandir = 0; tandir < SpaceDim; tandir++)
@@ -123,11 +125,11 @@ namespace amrex
                 if(tandir != idir)
                 {
                   Real tancentroid = a_grownData(otherVoF, V_VOLCENTROIDX + tandir);
-                  facecentroid = tancentroid;
+                  faceCentroid[tandir] = tancentroid;
                 }
               }
             }
-          }
+           }
           m_faceData[idir](faceit(), F_AREAFRAC) = areaFrac;
           for (int idir = 0; idir < SpaceDim; idir++)
           {
@@ -146,35 +148,37 @@ namespace amrex
     if (!a_vofsToChange.isEmpty())
     {
       //calculate set by adding in new intvects
-      const IntVectSet& ivsOld = m_volData.getIVS();
-      IntVectSet ivsNew = ivsOld | a_vofsToChange;
+      const IntVectSet& ivsOld = m_graph.getIrregCells(m_region);
+      IntVectSet ivsNew = ivsOld;
+      ivsNew |= a_vofsToChange;
+      int nfaccomp = F_FACENUMBER;
+      int nvolcomp = V_VOLNUMBER;
 
       //for copying purposes
-      Box minBox = ivsOld.minBox();
-      Interval interv(0,0);
+      Box minBox = m_region;
 
       //save old data into temporarys
-      BaseIVFAB<VolData>  oldVolData(ivsOld, a_newGraph, 1);
-      oldVolData.copy(minBox, interv, minBox, m_volData, interv);
-      BaseIFFAB<FaceData> oldFaceData[SpaceDim];
+      BaseIVFAB<Real>  oldVolData(ivsOld, m_graph, nvolcomp);
+      oldVolData.copy(m_volData, minBox, 0, minBox, 0, nvolcomp);
+
+      BaseIFFAB<Real> oldFaceData[SpaceDim];
       for (int idir = 0; idir < SpaceDim; idir++)
       {
-        oldFaceData[idir].define(ivsOld, a_newGraph, idir, 1);
-        oldFaceData[idir].copy(minBox, interv, minBox, m_faceData[idir], interv);
+        oldFaceData[idir].define(ivsOld, m_graph, idir, nfaccomp);
+        oldFaceData[idir].copy(m_faceData[idir], minBox, 0, minBox, 0, nfaccomp);
       }
 
       //redefine member data with new IVS and copy old data back
       //into it.
       m_volData.define(ivsNew, a_newGraph, 1);
-      m_volData.copy(minBox, interv, minBox, oldVolData, interv);
+      m_volData.copy(oldVolData, minBox, 0, minBox, 0, nvolcomp);
       for (int idir = 0; idir < SpaceDim; idir++)
       {
         m_faceData[idir].define(ivsNew, a_newGraph, idir, 1);
-        m_faceData[idir].copy(minBox, interv, minBox, oldFaceData[idir], interv);
+        m_faceData[idir].copy(oldFaceData[idir], minBox, 0, minBox, 0, nfaccomp);
       }
 
-      //now put correct data into new vofs.  the volume fraction of a formally
-      //regular cell is always unity
+      //now put correct data into new vofs.  
       for (VoFIterator vofit(a_vofsToChange, a_newGraph); vofit.ok(); ++vofit)
       {
         m_volData(vofit(), V_VOLFRAC) = 0;
@@ -217,19 +221,20 @@ namespace amrex
   EBDataImplem::
   copy(const EBDataImplem&   a_src,
        const Box&            a_srcbox,
-       int                   a_srccomp
+       int                   a_srccomp,
        const Box&            a_dstbox,
-       int                   a_dstcomp
+       int                   a_dstcomp,
        int                   a_numcomp)
   {
     assert(m_isDefined);
-    assert(a_source.m_isDefined);
+    assert(a_src.m_isDefined);
 
     m_volData.copy(a_src.m_volData, a_srcbox, 0, a_dstbox, 0,  V_VOLNUMBER);
     for (int idir = 0; idir < SpaceDim; idir++)
     {
       m_faceData[idir].copy(a_src.m_faceData[idir], a_srcbox, 0, a_dstbox, 0,  F_FACENUMBER);
     }
+    return *this;
   }
 /************************/
   void 
@@ -238,6 +243,7 @@ namespace amrex
          const Box&               a_region)
   {
     m_graph = a_graph;
+    m_region = a_region & a_graph.getDomain();
     IntVectSet ivsIrreg = a_graph.getIrregCells(a_region);
     m_isDefined = true;
     m_volData.define(ivsIrreg, a_graph, V_VOLNUMBER);
@@ -256,6 +262,7 @@ namespace amrex
 
   {
     BL_PROFILE("EBDataImpem::define");
+    m_region = a_region & a_graph.getDomain();
     define( a_graph, a_region);
     if (a_graph.hasIrregular())
     {
@@ -371,7 +378,7 @@ namespace amrex
     EBISBox ebisBox;
     EBData tempData(this);
     ebisBox.define(a_graph, tempData);
-    BaseIVFAB<VolData>& volData = m_implem->getVolData();
+
     if (a_graph.hasIrregular())
     {
       IntVectSet ivsIrreg = a_graph.getIrregCells(a_region);
@@ -382,10 +389,10 @@ namespace amrex
         RealVect normal =  PolyGeom::normal(   vof, ebisBox, bndryArea);
 
         //copy results to volData
-        volData(vof,V_BNDAREA) = bndryArea;
+        m_volData(vof,V_BNDAREA) = bndryArea;
         for(int idir = 0; idir < SpaceDim; idir++)
         {
-          volData(vof,V_NORMALX+idir) = normal[idir];
+          m_volData(vof,V_NORMALX+idir) = normal[idir];
         }
       }
     }
@@ -451,7 +458,6 @@ namespace amrex
     if (a_coarGraph.hasIrregular())
     {
       IntVectSet ivsIrreg = a_coarGraph.getIrregCells(a_validRegion);
-      std::list<BoundaryData>  boundary;
 
       for (VoFIterator vofit(ivsIrreg, a_coarGraph); vofit.ok(); ++vofit)
       {
@@ -512,7 +518,6 @@ namespace amrex
                              vofsFine,
                              vofCoar);
 
-        VolData& vol = m_volData(vofCoar,0);
         m_volData(vofCoar, V_VOLFRAC)     = volFracCoar;
         m_volData(vofCoar, V_BNDAREA)     = bndryAreaCoar;
         for(int idir = 0; idir < SpaceDim; idir++)
@@ -764,25 +769,33 @@ namespace amrex
   nBytes (const Box& bx, int start_comp, int ncomps) const
   {
     amrex::Error("not implemented");
+    return 0;
   }
 /*******************************/
 
-  std::size_t copyToMem (const Box& srcbox,
-                         int        srccomp,
-                         int        numcomp,
-                         void*      dst) const
+  std::size_t 
+  EBDataImplem::
+  copyToMem (const Box& srcbox,
+             int        srccomp,
+             int        numcomp,
+             void*      dst) const
   {
     amrex::Error("not implemented");
+    return 0;
   }
 
 /*******************************/
 
-  std::size_t copyFromMem (const Box&  dstbox,
-                           int         dstcomp,
-                           int         numcomp,
-                           const void* src)
+  std::size_t 
+  EBDataImplem::
+  copyFromMem (const Box&  dstbox,
+               int         dstcomp,
+               int         numcomp,
+               const void* src)
   {
     amrex::Error("not implemented");
+    return 0;
   }
 
 /*******************************/
+}

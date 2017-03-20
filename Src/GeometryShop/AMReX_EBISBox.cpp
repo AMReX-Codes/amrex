@@ -55,7 +55,7 @@ namespace amrex
   {
     IntVectSet ivs = getIrregIVS(a_subbox);
     IntVectSet rtn = ivs;
-    CH_assert(rtn.isDense());
+
     IVSIterator it(ivs);
     for (;it.ok(); ++it)
     {
@@ -79,8 +79,8 @@ namespace amrex
                    const Side::LoHiSide& a_sd,
                    const int& a_steps) const
   {
-    CH_assert((a_dir >= 0) && (a_dir < SpaceDim));
-    CH_assert(a_steps >= 0);
+    assert((a_dir >= 0) && (a_dir < SpaceDim));
+    assert(a_steps >= 0);
 
     std::vector<VolIndex> retVoFs(1, a_vof);
     for (int irad = 1; irad <= a_steps; irad++)
@@ -148,7 +148,7 @@ namespace amrex
         std::vector<FaceIndex> faces = getFaces(a_vof, idir, sit());
         for (int iface=0; iface<faces.size(); iface++)
         {
-          alphaMax = Max(areaFrac(faces[iface]), alphaMax);
+          alphaMax = std::max(areaFrac(faces[iface]), alphaMax);
         }
       }
     }
@@ -256,7 +256,7 @@ namespace amrex
       retval = m_data.normal(a_vof);
       Real tol = 1.0e-20;
       //this can happen if the cell is really regular
-      bool allZeros = D_TERM((Abs(retval[0]) < tol), && (Abs(retval[1]) < tol), && (Abs(retval[2]) < tol));
+      bool allZeros = D_TERM((std::abs(retval[0]) < tol), && (std::abs(retval[1]) < tol), && (std::abs(retval[2]) < tol));
 
       if(allZeros)
       {
@@ -267,12 +267,7 @@ namespace amrex
     return retval;
   }
 
-  RealVect
-  EBISBox::normal(const VolIndex& a_vof, int face) const
-  {
-    return m_data.normal(a_vof, face);
-  }
-/*******************************/
+  /*******************************/
   RealVect
   EBISBox::centroid(const FaceIndex& a_face) const
   {
@@ -343,20 +338,7 @@ namespace amrex
     return retval;
   }
 
-  RealVect
-  EBISBox::bndryCentroid(const VolIndex& a_vof, int face) const
-  {
-
-    return  m_data.bndryCentroid(a_vof, face);
-  }
-
-/*******************************/
-  Real
-  EBISBox::bndryArea(const VolIndex& a_vof, int face) const
-  {
-    return m_data.bndryArea(a_vof, face);
-  }
-
+  /*******************************/
   Real
   EBISBox::bndryArea(const VolIndex& a_vof) const
   {
@@ -377,28 +359,6 @@ namespace amrex
       retval = m_data.bndryArea(a_vof);
     }
     return retval;
-  }
-
-  int
-  EBISBox::numFacePhase(const VolIndex& a_vof) const
-  {
-    // I'm not going to pretent you can ask for a bndry face
-    // information is the absence of a face.
-    return m_data.numFacePhase(a_vof);
-  }
-
-/// used by multi-fluid code
-  int
-  EBISBox::facePhase(const VolIndex& a_vof, int face) const
-  {
-    return m_data.facePhase(a_vof, face);
-  }
-
-/// used by multi-fluid code
-  const VolIndex&
-  EBISBox::faceIndex(const VolIndex& a_vof, int face) const
-  {
-    return m_data.faceIndex(a_vof, face);
   }
 
 /*******************************/
