@@ -1,5 +1,5 @@
 The initial python wrapped version. This has the minimal capability of allowing specification of the
-input parameters (i.e. the input file) in python, passing that into BoxLib and then running the time steps.
+input parameters (i.e. the input file) in python, passing that into amrex and then running the time steps.
 
 To build it, run "make pyinstallswig" in the Python directory. You will need to have swig installed.
 (In the future, the swig generated wrapper could be put into the repo so swig wouldn't be needed.)

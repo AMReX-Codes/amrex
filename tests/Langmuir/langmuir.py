@@ -125,8 +125,8 @@ algo.particle_pusher = 0
 warpx.cfl = 1.0
 
 # --- Initialize the simulation
-boxlib = BoxLib()
-boxlib.init()
+amrex = AMReX()
+amrex.init()
 warpx.init()
 
 set_initial_conditions()
@@ -134,4 +134,4 @@ set_initial_conditions()
 warpx.evolve(max_step)
 warpx.finalize()
 
-boxlib.finalize()
+amrex.finalize()

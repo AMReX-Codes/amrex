@@ -200,6 +200,7 @@ WarpX::ReadParameters ()
 	pp.query("particle_pusher", particle_pusher_algo);
     }
 
+    is_synchronized = true;
 }
 
 // This is a virtual function.

@@ -17,11 +17,13 @@ WarpX::Evolve (int numsteps)
     static int last_plot_file_step = 0;
     static int last_check_file_step = 0;
 
-    int numsteps_max = (numsteps >= 0 && numsteps <= max_step) ? numsteps : max_step;
+    int numsteps_max = (numsteps >= 0 && istep[0]+numsteps <= max_step) ? istep[0]+numsteps : max_step;
     bool max_time_reached = false;
+    bool last_step = false;
 
     for (int step = istep[0]; step < numsteps_max && cur_time < stop_time; ++step)
     {
+	// Start loop on time steps
         amrex::Print() << "\nSTEP " << step+1 << " starts ...\n";
 
         if (ParallelDescriptor::NProcs() > 1)
@@ -32,8 +34,19 @@ WarpX::Evolve (int numsteps)
 	// Advance level 0 by dt
 	const int lev = 0;
 	{
-	    // At the beginning, we have B^{n-1/2} and E^{n}.
+	    // At the beginning, we have B^{n-1/2} and E^{n-1/2}.
+	    // Particles have p^{n-1/2} and x^{n-1/2}.
+
+	    // Beyond one step, we have B^{n-1/2} and E^{n}.
 	    // Particles have p^{n-1/2} and x^{n}.
+	    
+	    if (is_synchronized) {
+	        // on first step, push E and X by 0.5*dt
+	        EvolveE(lev, 0.5*dt[lev]);
+	        mypc->PushX(lev, 0.5*dt[lev]);
+                mypc->Redistribute();  // Redistribute particles
+                is_synchronized = false;
+	    }
 
 	    EvolveB(lev, 0.5*dt[lev]); // We now B^{n}
 
@@ -53,8 +66,6 @@ WarpX::Evolve (int numsteps)
 			 *Bfield[lev][0],*Bfield[lev][1],*Bfield[lev][2],
 			 *current[lev][0],*current[lev][1],*current[lev][2], cur_time, dt[lev]);
 
-	    mypc->Redistribute();  // Redistribute particles
-
 	    EvolveB(lev, 0.5*dt[lev]); // We now B^{n+1/2}
 
 	    // Fill B's ghost cells because of the next step of evolving E.
@@ -62,8 +73,17 @@ WarpX::Evolve (int numsteps)
 	    WarpX::FillBoundary(*Bfield[lev][1], geom[lev], By_nodal_flag);
 	    WarpX::FillBoundary(*Bfield[lev][2], geom[lev], Bz_nodal_flag);
 
-	    EvolveE(lev, dt[lev]); // We now have E^{n+1}
+   	    if (cur_time + dt[0] >= stop_time - 1.e-6*dt[0] || step == numsteps_max-1) {
+   	        // on last step, push by only 0.5*dt to synchronize all at n+1/2
+	        EvolveE(lev, 0.5*dt[lev]); // We now have E^{n+1/2}
+	        mypc->PushX(lev, -0.5*dt[lev]);
+                is_synchronized = true;
+            } else {
+	        EvolveE(lev, dt[lev]); // We now have E^{n+1}
+	    }
 
+	    mypc->Redistribute();  // Redistribute particles
+            
 	    ++istep[lev];
 	}
 
@@ -80,6 +100,9 @@ WarpX::Evolve (int numsteps)
 	}
 
 	if (plot_int > 0 && (step+1) % plot_int == 0) {
+            mypc->FieldGather(lev,
+                              *Efield[lev][0],*Efield[lev][1],*Efield[lev][2],
+                              *Bfield[lev][0],*Bfield[lev][1],*Bfield[lev][2]);
 	    last_plot_file_step = step+1;
 	    WritePlotFile();
 	}
@@ -93,6 +116,8 @@ WarpX::Evolve (int numsteps)
 	    max_time_reached = true;
 	    break;
 	}
+
+	// End loop on time steps
     }
 
     if (plot_int > 0 && istep[0] > last_plot_file_step && (max_time_reached || istep[0] >= max_step)) {
@@ -184,6 +209,37 @@ WarpX::EvolveE (int lev, Real dt)
 			   dtsdx_c2, dtsdx_c2+1, dtsdx_c2+2,
 			   &norder);
     }
+}
+
+void
+WarpX::FillBoundaryE(int lev, bool force)
+{
+    if (force || WarpX::nox > 1 || WarpX::noy > 1 || WarpX::noz > 1) {
+        WarpX::FillBoundary(*Efield[lev][0], geom[lev], Ex_nodal_flag);
+        WarpX::FillBoundary(*Efield[lev][1], geom[lev], Ey_nodal_flag);
+        WarpX::FillBoundary(*Efield[lev][2], geom[lev], Ez_nodal_flag);
+    }
+}
+
+void
+WarpX::FillBoundaryB(int lev, bool force)
+{
+    if (force || WarpX::nox > 1 || WarpX::noy > 1 || WarpX::noz > 1) {
+        WarpX::FillBoundary(*Bfield[lev][0], geom[lev], Bx_nodal_flag);
+        WarpX::FillBoundary(*Bfield[lev][1], geom[lev], By_nodal_flag);
+        WarpX::FillBoundary(*Bfield[lev][2], geom[lev], Bz_nodal_flag);
+    }
+}
+
+void
+WarpX::PushParticlesandDepose(int lev, Real cur_time)
+{
+    // Evolve particles to p^{n+1/2} and x^{n+1}
+    // Depose current, j^{n+1/2}
+    mypc->Evolve(lev,
+		 *Efield[lev][0],*Efield[lev][1],*Efield[lev][2],
+		 *Bfield[lev][0],*Bfield[lev][1],*Bfield[lev][2],
+		 *current[lev][0],*current[lev][1],*current[lev][2], cur_time, dt[lev]);
 }
 
 void

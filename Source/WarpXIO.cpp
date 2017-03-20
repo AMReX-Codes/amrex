@@ -70,6 +70,8 @@ WarpX::WriteWarpXHeader(const std::string& name) const
 	
 	HeaderFile << moving_window_x << "\n";
 
+        HeaderFile << is_synchronized << "\n";
+
 	// Geometry
 	for (int i = 0; i < BL_SPACEDIM; ++i) {
             HeaderFile << Geometry::ProbLo(i) << ' ';
@@ -205,6 +207,9 @@ WarpX::InitFromCheckpoint ()
 	}
 
 	is >> moving_window_x;
+	GotoNextLine(is);
+
+        is >> is_synchronized;
 	GotoNextLine(is);
 
 	Real prob_lo[BL_SPACEDIM];
@@ -394,7 +399,22 @@ WarpX::WritePlotFile () const
 					Geom(), t_new[0], istep, refRatio());
     }
 
-    mypc->Checkpoint(plotfilename, "particle", false);
+    Array<std::string> particle_varnames;
+    particle_varnames.push_back("weight");
+
+    particle_varnames.push_back("velocity_x");
+    particle_varnames.push_back("velocity_y");
+    particle_varnames.push_back("velocity_z");
+
+    particle_varnames.push_back("Ex");
+    particle_varnames.push_back("Ey");
+    particle_varnames.push_back("Ez");
+
+    particle_varnames.push_back("Bx");
+    particle_varnames.push_back("By");
+    particle_varnames.push_back("Bz");
+
+    mypc->Checkpoint(plotfilename, "particle", true, particle_varnames);
 
     WriteJobInfo(plotfilename);
 

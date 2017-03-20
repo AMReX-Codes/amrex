@@ -333,7 +333,7 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
   ! _________________________________________________________________
   !>
   !> @brief
-  !> Main subroutine for the particle pusher
+  !> Main subroutine for the particle pusher (velocity and position)
   !>
   !> @param[in] np number of super-particles
   !> @param[in] xp,yp,zp particle position arrays
@@ -402,6 +402,38 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
 !       CALL pxr_set_gamma(np,uxp,uyp,uzp,gaminv)
       
     END SELECT
+
+    !!!! --- push particle species positions a time step
+#if (BL_SPACEDIM == 3)
+    CALL pxr_pushxyz(np,xp,yp,zp,uxp,uyp,uzp,gaminv,dt)
+#elif (BL_SPACEDIM == 2)
+    CALL pxr_pushxz(np,xp,zp,uxp,uzp,gaminv,dt)
+#endif
+
+  end subroutine
+
+  ! _________________________________________________________________
+  !>
+  !> @brief
+  !> Main subroutine for the particle pusher of positions
+  !>
+  !> @param[in] np number of super-particles
+  !> @param[in] xp,yp,zp particle position arrays
+  !> @param[in] uxp,uyp,uzp normalized momentum in each direction
+  !> @param[in] gaminv particle Lorentz factors
+  !> @param[in] dt time step
+  !> @param[in] particle_pusher_algo Particle pusher algorithm
+  subroutine warpx_particle_pusher_positions(np,xp,yp,zp,uxp,uyp,uzp, &
+                                  gaminv,dt) &
+       bind(C, name="warpx_particle_pusher_positions")
+
+    INTEGER(c_long), INTENT(IN)   :: np
+    REAL(amrex_real),INTENT(INOUT)    :: gaminv(np)
+    REAL(amrex_real),INTENT(INOUT)    :: xp(np),yp(np),zp(np)
+    REAL(amrex_real),INTENT(INOUT)    :: uxp(np),uyp(np),uzp(np)
+    REAL(amrex_real),INTENT(IN)       :: dt
+
+    CALL pxr_set_gamma(np,uxp,uyp,uzp,gaminv)
 
     !!!! --- push particle species positions a time step
 #if (BL_SPACEDIM == 3)

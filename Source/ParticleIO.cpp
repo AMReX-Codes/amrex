@@ -21,11 +21,12 @@ WarpXParticleContainer::WriteHeader (std::ostream& os) const
 void
 MultiParticleContainer::Checkpoint (const std::string& dir, 
 				    const std::string& name,
-				    bool is_checkpoint) const
+				    bool is_checkpoint,
+                                    const Array<std::string>& varnames) const
 {
     for (unsigned i = 0, n = allcontainers.size(); i < n; ++i) {
 	std::string namei = name + std::to_string(i);
-	allcontainers[i]->Checkpoint(dir, namei, is_checkpoint);
+	allcontainers[i]->Checkpoint(dir, namei, is_checkpoint, varnames);
     }
 }
 

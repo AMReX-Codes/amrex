@@ -13,7 +13,7 @@
 
 //
 // MultiParticleContainer holds multiple (nspecies or npsecies+1 when
-// using laser) WarpXParticleContainer.  WarpXParticlContainer is
+// using laser) WarpXParticleContainer.  WarpXParticleContainer is
 // derived from amrex::ParticleContainer, and it is
 // polymorphic. PhysicalParticleContainer and LaserParticleContainer are
 // concrete class dervied from WarpXParticlContainer.
@@ -36,16 +36,23 @@ public:
 
     void InitData ();
 
+    void FieldGather (int lev,
+                      const amrex::MultiFab& Ex, const amrex::MultiFab& Ey, const amrex::MultiFab& Ez,
+                      const amrex::MultiFab& Bx, const amrex::MultiFab& By, const amrex::MultiFab& Bz);    
+
     void Evolve (int lev,
 		 const amrex::MultiFab& Ex, const amrex::MultiFab& Ey, const amrex::MultiFab& Ez,
 		 const amrex::MultiFab& Bx, const amrex::MultiFab& By, const amrex::MultiFab& Bz,
 		 amrex::MultiFab& jx, amrex::MultiFab& jy, amrex::MultiFab& jz, amrex::Real, amrex::Real dt);
 
+    void PushX (int lev, amrex::Real dt);
+
     std::unique_ptr<amrex::MultiFab> GetChargeDensity(int lev, bool local = false);
 
     void Checkpoint (const std::string& dir,
 		     const std::string& name,
-		     bool is_checkpoint) const;
+		     bool is_checkpoint,
+                     const amrex::Array<std::string>& varnames = amrex::Array<std::string>()) const;
 
     void Restart (const std::string& dir, const std::string& name);
 
@@ -63,6 +70,8 @@ public:
 
     void SetParticleBoxArray (int lev, amrex::BoxArray& new_ba);
     void SetParticleDistributionMap (int lev, amrex::DistributionMapping& new_dm);
+
+    int nSpecies() {return nspecies;}
 
 private:
 

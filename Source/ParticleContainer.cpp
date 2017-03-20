@@ -52,6 +52,16 @@ MultiParticleContainer::InitData ()
 }
 
 void
+MultiParticleContainer::FieldGather (int lev,
+                                     const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
+                                     const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz)
+{
+    for (auto& pc : allcontainers) {
+	pc->FieldGather(lev, Ex, Ey, Ez, Bx, By, Bz);
+    }
+}
+
+void
 MultiParticleContainer::Evolve (int lev,
 			     const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
 			     const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz,
@@ -71,6 +81,14 @@ MultiParticleContainer::Evolve (int lev,
     jz.SumBoundary(gm.periodicity());
 }
 
+void
+MultiParticleContainer::PushX (int lev, Real dt)
+{
+
+    for (auto& pc : allcontainers) {
+	pc->PushX(lev, dt);
+    }
+}
 
 std::unique_ptr<MultiFab>
 MultiParticleContainer::GetChargeDensity (int lev, bool local)

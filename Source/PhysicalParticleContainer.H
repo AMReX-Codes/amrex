@@ -16,6 +16,10 @@ public:
 
     virtual void InitData () override;
 
+    virtual void FieldGather(int lev,
+                             const amrex::MultiFab& Ex, const amrex::MultiFab& Ey, const amrex::MultiFab& Ez,
+                             const amrex::MultiFab& Bx, const amrex::MultiFab& By, const amrex::MultiFab& Bz) override;
+
     virtual void Evolve (int lev,
 			 const amrex::MultiFab& Ex, const amrex::MultiFab& Ey, const amrex::MultiFab& Ez,
 			 const amrex::MultiFab& Bx, const amrex::MultiFab& By, const amrex::MultiFab& Bz,

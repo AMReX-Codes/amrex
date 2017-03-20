@@ -56,6 +56,34 @@ public:
 
     static bool use_laser;
 
+    amrex::MultiFab * getcurrent (int lev, int direction) {return current[lev][direction].get();}
+    amrex::MultiFab * getEfield (int lev, int direction) {return Efield[lev][direction].get();}
+    amrex::MultiFab * getBfield (int lev, int direction) {return Bfield[lev][direction].get();}
+
+    void ComputeDt ();
+    void MoveWindow ();
+
+    void EvolveE (int lev, amrex::Real dt);
+    void EvolveB (int lev, amrex::Real dt);
+    void FillBoundaryE (int lev, bool force);
+    void FillBoundaryB (int lev, bool force);
+    void PushParticlesandDepose (int lev, amrex::Real cur_time);
+
+    int getistep (int lev) {return istep[lev];}
+    void setistep (int lev, int ii) {istep[lev] = ii;}
+    amrex::Real gett_new (int lev) {return t_new[lev];}
+    void sett_new (int lev, amrex::Real time) {t_new[lev] = time;}
+    amrex::Real getdt (int lev) {return dt[lev];}
+
+    int maxStep () {return max_step;}
+    amrex::Real stopTime () {return stop_time;}
+
+    int checkInt () {return check_int;}
+    int plotInt () {return plot_int;}
+
+    void WriteCheckPointFile () const;
+    void WritePlotFile () const;
+
 protected:
 
     //! Tagging cells for refinement
@@ -90,9 +118,6 @@ private:
     // Singleton is used when the code is run from python
     static WarpX* m_instance;
 
-    void EvolveE (int lev, amrex::Real dt);
-    void EvolveB (int lev, amrex::Real dt);
-
     void ReadParameters ();
 
     void RegridBaseLevel ();
@@ -113,14 +138,9 @@ private:
 
     void InitOpenbc ();
 
-    void ComputeDt ();
-
-    void MoveWindow ();
     void InjectPlasma(int num_shift, int dir);
 
     void WriteWarpXHeader(const std::string& name) const;
-    void WriteCheckPointFile() const;
-    void WritePlotFile () const;
     void WriteJobInfo (const std::string& dir) const;
     static void PackPlotDataPtrs (amrex::Array<const amrex::MultiFab*>& pmf,
 				  const amrex::Array<std::unique_ptr<amrex::MultiFab> >& data);
@@ -171,6 +191,8 @@ private:
     std::string plot_file {"plt"};
     int check_int = -1;
     int plot_int = -1;
+
+    bool is_synchronized;
 
     static amrex::IntVect Bx_nodal_flag;
     static amrex::IntVect By_nodal_flag;

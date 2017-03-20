@@ -42,12 +42,18 @@ public:
 
     virtual void InitData () = 0;
 
+    virtual void FieldGather (int lev,
+                              const amrex::MultiFab& Ex, const amrex::MultiFab& Ey, const amrex::MultiFab& Ez,
+                              const amrex::MultiFab& Bx, const amrex::MultiFab& By, const amrex::MultiFab& Bz) {}
+
     virtual void Evolve (int lev,
 			 const amrex::MultiFab& Ex, const amrex::MultiFab& Ey, const amrex::MultiFab& Ez,
 			 const amrex::MultiFab& Bx, const amrex::MultiFab& By, const amrex::MultiFab& Bz,
 			 amrex::MultiFab& jx, amrex::MultiFab& jy, amrex::MultiFab& jz, amrex::Real t, amrex::Real dt) = 0;
 
     virtual void PostRestart () = 0;
+
+    void PushX (int lev, amrex::Real dt);
 
     std::unique_ptr<amrex::MultiFab> GetChargeDensity(int lev, bool local = false);
 
