@@ -183,6 +183,8 @@ namespace amrex
 
   private:
 
+    Box m_region;
+
     EBGraph m_graph;
     ///
     BaseIVFAB<Real>   m_volData;
@@ -240,8 +242,8 @@ namespace amrex
     friend class EBISLevel;
   };
 
-void null_deleter(EBDataImplem *)
- {}
+  extern void null_deleter(EBDataImplem *);
+
 ///
 /**
    Ref-counted version of EBDataImplem.
@@ -291,11 +293,11 @@ void null_deleter(EBDataImplem *)
     EBData& copy(const EBData&   a_source,
                  const Box&      a_regionFrom,
                  int             a_srccomp,
-                 const Box&      a_regionto,
+                 const Box&      a_regionTo,
                  int             a_destcomp,
                  int             a_numcomp)
       {
-        m_implem->copy(a_source, a_regionFrom, a_srccomp, a_destcomp, a_numcomp);
+        m_implem->copy(*a_source.m_implem, a_regionFrom, a_srccomp, a_regionTo, a_destcomp, a_numcomp);
         return *this;
       }
 
@@ -308,7 +310,7 @@ void null_deleter(EBDataImplem *)
                  int               a_destcomp,
                  int               a_numcomp=1)
       {
-        m_implem->plus(a_src, a_srcbox, a_destbox, a_srccomp, a_destcomp, a_numcomp);
+        m_implem->plus(*a_src.m_implem, a_srcbox, a_destbox, a_srccomp, a_destcomp, a_numcomp);
         return *this;
       }
 
@@ -415,7 +417,7 @@ void null_deleter(EBDataImplem *)
                              int         numcomp,
                              const void* src)
       {
-        return m_implem->copyFromMem(dstbox, dstcomp, numcomp, dst);
+        return m_implem->copyFromMem(dstbox, dstcomp, numcomp, src);
       }
 
     ///
@@ -436,7 +438,7 @@ void null_deleter(EBDataImplem *)
                               const BaseIVFAB<Real>& a_grownData,
                               const EBGraph&         a_oldGhostGraph)
       {
-        m_implem->addFullIrregularVoFs(a_vofsToChange, a_newGraph, a_grownData, a_oldGraph);
+        m_implem->addFullIrregularVoFs(a_vofsToChange, a_newGhostGraph, a_grownData, a_oldGhostGraph);
       }
 
 
@@ -452,7 +454,7 @@ void null_deleter(EBDataImplem *)
     computeNormalsAndBoundaryAreas(const EBGraph& a_graph,
                                    const Box&     a_validRegion)
       {
-        return m_implem->computeNormalsAndBoundaryAreas(a_ebgraph, a_validRegion);
+        return m_implem->computeNormalsAndBoundaryAreas(a_graph, a_validRegion);
       }
 
     BaseIVFAB<Real>& getVolData()
@@ -468,12 +470,12 @@ void null_deleter(EBDataImplem *)
 
     BaseIFFAB<Real>& getFaceData(int a_idir)
       {
-        return m_implem->getVolData(idir);
+        return m_implem->getFaceData(a_idir);
       }
 
-    const BaseIFFAB<Real>& getFaceData() const
+    const BaseIFFAB<Real>& getFaceData(int a_idir) const
       {
-        return m_implem->getFaceData();
+        return m_implem->getFaceData(a_idir);
       }
 
 

@@ -41,7 +41,7 @@ namespace amrex
 
     Real retval = PolyGeom::dot(diff, unitNormal);
 
-    return Abs(retval);
+    return std::abs(retval);
   }
 
 
@@ -53,7 +53,7 @@ namespace amrex
   {
     // get the determinant of a
     Real detA = 1.0/PolyGeom::determinantSD(a_A);
-    if (Abs(detA) < 1.0e-10)
+    if (std::abs(detA) < 1.0e-10)
     {
       amrex::Error("invertMatrix: determinant appears to be zero");
     }
@@ -76,8 +76,8 @@ namespace amrex
     }
     if (a_test)
     {
-      Real AtimesAInverse[SpaceDim][SpaceDim];
-      bool pass = true;
+//      Real AtimesAInverse[SpaceDim][SpaceDim];
+//      bool pass = true;
       //multiply a*ainverse and see if correct
       for (int irow = 0; irow < SpaceDim; irow++)
       {
@@ -90,16 +90,16 @@ namespace amrex
           {
             sum += a_A[irow][ivec]*a_AInverse[ivec][icol];
           }
-          AtimesAInverse[irow][icol] = sum;
-          Real rightAns= 0;
-          if (icol == irow)
-          {
-            rightAns= 1;
-          }
-          if (Abs(sum - rightAns) > 1.0e-8)
-          {
-            pass = false;
-          }
+//          AtimesAInverse[irow][icol] = sum;
+//          Real rightAns= 0;
+//          if (icol == irow)
+//          {
+//            rightAns= 1;
+//          }
+//          if (std::abs(sum - rightAns) > 1.0e-8)
+//          {
+////            pass = false;
+//          }
         }
       }
     }
@@ -271,7 +271,7 @@ namespace amrex
     Real numer = determinant(topMat);
     Real denom = determinant(a_A);
     Real eps = 1.0e-10;
-    if (Abs(denom) < eps)
+    if (std::abs(denom) < eps)
       amrex::Error("MatrixSolveComp has encountered unsolvable matrix");
     Real result = numer/denom;
     return result;
@@ -330,7 +330,7 @@ namespace amrex
   {
     Real det = 0.0;
 
-    D_SELECT6(
+    D_TERM(
       det = a_A[0][0];,
 
       det = a_A[0][0]*a_A[1][1]
@@ -338,14 +338,7 @@ namespace amrex
 
       det = a_A[0][0] * (a_A[1][1]*a_A[2][2] - a_A[2][1]*a_A[1][2])
       - a_A[0][1] * (a_A[1][0]*a_A[2][2] - a_A[2][0]*a_A[1][2])
-      + a_A[0][2] * (a_A[1][0]*a_A[2][1] - a_A[2][0]*a_A[1][1]);,
-
-      amrex::Error("PolyGeom::Determinant not equiped for your fancy 4 dimensions yet");,
-
-      amrex::Error("PolyGeom::Determinant not equiped for your fancy 5 dimensions yet");,
-
-      amrex::Error("PolyGeom::Determinant not equiped for your fancy 6 dimensions yet");
-      );
+      + a_A[0][2] * (a_A[1][0]*a_A[2][1] - a_A[2][0]*a_A[1][1]));
 
     return det;
   }
@@ -356,22 +349,13 @@ namespace amrex
   {
     Real det = 0.0;
 
-    D_SELECT6(
+    D_TERM(
       det = 0.0;,
 
       det = a_A[0][0];,
 
       det = a_A[0][0]*a_A[1][1]
-      - a_A[0][1]*a_A[1][0];,
-
-      det = a_A[0][0] * (a_A[1][1]*a_A[2][2] - a_A[2][1]*a_A[1][2])
-      - a_A[0][1] * (a_A[1][0]*a_A[2][2] - a_A[2][0]*a_A[1][2])
-      + a_A[0][2] * (a_A[1][0]*a_A[2][1] - a_A[2][0]*a_A[1][1]);,
-
-      amrex::Error("PolyGeom::Determinant not equiped for your fancy 5 dimensions yet");,
-
-      amrex::Error("PolyGeom::Determinant not equiped for your fancy 6 dimensions yet");
-      );
+      - a_A[0][1]*a_A[1][0])
 
     return det;
   }
@@ -405,12 +389,12 @@ namespace amrex
     {
       signx = -1.0;
     }
-    if (Abs(pt0[0] -pt1[0]) < s_tolerance)
+    if (std::abs(pt0[0] -pt1[0]) < s_tolerance)
     {
       a_normal[1] = 0.0;
       a_normal[0] = signx;
     }
-    else if (Abs(pt0[1] -pt1[1]) < s_tolerance)
+    else if (std::abs(pt0[1] -pt1[1]) < s_tolerance)
     {
       if (pt0[0] < pt1[0])
       {
@@ -527,13 +511,13 @@ namespace amrex
   void
   PolyGeom::posifyVector(RealVect& a_vect, IntVect& a_sign)
   {
-    a_sign = IntVect::Unit;
+    a_sign = IntVect::TheUnitVector();
     for (int idir = 0; idir < SpaceDim; idir++)
     {
       if (a_vect[idir] < 0.0)
       {
         a_sign[idir] = -1;
-        a_vect[idir] = Abs(a_vect[idir]);
+        a_vect[idir] = std::abs(a_vect[idir]);
       }
     }
   }
@@ -644,7 +628,7 @@ namespace amrex
       {
         amrex::Error("computeAlpha (bisection iteration): root not bracketed");
       }
-      Real err = Abs(alphaHi-alphaLo);
+      Real err = std::abs(alphaHi-alphaLo);
       Real funcMid = computeVolume(alphaMid, a_normal)  - a_volFrac;
       int itermax = 1000;
       int iteration = 0;
@@ -665,7 +649,7 @@ namespace amrex
         }
         iteration++;
         alphaMid = 0.5*(alphaLo+alphaHi);
-        err = Abs(alphaMid - alphaOld);
+        err = std::abs(alphaMid - alphaOld);
       }
       if ((alphaMid < alphaMin) || alphaMid > alphaMax)
         amrex::Error("bisectiter: solution out of bounds");
