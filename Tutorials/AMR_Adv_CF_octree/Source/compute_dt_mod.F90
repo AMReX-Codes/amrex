@@ -10,39 +10,26 @@ module compute_dt_module
 contains
 
   subroutine compute_dt ()
-    use my_amr_module, only : t_new, dt, stop_time, nsubsteps
+    use my_amr_module, only : t_new, dtstep, stop_time
 
-    integer :: lev, nlevs, n_factor
-    real(amrex_real) :: dt_0, eps
-    real(amrex_real), allocatable :: dt_tmp(:)
+    integer :: lev, nlevs
+    real(amrex_real) :: dt_level, eps
     real(amrex_real), parameter :: change_max = 1.1_amrex_real
 
     nlevs = amrex_get_numlevels()
     
-    allocate(dt_tmp(0:nlevs-1))
+    dtstep= huge(1.0_amrex_real)
     do lev = 0, nlevs-1
-       dt_tmp(lev) = est_timestep(lev, t_new(lev))
+       dt_level = est_timestep(lev, t_new(lev))
+       dtstep= min(dtstep, dt_level)
     end do
-    call amrex_parallel_reduce_min(dt_tmp, nlevs)
+    call amrex_parallel_reduce_min(dtstep)
  
-    dt_0 = dt_tmp(0)
-    n_factor = 1
-    do lev = 0, nlevs-1
-       dt_tmp(lev) = min(dt_tmp(lev), change_max*dt(lev))
-       n_factor = n_factor * nsubsteps(lev)
-       dt_0 = min(dt_0, n_factor*dt_tmp(lev))
-    end do
-    
-    ! Limit dt's by the value of stop_time.
-    eps = 1.e-3_amrex_real * dt_0
-    if (t_new(0) + dt_0 .gt. stop_time - eps) then
-       dt_0 = stop_time - t_new(0)
+    ! Limit dt by the value of stop_time.
+    eps = 1.e-3_amrex_real * dtstep
+    if (t_new(0) + dtstep.gt. stop_time - eps) then
+       dtstep= stop_time - t_new(0)
     end if
-
-    dt(0) = dt_0
-    do lev = 1, nlevs-1
-       dt(lev) = dt(lev-1) / nsubsteps(lev)
-    end do
   end subroutine compute_dt
 
 

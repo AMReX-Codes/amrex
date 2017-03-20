@@ -2,7 +2,7 @@ module averagedown_module
 
   use amrex_amr_module
 
-  use my_amr_module, only : phi_new
+  use amr_data_module, only : phi_new
 
   implicit none
   private

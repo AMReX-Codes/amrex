@@ -25,10 +25,8 @@ module my_amr_module
   character(len=127) :: plot_file  = "plt"
   character(len=127) :: restart    = ""  
 
-  integer, allocatable :: stepno(:)
-  integer, allocatable :: nsubsteps(:)
-
-  real(rt), allocatable :: dt(:)
+  integer  :: stepno
+  real(rt) :: dtstep
 
   integer, private, parameter :: ncomp = 1, nghost = 0
   
@@ -70,17 +68,8 @@ contains
     call pp%query("do_reflux", do_reflux)
     call amrex_parmparse_destroy(pp)
 
-    allocate(stepno(0:amrex_max_level))
     stepno = 0
-
-    allocate(nsubsteps(0:amrex_max_level))
-    nsubsteps(0) = 1
-    do ilev = 1, amrex_max_level
-       nsubsteps(ilev) = amrex_ref_ratio(ilev-1)
-    end do
-
-    allocate(dt(0:amrex_max_level))
-    dt = 1.e100
+    dtstep = 1.e100
 
     call amr_data_init()
   end subroutine my_amr_init

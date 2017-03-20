@@ -2,12 +2,12 @@ module averagedown_module
 
   use amrex_amr_module
 
-  use my_amr_module, only : phi_new
+  use amr_data_module, only : phi_new
 
   implicit none
   private
   
-  public :: averagedown, averagedownto
+  public :: averagedown
 
 contains
 
@@ -19,11 +19,5 @@ contains
             1, 1, amrex_ref_ratio(lev))
     end do
   end subroutine averagedown
-
-  subroutine averagedownto (clev)
-    integer, intent(in) :: clev
-    call amrex_average_down(phi_new(clev+1), phi_new(clev), amrex_geom(clev+1), amrex_geom(clev), &
-         1, 1, amrex_ref_ratio(clev))    
-  end subroutine averagedownto
 
 end module averagedown_module
