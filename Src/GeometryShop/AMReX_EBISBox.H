@@ -331,6 +331,12 @@ namespace amrex
     define(const EBGraph&  a_graph,
            const EBData&   a_data);
 
+    EBISBox(const EBGraph&  a_graph,
+            const EBData&   a_data)
+      {
+        define(a_graph, a_data);
+      }
+
     ///pointer copy
     EBISBox& operator=(const EBISBox& ebiin);
 
