@@ -12,7 +12,7 @@ Welcome to WarpX's documentation!
 
    cpp_class
    python_class
-   theory
+   theory/theory
 
 Indices and tables
 ==================

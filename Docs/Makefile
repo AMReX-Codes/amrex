@@ -16,5 +16,12 @@ help:
 
 # Catch-all target: route all unknown targets to Sphinx using the new
 # "make mode" option.  $(O) is meant as a shortcut for $(SPHINXOPTS).
-%: Makefile
+%: Makefile Python-build Doxygen-build
+	cd $(SOURCEDIR)/theory;make
 	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
+
+Python-build:
+	cd ../Python;make pybuild
+
+Doxygen-build:
+	doxygen Doxyfile
