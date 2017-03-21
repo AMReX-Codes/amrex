@@ -57,7 +57,7 @@ The material that is presented is intended to serve as an introduction to the ba
 \caption{\label{fig:Plasma_acceleration_sim} Plasma laser-driven (top) and charged-particles-driven (bottom) acceleration (rendering from 3-D Particle-In-Cell simulations). A laser beam (red and blue disks in top picture) or a charged particle beam (red dots in bottom picture) propagating (from left to right) through an under-dense plasma (not represented) displaces electrons, creating a plasma wakefield that supports very high electric fields (pale blue and yellow). These electric fields, which can be orders of magnitude larger than with conventional techniques, can be used to accelerate a short charged particle beam (white) to high-energy over a very short distance.}
 \end{figure}
 
-Computer simulations have had a profound impact on the design and understanding of past and present plasma acceleration experiments \cite{TsungPoP06,GeddesJP08,GeddesSciDAC09,HuangSciDAC09}, with  
+Computer simulations have had a profound impact on the design and understanding of past and present plasma acceleration experiments \cite{Tsungpop06,Geddesjp08,Geddesscidac09,Huangscidac09}, with  
 accurate modeling of wake formation, electron self-trapping and acceleration requiring fully kinetic methods (usually Particle-In-Cell) using large computational resources due to the wide range of space and time scales involved. Numerical modeling complements and guides the design and analysis of advanced accelerators, and can reduce development costs significantly. Despite the major recent experimental successes\cite{LeemansPRL2014,Blumenfeld2007,BulanovSV2014,Steinke2016}, the various advanced acceleration concepts need significant progress to fulfill their potential.  To this end, large-scale simulations will continue to be a key component toward reaching a detailed understanding of the complex interrelated physics phenomena at play. 
 
 For such simulations,
@@ -65,10 +65,10 @@ the most popular algorithm is the Particle-In-Cell (or PIC) technique,
 which represents electromagnetic fields on a grid and particles by
 a sample of macroparticles. 
 However, these simulations are extremely computationally intensive, due to the need to resolve the evolution of a driver (laser or particle beam) and an accelerated beam into a structure that is orders of magnitude longer and wider than the accelerated beam.
-Various techniques or reduced models have been developed to allow multidimensional simulations at manageable computational costs: quasistatic approximation \cite{SpranglePRL90,AntonsenPRL1992,KrallPRE1993,Morapop1997,Quickpic}, 
-ponderomotive guiding center (PGC) models \cite{AntonsenPRL1992,KrallPRE1993,Quickpic,BenedettiAAC2010,CowanJCP11}, simulation in an optimal Lorentz boosted frame \cite{VayPRL07,Bruhwileraac08,Vayscidac09,Vaypac09,Martinspac09,VayAAC2010,MartinsNaturePhysics10,MartinsPoP10, MartinsCPC10, VayJCP2011,VayPOPL2011,VayPOP2011,Yu2016}, 
+Various techniques or reduced models have been developed to allow multidimensional simulations at manageable computational costs: quasistatic approximation \cite{Sprangleprl90,Antonsenprl1992,Krallpre1993,Morapop1997,Quickpic}, 
+ponderomotive guiding center (PGC) models \cite{Antonsenprl1992,Krallpre1993,Quickpic,Benedettiaac2010,Cowanjcp11}, simulation in an optimal Lorentz boosted frame \cite{Vayprl07,Bruhwileraac08,Vayscidac09,Vaypac09,Martinspac09,VayAAC2010,Martinsnaturephysics10,Martinspop10, Martinscpc10, Vayjcp2011,VayPOPL2011,Vaypop2011,Yu2016}, 
 expanding the fields into a truncated series of azimuthal modes
-\cite{godfrey1985iprop,LifschitzJCP2009,DavidsonJCP2015,Lehe2016,AndriyashPoP2016}, fluid approximation \cite{KrallPRE1993,ShadwickPoP09,BenedettiAAC2010} and scaled parameters \cite{CormierAAC08,GeddesPAC09}. 
+\cite{godfrey1985iprop,LifschitzJCP2009,DavidsonJCP2015,Lehe2016,AndriyashPoP2016}, fluid approximation \cite{Krallpre1993,Shadwickpop09,Benedettiaac2010} and scaled parameters \cite{Cormieraac08,Geddespac09}. 
 %
 Many codes have been developed and are used for the modeling of plasma accelerators. 
 A list of such codes is given in table \ref{table_codes}, with the name of the code, its main characteristics, the web site if existing or a reference, and the availability and license, if known. 
@@ -86,7 +86,7 @@ In Section 2 of this chapter, we review the standard methods employed in relativ
 \caption{\label{fig:PIC} The Particle-In-Cell (PIC) method follows the evolution of a collection of charged macro-particles (positively charged in blue on the left plot, negatively charged in red) that evolve self-consistently with their electromagnetic (or electrostatic) fields. The core PIC algorithm involves four operations at each time step: 1) evolve the velocity and position of the particles using the Newton-Lorentz equations, 2) deposit the charge and/or current densities through interpolation from the particles distributions onto the grid, 3) evolve Maxwell's wave equations (for electromagnetic) or solve Poisson's equation (for electrostatic) on the grid, 4) interpolate the fields from the grid onto the particles for the next particle push. Additional ``add-ons'' operations are inserted between these core operations to account for additional physics (e.g. absorption/emission of particles, addition of external forces to account for accelerator focusing or accelerating component) or numerical effects (e.g. smoothing/filtering of the charge/current densities and/or fields on the grid).}
 \end{figure}
 
-In the electromagnetic Particle-In-Cell method \cite{BirdsallLangdon},
+In the electromagnetic Particle-In-Cell method \cite{Birdsalllangdon},
 the electromagnetic fields are solved on a grid, usually using Maxwell's
 equations
 
@@ -195,11 +195,11 @@ The simulations of plasma accelerators from first principles are extremely compu
 \caption{\label{fig:PIC} A first principle simulation of a short driver beam (laser or charged particles) propagating through a plasma that is orders of magnitude longer necessitates a very large number of time steps. Recasting the simulation in a frame of reference that is moving close to the speed of light in the direction of the driver beam leads to simulating a driver beam that appears longer propagating through a plasma that appears shorter than in the laboratory. Thus, this relativistic transformation of space and time reduces the disparity of scales, and thereby the number of time steps to complete the simulation, by orders of magnitude.}
 \end{figure}
 
-Even using a moving window, however, a full PIC simulation of a plasma accelerator can be extraordinarily demanding computationally, as many time steps are needed to resolve the crossing of the short driver beam with the plasma column. As it turns out, choosing an optimal frame of reference that travels close to the speed of light in the direction of the laser or particle beam (as opposed to the usual choice of the laboratory frame) enables speedups by orders of magnitude \cite{VayPRL07,VayPOP2011}. This is a result of the properties of Lorentz contraction and dilation of space and time. In the frame of the laboratory, a very short driver (laser or particle) beam propagates through a much longer plasma column, necessitating millions to tens of millions of time steps for parameters in the range of the BELLA or FACET-II experiments. As sketched in Fig. \ref{fig:PIC}, in a frame moving with the driver beam in the plasma at velocity $v=\beta c$ (where $c$ is the speed of light in vacuum), the beam length is now elongated by $\approx(1+\beta)\gamma$ while the plasma contracts by $\gamma$ (where $\gamma=1/\sqrt{1-\beta^2}$ is the relativistic factor associated with the frame velocity). The number of time steps that is needed to simulate a ``longer'' beam through a ``shorter'' plasma is now reduced by up to $\approx(1+\beta) \gamma^2$ (a detailed derivation of the speedup is given below). 
+Even using a moving window, however, a full PIC simulation of a plasma accelerator can be extraordinarily demanding computationally, as many time steps are needed to resolve the crossing of the short driver beam with the plasma column. As it turns out, choosing an optimal frame of reference that travels close to the speed of light in the direction of the laser or particle beam (as opposed to the usual choice of the laboratory frame) enables speedups by orders of magnitude \cite{Vayprl07,Vaypop2011}. This is a result of the properties of Lorentz contraction and dilation of space and time. In the frame of the laboratory, a very short driver (laser or particle) beam propagates through a much longer plasma column, necessitating millions to tens of millions of time steps for parameters in the range of the BELLA or FACET-II experiments. As sketched in Fig. \ref{fig:PIC}, in a frame moving with the driver beam in the plasma at velocity $v=\beta c$ (where $c$ is the speed of light in vacuum), the beam length is now elongated by $\approx(1+\beta)\gamma$ while the plasma contracts by $\gamma$ (where $\gamma=1/\sqrt{1-\beta^2}$ is the relativistic factor associated with the frame velocity). The number of time steps that is needed to simulate a ``longer'' beam through a ``shorter'' plasma is now reduced by up to $\approx(1+\beta) \gamma^2$ (a detailed derivation of the speedup is given below). 
 
 The modeling of a plasma acceleration stage in a boosted frame 
 involves the fully electromagnetic modeling of a plasma propagating at near the speed of light, for which Numerical Cerenkov 
-\cite{BorisJCP73,HaberICNSP73} is a potential issue, as explained in more details below.
+\cite{Borisjcp73,Habericnsp73} is a potential issue, as explained in more details below.
 In addition, for a frame of reference moving in the direction of the accelerated beam (or equivalently the wake of the laser), 
 waves emitted by the plasma in the forward direction expand 
 while the ones emitted in the backward direction contract, following the properties of the Lorentz transformation. 
@@ -211,15 +211,15 @@ interact as strongly with the beam as do the forward propagating waves
 which stay in phase for a long period. It is thus often assumed that the backward propagating waves 
 can be neglected in the modeling of plasma accelerator stages. The accuracy  of this assumption has been demonstrated by 
 comparison between explicit codes which include both forward and backward waves and envelope or quasistatic codes which neglect backward waves 
-\cite{GeddesJP08,GeddesPAC09,CowanAAC08}.
+\cite{Geddesjp08,Geddespac09,Cowanaac08}.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsubsection{Theoretical speedup dependency with the frame boost}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-The derivation that is given here reproduces the one given in \cite{VayPOP2011}, where the obtainable speedup is derived as an extension of the formula that was derived earlier\cite{VayPRL07}, taking in addition into account the group velocity of the laser as it traverses the plasma.  
+The derivation that is given here reproduces the one given in \cite{Vaypop2011}, where the obtainable speedup is derived as an extension of the formula that was derived earlier\cite{Vayprl07}, taking in addition into account the group velocity of the laser as it traverses the plasma.  
 
 Assuming that the simulation box is a fixed number of plasma periods long, which implies the use (which is standard) of a moving window following 
-the wake and accelerated beam, the speedup is given by the ratio of the time taken by the laser pulse and the plasma to cross each other, divided by the shortest time scale of interest, that is the laser period. To first order, the wake velocity $v_w$ is set by the 1D group velocity of the laser driver, which in the linear (low intensity) limit, is given by \cite{EsareyRMP09}:
+the wake and accelerated beam, the speedup is given by the ratio of the time taken by the laser pulse and the plasma to cross each other, divided by the shortest time scale of interest, that is the laser period. To first order, the wake velocity $v_w$ is set by the 1D group velocity of the laser driver, which in the linear (low intensity) limit, is given by \cite{Esareyrmp09}:
 
 %
 \begin{equation}
@@ -266,9 +266,9 @@ S=\frac{R_{lab}}{R_t^*}=\frac{\left(1+\beta\right)\left(L+\eta \lambda_p\right)}
 \label{Eq_scaling1d0}
 \end{equation}
 
-We note that assuming that $\beta_w\approx1$ (which is a valid approximation for most practical cases of interest) and that $\gamma<<\gamma_w$, this expression is consistent with the expression derived earlier \cite{VayPRL07} for the laser-plasma acceleration case, which states that $R_t^*=\alpha R_t/\left(1+\beta\right)$ with $\alpha=\left(1-\beta+l/L\right)/\left(1+l/L\right)$, where $l$ is the laser length which is generally proportional to $\eta \lambda_p$, and $S=R_t/R_T^*$. However, higher values of $\gamma$ are of interest for maximum speedup, as shown below.
+We note that assuming that $\beta_w\approx1$ (which is a valid approximation for most practical cases of interest) and that $\gamma<<\gamma_w$, this expression is consistent with the expression derived earlier \cite{Vayprl07} for the laser-plasma acceleration case, which states that $R_t^*=\alpha R_t/\left(1+\beta\right)$ with $\alpha=\left(1-\beta+l/L\right)/\left(1+l/L\right)$, where $l$ is the laser length which is generally proportional to $\eta \lambda_p$, and $S=R_t/R_T^*$. However, higher values of $\gamma$ are of interest for maximum speedup, as shown below.
 
-For intense lasers ($a\sim 1$) typically used for acceleration, the energy gain is limited by dephasing \cite{SchroederPRL2011}, which occurs over a scale length $L_d \sim \lambda_p^3/2\lambda^2$.  
+For intense lasers ($a\sim 1$) typically used for acceleration, the energy gain is limited by dephasing \cite{Schroederprl2011}, which occurs over a scale length $L_d \sim \lambda_p^3/2\lambda^2$.  
 Acceleration is compromised beyond $L_d$ and in practice, the plasma length is proportional to the dephasing length, i.e. $L= \xi L_d$. In most cases, $\gamma_w^2>>1$, which allows the approximations $\beta_w\approx1-\lambda^2/2\lambda_p^2$, and $L=\xi \lambda_p^3/2\lambda^2\approx \xi \gamma_w^2 \lambda_p/2>>\eta \lambda_p$, so that Eq.(\ref{Eq_scaling1d0}) becomes
 %
 \begin{equation}
@@ -298,16 +298,16 @@ S_{\gamma=\gamma_w}\approx\frac{2}{1+2\eta/\xi}\gamma_w^2
 \end{equation}
 Since $\eta$ and $\xi$ are of order unity, and the practical regimes of most interest satisfy $\gamma_w^2>>1$, the speedup that is obtained by using the frame of the wake will be near the maximum obtainable value given by Eq.(\ref{Eq_scaling_gamma_inf}).
 
-Note that without the use of a moving window, the relativistic effects that are at play in the time domain would also be at play in the spatial domain \cite{VayPRL07}, and the $\gamma^2$ scaling would transform to $\gamma^4$. Hence, it is important to use a moving window even in simulations in a Lorentz boosted frame. For very high values of the boosted frame, the optimal velocity of the moving window may vanish (i.e. no moving window) or even reverse.
+Note that without the use of a moving window, the relativistic effects that are at play in the time domain would also be at play in the spatial domain \cite{Vayprl07}, and the $\gamma^2$ scaling would transform to $\gamma^4$. Hence, it is important to use a moving window even in simulations in a Lorentz boosted frame. For very high values of the boosted frame, the optimal velocity of the moving window may vanish (i.e. no moving window) or even reverse.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Numerical Stability and alternate formulation in a Galilean frame}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-The numerical Cherenkov instability (NCI) \cite{godfreyjcp74}
+The numerical Cherenkov instability (NCI) \cite{Godfreyjcp74}
 is the most serious numerical instability affecting multidimensional
 PIC simulations of relativistic particle beams and streaming plasmas
-\cite{MartinsCPC10,VayAAC2010,VayJCP2011,Spitkovsky:Icnsp2011,GodfreyJCP2013,XuJCP2013}. 
+\cite{Martinscpc10,VayAAC2010,Vayjcp2011,Spitkovsky:Icnsp2011,GodfreyJCP2013,XuJCP2013}. 
 It arises from coupling between possibly numerically distorted electromagnetic modes and spurious
 beam modes, the latter due to the mismatch between the Lagrangian
 treatment of particles and the Eulerian treatment of fields \cite{Godfreyjcp75}.
@@ -326,10 +326,10 @@ it is sometimes unclear to what extent these added corrections could impact the
 physics at stake for a given resolution.
 
 For instance, NCI-specific corrections include periodically smoothing 
-the electromagnetic field components \cite{MartinsCPC10}, 
-using a special time step \cite{VayAAC2010,VayJCP2011} or
+the electromagnetic field components \cite{Martinscpc10}, 
+using a special time step \cite{VayAAC2010,Vayjcp2011} or
 applying a wide-band smoothing of the current components \cite{
-  VayAAC2010,VayJCP2011,VayPOPL2011}. Another set of mitigation methods
+  VayAAC2010,Vayjcp2011,VayPOPL2011}. Another set of mitigation methods
 involve scaling the deposited
 currents by a carefully-designed wavenumber-dependent factor
 \cite{GodfreyJCP2014_FDTD,GodfreyIEEE2014} or slightly modifying the
@@ -359,7 +359,7 @@ the PIC equations in \emph{Galilean coordinates} (also known as
 \emph{comoving coordinates}). More precisely, in the new 
 method, the Maxwell equations \emph{in Galilean coordinates} are integrated
 analytically, using only natural hypotheses, within the PSATD
-framework (Pseudo-Spectral-Analytical-Time-Domain \cite{HaberICNSP73,VayJCP2013}). 
+framework (Pseudo-Spectral-Analytical-Time-Domain \cite{Habericnsp73,VayJCP2013}). 
 
 The idea of the proposed scheme is to perform a Galilean change of
 coordinates, and to carry out the simulation in the new coordinates:
@@ -450,7 +450,7 @@ where we used the short-hand notations $\fe^n \equiv
 \end{subequations}
 Note that, in the limit $\vgal=\vec{0}$,
 (\ref{eq:disc-maxwell1}) and (\ref{eq:disc-maxwell2}) reduce to the standard PSATD
-equations \cite{HaberICNSP73}, as expected. 
+equations \cite{Habericnsp73}, as expected. 
 As shown in \cite{KirchenARXIV2016,LeheARXIV2016}, 
 the elimination of the NCI with the new Galilean integration is verified empirically via PIC simulations of uniform drifting plasmas and laser-driven plasma acceleration stages, and confirmed by a theoretical analysis of the instability.
 
@@ -664,7 +664,7 @@ equivalent.
 
 It is common practice to apply digital filtering to the charge or
 current density in Particle-In-Cell simulations as a complement or
-an alternative to using higher order splines \cite{BirdsallLangdon}.
+an alternative to using higher order splines \cite{Birdsalllangdon}.
 A commonly used filter in PIC simulations is the three points filter
 $\phi_{j}^{f}=\alpha\phi_{j}+\left(1-\alpha\right)\left(\phi_{j-1}+\phi_{j+1}\right)/2$
 where $\phi^{f}$ is the filtered quantity. This filter is called
@@ -676,7 +676,7 @@ The total attenuation $G$ for $n$ successive applications of filters
 of coefficients $\alpha_{1}$...$\alpha_{n}$ is given by $G=\prod_{i=1}^{n}g\left(\alpha_{i},k\right)\approx1-\left(n-\sum_{i=1}^{n}\alpha_{i}\right)\frac{\left(k\Delta x\right)^{2}}{2}+O\left(k^{4}\right)$.
 A sharper cutoff in $k$ space is provided by using $\alpha_{n}=n-\sum_{i=1}^{n-1}\alpha_{i}$,
 so that $G\approx1+O\left(k^{4}\right)$. Such step is called a ``compensation''
-step \cite{BirdsallLangdon}. For the bilinear filter ($\alpha=1/2$),
+step \cite{Birdsalllangdon}. For the bilinear filter ($\alpha=1/2$),
 the compensation factor is $\alpha_{c}=2-1/2=3/2$. For a succession
 of $n$ applications of the bilinear factor, it is $\alpha_{c}=n/2+1$. 
 
@@ -688,7 +688,7 @@ for parallel computations using domain decomposition, as the footprint
 of the filter may eventually surpass the size of subdomains. A workaround
 is to use a combination of filters of limited footprint. A solution
 based on the combination of three point filters with various strides
-was proposed in \cite{VayJCP2011} and operates as follows. 
+was proposed in \cite{Vayjcp2011} and operates as follows. 
 
 The bilinear filter provides complete suppression of the signal at
 the grid Nyquist wavelength (twice the grid cell size). Suppression
@@ -702,7 +702,7 @@ as given by $sk\Delta x=\arccos\left(\frac{\alpha}{\alpha-1}\right)\pmod{2\pi}$.
 The resulting filter is pass band between the poles, but since the
 poles are spread at different integer values in k space, a wide band
 low pass filter can be constructed by combining filters using different
-strides. As shown in \cite{VayJCP2011}, the successive application
+strides. As shown in \cite{Vayjcp2011}, the successive application
 of 4-passes + compensation of filters with strides 1, 2 and 4 has
 a nearly equivalent fall-off in gain as 80 passes + compensation of
 a bilinear filter. Yet, the strided filter solution needs only 15
@@ -723,7 +723,7 @@ of computational cores for parallel calculations.
 \section{Inputs and outputs}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-Initialization of the plasma columns and drivers (laser or particle beam) is performed via the specification of multidimensional functions that describe the initial state with, if needed, a time dependence, or from reconstruction of distributions based on experimental data. Care is needed when initializing quantities in parallel to avoid double counting and ensure smoothness of the distributions at the interface of computational domains. When the sum of the initial distributions of charged particles is not charge neutral, initial fields are computed using generally a static approximation with Poisson solves accompanied by proper relativistic scalings \cite{VayPOP2008, CowanPRSTAB13}. 
+Initialization of the plasma columns and drivers (laser or particle beam) is performed via the specification of multidimensional functions that describe the initial state with, if needed, a time dependence, or from reconstruction of distributions based on experimental data. Care is needed when initializing quantities in parallel to avoid double counting and ensure smoothness of the distributions at the interface of computational domains. When the sum of the initial distributions of charged particles is not charge neutral, initial fields are computed using generally a static approximation with Poisson solves accompanied by proper relativistic scalings \cite{Vaypop2008, CowanPRSTAB13}. 
 
 Outputs include dumps of particle and field quantities at regular intervals, histories of particle distributions moments, spectra, etc, and plots of the various quantities. In parallel simulations, the diagnostic subroutines need to handle additional complexity from the domain decomposition, as well as large amount of data that may necessitate data reduction in some form before saving to disk. 
 
@@ -740,11 +740,11 @@ Simulations in a Lorentz boosted frame require additional considerations, as des
 
 The input and output data are often known from, or compared to, experimental data. Thus, calculating in 
 a frame other than the laboratory entails transformations of the data between the calculation frame and the laboratory 
-frame. This section describes the procedures that have been implemented in the Particle-In-Cell framework Warp \cite{Warp} to handle the input and output of data between the frame of calculation and the laboratory frame \cite{VayPOP2011}. Simultaneity of events between two frames is valid only for a plane that is perpendicular to the relative motion of the frame. As a result, the input/output processes involve the input of data (particles or fields) through a plane, as well as output through a series of planes, all of which are perpendicular to the direction of the relative velocity between the frame of calculation and the other frame of choice. 
+frame. This section describes the procedures that have been implemented in the Particle-In-Cell framework Warp \cite{Warp} to handle the input and output of data between the frame of calculation and the laboratory frame \cite{Vaypop2011}. Simultaneity of events between two frames is valid only for a plane that is perpendicular to the relative motion of the frame. As a result, the input/output processes involve the input of data (particles or fields) through a plane, as well as output through a series of planes, all of which are perpendicular to the direction of the relative velocity between the frame of calculation and the other frame of choice. 
 
 \subsubsection{Input in a boosted frame simulation}
 \paragraph{Particles - }
-Particles are launched through a plane using a technique that is generic and applies to Lorentz boosted frame simulations in general, including plasma acceleration, and is illustrated using the case of a positively charged particle beam propagating through a background of cold electrons in an assumed continuous transverse focusing system, leading to a well-known growing transverse ``electron cloud'' instability  \cite{VayPRL07}. In the laboratory frame, the electron background is initially at rest and a moving window is used to follow the beam progression. Traditionally, the beam macroparticles are initialized all at once in the window, while background electron macroparticles are created continuously in front of the beam on a plane that is perpendicular to the beam velocity. In a frame moving at some fraction of the beam velocity in the laboratory frame, the beam initial conditions at a given time in the calculation frame are generally unknown and one must initialize the beam differently. However, it can be taken advantage of the fact that the beam initial conditions are often known for a given plane in the laboratory, either directly, or via simple calculation or projection from the conditions at a given time in the labortory frame. Given the position and velocity $\{x,y,z,v_x,v_y,v_z\}$ for each beam macroparticle at time $t=0$ for a beam moving at the average velocity $v_b=\beta_b c$ (where $c$ is the speed of light) in the laboratory, and using the standard synchronization ($z=z'=0$ at $t=t'=0$) between the laboratory and the calculation frames, the procedure for transforming the beam quantities for injection in a boosted frame moving at velocity $\beta c$ in the laboratory is as follows (the superscript $'$ relates to quantities known in the boosted frame while the superscript $^*$ relates to quantities that are know at a given longitudinal position $z^*$ but different times of arrival):
+Particles are launched through a plane using a technique that is generic and applies to Lorentz boosted frame simulations in general, including plasma acceleration, and is illustrated using the case of a positively charged particle beam propagating through a background of cold electrons in an assumed continuous transverse focusing system, leading to a well-known growing transverse ``electron cloud'' instability  \cite{Vayprl07}. In the laboratory frame, the electron background is initially at rest and a moving window is used to follow the beam progression. Traditionally, the beam macroparticles are initialized all at once in the window, while background electron macroparticles are created continuously in front of the beam on a plane that is perpendicular to the beam velocity. In a frame moving at some fraction of the beam velocity in the laboratory frame, the beam initial conditions at a given time in the calculation frame are generally unknown and one must initialize the beam differently. However, it can be taken advantage of the fact that the beam initial conditions are often known for a given plane in the laboratory, either directly, or via simple calculation or projection from the conditions at a given time in the labortory frame. Given the position and velocity $\{x,y,z,v_x,v_y,v_z\}$ for each beam macroparticle at time $t=0$ for a beam moving at the average velocity $v_b=\beta_b c$ (where $c$ is the speed of light) in the laboratory, and using the standard synchronization ($z=z'=0$ at $t=t'=0$) between the laboratory and the calculation frames, the procedure for transforming the beam quantities for injection in a boosted frame moving at velocity $\beta c$ in the laboratory is as follows (the superscript $'$ relates to quantities known in the boosted frame while the superscript $^*$ relates to quantities that are know at a given longitudinal position $z^*$ but different times of arrival):
 
 \begin{enumerate}
 \item project positions at $z^*=0$ assuming ballistic propagation
@@ -771,7 +771,7 @@ where $\gamma=1/\sqrt{1-\beta^2}$. With the knowledge of the time at which each 
 \begin{eqnarray} 
     z' &=& z'^*-\bar{v}'^*_z t'^* \label{Eq:zp}
 \end{eqnarray}
-    This additional step is needed for setting the electrostatic or electromagnetic fields at the plane of injection. In a Particle-In-Cell code, the three-dimensional fields are calculated by solving the Maxwell equations (or static approximation like Poisson, Darwin or other \cite{VayPOP2008}) on a grid on which the source term is obtained from the macroparticles distribution. This requires generation of a three-dimensional representation of the beam distribution of macroparticles at a given time before they cross the injection plane at $z'^*$. This is accomplished by expanding the beam distribution longitudinally such that all macroparticles (so far known at different times of arrival at the injection plane) are synchronized to the same time in the boosted frame. To keep the beam shape constant, the particles are ``frozen'' until they cross that plane: the three velocity components and the two position components perpendicular to the boosted frame velocity are kept constant, while the remaining position component is advanced at the average beam velocity. As particles cross the plane of injection, they become regular ``active'' particles with full 6-D dynamics.
+    This additional step is needed for setting the electrostatic or electromagnetic fields at the plane of injection. In a Particle-In-Cell code, the three-dimensional fields are calculated by solving the Maxwell equations (or static approximation like Poisson, Darwin or other \cite{Vaypop2008}) on a grid on which the source term is obtained from the macroparticles distribution. This requires generation of a three-dimensional representation of the beam distribution of macroparticles at a given time before they cross the injection plane at $z'^*$. This is accomplished by expanding the beam distribution longitudinally such that all macroparticles (so far known at different times of arrival at the injection plane) are synchronized to the same time in the boosted frame. To keep the beam shape constant, the particles are ``frozen'' until they cross that plane: the three velocity components and the two position components perpendicular to the boosted frame velocity are kept constant, while the remaining position component is advanced at the average beam velocity. As particles cross the plane of injection, they become regular ``active'' particles with full 6-D dynamics.
 
 \end{enumerate}
 
