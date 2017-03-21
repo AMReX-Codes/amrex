@@ -16,8 +16,6 @@ module my_amr_module
   integer :: check_int  = -1
   integer :: plot_int   = -1
   !
-  logical :: do_reflux  = .true.
-  !
   real(rt) :: stop_time  = huge(1._rt)
   real(rt) :: cfl        = 0.7_rt
   !
@@ -65,7 +63,6 @@ contains
     call pp%query("v", verbose)
     call pp%query("verbose", verbose)
     call pp%query("cfl", cfl)
-    call pp%query("do_reflux", do_reflux)
     call amrex_parmparse_destroy(pp)
 
     stepno = 0
@@ -102,7 +99,7 @@ contains
     call amrex_multifab_build(phi_new(lev), ba, dm, ncomp, nghost)
     call amrex_multifab_build(phi_old(lev), ba, dm, ncomp, nghost)
 
-   if (lev > 0 .and. do_reflux) then
+   if (lev > 0) then
       call amrex_fluxregister_build(flux_reg(lev), ba, dm, amrex_ref_ratio(lev-1), lev, ncomp)
    end if
 
@@ -139,7 +136,7 @@ contains
 
     call amrex_multifab_build(phi_new(lev), ba, dm, ncomp, nghost)
     call amrex_multifab_build(phi_old(lev), ba, dm, ncomp, nghost)
-    if (lev > 0 .and. do_reflux) then
+    if (lev > 0) then
        call amrex_fluxregister_build(flux_reg(lev), ba, dm, amrex_ref_ratio(lev-1), lev, ncomp)
     end if
 
@@ -171,7 +168,7 @@ contains
 
     call amrex_multifab_build(phi_new(lev), ba, dm, ncomp, nghost)
     call amrex_multifab_build(phi_old(lev), ba, dm, ncomp, nghost)
-    if (lev > 0 .and. do_reflux) then
+    if (lev > 0) then
        call amrex_fluxregister_build(flux_reg(lev), ba, dm, amrex_ref_ratio(lev-1), lev, ncomp)
     end if
 

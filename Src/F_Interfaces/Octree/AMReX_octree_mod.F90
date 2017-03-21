@@ -8,7 +8,19 @@ module amrex_octree_module
 
   private
 
-  public :: amrex_octree_init, amrex_octree_finalize
+  public :: amrex_octree_init, amrex_octree_finalize, amrex_octree_iter_build, &
+       amrex_octree_iter_destroy
+
+  type, public :: amrex_octree_iter
+     integer, private :: begin_index    = 0
+     integer, private :: end_index      = 0 ! exclusive
+     integer, private :: current_index  = 0
+   contains
+     procedure :: next       => amrex_octree_iter_next
+     procedure :: level      => amrex_octree_iter_level
+     procedure :: grid_index => amrex_octree_iter_grid_index
+     procedure :: box        => amrex_octree_iter_box
+  end type amrex_octree_iter
 
   type, bind(c) :: node
      integer :: level, grid
@@ -57,4 +69,61 @@ contains
     call amrex_fi_copy_octree_leaves(leaves, leaf_nodes);
   end subroutine amrex_octree_post_regrid
 
+  subroutine amrex_octree_iter_build (oti)
+    type(amrex_octree_iter) :: oti
+    integer :: nnodes, tid, nthreads, n_per_thread, nlft
+    nnodes = size(leaf_nodes)
+    tid = omp_get_thread_num()
+    nthreads = omp_get_num_threads()
+    if (nnodes < nthreads) then  ! there are more threads than nodes
+       if (tid < nnodes) then
+          oti%begin_index   = tid
+          oti%end_index     = tid+1
+       else
+          oti%begin_index   = 0
+          oti%end_index     = 0
+       end if
+    else
+       n_per_thread = nnodes / nthreads
+       nlft = nnodes - n_per_thread*nthreads
+       if (tid < nlft) then
+          oti%begin_index = tid*(n_per_thread+1)
+          oti%end_index   = oti%begin_index + n_per_thread+1
+       else
+          oti%begin_index = tid*n_per_thread + nlft
+          oti%end_index   = oti%begin_index + n_per_thread
+       end if
+    end if
+    oti%begin_index   = oti%begin_index + 1  ! because this is Fortran
+    oti%end_index     = oti%end_index   + 1
+    oti%current_index = oti%begin_index - 1
+  end subroutine amrex_octree_iter_build
+
+  subroutine amrex_octree_iter_destroy (oti)
+    type(amrex_octree_iter) :: oti
+  end subroutine amrex_octree_iter_destroy
+
+  logical function amrex_octree_iter_next (this)
+    class(amrex_octree_iter) :: this
+    this%current_index = this%current_index+1
+    amrex_octree_iter_next = this%current_index < this%end_index
+  end function amrex_octree_iter_next
+
+  integer function amrex_octree_iter_level (this)
+    class(amrex_octree_iter) :: this
+    amrex_octree_iter_level = leaf_nodes(this%current_index)%level
+  end function amrex_octree_iter_level
+
+  integer function amrex_octree_iter_grid_index (this)
+    class(amrex_octree_iter) :: this
+    amrex_octree_iter_grid_index = leaf_nodes(this%current_index)%grid
+  end function amrex_octree_iter_grid_index
+
+  type(amrex_box) function amrex_octree_iter_box (this)
+    class(amrex_octree_iter) :: this
+    type(amrex_boxarray) :: ba
+    ba = amrex_get_boxarray(leaf_nodes(this%current_index)%level)
+    amrex_octree_iter_box = ba%get_box(leaf_nodes(this%current_index)%grid)
+  end function amrex_octree_iter_box
+  
 end module amrex_octree_module

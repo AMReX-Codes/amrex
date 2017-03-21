@@ -67,9 +67,15 @@ extern "C" {
             else
             {
                 const BoxArray& fba = amrcore->boxArray(lev+1);
+                const IntVect& rr = amrcore->refRatio(lev);
                 for (int i = 0; i < ngrids; ++i) {
-                    if (dm[i] == myproc && !fba.intersects(ba[i])) {
-                        leaves->push_back({lev, i});
+                    if (dm[i] == myproc)
+                    {  
+                        Box bx = ba[i];
+                        bx.refine(rr);
+                        if (!fba.intersects(bx)) {
+                            leaves->push_back({lev, i});
+                        }
                     }
                 }
             }

@@ -41,9 +41,22 @@ extern "C" {
 	return &(mf->DistributionMap());
     }
     
-    void amrex_fi_multifab_dataptr (MultiFab* mf, MFIter* mfi, Real*& dp, int lo[3], int hi[3])
+    void amrex_fi_multifab_dataptr_iter (MultiFab* mf, MFIter* mfi, Real*& dp, int lo[3], int hi[3])
     {
 	FArrayBox& fab = (*mf)[*mfi];
+	dp = fab.dataPtr();
+	const Box& bx = fab.box();
+	const int* lov = bx.loVect();
+	const int* hiv = bx.hiVect();
+	for (int i = 0; i < BL_SPACEDIM; ++i) {
+	    lo[i] = lov[i];
+	    hi[i] = hiv[i];
+	}
+    }
+
+    void amrex_fi_multifab_dataptr_int (MultiFab* mf, int igrd, Real*& dp, int lo[3], int hi[3])
+    {
+	FArrayBox& fab = (*mf)[igrd];
 	dp = fab.dataPtr();
 	const Box& bx = fab.box();
 	const int* lov = bx.loVect();
@@ -77,6 +90,11 @@ extern "C" {
     Real amrex_fi_multifab_norm2 (const MultiFab* mf, int comp)
     {
 	return mf->norm2(comp);
+    }
+
+    void amrex_fi_multifab_setval (MultiFab* mf, Real val, int ic, int nc, int ng)
+    {
+        mf->setVal(val, ic, nc, ng);
     }
 
     void amrex_fi_multifab_copy (MultiFab* dstmf, const MultiFab* srcmf,
