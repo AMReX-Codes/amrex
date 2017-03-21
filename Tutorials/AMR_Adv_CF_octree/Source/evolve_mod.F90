@@ -1,6 +1,7 @@
 module evolve_module
 
   use amrex_amr_module
+  use amrex_octree_module
 
   implicit none
   private

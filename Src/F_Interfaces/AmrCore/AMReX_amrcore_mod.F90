@@ -9,9 +9,10 @@ module amrex_amrcore_module
 
   ! public routines
   public :: amrex_amrcore_init, amrex_amrcore_finalize, amrex_amrcore_initialized, &
-       amrex_get_finest_level, amrex_get_numlevels, &
+       amrex_get_amrcore, amrex_get_finest_level, amrex_get_numlevels, &
        amrex_get_boxarray, amrex_get_distromap, amrex_get_geometry, &
-       amrex_init_from_scratch, amrex_init_virtual_functions, amrex_regrid
+       amrex_init_from_scratch, amrex_init_virtual_functions, amrex_regrid, &
+       amrex_init_post_regrid_function
 
   ! public variables
   public :: amrex_max_level, amrex_ref_ratio, amrex_geom
@@ -44,11 +45,18 @@ module amrex_amrcore_module
      end subroutine amrex_error_est_proc
   end interface
 
+  interface
+     subroutine amrex_post_regrid_proc ()
+     end subroutine amrex_post_regrid_proc
+  end interface
+
   type(c_ptr) :: amrcore = c_null_ptr
 
   integer :: amrex_max_level
   integer, allocatable :: amrex_ref_ratio(:)
   type(amrex_geometry), allocatable :: amrex_geom(:)
+
+  procedure(amrex_post_regrid_proc), pointer :: amrex_post_regrid => null()
 
   interface
      subroutine amrex_fi_new_amrcore (amrcore) bind(c)
@@ -176,6 +184,10 @@ contains
     amrex_amrcore_initialized = c_associated(amrcore)
   end function amrex_amrcore_initialized
 
+  type(c_ptr) function amrex_get_amrcore ()
+    amrex_get_amrcore = amrcore
+  end function amrex_get_amrcore
+
   integer function amrex_get_finest_level ()
     amrex_get_finest_level = amrex_fi_get_finest_level(amrcore)
   end function amrex_get_finest_level
@@ -206,6 +218,7 @@ contains
   subroutine amrex_init_from_scratch (t)
     real(amrex_real), intent(in) :: t
     call amrex_fi_init_from_scratch(t, amrcore)
+    if (associated(amrex_post_regrid)) call amrex_post_regrid
   end subroutine amrex_init_from_scratch
 
   subroutine amrex_init_virtual_functions (mk_lev_scrtch, mk_lev_crse, mk_lev_re, &
@@ -225,7 +238,13 @@ contains
     integer, intent(in) :: baselev
     real(amrex_real), intent(in) :: t
     call amrex_fi_regrid(baselev, t, amrcore)
+    if (associated(amrex_post_regrid)) call amrex_post_regrid
   end subroutine amrex_regrid
+
+  subroutine amrex_init_post_regrid_function (post_regrid_func)
+    procedure(amrex_post_regrid_proc) :: post_regrid_func
+    amrex_post_regrid => post_regrid_func
+  end subroutine amrex_init_post_regrid_function
 
 end module amrex_amrcore_module
 
