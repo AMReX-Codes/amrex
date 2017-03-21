@@ -19,6 +19,7 @@ module amrex_boxarray_module
      procedure :: clone         => amrex_boxarray_clone    ! deep copy
      procedure :: move          => amrex_boxarray_move     ! transfer ownership
      procedure :: maxSize       => amrex_boxarray_maxSize  ! make the boxes smaller
+     procedure :: get_box       => amrex_boxarray_get_box
      procedure, private :: amrex_boxarray_assign, amrex_boxarray_install
 #if !defined(__GFORTRAN__) || (__GNUC__ > 4)
      final :: amrex_boxarray_destroy
@@ -62,6 +63,14 @@ module amrex_boxarray_module
        type(c_ptr), value :: ba
        integer(c_int), value :: n
      end subroutine amrex_fi_boxarray_maxsize
+
+     subroutine amrex_fi_boxarray_get_box (ba,i,lo,hi) bind(c)
+       import
+       implicit none
+       type(c_ptr), value :: ba
+       integer(c_int), value :: i
+       integer, intent(inout) :: lo(3), hi(3)
+     end subroutine amrex_fi_boxarray_get_box
 
      subroutine amrex_fi_print_boxarray (ba) bind(c)
        import
@@ -122,10 +131,17 @@ contains
   end subroutine amrex_boxarray_move
 
   subroutine amrex_boxarray_maxsize (this, sz)
-    class(amrex_boxarray) this
-    integer, intent(in)    :: sz
+    class(amrex_boxarray) :: this
+    integer, intent(in)   :: sz
     call amrex_fi_boxarray_maxsize(this%p, sz)
   end subroutine amrex_boxarray_maxsize
+
+  function amrex_boxarray_get_box (this, i) result(bx)
+    class(amrex_boxarray) :: this
+    integer, intent(in)   :: i
+    type(amrex_box) :: bx
+    call amrex_fi_boxarray_get_box(this%p, i, bx%lo, bx%hi)
+  end function amrex_boxarray_get_box
 
   subroutine amrex_boxarray_print (ba)
     type(amrex_boxarray), intent(in) :: ba
