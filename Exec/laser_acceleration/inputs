@@ -42,7 +42,6 @@ electrons.xmax =  20.e-6
 electrons.ymin = -20.e-6
 electrons.ymax =  20.e-6
 electrons.zmin =   0.e-6
-electrons.zmax =  20.e-6
 
 electrons.num_particles_per_cell = 4
 electrons.profile = constant
