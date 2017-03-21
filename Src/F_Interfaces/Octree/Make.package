@@ -1,0 +1,6 @@
+F90EXE_sources += AMReX_octree_mod.F90
+
+CEXE_sources += AMReX_octree_fi.cpp
+
+VPATH_LOCATIONS += $(AMREX_HOME)/Src/F_Interfaces/Octree
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/F_Interfaces/Octree

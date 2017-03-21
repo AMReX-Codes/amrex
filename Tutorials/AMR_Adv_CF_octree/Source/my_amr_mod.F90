@@ -16,8 +16,6 @@ module my_amr_module
   integer :: check_int  = -1
   integer :: plot_int   = -1
   !
-  logical :: do_reflux  = .true.
-  !
   real(rt) :: stop_time  = huge(1._rt)
   real(rt) :: cfl        = 0.7_rt
   !
@@ -25,10 +23,8 @@ module my_amr_module
   character(len=127) :: plot_file  = "plt"
   character(len=127) :: restart    = ""  
 
-  integer, allocatable :: stepno(:)
-  integer, allocatable :: nsubsteps(:)
-
-  real(rt), allocatable :: dt(:)
+  integer  :: stepno
+  real(rt) :: dtstep
 
   integer, private, parameter :: ncomp = 1, nghost = 0
   
@@ -67,20 +63,10 @@ contains
     call pp%query("v", verbose)
     call pp%query("verbose", verbose)
     call pp%query("cfl", cfl)
-    call pp%query("do_reflux", do_reflux)
     call amrex_parmparse_destroy(pp)
 
-    allocate(stepno(0:amrex_max_level))
     stepno = 0
-
-    allocate(nsubsteps(0:amrex_max_level))
-    nsubsteps(0) = 1
-    do ilev = 1, amrex_max_level
-       nsubsteps(ilev) = amrex_ref_ratio(ilev-1)
-    end do
-
-    allocate(dt(0:amrex_max_level))
-    dt = 1.e100
+    dtstep = 1.e100
 
     call amr_data_init()
   end subroutine my_amr_init
@@ -115,7 +101,7 @@ contains
     call amrex_multifab_build(phi_new(lev), ba, dm, ncomp, nghost)
     call amrex_multifab_build(phi_old(lev), ba, dm, ncomp, nghost)
 
-   if (lev > 0 .and. do_reflux) then
+   if (lev > 0) then
       call amrex_fluxregister_build(flux_reg(lev), ba, dm, amrex_ref_ratio(lev-1), lev, ncomp)
    end if
 
@@ -152,7 +138,7 @@ contains
 
     call amrex_multifab_build(phi_new(lev), ba, dm, ncomp, nghost)
     call amrex_multifab_build(phi_old(lev), ba, dm, ncomp, nghost)
-    if (lev > 0 .and. do_reflux) then
+    if (lev > 0) then
        call amrex_fluxregister_build(flux_reg(lev), ba, dm, amrex_ref_ratio(lev-1), lev, ncomp)
     end if
 
@@ -184,7 +170,7 @@ contains
 
     call amrex_multifab_build(phi_new(lev), ba, dm, ncomp, nghost)
     call amrex_multifab_build(phi_old(lev), ba, dm, ncomp, nghost)
-    if (lev > 0 .and. do_reflux) then
+    if (lev > 0) then
        call amrex_fluxregister_build(flux_reg(lev), ba, dm, amrex_ref_ratio(lev-1), lev, ncomp)
     end if
 

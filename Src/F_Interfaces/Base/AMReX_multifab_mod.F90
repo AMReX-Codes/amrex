@@ -31,16 +31,18 @@ module amrex_multifab_module
      procedure :: move          => amrex_multifab_move     ! transfer ownership
      procedure :: ncomp         => amrex_multifab_ncomp
      procedure :: nghost        => amrex_multifab_nghost
-     procedure :: dataPtr       => amrex_multifab_dataptr
+     generic   :: dataPtr       => amrex_multifab_dataptr_iter, amrex_multifab_dataptr_int
      procedure :: min           => amrex_multifab_min
      procedure :: max           => amrex_multifab_max
      procedure :: norm0         => amrex_multifab_norm0
      procedure :: norm1         => amrex_multifab_norm1
      procedure :: norm2         => amrex_multifab_norm2
+     procedure :: setval        => amrex_multifab_setval
      procedure :: copy          => amrex_multifab_copy     ! This copies the data
      generic   :: fill_boundary => amrex_multifab_fill_boundary, amrex_multifab_fill_boundary_c
      procedure, private :: amrex_multifab_fill_boundary, amrex_multifab_fill_boundary_c, &
-          amrex_multifab_assign, amrex_multifab_install
+          amrex_multifab_assign, amrex_multifab_install, amrex_multifab_dataptr_iter, &
+          amrex_multifab_dataptr_int
 #if !defined(__GFORTRAN__) || (__GNUC__ > 4)
      final :: amrex_multifab_destroy
 #endif
@@ -125,13 +127,22 @@ module amrex_multifab_module
        type(c_ptr), value :: mf
      end function amrex_fi_multifab_distromap
 
-     subroutine amrex_fi_multifab_dataptr (mf, mfi, dp, lo, hi) bind(c)
+     subroutine amrex_fi_multifab_dataptr_iter (mf, mfi, dp, lo, hi) bind(c)
        import
        implicit none
        type(c_ptr), value :: mf, mfi
        type(c_ptr) :: dp
        integer(c_int) :: lo(3), hi(3)
-     end subroutine amrex_fi_multifab_dataptr
+     end subroutine amrex_fi_multifab_dataptr_iter
+
+     subroutine amrex_fi_multifab_dataptr_int (mf, igrd, dp, lo, hi) bind(c)
+       import
+       implicit none
+       type(c_ptr), value :: mf
+       integer, value :: igrd
+       type(c_ptr) :: dp
+       integer(c_int) :: lo(3), hi(3)
+     end subroutine amrex_fi_multifab_dataptr_int
 
      function amrex_fi_multifab_min (mf, comp, nghost) bind(c)
        import
@@ -172,6 +183,14 @@ module amrex_multifab_module
        type(c_ptr), value :: mf
        integer(c_int), value :: comp
      end function amrex_fi_multifab_norm2
+
+     subroutine amrex_fi_multifab_setval (mf, val, ic, nc, ng) bind(c)
+       import
+       implicit none
+       type(c_ptr), value :: mf
+       real(amrex_real), value :: val
+       integer(c_int), value :: ic, nc, ng
+     end subroutine amrex_fi_multifab_setval
 
      subroutine amrex_fi_multifab_copy (dstmf, srcmf, srccomp, dstcomp, nc, ng) bind(c)
        import
@@ -363,7 +382,7 @@ contains
     amrex_multifab_nghost = this%ng
   end function amrex_multifab_nghost
 
-  function amrex_multifab_dataPtr (this, mfi) result(dp)
+  function amrex_multifab_dataPtr_iter (this, mfi) result(dp)
     class(amrex_multifab), intent(in) :: this
     type(amrex_mfiter), intent(in) :: mfi
     real(amrex_real), contiguous, pointer, dimension(:,:,:,:) :: dp
@@ -371,12 +390,27 @@ contains
     real(amrex_real), contiguous, pointer :: fp(:,:,:,:)
     integer(c_int) :: n(4)
     type(amrex_box) :: bx
-    call amrex_fi_multifab_dataptr(this%p, mfi%p, cp, bx%lo, bx%hi)
+    call amrex_fi_multifab_dataptr_iter(this%p, mfi%p, cp, bx%lo, bx%hi)
     n(1:3) = bx%hi - bx%lo + 1
     n(4)   = this%ncomp()
     call c_f_pointer(cp, fp, shape=n)
     dp(bx%lo(1):,bx%lo(2):,bx%lo(3):,1:) => fp
-  end function amrex_multifab_dataPtr
+  end function amrex_multifab_dataPtr_iter
+
+  function amrex_multifab_dataPtr_int (this, gid) result(dp)
+    class(amrex_multifab), intent(in) :: this
+    integer, intent(in) :: gid
+    real(amrex_real), contiguous, pointer, dimension(:,:,:,:) :: dp
+    type(c_ptr) :: cp
+    real(amrex_real), contiguous, pointer :: fp(:,:,:,:)
+    integer(c_int) :: n(4)
+    type(amrex_box) :: bx
+    call amrex_fi_multifab_dataptr_int(this%p, gid, cp, bx%lo, bx%hi)
+    n(1:3) = bx%hi - bx%lo + 1
+    n(4)   = this%ncomp()
+    call c_f_pointer(cp, fp, shape=n)
+    dp(bx%lo(1):,bx%lo(2):,bx%lo(3):,1:) => fp
+  end function amrex_multifab_dataPtr_int
 
   function amrex_multifab_min (this, comp, nghost) result(r)
     class(amrex_multifab), intent(in) :: this
@@ -434,6 +468,17 @@ contains
        r = amrex_fi_multifab_norm2(this%p, 0)
     end if
   end function amrex_multifab_norm2
+
+  subroutine amrex_multifab_setval (this, val, icomp, ncomp, nghost)
+    class(amrex_multifab), intent(inout) :: this
+    real(amrex_real), intent(in) :: val
+    integer, intent(in), optional :: icomp, ncomp, nghost
+    integer :: ic, nc, ng
+    ic = 0;         if (present(icomp))  ic = icomp
+    nc = this%nc;   if (present(ncomp))  nc = ncomp
+    ng = this%ng;   if (present(nghost)) ng = nghost
+    call amrex_fi_multifab_setval(this%p, val, ic, nc, ng)
+  end subroutine amrex_multifab_setval
 
   subroutine amrex_multifab_copy (this, srcmf, srccomp, dstcomp, nc, ng)
     class(amrex_multifab) :: this

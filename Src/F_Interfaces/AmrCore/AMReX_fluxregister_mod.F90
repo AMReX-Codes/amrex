@@ -18,6 +18,8 @@ module amrex_fluxregister_module
      generic   :: assignment(=) => amrex_fluxregister_assign   ! shallow copy
      procedure :: fineadd       => amrex_fluxregister_fineadd
      procedure :: crseinit      => amrex_fluxregister_crseinit
+     procedure :: crseadd       => amrex_fluxregister_crseadd
+     procedure :: setval        => amrex_fluxregister_setval
      procedure :: reflux        => amrex_fluxregister_reflux
      procedure, private :: amrex_fluxregister_assign
 #if !defined(__GFORTRAN__) || (__GNUC__ > 4)
@@ -55,6 +57,21 @@ module amrex_fluxregister_module
        type(c_ptr), intent(in) :: flxs(*)
        real(amrex_real), value :: scale
      end subroutine amrex_fi_fluxregister_crseinit
+
+     subroutine amrex_fi_fluxregister_crseadd (fr, flxs, scale, geom) bind(c)
+       import
+       implicit none
+       type(c_ptr), value :: fr, geom
+       type(c_ptr), intent(in) :: flxs(*)
+       real(amrex_real), value :: scale
+     end subroutine amrex_fi_fluxregister_crseadd
+
+     subroutine amrex_fi_fluxregister_setval (fr, val) bind(c)
+       import 
+       implicit none
+       type(c_ptr), value :: fr
+       real(amrex_real), value :: val
+     end subroutine amrex_fi_fluxregister_setval
 
      subroutine amrex_fi_fluxregister_reflux (fr, mf, scale, geom) bind(c)
        import
@@ -118,6 +135,25 @@ contains
     end do
     call amrex_fi_fluxregister_crseinit(this%p, mf, scale)
   end subroutine amrex_fluxregister_crseinit
+
+  subroutine amrex_fluxregister_crseadd (this, fluxes, scale)
+    use amrex_amrcore_module, only : amrex_geom
+    class(amrex_fluxregister), intent(inout) :: this
+    type(amrex_multifab), intent(in) :: fluxes(amrex_spacedim)
+    real(amrex_real), intent(in) :: scale
+    integer :: dim
+    type(c_ptr) :: mf(amrex_spacedim)
+    do dim = 1, amrex_spacedim
+       mf(dim) = fluxes(dim)%p
+    end do
+    call amrex_fi_fluxregister_crseadd(this%p, mf, scale, amrex_geom(this%flev-1)%p)
+  end subroutine amrex_fluxregister_crseadd
+
+  subroutine amrex_fluxregister_setval (this, val)
+    class(amrex_fluxregister), intent(inout) :: this
+    real(amrex_real), intent(in) :: val
+    call amrex_fi_fluxregister_setval(this%p, val)
+  end subroutine amrex_fluxregister_setval
 
   subroutine amrex_fluxregister_reflux (this, mf, scale)
     use amrex_amrcore_module, only : amrex_geom
