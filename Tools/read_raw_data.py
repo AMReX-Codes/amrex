@@ -7,8 +7,8 @@ def read_data(plt_file):
 
     This function reads the raw (i.e. not averaged to cell centers) data 
     from a WarpX plt file. The plt file must have been written with the
-    raw_data option turned on, so that it contains a raw_data sub-directory.
-    This is only really useful for single-level data.
+    plot_raw_fields option turned on, so that it contains a raw_data 
+    sub-directory. This is only really useful for single-level data.
 
     Arguments:
 
