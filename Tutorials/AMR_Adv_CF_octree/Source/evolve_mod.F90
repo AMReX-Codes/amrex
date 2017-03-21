@@ -201,13 +201,7 @@ contains
     ! Note that the fluxes have already been scaled by dt and area.
     do ilev = 0, finest_level-1
        call flux_reg(ilev+1)%crseinit(fluxes(:,ilev), -1.0_amrex_real)
-    end do
-
-    do ilev = 1, finest_level
-       call flux_reg(ilev)%fineadd(fluxes(:,ilev), 1.0_amrex_real)
-    end do
-    
-    do ilev = 0, finest_level-1
+       call flux_reg(ilev+1)%fineadd(fluxes(:,ilev+1), 1.0_amrex_real)
        call flux_reg(ilev+1)%reflux(phi_new(ilev), 1.0_amrex_real)
     end do
 
