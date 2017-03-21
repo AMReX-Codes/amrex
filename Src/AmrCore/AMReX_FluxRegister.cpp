@@ -191,6 +191,65 @@ FluxRegister::CrseInit (const MultiFab& mflx,
 }
 
 void
+FluxRegister::CrseAdd (const MultiFab& mflx,
+                       const MultiFab& area,
+                       int             dir,
+                       int             srccomp,
+                       int             destcomp,
+                       int             numcomp,
+                       Real            mult,
+                       const Geometry& geom)
+{
+    BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= mflx.nComp());
+    BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= ncomp);
+
+    const Orientation face_lo(dir,Orientation::low);
+    const Orientation face_hi(dir,Orientation::high);
+ 
+    MultiFab mf(mflx.boxArray(),mflx.DistributionMap(),numcomp,0);
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif    
+    for (MFIter mfi(mflx,true); mfi.isValid(); ++mfi)
+    {
+	const Box& bx = mfi.tilebox();
+	
+        mf[mfi].copy(mflx[mfi],bx,srccomp,bx,0,numcomp);
+
+        mf[mfi].mult(mult,bx,0,numcomp);
+
+        for (int i = 0; i < numcomp; i++)
+            mf[mfi].mult(area[mfi],bx,bx,0,i,1);
+    }
+
+    for (int pass = 0; pass < 2; pass++)
+    {
+        const Orientation face = ((pass == 0) ? face_lo : face_hi);
+        bndry[face].plusFrom(mf,0,0,destcomp,numcomp,geom.periodicity());
+    }
+}
+
+void
+FluxRegister::CrseAdd (const MultiFab& mflx,
+                       int             dir,
+                       int             srccomp,
+                       int             destcomp,
+                       int             numcomp,
+                       Real            mult,
+                       const Geometry& geom)
+{
+    BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= mflx.nComp());
+    BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= ncomp);
+
+    MultiFab area(mflx.boxArray(), mflx.DistributionMap(), 1, mflx.nGrow());
+
+    area.setVal(1, 0, 1, area.nGrow());
+
+    CrseAdd(mflx,area,dir,srccomp,destcomp,numcomp,mult,geom);
+}
+
+void
 FluxRegister::FineAdd (const MultiFab& mflx,
                        int             dir,
                        int             srccomp,

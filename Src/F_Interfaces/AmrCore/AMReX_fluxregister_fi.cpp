@@ -32,6 +32,20 @@ extern "C"
         }
     }
 
+    void amrex_fi_fluxregister_crseadd (FluxRegister* flux_reg, MultiFab* flxs[], Real scale,
+                                        const Geometry* geom)
+    {
+        for (int dir = 0; dir < BL_SPACEDIM; ++dir) {
+            BL_ASSERT(flux_reg->nComp() == flxs[dir]->nComp());
+            flux_reg->CrseAdd(*flxs[dir], dir, 0, 0, flux_reg->nComp(), scale, *geom);
+        }
+    }
+
+    void amrex_fi_fluxregister_setval (FluxRegister* flux_reg, Real val)
+    {
+        flux_reg->setVal(val);
+    }
+
     void amrex_fi_fluxregister_reflux (FluxRegister* flux_reg, MultiFab* mf, Real scale, 
                                        const Geometry* geom)
     {
