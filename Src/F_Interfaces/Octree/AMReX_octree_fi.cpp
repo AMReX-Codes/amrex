@@ -2,8 +2,20 @@
 #include <AMReX.H>
 #include <AMReX_Array.H>
 #include <AMReX_ParmParse.H>
+#include <AMReX_AmrCore.H>
+
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 
 using namespace amrex;
+
+namespace
+{
+    struct treenode {
+        int level, grid;
+    };
+}
 
 extern "C" {
 
@@ -31,5 +43,51 @@ extern "C" {
 
         Array<int> ref_ratio(max_level, 2);
         pp.addarr("ref_ratio", ref_ratio);
+    }
+
+    void amrex_fi_build_octree_leaves (AmrCore* const amrcore, int* n, Array<treenode>*& leaves)
+    {
+        leaves = new Array<treenode>;
+        const int finest_level = amrcore->finestLevel();
+        const int myproc = ParallelDescriptor::MyProc();
+        for (int lev = 0; lev <= finest_level; ++lev)
+        {
+            const BoxArray& ba = amrcore->boxArray(lev);
+            const DistributionMapping& dm = amrcore->DistributionMap(lev);
+            const int ngrids = ba.size();
+            BL_ASSERT(ba.size() < std::numeric_limits<int>::max());
+            if (lev == finest_level)
+            {
+                for (int i = 0; i < ngrids; ++i) {
+                    if (dm[i] == myproc) {
+                        leaves->push_back({lev, i});
+                    }
+                }
+            }
+            else
+            {
+                const BoxArray& fba = amrcore->boxArray(lev+1);
+                for (int i = 0; i < ngrids; ++i) {
+                    if (dm[i] == myproc && !fba.intersects(ba[i])) {
+                        leaves->push_back({lev, i});
+                    }
+                }
+            }
+        }
+        *n = leaves->size();
+    }
+
+    void amrex_fi_copy_octree_leaves (Array<treenode>* leaves, treenode a_copy[])
+    {
+        const int n = leaves->size();
+
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+        for (int i = 0; i < n; ++i) {
+            a_copy[i] = (*leaves)[i];
+        }
+        
+        delete leaves;
     }
 }
