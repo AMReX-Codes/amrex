@@ -44,7 +44,7 @@ electrons.mass = m_e
 electrons.injection_style = "NDiagPerCell"
 
 electrons.xmin = -20.e-6
-electrons.xmax = 0.e-6
+electrons.xmax = 20.e-6
 electrons.ymin = -20.e-6
 electrons.ymax = 20.e-6
 electrons.zmin = -20.e-6
