@@ -34,12 +34,14 @@ public:
 
     MultiParticleContainer& GetPartContainer () { return *mypc; }
 
+#if (BL_SPACEDIM == 3)
     void fillSlice(amrex::Real z_coord) const;
 
     void sampleAtPoints(const amrex::Array<amrex::Real>& x,
 			const amrex::Array<amrex::Real>& y,
 			const amrex::Array<amrex::Real>& z,
 			amrex::Array<amrex::Array<amrex::Real> >& result) const;
+#endif
 
     static void FillBoundary (amrex::MultiFab& mf, const amrex::Geometry& geom, const amrex::IntVect& nodalflag);
 

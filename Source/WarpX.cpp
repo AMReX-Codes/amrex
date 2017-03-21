@@ -321,6 +321,7 @@ WarpX::getIndexBox(const RealBox& real_box) const {
   return Box(slice_lo, slice_hi) & geom[0].Domain();
 }
 
+#if (BL_SPACEDIM == 3)
 void
 WarpX::fillSlice(Real z_coord) const {
   BL_ASSERT(max_level == 0);
@@ -455,3 +456,4 @@ void WarpX::sampleAtPoints(const Array<Real>& x,
     ParallelDescriptor::ReduceRealSum(result[i].dataPtr(), result[i].size());
   }
 }
+#endif

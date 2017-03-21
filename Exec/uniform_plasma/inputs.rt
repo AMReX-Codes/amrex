@@ -36,6 +36,7 @@ particles.species_names = electrons
 
 electrons.charge = -q_e
 electrons.mass = m_e
+electrons.injection_style = "NDiagPerCell"
 electrons.num_particles_per_cell = 10
 electrons.profile = constant
 electrons.density = 1.e25  # number of electrons per m^3
