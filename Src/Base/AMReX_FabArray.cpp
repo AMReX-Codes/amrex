@@ -1655,6 +1655,28 @@ MFIter::tilebox () const
 }
 
 Box
+MFIter::tilebox (const IntVect& nodal) const
+{
+    BL_ASSERT(tile_array != 0);
+    Box bx((*tile_array)[currentIndex]);
+    const IndexType new_typ {nodal};
+    if (! new_typ.cellCentered())
+    {
+	bx.setType(new_typ);
+	const Box& valid_cc_box = amrex::enclosedCells(validbox());
+	const IntVect& Big = valid_cc_box.bigEnd();
+	for (int d=0; d<BL_SPACEDIM; ++d) {
+	    if (new_typ.nodeCentered(d)) { // validbox should also be nodal in d-direction.
+		if (bx.bigEnd(d) == Big[d]) {
+		    bx.growHi(d,1);
+		}
+	    }
+	}
+    }
+    return bx;
+}
+
+Box
 MFIter::nodaltilebox (int dir) const 
 { 
     BL_ASSERT(tile_array != 0);
