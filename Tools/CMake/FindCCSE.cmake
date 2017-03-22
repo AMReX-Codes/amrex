@@ -176,6 +176,11 @@ else(CCSE_LIBRARIES AND CCSE_INCLUDE_DIRS AND CCSE_PERL_DIR)
     endforeach()
     set(CCSE_LIBRARY_DIRS ${CCSE_LIBRARY_DIR})
 
+    # Add this to fix circular dependency
+    if (ENABLE_MPI)
+      set(CCSE_LIBRARIES fboxlib;cboxlib;fboxlib;cfboxlib;box_camrdata)
+    endif (ENABLE_MPI)
+
     # Search for perl scripts
     # Search order preference:
     #  (1) CCSE_PERL_DIR - check existence of path AND if the perl script exist
