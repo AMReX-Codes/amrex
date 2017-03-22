@@ -16,7 +16,7 @@
 #include "AMReX_SPMD.H"
 
 
-using std::cout;
+using amrex::Print();
 using std::endl;
 
 namespace amrex
@@ -29,9 +29,9 @@ namespace amrex
 
   int reportMPIStats()
   {
-    std::cout<<"AMReX message size limit:"<< CH_MAX_MPI_MESSAGE_SIZE<<"\n"
+    amrex::Print()<<"AMReX message size limit:"<< CH_MAX_MPI_MESSAGE_SIZE<<"\n"
              <<"Max send message size:"<<CH_MaxMPISendSize<<"\n"
-             <<"Max recv message size:"<<CH_MaxMPIRecvSize<<std::endl;
+             <<"Max recv message size:"<<CH_MaxMPIRecvSize<<"\n";
     return 0;
   }
 

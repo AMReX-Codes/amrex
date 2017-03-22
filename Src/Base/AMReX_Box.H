@@ -563,6 +563,14 @@ public:
 
     bool isSquare() const;
 
+  bool coarsenable(int refrat) const
+    {
+      Box testBox = *this;
+      testBox.refine (refrat);
+      testBox.coarsen(refrat);
+      return (*this == testBox);
+    }
+
 private:
     //! A helper function for numPtsOK() and numPts().
     bool numPtsOK (long& N) const;

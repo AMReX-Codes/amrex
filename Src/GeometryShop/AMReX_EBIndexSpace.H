@@ -39,8 +39,6 @@ namespace amrex
   {
   public:
 
-    EBIndexSpace();
-
     ///
     /**
        If a_ncellMax is set, that is the max width of
@@ -48,7 +46,7 @@ namespace amrex
        of (16 in 3D, 64 in 2d)
     */
     void
-    define(const ProblemDomain   & a_domain,
+    define(const Box             & a_domain,
            const RealVect        & a_origin,
            const Real            & a_dx,
            const GeometryService & a_geoserver,
@@ -56,32 +54,23 @@ namespace amrex
            int                     a_maxCoarsenings = -1);
 
 
-    void
-    define(EBISLevel * a_level0,
-           int         a_nCellMax = -1,
-           int         a_maxCoarsenings = -1);
+    void buildFirstLevel(const Box& a_domain,
+                         const RealVect& a_origin,
+                         const Real& a_dx,
+                         const GeometryService& a_geoserver,
+                         int a_nCellMax,
+                         int a_maxCoarsenings);
 
-    void
-    define(const ProblemDomain                        & a_entireDomain,
-           const RealVect                             & a_origin,
-           const Real                                 & a_dx,
-           const Vector<RefCountedPtr<EBIndexSpace> > & a_patches,
-           const Vector<IntVect>                      & a_offsets,
-           int                                          a_maxCoarsenings = -1);
+    void buildNextLevel(const GeometryService & a_geoserver, 
+                        const int             & a_whichlev);
 
-    EBISLevel* buildFirstLevel(const ProblemDomain& a_domain,
-                               const RealVect& a_origin,
-                               const Real& a_dx,
-                               const GeometryService& a_geoserver,
-                               int a_nCellMax,
-                               int a_maxCoarsenings,
-                               bool a_fixRegularNextToMultiValued = true);
 
-    EBISLevel* buildNextLevel(const GeometryService & a_geoserver,
-                              bool                    a_fixRegularNextToMultiValued = true);
 
     ///
-    ~EBIndexSpace();
+    ~EBIndexSpace()
+      {
+        clear();
+      }
 
 
     ///
@@ -90,31 +79,47 @@ namespace amrex
        return -1 if a_domain does not
        correspond to any refinement of EBIS.  public for sanity checks
     */
-    int getLevel(const ProblemDomain& a_domain) const;
+    int getLevel(const Box& a_domain) const;
+
+
+    int getNCellMax(const Box& a_domain) const
+      {
+        return m_nCellMax;
+      }
 
     ///
     void fillEBISLayout(EBISLayout&              a_ebis,
                         const DisjointBoxLayout& a_grids,
-                        const ProblemDomain&     a_domain,
+                        const Box&     a_domain,
                         const int&               a_nghost) const;
 
     ///
     /**
        Return true if the define function has been called.
     */
-    bool isDefined() const;
+    bool isDefined() const
+      {
+        return m_isDefined;
+      }
 
     ///
     void clear();
 
+    //only AMReX_EBIS can make one
+    friend class AMReX_EBIS;
 
   private:
+
+    //only AMReX_EBIS can make one
+    EBIndexSpace()
+      {
+      }
 
     int  m_nCellMax;
     bool m_isDefined;
 
     std::vector<EBISLevel*> m_ebisLevel;
-    std::vector<ProblemDomain> m_domainLevel;
+    std::vector<Box> m_domainLevel;
 
     int m_nlevels;
 

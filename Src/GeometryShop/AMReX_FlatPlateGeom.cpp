@@ -363,8 +363,8 @@ namespace amrex
       }
     }
 
-    std::cout << "num Regular   cells  = " << numReg     << std::endl;
-    std::cout << "num Irregular cells  = " << numIrreg   << std::endl;
-    std::cout << "number of nodes  = " << a_nodes.size() << std::endl;
+    amrex::Print() << "num Regular   cells  = " << numReg     << "\n";
+    amrex::Print() << "num Irregular cells  = " << numIrreg   << "\n";
+    amrex::Print() << "number of nodes  = " << a_nodes.size() << "\n";
   }
 }

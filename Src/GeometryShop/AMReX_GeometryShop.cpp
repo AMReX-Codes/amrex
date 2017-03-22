@@ -19,6 +19,7 @@
 #include "AMReX_GeometryShop.H"
 #include "AMReX_RealVect.H"
 #include "AMReX.H"
+#include "AMReX_Print.H"
 #include "AMReX_IntVectSet.H"
 #include "AMReX_BoxIterator.H"
 
@@ -236,7 +237,7 @@ namespace amrex
             a_regIrregCovered(iv, 0) = -1;
             if (m_verbosity > 2)
               {
-                std::cout << "Removing vof " << iv << " with volFrac " << volFrac << std::endl;
+                amrex::Print() << "Removing vof " << iv << " with volFrac " << volFrac << "\n";
               }
           }//CP record these nodes to be removed
         else
@@ -313,8 +314,8 @@ namespace amrex
         fixRegularCellsNextToCovered(a_nodes, a_regIrregCovered, a_validRegion, a_domain, iv, a_dx);
 
       }//ivsdrop
-    std::cout << "numIrreg  = " << numIrreg << std::endl;
-    std::cout << "number of nodes  = " << a_nodes.size() << std::endl;
+    amrex::Print() << "numIrreg  = " << numIrreg << "\n";
+    amrex::Print() << "number of nodes  = " << a_nodes.size() << "\n";
   }
   /*************/
   void
@@ -1230,7 +1231,7 @@ namespace amrex
 
         if (volDiscrepancy > m_threshold)
           {
-            std::cout << std::string(message) << std::endl;
+            amrex::Print() << std::string(message) << "\n";
           }
         // do the clipping
         //thisVofClipped = true;
@@ -1257,7 +1258,7 @@ namespace amrex
           }
         if (volDiscrepancy>m_threshold)
           {
-            std::cout << message << std::endl;
+            amrex::Print() << message << "\n";
           }
         // do the clipping
         //thisVofClipped = true;
@@ -1290,7 +1291,7 @@ namespace amrex
                   }
                 if (discrepancy>m_threshold && volDiscrepancy>m_threshold)
                   {
-                    std::cout << message << std::endl;
+                    amrex::Print() << message << "\n";
                   }
 
                 // do the clipping
@@ -1318,7 +1319,7 @@ namespace amrex
                   }
                 if (discrepancy>m_threshold && volDiscrepancy>m_threshold)
                   {
-                    std::cout << message << std::endl;
+                    amrex::Print() << message << "\n";
                   }
 
                 // do the clipping
@@ -1354,7 +1355,7 @@ namespace amrex
                   }
                 if (discrepancy>m_threshold && volDiscrepancy>m_threshold)
                   {
-                    std::cout << message << std::endl;
+                    amrex::Print() << message << "\n";
                   }
 
                 // do the clipping
@@ -1382,7 +1383,7 @@ namespace amrex
                   }
                 if (discrepancy>m_threshold && volDiscrepancy>m_threshold)
                   {
-                    std::cout << message << std::endl;
+                    amrex::Print() << message << "\n";
                   }
 
                 // do the clipping
@@ -1415,7 +1416,7 @@ namespace amrex
           }
         if (discrepancy>m_threshold && volDiscrepancy>m_threshold)
           {
-            std::cout << message << std::endl;
+            amrex::Print() << message << "\n";
           }
 
         // do the clipping
@@ -1443,7 +1444,7 @@ namespace amrex
           }
         if (discrepancy>m_threshold && volDiscrepancy>m_threshold)
           {
-            std::cout << message << std::endl;
+            amrex::Print() << message << "\n";
           }
         // do the clipping
         //thisVofClipped = true;
@@ -1473,7 +1474,7 @@ namespace amrex
               }
             if (discrepancy>m_threshold && volDiscrepancy>m_threshold)
               {
-                std::cout << message << std::endl;
+                amrex::Print() << message << "\n";
 
               }
             // do the clipping
@@ -1500,7 +1501,7 @@ namespace amrex
               }
             if (discrepancy > m_threshold&& volDiscrepancy>m_threshold)
               {
-                std::cout << message << std::endl;
+                amrex::Print() << message << "\n";
               }
             // do the clipping
             //thisVofClipped = true;
@@ -1528,7 +1529,7 @@ namespace amrex
               }
             if (discrepancy>m_threshold && volDiscrepancy>m_threshold)
               {
-                std::cout << message << std::endl;
+                amrex::Print() << message << "\n";
               }
             // do the clipping
             //thisVofClipped = true;
@@ -1555,7 +1556,7 @@ namespace amrex
               }
             if (discrepancy > m_threshold && volDiscrepancy>m_threshold)
               {
-                std::cout << message << std::endl;
+                amrex::Print() << message << "\n";
               }
             // do the clipping
             //thisVofClipped = true;
@@ -1589,7 +1590,7 @@ namespace amrex
                       }
                     if (discrepancy > m_threshold && volDiscrepancy>m_threshold)
                       {
-                        std::cout << message << std::endl;
+                        amrex::Print() << message << "\n";
 
                       }
                     // do the clipping
@@ -1616,7 +1617,7 @@ namespace amrex
                       }
                     if (discrepancy > m_threshold && volDiscrepancy>m_threshold)
                       {
-                        std::cout << message << std::endl;
+                        amrex::Print() << message << "\n";
 
                       }
                     // do the clipping
@@ -1653,7 +1654,7 @@ namespace amrex
                       }
                     if (discrepancy > m_threshold && volDiscrepancy>m_threshold)
                       {
-                        std::cout << message << std::endl;
+                        amrex::Print() << message << "\n";
                       }
                     // do the clipping
                     //thisVofClipped = true;
@@ -1679,7 +1680,7 @@ namespace amrex
                       }
                     if (discrepancy > m_threshold && volDiscrepancy > m_threshold)
                       {
-                        std::cout << message << std::endl;
+                        amrex::Print() << message << "\n";
                       }
                     // do the clipping
                     //thisVofClipped = true;
@@ -1957,7 +1958,7 @@ namespace amrex
                 // choose the midpoint for an ill-conditioned problem
                 if (intercept<LoPt[range] || intercept>HiPt[range])
                   {
-                    std::cout<<"GeometryShop::edgeData: Ill-conditioned edge data"<<std::endl;
+                    amrex::Print()<<"GeometryShop::edgeData: Ill-conditioned edge data"<<"\n";
                     intercept = (LoPt[range]+HiPt[range])/2.0;
                   }
 
@@ -2114,7 +2115,7 @@ namespace amrex
 
     if (fb*fa > 0)
       {
-        std::cout << "fa " << fa << " fb " << fb << std::endl;
+        amrex::Print() << "fa " << fa << " fb " << fb << "\n";
         amrex::Error("GeometryShop::BrentRootFinder. Root must be bracketed, but instead the supplied end points have the same sign.");
       }
 
@@ -2213,7 +2214,7 @@ namespace amrex
     if (i >= MAXITER)
       {
         std::cerr  << "BrentRootFinder: exceeding maximum iterations: "
-                   << MAXITER << std::endl;
+                   << MAXITER << "\n";
       }
     //  //  Keep statistics
     //     statCount++;
