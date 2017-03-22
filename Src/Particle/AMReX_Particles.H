@@ -726,6 +726,8 @@ public:
 
     int numParticles () const { return GetArrayOfStructs().numParticles(); }    
 
+    int numTiles () const { return m_particle_tiles.size();}
+
 private:
     int m_level;
     int m_pariter_index;
