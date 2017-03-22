@@ -29,11 +29,10 @@ make pybuild
 
 `cd` into this directory and type
 ```
-doxygen Doxyfile
 make html
 ```
 
-The first command parses the C++ code to find Doxygen annotations. The second command builds the documentation using Sphinx.
+When executing this command, Doxygen parses the C++ code to find relevant annotations. Then Sphinx uses the Doxygen results.
 
 You can then browse the documentation by opening the file `build/html/index.html` with a web browser.
 
@@ -41,7 +40,6 @@ You can then browse the documentation by opening the file `build/html/index.html
 
 In order to remove all of the generated files, use:
 ```
-rm -rf doxy*
 make clean
 ```
 
