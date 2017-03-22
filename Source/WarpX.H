@@ -14,6 +14,8 @@
 
 #include <ParticleContainer.H>
 
+/*! A test class */
+
 class WarpX
     : public amrex::AmrCore
 {
@@ -36,7 +38,7 @@ public:
 
     static void FillBoundary (amrex::MultiFab& mf, const amrex::Geometry& geom, const amrex::IntVect& nodalflag);
 
-    static void shiftMF(amrex::MultiFab& mf, const amrex::Geometry& geom, int num_shift, 
+    static void shiftMF(amrex::MultiFab& mf, const amrex::Geometry& geom, int num_shift,
 			int dir, const amrex::IntVect& nodalflag);
 
     static void GotoNextLine (std::istream& is);
@@ -85,7 +87,7 @@ public:
 protected:
 
     //! Tagging cells for refinement
-    virtual void ErrorEst (int lev, amrex::TagBoxArray& tags, amrex::Real time, int /*ngrow*/) override 
+    virtual void ErrorEst (int lev, amrex::TagBoxArray& tags, amrex::Real time, int /*ngrow*/) override
         { amrex::Abort("ErrorEst: To be implemented"); }
 
     //! Make a new level from scratch using provided BoxArray and
@@ -98,7 +100,7 @@ protected:
     //! DistributionMapping and fill with interpolated coarse level
     //! data.  Called by AmrCore::regrid.
     virtual void MakeNewLevelFromCoarse (int lev, amrex::Real time, const amrex::BoxArray& ba,
-					 const amrex::DistributionMapping& dm) override 
+					 const amrex::DistributionMapping& dm) override
         { amrex::Abort("MakeNewLevelFromCoarse: To be implemented"); }
 
     //! Remake an existing level using provided BoxArray and
