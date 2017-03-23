@@ -53,6 +53,8 @@ public:
 
     virtual void PostRestart () = 0;
 
+    void PushX (int lev, amrex::Real dt);
+
     std::unique_ptr<amrex::MultiFab> GetChargeDensity(int lev, bool local = false);
 
     void AddNParticles (int n, const amrex::Real* x, const amrex::Real* y, const amrex::Real* z,

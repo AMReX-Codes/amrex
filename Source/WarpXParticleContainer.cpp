@@ -251,3 +251,56 @@ WarpXParticleContainer::GetChargeDensity (int lev, bool local)
     return rho;
 }
 
+void
+WarpXParticleContainer::PushX (int lev,
+                                  Real dt)
+{
+    BL_PROFILE("WPC::PushX()");
+    BL_PROFILE_VAR_NS("WPC::PushX::Copy", blp_copy);
+    BL_PROFILE_VAR_NS("WPC:PushX::Push", blp_pxr_pp);
+
+    Array<Real> xp, yp, zp, giv;
+
+    for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
+    {
+        auto& attribs = pti.GetAttribs();
+        auto& uxp = attribs[PIdx::ux];
+        auto& uyp = attribs[PIdx::uy];
+        auto& uzp = attribs[PIdx::uz];
+        
+        const long np = pti.numParticles();
+
+        giv.resize(np);
+
+        //
+        // copy data from particle container to temp arrays
+        //
+        BL_PROFILE_VAR_START(blp_copy);
+#if (BL_SPACEDIM == 3)
+        pti.GetPosition(xp, yp, zp);
+#elif (BL_SPACEDIM == 2)
+        pti.GetPosition(xp, zp);
+        yp.resize(np, std::numeric_limits<Real>::quiet_NaN());
+#endif
+        BL_PROFILE_VAR_STOP(blp_copy);
+
+        //
+        // Particle Push
+        //
+        BL_PROFILE_VAR_START(blp_pxr_pp);
+        warpx_particle_pusher_positions(&np, xp.data(), yp.data(), zp.data(),
+                                        uxp.data(), uyp.data(), uzp.data(), giv.data(), &dt);
+        BL_PROFILE_VAR_STOP(blp_pxr_pp);
+
+        //
+        // copy particle data back
+        //
+        BL_PROFILE_VAR_START(blp_copy);
+#if (BL_SPACEDIM == 3)
+        pti.SetPosition(xp, yp, zp);
+#elif (BL_SPACEDIM == 2)
+        pti.SetPosition(xp, zp);
+#endif
+        BL_PROFILE_VAR_STOP(blp_copy);
+    }
+}

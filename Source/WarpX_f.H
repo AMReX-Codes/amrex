@@ -56,7 +56,7 @@ extern "C"
 			const long* lvect,
 			const long* field_gathe_algo);
 
-	// Particle pusher
+	// Particle pusher (velocity and position)
 
 	void warpx_particle_pusher(const long* np,
 			amrex::Real* xp, amrex::Real* yp, amrex::Real* zp,
@@ -66,7 +66,14 @@ extern "C"
 			const amrex::Real* charge, const amrex::Real* mass, const amrex::Real* dt,
 			const long* particle_pusher_algo);
 
-  // Laser pusher
+	// Particle pusher (position)
+
+	void warpx_particle_pusher_positions(const long* np,
+                                             amrex::Real* xp, amrex::Real* yp, amrex::Real* zp,
+                                             amrex::Real* uxp, amrex::Real* uyp, amrex::Real* uzp, amrex::Real* gaminv,
+                                             const amrex::Real* dt);
+
+    // Laser pusher
 
 	void warpx_gaussian_laser( const long* np,
 				amrex::Real* Xp, amrex::Real* Yp, amrex::Real* t, amrex::Real* wavelength, amrex::Real* e_max, amrex::Real* waist,

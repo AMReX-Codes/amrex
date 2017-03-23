@@ -81,6 +81,14 @@ MultiParticleContainer::Evolve (int lev,
     jz.SumBoundary(gm.periodicity());
 }
 
+void
+MultiParticleContainer::PushX (int lev, Real dt)
+{
+
+    for (auto& pc : allcontainers) {
+	pc->PushX(lev, dt);
+    }
+}
 
 std::unique_ptr<MultiFab>
 MultiParticleContainer::GetChargeDensity (int lev, bool local)
