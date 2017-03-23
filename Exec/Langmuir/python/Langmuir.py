@@ -538,8 +538,8 @@ y = get_particle_y(0)
 plt.plot(x[0], y[0], '.')
 plt.savefig("particles.png")
 
-# this returns a list of numpy arrays that hold the electric field 
-# data in the x-direction on each grid
+# this returns a list of numpy arrays that hold the magnetic field 
+# data in the x-direction on each grid for level 0
 grid_data = get_mesh_magnetic_field(0, 0, False)
 
 # plot a slice through the second grid 

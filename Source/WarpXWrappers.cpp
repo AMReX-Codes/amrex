@@ -5,6 +5,26 @@
 #include <WarpXWrappers.h>
 #include <WarpX.H>
 
+namespace 
+{
+    double** getMultiFabPointers(const amrex::MultiFab& mf, int *num_boxes, int *ngrow, int **shapes)
+    {
+        *ngrow = mf.nGrow();
+        *num_boxes = mf.local_size();
+        *shapes = (int*) malloc(3*(*num_boxes)*sizeof(int));
+        double** data = (double**) malloc((*num_boxes)*sizeof(double*));
+        
+        int i = 0;
+        for ( amrex::MFIter mfi(mf, false); mfi.isValid(); ++mfi, ++i ) {
+            data[i] = (double*) mf[mfi].dataPtr();
+            for (int j = 0; j < 3; ++j) {
+                (*shapes)[3*i+j] = mf[mfi].box().length(j); 
+            }
+        }
+        return data;
+    }
+}
+
 extern "C"
 {
     void amrex_init (int argc, char* argv[])
@@ -73,71 +93,22 @@ extern "C"
 
     double** warpx_getEfield(int lev, int direction,
                              int *return_size, int *ngrow, int **shapes) {
-
         auto & mf = WarpX::GetInstance().getEfield(lev, direction);
-
-        *ngrow = mf.nGrow();
-    
-        int num_boxes = mf.local_size();
-        *return_size = num_boxes;
-        *shapes = (int*) malloc(3*num_boxes*sizeof(int));
-        
-        double** data = (double**) malloc(num_boxes*sizeof(double*));
-
-        int i = 0;
-        for ( amrex::MFIter mfi(mf, false); mfi.isValid(); ++mfi, ++i ) {
-            data[i] = (double*) mf[mfi].dataPtr();
-            for (int j = 0; j < 3; ++j) {
-                (*shapes)[3*i+j] = mf[mfi].box().length(j); 
-            }
-        }
-        return data;
+        return getMultiFabPointers(mf, return_size, ngrow, shapes);
     }
 
     double** warpx_getBfield(int lev, int direction,
                              int *return_size, int *ngrow, int **shapes) {
 
         auto & mf = WarpX::GetInstance().getBfield(lev, direction);
-
-        *ngrow = mf.nGrow();
-    
-        int num_boxes = mf.local_size();
-        *return_size = num_boxes;
-        *shapes = (int*) malloc(3*num_boxes*sizeof(int));
-        
-        double** data = (double**) malloc(num_boxes*sizeof(double*));
-
-        int i = 0;
-        for ( amrex::MFIter mfi(mf, false); mfi.isValid(); ++mfi, ++i ) {
-            data[i] = (double*) mf[mfi].dataPtr();
-            for (int j = 0; j < 3; ++j) {
-                (*shapes)[3*i+j] = mf[mfi].box().length(j); 
-            }
-        }
-        return data;
+        return getMultiFabPointers(mf, return_size, ngrow, shapes);
     }
 
     double** warpx_getCurrentDensity(int lev, int direction,
                                      int *return_size, int *ngrow, int **shapes) {
 
         auto & mf = WarpX::GetInstance().getcurrent(lev, direction);
-
-        *ngrow = mf.nGrow();
-    
-        int num_boxes = mf.local_size();
-        *return_size = num_boxes;
-        *shapes = (int*) malloc(3*num_boxes*sizeof(int));
-        
-        double** data = (double**) malloc(num_boxes*sizeof(double*));
-
-        int i = 0;
-        for ( amrex::MFIter mfi(mf, false); mfi.isValid(); ++mfi, ++i ) {
-            data[i] = (double*) mf[mfi].dataPtr();
-            for (int j = 0; j < 3; ++j) {
-                (*shapes)[3*i+j] = mf[mfi].box().length(j); 
-            }
-        }
-        return data;
+        return getMultiFabPointers(mf, return_size, ngrow, shapes);
     }
     
     double** warpx_getParticleStructs(int speciesnumber,
