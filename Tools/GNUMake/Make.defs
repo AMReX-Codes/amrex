@@ -54,6 +54,8 @@ endif
 
 ifndef DIM
   DIM = 2
+else
+  DIM := $(strip $(DIM))
 endif
 
 ifndef USE_MPI
