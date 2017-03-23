@@ -54,9 +54,6 @@ f.restype = ctypes.POINTER(ctypes.POINTER(Particle))
 f = libwarpx.warpx_getParticleArrays
 f.restype = ctypes.POINTER(c_double_p)
 
-f = libwarpx.warpx_getParticleArrays
-f.restype = ctypes.POINTER(c_double_p)
-
 f = libwarpx.warpx_getEfield
 f.restype = ctypes.POINTER(c_double_p)
 
