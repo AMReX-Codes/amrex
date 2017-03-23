@@ -117,9 +117,7 @@ extern "C"
         auto & myspc = mypc.GetParticleContainer(speciesnumber);
 
         const int level = 0;
-
-        WarpXParIter pti(myspc, level);
-        *num_tiles = pti.numTiles();
+        *num_tiles = myspc.numLocalTilesAtLevel(level);
         *particles_per_tile = (int*) malloc(*num_tiles*sizeof(int));
         
         double** data = (double**) malloc(*num_tiles*sizeof(typename WarpXParticleContainer::ParticleType*));
@@ -138,9 +136,7 @@ extern "C"
         auto & myspc = mypc.GetParticleContainer(speciesnumber);
 
         const int level = 0;
-
-        WarpXParIter pti(myspc, level);
-        *num_tiles = pti.numTiles();
+        *num_tiles = myspc.numLocalTilesAtLevel(level);
         *particles_per_tile = (int*) malloc(*num_tiles*sizeof(int));
         
         double** data = (double**) malloc(*num_tiles*sizeof(double*));
