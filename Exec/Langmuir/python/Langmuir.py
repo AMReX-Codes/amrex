@@ -21,15 +21,23 @@ p_dtype = np.dtype([('x', 'f8'), ('y', 'f8'), ('z', 'f8'),
                     ('id', 'i4'), ('cpu', 'i4')])
 
 
-# this is a function for converting a ctypes pointer to a buffer object
-# this might be slightly different in Python 2...
-buffer_from_memory = ctypes.pythonapi.PyMemoryView_FromMemory
-buffer_from_memory.argtypes = (ctypes.c_void_p, ctypes.c_int, ctypes.c_int)
-buffer_from_memory.restype = ctypes.py_object
-
 # where do I import these? this might only work for CPython...
 PyBuf_READ  = 0x100
 PyBUF_WRITE = 0x200
+
+# this is a function for converting a ctypes pointer to a numpy array    
+def array1d_from_pointer(pointer, dtype, size):
+    if sys.version_info.major >= 3:
+        buffer_from_memory = ctypes.pythonapi.PyMemoryView_FromMemory
+        buffer_from_memory.argtypes = (ctypes.c_void_p, ctypes.c_int, ctypes.c_int)
+        buffer_from_memory.restype = ctypes.py_object
+        buf = buffer_from_memory(pointer, dtype.itemsize*size, PyBUF_WRITE)
+    else:        
+        buffer_from_memory = ctypes.pythonapi.PyBuffer_FromReadWriteMemory
+        buffer_from_memory.restype = ctypes.py_object
+        buf = buffer_from_memory(pointer, dtype.itemsize*size)
+    return np.frombuffer(buf, dtype=dtype, count=size)
+    
 
 # set the return types of the wrapped functions
 f = libwarpx.warpx_getParticleStructs
@@ -80,8 +88,7 @@ def get_particle_structs(species_number):
 
     particle_data = []
     for i in range(num_tiles.value):
-        buf = buffer_from_memory(data[i], p_dtype.itemsize*particles_per_tile[i], PyBUF_WRITE)
-        arr = np.frombuffer(buf, dtype=p_dtype, count=particles_per_tile[i])
+        arr = array1d_from_pointer(data[i], p_dtype, particles_per_tile[i])
         particle_data.append(arr)
 
     libc.free(particles_per_tile)
