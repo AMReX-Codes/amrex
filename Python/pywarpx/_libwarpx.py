@@ -6,7 +6,6 @@ from ctypes.util import find_library
 import numpy as np
 from numpy.ctypeslib import ndpointer
 
-
 def get_package_root():
     '''
     Get the path to the installation location (where libwarpx.so would be installed).
@@ -23,7 +22,68 @@ def get_package_root():
 libwarpx = ctypes.CDLL(os.path.join(get_package_root(), "libwarpx.so"))
 libc = ctypes.CDLL(find_library('c'))
 
+dim = libwarpx.warpx_SpaceDim()
 
+# our particle data type
+p_struct = [(d, 'f8') for d in 'xyz'[:dim]] + [('id', 'i4'), ('cpu', 'i4')]
+p_dtype = np.dtype(p_struct)
+
+# some useful typenames
+LP_c_int = ctypes.POINTER(ctypes.c_int)
+LP_c_void_p = ctypes.POINTER(ctypes.c_void_p)
+LP_c_double = ctypes.POINTER(ctypes.c_double)
+LP_LP_c_double = ctypes.POINTER(LP_c_double)
+LP_c_char = ctypes.POINTER(ctypes.c_char)
+LP_LP_c_char = ctypes.POINTER(LP_c_char)
+
+# from where do I import these? this might only work for CPython...
+PyBuf_READ  = 0x100
+PyBUF_WRITE = 0x200
+
+# this is a function for converting a ctypes pointer to a numpy array    
+def array1d_from_pointer(pointer, dtype, size):
+    if sys.version_info.major >= 3:
+        buffer_from_memory = ctypes.pythonapi.PyMemoryView_FromMemory
+        buffer_from_memory.argtypes = (ctypes.c_void_p, ctypes.c_int, ctypes.c_int)
+        buffer_from_memory.restype = ctypes.py_object
+        buf = buffer_from_memory(pointer, dtype.itemsize*size, PyBUF_WRITE)
+    else:
+        buffer_from_memory = ctypes.pythonapi.PyBuffer_FromReadWriteMemory
+        buffer_from_memory.restype = ctypes.py_object
+        buf = buffer_from_memory(pointer, dtype.itemsize*size)
+    return np.frombuffer(buf, dtype=dtype, count=size)
+
+
+# set the arg and return types of the wrapped functions
+f = libwarpx.amrex_init
+f.argtypes = (ctypes.c_int, LP_LP_c_char)
+
+f = libwarpx.warpx_getParticleStructs
+f.restype = LP_c_void_p
+
+f = libwarpx.warpx_getParticleArrays
+f.restype = LP_LP_c_double
+
+f = libwarpx.warpx_getEfield
+f.restype = LP_LP_c_double
+
+f = libwarpx.warpx_getBfield
+f.restype = LP_LP_c_double
+
+f = libwarpx.warpx_getCurrentDensity
+f.restype = LP_LP_c_double
+
+f = libwarpx.warpx_addNParticles
+f.argtypes = (ctypes.c_int, ctypes.c_int,
+              ndpointer(ctypes.c_double, flags="C_CONTIGUOUS"), 
+              ndpointer(ctypes.c_double, flags="C_CONTIGUOUS"),
+              ndpointer(ctypes.c_double, flags="C_CONTIGUOUS"),
+              ndpointer(ctypes.c_double, flags="C_CONTIGUOUS"),
+              ndpointer(ctypes.c_double, flags="C_CONTIGUOUS"),
+              ndpointer(ctypes.c_double, flags="C_CONTIGUOUS"),
+              ctypes.c_int,
+              ndpointer(ctypes.c_double, flags="C_CONTIGUOUS"),
+              ctypes.c_int)
 
 libwarpx.warpx_getistep.restype = ctypes.c_int
 libwarpx.warpx_gett_new.restype = ctypes.c_double
@@ -33,7 +93,6 @@ libwarpx.warpx_stopTime.restype = ctypes.c_double
 libwarpx.warpx_checkInt.restype = ctypes.c_int
 libwarpx.warpx_plotInt.restype = ctypes.c_int
 libwarpx.warpx_finestLevel.restype = ctypes.c_int
-
 
 libwarpx.warpx_EvolveE.argtypes = [ctypes.c_int, ctypes.c_double]
 libwarpx.warpx_EvolveB.argtypes = [ctypes.c_int, ctypes.c_double]
@@ -46,76 +105,6 @@ libwarpx.warpx_gett_new.argtypes = [ctypes.c_int]
 libwarpx.warpx_sett_new.argtypes = [ctypes.c_int, ctypes.c_double]
 libwarpx.warpx_getdt.argtypes = [ctypes.c_int]
 
-
-
-# some useful data structures and typenames
-class Particle(ctypes.Structure):
-    _fields_ = [('x', ctypes.c_double),
-                ('y', ctypes.c_double),
-                ('z', ctypes.c_double),
-                ('id', ctypes.c_int),
-                ('cpu', ctypes.c_int)]
-
-
-p_dtype = np.dtype([('x', 'f8'), ('y', 'f8'), ('z', 'f8'),
-                    ('id', 'i4'), ('cpu', 'i4')])
-
-c_double_p = ctypes.POINTER(ctypes.c_double)
-LP_c_char = ctypes.POINTER(ctypes.c_char)
-LP_LP_c_char = ctypes.POINTER(LP_c_char)
-
-# where do I import these? this might only work for CPython...
-PyBuf_READ  = 0x100
-PyBUF_WRITE = 0x200
-
-# this is a function for converting a ctypes pointer to a numpy array    
-def array1d_from_pointer(pointer, dtype, size):
-    if sys.version_info.major >= 3:
-        buffer_from_memory = ctypes.pythonapi.PyMemoryView_FromMemory
-        buffer_from_memory.argtypes = (ctypes.c_void_p, ctypes.c_int, ctypes.c_int)
-        buffer_from_memory.restype = ctypes.py_object
-        buf = buffer_from_memory(pointer, dtype.itemsize*size, PyBUF_WRITE)
-    else:        
-        buffer_from_memory = ctypes.pythonapi.PyBuffer_FromReadWriteMemory
-        buffer_from_memory.restype = ctypes.py_object
-        buf = buffer_from_memory(pointer, dtype.itemsize*size)
-    return np.frombuffer(buf, dtype=dtype, count=size)
-    
-
-# set the arg and return types of the wrapped functions
-f = libwarpx.amrex_init
-f.argtypes = (ctypes.c_int, LP_LP_c_char)
-
-f = libwarpx.warpx_getParticleStructs
-f.restype = ctypes.POINTER(ctypes.POINTER(Particle))
-
-f = libwarpx.warpx_getParticleArrays
-f.restype = ctypes.POINTER(c_double_p)
-
-f = libwarpx.warpx_getParticleArrays
-f.restype = ctypes.POINTER(c_double_p)
-
-f = libwarpx.warpx_getEfield
-f.restype = ctypes.POINTER(c_double_p)
-
-f = libwarpx.warpx_getBfield
-f.restype = ctypes.POINTER(c_double_p)
-
-f = libwarpx.warpx_getCurrentDensity
-f.restype = ctypes.POINTER(c_double_p)
-
-f = libwarpx.addNParticles
-f.argtypes = (ctypes.c_int, ctypes.c_int,
-              ndpointer(ctypes.c_double, flags="C_CONTIGUOUS"), 
-              ndpointer(ctypes.c_double, flags="C_CONTIGUOUS"),
-              ndpointer(ctypes.c_double, flags="C_CONTIGUOUS"),
-              ndpointer(ctypes.c_double, flags="C_CONTIGUOUS"),
-              ndpointer(ctypes.c_double, flags="C_CONTIGUOUS"),
-              ndpointer(ctypes.c_double, flags="C_CONTIGUOUS"),
-              ctypes.c_int,
-              ndpointer(ctypes.c_double, flags="C_CONTIGUOUS"),
-              ctypes.c_int)
-
 def amrex_init(argv):
     # --- Construct the ctype list of strings to pass in
     argc = len(argv)
@@ -126,26 +115,71 @@ def amrex_init(argv):
 
     libwarpx.amrex_init(argc, argvC)
 
+def initialize():
+    '''
+    
+    Initialize WarpX and AMReX. Must be called before 
+    doing anything else.
+    
+    '''
+    
+    # convert command line args to pass into amrex
+    argc = len(sys.argv)
+    argv = (LP_c_char * (argc+1))()
+    for i, arg in enumerate(sys.argv):
+        enc_arg = arg.encode('utf-8')
+        argv[i] = ctypes.create_string_buffer(enc_arg)
+        
+    libwarpx.amrex_init(argc, argv)
+    libwarpx.warpx_init()
+    
+
+def finalize():
+    '''
+    
+    Call finalize for WarpX and AMReX. Must be called at 
+    the end of your script.
+    
+    '''
+    libwarpx.warpx_finalize()
+    libwarpx.amrex_finalize()
+
+def evolve(num_steps=-1):
+    '''
+    
+    Evolve the simulation for num_steps steps. If num_steps=-1,
+    the simulation will be run until the end as specified in the
+    inputs file.
+    
+    Parameters
+    ----------
+    
+    num_steps: int, the number of steps to take
+    
+    '''
+    
+    libwarpx.warpx_evolve(num_steps);
+
 def add_particles(species_number,
                   x, y, z, ux, uy, uz, attr, unique_particles):
     '''
-
+    
     A function for adding particles to the WarpX simulation.
-
+    
     Parameters
     ----------
-
-        species_number   : the species to add the particle to
-        x, y, z          : numpy arrays of the particle positions
-        ux, uy, uz       : numpy arrays of the particle momenta
-        attr             : a 2D numpy array with the particle attributes
-        unique_particles : whether the particles are unique or duplicated on 
-                           several processes
-
+    
+    species_number   : the species to add the particle to
+    x, y, z          : numpy arrays of the particle positions
+    ux, uy, uz       : numpy arrays of the particle momenta
+    attr             : a 2D numpy array with the particle attributes
+    unique_particles : whether the particles are unique or duplicated on 
+    several processes
+    
     '''
-    libwarpx.addNParticles(species_number, x.size,
-                           x, y, z, ux, uy, uz,
-                           attr.shape[1], attr, unique_particles)
+    libwarpx.warpx_addNParticles(species_number, x.size,
+                                 x, y, z, ux, uy, uz,
+                                 attr.shape[-1], attr, unique_particles)
 
 def get_particle_structs(species_number):
     '''
@@ -169,9 +203,10 @@ def get_particle_structs(species_number):
 
     '''
 
-    particles_per_tile = ctypes.POINTER(ctypes.c_int)()
+    particles_per_tile = LP_c_int()
     num_tiles = ctypes.c_int(0)
-    data = libwarpx.warpx_getParticleStructs(0, ctypes.byref(num_tiles),
+    data = libwarpx.warpx_getParticleStructs(species_number,
+                                             ctypes.byref(num_tiles),
                                              ctypes.byref(particles_per_tile))
 
     particle_data = []
@@ -206,9 +241,10 @@ def get_particle_arrays(species_number, comp):
     
     '''
     
-    particles_per_tile = ctypes.POINTER(ctypes.c_int)()
+    particles_per_tile = LP_c_int()
     num_tiles = ctypes.c_int(0)
-    data = libwarpx.warpx_getParticleArrays(0, comp, ctypes.byref(num_tiles),
+    data = libwarpx.warpx_getParticleArrays(species_number, comp,
+                                            ctypes.byref(num_tiles),
                                             ctypes.byref(particles_per_tile))
 
     particle_data = []
@@ -410,22 +446,24 @@ def get_mesh_electric_field(level, direction, include_ghosts=True):
     
     '''
 
-    shapes = ctypes.POINTER(ctypes.c_int)()
+    assert(level == 0)
+
+    shapes = LP_c_int()
     size = ctypes.c_int(0)
     ngrow = ctypes.c_int(0)
-    data = libwarpx.warpx_getEfield(0, direction,
+    data = libwarpx.warpx_getEfield(level, direction,
                                     ctypes.byref(size), ctypes.byref(ngrow), 
                                     ctypes.byref(shapes))
     ng = ngrow.value
     grid_data = []
     for i in range(size.value):
-        shape=(shapes[3*i+0], shapes[3*i+1], shapes[3*i+2])
+        shape = tuple([shapes[dim*i + d] for d in range(dim)])
         arr = np.ctypeslib.as_array(data[i], shape)
         arr.setflags(write=1)
         if include_ghosts:
             grid_data.append(arr)
         else:
-            grid_data.append(arr[ng:-ng,ng:-ng,ng:-ng])
+            grid_data.append(arr[[slice(ng, -ng) for _ in range(dim)]])
 
     libc.free(shapes)
     libc.free(data)
@@ -455,22 +493,24 @@ def get_mesh_magnetic_field(level, direction, include_ghosts=True):
     
     '''
 
-    shapes = ctypes.POINTER(ctypes.c_int)()
+    assert(level == 0)
+
+    shapes = LP_c_int()
     size = ctypes.c_int(0)
     ngrow = ctypes.c_int(0)
-    data = libwarpx.warpx_getBfield(0, direction,
+    data = libwarpx.warpx_getBfield(level, direction,
                                     ctypes.byref(size), ctypes.byref(ngrow), 
                                     ctypes.byref(shapes))
     ng = ngrow.value
     grid_data = []
     for i in range(size.value):
-        shape=(shapes[3*i+0], shapes[3*i+1], shapes[3*i+2])
+        shape = tuple([shapes[dim*i + d] for d in range(dim)])
         arr = np.ctypeslib.as_array(data[i], shape)
         arr.setflags(write=1)
         if include_ghosts:
             grid_data.append(arr)
         else:
-            grid_data.append(arr[ng:-ng,ng:-ng,ng:-ng])
+            grid_data.append(arr[[slice(ng, -ng) for _ in range(dim)]])
 
     libc.free(shapes)
     libc.free(data)
@@ -500,25 +540,25 @@ def get_mesh_current_density(level, direction, include_ghosts=True):
     
     '''
 
-    shapes = ctypes.POINTER(ctypes.c_int)()
+    assert(level == 0)
+
+    shapes = LP_c_int()
     size = ctypes.c_int(0)
     ngrow = ctypes.c_int(0)
-    data = libwarpx.warpx_getCurrentDensity(0, direction,
+    data = libwarpx.warpx_getCurrentDensity(level, direction,
                                             ctypes.byref(size), ctypes.byref(ngrow), 
                                             ctypes.byref(shapes))
     ng = ngrow.value
     grid_data = []
     for i in range(size.value):
-        shape=(shapes[3*i+0], shapes[3*i+1], shapes[3*i+2])
+        shape = tuple([shapes[dim*i + d] for d in range(dim)])
         arr = np.ctypeslib.as_array(data[i], shape)
         arr.setflags(write=1)
         if include_ghosts:
             grid_data.append(arr)
         else:
-            grid_data.append(arr[ng:-ng,ng:-ng,ng:-ng])
+            grid_data.append(arr[[slice(ng, -ng) for _ in range(dim)]])
 
     libc.free(shapes)
     libc.free(data)
     return grid_data
-
-

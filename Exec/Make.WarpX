@@ -49,7 +49,8 @@ else
   SHARED_OPTION = -shared
 endif
 
-install: pywarpx/libwarpx.so
+install: libwarpx.so
+	mv libwarpx.so pywarpx
 	python setup.py install
 
 libwarpx.a: $(objForExecs)
@@ -58,7 +59,7 @@ libwarpx.a: $(objForExecs)
 	$(SILENT) $(RM) AMReX_buildInfo.cpp
 	@echo SUCCESS
 
-pywarpx/libwarpx.so: $(objForExecs)
+libwarpx.so: $(objForExecs)
 	@echo Making dynamic library $@ ...
 	$(SILENT) $(CXX) $(SHARED_OPTION) -fPIC -o $@ $^ $(LDFLAGS) $(libraries)
 	$(SILENT) $(RM) AMReX_buildInfo.cpp

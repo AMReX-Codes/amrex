@@ -132,8 +132,9 @@ class PGroup(object):
     bz = property(getbz)
 
 class PGroups(object):
-    def __init__(self):
-        xall = _libwarpx.get_particle_x(0)
+    def __init__(self, ispecie=0):
+        self.ispecie = ispecie
+        xall = _libwarpx.get_particle_x(ispecie)
         self.ngroups = len(xall)
 
         self._pgroups = []
