@@ -71,11 +71,59 @@ extern "C"
         return myspc.TotalNumberOfParticles();
     }
 
-    double** warpx_getEfield(int lev, int direction, 
-                             int *return_size, int **shapes) {
+    double** warpx_getEfield(int lev, int direction,
+                             int *return_size, int *ngrow, int **shapes) {
 
         auto & mf = WarpX::GetInstance().getEfield(lev, direction);
 
+        *ngrow = mf.nGrow();
+    
+        int num_boxes = mf.local_size();
+        *return_size = num_boxes;
+        *shapes = (int*) malloc(3*num_boxes*sizeof(int));
+        
+        double** data = (double**) malloc(num_boxes*sizeof(double*));
+
+        int i = 0;
+        for ( amrex::MFIter mfi(mf, false); mfi.isValid(); ++mfi, ++i ) {
+            data[i] = (double*) mf[mfi].dataPtr();
+            for (int j = 0; j < 3; ++j) {
+                (*shapes)[3*i+j] = mf[mfi].box().length(j); 
+            }
+        }
+        return data;
+    }
+
+    double** warpx_getBfield(int lev, int direction,
+                             int *return_size, int *ngrow, int **shapes) {
+
+        auto & mf = WarpX::GetInstance().getBfield(lev, direction);
+
+        *ngrow = mf.nGrow();
+    
+        int num_boxes = mf.local_size();
+        *return_size = num_boxes;
+        *shapes = (int*) malloc(3*num_boxes*sizeof(int));
+        
+        double** data = (double**) malloc(num_boxes*sizeof(double*));
+
+        int i = 0;
+        for ( amrex::MFIter mfi(mf, false); mfi.isValid(); ++mfi, ++i ) {
+            data[i] = (double*) mf[mfi].dataPtr();
+            for (int j = 0; j < 3; ++j) {
+                (*shapes)[3*i+j] = mf[mfi].box().length(j); 
+            }
+        }
+        return data;
+    }
+
+    double** warpx_getCurrentDensity(int lev, int direction,
+                                     int *return_size, int *ngrow, int **shapes) {
+
+        auto & mf = WarpX::GetInstance().getcurrent(lev, direction);
+
+        *ngrow = mf.nGrow();
+    
         int num_boxes = mf.local_size();
         *return_size = num_boxes;
         *shapes = (int*) malloc(3*num_boxes*sizeof(int));
@@ -92,36 +140,46 @@ extern "C"
         return data;
     }
     
-    double* warpx_getParticlePositions(int speciesnumber) {
-        amrex::Array<amrex::Real> *part_data_ptr = new amrex::Array<amrex::Real>;
+    double** warpx_getParticleStructs(int speciesnumber,
+                                      int* num_tiles, int** particles_per_tile) {
         auto & mypc = WarpX::GetInstance().GetPartContainer();
         auto & myspc = mypc.GetParticleContainer(speciesnumber);
-        myspc.GetParticleLocations(*part_data_ptr);
-        return (double*) part_data_ptr->dataPtr();
+
+        const int level = 0;
+
+        WarpXParIter pti(myspc, level);
+        *num_tiles = pti.numTiles();
+        *particles_per_tile = (int*) malloc(*num_tiles*sizeof(int));
+        
+        double** data = (double**) malloc(*num_tiles*sizeof(typename WarpXParticleContainer::ParticleType*));
+        int i = 0;
+        for (WarpXParIter pti(myspc, level); pti.isValid(); ++pti, ++i) {
+            auto& aos = pti.GetArrayOfStructs();
+            data[i] = (double*) aos.data();
+            (*particles_per_tile)[i] = pti.numParticles();
+        }
+        return data;
     }
 
-    double* warpx_getParticleData(int speciesnumber, int start_comp, int num_comp) {
-        amrex::Array<amrex::Real> *part_data_ptr = new amrex::Array<amrex::Real>;
+    double** warpx_getParticleArrays(int speciesnumber, int comp,
+                                     int* num_tiles, int** particles_per_tile) {
         auto & mypc = WarpX::GetInstance().GetPartContainer();
         auto & myspc = mypc.GetParticleContainer(speciesnumber);
-        myspc.GetArrayData(*part_data_ptr, start_comp, num_comp);
-        return (double*) part_data_ptr->dataPtr();        
-    }
 
-    int* warpx_getParticleIDs(int speciesnumber) {
-        amrex::Array<int> *part_data_ptr = new amrex::Array<int>;
-        auto & mypc = WarpX::GetInstance().GetPartContainer();
-        auto & myspc = mypc.GetParticleContainer(speciesnumber);
-        myspc.GetParticleIDs(*part_data_ptr);
-        return (int*) part_data_ptr->dataPtr();        
-    }
+        const int level = 0;
 
-    int* warpx_getParticleCPU(int speciesnumber) {
-        amrex::Array<int> *part_data_ptr = new amrex::Array<int>;
-        auto & mypc = WarpX::GetInstance().GetPartContainer();
-        auto & myspc = mypc.GetParticleContainer(speciesnumber);
-        myspc.GetParticleCPU(*part_data_ptr);
-        return (int*) part_data_ptr->dataPtr();        
+        WarpXParIter pti(myspc, level);
+        *num_tiles = pti.numTiles();
+        *particles_per_tile = (int*) malloc(*num_tiles*sizeof(int));
+        
+        double** data = (double**) malloc(*num_tiles*sizeof(double*));
+        int i = 0;
+        for (WarpXParIter pti(myspc, level); pti.isValid(); ++pti, ++i) {
+            auto& soa = pti.GetStructOfArrays();
+            data[i] = (double*) soa[comp].dataPtr();
+            (*particles_per_tile)[i] = pti.numParticles();
+        }
+        return data;
     }
 
 }

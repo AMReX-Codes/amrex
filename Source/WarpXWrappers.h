@@ -35,15 +35,22 @@ extern "C" {
   long warpx_getNumParticles(int speciesnumber);
 
   double** warpx_getEfield(int lev, int direction, 
-                           int *return_size, int **shapes);
+                           int *return_size, int* ngrow, int **shapes);
 
-  double* warpx_getParticlePositions(int speciesnumber);
+  double** warpx_getBfield(int lev, int direction, 
+                           int *return_size, int* ngrow, int **shapes);
 
-  double* warpx_getParticleData(int speciesnumber, int start_comp, int num_comp);
+  double** warpx_getCurrentDensity(int lev, int direction, 
+                                   int *return_size, int* ngrow, int **shapes);
 
-  int* warpx_getParticleIDs(int speciesnumber);
-   
-  int* warpx_getParticleCPU(int speciesnumber);
+  double** warpx_getParticleStructs(int speciesnumber,
+                                    int* num_tiles, int** particles_per_tile);
+
+  double** warpx_getParticleArrays(int speciesnumber, int comp,
+                                   int* num_tiles, int** particles_per_tile);
+
+
+
 
 #ifdef __cplusplus
 }
