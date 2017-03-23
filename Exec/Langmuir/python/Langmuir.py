@@ -122,7 +122,8 @@ def get_particle_structs(species_number):
 
     particles_per_tile = ctypes.POINTER(ctypes.c_int)()
     num_tiles = ctypes.c_int(0)
-    data = libwarpx.warpx_getParticleStructs(0, ctypes.byref(num_tiles),
+    data = libwarpx.warpx_getParticleStructs(species_number,
+                                             ctypes.byref(num_tiles),
                                              ctypes.byref(particles_per_tile))
 
     particle_data = []
@@ -159,7 +160,8 @@ def get_particle_arrays(species_number, comp):
     
     particles_per_tile = ctypes.POINTER(ctypes.c_int)()
     num_tiles = ctypes.c_int(0)
-    data = libwarpx.warpx_getParticleArrays(0, comp, ctypes.byref(num_tiles),
+    data = libwarpx.warpx_getParticleArrays(species_number, comp,
+                                            ctypes.byref(num_tiles),
                                             ctypes.byref(particles_per_tile))
 
     particle_data = []
@@ -361,10 +363,12 @@ def get_mesh_electric_field(level, direction, include_ghosts=True):
     
     '''
 
+    assert(level == 0)
+
     shapes = ctypes.POINTER(ctypes.c_int)()
     size = ctypes.c_int(0)
     ngrow = ctypes.c_int(0)
-    data = libwarpx.warpx_getEfield(0, direction,
+    data = libwarpx.warpx_getEfield(level, direction,
                                     ctypes.byref(size), ctypes.byref(ngrow), 
                                     ctypes.byref(shapes))
     ng = ngrow.value
@@ -406,10 +410,12 @@ def get_mesh_magnetic_field(level, direction, include_ghosts=True):
     
     '''
 
+    assert(level == 0)
+
     shapes = ctypes.POINTER(ctypes.c_int)()
     size = ctypes.c_int(0)
     ngrow = ctypes.c_int(0)
-    data = libwarpx.warpx_getBfield(0, direction,
+    data = libwarpx.warpx_getBfield(level, direction,
                                     ctypes.byref(size), ctypes.byref(ngrow), 
                                     ctypes.byref(shapes))
     ng = ngrow.value
@@ -451,10 +457,12 @@ def get_mesh_current_density(level, direction, include_ghosts=True):
     
     '''
 
+    assert(level == 0)
+
     shapes = ctypes.POINTER(ctypes.c_int)()
     size = ctypes.c_int(0)
     ngrow = ctypes.c_int(0)
-    data = libwarpx.warpx_getCurrentDensity(0, direction,
+    data = libwarpx.warpx_getCurrentDensity(level, direction,
                                             ctypes.byref(size), ctypes.byref(ngrow), 
                                             ctypes.byref(shapes))
     ng = ngrow.value
