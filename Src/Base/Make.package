@@ -69,14 +69,14 @@ C$(AMREX_BASE)_headers += AMReX_FabFactory.H
 #
 # FORTRAN data defined on unions of rectangles.
 #
-C$(AMREX_BASE)_sources += AMReX_MultiFab.cpp
-C$(AMREX_BASE)_headers += AMReX_MultiFab.H
+C$(AMREX_BASE)_sources += AMReX_MultiFab.cpp AMReX_MFCopyDescriptor.cpp
+C$(AMREX_BASE)_headers += AMReX_MultiFab.H AMReX_MFCopyDescriptor.H
 
 C$(AMREX_BASE)_sources += AMReX_iMultiFab.cpp
 C$(AMREX_BASE)_headers += AMReX_iMultiFab.H
 
 C$(AMREX_BASE)_sources += AMReX_FabArrayBase.cpp AMReX_MFIter.cpp
-C$(AMREX_BASE)_headers += AMReX_FabArray.H AMReX_FabArrayBase.H AMReX_MFIter.H
+C$(AMREX_BASE)_headers += AMReX_FabArray.H AMReX_FACopyDescriptor.H AMReX_FabArrayBase.H AMReX_MFIter.H
 
 #
 # Geometry / Coordinate system routines.
