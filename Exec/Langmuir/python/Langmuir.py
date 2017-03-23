@@ -26,7 +26,7 @@ c_double_p = ctypes.POINTER(ctypes.c_double)
 LP_c_char = ctypes.POINTER(ctypes.c_char)
 LP_LP_c_char = ctypes.POINTER(LP_c_char)
 
-# where do I import these? this might only work for CPython...
+# from where do I import these? this might only work for CPython...
 PyBuf_READ  = 0x100
 PyBUF_WRITE = 0x200
 
@@ -74,6 +74,52 @@ f.argtypes = (ctypes.c_int, ctypes.c_int,
               ctypes.c_int,
               ndpointer(ctypes.c_double, flags="C_CONTIGUOUS"),
               ctypes.c_int)
+
+def initialize():
+    '''
+
+    Initialize WarpX and AMReX. Must be called before 
+    doing anything else.
+
+    '''
+
+    # convert command line args to pass into amrex
+    argc = len(sys.argv)
+    argv = (LP_c_char * (argc+1))()
+    for i, arg in enumerate(sys.argv):
+        enc_arg = arg.encode('utf-8')
+        argv[i] = ctypes.create_string_buffer(enc_arg)
+
+    libwarpx.amrex_init(argc, argv)
+    libwarpx.warpx_init()
+    
+
+def finalize():
+    '''
+
+    Call finalize for WarpX and AMReX. Must be called at 
+    the end of your script.
+
+    '''
+    libwarpx.warpx_finalize()
+    libwarpx.amrex_finalize()
+
+
+def evolve(num_steps=-1):
+    '''
+    
+    Evolve the simulation for num_steps steps. If num_steps=-1,
+    the simulation will be run until the end as specified in the
+    inputs file.
+
+    Parameters
+    ----------
+
+        num_steps: int, the number of steps to take
+
+    '''
+
+    libwarpx.warpx_evolve(num_steps);
 
 def add_particles(species_number, N,
                   x, y, z, ux, uy, uz, nattr, attr, unique_particles):
@@ -481,19 +527,11 @@ def get_mesh_current_density(level, direction, include_ghosts=True):
     return grid_data
 
 
-argc = len(sys.argv)
-argv = (LP_c_char * (argc+1))()
-for i, arg in enumerate(sys.argv):
-    enc_arg = arg.encode('utf-8')
-    argv[i] = ctypes.create_string_buffer(enc_arg)
+# here begins the actual simulation script
+initialize()
 
-#  here begins the actual simulation script
-libwarpx.amrex_init(argc, argv)
-
-libwarpx.warpx_init()
-
-#  run for ten time steps
-libwarpx.warpx_evolve(10)
+# run for ten time steps
+evolve(10)
 
 x = get_particle_x(0)
 y = get_particle_y(0)
@@ -509,6 +547,4 @@ plt.clf()
 plt.pcolormesh(grid_data[1][9,:,:])
 plt.savefig("field.png")
 
-libwarpx.warpx_finalize()
-
-libwarpx.amrex_finalize()
+finalize()
