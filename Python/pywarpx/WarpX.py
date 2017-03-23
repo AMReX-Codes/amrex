@@ -2,6 +2,9 @@ from .Bucket import Bucket
 from . import warpxC
 
 class WarpX(Bucket):
+    """
+    A Python wrapper for the WarpX C++ class
+    """
 
     def init(self):
         self.warpx = warpxC.WarpX.GetInstance()

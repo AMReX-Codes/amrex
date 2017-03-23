@@ -13,7 +13,7 @@
 
 //
 // MultiParticleContainer holds multiple (nspecies or npsecies+1 when
-// using laser) WarpXParticleContainer.  WarpXParticlContainer is
+// using laser) WarpXParticleContainer.  WarpXParticleContainer is
 // derived from amrex::ParticleContainer, and it is
 // polymorphic. PhysicalParticleContainer and LaserParticleContainer are
 // concrete class dervied from WarpXParticlContainer.
@@ -44,6 +44,8 @@ public:
 		 const amrex::MultiFab& Ex, const amrex::MultiFab& Ey, const amrex::MultiFab& Ez,
 		 const amrex::MultiFab& Bx, const amrex::MultiFab& By, const amrex::MultiFab& Bz,
 		 amrex::MultiFab& jx, amrex::MultiFab& jy, amrex::MultiFab& jz, amrex::Real, amrex::Real dt);
+
+    void PushX (int lev, amrex::Real dt);
 
     std::unique_ptr<amrex::MultiFab> GetChargeDensity(int lev, bool local = false);
 

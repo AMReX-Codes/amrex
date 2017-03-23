@@ -177,6 +177,8 @@ WarpX::ReadParameters ()
 	}
 
 	pp.query("use_laser", use_laser);
+
+        pp.query("plot_raw_fields", plot_raw_fields);
     }
 
     {
@@ -200,6 +202,7 @@ WarpX::ReadParameters ()
 	pp.query("particle_pusher", particle_pusher_algo);
     }
 
+    is_synchronized = true;
 }
 
 // This is a virtual function.
