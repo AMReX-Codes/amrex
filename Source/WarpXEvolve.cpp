@@ -24,9 +24,9 @@ WarpX::Evolve (int numsteps)
 
     for (int step = istep[0]; step < numsteps_max && cur_time < stop_time; ++step)
     {
-#ifdef WARPX_USE_PY
-        warpx_py_print_step(step);
-#endif
+        if (warpx_py_print_step) {
+            warpx_py_print_step(step);
+        }
 
 	// Start loop on time steps
         amrex::Print() << "\nSTEP " << step+1 << " starts ...\n";
