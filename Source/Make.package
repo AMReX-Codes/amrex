@@ -2,14 +2,14 @@ ifneq ($(USE_PYTHON_MAIN),TRUE)
   CEXE_sources += main.cpp
 endif
 
-CEXE_sources += WarpXWrappers.cpp
+CEXE_sources += WarpXWrappers.cpp WarpX_py.cpp
 
 CEXE_sources += WarpX.cpp WarpXInitData.cpp WarpXEvolve.cpp WarpXIO.cpp WarpXProb.cpp WarpXRegrid.cpp
 
 CEXE_sources += ParticleProb.cpp ParticleIO.cpp
 CEXE_sources += ParticleContainer.cpp WarpXParticleContainer.cpp PhysicalParticleContainer.cpp LaserParticleContainer.cpp
 
-CEXE_headers += WarpXWrappers.h
+CEXE_headers += WarpXWrappers.h WarpX_py.H
 
 CEXE_headers += WarpX.H WarpX_f.H WarpXConst.H
 

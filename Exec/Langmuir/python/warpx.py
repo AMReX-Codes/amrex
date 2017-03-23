@@ -70,6 +70,15 @@ f.argtypes = (ctypes.c_int, ctypes.c_int,
               ndpointer(ctypes.c_double, flags="C_CONTIGUOUS"),
               ctypes.c_int)
 
+CALLBACK_FUNC_1 = ctypes.CFUNCTYPE(None, ctypes.c_int)
+def print_step(i):
+    '''
+
+    This function is called by C++.  This is just a demo.
+
+    '''
+    print "\nCalling a Python function from C++.  Step = ", i
+KEEP_ALIVE_FUNC_print_step = print_step   # otherwise the function may get garbage collected.
 
 def initialize():
     '''
@@ -88,7 +97,8 @@ def initialize():
         
     libwarpx.amrex_init(argc, argv)
     libwarpx.warpx_init()
-    
+    libwarpx.warpx_set_callback_py_funcs(CALLBACK_FUNC_1(print_step))
+
 
 def finalize():
     '''

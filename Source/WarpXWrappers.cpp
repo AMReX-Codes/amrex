@@ -5,6 +5,7 @@
 #include <WarpXWrappers.h>
 #include <WarpXParticleContainer.H>
 #include <WarpX.H>
+#include <WarpX_py.H>
 
 namespace 
 {
@@ -71,6 +72,11 @@ extern "C"
     void warpx_finalize ()
     {
 	WarpX::ResetInstance();
+    }
+
+    void warpx_set_callback_py_funcs (WARPX_CALLBACK_PY_FUNC_1 print_step)
+    {
+        warpx_py_print_step = print_step;
     }
 
     void warpx_evolve (int numsteps)

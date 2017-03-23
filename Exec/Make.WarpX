@@ -16,6 +16,7 @@ ifeq ($(USE_PYTHON_MAIN),TRUE)
   FFLAGS   += -fPIC
   F90FLAGS += -fPIC
   USERSuffix = .Lib
+  DEFINES += -DWARPX_USE_PY
 endif
 
 -include Make.package

@@ -26,6 +26,9 @@ extern "C" {
     void warpx_init ();
     
     void warpx_finalize ();
+
+    typedef void(*WARPX_CALLBACK_PY_FUNC_1)(int);
+    void warpx_set_callback_py_funcs (WARPX_CALLBACK_PY_FUNC_1);
     
     void warpx_evolve (int numsteps);  // -1 means the inputs parameter will be used.
     
