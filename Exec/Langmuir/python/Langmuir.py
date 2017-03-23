@@ -10,19 +10,15 @@ import matplotlib.pyplot as plt
 libwarpx = ctypes.CDLL("libwarpx.so")
 libc = ctypes.CDLL(find_library('c'))
 
-# some useful data structures and typenames
-class Particle(ctypes.Structure):
-    _fields_ = [('x', ctypes.c_double),
-                ('y', ctypes.c_double),
-                ('z', ctypes.c_double),
-                ('id', ctypes.c_int),
-                ('cpu', ctypes.c_int)]
-
-
+# our particle data type
 p_dtype = np.dtype([('x', 'f8'), ('y', 'f8'), ('z', 'f8'),
                     ('id', 'i4'), ('cpu', 'i4')])
 
-c_double_p = ctypes.POINTER(ctypes.c_double)
+# some useful typenames
+LP_c_int = ctypes.POINTER(ctypes.c_int)
+LP_c_void_p = ctypes.POINTER(ctypes.c_void_p)
+LP_c_double = ctypes.POINTER(ctypes.c_double)
+LP_LP_c_double = ctypes.POINTER(LP_c_double)
 LP_c_char = ctypes.POINTER(ctypes.c_char)
 LP_LP_c_char = ctypes.POINTER(LP_c_char)
 
@@ -49,19 +45,19 @@ f = libwarpx.amrex_init
 f.argtypes = (ctypes.c_int, LP_LP_c_char)
 
 f = libwarpx.warpx_getParticleStructs
-f.restype = ctypes.POINTER(ctypes.POINTER(Particle))
+f.restype = LP_c_void_p
 
 f = libwarpx.warpx_getParticleArrays
-f.restype = ctypes.POINTER(c_double_p)
+f.restype = LP_LP_c_double
 
 f = libwarpx.warpx_getEfield
-f.restype = ctypes.POINTER(c_double_p)
+f.restype = LP_LP_c_double
 
 f = libwarpx.warpx_getBfield
-f.restype = ctypes.POINTER(c_double_p)
+f.restype = LP_LP_c_double
 
 f = libwarpx.warpx_getCurrentDensity
-f.restype = ctypes.POINTER(c_double_p)
+f.restype = LP_LP_c_double
 
 f = libwarpx.warpx_addNParticles
 f.argtypes = (ctypes.c_int, ctypes.c_int,
@@ -166,7 +162,7 @@ def get_particle_structs(species_number):
 
     '''
 
-    particles_per_tile = ctypes.POINTER(ctypes.c_int)()
+    particles_per_tile = LP_c_int()
     num_tiles = ctypes.c_int(0)
     data = libwarpx.warpx_getParticleStructs(species_number,
                                              ctypes.byref(num_tiles),
@@ -204,7 +200,7 @@ def get_particle_arrays(species_number, comp):
     
     '''
     
-    particles_per_tile = ctypes.POINTER(ctypes.c_int)()
+    particles_per_tile = LP_c_int()
     num_tiles = ctypes.c_int(0)
     data = libwarpx.warpx_getParticleArrays(species_number, comp,
                                             ctypes.byref(num_tiles),
@@ -411,7 +407,7 @@ def get_mesh_electric_field(level, direction, include_ghosts=True):
 
     assert(level == 0)
 
-    shapes = ctypes.POINTER(ctypes.c_int)()
+    shapes = LP_c_int()
     size = ctypes.c_int(0)
     ngrow = ctypes.c_int(0)
     data = libwarpx.warpx_getEfield(level, direction,
@@ -458,7 +454,7 @@ def get_mesh_magnetic_field(level, direction, include_ghosts=True):
 
     assert(level == 0)
 
-    shapes = ctypes.POINTER(ctypes.c_int)()
+    shapes = LP_c_int()
     size = ctypes.c_int(0)
     ngrow = ctypes.c_int(0)
     data = libwarpx.warpx_getBfield(level, direction,
@@ -505,7 +501,7 @@ def get_mesh_current_density(level, direction, include_ghosts=True):
 
     assert(level == 0)
 
-    shapes = ctypes.POINTER(ctypes.c_int)()
+    shapes = LP_c_int()
     size = ctypes.c_int(0)
     ngrow = ctypes.c_int(0)
     data = libwarpx.warpx_getCurrentDensity(level, direction,
