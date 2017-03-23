@@ -476,11 +476,6 @@ def get_mesh_current_density(level, direction, include_ghosts=True):
     return grid_data
 
 
-LP_c_char = ctypes.POINTER(ctypes.c_char)
-LP_LP_c_char = ctypes.POINTER(LP_c_char)
-
-libwarpx.amrex_init.argtypes = (ctypes.c_int, LP_LP_c_char)
-
 argc = len(sys.argv)
 argv = (LP_c_char * (argc+1))()
 for i, arg in enumerate(sys.argv):
