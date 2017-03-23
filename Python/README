@@ -1,10 +1,9 @@
-The initial python wrapped version. This has the minimal capability of allowing specification of the
+The initial python wrapped version. This has the main capability of allowing specification of the
 input parameters (i.e. the input file) in python, passing that into amrex and then running the time steps.
+It also includes pgroups that can be used with Warp species.
 
-To build it, run "make pyinstallswig" in the Python directory. You will need to have swig installed.
-(In the future, the swig generated wrapper could be put into the repo so swig wouldn't be needed.)
-This will compile the code, create the wrapper, and install the wrapper in the Python site-packages directory.
-There is also "make pybuild" will build the wrapper but not install it.
+To build it, run "make" in the Python directory. This will compile the code and install the wrapper in the
+Python site-packages directory.
 
 There is a python script langmuir.py in tests/Langmuir which can run it.
 
