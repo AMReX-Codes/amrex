@@ -3,6 +3,7 @@
 #include <AMReX_BLProfiler.H>
 
 #include <WarpXWrappers.h>
+#include <WarpXParticleContainer.H>
 #include <WarpX.H>
 
 namespace 
@@ -27,6 +28,17 @@ namespace
 
 extern "C"
 {
+
+    int warpx_nSpecies()
+    {
+	auto & mypc = WarpX::GetInstance().GetPartContainer();
+        return mypc.nSpecies();
+    }
+
+    int warpx_nComps() 
+    {
+        return PIdx::nattribs;        
+    }
 
     int warpx_SpaceDim() 
     {
