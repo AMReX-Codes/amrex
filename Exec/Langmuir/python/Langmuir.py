@@ -66,7 +66,7 @@ f.restype = ctypes.POINTER(c_double_p)
 f = libwarpx.warpx_getCurrentDensity
 f.restype = ctypes.POINTER(c_double_p)
 
-f = libwarpx.addNParticles
+f = libwarpx.warpx_addNParticles
 f.argtypes = (ctypes.c_int, ctypes.c_int,
               ndpointer(ctypes.c_double, flags="C_CONTIGUOUS"), 
               ndpointer(ctypes.c_double, flags="C_CONTIGUOUS"),
@@ -97,9 +97,9 @@ def add_particles(species_number, N,
                            several processes
 
     '''
-    libwarpx.addNParticles(species_number, N,
-                           x, y, z, ux, uy, uz,
-                           nattr, attr, unique_particles)
+    libwarpx.warpx_addNParticles(species_number, N,
+                                 x, y, z, ux, uy, uz,
+                                 nattr, attr, unique_particles)
 
 def get_particle_structs(species_number):
     '''

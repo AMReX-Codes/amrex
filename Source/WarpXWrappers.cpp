@@ -41,10 +41,10 @@ extern "C"
 	warpx.Evolve(numsteps);
     }
 
-    void addNParticles(int speciesnumber, int lenx,
-		       double* x, double* y, double* z,
-		       double* vx, double* vy, double* vz,
-		       int nattr, double* attr, int uniqueparticles)
+    void warpx_addNParticles(int speciesnumber, int lenx,
+                             double* x, double* y, double* z,
+                             double* vx, double* vy, double* vz,
+                             int nattr, double* attr, int uniqueparticles)
     {
 	auto & mypc = WarpX::GetInstance().GetPartContainer();
 	auto & myspc = mypc.GetParticleContainer(speciesnumber);
