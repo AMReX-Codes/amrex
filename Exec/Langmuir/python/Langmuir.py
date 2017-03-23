@@ -418,13 +418,13 @@ def get_mesh_electric_field(level, direction, include_ghosts=True):
     ng = ngrow.value
     grid_data = []
     for i in range(size.value):
-        shape=(shapes[dim*i+0], shapes[dim*i+1], shapes[dim*i+2])
+        shape = tuple([shapes[dim*i + d] for d in range(dim)])
         arr = np.ctypeslib.as_array(data[i], shape)
         arr.setflags(write=1)
         if include_ghosts:
             grid_data.append(arr)
         else:
-            grid_data.append(arr[ng:-ng,ng:-ng,ng:-ng])
+            grid_data.append(arr[[slice(ng, -ng) for _ in range(dim)]])
 
     libc.free(shapes)
     libc.free(data)
@@ -465,13 +465,13 @@ def get_mesh_magnetic_field(level, direction, include_ghosts=True):
     ng = ngrow.value
     grid_data = []
     for i in range(size.value):
-        shape=(shapes[dim*i+0], shapes[dim*i+1], shapes[dim*i+2])
+        shape = tuple([shapes[dim*i + d] for d in range(dim)])
         arr = np.ctypeslib.as_array(data[i], shape)
         arr.setflags(write=1)
         if include_ghosts:
             grid_data.append(arr)
         else:
-            grid_data.append(arr[ng:-ng,ng:-ng,ng:-ng])
+            grid_data.append(arr[[slice(ng, -ng) for _ in range(dim)]])
 
     libc.free(shapes)
     libc.free(data)
@@ -512,13 +512,13 @@ def get_mesh_current_density(level, direction, include_ghosts=True):
     ng = ngrow.value
     grid_data = []
     for i in range(size.value):
-        shape=(shapes[dim*i+0], shapes[dim*i+1], shapes[dim*i+2])
+        shape = tuple([shapes[dim*i + d] for d in range(dim)])
         arr = np.ctypeslib.as_array(data[i], shape)
         arr.setflags(write=1)
         if include_ghosts:
             grid_data.append(arr)
         else:
-            grid_data.append(arr[ng:-ng,ng:-ng,ng:-ng])
+            grid_data.append(arr[[slice(ng, -ng) for _ in range(dim)]])
 
     libc.free(shapes)
     libc.free(data)
