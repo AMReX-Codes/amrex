@@ -75,8 +75,8 @@ C$(AMREX_BASE)_headers += AMReX_MultiFab.H
 C$(AMREX_BASE)_sources += AMReX_iMultiFab.cpp
 C$(AMREX_BASE)_headers += AMReX_iMultiFab.H
 
-C$(AMREX_BASE)_sources += AMReX_FabArray.cpp
-C$(AMREX_BASE)_headers += AMReX_FabArray.H
+C$(AMREX_BASE)_sources += AMReX_FabArray.cpp AMReX_FabArrayBase.cpp
+C$(AMREX_BASE)_headers += AMReX_FabArray.H AMReX_FabArrayBase.H
 
 #
 # Geometry / Coordinate system routines.
