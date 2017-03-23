@@ -6,7 +6,7 @@ CEXE_sources += WarpXWrappers.cpp
 
 CEXE_sources += WarpX.cpp WarpXInitData.cpp WarpXEvolve.cpp WarpXIO.cpp WarpXProb.cpp WarpXRegrid.cpp
 
-CEXE_sources += ParticleProb.cpp ParticleIO.cpp
+CEXE_sources += ParticleIO.cpp
 CEXE_sources += ParticleContainer.cpp WarpXParticleContainer.cpp PhysicalParticleContainer.cpp LaserParticleContainer.cpp
 
 CEXE_headers += WarpXWrappers.h
@@ -14,6 +14,9 @@ CEXE_headers += WarpXWrappers.h
 CEXE_headers += WarpX.H WarpX_f.H WarpXConst.H
 
 CEXE_headers += ParticleContainer.H WarpXParticleContainer.H PhysicalParticleContainer.H LaserParticleContainer.H
+
+CEXE_headers += PlasmaInjector.H
+CEXE_sources += PlasmaInjector.cpp CustomDensityProb.cpp
 
 F90EXE_sources += WarpX_f.F90 WarpX_picsar.F90 WarpX_laser.F90
 

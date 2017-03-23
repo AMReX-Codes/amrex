@@ -69,9 +69,6 @@ public:
                          amrex::Real x, amrex::Real y, amrex::Real z,
                          const std::array<amrex::Real,PIdx::nattribs>& attribs);
 
-    // Inject 'ppc' particles per cell in Box 'part_box'
-    void AddParticles (int lev, const amrex::Box& part_box, amrex::Real weight, int ppc);
-    
     void ReadHeader (std::istream& is);
 
     void WriteHeader (std::ostream& os) const;

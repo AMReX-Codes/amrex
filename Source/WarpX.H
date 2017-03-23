@@ -36,6 +36,15 @@ public:
 
     MultiParticleContainer& GetPartContainer () { return *mypc; }
 
+#if (BL_SPACEDIM == 3)
+    void fillSlice(amrex::Real z_coord) const;
+
+    void sampleAtPoints(const amrex::Array<amrex::Real>& x,
+			const amrex::Array<amrex::Real>& y,
+			const amrex::Array<amrex::Real>& z,
+			amrex::Array<amrex::Array<amrex::Real> >& result) const;
+#endif
+
     static void FillBoundary (amrex::MultiFab& mf, const amrex::Geometry& geom, const amrex::IntVect& nodalflag);
 
     static void shiftMF(amrex::MultiFab& mf, const amrex::Geometry& geom, int num_shift,
@@ -113,6 +122,8 @@ protected:
     //! Delete level data.  Called by AmrCore::regrid.
     virtual void ClearLevel (int lev) override;
 
+    amrex::Box getIndexBox(const amrex::RealBox& real_box) const;
+
 private:
 
     // Singleton is used when the code is run from python
@@ -157,6 +168,7 @@ private:
 
     // Particle container
     std::unique_ptr<MultiParticleContainer> mypc;
+
     // Fields: First array for level, second for direction
     amrex::Array<amrex::Array< std::unique_ptr<amrex::MultiFab> > > current;
     amrex::Array<amrex::Array< std::unique_ptr<amrex::MultiFab> > > Efield;
@@ -171,9 +183,7 @@ private:
     // Plasma injection parameters
     int do_plasma_injection  = 0;
     int num_injected_species = -1;
-    amrex::Array<int> injected_plasma_ppc;
     amrex::Array<int> injected_plasma_species;
-    amrex::Array<amrex::Real> injected_plasma_density;
 
     // Other runtime parameters
     int verbose = 1;
