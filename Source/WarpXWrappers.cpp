@@ -11,14 +11,14 @@ namespace
     {
         *ngrow = mf.nGrow();
         *num_boxes = mf.local_size();
-        *shapes = (int*) malloc(3*(*num_boxes)*sizeof(int));
-        double** data = (double**) malloc((*num_boxes)*sizeof(double*));
+        *shapes = (int*) malloc(BL_SPACEDIM * (*num_boxes) * sizeof(int));
+        double** data = (double**) malloc((*num_boxes) * sizeof(double*));
         
         int i = 0;
         for ( amrex::MFIter mfi(mf, false); mfi.isValid(); ++mfi, ++i ) {
             data[i] = (double*) mf[mfi].dataPtr();
-            for (int j = 0; j < 3; ++j) {
-                (*shapes)[3*i+j] = mf[mfi].box().length(j); 
+            for (int j = 0; j < BL_SPACEDIM; ++j) {
+                (*shapes)[BL_SPACEDIM*i+j] = mf[mfi].box().length(j); 
             }
         }
         return data;
