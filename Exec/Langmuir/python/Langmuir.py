@@ -80,6 +80,23 @@ f.argtypes = (ctypes.c_int, ctypes.c_int,
 
 def add_particles(species_number, N,
                   x, y, z, ux, uy, uz, nattr, attr, unique_particles):
+    '''
+
+    A function for adding particles to the WarpX simulation.
+
+    Parameters
+    ----------
+
+        species_number   : the species to add the particle to
+        N                : the number of particles
+        x, y, z          : numpy arrays of the particle positions
+        ux, uy, uz       : numpy arrays of the particle momenta
+        nattr            : the number of particle attributes to add
+        attr             : a 2D numpy array with the particle attributes
+        unique_particles : whether the particles are unique or duplicated on 
+                           several processes
+
+    '''
     libwarpx.addNParticles(species_number, N,
                            x, y, z, ux, uy, uz,
                            nattr, attr, unique_particles)
