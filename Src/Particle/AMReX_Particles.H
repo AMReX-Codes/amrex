@@ -423,6 +423,8 @@ public:
     int finestLevel () const { return m_gdb->finestLevel(); }
     int maxLevel ()    const { return m_gdb->maxLevel(); }
     
+    int numLocalTilesAtLevel (int lev) const { return m_particles[lev].size(); }
+
     const ParGDBBase* GetParGDB () const { return m_gdb; }
 
     void reserveData();
@@ -725,8 +727,6 @@ public:
                              Array<Real>& z)) const;
 
     int numParticles () const { return GetArrayOfStructs().numParticles(); }    
-
-    int numTiles () const { return m_particle_tiles.size();}
 
 private:
     int m_level;
