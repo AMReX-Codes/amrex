@@ -1,19 +1,5 @@
 
-#include <iterator>
-#include <numeric>
-
-#ifdef BL_LAZY
-#include <AMReX_Lazy.H>
-#endif
-
-#include <AMReX_Utility.H>
-#include <AMReX_FabArray.H>
-#include <AMReX_ParmParse.H>
-#include <AMReX_Geometry.H>
-
-#ifdef BL_MEM_PROFILING
-#include <AMReX_MemProfiler.H>
-#endif
+#include <AMReX_MFIter.H>
 
 namespace amrex {
 
