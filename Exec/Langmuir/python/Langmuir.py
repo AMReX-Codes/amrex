@@ -4,11 +4,13 @@ import sys
 import ctypes
 from ctypes.util import find_library
 import numpy as np
+from numpy.ctypeslib import ndpointer
 import matplotlib.pyplot as plt
 
 libwarpx = ctypes.CDLL("libwarpx.so")
 libc = ctypes.CDLL(find_library('c'))
 
+# some useful data structures and typenames
 class Particle(ctypes.Structure):
     _fields_ = [('x', ctypes.c_double),
                 ('y', ctypes.c_double),
@@ -20,6 +22,9 @@ class Particle(ctypes.Structure):
 p_dtype = np.dtype([('x', 'f8'), ('y', 'f8'), ('z', 'f8'),
                     ('id', 'i4'), ('cpu', 'i4')])
 
+c_double_p = ctypes.POINTER(ctypes.c_double)
+LP_c_char = ctypes.POINTER(ctypes.c_char)
+LP_LP_c_char = ctypes.POINTER(LP_c_char)
 
 # where do I import these? this might only work for CPython...
 PyBuf_READ  = 0x100
@@ -39,25 +44,45 @@ def array1d_from_pointer(pointer, dtype, size):
     return np.frombuffer(buf, dtype=dtype, count=size)
     
 
-# set the return types of the wrapped functions
+# set the arg and return types of the wrapped functions
+f = libwarpx.amrex_init
+f.argtypes = (ctypes.c_int, LP_LP_c_char)
+
 f = libwarpx.warpx_getParticleStructs
 f.restype = ctypes.POINTER(ctypes.POINTER(Particle))
 
 f = libwarpx.warpx_getParticleArrays
-f.restype = ctypes.POINTER(ctypes.POINTER(ctypes.c_double))
+f.restype = ctypes.POINTER(c_double_p)
 
 f = libwarpx.warpx_getParticleArrays
-f.restype = ctypes.POINTER(ctypes.POINTER(ctypes.c_double))
+f.restype = ctypes.POINTER(c_double_p)
 
 f = libwarpx.warpx_getEfield
-f.restype = ctypes.POINTER(ctypes.POINTER(ctypes.c_double) )
+f.restype = ctypes.POINTER(c_double_p)
 
 f = libwarpx.warpx_getBfield
-f.restype = ctypes.POINTER(ctypes.POINTER(ctypes.c_double) )
+f.restype = ctypes.POINTER(c_double_p)
 
 f = libwarpx.warpx_getCurrentDensity
-f.restype = ctypes.POINTER(ctypes.POINTER(ctypes.c_double) )
+f.restype = ctypes.POINTER(c_double_p)
 
+f = libwarpx.addNParticles
+f.argtypes = (ctypes.c_int, ctypes.c_int,
+              ndpointer(ctypes.c_double, flags="C_CONTIGUOUS"), 
+              ndpointer(ctypes.c_double, flags="C_CONTIGUOUS"),
+              ndpointer(ctypes.c_double, flags="C_CONTIGUOUS"),
+              ndpointer(ctypes.c_double, flags="C_CONTIGUOUS"),
+              ndpointer(ctypes.c_double, flags="C_CONTIGUOUS"),
+              ndpointer(ctypes.c_double, flags="C_CONTIGUOUS"),
+              ctypes.c_int,
+              ndpointer(ctypes.c_double, flags="C_CONTIGUOUS"),
+              ctypes.c_int)
+
+def add_particles(species_number, N,
+                  x, y, z, ux, uy, uz, nattr, attr, unique_particles):
+    libwarpx.addNParticles(species_number, N,
+                           x, y, z, ux, uy, uz,
+                           nattr, attr, unique_particles)
 
 def get_particle_structs(species_number):
     '''
