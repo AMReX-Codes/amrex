@@ -1,5 +1,5 @@
 from .Bucket import Bucket
-from . import warpxC
+from ._libwarpx import libwarpx
 
 class WarpX(Bucket):
     """
@@ -7,21 +7,18 @@ class WarpX(Bucket):
     """
 
     def init(self):
-        self.warpx = warpxC.WarpX.GetInstance()
-        self.warpx.InitData()
+        libwarpx.warpx_init()
 
     def evolve(self, nsteps=-1):
-        self.warpx.Evolve(nsteps)
+        libwarpx.warpx_evolve(nsteps)
 
     def finalize(self):
-        warpxC.WarpX.ResetInstance()
+        libwarpx.warpx_finalize()
 
     def getProbLo(self, direction):
-        return self.warpx.Geom()[0].ProbLo(direction)
-        #return warpxC.warpx_getProbLo(direction)
+        return libwarpx.warpx_getProbLo(direction)
 
     def getProbHi(self, direction):
-        return self.warpx.Geom()[0].ProbHi(direction)
-        #return warpxC.warpx_getProbHi(direction)
+        return libwarpx.warpx_getProbHi(direction)
 
 warpx = WarpX('warpx')

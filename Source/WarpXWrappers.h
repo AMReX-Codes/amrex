@@ -55,6 +55,33 @@ extern "C" {
     double** warpx_getParticleArrays(int speciesnumber, int comp,
                                      int* num_tiles, int** particles_per_tile);
 
+  void warpx_ComputeDt ();
+  void warpx_MoveWindow ();
+
+  void warpx_EvolveE (int lev, double dt);
+  void warpx_EvolveB (int lev, double dt);
+  void warpx_FillBoundaryE (int lev, bool force);
+  void warpx_FillBoundaryB (int lev, bool force);
+  void warpx_PushParticlesandDepose (int lev, double cur_time);
+
+  int warpx_getistep (int lev);
+  void warpx_setistep (int lev, int ii);
+  double warpx_gett_new (int lev);
+  void warpx_sett_new (int lev, double time);
+  double warpx_getdt (int lev);
+
+  int warpx_maxStep ();
+  double warpx_stopTime ();
+
+  int warpx_checkInt ();
+  int warpx_plotInt ();
+
+  void warpx_WriteCheckPointFile ();
+  void warpx_WritePlotFile ();
+
+  int warpx_finestLevel ();
+
+  void mypc_Redistribute ();
 
 #ifdef __cplusplus
 }

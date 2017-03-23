@@ -8,7 +8,9 @@ from .Langmuirwave import langmuirwave
 from .Interpolation import interpolation
 from .Particles import particles
 
-from . import warpxC
+import ctypes
+from ._libwarpx import libwarpx
+from ._libwarpx import amrex_init
 
 class AMReX(object):
 
@@ -22,7 +24,7 @@ class AMReX(object):
         argv += interpolation.attrlist()
         argv += particles.attrlist()
 
-        warpxC.amrex_init(argv)
+        amrex_init(argv)
 
     def finalize(self, finalize_mpi=1):
-        warpxC.amrex_finalize(finalize_mpi)
+        libwarpx.amrex_finalize(finalize_mpi)

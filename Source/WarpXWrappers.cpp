@@ -167,5 +167,93 @@ extern "C"
         return data;
     }
 
+    void warpx_ComputeDt () {
+        WarpX& warpx = WarpX::GetInstance();
+        warpx.ComputeDt ();
+    }
+    void warpx_MoveWindow () {
+        WarpX& warpx = WarpX::GetInstance();
+        warpx.MoveWindow ();
+    }
+
+    void warpx_EvolveE (int lev, double dt) {
+        WarpX& warpx = WarpX::GetInstance();
+        warpx.EvolveE (lev, dt);
+    }
+    void warpx_EvolveB (int lev, double dt) {
+        WarpX& warpx = WarpX::GetInstance();
+        warpx.EvolveB (lev, dt);
+    }
+    void warpx_FillBoundaryE (int lev, bool force) {
+        WarpX& warpx = WarpX::GetInstance();
+        warpx.FillBoundaryE (lev, force);
+    }
+    void warpx_FillBoundaryB (int lev, bool force) {
+        WarpX& warpx = WarpX::GetInstance();
+        warpx.FillBoundaryB (lev, force);
+    }
+    void warpx_PushParticlesandDepose (int lev, double cur_time) {
+        WarpX& warpx = WarpX::GetInstance();
+        warpx.PushParticlesandDepose (lev, cur_time);
+    }
+
+    int warpx_getistep (int lev) {
+        WarpX& warpx = WarpX::GetInstance();
+        return warpx.getistep (lev);
+    }
+    void warpx_setistep (int lev, int ii) {
+        WarpX& warpx = WarpX::GetInstance();
+        warpx.setistep (lev, ii);
+    }
+    double warpx_gett_new (int lev) {
+        WarpX& warpx = WarpX::GetInstance();
+        return warpx.gett_new (lev);
+    }
+    void warpx_sett_new (int lev, double time) {
+        WarpX& warpx = WarpX::GetInstance();
+        warpx.sett_new (lev, time);
+    }
+    double warpx_getdt (int lev) {
+        WarpX& warpx = WarpX::GetInstance();
+        return warpx.getdt (lev);
+    }
+
+    int warpx_maxStep () {
+        WarpX& warpx = WarpX::GetInstance();
+        return warpx.maxStep ();
+    }
+    double warpx_stopTime () {
+        WarpX& warpx = WarpX::GetInstance();
+        return warpx.stopTime ();
+    }
+
+    int warpx_checkInt () {
+        WarpX& warpx = WarpX::GetInstance();
+        return warpx.checkInt ();
+    }
+    int warpx_plotInt () {
+        WarpX& warpx = WarpX::GetInstance();
+        return warpx.plotInt ();
+    }
+
+    void warpx_WriteCheckPointFile () {
+        WarpX& warpx = WarpX::GetInstance();
+        warpx.WriteCheckPointFile ();
+    }
+    void warpx_WritePlotFile () {
+        WarpX& warpx = WarpX::GetInstance();
+        warpx.WritePlotFile ();
+    }
+
+    int warpx_finestLevel () {
+        WarpX& warpx = WarpX::GetInstance();
+        return warpx.finestLevel ();
+    }
+
+    void mypc_Redistribute () {
+	    auto & mypc = WarpX::GetInstance().GetPartContainer();
+        mypc.Redistribute();
+    }
+
 }
 

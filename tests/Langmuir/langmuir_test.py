@@ -1,3 +1,4 @@
+import warp
 import numpy as np
 from pywarpx import *
 
@@ -131,7 +132,17 @@ warpx.init()
 
 set_initial_conditions()
 
-warpx.evolve(max_step)
-warpx.finalize()
+#warpx.evolve(max_step)
+#warpx.finalize()
 
-amrex.finalize()
+#amrex.finalize()
+
+tt = TimeStepper()
+tt.step(2)
+
+pgs = PGroups()
+
+ss = warp.Species(type=warp.Electron, pgroups=pgs)
+warp.winon()
+ss.ppzx()
+
