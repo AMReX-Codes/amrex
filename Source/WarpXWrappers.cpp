@@ -27,6 +27,12 @@ namespace
 
 extern "C"
 {
+
+    int warpx_SpaceDim() 
+    {
+        return BL_SPACEDIM;
+    }
+
     void amrex_init (int argc, char* argv[])
     {
 	amrex::Initialize(argc,argv);

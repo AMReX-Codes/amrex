@@ -9,6 +9,8 @@
 extern "C" {
 #endif
 
+  int warpx_SpaceDim();
+
   void amrex_init (int argc, char* argv[]);
 
 #ifdef BL_USE_MPI

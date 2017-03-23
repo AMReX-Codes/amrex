@@ -10,9 +10,11 @@ import matplotlib.pyplot as plt
 libwarpx = ctypes.CDLL("libwarpx.so")
 libc = ctypes.CDLL(find_library('c'))
 
+dim = libwarpx.warpx_SpaceDim()
+
 # our particle data type
-p_dtype = np.dtype([('x', 'f8'), ('y', 'f8'), ('z', 'f8'),
-                    ('id', 'i4'), ('cpu', 'i4')])
+p_struct = [(d, 'f8') for d in 'xyz'[:dim]] + [('id', 'i4'), ('cpu', 'i4')]
+p_dtype = np.dtype(p_struct)
 
 # some useful typenames
 LP_c_int = ctypes.POINTER(ctypes.c_int)
@@ -416,7 +418,7 @@ def get_mesh_electric_field(level, direction, include_ghosts=True):
     ng = ngrow.value
     grid_data = []
     for i in range(size.value):
-        shape=(shapes[3*i+0], shapes[3*i+1], shapes[3*i+2])
+        shape=(shapes[dim*i+0], shapes[dim*i+1], shapes[dim*i+2])
         arr = np.ctypeslib.as_array(data[i], shape)
         arr.setflags(write=1)
         if include_ghosts:
@@ -463,7 +465,7 @@ def get_mesh_magnetic_field(level, direction, include_ghosts=True):
     ng = ngrow.value
     grid_data = []
     for i in range(size.value):
-        shape=(shapes[3*i+0], shapes[3*i+1], shapes[3*i+2])
+        shape=(shapes[dim*i+0], shapes[dim*i+1], shapes[dim*i+2])
         arr = np.ctypeslib.as_array(data[i], shape)
         arr.setflags(write=1)
         if include_ghosts:
@@ -510,7 +512,7 @@ def get_mesh_current_density(level, direction, include_ghosts=True):
     ng = ngrow.value
     grid_data = []
     for i in range(size.value):
-        shape=(shapes[3*i+0], shapes[3*i+1], shapes[3*i+2])
+        shape=(shapes[dim*i+0], shapes[dim*i+1], shapes[dim*i+2])
         arr = np.ctypeslib.as_array(data[i], shape)
         arr.setflags(write=1)
         if include_ghosts:
