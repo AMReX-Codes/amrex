@@ -31,6 +31,25 @@ buffer_from_memory.restype = ctypes.py_object
 PyBuf_READ  = 0x100
 PyBUF_WRITE = 0x200
 
+# set the return types of the wrapped functions
+f = libwarpx.warpx_getParticleStructs
+f.restype = ctypes.POINTER(ctypes.POINTER(Particle))
+
+f = libwarpx.warpx_getParticleArrays
+f.restype = ctypes.POINTER(ctypes.POINTER(ctypes.c_double))
+
+f = libwarpx.warpx_getParticleArrays
+f.restype = ctypes.POINTER(ctypes.POINTER(ctypes.c_double))
+
+f = libwarpx.warpx_getEfield
+f.restype = ctypes.POINTER(ctypes.POINTER(ctypes.c_double) )
+
+f = libwarpx.warpx_getBfield
+f.restype = ctypes.POINTER(ctypes.POINTER(ctypes.c_double) )
+
+f = libwarpx.warpx_getCurrentDensity
+f.restype = ctypes.POINTER(ctypes.POINTER(ctypes.c_double) )
+
 
 def get_particle_structs(species_number):
     '''
@@ -53,8 +72,7 @@ def get_particle_structs(species_number):
         A List of numpy arrays.
 
     '''
-    f = libwarpx.warpx_getParticleStructs
-    f.restype = ctypes.POINTER(ctypes.POINTER(Particle))
+
     particles_per_tile = ctypes.POINTER(ctypes.c_int)()
     num_tiles = ctypes.c_int(0)
     data = libwarpx.warpx_getParticleStructs(0, ctypes.byref(num_tiles),
@@ -62,7 +80,7 @@ def get_particle_structs(species_number):
 
     particle_data = []
     for i in range(num_tiles.value):
-        buf = buffer_from_memory(data[i], 32*particles_per_tile[i], PyBUF_WRITE)
+        buf = buffer_from_memory(data[i], p_dtype.itemsize*particles_per_tile[i], PyBUF_WRITE)
         arr = np.frombuffer(buf, dtype=p_dtype, count=particles_per_tile[i])
         particle_data.append(arr)
 
@@ -93,8 +111,6 @@ def get_particle_arrays(species_number, comp):
     
     '''
     
-    f = libwarpx.warpx_getParticleArrays
-    f.restype = ctypes.POINTER(ctypes.POINTER(ctypes.c_double))
     particles_per_tile = ctypes.POINTER(ctypes.c_int)()
     num_tiles = ctypes.c_int(0)
     data = libwarpx.warpx_getParticleArrays(0, comp, ctypes.byref(num_tiles),
@@ -299,8 +315,6 @@ def get_mesh_electric_field(level, direction, include_ghosts=True):
     
     '''
 
-    f = libwarpx.warpx_getEfield
-    f.restype = ctypes.POINTER(ctypes.POINTER(ctypes.c_double) )
     shapes = ctypes.POINTER(ctypes.c_int)()
     size = ctypes.c_int(0)
     ngrow = ctypes.c_int(0)
@@ -346,8 +360,6 @@ def get_mesh_magnetic_field(level, direction, include_ghosts=True):
     
     '''
 
-    f = libwarpx.warpx_getBfield
-    f.restype = ctypes.POINTER(ctypes.POINTER(ctypes.c_double) )
     shapes = ctypes.POINTER(ctypes.c_int)()
     size = ctypes.c_int(0)
     ngrow = ctypes.c_int(0)
@@ -393,8 +405,6 @@ def get_mesh_current_density(level, direction, include_ghosts=True):
     
     '''
 
-    f = libwarpx.warpx_getCurrentDensity
-    f.restype = ctypes.POINTER(ctypes.POINTER(ctypes.c_double) )
     shapes = ctypes.POINTER(ctypes.c_int)()
     size = ctypes.c_int(0)
     ngrow = ctypes.c_int(0)
