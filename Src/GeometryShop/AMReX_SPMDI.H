@@ -11,7 +11,8 @@
 
 #ifndef _SPMDI_H_
 #define _SPMDI_H_
-
+#include <cassert>
+#include "AMReX.H"
 namespace amrex
 {
 // default implementations for linearization routines.
@@ -44,15 +45,15 @@ namespace amrex
   inline void
   gather(std::vector<T>& a_outVec, const T& a_input, int a_dest)
   {
-    CH_assert (a_dest >= 0);
-    CH_assert(a_dest <  numProc());
+    assert(a_dest >= 0);
+    assert(a_dest <  numProc());
     //now THIS size lives on THIS processor
     int isize = linearSize(a_input);
 
     //make stuff for linearout
-    void* loclBuf = mallocMT(isize);
+    void* loclBuf = malloc(isize);
     if (loclBuf == NULL)
-      MayDay::Error("out of memory in gather 1");
+      amrex::Error("out of memory in gather 1");
 
     //put linearized T into its proper buffer
     linearOut(loclBuf, a_input);
@@ -74,7 +75,7 @@ namespace amrex
 
     int result1 = MPI_Gather(sendBuf, sendCount, MPI_INT,
                              vectSize,recdCount, MPI_INT,
-                             a_dest,  Chombo_MPI::comm);
+                             a_dest,  MPI_COMM_WORLD);
 
     if (result1 != MPI_SUCCESS)
       amrex::Abort("Gather<T> failed in MPI_Gather 1");
@@ -89,7 +90,7 @@ namespace amrex
         vectDisp[iproc] = itotsize;
         itotsize += vectSize[iproc];
       }
-      recdBuf = mallocMT(itotsize);
+      recdBuf = malloc(itotsize);
       if (recdBuf == NULL)
       {
         amrex::Abort("out of memory in gather 2");
@@ -99,7 +100,7 @@ namespace amrex
     //gather data
     int result2 = MPI_Gatherv(loclBuf, isize, MPI_BYTE,
                               recdBuf, vectSize, vectDisp, MPI_BYTE,
-                              a_dest, Chombo_MPI::comm);
+                              a_dest, MPI_COMM_WORLD);
     if (result2 != MPI_SUCCESS)
       amrex::Abort("Gather<T> failed in MPI_Gather 2");
 
@@ -120,11 +121,11 @@ namespace amrex
       //delete memory for dest-specific arrays
       delete[] vectSize;
       delete[] vectDisp;
-      freeMT(recdBuf);
+      free(recdBuf);
     }
 
     //delete memory for local buffer
-    freeMT(loclBuf);
+    free(loclBuf);
   }
 
 /*****************************/
@@ -134,17 +135,17 @@ namespace amrex
   inline void
   broadcast(T& a_inAndOut,  int a_src)
   {
-    CH_assert (a_src >= 0);
-    CH_assert(a_src <  numProc());
+    assert (a_src >= 0);
+    assert(a_src <  numProc());
     int isize;
     if (procID() == a_src)
     {
       isize = linearSize(a_inAndOut);
     }
 
-    MPI_Bcast(&isize, 1, MPI_INT, a_src, Chombo_MPI::comm);
+    MPI_Bcast(&isize, 1, MPI_INT, a_src, MPI_COMM_WORLD);
 
-    void* broadBuf = mallocMT(isize);
+    void* broadBuf = malloc(isize);
 
     if (broadBuf == NULL)
     {
@@ -158,15 +159,16 @@ namespace amrex
     }
 
     //broadcast broadBuf to all procs
-    MPI_Bcast(broadBuf, isize, MPI_BYTE, a_src, Chombo_MPI::comm);
+    MPI_Bcast(broadBuf, isize, MPI_BYTE, a_src, MPI_COMM_WORLD);
 
+    unsigned long long llsize = isize;
     if (procID()==a_src)
     {
-      CH_MaxMPISendSize = Max<long long>(CH_MaxMPISendSize, isize);
+      CH_MaxMPISendSize = std::max(CH_MaxMPISendSize, llsize);
     }
     else
     {
-      CH_MaxMPIRecvSize = Max<long long>(CH_MaxMPIRecvSize, isize);
+      CH_MaxMPIRecvSize = std::max(CH_MaxMPIRecvSize, llsize);
     }
     //take broadBuf and put back into inAndOut if not src
     if (procID() != a_src)
@@ -175,7 +177,7 @@ namespace amrex
     }
 
     //delete memory for buffer
-    freeMT(broadBuf);
+    free(broadBuf);
   }
 
 /*****************************/
@@ -184,7 +186,7 @@ namespace amrex
   inline void
   barrier(void)
   {
-    MPI_Barrier(Chombo_MPI::comm);
+    MPI_Barrier(MPI_COMM_WORLD);
   }
 
 #else
