@@ -48,8 +48,11 @@ namespace amrex
     EBDataFactory ebdatafact(graphptr);
     m_ebData .define(a_grids, dm, 1, m_nghost, MFInfo(), ebdatafact);
 
-    m_ebGraph.copy(a_graph, 0, 0, 1);
-    m_ebData .copy(a_data , 0, 0, 1);
+    int dstGhost = a_nGhost;
+    int srcGhost = 0;
+
+    m_ebGraph.copy(a_graph, 0, 0, srcGhost, dstGhost);
+    m_ebData .copy(a_data , 0, 0, srcGhost, dstGhost);
     m_ebGraph.FillBoundary();
     m_ebData .FillBoundary();
 

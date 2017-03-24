@@ -114,6 +114,7 @@ namespace amrex
     m_ebisLevel[0] = new EBISLevel(domLevel,
                                    a_origin,
                                    a_dx,
+                                   m_nCellMax,
                                    a_geoserver);
 
     m_domainLevel[0] = domLevel;

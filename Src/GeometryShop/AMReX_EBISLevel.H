@@ -91,9 +91,10 @@ namespace amrex
        Defines the level.  Calls the geoserver
        to fill the layout with geometric information.
     */
-    EBISLevel(const Box   & a_domain,
+    EBISLevel(const Box             & a_domain,
               const RealVect        & a_origin,
               const Real            & a_dx,
+              const int             & a_ncellMax,
               const GeometryService & a_geoserver);
     ///
     /**
@@ -108,9 +109,9 @@ namespace amrex
 
 
     ///
-    void fillEBISLayout(EBISLayout&              a_ebis,
-                        const DisjointBoxLayout& a_grids,
-                        const int&               a_nghost) const;
+    void fillEBISLayout(EBISLayout     &         a_ebis,
+                        const BoxArray &         a_grids,
+                        const int      &         a_nghost) const;
 
     ~EBISLevel()
       {
@@ -125,9 +126,10 @@ namespace amrex
     void fixRegularNextToMultiValued();
          
   private:
+    int m_nCellMax;
      
     ///
-    DisjointBoxLayout m_grids;
+    BoxArray m_grids;
      
     ///
     Box m_domain;
@@ -145,7 +147,7 @@ namespace amrex
     FabArray<EBData>  m_data;
 
 
-    void defineFromGeometryService(const GeometryService  a_geoserver);
+    void defineFromGeometryService(const GeometryService &  a_geoserver);
 
 
     //these are disallowed
