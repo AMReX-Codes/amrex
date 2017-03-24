@@ -77,8 +77,8 @@ def print_step(i):
     This function is called by C++.  This is just a demo.
 
     '''
-    print "\nCalling a Python function from C++.  Step = ", i
-KEEP_ALIVE_FUNC_print_step = print_step   # otherwise the function may get garbage collected.
+    print("\nCalling a Python function from C++.  Step = ", i)
+c_print_step = CALLBACK_FUNC_1(print_step)
 
 def initialize():
     '''
@@ -97,7 +97,7 @@ def initialize():
         
     libwarpx.amrex_init(argc, argv)
     libwarpx.warpx_init()
-    libwarpx.warpx_set_callback_py_funcs(CALLBACK_FUNC_1(print_step))
+    libwarpx.warpx_set_callback_py_funcs(c_print_step)
 
 
 def finalize():
