@@ -121,15 +121,11 @@ namespace amrex
     m_origin = a_fineEBIS.m_origin;
 
     //create coarsened vofs from fine.
-    coarsenVoFs(a_fineEBIS);
-
-    //overallMemoryUsage();
     //create coarse faces from fine
-    coarsenFaces(a_fineEBIS);
-    //overallMemoryUsage();
+    coarsenVoFsAndFaces(a_fineEBIS);
+
     //fix the regular next to the multivalued cells
     //to be full irregular cells
-    //  dumpDebug(string("EBIS::before FRNTM"));
     if (a_fixRegularNextToMultiValued)
     {
       fixRegularNextToMultiValued();
@@ -153,38 +149,51 @@ namespace amrex
   // (so finer ebislevel does change in this function)
   void 
   EBISLevel::
-  coarsenVoFs(EBISLevel& a_fineEBIS)
+  coarsenVoFsAndFaces(EBISLevel& a_fineEBIS)
   {
-    BL_PROFILE("EBISLevel::coarsenVoFs");
+    BL_PROFILE("EBISLevel::coarsenVoFsAndFaces");
 
     BoxArray gridsReCo = m_grids;
     gridsReCo.refine(2);
 
     DistributionMapping dmfc(gridsReCo);
-    m_graph.define(m_grids, dm, 1, 1);
-    FabArray<EBGraph> ebgraphReCo(gridsReCo, dmfc, 1, 1);
+    //need two because of coarsen faces
+    m_graph.define(m_grids, dm, 1, 2);
+    FabArray<EBGraph> ebgraphReCo(gridsReCo, dmfc, 1, 3);
 
-    int srcGhost =0; int dstGhost = 1;
+    int srcGhost =0; int dstGhost = 3;
     ebgraphReCo.copy(a_fineEBIS.m_graph, 0, 0, 1, srcGhost, dstGhost);
-
+    ///first deal with the graph
     for (MFIter mfi(m_graph), mfi.isValid(); ++mfi);
     {
       const EBGraph& fineEBGraph = ebgraphReCo[mfi];
-      const Box& coarRegion      = m_grids[mfi];
-      EBGraph& coarEBGraph       = m_graph[mfi];
+      EBGraph      & coarEBGraph = m_graph[dit()];
+      const Box    & coarRegion  = m_grids[mfi];
       coarEBGraph.coarsenVoFs(fineEBGraph, coarRegion);
     }
+    m_graph.FillBoundary();
+    for (MFIter mfi(m_graph), mfi.isValid(); ++mfi);
+    {
+      const EBGraph& fineEBGraph = ebgraphReCo[mfi];
+      EBGraph      & coarEBGraph = m_graph[dit()];
+      const Box    & coarRegion  = m_grids[mfi];
+      coarEBGraph.coarsenFaces(coarRegion, fineEBGraphGhost);
+      coarEBGraph.fixFineToCoarse(fineEBGraph);
+    }
+    m_graph.FillBoundary();
 
+    //now deal with the data
     std::shared_ptr<FabArray<EBGraph> > graphptrCoar(    m_graph, &null_deleter_fab_ebg);
     std::shared_ptr<FabArray<EBGraph> > graphptrReCo(ebgraphReCo, &null_deleter_fab_ebg);
     EBDataFactory ebdfCoar(graphptrCoar);
     EBDataFactory ebdfReCo(graphptrReCo);
-    FabArray<EBData> ebdataReCo
-    m_data    .define(a_grids  , dm, 1, m_nghost, MFInfo(), ebdfCoar);
-    ebdataReCo.define(gridsReCo, dm, 1, m_nghost, MFInfo(), ebdfReCo);
-    ebdataReCo.copy(a_fineEBIS.m_data, 0, 0, 1, srcGhost, dstGhost);    
-    a_fineEBIS.m_data.copyTo(interv, ebdataReCo, interv);
+    FabArray<EBData> ebdataReCo;
+    int nghostData = 1;
 
+    m_data    .define(a_grids  , dm, 1, 0         , MFInfo(), ebdfCoar);
+    ebdataReCo.define(gridsReCo, dm, 1, nghostData, MFInfo(), ebdfReCo);
+    dstGhost = 1;
+    ebdataReCo.copy(a_fineEBIS.m_data, 0, 0, 1, srcGhost, dstGhost);    
     for (MFIter mfi(m_graph), mfi.isValid(); ++mfi);
     {
       const EBGraph& fineEBGraph = ebgraphReCo[mfi];
@@ -192,140 +201,36 @@ namespace amrex
       const EBData & fineEBData  =  ebdataReCo[mfi];
       EBData       & coarEBData  =      m_data[mfi];
 
-      m_data[mfi].coarsenVoFs(fineEBData, fineEBGraph, coarEBGraph, m_grids[mfi]);
+      m_data[mfi].coarsenVoFs (fineEBData, fineEBGraph, coarEBGraph, m_grids[mfi]);
+      m_data[mfi].coarsenFaces(fineEBData, fineEBGraph, coarEBGraph, m_grids[mfi]);
     }
   }
 
   //now fix the multivalued next to regular thing for the graph and the data
   //the oldgraph/newgraph thing is necessary because the graphs are
   //reference counted and they have to be kept consistent with the data
-  void EBISLevel::fixRegularNextToMultiValued()
+  void 
+  EBISLevel::
+  fixRegularNextToMultiValued()
   {
     BL_PROFILE("EBISLevel::fixRegularNextToMultiValued");
-
-    EBGraphFactory graphfact(m_domain);
-    LayoutData<IntVectSet> vofsToChange(m_grids);
-    LevelData<EBGraph> oldGhostGraph(m_grids, 1, 2*IntVect::Unit, graphfact);
-    Interval interv(0,0);
-
-    m_graph.copyTo(interv, oldGhostGraph, interv);
-
+    bool vofsAdded = false;
     for (MFIter mfi(m_graph), mfi.isValid(); ++mfi);
     {
+      IntVectSet vofsToChange;
       BL_PROFILE("EBISLevel::fixRegularNextToMultiValued_loop1");
-      m_graph[mfi].getRegNextToMultiValued(vofsToChange[dit()],
-                                             oldGhostGraph[dit()]);
+      m_graph[mfi].getRegNextToMultiValued(vofsToChange,
+                                           m_grids[mfi]);
 
-      m_graph[dit()].addFullIrregularVoFs(vofsToChange[ dit()],
-                                          oldGhostGraph[dit()]);
+      m_graph[dit()].addFullIrregularVoFs(vofsToChange);
+
+
+      m_data[dit() ].addFullIrregularVoFs(vofsToChange,
+                                          m_graph[mfi]);
+
     }
-
-    EBDataFactory datafact;
-    LevelData<EBGraph> newGhostGraph(m_grids, 1, 2*IntVect::Unit, graphfact);
-    LevelData<EBData>  newGhostData(m_grids, 1, IntVect::Unit, datafact);
-
-    m_graph.copyTo(interv, newGhostGraph, interv);
-
-    for (DataIterator dit = m_grids.dataIterator(); dit.ok(); ++dit)
-    {
-      BL_PROFILE("EBISLevel::fixRegularNextToMultiValued_loop2");
-
-      Box localBox = m_grids.get(dit());
-      localBox.grow(1);
-      localBox &= m_domain;
-      newGhostData[dit()].defineVoFData(oldGhostGraph[dit()],  localBox);
-      newGhostData[dit()].defineFaceData(oldGhostGraph[dit()], localBox);
-    }
-
-    m_data.copyTo(interv,  newGhostData,  interv);
-
-    for (DataIterator dit = m_grids.dataIterator(); dit.ok(); ++dit)
-    {
-      BL_PROFILE("EBISLevel::fixRegularNextToMultiValued_loop3");
-
-      m_data[dit() ].addFullIrregularVoFs(vofsToChange[dit()],
-                                          newGhostGraph[dit()],
-                                          newGhostData[dit()].getVolData(),
-                                          oldGhostGraph[dit()]);
-    }
-  }
-
-  void EBISLevel::fixFineToCoarse(EBISLevel& a_fineEBIS)
-  {
-    BL_PROFILE("EBISLevel::fixFineToCoarse");
-    // make a coarse layout from the fine layout so that we
-    //can fix the fine->coarseVoF thing.
-    DisjointBoxLayout coarFromFineDBL;
-
-    coarsen(coarFromFineDBL, a_fineEBIS.m_graph.getBoxes(), 2);
-    coarFromFineDBL.close();
-    EBGraphFactory ebgraphfact(m_domain);
-    LevelData<EBGraph> coarFromFineEBGraph(coarFromFineDBL,1, IntVect::Zero, ebgraphfact);
-    Interval interv(0,0);
-    m_graph.copyTo(interv, coarFromFineEBGraph, interv);
-
-    for (DataIterator dit = a_fineEBIS.m_grids.dataIterator(); dit.ok(); ++dit)
-    {
-      EBGraph& fineEBGraph       =  a_fineEBIS.m_graph[dit()];
-      const EBGraph& coarEBGraph = coarFromFineEBGraph[dit()];
-
-      coarEBGraph.fixFineToCoarse(fineEBGraph);
-    }
-
-  }
-
-  void EBISLevel::coarsenFaces(EBISLevel& a_fineEBIS)
-  {
-    BL_PROFILE("EBISLevel::coarsenFaces");
-    //now make a fine ebislayout with two ghost cell
-    //on the same mapping as m_dbl
-    //so that i can do the vofs and faces of this level.
-    //this one will have the fine from coarse stuff fixed
-    DisjointBoxLayout fineFromCoarDBL;
-    refine(fineFromCoarDBL, m_grids, 2);
-    fineFromCoarDBL.close();
-
-    //no need for ghost cells here
-    EBGraphFactory ebgraphfactfine(a_fineEBIS.m_domain);
-    EBGraphFactory ebgraphfactcoar(m_domain);
-    LevelData<EBGraph> fineEBGraphGhostLD(fineFromCoarDBL,1,3*IntVect::Unit, ebgraphfactfine);
-    Interval interv(0,0);
-    a_fineEBIS.m_graph.copyTo(interv, fineEBGraphGhostLD, interv);
-    LevelData<EBGraph> coarEBGraphGhostLD(m_grids,        1,  IntVect::Unit, ebgraphfactcoar);
-    m_graph.copyTo(           interv, coarEBGraphGhostLD, interv);
-
-    for (DataIterator dit = m_grids.dataIterator(); dit.ok(); ++dit)
-    {
-      const EBGraph& fineEBGraphGhost = fineEBGraphGhostLD[dit()];
-      const EBGraph& coarEBGraphGhost = coarEBGraphGhostLD[dit()];
-      EBGraph& coarEBGraph = m_graph[dit()];
-      coarEBGraph.coarsenFaces(coarEBGraphGhost, fineEBGraphGhost);
-    }
-    //redefine coarebghostgraphld so i can use the faces for the ebdata
-    coarEBGraphGhostLD.define(m_grids, 1,  IntVect::Unit, ebgraphfactcoar);
-    m_graph.copyTo(interv, coarEBGraphGhostLD, interv);
-
-    EBDataFactory ebdatafact;
-    LevelData<EBData> fineEBDataGhostLD(fineFromCoarDBL,1, 2*IntVect::Unit, ebdatafact);
-    for (DataIterator dit = m_grids.dataIterator(); dit.ok(); ++dit)
-    {
-      Box localBox = grow(fineFromCoarDBL.get(dit()), 2);
-      localBox &= a_fineEBIS.m_domain;
-      fineEBDataGhostLD[dit()].defineVoFData(fineEBGraphGhostLD[dit()], localBox);;
-      fineEBDataGhostLD[dit()].defineFaceData(fineEBGraphGhostLD[dit()], localBox);
-    }
-    a_fineEBIS.m_data.copyTo(interv, fineEBDataGhostLD, interv);
-
-    for (DataIterator dit = m_grids.dataIterator(); dit.ok(); ++dit)
-    {
-      const EBData&   fineEBData      = fineEBDataGhostLD[dit()];
-      const EBGraph& fineEBGraphGhost = fineEBGraphGhostLD[dit()];
-      const EBGraph& coarEBGraphGhost = coarEBGraphGhostLD[dit()];
-
-      EBData& coarEBData   = m_data[dit()];
-      coarEBData.coarsenFaces(fineEBData,  fineEBGraphGhost, coarEBGraphGhost, m_grids.get(dit()));
-    }
-
+    m_data .FillBoundary();
+    m_graph.FillBoundary();
   }
 
   ///

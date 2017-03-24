@@ -76,9 +76,7 @@ namespace amrex
   {
   public:
 
-    void coarsenVoFs(EBISLevel& a_fineEBIS);
-
-    void fixFineToCoarse(EBISLevel& a_fineEBIS);
+    void coarsenVoFsAndFaces(EBISLevel& a_fineEBIS);
 
     void coarsenFaces(EBISLevel& a_fineEBIS);
 
