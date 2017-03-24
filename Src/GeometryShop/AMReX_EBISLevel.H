@@ -151,12 +151,12 @@ namespace amrex
     //these are disallowed
     void operator=(const EBISLevel& ebiin)
       {
-        MayDay::Error("EBISLevel::operator= not allowed");
+        amrex::Error("EBISLevel::operator= not allowed");
       }
 
     EBISLevel(const EBISLevel& ebiin)
       {
-        MayDay::Error("EBISLevel::copy constructor not allowed");
+        amrex::Error("EBISLevel::copy constructor not allowed");
       }
 
   };

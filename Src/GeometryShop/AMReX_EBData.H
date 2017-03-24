@@ -252,6 +252,9 @@ namespace amrex
   {
   public:
 
+    ///sure hope this does not matter
+    typedef int value_type;
+
     ///
     EBData() : m_implem( std::shared_ptr<EBDataImplem>( new EBDataImplem() ) )
       {

@@ -19,6 +19,7 @@
 #include "AMReX_FlatPlateGeom.H"
 #include "AMReX_RealVect.H"
 #include "AMReX.H"
+#include "AMReX_Print.H"
 #include "AMReX_IntVectSet.H"
 #include "AMReX_BoxIterator.H"
 

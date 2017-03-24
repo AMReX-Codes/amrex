@@ -337,6 +337,11 @@ namespace amrex
     //bool operator<(const EBGraphImplem& ebiin) const;
         
         
+    int numVoFs(const IntVect& a_iv) const
+      {
+        std::vector<VolIndex> vofs = getVoFs(a_iv);
+        return vofs.size();
+      }
   private:
         
     ///box over which this graph is defined
@@ -446,6 +451,10 @@ namespace amrex
     */
     std::vector<VolIndex> getVoFs(const IntVect& a_iv) const;
         
+    int numVoFs(const IntVect& a_iv) const
+      {
+        return m_implem->numVoFs(a_iv);
+      }
     ///
     /**
        Return true if every cell in the EBGraph is a regular cell.
@@ -677,7 +686,7 @@ namespace amrex
         
     //define the faces to be the coarsened faces of the input
     void coarsenFaces(const EBGraph& a_coarGhostGraph,
-                      const EBGraph& a_fineEBIS);
+                      const Box    & a_region);
         
     //fix fineVoF->coarseVoF information of the input
     void fixFineToCoarse(EBGraph& a_fineEBIS) const;
@@ -685,7 +694,6 @@ namespace amrex
     //don't ask
     std::vector<int>
     coarsenFaces(const VolIndex&       a_coarVoF,
-                 const EBGraph&        a_coarGhostGraph,
                  const EBGraph&        a_fineGraph,
                  const int&            a_idir,
                  const Side::LoHiSide& a_sd);
@@ -939,9 +947,9 @@ namespace amrex
   }
   /*******************************/
   inline void EBGraph::
-  coarsenFaces(const EBGraph& a_coarGhost, const EBGraph& a_fineEBIS)
+  coarsenFaces(const EBGraph& a_coarGhost, const Box& a_region)
   {
-    m_implem->coarsenFaces(*a_coarGhost.m_implem, *a_fineEBIS.m_implem);
+    m_implem->coarsenFaces(*a_coarGhost.m_implem, a_region);
   }
   /*******************************/
   inline void EBGraph::
