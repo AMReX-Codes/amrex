@@ -21,8 +21,10 @@ namespace amrex {
 namespace
 {
     bool initialized = false;
-    //int num_multifabs     = 0;
-    //int num_multifabs_hwm = 0;
+#ifdef BL_MEM_PROFILING
+    int num_multifabs     = 0;
+    int num_multifabs_hwm = 0;
+#endif
 }
 
 Real
