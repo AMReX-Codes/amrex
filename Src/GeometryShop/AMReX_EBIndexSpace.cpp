@@ -11,11 +11,8 @@
 
 
 #include "AMReX_BoxIterator.H"
-#include "AMReX_EBCFCopy.H"
 #include "AMReX_Print.H"
 #include "AMReX_EBIndexSpace.H"
-#include "AMReX_EBGraphFactory.H"
-#include "AMReX_EBDataFactory.H"
 #include "AMReX_EBISLayout.H"
 #include "AMReX_VoFIterator.H"
 #include "AMReX_IrregNode.H"
@@ -25,11 +22,6 @@
 namespace amrex
 {
 
-
-  bool EBIndexSpace::isDefined() const
-  {
-    return m_isDefined;
-  }
 
   void EBIndexSpace::define(const Box              & a_domain,
                             const RealVect         & a_origin,
@@ -47,7 +39,6 @@ namespace amrex
     //this computes how many levels
     buildFirstLevel(a_domain, a_origin, a_dx, a_geoserver, a_nCellMax, a_maxCoarsenings);
 
-    print_memory_line("ebis_after_first_level_build");
     //starting at one because buildFirstLevel built 0
     for(int ilev = 1; ilev < m_nlevels; ilev++)
     {
@@ -120,7 +111,7 @@ namespace amrex
     m_domainLevel[0] = domLevel;
   }
   ///
-  EBISLevel* 
+  void
   EBIndexSpace::
   buildNextLevel(const GeometryService & a_geoserver,
                  const int             & a_whichlev)
@@ -150,23 +141,13 @@ namespace amrex
     m_isDefined = false;
   }
   ///
-  EBIndexSpace::
-  EBIndexSpace()
-  {
-  }
-  ///
-  EBIndexSpace::~EBIndexSpace()
-  {
-    clear();
-  }
-  ///
   int EBIndexSpace::getLevel(const Box& a_domain) const
   {
     bool found = false;
     int whichlev = -1;
     for (int ilev = 0; ilev < m_domainLevel.size() && !found; ilev++)
     {
-      if (m_domainLevel[ilev].domainBox() == a_domain.domainBox())
+      if (m_domainLevel[ilev] == a_domain)
       {
         found = true;
         whichlev = ilev;
@@ -175,10 +156,10 @@ namespace amrex
     return whichlev;
   }
 
-  void EBIndexSpace::fillEBISLayout(EBISLayout&              a_ebisLayout,
-                                    const DisjointBoxLayout& a_grids,
-                                    const Box&     a_domain,
-                                    const int&               a_nghost) const
+  void EBIndexSpace::fillEBISLayout(EBISLayout     & a_ebisLayout,
+                                    const BoxArray & a_grids,
+                                    const Box      & a_domain,
+                                    const int      & a_nghost) const
   {
     assert(isDefined());
     BL_PROFILE("EBIndexSpace::fillEBISLayout");

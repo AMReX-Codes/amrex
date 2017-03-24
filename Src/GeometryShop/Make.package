@@ -20,11 +20,15 @@ C$(GEOMETRYSHOP_BASE)_sources +=   AMReX_Stencils.cpp AMReX_GraphNode.cpp AMReX_
 C$(GEOMETRYSHOP_BASE)_headers +=   AMReX_VoFIterator.H   AMReX_FaceIterator.H
 C$(GEOMETRYSHOP_BASE)_sources +=   AMReX_VoFIterator.cpp AMReX_FaceIterator.cpp
 
-C$(GEOMETRYSHOP_BASE)_headers +=   AMReX_BaseIFFAB.H AMReX_BaseIFFABI.H AMReX_EBData.H  
+C$(GEOMETRYSHOP_BASE)_headers +=   AMReX_BaseIFFAB.H AMReX_BaseIFFABI.H AMReX_EBData.H  AMReX_EBDataFactory.H
 C$(GEOMETRYSHOP_BASE)_sources +=   AMReX_EBData.cpp
 
 C$(GEOMETRYSHOP_BASE)_headers +=   AMReX_EBISBox.H   AMReX_PolyGeom.H
 C$(GEOMETRYSHOP_BASE)_sources +=   AMReX_EBISBox.cpp AMReX_PolyGeom.cpp
+
+C$(GEOMETRYSHOP_BASE)_headers +=   AMReX_EBIndexSpace.H   AMReX_EBISLayout.H   AMReX_EBISLevel.H   AMReX_GeometryService.H
+C$(GEOMETRYSHOP_BASE)_sources +=   AMReX_EBIndexSpace.cpp AMReX_EBISLayout.cpp AMReX_EBISLevel.cpp AMReX_GeometryService.cpp
+
 
 VPATH_LOCATIONS   += $(AMREX_HOME)/Src/GeometryShop
 INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/GeometryShop

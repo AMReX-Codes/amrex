@@ -72,16 +72,16 @@ namespace amrex
   void 
   EBGraph::
   getRegNextToMultiValued(IntVectSet&    a_vofsToChange,
-                          const Box &    a_region)
+                          const Box &    a_region) const
   {
-    m_implem->getRegNextToMultiValued(a_vofsToChange, a_ghostGraph);
+    m_implem->getRegNextToMultiValued(a_vofsToChange, a_region);
   }
         
   /*******************************/
   void 
   EBGraphImplem::
   getRegNextToMultiValued(IntVectSet&    a_vofsToChange,
-                          const Box &    a_region)
+                          const Box &    a_region) const
   {
     Box ghostRegion = m_region;
     Box region = getRegion();
@@ -93,9 +93,8 @@ namespace amrex
     //are regular, collect them so they can be changed to
     //irregular vofs with unit vol fracs and area fracs.
     a_vofsToChange = IntVectSet();
-    IntVectSet multiIVS = a_ghostGraph.getMultiCells(ghostRegion);
-    for (VoFIterator vofit(multiIVS, a_ghostGraph);
-         vofit.ok(); ++vofit)
+    IntVectSet multiIVS = getMultiCells(ghostRegion);
+    for (VoFIterator vofit(multiIVS, *this); vofit.ok(); ++vofit)
     {
       const VolIndex& multiVoF = vofit();
       const IntVect& multiIV = multiVoF.gridIndex();
@@ -116,7 +115,7 @@ namespace amrex
   /*******************************/
   void EBGraph::addFullIrregularVoFs(const IntVectSet& a_vofsToChange)
   {
-    m_implem->addFullIrregularVoFs(a_vofsToChange, a_ghostGraph);
+    m_implem->addFullIrregularVoFs(a_vofsToChange);
   }
         
   /*******************************/
@@ -1395,10 +1394,6 @@ namespace amrex
     }
     else
     {
-      Box fineRegion = refRegion;
-        
-      int numFineVoFs = a_fineGraph.numVoFs(fineRegion);
-      int numCoarVoFs = 0;
       m_tag = HasIrregular;
       m_region = a_coarRegion;
       m_domain = a_fineGraph.m_domain;
@@ -1432,7 +1427,6 @@ namespace amrex
         
           for (int iset = 0; iset < fineVoFSets.size(); iset++)
           {
-            numCoarVoFs++;
             GraphNodeImplem newImplem;
             newImplem.m_finerNodes = fineVoFSets[iset];
             m_graph(bit(), 0).addIrregularNode(newImplem);
@@ -1444,7 +1438,6 @@ namespace amrex
           }
         }
       }
-      if (numCoarVoFs > numFineVoFs) amrex::Error("Coarsening generated more VoFs");
     }
   }
         
@@ -1530,7 +1523,7 @@ namespace amrex
         
     IntVect coarIV = a_coarVoF.gridIndex();
     IntVect otherIV= coarIV + sign(a_sd)*BASISV(a_idir);
-    std::vector<VolIndex> theseFineVoFs = a_coarGhostGraph.refine(a_coarVoF);
+    std::vector<VolIndex> theseFineVoFs = refine(a_coarVoF);
     EBGraphImplem&  coarGhostGraph  = *this;  //trying to reduce communcation in this
         
     if (m_domain.contains(otherIV))
@@ -1543,7 +1536,7 @@ namespace amrex
       for (int iotherCoar = 0; iotherCoar < otherCoarVoFs.size(); iotherCoar++)
       {
         const VolIndex& otherCoarVoF = otherCoarVoFs[iotherCoar];
-        std::vector<VolIndex> otherFineVoFs = a_coarGhostGraph.refine(otherCoarVoF);
+        std::vector<VolIndex> otherFineVoFs = coarGhostGraph.refine(otherCoarVoF);
         bool addThisFace = false;
         for (int iotherFine = 0; iotherFine < otherFineVoFs.size(); iotherFine++)
         {
@@ -1603,7 +1596,6 @@ namespace amrex
   {
     if (hasIrregular())
     {
-      assert(a_coarGhostGraph.getDomain() == m_domain);
       Box region = m_region;
       region &= a_coarRegion;
       for (BoxIterator bit(region); bit.ok(); ++bit)
@@ -1623,7 +1615,6 @@ namespace amrex
               {
                 std::vector<int> coarArcs =
                   coarsenFaces(vofsCoar[ivof],
-                               a_coarGhostGraph,
                                a_fineGraph,
                                idir, sit());
         

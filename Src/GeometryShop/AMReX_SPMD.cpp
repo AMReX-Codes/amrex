@@ -13,11 +13,9 @@
 #include <cstring>
 #include <unistd.h>
 
+#include "AMReX_Print.H"
 #include "AMReX_SPMD.H"
 
-
-using amrex::Print();
-using std::endl;
 
 namespace amrex
 {
