@@ -3,6 +3,7 @@ import ctypes
 from ctypes.util import find_library
 import numpy as np
 from numpy.ctypeslib import ndpointer
+from contextlib import contextmanager
 
 libwarpx = ctypes.CDLL("libwarpx.so")
 libc = ctypes.CDLL(find_library('c'))
@@ -78,9 +79,21 @@ def print_step(i):
 
     '''
     print("\nCalling a Python function from C++.  Step = ", i)
+
+
 c_print_step = CALLBACK_FUNC_1(print_step)
 
-def initialize():
+
+@contextmanager
+def script():
+    if len(sys.argv) < 2:
+        print("Usage: python <script_name> <inputs> <extra_args>")
+        sys.exit()
+    initialize(sys.argv[1:])
+    yield
+    finalize()
+
+def initialize(args):
     '''
     
     Initialize WarpX and AMReX. Must be called before 
@@ -88,10 +101,11 @@ def initialize():
     
     '''
     
-    # convert command line args to pass into amrex
-    argc = len(sys.argv)
+    # convert args to pass into amrex
+    cmd_line_args = ["main"] + args
+    argc = len(cmd_line_args)
     argv = (LP_c_char * (argc+1))()
-    for i, arg in enumerate(sys.argv):
+    for i, arg in enumerate(cmd_line_args):
         enc_arg = arg.encode('utf-8')
         argv[i] = ctypes.create_string_buffer(enc_arg)
         
