@@ -31,24 +31,24 @@ PhysicalParticleContainer::AllocData ()
 void
 PhysicalParticleContainer::AddNRandomUniformPerCell (int lev, Box part_box) {
     BL_PROFILE("PhysicalParticleContainer::AddNRandomPerCell()");
-    
+
     charge = plasma_injector->getCharge();
     mass = plasma_injector->getMass();
-    
+
     const Geometry& geom = Geom(lev);
     const Real* dx  = geom.CellSize();
 
     if (!part_box.ok()) part_box = geom.Domain();
-    
+
     Real scale_fac;
     int n_part_per_cell = plasma_injector->numParticlesPerCell();
-    
+
 #if BL_SPACEDIM==3
     scale_fac = dx[0]*dx[1]*dx[2]/n_part_per_cell;
 #elif BL_SPACEDIM==2
     scale_fac = dx[0]*dx[1]/n_part_per_cell;
 #endif
-    
+
     std::array<Real,PIdx::nattribs> attribs;
     attribs.fill(0.0);
 
@@ -84,7 +84,7 @@ PhysicalParticleContainer::AddNRandomUniformPerCell (int lev, Box part_box) {
                 Real x = tile_real_box.lo(0) + (iv[0]-boxlo[0] + particle_shift_x)*dx[0];
                 Real y = 0.0;
                 Real z = tile_real_box.lo(1) + (iv[1]-boxlo[1] + particle_shift_z)*dx[1];
-#endif   
+#endif
 
                 if (plasma_injector->insideBounds(x, y, z)) {
                     Real weight;
@@ -111,7 +111,7 @@ PhysicalParticleContainer::AddNRandomNormal (int lev, Box part_box) {
 void
 PhysicalParticleContainer::AddNDiagPerCell (int lev, Box part_box) {
     BL_PROFILE("PhysicalParticleContainer::AddNDiagPerCell()");
-    
+
     charge = plasma_injector->getCharge();
     mass = plasma_injector->getMass();
 
@@ -121,6 +121,10 @@ PhysicalParticleContainer::AddNDiagPerCell (int lev, Box part_box) {
     if (!part_box.ok()) part_box = geom.Domain();
 
     Real scale_fac;
+//    int n_part_per_cell_x = plasma_injector->numParticlesPerCellX();
+//    int n_part_per_cell_y = plasma_injector->numParticlesPerCellY();
+//    int n_part_per_cell_z = plasma_injector->numParticlesPerCellZ();
+//    int n_part_per_cell = n_part_per_cell_x * n_part_per_cell_y * n_part_per_cell_z;
     int n_part_per_cell = plasma_injector->numParticlesPerCell();
 
 #if BL_SPACEDIM==3
@@ -137,7 +141,7 @@ PhysicalParticleContainer::AddNDiagPerCell (int lev, Box part_box) {
         if (!intersectBox.ok()) continue;
 
         RealBox tile_real_box { intersectBox, dx, geom.ProbLo() };
-        
+
         const int grid_id = mfi.index();
         const int tile_id = mfi.LocalTileIndex();
 
@@ -173,6 +177,78 @@ PhysicalParticleContainer::AddNDiagPerCell (int lev, Box part_box) {
     }
 }
 
+void
+PhysicalParticleContainer::AddNUniformPerCell (int lev, Box part_box) {
+    BL_PROFILE("PhysicalParticleContainer::AddNUniformPerCell()");
+
+    charge = plasma_injector->getCharge();
+    mass = plasma_injector->getMass();
+
+    const Geometry& geom = Geom(lev);
+    const Real* dx  = geom.CellSize();
+
+    if (!part_box.ok()) part_box = geom.Domain();
+
+    Real scale_fac;
+    int n_part_per_cell = plasma_injector->numParticlesPerCell();
+
+#if BL_SPACEDIM==3
+    scale_fac = dx[0]*dx[1]*dx[2]/n_part_per_cell;
+#elif BL_SPACEDIM==2
+    scale_fac = dx[0]*dx[1]/n_part_per_cell;
+#endif
+
+    std::array<Real,PIdx::nattribs> attribs;
+    attribs.fill(0.0);
+    for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi) {
+        const Box& tile_box = mfi.tilebox();
+        const Box& intersectBox = tile_box & part_box;
+        if (!intersectBox.ok()) continue;
+
+        RealBox tile_real_box { intersectBox, dx, geom.ProbLo() };
+
+        const int grid_id = mfi.index();
+        const int tile_id = mfi.LocalTileIndex();
+
+        const auto& boxlo = intersectBox.smallEnd();
+        for (IntVect iv = intersectBox.smallEnd(); iv <= intersectBox.bigEnd(); intersectBox.next(iv))
+        {
+            for (int i_part_x=0; i_part_x<n_part_per_cell;i_part_x++)
+            {
+              Real particle_shift_x = (0.5+i_part_x)/n_part_per_cell;
+              for (int i_part_y=0; i_part_y<n_part_per_cell;i_part_y++)
+              {
+                Real particle_shift_y = (0.5+i_part_y)/n_part_per_cell;
+                for (int i_part_z=0; i_part_z<n_part_per_cell;i_part_z++)
+                {
+                  Real particle_shift_z = (0.5+i_part_z)/n_part_per_cell;
+#if (BL_SPACEDIM == 3)
+                  Real x = tile_real_box.lo(0) + (iv[0]-boxlo[0] + particle_shift_x)*dx[0];
+                  Real y = tile_real_box.lo(1) + (iv[1]-boxlo[1] + particle_shift_y)*dx[1];
+                  Real z = tile_real_box.lo(2) + (iv[2]-boxlo[2] + particle_shift_z)*dx[2];
+#elif (BL_SPACEDIM == 2)
+                  Real x = tile_real_box.lo(0) + (iv[0]-boxlo[0] + particle_shift_x)*dx[0];
+                  Real y = 0.0;
+                  Real z = tile_real_box.lo(1) + (iv[1]-boxlo[1] + particle_shift_z)*dx[1];
+#endif
+
+                  if (plasma_injector->insideBounds(x, y, z)) {
+                      Real weight;
+                      std::array<Real, 3> u;
+                      weight = plasma_injector->getDensity(x, y, z) * scale_fac;
+                      plasma_injector->getMomentum(u);
+                      attribs[PIdx::w ] = weight;
+                      attribs[PIdx::ux] = u[0];
+                      attribs[PIdx::uy] = u[1];
+                      attribs[PIdx::uz] = u[2];
+                      AddOneParticle(lev, grid_id, tile_id, x, y, z, attribs);
+                  }
+                }
+              }
+            }
+        }
+    }
+}
 
 void
 PhysicalParticleContainer::FieldGather (int lev,
@@ -215,7 +291,7 @@ PhysicalParticleContainer::FieldGather (int lev,
             auto& Bxp = attribs[PIdx::Bx];
             auto& Byp = attribs[PIdx::By];
             auto& Bzp = attribs[PIdx::Bz];
-            
+
             const long np = pti.numParticles();
 
 	    // Data on the grid
@@ -284,12 +360,14 @@ PhysicalParticleContainer::FieldGather (int lev,
 void
 PhysicalParticleContainer::AddParticles (int lev, Box part_box)
 {
-    if (plasma_injector->injection_style == "ndiagpercell") 
+    if (plasma_injector->injection_style == "ndiagpercell")
         AddNDiagPerCell(lev, part_box);
     else if (plasma_injector->injection_style == "nrandomuniformpercell")
         AddNRandomUniformPerCell(lev, part_box);
-    else if (plasma_injector->injection_style == "nrandomnormal") 
+    else if (plasma_injector->injection_style == "nrandomnormal")
         AddNRandomNormal(lev, part_box);
+    else if (plasma_injector->injection_style == "nuniformpercell")
+        AddNUniformPerCell(lev, part_box);
 }
 
 void
@@ -349,7 +427,7 @@ PhysicalParticleContainer::Evolve (int lev,
             auto& Bxp = attribs[PIdx::Bx];
             auto& Byp = attribs[PIdx::By];
             auto& Bzp = attribs[PIdx::Bz];
-            
+
             const long np = pti.numParticles();
 
 	    // Data on the grid
@@ -463,4 +541,3 @@ PhysicalParticleContainer::Evolve (int lev,
 	}
     }
 }
-
