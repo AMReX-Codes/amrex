@@ -2,6 +2,7 @@ nohup.out
 *.[oa]
 *.ex
 *~
+tmp_build_dir/
 d/
 f/
 o/
