@@ -36,7 +36,7 @@ clean::
 realclean:: clean
 	@echo Cleaning ...
 	$(SILENT) $(RM) TAGS tags
-	$(SILENT) $(RM) -r d o f *~
+	$(SILENT) $(RM) -r $(TmpBuildDir) *~
 	$(SILENT) $(RM) *.ex *.o
 	$(SILENT) $(RM) *.mod
 
