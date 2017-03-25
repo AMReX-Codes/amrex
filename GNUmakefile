@@ -19,5 +19,7 @@ EBASE     = main
 
 USE_PYTHON_MAIN = FALSE
 
+WarpxBinDir = bin
+
 WARPX_HOME := .
 include $(WARPX_HOME)/Exec/Make.WarpX

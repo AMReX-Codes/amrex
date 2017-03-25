@@ -153,6 +153,7 @@ private:
 
     void WriteWarpXHeader(const std::string& name) const;
     void WriteJobInfo (const std::string& dir) const;
+//    static void WriteBuildInfo (std::ostream& os);
     static void PackPlotDataPtrs (amrex::Array<const amrex::MultiFab*>& pmf,
 				  const amrex::Array<std::unique_ptr<amrex::MultiFab> >& data);
     static void Copy (amrex::MultiFab& dstmf, int dcomp, int ncomp, const amrex::MultiFab& srcmf, int scomp);

@@ -80,9 +80,21 @@ clean::
 
 else
 
+ifdef WarpxBinDir
+
+all: $(executable) 
+	$(SILENT) $(RM) AMReX_buildInfo.cpp
+	@if [ ! -d $(WarpxBinDir) ]; then mkdir -p $(WarpxBinDir); fi
+	$(SILENT) mv -f $(executable) $(WarpxBinDir)/
+	@echo SUCCESS
+
+else
+
 all: $(executable) 
 	$(SILENT) $(RM) AMReX_buildInfo.cpp
 	@echo SUCCESS
+
+endif
 
 endif
 
