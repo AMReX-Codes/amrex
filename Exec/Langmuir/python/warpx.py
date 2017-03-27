@@ -10,11 +10,20 @@ libc = ctypes.CDLL(find_library('c'))
 
 dim = libwarpx.warpx_SpaceDim()
 
+class Particle(ctypes.Structure):
+    _fields_ = [('x', ctypes.c_double),
+                ('y', ctypes.c_double),
+                ('z', ctypes.c_double),
+                ('id', ctypes.c_int),
+                ('cpu', ctypes.c_int)]
+
+
 # our particle data type
 p_struct = [(d, 'f8') for d in 'xyz'[:dim]] + [('id', 'i4'), ('cpu', 'i4')]
-p_dtype = np.dtype(p_struct)
+p_dtype = np.dtype(p_struct, align=True)
 
 # some useful typenames
+LP_particle_p = ctypes.POINTER(ctypes.POINTER(Particle))
 LP_c_int = ctypes.POINTER(ctypes.c_int)
 LP_c_void_p = ctypes.POINTER(ctypes.c_void_p)
 LP_c_double = ctypes.POINTER(ctypes.c_double)
@@ -33,7 +42,7 @@ def array1d_from_pointer(pointer, dtype, size):
         buffer_from_memory.argtypes = (ctypes.c_void_p, ctypes.c_int, ctypes.c_int)
         buffer_from_memory.restype = ctypes.py_object
         buf = buffer_from_memory(pointer, dtype.itemsize*size, PyBUF_WRITE)
-    else:        
+    else:
         buffer_from_memory = ctypes.pythonapi.PyBuffer_FromReadWriteMemory
         buffer_from_memory.restype = ctypes.py_object
         buf = buffer_from_memory(pointer, dtype.itemsize*size)
@@ -45,7 +54,7 @@ f = libwarpx.amrex_init
 f.argtypes = (ctypes.c_int, LP_LP_c_char)
 
 f = libwarpx.warpx_getParticleStructs
-f.restype = LP_c_void_p
+f.restype = LP_particle_p
 
 f = libwarpx.warpx_getParticleArrays
 f.restype = LP_LP_c_double
