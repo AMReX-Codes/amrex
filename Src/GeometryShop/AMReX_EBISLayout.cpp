@@ -185,7 +185,7 @@ namespace amrex
       for (int iface = 0; iface < coarFaces.size(); iface++)
       {
         std::vector<FaceIndex> newfaces = ebisBoxCoar.refine(coarFaces[iface],ebisBoxFine);
-        fineFaces.insert(fineFaces.end(), newfaces.begin, newfaces.end());
+        fineFaces.insert(fineFaces.end(), newfaces.begin(), newfaces.end());
       }
       ifinelev++;
     }
@@ -256,17 +256,4 @@ namespace amrex
       irat *= 2;
     }
   }
-  /****************/
-  int
-  EBISLayoutImplem::getMaxCoarseningRatio() const
-  {
-    return m_maxCoarseningRatio;
-  }
-  /****************/
-  int
-  EBISLayoutImplem::getMaxRefinementRatio() const
-  {
-    return m_maxRefinementRatio;
-  }
-  /****************/
 }

@@ -36,6 +36,8 @@ namespace amrex
   {
   public:
         
+    ///sure hope this does not matter
+    typedef int value_type;
     ///
     /**
        The EBGraphImplem can be all regular or all

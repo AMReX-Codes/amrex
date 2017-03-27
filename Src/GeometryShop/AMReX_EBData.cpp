@@ -24,133 +24,17 @@ namespace amrex
   void 
   EBDataImplem::
   addFullIrregularVoFs(const IntVectSet     &    a_vofsToChange,
-                       const EBGraph        &    a_newGraph,
-                       const BaseIVFAB<Real>&    a_grownData,
-                       const EBGraph        &    a_oldGraph)
+                       const Box            &    a_region)
   {
-    if (!a_vofsToChange.isEmpty())
+    IntVectSet subset = a_vofsToChange;
+    subset &= a_region;
+    if (!subset.isEmpty())
     {
       //calculate set by adding in new intvects
-      const IntVectSet& ivsOld = a_oldGraph.getIrregCells(m_region);
-      IntVectSet ivsNew = ivsOld;
+      const IntVectSet& ivsOld = m_volData.getIVS();
+      IntVectSet ivsNew = m_graph.getIrregCells(m_region);
       ivsNew |= a_vofsToChange;
-      int nfaccomp = F_FACENUMBER;
-      int nvolcomp = V_VOLNUMBER;
 
-      //for copying purposes
-      Box minBox = m_region;
-
-      //save old data into temporarys
-      BaseIVFAB<Real>  oldVolData(ivsOld, a_oldGraph, nvolcomp);
-      oldVolData.copy(m_volData, minBox, 0, minBox, 0, nvolcomp);
-
-      BaseIFFAB<Real> oldFaceData[SpaceDim];
-      for (int idir = 0; idir < SpaceDim; idir++)
-      {
-        oldFaceData[idir].define(ivsOld, a_oldGraph, idir, nfaccomp);
-        oldFaceData[idir].copy(m_faceData[idir], minBox, 0, minBox, 0, nfaccomp);
-      }
-
-      //redefine member data with new IVS and copy old data back
-      //into it.
-      m_volData.define(ivsNew, a_newGraph, 1);
-      m_volData.copy(oldVolData, minBox, 0, minBox, 0, nvolcomp);
-      for (int idir = 0; idir < SpaceDim; idir++)
-      {
-        m_faceData[idir].define(ivsNew, a_newGraph, idir, 1);
-        m_faceData[idir].copy(oldFaceData[idir], minBox, 0, minBox, 0, nfaccomp);
-      }
-
-      //now put correct data into new vofs.  the volume fraction of a formally
-      //regular cell is always unity
-      for (VoFIterator vofit(a_vofsToChange, a_newGraph); vofit.ok(); ++vofit)
-      {
-        m_volData(vofit(), V_VOLFRAC) = 1;
-        m_volData(vofit(), V_BNDAREA) = 0;
-        for (int idir = 0; idir < SpaceDim; idir++)
-        {
-          m_volData(vofit(), V_VOLCENTROIDX + idir) = 0.;
-          m_volData(vofit(), V_BNDCENTROIDX + idir) = 0.;
-          m_volData(vofit(), V_NORMALX      + idir) = 0.;
-        }
-        //no real boundary here but putting something valid for the normal
-        m_volData(vofit(), V_NORMALX) = 1.;
-
-      }
-
-      //there are rare cases that arise from coarsening where the area fractions will not be one.
-      //we can check this by seeing the number of faces on the side
-      for (int idir = 0; idir < SpaceDim; idir++)
-      {
-        FaceIterator faceit(a_vofsToChange, a_newGraph, idir, FaceStop::SurroundingWithBoundary);
-        for (faceit.reset(); faceit.ok(); ++faceit)
-        {
-
-          Real areaFrac = 1;
-          RealVect faceCentroid = RealVect::Zero;
-
-
-          if (!faceit().isBoundary())
-          {
-            IntVect ivhi = faceit().gridIndex(Side::Hi);
-            IntVect ivlo = faceit().gridIndex(Side::Lo);
-            std::vector<FaceIndex> allFaces = a_newGraph.getAllFaces(ivhi, idir, Side::Lo);
-            if (allFaces.size() > 1)
-            {
-              //now we have the wacky case where two full, single-valued faces were coarsened
-              //to make a multi-valued face on the coarse level.
-              //also know as the bjorn geometry.  We need to infer the centroids from the
-              //volume centroids of the vofs involved.   The value of the centroid will be
-              //0.5 so i just need to get the sign.
-              //doing the best i can here.   there might be cases where this gets the
-              //centroid wrong but i cannot think of them
-              VolIndex otherVoF;
-              if (a_vofsToChange.contains(ivlo) && (!a_vofsToChange.contains(ivhi)))
-              {
-                otherVoF = faceit().getVoF(Side::Hi);
-              }
-              else if (a_vofsToChange.contains(ivhi) && (!a_vofsToChange.contains(ivlo)))
-              {
-                otherVoF = faceit().getVoF(Side::Lo);
-              }
-              else
-              {
-                //you really should only be changing one of the vofs if there is a multivalued
-                //face between them
-                amrex::Error("vofsToChange contains internal mutlivalued face");
-              }
-              faceCentroid[idir] = 0.0;
-              for (int tandir = 0; tandir < SpaceDim; tandir++)
-              {
-                if(tandir != idir)
-                {
-                  Real tancentroid = a_grownData(otherVoF, V_VOLCENTROIDX + tandir);
-                  faceCentroid[tandir] = tancentroid;
-                }
-              }
-            }
-           }
-          m_faceData[idir](faceit(), F_AREAFRAC) = areaFrac;
-          for (int idir = 0; idir < SpaceDim; idir++)
-          {
-            m_faceData[idir](faceit(), F_FACECENTROIDX+idir) = faceCentroid[idir];
-          }
-        }
-      }
-    }
-  }
-/************************/
-/************************/
-  void EBDataImplem::
-  addEmptyIrregularVoFs(const IntVectSet& a_vofsToChange,
-                        const EBGraph&    a_newGraph)
-  {
-    if (!a_vofsToChange.isEmpty())
-    {
-      //calculate set by adding in new intvects
-      const IntVectSet& ivsOld = m_graph.getIrregCells(m_region);
-      IntVectSet ivsNew = ivsOld;
-      ivsNew |= a_vofsToChange;
       int nfaccomp = F_FACENUMBER;
       int nvolcomp = V_VOLNUMBER;
 
@@ -170,18 +54,19 @@ namespace amrex
 
       //redefine member data with new IVS and copy old data back
       //into it.
-      m_volData.define(ivsNew, a_newGraph, 1);
+      m_volData.define(ivsNew, m_graph, 1);
       m_volData.copy(oldVolData, minBox, 0, minBox, 0, nvolcomp);
       for (int idir = 0; idir < SpaceDim; idir++)
       {
-        m_faceData[idir].define(ivsNew, a_newGraph, idir, 1);
+        m_faceData[idir].define(ivsNew, m_graph, idir, 1);
         m_faceData[idir].copy(oldFaceData[idir], minBox, 0, minBox, 0, nfaccomp);
       }
 
-      //now put correct data into new vofs.  
-      for (VoFIterator vofit(a_vofsToChange, a_newGraph); vofit.ok(); ++vofit)
+      //now put correct data into new vofs.  the volume fraction of a formally
+      //regular cell is always unity
+      for (VoFIterator vofit(subset, m_graph); vofit.ok(); ++vofit)
       {
-        m_volData(vofit(), V_VOLFRAC) = 0;
+        m_volData(vofit(), V_VOLFRAC) = 1;
         m_volData(vofit(), V_BNDAREA) = 0;
         for (int idir = 0; idir < SpaceDim; idir++)
         {
@@ -191,9 +76,71 @@ namespace amrex
         }
         //no real boundary here but putting something valid for the normal
         m_volData(vofit(), V_NORMALX) = 1.;
+
+      }
+
+      //there are rare cases that arise from coarsening where the area fractions will not be one.
+      //we can check this by seeing the number of faces on the side
+      for (int idir = 0; idir < SpaceDim; idir++)
+      {
+        FaceIterator faceit(subset, m_graph, idir, FaceStop::SurroundingWithBoundary);
+        for (faceit.reset(); faceit.ok(); ++faceit)
+        {
+
+          Real areaFrac = 1;
+          RealVect faceCentroid = RealVect::Zero;
+
+
+          if (!faceit().isBoundary())
+          {
+            IntVect ivhi = faceit().gridIndex(Side::Hi);
+            IntVect ivlo = faceit().gridIndex(Side::Lo);
+            std::vector<FaceIndex> allFaces = m_graph.getAllFaces(ivhi, idir, Side::Lo);
+            if (allFaces.size() > 1)
+            {
+              //now we have the wacky case where two full, single-valued faces were coarsened
+              //to make a multi-valued face on the coarse level.
+              //also know as the bjorn geometry.  We need to infer the centroids from the
+              //volume centroids of the vofs involved.   The value of the centroid will be
+              //0.5 so i just need to get the sign.
+              //doing the best i can here.   there might be cases where this gets the
+              //centroid wrong but i cannot think of them
+              VolIndex otherVoF;
+              if (subset.contains(ivlo) && (!subset.contains(ivhi)))
+              {
+                otherVoF = faceit().getVoF(Side::Hi);
+              }
+              else if (subset.contains(ivhi) && (!subset.contains(ivlo)))
+              {
+                otherVoF = faceit().getVoF(Side::Lo);
+              }
+              else
+              {
+                //you really should only be changing one of the vofs if there is a multivalued
+                //face between them
+                amrex::Error("vofsToChange contains internal mutlivalued face");
+              }
+              faceCentroid[idir] = 0.0;
+              for (int tandir = 0; tandir < SpaceDim; tandir++)
+              {
+                if(tandir != idir)
+                {
+                  Real tancentroid = m_volData(otherVoF, V_VOLCENTROIDX + tandir);
+                  faceCentroid[tandir] = tancentroid;
+                }
+              }
+            }
+           }
+          m_faceData[idir](faceit(), F_AREAFRAC) = areaFrac;
+          for (int idir = 0; idir < SpaceDim; idir++)
+          {
+            m_faceData[idir](faceit(), F_FACECENTROIDX+idir) = faceCentroid[idir];
+          }
+        }
       }
     }
   }
+/************************/
 /************************/
   EBDataImplem::
   EBDataImplem()

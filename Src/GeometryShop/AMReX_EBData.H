@@ -34,6 +34,9 @@ namespace amrex
 
   public:
 
+    ///sure hope this does not matter
+    typedef int value_type;
+
     ///
     EBDataImplem();
 
@@ -134,27 +137,9 @@ namespace amrex
                              int         numcomp,
                              const void* src);
 
-    /**
-       This stuff required by LevelData in parallel:
-    int size(const Box& R, const Interval& comps) const;
-
     ///
-    void linearOut(void* buf, const Box& R, const Interval& comps) const;
-
-    ///
-    void linearIn(void* buf, const Box& R, const Interval& comps);
-    */
-
-    ///
-    void addFullIrregularVoFs(const IntVectSet&         a_vofsToChange,
-                              const EBGraph&            a_newGhostGraph,
-                              const BaseIVFAB<Real>&    a_newGhostData,
-                              const EBGraph&            a_oldGhostGraph);
-
-    ///multifluid angels dancing on the heads of pins.
-    void addEmptyIrregularVoFs(const IntVectSet& a_vofsToChange,
-                               const EBGraph&    a_newGraph);
-
+    void addFullIrregularVoFs(const IntVectSet& a_vofsToChange,
+                              const Box       & a_region);
 
     ///
     void
@@ -423,34 +408,14 @@ namespace amrex
         return m_implem->copyFromMem(dstbox, dstcomp, numcomp, src);
       }
 
-    ///
-    /**
-       This stuff required by LevelData in parallel:
-    int size(const Box& R, const Interval& comps) const;
-
-    ///
-    void linearOut(void* buf, const Box& R, const Interval& comps) const;
-
-    ///
-    void linearIn(void* buf, const Box& R, const Interval& comps);
-    */
 
     ///
     void addFullIrregularVoFs(const IntVectSet&      a_vofsToChange,
-                              const EBGraph&         a_newGhostGraph,
-                              const BaseIVFAB<Real>& a_grownData,
-                              const EBGraph&         a_oldGhostGraph)
+                              const Box       &      a_region)
       {
-        m_implem->addFullIrregularVoFs(a_vofsToChange, a_newGhostGraph, a_grownData, a_oldGhostGraph);
+        m_implem->addFullIrregularVoFs(a_vofsToChange, a_region);
       }
 
-
-    ///multifluid angels dancing on the heads of pins.
-    void addEmptyIrregularVoFs(const IntVectSet& a_vofsToChange,
-                               const EBGraph&    a_newGraph)
-      {
-        m_implem->addEmptyIrregularVoFs(a_vofsToChange, a_newGraph);
-      }
 
     ///
     void

@@ -18,6 +18,7 @@
 #include "AMReX_VoFIterator.H"
 #include "AMReX_IrregNode.H"
 #include "AMReX_PolyGeom.H"
+#include "AMReX_EBDataFactory.H"
 #include "AMReX_FaceIterator.H"
 
 
@@ -69,7 +70,11 @@ namespace amrex
     m_grids.maxSize(m_nCellMax);
     DistributionMapping dm(m_grids);
     m_graph.define(m_grids, dm, 1, 1);
-    m_data .define(m_grids, dm, 1, 1);
+
+    std::shared_ptr<FabArray<EBGraph> > graphptr(&m_graph, &null_deleter_fab_ebg);
+    EBDataFactory ebdf(graphptr);
+
+    m_data.define(m_grids  , dm, 1, 0, MFInfo(), ebdf);
     for (MFIter mfi(m_graph); mfi.isValid(); ++mfi)
     {
       Box valid  = mfi.validbox();
@@ -156,7 +161,7 @@ namespace amrex
     ///first deal with the graph
     for (MFIter mfi(m_graph); mfi.isValid(); ++mfi)
     {
-      const EBGraph& fineEBGraph = ebgraphReCo[mfi];
+      EBGraph      & fineEBGraph = ebgraphReCo[mfi];
       EBGraph      & coarEBGraph = m_graph[mfi];
       const Box    & coarRegion  = mfi.validbox();
       coarEBGraph.coarsenVoFs(fineEBGraph, coarRegion);
@@ -164,7 +169,7 @@ namespace amrex
     m_graph.FillBoundary();
     for (MFIter mfi(m_graph); mfi.isValid(); ++mfi)
     {
-      const EBGraph& fineEBGraph = ebgraphReCo[mfi];
+      EBGraph      & fineEBGraph = ebgraphReCo[mfi];
       EBGraph      & coarEBGraph = m_graph[mfi];
       const Box    & coarRegion  = mfi.validbox();
       coarEBGraph.coarsenFaces(coarRegion, coarRegion);
@@ -173,15 +178,15 @@ namespace amrex
     m_graph.FillBoundary();
 
     //now deal with the data
-    std::shared_ptr<FabArray<EBGraph> > graphptrCoar(    m_graph, &null_deleter_fab_ebg);
-    std::shared_ptr<FabArray<EBGraph> > graphptrReCo(ebgraphReCo, &null_deleter_fab_ebg);
+    std::shared_ptr<FabArray<EBGraph> > graphptrCoar(&    m_graph, &null_deleter_fab_ebg);
+    std::shared_ptr<FabArray<EBGraph> > graphptrReCo(&ebgraphReCo, &null_deleter_fab_ebg);
     EBDataFactory ebdfCoar(graphptrCoar);
     EBDataFactory ebdfReCo(graphptrReCo);
     FabArray<EBData> ebdataReCo;
     int nghostData = 1;
 
-    m_data    .define(a_grids  , dm, 1, 0         , MFInfo(), ebdfCoar);
-    ebdataReCo.define(gridsReCo, dm, 1, nghostData, MFInfo(), ebdfReCo);
+    m_data    .define(m_grids  , dmco, 1, 0         , MFInfo(), ebdfCoar);
+    ebdataReCo.define(gridsReCo, dmfc, 1, nghostData, MFInfo(), ebdfReCo);
     dstGhost = 1;
     ebdataReCo.copy(a_fineEBIS.m_data, 0, 0, 1, srcGhost, dstGhost);    
     for (MFIter mfi(m_graph); mfi.isValid(); ++mfi)
@@ -189,10 +194,9 @@ namespace amrex
       const EBGraph& fineEBGraph = ebgraphReCo[mfi];
       const EBGraph& coarEBGraph =     m_graph[mfi];
       const EBData & fineEBData  =  ebdataReCo[mfi];
-      EBData       & coarEBData  =      m_data[mfi];
-
-      m_data[mfi].coarsenVoFs (fineEBData, fineEBGraph, coarEBGraph, m_grids[mfi]);
-      m_data[mfi].coarsenFaces(fineEBData, fineEBGraph, coarEBGraph, m_grids[mfi]);
+      Box valid = mfi.validbox();
+      m_data[mfi].coarsenVoFs (fineEBData, fineEBGraph, coarEBGraph, valid);
+      m_data[mfi].coarsenFaces(fineEBData, fineEBGraph, coarEBGraph, valid);
     }
   }
 
@@ -204,19 +208,13 @@ namespace amrex
   fixRegularNextToMultiValued()
   {
     BL_PROFILE("EBISLevel::fixRegularNextToMultiValued");
-    bool vofsAdded = false;
+
     for (MFIter mfi(m_graph); mfi.isValid(); ++mfi)
     {
       IntVectSet vofsToChange;
-      BL_PROFILE("EBISLevel::fixRegularNextToMultiValued_loop1");
-      m_graph[mfi].getRegNextToMultiValued(vofsToChange,
-                                           m_grids[mfi]);
-
-      m_graph[dit()].addFullIrregularVoFs(vofsToChange);
-
-
-      m_data[dit() ].addFullIrregularVoFs(vofsToChange,
-                                          m_graph[mfi]);
+      Box valid = mfi.validbox();
+      m_graph[mfi].getRegNextToMultiValued(vofsToChange, valid);
+      m_data[ mfi].addFullIrregularVoFs( vofsToChange, valid);
 
     }
     m_data .FillBoundary();
@@ -226,11 +224,11 @@ namespace amrex
   ///
   void 
   EBISLevel::
-  fillEBISLayout(EBISLayout&              a_ebisLayout,
-                 const DisjointBoxLayout& a_grids,
-                 const int&               a_nghost) const
+  fillEBISLayout(EBISLayout     & a_ebisLayout,
+                 const BoxArray & a_grids,
+                 const int      & a_nghost) const
   {
-    CH_assert(a_nghost >= 0);
+    BL_ASSERT(a_nghost >= 0);
   
     //a_ebisLayout.define(m_domain, a_grids, a_nghost, m_graph, m_data);
     //return; // caching disabled for now.... ugh.  bvs

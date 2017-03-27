@@ -102,6 +102,7 @@ namespace amrex
     */
     void setMaxRefinementRatio(const int& a_maxRefine, const EBIndexSpace* const a_ebisPtr);
 
+
     ///
     /**
        Sets the maximum level of coarsening that this {\tt EBISLayout}
@@ -192,6 +193,8 @@ namespace amrex
         m_implem->setMaxRefinementRatio(a_maxRefine, a_ebisPtr);
       }
 
+
+
     ///
     /**
        Sets the maximum level of coarsening that this {\tt EBISLayout}
@@ -204,11 +207,16 @@ namespace amrex
         m_implem->setMaxCoarseningRatio(a_maxCoarsen, a_ebisPtr);
       }
 
-    ///
-    EBISLayout();
 
     ///
-    ~EBISLayout();
+    EBISLayout()
+      {
+      }
+
+    ///
+    ~EBISLayout()
+      {
+      }
 
     ///
     /**
