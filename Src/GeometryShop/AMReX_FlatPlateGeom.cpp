@@ -26,6 +26,45 @@
 
 namespace amrex
 {
+    /**
+       Return true if every cell in region is regular at the
+       refinement described by dx.
+    */
+  bool 
+  FlatPlateGeom::
+  isRegular(const Box&           a_region,
+            const Box& a_domain,
+            const RealVect&      a_origin,
+            const Real&          a_dx) const
+  {
+    Real hiVal = a_dx*(a_region.bigEnd()  [m_normalDir]+1);
+    Real loVal = a_dx*(a_region.smallEnd()[m_normalDir]  );
+    bool retval = false;
+    if(hiVal < m_plateLocation)
+    {
+      retval = true;
+    }
+    else if(loVal > m_plateLocation)
+    {
+      retval = true;
+    }
+    return retval;
+  }
+
+    ///
+    /**
+       Return true if every cell in region is covered at the
+       refinement described by dx.
+    */
+  bool 
+  FlatPlateGeom::
+  isCovered(const Box&           a_region,
+            const Box& a_domain,
+            const RealVect&      a_origin,
+            const Real&          a_dx) const
+  {
+    return false;
+  }
   bool
   FlatPlateGeom::
   isCellCut(const IntVect            & a_iv,

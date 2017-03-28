@@ -24,6 +24,10 @@
 
 namespace amrex
 {
+  void null_deleter_fab_ebg(FabArray<EBGraph>* a_ptr)
+  {
+  }
+
   EBIndexSpace* AMReX_EBIS::s_instance = NULL;
   ///
   EBIndexSpace* 

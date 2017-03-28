@@ -16,11 +16,6 @@
 
 namespace amrex
 {
-  //so i can pass the ebgraph to ebdatafactory
-  void null_deleter_fab_ebg(FabArray<EBGraph>* a_ptr)
-  {
-  }
-      
   /****************/
   void
   EBISLayoutImplem::define(const Box               & a_domain,
@@ -41,19 +36,18 @@ namespace amrex
       
       
     DistributionMapping dm(a_grids);
-    m_ebGraph.define(a_grids, dm, 1, m_nghost);
+    m_ebGraph = shared_ptr<FabArray<EBGraph> >(new FabArray<EBGraph>(a_grids, dm, 1, m_nghost));
       
-    std::shared_ptr<FabArray<EBGraph> > graphptr(&m_ebGraph, &null_deleter_fab_ebg);
-    EBDataFactory ebdatafact(graphptr);
-    m_ebData .define(a_grids, dm, 1, m_nghost, MFInfo(), ebdatafact);
+    EBDataFactory ebdatafact(m_ebGraph);
+    m_ebData  = shared_ptr<FabArray<EBData > >(new FabArray<EBData>(a_grids, dm, 1, m_nghost, MFInfo(), ebdatafact));
       
     int dstGhost = a_nghost;
     int srcGhost = 0;
       
-    m_ebGraph.copy(a_graph, 0, 0, 1, srcGhost, dstGhost);
-    m_ebData .copy(a_data , 0, 0, 1, srcGhost, dstGhost);
-    m_ebGraph.FillBoundary();
-    m_ebData .FillBoundary();
+    m_ebGraph->copy(a_graph, 0, 0, 1, srcGhost, dstGhost);
+    m_ebData ->copy(a_data , 0, 0, 1, srcGhost, dstGhost);
+    m_ebGraph->FillBoundary();
+    m_ebData ->FillBoundary();
       
     m_defined = true;
   }
@@ -62,7 +56,7 @@ namespace amrex
   EBISBox
   EBISLayoutImplem::operator[](const MFIter & a_dit) const
   {
-    EBISBox retval(m_ebGraph[a_dit], m_ebData[a_dit]);
+    EBISBox retval((*m_ebGraph)[a_dit], (*m_ebData)[a_dit]);
     return retval;
   }
   /****************/
@@ -88,7 +82,7 @@ namespace amrex
     BL_ASSERT(a_ratio%2 == 0);
       
     //for ratio of 2, just use ebisbox
-    EBISBox ebisBoxFine(m_ebGraph[a_mfi], m_ebData[a_mfi]);
+    EBISBox ebisBoxFine((*m_ebGraph)[a_mfi], (*m_ebData)[a_mfi]);
     VolIndex coarVoF = ebisBoxFine.coarsen(a_vof);
     //for ratio > 2, chase its tail
     int icoarlev = 0;

@@ -263,6 +263,11 @@ namespace amrex
         m_implem->define(a_box, a_comps);
       }
 
+    void resize(const Box& a_box, int a_comps)
+      {
+        m_implem->define(a_box, a_comps);
+      }
+
     ///
     /**
     */

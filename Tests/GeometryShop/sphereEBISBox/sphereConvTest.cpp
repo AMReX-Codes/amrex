@@ -24,6 +24,8 @@
 #include "AMReX_GeometryShop.H"
 #include "AMReX_PolyGeom.H"
 #include "AMReX_VoFIterator.H"
+#include "AMReX_BaseIVFAB.H"
+#include "AMReX_BaseIVFactory.H"
 #include "AMReX_SphereIF.H"
 #include "AMReX_RealVect.H"
 
@@ -51,7 +53,7 @@ namespace amrex
         if (bdarea > 0)
         {
           Real valVoF = a_ebiError(vof, a_comp);
-          a_ebIrregNorm = Max(Abs(valVoF), a_ebIrregNorm);
+          a_ebIrregNorm = std::max(std::abs(valVoF), a_ebIrregNorm);
         }
       }
     }
@@ -63,11 +65,11 @@ namespace amrex
       for (VoFIterator vofit(a_ivsIrreg, a_ebisBox.getEBGraph()); vofit.ok(); ++vofit)
       {
         const VolIndex& vof = vofit();
-        Real valVoF = a_ebiError(vof, a_comp);
+        Real valVoF = a_ebiError(vof, a_comp); 
         Real bdarea = a_ebisBox.bndryArea(vof);
         areaTot += bdarea;
         if (a_normtype == 1)
-          normTot += Abs(valVoF)*bdarea;
+          normTot += std::abs(valVoF)*bdarea;
         else
           normTot += valVoF*valVoF*bdarea;
       }
@@ -85,11 +87,11 @@ namespace amrex
                   RealVect&      a_dx)
   {
     ParmParse pp;
-    Vector<int> n_cell(SpaceDim);
+    std::vector<int> n_cell(SpaceDim);
     pp.getarr("n_cell",n_cell,0,SpaceDim);
 
     BL_ASSERT(n_cell.size() == SpaceDim);
-    IntVect lo = IntVect::Zero;
+    IntVect lo = IntVect::TheZeroVector();
     IntVect hi;
     for (int ivec = 0; ivec < SpaceDim; ivec++)
     {
@@ -132,7 +134,7 @@ namespace amrex
     amrex::Print() << "using a sphere implicit function" << "\n";
     bool negativeInside = true;
     SphereIF lalaBall(a_sphereRadius, a_sphereCenter, negativeInside);
-    GeometryShop workshop(lalaBall,0,a_dx);
+    GeometryShop workshop(lalaBall);
     int ebmaxcoarsen = 0;
     RealVect origin = RealVect::Zero;
     ebisPtr->define(a_domain, origin, a_dx[0], workshop, biggridsize, ebmaxcoarsen);
@@ -196,7 +198,7 @@ namespace amrex
 
       Real eps   = 1.0e-9;
 
-      if ((Abs(ebIrregNormCoar) > eps) && (Abs(ebIrregNormFine) > eps))
+      if ((std::abs(ebIrregNormCoar) > eps) && (std::abs(ebIrregNormFine) > eps))
       {
         Real order = log(ebIrregNormCoar/ebIrregNormFine)/log(2.0);
         amrex::Print() << "Order of " << varstring  <<" = " << order << "\n" << "\n";
@@ -235,7 +237,7 @@ namespace amrex
 
       RealVect normal = a_ebisBox.normal(vof);
       Real dotProd = PolyGeom::dot(trueNorm, normal);
-      Real error = Abs(dotProd) - 1;
+      Real error = std::abs(dotProd) - 1;
 
       a_error(vof, 0) = error ;
     }
@@ -316,40 +318,45 @@ namespace amrex
     getFinestDomain(domainBoxFine, dxFine);
     dxCoar = 2.0*dxFine;
     domainBoxCoar = coarsen(domainBoxFine, 2);
-    Vector<Box> boxFine(1, domainBoxFine);
-    Vector<Box> boxCoar(1, domainBoxCoar);
-    Vector<int> proc(1, 0);
-    DisjointBoxLayout dblFine(boxFine, proc);
-    DisjointBoxLayout dblCoar;
-    coarsen(dblCoar, dblFine, 2);
+
+    BoxArray dblFine(domainBoxFine);
+    BoxArray dblCoar = dblFine;
+    dblCoar.coarsen(2);
+    DistributionMapping dmfine(dblFine);
+    DistributionMapping dmcoar(dblCoar);
+
 
     amrex::Print() << "==============================================" << "\n";
     RealVect  sphereCenter;
     Real      sphereRadius;
-    int itype = 0;
 
     makeGeometry(domainBoxFine,  dxFine, sphereCenter, sphereRadius);
     EBISLayout ebislFine, ebislCoar;
-    const CH_XD::EBIndexSpace* const ebisPtrFine = Chombo_EBIS::instance();
-    ebisPtrFine->fillEBISLayout(ebislFine, dblFine, domainBoxFine, 0);
+    const EBIndexSpace* const ebisPtr = AMReX_EBIS::instance();
+    ebisPtr->fillEBISLayout(ebislFine, dblFine, domainBoxFine, 0);
 
-    const CH_XD::EBIndexSpace* const ebisPtrCoar = Chombo_EBIS::instance();
     makeGeometry(domainBoxCoar,  dxCoar, sphereCenter, sphereRadius);
-    ebisPtrCoar->fillEBISLayout(ebislCoar, dblCoar, domainBoxCoar, 0);
+    ebisPtr->fillEBISLayout(ebislCoar, dblCoar, domainBoxCoar, 0);
 
-    int ifileout;
-    ParmParse pp;
     //do the whole convergence test thing.
     bool failedTest = false;
-    for (DataIterator dit = dblFine.dataIterator(); dit.ok(); ++dit)
+
+    BaseIVFactory<Real> factFine(ebislFine);
+    BaseIVFactory<Real> factCoar(ebislCoar);
+    DistributionMapping dmFine(dblFine);
+    DistributionMapping dmCoar(dblFine);
+    FabArray<BaseIVFAB<Real> >  errFine(dblFine, dmFine, 1, 0, MFInfo(), factFine);
+    FabArray<BaseIVFAB<Real> >  errCoar(dblCoar, dmCoar, 1, 0, MFInfo(), factCoar);
+
+    for (MFIter mfi(errFine); mfi.isValid(); ++mfi)
     {
-      const EBISBox& ebisBoxFine = ebislFine[dit()];
-      const EBISBox& ebisBoxCoar = ebislCoar[dit()];
+      const EBISBox& ebisBoxFine = ebislFine[mfi];
+      const EBISBox& ebisBoxCoar = ebislCoar[mfi];
       IntVectSet ivsIrregFine = ebisBoxFine.getIrregIVS(domainBoxFine);
       IntVectSet ivsIrregCoar = ebisBoxCoar.getIrregIVS(domainBoxCoar);
 
-      BaseIVFAB<Real> errorFine(ivsIrregFine, ebisBoxFine.getEBGraph(), 1);
-      BaseIVFAB<Real> errorCoar(ivsIrregCoar, ebisBoxCoar.getEBGraph(), 1);
+      BaseIVFAB<Real> errorFine = errFine[mfi];
+      BaseIVFAB<Real> errorCoar = errCoar[mfi];
 
       getNormalDotTrueNormM1(errorFine, ivsIrregFine, ebisBoxFine, sphereCenter, dxFine);
       getNormalDotTrueNormM1(errorCoar, ivsIrregCoar, ebisBoxCoar, sphereCenter, dxCoar);
@@ -388,7 +395,7 @@ namespace amrex
 /************/
 /************/
 int
-main(int a_argc, char* a_argv[])
+main(int argc, char* argv[])
 {
   int retval = 0;
   amrex::Initialize(argc,argv);

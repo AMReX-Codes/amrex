@@ -30,6 +30,7 @@
 namespace amrex
 {
 
+  extern void null_deleter_fab_ebg(FabArray<EBGraph>* a_ptr);
 
   class EBIndexSpace;
 
@@ -53,7 +54,7 @@ namespace amrex
 
     ~AMReX_EBIS()
       {;}
-    static bool s_aliased;
+
   public:
     ///
     /**

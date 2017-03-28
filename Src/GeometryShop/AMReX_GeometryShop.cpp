@@ -27,6 +27,241 @@
 namespace amrex
 {
 
+  bool GeometryShop::isRegular(const Box&           a_region,
+                               const Box& a_domain,
+                               const RealVect&      a_origin,
+                               const Real&          a_dx) const
+  {
+    BL_PROFILE("GeometryShop::isRegular");
+
+    // first check any of the Box corners is outside, and return false
+    // right away. (bvs)
+    IntVect lo = a_region.smallEnd();
+    IntVect len = a_region.size();
+    Box unitBox(IntVect::TheZeroVector(), IntVect::TheUnitVector());
+    for (BoxIterator bit(unitBox); bit.ok(); ++bit)
+    {
+      IntVect current = lo + len*bit();
+      RealVect physCorner;
+      for (int idir = 0; idir < SpaceDim; ++idir)
+      {
+        physCorner[idir] = a_dx*current[idir] + a_origin[idir];
+      }
+      Real functionValue = m_implicitFunction->value(physCorner);
+      if (functionValue > 0.0 )
+      {
+        return false;
+      }
+    }
+
+    return isRegularEveryPoint(a_region, a_domain, a_origin, a_dx);
+  }
+
+  bool GeometryShop::isRegularEveryPoint(const Box&           a_region,
+                                         const Box& a_domain,
+                                         const RealVect&      a_origin,
+                                         const Real&          a_dx) const
+  {
+    BL_PROFILE("GeometryShop::isRegularEveryPoint");
+
+    // All corner indices for the current box
+    Box allCorners(a_region);
+    allCorners.surroundingNodes();
+
+    RealVect physCorner;
+    BoxIterator bit(allCorners);
+    // If every corner is inside, the box is regular
+    for (int i=0; i<2; i++)
+    {
+      for (; bit.ok(); ++bit, ++bit)
+      {
+        // Current corner
+        const IntVect& corner = bit();
+
+        // Compute physical coordinate of corner
+
+
+        for (int idir = 0; idir < SpaceDim; ++idir)
+        {
+          physCorner[idir] = a_dx*corner[idir] + a_origin[idir];
+        }
+
+        // If the implicit function value is positive then the current
+        // corner is outside the domain
+        Real functionValue = m_implicitFunction->value(physCorner);
+
+        if (functionValue > 0.0 )
+        {
+          return false;
+        }
+      }
+      bit.reset();
+      ++bit;
+    }
+
+    return true;
+  }
+
+  bool GeometryShop::isIrregular(const Box&           a_region,
+                                 const Box& a_domain,
+                                 const RealVect&      a_origin,
+                                 const Real&          a_dx) const
+  {
+
+    BL_PROFILE("GeometryShop::isIrregular");
+
+    // first check any of the Box corners is outside, and return false
+    // right away. (bvs)
+    RealVect physCorner;
+    IntVect lo = a_region.smallEnd();
+    IntVect len = a_region.size();
+    for (int idir = 0; idir < SpaceDim; ++idir)
+    {
+      physCorner[idir] = a_dx*lo[idir] + a_origin[idir];
+    }
+    Real originVal = m_implicitFunction->value(physCorner);
+
+    Box unitBox(IntVect::TheZeroVector(), IntVect::TheUnitVector());
+    for (BoxIterator bit(unitBox); bit.ok(); ++bit)
+    {
+      IntVect current = lo + len*bit();
+      for (int idir = 0; idir < SpaceDim; ++idir)
+      {
+        physCorner[idir] = a_dx*current[idir] + a_origin[idir];
+      }
+
+      Real functionValue = m_implicitFunction->value(physCorner);
+      if (functionValue * originVal < 0.0 )
+      {
+        return true;
+      }
+    }
+
+    // return isIrregularEveryPoint(a_region, a_domain, a_origin, a_dx, originVal);
+    return !(isRegularEveryPoint(a_region, a_domain, a_origin, a_dx) ||
+             isCoveredEveryPoint(a_region, a_domain, a_origin, a_dx));
+  }
+
+  bool GeometryShop::isIrregularEveryPoint(const Box&           a_region,
+                                           const Box& a_domain,
+                                           const RealVect&      a_origin,
+                                           const Real&          a_dx,
+                                           const Real&          a_originVal) const
+  {
+    BL_PROFILE("GeometryShop::isIrregularEveryPoint");
+
+    // All corner indices for the current box
+    Box allCorners(a_region);
+    allCorners.surroundingNodes();
+
+    RealVect physCorner;
+    BoxIterator bit(allCorners);
+    // If every corner is inside, the box is regular
+    for (int i=0; i<2; i++)
+    {
+      for (; bit.ok(); ++bit, ++bit)
+      {
+        // Current corner
+        IntVect corner = bit();
+
+        // Compute physical coordinate of corner
+
+        for (int idir = 0; idir < SpaceDim; ++idir)
+        {
+          physCorner[idir] = a_dx*corner[idir] + a_origin[idir];
+        }
+
+        // If the implicit function value is positive then the current
+        // corner is outside the domain
+        Real functionValue = m_implicitFunction->value(physCorner);
+
+        if (functionValue * a_originVal < 0.0 )
+        {
+          return true;
+        }
+      }
+      bit.reset();
+      ++bit;
+    }
+
+    return false;
+  }
+
+  bool GeometryShop::isCovered(const Box&           a_region,
+                               const Box& a_domain,
+                               const RealVect&      a_origin,
+                               const Real&          a_dx) const
+  {
+    BL_PROFILE("GeometryShop::isCovered");
+
+
+    // first check any of the Box corners is outside, and return false
+    // right away. (bvs)
+    RealVect physCorner;
+    IntVect lo = a_region.smallEnd();
+    IntVect len = a_region.size();
+    Box unitBox(IntVect::TheZeroVector(), IntVect::TheUnitVector());
+    for (BoxIterator bit(unitBox); bit.ok(); ++bit)
+    {
+      IntVect current = lo + len*bit();
+      for (int idir = 0; idir < SpaceDim; ++idir)
+      {
+        physCorner[idir] = a_dx*current[idir] + a_origin[idir];
+      }
+
+      Real functionValue = m_implicitFunction->value(physCorner);
+      if (functionValue < 0.0 )
+      {
+        return false;
+      }
+    }
+
+    return isCoveredEveryPoint(a_region, a_domain, a_origin, a_dx);
+  }
+
+  bool GeometryShop::isCoveredEveryPoint(const Box&           a_region,
+                                         const Box& a_domain,
+                                         const RealVect&      a_origin,
+                                         const Real&          a_dx) const
+  {
+    BL_PROFILE("GeometryShop::isCoveredEveryPoint");
+
+    // All corner indices for the current box
+    Box allCorners(a_region);
+    allCorners.surroundingNodes();
+
+    RealVect physCorner;
+    BoxIterator bit(allCorners);
+    // If every corner is inside, the box is regular
+    for (int i=0; i<2; i++)
+    {
+      for (; bit.ok(); ++bit, ++bit)
+      {
+        // Current corner
+        IntVect corner = bit();
+
+        // Compute physical coordinate of corner
+
+        for (int idir = 0; idir < SpaceDim; ++idir)
+        {
+          physCorner[idir] = a_dx*corner[idir] + a_origin[idir];
+        }
+
+        // If the implicit function value is positive then the current
+        // corner is outside the domain
+        Real functionValue = m_implicitFunction->value(physCorner);
+
+        if (functionValue < 0.0 )
+        {
+          return false;
+        }
+      }
+      bit.reset();
+      ++bit;
+    }
+
+    return true;
+  }
   GeometryShop::GeometryShop(const BaseIF& a_localGeom,
                              int           a_verbosity,
                              Real          a_thrshdVoF)
@@ -56,10 +291,12 @@ namespace amrex
 
 
   /**********************************************/
-  GeometryShop::InOut GeometryShop::InsideOutside(const Box&           a_region,
-                                                  const Box&           a_domain,
-                                                  const RealVect&      a_origin,
-                                                  const Real&          a_dx) const
+  GeometryService::InOut 
+  GeometryShop::
+  InsideOutside(const Box&           a_region,
+                const Box&           a_domain,
+                const RealVect&      a_origin,
+                const Real&          a_dx) const
   {
     GeometryShop::InOut rtn;
 
