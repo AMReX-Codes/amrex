@@ -1104,6 +1104,7 @@ namespace amrex
               const VolIndex& a_vof2) const
   {
     assert(isDefined());
+    assert(m_isDomainSet);
     const IntVect& iv1 = a_vof1.gridIndex();
     const IntVect& iv2 = a_vof2.gridIndex();
         
@@ -1229,10 +1230,9 @@ namespace amrex
        int                  a_numcomp)
   {
     assert(isDefined());
-    if(!isDomainSet())
-    {
-      setDomain(a_source.m_domain);
-    }
+
+    setDomain(a_source.m_domain);
+
     Box regionTo  = a_destbox;
     Box regionFrom= a_srcbox;
     if (isRegular(regionTo) && a_source.isRegular(regionFrom))
@@ -1396,8 +1396,6 @@ namespace amrex
     {
       m_tag = HasIrregular;
       m_region = a_coarRegion;
-      m_domain = a_fineGraph.m_domain;
-      m_domain.coarsen(2);
       if (m_irregIVS != NULL) delete m_irregIVS;
       if (m_multiIVS != NULL) delete m_multiIVS;
       m_multiIVS = new IntVectSet();
@@ -1519,6 +1517,8 @@ namespace amrex
                const int&            a_idir,
                const Side::LoHiSide& a_sd)
   {
+    assert(m_isDomainSet);
+    assert(a_fineGraph.isDomainSet());
     std::vector<int> retval;
         
     IntVect coarIV = a_coarVoF.gridIndex();
@@ -1594,6 +1594,8 @@ namespace amrex
   coarsenFaces(const EBGraphImplem& a_fineGraph,
                const Box& a_coarRegion)
   {
+    assert(m_isDomainSet);
+    assert(a_fineGraph.isDomainSet());
     if (hasIrregular())
     {
       Box region = m_region;

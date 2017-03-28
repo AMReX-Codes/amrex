@@ -93,10 +93,12 @@ namespace amrex
       if (inout == GeometryService::Regular)
       {
         ebgraph.setToAllRegular();
+        ebdata.define(ebgraph,  ghostRegion);
       }
       else if (inout == GeometryService::Covered)
       {
         ebgraph.setToAllCovered();
+        ebdata.define(ebgraph,  ghostRegion);
       }
       else
       {
@@ -125,6 +127,9 @@ namespace amrex
     m_domain.coarsen(2);
     m_dx = 2.*a_fineEBIS.m_dx;
     m_origin = a_fineEBIS.m_origin;
+
+    m_grids.define(m_domain);
+    m_grids.maxSize(m_nCellMax);
 
     //create coarsened vofs from fine.
     //create coarse faces from fine
@@ -176,7 +181,7 @@ namespace amrex
       EBGraph      & fineEBGraph = ebgraphReCo[mfi];
       EBGraph      & coarEBGraph = m_graph[mfi];
       const Box    & coarRegion  = mfi.validbox();
-      coarEBGraph.coarsenFaces(coarRegion, coarRegion);
+      coarEBGraph.coarsenFaces(fineEBGraph, coarRegion);
       coarEBGraph.fixFineToCoarse(fineEBGraph);
     }
     m_graph.FillBoundary();

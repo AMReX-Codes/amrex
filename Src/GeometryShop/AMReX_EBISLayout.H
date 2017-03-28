@@ -124,6 +124,15 @@ namespace amrex
       {
         return m_ebGraph;
       } 
+
+    EBISLayoutImplem(const Box               & a_domain,
+                     const BoxArray          & a_grids,
+                     const int               & a_nghost,
+                     const FabArray<EBGraph> & a_graph,
+                     const FabArray<EBData>  & a_data)
+      {
+        define(a_domain, a_grids, a_nghost, a_graph, a_data);
+      }
   private:
     ///
     Box m_domain;
@@ -213,6 +222,7 @@ namespace amrex
     ///
     EBISLayout()
       {
+        m_implem = std::shared_ptr<EBISLayoutImplem>(new EBISLayoutImplem());
       }
 
     ///
@@ -270,6 +280,17 @@ namespace amrex
                 const FabArray<EBData>  & a_data)
       {
         m_implem->define(a_domain, a_grids, a_nghost, a_graph, a_data);
+      }
+
+
+    ///
+    EBISLayout(const Box               & a_domain,
+               const BoxArray          & a_grids,
+               const int               & a_nghost,
+               const FabArray<EBGraph> & a_graph,
+               const FabArray<EBData>  & a_data)
+      {
+        m_implem = std::shared_ptr<EBISLayoutImplem>(new EBISLayoutImplem(a_domain, a_grids, a_nghost, a_graph, a_data));
       }
 
     bool isDefined() const
