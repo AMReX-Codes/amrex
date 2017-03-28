@@ -153,6 +153,62 @@ H_z = & H_{zx}+H_{zy}
 %
 \begin{subequations}
 \begin{align}
+E_x|^{n+1}_{j+1/2,k,l} = & e^{-\sigma_y\Delta t} E_x|^{n}_{j+1/2,k,l} + \frac{1-e^{-\sigma_y\Delta t}}{\sigma_y \Delta y} \left(H_z|^{n+1/2}_{j+1/2,k+1/2,l}-H_z|^{n+1/2}_{j+1/2,k-1/2,l}\right) \\
+%
+E_y|^{n+1}_{j,k+1/2,l} = & e^{-\sigma_x\Delta t} E_y|^{n}_{j,k+1/2,l} - \frac{1-e^{-\sigma_x\Delta t}}{\sigma_x \Delta x} \left(H_z|^{n+1/2}_{j+1/2,k+1/2,l}-H_z|^{n+1/2}_{j-1/2,k+1/2,l}\right) \\
+%
+H_{zx}|^{n+3/2}_{j+1/2,k+1/2,l} = & e^{-\sigma^*_x\Delta t} H_{zx}|^{n}_{j+1/2,k+1/2,l} - \frac{1-e^{-\sigma^*_x\Delta t}}{\sigma^*_x \Delta x} \left(E_y|^{n+1}_{j+1,k+1/2,l}-E_y|^{n+1}_{j,k+1/2,l}\right) \\
+%
+H_{zy}|^{n+3/2}_{j+1/2,k+1/2,l} = & e^{-\sigma^*_y\Delta t} H_{zy}|^{n}_{j+1/2,k+1/2,l} + \frac{1-e^{-\sigma^*_y\Delta t}}{\sigma^*_y \Delta y} \left(E_x|^{n+1}_{j+1/2,k+1,l}-E_x|^{n+1}_{j+1/2,k,l}\right) \\
+%
+H_z = & H_{zx}+H_{zy}
+\end{align}
+\end{subequations}
+
+
+%
+\begin{subequations}
+\begin{align}
+E_x|^{n+1}_{j+1/2,k,l} = & e^{-\sigma_y\Delta t} E_x|^{n}_{j+1/2,k,l} + \frac{1-e^{-\sigma_y\Delta t}}{\sigma_y \Delta y}\frac{c_y}{c} \left(H_z|^{n+1/2}_{j+1/2,k+1/2,l}-H_z|^{n+1/2}_{j+1/2,k-1/2,l}\right) \\
+%
+E_y|^{n+1}_{j,k+1/2,l} = & e^{-\sigma_x\Delta t} E_y|^{n}_{j,k+1/2,l} - \frac{1-e^{-\sigma_x\Delta t}}{\sigma_x \Delta x}\frac{c_x}{c} \left(H_z|^{n+1/2}_{j+1/2,k+1/2,l}-H_z|^{n+1/2}_{j-1/2,k+1/2,l}\right) \\
+%
+H_{zx}|^{n+3/2}_{j+1/2,k+1/2,l} = & e^{-\sigma^*_x\Delta t} H_{zx}|^{n}_{j+1/2,k+1/2,l} - \frac{1-e^{-\sigma^*_x\Delta t}}{\sigma^*_x \Delta x}\frac{c^*_x}{c} \left(E_y|^{n+1}_{j+1,k+1/2,l}-E_y|^{n+1}_{j,k+1/2,l}\right) \\
+%
+H_{zy}|^{n+3/2}_{j+1/2,k+1/2,l} = & e^{-\sigma^*_y\Delta t} H_{zy}|^{n}_{j+1/2,k+1/2,l} + \frac{1-e^{-\sigma^*_y\Delta t}}{\sigma^*_y \Delta y}\frac{c^*_y}{c} \left(E_x|^{n+1}_{j+1/2,k+1,l}-E_x|^{n+1}_{j+1/2,k,l}\right) \\
+%
+H_z = & H_{zx}+H_{zy}
+\end{align}
+\end{subequations}
+
+ %
+\begin{subequations}
+\begin{align}
+c_x = & c e^{-\sigma_x\Delta t} \frac{\sigma_x \Delta x}{1-e^{-\sigma_x\Delta t}} \\
+c_y = & c e^{-\sigma_y\Delta t} \frac{\sigma_y \Delta y}{1-e^{-\sigma_y\Delta t}} \\
+c^*_x = & c e^{-\sigma^*_x\Delta t} \frac{\sigma^*_x \Delta x}{1-e^{-\sigma^*_x\Delta t}} \\
+c^*_y = & c e^{-\sigma^*_y\Delta t} \frac{\sigma^*_y \Delta y}{1-e^{-\sigma^*_y\Delta t}} 
+\end{align}
+\end{subequations}
+
+%
+\begin{subequations}
+\begin{align}
+E_x|^{n+1}_{j+1/2,k,l} = & e^{-\sigma_y\Delta t} \left[ E_x|^{n}_{j+1/2,k,l} + \frac{\Delta t}{\Delta y} \left(H_z|^{n+1/2}_{j+1/2,k+1/2,l}-H_z|^{n+1/2}_{j+1/2,k-1/2,l}\right) \right] \\
+%
+E_y|^{n+1}_{j,k+1/2,l} = & e^{-\sigma_x\Delta t} \left[ E_y|^{n}_{j,k+1/2,l} - \frac{\Delta t}{\Delta x}  \left(H_z|^{n+1/2}_{j+1/2,k+1/2,l}-H_z|^{n+1/2}_{j-1/2,k+1/2,l}\right) \right] \\
+%
+H_{zx}|^{n+3/2}_{j+1/2,k+1/2,l} = & e^{-\sigma^*_x\Delta t} \left[ H_{zx}|^{n}_{j+1/2,k+1/2,l} - \frac{\Delta t}{\Delta x}  \left(E_y|^{n+1}_{j+1,k+1/2,l}-E_y|^{n+1}_{j,k+1/2,l}\right) \right] \\
+%
+H_{zy}|^{n+3/2}_{j+1/2,k+1/2,l} = & e^{-\sigma^*_y\Delta t} \left[ H_{zy}|^{n}_{j+1/2,k+1/2,l} + \frac{\Delta t}{\Delta y}  \left(E_x|^{n+1}_{j+1/2,k+1,l}-E_x|^{n+1}_{j+1/2,k,l}\right) \right] \\
+%
+H_z = & H_{zx}+H_{zy}
+\end{align}
+\end{subequations}
+
+%
+\begin{subequations}
+\begin{align}
 E_x|^{n+1}_{j+1/2,k,l} = & E_x|^{n}_{j+1/2,k,l} + \frac{\Delta t}{\Delta y} \left(H_z|^{n+1/2}_{j+1/2,k+1/2,l}-H_z|^{n+1/2}_{j+1/2,k-1/2,l}\right) \\
 %
 E_y|^{n+1}_{j,k+1/2,l} = & E_y|^{n}_{j,k+1/2,l} - \frac{\Delta t}{\Delta x} \left(H_z|^{n+1/2}_{j+1/2,k+1/2,l}-H_z|^{n+1/2}_{j-1/2,k+1/2,l}\right) \\
