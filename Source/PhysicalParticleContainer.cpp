@@ -13,6 +13,8 @@ PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core, int isp
       species_name(name)
 {
     plasma_injector.reset(new PlasmaInjector(species_id, species_name));
+    charge = plasma_injector->getCharge();
+    mass = plasma_injector->getMass();
 }
 
 void PhysicalParticleContainer::InitData() {
@@ -31,9 +33,6 @@ PhysicalParticleContainer::AllocData ()
 void
 PhysicalParticleContainer::AddNRandomUniformPerCell (int lev, Box part_box) {
     BL_PROFILE("PhysicalParticleContainer::AddNRandomPerCell()");
-    
-    charge = plasma_injector->getCharge();
-    mass = plasma_injector->getMass();
     
     const Geometry& geom = Geom(lev);
     const Real* dx  = geom.CellSize();
@@ -112,9 +111,6 @@ void
 PhysicalParticleContainer::AddNDiagPerCell (int lev, Box part_box) {
     BL_PROFILE("PhysicalParticleContainer::AddNDiagPerCell()");
     
-    charge = plasma_injector->getCharge();
-    mass = plasma_injector->getMass();
-
     const Geometry& geom = Geom(lev);
     const Real* dx  = geom.CellSize();
 

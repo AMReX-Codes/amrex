@@ -115,6 +115,9 @@ geometry.prob_hi     = "%7.0e   %7.0e   %7.0e"%(xmax, ymax, zmax)
 # Verbosity
 warpx.verbose = 1
 
+particles.nspecies = 1
+particles.species_names = "electrons"
+
 # Algorithms
 algo.current_deposition = 3
 algo.charge_deposition = 0

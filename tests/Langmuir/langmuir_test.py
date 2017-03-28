@@ -125,6 +125,9 @@ algo.particle_pusher = 0
 # CFL
 warpx.cfl = 1.0
 
+particles.nspecies = 1
+particles.species_names = "electrons"
+
 # --- Initialize the simulation
 amrex = AMReX()
 amrex.init()

@@ -127,6 +127,21 @@ PlasmaInjector::PlasmaInjector(int ispecies, const std::string& name)
     pp.query("ymax", ymax);
     pp.query("zmax", zmax);
 
+    // get injection style
+    pp.get("injection_style", injection_style);
+    std::transform(injection_style.begin(), 
+                   injection_style.end(), 
+                   injection_style.begin(), 
+                   ::tolower);
+    if (injection_style == "python") {
+        return;
+    } 
+    else if (not (injection_style == "nrandomnormal" or
+                  injection_style == "nrandomuniformpercell" or
+                  injection_style == "ndiagpercell")) {
+        StringParseAbortMessage("Injection style", injection_style);
+    }
+
     // parse density information
     std::string rho_prof_s;
     pp.get("profile", rho_prof_s);
@@ -172,20 +187,6 @@ PlasmaInjector::PlasmaInjector(int ispecies, const std::string& name)
         mom_dist.reset(new GaussianRandomMomentumDistribution(ux_m, uy_m, uz_m, u_th));
     } else {
         StringParseAbortMessage("Momentum distribution type", mom_dist_s);
-    }
-
-    // get injection style
-    pp.get("injection_style", injection_style);
-    std::transform(injection_style.begin(), 
-                   injection_style.end(), 
-                   injection_style.begin(), 
-                   ::tolower);
-    if (injection_style == "nrandomnormal" or
-        injection_style == "nrandomuniformpercell" or
-        injection_style == "ndiagpercell") {
-        return;
-    } else {
-        StringParseAbortMessage("Injection style", injection_style);
     }
 }
 
