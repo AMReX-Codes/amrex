@@ -55,14 +55,8 @@ WarpX::Evolve (int numsteps)
 
 	    EvolveB(lev, 0.5*dt[lev]); // We now B^{n}
 
-	    if (WarpX::nox > 1 || WarpX::noy > 1 || WarpX::noz > 1) {
-	      (*Bfield[lev][0]).FillBoundary( geom[lev].periodicity() );
-	      (*Bfield[lev][1]).FillBoundary( geom[lev].periodicity() );
-	      (*Bfield[lev][2]).FillBoundary( geom[lev].periodicity() );
-	      (*Efield[lev][0]).FillBoundary( geom[lev].periodicity() );
-	      (*Efield[lev][1]).FillBoundary( geom[lev].periodicity() );
-	      (*Efield[lev][2]).FillBoundary( geom[lev].periodicity() );
-	    }
+        WarpX::FillBoundaryB( lev, false );
+        WarpX::FillBoundaryE( lev, false );
 
 	    // Evolve particles to p^{n+1/2} and x^{n+1}
 	    // Depose current, j^{n+1/2}
@@ -74,9 +68,7 @@ WarpX::Evolve (int numsteps)
 	    EvolveB(lev, 0.5*dt[lev]); // We now B^{n+1/2}
 
 	    // Fill B's ghost cells because of the next step of evolving E.
-	    (*Bfield[lev][0]).FillBoundary( geom[lev].periodicity() );
-	    (*Bfield[lev][1]).FillBoundary( geom[lev].periodicity() );
-	    (*Bfield[lev][2]).FillBoundary( geom[lev].periodicity() );
+        WarpX::FillBoundaryB( lev, false );
 
    	    if (cur_time + dt[0] >= stop_time - 1.e-6*dt[0] || step == numsteps_max-1) {
    	        // on last step, push by only 0.5*dt to synchronize all at n+1/2
@@ -227,7 +219,26 @@ WarpX::EvolveE (int lev, Real dt)
 	    dtsdx_c2, dtsdx_c2+1, dtsdx_c2+2,
 	    &norder);
     }
+}
 
+void
+WarpX::FillBoundaryE(int lev, bool force)
+{
+    if (force || WarpX::nox > 1 || WarpX::noy > 1 || WarpX::noz > 1) {
+        (*Efield[lev][0]).FillBoundary( geom[lev].periodicity() );
+        (*Efield[lev][1]).FillBoundary( geom[lev].periodicity() );
+        (*Efield[lev][2]).FillBoundary( geom[lev].periodicity() );
+    }
+}
+
+void
+WarpX::FillBoundaryB(int lev, bool force)
+{
+    if (force || WarpX::nox > 1 || WarpX::noy > 1 || WarpX::noz > 1) {
+        (*Bfield[lev][0]).FillBoundary( geom[lev].periodicity() );
+        (*Bfield[lev][1]).FillBoundary( geom[lev].periodicity() );
+        (*Bfield[lev][2]).FillBoundary( geom[lev].periodicity() );
+    }
 }
 
 void
