@@ -24,17 +24,17 @@ libc = ctypes.CDLL(find_library('c'))
 
 dim = libwarpx.warpx_SpaceDim()
 
-class Particle(ctypes.Structure):
-    _fields_ = [('x', ctypes.c_double),
-                ('y', ctypes.c_double),
-                ('z', ctypes.c_double),
-                ('id', ctypes.c_int),
-                ('cpu', ctypes.c_int)]
-
-
 # our particle data type
 p_struct = [(d, 'f8') for d in 'xyz'[:dim]] + [('id', 'i4'), ('cpu', 'i4')]
 p_dtype = np.dtype(p_struct, align=True)
+
+numpy_to_ctypes = {}
+numpy_to_ctypes['f8'] = ctypes.c_double
+numpy_to_ctypes['i4'] = ctypes.c_int
+
+class Particle(ctypes.Structure):
+    _fields_ = [(v[0], numpy_to_ctypes[v[1]]) for v in p_struct]
+
 
 # some useful typenames
 LP_particle_p = ctypes.POINTER(ctypes.POINTER(Particle))
