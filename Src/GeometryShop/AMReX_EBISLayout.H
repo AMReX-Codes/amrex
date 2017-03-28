@@ -26,8 +26,6 @@
 namespace amrex
 {
 
-  extern void null_deleter_fab_ebg(FabArray<EBGraph>* a_ptr);
-
   class EBIndexSpace;
   class EBISLayout;
 ///
@@ -122,6 +120,10 @@ namespace amrex
 
     bool isDefined() const {return m_defined;}
 
+    shared_ptr<FabArray<EBGraph> > getAllGraphs() const
+      {
+        return m_ebGraph;
+      } 
   private:
     ///
     Box m_domain;
@@ -146,8 +148,8 @@ namespace amrex
 
 
     ///
-    FabArray<EBGraph> m_ebGraph;
-    FabArray<EBData > m_ebData;
+    shared_ptr<FabArray<EBGraph> > m_ebGraph;
+    shared_ptr<FabArray<EBData > > m_ebData;
 
     bool m_defined;
 
@@ -275,6 +277,10 @@ namespace amrex
         return m_implem->isDefined();
       }
 
+     shared_ptr<FabArray<EBGraph> > getAllGraphs() const
+      {
+        return m_implem->getAllGraphs();
+      }
   private:
     ///
     std::shared_ptr<EBISLayoutImplem> m_implem;
