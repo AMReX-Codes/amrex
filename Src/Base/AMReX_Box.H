@@ -566,8 +566,8 @@ public:
   bool coarsenable(int refrat) const
     {
       Box testBox = *this;
-      testBox.refine (refrat);
       testBox.coarsen(refrat);
+      testBox.refine (refrat);
       return (*this == testBox);
     }
 

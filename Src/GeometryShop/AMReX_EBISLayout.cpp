@@ -33,20 +33,20 @@ namespace amrex
     m_coarLevels.resize(0);
     m_maxCoarseningRatio = 2;
     m_maxRefinementRatio = 1;//ug--face refinement means you have to have to do this once.
+    int dstGhost = a_nghost;
+    int srcGhost = 0;
       
       
     DistributionMapping dm(a_grids);
     m_ebGraph = shared_ptr<FabArray<EBGraph> >(new FabArray<EBGraph>(a_grids, dm, 1, m_nghost));
-      
+    m_ebGraph->copy(a_graph, 0, 0, 1, srcGhost, dstGhost);
+    m_ebGraph->FillBoundary();
+
     EBDataFactory ebdatafact(m_ebGraph);
     m_ebData  = shared_ptr<FabArray<EBData > >(new FabArray<EBData>(a_grids, dm, 1, m_nghost, MFInfo(), ebdatafact));
       
-    int dstGhost = a_nghost;
-    int srcGhost = 0;
       
-    m_ebGraph->copy(a_graph, 0, 0, 1, srcGhost, dstGhost);
     m_ebData ->copy(a_data , 0, 0, 1, srcGhost, dstGhost);
-    m_ebGraph->FillBoundary();
     m_ebData ->FillBoundary();
       
     m_defined = true;
