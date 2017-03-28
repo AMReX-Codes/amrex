@@ -39,11 +39,10 @@ def set_initial_conditions():
     uz = 0.0
 
     weight = n_e * dx * dy * dz / num_particles_per_cell
-    gamma = 1.0 / np.sqrt(1.0 - ux**2 - uy**2 - uz**2)
     c = 299792458.0
-    ux *= gamma*c
-    uy *= gamma*c
-    uz *= gamma*c
+    ux *= c
+    uy *= c
+    uz *= c
 
     # --- This creates particles only the left half of the domain
     Z, Y, X, P = np.mgrid[0:64, 0:64, 0:32, 0:num_particles_per_cell]
