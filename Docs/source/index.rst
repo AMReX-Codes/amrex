@@ -9,7 +9,10 @@ Welcome to WarpX's documentation!
 .. toctree::
    :maxdepth: 1
    :caption: Contents:
-
+ 
+   installation
+   wiki
+   examples
    cpp_class
    python_class
    theory/theory

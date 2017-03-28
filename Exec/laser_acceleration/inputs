@@ -31,17 +31,23 @@ algo.particle_pusher = 0
 # CFL
 warpx.cfl = 1.0
 particles.nspecies = 1
+particles.species_names = electrons
 
-lwfa.num_particles_per_cell = 4
+electrons.charge = -q_e
+electrons.mass = m_e
+electrons.injection_style = "NDiagPerCell"
 
-# The plasma
-lwfa.plasma_xmin = -20.e-6
-lwfa.plasma_xmax = 20.e-6
-lwfa.plasma_ymin = -20.e-6
-lwfa.plasma_ymax = 20.e-6
-lwfa.plasma_zmin = 0.e-6
-lwfa.plasma_zmax = 20.e-6
-lwfa.plasma_density = 1e23   # number of electrons per m^3
+electrons.xmin = -20.e-6
+electrons.xmax =  20.e-6
+electrons.ymin = -20.e-6
+electrons.ymax =  20.e-6
+electrons.zmin =   0.e-6
+
+electrons.num_particles_per_cell = 4
+electrons.profile = constant
+electrons.density = 1.e23  # number of electrons per m^3
+
+electrons.momentum_distribution_type = "constant"
 
 # Moving window
 warpx.do_moving_window = 1

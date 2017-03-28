@@ -176,15 +176,24 @@ is described in, e.g. \cite{VayCSD12,Vaycpc04}.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \input{Deposition/Current_deposition.tex}
 
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Field gather}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \input{Gather/Field_gather.tex}
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Mesh refinement}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\input{AMR/AMR.tex}
+
+%%%%%\input{Particle_pushers/Vay_pusher.tex}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Boundary conditions}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\input{PML/PML.tex}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Moving window and optimal Lorentz boosted frame}
+\section{Moving window and optimal Lorentz boosted frame}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 The simulations of plasma accelerators from first principles are extremely computationally intensive, due to the need to resolve the evolution of a driver (laser or particle beam) and an accelerated particle beam into a plasma structure that is orders of magnitude longer and wider than the accelerated beam. As is customary in the modeling of particle beam dynamics in standard particle accelerators, a moving window is commonly used to follow the driver, the wake and the accelerated beam. This results in huge savings, by avoiding the meshing of the entire plasma that is orders of magnitude longer than the other length scales of interest. 
 
@@ -214,7 +223,7 @@ comparison between explicit codes which include both forward and backward waves 
 \cite{Geddesjp08,Geddespac09,Cowanaac08}.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsubsection{Theoretical speedup dependency with the frame boost}
+\subsection{Theoretical speedup dependency with the frame boost}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 The derivation that is given here reproduces the one given in \cite{Vaypop2011}, where the obtainable speedup is derived as an extension of the formula that was derived earlier\cite{Vayprl07}, taking in addition into account the group velocity of the laser as it traverses the plasma.  
 

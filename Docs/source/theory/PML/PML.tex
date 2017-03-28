@@ -1,0 +1,222 @@
+\input{newcommands}
+
+\subsection{Open boundary condition for electromagnetic waves}
+
+For the TE case, the original Berenger's Perfectly Matched Layer (PML) writes
+
+% PML
+\begin{eqnarray}
+\varepsilon _{0}\frac{\partial E_{x}}{\partial t}+\sigma _{y}E_{x} = & \frac{\partial H_{z}}{\partial y}\label{PML_def_1} \\
+\varepsilon _{0}\frac{\partial E_{y}}{\partial t}+\sigma _{x}E_{y} = & -\frac{\partial H_{z}}{\partial x}\label{PML_def_2} \\
+\mu _{0}\frac{\partial H_{zx}}{\partial t}+\sigma ^{*}_{x}H_{zx} = & -\frac{\partial E_{y}}{\partial x}\label{PML_def_3} \\
+\mu _{0}\frac{\partial H_{zy}}{\partial t}+\sigma ^{*}_{y}H_{zy} = & \frac{\partial E_{x}}{\partial y}\label{PML_def_4} \\
+H_{z}  = & H_{zx}+H_{zy}\label{PML_def_5} 
+\end{eqnarray}
+
+This can be generalized to
+
+% APML
+\begin{eqnarray}
+\varepsilon _{0}\frac{\partial E_{x}}{\partial t}+\sigma _{y}E_{x} = & \frac{c_{y}}{c}\frac{\partial H_{z}}{\partial y}+\overline{\sigma }_{y}H_{z}\label{APML_def_1} \\
+\varepsilon _{0}\frac{\partial E_{y}}{\partial t}+\sigma _{x}E_{y} = & -\frac{c_{x}}{c}\frac{\partial H_{z}}{\partial x}+\overline{\sigma }_{x}H_{z}\label{APML_def_2} \\
+\mu _{0}\frac{\partial H_{zx}}{\partial t}+\sigma ^{*}_{x}H_{zx} = & -\frac{c^{*}_{x}}{c}\frac{\partial E_{y}}{\partial x}+\overline{\sigma }_{x}^{*}E_{y}\label{APML_def_3} \\
+\mu _{0}\frac{\partial H_{zy}}{\partial t}+\sigma ^{*}_{y}H_{zy} = & \frac{c^{*}_{y}}{c}\frac{\partial E_{x}}{\partial y}+\overline{\sigma }_{y}^{*}E_{x}\label{APML_def_4} \\
+H_{z} = & H_{zx}+H_{zy}\label{APML_def_5} 
+\end{eqnarray}
+
+For $c_{x}=c_{y}=c^{*}_{x}=c^{*}_{y}=c$ and $\overline{\sigma }_{x}=\overline{\sigma }_{y}=\overline{\sigma }_{x}^{*}=\overline{\sigma }_{y}^{*}=0$,
+this system reduces to the Berenger PML medium, while adding the additional
+constraint $\sigma _{x}=\sigma _{y}=\sigma _{x}^{*}=\sigma _{y}^{*}=0$
+leads to the system of Maxwell equations in vacuum.
+
+\subsubsection{\label{Sec:analytic theory, propa plane wave}Propagation of a Plane Wave in an APML Medium}
+
+We consider a plane wave of magnitude ($ E_{0},H_{zx0},H_{zy0} $)
+and pulsation $\omega$ propagating in the APML medium with an
+angle $\varphi$ relative to the x axis
+
+\begin{eqnarray}
+E_{x} = & -E_{0}\sin \varphi e^{i\omega \left( t-\alpha x-\beta y\right) }\label{Plane_wave_APML_def_1} \\
+E_{y} = & E_{0}\cos \varphi e^{i\omega \left( t-\alpha x-\beta y\right) }\label{Plane_wave_APML_def_2} \\
+H_{zx} = & H_{zx0}e^{i\omega \left( t-\alpha x-\beta y\right) }\label{Plane_wave_AMPL_def_3} \\
+H_{zy} = & H_{zy0}e^{i\omega \left( t-\alpha x-\beta y\right) }\label{Plane_wave_APML_def_4} 
+\end{eqnarray}
+
+
+where $\alpha$ and$\beta$ are two complex constants to
+be determined.
+
+Introducing (\ref{Plane_wave_APML_def_1}), (\ref{Plane_wave_APML_def_2}),
+(\ref{Plane_wave_AMPL_def_3}) and (\ref{Plane_wave_APML_def_4})
+into (\ref{APML_def_1}), (\ref{APML_def_2}), (\ref{APML_def_3})
+and (\ref{APML_def_4}) gives
+
+\begin{eqnarray}
+\varepsilon _{0}E_{0}\sin \varphi -i\frac{\sigma _{y}}{\omega }E_{0}\sin \varphi  = & \beta \frac{c_{y}}{c}\left( H_{zx0}+H_{zy0}\right) +i\frac{\overline{\sigma }_{y}}{\omega }\left( H_{zx0}+H_{zy0}\right) \label{Plane_wave_APML_1_1} \\
+\varepsilon _{0}E_{0}\cos \varphi -i\frac{\sigma _{x}}{\omega }E_{0}\cos \varphi  = & \alpha \frac{c_{x}}{c}\left( H_{zx0}+H_{zy0}\right) -i\frac{\overline{\sigma }_{x}}{\omega }\left( H_{zx0}+H_{zy0}\right) \label{Plane_wave_APML_1_2} \\
+\mu _{0}H_{zx0}-i\frac{\sigma ^{*}_{x}}{\omega }H_{zx0} = & \alpha \frac{c^{*}_{x}}{c}E_{0}\cos \varphi -i\frac{\overline{\sigma }^{*}_{x}}{\omega }E_{0}\cos \varphi \label{Plane_wave_APML_1_3} \\
+\mu _{0}H_{zy0}-i\frac{\sigma ^{*}_{y}}{\omega }H_{zy0} = & \beta \frac{c^{*}_{y}}{c}E_{0}\sin \varphi +i\frac{\overline{\sigma }^{*}_{y}}{\omega }E_{0}\sin \varphi \label{Plane_wave_APML_1_4} 
+\end{eqnarray}
+
+
+Defining $Z=E_{0}/\left( H_{zx0}+H_{zy0}\right)$ and using (\ref{Plane_wave_APML_1_1})
+and (\ref{Plane_wave_APML_1_2}), we get
+
+\begin{eqnarray}
+\beta  = & \left[ Z\left( \varepsilon _{0}-i\frac{\sigma _{y}}{\omega }\right) \sin \varphi -i\frac{\overline{\sigma }_{y}}{\omega }\right] \frac{c}{c_{y}}\label{Plane_wave_APML_beta_of_g} \\
+\alpha  = & \left[ Z\left( \varepsilon _{0}-i\frac{\sigma _{x}}{\omega }\right) \cos \varphi +i\frac{\overline{\sigma }_{x}}{\omega }\right] \frac{c}{c_{x}}\label{Plane_wave_APML_alpha_of_g} 
+\end{eqnarray}
+
+
+Adding $H_{zx0}$ and $H_{zy0}$ from (\ref{Plane_wave_APML_1_3})
+and (\ref{Plane_wave_APML_1_4}) and substituting the expressions
+for $\alpha$ and $\beta$ from (\ref{Plane_wave_APML_beta_of_g})
+and (\ref{Plane_wave_APML_alpha_of_g}) yields
+
+\begin{eqnarray}
+\frac{1}{Z} = & \frac{Z\left( \varepsilon _{0}-i\frac{\sigma _{x}}{\omega }\right) \cos \varphi \frac{c^{*}_{x}}{c_{x}}+i\frac{\overline{\sigma }_{x}}{\omega }\frac{c^{*}_{x}}{c_{x}}-i\frac{\overline{\sigma }^{*}_{x}}{\omega }}{\mu _{0}-i\frac{\sigma ^{*}_{x}}{\omega }}\cos \varphi \nonumber \\
+ + & \frac{Z\left( \varepsilon _{0}-i\frac{\sigma _{y}}{\omega }\right) \sin \varphi \frac{c^{*}_{y}}{c_{y}}-i\frac{\overline{\sigma }_{y}}{\omega }\frac{c^{*}_{y}}{c_{y}}+i\frac{\overline{\sigma }^{*}_{y}}{\omega }}{\mu _{0}-i\frac{\sigma ^{*}_{y}}{\omega }}\sin \varphi 
+\end{eqnarray}
+
+
+If $c_{x}=c^{*}_{x}$, $c_{y}=c^{*}_{y}$, $\overline{\sigma }_{x}=\overline{\sigma }^{*}_{x}$, $\overline{\sigma }_{y}=\overline{\sigma }^{*}_{y}$, $\frac{\sigma _{x}}{\varepsilon _{0}}=\frac{\sigma ^{*}_{x}}{\mu _{0}}$ and $\frac{\sigma _{y}}{\varepsilon _{0}}=\frac{\sigma ^{*}_{y}}{\mu _{0}}$ then
+
+\begin{eqnarray}
+Z = & \pm \sqrt{\frac{\mu _{0}}{\varepsilon _{0}}}\label{APML_impedance} 
+\end{eqnarray}
+
+
+which is the impedance of vacuum. Hence, like the PML, given some
+restrictions on the parameters, the APML does not generate any reflection
+at any angle and any frequency. As for the PML, this property is not
+retained after discretization, as shown subsequently in this paper.
+
+Calling $\psi$ any component of the field and $\psi _{0}$
+its magnitude, we get from (\ref{Plane_wave_APML_def_1}), (\ref{Plane_wave_APML_beta_of_g}),
+(\ref{Plane_wave_APML_alpha_of_g}) and (\ref{APML_impedance}) that 
+
+\begin{equation}
+\label{Plane_wave_absorption}
+\psi =\psi _{0}e^{i\omega \left( t\mp x\cos \varphi /c_{x}\mp y\sin \varphi /c_{y}\right) }e^{-\left( \pm \frac{\sigma _{x}\cos \varphi }{\varepsilon _{0}c_{x}}+\overline{\sigma }_{x}\frac{c}{c_{x}}\right) x}e^{-\left( \pm \frac{\sigma _{y}\sin \varphi }{\varepsilon _{0}c_{y}}+\overline{\sigma }_{y}\frac{c}{c_{y}}\right) y}
+\end{equation}
+
+
+We assume that we have an APML layer of thickness $\delta$ (measured
+along $x$) and that $\sigma _{y}=\overline{\sigma }_{y}=0$
+and $c_{y}=c.$ Using (\ref{Plane_wave_absorption}), we determine
+that the coefficient of reflection given by this layer is 
+
+\begin{eqnarray}
+R_{APML}\left( \theta \right)  = & e^{-\left( \sigma _{x}\cos \varphi /\varepsilon _{0}c_{x}+\overline{\sigma }_{x}c/c_{x}\right) \delta }e^{-\left( \sigma _{x}\cos \varphi /\varepsilon _{0}c_{x}-\overline{\sigma }_{x}c/c_{x}\right) \delta }\nonumber \\
+ = & e^{-2\left( \sigma _{x}\cos \varphi /\varepsilon _{0}c_{x}\right) \delta }
+\end{eqnarray}
+
+
+which happens to be the same as the PML theoretical coefficient of
+reflection if we assume $c_{x}=c$. Hence, it follows that for
+the purpose of wave absorption, the term $\overline{\sigma }_{x}$
+seems to be of no interest. However, although this conclusion is true
+at the infinitesimal limit, it does not hold for the discretized counterpart.
+
+\subsubsection{Discretization}
+
+%
+\begin{subequations}
+\begin{align}
+\frac{E_x|^{n+1}_{j+1/2,k,l}-E_x|^{n}_{j+1/2,k,l}}{\Delta t} + \sigma_y \frac{E_x|^{n+1}_{j+1/2,k,l}+E_x|^{n}_{j+1/2,k,l}}{2} = & \frac{H_z|^{n+1/2}_{j+1/2,k+1/2,l}-H_z|^{n+1/2}_{j+1/2,k-1/2,l}}{\Delta y} \\
+%
+\frac{E_y|^{n+1}_{j,k+1/2,l}-E_y|^{n}_{j,k+1/2,l}}{\Delta t} + \sigma_x \frac{E_y|^{n+1}_{j,k+1/2,l}+E_y|^{n}_{j,k+1/2,l}}{2} = & - \frac{H_z|^{n+1/2}_{j+1/2,k+1/2,l}-H_z|^{n+1/2}_{j-1/2,k+1/2,l}}{\Delta x} \\
+%
+\frac{H_{zx}|^{n+3/2}_{j+1/2,k+1/2,l}-H_{zx}|^{n}_{j+1/2,k+1/2,l}}{\Delta t} + \sigma^*_x \frac{H_{zx}|^{n+3/2}_{j+1/2,k+1/2,l}+H_{zx}|^{n}_{j+1/2,k+1/2,l}}{2} = & - \frac{E_y|^{n+1}_{j+1,k+1/2,l}-E_y|^{n+1}_{j,k+1/2,l}}{\Delta x} \\
+%
+\frac{H_{zy}|^{n+3/2}_{j+1/2,k+1/2,l}-H_{zy}|^{n}_{j+1/2,k+1/2,l}}{\Delta t} + \sigma^*_y \frac{H_{zy}|^{n+3/2}_{j+1/2,k+1/2,l}+H_{zy}|^{n}_{j+1/2,k+1/2,l}}{2} = & \frac{E_x|^{n+1}_{j+1/2,k+1,l}-E_x|^{n+1}_{j+1/2,k,l}}{\Delta y} \\
+%
+H_z = & H_{zx}+H_{zy}
+\end{align}
+\end{subequations}
+
+%
+\begin{subequations}
+\begin{align}
+E_x|^{n+1}_{j+1/2,k,l} = & \left(\frac{1-\sigma_y \Delta t/2}{1+\sigma_y \Delta t/2}\right) E_x|^{n}_{j+1/2,k,l} + \frac{\Delta t/\Delta y}{1+\sigma_y \Delta t/2} \left(H_z|^{n+1/2}_{j+1/2,k+1/2,l}-H_z|^{n+1/2}_{j+1/2,k-1/2,l}\right) \\
+%
+E_y|^{n+1}_{j,k+1/2,l} = & \left(\frac{1-\sigma_x \Delta t/2}{1+\sigma_x \Delta t/2}\right) E_y|^{n}_{j,k+1/2,l} - \frac{\Delta t/\Delta x}{1+\sigma_x \Delta t/2} \left(H_z|^{n+1/2}_{j+1/2,k+1/2,l}-H_z|^{n+1/2}_{j-1/2,k+1/2,l}\right) \\
+%
+H_{zx}|^{n+3/2}_{j+1/2,k+1/2,l} = & \left(\frac{1-\sigma^*_x \Delta t/2}{1+\sigma^*_x \Delta t/2}\right) H_{zx}|^{n}_{j+1/2,k+1/2,l} - \frac{\Delta t/\Delta x}{1+\sigma^*_x \Delta t/2} \left(E_y|^{n+1}_{j+1,k+1/2,l}-E_y|^{n+1}_{j,k+1/2,l}\right) \\
+%
+H_{zy}|^{n+3/2}_{j+1/2,k+1/2,l} = & \left(\frac{1-\sigma^*_y \Delta t/2}{1+\sigma^*_y \Delta t/2}\right) H_{zy}|^{n}_{j+1/2,k+1/2,l} + \frac{\Delta t/\Delta y}{1+\sigma^*_y \Delta t/2} \left(E_x|^{n+1}_{j+1/2,k+1,l}-E_x|^{n+1}_{j+1/2,k,l}\right) \\
+%
+H_z = & H_{zx}+H_{zy}
+\end{align}
+\end{subequations}
+
+%
+\begin{subequations}
+\begin{align}
+E_x|^{n+1}_{j+1/2,k,l} = & e^{-\sigma_y\Delta t} E_x|^{n}_{j+1/2,k,l} + \frac{1-e^{-\sigma_y\Delta t}}{\sigma_y \Delta y} \left(H_z|^{n+1/2}_{j+1/2,k+1/2,l}-H_z|^{n+1/2}_{j+1/2,k-1/2,l}\right) \\
+%
+E_y|^{n+1}_{j,k+1/2,l} = & e^{-\sigma_x\Delta t} E_y|^{n}_{j,k+1/2,l} - \frac{1-e^{-\sigma_x\Delta t}}{\sigma_x \Delta x} \left(H_z|^{n+1/2}_{j+1/2,k+1/2,l}-H_z|^{n+1/2}_{j-1/2,k+1/2,l}\right) \\
+%
+H_{zx}|^{n+3/2}_{j+1/2,k+1/2,l} = & e^{-\sigma^*_x\Delta t} H_{zx}|^{n}_{j+1/2,k+1/2,l} - \frac{1-e^{-\sigma^*_x\Delta t}}{\sigma^*_x \Delta x} \left(E_y|^{n+1}_{j+1,k+1/2,l}-E_y|^{n+1}_{j,k+1/2,l}\right) \\
+%
+H_{zy}|^{n+3/2}_{j+1/2,k+1/2,l} = & e^{-\sigma^*_y\Delta t} H_{zy}|^{n}_{j+1/2,k+1/2,l} + \frac{1-e^{-\sigma^*_y\Delta t}}{\sigma^*_y \Delta y} \left(E_x|^{n+1}_{j+1/2,k+1,l}-E_x|^{n+1}_{j+1/2,k,l}\right) \\
+%
+H_z = & H_{zx}+H_{zy}
+\end{align}
+\end{subequations}
+
+
+%
+\begin{subequations}
+\begin{align}
+E_x|^{n+1}_{j+1/2,k,l} = & e^{-\sigma_y\Delta t} E_x|^{n}_{j+1/2,k,l} + \frac{1-e^{-\sigma_y\Delta t}}{\sigma_y \Delta y}\frac{c_y}{c} \left(H_z|^{n+1/2}_{j+1/2,k+1/2,l}-H_z|^{n+1/2}_{j+1/2,k-1/2,l}\right) \\
+%
+E_y|^{n+1}_{j,k+1/2,l} = & e^{-\sigma_x\Delta t} E_y|^{n}_{j,k+1/2,l} - \frac{1-e^{-\sigma_x\Delta t}}{\sigma_x \Delta x}\frac{c_x}{c} \left(H_z|^{n+1/2}_{j+1/2,k+1/2,l}-H_z|^{n+1/2}_{j-1/2,k+1/2,l}\right) \\
+%
+H_{zx}|^{n+3/2}_{j+1/2,k+1/2,l} = & e^{-\sigma^*_x\Delta t} H_{zx}|^{n}_{j+1/2,k+1/2,l} - \frac{1-e^{-\sigma^*_x\Delta t}}{\sigma^*_x \Delta x}\frac{c^*_x}{c} \left(E_y|^{n+1}_{j+1,k+1/2,l}-E_y|^{n+1}_{j,k+1/2,l}\right) \\
+%
+H_{zy}|^{n+3/2}_{j+1/2,k+1/2,l} = & e^{-\sigma^*_y\Delta t} H_{zy}|^{n}_{j+1/2,k+1/2,l} + \frac{1-e^{-\sigma^*_y\Delta t}}{\sigma^*_y \Delta y}\frac{c^*_y}{c} \left(E_x|^{n+1}_{j+1/2,k+1,l}-E_x|^{n+1}_{j+1/2,k,l}\right) \\
+%
+H_z = & H_{zx}+H_{zy}
+\end{align}
+\end{subequations}
+
+ %
+\begin{subequations}
+\begin{align}
+c_x = & c e^{-\sigma_x\Delta t} \frac{\sigma_x \Delta x}{1-e^{-\sigma_x\Delta t}} \\
+c_y = & c e^{-\sigma_y\Delta t} \frac{\sigma_y \Delta y}{1-e^{-\sigma_y\Delta t}} \\
+c^*_x = & c e^{-\sigma^*_x\Delta t} \frac{\sigma^*_x \Delta x}{1-e^{-\sigma^*_x\Delta t}} \\
+c^*_y = & c e^{-\sigma^*_y\Delta t} \frac{\sigma^*_y \Delta y}{1-e^{-\sigma^*_y\Delta t}} 
+\end{align}
+\end{subequations}
+
+%
+\begin{subequations}
+\begin{align}
+E_x|^{n+1}_{j+1/2,k,l} = & e^{-\sigma_y\Delta t} \left[ E_x|^{n}_{j+1/2,k,l} + \frac{\Delta t}{\Delta y} \left(H_z|^{n+1/2}_{j+1/2,k+1/2,l}-H_z|^{n+1/2}_{j+1/2,k-1/2,l}\right) \right] \\
+%
+E_y|^{n+1}_{j,k+1/2,l} = & e^{-\sigma_x\Delta t} \left[ E_y|^{n}_{j,k+1/2,l} - \frac{\Delta t}{\Delta x}  \left(H_z|^{n+1/2}_{j+1/2,k+1/2,l}-H_z|^{n+1/2}_{j-1/2,k+1/2,l}\right) \right] \\
+%
+H_{zx}|^{n+3/2}_{j+1/2,k+1/2,l} = & e^{-\sigma^*_x\Delta t} \left[ H_{zx}|^{n}_{j+1/2,k+1/2,l} - \frac{\Delta t}{\Delta x}  \left(E_y|^{n+1}_{j+1,k+1/2,l}-E_y|^{n+1}_{j,k+1/2,l}\right) \right] \\
+%
+H_{zy}|^{n+3/2}_{j+1/2,k+1/2,l} = & e^{-\sigma^*_y\Delta t} \left[ H_{zy}|^{n}_{j+1/2,k+1/2,l} + \frac{\Delta t}{\Delta y}  \left(E_x|^{n+1}_{j+1/2,k+1,l}-E_x|^{n+1}_{j+1/2,k,l}\right) \right] \\
+%
+H_z = & H_{zx}+H_{zy}
+\end{align}
+\end{subequations}
+
+%
+\begin{subequations}
+\begin{align}
+E_x|^{n+1}_{j+1/2,k,l} = & E_x|^{n}_{j+1/2,k,l} + \frac{\Delta t}{\Delta y} \left(H_z|^{n+1/2}_{j+1/2,k+1/2,l}-H_z|^{n+1/2}_{j+1/2,k-1/2,l}\right) \\
+%
+E_y|^{n+1}_{j,k+1/2,l} = & E_y|^{n}_{j,k+1/2,l} - \frac{\Delta t}{\Delta x} \left(H_z|^{n+1/2}_{j+1/2,k+1/2,l}-H_z|^{n+1/2}_{j-1/2,k+1/2,l}\right) \\
+%
+H_{zx}|^{n+3/2}_{j+1/2,k+1/2,l} = & H_{zx}|^{n}_{j+1/2,k+1/2,l} - \frac{\Delta t}{\Delta x} \left(E_y|^{n+1}_{j+1,k+1/2,l}-E_y|^{n+1}_{j,k+1/2,l}\right) \\
+%
+H_{zy}|^{n+3/2}_{j+1/2,k+1/2,l} = & H_{zy}|^{n}_{j+1/2,k+1/2,l} + \frac{\Delta t}{\Delta y} \left(E_x|^{n+1}_{j+1/2,k+1,l}-E_x|^{n+1}_{j+1/2,k,l}\right) \\
+%
+H_z = & H_{zx}+H_{zy}
+\end{align}
+\end{subequations}

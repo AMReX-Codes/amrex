@@ -66,49 +66,6 @@ WarpXParticleContainer::AddOneParticle (ParticleTileType& particle_tile,
 }
 
 void
-WarpXParticleContainer::AddParticles (int lev, const Box& part_box, Real weight, int ppc)
-{
-    const Geometry& geom = Geom(lev);    
-    const Real* dx  = geom.CellSize();
-
-    std::array<Real,PIdx::nattribs> attribs;
-    attribs.fill(0.0);
-    attribs[PIdx::w] = weight;
-
-    for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
-    {
-        const Box& tile_box     = mfi.tilebox();
-        const Box& intersectBox = tile_box & part_box;
-        if (intersectBox.ok())
-        {
-            RealBox real_box { intersectBox, dx, geom.ProbLo() };
-            
-            const int grid_id = mfi.index();
-            const int tile_id = mfi.LocalTileIndex();
-            
-            const IntVect& boxlo = tile_box.smallEnd();
-            for (IntVect iv = boxlo; iv <= tile_box.bigEnd(); tile_box.next(iv))
-            {
-                for (int i_part=0; i_part < ppc; i_part++)
-                {
-                    Real particle_shift = (0.5+i_part)/ppc;
-#if (BL_SPACEDIM == 3)
-                    Real x = real_box.lo(0) + (iv[0]-boxlo[0] + particle_shift)*dx[0];
-                    Real y = real_box.lo(1) + (iv[1]-boxlo[1] + particle_shift)*dx[1];
-                    Real z = real_box.lo(2) + (iv[2]-boxlo[2] + particle_shift)*dx[2];
-#elif (BL_SPACEDIM == 2)
-                    Real x = real_box.lo(0) + (iv[0]-boxlo[0] + particle_shift)*dx[0];
-                    Real y = 0.0;
-                    Real z = real_box.lo(1) + (iv[1]-boxlo[1] + particle_shift)*dx[1];
-#endif
-                    AddOneParticle(lev, grid_id, tile_id, x, y, z, attribs);
-                }
-            }
-        }
-    }
-}
-
-void
 WarpXParticleContainer::AddNParticles (int n, const Real* x, const Real* y, const Real* z,
 				       const Real* vx, const Real* vy, const Real* vz,
 				       int nattr, const Real* attr, int uniqueparticles)

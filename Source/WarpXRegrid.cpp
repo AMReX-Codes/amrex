@@ -217,7 +217,7 @@ WarpX::getCostCountDM (const Array<long>& cost, const BoxArray& ba)
 {
     DistributionMapping res;
     int nprocs = ParallelDescriptor::NProcs();
-    const int factor = 1.5; // A process can get up to 'factor' times of the average number of boxes.
+    const Real factor = 1.5; // A process can get up to 'factor' times of the average number of boxes.
     int nmax = (cost.size()+nprocs-1) / nprocs * factor;
     Real eff;
     res.KnapSackProcessorMap(cost, nprocs, &eff, true, nmax);

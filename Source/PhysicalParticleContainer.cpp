@@ -1,4 +1,5 @@
 #include <limits>
+#include <sstream>
 
 #include <ParticleContainer.H>
 #include <WarpX_f.H>
@@ -6,9 +7,16 @@
 
 using namespace amrex;
 
-PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core, int ispecies)
-    : WarpXParticleContainer(amr_core, ispecies)
+PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core, int ispecies,
+                                                      const std::string& name)
+    : WarpXParticleContainer(amr_core, ispecies),
+      species_name(name)
 {
+    plasma_injector.reset(new PlasmaInjector(species_id, species_name));
+}
+
+void PhysicalParticleContainer::InitData() {
+    AddParticles(0); // Note - only one level right now
 }
 
 void
@@ -19,6 +27,152 @@ PhysicalParticleContainer::AllocData ()
     reserveData();
     resizeData();
 }
+
+void
+PhysicalParticleContainer::AddNRandomUniformPerCell (int lev, Box part_box) {
+    BL_PROFILE("PhysicalParticleContainer::AddNRandomPerCell()");
+    
+    charge = plasma_injector->getCharge();
+    mass = plasma_injector->getMass();
+    
+    const Geometry& geom = Geom(lev);
+    const Real* dx  = geom.CellSize();
+
+    if (!part_box.ok()) part_box = geom.Domain();
+    
+    Real scale_fac;
+    int n_part_per_cell = plasma_injector->numParticlesPerCell();
+    
+#if BL_SPACEDIM==3
+    scale_fac = dx[0]*dx[1]*dx[2]/n_part_per_cell;
+#elif BL_SPACEDIM==2
+    scale_fac = dx[0]*dx[1]/n_part_per_cell;
+#endif
+    
+    std::array<Real,PIdx::nattribs> attribs;
+    attribs.fill(0.0);
+
+    // Initialize random generator for normal distribution
+    std::default_random_engine generator;
+    std::uniform_real_distribution<Real> position_distribution(0.0,1.0);
+    for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
+    {
+        const Box& tile_box = mfi.tilebox();
+        const Box& intersectBox = tile_box & part_box;
+        if (!intersectBox.ok()) continue;
+
+        RealBox tile_real_box { intersectBox, dx, geom.ProbLo() };
+
+        const int grid_id = mfi.index();
+        const int tile_id = mfi.LocalTileIndex();
+
+        const auto& boxlo = intersectBox.smallEnd();
+        for (IntVect iv = intersectBox.smallEnd(); iv <= intersectBox.bigEnd(); intersectBox.next(iv))
+        {
+            for (int i_part=0; i_part<n_part_per_cell;i_part++)
+            {
+                // Randomly generate the positions (uniformly inside each cell)
+                Real particle_shift_x = position_distribution(generator);
+                Real particle_shift_y = position_distribution(generator);
+                Real particle_shift_z = position_distribution(generator);
+
+#if (BL_SPACEDIM == 3)
+                Real x = tile_real_box.lo(0) + (iv[0]-boxlo[0] + particle_shift_x)*dx[0];
+                Real y = tile_real_box.lo(1) + (iv[1]-boxlo[1] + particle_shift_y)*dx[1];
+                Real z = tile_real_box.lo(2) + (iv[2]-boxlo[2] + particle_shift_z)*dx[2];
+#elif (BL_SPACEDIM == 2)
+                Real x = tile_real_box.lo(0) + (iv[0]-boxlo[0] + particle_shift_x)*dx[0];
+                Real y = 0.0;
+                Real z = tile_real_box.lo(1) + (iv[1]-boxlo[1] + particle_shift_z)*dx[1];
+#endif   
+
+                if (plasma_injector->insideBounds(x, y, z)) {
+                    Real weight;
+                    std::array<Real, 3> u;
+                    weight = plasma_injector->getDensity(x, y, z) * scale_fac;
+                    plasma_injector->getMomentum(u);
+                    attribs[PIdx::w ] = weight;
+                    attribs[PIdx::ux] = u[0];
+                    attribs[PIdx::uy] = u[1];
+                    attribs[PIdx::uz] = u[2];
+                    AddOneParticle(lev, grid_id, tile_id, x, y, z, attribs);
+                }
+            }
+        }
+    }
+}
+
+void
+PhysicalParticleContainer::AddNRandomNormal (int lev, Box part_box) {
+    BL_PROFILE("PhysicalParticleContainer::AddNRandomNormal()");
+    amrex::Abort("PhysicalParticleContainer::AddNRandomNormal() not implemented yet.");
+}
+
+void
+PhysicalParticleContainer::AddNDiagPerCell (int lev, Box part_box) {
+    BL_PROFILE("PhysicalParticleContainer::AddNDiagPerCell()");
+    
+    charge = plasma_injector->getCharge();
+    mass = plasma_injector->getMass();
+
+    const Geometry& geom = Geom(lev);
+    const Real* dx  = geom.CellSize();
+
+    if (!part_box.ok()) part_box = geom.Domain();
+
+    Real scale_fac;
+    int n_part_per_cell = plasma_injector->numParticlesPerCell();
+
+#if BL_SPACEDIM==3
+    scale_fac = dx[0]*dx[1]*dx[2]/n_part_per_cell;
+#elif BL_SPACEDIM==2
+    scale_fac = dx[0]*dx[1]/n_part_per_cell;
+#endif
+
+    std::array<Real,PIdx::nattribs> attribs;
+    attribs.fill(0.0);
+    for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi) {
+        const Box& tile_box = mfi.tilebox();
+        const Box& intersectBox = tile_box & part_box;
+        if (!intersectBox.ok()) continue;
+
+        RealBox tile_real_box { intersectBox, dx, geom.ProbLo() };
+        
+        const int grid_id = mfi.index();
+        const int tile_id = mfi.LocalTileIndex();
+
+        const auto& boxlo = intersectBox.smallEnd();
+        for (IntVect iv = intersectBox.smallEnd(); iv <= intersectBox.bigEnd(); intersectBox.next(iv))
+        {
+            for (int i_part=0; i_part<n_part_per_cell;i_part++)
+            {
+                Real particle_shift = (0.5+i_part)/n_part_per_cell;
+#if (BL_SPACEDIM == 3)
+                Real x = tile_real_box.lo(0) + (iv[0]-boxlo[0] + particle_shift)*dx[0];
+                Real y = tile_real_box.lo(1) + (iv[1]-boxlo[1] + particle_shift)*dx[1];
+                Real z = tile_real_box.lo(2) + (iv[2]-boxlo[2] + particle_shift)*dx[2];
+#elif (BL_SPACEDIM == 2)
+                Real x = tile_real_box.lo(0) + (iv[0]-boxlo[0] + particle_shift)*dx[0];
+                Real y = 0.0;
+                Real z = tile_real_box.lo(1) + (iv[1]-boxlo[1] + particle_shift)*dx[1];
+#endif
+
+                if (plasma_injector->insideBounds(x, y, z)) {
+                    Real weight;
+                    std::array<Real, 3> u;
+                    weight = plasma_injector->getDensity(x, y, z) * scale_fac;
+                    plasma_injector->getMomentum(u);
+                    attribs[PIdx::w ] = weight;
+                    attribs[PIdx::ux] = u[0];
+                    attribs[PIdx::uy] = u[1];
+                    attribs[PIdx::uz] = u[2];
+                    AddOneParticle(lev, grid_id, tile_id, x, y, z, attribs);
+                }
+            }
+        }
+    }
+}
+
 
 void
 PhysicalParticleContainer::FieldGather (int lev,
@@ -125,6 +279,17 @@ PhysicalParticleContainer::FieldGather (int lev,
 		                          &WarpX::field_gathering_algo);
         }
     }
+}
+
+void
+PhysicalParticleContainer::AddParticles (int lev, Box part_box)
+{
+    if (plasma_injector->injection_style == "ndiagpercell") 
+        AddNDiagPerCell(lev, part_box);
+    else if (plasma_injector->injection_style == "nrandomuniformpercell")
+        AddNRandomUniformPerCell(lev, part_box);
+    else if (plasma_injector->injection_style == "nrandomnormal") 
+        AddNRandomNormal(lev, part_box);
 }
 
 void
