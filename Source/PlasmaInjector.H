@@ -113,6 +113,12 @@ private:
     std::default_random_engine generator;
 };
 
+///
+/// PlasmaParticlePosition describes how particles are initialized
+/// into each cell box. Subclasses must define a
+/// getPositionUnitBox function that returns the position of
+/// particle number i_part in a unitary box.
+///
 class PlasmaParticlePosition{
 public:
   using vec3 = std::array<amrex::Real, 3>;
@@ -120,6 +126,10 @@ public:
   virtual void getPositionUnitBox(vec3& r, int i_part) = 0;
 };
 
+///
+/// Particles are initialized on the cell diagonal,
+/// with regular spacing.
+///
 class DiagonalPosition : public PlasmaParticlePosition{
 public:
   DiagonalPosition(int num_particles_per_cell);
@@ -131,6 +141,10 @@ private:
   int _num_particles_per_cell;
 };
 
+///
+/// Particles are initialized with a random uniform
+/// distribution inside each cell
+///
 class RandomPosition : public PlasmaParticlePosition{
 public:
     RandomPosition(int num_particles_per_cell);
@@ -145,6 +159,11 @@ private:
     std::default_random_engine generator;
 };
 
+///
+/// Particles are regularly distributed inside each cell. The user provides
+/// a 3d (resp. 2d) vector num_particles_per_cell_each_dim that contains
+/// the number of particles per cell along each dimension.
+///
 class RegularPosition : public PlasmaParticlePosition{
 public:
   RegularPosition(amrex::Array<int> num_particles_per_cell_each_dim);
