@@ -89,6 +89,10 @@ WarpX::Evolve (int numsteps)
 
 	cur_time += dt[0];
 
+        WarpX::FillBoundary(*Efield[lev][0], geom[lev], Ex_nodal_flag);
+        WarpX::FillBoundary(*Efield[lev][1], geom[lev], Ey_nodal_flag);
+        WarpX::FillBoundary(*Efield[lev][2], geom[lev], Ez_nodal_flag);
+
 	MoveWindow();
 
         amrex::Print()<< "STEP " << step+1 << " ends." << " TIME = " << cur_time 

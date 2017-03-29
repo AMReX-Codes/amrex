@@ -275,6 +275,24 @@ WarpX::shiftMF(MultiFab& mf, const Geometry& geom, int num_shift,
   MultiFab::Copy(tmpmf, mf, 0, 0, mf.nComp(), 0);
   tmpmf.FillBoundary(geom.periodicity());
 
+  Box domainBox = geom.Domain();
+  IntVect growVec = IntVect::TheUnitVector();
+  growVec[dir] = 0;
+  domainBox.grow(growVec);
+
+  Box adjBox;
+  if (num_shift > 0) {
+      adjBox = adjCellHi(domainBox, dir, num_shift);
+  } else {
+      adjBox = adjCellLo(domainBox, dir, -num_shift);
+  }
+
+  for (MFIter mfi(tmpmf); mfi.isValid(); ++mfi ) {
+    Box srcBox = mfi.fabbox();
+    srcBox &= adjBox;
+    tmpmf[mfi].setVal(0.0, srcBox, 0, tmpmf.nComp());
+  }
+
   const IndexType& dst_typ = mf.boxArray().ixType();
   const IndexType& src_typ = tmpmf.boxArray().ixType();
 
