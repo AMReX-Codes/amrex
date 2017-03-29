@@ -47,10 +47,10 @@ public:
 
 protected:
 
-    void AddNDiagPerCell (int lev, amrex::Box part_box = amrex::Box());
-    void AddNRandomUniformPerCell (int lev, amrex::Box part_box = amrex::Box());
-    void AddNRandomNormal (int lev, amrex::Box part_box = amrex::Box());
-    void AddNUniformPerCell (int lev, amrex::Box part_box = amrex::Box());
+    // void AddNDiagPerCell (int lev, amrex::Box part_box = amrex::Box());
+    // void AddNRandomUniformPerCell (int lev, amrex::Box part_box = amrex::Box());
+    // void AddNRandomNormal (int lev, amrex::Box part_box = amrex::Box());
+    // void AddNUniformPerCell (int lev, amrex::Box part_box = amrex::Box());
 
     std::string species_name;
     std::unique_ptr<PlasmaInjector> plasma_injector;
