@@ -28,6 +28,7 @@
 #include <AMReX_BoxDomain.H> 
 #include <AMReX_FabFactory.H>
 #include <AMReX_DistributionMapping.H>
+#include <AMReX_Geometry.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_Utility.H>
 #include <AMReX_ccse-mpi.H>
@@ -241,6 +242,12 @@ public:
     void setBndry (value_type val,
                    int        strt_comp,
                    int        ncomp);
+ 
+   //! Set all values outside the Geometry domain to val.
+    void setDomainBndry (value_type val, const Geometry& goem);
+
+    //! Set ncomp values outside the Geometry domain to val, starting at start_comp.
+    void setDomainBndry (value_type val, int strt_comp, int ncomp, const Geometry& goem);
     /**
     * \brief This function copies data from fa to this FabArray.  Each FAB
     * in fa is intersected with all FABs in this FabArray and a copy
@@ -1084,6 +1091,33 @@ FabArray<FAB>::setBndry (value_type val,
         for (MFIter fai(*this); fai.isValid(); ++fai)
         {
             get(fai).setComplement(val, fai.validbox(), strt_comp, ncomp);
+        }
+    }
+}
+
+template <class FAB>
+void
+FabArray<FAB>::setDomainBndry (value_type val, const Geometry& geom)
+{
+    setDomainBndry(val, 0, n_comp, geom);
+}
+
+template <class FAB>
+void
+FabArray<FAB>::setDomainBndry (value_type val,
+                               int        strt_comp,
+                               int        ncomp,
+                               const Geometry& geom)
+{
+    if (n_grow > 0)
+    {
+        const Box& domain_box = amrex::convert(geom.Domain(), boxArray().ixType());
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+        for (MFIter fai(*this); fai.isValid(); ++fai)
+        {
+            get(fai).setComplement(val, domain_box, strt_comp, ncomp);
         }
     }
 }
