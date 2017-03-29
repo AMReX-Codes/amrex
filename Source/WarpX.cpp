@@ -285,10 +285,21 @@ WarpX::shiftMF(MultiFab& mf, const Geometry& geom, int num_shift,
         adjBox = adjCellLo(domainBox, dir, -num_shift);
     }
     adjBox = amrex::convert(adjBox, IndexType(nodalflag));
+
+    if (nodalflag[dir]) {
+        if (num_shift > 0) {
+            adjBox.growLo(dir, -1);
+        } else {
+            adjBox.growHi(dir, -1);
+        }
+    }
+
     for (MFIter mfi(tmpmf); mfi.isValid(); ++mfi ) {
         Box srcBox = mfi.fabbox();
         srcBox &= adjBox;
-        tmpmf[mfi].setVal(0.0, srcBox, 0, tmpmf.nComp());
+        if (srcBox.ok()) {
+            tmpmf[mfi].setVal(0.0, srcBox, 0, tmpmf.nComp());
+        }
     }
 
     // create a shifted copy
