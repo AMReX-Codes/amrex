@@ -107,8 +107,6 @@ RandomPosition::RandomPosition(int num_particles_per_cell):
 {}
 
 void RandomPosition::getPositionUnitBox(vec3& r, int i_part){
-  // std::default_random_engine generator;
-  // std::uniform_real_distribution<Real> position_distribution(0.0,1.0);
   r[0] = position_distribution(generator);
   r[1] = position_distribution(generator);
   r[2] = position_distribution(generator);
@@ -121,13 +119,15 @@ RegularPosition::RegularPosition(amrex::Array<int> num_particles_per_cell_each_d
 void RegularPosition::getPositionUnitBox(vec3& r, int i_part){
   int nx = _num_particles_per_cell_each_dim[0];
   int ny = _num_particles_per_cell_each_dim[1];
+#if ( BL_SPACEDIM == 3 )
   int nz = _num_particles_per_cell_each_dim[2];
+#elif ( BL_SPACEDIM == 2 )
+  int nz = 1;
+#endif
 
   int ix_part = i_part/(ny * nz);
   int iy_part = (i_part % (ny * nz)) % ny;
   int iz_part = (i_part % (ny * nz)) / ny;
-
-  std::cout << ix_part << " " << iy_part << " " << iz_part << std::endl;
 
   r[0] = (0.5+ix_part)/nx;
   r[1] = (0.5+iy_part)/ny;
@@ -234,6 +234,9 @@ PlasmaInjector::PlasmaInjector(int ispecies, const std::string& name)
         part_pos.reset(new RandomPosition(num_particles_per_cell));
     } else if (part_pos_s == "nuniformpercell") {
         pp.getarr("num_particles_per_cell_each_dim", num_particles_per_cell_each_dim);
+#if ( BL_SPACEDIM == 2 )
+        num_particles_per_cell_each_dim[2] = 1;
+#endif
         part_pos.reset(new RegularPosition(num_particles_per_cell_each_dim));
         num_particles_per_cell = num_particles_per_cell_each_dim[0] *
                                  num_particles_per_cell_each_dim[1] *
