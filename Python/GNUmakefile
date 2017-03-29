@@ -1,4 +1,4 @@
-AMREX_HOME ?= ../../amrex
+gAMREX_HOME ?= ../../amrex
 PICSAR_HOME ?= ../../picsar
 
 DEBUG	= FALSE
@@ -19,4 +19,4 @@ EBASE     = main
 USE_PYTHON_MAIN = TRUE
 
 WARPX_HOME := ..
-include $(WARPX_HOME)/Exec/Make.WarpX
+include $(WARPX_HOME)/Source/Make.WarpX

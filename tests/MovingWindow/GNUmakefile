@@ -17,4 +17,4 @@ EBASE     = main
 USE_PYTHON_MAIN = FALSE
 
 WARPX_HOME := ../..
-include $(WARPX_HOME)/Exec/Make.WarpX
+include $(WARPX_HOME)/Source/Make.WarpX

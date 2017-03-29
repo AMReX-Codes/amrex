@@ -22,4 +22,4 @@ USE_PYTHON_MAIN = FALSE
 WarpxBinDir = Bin
 
 WARPX_HOME := .
-include $(WARPX_HOME)/Exec/Make.WarpX
+include $(WARPX_HOME)/Source/Make.WarpX

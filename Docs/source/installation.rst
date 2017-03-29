@@ -23,16 +23,17 @@ You should then switch to the branch ``development`` of AMReX
     git checkout development
     cd ..
 
-Compiling the Langmuir example
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Compiling the code
+~~~~~~~~~~~~~~~~~~
 
-``cd`` into the the directory ``warpx/Exec/Langmuir`` and type
+``cd`` into the directory ``warpx`` and type
 
 ::
 
     make -j 4
 
-(in order to compile the code in parallel on 4 cores).
+(in order to compile the code in parallel on 4 cores).  This will
+generate an executable file in the ``Bin`` directory.
 
 In order to clean a previously compiled version:
 

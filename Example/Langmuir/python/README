@@ -1,6 +1,10 @@
+#
+# This needs to be updated.
+#
+
 To run in Python mode, do the following steps:
 
-1. In the warpx/Exec/Langmuir directory, type:
+1. In the warpx directory, type:
 
    make -j4 USE_PYTHON_MAIN=TRUE
 
