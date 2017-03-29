@@ -83,9 +83,8 @@ int main(int argc, char* argv[])
     MultiFab alpha(ba, dm, ncomp, 0);
     Array<std::unique_ptr<MultiFab> > beta(BL_SPACEDIM);
     for (int i = 0; i < BL_SPACEDIM; ++i) {
-	MFInfo info;
-	info.SetNodal(IntVect::TheDimensionVector(i));
-	beta[i].reset(new MultiFab(ba, dm, ncomp, 0, info));
+        beta[i].reset(new MultiFab(amrex::convert(ba, IntVect::TheDimensionVector(i)),
+                                   dm, ncomp, 0));
     }
     setup_coeffs(alpha, amrex::GetArrOfPtrs(beta), geom);
 

@@ -395,9 +395,8 @@ FluxRegister::Reflux (MultiFab&       mf,
 	int idir = face.coordDir();
 	int islo = face.isLow();
 
-	MFInfo info;
-	info.SetNodal(IntVect::TheDimensionVector(idir));
-	MultiFab flux(mf.boxArray(), mf.DistributionMap(), ncomp, 0, info);
+        MultiFab flux(amrex::convert(mf.boxArray(), IntVect::TheDimensionVector(idir)),
+                      mf.DistributionMap(), ncomp, 0);
 	flux.setVal(0.0);
 
 	bndry[face].copyTo(flux, 0, scomp, 0, ncomp, geom.periodicity());
