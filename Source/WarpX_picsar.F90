@@ -6,6 +6,7 @@
 #elif (BL_SPACEDIM == 2)
 
 #define WRPX_PXR_GETEB_ENERGY_CONSERVING geteb2dxz_energy_conserving
+#define WRPX_PXR_CURRENT_DEPOSITION depose_jxjyjz_generic_2d
 
 #endif
 
@@ -239,30 +240,10 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
 
     ! Dimension 2
 #elif (BL_SPACEDIM==2)
-
-      IF ((nox.eq.1).and.(noz.eq.1)) THEN
-        CALL pxr_depose_jxjyjz_esirkepov2d_1_1(jx,jy,jz,np,xp,zp,uxp,uyp,uzp, &
-	     	gaminv,w,q,xmin,zmin,dt,dx,dz,nx,nz,nxguard,nzguard, &
-        	nox,noz,LVECT,.TRUE._c_long,.FALSE._c_long,.FALSE._c_long,&
-		.FALSE._c_long)
-      ELSE IF ((nox.eq.2).and.(noz.eq.2)) THEN
-        CALL pxr_depose_jxjyjz_esirkepov2d_2_2(jx,jy,jz,np,xp,zp,uxp,uyp,uzp, &
-	     	gaminv,w,q,xmin,zmin,dt,dx,dz,nx,nz,nxguard,nzguard, &
-        	nox,noz,LVECT,.TRUE._c_long,.FALSE._c_long,.FALSE._c_long,&
-		.FALSE._c_long)
-      ELSE IF ((nox.eq.3).and.(noz.eq.3)) THEN
-        CALL pxr_depose_jxjyjz_esirkepov2d_3_3(jx,jy,jz,np,xp,zp,uxp,uyp,uzp, &
-	     	gaminv,w,q,xmin,zmin,dt,dx,dz,nx,nz,nxguard,nzguard, &
-        	nox,noz,LVECT,.TRUE._c_long,.FALSE._c_long,.FALSE._c_long,&
-		.FALSE._c_long)
-      ELSE
-        CALL pxr_depose_jxjyjz_esirkepov2d_n(jx,jy,jz,np,xp,yp,zp,uxp,uyp,uzp,&
-	     gaminv,w,q,xmin,zmin,dt,dx,dz,nx,nz,nxguard,nzguard, &
-             nox,noz,.TRUE._c_long,.FALSE._c_long)
-      ENDIF
-
+    CALL WRPX_PXR_CURRENT_DEPOSITION(jx,jy,jz,np, &
+    xp,yp,zp,uxp,uyp,uzp,gaminv,w,q,xmin,zmin, &
+    dt,dx,dz,nx,nz,nxguard,nzguard,nox,noz,lvect)
 #endif
-
 
   end subroutine
 
@@ -336,7 +317,7 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
 !                       ex,ey,ez,q,m,dt*0.5_c_real)
       !! --- Set gamma of particles
 !       CALL pxr_set_gamma(np,uxp,uyp,uzp,gaminv)
-      
+
     END SELECT
 
     !!!! --- push particle species positions a time step
