@@ -280,17 +280,22 @@ WarpX::shiftMF(MultiFab& mf, const Geometry& geom, int num_shift,
     Box domainBox = geom.Domain();
     Box adjBox;
     if (num_shift > 0) {
-        adjBox = adjCellHi(domainBox, dir, num_shift);
+        adjBox = adjCellHi(domainBox, dir, ng);
     } else {
-        adjBox = adjCellLo(domainBox, dir, -num_shift);
+        adjBox = adjCellLo(domainBox, dir, ng);
     }
     adjBox = amrex::convert(adjBox, IndexType(nodalflag));
 
-    if (nodalflag[dir]) {
-        if (num_shift > 0) {
-            adjBox.growLo(dir, -1);
-        } else {
-            adjBox.growHi(dir, -1);
+    for (int idim = 0; idim < BL_SPACEDIM; ++idim) {
+        if (idim == dir and nodalflag[idim]) {
+            if (num_shift > 0) {
+                adjBox.growLo(idim, -1);
+            } else {
+                adjBox.growHi(idim, -1);
+            }
+        } else if (idim != dir) {
+            adjBox.growLo(idim, ng);
+            adjBox.growHi(idim, ng);
         }
     }
 
