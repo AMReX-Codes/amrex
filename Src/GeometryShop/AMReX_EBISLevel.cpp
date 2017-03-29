@@ -79,6 +79,7 @@ namespace amrex
     EBDataFactory ebdf(graphptr);
 
     m_data.define(m_grids  , dm, 1, 0, MFInfo(), ebdf);
+
     for (MFIter mfi(m_graph); mfi.isValid(); ++mfi)
     {
       Box valid  = mfi.validbox();
@@ -89,7 +90,7 @@ namespace amrex
       EBGraph& ebgraph = m_graph[mfi];
       EBData& ebdata   = m_data [mfi];
       GeometryService::InOut inout = a_geoserver.InsideOutside(ghostRegion, m_domain, m_origin, m_dx);
-
+      ebgraph.setDomain(m_domain);
       if (inout == GeometryService::Regular)
       {
         ebgraph.setToAllRegular();
