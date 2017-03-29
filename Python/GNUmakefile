@@ -1,4 +1,4 @@
-gAMREX_HOME ?= ../../amrex
+AMREX_HOME ?= ../../amrex
 PICSAR_HOME ?= ../../picsar
 
 DEBUG	= FALSE
