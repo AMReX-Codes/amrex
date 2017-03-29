@@ -181,6 +181,7 @@ namespace amrex
     {
       m_faceData[idir].copy(a_src.m_faceData[idir], a_srcbox, 0, a_dstbox, 0,  F_FACENUMBER);
     }
+    computeNormalsAndBoundaryAreas(m_graph, m_region);
     return *this;
   }
 /************************/
