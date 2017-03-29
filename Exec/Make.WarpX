@@ -17,6 +17,7 @@ ifeq ($(USE_PYTHON_MAIN),TRUE)
   FFLAGS   += -fPIC
   F90FLAGS += -fPIC
   USERSuffix = .Lib
+  DEFINES += -DWARPX_USE_PY
 endif
 
 -include Make.package
@@ -49,17 +50,9 @@ else
   SHARED_OPTION = -shared
 endif
 
-pyinstallswig: libwarpx.a warpxC.i classwrapper.i
-	@echo Making and installing python wrapper ...
-	# touch warpxC.i to force the rebuilding of the swig interface
-	touch warpxC.i
-	LDFLAGS="$(LDFLAGS) $(libraries)" CC=$(CXX) CXX=$(CXX) CFLAGS="$(CXXFLAGS) $(CPPFLAGS)" CXXFLAGS="$(CXXFLAGS) $(CPPFLAGS)" DEFINES="$(DEFINES)" python setup.py install --force
-	@echo SUCCESS
-
-pybuild: libwarpx.a warpxC.i classwrapper.i
-	@echo Making python wrapper ...
-	LDFLAGS="$(LDFLAGS) $(libraries)" CC=$(CXX) CXX=$(CXX) CFLAGS="$(CXXFLAGS) $(CPPFLAGS)" CXXFLAGS="$(CXXFLAGS) $(CPPFLAGS)" DEFINES="$(DEFINES)" python setup.py build
-	@echo SUCCESS
+install: libwarpx.so
+	mv libwarpx.so pywarpx
+	python setup.py install
 
 libwarpx.a: $(objForExecs)
 	@echo Making static library $@ ...
@@ -75,8 +68,8 @@ libwarpx.so: $(objForExecs)
 
 clean::
 	$(SILENT) $(RM) -rf build
-	$(SILENT) $(RM) libwarpx.a
-	$(SILENT) $(RM) libwarpx.so
+	$(SILENT) $(RM) -f libwarpx.a
+	$(SILENT) $(RM) -f libwarpx.so
 
 else
 

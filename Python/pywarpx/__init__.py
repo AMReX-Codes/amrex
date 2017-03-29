@@ -10,4 +10,6 @@ from .AMReX import AMReX
 
 from .timestepper import TimeStepper
 from .PGroup import PGroup
+from .PGroup import PGroups
 
+from ._libwarpx import add_particles

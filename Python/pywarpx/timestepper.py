@@ -2,73 +2,71 @@ import warp
 from warp import top
 from warp import w3d
 
-from . import WarpX
+from ._libwarpx import libwarpx
 
 class TimeStepper(object):
 
+    def step(self, nsteps=1):
+        for i in range(nsteps):
+            self.onestep()
 
     def onestep(self):
-        # --- A reference to the instance of the WarpX class
-        warpx = WarpX.warpx.warpx
-        mypc = warpx.GetPartContainer()
 
-        self.cur_time = warpx.gett_new(0)
-        self.istep = warpx.getistep(0)
+        self.cur_time = libwarpx.warpx_gett_new(0)
+        self.istep = libwarpx.warpx_getistep(0)
 
         #if mpi.rank == 0:
-        print "\nSTEP %d starts ..."%(self.istep + 1)
+        print("\nSTEP %d starts ..."%(self.istep + 1))
 
         #if (ParallelDescriptor::NProcs() > 1)
         #   if (okToRegrid(step)) RegridBaseLevel();
 
-        warpx.ComputeDt()
-        dt = warpx.getdt(0)
+        libwarpx.warpx_ComputeDt()
+        dt = libwarpx.warpx_getdt(0)
 
         # --- Advance level 0 by dt
         lev = 0
 
         # --- At the beginning, we have B^{n-1/2} and E^{n}.
         # --- Particles have p^{n-1/2} and x^{n}.
-        warpx.EvolveB(lev, 0.5*dt) # We now B^{n}
+        libwarpx.warpx_EvolveB(lev, 0.5*dt) # We now B^{n}
 
-        warpx.FillBoundaryE(lev, False)
-        warpx.FillBoundaryB(lev, False)
+        libwarpx.warpx_FillBoundaryE(lev, False)
+        libwarpx.warpx_FillBoundaryB(lev, False)
 
         # --- Evolve particles to p^{n+1/2} and x^{n+1}
         # --- Depose current, j^{n+1/2}
-        warpx.PushParticlesandDepose(lev, self.cur_time)
+        libwarpx.warpx_PushParticlesandDepose(lev, self.cur_time)
 
-        mypc.Redistribute() # Redistribute particles
+        libwarpx.mypc_Redistribute() # Redistribute particles
 
-        warpx.EvolveB(lev, 0.5*dt) # We now B^{n+1/2}
+        libwarpx.warpx_EvolveB(lev, 0.5*dt) # We now B^{n+1/2}
 
-        warpx.FillBoundaryB(lev, True)
+        libwarpx.warpx_FillBoundaryB(lev, True)
 
-        warpx.EvolveE(lev, dt) # We now have E^{n+1}
+        libwarpx.warpx_EvolveE(lev, dt) # We now have E^{n+1}
 
         self.istep += 1
 
         self.cur_time += dt
 
-        warpx.MoveWindow();
+        libwarpx.warpx_MoveWindow();
 
         #if mpi.rank == 0:
-        print "STEP %d ends. TIME = %e DT = %e"%(self.istep, self.cur_time, dt)
+        print("STEP %d ends. TIME = %e DT = %e"%(self.istep, self.cur_time, dt))
 
         # --- Sync up time
-        for i in range(warpx.finestLevel()+1):
-            warpx.sett_new(i, self.cur_time)
-            warpx.setistep(i, self.istep)
+        for i in range(libwarpx.warpx_finestLevel()+1):
+            libwarpx.warpx_sett_new(i, self.cur_time)
+            libwarpx.warpx_setistep(i, self.istep)
 
-        max_time_reached = ((self.cur_time >= warpx.stopTime() - 1.e-6*dt) or (self.istep >= warpx.maxStep()))
+        max_time_reached = ((self.cur_time >= libwarpx.warpx_stopTime() - 1.e-6*dt) or (self.istep >= libwarpx.warpx_maxStep()))
 
-        if warpx.plotInt() > 0 and (self.istep+1)%warpx.plotInt() == 0 or max_time_reached:
-            warpx.WritePlotFile()
+        if libwarpx.warpx_plotInt() > 0 and (self.istep+1)%libwarpx.warpx_plotInt() == 0 or max_time_reached:
+            libwarpx.warpx_WritePlotFile()
 
-        if warpx.checkInt() > 0 and (self.istep+1)%warpx.plotInt() == 0 or max_time_reached:
-            warpx.WriteCheckPointFile()
-
-
+        if libwarpx.warpx_checkInt() > 0 and (self.istep+1)%libwarpx.warpx_plotInt() == 0 or max_time_reached:
+            libwarpx.warpx_WriteCheckPointFile()
 
 
 
@@ -80,6 +78,8 @@ class TimeStepper(object):
 
 
 
+
+# --- This is not used
 class TimeStepperFromPICSAR(object):
 
     def __init__(self, package=None, solver=None, l_debug=False):
@@ -105,7 +105,7 @@ class TimeStepperFromPICSAR(object):
       for i in range(n):
           if(me == 0):
               if top.it%freq_print == 0:
-                  print 'it = %g time = %g'%(top.it, top.time)
+                  print('it = %g time = %g'%(top.it, top.time))
 
           l_first = (lallspecl or (i == 0))
           l_last = (lallspecl or (i == n-1))
@@ -242,7 +242,7 @@ class TimeStepperFromPICSAR(object):
 
     # --- The following methods use the standard Warp routines
     def fetcheb(self, js, pg=None):
-        if self.l_verbose:print me, 'enter fetcheb'
+        if self.l_verbose:print(me, 'enter fetcheb')
         if pg is None:
             pg = top.pgroup
         np = pg.nps[js]
@@ -263,7 +263,7 @@ class TimeStepperFromPICSAR(object):
         w3d.pgroupfsapi = None
 
     def push_velocity_full(self, js, pg=None):
-        if self.l_verbose:print me, 'enter push_velocity_full'
+        if self.l_verbose:print(me, 'enter push_velocity_full')
         if pg is None:
             pg = top.pgroup
         np = pg.nps[js]
@@ -293,10 +293,10 @@ class TimeStepperFromPICSAR(object):
           # --- update gamma
           self.set_gamma(js, pg)
 
-        if self.l_verbose:print me, 'exit push_velocity_first_part'
+        if self.l_verbose:print(me, 'exit push_velocity_first_part')
 
     def push_velocity_first_part(self, js, pg=None):
-        if self.l_verbose:print me, 'enter push_velocity_first_part'
+        if self.l_verbose:print(me, 'enter push_velocity_first_part')
         if pg is None:
             pg = top.pgroup
         np = pg.nps[js]
@@ -320,10 +320,10 @@ class TimeStepperFromPICSAR(object):
                        pg.bx[il:iu], pg.by[il:iu], pg.bz[il:iu],
                        pg.sq[js], pg.sm[js], 0.5*top.dt, top.ibpush)
 
-        if self.l_verbose:print me, 'exit push_velocity_first_part'
+        if self.l_verbose:print(me, 'exit push_velocity_first_part')
 
     def push_velocity_second_part(self, js, pg=None):
-        if self.l_verbose:print me, 'enter push_velocity_second_part'
+        if self.l_verbose:print(me, 'enter push_velocity_second_part')
         if pg is None:
             pg = top.pgroup
         np = pg.nps[js]
@@ -347,10 +347,10 @@ class TimeStepperFromPICSAR(object):
         # --- update gamma
         self.set_gamma(js, pg)
 
-        if self.l_verbose:print me, 'exit push_velocity_second_part'
+        if self.l_verbose:print(me, 'exit push_velocity_second_part')
 
     def set_gamma(self, js, pg=None):
-        if self.l_verbose:print me, 'enter set_gamma'
+        if self.l_verbose:print(me, 'enter set_gamma')
         if pg is None:
             pg = top.pgroup
         np = pg.nps[js]
@@ -360,10 +360,10 @@ class TimeStepperFromPICSAR(object):
         # --- update gamma
         warp.gammaadv(np, pg.gaminv[il:iu], pg.uxp[il:iu], pg.uyp[il:iu], pg.uzp[il:iu], top.gamadv, top.lrelativ)
 
-        if self.l_verbose:print me, 'exit set_gamma'
+        if self.l_verbose:print(me, 'exit set_gamma')
 
     def push_positions(self, js, pg=None):
-        if self.l_verbose:print me, 'enter push_positions'
+        if self.l_verbose:print(me, 'enter push_positions')
         if pg is None:
             pg = top.pgroup
         np = pg.nps[js]
@@ -374,7 +374,7 @@ class TimeStepperFromPICSAR(object):
                      pg.uxp[il:iu], pg.uyp[il:iu], pg.uzp[il:iu],
                      pg.gaminv[il:iu], top.dt)
 
-        if self.l_verbose:print me, 'exit push_positions'
+        if self.l_verbose:print(me, 'exit push_positions')
 
 
 

@@ -65,9 +65,9 @@ public:
 
     static bool use_laser;
 
-    amrex::MultiFab * getcurrent (int lev, int direction) {return current[lev][direction].get();}
-    amrex::MultiFab * getEfield (int lev, int direction) {return Efield[lev][direction].get();}
-    amrex::MultiFab * getBfield (int lev, int direction) {return Bfield[lev][direction].get();}
+    const amrex::MultiFab& getcurrent (int lev, int direction) {return *current[lev][direction];}
+    const amrex::MultiFab& getEfield (int lev, int direction) {return *Efield[lev][direction];}
+    const amrex::MultiFab& getBfield (int lev, int direction) {return *Bfield[lev][direction];}
 
     void ComputeDt ();
     void MoveWindow ();
