@@ -40,12 +40,10 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
         for (int i = 0; i < BL_SPACEDIM; i++)
         {
 	    int ng = umac[i].nGrow();
-	    
-	    MFInfo info;
-	    info.SetNodal(IntVect::TheDimensionVector(i));
-	    raii_umac[i].reset(new MultiFab(m_gdb->ParticleBoxArray(lev),
+	    raii_umac[i].reset(new MultiFab(amrex::convert(m_gdb->ParticleBoxArray(lev),
+                                                           IntVect::TheDimensionVector(i)),
 					    m_gdb->ParticleDistributionMap(lev),
-					    umac[i].nComp(), ng, info));
+					    umac[i].nComp(), ng));
 					    
 	    umac_pointer[i] = raii_umac[i].get();
 	    umac_pointer[i]->copy(umac[i],0,0,umac[i].nComp(),ng,ng);

@@ -95,13 +95,10 @@ namespace amrex {
 */
 
 //
-// nodal: nodal flag, 0: cell-center; 1: nodal
 // alloc: allocate memory or not
 //
 struct MFInfo {
-    IntVect nodal = IntVect::TheZeroVector();
     bool    alloc = true;
-    MFInfo& SetNodal(const IntVect& iv) { nodal = iv; return *this; }
     MFInfo& SetAlloc(bool a) { alloc = a; return *this; }
 };
 
@@ -859,18 +856,6 @@ FabArray<FAB>::define (const BoxArray&            bxs,
     n_comp = nvar;
 
     boxarray = bxs;
-
-    if (info.nodal != IntVect::TheZeroVector()) {
-	if (info.nodal == IntVect::TheUnitVector()) {
-	    boxarray.surroundingNodes();
-	} else {
-	    for (int i=0; i<BL_SPACEDIM; ++i) {
-		if (info.nodal[i]) {
-		    boxarray.surroundingNodes(i);
-		} 
-	    }
-	}
-    }
 
     BL_ASSERT(dm.ProcessorMap().size() == bxs.size());
     distributionMap = dm;
