@@ -793,8 +793,14 @@ class Suite(object):
 
         # make returns 0 if everything was good
         if rc == 0:
+            # Find location of executable
+            for root, dirnames, filenames in os.walk(self.source_build_dir):
+                if test.target in filenames:
+                    path_to_exe = os.path.join(root, test.target)
+                    break
+
             # Copy and rename executable to test dir
-            shutil.move("{}/{}".format(self.source_build_dir, test.target),
+            shutil.move("{}".format(path_to_exe),
                         "{}/{}/{}.ex".format(self.source_dir,test.buildDir,test.name))
         else:
           self.log.warn("build failed")
