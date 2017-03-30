@@ -1165,6 +1165,13 @@ BoxArray::uniqify ()
 	auto p = std::make_shared<BARef>(*m_ref);
 	std::swap(m_ref,p);
     }
+    if (m_crse_ratio != 1) {
+        for (auto& bx : m_ref->m_abox) {
+            bx.coarsen(m_crse_ratio);
+        }
+        m_crse_ratio = IntVect::TheUnitVector();
+        m_transformer->setCrseRatio(m_crse_ratio);
+    }
 }
 
 std::ostream&

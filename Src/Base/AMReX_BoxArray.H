@@ -350,8 +350,9 @@ public:
     Box get (int index) const { return operator[](index); }
 
     //! Return cell-centered box at element index of this BoxArray.
-    const Box& getCellCenteredBox (int index) const
-	{ return m_ref->m_abox[index]; }    
+    const Box& getCellCenteredBox (int index) const {
+        return amrex::coarsen(m_ref->m_abox[index],m_crse_ratio);
+    }
 
     /**
     * \brief Return true if Box is valid and they all have the same
