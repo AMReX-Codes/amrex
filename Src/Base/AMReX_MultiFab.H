@@ -12,38 +12,6 @@
 namespace amrex
 {
 
-    class MultiFabCopyDescriptor;
-
-    typedef FabArrayId MultiFabId;
-
-
-    void InterpAddBox (MultiFabCopyDescriptor& fabCopyDesc,
-		       BoxList*                returnUnfilledBoxes,
-		       Array<FillBoxId>&       returnedFillBoxIds,
-		       const Box&              subbox,
-		       MultiFabId              faid1,
-		       MultiFabId              faid2,
-		       Real                    t1,
-		       Real                    t2,
-		       Real                    t,
-		       int                     src_comp,
-		       int                     dest_comp,
-		       int                     num_comp,
-		       bool                    extrap);
-
-    void InterpFillFab (MultiFabCopyDescriptor& fabCopyDesc,
-			const Array<FillBoxId>& fillBoxIds,
-			MultiFabId              faid1,
-			MultiFabId              faid2,
-			FArrayBox&              dest,
-			Real                    t1,
-			Real                    t2,
-			Real                    t,
-			int                     src_comp,
-			int                     dest_comp,
-			int                     num_comp,
-			bool                    extrap);
-
 /**
  * \brief 
  * A collection (stored as an array) of FArrayBox objects. 
@@ -524,7 +492,7 @@ public:
     static void Finalize ();
 
     virtual void AddProcsToComp (int ioProcNumSCS, int ioProcNumAll,
-                                 int scsMyId, MPI_Comm scsComm);
+                                 int scsMyId, MPI_Comm scsComm) override;
 
 private:
     //
@@ -532,22 +500,6 @@ private:
     //
     typedef FabArrayBase::CopyComTagsContainer CopyComTagsContainer;
     typedef FabArrayBase::MapOfCopyComTagContainers MapOfCopyComTagContainers;
-};
-
-class MultiFabCopyDescriptor
-    :
-    public FabArrayCopyDescriptor<FArrayBox>
-{
-  public:
-
-    MultiFabCopyDescriptor ();
-
-    ~MultiFabCopyDescriptor ();
-
-    MultiFabCopyDescriptor (const MultiFabCopyDescriptor&) = delete;
-    MultiFabCopyDescriptor& operator= (const MultiFabCopyDescriptor&) = delete;
-
-    MultiFabId RegisterMultiFab (MultiFab* mf) { return RegisterFabArray(mf); }
 };
 
 }

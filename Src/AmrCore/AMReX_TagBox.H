@@ -168,7 +168,7 @@ public:
     void collate (std::vector<IntVect>& TheGlobalCollateSpace) const;
 
     virtual void AddProcsToComp (int ioProcNumSCS, int ioProcNumAll,
-                                 int scsMyId, MPI_Comm scsComm);
+                                 int scsMyId, MPI_Comm scsComm) override;
 };
 
 }
