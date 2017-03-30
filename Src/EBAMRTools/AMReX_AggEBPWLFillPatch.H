@@ -19,7 +19,6 @@
 #include "EBISLayout.H"
 #include "EBCellFAB.H"
 #include "Stencils.H"
-#include "PiecewiseLinearFillPatch.H"
 #include "AggStencil.H"
 #include "EBIndexSpace.H"
 #include "EBLevelGrid.H"
