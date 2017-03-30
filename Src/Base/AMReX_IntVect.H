@@ -97,6 +97,12 @@ public:
         return D_TERM(vect[0] == val, && vect[1] == val, && vect[2] == val);
     }
 
+    //! Returns true if any component is not equal to the argument val.
+    bool operator!= (int val) const
+    {
+        return D_TERM(vect[0] != val, || vect[1] != val, || vect[2] != val);
+    }
+
     //! Returns true if this is equivalent to rhs.
     bool operator== (const IntVect& rhs) const
     {
