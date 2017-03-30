@@ -335,12 +335,6 @@ public:
     //! Apply Box::shift(const IntVect &iv) to each Box in the BoxArray.
     BoxArray& shift (const IntVect &iv);
 
-    //! Apply Box::shiftHalf(int,int) to each Box in the BoxArray.
-    BoxArray& shiftHalf (int dir,
-                         int num_halfs);
-    //! Apply Box::shiftHalf(IntVect) to each Box in BoxArray.
-    BoxArray& shiftHalf (const IntVect &iv);
-
     //! Set element i in this BoxArray to Box ibox.
     void set (int        i,
               const Box& ibox);
