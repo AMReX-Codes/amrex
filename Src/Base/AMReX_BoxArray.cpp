@@ -22,8 +22,6 @@ long BARef::total_hash_bytes_hwm = 0L;
 bool    BARef::initialized = false;
 bool BoxArray::initialized = false;
 
-BoxArray::CBACache BoxArray::m_CoarseBoxArrayCache;
-
 namespace {
     const int bl_ignore_max = 100000;
 }
@@ -68,7 +66,6 @@ BARef::BARef (const BARef& rhs)
 
 BARef::~BARef ()
 {
-    clearCoarseBoxArrayCache(this->getRefID());
 #ifdef BL_MEM_PROFILING
     updateMemoryUsage_box(-1);
     updateMemoryUsage_hash(-1);
@@ -209,24 +206,27 @@ BoxArray::Initialize ()
 
 BoxArray::BoxArray ()
     :
-    m_transformer(new BATypeTransformer()),
+    m_transformer(new DefaultBATransformer()),
     m_typ(),
+    m_crse_ratio(IntVect::TheUnitVector()),
     m_simple(true),
     m_ref(std::make_shared<BARef>())
 {}
 
 BoxArray::BoxArray (const Box& bx)
     :
-    m_transformer(new BATypeTransformer(bx.ixType())),
+    m_transformer(new DefaultBATransformer(bx.ixType())),
     m_typ(bx.ixType()),
+    m_crse_ratio(IntVect::TheUnitVector()),
     m_simple(true),
     m_ref(std::make_shared<BARef>(amrex::enclosedCells(bx)))
 {}
 
 BoxArray::BoxArray (const BoxList& bl)
     :
-    m_transformer(new BATypeTransformer(bl.ixType())),
+    m_transformer(new DefaultBATransformer(bl.ixType())),
     m_typ(bl.ixType()),
+    m_crse_ratio(IntVect::TheUnitVector()),
     m_simple(true),
     m_ref(std::make_shared<BARef>(bl))
 {
@@ -235,8 +235,9 @@ BoxArray::BoxArray (const BoxList& bl)
 
 BoxArray::BoxArray (size_t n)
     :
-    m_transformer(new BATypeTransformer()),
+    m_transformer(new DefaultBATransformer()),
     m_typ(),
+    m_crse_ratio(IntVect::TheUnitVector()),
     m_simple(true),
     m_ref(std::make_shared<BARef>(n))
 {}
@@ -244,8 +245,9 @@ BoxArray::BoxArray (size_t n)
 BoxArray::BoxArray (const Box* bxvec,
                     int        nbox)
     :
-    m_transformer(new BATypeTransformer(bxvec->ixType())),
+    m_transformer(new DefaultBATransformer(bxvec->ixType())),
     m_typ(bxvec->ixType()),
+    m_crse_ratio(IntVect::TheUnitVector()),
     m_simple(true),
     m_ref(std::make_shared<BARef>(nbox))
 {
@@ -258,6 +260,7 @@ BoxArray::BoxArray (const BoxArray& rhs, const BATransformer& trans)
     :
     m_transformer(trans.clone()),
     m_typ(trans.ixType()),
+    m_crse_ratio(trans.crseRatio()),
     m_simple(trans.simple()),
     m_ref(rhs.m_ref)
 {}
@@ -266,6 +269,7 @@ BoxArray::BoxArray (const BoxArray& rhs)
     :
     m_transformer(rhs.m_transformer->clone()),
     m_typ(rhs.m_typ),
+    m_crse_ratio(rhs.m_crse_ratio),
     m_simple(rhs.m_simple),
     m_ref(rhs.m_ref)
 {}
@@ -274,6 +278,7 @@ BoxArray::BoxArray(BoxArray&& rhs) noexcept
     :
     m_transformer(std::move(rhs.m_transformer)),
     m_typ(rhs.m_typ),
+    m_crse_ratio(rhs.m_crse_ratio),
     m_simple(rhs.m_simple),
     m_ref(std::move(rhs.m_ref))
 {}
@@ -286,6 +291,7 @@ BoxArray::operator= (const BoxArray& rhs)
 {
     m_transformer.reset(rhs.m_transformer->clone());
     m_typ = rhs.m_typ;
+    m_crse_ratio = rhs.m_crse_ratio;
     m_simple = rhs.m_simple;
     m_ref = rhs.m_ref;
     return *this;
@@ -297,6 +303,7 @@ BoxArray::define (const Box& bx)
     clear();
     m_transformer->setIxType(bx.ixType());
     m_typ = bx.ixType();
+    m_crse_ratio = IntVect::TheUnitVector();
     m_simple = true;
     m_ref->define(amrex::enclosedCells(bx));
 }
@@ -306,6 +313,7 @@ BoxArray::define (const BoxList& bl)
 {
     clear();
     m_ref->define(bl);
+    m_crse_ratio = IntVect::TheUnitVector();
     m_simple = true;
     type_update();
 }
@@ -313,7 +321,7 @@ BoxArray::define (const BoxList& bl)
 void
 BoxArray::clear ()
 {
-    m_transformer.reset(new BATypeTransformer());
+    m_transformer.reset(new DefaultBATransformer());
     m_ref.reset(new BARef());
 }
 
@@ -382,6 +390,7 @@ BoxArray::readFrom (std::istream& is)
     BL_ASSERT(size() == 0);
     clear();
     m_simple = true;
+    m_crse_ratio = IntVect::TheUnitVector();
     m_ref->define(is);
     type_update();
 }
@@ -409,9 +418,16 @@ BoxArray::writeOn (std::ostream& os) const
 bool
 BoxArray::operator== (const BoxArray& rhs) const
 {
-    return m_transformer->equal(*rhs.m_transformer)
-        && m_typ == rhs.m_typ && m_simple == rhs.m_simple
-	&& (m_ref == rhs.m_ref || m_ref->m_abox == rhs.m_ref->m_abox);
+    if (m_simple && rhs.m_simple) {
+        return m_typ == rhs.m_typ && m_crse_ratio == rhs.m_crse_ratio &&
+            (m_ref == rhs.m_ref || m_ref->m_abox == rhs.m_ref->m_abox);
+    } else {
+        return m_simple == rhs.m_simple
+            && m_typ == rhs.m_typ
+            && m_crse_ratio == rhs.m_crse_ratio
+            && m_transformer->equal(*rhs.m_transformer)
+            && (m_ref == rhs.m_ref || m_ref->m_abox == rhs.m_ref->m_abox);
+    }
 }
 
 bool
@@ -423,7 +439,8 @@ BoxArray::operator!= (const BoxArray& rhs) const
 bool
 BoxArray::CellEqual (const BoxArray& rhs) const
 {
-    return m_ref == rhs.m_ref || m_ref->m_abox == rhs.m_ref->m_abox;
+    return m_crse_ratio == rhs.m_crse_ratio
+        && (m_ref == rhs.m_ref || m_ref->m_abox == rhs.m_ref->m_abox);
 }
 
 BoxArray&
@@ -478,36 +495,8 @@ BoxArray::coarsen (int refinement_ratio)
 BoxArray&
 BoxArray::coarsen (const IntVect& iv)
 {
-    // This makes sure (*this) is not the only copy
-    // so that the cache map won't change until tba is out of scope.
-    BoxArray tba = *this;      
-
-    ptrdiff_t key = getRefID();
-    CBAMap& cbamap = m_CoarseBoxArrayCache[key];
-
-    CBAMap::iterator it = cbamap.find(iv);
-    if (it != cbamap.end()) // found one
-    {
-	*this = *(it->second);
-	convert(tba.ixType());
-    }
-    else // build a new one
-    {
-	uniqify();
-
-	const int N = m_ref->m_abox.size();
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
-	for (int i = 0; i < N; i++) {
-	    BL_ASSERT(m_ref->m_abox[i].ok());
-	    m_ref->m_abox[i].coarsen(iv);
-	}
-
-	// insert a copy into cache
-	cbamap[iv] = new BoxArray(*this);
-    }
-
+    m_crse_ratio *= iv;
+    m_transformer->setCrseRatio(m_crse_ratio);
     return *this;
 }
 
@@ -1392,28 +1381,6 @@ readBoxArray (BoxArray&     ba,
 
         if (is.fail())
             amrex::Error("readBoxArray(BoxArray&,istream&,int) failed");
-    }
-}
-
-void clearCoarseBoxArrayCache (ptrdiff_t key)
-{
-    // Note that deleting a BoxArray may trigger a call to this function
-    // resulting in modifying the cache map.  Because of the recusion,
-    // we want to make sure the cache map is not modified while being modified.
-    BoxArray::CBACache::iterator oit = BoxArray::m_CoarseBoxArrayCache.find(key);
-    if (oit != BoxArray::m_CoarseBoxArrayCache.end()) {
-	std::vector<BoxArray*> tba;
-	for (BoxArray::CBAMap::const_iterator iit = oit->second.begin();
-	     iit != oit->second.end(); ++iit) 
-	{
-	    tba.push_back(iit->second);
-	}
-	BoxArray::m_CoarseBoxArrayCache.erase(oit);
-	for (std::vector<BoxArray*>::iterator it = tba.begin();
-	     it != tba.end(); ++it) 
-	{
-	    delete *it;
-	}
     }
 }
 

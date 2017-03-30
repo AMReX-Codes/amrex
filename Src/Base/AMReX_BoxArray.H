@@ -37,9 +37,6 @@ namespace amrex
     //! Read a BoxArray from a stream.  If b is true, read in a special way
     void readBoxArray (BoxArray& ba, std::istream& s, bool b);
 
-    //! delete entries in the coarseBoxArrayCache, which have key "key"
-    void clearCoarseBoxArrayCache (ptrdiff_t key);
-
     //! Create a 1D Array of cells from all boxes in a BoxArray 
     Array<int> SerializeBoxArray(const BoxArray &ba);
 
@@ -110,7 +107,10 @@ struct BATransformer
 
     virtual IndexType ixType () const = 0;
     virtual void setIxType (IndexType typ) = 0;
-    
+
+    virtual IntVect crseRatio () const = 0;
+    virtual void setCrseRatio (const IntVect& crse_ratio) = 0;
+
     virtual IntVect doiLo () const = 0; // doi: Domain of Influence
     virtual IntVect doiHi () const = 0; // doi: Domain of Influence
 
@@ -123,54 +123,65 @@ template <class T>
 struct BATBase
     : public BATransformer
 {
-    explicit BATBase (IndexType typ = IndexType())
-	: m_typ(typ) {}
+    explicit BATBase (IndexType typ = IndexType(),
+                      const IntVect& crse_ratio = IntVect::TheUnitVector())
+	: m_typ(typ), m_crse_ratio(crse_ratio) {}
     virtual ~BATBase () {}
 
-    virtual BATransformer* clone () const override {
+    virtual BATransformer* clone () const final {
 	return new T(dynamic_cast<const T&>(*this));
     }
 
-    virtual bool equal (const BATransformer& rhs) const override {
+    virtual bool equal (const BATransformer& rhs) const final {
 	const T* p = dynamic_cast<const T*>(&rhs);
 	return p && (*p) == (dynamic_cast<const T&>(*this));
     }
 
-    virtual IndexType ixType () const override {
+    virtual IndexType ixType () const final {
 	return m_typ;
     }
 
-    virtual void setIxType (IndexType typ) override {
+    virtual void setIxType (IndexType typ) final {
 	m_typ = typ;
+    }
+
+    virtual IntVect crseRatio () const final {
+        return m_crse_ratio;
+    }
+
+    virtual void setCrseRatio (const IntVect& crse_ratio) final {
+        m_crse_ratio = crse_ratio;
     }
 
     virtual bool simple () const override { return false; }
 
 protected:
     IndexType m_typ;
+    IntVect   m_crse_ratio;
 };
 
-struct BATypeTransformer
-    : public BATBase<BATypeTransformer>
+struct DefaultBATransformer final
+    : public BATBase<DefaultBATransformer>
 {
-    explicit BATypeTransformer (IndexType typ = IndexType())
-	: BATBase<BATypeTransformer>(typ) {}
+    explicit DefaultBATransformer (IndexType typ = IndexType(),
+                                const IntVect& crse_ratio = IntVect::TheUnitVector())
+	: BATBase<DefaultBATransformer>(typ, crse_ratio) {}
 
-    virtual ~BATypeTransformer () override {}
+    virtual ~DefaultBATransformer () final {}
 
-    virtual IntVect doiLo () const override 
+    virtual IntVect doiLo () const final
         { return IntVect::TheZeroVector(); }
 
-    virtual IntVect doiHi () const override 
+    virtual IntVect doiHi () const final
         { return m_typ.ixType(); }
 
-    virtual bool simple () const override { return true; }
+    virtual bool simple () const final { return true; }
 
-    virtual Box operator() (const Box& bx) const override
-        { return amrex::convert(bx, m_typ); }
+    virtual Box operator() (const Box& bx) const final
+        { return amrex::convert(amrex::coarsen(bx,m_crse_ratio), m_typ); }
 
-    bool operator== (const BATypeTransformer& rhs) const
-	{ return m_typ == rhs.m_typ; }
+    bool operator== (const DefaultBATransformer& rhs) const
+	{ return m_typ == rhs.m_typ and m_crse_ratio == rhs.m_crse_ratio; }
 };
 // \endcond
 
@@ -337,7 +348,7 @@ public:
     //! Return element index of this BoxArray.
     Box operator[] (int index) const {
         if (m_simple) {
-            return amrex::convert(m_ref->m_abox[index], m_typ);
+            return amrex::convert(amrex::coarsen(m_ref->m_abox[index],m_crse_ratio), m_typ);
         } else {
             return (*m_transformer)(m_ref->m_abox[index]); 
         }
@@ -419,11 +430,6 @@ public:
     static void RecvBoxArray(BoxArray &ba, int whichSidecar);
 #endif
 
-    using CBAMap   = std::map<IntVect, BoxArray*>;
-    using CBACache = std::map<ptrdiff_t, CBAMap>;
-
-    static CBACache m_CoarseBoxArrayCache;
-
     static void Initialize ();
     static bool initialized;
 
@@ -444,7 +450,8 @@ private:
 
     std::unique_ptr<BATransformer> m_transformer;
     IndexType m_typ;
-    bool m_simple;
+    IntVect   m_crse_ratio;
+    bool      m_simple;
 
     //! The data -- a reference-counted pointer to a Ref.
     std::shared_ptr<BARef> m_ref;    
