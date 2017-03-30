@@ -1,0 +1,23 @@
+#
+# This needs to be updated.
+#
+
+To run in Python mode, do the following steps:
+
+1. In the warpx directory, type:
+
+   make -j4 USE_PYTHON_MAIN=TRUE
+
+This should result in a library called libwarxp.so. 
+
+2. Copy the library into the warpx/Exec/Langmuir/python directory.
+
+This step can be streamlined in the future.
+
+3. Run the Langmuir.py script in warpx/Exec/Langmuir/python, like so:
+
+   python Langmuir.py inputs
+
+This script initializes the simulation and runs it for 10 steps. It also
+gets a numpy array of the particle positions and uses them to make a simple
+plot using matplotlib.

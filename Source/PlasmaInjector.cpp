@@ -3,6 +3,7 @@
 #include <sstream>
 
 #include <WarpXConst.H>
+// #include <AMReX_ParmParse.H> // mthevenet
 #include <AMReX.H>
 
 using namespace amrex;
@@ -89,6 +90,50 @@ void GaussianRandomMomentumDistribution::getMomentum(vec3& u) {
     u[2] = _uz_m + uz_th;
 }
 
+DiagonalPosition::DiagonalPosition(int num_particles_per_cell):
+  _num_particles_per_cell(num_particles_per_cell)
+{}
+
+void DiagonalPosition::getPositionUnitBox(vec3& r, int i_part){
+  Real particle_shift = (0.5+i_part)/_num_particles_per_cell;
+  r[0] = particle_shift;
+  r[1] = particle_shift;
+  r[2] = particle_shift;
+}
+
+RandomPosition::RandomPosition(int num_particles_per_cell):
+  _num_particles_per_cell(num_particles_per_cell),
+  position_distribution(0.0,1.0)
+{}
+
+void RandomPosition::getPositionUnitBox(vec3& r, int i_part){
+  r[0] = position_distribution(generator);
+  r[1] = position_distribution(generator);
+  r[2] = position_distribution(generator);
+}
+
+RegularPosition::RegularPosition(amrex::Array<int> num_particles_per_cell_each_dim):
+  _num_particles_per_cell_each_dim(num_particles_per_cell_each_dim)
+{}
+
+void RegularPosition::getPositionUnitBox(vec3& r, int i_part){
+  int nx = _num_particles_per_cell_each_dim[0];
+  int ny = _num_particles_per_cell_each_dim[1];
+#if ( BL_SPACEDIM == 3 )
+  int nz = _num_particles_per_cell_each_dim[2];
+#elif ( BL_SPACEDIM == 2 )
+  int nz = 1;
+#endif
+
+  int ix_part = i_part/(ny * nz);
+  int iy_part = (i_part % (ny * nz)) % ny;
+  int iz_part = (i_part % (ny * nz)) / ny;
+
+  r[0] = (0.5+ix_part)/nx;
+  r[1] = (0.5+iy_part)/ny;
+  r[2] = (0.5+iz_part)/nz;
+}
+
 PlasmaInjector::PlasmaInjector(int ispecies, const std::string& name)
     : species_id(ispecies), species_name(name)
 {
@@ -126,6 +171,34 @@ PlasmaInjector::PlasmaInjector(int ispecies, const std::string& name)
     pp.query("xmax", xmax);
     pp.query("ymax", ymax);
     pp.query("zmax", zmax);
+
+    // parse injection style
+    std::string part_pos_s;
+    pp.get("injection_style", part_pos_s);
+    std::transform(part_pos_s.begin(),
+                   part_pos_s.end(),
+                   part_pos_s.begin(),
+                   ::tolower);
+    if (part_pos_s == "python") {
+        return;
+    } else if (part_pos_s == "ndiagpercell") {
+        pp.query("num_particles_per_cell", num_particles_per_cell);
+        part_pos.reset(new DiagonalPosition(num_particles_per_cell));
+    } else if (part_pos_s == "nrandompercell") {
+        pp.query("num_particles_per_cell", num_particles_per_cell);
+        part_pos.reset(new RandomPosition(num_particles_per_cell));
+    } else if (part_pos_s == "nuniformpercell") {
+        pp.getarr("num_particles_per_cell_each_dim", num_particles_per_cell_each_dim);
+#if ( BL_SPACEDIM == 2 )
+        num_particles_per_cell_each_dim[2] = 1;
+#endif
+        part_pos.reset(new RegularPosition(num_particles_per_cell_each_dim));
+        num_particles_per_cell = num_particles_per_cell_each_dim[0] *
+                                 num_particles_per_cell_each_dim[1] *
+                                 num_particles_per_cell_each_dim[2];
+    } else {
+        StringParseAbortMessage("Injection style", part_pos_s);
+    }
 
     // parse density information
     std::string rho_prof_s;
@@ -172,24 +245,10 @@ PlasmaInjector::PlasmaInjector(int ispecies, const std::string& name)
     } else {
         StringParseAbortMessage("Momentum distribution type", mom_dist_s);
     }
+}
 
-    // get injection style
-    pp.get("injection_style", injection_style);
-    std::transform(injection_style.begin(),
-                   injection_style.end(),
-                   injection_style.begin(),
-                   ::tolower);
-    if (injection_style == "nrandomnormal" or
-        injection_style == "nrandomuniformpercell" or
-        injection_style == "nuniformpercell" or
-        injection_style == "ndiagpercell") {
-        return;
-    } else {
-        StringParseAbortMessage("Injection style", injection_style);
-    }
-
-    pp.get("num_particles_per_cell", num_particles_per_cell);
-
+void PlasmaInjector::getPositionUnitBox(vec3& r, int i_part) {
+  return part_pos->getPositionUnitBox(r, i_part);
 }
 
 void PlasmaInjector::getMomentum(vec3& u) {

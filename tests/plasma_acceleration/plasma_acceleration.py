@@ -85,9 +85,9 @@ def set_initial_conditions(ncells, domain_min, domain_max):
 
     lo, hi = get_parallel_indices(Np, comm.rank, comm.size)
 
-    warpxC.addNParticles(0, beam_xp[lo:hi], beam_yp[lo:hi], beam_zp[lo:hi],
-                         beam_uxp[lo:hi], beam_uyp[lo:hi], beam_uzp[lo:hi], 
-                         beam_wp[lo:hi], 1)
+    add_particles(0, beam_xp[lo:hi], beam_yp[lo:hi], beam_zp[lo:hi],
+                  beam_uxp[lo:hi], beam_uyp[lo:hi], beam_uzp[lo:hi], 
+                  beam_wp[lo:hi], 1)
 
     # now do the plasma species
     plasma_locs = np.logical_and(xp >= plasma_min[0], xp < plasma_max[0])
@@ -110,9 +110,9 @@ def set_initial_conditions(ncells, domain_min, domain_max):
 
     lo, hi = get_parallel_indices(Np, comm.rank, comm.size)
 
-    warpxC.addNParticles(1, plasma_xp[lo:hi], plasma_yp[lo:hi], plasma_zp[lo:hi],
-                         plasma_uxp[lo:hi], plasma_uyp[lo:hi], plasma_uzp[lo:hi], 
-                         plasma_wp[lo:hi], 1)
+    add_particles(1, plasma_xp[lo:hi], plasma_yp[lo:hi], plasma_zp[lo:hi],
+                  plasma_uxp[lo:hi], plasma_uyp[lo:hi], plasma_uzp[lo:hi], 
+                  plasma_wp[lo:hi], 1)
 
     comm.Barrier()
 
@@ -168,9 +168,9 @@ def inject_plasma(num_shift, direction):
 
     lo, hi = get_parallel_indices(Np, comm.rank, comm.size)
 
-    warpxC.addNParticles(1, xp[lo:hi], yp[lo:hi], zp[lo:hi],
-                         uxp[lo:hi], uyp[lo:hi], uzp[lo:hi], 
-                         wp[lo:hi], 1)
+    add_particles(1, xp[lo:hi], yp[lo:hi], zp[lo:hi],
+                  uxp[lo:hi], uyp[lo:hi], uzp[lo:hi], 
+                  wp[lo:hi], 1)
 
     comm.Barrier()
 

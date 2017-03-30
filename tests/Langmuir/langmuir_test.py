@@ -1,3 +1,4 @@
+import warp
 import numpy as np
 from pywarpx import *
 
@@ -114,9 +115,6 @@ geometry.prob_hi     = "%7.0e   %7.0e   %7.0e"%(xmax, ymax, zmax)
 # Verbosity
 warpx.verbose = 1
 
-particles.nspecies = 1
-particles.species_names = "electrons"
-
 # Algorithms
 algo.current_deposition = 3
 algo.charge_deposition = 0
@@ -126,6 +124,9 @@ algo.particle_pusher = 0
 # CFL
 warpx.cfl = 1.0
 
+particles.nspecies = 1
+particles.species_names = "electrons"
+
 # --- Initialize the simulation
 amrex = AMReX()
 amrex.init()
@@ -133,7 +134,17 @@ warpx.init()
 
 set_initial_conditions()
 
-warpx.evolve(max_step)
-warpx.finalize()
+#warpx.evolve(max_step)
+#warpx.finalize()
 
-amrex.finalize()
+#amrex.finalize()
+
+tt = TimeStepper()
+tt.step(2)
+
+pgs = PGroups()
+
+ss = warp.Species(type=warp.Electron, pgroups=pgs)
+warp.winon()
+ss.ppzx()
+
