@@ -260,10 +260,15 @@ BoxArray::BoxArray (const BoxArray& rhs, const BATransformer& trans)
     :
     m_transformer(trans.clone()),
     m_typ(trans.ixType()),
-    m_crse_ratio(trans.crseRatio()),
+    m_crse_ratio(rhs.m_crse_ratio * trans.crseRatio()),
     m_simple(trans.simple()),
     m_ref(rhs.m_ref)
-{}
+{
+    BL_ASSERT(rhs.m_typ.cellCentered());  // rhs must be cell-centered.
+    BL_ASSERT(rhs.m_simple);              // rhs must be simple!
+    // But it's OK to have non-unit crse ratio. In that case we need to update the transformer
+    m_transformer->setCrseRatio(m_crse_ratio);
+}
 
 BoxArray::BoxArray (const BoxArray& rhs)
     :
@@ -328,11 +333,7 @@ BoxArray::clear ()
 void
 BoxArray::resize (long len)
 {
-    if (m_ref.use_count()==1) {
-	clear_hash_bin();
-    } else {
-        uniqify();
-    }
+    uniqify();
     m_ref->resize(len);
 }
 
@@ -470,11 +471,8 @@ BoxArray::refine (int refinement_ratio)
 BoxArray&
 BoxArray::refine (const IntVect& iv)
 {
-    if (m_ref.use_count()==1) {
-	clear_hash_bin();
-    } else {
-        uniqify();
-    }
+    uniqify();
+
     const int N = m_ref->m_abox.size();
 #ifdef _OPENMP
 #pragma omp parallel for
@@ -503,51 +501,45 @@ BoxArray::coarsen (const IntVect& iv)
 BoxArray&
 BoxArray::growcoarsen (int n, const IntVect& iv)
 {
-    if (m_ref.use_count()==1) {
-	clear_hash_bin();
-    } else {
-        uniqify();
-    }
+    uniqify();
+
     const int N = m_ref->m_abox.size();
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-    for (int i = 0; i < N; i++)
+    for (int i = 0; i < N; i++) {
         m_ref->m_abox[i].grow(n).coarsen(iv);
+    }
     return *this;
 }
 
 BoxArray&
 BoxArray::grow (int n)
 {
-    if (m_ref.use_count()==1) {
-	clear_hash_bin();
-    } else {
-        uniqify();
-    }
+    uniqify();
+
     const int N = m_ref->m_abox.size();
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-    for (int i = 0; i < N; i++)
+    for (int i = 0; i < N; i++) {
         m_ref->m_abox[i].grow(n);
+    }
     return *this;
 }
 
 BoxArray&
 BoxArray::grow (const IntVect& iv)
 {
-    if (m_ref.use_count()==1) {
-	clear_hash_bin();
-    } else {
-        uniqify();
-    }
+    uniqify();
+
     const int N = m_ref->m_abox.size();
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-    for (int i = 0; i < N; i++)
+    for (int i = 0; i < N; i++) {
         m_ref->m_abox[i].grow(iv);
+    }
     return *this;
 }
 
@@ -555,11 +547,8 @@ BoxArray&
 BoxArray::grow (int dir,
                 int n_cell)
 {
-    if (m_ref.use_count()==1) {
-	clear_hash_bin();
-    } else {
-        uniqify();
-    }
+    uniqify();
+
     const int N = m_ref->m_abox.size();
 #ifdef _OPENMP
 #pragma omp parallel for
@@ -611,14 +600,19 @@ BoxArray::convert (Box (*fp)(const Box&))
 {
     BL_ASSERT(!(fp == 0));
 
-    if (m_ref.use_count()==1) {
-	clear_hash_bin();
-    } else {
-        uniqify();
-    }
     const int N = size();
-    for (int i = 0; i < N; ++i)
-	set(i,fp(get(i)));
+    if (N > 0) {
+        m_typ = fp(get(0)).ixType();
+        m_transformer->setIxType(m_typ);
+        uniqify();
+
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+        for (int i = 0; i < N; ++i) {
+            set(i,fp(get(i)));
+        }
+    }
     return *this;
 }
 
@@ -626,53 +620,39 @@ BoxArray&
 BoxArray::shift (int dir,
                  int nzones)
 {
-    if (m_ref.use_count()==1) {
-	clear_hash_bin();
-    } else {
-        uniqify();
-    }
+    uniqify();
+
     const int N = m_ref->m_abox.size();
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-    for (int i = 0; i < N; i++)
+    for (int i = 0; i < N; i++) {
         m_ref->m_abox[i].shift(dir, nzones);
+    }
     return *this;
 }
 
 BoxArray&
 BoxArray::shift (const IntVect& iv)
 {
-    if (m_ref.use_count()==1) {
-	clear_hash_bin();
-    } else {
-        uniqify();
-    }
+    uniqify();
+
     const int N = m_ref->m_abox.size();
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-    for (int i = 0; i < N; i++)
+    for (int i = 0; i < N; i++) {
         m_ref->m_abox[i].shift(iv);
+    }
     return *this;
 }
 
-void
+IndexType
 BoxArray::set (int        i,
                const Box& ibox)
 {
-    if (i == 0) {
-	m_transformer->setIxType(ibox.ixType());
-        m_typ = ibox.ixType();
-
-	if (m_ref.use_count()==1) {
-	    clear_hash_bin();
-	} else {
-	    uniqify();
-	}
-    }
-
     m_ref->m_abox[i] = amrex::enclosedCells(ibox);
+    return ibox.ixType();
 }
 
 Box
@@ -694,19 +674,16 @@ BoxArray::getCellCenteredBox (int index) const
 bool
 BoxArray::ok () const
 {
-    bool isok = true;
-
-    if (size() > 0)
+    if (const int N = size() > 0)
     {
-        if (size() == 1) isok = get(0).ok();
-
-        for (int i = 1, N = size(); i < N && isok; i++)
+        for (int i = 0; i < N; ++i)
         {
-	    isok = get(i).ok();
+            if(!get(i).ok()) {
+                return false;
+            }
         }
     }
-
-    return isok;
+    return true;
 }
 
 bool
@@ -720,8 +697,9 @@ BoxArray::isDisjoint () const
     for (int i = 0; i < N; ++i)
     {
 	intersections(get(i),isects);
-        if ( isects.size() > 1 )
+        if ( isects.size() > 1 ) {
             return false;
+        }
     }
 
     return true;
@@ -734,8 +712,9 @@ BoxArray::boxList () const
     const int N = size();
     if ( N > 0 ) {
 	newb.set(ixType());
-	for (int i = 0; i < N; ++i)
+	for (int i = 0; i < N; ++i) {
 	    newb.push_back(get(i));
+        }
     }
     return newb;
 }
@@ -1189,13 +1168,19 @@ BoxArray::getHashMap () const
 void
 BoxArray::uniqify ()
 {
-    if (m_ref.use_count() > 1) {
+    if (m_ref.use_count() == 1) {
+        clear_hash_bin();
+    } else {
 	auto p = std::make_shared<BARef>(*m_ref);
 	std::swap(m_ref,p);
     }
     if (m_crse_ratio != 1) {
-        for (auto& bx : m_ref->m_abox) {
-            bx.coarsen(m_crse_ratio);
+        const int N = m_ref->m_abox.size();
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+        for (int i = 0; i < N; i++) {
+            m_ref->m_abox[i].coarsen(m_crse_ratio);
         }
         m_crse_ratio = IntVect::TheUnitVector();
         m_transformer->setCrseRatio(m_crse_ratio);
@@ -1242,18 +1227,27 @@ complementIn (const Box&      b,
 
 BoxArray
 intersect (const BoxArray& ba,
-		   const Box&      b,
-		   int   ng)
+           const Box&      b,
+           int   ng)
 {
     std::vector< std::pair<int,Box> > isects;
 
     ba.intersections(b,isects,false,ng);
 
-    BoxArray r(isects.size());
+    const int N = isects.size();
 
-    for (int i = 0, N = isects.size(); i < N; i++)
-    {
-        r.set(i, isects[i].second);
+    BoxArray r(N);
+
+    if (N > 0) {
+        r.m_typ = b.ixType();
+        r.m_transformer->setIxType(r.m_typ);
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+        for (int i = 0; i < N; i++)
+        {
+            r.set(i, isects[i].second);
+        }
     }
 
     return r;
@@ -1261,7 +1255,7 @@ intersect (const BoxArray& ba,
 
 BoxArray
 intersect (const BoxArray& lhs,
-		   const BoxArray& rhs)
+           const BoxArray& rhs)
 {
     if (lhs.size() == 0 || rhs.size() == 0) return BoxArray();
     BoxList bl(lhs[0].ixType());
@@ -1357,8 +1351,8 @@ GetBndryCells (const BoxArray& ba,
 
 void
 readBoxArray (BoxArray&     ba,
-                      std::istream& is,
-                      bool          bReadSpecial)
+              std::istream& is,
+              bool          bReadSpecial)
 {
     if (bReadSpecial == false)
     {
@@ -1371,16 +1365,20 @@ readBoxArray (BoxArray&     ba,
         unsigned long in_hash; // will be ignored
         is.ignore(bl_ignore_max, '(') >> maxbox >> in_hash;
         ba.resize(maxbox);
+        IndexType t;
         for (int i = 0; i < maxbox; i++)
         {
             Box b;
             is >> b;
-            ba.set(i, b);
+            t = ba.set(i, b);
         }
+        ba.m_typ = t;
+        ba.m_transformer->setIxType(t);
         is.ignore(bl_ignore_max, ')');
 
-        if (is.fail())
+        if (is.fail()) {
             amrex::Error("readBoxArray(BoxArray&,istream&,int) failed");
+        }
     }
 }
 
@@ -1405,13 +1403,16 @@ BoxArray UnSerializeBoxArray(const Array<int> &serarray)
   int nIntsInBox(3 * BL_SPACEDIM);
   int nBoxes(serarray.size() / nIntsInBox);
   BoxArray ba(nBoxes);
+  IndexType t;
   for(int i(0); i < nBoxes; ++i) {
     Array<int> aiBox(nIntsInBox);
     for(int j(0); j < nIntsInBox; ++j) {
       aiBox[j] = serarray[i * nIntsInBox + j];
     }
-    ba.set(i, amrex::UnSerializeBox(aiBox));
+    t = ba.set(i, amrex::UnSerializeBox(aiBox));
   }
+  ba.m_typ = t;
+  ba.m_transformer->setIxType(t);
   return ba;
 }
 
