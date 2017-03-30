@@ -221,18 +221,19 @@ WarpX::ClearLevel (int lev)
 void
 WarpX::AllocLevelData (int lev, const BoxArray& new_grids, const DistributionMapping& new_dmap)
 {
-    // PICSAR assumes all fields are nodal plus one ghost cell.
-    MFInfo info;
-    info.SetNodal(IntVect::TheUnitVector());
+    // PICSAR assumes all fields are nodal plus ghost cells.
     const int ng = WarpX::nox;  // need to update this
 
     current[lev].resize(3);
     Efield [lev].resize(3);
     Bfield [lev].resize(3);
     for (int i = 0; i < 3; ++i) {
-	current[lev][i].reset(new MultiFab(new_grids,new_dmap,1,ng,info));
-	Efield [lev][i].reset(new MultiFab(new_grids,new_dmap,1,ng,info));
-	Bfield [lev][i].reset(new MultiFab(new_grids,new_dmap,1,ng,info));
+	current[lev][i].reset(new MultiFab(amrex::convert(new_grids, IntVect::TheUnitVector()),
+                                           new_dmap,1,ng));
+	Efield [lev][i].reset(new MultiFab(amrex::convert(new_grids, IntVect::TheUnitVector()),
+                                           new_dmap,1,ng));
+	Bfield [lev][i].reset(new MultiFab(amrex::convert(new_grids, IntVect::TheUnitVector()),
+                                           new_dmap,1,ng));
     }
 }
 

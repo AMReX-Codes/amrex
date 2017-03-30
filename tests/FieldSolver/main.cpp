@@ -45,17 +45,18 @@ int main(int argc, char* argv[])
 
 	DistributionMapping dmap {grids};
 
-	MFInfo info;
-	info.SetNodal(IntVect::TheUnitVector());
 	const int ng = nox;
 
 	Array<std::unique_ptr<MultiFab> > current(3);
 	Array<std::unique_ptr<MultiFab> > Efield(3);
 	Array<std::unique_ptr<MultiFab> > Bfield(3);
 	for (int i = 0; i < 3; ++i) {
-	    current[i].reset(new MultiFab(grids,dmap,1,ng,info));
-	    Efield [i].reset(new MultiFab(grids,dmap,1,ng,info));
-	    Bfield [i].reset(new MultiFab(grids,dmap,1,ng,info));
+	    current[i].reset(new MultiFab(amrex::convert(grids,IntVect::TheUnitVector()),
+                                          dmap,1,ng));
+	    Efield [i].reset(new MultiFab(amrex::convert(grids,IntVect::TheUnitVector()),
+                                          dmap,1,ng));
+	    Bfield [i].reset(new MultiFab(amrex::convert(grids,IntVect::TheUnitVector()),
+                                          dmap,1,ng));
 	}
 
 	for (MFIter mfi(*current[0]); mfi.isValid(); ++mfi)
