@@ -657,41 +657,6 @@ BoxArray::shift (const IntVect& iv)
     return *this;
 }
 
-BoxArray&
-BoxArray::shiftHalf (int dir,
-                     int num_halfs)
-{
-    if (m_ref.use_count()==1) {
-	clear_hash_bin();
-    } else {
-        uniqify();
-    }
-    const int N = m_ref->m_abox.size();
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
-    for (int i = 0; i < N; i++)
-        m_ref->m_abox[i].shiftHalf(dir, num_halfs);
-    return *this;
-}
-
-BoxArray&
-BoxArray::shiftHalf (const IntVect& iv)
-{
-    if (m_ref.use_count()==1) {
-	clear_hash_bin();
-    } else {
-        uniqify();
-    }
-    const int N = m_ref->m_abox.size();
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
-    for (int i = 0; i < N; i++)
-        m_ref->m_abox[i].shiftHalf(iv);
-    return *this;
-}
-
 void
 BoxArray::set (int        i,
                const Box& ibox)
