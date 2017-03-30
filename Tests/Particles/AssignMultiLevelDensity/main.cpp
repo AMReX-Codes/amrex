@@ -14,13 +14,14 @@ struct TestParams {
   int nz;
   int max_grid_size;
   int nppc;
+  int nlevs;
   bool verbose;
 };
 
 void test_assign_density(TestParams& parms)
 {
     
-    int nlevs = 2;
+    int nlevs = parms.nlevs;
     
     RealBox real_box;
     for (int n = 0; n < BL_SPACEDIM; n++) {
@@ -83,12 +84,15 @@ void test_assign_density(TestParams& parms)
 
     Array<std::unique_ptr<MultiFab> > partMF(nlevs);
     Array<std::unique_ptr<MultiFab> > density(nlevs);
+    Array<std::unique_ptr<MultiFab> > acceleration(nlevs);
     for (int lev = 0; lev < nlevs; lev++) {
         dmap[lev] = DistributionMapping{ba[lev]};
         partMF[lev].reset(new MultiFab(ba[lev], dmap[lev], 1, 2));
         partMF[lev]->setVal(0.0, 2);
         density[lev].reset(new MultiFab(ba[lev], dmap[lev], 1, 0));
         density[lev]->setVal(0.0);
+        acceleration[lev].reset(new MultiFab(ba[lev], dmap[lev], 3, 1));
+        acceleration[lev]->setVal(5.0, 1);
     }
 
     typedef ParticleContainer<1> MyParticleContainer;
@@ -102,24 +106,10 @@ void test_assign_density(TestParams& parms)
     //    myPC.InitRandom(num_particles, iseed, mass, serialize, fine_box);
     myPC.InitRandom(num_particles, iseed, mass, serialize);
 
-    std::vector<double> x_locs;
-    std::vector<double> attributes;
-
-    x_locs.push_back(0.25 - 0.25/128.0);
-    x_locs.push_back(0.50 + 5.5/256.0);
-    x_locs.push_back(0.50);
-    attributes.push_back(1.0);
-
-    //    myPC.addOneParticle(1, 0, x_locs, attributes);
-
-    x_locs[0] = 0.25;
-    x_locs[1] = 0.50;
-    x_locs[2] = 0.50;
-
-    //    myPC.addOneParticle(1, 0, x_locs, attributes);
-
     //myPC.AssignDensity(0, true, partMF, 0, 1, 1);
-    myPC.AssignDensityFort(0, partMF, 0, 1, 1);
+    myPC.AssignDensityFort(0, partMF, 0, 1, nlevs-1);
+
+    myPC.InterpolateFort(acceleration, 0, nlevs-1);
 
     for (int lev = 0; lev < nlevs; ++lev) {
         MultiFab::Copy(*density[lev], *partMF[lev], 0, 0, 1, 0);
@@ -161,6 +151,7 @@ int main(int argc, char* argv[])
   pp.get("ny", parms.ny);
   pp.get("nz", parms.nz);
   pp.get("max_grid_size", parms.max_grid_size);
+  pp.get("nlevs", parms.nlevs);
   pp.get("nppc", parms.nppc);
   if (parms.nppc < 1 && ParallelDescriptor::IOProcessor())
     amrex::Abort("Must specify at least one particle per cell");
@@ -173,6 +164,8 @@ int main(int argc, char* argv[])
     std::cout << "Number of particles per cell : ";
     std::cout << parms.nppc  << std::endl;
     std::cout << "Size of domain               : ";
+    std::cout << "Num levels: ";
+    std::cout << parms.nlevs << std::endl;
     std::cout << parms.nx << " " << parms.ny << " " << parms.nz << std::endl;
   }
   

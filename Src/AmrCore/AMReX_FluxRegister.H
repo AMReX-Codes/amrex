@@ -99,6 +99,26 @@ public:
                    Real            mult = -1.0,
                    FrOp            op = FluxRegister::COPY);
     //
+    //  Add coarse fluxes to the flux register.
+    //  This is different from CrseInit with FluxRegister::ADD.
+    //  This is used for cases in which the grids covered by fine do not have fluxes computed.
+    //
+    void CrseAdd (const MultiFab& mflx,
+                  const MultiFab& area,
+                  int             dir,
+                  int             srccomp,
+                  int             destcomp,
+                  int             numcomp,
+                  Real            mult,
+                  const Geometry& geom);
+    void CrseAdd (const MultiFab& mflx,
+                  int             dir,
+                  int             srccomp,
+                  int             destcomp,
+                  int             numcomp,
+                  Real            mult,
+                  const Geometry& geom);
+    //
     // Increment flux correction with fine data.
     //
     void FineAdd (const MultiFab& mflx,

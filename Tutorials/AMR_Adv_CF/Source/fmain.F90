@@ -1,21 +1,24 @@
 
 subroutine amrex_fmain () bind(c)
 
-  use amrex_module
-  use amrex_famrcore_module
+  use amrex_amr_module
+
   use my_amr_module
   use initdata_module
+  use evolve_module
 
   implicit none
 
-  call amrex_famrcore_init()
+  call amrex_amrcore_init()
 
   call my_amr_init()
 
   call initdata()
 
+  call evolve()
+
   call my_amr_finalize()
 
-  call amrex_famrcore_finalize()
+  call amrex_amrcore_finalize()
 
 end subroutine amrex_fmain

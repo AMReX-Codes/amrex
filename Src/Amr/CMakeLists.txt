@@ -55,6 +55,9 @@ set(local_source_files ${FPP_out_files} ${F77_source_files} ${F90_source_files} 
 set(local_header_files ${CXX_header_files} ${F77_header_files} ${FPP_header_files} ${F90_header_files})
 add_library(box_camr OBJECT ${local_source_files})
 
+add_dependencies(box_camr box_c)
+
+
 add_install_include_file(${local_header_files})
 
 if (BUILD_TESTS)

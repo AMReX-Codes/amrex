@@ -29,6 +29,7 @@ namespace amrex
     BoxArray intersect (const BoxArray& lhs, const BoxArray& rhs);
 
     BoxArray convert (const BoxArray& ba, IndexType typ);
+    BoxArray convert (const BoxArray& ba, const IntVect& typ);
 
     //! Find the ghost cells of a given BoxArray.
     BoxList GetBndryCells (const BoxArray& ba, int ngrow);

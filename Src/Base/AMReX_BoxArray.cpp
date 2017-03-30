@@ -1292,6 +1292,13 @@ convert (const BoxArray& ba, IndexType typ)
     return ba2.convert(typ);
 }
 
+BoxArray
+convert (const BoxArray& ba, const IntVect& typ)
+{
+    BoxArray ba2 = ba;
+    return ba2.convert(IndexType(typ));
+}
+
 BoxList
 GetBndryCells (const BoxArray& ba,
                        int             ngrow)
