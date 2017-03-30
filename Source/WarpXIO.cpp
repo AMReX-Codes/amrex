@@ -413,15 +413,15 @@ WarpX::WritePlotFile () const
             const BoxArray& ba = boxArray(lev);
             const DistributionMapping& dm = DistributionMap(lev);
 
-            MultiFab Ex(ba, dm, 1, 0, MFInfo().SetNodal(Ex_nodal_flag));
-            MultiFab Ey(ba, dm, 1, 0, MFInfo().SetNodal(Ey_nodal_flag));
-            MultiFab Ez(ba, dm, 1, 0, MFInfo().SetNodal(Ez_nodal_flag));
-            MultiFab Bx(ba, dm, 1, 0, MFInfo().SetNodal(Bx_nodal_flag));
-            MultiFab By(ba, dm, 1, 0, MFInfo().SetNodal(By_nodal_flag));
-            MultiFab Bz(ba, dm, 1, 0, MFInfo().SetNodal(Bz_nodal_flag));
-            MultiFab jx(ba, dm, 1, 0, MFInfo().SetNodal(jx_nodal_flag));
-            MultiFab jy(ba, dm, 1, 0, MFInfo().SetNodal(jy_nodal_flag));
-            MultiFab jz(ba, dm, 1, 0, MFInfo().SetNodal(jz_nodal_flag));
+            MultiFab Ex(amrex::convert(ba,Ex_nodal_flag), dm, 1, 0);
+            MultiFab Ey(amrex::convert(ba,Ey_nodal_flag), dm, 1, 0);
+            MultiFab Ez(amrex::convert(ba,Ez_nodal_flag), dm, 1, 0);
+            MultiFab Bx(amrex::convert(ba,Bx_nodal_flag), dm, 1, 0);
+            MultiFab By(amrex::convert(ba,By_nodal_flag), dm, 1, 0);
+            MultiFab Bz(amrex::convert(ba,Bz_nodal_flag), dm, 1, 0);
+            MultiFab jx(amrex::convert(ba,jx_nodal_flag), dm, 1, 0);
+            MultiFab jy(amrex::convert(ba,jy_nodal_flag), dm, 1, 0);
+            MultiFab jz(amrex::convert(ba,jz_nodal_flag), dm, 1, 0);
 
             WarpX::Copy(Ex, 0, 1, *Efield[lev][0], 0);
             WarpX::Copy(Ey, 0, 1, *Efield[lev][1], 0);

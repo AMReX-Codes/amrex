@@ -79,6 +79,7 @@ all: $(executable)
 	$(SILENT) $(RM) AMReX_buildInfo.cpp
 	@if [ ! -d $(WarpxBinDir) ]; then mkdir -p $(WarpxBinDir); fi
 	$(SILENT) mv -f $(executable) $(WarpxBinDir)/
+	@if [ -d $(executable).dSYM ]; then $(RM) -r $(WarpxBinDir)/$(executable).dSYM; mv -f $(executable).dSYM $(WarpxBinDir)/; fi
 	@echo SUCCESS
 
 else
