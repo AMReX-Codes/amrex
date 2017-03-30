@@ -303,8 +303,7 @@ public:
     * \brief Grow each Box in the BoxArray on the low and high end
     * by n_cell cells in idir direction.
     */
-    BoxArray& grow (int idir,
-                    int n_cell);
+    BoxArray& grow (int idir, int n_cell);
     /**
     * \brief Apply surroundingNodes(Box) to each Box in BoxArray.
     * See the documentation of Box for details.
@@ -329,30 +328,22 @@ public:
     BoxArray& convert (Box (*fp)(const Box&));
 
     //! Apply Box::shift(int,int) to each Box in the BoxArray.
-    BoxArray& shift (int dir,
-                     int nzones);
+    BoxArray& shift (int dir, int nzones);
 
     //! Apply Box::shift(const IntVect &iv) to each Box in the BoxArray.
     BoxArray& shift (const IntVect &iv);
 
     //! Set element i in this BoxArray to Box ibox.
-    void set (int        i,
-              const Box& ibox);
+    void set (int i, const Box& ibox);
 
     //! Return element index of this BoxArray.
-    Box operator[] (int index) const {
-        if (m_simple) {
-            return amrex::convert(amrex::coarsen(m_ref->m_abox[index],m_crse_ratio), m_typ);
-        } else {
-            return (*m_transformer)(m_ref->m_abox[index]); 
-        }
-    }
+    Box operator[] (int index) const;
+
+    //! Return element index of this BoxArray.
     Box get (int index) const { return operator[](index); }
 
     //! Return cell-centered box at element index of this BoxArray.
-    const Box& getCellCenteredBox (int index) const {
-        return amrex::coarsen(m_ref->m_abox[index],m_crse_ratio);
-    }
+    Box getCellCenteredBox (int index) const;
 
     /**
     * \brief Return true if Box is valid and they all have the same
@@ -437,11 +428,8 @@ private:
     //! Make ourselves unique.
     void uniqify ();
 
-    IntVect getDoiLo () const
-        { return m_simple ? IntVect::TheZeroVector() : m_transformer->doiLo(); }
-
-    IntVect getDoiHi () const
-        { return m_simple ?           m_typ.ixType() : m_transformer->doiHi(); }
+    IntVect getDoiLo () const;
+    IntVect getDoiHi () const;
 
     std::unique_ptr<BATransformer> m_transformer;
     IndexType m_typ;

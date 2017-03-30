@@ -675,6 +675,22 @@ BoxArray::set (int        i,
     m_ref->m_abox[i] = amrex::enclosedCells(ibox);
 }
 
+Box
+BoxArray::operator[] (int index) const
+{
+    if (m_simple) {
+        return amrex::convert(amrex::coarsen(m_ref->m_abox[index],m_crse_ratio), m_typ);
+    } else {
+        return (*m_transformer)(m_ref->m_abox[index]); 
+    }
+}
+
+Box
+BoxArray::getCellCenteredBox (int index) const
+{
+    return amrex::coarsen(m_ref->m_abox[index],m_crse_ratio);
+}
+
 bool
 BoxArray::ok () const
 {
@@ -1108,6 +1124,18 @@ BoxArray::type_update ()
 	    }
 	}
     }
+}
+
+IntVect
+BoxArray::getDoiLo () const
+{
+    return m_simple ? IntVect::TheZeroVector() : m_transformer->doiLo();
+}
+
+IntVect
+BoxArray::getDoiHi () const
+{
+    return m_simple ?           m_typ.ixType() : m_transformer->doiHi();
 }
 
 BARef::HashType&
