@@ -101,6 +101,9 @@ include(InstallManager)
 # Source files for all binaries and libraries found under src
 add_subdirectory(Src)
 
+# Source file for postprocess exes
+add_subdirectory(Tools/Postprocessing/F_Src) 
+
 # Make the exports only _after_ doing the build
 create_exports()
 
