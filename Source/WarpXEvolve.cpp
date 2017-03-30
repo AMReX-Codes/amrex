@@ -5,6 +5,7 @@
 #include <WarpX.H>
 #include <WarpXConst.H>
 #include <WarpX_f.H>
+#include <WarpX_py.H>
 
 using namespace amrex;
 
@@ -23,6 +24,10 @@ WarpX::Evolve (int numsteps)
 
     for (int step = istep[0]; step < numsteps_max && cur_time < stop_time; ++step)
     {
+        if (warpx_py_print_step) {
+            warpx_py_print_step(step);
+        }
+
 	// Start loop on time steps
         amrex::Print() << "\nSTEP " << step+1 << " starts ...\n";
 

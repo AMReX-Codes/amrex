@@ -172,6 +172,34 @@ PlasmaInjector::PlasmaInjector(int ispecies, const std::string& name)
     pp.query("ymax", ymax);
     pp.query("zmax", zmax);
 
+    // parse injection style
+    std::string part_pos_s;
+    pp.get("injection_style", part_pos_s);
+    std::transform(part_pos_s.begin(),
+                   part_pos_s.end(),
+                   part_pos_s.begin(),
+                   ::tolower);
+    if (part_pos_s == "python") {
+        return;
+    } else if (part_pos_s == "ndiagpercell") {
+        pp.query("num_particles_per_cell", num_particles_per_cell);
+        part_pos.reset(new DiagonalPosition(num_particles_per_cell));
+    } else if (part_pos_s == "nrandompercell") {
+        pp.query("num_particles_per_cell", num_particles_per_cell);
+        part_pos.reset(new RandomPosition(num_particles_per_cell));
+    } else if (part_pos_s == "nuniformpercell") {
+        pp.getarr("num_particles_per_cell_each_dim", num_particles_per_cell_each_dim);
+#if ( BL_SPACEDIM == 2 )
+        num_particles_per_cell_each_dim[2] = 1;
+#endif
+        part_pos.reset(new RegularPosition(num_particles_per_cell_each_dim));
+        num_particles_per_cell = num_particles_per_cell_each_dim[0] *
+                                 num_particles_per_cell_each_dim[1] *
+                                 num_particles_per_cell_each_dim[2];
+    } else {
+        StringParseAbortMessage("Injection style", part_pos_s);
+    }
+
     // parse density information
     std::string rho_prof_s;
     pp.get("profile", rho_prof_s);
@@ -217,32 +245,6 @@ PlasmaInjector::PlasmaInjector(int ispecies, const std::string& name)
         mom_dist.reset(new GaussianRandomMomentumDistribution(ux_m, uy_m, uz_m, u_th));
     } else {
         StringParseAbortMessage("Momentum distribution type", mom_dist_s);
-    }
-
-    // parse injection style
-    std::string part_pos_s;
-    pp.get("injection_style", part_pos_s);
-    std::transform(part_pos_s.begin(),
-                   part_pos_s.end(),
-                   part_pos_s.begin(),
-                   ::tolower);
-    if (part_pos_s == "ndiagpercell") {
-        pp.query("num_particles_per_cell", num_particles_per_cell);
-        part_pos.reset(new DiagonalPosition(num_particles_per_cell));
-    } else if (part_pos_s == "nrandompercell") {
-        pp.query("num_particles_per_cell", num_particles_per_cell);
-        part_pos.reset(new RandomPosition(num_particles_per_cell));
-    } else if (part_pos_s == "nuniformpercell") {
-        pp.getarr("num_particles_per_cell_each_dim", num_particles_per_cell_each_dim);
-#if ( BL_SPACEDIM == 2 )
-        num_particles_per_cell_each_dim[2] = 1;
-#endif
-        part_pos.reset(new RegularPosition(num_particles_per_cell_each_dim));
-        num_particles_per_cell = num_particles_per_cell_each_dim[0] *
-                                 num_particles_per_cell_each_dim[1] *
-                                 num_particles_per_cell_each_dim[2];
-    } else {
-        StringParseAbortMessage("Injection style", part_pos_s);
     }
 }
 

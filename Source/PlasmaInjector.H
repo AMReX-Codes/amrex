@@ -204,6 +204,8 @@ public:
     amrex::Real getCharge() {return charge;}
     amrex::Real getMass() {return mass;}
 
+    bool doInjection() { return part_pos != NULL;}
+
 protected:
 
     amrex::Real mass, charge;

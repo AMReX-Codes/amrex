@@ -1,3 +1,0 @@
-# Add problem specific stuff here.
-CEXE_sources += inject_particles.cpp
-

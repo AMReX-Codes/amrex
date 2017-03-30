@@ -65,9 +65,9 @@ public:
 
     static bool use_laser;
 
-    amrex::MultiFab * getcurrent (int lev, int direction) {return current[lev][direction].get();}
-    amrex::MultiFab * getEfield (int lev, int direction) {return Efield[lev][direction].get();}
-    amrex::MultiFab * getBfield (int lev, int direction) {return Bfield[lev][direction].get();}
+    const amrex::MultiFab& getcurrent (int lev, int direction) {return *current[lev][direction];}
+    const amrex::MultiFab& getEfield (int lev, int direction) {return *Efield[lev][direction];}
+    const amrex::MultiFab& getBfield (int lev, int direction) {return *Bfield[lev][direction];}
 
     void ComputeDt ();
     void MoveWindow ();
@@ -153,6 +153,7 @@ private:
 
     void WriteWarpXHeader(const std::string& name) const;
     void WriteJobInfo (const std::string& dir) const;
+//    static void WriteBuildInfo (std::ostream& os);
     static void PackPlotDataPtrs (amrex::Array<const amrex::MultiFab*>& pmf,
 				  const amrex::Array<std::unique_ptr<amrex::MultiFab> >& data);
     static void Copy (amrex::MultiFab& dstmf, int dcomp, int ncomp, const amrex::MultiFab& srcmf, int scomp);
