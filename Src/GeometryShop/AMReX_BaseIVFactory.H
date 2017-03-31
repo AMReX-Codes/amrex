@@ -17,6 +17,7 @@
 #include <AMReX_FabFactory.H>
 #include <AMReX_Box.H>
 #include <AMReX_BaseIVFAB.H>
+#include <AMReX_EBISLayout.H>
 
 namespace amrex
 {
@@ -45,6 +46,12 @@ namespace amrex
     BaseIVFactory(shared_ptr<FabArray<EBGraph> > a_graphs)
       {
         m_graphs = a_graphs;
+      }
+
+
+    BaseIVFactory(const EBISLayout& a_ebisl)
+      {
+        m_graphs = a_ebisl.getAllGraphs();
       }
 
     ///

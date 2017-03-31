@@ -26,12 +26,12 @@ namespace amrex
   class EBDataFactory : public FabFactory<EBData>
   {
   public:
-    EBData()
+    EBDataFactory()
       {
       }
 
     ///
-    virtual ~BaseIVFactory () {}
+    virtual ~EBDataFactory () {}
 
     ///
     virtual EBData* create (const Box& box, int ncomps, const FabInfo& info, int box_index) const

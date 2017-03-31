@@ -108,6 +108,18 @@ namespace amrex
 
     std::vector<VolIndex>  getVoFs() const;
 
+    ///slow!
+    IntVectSet getIVS() const
+      {
+        IntVectSet retval;
+        for (unsigned int i=0; i<m_vofs->size(); i++)
+        {
+          retval |= (*m_vofs)[i].gridIndex();
+        }
+        return retval;
+
+      }
+
     inline T* dataPtr(int a_ivar)
       {
         if(m_vofs) return m_data+a_ivar*m_vofs->size();
