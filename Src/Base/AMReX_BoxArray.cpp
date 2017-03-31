@@ -405,8 +405,9 @@ BoxArray::writeOn (std::ostream& os) const
     os << '(' << size() << ' ' << 0 << '\n';
 
     const int N = size();
-    for (int i = 0; i < N; ++i)
+    for (int i = 0; i < N; ++i) {
         os << (*this)[i] << '\n';
+    }
 
     os << ')';
 
@@ -675,7 +676,8 @@ BoxArray::getCellCenteredBox (int index) const
 bool
 BoxArray::ok () const
 {
-    if (const int N = size() > 0)
+    const int N = size();
+    if (N > 0)
     {
         for (int i = 0; i < N; ++i)
         {
@@ -710,7 +712,8 @@ BoxList
 BoxArray::boxList () const
 {
     BoxList newb;
-    if (const int N = size() > 0) {
+    const int N = size();
+    if (N > 0) {
 	newb.set(ixType());
 	for (int i = 0; i < N; ++i) {
 	    newb.push_back((*this)[i]);
@@ -1125,7 +1128,6 @@ BoxArray::getHashMap () const
 	    IntVect maxext = IntVect::TheUnitVector();
 
 	    const int N = size();
-
 	    for (int i = 0; i < N; ++i)
             {
                 const Box& bx = m_ref->m_abox[i];
