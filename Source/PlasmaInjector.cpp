@@ -226,7 +226,6 @@ PlasmaInjector::PlasmaInjector(int ispecies, const std::string& name)
     } else {
         StringParseAbortMessage("Density profile type", rho_prof_s);
     }
-//     pp.get("num_particles_per_cell", num_particles_per_cell);
 
     // parse momentum information
     std::string mom_dist_s;
