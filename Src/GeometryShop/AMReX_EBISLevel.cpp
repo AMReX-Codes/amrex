@@ -18,11 +18,16 @@
 #include "AMReX_VoFIterator.H"
 #include "AMReX_IrregNode.H"
 #include "AMReX_PolyGeom.H"
+#include "AMReX_EBDataFactory.H"
 #include "AMReX_FaceIterator.H"
 
 
 namespace amrex
 {
+  void null_deleter_fab_ebg(FabArray<EBGraph>* a_ptr)
+  {
+  }
+
   EBIndexSpace* AMReX_EBIS::s_instance = NULL;
   ///
   EBIndexSpace* 
@@ -57,10 +62,7 @@ namespace amrex
 
     if(a_geoserver.canGenerateMultiCells())
     {
-      if (a_fixRegularNextToMultiValued)
-      {
-        fixRegularNextToMultiValued();
-      }
+      fixRegularNextToMultiValued();
     }
   }
   ///
@@ -69,44 +71,51 @@ namespace amrex
   {
     
     m_grids.define(m_domain);
-    m_grids.maxSize(maxgrid);
+    m_grids.maxSize(m_nCellMax);
     DistributionMapping dm(m_grids);
     m_graph.define(m_grids, dm, 1, 1);
-    m_data .define(m_grids, dm, 1, 1);
-    for (MFIter mfi(m_graph), mfi.isValid(); ++mfi);
+
+    std::shared_ptr<FabArray<EBGraph> > graphptr(&m_graph, &null_deleter_fab_ebg);
+    EBDataFactory ebdf(graphptr);
+
+    m_data.define(m_grids  , dm, 1, 0, MFInfo(), ebdf);
+
+    for (MFIter mfi(m_graph); mfi.isValid(); ++mfi)
     {
       Box valid  = mfi.validbox();
       Box ghostRegion = valid;
       ghostRegion.grow(1);
-      ghostRegion &= a_domain;
+      ghostRegion &= m_domain;
 
-      EBGraph& ebgraph = a_graph[dit()];
-      EBGraph& ebdata  = a_graph[dit()];
+      EBGraph& ebgraph = m_graph[mfi];
+      EBData& ebdata   = m_data [mfi];
       GeometryService::InOut inout = a_geoserver.InsideOutside(ghostRegion, m_domain, m_origin, m_dx);
-
-      EBGraph& ebgraph= m_graph[mfi];
+      ebgraph.setDomain(m_domain);
       if (inout == GeometryService::Regular)
       {
         ebgraph.setToAllRegular();
+        ebdata.define(ebgraph,  ghostRegion);
       }
       else if (inout == GeometryService::Covered)
       {
         ebgraph.setToAllCovered();
+        ebdata.define(ebgraph,  ghostRegion);
       }
       else
       {
         BaseFab<int>             regIrregCovered;
-        std::vector<IrregNode>&  nodes;
+        std::vector<IrregNode>   nodes;
 
-        a_geoserver.fillGraph(regIrregCovered, nodes, validRegion,
+        a_geoserver.fillGraph(regIrregCovered, nodes, valid,
                               ghostRegion, m_domain,
                               m_origin, m_dx);
 
         ebgraph.buildGraph(regIrregCovered, nodes, ghostRegion, m_domain);
+        ebdata.define(ebgraph, nodes, valid, ghostRegion);
       }
-      ebdata.define(ebgraph, nodes, validBox, ghostRegion);
     }
-    ebdata.FillBoundary();
+    m_graph.FillBoundary();
+    m_data. FillBoundary();
   }
   ///
   EBISLevel::
@@ -120,21 +129,16 @@ namespace amrex
     m_dx = 2.*a_fineEBIS.m_dx;
     m_origin = a_fineEBIS.m_origin;
 
+    m_grids.define(m_domain);
+    m_grids.maxSize(m_nCellMax);
+
     //create coarsened vofs from fine.
     //create coarse faces from fine
     coarsenVoFsAndFaces(a_fineEBIS);
 
     //fix the regular next to the multivalued cells
     //to be full irregular cells
-    if (a_fixRegularNextToMultiValued)
-    {
-      fixRegularNextToMultiValued();
-    }
-    //  dumpDebug(string("EBIS::after FRNTM"));
-
-    //overallMemoryUsage();
-    // fix the fine->coarseVoF thing.
-    fixFineToCoarse(a_fineEBIS);
+    fixRegularNextToMultiValued();
   }
 
   //steps to coarsen an ebislevel:
@@ -156,53 +160,53 @@ namespace amrex
     BoxArray gridsReCo = m_grids;
     gridsReCo.refine(2);
 
+    DistributionMapping dmco(m_grids);
     DistributionMapping dmfc(gridsReCo);
     //need two because of coarsen faces
-    m_graph.define(m_grids, dm, 1, 2);
+    m_graph.define(m_grids, dmco, 1, 2);
     FabArray<EBGraph> ebgraphReCo(gridsReCo, dmfc, 1, 3);
 
     int srcGhost =0; int dstGhost = 3;
     ebgraphReCo.copy(a_fineEBIS.m_graph, 0, 0, 1, srcGhost, dstGhost);
     ///first deal with the graph
-    for (MFIter mfi(m_graph), mfi.isValid(); ++mfi);
+    for (MFIter mfi(m_graph); mfi.isValid(); ++mfi)
     {
-      const EBGraph& fineEBGraph = ebgraphReCo[mfi];
-      EBGraph      & coarEBGraph = m_graph[dit()];
-      const Box    & coarRegion  = m_grids[mfi];
+      EBGraph      & fineEBGraph = ebgraphReCo[mfi];
+      EBGraph      & coarEBGraph = m_graph[mfi];
+      const Box    & coarRegion  = mfi.validbox();
       coarEBGraph.coarsenVoFs(fineEBGraph, coarRegion);
     }
     m_graph.FillBoundary();
-    for (MFIter mfi(m_graph), mfi.isValid(); ++mfi);
+    for (MFIter mfi(m_graph); mfi.isValid(); ++mfi)
     {
-      const EBGraph& fineEBGraph = ebgraphReCo[mfi];
-      EBGraph      & coarEBGraph = m_graph[dit()];
-      const Box    & coarRegion  = m_grids[mfi];
-      coarEBGraph.coarsenFaces(coarRegion, fineEBGraphGhost);
+      EBGraph      & fineEBGraph = ebgraphReCo[mfi];
+      EBGraph      & coarEBGraph = m_graph[mfi];
+      const Box    & coarRegion  = mfi.validbox();
+      coarEBGraph.coarsenFaces(fineEBGraph, coarRegion);
       coarEBGraph.fixFineToCoarse(fineEBGraph);
     }
     m_graph.FillBoundary();
 
     //now deal with the data
-    std::shared_ptr<FabArray<EBGraph> > graphptrCoar(    m_graph, &null_deleter_fab_ebg);
-    std::shared_ptr<FabArray<EBGraph> > graphptrReCo(ebgraphReCo, &null_deleter_fab_ebg);
+    std::shared_ptr<FabArray<EBGraph> > graphptrCoar(&    m_graph, &null_deleter_fab_ebg);
+    std::shared_ptr<FabArray<EBGraph> > graphptrReCo(&ebgraphReCo, &null_deleter_fab_ebg);
     EBDataFactory ebdfCoar(graphptrCoar);
     EBDataFactory ebdfReCo(graphptrReCo);
     FabArray<EBData> ebdataReCo;
     int nghostData = 1;
 
-    m_data    .define(a_grids  , dm, 1, 0         , MFInfo(), ebdfCoar);
-    ebdataReCo.define(gridsReCo, dm, 1, nghostData, MFInfo(), ebdfReCo);
+    m_data    .define(m_grids  , dmco, 1, 0         , MFInfo(), ebdfCoar);
+    ebdataReCo.define(gridsReCo, dmfc, 1, nghostData, MFInfo(), ebdfReCo);
     dstGhost = 1;
     ebdataReCo.copy(a_fineEBIS.m_data, 0, 0, 1, srcGhost, dstGhost);    
-    for (MFIter mfi(m_graph), mfi.isValid(); ++mfi);
+    for (MFIter mfi(m_graph); mfi.isValid(); ++mfi)
     {
       const EBGraph& fineEBGraph = ebgraphReCo[mfi];
       const EBGraph& coarEBGraph =     m_graph[mfi];
       const EBData & fineEBData  =  ebdataReCo[mfi];
-      EBData       & coarEBData  =      m_data[mfi];
-
-      m_data[mfi].coarsenVoFs (fineEBData, fineEBGraph, coarEBGraph, m_grids[mfi]);
-      m_data[mfi].coarsenFaces(fineEBData, fineEBGraph, coarEBGraph, m_grids[mfi]);
+      Box valid = mfi.validbox();
+      m_data[mfi].coarsenVoFs (fineEBData, fineEBGraph, coarEBGraph, valid);
+      m_data[mfi].coarsenFaces(fineEBData, fineEBGraph, coarEBGraph, valid);
     }
   }
 
@@ -214,19 +218,13 @@ namespace amrex
   fixRegularNextToMultiValued()
   {
     BL_PROFILE("EBISLevel::fixRegularNextToMultiValued");
-    bool vofsAdded = false;
-    for (MFIter mfi(m_graph), mfi.isValid(); ++mfi);
+
+    for (MFIter mfi(m_graph); mfi.isValid(); ++mfi)
     {
       IntVectSet vofsToChange;
-      BL_PROFILE("EBISLevel::fixRegularNextToMultiValued_loop1");
-      m_graph[mfi].getRegNextToMultiValued(vofsToChange,
-                                           m_grids[mfi]);
-
-      m_graph[dit()].addFullIrregularVoFs(vofsToChange);
-
-
-      m_data[dit() ].addFullIrregularVoFs(vofsToChange,
-                                          m_graph[mfi]);
+      Box valid = mfi.validbox();
+      m_graph[mfi].getRegNextToMultiValued(vofsToChange, valid);
+      m_data[ mfi].addFullIrregularVoFs( vofsToChange, valid);
 
     }
     m_data .FillBoundary();
@@ -236,11 +234,11 @@ namespace amrex
   ///
   void 
   EBISLevel::
-  fillEBISLayout(EBISLayout&              a_ebisLayout,
-                 const DisjointBoxLayout& a_grids,
-                 const int&               a_nghost) const
+  fillEBISLayout(EBISLayout     & a_ebisLayout,
+                 const BoxArray & a_grids,
+                 const int      & a_nghost) const
   {
-    CH_assert(a_nghost >= 0);
+    BL_ASSERT(a_nghost >= 0);
   
     //a_ebisLayout.define(m_domain, a_grids, a_nghost, m_graph, m_data);
     //return; // caching disabled for now.... ugh.  bvs
