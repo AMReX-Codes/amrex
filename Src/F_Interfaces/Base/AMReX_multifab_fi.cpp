@@ -11,7 +11,7 @@ extern "C" {
 				const DistributionMapping*& dm,
 				int nc, int ng, const int* nodal)
     {
-	mf = new MultiFab(amrex::convert(*ba, IntVect(nodal)), *dm, nc, ng)
+	mf = new MultiFab(amrex::convert(*ba, IntVect(nodal)), *dm, nc, ng);
 	ba = &(mf->boxArray());
 	dm = &(mf->DistributionMap());
     }
