@@ -1212,7 +1212,8 @@ FabArrayBase::getTileArray (const IntVect& tilesize) const
 #endif
     {
 	BL_ASSERT(getBDKey() == m_bdkey);
-	p = &FabArrayBase::m_TheTileArrayCache[m_bdkey][tilesize];
+        const IntVect& crse_ratio = boxArray().crseRatio();
+	p = &FabArrayBase::m_TheTileArrayCache[m_bdkey][std::pair<IntVect,IntVect>(tilesize,crse_ratio)];
 	if (p->nuse == -1) {
 	    buildTileArray(tilesize, *p);
 	    p->nuse = 0;
@@ -1352,7 +1353,8 @@ FabArrayBase::flushTileArray (const IntVect& tileSize, bool no_assertion) const
 	else 
 	{
 	    TAMap& tai = tao_it->second;
-	    TAMap::iterator tai_it = tai.find(tileSize);
+            const IntVect& crse_ratio = boxArray().crseRatio();
+	    TAMap::iterator tai_it = tai.find(std::pair<IntVect,IntVect>(tileSize,crse_ratio));
 	    if (tai_it != tai.end()) {
 #ifdef BL_MEM_PROFILING
 		m_TAC_stats.bytes -= tai_it->second.bytes();

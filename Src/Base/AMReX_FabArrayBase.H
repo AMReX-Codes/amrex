@@ -352,8 +352,9 @@ protected:
     // Tiling
     //
     // We use tile size as the key for the inner map.
-    typedef std::map<IntVect, TileArray> TAMap;
-    typedef std::map<BDKey, TAMap> TACache;
+    
+    using TAMap   = std::map<std::pair<IntVect,IntVect>, TileArray>;
+    using TACache = std::map<BDKey, TAMap>;
     //
     static TACache     m_TheTileArrayCache;
     static CacheStats  m_TAC_stats;
