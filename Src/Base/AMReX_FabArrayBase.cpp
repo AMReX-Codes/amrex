@@ -521,8 +521,9 @@ FabArrayBase::getCPC (int dstng, const FabArrayBase& src, int srcng, const Perio
 
 FabArrayBase::FB::FB (const FabArrayBase& fa, bool cross, const Periodicity& period, 
 		      bool enforce_periodicity_only)
-    : m_typ(fa.boxArray().ixType()), m_ngrow(fa.nGrow()),
-      m_cross(cross), m_epo(enforce_periodicity_only), m_period(period),
+    : m_typ(fa.boxArray().ixType()), m_crse_ratio(fa.boxArray().crseRatio()),
+      m_ngrow(fa.nGrow()), m_cross(cross),
+      m_epo(enforce_periodicity_only), m_period(period),
       m_threadsafe_loc(false), m_threadsafe_rcv(false),
       m_LocTags(new CopyComTag::CopyComTagsContainer),
       m_SndTags(new CopyComTag::MapOfCopyComTagContainers),
@@ -570,7 +571,7 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa)
 	const int ksnd = imap[i];
 	const Box& vbx = ba[ksnd];
 	
-	for (std::vector<IntVect>::const_iterator pit=pshifts.begin(); pit!=pshifts.end(); ++pit)
+	for (auto pit=pshifts.cbegin(); pit!=pshifts.cend(); ++pit)
 	{
 	    ba.intersections(vbx+(*pit), isects, false, ng);
 
@@ -629,7 +630,7 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa)
 	    remotetouch.setVal(0);
 	}
 	
-	for (std::vector<IntVect>::const_iterator pit=pshifts.begin(); pit!=pshifts.end(); ++pit)
+	for (auto pit=pshifts.cbegin(); pit!=pshifts.cend(); ++pit)
 	{
 	    ba.intersections(bxrcv+(*pit), isects);
 
@@ -795,7 +796,7 @@ FabArrayBase::FB::define_epo (const FabArrayBase& fa)
 
 	if (!bxsnd.ok()) continue;
 
-	for (std::vector<IntVect>::const_iterator pit=pshifts.begin(); pit!=pshifts.end(); ++pit)
+	for (auto pit=pshifts.cbegin(); pit!=pshifts.cend(); ++pit)
 	{
 	    if (*pit != IntVect::TheZeroVector())
 	    {
@@ -990,11 +991,12 @@ FabArrayBase::getFB (const Periodicity& period, bool cross, bool enforce_periodi
     std::pair<FBCacheIter,FBCacheIter> er_it = m_TheFBCache.equal_range(m_bdkey);
     for (FBCacheIter it = er_it.first; it != er_it.second; ++it)
     {
-	if (it->second->m_typ    == boxArray().ixType() &&
-	    it->second->m_ngrow  == nGrow()             &&
-	    it->second->m_cross  == cross               &&
-	    it->second->m_epo    == enforce_periodicity_only &&
-	    it->second->m_period == period              )
+	if (it->second->m_typ        == boxArray().ixType()      &&
+            it->second->m_crse_ratio == boxArray().crseRatio()   &&
+	    it->second->m_ngrow      == nGrow()                  &&
+	    it->second->m_cross      == cross                    &&
+	    it->second->m_epo        == enforce_periodicity_only &&
+	    it->second->m_period     == period              )
 	{
 	    ++(it->second->m_nuse);
 	    m_FBC_stats.recordUse();
