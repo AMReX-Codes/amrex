@@ -21,14 +21,13 @@
 #include "AMReX_FabArray.H"
 #include "AMReX_EBISBox.H"
 #include "AMReX_EBGraph.H"
+#include "AMReX_EBData.H"
 
 namespace amrex
 {
 
-  extern void null_deleter_fab_ebg(FabArray<EBGraph>* a_ptr);
-
   class EBIndexSpace;
-
+  class EBISLayout;
 ///
 /**
    EBISLayoutImplem represents the geometric information
@@ -77,9 +76,9 @@ namespace amrex
        the ratio is greater than the maximum refinement ratio
        or if the vof does not exist at the input data index.
     */
-    Vector<VolIndex> refine(const VolIndex &  a_vof,
-                            const int      &  a_ratio,
-                            const MFIter   &  a_datInd) const;
+    std::vector<VolIndex> refine(const VolIndex &  a_vof,
+                                 const int      &  a_ratio,
+                                 const MFIter   &  a_datInd) const;
 
     ///
     /**
@@ -88,9 +87,9 @@ namespace amrex
        the ratio is greater than the maximum refinement ratio
        or if the face does not exist at the input data index.
     */
-    Vector<FaceIndex> refine(const FaceIndex &  a_face,
-                             const int       &  a_ratio,
-                             const MFIter    &  a_datInd) const;
+    std::vector<FaceIndex> refine(const FaceIndex &  a_face,
+                                  const int       &  a_ratio,
+                                  const MFIter    &  a_datInd) const;
 
     ///
     /**
@@ -100,6 +99,7 @@ namespace amrex
        Default is one (no refinement done).
     */
     void setMaxRefinementRatio(const int& a_maxRefine, const EBIndexSpace* const a_ebisPtr);
+
 
     ///
     /**
@@ -120,6 +120,19 @@ namespace amrex
 
     bool isDefined() const {return m_defined;}
 
+    shared_ptr<FabArray<EBGraph> > getAllGraphs() const
+      {
+        return m_ebGraph;
+      } 
+
+    EBISLayoutImplem(const Box               & a_domain,
+                     const BoxArray          & a_grids,
+                     const int               & a_nghost,
+                     const FabArray<EBGraph> & a_graph,
+                     const FabArray<EBData>  & a_data)
+      {
+        define(a_domain, a_grids, a_nghost, a_graph, a_data);
+      }
   private:
     ///
     Box m_domain;
@@ -144,8 +157,8 @@ namespace amrex
 
 
     ///
-    FabArray<EBGraph> m_ebGraph;
-    FabArray<EBData > m_ebData;
+    shared_ptr<FabArray<EBGraph> > m_ebGraph;
+    shared_ptr<FabArray<EBData > > m_ebData;
 
     bool m_defined;
 
@@ -175,7 +188,7 @@ namespace amrex
     */
     EBISBox operator[](const MFIter& a_index) const
       {
-        return (*m_implem)[a_index]
+        return (*m_implem)[a_index];
       }
     
 
@@ -191,6 +204,8 @@ namespace amrex
         m_implem->setMaxRefinementRatio(a_maxRefine, a_ebisPtr);
       }
 
+
+
     ///
     /**
        Sets the maximum level of coarsening that this {\tt EBISLayout}
@@ -200,14 +215,20 @@ namespace amrex
     */
     void setMaxCoarseningRatio(const int& a_maxCoarsen, const EBIndexSpace* const a_ebisPtr)
       {
-        m_implem->setMaxCoarseningRatio(a_maxRefine, a_ebisPtr);
+        m_implem->setMaxCoarseningRatio(a_maxCoarsen, a_ebisPtr);
+      }
+
+
+    ///
+    EBISLayout()
+      {
+        m_implem = std::shared_ptr<EBISLayoutImplem>(new EBISLayoutImplem());
       }
 
     ///
-    EBISLayout();
-
-    ///
-    ~EBISLayout();
+    ~EBISLayout()
+      {
+      }
 
     ///
     /**
@@ -230,9 +251,9 @@ namespace amrex
        the ratio is greater than the maximum refinement ratio
        or if the vof does not exist at the input data index.
     */
-    Vector<VolIndex> refine(const VolIndex& a_vof,
-                            const int     & a_ratio,
-                            const MFIter  & a_datInd) const;
+    std::vector<VolIndex> refine(const VolIndex& a_vof,
+                                 const int     & a_ratio,
+                                 const MFIter  & a_datInd) const
       {
         return m_implem->refine(a_vof, a_ratio, a_datInd);
       }
@@ -244,9 +265,9 @@ namespace amrex
        the ratio is greater than the maximum refinement ratio
        or if the face does not exist at the input data index.
     */
-    Vector<FaceIndex> refine(const FaceIndex & a_face,
-                             const int       & a_ratio,
-                             const MFIter    & a_datInd) const
+    std::vector<FaceIndex> refine(const FaceIndex & a_face,
+                                  const int       & a_ratio,
+                                  const MFIter    & a_datInd) const
       {
         return m_implem->refine(a_face, a_ratio, a_datInd);
       }
@@ -261,11 +282,26 @@ namespace amrex
         m_implem->define(a_domain, a_grids, a_nghost, a_graph, a_data);
       }
 
+
+    ///
+    EBISLayout(const Box               & a_domain,
+               const BoxArray          & a_grids,
+               const int               & a_nghost,
+               const FabArray<EBGraph> & a_graph,
+               const FabArray<EBData>  & a_data)
+      {
+        m_implem = std::shared_ptr<EBISLayoutImplem>(new EBISLayoutImplem(a_domain, a_grids, a_nghost, a_graph, a_data));
+      }
+
     bool isDefined() const
       {
         return m_implem->isDefined();
       }
 
+     shared_ptr<FabArray<EBGraph> > getAllGraphs() const
+      {
+        return m_implem->getAllGraphs();
+      }
   private:
     ///
     std::shared_ptr<EBISLayoutImplem> m_implem;
