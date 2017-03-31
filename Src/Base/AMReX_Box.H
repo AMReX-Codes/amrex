@@ -563,7 +563,11 @@ public:
 
     bool isSquare() const;
 
-  bool coarsenable(int refrat) const
+    bool coarsenable(int refrat) const {
+        return coarsenable(IntVect(D_DECL(refrat,refrat,refrat)));
+    }
+
+    bool coarsenable(const IntVect& refrat) const
     {
       Box testBox = *this;
       testBox.coarsen(refrat);
