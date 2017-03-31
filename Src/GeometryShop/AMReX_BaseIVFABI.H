@@ -102,17 +102,18 @@ namespace amrex
     if(m_vofs)
     {
       to = getIndex((*m_vofs)[0],destcomp);
-    }
-    for(unsigned int i=0; i<m_vofs->size(); i++, to++)
-    {
-      const VolIndex& vof = (*m_vofs)[i];
-      if(srcbox.contains(vof.gridIndex()))
-      {
-        const T* from= a_src.getIndex(vof,srccomp);
 
-        for(unsigned int c=0; c<numcomp; c++)
+      for(unsigned int i=0; i<m_vofs->size(); i++, to++)
+      {
+        const VolIndex& vof = (*m_vofs)[i];
+        if(srcbox.contains(vof.gridIndex()))
         {
-          to[c*m_vofs->size()]=from[c*a_src.m_vofs->size()];
+          const T* from= a_src.getIndex(vof,srccomp);
+
+          for(unsigned int c=0; c<numcomp; c++)
+          {
+            to[c*m_vofs->size()]=from[c*a_src.m_vofs->size()];
+          }
         }
       }
     }
@@ -131,17 +132,18 @@ namespace amrex
     if(m_vofs)
     {
       to = getIndex((*m_vofs)[0],destcomp);
-    }
-    for(unsigned int i=0; i<m_vofs->size(); i++, to++)
-    {
-      const VolIndex& vof = (*m_vofs)[i];
-      if(srcbox.contains(vof.gridIndex()))
-      {
-        const T* from= a_src.getIndex(vof,srccomp);
 
-        for(unsigned int c=0; c<numcomp; c++)
+      for(unsigned int i=0; i<m_vofs->size(); i++, to++)
+      {
+        const VolIndex& vof = (*m_vofs)[i];
+        if(srcbox.contains(vof.gridIndex()))
         {
-          to[c*m_vofs->size()]+=from[c*a_src.m_vofs->size()];
+          const T* from= a_src.getIndex(vof,srccomp);
+
+          for(unsigned int c=0; c<numcomp; c++)
+          {
+            to[c*m_vofs->size()]+=from[c*a_src.m_vofs->size()];
+          }
         }
       }
     }

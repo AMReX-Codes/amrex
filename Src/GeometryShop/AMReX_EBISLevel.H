@@ -30,6 +30,7 @@
 namespace amrex
 {
 
+  extern void null_deleter_fab_ebg(FabArray<EBGraph>* a_ptr);
 
   class EBIndexSpace;
 
@@ -53,7 +54,7 @@ namespace amrex
 
     ~AMReX_EBIS()
       {;}
-    static bool s_aliased;
+
   public:
     ///
     /**
@@ -151,12 +152,12 @@ namespace amrex
     //these are disallowed
     void operator=(const EBISLevel& ebiin)
       {
-        MayDay::Error("EBISLevel::operator= not allowed");
+        amrex::Error("EBISLevel::operator= not allowed");
       }
 
     EBISLevel(const EBISLevel& ebiin)
       {
-        MayDay::Error("EBISLevel::copy constructor not allowed");
+        amrex::Error("EBISLevel::copy constructor not allowed");
       }
 
   };

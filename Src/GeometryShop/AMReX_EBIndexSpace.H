@@ -27,7 +27,7 @@
 namespace amrex
 {
 
-
+  class EBISLevel;
 ///
 /**
    EBIndexSpace represents the geometric information
@@ -88,10 +88,10 @@ namespace amrex
       }
 
     ///
-    void fillEBISLayout(EBISLayout&              a_ebis,
-                        const DisjointBoxLayout& a_grids,
-                        const Box&     a_domain,
-                        const int&               a_nghost) const;
+    void fillEBISLayout(EBISLayout     & a_ebis,
+                        const BoxArray & a_grids,
+                        const Box      & a_domain,
+                        const int      & a_nghost) const;
 
     ///
     /**
@@ -125,12 +125,12 @@ namespace amrex
 
     void operator=(const EBIndexSpace& ebiin)
       {
-        MayDay::Error("no assignment of EBIndexSpace allowed");
+        amrex::Error("no assignment of EBIndexSpace allowed");
       }
 
     EBIndexSpace(const EBIndexSpace& ebiin)
       {
-        MayDay::Error("no copy construction of EBIndexSpace allowed");
+        amrex::Error("no copy construction of EBIndexSpace allowed");
       }
   };
 
