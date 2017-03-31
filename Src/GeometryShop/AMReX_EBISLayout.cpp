@@ -20,12 +20,13 @@ namespace amrex
   void
   EBISLayoutImplem::define(const Box               & a_domain,
                            const BoxArray          & a_grids,
+                           const DistributionMapping & a_dm,
                            const int               & a_nghost,
                            const FabArray<EBGraph> & a_graph,
                            const FabArray<EBData>  & a_data)
   {
     BL_PROFILE("EBISLayoutImplem::define");
-      
+    m_dm = a_dm;
     m_domain = a_domain;
     m_nghost = a_nghost;
     m_dblInputDom = a_grids;
@@ -37,13 +38,12 @@ namespace amrex
     int srcGhost = 0;
       
       
-    DistributionMapping dm(a_grids);
-    m_ebGraph = shared_ptr<FabArray<EBGraph> >(new FabArray<EBGraph>(a_grids, dm, 1, m_nghost));
+    m_ebGraph = shared_ptr<FabArray<EBGraph> >(new FabArray<EBGraph>(a_grids, a_dm, 1, m_nghost));
     m_ebGraph->copy(a_graph, 0, 0, 1, srcGhost, dstGhost);
     m_ebGraph->FillBoundary();
 
     EBDataFactory ebdatafact(m_ebGraph);
-    m_ebData  = shared_ptr<FabArray<EBData > >(new FabArray<EBData>(a_grids, dm, 1, m_nghost, MFInfo(), ebdatafact));
+    m_ebData  = shared_ptr<FabArray<EBData > >(new FabArray<EBData>(a_grids, a_dm, 1, m_nghost, MFInfo(), ebdatafact));
       
       
     m_ebData ->copy(a_data , 0, 0, 1, srcGhost, dstGhost);
@@ -188,7 +188,7 @@ namespace amrex
   }
   /****************/
   void
-  EBISLayoutImplem::setMaxRefinementRatio(const int& a_maxRefine, const EBIndexSpace* ebisPtr)
+  EBISLayoutImplem::setMaxRefinementRatio(const int& a_maxRefine)
   {
     BL_ASSERT(a_maxRefine % 2 == 0);
     BL_ASSERT(a_maxRefine > 0);
@@ -206,6 +206,7 @@ namespace amrex
     }
       
     m_fineLevels.resize(nlevels);
+    const EBIndexSpace* ebisPtr = AMReX_EBIS::instance();
     int irat = 2;
     for (int ilev = 0; ilev < nlevels; ilev++)
     {
@@ -213,14 +214,13 @@ namespace amrex
       BoxArray fineBLDomain = m_dblInputDom;
       fineDomain.  refine(irat);
       fineBLDomain.refine(irat);
-      ebisPtr->fillEBISLayout(m_fineLevels[ilev], fineBLDomain, fineDomain, m_nghost);
+      ebisPtr->fillEBISLayout(m_fineLevels[ilev],  fineBLDomain, m_dm, fineDomain, m_nghost);
       irat *= 2;
     }
   }
   /****************/
   void
-  EBISLayoutImplem::setMaxCoarseningRatio(const int&                a_maxCoarsen,
-                                          const EBIndexSpace* const a_ebisPtr)
+  EBISLayoutImplem::setMaxCoarseningRatio(const int&                a_maxCoarsen)
   {
     BL_ASSERT(a_maxCoarsen % 2 == 0);
     BL_ASSERT(a_maxCoarsen > 0);
@@ -239,6 +239,7 @@ namespace amrex
       
     m_coarLevels.resize(nlevels);
     int irat = 2;
+    const EBIndexSpace* ebisPtr = AMReX_EBIS::instance();
     for (int ilev = 0; ilev < nlevels; ilev++)
     {
       Box  coarDomain  = m_domain;
@@ -246,7 +247,7 @@ namespace amrex
       coarDomain.  coarsen(irat);
       coarBLDomain.coarsen(irat);
       
-      a_ebisPtr->fillEBISLayout(m_coarLevels[ilev], coarBLDomain, coarDomain, m_nghost);
+      ebisPtr->fillEBISLayout(m_coarLevels[ilev], coarBLDomain, m_dm, coarDomain, m_nghost);
       irat *= 2;
     }
   }
