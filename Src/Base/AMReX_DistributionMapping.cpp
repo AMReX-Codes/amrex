@@ -1160,10 +1160,6 @@ void
 DistributionMapping::SFCProcessorMap (const BoxArray& boxes,
                                       int             nprocs)
 {
-  if(boxes.size() == 0)
-  {
-    amrex::Print() << "there are no boxes here \n";
-  }
     BL_ASSERT(boxes.size() > 0);
 
     m_ref->m_pmap.resize(boxes.size());
