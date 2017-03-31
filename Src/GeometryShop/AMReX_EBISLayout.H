@@ -98,7 +98,7 @@ namespace amrex
        at intermediate levels of refinement.
        Default is one (no refinement done).
     */
-    void setMaxRefinementRatio(const int& a_maxRefine, const EBIndexSpace* const a_ebisPtr);
+    void setMaxRefinementRatio(const int& a_maxRefine);
 
 
     ///
@@ -108,11 +108,23 @@ namespace amrex
        at intermediate levels of refinement.
        Default is one (no coarsening done).
     */
-    void setMaxCoarseningRatio(const int& a_maxCoarsen, const EBIndexSpace* const a_ebisPtr);
+    void setMaxCoarseningRatio(const int& a_maxCoarsen);
+
+    int getMaxCoarseningRatio() const
+      {
+        return m_maxCoarseningRatio;
+      }
+
+    
+    int getMaxRefinementRatio() const
+      {
+        return m_maxRefinementRatio;
+      }
 
     ///
     void define(const Box               & a_domain,
                 const BoxArray          & a_grids,
+                const DistributionMapping & a_dm,
                 const int               & a_nghost,
                 const FabArray<EBGraph> & a_graph,
                 const FabArray<EBData>  & a_data);
@@ -127,11 +139,17 @@ namespace amrex
 
     EBISLayoutImplem(const Box               & a_domain,
                      const BoxArray          & a_grids,
+                     const DistributionMapping & a_dm,
                      const int               & a_nghost,
                      const FabArray<EBGraph> & a_graph,
                      const FabArray<EBData>  & a_data)
       {
-        define(a_domain, a_grids, a_nghost, a_graph, a_data);
+        define(a_domain, a_grids, a_dm, a_nghost, a_graph, a_data);
+      }
+
+    int getGhost() const
+      {
+        return m_nghost;
       }
   private:
     ///
@@ -140,6 +158,7 @@ namespace amrex
     ///
     BoxArray  m_dblInputDom;
 
+    DistributionMapping m_dm;
     ///
     std::vector<EBISLayout> m_fineLevels;
 
@@ -199,9 +218,9 @@ namespace amrex
        at intermediate levels of refinement.
        Default is one (no refinement done).
     */
-    void setMaxRefinementRatio(const int& a_maxRefine, const EBIndexSpace* const a_ebisPtr)
+    void setMaxRefinementRatio(const int& a_maxRefine)
       {
-        m_implem->setMaxRefinementRatio(a_maxRefine, a_ebisPtr);
+        m_implem->setMaxRefinementRatio(a_maxRefine);
       }
 
 
@@ -213,11 +232,21 @@ namespace amrex
        at intermediate levels of refinement.
        Default is one (no coarsening done).
     */
-    void setMaxCoarseningRatio(const int& a_maxCoarsen, const EBIndexSpace* const a_ebisPtr)
+    void setMaxCoarseningRatio(const int& a_maxCoarsen)
       {
-        m_implem->setMaxCoarseningRatio(a_maxCoarsen, a_ebisPtr);
+        m_implem->setMaxCoarseningRatio(a_maxCoarsen);
       }
 
+
+    int getMaxCoarseningRatio() const
+      {
+        return m_implem->getMaxCoarseningRatio();
+      }
+
+    int getMaxRefinementRatio() const
+      {
+        return m_implem->getMaxRefinementRatio();
+      }
 
     ///
     EBISLayout()
@@ -275,22 +304,24 @@ namespace amrex
     ///
     void define(const Box               & a_domain,
                 const BoxArray          & a_grids,
+                const DistributionMapping & a_dm,
                 const int               & a_nghost,
                 const FabArray<EBGraph> & a_graph,
                 const FabArray<EBData>  & a_data)
       {
-        m_implem->define(a_domain, a_grids, a_nghost, a_graph, a_data);
+        m_implem->define(a_domain, a_grids, a_dm, a_nghost, a_graph, a_data);
       }
 
 
     ///
     EBISLayout(const Box               & a_domain,
                const BoxArray          & a_grids,
+               const DistributionMapping & a_dm,
                const int               & a_nghost,
                const FabArray<EBGraph> & a_graph,
                const FabArray<EBData>  & a_data)
       {
-        m_implem = std::shared_ptr<EBISLayoutImplem>(new EBISLayoutImplem(a_domain, a_grids, a_nghost, a_graph, a_data));
+        m_implem = std::shared_ptr<EBISLayoutImplem>(new EBISLayoutImplem(a_domain, a_grids, a_dm, a_nghost, a_graph, a_data));
       }
 
     bool isDefined() const
@@ -301,6 +332,11 @@ namespace amrex
      shared_ptr<FabArray<EBGraph> > getAllGraphs() const
       {
         return m_implem->getAllGraphs();
+      }
+
+    int getGhost() const
+      {
+        return m_implem->getGhost();
       }
   private:
     ///

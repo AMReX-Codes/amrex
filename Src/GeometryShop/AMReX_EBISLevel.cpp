@@ -236,13 +236,14 @@ namespace amrex
   EBISLevel::
   fillEBISLayout(EBISLayout     & a_ebisLayout,
                  const BoxArray & a_grids,
+                 const DistributionMapping & a_dm,
                  const int      & a_nghost) const
   {
     BL_ASSERT(a_nghost >= 0);
   
     //a_ebisLayout.define(m_domain, a_grids, a_nghost, m_graph, m_data);
     //return; // caching disabled for now.... ugh.  bvs
-    a_ebisLayout.define(m_domain, a_grids, a_nghost, m_graph, m_data);
+    a_ebisLayout.define(m_domain, a_grids, a_dm, a_nghost, m_graph, m_data);
   }
 
 

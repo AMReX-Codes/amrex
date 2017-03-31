@@ -30,6 +30,10 @@ C$(GEOMETRYSHOP_BASE)_headers +=   AMReX_EBIndexSpace.H   AMReX_EBISLayout.H   A
 C$(GEOMETRYSHOP_BASE)_sources +=   AMReX_EBIndexSpace.cpp AMReX_EBISLayout.cpp AMReX_EBISLevel.cpp AMReX_GeometryService.cpp
 
 
+C$(GEOMETRYSHOP_BASE)_headers +=   AMReX_EBLevelGrid.H  AMReX_LayoutData.H
+C$(GEOMETRYSHOP_BASE)_sources +=   AMReX_EBLevelGrid.cpp  
+
+
 VPATH_LOCATIONS   += $(AMREX_HOME)/Src/GeometryShop
 INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/GeometryShop
 
