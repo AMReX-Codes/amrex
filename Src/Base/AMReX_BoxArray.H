@@ -333,6 +333,9 @@ public:
     //! Apply Box::shift(const IntVect &iv) to each Box in the BoxArray.
     BoxArray& shift (const IntVect &iv);
 
+    //! Set element i in this BoxArray to Box ibox.
+    void set (int i, const Box& ibox);
+
     //! Return element index of this BoxArray.
     Box operator[] (int index) const;
 
@@ -417,11 +420,6 @@ public:
     static bool initialized;
 
 private:
-
-    friend void readBoxArray (BoxArray& ba, std::istream& s, bool b);
-    friend BoxArray UnSerializeBoxArray(const Array<int> &serarray);
-    friend BoxArray intersect (const BoxArray& ba, const Box& b, int ng);
-
     //!  Update BoxArray index type according the box type, and then convert boxes to cell-centered.
     void type_update ();
 
@@ -429,9 +427,6 @@ private:
 
     //! Make ourselves unique.
     void uniqify ();
-
-    //! Set element i in this BoxArray to Box ibox.
-    IndexType set (int i, const Box& ibox);
 
     IntVect getDoiLo () const;
     IntVect getDoiHi () const;
