@@ -3,6 +3,10 @@
 #include <AMReX_ParmParse.H>
 #include <AMReX_Utility.H>
 
+#ifdef BL_MEM_PROFILING
+#include <AMReX_MemProfiler.H>
+#endif
+
 namespace amrex {
 
 //
