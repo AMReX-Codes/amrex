@@ -796,7 +796,7 @@ BoxArray::minimalBox () const
             minbox.minBox(m_ref->m_abox[i]);
         }
     }
-    minbox.refine(m_crse_ratio).convert(ixType());
+    minbox.coarsen(m_crse_ratio).convert(ixType());
     return minbox;
 }
 
