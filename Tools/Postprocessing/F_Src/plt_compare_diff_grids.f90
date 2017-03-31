@@ -1,41 +1,30 @@
-! Take 2 plotfiles as input and compare them zone by zone for differences.
 !
-! For the comparison to take place, the grids must be identical.
+! Take 2 plotfiles as input and compare each level zone by zone for differences.
+! The grids at each level may not be identical, but must have the same problem domain.
 !
-
-module util_module
-  type zone_t
-     integer :: level
-     integer :: box
-     integer :: i
-     integer :: j
-     integer :: k
-  end type zone_t
-end module util_module
 
 program fcompare
 
+  use f2kcli
   use bl_space
   use bl_error_module
   use bl_constants_module
   use bl_IO_module
   use plotfile_module
-  use multifab_module
-  use util_module
+  use sort_d_module
 
   implicit none
 
   type(plotfile) :: pf_a, pf_b
   character (len=256) :: plotfile_a, plotfile_b
-  character (len=256) :: diffvar, zone_info_var_name
   integer :: unit_a, unit_b
-  logical :: zone_info
 
-  real(kind=dp_t), pointer :: p_a(:,:,:,:), p_b(:,:,:,:), p(:,:,:,:)
-  real(kind=dp_t), pointer :: mp(:,:,:,:)
+  real(kind=dp_t), pointer :: p_a(:,:,:,:), p_b(:,:,:,:)
 
   integer :: lo_a(MAX_SPACEDIM), hi_a(MAX_SPACEDIM)
+  integer :: lo_b(MAX_SPACEDIM), hi_b(MAX_SPACEDIM)
 
+  integer :: flo_a(MAX_SPACEDIM), fhi_a(MAX_SPACEDIM)
   integer :: flo_b(MAX_SPACEDIM), fhi_b(MAX_SPACEDIM)
 
   real(kind=dp_t) :: dx_a(MAX_SPACEDIM), dx_b(MAX_SPACEDIM)
@@ -44,12 +33,10 @@ program fcompare
 
   integer :: n_a, n_b
   integer, allocatable :: ivar_b(:)
-  integer :: save_var_a, zone_info_var_a
 
-  real(kind=dp_t), allocatable :: aerror(:), rerror(:), rerror_denom(:)
+  real(kind=dp_t), allocatable :: aerror(:), rerror(:)
 
   logical, allocatable :: has_nan_a(:), has_nan_b(:)
-  logical :: any_nans, all_variables_found
 
   integer :: norm
 
@@ -59,29 +46,16 @@ program fcompare
   integer :: i, ja, jb
   integer :: ii, jj, kk
 
-  integer ir_a, ir_b, ng
+  integer ir_a, ir_b
 
   integer :: itest
 
-  real(kind=dp_t) :: global_error
-  real(kind=dp_t) :: pa, pb, pd, aerr, rerr
+  real(kind=dp_t) :: pa, pb, pd
 
   integer :: dm
-  type(box) :: bx_a, bx_b
+  type(box) :: bx_a, bx_b, bx_i
 
-  type(multifab), allocatable :: mf_array(:)
-  type(layout) :: la
-  type(boxarray) :: ba
-  type(list_box) :: bl
-  integer, allocatable :: ref_ratio(:)
-
-  character(len=20), allocatable :: plot_names(:)
-
-  logical :: do_ghost, gc_warn
-
-  type(zone_t) :: err_zone
-  real (kind=dp_t) :: max_abs_err
-
+  integer :: lo_i(MAX_SPACEDIM), hi_i(MAX_SPACEDIM)
 
   !---------------------------------------------------------------------------
   ! process the command line arguments
@@ -93,17 +67,10 @@ program fcompare
   plotfile_a = ""
   plotfile_b = ""
 
-  diffvar = ""
-  do_ghost = .false.
-  zone_info = .false.
-  zone_info_var_name = ""
-
-  allocate(plot_names(1))
-
   farg = 1
   do while (farg <= narg)
      call get_command_argument(farg, value = fname)
-
+     
      select case (fname)
 
      case ('--infile1')
@@ -119,36 +86,12 @@ program fcompare
         call get_command_argument(farg, value = fname)
         read(fname, *) norm
 
-     case ('-g','--ghost')
-        farg = farg + 1
-        do_ghost = .true.
-
-     case ('-z','--zone_info')
-        farg = farg + 1
-        call get_command_argument(farg, value = zone_info_var_name)
-        zone_info = .true.
-
-     case ('--diffvar')
-        farg = farg + 1
-        call get_command_argument(farg, value = diffvar)
-        plot_names(1) = trim(diffvar)
-
      case default
         exit
 
      end select
      farg = farg + 1
   enddo
-
-  if (len_trim(plotfile_a) == 0) then
-     call get_command_argument(farg, value = plotfile_a)
-     farg = farg + 1
-  endif
-
-  if (len_trim(plotfile_b) == 0) then
-     call get_command_argument(farg, value = plotfile_b)
-     farg = farg + 1
-  endif
 
   if (len_trim(plotfile_a) == 0 .OR. len_trim(plotfile_b) == 0) then
      print *, " "
@@ -157,23 +100,14 @@ program fcompare
      print *, "variable."
      print *, " "
      print *, "usage:"
-     print *, "   fcompare [-g|--ghost] [-n|--norm num] [--diffvar var] [-z|--zone_info var] file1 file2"
-     print *, " "
-     print *, "optional arguments:"
-     print *, "   -g|--ghost         : compare the ghost cells too (if stored)"
-     print *, "   -n|--norm num      : what norm to use (default is 0 for inf norm)"
-     print *, "   --diffvar var      : output a plotfile showing the differences for "
-     print *, "                        variable var"
-     print *, "   -z|--zone_info var : output the information for a zone corresponding"
-     print *, "                        to the maximum error for the given variable"
+     print *, "   fcompare --infile1 file1 --infile2 file2"
      print *, " "
      stop
   endif
 
   !---------------------------------------------------------------------------
   ! build the plotfiles and do initial comparisons
-  !---------------------------------------------------------------------------
-
+  
   unit_a = unit_new()
   call build(pf_a, plotfile_a, unit_a)
 
@@ -181,24 +115,35 @@ program fcompare
   call build(pf_b, plotfile_b, unit_b)
 
   dm = pf_a%dim
-
+  
   ! check if they are the same dimensionality
   if (pf_a%dim /= pf_b%dim) then
      call bl_error("ERROR: plotfiles have different numbers of spatial dimensions")
   endif
-
 
   ! check if they have the same number of levels
   if (pf_a%flevel /= pf_b%flevel) then
      call bl_error("ERROR: number of levels do not match")
   endif
 
-  ! check if the finest domains are the same size
-  bx_a = plotfile_get_pd_box(pf_a, pf_a%flevel)
-  bx_b = plotfile_get_pd_box(pf_b, pf_b%flevel)
+  ! check if the problem domains are the same size at each level
+  do i = 1,  pf_a%flevel
+     bx_a = plotfile_get_pd_box(pf_a, i)
+     flo_a = 1
+     fhi_a = 1
+     flo_a(1:dm) = lwb(bx_a)
+     fhi_a(1:dm) = upb(bx_a)
 
-  if (.not. box_equal(bx_a, bx_b)) &
-     call bl_error("ERROR: problem domains do not match")
+     bx_b = plotfile_get_pd_box(pf_b, i)
+     flo_b(1:dm) = lwb(bx_b)
+     fhi_b(1:dm) = upb(bx_b)
+
+     if ( (flo_a(1) /= flo_b(1) .OR. fhi_a(1) /= fhi_b(1)) .OR. &
+         ((flo_a(2) /= flo_b(2) .OR. fhi_a(2) /= fhi_b(2)) .AND. pf_a%dim >= 2) .OR. &
+         ((flo_a(3) /= flo_b(3) .OR. fhi_a(3) /= fhi_b(3)) .AND. pf_a%dim == 3) ) then
+        call bl_error("ERROR: problem domains do not match")
+     endif
+  enddo
 
   ! check if they have the same number of variables
   if (pf_a%nvars /= pf_b%nvars) then
@@ -208,16 +153,9 @@ program fcompare
 
   allocate(aerror(pf_a%nvars))
   allocate(rerror(pf_a%nvars))
-  allocate(rerror_denom(pf_a%nvars))
 
   allocate(has_nan_a(pf_a%nvars))
   allocate(has_nan_b(pf_a%nvars))
-
-  any_nans = .false.
-  all_variables_found = .true.
-
-  save_var_a = -1
-  zone_info_var_a = -1
 
   ! in case the variables are not in the same order, figure out the
   ! mapping between pf_a and pf_b variables
@@ -238,19 +176,6 @@ program fcompare
      if (ivar_b(n_a) == -1) then
         print *, "WARNING: variable ", trim(pf_a%names(n_a)), &
                  " not found in plotfile 2"
-        all_variables_found = .false.
-     endif
-
-     if (.not. diffvar == "") then
-        if (pf_a%names(n_a) == trim(diffvar)) then
-           save_var_a = n_a
-        endif
-     endif
-
-     if (.not. zone_info_var_name == "") then
-        if (pf_a%names(n_a) == trim(zone_info_var_name)) then
-           zone_info_var_a = n_a
-        endif
      endif
 
   enddo
@@ -271,69 +196,24 @@ program fcompare
      if (itest == -1) then
         print *, "WARNING: variable ", trim(pf_b%names(n_b)), &
                  " not found in plotfile 1"
-        all_variables_found = .false.
      endif
 
   enddo
 
-
-  !---------------------------------------------------------------------------
-  ! create a multifab to store the difference for output, if desired
-  !---------------------------------------------------------------------------
-
-  if (save_var_a > 0) then
-
-     allocate(mf_array(plotfile_nlevels(pf_a)))
-     allocate(ref_ratio(plotfile_nlevels(pf_a)-1))
-
-     ! define ref_ratio
-     do i = 1, pf_a%flevel-1
-        ref_ratio(i) = pf_a%refrat(i,1)
-     enddo
-
-     ! loop over levels and grids and define the boxes needed to build the
-     ! multifab
-     do i = 1, pf_a%flevel
-
-        do j = 1, nboxes(pf_a, i)
-           call push_back(bl, get_box(pf_a,i,j))
-        enddo
-
-        call build(ba,bl)
-        call layout_build_ba(la,ba,plotfile_get_pd_box(pf_a,1))
-
-        ! destroy the list and boxarray so we start over next level
-        call destroy(bl)
-        call destroy(ba)
-
-        ! create a new multifab with 0 ghost cells and 1 component
-        call multifab_build(mf_array(i),la,1,0)
-
-     enddo
-
-  endif
-
   !---------------------------------------------------------------------------
   ! go level-by-level and patch-by-patch and compare the data
-  !---------------------------------------------------------------------------
-
-998 format(1x,a24,2x,a24,   2x,a24)
+  
+998 format(1x,a24,2x,a20,   2x,a20)
 999 format(1x,70("-"))
 
   write (*,*) " "
-  write (*,998) "variable name", "absolute error",  "relative error"
-  write (*,998) "",              "(||A - B||)",     "(||A - B||/||A||)"
+  write (*,998) "variable name", "absolute error", "relative error"
   write (*,999)
 
-  gc_warn = .false.
-
-  max_abs_err = -1.d33
-
-  do i = 1, pf_a%flevel
+   do i = 1,  pf_a%flevel
 
      aerror(:) = ZERO
      rerror(:) = ZERO
-     rerror_denom(:) = ZERO
 
      has_nan_a(:) = .false.
      has_nan_b(:) = .false.
@@ -350,14 +230,9 @@ program fcompare
         call bl_error("ERROR: grid dx does not match")
      endif
 
-     ! make sure the number of boxes agree
      nboxes_a = nboxes(pf_a, i)
      nboxes_b = nboxes(pf_b, i)
-
-!    if (nboxes_a /= nboxes_b) then
-!       call bl_error("ERROR: number of boxes do not match")
-!    endif
-
+     
      do ja = 1, nboxes_a
 
         bx_a = get_box(pf_a, i, ja)
@@ -367,32 +242,12 @@ program fcompare
         hi_a(1:dm) = upb(bx_a)
 
         do jb = 1, nboxes_b
-           bx_b = get_box(pf_b, pf_b%flevel, jb)
+           bx_b = get_box(pf_b, i, jb)
            lo_b = 1
            hi_b = 1
            lo_b(1:dm) = lwb(bx_b)
            hi_b(1:dm) = upb(bx_b)
 
-           if ( ((nghost(pf_a, i, j) != 0) .or. (nghost(pf_b, i, jb) != 0)) .and. &
-                (bx_a .ne. bx_b) ) then
-              call bl_error("ERROR: boxes must match if including ghost cells")
-           end if
-
-           if (.not. nghost(pf_a, i, j) == nghost(pf_b, i, jb)) then
-              if (.not. gc_warn) then
-                 call bl_warn("WARNING: grids have different numbers of ghost cells")
-                 gc_warn = .true.
-              endif
-              ng = 0
-           else
-              if (do_ghost) then
-                 ng = nghost(pf_a, i, j)
-              else
-                 ng = 0
-              endif
-           endif
-
-           ! Do these boxes intersect?
            if (.not. box_intersects(bx_a,bx_b)) cycle
 
            bx_i = box_intersection(bx_a,bx_b)
@@ -401,84 +256,79 @@ program fcompare
            lo_i(1:dm) = lwb(bx_i)
            hi_i(1:dm) = upb(bx_i)
 
-        ! loop over the variables.  Take plotfile_a to be the one defining
-        ! the list of variables, and bind them one-by-one.  Don't assume that
-        ! the variables are in the same order in plotfile_b.
+           ! loop over the variables.  Take plotfile_a to be the one defining
+           ! the list of variables, and bind them one-by-one.  Don't assume that
+           ! the variables are in the same order in plotfile_b.
 
-        do n_a = 1, pf_a%nvars
+           do n_a = 1, pf_a%nvars
 
-           n_b = ivar_b(n_a)
-           if (n_b == -1) cycle
+              n_b = ivar_b(n_a)
+              if (n_b == -1) cycle
 
-           call fab_bind_comp_vec(pf_a, i, ja, (/ n_a /) )
-           call fab_bind_comp_vec(pf_b, i, jb, (/ n_b /) )
+              call fab_bind_comp_vec(pf_a, i, ja, (/ n_a /) )
+              call fab_bind_comp_vec(pf_b, i, jb, (/ n_b /) )
 
-           p_a => dataptr(pf_a, i, ja)
-           p_b => dataptr(pf_b, i, jb)
+              p_a => dataptr(pf_a, i, ja)
+              p_b => dataptr(pf_b, i, jb)
+              
+              ! check for NaNs -- comparisons don't work when they are present
+              call fab_contains_nan(p_a, &
+                   (hi_a(3)-lo_a(3)+1)* &
+                   (hi_a(2)-lo_a(2)+1)* &
+                   (hi_a(1)-lo_a(1)+1),  ir_a)
+              
+              if (ir_a == 1) has_nan_a(n_a) = .true.
 
-           ! are we storing the diff?
-           if (n_a == save_var_a) then
-              mp => dataptr(mf_array(i), j, get_box(mf_array(i), j))
+              call fab_contains_nan(p_b, &
+                   (hi_b(3)-lo_b(3)+1)* &
+                   (hi_b(2)-lo_b(2)+1)* &
+                   (hi_b(1)-lo_b(1)+1),  ir_b)
+              
+              if (ir_b == 1) has_nan_b(n_a) = .true.
+              
+              if (has_nan_a(n_a) .or. has_nan_b(n_a)) cycle
+              
 
-              mp(:,:,:,1) = abs(p_a(:,:,:,1) - p_b(:,:,:,1))
-           endif
+              do kk = lo_i(3), hi_i(3)
+                 do jj = lo_i(2), hi_i(2)
+                    do ii = lo_i(1), hi_i(1)
 
-           ! check for NaNs -- comparisons don't work when they are present
-           call fab_contains_nan(p_a, &
-                (hi_a(3)-lo_a(3)+1)* &
-                (hi_a(2)-lo_a(2)+1)* &
-                (hi_a(1)-lo_a(1)+1),  ir_a)
+                       pa = abs(p_a(ii,jj,kk,1))
+                       pb = abs(p_b(ii,jj,kk,1))
+                       pd = abs(p_a(ii,jj,kk,1) - p_b(ii,jj,kk,1))
 
-           if (ir_a == 1) has_nan_a(n_a) = .true.
-
-           call fab_contains_nan(p_b, &
-                (hi_b(3)-lo_b(3)+1)* &
-                (hi_b(2)-lo_b(2)+1)* &
-                (hi_b(1)-lo_b(1)+1),  ir_b)
-
-           if (ir_b == 1) has_nan_b(n_a) = .true.
-
-           if (has_nan_a(n_a) .or. has_nan_b(n_a)) cycle
-
-           do kk = lo_a(3)-ng, hi_a(3)+ng
-              do jj = lo_a(2)-ng, hi_a(2)+ng
-                 do ii = lo_a(1)-ng, hi_a(1)+ng
-
-                    pa = abs(p_a(ii,jj,kk,1))
-                    pb = abs(p_b(ii,jj,kk,1))
-                    pd = abs(p_a(ii,jj,kk,1) - p_b(ii,jj,kk,1))
-
-                    if (norm == 0) then
-                       aerror(n_a) = max(aerror(n_a), pd)
-
-                       rerror(n_a) = max(rerror(n_a), pd)
-                       rerror_denom(n_a) = max(rerror_denom(n_a), pa)
-                    else
-                       aerror(n_a) = aerror(n_a) + pd**norm
-
-                       rerror(n_a) = rerror(n_a) + pd**norm
-                       rerror_denom(n_a) = rerror_denom(n_a) + pa**norm
-                    endif
-
-                    if (n_a == zone_info_var_a .and. pd > max_abs_err) then
-                       max_abs_err = pd
-                       err_zone % level = i
-                       err_zone % box = j
-                       err_zone % i = ii
-                       err_zone % j = jj
-                       err_zone % k = kk
-                    endif
-
+                       if (norm == 0) then
+                          aerror(n_a) = max(aerror(n_a),pd)
+                          if (pa .ne. 0.d0) then 
+                             rerror(n_a) = max(rerror(n_a), pd/pa)
+                          else if (pb .ne. 0.d0) then 
+                             rerror(n_a) = max(rerror(n_a), pd/pb)
+                          else 
+                             ! The relative error is zero so do nothing
+                          end if
+                       else
+                          aerror(n_a) = aerror(n_a) + pd**norm
+                          if (pa .ne. 0.d0) then 
+                             rerror(n_a) = rerror(n_a) + (pd/pa)**norm
+                          else if (pb .ne. 0.d0) then 
+                             rerror(n_a) = rerror(n_a) + (pd/pb)**norm
+                          else 
+                             ! The relative error is zero so do nothing
+                          end if
+                       endif
+                       
+                    enddo
                  enddo
               enddo
-           enddo
 
-           call fab_unbind(pf_a, i, j)
-           call fab_unbind(pf_b, i, j)
+              call fab_unbind(pf_a, i, ja)
+              call fab_unbind(pf_b, i, jb)
 
-        enddo  ! variable loop
+           enddo  ! variable loop
 
-     enddo  ! boxes loop
+        end do ! boxes loop b
+
+     enddo  ! boxes loop a
 
      ! Normalize
      if (norm > 0) then
@@ -487,15 +337,8 @@ program fcompare
            aerror(n_a) = aerror(n_a)*product(dx_a(1:pf_a%dim))
            aerror(n_a) = aerror(n_a)**(ONE/real(norm,dp_t))
 
-           ! since we are taking the ratio of two norms, no grid normalization
-           ! is needed
-           rerror(n_a) = (rerror(n_a)/rerror_denom(n_a))**(ONE/real(norm,dp_t))
-        enddo
-
-     else
-
-        do n_a = 1, pf_a%nvars
-           rerror(n_a) = rerror(n_a)/rerror_denom(n_a)
+           rerror(n_a) = rerror(n_a)*product(dx_a(1:pf_a%dim))
+           rerror(n_a) = rerror(n_a)**(ONE/real(norm,dp_t))
         enddo
 
      endif
@@ -503,97 +346,23 @@ program fcompare
 
      !------------------------------------------------------------------------
      ! print out the comparison report for this level
-     !------------------------------------------------------------------------
-
+     
 1000 format(1x,"level = ", i2)
-1001 format(1x,a24,2x,g24.10,2x,g24.10)
-1002 format(1x,a24,2x,a50)
-1003 format(1x,a24,2x,g24.10)
+1001 format(1x,a24,2x,g20.10,2x,g20.10)
+1002 format(1x,a24,2x,a42)
 
      write (*,1000) i
 
      do n_a = 1, pf_a%nvars
         if (ivar_b(n_a) == -1) then
            write (*,1002) pf_a%names(n_a), "< variable not present in both files > "
-
         else if (has_nan_a(n_a) .or. has_nan_b(n_a)) then
            write (*,1002) pf_a%names(n_a), "< NaN present > "
-
         else
-           if (aerror(n_a) > 0.0d0) then
-              aerr = min(max(aerror(n_a), 1.d-99), 1.d98)
-           else
-              aerr = 0.0d0
-           endif
-
-           if (rerror(n_a) > 0.0d0) then
-              rerr = min(max(rerror(n_a), 1.d-99), 1.d98)
-           else
-              rerr = 0.0d0
-           endif
-
-           write (*,1001) pf_a%names(n_a), aerr, rerr
+           write (*,1001) pf_a%names(n_a), aerror(n_a), rerror(n_a)
         endif
      enddo
 
-     if (i == 1) then
-        global_error = maxval(aerror(:))
-     else
-        global_error = max(global_error, maxval(aerror(:)))
-     endif
-
-     any_nans = any(has_nan_a .or. has_nan_b) .or. any_nans
-
-  enddo  ! level loop
-
-  if (save_var_a > 0) then
-     call fabio_ml_multifab_write_d(mf_array, ref_ratio, &
-                                    "diffs", plot_names, &
-                                    plotfile_get_pd_box(pf_a,1), &
-                                    pf_a%plo, pf_a%phi, &
-                                    pf_a%tm, &
-                                    plotfile_get_dx(pf_a,1))
-  endif
-
-
-  !------------------------------------------------------------------------
-  ! print out the zone info for max abs error (if desired)
-  !------------------------------------------------------------------------
-  if (zone_info) then
-
-     call fab_bind(pf_a, err_zone % level, err_zone % box)
-     p => dataptr(pf_a, err_zone % level, err_zone % box)
-
-     print *, " "
-     print *, "maximum error in ", trim(zone_info_var_name)
-     print *, "level = ", err_zone % level, " (i,j,k) = ", &
-          err_zone % i, err_zone % j, err_zone % k
-     do n_a = 1, pf_a%nvars
-        write (*, 1003) trim(pf_a%names(n_a)), &
-             p(err_zone % i, err_zone % j, err_zone % k, n_a)
-     enddo
-
-  endif
-
-  call destroy(pf_a)
-  call destroy(pf_b)
-
-  deallocate(plot_names)
-
-  deallocate(aerror)
-  deallocate(rerror)
-  deallocate(rerror_denom)
-
-  deallocate(has_nan_a)
-  deallocate(has_nan_b)
-
-  deallocate(ivar_b)
-
-  if (global_error == ZERO .and. .not. any_nans .and. all_variables_found) then
-     print *, "PLOTFILES AGREE"
-     call send_success_return_code()
-  else
-     call send_fail_return_code()
-  endif
+   enddo  ! level loop
 
 end program fcompare
