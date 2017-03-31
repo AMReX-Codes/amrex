@@ -3,6 +3,7 @@
 #include <sstream>
 
 #include <WarpXConst.H>
+// #include <AMReX_ParmParse.H> // mthevenet
 #include <AMReX.H>
 
 using namespace amrex;
@@ -12,11 +13,11 @@ namespace {
                                  const std::string& name) {
         std::stringstream stringstream;
         std::string string;
-        stringstream << var << " string '" << name << "' not recognized."; 
+        stringstream << var << " string '" << name << "' not recognized.";
         string = stringstream.str();
-        amrex::Abort(string.c_str());    
+        amrex::Abort(string.c_str());
     }
-    
+
     Real parseChargeName(const std::string& name) {
         if (name == "q_e") {
             return PhysConst::q_e;
@@ -25,13 +26,13 @@ namespace {
             return 0.0;
         }
     }
-    
+
     Real parseChargeString(const std::string& name) {
         if(name.substr(0, 1) == "-")
-            return -1.0 * parseChargeName(name.substr(1, name.size() - 1)); 
+            return -1.0 * parseChargeName(name.substr(1, name.size() - 1));
         return parseChargeName(name);
     }
-    
+
     Real parseMassString(const std::string& name) {
         if (name == "m_e") {
             return PhysConst::m_e;
@@ -61,7 +62,7 @@ CustomDensityProfile::CustomDensityProfile(const std::string& species_name)
 
 ConstantMomentumDistribution::ConstantMomentumDistribution(Real ux,
                                                            Real uy,
-                                                           Real uz) 
+                                                           Real uz)
     : _ux(ux), _uy(uy), _uz(uz)
 {}
 
@@ -74,8 +75,8 @@ void ConstantMomentumDistribution::getMomentum(vec3& u) {
 GaussianRandomMomentumDistribution::GaussianRandomMomentumDistribution(Real ux_m,
                                                                        Real uy_m,
                                                                        Real uz_m,
-                                                                       Real u_th) 
-    : _ux_m(ux_m), _uy_m(uy_m), _uz_m(uz_m), _u_th(u_th), 
+                                                                       Real u_th)
+    : _ux_m(ux_m), _uy_m(uy_m), _uz_m(uz_m), _u_th(u_th),
       momentum_distribution(0.0, u_th)
 {
 }
@@ -89,7 +90,61 @@ void GaussianRandomMomentumDistribution::getMomentum(vec3& u) {
     u[2] = _uz_m + uz_th;
 }
 
-PlasmaInjector::PlasmaInjector(int ispecies, const std::string& name) 
+DiagonalPosition::DiagonalPosition(int num_particles_per_cell):
+  _num_particles_per_cell(num_particles_per_cell)
+{}
+
+void DiagonalPosition::getPositionUnitBox(vec3& r, int i_part){
+  Real particle_shift = (0.5+i_part)/_num_particles_per_cell;
+  r[0] = particle_shift;
+  r[1] = particle_shift;
+  r[2] = particle_shift;
+}
+
+RandomPosition::RandomPosition(int num_particles_per_cell):
+  _num_particles_per_cell(num_particles_per_cell),
+  position_distribution(0.0,1.0)
+{}
+
+void RandomPosition::getPositionUnitBox(vec3& r, int i_part){
+  r[0] = position_distribution(generator);
+  r[1] = position_distribution(generator);
+  r[2] = position_distribution(generator);
+}
+
+RegularPosition::RegularPosition(amrex::Array<int> num_particles_per_cell_each_dim):
+  _num_particles_per_cell_each_dim(num_particles_per_cell_each_dim)
+{}
+
+void RegularPosition::getPositionUnitBox(vec3& r, int i_part){
+
+#if ( BL_SPACEDIM == 3 )
+  int nx = _num_particles_per_cell_each_dim[0];
+  int ny = _num_particles_per_cell_each_dim[1];
+  int nz = _num_particles_per_cell_each_dim[2];
+
+  int ix_part = i_part/(ny * nz);
+  int iy_part = (i_part % (ny * nz)) % ny;
+  int iz_part = (i_part % (ny * nz)) / ny;
+
+  r[0] = (0.5+ix_part)/nx;
+  r[1] = (0.5+iy_part)/ny;
+  r[2] = (0.5+iz_part)/nz;
+
+#elif ( BL_SPACEDIM == 2 )
+  int nx = _num_particles_per_cell_each_dim[0];
+  int nz = _num_particles_per_cell_each_dim[1];
+
+  int ix_part = i_part / nz;
+  int iz_part = i_part % nz;
+
+  r[0] = (0.5+ix_part)/nx;
+  r[1] = (0.5+iz_part)/nz;
+
+#endif
+}
+
+PlasmaInjector::PlasmaInjector(int ispecies, const std::string& name)
     : species_id(ispecies), species_name(name)
 {
     ParmParse pp(species_name);
@@ -97,17 +152,17 @@ PlasmaInjector::PlasmaInjector(int ispecies, const std::string& name)
     // parse charge and mass
     std::string charge_s;
     pp.get("charge", charge_s);
-    std::transform(charge_s.begin(), 
-                   charge_s.end(), 
-                   charge_s.begin(), 
+    std::transform(charge_s.begin(),
+                   charge_s.end(),
+                   charge_s.begin(),
                    ::tolower);
     charge = parseChargeString(charge_s);
 
     std::string mass_s;
     pp.get("mass", mass_s);
-    std::transform(mass_s.begin(), 
-                   mass_s.end(), 
-                   mass_s.begin(), 
+    std::transform(mass_s.begin(),
+                   mass_s.end(),
+                   mass_s.begin(),
                    ::tolower);
     mass = parseMassString(mass_s);
 
@@ -127,27 +182,40 @@ PlasmaInjector::PlasmaInjector(int ispecies, const std::string& name)
     pp.query("ymax", ymax);
     pp.query("zmax", zmax);
 
-    // get injection style
-    pp.get("injection_style", injection_style);
-    std::transform(injection_style.begin(), 
-                   injection_style.end(), 
-                   injection_style.begin(), 
+    // parse injection style
+    std::string part_pos_s;
+    pp.get("injection_style", part_pos_s);
+    std::transform(part_pos_s.begin(),
+                   part_pos_s.end(),
+                   part_pos_s.begin(),
                    ::tolower);
-    if (injection_style == "python") {
+    if (part_pos_s == "python") {
         return;
-    } 
-    else if (not (injection_style == "nrandomnormal" or
-                  injection_style == "nrandomuniformpercell" or
-                  injection_style == "ndiagpercell")) {
-        StringParseAbortMessage("Injection style", injection_style);
+    } else if (part_pos_s == "ndiagpercell") {
+        pp.query("num_particles_per_cell", num_particles_per_cell);
+        part_pos.reset(new DiagonalPosition(num_particles_per_cell));
+    } else if (part_pos_s == "nrandompercell") {
+        pp.query("num_particles_per_cell", num_particles_per_cell);
+        part_pos.reset(new RandomPosition(num_particles_per_cell));
+    } else if (part_pos_s == "nuniformpercell") {
+        pp.getarr("num_particles_per_cell_each_dim", num_particles_per_cell_each_dim);
+#if ( BL_SPACEDIM == 2 )
+        num_particles_per_cell_each_dim[2] = 1;
+#endif
+        part_pos.reset(new RegularPosition(num_particles_per_cell_each_dim));
+        num_particles_per_cell = num_particles_per_cell_each_dim[0] *
+                                 num_particles_per_cell_each_dim[1] *
+                                 num_particles_per_cell_each_dim[2];
+    } else {
+        StringParseAbortMessage("Injection style", part_pos_s);
     }
 
     // parse density information
     std::string rho_prof_s;
     pp.get("profile", rho_prof_s);
-    std::transform(rho_prof_s.begin(), 
-                   rho_prof_s.end(), 
-                   rho_prof_s.begin(), 
+    std::transform(rho_prof_s.begin(),
+                   rho_prof_s.end(),
+                   rho_prof_s.begin(),
                    ::tolower);
     if (rho_prof_s == "constant") {
         Real density;
@@ -158,14 +226,13 @@ PlasmaInjector::PlasmaInjector(int ispecies, const std::string& name)
     } else {
         StringParseAbortMessage("Density profile type", rho_prof_s);
     }
-    pp.get("num_particles_per_cell", num_particles_per_cell);
-    
+
     // parse momentum information
     std::string mom_dist_s;
     pp.get("momentum_distribution_type", mom_dist_s);
-    std::transform(mom_dist_s.begin(), 
-                   mom_dist_s.end(), 
-                   mom_dist_s.begin(), 
+    std::transform(mom_dist_s.begin(),
+                   mom_dist_s.end(),
+                   mom_dist_s.begin(),
                    ::tolower);
     if (mom_dist_s == "constant") {
         Real ux = 0.;
@@ -188,6 +255,10 @@ PlasmaInjector::PlasmaInjector(int ispecies, const std::string& name)
     } else {
         StringParseAbortMessage("Momentum distribution type", mom_dist_s);
     }
+}
+
+void PlasmaInjector::getPositionUnitBox(vec3& r, int i_part) {
+  return part_pos->getPositionUnitBox(r, i_part);
 }
 
 void PlasmaInjector::getMomentum(vec3& u) {

@@ -80,7 +80,7 @@ public:
                                  amrex::Real uy,
                                  amrex::Real uz);
     virtual void getMomentum(vec3& u) override;
-    
+
 private:
     amrex::Real _ux;
     amrex::Real _uy;
@@ -88,29 +88,91 @@ private:
 };
 
 ///
-/// This is a Gaussian Random momentum distribution. 
+/// This is a Gaussian Random momentum distribution.
 /// Particles will get random momenta, drawn from a normal.
 /// ux_m, ux_y, and ux_z describe the mean components in the x, y, and z
-/// directions, while u_th is the standard deviation of the random 
+/// directions, while u_th is the standard deviation of the random
 /// component.
 ///
 class GaussianRandomMomentumDistribution : public PlasmaMomentumDistribution
 {
 public:
     GaussianRandomMomentumDistribution(amrex::Real ux_m,
-                                       amrex::Real uy_m, 
+                                       amrex::Real uy_m,
                                        amrex::Real uz_m,
                                        amrex::Real u_th);
     virtual void getMomentum(vec3& u) override;
 private:
     amrex::Real _ux_m;
     amrex::Real _uy_m;
-    amrex::Real _uz_m;    
-    amrex::Real _u_th;    
+    amrex::Real _uz_m;
+    amrex::Real _u_th;
 
     // xxxxx These random number generators are not thread safe.
     std::normal_distribution<amrex::Real> momentum_distribution;
     std::default_random_engine generator;
+};
+
+///
+/// PlasmaParticlePosition describes how particles are initialized
+/// into each cell box. Subclasses must define a
+/// getPositionUnitBox function that returns the position of
+/// particle number i_part in a unitary box.
+///
+class PlasmaParticlePosition{
+public:
+  using vec3 = std::array<amrex::Real, 3>;
+  virtual ~PlasmaParticlePosition() {};
+  virtual void getPositionUnitBox(vec3& r, int i_part) = 0;
+};
+
+///
+/// Particles are initialized on the cell diagonal,
+/// with regular spacing.
+///
+class DiagonalPosition : public PlasmaParticlePosition{
+public:
+  DiagonalPosition(int num_particles_per_cell);
+  virtual void getPositionUnitBox(vec3& r, int i_part) override;
+private:
+  amrex::Real _x;
+  amrex::Real _y;
+  amrex::Real _z;
+  int _num_particles_per_cell;
+};
+
+///
+/// Particles are initialized with a random uniform
+/// distribution inside each cell
+///
+class RandomPosition : public PlasmaParticlePosition{
+public:
+    RandomPosition(int num_particles_per_cell);
+    virtual void getPositionUnitBox(vec3& r, int i_part) override;
+private:
+    amrex::Real _x;
+    amrex::Real _y;
+    amrex::Real _z;
+    int _num_particles_per_cell;
+    // xxxxx These random number generators are not thread safe.
+    std::uniform_real_distribution<amrex::Real> position_distribution;
+    std::default_random_engine generator;
+};
+
+///
+/// Particles are regularly distributed inside each cell. The user provides
+/// a 3d (resp. 2d) vector num_particles_per_cell_each_dim that contains
+/// the number of particles per cell along each dimension.
+///
+class RegularPosition : public PlasmaParticlePosition{
+public:
+  RegularPosition(amrex::Array<int> num_particles_per_cell_each_dim);
+  virtual void getPositionUnitBox(vec3& r, int i_part) override;
+private:
+  amrex::Real _x;
+  amrex::Real _y;
+  amrex::Real _z;
+  amrex::Array<int> _num_particles_per_cell_each_dim;
 };
 
 ///
@@ -131,14 +193,18 @@ public:
 
     bool insideBounds(amrex::Real x, amrex::Real y, amrex::Real z);
 
-    int numParticlesPerCell() {return num_particles_per_cell;};
+    int num_particles_per_cell;
+
+    amrex::Array<int> num_particles_per_cell_each_dim;
 
     void getMomentum(vec3& u);
+
+    void getPositionUnitBox(vec3& r, int i_part);
 
     amrex::Real getCharge() {return charge;}
     amrex::Real getMass() {return mass;}
 
-    std::string injection_style;
+    bool doInjection() { return part_pos != NULL;}
 
 protected:
 
@@ -147,15 +213,15 @@ protected:
     amrex::Real xmin, xmax;
     amrex::Real ymin, ymax;
     amrex::Real zmin, zmax;
-    
+
     amrex::Real density;
-    int num_particles_per_cell;
 
     int species_id;
     std::string species_name;
-    
+
     std::unique_ptr<PlasmaDensityProfile> rho_prof;
     std::unique_ptr<PlasmaMomentumDistribution> mom_dist;
+    std::unique_ptr<PlasmaParticlePosition> part_pos;
 };
 
 #endif

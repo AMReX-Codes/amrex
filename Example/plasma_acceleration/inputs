@@ -73,8 +73,8 @@ plasma.ymin = -200.e-6
 plasma.ymax = 200.e-6
 plasma.zmin = 0.e-6
 
-plasma.profile = "custom"
-plasma.custom_profile_params = 1e22                  # number of particles per m^3
+plasma.profile = "constant"
+plasma.density = 1e22                  # number of particles per m^3
 plasma.num_particles_per_cell = 4
 
 plasma.momentum_distribution_type = "constant"
