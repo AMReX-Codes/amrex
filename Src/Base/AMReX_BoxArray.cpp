@@ -365,7 +365,7 @@ BoxArray::numPts () const
 #endif
     for (int i = 0; i < N; ++i)
     {
-        result += get(i).numPts();
+        result += (*this)[i].numPts();
     }
     return result;
 }
@@ -380,7 +380,7 @@ BoxArray::d_numPts () const
 #endif
     for (int i = 0; i < N; ++i)
     {
-        result += get(i).d_numPts();
+        result += (*this)[i].d_numPts();
     }
     return result;
 }
@@ -406,7 +406,7 @@ BoxArray::writeOn (std::ostream& os) const
 
     const int N = size();
     for (int i = 0; i < N; ++i)
-        os << get(i) << '\n';
+        os << (*this)[i] << '\n';
 
     os << ')';
 
@@ -602,15 +602,13 @@ BoxArray::convert (Box (*fp)(const Box&))
 
     const int N = size();
     if (N > 0) {
-        m_typ = fp(get(0)).ixType();
-        m_transformer->setIxType(m_typ);
         uniqify();
 
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
         for (int i = 0; i < N; ++i) {
-            set(i,fp(get(i)));
+            set(i,fp((*this)[i]));
         }
     }
     return *this;
@@ -647,12 +645,15 @@ BoxArray::shift (const IntVect& iv)
     return *this;
 }
 
-IndexType
+void
 BoxArray::set (int        i,
                const Box& ibox)
 {
+    if (i == 0) {
+        m_typ = ibox.ixType();
+        m_transformer->setIxType(m_typ);
+    }
     m_ref->m_abox[i] = amrex::enclosedCells(ibox);
-    return ibox.ixType();
 }
 
 Box
@@ -678,7 +679,7 @@ BoxArray::ok () const
     {
         for (int i = 0; i < N; ++i)
         {
-            if(!get(i).ok()) {
+            if(!(*this)[i].ok()) {
                 return false;
             }
         }
@@ -696,7 +697,7 @@ BoxArray::isDisjoint () const
     const int N = size();
     for (int i = 0; i < N; ++i)
     {
-	intersections(get(i),isects);
+	intersections((*this)[i],isects);
         if ( isects.size() > 1 ) {
             return false;
         }
@@ -709,11 +710,10 @@ BoxList
 BoxArray::boxList () const
 {
     BoxList newb;
-    const int N = size();
-    if ( N > 0 ) {
+    if (const int N = size() > 0) {
 	newb.set(ixType());
 	for (int i = 0; i < N; ++i) {
-	    newb.push_back(get(i));
+	    newb.push_back((*this)[i]);
         }
     }
     return newb;
@@ -722,8 +722,7 @@ BoxArray::boxList () const
 bool
 BoxArray::contains (const IntVect& iv) const
 {
-    if (size() > 0)
-    {
+    if (size() > 0) {
 	return intersects(Box(iv,iv,ixType()));
     } else {
 	return false;
@@ -733,8 +732,6 @@ BoxArray::contains (const IntVect& iv) const
 bool
 BoxArray::contains (const Box& b, bool assume_disjoint_ba) const
 {
-    BL_ASSERT(!assume_disjoint_ba || isDisjoint());
-
     bool result = false;
 
     if (size() > 0)
@@ -748,6 +745,7 @@ BoxArray::contains (const Box& b, bool assume_disjoint_ba) const
         if (isects.size() > 0)
         {
 	    if (assume_disjoint_ba) {
+                BL_ASSERT(isDisjoint());
 		long nbx = b.numPts(), nisects = 0L;
 		for (int i = 0, N = isects.size(); i < N; i++) {
 		    nisects += isects[i].second.numPts();
@@ -767,14 +765,14 @@ BoxArray::contains (const Box& b, bool assume_disjoint_ba) const
 }
 
 bool
-BoxArray::contains (const BoxArray& bl, bool assume_disjoint_ba) const
+BoxArray::contains (const BoxArray& ba, bool assume_disjoint_ba) const
 {
     if (size() == 0) return false;
 
-    if (!minimalBox().contains(bl.minimalBox())) return false;
+    if (!minimalBox().contains(ba.minimalBox())) return false;
 
-    for (int i = 0, N = bl.size(); i < N; ++i) {
-        if (!contains(bl[i],assume_disjoint_ba)) {
+    for (int i = 0, N = ba.size(); i < N; ++i) {
+        if (!contains(ba[i],assume_disjoint_ba)) {
             return false;
 	}
     }
@@ -785,15 +783,17 @@ BoxArray::contains (const BoxArray& bl, bool assume_disjoint_ba) const
 Box
 BoxArray::minimalBox () const
 {
+    BL_ASSERT(m_simple);
     Box minbox;
     const int N = size();
     if (N > 0)
     {
         minbox = m_ref->m_abox[0];
-	for (int i = 1; i < N; ++i)
+	for (int i = 1; i < N; ++i) {
             minbox.minBox(m_ref->m_abox[i]);
+        }
     }
-    minbox.convert(ixType());
+    minbox.refine(m_crse_ratio).convert(ixType());
     return minbox;
 }
 
@@ -855,7 +855,7 @@ BoxArray::intersections (const Box&                         bx,
 	const IntVect& doihi = getDoiHi();
 
 	gbx.setSmall(glo - doihi).setBig(ghi + doilo);
-        gbx.coarsen(m_ref->crsn);
+        gbx.refine(m_crse_ratio).coarsen(m_ref->crsn);
 	
         const IntVect& sm = amrex::max(gbx.smallEnd()-1, m_ref->bbox.smallEnd());
         const IntVect& bg = amrex::min(gbx.bigEnd(),     m_ref->bbox.bigEnd());
@@ -864,20 +864,17 @@ BoxArray::intersections (const Box&                         bx,
 
 	if (!cbx.intersects(m_ref->bbox)) return;
 
-	BARef::HashType::const_iterator TheEnd = BoxHashMap.end();
+	auto TheEnd = BoxHashMap.cend();
 
         for (IntVect iv = cbx.smallEnd(), End = cbx.bigEnd(); iv <= End; cbx.next(iv))
         {
-            BARef::HashType::const_iterator it = BoxHashMap.find(iv);
+            auto it = BoxHashMap.find(iv);
 
             if (it != TheEnd)
             {
-                for (std::vector<int>::const_iterator v_it = it->second.begin(), v_end = it->second.end();
-                     v_it != v_end;
-                     ++v_it)
+                for (const int index : it->second)
                 {
-                    const int  index = *v_it;
-                    const Box& isect = bx & amrex::grow(get(index),ng);
+                    const Box& isect = bx & amrex::grow((*this)[index],ng);
 
                     if (isect.ok())
                     {
@@ -909,7 +906,7 @@ BoxArray::complement (const Box& bx) const
 	const IntVect& doihi = getDoiHi();
 
 	gbx.setSmall(glo - doihi).setBig(ghi + doilo);
-        gbx.coarsen(m_ref->crsn);
+        gbx.refine(m_crse_ratio).coarsen(m_ref->crsn);
 	
         const IntVect& sm = amrex::max(gbx.smallEnd()-1, m_ref->bbox.smallEnd());
         const IntVect& bg = amrex::min(gbx.bigEnd(),     m_ref->bbox.bigEnd());
@@ -918,22 +915,19 @@ BoxArray::complement (const Box& bx) const
 
 	if (!cbx.intersects(m_ref->bbox)) return bl;
 
-	BARef::HashType::const_iterator TheEnd = BoxHashMap.end();
+	auto TheEnd = BoxHashMap.cend();
 
 	for (IntVect iv = cbx.smallEnd(), End = cbx.bigEnd(); 
 	     iv <= End && bl.isNotEmpty(); 
 	     cbx.next(iv))
         {
-            BARef::HashType::const_iterator it = BoxHashMap.find(iv);
+            auto it = BoxHashMap.find(iv);
 
             if (it != TheEnd)
             {
-                for (std::vector<int>::const_iterator v_it = it->second.begin(), v_end = it->second.end(); 
-		     v_it != v_end && bl.isNotEmpty(); 
-		     ++v_it)
+                for (const int index : it->second)
                 {
-                    const int  index = *v_it;
-                    const Box& isect = bx & get(index);
+                    const Box& isect = bx & (*this)[index];
 
                     if (isect.ok())
                     {
@@ -971,10 +965,9 @@ void
 BoxArray::removeOverlap ()
 {
     BL_ASSERT(ixType().cellCentered());
+    BL_ASSERT(m_crse_ratio == 1);
 
-    if (m_ref.use_count() > 1) {
-        uniqify();
-    }
+    uniqify();
 
     BARef::HashType& BoxHashMap = m_ref->hash;
 
@@ -1096,10 +1089,8 @@ BoxArray::type_update ()
         m_transformer->setIxType(m_typ);
 	if (!m_typ.cellCentered())
 	{
-	    for (Array<Box>::iterator it = m_ref->m_abox.begin(), End = m_ref->m_abox.end(); 
-		 it != End; ++it)
-	    {
-		it->enclosedCells();
+            for (auto& bx : m_ref->m_abox) {
+		bx.enclosedCells();
 	    }
 	}
     }
@@ -1239,8 +1230,6 @@ intersect (const BoxArray& ba,
     BoxArray r(N);
 
     if (N > 0) {
-        r.m_typ = b.ixType();
-        r.m_transformer->setIxType(r.m_typ);
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
@@ -1284,7 +1273,7 @@ convert (const BoxArray& ba, const IntVect& typ)
 
 BoxList
 GetBndryCells (const BoxArray& ba,
-                       int             ngrow)
+               int             ngrow)
 {
     BL_ASSERT(ba.ok());
     BL_ASSERT(ba.size() > 0);
@@ -1365,15 +1354,12 @@ readBoxArray (BoxArray&     ba,
         unsigned long in_hash; // will be ignored
         is.ignore(bl_ignore_max, '(') >> maxbox >> in_hash;
         ba.resize(maxbox);
-        IndexType t;
         for (int i = 0; i < maxbox; i++)
         {
             Box b;
             is >> b;
-            t = ba.set(i, b);
+            ba.set(i, b);
         }
-        ba.m_typ = t;
-        ba.m_transformer->setIxType(t);
         is.ignore(bl_ignore_max, ')');
 
         if (is.fail()) {
@@ -1403,16 +1389,13 @@ BoxArray UnSerializeBoxArray(const Array<int> &serarray)
   int nIntsInBox(3 * BL_SPACEDIM);
   int nBoxes(serarray.size() / nIntsInBox);
   BoxArray ba(nBoxes);
-  IndexType t;
   for(int i(0); i < nBoxes; ++i) {
     Array<int> aiBox(nIntsInBox);
     for(int j(0); j < nIntsInBox; ++j) {
       aiBox[j] = serarray[i * nIntsInBox + j];
     }
-    t = ba.set(i, amrex::UnSerializeBox(aiBox));
+    ba.set(i, amrex::UnSerializeBox(aiBox));
   }
-  ba.m_typ = t;
-  ba.m_transformer->setIxType(t);
   return ba;
 }
 
