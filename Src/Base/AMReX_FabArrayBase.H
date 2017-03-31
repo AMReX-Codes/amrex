@@ -373,11 +373,12 @@ protected:
 	    bool enforce_periodicity_only);
         ~FB ();
 
-	IndexType           m_typ;
-        int                 m_ngrow;
-        bool                m_cross;
-	bool                m_epo;
-	Periodicity         m_period;
+	IndexType    m_typ;
+        IntVect      m_crse_ratio; // BoxArray in FabArrayBase may have crse_ratio.
+        int          m_ngrow;
+        bool         m_cross;
+	bool         m_epo;
+	Periodicity  m_period;
         //
         // The cache of local and send/recv per FillBoundary().
         //

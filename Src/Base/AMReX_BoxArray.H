@@ -409,6 +409,9 @@ public:
     //! Return index type of this BoxArray
     IndexType ixType () const { return m_typ; }
 
+    //! Return crse ratio of this BoxArray
+    IntVect crseRatio () const { return m_crse_ratio; }
+
 #ifdef BL_USE_MPI
     //! Broadcast the BoxArray
     static void SendBoxArray(const BoxArray &ba, int whichSidecar);
