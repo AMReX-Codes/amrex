@@ -43,6 +43,9 @@ public:
     //! Return number of variables (aka components) associated with each point.
     int nComp () const { return n_comp; }
 
+    //! Return index type.
+    IndexType ixType () const { return boxarray.ixType(); }
+    
     //! Return the communicator associated with this FabArray
     ParallelDescriptor::Color color () const { return distributionMap.color(); }
 
