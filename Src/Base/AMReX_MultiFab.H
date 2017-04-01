@@ -8,6 +8,7 @@
 #include <AMReX_BLassert.H>
 #include <AMReX_FArrayBox.H>
 #include <AMReX_FabArray.H>
+#include <AMReX_Periodicity.H>
 
 namespace amrex
 {
@@ -130,6 +131,11 @@ public:
     Array<Real> norm0 (const Array<int>& comps, int nghost = 0, bool local = false) const;
     /**
     * \brief Returns the L1 norm of component "comp" over the MultiFab.
+    * No ghost cells are used.  This version has no double counting for nodal data.
+    */
+    Real norm1 (int comp, const Periodicity& period) const;
+    /**
+    * \brief Returns the L1 norm of component "comp" over the MultiFab.
     * ngrow ghost cells are used.
     */
     Real norm1 (int comp = 0, int ngrow = 0, bool local = false) const;
@@ -143,6 +149,11 @@ public:
     * No ghost cells are used.
     */
     Real norm2 (int comp = 0) const;
+    /**
+    * \brief Returns the L2 norm of component "comp" over the MultiFab.
+    * No ghost cells are used. This version has no double counting for nodal data.
+    */
+    Real norm2 (int comp, const Periodicity& period) const;
     /**
     * \brief Returns the L2 norm of each component of "comps" over the MultiFab.
     * No ghost cells are used.
@@ -488,6 +499,11 @@ public:
 
     void SumBoundary (int scomp, int ncomp, const Periodicity& period = Periodicity::NonPeriodic());
 
+    /**
+     * \brief Return a mask indicating how many duplicates are in each point.
+     */
+    std::unique_ptr<MultiFab> OverlapMask (const Periodicity& period = Periodicity::NonPeriodic()) const;
+    
     static void Initialize ();
     static void Finalize ();
 
