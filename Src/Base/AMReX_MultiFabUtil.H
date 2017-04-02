@@ -1,11 +1,11 @@
 #ifndef _MultiFabUtil_H_
 #define _MultiFabUtil_H_
 
-#include <AMReX_Geometry.H>
-#include <AMReX_MultiFab.H>
-
 namespace amrex
-{    
+{
+    class Geometry;
+    class MultiFab;
+    
     //! Average face-based MultiFab onto cell-centered MultiFab.
     void average_edge_to_cellcenter (MultiFab& cc, int dcomp, const Array<const MultiFab*>& edge);
 
