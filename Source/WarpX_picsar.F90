@@ -236,7 +236,7 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
     lvect,current_depo_algo) &
     bind(C, name="warpx_current_deposition")
 
-    integer, intent(in) :: jx_ntot(3), jy_ntot(3), jz_ntot(3)
+    integer, intent(in) :: jx_ntot(BL_SPACEDIM), jy_ntot(BL_SPACEDIM), jz_ntot(BL_SPACEDIM)
     integer(c_long), intent(in) :: jx_ng, jy_ng, jz_ng
     integer(c_long), intent(IN)                                  :: np
     integer(c_long), intent(IN)                                  :: nox,noy,noz

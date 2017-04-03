@@ -6,7 +6,7 @@ DEBUG	= FALSE
 DEBUG	= TRUE
 
 DIM     = 2
-DIM	= 3
+#DIM	= 3
 
 COMP    = gcc
 
