@@ -127,9 +127,11 @@ BndryBATransformer::BndryBATransformer (Orientation face, IndexType typ,
 }
 
 Box
-BndryBATransformer::operator() (const Box& bx) const
+BndryBATransformer::operator() (const Box& a_bx) const
 {
-    BL_ASSERT(bx.cellCentered());
+    BL_ASSERT(a_bx.cellCentered());
+    BL_ASSERT(a_bx.coarsenable(m_crse_ratio));
+    const Box& bx = amrex::coarsen(a_bx, m_crse_ratio);
     IntVect lo(bx.loVect());
     IntVect hi(bx.hiVect());
     if (m_lo_face) {
@@ -149,6 +151,7 @@ BndryBATransformer::operator== (const BndryBATransformer& rhs) const
 {
     // Note that m_nodal_shft is computed form m_typ, so no need to compare it.
     return m_typ == rhs.m_typ 
+        && m_crse_ratio == rhs.m_crse_ratio
 	&& m_dir == rhs.m_dir 
 	&& m_lo_face == rhs.m_lo_face
 	&& m_in_rad == rhs.m_in_rad 

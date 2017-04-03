@@ -148,6 +148,15 @@ FabSet::linComb (Real a, const MultiFab& mfa, int a_comp,
     MultiFab bdrya(boxArray(),DistributionMap(),ncomp,0);
     MultiFab bdryb(boxArray(),DistributionMap(),ncomp,0);
 
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(bdrya); mfi.isValid(); ++mfi) // tiling is not safe for this BoxArray
+    {
+        bdrya[mfi].setVal(1.e200);
+        bdryb[mfi].setVal(1.e200);
+    }
+
     bdrya.copy(mfa,a_comp,0,ncomp,ngrow,0);
     bdryb.copy(mfb,b_comp,0,ncomp,ngrow,0);
 

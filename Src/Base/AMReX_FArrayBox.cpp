@@ -175,7 +175,7 @@ FArrayBox::initVal ()
 {
     if (init_snan) {
 #ifdef BL_USE_DOUBLE
-	array_init_snan(dataPtr(), truesize);
+	amrex_array_init_snan(dataPtr(), truesize);
 #endif
     } else if (do_initval) {
 	setVal(initval);

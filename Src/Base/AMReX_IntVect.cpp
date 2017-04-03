@@ -102,7 +102,7 @@ min (const IntVect& p1,
 
 IntVect
 max (const IntVect& p1,
-	     const IntVect& p2)
+     const IntVect& p2)
 {
     IntVect p(p1);
     p.max(p2);
@@ -126,8 +126,8 @@ scale (const IntVect& p, int s)
 
 IntVect
 reflect (const IntVect& a,
-		 int            ref_ix,
-		 int            idir)
+         int            ref_ix,
+         int            idir)
 {
     BL_ASSERT(idir >= 0 && idir < BL_SPACEDIM);
     IntVect b(a);
@@ -143,7 +143,7 @@ diagShift (const IntVect& p, int s)
 
 IntVect
 coarsen (const IntVect& p,
-		 int            s)
+         int            s)
 {
     BL_ASSERT(s > 0);
     IntVect v = p;
@@ -153,7 +153,7 @@ coarsen (const IntVect& p,
 
 IntVect
 coarsen (const IntVect& p1,
-		 const IntVect& p2)
+         const IntVect& p2)
 {
     IntVect v = p1;
     v.coarsen(p2);
@@ -171,10 +171,12 @@ IntVect&
 IntVect::coarsen (const IntVect& p)
 {
     BL_ASSERT(p.allGT(IntVect::TheZeroVector()));
-    for (int i = 0; i <BL_SPACEDIM; ++i)
-    {
-        const int s = p.vect[i];
-        vect[i] = ((vect[i]<0) ? -abs(vect[i]+1)/s-1 : vect[i]/s);
+    if (p != 1) {
+        for (int i = 0; i <BL_SPACEDIM; ++i)
+        {
+            const int s = p.vect[i];
+            vect[i] = ((vect[i]<0) ? -abs(vect[i]+1)/s-1 : vect[i]/s);
+        }
     }
     return *this;
 }

@@ -91,17 +91,11 @@ F90FLAGS += $(GENERIC_COMP_FLAGS)
 # was not found.  In that case, ask for the shared-object version.
 gfortran_liba  := $(shell $(F90) -print-file-name=libgfortran.a)
 gfortran_libso := $(shell $(F90) -print-file-name=libgfortran.so)
-quadmath_liba  := $(shell $(F90) -print-file-name=libquadmath.a)
-quadmath_libso := $(shell $(F90) -print-file-name=libquadmath.so)
+
 ifneq ($(gfortran_liba),libgfortran.a)  # if found the full path is printed, thus `neq`.
-  gfortran_lib = $(gfortran_liba)
+  LIBRARY_LOCATIONS += $(dir $(gfortran_liba))
 else
-  gfortran_lib = $(gfortran_libso)
-endif
-ifneq ($(quadmath_liba),libquadmath.a)
-  quadmath_lib = $(quadmath_liba)
-else
-  quadmath_lib = $(quadmath_libso)
+  LIBRARY_LOCATIONS += $(dir $(gfortran_libso))
 endif
 
-override XTRALIBS += $(gfortran_lib) $(quadmath_lib)
+override XTRALIBS += -lgfortran -lquadmath

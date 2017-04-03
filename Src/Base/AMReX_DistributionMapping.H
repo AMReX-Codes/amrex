@@ -188,9 +188,6 @@ class DistributionMapping
 
     bool Check() const;
 
-    //! This gives a unique ID of the reference, which is different from dmID above.
-    ptrdiff_t getRefID () const;
-
 #ifdef BL_USE_MPI
     static Array<int> TranslateProcMap(const Array<int> &pm_old, const MPI_Group group_new, const MPI_Group group_old);
 #endif
@@ -303,6 +300,20 @@ private:
     static Array<long> totalBoxPoints;  // i == rank
 
     static int nDistMaps;
+
+public:
+    struct RefID {
+        RefID () : data(nullptr) {}
+        explicit RefID (Ref* data_) : data(data_) {}
+        bool operator<  (const RefID& rhs) const { return std::less<Ref*>()(data,rhs.data); }
+        bool operator== (const RefID& rhs) const { return data == rhs.data; }
+        bool operator!= (const RefID& rhs) const { return data != rhs.data; }
+   private:
+        Ref* data;
+    };
+
+    //! This gives a unique ID of the reference, which is different from dmID above.
+    RefID getRefID () const { return RefID { m_ref.get() }; }
 };
 
 //! Our output operator.
