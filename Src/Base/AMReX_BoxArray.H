@@ -59,9 +59,6 @@ struct BARef
     
     ~BARef ();
 
-    //! This gives a unique ID of the reference
-    ptrdiff_t getRefID () const;
-
     void define (const Box& bx);
     void define (const BoxList& bl);
     void define (std::istream& is);
@@ -403,8 +400,18 @@ public:
     //! whether two BoxArrays share the same data
     static bool SameRefs (const BoxArray& lhs, const BoxArray& rhs) { return lhs.m_ref == rhs.m_ref; }
 
+    struct RefID {
+        RefID () : data(nullptr) {}
+        explicit RefID (BARef* data_) : data(data_) {}
+        bool operator<  (const RefID& rhs) const { return std::less<BARef*>()(data,rhs.data); }
+        bool operator== (const RefID& rhs) const { return data == rhs.data; }
+        bool operator!= (const RefID& rhs) const { return data != rhs.data; }
+    private:
+        BARef* data;
+    };
+
     //! Return a unique ID of the reference
-    ptrdiff_t getRefID () const { return m_ref->getRefID(); }
+    RefID getRefID () const { return RefID { m_ref.get() }; }
 
     //! Return index type of this BoxArray
     IndexType ixType () const { return m_typ; }

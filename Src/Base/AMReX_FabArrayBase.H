@@ -167,10 +167,27 @@ public:
     // Key for unique combination of BoxArray and DistributionMapping
     // Note both BoxArray and DistributionMapping are reference counted.
     // Objects with the same references have the same key.
-    typedef std::pair<ptrdiff_t,ptrdiff_t> BDKey;
+    struct BDKey {
+        BDKey () = default;
+        BDKey (const BoxArray::RefID& baid, const DistributionMapping::RefID& dmid)
+            : m_ba_id(baid), m_dm_id(dmid) {}
+        bool operator< (const BDKey& rhs) const {
+            return (m_ba_id < rhs.m_ba_id) ||
+                ((m_ba_id == rhs.m_ba_id) && (m_dm_id < rhs.m_dm_id));
+        }
+        bool operator== (const BDKey& rhs) const {
+            return m_ba_id == rhs.m_ba_id && m_dm_id == rhs.m_dm_id;
+        }
+        bool operator!= (const BDKey& rhs) const {
+            return m_ba_id != rhs.m_ba_id || m_dm_id != rhs.m_dm_id;
+        }
+    private:
+        BoxArray::RefID            m_ba_id;
+        DistributionMapping::RefID m_dm_id;
+    };
 
     BDKey getBDKey () const {
-	return std::make_pair(boxarray.getRefID(), distributionMap.getRefID());
+	return {boxarray.getRefID(), distributionMap.getRefID()};
     }
 
     void updateBDKey ();
