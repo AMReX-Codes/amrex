@@ -135,8 +135,8 @@ ParticleContainer<NR, NI, NA>::InitFromAsciiFile (const std::string& file, int e
                     amrex::AllPrint() << "BAD PARTICLE ID WOULD BE " << ParticleType::NextID() << '\n'
                                       << "BAD PARTICLE POS " 
                                       << D_TERM(   p.m_rdata.pos[0],
-                                                << p.m_rdata.pos[2],
-                                                << p.m_rdata.pos[3])
+                                                << p.m_rdata.pos[1],
+                                                << p.m_rdata.pos[2])
                                       << "\n";
                     amrex::Abort("ParticleContainer<NR, NI, NA>::InitFromAsciiFile(): invalid particle");
                 }
@@ -990,35 +990,29 @@ ParticleContainer<NR, NI, NA>::InitOnePerCell (Real x_off, Real y_off, Real z_of
         Box grid = ParticleBoxArray(0)[mfi.index()];
         RealBox grid_box (grid,dx,geom.ProbLo());
 
-        int nx = 1;
-        int ny = 1;
-        int nz = 1;
-        D_TERM(nx=grid.length(0);,
-               ny=grid.length(1);,
-               nz=grid.length(2););
-
-        for (int i = 0; i < nx; i++) {
-         for (int j = 0; j < ny; j++) {
-          for (int k = 0; k < nz; k++)
-          {
+        for (IntVect beg = grid.smallEnd(), end=grid.bigEnd(),
+                    cell = grid.smallEnd(); cell <= end; grid.next(cell))
+        { 
             ParticleType p;
 
-            p.m_rdata.pos[0] = grid_box.lo(0) + (x_off + i)*dx[0];
-            p.m_rdata.pos[1] = grid_box.lo(1) + (y_off + j)*dx[1];
-            p.m_rdata.pos[2] = grid_box.lo(2) + (z_off + k)*dx[2];
+            D_TERM(p.m_rdata.pos[0] = grid_box.lo(0) + (x_off + cell[0]-beg[0])*dx[0];,
+                   p.m_rdata.pos[1] = grid_box.lo(1) + (y_off + cell[1]-beg[1])*dx[1];,
+                   p.m_rdata.pos[2] = grid_box.lo(2) + (z_off + cell[2]-beg[2])*dx[2];);
 
-            for (int i = 0; i < BL_SPACEDIM; i++)
-                BL_ASSERT(p.m_rdata.pos[i] < grid_box.hi(i));
+            for (int d = 0; d < BL_SPACEDIM; ++d) {
+                BL_ASSERT(p.m_rdata.pos[d] < grid_box.hi(d));
+            }
 
             if (NR > 0)
             {
                 p.m_rdata.arr[BL_SPACEDIM] = mass;
 
-                for (int i = 1; i < NR; i++)
+                for (int ii = 1; ii < NR; ii++) {
                     //
                     // Just zero out the rest of the data for lack of a better value.
                     //
-                    p.m_rdata.arr[BL_SPACEDIM+i] = 0;
+                    p.m_rdata.arr[BL_SPACEDIM+ii] = 0;
+                }
             }
 
             p.m_idata.id  = ParticleType::NextID();
@@ -1034,14 +1028,15 @@ ParticleContainer<NR, NI, NA>::InitOnePerCell (Real x_off, Real y_off, Real z_of
             // Add it to the appropriate AoS at the appropriate level.
             //
 	    m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
-	    if (NA > 0)
+	    if (NA > 0) {
                 m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(0,p.m_idata.id);
-	    if (NA > 1)
+            }
+	    if (NA > 1) {
                 m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(1,p.m_idata.cpu);
-	    for (int i = 2; i < NA; i++)
-                m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(i,0.0);
-          }
-         }
+            }
+	    for (int ii = 2; ii < NA; ii++) {
+                m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(ii,0.0);
+            }
         }
     }
     
@@ -1095,42 +1090,37 @@ ParticleContainer<NR, NI, NA>::InitNRandomPerCell (int n_per_cell, Real mass, co
         Box grid = ParticleBoxArray(0)[mfi.index()];
         RealBox grid_box (grid,dx,geom.ProbLo());
 
-	int nx = grid.length(0), ny = grid.length(1), nz = grid.length(2); 
-
-        for (int i = 0; i < nx; i++) {
-         for (int j = 0; j < ny; j++) {
-          for (int k = 0; k < nz; k++)
-          {
+        for (IntVect beg = grid.smallEnd(), end=grid.bigEnd(),
+                    cell = grid.smallEnd(); cell <= end; grid.next(cell))
+        { 
             ParticleType p;
 
             for (int n = 0; n < n_per_cell; n++)
             {
-               r = amrex::Random();
-               p.m_rdata.pos[0] = grid_box.lo(0) + (r + i)*dx[0];
-               r = amrex::Random();
-               p.m_rdata.pos[1] = grid_box.lo(1) + (r + j)*dx[1];
-               r = amrex::Random();
-               p.m_rdata.pos[2] = grid_box.lo(2) + (r + k)*dx[2];
-
-               for (int i = 0; i < BL_SPACEDIM; i++)
+               for (int i = 0; i < BL_SPACEDIM; i++) {
+                   r = amrex::Random();
+                   p.m_rdata.pos[i] = grid_box.lo(i) + (r + cell[i]-beg[i])*dx[i];
                    BL_ASSERT(p.m_rdata.pos[i] < grid_box.hi(i));
+               }
 
                if (NR > 0)
                {
                    p.m_rdata.arr[BL_SPACEDIM] = mass;
    
-                   for (int i = 1; i < NR; i++)
+                   for (int i = 1; i < NR; i++) {
                        //
                        // Just zero out the rest of the data for lack of a better value.
                        //
                        p.m_rdata.arr[BL_SPACEDIM+i] = 0;
+                   }
                }
 
                p.m_idata.id  = ParticleType::NextID();
                p.m_idata.cpu = ParallelDescriptor::MyProc();
 
-               if (!Where(p, pld))
+               if (!Where(p, pld)) {
                    amrex::Abort("ParticleContainer<NR, NI, NA>::InitNRandomPerCell(): invalid particle");
+               }
 
                BL_ASSERT(pld.m_lev >= 0 && pld.m_lev <= finestLevel());
                //
@@ -1138,8 +1128,6 @@ ParticleContainer<NR, NI, NA>::InitNRandomPerCell (int n_per_cell, Real mass, co
                //
                m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
             }
-          } 
-         } 
         }
     }
 

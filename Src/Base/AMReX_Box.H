@@ -563,6 +563,18 @@ public:
 
     bool isSquare() const;
 
+    bool coarsenable(int refrat) const {
+        return coarsenable(IntVect(D_DECL(refrat,refrat,refrat)));
+    }
+
+    bool coarsenable(const IntVect& refrat) const
+    {
+      Box testBox = *this;
+      testBox.coarsen(refrat);
+      testBox.refine (refrat);
+      return (*this == testBox);
+    }
+
 private:
     //! A helper function for numPtsOK() and numPts().
     bool numPtsOK (long& N) const;

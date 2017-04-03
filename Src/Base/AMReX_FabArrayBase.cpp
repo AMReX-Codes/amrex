@@ -1,15 +1,7 @@
 
-#include <iterator>
-#include <numeric>
-
-#ifdef BL_LAZY
-#include <AMReX_Lazy.H>
-#endif
-
-#include <AMReX_Utility.H>
-#include <AMReX_FabArray.H>
+#include <AMReX_FabArrayBase.H>
 #include <AMReX_ParmParse.H>
-#include <AMReX_Geometry.H>
+#include <AMReX_Utility.H>
 
 #ifdef BL_MEM_PROFILING
 #include <AMReX_MemProfiler.H>
@@ -235,8 +227,8 @@ FabArrayBase::CPC::CPC (const BoxArray& dstba, const DistributionMapping& dstdm,
 			const BoxArray& srcba, const DistributionMapping& srcdm, 
 			const Array<int>& srcidx, int srcng,
 			const Periodicity& period, int myproc)
-    : m_srcbdk(0,0), 
-      m_dstbdk(0,0), 
+    : m_srcbdk(), 
+      m_dstbdk(), 
       m_srcng(srcng), 
       m_dstng(dstng), 
       m_period(period),
@@ -533,8 +525,9 @@ FabArrayBase::getCPC (int dstng, const FabArrayBase& src, int srcng, const Perio
 
 FabArrayBase::FB::FB (const FabArrayBase& fa, bool cross, const Periodicity& period, 
 		      bool enforce_periodicity_only)
-    : m_typ(fa.boxArray().ixType()), m_ngrow(fa.nGrow()),
-      m_cross(cross), m_epo(enforce_periodicity_only), m_period(period),
+    : m_typ(fa.boxArray().ixType()), m_crse_ratio(fa.boxArray().crseRatio()),
+      m_ngrow(fa.nGrow()), m_cross(cross),
+      m_epo(enforce_periodicity_only), m_period(period),
       m_threadsafe_loc(false), m_threadsafe_rcv(false),
       m_LocTags(new CopyComTag::CopyComTagsContainer),
       m_SndTags(new CopyComTag::MapOfCopyComTagContainers),
@@ -582,7 +575,7 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa)
 	const int ksnd = imap[i];
 	const Box& vbx = ba[ksnd];
 	
-	for (std::vector<IntVect>::const_iterator pit=pshifts.begin(); pit!=pshifts.end(); ++pit)
+	for (auto pit=pshifts.cbegin(); pit!=pshifts.cend(); ++pit)
 	{
 	    ba.intersections(vbx+(*pit), isects, false, ng);
 
@@ -641,7 +634,7 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa)
 	    remotetouch.setVal(0);
 	}
 	
-	for (std::vector<IntVect>::const_iterator pit=pshifts.begin(); pit!=pshifts.end(); ++pit)
+	for (auto pit=pshifts.cbegin(); pit!=pshifts.cend(); ++pit)
 	{
 	    ba.intersections(bxrcv+(*pit), isects);
 
@@ -692,6 +685,8 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa)
     {
 	CopyComTag::MapOfCopyComTagContainers & Tags = (ipass == 0) ? *m_SndTags : *m_RcvTags;
 	CopyComTag::MapOfCopyComTagContainers & Vols = (ipass == 0) ? *m_SndVols : *m_RcvVols;
+
+        Array<int> to_be_deleted;
 	    
         for (auto& kv : Vols)
 	{
@@ -757,7 +752,9 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa)
 		}
 	    }
 		
-	    if (!cctv_tags.empty()) {
+	    if (cctv_tags.empty()) {
+                to_be_deleted.push_back(key);
+            } else {
 		Tags[key].swap(cctv_tags);
 	    }
 
@@ -765,6 +762,10 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa)
                 cctv.swap(cctv_vols_cross);
             }
 	}
+
+        for (int key : to_be_deleted) {
+            Vols.erase(key);
+        }
     }
 }
 
@@ -799,7 +800,7 @@ FabArrayBase::FB::define_epo (const FabArrayBase& fa)
 
 	if (!bxsnd.ok()) continue;
 
-	for (std::vector<IntVect>::const_iterator pit=pshifts.begin(); pit!=pshifts.end(); ++pit)
+	for (auto pit=pshifts.cbegin(); pit!=pshifts.cend(); ++pit)
 	{
 	    if (*pit != IntVect::TheZeroVector())
 	    {
@@ -941,9 +942,7 @@ FabArrayBase::FB::define_epo (const FabArrayBase& fa)
 		}
 	    }
 
-	    if (!cctv_tags.empty()) {
-		Tags[key].swap(cctv_tags);
-	    }
+            Tags[key].swap(cctv_tags);
 	}
     }
 }
@@ -996,11 +995,12 @@ FabArrayBase::getFB (const Periodicity& period, bool cross, bool enforce_periodi
     std::pair<FBCacheIter,FBCacheIter> er_it = m_TheFBCache.equal_range(m_bdkey);
     for (FBCacheIter it = er_it.first; it != er_it.second; ++it)
     {
-	if (it->second->m_typ    == boxArray().ixType() &&
-	    it->second->m_ngrow  == nGrow()             &&
-	    it->second->m_cross  == cross               &&
-	    it->second->m_epo    == enforce_periodicity_only &&
-	    it->second->m_period == period              )
+	if (it->second->m_typ        == boxArray().ixType()      &&
+            it->second->m_crse_ratio == boxArray().crseRatio()   &&
+	    it->second->m_ngrow      == nGrow()                  &&
+	    it->second->m_cross      == cross                    &&
+	    it->second->m_epo        == enforce_periodicity_only &&
+	    it->second->m_period     == period              )
 	{
 	    ++(it->second->m_nuse);
 	    m_FBC_stats.recordUse();
@@ -1216,7 +1216,8 @@ FabArrayBase::getTileArray (const IntVect& tilesize) const
 #endif
     {
 	BL_ASSERT(getBDKey() == m_bdkey);
-	p = &FabArrayBase::m_TheTileArrayCache[m_bdkey][tilesize];
+        const IntVect& crse_ratio = boxArray().crseRatio();
+	p = &FabArrayBase::m_TheTileArrayCache[m_bdkey][std::pair<IntVect,IntVect>(tilesize,crse_ratio)];
 	if (p->nuse == -1) {
 	    buildTileArray(tilesize, *p);
 	    p->nuse = 0;
@@ -1356,7 +1357,8 @@ FabArrayBase::flushTileArray (const IntVect& tileSize, bool no_assertion) const
 	else 
 	{
 	    TAMap& tai = tao_it->second;
-	    TAMap::iterator tai_it = tai.find(tileSize);
+            const IntVect& crse_ratio = boxArray().crseRatio();
+	    TAMap::iterator tai_it = tai.find(std::pair<IntVect,IntVect>(tileSize,crse_ratio));
 	    if (tai_it != tai.end()) {
 #ifdef BL_MEM_PROFILING
 		m_TAC_stats.bytes -= tai_it->second.bytes();
@@ -1463,7 +1465,6 @@ FabArrayBase::WaitForAsyncSends (int                 N_snds,
 #endif /*BL_USE_MPI*/
 }
 
-
 #ifdef BL_USE_UPCXX
 void
 FabArrayBase::WaitForAsyncSends_PGAS (int                 N_snds,
@@ -1486,309 +1487,5 @@ FabArrayBase::WaitForAsyncSends_PGAS (int                 N_snds,
     }
 }
 #endif
-
-
-MFIter::MFIter (const FabArrayBase& fabarray_, 
-		unsigned char       flags_)
-    :
-    fabArray(fabarray_),
-    tile_size((flags_ & Tiling) ? FabArrayBase::mfiter_tile_size : IntVect::TheZeroVector()),
-    flags(flags_),
-    index_map(nullptr),
-    local_index_map(nullptr),
-    tile_array(nullptr),
-    local_tile_index_map(nullptr),
-    num_local_tiles(nullptr)
-{
-    Initialize();
-}
-
-MFIter::MFIter (const FabArrayBase& fabarray_, 
-		bool                do_tiling_)
-    :
-    fabArray(fabarray_),
-    tile_size((do_tiling_) ? FabArrayBase::mfiter_tile_size : IntVect::TheZeroVector()),
-    flags(do_tiling_ ? Tiling : 0),
-    index_map(nullptr),
-    local_index_map(nullptr),
-    tile_array(nullptr),
-    local_tile_index_map(nullptr),
-    num_local_tiles(nullptr)
-{
-    Initialize();
-}
-
-MFIter::MFIter (const FabArrayBase& fabarray_, 
-		const IntVect&      tilesize_, 
-		unsigned char       flags_)
-    :
-    fabArray(fabarray_),
-    tile_size(tilesize_),
-    flags(flags_ | Tiling),
-    index_map(nullptr),
-    local_index_map(nullptr),
-    tile_array(nullptr),
-    local_tile_index_map(nullptr),
-    num_local_tiles(nullptr)
-{
-    Initialize();
-}
-
-MFIter::~MFIter ()
-{
-#if BL_USE_TEAM
-    if ( ! (flags & NoTeamBarrier) )
-	ParallelDescriptor::MyTeam().MemoryBarrier();
-#endif
-}
-
-void 
-MFIter::Initialize ()
-{
-    if (flags & SkipInit) {
-	return;
-    }
-    else if (flags & AllBoxes)  // a very special case
-    {
-	index_map    = &(fabArray.IndexArray());
-	currentIndex = 0;
-	beginIndex   = 0;
-	endIndex     = index_map->size();
-    }
-    else
-    {
-	const FabArrayBase::TileArray* pta = fabArray.getTileArray(tile_size);
-	
-	index_map            = &(pta->indexMap);
-	local_index_map      = &(pta->localIndexMap);
-	tile_array           = &(pta->tileArray);
-	local_tile_index_map = &(pta->localTileIndexMap);
-	num_local_tiles      = &(pta->numLocalTiles);
-
-	{
-	    int rit = 0;
-	    int nworkers = 1;
-#ifdef BL_USE_TEAM
-	    if (ParallelDescriptor::TeamSize() > 1) {
-		if ( tile_size == IntVect::TheZeroVector() ) {
-		    // In this case the TileArray contains only boxes owned by this worker.
-		    // So there is no sharing going on.
-		    rit = 0;
-		    nworkers = 1;
-		} else {
-		    rit = ParallelDescriptor::MyRankInTeam();
-		    nworkers = ParallelDescriptor::TeamSize();
-		}
-	    }
-#endif
-
-	    int ntot = index_map->size();
-	    
-	    if (nworkers == 1)
-	    {
-		beginIndex = 0;
-		endIndex = ntot;
-	    }
-	    else
-	    {
-		int nr   = ntot / nworkers;
-		int nlft = ntot - nr * nworkers;
-		if (rit < nlft) {  // get nr+1 items
-		    beginIndex = rit * (nr + 1);
-		    endIndex = beginIndex + nr + 1;
-		} else {           // get nr items
-		    beginIndex = rit * nr + nlft;
-		    endIndex = beginIndex + nr;
-		}
-	    }
-	}
-	
-#ifdef _OPENMP
-	int nthreads = omp_get_num_threads();
-	if (nthreads > 1)
-	{
-	    int tid = omp_get_thread_num();
-	    int ntot = endIndex - beginIndex;
-	    int nr   = ntot / nthreads;
-	    int nlft = ntot - nr * nthreads;
-	    if (tid < nlft) {  // get nr+1 items
-		beginIndex += tid * (nr + 1);
-		endIndex = beginIndex + nr + 1;
-	    } else {           // get nr items
-		beginIndex += tid * nr + nlft;
-		endIndex = beginIndex + nr;
-	    }	    
-	}
-#endif
-
-	currentIndex = beginIndex;
-
-	typ = fabArray.boxArray().ixType();
-    }
-}
-
-Box 
-MFIter::tilebox () const
-{ 
-    BL_ASSERT(tile_array != 0);
-    Box bx((*tile_array)[currentIndex]);
-    if (! typ.cellCentered())
-    {
-	bx.convert(typ);
-	const Box& vbx = validbox();
-	const IntVect& Big = vbx.bigEnd();
-	for (int d=0; d<BL_SPACEDIM; ++d) {
-	    if (typ.nodeCentered(d)) { // validbox should also be nodal in d-direction.
-		if (bx.bigEnd(d) < Big[d]) {
-		    bx.growHi(d,-1);
-		}
-	    }
-	}
-    }
-    return bx;
-}
-
-Box
-MFIter::nodaltilebox (int dir) const 
-{ 
-    BL_ASSERT(tile_array != 0);
-    Box bx((*tile_array)[currentIndex]);
-    bx.convert(typ);
-    const Box& vbx = validbox();
-    const IntVect& Big = vbx.bigEnd();
-    int d0, d1;
-    if (dir < 0) {
-	d0 = 0;
-	d1 = BL_SPACEDIM-1;
-    } else {
-	d0 = d1 = dir;
-    }
-    for (int d=d0; d<=d1; ++d) {
-	if (typ.cellCentered(d)) { // validbox should also be cell-centered in d-direction.
-	    bx.surroundingNodes(d);
-	    if (bx.bigEnd(d) <= Big[d]) {
-		bx.growHi(d,-1);
-	    }
-	}
-    }
-    return bx;
-}
-
-// Note that a small negative ng is supported.
-Box 
-MFIter::growntilebox (int ng) const 
-{
-    Box bx = tilebox();
-    if (ng < -100) ng = fabArray.nGrow();
-    const Box& vbx = validbox();
-    for (int d=0; d<BL_SPACEDIM; ++d) {
-	if (bx.smallEnd(d) == vbx.smallEnd(d)) {
-	    bx.growLo(d, ng);
-	}
-	if (bx.bigEnd(d) == vbx.bigEnd(d)) {
-	    bx.growHi(d, ng);
-	}
-    }
-    return bx;
-}
-
-Box
-MFIter::grownnodaltilebox (int dir, int ng) const
-{
-    Box bx = nodaltilebox(dir);
-    if (ng < -100) ng = fabArray.nGrow();
-    const Box& vbx = validbox();
-    for (int d=0; d<BL_SPACEDIM; ++d) {
-	if (bx.smallEnd(d) == vbx.smallEnd(d)) {
-	    bx.growLo(d, ng);
-	}
-	if (bx.bigEnd(d) >= vbx.bigEnd(d)) {
-	    bx.growHi(d, ng);
-	}
-    }
-    return bx;
-}
-
-MFGhostIter::MFGhostIter (const FabArrayBase& fabarray)
-    :
-    MFIter(fabarray, (unsigned char)(SkipInit|Tiling))
-{
-    Initialize();
-}
-
-void
-MFGhostIter::Initialize ()
-{
-    int rit = 0;
-    int nworkers = 1;
-#ifdef BL_USE_TEAM
-    if (ParallelDescriptor::TeamSize() > 1) {
-	rit = ParallelDescriptor::MyRankInTeam();
-	nworkers = ParallelDescriptor::TeamSize();
-    }
-#endif
-
-    int tid = 0;
-    int nthreads = 1;
-#ifdef _OPENMP
-    nthreads = omp_get_num_threads();
-    if (nthreads > 1)
-	tid = omp_get_thread_num();
-#endif
-
-    int npes = nworkers*nthreads;
-    int pid = rit*nthreads+tid;
-
-    BoxList alltiles;
-    Array<int> allindex;
-    Array<int> alllocalindex;
-
-    for (int i=0; i < fabArray.IndexArray().size(); ++i) {
-	int K = fabArray.IndexArray()[i];
-	const Box& vbx = fabArray.box(K);
-	const Box& fbx = fabArray.fabbox(K);
-
-	const BoxList& diff = amrex::boxDiff(fbx, vbx);
-	
-	for (BoxList::const_iterator bli = diff.begin(); bli != diff.end(); ++bli) {
-	    BoxList tiles(*bli, FabArrayBase::mfghostiter_tile_size);
-	    int nt = tiles.size();
-	    for (int it=0; it<nt; ++it) {
-		allindex.push_back(K);
-		alllocalindex.push_back(i);
-	    }
-	    alltiles.catenate(tiles);
-	}
-    }
-
-    int n_tot_tiles = alltiles.size();
-    int navg = n_tot_tiles / npes;
-    int nleft = n_tot_tiles - navg*npes;
-    int ntiles = navg;
-    if (pid < nleft) ntiles++;
-
-    // how many tiles should we skip?
-    int nskip = pid*navg + std::min(pid,nleft);
-    BoxList::const_iterator bli = alltiles.begin();
-    for (int i=0; i<nskip; ++i) ++bli;
-
-    lta.indexMap.reserve(ntiles);
-    lta.localIndexMap.reserve(ntiles);
-    lta.tileArray.reserve(ntiles);
-
-    for (int i=0; i<ntiles; ++i) {
-	lta.indexMap.push_back(allindex[i+nskip]);
-	lta.localIndexMap.push_back(alllocalindex[i+nskip]);
-	lta.tileArray.push_back(*bli++);
-    }
-
-    currentIndex = beginIndex = 0;
-    endIndex = lta.indexMap.size();
-
-    lta.nuse = 0;
-    index_map       = &(lta.indexMap);
-    local_index_map = &(lta.localIndexMap);
-    tile_array      = &(lta.tileArray);
-}
 
 }

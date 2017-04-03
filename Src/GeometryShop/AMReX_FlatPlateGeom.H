@@ -21,6 +21,7 @@
 #include "AMReX_BaseFab.H"
 #include "AMReX_Moments.H"
 #include "AMReX_IrregNode.H"
+#include "AMReX_GeometryService.H"
 
 
 namespace amrex
@@ -30,7 +31,7 @@ namespace amrex
      This defines a geometry that is an infinitely thin, finite size plate
      aligned with a coordinate plane.
   */
-  class FlatPlateGeom
+  class FlatPlateGeom: public GeometryService
   {
   public:
 
@@ -60,6 +61,24 @@ namespace amrex
               const Box                & a_domain,
               const RealVect           & a_origin,
               const Real               & a_dx) const;
+
+    /**
+       Return true if every cell in region is regular at the
+       refinement described by dx.
+    */
+    virtual bool isRegular(const Box&           a_region,
+                           const Box& a_domain,
+                           const RealVect&      a_origin,
+                           const Real&          a_dx) const;
+    ///
+    /**
+       Return true if every cell in region is covered at the
+       refinement described by dx.
+    */
+    virtual bool isCovered(const Box&           a_region,
+                           const Box& a_domain,
+                           const RealVect&      a_origin,
+                           const Real&          a_dx) const;
 
     ///return true if the cell face is cut by the plate
     bool isFaceCut(Real                     & a_areaFracLo,

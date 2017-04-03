@@ -29,15 +29,13 @@ namespace amrex
     BoxArray intersect (const BoxArray& lhs, const BoxArray& rhs);
 
     BoxArray convert (const BoxArray& ba, IndexType typ);
+    BoxArray convert (const BoxArray& ba, const IntVect& typ);
 
     //! Find the ghost cells of a given BoxArray.
     BoxList GetBndryCells (const BoxArray& ba, int ngrow);
 
     //! Read a BoxArray from a stream.  If b is true, read in a special way
     void readBoxArray (BoxArray& ba, std::istream& s, bool b);
-
-    //! delete entries in the coarseBoxArrayCache, which have key "key"
-    void clearCoarseBoxArrayCache (ptrdiff_t key);
 
     //! Create a 1D Array of cells from all boxes in a BoxArray 
     Array<int> SerializeBoxArray(const BoxArray &ba);
@@ -60,9 +58,6 @@ struct BARef
     BARef& operator= (const BARef& rhs) = delete;
     
     ~BARef ();
-
-    //! This gives a unique ID of the reference
-    ptrdiff_t getRefID () const;
 
     void define (const Box& bx);
     void define (const BoxList& bl);
@@ -109,7 +104,10 @@ struct BATransformer
 
     virtual IndexType ixType () const = 0;
     virtual void setIxType (IndexType typ) = 0;
-    
+
+    virtual IntVect crseRatio () const = 0;
+    virtual void setCrseRatio (const IntVect& crse_ratio) = 0;
+
     virtual IntVect doiLo () const = 0; // doi: Domain of Influence
     virtual IntVect doiHi () const = 0; // doi: Domain of Influence
 
@@ -122,54 +120,65 @@ template <class T>
 struct BATBase
     : public BATransformer
 {
-    explicit BATBase (IndexType typ = IndexType())
-	: m_typ(typ) {}
+    explicit BATBase (IndexType typ = IndexType(),
+                      const IntVect& crse_ratio = IntVect::TheUnitVector())
+	: m_typ(typ), m_crse_ratio(crse_ratio) {}
     virtual ~BATBase () {}
 
-    virtual BATransformer* clone () const override {
+    virtual BATransformer* clone () const final {
 	return new T(dynamic_cast<const T&>(*this));
     }
 
-    virtual bool equal (const BATransformer& rhs) const override {
+    virtual bool equal (const BATransformer& rhs) const final {
 	const T* p = dynamic_cast<const T*>(&rhs);
 	return p && (*p) == (dynamic_cast<const T&>(*this));
     }
 
-    virtual IndexType ixType () const override {
+    virtual IndexType ixType () const final {
 	return m_typ;
     }
 
-    virtual void setIxType (IndexType typ) override {
+    virtual void setIxType (IndexType typ) final {
 	m_typ = typ;
+    }
+
+    virtual IntVect crseRatio () const final {
+        return m_crse_ratio;
+    }
+
+    virtual void setCrseRatio (const IntVect& crse_ratio) final {
+        m_crse_ratio = crse_ratio;
     }
 
     virtual bool simple () const override { return false; }
 
 protected:
     IndexType m_typ;
+    IntVect   m_crse_ratio;
 };
 
-struct BATypeTransformer
-    : public BATBase<BATypeTransformer>
+struct DefaultBATransformer final
+    : public BATBase<DefaultBATransformer>
 {
-    explicit BATypeTransformer (IndexType typ = IndexType())
-	: BATBase<BATypeTransformer>(typ) {}
+    explicit DefaultBATransformer (IndexType typ = IndexType(),
+                                const IntVect& crse_ratio = IntVect::TheUnitVector())
+	: BATBase<DefaultBATransformer>(typ, crse_ratio) {}
 
-    virtual ~BATypeTransformer () override {}
+    virtual ~DefaultBATransformer () final {}
 
-    virtual IntVect doiLo () const override 
+    virtual IntVect doiLo () const final
         { return IntVect::TheZeroVector(); }
 
-    virtual IntVect doiHi () const override 
+    virtual IntVect doiHi () const final
         { return m_typ.ixType(); }
 
-    virtual bool simple () const override { return true; }
+    virtual bool simple () const final { return true; }
 
-    virtual Box operator() (const Box& bx) const override
-        { return amrex::convert(bx, m_typ); }
+    virtual Box operator() (const Box& bx) const final
+        { return amrex::convert(amrex::coarsen(bx,m_crse_ratio), m_typ); }
 
-    bool operator== (const BATypeTransformer& rhs) const
-	{ return m_typ == rhs.m_typ; }
+    bool operator== (const DefaultBATransformer& rhs) const
+	{ return m_typ == rhs.m_typ and m_crse_ratio == rhs.m_crse_ratio; }
 };
 // \endcond
 
@@ -291,8 +300,7 @@ public:
     * \brief Grow each Box in the BoxArray on the low and high end
     * by n_cell cells in idir direction.
     */
-    BoxArray& grow (int idir,
-                    int n_cell);
+    BoxArray& grow (int idir, int n_cell);
     /**
     * \brief Apply surroundingNodes(Box) to each Box in BoxArray.
     * See the documentation of Box for details.
@@ -317,35 +325,22 @@ public:
     BoxArray& convert (Box (*fp)(const Box&));
 
     //! Apply Box::shift(int,int) to each Box in the BoxArray.
-    BoxArray& shift (int dir,
-                     int nzones);
+    BoxArray& shift (int dir, int nzones);
 
     //! Apply Box::shift(const IntVect &iv) to each Box in the BoxArray.
     BoxArray& shift (const IntVect &iv);
 
-    //! Apply Box::shiftHalf(int,int) to each Box in the BoxArray.
-    BoxArray& shiftHalf (int dir,
-                         int num_halfs);
-    //! Apply Box::shiftHalf(IntVect) to each Box in BoxArray.
-    BoxArray& shiftHalf (const IntVect &iv);
-
     //! Set element i in this BoxArray to Box ibox.
-    void set (int        i,
-              const Box& ibox);
+    void set (int i, const Box& ibox);
 
     //! Return element index of this BoxArray.
-    Box operator[] (int index) const {
-        if (m_simple) {
-            return amrex::convert(m_ref->m_abox[index], m_typ);
-        } else {
-            return (*m_transformer)(m_ref->m_abox[index]); 
-        }
-    }
+    Box operator[] (int index) const;
+
+    //! Return element index of this BoxArray.
     Box get (int index) const { return operator[](index); }
 
     //! Return cell-centered box at element index of this BoxArray.
-    const Box& getCellCenteredBox (int index) const
-	{ return m_ref->m_abox[index]; }    
+    Box getCellCenteredBox (int index) const;
 
     /**
     * \brief Return true if Box is valid and they all have the same
@@ -405,11 +400,24 @@ public:
     //! whether two BoxArrays share the same data
     static bool SameRefs (const BoxArray& lhs, const BoxArray& rhs) { return lhs.m_ref == rhs.m_ref; }
 
+    struct RefID {
+        RefID () : data(nullptr) {}
+        explicit RefID (BARef* data_) : data(data_) {}
+        bool operator<  (const RefID& rhs) const { return std::less<BARef*>()(data,rhs.data); }
+        bool operator== (const RefID& rhs) const { return data == rhs.data; }
+        bool operator!= (const RefID& rhs) const { return data != rhs.data; }
+    private:
+        BARef* data;
+    };
+
     //! Return a unique ID of the reference
-    ptrdiff_t getRefID () const { return m_ref->getRefID(); }
+    RefID getRefID () const { return RefID { m_ref.get() }; }
 
     //! Return index type of this BoxArray
     IndexType ixType () const { return m_typ; }
+
+    //! Return crse ratio of this BoxArray
+    IntVect crseRatio () const { return m_crse_ratio; }
 
 #ifdef BL_USE_MPI
     //! Broadcast the BoxArray
@@ -417,11 +425,6 @@ public:
     //! Receive the BoxArray from root
     static void RecvBoxArray(BoxArray &ba, int whichSidecar);
 #endif
-
-    using CBAMap   = std::map<IntVect, BoxArray*>;
-    using CBACache = std::map<ptrdiff_t, CBAMap>;
-
-    static CBACache m_CoarseBoxArrayCache;
 
     static void Initialize ();
     static bool initialized;
@@ -435,15 +438,13 @@ private:
     //! Make ourselves unique.
     void uniqify ();
 
-    IntVect getDoiLo () const
-        { return m_simple ? IntVect::TheZeroVector() : m_transformer->doiLo(); }
-
-    IntVect getDoiHi () const
-        { return m_simple ?           m_typ.ixType() : m_transformer->doiHi(); }
+    IntVect getDoiLo () const;
+    IntVect getDoiHi () const;
 
     std::unique_ptr<BATransformer> m_transformer;
     IndexType m_typ;
-    bool m_simple;
+    IntVect   m_crse_ratio;
+    bool      m_simple;
 
     //! The data -- a reference-counted pointer to a Ref.
     std::shared_ptr<BARef> m_ref;    

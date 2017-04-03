@@ -395,12 +395,14 @@ refine (const Box&     b,
 Box&
 Box::refine (const IntVect& ref_ratio)
 {
-    IntVect shft(IntVect::TheUnitVector());
-    shft -= btype.ixType();
-    smallend *= ref_ratio;
-    bigend += shft;
-    bigend *= ref_ratio;
-    bigend -= shft;
+    if (ref_ratio != 1) {
+        IntVect shft(IntVect::TheUnitVector());
+        shft -= btype.ixType();
+        smallend *= ref_ratio;
+        bigend += shft;
+        bigend *= ref_ratio;
+        bigend -= shft;
+    }
     return *this;
 }
 
