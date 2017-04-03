@@ -88,6 +88,19 @@ contains
     pxr_ll4symtry = ll4symtry .eq. 1
     pxr_l_lower_order_in_v = l_lower_order_in_v .eq. 1
 
+    exg_nvalid = exg_ntot - 2*exg_ng
+    eyg_nvalid = eyg_ntot - 2*eyg_ng
+    ezg_nvalid = ezg_ntot - 2*ezg_ng
+    bxg_nvalid = bxg_ntot - 2*bxg_ng
+    byg_nvalid = byg_ntot - 2*byg_ng
+    bzg_nvalid = bzg_ntot - 2*bzg_ng
+    exg_nguards = exg_ng
+    eyg_nguards = eyg_ng
+    ezg_nguards = ezg_ng
+    bxg_nguards = bxg_ng
+    byg_nguards = byg_ng
+    bzg_nguards = bzg_ng
+
     CALL WRPX_PXR_GETEB_ENERGY_CONSERVING(np,xp,yp,zp, &
          ex,ey,ez,bx,by,bz,xmin,ymin,zmin,dx,dy,dz,nox,noy,noz, &
          exg,exg_nguards,exg_nvalid,&
@@ -242,6 +255,12 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
     ! Compute the number of valid cells and guard cells
     integer(c_long) :: jx_nvalid(BL_SPACEDIM), jy_nvalid(BL_SPACEDIM), jz_nvalid(BL_SPACEDIM), &
                        jx_nguards(BL_SPACEDIM), jy_nguards(BL_SPACEDIM), jz_nguards(BL_SPACEDIM)
+    jx_nvalid = jx_ntot - 2*jx_ng
+    jy_nvalid = jy_ntot - 2*jy_ng
+    jz_nvalid = jz_ntot - 2*jz_ng
+    jx_nguards = jx_ng
+    jy_nguards = jy_ng
+    jz_nguards = jz_ng
 
 ! Dimension 3
 #if (BL_SPACEDIM==3)
