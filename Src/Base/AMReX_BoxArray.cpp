@@ -72,13 +72,6 @@ BARef::~BARef ()
 #endif	    
 }
 
-ptrdiff_t 
-BARef::getRefID () const
-{
-    static BARef ref0;
-    return &(*this) - &(ref0);
-}
-
 void
 BARef::define (std::istream& is)
 {
