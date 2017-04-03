@@ -52,18 +52,19 @@ AmrAdv::Evolve ()
 void
 AmrAdv::timeStep (int lev, Real time, int iteration)
 {
-    if (regrid_int >= 0)  // We may need to regrid
+    if (regrid_int > 0)  // We may need to regrid
     {
-        // note that finest_level may change during loop
-	for (int i = lev; i <= finest_level && i < max_level; ++i) 
-	{
-	    if (istep[i] > last_regrid_step[i] && istep[i]%regrid_int == 0)
-	    {
-		int old_finest = finest_level;
-	    
-		regrid(i, time);
+        static Array<int> last_regrid_step(max_level+1, 0);
 
-		for (int k = i; k <= finest_level; ++k) {
+        // regrid doesn't change the base level, so we don't regrid on max_level
+        if (lev < max_level && istep[lev] > last_regrid_step[lev])
+        {
+            if (istep[lev] % regrid_int == 0)
+            {
+		int old_finest = finest_level; // regrid changes finest_level
+		regrid(lev, time);
+
+		for (int k = lev; k <= finest_level; ++k) {
 		    last_regrid_step[k] = istep[k];
 		}
 

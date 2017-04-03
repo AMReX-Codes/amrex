@@ -2573,13 +2573,6 @@ DistributionMapping::Check () const
    return ok;
 }
 
-ptrdiff_t 
-DistributionMapping::getRefID () const
-{
-    static DistributionMapping dm0(Array<int>(1));
-    return m_ref.get() - dm0.m_ref.get();
-}
-
 #ifdef BL_USE_MPI
 Array<int>
 DistributionMapping::TranslateProcMap(const Array<int> &pm_old, const MPI_Group group_new, const MPI_Group group_old)
