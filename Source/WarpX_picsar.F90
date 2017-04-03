@@ -5,7 +5,7 @@
 
 #elif (BL_SPACEDIM == 2)
 
-#define WRPX_PXR_GETEB_ENERGY_CONSERVING geteb2dxz_energy_conserving
+#define WRPX_PXR_GETEB_ENERGY_CONSERVING geteb2dxz_energy_conserving_generic
 #define WRPX_PXR_CURRENT_DEPOSITION depose_jxjyjz_generic_2d
 
 #endif
@@ -64,8 +64,7 @@ contains
        exg,exg_ng,exg_ntot,eyg,eyg_ng,eyg_ntot,ezg,ezg_ng,ezg_ntot, &
        bxg,bxg_ng,bxg_ntot,byg,byg_ng,byg_ntot,bzg,bzg_ng,bzg_ntot, &
        ll4symtry,l_lower_order_in_v, &
-       lvect,&
-       field_gathe_algo) &
+       lvect,field_gathe_algo) &
        bind(C, name="warpx_geteb_energy_conserving")
 
     integer, intent(in) :: exg_ntot(BL_SPACEDIM), eyg_ntot(BL_SPACEDIM), ezg_ntot(BL_SPACEDIM), &
@@ -82,48 +81,10 @@ contains
     logical(pxr_logical) :: pxr_ll4symtry, pxr_l_lower_order_in_v
 
     ! Compute the number of valid cells and guard cells
-    integer(c_long) :: exg_nvalid(3), eyg_nvalid(3), ezg_nvalid(3),    &
-                       bxg_nvalid(3), byg_nvalid(3), bzg_nvalid(3),    &
-                       exg_nguards(3), eyg_nguards(3), ezg_nguards(3), &
-                       bxg_nguards(3), byg_nguards(3), bzg_nguards(3)
-#if (BL_SPACEDIM == 3)
-    exg_nvalid = exg_ntot - 2*exg_ng
-    eyg_nvalid = eyg_ntot - 2*eyg_ng
-    ezg_nvalid = ezg_ntot - 2*ezg_ng
-    bxg_nvalid = bxg_ntot - 2*bxg_ng
-    byg_nvalid = byg_ntot - 2*byg_ng
-    bzg_nvalid = bzg_ntot - 2*bzg_ng
-    exg_nguards = exg_ng
-    eyg_nguards = eyg_ng
-    ezg_nguards = ezg_ng
-    bxg_nguards = bxg_ng
-    byg_nguards = byg_ng
-    bzg_nguards = bzg_ng
-#elif (BL_SPACEDIM == 2)
-    ! The first and last index of `exg_ntot` correspond to the first and last index of the `exg_nvalid`,
-    ! even though they do not have the same length
-    ! Set the middle index of `exg_nvalid` to 1
-    exg_nvalid(1:3:2) = exg_ntot(1:2) - 2*exg_ng
-    exg_nvalid(2) = 1
-    eyg_nvalid(1:3:2) = eyg_ntot(1:2) - 2*eyg_ng
-    eyg_nvalid(2) = 1
-    ezg_nvalid(1:3:2) = ezg_ntot(1:2) - 2*ezg_ng
-    ezg_nvalid(2) = 1
-    bxg_nvalid(1:3:2) = bxg_ntot(1:2) - 2*bxg_ng
-    bxg_nvalid(2) = 1
-    byg_nvalid(1:3:2) = byg_ntot(1:2) - 2*byg_ng
-    byg_nvalid(2) = 1
-    bzg_nvalid(1:3:2) = bzg_ntot(1:2) - 2*bzg_ng
-    bzg_nvalid(2) = 1
-    ! Set the number of guard cells in the middle index to 0
-    exg_nguards = (/ exg_ng, 0_c_long, exg_ng /)
-    eyg_nguards = (/ eyg_ng, 0_c_long, eyg_ng /)
-    ezg_nguards = (/ ezg_ng, 0_c_long, ezg_ng /)
-    bxg_nguards = (/ bxg_ng, 0_c_long, bxg_ng /)
-    byg_nguards = (/ byg_ng, 0_c_long, byg_ng /)
-    bzg_nguards = (/ bzg_ng, 0_c_long, bzg_ng /)
-#endif
-
+    integer(c_long) :: exg_nvalid(BL_SPACEDIM), eyg_nvalid(BL_SPACEDIM), ezg_nvalid(BL_SPACEDIM),    &
+                       bxg_nvalid(BL_SPACEDIM), byg_nvalid(BL_SPACEDIM), bzg_nvalid(BL_SPACEDIM),    &
+                       exg_nguards(BL_SPACEDIM), eyg_nguards(BL_SPACEDIM), ezg_nguards(BL_SPACEDIM), &
+                       bxg_nguards(BL_SPACEDIM), byg_nguards(BL_SPACEDIM), bzg_nguards(BL_SPACEDIM)
     pxr_ll4symtry = ll4symtry .eq. 1
     pxr_l_lower_order_in_v = l_lower_order_in_v .eq. 1
 
@@ -278,36 +239,9 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
     integer(c_long), intent(IN)                                   :: lvect
     integer(c_long), intent(IN)                                   :: current_depo_algo
 
-    ! Maintain variables nx, ny, nz, nxguard, nyguard, nzguard for compilation
-    ! although they will not be used in the future
-    integer(c_long) :: nx=0, ny=0, nz=0
-    integer(c_long) :: nxguard=0, nyguard=0, nzguard=0
-
     ! Compute the number of valid cells and guard cells
-    integer(c_long) :: jx_nvalid(3), jy_nvalid(3), jz_nvalid(3), &
-                       jx_nguards(3), jy_nguards(3), jz_nguards(3)
-#if (BL_SPACEDIM == 3)
-   jx_nvalid = jx_ntot - 2*jx_ng
-   jy_nvalid = jy_ntot - 2*jy_ng
-   jz_nvalid = jz_ntot - 2*jz_ng
-   jx_nguards = jx_ng
-   jy_nguards = jy_ng
-   jz_nguards = jz_ng
-#elif (BL_SPACEDIM == 2)
-   ! The first and last index of `jx_ntot` correspond to the first and last index of the `jx_nvalid`,
-   ! even though they do not have the same length
-   ! Set the middle index of `jx_nvalid` to 1
-   jx_nvalid(1:3:2) = jx_ntot(1:2) - 2*jx_ng
-   jx_nvalid(2) = 1
-   jy_nvalid(1:3:2) = jy_ntot(1:2) - 2*jy_ng
-   jy_nvalid(2) = 1
-   jz_nvalid(1:3:2) = jz_ntot(1:2) - 2*jz_ng
-   jz_nvalid(2) = 1
-   ! Set the number of guard cells in the middle index to 0
-   jx_nguards = (/ jx_ng, 0_c_long, jx_ng /)
-   jy_nguards = (/ jy_ng, 0_c_long, jy_ng /)
-   jz_nguards = (/ jz_ng, 0_c_long, jz_ng /)
-#endif
+    integer(c_long) :: jx_nvalid(BL_SPACEDIM), jy_nvalid(BL_SPACEDIM), jz_nvalid(BL_SPACEDIM), &
+                       jx_nguards(BL_SPACEDIM), jy_nguards(BL_SPACEDIM), jz_nguards(BL_SPACEDIM)
 
 ! Dimension 3
 #if (BL_SPACEDIM==3)
@@ -320,9 +254,12 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
         nox,noy,noz,current_depo_algo)
 ! Dimension 2
 #elif (BL_SPACEDIM==2)
-        CALL WRPX_PXR_CURRENT_DEPOSITION(jx,jy,jz,np, &
-        xp,yp,zp,uxp,uyp,uzp,gaminv,w,q,xmin,zmin, &
-        dt,dx,dz,nx,nz,nxguard,nzguard,nox,noz,lvect)
+        CALL WRPX_PXR_CURRENT_DEPOSITION(   &
+        jx,jx_nguards,jx_nvalid,            &
+        jy,jy_nguards,jy_nvalid,            &
+        jz,jz_nguards,jz_nvalid,            &
+        np,xp,yp,zp,uxp,uyp,uzp,gaminv,w,q, &
+        xmin,zmin,dt,dx,dz,nox,noz,lvect)
 #endif
 
   end subroutine
