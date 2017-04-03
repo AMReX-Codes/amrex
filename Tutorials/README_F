@@ -18,8 +18,8 @@ and is analogous to the C++ version in Tutorials/WaveEquation_C.
 GettingStarted_F
 ! ************************************************************************************
 
-The BoxLib user's guide includes source code from this example.
-This simply shows how to initialize BoxLib, create a domain decomposition,
+The AMReX user's guide includes source code from this example.
+This simply shows how to initialize AMReX, create a domain decomposition,
 access data in a MultiFab, and fill interior/periodic boundaries.
 This is then looped over using the MFIter and work is done on it in Fortran.
 
@@ -46,7 +46,7 @@ regrid_int steps.
 
 HeatEquation_EX5_F:  This is an extension of HeatEquation_EX4_F which allows implicit as
 well as explicit solution of the heat equation.   This introduces the use of the multilevel
-linear solvers in the BoxLib/LinearSolvers/F_MG directory.
+linear solvers in the AMReX/LinearSolvers/F_MG directory.
 
 ! ************************************************************************************
 AMR_Adv_F:
@@ -64,13 +64,13 @@ This example introduces AMR and the use of boundary registers to store fluxes fo
 MultiGrid_F:
 ! ************************************************************************************
 
-This tutorial demonstrates how to implement a simple multigrid solver using BoxLib's
+This tutorial demonstrates how to implement a simple multigrid solver using AMReX's
 data structures.  The code solves Poisson's equation with periodic boundary conditions.  
 Gauss-Seidel red-black smoothing is used at each grid level. 
 
 Note that this does *not* call the linear solvers present in 
 
-BoxLib/Src/LinearSolvers/F_MG
+AMReX/Src/LinearSolvers/F_MG
 
 but instead demonstrates how one would write a stand-alone simple solver.
 

@@ -14,14 +14,17 @@ public:
     FAmrCore ();
     virtual ~FAmrCore ();
 
-    void (*make_new_level_from_scratch) (int lev, Real time, const BoxArray* ba,
-					 const DistributionMapping* dm) = nullptr;
-    void (*make_new_level_from_coarse) (int lev, Real time, const BoxArray* ba,
-					const DistributionMapping* dm) = nullptr;
-    void (*remake_level) (int lev, Real time, const BoxArray* ba,
-			  const DistributionMapping* dm) = nullptr;
-    void (*clear_level) (int lev) = nullptr;
-    void (*error_est) (int lev, TagBoxArray* tags, Real time, int ngrow) = nullptr;
+    using make_level_funptr_t = void(*)(int lev, Real time, const BoxArray* ba,
+				      const DistributionMapping* dm);
+    make_level_funptr_t make_new_level_from_scratch = nullptr;
+    make_level_funptr_t make_new_level_from_coarse  = nullptr;
+    make_level_funptr_t remake_level                = nullptr;
+
+    using clear_level_funptr_t = void(*)(int lev);
+    clear_level_funptr_t clear_level = nullptr;
+
+    using error_est_funptr_t = void(*)(int lev, TagBoxArray* tags, Real time, char tagval, char clearval);
+    error_est_funptr_t error_est = nullptr;
 
     void SetFinestLevel (int new_finest) { finest_level = new_finest; }
 

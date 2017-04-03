@@ -17,6 +17,9 @@ The "main" block specifies the global test suite parameters:
   testTopDir     = < full path to test output directory >
   webTopDir      = < full path to test web output directory >
 
+  useCmake       = < 0: GNU Make handles the build (default) 
+                     1: CMake handles the build >
+
   sourceTree = < C_Src, F_Src, or AMReX -- what type is it? >
 
   suiteName = < descriptive name (i.e. Castro) >
@@ -70,6 +73,8 @@ The general form is:
 
   build = < 1: this is a directory that tests will be compiled in >
 
+  cmakeSetupOpts = < Options for CMake Setup (used only if useCmake=1) >
+
   comp_string = < a string that is added to the make line >
 
       comp_string can refer to both the main source directory (as @source@)
@@ -83,6 +88,8 @@ Each test is given its own block, with the general form:
   [Sod-x]
 
   buildDir = < relative path (from sourceDir) for this problem >
+
+  target = <name of the make target associated to the test (cmake only)>
 
   inputFile = < input file name >
   probinFile = < probin file name >
@@ -302,14 +309,15 @@ def get_args(arg_string=None):
 
 
 def run(string, stdin=False, outfile=None, store_command=False, env=None,
-        outfile_mode="a", errfile=None, log=None):
+        outfile_mode="a", errfile=None, log=None, cwd=None):
 
     # shlex.split will preserve inner quotes
     prog = shlex.split(string)
     sin = None
     if stdin: sin = subprocess.PIPE
-    p0 = subprocess.Popen(prog, stdin=sin, stdout=subprocess.PIPE,
-                          stderr=subprocess.PIPE, env=env)
+
+    p0 = subprocess.Popen(prog, stdin=sin, stdout=subprocess.PIPE, 
+                          stderr=subprocess.PIPE, env=env, cwd=cwd)
 
     stdout0, stderr0 = p0.communicate()
     if stdin: p0.stdin.close()

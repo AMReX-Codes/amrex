@@ -54,6 +54,8 @@ endif
 
 ifndef DIM
   DIM = 2
+else
+  DIM := $(strip $(DIM))
 endif
 
 ifndef USE_MPI
@@ -269,9 +271,10 @@ optionsSuffix	= $(DIM)d.$(machineSuffix)
 
 executable	= $(addsuffix $(optionsSuffix).ex, $(EBASE))
 
-depEXETempDir	= d/$(optionsSuffix).EXE
-objEXETempDir   = o/$(optionsSuffix).EXE
-f77EXETempDir	= f/$(optionsSuffix).EXE
+TmpBuildDir     = tmp_build_dir
+depEXETempDir	= $(TmpBuildDir)/d/$(optionsSuffix).EXE
+objEXETempDir   = $(TmpBuildDir)/o/$(optionsSuffix).EXE
+f77EXETempDir	= $(TmpBuildDir)/f/$(optionsSuffix).EXE
 
 #
 # For source code manipulation

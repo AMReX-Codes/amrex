@@ -1263,7 +1263,7 @@ ParallelDescriptor::Gatherv (const T* send, long sc,
 	    MPI_Waitall(request.size(), &request[0], &status[0]);
 	}
     } else {
-	MPI_Send(send, sc, ParallelDescriptor::Mpi_typemap<T>::type(), root, tag,
+	MPI_Send(const_cast<T*>(send), sc, ParallelDescriptor::Mpi_typemap<T>::type(), root, tag,
 		 Communicator());
     }
 

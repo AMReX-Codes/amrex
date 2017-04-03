@@ -924,6 +924,38 @@ ParticleContainer<NR, NI, NA>::GetParticleData (Array<Real>& part_data, int star
 
 template <int NR, int NI, int NA>
 void
+ParticleContainer<NR, NI, NA>::GetArrayData (Array<Real>& part_data, int start_comp, int num_comp)
+{
+  BL_PROFILE("ParticleContainer<NR, NI, NA>::GetArrayData()");
+
+  long start, npart;
+  std::tie(start,npart) = StartIndexInGlobalArray();  
+  part_data.resize(num_comp*npart,0);
+
+  // Each particle takes up num_comp Reals
+  start*= num_comp;
+  
+  for (int comp = 0; comp < num_comp; ++comp) {
+      for (unsigned lev = 0; lev < m_particles.size(); lev++) {
+          const auto& pmap = m_particles[lev];
+          for (auto& kv : pmap) {
+              const auto& pbx = kv.second.GetArrayOfStructs();
+              const auto& soa = kv.second.GetStructOfArrays();
+              const Array<Real>& arr = soa[start_comp + comp];
+              for (unsigned i = 0; i < arr.size(); ++i) {
+                  if (pbx[i].m_idata.id > 0) {
+                      part_data[start++] = arr[i];
+                  }
+              }
+          }
+      }
+  }
+  
+  ParallelDescriptor::ReduceRealSum(part_data.dataPtr(),part_data.size()); 
+}
+
+template <int NR, int NI, int NA>
+void
 ParticleContainer<NR, NI, NA>::SetAllowParticlesNearBoundary (bool value)
 {
   allow_particles_near_boundary = value; 
@@ -2098,11 +2130,13 @@ ParticleContainer<NR, NI, NA>::Restart (const std::string& dir,
   // "Version_One_Dot_One" -- can write out either as either single or double precision.
   // Appended to the latter version string are either "_single" or "_double" to
   // indicate how the particles were written.
+  // "Version_Two_Dot_Zero" -- this is the AMReX particle file format
   std::string how;
   if (version.find("Version_One_Dot_Zero") != std::string::npos) {
     how = "double";
   }
-  else if (version.find("Version_One_Dot_One") != std::string::npos) {
+  else if (version.find("Version_One_Dot_One")  != std::string::npos or
+           version.find("Version_Two_Dot_Zero") != std::string::npos) {
     if (version.find("_single") != std::string::npos) {
       how = "single";
     }
@@ -4159,6 +4193,44 @@ ParticleContainer<NR, NI, NA>::AssignCellDensitySingleLevelFort (int rho_index,
       ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
       
       amrex::Print() << "ParticleContainer<NR, NI, NA>::AssignDensity(single-level) time: " << stoptime << '\n';
+    }
+}
+
+template <int NR, int NI, int NA>
+void
+ParticleContainer<NR, NI, NA>::InterpolateFort (Array<std::unique_ptr<MultiFab> >& mesh_data, 
+                                                int lev_min, int lev_max)
+{
+    BL_PROFILE("ParticleContainer<NR, NI, NA>::InterpolateFort()");
+    for (int lev = lev_min; lev <= lev_max; ++lev) {
+        InterpolateSingleLevelFort(*mesh_data[lev], lev); 
+    }
+}
+
+template <int NR, int NI, int NA>
+void
+ParticleContainer<NR, NI, NA>::InterpolateSingleLevelFort (MultiFab& mesh_data, int lev)
+{
+    BL_PROFILE("ParticleContainer<NR, NI, NA>::InterpolateSingleLevelFort()");
+
+    if (mesh_data.nGrow() < 1)
+        amrex::Error("Must have at least one ghost cell when in InterpolateSingleLevelFort");
+    
+    const Geometry& gm          = Geom(lev);
+    const Real*     plo         = gm.ProbLo();
+    const Real*     dx          = gm.CellSize();
+    const auto&     pmap        = m_particles[lev];
+
+    for (const auto& kv : pmap) {
+      const int grid = kv.first.first;
+      const auto& pbx = kv.second.GetArrayOfStructs();
+      FArrayBox& fab = mesh_data[grid];
+      const Box& box = fab.box();
+      auto N = pbx.size();
+      int nstride = pbx.dataShape().first;
+      int nComp = fab.nComp();
+      amrex_interpolate_cic(pbx.data(), nstride, N, 
+                            fab.dataPtr(), box.loVect(), box.hiVect(), nComp, plo, dx);
     }
 }
 

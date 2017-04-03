@@ -7,6 +7,7 @@
 #include <AMReX_Box.H>
 #include <AMReX_BoxArray.H>
 #include <AMReX_MultiFab.H>
+#include <AMReX_MFCopyDescriptor.H>
 #include <AMReX_BCRec.H>
 #include <AMReX_Array.H>
 #include <AMReX_VisMF.H>

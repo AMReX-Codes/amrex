@@ -6,13 +6,9 @@ using namespace amrex;
 
 extern "C"
 {
-    void amrex_fi_print_box (const int* lo, const int* hi, int all)
+    void amrex_fi_print_box (const int* lo, const int* hi, const int* nodal)
     {
-	Box box {IntVect(lo), IntVect(hi)};
-	if (all) {
-	    AllPrint() << box << "\n";
-	} else {
-	    Print() << box << "\n";
-	}
+	Box box {IntVect(lo), IntVect(hi), IntVect(nodal)};
+	AllPrint() << box << "\n";
     }
 }
