@@ -15,7 +15,7 @@ endif
 # MACHINES supported
 
 CCSE_MACHINES := angilas atragon baragon battra ebirah gamera gigan
-CCSE_MACHINES += gimantis godzilla gojira hedorah kumonga manda
+CCSE_MACHINES += gimantis godzilla gojira hedorah kiryu kumonga manda
 CCSE_MACHINES += megalon mothra rodan varan naphta orga ghidorah
 ifeq ($(host_name), $(findstring $(host_name), $(CCSE_MACHINES)))
   which_site := ccse
