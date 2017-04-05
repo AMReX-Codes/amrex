@@ -101,12 +101,13 @@ public:
     */
     void MakeNewGrids (int lbase, Real time, int& new_finest, Array<BoxArray>& new_grids);
 
-    //! Tagging cells for refinement
+    //! Tag cells for refinement.  TagBoxArray tags is built on level lev grids.
     virtual void ErrorEst (int lev, TagBoxArray& tags, Real time, int ngrow) {}
 
-    virtual BoxArray GetAreaNotToTag (int lev) { return BoxArray(); }
-
+    //! Manually tag.  Note that tags is built on level lev grids coarsened by bf_lev.
     virtual void ManualTagsPlacement (int lev, TagBoxArray& tags, Array<IntVect>& bf_lev) {}
+
+    virtual BoxArray GetAreaNotToTag (int lev) { return BoxArray(); }
 
     static void Initialize ();
     static void Finalize ();
