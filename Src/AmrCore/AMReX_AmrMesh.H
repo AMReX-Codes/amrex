@@ -50,6 +50,7 @@ public:
     Array<Geometry>& Geom () { return geom; }
     Geometry& Geom (int lev) { return geom[lev]; }
 
+    void SetFinestLevel (int new_finest_level) { finest_level = new_finest_level; }
     void SetDistributionMap (int lev, const DistributionMapping& dmap_in);
     void SetBoxArray (int lev, const BoxArray& ba_in);
 
