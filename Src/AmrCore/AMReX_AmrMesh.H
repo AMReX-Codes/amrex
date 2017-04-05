@@ -104,8 +104,8 @@ public:
     //! Tag cells for refinement.  TagBoxArray tags is built on level lev grids.
     virtual void ErrorEst (int lev, TagBoxArray& tags, Real time, int ngrow) {}
 
-    //! Manually tag.  Note that tags is built on level lev grids coarsened by bf_lev.
-    virtual void ManualTagsPlacement (int lev, TagBoxArray& tags, Array<IntVect>& bf_lev) {}
+    //! Manually tag.  Note that tags is built on level lev grids coarsened by bf_lev[lev].
+    virtual void ManualTagsPlacement (int lev, TagBoxArray& tags, const Array<IntVect>& bf_lev) {}
 
     virtual BoxArray GetAreaNotToTag (int lev) { return BoxArray(); }
 
