@@ -52,6 +52,8 @@ public:
 
 protected:
 
+    virtual void ErrorEst (int lev, TagBoxArray& tags, Real time, int ngrow) override = 0;
+
     //! Make a new level from scratch using provided BoxArray and DistributionMapping.
     //! Only used during initialization.
     virtual void MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba, const DistributionMapping& dm) = 0;
