@@ -2719,7 +2719,7 @@ Amr::GetAreaNotToTag (int lev)
 }
 
 void
-Amr::ManualTagsPlacement (int lev, TagBoxArray& tags, Array<IntVect>& bf_lev)
+Amr::ManualTagsPlacement (int lev, TagBoxArray& tags, const Array<IntVect>& bf_lev)
 {
     amr_level[lev]->manual_tags_placement(tags, bf_lev);
 }
