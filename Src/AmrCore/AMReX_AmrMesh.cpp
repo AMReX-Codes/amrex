@@ -603,13 +603,20 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Array<BoxArray>& n
         }
     }
 
-    if (refine_grid_layout) {
-	for (int lev = lbase+1; lev <= new_finest; ++lev) {
-	    ChopGrids(lev,new_grids[lev],ParallelDescriptor::NProcs());
-	    if (new_grids[lev] == grids[lev]) {
-		new_grids[lev] = grids[lev]; // to avoid dupliates
-	    }
-	}
+    for (int lev = lbase+1; lev <= new_finest; ++lev) {
+        if (new_grids[lev].empty())
+        {
+            if (!(useFixedCoarseGrids() && lev<useFixedUpToLevel()) ) {
+                amrex::Abort("AmrMesh::MakeNewGrids: how did this happen?");
+            }
+        } 
+        else if (refine_grid_layout)
+        {
+            ChopGrids(lev,new_grids[lev],ParallelDescriptor::NProcs());
+            if (new_grids[lev] == grids[lev]) {
+                new_grids[lev] = grids[lev]; // to avoid dupliates
+            }
+        }
     }
 }
 

@@ -86,20 +86,26 @@ public:
     BoxArray MakeBaseGrids () const;
 
     /**
-    * \brief Make new grids based on error estimates.  Note that
-    * new_finest returns the new finest level.  Also note that this
-    * function adds at most one more level to the existing levels, and
-    * it may remove all levels above the base level.  The current
-    * finest level is stored in this->finest_level.  This function
-    * does not change its value, nor does it modifies any BoxArrays
-    * stored in this->grids.
+    * \brief Make new grids based on error estimates.  This functin
+    * expects that valid BoxArrays exist in this->grids from level
+    * lbase to level this->finest_level (the current finest level).
+    * new_grids.  On return, the new finest level is stored in
+    * new_finest, and the new grids are stored in new_grids from Array
+    * element lbase+1 to new_finest_level (unless fixed grids are
+    * used).  Note that this function adds at most one more level to
+    * the existing levels, and it may remove all levels above the base
+    * level.  This function does not change the value of
+    * this->finest_level, nor does it modifies any BoxArrays stored in
+    * this->grids.  It also does not modify new_grids's elements
+    * outside the range [lbase+1,new_finest_level].
     */
     void MakeNewGrids (int lbase, Real time, int& new_finest, Array<BoxArray>& new_grids);
 
     //! Tagging cells for refinement
-    virtual void ErrorEst (int lev, TagBoxArray& tags, Real time, int ngrow) = 0;
+    virtual void ErrorEst (int lev, TagBoxArray& tags, Real time, int ngrow) {}
 
     virtual BoxArray GetAreaNotToTag (int lev) { return BoxArray(); }
+
     virtual void ManualTagsPlacement (int lev, TagBoxArray& tags, Array<IntVect>& bf_lev) {}
 
     static void Initialize ();
