@@ -55,8 +55,8 @@ WarpX::Evolve (int numsteps)
 
 	    EvolveB(lev, 0.5*dt[lev]); // We now B^{n}
 
-        WarpX::FillBoundaryB( lev, false );
-        WarpX::FillBoundaryE( lev, false );
+            WarpX::FillBoundaryB( lev, false );
+            WarpX::FillBoundaryE( lev, false );
 
 	    // Evolve particles to p^{n+1/2} and x^{n+1}
 	    // Depose current, j^{n+1/2}
@@ -68,7 +68,7 @@ WarpX::Evolve (int numsteps)
 	    EvolveB(lev, 0.5*dt[lev]); // We now B^{n+1/2}
 
 	    // Fill B's ghost cells because of the next step of evolving E.
-        WarpX::FillBoundaryB( lev, false );
+            WarpX::FillBoundaryB( lev, true );
 
    	    if (cur_time + dt[0] >= stop_time - 1.e-6*dt[0] || step == numsteps_max-1) {
    	        // on last step, push by only 0.5*dt to synchronize all at n+1/2
