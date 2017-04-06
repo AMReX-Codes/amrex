@@ -43,6 +43,9 @@ public:
     //! Return number of variables (aka components) associated with each point.
     int nComp () const { return n_comp; }
 
+    //! Return index type.
+    IndexType ixType () const { return boxarray.ixType(); }
+    
     //! Return the communicator associated with this FabArray
     ParallelDescriptor::Color color () const { return distributionMap.color(); }
 
@@ -194,10 +197,27 @@ public:
     // Key for unique combination of BoxArray and DistributionMapping
     // Note both BoxArray and DistributionMapping are reference counted.
     // Objects with the same references have the same key.
-    typedef std::pair<ptrdiff_t,ptrdiff_t> BDKey;
+    struct BDKey {
+        BDKey () = default;
+        BDKey (const BoxArray::RefID& baid, const DistributionMapping::RefID& dmid)
+            : m_ba_id(baid), m_dm_id(dmid) {}
+        bool operator< (const BDKey& rhs) const {
+            return (m_ba_id < rhs.m_ba_id) ||
+                ((m_ba_id == rhs.m_ba_id) && (m_dm_id < rhs.m_dm_id));
+        }
+        bool operator== (const BDKey& rhs) const {
+            return m_ba_id == rhs.m_ba_id && m_dm_id == rhs.m_dm_id;
+        }
+        bool operator!= (const BDKey& rhs) const {
+            return m_ba_id != rhs.m_ba_id || m_dm_id != rhs.m_dm_id;
+        }
+    private:
+        BoxArray::RefID            m_ba_id;
+        DistributionMapping::RefID m_dm_id;
+    };
 
     BDKey getBDKey () const {
-	return std::make_pair(boxarray.getRefID(), distributionMap.getRefID());
+	return {boxarray.getRefID(), distributionMap.getRefID()};
     }
 
     void updateBDKey ();
@@ -382,8 +402,9 @@ protected:
     // Tiling
     //
     // We use tile size as the key for the inner map.
-    typedef std::map<IntVect, TileArray> TAMap;
-    typedef std::map<BDKey, TAMap> TACache;
+    
+    using TAMap   = std::map<std::pair<IntVect,IntVect>, TileArray>;
+    using TACache = std::map<BDKey, TAMap>;
     //
     static TACache     m_TheTileArrayCache;
     static CacheStats  m_TAC_stats;
@@ -403,11 +424,12 @@ protected:
 	    bool enforce_periodicity_only);
         ~FB ();
 
-	IndexType           m_typ;
-        int                 m_ngrow;
-        bool                m_cross;
-	bool                m_epo;
-	Periodicity         m_period;
+	IndexType    m_typ;
+        IntVect      m_crse_ratio; // BoxArray in FabArrayBase may have crse_ratio.
+        int          m_ngrow;
+        bool         m_cross;
+	bool         m_epo;
+	Periodicity  m_period;
         //
         // The cache of local and send/recv per FillBoundary().
         //

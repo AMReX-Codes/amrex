@@ -4,6 +4,7 @@
 #include <AMReX_ParmParse.H>
 #include <writePlotFile.H>
 #include <AMReX_Geometry.H>
+#include <AMReX_MultiFab.H>
 #include <AMReX_VisMF.H>
 #include <AMReX_PhysBCFunct.H>
 
