@@ -2220,6 +2220,8 @@ Amr::regrid (int  lbase,
 {
     BL_PROFILE("Amr::regrid()");
 
+    if (lbase > std::min(finest_level,max_level-1)) return;
+
     if (verbose > 0)
 	amrex::Print() << "Now regridding at level lbase = " << lbase << "\n";
 
@@ -2230,9 +2232,7 @@ Amr::regrid (int  lbase,
     Array<BoxArray> new_grid_places(max_level+1);
     Array<DistributionMapping> new_dmap(max_level+1);
 
-    if (lbase <= std::min(finest_level,max_level-1)) {
-      grid_places(lbase,time,new_finest, new_grid_places);
-    }
+    grid_places(lbase,time,new_finest, new_grid_places);
 
     bool regrid_level_zero = (!initial) &&
         (lbase == 0 && new_grid_places[0] != amr_level[0]->boxArray());
@@ -2719,7 +2719,7 @@ Amr::GetAreaNotToTag (int lev)
 }
 
 void
-Amr::ManualTagsPlacement (int lev, TagBoxArray& tags, Array<IntVect>& bf_lev)
+Amr::ManualTagsPlacement (int lev, TagBoxArray& tags, const Array<IntVect>& bf_lev)
 {
     amr_level[lev]->manual_tags_placement(tags, bf_lev);
 }

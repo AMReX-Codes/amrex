@@ -871,7 +871,27 @@ MultiFab::norm0 (const Array<int>& comps, int nghost, bool local) const
 Real
 MultiFab::norm2 (int comp) const
 {
-    Real nm2 = MultiFab::Dot(*this, comp, *this, comp, 1, 0);
+    BL_ASSERT(ixType().cellCentered());
+
+    // Dot expects two MultiDabs. Make a copy to avoid aliasing.
+    MultiFab tmpmf(boxArray(), DistributionMapping(), 1, 0);
+    MultiFab::Copy(tmpmf, *this, comp, 0, 1, 0);
+
+    Real nm2 = MultiFab::Dot(*this, comp, tmpmf, 0, 1, 0);
+    nm2 = std::sqrt(nm2);
+    return nm2;
+}
+
+Real
+MultiFab::norm2 (int comp, const Periodicity& period) const
+{
+    MultiFab tmpmf(boxArray(), DistributionMapping(), 1, 0);
+    MultiFab::Copy(tmpmf, *this, comp, 0, 1, 0);
+
+    auto mask = OverlapMask(period);
+    MultiFab::Divide(tmpmf, *mask, 0, 0, 1, 0);
+
+    Real nm2 = MultiFab::Dot(*this, comp, tmpmf, 0, 1, 0);
     nm2 = std::sqrt(nm2);
     return nm2;
 }
@@ -879,6 +899,8 @@ MultiFab::norm2 (int comp) const
 Array<Real>
 MultiFab::norm2 (const Array<int>& comps) const
 {
+    BL_ASSERT(ixType().cellCentered());
+
     int n = comps.size();
     Array<Real> nm2(n, 0.e0);
 
@@ -926,10 +948,24 @@ MultiFab::norm2 (const Array<int>& comps) const
 
     return nm2;
 }
- 
+
+Real
+MultiFab::norm1 (int comp, const Periodicity& period) const
+{
+    MultiFab tmpmf(boxArray(), DistributionMapping(), 1, 0);
+    MultiFab::Copy(tmpmf, *this, comp, 0, 1, 0);
+
+    auto mask = OverlapMask(period);
+    MultiFab::Divide(tmpmf, *mask, 0, 0, 1, 0);
+
+    return tmpmf.norm1(0, 0);
+}
+
 Real
 MultiFab::norm1 (int comp, int ngrow, bool local) const
 {
+    BL_ASSERT(ixType().cellCentered());
+    
     Real nm1 = 0.e0;
 
 #ifdef _OPENMP
@@ -949,6 +985,8 @@ MultiFab::norm1 (int comp, int ngrow, bool local) const
 Array<Real>
 MultiFab::norm1 (const Array<int>& comps, int ngrow, bool local) const
 {
+    BL_ASSERT(ixType().cellCentered());
+
     int n = comps.size();
     Array<Real> nm1(n, 0.e0);
 
@@ -1268,6 +1306,39 @@ MultiFab::SumBoundary (const Periodicity& period)
     SumBoundary(0, n_comp, period);
 }
 
+std::unique_ptr<MultiFab>
+MultiFab::OverlapMask (const Periodicity& period) const
+{
+    const BoxArray& ba = boxArray();
+    const DistributionMapping& dm = DistributionMap();
+
+    std::unique_ptr<MultiFab> p{new MultiFab(ba,dm,1,0)};
+    p->setVal(0.0);
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    {
+        std::vector< std::pair<int,Box> > isects;
+        const std::vector<IntVect>& pshifts = period.shiftIntVect();
+        
+        for (MFIter mfi(*p); mfi.isValid(); ++mfi)
+        {
+            FArrayBox& fab = (*p)[mfi];
+            const Box& bx = fab.box();
+            for (const auto& iv : pshifts)
+            {
+                ba.intersections(bx+iv, isects);                    
+                for (const auto& is : isects)
+                {
+                    fab.plus(1.0, is.second-iv);
+                }
+            }
+        }
+    }
+    
+    return p;
+}
 
 void
 MultiFab::AddProcsToComp (int ioProcNumSCS, int ioProcNumAll,

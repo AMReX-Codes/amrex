@@ -8,6 +8,7 @@
 #include <new>
 #include <memory>
 #include <cstring>
+#include <cstdint>
 
 #include <AMReX_CArena.H>
 #include <AMReX_MemPool.H>
@@ -122,11 +123,14 @@ void amrex_real_array_init (double* p, size_t nelems)
 
 void amrex_array_init_snan (double* p, size_t nelems)
 {
+#ifdef UINT64_MAX
+    const uint64_t snan = UINT64_C(0x7ff0000080000001);
+#else
     static_assert(sizeof(double) == sizeof(long long), "MemPool: sizeof double != sizeof long long");
-
+    const long long snan = 0x7ff0000080000001LL;
+#endif
     for (size_t i = 0; i < nelems; ++i) {
-	long long *ll = (long long *) (p++);
-	*ll = 0x7ff0000080000001LL;
+        std::memcpy(p++, &snan, sizeof(double));
     }
 }
 
