@@ -88,8 +88,15 @@ namespace amrex
         return m_nghost;
       }
 
-    ///
+    ///to keep porting of chombo codes less painful
     BoxArray getDBL() const
+      {
+        BL_ASSERT(m_isDefined);
+        return getBoxArray();
+      }
+
+    ///
+    BoxArray getBoxArray() const
       {
         BL_ASSERT(m_isDefined);
         return m_grids;
