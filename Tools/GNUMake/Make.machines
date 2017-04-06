@@ -40,3 +40,13 @@ ifeq ($(findstring mira, $(host_name)), mira)
   which_site := alcf
   which_computer := mira
 endif
+
+ifeq ($(findstring merlin, $(host_name)), merlin)
+  which_site := nrel
+  which_computer := merlin
+endif
+
+ifeq ($(findstring nrel, $(host_name)), nrel)
+  which_site := nrel
+  which_computer := anymachine
+endif

@@ -1,0 +1,13 @@
+ifneq ($(which_computer),$(filter $(which_computer),merlin anymachine))
+  $(error Unknown NREL computer, $(which_computer))
+endif
+
+ifeq ($(COMP), intel)
+  ifeq ($(USE_MPI), TRUE)
+    CXX := mpiicpc
+    CC  := mpiicc
+    FC  := mpiifort
+    fC  := mpiifort
+    F90 := mpiifort
+  endif
+endif
