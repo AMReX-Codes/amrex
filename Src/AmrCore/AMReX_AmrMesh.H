@@ -16,6 +16,7 @@ class AmrMesh
 public:
     AmrMesh ();
     AmrMesh (const RealBox* rb, int max_level_in, const Array<int>& n_cell_in, int coord);
+    AmrMesh (int max_level_in, const Array<int>& n_cell_in);
 
     AmrMesh (const AmrMesh& rhs) = delete;
     AmrMesh& operator= (const AmrMesh& rhs) = delete;
