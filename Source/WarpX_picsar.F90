@@ -1,12 +1,12 @@
 #if (BL_SPACEDIM == 3)
 
 #define WRPX_PXR_GETEB_ENERGY_CONSERVING geteb3d_energy_conserving
-#define WRPX_PXR_CURRENT_DEPOSITION depose_jxjyjz_generic
+#define WRPX_PXR_CURRENT_DEPOSITION depose_jxjyjz
 
 #elif (BL_SPACEDIM == 2)
 
 #define WRPX_PXR_GETEB_ENERGY_CONSERVING geteb2dxz_energy_conserving
-#define WRPX_PXR_CURRENT_DEPOSITION depose_jxjyjz_generic_2d
+#define WRPX_PXR_CURRENT_DEPOSITION depose_jxjyjz_2d
 
 #endif
 
