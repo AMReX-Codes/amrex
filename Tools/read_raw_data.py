@@ -1,5 +1,8 @@
 from glob import glob
 import numpy as np
+from collections import namedtuple
+
+HeaderInfo = namedtuple('HeaderInfo', ['version', 'how', 'ncomp', 'nghost'])
 
 
 def read_data(plt_file):
@@ -57,9 +60,15 @@ def _read_header(raw_file, field):
     header_file = raw_file + field + "_H"
     with open(header_file, "r") as f:
 
-        # skip the first five lines
-        for _ in range(5):
-            f.readline()
+        version = int(f.readline())
+        how = int(f.readline())
+        ncomp = int(f.readline())
+        nghost = int(f.readline())
+
+        header = HeaderInfo(version, how, ncomp, nghost)
+
+        # skip the next line
+        f.readline()
 
         # read boxes
         boxes = []
@@ -68,7 +77,9 @@ def _read_header(raw_file, field):
             if clean_line == [')']:
                 break
             lo_corner, hi_corner, node_type = _line_to_numpy_arrays(clean_line)
-            boxes.append((lo_corner, hi_corner, node_type))
+            boxes.append((lo_corner - nghost,
+                          hi_corner + nghost,
+                          node_type))
 
         # read the file and offset position for the corresponding box
         file_names = []
@@ -79,7 +90,7 @@ def _read_header(raw_file, field):
                 file_names.append(clean_line[1])
                 offsets.append(int(clean_line[2]))
 
-    return boxes, file_names, offsets
+    return boxes, file_names, offsets, header
 
 
 def _combine_boxes(boxes):
@@ -91,8 +102,9 @@ def _combine_boxes(boxes):
 
 def _read_field(raw_file, field_name):
 
-    boxes, file_names, offsets = _read_header(raw_file, field_name)
+    boxes, file_names, offsets, header = _read_header(raw_file, field_name)
 
+    ng = header.nghost
     lo, hi = _combine_boxes(boxes)
     data = np.zeros(hi - lo + 1)
 
@@ -104,8 +116,9 @@ def _read_field(raw_file, field_name):
             f.seek(offset)
             f.readline()  # always skip the first line
             arr = np.fromfile(f, 'float64', np.product(shape))
+            print(field_name, arr.size, shape, offset)
             arr = arr.reshape(shape, order='F')
-            data[[slice(l,h+1) for l, h in zip(lo, hi)]] = arr
+            data[[slice(l,h+1) for l, h in zip(lo+ng, hi+ng)]] = arr
 
     return data
 
