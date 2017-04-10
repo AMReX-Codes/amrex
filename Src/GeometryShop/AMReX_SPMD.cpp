@@ -13,11 +13,9 @@
 #include <cstring>
 #include <unistd.h>
 
+#include "AMReX_Print.H"
 #include "AMReX_SPMD.H"
 
-
-using std::cout;
-using std::endl;
 
 namespace amrex
 {
@@ -29,9 +27,9 @@ namespace amrex
 
   int reportMPIStats()
   {
-    std::cout<<"AMReX message size limit:"<< CH_MAX_MPI_MESSAGE_SIZE<<"\n"
+    amrex::Print()<<"AMReX message size limit:"<< CH_MAX_MPI_MESSAGE_SIZE<<"\n"
              <<"Max send message size:"<<CH_MaxMPISendSize<<"\n"
-             <<"Max recv message size:"<<CH_MaxMPIRecvSize<<std::endl;
+             <<"Max recv message size:"<<CH_MaxMPIRecvSize<<"\n";
     return 0;
   }
 
@@ -71,7 +69,7 @@ namespace amrex
       g_resetProcID = false;
       firstCall = false;
 
-      MPI_Comm_rank(Chombo_MPI::comm, &lastProcID);
+      MPI_Comm_rank(MPI_COMM_WORLD, &lastProcID);
     }
     return lastProcID;
   }
@@ -81,13 +79,10 @@ namespace amrex
     static int ret = -1;
     if (ret == -1)
     {
-      MPI_Comm_size(Chombo_MPI::comm, &ret);
+      MPI_Comm_size(MPI_COMM_WORLD, &ret);
     }
     return ret;
   }
-
-// hopefully static copy of opaque handles
-  MPI_Comm Chombo_MPI::comm = MPI_COMM_WORLD;
 
 #endif // BL_USE_MPI
 

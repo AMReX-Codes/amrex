@@ -16,17 +16,17 @@ extern "C"
 	delete geom;
     }
 
-    void amrex_fi_geometry_get_pmask (const Geometry* geom, int is_per[3])
+    void amrex_fi_geometry_get_pmask (int is_per[3])
     {
 	for (int i = 0; i < BL_SPACEDIM; ++i)
-	    is_per[i] = geom->isPeriodic(i);
+	    is_per[i] = Geometry::isPeriodic(i);
     }
 
-    void amrex_fi_geometry_get_probdomain (const Geometry* geom, double problo[3], double probhi[3])
+    void amrex_fi_geometry_get_probdomain (Real problo[3], Real probhi[3])
     {
 	for (int i = 0; i < BL_SPACEDIM; ++i) {
-	    problo[i] = geom->ProbLo(i);
-	    probhi[i] = geom->ProbHi(i);
+	    problo[i] = Geometry::ProbLo(i);
+	    probhi[i] = Geometry::ProbHi(i);
 	}
     }
 

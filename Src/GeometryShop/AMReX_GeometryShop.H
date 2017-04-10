@@ -21,6 +21,7 @@
 #include "AMReX_BaseFab.H"
 #include "AMReX_Moments.H"
 #include "AMReX_IrregNode.H"
+#include "AMReX_GeometryService.H"
 
 
 namespace amrex
@@ -31,27 +32,43 @@ namespace amrex
      It forms the interface between the workshop classes
      and the geometryservice class.
   */
-  class GeometryShop
+  class GeometryShop: public GeometryService
   {
   public:
-
-    enum InOut
-      {
-        Regular,
-        Covered,
-        Irregular
-      };
 
     ///
     /**
        Define the workshop using the local geometry description
     */
     GeometryShop(const BaseIF& a_localGeom,
-                 int           a_verbosity,
+                 int           a_verbosity = 0,
                  Real          a_thrshdVoF = 1.0e-16);
 
     ///
     ~GeometryShop();
+
+    /**
+       Return true if every cell in region is regular at the
+       refinement described by dx.
+    */
+    virtual bool isRegular(const Box&           a_region,
+                           const Box& a_domain,
+                           const RealVect&      a_origin,
+                           const Real&          a_dx) const;
+    ///
+    /**
+       Return true if every cell in region is covered at the
+       refinement described by dx.
+    */
+    virtual bool isCovered(const Box&           a_region,
+                           const Box& a_domain,
+                           const RealVect&      a_origin,
+                           const Real&          a_dx) const;
+
+    virtual bool isIrregular(const Box&           a_region,
+                             const Box& a_domain,
+                             const RealVect&      a_origin,
+                             const Real&          a_dx) const ;
 
 
     ///
@@ -66,10 +83,10 @@ namespace amrex
                            const RealVect&      a_origin,
                            const Real&          a_dx) const;
 
-    GeometryShop::InOut InsideOutside(const Box&           a_region,
-                                      const Box&           a_domain,
-                                      const RealVect&      a_origin,
-                                      const Real&          a_dx) const;
+    GeometryService::InOut InsideOutside(const Box&           a_region,
+                                         const Box&           a_domain,
+                                         const RealVect&      a_origin,
+                                         const Real&          a_dx) const;
     /**
      */
     void computeVoFInternals(Real&                a_volFrac,
@@ -142,6 +159,31 @@ namespace amrex
                          const RealVect&      a_x2,
                          const int&           a_range) const;
 
+  /**
+      Return true if every cell in region is regular at the
+      refinement described by dx.
+  */
+  bool isRegularEveryPoint(const Box&           a_region,
+                           const Box& a_domain,
+                           const RealVect&      a_origin,
+                           const Real&          a_dx) const;
+
+  ///
+  /**
+      Return true if every cell in region is covered at the
+      refinement described by dx.
+  */
+  bool isCoveredEveryPoint(const Box&           a_region,
+                           const Box& a_domain,
+                           const RealVect&      a_origin,
+                           const Real&          a_dx) const;
+
+
+    bool isIrregularEveryPoint(const Box&           a_region,
+                               const Box& a_domain,
+                               const RealVect&      a_origin,
+                               const Real&          a_dx,
+                               const Real&          a_originVal) const ;
 #if 1
     Real PrismoidalAreaCalc(RealVect& a_xVec,
                             RealVect& a_yVec) const;

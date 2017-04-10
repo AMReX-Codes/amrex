@@ -20,6 +20,7 @@
 namespace amrex
 {
   class EBGraph;
+  class EBGraphImplem;
 
 /// Iterator for all vofs within an IntVectSet and an Ebgraph
 /**
@@ -31,6 +32,9 @@ namespace amrex
     ///
     VoFIterator(const IntVectSet& a_ivs,
                 const EBGraph   & a_ebgraph);
+
+    VoFIterator(const IntVectSet   & a_ivs,
+                const EBGraphImplem& a_ebgraph);
 
     ///
     VoFIterator();

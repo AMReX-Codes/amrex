@@ -5,6 +5,7 @@
 #include <AMReX_AmrData.H>
 #include <AMReX_ArrayLim.H>
 #include <AMReX_VisMF.H>
+#include <AMReX_MFCopyDescriptor.H>
 
 #include <iostream>
 #include <string>

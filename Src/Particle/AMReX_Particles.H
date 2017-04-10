@@ -423,6 +423,8 @@ public:
     int finestLevel () const { return m_gdb->finestLevel(); }
     int maxLevel ()    const { return m_gdb->maxLevel(); }
     
+    int numLocalTilesAtLevel (int lev) const { return m_particles[lev].size(); }
+
     const ParGDBBase* GetParGDB () const { return m_gdb; }
 
     void reserveData();
@@ -447,6 +449,7 @@ public:
     void GetParticleCPU        (Array<int> & part_cpu);
     void GetParticleLocations  (Array<Real>& part_locs);
     void GetParticleData       (Array<Real>& part_data, int start_comp, int num_comp);
+    void GetArrayData          (Array<Real>& part_data, int start_comp, int num_comp);
 
     void SetParticleLocations  (Array<Real>& part_locs);
 
