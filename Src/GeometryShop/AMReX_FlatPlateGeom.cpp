@@ -19,12 +19,52 @@
 #include "AMReX_FlatPlateGeom.H"
 #include "AMReX_RealVect.H"
 #include "AMReX.H"
+#include "AMReX_Print.H"
 #include "AMReX_IntVectSet.H"
 #include "AMReX_BoxIterator.H"
 
 
 namespace amrex
 {
+    /**
+       Return true if every cell in region is regular at the
+       refinement described by dx.
+    */
+  bool 
+  FlatPlateGeom::
+  isRegular(const Box&           a_region,
+            const Box& a_domain,
+            const RealVect&      a_origin,
+            const Real&          a_dx) const
+  {
+    Real hiVal = a_dx*(a_region.bigEnd()  [m_normalDir]+1);
+    Real loVal = a_dx*(a_region.smallEnd()[m_normalDir]  );
+    bool retval = false;
+    if(hiVal < m_plateLocation)
+    {
+      retval = true;
+    }
+    else if(loVal > m_plateLocation)
+    {
+      retval = true;
+    }
+    return retval;
+  }
+
+    ///
+    /**
+       Return true if every cell in region is covered at the
+       refinement described by dx.
+    */
+  bool 
+  FlatPlateGeom::
+  isCovered(const Box&           a_region,
+            const Box& a_domain,
+            const RealVect&      a_origin,
+            const Real&          a_dx) const
+  {
+    return false;
+  }
   bool
   FlatPlateGeom::
   isCellCut(const IntVect            & a_iv,
@@ -363,8 +403,8 @@ namespace amrex
       }
     }
 
-    std::cout << "num Regular   cells  = " << numReg     << std::endl;
-    std::cout << "num Irregular cells  = " << numIrreg   << std::endl;
-    std::cout << "number of nodes  = " << a_nodes.size() << std::endl;
+    amrex::Print() << "num Regular   cells  = " << numReg     << "\n";
+    amrex::Print() << "num Irregular cells  = " << numIrreg   << "\n";
+    amrex::Print() << "number of nodes  = " << a_nodes.size() << "\n";
   }
 }

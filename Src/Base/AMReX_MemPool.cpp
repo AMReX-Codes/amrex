@@ -8,6 +8,7 @@
 #include <new>
 #include <memory>
 #include <cstring>
+#include <cstdint>
 
 #include <AMReX_CArena.H>
 #include <AMReX_MemPool.H>
@@ -34,7 +35,7 @@ namespace
 
 extern "C" {
 
-void mempool_init()
+void amrex_mempool_init()
 {
     static bool initialized = false;
     if (!initialized)
@@ -60,16 +61,16 @@ void mempool_init()
 #endif
 	{
 	    size_t N = 1024*1024*sizeof(double);
-	    void *p = mempool_alloc(N);
+	    void *p = amrex_mempool_alloc(N);
 	    memset(p, 0, N);
-	    mempool_free(p);
+	    amrex_mempool_free(p);
 	}
 
 #ifdef BL_MEM_PROFILING
 	MemProfiler::add("MemPool", std::function<MemProfiler::MemInfo()>
 			 ([] () -> MemProfiler::MemInfo {
 			     int MB_min, MB_max, MB_tot;
-			     mempool_get_stats(MB_min, MB_max, MB_tot);
+			     amrex_mempool_get_stats(MB_min, MB_max, MB_tot);
 			     long b = MB_tot * (1024L*1024L);
 			     return {b, b};
 			 }));
@@ -77,7 +78,7 @@ void mempool_init()
     }
 }
 
-void* mempool_alloc (size_t nbytes)
+void* amrex_mempool_alloc (size_t nbytes)
 {
 #ifdef _OPENMP
   int tid = omp_get_thread_num();
@@ -87,7 +88,7 @@ void* mempool_alloc (size_t nbytes)
   return the_memory_pool[tid]->alloc(nbytes);
 }
 
-void mempool_free (void* p) 
+void amrex_mempool_free (void* p) 
 {
 #ifdef _OPENMP
   int tid = omp_get_thread_num();
@@ -97,7 +98,7 @@ void mempool_free (void* p)
   the_memory_pool[tid]->free(p);
 }
 
-void mempool_get_stats (int& mp_min, int& mp_max, int& mp_tot) // min, max & tot in MB
+void amrex_mempool_get_stats (int& mp_min, int& mp_max, int& mp_tot) // min, max & tot in MB
 {
   size_t hsu_min=std::numeric_limits<size_t>::max();
   size_t hsu_max=0;
@@ -115,18 +116,21 @@ void mempool_get_stats (int& mp_min, int& mp_max, int& mp_tot) // min, max & tot
 
 // We should eventually use Real instead of double.
 // We cannot do it now because of F_BaseLib.
-void real_array_init (double* p, size_t nelems)
+void amrex_real_array_init (double* p, size_t nelems)
 {
-    if (init_snan) array_init_snan(p, nelems);
+    if (init_snan) amrex_array_init_snan(p, nelems);
 }
 
-void array_init_snan (double* p, size_t nelems)
+void amrex_array_init_snan (double* p, size_t nelems)
 {
+#ifdef UINT64_MAX
+    const uint64_t snan = UINT64_C(0x7ff0000080000001);
+#else
     static_assert(sizeof(double) == sizeof(long long), "MemPool: sizeof double != sizeof long long");
-
+    const long long snan = 0x7ff0000080000001LL;
+#endif
     for (size_t i = 0; i < nelems; ++i) {
-	long long *ll = (long long *) (p++);
-	*ll = 0x7ff0000080000001LL;
+        std::memcpy(p++, &snan, sizeof(double));
     }
 }
 

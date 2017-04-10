@@ -28,12 +28,19 @@ extern "C" {
 	ba->maxSize(sz);
     }
 
-    void amrex_fi_print_boxarray (const BoxArray* ba, int all)
+    void amrex_fi_boxarray_get_box (const BoxArray* ba, int i, int lo[3], int hi[3])
     {
-	if (all) {
-	    AllPrint() << *ba;
-	} else {
-	    Print() << *ba;
+        const Box& bx = (*ba)[i];
+        const int* lov = bx.loVect();
+	const int* hiv = bx.hiVect();
+	for (int i = 0; i < BL_SPACEDIM; ++i) {
+	    lo[i] = lov[i];
+	    hi[i] = hiv[i];
 	}
+    }
+
+    void amrex_fi_print_boxarray (const BoxArray* ba)
+    {
+	AllPrint() << *ba;
     }
 }

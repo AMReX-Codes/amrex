@@ -16,29 +16,29 @@
 namespace amrex
 {
 
-/********************************/
+  /********************************/
   const std::vector<VolIndex> &
   VoFIterator::getVector() const
   {
     assert(m_isDefined);
     return m_vols;
   }
-/********************************/
+  /********************************/
   VoFIterator::VoFIterator()
   {
     m_isDefined = false;
   }
-/********************************/
+  /********************************/
   VoFIterator::~VoFIterator()
   {
   }
-/********************************/
+  /********************************/
   VoFIterator::VoFIterator(const IntVectSet& a_ivs,
                            const EBGraph   & a_ebgraph)
   {
     define(a_ivs, a_ebgraph);
   }
-/********************************/
+  /********************************/
   void
   VoFIterator::define(const IntVectSet& a_ivs,
                       const EBGraph   & a_ebgraph)
@@ -55,21 +55,37 @@ namespace amrex
     }
     reset();
   }
-/********************************/
+  /********************************/
+  VoFIterator::VoFIterator(const IntVectSet& a_ivs,
+                           const EBGraphImplem   & a_ebgraph)
+  {
+    m_isDefined = true;
+    m_vols.resize(0);
+    for (IVSIterator ivsit(a_ivs); ivsit.ok(); ++ivsit)
+    {
+      std::vector<VolIndex> vols = (a_ebgraph.getVoFs(ivsit()));
+      for(int ivol = 0; ivol < vols.size(); ivol++)
+      {
+        m_vols.push_back(vols[ivol]);
+      }
+    }
+    reset();
+  }
+  /********************************/
   void
   VoFIterator::reset()
   {
     assert(isDefined());
     m_ivol = 0;
   }
-/********************************/
+  /********************************/
   void
   VoFIterator::operator++()
   {
     assert(isDefined());
     m_ivol++;
   }
-/********************************/
+  /********************************/
   const VolIndex&
   VoFIterator::operator() () const
   {
@@ -77,13 +93,13 @@ namespace amrex
     assert(m_ivol < m_vols.size());
     return m_vols[m_ivol];
   }
-/********************************/
+  /********************************/
   bool
   VoFIterator::ok() const
   {
     return (m_ivol < m_vols.size());
   }
-/********************************/
+  /********************************/
   bool
   VoFIterator::isDefined() const
   {

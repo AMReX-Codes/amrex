@@ -32,11 +32,12 @@ clean::
 	$(SILENT) $(RM) $(f77EXETempDir)/*.f $(f77EXETempDir)/*.f90 $(objEXETempDir)/*.o
 	$(SILENT) $(RM) *.optrpt $(objEXETempDir)/*.optrpt
 	$(SILENT) $(RM) $(executable)
+	$(SILENT) $(RM) -r $(executable).dSYM
 
 realclean:: clean
 	@echo Cleaning ...
 	$(SILENT) $(RM) TAGS tags
-	$(SILENT) $(RM) -r d o f *~
+	$(SILENT) $(RM) -r $(TmpBuildDir) *~
 	$(SILENT) $(RM) *.ex *.o
 	$(SILENT) $(RM) *.mod
 
