@@ -116,7 +116,6 @@ def _read_field(raw_file, field_name):
             f.seek(offset)
             f.readline()  # always skip the first line
             arr = np.fromfile(f, 'float64', np.product(shape))
-            print(field_name, arr.size, shape, offset)
             arr = arr.reshape(shape, order='F')
             data[[slice(l,h+1) for l, h in zip(lo+ng, hi+ng)]] = arr
 
