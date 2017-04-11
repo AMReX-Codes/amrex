@@ -91,12 +91,12 @@ namespace amrex
        a  lot of compute time if you are certain you are tagging all irregulkar cells.
     */
     void define(const EBLevelGrid & a_eblgFine,
-                      const EBLevelGrid & a_eblgCoar,
-                      const int& a_nref,
-                      const int& a_nvar,
-                      const int& a_radius,
-                      const IntVect& a_ghostCellsInData,
-                      const bool& a_forceNoEBCF = false)
+                const EBLevelGrid & a_eblgCoar,
+                const int& a_nref,
+                const int& a_nvar,
+                const int& a_radius,
+                const IntVect& a_ghostCellsInData,
+                const bool& a_forceNoEBCF = false);
 
 
     ///
