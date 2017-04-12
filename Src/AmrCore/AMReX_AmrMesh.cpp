@@ -38,7 +38,16 @@ AmrMesh::AmrMesh ()
 
 AmrMesh::AmrMesh (const RealBox* rb, int max_level_in, const Array<int>& n_cell_in, int coord)
 {
+    Initialize();
+    Geometry::Setup(rb,coord);
+    InitAmrMesh(max_level_in,n_cell_in);    
+}
 
+AmrMesh::AmrMesh (int max_level_in, const Array<int>& n_cell_in)
+{
+    Initialize();
+    Geometry::Setup();
+    InitAmrMesh(max_level_in,n_cell_in);    
 }
 
 AmrMesh::~AmrMesh ()

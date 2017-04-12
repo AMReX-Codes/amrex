@@ -53,7 +53,13 @@ TAGS:	$(allSources)
 	@echo etags $< ...
 	$(SILENT) etags $(abspath $^)
 
-.PHONY:	all clean realclean file_locations tags TAGS
+clang-analyze: $(CEXE_sources)
+	clang++ --analyze --analyzer-output html $(CXXFLAGS) $(CPPFLAGS) $(includes) $^
+
+clang-tidy: $(CEXE_sources)
+	clang-tidy $^ -checks=clang-diagnostic-*,performance-*,mpi-* -- $(CXXFLAGS) $(CPPFLAGS) $(includes)
+
+.PHONY:	all clean realclean file_locations tags TAGS clang-analyze clang-tidy
 
 #
 # Rules for objects.
