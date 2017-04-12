@@ -188,6 +188,8 @@ struct DefaultBATransformer final
 * cannot use any of the List member functions with a BoxList.
 */
 
+  class MFIter;
+
 class BoxArray
 {
 public:
@@ -355,6 +357,9 @@ public:
 
     //! Return element index of this BoxArray.
     Box operator[] (int index) const;
+
+    //! Return element index of this BoxArray.
+    Box operator[] (const MFIter& index) const;
 
     //! Return element index of this BoxArray.
     Box get (int index) const { return operator[](index); }

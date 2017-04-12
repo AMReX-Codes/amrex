@@ -42,6 +42,9 @@ namespace amrex
     EBISBox operator[](const MFIter& a_datInd) const;
 
     ///
+    EBISBox operator[](const int& a_boxindex) const;
+
+    ///
     EBISLayoutImplem();
 
     ///
@@ -210,6 +213,12 @@ namespace amrex
         return (*m_implem)[a_index];
       }
     
+
+    ///
+    EBISBox operator[](const int& a_boxindex) const
+      {
+        return (*m_implem)[a_boxindex];
+      }
 
     ///
     /**

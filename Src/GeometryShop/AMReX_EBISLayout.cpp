@@ -60,6 +60,13 @@ namespace amrex
     return retval;
   }
   /****************/
+  EBISBox
+  EBISLayoutImplem::operator[](const int& a_boxindex) const
+  {
+    EBISBox retval((*m_ebGraph)[a_boxindex], (*m_ebData)[a_boxindex]);
+    return retval;
+  }
+  /****************/
   EBISLayoutImplem::EBISLayoutImplem()
   {
     m_maxCoarseningRatio = 1;

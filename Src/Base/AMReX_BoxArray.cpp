@@ -3,6 +3,7 @@
 #include <AMReX_BoxArray.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_Utility.H>
+#include <AMReX_MFIter.H>
 
 #ifdef BL_MEM_PROFILING
 #include <AMReX_MemProfiler.H>
@@ -658,6 +659,12 @@ BoxArray::operator[] (int index) const
     } else {
         return (*m_transformer)(m_ref->m_abox[index]); 
     }
+}
+
+Box
+BoxArray::operator[] (const MFIter& mfi) const
+{
+  return (*this)[mfi.index()];
 }
 
 Box
