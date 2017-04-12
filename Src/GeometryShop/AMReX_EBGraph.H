@@ -949,9 +949,9 @@ namespace amrex
   }
   /*******************************/
   inline void EBGraph::
-  coarsenFaces(const EBGraph& a_coarGhost, const Box& a_region)
+  coarsenFaces(const EBGraph& a_fineGraph, const Box& a_coarRegion)
   {
-    m_implem->coarsenFaces(*a_coarGhost.m_implem, a_region);
+    m_implem->coarsenFaces(*a_fineGraph.m_implem, a_coarRegion);
   }
   /*******************************/
   inline void EBGraph::
