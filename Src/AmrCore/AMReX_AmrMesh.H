@@ -51,6 +51,21 @@ public:
     Array<Geometry>& Geom () { return geom; }
     Geometry& Geom (int lev) { return geom[lev]; }
 
+    void SetMaxGridSize (int new_mgs) { max_grid_size.assign(max_level+1, new_mgs); }
+    void SetMaxGridSize (const Array<int>& new_mgs) { 
+        BL_ASSERT(new_mgs.size() > max_level+1);
+        max_grid_size = new_mgs; 
+    }
+    void SetBlockingFactor (int new_bf) { blocking_factor.assign(max_level+1, new_bf); }
+    void SetBlockingFactor (const Array<int>& new_bf) {
+        BL_ASSERT(new_bf.size() > max_level+1);
+        blocking_factor = new_bf;
+    }
+    void SetGridEff (Real eff) { grid_eff = eff; }
+    void SetNProper (int n) { n_proper = n; }
+
+    // Set ref_ratio would require rebuiling Geometry objects.
+
     void SetFinestLevel (int new_finest_level) { finest_level = new_finest_level; }
     void SetDistributionMap (int lev, const DistributionMapping& dmap_in);
     void SetBoxArray (int lev, const BoxArray& ba_in);
