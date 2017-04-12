@@ -42,8 +42,8 @@ C$(AMREX_BASE)_headers += AMReX_Box.H AMReX_IntVect.H AMReX_IndexType.H AMReX_Or
 #
 # Real space.
 #
-C$(AMREX_BASE)_sources += AMReX_RealBox.cpp 
-C$(AMREX_BASE)_headers += AMReX_RealBox.H 
+C$(AMREX_BASE)_sources += AMReX_RealBox.cpp AMReX_RealVect.cpp
+C$(AMREX_BASE)_headers += AMReX_RealBox.H   AMReX_RealVect.H
 
 #
 # Unions of rectangles.
