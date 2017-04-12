@@ -15,8 +15,7 @@ class AmrMesh
 {
 public:
     AmrMesh ();
-    AmrMesh (const RealBox* rb, int max_level_in, const Array<int>& n_cell_in, int coord);
-    AmrMesh (int max_level_in, const Array<int>& n_cell_in);
+    AmrMesh (const RealBox* rb, int max_level_in, const Array<int>& n_cell_in, int coord=-1);
 
     AmrMesh (const AmrMesh& rhs) = delete;
     AmrMesh& operator= (const AmrMesh& rhs) = delete;
@@ -117,6 +116,12 @@ public:
     * outside the range [lbase+1,new_finest_level].
     */
     void MakeNewGrids (int lbase, Real time, int& new_finest, Array<BoxArray>& new_grids);
+
+    //! This function makes new grid for all levels (including level 0).
+    void MakeNewGrids (Real time = 0.0);
+
+    //! This function is called by the second version of MakeNewGrids.
+    virtual void MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba, const DistributionMapping& dm) {}
 
     //! Tag cells for refinement.  TagBoxArray tags is built on level lev grids.
     virtual void ErrorEst (int lev, TagBoxArray& tags, Real time, int ngrow) {}
