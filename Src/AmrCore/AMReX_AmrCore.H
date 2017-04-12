@@ -25,7 +25,7 @@ class AmrCore
 public:
 
     AmrCore ();
-    AmrCore (const RealBox* rb, int max_level_in, const Array<int>& n_cell_in, int coord);
+    AmrCore (const RealBox* rb, int max_level_in, const Array<int>& n_cell_in, int coord=-1);
 
     AmrCore (const AmrCore& rhs) = delete;
     AmrCore& operator= (const AmrCore& rhs) = delete;
@@ -56,7 +56,7 @@ protected:
 
     //! Make a new level from scratch using provided BoxArray and DistributionMapping.
     //! Only used during initialization.
-    virtual void MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba, const DistributionMapping& dm) = 0;
+    virtual void MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba, const DistributionMapping& dm) override = 0;
 
     //! Make a new level using provided BoxArray and DistributionMapping and fill with interpolated coarse level data.
     virtual void MakeNewLevelFromCoarse (int lev, Real time, const BoxArray& ba, const DistributionMapping& dm) = 0;
