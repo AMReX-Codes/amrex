@@ -17,7 +17,6 @@
 #include "AMReX_ParmParse.H"
 #include "AMReX_GeometryShop.H"
 #include "AMReX_PolyGeom.H"
-#include "AMReX_LevelData.H"
 #include "AMReX_EBCellFAB.H"
 #include "AMReX_EBCellFactory.H"
 #include "AMReX_VoFIterator.H"
@@ -25,6 +24,7 @@
 #include "AMReX_PlaneIF.H"
 #include "AMReX_AggEBPWLFillPatch.H"
 
+#if 0
 namespace amrex
 {
   Real g_coarTimeOld = 0.0;
@@ -40,68 +40,7 @@ namespace amrex
                    const BoxArray& a_gridsCoar,
                    const Box& a_domainCoar)
   {
-    //the norms here must go over ghost cells
-    //too or the test is really silly
-    BoxLayout blNormFine, blNormCoar;
-    blNormFine.deepCopy(a_gridsFine);
-    blNormCoar.deepCopy(a_gridsCoar);
-    blNormFine.grow(1);
-    blNormCoar.grow(1);
-    blNormFine&= a_domainFine;
-    blNormCoar&= a_domainCoar;
-    blNormFine.close();
-    blNormCoar.close();
-
-    EBCellFactory factFine(a_ebislFine);
-    EBCellFactory factCoar(a_ebislCoar);
-    int eekflag = 0;
-    for (int itype = 0; itype < 3; itype++)
-    {
-      EBNormType::NormMode normtype;
-      if (itype == 0)
-      {
-        normtype = EBNormType::OverBoth;
-        amrex::Print() << endl << " Using all uncovered cells." << endl  << endl;
-      }
-      else if (itype == 1)
-      {
-        normtype = EBNormType::OverOnlyRegular;
-        amrex::Print() << endl << " Using only regular cells." << endl << endl;
-      }
-      else
-      {
-        normtype = EBNormType::OverOnlyIrregular;
-        amrex::Print() << endl << " Using only irregular cells." << endl << endl;
-      }
-      int comp = 0;
-      for (int inorm = 0; inorm < 3; inorm++)
-      {
-
-        if (inorm == 0)
-        {
-          amrex::Print() << endl << " Using max norm." << endl;
-        }
-        else
-        {
-          amrex::Print() << endl << " Using L-" << inorm << "norm." << endl;
-        }
-        Real coarnorm = EBArith::norm(a_errorCoar,
-                                      blNormCoar, a_ebislCoar,
-                                      comp, inorm, normtype);
-        Real finenorm = EBArith::norm(a_errorFine,
-                                      blNormFine, a_ebislFine,
-                                      comp, inorm, normtype);
-        amrex::Print() << "Coarse Error Norm = " << coarnorm << endl;
-        amrex::Print() << "Fine   Error Norm = " << finenorm << endl;
-        if (Abs(finenorm) > 1.0e-8)
-        {
-          Real order = log(coarnorm/finenorm)/log(2.0);
-          amrex::Print() << "Order of scheme = " << order << endl;
-        }
-      }
-    }
-
-    return eekflag;
+    return 0;
   }
 /***************/
 Real exactFunc(const IntVect& a_iv,
@@ -141,13 +80,13 @@ makeLayout(BoxArray& a_dbl,
   int blockFactor = 2;
   Real fillrat = 0.75;
   Box domainCoar = coarsen(a_domainFine, 2);
-  Vector<int> refRat(2,2);
+  std::vector<int> refRat(2,2);
   BRMeshRefine meshRefObj(domainCoar, refRat, fillrat,
                           blockFactor, bufferSize, maxsize);
 
-  Vector<Vector<Box> > oldMeshes(2);
-  oldMeshes[0] = Vector<Box>(1,   domainCoar);
-  oldMeshes[1] = Vector<Box>(1, a_domainFine);
+  std::vector<std::vector<Box> > oldMeshes(2);
+  oldMeshes[0] = std::vector<Box>(1,   domainCoar);
+  oldMeshes[1] = std::vector<Box>(1, a_domainFine);
 
   //set up coarse tags
   int nc = domainCoar.size(0);
@@ -175,12 +114,12 @@ makeLayout(BoxArray& a_dbl,
 
   int baseLevel = 0;
   int topLevel = 0;
-  Vector<Vector<Box> > newMeshes;
+  std::vector<std::vector<Box> > newMeshes;
   meshRefObj.regrid(newMeshes, tags, baseLevel,
                     topLevel, oldMeshes);
 
-  const Vector<Box>& vbox = newMeshes[1];
-  Vector<int>  procAssign;
+  const std::vector<Box>& vbox = newMeshes[1];
+  std::vector<int>  procAssign;
   eekflag = LoadBalance(procAssign,vbox);
   if (eekflag != 0) return eekflag;
   a_dbl.define(vbox, procAssign);
@@ -206,9 +145,9 @@ int getError(FabArray<EBCellFAB>& a_errorFine,
 
   Real dxCoar = nref*a_dxFine;
   //make the coarse grids completely cover the domain
-  Vector<Box> vbox;
+  std::vector<Box> vbox;
   domainSplit(domainCoar, vbox,  maxsize);
-  Vector<int>  procAssign;
+  std::vector<int>  procAssign;
   eekflag = LoadBalance(procAssign,vbox);
   BoxArray gridsCoar(vbox, procAssign);
   //make coarse ebisl
@@ -345,7 +284,7 @@ int makeGeometry(Box& a_domain,
   //parse input file
   ParmParse pp;
   RealVect origin = RealVect::Zero;
-  Vector<int> n_cell(SpaceDim);
+  std::vector<int> n_cell(SpaceDim);
   pp.getarr("n_cell",n_cell,0,SpaceDim);
 
   CH_assert(n_cell.size() == SpaceDim);
@@ -364,7 +303,7 @@ int makeGeometry(Box& a_domain,
   a_domain.setSmall(lo);
   a_domain.setBig(hi);
 
-  Vector<Real> prob_lo(SpaceDim, 1.0);
+  std::vector<Real> prob_lo(SpaceDim, 1.0);
   Real prob_hi;
   pp.getarr("prob_lo",prob_lo,0,SpaceDim);
   pp.get("prob_hi",prob_hi);
@@ -483,6 +422,7 @@ ebpwlfpTest()
   return eekflag;
 }
 }
+#endif
 /***************/
 int
 main(int argc, char* argv[])
@@ -490,7 +430,7 @@ main(int argc, char* argv[])
   int retval = 0;
   amrex::Initialize(argc,argv);
 
-  amrex::ebpwlfpConvTest();
+  //amrex::ebpwlfpConvTest();
 
   amrex::Finalize();
   return retval;

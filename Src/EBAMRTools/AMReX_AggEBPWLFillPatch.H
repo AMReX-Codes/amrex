@@ -10,8 +10,8 @@
  */
 
 
-#ifndef _AGGEBPWLFILLPATCH_H_
-#define _AGGEBPWLFILLPATCH_H_
+#ifndef _AGGEBPWLFILLPATCH_H___
+#define _AGGEBPWLFILLPATCH_H___
 
 #include "AMReX_REAL.H"
 #include "AMReX_FArrayBox.H"
@@ -65,13 +65,13 @@ namespace amrex
                       const int& a_nref,
                       const int& a_nvar,
                       const int& a_radius,
-                      const IntVect& a_ghostCellsInData,
+                      const int& a_ghostCellsInData,
                       const bool& a_forceNoEBCF = false)
       {
         setDefaultValues();
         define(a_eblgFine, a_eblgCoar,
                a_nref, a_nvar, a_radius, 
-               a_ghostCellsInData, a_forceNoEBCF)
+               a_ghostCellsInData, a_forceNoEBCF);
       }
                     
                     
@@ -95,7 +95,7 @@ namespace amrex
                 const int& a_nref,
                 const int& a_nvar,
                 const int& a_radius,
-                const IntVect& a_ghostCellsInData,
+                const int& a_ghostCellsInData,
                 const bool& a_forceNoEBCF = false);
 
 
@@ -132,17 +132,17 @@ namespace amrex
                 const Real& a_coarTimeOld,
                 const Real& a_coarTimeNew,
                 const Real& a_fineTime,
-                int isrc, int idst, int inco);
+                int idst, int inco) const;
 
   protected:
 
     //internal use only functions
 
 
-    void getOffsets(const LayoutData< Vector<VolIndex> >&  a_srcVoFsCoar,
+    void getOffsets(const LayoutData< std::vector<VolIndex> >&  a_srcVoFsCoar,
                     const LayoutData<IntVectSet>&          a_irregRegionsFine,
-                    const LayoutData<Vector<VoFStencil> >  a_loStencils[SpaceDim],
-                    const LayoutData<Vector<VoFStencil> >  a_hiStencils[SpaceDim],
+                    const LayoutData<std::vector<VoFStencil> >  a_loStencils[SpaceDim],
+                    const LayoutData<std::vector<VoFStencil> >  a_hiStencils[SpaceDim],
                     const LayoutData<IntVectSet>           a_coarLoInterp[SpaceDim],
                     const LayoutData<IntVectSet>           a_coarHiInterp[SpaceDim],
                     const LayoutData<IntVectSet>           a_coarCeInterp[SpaceDim]);
@@ -156,7 +156,7 @@ namespace amrex
                    const Real& a_coarTimeNew,
                    const Real& a_fineTime,
                    const MFIter& a_datInd,
-                   const Interval& a_variables) const;
+                   int idst, int inco) const;
 
     void
     makeStencils();
@@ -166,29 +166,30 @@ namespace amrex
     void
     getIVS(LayoutData<IntVectSet>& a_irregRegionsFine,
            LayoutData<IntVectSet>& a_irregRegionsCoFi,
-           LayoutData< Vector<VolIndex> >&   a_srcVoFs);
+           LayoutData< std::vector<VolIndex> >&   a_srcVoFs);
 
     void
-    defineAggStencils(LayoutData<Vector<VoFStencil> >  a_loStencils[SpaceDim],
-                      LayoutData<Vector<VoFStencil> >  a_hiStencils[SpaceDim],
-                      const LayoutData< Vector<VolIndex> >&   a_srcVoFs);
+    defineAggStencils(LayoutData<std::vector<VoFStencil> >  a_loStencils[SpaceDim],
+                      LayoutData<std::vector<VoFStencil> >  a_hiStencils[SpaceDim],
+                      const LayoutData< std::vector<VolIndex> >&   a_srcVoFs);
     void
     getLoHiCenIVS(LayoutData<IntVectSet>  a_coarLoInterp[SpaceDim],
                   LayoutData<IntVectSet>  a_coarHiInterp[SpaceDim],
                   LayoutData<IntVectSet>  a_coarCeInterp[SpaceDim]);
 
     void
-    getSten(LayoutData<Vector<VoFStencil> >  a_loStencils[SpaceDim],
-            LayoutData<Vector<VoFStencil> >  a_hiStencils[SpaceDim],
+    getSten(LayoutData<std::vector<VoFStencil> >  a_loStencils[SpaceDim],
+            LayoutData<std::vector<VoFStencil> >  a_hiStencils[SpaceDim],
             LayoutData<IntVectSet>           a_coarLoInterp[SpaceDim],
             LayoutData<IntVectSet>           a_coarHiInterp[SpaceDim],
             LayoutData<IntVectSet>           a_coarCeInterp[SpaceDim],
-            const LayoutData< Vector<VolIndex> >&   a_srcVoFs);
+            const LayoutData< std::vector<VolIndex> >&   a_srcVoFs);
 
     void getSlopes(const EBCellFAB& a_coarDataOld,
                    const EBCellFAB& a_coarDataNew,
                    const MFIter& a_dit,
-                   const Interval& a_variables) const;
+                   int idst, int inco) const;
+
 
     void deltaMinMod(Real& a_slope, Real& a_slopeLo, Real& a_slopeHi) const;
 
@@ -220,15 +221,15 @@ namespace amrex
     } typedef coar_logic_t;
 
     //data to provide fast access to fine points and their associated slopes
-    LayoutData< Vector<fine_logic_t> > m_fineOffsets;
+    LayoutData< std::vector<fine_logic_t> > m_fineOffsets;
     //data so we can do the wacky delta minmod thing fast.
-    LayoutData< Vector<coar_logic_t> > m_coarOffsets;
+    LayoutData< std::vector<coar_logic_t> > m_coarOffsets;
 
     bool m_forceNoEBCF;
     bool m_isDefined;
 
     //ghost cells in solution
-    IntVect m_ghost;
+    int  m_ghost;
     //domain at the coarse level
     Box m_coarDomain;
     //layouts
@@ -260,8 +261,8 @@ namespace amrex
     mutable LayoutData< BaseIVFAB<Real> > m_slopeHiNew[SpaceDim];
     mutable LayoutData< BaseIVFAB<Real> > m_slopeCeNew[SpaceDim];
 
-    LayoutData< RefCountedPtr<AggStencil <EBCellFAB, BaseIVFAB<Real> > > > m_stenLo[SpaceDim];
-    LayoutData< RefCountedPtr<AggStencil <EBCellFAB, BaseIVFAB<Real> > > > m_stenHi[SpaceDim];
+    LayoutData< std::shared_ptr<AggStencil <EBCellFAB, BaseIVFAB<Real> > > > m_stenLo[SpaceDim];
+    LayoutData< std::shared_ptr<AggStencil <EBCellFAB, BaseIVFAB<Real> > > > m_stenHi[SpaceDim];
 
   private:
     //disallowed for all the usual reasons.  No code specified because Jeff says that is better.

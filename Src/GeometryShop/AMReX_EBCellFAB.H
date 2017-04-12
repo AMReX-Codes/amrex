@@ -29,6 +29,8 @@ namespace amrex
   class EBCellFAB: public BaseEBCellFAB<Real>
   {
   public:
+    typedef Real value_type;
+
     ///
     EBCellFAB();
 
@@ -103,6 +105,21 @@ namespace amrex
                     int a_srccomp,
                     int a_destcomp,
                     int a_numcomp);
+
+
+    //for fabarray
+    EBCellFAB& plus(const EBCellFAB& a_ebfab,
+                    const Box& a_region1,
+                    const Box& a_region2,
+                    int a_srccomp,
+                    int a_destcomp,
+                    int a_numcomp)
+      {
+        Box region = a_region1 & a_region2;
+        this->plus(a_ebfab, region, a_srccomp, a_destcomp, a_numcomp);
+        return *this;
+      }
+    
 
 
     ///

@@ -11,12 +11,7 @@
 
 
 #include "AMReX_AggEBPWLFillPatch.H"
-#include "AMReX_VoFIterator.H"
-#include "AMReX_BoxArray.H"
-#include "AMReX_FabArray.H"
 #include "AMReX_EBCellFactory.H"
-#include "AMReX_BaseIVFactory.H"
-#include "AMReX_EBIndexSpace.H"
 
 namespace amrex
 {
@@ -29,7 +24,6 @@ namespace amrex
     m_refRat = -1;
     m_nComp = -1;
     m_radius = -1;
-    m_patcher = NULL;
   }
   /************************************/
   AggEBPWLFillPatch::
@@ -50,7 +44,7 @@ namespace amrex
          const int& a_nref,
          const int& a_nvar,
          const int& a_radius,
-         const IntVect& a_ghost,
+         const int& a_ghost,
          const bool& a_forceNoEBCF)
   {
     BL_PROFILE("AggEBPWLFillPatch::define");
@@ -65,7 +59,7 @@ namespace amrex
     m_refRat = a_nref;
     m_nComp = a_nvar;
     m_ghost = a_ghost;
-    m_coarDomain = a_domainCoar;
+    m_coarDomain = a_eblgCoar.getDomain();
      
     m_eblgFine = a_eblgFine;
     m_eblgCoar = a_eblgFine;
@@ -87,7 +81,6 @@ namespace amrex
       m_coarGhostRad = coarse_ghost_radius;
       int ghost = m_coarGhostRad;
                
-      BL_ASSERT(a_ebisPtr->isDefined());
       coarsen(m_eblgCoFi, m_eblgFine, m_refRat);
 
       //  m_coarsenedFineEBISL.setMaxCoarseningRatio(m_refRat);
@@ -95,7 +88,8 @@ namespace amrex
       m_coarOnFDataOld.define( m_eblgCoFi.getDBL(),
                                m_eblgCoFi.getDM(), m_nComp,
                                ghost, MFInfo(), ebcellfact);
-      m_coarOnFDataNew.define( m_eblgCoFi.getDBL(), m_nComp,
+      m_coarOnFDataNew.define( m_eblgCoFi.getDBL(),
+                               m_eblgCoFi.getDM(), m_nComp,
                                ghost, MFInfo(), ebcellfact);
       makeStencils();
     }
@@ -159,20 +153,20 @@ namespace amrex
                
       for (MFIter mfi(m_stenLo[idir]); mfi.isValid(); ++mfi)
       {
-        std::vector<RefCountedPtr<BaseIndex   > > baseindice(a_srcVoFs[mfi].size());
-        std::vector<RefCountedPtr<BaseStencil > > basestenlo(a_srcVoFs[mfi].size());
-        std::vector<RefCountedPtr<BaseStencil > > basestenhi(a_srcVoFs[mfi].size());
+        std::vector<std::shared_ptr<BaseIndex   > > baseindice(a_srcVoFs[mfi].size());
+        std::vector<std::shared_ptr<BaseStencil > > basestenlo(a_srcVoFs[mfi].size());
+        std::vector<std::shared_ptr<BaseStencil > > basestenhi(a_srcVoFs[mfi].size());
                
-        for (int ivof= 0; ivof < a_srcVoFs[dit()].size(); ivof++)
+        for (int ivof= 0; ivof < a_srcVoFs[mfi].size(); ivof++)
         {
-          baseindice[ivof] =   RefCountedPtr<BaseIndex>(new   VolIndex(         a_srcVoFs[mfi][ivof]));
-          basestenlo[ivof] = RefCountedPtr<BaseStencil>(new VoFStencil(a_loStencils[idir][mfi][ivof]));
-          basestenhi[ivof] = RefCountedPtr<BaseStencil>(new VoFStencil(a_hiStencils[idir][mfi][ivof]));
+          baseindice[ivof] =   std::shared_ptr<BaseIndex>(new   VolIndex(         a_srcVoFs[mfi][ivof]));
+          basestenlo[ivof] = std::shared_ptr<BaseStencil>(new VoFStencil(a_loStencils[idir][mfi][ivof]));
+          basestenhi[ivof] = std::shared_ptr<BaseStencil>(new VoFStencil(a_hiStencils[idir][mfi][ivof]));
         }
         //all the slopes are the same size so we can use any of them really
-        m_stenLo[idir][mfi] = RefCountedPtr< AggStencil <EBCellFAB, BaseIVFAB<Real> > >
+        m_stenLo[idir][mfi] = std::shared_ptr< AggStencil <EBCellFAB, BaseIVFAB<Real> > >
           (new AggStencil <EBCellFAB, BaseIVFAB<Real> >(baseindice, basestenlo, m_coarOnFDataOld[mfi], m_slopeLoOld[idir][mfi]));
-        m_stenHi[idir][mfi] = RefCountedPtr< AggStencil <EBCellFAB, BaseIVFAB<Real> > >
+        m_stenHi[idir][mfi] = std::shared_ptr< AggStencil <EBCellFAB, BaseIVFAB<Real> > >
           (new AggStencil <EBCellFAB, BaseIVFAB<Real> >(baseindice, basestenhi, m_coarOnFDataOld[mfi], m_slopeHiOld[idir][mfi]));
       }
     }
@@ -249,13 +243,16 @@ namespace amrex
     //offsets
     m_fineOffsets.define(m_eblgFine.getDBL(), m_eblgFine.getDM());
     EBCellFactory ebcellfact(m_eblgFine.getEBISL());
-    FabArray<EBCellFAB> dummyfine(m_eblgFine.getDBL(), m_eblgFine.getDM(), 1, m_ghost, MFInfo(), ebcellfact);
+
+    FabArray<EBCellFAB> dummyfine(m_eblgFine.getDBL(), 
+                                  m_eblgFine.getDM(), 1, 
+                                  m_ghost, MFInfo(), ebcellfact);
 
     for (MFIter mfi(dummyfine); mfi.isValid(); ++mfi)
     {
       const IntVectSet& ivs = a_irregRegionsFine[mfi];
-      VoFIterator vofitfine(ivs, m_eblgFine.getEBISL().getEBGraph());
-      const std::vector<VolIndex>& vofVec = vofitfine.getstd::vector();
+      VoFIterator vofitfine(ivs, m_eblgFine.getEBISL()[mfi].getEBGraph());
+      const std::vector<VolIndex>& vofVec = vofitfine.getVector();
       m_fineOffsets[mfi].resize(vofVec.size());
       for (int ivof = 0; ivof < vofVec.size(); ivof++)
       {
@@ -279,7 +276,7 @@ namespace amrex
         }
         if (!found)
         {
-          MayDay::Error("coarse-fine inconsistency in AggEBPWLFP");
+          amrex::Error("coarse-fine inconsistency in AggEBPWLFP");
         }
                
         m_fineOffsets[mfi][ivof].slop_index = coarind;
@@ -303,7 +300,7 @@ namespace amrex
     {
       IntVectSet&    localIrregF = a_irregRegionsFine[mfi];
       const EBISBox&   ebisBoxCF = m_coarsenedFineEBISL[mfi];
-      const Box&        regionCF = ebisBoxCF.getRegion();
+      //const Box&        regionCF = ebisBoxCF.getRegion();
 
       //NOTE::this needs to be done for ALL boxes that are "near" the EB interface.
       //If one uses an isRegular check (as we did before) for this, you end up with inconsistent (yet accurate)
@@ -313,7 +310,7 @@ namespace amrex
       //fillpatched ghost cells that must contain the same data where ghost cells overlap from one box to the next.
                
       //make localIrreg for all c/f ghost ivs within m_radius
-      Box bigBox= m_eblgFine.getDBL()[mfi];
+      Box bigBox= m_eblgFine.getDBL()[mfi.index()];
       bigBox.grow(m_radius);
       bigBox &= domFine;
       localIrregF = IntVectSet(bigBox);
@@ -337,7 +334,7 @@ namespace amrex
                
       a_irregRegionsCoar[mfi] = irregCoar;
       VoFIterator vofit(irregCoar, ebisBoxCF.getEBGraph());
-      a_srcVoFs[mfi] = vofit.getstd::vector();
+      a_srcVoFs[mfi] = vofit.getVector();
                
     }
   }
@@ -358,7 +355,7 @@ namespace amrex
 
     for (MFIter mfi(a_coarCeInterp[0]); mfi.isValid(); ++mfi) // 
     {
-      const Box& fineBox = m_fineGrids.get(mfi);
+      const Box& fineBox = m_fineGrids.get(mfi.index());
       Box coarsenedFineBox = coarsen(grow(fineBox, m_radius), m_refRat);
       coarsenedFineBox &= m_coarDomain;
                
@@ -514,14 +511,13 @@ namespace amrex
               const Real& a_coarTimeOld,
               const Real& a_coarTimeNew,
               const Real& a_fineTime,
-              int isrc, int idst, int inco) const
+              int idst, int inco) const
   {
     BL_PROFILE("AggEBPWLFillPatch::interpolate");
     BL_ASSERT(isDefined());
     BL_ASSERT(a_coarTimeNew >= a_coarTimeOld);
     BL_ASSERT(a_coarTimeNew >= a_fineTime);
     BL_ASSERT(a_fineTime >= a_coarTimeOld);
-    BL_ASSERT(a_fineData.ghostVect() == m_ghost);
                
     //do non-EB PWLFillPatch
     {
@@ -534,14 +530,14 @@ namespace amrex
       int srcGhost = 0;
       int dstGhost = m_coarGhostRad;
 
-      m_coarOnFDataOld.copy(a_coarDataOld, isrc, idst, inco, srcGhost, dstGhost);
-      m_coarOnFDataNew.copy(a_coarDataNew, isrc, idst, inco, srcGhost, dstGhost);
+      m_coarOnFDataOld.copy(a_coarDataOld, idst, idst, inco, srcGhost, dstGhost);
+      m_coarOnFDataNew.copy(a_coarDataNew, idst, idst, inco, srcGhost, dstGhost);
                
 
       for (MFIter mfi(m_coarOnFDataOld); mfi.isValid(); ++mfi) 
       {
-        Box fineBox = m_fineGrids.get(mfi);
-        Box coarsenedFineBox = m_coarsenedFineGrids.get(mfi);
+        //Box fineBox = m_fineGrids[mfi];
+        //Box coarsenedFineBox = m_coarsenedFineGrids[mfi];
         EBCellFAB&  fineData = a_fineData[mfi];
         const EBCellFAB&  coarDataOld = m_coarOnFDataOld[mfi];
         const EBCellFAB&  coarDataNew = m_coarOnFDataNew[mfi];
@@ -553,7 +549,7 @@ namespace amrex
                        a_coarTimeOld,
                        a_coarTimeNew,
                        a_fineTime, mfi,
-                       a_variables);
+                       idst, inco);
       }
     }
   }
@@ -568,7 +564,7 @@ namespace amrex
       Real rsign = 1.0;
       if ((deltahi + deltalo) < 0.0)
         rsign = -1.0;
-      deltaminmod = rsign*Min(Abs(deltalo), Abs(deltahi));
+      deltaminmod = rsign*std::min(std::abs(deltalo), std::abs(deltahi));
     }
     else
     {
@@ -581,11 +577,11 @@ namespace amrex
   getSlopes(const EBCellFAB& a_coarDataOld,
             const EBCellFAB& a_coarDataNew,
             const MFIter& a_dit,
-            const Interval& a_variables) const
+            int idst, int inco) const
   {
     BL_PROFILE("AggEBPWLFillPatch::getSlopes");
 //    BL_ASSERT(!m_forceNoEBCF);
-    int ibeg = a_variables.begin();  int isiz = a_variables.size();
+    int ibeg = idst;  int isiz = inco;
     for (int idir = 0; idir < SpaceDim; idir++)
     {
       //get low and high versions of the slopes by applying the stencils
@@ -686,10 +682,10 @@ namespace amrex
                  const Real& a_coarTimeNew,
                  const Real& a_fineTime,
                  const MFIter& a_dit,
-                 const Interval& a_variables) const
+                 int idst, int inco) const
   {
     BL_PROFILE("AggEBPWLFillPatch::interpolateFAB");
-    getSlopes(a_coarDataOld, a_coarDataNew, a_dit, a_variables);
+    getSlopes(a_coarDataOld, a_coarDataNew, a_dit, idst, inco);
     //EBCellFAB has two data types, baseivfab has one
     BL_ASSERT(a_coarDataOld.numDataTypes() == 2);
     BL_ASSERT(a_coarDataNew.numDataTypes() == 2);
@@ -698,8 +694,8 @@ namespace amrex
     Real factor = 0.0;
     if ((a_coarTimeNew - a_coarTimeOld) > 1.0e-8)
       factor = (a_fineTime - a_coarTimeOld)/(a_coarTimeNew - a_coarTimeOld);
-               
-    for (int icomp = a_variables.begin(); icomp <= a_variables.end(); icomp++)
+    int endcomp = idst+inco-1;
+    for (int icomp = idst; icomp < endcomp; icomp++)
     {
       //BaseIVFAB has only one ptr
       const Real* slopPtrsDirOld[SpaceDim];
