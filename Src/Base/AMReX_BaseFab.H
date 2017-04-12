@@ -126,11 +126,33 @@ public:
     void resize (const Box& b,
                  int        N = 1);
 
-    /**
-    * \brief The function returns the BaseFab to the invalid state.
-    * The memory is freed.
-    */
-    void clear ();
+  ///for AggStencil and its minions
+  virtual long offset(const IntVect& a_iv, const int& a_ivar) const
+    {
+      BL_ASSERT(a_ivar >= 0);
+      BL_ASSERT(a_ivar < nvar);
+      BL_ASSERT(domain.contains(a_iv));
+
+      IntVect ivDiff = a_iv - domain.smallEnd();
+      IntVect ivSize = domain.size();
+      long offset = ivDiff[0];
+
+#if BL_SPACEDIM > 1
+      offset += ivDiff[1]*ivSize[0] ;
+#endif
+#if BL_SPACEDIM > 2
+      offset += ivDiff[2]*ivSize[0]*ivSize[1];
+#endif
+      offset += numpts * a_ivar;
+
+      return offset;
+    }
+
+  /**
+   * \brief The function returns the BaseFab to the invalid state.
+   * The memory is freed.
+   */
+  void clear ();
 
     //! Returns how many bytes used
     std::size_t nBytes () const { return truesize*sizeof(T); }
