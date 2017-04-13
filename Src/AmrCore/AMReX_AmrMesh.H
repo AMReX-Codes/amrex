@@ -52,12 +52,12 @@ public:
 
     void SetMaxGridSize (int new_mgs) { max_grid_size.assign(max_level+1, new_mgs); }
     void SetMaxGridSize (const Array<int>& new_mgs) { 
-        BL_ASSERT(new_mgs.size() > max_level+1);
+        BL_ASSERT(new_mgs.size() >= max_level+1);
         max_grid_size = new_mgs; 
     }
     void SetBlockingFactor (int new_bf) { blocking_factor.assign(max_level+1, new_bf); }
     void SetBlockingFactor (const Array<int>& new_bf) {
-        BL_ASSERT(new_bf.size() > max_level+1);
+        BL_ASSERT(new_bf.size() >= max_level+1);
         blocking_factor = new_bf;
     }
     void SetGridEff (Real eff) { grid_eff = eff; }
