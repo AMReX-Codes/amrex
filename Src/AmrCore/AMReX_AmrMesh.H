@@ -15,7 +15,7 @@ class AmrMesh
 {
 public:
     AmrMesh ();
-    AmrMesh (const RealBox* rb, int max_level_in, const Array<int>& n_cell_in, int coord);
+    AmrMesh (const RealBox* rb, int max_level_in, const Array<int>& n_cell_in, int coord=-1);
 
     AmrMesh (const AmrMesh& rhs) = delete;
     AmrMesh& operator= (const AmrMesh& rhs) = delete;
@@ -49,6 +49,21 @@ public:
 
     Array<Geometry>& Geom () { return geom; }
     Geometry& Geom (int lev) { return geom[lev]; }
+
+    void SetMaxGridSize (int new_mgs) { max_grid_size.assign(max_level+1, new_mgs); }
+    void SetMaxGridSize (const Array<int>& new_mgs) { 
+        BL_ASSERT(new_mgs.size() > max_level+1);
+        max_grid_size = new_mgs; 
+    }
+    void SetBlockingFactor (int new_bf) { blocking_factor.assign(max_level+1, new_bf); }
+    void SetBlockingFactor (const Array<int>& new_bf) {
+        BL_ASSERT(new_bf.size() > max_level+1);
+        blocking_factor = new_bf;
+    }
+    void SetGridEff (Real eff) { grid_eff = eff; }
+    void SetNProper (int n) { n_proper = n; }
+
+    // Set ref_ratio would require rebuiling Geometry objects.
 
     void SetFinestLevel (int new_finest_level) { finest_level = new_finest_level; }
     void SetDistributionMap (int lev, const DistributionMapping& dmap_in);
@@ -101,6 +116,12 @@ public:
     * outside the range [lbase+1,new_finest_level].
     */
     void MakeNewGrids (int lbase, Real time, int& new_finest, Array<BoxArray>& new_grids);
+
+    //! This function makes new grid for all levels (including level 0).
+    void MakeNewGrids (Real time = 0.0);
+
+    //! This function is called by the second version of MakeNewGrids.
+    virtual void MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba, const DistributionMapping& dm) {}
 
     //! Tag cells for refinement.  TagBoxArray tags is built on level lev grids.
     virtual void ErrorEst (int lev, TagBoxArray& tags, Real time, int ngrow) {}

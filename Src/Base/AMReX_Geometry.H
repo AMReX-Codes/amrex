@@ -51,7 +51,7 @@ public:
 
     static void Finalize ();
     //! Read static values from ParmParse database.
-    static void Setup (const RealBox* rb = 0, int coord = -1, int* is_per = 0);
+    static void Setup (const RealBox* rb = nullptr, int coord = -1, int* is_per = nullptr);
     //! Set the rectangular domain after using default constructor.
     void define (const Box& dom, const RealBox* rb = 0, int coord = -1, int* is_per = 0);
     //! Returns the problem domain.

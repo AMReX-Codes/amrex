@@ -188,6 +188,7 @@ MFIter::tilebox (const IntVect& nodal) const
 Box
 MFIter::nodaltilebox (int dir) const 
 { 
+    BL_ASSERT(dir < BL_SPACEDIM);
     BL_ASSERT(tile_array != 0);
     Box bx((*tile_array)[currentIndex]);
     bx.convert(typ);
@@ -232,6 +233,7 @@ MFIter::growntilebox (int ng) const
 Box
 MFIter::grownnodaltilebox (int dir, int ng) const
 {
+    BL_ASSERT(dir < BL_SPACEDIM);
     Box bx = nodaltilebox(dir);
     if (ng < -100) ng = fabArray.nGrow();
     const Box& vbx = validbox();
