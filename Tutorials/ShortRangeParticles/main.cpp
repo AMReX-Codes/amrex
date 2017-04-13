@@ -6,6 +6,8 @@
 #include <AMReX_MultiFabUtil.H>
 #include "AMReX_Particles.H"
 
+#include "compute_force_F.H"
+
 using namespace amrex;
 
 ///
@@ -206,6 +208,28 @@ public:
     }
 
     ///
+    /// Compute the short range forces on a tile's worth of particles.
+    /// fillGhosts must have already been called.
+    ///
+    void computeForces() {
+	for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
+            AoS& particles = pti.GetArrayOfStructs();
+            size_t Np = particles.size();
+            int nstride = particles.dataShape().first;
+
+            Array<Real>& ax = pti.GetStructOfArrays()[PIdx::ax];
+            Array<Real>& ay = pti.GetStructOfArrays()[PIdx::ay];
+
+            PairIndex index(pti.index(), pti.LocalTileIndex());            
+            int nghosts = ghosts[index].size() / pdata_size;
+
+            amrex_compute_forces(particles.data(), nstride, Np, 
+                                 (RealType*) ghosts[index].dataPtr(), nghosts,
+                                 ax.dataPtr(), ay.dataPtr());
+        }        
+    }
+
+    ///
     /// Move the particles according to their forces, reflecting at domain boundaries
     ///
     void moveParticles(const Real dt) {
@@ -290,7 +314,7 @@ int main(int argc, char* argv[])
     int ny = 32;
     int max_step = 1000;
     Real dt = 0.0005;
-    bool verbose = false;    
+    bool verbose = true;    
     int max_grid_size = 16;
 
     RealBox real_box;
@@ -319,12 +343,13 @@ int main(int argc, char* argv[])
 
     myPC.InitParticles();
 
-    myPC.fillGhosts();
-    if (verbose) myPC.printGhosts();
-    myPC.clearGhosts();
-
     for (int i = 0; i < max_step; i++) {
         if (verbose) myPC.writeParticles(i);
+        
+        myPC.fillGhosts();
+        myPC.computeForces();
+        myPC.clearGhosts();
+
         myPC.moveParticles(dt);
         myPC.Redistribute();
     }
