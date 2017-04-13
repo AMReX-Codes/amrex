@@ -2444,6 +2444,10 @@ ParticleContainer<NR, NI, NA>::WriteAsciiFile (const std::string& filename)
                       }
 		      index++;
 		      
+                      if (NR == 0) {
+                          File << '\n';
+                      }
+
 		      for (int i = BL_SPACEDIM; i < BL_SPACEDIM + NR; i++) {
 			char ws = (i == BL_SPACEDIM + NR - 1) ? '\n' : ' ';
 			File << it->m_rdata.arr[i] << ws;
