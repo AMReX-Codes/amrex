@@ -37,15 +37,13 @@ public:
     MultiParticleContainer& GetPartContainer () { return *mypc; }
 
 #if (BL_SPACEDIM == 3)
+    amrex::Box getIndexBox(const amrex::RealBox& real_box) const;
     void fillSlice(amrex::Real z_coord) const;
-
     void sampleAtPoints(const amrex::Array<amrex::Real>& x,
 			const amrex::Array<amrex::Real>& y,
 			const amrex::Array<amrex::Real>& z,
 			amrex::Array<amrex::Array<amrex::Real> >& result) const;
 #endif
-
-    static void FillBoundary (amrex::MultiFab& mf, const amrex::Geometry& geom, const amrex::IntVect& nodalflag);
 
     static void shiftMF(amrex::MultiFab& mf, const amrex::Geometry& geom, int num_shift,
 			int dir, const amrex::IntVect& nodalflag);
@@ -78,17 +76,17 @@ public:
     void FillBoundaryB (int lev, bool force);
     void PushParticlesandDepose (int lev, amrex::Real cur_time);
 
-    int getistep (int lev) {return istep[lev];}
+    int getistep (int lev) const {return istep[lev];}
     void setistep (int lev, int ii) {istep[lev] = ii;}
-    amrex::Real gett_new (int lev) {return t_new[lev];}
+    amrex::Real gett_new (int lev) const {return t_new[lev];}
     void sett_new (int lev, amrex::Real time) {t_new[lev] = time;}
-    amrex::Real getdt (int lev) {return dt[lev];}
+    amrex::Real getdt (int lev) const {return dt[lev];}
 
-    int maxStep () {return max_step;}
-    amrex::Real stopTime () {return stop_time;}
+    int maxStep () const {return max_step;}
+    amrex::Real stopTime () const {return stop_time;}
 
-    int checkInt () {return check_int;}
-    int plotInt () {return plot_int;}
+    int checkInt () const {return check_int;}
+    int plotInt () const {return plot_int;}
 
     void WriteCheckPointFile () const;
     void WritePlotFile () const;
@@ -122,8 +120,6 @@ protected:
     //! Delete level data.  Called by AmrCore::regrid.
     virtual void ClearLevel (int lev) override;
 
-    amrex::Box getIndexBox(const amrex::RealBox& real_box) const;
-
 private:
 
     // Singleton is used when the code is run from python
@@ -134,9 +130,9 @@ private:
     void RegridBaseLevel ();
     bool LoadBalanceBaseLevel ();
     void splitBoxes (amrex::BoxArray& ba, amrex::Array<long>& newcost, const amrex::Array<long>& cost_in, int heavy_grid_size);
-
     amrex::Real getEfficiency(const amrex::DistributionMapping& dm, const amrex::Array<long>& cost);
     amrex::DistributionMapping getCostCountDM (const amrex::Array<long>& cost, const amrex::BoxArray& ba);
+    bool okToRegrid(int step);
 
     void InitFromScratch ();
 
@@ -153,12 +149,9 @@ private:
 
     void WriteWarpXHeader(const std::string& name) const;
     void WriteJobInfo (const std::string& dir) const;
-//    static void WriteBuildInfo (std::ostream& os);
     static void PackPlotDataPtrs (amrex::Array<const amrex::MultiFab*>& pmf,
 				  const amrex::Array<std::unique_ptr<amrex::MultiFab> >& data);
     static void Copy (amrex::MultiFab& dstmf, int dcomp, int ncomp, const amrex::MultiFab& srcmf, int scomp);
-
-    bool okToRegrid(int step);
 
     amrex::Array<int> istep;      // which step?
     amrex::Array<int> nsubsteps;  // how many substeps on each level?
@@ -205,7 +198,7 @@ private:
 
     bool plot_raw_fields = false;
 
-    bool is_synchronized;
+    bool is_synchronized = true;
 
     static amrex::IntVect Bx_nodal_flag;
     static amrex::IntVect By_nodal_flag;

@@ -195,8 +195,6 @@ WarpX::ReadParameters ()
 	pp.query("field_gathering", field_gathering_algo);
 	pp.query("particle_pusher", particle_pusher_algo);
     }
-
-    is_synchronized = true;
 }
 
 // This is a virtual function.
@@ -327,25 +325,27 @@ WarpX::Copy(MultiFab& dstmf, int dcomp, int ncomp, const MultiFab& srcmf, int sc
 }
 
 Box
-WarpX::getIndexBox(const RealBox& real_box) const {
+WarpX::getIndexBox(const RealBox& real_box) const
+{
   BL_ASSERT(max_level == 0);
 
   IntVect slice_lo, slice_hi;
 
-  D_TERM(slice_lo[0]=floor((real_box.lo(0) - geom[0].ProbLo(0))/geom[0].CellSize(0));,
-	 slice_lo[1]=floor((real_box.lo(1) - geom[0].ProbLo(1))/geom[0].CellSize(1));,
-	 slice_lo[2]=floor((real_box.lo(2) - geom[0].ProbLo(2))/geom[0].CellSize(2)););
+  D_TERM(slice_lo[0]=std::floor((real_box.lo(0) - geom[0].ProbLo(0))/geom[0].CellSize(0));,
+	 slice_lo[1]=std::floor((real_box.lo(1) - geom[0].ProbLo(1))/geom[0].CellSize(1));,
+	 slice_lo[2]=std::floor((real_box.lo(2) - geom[0].ProbLo(2))/geom[0].CellSize(2)););
 
-  D_TERM(slice_hi[0]=floor((real_box.hi(0) - geom[0].ProbLo(0))/geom[0].CellSize(0));,
-	 slice_hi[1]=floor((real_box.hi(1) - geom[0].ProbLo(1))/geom[0].CellSize(1));,
-	 slice_hi[2]=floor((real_box.hi(2) - geom[0].ProbLo(2))/geom[0].CellSize(2)););
+  D_TERM(slice_hi[0]=std::floor((real_box.hi(0) - geom[0].ProbLo(0))/geom[0].CellSize(0));,
+	 slice_hi[1]=std::floor((real_box.hi(1) - geom[0].ProbLo(1))/geom[0].CellSize(1));,
+	 slice_hi[2]=std::floor((real_box.hi(2) - geom[0].ProbLo(2))/geom[0].CellSize(2)););
 
   return Box(slice_lo, slice_hi) & geom[0].Domain();
 }
 
 #if (BL_SPACEDIM == 3)
 void
-WarpX::fillSlice(Real z_coord) const {
+WarpX::fillSlice(Real z_coord) const
+{
   BL_ASSERT(max_level == 0);
 
   // Get our slice and convert to index space
@@ -410,9 +410,9 @@ WarpX::fillSlice(Real z_coord) const {
 	    Real y = g.ProbLo(1) + j*dx[1];
 	    Real z = z_coord;
 
-	    D_TERM(iv[0]=floor((x - g.ProbLo(0) + 0.5*g.CellSize(0)*flags[comp][0])/g.CellSize(0));,
-		   iv[1]=floor((y - g.ProbLo(1) + 0.5*g.CellSize(1)*flags[comp][1])/g.CellSize(1));,
-		   iv[2]=floor((z - g.ProbLo(2) + 0.5*g.CellSize(2)*flags[comp][2])/g.CellSize(2)););
+	    D_TERM(iv[0]=std::floor((x - g.ProbLo(0) + 0.5*g.CellSize(0)*flags[comp][0])/g.CellSize(0));,
+		   iv[1]=std::floor((y - g.ProbLo(1) + 0.5*g.CellSize(1)*flags[comp][1])/g.CellSize(1));,
+		   iv[2]=std::floor((z - g.ProbLo(2) + 0.5*g.CellSize(2)*flags[comp][2])/g.CellSize(2)););
 
 	    slice[slice_gid](IntVect(i, j, k), comp) = (*mfs[comp])[full_gid](iv);
 	  }
@@ -461,9 +461,9 @@ void WarpX::sampleAtPoints(const Array<Real>& x,
   const Geometry& g   = geom[0];
   for (int i = 0; i < npoints; ++i) {
     for (int comp = 0; comp < ncomps; comp++) {
-      D_TERM(iv[0]=floor((x[i] - g.ProbLo(0) + 0.5*g.CellSize(0)*flags[comp][0])/g.CellSize(0));,
-	     iv[1]=floor((y[i] - g.ProbLo(1) + 0.5*g.CellSize(1)*flags[comp][1])/g.CellSize(1));,
-	     iv[2]=floor((z[i] - g.ProbLo(2) + 0.5*g.CellSize(2)*flags[comp][2])/g.CellSize(2)););
+      D_TERM(iv[0]=std::floor((x[i] - g.ProbLo(0) + 0.5*g.CellSize(0)*flags[comp][0])/g.CellSize(0));,
+	     iv[1]=std::floor((y[i] - g.ProbLo(1) + 0.5*g.CellSize(1)*flags[comp][1])/g.CellSize(1));,
+	     iv[2]=std::floor((z[i] - g.ProbLo(2) + 0.5*g.CellSize(2)*flags[comp][2])/g.CellSize(2)););
 
       ba.intersections(Box(iv, iv), isects, true, 0);
       const int grid = isects[0].first;
