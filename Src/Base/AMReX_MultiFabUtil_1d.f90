@@ -1,3 +1,22 @@
+
+subroutine amrex_fort_avg_nd_to_cc (lo, hi, ncomp, &
+     cc, ccl1, cch1, &
+     nd, ndl1, ndh1) bind(c)
+  use amrex_fort_module, only : amrex_real
+  implicit none
+  integer          :: lo(1),hi(1), ncomp
+  integer          :: ccl1, cch1
+  integer          :: ndl1, ndh1
+  real(amrex_real) :: cc(ccl1:cch1,ncomp)
+  real(amrex_real) :: nd(ndl1:ndh1,ncomp)
+  integer :: i, n
+  do n = 1, ncomp
+     do i=lo(1),hi(1)
+        cc(i,n) = 0.5_amrex_real * ( nd(i,n) + nd(i+1,n) )
+     end do
+  end do
+end subroutine amrex_fort_avg_nd_to_cc
+
 ! ***************************************************************************************
 ! subroutine bl_avg_eg_to_cc 
 ! ***************************************************************************************
