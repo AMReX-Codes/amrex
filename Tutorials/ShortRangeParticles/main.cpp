@@ -42,12 +42,30 @@ public:
 
 };
 
+struct GhostCommTag {
+
+    GhostCommTag(int pid, int gid, int tid)
+        : proc_id(pid), grid_id(gid), tile_id(tid)
+    {}
+
+    int proc_id;
+    int grid_id;
+    int tile_id;
+};
+
+bool operator<(const GhostCommTag& l, const GhostCommTag& r) {
+    return (l.proc_id < r.proc_id || 
+           (l.proc_id == r.proc_id && l.grid_id < r.grid_id) ||
+           (l.proc_id == r.proc_id && l.grid_id == r.grid_id && l.tile_id < r.tile_id ));
+}
+
 class MyParticleContainer
     : public ParticleContainer<0, 0, PIdx::nattribs>
 {
 public:
 
     using PairIndex = std::pair<int, int>;
+    using GhostCommMap = std::map<GhostCommTag, Array<char> >;
     
     ///
     /// This particle container fills a mask for quickly computing
@@ -116,8 +134,8 @@ public:
     /// This fills the ghost buffers for each tile with the proper data
     ///
     void fillGhosts() {
+        GhostCommMap ghosts_to_comm;
 	for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
-            std::map<PairIndex, Array<char> > ghosts_to_comm;
             const Box& tile_box = pti.tilebox();
             const IntVect& lo = tile_box.smallEnd();
             const IntVect& hi = tile_box.bigEnd();
@@ -178,8 +196,148 @@ public:
 #endif
             }
 
-            // here we must communicate the ghosts if MPI is on
+            fillGhostsMPI(ghosts_to_comm);
         }
+    }
+
+    void fillGhostsMPI(GhostCommMap& ghosts_to_comm) {
+
+#ifdef BL_USE_MPI
+        const int MyProc = ParallelDescriptor::MyProc();
+        const int NProcs = ParallelDescriptor::NProcs();
+
+        // count the number of tiles to be sent to each proc
+        std::map<int, int> tile_counts;
+        for (const auto& kv: ghosts_to_comm) {
+            tile_counts[kv.first.proc_id] += 1;
+        }
+
+        // flatten all the data for each proc into a single buffer
+        // once this is done, each dst proc will have an Array<char>
+        // the buffer will be packed like:
+        // ntiles, gid1, tid1, size1, data1....  gid2, tid2, size2, data2... etc. 
+
+        std::map<int, Array<char> > send_data;
+        for (const auto& kv: ghosts_to_comm) {
+            Array<char>& buffer = send_data[kv.first.proc_id];
+            size_t old_size = buffer.size();
+            size_t new_size = buffer.size() + sizeof(int);
+            buffer.resize(new_size);
+            std::memcpy(&buffer[old_size], &tile_counts[kv.first.proc_id], sizeof(int));
+        }
+
+        for (auto& kv : ghosts_to_comm) {
+            size_t data_size = kv.second.size();
+            Array<char>& buffer = send_data[kv.first.proc_id];
+            size_t old_size = buffer.size();
+            size_t new_size = buffer.size() + 2*sizeof(int) + sizeof(size_t) + data_size;
+            buffer.resize(new_size);
+            char* dst = &buffer[old_size];
+            std::memcpy(dst, &kv.first.grid_id, sizeof(int));
+            dst += sizeof(int);
+            std::memcpy(dst, &kv.first.tile_id, sizeof(int));
+            dst += sizeof(int);
+            std::memcpy(dst, &data_size, sizeof(size_t));
+            dst += sizeof(size_t);
+            std::memcpy(dst, &kv.second, data_size);
+            Array<char>().swap(kv.second);
+        }
+
+        // each proc figures out how many bytes it will send, and how
+        // many it will receive
+        Array<long> snds(NProcs, 0), rcvs(NProcs, 0);
+
+        long num_snds = 0;
+        for (const auto& kv : send_data) {
+            num_snds      += kv.second.size();
+            snds[kv.first] = kv.second.size();
+        }
+
+        if (num_snds = 0) return;
+
+        // communicate that information
+        BL_COMM_PROFILE(BLProfiler::Alltoall, sizeof(long),
+                        ParallelDescriptor::MyProc(), BLProfiler::BeforeCall());
+
+        BL_MPI_REQUIRE( MPI_Alltoall(snds.dataPtr(),
+                                     1,
+                                     ParallelDescriptor::Mpi_typemap<long>::type(),
+                                     rcvs.dataPtr(),
+                                     1,
+                                     ParallelDescriptor::Mpi_typemap<long>::type(),
+                                     ParallelDescriptor::Communicator()) );
+        BL_ASSERT(rcvs[MyProc] == 0);
+    
+        BL_COMM_PROFILE(BLProfiler::Alltoall, sizeof(long),
+                        ParallelDescriptor::MyProc(), BLProfiler::AfterCall());
+
+        Array<int> RcvProc;
+        Array<std::size_t> rOffset; // Offset (in bytes) in the receive buffer
+    
+        std::size_t TotRcvBytes = 0;
+        for (int i = 0; i < NProcs; ++i) {
+            if (rcvs[i] > 0) {
+                RcvProc.push_back(i);
+                rOffset.push_back(TotRcvBytes);
+                TotRcvBytes += rcvs[i];
+            }
+        }
+    
+        const int nrcvs = RcvProc.size();
+        Array<MPI_Status>  stats(nrcvs);
+        Array<MPI_Request> rreqs(nrcvs);
+        
+        const int SeqNum = ParallelDescriptor::SeqNum();
+        
+        // Allocate data for rcvs as one big chunk.
+        Array<char> recvdata(TotRcvBytes);
+
+        // Post receives.
+        for (int i = 0; i < nrcvs; ++i) {
+            const auto Who    = RcvProc[i];
+            const auto offset = rOffset[i];
+            const auto Cnt    = rcvs[Who];
+      
+            BL_ASSERT(Cnt > 0);
+            BL_ASSERT(Cnt < std::numeric_limits<int>::max());
+            BL_ASSERT(Who >= 0 && Who < NProcs);
+      
+            rreqs[i] = ParallelDescriptor::Arecv(&recvdata[offset], Cnt, Who, SeqNum).req();
+        }
+    
+        // Send.
+        for (const auto& kv : send_data) {
+            const auto Who = kv.first;
+            const auto Cnt = kv.second.size();
+            
+            BL_ASSERT(Cnt > 0);
+            BL_ASSERT(Who >= 0 && Who < NProcs);
+            BL_ASSERT(Cnt < std::numeric_limits<int>::max());
+            
+            ParallelDescriptor::Send(kv.second.data(), Cnt, Who, SeqNum);
+        }
+    
+        if (nrcvs > 0) {
+            BL_MPI_REQUIRE( MPI_Waitall(nrcvs, rreqs.data(), stats.data()) );
+
+            for (int i = 0; i < nrcvs; ++i) {
+                const int offset = rOffset[i];
+                char* buffer = &recvdata[offset];
+                const int num_tiles = *((int*) buffer); buffer += sizeof(int);
+                for (int j = 0; j < num_tiles; ++j) {
+                    const int gid = *((int*) buffer); buffer += sizeof(int);
+                    const int tid = *((int*) buffer); buffer += sizeof(int);
+                    const size_t size = *((size_t*) buffer); buffer += sizeof(size_t);
+
+                    PairIndex dst_index(gid, tid);
+                    size_t old_size = ghosts[dst_index].size();
+                    size_t new_size = ghosts[dst_index].size() + size;
+                    std::memcpy(&ghosts[dst_index][old_size], buffer, size);
+                    buffer += size;
+                }
+            }
+        }
+#endif
     }
 
     ///
@@ -273,12 +431,13 @@ public:
 private:
 
     ///
-    /// Pack a particle's data into the proper neighbor buffer
+    /// Pack a particle's data into the proper neighbor buffer, or put it into
+    /// the structure to be sent to the other processes
     ///
     void packGhostParticle(const IntVect& neighbor_cell,
                            const BaseFab<int>& mask,
                            const ParticleType& p,
-                           std::map<PairIndex, Array<char> >& ghosts_to_comm) {
+                           GhostCommMap& ghosts_to_comm) {
         const int neighbor_grid = mask(neighbor_cell, 0);
         if (neighbor_grid >= 0) {
             const int who = ParticleDistributionMap(lev)[neighbor_grid];
@@ -291,7 +450,8 @@ private:
                 ghosts[dst_index].resize(new_size);
                 std::memcpy(&ghosts[dst_index][old_size], &p, pdata_size);
             } else {
-                Array<char>& buffer = ghosts_to_comm[dst_index];
+                GhostCommTag tag(who, neighbor_grid, neighbor_tile);
+                Array<char>& buffer = ghosts_to_comm[tag];
                 size_t old_size = buffer.size();
                 size_t new_size = buffer.size() + pdata_size;
                 buffer.resize(new_size);
@@ -314,7 +474,7 @@ int main(int argc, char* argv[])
     int ny = 32;
     int max_step = 1000;
     Real dt = 0.0005;
-    bool verbose = true;    
+    bool verbose = false;    
     int max_grid_size = 16;
 
     RealBox real_box;
@@ -351,6 +511,7 @@ int main(int argc, char* argv[])
         myPC.clearGhosts();
 
         myPC.moveParticles(dt);
+
         myPC.Redistribute();
     }
 
