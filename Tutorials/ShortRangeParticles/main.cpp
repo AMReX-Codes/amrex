@@ -111,31 +111,11 @@ public:
     }
 
     ///
-    /// Pack a particle's data into the proper neighbor buffer
+    /// This fills the ghost buffers for each tile with the proper data
     ///
-    void packNeighborParticle(const IntVect& neighbor_cell,
-                              const MyParIter& pti,
-                              const ParticleType& p) {
-        const int neighbor_grid = mask[pti](neighbor_cell, 0);
-        if (neighbor_grid >= 0) {
-            const int neighbor_tile = mask[pti](neighbor_cell, 1);
-            const int grid = pti.index();
-            const int tile = pti.LocalTileIndex();
-            PairIndex src_index(grid, tile);
-            PairIndex dst_index(neighbor_grid, neighbor_tile);
-            Array<char>& buffer = neighbors[src_index][dst_index];
-            size_t old_size = buffer.size();
-            size_t new_size = buffer.size() + pdata_size;
-            buffer.resize(new_size);
-            std::memcpy(&buffer[old_size], &p, pdata_size);
-        }
-    }
-
-    ///
-    /// This fills the neighbor buffers for each tile with the proper data
-    ///
-    void computeNeighbors() {
+    void fillGhosts() {
 	for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
+            std::map<PairIndex, Array<char> > ghosts_to_comm;
             const Box& tile_box = pti.tilebox();
             const IntVect& lo = tile_box.smallEnd();
             const IntVect& hi = tile_box.bigEnd();
@@ -170,7 +150,7 @@ public:
                     if (shift[idim] == 0) continue;
                     IntVect neighbor_cell = iv;
                     neighbor_cell.shift(idim, shift[idim]);
-                    packNeighborParticle(neighbor_cell, pti, p);
+                    packGhostParticle(neighbor_cell, mask[pti], p, ghosts_to_comm);
                 }
 
                 // Now add the particle to the "edge" neighbors
@@ -180,7 +160,7 @@ public:
                             IntVect neighbor_cell = iv;
                             neighbor_cell.shift(idim, shift[idim]);
                             neighbor_cell.shift(jdim, shift[jdim]);
-                            packNeighborParticle(neighbor_cell, pti, p);
+                            packGhostParticle(neighbor_cell, mask[pti], p, ghosts_to_comm);
                         }
                     }
                 }
@@ -191,28 +171,37 @@ public:
                 if (shift[0] != 0 and shift[1] != 0 and shift[2] != 0) {
                     IntVect neighbor_cell = iv;
                     neighbor_cell.shift(shift);
-                    packNeighborParticle(neighbor_cell, pti, p);
+                    packGhostParticle(neighbor_cell, mask[pti], p, ghosts_to_comm);
                 }
 #endif
             }
+
+            // here we must communicate the ghosts if MPI is on
         }
     }
 
     ///
-    /// Each tile prints out the number of particles it will send to each other tile.
+    /// Each tile prints out the number of ghost particles it has.
     ///
-    void printNeighbors() {
+    void printGhosts() {
 	for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
             const int grid_id = pti.index();
             const int tile_id = pti.LocalTileIndex();
-            std::cout << grid_id << " " << tile_id << "\n";
-            const auto& buffers = neighbors[std::make_pair(grid_id, tile_id)];
-            for (auto it = buffers.begin(); it != buffers.end(); ++it) {
-                const int neighbor_grid = it->first.first;
-                const int neighbor_tile = it->first.second;
-                const int num_particles = it->second.size() / pdata_size;  // divide by bytes per particle
-                std::cout << neighbor_grid << " " << neighbor_tile << ", " << num_particles << '\n';
-            }            
+            const auto& ghost_particles = ghosts[std::make_pair(grid_id, tile_id)];
+            size_t num_particles = ghost_particles.size() / pdata_size;
+            std::cout << grid_id << " " << tile_id << ", " << num_particles << '\n';
+        }
+    }
+
+    ///
+    /// Each tile clears its ghosts, freeing the memory
+    ///
+    void clearGhosts() {
+	for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
+            const int grid_id = pti.index();
+            const int tile_id = pti.LocalTileIndex();
+            auto& ghost_particles = ghosts[std::make_pair(grid_id, tile_id)];
+            Array<char>().swap(ghost_particles);
         }
     }
 
@@ -249,6 +238,9 @@ public:
         }
     }
 
+    ///
+    /// Save the particle data in an ASCII format
+    ///
     void writeParticles(int n) {
         const std::string& pltfile = amrex::Concatenate("particles", n, 5);
         WriteAsciiFile(pltfile);
@@ -256,12 +248,38 @@ public:
 
 private:
 
+    ///
+    /// Pack a particle's data into the proper neighbor buffer
+    ///
+    void packGhostParticle(const IntVect& neighbor_cell,
+                           const BaseFab<int>& mask,
+                           const ParticleType& p,
+                           std::map<PairIndex, Array<char> >& ghosts_to_comm) {
+        const int neighbor_grid = mask(neighbor_cell, 0);
+        if (neighbor_grid >= 0) {
+            const int who = ParticleDistributionMap(lev)[neighbor_grid];
+            const int MyProc = ParallelDescriptor::MyProc();
+            const int neighbor_tile = mask(neighbor_cell, 1);
+            PairIndex dst_index(neighbor_grid, neighbor_tile);
+            if (who == MyProc) {
+                size_t old_size = ghosts[dst_index].size();
+                size_t new_size = ghosts[dst_index].size() + pdata_size;
+                ghosts[dst_index].resize(new_size);
+                std::memcpy(&ghosts[dst_index][old_size], &p, pdata_size);
+            } else {
+                Array<char>& buffer = ghosts_to_comm[dst_index];
+                size_t old_size = buffer.size();
+                size_t new_size = buffer.size() + pdata_size;
+                buffer.resize(new_size);
+                std::memcpy(&buffer[old_size], &p, pdata_size);
+            }
+        }
+    }
+
     const int lev = 0;
     const size_t pdata_size = 2*sizeof(RealType);
     FabArray<BaseFab<int> > mask;
-
-    std::map<PairIndex, std::map<PairIndex, Array<char> > > neighbors;
-
+    std::map<PairIndex, Array<char> > ghosts;
 };
 
 int main(int argc, char* argv[])
@@ -301,8 +319,9 @@ int main(int argc, char* argv[])
 
     myPC.InitParticles();
 
-    myPC.computeNeighbors();
-    if (verbose) myPC.printNeighbors();
+    myPC.fillGhosts();
+    if (verbose) myPC.printGhosts();
+    myPC.clearGhosts();
 
     for (int i = 0; i < max_step; i++) {
         if (verbose) myPC.writeParticles(i);
