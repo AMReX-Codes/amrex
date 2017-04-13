@@ -1347,6 +1347,7 @@ namespace amrex
     {
       IntVectSet ivsInterIrreg = (*a_source.m_irregIVS);
       ivsInterIrreg &= regionTo;
+      ivsInterIrreg &= m_region;
         
       if (!ivsInterIrreg.isEmpty())
       {
