@@ -3,6 +3,12 @@
 
 #include <AMReX_BLFort.H>
 
+extern "C"
+{
+    void amrex_fort_avg_nd_to_cc(const int* lo, const int* hi, const int* ncomp,
+                                 BL_FORT_FAB_ARG(cc), const BL_FORT_FAB_ARG(nd));
+}
+
 BL_FORT_PROC_DECL(BL_AVG_EG_TO_CC, bl_avg_eg_to_cc)
   (const int* lo, const int* hi,
    BL_FORT_FAB_ARG(cc),
