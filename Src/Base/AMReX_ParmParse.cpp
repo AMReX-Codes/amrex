@@ -991,7 +991,7 @@ unused_table_entries_q (const ParmParse::Table& table)
 
 static
 void
-finalize_table (std::string pfx, const ParmParse::Table& table)
+finalize_table (const std::string& pfx, const ParmParse::Table& table)
 {
     for ( const_list_iterator li = table.begin(), End = table.end(); li != End; ++li )
     {

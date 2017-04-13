@@ -8,8 +8,8 @@
  *o88o     o8888o o8o        o888o o888o  o888o `Y8bod8P' o888o  o88888o 
  *
  */
-#ifndef _REALVECT_H_
-#define _REALVECT_H_
+#ifndef AMREX_REALVECT_H_
+#define AMREX_REALVECT_H_
 
 #include <cstddef>
 #include <cstdlib>
