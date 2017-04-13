@@ -47,7 +47,7 @@ public:
 			bool       alloc=true,
 			bool       shared=false);
     //!  The destructor.
-    ~IArrayBox () = default;
+    virtual ~IArrayBox () = default;
 
     IArrayBox (IArrayBox&& rhs) noexcept = default;
 
