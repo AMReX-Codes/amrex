@@ -21,6 +21,8 @@
 
 namespace amrex
 {
+    enum MakeType {make_alias, make_deep_copy};
+
     extern long private_total_bytes_allocated_in_fabs;     // total bytes at any given time
     extern long private_total_bytes_allocated_in_fabs_hwm; // high-water-mark over a given interval
     extern long private_total_cells_allocated_in_fabs;     // total cells at any given time
@@ -98,6 +100,9 @@ public:
                       int        n = 1,
 		      bool       alloc = true,
 		      bool       shared = false);
+
+    BaseFab (const BaseFab<T>& rhs, MakeType make_type, int scomp, int ncomp);
+
     //! The destructor deletes the array memory.
     ~BaseFab ();
 
@@ -108,9 +113,6 @@ public:
     BaseFab (BaseFab<T>&& rhs) noexcept;
 
     BaseFab& operator= (const T&);
-
-    //! Make an alias that spans ncomp components starting at the component scomp
-    void make_alias (BaseFab<T>& alias, int scomp, int ncomp) const;
 
     /**
     * \brief This function resizes a BaseFab so it covers the Box b
@@ -862,26 +864,6 @@ protected:
 
 template <class T>
 inline
-void
-BaseFab<T>::make_alias (BaseFab<T>& alias, int scomp, int ncomp) const
-{
-    alias.clear();
-    BL_ASSERT(dptr);
-    BL_ASSERT(scomp >= 0);
-    BL_ASSERT(scomp+ncomp <= nvar);
-
-    alias.domain        = domain;
-    alias.dlen          = dlen;
-    alias.nvar          = ncomp;
-    alias.numpts        = numpts;
-    alias.truesize      = alias.nvar * alias.numpts;
-    alias.dptr          = const_cast<T*>(dataPtr(scomp));
-    alias.ptr_owner     = false;
-    alias.shared_memory = shared_memory;
-}
-
-template <class T>
-inline
 T&
 BaseFab<T>::operator() (const IntVect& p,
                         int            n)
@@ -1140,6 +1122,32 @@ BaseFab<T>::BaseFab (const Box& bx,
     shared_memory(shared)
 {
     if (!shared_memory && alloc) define();
+}
+
+template <class T>
+BaseFab<T>::BaseFab (const BaseFab<T>& rhs, MakeType make_type, int scomp, int ncomp)
+    :
+    domain(rhs.domain),
+    dlen(rhs.dlen),
+    nvar(ncomp),
+    numpts(rhs.numpts),
+    truesize(ncomp*rhs.numpts),
+    dptr(const_cast<T*>(rhs.dataPtr(scomp))),
+    ptr_owner(false),
+    shared_memory(rhs.shared_memory)
+{
+    BL_ASSERT(scomp+ncomp <= rhs.nComp());
+    if (make_type == amrex::make_deep_copy)
+    {
+        shared_memory = false;
+        dptr = nullptr;
+        define();
+        this->copy(rhs, domain, scomp, domain, 0, ncomp);
+    } else if (make_type == amrex::make_alias) {
+        ; // nothing to do
+    } else {
+        amrex::Abort("BaseFab: unknown MakeType");
+    }
 }
 
 template <class T>
