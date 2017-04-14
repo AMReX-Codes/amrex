@@ -1,13 +1,57 @@
-  subroutine amrex_compute_forces(particles, ns, np, ghosts, ng, ax, ay) &
+  subroutine amrex_move_particles(particles, ns, np, dt, prob_lo, prob_hi) &
+       bind(c,name='amrex_move_particles')
+
+    use iso_c_binding
+    use amrex_fort_module, only : amrex_real
+    integer,          intent(in   ), value :: ns, np
+    real(amrex_real), intent(inout)        :: particles(ns, np)
+    real(amrex_real), intent(in   )        :: dt
+    real(amrex_real), intent(in   )        :: prob_lo(2), prob_hi(2)
+
+    integer i
+
+    do i = 1, np
+
+!      update the particle positions / velocites
+       particles(3, i) = particles(3, i) + particles(5, i) * dt 
+       particles(4, i) = particles(4, i) + particles(6, i) * dt 
+
+       particles(1, i) = particles(1, i) + particles(3, i) * dt 
+       particles(2, i) = particles(2, i) + particles(4, i) * dt 
+
+!      bounce off the walls in the x...
+       do while (particles(1, i) .lt. prob_lo(1) .or. particles(1, i) .gt. prob_hi(1))
+          if (particles(1, i) .lt. prob_lo(1)) then
+             particles(1, i) = 2.d0*prob_lo(1) - particles(1, i)
+          else
+             particles(1, i) = 2.d0*prob_hi(1) - particles(1, i)
+          end if
+          particles(3, i) = -particles(3, i)
+       end do
+
+!      ... and y directions
+       do while (particles(2, i) .lt. prob_lo(2) .or. particles(2, i) .gt. prob_hi(2))
+          if (particles(2, i) .lt. prob_lo(2)) then
+             particles(2, i) = 2.d0*prob_lo(2) - particles(2, i)
+          else
+             particles(2, i) = 2.d0*prob_hi(2) - particles(2, i)
+          end if
+          particles(4, i) = -particles(4, i)
+       end do
+
+    end do
+
+  end subroutine amrex_move_particles
+
+
+  subroutine amrex_compute_forces(particles, ns, np, ghosts, ng) &
        bind(c,name='amrex_compute_forces')
 
     use iso_c_binding
     use amrex_fort_module, only : amrex_real
     integer,          intent(in   ), value :: ns, np, ng
-    real(amrex_real), intent(in   )        :: particles(ns, np)
+    real(amrex_real), intent(inout)        :: particles(ns, np)
     real(amrex_real), intent(in   )        :: ghosts(2, ng)
-    real(amrex_real), intent(  out)        :: ax(np)
-    real(amrex_real), intent(  out)        :: ay(np)
 
     real(amrex_real) dx, dy, r2, r, coef
     real(amrex_real) cutoff, min_r, mass
@@ -19,8 +63,8 @@
     
     do i = 1, np
 
-       ax(i) = 0.d0
-       ay(i) = 0.d0
+       particles(5, i) = 0.d0
+       particles(6, i) = 0.d0
 
        do j = 1, np
 
@@ -41,8 +85,8 @@
           r = sqrt(r2)
 
           coef = (1.d0 - cutoff / r) / r2 / mass
-          ax(i) = ax(i) + coef * dx
-          ay(i) = ay(i) + coef * dx
+          particles(5, i) = particles(5, i) + coef * dx
+          particles(5, i) = particles(5, i) + coef * dx
 
        end do
 
@@ -61,8 +105,8 @@
           r = sqrt(r2)
 
           coef = (1.d0 - cutoff / r) / r2 / mass
-          ax(i) = ax(i) + coef * dx
-          ay(i) = ay(i) + coef * dx
+          particles(5, i) = particles(5, i) + coef * dx
+          particles(5, i) = particles(5, i) + coef * dx
           
       end do
     end do
