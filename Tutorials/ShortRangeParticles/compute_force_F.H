@@ -7,11 +7,12 @@ extern "C"
 {
 
     void amrex_compute_forces(const amrex::Real*, int ns, int np,
-                              amrex::Real* ghosts, int ng,
-                              D_DECL(amrex::Real* ax,
-                                     amrex::Real* ay,
-                                     amrex::Real* az));
+                              const amrex::Real* ghosts, int ng);
 
+    void amrex_move_particles(const amrex::Real*, int ns, int np,
+                              const amrex::Real* dt,
+                              const amrex::Real* problo,
+                              const amrex::Real* problhi);
 }
 
 #endif /* _COMPUTE_FORCE_F_H_ */

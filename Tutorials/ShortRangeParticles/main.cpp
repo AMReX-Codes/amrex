@@ -10,22 +10,11 @@
 
 using namespace amrex;
 
-///
-/// This describes the variables stored in the array-of-structs
-///
-struct PIdx
-{
-    enum {
-	vx, vy, ax, ay,
-	nattribs
-    };
-};
-
 class MyParIter
-    : public amrex::ParIter<0,0,PIdx::nattribs>
+    : public amrex::ParIter<2*BL_SPACEDIM, 0, 0>
 {
 public:
-    using amrex::ParIter<0,0,PIdx::nattribs>::ParIter;
+    using amrex::ParIter<2*BL_SPACEDIM, 0, 0>::ParIter;
 
     ///
     /// Define some convenient wrappers for accessing particle data
@@ -34,11 +23,11 @@ public:
     ParticleType::RealType& x(int i) { return GetArrayOfStructs()[i].pos(0); }
     ParticleType::RealType& y(int i) { return GetArrayOfStructs()[i].pos(1); }
 
-    ParticleType::RealType& vx(int i) { return GetStructOfArrays()[PIdx::vx][i]; }
-    ParticleType::RealType& vy(int i) { return GetStructOfArrays()[PIdx::vy][i]; }
+    ParticleType::RealType& vx(int i) { return GetArrayOfStructs()[i].rdata(0); }
+    ParticleType::RealType& vy(int i) { return GetArrayOfStructs()[i].rdata(1); }
 
-    ParticleType::RealType& ax(int i) { return GetStructOfArrays()[PIdx::ax][i]; }
-    ParticleType::RealType& ay(int i) { return GetStructOfArrays()[PIdx::ay][i]; }
+    ParticleType::RealType& ax(int i) { return GetArrayOfStructs()[i].rdata(2); }
+    ParticleType::RealType& ay(int i) { return GetArrayOfStructs()[i].rdata(2); }
 
 };
 
@@ -60,7 +49,7 @@ bool operator<(const GhostCommTag& l, const GhostCommTag& r) {
 }
 
 class MyParticleContainer
-    : public ParticleContainer<0, 0, PIdx::nattribs>
+    : public ParticleContainer<2*BL_SPACEDIM, 0, 0>
 {
 public:
 
@@ -74,7 +63,7 @@ public:
     MyParticleContainer(const Geometry            & geom, 
                         const DistributionMapping & dmap,
                         const BoxArray            & ba)
-    	: ParticleContainer<0, 0, PIdx::nattribs> (geom, dmap, ba)
+    	: ParticleContainer<2*BL_SPACEDIM, 0, 0> (geom, dmap, ba)
     {
                 
         mask.define(ba, dmap, 2, 1);
@@ -101,7 +90,6 @@ public:
         std::uniform_real_distribution<double> dist(-1.0, 1.0);
         
         ParticleType p;
-        std::array<Real,PIdx::nattribs> attribs;
         for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi) {
             const Box& tile_box = mfi.tilebox();
             const RealBox tile_real_box { tile_box, dx, geom.ProbLo() };
@@ -119,13 +107,12 @@ public:
                 p.pos(0) = tile_real_box.lo(0) + (iv[0]- boxlo[0] + 0.5)*dx[0];
                 p.pos(1) = tile_real_box.lo(1) + (iv[1]- boxlo[1] + 0.5)*dx[1];
 
-                attribs[PIdx::vx] = dist(mt);
-                attribs[PIdx::vy] = dist(mt);
-                attribs[PIdx::ax] = 0;
-                attribs[PIdx::ay] = 0;
+                p.rdata(0) = dist(mt);
+                p.rdata(1) = dist(mt);
+                p.rdata(2) = 0;
+                p.rdata(3) = 0;
 
                 particle_tile.push_back(p);
-                particle_tile.push_back(attribs);
             }
         }
     }
@@ -222,18 +209,11 @@ public:
             size_t Np = particles.size();
             int nstride = particles.dataShape().first;
 
-            Array<Real>& ax = pti.GetStructOfArrays()[PIdx::ax];
-            Array<Real>& ay = pti.GetStructOfArrays()[PIdx::ay];
-
             PairIndex index(pti.index(), pti.LocalTileIndex());            
             int nghosts = ghosts[index].size() / pdata_size;
 
-            Array<Real> vals(nghosts, 0);
-            std::memcpy(&vals[0], ghosts[index].dataPtr(), sizeof(vals));
-
             amrex_compute_forces(particles.data(), nstride, Np, 
-                                 (RealType*) ghosts[index].dataPtr(), nghosts,
-                                 ax.dataPtr(), ay.dataPtr());
+                                 (RealType*) ghosts[index].dataPtr(), nghosts);
         }        
     }
 
@@ -242,31 +222,12 @@ public:
     ///
     void moveParticles(const Real dt) {
         const RealBox& prob_domain = Geom(lev).ProbDomain();
-
-        const Real xlo = prob_domain.lo(0);
-        const Real xhi = prob_domain.hi(0);
-        const Real ylo = prob_domain.lo(1);
-        const Real yhi = prob_domain.hi(1);
-
-	for (MyParIter parts(*this, lev); parts.isValid(); ++parts) {
-            for (unsigned i = 0; i < parts.numParticles(); ++i) {
-                
-                parts.vx(i) += parts.ax(i) * dt;
-                parts.vy(i) += parts.ay(i) * dt;
-
-                parts.x(i) += parts.vx(i) * dt;
-                parts.y(i) += parts.vy(i) * dt;
-
-                // bounce off the walls
-                while( parts.x(i) < xlo || parts.x(i) > xhi) {
-                    parts.x(i) = parts.x(i) < xlo ? 2*xlo - parts.x(i) : 2*xhi - parts.x(i);
-                    parts.vx(i) = -parts.vx(i);
-                }
-                while( parts.y(i) < xlo || parts.y(i) > xhi) {
-                    parts.y(i) = parts.y(i) < ylo ? 2*ylo - parts.y(i) : 2*yhi - parts.y(i);
-                    parts.vy(i) = -parts.vy(i);
-                }
-            }
+	for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
+            AoS& particles = pti.GetArrayOfStructs();
+            size_t Np = particles.size();
+            int nstride = particles.dataShape().first;
+            amrex_move_particles(particles.data(), nstride, Np, &dt,
+                                 prob_domain.lo(), prob_domain.hi());
         }
     }
 
