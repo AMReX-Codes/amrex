@@ -1,8 +1,9 @@
 
-n_cell = 64 64 64
+#n_cell = 64 64 64
+n_cell = 32 32 32
 max_level = 3
 max_grid_size = 32
-ref_ratio = 2 4 2 2 2
+ref_ratio = 2 2 2 2 2
 grid_eff = 0.7
 n_proper = 2
 blocking_factor = 4
