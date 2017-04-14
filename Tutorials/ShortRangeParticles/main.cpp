@@ -351,15 +351,12 @@ private:
         // each proc figures out how many bytes it will send, and how
         // many it will receive
         Array<long> snds(NProcs, 0), rcvs(NProcs, 0);
-
         long num_snds = 0;
         for (const auto& kv : send_data) {
             num_snds      += kv.second.size();
             snds[kv.first] = kv.second.size();
         }
-
         ParallelDescriptor::ReduceLongMax(num_snds);
-
         if (num_snds == 0) return;
 
         // communicate that information
@@ -424,6 +421,7 @@ private:
             ParallelDescriptor::Send(kv.second.data(), Cnt, Who, SeqNum);
         }
     
+        // unpack the received data and put them into the proper ghost buffers
         if (nrcvs > 0) {
             BL_MPI_REQUIRE( MPI_Waitall(nrcvs, rreqs.data(), stats.data()) );
             for (int i = 0; i < nrcvs; ++i) {
@@ -450,7 +448,7 @@ private:
     }
 
     const int lev = 0;
-    const size_t pdata_size = 2*sizeof(RealType);
+    const size_t pdata_size = 2*sizeof(RealType); // we communicate 2 reals (x, y) per ghost
     FabArray<BaseFab<int> > mask;
     std::map<PairIndex, Array<char> > ghosts;
 };
