@@ -10,27 +10,6 @@
 
 using namespace amrex;
 
-class MyParIter
-    : public amrex::ParIter<2*BL_SPACEDIM, 0, 0>
-{
-public:
-    using amrex::ParIter<2*BL_SPACEDIM, 0, 0>::ParIter;
-
-    ///
-    /// Define some convenient wrappers for accessing particle data
-    ///
-
-    ParticleType::RealType& x(int i) { return GetArrayOfStructs()[i].pos(0); }
-    ParticleType::RealType& y(int i) { return GetArrayOfStructs()[i].pos(1); }
-
-    ParticleType::RealType& vx(int i) { return GetArrayOfStructs()[i].rdata(0); }
-    ParticleType::RealType& vy(int i) { return GetArrayOfStructs()[i].rdata(1); }
-
-    ParticleType::RealType& ax(int i) { return GetArrayOfStructs()[i].rdata(2); }
-    ParticleType::RealType& ay(int i) { return GetArrayOfStructs()[i].rdata(2); }
-
-};
-
 struct GhostCommTag {
 
     GhostCommTag(int pid, int gid, int tid)
@@ -48,11 +27,18 @@ bool operator<(const GhostCommTag& l, const GhostCommTag& r) {
            (l.proc_id == r.proc_id && l.grid_id == r.grid_id && l.tile_id < r.tile_id ));
 }
 
+///
+/// This is a container for particles that undergo short-range interations.
+/// These particles carry velocity and acceleration in addition to the usual components.
+/// In 2D, the struct is: x y vx vy ax ay id cpu
+/// In 3D: x y z vx vy vz ax ay az id cpu
+///
 class MyParticleContainer
-    : public ParticleContainer<2*BL_SPACEDIM, 0, 0>
+    : public ParticleContainer<2*BL_SPACEDIM>
 {
 public:
 
+    using MyParIter = amrex::ParIter<2*BL_SPACEDIM>;
     using PairIndex = std::pair<int, int>;
     using GhostCommMap = std::map<GhostCommTag, Array<char> >;
     
@@ -63,9 +49,8 @@ public:
     MyParticleContainer(const Geometry            & geom, 
                         const DistributionMapping & dmap,
                         const BoxArray            & ba)
-    	: ParticleContainer<2*BL_SPACEDIM, 0, 0> (geom, dmap, ba)
-    {
-                
+    	: ParticleContainer<2*BL_SPACEDIM> (geom, dmap, ba)
+    {                
         mask.define(ba, dmap, 2, 1);
         mask.setVal(-1, 1);
         for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi) {
@@ -173,7 +158,6 @@ public:
                 }
 
 #if (BL_SPACEDIM == 3)
-
                 // Finally, add the particle for the "vertex" neighbors (only relevant in 3D)
                 if (shift[0] != 0 and shift[1] != 0 and shift[2] != 0) {
                     IntVect neighbor_cell = iv;
