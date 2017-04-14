@@ -91,11 +91,20 @@ public:
 
                 p.pos(0) = tile_real_box.lo(0) + (iv[0]- boxlo[0] + 0.5)*dx[0];
                 p.pos(1) = tile_real_box.lo(1) + (iv[1]- boxlo[1] + 0.5)*dx[1];
-
+#if (BL_SPACEDIM == 3)
+                p.pos(2) = tile_real_box.lo(2) + (iv[2]- boxlo[2] + 0.5)*dx[2];
+#endif
                 p.rdata(0) = dist(mt);
                 p.rdata(1) = dist(mt);
-                p.rdata(2) = 0;
-                p.rdata(3) = 0;
+#if (BL_SPACEDIM == 3)
+                p.rdata(2) = dist(mt);
+#endif
+
+                p.rdata(BL_SPACEDIM)   = 0;
+                p.rdata(BL_SPACEDIM+1) = 0;
+#if (BL_SPACEDIM == 3)
+                p.rdata(BL_SPACEDIM+2) = 0;
+#endif
 
                 particle_tile.push_back(p);
             }
@@ -142,6 +151,7 @@ public:
                     if (shift[idim] == 0) continue;
                     IntVect neighbor_cell = iv;
                     neighbor_cell.shift(idim, shift[idim]);
+                    BL_ASSERT(mask[pti].box().contains(neighbor_cell));
                     packGhostParticle(neighbor_cell, mask[pti], p, ghosts_to_comm);
                 }
 
@@ -152,6 +162,7 @@ public:
                             IntVect neighbor_cell = iv;
                             neighbor_cell.shift(idim, shift[idim]);
                             neighbor_cell.shift(jdim, shift[jdim]);
+                            BL_ASSERT(mask[pti].box().contains(neighbor_cell));
                             packGhostParticle(neighbor_cell, mask[pti], p, ghosts_to_comm);
                         }
                     }
@@ -162,6 +173,7 @@ public:
                 if (shift[0] != 0 and shift[1] != 0 and shift[2] != 0) {
                     IntVect neighbor_cell = iv;
                     neighbor_cell.shift(shift);
+                    BL_ASSERT(mask[pti].box().contains(neighbor_cell));
                     packGhostParticle(neighbor_cell, mask[pti], p, ghosts_to_comm);
                 }
 #endif
@@ -404,9 +416,11 @@ int main(int argc, char* argv[])
   
     int nx = 32;
     int ny = 32;
-    int max_step = 1000;
+    int nz = 32;
+    int max_step = 100;
     Real dt = 0.0005;
     int max_grid_size = 16;
+    bool write_particles = true;
 
     RealBox real_box;
     for (int n = 0; n < BL_SPACEDIM; n++) {
@@ -414,12 +428,11 @@ int main(int argc, char* argv[])
         real_box.setHi(n, 1.0);
     }
 
-    IntVect domain_lo(0, 0);
-    IntVect domain_hi(nx - 1, ny - 1);
+    IntVect domain_lo(D_DECL(0, 0, 0));
+    IntVect domain_hi(D_DECL(nx - 1, ny - 1, nz - 1));
     const Box domain(domain_lo, domain_hi);
     
     int coord = 0;
-    
     int is_per[BL_SPACEDIM];
     for (int i = 0; i < BL_SPACEDIM; i++) 
         is_per[i] = 0; 
@@ -435,7 +448,7 @@ int main(int argc, char* argv[])
     myPC.InitParticles();
 
     for (int i = 0; i < max_step; i++) {
-        myPC.writeParticles(i);
+        if (write_particles) myPC.writeParticles(i);
         
         myPC.fillGhosts();
         myPC.computeForces();
@@ -446,7 +459,7 @@ int main(int argc, char* argv[])
         myPC.Redistribute();
     }
 
-    myPC.writeParticles(max_step);
+    if (write_particles) myPC.writeParticles(max_step);
     
     amrex::Finalize();
 }
