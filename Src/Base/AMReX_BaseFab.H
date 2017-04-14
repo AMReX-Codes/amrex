@@ -99,7 +99,7 @@ public:
 		      bool       alloc = true,
 		      bool       shared = false);
     //! The destructor deletes the array memory.
-    ~BaseFab ();
+    virtual ~BaseFab ();
 
     BaseFab (const BaseFab<T>& rhs) = delete;
     BaseFab<T>& operator= (const BaseFab<T>& rhs) = delete;
