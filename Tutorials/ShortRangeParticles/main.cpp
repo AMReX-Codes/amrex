@@ -393,7 +393,7 @@ private:
     }
 
     const int lev = 0;
-    const size_t pdata_size = 2*sizeof(RealType); // we communicate 2 reals (x, y) per ghost
+    const size_t pdata_size = BL_SPACEDIM*sizeof(RealType); // we communicate the position only for ghosts
     FabArray<BaseFab<int> > mask;
     std::map<PairIndex, Array<char> > ghosts;
 };
