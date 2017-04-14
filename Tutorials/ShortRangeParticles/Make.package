@@ -1,5 +1,5 @@
 CEXE_sources += main.cpp
 
-FEXE_headers += compute_force_F.H
-f90EXE_sources += compute_force_$(DIM)d.f90
+FEXE_headers += short_range_F.H
+f90EXE_sources += short_range_$(DIM)d.f90
 
