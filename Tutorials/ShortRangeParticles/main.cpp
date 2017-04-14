@@ -204,12 +204,10 @@ public:
             AoS& particles = pti.GetArrayOfStructs();
             size_t Np = particles.size();
             int nstride = particles.dataShape().first;
-
-            PairIndex index(pti.index(), pti.LocalTileIndex());            
-            int nghosts = ghosts[index].size() / pdata_size;
-
+            PairIndex index(pti.index(), pti.LocalTileIndex());
+            int Ng = ghosts[index].size() / pdata_size;
             amrex_compute_forces(particles.data(), nstride, Np, 
-                                 (RealType*) ghosts[index].dataPtr(), nghosts);
+                                 (RealType*) ghosts[index].dataPtr(), Ng);
         }        
     }
 
@@ -413,23 +411,27 @@ private:
 int main(int argc, char* argv[])
 {
     amrex::Initialize(argc, argv);
+
+    ParmParse pp;
   
-    int nx = 32;
-    int ny = 32;
-    int nz = 32;
-    int max_step = 100;
-    Real dt = 0.0005;
-    int max_grid_size = 16;
-    bool write_particles = true;
+    int size, max_step, max_grid_size;
+    bool write_particles;
+    Real dt;
+
+    pp.get("size", size);
+    pp.get("max_step", max_step);
+    pp.get("max_grid_size", max_grid_size);
+    pp.get("write_particles", write_particles);
+    pp.get("dt", dt);
 
     RealBox real_box;
     for (int n = 0; n < BL_SPACEDIM; n++) {
         real_box.setLo(n, 0.0);
-        real_box.setHi(n, 1.0);
+        real_box.setHi(n, size);
     }
 
     IntVect domain_lo(D_DECL(0, 0, 0));
-    IntVect domain_hi(D_DECL(nx - 1, ny - 1, nz - 1));
+    IntVect domain_hi(D_DECL(size - 1, size - 1, size - 1));
     const Box domain(domain_lo, domain_hi);
     
     int coord = 0;
