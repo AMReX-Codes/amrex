@@ -1232,6 +1232,7 @@ namespace amrex
     assert(isDefined());
 
     setDomain(a_source.m_domain);
+    m_region &= m_domain;
 
     Box regionTo  = a_destbox;
     Box regionFrom= a_srcbox;
@@ -1381,6 +1382,7 @@ namespace amrex
     m_region = a_coarRegion;
     m_domain = a_fineGraph.getDomain();
     m_domain.coarsen(2);
+    m_region &= m_domain;
     m_isDomainSet = true;
     m_isDefined = true;
     Box refRegion = m_region;
@@ -1396,7 +1398,6 @@ namespace amrex
     else
     {
       m_tag = HasIrregular;
-      m_region = a_coarRegion;
       if (m_irregIVS != NULL) delete m_irregIVS;
       if (m_multiIVS != NULL) delete m_multiIVS;
       m_multiIVS = new IntVectSet();

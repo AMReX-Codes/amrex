@@ -174,6 +174,8 @@ namespace amrex
       EBGraph      & fineEBGraph = ebgraphReCo[mfi];
       EBGraph      & coarEBGraph = m_graph[mfi];
       const Box    & coarRegion  = mfi.validbox();
+      Box coarRegion2 = m_grids[mfi];
+      
       coarEBGraph.coarsenVoFs(fineEBGraph, coarRegion);
     }
     m_graph.FillBoundary();
