@@ -957,6 +957,128 @@ ParticleContainer<NR, NI, NA>::InitRandom (long          icount,
     }
 }
 
+// This routine is used when we want to replicate a box for a scaling study -- 
+//   within each box the distribution is random but the particle data is replicated 
+//   across boxes within the MultiFab.
+template <int NR, int NI, int NA>
+void
+ParticleContainer<NR, NI, NA>::InitRandomPerBox (long          icount_per_box,
+                                                 unsigned long iseed,
+                                                 Real          mass,
+                                                 const MultiFab& particle_mf)
+{
+    BL_PROFILE("ParticleContainer<NR, NI, NA>::InitRandomPerBox()");
+    BL_ASSERT(iseed  > 0);
+    BL_ASSERT(icount_per_box > 0);
+
+    BL_ASSERT(m_gdb != 0);
+
+    const int       MyProc   = ParallelDescriptor::MyProc();
+    const int       NProcs   = ParallelDescriptor::NProcs();
+    const int       IOProc   = ParallelDescriptor::IOProcessorNumber();
+    const Real      strttime = ParallelDescriptor::second();
+    const Geometry& geom     = Geom(0);
+
+    Real r;
+
+    //
+    // This assumes level 0 since geom = m_gdb->Geom(0)
+    //
+    const Real* dx  = geom.CellSize();
+
+    //
+    // We use exactly the same seed for every grid
+    //
+    amrex::InitRandom(iseed);
+
+    m_particles.resize(m_gdb->finestLevel()+1);
+
+    for (int lev = 0; lev < m_particles.size(); lev++)
+    {
+        BL_ASSERT(m_particles[lev].empty());
+    }
+
+    //
+    // We'll generate the particles in parallel -- but no tiling here.
+    //
+    for (MFIter mfi(particle_mf,false); mfi.isValid(); ++mfi)
+    {
+        Box grid = m_gdb->ParticleBoxArray(0)[mfi.index()];
+        RealBox grid_box = RealBox(grid,dx,geom.ProbLo());
+
+        Real len[BL_SPACEDIM] = { D_DECL(grid_box.hi(0)-grid_box.lo(0),
+                                         grid_box.hi(1)-grid_box.lo(1),
+                                         grid_box.hi(2)-grid_box.lo(2)) };
+
+        ParticleLocData pld;
+
+        for (long icnt = 0; icnt < icount_per_box; icnt++) {
+        for (long jcnt = 0; jcnt < icount_per_box; jcnt++) {
+        for (long kcnt = 0; kcnt < icount_per_box; kcnt++)
+        {
+            ParticleType p;
+
+            /*for (int i = 0; i < BL_SPACEDIM; i++)
+            {
+                r = amrex::Random();
+                p.m_rdata.pos[i] = grid_box.lo(i) + (r * len[i]);
+                BL_ASSERT(p.m_rdata.pos[i] < grid_box.hi(i));
+            }*/
+
+            r = amrex::Random();
+            p.m_rdata.pos[0] = grid_box.lo(0) + (r + icnt)*dx[0];
+            r = amrex::Random();
+            p.m_rdata.pos[1] = grid_box.lo(1) + (r + jcnt)*dx[1];
+            r = amrex::Random();
+            p.m_rdata.pos[2] = grid_box.lo(2) + (r + kcnt)*dx[2];
+
+            for (int i = 0; i < BL_SPACEDIM; i++)
+                BL_ASSERT(p.m_rdata.pos[i] < grid_box.hi(i));
+
+            if (NR > 0)
+            {
+                p.m_rdata.arr[0] = mass;
+
+                for (int i = 1; i < NR; i++)
+                    //
+                    // Just zero out the rest of the data for lack of a better value.
+                    //
+                    p.m_rdata.arr[i] = 0;
+            }
+
+            p.m_idata.id  = ParticleType::NextID();
+            p.m_idata.cpu = MyProc;
+
+            if (!Where(p, pld))
+            {
+                amrex::Abort("ParticleContainer<NR,NI,C>::InitRandomPerBox(): invalid particle");
+            }
+
+            BL_ASSERT(p.m_lev >= 0 && p.m_lev <= m_gdb->finestLevel());
+            //
+            // Add it to the appropriate tile in the appropriate grid at the appropriate level.
+            //
+            m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
+        } } }
+    }
+
+    //
+    // We still need to redistribute in order to define each particle's cell, grid and level, but this
+    //    shouldn't require any inter-node communication because the particles should already be 
+    //    in the right grid.
+    //
+    Redistribute();
+
+    if (m_verbose > 1)
+    {
+        Real stoptime = ParallelDescriptor::second() - strttime;
+
+        ParallelDescriptor::ReduceRealMax(stoptime,IOProc);
+
+        amrex::Print() << "ParticleContainer<NR, NI, NA>::InitRandomPerBox() time: " << stoptime << '\n';
+    }
+}
+
 template <int NR, int NI, int NA>
 void
 ParticleContainer<NR, NI, NA>::InitOnePerCell (Real x_off, Real y_off, Real z_off,
