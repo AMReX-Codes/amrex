@@ -1051,7 +1051,7 @@ ParticleContainer<NR, NI, NA>::InitRandomPerBox (long          icount_per_box,
 
             if (!Where(p, pld))
             {
-                amrex::Abort("ParticleContainer<NR,NI,C>::InitRandomPerBox(): invalid particle");
+                amrex::Abort("ParticleContainer<NR, NI, NA>::InitRandomPerBox(): invalid particle");
             }
 
             BL_ASSERT(p.m_lev >= 0 && p.m_lev <= m_gdb->finestLevel());
@@ -1105,7 +1105,7 @@ ParticleContainer<NR, NI, NA>::InitOnePerCell (Real x_off, Real y_off, Real z_of
     ParticleLocData pld;
 
     //
-    // We'll generate the particles in parallel -- but no tiling here.
+    // We'll generate the particles in parallel -- but no tiling of the grid here.
     //
     for (MFIter mfi(particle_mf,false); mfi.isValid(); ++mfi)
     {
