@@ -1026,35 +1026,35 @@ ParticleContainer<NR, NI, NA>::InitRandomPerBox (long          icount_per_box,
             }*/
 
             r = amrex::Random();
-            p.m_rdata.pos[0] = grid_box.lo(0) + (r + icnt)*dx[0];
+            p.pos(0) = grid_box.lo(0) + (r + icnt) / icount_per_box;
             r = amrex::Random();
-            p.m_rdata.pos[1] = grid_box.lo(1) + (r + jcnt)*dx[1];
+            p.pos(1) = grid_box.lo(1) + (r + jcnt) / icount_per_box;
             r = amrex::Random();
-            p.m_rdata.pos[2] = grid_box.lo(2) + (r + kcnt)*dx[2];
+            p.pos(2) = grid_box.lo(2) + (r + kcnt) / icount_per_box;
 
             for (int i = 0; i < BL_SPACEDIM; i++)
-                BL_ASSERT(p.m_rdata.pos[i] < grid_box.hi(i));
+                BL_ASSERT(p.pos(i) < grid_box.hi(i));
 
             if (NR > 0)
             {
-                p.m_rdata.arr[0] = mass;
+                p.rdata(0) = mass;
 
                 for (int i = 1; i < NR; i++)
                     //
                     // Just zero out the rest of the data for lack of a better value.
                     //
-                    p.m_rdata.arr[i] = 0;
+                    p.rdata(i) = 0;
             }
 
-            p.m_idata.id  = ParticleType::NextID();
-            p.m_idata.cpu = MyProc;
+            p.id()   = ParticleType::NextID();
+            p.cpu() = MyProc;
 
             if (!Where(p, pld))
             {
                 amrex::Abort("ParticleContainer<NR, NI, NA>::InitRandomPerBox(): invalid particle");
             }
 
-            BL_ASSERT(p.m_lev >= 0 && p.m_lev <= m_gdb->finestLevel());
+            BL_ASSERT(pld.m_lev >= 0 && pld.m_lev <= m_gdb->finestLevel());
             //
             // Add it to the appropriate tile in the appropriate grid at the appropriate level.
             //
