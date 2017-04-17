@@ -989,7 +989,8 @@ ParticleContainer<NR, NI, NA>::InitRandomPerBox (long          icount_per_box,
     //
     // We use exactly the same seed for every grid
     //
-    amrex::InitRandom(iseed);
+    std::mt19937 mt(iseed);
+    std::uniform_real_distribution<double> dist(0.0, 1.0);
 
     m_particles.resize(m_gdb->finestLevel()+1);
 
@@ -1025,12 +1026,9 @@ ParticleContainer<NR, NI, NA>::InitRandomPerBox (long          icount_per_box,
                 BL_ASSERT(p.m_rdata.pos[i] < grid_box.hi(i));
             }*/
 
-            r = amrex::Random();
-            p.pos(0) = grid_box.lo(0) + (r + icnt) / icount_per_box;
-            r = amrex::Random();
-            p.pos(1) = grid_box.lo(1) + (r + jcnt) / icount_per_box;
-            r = amrex::Random();
-            p.pos(2) = grid_box.lo(2) + (r + kcnt) / icount_per_box;
+            p.pos(0) = grid_box.lo(0) + (dist(mt) + icnt) / icount_per_box;
+            p.pos(1) = grid_box.lo(1) + (dist(mt) + jcnt) / icount_per_box;
+            p.pos(2) = grid_box.lo(2) + (dist(mt) + kcnt) / icount_per_box;
 
             for (int i = 0; i < BL_SPACEDIM; i++)
                 BL_ASSERT(p.pos(i) < grid_box.hi(i));
