@@ -734,12 +734,16 @@ template <class FAB>
 void
 FabArray<FAB>::clear ()
 {
-    clearThisBD();
+    if (m_status == StatusType::defined_allocated || 
+        m_status == StatusType::defined_unallocated)
+    {
+        clearThisBD();  // addThisBD is called in define
+    }
 
     for(Iterator it = m_fabs_v.begin(); it != m_fabs_v.end(); ++it) {
-	delete *it;
+        delete *it;
     }
-    
+
     m_fabs_v.clear();
     boxarray.clear();
 }
@@ -786,15 +790,19 @@ FabArray<FAB>::FabArray (const FabArray<FAB>& rhs, MakeType maketype, int scomp,
     : shmem()
 {
     BL_ASSERT(rhs.m_status == StatusType::defined_allocated);
-    if (maketype == amrex::make_deep_copy)
+    if (maketype == amrex::make_alias)
     {
-        m_status = StatusType::defined_allocated;
-        // xxxxx
-    }
-    else if (maketype == amrex::make_alias)
-    {
-        m_status = StatusType::is_alias;
-        // xxxxx
+        m_status        = StatusType::is_alias;
+        indexArray      = rhs.indexArray;
+        ownership       = rhs.ownership;
+        n_grow          = rhs.n_grow;
+        n_comp          = ncomp;
+        boxarray        = rhs.boxarray;
+        distributionMap = rhs.distributionMap;
+        m_bdkey         = rhs.m_bdkey;
+        for (const auto& rhsfab : rhs.m_fabs_v) {
+            m_fabs_v.push_back(new FAB(*rhsfab, amrex::make_alias, scomp, ncomp));
+        }
     }
     else
     {
@@ -811,15 +819,22 @@ FabArray<FAB>::FabArray (FabArray<FAB>&& rhs) noexcept
     // no need to worry about the data used in non-blocking FillBoundary.
 {
     rhs.m_status = StatusType::moved;
+    rhs.m_fabs_v.clear();
+    rhs.boxarray.clear();
 }
 
 template <class FAB>
 FabArray<FAB>::~FabArray ()
 {
-    if (m_status != StatusType::moved)
+    if (m_status != StatusType::moved     &&
+        m_status != StatusType::is_alias)
     {
-	m_FA_stats.recordDelete();
+        m_FA_stats.recordDelete();
+    }
 
+    if (m_status == StatusType::defined_allocated || 
+        m_status == StatusType::defined_unallocated)
+    {
 	typename std::map<int, std::map<int, FabArray<FAB> *> >::iterator afapIter = 
 	    FabArray<FAB>::allocatedFAPointers.find(distributionMap.size());
 	if(afapIter == FabArray<FAB>::allocatedFAPointers.end()) {
@@ -844,9 +859,9 @@ FabArray<FAB>::~FabArray ()
 	}
 
 	noallocFAPIds.erase(aFAPId);
-
-	clear();
     }
+
+    clear();
 }
 
 template <class FAB>
