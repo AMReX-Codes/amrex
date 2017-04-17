@@ -18,11 +18,10 @@
 #include <AMReX_Looping.H>
 #include <AMReX_REAL.H>
 #include <AMReX_BLProfiler.H>
+#include <AMReX_MakeType.H>
 
 namespace amrex
 {
-    enum MakeType {make_alias, make_deep_copy};
-
     extern long private_total_bytes_allocated_in_fabs;     // total bytes at any given time
     extern long private_total_bytes_allocated_in_fabs_hwm; // high-water-mark over a given interval
     extern long private_total_cells_allocated_in_fabs;     // total cells at any given time

@@ -38,6 +38,7 @@
 
 #include <AMReX_FabArrayBase.H>
 #include <AMReX_MFIter.H>
+#include <AMReX_MakeType.H>
 
 namespace amrex {
 
