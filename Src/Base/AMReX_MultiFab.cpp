@@ -384,10 +384,18 @@ MultiFab::MultiFab (const BoxArray&            bxs,
 #endif
 }
 
+MultiFab::MultiFab (const MultiFab& rhs, MakeType maketype, int scomp, int ncomp)
+    :
+    FabArray<FArrayBox>(rhs, maketype, scomp, ncomp)
+{
+}
+
 MultiFab::~MultiFab()
 {
 #ifdef BL_MEM_PROFILING
-    if (m_status != StatusType::moved) {
+    if (m_status != StatusType::moved     &&
+        m_status != StatusType::is_alias) 
+    {
 	--num_multifabs;
     }
 #endif
