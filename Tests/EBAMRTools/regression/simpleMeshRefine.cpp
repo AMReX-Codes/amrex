@@ -28,6 +28,7 @@
 #include "AMReX_MeshRefine.H"
 #include "AMReX_SphereIF.H"
 #include "AMReX_RealVect.H"
+#include "AMReX_EBDebugDump.H"
 
 namespace amrex
 {
@@ -111,7 +112,7 @@ namespace amrex
     const EBIndexSpace* const ebisPtr = AMReX_EBIS::instance();
     
     Box domLev = a_domainCoar;
-    for(int ilev = 0; ilev < a_maxLevel; ilev++)
+    for(int ilev = 0; ilev <= a_maxLevel; ilev++)
     {
       BoxArray ba(domLev);
       ba.maxSize(a_maxGridSize);
@@ -126,6 +127,7 @@ namespace amrex
         IntVectSet ivsIrreg = ebisBox.getIrregIVS(validbox);
         a_tags[ilev] |= ivsIrreg;
       }
+      domLev.refine(a_refRat[ilev]);
     }
   }
   /************/
@@ -170,6 +172,7 @@ namespace amrex
     amrex::Print() << "Outputs: \n" ;
     for(int ilev = 0; ilev <= maxLevel; ilev++)
     {
+      //cout << grids[ilev].size() << endl;
       amrex::Print() << "grids for level " << ilev << " = "  << grids[ilev];
       amrex::Print() << "\n";
     }
