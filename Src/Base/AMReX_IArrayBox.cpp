@@ -39,6 +39,12 @@ IArrayBox::IArrayBox (const Box& b,
 	setVal(0);
 }
 
+IArrayBox::IArrayBox (const IArrayBox& rhs, MakeType make_type, int scomp, int ncomp)
+    :
+    BaseFab<int>(rhs,make_type,scomp,ncomp)
+{
+}
+
 IArrayBox&
 IArrayBox::operator= (const int& v)
 {
