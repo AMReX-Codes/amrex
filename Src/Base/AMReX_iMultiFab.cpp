@@ -210,6 +210,12 @@ iMultiFab::iMultiFab (const BoxArray&            bxs,
 {
 }
 
+iMultiFab::iMultiFab (const iMultiFab& rhs, MakeType maketype, int scomp, int ncomp)
+    :
+    FabArray<IArrayBox>(rhs, maketype, scomp, ncomp)
+{
+}
+
 void
 iMultiFab::operator= (const int& r)
 {

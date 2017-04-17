@@ -55,6 +55,14 @@ public:
               int                        ngrow,
 	      const MFInfo&              info = MFInfo());
 
+    /**
+     * \brief Make an alias MultiFab. maketype must be
+     * amrex::make_alias.  scomp is the starting component of the
+     * alias and ncomp is the number of components in the new aliasing
+     * MultiFab.
+     */
+    MultiFab (const MultiFab& rhs, MakeType maketype, int scomp, int ncomp);
+
     virtual ~MultiFab () override;
 
     MultiFab (MultiFab&& rhs) noexcept = default;

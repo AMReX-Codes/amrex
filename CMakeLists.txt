@@ -19,7 +19,7 @@ endif()
 #     #> export bdir=`pwd`
 #     #> mkdir <new_build_dir>
 #     #> cd <new_build_dir>
-#     #> cmake -DCMAKE_INSTALL_PREFIX:PATH=<some_install_prefix> $bdir
+#     #> cmake -DCMAKE_INSTALL_PREFIX:PATH=<some_install_prefix_for_amrex> $bdir
 #     #> make
 #     #> make install
 #
@@ -35,7 +35,7 @@ endif()
 #
 #     #> mkdir <new_build_dir>
 #     #> cd <new_build_dir>
-#     #> cmake $bdir/Tutorials/MultiGrid_C
+#     #> cmake -DAMREX_INSTALL_PREFIX:PATH=<some_install_prefix_for_amrex> $bdir/Tutorials/MultiGrid_C
 #     #> make
 #     #> mpiexec -np 4 ./mgc_tutorial inputs.3d
 #

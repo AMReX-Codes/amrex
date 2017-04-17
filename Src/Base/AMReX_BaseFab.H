@@ -1134,12 +1134,11 @@ BaseFab<T>::BaseFab (const BaseFab<T>& rhs, MakeType make_type, int scomp, int n
     truesize(ncomp*rhs.numpts),
     dptr(const_cast<T*>(rhs.dataPtr(scomp))),
     ptr_owner(false),
-    shared_memory(rhs.shared_memory)
+    shared_memory(false)
 {
     BL_ASSERT(scomp+ncomp <= rhs.nComp());
     if (make_type == amrex::make_deep_copy)
     {
-        shared_memory = false;
         dptr = nullptr;
         define();
         this->copy(rhs, domain, scomp, domain, 0, ncomp);
