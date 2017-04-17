@@ -12,7 +12,7 @@
 #ifndef _BASEIFFABI_H_
 #define _BASEIFFABI_H_
 #include "AMReX_FaceIterator.H"
-
+#include "AMReX_SPMD.H"
 namespace amrex
 {
   template <class T>
