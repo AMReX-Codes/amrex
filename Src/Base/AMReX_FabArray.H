@@ -129,6 +129,8 @@ public:
 	      const MFInfo&              info = MFInfo(),
               const FabFactory<FAB>&     factory = DefaultFabFactory<FAB>());
 
+    FabArray (const FabArray<FAB>& rhs, MakeType maketype, int scomp, int ncomp);
+
     //! The destructor -- deletes all FABs in the array.
     virtual ~FabArray ();
 
@@ -405,8 +407,13 @@ public:
 
 
 protected:
-
-    bool moved = false;
+    // undefined           : empty
+    // defined_unallocated : has BoxArray and DistributionMapping, but no memory alloced
+    // defined_allocated   : has BoxArray and DistributionMapping, and memory is alloced
+    // moved               : `std::move`d
+    // is_alias            : is an alias to a defined_allocated object
+    enum class StatusType { undefined, defined_unallocated, defined_allocated, moved, is_alias };
+    StatusType m_status = StatusType::undefined;
 
     //
     // The data.
@@ -775,19 +782,41 @@ FabArray<FAB>::FabArray (const BoxArray&            bxs,
 }
 
 template <class FAB>
+FabArray<FAB>::FabArray (const FabArray<FAB>& rhs, MakeType maketype, int scomp, int ncomp)
+    : shmem()
+{
+    BL_ASSERT(rhs.m_status == StatusType::defined_allocated);
+    if (maketype == amrex::make_deep_copy)
+    {
+        m_status = StatusType::defined_allocated;
+        // xxxxx
+    }
+    else if (maketype == amrex::make_alias)
+    {
+        m_status = StatusType::is_alias;
+        // xxxxx
+    }
+    else
+    {
+        amrex::Abort("FabArray: unknown MakeType");
+    }
+}
+
+template <class FAB>
 FabArray<FAB>::FabArray (FabArray<FAB>&& rhs) noexcept
     : FabArrayBase (std::move(rhs))
+    , m_status     (rhs.m_status)
     , m_fabs_v     (std::move(rhs.m_fabs_v))
     , shmem        (std::move(rhs.shmem))
     // no need to worry about the data used in non-blocking FillBoundary.
 {
-    rhs.moved = true;
+    rhs.m_status = StatusType::moved;
 }
 
 template <class FAB>
 FabArray<FAB>::~FabArray ()
 {
-    if (!moved)
+    if (m_status != StatusType::moved)
     {
 	m_FA_stats.recordDelete();
 
@@ -855,6 +884,8 @@ FabArray<FAB>::define (const BoxArray&            bxs,
 		       const MFInfo&              info,
                        const FabFactory<FAB>&     factory)
 {
+    m_status = info.alloc ? StatusType::defined_allocated : StatusType::defined_unallocated;
+
     BL_ASSERT(ngrow >= 0);
     BL_ASSERT(boxarray.size() == 0);
     indexArray.clear();
