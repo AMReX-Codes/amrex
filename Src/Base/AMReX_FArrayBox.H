@@ -213,6 +213,8 @@ public:
 			bool       alloc=true,
 			bool       shared=false);
 
+    FArrayBox (const FArrayBox& rhs, MakeType make_type, int scomp, int ncomp);
+
     //!  The destructor.
     ~FArrayBox () = default;
     
