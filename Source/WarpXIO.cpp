@@ -569,7 +569,7 @@ WarpX::WriteJobInfo (const std::string& dir) const
 
 void
 WarpX::PackPlotDataPtrs (Array<const MultiFab*>& pmf,
-                         const Array<std::unique_ptr<MultiFab> >& data)
+                         const std::array<std::unique_ptr<MultiFab>,3>& data)
 {
     BL_ASSERT(pmf.size() == BL_SPACEDIM);
 #if (BL_SPACEDIM == 3)

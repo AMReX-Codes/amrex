@@ -222,19 +222,16 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
     const int ng = WarpX::nox;  // need to update this
 
     // Create the MultiFabs for B
-    Bfield[lev].resize(3);
     Bfield[lev][0].reset( new MultiFab(amrex::convert(ba,Bx_nodal_flag),dm,1,ng));
     Bfield[lev][1].reset( new MultiFab(amrex::convert(ba,By_nodal_flag),dm,1,ng));
     Bfield[lev][2].reset( new MultiFab(amrex::convert(ba,Bz_nodal_flag),dm,1,ng));
 
     // Create the MultiFabs for E
-    Efield[lev].resize(3);
     Efield[lev][0].reset( new MultiFab(amrex::convert(ba,Ex_nodal_flag),dm,1,ng));
     Efield[lev][1].reset( new MultiFab(amrex::convert(ba,Ey_nodal_flag),dm,1,ng));
     Efield[lev][2].reset( new MultiFab(amrex::convert(ba,Ez_nodal_flag),dm,1,ng));
 
     // Create the MultiFabs for the current
-    current[lev].resize(3);
     current[lev][0].reset( new MultiFab(amrex::convert(ba,jx_nodal_flag),dm,1,ng));
     current[lev][1].reset( new MultiFab(amrex::convert(ba,jy_nodal_flag),dm,1,ng));
     current[lev][2].reset( new MultiFab(amrex::convert(ba,jz_nodal_flag),dm,1,ng));

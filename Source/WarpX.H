@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <memory>
+#include <array>
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -150,7 +151,7 @@ private:
     void WriteWarpXHeader(const std::string& name) const;
     void WriteJobInfo (const std::string& dir) const;
     static void PackPlotDataPtrs (amrex::Array<const amrex::MultiFab*>& pmf,
-				  const amrex::Array<std::unique_ptr<amrex::MultiFab> >& data);
+				  const std::array<std::unique_ptr<amrex::MultiFab>,3>& data);
     static void Copy (amrex::MultiFab& dstmf, int dcomp, int ncomp, const amrex::MultiFab& srcmf, int scomp);
 
     amrex::Array<int> istep;      // which step?
@@ -164,9 +165,9 @@ private:
     std::unique_ptr<MultiParticleContainer> mypc;
 
     // Fields: First array for level, second for direction
-    amrex::Array<amrex::Array< std::unique_ptr<amrex::MultiFab> > > current;
-    amrex::Array<amrex::Array< std::unique_ptr<amrex::MultiFab> > > Efield;
-    amrex::Array<amrex::Array< std::unique_ptr<amrex::MultiFab> > > Bfield;
+    amrex::Array<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > current;
+    amrex::Array<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Efield;
+    amrex::Array<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Bfield;
 
     // Moving window parameters
     int do_moving_window  = 0;
