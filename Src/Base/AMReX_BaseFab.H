@@ -19,7 +19,6 @@
 #include <AMReX_REAL.H>
 #include <AMReX_BLProfiler.H>
 #include <AMReX_MakeType.H>
-#include <AMReX_TypeTraits.H>
 
 namespace amrex
 {
@@ -2678,11 +2677,6 @@ BaseFab<T>::linComb (const BaseFab<T>&  f1,
     } EndForTX
     return *this;
 }
-
-
-    template <class D>
-    struct IsBaseFab<D, typename std::enable_if<std::is_base_of<BaseFab<typename D::value_type>,D>::value>::type> : std::true_type {};
-
 
     // \cond CODEGEN
     class BF_init
