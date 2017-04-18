@@ -34,6 +34,14 @@ WarpXParticleContainer::ReadParameters ()
     }
 }
 
+void
+WarpXParticleContainer::AllocData ()
+{
+    // have to resize here, not in the constructor because grids have not
+    // been built when constructor was called.
+    reserveData();
+    resizeData();
+}
 
 void
 WarpXParticleContainer::AddOneParticle (int lev, int grid, int tile,

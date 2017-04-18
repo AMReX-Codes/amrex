@@ -38,8 +38,6 @@ public:
     WarpXParticleContainer (amrex::AmrCore* amr_core, int ispecies);
     virtual ~WarpXParticleContainer() {}
 
-    virtual void AllocData () = 0;
-
     virtual void InitData () = 0;
 
     virtual void FieldGather (int lev,
@@ -52,6 +50,8 @@ public:
 			 amrex::MultiFab& jx, amrex::MultiFab& jy, amrex::MultiFab& jz, amrex::Real t, amrex::Real dt) = 0;
 
     virtual void PostRestart () = 0;
+
+    void AllocData ();
 
     void PushX (int lev, amrex::Real dt);
 

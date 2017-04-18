@@ -22,15 +22,6 @@ void PhysicalParticleContainer::InitData() {
 }
 
 void
-PhysicalParticleContainer::AllocData ()
-{
-    // have to resize here, not in the constructor because grids have not
-    // been built when constructor was called.
-    reserveData();
-    resizeData();
-}
-
-void
 PhysicalParticleContainer::AddParticles (int lev, Box part_box) {
     BL_PROFILE("PhysicalParticleContainer::AddParticles()");
 

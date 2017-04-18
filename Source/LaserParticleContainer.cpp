@@ -81,15 +81,6 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies)
 }
 
 void
-LaserParticleContainer::AllocData ()
-{
-    // have to resize here, not in the constructor because grids have not
-    // been built when constructor was called.
-    reserveData();
-    resizeData();
-}
-
-void
 LaserParticleContainer::InitData ()
 {
     const int lev = 0;
