@@ -290,7 +290,7 @@ WarpX::WritePlotFile () const
             if (ParallelDescriptor::NProcs() > 1) {
 	       ncomp = 3*3 + 4; // The +4 is for the number of particles per cell/grid/process + Processor ID
             } else {
-	       ncomp = 3*3 + 3; // The +4 is for the number of particles per cell/grid/process + Processor ID
+	       ncomp = 3*3 + 3; // The +3 is for the number of particles per cell/grid/process
             }
 
 	    const int ngrow = 0;
@@ -302,7 +302,7 @@ WarpX::WritePlotFile () const
 	    amrex::average_edge_to_cellcenter(*mf[lev], dcomp, srcmf);
 #if (BL_SPACEDIM == 2)
 	    MultiFab::Copy(*mf[lev], *mf[lev], dcomp+1, dcomp+2, 1, ngrow);
-	    WarpX::Copy(*mf[lev], dcomp+1, 1, *current[lev][1], 0);
+            amrex::average_node_to_cellcenter(*mf[lev], dcomp+1, *current[lev][1], 0, 1);
 #endif
             if (lev == 0)
             {
@@ -316,7 +316,7 @@ WarpX::WritePlotFile () const
 	    amrex::average_edge_to_cellcenter(*mf[lev], dcomp, srcmf);
 #if (BL_SPACEDIM == 2)
 	    MultiFab::Copy(*mf[lev], *mf[lev], dcomp+1, dcomp+2, 1, ngrow);
-	    WarpX::Copy(*mf[lev], dcomp+1, 1, *Efield[lev][1], 0);
+            amrex::average_node_to_cellcenter(*mf[lev], dcomp+1, *Efield[lev][1], 0, 1);
 #endif
             if (lev == 0)
             {
@@ -330,7 +330,7 @@ WarpX::WritePlotFile () const
 	    amrex::average_face_to_cellcenter(*mf[lev], dcomp, srcmf);
 #if (BL_SPACEDIM == 2)
 	    MultiFab::Copy(*mf[lev], *mf[lev], dcomp+1, dcomp+2, 1, ngrow);
-	    WarpX::Copy(*mf[lev], dcomp+1, 1, *Bfield[lev][1], 0);
+            MultiFab::Copy(*mf[lev], *Bfield[lev][1], 0, dcomp+1, 1, ngrow);
 #endif
             if (lev == 0)
             {
@@ -571,8 +571,8 @@ WarpX::WriteJobInfo (const std::string& dir) const
 }
 
 void
-WarpX::PackPlotDataPtrs(Array<const MultiFab*>& pmf,
-			const Array<std::unique_ptr<MultiFab> >& data)
+WarpX::PackPlotDataPtrs (Array<const MultiFab*>& pmf,
+                         const Array<std::unique_ptr<MultiFab> >& data)
 {
     BL_ASSERT(pmf.size() == BL_SPACEDIM);
 #if (BL_SPACEDIM == 3)
