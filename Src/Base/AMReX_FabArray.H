@@ -39,6 +39,7 @@
 #include <AMReX_FabArrayBase.H>
 #include <AMReX_MFIter.H>
 #include <AMReX_MakeType.H>
+#include <AMReX_TypeTraits.H>
 
 namespace amrex {
 
@@ -111,7 +112,13 @@ class FabArray
 {
 public:
 
-    typedef typename FAB::value_type value_type;
+    struct FABType {
+        typedef FAB value_type;
+    };
+
+    // if FAB is a BaseFab or its child, value_type = FAB::value_type
+    // else                              value_type = FAB;
+    using value_type = typename std::conditional<IsBaseFab<FAB>::value, FAB, FABType>::type::value_type;
 
     //
     // Constructs an empty FabArray<FAB>.
