@@ -620,20 +620,17 @@ ParticleContainer<NR, NI, NA>::MoveRandom (int lev)
 
     static bool first = true;
 
-    static Array<amrex::mt19937> rn;
-
     if (first)
     {
         first = false;
         //
-        // Build and initialize a random number generator per thread.
+        // Give the random number generator a unique seed per thread.
         //
         int tnum = 1;
 
 #ifdef _OPENMP
         tnum = omp_get_max_threads();
 #endif
-        rn.resize(tnum);
 
         for (int i = 0; i < tnum; i++)
         {
@@ -641,8 +638,7 @@ ParticleContainer<NR, NI, NA>::MoveRandom (int lev)
             // We want to give each thread across all MPI processes a unique non-zero seed.
             //
             const unsigned long seedbase = 1+tnum*ParallelDescriptor::MyProc();
-
-            rn[i] = amrex::mt19937(seedbase+i);
+            amrex::InitRandom(seedbase+i);
         }
     }
 
@@ -668,9 +664,9 @@ ParticleContainer<NR, NI, NA>::MoveRandom (int lev)
 	  int tid = 0;
 #endif
 	  for (int i = 0; i < BL_SPACEDIM; i++)
-            {
-	      p.m_rdata.pos[i] += dist[i]*(2*rn[tid].d_value()-1);
-            }
+              {
+                  p.m_rdata.pos[i] += dist[i]*(2*amrex::Random()-1);
+              }
 	  
 	  Reset(p, true);
         }
