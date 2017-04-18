@@ -321,6 +321,11 @@ WarpX::Copy(MultiFab& dstmf, int dcomp, int ncomp, const MultiFab& srcmf, int sc
     }
 }
 
+
+
+
+#if (BL_SPACEDIM == 3)
+
 Box
 WarpX::getIndexBox(const RealBox& real_box) const
 {
@@ -339,7 +344,6 @@ WarpX::getIndexBox(const RealBox& real_box) const
   return Box(slice_lo, slice_hi) & geom[0].Domain();
 }
 
-#if (BL_SPACEDIM == 3)
 void
 WarpX::fillSlice(Real z_coord) const
 {
