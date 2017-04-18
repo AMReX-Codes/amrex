@@ -203,9 +203,11 @@ public:
     void clear ();
 
     //! Set all components in the entire region of each FAB to val.
+    template <class = typename std::enable_if<IsBaseFab<FAB>::value> >
     void setVal (value_type val);
 
     //! Set all components in the entire region of each FAB to val.
+    template <class = typename std::enable_if<IsBaseFab<FAB>::value> >
     void operator= (const value_type& val);
 
     /**
@@ -213,6 +215,7 @@ public:
     * each FAB in the FabArray, starting at component comp to val.
     * Also set the value of nghost boundary cells.
     */
+    template <class = typename std::enable_if<IsBaseFab<FAB>::value> >
     void setVal (value_type val,
                  int        comp,
                  int        num_comp,
@@ -224,6 +227,7 @@ public:
     * as nghost boundary cells, to val, provided they also intersect
     * with the Box region.
     */
+    template <class = typename std::enable_if<IsBaseFab<FAB>::value> >
     void setVal (value_type val,
                  const Box& region,
                  int        comp,
@@ -233,6 +237,7 @@ public:
     * \brief Set all components in the valid region of each FAB in the
     * FabArray to val, including nghost boundary cells.
     */
+    template <class = typename std::enable_if<IsBaseFab<FAB>::value> >
     void setVal (value_type val,
                  int        nghost);
 
@@ -241,22 +246,27 @@ public:
     * FabArray to val, including nghost boundary cells, that also
     * intersect the Box region.
     */
+    template <class = typename std::enable_if<IsBaseFab<FAB>::value> >
     void setVal (value_type val,
                  const Box& region,
                  int        nghost);
 
     //! Set all values in the boundary region to val.
+    template <class = typename std::enable_if<IsBaseFab<FAB>::value> >
     void setBndry (value_type val);
 
     //! Set ncomp values in the boundary region, starting at start_comp to val.
+    template <class = typename std::enable_if<IsBaseFab<FAB>::value> >
     void setBndry (value_type val,
                    int        strt_comp,
                    int        ncomp);
  
    //! Set all values outside the Geometry domain to val.
+    template <class = typename std::enable_if<IsBaseFab<FAB>::value> >
     void setDomainBndry (value_type val, const Geometry& goem);
 
     //! Set ncomp values outside the Geometry domain to val, starting at start_comp.
+    template <class = typename std::enable_if<IsBaseFab<FAB>::value> >
     void setDomainBndry (value_type val, int strt_comp, int ncomp, const Geometry& goem);
     /**
     * \brief This function copies data from fa to this FabArray.  Each FAB
@@ -383,6 +393,7 @@ public:
     //             (including ghost cells outside periodic boundaries)
     // physbnd   : boundary cells outside the domain (excluding periodic boundaries)
     // interior  : interior cells (i.e., valid cells)
+    template <class = typename std::enable_if<IsBaseFab<FAB>::value> >
     void BuildMask (const Box& phys_domain, const Periodicity& period,
 		    value_type covered, value_type notcovered, 
 		    value_type physbnd, value_type interior);
@@ -449,8 +460,11 @@ protected:
 #elif defined(BL_USE_MPI3)
 	    if (win != MPI_WIN_NULL) MPI_Win_free(&win);
 #endif
-	    if (alloc)
+#ifdef BL_USE_TEAM
+	    if (alloc) {
 		amrex::update_fab_stats(-n_points, -n_values, sizeof(value_type));
+            }
+#endif
 	}
 	ShMem (ShMem&& rhs) noexcept
                  : alloc(rhs.alloc), n_values(rhs.n_values), n_points(rhs.n_points)
@@ -757,6 +771,7 @@ FabArray<FAB>::clear ()
 }
 
 template <class FAB>
+template <class>
 void
 FabArray<FAB>::setVal (value_type val,
                        int        nghost)
@@ -765,10 +780,11 @@ FabArray<FAB>::setVal (value_type val,
 }
 
 template <class FAB>
+template <class>
 void
 FabArray<FAB>::setVal (value_type   val,
-                         const Box& region,
-                         int        nghost)
+                       const Box& region,
+                       int        nghost)
 {
     setVal(val,region,0,n_comp,nghost);
 }
@@ -1125,6 +1141,7 @@ FabArray<FAB>::setFab (const MFIter& mfi,
 }
 
 template <class FAB>
+template <class>
 void
 FabArray<FAB>::setBndry (value_type val)
 {
@@ -1132,6 +1149,7 @@ FabArray<FAB>::setBndry (value_type val)
 }
 
 template <class FAB>
+template <class>
 void
 FabArray<FAB>::setBndry (value_type val,
                          int        strt_comp,
@@ -1150,6 +1168,7 @@ FabArray<FAB>::setBndry (value_type val,
 }
 
 template <class FAB>
+template <class>
 void
 FabArray<FAB>::setDomainBndry (value_type val, const Geometry& geom)
 {
@@ -1157,6 +1176,7 @@ FabArray<FAB>::setDomainBndry (value_type val, const Geometry& geom)
 }
 
 template <class FAB>
+template <class>
 void
 FabArray<FAB>::setDomainBndry (value_type val,
                                int        strt_comp,
@@ -2136,6 +2156,7 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
 
 
 template <class FAB>
+template <class>
 void
 FabArray<FAB>::setVal (value_type val)
 {
@@ -2150,6 +2171,7 @@ FabArray<FAB>::setVal (value_type val)
 }
 
 template <class FAB>
+template <class>
 void
 FabArray<FAB>::operator= (const value_type& val)
 {
@@ -2157,6 +2179,7 @@ FabArray<FAB>::operator= (const value_type& val)
 }
 
 template <class FAB>
+template <class>
 void
 FabArray<FAB>::setVal (value_type val,
                        int        comp,
@@ -2177,6 +2200,7 @@ FabArray<FAB>::setVal (value_type val,
 }
 
 template <class FAB>
+template <class>
 void
 FabArray<FAB>::setVal (value_type val,
                        const Box& region,
@@ -3307,6 +3331,7 @@ FabArray<FAB>::PostRcvs_PGAS (const MapOfCopyComTagContainers&  m_RcvVols,
 
 
 template <class FAB>
+template <class>
 void
 FabArray<FAB>::BuildMask (const Box& phys_domain, const Periodicity& period,
 			  value_type covered, value_type notcovered, 
