@@ -5,6 +5,7 @@
 #include <AMReX_ParmParse.H>
 #include <AMReX_Array.H>
 #include <AMReX_MultiFab.H>
+#include <AMReX_MultiFabUtil.H>
 #include <AMReX_PlotFileUtil.H>
 
 #include <WarpX_f.H>
@@ -60,7 +61,7 @@ int main(int argc, char* argv[])
 		    Real z0 = xyzmin[2] + k*dx[2];
 		    xp.push_back(x0 + dx[0]*rand_dis(rand_eng));
 		    yp.push_back(y0 + dx[1]*rand_dis(rand_eng));
-		    zp.push_back(z0 + dx[3]*rand_dis(rand_eng));
+		    zp.push_back(z0 + dx[2]*rand_dis(rand_eng));
 		    wp.push_back(weight);
 		    Real vx,vy,vz,v2;
 		    do {
@@ -79,42 +80,53 @@ int main(int argc, char* argv[])
 	}
 
 	const int ng = nox;
-	Box domain_box {IntVect{D_DECL(0,0,0)}, IntVect{D_DECL(nx,ny,nz)}};
-	Box grown_box = amrex::grow(domain_box, ng);
+	Box domain_box {IntVect{D_DECL(0,0,0)}, IntVect{D_DECL(nx-1,ny-1,nz-1)}};
 
-	long ngx = ng;
-	long ngy = ng;
-	long ngz = ng;
+#if (BL_SPACEDIM == 3)
+        IntVect jx_nodal_flag(0,1,1);
+        IntVect jy_nodal_flag(1,0,1);
+        IntVect jz_nodal_flag(1,1,0);
+#elif (BL_SPACEDIM == 2)
+        IntVect jx_nodal_flag(0,1);  // x is the first dimension to AMReX
+        IntVect jy_nodal_flag(1,1);  // y is the missing dimension to 2D AMReX
+        IntVect jz_nodal_flag(1,0);  // z is the second dimension to 2D AMReX
+#endif
 
-	FArrayBox jxfab(grown_box);
-	FArrayBox jyfab(grown_box);
-	FArrayBox jzfab(grown_box);
+        BoxArray ba{domain_box};
+        DistributionMapping dm{ba};
+
+        MultiFab jx(amrex::convert(ba,jx_nodal_flag), dm, 1, ng);
+        MultiFab jy(amrex::convert(ba,jy_nodal_flag), dm, 1, ng);
+        MultiFab jz(amrex::convert(ba,jz_nodal_flag), dm, 1, ng);
+
+	FArrayBox& jxfab = jx[0];
+	FArrayBox& jyfab = jy[0];
+	FArrayBox& jzfab = jz[0];
 	jxfab.setVal(0.0);
 	jyfab.setVal(0.0);
 	jzfab.setVal(0.0);
 
+	long ngx = ng;
+	long ngy = ng;
+	long ngz = ng;
 	long lvect = 8;
-	warpx_current_deposition(jxfab.dataPtr(), jyfab.dataPtr(), jzfab.dataPtr(),
+	warpx_current_deposition(jxfab.dataPtr(), &ngx, jxfab.length(),
+                                 jyfab.dataPtr(), &ngy, jyfab.length(),
+                                 jzfab.dataPtr(), &ngz, jzfab.length(),
 				 &np, xp.data(), yp.data(), zp.data(), 
 				 uxp.data(), uyp.data(), uzp.data(), 
 				 giv.data(), wp.data(), &charge, 
 				 &xyzmin[0], &xyzmin[1], &xyzmin[2], 
-				 &dt, &dx[0], &dx[1], &dx[2], &nx, &ny, &nz,
-				 &ngx, &ngy, &ngz, 
+				 &dt, &dx[0], &dx[1], &dx[2],
 				 &nox, &noy,&noz,
 				 &lvect, &current_deposition_algo);
 
-	Box plotbox{IntVect{D_DECL(0,0,0)},IntVect{D_DECL(nx-1,ny-1,nz-1)}};
-	BoxArray plotba {plotbox};
-	DistributionMapping plotdm {plotba};
-	MultiFab plotmf(plotba, plotdm, 3, 0);
-	plotmf[0].copy(jxfab,0,0,1);
-	plotmf[0].copy(jyfab,0,1,1);
-	plotmf[0].copy(jzfab,0,2,1);
+	MultiFab plotmf(ba, dm, 3, 0);
+        amrex::average_edge_to_cellcenter(plotmf, 0, {&jx, &jy, &jz});
 
-	RealBox realbox{plotbox, dx, xyzmin};
+	RealBox realbox{domain_box, dx, xyzmin};
 	int is_per[3] = {0,0,0};
-	Geometry geom{plotbox, &realbox, 0, is_per};
+	Geometry geom{domain_box, &realbox, 0, is_per};
 	std::string plotname{"plt00000"};
 	Array<std::string> varnames{"jx", "jy", "jz"};
 	amrex::WriteSingleLevelPlotfile(plotname, plotmf, varnames, geom, 0.0, 0);
