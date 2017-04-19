@@ -125,6 +125,15 @@ WarpX::WriteCheckPointFile() const
 		     amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "By"));
 	VisMF::Write(*Bfield[lev][2],
 		     amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "Bz"));
+        if (is_synchronized) {
+            // Need to save j if synchronized because after restart we need j to evolve E by dt/2.
+            VisMF::Write(*current[lev][0],
+                         amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "jx"));
+            VisMF::Write(*current[lev][1],
+                         amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "jy"));
+            VisMF::Write(*current[lev][2],
+                         amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "jz"));
+        }
     }
 
     mypc->Checkpoint(checkpointname, "particle", true);
@@ -263,6 +272,14 @@ WarpX::InitFromCheckpoint ()
         VisMF::Read(*Bfield[lev][0], amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "Bx"));
         VisMF::Read(*Bfield[lev][1], amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "By"));
         VisMF::Read(*Bfield[lev][2], amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "Bz"));
+        if (is_synchronized) {
+            VisMF::Read(*current[lev][0],
+                        amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "jx"));
+            VisMF::Read(*current[lev][1],
+                        amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "jy"));
+            VisMF::Read(*current[lev][2],
+                        amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "jz"));            
+        }
     }
 
     // Initilize particles
