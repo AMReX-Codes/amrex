@@ -45,19 +45,19 @@ make realclean
 
 ## Running the Langmuir tests
 
-The folder `tests/Langmuir` contains code that allow the user
-to run a Langmuir wave case with either WarpX or PICSAR, and to
-compare the results. The instructions below explain how to do this.
+The folder `Example/Langmuir` contains code that allow the user
+to run a Langmuir wave case with WarpX. The instructions below
+explain how to do this.
 
 ### Running the test with Warpx
 
 After compiling WarpX for (see the above instructions), copy the
 compiled executable (its name starts with `main3d`) from the folder
 `Bin/` to the folder
-`tests/Langmuir/`. Then type
+`Example/Langmuir/`. Then type
 ```
 cd tests/Langmuir
-mpirun -np 4 ./<executable_name> input_warpx
+mpirun -np 4 ./<executable_name> inputs
 ```
 where `<executable_name>` should be replaced by the name of the
 compiled executable.
@@ -95,7 +95,7 @@ pip install jupyter numpy yt matplotlib
 
 Then, within the folder `tests/Langmuir`, type:
 ```
-jupyter notebook Visualization.ipynb 
+jupyter notebook Visualization.ipynb
 ```
 and follow the instructions that will pop up in your browser.
 
