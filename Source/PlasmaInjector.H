@@ -166,7 +166,7 @@ private:
 ///
 class RegularPosition : public PlasmaParticlePosition{
 public:
-  RegularPosition(amrex::Array<int> num_particles_per_cell_each_dim);
+  RegularPosition(const amrex::Array<int>& num_particles_per_cell_each_dim);
   virtual void getPositionUnitBox(vec3& r, int i_part) override;
 private:
   amrex::Real _x;

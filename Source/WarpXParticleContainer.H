@@ -21,6 +21,15 @@ class WarpXParIter
 public:
     using amrex::ParIter<0,0,PIdx::nattribs>::ParIter;
 
+#if (BL_SPACEDIM == 2)
+    void GetPosition (amrex::Array<amrex::Real>& x,
+                      amrex::Array<amrex::Real>& y,
+                      amrex::Array<amrex::Real>& z) const;
+    void SetPosition (const amrex::Array<amrex::Real>& x,
+                      const amrex::Array<amrex::Real>& y,
+                      const amrex::Array<amrex::Real>& z);
+#endif
+
     const SoA& GetAttribs () const { return GetStructOfArrays(); }
     SoA&       GetAttribs ()       { return GetStructOfArrays(); }
     const amrex::Array<amrex::Real>& GetAttribs (int comp) const { return GetStructOfArrays()[comp]; }

@@ -1,4 +1,5 @@
 
+#include <limits>
 #include <algorithm>
 #include <cctype>
 #include <cmath>
@@ -72,6 +73,8 @@ WarpX::ResetInstance ()
 
 WarpX::WarpX ()
 {
+    m_instance = this;
+
     ReadParameters();
 
     if (max_level != 0) {
@@ -322,6 +325,32 @@ WarpX::Copy(MultiFab& dstmf, int dcomp, int ncomp, const MultiFab& srcmf, int sc
 }
 
 
+std::array<Real,3>
+WarpX::CellSize (int lev)
+{
+    const auto& gm = GetInstance().Geom(lev);
+    const Real* dx = gm.CellSize();
+#if (BL_SPACEDIM == 3)
+    return { dx[0], dx[1], dx[2] };
+#elif (BL_SPACEDIM == 2)
+    return { dx[0], 1.0, dx[1] };
+#else
+    static_assert(BL_SPACEDIM != 1, "1D is not supported");
+#endif
+}
+
+std::array<Real,3>
+WarpX::LowerCorner(const Box& bx, int lev)
+{
+    const auto& gm = GetInstance().Geom(lev);
+    const RealBox grid_box{bx, gm.CellSize(), gm.ProbLo()};
+    const Real* xyzmin = grid_box.lo();
+#if (BL_SPACEDIM == 3)
+    return { xyzmin[0], xyzmin[1], xyzmin[2] };
+#elif (BL_SPACEDIM == 2)
+    return { xyzmin[0], -1.e100, xyzmin[1] };
+#endif
+}
 
 
 #if (BL_SPACEDIM == 3)

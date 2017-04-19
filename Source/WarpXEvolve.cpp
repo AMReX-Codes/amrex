@@ -133,17 +133,9 @@ WarpX::EvolveB (int lev, Real dt)
 
     // Parameters of the solver: order and mesh spacing
     const int norder = 2;
-    const Real* dx = geom[lev].CellSize();
-    Real dtsdx[3];
-#if (BL_SPACEDIM == 3)
-    dtsdx[0] = dt / dx[0];
-    dtsdx[1] = dt / dx[1];
-    dtsdx[2] = dt / dx[2];
-#elif (BL_SPACEDIM == 2)
-    dtsdx[0] = dt / dx[0];
-    dtsdx[1] = std::numeric_limits<Real>::quiet_NaN();
-    dtsdx[2] = dt / dx[1];
-#endif
+
+    const std::array<Real,3>& dx = WarpX::CellSize(lev);
+    const std::array<Real,3> dtsdx {dt/dx[0], dt/dx[1], dt/dx[2]};
 
     // Loop through the grids, and over the tiles within each grid
 #ifdef _OPENMP
@@ -166,7 +158,7 @@ WarpX::EvolveB (int lev, Real dt)
 	    BL_TO_FORTRAN_3D((*Bfield[lev][0])[mfi]),
 	    BL_TO_FORTRAN_3D((*Bfield[lev][1])[mfi]),
 	    BL_TO_FORTRAN_3D((*Bfield[lev][2])[mfi]),
-	    dtsdx, dtsdx+1, dtsdx+2,
+	    &dtsdx[0], &dtsdx[1], &dtsdx[2],
 	    &norder);
     }
 }
@@ -178,18 +170,11 @@ WarpX::EvolveE (int lev, Real dt)
 
     // Parameters of the solver: order and mesh spacing
     const int norder = 2;
-    Real mu_c2_dt = (PhysConst::mu0*PhysConst::c*PhysConst::c) * dt;
-    const Real* dx = geom[lev].CellSize();
-    Real dtsdx_c2[3];
-#if (BL_SPACEDIM == 3)
-    dtsdx_c2[0] = (PhysConst::c*PhysConst::c) * dt / dx[0];
-    dtsdx_c2[1] = (PhysConst::c*PhysConst::c) * dt / dx[1];
-    dtsdx_c2[2] = (PhysConst::c*PhysConst::c) * dt / dx[2];
-#else
-    dtsdx_c2[0] = (PhysConst::c*PhysConst::c) * dt / dx[0];
-    dtsdx_c2[1] = std::numeric_limits<Real>::quiet_NaN();
-    dtsdx_c2[2] = (PhysConst::c*PhysConst::c) * dt / dx[1];
-#endif
+
+    const std::array<Real,3>& dx = WarpX::CellSize(lev);
+    const Real mu_c2_dt = (PhysConst::mu0*PhysConst::c*PhysConst::c) * dt;
+    const Real foo = (PhysConst::c*PhysConst::c) * dt;
+    const std::array<Real,3> dtsdx_c2 {foo/dx[0], foo/dx[1], foo/dx[2]};
 
   // Loop through the grids, and over the tiles within each grid
 #ifdef _OPENMP
@@ -216,7 +201,7 @@ WarpX::EvolveE (int lev, Real dt)
 	    BL_TO_FORTRAN_3D((*current[lev][1])[mfi]),
 	    BL_TO_FORTRAN_3D((*current[lev][2])[mfi]),
 	    &mu_c2_dt,
-	    dtsdx_c2, dtsdx_c2+1, dtsdx_c2+2,
+	    &dtsdx_c2[0], &dtsdx_c2[1], &dtsdx_c2[2],
 	    &norder);
     }
 }

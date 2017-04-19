@@ -92,6 +92,9 @@ public:
     void WriteCheckPointFile () const;
     void WritePlotFile () const;
 
+    static std::array<amrex::Real,3> CellSize (int lev);
+    static std::array<amrex::Real,3> LowerCorner (const amrex::Box& bx, int lev);
+
 protected:
 
     //! Tagging cells for refinement
