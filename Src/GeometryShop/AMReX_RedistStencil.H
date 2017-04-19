@@ -15,7 +15,7 @@
 
 #include "AMReX_REAL.H"
 #include "AMReX_FArrayBox.H"
-#include "AMReX_FabArray"
+#include "AMReX_FabArray.H"
 #include "AMReX_BoxArray.H"
 #include "AMReX_EBLevelGrid.H"
 #include "AMReX_LayoutData.H"
@@ -51,7 +51,7 @@ namespace amrex
        Equivalent to default construction followed by define().
        ebisl needs ghost cells out to 3*redistradius
     */
-    RedistStencil(const EBLevelGrid & a_eblg
+    RedistStencil(const EBLevelGrid & a_eblg,
                   const int         & a_redistRadius);
 
     ///
@@ -59,7 +59,7 @@ namespace amrex
        Defines this object.  Existing information is overriden.
        ebisl needs ghost cells out to 3*redistradius
     */
-    void define(const EBLevelGrid & a_eblg
+    void define(const EBLevelGrid & a_eblg,
                 const int         & a_redistRadius);
 
     ///
@@ -85,7 +85,7 @@ namespace amrex
        point in input  Box associated with  this DataIndex.
     */
     const BaseIVFAB<VoFStencil >&
-    operator[](const DataIndex& datInd) const;
+    operator[](const MFIter& datInd) const;
 
     ///
     /**
@@ -97,9 +97,7 @@ namespace amrex
     LayoutData<BaseIVFAB<VoFStencil > > m_stencil;
     LayoutData<BaseIVFAB<VoFStencil > > m_volsten;
 
-    DisjointBoxLayout m_grids;
-
-    EBlevelGrid m_eblg;
+    EBLevelGrid m_eblg;
 
     bool m_isDefined;
     bool m_hasDefaultWeights;
@@ -109,17 +107,13 @@ namespace amrex
     //internal use
     void computePointStencil(VoFStencil&      a_stencil,
                              const VolIndex&  a_srcVoF,
-                             const DataIndex& a_datInd);
+                             const MFIter& a_datInd);
 
     //disallowed for all the usual reasons
-    RedistStencil(const RedistStencil& ebcin)
-      {
-        MayDay::Error("rdsi 2 invalid operator");
-      }
-    void operator=(const RedistStencil& fabin)
-      {
-        MayDay::Error("rdsi 3 invalid operator");
-      }
+    RedistStencil(const RedistStencil& ebcin);
+
+    void operator=(const RedistStencil& fabin);
+
   };
 }
 
