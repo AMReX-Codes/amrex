@@ -15,6 +15,7 @@
 #include <utility>
 #include <tuple>
 #include <type_traits>
+#include <random>
 
 #include <AMReX_ParmParse.H>
 #include <AMReX_ParGDB.H>
