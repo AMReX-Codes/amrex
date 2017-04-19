@@ -617,31 +617,6 @@ ParticleContainer<NR, NI, NA>::MoveRandom (int lev)
     // Move particles up to FRAC*CellSize distance in each coordinate direction.
     //
     const Real FRAC = 0.25;
-
-    static bool first = true;
-
-    if (first)
-    {
-        first = false;
-        //
-        // Give the random number generator a unique seed per thread.
-        //
-        int tnum = 1;
-
-#ifdef _OPENMP
-        tnum = omp_get_max_threads();
-#endif
-
-        for (int i = 0; i < tnum; i++)
-        {
-            //
-            // We want to give each thread across all MPI processes a unique non-zero seed.
-            //
-            const unsigned long seedbase = 1+tnum*ParallelDescriptor::MyProc();
-            amrex::InitRandom(seedbase+i);
-        }
-    }
-
     auto&       pmap              = m_particles[lev];
     const Real* dx                = Geom(lev).CellSize();
     const Real  dist[BL_SPACEDIM] = { D_DECL(FRAC*dx[0], FRAC*dx[1], FRAC*dx[2]) };
