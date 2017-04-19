@@ -32,7 +32,7 @@ namespace amrex
     static void
     defineCFIVS(LayoutData<IntVectSet>    &  a_cfivs,
                 const BoxArray            &  a_grids,
-                const DistributionMapping & a_dm,
+                const DistributionMapping &  a_dm,
                 const Box                 &  a_probDom);
     ///
     /**
@@ -48,35 +48,35 @@ namespace amrex
        Defining constructor.  Constructs a valid object.
        Equivalent to default construction followed by define().
     */
-    EBLevelGrid(const BoxArray     & a_dbl,
+    EBLevelGrid(const BoxArray           & a_dbl,
                 const DistributionMapping& a_dm,
-                const Box          & a_domain,
-                const int          & a_numGhostEBISL);
+                const Box                & a_domain,
+                const int                & a_numGhostEBISL);
 
     ///
-    EBLevelGrid(const BoxArray    & a_dbl,
+    EBLevelGrid(const BoxArray           & a_dbl,
                 const DistributionMapping& a_dm,
-                const EBISLayout  & a_ebisl,
-                const Box         & a_domain);
+                const EBISLayout         & a_ebisl,
+                const Box                & a_domain);
 
     ///
     /**
        Define function that generates EBISL and CFIVS
     */
-    void define(const BoxArray     & a_dbl,
+    void define(const BoxArray           & a_dbl,
                 const DistributionMapping& a_dm,
-                const Box          & a_domain,
-                const int          & a_numGhostEBISL);
+                const Box                & a_domain,
+                const int                & a_numGhostEBISL);
 
 
     ///
     /**
        only generates cfivs.  set EBISPtr = chombo_ebis::instance
     */
-    void define(const BoxArray   & a_dbl,
+    void define(const BoxArray           & a_dbl,
                 const DistributionMapping& a_dm,
-                const EBISLayout & a_ebisl,
-                const Box        & a_domain);
+                const EBISLayout         & a_ebisl,
+                const Box                & a_domain);
 
     ///
     EBLevelGrid(const EBLevelGrid& ebcin);

@@ -10,6 +10,7 @@
  */
 
 #include "AMReX_RedistStencil.H"
+#include "AMReX_EBArith.H"
 
 namespace amrex
 {
@@ -31,12 +32,10 @@ namespace amrex
   void RedistStencil::define(const EBLevelGrid & a_eblg,
                              const int         & a_redistRadius)
   {
-    CH_TIME("RedistStencil::define");
+    BL_PROFILE("RedistStencil::define");
     m_isDefined = true;
     m_hasDefaultWeights = true;
-    m_grids = a_dbl;
-    m_ebisl = a_ebisl;
-    m_domain = a_domain;
+    m_eblg = a_eblg;
     m_redistRadius = a_redistRadius;
     m_stencil.define(m_eblg.getDBL(), m_eblg.getDM());
     m_volsten.define(m_eblg.getDBL(), m_eblg.getDM());
@@ -44,7 +43,7 @@ namespace amrex
     {
       Box region = m_eblg.getDBL()[mfi];
       region.grow(m_redistRadius);
-      region &= a_domain;
+      region &= m_eblg.getDomain();
       const EBISBox& ebisBox = m_eblg.getEBISL()[mfi];
       IntVectSet irregIVS = ebisBox.getIrregIVS(region);
       BaseIVFAB<VoFStencil >& stenFAB =    m_stencil[mfi];
@@ -75,11 +74,11 @@ namespace amrex
   void RedistStencil::resetWeights(const FabArray<EBCellFAB> & a_modifier,
                                    const int                 & a_ivar)
   {
-    CH_assert(isDefined());
+    BL_ASSERT(isDefined());
     m_hasDefaultWeights = false;
     for (MFIter mfi(a_modifier); mfi.isValid(); ++mfi)
     {
-      const EBISBox& ebisBox = m_eblg.getEBISL[mfi];
+      const EBISBox& ebisBox = m_eblg.getEBISL()[mfi];
       //initiate with the volume weighted stencil
       BaseIVFAB<VoFStencil >& stenFAB    =  m_stencil[mfi];
       BaseIVFAB<VoFStencil >& volstenFAB =  m_volsten[mfi];
@@ -126,9 +125,9 @@ namespace amrex
                                           const VolIndex & a_srcVoF,
                                           const MFIter   & a_mfi)
   {
-    CH_TIME("RedistStencil::computePointStencil");
+    BL_PROFILE("RedistStencil::computePointStencil");
     
-    const EBISBox& ebisBox = m_eblg.getEBISL[a_mfi];
+    const EBISBox& ebisBox = m_eblg.getEBISL()[a_mfi];
     
     //now set the weights according to the volumefrac/sum(volfrac)
     //you can reset the weights later if you like
@@ -137,9 +136,9 @@ namespace amrex
     
     //get the vofs.  these are the intvects
     //it must be called with the first time
-    IntVect timesMoved = IntVect::Zero;
-    IntVect pathSign   = IntVect::Zero;
-    Vector<VolIndex> vofsStencil;
+    IntVect timesMoved = IntVect::TheZeroVector();
+    IntVect pathSign   = IntVect::TheZeroVector();
+    std::vector<VolIndex> vofsStencil;
     EBArith::getAllVoFsInMonotonePath(vofsStencil, timesMoved,
                                       pathSign, a_srcVoF, ebisBox,
                                       m_redistRadius);

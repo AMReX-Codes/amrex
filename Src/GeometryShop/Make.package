@@ -33,8 +33,12 @@ C$(GEOMETRYSHOP_BASE)_sources +=   AMReX_EBIndexSpace.cpp AMReX_EBISLayout.cpp A
 C$(GEOMETRYSHOP_BASE)_headers +=   AMReX_EBLevelGrid.H  AMReX_LayoutData.H AMReX_AllRegularService.H
 C$(GEOMETRYSHOP_BASE)_sources +=   AMReX_EBLevelGrid.cpp  AMReX_AllRegularService.cpp
 
-C$(GEOMETRYSHOP_BASE)_headers +=   AMReX_EBDebugOut.H AMReX_EBDebugDump.H AMReX_EBFaceFAB.H AMReX_BaseEBFaceFAB.H
-C$(GEOMETRYSHOP_BASE)_sources +=   AMReX_EBDebugOut.cpp AMReX_EBFaceFAB.cpp
+C$(GEOMETRYSHOP_BASE)_headers +=   AMReX_EBDebugOut.H AMReX_EBDebugDump.H AMReX_EBFaceFAB.H AMReX_BaseEBFaceFAB.H AMReX_EBArith.H
+C$(GEOMETRYSHOP_BASE)_sources +=   AMReX_EBDebugOut.cpp AMReX_EBFaceFAB.cpp AMReX_EBArith.cpp
+
+
+C$(GEOMETRYSHOP_BASE)_headers +=   AMReX_RedistStencil.H
+C$(GEOMETRYSHOP_BASE)_sources +=   AMReX_RedistStencil.cpp
 
 
 VPATH_LOCATIONS   += $(AMREX_HOME)/Src/GeometryShop
