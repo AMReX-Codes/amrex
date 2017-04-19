@@ -18,7 +18,13 @@ WarpX::Evolve (int numsteps)
     static int last_plot_file_step = 0;
     static int last_check_file_step = 0;
 
-    int numsteps_max = (numsteps >= 0 && istep[0]+numsteps <= max_step) ? istep[0]+numsteps : max_step;
+    int numsteps_max;
+    if (numsteps < 0) {  // Note that the default argument is numsteps = -1
+        numsteps_max = max_step;
+    } else {
+        numsteps_max = std::min(istep[0]+numsteps, max_step);
+    }
+
     bool max_time_reached = false;
     bool last_step = false;
 
