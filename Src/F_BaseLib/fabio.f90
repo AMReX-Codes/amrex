@@ -89,7 +89,7 @@ module fabio_module
   integer, parameter :: FABIO_RDWR   = 2
   integer, parameter :: FABIO_APPEND = 3
 
-  integer, parameter :: FABIO_MAX_VAR_NAME = 20
+  integer, parameter :: FABIO_MAX_VAR_NAME = 64
   integer, parameter :: FABIO_MAX_PATH_NAME = 512
 
 contains
