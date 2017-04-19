@@ -31,8 +31,9 @@ WarpX::Evolve (int numsteps)
 	// Start loop on time steps
         amrex::Print() << "\nSTEP " << step+1 << " starts ...\n";
 
-        if (ParallelDescriptor::NProcs() > 1)
+        if (ParallelDescriptor::NProcs() > 1) {
            if (okToRegrid(step)) RegridBaseLevel();
+        }
 
 	ComputeDt();
 

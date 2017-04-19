@@ -5,6 +5,7 @@
 #include <AMReX_ParmParse.H>
 #include <AMReX_Array.H>
 #include <AMReX_MultiFab.H>
+#include <AMReX_BoxIterator.H>
 #include <AMReX_PlotFileUtil.H>
 
 #include <WarpX_f.H>
@@ -69,31 +70,80 @@ int main(int argc, char* argv[])
 	Bzp.resize(np,0.0);
 
 	const int ng = nox;
-	Box domain_box {IntVect{D_DECL(0,0,0)}, IntVect{D_DECL(nx,ny,nz)}};
-	Box grown_box = amrex::grow(domain_box, ng);
+	Box domain_box {IntVect{D_DECL(0,0,0)}, IntVect{D_DECL(nx-1,ny-1,nz-1)}};
+
+#if (BL_SPACEDIM == 3)
+        IntVect Bx_nodal_flag(1,0,0);
+        IntVect By_nodal_flag(0,1,0);
+        IntVect Bz_nodal_flag(0,0,1);
+#elif (BL_SPACEDIM == 2)
+        IntVect Bx_nodal_flag(1,0);  // x is the first dimension to AMReX
+        IntVect By_nodal_flag(0,0);  // y is the missing dimension to 2D AMReX
+        IntVect Bz_nodal_flag(0,1);  // z is the second dimension to 2D AMReX
+#endif
+        
+#if (BL_SPACEDIM == 3)
+        IntVect Ex_nodal_flag(0,1,1);
+        IntVect Ey_nodal_flag(1,0,1);
+        IntVect Ez_nodal_flag(1,1,0);
+#elif (BL_SPACEDIM == 2)
+        IntVect Ex_nodal_flag(0,1);  // x is the first dimension to AMReX
+        IntVect Ey_nodal_flag(1,1);  // y is the missing dimension to 2D AMReX
+        IntVect Ez_nodal_flag(1,0);  // z is the second dimension to 2D AMReX
+#endif
+
+        BoxArray ba{domain_box};
+        DistributionMapping dm{ba};
+
+        MultiFab Bx(amrex::convert(ba,Bx_nodal_flag), dm, 1, ng);
+        MultiFab By(amrex::convert(ba,By_nodal_flag), dm, 1, ng);
+        MultiFab Bz(amrex::convert(ba,Bz_nodal_flag), dm, 1, ng);
+        MultiFab Ex(amrex::convert(ba,Ex_nodal_flag), dm, 1, ng);
+        MultiFab Ey(amrex::convert(ba,Ey_nodal_flag), dm, 1, ng);
+        MultiFab Ez(amrex::convert(ba,Ez_nodal_flag), dm, 1, ng);
+
+	FArrayBox& exfab = Ex[0];
+	FArrayBox& eyfab = Ey[0];
+	FArrayBox& ezfab = Ez[0];
+	FArrayBox& bxfab = Bx[0];
+	FArrayBox& byfab = By[0];
+	FArrayBox& bzfab = Bz[0];
+
+	std::uniform_real_distribution<Real> rand_dis2(0.0,100.0);
+
+	for (BoxIterator bxi(exfab.box()); bxi.ok(); ++bxi)
+	{
+	    exfab(bxi()) = rand_dis2(rand_eng);
+	}
+
+	for (BoxIterator bxi(eyfab.box()); bxi.ok(); ++bxi)
+	{
+	    eyfab(bxi()) = rand_dis2(rand_eng);
+	}
+
+	for (BoxIterator bxi(ezfab.box()); bxi.ok(); ++bxi)
+	{
+	    ezfab(bxi()) = rand_dis2(rand_eng);
+	}
+
+	for (BoxIterator bxi(bxfab.box()); bxi.ok(); ++bxi)
+	{
+	    bxfab(bxi()) = rand_dis2(rand_eng);
+	}
+
+	for (BoxIterator bxi(byfab.box()); bxi.ok(); ++bxi)
+	{
+	    byfab(bxi()) = rand_dis2(rand_eng);
+	}
+
+	for (BoxIterator bxi(bzfab.box()); bxi.ok(); ++bxi)
+	{
+	    bzfab(bxi()) = rand_dis2(rand_eng);
+	}
 
 	long ngx = ng;
 	long ngy = ng;
 	long ngz = ng;
-
-	FArrayBox exfab(grown_box);
-	FArrayBox eyfab(grown_box);
-	FArrayBox ezfab(grown_box);
-	FArrayBox bxfab(grown_box);
-	FArrayBox byfab(grown_box);
-	FArrayBox bzfab(grown_box);
-
-	std::uniform_real_distribution<Real> rand_dis2(0.0,100.0);
-
-	for (IntVect cell=grown_box.smallEnd(); cell <= grown_box.bigEnd(); grown_box.next(cell))
-	{
-	    exfab(cell) = rand_dis2(rand_eng);
-	    eyfab(cell) = rand_dis2(rand_eng);
-	    ezfab(cell) = rand_dis2(rand_eng);
-	    bxfab(cell) = rand_dis2(rand_eng);
-	    byfab(cell) = rand_dis2(rand_eng);
-	    bzfab(cell) = rand_dis2(rand_eng);
-	}
 
 	const int ll4symtry          = false;
 	const int l_lower_order_in_v = true;
@@ -103,18 +153,18 @@ int main(int argc, char* argv[])
 				      Bxp.data(),Byp.data(),Bzp.data(),
 				      &xyzmin[0], &xyzmin[1], &xyzmin[2],
 				      &dx[0], &dx[1], &dx[2],
-				      &nx, &ny, &nz, &ngx, &ngy, &ngz, 
 				      &nox, &noy, &noz, 
-				      exfab.dataPtr(), eyfab.dataPtr(), ezfab.dataPtr(),
-				      bxfab.dataPtr(), byfab.dataPtr(), bzfab.dataPtr(),
+                                      exfab.dataPtr(), &ngx, exfab.length(),
+                                      eyfab.dataPtr(), &ngy, eyfab.length(),
+                                      ezfab.dataPtr(), &ngz, ezfab.length(),
+                                      bxfab.dataPtr(), &ngx, bxfab.length(),
+                                      byfab.dataPtr(), &ngy, byfab.length(),
+                                      bzfab.dataPtr(), &ngz, bzfab.length(),
 				      &ll4symtry, &l_lower_order_in_v,
 				      &lvect_fieldgathe,
 				      &field_gathering_algo);
 
-	Box plotbox{IntVect{D_DECL(0,0,0)},IntVect{D_DECL(nx-1,ny-1,nz-1)}};
-	BoxArray plotba {plotbox};
-	DistributionMapping plotdm {plotba};
-	MultiFab plotmf(plotba, plotdm, 6, 0);
+	MultiFab plotmf(ba, dm, 6, 0);
 	FArrayBox& plotfab = plotmf[0];
 	plotfab.setVal(0.0);
 	for (int k = 0; k < nz; ++k) {
@@ -132,9 +182,9 @@ int main(int argc, char* argv[])
 	    }
 	}
 
-	RealBox realbox{plotbox, dx, xyzmin};
+	RealBox realbox{domain_box, dx, xyzmin};
 	int is_per[3] = {0,0,0};
-	Geometry geom{plotbox, &realbox, 0, is_per};
+	Geometry geom{domain_box, &realbox, 0, is_per};
 	std::string plotname{"plt00000"};
 	Array<std::string> varnames{"Ex", "Ey", "Ez", "Bx", "By", "Bz"};
 	amrex::WriteSingleLevelPlotfile(plotname, plotmf, varnames, geom, 0.0, 0);
