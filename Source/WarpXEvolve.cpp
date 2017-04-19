@@ -54,6 +54,7 @@ WarpX::Evolve (int numsteps)
 
 	    if (is_synchronized) {
 	        // on first step, push E and X by 0.5*dt
+                WarpX::FillBoundaryB( lev, true );
 	        EvolveE(lev, 0.5*dt[lev]);
 	        mypc->PushX(lev, 0.5*dt[lev]);
                 mypc->Redistribute();  // Redistribute particles
@@ -104,6 +105,8 @@ WarpX::Evolve (int numsteps)
 	}
 
 	if (plot_int > 0 && (step+1) % plot_int == 0) {
+            WarpX::FillBoundaryB( lev, false );
+            WarpX::FillBoundaryE( lev, false );
             mypc->FieldGather(lev,
                               *Efield[lev][0],*Efield[lev][1],*Efield[lev][2],
                               *Bfield[lev][0],*Bfield[lev][1],*Bfield[lev][2]);
