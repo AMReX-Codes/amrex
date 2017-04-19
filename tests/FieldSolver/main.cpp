@@ -6,6 +6,7 @@
 #include <AMReX_ParmParse.H>
 #include <AMReX_Array.H>
 #include <AMReX_MultiFab.H>
+#include <AMReX_MultiFabUtil.H>
 #include <AMReX_PlotFileUtil.H>
 
 #include <WarpXConst.H>
@@ -47,21 +48,67 @@ int main(int argc, char* argv[])
 
 	const int ng = nox;
 
+#if (BL_SPACEDIM == 3)
+        IntVect Bx_nodal_flag(1,0,0);
+        IntVect By_nodal_flag(0,1,0);
+        IntVect Bz_nodal_flag(0,0,1);
+#elif (BL_SPACEDIM == 2)
+        IntVect Bx_nodal_flag(1,0);  // x is the first dimension to AMReX
+        IntVect By_nodal_flag(0,0);  // y is the missing dimension to 2D AMReX
+        IntVect Bz_nodal_flag(0,1);  // z is the second dimension to 2D AMReX
+#endif
+        
+#if (BL_SPACEDIM == 3)
+        IntVect Ex_nodal_flag(0,1,1);
+        IntVect Ey_nodal_flag(1,0,1);
+        IntVect Ez_nodal_flag(1,1,0);
+#elif (BL_SPACEDIM == 2)
+        IntVect Ex_nodal_flag(0,1);  // x is the first dimension to AMReX
+        IntVect Ey_nodal_flag(1,1);  // y is the missing dimension to 2D AMReX
+        IntVect Ez_nodal_flag(1,0);  // z is the second dimension to 2D AMReX
+#endif
+        
+#if (BL_SPACEDIM == 3)
+        IntVect jx_nodal_flag(0,1,1);
+        IntVect jy_nodal_flag(1,0,1);
+        IntVect jz_nodal_flag(1,1,0);
+#elif (BL_SPACEDIM == 2)
+        IntVect jx_nodal_flag(0,1);  // x is the first dimension to AMReX
+        IntVect jy_nodal_flag(1,1);  // y is the missing dimension to 2D AMReX
+        IntVect jz_nodal_flag(1,0);  // z is the second dimension to 2D AMReX
+#endif
+
 	Array<std::unique_ptr<MultiFab> > current(3);
 	Array<std::unique_ptr<MultiFab> > Efield(3);
 	Array<std::unique_ptr<MultiFab> > Bfield(3);
-	for (int i = 0; i < 3; ++i) {
-	    current[i].reset(new MultiFab(amrex::convert(grids,IntVect::TheUnitVector()),
-                                          dmap,1,ng));
-	    Efield [i].reset(new MultiFab(amrex::convert(grids,IntVect::TheUnitVector()),
-                                          dmap,1,ng));
-	    Bfield [i].reset(new MultiFab(amrex::convert(grids,IntVect::TheUnitVector()),
-                                          dmap,1,ng));
-	}
+        // Create the MultiFabs for B
+        Bfield[0].reset( new MultiFab(amrex::convert(grids,Bx_nodal_flag),dmap,1,ng));
+        Bfield[1].reset( new MultiFab(amrex::convert(grids,By_nodal_flag),dmap,1,ng));
+        Bfield[2].reset( new MultiFab(amrex::convert(grids,Bz_nodal_flag),dmap,1,ng));
+        
+        // Create the MultiFabs for E
+        Efield[0].reset( new MultiFab(amrex::convert(grids,Ex_nodal_flag),dmap,1,ng));
+        Efield[1].reset( new MultiFab(amrex::convert(grids,Ey_nodal_flag),dmap,1,ng));
+        Efield[2].reset( new MultiFab(amrex::convert(grids,Ez_nodal_flag),dmap,1,ng));
+        
+        // Create the MultiFabs for the current
+        current[0].reset( new MultiFab(amrex::convert(grids,jx_nodal_flag),dmap,1,ng));
+        current[1].reset( new MultiFab(amrex::convert(grids,jy_nodal_flag),dmap,1,ng));
+        current[2].reset( new MultiFab(amrex::convert(grids,jz_nodal_flag),dmap,1,ng));
+        
+        Bfield[0]->setVal(0.0);
+        Bfield[1]->setVal(0.0);
+        Bfield[2]->setVal(0.0);
+        Efield[0]->setVal(0.0);
+        Efield[1]->setVal(0.0);
+        Efield[2]->setVal(0.0);
+        current[0]->setVal(0.0);
+        current[1]->setVal(0.0);
+        current[2]->setVal(0.0);
 
 	for (MFIter mfi(*current[0]); mfi.isValid(); ++mfi)
 	{
-	    const Box& bx = mfi.fabbox();
+	    const Box& bx = mfi.validbox();
 	    FArrayBox& exfab = (*Efield [0])[mfi];
 	    FArrayBox& eyfab = (*Efield [1])[mfi];
 	    FArrayBox& ezfab = (*Efield [2])[mfi];
@@ -102,16 +149,23 @@ int main(int argc, char* argv[])
 
 	    for ( MFIter mfi(*Bfield[0],true); mfi.isValid(); ++mfi )
 	    {
-		const Box& tbx = mfi.tilebox();
-		WRPX_PXR_PUSH_BVEC(tbx.loVect(), tbx.hiVect(),
-				   BL_TO_FORTRAN_3D((*Efield[0])[mfi]),
-				   BL_TO_FORTRAN_3D((*Efield[1])[mfi]),
-				   BL_TO_FORTRAN_3D((*Efield[2])[mfi]),
-				   BL_TO_FORTRAN_3D((*Bfield[0])[mfi]),
-				   BL_TO_FORTRAN_3D((*Bfield[1])[mfi]),
-				   BL_TO_FORTRAN_3D((*Bfield[2])[mfi]),
-				   dtsdx, dtsdx+1, dtsdx+2,
-				   &norder);
+                const Box& tbx  = mfi.tilebox(Bx_nodal_flag);
+                const Box& tby  = mfi.tilebox(By_nodal_flag);
+                const Box& tbz  = mfi.tilebox(Bz_nodal_flag);
+                
+                // Call picsar routine for each tile
+                WRPX_PXR_PUSH_BVEC(
+                    tbx.loVect(), tbx.hiVect(),
+                    tby.loVect(), tby.hiVect(),
+                    tbz.loVect(), tbz.hiVect(),
+                    BL_TO_FORTRAN_3D((*Efield[0])[mfi]),
+                    BL_TO_FORTRAN_3D((*Efield[1])[mfi]),
+                    BL_TO_FORTRAN_3D((*Efield[2])[mfi]),
+                    BL_TO_FORTRAN_3D((*Bfield[0])[mfi]),
+                    BL_TO_FORTRAN_3D((*Bfield[1])[mfi]),
+                    BL_TO_FORTRAN_3D((*Bfield[2])[mfi]),
+                    &dtsdx[0], &dtsdx[1], &dtsdx[2],
+                    &norder);
 	    }	    
 	}
 
@@ -133,38 +187,33 @@ int main(int argc, char* argv[])
 
 	    for ( MFIter mfi(*Efield[0],true); mfi.isValid(); ++mfi )
 	    {
-		const Box& tbx = mfi.tilebox();
-		WRPX_PXR_PUSH_EVEC(tbx.loVect(), tbx.hiVect(),
-				   BL_TO_FORTRAN_3D((*Efield[0])[mfi]),
-				   BL_TO_FORTRAN_3D((*Efield[1])[mfi]),
-				   BL_TO_FORTRAN_3D((*Efield[2])[mfi]),
-				   BL_TO_FORTRAN_3D((*Bfield[0])[mfi]),
-				   BL_TO_FORTRAN_3D((*Bfield[1])[mfi]),
-				   BL_TO_FORTRAN_3D((*Bfield[2])[mfi]),
-				   BL_TO_FORTRAN_3D((*current[0])[mfi]),
-				   BL_TO_FORTRAN_3D((*current[1])[mfi]),
-				   BL_TO_FORTRAN_3D((*current[2])[mfi]),
-				   &mu_c2_dt,
-				   dtsdx_c2, dtsdx_c2+1, dtsdx_c2+2,
-				   &norder);
+                const Box& tex  = mfi.tilebox(Ex_nodal_flag);
+                const Box& tey  = mfi.tilebox(Ey_nodal_flag);
+                const Box& tez  = mfi.tilebox(Ez_nodal_flag);
+                
+                // Call picsar routine for each tile
+                WRPX_PXR_PUSH_EVEC(
+                    tex.loVect(), tex.hiVect(),
+                    tey.loVect(), tey.hiVect(),
+                    tez.loVect(), tez.hiVect(),
+                    BL_TO_FORTRAN_3D((*Efield[0])[mfi]),
+                    BL_TO_FORTRAN_3D((*Efield[1])[mfi]),
+                    BL_TO_FORTRAN_3D((*Efield[2])[mfi]),
+                    BL_TO_FORTRAN_3D((*Bfield[0])[mfi]),
+                    BL_TO_FORTRAN_3D((*Bfield[1])[mfi]),
+                    BL_TO_FORTRAN_3D((*Bfield[2])[mfi]),
+                    BL_TO_FORTRAN_3D((*current[0])[mfi]),
+                    BL_TO_FORTRAN_3D((*current[1])[mfi]),
+                    BL_TO_FORTRAN_3D((*current[2])[mfi]),
+                    &mu_c2_dt,
+                    &dtsdx_c2[0], &dtsdx_c2[1], &dtsdx_c2[2],
+                    &norder);
 	    }
 	}
 
 	MultiFab plotmf(grids, dmap, 6, 0);
-	const auto& src_typ = (*Efield[0]).boxArray().ixType();
-	const auto& dst_typ = grids.ixType();
-	for (MFIter mfi(plotmf); mfi.isValid(); ++mfi)
-	{
-	    FArrayBox& dfab = plotmf[mfi];
-	    dfab.SetBoxType(src_typ);
-	    dfab.copy((*Efield[0])[mfi], 0, 0, 1);
-	    dfab.copy((*Efield[1])[mfi], 0, 1, 1);
-	    dfab.copy((*Efield[2])[mfi], 0, 2, 1);
-	    dfab.copy((*Bfield[0])[mfi], 0, 3, 1);
-	    dfab.copy((*Bfield[1])[mfi], 0, 4, 1);
-	    dfab.copy((*Bfield[2])[mfi], 0, 5, 1);
-	    dfab.SetBoxType(dst_typ);
-	}
+        amrex::average_edge_to_cellcenter(plotmf, 0, {Efield[0].get(),Efield[1].get(),Efield[2].get()});
+        amrex::average_face_to_cellcenter(plotmf, 3, {Bfield[0].get(),Bfield[1].get(),Bfield[2].get()});
 
 	Real xyzmin[3] = {0.0,0.0,0.0};
 	RealBox realbox{cc_domain, dx, xyzmin};
