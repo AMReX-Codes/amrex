@@ -51,16 +51,54 @@ const char* buildInfoGetCompVersion() {
   return COMP_VERSION;
 }
 
+// deprecated
 const char* buildInfoGetFcomp() {
 
   static const char FCOMP[] = "@@FCOMP@@";
   return FCOMP;
 }
 
+// deprecated
 const char* buildInfoGetFcompVersion() {
 
   static const char FCOMP_VERSION[] = "@@FCOMP_VERSION@@";
   return FCOMP_VERSION;
+}
+
+const char* buildInfoGetCXXName() {
+
+  static const char CXX_comp_name[] = "@@CXX_comp_name@@";
+  return CXX_comp_name;
+}
+
+const char* buildInfoGetFName() {
+
+  static const char F_comp_name[] = "@@F_comp_name@@";
+  return F_comp_name;
+}
+
+const char* buildInfoGetCXXFlags() {
+
+  static const char CXX_flags[] = "@@CXX_flags@@";
+  return CXX_flags;
+}
+
+const char* buildInfoGetFFlags() {
+
+  static const char F_flags[] = "@@F_flags@@";
+  return F_flags;
+}
+
+const char* buildInfoGetLinkFlags() {
+
+  static const char link_flags[] = "@@link_flags@@";
+  return link_flags;
+}
+
+const char* buildInfoGetLibraries() {
+
+  static const char libraries[] = "@@libraries@@";
+  return libraries;
 }
 
 const char* buildInfoGetAux(int i) {
@@ -159,17 +197,21 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("--amrex_home",
-                        help="path to the AMReX source",
+    parser.add_argument("--amrex_home", help="path to the AMReX source",
                         type=str, default="")
 
     parser.add_argument("--COMP",
-                        help="Compiler as defined by AMReX's build system (deprecated)",
+                        help="Compiler system defined in AMReX's build system",
                         type=str, default="")
 
-    parser.add_argument("--COMP_VERSION",
-                        help="Compiler version (deprecated)",
+    parser.add_argument("--COMP_VERSION", help="Compiler version", 
                         type=str, default="")
+
+    parser.add_argument("--CXX_comp_name",
+                        help="C++ compiler command", type=str, default="")
+
+    parser.add_argument("--CXX_flags",
+                        help="C++ compiler flags", type=str, default="")
 
     parser.add_argument("--FCOMP",
                         help="Fortran compiler as defined by AMReX's build system (deprecated)",
@@ -179,6 +221,16 @@ if __name__ == "__main__":
                         help="Fortran compiler version (deprecated)",
                         type=str, default="")
 
+    parser.add_argument("--F_comp_name", help="Fortran compiler command", 
+                        type=str, default="")
+
+    parser.add_argument("--F_flags", help="Fortran compiler flags", 
+                        type=str, default="")
+
+    parser.add_argument("--link_flags", help="linker flags", type=str, default="")
+
+    parser.add_argument("--libraries", help="libraries linked", type=str, default="")
+                        
     parser.add_argument("--AUX",
                         help="auxillary information (EOS, network path) (deprecated)",
                         type=str, default="")
@@ -297,6 +349,31 @@ if __name__ == "__main__":
 
             elif keyword == "FCOMP_VERSION":
                 newline = line.replace("@@FCOMP_VERSION@@", args.FCOMP_VERSION)
+                fout.write(newline)
+
+            elif keyword == "CXX_comp_name":
+                newline = line.replace("@@CXX_comp_name@@", args.CXX_comp_name)
+                fout.write(newline)
+
+            elif keyword == "F_comp_name":
+                newline = line.replace("@@F_comp_name@@", args.F_comp_name)
+                fout.write(newline)
+
+            elif keyword == "CXX_flags":
+                # this includes preprocessor directives, which may have quotes
+                newline = line.replace("@@CXX_flags@@", args.CXX_flags.replace('"', r'\"'))
+                fout.write(newline)
+
+            elif keyword == "F_flags":
+                newline = line.replace("@@F_flags@@", args.F_flags)
+                fout.write(newline)
+
+            elif keyword == "link_flags":
+                newline = line.replace("@@link_flags@@", args.link_flags)
+                fout.write(newline)
+
+            elif keyword == "libraries":
+                newline = line.replace("@@libraries@@", args.libraries)
                 fout.write(newline)
 
             elif keyword == "AUX_DECLS":
