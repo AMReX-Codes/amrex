@@ -23,8 +23,9 @@ WarpX::InitData ()
 	PostRestart();
     }
 
-    if (ParallelDescriptor::NProcs() > 1)
-       if (okToRegrid(0)) RegridBaseLevel();
+    if (ParallelDescriptor::NProcs() > 1) {
+        if (okToRegrid(0)) RegridBaseLevel();
+    }
 
     if (restart_chkfile.empty())
     {

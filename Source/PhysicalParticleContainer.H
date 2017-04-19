@@ -15,8 +15,6 @@ public:
                                const std::string& name);
     virtual ~PhysicalParticleContainer () {}
 
-    virtual void AllocData () override;
-
     virtual void InitData () override;
 
     virtual void FieldGather(int lev,

@@ -14,8 +14,6 @@ public:
     LaserParticleContainer (amrex::AmrCore* amr_core, int ispecies);
     virtual ~LaserParticleContainer () {}
 
-    virtual void AllocData () override;
-
     virtual void InitData () override;
 
     virtual void Evolve (int lev,

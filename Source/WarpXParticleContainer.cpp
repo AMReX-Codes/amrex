@@ -9,6 +9,21 @@
 
 using namespace amrex;
 
+#if (BL_SPACEDIM == 2)
+void
+WarpXParIter::GetPosition (Array<Real>& x, Array<Real>& y, Array<Real>& z) const
+{
+    amrex::ParIter<0,0,PIdx::nattribs>::GetPosition(x, z);
+    y.resize(x.size(), std::numeric_limits<Real>::quiet_NaN());
+}
+
+void
+WarpXParIter::SetPosition (const Array<Real>& x, const Array<Real>& y, const Array<Real>& z)
+{
+    amrex::ParIter<0,0,PIdx::nattribs>::SetPosition(x, z);
+}
+#endif
+
 WarpXParticleContainer::WarpXParticleContainer (AmrCore* amr_core, int ispecies)
     : ParticleContainer<0,0,PIdx::nattribs>(amr_core->GetParGDB())
     , species_id(ispecies)
@@ -34,6 +49,14 @@ WarpXParticleContainer::ReadParameters ()
     }
 }
 
+void
+WarpXParticleContainer::AllocData ()
+{
+    // have to resize here, not in the constructor because grids have not
+    // been built when constructor was called.
+    reserveData();
+    resizeData();
+}
 
 void
 WarpXParticleContainer::AddOneParticle (int lev, int grid, int tile,
@@ -142,11 +165,7 @@ WarpXParticleContainer::GetChargeDensity (int lev, bool local)
     BoxArray nba = ba;
     nba.surroundingNodes();
 
-#if (BL_SPACEDIM == 3)
-    const Real* dx = gm.CellSize();
-#elif (BL_SPACEDIM == 2)
-    Real dx[3] = { gm.CellSize(0), std::numeric_limits<Real>::quiet_NaN(), gm.CellSize(1) };
-#endif
+    const std::array<Real,3>& dx = WarpX::CellSize(lev);
 
     const int ng = WarpX::nox;
 
@@ -166,12 +185,7 @@ WarpXParticleContainer::GetChargeDensity (int lev, bool local)
 	// Data on the grid
 	FArrayBox& rhofab = (*rho)[pti];
 
-#if (BL_SPACEDIM == 3)
         pti.GetPosition(xp, yp, zp);
-#elif (BL_SPACEDIM == 2)
-        pti.GetPosition(xp, zp);
-        yp.resize(np, std::numeric_limits<Real>::quiet_NaN());
-#endif
 
 #if (BL_SPACEDIM == 3)
 	long nx = box.length(0);
@@ -182,12 +196,8 @@ WarpXParticleContainer::GetChargeDensity (int lev, bool local)
 	long ny = 0;
 	long nz = box.length(1); 
 #endif
-	RealBox grid_box = RealBox( box, gm.CellSize(), gm.ProbLo() );
-#if (BL_SPACEDIM == 3)
-	const Real* xyzmin = grid_box.lo();
-#elif (BL_SPACEDIM == 2)
-	Real xyzmin[3] = { grid_box.lo(0), std::numeric_limits<Real>::quiet_NaN(), grid_box.lo(1) };
-#endif
+
+        const std::array<Real,3>& xyzmin = WarpX::LowerCorner(box, lev);
 
 	long nxg = ng;
 	long nyg = ng;
@@ -233,12 +243,7 @@ WarpXParticleContainer::PushX (int lev,
         // copy data from particle container to temp arrays
         //
         BL_PROFILE_VAR_START(blp_copy);
-#if (BL_SPACEDIM == 3)
         pti.GetPosition(xp, yp, zp);
-#elif (BL_SPACEDIM == 2)
-        pti.GetPosition(xp, zp);
-        yp.resize(np, std::numeric_limits<Real>::quiet_NaN());
-#endif
         BL_PROFILE_VAR_STOP(blp_copy);
 
         //
@@ -253,11 +258,7 @@ WarpXParticleContainer::PushX (int lev,
         // copy particle data back
         //
         BL_PROFILE_VAR_START(blp_copy);
-#if (BL_SPACEDIM == 3)
         pti.SetPosition(xp, yp, zp);
-#elif (BL_SPACEDIM == 2)
-        pti.SetPosition(xp, zp);
-#endif
         BL_PROFILE_VAR_STOP(blp_copy);
     }
 }

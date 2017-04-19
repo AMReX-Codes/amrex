@@ -21,6 +21,15 @@ class WarpXParIter
 public:
     using amrex::ParIter<0,0,PIdx::nattribs>::ParIter;
 
+#if (BL_SPACEDIM == 2)
+    void GetPosition (amrex::Array<amrex::Real>& x,
+                      amrex::Array<amrex::Real>& y,
+                      amrex::Array<amrex::Real>& z) const;
+    void SetPosition (const amrex::Array<amrex::Real>& x,
+                      const amrex::Array<amrex::Real>& y,
+                      const amrex::Array<amrex::Real>& z);
+#endif
+
     const SoA& GetAttribs () const { return GetStructOfArrays(); }
     SoA&       GetAttribs ()       { return GetStructOfArrays(); }
     const amrex::Array<amrex::Real>& GetAttribs (int comp) const { return GetStructOfArrays()[comp]; }
@@ -38,8 +47,6 @@ public:
     WarpXParticleContainer (amrex::AmrCore* amr_core, int ispecies);
     virtual ~WarpXParticleContainer() {}
 
-    virtual void AllocData () = 0;
-
     virtual void InitData () = 0;
 
     virtual void FieldGather (int lev,
@@ -52,6 +59,8 @@ public:
 			 amrex::MultiFab& jx, amrex::MultiFab& jy, amrex::MultiFab& jz, amrex::Real t, amrex::Real dt) = 0;
 
     virtual void PostRestart () = 0;
+
+    void AllocData ();
 
     void PushX (int lev, amrex::Real dt);
 

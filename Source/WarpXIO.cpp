@@ -290,7 +290,7 @@ WarpX::WritePlotFile () const
             if (ParallelDescriptor::NProcs() > 1) {
 	       ncomp = 3*3 + 4; // The +4 is for the number of particles per cell/grid/process + Processor ID
             } else {
-	       ncomp = 3*3 + 3; // The +4 is for the number of particles per cell/grid/process + Processor ID
+	       ncomp = 3*3 + 3; // The +3 is for the number of particles per cell/grid/process
             }
 
 	    const int ngrow = 0;
@@ -302,7 +302,7 @@ WarpX::WritePlotFile () const
 	    amrex::average_edge_to_cellcenter(*mf[lev], dcomp, srcmf);
 #if (BL_SPACEDIM == 2)
 	    MultiFab::Copy(*mf[lev], *mf[lev], dcomp+1, dcomp+2, 1, ngrow);
-	    WarpX::Copy(*mf[lev], dcomp+1, 1, *current[lev][1], 0);
+            amrex::average_node_to_cellcenter(*mf[lev], dcomp+1, *current[lev][1], 0, 1);
 #endif
             if (lev == 0)
             {
@@ -310,13 +310,13 @@ WarpX::WritePlotFile () const
                 varnames.push_back("jy");
                 varnames.push_back("jz");
             }
+	    dcomp += 3;
 
 	    PackPlotDataPtrs(srcmf, Efield[lev]);
-	    dcomp += 3;
 	    amrex::average_edge_to_cellcenter(*mf[lev], dcomp, srcmf);
 #if (BL_SPACEDIM == 2)
 	    MultiFab::Copy(*mf[lev], *mf[lev], dcomp+1, dcomp+2, 1, ngrow);
-	    WarpX::Copy(*mf[lev], dcomp+1, 1, *Efield[lev][1], 0);
+            amrex::average_node_to_cellcenter(*mf[lev], dcomp+1, *Efield[lev][1], 0, 1);
 #endif
             if (lev == 0)
             {
@@ -324,13 +324,13 @@ WarpX::WritePlotFile () const
                 varnames.push_back("Ey");
                 varnames.push_back("Ez");
             }
+	    dcomp += 3;
 
 	    PackPlotDataPtrs(srcmf, Bfield[lev]);
-	    dcomp += 3;
 	    amrex::average_face_to_cellcenter(*mf[lev], dcomp, srcmf);
 #if (BL_SPACEDIM == 2)
 	    MultiFab::Copy(*mf[lev], *mf[lev], dcomp+1, dcomp+2, 1, ngrow);
-	    WarpX::Copy(*mf[lev], dcomp+1, 1, *Bfield[lev][1], 0);
+            MultiFab::Copy(*mf[lev], *Bfield[lev][1], 0, dcomp+1, 1, ngrow);
 #endif
             if (lev == 0)
             {
@@ -338,23 +338,22 @@ WarpX::WritePlotFile () const
                 varnames.push_back("By");
                 varnames.push_back("Bz");
             }
+	    dcomp += 3;
 
             MultiFab temp_dat(grids[lev],mf[lev]->DistributionMap(),1,0);
             temp_dat.setVal(0);
 
             // MultiFab containing number of particles in each cell
-	    dcomp += 3;
             mypc->Increment(temp_dat, lev);
             MultiFab::Copy(*mf[lev], temp_dat, 0, dcomp, 1, 0);
             if (lev == 0)
             {
                 varnames.push_back("part_per_cell");
             }
+	    dcomp += 1;
 
             // MultiFab containing number of particles per grid (stored as constant for all cells in each grid)
             const Array<long>& npart_in_grid = mypc->NumberOfParticlesInGrid(lev);
-
-	    dcomp += 1;
             for (MFIter mfi(*mf[lev]); mfi.isValid(); ++mfi) {
 		(*mf[lev])[mfi].setVal(static_cast<Real>(npart_in_grid[mfi.index()]), dcomp);
             }
@@ -362,9 +361,9 @@ WarpX::WritePlotFile () const
             {
                 varnames.push_back("part_per_grid");
             }
+	    dcomp += 1;
 
             // MultiFab containing number of particles per process (stored as constant for all cells in each grid)
-	    dcomp += 1;
             long n_per_proc = 0;
             for (MFIter mfi(*mf[lev]); mfi.isValid(); ++mfi) {
                 n_per_proc += npart_in_grid[mfi.index()];
@@ -376,10 +375,10 @@ WarpX::WritePlotFile () const
             {
                 varnames.push_back("part_per_proc");
             }
+            dcomp += 1;
 
             if (ParallelDescriptor::NProcs() > 1) {
                 // MultiFab containing the Processor ID 
-                dcomp += 1;
                 for (MFIter mfi(*mf[lev]); mfi.isValid(); ++mfi) {
                     (*mf[lev])[mfi].setVal(static_cast<Real>(ParallelDescriptor::MyProc()), dcomp);
                 }
@@ -387,16 +386,15 @@ WarpX::WritePlotFile () const
                 {
                     varnames.push_back("proc_number");
                 }
+                dcomp += 1;
             }
+
+            BL_ASSERT(dcomp == ncomp);
 	}
     
-	Array<const MultiFab*> mf2(finest_level+1);
-	for (int lev = 0; lev <= finest_level; ++lev) {
-	    mf2[lev] = mf[lev].get();
-	}
-
-	amrex::WriteMultiLevelPlotfile(plotfilename, finest_level+1, mf2, varnames,
-					Geom(), t_new[0], istep, refRatio());
+	amrex::WriteMultiLevelPlotfile(plotfilename, finest_level+1, 
+                                       amrex::GetArrOfConstPtrs(mf),
+                                       varnames, Geom(), t_new[0], istep, refRatio());
     }
 
     if (plot_raw_fields)
@@ -410,28 +408,27 @@ WarpX::WritePlotFile () const
 
         for (int lev = 0; lev < nlevels; ++lev)
         {
-            const BoxArray& ba = boxArray(lev);
             const DistributionMapping& dm = DistributionMap(lev);
 
-            MultiFab Ex(amrex::convert(ba,Ex_nodal_flag), dm, 1, 0);
-            MultiFab Ey(amrex::convert(ba,Ey_nodal_flag), dm, 1, 0);
-            MultiFab Ez(amrex::convert(ba,Ez_nodal_flag), dm, 1, 0);
-            MultiFab Bx(amrex::convert(ba,Bx_nodal_flag), dm, 1, 0);
-            MultiFab By(amrex::convert(ba,By_nodal_flag), dm, 1, 0);
-            MultiFab Bz(amrex::convert(ba,Bz_nodal_flag), dm, 1, 0);
-            MultiFab jx(amrex::convert(ba,jx_nodal_flag), dm, 1, 0);
-            MultiFab jy(amrex::convert(ba,jy_nodal_flag), dm, 1, 0);
-            MultiFab jz(amrex::convert(ba,jz_nodal_flag), dm, 1, 0);
+            MultiFab Ex( Efield[lev][0]->boxArray(), dm, 1, 0);
+            MultiFab Ey( Efield[lev][1]->boxArray(), dm, 1, 0);
+            MultiFab Ez( Efield[lev][2]->boxArray(), dm, 1, 0);
+            MultiFab Bx( Bfield[lev][0]->boxArray(), dm, 1, 0);
+            MultiFab By( Bfield[lev][1]->boxArray(), dm, 1, 0);
+            MultiFab Bz( Bfield[lev][2]->boxArray(), dm, 1, 0);
+            MultiFab jx(current[lev][0]->boxArray(), dm, 1, 0);
+            MultiFab jy(current[lev][1]->boxArray(), dm, 1, 0);
+            MultiFab jz(current[lev][2]->boxArray(), dm, 1, 0);
 
-            WarpX::Copy(Ex, 0, 1, *Efield[lev][0], 0);
-            WarpX::Copy(Ey, 0, 1, *Efield[lev][1], 0);
-            WarpX::Copy(Ez, 0, 1, *Efield[lev][2], 0);
-            WarpX::Copy(Bx, 0, 1, *Bfield[lev][0], 0);
-            WarpX::Copy(By, 0, 1, *Bfield[lev][1], 0);
-            WarpX::Copy(Bz, 0, 1, *Bfield[lev][2], 0);
-            WarpX::Copy(jx, 0, 1, *current[lev][0], 0);
-            WarpX::Copy(jy, 0, 1, *current[lev][1], 0);
-            WarpX::Copy(jz, 0, 1, *current[lev][2], 0);
+            MultiFab::Copy(Ex, *Efield[lev][0], 0, 0, 1, 0);
+            MultiFab::Copy(Ey, *Efield[lev][1], 0, 0, 1, 0);
+            MultiFab::Copy(Ez, *Efield[lev][2], 0, 0, 1, 0);
+            MultiFab::Copy(Bx, *Bfield[lev][0], 0, 0, 1, 0);
+            MultiFab::Copy(By, *Bfield[lev][1], 0, 0, 1, 0);
+            MultiFab::Copy(Bz, *Bfield[lev][2], 0, 0, 1, 0);
+            MultiFab::Copy(jx,*current[lev][0], 0, 0, 1, 0);
+            MultiFab::Copy(jy,*current[lev][1], 0, 0, 1, 0);
+            MultiFab::Copy(jz,*current[lev][2], 0, 0, 1, 0);
 
             VisMF::Write(Ex, amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Ex"));
             VisMF::Write(Ey, amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Ey"));
@@ -571,8 +568,8 @@ WarpX::WriteJobInfo (const std::string& dir) const
 }
 
 void
-WarpX::PackPlotDataPtrs(Array<const MultiFab*>& pmf,
-			const Array<std::unique_ptr<MultiFab> >& data)
+WarpX::PackPlotDataPtrs (Array<const MultiFab*>& pmf,
+                         const std::array<std::unique_ptr<MultiFab>,3>& data)
 {
     BL_ASSERT(pmf.size() == BL_SPACEDIM);
 #if (BL_SPACEDIM == 3)

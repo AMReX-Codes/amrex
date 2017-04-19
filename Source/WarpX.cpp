@@ -1,4 +1,5 @@
 
+#include <limits>
 #include <algorithm>
 #include <cctype>
 #include <cmath>
@@ -72,6 +73,8 @@ WarpX::ResetInstance ()
 
 WarpX::WarpX ()
 {
+    m_instance = this;
+
     ReadParameters();
 
     if (max_level != 0) {
@@ -153,7 +156,7 @@ WarpX::ReadParameters ()
 	    }
 	    else {
 		const std::string msg = "Unknown moving_window_dir: "+s;
-		amrex::Abort(msg.c_str()); 
+		amrex::Abort(msg.c_str());
 	    }
 
 	    moving_window_x = geom[0].ProbLo(moving_window_dir);
@@ -195,8 +198,6 @@ WarpX::ReadParameters ()
 	pp.query("field_gathering", field_gathering_algo);
 	pp.query("particle_pusher", particle_pusher_algo);
     }
-
-    is_synchronized = true;
 }
 
 // This is a virtual function.
@@ -215,54 +216,28 @@ WarpX::ClearLevel (int lev)
 	current[lev][i].reset();
 	Efield [lev][i].reset();
 	Bfield [lev][i].reset();
-    }    
+    }
 }
 
 void
-WarpX::AllocLevelData (int lev, const BoxArray& new_grids, const DistributionMapping& new_dmap)
+WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& dm)
 {
-    // PICSAR assumes all fields are nodal plus ghost cells.
     const int ng = WarpX::nox;  // need to update this
 
-    current[lev].resize(3);
-    Efield [lev].resize(3);
-    Bfield [lev].resize(3);
-    for (int i = 0; i < 3; ++i) {
-	current[lev][i].reset(new MultiFab(amrex::convert(new_grids, IntVect::TheUnitVector()),
-                                           new_dmap,1,ng));
-	Efield [lev][i].reset(new MultiFab(amrex::convert(new_grids, IntVect::TheUnitVector()),
-                                           new_dmap,1,ng));
-	Bfield [lev][i].reset(new MultiFab(amrex::convert(new_grids, IntVect::TheUnitVector()),
-                                           new_dmap,1,ng));
-    }
-}
+    // Create the MultiFabs for B
+    Bfield[lev][0].reset( new MultiFab(amrex::convert(ba,Bx_nodal_flag),dm,1,ng));
+    Bfield[lev][1].reset( new MultiFab(amrex::convert(ba,By_nodal_flag),dm,1,ng));
+    Bfield[lev][2].reset( new MultiFab(amrex::convert(ba,Bz_nodal_flag),dm,1,ng));
 
-void
-WarpX::FillBoundary (MultiFab& mf, const Geometry& geom, const IntVect& nodalflag)
-{
-    const IndexType correct_typ(nodalflag);
-    BoxArray ba = mf.boxArray();
-    ba.convert(correct_typ);
+    // Create the MultiFabs for E
+    Efield[lev][0].reset( new MultiFab(amrex::convert(ba,Ex_nodal_flag),dm,1,ng));
+    Efield[lev][1].reset( new MultiFab(amrex::convert(ba,Ey_nodal_flag),dm,1,ng));
+    Efield[lev][2].reset( new MultiFab(amrex::convert(ba,Ez_nodal_flag),dm,1,ng));
 
-    MultiFab tmpmf(ba, mf.DistributionMap(), mf.nComp(), mf.nGrow());
-
-    const IndexType& mf_typ = mf.boxArray().ixType();
-
-    for (MFIter mfi(tmpmf); mfi.isValid(); ++mfi) {
-	FArrayBox& tmpfab = tmpmf[mfi];
-	tmpfab.SetBoxType(mf_typ);
-	tmpfab.copy(mf[mfi]);
-	tmpfab.SetBoxType(correct_typ);
-    }
-
-    tmpmf.FillBoundary(geom.periodicity());
-
-    for (MFIter mfi(tmpmf); mfi.isValid(); ++mfi) {
-	FArrayBox& tmpfab = tmpmf[mfi];
-	tmpfab.SetBoxType(mf_typ);
-	mf[mfi].copy(tmpmf[mfi]);
-	tmpfab.SetBoxType(correct_typ);
-    }
+    // Create the MultiFabs for the current
+    current[lev][0].reset( new MultiFab(amrex::convert(ba,jx_nodal_flag),dm,1,ng));
+    current[lev][1].reset( new MultiFab(amrex::convert(ba,jy_nodal_flag),dm,1,ng));
+    current[lev][2].reset( new MultiFab(amrex::convert(ba,jz_nodal_flag),dm,1,ng));
 }
 
 void
@@ -314,10 +289,10 @@ WarpX::shiftMF(MultiFab& mf, const Geometry& geom, int num_shift,
     for (MFIter mfi(tmpmf); mfi.isValid(); ++mfi ) {
         const FArrayBox& srcfab = tmpmf[mfi];
         FArrayBox&       dstfab = shifted_mf[mfi];
-        
+
         Box srcBox = srcfab.box();
         Box dstBox = dstfab.box();
-        
+
         if (num_shift > 0) {
             srcBox.growLo(dir, -num_shift);
             dstBox.growHi(dir, -num_shift);
@@ -325,10 +300,10 @@ WarpX::shiftMF(MultiFab& mf, const Geometry& geom, int num_shift,
             srcBox.growHi(dir,  num_shift);
             dstBox.growLo(dir,  num_shift);
         }
-        
+
         shifted_mf[mfi].copy(tmpmf[mfi], srcBox, 0, dstBox, 0, mf.nComp());
     }
-    
+
     // copy the shifted version back to the original
     WarpX::Copy(mf, 0, mf.nComp(), shifted_mf, 0);
 }
@@ -349,34 +324,66 @@ WarpX::Copy(MultiFab& dstmf, int dcomp, int ncomp, const MultiFab& srcmf, int sc
     }
 }
 
+
+std::array<Real,3>
+WarpX::CellSize (int lev)
+{
+    const auto& gm = GetInstance().Geom(lev);
+    const Real* dx = gm.CellSize();
+#if (BL_SPACEDIM == 3)
+    return { dx[0], dx[1], dx[2] };
+#elif (BL_SPACEDIM == 2)
+    return { dx[0], 1.0, dx[1] };
+#else
+    static_assert(BL_SPACEDIM != 1, "1D is not supported");
+#endif
+}
+
+std::array<Real,3>
+WarpX::LowerCorner(const Box& bx, int lev)
+{
+    const auto& gm = GetInstance().Geom(lev);
+    const RealBox grid_box{bx, gm.CellSize(), gm.ProbLo()};
+    const Real* xyzmin = grid_box.lo();
+#if (BL_SPACEDIM == 3)
+    return { xyzmin[0], xyzmin[1], xyzmin[2] };
+#elif (BL_SPACEDIM == 2)
+    return { xyzmin[0], -1.e100, xyzmin[1] };
+#endif
+}
+
+
+#if (BL_SPACEDIM == 3)
+
 Box
-WarpX::getIndexBox(const RealBox& real_box) const {
+WarpX::getIndexBox(const RealBox& real_box) const
+{
   BL_ASSERT(max_level == 0);
 
   IntVect slice_lo, slice_hi;
 
-  D_TERM(slice_lo[0]=floor((real_box.lo(0) - geom[0].ProbLo(0))/geom[0].CellSize(0));,
-	 slice_lo[1]=floor((real_box.lo(1) - geom[0].ProbLo(1))/geom[0].CellSize(1));,
-	 slice_lo[2]=floor((real_box.lo(2) - geom[0].ProbLo(2))/geom[0].CellSize(2)););
+  D_TERM(slice_lo[0]=std::floor((real_box.lo(0) - geom[0].ProbLo(0))/geom[0].CellSize(0));,
+	 slice_lo[1]=std::floor((real_box.lo(1) - geom[0].ProbLo(1))/geom[0].CellSize(1));,
+	 slice_lo[2]=std::floor((real_box.lo(2) - geom[0].ProbLo(2))/geom[0].CellSize(2)););
 
-  D_TERM(slice_hi[0]=floor((real_box.hi(0) - geom[0].ProbLo(0))/geom[0].CellSize(0));,
-	 slice_hi[1]=floor((real_box.hi(1) - geom[0].ProbLo(1))/geom[0].CellSize(1));,
-	 slice_hi[2]=floor((real_box.hi(2) - geom[0].ProbLo(2))/geom[0].CellSize(2)););
+  D_TERM(slice_hi[0]=std::floor((real_box.hi(0) - geom[0].ProbLo(0))/geom[0].CellSize(0));,
+	 slice_hi[1]=std::floor((real_box.hi(1) - geom[0].ProbLo(1))/geom[0].CellSize(1));,
+	 slice_hi[2]=std::floor((real_box.hi(2) - geom[0].ProbLo(2))/geom[0].CellSize(2)););
 
   return Box(slice_lo, slice_hi) & geom[0].Domain();
 }
 
-#if (BL_SPACEDIM == 3)
 void
-WarpX::fillSlice(Real z_coord) const {
+WarpX::fillSlice(Real z_coord) const
+{
   BL_ASSERT(max_level == 0);
-  
+
   // Get our slice and convert to index space
   RealBox real_slice = geom[0].ProbDomain();
   real_slice.setLo(2, z_coord);
   real_slice.setHi(2, z_coord);
   Box slice_box = getIndexBox(real_slice);
-  
+
   // define the multifab that stores slice
   BoxArray ba = Efield[0][0]->boxArray();
   const IndexType correct_typ(IntVect::TheZeroVector());
@@ -389,12 +396,12 @@ WarpX::fillSlice(Real z_coord) const {
   for (int i = 0; i < isects.size(); ++i) {
     procs.push_back(dm[isects[i].first]);
     boxes.push_back(isects[i].second);
-  }  
+  }
   procs.push_back(ParallelDescriptor::MyProc());
   BoxArray slice_ba(&boxes[0], boxes.size());
   DistributionMapping slice_dmap(procs);
   MultiFab slice(slice_ba, slice_dmap, 6, 0);
-  
+
   const MultiFab* mfs[6];
   mfs[0] = Efield[0][0].get();
   mfs[1] = Efield[0][1].get();
@@ -402,7 +409,7 @@ WarpX::fillSlice(Real z_coord) const {
   mfs[3] = Bfield[0][0].get();
   mfs[4] = Bfield[0][1].get();
   mfs[5] = Bfield[0][2].get();
-  
+
   IntVect flags[6];
   flags[0] = WarpX::Ex_nodal_flag;
   flags[1] = WarpX::Ey_nodal_flag;
@@ -410,7 +417,7 @@ WarpX::fillSlice(Real z_coord) const {
   flags[3] = WarpX::Bx_nodal_flag;
   flags[4] = WarpX::By_nodal_flag;
   flags[5] = WarpX::Bz_nodal_flag;
-  
+
   // Fill the slice with sampled data
   const Real* dx      = geom[0].CellSize();
   const Geometry& g   = geom[0];
@@ -419,12 +426,12 @@ WarpX::fillSlice(Real z_coord) const {
     Box grid = slice_ba[slice_gid];
     int xlo = grid.smallEnd(0), ylo = grid.smallEnd(1), zlo = grid.smallEnd(2);
     int xhi = grid.bigEnd(0), yhi = grid.bigEnd(1), zhi = grid.bigEnd(2);
-    
+
     IntVect iv = grid.smallEnd();
     ba.intersections(Box(iv, iv), isects, true, 0);
     BL_ASSERT(!isects.empty());
     int full_gid = isects[0].first;
-    
+
     for (int k = zlo; k <= zhi; k++) {
       for (int j = ylo; j <= yhi; j++) {
 	for (int i = xlo; i <= xhi; i++) {
@@ -432,11 +439,11 @@ WarpX::fillSlice(Real z_coord) const {
 	    Real x = g.ProbLo(0) + i*dx[0];
 	    Real y = g.ProbLo(1) + j*dx[1];
 	    Real z = z_coord;
-	    
-	    D_TERM(iv[0]=floor((x - g.ProbLo(0) + 0.5*g.CellSize(0)*flags[comp][0])/g.CellSize(0));,
-		   iv[1]=floor((y - g.ProbLo(1) + 0.5*g.CellSize(1)*flags[comp][1])/g.CellSize(1));,
-		   iv[2]=floor((z - g.ProbLo(2) + 0.5*g.CellSize(2)*flags[comp][2])/g.CellSize(2)););
-	    
+
+	    D_TERM(iv[0]=std::floor((x - g.ProbLo(0) + 0.5*g.CellSize(0)*flags[comp][0])/g.CellSize(0));,
+		   iv[1]=std::floor((y - g.ProbLo(1) + 0.5*g.CellSize(1)*flags[comp][1])/g.CellSize(1));,
+		   iv[2]=std::floor((z - g.ProbLo(2) + 0.5*g.CellSize(2)*flags[comp][2])/g.CellSize(2)););
+
 	    slice[slice_gid](IntVect(i, j, k), comp) = (*mfs[comp])[full_gid](iv);
 	  }
 	}
@@ -459,7 +466,7 @@ void WarpX::sampleAtPoints(const Array<Real>& x,
   mfs[3] = Bfield[0][0].get();
   mfs[4] = Bfield[0][1].get();
   mfs[5] = Bfield[0][2].get();
-  
+
   IntVect flags[6];
   flags[0] = WarpX::Ex_nodal_flag;
   flags[1] = WarpX::Ey_nodal_flag;
@@ -484,9 +491,9 @@ void WarpX::sampleAtPoints(const Array<Real>& x,
   const Geometry& g   = geom[0];
   for (int i = 0; i < npoints; ++i) {
     for (int comp = 0; comp < ncomps; comp++) {
-      D_TERM(iv[0]=floor((x[i] - g.ProbLo(0) + 0.5*g.CellSize(0)*flags[comp][0])/g.CellSize(0));,
-	     iv[1]=floor((y[i] - g.ProbLo(1) + 0.5*g.CellSize(1)*flags[comp][1])/g.CellSize(1));,
-	     iv[2]=floor((z[i] - g.ProbLo(2) + 0.5*g.CellSize(2)*flags[comp][2])/g.CellSize(2)););
+      D_TERM(iv[0]=std::floor((x[i] - g.ProbLo(0) + 0.5*g.CellSize(0)*flags[comp][0])/g.CellSize(0));,
+	     iv[1]=std::floor((y[i] - g.ProbLo(1) + 0.5*g.CellSize(1)*flags[comp][1])/g.CellSize(1));,
+	     iv[2]=std::floor((z[i] - g.ProbLo(2) + 0.5*g.CellSize(2)*flags[comp][2])/g.CellSize(2)););
 
       ba.intersections(Box(iv, iv), isects, true, 0);
       const int grid = isects[0].first;

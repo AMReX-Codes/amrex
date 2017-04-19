@@ -3,7 +3,6 @@
 #include <sstream>
 
 #include <WarpXConst.H>
-// #include <AMReX_ParmParse.H> // mthevenet
 #include <AMReX.H>
 
 using namespace amrex;
@@ -112,13 +111,12 @@ void RandomPosition::getPositionUnitBox(vec3& r, int i_part){
   r[2] = position_distribution(generator);
 }
 
-RegularPosition::RegularPosition(amrex::Array<int> num_particles_per_cell_each_dim):
-  _num_particles_per_cell_each_dim(num_particles_per_cell_each_dim)
+RegularPosition::RegularPosition(const amrex::Array<int>& num_particles_per_cell_each_dim)
+    : _num_particles_per_cell_each_dim(num_particles_per_cell_each_dim)
 {}
 
-void RegularPosition::getPositionUnitBox(vec3& r, int i_part){
-
-#if ( BL_SPACEDIM == 3 )
+void RegularPosition::getPositionUnitBox(vec3& r, int i_part)
+{
   int nx = _num_particles_per_cell_each_dim[0];
   int ny = _num_particles_per_cell_each_dim[1];
   int nz = _num_particles_per_cell_each_dim[2];
@@ -130,18 +128,6 @@ void RegularPosition::getPositionUnitBox(vec3& r, int i_part){
   r[0] = (0.5+ix_part)/nx;
   r[1] = (0.5+iy_part)/ny;
   r[2] = (0.5+iz_part)/nz;
-
-#elif ( BL_SPACEDIM == 2 )
-  int nx = _num_particles_per_cell_each_dim[0];
-  int nz = _num_particles_per_cell_each_dim[1];
-
-  int ix_part = i_part / nz;
-  int iz_part = i_part % nz;
-
-  r[0] = (0.5+ix_part)/nx;
-  r[1] = (0.5+iz_part)/nz;
-
-#endif
 }
 
 PlasmaInjector::PlasmaInjector(int ispecies, const std::string& name)
@@ -200,7 +186,8 @@ PlasmaInjector::PlasmaInjector(int ispecies, const std::string& name)
     } else if (part_pos_s == "nuniformpercell") {
         pp.getarr("num_particles_per_cell_each_dim", num_particles_per_cell_each_dim);
 #if ( BL_SPACEDIM == 2 )
-        num_particles_per_cell_each_dim[2] = 1;
+        num_particles_per_cell_each_dim[2] = num_particles_per_cell_each_dim[1];
+        num_particles_per_cell_each_dim[1] = 1;
 #endif
         part_pos.reset(new RegularPosition(num_particles_per_cell_each_dim));
         num_particles_per_cell = num_particles_per_cell_each_dim[0] *
