@@ -353,15 +353,31 @@ amrex::Random_int(unsigned long n)
 }
 
 void
-amrex::SaveRandomState(std::ostream& ost)
+amrex::SaveRandomState(Array<unsigned long>& state)
 {
-    ost << the_generator;
+    std::stringstream ss;
+    ss << the_generator;
+    state.resize(sizeofRandomState());
+    for (unsigned i = 0; i < state.size(); i++) {
+        ss >> state[i];
+    }
+}
+
+int
+amrex::sizeofRandomState()
+{
+    return the_generator.state_size + 1;
 }
 
 void
-amrex::RestoreRandomState(std::istream& ist)
+amrex::RestoreRandomState(const Array<unsigned long>& state)
 {
-    ist >> the_generator;
+    BL_ASSERT(state.size() == sizeofRandomState());
+    std::stringstream ss;
+    for (unsigned i = 0; i < state.size(); i++) {
+        ss << state[i] << " ";
+    }
+    ss >> the_generator;
 }
 
 void
