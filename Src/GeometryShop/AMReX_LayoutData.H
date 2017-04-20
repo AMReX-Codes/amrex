@@ -64,6 +64,19 @@ namespace amrex
         return (m_data[a_mfi.LocalIndex()]);
       }
 
+    T& operator[](const int & a_localIndex)
+      {
+        BL_ASSERT(a_localIndex < m_data.size());
+        return (m_data[a_localIndex]);
+      }
+
+
+    const T& operator[](const int & a_localIndex) const
+      {
+        BL_ASSERT(a_localIndex < m_data.size());
+        return (m_data[a_localIndex]);
+      }
+
   private:
     std::vector<T> m_data;
         
