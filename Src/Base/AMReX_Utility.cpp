@@ -372,46 +372,19 @@ amrex::Random_int(unsigned long n)
 }
 
 void
-amrex::SaveRandomState(Array<unsigned long>& state)
+amrex::SaveRandomState(std::ostream& os)
 {
-#ifdef _OPENMP
-    int tid = omp_get_thread_num();
-#else
-    int tid = 0;
-#endif
-    std::stringstream ss;
-    ss << generators[tid];
-    state.resize(sizeofRandomState());
-    for (unsigned i = 0; i < state.size(); i++) {
-        ss >> state[i];
+    for (unsigned i = 0; i < nthreads; i++) {
+        os << generators[i] << "\n";
     }
-}
-
-int
-amrex::sizeofRandomState()
-{
-#ifdef _OPENMP
-    int tid = omp_get_thread_num();
-#else
-    int tid = 0;
-#endif
-    return generators[tid].state_size + 1;
 }
 
 void
-amrex::RestoreRandomState(const Array<unsigned long>& state)
+amrex::RestoreRandomState(std::istream& is)
 {
-#ifdef _OPENMP
-    int tid = omp_get_thread_num();
-#else
-    int tid = 0;
-#endif
-    BL_ASSERT(state.size() == sizeofRandomState());
-    std::stringstream ss;
-    for (unsigned i = 0; i < state.size(); i++) {
-        ss << state[i] << " ";
+    for (unsigned i = 0; i < nthreads; i++) {
+        is >> generators[i];
     }
-    ss >> generators[tid];
 }
 
 void
