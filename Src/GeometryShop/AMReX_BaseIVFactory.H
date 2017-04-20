@@ -17,6 +17,7 @@
 #include <AMReX_FabFactory.H>
 #include <AMReX_Box.H>
 #include <AMReX_BaseIVFAB.H>
+#include <AMReX_LayoutData.H>
 #include <AMReX_EBISLayout.H>
 
 namespace amrex
