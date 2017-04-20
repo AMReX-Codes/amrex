@@ -67,14 +67,16 @@ namespace amrex
     m_sets = shared_ptr<LayoutData<IntVectSet> >
       (new LayoutData<IntVectSet>(m_eblg.getDBL(), m_eblg.getDM()));
 
-    BaseIVFactory<Real> factory(m_eblg.getEBISL(), m_sets);
-    for (MFIter mfi(m_buffer); mfi.isValid(); ++mfi)
+    ///need to sneak this out so I can make an MFIter...something is weird about that.
+    shared_ptr<FabArray<EBGraph> > allgraphs = m_eblg.getEBISL().getAllGraphs();
+    for (MFIter mfi(*allgraphs); mfi.isValid(); ++mfi)
     {
       Box thisBox = m_eblg.getDBL()[mfi];
       thisBox.grow(m_redistRad);
       thisBox &= m_eblg.getDomain();
       (*m_sets)[mfi] = m_eblg.getEBISL()[mfi].getIrregIVS(thisBox);
     }
+    BaseIVFactory<Real> factory(m_eblg.getEBISL(), m_sets);
     m_buffer.define(m_eblg.getDBL(), m_eblg.getDM(), m_ncomp, m_redistRad,  MFInfo(), factory);
     setToZero();
   }
@@ -135,8 +137,8 @@ namespace amrex
     BL_PROFILE("EBLevelRedist::redistribute");
     BL_ASSERT( a_isrc >= 0);
     BL_ASSERT( a_idst >= 0);
-    BL_ASSERT((a_isrc + a_inco) <  m_ncomp);
-    BL_ASSERT((a_idst + a_inco) <  a_solution.nComp());
+    BL_ASSERT((a_isrc + a_inco -1) <  m_ncomp);
+    BL_ASSERT((a_idst + a_inco -1) <  a_solution.nComp());
                
     BL_ASSERT(isDefined());
                

@@ -47,6 +47,14 @@ namespace amrex
         {
           TagBox& tag = tags[mfi];
           const Box& bx = tag.box();
+//          IntVect testTag = 8*IntVect::TheUnitVector();
+//          testTag.coarsen(bf_lev[lev][0]);          
+//          if(bx.contains(testTag))
+//          {
+//            tag(testTag) = TagBox::SET;
+//          }
+
+                                      
           for(BoxIterator boxit(bx); boxit.ok(); ++boxit)
           {
             if(coarsenedTagsLev.contains(boxit()))

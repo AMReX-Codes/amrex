@@ -101,7 +101,8 @@ namespace amrex
          const int                 & a_numGhostEBISL)
   {
     m_isDefined = true;
-    m_grids = a_dbl;
+    m_grids  = a_dbl;
+    m_dm     = a_dm;
     m_domain = a_domain;
     m_nghost = a_numGhostEBISL;
     const EBIndexSpace* ebisPtr = AMReX_EBIS::instance();
