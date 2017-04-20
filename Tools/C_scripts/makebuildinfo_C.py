@@ -35,7 +35,7 @@ const char* buildInfoGetBuildMachine() {
 
 const char* buildInfoGetAMReXDir() {
 
-  static const char AMREX_DIR[] = "@@AMREX_DIR@@";
+  static const char AMREX_DIR[] = "@@amrex_home@@";
   return AMREX_DIR;
 }
 
@@ -51,16 +51,54 @@ const char* buildInfoGetCompVersion() {
   return COMP_VERSION;
 }
 
+// deprecated
 const char* buildInfoGetFcomp() {
 
   static const char FCOMP[] = "@@FCOMP@@";
   return FCOMP;
 }
 
+// deprecated
 const char* buildInfoGetFcompVersion() {
 
   static const char FCOMP_VERSION[] = "@@FCOMP_VERSION@@";
   return FCOMP_VERSION;
+}
+
+const char* buildInfoGetCXXName() {
+
+  static const char CXX_comp_name[] = "@@CXX_comp_name@@";
+  return CXX_comp_name;
+}
+
+const char* buildInfoGetFName() {
+
+  static const char F_comp_name[] = "@@F_comp_name@@";
+  return F_comp_name;
+}
+
+const char* buildInfoGetCXXFlags() {
+
+  static const char CXX_flags[] = "@@CXX_flags@@";
+  return CXX_flags;
+}
+
+const char* buildInfoGetFFlags() {
+
+  static const char F_flags[] = "@@F_flags@@";
+  return F_flags;
+}
+
+const char* buildInfoGetLinkFlags() {
+
+  static const char link_flags[] = "@@link_flags@@";
+  return link_flags;
+}
+
+const char* buildInfoGetLibraries() {
+
+  static const char libraries[] = "@@libraries@@";
+  return libraries;
 }
 
 const char* buildInfoGetAux(int i) {
@@ -154,22 +192,25 @@ def get_git_hash(d):
     return hash
 
 
-
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("--amrex_home",
-                        help="path to the AMReX source",
+    parser.add_argument("--amrex_home", help="path to the AMReX source",
                         type=str, default="")
 
     parser.add_argument("--COMP",
-                        help="Compiler as defined by AMReX's build system (deprecated)",
+                        help="Compiler system defined in AMReX's build system",
                         type=str, default="")
 
-    parser.add_argument("--COMP_VERSION",
-                        help="Compiler version (deprecated)",
+    parser.add_argument("--COMP_VERSION", help="Compiler version",
                         type=str, default="")
+
+    parser.add_argument("--CXX_comp_name",
+                        help="C++ compiler command", type=str, default="")
+
+    parser.add_argument("--CXX_flags",
+                        help="C++ compiler flags", type=str, default="")
 
     parser.add_argument("--FCOMP",
                         help="Fortran compiler as defined by AMReX's build system (deprecated)",
@@ -178,6 +219,16 @@ if __name__ == "__main__":
     parser.add_argument("--FCOMP_VERSION",
                         help="Fortran compiler version (deprecated)",
                         type=str, default="")
+
+    parser.add_argument("--F_comp_name", help="Fortran compiler command",
+                        type=str, default="")
+
+    parser.add_argument("--F_flags", help="Fortran compiler flags",
+                        type=str, default="")
+
+    parser.add_argument("--link_flags", help="linker flags", type=str, default="")
+
+    parser.add_argument("--libraries", help="libraries linked", type=str, default="")
 
     parser.add_argument("--AUX",
                         help="auxillary information (EOS, network path) (deprecated)",
@@ -201,8 +252,8 @@ if __name__ == "__main__":
                         type=str, default="")
 
 
+    # parse and convert to a dictionary
     args = parser.parse_args()
-
 
     # build stuff
     build_date = str(datetime.datetime.now())
@@ -259,6 +310,9 @@ if __name__ == "__main__":
 
     fout = open("AMReX_buildInfo.cpp", "w")
 
+    # dictionary view of the args
+    dargs = vars(args)
+
     for line in source.splitlines():
 
         index = line.find("@@")
@@ -277,26 +331,6 @@ if __name__ == "__main__":
 
             elif keyword == "BUILD_MACHINE":
                 newline = line.replace("@@BUILD_MACHINE@@", build_machine)
-                fout.write(newline)
-
-            elif keyword == "AMREX_DIR":
-                newline = line.replace("@@AMREX_DIR@@", args.amrex_home)
-                fout.write(newline)
-
-            elif keyword == "COMP":
-                newline = line.replace("@@COMP@@", args.COMP)
-                fout.write(newline)
-
-            elif keyword == "COMP_VERSION":
-                newline = line.replace("@@COMP_VERSION@@", args.COMP_VERSION)
-                fout.write(newline)
-
-            elif keyword == "FCOMP":
-                newline = line.replace("@@FCOMP@@", args.FCOMP)
-                fout.write(newline)
-
-            elif keyword == "FCOMP_VERSION":
-                newline = line.replace("@@FCOMP_VERSION@@", args.FCOMP_VERSION)
                 fout.write(newline)
 
             elif keyword == "AUX_DECLS":
@@ -343,7 +377,6 @@ if __name__ == "__main__":
 
                 fout.write(aux_str)
 
-
             elif keyword == "MVAL_DECLS":
                 indent = index
                 aux_str = ""
@@ -363,7 +396,6 @@ if __name__ == "__main__":
                             indent*" ", i+1, i+1)
 
                 fout.write(aux_str)
-
 
             elif keyword == "GIT_DECLS":
                 indent = index
@@ -394,6 +426,12 @@ if __name__ == "__main__":
                 git_str = '{}static const char NAME[] = "{}";\n'.format(
                     indent*" ", args.build_git_name)
                 fout.write(git_str)
+
+            elif keyword in dargs:
+                # simple replacement using the commandline arguments
+                newline = line.replace("@@{}@@".format(keyword),
+                                       dargs[keyword].replace('"', r'\"'))
+                fout.write(newline)
 
         else:
             fout.write(line)
