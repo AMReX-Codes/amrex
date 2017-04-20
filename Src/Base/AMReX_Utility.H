@@ -187,11 +187,9 @@ namespace amrex
     * \brief Save and restore random state.
     *
     */
-    void SaveRandomState(Array<unsigned long>& state);
+    void SaveRandomState(std::ostream& os);
 
-    int sizeofRandomState();
-
-    void RestoreRandomState(const Array<unsigned long>& state);
+    void RestoreRandomState(std::istream& is);
 
     /**
     * \brief Create a unique subset of random numbers from a pool
