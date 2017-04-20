@@ -310,13 +310,21 @@ amrex::OutOfMemory ()
 
 namespace
 {
-    thread_local std::mt19937 the_generator;
+#ifdef _OPENMP
+    const int nthreads = omp_get_max_threads();
+#else
+    const int nthreads = 1;
+#endif
+
+    amrex::Array<std::mt19937> generators(nthreads);
 }
 
 void
 amrex::InitRandom (unsigned long seed)
 {
-    the_generator.seed(seed);
+    for (int i =0; i < nthreads; i++) {
+        generators[i].seed(seed);
+    }
 }
 
 void
@@ -325,38 +333,54 @@ amrex::InitRandom (unsigned long seed, int nprocs)
 #ifdef _OPENMP
 #pragma omp parallel
     {
-        unsigned long init_seed = seed + omp_get_thread_num()*nprocs;
-        the_generator.seed(init_seed);
+        int tid = omp_get_thread_num();
+        unsigned long init_seed = seed + tid*nprocs;
+        generators[tid].seed(init_seed);
     }
 #else
-    the_generator.seed(seed);
+    generators[0].seed(seed);
 #endif
 }
 
 void amrex::ResetRandomSeed(unsigned long seed)
 {
-    the_generator.seed(seed);
+    InitRandom(seed);
 }
 
 double
 amrex::Random ()
 {
+#ifdef _OPENMP
+    int tid = omp_get_thread_num();
+#else
+    int tid = 0;
+#endif
     std::uniform_real_distribution<double> distribution(0.0, 1.0);
-    return distribution(the_generator);
+    return distribution(generators[tid]);
 }
 
 unsigned long
 amrex::Random_int(unsigned long n)
 {
+#ifdef _OPENMP
+    int tid = omp_get_thread_num();
+#else
+    int tid = 0;
+#endif
     std::uniform_int_distribution<unsigned long> distribution(0, n);
-    return distribution(the_generator);
+    return distribution(generators[tid]);
 }
 
 void
 amrex::SaveRandomState(Array<unsigned long>& state)
 {
+#ifdef _OPENMP
+    int tid = omp_get_thread_num();
+#else
+    int tid = 0;
+#endif
     std::stringstream ss;
-    ss << the_generator;
+    ss << generators[tid];
     state.resize(sizeofRandomState());
     for (unsigned i = 0; i < state.size(); i++) {
         ss >> state[i];
@@ -366,18 +390,28 @@ amrex::SaveRandomState(Array<unsigned long>& state)
 int
 amrex::sizeofRandomState()
 {
-    return the_generator.state_size + 1;
+#ifdef _OPENMP
+    int tid = omp_get_thread_num();
+#else
+    int tid = 0;
+#endif
+    return generators[tid].state_size + 1;
 }
 
 void
 amrex::RestoreRandomState(const Array<unsigned long>& state)
 {
+#ifdef _OPENMP
+    int tid = omp_get_thread_num();
+#else
+    int tid = 0;
+#endif
     BL_ASSERT(state.size() == sizeofRandomState());
     std::stringstream ss;
     for (unsigned i = 0; i < state.size(); i++) {
         ss << state[i] << " ";
     }
-    ss >> the_generator;
+    ss >> generators[tid];
 }
 
 void
