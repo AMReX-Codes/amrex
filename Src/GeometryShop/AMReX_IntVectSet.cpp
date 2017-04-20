@@ -213,6 +213,22 @@ namespace amrex
       }
     return retval;
   }
+  ///
+  bool 
+  IntVectSet::
+  contains(const IntVectSet& a_ivs) const
+  {
+    bool retval = true;
+    for(IVSIterator ivsit(a_ivs); ivsit.ok(); ++ivsit)
+      {
+        if(!contains(ivsit()))
+          {
+            retval = false;
+            break;
+          }
+      }
+    return retval;
+  }
 
   ///
   void 

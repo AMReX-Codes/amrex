@@ -154,6 +154,16 @@ namespace amrex
       {
         return m_nghost;
       }
+
+    DistributionMapping getDM() const
+      {
+        return m_dm;
+      }
+
+    BoxArray getDBL() const
+      {
+        return m_dblInputDom;
+      }
   private:
     ///
     Box m_domain;
@@ -346,6 +356,15 @@ namespace amrex
     int getGhost() const
       {
         return m_implem->getGhost();
+      }
+    DistributionMapping getDM() const
+      {
+        return m_implem->getDM();
+      }
+
+    BoxArray getDBL() const
+      {
+        return m_implem->getDBL();
       }
   private:
     ///
