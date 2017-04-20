@@ -1,10 +1,15 @@
 #ifndef BL_MFITER_H_
 #define BL_MFITER_H_
 
+#include <memory>
+
 #include <AMReX_FabArrayBase.H>
 #include <AMReX_IntVect.H>
+#include <AMReX_FArrayBox.H>
 
 namespace amrex {
+
+template<class T> class FabArray;
 
 class MFIter
 {
@@ -41,6 +46,13 @@ public:
     MFIter (const FabArrayBase& fabarray, 
 	    const IntVect&      tilesize,
 	    unsigned char       flags_=0);
+
+    MFIter (const BoxArray& ba, const DistributionMapping& dm, unsigned char flags_=0);
+
+    MFIter (const BoxArray& ba, const DistributionMapping& dm, bool do_tiling); 
+
+    MFIter (const BoxArray& ba, const DistributionMapping& dm,
+	    const IntVect& tilesize, unsigned char flags_=0);
 
     // dtor
     ~MFIter ();
@@ -93,6 +105,8 @@ public:
     int tileIndex () const {return currentIndex;}
 
 protected:
+
+    std::unique_ptr<FabArray<FArrayBox> > m_fa;  // This must be the first memeber!
 
     const FabArrayBase& fabArray;
 
