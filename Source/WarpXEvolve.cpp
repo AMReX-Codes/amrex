@@ -94,7 +94,12 @@ WarpX::Evolve (int numsteps)
 
 	cur_time += dt[0];
 
-	MoveWindow();
+        bool to_make_plot = (plot_int > 0) && ((step+1) % plot_int == 0);
+
+        bool move_j = is_synchronized || to_make_plot;
+        // If is_synchronized we need to shift j too so that next step we can evolve E by dt/2.
+        // We might need to move j because we are going to make a plotfile.
+	MoveWindow(move_j);
 
         amrex::Print()<< "STEP " << step+1 << " ends." << " TIME = " << cur_time
                       << " DT = " << dt[0] << "\n";
@@ -104,7 +109,7 @@ WarpX::Evolve (int numsteps)
 	    t_new[i] = cur_time;
 	}
 
-	if (plot_int > 0 && (step+1) % plot_int == 0) {
+	if (to_make_plot) {
             WarpX::FillBoundaryB( lev, false );
             WarpX::FillBoundaryE( lev, false );
             mypc->FieldGather(lev,
@@ -299,20 +304,22 @@ WarpX::InjectPlasma (int num_shift, int dir)
 }
 
 void
-WarpX::MoveWindow ()
+WarpX::MoveWindow (bool move_j)
 {
 
     if (do_moving_window == 0) return;
+
+    const int lev = 0;
 
     // compute the number of cells to shift
     int dir = moving_window_dir;
     Real new_lo[BL_SPACEDIM];
     Real new_hi[BL_SPACEDIM];
-    const Real* current_lo = geom[0].ProbLo();
-    const Real* current_hi = geom[0].ProbHi();
-    const Real* dx = geom[0].CellSize();
-    moving_window_x += moving_window_v * dt[0];
-    int num_shift = (moving_window_x - current_lo[dir]) / dx[dir];
+    const Real* current_lo = geom[lev].ProbLo();
+    const Real* current_hi = geom[lev].ProbHi();
+    const Real* dx = geom[lev].CellSize();
+    moving_window_x += moving_window_v * dt[lev];
+    int num_shift = static_cast<int>((moving_window_x - current_lo[dir]) / dx[dir]);
 
     if (num_shift == 0) return;
 
@@ -324,15 +331,20 @@ WarpX::MoveWindow ()
     new_lo[dir] = current_lo[dir] + num_shift * dx[dir];
     new_hi[dir] = current_hi[dir] + num_shift * dx[dir];
     RealBox new_box(new_lo, new_hi);
-    geom[0].ProbDomain(new_box);
+    geom[lev].ProbDomain(new_box);
 
     // shift the mesh fields (Note - only on level 0 for now)
-    shiftMF(*Bfield[0][0], geom[0], num_shift, dir, Bx_nodal_flag);
-    shiftMF(*Bfield[0][1], geom[0], num_shift, dir, By_nodal_flag);
-    shiftMF(*Bfield[0][2], geom[0], num_shift, dir, Bz_nodal_flag);
-    shiftMF(*Efield[0][0], geom[0], num_shift, dir, Ex_nodal_flag);
-    shiftMF(*Efield[0][1], geom[0], num_shift, dir, Ey_nodal_flag);
-    shiftMF(*Efield[0][2], geom[0], num_shift, dir, Ez_nodal_flag);
+    shiftMF(*Bfield[lev][0], geom[lev], num_shift, dir);
+    shiftMF(*Bfield[lev][1], geom[lev], num_shift, dir);
+    shiftMF(*Bfield[lev][2], geom[lev], num_shift, dir);
+    shiftMF(*Efield[lev][0], geom[lev], num_shift, dir);
+    shiftMF(*Efield[lev][1], geom[lev], num_shift, dir);
+    shiftMF(*Efield[lev][2], geom[lev], num_shift, dir);
+    if (move_j) {
+        shiftMF(*current[lev][0], geom[lev], num_shift, dir);
+        shiftMF(*current[lev][1], geom[lev], num_shift, dir);
+        shiftMF(*current[lev][2], geom[lev], num_shift, dir);
+    }
 
     InjectPlasma(num_shift, dir);
 

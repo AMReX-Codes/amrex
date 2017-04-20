@@ -46,8 +46,7 @@ public:
 			amrex::Array<amrex::Array<amrex::Real> >& result) const;
 #endif
 
-    static void shiftMF(amrex::MultiFab& mf, const amrex::Geometry& geom, int num_shift,
-			int dir, const amrex::IntVect& nodalflag);
+    static void shiftMF(amrex::MultiFab& mf, const amrex::Geometry& geom, int num_shift, int dir);
 
     static void GotoNextLine (std::istream& is);
 
@@ -69,7 +68,7 @@ public:
     const amrex::MultiFab& getBfield (int lev, int direction) {return *Bfield[lev][direction];}
 
     void ComputeDt ();
-    void MoveWindow ();
+    void MoveWindow (bool move_j);
 
     void EvolveE (int lev, amrex::Real dt);
     void EvolveB (int lev, amrex::Real dt);
@@ -155,7 +154,6 @@ private:
     void WriteJobInfo (const std::string& dir) const;
     static void PackPlotDataPtrs (amrex::Array<const amrex::MultiFab*>& pmf,
 				  const std::array<std::unique_ptr<amrex::MultiFab>,3>& data);
-    static void Copy (amrex::MultiFab& dstmf, int dcomp, int ncomp, const amrex::MultiFab& srcmf, int scomp);
 
     amrex::Array<int> istep;      // which step?
     amrex::Array<int> nsubsteps;  // how many substeps on each level?

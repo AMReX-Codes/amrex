@@ -241,29 +241,29 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
 }
 
 void
-WarpX::shiftMF(MultiFab& mf, const Geometry& geom, int num_shift,
-               int dir, const IntVect& nodalflag)
+WarpX::shiftMF(MultiFab& mf, const Geometry& geom, int num_shift, int dir)
 {
-
-    // create tmp copy with the proper node centering
-    const BoxArray& ba = amrex::convert(mf.boxArray(), IndexType(nodalflag));
+    const BoxArray& ba = mf.boxArray();
+    const DistributionMapping& dm = mf.DistributionMap();
+    const int nc = mf.nComp();
     const int ng = std::max(mf.nGrow(), std::abs(num_shift));
-    MultiFab tmpmf(ba, mf.DistributionMap(), mf.nComp(), ng);
-    WarpX::Copy(tmpmf, 0, mf.nComp(), mf, 0);
+    MultiFab tmpmf(ba, dm, nc, ng);
+    MultiFab::Copy(tmpmf, mf, 0, 0, nc, ng);
     tmpmf.FillBoundary(geom.periodicity());
 
     // Zero out the region that the window moved into
-    Box domainBox = geom.Domain();
+    const IndexType& typ = ba.ixType();
+    const Box& domainBox = geom.Domain();
     Box adjBox;
     if (num_shift > 0) {
         adjBox = adjCellHi(domainBox, dir, ng);
     } else {
         adjBox = adjCellLo(domainBox, dir, ng);
     }
-    adjBox = amrex::convert(adjBox, IndexType(nodalflag));
+    adjBox = amrex::convert(adjBox, typ);
 
     for (int idim = 0; idim < BL_SPACEDIM; ++idim) {
-        if (idim == dir and nodalflag[idim]) {
+        if (idim == dir and typ.nodeCentered(dir)) {
             if (num_shift > 0) {
                 adjBox.growLo(idim, -1);
             } else {
@@ -275,52 +275,31 @@ WarpX::shiftMF(MultiFab& mf, const Geometry& geom, int num_shift,
         }
     }
 
-    for (MFIter mfi(tmpmf); mfi.isValid(); ++mfi ) {
-        Box srcBox = mfi.fabbox();
-        srcBox &= adjBox;
-        if (srcBox.ok()) {
-            tmpmf[mfi].setVal(0.0, srcBox, 0, tmpmf.nComp());
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(tmpmf); mfi.isValid(); ++mfi )
+    {
+        FArrayBox& srcfab = tmpmf[mfi];
+
+        Box outbox = mfi.fabbox();
+        outbox &= adjBox;
+        if (outbox.ok()) {  // outbox is the region that the window moved into
+            srcfab.setVal(0.0, outbox, 0, nc);
         }
-    }
 
-    // create a shifted copy
-    MultiFab shifted_mf(ba, tmpmf.DistributionMap(), tmpmf.nComp(), tmpmf.nGrow());
-    shifted_mf.setVal(0.0);
-    for (MFIter mfi(tmpmf); mfi.isValid(); ++mfi ) {
-        const FArrayBox& srcfab = tmpmf[mfi];
-        FArrayBox&       dstfab = shifted_mf[mfi];
+        FArrayBox& dstfab = mf[mfi];
+        dstfab.setVal(0.0);
 
-        Box srcBox = srcfab.box();
         Box dstBox = dstfab.box();
 
         if (num_shift > 0) {
-            srcBox.growLo(dir, -num_shift);
             dstBox.growHi(dir, -num_shift);
         } else {
-            srcBox.growHi(dir,  num_shift);
             dstBox.growLo(dir,  num_shift);
         }
 
-        shifted_mf[mfi].copy(tmpmf[mfi], srcBox, 0, dstBox, 0, mf.nComp());
-    }
-
-    // copy the shifted version back to the original
-    WarpX::Copy(mf, 0, mf.nComp(), shifted_mf, 0);
-}
-
-void
-WarpX::Copy(MultiFab& dstmf, int dcomp, int ncomp, const MultiFab& srcmf, int scomp)
-{
-    const IndexType& dst_typ = dstmf.boxArray().ixType();
-    const IndexType& src_typ = srcmf.boxArray().ixType();
-
-    for (MFIter mfi(dstmf); mfi.isValid(); ++mfi)
-    {
-	FArrayBox& dfab = dstmf[mfi];
-	const FArrayBox& sfab = srcmf[mfi];
-	dfab.SetBoxType(src_typ);
-	dfab.copy(sfab, scomp, dcomp, ncomp);
-	dfab.SetBoxType(dst_typ);
+        dstfab.copy(srcfab, amrex::shift(dstBox,dir,num_shift), 0, dstBox, 0, nc);
     }
 }
 

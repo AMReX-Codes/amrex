@@ -179,7 +179,7 @@ extern "C"
     }
     void warpx_MoveWindow () {
         WarpX& warpx = WarpX::GetInstance();
-        warpx.MoveWindow ();
+        warpx.MoveWindow (true);
     }
 
     void warpx_EvolveE (int lev, double dt) {

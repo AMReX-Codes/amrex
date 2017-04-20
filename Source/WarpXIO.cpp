@@ -489,7 +489,10 @@ WarpX::WriteJobInfo (const std::string& dir) const
 	// job_info file with details about the run
 	std::ofstream jobInfoFile;
 	std::string FullPathJobInfoFile = dir;
-	std::string PrettyLine = "===============================================================================\n";
+
+        std::string PrettyLine = std::string(78, '=') + "\n";
+//        std::string OtherLine = std::string(78, '-') + "\n";
+//        std::string SkipSpace = std::string(8, ' ') + "\n";
 
 	FullPathJobInfoFile += "/warpx_job_info";
 	jobInfoFile.open(FullPathJobInfoFile.c_str(), std::ios::out);
@@ -520,8 +523,21 @@ WarpX::WriteJobInfo (const std::string& dir) const
 
 	jobInfoFile << "COMP:          " << buildInfoGetComp() << "\n";
 	jobInfoFile << "COMP version:  " << buildInfoGetCompVersion() << "\n";
-	jobInfoFile << "FCOMP:         " << buildInfoGetFcomp() << "\n";
-	jobInfoFile << "FCOMP version: " << buildInfoGetFcompVersion() << "\n";
+
+        jobInfoFile << "\n";
+        
+        jobInfoFile << "C++ compiler:  " << buildInfoGetCXXName() << "\n";
+        jobInfoFile << "C++ flags:     " << buildInfoGetCXXFlags() << "\n";
+        
+        jobInfoFile << "\n";
+        
+        jobInfoFile << "Fortran comp:  " << buildInfoGetFName() << "\n";
+        jobInfoFile << "Fortran flags: " << buildInfoGetFFlags() << "\n";
+
+        jobInfoFile << "\n";
+        
+        jobInfoFile << "Link flags:    " << buildInfoGetLinkFlags() << "\n";
+        jobInfoFile << "Libraries:     " << buildInfoGetLibraries() << "\n";
 
 	jobInfoFile << "\n";
 
@@ -529,13 +545,13 @@ WarpX::WriteJobInfo (const std::string& dir) const
 	const char* githash2 = buildInfoGetGitHash(2);
 	const char* githash3 = buildInfoGetGitHash(3);
 	if (strlen(githash1) > 0) {
-	  jobInfoFile << "WarpX  git hash: " << githash1 << "\n";
+	  jobInfoFile << "WarpX  git describe: " << githash1 << "\n";
 	}
 	if (strlen(githash2) > 0) {
-	  jobInfoFile << "AMReX git hash: " << githash2 << "\n";
+	  jobInfoFile << "AMReX  git describe: " << githash2 << "\n";
 	}
 	if (strlen(githash3) > 0) {
-	  jobInfoFile << "PICSAR git hash: " << githash3 << "\n";
+	  jobInfoFile << "PICSAR git describe: " << githash3 << "\n";
 	}
 
 	jobInfoFile << "\n\n";
