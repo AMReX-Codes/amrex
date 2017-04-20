@@ -380,10 +380,22 @@ amrex::SaveRandomState(std::ostream& os)
 }
 
 void
-amrex::RestoreRandomState(std::istream& is)
+amrex::RestoreRandomState(std::istream& is, int nthreads_old, int nstep_old)
 {
-    for (unsigned i = 0; i < nthreads; i++) {
+    int N = std::min(nthreads, nthreads_old);
+    for (unsigned i = 0; i < N; i++)
         is >> generators[i];
+    if (nthreads > nthreads_old) {
+        const int NProcs = ParallelDescriptor::NProcs();
+        const int MyProc = ParallelDescriptor::MyProc();
+        for (unsigned i = nthreads_old; i < nthreads; i++) {
+	    unsigned long seed = MyProc+1 + i*NProcs;
+	    if (ULONG_MAX/(unsigned long)(nstep_old+1) > nthreads*NProcs) { // avoid overflow
+		seed += nstep_old*nthreads*NProcs;
+	    }
+
+            generators[i].seed(seed);
+        }
     }
 }
 

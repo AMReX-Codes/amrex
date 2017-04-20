@@ -189,7 +189,7 @@ namespace amrex
     */
     void SaveRandomState(std::ostream& os);
 
-    void RestoreRandomState(std::istream& is);
+    void RestoreRandomState(std::istream& is, int nthreads_old, int nstep_old);
 
     /**
     * \brief Create a unique subset of random numbers from a pool
