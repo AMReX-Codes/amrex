@@ -54,6 +54,8 @@ public:
     MFIter (const BoxArray& ba, const DistributionMapping& dm,
 	    const IntVect& tilesize, unsigned char flags_=0);
 
+    MFIter (MFIter&& rhs) = default;
+
     // dtor
     ~MFIter ();
 
