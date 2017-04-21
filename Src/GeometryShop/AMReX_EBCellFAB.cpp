@@ -70,6 +70,33 @@ namespace amrex
   }
          
   EBCellFAB&
+  EBCellFAB::
+  axby(const EBCellFAB& a_X, 
+       const EBCellFAB& a_Y,
+       const Real& a_A, const Real& a_B)
+  {
+    for (BoxIterator boxit(m_region); boxit.ok(); ++boxit)
+      {
+        for (int icomp = 0; icomp < nComp(); icomp++)
+        {
+          m_regFAB(boxit(), icomp) = a_A*a_X.m_regFAB(boxit(), icomp) + a_B*a_Y.m_regFAB(boxit(), icomp);
+        }
+      }
+
+    std::vector<VolIndex>  irrvofs = m_irrFAB.getVoFs();
+    for(int ivof = 0; ivof < irrvofs.size(); ivof++)
+    {
+        for (int icomp = 0; icomp < nComp(); icomp++)
+        {
+          const VolIndex& vof = irrvofs[ivof];
+          m_irrFAB(vof, icomp) = a_A*a_X.m_irrFAB(vof, icomp) + a_B*a_Y.m_irrFAB(vof, icomp);
+        }
+    }
+
+    return *this;
+  }
+
+  EBCellFAB&
   EBCellFAB::plus(const EBCellFAB& a_src,
                   int a_srccomp,
                   int a_dstcomp,

@@ -88,6 +88,11 @@ namespace amrex
     EBCellFAB& operator+=(const EBCellFAB& a_ebfab);
 
 
+    EBCellFAB&
+    axby(const EBCellFAB& a_X, 
+         const EBCellFAB& a_Y,
+         const Real& a_A, const Real& a_B);
+
     ///
     /**
        done over intersection of src, dst
