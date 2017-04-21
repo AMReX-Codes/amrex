@@ -9,6 +9,7 @@
 #include <sstream>
 #include <iomanip>
 #include <set>
+#include <random>
 
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -307,327 +308,100 @@ amrex::OutOfMemory ()
     amrex::Error("Sorry, out of memory, bye ...");
 }
 
-
-//
-// AMReX Interface to Mersenne Twistor
-//
-
-/* A C-program for MT19937: Real number version (1999/10/28)    */
-/*   genrand() generates one pseudorandom real number (double)  */
-/* which is uniformly distributed on [0,1]-interval, for each   */
-/* call. sgenrand(seed) sets initial values to the working area */
-/* of 624 words. Before genrand(), sgenrand(seed) must be       */
-/* called once. (seed is any 32-bit integer.)                   */
-/* Integer generator is obtained by modifying two lines.        */
-/*   Coded by Takuji Nishimura, considering the suggestions by  */
-/* Topher Cooper and Marc Rieffel in July-Aug. 1997.            */
-
-/* This library is free software under the Artistic license:       */
-/* see the file COPYING distributed together with this code.       */
-/* For the verification of the code, its output sequence file      */
-/* mt19937-1.out is attached (2001/4/2)                           */
-
-/* Copyright (C) 1997, 1999 Makoto Matsumoto and Takuji Nishimura. */
-/* Any feedback is very welcome. For any question, comments,       */
-/* see http://www.math.keio.ac.jp/matumoto/emt.html or email       */
-/* matumoto@math.keio.ac.jp                                        */
-
-/* REFERENCE                                                       */
-/* M. Matsumoto and T. Nishimura,                                  */
-/* "Mersenne Twister: A 623-Dimensionally Equidistributed Uniform  */
-/* Pseudo-Random Number Generator",                                */
-/* ACM Transactions on Modeling and Computer Simulation,           */
-/* Vol. 8, No. 1, January 1998, pp 3--30.                          */
-
-unsigned long amrex::mt19937::init_seed;
-unsigned long amrex::mt19937::mt[amrex::mt19937::N];
-int           amrex::mt19937::mti;
-
-//
-// initializing with a NONZERO seed.
-//
-void
-amrex::mt19937::sgenrand(unsigned long seed)
-{
-    mt[0]= seed & 0xffffffffUL;
-    for ( mti=1; mti<N; mti++ ) 
-    {
-        mt[mti] = (1812433253UL * (mt[mti-1] ^ (mt[mti-1] >> 30L)) + mti); 
-        /* See Knuth TAOCP Vol2. 3rd Ed. P.106 for multiplier. */
-        /* In the previous versions, MSBs of the seed affect   */
-        /* only MSBs of the array mt[].                        */
-        /* 2002/01/09 modified by Makoto Matsumoto             */
-        mt[mti] &= 0xffffffffUL;       /* for >32 bit machines */
-    }
-}
-
-/* initialize by an array with array-length */
-/* init_key is the array for initializing keys */
-/* key_length is its length */
-void 
-amrex::mt19937::sgenrand(unsigned long init_key[], int key_length)
-{
-    int i, j, k;
-    sgenrand(19650218UL);
-    i=1; j=0;
-    k = (N>key_length ? N : key_length);
-    for ( ; k; k-- ) 
-    {
-        mt[i] = (mt[i] ^ ((mt[i-1] ^ (mt[i-1] >> 30)) * 1664525UL)) + init_key[j] + j; /* non linear */
-        mt[i] &= 0xffffffffUL; /* for WORDSIZE > 32 machines */
-        i++; j++;
-        if (i>=N) { mt[0] = mt[N-1]; i=1; }
-        if (j>=key_length) j=0;
-    }
-    for ( k=N-1; k; k-- ) 
-    {
-        mt[i] = (mt[i] ^ ((mt[i-1] ^ (mt[i-1] >> 30)) * 1566083941UL)) - i; /* non linear */
-        mt[i] &= 0xffffffffUL; /* for WORDSIZE > 32 machines */
-        i++;
-        if (i>=N) { mt[0] = mt[N-1]; i=1; }
-    }
-
-    mt[0] = 0x80000000UL; /* MSB is 1; assuring non-zero initial array */ 
-}
-
-void
-amrex::mt19937::reload()
-{
-    unsigned long y;
-    int kk;
-
-    const int M = 397;
-
-#define MATRIX_A    0x9908B0DFUL // Constant vector a
-#define UPPER_MASK  0x80000000UL // Most significant w-r bits
-#define LOWER_MASK  0x7FFFFFFFUL // least significant r bits
-    //
-    // mag01[x] = x * MATRIX_A  for x=0,1
-    //
-    static unsigned long mag01[2]={0x0UL, MATRIX_A};
-    for ( kk=0; kk<N-M; kk++ )
-    {
-	y = (mt[kk]&UPPER_MASK)|(mt[kk+1]&LOWER_MASK);
-	mt[kk] = mt[kk+M] ^ (y >> 1L) ^ mag01[y & 0x1UL];
-    }
-    for ( ; kk<N-1; kk++ )
-    {
-	y = (mt[kk]&UPPER_MASK)|(mt[kk+1]&LOWER_MASK);
-	mt[kk] = mt[kk+(M-N)] ^ (y >> 1L) ^ mag01[y & 0x1UL];
-    }
-    y = (mt[N-1]&UPPER_MASK)|(mt[0]&LOWER_MASK);
-    mt[N-1] = mt[M-1] ^ (y >> 1L) ^ mag01[y & 0x1UL];
-
-    mti = 0;
-
-#undef MATRIX_A
-#undef UPPER_MASK
-#undef LOWER_MASK
-}
-
-unsigned long
-amrex::mt19937::igenrand()
-{
-    //
-    // Generate N words at one time.
-    //
-    if ( mti >= N ) reload();
-
-    unsigned long y = mt[mti++];
-
-    /* Tempering */
-    y ^= (y >> 11);
-    y ^= (y << 7) & 0x9d2c5680UL;
-    y ^= (y << 15) & 0xefc60000UL;
-    y ^= (y >> 18);
-
-    return y;
-}
-
-amrex::mt19937::mt19937(unsigned long seed)
-{
-    init_seed = seed;
-    mti = N;
-    sgenrand(seed);
-}
-
-amrex::mt19937::mt19937(unsigned long seed, int numprocs)
-{
-#ifdef _OPENMP
-#pragma omp parallel
-  {
-    init_seed = seed + omp_get_thread_num() * numprocs;
-    mti = N;
-    sgenrand(init_seed);
-  }
-#else
-    init_seed = seed;
-    mti = N;
-    sgenrand(init_seed);
-#endif
-}
-
-amrex::mt19937::mt19937 (unsigned long seed_array[], int len)
-{
-    sgenrand(seed_array, len);
-}
-
-void
-amrex::mt19937::rewind()
-{
-    sgenrand(init_seed);
-}
-
-void
-amrex::mt19937::reset(unsigned long seed)
-{
-    sgenrand(seed);
-}
-
-//
-// [0,1] random numbers
-//
-double
-amrex::mt19937::d_value()
-{
-    return double(igenrand()) * (1.0/4294967295.0);  // divided by 2^32-1
-}
-
-//
-// [0,1) random numbers
-//
-double
-amrex::mt19937::d1_value()
-{
-    return double(igenrand()) * (1.0/4294967296.0);  // divided by 2^32
-}
-
-//
-// (0,1) random numbers
-//
-double
-amrex::mt19937::d2_value()
-{
-    return (double(igenrand()) + .5) * (1.0/4294967296.0);  // divided by 2^32
-}
-
-long
-amrex::mt19937::l_value()
-{
-    return (long)(igenrand()>>1);
-}
-
-unsigned long
-amrex::mt19937::u_value()
-{
-    return igenrand();
-}
-
-void
-amrex::mt19937::save (Array<unsigned long>& state) const
-{
-    state.resize(N+2);
-    state[0] = init_seed;
-    for (int i = 0; i < N; i++)
-        state[i+1] = mt[i];
-    state[N+1] = mti;
-}
-
-int
-amrex::mt19937::RNGstatesize () const
-{
-    return N+2;
-}
-
-void
-amrex::mt19937::restore (const Array<unsigned long>& state)
-{
-    if (state.size() != N+2)
-        amrex::Error("mt19937::restore(): incorrectly sized state vector");
-
-    init_seed = state[0];
-    for (int i = 0; i < N; i++)
-        mt[i] = state[i+1];
-    mti = state[N+1];
-
-    if (mti < 0 || mti > N)
-        amrex::Error("mt19937::restore(): mti out-of-bounds");
-}
-
 namespace
 {
-    amrex::mt19937 the_generator;
+#ifdef _OPENMP
+    const int nthreads = omp_get_max_threads();
+#else
+    const int nthreads = 1;
+#endif
+
+    amrex::Array<std::mt19937> generators(nthreads);
 }
 
 void
 amrex::InitRandom (unsigned long seed)
 {
-    the_generator = mt19937(seed);
+    for (int i =0; i < nthreads; i++) {
+        generators[i].seed(seed);
+    }
 }
 
 void
-amrex::InitRandom (unsigned long seed, int numprocs)
+amrex::InitRandom (unsigned long seed, int nprocs)
 {
-    the_generator = mt19937(seed, numprocs);
+#ifdef _OPENMP
+#pragma omp parallel
+    {
+        int tid = omp_get_thread_num();
+        unsigned long init_seed = seed + tid*nprocs;
+        generators[tid].seed(init_seed);
+    }
+#else
+    generators[0].seed(seed);
+#endif
 }
 
 void amrex::ResetRandomSeed(unsigned long seed)
 {
-    the_generator.reset(seed);
+    InitRandom(seed);
 }
 
 double
 amrex::Random ()
 {
-    return the_generator.d_value();
-}
-
-double
-amrex::Random1 ()
-{
-    return the_generator.d1_value();
-}
-
-double
-amrex::Random2 ()
-{
-    return the_generator.d2_value();
+#ifdef _OPENMP
+    int tid = omp_get_thread_num();
+#else
+    int tid = 0;
+#endif
+    std::uniform_real_distribution<double> distribution(0.0, 1.0);
+    return distribution(generators[tid]);
 }
 
 unsigned long
 amrex::Random_int(unsigned long n)
 {
-  const unsigned long umax = 4294967295UL; // 2^32-1
-  BL_ASSERT( n > 0 && n <= umax ); 
-  unsigned long scale = umax/n;
-  unsigned long r;
-  do {
-    r = the_generator.u_value() / scale;
-  } while (r >= n);
-  return r;
+#ifdef _OPENMP
+    int tid = omp_get_thread_num();
+#else
+    int tid = 0;
+#endif
+    std::uniform_int_distribution<unsigned long> distribution(0, n);
+    return distribution(generators[tid]);
 }
 
 void
-amrex::SaveRandomState (Array<unsigned long>& state)
+amrex::SaveRandomState(std::ostream& os)
 {
-    the_generator.save(state);
-}
-
-int
-amrex::sizeofRandomState ()
-{
-    return the_generator.RNGstatesize();
+    for (unsigned i = 0; i < nthreads; i++) {
+        os << generators[i] << "\n";
+    }
 }
 
 void
-amrex::RestoreRandomState (const Array<unsigned long>& state)
+amrex::RestoreRandomState(std::istream& is, int nthreads_old, int nstep_old)
 {
-    the_generator.restore(state);
+    int N = std::min(nthreads, nthreads_old);
+    for (unsigned i = 0; i < N; i++)
+        is >> generators[i];
+    if (nthreads > nthreads_old) {
+        const int NProcs = ParallelDescriptor::NProcs();
+        const int MyProc = ParallelDescriptor::MyProc();
+        for (unsigned i = nthreads_old; i < nthreads; i++) {
+	    unsigned long seed = MyProc+1 + i*NProcs;
+	    if (ULONG_MAX/(unsigned long)(nstep_old+1) > nthreads*NProcs) { // avoid overflow
+		seed += nstep_old*nthreads*NProcs;
+	    }
+
+            generators[i].seed(seed);
+        }
+    }
 }
 
 void
 amrex::UniqueRandomSubset (Array<int> &uSet, int setSize, int poolSize,
-                            bool printSet)
+                           bool printSet)
 {
   if(setSize > poolSize) {
     amrex::Abort("**** Error in UniqueRandomSubset:  setSize > poolSize.");
@@ -802,9 +576,12 @@ amrex::InvNormDist (double p)
 BL_FORT_PROC_DECL(BLINVNORMDIST,blinvnormdist)(amrex::Real* result)
 {
     //
-    // Get a random number in (0,1);
-    //
-    double val = the_generator.d2_value();
+    // Convert from [0, 1) to (0,1)
+    // 
+    double val = 0.0;
+    while (val == 0.0) {
+        val = amrex::Random();
+    }
 
     *result = amrex::InvNormDist(val);
 }
@@ -965,9 +742,12 @@ amrex::InvNormDistBest (double p)
 BL_FORT_PROC_DECL(BLINVNORMDISTBEST,blinvnormdistbest)(amrex::Real* result)
 {
     //
-    // Get a random number in (0,1);
-    //
-    double val = the_generator.d2_value();
+    // Convert from [0, 1) to (0,1)
+    // 
+    double val = 0.0;
+    while (val == 0.0) {
+        val = amrex::Random();
+    }
 
     *result = amrex::InvNormDistBest(val);
 }

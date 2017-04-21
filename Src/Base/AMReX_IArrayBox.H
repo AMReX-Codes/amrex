@@ -46,6 +46,9 @@ public:
                         int        ncomp=1,
 			bool       alloc=true,
 			bool       shared=false);
+
+    IArrayBox (const IArrayBox& rhs, MakeType make_type, int scomp, int ncomp);
+
     //!  The destructor.
     virtual ~IArrayBox () = default;
 

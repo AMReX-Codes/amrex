@@ -15,6 +15,7 @@
 #include <utility>
 #include <tuple>
 #include <type_traits>
+#include <random>
 
 #include <AMReX_ParmParse.H>
 #include <AMReX_ParGDB.H>
@@ -436,6 +437,7 @@ public:
     void InitFromBinaryFile (const std::string& file, int extradata);
     void InitFromBinaryMetaFile (const std::string& file, int extradata);
     void InitRandom (long icount, unsigned long iseed, Real particleMass, bool serialize = false, RealBox bx = RealBox());
+    void InitRandomPerBox (long icount, unsigned long iseed, Real particleMass, const MultiFab& particle_mf);
     void InitOnePerCell (Real x_off, Real y_off, Real z_off,
                          Real particleMass, const MultiFab& particle_mf);
     void InitNRandomPerCell (int n_per_cell, Real particleMass, const MultiFab& particle_mf);
