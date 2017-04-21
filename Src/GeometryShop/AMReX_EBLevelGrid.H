@@ -14,10 +14,9 @@
 
 #include "AMReX_REAL.H"
 #include "AMReX_FArrayBox.H"
-#include "AMReX_LevelData.H"
+#include "AMReX_LayoutData.H"
 #include "AMReX_EBISLayout.H"
 #include "AMReX_EBCellFAB.H"
-#include "AMReX_Interval.H"
 #include "AMReX_EBIndexSpace.H"
 
 
@@ -30,6 +29,11 @@ namespace amrex
   class EBLevelGrid
   {
   public:
+    static void
+    defineCFIVS(LayoutData<IntVectSet>    &  a_cfivs,
+                const BoxArray            &  a_grids,
+                const DistributionMapping &  a_dm,
+                const Box                 &  a_probDom);
     ///
     /**
        Default constructor.  User must subsequently call define().
@@ -44,33 +48,35 @@ namespace amrex
        Defining constructor.  Constructs a valid object.
        Equivalent to default construction followed by define().
     */
-    EBLevelGrid(const BoxArray     & a_dbl,
-                const Box          & a_domain,
-                const int          & a_numGhostEBISL,
-                const EBIndexSpace * a_ebisPtr);
+    EBLevelGrid(const BoxArray           & a_dbl,
+                const DistributionMapping& a_dm,
+                const Box                & a_domain,
+                const int                & a_numGhostEBISL);
 
     ///
-    EBLevelGrid(const BoxArray    & a_dbl,
-                const EBISLayout  & a_ebisl,
-                const Box         & a_domain);
+    EBLevelGrid(const BoxArray           & a_dbl,
+                const DistributionMapping& a_dm,
+                const EBISLayout         & a_ebisl,
+                const Box                & a_domain);
 
     ///
     /**
        Define function that generates EBISL and CFIVS
     */
-    void define(const BoxArray     & a_dbl,
-                const Box          & a_domain,
-                const int          & a_numGhostEBISL,
-                const EBIndexSpace * a_ebisPtr);
+    void define(const BoxArray           & a_dbl,
+                const DistributionMapping& a_dm,
+                const Box                & a_domain,
+                const int                & a_numGhostEBISL);
 
 
     ///
     /**
        only generates cfivs.  set EBISPtr = chombo_ebis::instance
     */
-    void define(const BoxArray   & a_dbl,
-                const EBISLayout & a_ebisl,
-                const Box        & a_domain);
+    void define(const BoxArray           & a_dbl,
+                const DistributionMapping& a_dm,
+                const EBISLayout         & a_ebisl,
+                const Box                & a_domain);
 
     ///
     EBLevelGrid(const EBLevelGrid& ebcin);
@@ -78,28 +84,35 @@ namespace amrex
     ///
     int getGhost() const
       {
-        CH_assert(m_isDefined);
+        BL_ASSERT(m_isDefined);
         return m_nghost;
       }
 
-    ///
+    ///to keep porting of chombo codes less painful
     BoxArray getDBL() const
       {
-        CH_assert(m_isDefined);
+        BL_ASSERT(m_isDefined);
+        return getBoxArray();
+      }
+
+    ///
+    BoxArray getBoxArray() const
+      {
+        BL_ASSERT(m_isDefined);
         return m_grids;
       }
 
     ///
     EBISLayout getEBISL() const
       {
-        CH_assert(m_isDefined);
+        BL_ASSERT(m_isDefined);
         return m_ebisl;
       }
 
     ///
-    RefCountedPtr<LayoutData<IntVectSet> > getCFIVS() const
+    std::shared_ptr<LayoutData<IntVectSet> > getCFIVS() const
       {
-        CH_assert(m_isDefined);
+        BL_ASSERT(m_isDefined);
         return m_cfivs;
       }
 
@@ -109,29 +122,11 @@ namespace amrex
         return m_isDefined;
       }
 
-    ///
-    const EBIndexSpace* getEBIS() const
-      {
-        CH_assert(m_isDefined);
-        return m_ebisPtr;
-      }
-
-    ///
-    const IntVectSet& getCoveringIVS() const
-      {
-        CH_assert(m_isDefined);
-        if (!m_isCoveringIVSDefined)
-        {
-          EBLevelGrid& getAroundConst = (EBLevelGrid&)(*this);
-          getAroundConst.defineCoveringIVS();
-        }
-        return m_coveringIVS;
-      }
 
     ///
     const Box& getDomain() const
       {
-        CH_assert(m_isDefined);
+        BL_ASSERT(m_isDefined);
         return m_domain;
       }
 
@@ -144,8 +139,8 @@ namespace amrex
     */
     void setMaxRefinementRatio(const int& a_maxRefine)
       {
-        CH_assert(m_isDefined);
-        m_ebisl.setMaxRefinementRatio(a_maxRefine,m_ebisPtr);
+        BL_ASSERT(m_isDefined);
+        m_ebisl.setMaxRefinementRatio(a_maxRefine);
       }
 
     ///
@@ -155,23 +150,22 @@ namespace amrex
        at intermediate levels of refinement.
        Default is one (no coarsening done).
     */
-    void setMaxCoarseningRatio(const int&                a_maxCoarsen,
-                               const EBIndexSpace* const a_ebisPtr)
+    void setMaxCoarseningRatio(const int&                a_maxCoarsen)
       {
-        CH_assert(m_isDefined);
-        m_ebisl.setMaxCoarseningRatio(a_maxCoarsen,a_ebisPtr);
+        BL_ASSERT(m_isDefined);
+        m_ebisl.setMaxCoarseningRatio(a_maxCoarsen);
       }
 
     int getMaxCoarseningRatio() const
       {
-        CH_assert(m_isDefined);
+        BL_ASSERT(m_isDefined);
         return m_ebisl.getMaxCoarseningRatio();
       }
 
     int
     getMaxRefinementRatio() const
       {
-        CH_assert(m_isDefined);
+        BL_ASSERT(m_isDefined);
         return m_ebisl.getMaxRefinementRatio();
       }
     ///
@@ -194,18 +188,20 @@ namespace amrex
                        const EBLevelGrid& a_eblgFine,
                        const int&         a_ref);
 
+    DistributionMapping getDM() const
+      {
+        return m_dm;
+      }
   protected:
-    void defineCoveringIVS();
     void setDefaultValues();
-    bool m_isDefined, m_isCoveringIVSDefined;
+    bool m_isDefined;
 
-    BoxArray                      m_grids;
-    EBISLayout                             m_ebisl;
-    Box                          m_domain;
-    RefCountedPtr<LayoutData<IntVectSet> > m_cfivs;
-    IntVectSet                             m_coveringIVS;
-    const EBIndexSpace*                    m_ebisPtr;
-    int                                    m_nghost;
+    BoxArray                                 m_grids;
+    DistributionMapping                      m_dm;
+    EBISLayout                               m_ebisl;
+    Box                                      m_domain;
+    std::shared_ptr<LayoutData<IntVectSet> > m_cfivs;
+    int                                      m_nghost;
 
   private:
   };

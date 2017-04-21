@@ -15,7 +15,8 @@ class AmrMesh
 {
 public:
     AmrMesh ();
-    AmrMesh (const RealBox* rb, int max_level_in, const Array<int>& n_cell_in, int coord=-1);
+  AmrMesh (const RealBox* rb, int max_level_in, const Array<int>& n_cell_in, int coord=-1,
+           std::vector<int> refrat = std::vector<int>());
 
     AmrMesh (const AmrMesh& rhs) = delete;
     AmrMesh& operator= (const AmrMesh& rhs) = delete;
@@ -157,7 +158,8 @@ protected:
     Array<BoxArray>            grids;    
 
 private:
-    void InitAmrMesh (int max_level_in, const Array<int>& n_cell_in);
+  void InitAmrMesh (int max_level_in, const Array<int>& n_cell_in,
+                    std::vector<int> refrat = std::vector<int>());
 
     static void ProjPeriodic (BoxList& bd, const Geometry& geom);
 };

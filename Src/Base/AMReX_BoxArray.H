@@ -188,6 +188,8 @@ struct DefaultBATransformer final
 * cannot use any of the List member functions with a BoxList.
 */
 
+  class MFIter;
+
 class BoxArray
 {
 public:
@@ -285,6 +287,26 @@ public:
     //! Coarsen each Box in the BoxArray to the specified ratio.
     BoxArray& coarsen (int refinement_ratio);
 
+
+    //! Coarsen each Box in the BoxArray to the specified ratio.
+    bool coarsenable(int refinement_ratio) const
+    {
+      if(size() == 0) 
+      {
+        return false;
+      }
+
+      for(int ibox = 0; ibox < size(); ibox++)
+      {
+        const Box& thisbox = (*this)[ibox];
+        if(!thisbox.coarsenable(refinement_ratio))
+        {
+          return false;
+        }
+      }
+      return true;
+    }
+
     //! Coarsen each Box in the BoxArray to the specified ratio.
     BoxArray& coarsen (const IntVect& refinement_ratio);
 
@@ -335,6 +357,9 @@ public:
 
     //! Return element index of this BoxArray.
     Box operator[] (int index) const;
+
+    //! Return element index of this BoxArray.
+    Box operator[] (const MFIter& index) const;
 
     //! Return element index of this BoxArray.
     Box get (int index) const { return operator[](index); }

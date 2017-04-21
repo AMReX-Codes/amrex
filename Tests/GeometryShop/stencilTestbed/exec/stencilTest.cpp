@@ -217,6 +217,8 @@ applyStencilAllFortran(EBCellFAB                       & a_dst,
   DistributionMapping dm(ba);
   MultiFab srcMF(ba,dm,1,1);
   IntVect tilesize(D_DECL(10240,8,32));
+  const BaseFab<Real> & regSrc = a_src.getSingleValuedFAB();
+  BaseFab<Real>       & regDst = a_dst.getSingleValuedFAB();
 
   int num_tiles = srcMF.getTileArray(tilesize)->tileArray.size();
   std::vector<std::vector<std::map<IntVect,FaceData> > > faceData(SpaceDim);
@@ -290,8 +292,8 @@ applyStencilAllFortran(EBCellFAB                       & a_dst,
         }
       }
 
-      lapleb_MSD(BL_TO_FORTRAN_N(a_dst,0), 
-                 BL_TO_FORTRAN_N(a_src,0),
+      lapleb_MSD(BL_TO_FORTRAN_N(regDst,0), 
+                 BL_TO_FORTRAN_N(regSrc,0),
                  D_DECL(BL_TO_FORTRAN_N(fd[0],0),
                         BL_TO_FORTRAN_N(fd[1],0),
                         BL_TO_FORTRAN_N(fd[2],0)),
@@ -299,8 +301,8 @@ applyStencilAllFortran(EBCellFAB                       & a_dst,
     }
     else
     {
-      lapl_MSD(BL_TO_FORTRAN_N(a_dst,0), 
-               BL_TO_FORTRAN_N(a_src,0),
+      lapl_MSD(BL_TO_FORTRAN_N(regDst,0), 
+               BL_TO_FORTRAN_N(regSrc,0),
                tbx.loVect(), tbx.hiVect(), &a_dx);
     }
   }
@@ -348,7 +350,8 @@ int testStuff()
   
   EBCellFAB src(grow(domain, 1), 1); //for a ghost cell
   BL_PROFILE_VAR("init_data",init);
-  init_phi(BL_TO_FORTRAN_N(src,0),
+  BaseFab<Real>& regSrc = src.getSingleValuedFAB();
+  init_phi(BL_TO_FORTRAN_N(regSrc,0),
            src.box().loVect(), src.box().hiVect(),
            &(probLo[0]), &dx);
   BL_PROFILE_VAR_STOP(init);

@@ -59,7 +59,7 @@ namespace amrex
     BL_PROFILE("EBIndexSpace::buildFirstLevel");
     clear();
     m_isDefined = true;
-
+      
     if (a_nCellMax > 0)
     {
       m_nCellMax = a_nCellMax;
@@ -77,10 +77,10 @@ namespace amrex
     }
     m_nlevels = 1;
     bool canref = (a_domain.coarsenable(2));
-
+      
     assert(!a_domain.isEmpty());
     Box refbox = a_domain;
-
+      
     while (canref)
     {
       if (!refbox.coarsenable(2))
@@ -97,17 +97,17 @@ namespace amrex
     {
       m_nlevels =  std::max(m_nlevels, a_maxCoarsenings+1);
     }
-
+      
     m_ebisLevel.resize(m_nlevels, NULL);
     m_domainLevel.resize(m_nlevels);
-
+      
     Box  domLevel = a_domain;
     m_ebisLevel[0] = new EBISLevel(domLevel,
                                    a_origin,
                                    a_dx,
                                    m_nCellMax,
                                    a_geoserver);
-
+      
     m_domainLevel[0] = domLevel;
   }
   ///
@@ -118,12 +118,12 @@ namespace amrex
   {
     BL_PROFILE("building_coarser_ebislevel");
     int ilev= a_whichlev;
-
+      
     m_domainLevel[ilev] = m_domainLevel[ilev-1];
     m_domainLevel[ilev].coarsen(2);
     m_ebisLevel[ilev] = new EBISLevel(*m_ebisLevel[ilev-1],
                                       a_geoserver);
-
+      
   }
   ///
   void 
@@ -155,24 +155,25 @@ namespace amrex
     }
     return whichlev;
   }
-
+      
   void EBIndexSpace::fillEBISLayout(EBISLayout     & a_ebisLayout,
                                     const BoxArray & a_grids,
+                                    const DistributionMapping & a_dm,
                                     const Box      & a_domain,
                                     const int      & a_nghost) const
   {
     assert(isDefined());
     BL_PROFILE("EBIndexSpace::fillEBISLayout");
-
+      
     //figure out which level we are on
     int whichlev = getLevel(a_domain);
     if (whichlev < 0)
     {
       amrex::Print() << "a_domain = " << a_domain
-             << " does not correspond to any refinement of EBIS" << "\n";
+                     << " does not correspond to any refinement of EBIS" << "\n";
       amrex::Error("Bad argument to EBIndexSpace::fillEBISLayout");
     }
-    m_ebisLevel[whichlev]->fillEBISLayout(a_ebisLayout, a_grids, a_nghost);
+    m_ebisLevel[whichlev]->fillEBISLayout(a_ebisLayout, a_grids, a_dm, a_nghost);
   }
 }
-
+      
