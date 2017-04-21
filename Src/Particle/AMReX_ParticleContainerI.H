@@ -2351,20 +2351,22 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::WriteAsciiFil
 		int index = 0;
 		for (auto it = aos.cbegin(); it != aos.cend(); ++it) {
 		    if (it->m_idata.id > 0) {
-                        
-                        File << it->m_idata.id  << ' ';
-                        File << it->m_idata.cpu << ' ';
-                        
-                        for (int i = 2; i < 2 + NStructInt; i++)
-                            File << it->m_idata.arr[i] << ' ';
-                            
+
+                        // write out the particle struct first... 
                         D_TERM(File << it->m_rdata.pos[0] << ' ',
                                << it->m_rdata.pos[1] << ' ',
                                << it->m_rdata.pos[2] << ' ');
 
                         for (int i = BL_SPACEDIM; i < BL_SPACEDIM + NStructReal; i++)
                             File << it->m_rdata.arr[i] << ' ';
+
+                        File << it->m_idata.id  << ' ';
+                        File << it->m_idata.cpu << ' ';
+                        
+                        for (int i = 2; i < 2 + NStructInt; i++)
+                            File << it->m_idata.arr[i] << ' ';
 		      
+                        // then the particle attributes.
                         for (int i = 0; i < NArrayReal; i++)
                             File << soa.GetRealData(i)[index] << ' ';
 
