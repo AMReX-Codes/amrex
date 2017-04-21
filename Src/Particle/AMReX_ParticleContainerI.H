@@ -1993,7 +1993,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::WriteParticle
                   rptr += BL_SPACEDIM + NStructReal;
                   const auto& soa  = pbox.GetStructOfArrays();
                   for (int j = 0; j < NArrayReal; j++) {
-                      rptr[j] = (typename ParticleType::RealType) soa.GetIntData(j)[pindex];
+                      rptr[j] = (typename ParticleType::RealType) soa.GetRealData(j)[pindex];
                   }
                   rptr += NArrayReal;
               }
