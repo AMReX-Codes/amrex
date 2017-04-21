@@ -1,5 +1,7 @@
 
 #include <AMReX_MFIter.H>
+#include <AMReX_FabArray.H>
+#include <AMReX_FArrayBox.H>
 
 namespace amrex {
 
@@ -48,6 +50,54 @@ MFIter::MFIter (const FabArrayBase& fabarray_,
 {
     Initialize();
 }
+
+MFIter::MFIter (const BoxArray& ba, const DistributionMapping& dm, unsigned char flags_)
+    :
+    m_fa(new FabArray<FArrayBox>(ba, dm, 1, 0, MFInfo().SetAlloc(false))),
+    fabArray(*m_fa),
+    tile_size((flags_ & Tiling) ? FabArrayBase::mfiter_tile_size : IntVect::TheZeroVector()),
+    flags(flags_),
+    index_map(nullptr),
+    local_index_map(nullptr),
+    tile_array(nullptr),
+    local_tile_index_map(nullptr),
+    num_local_tiles(nullptr)
+{
+    Initialize();
+}
+
+MFIter::MFIter (const BoxArray& ba, const DistributionMapping& dm, bool do_tiling_)
+    :
+    m_fa(new FabArray<FArrayBox>(ba, dm, 1, 0, MFInfo().SetAlloc(false))),
+    fabArray(*m_fa),
+    tile_size((do_tiling_) ? FabArrayBase::mfiter_tile_size : IntVect::TheZeroVector()),
+    flags(do_tiling_ ? Tiling : 0),
+    index_map(nullptr),
+    local_index_map(nullptr),
+    tile_array(nullptr),
+    local_tile_index_map(nullptr),
+    num_local_tiles(nullptr)
+{
+    Initialize();
+}
+
+
+MFIter::MFIter (const BoxArray& ba, const DistributionMapping& dm,
+                const IntVect& tilesize_, unsigned char flags_)
+    :
+    m_fa(new FabArray<FArrayBox>(ba, dm, 1, 0, MFInfo().SetAlloc(false))),
+    fabArray(*m_fa),
+    tile_size(tilesize_),
+    flags(flags_ | Tiling),
+    index_map(nullptr),
+    local_index_map(nullptr),
+    tile_array(nullptr),
+    local_tile_index_map(nullptr),
+    num_local_tiles(nullptr)
+{
+    Initialize();
+}
+
 
 MFIter::~MFIter ()
 {

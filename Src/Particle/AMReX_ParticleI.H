@@ -346,7 +346,11 @@ Particle<NR, NI>::NextID ()
     int next;
 
 #ifdef _OPENMP
+#if (__GNUC__ < 5)
+#pragma omp critical
+#else
 #pragma omp atomic capture
+#endif
 #endif
     next = the_next_id++;
 
