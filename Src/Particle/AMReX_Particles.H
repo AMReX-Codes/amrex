@@ -319,7 +319,7 @@ struct ParticleTile
     /// Add a Real value to the struct-of-arrays at index comp.
     /// This sets the data for one particle.
     ///
-    void push_back (int comp, Real v) { 
+    void push_back_real (int comp, Real v) { 
         m_soa_tile.GetRealData(comp).push_back(v);
     }
 
@@ -327,7 +327,7 @@ struct ParticleTile
     /// Add Real values to the struct-of-arrays, for all comps at once.
     /// This sets the data for one particle.
     ///
-    void push_back (const std::array<Real, NArrayReal>& v) { 
+    void push_back_real (const std::array<Real, NArrayReal>& v) { 
         for (int i = 0; i < NArrayReal; ++i) {
             m_soa_tile.GetRealData(i).push_back(v[i]);
         }
@@ -337,7 +337,7 @@ struct ParticleTile
     /// Add a range of Real values to the struct-of-arrays for the given comp.
     /// This sets the data for several particles at once.
     ///
-    void push_back (int comp, const Real* beg, const Real* end) {
+    void push_back_real (int comp, const Real* beg, const Real* end) {
         auto it = m_soa_tile.GetRealData(comp).end();
         m_soa_tile.GetRealData(comp).insert(it, beg, end);
     }
@@ -346,7 +346,7 @@ struct ParticleTile
     /// Add npar copies of the Real value v to the struct-of-arrays for the given comp.
     /// This sets the data for several particles at once.
     ///
-    void push_back (int comp, std::size_t npar, Real v) {
+    void push_back_real (int comp, std::size_t npar, Real v) {
         auto new_size = m_soa_tile.GetRealData(comp).size() + npar;
         m_soa_tile.GetRealData(comp).resize(new_size, v);
     }
@@ -355,34 +355,34 @@ struct ParticleTile
     /// Add an int value to the struct-of-arrays at index comp.
     /// This sets the data for one particle.
     ///
-    void push_back (int comp, int v) { 
+    void push_back_int (int comp, int v) { 
         m_soa_tile.GetIntData(comp).push_back(v);
     }
-
+    
     ///
     /// Add int values to the struct-of-arrays, for all comps at once.
     /// This sets the data for one particle.
     ///
-    void push_back (const std::array<int, NArrayInt>& v) { 
+    void push_back_int (const std::array<int, NArrayInt>& v) { 
         for (int i = 0; i < NArrayInt; ++i) {
             m_soa_tile.GetIntData(i).push_back(v[i]);
         }
     }
-
+    
     ///
     /// Add a range of int values to the struct-of-arrays for the given comp.
     /// This sets the data for several particles at once.
     ///
-    void push_back (int comp, const int* beg, const int* end) {
+    void push_back_int (int comp, const int* beg, const int* end) {
         auto it = m_soa_tile.GetIntData(comp).end();
         m_soa_tile.GetIntData(comp).insert(it, beg, end);
     }
-
+    
     ///
     /// Add npar copies of the int value v to the struct-of-arrays for the given comp.
     /// This sets the data for several particles at once.
     ///
-    void push_back (int comp, std::size_t npar, int v) {
+    void push_back_int (int comp, std::size_t npar, int v) {
         auto new_size = m_soa_tile.GetIntData(comp).size() + npar;
         m_soa_tile.GetIntData(comp).resize(new_size, v);
     }
