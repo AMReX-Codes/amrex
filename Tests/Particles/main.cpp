@@ -85,8 +85,8 @@ class StructOfArraysParticleContainer
                 int_attribs[IntIdx::cpu] = p.cpu();
                                 
                 particle_tile.push_back(p);
-                particle_tile.push_back(real_attribs);
-                particle_tile.push_back(int_attribs);
+                particle_tile.push_back_real(real_attribs);
+                particle_tile.push_back_int(int_attribs);
             }
         }
     }

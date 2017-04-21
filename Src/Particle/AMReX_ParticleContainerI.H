@@ -1185,10 +1185,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Redistribute 
                                   auto& ptile = m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)];
                                   ptile.push_back(p);
                                   for (int comp = 0; comp < NArrayReal; ++comp) {
-                                      ptile.push_back(comp, soa.GetRealData(comp)[pindex]);
+                                      ptile.push_back_real(comp, soa.GetRealData(comp)[pindex]);
                                   }
                                   for (int comp = 0; comp < NArrayInt; ++comp) {
-                                      ptile.push_back(comp, soa.GetIntData(comp)[pindex]);
+                                      ptile.push_back_int(comp, soa.GetIntData(comp)[pindex]);
                                   }
                                   //
                                   // Invalidate the particle so we can reclaim its space.
@@ -1415,18 +1415,18 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::RedistributeM
 	Real* rdata = (Real*)(pbuf + particle_size);
 	for (int comp = 0; comp < NArrayReal; ++comp) {
             if (communicate_real_comp[comp]) {
-                ptile.push_back(comp, *rdata++);
+                ptile.push_back_real(comp, *rdata++);
             } else {
-                ptile.push_back(comp, 0.0);
+                ptile.push_back_real(comp, 0.0);
             }
 	}
 
 	int* idata = (int*)(pbuf + particle_size + num_real_soa_comps*sizeof(Real));
 	for (int comp = 0; comp < NArrayInt; ++comp) {
             if (communicate_int_comp[comp]) {
-                ptile.push_back(comp, *idata++);
+                ptile.push_back_int(comp, *idata++);
             } else {
-                ptile.push_back(comp, 0.0);
+                ptile.push_back_int(comp, 0);
             }
 	}
 	
@@ -2250,13 +2250,13 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::ReadParticles
       ptile.push_back(p);
 
       for (int j = 0; j < NArrayReal; j++) {
-          ptile.push_back(j, rptr[j]);
+          ptile.push_back_real(j, rptr[j]);
       }
 
       rptr += NArrayReal;
 
       for (int j = 0; j < NArrayInt; j++) {
-          ptile.push_back(j, iptr[j]);
+          ptile.push_back_int(j, iptr[j]);
       }
 
       iptr += NArrayInt;
