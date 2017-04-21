@@ -252,30 +252,51 @@ private:
 template <int NReal, int NInt> constexpr int ArrayOfStructs<NReal, NInt>::SizeInReal;
 
 
-template <int NReal>
+template <int NReal, int NInt>
 struct StructOfArrays {
   
-    Array<Real>& operator[] (const int index) {
-        return m_data[index];
+    Array<Real>& GetRealData (const int index) {
+        BL_ASSERT(index < NReal);
+        return m_rdata[index];
     }
     
-    const Array<Real>& operator[] (const int index) const {
-        return m_data[index];
+    const Array<Real>& GetRealData (const int index) const {
+        BL_ASSERT(index < NReal);
+        return m_rdata[index];
     }
 
-    int numParticles () const { return NReal>0 ? m_data[0].size() : 0; }
+    Array<int>& GetIntData (const int index) {
+        BL_ASSERT(index < NInt);
+        return m_idata[index];
+    }
+    
+    const Array<int>& GetIntData (const int index) const {
+        BL_ASSERT(index < NInt);
+        return m_idata[index];
+    }
+
+    int numParticles () const { 
+        if (NReal > 0)
+            return m_rdata[0].size();
+        else if (NInt > 0) 
+            return m_idata[0].size();
+        else
+            return 0;
+    }
 
 private:
-    std::array<Array<Real>, NReal> m_data;
+
+    std::array<Array<Real>, NReal> m_rdata;
+    std::array<Array<int>,  NInt>  m_idata;
 };
 
 
-template <int NStructReal, int NStructInt, int NArrayReal>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 struct ParticleTile
 {
     using ParticleType = Particle<NStructReal, NStructInt>;
     using AoS = ArrayOfStructs<NStructReal, NStructInt>;
-    using SoA = StructOfArrays<NArrayReal>;
+    using SoA = StructOfArrays<NArrayReal, NArrayInt>;
 
     AoS&       GetArrayOfStructs ()       { return m_aos_tile; }
     const AoS& GetArrayOfStructs () const { return m_aos_tile; }
@@ -289,24 +310,81 @@ struct ParticleTile
 
     int numParticles () const { return m_aos_tile.numParticles(); }
 
+    ///
+    /// Add one particle to this tile.
+    ///
     void push_back (const ParticleType& p) { m_aos_tile().push_back(p); }
 
-    void push_back (int comp, Real v) { m_soa_tile[comp].push_back(v); }
+    ///
+    /// Add a Real value to the struct-of-arrays at index comp.
+    /// This sets the data for one particle.
+    ///
+    void push_back (int comp, Real v) { 
+        m_soa_tile.GetRealData(comp).push_back(v);
+    }
 
+    ///
+    /// Add Real values to the struct-of-arrays, for all comps at once.
+    /// This sets the data for one particle.
+    ///
     void push_back (const std::array<Real, NArrayReal>& v) { 
         for (int i = 0; i < NArrayReal; ++i) {
-            m_soa_tile[i].push_back(v[i]);
+            m_soa_tile.GetRealData(i).push_back(v[i]);
         }
     }
 
+    ///
+    /// Add a range of Real values to the struct-of-arrays for the given comp.
+    /// This sets the data for several particles at once.
+    ///
     void push_back (int comp, const Real* beg, const Real* end) {
-        auto it = m_soa_tile[comp].end();
-        m_soa_tile[comp].insert(it, beg, end);
+        auto it = m_soa_tile.GetRealData(comp).end();
+        m_soa_tile.GetRealData(comp).insert(it, beg, end);
     }
 
+    ///
+    /// Add npar copies of the Real value v to the struct-of-arrays for the given comp.
+    /// This sets the data for several particles at once.
+    ///
     void push_back (int comp, std::size_t npar, Real v) {
-        auto new_size = m_soa_tile[comp].size() + npar;
-        m_soa_tile[comp].resize(new_size, v);
+        auto new_size = m_soa_tile.GetRealData(comp).size() + npar;
+        m_soa_tile.GetRealData(comp).resize(new_size, v);
+    }
+
+    ///
+    /// Add an int value to the struct-of-arrays at index comp.
+    /// This sets the data for one particle.
+    ///
+    void push_back (int comp, int v) { 
+        m_soa_tile.GetIntData(comp).push_back(v);
+    }
+
+    ///
+    /// Add int values to the struct-of-arrays, for all comps at once.
+    /// This sets the data for one particle.
+    ///
+    void push_back (const std::array<int, NArrayInt>& v) { 
+        for (int i = 0; i < NArrayInt; ++i) {
+            m_soa_tile.GetIntData(i).push_back(v[i]);
+        }
+    }
+
+    ///
+    /// Add a range of int values to the struct-of-arrays for the given comp.
+    /// This sets the data for several particles at once.
+    ///
+    void push_back (int comp, const int* beg, const int* end) {
+        auto it = m_soa_tile.GetIntData(comp).end();
+        m_soa_tile.GetIntData(comp).insert(it, beg, end);
+    }
+
+    ///
+    /// Add npar copies of the int value v to the struct-of-arrays for the given comp.
+    /// This sets the data for several particles at once.
+    ///
+    void push_back (int comp, std::size_t npar, int v) {
+        auto new_size = m_soa_tile.GetIntData(comp).size() + npar;
+        m_soa_tile.GetIntData(comp).resize(new_size, v);
     }
 
 private:
@@ -315,12 +393,12 @@ private:
     SoA m_soa_tile;
 };
 
-template <int NStructReal, int NStructInt, int NArrayReal> class ParIter;
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt> class ParIter;
 
-template <int NStructReal, int NStructInt = 0, int NArrayReal = 0>
+template <int NStructReal, int NStructInt=0, int NArrayReal=0, int NArrayInt=0>
 class ParticleContainer
 {
-    friend class ParIter<NStructReal, NStructInt, NArrayReal>;
+    friend class ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt>;
 
 public:
     //
@@ -329,7 +407,7 @@ public:
     using ParticleType = Particle<NStructReal, NStructInt>;
     using RealType = typename Particle<NStructReal, NStructInt>::RealType;
 
-    using ParticleTileType = ParticleTile<NStructReal, NStructInt, NArrayReal>;
+    using ParticleTileType = ParticleTile<NStructReal, NStructInt, NArrayReal, NArrayInt>;
 
     // A single level worth of particles is indexed (grid id, tile id)
     // for both SoA and AoS data.
@@ -339,7 +417,8 @@ public:
 
     ParticleContainer ()
       : 
-      communicate_comp(NArrayReal, true),
+      communicate_real_comp(NArrayReal, true),
+      communicate_int_comp(NArrayInt, true),
       m_verbose(0), 
       m_gdb(nullptr),
       allow_particles_near_boundary(false)
@@ -349,7 +428,8 @@ public:
 
     ParticleContainer (ParGDBBase* gdb)
         :
-        communicate_comp(NArrayReal, true),
+        communicate_real_comp(NArrayReal, true),
+        communicate_int_comp(NArrayInt, true),
 	m_verbose(0),
 	m_gdb(gdb), 
 	allow_particles_near_boundary(false)
@@ -363,7 +443,8 @@ public:
 		       const DistributionMapping & dmap,
 		       const BoxArray            & ba)
 	:
-        communicate_comp(NArrayReal, true),
+        communicate_real_comp(NArrayReal, true),
+        communicate_int_comp(NArrayInt, true),
         m_verbose(0), 
 	allow_particles_near_boundary(false),
 	m_gdb_object(geom,dmap,ba)
@@ -379,7 +460,8 @@ public:
 		       const Array<BoxArray>            & ba,
 		       const Array<int>                 & rr)
 	:
-        communicate_comp(NArrayReal, true),
+        communicate_real_comp(NArrayReal, true),
+        communicate_int_comp(NArrayInt, true),
         m_verbose(0), 
 	allow_particles_near_boundary(false),
 	m_gdb_object(geom,dmap,ba,rr)
@@ -454,11 +536,6 @@ public:
     void InitOnePerCell (Real x_off, Real y_off, Real z_off,
                          Real particleMass, const MultiFab& particle_mf);
     void InitNRandomPerCell (int n_per_cell, Real particleMass, const MultiFab& particle_mf);
-
-    void addOneParticle (int id_in, int cpu_in, 
-                         std::vector<Real>& xloc, std::vector<Real>& attributes); 
-    void addNParticles (int n, D_DECL(Array<Real>& x, Array<Real>& y, Array<Real>& z),
-                        int na, Array<Real>& attributes);
 
     void GetParticleIDs        (Array<int> & part_ids);
     void GetParticleCPU        (Array<int> & part_cpu);
@@ -635,7 +712,11 @@ public:
         return MFIter(*m_dummy_mf[lev], do_tiling ? tile_size : IntVect::TheZeroVector());
     }
 
-    std::vector<bool> communicate_comp;
+    // struct-of-array stuff
+    std::vector<bool> communicate_real_comp;
+    std::vector<bool> communicate_int_comp;
+    int num_real_soa_comps, num_int_soa_comps;
+
     static bool do_tiling;
     static IntVect tile_size;
     
@@ -700,18 +781,19 @@ private:
 
     static int getTileIndex(const IntVect& iv, const Box& box, Box& tbx);
 
-    static void Initialize ();
+    void Initialize ();
 
+    size_t particle_size, superparticle_size;
     Array<ParticleLevel> m_particles;
     Array<std::unique_ptr<MultiFab> > m_dummy_mf;
 };
 
-template <int NStructReal, int NStructInt = 0, int NArrayReal = 0>
+template <int NStructReal, int NStructInt=0, int NArrayReal=0, int NArrayInt=0>
 class ParIter
     : public MFIter
 {
 public:
-    using ContainerType    = ParticleContainer<NStructReal,NStructInt,NArrayReal>;
+    using ContainerType    = ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>;
     using ParticleTileType = typename ContainerType::ParticleTileType;
     using AoS              = typename ContainerType::AoS;
     using SoA              = typename ContainerType::SoA;

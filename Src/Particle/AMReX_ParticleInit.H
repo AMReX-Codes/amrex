@@ -1,9 +1,9 @@
 
-template <int NStructReal, int NStructInt, int NArrayReal>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal>::InitFromAsciiFile (const std::string& file, int extradata, const IntVect* Nrep)
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromAsciiFile (const std::string& file, int extradata, const IntVect* Nrep)
 {
-    BL_PROFILE("ParticleContainer<NStructReal, NStructInt, NArrayReal>::InitFromAsciiFile()");
+    BL_PROFILE("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromAsciiFile()");
     BL_ASSERT(!file.empty());
     BL_ASSERT(extradata <= NStructReal);
 
@@ -138,7 +138,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal>::InitFromAsciiFile (const
                                                 << p.m_rdata.pos[1],
                                                 << p.m_rdata.pos[2])
                                       << "\n";
-                    amrex::Abort("ParticleContainer<NStructReal, NStructInt, NArrayReal>::InitFromAsciiFile(): invalid particle");
+                    amrex::Abort("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromAsciiFile(): invalid particle");
                 }
             }
 
@@ -184,7 +184,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal>::InitFromAsciiFile (const
                                 if (!Where(p_rep, pld))
                                 {
                                     amrex::AllPrint() << "BAD REPLICATED PARTICLE ID WOULD BE " << ParticleType::NextID() << "\n";
-                                    amrex::Abort("ParticleContainer<NStructReal, NStructInt, NArrayReal>::InitFromAsciiFile(): invalid replicated particle");
+                                    amrex::Abort("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromAsciiFile(): invalid replicated particle");
                                 }
                             }
                             //
@@ -324,12 +324,12 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal>::InitFromAsciiFile (const
 // They're packed into the binary file like sardines.
 //
 
-template <int NStructReal, int NStructInt, int NArrayReal>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal>::InitFromBinaryFile (const std::string& file,
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinaryFile (const std::string& file,
                                                    int                extradata)
 {
-    BL_PROFILE("ParticleContainer<NStructReal, NStructInt, NArrayReal>::InitFromBinaryFile()");
+    BL_PROFILE("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinaryFile()");
     BL_ASSERT(!file.empty());
     BL_ASSERT(extradata <= NStructReal);
 
@@ -465,22 +465,22 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal>::InitFromBinaryFile (cons
         // NP MUST be positive!
         //
         if (NP <= 0)
-            amrex::Abort("ParticleContainer<NStructReal, NStructInt, NArrayReal>::InitFromBinaryFile(): NP <= 0");
+            amrex::Abort("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinaryFile(): NP <= 0");
         //
         // DM must equal BL_SPACEDIM.
         //
         if (DM != BL_SPACEDIM)
-            amrex::Abort("ParticleContainer<NStructReal, NStructInt, NArrayReal>::InitFromBinaryFile(): DM != BL_SPACEDIM");
+            amrex::Abort("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinaryFile(): DM != BL_SPACEDIM");
         //
         // NX MUST be in [0,N].
         //
         if (NX < 0 || NX > NStructReal)
-            amrex::Abort("ParticleContainer<NStructReal, NStructInt, NArrayReal>::InitFromBinaryFile(): NX < 0 || NX > N");
+            amrex::Abort("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinaryFile(): NX < 0 || NX > N");
         //
         // Can't ask for more data than exists in the file!
         //
         if (extradata > NX)
-            amrex::Abort("ParticleContainer<NStructReal, NStructInt, NArrayReal>::InitFromBinaryFile(): extradata > NX");
+            amrex::Abort("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinaryFile(): extradata > NX");
         //
         // Figure out whether we're dealing with floats or doubles.
         //
@@ -657,7 +657,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal>::InitFromBinaryFile (cons
                                                     << p.m_rdata.pos[2],
                                                     << p.m_rdata.pos[3])
                                           << "\n";
-                        amrex::Abort("ParticleContainer<NStructReal, NStructInt, NArrayReal>::InitFromBinaryFile(): invalid particle");
+                        amrex::Abort("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinaryFile(): invalid particle");
                     }
                 }
 
@@ -728,12 +728,12 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal>::InitFromBinaryFile (cons
 // one file name per line.
 //
 
-template <int NStructReal, int NStructInt, int NArrayReal>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal>::InitFromBinaryMetaFile (const std::string& metafile,
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinaryMetaFile (const std::string& metafile,
                                                        int                extradata)
 {
-    BL_PROFILE("ParticleContainer<NStructReal, NStructInt, NArrayReal>::InitFromBinaryMetaFile()");
+    BL_PROFILE("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinaryMetaFile()");
     const Real strttime = ParallelDescriptor::second();
 
     std::ifstream ifs(metafile.c_str(), std::ios::in);
@@ -764,15 +764,15 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal>::InitFromBinaryMetaFile (
     }
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal>::InitRandom (long          icount,
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitRandom (long          icount,
                                            unsigned long iseed,
                                            Real          mass,
                                            bool          serialize,
                                            RealBox       containing_bx)
 {
-    BL_PROFILE("ParticleContainer<NStructReal, NStructInt, NArrayReal>::InitRandom()");
+    BL_PROFILE("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitRandom()");
     BL_ASSERT(iseed  > 0);
     BL_ASSERT(icount > 0);
 
@@ -857,7 +857,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal>::InitRandom (long        
 
             if (!Where(p, pld))
             {
-                amrex::Abort("ParticleContainer<NStructReal, NStructInt, NArrayReal>::InitRandom(): invalid particle");
+                amrex::Abort("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitRandom(): invalid particle");
             }
 
             BL_ASSERT(pld.m_lev >= 0 && pld.m_lev <= finestLevel());
@@ -931,7 +931,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal>::InitRandom (long        
 
             if (!Where(p, pld))
             {
-                amrex::Abort("ParticleContainer<NStructReal, NStructInt, NArrayReal>::InitRandom(): invalid particle");
+                amrex::Abort("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitRandom(): invalid particle");
             }
 
             BL_ASSERT(pld.m_lev >= 0 && pld.m_lev <= finestLevel());
@@ -953,21 +953,21 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal>::InitRandom (long        
 
         ParallelDescriptor::ReduceRealMax(stoptime,IOProc);
 
-        amrex::Print() << "ParticleContainer<NStructReal, NStructInt, NArrayReal>::InitRandom() time: " << stoptime << '\n';
+        amrex::Print() << "ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitRandom() time: " << stoptime << '\n';
     }
 }
 
 // This routine is used when we want to replicate a box for a scaling study -- 
 //   within each box the distribution is random but the particle data is replicated 
 //   across boxes within the MultiFab.
-template <int NStructReal, int NStructInt, int NArrayReal>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal>::InitRandomPerBox (long          icount_per_box,
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitRandomPerBox (long          icount_per_box,
                                                  unsigned long iseed,
                                                  Real          mass,
                                                  const MultiFab& particle_mf)
 {
-    BL_PROFILE("ParticleContainer<NStructReal, NStructInt, NArrayReal>::InitRandomPerBox()");
+    BL_PROFILE("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitRandomPerBox()");
     BL_ASSERT(iseed  > 0);
     BL_ASSERT(icount_per_box > 0);
 
@@ -1049,7 +1049,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal>::InitRandomPerBox (long  
 
             if (!Where(p, pld))
             {
-                amrex::Abort("ParticleContainer<NStructReal, NStructInt, NArrayReal>::InitRandomPerBox(): invalid particle");
+                amrex::Abort("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitRandomPerBox(): invalid particle");
             }
 
             BL_ASSERT(pld.m_lev >= 0 && pld.m_lev <= m_gdb->finestLevel());
@@ -1073,16 +1073,16 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal>::InitRandomPerBox (long  
 
         ParallelDescriptor::ReduceRealMax(stoptime,IOProc);
 
-        amrex::Print() << "ParticleContainer<NStructReal, NStructInt, NArrayReal>::InitRandomPerBox() time: " << stoptime << '\n';
+        amrex::Print() << "ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitRandomPerBox() time: " << stoptime << '\n';
     }
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal>::InitOnePerCell (Real x_off, Real y_off, Real z_off,
-					       Real mass, const MultiFab& particle_mf)
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitOnePerCell (Real x_off, Real y_off, Real z_off,
+                                                                                   Real mass, const MultiFab& particle_mf)
 {
-    BL_PROFILE("ParticleContainer<NStructReal, NStructInt, NArrayReal>::InitOnePerCell()");
+    BL_PROFILE("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitOnePerCell()");
 
     BL_ASSERT(m_gdb != 0);
 
@@ -1140,7 +1140,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal>::InitOnePerCell (Real x_o
 
             if (!Where(p, pld))
             {
-                amrex::Abort("ParticleContainer<NStructReal, NStructInt, NArrayReal>::InitOnePerCell(): invalid particle");
+                amrex::Abort("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitOnePerCell(): invalid particle");
             }
 
             BL_ASSERT(pld.m_lev >= 0 && pld.m_lev <= finestLevel());
@@ -1149,10 +1149,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal>::InitOnePerCell (Real x_o
             //
 	    m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
 	    if (NArrayReal > 0) {
-                m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(0,p.m_idata.id);
+                m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(0,(Real) p.m_idata.id);
             }
 	    if (NArrayReal > 1) {
-                m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(1,p.m_idata.cpu);
+                m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(1,(Real) p.m_idata.cpu);
             }
 	    for (int ii = 2; ii < NArrayReal; ii++) {
                 m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(ii,0.0);
@@ -1172,15 +1172,15 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal>::InitOnePerCell (Real x_o
 
         ParallelDescriptor::ReduceRealMax(stoptime,IOProc);
 
-        amrex::Print() << "ParticleContainer<NStructReal, NStructInt, NArrayReal>::InitOnePerCell() time: " << stoptime << '\n';
+        amrex::Print() << "ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitOnePerCell() time: " << stoptime << '\n';
     }
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal>::InitNRandomPerCell (int n_per_cell, Real mass, const MultiFab& particle_mf)
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitNRandomPerCell (int n_per_cell, Real mass, const MultiFab& particle_mf)
 {
-    BL_PROFILE("ParticleContainer<NStructReal, NStructInt, NArrayReal>::InitNRandomPerCell()");
+    BL_PROFILE("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitNRandomPerCell()");
 
     BL_ASSERT(m_gdb != 0);
 
@@ -1239,7 +1239,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal>::InitNRandomPerCell (int 
                p.m_idata.cpu = ParallelDescriptor::MyProc();
 
                if (!Where(p, pld)) {
-                   amrex::Abort("ParticleContainer<NStructReal, NStructInt, NArrayReal>::InitNRandomPerCell(): invalid particle");
+                   amrex::Abort("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitNRandomPerCell(): invalid particle");
                }
 
                BL_ASSERT(pld.m_lev >= 0 && pld.m_lev <= finestLevel());
@@ -1263,6 +1263,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal>::InitNRandomPerCell (int 
 
         ParallelDescriptor::ReduceRealMax(stoptime,IOProc);
 
-        amrex::Print() << "ParticleContainer<NStructReal, NStructInt, NArrayReal>::InitNRandomPerCell() time: " << stoptime << '\n';
+        amrex::Print() << "ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitNRandomPerCell() time: " << stoptime << '\n';
     }
 }
