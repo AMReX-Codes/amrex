@@ -784,6 +784,7 @@ private:
     void Initialize ();
 
     size_t particle_size, superparticle_size;
+    int num_real_comm_comps, num_int_comm_comps;
     Array<ParticleLevel> m_particles;
     Array<std::unique_ptr<MultiFab> > m_dummy_mf;
 };

@@ -12,19 +12,19 @@ void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> :: Initialize ()
 {
     
-    num_real_soa_comps = 0;
+    num_real_comm_comps = 0;
     for (int i = 0; i < NArrayReal; ++i) {
-        if (communicate_real_comp[i]) ++num_real_soa_comps;
+        if (communicate_real_comp[i]) ++num_real_comm_comps;
     }
 
-    num_int_soa_comps = 0;
+    num_int_comm_comps = 0;
     for (int i = 0; i < NArrayInt; ++i) {
-        if (communicate_int_comp[i]) ++num_int_soa_comps;
+        if (communicate_int_comp[i]) ++num_int_comm_comps;
     }
 
     particle_size = sizeof(ParticleType);
     superparticle_size = particle_size + 
-        num_real_soa_comps*sizeof(Real) + num_int_soa_comps*sizeof(int);
+        num_real_comm_comps*sizeof(Real) + num_int_comm_comps*sizeof(int);
 
     static bool initialized = false;
     if (!initialized)
@@ -1421,7 +1421,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::RedistributeM
             }
 	}
 
-	int* idata = (int*)(pbuf + particle_size + num_real_soa_comps*sizeof(Real));
+	int* idata = (int*)(pbuf + particle_size + num_real_comm_comps*sizeof(Real));
 	for (int comp = 0; comp < NArrayInt; ++comp) {
             if (communicate_int_comp[comp]) {
                 ptile.push_back_int(comp, *idata++);
