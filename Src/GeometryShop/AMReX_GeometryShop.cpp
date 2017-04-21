@@ -551,8 +551,11 @@ namespace amrex
         fixRegularCellsNextToCovered(a_nodes, a_regIrregCovered, a_validRegion, a_domain, iv, a_dx);
 
       }//ivsdrop
-    amrex::Print() << "numIrreg  = " << numIrreg << "\n";
-    amrex::Print() << "number of nodes  = " << a_nodes.size() << "\n";
+    if(m_verbosity > 2)
+    {
+      amrex::Print() << "numIrreg  = " << numIrreg << "\n";
+      amrex::Print() << "number of nodes  = " << a_nodes.size() << "\n";
+    }
   }
   /*************/
   void

@@ -156,7 +156,7 @@ namespace amrex
       EBGraph coarGraph(domain, 1);
       const EBGraph& finerGraph = graphsSoFar[ilev];
       coarGraph.coarsenVoFs(finerGraph, domain);
-      coarGraph.coarsenFaces(coarGraph, finerGraph);
+      coarGraph.coarsenFaces(finerGraph, domain);
 
       if(coarGraph.getDomain() != domain)
       {
