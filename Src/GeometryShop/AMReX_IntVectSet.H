@@ -94,6 +94,9 @@ namespace amrex
     bool contains(const Box& box) const;
 
     ///
+    bool contains(const IntVectSet& ivs) const;
+
+    ///
     void grow(int igrow);
 
     ///
