@@ -1457,14 +1457,14 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::OK (int lev_m
             const int grid = kv.first.first;
             const int tile = kv.first.second;
             const auto& aos = kv.second.GetArrayOfStructs();
-            const auto& soa = kv.second.GetArrayOfStructs();
+            const auto& soa = kv.second.GetStructOfArrays();
             
             int np = aos.numParticles();
             for (int i = 0; i < NArrayReal; i++) {
-                BL_ASSERT(np == soa.GetRealData(comp).size());
+                BL_ASSERT(np == soa.GetRealData(i).size());
             }
             for (int i = 0; i < NArrayInt; i++) {
-                BL_ASSERT(np == soa.GetIntData(comp).size());
+                BL_ASSERT(np == soa.GetIntData(i).size());
             }
 
             const BoxArray& ba = ParticleBoxArray(lev);
