@@ -26,6 +26,35 @@ $(executable):	$(objForExecs)
 	$(SILENT) $(CXX) $(CXXFLAGS) $(CPPFLAGS) $(includes) $(LDFLAGS) -o $@ $^ $(libraries)
 #	@echo SUCCESS
 
+
+$(amrexlib): $(objForExecs)
+	@echo Building libamrex.a
+	$(SILENT) $(AR) $(ARFLAGS) $@ $^
+	$(SILENT) $(RANLIB) $@
+
+install::
+	@echo Installing libamrex.a at $(amrexLibDir)
+	@if [ ! -d $(amrexLibDir) ]; then mkdir -p $(amrexLibDir); fi
+	@if test -f $(amrexlib); then \
+	  install -c -m 644 $(amrexlib) $(amrexLibDir); \
+	else \
+	  echo "$(amrexlib) does not exist!"; \
+	fi
+	@echo Installing headers at $(amrexIncludeDir)
+	@if [ ! -d $(amrexIncludeDir) ]; then mkdir -p $(amrexIncludeDir); fi
+	@for d in $(Pdirs); do \
+	  for h in $(allHeaders); do \
+	    f=Src/$$d/$$h; \
+	    if test -f "$$f"; then \
+	      install -c -m 644 "$$f" $(amrexIncludeDir); \
+	    fi; \
+	  done; \
+	done 
+
+uninstall::
+	@echo Uninstalling...
+	$(SILENT) $(RM) -r $(AMREX_INSTALL_DIR)
+
 clean::
 	@echo Cleaning...
 	$(SILENT) $(RM) $(f77EXETempDir)/*.f $(f77EXETempDir)/*.f90 $(objEXETempDir)/*.o
@@ -59,7 +88,7 @@ clang-analyze: $(CEXE_sources)
 clang-tidy: $(CEXE_sources)
 	clang-tidy $^ -checks=clang-diagnostic-*,performance-*,mpi-* -- $(CXXFLAGS) $(CPPFLAGS) $(includes)
 
-.PHONY:	all clean realclean file_locations tags TAGS clang-analyze clang-tidy
+.PHONY:	all clean realclean file_locations tags TAGS clang-analyze clang-tidy install uninstall
 
 #
 # Rules for objects.
@@ -177,6 +206,7 @@ $(depEXETempDir)/f90.depends: $(f90EXE_sources) $(F90EXE_sources)
 #
 ifneq ($(MAKECMDGOALS),realclean)
 ifneq ($(MAKECMDGOALS),clean)
+ifneq ($(MAKECMDGOALS),uninstall)
 
 ifdef CEXE_sources
 -include $(CEXE_sources:%.cpp=$(depEXETempDir)/%.d)
@@ -200,8 +230,9 @@ endif
 
 endif
 endif
+endif
 
-ifneq ($(MAKECMDGOALS),$(filter $(MAKECMDGOALS),clean realclean file_locations tags TAGS))
+ifneq ($(MAKECMDGOALS),$(filter $(MAKECMDGOALS),clean realclean file_locations tags TAGS uninstall))
   ifdef has_compiler_mismatch
     $(error $(has_compiler_mismatch))
   endif
