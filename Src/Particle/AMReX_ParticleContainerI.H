@@ -298,7 +298,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::PeriodicShift
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-void
+ParticleLocData
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Reset (ParticleType& p,
                                                                           bool          update,
                                                                           bool          verbose) const
@@ -327,6 +327,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Reset (Partic
 
 	p.m_idata.id = -p.m_idata.id;
     }
+
+    return pld;
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
