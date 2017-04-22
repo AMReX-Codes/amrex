@@ -32,24 +32,41 @@ $(amrexlib): $(objForExecs)
 	$(SILENT) $(AR) $(ARFLAGS) $@ $^
 	$(SILENT) $(RANLIB) $@
 
-install::
-	@echo Installing libamrex.a at $(amrexLibDir)
+install: install_lib install_headers install_fortran_modules
+
+install_lib:
+	@echo Installing libamrex.a at $(amrexLibDir) ...
 	@if [ ! -d $(amrexLibDir) ]; then mkdir -p $(amrexLibDir); fi
 	@if test -f $(amrexlib); then \
 	  install -c -m 644 $(amrexlib) $(amrexLibDir); \
 	else \
 	  echo "$(amrexlib) does not exist!"; \
 	fi
-	@echo Installing headers at $(amrexIncludeDir)
-	@if [ ! -d $(amrexIncludeDir) ]; then mkdir -p $(amrexIncludeDir); fi
+
+install_headers: $(amrexIncludeDir)/AMReX_Config.H
+	@echo Installing headers at $(amrexIncludeDir) ...
 	@for d in $(Pdirs); do \
-	  for h in $(allHeaders); do \
+	  for h in $(CEXE_headers) $(cEXE_headers); do \
 	    f=Src/$$d/$$h; \
 	    if test -f "$$f"; then \
 	      install -c -m 644 "$$f" $(amrexIncludeDir); \
+	      newf=$(amrexIncludeDir)/$$h; \
+	      sed -i -e '1s/^/#include <AMReX_Config.H>\n/' $$newf; \
 	    fi; \
 	  done; \
 	done 
+
+install_fortran_modules:
+	@echo Install Fortran modules at $(amrexIncludeDir) ...
+	@if [ ! -d $(amrexIncludeDir) ]; then mkdir -p $(amrexIncludeDir); fi
+	@for m in $(amrexFortModules); do \
+	    install -c -m 644 "$$m" $(amrexIncludeDir); \
+	done
+
+$(amrexIncludeDir)/AMReX_Config.H: FORCE
+	@echo Generating AMReX_config.H ...
+	@if [ ! -d $(amrexIncludeDir) ]; then mkdir -p $(amrexIncludeDir); fi
+	@ $(MKCONFIG) --defines "$(CPPFLAGS)" --undefine "BL_LANG_FORT" > $@
 
 uninstall::
 	@echo Uninstalling...
@@ -88,7 +105,9 @@ clang-analyze: $(CEXE_sources)
 clang-tidy: $(CEXE_sources)
 	clang-tidy $^ -checks=clang-diagnostic-*,performance-*,mpi-* -- $(CXXFLAGS) $(CPPFLAGS) $(includes)
 
-.PHONY:	all clean realclean file_locations tags TAGS clang-analyze clang-tidy install uninstall
+FORCE:
+
+.PHONY:	all clean realclean file_locations tags TAGS clang-analyze clang-tidy install uninstall install_lib install_headers
 
 #
 # Rules for objects.
