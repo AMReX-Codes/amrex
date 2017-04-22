@@ -281,7 +281,7 @@ ParticleContainer<NR, NI, NA>::PeriodicShift (ParticleType& p) const
 }
 
 template <int NR, int NI, int NA>
-void
+ParticleLocData
 ParticleContainer<NR, NI, NA>::Reset (ParticleType&        p,
 				      bool                 update,
 				      bool                 verbose) const
@@ -310,6 +310,8 @@ ParticleContainer<NR, NI, NA>::Reset (ParticleType&        p,
 
 	p.m_idata.id = -p.m_idata.id;
     }
+
+    return pld;
 }
 
 template <int NR, int NI, int NA>
@@ -495,102 +497,6 @@ ParticleContainer<NR, NI, NA>::ByteSpread () const
 #ifdef BL_LAZY
     });
 #endif
-}
-
-template <int NR, int NI, int NA>
-void
-ParticleContainer<NR, NI, NA>::addOneParticle (int                  id_in,
-					       int                  cpu_in, 
-					       std::vector<double>& xloc, 
-					       std::vector<double>& attributes)
-{
-    BL_PROFILE("ParticleContainer<NR, NI, NA>::addOneParticle()");
-    if (m_particles.size() == 0) {
-        resizeData();
-    }
-
-    ParticleType p;
-
-    p.m_idata.id  = id_in;
-    p.m_idata.cpu = cpu_in;
-
-    if (p.m_idata.id <= 0)
-        amrex::Abort("Particle ID's must be > 0 in addOneParticle");
- 
-    if (ParallelDescriptor::MyProc() != p.m_idata.cpu)
-        amrex::Abort("cpu_in must equal MyProc() in addOneParticle");
-
-    for (int i = 0; i < BL_SPACEDIM; i++)
-       p.m_rdata.pos[i] = xloc[i];
-
-    for (int i = 0; i < NR; i++)
-       p.m_rdata.arr[i+BL_SPACEDIM] = attributes[i];
-
-    ParticleLocData pld;
-    if (!Where(p, pld))
-    {
-	PeriodicShift(p);
-	
-        if (!Where(p, pld))
-        {
-            amrex::AllPrint() << "BAD PARTICLE POS " << D_TERM(   p.m_rdata.pos[0],
-                                                               << p.m_rdata.pos[2],
-                                                               << p.m_rdata.pos[3]) << "\n";
-            amrex::Abort("ParticleContainer<NR, NI, NA>::addOneParticle(): invalid particle");
-        }
-    }
-    
-    m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
-    RedefineDummyMF(pld.m_lev);
-    
-    // Note that we will need to call Redistribute once we are done adding particles this way.
-    // The Where call above assigns a particle to a grid (pld.m_grid) based on the particle location.
-    // However, the particle may not currently live on the processor that owns that grid.
-    // The Redistribute routine should ensure that the particle ends up on the right processor.
-}
-
-template <int NR, int NI, int NA>
-void
-ParticleContainer<NR, NI, NA>::addNParticles(int n_part, Array<double>& x, Array<double>& y, 
-#if (BL_SPACEDIM == 3)
-                                                      Array<double>& z, 
-#endif
-                                          int n_attr, Array<double>& attributes)
-{
-    BL_PROFILE("ParticleContainer<NR, NI, NA>::addNParticles()");
-
-    BL_ASSERT(OK());
-    BL_ASSERT(NR >= BL_SPACEDIM+n_attr);
-
-    if (m_particles.size() == 0) {
-        resizeData();
-    }
-
-    ParticleLocData pld;
-
-    for (long j = 0; j < n_part; j++)
-    {
-       ParticleType p;
-
-       p.m_rdata.pos[j  ] = x[j]; // x
-       p.m_rdata.pos[j+1] = y[j]; // y
-#if (BL_SPACEDIM == 3)
-       p.m_rdata.pos[j+2] = z[j]; // z
-#endif
-
-       for (int i = 0; i < n_attr; i++)
-          p.m_rdata.arr[BL_SPACEDIM+i] = attributes[n_attr*j + i];
-
-       if (!Where(p, pld))
-	 amrex::Abort("ParticleContainer<NR, NI, NA>::addNParticles(): invalid particle location");
-
-       p.m_idata.id  = ParticleType::NextID();
-       p.m_idata.cpu = ParallelDescriptor::MyProc();
-
-       m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
-    }
-
-    Redistribute();
 }
 
 template <int NR, int NI, int NA>
