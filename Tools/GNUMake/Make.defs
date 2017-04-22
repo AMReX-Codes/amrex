@@ -89,6 +89,8 @@ F90PREP  	= cat  # a placeholder in case we have to write something later
 MKDEP		= perl $(AMREX_HOME)/Tools/C_scripts/mkdep
 MODDEP		= $(AMREX_HOME)/Tools/F_scripts/dep.py
 
+RANLIB          = ranlib
+
 EXE_OUTPUT_OPTION      = -o $(objEXETempDir)/$*.o
 FORT_EXE_OUTPUT_OPTION = -o $(objEXETempDir)/$*.o
 
@@ -279,6 +281,12 @@ depEXETempDir	= $(TmpBuildDir)/d/$(optionsSuffix).EXE
 objEXETempDir   = $(TmpBuildDir)/o/$(optionsSuffix).EXE
 f77EXETempDir	= $(TmpBuildDir)/f/$(optionsSuffix).EXE
 
+amrexlib = $(objEXETempDir)/libamrex.a
+
+AMREX_INSTALL_DIR ?= tmp_build_dir
+amrexLibDir = $(AMREX_INSTALL_DIR)/lib
+amrexIncludeDir = $(AMREX_INSTALL_DIR)/include
+
 #
 # For source code manipulation
 #
@@ -289,6 +297,7 @@ FSRCALL		= $(FEXE_sources) $(FEXE_headers)
 f90SRCALL	= $(f90EXE_sources) $(f90EXE_headers)
 F90SRCALL	= $(F90EXE_sources) $(F90EXE_headers)
 allSources	= $(CSRCALL) $(FSRCALL) $(F90SRCALL) $(cSRCALL) $(fSRCALL) $(f90SRCALL)
+allHeaders      = $(CEXE_headers) $(cEXE_headers) $(fEXE_headers) $(FEXE_headers) $(f90EXE_headers) $(F90EXE_headers)
 
 ifeq ($(USE_CCACHE),TRUE)
   CCACHE = ccache
