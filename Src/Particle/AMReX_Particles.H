@@ -442,11 +442,6 @@ public:
                          Real particleMass, const MultiFab& particle_mf);
     void InitNRandomPerCell (int n_per_cell, Real particleMass, const MultiFab& particle_mf);
 
-    void addOneParticle (int id_in, int cpu_in, 
-                         std::vector<Real>& xloc, std::vector<Real>& attributes); 
-    void addNParticles (int n, D_DECL(Array<Real>& x, Array<Real>& y, Array<Real>& z),
-                        int na, Array<Real>& attributes);
-
     void GetParticleIDs        (Array<int> & part_ids);
     void GetParticleCPU        (Array<int> & part_cpu);
     void GetParticleLocations  (Array<Real>& part_locs);
@@ -579,7 +574,7 @@ public:
     // that have left the domain. May need work (see inline comments)
     //
 
-    void Reset (ParticleType& prt, bool update, bool verbose=true) const; 
+    ParticleLocData Reset (ParticleType& prt, bool update, bool verbose=true) const; 
 
     //
     // Returns true if the particle was shifted.
