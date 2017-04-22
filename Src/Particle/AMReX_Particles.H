@@ -669,7 +669,7 @@ public:
     // that have left the domain. May need work (see inline comments)
     //
 
-    void Reset (ParticleType& prt, bool update, bool verbose=true) const; 
+    ParticleLocData Reset (ParticleType& prt, bool update, bool verbose=true) const; 
 
     //
     // Returns true if the particle was shifted.
