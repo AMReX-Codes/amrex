@@ -1,0 +1,1504 @@
+/*
+ *       {_       {__       {__{_______              {__      {__
+ *      {_ __     {_ {__   {___{__    {__             {__   {__  
+ *     {_  {__    {__ {__ { {__{__    {__     {__      {__ {__   
+ *    {__   {__   {__  {__  {__{_ {__       {_   {__     {__     
+ *   {______ {__  {__   {_  {__{__  {__    {_____ {__  {__ {__   
+ *  {__       {__ {__       {__{__    {__  {_         {__   {__  
+ * {__         {__{__       {__{__      {__  {____   {__      {__
+ *
+ */
+
+#include "AMReX_EBArith.H"
+
+
+namespace amrex
+{
+  /*******/
+  void
+  EBArith::
+  getAllVoFsInMonotonePath(std::vector<VolIndex>& a_vofList,
+                           const VolIndex&   a_vof,
+                           const EBISBox&    a_ebisBox,
+                           const int&        a_redistRad)
+  {
+    std::vector<VolIndex> vofsStencil;
+    IntVect timesMoved = IntVect::TheZeroVector();
+    IntVect pathSign   = IntVect::TheZeroVector();
+    EBArith::getAllVoFsInMonotonePath(vofsStencil, timesMoved,
+                                      pathSign, a_vof, a_ebisBox,
+                                      a_redistRad);
+    a_vofList = vofsStencil;
+  }
+  /*******/
+  void
+  EBArith::
+  getAllVoFsInMonotonePath(std::vector<VolIndex>& a_vofList,
+                           const IntVect&    a_timesMoved,
+                           const IntVect&    a_pathSign,
+                           const VolIndex&   a_vof,
+                           const EBISBox&    a_ebisBox,
+                           const int&        a_redistRad)
+  {
+    BL_PROFILE("EBArith::getAllVoFsInMonotonePath");
+    const Box& domain = a_ebisBox.getDomain();
+    if (domain.contains(a_vof.gridIndex()))
+    {
+      //check to see if we have already added it.
+      //if not, add it
+      bool found = false;
+      for (int ivof = 0; ivof < a_vofList.size(); ivof++)
+      {
+        if (a_vofList[ivof] == a_vof)
+        {
+          found = true;
+        }
+      }
+      if (!found)
+      {
+        a_vofList.push_back(a_vof);
+      }
+      for (int idir = 0; idir < SpaceDim; idir++)
+      {
+        //only move redist radius times in a direction
+        if (a_timesMoved[idir] < a_redistRad)
+        {
+          IntVect newTimesMoved = a_timesMoved;
+          newTimesMoved[idir]++;
+          //pathSign preserves monotonicity
+          //we set pathsign to -1 once you start in the low
+          //direction, 1 in the high direction.  It starts at zero
+
+          //if we started in the low direction or have not started
+          //add vofs on low side
+          if ((a_pathSign[idir] == -1) || (a_pathSign[idir] == 0))
+          {
+            IntVect newSign = a_pathSign;
+            newSign[idir] = -1;
+            std::vector<FaceIndex> facesLo =
+              a_ebisBox.getFaces(a_vof, idir, Side::Lo);
+            for (int iface = 0; iface < facesLo.size(); iface++)
+            {
+              VolIndex newVoF = facesLo[iface].getVoF(Side::Lo);
+              getAllVoFsInMonotonePath(a_vofList, newTimesMoved, newSign,
+                                       newVoF, a_ebisBox, a_redistRad);
+            }
+          }
+          //if we started in the high direction or have not started
+          //add vofs on high side
+          if ((a_pathSign[idir] == 1) || (a_pathSign[idir] == 0))
+          {
+            IntVect newSign = a_pathSign;
+            newSign[idir] = 1;
+            std::vector<FaceIndex> facesHi =
+              a_ebisBox.getFaces(a_vof, idir, Side::Hi);
+            for (int iface = 0; iface < facesHi.size(); iface++)
+            {
+              VolIndex newVoF = facesHi[iface].getVoF(Side::Hi);
+              getAllVoFsInMonotonePath(a_vofList, newTimesMoved, newSign,
+                                       newVoF, a_ebisBox, a_redistRad);
+            }
+          }
+        } //end if (we are less than redist radius away)
+      }//end loop over directions
+    }
+  }
+  /*******/
+  void
+  EBArith::
+  getVoFsDir(bool& a_hasClose, VolIndex& a_closeVoF,
+             bool& a_hasFar,   VolIndex& a_farVoF,
+             const EBISBox& a_ebisBox,
+             const VolIndex& a_vof,
+             int a_idir, Side::LoHiSide a_sd,
+             IntVectSet*    a_cfivsPtr)
+  {
+    a_hasClose = false;
+    a_hasFar   = false;
+    bool checkCFIVS = false;
+    if (a_cfivsPtr != NULL)
+    {
+      checkCFIVS = true;
+    }
+    //get faces on both sides to see in which direction we can do diffs
+    std::vector<FaceIndex> closeFaces = a_ebisBox.getFaces(a_vof, a_idir, a_sd);
+
+    //boundary faces and multi-valued faces are to be one-sided away from
+    a_hasClose = ((closeFaces.size() == 1) && (!closeFaces[0].isBoundary()));
+    if (a_hasClose)
+    {
+      a_closeVoF = closeFaces[0].getVoF(a_sd);
+      if (checkCFIVS && (*a_cfivsPtr).contains(a_closeVoF.gridIndex()))
+      {
+        a_hasClose = false;
+      }
+      std::vector<FaceIndex> farFaces = a_ebisBox.getFaces(a_closeVoF, a_idir, a_sd);
+      a_hasFar = ((farFaces.size() == 1) && (!farFaces[0].isBoundary()));
+      if (a_hasFar)
+      {
+        a_farVoF =  farFaces[0].getVoF(a_sd);
+        if (checkCFIVS && (*a_cfivsPtr).contains(a_farVoF.gridIndex()))
+        {
+          a_hasFar = false;
+        }
+      }
+    }
+  }
+  /*******/
+  void
+  EBArith::
+  getAllVoFsWithinRadius(std::vector<VolIndex>& a_vofList,
+                         const VolIndex&   a_vof,
+                         const EBISBox&    a_ebisBox,
+                         const int&        a_redistRad)
+  {
+    BL_PROFILE("EBArith::getAllVoFsWithinRadius(inner)");
+    a_vofList.clear();
+    Box grownBox(a_vof.gridIndex(), a_vof.gridIndex());
+    grownBox.grow(a_redistRad);
+    grownBox &= a_ebisBox.getDomain();
+    IntVectSet vis(grownBox);
+    VoFIterator vofit(vis, a_ebisBox.getEBGraph());
+    a_vofList = vofit.getVector();
+  }
+  int
+  EBArith::
+  getFirstDerivStencil(VoFStencil&      a_sten,
+                       const VolIndex&  a_vof,
+                       const EBISBox&   a_ebisBox,
+                       const int&       a_idir,
+                       const Real&      a_dx,
+                       IntVectSet*    a_cfivsPtr,
+                       int ivar)
+
+  {
+    BL_ASSERT(a_dx > 0.0);
+    BL_ASSERT(a_idir >= 0);
+    BL_ASSERT(a_idir <  SpaceDim);
+    int order;
+    bool hasLo, hasLower, hasHi, hasHigher;
+    VolIndex loVoF, lowerVoF, hiVoF, higherVoF;
+    EBArith::getVoFsDir(hasLo, loVoF, hasLower, lowerVoF,   a_ebisBox, a_vof, a_idir, Side::Lo, a_cfivsPtr);
+    EBArith::getVoFsDir(hasHi, hiVoF, hasHigher, higherVoF, a_ebisBox, a_vof, a_idir, Side::Hi, a_cfivsPtr);
+
+    //clear any residual stencil info
+    a_sten.clear();
+
+    if (hasHi && hasLo)
+    {
+      //if we have vofs on both sides, we do our friend the centered difference
+      order = 2;
+      a_sten.add(hiVoF,  1.0, ivar);
+      a_sten.add(loVoF, -1.0, ivar);
+      a_sten *= (1.0/(2.*a_dx));
+    }
+    else if (hasHi)
+    {
+      //if we only have vofs on the high side, we see if we can take a higher
+      //order one sided diff.   If not, we take simple one-sided diff and drop order
+      if (hasHigher)
+      {
+        a_sten.add(hiVoF,       4.0, ivar);
+        a_sten.add(higherVoF,  -1.0, ivar);
+        a_sten.add(a_vof,      -3.0, ivar);
+        a_sten *= (1.0/(2.*a_dx));
+        order = 2;
+      }
+      else
+      {
+        a_sten.add(hiVoF,       1.0, ivar);
+        a_sten.add(a_vof,      -1.0, ivar);
+        a_sten *= (1.0/(a_dx));
+        order = 1;
+      }
+    }
+    else if (hasLo)
+    {
+      //if we only have vofs on the low side, we see if we can take a higher
+      //order one sided diff.   If not, we take simple one-sided diff and drop order
+      if (hasLower)
+      {
+        a_sten.add(loVoF,      -4.0, ivar);
+        a_sten.add(lowerVoF,    1.0, ivar);
+        a_sten.add(a_vof,       3.0, ivar);
+        a_sten *= (1.0/(2.*a_dx));
+        order = 2;
+      }
+      else
+      {
+        a_sten.add(a_vof,       1.0, ivar);
+        a_sten.add(loVoF,      -1.0, ivar);
+        a_sten *= (1.0/(a_dx));
+        order = 1;
+      }
+    }
+    else
+    {
+      //no vofs on either side.   return cleared stencil and order=0
+      order = 0;
+    }
+
+    return order;
+  }
+///
+/**
+   Gets the stencil to take the first derivative of  cell centered data.
+*/
+  int
+  EBArith::
+  getSecondDerivStencil(VoFStencil&      a_sten,
+                        const VolIndex&  a_vof,
+                        const EBISBox&   a_ebisBox,
+                        const int&       a_idir,
+                        const Real&      a_dx,
+                        IntVectSet*    a_cfivsPtr,
+                        int ivar)
+  {
+    BL_PROFILE("EBArith::getSecondDerivStencil");
+    BL_ASSERT(a_dx > 0.0);
+    BL_ASSERT(a_idir >= 0);
+    BL_ASSERT(a_idir <  SpaceDim);
+    bool hasLo, hasLower, hasHi, hasHigher;
+    VolIndex loVoF, lowerVoF, hiVoF, higherVoF;
+    EBArith::getVoFsDir(hasLo, loVoF, hasLower, lowerVoF,   a_ebisBox, a_vof, a_idir, Side::Lo, a_cfivsPtr);
+    EBArith::getVoFsDir(hasHi, hiVoF, hasHigher, higherVoF, a_ebisBox, a_vof, a_idir, Side::Hi, a_cfivsPtr);
+    int order;
+
+    //clear any residual stencil info
+    a_sten.clear();
+
+
+    if (hasHi && hasLo)
+    {
+      //if we have vofs on both sides, we do our friend the centered difference
+      order = 2;
+      a_sten.add(hiVoF,  1.0, ivar);
+      a_sten.add(loVoF,  1.0, ivar);
+      a_sten.add(a_vof, -2.0, ivar);
+      a_sten *= (1.0/(a_dx*a_dx));
+    }
+    else if (hasHi)
+    {
+      //no vof on the low side
+      //if we can, shift stencil one to the high side
+      if (hasHigher)
+      {
+        a_sten.add(higherVoF,   1.0, ivar);
+        a_sten.add(a_vof,       1.0, ivar);
+        a_sten.add(hiVoF,      -2.0, ivar);
+        a_sten *= (1.0/(a_dx*a_dx));
+        order = 1;
+      }
+      else
+      {
+        //need 3 points
+        order = 0;
+      }
+    }
+    else if (hasLo)
+    {
+      //no vof on the high side
+      //if we can, shift stencil one to the low side
+      if (hasLower)
+      {
+        a_sten.add(lowerVoF,    1.0, ivar);
+        a_sten.add(a_vof,       1.0, ivar);
+        a_sten.add(loVoF,      -2.0, ivar);
+        a_sten *= (1.0/(a_dx*a_dx));
+        order = 1;
+      }
+      else
+      {
+        //need 3 points
+        order = 0;
+      }
+    }
+    else
+    {
+      //no vofs on either side.   return cleared stencil and order=0
+      order = 0;
+    }
+
+    return order;
+  }
+  /***************/
+  bool
+  EBArith::isVoFHere(VolIndex& a_vof2,
+                     const std::vector<VolIndex>& a_vofsStencil,
+                     const IntVect& a_cell2)
+  {
+    int whichVoF;
+    bool found = isVoFHere(a_vof2, whichVoF, a_vofsStencil, a_cell2);
+
+    return found;
+  }
+  /***********/
+  bool
+  EBArith::isVoFHere(VolIndex& a_vof2, int& a_whichVoF,
+                     const std::vector<VolIndex>& a_vofsStencil,
+                     const IntVect& a_cell2)
+  {
+    BL_PROFILE("EBArith::isVoFHere");
+    bool found = false;
+    for (int isten = 0; isten < a_vofsStencil.size(); isten++)
+    {
+      if (a_vofsStencil[isten].gridIndex() == a_cell2)
+      {
+        if (found == true)
+        {
+          //vof not unique.  return false;
+          return false;
+        }
+        else
+        {
+          found = true;
+          a_vof2 = a_vofsStencil[isten];
+          a_whichVoF = isten;
+        }
+      }
+    }
+
+    return found;
+  }
+  /***********/
+  int
+  EBArith::
+  getMixedDerivStencil(VoFStencil&      a_sten,
+                       const VolIndex&  a_vof,
+                       const EBISBox&   a_ebisBox,
+                       const int&       a_dir1,
+                       const int&       a_dir2,
+                       const Real&      a_dx1,
+                       const Real&      a_dx2,
+                       IntVectSet*    a_cfivsPtr,
+                       int ivar)
+  {
+    BL_PROFILE("EBArith::getMixedDerivStencil");
+    BL_ASSERT(a_dx1 > 0.0);
+    BL_ASSERT(a_dx2 > 0.0);
+    BL_ASSERT(a_dir1 >= 0);
+    BL_ASSERT(a_dir2 >= 0);
+    BL_ASSERT(a_dir1 <  SpaceDim);
+    BL_ASSERT(a_dir2 <  SpaceDim);
+    bool checkCFIVS = false;
+    if (a_cfivsPtr != NULL)
+    {
+      checkCFIVS = true;
+    }
+    int radius = 1;
+    std::vector<VolIndex> vofList;
+
+    EBArith::getAllVoFsInMonotonePath(vofList, a_vof, a_ebisBox, radius);
+
+
+    //clear any residual stencil info
+    a_sten.clear();
+
+    //see how many corners have all vofs available for a mixed stencil derivative
+    //and average the available stencils
+    int numSten = 0;
+    IntVect iv = a_vof.gridIndex();
+    IntVect ivOne, ivTwo, ivCor;
+    VolIndex vofOne, vofTwo, vofCor;
+    for (SideIterator sit1; sit1.ok(); ++sit1)
+    {
+      int sign1 = sign(sit1());
+      ivOne = iv + sign1*BASISV(a_dir1);
+      bool isOneHere = EBArith::isVoFHere(vofOne, vofList, ivOne);
+      if (isOneHere)
+      {
+        for (SideIterator sit2; sit2.ok(); ++sit2)
+        {
+          int sign2 = sign(sit2());
+          ivTwo = iv + sign2*BASISV(a_dir2);
+          bool isTwoHere = EBArith::isVoFHere(vofTwo, vofList, ivTwo);
+          if (isTwoHere)
+          {
+            ivCor = iv + sign2*BASISV(a_dir2) +  sign1*BASISV(a_dir1);
+            bool isCorHere = EBArith::isVoFHere(vofCor, vofList, ivCor);
+
+            if (isCorHere && checkCFIVS)
+            {
+              if ( (*a_cfivsPtr).contains(vofCor.gridIndex()) ||
+                   (*a_cfivsPtr).contains(vofOne.gridIndex()) ||
+                   (*a_cfivsPtr).contains(vofTwo.gridIndex()))
+              {
+                isCorHere = false;
+              }
+            }
+            if (isCorHere)
+            {
+              //if we have all vofs, construct the stencil.
+              Real rsign = Real(sign1*sign2);
+
+              VoFStencil mixedStencil;
+              mixedStencil.add(a_vof,   1.0, ivar);
+              mixedStencil.add(vofCor,  1.0, ivar);
+              mixedStencil.add(vofOne, -1.0, ivar);
+              mixedStencil.add(vofTwo, -1.0, ivar);
+
+              mixedStencil *= rsign/(a_dx1*a_dx2);
+
+              a_sten += mixedStencil;
+              numSten++;
+            }
+          }
+        }
+      }
+    }
+    int order = 0;
+    if (numSten > 0)
+    {
+      a_sten *= 1.0/numSten;
+
+      if (numSten == 4)
+      {
+        order = 2;
+      }
+      else
+      {
+        order = 1;
+      }
+    }
+
+    return order;
+  }
+  /******/
+  RealVect
+  EBArith::
+  getFaceLocation(const FaceIndex& a_face,
+                  const RealVect&  a_dx,
+                  const RealVect&  a_probLo)
+  {
+    BL_PROFILE("EBArith::getFaceLocation");
+    const IntVect& iv = a_face.gridIndex(Side::Hi);
+    RealVect loc = a_probLo;
+    for (int idir = 0; idir < SpaceDim; idir++)
+    {
+      if (idir == a_face.direction())
+      {
+        loc[idir] += a_dx[idir]*Real(iv[idir]);
+      }
+      else
+      {
+        loc[idir] += a_dx[idir]*(Real(iv[idir]) + 0.5);
+      }
+    }
+    return loc;
+  }
+  /***/
+  RealVect
+  EBArith::
+  getVofLocation(const VolIndex& a_vof,
+                 const RealVect& a_dx,
+                 const RealVect& a_probLo)
+  {
+    BL_PROFILE("EBArith::getVofLocation");
+    const IntVect& iv = a_vof.gridIndex();
+    RealVect loc = getIVLocation(iv,a_dx,a_probLo);
+    return loc;
+  }
+  RealVect
+  EBArith::
+  getIVLocation(const IntVect&  a_iv,
+                const RealVect& a_dx,
+                const RealVect& a_probLo)
+  {
+    BL_PROFILE("EBArith::getIVLocation");
+    RealVect loc = a_probLo;
+    for (int idir = 0; idir < SpaceDim; idir++)
+    {
+      loc[idir] += a_dx[idir]*(Real(a_iv[idir]) + 0.5);
+    }
+    return loc;
+  }
+  /****/
+  // This is the original way of doing the least squares stencil when eb normal points out of domain
+  // Only use stencil of all available vofs when symmetry is needed
+  void
+  EBArith::
+  getLeastSquaresGradSten(VoFStencil&     a_stencil,
+                          Real&           a_weight,
+                          const RealVect& a_normal  ,
+                          const RealVect& a_centroid,
+                          const VolIndex& a_vof,
+                          const EBISBox&  a_ebisBox,
+                          const RealVect& a_dx,
+                          const Box& a_domain,
+                          int a_ivar)
+  {
+    BL_PROFILE("EBArith::getLeastSquaresGradSten");
+    bool needSymStencil = true;
+    for (int idir=0; idir<SpaceDim; idir++)
+    {
+      if (needSymStencil)
+      {
+        if (abs(a_normal[idir]) != 1. && a_normal[idir] != 0.)
+        {
+          needSymStencil = false;
+        }
+      }
+    }
+
+    if (needSymStencil)
+    {
+      getLeastSquaresGradStenAllQuad(a_stencil, a_weight, a_normal,
+                                     a_centroid, a_vof, a_ebisBox,
+                                     a_dx,a_domain, a_ivar, true);
+      // getLeastSquaresGradStenAllVoFs(a_stencil, a_weight, a_normal,
+      //                                a_centroid, a_vof, a_ebisBox,
+      //                                a_dx,a_domain, a_ivar);
+    }
+    else
+    {
+      IntVect quadrant;
+      const RealVect& normal = a_ebisBox.normal(a_vof);
+      //IntVect iv0 = a_vof.gridIndex();
+
+      //Box domain = a_domain;
+      for (int idir=0; idir<SpaceDim; idir++)
+      {
+        // if (iv0[idir]==domain.smallEnd(idir))
+        //   {
+        //     quadrant[idir]=1;
+        //   }
+        // else if (iv0[idir]==domain.bigEnd(idir))
+        //   {
+        //     quadrant[idir]=-1;
+        //   }
+        // else
+        //   {
+        if (normal[idir] < 0)
+        {
+          quadrant[idir]=-1;
+        }
+        else
+        {
+          quadrant[idir]=1;
+        }
+        // }
+      }
+
+      getLeastSquaresGradSten(a_stencil, a_weight, a_normal, a_centroid,
+                              quadrant, a_vof, a_ebisBox, a_dx, a_domain,
+                              a_ivar);
+
+      if (a_stencil.size()==0)
+      {
+        getLeastSquaresGradStenAllQuad(a_stencil, a_weight, a_normal,
+                                       a_centroid, a_vof, a_ebisBox,
+                                       a_dx,a_domain, a_ivar);
+      }
+    }
+  }
+  /****/
+  void
+  EBArith::
+  getLeastSquaresGradStenAllQuad(VoFStencil&          a_stencil,
+                                 Real&                a_weight,
+                                 const RealVect&      a_normal,
+                                 const RealVect&      a_centroid,
+                                 const VolIndex&      a_vof,
+                                 const EBISBox&       a_ebisBox,
+                                 const RealVect&      a_dx,
+                                 const Box& a_domain,
+                                 int                  a_ivar,
+                                 bool                 a_doSymmetric)
+  {
+    BL_PROFILE("EBArith::getLeastSquaresGradStenAllQuad");
+    // if we've gotten here, then we shouldn't have a stencil
+    a_stencil.clear();
+    a_weight = 0.;
+    // number of valid stencils so far
+    int numValidStencils = 0;
+
+    // calculate the quadrant
+    IntVect quadrant;
+    //IntVect iv0 = a_vof.gridIndex();
+
+    for (int idir=0; idir<SpaceDim; idir++)
+    {
+      if (a_normal[idir] < 0)
+      {
+        quadrant[idir]=-1;
+      }
+      else
+      {
+        quadrant[idir]=1;
+      }
+    }
+
+    // next stencil candidate
+    VoFStencil curStencil;
+    IntVect curQuadrant;
+    Real curWeight = 0.;
+    bool validCurQuadrant;
+
+    // in symmetric case and near domain boundaries this quadrant will not
+    //  have been tried, so we try it here
+    getLeastSquaresGradSten(curStencil, curWeight, a_normal, a_centroid,
+                            quadrant, a_vof, a_ebisBox, a_dx, a_domain,
+                            a_ivar);
+
+    if (curStencil.size() != 0)
+    {
+      numValidStencils += 1;
+      a_stencil += curStencil;
+      a_weight += curWeight;
+    }
+
+    // cycle through directions, switching the sign of quadrant's
+    //  components looking for a better one
+    for (int idir=0; idir<SpaceDim; idir++)
+    {
+      curQuadrant = IntVect::TheUnitVector();
+      // first try flipping this direction
+      curQuadrant[idir] *= -1;
+      validCurQuadrant = curQuadrant != quadrant;
+      if (!a_doSymmetric)
+      {
+        validCurQuadrant = validCurQuadrant && (curQuadrant != -quadrant);
+      }
+      if (validCurQuadrant)
+      {
+        curStencil.clear();
+        curWeight = 0.;
+        getLeastSquaresGradSten(curStencil, curWeight, a_normal, a_centroid,
+                                curQuadrant, a_vof, a_ebisBox, a_dx, a_domain,
+                                a_ivar);
+
+        if (curStencil.size() != 0)
+        {
+          numValidStencils += 1;
+          a_stencil += curStencil;
+          a_weight += curWeight;
+        }
+      }
+#if BL_SPACEDIM == 3
+      // now try flipping a second direction
+      int jdir = (idir+1)%SpaceDim;
+      curQuadrant[jdir] *= -1;
+      validCurQuadrant = curQuadrant != quadrant;
+      if (!a_doSymmetric)
+      {
+        validCurQuadrant = validCurQuadrant && (curQuadrant != -quadrant);
+      }
+      if (validCurQuadrant)
+      {
+        curStencil.clear();
+        curWeight = 0.;
+        getLeastSquaresGradSten(curStencil, curWeight, a_normal, a_centroid,
+                                curQuadrant, a_vof, a_ebisBox, a_dx, a_domain,
+                                a_ivar);
+
+        if (curStencil.size() != 0)
+        {
+          numValidStencils += 1;
+          a_stencil += curStencil;
+          a_weight += curWeight;
+        }
+      }
+#endif
+    }
+    // lastly, try flipping all directions
+    curQuadrant = IntVect::TheUnitVector();
+    curQuadrant *= -1;
+    validCurQuadrant = curQuadrant != quadrant;
+    if (!a_doSymmetric)
+    {
+      validCurQuadrant = validCurQuadrant && (curQuadrant != -quadrant);
+    }
+    if (validCurQuadrant)
+    {
+      curStencil.clear();
+      curWeight = 0.;
+      getLeastSquaresGradSten(curStencil, curWeight, a_normal, a_centroid,
+                              curQuadrant, a_vof, a_ebisBox, a_dx, a_domain,
+                              a_ivar);
+
+      if (curStencil.size() != 0)
+      {
+        numValidStencils += 1;
+        a_stencil += curStencil;
+        a_weight += curWeight;
+      }
+    }
+
+    if (numValidStencils > 1)
+    {
+      a_stencil *= 1./numValidStencils;
+      a_weight *= 1./numValidStencils;
+    }
+  }
+  /***/
+  void
+  EBArith::calculateWeightingMatrix(RealVect           x0,
+                                    std::vector<RealVect>&  xp,
+                                    std::vector<RealVect>&  weightMatrix,
+                                    bool&              detZero)
+  {
+    BL_PROFILE("EBArith::calculateWeightingMatrix");
+    int stenSize = xp.size();
+
+    std::vector<RealVect> deltaX = xp;
+    for (int isten = 0; isten < stenSize; isten++)
+    {
+      deltaX[isten] -= x0;
+    }
+
+    std::vector<RealVect> aTransA(SpaceDim,RealVect::Zero), invATransA(SpaceDim,RealVect::Zero);
+    for (int idir = 0; idir < SpaceDim; idir++)
+    {
+      for (int jdir = 0; jdir < SpaceDim; jdir++)
+      {
+        for (int isten = 0; isten < stenSize; isten++)
+        {
+          aTransA[idir][jdir] = aTransA[idir][jdir]
+            + deltaX[isten][idir]*deltaX[isten][jdir];
+        }
+      }
+    }
+
+    Real det;
+#if   BL_SPACEDIM == 2
+    det = aTransA[0][0] * aTransA[1][1] - aTransA[0][1] * aTransA[1][0];
+    if (det < 1.e-15 && det > -1.e-15)
+    {
+      detZero = true;
+    }
+    else
+    {
+      invATransA[0][0] =  aTransA[1][1] / det;
+      invATransA[0][1] = -aTransA[0][1] / det;
+      invATransA[1][0] = -aTransA[1][0] / det;
+      invATransA[1][1] =  aTransA[0][0] / det;
+    }
+#elif BL_SPACEDIM == 3
+    det = aTransA[0][0] * ( aTransA[1][1] * aTransA[2][2]
+                            - aTransA[1][2] * aTransA[2][1])
+      + aTransA[0][1] * ( aTransA[1][2] * aTransA[2][0]
+                          - aTransA[1][0] * aTransA[2][2])
+      + aTransA[0][2] * ( aTransA[1][0] * aTransA[2][1]
+                          - aTransA[1][1] * aTransA[2][0]);
+
+    if (det < 1.e-15 && det > -1.e-15)
+    {
+      detZero = true;
+    }
+    else
+    {
+      invATransA[0][0] = ( aTransA[1][1] * aTransA[2][2]
+                           - aTransA[1][2] * aTransA[2][1]) / det;
+      invATransA[0][1] = ( aTransA[1][2] * aTransA[2][0]
+                           - aTransA[1][0] * aTransA[2][2]) / det;
+      invATransA[0][2] = ( aTransA[1][0] * aTransA[2][1]
+                           - aTransA[1][1] * aTransA[2][0]) / det;
+      invATransA[1][0] = ( aTransA[2][1] * aTransA[0][2]
+                           - aTransA[2][2] * aTransA[0][1]) / det;
+      invATransA[1][1] = ( aTransA[2][2] * aTransA[0][0]
+                           - aTransA[2][0] * aTransA[0][2]) / det;
+      invATransA[1][2] = ( aTransA[2][0] * aTransA[0][1]
+                           - aTransA[2][1] * aTransA[0][0]) / det;
+      invATransA[2][0] = ( aTransA[0][1] * aTransA[1][2]
+                           - aTransA[0][2] * aTransA[1][1]) / det;
+      invATransA[2][1] = ( aTransA[0][2] * aTransA[1][0]
+                           - aTransA[0][0] * aTransA[1][2]) / det;
+      invATransA[2][2] = ( aTransA[0][0] * aTransA[1][1]
+                           - aTransA[0][1] * aTransA[1][0]) / det;
+    }
+#else
+    THIS_IS_AN_ERROR_MESSAGE__THIS_WILL_ONLY_COMPILE_WHEN_CH_SPACEDIM_IS_2_OR_3;
+#endif
+
+    //if (!detZero)
+    {
+      weightMatrix.resize(stenSize,RealVect::Zero);
+      for (int idir = 0; idir < SpaceDim; idir++)
+      {
+        for (int isten = 0; isten < stenSize; isten++)
+        {
+          for (int jdir = 0; jdir < SpaceDim; jdir++)
+          {
+            weightMatrix[isten][idir] += invATransA[idir][jdir] * deltaX[isten][jdir];
+          }
+        }
+      }
+    }
+  }
+  void
+  EBArith::calculateWeightingMatrixRed(RealVect           x00,
+                                       std::vector<RealVect>&  xpp,
+                                       IntVect            dimm,
+                                       std::vector<RealVect>&  weightMatrix,
+                                       bool&              deadRed)
+  //CP: do the same thing for a reduced system, where some neighbors in the normal leastSquare stencil are covered
+  //some dimensions might also have vanished. these need to be recorded outside
+  //dimm[idir]==1, idir is valid, dimm[idir]==0, idir is missing
+
+  {
+    BL_PROFILE("EBArith::calculateWeightingMatrixRed");
+
+    int stenSize = xpp.size();
+
+    //now cast the problem to reduced dimension: make x0, xp
+    int nr = 0;
+    RealVect x0=RealVect::Zero;
+    std::vector<RealVect> xp(stenSize,RealVect::Zero);
+    IntVect dirN;
+    for (int idir = 0; idir< SpaceDim; idir++)
+    {
+      if (dimm[idir]>0)
+      {
+        nr++;
+        x0[nr-1] = x00[idir];
+        dirN[nr-1] = idir;
+        for (int isten = 0; isten < stenSize; isten++)
+        {
+          xp[isten][nr-1]=xpp[isten][idir];
+        }
+      }
+    }
+
+    std::vector<RealVect> deltaX = xp;
+    for (int isten = 0; isten < stenSize; isten++)
+    {
+      deltaX[isten] -= x0;
+    }
+
+    std::vector<RealVect> aTransA(SpaceDim,RealVect::Zero), invATransA(SpaceDim,RealVect::Zero);
+    //CP: using the fact that nr <= SpaceDim
+
+    for (int idir = 0; idir < nr; idir++)
+    {
+      for (int jdir = 0; jdir < nr; jdir++)
+      {
+        for (int isten = 0; isten < stenSize; isten++)
+        {
+          aTransA[idir][jdir] = aTransA[idir][jdir]
+            + deltaX[isten][idir]*deltaX[isten][jdir];
+        }
+      }
+    }
+
+    Real det;
+    if (nr == 1)
+    {
+      for (int isten = 0; isten< stenSize; isten++)
+      {
+        // this is worth more consideration when there is only one dimension
+        // should all cells be included?
+        invATransA[0][0] =  invATransA[0][0] + deltaX[isten][0]*deltaX[isten][0];
+      }
+      invATransA[0][0]=1/ invATransA[0][0];
+      if ((invATransA[0][0]) == 0.0) deadRed = true;
+    }
+    else if (nr == 2)
+    {
+      det = aTransA[0][0] * aTransA[1][1] - aTransA[0][1] * aTransA[1][0];
+
+      invATransA[0][0] =  aTransA[1][1] / det;
+      invATransA[0][1] = -aTransA[0][1] / det;
+      invATransA[1][0] = -aTransA[1][0] / det;
+      invATransA[1][1] =  aTransA[0][0] / det;
+      if ((det) == 0.0) deadRed = true;
+    }
+    else if (nr == 3)
+    {
+      det = aTransA[0][0] * ( aTransA[1][1] * aTransA[2][2]
+                              - aTransA[1][2] * aTransA[2][1])
+        + aTransA[0][1] * ( aTransA[1][2] * aTransA[2][0]
+                            - aTransA[1][0] * aTransA[2][2])
+        + aTransA[0][2] * ( aTransA[1][0] * aTransA[2][1]
+                            - aTransA[1][1] * aTransA[2][0]);
+      if (det< 0)
+      {
+
+      }
+      else if (det == 0)
+      {
+        deadRed = true;
+      }
+      else
+      {
+        invATransA[0][0] = ( aTransA[1][1] * aTransA[2][2]
+                             - aTransA[1][2] * aTransA[2][1]) / det;
+        invATransA[0][1] = ( aTransA[1][2] * aTransA[2][0]
+                             - aTransA[1][0] * aTransA[2][2]) / det;
+        invATransA[0][2] = ( aTransA[1][0] * aTransA[2][1]
+                             - aTransA[1][1] * aTransA[2][0]) / det;
+        invATransA[1][0] = ( aTransA[2][1] * aTransA[0][2]
+                             - aTransA[2][2] * aTransA[0][1]) / det;
+        invATransA[1][1] = ( aTransA[2][2] * aTransA[0][0]
+                             - aTransA[2][0] * aTransA[0][2]) / det;
+        invATransA[1][2] = ( aTransA[2][0] * aTransA[0][1]
+                             - aTransA[2][1] * aTransA[0][0]) / det;
+        invATransA[2][0] = ( aTransA[0][1] * aTransA[1][2]
+                             - aTransA[0][2] * aTransA[1][1]) / det;
+        invATransA[2][1] = ( aTransA[0][2] * aTransA[1][0]
+                             - aTransA[0][0] * aTransA[1][2]) / det;
+        invATransA[2][2] = ( aTransA[0][0] * aTransA[1][1]
+                             - aTransA[0][1] * aTransA[1][0]) / det;
+      }
+    }
+    else
+    {
+      BL_ASSERT(nr<=3 && nr>0);
+    }
+
+    weightMatrix.resize(stenSize,RealVect::Zero);
+    for (int idir = 0; idir < nr; idir++)
+    {
+      for (int isten = 0; isten < stenSize; isten++)
+      {
+        for (int jdir = 0; jdir < nr; jdir++)
+        {
+          weightMatrix[isten][dirN[idir]] += invATransA[idir][jdir] * deltaX[isten][jdir];
+          // direction offset: set to original dimension
+        }
+      }
+    }
+  }
+
+
+  /***************/
+  bool
+  EBArith::monotonePathVoFToCellVoF(VolIndex& a_vof2,
+                                    const VolIndex& a_vof1,
+                                    const IntVect& a_cell2,
+                                    const EBISBox& a_ebisBox)
+  {
+    BL_PROFILE("EBArith::monotonePathVoFToCellVoF");
+    IntVect diffVect = a_cell2 - a_vof1.gridIndex();
+    int imaxdiff = 0;
+    for (int idir = 0; idir < SpaceDim; idir++)
+    {
+      if (std::abs(diffVect[idir]) > imaxdiff)
+        imaxdiff = std::abs(diffVect[idir]);
+    }
+
+    IntVect timesMoved = IntVect::TheZeroVector();
+    IntVect pathSign   = IntVect::TheZeroVector();
+    std::vector<VolIndex> vofsStencil;
+    getAllVoFsInMonotonePath(vofsStencil, timesMoved,
+                             pathSign, a_vof1, a_ebisBox,
+                             imaxdiff);
+
+    bool found = isVoFHere(a_vof2,  vofsStencil, a_cell2);
+
+    return found;
+  }
+  // This is the actual solution to the least squares problem with the inversion of matrices and solution in flux form
+  void
+  EBArith::
+  getLeastSquaresGradSten(VoFStencil&     a_stencil,
+                          Real&           a_weight,
+                          const RealVect& a_normal,
+                          const RealVect& a_centroid,
+                          const IntVect&  a_quadrant,
+                          const VolIndex& a_vof,
+                          const EBISBox&  a_ebisBox,
+                          const RealVect& a_dx,
+                          const Box& a_domain,
+                          int a_ivar)
+  {
+    BL_PROFILE("EBArith::getLeastSquaresGradSten");
+    IntVect iv0 = a_vof.gridIndex();
+
+#if   BL_SPACEDIM == 2
+    int stenSize = 3;
+#elif BL_SPACEDIM == 3
+    int stenSize = 7;
+#else
+    THIS_IS_AN_ERROR_MESSAGE__THIS_WILL_ONLY_COMPILE_WHEN_BL_SPACEDIM_IS_2_OR_3;
+#endif
+    //Box domainBox = a_domain;
+    std::vector<IntVect> ivSten(stenSize);
+
+    ivSten[0] = iv0 + a_quadrant[0]*BASISV(0)                                                    ;
+    ivSten[1] = iv0                           + a_quadrant[1]*BASISV(1)                          ;
+    ivSten[2] = iv0 + a_quadrant[0]*BASISV(0) + a_quadrant[1]*BASISV(1)                          ;
+#if BL_SPACEDIM == 3
+    ivSten[3] = iv0                                                     + a_quadrant[2]*BASISV(2);
+    ivSten[4] = iv0 + a_quadrant[0]*BASISV(0)                           + a_quadrant[2]*BASISV(2);
+    ivSten[5] = iv0                           + a_quadrant[1]*BASISV(1) + a_quadrant[2]*BASISV(2);
+    ivSten[6] = iv0 + a_quadrant[0]*BASISV(0) + a_quadrant[1]*BASISV(1) + a_quadrant[2]*BASISV(2);
+#endif
+
+    bool dropOrder = false;
+
+    std::vector<VolIndex> volSten(stenSize);
+    for (int isten = 0; isten < stenSize; isten++)
+    {
+      //cp: it needs to be populated anyways
+      if (a_ebisBox.getDomain().contains(ivSten[isten]))
+      {
+        if (a_ebisBox.getVoFs(ivSten[isten]).size() > 0)
+        {
+          volSten[isten] = a_ebisBox.getVoFs(ivSten[isten])[0];
+        }
+        else
+        {
+          dropOrder = true;
+          volSten[isten] = VolIndex(IntVect(D_DECL(0,0,0)),0);
+          // break;
+        }
+      }
+      else
+      {
+        volSten[isten] = VolIndex(IntVect(D_DECL(0,0,0)),0);
+        dropOrder = true;
+        // break;
+      }
+    }
+
+    std::vector<bool> monotonePath(stenSize);
+    int nConn = stenSize;
+
+    //restrictive because if one of the cells in the quadrant is not there then drop order
+    for (int isten = 0; isten < stenSize; isten++)
+    {
+      monotonePath[isten] = EBArith::monotonePathVoFToCellVoF(volSten[isten],
+                                                              a_vof,
+                                                              ivSten[isten],
+                                                              a_ebisBox);
+      if (!monotonePath[isten])
+      {
+        dropOrder = true;
+        nConn--;
+      }
+    }
+
+    if (!dropOrder)
+    {
+      RealVect x0;
+      for (int idir = 0; idir < SpaceDim; idir++)
+      {
+        x0[idir] = a_dx[idir] * (0.5 + a_centroid[idir] + iv0[idir]);
+      }
+
+      std::vector<RealVect> xp(stenSize);
+      for (int isten = 0; isten < stenSize; isten++)
+      {
+        for (int idir = 0; idir < SpaceDim; idir++)
+        {
+          xp[isten][idir] = a_dx[idir] * (0.5 + ivSten[isten][idir]);
+        }
+      }
+
+      std::vector<RealVect> invATransAdeltaX(stenSize,RealVect::Zero);
+      bool detZero = false;
+      EBArith::calculateWeightingMatrix(x0, xp, invATransAdeltaX, detZero);
+
+      a_stencil.clear();
+      a_weight = 0.0;
+
+      //if (!detZero)
+      {
+        for (int isten = 0; isten < stenSize; isten++)
+        {
+          Real dphidnWeight = 0.0;
+          for (int idir = 0; idir < SpaceDim; idir++)
+          {
+            dphidnWeight -= invATransAdeltaX[isten][idir] * a_normal[idir];
+          }
+              
+          a_stencil.add(volSten[isten],dphidnWeight, a_ivar);
+          a_weight -= dphidnWeight;
+        }
+      }
+    }
+    else
+    {
+      bool deadCell = true;
+      if (nConn < 1)
+      {
+        deadCell = true;
+      }
+      else
+      {
+        //CP changed
+        //collect all potentially usable points for the stencil
+        RealVect x0;
+        for (int idir = 0; idir < SpaceDim; idir++)
+        {
+          x0[idir] = a_dx[idir] * (0.5 + a_centroid[idir] + iv0[idir]);
+        }
+
+        std::vector<RealVect> xp;
+        std::vector<int> volStenIdx;
+        int ns = 0;
+        for (int isten = 0; isten < stenSize; isten++)
+        {
+          if (monotonePath[isten])
+          {
+            xp.push_back(RealVect::Zero);
+            ns++;
+            volStenIdx.push_back(isten);
+            for (int idir = 0; idir < SpaceDim; idir++)
+            {
+              xp[ns-1][idir] = a_dx[idir] * (0.5 + ivSten[isten][idir]);
+            }
+          }
+        }
+
+        //determine which dimension to choose
+        IntVect dimm = IntVect::TheZeroVector();
+        IntVect mainDir = IntVect::TheZeroVector();
+        //int diagDir[SpaceDim][2*SpaceDim - 1];
+        int minDiag;
+        int nDiagN = 2*(SpaceDim-1)-1; // the number of diagonal neighbors in one direction. Is this calculation correct? It is for 2D and 3D
+        // mainDir and diagDir both contain neighbors' indices into monotonePath
+        // main direction is its side neighbor, diagDir is the corner neighbors
+        // how do I get diagDir? by looking at my 3D visualization box
+        // by setting minDiag, we control, in the case of mainDir missing, how many corner neighbors must exist to make this dimension "valid". To always require the side neighbor, set this > 3 in 3D and > 1 in 2D
+
+#if   BL_SPACEDIM == 2
+        int diagDir[2][1] =
+          {
+            {
+              2
+            },
+            {
+              2
+            }
+          };
+        mainDir   = IntVect(0,1);
+        minDiag= 2; //minDiag = 2 this will always require the face neighbor
+#elif BL_SPACEDIM == 3
+        mainDir   = IntVect(0,1,3);
+        int diagDir[3][3] =
+          {
+            {
+              2,4,6
+            },
+            {
+              2,5,6
+            },
+            {4,5,6
+            }
+          };
+        minDiag= 2;
+#else
+        THIS_IS_AN_ERROR_MESSAGE__THIS_WILL_ONLY_COMPILE_WHEN_BL_SPACEDIM_IS_2_OR_3;
+#endif
+        for (int iDir = 0; iDir < SpaceDim; iDir++)
+        {
+          if (monotonePath[mainDir[iDir]])
+          {
+            int diagCount = 0;
+            for (int jDiag = 0; jDiag< nDiagN; jDiag++)
+            {
+              if (monotonePath[diagDir[iDir][jDiag] ]) diagCount++;
+            }
+            if (diagCount >= 1) dimm[iDir]=1;
+          }
+          else
+            // face neighbor covered, counting number of diagonal neighbors
+          {
+            int diagCount = 0;
+            for (int jDiag = 0; jDiag< nDiagN; jDiag++)
+            {
+              if (monotonePath[diagDir[iDir][jDiag] ]) diagCount++;
+            }
+            if (diagCount >= minDiag) dimm[iDir]=1;
+          }
+        }
+        int dimsum=0;
+        for(int idir = 0; idir < SpaceDim; idir++)
+        {
+          dimsum+= dimm[idir];
+        }
+        if (dimsum<1)
+        {
+          deadCell = true;
+        }
+        else
+        {
+          //calculate weights, corresponding to all stencil points
+          std::vector<RealVect> invATransAdeltaX(ns,RealVect::Zero);
+          EBArith::calculateWeightingMatrixRed(x0,xp,dimm,invATransAdeltaX, deadCell);
+
+          a_stencil.clear();
+          a_weight = 0.0;
+
+          for (int isten = 0; isten < xp.size(); isten++)
+          {
+            Real dphidnWeight = 0.0;
+            for (int idir = 0; idir < SpaceDim; idir++)
+            {
+              dphidnWeight -= invATransAdeltaX[isten][idir] * a_normal[idir];
+            }
+
+            a_stencil.add(volSten[volStenIdx[isten]],dphidnWeight, a_ivar);
+            a_weight -= dphidnWeight;
+          }
+        }
+      }
+      if (deadCell)
+      {
+        a_stencil.clear();
+        a_weight = 0.0;
+      }
+    }
+  }
+  void
+  EBArith::dataRayCast(bool&               a_dropOrder,
+                       std::vector<VoFStencil>& a_pointStencils,
+                       std::vector<Real>&       a_distanceAlongLine,
+                       const RealVect&     a_normal,
+                       const RealVect&     a_bndryCentroid,
+                       const VolIndex&     a_vof,
+                       const EBISBox&      a_ebisBox,
+                       const RealVect&     a_dx,
+                       const IntVectSet&   a_cfivs,
+                       int a_ivar,
+                       int a_numPoints)
+  {
+    a_dropOrder = false;
+
+    BL_PROFILE("EBArith::johanStencil");
+    IntVect iv = a_vof.gridIndex();
+
+    //line starts at xb = location in physical space
+    //of boundary centroid
+    RealVect xb;
+    for (int idir = 0; idir < SpaceDim; idir++)
+    {
+      xb[idir] = a_dx[idir]*(Real(iv[idir]) + 0.5 + a_bndryCentroid[idir]);
+    }
+
+    // Find InterpDirection and hiLo
+    Real nMax = 0.0;
+    int nMaxDir = 0;
+
+    for (int idir = 0; idir < SpaceDim; ++idir)
+    {
+      if (std::abs(a_normal[idir]) > nMax)
+      {
+        nMax = std::abs(a_normal[idir]);
+        nMaxDir = idir;
+      }
+    }
+    //sometimes normals can be zero
+    if (std::abs(nMax) < 1.0e-15)
+    {
+      a_dropOrder = true;
+      return;
+    }
+    int hiLo = 1;
+    if (a_normal[nMaxDir] < 0.0)
+    {
+      hiLo = -1;
+    }
+
+    // Find Intersection of planes and ray
+    //and the cells in which they live
+    std::vector<RealVect> intersectLoc(a_numPoints);
+    std::vector<IntVect>   intersectIV(a_numPoints);
+    //equation of line
+    //y = y_b + (ny/nx)*(x-xb)
+    //we know x because that is the location of the
+    //next cell center over in the nMaxDir direction
+    //hiLo in the stencil depends on where the intersection point is in
+    //relation to the cell center of the intersecting cell
+    a_distanceAlongLine.resize(a_numPoints);
+    a_pointStencils.resize(a_numPoints);
+    const Box region = a_ebisBox.getRegion();
+
+    for (int iinter = 0; iinter < a_numPoints; iinter++)
+    {
+      intersectIV[iinter] = iv + (iinter+1)*hiLo*BASISV(nMaxDir);
+      // check whether intersectIV occurs outside of iv[idir!=nMaxDir]
+      for (int idir=0; idir<SpaceDim; idir++)
+      {
+        if (idir != nMaxDir)
+        {
+          // what direction are we looking in?
+          int isign = (a_normal[idir]<0.0) ? -1 : 1;
+          // how far do we go in idir as a result of moving
+          //  (iinter+1) cells in nMaxDir?
+          Real xDist = std::abs((Real(iinter+1)-hiLo*a_bndryCentroid[nMaxDir])
+                           *(a_normal[idir]/a_normal[nMaxDir]));
+          // how far from the boundary centroid to the idir cell-edge
+          Real xEdgeDist = std::abs(Real(isign)*0.5 - a_bndryCentroid[idir]);
+          if (xDist > xEdgeDist)
+          { // we're outside of iv[idir]. calculate by how many cells
+            //  and adjust intersectIV accordingly
+            intersectIV[iinter][idir] += isign*int(1+floor(xDist-xEdgeDist));
+          }
+        }
+      }
+
+      if (!region.contains(intersectIV[iinter]))
+      {
+        a_dropOrder = true;
+        return;
+      }
+      if (a_ebisBox.numVoFs(intersectIV[iinter]) != 1)
+      {
+        a_dropOrder = true;
+        return;
+      }
+      VolIndex centerVoF(intersectIV[iinter], 0);
+
+      //small cells as centers can be bad
+      if (a_ebisBox.volFrac(centerVoF) < 1.0e-7)
+      {
+        a_dropOrder = true;
+        return;
+      }
+
+      Real xMaxDir  = a_dx[nMaxDir]*(Real(intersectIV[iinter][nMaxDir]) + 0.5);
+      intersectLoc[iinter][nMaxDir] = xMaxDir;
+      a_distanceAlongLine[iinter] = (xMaxDir-xb[nMaxDir])*(xMaxDir-xb[nMaxDir]);
+      RealVect extrapDist = RealVect::Zero; //the initialization is important
+      //get location of intersection and the distance along the line
+      for (int idir = 0; idir < SpaceDim; idir++)
+      {
+        if (idir != nMaxDir)
+        {
+          Real normalRat = a_normal[idir]/a_normal[nMaxDir];
+          Real distDir =  normalRat*(xMaxDir-xb[nMaxDir]);
+          Real spaceLoc  =  xb[idir] + distDir;
+          intersectLoc[iinter][idir] = spaceLoc;
+          a_distanceAlongLine[iinter] += distDir*distDir;
+
+          //the nMaxDir value is set with RealVect::Zero initialization
+          //no extrapolation in the nmax dir
+          Real ccLoc = a_dx[idir]*(Real(intersectIV[iinter][idir]) + 0.5);
+          extrapDist[idir] = spaceLoc - ccLoc;
+        }
+      }
+
+      a_distanceAlongLine[iinter] = sqrt(a_distanceAlongLine[iinter]);
+
+      int order = getExtrapolationStencil(a_pointStencils[iinter], extrapDist,
+                                          a_dx, centerVoF, a_ebisBox, nMaxDir,
+                                          NULL, a_ivar);
+
+      //the returned order is the order of the derivs taken.  can tolerate 1 or 2
+      if (order == 0)
+      {
+        a_dropOrder = true;
+        return;
+      }
+    }//end loop over intersection points
+
+    return;
+  }
+  /****/
+  int
+  EBArith::
+  getExtrapolationStencil(VoFStencil&     a_stencil,
+                          const RealVect& a_dist,
+                          const RealVect& a_dx,
+                          const VolIndex& a_startVoF,
+                          const EBISBox&  a_ebisBox,
+                          int a_noExtrapThisDir,
+                          IntVectSet*    a_cfivsPtr,
+                          int ivar)
+  {
+    BL_PROFILE("EBArith::getExtrapolationStencil");
+    int order = 2;
+    a_stencil.clear();
+
+    //zeroth order Taylor series
+    a_stencil.add(a_startVoF,1.0,ivar);
+
+    //do taylor series extrapolation stencil
+    //get stencils for derivatives
+    int derivorder;
+    for (int idir = 0; idir < SpaceDim; idir++)
+    {
+      if (idir != a_noExtrapThisDir)
+      {
+        VoFStencil firstDSten;
+        derivorder = EBArith::getFirstDerivStencil(firstDSten,
+                                                   a_startVoF, a_ebisBox,
+                                                   idir, a_dx[idir], a_cfivsPtr, ivar);
+        order = std::min(order, derivorder);
+
+        firstDSten *= a_dist[idir];
+        a_stencil += firstDSten;
+
+        VoFStencil secondDSten;
+        derivorder = EBArith::getSecondDerivStencil(secondDSten,
+                                                    a_startVoF, a_ebisBox,
+                                                    idir, a_dx[idir], a_cfivsPtr, ivar);
+        order = std::min(order, derivorder);
+        secondDSten *= (0.5*a_dist[idir]*a_dist[idir]);
+        a_stencil += secondDSten;
+      }
+#if BL_SPACEDIM==3
+      int dir1, dir2;
+      EBArith::getDir1Dir2(dir1, dir2, idir);
+      if ((dir1 != a_noExtrapThisDir) && (dir2 != a_noExtrapThisDir))
+      {
+        VoFStencil mixedDSten;
+        derivorder = EBArith::getMixedDerivStencil(mixedDSten,
+                                                   a_startVoF, a_ebisBox,
+                                                   dir1, dir2, a_dx[dir1], a_dx[dir2], a_cfivsPtr, ivar);
+        order = std::min(order, derivorder);
+        mixedDSten *= (a_dist[dir1]*a_dist[dir2]);
+        a_stencil += mixedDSten;
+      }
+#endif
+    }
+
+#if BL_SPACEDIM==2
+    int dir1 = 0;
+    int dir2 = 1;
+    if ((dir1 != a_noExtrapThisDir) && (dir2 != a_noExtrapThisDir))
+    {
+      VoFStencil mixedDSten;
+      derivorder = EBArith::getMixedDerivStencil(mixedDSten,
+                                                 a_startVoF, a_ebisBox,
+                                                 dir1, dir2, a_dx[dir1], a_dx[dir2], a_cfivsPtr, ivar);
+      order = std::min(order, derivorder);
+      mixedDSten *= (a_dist[dir1]*a_dist[dir2]);
+      a_stencil += mixedDSten;
+    }
+#endif
+
+    return order;
+  }
+  /****/
+  void
+  EBArith::johanStencil(bool&               a_dropOrder,
+                        std::vector<VoFStencil>& a_pointStencils,
+                        std::vector<Real>&       a_distanceAlongLine,
+                        const VolIndex&     a_vof,
+                        const EBISBox&      a_ebisBox,
+                        const RealVect&     a_dx,
+                        const IntVectSet&   a_cfivs,
+                        int a_ivar)
+  {
+    //BL_PROFILE("EBArith::johanStencil");
+    //IntVect iv = a_vof.gridIndex();
+
+    // Do Johansen-Colella cast-a-ray algorithm
+    RealVect bndryCentroid = a_ebisBox.bndryCentroid(a_vof);
+    RealVect normal     = a_ebisBox.normal(a_vof);
+    //splitting up stuff this way to facillitate multifluid
+    //which can have multiple normals and boundary centroids per cell.
+    johanStencil(a_dropOrder, a_pointStencils, a_distanceAlongLine,
+                 normal, bndryCentroid,
+                 a_vof, a_ebisBox, a_dx, a_cfivs, a_ivar);
+  }
+  void
+  EBArith::johanStencil(bool&               a_dropOrder,
+                        std::vector<VoFStencil>& a_pointStencils,
+                        std::vector<Real>&       a_distanceAlongLine,
+                        const RealVect&     a_normal,
+                        const RealVect&     a_bndryCentroid,
+                        const VolIndex&     a_vof,
+                        const EBISBox&      a_ebisBox,
+                        const RealVect&     a_dx,
+                        const IntVectSet&   a_cfivs,
+                        int a_ivar)
+  {
+    int numExtrapPoints = 2;
+    EBArith::dataRayCast(a_dropOrder, a_pointStencils, a_distanceAlongLine, a_normal, a_bndryCentroid,
+                         a_vof, a_ebisBox, a_dx, a_cfivs, a_ivar, numExtrapPoints);
+  }
+}

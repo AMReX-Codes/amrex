@@ -333,10 +333,10 @@ namespace amrex
     makeGeometry(domainBoxFine,  dxFine, sphereCenter, sphereRadius);
     EBISLayout ebislFine, ebislCoar;
     const EBIndexSpace* const ebisPtr = AMReX_EBIS::instance();
-    ebisPtr->fillEBISLayout(ebislFine, dblFine, domainBoxFine, 0);
+    ebisPtr->fillEBISLayout(ebislFine, dblFine, dmfine, domainBoxFine, 0);
 
     makeGeometry(domainBoxCoar,  dxCoar, sphereCenter, sphereRadius);
-    ebisPtr->fillEBISLayout(ebislCoar, dblCoar, domainBoxCoar, 0);
+    ebisPtr->fillEBISLayout(ebislCoar, dblCoar, dmcoar,  domainBoxCoar, 0);
 
     //do the whole convergence test thing.
     bool failedTest = false;

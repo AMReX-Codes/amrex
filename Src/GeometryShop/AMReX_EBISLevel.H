@@ -110,6 +110,7 @@ namespace amrex
     ///
     void fillEBISLayout(EBISLayout     &         a_ebis,
                         const BoxArray &         a_grids,
+                        const DistributionMapping & a_dm,
                         const int      &         a_nghost) const;
 
     ~EBISLevel()
