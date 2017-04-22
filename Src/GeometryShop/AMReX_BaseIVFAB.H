@@ -120,6 +120,16 @@ namespace amrex
 
       }
 
+    //for aggStencil
+    const T* dataPtr(int a_dataType, int a_ivar) const
+      {
+        return dataPtr(a_ivar);
+      }
+    T* dataPtr(int a_dataType, int a_ivar) 
+      {
+        return dataPtr(a_ivar);
+      }
+    
     inline T* dataPtr(int a_ivar)
       {
         if(m_vofs) return m_data+a_ivar*m_vofs->size();
@@ -145,6 +155,16 @@ namespace amrex
     */
     virtual T* getIndex(const VolIndex& a_vof,const int& a_comp) const;
 
+    int numDataTypes() const
+      {
+        return 1;
+      }
+
+    /// for AggStencil
+    int   dataType(const BaseIndex& a_baseInd) const
+      {
+        return 0;
+      }
     ///for AggStencil
     long offset(const BaseIndex& a_vof, const int& a_ivar) const
       {

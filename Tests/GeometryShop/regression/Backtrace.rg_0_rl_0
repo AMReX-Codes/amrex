@@ -1,0 +1,45 @@
+=== If no file names and line numbers are shown below, one can run
+            addr2line -Cfie my_exefile my_line_address
+    to convert `my_line_address` (e.g., 0x4a6b) into file name and line number.
+
+=== Please note that the line number reported by addr2line may not be accurate.
+    One can use
+            readelf -wl my_exefile | grep my_line_address'
+    to find out the offset for that line.
+
+ 0: /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/levelRedistTest2d.gnu.DEBUG.COMM_PROF.ex() [0x4ff1b5]
+    amrex::BLBackTrace::print_backtrace_info(_IO_FILE*)
+    /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/../../../Src/Base/AMReX_BLBackTrace.cpp:88
+
+ 1: /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/levelRedistTest2d.gnu.DEBUG.COMM_PROF.ex() [0x4ff080]
+    amrex::BLBackTrace::handler(int)
+    /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/../../../Src/Base/AMReX_BLBackTrace.cpp:51
+
+ 2: /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/levelRedistTest2d.gnu.DEBUG.COMM_PROF.ex() [0x469795]
+    amrex::ParallelDescriptor::Abort(int, bool)
+    /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/../../../Src/Base/AMReX_ParallelDescriptor.cpp:1958
+
+ 3: /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/levelRedistTest2d.gnu.DEBUG.COMM_PROF.ex() [0x41e14f]
+    amrex::Assert(char const*, char const*, int)
+    /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/../../../Src/Base/AMReX.cpp:239
+
+ 4: /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/levelRedistTest2d.gnu.DEBUG.COMM_PROF.ex() [0x59a85c]
+    amrex::EBLevelRedist::redistribute(amrex::FabArray<amrex::EBCellFAB>&, int, int, int)
+    /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/../../../Src/GeometryShop/AMReX_EBLevelRedist.cpp:141
+
+ 5: /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/levelRedistTest2d.gnu.DEBUG.COMM_PROF.ex() [0x406d35]
+    amrex::testConservation()
+    /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/levelRedistTest.cpp:213
+
+ 6: /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/levelRedistTest2d.gnu.DEBUG.COMM_PROF.ex() [0x407680]
+    main
+    /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/levelRedistTest.cpp:280
+
+ 7: /lib/x86_64-linux-gnu/libc.so.6(__libc_start_main+0xf5) [0x2aaaab82bf45]
+    ??
+    ??:0
+
+ 8: /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/levelRedistTest2d.gnu.DEBUG.COMM_PROF.ex() [0x405b29]
+    _start
+    ??:?
+
