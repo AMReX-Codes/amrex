@@ -16,6 +16,8 @@ include $(Ppack)
 all: $(amrexlib)
 	@echo SUCCESS
 
+.PHONY: distclean
+
 distclean: realclean
 	$(SILENT) $(RM) GNUmakefile
 
