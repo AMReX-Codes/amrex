@@ -79,7 +79,7 @@ namespace amrex
       {
         for (int icomp = 0; icomp < nComp(); icomp++)
         {
-          m_regFAB(boxit(), icomp) = a_A*a_X.m_regFAB(boxit(), icomp) + a_B*a_Y.m_regFAB(boxit(), icomp);
+          m_regFAB(boxit(), icomp) = a_A*a_X.m_regFAB(boxit(), icomp) + a_B*a_Y.m_regFAB(boxit(), icomp); // 
         }
       }
 
@@ -96,6 +96,22 @@ namespace amrex
     return *this;
   }
 
+  void
+  EBCellFAB::
+  kappaWeight()
+  {
+    std::vector<VolIndex>  irrvofs = m_irrFAB.getVoFs();
+    for(int ivof = 0; ivof < irrvofs.size(); ivof++)
+    {
+        for (int icomp = 0; icomp < nComp(); icomp++)
+        {
+          const VolIndex& vof = irrvofs[ivof];
+          Real kappa = m_ebisBox.volFrac(vof);
+          m_irrFAB(vof, icomp) *= kappa; 
+        }
+    }
+  }
+
   EBCellFAB&
   EBCellFAB::plus(const EBCellFAB& a_src,
                   int a_srccomp,
@@ -109,9 +125,10 @@ namespace amrex
          
   EBCellFAB& EBCellFAB::plus(const EBCellFAB& a_src,
                              const Box& a_region,
-                             int a_srccomp,
-                             int a_dstcomp,
-                             int a_numcomp)
+                             int  a_srccomp,
+                             int  a_dstcomp,
+                             int  a_numcomp,
+                             Real a_scale)
   {
     BL_ASSERT(isDefined());
     BL_ASSERT(a_src.isDefined());
@@ -130,10 +147,22 @@ namespace amrex
         {
           int srcvar = a_srccomp + icomp;
           int dstvar = a_dstcomp + icomp;
-          m_regFAB(boxit(), dstvar) += a_src.m_regFAB(boxit(), srcvar);
+          m_regFAB(boxit(), dstvar) += a_scale*a_src.m_regFAB(boxit(), srcvar);
         }
       }
-      m_irrFAB.forall(a_src.m_irrFAB, locRegion, a_srccomp, a_dstcomp, a_numcomp, sameRegBox, [](Real& dest, const Real& src){dest+=src;});
+
+      std::vector<VolIndex>  irrvofs = m_irrFAB.getVoFs();
+      for(int ivof = 0; ivof < irrvofs.size(); ivof++)
+      {
+        for (int icomp = 0; icomp < nComp(); icomp++)
+        {
+          if(locRegion.contains(vof.gridIndex()))
+          {
+            const VolIndex& vof = irrvofs[ivof];
+            m_irrFAB(vof, icomp) = a_scale*a_src.m_irrFAB(vof, icomp);
+          }
+        }
+      }
     }
     return *this;
   }

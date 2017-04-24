@@ -47,13 +47,6 @@ namespace amrex
         {
           TagBox& tag = tags[mfi];
           const Box& bx = tag.box();
-//          IntVect testTag = 8*IntVect::TheUnitVector();
-//          testTag.coarsen(bf_lev[lev][0]);          
-//          if(bx.contains(testTag))
-//          {
-//            tag(testTag) = TagBox::SET;
-//          }
-
                                       
           for(BoxIterator boxit(bx); boxit.ok(); ++boxit)
           {
@@ -111,6 +104,187 @@ namespace amrex
       a_grids[lev] = amr.boxArray(lev);
     }
     
+  }
+  //-----------------------------------------------------------------------
+  void 
+  getAllIrregEBLG(Vector<EBLevelGrid>   & a_eblg,
+                  const GridParameters  & a_params)
+  {
+    BL_PROFILE("EBLevelDataOps::getAllIrregRefinedLayouts");
+    a_eblg.resize(a_params.numLevels);
+
+
+    //make the tags by refining everywhere and getting the irregular cells
+    std::vector<IntVectSet> tags(a_params.numLevels);
+    Box domlev = a_params.coarsestDomain;
+    for(int ilev = 0; ilev < a_params.numLevels; ilev++)
+    {
+      BoxArray bac(a_params.coarsestDomain);
+      bac.maxSize(a_params.maxGridSize);
+      DistributionMapping dmc(ba);
+      EBLevelGrid eblglev(bac, dmc, domlev, a_params.ghostEBISBox);
+      if(ilev < (a_params.numLevels-1))
+      {
+        domlev.refine(a_params.refRatio[ilev]);
+      }
+      for(MFIter mfi(bac, dmc); mfi.isValid(); ++mfi)
+      {
+        tags[ilev] |= eblglev.getEBISL()[mfi].getIrregIVS(grid);
+      }
+      //empty tags do bad things
+      if(tags[ilev].isEmpty())
+      {
+        tags[ilev] |= IntVect::TheZeroVector();
+      }
+    }
+
+    std::vector<BoxArray> grids;
+
+    MeshRefine(grids, tags, a_params.refRatio, a_params.maxLevel, 
+               a_params.blockFactor, a_params.bufferSize, a_params.maxGridSize, 
+               a_params.fillRatio, a_params.coarsestDomain);
+
+    domlev = a_params.coarsestDomain;
+    for(int ilev = 0; ilev < a_params.numLevels; ilev++)
+    {
+      DistributionMapping dm_lev(grids[ilev]);
+      a_eblg[ilev].define(grids[ilev], dm_lev, domlev, a_params.ghostEBISBox);
+    }
+  
+
+    Real totalPoints = 0;
+    long long totalBoxes  = 0;
+    for(int ilev = 0; ilev < a_params.numLevels; ilev++)
+    {
+      Real pointsThisLevel = 0;
+      for(LayoutIterator lit = a_grids[ilev].layoutIterator(); lit.ok(); ++lit)
+      {
+        pointsThisLevel += a_grids[ilev][lit()].numPts();
+      }
+      totalPoints += pointsThisLevel;
+      totalBoxes += a_grids[ilev].size();
+      pout() << "getAllIrregRefineLayouts:level[" << ilev
+             << "], number of boxes = " << a_grids[ilev].size()
+             << ", number of points = " << pointsThisLevel << endl;
+    }
+    pout() << "getAllIrregRefineLayouts:"
+           <<  "   total boxes = " << totalBoxes
+           <<  ", total points = " << totalPoints <<  endl;
+  }
+
+  /********/
+  void 
+  GridParameters::coarsen(int a_factor)
+  {
+    coarsestDx *= a_factor;
+    coarsestDomain.coarsen(a_factor);
+  }
+
+  /********/
+  void 
+  GridParameters::refine(int a_factor)
+  {
+    coarsestDx /= a_factor;
+    coarsestDomain.refine(a_factor);
+  }
+
+  /********/
+  void 
+  GridParameters::pout() const
+  {
+    ::amrex::Print() << "Input Parameters:                    "   << endl;
+    ::amrex::Print() <<"whichGeom           = " << whichGeom      << endl;
+    ::amrex::Print() <<"nCells              = " << nCells         << endl;
+    ::amrex::Print() <<"maxGridSize         = " << maxGridSize    << endl;
+    ::amrex::Print() <<"blockFactor         = " << blockFactor    << endl;
+    ::amrex::Print() <<"bufferSize          = " << bufferSize     << endl;
+    ::amrex::Print() <<"fillRatio           = " << fillRatio      << endl;
+    ::amrex::Print() <<"maxLevel            = " << maxLevel       << endl;
+    ::amrex::Print() <<"numLevels           = " << numLevels      << endl;
+    ::amrex::Print() <<"refRatio            = " << refRatio       << endl;
+    ::amrex::Print() <<"coarsestDomain      = " << coarsestDomain << endl;
+    ::amrex::Print() <<"coarsestDx          = " << coarsestDx     << endl;
+    ::amrex::Print() <<"domainLength        = " << domainLength   << endl;
+    ::amrex::Print() <<"ghostPhi            = " << ghostPhi       << endl;
+    ::amrex::Print() <<"ghostRHS            = " << ghostRHS       << endl;
+    ::amrex::Print() <<"ghostEBISBox        = " << ghostEBISBox   << endl;
+  }
+  /********/
+  void 
+  getGridParameters(GridParameters&  a_params, 
+                    int  a_forceMaxLevel,
+                    bool a_verbose)
+  {
+
+    ParmParse pp;
+
+    pp.get("which_geom"    , a_params.whichGeom            );
+
+    std::vector<int> nCellsArray(SpaceDim);
+    pp.getarr("n_cells",nCellsArray,0,SpaceDim);
+
+    for (int idir = 0; idir < SpaceDim; idir++)
+    {
+      a_params.nCells[idir] = nCellsArray[idir];
+      a_params.ghostPhi[idir] = 6;
+      a_params.ghostRHS[idir] = 6;
+    }
+    a_params.ghostEBISBox = 4;
+    amrex::Print() << "ghost cells phi = " << a_params.ghostPhi << ", ghost cells rhs = "  << a_params.ghostRHS << endl;
+    amrex::Print() << "number of ghost cells for EBISBox = " << a_params.ghostEBISBox << endl;
+  
+
+    if(a_forceMaxLevel == 0)
+    {
+      a_params.maxLevel  = 0;
+      a_params.numLevels = 1;
+      a_params.refRatio.resize(1,2);
+      a_params.blockFactor = 8;
+      a_params.fillRatio = 1;
+      a_params.bufferSize = 123;
+    }
+    else
+    {
+      if(a_forceMaxLevel >= 0)
+      {
+        a_params.maxLevel = a_forceMaxLevel;
+      }
+      else
+      {
+        pp.get("max_level", a_params.maxLevel);
+      }
+      a_params.numLevels = a_params.maxLevel + 1;
+      pp.getarr("ref_ratio",a_params.refRatio,0,a_params.numLevels);
+      pp.get("block_factor",a_params.blockFactor);
+      pp.get("fill_ratio",a_params.fillRatio);
+      pp.get("buffer_size",a_params.bufferSize);
+    }
+    IntVect lo = IntVect::Zero;
+    IntVect hi = a_params.nCells;
+    hi -= IntVect::Unit;
+
+    a_params.coarsestDomain = Box(lo, hi);
+
+    std::vector<Real> dLArray(SpaceDim);
+    pp.getarr("domain_length",dLArray,0,SpaceDim);
+    for (int idir = 0; idir < SpaceDim; idir++)
+    {
+      a_params.domainLength[idir] = dLArray[idir];
+    }
+
+    pp.get("which_geom",   a_params.whichGeom);
+    pp.get("max_grid_size",a_params.maxGridSize);
+
+    //derived stuff
+    a_params.coarsestDx = a_params.domainLength[0]/a_params.nCells[0];
+
+    a_params.probLo = RealVect::Zero;
+    a_params.probHi = RealVect::Zero;
+    a_params.probHi += a_params.domainLength;
+    if(a_verbose)
+    {
+      a_params.pout();
+    }
   }
 }
 

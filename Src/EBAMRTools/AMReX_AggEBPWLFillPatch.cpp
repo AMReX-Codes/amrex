@@ -524,6 +524,11 @@ namespace amrex
       //this bit will have to wait until fillpatch gets generalized
     }
                
+     FabArray<EBCellFAB>& castOld= const_cast<FabArray<EBCellFAB>& >(a_coarDataOld); 
+     FabArray<EBCellFAB>& castNew= const_cast<FabArray<EBCellFAB>& >(a_coarDataNew);
+     castOld.FillBoundary();
+     castNew.FillBoundary();
+
 //    if(!m_forceNoEBCF)
     //now we have to do this everywhere
     {

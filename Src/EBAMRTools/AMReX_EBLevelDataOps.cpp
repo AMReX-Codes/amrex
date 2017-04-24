@@ -20,7 +20,7 @@
 
 namespace amrex
 {
-
+  //-----------------------------------------------------------------------
   void
   EBLevelDataOps::checkData(const FabArray<EBCellFAB>&a_data, const string& label)
   {
@@ -39,8 +39,7 @@ namespace amrex
     amrex::Print() << "==================================================================== " << std::"\n";
     barrier();
   }
-
-/*****/
+  //-----------------------------------------------------------------------
   Real EBLevelDataOps::parallelSum(const Real& a_value)
   {
     // Find the sum of all a_value's
@@ -56,8 +55,7 @@ namespace amrex
 #endif
     return sum;
   }
-
-/*****/
+  //-----------------------------------------------------------------------
   int  EBLevelDataOps::parallelSum(const int& a_value)
   {
     // Find the sum of all a_value's
@@ -73,8 +71,7 @@ namespace amrex
 #endif
     return sum;
   }
-
-/*****/
+  //-----------------------------------------------------------------------
   long long EBLevelDataOps::parallelSum(const long long& a_value)
   {
     // Find the sum of all a_value's
@@ -90,8 +87,6 @@ namespace amrex
 #endif
     return sum;
   }
-
-/*****/
   int EBLevelDataOps::parallelMin(const int& a_value)
   {
     // Find the minimum of a_value's
@@ -107,8 +102,7 @@ namespace amrex
 #endif
     return val;
   }
-
-/*****/
+  //-----------------------------------------------------------------------
   int  EBLevelDataOps::parallelMax(const int& a_value)
   {
     // Find the maximum of a_value's
@@ -124,7 +118,7 @@ namespace amrex
 #endif
     return val;
   }
-/*****/
+  //-----------------------------------------------------------------------
   Real EBLevelDataOps::parallelMin(const Real& a_value)
   {
     // Find the minimum of a_value's
@@ -140,8 +134,7 @@ namespace amrex
 #endif
     return val;
   }
-
-/*****/
+  //-----------------------------------------------------------------------
   Real EBLevelDataOps::parallelMax(const Real& a_value)
   {
     // Find the maximum of a_value's
@@ -159,19 +152,18 @@ namespace amrex
   }
 
 
+  //-----------------------------------------------------------------------
   void EBLevelDataOps::setCoveredVal(FabArray<EBCellFAB>&a_data,
                                      const int&           a_comp,
                                      const Real&          a_value)
   {
-    CH_TIME("EBLevelDataOps::setCoveredVal(cell,comp)");
+    BL_PROFILE("EBLevelDataOps::setCoveredVal(cell,comp)");
     for(MFIter mfi(a_data); mfi.isValid(); ++mfi)
     {
       a_data[mfi].setCoveredCellVal(a_value,a_comp);
     }
   }
-
-
-
+  //-----------------------------------------------------------------------
   bool 
   EBLevelDataOps::checkForBogusNumbers(const FabArray<EBCellFAB>&a_data)
   {
@@ -214,13 +206,14 @@ namespace amrex
     }
     return dataIsNANINF;
   }
+  //-----------------------------------------------------------------------
   void EBLevelDataOps::getMaxMin(Real&                       a_maxVal,
                                  Real&                       a_minVal,
                                  const FabArray<EBCellFAB>& a_data,
                                  const int&                  a_comp,
                                  const bool&                 a_doAbs)
   {
-    CH_TIME("EBLevelDataOps::getMaxMin");
+    BL_PROFILE("EBLevelDataOps::getMaxMin");
     //this function gets the max and min (valid) values
     a_maxVal = -1.e99;
     a_minVal =  1.e99;
@@ -239,13 +232,13 @@ namespace amrex
         const Real& val = dataEBFAB(vof,a_comp);
         if (a_doAbs)
         {
-          a_maxVal = Max(a_maxVal,Abs(val));
-          a_minVal = Min(a_minVal,Abs(val));
+          a_maxVal = std::max(a_maxVal,Abs(val));
+          a_minVal = std::min(a_minVal,Abs(val));
         }
         else
         {
-          a_maxVal = Max(a_maxVal,val);
-          a_minVal = Min(a_minVal,val);
+          a_maxVal = std::max(a_maxVal,val);
+          a_minVal = std::min(a_minVal,val);
         }
       }
     }
@@ -254,6 +247,7 @@ namespace amrex
   }
 
 
+  //-----------------------------------------------------------------------
   void EBLevelDataOps::setVal(FabArray<EBCellFAB>& a_result,
                               const Real&           a_value,
                               const int&            a_comp)
@@ -265,90 +259,67 @@ namespace amrex
   }
 
 
+  //-----------------------------------------------------------------------
   void EBLevelDataOps::axby( FabArray<EBCellFAB>&       a_lhs,
                              const FabArray<EBCellFAB>& a_x,
                              const FabArray<EBCellFAB>& a_y,
                              const Real& a,
                              const Real& b)
   {
-    //  CH_assert(a_lhs.boxArray() == a_x.boxArray());
-
-    DataIterator dit = a_lhs.dataIterator();
-    int nbox=dit.size();
-#pragma omp parallel for
-    for (int mybox=0;mybox<nbox; mybox++)
+    for(MFIter mfi(a_lhs); mfi.isValid(); ++mfi)
     {
-      DataIndex d = dit[mybox];
-
-      EBCellFAB& data = a_lhs[d];
-      data.axby(a_x[d], a_y[d], a, b);
+      lhs[mfi].axby(a_x[mfi], a_y[mfi], a, b);
     }
   }
 
+  //-----------------------------------------------------------------------
   void EBLevelDataOps::assign(FabArray<EBCellFAB>& a_lhs,
                               const FabArray<EBCellFAB>& a_rhs,
                               const Real& a_scale)
   {
-    CH_TIME("EBLevelDataOps::assign(to,from)");
+    BL_PROFILE("EBLevelDataOps::assign(to,from)");
     setVal(a_lhs, 0.);
     incr(a_lhs, a_rhs, a_scale);
   }
 
+  //-----------------------------------------------------------------------
   void EBLevelDataOps::incr( FabArray<EBCellFAB>& a_lhs,
                              const FabArray<EBCellFAB>& a_rhs,
                              const Real& a_scale)
   {
-    //  CH_assert(a_lhs.boxArray() == a_rhs.boxArray());
-    DataIterator dit = a_lhs.dataIterator();
-    int nbox=dit.size();
-#pragma omp parallel for
-    for (int mybox=0;mybox<nbox; mybox++)
-    {
-      DataIndex d = dit[mybox];
+    BL_PROFILE("EBLevelDataOps::incr");
+    BL_ASSERT(a_lhs.nComp()  == a_rhs.nComp());
 
-      a_lhs[d].plus(a_rhs[d], a_scale);
+    for(MFIter mfi(a_lhs); mfi.isValid(); ++mfi)
+    {
+      a_lhs[mfi].plus(a_rhs[mfi], 0, 0, a_lhs.nComp(), a_scale);
     }
   }
-
-
+  //-----------------------------------------------------------------------
   void EBLevelDataOps::scale(FabArray<EBCellFAB>& a_result,
-                             const Real&           a_value,
-                             const int&            a_comp)
+                             const Real&           a_value)
   {
-    DataIterator dit = a_result.dataIterator();
-    int nbox=dit.size();
-#pragma omp parallel for
-    for (int mybox=0;mybox<nbox; mybox++)
+    BL_PROFILE("EBLevelDataOps::scale");
+    for(MFIter mfi(a_lhs); mfi.isValid(); ++mfi)
     {
-      DataIndex d = dit[mybox];
-
-      EBCellFAB& result = a_result[d];
-  
-      result.mult(a_value,a_comp, 1);
+      a_result[mfi] *= a_value;
     }
   }
-
-//-----------------------------------------------------------------------
+  //-----------------------------------------------------------------------
   void EBLevelDataOps::kappaWeight(FabArray<EBCellFAB>& a_data)
   {
-    DataIterator dit = a_data.dataIterator();
-    int nbox=dit.size();
-#pragma omp parallel for
-    for (int mybox=0;mybox<nbox; mybox++)
+    BL_PROFILE("EBLevelDataOps::kappaWeight");
+    for(MFIter mfi(a_lhs); mfi.isValid(); ++mfi)
     {
-      DataIndex d = dit[mybox];
-
-      EBCellFAB& data = a_data[d];
-
-      kappaWeight(data);
+      a_data[mfi].kappaWeight();
     }
   }
-//-----------------------------------------------------------------------
 
-
+  //-----------------------------------------------------------------------
   void EBLevelDataOps::gatherBroadCast(Real& a_accum, Real& a_volume, const int& a_p)
   {
-    //   Vector<Real> accum(1,a_accum);
+    BL_PROFILE("EBLevelDataOps::gatherBroadcast1");
+    //   std::vector<Real> accum(1,a_accum);
 //   gatherBroadCast(accum, a_volume, a_p);
 //   a_accum = accum[0];
 #ifdef BL_USE_MPI
@@ -368,74 +339,195 @@ namespace amrex
 #endif
 
   }
-
-  void EBLevelDataOps::gatherBroadCast(Vector<Real>& a_accum, Real& a_volume, const int& a_p)
+  //-----------------------------------------------------------------------
+  Real 
+  EBLevelDataOps::
+  norm(Real&                       a_volume,
+       const FabArray<EBCellFAB>&  a_data,
+       const EBLevelGrid        &  a_eblg,
+       int                         a_p,
+       int                         a_comp)
   {
-#ifdef BL_USE_MPI
+    Real integral  = 0;
+    Real volume    = 0;
+    for(MFIter mfi(a_eblg.getDBL(), a_eblg.getDM()); mfi.isValid(); ++mfi)
     {
-      CH_TIME("MPI_Barrier EBLevelDataOps::gatherBroadcast");
-      MPI_Barrier(MPI_COMM_WORLD);
-    }
-#endif
-    //gather what each processor thinks is the accum and volume
-    int ncomp = a_accum.size();
-    Real volumeLoc = a_volume;
-    Vector<Real> accumLoc  = a_accum;
-
-    Vector<Real> volumeVec;
-    Vector<Vector<Real> > accumVec;
-    int baseproc = 0;
-    gather(volumeVec, volumeLoc, baseproc);
-    gather( accumVec,  accumLoc, baseproc);
-
-    a_volume = 0.;
-    for (int i=0; i<ncomp; i++) a_accum[i]=0.0;
-    if (procID() == baseproc)
-    {
-      for (int ivec = 0; ivec < numProc(); ivec++)
+      const EBCellFAB& data =    a_data[mfi];
+      Box     grid  = a_eblg.getDBL()  [mfi];
+      EBISBox ebis  = a_eblg.getEBISL()[mfi];
+      for(VoFIterator vofit(IntVectSet(grid), ebis.getEBGraph()); vofit.ok(); ++vofit)
       {
-        a_volume += volumeVec[ivec];
-        Vector<Real> cur =   accumVec[ivec];
-        for (int i=0; i<ncomp; i++)
+        Real value   = data(vof, a_comp);
+        Real volFrac = ebis.volFrac(vof);
+        volume += volFrac;
+        if(a_p == 0)
         {
-          if (a_p == 0)
-          {
-            if (cur[i] > a_accum[i])
-            {
-              a_accum[i] = cur[i];
-            }
-          }
-          else
-          {
-            a_accum[i]  += cur[i];
-          }
+          //p = 0 --- max norm
+          integral  = std::max(integral, value);
+        }
+        else if(a_p == 1)
+        {
+          // p = 1 L1 norm (integral |phi| dV)
+          integral += volFrac*std::abs(value);
+        }
+        else if(a_p == 2)
+        {
+          // p = 1 L2 norm (integral phi^2 dV)
+          integral += volFrac*value*value;
+        }
+        else
+        {
+          amrex::Error("bogus norm value sent into EBLevelDataOps::norm");
+        }
+      }
+    }
+    //the values above are local to this proc.  now gather-broadcast to make them global
+    gatherBroadCast(integral, volume, a_p);
+    
+    Real norm;
+    if(a_p == 0)
+    {
+      //p = 0 --- max norm
+      norm = integral;
+    }
+    else if(a_p == 1)
+    {
+      // p = 1 L1 norm (integral |phi| dV)
+      //this check should be OK since there is no grid spacing here 
+      // any single cell should have a volfrac > 1.0e-10
+      if(volume > 1.0e-10)
+      {
+        norm = integral/volume;
+      }
+      else
+      {
+        norm = 0;
+      }
+    }
+    else if(a_p == 2)
+    {
+      // p = 1 L2 norm (integral phi^2 dV)
+      //this check should be OK since there is no grid spacing here 
+      // any single cell should have a volfrac > 1.0e-10
+      if(volume > 1.0e-10)
+      {
+        norm = sqrt(integral/volume);
+      }
+      else
+      {
+        norm = 0;
+      }
+    }
+    else
+    {
+      amrex::Error("bogus norm value sent into EBLevelDataOps::norm");
+    }
+
+    return norm;
+  }
+  //-----------------------------------------------------------------------
+  void 
+  EBLevelDataOps::
+  compareError(const FabArray<EBCellFAB>       &   a_errorFine,
+               const FabArray<EBCellFAB>       &   a_errorCoar,
+               const EBLevelGrid               &   a_eblgFine,
+               const EBLevelGrid               &   a_eblgCoar,
+               std::vector<string>                 a_names)
+  {
+    const Vector<int>& refRat = a_refRat;
+    const int ncomp = a_errorFine[0]->nComp();
+    bool useDefaultNames = (a_names.size() < ncomp);
+
+
+    std::vector<Real> coarNorm[3], fineNorm[3], order[3];  //one for each type of norm;
+    for (int p = 0; p <=2;  p++)
+    {
+      coarNorm[p].resize(ncomp, 0.);
+      fineNorm[p].resize(ncomp, 0.);
+      order   [p].resize(ncomp, 0.);
+    }
+  
+    for (int comp = 0; comp < ncomp; comp++)
+    {
+      for (int p = 0; p <=2;  p++)
+      {
+        Real coarVolu, fineVolu;
+        coarNorm[p][comp] = norm(coarVolu, a_errorCoar, a_eblgCoar, p, comp);
+        fineNorm[p][comp] = norm(fineVolu, a_errorFine, a_eblgFine, p, comp);
+
+        if ((std::abs(fineNorm[p][comp]) > 1.0e-10) && (std::abs(coarNorm)[p][comp] > 1.0e-10))
+        {
+          orders[p][comp] = log(Abs(coarNorm[p][comp]/fineNorm[p][comp]))/log(2.0);
         }
       }
     }
 
-    //broadcast the sum to all processors.
-    broadcast( a_accum, baseproc);
-    broadcast(a_volume, baseproc);
-  }
-  /*********/
-  Real 
-  EBLevelDataOps::
-  norm(Real&                       a_volume,
-       const FabArray<EBCellFAB>& a_data,
-       const ProblemDomain&        a_domain,
-       int                         a_p,
-       int                         a_comp)
-  {
-  }
-  /*********/
-  void 
-  EBLevelDataOps::
-  compareError(std::vector<Real>               &   a_orders,
-               const FabArray<EBCellFAB>       &   a_errorFine,
-               const FabArray<EBCellFAB>       &   a_errorCoar,
-               const Box                       &   a_domain,
-               std::vector<string>                 a_names)
-  {
-    amrex::Error("not implemented");
+    int ncoar = a_eblgCoar.getDomain().size()[0];
+    int nmedi = 2*ncoar;
+
+    amrex::Print()    << setw(12)
+                      << setprecision(6)
+                      << setiosflags(ios::showpoint)
+                      << setiosflags(ios::scientific);
+
+    amrex::Print() << "\\begin{table}[p]" << endl;
+    amrex::Print() << "\\begin{center}" << endl;
+    amrex::Print() << "\\begin{tabular}{|cccc|} \\hline" << endl;
+    amrex::Print() << "Variable & norm & $e_{f}$ & Order & $e_{c}$\\\\" << endl;;
+    amrex::Print() << "\\hline " << endl;
+
+    for (int inorm = 0; inorm <= 2; inorm++)
+    {
+
+      for (int icomp = 0; icomp < ncomp; icomp++)
+      {
+        Real normCoar = coarNorm[inorm][icomp];
+        Real normFine = fineNorm[inorm][icomp];
+        Real order    =   orders[inorm][icomp];
+
+        if (!useDefaultNames)
+        {
+          amrex::Print() << setw(14) << a_names[icomp] << " &    \t ";
+        }
+        else
+        {
+          amrex::Print() << "var" << icomp << " &    \t ";
+        }
+
+        if(inorm == 0)
+        {
+          amrex::Print() << "L_\\infty  & \t ";
+        }
+        else
+        {
+          amrex::Print() << "L_" << inorm << " & \t ";
+        }
+
+        amrex::Print() << setw(12)
+                       << setprecision(6)
+                       << setiosflags(ios::showpoint)
+                       << setiosflags(ios::scientific)
+                       << normCoar  << " & "
+                       << setw(12)
+                       << setprecision(3)
+                       << setiosflags(ios::showpoint)
+                       << setiosflags(ios::scientific)
+                       << order << " & "
+                       << setw(12)
+                       << setprecision(6)
+                       << setiosflags(ios::showpoint)
+                       << setiosflags(ios::scientific)
+                       << normFine;
+        amrex::Print() << " \\\\ " << endl;
+      }
+
+      amrex::Print() << "\\hline " << endl;
+      amrex::Print() << "\\end{tabular}" << endl;
+      amrex::Print() << "\\end{center}" << endl;
+      amrex::Print() << "\\caption{Convergence rates for $nx_f = " << nmedi << ", nx_c = nx_f/2$.} " << endl;
+      amrex::Print() << "\\end{table}" << endl;
+      amrex::Print() << endl << endl;
+    }
+
   }
 }

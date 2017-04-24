@@ -20,14 +20,16 @@
 #include "AMReX_EBISLayout.H"
 
 
+//for creating simple grids for tests
 namespace amrex
 {
-///
-/**
-   Repository of useful EB functions over a level.  All functions are static so just
-   use EBFabArrayOps::blah(...);
-*/
-  class EBFabArrayOps
+
+  ///
+  /**
+     Repository of useful EB functions over a level.  All functions are static so just
+     use EBFabArrayOps::blah(...);
+  */
+  class EBLevelDataOps
   {
   public:
     EBFabArrayOps()
@@ -135,11 +137,6 @@ namespace amrex
      */
     static void gatherBroadCast(Real& a_accum, Real& a_volume, const int& a_p);
 
-    ///
-    /**
-     */
-    static void gatherBroadCast(std::vector<Real>& a_accum, Real& a_volume, const int& a_p);
-
 
     ///
     static void axby( FabArray<EBCellFAB>&       a_lhs,
@@ -152,19 +149,20 @@ namespace amrex
      */
     static  Real norm(Real&                       a_volume,
                       const FabArray<EBCellFAB>& a_data,
-                      const ProblemDomain&        a_domain,
+                      const EBLevelGrid        &  a_eblg,
                       int                         a_p,
                       int                         a_comp);
 
 
-    ///
+    /// prints out latex summary of error comparison.  useful for convergence tests
     /**
      */
-    static void compareError(std::vector<Real>               &   a_orders,
-                             const FabArray<EBCellFAB>       &   a_errorFine,
+    static void compareError(const FabArray<EBCellFAB>       &   a_errorFine,
                              const FabArray<EBCellFAB>       &   a_errorCoar,
-                             const Box                       &   a_domain,
+                             const EBLevelGrid               &   a_eblgFine,
+                             const EBLevelGrid               &   a_eblgCoar,
                              std::vector<string> a_names = std::vector<string>());
+
   private:
 
   };

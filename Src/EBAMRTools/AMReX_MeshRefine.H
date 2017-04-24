@@ -30,6 +30,45 @@
 */
 namespace amrex
 {
+//for creating simple grids for tests
+namespace amrex
+{
+  class GridParameters
+  {
+  public:
+    int           whichGeom    ;
+    IntVect       nCells;
+    int           maxGridSize;
+    int           properNest;
+    int           blockFactor;
+    int           bufferSize;
+    Real          fillRatio;
+    int           maxLevel;
+    int           numLevels;
+
+    // number of ghost cells (in each direction) for the EBISBoxes
+    int           ghostEBISBox;
+
+    std::vector<int>   refRatio;
+    Box           coarsestDomain;
+    Real          coarsestDx;
+    RealVect      domainLength;
+    RealVect      probLo;
+    RealVect      probHi;
+
+    virtual void coarsen(int a_factor);
+    virtual void refine(int a_factor);
+    virtual void pout() const;
+  
+    GridParameters()
+      {
+      }
+    virtual ~GridParameters()
+      {
+      }
+  };
+
+  /// the big kahuna
   extern void
   MeshRefine(std::vector<BoxArray>           &   a_grids,
              const std::vector<IntVectSet>   &   a_tags,
@@ -40,5 +79,16 @@ namespace amrex
              const int                       &   a_maxGridSize,
              const Real                      &   a_gridEfficiency,
              const Box                       &   a_coarsestDomain);
+
+
+  ///for tests---get grids where the irregular cells are all refined
+  extern void getAllIrregEBLG(Vector<EBLevelGrid>   & a_eblg,
+                              const GridParameters  & a_params);
+
+  extern void
+  getGridParameters(GridParameters&  a_params,
+                    int forceMaxLevel = -1,
+                    bool a_verbose == false)
+
 }
 #endif

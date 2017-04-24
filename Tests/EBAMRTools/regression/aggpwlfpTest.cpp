@@ -24,305 +24,213 @@
 #include "AMReX_PlaneIF.H"
 #include "AMReX_AggEBPWLFillPatch.H"
 
-#if 0
 namespace amrex
 {
   Real g_coarTimeOld = 0.0;
   Real g_coarTimeNew = 1.0;
   Real g_fineTime = 0.25;
 /***************/
-  int compareError(const FabArray<EBCellFAB>& a_errorFine,
-                   const EBISLayout& a_ebislFine,
-                   const BoxArray& a_gridsFine,
-                   const Box& a_domainFine,
-                   const FabArray<EBCellFAB>& a_errorCoar,
-                   const EBISLayout& a_ebislCoar,
-                   const BoxArray& a_gridsCoar,
-                   const Box& a_domainCoar)
+  Real exactFunc(const IntVect& a_iv,
+                 const Real& a_dx,
+                 const Real& a_time)
   {
-    return 0;
-  }
-/***************/
-Real exactFunc(const IntVect& a_iv,
-               const Real& a_dx,
-               const Real& a_time)
-{
-  Real retval;
-  Real probHi;
-  ParmParse pp;
-  pp.get("prob_hi",probHi);
-  RealVect xloc;
-  for (int idir = 0; idir < SpaceDim; idir++)
+    Real retval;
+    Real probHi;
+    ParmParse pp;
+    pp.get("prob_hi",probHi);
+    RealVect xloc;
+    for (int idir = 0; idir < SpaceDim; idir++)
     {
       xloc[idir] = a_dx*(Real(a_iv[idir]) + 0.5);
     }
-  Real x = xloc[0]/probHi;
-  Real y = xloc[1]/probHi;
+    Real x = xloc[0]/probHi;
+    Real y = xloc[1]/probHi;
 
-  retval = (1.0+ a_time)*(1.0 + x*x + y*y + x*x*x + y*y*y);
-  //retval = a_time;
-  //  retval = 2.*xloc[0];
-  //  retval  = x;
-  //  retval = xloc[0]*xloc[0];
-  return retval;
-}
+    retval = (1.0+ a_time)*(1.0 + x*x + y*y + x*x*x + y*y*y);
+    //retval = a_time;
+    //  retval = 2.*xloc[0];
+    //  retval  = x;
+    //  retval = xloc[0]*xloc[0];
+    return retval;
+  }
 /***************/
-int
-makeLayout(BoxArray& a_dbl,
-           const Box& a_domainFine)
-{
-  //set up mesh refine object
-  ParmParse pp;
-  int eekflag= 0;
-  int maxsize;
-  pp.get("maxboxsize",maxsize);
-  int bufferSize = 1;
-  int blockFactor = 2;
-  Real fillrat = 0.75;
-  Box domainCoar = coarsen(a_domainFine, 2);
-  std::vector<int> refRat(2,2);
-  BRMeshRefine meshRefObj(domainCoar, refRat, fillrat,
-                          blockFactor, bufferSize, maxsize);
+  int
+  makeLayout(BoxArray& a_dbl,
+             const Box& a_domainFine)
+  {
+    //set up mesh refine object
+    ParmParse pp;
+    int eekflag= 0;
+    int maxsize;
+    pp.get("maxboxsize",maxsize);
+    int bufferSize = 1;
+    int blockFactor = 2;
+    Real fillrat = 0.75;
+    Box domainCoar = coarsen(a_domainFine, 2);
+    std::vector<int> refRat(2,2);
+    BRMeshRefine meshRefObj(domainCoar, refRat, fillrat,
+                            blockFactor, bufferSize, maxsize);
 
-  std::vector<std::vector<Box> > oldMeshes(2);
-  oldMeshes[0] = std::vector<Box>(1,   domainCoar);
-  oldMeshes[1] = std::vector<Box>(1, a_domainFine);
+    std::vector<std::vector<Box> > oldMeshes(2);
+    oldMeshes[0] = std::vector<Box>(1,   domainCoar);
+    oldMeshes[1] = std::vector<Box>(1, a_domainFine);
 
-  //set up coarse tags
-  int nc = domainCoar.size(0);
-  int nmi = nc/2;//16
-  int nqu = nc/4;//8
-  int ntf = (nc*3)/4;  //24
-  int nte = (nc*3)/8; //12
-  int nfe = (nc*5)/8; //20
+    Vector<Box>
+      //set up coarse tags
+      int nc = domainCoar.size(0);
+    int nmi = nc/2;//16
+    int nqu = nc/4;//8
+    int ntf = (nc*3)/4;  //24
+    int nte = (nc*3)/8; //12
+    int nfe = (nc*5)/8; //20
 #if (CH_SPACEDIM ==2)
-  Box boxf1(IntVect(0, nqu), IntVect(nmi-1,ntf-1));
-  Box boxf2(IntVect(nmi,nte), IntVect(ntf-1,nfe-1));
-  Box boxf3(IntVect(nqu,0  ), IntVect(nfe-1,nqu-1));
-  Box boxf4(IntVect(nfe,nqu), IntVect(nc -1,nte-1));
+    Box boxf1(IntVect(0, nqu), IntVect(nmi-1,ntf-1));
+    Box boxf2(IntVect(nmi,nte), IntVect(ntf-1,nfe-1));
+    Box boxf3(IntVect(nqu,0  ), IntVect(nfe-1,nqu-1));
+    Box boxf4(IntVect(nfe,nqu), IntVect(nc -1,nte-1));
 #else
-  Box boxf1(IntVect(0, nqu,nqu), IntVect(nmi-1,ntf-1,ntf-1));
-  Box boxf2(IntVect(nmi,nte,nte), IntVect(ntf-1,nfe-1,nfe-1));
-  Box boxf3(IntVect(nqu,0,0  ), IntVect(nfe-1,nqu-1,nqu-1));
-  Box boxf4(IntVect(nfe,nqu,nqu), IntVect(nc -1,nte-1,nte-1));
+    Box boxf1(IntVect(0, nqu,nqu), IntVect(nmi-1,ntf-1,ntf-1));
+    Box boxf2(IntVect(nmi,nte,nte), IntVect(ntf-1,nfe-1,nfe-1));
+    Box boxf3(IntVect(nqu,0,0  ), IntVect(nfe-1,nqu-1,nqu-1));
+    Box boxf4(IntVect(nfe,nqu,nqu), IntVect(nc -1,nte-1,nte-1));
 #endif
-  IntVectSet tags;
-  tags |= boxf1;
-  tags |= boxf2;
-  tags |= boxf3;
-  tags |= boxf4;
+    IntVectSet tags;
+    tags |= boxf1;
+    tags |= boxf2;
+    tags |= boxf3;
+    tags |= boxf4;
 
-  int baseLevel = 0;
-  int topLevel = 0;
-  std::vector<std::vector<Box> > newMeshes;
-  meshRefObj.regrid(newMeshes, tags, baseLevel,
-                    topLevel, oldMeshes);
+    int baseLevel = 0;
+    int topLevel = 0;
+    std::vector<std::vector<Box> > newMeshes;
+    meshRefObj.regrid(newMeshes, tags, baseLevel,
+                      topLevel, oldMeshes);
 
-  const std::vector<Box>& vbox = newMeshes[1];
-  std::vector<int>  procAssign;
-  eekflag = LoadBalance(procAssign,vbox);
-  if (eekflag != 0) return eekflag;
-  a_dbl.define(vbox, procAssign);
-  return eekflag;
-}
+    const std::vector<Box>& vbox = newMeshes[1];
+    std::vector<int>  procAssign;
+    eekflag = LoadBalance(procAssign,vbox);
+    if (eekflag != 0) return eekflag;
+    a_dbl.define(vbox, procAssign);
+    return eekflag;
+  }
 /***************/
-int getError(FabArray<EBCellFAB>& a_errorFine,
-             const EBISLayout& a_ebislFine,
-             const BoxArray& a_gridsFine,
-             const Box& a_domainFine,
-             const Real& a_dxFine)
-{
-  ParmParse pp;
-  int eekflag = 0;
-  int nvar = 1;
-  int nghost = 2;
-  int nref = 2;
-  int maxsize;
-  pp.get("maxboxsize",maxsize);
+  int getError(FabArray<EBCellFAB> & a_error,
+               Vector<EBLevelGrid> & a_eblg,
+               const Real& a_dxLev1)
+  {
+    int nghost = 2;
+    EBLevelGrid eblgFine = a_eblg[1];
+    EBLevelGrid eblgCoar = a_eblg[0];
+    FabArray<EBCellFAB> phi
+    FabArray<EBCellFAB> errorCoar(eblgCoar.getDBL(), eblgCoar.getDM(), nvar, nghost, MFInfo(), factCoar);
+    IntVect ghost = IntVect::Unit;
+    EBCellFactory factFine(a_eblg[1].getEBISL());
+    EBCellFactory factCoar(a_eblg[0].getEBISL());
+    FabArray<EBCellFAB> phiFineCalc(eblgFine.getDBL(), eblgFine.getDM(), nvar, nghost, MFInfo(), factFine);
+    FabArray<EBCellFAB> phiFineExac(eblgFine.getDBL(), eblgFine.getDM(), nvar, nghost, MFInfo(), factFine);
+    FabArray<EBCellFAB> phiCoarOld (eblgCoar.getDBL(), eblgCoar.getDM(), nvar, nghost, MFInfo(), factCoar);
+    FabArray<EBCellFAB> phiCoarNew (eblgCoar.getDBL(), eblgCoar.getDM(), nvar, nghost, MFInfo(), factCoar);
 
-  //generate coarse dx, domain
-  Box domainCoar = coarsen(a_domainFine, nref);
-
-  Real dxCoar = nref*a_dxFine;
-  //make the coarse grids completely cover the domain
-  std::vector<Box> vbox;
-  domainSplit(domainCoar, vbox,  maxsize);
-  std::vector<int>  procAssign;
-  eekflag = LoadBalance(procAssign,vbox);
-  BoxArray gridsCoar(vbox, procAssign);
-  //make coarse ebisl
-  EBISLayout ebislCoar;
-  eekflag = makeEBISL(ebislCoar, gridsCoar, domainCoar, nghost);
-  if (eekflag != 0) return eekflag;
-  // amrex::Print() << "getError dom coar = " << domainCoar << endl;;
-  // amrex::Print() << "getError grids coar = " << gridsCoar << endl;;
-  // amrex::Print() << "getError dom fine = " << a_domainFine << endl;;
-  // amrex::Print() << "getError grids fine = " << a_gridsFine << endl;;
-
-  //create data at both refinemenets
-  IntVect ghost = IntVect::Unit;
-  EBCellFactory ebcellfactFine(a_ebislFine);
-  EBCellFactory ebcellfactCoar(ebislCoar);
-  FabArray<EBCellFAB> phiFine(a_gridsFine,  nvar, ghost, ebcellfactFine);
-  FabArray<EBCellFAB> oldFine(a_gridsFine,  nvar, ghost, ebcellfactFine);
-  FabArray<EBCellFAB> phiCoarOld(gridsCoar, nvar, ghost, ebcellfactCoar);
-  FabArray<EBCellFAB> phiCoarNew(gridsCoar, nvar, ghost, ebcellfactCoar);
-
-  //fill phi fine and phiCExact
-  //put phiFexact into a_errorFine and phiFine
-  //this should make the error at the interior = 0
-  for (DataIterator dit = a_gridsFine.dataIterator();
-      dit.ok(); ++dit)
+    for(MFIter mfi(eblgFine.getDBL(), eblgFine.getDM()); mfi.isValid(); ++mfi)
     {
-      Box grownBox = grow(a_gridsFine.get(dit()), 1);
-      grownBox &= a_domainFine;
+      Box valid = eblgFine.getDBL()[mfi];
+      Box grownBox = grow(valid, nghost);
+      grownBox &= a_eblgFine.getDomain();
       IntVectSet ivsBox(grownBox);
-      phiFine[dit()].setVal(0.0);
-      oldFine[dit()].setVal(0.0);
-      a_errorFine[dit()].setVal(0.0);
-      EBCellFAB& phiFineFAB = phiFine[dit()];
-      EBCellFAB& oldFineFAB = oldFine[dit()];
-      EBCellFAB& errFineFAB = a_errorFine[dit()];
-      phiFineFAB.setCoveredCellVal(0.0,0);
-      oldFineFAB.setCoveredCellVal(0.0,0);
+      phiFineCalc[mfi].setVal(0.0);
+      phiFineExac[mfi].setVal(0.0);
+      a_errorFine[mfi].setVal(0.0);
+
       for (VoFIterator vofit(ivsBox, a_ebislFine[dit()].getEBGraph());
-          vofit.ok(); ++vofit)
+           vofit.ok(); ++vofit)
+      {
+        const VolIndex& vof = vofit();
+        Real rightAns = exactFunc(vof.gridIndex(), a_dxFine, g_fineTime);
+        if(valid.contains(vof.gridIndex()))
         {
-          const VolIndex& vof = vofit();
-          Real rightAns = exactFunc(vof.gridIndex(), a_dxFine, g_fineTime);
-          phiFineFAB(vof, 0) = rightAns;
-          oldFineFAB(vof, 0) = rightAns;
-          errFineFAB(vof, 0) = rightAns;
+          phiFineCalc[mfi](vof, 0) = rightAns;
         }
+        phiFineExac[mfi](vof, 0) = rightAns;
+      }
     }
 
-  for (DataIterator dit = gridsCoar.dataIterator();
-      dit.ok(); ++dit)
+    for(MFIter mfi(eblgCoar.getDBL(), eblgCoar.getDM()); mfi.isValid(); ++mfi)
     {
-      Box grownBox = grow(gridsCoar.get(dit()), 1);
-      grownBox &= domainCoar;
+      Box valid = eblgCoar.getDBL()[mfi];
+      Box grownBox = grow(valid, nghost);
+      grownBox &= a_eblgCoar.getDomain();
+
       IntVectSet ivsBox(grownBox);
-      EBCellFAB& phiCoarOldFAB = phiCoarOld[dit()];
-      EBCellFAB& phiCoarNewFAB = phiCoarNew[dit()];
+      EBCellFAB& phiCoarOldFAB = phiCoarOld[mfi];
+      EBCellFAB& phiCoarNewFAB = phiCoarNew[mfi];
       phiCoarOldFAB.setCoveredCellVal(0.0,0);
       phiCoarNewFAB.setCoveredCellVal(0.0,0);
       for (VoFIterator vofit(ivsBox, ebislCoar[dit()].getEBGraph());
-          vofit.ok(); ++vofit)
-        {
-          const VolIndex& vof = vofit();
-          Real rightAnsOld = exactFunc(vof.gridIndex(), dxCoar,g_coarTimeOld);
-          Real rightAnsNew = exactFunc(vof.gridIndex(), dxCoar,g_coarTimeNew);
-          phiCoarOldFAB(vof, 0) = rightAnsOld;
-          phiCoarNewFAB(vof, 0) = rightAnsNew;
-        }
+           vofit.ok(); ++vofit)
+      {
+        const VolIndex& vof = vofit();
+        Real rightAnsOld = exactFunc(vof.gridIndex(), dxCoar,g_coarTimeOld);
+        Real rightAnsNew = exactFunc(vof.gridIndex(), dxCoar,g_coarTimeNew);
+        phiCoarOldFAB(vof, 0) = rightAnsOld;
+        phiCoarNewFAB(vof, 0) = rightAnsNew;
+      }
     }
 
-  //interpolate phiC onto phiF
-  AggEBPWLFillPatch interpOp(a_gridsFine, gridsCoar,
-                             a_ebislFine, ebislCoar,
-                             domainCoar, nref, nvar,
-                             1, ghost);
-
-  //interpolate phiC onto phiF
-  EBPWLFillPatch oldinterpOp(a_gridsFine, gridsCoar,
-                             a_ebislFine, ebislCoar,
-                             domainCoar, nref, nvar, 1);
+    //interpolate phiC onto phiF
+    AggEBPWLFillPatch interpOp(eblgFine, eblgCoar, nref, nvar, nghost, nghost);
 
 
-  Interval zeroiv(0,0);
-  interpOp.interpolate(phiFine, phiCoarOld, phiCoarNew,
-                       g_coarTimeOld, g_coarTimeNew,
-                       g_fineTime, zeroiv);
+    interpOp.interpolate(phiFineCalc, phiCoarOld, phiCoarNew,
+                         g_coarTimeOld, g_coarTimeNew,
+                         g_fineTime, 0, 1);
 
-  oldinterpOp.interpolate(oldFine, phiCoarOld, phiCoarNew,
-                          g_coarTimeOld, g_coarTimeNew,
-                          g_fineTime, zeroiv);
-  //error = phiF - phiFExact
-  int ibox = 0;
-  for (DataIterator dit = a_gridsFine.dataIterator();
-      dit.ok(); ++dit, ++ibox)
+    //error = phiF - phiFExact
+    for(MFIter mfi(eblgFine.getDBL(), eblgFine.getDM()); mfi.isValid(); ++mfi)
     {
-      Box grownBox = grow(a_gridsFine.get(dit()), 1);
-      grownBox &= a_domainFine;
+      Box valid = eblgFine.getDBL()[mfi];
+      Box grownBox = grow(valid, nghost);
+      grownBox &= a_eblgFine.getDomain();
       IntVectSet ivsBox(grownBox);
-
-      EBCellFAB& phiFineFAB = phiFine[dit()];
-      EBCellFAB& oldFineFAB = oldFine[dit()];
       Real     maxDiff = 0;
       VolIndex vofDiff;
       bool found = false;
       for (VoFIterator vofit(ivsBox, a_ebislFine[dit()].getEBGraph());
-          vofit.ok(); ++vofit)
-        {
-          const VolIndex& vof = vofit();
-          Real diff = Abs(phiFineFAB(vof,0)-oldFineFAB(vof,0));
-          if (diff > maxDiff)
-            {
-              found = true;
-              vofDiff  = vof;
-              maxDiff = diff;
-            }
-        }
-      if (found)
-        {
-          amrex::Print() << "max diff   = " << maxDiff << endl;
-          amrex::Print() << "at intvect = " << vofDiff.gridIndex() << endl;
-          amrex::Print() << "at box num = " << ibox << endl;
-        }
-
-      EBCellFAB& errorFAB = a_errorFine[dit()];
-      errorFAB -= phiFineFAB;
+           vofit.ok(); ++vofit)
+      {
+        const VolIndex& vof = vofit();
+        Real diff = Abs(phiFineCalc[mfi](vof,0)-phFineExac[mfi](vof,0));
+        a_error[mfi](vof, 0) = diff;
+      }
     }
 
-  return eekflag;
-}
+    return eekflag;
+  }
 /**********/
-int makeGeometry(Box& a_domain,
-                 Real& a_dx)
-{
-  int eekflag =  0;
-  //parse input file
-  ParmParse pp;
-  RealVect origin = RealVect::Zero;
-  std::vector<int> n_cell(SpaceDim);
-  pp.getarr("n_cell",n_cell,0,SpaceDim);
-
-  CH_assert(n_cell.size() == SpaceDim);
-  IntVect lo = IntVect::Zero;
-  IntVect hi;
-  for (int ivec = 0; ivec < SpaceDim; ivec++)
+  int makeGeometry(const GridParameters& a_params)
+  {
+    int eekflag =  0;
+    //parse input file
+    ParmParse pp;
+    RealVect origin = a_params.probLo;
+    Real dxFinest = a_params.coarsestDx;
+    Box domainFinest = a_params.coarsestDomain;
+    for(int ilev = 1; ilev < a_params.numLevels; ilev++)
     {
-      if (n_cell[ivec] <= 0)
-        {
-          amrex::Print() << " bogus number of cells input = " << n_cell[ivec];
-          return(-1);
-        }
-      hi[ivec] = n_cell[ivec] - 1;
+      dxFinest         /= a_params.refRatio[ilev-1];
+      domainFinest.refine(a_params.refRatio[ilev-1]);
     }
 
-  a_domain.setSmall(lo);
-  a_domain.setBig(hi);
-
-  std::vector<Real> prob_lo(SpaceDim, 1.0);
-  Real prob_hi;
-  pp.getarr("prob_lo",prob_lo,0,SpaceDim);
-  pp.get("prob_hi",prob_hi);
-  a_dx = (prob_hi-prob_lo[0])/n_cell[0];
-  for (int idir = 0; idir < SpaceDim; idir++)
-    {
-      origin[idir] = prob_lo[idir];
-    }
-  int whichgeom;
-  pp.get("which_geom",whichgeom);
-  if (whichgeom == 0)
+    int whichgeom;
+    pp.get("which_geom",whichgeom);
+    if (whichgeom == 0)
     {
       //allregular
       amrex::Print() << "all regular geometry" << endl;
       AllRegularService regserv;
-      EBIndexSpace* ebisPtr = Chombo_EBIS::instance();
-      ebisPtr->define(a_domain, origin, a_dx, regserv);
+      EBIndexSpace* ebisPtr = AMReX_EBIS::instance();
+      ebisPtr->define(domainFinest, origin, dxFinest, regserv);
     }
-  else if (whichgeom == 1)
+    else if (whichgeom == 1)
     {
       amrex::Print() << "ramp geometry" << endl;
       int upDir;
@@ -348,81 +256,76 @@ int makeGeometry(Box& a_domain,
       RealVect vectDx = RealVect::Unit;
       vectDx *= a_dx;
 
-      GeometryShop workshop(ramp,0,vectDx);
+      GeometryShop workshop(ramp,0);
       //this generates the new EBIS
-      EBIndexSpace* ebisPtr = Chombo_EBIS::instance();
-      ebisPtr->define(a_domain, origin, a_dx, workshop);
+      EBIndexSpace* ebisPtr = AMReX_EBIS::instance();
+      ebisPtr->define(domainFinest, origin, dxFinest, workshop);
     }
-  else
+    else if (whichgeom == 5)
+    {
+      std::vector<Real> centervec(SpaceDim);
+      std::vector<int>  ncellsvec(SpaceDim);
+      int maxgrid;
+      ParmParse pp;
+      pp.getarr(  "n_cell"       , ncellsvec, 0, SpaceDim);
+      pp.get(   "sphere_radius", radius);
+      pp.get(   "max_grid_size", maxgrid);
+      pp.getarr("sphere_center", centervec, 0, SpaceDim);
+      pp.get("domain_length", domlen);                     
+      RealVect center;
+      for(int idir = 0; idir < SpaceDim; idir++)
+      {
+        center[idir] = centervec[idir];
+      }
+      bool insideRegular = false;
+      SphereIF sphere(radius, center, insideRegular);
+      GeometryShop gshop(sphere, 0);
+      ebisPtr->define(domainFinest, origin, dxFinest, gshop);
+    }
+    else
     {
       //bogus which_geom
       amrex::Print() << " bogus which_geom input = " << whichgeom;
       eekflag = 33;
     }
 
-  return eekflag;
-}
+    return eekflag;
+  }
 /***************/
-void
-ebpwlfpTest()
-{
-  Box domainFine, domainCoar;
-  Real dxFine, dxCoar;
+  void
+  ebpwlfpTest()
+  {
+    int eekflag = 0;
+    GridParameters paramsCoar;
+    amrex::Print() << "forcing maxLevel = 1 \n";
 
+    getGridParameters(paramsCoar, 1, true);
+    paramsFine = paramsCoar;
+    paramsFine.refine(2);
     //and defines it using a geometryservice
-    eekflag =  makeGeometry(domainFine,  dxFine);
-    CH_assert(eekflag == 0);
+    eekflag =  makeGeometry(params);
 
-    domainCoar = coarsen(domainFine, 2);
-    dxCoar = 2.0*dxFine;
-    //make grids
-    BoxArray gridsFine, gridsCoar;
-    eekflag = makeLayout(gridsFine, domainFine);
-    CH_assert(eekflag == 0);
-    coarsen(gridsCoar, gridsFine, 2);
-
-    ///create ebislayout
-    int nghost = 2;
-    EBISLayout ebislFine, ebislCoar;
-    eekflag = makeEBISL(ebislFine, gridsFine, domainFine, nghost);
-    if (eekflag != 0) return eekflag;
-    eekflag = makeEBISL(ebislCoar, gridsCoar, domainCoar, nghost);
-    if (eekflag != 0) return eekflag;
-
+    std::vector<EBLevelGrid> eblgFine, eblgCoar;
+    getAllIrregEBLG(eblgFine, paramFine);
+    getAllIrregEBLG(eblgCoar, paramCoar);
+    
     int nvar = 1;
-    EBCellFactory ebcellfactFine(ebislFine);
-    EBCellFactory ebcellfactCoar(ebislCoar);
-    IntVect ivghost = nghost*IntVect::Unit;
-    FabArray<EBCellFAB> errorFine(gridsFine, nvar,
-                                   ivghost,ebcellfactFine);
-    FabArray<EBCellFAB> errorCoar(gridsCoar, nvar,
-                                   ivghost,ebcellfactCoar);
+    EBCellFactory factFine(eblgFine[1].getEBISL());
+    EBCellFactory factCoar(eblgCoar[1].getEBISL());
+    int nghost = 2;
 
-    eekflag = getError(errorFine,ebislFine, gridsFine, domainFine, dxFine);
-    if (eekflag != 0) return eekflag;
+    FabArray<EBCellFAB> errorFine(eblgFine[1].getDBL(), eblgFine[1].getDM(), nvar, nghost, MFInfo(), factFine);
+    FabArray<EBCellFAB> errorCoar(eblgCaor[1].getDBL(), eblgCoar[1].getDM(), nvar, nghost, MFInfo(), factCoar);
 
-    eekflag = getError(errorCoar,ebislCoar, gridsCoar, domainCoar, dxCoar);
-    if (eekflag != 0) return eekflag;
+    Real dxLev1Fine = a_paramsFine.coarsestDx/a_paramsFine.refRatio[0];
+    Real dxLev1Coar = a_paramsCoar.coarsestDx/a_paramsCoar.refRatio[0];
+    
+    eekflag = getError(errorFine,eblgFine, dxLev1Fine);
+    eekflag = getError(errorCoar,eblgCoar, dxLev1Coar);
 
-    eekflag =  compareError(errorFine, ebislFine, gridsFine, domainFine,
-                            errorCoar, ebislCoar, gridsCoar, domainCoar);
-    if (eekflag != 0) return eekflag;
-
-  }//end omnipresent scoping trick
-  EBIndexSpace* ebisPtr = Chombo_EBIS::instance();
-  ebisPtr->clear();
-  if (eekflag == 0)
-    {
-      amrex::Print() << "aggpwlfpTest passed" << endl;
-    }
-
-#ifdef CH_MPI
-  MPI_Finalize();
-#endif
-  return eekflag;
+    EBLevelGrid::compareError(errorFine, errorCoar, eblgFine[1], eblgCoar[1]);
+  }
 }
-}
-#endif
 /***************/
 int
 main(int argc, char* argv[])
@@ -430,7 +333,7 @@ main(int argc, char* argv[])
   int retval = 0;
   amrex::Initialize(argc,argv);
 
-  //amrex::ebpwlfpConvTest();
+  amrex::ebpwlfpConvTest();
 
   amrex::Finalize();
   return retval;
