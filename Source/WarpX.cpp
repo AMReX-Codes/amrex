@@ -138,6 +138,15 @@ WarpX::ReadParameters ()
 	pp.query("verbose", verbose);
 	pp.query("regrid_int", regrid_int);
 
+
+        // PML
+        if (Geometry::isAnyPeriodic()) {
+            pp.query("do_pml", do_pml);
+            pp.query("pml_ncell", pml_ncell);
+        } else {
+            do_pml = 0;  // no PML for all periodic boundaries
+        }
+
 	pp.query("do_moving_window", do_moving_window);
 	if (do_moving_window)
 	{
@@ -238,6 +247,47 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
     current[lev][0].reset( new MultiFab(amrex::convert(ba,jx_nodal_flag),dm,1,ng));
     current[lev][1].reset( new MultiFab(amrex::convert(ba,jy_nodal_flag),dm,1,ng));
     current[lev][2].reset( new MultiFab(amrex::convert(ba,jz_nodal_flag),dm,1,ng));
+}
+
+void
+WarpX::InitPML ()
+{
+    if (!do_pml) return;
+
+    const Geometry& gm0 = Geom(0);
+
+    Box pml_box = gm0.Domain();
+    for (int idim = 0; idim < BL_SPACEDIM; ++idim) {
+        if (! gm0.isPeriodic(idim)) {
+            pml_box.grow(idim, pml_ncell);
+        }
+    }
+
+    int block_size = maxGridSize(0);
+    while (block_size < pml_ncell) {
+        block_size += blockingFactor(0);
+    }
+
+    pml_ba = amrex::boxComplement(pml_box, gm0.Domain());
+    pml_ba.maxSize(block_size);
+    
+    // xxxxx for now let's just simply use Round-Robin
+    pml_dm.RoundRobinProcessorMap(pml_ba.size(), ParallelDescriptor::NProcs());
+
+    const int ng = Efield[0][0]->nGrow();
+    pml_E[0].reset(new MultiFab(amrex::convert(pml_ba,Ex_nodal_flag),pml_dm,2,ng));
+    pml_E[1].reset(new MultiFab(amrex::convert(pml_ba,Ey_nodal_flag),pml_dm,2,ng));
+    pml_E[2].reset(new MultiFab(amrex::convert(pml_ba,Ez_nodal_flag),pml_dm,2,ng));
+    pml_B[0].reset(new MultiFab(amrex::convert(pml_ba,Bx_nodal_flag),pml_dm,2,ng));
+    pml_B[1].reset(new MultiFab(amrex::convert(pml_ba,By_nodal_flag),pml_dm,2,ng));
+    pml_B[2].reset(new MultiFab(amrex::convert(pml_ba,Bz_nodal_flag),pml_dm,2,ng));
+
+    pml_E[0]->setVal(0.0);
+    pml_E[1]->setVal(0.0);
+    pml_E[2]->setVal(0.0);
+    pml_B[0]->setVal(0.0);
+    pml_B[1]->setVal(0.0);
+    pml_B[2]->setVal(0.0);
 }
 
 void

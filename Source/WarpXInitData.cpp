@@ -27,6 +27,12 @@ WarpX::InitData ()
         if (okToRegrid(0)) RegridBaseLevel();
     }
 
+
+    if (do_pml)
+    {
+        InitPML();
+    }
+
     if (restart_chkfile.empty())
     {
 	if (plot_int > 0) {

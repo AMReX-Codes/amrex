@@ -155,6 +155,10 @@ private:
     static void PackPlotDataPtrs (amrex::Array<const amrex::MultiFab*>& pmf,
 				  const std::array<std::unique_ptr<amrex::MultiFab>,3>& data);
 
+    void InitPML ();
+    void CopyFromPML (amrex::MultiFab& regmf, const amrex::MultiFab& pmlmf,
+                      const amrex::Geometry& gm);
+
     amrex::Array<int> istep;      // which step?
     amrex::Array<int> nsubsteps;  // how many substeps on each level?
 
@@ -169,6 +173,14 @@ private:
     amrex::Array<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > current;
     amrex::Array<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Efield;
     amrex::Array<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Bfield;
+
+    // PML  xxxxx for now let's only consider single level
+    int do_pml = 0;
+    int pml_ncell = 10;
+    amrex::BoxArray pml_ba;
+    amrex::DistributionMapping pml_dm;
+    std::array<std::unique_ptr<amrex::MultiFab>,3> pml_E;
+    std::array<std::unique_ptr<amrex::MultiFab>,3> pml_B;
 
     // Moving window parameters
     int do_moving_window  = 0;

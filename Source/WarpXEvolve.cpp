@@ -224,7 +224,14 @@ WarpX::EvolveE (int lev, Real dt)
 void
 WarpX::FillBoundaryE(int lev, bool force)
 {
-    if (force || WarpX::nox > 1 || WarpX::noy > 1 || WarpX::noz > 1) {
+    if (force || WarpX::nox > 1 || WarpX::noy > 1 || WarpX::noz > 1)
+    {
+        if (do_pml && lev == 0) {
+            WarpX::CopyFromPML(*Efield[lev][0], *pml_E[0], geom[lev]);
+            WarpX::CopyFromPML(*Efield[lev][1], *pml_E[1], geom[lev]);
+            WarpX::CopyFromPML(*Efield[lev][2], *pml_E[2], geom[lev]);
+        }
+
         (*Efield[lev][0]).FillBoundary( geom[lev].periodicity() );
         (*Efield[lev][1]).FillBoundary( geom[lev].periodicity() );
         (*Efield[lev][2]).FillBoundary( geom[lev].periodicity() );
@@ -234,10 +241,49 @@ WarpX::FillBoundaryE(int lev, bool force)
 void
 WarpX::FillBoundaryB(int lev, bool force)
 {
-    if (force || WarpX::nox > 1 || WarpX::noy > 1 || WarpX::noz > 1) {
+    if (force || WarpX::nox > 1 || WarpX::noy > 1 || WarpX::noz > 1)
+    {
+        if (do_pml && lev == 0) {
+            WarpX::CopyFromPML(*Bfield[lev][0], *pml_B[0], geom[lev]);
+            WarpX::CopyFromPML(*Bfield[lev][1], *pml_B[1], geom[lev]);
+            WarpX::CopyFromPML(*Bfield[lev][2], *pml_B[2], geom[lev]);
+        }
+
         (*Bfield[lev][0]).FillBoundary( geom[lev].periodicity() );
         (*Bfield[lev][1]).FillBoundary( geom[lev].periodicity() );
         (*Bfield[lev][2]).FillBoundary( geom[lev].periodicity() );
+    }
+}
+
+void
+WarpX::CopyFromPML (MultiFab& regmf, const MultiFab& pmlmf, const Geometry& gm)
+{
+    if (!do_pml) return;
+
+    MultiFab totpmlmf(pmlmf.boxArray(), pmlmf.DistributionMap(), 1, 0);
+    MultiFab::LinComb(totpmlmf, 1.0, pmlmf, 0, 1.0, pmlmf, 1, 0, 1, 0);
+
+    MultiFab tmpregmf(regmf.boxArray(), regmf.DistributionMap(), 1, regmf.nGrow());
+    tmpregmf.copy(totpmlmf, 0, 0, 1, 0, regmf.nGrow(), gm.periodicity());
+
+    Box dom = gm.Domain();
+    dom.convert(regmf.ixType());
+    for (int idim=0; idim < BL_SPACEDIM; ++idim) {
+        if (Geometry::isPeriodic(idim)) {
+            dom.grow(idim, regmf.nGrow());
+        }
+    }
+    
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(regmf); mfi.isValid(); ++mfi)
+    {
+        const BoxList& bl = amrex::boxDiff(mfi.fabbox(), dom);
+        for (const Box& bx : bl)
+        {
+            regmf[mfi].copy(tmpregmf[mfi], bx, 0, bx, 0, 1);
+        }
     }
 }
 
