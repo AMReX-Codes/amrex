@@ -255,6 +255,12 @@ template <int NReal, int NInt> constexpr int ArrayOfStructs<NReal, NInt>::SizeIn
 template <int NReal, int NInt>
 struct StructOfArrays {
   
+    std::array<Array<Real>, NReal>& GetRealData () { return m_rdata; }
+    std::array<Array<int>,   NInt>& GetIntData  () { return m_idata; }
+
+    const std::array<Array<Real>, NReal>& GetRealData () const { return m_rdata; }
+    const std::array<Array<int>,   NInt>& GetIntData  () const { return m_idata; }
+
     Array<Real>& GetRealData (const int index) {
         BL_ASSERT(index < NReal);
         return m_rdata[index];
