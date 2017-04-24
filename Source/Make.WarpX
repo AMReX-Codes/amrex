@@ -50,7 +50,7 @@ else
   SHARED_OPTION = -shared
 endif
 
-install: libwarpx.so
+installwarpx: libwarpx.so
 	mv libwarpx.so pywarpx
 	python setup.py install
 
