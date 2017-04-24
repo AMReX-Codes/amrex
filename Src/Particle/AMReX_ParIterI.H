@@ -1,6 +1,6 @@
 
-template <int NR, int NI, int NA>
-ParIter<NR,NI,NA>::ParIter (ContainerType& pc, int level)
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt>::ParIter (ContainerType& pc, int level)
     : 
     MFIter(*pc.m_dummy_mf[level],
            pc.do_tiling ? pc.tile_size : IntVect::TheZeroVector()),
@@ -33,11 +33,11 @@ ParIter<NR,NI,NA>::ParIter (ContainerType& pc, int level)
     }
 }
 
-template <int NR, int NI, int NA>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
-ParIter<NR,NI,NA>::SetPosition (D_DECL(const Array<Real>& x,
-                                       const Array<Real>& y,
-                                       const Array<Real>& z))
+ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt>::SetPosition (D_DECL(const Array<Real>& x,
+                                                                             const Array<Real>& y,
+                                                                             const Array<Real>& z))
 {
     auto& aos = GetArrayOfStructs();
     BL_ASSERT(D_TERM(x.size() == aos.size(), && x.size() == y.size(), && x.size() == z.size()));
@@ -47,11 +47,11 @@ ParIter<NR,NI,NA>::SetPosition (D_DECL(const Array<Real>& x,
                                 D_DECL(x.data(), y.data(), z.data()));
 }
 
-template <int NR, int NI, int NA>
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
-ParIter<NR,NI,NA>::GetPosition (D_DECL(Array<Real>& x,
-                                       Array<Real>& y,
-                                       Array<Real>& z)) const
+ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetPosition (D_DECL(Array<Real>& x,
+                                                                             Array<Real>& y,
+                                                                             Array<Real>& z)) const
 {
     const auto& aos = GetArrayOfStructs();
     const auto  p     = aos.data();
@@ -60,5 +60,5 @@ ParIter<NR,NI,NA>::GetPosition (D_DECL(Array<Real>& x,
            y.resize(shape.second);,
            z.resize(shape.second););
     amrex_particle_get_position(p, shape.first, shape.second,
-                                D_DECL(x.data(), y.data(), z.data()));    
+                                D_DECL(x.data(), y.data(), z.data()));
 }
