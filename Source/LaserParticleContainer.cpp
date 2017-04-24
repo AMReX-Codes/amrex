@@ -242,12 +242,10 @@ LaserParticleContainer::Evolve (int lev,
 	{
 	    const Box& box = pti.validbox();
 
-            auto& attribs = pti.GetAttribs();
-
-            auto&  wp = attribs[PIdx::w ];
-            auto& uxp = attribs[PIdx::ux];
-            auto& uyp = attribs[PIdx::uy];
-            auto& uzp = attribs[PIdx::uz];
+            auto&  wp = pti.GetAttribs(PIdx::w );
+            auto& uxp = pti.GetAttribs(PIdx::ux);
+            auto& uyp = pti.GetAttribs(PIdx::uy);
+            auto& uzp = pti.GetAttribs(PIdx::uz);
 
 	    const long np  = pti.numParticles();
 

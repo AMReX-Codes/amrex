@@ -105,15 +105,13 @@ PhysicalParticleContainer::FieldGather (int lev,
 	{
 	    const Box& box = pti.validbox();
 
-            auto& attribs = pti.GetAttribs();
-
-            auto&  wp = attribs[PIdx::w];
-            auto& Exp = attribs[PIdx::Ex];
-            auto& Eyp = attribs[PIdx::Ey];
-            auto& Ezp = attribs[PIdx::Ez];
-            auto& Bxp = attribs[PIdx::Bx];
-            auto& Byp = attribs[PIdx::By];
-            auto& Bzp = attribs[PIdx::Bz];
+            auto&  wp = pti.GetAttribs(PIdx::w);
+            auto& Exp = pti.GetAttribs(PIdx::Ex);
+            auto& Eyp = pti.GetAttribs(PIdx::Ey);
+            auto& Ezp = pti.GetAttribs(PIdx::Ez);
+            auto& Bxp = pti.GetAttribs(PIdx::Bx);
+            auto& Byp = pti.GetAttribs(PIdx::By);
+            auto& Bzp = pti.GetAttribs(PIdx::Bz);
 
             const long np = pti.numParticles();
 
@@ -192,18 +190,16 @@ PhysicalParticleContainer::Evolve (int lev,
 	{
 	    const Box& box = pti.validbox();
 
-            auto& attribs = pti.GetAttribs();
-
-            auto&  wp = attribs[PIdx::w];
-            auto& uxp = attribs[PIdx::ux];
-            auto& uyp = attribs[PIdx::uy];
-            auto& uzp = attribs[PIdx::uz];
-            auto& Exp = attribs[PIdx::Ex];
-            auto& Eyp = attribs[PIdx::Ey];
-            auto& Ezp = attribs[PIdx::Ez];
-            auto& Bxp = attribs[PIdx::Bx];
-            auto& Byp = attribs[PIdx::By];
-            auto& Bzp = attribs[PIdx::Bz];
+            auto&  wp = pti.GetAttribs(PIdx::w);
+            auto& uxp = pti.GetAttribs(PIdx::ux);
+            auto& uyp = pti.GetAttribs(PIdx::uy);
+            auto& uzp = pti.GetAttribs(PIdx::uz);
+            auto& Exp = pti.GetAttribs(PIdx::Ex);
+            auto& Eyp = pti.GetAttribs(PIdx::Ey);
+            auto& Ezp = pti.GetAttribs(PIdx::Ez);
+            auto& Bxp = pti.GetAttribs(PIdx::Bx);
+            auto& Byp = pti.GetAttribs(PIdx::By);
+            auto& Bzp = pti.GetAttribs(PIdx::Bz);
 
             const long np = pti.numParticles();
 
