@@ -227,9 +227,9 @@ WarpX::FillBoundaryE(int lev, bool force)
     if (force || WarpX::nox > 1 || WarpX::noy > 1 || WarpX::noz > 1)
     {
         if (do_pml && lev == 0) {
-            WarpX::CopyFromPML(*Efield[lev][0], *pml_E[0], geom[lev]);
-            WarpX::CopyFromPML(*Efield[lev][1], *pml_E[1], geom[lev]);
-            WarpX::CopyFromPML(*Efield[lev][2], *pml_E[2], geom[lev]);
+            WarpX::ExchangeWithPML(*Efield[lev][0], *pml_E[0], geom[lev]);
+            WarpX::ExchangeWithPML(*Efield[lev][1], *pml_E[1], geom[lev]);
+            WarpX::ExchangeWithPML(*Efield[lev][2], *pml_E[2], geom[lev]);
         }
 
         (*Efield[lev][0]).FillBoundary( geom[lev].periodicity() );
@@ -244,9 +244,9 @@ WarpX::FillBoundaryB(int lev, bool force)
     if (force || WarpX::nox > 1 || WarpX::noy > 1 || WarpX::noz > 1)
     {
         if (do_pml && lev == 0) {
-            WarpX::CopyFromPML(*Bfield[lev][0], *pml_B[0], geom[lev]);
-            WarpX::CopyFromPML(*Bfield[lev][1], *pml_B[1], geom[lev]);
-            WarpX::CopyFromPML(*Bfield[lev][2], *pml_B[2], geom[lev]);
+            WarpX::ExchangeWithPML(*Bfield[lev][0], *pml_B[0], geom[lev]);
+            WarpX::ExchangeWithPML(*Bfield[lev][1], *pml_B[1], geom[lev]);
+            WarpX::ExchangeWithPML(*Bfield[lev][2], *pml_B[2], geom[lev]);
         }
 
         (*Bfield[lev][0]).FillBoundary( geom[lev].periodicity() );
@@ -256,9 +256,11 @@ WarpX::FillBoundaryB(int lev, bool force)
 }
 
 void
-WarpX::CopyFromPML (MultiFab& regmf, const MultiFab& pmlmf, const Geometry& gm)
+WarpX::ExchangeWithPML (MultiFab& regmf, MultiFab& pmlmf, const Geometry& gm)
 {
     if (!do_pml) return;
+
+    // Copy from PML to regular data
 
     MultiFab totpmlmf(pmlmf.boxArray(), pmlmf.DistributionMap(), 1, 0);
     MultiFab::LinComb(totpmlmf, 1.0, pmlmf, 0, 1.0, pmlmf, 1, 0, 1, 0);
@@ -283,6 +285,21 @@ WarpX::CopyFromPML (MultiFab& regmf, const MultiFab& pmlmf, const Geometry& gm)
         for (const Box& bx : bl)
         {
             regmf[mfi].copy(tmpregmf[mfi], bx, 0, bx, 0, 1);
+        }
+    }
+
+    // Copy from regular data to PML's first component
+    pmlmf.copy (regmf, 0, 0, 1, 0, pmlmf.nGrow(), gm.periodicity());
+    // Zero out the second component
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(pmlmf); mfi.isValid(); ++mfi)
+    {
+        Box bx = mfi.fabbox();
+        bx &= dom;
+        if (bx.ok()) {
+            pmlmf[mfi].setVal(0.0, bx, 1, 1);
         }
     }
 }

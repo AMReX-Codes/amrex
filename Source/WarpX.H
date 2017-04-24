@@ -156,8 +156,8 @@ private:
 				  const std::array<std::unique_ptr<amrex::MultiFab>,3>& data);
 
     void InitPML ();
-    void CopyFromPML (amrex::MultiFab& regmf, const amrex::MultiFab& pmlmf,
-                      const amrex::Geometry& gm);
+    void ExchangeWithPML (amrex::MultiFab& regmf, amrex::MultiFab& pmlmf,
+                          const amrex::Geometry& gm);
 
     amrex::Array<int> istep;      // which step?
     amrex::Array<int> nsubsteps;  // how many substeps on each level?
