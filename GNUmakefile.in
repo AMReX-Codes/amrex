@@ -16,9 +16,15 @@ include $(Ppack)
 all: $(amrexlib)
 	@echo SUCCESS
 
-.PHONY: distclean
+.PHONY: distclean install uninstall
 
 distclean: realclean
 	$(SILENT) $(RM) GNUmakefile
+
+install: install_lib install_headers install_fortran_modules
+
+uninstall:
+	@echo Uninstalling...
+	$(SILENT) $(RM) -r $(AMREX_INSTALL_DIR)
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.rules

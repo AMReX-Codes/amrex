@@ -32,8 +32,6 @@ $(amrexlib): $(objForExecs)
 	$(SILENT) $(AR) $(ARFLAGS) $@ $^
 	$(SILENT) $(RANLIB) $@
 
-install: install_lib install_headers install_fortran_modules
-
 install_lib:
 	@echo Installing libamrex.a at $(amrexLibDir) ...
 	@if [ ! -d $(amrexLibDir) ]; then mkdir -p $(amrexLibDir); fi
@@ -72,10 +70,6 @@ $(amrexIncludeDir)/AMReX_Config.H: FORCE
 	              --use-omp "$(USE_OMP)" \
 	              > $@
 
-uninstall::
-	@echo Uninstalling...
-	$(SILENT) $(RM) -r $(AMREX_INSTALL_DIR)
-
 clean::
 	@echo Cleaning...
 	$(SILENT) $(RM) $(f77EXETempDir)/*.f $(f77EXETempDir)/*.f90 $(objEXETempDir)/*.o
@@ -111,7 +105,7 @@ clang-tidy: $(CEXE_sources)
 
 FORCE:
 
-.PHONY:	all clean realclean file_locations tags TAGS clang-analyze clang-tidy install uninstall install_lib install_headers
+.PHONY:	all clean realclean file_locations tags TAGS clang-analyze clang-tidy install_lib install_headers install_fortran_modules
 
 #
 # Rules for objects.
