@@ -134,6 +134,22 @@ WarpX::WriteCheckPointFile() const
             VisMF::Write(*current[lev][2],
                          amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "jz"));
         }
+
+        if (do_pml) {
+            const int lev = 0;
+            VisMF::Write(*pml_E[0],
+                         amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "pml_Ex"));
+            VisMF::Write(*pml_E[1],
+                         amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "pml_Ey"));
+            VisMF::Write(*pml_E[2],
+                         amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "pml_Ez"));
+            VisMF::Write(*pml_B[0],
+                         amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "pml_Bx"));
+            VisMF::Write(*pml_B[1],
+                         amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "pml_By"));
+            VisMF::Write(*pml_B[2],
+                         amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "pml_Bz"));
+        }
     }
 
     mypc->Checkpoint(checkpointname, "particle", true);
@@ -265,13 +281,20 @@ WarpX::InitFromCheckpoint ()
 	    current[lev][i]->setVal(0.0);
 	}
 
-        VisMF::Read(*Efield[lev][0], amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "Ex"));
-        VisMF::Read(*Efield[lev][1], amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "Ey"));
-        VisMF::Read(*Efield[lev][2], amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "Ez"));
+        VisMF::Read(*Efield[lev][0],
+                    amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "Ex"));
+        VisMF::Read(*Efield[lev][1],
+                    amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "Ey"));
+        VisMF::Read(*Efield[lev][2],
+                    amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "Ez"));
 
-        VisMF::Read(*Bfield[lev][0], amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "Bx"));
-        VisMF::Read(*Bfield[lev][1], amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "By"));
-        VisMF::Read(*Bfield[lev][2], amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "Bz"));
+        VisMF::Read(*Bfield[lev][0],
+                    amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "Bx"));
+        VisMF::Read(*Bfield[lev][1],
+                    amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "By"));
+        VisMF::Read(*Bfield[lev][2],
+                    amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "Bz"));
+
         if (is_synchronized) {
             VisMF::Read(*current[lev][0],
                         amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "jx"));
@@ -280,6 +303,26 @@ WarpX::InitFromCheckpoint ()
             VisMF::Read(*current[lev][2],
                         amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "jz"));            
         }
+    }
+
+    if (do_pml)
+    {
+        InitPML();
+
+        const int lev = 0;
+        VisMF::Read(*pml_E[0],
+                    amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "pml_Ex"));
+        VisMF::Read(*pml_E[1],
+                    amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "pml_Ey"));
+        VisMF::Read(*pml_E[2],
+                    amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "pml_Ez"));
+
+        VisMF::Read(*pml_B[0],
+                    amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "pml_Bx"));
+        VisMF::Read(*pml_B[1],
+                    amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "pml_By"));
+        VisMF::Read(*pml_B[2],
+                    amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "pml_Bz"));
     }
 
     // Initilize particles
