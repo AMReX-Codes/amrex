@@ -2510,7 +2510,7 @@ ParticleContainer<NStructReal,NStructInt,NArrayReal, NArrayInt>::WriteCoarsenedA
                                      << it->m_rdata.pos[2] << ' ');
                               
                               for (int i = 0; i < NArrayReal; i++) {
-                                  File << soa[i][index] << ' ';
+                                  File << soa.GetRealData(i)[index] << ' ';
                               }
                               index++;
                               
