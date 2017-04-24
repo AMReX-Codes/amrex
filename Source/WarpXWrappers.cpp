@@ -167,7 +167,7 @@ extern "C"
         int i = 0;
         for (WarpXParIter pti(myspc, level); pti.isValid(); ++pti, ++i) {
             auto& soa = pti.GetStructOfArrays();
-            data[i] = (double*) soa[comp].dataPtr();
+            data[i] = (double*) soa.GetRealData(comp).dataPtr();
             (*particles_per_tile)[i] = pti.numParticles();
         }
         return data;

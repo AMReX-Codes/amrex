@@ -30,10 +30,21 @@ public:
                       const amrex::Array<amrex::Real>& z);
 #endif
 
-    const SoA& GetAttribs () const { return GetStructOfArrays(); }
-    SoA&       GetAttribs ()       { return GetStructOfArrays(); }
-    const amrex::Array<amrex::Real>& GetAttribs (int comp) const { return GetStructOfArrays()[comp]; }
-    amrex::Array      <amrex::Real>& GetAttribs (int comp)       { return GetStructOfArrays()[comp]; }
+    const std::array<amrex::Array<amrex::Real>, PIdx::nattribs>& GetAttribs () const { 
+        return GetStructOfArrays().GetRealData(); 
+    }
+    
+    std::array<amrex::Array<amrex::Real>, PIdx::nattribs>& GetAttribs () { 
+        return GetStructOfArrays().GetRealData(); 
+    }
+
+    const amrex::Array<amrex::Real>& GetAttribs (int comp) const { 
+        return GetStructOfArrays().GetRealData(comp);
+    }
+    
+    amrex::Array<amrex::Real>& GetAttribs (int comp) { 
+        return GetStructOfArrays().GetRealData(comp);
+    }
 };
 
 class MultiParticleContainer;

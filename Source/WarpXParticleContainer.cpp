@@ -29,7 +29,7 @@ WarpXParticleContainer::WarpXParticleContainer (AmrCore* amr_core, int ispecies)
     , species_id(ispecies)
 {
     for (unsigned int i = PIdx::Ex; i < PIdx::nattribs; ++i) {
-        communicate_comp[i] = false; // Don't need to communicate E and B.
+        communicate_real_comp[i] = false; // Don't need to communicate E and B.
     }
     ReadParameters();
 }
@@ -85,7 +85,7 @@ WarpXParticleContainer::AddOneParticle (ParticleTileType& particle_tile,
 #endif
     
     particle_tile.push_back(p);
-    particle_tile.push_back(attribs);
+    particle_tile.push_back_real(attribs);
 }
 
 void
@@ -139,15 +139,15 @@ WarpXParticleContainer::AddNParticles (int n, const Real* x, const Real* y, cons
         particle_tile.push_back(p);
     }
 
-    particle_tile.push_back(PIdx::w , weight + ibegin, weight + iend);
-    particle_tile.push_back(PIdx::ux,     vx + ibegin,     vx + iend);
-    particle_tile.push_back(PIdx::uy,     vy + ibegin,     vy + iend);
-    particle_tile.push_back(PIdx::uz,     vz + ibegin,     vz + iend);
+    particle_tile.push_back_real(PIdx::w , weight + ibegin, weight + iend);
+    particle_tile.push_back_real(PIdx::ux,     vx + ibegin,     vx + iend);
+    particle_tile.push_back_real(PIdx::uy,     vy + ibegin,     vy + iend);
+    particle_tile.push_back_real(PIdx::uz,     vz + ibegin,     vz + iend);
 
     std::size_t np = iend-ibegin;
     for (int comp = PIdx::uz+1; comp < PIdx::nattribs; ++comp)
     {
-        particle_tile.push_back(comp, np, 0.0);
+        particle_tile.push_back_real(comp, np, 0.0);
     }
 
     Redistribute();
@@ -230,7 +230,9 @@ WarpXParticleContainer::PushX (int lev,
 
     for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
     {
+
         auto& attribs = pti.GetAttribs();
+
         auto& uxp = attribs[PIdx::ux];
         auto& uyp = attribs[PIdx::uy];
         auto& uzp = attribs[PIdx::uz];
