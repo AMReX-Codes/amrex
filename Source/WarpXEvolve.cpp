@@ -230,6 +230,10 @@ WarpX::FillBoundaryE(int lev, bool force)
             WarpX::ExchangeWithPML(*Efield[lev][0], *pml_E[0], geom[lev]);
             WarpX::ExchangeWithPML(*Efield[lev][1], *pml_E[1], geom[lev]);
             WarpX::ExchangeWithPML(*Efield[lev][2], *pml_E[2], geom[lev]);
+
+            (*pml_E[0]).FillBoundary( geom[lev].periodicity() );
+            (*pml_E[1]).FillBoundary( geom[lev].periodicity() );
+            (*pml_E[2]).FillBoundary( geom[lev].periodicity() );
         }
 
         (*Efield[lev][0]).FillBoundary( geom[lev].periodicity() );
@@ -247,6 +251,10 @@ WarpX::FillBoundaryB(int lev, bool force)
             WarpX::ExchangeWithPML(*Bfield[lev][0], *pml_B[0], geom[lev]);
             WarpX::ExchangeWithPML(*Bfield[lev][1], *pml_B[1], geom[lev]);
             WarpX::ExchangeWithPML(*Bfield[lev][2], *pml_B[2], geom[lev]);
+
+            (*pml_B[0]).FillBoundary( geom[lev].periodicity() );
+            (*pml_B[1]).FillBoundary( geom[lev].periodicity() );
+            (*pml_B[2]).FillBoundary( geom[lev].periodicity() );
         }
 
         (*Bfield[lev][0]).FillBoundary( geom[lev].periodicity() );
