@@ -230,9 +230,12 @@ WarpXParticleContainer::PushX (int lev,
 
     for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
     {
-        auto& uxp = pti.GetAttribs(PIdx::ux);
-        auto& uyp = pti.GetAttribs(PIdx::uy);
-        auto& uzp = pti.GetAttribs(PIdx::uz);
+
+        auto& attribs = pti.GetAttribs();
+
+        auto& uxp = attribs[PIdx::ux];
+        auto& uyp = attribs[PIdx::uy];
+        auto& uzp = attribs[PIdx::uz];
         
         const long np = pti.numParticles();
 
