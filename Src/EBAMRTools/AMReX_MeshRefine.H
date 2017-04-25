@@ -19,18 +19,10 @@
 #include <AMReX_Box.H>
 #include <AMReX_IntVectSet.H>
 #include <AMReX_BoxArray.H>
+#include <AMReX_RealVect.H>
+#include <AMReX_EBLevelGrid.H>
 
 
-/// function to make grids
-/**
-   This makes a set of grids from a set of tags.   
-   This is not as general as Chombo's meshrefine (it has
-   none of the stuff necessary for lbase != 0).
-   This is useful for  writing tests, however.  
-*/
-namespace amrex
-{
-//for creating simple grids for tests
 namespace amrex
 {
   class GridParameters
@@ -68,7 +60,13 @@ namespace amrex
       }
   };
 
-  /// the big kahuna
+  /// function to make grids
+  /**
+     This makes a set of grids from a set of tags.   
+     This is not as general as Chombo's meshrefine (it has
+     none of the stuff necessary for lbase != 0).
+     This is useful for  writing tests, however.  
+  */
   extern void
   MeshRefine(std::vector<BoxArray>           &   a_grids,
              const std::vector<IntVectSet>   &   a_tags,
@@ -82,13 +80,13 @@ namespace amrex
 
 
   ///for tests---get grids where the irregular cells are all refined
-  extern void getAllIrregEBLG(Vector<EBLevelGrid>   & a_eblg,
+  extern void getAllIrregEBLG(std::vector<EBLevelGrid>   & a_eblg,
                               const GridParameters  & a_params);
 
   extern void
   getGridParameters(GridParameters&  a_params,
                     int forceMaxLevel = -1,
-                    bool a_verbose == false)
+                    bool a_verbose = false);
 
 }
 #endif

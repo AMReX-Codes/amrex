@@ -116,10 +116,11 @@ namespace amrex
   EBCellFAB::plus(const EBCellFAB& a_src,
                   int a_srccomp,
                   int a_dstcomp,
-                  int a_numcomp)
+                  int a_numcomp,
+                  Real a_scale)
   {
     Box locRegion = a_src.getRegion() & getRegion();
-    plus(a_src, locRegion, a_srccomp, a_dstcomp, a_numcomp);
+    plus(a_src, locRegion, a_srccomp, a_dstcomp, a_numcomp, a_scale);
     return *this;
   }
          
@@ -135,7 +136,6 @@ namespace amrex
     BL_ASSERT(a_srccomp + a_numcomp <= a_src.nComp());
     BL_ASSERT(a_dstcomp + a_numcomp <= nComp());
     const Box& locRegion = a_region;
-    bool sameRegBox = (a_src.m_regFAB.box() == m_regFAB.box());
          
     if (!locRegion.isEmpty())
     {
@@ -154,11 +154,11 @@ namespace amrex
       std::vector<VolIndex>  irrvofs = m_irrFAB.getVoFs();
       for(int ivof = 0; ivof < irrvofs.size(); ivof++)
       {
-        for (int icomp = 0; icomp < nComp(); icomp++)
+        const VolIndex& vof = irrvofs[ivof];
+        if(locRegion.contains(vof.gridIndex()))
         {
-          if(locRegion.contains(vof.gridIndex()))
+          for (int icomp = 0; icomp < nComp(); icomp++)
           {
-            const VolIndex& vof = irrvofs[ivof];
             m_irrFAB(vof, icomp) = a_scale*a_src.m_irrFAB(vof, icomp);
           }
         }

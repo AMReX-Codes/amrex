@@ -17,7 +17,7 @@
 #include "AMReX_FabArray.H"
 #include "AMReX_EBCellFAB.H"
 #include "AMReX_EBCellFactory.H"
-#include "AMReX_EBISLayout.H"
+#include "AMReX_EBLevelGrid.H"
 
 
 //for creating simple grids for tests
@@ -32,11 +32,11 @@ namespace amrex
   class EBLevelDataOps
   {
   public:
-    EBFabArrayOps()
+    EBLevelDataOps()
       {
       }
 
-    ~EBFabArrayOps()
+    ~EBLevelDataOps()
       {
       }
 
@@ -93,7 +93,9 @@ namespace amrex
     ///
     /**
      */
-    static void setCoveredVal(FabArray<EBCellFAB>&   a_lData);
+    static void setCoveredVal(FabArray<EBCellFAB> &  a_lData,
+                              const int           &  a_comp,
+                              const Real          &  a_value);
 
 
     ///
@@ -105,9 +107,11 @@ namespace amrex
 
     ///
     /**
+       If comp < 0, set all components
      */
-    static void setVal(FabArray<EBCellFAB>& a_result,
-                       const Real&           a_value);
+    static void setVal(FabArray<EBCellFAB> & a_result,
+                       const Real          & a_value,
+                       int  a_comp = -1);
 
 
 
