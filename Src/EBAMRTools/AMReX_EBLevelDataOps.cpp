@@ -353,7 +353,8 @@ namespace amrex
        const FabArray<EBCellFAB>&  a_data,
        const EBLevelGrid        &  a_eblg,
        int                         a_p,
-       int                         a_comp)
+       int                         a_comp,
+       bool                        a_useGhost)
   {
     Real integral  = 0;
     Real volume    = 0;
@@ -362,7 +363,13 @@ namespace amrex
       const EBCellFAB& data =    a_data[mfi];
       Box     grid  = a_eblg.getDBL()  [mfi];
       EBISBox ebis  = a_eblg.getEBISL()[mfi];
-      for(VoFIterator vofit(IntVectSet(grid), ebis.getEBGraph()); vofit.ok(); ++vofit)
+      Box region = grid;
+      if(a_useGhost)
+      {
+        region = data.box();
+        region &= a_eblg.getDomain();
+      }
+      for(VoFIterator vofit(IntVectSet(region), ebis.getEBGraph()); vofit.ok(); ++vofit)
       {
         const VolIndex & vof = vofit();
         Real value   = data(vof, a_comp);
@@ -440,7 +447,8 @@ namespace amrex
                const FabArray<EBCellFAB>       &   a_errorCoar,
                const EBLevelGrid               &   a_eblgFine,
                const EBLevelGrid               &   a_eblgCoar,
-               std::vector<string>                 a_names)
+               std::vector<string>                 a_names,
+               bool                                a_useGhost)
   {
     BL_ASSERT(a_errorFine.nComp() == a_errorCoar.nComp());
 
@@ -469,8 +477,8 @@ namespace amrex
       for (int p = 0; p <=2;  p++)
       {
         Real coarVolu, fineVolu;
-        coarNorm[p][comp] = norm(coarVolu, a_errorCoar, a_eblgCoar, p, comp);
-        fineNorm[p][comp] = norm(fineVolu, a_errorFine, a_eblgFine, p, comp);
+        coarNorm[p][comp] = norm(coarVolu, a_errorCoar, a_eblgCoar, p, comp, a_useGhost);
+        fineNorm[p][comp] = norm(fineVolu, a_errorFine, a_eblgFine, p, comp, a_useGhost);
 
         if ((std::abs(fineNorm[p][comp]) > 1.0e-10) && (std::abs(coarNorm[p][comp]) > 1.0e-10))
         {
@@ -490,7 +498,7 @@ namespace amrex
     amrex::Print() << "\\begin{table}[p]" << "\n";
     amrex::Print() << "\\begin{center}" << "\n";
     amrex::Print() << "\\begin{tabular}{|cccc|} \\hline" << "\n";
-    amrex::Print() << "Variable & norm & $e_{f}$ & Order & $e_{c}$\\\\" << "\n";;
+    amrex::Print() << "Variable & \t norm \t & $e_{f}$ \t& Order \t& $e_{c}$\\\\" << "\n";;
     amrex::Print() << "\\hline " << "\n";
 
     for (int inorm = 0; inorm <= 2; inorm++)
@@ -517,7 +525,7 @@ namespace amrex
         }
         else
         {
-          amrex::Print() << "L_" << inorm << " & \t ";
+          amrex::Print() << "L_" << inorm << "       & \t ";
         }
 
         amrex::Print() << setw(12)
@@ -538,13 +546,13 @@ namespace amrex
         amrex::Print() << " \\\\ " << "\n";
       }
 
-      amrex::Print() << "\\hline " << "\n";
-      amrex::Print() << "\\end{tabular}" << "\n";
-      amrex::Print() << "\\end{center}" << "\n";
-      amrex::Print() << "\\caption{Convergence rates for $nx_f = " << nmedi << ", nx_c = nx_f/2$.} " << "\n";
-      amrex::Print() << "\\end{table}" << "\n";
-      amrex::Print() << "\n" << "\n";
     }
+    amrex::Print() << "\\hline " << "\n";
+    amrex::Print() << "\\end{tabular}" << "\n";
+    amrex::Print() << "\\end{center}" << "\n";
+    amrex::Print() << "\\caption{Convergence rates for $nx_f = " << nmedi << ", nx_c = nx_f/2$.} " << "\n";
+    amrex::Print() << "\\end{table}" << "\n";
+    amrex::Print() << "\n" << "\n";
 
   }
 }

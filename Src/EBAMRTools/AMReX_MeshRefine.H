@@ -44,7 +44,7 @@ namespace amrex
     std::vector<int>   refRatio;
     Box           coarsestDomain;
     Real          coarsestDx;
-    RealVect      domainLength;
+    Real          domainLength;
     RealVect      probLo;
     RealVect      probHi;
 

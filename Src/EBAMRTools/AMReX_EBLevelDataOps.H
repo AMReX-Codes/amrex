@@ -150,22 +150,26 @@ namespace amrex
                       const Real& b);
     ///
     /**
+       set useGhost = false unless you are testing cf interp or some such
      */
     static  Real norm(Real&                       a_volume,
                       const FabArray<EBCellFAB>& a_data,
                       const EBLevelGrid        &  a_eblg,
                       int                         a_p,
-                      int                         a_comp);
+                      int                         a_comp,
+                      bool a_useGhost = false);
 
 
     /// prints out latex summary of error comparison.  useful for convergence tests
     /**
+       set useGhost = false unless you are testing cf interp or some such
      */
     static void compareError(const FabArray<EBCellFAB>       &   a_errorFine,
                              const FabArray<EBCellFAB>       &   a_errorCoar,
                              const EBLevelGrid               &   a_eblgFine,
                              const EBLevelGrid               &   a_eblgCoar,
-                             std::vector<string> a_names = std::vector<string>());
+                             std::vector<string> a_names = std::vector<string>(),
+                             bool a_useGhost = false);
 
   private:
 
