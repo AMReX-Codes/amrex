@@ -233,7 +233,7 @@ namespace amrex
     pp.get("which_geom"    , a_params.whichGeom            );
 
     std::vector<int> nCellsArray(SpaceDim);
-    pp.getarr("n_cells",nCellsArray,0,SpaceDim);
+    pp.getarr("n_cell",nCellsArray,0,SpaceDim);
 
     for (int idir = 0; idir < SpaceDim; idir++)
     {
@@ -274,18 +274,14 @@ namespace amrex
 
     a_params.coarsestDomain = Box(lo, hi);
 
-    std::vector<Real> dLArray(SpaceDim);
-    pp.getarr("domain_length",dLArray,0,SpaceDim);
-    for (int idir = 0; idir < SpaceDim; idir++)
-    {
-      a_params.domainLength[idir] = dLArray[idir];
-    }
+    pp.get("domain_length",a_params.domainLength);
+
 
     pp.get("which_geom",   a_params.whichGeom);
     pp.get("max_grid_size",a_params.maxGridSize);
 
     //derived stuff
-    a_params.coarsestDx = a_params.domainLength[0]/a_params.nCells[0];
+    a_params.coarsestDx = a_params.domainLength/a_params.nCells[0];
 
     a_params.probLo = RealVect::Zero;
     a_params.probHi = RealVect::Zero;

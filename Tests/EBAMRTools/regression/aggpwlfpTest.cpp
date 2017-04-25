@@ -40,7 +40,7 @@ namespace amrex
     Real retval;
     Real probHi;
     ParmParse pp;
-    pp.get("prob_hi",probHi);
+    pp.get("domain_length",probHi);
     RealVect xloc;
     for (int idir = 0; idir < SpaceDim; idir++)
     {
@@ -258,7 +258,7 @@ namespace amrex
     eekflag = getError(errorFine,eblgFine, dxLev1Fine);
     eekflag = getError(errorCoar,eblgCoar, dxLev1Coar);
 
-    EBLevelDataOps::compareError(errorFine, errorCoar, eblgFine[1], eblgCoar[1]);
+    EBLevelDataOps::compareError(errorFine, errorCoar, eblgFine[1], eblgCoar[1], vector<string>(), true);
     return eekflag;
   }
 }
