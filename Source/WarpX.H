@@ -181,6 +181,17 @@ private:
     amrex::DistributionMapping pml_dm;
     std::array<std::unique_ptr<amrex::MultiFab>,3> pml_E;
     std::array<std::unique_ptr<amrex::MultiFab>,3> pml_B;
+    //
+    struct PMLSigma {
+        amrex::Real*       data()       { return m_data.data(); }
+        const amrex::Real* data() const { return m_data.data(); }
+        int lo() const { return m_lo; }
+        int hi() const { return m_hi; }
+        //
+        amrex::Array<amrex::Real> m_data;
+        int m_lo, m_hi;
+    };
+    std::array<PMLSigma,3> pml_sigma, pml_sigma_star;
 
     // Moving window parameters
     int do_moving_window  = 0;

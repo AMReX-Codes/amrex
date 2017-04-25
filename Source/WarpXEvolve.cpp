@@ -158,9 +158,9 @@ WarpX::EvolveB (int lev, Real dt)
 #endif
     for ( MFIter mfi(*Bfield[lev][0],true); mfi.isValid(); ++mfi )
     {
-      const Box& tbx  = mfi.tilebox(Bx_nodal_flag);
-      const Box& tby  = mfi.tilebox(By_nodal_flag);
-      const Box& tbz  = mfi.tilebox(Bz_nodal_flag);
+        const Box& tbx  = mfi.tilebox(Bx_nodal_flag);
+        const Box& tby  = mfi.tilebox(By_nodal_flag);
+        const Box& tbz  = mfi.tilebox(Bz_nodal_flag);
 
 	// Call picsar routine for each tile
 	WRPX_PXR_PUSH_BVEC(
@@ -175,6 +175,29 @@ WarpX::EvolveB (int lev, Real dt)
 	    BL_TO_FORTRAN_3D((*Bfield[lev][2])[mfi]),
 	    &dtsdx[0], &dtsdx[1], &dtsdx[2],
 	    &norder);
+    }
+
+    if (do_pml && lev == 0)
+    {
+#if 0
+        const Geometry& gm = Geom(0);
+        const Box& domain = gm.Domain();
+        const int* dlo = domain.loVect();
+        const int* dhi = domain.hiVect();
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+        for ( MFIter mfi(*pmlB[0]); mfi.isValid(); ++mfi )
+        {
+            const Box& ccbx = amrex::enclosedCells(mfi.validbox());
+            const int* cclo = ccbx.loVect();
+            const int* cchi = ccbx.hiVect();
+            Box Bx_bx = amrex::convert(ccbx, Bx_nodal_flag); 
+            Box By_bx = amrex::convert(ccbx, By_nodal_flag); 
+            Box Bz_bx = amrex::convert(ccbx, Bz_nodal_flag);
+        }
+#endif
     }
 }
 

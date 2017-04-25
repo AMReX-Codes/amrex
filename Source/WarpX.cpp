@@ -256,7 +256,12 @@ WarpX::InitPML ()
 
     const Geometry& gm0 = Geom(0);
     const Box& domainbox = gm0.Domain();
-    const Box& grownbox  = amrex::grow(domainbox, pml_ncell);
+    Box grownbox = domainbox;
+    for (int i = 0; i < BL_SPACEDIM; ++i) {\
+        if (!Geometry::isPeriodic(i)) {
+            grownbox.grow(i,pml_ncell);
+        }
+    }
 
     int block_size = maxGridSize(0);
     while (block_size < pml_ncell) {
@@ -313,6 +318,48 @@ WarpX::InitPML ()
     pml_B[0]->setVal(0.0);
     pml_B[1]->setVal(0.0);
     pml_B[2]->setVal(0.0);
+
+#if (BL_SPACEDIM == 3)
+    {
+        constexpr Real epsilon = 1.0/(PhysConst::mu0*PhysConst::c*PhysConst::c);
+        const Real* dx = gm0.CellSize();
+        const int* dlo = domainbox.loVect();
+        const int* dhi = domainbox.hiVect();
+        const int* glo = grownbox.loVect();
+        const int* ghi = grownbox.hiVect();
+        const IntVect& sz = grownbox.size();
+        for (int idim = 0; idim < BL_SPACEDIM; ++idim) {
+            pml_sigma     [idim].m_data.resize(sz[idim]+1, 0.0);
+            pml_sigma_star[idim].m_data.resize(sz[idim]  , 0.0);
+            pml_sigma     [idim].m_lo = glo[idim];
+            pml_sigma     [idim].m_hi = ghi[idim]+1;
+            pml_sigma_star[idim].m_lo = glo[idim];
+            pml_sigma_star[idim].m_hi = ghi[idim];
+
+            const Real fac = epsilon*4.0*PhysConst::c/(dx[idim]*static_cast<Real>(pml_ncell*pml_ncell));
+
+            for (int ind = glo[idim]; ind < dlo[idim]; ++ind) {
+                Real offset = static_cast<Real>(dlo[idim] - ind);
+                pml_sigma[idim].m_data[ind-glo[idim]] = fac*(offset*offset);
+            }
+            for (int ind = dhi[idim]+2; ind < ghi[idim]+2; ++ind) {
+                Real offset = static_cast<Real>(ind - (dhi[idim]+1));
+                pml_sigma[idim].m_data[ind-glo[idim]] = fac*(offset*offset);
+            }
+
+            for (int icc = glo[idim]; icc < dlo[idim]; ++icc) {
+                Real offset = static_cast<Real>(dlo[idim] - icc) - 0.5;
+                pml_sigma_star[idim].m_data[icc-glo[idim]] = fac*(offset*offset);
+            }
+            for (int icc = dhi[idim]+1; icc < ghi[idim]+1; ++icc) {
+                Real offset = static_cast<Real>(icc - dhi[idim]) - 0.5;
+                pml_sigma_star[idim].m_data[icc-glo[idim]] = fac*(offset*offset);                
+            }
+        }
+    }
+#else
+    amrex::Abort("InitPML: 2d not supported yet");
+#endif
 }
 
 void
