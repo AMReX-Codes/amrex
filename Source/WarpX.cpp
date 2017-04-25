@@ -255,23 +255,48 @@ WarpX::InitPML ()
     if (!do_pml) return;
 
     const Geometry& gm0 = Geom(0);
-
-    Box pml_box = gm0.Domain();
-    for (int idim = 0; idim < BL_SPACEDIM; ++idim) {
-        if (! gm0.isPeriodic(idim)) {
-            pml_box.grow(idim, pml_ncell);
-        }
-    }
+    const Box& domainbox = gm0.Domain();
+    const Box& grownbox  = amrex::grow(domainbox, pml_ncell);
 
     int block_size = maxGridSize(0);
     while (block_size < pml_ncell) {
         block_size += blockingFactor(0);
     }
 
-    pml_ba = amrex::boxComplement(pml_box, gm0.Domain());
-    pml_ba.maxSize(block_size);
+    Array<IntVect> shift;
+    {
+        int len[3] = {0,0,0};
+        int jmp[3] = {1,1,1};
+
+        for (int i = 0; i < BL_SPACEDIM; ++i) {
+            if (!Geometry::isPeriodic(i)) {
+                len[i] = jmp[i] = domainbox.length(i);
+            }
+        }
+
+        for (int i = -len[0]; i <= len[0]; i += jmp[0]) {
+        for (int j = -len[1]; j <= len[1]; j += jmp[1]) {
+        for (int k = -len[2]; k <= len[2]; k += jmp[2]) {
+            if (i != 0 || j != 0 || k!= 0) {
+                shift.push_back(IntVect(D_DECL(i,j,k)));
+            }
+        }
+        }
+        }
+    }
+
+    BoxList bl;
+    for (const IntVect& iv : shift) {
+        Box bbx = domainbox;
+        bbx.shift(iv);
+        bbx &= grownbox;
+        BoxList bltmp(bbx);
+        bltmp.maxSize(block_size);
+        bl.catenate(bltmp);
+    }
+    pml_ba.define(bl);
     
-    // xxxxx for now let's just simply use Round-Robin
+    // xxxxx for now let's just use a simple distributionmapping
     pml_dm.RoundRobinProcessorMap(pml_ba.size(), ParallelDescriptor::NProcs());
 
     const int ng = Efield[0][0]->nGrow();
