@@ -26,7 +26,6 @@ WarpX::Evolve (int numsteps)
     }
 
     bool max_time_reached = false;
-    bool last_step = false;
 
     for (int step = istep[0]; step < numsteps_max && cur_time < stop_time; ++step)
     {
@@ -46,6 +45,8 @@ WarpX::Evolve (int numsteps)
 	// Advance level 0 by dt
 	const int lev = 0;
 	{
+            if (do_pml) ComputePMLFactors (lev, dt[lev]);
+
 	    // At the beginning, we have B^{n-1/2} and E^{n-1/2}.
 	    // Particles have p^{n-1/2} and x^{n-1/2}.
 
@@ -386,8 +387,6 @@ WarpX::InjectPlasma (int num_shift, int dir)
         particleBox.shift(dir, sign*(domainLength - std::abs(num_shift)));
         particleBox &= geom[lev].Domain();
 
-        const Real* dx = geom[lev].CellSize();
-
         for (int i = 0; i < num_injected_species; ++i) {
             int ispecies = injected_plasma_species[i];
             WarpXParticleContainer& pc = mypc->GetParticleContainer(ispecies);
@@ -444,4 +443,55 @@ WarpX::MoveWindow (bool move_j)
 
     // Redistribute (note - this removes particles that are outside of the box)
     mypc->Redistribute();
+}
+
+void
+WarpX::ComputePMLFactors (int lev, Real dt)
+{
+    const std::array<Real,3>& dx = WarpX::CellSize(lev);
+
+    const std::array<Real,3> dtsdx {dt/dx[0], dt/dx[1], dt/dx[2]};
+    const Real c2 = PhysConst::c*PhysConst::c;
+    const std::array<Real,3> dtsdx_c2 {dtsdx[0]*c2, dtsdx[1]*c2, dtsdx[2]*c2};
+
+    for (int idim = 0; idim < BL_SPACEDIM; ++idim)
+    {
+        pml_sigma_fac1[idim].assign(pml_sigma[idim].size(), 1.0);
+        pml_sigma_fac2[idim].assign(pml_sigma[idim].size(), dtsdx_c2[idim]);
+
+        pml_sigma_star_fac1[idim].assign(pml_sigma_star[idim].size(), 1.0);
+        pml_sigma_star_fac2[idim].assign(pml_sigma_star[idim].size(), dtsdx[idim]);
+        
+
+        if (!Geometry::isPeriodic(idim))
+        {
+            for (int i = 0; i < pml_ncell; ++i)
+            {
+                pml_sigma_fac1[idim][i] = std::exp(-pml_sigma[idim][i]*dt);
+                pml_sigma_fac2[idim][i] = (1.0-pml_sigma_fac1[idim][i])
+                    / (pml_sigma[idim][i]*dt) * dtsdx_c2[idim];
+
+                pml_sigma_star_fac1[idim][i] = std::exp(-pml_sigma_star[idim][i]*dt);
+                pml_sigma_star_fac2[idim][i] = (1.0-pml_sigma_star_fac1[idim][i])
+                    / (pml_sigma_star[idim][i]*dt) * dtsdx[idim];
+            }
+
+            for (int iiii = 0; iiii < pml_ncell; ++iiii)
+            {
+                int i = (iiii - pml_ncell) + static_cast<int>(pml_sigma_fac1[idim].size());
+                pml_sigma_fac1[idim][i] = std::exp(-pml_sigma[idim][i]*dt);
+                pml_sigma_fac2[idim][i] = (1.0-pml_sigma_fac1[idim][i])
+                    / (pml_sigma[idim][i]*dt) * dtsdx_c2[idim];
+            }
+
+            for (int iiii = 0; iiii < pml_ncell; ++iiii)
+            {
+                int i = (iiii - pml_ncell) + static_cast<int>(pml_sigma_star_fac1[idim].size());
+
+                pml_sigma_star_fac1[idim][i] = std::exp(-pml_sigma_star[idim][i]*dt);
+                pml_sigma_star_fac2[idim][i] = (1.0-pml_sigma_star_fac1[idim][i])
+                    / (pml_sigma_star[idim][i]*dt) * dtsdx[idim];
+            }
+        }
+    }
 }

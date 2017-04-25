@@ -70,6 +70,10 @@ public:
     void ComputeDt ();
     void MoveWindow (bool move_j);
 
+    void ComputePMLFactors (int lev, amrex::Real dt);
+    void ExchangeWithPML (amrex::MultiFab& regmf, amrex::MultiFab& pmlmf,
+                          const amrex::Geometry& gm);
+
     void EvolveE (int lev, amrex::Real dt);
     void EvolveB (int lev, amrex::Real dt);
     void FillBoundaryE (int lev, bool force);
@@ -156,8 +160,6 @@ private:
 				  const std::array<std::unique_ptr<amrex::MultiFab>,3>& data);
 
     void InitPML ();
-    void ExchangeWithPML (amrex::MultiFab& regmf, amrex::MultiFab& pmlmf,
-                          const amrex::Geometry& gm);
 
     amrex::Array<int> istep;      // which step?
     amrex::Array<int> nsubsteps;  // how many substeps on each level?
@@ -182,16 +184,14 @@ private:
     std::array<std::unique_ptr<amrex::MultiFab>,3> pml_E;
     std::array<std::unique_ptr<amrex::MultiFab>,3> pml_B;
     //
-    struct PMLSigma {
-        amrex::Real*       data()       { return m_data.data(); }
-        const amrex::Real* data() const { return m_data.data(); }
+    struct PMLSigma : amrex::Array<amrex::Real>
+    {
         int lo() const { return m_lo; }
         int hi() const { return m_hi; }
-        //
-        amrex::Array<amrex::Real> m_data;
         int m_lo, m_hi;
     };
-    std::array<PMLSigma,3> pml_sigma, pml_sigma_star;
+    std::array<PMLSigma,3> pml_sigma, pml_sigma_star; // sigma/epsilon, sigma_star/mu
+    std::array<PMLSigma,3> pml_sigma_fac1, pml_sigma_fac2, pml_sigma_star_fac1, pml_sigma_star_fac2;
 
     // Moving window parameters
     int do_moving_window  = 0;
