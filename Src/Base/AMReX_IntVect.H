@@ -44,6 +44,19 @@ public:
 	}
     };
 
+    ///
+    /**
+       This is an IntVect all of whose components are equal to zero.
+    */
+    static const IntVect Zero;
+    
+    ///
+    /**
+       This is an IntVect all of whose components are equal to one.
+    */
+    static const IntVect Unit;
+
+    ///
     /**
     * \brief Construct an IntVect whose components are all zero.
     */
