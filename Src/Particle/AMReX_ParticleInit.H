@@ -1149,13 +1149,13 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitOnePerCel
             //
 	    m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
 	    if (NArrayReal > 0) {
-                m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(0,(Real) p.m_idata.id);
+                m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back_real(0, (Real) p.m_idata.id);
             }
 	    if (NArrayReal > 1) {
-                m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(1,(Real) p.m_idata.cpu);
+                m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back_real(1, (Real) p.m_idata.cpu);
             }
 	    for (int ii = 2; ii < NArrayReal; ii++) {
-                m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(ii,0.0);
+                m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back_real(ii, 0.0);
             }
         }
     }
