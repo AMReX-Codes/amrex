@@ -10,8 +10,8 @@
  */
 
 #include <cmath>
-
-#include "SPMD.H"
+#include <iomanip>
+#include "AMReX_SPMD.H"
 
 #include "AMReX_EBLevelDataOps.H"
 #include "AMReX_FaceIterator.H"
@@ -25,18 +25,18 @@ namespace amrex
   EBLevelDataOps::checkData(const FabArray<EBCellFAB>&a_data, const string& label)
   {
     barrier();
-    amrex::Print() << "==== checking " << label << " for nans and infs =====" << std::"\n";
+    amrex::Print() << "==== checking " << label << " for nans and infs =====" << "\n";
     checkForBogusNumbers(a_data);
     barrier();
-    amrex::Print() << "Getting maxs and mins for " << label << std::"\n";
+    amrex::Print() << "Getting maxs and mins for " << label << "\n";
     for(int icomp = 0; icomp < a_data.nComp(); icomp++)
     {
       Real maxVal, minVal;
       getMaxMin(maxVal,minVal,a_data,icomp);
-      amrex::Print() << "max value = " << maxVal << " for comp = " << icomp << std::"\n";
-      amrex::Print() << "min value = " << minVal << " for comp = " << icomp << std::"\n";
+      amrex::Print() << "max value = " << maxVal << " for comp = " << icomp << "\n";
+      amrex::Print() << "min value = " << minVal << " for comp = " << icomp << "\n";
     }
-    amrex::Print() << "==================================================================== " << std::"\n";
+    amrex::Print() << "==================================================================== " << "\n";
     barrier();
   }
   //-----------------------------------------------------------------------
@@ -186,12 +186,12 @@ namespace amrex
         for (int icomp = 0; icomp < ncomp;++icomp)
         {
           Real val = dataEBFAB(vof,icomp);
-          if (std::isnan(val) || std::isinf(val) || Abs(val)>1.e16)
+          if (std::isnan(val) || std::isinf(val) || std::abs(val)>1.e16)
           {
             badvof = vof;
             badval = val;
             badcomp = icomp;
-            //                  amrex::Print() << "      icomp = " << icomp << " vof = " << vof << " val = " << val << std::"\n";
+            //                  amrex::Print() << "      icomp = " << icomp << " vof = " << vof << " val = " << val << "\n";
             dataIsNANINF = true;
             //                  amrex::Error();
           }
@@ -200,7 +200,7 @@ namespace amrex
     }
     if (dataIsNANINF)
     {
-      amrex::Print() << "first bad vof = "  << badvof << "\n";
+      amrex::Print() << "first bad vof cell = "  << badvof.gridIndex() << ", cellindex = " << badvof.cellIndex() << "\n";
       amrex::Print() << "bad val = "  << badval << " at comp " << badcomp << "\n";
       amrex::Warning("Found a NaN or Infinity.");
     }
@@ -232,8 +232,8 @@ namespace amrex
         const Real& val = dataEBFAB(vof,a_comp);
         if (a_doAbs)
         {
-          a_maxVal = std::max(a_maxVal,Abs(val));
-          a_minVal = std::min(a_minVal,Abs(val));
+          a_maxVal = std::max(a_maxVal,std::abs(val));
+          a_minVal = std::min(a_minVal,std::abs(val));
         }
         else
         {
@@ -248,13 +248,20 @@ namespace amrex
 
 
   //-----------------------------------------------------------------------
-  void EBLevelDataOps::setVal(FabArray<EBCellFAB>& a_result,
-                              const Real&           a_value,
-                              const int&            a_comp)
+  void EBLevelDataOps::setVal(FabArray<EBCellFAB> & a_result,
+                              const Real          & a_value,
+                              int                   a_comp)
   {
     for(MFIter mfi(a_result); mfi.isValid(); ++mfi)
     {
-      a_result[mfi].result.setVal(a_comp,a_value);
+      if(a_comp >= 0)
+      {
+        a_result[mfi].setVal(a_comp,a_value);
+      }
+      else
+      {
+        a_result[mfi].setVal(a_value);
+      }
     }
   }
 
@@ -263,12 +270,12 @@ namespace amrex
   void EBLevelDataOps::axby( FabArray<EBCellFAB>&       a_lhs,
                              const FabArray<EBCellFAB>& a_x,
                              const FabArray<EBCellFAB>& a_y,
-                             const Real& a,
-                             const Real& b)
+                             const Real& a_a,
+                             const Real& a_b)
   {
     for(MFIter mfi(a_lhs); mfi.isValid(); ++mfi)
     {
-      lhs[mfi].axby(a_x[mfi], a_y[mfi], a, b);
+      a_lhs[mfi].axby(a_x[mfi], a_y[mfi], a_a, a_b);
     }
   }
 
@@ -300,7 +307,7 @@ namespace amrex
                              const Real&           a_value)
   {
     BL_PROFILE("EBLevelDataOps::scale");
-    for(MFIter mfi(a_lhs); mfi.isValid(); ++mfi)
+    for(MFIter mfi(a_result); mfi.isValid(); ++mfi)
     {
       a_result[mfi] *= a_value;
     }
@@ -309,7 +316,7 @@ namespace amrex
   void EBLevelDataOps::kappaWeight(FabArray<EBCellFAB>& a_data)
   {
     BL_PROFILE("EBLevelDataOps::kappaWeight");
-    for(MFIter mfi(a_lhs); mfi.isValid(); ++mfi)
+    for(MFIter mfi(a_data); mfi.isValid(); ++mfi)
     {
       a_data[mfi].kappaWeight();
     }
@@ -357,6 +364,7 @@ namespace amrex
       EBISBox ebis  = a_eblg.getEBISL()[mfi];
       for(VoFIterator vofit(IntVectSet(grid), ebis.getEBGraph()); vofit.ok(); ++vofit)
       {
+        const VolIndex & vof = vofit();
         Real value   = data(vof, a_comp);
         Real volFrac = ebis.volFrac(vof);
         volume += volFrac;
@@ -434,17 +442,26 @@ namespace amrex
                const EBLevelGrid               &   a_eblgCoar,
                std::vector<string>                 a_names)
   {
-    const Vector<int>& refRat = a_refRat;
-    const int ncomp = a_errorFine[0]->nComp();
+    BL_ASSERT(a_errorFine.nComp() == a_errorCoar.nComp());
+
+    Box domCoar = a_eblgCoar.getDomain();
+    Box domCoFi = a_eblgFine.getDomain();
+    domCoFi.coarsen(2);
+    //this assumes fine is a on a domain refined by two of the coarse domain
+    if(domCoar != domCoFi)
+    {
+      amrex::Error("domains do not match for ebleveldataops::compareerror");
+    }
+    const int ncomp = a_errorFine.nComp();
     bool useDefaultNames = (a_names.size() < ncomp);
 
 
-    std::vector<Real> coarNorm[3], fineNorm[3], order[3];  //one for each type of norm;
+    std::vector<Real> coarNorm[3], fineNorm[3], orders[3];  //one for each type of norm;
     for (int p = 0; p <=2;  p++)
     {
       coarNorm[p].resize(ncomp, 0.);
       fineNorm[p].resize(ncomp, 0.);
-      order   [p].resize(ncomp, 0.);
+      orders  [p].resize(ncomp, 0.);
     }
   
     for (int comp = 0; comp < ncomp; comp++)
@@ -455,9 +472,9 @@ namespace amrex
         coarNorm[p][comp] = norm(coarVolu, a_errorCoar, a_eblgCoar, p, comp);
         fineNorm[p][comp] = norm(fineVolu, a_errorFine, a_eblgFine, p, comp);
 
-        if ((std::abs(fineNorm[p][comp]) > 1.0e-10) && (std::abs(coarNorm)[p][comp] > 1.0e-10))
+        if ((std::abs(fineNorm[p][comp]) > 1.0e-10) && (std::abs(coarNorm[p][comp]) > 1.0e-10))
         {
-          orders[p][comp] = log(Abs(coarNorm[p][comp]/fineNorm[p][comp]))/log(2.0);
+          orders[p][comp] = log(std::abs(coarNorm[p][comp]/fineNorm[p][comp]))/log(2.0);
         }
       }
     }
@@ -470,11 +487,11 @@ namespace amrex
                       << setiosflags(ios::showpoint)
                       << setiosflags(ios::scientific);
 
-    amrex::Print() << "\\begin{table}[p]" << endl;
-    amrex::Print() << "\\begin{center}" << endl;
-    amrex::Print() << "\\begin{tabular}{|cccc|} \\hline" << endl;
-    amrex::Print() << "Variable & norm & $e_{f}$ & Order & $e_{c}$\\\\" << endl;;
-    amrex::Print() << "\\hline " << endl;
+    amrex::Print() << "\\begin{table}[p]" << "\n";
+    amrex::Print() << "\\begin{center}" << "\n";
+    amrex::Print() << "\\begin{tabular}{|cccc|} \\hline" << "\n";
+    amrex::Print() << "Variable & norm & $e_{f}$ & Order & $e_{c}$\\\\" << "\n";;
+    amrex::Print() << "\\hline " << "\n";
 
     for (int inorm = 0; inorm <= 2; inorm++)
     {
@@ -518,15 +535,15 @@ namespace amrex
                        << setiosflags(ios::showpoint)
                        << setiosflags(ios::scientific)
                        << normFine;
-        amrex::Print() << " \\\\ " << endl;
+        amrex::Print() << " \\\\ " << "\n";
       }
 
-      amrex::Print() << "\\hline " << endl;
-      amrex::Print() << "\\end{tabular}" << endl;
-      amrex::Print() << "\\end{center}" << endl;
-      amrex::Print() << "\\caption{Convergence rates for $nx_f = " << nmedi << ", nx_c = nx_f/2$.} " << endl;
-      amrex::Print() << "\\end{table}" << endl;
-      amrex::Print() << endl << endl;
+      amrex::Print() << "\\hline " << "\n";
+      amrex::Print() << "\\end{tabular}" << "\n";
+      amrex::Print() << "\\end{center}" << "\n";
+      amrex::Print() << "\\caption{Convergence rates for $nx_f = " << nmedi << ", nx_c = nx_f/2$.} " << "\n";
+      amrex::Print() << "\\end{table}" << "\n";
+      amrex::Print() << "\n" << "\n";
     }
 
   }

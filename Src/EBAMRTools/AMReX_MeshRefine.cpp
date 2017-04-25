@@ -16,6 +16,7 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_AmrMesh.H>
+#include <AMReX_ParmParse.H>
 #include <AMReX_BoxIterator.H>
 
 
@@ -107,8 +108,8 @@ namespace amrex
   }
   //-----------------------------------------------------------------------
   void 
-  getAllIrregEBLG(Vector<EBLevelGrid>   & a_eblg,
-                  const GridParameters  & a_params)
+  getAllIrregEBLG(std::vector<EBLevelGrid>   & a_eblg,
+                  const GridParameters       & a_params)
   {
     BL_PROFILE("EBLevelDataOps::getAllIrregRefinedLayouts");
     a_eblg.resize(a_params.numLevels);
@@ -121,20 +122,21 @@ namespace amrex
     {
       BoxArray bac(a_params.coarsestDomain);
       bac.maxSize(a_params.maxGridSize);
-      DistributionMapping dmc(ba);
+      DistributionMapping dmc(bac);
       EBLevelGrid eblglev(bac, dmc, domlev, a_params.ghostEBISBox);
-      if(ilev < (a_params.numLevels-1))
-      {
-        domlev.refine(a_params.refRatio[ilev]);
-      }
       for(MFIter mfi(bac, dmc); mfi.isValid(); ++mfi)
       {
-        tags[ilev] |= eblglev.getEBISL()[mfi].getIrregIVS(grid);
+        tags[ilev] |= eblglev.getEBISL()[mfi].getIrregIVS(bac[mfi]);
       }
       //empty tags do bad things
       if(tags[ilev].isEmpty())
       {
         tags[ilev] |= IntVect::TheZeroVector();
+      }
+
+      if(ilev < (a_params.numLevels-1))
+      {
+        domlev.refine(a_params.refRatio[ilev]);
       }
     }
 
@@ -149,6 +151,10 @@ namespace amrex
     {
       DistributionMapping dm_lev(grids[ilev]);
       a_eblg[ilev].define(grids[ilev], dm_lev, domlev, a_params.ghostEBISBox);
+      if(ilev < (a_params.numLevels-1))
+      {
+        domlev.refine(a_params.refRatio[ilev]);
+      }
     }
   
 
@@ -157,19 +163,21 @@ namespace amrex
     for(int ilev = 0; ilev < a_params.numLevels; ilev++)
     {
       Real pointsThisLevel = 0;
-      for(LayoutIterator lit = a_grids[ilev].layoutIterator(); lit.ok(); ++lit)
+      for(int ibox = 0; ibox < grids[ilev].size(); ibox++)
       {
-        pointsThisLevel += a_grids[ilev][lit()].numPts();
+        pointsThisLevel += grids[ilev][ibox].numPts();
       }
       totalPoints += pointsThisLevel;
-      totalBoxes += a_grids[ilev].size();
-      pout() << "getAllIrregRefineLayouts:level[" << ilev
-             << "], number of boxes = " << a_grids[ilev].size()
-             << ", number of points = " << pointsThisLevel << endl;
+      totalBoxes +=  grids[ilev].size();
+      long long ipoints = pointsThisLevel;
+      amrex::Print() << "getAllIrregRefineLayouts:level[" << ilev
+                     << "], number of boxes = " << grids[ilev].size()
+                     << ", number of points = " << ipoints << "\n";
     }
-    pout() << "getAllIrregRefineLayouts:"
-           <<  "   total boxes = " << totalBoxes
-           <<  ", total points = " << totalPoints <<  endl;
+    long long ipoints = totalPoints;
+    amrex::Print() << "getAllIrregRefineLayouts:"
+                   <<  "   total boxes = " << totalBoxes
+                   <<  ", total points = " << ipoints <<  "\n";
   }
 
   /********/
@@ -192,22 +200,26 @@ namespace amrex
   void 
   GridParameters::pout() const
   {
-    ::amrex::Print() << "Input Parameters:                    "   << endl;
-    ::amrex::Print() <<"whichGeom           = " << whichGeom      << endl;
-    ::amrex::Print() <<"nCells              = " << nCells         << endl;
-    ::amrex::Print() <<"maxGridSize         = " << maxGridSize    << endl;
-    ::amrex::Print() <<"blockFactor         = " << blockFactor    << endl;
-    ::amrex::Print() <<"bufferSize          = " << bufferSize     << endl;
-    ::amrex::Print() <<"fillRatio           = " << fillRatio      << endl;
-    ::amrex::Print() <<"maxLevel            = " << maxLevel       << endl;
-    ::amrex::Print() <<"numLevels           = " << numLevels      << endl;
-    ::amrex::Print() <<"refRatio            = " << refRatio       << endl;
-    ::amrex::Print() <<"coarsestDomain      = " << coarsestDomain << endl;
-    ::amrex::Print() <<"coarsestDx          = " << coarsestDx     << endl;
-    ::amrex::Print() <<"domainLength        = " << domainLength   << endl;
-    ::amrex::Print() <<"ghostPhi            = " << ghostPhi       << endl;
-    ::amrex::Print() <<"ghostRHS            = " << ghostRHS       << endl;
-    ::amrex::Print() <<"ghostEBISBox        = " << ghostEBISBox   << endl;
+    amrex::Print() << "Input Parameters:                    "   << "\n";
+    amrex::Print() <<"whichGeom           = " << whichGeom      << "\n";
+    amrex::Print() <<"nCells              = " << nCells         << "\n";
+    amrex::Print() <<"maxGridSize         = " << maxGridSize    << "\n";
+    amrex::Print() <<"blockFactor         = " << blockFactor    << "\n";
+    amrex::Print() <<"bufferSize          = " << bufferSize     << "\n";
+    amrex::Print() <<"fillRatio           = " << fillRatio      << "\n";
+    amrex::Print() <<"maxLevel            = " << maxLevel       << "\n";
+    amrex::Print() <<"numLevels           = " << numLevels      << "\n";
+    amrex::Print() <<"coarsestDomain      = " << coarsestDomain << "\n";
+    amrex::Print() <<"coarsestDx          = " << coarsestDx     << "\n";
+    amrex::Print() <<"domainLength        = " << domainLength   << "\n";
+    amrex::Print() <<"ghostEBISBox        = " << ghostEBISBox   << "\n";
+    amrex::Print() <<"refRatio            = ";
+    for(int iref = 0; iref << refRatio.size(); iref++)
+    {
+      amrex::Print() <<  refRatio[iref]       << "  ";
+    }
+    amrex::Print() <<   "\n";
+
   }
   /********/
   void 
@@ -226,12 +238,9 @@ namespace amrex
     for (int idir = 0; idir < SpaceDim; idir++)
     {
       a_params.nCells[idir] = nCellsArray[idir];
-      a_params.ghostPhi[idir] = 6;
-      a_params.ghostRHS[idir] = 6;
     }
     a_params.ghostEBISBox = 4;
-    amrex::Print() << "ghost cells phi = " << a_params.ghostPhi << ", ghost cells rhs = "  << a_params.ghostRHS << endl;
-    amrex::Print() << "number of ghost cells for EBISBox = " << a_params.ghostEBISBox << endl;
+    amrex::Print() << "number of ghost cells for EBISBox = " << a_params.ghostEBISBox <<"\n";
   
 
     if(a_forceMaxLevel == 0)
