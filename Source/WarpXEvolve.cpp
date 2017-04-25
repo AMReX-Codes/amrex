@@ -180,24 +180,35 @@ WarpX::EvolveB (int lev, Real dt)
 
     if (do_pml && lev == 0)
     {
-#if 0
-        const Geometry& gm = Geom(0);
-        const Box& domain = gm.Domain();
-        const int* dlo = domain.loVect();
-        const int* dhi = domain.hiVect();
-
+#if (BL_SPACEDIM == 3)
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-        for ( MFIter mfi(*pmlB[0]); mfi.isValid(); ++mfi )
+        for ( MFIter mfi(*pml_B[0],true); mfi.isValid(); ++mfi )
         {
-            const Box& ccbx = amrex::enclosedCells(mfi.validbox());
-            const int* cclo = ccbx.loVect();
-            const int* cchi = ccbx.hiVect();
-            Box Bx_bx = amrex::convert(ccbx, Bx_nodal_flag); 
-            Box By_bx = amrex::convert(ccbx, By_nodal_flag); 
-            Box Bz_bx = amrex::convert(ccbx, Bz_nodal_flag);
+            const Box& tbx  = mfi.tilebox(Bx_nodal_flag);
+            const Box& tby  = mfi.tilebox(By_nodal_flag);
+            const Box& tbz  = mfi.tilebox(Bz_nodal_flag);
+
+            WRPX_PUSH_PML_BVEC(
+                tbx.loVect(), tbx.hiVect(),
+                tby.loVect(), tby.hiVect(),
+                tbz.loVect(), tbz.hiVect(),
+                BL_TO_FORTRAN_3D((*pml_E[0])[mfi]),
+                BL_TO_FORTRAN_3D((*pml_E[1])[mfi]),
+                BL_TO_FORTRAN_3D((*pml_E[2])[mfi]),
+                BL_TO_FORTRAN_3D((*pml_B[0])[mfi]),
+                BL_TO_FORTRAN_3D((*pml_B[1])[mfi]),
+                BL_TO_FORTRAN_3D((*pml_B[2])[mfi]),
+                pml_sigma_star_fac1[0].data(),pml_sigma_star_fac1[0].lo(),pml_sigma_star_fac1[0].hi(),
+                pml_sigma_star_fac2[0].data(),pml_sigma_star_fac2[0].lo(),pml_sigma_star_fac2[0].hi(),
+                pml_sigma_star_fac1[1].data(),pml_sigma_star_fac1[1].lo(),pml_sigma_star_fac1[1].hi(),
+                pml_sigma_star_fac2[1].data(),pml_sigma_star_fac2[1].lo(),pml_sigma_star_fac2[1].hi(),
+                pml_sigma_star_fac1[2].data(),pml_sigma_star_fac1[2].lo(),pml_sigma_star_fac1[2].hi(),
+                pml_sigma_star_fac2[2].data(),pml_sigma_star_fac2[2].lo(),pml_sigma_star_fac2[2].hi());
         }
+#else
+        amrex::Abort("Evolve PML B in 2D not supported yet");
 #endif
     }
 }
@@ -458,11 +469,18 @@ WarpX::ComputePMLFactors (int lev, Real dt)
     {
         pml_sigma_fac1[idim].assign(pml_sigma[idim].size(), 1.0);
         pml_sigma_fac2[idim].assign(pml_sigma[idim].size(), dtsdx_c2[idim]);
+        pml_sigma_fac1[idim].m_lo = pml_sigma[idim].m_lo;
+        pml_sigma_fac1[idim].m_hi = pml_sigma[idim].m_hi;
+        pml_sigma_fac2[idim].m_lo = pml_sigma[idim].m_lo;
+        pml_sigma_fac2[idim].m_hi = pml_sigma[idim].m_hi;
 
         pml_sigma_star_fac1[idim].assign(pml_sigma_star[idim].size(), 1.0);
         pml_sigma_star_fac2[idim].assign(pml_sigma_star[idim].size(), dtsdx[idim]);
+        pml_sigma_star_fac1[idim].m_lo = pml_sigma_star[idim].m_lo;
+        pml_sigma_star_fac1[idim].m_hi = pml_sigma_star[idim].m_hi;
+        pml_sigma_star_fac2[idim].m_lo = pml_sigma_star[idim].m_lo;
+        pml_sigma_star_fac2[idim].m_hi = pml_sigma_star[idim].m_hi;
         
-
         if (!Geometry::isPeriodic(idim))
         {
             for (int i = 0; i < pml_ncell; ++i)
