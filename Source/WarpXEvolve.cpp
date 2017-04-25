@@ -236,7 +236,7 @@ WarpX::EvolveE (int lev, Real dt)
 	const Box& tey  = mfi.tilebox(Ey_nodal_flag);
 	const Box& tez  = mfi.tilebox(Ez_nodal_flag);
 
-  // Call picsar routine for each tile
+        // Call picsar routine for each tile
 	WRPX_PXR_PUSH_EVEC(
 	    tex.loVect(), tex.hiVect(),
 	    tey.loVect(), tey.hiVect(),
@@ -253,6 +253,41 @@ WarpX::EvolveE (int lev, Real dt)
 	    &mu_c2_dt,
 	    &dtsdx_c2[0], &dtsdx_c2[1], &dtsdx_c2[2],
 	    &norder);
+    }
+
+    if (do_pml && lev == 0)
+    {
+#if (BL_SPACEDIM == 3)
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+        for ( MFIter mfi(*pml_E[0],true); mfi.isValid(); ++mfi )
+        {
+            const Box& tex  = mfi.tilebox(Ex_nodal_flag);
+            const Box& tey  = mfi.tilebox(Ey_nodal_flag);
+            const Box& tez  = mfi.tilebox(Ez_nodal_flag);
+            
+            // xxx need to add current
+            WRPX_PUSH_PML_EVEC(
+                tex.loVect(), tex.hiVect(),
+                tey.loVect(), tey.hiVect(),
+                tez.loVect(), tez.hiVect(),
+                BL_TO_FORTRAN_3D((*pml_E[0])[mfi]),
+                BL_TO_FORTRAN_3D((*pml_E[1])[mfi]),
+                BL_TO_FORTRAN_3D((*pml_E[2])[mfi]),
+                BL_TO_FORTRAN_3D((*pml_B[0])[mfi]),
+                BL_TO_FORTRAN_3D((*pml_B[1])[mfi]),
+                BL_TO_FORTRAN_3D((*pml_B[2])[mfi]),
+                pml_sigma_fac1[0].data(),pml_sigma_fac1[0].lo(),pml_sigma_fac1[0].hi(),
+                pml_sigma_fac2[0].data(),pml_sigma_fac2[0].lo(),pml_sigma_fac2[0].hi(),
+                pml_sigma_fac1[1].data(),pml_sigma_fac1[1].lo(),pml_sigma_fac1[1].hi(),
+                pml_sigma_fac2[1].data(),pml_sigma_fac2[1].lo(),pml_sigma_fac2[1].hi(),
+                pml_sigma_fac1[2].data(),pml_sigma_fac1[2].lo(),pml_sigma_fac1[2].hi(),
+                pml_sigma_fac2[2].data(),pml_sigma_fac2[2].lo(),pml_sigma_fac2[2].hi());
+        }
+#else
+        amrex::Abort("Evolve PML B in 2D not supported yet");
+#endif
     }
 }
 
