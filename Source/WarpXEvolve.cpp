@@ -282,7 +282,7 @@ WarpX::EvolveE (int lev, Real dt)
                 pml_sigma_fac2[2].data(),pml_sigma_fac2[2].lo(),pml_sigma_fac2[2].hi());
         }
 #else
-        amrex::Abort("Evolve PML B in 2D not supported yet");
+        amrex::Abort("Evolve PML E in 2D not supported yet");
 #endif
     }
 }
