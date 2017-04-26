@@ -43,8 +43,6 @@ WarpX::Evolve (int numsteps)
 	// Advance level 0 by dt
 	const int lev = 0;
 	{
-            if (do_pml) ComputePMLFactors (lev, dt[lev]);
-
 	    // At the beginning, we have B^{n-1/2} and E^{n-1/2}.
 	    // Particles have p^{n-1/2} and x^{n-1/2}.
 

@@ -301,7 +301,7 @@ WarpX::InitFromCheckpoint ()
             VisMF::Read(*current[lev][1],
                         amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "jy"));
             VisMF::Read(*current[lev][2],
-                        amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "jz"));            
+                        amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "jz"));    
         }
     }
 

@@ -257,7 +257,7 @@ WarpX::InitPML ()
     const Geometry& gm0 = Geom(0);
     const Box& domainbox = gm0.Domain();
     Box grownbox = domainbox;
-    for (int i = 0; i < BL_SPACEDIM; ++i) {\
+    for (int i = 0; i < BL_SPACEDIM; ++i) {
         if (!Geometry::isPeriodic(i)) {
             grownbox.grow(i,pml_ncell);
         }
@@ -359,6 +359,9 @@ WarpX::InitPML ()
 #else
     amrex::Abort("InitPML: 2d not supported yet");
 #endif
+
+    const int lev = 0;
+    ComputePMLFactors(lev, dt[lev]);
 }
 
 void
