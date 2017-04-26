@@ -51,6 +51,7 @@ namespace amrex
     assert(a_nvarin > 0);
 
     m_nComp=a_nvarin;
+    m_ebgraph = a_ebGraph;
 
     if (!a_ivsin.isEmpty())
     {

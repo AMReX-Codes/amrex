@@ -1,14 +1,13 @@
 /*
- *      .o.       ooo        ooooo ooooooooo.             ooooooo  ooooo 
- *     .888.      `88.       .888' `888   `Y88.            `8888    d8'  
- *    .8"888.      888b     d'888   888   .d88'  .ooooo.     Y888..8P    
- *   .8' `888.     8 Y88. .P  888   888ooo88P'  d88' `88b     `8888'     
- *  .88ooo8888.    8  `888'   888   888`88b.    888ooo888    .8PY888.    
- * .8'     `888.   8    Y     888   888  `88b.  888    .o   d8'  `888b   
- *o88o     o8888o o8o        o888o o888o  o888o `Y8bod8P' o888o  o88888o 
+ *       {_       {__       {__{_______              {__      {__
+ *      {_ __     {_ {__   {___{__    {__             {__   {__  
+ *     {_  {__    {__ {__ { {__{__    {__     {__      {__ {__   
+ *    {__   {__   {__  {__  {__{_ {__       {_   {__     {__     
+ *   {______ {__  {__   {_  {__{__  {__    {_____ {__  {__ {__   
+ *  {__       {__ {__       {__{__    {__  {_         {__   {__  
+ * {__         {__{__       {__{__      {__  {____   {__      {__
  *
  */
-
 
 #include "AMReX_FaceIndex.H"
 #include "AMReX.H"
@@ -252,5 +251,48 @@ namespace amrex
   {
     return (!(*this == a_facein));
   }
+
+  template < >
+  int linearSize<FaceIndex>(const FaceIndex& findex)
+  {
+    int numints = 2*(SpaceDim + 1);
+    return numints*sizeof(int);
+  }
+//FaceIndex specialization of linearIn
+  template < >
+  void linearIn<FaceIndex>(FaceIndex& a_outputT, const void* const inBuf)
+  {
+    int* ibuf = (int*)inBuf;
+    IntVect ivlo, ivhi;
+    int celllo, cellhi;
+    celllo = *ibuf; ibuf++;
+    cellhi = *ibuf; ibuf++;
+    for(int idir = 0; idir < SpaceDim; idir++)
+    {
+      ivlo[idir] = *ibuf; ibuf++;
+      ivhi[idir] = *ibuf; ibuf++;
+    }
+    a_outputT = FaceIndex(VolIndex(ivlo, celllo), VolIndex(ivhi, cellhi));
+  }
+
+//FaceIndex specialization of linearOut
+  template < >
+  void linearOut<FaceIndex>(void* const a_outBuf, const FaceIndex& a_inputT)
+  {
+    
+    int* ibuf = (int*)a_outBuf;
+    IntVect ivlo = a_inputT.gridIndex(Side::Lo);
+    IntVect ivhi = a_inputT.gridIndex(Side::Hi);
+    int celllo   = a_inputT.cellIndex(Side::Lo);
+    int cellhi   = a_inputT.cellIndex(Side::Hi);
+    *ibuf = celllo; ibuf++;
+    *ibuf = cellhi; ibuf++;
+    for(int idir = 0; idir < SpaceDim; idir++)
+    {
+      *ibuf = ivlo[idir]; ibuf++;
+      *ibuf = ivhi[idir]; ibuf++;
+    }
+  }
+
 
 }
