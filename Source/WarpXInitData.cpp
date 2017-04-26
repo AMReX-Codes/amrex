@@ -31,6 +31,10 @@ WarpX::InitData ()
         if (okToRegrid(0)) RegridBaseLevel();
     }
 
+    if (do_pml) {
+        InitPML();
+    }
+
     if (restart_chkfile.empty())
     {
 	if (plot_int > 0) {
@@ -50,10 +54,6 @@ WarpX::InitFromScratch ()
     const Real time = 0.0;
 
     AmrCore::InitFromScratch(time);  // This will call MakeNewLevelFromScratch
-
-    if (do_pml) {
-        InitPML();
-    }
 
     mypc->AllocData();
     mypc->InitData();
