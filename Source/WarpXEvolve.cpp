@@ -176,6 +176,9 @@ WarpX::EvolveB (int lev, Real dt)
 
     if (do_pml && lev == 0)
     {
+
+        ComputePMLFactors(lev, dt);
+
 #if (BL_SPACEDIM == 3)
 #ifdef _OPENMP
 #pragma omp parallel
@@ -253,6 +256,9 @@ WarpX::EvolveE (int lev, Real dt)
 
     if (do_pml && lev == 0)
     {
+
+        ComputePMLFactors(lev, dt);
+
 #if (BL_SPACEDIM == 3)
 #ifdef _OPENMP
 #pragma omp parallel
