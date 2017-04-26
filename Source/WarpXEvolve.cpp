@@ -41,8 +41,6 @@ WarpX::Evolve (int numsteps)
            if (okToRegrid(step)) RegridBaseLevel();
         }
 
-	ComputeDt();
-
 	// Advance level 0 by dt
 	const int lev = 0;
 	{
@@ -78,7 +76,7 @@ WarpX::Evolve (int numsteps)
 	    // Fill B's ghost cells because of the next step of evolving E.
             WarpX::FillBoundaryB( lev, true );
 
-   	    if (cur_time + dt[0] >= stop_time - 1.e-6*dt[0] || step == numsteps_max-1) {
+   	    if (cur_time + dt[0] >= stop_time - 1.e-3*dt[0] || step == numsteps_max-1) {
    	        // on last step, push by only 0.5*dt to synchronize all at n+1/2
 	        EvolveE(lev, 0.5*dt[lev]); // We now have E^{n+1/2}
 	        mypc->PushX(lev, -0.5*dt[lev]);
@@ -124,7 +122,7 @@ WarpX::Evolve (int numsteps)
 	    WriteCheckPointFile();
 	}
 
-	if (cur_time >= stop_time - 1.e-6*dt[0]) {
+	if (cur_time >= stop_time - 1.e-3*dt[0]) {
 	    max_time_reached = true;
 	    break;
 	}
@@ -255,25 +253,12 @@ WarpX::PushParticlesandDepose(int lev, Real cur_time)
 void
 WarpX::ComputeDt ()
 {
-    Array<Real> dt_tmp(finest_level+1);
+    const Real* dx = geom[0].CellSize();
+    dt[0]  = cfl * 1./( std::sqrt(D_TERM(  1./(dx[0]*dx[0]),
+                                         + 1./(dx[1]*dx[1]),
+                                         + 1./(dx[2]*dx[2]))) * PhysConst::c );
 
-    for (int lev = 0; lev <= finest_level; ++lev)
-    {
-	const Real* dx = geom[lev].CellSize();
-	dt_tmp[lev]  = cfl * 1./( std::sqrt(D_TERM(  1./(dx[0]*dx[0]),
-						   + 1./(dx[1]*dx[1]),
-						   + 1./(dx[2]*dx[2]))) * PhysConst::c );
-    }
-
-    // Limit dt's by the value of stop_time.
-    Real dt_0 = dt_tmp[0];
-    const Real eps = 1.e-3*dt_0;
-    if (t_new[0] + dt_0 > stop_time - eps) {
-	dt_0 = stop_time - t_new[0];
-    }
-
-    dt[0] = dt_0;
-    for (int lev = 1; lev <= finest_level; ++lev) {
+    for (int lev = 1; lev <= max_level; ++lev) {
 	dt[lev] = dt[lev-1] / nsubsteps[lev];
     }
 }
