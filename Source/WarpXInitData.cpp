@@ -16,11 +16,15 @@ WarpX::InitData ()
     if (restart_chkfile.empty())
     {
 	InitFromScratch();
+        ComputeDt();
     }
     else
     {
 	InitFromCheckpoint();
 	PostRestart();
+        if (is_synchronized) {
+            ComputeDt();
+        }
     }
 
     if (ParallelDescriptor::NProcs() > 1) {
