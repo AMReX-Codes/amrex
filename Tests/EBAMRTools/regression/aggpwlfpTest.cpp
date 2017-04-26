@@ -49,10 +49,10 @@ namespace amrex
     Real x = xloc[0]/probHi;
     Real y = xloc[1]/probHi;
 
-    retval = (1.0+ a_time)*(1.0 + x*x + y*y + x*x*x + y*y*y);
+    //retval = (1.0+ a_time)*(1.0 + x*x + y*y + x*x*x + y*y*y);
     //retval = a_time;
     //  retval = 2.*xloc[0];
-    //  retval  = x;
+    retval  = x;
     //  retval = xloc[0]*xloc[0];
     return retval;
   }
