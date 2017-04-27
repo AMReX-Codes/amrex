@@ -262,7 +262,9 @@ endif
 # e.g. libraries, simply do "make print-libraries".  This will
 # print out the value.
 print-%:
-	@echo $* is $($*)
+	@echo $* is '$($*)'
+	@echo '    origin = $(origin $*)'
+	@echo '     value = $(value  $*)'
 
 .PHONY: help
 help:
