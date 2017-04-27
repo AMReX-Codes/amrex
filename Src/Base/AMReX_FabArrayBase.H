@@ -37,6 +37,11 @@ public:
     FabArrayBase& operator= (const FabArrayBase& rhs) = delete;
     FabArrayBase& operator= (FabArrayBase&& rhs) = delete;    
 
+    void define (const BoxArray&            bxs,
+                 const DistributionMapping& dm,
+                 int                        nvar,
+                 int                        ngrow);
+
     //! Return the grow factor that defines the region of definition.
     int nGrow () const { return n_grow; }
 
@@ -79,47 +84,17 @@ public:
     //! Return constant reference to indices in the FabArray that we have access.
     const Array<int> &IndexArray () const { return indexArray; }
 
-
-  void define (const BoxArray&            bxs,
-               const DistributionMapping& dm,
-               int                        nvar,
-               int                        ngrow)
-    {
-      BL_ASSERT(ngrow >= 0);
-      BL_ASSERT(boxarray.size() == 0);
-      indexArray.clear();
-      ownership.clear();
-      n_grow = ngrow;
-      n_comp = nvar;
-
-      boxarray = bxs;
-
-      BL_ASSERT(dm.ProcessorMap().size() == bxs.size());
-      distributionMap = dm;
-
-      int myProc = ParallelDescriptor::MyProc();
-
-      for(int i = 0, N = boxarray.size(); i < N; ++i) {
-	if (ParallelDescriptor::sameTeam(distributionMap[i])) {
-          // If Team is not used (i.e., team size == 1), distributionMap[i] == myProc
-          indexArray.push_back(i);
-          ownership.push_back(myProc == distributionMap[i]);
-	}
-      }
-
-      addThisBD();
+    //! Return local index in the vector of FABs.
+    int localindex (int K) const { 
+        std::vector<int>::const_iterator low
+            = std::lower_bound(indexArray.begin(), indexArray.end(), K);
+        if (low != indexArray.end() && *low == K) {
+            return low - indexArray.begin();
+        }
+        else {
+            return -1;
+        }
     }
-  //! Return local index in the vector of FABs.
-  int localindex (int K) const { 
-    std::vector<int>::const_iterator low
-      = std::lower_bound(indexArray.begin(), indexArray.end(), K);
-    if (low != indexArray.end() && *low == K) {
-      return low - indexArray.begin();
-    }
-    else {
-      return -1;
-    }
-  }
 
     //! Return constant reference to associated DistributionMapping.
     const DistributionMapping& DistributionMap () const { return distributionMap; }
