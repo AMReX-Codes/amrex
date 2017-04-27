@@ -238,13 +238,6 @@ namespace amrex
     EBLevelGrid m_eblgCoFi;
 
 
-    BoxArray m_coarsenedFineGrids;
-    BoxArray m_fineGrids;
-    BoxArray m_coarGrids;
-    EBISLayout m_coarsenedFineEBISL;
-    EBISLayout m_fineEBISL;
-
-
     mutable FabArray<EBCellFAB> m_coarOnFDataOld;
     mutable FabArray<EBCellFAB> m_coarOnFDataNew;
 
