@@ -390,6 +390,13 @@ MultiFab::MultiFab (const MultiFab& rhs, MakeType maketype, int scomp, int ncomp
 {
 }
 
+MultiFab::MultiFab (const BoxArray& ba, const DistributionMapping& dm, int ncomp, int ngrow,
+                    const Array<Real*>& p)
+    :
+    FabArray<FArrayBox>(ba, dm, ncomp, ngrow, p)
+{
+}
+
 MultiFab::~MultiFab()
 {
 #ifdef BL_MEM_PROFILING

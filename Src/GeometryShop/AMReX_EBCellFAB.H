@@ -88,6 +88,11 @@ namespace amrex
     EBCellFAB& operator+=(const EBCellFAB& a_ebfab);
 
 
+    EBCellFAB&
+    axby(const EBCellFAB& a_X, 
+         const EBCellFAB& a_Y,
+         const Real& a_A, const Real& a_B);
+
     ///
     /**
        done over intersection of src, dst
@@ -95,7 +100,8 @@ namespace amrex
     EBCellFAB& plus(const EBCellFAB& a_ebfab,
                     int a_srccomp,
                     int a_destcomp,
-                    int a_numcomp);
+                    int a_numcomp,
+                    Real scale = 1.0);
     ///
     /**
        done over a_region
@@ -104,7 +110,8 @@ namespace amrex
                     const Box& a_region,
                     int a_srccomp,
                     int a_destcomp,
-                    int a_numcomp);
+                    int a_numcomp,
+                    Real scale = 1.0);
 
 
     //for fabarray
@@ -194,6 +201,9 @@ namespace amrex
     /**
      */
     EBCellFAB& operator/=(const Real& a_scalar);
+
+    /// multiply each cell value by its volume fraction
+    void kappaWeight();
 
     ///
     /**

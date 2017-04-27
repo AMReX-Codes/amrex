@@ -215,6 +215,8 @@ public:
 
     FArrayBox (const FArrayBox& rhs, MakeType make_type, int scomp, int ncomp);
 
+    FArrayBox (const Box& b, int ncomp, Real* p);
+
     //!  The destructor.
     ~FArrayBox () = default;
     

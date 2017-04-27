@@ -196,7 +196,7 @@ namespace amrex
   private:
 
   protected:
-
+    EBGraph m_ebgraph;
     shared_ptr<std::vector<VolIndex> > m_vofs;
     shared_ptr<std::vector<T> > m_Memory;
     int m_nComp = 0;

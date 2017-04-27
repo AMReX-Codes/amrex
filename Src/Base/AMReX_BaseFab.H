@@ -102,6 +102,13 @@ public:
 
     BaseFab (const BaseFab<T>& rhs, MakeType make_type, int scomp, int ncomp);
 
+    /**
+     * \brief Create an NON-OWNING BaseFab.  Thus BaseFab is not
+     * responsible for memory management.  And it's caller's responsibility that
+     * p points to a chunk of memory large enough.
+     */
+    BaseFab (const Box& bx, int ncomp, T* p);
+
     //! The destructor deletes the array memory.
     virtual ~BaseFab ();
 
@@ -1168,6 +1175,20 @@ BaseFab<T>::BaseFab (const BaseFab<T>& rhs, MakeType make_type, int scomp, int n
     } else {
         amrex::Abort("BaseFab: unknown MakeType");
     }
+}
+
+template<class T>
+BaseFab<T>::BaseFab (const Box& bx, int ncomp, T* p)
+    :
+    domain(bx),
+    dlen(bx.size()),
+    nvar(ncomp),
+    numpts(bx.numPts()),
+    truesize(bx.numPts()*ncomp),
+    dptr(p),
+    ptr_owner(false),
+    shared_memory(false)
+{
 }
 
 template <class T>

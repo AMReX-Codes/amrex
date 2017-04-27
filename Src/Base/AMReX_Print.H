@@ -61,6 +61,13 @@ namespace amrex
 	    return *this;
 	}
 
+        Print& operator<< (        std::basic_ostream<char, std::char_traits<char> >& 
+                           (*func)(std::basic_ostream<char, std::char_traits<char> >&))
+        {
+            ss << func;
+            return *this;
+        }
+
     private:
 	int rank;
 	MPI_Comm comm;

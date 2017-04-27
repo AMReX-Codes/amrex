@@ -209,6 +209,7 @@ namespace amrex
                            int               numcomp=1)
       {
         amrex::Error("this is not really a thing");
+        return *this;
       }
     ///
     BaseEBCellFAB<T>& copy(const BaseEBCellFAB<T>& source);

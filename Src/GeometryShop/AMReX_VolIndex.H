@@ -98,7 +98,6 @@ namespace amrex
     bool m_isDefined;
   };
 
-
 }
 
 #endif

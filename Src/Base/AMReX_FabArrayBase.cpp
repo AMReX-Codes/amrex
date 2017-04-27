@@ -127,6 +127,35 @@ FabArrayBase::FabArrayBase ()
 
 FabArrayBase::~FabArrayBase () {}
 
+void
+FabArrayBase::define (const BoxArray&            bxs,
+                      const DistributionMapping& dm,
+                      int                        nvar,
+                      int                        ngrow)
+{
+    BL_ASSERT(ngrow >= 0);
+    BL_ASSERT(boxarray.size() == 0);
+    indexArray.clear();
+    ownership.clear();
+    n_grow = ngrow;
+    n_comp = nvar;
+    
+    boxarray = bxs;
+    
+    BL_ASSERT(dm.ProcessorMap().size() == bxs.size());
+    distributionMap = dm;
+    
+    int myProc = ParallelDescriptor::MyProc();
+    
+    for(int i = 0, N = boxarray.size(); i < N; ++i) {
+	if (ParallelDescriptor::sameTeam(distributionMap[i])) {
+            // If Team is not used (i.e., team size == 1), distributionMap[i] == myProc
+            indexArray.push_back(i);
+            ownership.push_back(myProc == distributionMap[i]);
+	}
+    }
+}
+
 Box
 FabArrayBase::fabbox (int K) const
 {

@@ -12,9 +12,11 @@ module bl_random_module
 
   private 
   public :: bl_rng_get, &
-       bl_rng_build_engine, bl_rng_destroy_engine, bl_rng_save_engine, bl_rng_restore_engine, &
-       bl_rng_build_distro, bl_rng_destroy_distro, bl_rng_save_distro, bl_rng_restore_distro, &
-       bl_rng_engine, bl_rng_uniform_real, bl_rng_normal, bl_rng_poisson, bl_rng_binomial       
+       bl_rng_build_engine, bl_rng_destroy_engine, bl_rng_save_engine, &
+       bl_rng_copy_engine, bl_rng_restore_engine, bl_rng_build_distro, &
+       bl_rng_destroy_distro, bl_rng_save_distro, bl_rng_restore_distro, &
+       bl_rng_engine, bl_rng_uniform_real, bl_rng_normal, bl_rng_poisson, &
+       bl_rng_binomial
 
   type bl_rng_engine
      type(c_ptr) :: p = c_null_ptr
@@ -100,6 +102,13 @@ module bl_random_module
        type(c_ptr), value :: eng
        character(c_char), intent(in) :: name(*)
      end subroutine bl_rng_save_engine_c
+
+     subroutine bl_rng_copy_engine_c(eng_dst, eng_src) bind(c)
+       use, intrinsic :: iso_c_binding
+       implicit none
+       type(c_ptr), value :: eng_dst
+       type(c_ptr), value :: eng_src
+     end subroutine bl_rng_copy_engine_c
 
      subroutine bl_rng_restore_engine_c(eng, name) bind(c)
        use, intrinsic :: iso_c_binding
@@ -321,6 +330,13 @@ contains
     call bl_rng_save_engine_c(eng%p,filename)
     deallocate(filename)
   end subroutine bl_rng_save_engine
+  !
+  subroutine bl_rng_copy_engine(eng_dst, eng_src)
+    type(bl_rng_engine), intent(inout) :: eng_dst
+    type(bl_rng_engine), intent(in   ) :: eng_src
+    call parallel_barrier()
+    call bl_rng_copy_engine_c(eng_dst%p,eng_src%p)
+  end subroutine bl_rng_copy_engine
   !
   subroutine bl_rng_restore_engine(eng, dirname)
     type(bl_rng_engine), intent(inout) :: eng
