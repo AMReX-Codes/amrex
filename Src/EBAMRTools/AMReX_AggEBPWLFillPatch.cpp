@@ -151,7 +151,7 @@ namespace amrex
       m_stenLo[idir].define(m_eblgCoFi.getDBL(), m_eblgCoFi.getDM());
       m_stenHi[idir].define(m_eblgCoFi.getDBL(), m_eblgCoFi.getDM());
                
-      for (MFIter mfi(m_stenLo[idir]); mfi.isValid(); ++mfi)
+      for (MFIter mfi(m_eblgCoFi.getDBL(), m_eblgCoFi.getDM()); mfi.isValid(); ++mfi)
       {
         std::vector<std::shared_ptr<BaseIndex   > > baseindice(a_srcVoFs[mfi].size());
         std::vector<std::shared_ptr<BaseStencil > > basestenlo(a_srcVoFs[mfi].size());
@@ -185,7 +185,7 @@ namespace amrex
       m_slopeHiNew[idir].define(m_eblgCoFi.getDBL(), m_eblgCoFi.getDM());
       m_slopeCeNew[idir].define(m_eblgCoFi.getDBL(), m_eblgCoFi.getDM());
                
-      for (MFIter mfi(m_slopeLoOld[idir]); mfi.isValid(); ++mfi)
+      for (MFIter mfi(m_eblgCoFi.getDBL(), m_eblgCoFi.getDM()); mfi.isValid(); ++mfi)
       {
         const EBGraph& ebgraph = m_eblgCoFi.getEBISL()[mfi].getEBGraph();
         const IntVectSet& ivs = a_irregRegionsCoFi[mfi];
@@ -213,7 +213,7 @@ namespace amrex
     //first get the coarse offsets for the slopes and so on
     m_coarOffsets.define(m_eblgCoFi.getDBL(), m_eblgCoFi.getDM());
 
-    for (MFIter mfi(m_coarOffsets); mfi.isValid(); ++mfi)
+    for (MFIter mfi(m_eblgCoFi.getDBL(), m_eblgCoFi.getDM()); mfi.isValid(); ++mfi)
     {
       m_coarOffsets[mfi].resize(a_srcVoFsCoar[mfi].size());
       for (int ivof = 0; ivof < a_srcVoFsCoar[mfi].size(); ivof++)
@@ -427,7 +427,7 @@ namespace amrex
       a_hiStencils[derivDir].define(m_eblgCoFi.getDBL(), m_eblgCoFi.getDM());
       a_loStencils[derivDir].define(m_eblgCoFi.getDBL(), m_eblgCoFi.getDM());
                
-      for (MFIter mfi(a_loStencils[derivDir]); mfi.isValid(); ++mfi) // 
+      for (MFIter mfi(m_eblgCoFi.getDBL(), m_eblgCoFi.getDM()); mfi.isValid(); ++mfi) // 
       {
         const EBISBox& ebisBox  =  m_eblgCoFi.getEBISL()[mfi];
         a_loStencils[derivDir][mfi].resize(a_srcVoFs[mfi].size());
