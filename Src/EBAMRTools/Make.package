@@ -5,8 +5,8 @@ ifeq ($(LBASE),EBAMRTOOLS)
 endif
 
 
-C$(EBAMRTOOLS_BASE)_headers += AMReX_AggEBPWLFillPatch.H     AMReX_MeshRefine.H
-C$(EBAMRTOOLS_BASE)_sources += AMReX_AggEBPWLFillPatch.cpp   AMReX_MeshRefine.cpp
+C$(EBAMRTOOLS_BASE)_headers += AMReX_AggEBPWLFillPatch.H   AMReX_MeshRefine.H   AMReX_EBLevelDataOps.H 
+C$(EBAMRTOOLS_BASE)_sources += AMReX_AggEBPWLFillPatch.cpp AMReX_MeshRefine.cpp AMReX_EBLevelDataOps.cpp 
 
 VPATH_LOCATIONS   += $(AMREX_HOME)/Src/EBAMRTools
 INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/EBAMRTools
