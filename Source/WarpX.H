@@ -70,6 +70,8 @@ public:
     void ComputeDt ();
     void MoveWindow (bool move_j);
 
+    const amrex::Array<amrex::Real>& getPMLSigma(int dir) {return pml_sigma[dir];};
+    const amrex::Array<amrex::Real>& getPMLSigmaStar(int dir) {return pml_sigma_star[dir];};
     void ComputePMLFactors (int lev, amrex::Real dt);
     void ExchangeWithPML (amrex::MultiFab& regmf, amrex::MultiFab& pmlmf,
                           const amrex::Geometry& gm);
