@@ -7,39 +7,47 @@
             readelf -wl my_exefile | grep my_line_address'
     to find out the offset for that line.
 
- 0: /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/levelRedistTest2d.gnu.DEBUG.COMM_PROF.ex() [0x4ff1b5]
+ 0: /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/dataArith2d.gnu.DEBUG.COMM_PROF.ex() [0x506975]
     amrex::BLBackTrace::print_backtrace_info(_IO_FILE*)
     /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/../../../Src/Base/AMReX_BLBackTrace.cpp:88
 
- 1: /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/levelRedistTest2d.gnu.DEBUG.COMM_PROF.ex() [0x4ff080]
+ 1: /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/dataArith2d.gnu.DEBUG.COMM_PROF.ex() [0x506840]
     amrex::BLBackTrace::handler(int)
     /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/../../../Src/Base/AMReX_BLBackTrace.cpp:51
 
- 2: /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/levelRedistTest2d.gnu.DEBUG.COMM_PROF.ex() [0x469795]
+ 2: /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/dataArith2d.gnu.DEBUG.COMM_PROF.ex() [0x46f05b]
     amrex::ParallelDescriptor::Abort(int, bool)
     /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/../../../Src/Base/AMReX_ParallelDescriptor.cpp:1958
 
- 3: /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/levelRedistTest2d.gnu.DEBUG.COMM_PROF.ex() [0x41e14f]
-    amrex::Assert(char const*, char const*, int)
-    /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/../../../Src/Base/AMReX.cpp:239
+ 3: /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/dataArith2d.gnu.DEBUG.COMM_PROF.ex() [0x422d51]
+    amrex::Abort(char const*)
+    /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/../../../Src/Base/AMReX.cpp:197
 
- 4: /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/levelRedistTest2d.gnu.DEBUG.COMM_PROF.ex() [0x59a85c]
-    amrex::EBLevelRedist::redistribute(amrex::FabArray<amrex::EBCellFAB>&, int, int, int)
-    /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/../../../Src/GeometryShop/AMReX_EBLevelRedist.cpp:141
+ 4: /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/dataArith2d.gnu.DEBUG.COMM_PROF.ex() [0x42dbd8]
+    sgetarr<int>
+    /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/../../../Src/Base/AMReX_ParmParse.cpp:796
 
- 5: /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/levelRedistTest2d.gnu.DEBUG.COMM_PROF.ex() [0x406d35]
-    amrex::testConservation()
-    /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/levelRedistTest.cpp:213
+ 5: /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/dataArith2d.gnu.DEBUG.COMM_PROF.ex() [0x427e37]
+    amrex::ParmParse::getarr(char const*, std::vector<int, std::allocator<int> >&, int, int) const
+    /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/../../../Src/Base/AMReX_ParmParse.cpp:1172 (discriminator 1)
 
- 6: /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/levelRedistTest2d.gnu.DEBUG.COMM_PROF.ex() [0x407680]
+ 6: /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/dataArith2d.gnu.DEBUG.COMM_PROF.ex() [0x405f5c]
+    amrex::makeGeometry(amrex::Box&, double&)
+    /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/dataArith.cpp:48
+
+ 7: /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/dataArith2d.gnu.DEBUG.COMM_PROF.ex() [0x4065f5]
+    amrex::testArith()
+    /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/dataArith.cpp:123
+
+ 8: /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/dataArith2d.gnu.DEBUG.COMM_PROF.ex() [0x407826]
     main
-    /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/levelRedistTest.cpp:280
+    /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/dataArith.cpp:208
 
- 7: /lib/x86_64-linux-gnu/libc.so.6(__libc_start_main+0xf5) [0x2aaaab82bf45]
+ 9: /lib/x86_64-linux-gnu/libc.so.6(__libc_start_main+0xf5) [0x2aaaab82bf45]
     ??
     ??:0
 
- 8: /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/levelRedistTest2d.gnu.DEBUG.COMM_PROF.ex() [0x405b29]
+10: /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/dataArith2d.gnu.DEBUG.COMM_PROF.ex() [0x405cb9]
     _start
     ??:?
 
