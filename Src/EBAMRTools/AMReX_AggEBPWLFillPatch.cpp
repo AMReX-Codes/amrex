@@ -296,7 +296,7 @@ namespace amrex
     BL_PROFILE("AggEBPWLFillPatch::getIVS");
     Box domFine = refine(m_coarDomain, m_refRat);
 //    BL_ASSERT(!m_forceNoEBCF);
-    for (MFIter mfi(a_irregRegionsFine); mfi.isValid(); ++mfi)
+    for (MFIter mfi(m_eblgFine.getDBL(), m_eblgFine.getDM()); mfi.isValid(); ++mfi)
     {
       IntVectSet&    localIrregF = a_irregRegionsFine[mfi];
       const EBISBox&   ebisBoxCF = m_eblgCoFi.getEBISL()[mfi];
@@ -353,7 +353,7 @@ namespace amrex
     //because of the configuration of the coarse layout.
 //    BL_ASSERT(!m_forceNoEBCF);
 
-    for (MFIter mfi(a_coarCeInterp[0]); mfi.isValid(); ++mfi) // 
+    for (MFIter mfi(m_eblgCoFi.getDBL(), m_eblgCoFi.getDM()); mfi.isValid(); ++mfi) // 
     {
       const Box& fineBox = m_eblgFine.getDBL()[mfi];
       Box coarsenedFineBox = coarsen(grow(fineBox, m_radius), m_refRat);
