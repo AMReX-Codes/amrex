@@ -177,7 +177,7 @@ WarpX::EvolveB (int lev, Real dt)
     if (do_pml && lev == 0)
     {
 
-        ComputePMLFactors(lev, dt);
+        ComputePMLFactorsB(lev, dt);
 
 #if (BL_SPACEDIM == 3)
 #ifdef _OPENMP
@@ -257,7 +257,7 @@ WarpX::EvolveE (int lev, Real dt)
     if (do_pml && lev == 0)
     {
 
-        ComputePMLFactors(lev, dt);
+        ComputePMLFactorsE(lev, dt);
 
 #if (BL_SPACEDIM == 3)
 #ifdef _OPENMP

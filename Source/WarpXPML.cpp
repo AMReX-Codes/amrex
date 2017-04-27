@@ -114,14 +114,18 @@ WarpX::InitPML ()
 #else
     amrex::Abort("InitPML: 2d not supported yet");
 #endif
-
-    const int lev = 0;
-    ComputePMLFactors(lev, dt[lev]);
 }
 
 
 void
 WarpX::ComputePMLFactors (int lev, Real dt)
+{
+    ComputePMLFactorsE(lev, dt);
+    ComputePMLFactorsB(lev, dt);
+}
+
+void
+WarpX::ComputePMLFactorsE (int lev, Real dt)
 {
     const std::array<Real,3>& dx = WarpX::CellSize(lev);
 
@@ -138,6 +142,35 @@ WarpX::ComputePMLFactors (int lev, Real dt)
         pml_sigma_fac2[idim].m_lo = pml_sigma[idim].m_lo;
         pml_sigma_fac2[idim].m_hi = pml_sigma[idim].m_hi;
 
+        if (!Geometry::isPeriodic(idim))
+        {
+            for (int i = 0; i < pml_ncell; ++i)
+            {
+                pml_sigma_fac1[idim][i] = std::exp(-pml_sigma[idim][i]*dt);
+                pml_sigma_fac2[idim][i] = (1.0-pml_sigma_fac1[idim][i])
+                    / (pml_sigma[idim][i]*dt) * dtsdx_c2[idim];
+            }
+
+            for (int iiii = 0; iiii < pml_ncell; ++iiii)
+            {
+                int i = (iiii - pml_ncell) + static_cast<int>(pml_sigma_fac1[idim].size());
+                pml_sigma_fac1[idim][i] = std::exp(-pml_sigma[idim][i]*dt);
+                pml_sigma_fac2[idim][i] = (1.0-pml_sigma_fac1[idim][i])
+                    / (pml_sigma[idim][i]*dt) * dtsdx_c2[idim];
+            }
+        }
+    }
+}
+
+void
+WarpX::ComputePMLFactorsB (int lev, Real dt)
+{
+    const std::array<Real,3>& dx = WarpX::CellSize(lev);
+
+    const std::array<Real,3> dtsdx {dt/dx[0], dt/dx[1], dt/dx[2]};
+
+    for (int idim = 0; idim < BL_SPACEDIM; ++idim)
+    {
         pml_sigma_star_fac1[idim].assign(pml_sigma_star[idim].size(), 1.0);
         pml_sigma_star_fac2[idim].assign(pml_sigma_star[idim].size(), dtsdx[idim]);
         pml_sigma_star_fac1[idim].m_lo = pml_sigma_star[idim].m_lo;
@@ -149,21 +182,9 @@ WarpX::ComputePMLFactors (int lev, Real dt)
         {
             for (int i = 0; i < pml_ncell; ++i)
             {
-                pml_sigma_fac1[idim][i] = std::exp(-pml_sigma[idim][i]*dt);
-                pml_sigma_fac2[idim][i] = (1.0-pml_sigma_fac1[idim][i])
-                    / (pml_sigma[idim][i]*dt) * dtsdx_c2[idim];
-
                 pml_sigma_star_fac1[idim][i] = std::exp(-pml_sigma_star[idim][i]*dt);
                 pml_sigma_star_fac2[idim][i] = (1.0-pml_sigma_star_fac1[idim][i])
                     / (pml_sigma_star[idim][i]*dt) * dtsdx[idim];
-            }
-
-            for (int iiii = 0; iiii < pml_ncell; ++iiii)
-            {
-                int i = (iiii - pml_ncell) + static_cast<int>(pml_sigma_fac1[idim].size());
-                pml_sigma_fac1[idim][i] = std::exp(-pml_sigma[idim][i]*dt);
-                pml_sigma_fac2[idim][i] = (1.0-pml_sigma_fac1[idim][i])
-                    / (pml_sigma[idim][i]*dt) * dtsdx_c2[idim];
             }
 
             for (int iiii = 0; iiii < pml_ncell; ++iiii)
@@ -177,7 +198,6 @@ WarpX::ComputePMLFactors (int lev, Real dt)
         }
     }
 }
-
 
 void
 WarpX::ExchangeWithPML (MultiFab& regmf, MultiFab& pmlmf, const Geometry& gm)

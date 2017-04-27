@@ -73,6 +73,8 @@ public:
     const amrex::Array<amrex::Real>& getPMLSigma(int dir) {return pml_sigma[dir];};
     const amrex::Array<amrex::Real>& getPMLSigmaStar(int dir) {return pml_sigma_star[dir];};
     void ComputePMLFactors (int lev, amrex::Real dt);
+    void ComputePMLFactorsE (int lev, amrex::Real dt);
+    void ComputePMLFactorsB (int lev, amrex::Real dt);
     void ExchangeWithPML (amrex::MultiFab& regmf, amrex::MultiFab& pmlmf,
                           const amrex::Geometry& gm);
 
