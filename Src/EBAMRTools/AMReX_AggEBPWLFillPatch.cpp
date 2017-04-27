@@ -700,7 +700,7 @@ namespace amrex
     if ((a_coarTimeNew - a_coarTimeOld) > 1.0e-8)
       factor = (a_fineTime - a_coarTimeOld)/(a_coarTimeNew - a_coarTimeOld);
     int endcomp = idst+inco-1;
-    for (int icomp = idst; icomp < endcomp; icomp++)
+    for (int icomp = idst; icomp <= endcomp; icomp++)
     {
       //BaseIVFAB has only one ptr
       const Real* slopPtrsDirOld[SpaceDim];
