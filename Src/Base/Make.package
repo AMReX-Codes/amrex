@@ -1,7 +1,7 @@
 
 AMREX_BASE=EXE
 
-C$(AMREX_BASE)_headers += AMReX_ccse-mpi.H AMReX_Array.H
+C$(AMREX_BASE)_headers += AMReX_ccse-mpi.H AMReX_Array.H AMReX_BaseIndex.H
 
 #
 # Utility classes.
