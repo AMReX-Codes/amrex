@@ -67,9 +67,7 @@ namespace amrex
     m_sets = shared_ptr<LayoutData<IntVectSet> >
       (new LayoutData<IntVectSet>(m_eblg.getDBL(), m_eblg.getDM()));
 
-    ///need to sneak this out so I can make an MFIter...something is weird about that.
-    shared_ptr<FabArray<EBGraph> > allgraphs = m_eblg.getEBISL().getAllGraphs();
-    for (MFIter mfi(*allgraphs); mfi.isValid(); ++mfi)
+    for (MFIter mfi(m_eblg.getDBL(), m_eblg.getDM()); mfi.isValid(); ++mfi)
     {
       Box thisBox = m_eblg.getDBL()[mfi];
       thisBox.grow(m_redistRad);
