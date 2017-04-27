@@ -263,7 +263,7 @@ namespace amrex
         //(so we can use the slopes there)
         int coarind = -1;
         bool found = false;
-        VolIndex coarVoF =  m_fineEBISL.coarsen(vof, m_refRat, mfi);
+        VolIndex coarVoF =  m_eblgFine.getEBISL().coarsen(vof, m_refRat, mfi);
         for (int icoar = 0; icoar < a_srcVoFsCoar[mfi].size(); icoar++)
         {
           const VolIndex& listVoF = a_srcVoFsCoar[mfi][icoar];
@@ -299,7 +299,7 @@ namespace amrex
     for (MFIter mfi(a_irregRegionsFine); mfi.isValid(); ++mfi)
     {
       IntVectSet&    localIrregF = a_irregRegionsFine[mfi];
-      const EBISBox&   ebisBoxCF = m_coarsenedFineEBISL[mfi];
+      const EBISBox&   ebisBoxCF = m_eblgCoFi.getEBISL()[mfi];
       //const Box&        regionCF = ebisBoxCF.getRegion();
 
       //NOTE::this needs to be done for ALL boxes that are "near" the EB interface.
@@ -355,7 +355,7 @@ namespace amrex
 
     for (MFIter mfi(a_coarCeInterp[0]); mfi.isValid(); ++mfi) // 
     {
-      const Box& fineBox = m_fineGrids.get(mfi.index());
+      const Box& fineBox = m_eblgFine.getDBL()[mfi];
       Box coarsenedFineBox = coarsen(grow(fineBox, m_radius), m_refRat);
       coarsenedFineBox &= m_coarDomain;
                
@@ -429,7 +429,7 @@ namespace amrex
                
       for (MFIter mfi(a_loStencils[derivDir]); mfi.isValid(); ++mfi) // 
       {
-        const EBISBox& ebisBox  =  m_coarsenedFineEBISL[mfi];
+        const EBISBox& ebisBox  =  m_eblgCoFi.getEBISL()[mfi];
         a_loStencils[derivDir][mfi].resize(a_srcVoFs[mfi].size());
         a_hiStencils[derivDir][mfi].resize(a_srcVoFs[mfi].size());
                
@@ -524,6 +524,11 @@ namespace amrex
       //this bit will have to wait until fillpatch gets generalized
     }
                
+     FabArray<EBCellFAB>& castOld= const_cast<FabArray<EBCellFAB>& >(a_coarDataOld); 
+     FabArray<EBCellFAB>& castNew= const_cast<FabArray<EBCellFAB>& >(a_coarDataNew);
+     castOld.FillBoundary();
+     castNew.FillBoundary();
+
 //    if(!m_forceNoEBCF)
     //now we have to do this everywhere
     {
