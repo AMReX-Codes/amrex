@@ -4,6 +4,20 @@
 
 namespace amrex
 {
+    void average_node_to_cellcenter (MultiFab& cc, int dcomp, const MultiFab& nd, int scomp, int ncomp)
+    {
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+	for (MFIter mfi(cc,true); mfi.isValid(); ++mfi) 
+	{
+            const Box& bx = mfi.tilebox();
+            amrex_fort_avg_nd_to_cc(bx.loVect(), bx.hiVect(), &ncomp,
+                                    BL_TO_FORTRAN_N(cc[mfi],dcomp),
+                                    BL_TO_FORTRAN_N(nd[mfi],scomp));
+        }
+    }
+
     void average_edge_to_cellcenter (MultiFab& cc, int dcomp, const Array<const MultiFab*>& edge)
     {
 	BL_ASSERT(cc.nComp() >= dcomp + BL_SPACEDIM);

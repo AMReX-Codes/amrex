@@ -54,7 +54,7 @@ public:
     virtual void checkPoint (const std::string& dir,
 			     std::ostream&      os,
 			     amrex::VisMF::How  how = amrex::VisMF::NFiles,
-			     bool               dump_old = true);
+			     bool               dump_old = true) override;
 
     /*A string written as the first item in writePlotFile() at
                level zero. It is so we can distinguish between different

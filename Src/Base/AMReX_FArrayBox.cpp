@@ -163,6 +163,18 @@ FArrayBox::FArrayBox (const Box& b,
     if (alloc) initVal();
 }
 
+FArrayBox::FArrayBox (const FArrayBox& rhs, MakeType make_type, int scomp, int ncomp)
+    :
+    BaseFab<Real>(rhs,make_type,scomp,ncomp)
+{
+}
+
+FArrayBox::FArrayBox (const Box& b, int ncomp, Real* p)
+    :
+    BaseFab<Real>(b,ncomp,p)
+{
+}
+
 FArrayBox&
 FArrayBox::operator= (const Real& v)
 {

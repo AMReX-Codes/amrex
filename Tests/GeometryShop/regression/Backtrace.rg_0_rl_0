@@ -1,0 +1,53 @@
+=== If no file names and line numbers are shown below, one can run
+            addr2line -Cfie my_exefile my_line_address
+    to convert `my_line_address` (e.g., 0x4a6b) into file name and line number.
+
+=== Please note that the line number reported by addr2line may not be accurate.
+    One can use
+            readelf -wl my_exefile | grep my_line_address'
+    to find out the offset for that line.
+
+ 0: /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/dataArith2d.gnu.DEBUG.COMM_PROF.ex() [0x506975]
+    amrex::BLBackTrace::print_backtrace_info(_IO_FILE*)
+    /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/../../../Src/Base/AMReX_BLBackTrace.cpp:88
+
+ 1: /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/dataArith2d.gnu.DEBUG.COMM_PROF.ex() [0x506840]
+    amrex::BLBackTrace::handler(int)
+    /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/../../../Src/Base/AMReX_BLBackTrace.cpp:51
+
+ 2: /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/dataArith2d.gnu.DEBUG.COMM_PROF.ex() [0x46f05b]
+    amrex::ParallelDescriptor::Abort(int, bool)
+    /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/../../../Src/Base/AMReX_ParallelDescriptor.cpp:1958
+
+ 3: /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/dataArith2d.gnu.DEBUG.COMM_PROF.ex() [0x422d51]
+    amrex::Abort(char const*)
+    /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/../../../Src/Base/AMReX.cpp:197
+
+ 4: /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/dataArith2d.gnu.DEBUG.COMM_PROF.ex() [0x42dbd8]
+    sgetarr<int>
+    /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/../../../Src/Base/AMReX_ParmParse.cpp:796
+
+ 5: /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/dataArith2d.gnu.DEBUG.COMM_PROF.ex() [0x427e37]
+    amrex::ParmParse::getarr(char const*, std::vector<int, std::allocator<int> >&, int, int) const
+    /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/../../../Src/Base/AMReX_ParmParse.cpp:1172 (discriminator 1)
+
+ 6: /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/dataArith2d.gnu.DEBUG.COMM_PROF.ex() [0x405f5c]
+    amrex::makeGeometry(amrex::Box&, double&)
+    /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/dataArith.cpp:48
+
+ 7: /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/dataArith2d.gnu.DEBUG.COMM_PROF.ex() [0x4065f5]
+    amrex::testArith()
+    /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/dataArith.cpp:123
+
+ 8: /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/dataArith2d.gnu.DEBUG.COMM_PROF.ex() [0x407826]
+    main
+    /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/dataArith.cpp:208
+
+ 9: /lib/x86_64-linux-gnu/libc.so.6(__libc_start_main+0xf5) [0x2aaaab82bf45]
+    ??
+    ??:0
+
+10: /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/dataArith2d.gnu.DEBUG.COMM_PROF.ex() [0x405cb9]
+    _start
+    ??:?
+

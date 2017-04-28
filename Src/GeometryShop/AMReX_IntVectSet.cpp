@@ -213,6 +213,22 @@ namespace amrex
       }
     return retval;
   }
+  ///
+  bool 
+  IntVectSet::
+  contains(const IntVectSet& a_ivs) const
+  {
+    bool retval = true;
+    for(IVSIterator ivsit(a_ivs); ivsit.ok(); ++ivsit)
+      {
+        if(!contains(ivsit()))
+          {
+            retval = false;
+            break;
+          }
+      }
+    return retval;
+  }
 
   ///
   void 
@@ -303,12 +319,9 @@ namespace amrex
     for(it = m_stdSet.begin(); it != m_stdSet.end(); ++it)
       {
         const IntVect& iv = *it;
-        Box grid(iv, iv);
-        grid.coarsen(iref);
-        for(BoxIterator bit(grid); bit.ok(); ++bit)
-          {
-            newSet.insert(bit());
-          }
+        IntVect ivcoar = iv;
+        ivcoar.coarsen(iref);
+        newSet.insert(ivcoar);
       }
     m_stdSet = newSet;
   }
@@ -449,7 +462,7 @@ namespace amrex
   IVSIterator::
   ok() const
   {
-    assert(m_ivs != NULL);
+    BL_ASSERT(m_ivs != NULL);
     return (m_iter != m_ivs->m_stdSet.end());
   }
 
@@ -466,7 +479,7 @@ namespace amrex
   IVSIterator::
   begin()
   {
-    assert(m_ivs != NULL);
+    BL_ASSERT(m_ivs != NULL);
     m_iter = m_ivs->m_stdSet.begin();
   }
 
@@ -475,7 +488,7 @@ namespace amrex
   IVSIterator::
   end()
   {
-    assert(m_ivs != NULL);
+    BL_ASSERT(m_ivs != NULL);
     m_iter = m_ivs->m_stdSet.end();
   }
 

@@ -10,11 +10,11 @@
  */
 
 
-#ifndef _BOXITERATOR_H_
-#define _BOXITERATOR_H_
+#ifndef AMREX_BOXITERATOR_H_
+#define AMREX_BOXITERATOR_H_
 
 #include <cstdlib>
-#include <cassert>
+#include "AMReX_BLassert.H"
 #include "AMReX_Box.H"
 #include "AMReX_REAL.H"
 #include "AMReX_SPACE.H"
@@ -186,8 +186,8 @@ namespace amrex
   inline
   const IntVect& BoxIterator::operator () () const
   {
-    assert(m_current <= m_boxHi);
-    assert(m_current >= m_boxLo);
+    BL_ASSERT(m_current <= m_boxHi);
+    BL_ASSERT(m_current >= m_boxLo);
     return m_current;
   }
 

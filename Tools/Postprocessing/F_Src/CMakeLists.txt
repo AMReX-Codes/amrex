@@ -1,4 +1,4 @@
-set( FSRC plt_compare_diff_grids.f90 fextract.f90 )
+set( FSRC plt_compare_diff_grids.f90 fextract.f90 fboxinfo.f90 )
 
 foreach ( MAIN ${FSRC} )
 

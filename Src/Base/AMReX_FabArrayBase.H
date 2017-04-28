@@ -37,6 +37,11 @@ public:
     FabArrayBase& operator= (const FabArrayBase& rhs) = delete;
     FabArrayBase& operator= (FabArrayBase&& rhs) = delete;    
 
+    void define (const BoxArray&            bxs,
+                 const DistributionMapping& dm,
+                 int                        nvar,
+                 int                        ngrow);
+
     //! Return the grow factor that defines the region of definition.
     int nGrow () const { return n_grow; }
 
@@ -81,14 +86,14 @@ public:
 
     //! Return local index in the vector of FABs.
     int localindex (int K) const { 
-	std::vector<int>::const_iterator low
-	    = std::lower_bound(indexArray.begin(), indexArray.end(), K);
-	if (low != indexArray.end() && *low == K) {
-	    return low - indexArray.begin();
-	}
-	else {
-	    return -1;
-	}
+        std::vector<int>::const_iterator low
+            = std::lower_bound(indexArray.begin(), indexArray.end(), K);
+        if (low != indexArray.end() && *low == K) {
+            return low - indexArray.begin();
+        }
+        else {
+            return -1;
+        }
     }
 
     //! Return constant reference to associated DistributionMapping.

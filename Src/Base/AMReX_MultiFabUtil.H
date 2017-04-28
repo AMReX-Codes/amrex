@@ -5,6 +5,9 @@
 
 namespace amrex
 {
+    //! Average nodal-based MultiFab onto cell-centered MultiFab.
+    void average_node_to_cellcenter (MultiFab& cc, int dcomp, const MultiFab& nd, int scomp, int ncomp);
+
     //! Average face-based MultiFab onto cell-centered MultiFab.
     void average_edge_to_cellcenter (MultiFab& cc, int dcomp, const Array<const MultiFab*>& edge);
 
