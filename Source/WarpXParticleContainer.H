@@ -60,6 +60,9 @@ public:
 
     virtual void InitData () = 0;
 
+    virtual void FieldGatherES (int lev,
+                                const amrex::MultiFab& Ex, const amrex::MultiFab& Ey, const amrex::MultiFab& Ez) {}
+
     virtual void FieldGather (int lev,
                               const amrex::MultiFab& Ex, const amrex::MultiFab& Ey, const amrex::MultiFab& Ez,
                               const amrex::MultiFab& Bx, const amrex::MultiFab& By, const amrex::MultiFab& Bz) {}
@@ -75,7 +78,10 @@ public:
 
     void PushX (int lev, amrex::Real dt);
 
+    std::unique_ptr<amrex::MultiFab> Deposit(int lev, bool local = false);
     std::unique_ptr<amrex::MultiFab> GetChargeDensity(int lev, bool local = false);
+
+    amrex::Real sumParticleCharge(int lev, bool local = false);
 
     void AddNParticles (int n, const amrex::Real* x, const amrex::Real* y, const amrex::Real* z,
 			const amrex::Real* vx, const amrex::Real* vy, const amrex::Real* vz,

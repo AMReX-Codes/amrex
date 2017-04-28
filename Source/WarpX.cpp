@@ -6,6 +6,9 @@
 #include <numeric>
 
 #include <AMReX_ParmParse.H>
+#include <AMReX_MGT_Solver.H>
+#include <AMReX_stencil_types.H>
+#include <AMReX_MultiFabUtil.H>
 
 #include <WarpX.H>
 #include <WarpXConst.H>
@@ -173,6 +176,8 @@ WarpX::ReadParameters ()
 		 0, num_injected_species);
 	}
 
+        pp.query("do_electrostatic", do_electrostatic);
+
 	pp.query("use_laser", use_laser);
 
         pp.query("plot_raw_fields", plot_raw_fields);
@@ -329,6 +334,27 @@ WarpX::LowerCorner(const Box& bx, int lev)
 #elif (BL_SPACEDIM == 2)
     return { xyzmin[0], -1.e100, xyzmin[1] };
 #endif
+}
+
+void WarpX::computePhi(const Array<std::unique_ptr<MultiFab > >& rho, 
+                       Array<std::unique_ptr<MultiFab> >& phi) const {    
+    bool nodal = true;
+    bool have_rhcc = false;
+    int  nc = 0;
+    int stencil = ND_CROSS_STENCIL;
+    int verbose = 0;
+    int Ncomp = 1;
+    Array<int> mg_bc(BL_SPACEDIM, 0); // this means periodic in all directions.
+
+    MGT_Solver solver(geom, mg_bc.dataPtr(), grids, dmap, nodal,
+                      stencil, have_rhcc, nc, Ncomp, verbose);
+
+    solver.set_nodal_const_coefficients(1.0);
+
+    Real rel_tol = 1.0e-6;
+    Real abs_tol = 1.0e-6;
+
+    solver.solve_nodal(GetArrOfPtrs(phi), GetArrOfPtrs(rho), rel_tol, abs_tol);
 }
 
 

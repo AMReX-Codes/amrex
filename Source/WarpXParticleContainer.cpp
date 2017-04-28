@@ -157,6 +157,57 @@ WarpXParticleContainer::AddNParticles (int n, const Real* x, const Real* y, cons
 }
 
 std::unique_ptr<MultiFab>
+WarpXParticleContainer::Deposit (int lev, bool local)
+{
+    const auto& gm = m_gdb->Geom(lev);
+    const auto& ba = m_gdb->ParticleBoxArray(lev);
+    const auto& dm = m_gdb->DistributionMap(lev);
+    BoxArray nba = ba;
+    nba.surroundingNodes();
+
+    const Real* dx  = gm.ProbLo();
+    const Real* plo = gm.ProbLo();
+    const int ng = 1;
+
+    auto rho = std::unique_ptr<MultiFab>(new MultiFab(nba,dm,1,ng));
+    rho->setVal(0.0);
+
+    for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
+    {
+        const Box& box = pti.validbox();
+
+        auto& wp = pti.GetAttribs(PIdx::w);
+        const auto& particles = pti.GetArrayOfStructs();
+        int nstride = particles.dataShape().first;           
+        const long np  = pti.numParticles();
+
+	// Data on the grid
+	FArrayBox& rhofab = (*rho)[pti];
+
+#if (BL_SPACEDIM == 3)
+	long nx = box.length(0);
+	long ny = box.length(1);
+	long nz = box.length(2); 
+#elif (BL_SPACEDIM == 2)
+	long nx = box.length(0);
+	long ny = 0;
+	long nz = box.length(1); 
+#endif
+
+        const std::array<Real,3>& xyzmin = WarpX::LowerCorner(box, lev);
+
+        warpx_deposit_cic(particles.data(), nstride, np,
+                          wp.data(), &this->charge, 
+                          rhofab.dataPtr(), box.loVect(), box.hiVect(), plo, dx);
+				
+    }
+
+    if (!local) rho->SumBoundary(gm.periodicity());
+    
+    return rho;
+}
+
+std::unique_ptr<MultiFab>
 WarpXParticleContainer::GetChargeDensity (int lev, bool local)
 {
     const auto& gm = m_gdb->Geom(lev);
@@ -216,6 +267,22 @@ WarpXParticleContainer::GetChargeDensity (int lev, bool local)
     if (!local) rho->SumBoundary(gm.periodicity());
     
     return rho;
+}
+
+Real WarpXParticleContainer::sumParticleCharge(int lev, bool local) {
+
+    amrex::Real total_charge = 0.0;
+    for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
+    {
+        auto& wp = pti.GetAttribs(PIdx::w);
+        for (unsigned long i = 0; i < wp.size(); i++) {
+            total_charge += wp[i];
+        }
+    }
+
+    if (!local) ParallelDescriptor::ReduceRealSum(total_charge);
+    total_charge *= this->charge;
+    return total_charge;
 }
 
 void

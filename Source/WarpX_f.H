@@ -124,4 +124,14 @@ extern "C"
 			  BL_FORT_FAB_ARG_3D(Ey),
 			  BL_FORT_FAB_ARG_3D(Ez),
 			  const amrex::Real* dx);
+
+    void warpx_deposit_cic(const amrex::Real*, int ns, int np,
+                           const amrex::Real*, const amrex::Real*,
+                           amrex::Real* rho, const int* lo, const int* hi,
+                           const amrex::Real* plo, const amrex::Real* dx);
+    
+    void warpx_interpolate_cic(const amrex::Real*, int ns, int np,
+                               amrex::Real* rho, const int* lo, const int* hi, int ncomp,
+                               const amrex::Real* plo, const amrex::Real* dx);
+
 }

@@ -87,6 +87,74 @@ PhysicalParticleContainer::AddParticles (int lev, Box part_box) {
 }
 
 void
+PhysicalParticleContainer::FieldGatherES (int lev,
+                                          const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez)
+{
+    const std::array<Real,3>& dx = WarpX::CellSize(lev);
+
+    // WarpX assumes the same number of guard cells for Ex, Ey, Ez, Bx, By, Bz
+    long ng = Ex.nGrow();
+
+    BL_ASSERT(OnSameGrids(lev,Ex));
+
+    {
+	Array<Real> xp, yp, zp;
+
+	for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
+	{
+	    const Box& box = pti.validbox();
+
+            auto& attribs = pti.GetAttribs();
+
+            auto&  wp = attribs[PIdx::w];
+            auto& Exp = attribs[PIdx::Ex];
+            auto& Eyp = attribs[PIdx::Ey];
+            auto& Ezp = attribs[PIdx::Ez];
+
+            const long np = pti.numParticles();
+
+	    // Data on the grid
+	    const FArrayBox& exfab = Ex[pti];
+	    const FArrayBox& eyfab = Ey[pti];
+	    const FArrayBox& ezfab = Ez[pti];
+
+	    Exp.assign(np,0.0);
+	    Eyp.assign(np,0.0);
+	    Ezp.assign(np,0.0);
+
+	    //
+	    // copy data from particle container to temp arrays
+	    //
+            pti.GetPosition(xp, yp, zp);
+
+            const std::array<Real,3>& xyzmin = WarpX::LowerCorner(box, lev);
+
+	    //
+	    // Field Gather
+	    //
+	    // const int ll4symtry          = false;
+	    // const int l_lower_order_in_v = true;
+            // long lvect_fieldgathe = 64;
+	    // warpx_geteb_energy_conserving(
+	    //    &np, xp.data(), yp.data(), zp.data(),
+	    //    Exp.data(),Eyp.data(),Ezp.data(),
+	    //    Bxp.data(),Byp.data(),Bzp.data(),
+	    //    &xyzmin[0], &xyzmin[1], &xyzmin[2],
+	    //    &dx[0], &dx[1], &dx[2],
+	    //    &WarpX::nox, &WarpX::noy, &WarpX::noz,
+	    //    exfab.dataPtr(), &ng, exfab.length(),
+	    //    eyfab.dataPtr(), &ng, eyfab.length(),
+	    //    ezfab.dataPtr(), &ng, ezfab.length(),
+            //    bxfab.dataPtr(), &ng, bxfab.length(),
+	    //    byfab.dataPtr(), &ng, byfab.length(),
+	    //    bzfab.dataPtr(), &ng, bzfab.length(),
+	    //    &ll4symtry, &l_lower_order_in_v,
+	    //    &lvect_fieldgathe, &WarpX::field_gathering_algo);
+        }
+    }
+}
+
+void
 PhysicalParticleContainer::FieldGather (int lev,
                                         const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
                                         const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz)

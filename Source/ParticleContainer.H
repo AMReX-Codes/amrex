@@ -36,6 +36,9 @@ public:
 
     void InitData ();
 
+    void FieldGatherES (int lev,
+                        const amrex::MultiFab& Ex, const amrex::MultiFab& Ey, const amrex::MultiFab& Ez);
+
     void FieldGather (int lev,
                       const amrex::MultiFab& Ex, const amrex::MultiFab& Ey, const amrex::MultiFab& Ez,
                       const amrex::MultiFab& Bx, const amrex::MultiFab& By, const amrex::MultiFab& Bz);    
@@ -47,7 +50,10 @@ public:
 
     void PushX (int lev, amrex::Real dt);
 
+    std::unique_ptr<amrex::MultiFab> Deposit(int lev, bool local = false);
     std::unique_ptr<amrex::MultiFab> GetChargeDensity(int lev, bool local = false);
+
+    amrex::Real sumParticleCharge(int lev, bool local = false);
 
     void Checkpoint (const std::string& dir,
 		     const std::string& name,

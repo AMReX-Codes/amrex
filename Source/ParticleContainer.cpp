@@ -57,6 +57,15 @@ MultiParticleContainer::InitData ()
 }
 
 void
+MultiParticleContainer::FieldGatherES (int lev,
+                                       const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez)
+{
+    for (auto& pc : allcontainers) {
+	pc->FieldGatherES(lev, Ex, Ey, Ez);
+    }
+}
+
+void
 MultiParticleContainer::FieldGather (int lev,
                                      const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
                                      const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz)
@@ -68,18 +77,18 @@ MultiParticleContainer::FieldGather (int lev,
 
 void
 MultiParticleContainer::Evolve (int lev,
-			     const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
-			     const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz,
-			     MultiFab& jx, MultiFab& jy, MultiFab& jz, Real t, Real dt)
+                                const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
+                                const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz,
+                                MultiFab& jx, MultiFab& jy, MultiFab& jz, Real t, Real dt)
 {
     jx.setVal(0.0);
     jy.setVal(0.0);
     jz.setVal(0.0);
-
+    
     for (auto& pc : allcontainers) {
 	pc->Evolve(lev, Ex, Ey, Ez, Bx, By, Bz, jx, jy, jz, t, dt);
     }
-
+    
     const Geometry& gm = allcontainers[0]->Geom(lev);
     jx.SumBoundary(gm.periodicity());
     jy.SumBoundary(gm.periodicity());
@@ -89,10 +98,24 @@ MultiParticleContainer::Evolve (int lev,
 void
 MultiParticleContainer::PushX (int lev, Real dt)
 {
-
     for (auto& pc : allcontainers) {
 	pc->PushX(lev, dt);
     }
+}
+
+std::unique_ptr<MultiFab>
+MultiParticleContainer::Deposit (int lev, bool local)
+{
+    std::unique_ptr<MultiFab> rho = allcontainers[0]->Deposit(lev, true);
+    for (unsigned i = 1, n = allcontainers.size(); i < n; ++i) {
+	std::unique_ptr<MultiFab> rhoi = allcontainers[i]->Deposit(lev, true);
+	MultiFab::Add(*rho, *rhoi, 0, 0, 1, rho->nGrow());
+    }
+    if (!local) {
+	const Geometry& gm = allcontainers[0]->Geom(lev);
+	rho->SumBoundary(gm.periodicity());
+    }
+    return rho;
 }
 
 std::unique_ptr<MultiFab>
@@ -108,6 +131,16 @@ MultiParticleContainer::GetChargeDensity (int lev, bool local)
 	rho->SumBoundary(gm.periodicity());
     }
     return rho;
+}
+
+amrex::Real
+MultiParticleContainer::sumParticleCharge (int lev, bool local)
+{
+    amrex::Real total_charge = allcontainers[0]->sumParticleCharge(lev, local);
+    for (unsigned i = 1, n = allcontainers.size(); i < n; ++i) {
+        total_charge += allcontainers[i]->sumParticleCharge(lev, local);
+    }
+    return total_charge;
 }
 
 void

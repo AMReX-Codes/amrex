@@ -17,6 +17,11 @@ public:
 
     virtual void InitData () override;
 
+    virtual void FieldGatherES(int lev,
+                               const amrex::MultiFab& Ex,
+                               const amrex::MultiFab& Ey,
+                               const amrex::MultiFab& Ez) override;
+
     virtual void FieldGather(int lev,
                              const amrex::MultiFab& Ex,
                              const amrex::MultiFab& Ey,

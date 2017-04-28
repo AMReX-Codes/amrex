@@ -128,6 +128,16 @@ private:
     // Singleton is used when the code is run from python
     static WarpX* m_instance;
 
+    // advance level "lev" by a single time step, electromagnetic case
+    void EvolveEM(int numsteps);
+
+    // advance level "lev" by a single step, electrostatic case
+    void EvolveES(int numsteps);
+
+    // compute the gravitational potential from rho
+    void computePhi(const amrex::Array<std::unique_ptr<amrex::MultiFab> >& rho, 
+                    amrex::Array<std::unique_ptr<amrex::MultiFab> >& phi) const;
+
     void ReadParameters ();
 
     void RegridBaseLevel ();
@@ -180,6 +190,8 @@ private:
     int do_plasma_injection  = 0;
     int num_injected_species = -1;
     amrex::Array<int> injected_plasma_species;
+
+    int do_electrostatic = 0;
 
     // Other runtime parameters
     int verbose = 1;

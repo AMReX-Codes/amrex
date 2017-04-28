@@ -423,6 +423,19 @@ WarpX::WritePlotFile () const
         const std::string raw_plotfilename = plotfilename + "/raw_fields";
         amrex::PreBuildDirectorHierarchy(raw_plotfilename, level_prefix, nlevels, true);
 
+        Array<std::unique_ptr<MultiFab> > charge_density(1);
+        Array<std::unique_ptr<MultiFab> > potential(1);
+        
+        charge_density[0] = mypc->GetChargeDensity(0);
+        potential[0].reset(new MultiFab(charge_density[0]->boxArray(), dmap[0], 1, 1));
+        potential[0]->setVal(0.0);
+
+        Real offset = mypc->sumParticleCharge(0);
+        offset /= Geom(0).ProbSize();
+        charge_density[0]->plus(-offset, 0, 1, 1);
+
+        computePhi(charge_density, potential);
+        
         for (int lev = 0; lev < nlevels; ++lev)
         {
             const DistributionMapping& dm = DistributionMap(lev);
@@ -436,6 +449,8 @@ WarpX::WritePlotFile () const
             MultiFab jx(current[lev][0]->boxArray(), dm, 1, 0);
             MultiFab jy(current[lev][1]->boxArray(), dm, 1, 0);
             MultiFab jz(current[lev][2]->boxArray(), dm, 1, 0);
+            MultiFab rho(charge_density[lev]->boxArray(), dm, 1, 0);
+            MultiFab phi(potential[lev]->boxArray(), dm, 1, 0);
 
             MultiFab::Copy(Ex, *Efield[lev][0], 0, 0, 1, 0);
             MultiFab::Copy(Ey, *Efield[lev][1], 0, 0, 1, 0);
@@ -446,6 +461,8 @@ WarpX::WritePlotFile () const
             MultiFab::Copy(jx,*current[lev][0], 0, 0, 1, 0);
             MultiFab::Copy(jy,*current[lev][1], 0, 0, 1, 0);
             MultiFab::Copy(jz,*current[lev][2], 0, 0, 1, 0);
+            MultiFab::Copy(rho,*charge_density[lev], 0, 0, 1, 0);
+            MultiFab::Copy(phi,*potential[lev], 0, 0, 1, 0);
 
             VisMF::Write(Ex, amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Ex"));
             VisMF::Write(Ey, amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Ey"));
@@ -456,6 +473,8 @@ WarpX::WritePlotFile () const
             VisMF::Write(jx, amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "jx"));
             VisMF::Write(jy, amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "jy"));
             VisMF::Write(jz, amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "jz"));
+            VisMF::Write(rho, amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "rho"));
+            VisMF::Write(phi, amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "phi"));
         }
     }
 
