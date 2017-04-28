@@ -1,0 +1,91 @@
+In this chapter, we will walk you through two simple examples.  It is
+assumed here that your machine has GNU Make, Python, GCC (including
+gfortran), and MPI, although \amrex\ can be built with CMake and other
+compilers. 
+
+\section{Downloading the Code}
+
+The source code of \amrex\ is available at
+\url{https://github.com/AMReX-Codes/amrex}.  The GitHub repo is our
+central repo for the development.  The {\tt development} branch
+includes the latest state of the code, and it is merged into the {\tt
+  master} branch on a monthly basis.  The {\tt master} branch is
+considered the release branch.  The releases are tagged with version
+number {\tt YY.MM} (e.g., {\tt 17.04}).  The {\tt MM} part of the
+version is incremented every month, and the {\tt YY} part every year.
+Bug fix releases are tagged with {\tt YY.MM.patch} (e.g., {\tt
+  17.04.1}).
+
+\section{Example: Hello World}
+
+The source code of this example is at {\tt
+  amrex/Tutorials/HelloWorld\_C/} and is also shown below. 
+
+\begin{lstlisting}[language=cpp]
+#include <AMReX.H>
+#include <AMReX_Print.H>
+
+int main(int argc, char* argv[])
+{
+    amrex::Initialize(argc,argv);
+    amrex::Print() << "Hello world from AMReX version " 
+                   << amrex::Version() << "\n";
+    amrex::Finalize();
+}
+\end{lstlisting}
+
+The main body of this short example contains three statements.
+Usually the first and last statements for the {\tt main} function of
+every program should be calling {\tt amrex::}\idxamrex{Initialize} and
+\idxamrex{Finalize}, respectively.  The second statement calls {\tt
+  amrex::}\idxamrex{Print} to print out a string that includes the
+\amrex\ version returned by the {\tt amrex::}\idxamrex{Version}
+function.  The example code includes two \amrex\ header files.  Note
+that the name of all \amrex\ header files starts with {\tt AMReX\_}
+(or just {\tt AMReX} in the case of {\tt AMReX.H}).  All \amrex\
+\cpp\ functions are in the {\tt amrex} namespace.  
+
+\subsection{Building the Code}
+
+You build the code in the example code in the {\tt
+  amrex/Tutorials/HelloWorld\_C/} directory.  Typing {\tt make} will
+start the compilation process and result in an executable named {\tt
+  main3d.gnu.DEBUG.ex}.  The name shows that the GNU compiler with
+debug options set by \amrex\ is used.  It also shows that the
+executable is built for 3D.  Although this simple example code is
+dimension independent, the dimension matters for all non-trivial
+examples.  The build process can be adjusted by modifying the {\tt
+  amrex/Tutorials/HellWorld\_C/GNUmakefile} file.  More details on make
+can be found in Chapter~\ref{Chap:Make}.
+
+\subsection{Running the Code}
+
+The example code can be run as follows,
+\begin{verbatim}
+  
+\end{verbatim}
+
+
+
+\subsection{Exercise}
+
+MPI  note that mpi is initialize inside initialize
+
+paralleldescriptor
+
+allprint
+
+\section{Example: Heat Equation Solver}
+
+\subsection{Building the Code}
+
+how to compile
+
+\subsection{Running the Code}
+
+how to run
+
+\subsection{Visualization of the Results}
+
+how to visualize plotfiles
+
