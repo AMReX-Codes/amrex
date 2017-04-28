@@ -190,5 +190,115 @@ contains
     end do
 
   end subroutine warpx_push_pml_evec_3d
+
+  subroutine warpx_push_pml_bvec_2d (xlo, xhi, ylo, yhi, zlo, zhi, &
+       &                             Ex, Exlo, Exhi, &
+       &                             Ey, Eylo, Eyhi, &
+       &                             Ez, Ezlo, Ezhi, &
+       &                             Bx, Bxlo, Bxhi, &
+       &                             By, Bylo, Byhi, &
+       &                             Bz, Bzlo, Bzhi, &
+       &                             sigx1, sigx1_lo, sigx1_hi, &
+       &                             sigx2, sigx2_lo, sigx2_hi, &
+       &                             sigz1, sigz1_lo, sigz1_hi, &
+       &                             sigz2, sigz2_lo, sigz2_hi) &
+       bind(c,name='warpx_push_pml_bvec_2d')
+    integer, intent(in) :: xlo(2), xhi(2), ylo(2), yhi(2), zlo(2), zhi(2), &
+         Exlo(2), Exhi(2), Eylo(2), Eyhi(2), Ezlo(2), Ezhi(2), &
+         Bxlo(2), Bxhi(2), Bylo(2), Byhi(2), Bzlo(2), Bzhi(2)
+    integer, intent(in), value :: sigx1_lo, sigx1_hi, sigx2_lo, sigx2_hi
+    integer, intent(in), value :: sigz1_lo, sigz1_hi, sigz2_lo, sigz2_hi
+    real(amrex_real), intent(in   ) :: Ex (Exlo(1):Exhi(1),Exlo(2):Exhi(2),2)
+    real(amrex_real), intent(in   ) :: Ey (Eylo(1):Eyhi(1),Eylo(2):Eyhi(2),2)
+    real(amrex_real), intent(in   ) :: Ez (Ezlo(1):Ezhi(1),Ezlo(2):Ezhi(2),2)
+    real(amrex_real), intent(inout) :: Bx (Bxlo(1):Bxhi(1),Bxlo(2):Bxhi(2),2)
+    real(amrex_real), intent(inout) :: By (Bylo(1):Byhi(1),Bylo(2):Byhi(2),2)
+    real(amrex_real), intent(inout) :: Bz (Bzlo(1):Bzhi(1),Bzlo(2):Bzhi(2),2)
+    real(amrex_real), intent(in) :: sigx1(sigx1_lo:sigx1_hi)
+    real(amrex_real), intent(in) :: sigx2(sigx2_lo:sigx2_hi)
+    real(amrex_real), intent(in) :: sigz1(sigz1_lo:sigz1_hi)
+    real(amrex_real), intent(in) :: sigz2(sigz2_lo:sigz2_hi)
+
+    integer :: i, k
+
+    do    k = xlo(2), xhi(2)
+       do i = xlo(1), xhi(1)
+          Bx(i,k,2) = sigz1(k)*Bx(i,k,2) + sigz2(k)*(Ey(i,k+1,1)+Ey(i,k+1,2) &
+               &                                    -Ey(i,k  ,1)-Ey(i,k  ,2))
+       end do
+    end do
+
+    do    k = ylo(2), yhi(2)
+       do i = ylo(1), yhi(1)
+          By(i,k,1) = sigz1(k)*By(i,k,1) - sigz2(k)*(Ex(i  ,k+1,1)+Ex(i  ,k+1,2) &
+               &                                    -Ex(i  ,k  ,1)-Ex(i  ,k  ,2))
+          By(i,k,2) = sigx1(i)*By(i,k,2) + sigx2(i)*(Ez(i+1,k  ,1)+Ez(i+1,k  ,2) &
+               &                                    -Ez(i  ,k  ,1)-Ez(i  ,k  ,2))
+       end do
+    end do
+
+    do    k = zlo(2), zhi(2)
+       do i = zlo(1), zhi(1)
+          Bz(i,k,1) = sigx1(i)*Bz(i,k,1) - sigx2(i)*(Ey(i+1,k,1)+Ey(i+1,k,2) &
+               &                                    -Ey(i  ,k,1)-Ey(i  ,k,2))
+       end do
+    end do
+
+  end subroutine warpx_push_pml_bvec_2d
+
+  subroutine warpx_push_pml_evec_2d (xlo, xhi, ylo, yhi, zlo, zhi, &
+       &                             Ex, Exlo, Exhi, &
+       &                             Ey, Eylo, Eyhi, &
+       &                             Ez, Ezlo, Ezhi, &
+       &                             Bx, Bxlo, Bxhi, &
+       &                             By, Bylo, Byhi, &
+       &                             Bz, Bzlo, Bzhi, &
+       &                             sigx1, sigx1_lo, sigx1_hi, &
+       &                             sigx2, sigx2_lo, sigx2_hi, &
+       &                             sigz1, sigz1_lo, sigz1_hi, &
+       &                             sigz2, sigz2_lo, sigz2_hi) &
+       bind(c,name='warpx_push_pml_evec_2d')
+    integer, intent(in) :: xlo(2), xhi(2), ylo(2), yhi(2), zlo(2), zhi(2), &
+         Exlo(2), Exhi(2), Eylo(2), Eyhi(2), Ezlo(2), Ezhi(2), &
+         Bxlo(2), Bxhi(2), Bylo(2), Byhi(2), Bzlo(2), Bzhi(2)
+    integer, intent(in), value :: sigx1_lo, sigx1_hi, sigx2_lo, sigx2_hi
+    integer, intent(in), value :: sigz1_lo, sigz1_hi, sigz2_lo, sigz2_hi
+    real(amrex_real), intent(inout) :: Ex (Exlo(1):Exhi(1),Exlo(2):Exhi(2),2)
+    real(amrex_real), intent(inout) :: Ey (Eylo(1):Eyhi(1),Eylo(2):Eyhi(2),2)
+    real(amrex_real), intent(inout) :: Ez (Ezlo(1):Ezhi(1),Ezlo(2):Ezhi(2),2)
+    real(amrex_real), intent(in   ) :: Bx (Bxlo(1):Bxhi(1),Bxlo(2):Bxhi(2),2)
+    real(amrex_real), intent(in   ) :: By (Bylo(1):Byhi(1),Bylo(2):Byhi(2),2)
+    real(amrex_real), intent(in   ) :: Bz (Bzlo(1):Bzhi(1),Bzlo(2):Bzhi(2),2)
+    real(amrex_real), intent(in) :: sigx1(sigx1_lo:sigx1_hi)
+    real(amrex_real), intent(in) :: sigx2(sigx2_lo:sigx2_hi)
+    real(amrex_real), intent(in) :: sigz1(sigz1_lo:sigz1_hi)
+    real(amrex_real), intent(in) :: sigz2(sigz2_lo:sigz2_hi)
+
+    integer :: i, k
+
+    do    k = xlo(2), xhi(2)
+       do i = xlo(1), xhi(1)
+          Ex(i,k,2) = sigz1(k)*Ex(i,k,2) - sigz2(k)*(By(i,k  ,1)+By(i,k  ,2) &
+               &                                    -By(i,k-1,1)-By(i,k-1,2))
+       end do
+    end do
+
+    do    k = ylo(2), yhi(2)
+       do i = ylo(1), yhi(1)
+          Ey(i,k,1) = sigz1(k)*Ey(i,k,1) + sigz2(k)*(Bx(i  ,k  ,1)+Bx(i  ,k  ,2) &
+               &                                    -Bx(i  ,k-1,1)-Bx(i  ,k-1,2))
+          Ey(i,k,2) = sigx1(i)*Ey(i,k,2) - sigx2(i)*(Bz(i  ,k  ,1)+Bz(i  ,k  ,2) &
+               &                                    -Bz(i-1,k  ,1)-Bz(i-1,k  ,2))
+       end do
+    end do
+
+    do    k = zlo(2), zhi(2)
+       do i = zlo(1), zhi(1)
+          Ez(i,k,1) = sigx1(i)*Ez(i,k,1) + sigx2(i)*(By(i  ,k,1)+By(i  ,k,2) &
+               &                                    -By(i-1,k,1)-By(i-1,k,2))
+       end do
+    end do
+
+  end subroutine warpx_push_pml_evec_2d
   
 end module warpx_module

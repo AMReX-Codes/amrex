@@ -139,9 +139,11 @@ extern "C"
                             BL_FORT_FAB_ARG_3D(by),
                             BL_FORT_FAB_ARG_3D(bz),
                             const amrex::Real* sigx1, int sigx1_lo, int sigx1_hi, 
-                            const amrex::Real* sigx2, int sigx2_lo, int sigx2_hi, 
+                            const amrex::Real* sigx2, int sigx2_lo, int sigx2_hi,
+#if (BL_SPACEDIM == 3)
                             const amrex::Real* sigy1, int sigy1_lo, int sigy1_hi, 
                             const amrex::Real* sigy2, int sigy2_lo, int sigy2_hi, 
+#endif
                             const amrex::Real* sigz1, int sigz1_lo, int sigz1_hi, 
                             const amrex::Real* sigz2, int sigz2_lo, int sigz2_hi);
 
@@ -156,8 +158,10 @@ extern "C"
                             const BL_FORT_FAB_ARG_3D(bz),
                             const amrex::Real* sigx1, int sigx1_lo, int sigx1_hi, 
                             const amrex::Real* sigx2, int sigx2_lo, int sigx2_hi, 
+#if (BL_SPACEDIM == 3)
                             const amrex::Real* sigy1, int sigy1_lo, int sigy1_hi, 
                             const amrex::Real* sigy2, int sigy2_lo, int sigy2_hi, 
+#endif
                             const amrex::Real* sigz1, int sigz1_lo, int sigz1_hi, 
                             const amrex::Real* sigz2, int sigz2_lo, int sigz2_hi);
 }

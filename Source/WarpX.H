@@ -194,8 +194,9 @@ private:
         int hi() const { return m_hi; }
         int m_lo, m_hi;
     };
-    std::array<PMLSigma,3> pml_sigma, pml_sigma_star; // sigma/epsilon, sigma_star/mu
-    std::array<PMLSigma,3> pml_sigma_fac1, pml_sigma_fac2, pml_sigma_star_fac1, pml_sigma_star_fac2;
+    std::array<PMLSigma,BL_SPACEDIM> pml_sigma, pml_sigma_star; // sigma/epsilon, sigma_star/mu
+    std::array<PMLSigma,BL_SPACEDIM> pml_sigma_fac1, pml_sigma_fac2, 
+                                     pml_sigma_star_fac1, pml_sigma_star_fac2;
 
     // Moving window parameters
     int do_moving_window  = 0;

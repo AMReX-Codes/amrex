@@ -179,7 +179,6 @@ WarpX::EvolveB (int lev, Real dt)
 
         ComputePMLFactorsB(lev, dt);
 
-#if (BL_SPACEDIM == 3)
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -202,13 +201,13 @@ WarpX::EvolveB (int lev, Real dt)
                 pml_sigma_star_fac1[0].data(),pml_sigma_star_fac1[0].lo(),pml_sigma_star_fac1[0].hi(),
                 pml_sigma_star_fac2[0].data(),pml_sigma_star_fac2[0].lo(),pml_sigma_star_fac2[0].hi(),
                 pml_sigma_star_fac1[1].data(),pml_sigma_star_fac1[1].lo(),pml_sigma_star_fac1[1].hi(),
-                pml_sigma_star_fac2[1].data(),pml_sigma_star_fac2[1].lo(),pml_sigma_star_fac2[1].hi(),
-                pml_sigma_star_fac1[2].data(),pml_sigma_star_fac1[2].lo(),pml_sigma_star_fac1[2].hi(),
-                pml_sigma_star_fac2[2].data(),pml_sigma_star_fac2[2].lo(),pml_sigma_star_fac2[2].hi());
-        }
-#else
-        amrex::Abort("Evolve PML B in 2D not supported yet");
+                pml_sigma_star_fac2[1].data(),pml_sigma_star_fac2[1].lo(),pml_sigma_star_fac2[1].hi()
+#if (BL_SPACEDIM == 3)
+               ,pml_sigma_star_fac1[2].data(),pml_sigma_star_fac1[2].lo(),pml_sigma_star_fac1[2].hi(),
+                pml_sigma_star_fac2[2].data(),pml_sigma_star_fac2[2].lo(),pml_sigma_star_fac2[2].hi()
 #endif
+                );
+        }
     }
 }
 
@@ -259,7 +258,6 @@ WarpX::EvolveE (int lev, Real dt)
 
         ComputePMLFactorsE(lev, dt);
 
-#if (BL_SPACEDIM == 3)
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -283,13 +281,13 @@ WarpX::EvolveE (int lev, Real dt)
                 pml_sigma_fac1[0].data(),pml_sigma_fac1[0].lo(),pml_sigma_fac1[0].hi(),
                 pml_sigma_fac2[0].data(),pml_sigma_fac2[0].lo(),pml_sigma_fac2[0].hi(),
                 pml_sigma_fac1[1].data(),pml_sigma_fac1[1].lo(),pml_sigma_fac1[1].hi(),
-                pml_sigma_fac2[1].data(),pml_sigma_fac2[1].lo(),pml_sigma_fac2[1].hi(),
-                pml_sigma_fac1[2].data(),pml_sigma_fac1[2].lo(),pml_sigma_fac1[2].hi(),
-                pml_sigma_fac2[2].data(),pml_sigma_fac2[2].lo(),pml_sigma_fac2[2].hi());
-        }
-#else
-        amrex::Abort("Evolve PML E in 2D not supported yet");
+                pml_sigma_fac2[1].data(),pml_sigma_fac2[1].lo(),pml_sigma_fac2[1].hi()
+#if (BL_SPACEDIM == 3)
+               ,pml_sigma_fac1[2].data(),pml_sigma_fac1[2].lo(),pml_sigma_fac1[2].hi(),
+                pml_sigma_fac2[2].data(),pml_sigma_fac2[2].lo(),pml_sigma_fac2[2].hi()
 #endif
+                );
+        }
     }
 }
 

@@ -74,7 +74,6 @@ WarpX::InitPML ()
     pml_B[1]->setVal(0.0);
     pml_B[2]->setVal(0.0);
 
-#if (BL_SPACEDIM == 3)
     {
         const Real* dx = gm0.CellSize();
         const int* dlo = domainbox.loVect();
@@ -111,9 +110,6 @@ WarpX::InitPML ()
             }
         }
     }
-#else
-    amrex::Abort("InitPML: 2d not supported yet");
-#endif
 }
 
 
@@ -127,11 +123,12 @@ WarpX::ComputePMLFactors (int lev, Real dt)
 void
 WarpX::ComputePMLFactorsE (int lev, Real dt)
 {
-    const std::array<Real,3>& dx = WarpX::CellSize(lev);
+    const Real* dx = Geom(lev).CellSize();
 
-    const std::array<Real,3> dtsdx {dt/dx[0], dt/dx[1], dt/dx[2]};
+    const std::array<Real,BL_SPACEDIM> dtsdx {D_DECL(dt/dx[0], dt/dx[1], dt/dx[2])};
+
     const Real c2 = PhysConst::c*PhysConst::c;
-    const std::array<Real,3> dtsdx_c2 {dtsdx[0]*c2, dtsdx[1]*c2, dtsdx[2]*c2};
+    const std::array<Real,BL_SPACEDIM> dtsdx_c2 {D_DECL(dtsdx[0]*c2, dtsdx[1]*c2, dtsdx[2]*c2)};
 
     for (int idim = 0; idim < BL_SPACEDIM; ++idim)
     {
@@ -165,9 +162,9 @@ WarpX::ComputePMLFactorsE (int lev, Real dt)
 void
 WarpX::ComputePMLFactorsB (int lev, Real dt)
 {
-    const std::array<Real,3>& dx = WarpX::CellSize(lev);
+    const Real* dx = Geom(lev).CellSize();
 
-    const std::array<Real,3> dtsdx {dt/dx[0], dt/dx[1], dt/dx[2]};
+    const std::array<Real,BL_SPACEDIM> dtsdx {D_DECL(dt/dx[0], dt/dx[1], dt/dx[2])};
 
     for (int idim = 0; idim < BL_SPACEDIM; ++idim)
     {
