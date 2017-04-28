@@ -88,6 +88,9 @@ FORTPREP  	= perl $(AMREX_HOME)/Tools/C_scripts/strip72 -c
 F90PREP  	= cat  # a placeholder in case we have to write something later
 MKDEP		= perl $(AMREX_HOME)/Tools/C_scripts/mkdep
 MODDEP		= $(AMREX_HOME)/Tools/F_scripts/dep.py
+MKCONFIG        = $(AMREX_HOME)/Tools/libamrex/mkconfig.py
+
+RANLIB          = ranlib
 
 EXE_OUTPUT_OPTION      = -o $(objEXETempDir)/$*.o
 FORT_EXE_OUTPUT_OPTION = -o $(objEXETempDir)/$*.o
@@ -108,8 +111,12 @@ else ifeq ($(lowercase_comp),cray)
 else ifeq ($(lowercase_comp),pgi)
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/comps/pgi.mak...)
   include        $(AMREX_HOME)/Tools/GNUMake/comps/pgi.mak
+else ifeq ($(lowercase_comp),$(filter $(lowercase_comp),llvm clang clang++))
+  lowercase_comp = llvm
+  $(info Loading $(AMREX_HOME)/Tools/GNUMake/comps/llvm.mak...)
+  include        $(AMREX_HOME)/Tools/GNUMake/comps/llvm.mak
 else
-  $(error Unknown compiler $(COMP). Supported compilers are gnu, intel, cray, and pgi)
+  $(error Unknown compiler $(COMP). Supported compilers are gnu, intel, cray, pgi, and llvm)
 endif
 
 ifeq ($(DEBUG),TRUE)
@@ -275,6 +282,14 @@ TmpBuildDir     = tmp_build_dir
 depEXETempDir	= $(TmpBuildDir)/d/$(optionsSuffix).EXE
 objEXETempDir   = $(TmpBuildDir)/o/$(optionsSuffix).EXE
 f77EXETempDir	= $(TmpBuildDir)/f/$(optionsSuffix).EXE
+
+amrexlib = $(objEXETempDir)/libamrex.a
+
+AMREX_INSTALL_DIR ?= tmp_build_dir
+amrexLibDir = $(AMREX_INSTALL_DIR)/lib
+amrexIncludeDir = $(AMREX_INSTALL_DIR)/include
+# Do different compilers have different name convention for mod files?
+amrexFortModules = $(wildcard $(objEXETempDir)/*.mod)
 
 #
 # For source code manipulation
