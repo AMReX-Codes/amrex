@@ -19,6 +19,7 @@ def get_package_root():
             return ''
         cur = os.path.dirname(cur)
 
+
 libwarpx = ctypes.CDLL(os.path.join(get_package_root(), "libwarpx.so"))
 libc = ctypes.CDLL(find_library('c'))
 
@@ -81,6 +82,15 @@ f.restype = LP_LP_c_double
 
 f = libwarpx.warpx_getCurrentDensity
 f.restype = LP_LP_c_double
+
+f = libwarpx.warpx_getPMLSigma
+f.restype = LP_c_double
+
+f = libwarpx.warpx_getPMLSigmaStar
+f.restype = LP_c_double
+
+f = libwarpx.warpx_ComputePMLFactors
+f.argtypes = (ctypes.c_int, ctypes.c_double)
 
 f = libwarpx.warpx_addNParticles
 f.argtypes = (ctypes.c_int, ctypes.c_int,
@@ -153,6 +163,7 @@ def finalize():
     libwarpx.warpx_finalize()
     libwarpx.amrex_finalize()
 
+
 def evolve(num_steps=-1):
     '''
     
@@ -168,6 +179,48 @@ def evolve(num_steps=-1):
     '''
     
     libwarpx.warpx_evolve(num_steps);
+
+
+def get_sigma(direction):
+    '''
+
+    Return the 'sigma' PML coefficients for the electric field
+    in a given direction.
+
+    '''
+
+    size = ctypes.c_int(0)
+    data = libwarpx.warpx_getPMLSigma(direction, ctypes.byref(size))
+    arr = np.ctypeslib.as_array(data, (size.value,))
+    arr.setflags(write=1)
+    return arr
+
+
+def get_sigma_star(direction):
+    '''
+
+    Return the 'sigma*' PML coefficients for the magnetic field 
+    in the given direction.
+
+    '''
+
+    size = ctypes.c_int(0)
+    data = libwarpx.warpx_getPMLSigmaStar(direction, ctypes.byref(size))
+    arr = np.ctypeslib.as_array(data, (size.value,))
+    arr.setflags(write=1)
+    return arr
+
+
+def compute_pml_factors(lev, dt):
+    '''
+
+    This recomputes the PML coefficients for a given level, using the 
+    time step dt. This needs to be called after modifying the coefficients
+    from Python.
+
+    '''
+
+    libwarpx.warpx_ComputePMLFactors(lev, dt)
 
 def add_particles(species_number,
                   x, y, z, ux, uy, uz, attr, unique_particles):

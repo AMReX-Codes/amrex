@@ -70,6 +70,14 @@ public:
     void ComputeDt ();
     void MoveWindow (bool move_j);
 
+    const amrex::Array<amrex::Real>& getPMLSigma(int dir) {return pml_sigma[dir];};
+    const amrex::Array<amrex::Real>& getPMLSigmaStar(int dir) {return pml_sigma_star[dir];};
+    void ComputePMLFactors (int lev, amrex::Real dt);
+    void ComputePMLFactorsE (int lev, amrex::Real dt);
+    void ComputePMLFactorsB (int lev, amrex::Real dt);
+    void ExchangeWithPML (amrex::MultiFab& regmf, amrex::MultiFab& pmlmf,
+                          const amrex::Geometry& gm);
+
     void EvolveE (int lev, amrex::Real dt);
     void EvolveB (int lev, amrex::Real dt);
     void FillBoundaryE (int lev, bool force);
@@ -155,6 +163,8 @@ private:
     static void PackPlotDataPtrs (amrex::Array<const amrex::MultiFab*>& pmf,
 				  const std::array<std::unique_ptr<amrex::MultiFab>,3>& data);
 
+    void InitPML ();
+
     amrex::Array<int> istep;      // which step?
     amrex::Array<int> nsubsteps;  // how many substeps on each level?
 
@@ -169,6 +179,24 @@ private:
     amrex::Array<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > current;
     amrex::Array<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Efield;
     amrex::Array<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Bfield;
+
+    // PML  xxxxx for now let's only consider single level
+    int do_pml = 0;
+    int pml_ncell = 10;
+    amrex::BoxArray pml_ba;
+    amrex::DistributionMapping pml_dm;
+    std::array<std::unique_ptr<amrex::MultiFab>,3> pml_E;
+    std::array<std::unique_ptr<amrex::MultiFab>,3> pml_B;
+    //
+    struct PMLSigma : amrex::Array<amrex::Real>
+    {
+        int lo() const { return m_lo; }
+        int hi() const { return m_hi; }
+        int m_lo, m_hi;
+    };
+    std::array<PMLSigma,BL_SPACEDIM> pml_sigma, pml_sigma_star; // sigma/epsilon, sigma_star/mu
+    std::array<PMLSigma,BL_SPACEDIM> pml_sigma_fac1, pml_sigma_fac2, 
+                                     pml_sigma_star_fac1, pml_sigma_star_fac2;
 
     // Moving window parameters
     int do_moving_window  = 0;

@@ -26,7 +26,6 @@ WarpX::Evolve (int numsteps)
     }
 
     bool max_time_reached = false;
-    bool last_step = false;
 
     for (int step = istep[0]; step < numsteps_max && cur_time < stop_time; ++step)
     {
@@ -156,9 +155,9 @@ WarpX::EvolveB (int lev, Real dt)
 #endif
     for ( MFIter mfi(*Bfield[lev][0],true); mfi.isValid(); ++mfi )
     {
-      const Box& tbx  = mfi.tilebox(Bx_nodal_flag);
-      const Box& tby  = mfi.tilebox(By_nodal_flag);
-      const Box& tbz  = mfi.tilebox(Bz_nodal_flag);
+        const Box& tbx  = mfi.tilebox(Bx_nodal_flag);
+        const Box& tby  = mfi.tilebox(By_nodal_flag);
+        const Box& tbz  = mfi.tilebox(Bz_nodal_flag);
 
 	// Call picsar routine for each tile
 	WRPX_PXR_PUSH_BVEC(
@@ -173,6 +172,42 @@ WarpX::EvolveB (int lev, Real dt)
 	    BL_TO_FORTRAN_3D((*Bfield[lev][2])[mfi]),
 	    &dtsdx[0], &dtsdx[1], &dtsdx[2],
 	    &norder);
+    }
+
+    if (do_pml && lev == 0)
+    {
+
+        ComputePMLFactorsB(lev, dt);
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+        for ( MFIter mfi(*pml_B[0],true); mfi.isValid(); ++mfi )
+        {
+            const Box& tbx  = mfi.tilebox(Bx_nodal_flag);
+            const Box& tby  = mfi.tilebox(By_nodal_flag);
+            const Box& tbz  = mfi.tilebox(Bz_nodal_flag);
+
+            WRPX_PUSH_PML_BVEC(
+                tbx.loVect(), tbx.hiVect(),
+                tby.loVect(), tby.hiVect(),
+                tbz.loVect(), tbz.hiVect(),
+                BL_TO_FORTRAN_3D((*pml_E[0])[mfi]),
+                BL_TO_FORTRAN_3D((*pml_E[1])[mfi]),
+                BL_TO_FORTRAN_3D((*pml_E[2])[mfi]),
+                BL_TO_FORTRAN_3D((*pml_B[0])[mfi]),
+                BL_TO_FORTRAN_3D((*pml_B[1])[mfi]),
+                BL_TO_FORTRAN_3D((*pml_B[2])[mfi]),
+                pml_sigma_star_fac1[0].data(),pml_sigma_star_fac1[0].lo(),pml_sigma_star_fac1[0].hi(),
+                pml_sigma_star_fac2[0].data(),pml_sigma_star_fac2[0].lo(),pml_sigma_star_fac2[0].hi(),
+                pml_sigma_star_fac1[1].data(),pml_sigma_star_fac1[1].lo(),pml_sigma_star_fac1[1].hi(),
+                pml_sigma_star_fac2[1].data(),pml_sigma_star_fac2[1].lo(),pml_sigma_star_fac2[1].hi()
+#if (BL_SPACEDIM == 3)
+               ,pml_sigma_star_fac1[2].data(),pml_sigma_star_fac1[2].lo(),pml_sigma_star_fac1[2].hi(),
+                pml_sigma_star_fac2[2].data(),pml_sigma_star_fac2[2].lo(),pml_sigma_star_fac2[2].hi()
+#endif
+                );
+        }
     }
 }
 
@@ -199,7 +234,7 @@ WarpX::EvolveE (int lev, Real dt)
 	const Box& tey  = mfi.tilebox(Ey_nodal_flag);
 	const Box& tez  = mfi.tilebox(Ez_nodal_flag);
 
-  // Call picsar routine for each tile
+        // Call picsar routine for each tile
 	WRPX_PXR_PUSH_EVEC(
 	    tex.loVect(), tex.hiVect(),
 	    tey.loVect(), tey.hiVect(),
@@ -217,12 +252,60 @@ WarpX::EvolveE (int lev, Real dt)
 	    &dtsdx_c2[0], &dtsdx_c2[1], &dtsdx_c2[2],
 	    &norder);
     }
+
+    if (do_pml && lev == 0)
+    {
+
+        ComputePMLFactorsE(lev, dt);
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+        for ( MFIter mfi(*pml_E[0],true); mfi.isValid(); ++mfi )
+        {
+            const Box& tex  = mfi.tilebox(Ex_nodal_flag);
+            const Box& tey  = mfi.tilebox(Ey_nodal_flag);
+            const Box& tez  = mfi.tilebox(Ez_nodal_flag);
+            
+            // xxx need to add current
+            WRPX_PUSH_PML_EVEC(
+                tex.loVect(), tex.hiVect(),
+                tey.loVect(), tey.hiVect(),
+                tez.loVect(), tez.hiVect(),
+                BL_TO_FORTRAN_3D((*pml_E[0])[mfi]),
+                BL_TO_FORTRAN_3D((*pml_E[1])[mfi]),
+                BL_TO_FORTRAN_3D((*pml_E[2])[mfi]),
+                BL_TO_FORTRAN_3D((*pml_B[0])[mfi]),
+                BL_TO_FORTRAN_3D((*pml_B[1])[mfi]),
+                BL_TO_FORTRAN_3D((*pml_B[2])[mfi]),
+                pml_sigma_fac1[0].data(),pml_sigma_fac1[0].lo(),pml_sigma_fac1[0].hi(),
+                pml_sigma_fac2[0].data(),pml_sigma_fac2[0].lo(),pml_sigma_fac2[0].hi(),
+                pml_sigma_fac1[1].data(),pml_sigma_fac1[1].lo(),pml_sigma_fac1[1].hi(),
+                pml_sigma_fac2[1].data(),pml_sigma_fac2[1].lo(),pml_sigma_fac2[1].hi()
+#if (BL_SPACEDIM == 3)
+               ,pml_sigma_fac1[2].data(),pml_sigma_fac1[2].lo(),pml_sigma_fac1[2].hi(),
+                pml_sigma_fac2[2].data(),pml_sigma_fac2[2].lo(),pml_sigma_fac2[2].hi()
+#endif
+                );
+        }
+    }
 }
 
 void
 WarpX::FillBoundaryE(int lev, bool force)
 {
-    if (force || WarpX::nox > 1 || WarpX::noy > 1 || WarpX::noz > 1) {
+    if (force || WarpX::nox > 1 || WarpX::noy > 1 || WarpX::noz > 1)
+    {
+        if (do_pml && lev == 0) {
+            WarpX::ExchangeWithPML(*Efield[lev][0], *pml_E[0], geom[lev]);
+            WarpX::ExchangeWithPML(*Efield[lev][1], *pml_E[1], geom[lev]);
+            WarpX::ExchangeWithPML(*Efield[lev][2], *pml_E[2], geom[lev]);
+
+            (*pml_E[0]).FillBoundary( geom[lev].periodicity() );
+            (*pml_E[1]).FillBoundary( geom[lev].periodicity() );
+            (*pml_E[2]).FillBoundary( geom[lev].periodicity() );
+        }
+
         (*Efield[lev][0]).FillBoundary( geom[lev].periodicity() );
         (*Efield[lev][1]).FillBoundary( geom[lev].periodicity() );
         (*Efield[lev][2]).FillBoundary( geom[lev].periodicity() );
@@ -232,7 +315,18 @@ WarpX::FillBoundaryE(int lev, bool force)
 void
 WarpX::FillBoundaryB(int lev, bool force)
 {
-    if (force || WarpX::nox > 1 || WarpX::noy > 1 || WarpX::noz > 1) {
+    if (force || WarpX::nox > 1 || WarpX::noy > 1 || WarpX::noz > 1)
+    {
+        if (do_pml && lev == 0) {
+            WarpX::ExchangeWithPML(*Bfield[lev][0], *pml_B[0], geom[lev]);
+            WarpX::ExchangeWithPML(*Bfield[lev][1], *pml_B[1], geom[lev]);
+            WarpX::ExchangeWithPML(*Bfield[lev][2], *pml_B[2], geom[lev]);
+
+            (*pml_B[0]).FillBoundary( geom[lev].periodicity() );
+            (*pml_B[1]).FillBoundary( geom[lev].periodicity() );
+            (*pml_B[2]).FillBoundary( geom[lev].periodicity() );
+        }
+
         (*Bfield[lev][0]).FillBoundary( geom[lev].periodicity() );
         (*Bfield[lev][1]).FillBoundary( geom[lev].periodicity() );
         (*Bfield[lev][2]).FillBoundary( geom[lev].periodicity() );
@@ -276,8 +370,6 @@ WarpX::InjectPlasma (int num_shift, int dir)
         int sign = (num_shift < 0) ? -1 : 1;
         particleBox.shift(dir, sign*(domainLength - std::abs(num_shift)));
         particleBox &= geom[lev].Domain();
-
-        const Real* dx = geom[lev].CellSize();
 
         for (int i = 0; i < num_injected_species; ++i) {
             int ispecies = injected_plasma_species[i];
@@ -336,3 +428,4 @@ WarpX::MoveWindow (bool move_j)
     // Redistribute (note - this removes particles that are outside of the box)
     mypc->Redistribute();
 }
+
