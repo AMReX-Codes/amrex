@@ -141,6 +141,14 @@ WarpX::ReadParameters ()
 	pp.query("verbose", verbose);
 	pp.query("regrid_int", regrid_int);
 
+        // PML
+        if (Geometry::isAllPeriodic()) {
+            do_pml = 0;  // no PML for all periodic boundaries
+        } else {
+            pp.query("do_pml", do_pml);
+            pp.query("pml_ncell", pml_ncell);
+        }
+
 	pp.query("do_moving_window", do_moving_window);
 	if (do_moving_window)
 	{

@@ -18,6 +18,8 @@ CEXE_headers += ParticleContainer.H WarpXParticleContainer.H PhysicalParticleCon
 CEXE_headers += PlasmaInjector.H
 CEXE_sources += PlasmaInjector.cpp CustomDensityProb.cpp
 
+CEXE_sources += WarpXPML.cpp
+
 F90EXE_sources += WarpX_f.F90 WarpX_picsar.F90 WarpX_laser.F90
 
 ifeq ($(USE_OPENBC_POISSON),TRUE)

@@ -152,7 +152,6 @@ PhysicalParticleContainer::FieldGather (int lev,
 
             auto& attribs = pti.GetAttribs();
 
-            auto&  wp = attribs[PIdx::w];
             auto& Exp = attribs[PIdx::Ex];
             auto& Eyp = attribs[PIdx::Ey];
             auto& Ezp = attribs[PIdx::Ez];
