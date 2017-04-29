@@ -434,7 +434,11 @@ WarpX::WritePlotFile () const
         offset /= Geom(0).ProbSize();
         charge_density[0]->plus(-offset, 0, 1, 1);
 
+        // compute node-centered gradient
+
         computePhi(charge_density, potential);
+
+        mypc->FieldGatherES(0, *Efield[0][0], *Efield[0][1], *Efield[0][2]);
         
         for (int lev = 0; lev < nlevels; ++lev)
         {
