@@ -105,28 +105,32 @@ contains
 
   end subroutine warpx_deposit_cic
 
-  subroutine warpx_interpolate_cic(particles, ns, np,           &
-                                   acc, lo, hi, ncomp, plo, dx) &
+  subroutine warpx_interpolate_cic(particles, ns, np,      &
+                                   Ex_p, Ey_p, Ez_p,       &
+                                   Ex,   Ey,   Ez,         &
+                                   lo, hi, plo, dx)        &
        bind(c,name='warpx_interpolate_cic')
-    integer, value       :: ns, np, ncomp
+    integer, value       :: ns, np
     real(amrex_real)     :: particles(ns,np)
+    real(amrex_real)     :: Ex_p(np), Ey_p(np), Ez_p(np)
     integer              :: lo(3)
     integer              :: hi(3)
-    real(amrex_real)     :: acc(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3), ncomp)
+    real(amrex_real)     :: Ex(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3))
+    real(amrex_real)     :: Ey(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3))
+    real(amrex_real)     :: Ez(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3))
     real(amrex_real)     :: plo(3)
     real(amrex_real)     :: dx(3)
-    real(amrex_real)     :: acceleration(ncomp)
 
-    integer i, j, k, n, nc
+    integer i, j, k, n
     real(amrex_real) wx_lo, wy_lo, wz_lo, wx_hi, wy_hi, wz_hi
     real(amrex_real) lx, ly, lz
     real(amrex_real) inv_dx(3)
     inv_dx = 1.0d0/dx
 
     do n = 1, np
-       lx = (particles(1, n) - plo(1))*inv_dx(1) + 0.5d0
-       ly = (particles(2, n) - plo(2))*inv_dx(2) + 0.5d0
-       lz = (particles(3, n) - plo(3))*inv_dx(3) + 0.5d0
+       lx = (particles(1, n) - plo(1))*inv_dx(1)
+       ly = (particles(2, n) - plo(2))*inv_dx(2)
+       lz = (particles(3, n) - plo(3))*inv_dx(3)
 
        i = floor(lx)
        j = floor(ly)
@@ -140,21 +144,33 @@ contains
        wy_lo = 1.0d0 - wy_hi
        wz_lo = 1.0d0 - wz_hi
 
-       do nc = 1, ncomp
-          acceleration(nc) = wx_lo*wy_lo*wz_lo*acc(i-1, j-1, k-1, nc) + &
-                             wx_lo*wy_lo*wz_hi*acc(i-1, j-1, k  , nc) + &
-                             wx_lo*wy_hi*wz_lo*acc(i-1, j,   k-1, nc) + &
-                             wx_lo*wy_hi*wz_hi*acc(i-1, j,   k  , nc) + &
-                             wx_hi*wy_lo*wz_lo*acc(i,   j-1, k-1, nc) + &
-                             wx_hi*wy_lo*wz_hi*acc(i,   j-1, k  , nc) + &
-                             wx_hi*wy_hi*wz_lo*acc(i,   j,   k-1, nc) + &
-                             wx_hi*wy_hi*wz_hi*acc(i,   j,   k  , nc)
-       
-          if (abs(acceleration(nc) - 5.d0) .ge. 1.0d-9) then
-             print *, particles(1, n), particles(2, n), particles(3, n)
-          end if
+       Ex_p(n) = wx_lo*wy_lo*wz_lo*Ex(i,   j,   k  ) + &
+                 wx_lo*wy_lo*wz_hi*Ex(i,   j,   k+1) + &
+                 wx_lo*wy_hi*wz_lo*Ex(i,   j+1, k  ) + &
+                 wx_lo*wy_hi*wz_hi*Ex(i,   j+1, k+1) + &
+                 wx_hi*wy_lo*wz_lo*Ex(i+1, j,   k  ) + &
+                 wx_hi*wy_lo*wz_hi*Ex(i+1, j,   k+1) + &
+                 wx_hi*wy_hi*wz_lo*Ex(i+1, j+1, k  ) + &
+                 wx_hi*wy_hi*wz_hi*Ex(i+1, j+1, k+1)
 
-       end do
+       Ey_p(n) = wx_lo*wy_lo*wz_lo*Ey(i,   j,   k  ) + &
+                 wx_lo*wy_lo*wz_hi*Ey(i,   j,   k+1) + &
+                 wx_lo*wy_hi*wz_lo*Ey(i,   j+1, k  ) + &
+                 wx_lo*wy_hi*wz_hi*Ey(i,   j+1, k+1) + &
+                 wx_hi*wy_lo*wz_lo*Ey(i+1, j,   k  ) + &
+                 wx_hi*wy_lo*wz_hi*Ey(i+1, j,   k+1) + &
+                 wx_hi*wy_hi*wz_lo*Ey(i+1, j+1, k  ) + &
+                 wx_hi*wy_hi*wz_hi*Ey(i+1, j+1, k+1)
+
+       Ez_p(n) = wx_lo*wy_lo*wz_lo*Ez(i,   j,   k  ) + &
+                 wx_lo*wy_lo*wz_hi*Ez(i,   j,   k+1) + &
+                 wx_lo*wy_hi*wz_lo*Ez(i,   j+1, k  ) + &
+                 wx_lo*wy_hi*wz_hi*Ez(i,   j+1, k+1) + &
+                 wx_hi*wy_lo*wz_lo*Ez(i+1, j,   k  ) + &
+                 wx_hi*wy_lo*wz_hi*Ez(i+1, j,   k+1) + &
+                 wx_hi*wy_hi*wz_lo*Ez(i+1, j+1, k  ) + &
+                 wx_hi*wy_hi*wz_hi*Ez(i+1, j+1, k+1)
+       
     end do
 
   end subroutine warpx_interpolate_cic

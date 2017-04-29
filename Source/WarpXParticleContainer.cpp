@@ -194,8 +194,6 @@ WarpXParticleContainer::Deposit (int lev, bool local)
 	long nz = box.length(1); 
 #endif
 
-        const std::array<Real,3>& xyzmin = WarpX::LowerCorner(box, lev);
-
         warpx_deposit_cic(particles.data(), nstride, np,
                           wp.data(), &this->charge, 
                           rhofab.dataPtr(), box.loVect(), box.hiVect(), plo, dx);

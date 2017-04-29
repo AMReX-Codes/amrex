@@ -131,7 +131,9 @@ extern "C"
                            const amrex::Real* plo, const amrex::Real* dx);
     
     void warpx_interpolate_cic(const amrex::Real*, int ns, int np,
-                               amrex::Real* rho, const int* lo, const int* hi, int ncomp,
+                               amrex::Real*, amrex::Real*, amrex::Real*,
+                               const amrex::Real*, const amrex::Real*, const amrex::Real*,
+                               const int* lo, const int* hi,
                                const amrex::Real* plo, const amrex::Real* dx);
 
 }
