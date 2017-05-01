@@ -347,7 +347,7 @@ Particle<NReal, NInt>::NextID ()
 
 #ifdef _OPENMP
 #if (__GNUC__ < 5)
-#pragma omp critical
+#pragma omp critical (amrex_particle_nextid)
 #else
 #pragma omp atomic capture
 #endif
