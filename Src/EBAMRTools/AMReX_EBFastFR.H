@@ -40,12 +40,14 @@ namespace amrex
   class EBFastFR
   {
   public:
-    static bool s_verbose;
     ///
     /**
        Default constructor.  Leaves object undefined.
     */
-    EBFastFR();
+    EBFastFR()
+      {
+        m_isDefined = false;
+      }
 
     ///
     /**
@@ -60,7 +62,9 @@ namespace amrex
              bool a_forceNoEBCF = false);
 
     ///
-    virtual ~EBFastFR();
+    virtual ~EBFastFR()
+      {
+      }
 
     ///
     /**
@@ -90,7 +94,7 @@ namespace amrex
     virtual void
     incrementCoarse(const EBFaceFAB&      a_coarseFlux,
                     const Real&           a_scale,
-                    const DataIndex&      a_coarseDataIndex,
+                    const MFIter   &      a_coarseMFIter   ,
                     const Interval&       a_variables,
                     const int&            a_dir,
                     const Side::LoHiSide& a_sd);
@@ -100,7 +104,7 @@ namespace amrex
     virtual void
     incrementFine(const EBFaceFAB&      a_fineFlux,
                   const Real&           a_scale,
-                  const DataIndex&      a_fineDataIndex,
+                  const MFIter   &      a_fineMFIter   ,
                   const Interval&       a_variables,
                   const int&            a_dir,
                   const Side::LoHiSide& a_sd);
@@ -126,7 +130,10 @@ namespace amrex
                                const Real&           a_scale);
 
     ///
-    bool isDefined() const;
+    bool isDefined() const
+      {
+        return m_isDefined;
+      }
 
     static int index(int a_dir, Side::LoHiSide a_side);
 
@@ -135,9 +142,6 @@ namespace amrex
       {
         return m_hasEBCF;
       }
-
-    ///undefines object
-    void clear();
 
     ///
     /**
@@ -151,7 +155,7 @@ namespace amrex
        Yes this breaks encapsulation but we do some pretty ugly things
        for performance reasons, do we not?
     */
-    Vector<VoFIterator>& getVoFItCoar(const DataIndex&       a_dit,
+    Vector<VoFIterator>& getVoFItCoar(const MFIter   &       a_dit,
                                       const int&             a_idir,
                                       const Side::LoHiSide&  a_sd)
       {
@@ -171,7 +175,7 @@ namespace amrex
        Yes this breaks encapsulation but we do some pretty ugly things
        for performance reasons, do we not?
     */
-    VoFIterator& getVoFItCoFi(const DataIndex&       a_dit,
+    VoFIterator& getVoFItCoFi(const MFIter   &       a_dit,
                               const int&             a_idir,
                               const Side::LoHiSide&  a_sd)
       {
@@ -188,10 +192,9 @@ namespace amrex
   protected:
 
     //for the regular bits
-    FluxRegister m_levelFluxReg;
+    FluxRegister m_nonEBFluxReg;
     bool m_isDefined;
 
-    void setDefaultValues();
     EBLevelGrid       m_eblgFine;
     EBLevelGrid       m_eblgCoar;
     EBLevelGrid       m_eblgCoFi;

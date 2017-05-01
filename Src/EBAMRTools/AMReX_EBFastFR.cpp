@@ -20,7 +20,6 @@ EBFastFR(const EBLevelGrid& a_eblgFine,
          const int&         a_nvar,
          bool a_forceNoEBCF)
 {
-  setDefaultValues();
   define(a_eblgFine, a_eblgCoar, a_refRat, a_nvar, a_forceNoEBCF);
 }
 /*******************/
@@ -80,7 +79,7 @@ define(const EBLevelGrid& a_eblgFine,
        bool a_forceNoEBCF)
 {
   CH_TIME("EBFastFR::define");
-  clear();
+
   m_refRat   = a_refRat;
   m_nComp    = a_nvar;
   m_eblgFine = a_eblgFine;
@@ -98,12 +97,15 @@ define(const EBLevelGrid& a_eblgFine,
     amrex::Error("EB/CF bit not ported yet for flux register");
   }
   if (!m_eblgFine.coarsenable(a_refRat))
-    {
-      MayDay::Error("EBFastFR::define: dbl not coarsenable by refrat");
-    }
+  {
+    amrex::Error("EBFastFR::define: dbl not coarsenable by refrat");
+  }
 
-  coarsen(m_eblgCoFi, a_eblgFine, a_refRat);
-  m_eblgCoFi.getEBISL().setMaxRefinementRatio(a_refRat, m_eblgCoFi.getEBIS());
+  if(m_hasEBCF)
+  {
+    coarsen(m_eblgCoFi, a_eblgFine, a_refRat);
+    m_eblgCoFi.getEBISL().setMaxRefinementRatio(a_refRat, m_eblgCoFi.getEBIS());
+  }
 
 #if (CH_SPACEDIM == 2)
   m_nrefdmo = m_refRat;
@@ -113,36 +115,13 @@ define(const EBLevelGrid& a_eblgFine,
   bogus spacedim;
 #endif
 
+  int fake_lev_num = 1;
+  m_nonEBFluxReg.define(m_eblgFine.getDBL(), m_eblgFine.getDM(), m_refRat, fake_lev_num, m_nComp);
   //set all registers to zero to start.
   setToZero();
   m_isDefined = true;
 }
 
-/*********/
-EBFastFR::
-EBFastFR()
-{
-  setDefaultValues();
-}
-/*********/
-void
-EBFastFR::
-clear()
-{
-  m_isDefined = false;
-}
-/*******************/
-EBFastFR::~EBFastFR()
-{
-  clear();
-}
-/*******************/
-bool
-EBFastFR::
-isDefined() const
-{
-  return m_isDefined;
-}
 /*******************/
 void
 EBFastFR::
@@ -156,11 +135,11 @@ setToZero()
 void
 EBFastFR::
 incrementCoarse(const EBFaceFAB&      a_coarFlux,
-                    const Real&           a_scale,
-                    const DataIndex&      a_coarDatInd,
-                    const Interval&       a_variables,
-                    const int&            a_dir,
-                    const Side::LoHiSide& a_sd)
+                const Real&           a_scale,
+                const DataIndex&      a_coarDatInd,
+                const Interval&       a_variables,
+                const int&            a_dir,
+                const Side::LoHiSide& a_sd)
 {
   incrementCoarRegul(a_coarFlux,
                      a_scale,
