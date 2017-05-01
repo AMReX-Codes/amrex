@@ -28,7 +28,8 @@ module amrex_geometry_module
      real(amrex_real) :: dx(3)     = 0.0_amrex_real
      type(amrex_box)  :: domain
    contains
-     generic :: assignment(=) => amrex_geometry_assign, amrex_geometry_install  ! shallow copy
+     generic :: assignment(=)           => amrex_geometry_assign, amrex_geometry_install  ! shallow copy
+     procedure :: get_physical_location => amrex_geometry_get_ploc
      procedure, private :: amrex_geometry_assign, amrex_geometry_install
 #if !defined(__GFORTRAN__) || (__GNUC__ > 4)
      final :: amrex_geometry_destroy
@@ -145,4 +146,15 @@ contains
     amrex_is_all_periodic = all(amrex_pmask(1:ndims))
   end function amrex_is_all_periodic
 
+  ! give integer location, compute real location
+  function amrex_geometry_get_ploc (this, iloc) result (ploc)
+    class(amrex_geometry), intent(in) :: this
+    integer, intent(in) :: iloc(ndims)
+    real(amrex_real) :: ploc(ndims)
+    integer :: i
+    do i = 1, ndims
+       ploc(i) = amrex_problo(i) + (iloc(i) - this%domain%lo(i)) * this%dx(i)
+    end do
+  end function amrex_geometry_get_ploc
+    
 end module amrex_geometry_module
