@@ -59,8 +59,9 @@ contains
        ! see amrex_interpolater_module for a list of interpolaters
   end subroutine fillcoarsepatch
 
-  subroutine fill_physbc (pmf, scomp, ncomp, time) bind(c)
-    type(c_ptr), value :: pmf
+  subroutine fill_physbc (pmf, scomp, ncomp, time, pgeom) bind(c)
+    use amrex_geometry_module, only : amrex_is_all_periodic
+    type(c_ptr), value :: pmf, pgeom
     integer(c_int), value :: scomp, ncomp
     real(amrex_real), value :: time
     ! In this test problem, we only have periodic boundaries.
