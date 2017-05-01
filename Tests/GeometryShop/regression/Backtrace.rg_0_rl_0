@@ -7,47 +7,47 @@
             readelf -wl my_exefile | grep my_line_address'
     to find out the offset for that line.
 
- 0: /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/dataArith2d.gnu.DEBUG.COMM_PROF.ex() [0x506975]
+ 0: /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/ebnormalizeTest2d.gnu.DEBUG.COMM_PROF.ex() [0x4f8ee1]
     amrex::BLBackTrace::print_backtrace_info(_IO_FILE*)
     /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/../../../Src/Base/AMReX_BLBackTrace.cpp:88
 
- 1: /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/dataArith2d.gnu.DEBUG.COMM_PROF.ex() [0x506840]
+ 1: /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/ebnormalizeTest2d.gnu.DEBUG.COMM_PROF.ex() [0x4f8dac]
     amrex::BLBackTrace::handler(int)
     /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/../../../Src/Base/AMReX_BLBackTrace.cpp:51
 
- 2: /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/dataArith2d.gnu.DEBUG.COMM_PROF.ex() [0x46f05b]
+ 2: /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/ebnormalizeTest2d.gnu.DEBUG.COMM_PROF.ex() [0x45f347]
     amrex::ParallelDescriptor::Abort(int, bool)
     /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/../../../Src/Base/AMReX_ParallelDescriptor.cpp:1958
 
- 3: /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/dataArith2d.gnu.DEBUG.COMM_PROF.ex() [0x422d51]
+ 3: /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/ebnormalizeTest2d.gnu.DEBUG.COMM_PROF.ex() [0x412b23]
     amrex::Abort(char const*)
     /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/../../../Src/Base/AMReX.cpp:197
 
- 4: /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/dataArith2d.gnu.DEBUG.COMM_PROF.ex() [0x42dbd8]
-    sgetarr<int>
-    /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/../../../Src/Base/AMReX_ParmParse.cpp:796
+ 4: /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/ebnormalizeTest2d.gnu.DEBUG.COMM_PROF.ex() [0x41f4b0]
+    sgetval<double>
+    /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/../../../Src/Base/AMReX_ParmParse.cpp:696
 
- 5: /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/dataArith2d.gnu.DEBUG.COMM_PROF.ex() [0x427e37]
-    amrex::ParmParse::getarr(char const*, std::vector<int, std::allocator<int> >&, int, int) const
-    /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/../../../Src/Base/AMReX_ParmParse.cpp:1172 (discriminator 1)
+ 5: /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/ebnormalizeTest2d.gnu.DEBUG.COMM_PROF.ex() [0x419279]
+    amrex::ParmParse::get(char const*, double&, int) const
+    /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/../../../Src/Base/AMReX_ParmParse.cpp:1396 (discriminator 1)
 
- 6: /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/dataArith2d.gnu.DEBUG.COMM_PROF.ex() [0x405f5c]
+ 6: /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/ebnormalizeTest2d.gnu.DEBUG.COMM_PROF.ex() [0x40616b]
     amrex::makeGeometry(amrex::Box&, double&)
-    /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/dataArith.cpp:48
+    /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/ebnormalizeTest.cpp:60
 
- 7: /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/dataArith2d.gnu.DEBUG.COMM_PROF.ex() [0x4065f5]
-    amrex::testArith()
-    /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/dataArith.cpp:123
+ 7: /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/ebnormalizeTest2d.gnu.DEBUG.COMM_PROF.ex() [0x406695]
+    amrex::testNormalization()
+    /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/ebnormalizeTest.cpp:117
 
- 8: /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/dataArith2d.gnu.DEBUG.COMM_PROF.ex() [0x407826]
+ 8: /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/ebnormalizeTest2d.gnu.DEBUG.COMM_PROF.ex() [0x406f7e]
     main
-    /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/dataArith.cpp:208
+    /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/ebnormalizeTest.cpp:182
 
  9: /lib/x86_64-linux-gnu/libc.so.6(__libc_start_main+0xf5) [0x2aaaab82bf45]
     ??
     ??:0
 
-10: /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/dataArith2d.gnu.DEBUG.COMM_PROF.ex() [0x405cb9]
+10: /home/spencer/users/graves/_amrex/amrex/Tests/GeometryShop/regression/ebnormalizeTest2d.gnu.DEBUG.COMM_PROF.ex() [0x405d09]
     _start
     ??:?
 
