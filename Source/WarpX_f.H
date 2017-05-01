@@ -129,16 +129,35 @@ extern "C"
 			  BL_FORT_FAB_ARG_3D(Ez),
 			  const amrex::Real* dx);
 
-    void warpx_deposit_cic(const amrex::Real*, int ns, int np,
-                           const amrex::Real*, const amrex::Real*,
+//  These functions are used in electrostatic mode
+
+    void warpx_compute_E_nodal (const int* lo, const int* hi,
+                                const amrex::Real* phi,
+                                amrex::Real* Ex, amrex::Real* Ey, 
+                                amrex::Real* Ez, amrex::Real* dx);
+    
+    void warpx_deposit_cic(const amrex::Real* particles, int ns, int np,
+                           const amrex::Real* weights, 
+                           const amrex::Real* charge,
                            amrex::Real* rho, const int* lo, const int* hi,
                            const amrex::Real* plo, const amrex::Real* dx);
     
-    void warpx_interpolate_cic(const amrex::Real*, int ns, int np,
-                               amrex::Real*, amrex::Real*, amrex::Real*,
-                               const amrex::Real*, const amrex::Real*, const amrex::Real*,
+    void warpx_interpolate_cic(const amrex::Real* particles, int ns, int np,
+                               amrex::Real* Ex_p, amrex::Real* Ey_p, amrex::Real* Ez_p,
+                               const amrex::Real* Ex, const amrex::Real* Ey, const amrex::Real* Ez,
                                const int* lo, const int* hi,
                                const amrex::Real* plo, const amrex::Real* dx);
+
+    void warpx_push_leapfrog(amrex::Real* particles, int ns, int np, 
+                             amrex::Real* vx_p, amrex::Real* vy_p, amrex::Real* vz_p,
+                             const amrex::Real* Ex_p, const amrex::Real* Ey_p, const amrex::Real* Ez_p,
+                             const amrex::Real* charge, const amrex::Real* mass, const amrex::Real* dt);
+
+    void warpx_push_leapfrog_positions(amrex::Real* particles, int ns, int np, 
+                                       const amrex::Real* vx_p, const amrex::Real* vy_p, 
+                                       const amrex::Real* vz_p, const amrex::Real* dt);
+
+//  These functions are used to evolve E and B in the PML
 
     void WRPX_PUSH_PML_BVEC(const int* xlo, const int* xhi,
                             const int* ylo, const int* yhi,

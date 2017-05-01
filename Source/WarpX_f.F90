@@ -51,6 +51,44 @@ contains
 
   end subroutine warpx_compute_E
 
+! This routine computes the node-centered electric field given a node-centered phi.
+! The gradient is computed using 2nd-order centered differences. It assumes the 
+! Boundary conditions have already been set and that you have one row of ghost cells.
+! This routine is used when running WarpX in electrostatic mode.
+!
+! Arguments:
+!     lo, hi:     The corners of the valid box over which the gradient is taken
+!     Ex, Ey, Ez: The electric field in the x, y, and z directions.
+!     dx:         The cell spacing
+!
+  subroutine warpx_compute_E_nodal (lo, hi, phi, Ex, Ey, Ez, dx) &
+       bind(c,name='warpx_compute_E_nodal')
+    integer(c_int),   intent(in)    :: lo(3), hi(3)
+    real(amrex_real), intent(in)    :: dx(3)
+    real(amrex_real), intent(in   ) :: phi(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
+    real(amrex_real), intent(inout) :: Ex (lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
+    real(amrex_real), intent(inout) :: Ey (lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
+    real(amrex_real), intent(inout) :: Ez (lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
+
+    integer :: i, j, k
+    real(amrex_real) :: fac(3)
+
+    fac = 0.5d0 / dx
+
+    do k    = lo(3), hi(3)
+       do j = lo(2), hi(2)
+          do i = lo(1), hi(1)
+             
+             Ex(i,j,k) = fac(1) * (phi(i+1,j,k) - phi(i-1,j,k))
+             Ey(i,j,k) = fac(2) * (phi(i,j+1,k) - phi(i,j-1,k))
+             Ez(i,j,k) = fac(3) * (phi(i,j,k+1) - phi(i,j,k-1))
+
+          end do
+       end do
+    end do
+
+  end subroutine warpx_compute_E_nodal
+
   subroutine warpx_deposit_cic(particles, ns, np,                     &
                                weights, charge, rho, lo, hi, plo, dx) &
        bind(c,name='warpx_deposit_cic')
@@ -174,6 +212,61 @@ contains
     end do
 
   end subroutine warpx_interpolate_cic
+
+  subroutine warpx_push_leapfrog(particles, ns, np,      &
+                                 vx_p, vy_p, vz_p,       &                                 
+                                 Ex_p, Ey_p, Ez_p,       &
+                                 charge, mass, dt)       &
+       bind(c,name='warpx_push_leapfrog')
+    integer, value       :: ns, np
+    real(amrex_real)     :: particles(ns,np)
+    real(amrex_real)     :: vx_p(np), vy_p(np), vz_p(np)
+    real(amrex_real)     :: Ex_p(np), Ey_p(np), Ez_p(np)
+    real(amrex_real)     :: charge
+    real(amrex_real)     :: mass
+    real(amrex_real)     :: dt
+    
+    integer n
+    real(amrex_real) fac
+
+    fac = charge * dt / mass
+
+    do n = 1, np
+
+       vx_p(n) = vx_p(n) + fac * Ex_p(n)
+       vy_p(n) = vy_p(n) + fac * Ey_p(n)
+       vz_p(n) = vz_p(n) + fac * Ez_p(n)
+
+       particles(1, n) = particles(1, n) + dt * vx_p(n)
+       particles(2, n) = particles(2, n) + dt * vy_p(n)
+       particles(3, n) = particles(3, n) + dt * vz_p(n)
+              
+    end do
+
+  end subroutine warpx_push_leapfrog
+
+  subroutine warpx_push_leapfrog_positions(particles, ns, np,      &
+                                           vx_p, vy_p, vz_p, dt)   &
+       bind(c,name='warpx_push_leapfrog_positions')
+    integer, value       :: ns, np
+    real(amrex_real)     :: particles(ns,np)
+    real(amrex_real)     :: vx_p(np), vy_p(np), vz_p(np)
+    real(amrex_real)     :: Ex_p(np), Ey_p(np), Ez_p(np)
+    real(amrex_real)     :: charge
+    real(amrex_real)     :: mass
+    real(amrex_real)     :: dt
+    
+    integer n
+
+    do n = 1, np
+
+       particles(1, n) = particles(1, n) + dt * vx_p(n)
+       particles(2, n) = particles(2, n) + dt * vy_p(n)
+       particles(3, n) = particles(3, n) + dt * vz_p(n)
+              
+    end do
+
+  end subroutine warpx_push_leapfrog_positions
 
   subroutine warpx_push_pml_bvec_3d (xlo, xhi, ylo, yhi, zlo, zhi, &
        &                             Ex, Exlo, Exhi, &
