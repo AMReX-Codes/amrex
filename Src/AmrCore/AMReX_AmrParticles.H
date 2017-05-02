@@ -7,17 +7,17 @@
 
 namespace amrex {
 
-  template <int NR, int NI=0, int NA=0>
+    template <int NStructReal, int NStructInt=0, int NArrayReal=0, int NArrayInt=0>
 class AmrParticleContainer
-    : public ParticleContainer<NR, NI, NA>
+        : public ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 {
 
 public:
 
-    typedef Particle<NR,NI> ParticleType;
+    typedef Particle<NStructReal, NStructInt> ParticleType;
     
     AmrParticleContainer (AmrCore* amr_core)
-      : ParticleContainer<NR, NI, NA>(amr_core->GetParGDB())
+        : ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>(amr_core->GetParGDB())
     {
     }
 

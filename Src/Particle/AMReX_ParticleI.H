@@ -1,10 +1,10 @@
-template <int NR, int NI>
-int Particle<NR, NI>::the_next_id = 1;
+template <int NReal, int NInt>
+int Particle<NReal, NInt>::the_next_id = 1;
 
-template<int NR, int NI>
+template<int NReal, int NInt>
 inline
 void
-Particle<NR, NI>::CIC_Fracs (const Real* frac, Real* fracs)
+Particle<NReal, NInt>::CIC_Fracs (const Real* frac, Real* fracs)
 {
     //
     // "frac"  should be dimensioned: Real frac[BL_SPACEDIM]
@@ -58,10 +58,10 @@ Particle<NR, NI>::CIC_Fracs (const Real* frac, Real* fracs)
 #endif
 }
 
-template<int NR, int NI>
+template<int NReal, int NInt>
 inline
 void
-Particle<NR, NI>::CIC_Cells (const IntVect& hicell, IntVect* cells)
+Particle<NReal, NInt>::CIC_Cells (const IntVect& hicell, IntVect* cells)
 {
     //
     // "cells" should be dimensioned: IntVect cells[D_TERM(2,+2,+4)]
@@ -128,27 +128,27 @@ Particle<NR, NI>::CIC_Cells (const IntVect& hicell, IntVect* cells)
 #endif
 }
 
-template<int NR, int NI>
+template<int NReal, int NInt>
 inline
 int
-Particle<NR, NI>::CIC_Cells_Fracs (const Particle<NR, NI>& p,
+Particle<NReal, NInt>::CIC_Cells_Fracs (const Particle<NReal, NInt>& p,
 				   const Real*         plo,
 				   const Real*         dx,
 				   Array<Real>&        fracs,
 				   Array<IntVect>&     cells)
 {
-    return Particle<NR, NI>::CIC_Cells_Fracs(p,plo,dx,dx,fracs,cells);
+    return Particle<NReal, NInt>::CIC_Cells_Fracs(p,plo,dx,dx,fracs,cells);
 }
 
-template <int NR, int NI>
+template <int NReal, int NInt>
 void
-Particle<NR, NI>::CIC_Cells_Fracs_Basic (const Particle<NR, NI>& p,
+Particle<NReal, NInt>::CIC_Cells_Fracs_Basic (const Particle<NReal, NInt>& p,
 					 const Real*         plo,
 					 const Real*         dx,
 					 Real*               fracs,
 					 IntVect*            cells)
 {
-    BL_PROFILE("Particle<NR, NI>::CIC_Cells_Fracs_B()");
+    BL_PROFILE("Particle<NReal, NInt>::CIC_Cells_Fracs_B()");
     //
     // "fracs" should be dimensioned: Real    fracs[D_TERM(2,+2,+4)]
     //
@@ -162,26 +162,26 @@ Particle<NR, NI>::CIC_Cells_Fracs_Basic (const Particle<NR, NI>& p,
 
     const Real frac[BL_SPACEDIM] = { D_DECL(len[0]-cell[0], len[1]-cell[1], len[2]-cell[2]) };
 
-    Particle<NR, NI>::CIC_Fracs(frac, fracs);
-    Particle<NR, NI>::CIC_Cells(cell, cells);
+    Particle<NReal, NInt>::CIC_Fracs(frac, fracs);
+    Particle<NReal, NInt>::CIC_Cells(cell, cells);
 }
 
-template <int NR, int NI>
+template <int NReal, int NInt>
 int
-Particle<NR, NI>::CIC_Cells_Fracs (const Particle<NR, NI>& p,
+Particle<NReal, NInt>::CIC_Cells_Fracs (const Particle<NReal, NInt>& p,
 				   const Real*         plo,
 				   const Real*         dx_geom,
 				   const Real*         dx_part,
 				   Array<Real>&        fracs,
 				   Array<IntVect>&     cells)
 {
-    BL_PROFILE("Particle<NR, NI>::CIC_Cells_Fracs()");
+    BL_PROFILE("Particle<NReal, NInt>::CIC_Cells_Fracs()");
     if (dx_geom == dx_part)
     {
         const int M = D_TERM(2,+2,+4);
         fracs.resize(M);
         cells.resize(M);
-        Particle<NR, NI>::CIC_Cells_Fracs_Basic(p,plo,dx_geom,fracs.dataPtr(),cells.dataPtr());
+        Particle<NReal, NInt>::CIC_Cells_Fracs_Basic(p,plo,dx_geom,fracs.dataPtr(),cells.dataPtr());
         return M;
     }
     //
@@ -250,9 +250,9 @@ Particle<NR, NI>::CIC_Cells_Fracs (const Particle<NR, NI>& p,
     return M;
 }
 
-template <int NR, int NI>
+template <int NReal, int NInt>
 int
-Particle<NR, NI>::MaxReaders ()
+Particle<NReal, NInt>::MaxReaders ()
 {
     const int Max_Readers_def = 64;
 
@@ -279,9 +279,9 @@ Particle<NR, NI>::MaxReaders ()
     return Max_Readers;
 }
 
-template <int NR, int NI>
+template <int NReal, int NInt>
 long
-Particle<NR, NI>::MaxParticlesPerRead ()
+Particle<NReal, NInt>::MaxParticlesPerRead ()
 {
     //
     // This is the maximum particles that "each" reader will attempt to read
@@ -310,9 +310,9 @@ Particle<NR, NI>::MaxParticlesPerRead ()
     return Max_Particles_Per_Read;
 }
 
-template <int NR, int NI>
+template <int NReal, int NInt>
 const std::string&
-Particle<NR, NI>::DataPrefix ()
+Particle<NReal, NInt>::DataPrefix ()
 {
     //
     // The actual particle data is stored in files of the form: DATA_nnnn.
@@ -322,9 +322,9 @@ Particle<NR, NI>::DataPrefix ()
     return data;
 }
 
-template <int NR, int NI>
+template <int NReal, int NInt>
 const std::string&
-Particle<NR, NI>::Version ()
+Particle<NReal, NInt>::Version ()
 {
     //
     // If we change the Checkpoint/Restart format we should increment this.
@@ -339,69 +339,73 @@ Particle<NR, NI>::Version ()
     return version;
 }
 
-template <int NR, int NI>
+template <int NReal, int NInt>
 int
-Particle<NR, NI>::NextID ()
+Particle<NReal, NInt>::NextID ()
 {
     int next;
 
 #ifdef _OPENMP
+#if (__GNUC__ < 5)
+#pragma omp critical (amrex_particle_nextid)
+#else
 #pragma omp atomic capture
+#endif
 #endif
     next = the_next_id++;
 
     if (next > LastParticleID)
-	amrex::Abort("Particle<NR, NI>::NextID() -- too many particles");
+	amrex::Abort("Particle<NReal, NInt>::NextID() -- too many particles");
 
     return next;
 }
 
-template <int NR, int NI>
+template <int NReal, int NInt>
 int
-Particle<NR, NI>::UnprotectedNextID ()
+Particle<NReal, NInt>::UnprotectedNextID ()
 {
     int next = the_next_id++;
     if (next > LastParticleID)
-	amrex::Abort("Particle<NR, NI>::NextID() -- too many particles");
+	amrex::Abort("Particle<NReal, NInt>::NextID() -- too many particles");
     return next;
 }
 
-template <int NR, int NI>
+template <int NReal, int NInt>
 void
-Particle<NR, NI>::NextID (int nextid)
+Particle<NReal, NInt>::NextID (int nextid)
 {
     the_next_id = nextid;
 }
 
-template <int NR, int NI>
+template <int NReal, int NInt>
 Real
-Particle<NR, NI>::InterpDoit (const FArrayBox& fab,
+Particle<NReal, NInt>::InterpDoit (const FArrayBox& fab,
 			      const IntVect&   cell,
 			      const Real*      frac,
 			      int              comp)
 {
-    BL_PROFILE("Particle<NR, NI>::InterpDoit(fcfc)");
+    BL_PROFILE("Particle<NReal, NInt>::InterpDoit(fcfc)");
     const int M = D_TERM(2,+2,+4);
 
     Real    fracs[M];
     IntVect cells[M];
 
-    Particle<NR, NI>::CIC_Fracs(frac, fracs);
-    Particle<NR, NI>::CIC_Cells(cell, cells);
+    Particle<NReal, NInt>::CIC_Fracs(frac, fracs);
+    Particle<NReal, NInt>::CIC_Cells(cell, cells);
 
-    Real val = Particle<NR, NI>::InterpDoit(fab,fracs,cells,comp);
+    Real val = Particle<NReal, NInt>::InterpDoit(fab,fracs,cells,comp);
 
     return val;
 }
 
-template <int NR, int NI>
+template <int NReal, int NInt>
 Real
-Particle<NR, NI>::InterpDoit (const FArrayBox& fab,
+Particle<NReal, NInt>::InterpDoit (const FArrayBox& fab,
 			      const Real*      fracs,
 			      const IntVect*   cells,
 			      int              comp)
 {
-    BL_PROFILE("Particle<NR, NI>::InterpDoit(ffcc)");
+    BL_PROFILE("Particle<NReal, NInt>::InterpDoit(ffcc)");
     const int M = D_TERM(2,+2,+4);
 
     Real val = 0;
@@ -414,16 +418,16 @@ Particle<NR, NI>::InterpDoit (const FArrayBox& fab,
     return val;
 }
 
-template <int NR, int NI>
+template <int NReal, int NInt>
 void
-Particle<NR, NI>::Interp (const Particle<NR, NI>& prt,
+Particle<NReal, NInt>::Interp (const Particle<NReal, NInt>& prt,
 			  const Geometry&     geom,
 			  const FArrayBox&    fab,
 			  const int*          idx,
 			  Real*               val,
 			  int                 cnt)
 {
-    BL_PROFILE("Particle<NR, NI>::Interp()");
+    BL_PROFILE("Particle<NReal, NInt>::Interp()");
     BL_ASSERT(idx != 0);
     BL_ASSERT(val != 0);
 
@@ -436,46 +440,46 @@ Particle<NR, NI>::Interp (const Particle<NR, NI>& prt,
     //
     // Get "fracs" and "cells".
     //
-    Particle<NR, NI>::CIC_Cells_Fracs_Basic(prt, plo, dx, fracs, cells);
+    Particle<NReal, NInt>::CIC_Cells_Fracs_Basic(prt, plo, dx, fracs, cells);
 
     for (int i = 0; i < cnt; i++)
     {
         BL_ASSERT(idx[i] >= 0 && idx[i] < fab.nComp());
 
-        val[i] = Particle<NR, NI>::InterpDoit(fab,fracs,cells,idx[i]);
+        val[i] = Particle<NReal, NInt>::InterpDoit(fab,fracs,cells,idx[i]);
     }
 }
 
-template <int NR, int NI>
+template <int NReal, int NInt>
 void
-Particle<NR, NI>::GetGravity (const FArrayBox&    gfab,
+Particle<NReal, NInt>::GetGravity (const FArrayBox&    gfab,
 			      const Geometry&     geom,
-			      const Particle<NR, NI>& p,
+			      const Particle<NReal, NInt>& p,
 			      Real*               grav)
 {
-    BL_PROFILE("Particle<NR, NI>::GetGravity()");
+    BL_PROFILE("Particle<NReal, NInt>::GetGravity()");
     BL_ASSERT(grav != 0);
 
     int idx[BL_SPACEDIM] = { D_DECL(0,1,2) };
 
-    Particle<NR, NI>::Interp(p,geom,gfab,idx,grav,BL_SPACEDIM);
+    Particle<NReal, NInt>::Interp(p,geom,gfab,idx,grav,BL_SPACEDIM);
 }
 
-template <int NR, int NI>
+template <int NReal, int NInt>
 std::ostream&
-operator<< (std::ostream& os, const Particle<NR, NI>& p)
+operator<< (std::ostream& os, const Particle<NReal, NInt>& p)
 {
     os << p.m_idata.id   << ' '
        << p.m_idata.cpu  << ' ';
 
-    for (int i = 0; i < BL_SPACEDIM + NR; i++)
+    for (int i = 0; i < BL_SPACEDIM + NReal; i++)
         os << p.m_rdata.arr[i] << ' ';
 
-    for (int i = 2; i < 2 + NI; i++)
+    for (int i = 2; i < 2 + NInt; i++)
         os << p.m_idata.arr[i] << ' ';
 
     if (!os.good())
-        amrex::Error("operator<<(ostream&,Particle<NR, NI>&) failed");
+        amrex::Error("operator<<(ostream&,Particle<NReal, NInt>&) failed");
 
     return os;
 }

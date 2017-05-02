@@ -141,8 +141,7 @@ def load_params(args):
         if not s is None:
             mysuite.repos[r].comp_string = \
                 s.replace("@self@", mysuite.repos[r].dir).replace("@source@", mysuite.repos["source"].dir)
-
-
+            
     # the suite needs to know any ext_src_comp_string
     for r in mysuite.repos.keys():
         if not mysuite.repos[r].build == 1:

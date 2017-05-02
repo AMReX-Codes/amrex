@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+
+Tools/libamrex/configure.py "$@"
+

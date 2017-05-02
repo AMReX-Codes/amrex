@@ -55,6 +55,7 @@ mgt_set     mgt_set_cfs        = mgt_set_cfs_1d;
 mgt_getni   mgt_get_vel        = mgt_get_vel_1d;
 mgt_setni   mgt_set_vel        = mgt_set_vel_1d;
 mgt_setr    mgt_add_rh_nodal   = mgt_add_rh_nodal_1d;
+mgt_set     mgt_set_rh_nodal   = mgt_set_rh_nodal_1d;
 mgt_set     mgt_set_sync_msk   = mgt_set_sync_msk_1d;
 mgt_set     mgt_set_vold       = mgt_set_vold_1d;
 mgt_get     mgt_get_sync_res   = mgt_get_sync_res_1d;
@@ -78,6 +79,7 @@ mgt_set     mgt_set_cfs        = mgt_set_cfs_2d;
 mgt_getni   mgt_get_vel        = mgt_get_vel_2d;
 mgt_setni   mgt_set_vel        = mgt_set_vel_2d;
 mgt_setr    mgt_add_rh_nodal   = mgt_add_rh_nodal_2d;
+mgt_set     mgt_set_rh_nodal   = mgt_set_rh_nodal_2d;
 mgt_set     mgt_set_sync_msk   = mgt_set_sync_msk_2d;
 mgt_set     mgt_set_vold       = mgt_set_vold_2d;
 mgt_get     mgt_get_sync_res   = mgt_get_sync_res_2d;
@@ -103,6 +105,7 @@ mgt_set     mgt_set_cfs        = mgt_set_cfs_3d;
 mgt_getni   mgt_get_vel        = mgt_get_vel_3d;
 mgt_setni   mgt_set_vel        = mgt_set_vel_3d;
 mgt_setr    mgt_add_rh_nodal   = mgt_add_rh_nodal_3d;
+mgt_set     mgt_set_rh_nodal   = mgt_set_rh_nodal_3d;
 mgt_set     mgt_set_sync_msk   = mgt_set_sync_msk_3d;
 mgt_set     mgt_set_vold       = mgt_set_vold_3d;
 mgt_get     mgt_get_sync_res   = mgt_get_sync_res_3d;
@@ -637,6 +640,35 @@ MGT_Solver::solve(const Array<MultiFab*>& uu, const Array<MultiFab*>& rh, const 
     }
 }
 
+void
+MGT_Solver::solve_nodal(const Array<MultiFab*>& uu, const Array<MultiFab*>& rh,
+                        Real tol, Real abs_tol)
+{
+    BL_PROFILE("MGT_Solver::solve_nodal()");
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif    
+    for ( int lev = 0; lev < m_nlevel; ++lev )
+    {
+	set_rh_nodal(*(rh[lev]), lev);
+	set_uu_nodal(*(uu[lev]), lev);
+    }
+    
+    mgt_nodal_solve(tol,abs_tol);
+    
+    int need_grad_phi = 0;
+    int ng = (need_grad_phi == 1) ? 1 : 0;
+    
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for ( int lev = 0; lev < m_nlevel; ++lev )
+    {
+	get_uu_nodal(*(uu[lev]), lev, ng);
+    }
+}
+
 void 
 MGT_Solver::applyop(const Array<MultiFab*>& uu, const Array<MultiFab*>& res, const BndryData& bd)
 {
@@ -1048,6 +1080,60 @@ MGT_Solver::get_uu (MultiFab& mf, int lev, int ng)
 	mgt_get_uu (&lev, &n, fab.dataPtr(),
 		    fbx.loVect(), fbx.hiVect(),
 		    bx.loVect(), bx.hiVect());
+    }
+}
+
+void
+MGT_Solver::set_rh_nodal (const MultiFab& mf, int lev)
+{
+    // the caller has started OMP
+    for (MFIter mfi(mf, true); mfi.isValid(); ++mfi)
+    {
+	const int n = mfi.LocalIndex();
+	const Box& bx = mfi.tilebox();
+	const FArrayBox& fab = mf[mfi];
+	const Box& fbx = fab.box();
+	mgt_set_rh_nodal (&lev, &n, fab.dataPtr(),
+                          fbx.loVect(), fbx.hiVect(),
+                          bx.loVect(), bx.hiVect());
+    }
+}
+
+void
+MGT_Solver::set_uu_nodal (const MultiFab& mf, int lev)
+{
+    // the caller has started OMP
+    const int ncomp = mf.nComp();
+    const int ip = 0;
+    
+    for (MFIter mfi(mf, true); mfi.isValid(); ++mfi)
+    {
+	const int n = mfi.LocalIndex();
+	const Box& bx = mfi.growntilebox(1);
+	const FArrayBox& fab = mf[mfi];
+	const Box& fbx = fab.box();
+	mgt_set_pr (&lev, &n, fab.dataPtr(),
+                    fbx.loVect(), fbx.hiVect(),
+                    bx.loVect(), bx.hiVect(), ncomp, ip);
+    }
+}
+
+void
+MGT_Solver::get_uu_nodal (MultiFab& mf, int lev, int ng)
+{
+    // the caller has started OMP
+    const int ncomp = mf.nComp();
+    const int ip = 0;
+
+    for (MFIter mfi(mf, true); mfi.isValid(); ++mfi)
+    {
+	const int n = mfi.LocalIndex();
+	const Box& bx = mfi.growntilebox(ng);
+	FArrayBox& fab = mf[mfi];
+	const Box& fbx = fab.box();
+	mgt_get_pr (&lev, &n, fab.dataPtr(),
+                    fbx.loVect(), fbx.hiVect(),
+                    bx.loVect(), bx.hiVect(), ncomp, ip);
     }
 }
 

@@ -95,8 +95,10 @@ namespace amrex
                                    const Real                      & a_dx)
   { 
     BL_PROFILE_VAR("fortran plus pointwise reg",fppr);
-    fort_lapl_simple(BL_TO_FORTRAN_N_3D(a_dst, 0), 
-                     BL_TO_FORTRAN_N_3D(a_src, 0), 
+    const BaseFab<Real>& srcReg = a_src.getSingleValuedFAB();
+    BaseFab<Real>      & dstReg = a_dst.getSingleValuedFAB();
+    fort_lapl_simple(BL_TO_FORTRAN_N_3D(dstReg, 0), 
+                     BL_TO_FORTRAN_N_3D(srcReg, 0), 
                      ARLIM_3D(a_domain.loVect()),
                      ARLIM_3D(a_domain.hiVect()), &a_dx);
     BL_PROFILE_VAR_STOP(fppr);
@@ -135,8 +137,10 @@ namespace amrex
 
   { 
     BL_PROFILE_VAR("fortran plus aggsten reg",fpar);
-    fort_lapl_simple(BL_TO_FORTRAN_N_3D(a_dst, 0), 
-                     BL_TO_FORTRAN_N_3D(a_src, 0), 
+    const BaseFab<Real>& srcReg = a_src.getSingleValuedFAB();
+    BaseFab<Real>      & dstReg = a_dst.getSingleValuedFAB();
+    fort_lapl_simple(BL_TO_FORTRAN_N_3D(dstReg, 0), 
+                     BL_TO_FORTRAN_N_3D(srcReg, 0), 
                      ARLIM_3D(a_domain.loVect()),
                      ARLIM_3D(a_domain.hiVect()), &a_dx);
     BL_PROFILE_VAR_STOP(fpar);

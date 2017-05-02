@@ -14,7 +14,11 @@
 #include <AMReX_CGSolver.H>
 #include <AMReX_Laplacian.H>
 #include <AMReX_ABecLaplacian.H>
+
+#ifndef NO_FOURTH
 #include <AMReX_ABec4.H>
+#endif
+
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_MacBndry.H>
 #ifdef USE_F90_SOLVERS
@@ -73,9 +77,11 @@ void solve(MultiFab& soln, const MultiFab& anaSoln, MultiFab& gphi,
 	   Real a, Real b, MultiFab& alpha, const Array<MultiFab*>& beta, MultiFab& beta_cc,
 	   MultiFab& rhs, const BoxArray& bs, const Geometry& geom,
 	   solver_t solver);
+#ifndef NO_FOURTH
 void solve4(MultiFab& soln, const MultiFab& anaSoln, 
 	     Real a, Real b, MultiFab& alpha, MultiFab& beta, 
 	     MultiFab& rhs, const BoxArray& bs, const Geometry& geom);
+#endif
 void solve_with_Cpp(MultiFab& soln, MultiFab& gphi, Real a, Real b, MultiFab& alpha, 
 		    const Array<MultiFab*>& beta, MultiFab& rhs, const BoxArray& bs, const Geometry& geom);
 
@@ -316,6 +322,7 @@ int main(int argc, char* argv[])
 	  beta_cc, rhs, bs, geom, BoxLib_C);
   }
 
+#ifndef NO_FOURTH
   if (solver_type == BoxLib_C4 || solver_type == All) {
     if (ParallelDescriptor::IOProcessor()) {
       std::cout << "----------------------------------------" << std::endl;
@@ -324,6 +331,7 @@ int main(int argc, char* argv[])
 
     solve4(soln4, anaSoln, a, b, alpha4, beta4, rhs, bs, geom);
   }
+#endif
 
 #ifdef USE_F90_SOLVERS
   if (solver_type == BoxLib_F || solver_type == All) {
@@ -547,6 +555,7 @@ void set_boundary(BndryData& bd, const MultiFab& rhs, int comp)
   }
 }
 
+#ifndef NO_FOURTH
 void solve4(MultiFab& soln, const MultiFab& anaSoln, 
 	     Real a, Real b, MultiFab& alpha, MultiFab& beta, 
 	     MultiFab& rhs, const BoxArray& bs, const Geometry& geom)
@@ -620,6 +629,7 @@ void solve4(MultiFab& soln, const MultiFab& anaSoln,
     }
   }
 }
+#endif
 
 void solve(MultiFab& soln, const MultiFab& anaSoln, MultiFab& gphi,
 	   Real a, Real b, MultiFab& alpha, const Array<MultiFab*>& beta, MultiFab& beta_cc,

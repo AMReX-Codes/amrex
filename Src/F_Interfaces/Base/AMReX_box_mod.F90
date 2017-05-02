@@ -2,7 +2,7 @@
 module amrex_box_module
 
   use iso_c_binding
-  use amrex_fort_module, only : ndims => amrex_spacedim;
+  use amrex_fort_module, only : ndims => amrex_spacedim, amrex_real
 
   implicit none
 
@@ -13,13 +13,14 @@ module amrex_box_module
      integer, dimension(3) :: hi    = 1
      logical, dimension(3) :: nodal = .false.
    contains
-     procedure :: numpts   => amrex_box_numpts
-     procedure :: nodalize => amrex_box_nodalize
-     procedure :: cellize  => amrex_box_cellize
-     procedure :: convert  => amrex_box_convert
-     generic   :: grow     => amrex_box_grow_s, amrex_box_grow_v
+     procedure :: numpts      => amrex_box_numpts
+     procedure :: nodalize    => amrex_box_nodalize
+     procedure :: cellize     => amrex_box_cellize
+     procedure :: convert     => amrex_box_convert
+     generic   :: grow        => amrex_box_grow_s, amrex_box_grow_v
+     generic   :: intersects  => amrex_box_intersects_box, amrex_box_intersects_fp
      procedure, private :: amrex_box_numpts, amrex_box_nodalize, amrex_box_grow_s, &
-          amrex_box_grow_v
+          amrex_box_grow_v, amrex_box_intersects_box, amrex_box_intersects_fp
   end type amrex_box
 
   public :: amrex_print
@@ -113,6 +114,28 @@ contains
     this%lo(1:ndims) = this%lo(1:ndims) - i(1:ndims)
     this%hi(1:ndims) = this%hi(1:ndims) + i(1:ndims)
   end subroutine amrex_box_grow_v
+
+  function amrex_box_intersects_box (this, bx) result(r)
+    class(amrex_box), intent(in) :: this
+    type(amrex_box), intent(in) :: bx
+    logical :: r
+    integer :: seclo(3), sechi(3)
+    seclo = max(this%lo, bx%lo)
+    sechi = min(this%hi, bx%hi)
+    r = all(seclo(1:ndims) .le. sechi(1:ndims))
+  end function amrex_box_intersects_box
+
+  function amrex_box_intersects_fp (this, p) result(r)
+    class(amrex_box), intent(in) :: this
+    real(amrex_real), pointer, intent(in) :: p(:,:,:,:)
+    logical :: r
+    integer :: seclo(3), sechi(3), plo(4), phi(4)
+    plo = lbound(p)
+    phi = ubound(p)
+    seclo = max(this%lo, plo(1:3))
+    sechi = min(this%hi, phi(1:3))
+    r = all(seclo(1:ndims) .le. sechi(1:ndims))    
+  end function amrex_box_intersects_fp
 
 end module amrex_box_module
 

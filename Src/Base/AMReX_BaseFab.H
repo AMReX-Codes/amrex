@@ -18,6 +18,7 @@
 #include <AMReX_Looping.H>
 #include <AMReX_REAL.H>
 #include <AMReX_BLProfiler.H>
+#include <AMReX_MakeType.H>
 
 namespace amrex
 {
@@ -98,8 +99,18 @@ public:
                       int        n = 1,
 		      bool       alloc = true,
 		      bool       shared = false);
+
+    BaseFab (const BaseFab<T>& rhs, MakeType make_type, int scomp, int ncomp);
+
+    /**
+     * \brief Create an NON-OWNING BaseFab.  Thus BaseFab is not
+     * responsible for memory management.  And it's caller's responsibility that
+     * p points to a chunk of memory large enough.
+     */
+    BaseFab (const Box& bx, int ncomp, T* p);
+
     //! The destructor deletes the array memory.
-    ~BaseFab ();
+    virtual ~BaseFab ();
 
     BaseFab (const BaseFab<T>& rhs) = delete;
     BaseFab<T>& operator= (const BaseFab<T>& rhs) = delete;
@@ -108,9 +119,6 @@ public:
     BaseFab (BaseFab<T>&& rhs) noexcept;
 
     BaseFab& operator= (const T&);
-
-    //! Make an alias that spans ncomp components starting at the component scomp
-    void make_alias (BaseFab<T>& alias, int scomp, int ncomp) const;
 
     /**
     * \brief This function resizes a BaseFab so it covers the Box b
@@ -126,11 +134,33 @@ public:
     void resize (const Box& b,
                  int        N = 1);
 
-    /**
-    * \brief The function returns the BaseFab to the invalid state.
-    * The memory is freed.
-    */
-    void clear ();
+  ///for AggStencil and its minions
+  virtual long offset(const IntVect& a_iv, const int& a_ivar) const
+    {
+      BL_ASSERT(a_ivar >= 0);
+      BL_ASSERT(a_ivar < nvar);
+      BL_ASSERT(domain.contains(a_iv));
+
+      IntVect ivDiff = a_iv - domain.smallEnd();
+      IntVect ivSize = domain.size();
+      long offset = ivDiff[0];
+
+#if BL_SPACEDIM > 1
+      offset += ivDiff[1]*ivSize[0] ;
+#endif
+#if BL_SPACEDIM > 2
+      offset += ivDiff[2]*ivSize[0]*ivSize[1];
+#endif
+      offset += numpts * a_ivar;
+
+      return offset;
+    }
+
+  /**
+   * \brief The function returns the BaseFab to the invalid state.
+   * The memory is freed.
+   */
+  void clear ();
 
     //! Returns how many bytes used
     std::size_t nBytes () const { return truesize*sizeof(T); }
@@ -862,26 +892,6 @@ protected:
 
 template <class T>
 inline
-void
-BaseFab<T>::make_alias (BaseFab<T>& alias, int scomp, int ncomp) const
-{
-    alias.clear();
-    BL_ASSERT(dptr);
-    BL_ASSERT(scomp >= 0);
-    BL_ASSERT(scomp+ncomp <= nvar);
-
-    alias.domain        = domain;
-    alias.dlen          = dlen;
-    alias.nvar          = ncomp;
-    alias.numpts        = numpts;
-    alias.truesize      = alias.nvar * alias.numpts;
-    alias.dptr          = const_cast<T*>(dataPtr(scomp));
-    alias.ptr_owner     = false;
-    alias.shared_memory = shared_memory;
-}
-
-template <class T>
-inline
 T&
 BaseFab<T>::operator() (const IntVect& p,
                         int            n)
@@ -1140,6 +1150,45 @@ BaseFab<T>::BaseFab (const Box& bx,
     shared_memory(shared)
 {
     if (!shared_memory && alloc) define();
+}
+
+template <class T>
+BaseFab<T>::BaseFab (const BaseFab<T>& rhs, MakeType make_type, int scomp, int ncomp)
+    :
+    domain(rhs.domain),
+    dlen(rhs.dlen),
+    nvar(ncomp),
+    numpts(rhs.numpts),
+    truesize(ncomp*rhs.numpts),
+    dptr(const_cast<T*>(rhs.dataPtr(scomp))),
+    ptr_owner(false),
+    shared_memory(false)
+{
+    BL_ASSERT(scomp+ncomp <= rhs.nComp());
+    if (make_type == amrex::make_deep_copy)
+    {
+        dptr = nullptr;
+        define();
+        this->copy(rhs, domain, scomp, domain, 0, ncomp);
+    } else if (make_type == amrex::make_alias) {
+        ; // nothing to do
+    } else {
+        amrex::Abort("BaseFab: unknown MakeType");
+    }
+}
+
+template<class T>
+BaseFab<T>::BaseFab (const Box& bx, int ncomp, T* p)
+    :
+    domain(bx),
+    dlen(bx.size()),
+    nvar(ncomp),
+    numpts(bx.numPts()),
+    truesize(bx.numPts()*ncomp),
+    dptr(p),
+    ptr_owner(false),
+    shared_memory(false)
+{
 }
 
 template <class T>
