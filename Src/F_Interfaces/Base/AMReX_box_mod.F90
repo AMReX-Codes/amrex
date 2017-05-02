@@ -19,8 +19,10 @@ module amrex_box_module
      procedure :: convert     => amrex_box_convert
      generic   :: grow        => amrex_box_grow_s, amrex_box_grow_v
      generic   :: intersects  => amrex_box_intersects_box, amrex_box_intersects_fp
+     generic   :: contains    => amrex_box_contains_box, amrex_box_contains_fp, amrex_box_contains_pt
      procedure, private :: amrex_box_numpts, amrex_box_nodalize, amrex_box_grow_s, &
-          amrex_box_grow_v, amrex_box_intersects_box, amrex_box_intersects_fp
+          amrex_box_grow_v, amrex_box_intersects_box, amrex_box_intersects_fp, &
+          amrex_box_contains_box, amrex_box_contains_fp, amrex_box_contains_pt
   end type amrex_box
 
   public :: amrex_print
@@ -136,6 +138,30 @@ contains
     sechi = min(this%hi, phi(1:3))
     r = all(seclo(1:ndims) .le. sechi(1:ndims))    
   end function amrex_box_intersects_fp
+
+  function amrex_box_contains_box (this, bx) result(r)
+    class(amrex_box), intent(in) :: this
+    type(amrex_box), intent(in) :: bx
+    logical :: r
+    r = all(this%lo(1:ndims) .le. bx%lo(1:ndims)) .and. all(this%hi(1:ndims) .ge. bx%hi(1:ndims))
+  end function amrex_box_contains_box
+
+  function amrex_box_contains_fp (this, p) result(r)
+    class(amrex_box), intent(in) :: this
+    real(amrex_real), pointer, intent(in) :: p(:,:,:,:)
+    logical :: r
+    integer :: plo(4), phi(4)
+    plo = lbound(p)
+    phi = ubound(p)
+    r = all(this%lo(1:ndims) .le. plo(1:ndims)) .and. all(this%hi(1:ndims) .ge. phi(1:ndims))
+  end function amrex_box_contains_fp
+
+  function amrex_box_contains_pt (this, pt) result(r)
+    class(amrex_box), intent(in) :: this
+    integer, intent(in) :: pt(ndims)
+    logical :: r
+    r = all(this%lo(1:ndims) .le. pt) .and. all(this%hi(1:ndims) .ge. pt)
+  end function amrex_box_contains_pt
 
 end module amrex_box_module
 
