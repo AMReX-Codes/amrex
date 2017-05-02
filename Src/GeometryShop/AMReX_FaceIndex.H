@@ -1,11 +1,11 @@
 /*
- *      .o.       ooo        ooooo ooooooooo.             ooooooo  ooooo 
- *     .888.      `88.       .888' `888   `Y88.            `8888    d8'  
- *    .8"888.      888b     d'888   888   .d88'  .ooooo.     Y888..8P    
- *   .8' `888.     8 Y88. .P  888   888ooo88P'  d88' `88b     `8888'     
- *  .88ooo8888.    8  `888'   888   888`88b.    888ooo888    .8PY888.    
- * .8'     `888.   8    Y     888   888  `88b.  888    .o   d8'  `888b   
- *o88o     o8888o o8o        o888o o888o  o888o `Y8bod8P' o888o  o88888o 
+ *       {_       {__       {__{_______              {__      {__
+ *      {_ __     {_ {__   {___{__    {__             {__   {__  
+ *     {_  {__    {__ {__ { {__{__    {__     {__      {__ {__   
+ *    {__   {__   {__  {__  {__{_ {__       {_   {__     {__     
+ *   {______ {__  {__   {_  {__{__  {__    {_____ {__  {__ {__   
+ *  {__       {__ {__       {__{__    {__  {_         {__   {__  
+ * {__         {__{__       {__{__      {__  {____   {__      {__
  *
  */
 
@@ -15,7 +15,8 @@
 #include "AMReX_LoHiSide.H"
 #include "AMReX_VolIndex.H"
 #include "AMReX_BaseIndex.H"
-
+#include "AMReX_SPMD.H"
+using std::ostream;
 namespace amrex
 {
   ///
@@ -150,6 +151,8 @@ namespace amrex
       m_hiiv += a_iv;
     }
 
+    ///
+
   private:
 
     ///the intvect of the low vof
@@ -196,5 +199,15 @@ namespace amrex
 
   };
 
+  template < >
+  int linearSize(const FaceIndex& findex);
+
+//FaceIndex specialization of linearIn
+  template < >
+  void linearIn(FaceIndex& a_outputT, const void* const inBuf);
+
+//FaceIndex specialization of linearOut
+  template < >
+  void linearOut(void* const a_outBuf, const FaceIndex& a_inputT);
 }
 #endif

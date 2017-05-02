@@ -19,6 +19,7 @@ module amrex_base_module
   use amrex_physbc_module
 
   use amrex_bc_types_module
+  use amrex_filcc_module
 
   use amrex_fab_module
 

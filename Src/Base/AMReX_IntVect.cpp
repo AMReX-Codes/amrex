@@ -10,7 +10,11 @@
 #include <AMReX_IndexType.H>
 #include <AMReX_Utility.H>
 
+
 namespace amrex {
+
+const IntVect IntVect::Zero(D_DECL(0, 0, 0));
+const IntVect IntVect::Unit(D_DECL(1, 1, 1));
 
 const IntVect&
 IntVect::TheUnitVector ()

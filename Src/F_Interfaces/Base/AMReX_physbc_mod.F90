@@ -3,6 +3,7 @@ module amrex_physbc_module
   use iso_c_binding
   use amrex_fort_module
   use amrex_multifab_module
+  use amrex_geometry_module
 
   implicit none
 
@@ -22,19 +23,20 @@ module amrex_physbc_module
   end type amrex_physbc
 
   interface
-     subroutine amrex_physbc_proc (mf, scomp, ncomp, time) bind(c)
+     subroutine amrex_physbc_proc (mf, scomp, ncomp, time, geom) bind(c)
        import
-       type(c_ptr), value :: mf
+       type(c_ptr), value :: mf, geom
        integer(c_int), value :: scomp, ncomp
        real(amrex_real), value :: time
      end subroutine amrex_physbc_proc
   end interface
 
   interface
-     subroutine amrex_fi_new_physbc (pbc, fill) bind(c)
+     subroutine amrex_fi_new_physbc (pbc, fill, geom) bind(c)
        import
        implicit none
        type(c_ptr) :: pbc
+       type(c_ptr), value :: geom
        type(c_funptr), value :: fill
      end subroutine amrex_fi_new_physbc
 
@@ -47,11 +49,12 @@ module amrex_physbc_module
 
 contains
 
-  subroutine amrex_physbc_build (pbc, fill)
+  subroutine amrex_physbc_build (pbc, fill, geom)
     type(amrex_physbc), intent(inout) :: pbc
     procedure(amrex_physbc_proc) :: fill
+    type(amrex_geometry), intent(in) :: geom
     pbc%owner = .true.
-    call amrex_fi_new_physbc(pbc%p, c_funloc(fill))
+    call amrex_fi_new_physbc(pbc%p, c_funloc(fill), geom%p)
   end subroutine amrex_physbc_build
 
   impure elemental subroutine amrex_physbc_destroy (this)
