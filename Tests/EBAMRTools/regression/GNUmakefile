@@ -42,6 +42,7 @@ include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 #_progs  := tRABcast.cpp
 _progs  := aggpwlfpTest
 _progs  += simpleMeshRefine
+_progs  += fluxRegTest
 
 include $(AMREX_HOME)/Src/Base/Make.package
 include $(AMREX_HOME)/Src/Boundary/Make.package
