@@ -1244,7 +1244,8 @@ FabArrayBase::getTileArray (const IntVect& tilesize) const
 #pragma omp critical(gettilearray)
 #endif
     {
-	BL_ASSERT(getBDKey() == m_bdkey);
+        BL_ASSERT(getBDKey() == m_bdkey);
+
         const IntVect& crse_ratio = boxArray().crseRatio();
 	p = &FabArrayBase::m_TheTileArrayCache[m_bdkey][std::pair<IntVect,IntVect>(tilesize,crse_ratio)];
 	if (p->nuse == -1) {
