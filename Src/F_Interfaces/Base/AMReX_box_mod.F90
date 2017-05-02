@@ -119,12 +119,22 @@ contains
     class(amrex_box), intent(in) :: this
     type(amrex_box), intent(in) :: bx
     logical :: r
+    integer :: seclo(3), sechi(3)
+    seclo = max(this%lo, bx%lo)
+    sechi = min(this%hi, bx%hi)
+    r = all(seclo(1:ndims) .le. sechi(1:ndims))
   end function amrex_box_intersects_box
 
   function amrex_box_intersects_fp (this, p) result(r)
     class(amrex_box), intent(in) :: this
     real(amrex_real), pointer, intent(in) :: p(:,:,:,:)
     logical :: r
+    integer :: seclo(3), sechi(3), plo(4), phi(4)
+    plo = lbound(p)
+    phi = ubound(p)
+    seclo = max(this%lo, plo(1:3))
+    sechi = min(this%hi, phi(1:3))
+    r = all(seclo(1:ndims) .le. sechi(1:ndims))    
   end function amrex_box_intersects_fp
 
 end module amrex_box_module
