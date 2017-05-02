@@ -98,7 +98,7 @@ contains
     real(amrex_real)     :: charge
     integer              :: lo(3)
     integer              :: hi(3)
-    real(amrex_real)     :: rho(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3))
+    real(amrex_real)     :: rho(lo(1)-1:hi(1)+1, lo(2)-1:hi(2)+1, lo(3)-1:hi(3)+1)
     real(amrex_real)     :: plo(3)
     real(amrex_real)     :: dx(3)
 
@@ -106,13 +106,15 @@ contains
     real(amrex_real) wx_lo, wy_lo, wz_lo, wx_hi, wy_hi, wz_hi
     real(amrex_real) lx, ly, lz
     real(amrex_real) inv_dx(3)
-    real(amrex_real) qp
+    real(amrex_real) qp, inv_vol
 
     inv_dx = 1.0d0/dx
 
+    inv_vol = inv_dx(1) * inv_dx(2) * inv_dx(3)
+
     do n = 1, np
 
-       qp = weights(n) * charge
+       qp = weights(n) * charge * inv_vol
 
        lx = (particles(1, n) - plo(1))*inv_dx(1)
        ly = (particles(2, n) - plo(2))*inv_dx(2)
@@ -153,9 +155,9 @@ contains
     real(amrex_real)     :: Ex_p(np), Ey_p(np), Ez_p(np)
     integer              :: lo(3)
     integer              :: hi(3)
-    real(amrex_real)     :: Ex(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3))
-    real(amrex_real)     :: Ey(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3))
-    real(amrex_real)     :: Ez(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3))
+    real(amrex_real)     :: Ex(lo(1)-1:hi(1)+1, lo(2)-1:hi(2)+1, lo(3)-1:hi(3)+1)
+    real(amrex_real)     :: Ey(lo(1)-1:hi(1)+1, lo(2)-1:hi(2)+1, lo(3)-1:hi(3)+1)
+    real(amrex_real)     :: Ez(lo(1)-1:hi(1)+1, lo(2)-1:hi(2)+1, lo(3)-1:hi(3)+1)
     real(amrex_real)     :: plo(3)
     real(amrex_real)     :: dx(3)
 
@@ -251,9 +253,6 @@ contains
     integer, value       :: ns, np
     real(amrex_real)     :: particles(ns,np)
     real(amrex_real)     :: vx_p(np), vy_p(np), vz_p(np)
-    real(amrex_real)     :: Ex_p(np), Ey_p(np), Ez_p(np)
-    real(amrex_real)     :: charge
-    real(amrex_real)     :: mass
     real(amrex_real)     :: dt
     
     integer n

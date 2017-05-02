@@ -92,7 +92,7 @@ PhysicalParticleContainer::FieldGatherES (int lev,
 {
 
     const auto& gm = m_gdb->Geom(lev);
-    const Real* dx  = gm.ProbLo();
+    const Real* dx  = gm.CellSize();
     const Real* plo = gm.ProbLo();
     const int ng = 1;
 

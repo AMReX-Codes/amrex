@@ -468,8 +468,9 @@ WarpX::WritePlotFile () const
 
         Array<std::unique_ptr<MultiFab> > charge_density(1);
         Array<std::unique_ptr<MultiFab> > potential(1);
-        
-        charge_density[0] = mypc->GetChargeDensity(0);
+  
+//        mypc->Redistribute();
+        charge_density[0] = mypc->Deposit(0);
         potential[0].reset(new MultiFab(charge_density[0]->boxArray(), dmap[0], 1, 1));
         potential[0]->setVal(0.0);
 
@@ -477,11 +478,16 @@ WarpX::WritePlotFile () const
         offset /= Geom(0).ProbSize();
         charge_density[0]->plus(-offset, 0, 1, 1);
 
-        // compute node-centered gradient
-
         computePhi(charge_density, potential);
 
-        mypc->FieldGatherES(0, *Efield[0][0], *Efield[0][1], *Efield[0][2]);
+        // compute node-centered gradients
+        MultiFab Ex(charge_density[0]->boxArray(), dmap[0], 1, 1);
+        MultiFab Ey(charge_density[0]->boxArray(), dmap[0], 1, 1);
+        MultiFab Ez(charge_density[0]->boxArray(), dmap[0], 1, 1);
+
+        computeE(Ex, Ey, Ez, *potential[0]);
+
+        mypc->FieldGatherES(0, Ex, Ey, Ez);
         
         for (int lev = 0; lev < nlevels; ++lev)
         {

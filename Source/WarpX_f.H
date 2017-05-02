@@ -134,7 +134,7 @@ extern "C"
     void warpx_compute_E_nodal (const int* lo, const int* hi,
                                 const amrex::Real* phi,
                                 amrex::Real* Ex, amrex::Real* Ey, 
-                                amrex::Real* Ez, amrex::Real* dx);
+                                amrex::Real* Ez, const amrex::Real* dx);
     
     void warpx_deposit_cic(const amrex::Real* particles, int ns, int np,
                            const amrex::Real* weights, 

@@ -11,6 +11,7 @@
 #include <AMReX_MultiFabUtil.H>
 
 #include <WarpX.H>
+#include <WarpX_f.H>
 #include <WarpXConst.H>
 
 using namespace amrex;
@@ -365,6 +366,17 @@ void WarpX::computePhi(const Array<std::unique_ptr<MultiFab > >& rho,
     solver.solve_nodal(GetArrOfPtrs(phi), GetArrOfPtrs(rho), rel_tol, abs_tol);
 }
 
+void WarpX::computeE(MultiFab& Ex, MultiFab& Ey, MultiFab& Ez, 
+                     const MultiFab& phi) const {
+    const auto& gm = GetInstance().Geom(0);
+    const Real* dx = gm.CellSize();
+    for (MFIter mfi(phi); mfi.isValid(); ++mfi) {
+	const Box& bx = mfi.validbox();
+	warpx_compute_E_nodal(bx.loVect(), bx.hiVect(),
+                              phi[mfi].dataPtr(), Ex[mfi].dataPtr(),
+                              Ey[mfi].dataPtr(), Ez[mfi].dataPtr(), dx);
+    }
+}
 
 #if (BL_SPACEDIM == 3)
 

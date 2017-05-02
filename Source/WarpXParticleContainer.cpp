@@ -165,16 +165,16 @@ WarpXParticleContainer::Deposit (int lev, bool local)
     BoxArray nba = ba;
     nba.surroundingNodes();
 
-    const Real* dx  = gm.ProbLo();
+    const Real* dx  = gm.CellSize();
     const Real* plo = gm.ProbLo();
     const int ng = 1;
 
     auto rho = std::unique_ptr<MultiFab>(new MultiFab(nba,dm,1,ng));
-    rho->setVal(0.0);
+    rho->setVal(0.0, ng);
 
     for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
     {
-        const Box& box = pti.validbox();
+        const Box& box = nba[pti];
 
         auto& wp = pti.GetAttribs(PIdx::w);
         const auto& particles = pti.GetArrayOfStructs();
@@ -183,16 +183,6 @@ WarpXParticleContainer::Deposit (int lev, bool local)
 
 	// Data on the grid
 	FArrayBox& rhofab = (*rho)[pti];
-
-#if (BL_SPACEDIM == 3)
-	long nx = box.length(0);
-	long ny = box.length(1);
-	long nz = box.length(2); 
-#elif (BL_SPACEDIM == 2)
-	long nx = box.length(0);
-	long ny = 0;
-	long nz = box.length(1); 
-#endif
 
         warpx_deposit_cic(particles.data(), nstride, np,
                           wp.data(), &this->charge, 

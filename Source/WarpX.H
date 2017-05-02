@@ -146,6 +146,9 @@ private:
     void computePhi(const amrex::Array<std::unique_ptr<amrex::MultiFab> >& rho, 
                     amrex::Array<std::unique_ptr<amrex::MultiFab> >& phi) const;
 
+    void computeE(amrex::MultiFab& Ex, amrex::MultiFab& Ey, 
+                  amrex::MultiFab& Ez, const amrex::MultiFab& phi) const;
+
     void ReadParameters ();
 
     void RegridBaseLevel ();
