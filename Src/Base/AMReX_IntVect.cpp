@@ -13,8 +13,6 @@
 
 namespace amrex {
 
-const IntVect IntVect::Zero(D_DECL(0, 0, 0));
-const IntVect IntVect::Unit(D_DECL(1, 1, 1));
 
 const IntVect&
 IntVect::TheUnitVector ()
@@ -29,6 +27,32 @@ IntVect::TheZeroVector ()
     static const IntVect Zero(D_DECL(0,0,0));
     return Zero;
 }
+
+//
+// Static object initialization.
+//
+int IntVect::InitStatics()
+{
+  IntVect* pz = const_cast<IntVect*>( &IntVect::Zero );
+  *pz = IntVect(D_DECL(0,0,0));
+
+  IntVect* pu = const_cast<IntVect*>( &IntVect::Unit );
+  *pu = IntVect(D_DECL(1,1,1));
+
+  // No danger of IntVect::Zero and Unit not having been allocated, as ARM section
+  // 3.4 says "The initialization of nonlocal static objects in a translation unit
+  // is done before the first use of any function...defined in that translation
+  // unit."
+  //
+  // Had to go through the const_cast stuff because it's nice to be able to declare
+  // IntVect::Zero and IntVect::Unit as const.
+
+  return 0; // arbitrary
+}
+
+const IntVect IntVect::Zero;
+const IntVect IntVect::Unit;
+static int s_dummyForIntVectCpp( IntVect::InitStatics() );
 
 const IntVect&
 IntVect::TheDimensionVector (int d)
