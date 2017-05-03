@@ -43,6 +43,7 @@ include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 _progs  := aggpwlfpTest
 _progs  += simpleMeshRefine
 _progs  += fluxRegTest
+_progs  += regFluxRegTest
 
 include $(AMREX_HOME)/Src/Base/Make.package
 include $(AMREX_HOME)/Src/Boundary/Make.package
