@@ -1,0 +1,3 @@
+regression/aggpwlfpTest does a convergence test on linear coarse-fine interpolation.
+regression/fluxRegTest checks that the flux register is correct.
+regression/simpleMeshRefine runs MeshRefine and outputs some grids.
