@@ -139,6 +139,8 @@ def copy_benchmarks(old_full_test_dir, full_web_dir, test_list, bench_dir, log):
                     tg.extractall()
                 except:
                     log.fail("ERROR extracting tarfile")
+                else:
+                    tg.close()
                 idx = p.rfind(".tgz")
                 p = p[:idx]
 
@@ -782,10 +784,11 @@ def test_suite(argv):
                         suite.log.warn("unable to open the job_info file")
                     else:
                         job_file_lines = jif.readlines()
-
+                        jif.close()
+                        
                         if suite.summary_job_info_field1 is not "":
                             for l in job_file_lines:
-                                if l.find(suite.summary_job_info_field1) >= 0 and l.find(":") >= 0:
+                                if l.startswith(suite.summary_job_info_field1.strip()) and l.find(":") >= 0:
                                     _tmp = l.split(":")[1]
                                     idx = _tmp.rfind("/") + 1
                                     test.job_info_field1 = _tmp[idx:]
@@ -793,7 +796,7 @@ def test_suite(argv):
 
                         if suite.summary_job_info_field2 is not "":
                             for l in job_file_lines:
-                                if l.find(suite.summary_job_info_field2) >= 0 and l.find(":") >= 0:
+                                if l.startswith(suite.summary_job_info_field2.strip()) and l.find(":") >= 0:
                                     _tmp = l.split(":")[1]
                                     idx = _tmp.rfind("/") + 1
                                     test.job_info_field2 = _tmp[idx:]
@@ -801,7 +804,7 @@ def test_suite(argv):
 
                         if suite.summary_job_info_field3 is not "":
                             for l in job_file_lines:
-                                if l.find(suite.summary_job_info_field3) >= 0 and l.find(":") >= 0:
+                                if l.startswith(suite.summary_job_info_field3.strip()) and l.find(":") >= 0:
                                     _tmp = l.split(":")[1]
                                     idx = _tmp.rfind("/") + 1
                                     test.job_info_field3 = _tmp[idx:]

@@ -81,7 +81,7 @@ contains
        call amrex_mfiter_build(mfi, mf, tiling=.false.)
        do while(mfi%next())
           p => mf%dataptr(mfi)
-          if (geom%domain%intersects(p)) then ! this box touches physical domain
+          if (.not. geom%domain%contains(p)) then ! part of this box is outside the domain
              plo = lbound(p)
              phi = ubound(p)
              call amrex_filcc(p, plo, phi,         & ! fortran array and bounds
