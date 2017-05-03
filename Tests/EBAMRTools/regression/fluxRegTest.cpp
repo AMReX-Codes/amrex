@@ -120,7 +120,10 @@ namespace amrex
 
     std::vector<EBLevelGrid> eblg;
     getAllIrregEBLG(eblg, params);
-
+    for(int ilev = 0; ilev < 2; ilev ++)
+    {
+      amrex::Print() << "grids[" << ilev << "] = " << eblg[ilev].getDBL() << endl;
+    }
     int nvar = 1;
     int nghost = 2;
     EBCellFactory factCoar(eblg[0].getEBISL());

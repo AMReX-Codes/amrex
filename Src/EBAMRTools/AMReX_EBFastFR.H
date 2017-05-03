@@ -133,7 +133,8 @@ namespace amrex
     FluxRegister m_nonEBFluxReg;
 
     //because FluxRegister is weird.
-    FabArray<EBFluxFAB> m_coarseRegister;
+    FabArray<EBFluxFAB> m_coarRegister;
+    FabArray<EBFluxFAB> m_fineRegister;
 
     bool m_isDefined;
 
