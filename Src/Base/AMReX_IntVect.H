@@ -56,6 +56,11 @@ public:
     */
     static const IntVect Unit;
 
+    /**
+     Initializes Zero and Unit.
+    */
+    static int InitStatics();
+
     ///
     /**
     * \brief Construct an IntVect whose components are all zero.
@@ -356,6 +361,15 @@ private:
 
     int vect[BL_SPACEDIM];
 };
+
+//
+// Static initialization.  Gotta make sure there are no static object
+// definitions above here (except possibly stuff in headers).  Otherwise,
+// the danger is that some static object's constructor calls IntVect::Zero or
+// IntVect::Unit -- the very things the following definition is supposed to
+// initialize.
+//
+static int s_dummyForIntVectH = IntVect::InitStatics();
 
     /**
     * \brief Returns a basis vector in the given coordinate direction;
