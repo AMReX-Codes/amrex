@@ -57,11 +57,10 @@ MultiParticleContainer::InitData ()
 }
 
 void
-MultiParticleContainer::FieldGatherES (int lev,
-                                       const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez)
+MultiParticleContainer::FieldGatherES (const Array<std::array<std::unique_ptr<MultiFab>, 3> >& E)
 {
     for (auto& pc : allcontainers) {
-	pc->FieldGatherES(lev, Ex, Ey, Ez);
+	pc->FieldGatherES(E);
     }
 }
 
@@ -72,6 +71,29 @@ MultiParticleContainer::FieldGather (int lev,
 {
     for (auto& pc : allcontainers) {
 	pc->FieldGather(lev, Ex, Ey, Ez, Bx, By, Bz);
+    }
+}
+
+void
+MultiParticleContainer::EvolveES (const Array<std::array<std::unique_ptr<MultiFab>, 3> >& E,
+                                        Array<std::unique_ptr<MultiFab> >& rho,
+                                  Real t, Real dt)
+{
+
+    int nlevs = rho.size();
+    int ng = rho[0]->nGrow();
+
+    for (unsigned i = 0; i < nlevs; i++) { 
+        rho[i]->setVal(0.0, ng);
+    }
+    
+    for (auto& pc : allcontainers) {
+	pc->EvolveES(E, rho, t, dt);
+    }
+
+    for (unsigned i = 0; i < nlevs; i++) { 
+        const Geometry& gm = allcontainers[0]->Geom(i);
+        rho[i]->SumBoundary(gm.periodicity());
     }
 }
 
@@ -96,6 +118,14 @@ MultiParticleContainer::Evolve (int lev,
 }
 
 void
+MultiParticleContainer::PushXES (int lev, Real dt)
+{
+    for (auto& pc : allcontainers) {
+	pc->PushXES(lev, dt);
+    }
+}
+
+void
 MultiParticleContainer::PushX (int lev, Real dt)
 {
     for (auto& pc : allcontainers) {
@@ -103,19 +133,27 @@ MultiParticleContainer::PushX (int lev, Real dt)
     }
 }
 
-std::unique_ptr<MultiFab>
-MultiParticleContainer::Deposit (int lev, bool local)
+void
+MultiParticleContainer::
+DepositCharge (Array<std::unique_ptr<MultiFab> >& rho, bool local)
 {
-    std::unique_ptr<MultiFab> rho = allcontainers[0]->Deposit(lev, true);
-    for (unsigned i = 1, n = allcontainers.size(); i < n; ++i) {
-	std::unique_ptr<MultiFab> rhoi = allcontainers[i]->Deposit(lev, true);
-	MultiFab::Add(*rho, *rhoi, 0, 0, 1, rho->nGrow());
+    int nlevs = rho.size();
+    int ng = rho[0]->nGrow();
+
+    for (unsigned i = 0; i < nlevs; i++) { 
+        rho[i]->setVal(0.0, ng);
     }
+
+    for (unsigned i = 0, n = allcontainers.size(); i < n; ++i) {
+	allcontainers[i]->DepositCharge(rho, true);
+    }
+
     if (!local) {
-	const Geometry& gm = allcontainers[0]->Geom(lev);
-	rho->SumBoundary(gm.periodicity());
+        for (unsigned i = 0; i < nlevs; i++) {
+            const Geometry& gm = allcontainers[0]->Geom(i);
+            rho[i]->SumBoundary(gm.periodicity());
+        }
     }
-    return rho;
 }
 
 std::unique_ptr<MultiFab>

@@ -345,13 +345,25 @@ WarpX::LowerCorner(const Box& bx, int lev)
 #endif
 }
 
-void WarpX::computePhi(const Array<std::unique_ptr<MultiFab > >& rho, 
+void WarpX::computePhi(Array<std::unique_ptr<MultiFab> >& rho, 
                        Array<std::unique_ptr<MultiFab> >& phi) const {    
+
+    // subtract off mean RHS for solvability
+    Real offset = mypc->sumParticleCharge(0);
+    offset /= Geom(0).ProbSize();
+    rho[0]->plus(-offset, 0, 1, 1);
+
+    MultiFab tmp(rho[0]->boxArray(), dmap[0], 1, 0);
+    MultiFab::Copy(tmp, *rho[0], 0, 0, 1, 0);
+    VisMF::Write(tmp, "rho/rho");
+
+    phi[0]->setVal(0.0);
+
     bool nodal = true;
     bool have_rhcc = false;
     int  nc = 0;
     int stencil = ND_CROSS_STENCIL;
-    int verbose = 0;
+    int verbose = 5;
     int Ncomp = 1;
     Array<int> mg_bc(BL_SPACEDIM, 0); // this means periodic in all directions.
 
@@ -366,15 +378,18 @@ void WarpX::computePhi(const Array<std::unique_ptr<MultiFab > >& rho,
     solver.solve_nodal(GetArrOfPtrs(phi), GetArrOfPtrs(rho), rel_tol, abs_tol);
 }
 
-void WarpX::computeE(MultiFab& Ex, MultiFab& Ey, MultiFab& Ez, 
-                     const MultiFab& phi) const {
+void WarpX::computeE(Array<std::array<std::unique_ptr<MultiFab>, 3> >& E,
+                     const Array<std::unique_ptr<MultiFab> >& phi) const {
+    const int lev = 0;
     const auto& gm = GetInstance().Geom(0);
     const Real* dx = gm.CellSize();
-    for (MFIter mfi(phi); mfi.isValid(); ++mfi) {
+    for (MFIter mfi(*phi[lev]); mfi.isValid(); ++mfi) {
 	const Box& bx = mfi.validbox();
 	warpx_compute_E_nodal(bx.loVect(), bx.hiVect(),
-                              phi[mfi].dataPtr(), Ex[mfi].dataPtr(),
-                              Ey[mfi].dataPtr(), Ez[mfi].dataPtr(), dx);
+                              (*phi[lev])[mfi].dataPtr(), 
+                              (*E[lev][0])[mfi].dataPtr(),
+                              (*E[lev][1])[mfi].dataPtr(), 
+                              (*E[lev][2])[mfi].dataPtr(), dx);
     }
 }
 

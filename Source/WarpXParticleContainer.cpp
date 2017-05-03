@@ -156,9 +156,12 @@ WarpXParticleContainer::AddNParticles (int n, const Real* x, const Real* y, cons
     amrex::Print() << "Total number of particles added: " << npart_after - npart_before << "\n";
 }
 
-std::unique_ptr<MultiFab>
-WarpXParticleContainer::Deposit (int lev, bool local)
+void
+WarpXParticleContainer::DepositCharge (Array<std::unique_ptr<MultiFab> >& rho, bool local)
 {
+
+    const int lev = 0;
+
     const auto& gm = m_gdb->Geom(lev);
     const auto& ba = m_gdb->ParticleBoxArray(lev);
     const auto& dm = m_gdb->DistributionMap(lev);
@@ -168,9 +171,6 @@ WarpXParticleContainer::Deposit (int lev, bool local)
     const Real* dx  = gm.CellSize();
     const Real* plo = gm.ProbLo();
     const int ng = 1;
-
-    auto rho = std::unique_ptr<MultiFab>(new MultiFab(nba,dm,1,ng));
-    rho->setVal(0.0, ng);
 
     for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
     {
@@ -182,17 +182,14 @@ WarpXParticleContainer::Deposit (int lev, bool local)
         const long np  = pti.numParticles();
 
 	// Data on the grid
-	FArrayBox& rhofab = (*rho)[pti];
+	FArrayBox& rhofab = (*rho[0])[pti];
 
         warpx_deposit_cic(particles.data(), nstride, np,
                           wp.data(), &this->charge, 
                           rhofab.dataPtr(), box.loVect(), box.hiVect(), plo, dx);
-				
     }
 
-    if (!local) rho->SumBoundary(gm.periodicity());
-    
-    return rho;
+    if (!local) rho[0]->SumBoundary(gm.periodicity());
 }
 
 std::unique_ptr<MultiFab>
@@ -274,8 +271,30 @@ Real WarpXParticleContainer::sumParticleCharge(int lev, bool local) {
 }
 
 void
+WarpXParticleContainer::PushXES (int lev,
+                                 Real dt)
+{
+    BL_PROFILE("WPC::PushXES()");
+
+    for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
+    {
+        auto& particles = pti.GetArrayOfStructs();
+        int nstride = particles.dataShape().first;           
+        const long np  = pti.numParticles();
+        
+        auto& attribs = pti.GetAttribs();        
+        auto& uxp = attribs[PIdx::ux];
+        auto& uyp = attribs[PIdx::uy];
+        auto& uzp = attribs[PIdx::uz];
+        
+        warpx_push_leapfrog_positions(particles.data(), nstride, np,
+                                      uxp.data(), uyp.data(), uzp.data(), &dt);
+    }
+}
+
+void
 WarpXParticleContainer::PushX (int lev,
-                                  Real dt)
+                               Real dt)
 {
     BL_PROFILE("WPC::PushX()");
     BL_PROFILE_VAR_NS("WPC::PushX::Copy", blp_copy);

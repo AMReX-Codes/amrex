@@ -87,19 +87,25 @@ PhysicalParticleContainer::AddParticles (int lev, Box part_box) {
 }
 
 void
-PhysicalParticleContainer::FieldGatherES (int lev,
-                                          const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez)
+PhysicalParticleContainer::
+FieldGatherES (const amrex::Array<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E)
 {
 
+    const int lev = 0;
     const auto& gm = m_gdb->Geom(lev);
+    const auto& ba = m_gdb->ParticleBoxArray(lev);
+
+    BoxArray nba = ba;
+    nba.surroundingNodes();
+
     const Real* dx  = gm.CellSize();
     const Real* plo = gm.ProbLo();
     const int ng = 1;
 
-    BL_ASSERT(OnSameGrids(lev,Ex));
+    BL_ASSERT(OnSameGrids(lev, *E[lev][0]));
 
     for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti) {
-        const Box& box = pti.validbox();
+        const Box& box = nba[pti];
 
         // Particle structs
         const auto& particles = pti.GetArrayOfStructs();
@@ -113,9 +119,9 @@ PhysicalParticleContainer::FieldGatherES (int lev,
         auto& Ezp = attribs[PIdx::Ez];
         
         // Data on the grid
-        const FArrayBox& exfab = Ex[pti];
-        const FArrayBox& eyfab = Ey[pti];
-        const FArrayBox& ezfab = Ez[pti];
+        const FArrayBox& exfab = (*E[lev][0])[pti];
+        const FArrayBox& eyfab = (*E[lev][1])[pti];
+        const FArrayBox& ezfab = (*E[lev][2])[pti];
         
         Exp.assign(np,0.0);
         Eyp.assign(np,0.0);
@@ -205,6 +211,83 @@ PhysicalParticleContainer::FieldGather (int lev,
 	       &ll4symtry, &l_lower_order_in_v,
 	       &lvect_fieldgathe, &WarpX::field_gathering_algo);
         }
+    }
+}
+
+void
+PhysicalParticleContainer::EvolveES (const Array<std::array<std::unique_ptr<MultiFab>, 3> >& E,
+                                           Array<std::unique_ptr<MultiFab> >& rho,
+                                     Real t, Real dt)
+{
+    BL_PROFILE("PPC::EvolveES()");
+
+    const int lev = 0;
+
+    const auto& gm = m_gdb->Geom(lev);
+    const auto& ba = m_gdb->ParticleBoxArray(lev);
+    const Real* dx  = gm.CellSize();
+    const Real* plo = gm.ProbLo();
+    const int ng = 1;
+
+    BoxArray nba = ba;
+    nba.surroundingNodes();
+
+    BL_ASSERT(OnSameGrids(lev, *rho[lev]));
+
+    {
+	for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
+	{
+	    const Box& box = nba[pti];
+
+            // Particle structs
+            auto& particles = pti.GetArrayOfStructs();
+            int nstride = particles.dataShape().first;           
+            const long np  = pti.numParticles();
+
+            // Particle attribues
+            auto& attribs = pti.GetAttribs();
+            auto&  wp = attribs[PIdx::w];
+            auto& uxp = attribs[PIdx::ux];
+            auto& uyp = attribs[PIdx::uy];
+            auto& uzp = attribs[PIdx::uz];
+            auto& Exp = attribs[PIdx::Ex];
+            auto& Eyp = attribs[PIdx::Ey];
+            auto& Ezp = attribs[PIdx::Ez];
+
+	    // Data on the grid
+	    const FArrayBox& exfab  = (*E[lev][0])[pti];
+	    const FArrayBox& eyfab  = (*E[lev][1])[pti];
+	    const FArrayBox& ezfab  = (*E[lev][2])[pti];
+	    FArrayBox&       rhofab = (*rho[lev])[pti];
+
+	    Exp.assign(np,0.0);
+	    Eyp.assign(np,0.0);
+	    Ezp.assign(np,0.0);
+
+	    //
+	    // Field Gather
+	    //
+            warpx_interpolate_cic(particles.data(), nstride, np, 
+                                  Exp.data(), Eyp.data(), Ezp.data(),
+                                  exfab.dataPtr(), eyfab.dataPtr(), ezfab.dataPtr(),
+                                  box.loVect(), box.hiVect(), plo, dx);
+
+	    //
+	    // Particle Push
+	    //
+            warpx_push_leapfrog(particles.data(), nstride, np,
+                                uxp.data(), uyp.data(), uzp.data(),
+                                Exp.data(), Eyp.data(), Ezp.data(),
+                                &this->charge, &this->mass, &dt);
+
+	    //
+	    // Charge Deposition
+	    // xxxxx this part needs to be thread safe if we have OpenMP over tiles
+	    //
+            warpx_deposit_cic(particles.data(), nstride, np,
+                              wp.data(), &this->charge,
+                              rhofab.dataPtr(), box.loVect(), box.hiVect(), plo, dx);           
+	}
     }
 }
 

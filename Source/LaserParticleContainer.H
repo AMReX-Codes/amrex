@@ -16,6 +16,10 @@ public:
 
     virtual void InitData () override;
 
+    virtual void EvolveES (const amrex::Array<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E,
+                                 amrex::Array<std::unique_ptr<amrex::MultiFab> >& rho, 
+                           amrex::Real t, amrex::Real dt) { BL_ASSERT(false); }
+
     virtual void Evolve (int lev,
 			 const amrex::MultiFab&, const amrex::MultiFab&, const amrex::MultiFab&,
 			 const amrex::MultiFab&, const amrex::MultiFab&, const amrex::MultiFab&,

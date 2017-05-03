@@ -23,6 +23,8 @@ WarpX::Evolve(int numsteps) {
 void
 WarpX::EvolveES(int numsteps) {
 
+    amrex::Print() << "Running in electrostatic mode \n";
+
     BL_PROFILE("WarpX::EvolveES()");
     Real cur_time = t_new[0];
     static int last_plot_file_step = 0;
@@ -37,29 +39,64 @@ WarpX::EvolveES(int numsteps) {
 
     bool max_time_reached = false;
 
+    // nodal storage for the electrostatic case
+    const int num_levels = max_level + 1;
+    Array<std::unique_ptr<MultiFab> > rhoNodal(num_levels);
+    Array<std::unique_ptr<MultiFab> > phiNodal(num_levels); 
+    Array<std::array<std::unique_ptr<MultiFab>, 3> > eFieldNodal(num_levels);  
+    const int ng = 1;
+    for (int lev = 0; lev <= max_level; lev++) {
+        BoxArray nba = boxArray(lev);
+        nba.surroundingNodes();
+        rhoNodal[lev].reset(new MultiFab(nba, dmap[lev], 1, ng));
+        phiNodal[lev].reset(new MultiFab(nba, dmap[lev], 1, ng));
+
+        eFieldNodal[lev][0].reset(new MultiFab(nba, dmap[lev], 1, ng));
+        eFieldNodal[lev][1].reset(new MultiFab(nba, dmap[lev], 1, ng));
+        eFieldNodal[lev][2].reset(new MultiFab(nba, dmap[lev], 1, ng));
+    }
+
+    const int lev = 0;
     for (int step = istep[0]; step < numsteps_max && cur_time < stop_time; ++step)
     {
-
+        
 	// Start loop on time steps
         amrex::Print() << "\nSTEP " << step+1 << " starts ...\n";
-
+        
         if (ParallelDescriptor::NProcs() > 1) {
-           if (okToRegrid(step)) RegridBaseLevel();
+            if (okToRegrid(step)) RegridBaseLevel();
+        }
+        
+        // At initialization, particles have p^{n-1/2} and x^{n-1/2}.           
+        // Beyond one step, particles have p^{n-1/2} and x^{n}.
+        
+        if (is_synchronized) {
+            // on first step, push X by 0.5*dt
+            mypc->PushXES(lev, 0.5*dt[lev]);
+            mypc->Redistribute();
+            mypc->DepositCharge(rhoNodal);
+            computePhi(rhoNodal, phiNodal);
+            phiNodal[0]->FillBoundary(Geom(0).periodicity());
+            computeE(eFieldNodal, phiNodal);
+            is_synchronized = false;
         }
 
-	// Advance level 0 by dt
-	const int lev = 0;
-        {
-            // replace with ES PIC loop.
-        }
+        // Evolve particles to p^{n+1/2} and x^{n+1}
+        mypc->EvolveES(eFieldNodal, rhoNodal, cur_time, dt[lev]);
+        
+        if (cur_time + dt[0] >= stop_time - 1.e-3*dt[0] || step == numsteps_max-1) {
+            // on last step, push by only 0.5*dt to synchronize all at n+1/2
+            mypc->PushXES(lev, -0.5*dt[lev]);
+            is_synchronized = true;
+        } 
 
-	cur_time += dt[0];
+        mypc->Redistribute();
+        
+        ++istep[0];
+        
+        cur_time += dt[0];
 
         bool to_make_plot = (plot_int > 0) && ((step+1) % plot_int == 0);
-
-        // no need to move j in electrostatic mode
-        bool move_j = false;
-	MoveWindow(move_j);
 
         amrex::Print()<< "STEP " << step+1 << " ends." << " TIME = " << cur_time
                       << " DT = " << dt[0] << "\n";
@@ -70,11 +107,12 @@ WarpX::EvolveES(int numsteps) {
 	}
 
 	if (to_make_plot) {
-            WarpX::FillBoundaryE( lev, false );
             // replace with ES field Gather
-            mypc->FieldGather(lev,
-                              *Efield[lev][0],*Efield[lev][1],*Efield[lev][2],
-                              *Bfield[lev][0],*Bfield[lev][1],*Bfield[lev][2]);
+            mypc->DepositCharge(rhoNodal);
+            computePhi(rhoNodal, phiNodal);
+            phiNodal[0]->FillBoundary(Geom(0).periodicity());
+            computeE(eFieldNodal, phiNodal);
+            mypc->FieldGatherES(eFieldNodal);
 	    last_plot_file_step = step+1;
 	    WritePlotFile();
 	}
@@ -109,7 +147,7 @@ WarpX::EvolveEM (int numsteps)
     Real cur_time = t_new[0];
     static int last_plot_file_step = 0;
     static int last_check_file_step = 0;
-
+    
     int numsteps_max;
     if (numsteps < 0) {  // Note that the default argument is numsteps = -1
         numsteps_max = max_step;

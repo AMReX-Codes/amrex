@@ -129,8 +129,9 @@ extern "C"
 			  BL_FORT_FAB_ARG_3D(Ez),
 			  const amrex::Real* dx);
 
-//  These functions are used in electrostatic mode
-
+///
+/// These functions are used in electrostatic mode.
+///
     void warpx_compute_E_nodal (const int* lo, const int* hi,
                                 const amrex::Real* phi,
                                 amrex::Real* Ex, amrex::Real* Ey, 

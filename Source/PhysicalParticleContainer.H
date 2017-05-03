@@ -17,10 +17,7 @@ public:
 
     virtual void InitData () override;
 
-    virtual void FieldGatherES(int lev,
-                               const amrex::MultiFab& Ex,
-                               const amrex::MultiFab& Ey,
-                               const amrex::MultiFab& Ez) override;
+    virtual void FieldGatherES(const amrex::Array<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E) override;
 
     virtual void FieldGather(int lev,
                              const amrex::MultiFab& Ex,
@@ -29,6 +26,10 @@ public:
                              const amrex::MultiFab& Bx,
                              const amrex::MultiFab& By,
                              const amrex::MultiFab& Bz) override;
+
+    virtual void EvolveES (const amrex::Array<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E,
+                                 amrex::Array<std::unique_ptr<amrex::MultiFab> >& rho, 
+                           amrex::Real t, amrex::Real dt) override;
 
     virtual void Evolve (int lev,
 			 const amrex::MultiFab& Ex,

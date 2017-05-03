@@ -60,12 +60,15 @@ public:
 
     virtual void InitData () = 0;
 
-    virtual void FieldGatherES (int lev,
-                                const amrex::MultiFab& Ex, const amrex::MultiFab& Ey, const amrex::MultiFab& Ez) {}
+    virtual void FieldGatherES (const amrex::Array<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E) {}
 
     virtual void FieldGather (int lev,
                               const amrex::MultiFab& Ex, const amrex::MultiFab& Ey, const amrex::MultiFab& Ez,
                               const amrex::MultiFab& Bx, const amrex::MultiFab& By, const amrex::MultiFab& Bz) {}
+
+    virtual void EvolveES (const amrex::Array<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E,
+                                 amrex::Array<std::unique_ptr<amrex::MultiFab> >& rho, 
+                           amrex::Real t, amrex::Real dt) = 0;
 
     virtual void Evolve (int lev,
 			 const amrex::MultiFab& Ex, const amrex::MultiFab& Ey, const amrex::MultiFab& Ez,
@@ -76,9 +79,24 @@ public:
 
     void AllocData ();
 
+    ///
+    /// This pushes the particle positions by one half time step.
+    /// It is used to desynchronize the particles after initializaton
+    /// or when restarting from a checkpoint.
+    /// This is the electrostatic version of the particle push.
+    /// 
+    void PushXES (int lev, amrex::Real dt);
+
+    ///
+    /// This pushes the particle positions by one half time step.
+    /// It is used to desynchronize the particles after initializaton
+    /// or when restarting from a checkpoint.
+    /// This is the electromagnetic version of the particle push.
+    /// 
     void PushX (int lev, amrex::Real dt);
 
-    std::unique_ptr<amrex::MultiFab> Deposit(int lev, bool local = false);
+    void DepositCharge(amrex::Array<std::unique_ptr<amrex::MultiFab> >& rho,
+                       bool local = false);
     std::unique_ptr<amrex::MultiFab> GetChargeDensity(int lev, bool local = false);
 
     amrex::Real sumParticleCharge(int lev, bool local = false);

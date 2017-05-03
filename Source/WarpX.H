@@ -143,11 +143,11 @@ private:
     void EvolveES(int numsteps);
 
     // compute the gravitational potential from rho
-    void computePhi(const amrex::Array<std::unique_ptr<amrex::MultiFab> >& rho, 
+    void computePhi(amrex::Array<std::unique_ptr<amrex::MultiFab> >& rho, 
                     amrex::Array<std::unique_ptr<amrex::MultiFab> >& phi) const;
 
-    void computeE(amrex::MultiFab& Ex, amrex::MultiFab& Ey, 
-                  amrex::MultiFab& Ez, const amrex::MultiFab& phi) const;
+    void computeE(amrex::Array<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E,
+                  const amrex::Array<std::unique_ptr<amrex::MultiFab> >& phi) const;
 
     void ReadParameters ();
 
