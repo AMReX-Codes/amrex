@@ -54,8 +54,10 @@ namespace amrex
     }
 
     //need this to store coarse fluxes because FluxRegister is weird.
-    EBFluxFactory fact(m_eblgCoar.getEBISL());
-    m_coarseRegister.define(m_eblgCoar.getDBL(),m_eblgCoar.getDM(), m_nComp, 0, MFInfo(), fact);
+    EBFluxFactory factCoar(m_eblgCoar.getEBISL());
+    EBFluxFactory factFine(m_eblgFine.getEBISL());
+    m_coarRegister.define(m_eblgCoar.getDBL(),m_eblgCoar.getDM(), m_nComp, 0, MFInfo(), factCoar);
+    m_fineRegister.define(m_eblgFine.getDBL(),m_eblgFine.getDM(), m_nComp, 0, MFInfo(), factFine);
 
     int fake_lev_num = 1;
     IntVect refRat = m_refRat*IntVect::Unit;
@@ -72,7 +74,8 @@ namespace amrex
   {
     BL_PROFILE("EBFastFR::setToZero");
     m_nonEBFluxReg.setVal(0.);
-    EBLevelDataOps::setVal(m_coarseRegister, 0.0);
+    EBLevelDataOps::setVal(m_coarRegister, 0.0);
+    EBLevelDataOps::setVal(m_fineRegister, 0.0);
   }
 /*******************/
   void
@@ -84,7 +87,7 @@ namespace amrex
   {
     BL_PROFILE("EBFastFR::incrementCoarse");
     int idir = a_coarFlux.direction();
-    m_coarseRegister[a_coarMFI][idir].plus(a_coarFlux, isrc, idst, inco, a_scale);
+    m_coarRegister[a_coarMFI][idir].plus(a_coarFlux, isrc, idst, inco, a_scale);
   }
   void
   EBFastFR::
@@ -95,9 +98,7 @@ namespace amrex
   {
     BL_PROFILE("EBFastFR::incrementFine");
     int idir = a_fineFlux.direction();
-    const FArrayBox& fineReg = (const FArrayBox&)(a_fineFlux.getSingleValuedFAB());
-    int whichFAB = a_fineMFI.LocalIndex();
-    m_nonEBFluxReg.FineAdd(fineReg, idir, whichFAB, isrc, idst, inco, a_scale);
+    m_fineRegister[a_fineMFI][idir].plus(a_fineFlux, isrc, idst, inco, a_scale);
   }
 /*******************/
   void
@@ -107,12 +108,19 @@ namespace amrex
          int isrc, int idst, int inco)
   {
     BL_PROFILE("EBFastFR::reflux");
+    //boxlib's flux register does not scale finefaces/coarseface for you.
+    int numCoarFacesPerFine = D_TERM(1, *m_refRat, *m_refRat);
+    //boxlib's flux register also does not do the sign change for you
+    Real coarScale = -numCoarFacesPerFine;
+    Real fineScale = 1;
     for(int idir = 0; idir < SpaceDim; idir++)
     {
-      shared_ptr<MultiFab> regCoarFlux;
-      EBLevelDataOps::aliasIntoMF(regCoarFlux, m_coarseRegister, idir, m_eblgFine);
+      shared_ptr<MultiFab> regCoarFlux, regFineFlux;
+      EBLevelDataOps::aliasIntoMF(regCoarFlux, m_coarRegister, idir, m_eblgCoar);
+      EBLevelDataOps::aliasIntoMF(regFineFlux, m_fineRegister, idir, m_eblgFine);
       //scales already added in
-      m_nonEBFluxReg.CrseInit(*regCoarFlux, idir, isrc, idst, inco);
+      m_nonEBFluxReg.CrseInit(*regCoarFlux, idir, isrc, idst, inco, coarScale);
+      m_nonEBFluxReg.FineAdd (*regFineFlux, idir, isrc, idst, inco, fineScale);
     }
     shared_ptr<MultiFab> regCoarSoln; 
     EBLevelDataOps::aliasIntoMF(regCoarSoln, a_uCoar, m_eblgCoar);

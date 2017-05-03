@@ -55,6 +55,9 @@ namespace amrex
     int ngrow               = a_ebfData.nGrow();
     int nvar                = a_ebfData.nComp();
     BoxArray ba             = a_eblg.getDBL();
+    IntVect indexType = IntVect::Zero;
+    indexType[a_faceDir] = 1;
+    BoxArray baFace = convert(ba, indexType);
     DistributionMapping  dm = a_eblg.getDM();
     Array<Real*> ptrs(a_ebfData.local_size(), NULL);
     for(MFIter mfi(ba, dm); mfi.isValid(); ++mfi)
@@ -63,7 +66,7 @@ namespace amrex
       int ibox = mfi.LocalIndex();
       ptrs[ibox] = (Real*)(bf.dataPtr(0));
     }
-    a_regData = shared_ptr<MultiFab>(new MultiFab(ba, dm, nvar, ngrow, ptrs));
+    a_regData = shared_ptr<MultiFab>(new MultiFab(baFace, dm, nvar, ngrow, ptrs));
   }
   //-----------------------------------------------------------------------
   void

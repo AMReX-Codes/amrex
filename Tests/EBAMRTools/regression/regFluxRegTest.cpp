@@ -45,8 +45,13 @@ namespace amrex
     }
                      
     FluxRegister fluxReg(baFine, dmFine, refRat*IntVect::Unit, 1, 1);
-    Real scale = 1.0;
+    Real dxCoar = 1.0/bCoar.size()[0];
+    Real dxFine = dxCoar/refRat;
+
+    Real scale = 1.0/dxCoar;
     Real fluxVal = 4.77;
+    Real coarArea = D_TERM(1.0, *dxCoar, *dxCoar);
+    Real fineArea = D_TERM(1.0, *dxFine, *dxFine);
     for (int idir = 0; idir < SpaceDim; idir++)
     {
       IntVect indexType = IntVect::Zero;
@@ -63,10 +68,12 @@ namespace amrex
       {
         fluxFine[mfi].setVal(fluxVal);
       }
-      fluxReg.CrseInit(fluxCoar, idir, 0, 0, 1, -1.0);  //the -1 is default.
-      fluxReg.FineAdd (fluxCoar, idir, 0, 0, 1,  1.0);
+      //boxlib's flux register does not scale finefaces/coarseface for you.
+      fluxReg.CrseInit(fluxCoar, idir, 0, 0, 1, -coarArea);  //the -1 is default.
+      fluxReg.FineAdd (fluxFine, idir, 0, 0, 1,  fineArea);
     }
-
+    Real ratio = coarArea/fineArea;
+    amrex::Print() << "ratio ="  << ratio << endl;
     RealVect rvlo = RealVect::Zero;
     RealVect rvhi = RealVect::Unit;
     RealBox rb(rvlo.dataPtr(), rvhi.dataPtr());
