@@ -46,6 +46,10 @@
 #define mgt_add_rh_nodal_2d       MGT_ADD_RH_NODAL_2D
 #define mgt_add_rh_nodal_3d       MGT_ADD_RH_NODAL_3D
 
+#define mgt_set_rh_nodal_1d       MGT_SET_RH_NODAL_1D
+#define mgt_set_rh_nodal_2d       MGT_SET_RH_NODAL_2D
+#define mgt_set_rh_nodal_3d       MGT_SET_RH_NODAL_3D
+
 #define mgt_set_uu_1d             MGT_SET_UU_1D
 #define mgt_get_uu_1d             MGT_GET_UU_1D
 #define mgt_set_uu_2d             MGT_SET_UU_2D
@@ -186,6 +190,10 @@
 #define mgt_add_rh_nodal_2d       mgt_add_rh_nodal_2d_
 #define mgt_add_rh_nodal_3d       mgt_add_rh_nodal_3d_
 
+#define mgt_set_rh_nodal_1d       mgt_set_rh_nodal_1d_
+#define mgt_set_rh_nodal_2d       mgt_set_rh_nodal_2d_
+#define mgt_set_rh_nodal_3d       mgt_set_rh_nodal_3d_
+
 #define mgt_set_uu_1d             mgt_set_uu_1d_
 #define mgt_get_uu_1d             mgt_get_uu_1d_
 #define mgt_set_uu_2d             mgt_set_uu_2d_
@@ -323,6 +331,10 @@
 #define mgt_add_rh_nodal_1d       mgt_add_rh_nodal_1d__
 #define mgt_add_rh_nodal_2d       mgt_add_rh_nodal_2d__
 #define mgt_add_rh_nodal_3d       mgt_add_rh_nodal_3d__
+
+#define mgt_set_rh_nodal_1d       mgt_set_rh_nodal_1d__
+#define mgt_set_rh_nodal_2d       mgt_set_rh_nodal_2d__
+#define mgt_set_rh_nodal_3d       mgt_set_rh_nodal_3d__
 
 #define mgt_set_uu_1d             mgt_set_uu_1d__
 #define mgt_get_uu_1d             mgt_get_uu_1d__
@@ -481,9 +493,13 @@ extern "C"
 		     const int* lo, const int* hi);
   
   void mgt_add_rh_nodal_1d(const int* lev, const int* n, const amrex_real* rh, 
-		     const int* plo, const int* phi, 
-		     const int* lo, const int* hi,
-                     const amrex_real* rhmax);
+                           const int* plo, const int* phi, 
+                           const int* lo, const int* hi,
+                           const amrex_real* rhmax);
+
+  void mgt_set_rh_nodal_1d(const int* lev, const int* n, const amrex_real* rh, 
+                           const int* plo, const int* phi, 
+                           const int* lo, const int* hi);
   
   void mgt_get_uu_1d(const int* lev, const int* n, amrex_real* uu, 
 		     const int* plo, const int* phi, 
@@ -559,10 +575,14 @@ extern "C"
 		     const int* lo, const int* hi);
 
   void mgt_add_rh_nodal_2d(const int* lev, const int* n, const amrex_real* rh, 
-		     const int* plo, const int* phi, 
-		     const int* lo, const int* hi,
-                     const amrex_real* rhmax);
+                           const int* plo, const int* phi, 
+                           const int* lo, const int* hi,
+                           const amrex_real* rhmax);
   
+  void mgt_set_rh_nodal_2d(const int* lev, const int* n, const amrex_real* rh, 
+                           const int* plo, const int* phi, 
+                           const int* lo, const int* hi);
+
   void mgt_get_uu_2d(const int* lev, const int* n, amrex_real* uu, 
 		     const int* plo, const int* phi, 
 		     const int* lo, const int* hi);
@@ -650,10 +670,14 @@ extern "C"
 		     const int* lo, const int* hi);
 
   void mgt_add_rh_nodal_3d(const int* lev, const int* n, const amrex_real* rh, 
-		     const int* plo, const int* phi, 
-		     const int* lo, const int* hi,
-                     const amrex_real* rhmax);
+                           const int* plo, const int* phi, 
+                           const int* lo, const int* hi,
+                           const amrex_real* rhmax);
   
+  void mgt_set_rh_nodal_3d(const int* lev, const int* n, const amrex_real* rh, 
+                           const int* plo, const int* phi, 
+                           const int* lo, const int* hi);
+
   void mgt_get_uu_3d(const int* lev, const int* n, amrex_real* uu, 
 		     const int* plo, const int* phi, 
 		     const int* lo, const int* hi);

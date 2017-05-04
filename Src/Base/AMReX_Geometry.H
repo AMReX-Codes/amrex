@@ -13,7 +13,6 @@
 #endif
 
 #include <AMReX_CoordSys.H>
-#include <AMReX_MultiFab.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_RealBox.H>
 #include <AMReX_Periodicity.H>
@@ -26,6 +25,10 @@ namespace amrex {
 * RECTANGULAR problem domains.  Since the problem domain is RECTANGULAR,
 * periodicity is meaningful.
 */
+
+class MultiFab;
+class DistributionMapping;
+class BoxArray;
 
 class Geometry
     :
@@ -48,7 +51,7 @@ public:
 
     static void Finalize ();
     //! Read static values from ParmParse database.
-    static void Setup (const RealBox* rb = 0, int coord = -1, int* is_per = 0);
+    static void Setup (const RealBox* rb = nullptr, int coord = -1, int* is_per = nullptr);
     //! Set the rectangular domain after using default constructor.
     void define (const Box& dom, const RealBox* rb = 0, int coord = -1, int* is_per = 0);
     //! Returns the problem domain.
@@ -92,7 +95,7 @@ public:
     */
     void GetDLogA (MultiFab&       dloga,
                    const BoxArray& grds,
-                    const DistributionMapping& dm,
+                   const DistributionMapping& dm,
                    int             dir,
                    int             grow) const;
     /**

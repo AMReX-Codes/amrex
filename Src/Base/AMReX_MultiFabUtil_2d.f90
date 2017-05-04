@@ -1,3 +1,28 @@
+subroutine amrex_fort_avg_nd_to_cc (lo, hi, ncomp, &
+     cc, ccl1, ccl2, cch1, cch2, &
+     nd, ndl1, ndl2, ndh1, ndh2 ) bind(c)
+
+  use amrex_fort_module, only : amrex_real
+  implicit none
+  integer          :: lo(2),hi(2), ncomp
+  integer          :: ccl1, ccl2, cch1, cch2
+  integer          :: ndl1, ndl2, ndh1, ndh2
+  real(amrex_real) :: cc(ccl1:cch1, ccl2:cch2, ncomp)
+  real(amrex_real) :: nd(ndl1:ndh1, ndl2:ndh2, ncomp)
+
+  ! Local variables
+  integer          :: i,j,n
+  
+  do n = 1, ncomp
+     do j=lo(2),hi(2)
+        do i=lo(1),hi(1)
+           cc(i,j,n) = 0.25_amrex_real * ( nd(i,j,n) + nd(i+1,j,n) + nd(i,j+1,n) + nd(i+1,j+1,n) )
+        end do
+     end do
+  end do
+
+end subroutine amrex_fort_avg_nd_to_cc
+
 ! ***************************************************************************************
 ! subroutine bl_avg_eg_to_cc 
 ! ***************************************************************************************

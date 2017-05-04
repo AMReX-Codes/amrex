@@ -8,41 +8,10 @@
 #include <AMReX_BLassert.H>
 #include <AMReX_FArrayBox.H>
 #include <AMReX_FabArray.H>
+#include <AMReX_Periodicity.H>
 
 namespace amrex
 {
-
-    class MultiFabCopyDescriptor;
-
-    typedef FabArrayId MultiFabId;
-
-
-    void InterpAddBox (MultiFabCopyDescriptor& fabCopyDesc,
-		       BoxList*                returnUnfilledBoxes,
-		       Array<FillBoxId>&       returnedFillBoxIds,
-		       const Box&              subbox,
-		       MultiFabId              faid1,
-		       MultiFabId              faid2,
-		       Real                    t1,
-		       Real                    t2,
-		       Real                    t,
-		       int                     src_comp,
-		       int                     dest_comp,
-		       int                     num_comp,
-		       bool                    extrap);
-
-    void InterpFillFab (MultiFabCopyDescriptor& fabCopyDesc,
-			const Array<FillBoxId>& fillBoxIds,
-			MultiFabId              faid1,
-			MultiFabId              faid2,
-			FArrayBox&              dest,
-			Real                    t1,
-			Real                    t2,
-			Real                    t,
-			int                     src_comp,
-			int                     dest_comp,
-			int                     num_comp,
-			bool                    extrap);
 
 /**
  * \brief 
@@ -86,6 +55,20 @@ public:
               int                        ngrow,
 	      const MFInfo&              info = MFInfo());
 
+    /**
+     * \brief Make an alias MultiFab. maketype must be
+     * amrex::make_alias.  scomp is the starting component of the
+     * alias and ncomp is the number of components in the new aliasing
+     * MultiFab.
+     */
+    MultiFab (const MultiFab& rhs, MakeType maketype, int scomp, int ncomp);
+
+    /**
+     * \brief Make an ALIAS MultiFab given an array of Real pointers.
+     */
+    MultiFab (const BoxArray& ba, const DistributionMapping& dm, int ncomp, int ngrow,
+              const Array<Real*>& p);
+
     virtual ~MultiFab () override;
 
     MultiFab (MultiFab&& rhs) noexcept = default;
@@ -98,7 +81,8 @@ public:
 			 const DistributionMapping& dm,
 			 int                        nvar,
 			 int                        ngrow,
-			 const MFInfo&              info = MFInfo()) override;
+			 const MFInfo&              info = MFInfo(),
+                         const FabFactory<FArrayBox>& factory = DefaultFabFactory<FArrayBox>()) override;
 
     void operator= (const Real& r);
     //
@@ -161,6 +145,11 @@ public:
     Array<Real> norm0 (const Array<int>& comps, int nghost = 0, bool local = false) const;
     /**
     * \brief Returns the L1 norm of component "comp" over the MultiFab.
+    * No ghost cells are used.  This version has no double counting for nodal data.
+    */
+    Real norm1 (int comp, const Periodicity& period) const;
+    /**
+    * \brief Returns the L1 norm of component "comp" over the MultiFab.
     * ngrow ghost cells are used.
     */
     Real norm1 (int comp = 0, int ngrow = 0, bool local = false) const;
@@ -174,6 +163,11 @@ public:
     * No ghost cells are used.
     */
     Real norm2 (int comp = 0) const;
+    /**
+    * \brief Returns the L2 norm of component "comp" over the MultiFab.
+    * No ghost cells are used. This version has no double counting for nodal data.
+    */
+    Real norm2 (int comp, const Periodicity& period) const;
     /**
     * \brief Returns the L2 norm of each component of "comps" over the MultiFab.
     * No ghost cells are used.
@@ -519,11 +513,16 @@ public:
 
     void SumBoundary (int scomp, int ncomp, const Periodicity& period = Periodicity::NonPeriodic());
 
+    /**
+     * \brief Return a mask indicating how many duplicates are in each point.
+     */
+    std::unique_ptr<MultiFab> OverlapMask (const Periodicity& period = Periodicity::NonPeriodic()) const;
+    
     static void Initialize ();
     static void Finalize ();
 
     virtual void AddProcsToComp (int ioProcNumSCS, int ioProcNumAll,
-                                 int scsMyId, MPI_Comm scsComm);
+                                 int scsMyId, MPI_Comm scsComm) override;
 
 private:
     //
@@ -531,22 +530,6 @@ private:
     //
     typedef FabArrayBase::CopyComTagsContainer CopyComTagsContainer;
     typedef FabArrayBase::MapOfCopyComTagContainers MapOfCopyComTagContainers;
-};
-
-class MultiFabCopyDescriptor
-    :
-    public FabArrayCopyDescriptor<FArrayBox>
-{
-  public:
-
-    MultiFabCopyDescriptor ();
-
-    ~MultiFabCopyDescriptor ();
-
-    MultiFabCopyDescriptor (const MultiFabCopyDescriptor&) = delete;
-    MultiFabCopyDescriptor& operator= (const MultiFabCopyDescriptor&) = delete;
-
-    MultiFabId RegisterMultiFab (MultiFab* mf) { return RegisterFabArray(mf); }
 };
 
 }

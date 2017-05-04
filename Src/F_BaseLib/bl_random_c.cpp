@@ -69,6 +69,12 @@ extern "C"
 	BLRng_restore(*eng, name);
     }
 
+  void bl_rng_copy_engine_c (BLRngEngine* eng_dst, BLRngEngine* eng_src)
+    {
+      *eng_dst = *eng_src;
+    }
+
+
     //
     // uniform real distribution
     //

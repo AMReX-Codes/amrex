@@ -10,7 +10,9 @@
 #include <AMReX_IndexType.H>
 #include <AMReX_Utility.H>
 
+
 namespace amrex {
+
 
 const IntVect&
 IntVect::TheUnitVector ()
@@ -25,6 +27,32 @@ IntVect::TheZeroVector ()
     static const IntVect Zero(D_DECL(0,0,0));
     return Zero;
 }
+
+//
+// Static object initialization.
+//
+int IntVect::InitStatics()
+{
+  IntVect* pz = const_cast<IntVect*>( &IntVect::Zero );
+  *pz = IntVect(D_DECL(0,0,0));
+
+  IntVect* pu = const_cast<IntVect*>( &IntVect::Unit );
+  *pu = IntVect(D_DECL(1,1,1));
+
+  // No danger of IntVect::Zero and Unit not having been allocated, as ARM section
+  // 3.4 says "The initialization of nonlocal static objects in a translation unit
+  // is done before the first use of any function...defined in that translation
+  // unit."
+  //
+  // Had to go through the const_cast stuff because it's nice to be able to declare
+  // IntVect::Zero and IntVect::Unit as const.
+
+  return 0; // arbitrary
+}
+
+const IntVect IntVect::Zero;
+const IntVect IntVect::Unit;
+static int s_dummyForIntVectCpp( IntVect::InitStatics() );
 
 const IntVect&
 IntVect::TheDimensionVector (int d)
@@ -102,7 +130,7 @@ min (const IntVect& p1,
 
 IntVect
 max (const IntVect& p1,
-	     const IntVect& p2)
+     const IntVect& p2)
 {
     IntVect p(p1);
     p.max(p2);
@@ -126,8 +154,8 @@ scale (const IntVect& p, int s)
 
 IntVect
 reflect (const IntVect& a,
-		 int            ref_ix,
-		 int            idir)
+         int            ref_ix,
+         int            idir)
 {
     BL_ASSERT(idir >= 0 && idir < BL_SPACEDIM);
     IntVect b(a);
@@ -143,7 +171,7 @@ diagShift (const IntVect& p, int s)
 
 IntVect
 coarsen (const IntVect& p,
-		 int            s)
+         int            s)
 {
     BL_ASSERT(s > 0);
     IntVect v = p;
@@ -153,7 +181,7 @@ coarsen (const IntVect& p,
 
 IntVect
 coarsen (const IntVect& p1,
-		 const IntVect& p2)
+         const IntVect& p2)
 {
     IntVect v = p1;
     v.coarsen(p2);
@@ -171,10 +199,12 @@ IntVect&
 IntVect::coarsen (const IntVect& p)
 {
     BL_ASSERT(p.allGT(IntVect::TheZeroVector()));
-    for (int i = 0; i <BL_SPACEDIM; ++i)
-    {
-        const int s = p.vect[i];
-        vect[i] = ((vect[i]<0) ? -abs(vect[i]+1)/s-1 : vect[i]/s);
+    if (p != 1) {
+        for (int i = 0; i <BL_SPACEDIM; ++i)
+        {
+            const int s = p.vect[i];
+            vect[i] = ((vect[i]<0) ? -abs(vect[i]+1)/s-1 : vect[i]/s);
+        }
     }
     return *this;
 }

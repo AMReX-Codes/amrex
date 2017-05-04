@@ -60,7 +60,7 @@ AmrLevel::get_derive_lst ()
 
 void
 AmrLevel::manual_tags_placement (TagBoxArray&    tags,
-                                 Array<IntVect>& bf_lev)
+                                 const Array<IntVect>& bf_lev)
 {}
 
 AmrLevel::AmrLevel ()

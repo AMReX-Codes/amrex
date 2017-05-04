@@ -309,7 +309,7 @@ public:
     * the list of tagged points.  Default implementation does nothing.
     */
     virtual void manual_tags_placement (TagBoxArray&    tags,
-                                        Array<IntVect>& bf_lev);
+                                        const Array<IntVect>& bf_lev);
     //! Modify list of variables to be plotted
     virtual void setPlotVariables ();
     //! Modify list of variables to be plotted

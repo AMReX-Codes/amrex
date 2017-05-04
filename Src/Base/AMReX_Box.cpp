@@ -211,53 +211,12 @@ Box::grow (Orientation face,
     return *this;
 }
 
-bool
-Box::numPtsOK (long& N) const
-{
-    BL_ASSERT(ok());
-
-    N = length(0);
-
-    for (int i = 1; i < BL_SPACEDIM; i++)
-    {
-        if (length(i) == 0)
-        {
-            N = 0;
-            return true;
-        }
-        else if (N <= std::numeric_limits<long>::max()/length(i))
-        {
-            N *= length(i);
-        }
-        else
-        {
-            //
-            // The return value N will be undefined.
-            //
-            return false;
-        }
-    }
-
-    return true;
-}
-
 long
 Box::numPts () const
 {
-    long result;
-    if (!numPtsOK(result))
-    {
-	amrex::Print(Print::AllProcs) << "Bad box: " << *this << "\n";
-        amrex::Error("Arithmetic overflow in Box::numPts()");
-    }
-    return result;
-}
-
-bool
-Box::numPtsOK () const
-{
-    long ignore;
-    return numPtsOK(ignore);
+    return D_TERM( static_cast<long>(length(0)), 
+                  *static_cast<long>(length(1)),
+                  *static_cast<long>(length(2)));
 }
 
 double
@@ -268,52 +227,12 @@ Box::d_numPts () const
     return D_TERM(double(length(0)), *double(length(1)), *double(length(2)));
 }
 
-bool
-Box::volumeOK (long& N) const
-{
-    BL_ASSERT(ok());
-
-    N = length(0)-btype[0];
-
-    for (int i = 1; i < BL_SPACEDIM; i++)
-    {
-        long diff = (length(i)-btype[i]);
-
-        if (diff == 0)
-        {
-            N = 0;
-            return true;
-        }
-        else if (N <= std::numeric_limits<long>::max()/diff)
-        {
-            N *= diff;
-        }
-        else
-        {
-            //
-            // The return value of N will be undefined.
-            //
-            return false;
-        }
-    }
-
-    return true;
-}
-
 long
 Box::volume () const
 {
-    long result;
-    if (!volumeOK(result))
-        amrex::Error("Arithmetic overflow in Box::volume()");
-    return result;
-}
-
-bool
-Box::volumeOK () const
-{
-    long ignore;
-    return volumeOK(ignore);
+    return D_TERM( static_cast<long>(length(0)-btype[0]), 
+                  *static_cast<long>(length(1)-btype[1]),
+                  *static_cast<long>(length(2)-btype[2]));
 }
 
 Box&
@@ -395,12 +314,14 @@ refine (const Box&     b,
 Box&
 Box::refine (const IntVect& ref_ratio)
 {
-    IntVect shft(IntVect::TheUnitVector());
-    shft -= btype.ixType();
-    smallend *= ref_ratio;
-    bigend += shft;
-    bigend *= ref_ratio;
-    bigend -= shft;
+    if (ref_ratio != 1) {
+        IntVect shft(IntVect::TheUnitVector());
+        shft -= btype.ixType();
+        smallend *= ref_ratio;
+        bigend += shft;
+        bigend *= ref_ratio;
+        bigend -= shft;
+    }
     return *this;
 }
 

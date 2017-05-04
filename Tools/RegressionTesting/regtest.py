@@ -58,6 +58,57 @@ def find_build_dirs(tests):
 
     return build_dirs
 
+
+
+
+def cmake_setup(suite):
+    "Setup for cmake"
+
+    #--------------------------------------------------------------------------
+    # build AMReX with CMake
+    #--------------------------------------------------------------------------
+    # Configure Amrex
+    builddir, installdir = suite.cmake_config( name       = "AMReX",
+                                               path       = suite.amrex_dir,
+                                               configOpts = suite.amrex_cmake_opts,
+                                               install    = 1)
+
+    suite.amrex_install_dir = installdir
+
+    # Define additional env variable to point to AMReX install location
+    env = {'AMREX_HOME':installdir}
+
+
+    # Install
+    rc, comp_string = suite.cmake_build( name   = "AMReX",
+                                         target = 'install',
+                                         path   = builddir,
+                                         env    = env)
+
+    # If AMReX build fails, issue a catastrophic error
+    if not rc == 0:
+        errstr  = "\n \nERROR! AMReX build failed \n"
+        errstr += "Check {}AMReX.cmake.log for more information.".format(suite.full_test_dir)
+        sys.exit(errstr)
+
+
+    #--------------------------------------------------------------------------
+    # Configure main suite with CMake: build will be performed only when
+    # needed for tests
+    #--------------------------------------------------------------------------
+    builddir, installdir = suite.cmake_config( name       = suite.suiteName,
+                                               path       = suite.source_dir,
+                                               configOpts = suite.source_cmake_opts,
+                                               install    = 0,
+                                               env        = env)
+
+    suite.source_build_dir = builddir
+
+    return rc
+
+
+
+
 def copy_benchmarks(old_full_test_dir, full_web_dir, test_list, bench_dir, log):
     """ copy the last plotfile output from each test in test_list
         into the benchmark directory.  Also copy the diffDir, if
@@ -88,6 +139,8 @@ def copy_benchmarks(old_full_test_dir, full_web_dir, test_list, bench_dir, log):
                     tg.extractall()
                 except:
                     log.fail("ERROR extracting tarfile")
+                else:
+                    tg.close()
                 idx = p.rfind(".tgz")
                 p = p[:idx]
 
@@ -300,6 +353,13 @@ def test_suite(argv):
 
 
     #--------------------------------------------------------------------------
+    # Setup Cmake if needed
+    #--------------------------------------------------------------------------
+    if ( suite.useCmake ):
+        cmake_setup(suite)
+
+
+    #--------------------------------------------------------------------------
     # main loop over tests
     #--------------------------------------------------------------------------
     for test in test_list:
@@ -327,6 +387,9 @@ def test_suite(argv):
         else:
             bdir = suite.source_dir + test.buildDir
 
+        # # For cmake builds, there is only one build dir
+        # if ( suite.useCmake ): bdir = suite.source_build_dir
+
         os.chdir(bdir)
 
         if test.reClean == 1:
@@ -343,12 +406,14 @@ def test_suite(argv):
         coutfile="{}/{}.make.out".format(output_dir, test.name)
 
         if suite.sourceTree == "C_Src" or test.testSrcTree == "C_Src":
+            if ( suite.useCmake ) :
+                comp_string, rc = suite.build_test_cmake(test=test, outfile=coutfile)
+            else:
+                comp_string, rc = suite.build_c(test=test, outfile=coutfile)
 
-            comp_string, rc = suite.build_c(test=test, outfile=coutfile)
             executable = test_util.get_recent_filename(bdir, "", ".ex")
 
         elif suite.sourceTree == "F_Src" or test.testSrcTree == "F_Src":
-
             comp_string, rc = suite.build_f(test=test, outfile=coutfile)
             executable = test_util.get_recent_filename(bdir, "main", ".exe")
 
@@ -471,8 +536,9 @@ def test_suite(argv):
         if test.customRunCmd is not None:
             base_cmd = test.customRunCmd
 
-        suite.run_test(test, base_cmd)
 
+
+        suite.run_test(test, base_cmd)
 
         # if it is a restart test, then rename the final output file and
         # restart the test
@@ -499,7 +565,6 @@ def test_suite(argv):
                 suite.copy_backtrace(test)
                 report.report_single_test(suite, test, test_list, failure_msg=error_msg)
                 continue
-
             orig_last_file = "orig_{}".format(last_file)
             shutil.move(last_file, orig_last_file)
 
@@ -584,8 +649,13 @@ def test_suite(argv):
 
                         suite.log.log("benchmark file: {}".format(bench_file))
 
-                        command = "{} -n 0 {} {}".format(
-                            suite.tools["fcompare"], bench_file, output_file)
+                        if suite.useCmake:
+                            command = "{} -n 0 --infile1 {} --infile2 {}".format(
+                                suite.tools["plt_compare_diff_grids"], bench_file, output_file)
+                        else:
+                            command = "{} -n 0 {} {}".format(
+                                suite.tools["fcompare"], bench_file, output_file)
+                            
                         sout, serr, ierr = test_util.run(command,
                                                          outfile="{}.compare.out".format(test.name), store_command=True)
 
@@ -714,10 +784,11 @@ def test_suite(argv):
                         suite.log.warn("unable to open the job_info file")
                     else:
                         job_file_lines = jif.readlines()
-
+                        jif.close()
+                        
                         if suite.summary_job_info_field1 is not "":
                             for l in job_file_lines:
-                                if l.find(suite.summary_job_info_field1) >= 0 and l.find(":") >= 0:
+                                if l.startswith(suite.summary_job_info_field1.strip()) and l.find(":") >= 0:
                                     _tmp = l.split(":")[1]
                                     idx = _tmp.rfind("/") + 1
                                     test.job_info_field1 = _tmp[idx:]
@@ -725,7 +796,7 @@ def test_suite(argv):
 
                         if suite.summary_job_info_field2 is not "":
                             for l in job_file_lines:
-                                if l.find(suite.summary_job_info_field2) >= 0 and l.find(":") >= 0:
+                                if l.startswith(suite.summary_job_info_field2.strip()) and l.find(":") >= 0:
                                     _tmp = l.split(":")[1]
                                     idx = _tmp.rfind("/") + 1
                                     test.job_info_field2 = _tmp[idx:]
@@ -733,7 +804,7 @@ def test_suite(argv):
 
                         if suite.summary_job_info_field3 is not "":
                             for l in job_file_lines:
-                                if l.find(suite.summary_job_info_field3) >= 0 and l.find(":") >= 0:
+                                if l.startswith(suite.summary_job_info_field3.strip()) and l.find(":") >= 0:
                                     _tmp = l.split(":")[1]
                                     idx = _tmp.rfind("/") + 1
                                     test.job_info_field3 = _tmp[idx:]
@@ -768,9 +839,21 @@ def test_suite(argv):
 
                         shutil.copy(tool, os.getcwd())
 
-                        option = eval("suite.{}".format(test.analysisMainArgs))
-                        test_util.run("{} {} {}".format(os.path.basename(test.analysisRoutine),
-                                                        option, output_file))
+                        if test.analysisMainArgs == "":
+                            option = ""
+                        else:
+                            option = eval("suite.{}".format(test.analysisMainArgs))
+
+                        cmd_name = os.path.basename(test.analysisRoutine)
+                        cmd_string = "./{} {} {}".format(cmd_name, option, output_file)
+                        _, _, rc = test_util.run(cmd_string)
+
+                        if rc == 0:
+                            analysis_successful = True
+                        else:
+                            analysis_successful = False
+
+                        test.compare_successful = test.compare_successful and analysis_successful
 
             else:
                 if test.doVis or test.analysisRoutine != "":
@@ -864,6 +947,13 @@ def test_suite(argv):
             suite.log.log("creating problem test report ...")
             report.report_single_test(suite, test, test_list)
 
+    #--------------------------------------------------------------------------
+    # Clean Cmake build and install directories if needed
+    #--------------------------------------------------------------------------
+    if ( suite.useCmake ):
+        suite.cmake_clean("AMReX", suite.amrex_dir)
+        suite.cmake_clean(suite.suiteName, suite.source_dir)
+
 
     #--------------------------------------------------------------------------
     # write the report for this instance of the test suite
@@ -903,7 +993,9 @@ def test_suite(argv):
     # external program
     name = "source"
     if suite.sourceTree in ["AMReX", "amrex"]: name = "AMReX"
-    branch = suite.repos[name].branch_wanted.strip("\"")
+    branch = ''
+    if suite.repos[name].branch_wanted:
+        branch = suite.repos[name].branch_wanted.strip("\"")
 
     with open("{}/suite.{}.status".format(suite.webTopDir, branch), "w") as f:
         f.write("{}; num failed: {}; source hash: {}".format(
@@ -940,4 +1032,5 @@ def test_suite(argv):
 
 
 if __name__ == "__main__":
-    test_suite(sys.argv[1:])
+    n = test_suite(sys.argv[1:])
+    sys.exit(n)

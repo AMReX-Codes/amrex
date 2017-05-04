@@ -44,6 +44,14 @@ public:
 	       int                        ngrow,
 	       const MFInfo&              info = MFInfo());
 
+    /**
+     * \brief Make an alias iMultiFab. maketype must be
+     * amrex::make_alias.  scomp is the starting component of the
+     * alias and ncomp is the number of components in the new aliasing
+     * iMultiFab.
+     */
+    iMultiFab (const iMultiFab& rhs, MakeType maketype, int scomp, int ncomp);
+
     virtual ~iMultiFab () override = default;
     
     iMultiFab (iMultiFab&& rhs) noexcept = default;
@@ -328,7 +336,8 @@ public:
 			 const DistributionMapping& dm,
 			 int                        nvar,
 			 int                        ngrow,
-			 const MFInfo&              info = MFInfo()) override;
+			 const MFInfo&              info = MFInfo(),
+                         const FabFactory<IArrayBox>& factory = DefaultFabFactory<IArrayBox>()) override;
 
     const IArrayBox& operator[] (int K) const;
 

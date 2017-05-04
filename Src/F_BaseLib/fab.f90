@@ -4,6 +4,7 @@ module fab_module
   use bl_types
   use bl_mem_stat_module
   use box_module
+  use amrex_fabio_c_module
 
   implicit none
 
@@ -253,14 +254,6 @@ contains
 
     integer :: rc
 
-    interface
-       subroutine val_is_inf(v, res)
-         use bl_types
-         real(dp_t), intent(in)  :: v
-         integer,    intent(out) :: res
-       end subroutine val_is_inf
-    end interface
-
     r = .false.
 
     call val_is_inf(val,rc)
@@ -279,14 +272,6 @@ contains
     logical                :: r
 
     integer :: rc
-
-    interface
-       subroutine val_is_nan(v, res)
-         use bl_types
-         real(dp_t), intent(in)  :: v
-         integer,    intent(out) :: res
-       end subroutine val_is_nan
-    end interface
 
     r = .false.
 
@@ -308,15 +293,6 @@ contains
 
     integer                  :: sz, rc
     real(kind=dp_t), pointer :: pp(:,:,:,:)
-
-    interface
-       subroutine fab_contains_nan(dptr, count, res)
-         use bl_types
-         integer,    intent(in)  :: count
-         real(dp_t), intent(in)  :: dptr(count)
-         integer,    intent(out) :: res
-       end subroutine fab_contains_nan
-    end interface
 
     if ( (c+nc-1) > fb%nc ) call bl_error('contains_nan_c: not enough components')
 
@@ -348,15 +324,6 @@ contains
     integer                      :: sz, rc, i, j, k, n, idx, lo(4), hi(4)
     real(kind=dp_t), allocatable :: d(:)
     real(kind=dp_t), pointer     :: pp(:,:,:,:)
-
-    interface
-       subroutine fab_contains_nan(dptr, count, res)
-         use bl_types
-         integer,    intent(in)  :: count
-         real(dp_t), intent(in)  :: dptr(count)
-         integer,    intent(out) :: res
-       end subroutine fab_contains_nan
-    end interface
 
     r = .false.
 
@@ -400,15 +367,6 @@ contains
     integer                  :: sz, rc
     real(kind=dp_t), pointer :: pp(:,:,:,:)
 
-    interface
-       subroutine fab_contains_inf(dptr, count, res)
-         use bl_types
-         integer,    intent(in)  :: count
-         real(dp_t), intent(in)  :: dptr(count)
-         integer,    intent(out) :: res
-       end subroutine fab_contains_inf
-    end interface
-
     if ( (c+nc-1) > fb%nc ) call bl_error('contains_inf_c: not enough components')
 
     r = .false.
@@ -439,15 +397,6 @@ contains
     integer                      :: sz, rc, i, j, k, n, idx, lo(4), hi(4)
     real(kind=dp_t), allocatable :: d(:)
     real(kind=dp_t), pointer     :: pp(:,:,:,:)
-
-    interface
-       subroutine fab_contains_inf(dptr, count, res)
-         use bl_types
-         integer,    intent(in)  :: count
-         real(dp_t), intent(in)  :: dptr(count)
-         integer,    intent(out) :: res
-       end subroutine fab_contains_inf
-    end interface
 
     r = .false.
 
@@ -865,11 +814,11 @@ contains
   subroutine fab_build(fb, bx, nc, ng, nodal, alloc, stencil)
     use iso_c_binding, only : c_loc, c_ptr, c_size_t
     interface
-       subroutine real_array_init (p, n) bind(c)
+       subroutine amrex_real_array_init (p, n) bind(c)
          use, intrinsic :: iso_c_binding
          type(c_ptr), value :: p
          integer(kind=c_size_t), intent(in), value :: n
-       end subroutine real_array_init
+       end subroutine amrex_real_array_init
     end interface
     type(fab), intent(out) :: fb
     type(box), intent(in)  :: bx
@@ -911,7 +860,7 @@ contains
              cp = c_loc(fb%p(lo(1),lo(2),lo(3),1))
           end if
           csz = size(fb%p)
-          call real_array_init(cp, csz)
+          call amrex_real_array_init(cp, csz)
        end if
        call mem_stats_alloc(fab_ms, volume(fb, all=.TRUE.))
        if ( (fab_ms%num_alloc-fab_ms%num_dealloc) > fab_high_water_mark ) then

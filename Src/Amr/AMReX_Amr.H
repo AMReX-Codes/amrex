@@ -333,7 +333,7 @@ protected:
 
     virtual void ErrorEst (int lev, TagBoxArray& tags, Real time, int ngrow) override;
     virtual BoxArray GetAreaNotToTag (int lev) override;
-    virtual void ManualTagsPlacement (int lev, TagBoxArray& tags, Array<IntVect>& bf_lev) override;
+    virtual void ManualTagsPlacement (int lev, TagBoxArray& tags, const Array<IntVect>& bf_lev) override;
 
     //! Do a single timestep on level L.
     virtual void timeStep (int  level,

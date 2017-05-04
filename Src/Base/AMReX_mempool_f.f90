@@ -13,6 +13,36 @@ module mempool_module
   integer (kind=c_size_t), parameter, private :: szr = c_real
   integer (kind=c_size_t), parameter, private :: szi = 4_c_size_t
 
+  interface amrex_allocate
+     module procedure bl_allocate_r1
+     module procedure bl_allocate_r2
+     module procedure bl_allocate_r3
+     module procedure bl_allocate_r4
+     module procedure bl_allocate_r5
+     module procedure bl_allocate_r6
+     module procedure bl_allocate_i1
+     module procedure bl_allocate_i2
+     module procedure bl_allocate_i3
+     module procedure bl_allocate_r1_v
+     module procedure bl_allocate_r2_v
+     module procedure bl_allocate_r3_v
+     module procedure bl_allocate_r1_vc
+     module procedure bl_allocate_r2_vc
+     module procedure bl_allocate_r3_vc
+  end interface
+
+  interface amrex_deallocate
+     module procedure bl_deallocate_r1
+     module procedure bl_deallocate_r2
+     module procedure bl_deallocate_r3
+     module procedure bl_deallocate_r4
+     module procedure bl_deallocate_r5
+     module procedure bl_deallocate_r6
+     module procedure bl_deallocate_i1
+     module procedure bl_deallocate_i2
+     module procedure bl_deallocate_i3
+  end interface
+
   interface bl_allocate
      module procedure bl_allocate_r1
      module procedure bl_allocate_r2
@@ -44,22 +74,22 @@ module mempool_module
   end interface
 
   interface 
-     function mempool_alloc (nbytes) result(p) bind(c)
+     function amrex_mempool_alloc (nbytes) result(p) bind(c)
        use, intrinsic :: iso_c_binding
        type(c_ptr) :: p
        integer(kind=c_size_t), intent(in), value :: nbytes
-     end function mempool_alloc
+     end function amrex_mempool_alloc
      
-     subroutine mempool_free (p) bind(c)
+     subroutine amrex_mempool_free (p) bind(c)
        use, intrinsic :: iso_c_binding
        type(c_ptr), value :: p
-     end subroutine mempool_free
+     end subroutine amrex_mempool_free
 
-     subroutine real_array_init (p, n) bind(c)
+     subroutine amrex_real_array_init (p, n) bind(c)
        use, intrinsic :: iso_c_binding
        type(c_ptr), value :: p
        integer(kind=c_size_t), intent(in), value :: n
-     end subroutine real_array_init
+     end subroutine amrex_real_array_init
   end interface
 
 contains
@@ -73,8 +103,8 @@ contains
     real(c_real), pointer :: fp(:)
     n1 = max(hi1-lo1+1, 1)
     sz = int(n1,c_size_t)
-    cp = mempool_alloc(szr*sz)
-    call real_array_init(cp, sz)
+    cp = amrex_mempool_alloc(szr*sz)
+    call amrex_real_array_init(cp, sz)
     call c_f_pointer(cp, fp, shape=(/n1/))
     call shift_bound_d1(fp, lo1, a)
 !    a(lo1:) => fp  ! some compilers may not support this
@@ -97,8 +127,8 @@ contains
     n1 = max(hi1-lo1+1, 1)
     n2 = max(hi2-lo2+1, 1)
     sz = int(n1,c_size_t) * int(n2,c_size_t) 
-    cp = mempool_alloc(szr*sz)
-    call real_array_init(cp, sz)
+    cp = amrex_mempool_alloc(szr*sz)
+    call amrex_real_array_init(cp, sz)
     call c_f_pointer(cp, fp, shape=(/n1,n2/))
     call shift_bound_d2(fp, lo1, lo2, a)
 !    a(lo1:,lo2:) => fp
@@ -122,8 +152,8 @@ contains
     n2 = max(hi2-lo2+1, 1)
     n3 = max(hi3-lo3+1, 1)
     sz = int(n1,c_size_t) * int(n2,c_size_t) * int(n3,c_size_t)
-    cp = mempool_alloc(szr*sz)
-    call real_array_init(cp, sz)
+    cp = amrex_mempool_alloc(szr*sz)
+    call amrex_real_array_init(cp, sz)
     call c_f_pointer(cp, fp, shape=(/n1,n2,n3/))
     call shift_bound_d3(fp, lo1, lo2, lo3, a)
 !    a(lo1:,lo2:,lo3:) => fp
@@ -149,8 +179,8 @@ contains
     n4 = max(hi4-lo4+1, 1)
     sz = int(n1,c_size_t) * int(n2,c_size_t) * int(n3,c_size_t) &
          * int(n4,c_size_t)
-    cp = mempool_alloc(szr*sz)
-    call real_array_init(cp, sz)
+    cp = amrex_mempool_alloc(szr*sz)
+    call amrex_real_array_init(cp, sz)
     call c_f_pointer(cp, fp, shape=(/n1,n2,n3,n4/))
     call shift_bound_d4(fp, lo1, lo2, lo3, lo4, a)
 !    a(lo1:,lo2:,lo3:,lo4:) => fp
@@ -177,8 +207,8 @@ contains
     n5 = max(hi5-lo5+1, 1)
     sz = int(n1,c_size_t) * int(n2,c_size_t) * int(n3,c_size_t) &
          * int(n4,c_size_t) * int(n5,c_size_t)
-    cp = mempool_alloc(szr*sz)
-    call real_array_init(cp, sz)
+    cp = amrex_mempool_alloc(szr*sz)
+    call amrex_real_array_init(cp, sz)
     call c_f_pointer(cp, fp, shape=(/n1,n2,n3,n4,n5/))
     call shift_bound_d5(fp, lo1, lo2, lo3, lo4, lo5, a)
 !    a(lo1:,lo2:,lo3:,lo4:,lo5:) => fp
@@ -206,8 +236,8 @@ contains
     n6 = max(hi6-lo6+1, 1)
     sz = int(n1,c_size_t) * int(n2,c_size_t) * int(n3,c_size_t) &
          * int(n4,c_size_t) * int(n5,c_size_t) * int(n6,c_size_t)
-    cp = mempool_alloc(szr*sz)
-    call real_array_init(cp, sz)
+    cp = amrex_mempool_alloc(szr*sz)
+    call amrex_real_array_init(cp, sz)
     call c_f_pointer(cp, fp, shape=(/n1,n2,n3,n4,n5,n6/))
     call shift_bound_d6(fp, lo1, lo2, lo3, lo4, lo5, lo6, a)
 !    a(lo1:,lo2:,lo3:,lo4:,lo5:,lo6) => fp
@@ -229,8 +259,8 @@ contains
     real(c_real), pointer :: fp(:)
     n = hi - lo + 1
     sz = int(n(1),c_size_t)
-    cp = mempool_alloc(szr*sz)
-    call real_array_init(cp, sz)
+    cp = amrex_mempool_alloc(szr*sz)
+    call amrex_real_array_init(cp, sz)
     call c_f_pointer(cp, fp, shape=n)
     call shift_bound_d1_v(fp, lo, a)
   contains
@@ -251,8 +281,8 @@ contains
     real(c_real), pointer :: fp(:,:)
     n = hi - lo + 1
     sz = int(n(1),c_size_t) * int(n(2),c_size_t)
-    cp = mempool_alloc(szr*sz)
-    call real_array_init(cp, sz)
+    cp = amrex_mempool_alloc(szr*sz)
+    call amrex_real_array_init(cp, sz)
     call c_f_pointer(cp, fp, shape=n)
     call shift_bound_d2_v(fp, lo, a)
   contains
@@ -273,8 +303,8 @@ contains
     real(c_real), pointer :: fp(:,:,:)
     n = hi - lo + 1
     sz = int(n(1),c_size_t) * int(n(2),c_size_t) * int(n(3),c_size_t)
-    cp = mempool_alloc(szr*sz)
-    call real_array_init(cp, sz)
+    cp = amrex_mempool_alloc(szr*sz)
+    call amrex_real_array_init(cp, sz)
     call c_f_pointer(cp, fp, shape=n)
     call shift_bound_d3_v(fp, lo, a)
   contains
@@ -296,8 +326,8 @@ contains
     n(1:1) = hi - lo + 1
     n(2) = ncomp
     sz = int(n(1),c_size_t) * int(n(2),c_size_t)
-    cp = mempool_alloc(szr*sz)
-    call real_array_init(cp, sz)
+    cp = amrex_mempool_alloc(szr*sz)
+    call amrex_real_array_init(cp, sz)
     call c_f_pointer(cp, fp, shape=n)
     call shift_bound_d1_vc(fp, lo, a)
   contains
@@ -319,8 +349,8 @@ contains
     n(1:2) = hi - lo + 1
     n(3) = ncomp
     sz = int(n(1),c_size_t) * int(n(2),c_size_t) * int(n(3),c_size_t)
-    cp = mempool_alloc(szr*sz)
-    call real_array_init(cp, sz)
+    cp = amrex_mempool_alloc(szr*sz)
+    call amrex_real_array_init(cp, sz)
     call c_f_pointer(cp, fp, shape=n)
     call shift_bound_d2_vc(fp, lo, a)
   contains
@@ -343,8 +373,8 @@ contains
     n(4) = ncomp
     sz = int(n(1),c_size_t) * int(n(2),c_size_t) * int(n(3),c_size_t) &
          * int(n(4),c_size_t)
-    cp = mempool_alloc(szr*sz)
-    call real_array_init(cp, sz)
+    cp = amrex_mempool_alloc(szr*sz)
+    call amrex_real_array_init(cp, sz)
     call c_f_pointer(cp, fp, shape=n)
     call shift_bound_d3_vc(fp, lo, a)
   contains
@@ -362,7 +392,7 @@ contains
     type(c_ptr) :: cp
     lo = lbound(a)
     cp = c_loc(a(lo(1)))
-    call mempool_free(cp)
+    call amrex_mempool_free(cp)
     a => Null()
   end subroutine bl_deallocate_r1
 
@@ -372,7 +402,7 @@ contains
     type(c_ptr) :: cp
     lo = lbound(a)
     cp = c_loc(a(lo(1),lo(2)))
-    call mempool_free(cp)
+    call amrex_mempool_free(cp)
     a => Null()
   end subroutine bl_deallocate_r2
 
@@ -382,7 +412,7 @@ contains
     type(c_ptr) :: cp
     lo = lbound(a)
     cp = c_loc(a(lo(1),lo(2),lo(3)))
-    call mempool_free(cp)
+    call amrex_mempool_free(cp)
     a => Null()
   end subroutine bl_deallocate_r3
 
@@ -392,7 +422,7 @@ contains
     type(c_ptr) :: cp
     lo = lbound(a)
     cp = c_loc(a(lo(1),lo(2),lo(3),lo(4)))
-    call mempool_free(cp)
+    call amrex_mempool_free(cp)
     a => Null()
   end subroutine bl_deallocate_r4
 
@@ -402,7 +432,7 @@ contains
     type(c_ptr) :: cp
     lo = lbound(a)
     cp = c_loc(a(lo(1),lo(2),lo(3),lo(4),lo(5)))
-    call mempool_free(cp)
+    call amrex_mempool_free(cp)
     a => Null()
   end subroutine bl_deallocate_r5
 
@@ -412,7 +442,7 @@ contains
     type(c_ptr) :: cp
     lo = lbound(a)
     cp = c_loc(a(lo(1),lo(2),lo(3),lo(4),lo(5),lo(6)))
-    call mempool_free(cp)
+    call amrex_mempool_free(cp)
     a => Null()
   end subroutine bl_deallocate_r6
 
@@ -425,7 +455,7 @@ contains
     integer, pointer :: fp(:)
     n1 = max(hi1-lo1+1, 1)
     sz = szi * int(n1,c_size_t)
-    cp = mempool_alloc(sz)
+    cp = amrex_mempool_alloc(sz)
     call c_f_pointer(cp, fp, shape=(/n1/))
     call shift_bound_i1(fp, lo1, a)
 !    a(lo1:) => fp  ! some compilers may not support this
@@ -448,7 +478,7 @@ contains
     n1 = max(hi1-lo1+1, 1)
     n2 = max(hi2-lo2+1, 1)
     sz = szi * int(n1,c_size_t) * int(n2,c_size_t)
-    cp = mempool_alloc(sz)
+    cp = amrex_mempool_alloc(sz)
     call c_f_pointer(cp, fp, shape=(/n1,n2/))
     call shift_bound_i2(fp, lo1, lo2, a)
 !    a(lo1:,lo2:) => fp
@@ -472,7 +502,7 @@ contains
     n2 = max(hi2-lo2+1, 1)
     n3 = max(hi3-lo3+1, 1)
     sz = szi * int(n1,c_size_t) * int(n2,c_size_t) * int(n3,c_size_t)
-    cp = mempool_alloc(sz)
+    cp = amrex_mempool_alloc(sz)
     call c_f_pointer(cp, fp, shape=(/n1,n2,n3/))
     call shift_bound_i3(fp, lo1, lo2, lo3, a)
 !    a(lo1:,lo2:,lo3:) => fp
@@ -491,7 +521,7 @@ contains
     type(c_ptr) :: cp
     lo = lbound(a)
     cp = c_loc(a(lo(1)))
-    call mempool_free(cp)
+    call amrex_mempool_free(cp)
     a => Null()
   end subroutine bl_deallocate_i1
 
@@ -501,7 +531,7 @@ contains
     type(c_ptr) :: cp
     lo = lbound(a)
     cp = c_loc(a(lo(1),lo(2)))
-    call mempool_free(cp)
+    call amrex_mempool_free(cp)
     a => Null()
   end subroutine bl_deallocate_i2
 
@@ -511,7 +541,7 @@ contains
     type(c_ptr) :: cp
     lo = lbound(a)
     cp = c_loc(a(lo(1),lo(2),lo(3)))
-    call mempool_free(cp)
+    call amrex_mempool_free(cp)
     a => Null()
   end subroutine bl_deallocate_i3
 

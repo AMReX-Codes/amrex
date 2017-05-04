@@ -508,13 +508,14 @@ ParallelDescriptor::SetNProcsSidecars (const Array<int> &compRanksInAll,
       m_nProcs_sidecar.resize(nSidecars, nProcs_undefined);
       m_group_sidecar.resize(nSidecars, MPI_GROUP_NULL);
       m_comm_sidecar.resize(nSidecars, MPI_COMM_NULL);
-
-      BL_MPI_REQUIRE( MPI_Group_incl(m_group_all, compRanksInAll.size(), compRanksInAll.dataPtr(), &m_group_comp) );
+      int* castptr = (int*)compRanksInAll.dataPtr();
+      BL_MPI_REQUIRE( MPI_Group_incl(m_group_all, compRanksInAll.size(), castptr, &m_group_comp) );
       BL_MPI_REQUIRE( MPI_Comm_create(m_comm_all, m_group_comp, &m_comm_comp) );
 
       for(int i(0); i < sidecarRanksInAll.size(); ++i) {
 	if(sidecarRanksInAll[i].size() > 0) {
-          BL_MPI_REQUIRE( MPI_Group_incl(m_group_all, sidecarRanksInAll[i].size(), sidecarRanksInAll[i].dataPtr(),
+          int* castptr2 = (int*)sidecarRanksInAll[i].dataPtr();
+          BL_MPI_REQUIRE( MPI_Group_incl(m_group_all, sidecarRanksInAll[i].size(), castptr2,
 	                                 &m_group_sidecar[i]) );
           BL_MPI_REQUIRE( MPI_Comm_create(m_comm_all, m_group_sidecar[i], &m_comm_sidecar[i]) );
           BL_MPI_REQUIRE( MPI_Group_size(m_group_sidecar[i], &m_nProcs_sidecar[i]) );
