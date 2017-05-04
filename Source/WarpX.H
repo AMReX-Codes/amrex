@@ -151,8 +151,8 @@ private:
     /// Both rho and phi are assumed to be node-centered. This method is only used
     /// in electrostatic mode.
     ///
-    void computePhi(amrex::Array<std::unique_ptr<amrex::MultiFab> >& rho, 
-                    amrex::Array<std::unique_ptr<amrex::MultiFab> >& phi) const;
+    void computePhi(const amrex::Array<std::unique_ptr<amrex::MultiFab> >& rho, 
+                          amrex::Array<std::unique_ptr<amrex::MultiFab> >& phi) const;
 
     ///
     /// Compute the electric field in each direction by computing the gradient 

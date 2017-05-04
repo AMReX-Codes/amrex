@@ -16,7 +16,7 @@ contains
        dx) bind(c,name='warpx_compute_E')
     integer(c_int), intent(in) :: lo(3), hi(3), phlo(3), phhi(3), Exlo(3), Exhi(3),  &
          Eylo(3), Eyhi(3), Ezlo(3), Ezhi(3)
-    real(amrex_real), intent(in) :: dx(3)
+    real(amrex_real), intent(in)  :: dx(3)
     real(amrex_real), intent(in   ) :: phi(phlo(1):phhi(1),phlo(2):phhi(2),phlo(3):phhi(3))
     real(amrex_real), intent(inout) :: Ex (Exlo(1):Exhi(1),Exlo(2):Exhi(2),Exlo(3):Exhi(3))
     real(amrex_real), intent(inout) :: Ey (Eylo(1):Eyhi(1),Eylo(2):Eyhi(2),Eylo(3):Eyhi(3))
@@ -54,6 +54,7 @@ contains
 ! This routine computes the node-centered electric field given a node-centered phi.
 ! The gradient is computed using 2nd-order centered differences. It assumes the 
 ! Boundary conditions have already been set and that you have one row of ghost cells.
+! Note that this routine includes the minus sign in E = - grad phi.
 ! This routine is used when running WarpX in electrostatic mode.
 !
 ! Arguments:
@@ -79,9 +80,9 @@ contains
        do j = lo(2), hi(2)
           do i = lo(1), hi(1)
              
-             Ex(i,j,k) = fac(1) * (phi(i+1,j,k) - phi(i-1,j,k))
-             Ey(i,j,k) = fac(2) * (phi(i,j+1,k) - phi(i,j-1,k))
-             Ez(i,j,k) = fac(3) * (phi(i,j,k+1) - phi(i,j,k-1))
+             Ex(i,j,k) = fac(1) * (phi(i-1,j,k) - phi(i+1,j,k))
+             Ey(i,j,k) = fac(2) * (phi(i,j-1,k) - phi(i,j+1,k))
+             Ez(i,j,k) = fac(3) * (phi(i,j,k-1) - phi(i,j,k+1))
 
           end do
        end do

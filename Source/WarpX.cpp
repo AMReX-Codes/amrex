@@ -345,15 +345,28 @@ WarpX::LowerCorner(const Box& bx, int lev)
 #endif
 }
 
-void WarpX::computePhi(Array<std::unique_ptr<MultiFab> >& rho, 
-                       Array<std::unique_ptr<MultiFab> >& phi) const {    
+void WarpX::computePhi(const Array<std::unique_ptr<MultiFab> >& rho, 
+                             Array<std::unique_ptr<MultiFab> >& phi) const {    
+
+
+    int nlevs = rho.size();
+    BL_ASSERT(nlevs == 1);
+    const int lev = 0;
+
+    phi[lev]->setVal(0.0);
+
+    // temporary rhs for passing into solver
+    Array<std::unique_ptr<MultiFab> > rhs(nlevs);
+    rhs[lev].reset( new MultiFab(rho[lev]->boxArray(), dmap[lev], 1, 1) );
+    MultiFab::Copy(*rhs[lev], *rho[lev], 0, 0, 1, 1); 
+
+    // multiply by -1.0/ep_0
+    rhs[lev]->mult(-1.0/PhysConst::ep0, 1);
 
     // subtract off mean RHS for solvability
-    Real offset = mypc->sumParticleCharge(0);
-    offset /= Geom(0).ProbSize();
-    rho[0]->plus(-offset, 0, 1, 1);
-
-    phi[0]->setVal(0.0);
+    Real offset = mypc->sumParticleCharge();
+    offset *= (-1.0/PhysConst::ep0) / Geom(lev).ProbSize();
+    rhs[lev]->plus(-offset, 0, 1, 1);
 
     bool nodal = true;
     bool have_rhcc = false;
@@ -371,7 +384,7 @@ void WarpX::computePhi(Array<std::unique_ptr<MultiFab> >& rho,
     Real rel_tol = 1.0e-6;
     Real abs_tol = 1.0e-6;
 
-    solver.solve_nodal(GetArrOfPtrs(phi), GetArrOfPtrs(rho), rel_tol, abs_tol);
+    solver.solve_nodal(GetArrOfPtrs(phi), GetArrOfPtrs(rhs), rel_tol, abs_tol);
 }
 
 void WarpX::computeE(Array<std::array<std::unique_ptr<MultiFab>, 3> >& E,
