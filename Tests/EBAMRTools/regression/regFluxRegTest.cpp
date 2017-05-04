@@ -46,12 +46,11 @@ namespace amrex
                      
     FluxRegister fluxReg(baFine, dmFine, refRat*IntVect::Unit, 1, 1);
     Real dxCoar = 1.0/bCoar.size()[0];
-    Real dxFine = dxCoar/refRat;
-
     Real scale = 1.0/dxCoar;
     Real fluxVal = 4.77;
-    Real coarArea = D_TERM(1.0, *dxCoar, *dxCoar);
-    Real fineArea = D_TERM(1.0, *dxFine, *dxFine);
+    //all that matters is that the ratio is correct
+    Real coarArea = D_TERM(1.0, *refRat, *refRat);
+    Real fineArea = 1.0;
     for (int idir = 0; idir < SpaceDim; idir++)
     {
       IntVect indexType = IntVect::Zero;

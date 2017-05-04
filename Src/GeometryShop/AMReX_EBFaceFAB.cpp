@@ -91,10 +91,10 @@ namespace amrex
     BL_ASSERT(a_dstcomp + numcomp <= m_nComp);
                
     Box locRegionFace = a_src.m_regionFace & m_regionFace;
-    Box locRegion = a_src.m_region & m_region;
-    if (!locRegion.isEmpty())
+    //Box locRegion = a_src.m_region & m_region;
+    if (!locRegionFace.isEmpty())
     {
-      for(BoxIterator bit(locRegion); bit.ok(); ++bit)
+      for(BoxIterator bit(locRegionFace); bit.ok(); ++bit)
       {
         for(int icomp = 0; icomp < numcomp; icomp++)
         {
@@ -156,10 +156,10 @@ namespace amrex
     BL_ASSERT(a_dstcomp + numcomp <= m_nComp);
                
     Box locRegionFace = a_src.m_regionFace & m_regionFace;
-    Box locRegion = a_src.m_region & m_region;
-    if (!locRegion.isEmpty())
+    //Box locRegion = a_src.m_region & m_region;
+    if (!locRegionFace.isEmpty())
     {
-      for(BoxIterator bit(locRegion); bit.ok(); ++bit)
+      for(BoxIterator bit(locRegionFace); bit.ok(); ++bit)
       {
         for(int icomp = 0; icomp < numcomp; icomp++)
         {
@@ -218,10 +218,10 @@ namespace amrex
     }
                
     Box locRegionFace = a_src.m_regionFace & m_regionFace;
-    Box locRegion = a_src.m_region & m_region;
-    if (!locRegion.isEmpty())
+    //Box locRegion = a_src.m_region & m_region;
+    if (!locRegionFace.isEmpty())
     {
-      for(BoxIterator bit(locRegion); bit.ok(); ++bit)
+      for(BoxIterator bit(locRegionFace); bit.ok(); ++bit)
       {
         for(int icomp = 0; icomp < numcomp; icomp++)
         {
@@ -277,10 +277,10 @@ namespace amrex
     }
                
     Box locRegionFace = a_src.m_regionFace & m_regionFace;
-    Box locRegion = a_src.m_region & m_region;
-    if (!locRegion.isEmpty())
+    //Box locRegion = a_src.m_region & m_region;
+    if (!locRegionFace.isEmpty())
     {
-      for(BoxIterator bit(locRegion); bit.ok(); ++bit)
+      for(BoxIterator bit(locRegionFace); bit.ok(); ++bit)
       {
         for(int icomp = 0; icomp < numcomp; icomp++)
         {

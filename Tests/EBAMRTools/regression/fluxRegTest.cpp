@@ -196,11 +196,11 @@ namespace amrex
     retval = amrex::fluxRegTest();
     if(retval != 0)
     {
-      amrex::Print() << "normalization test failed with code " << retval << "\n";
+      amrex::Print() << "flux register test failed with code " << retval << "\n";
     }
     else
     {
-      amrex::Print() << "normalization test passed \n";
+      amrex::Print() << "flux register test passed \n";
     }
     amrex::Finalize();
     return retval;

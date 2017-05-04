@@ -132,9 +132,8 @@ namespace amrex
     //for the regular bits
     FluxRegister m_nonEBFluxReg;
 
-    //because FluxRegister is weird.
+    //because amrex::FluxRegister is weird, the fluxes at the coarse level have to be stored
     FabArray<EBFluxFAB> m_coarRegister;
-    FabArray<EBFluxFAB> m_fineRegister;
 
     bool m_isDefined;
 
