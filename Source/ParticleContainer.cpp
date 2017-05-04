@@ -172,11 +172,11 @@ MultiParticleContainer::GetChargeDensity (int lev, bool local)
 }
 
 amrex::Real
-MultiParticleContainer::sumParticleCharge (int lev, bool local)
+MultiParticleContainer::sumParticleCharge (bool local)
 {
-    amrex::Real total_charge = allcontainers[0]->sumParticleCharge(lev, local);
+    amrex::Real total_charge = allcontainers[0]->sumParticleCharge(local);
     for (unsigned i = 1, n = allcontainers.size(); i < n; ++i) {
-        total_charge += allcontainers[i]->sumParticleCharge(lev, local);
+        total_charge += allcontainers[i]->sumParticleCharge(local);
     }
     return total_charge;
 }

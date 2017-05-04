@@ -99,7 +99,11 @@ public:
                        bool local = false);
     std::unique_ptr<amrex::MultiFab> GetChargeDensity(int lev, bool local = false);
 
-    amrex::Real sumParticleCharge(int lev, bool local = false);
+    /// 
+    /// This returns the total charge for all the particles in this ParticleContainer.
+    /// This is needed when solving Poisson's equation with periodic boundary conditions.
+    ///
+    amrex::Real sumParticleCharge(bool local = false);
 
     void AddNParticles (int n, const amrex::Real* x, const amrex::Real* y, const amrex::Real* z,
 			const amrex::Real* vx, const amrex::Real* vy, const amrex::Real* vz,

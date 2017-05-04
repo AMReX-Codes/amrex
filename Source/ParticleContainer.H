@@ -36,15 +36,24 @@ public:
 
     void InitData ();
 
+    ///
+    /// Performs the field gather operation using the input field E, for all the species
+    /// in the MultiParticleContainer. This is the electrostatic version of the field gather.
+    ///
     void FieldGatherES (const amrex::Array<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E);
 
+    ///
+    /// Performs the field gather operation using the input fields E and B, for all the species
+    /// in the MultiParticleContainer. This is the electromagnetic version of the field gather.
+    ///
     void FieldGather (int lev,
                       const amrex::MultiFab& Ex, const amrex::MultiFab& Ey, const amrex::MultiFab& Ez,
                       const amrex::MultiFab& Bx, const amrex::MultiFab& By, const amrex::MultiFab& Bz); 
 
     ///
     /// This evolves all the particles by one PIC time step, including charge deposition, the 
-    /// field solve, and pushing the particles. This is the electrostatic version.
+    /// field solve, and pushing the particles, for all the species in the MultiParticleContainer.
+    /// This is the electrostatic version.
     ///
     void EvolveES (const amrex::Array<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E, 
                          amrex::Array<std::unique_ptr<amrex::MultiFab> >& rho, 
@@ -52,7 +61,8 @@ public:
    
     ///
     /// This evolves all the particles by one PIC time step, including current deposition, the
-    /// field solve, and pushing the particles. This is the electromagnetic version.
+    /// field solve, and pushing the particles, for all the species in the MultiParticleContainer.
+    /// This is the electromagnetic version.
     ///
     void Evolve (int lev,
 		 const amrex::MultiFab& Ex, const amrex::MultiFab& Ey, const amrex::MultiFab& Ez,
@@ -61,25 +71,38 @@ public:
                  amrex::Real t, amrex::Real dt);
 
     ///
-    /// This pushes the particle positions by one half time step.
-    /// It is used to desynchronize the particles after initializaton
-    /// or when restarting from a checkpoint.
-    /// This is the electrostatic version of the particle push.
+    /// This pushes the particle positions by one half time step for all the species in the 
+    /// MultiParticleContainer. It is used to desynchronize the particles after initializaton
+    /// or when restarting from a checkpoint. This is the electrostatic version.
     /// 
     void PushXES (amrex::Real dt);
 
     ///
-    /// This pushes the particle positions by one half time step.
-    /// It is used to desynchronize the particles after initializaton
-    /// or when restarting from a checkpoint.
-    /// This is the electromagnetic version of the particle push.
+    /// This pushes the particle positions by one half time step for all the species in the
+    /// MultiParticleContainer. It is used to desynchronize the particles after initializaton
+    /// or when restarting from a checkpoint. This is the electromagnetic version.
     /// 
     void PushX (int lev, amrex::Real dt);
 
+    ///
+    /// This deposits the particle charge onto rho, accumulating the value for all the species
+    /// in the MultiParticleContainer. rho is assumed to contain node-centered multifabs. 
+    /// This version is hard-coded for CIC deposition.
+    ///
     void DepositCharge(amrex::Array<std::unique_ptr<amrex::MultiFab> >& rho, bool local = false);
+
+    ///
+    /// This deposits the particle charge onto a node-centered MultiFab and returns a unique ptr
+    /// to it. The charge density is accumulated over all the particles in the MultiParticleContainer
+    /// This version uses PICSAR routines to perform the deposition.
+    ///    
     std::unique_ptr<amrex::MultiFab> GetChargeDensity(int lev, bool local = false);
 
-    amrex::Real sumParticleCharge(int lev, bool local = false);
+    ///
+    /// This returns the total particle charge for all the species in this MultiParticleContainer.
+    /// This is needed to subtract the offset for periodic boundary conditions.
+    ///
+    amrex::Real sumParticleCharge(bool local = false);
 
     void Checkpoint (const std::string& dir,
 		     const std::string& name,

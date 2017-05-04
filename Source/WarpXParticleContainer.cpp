@@ -254,8 +254,9 @@ WarpXParticleContainer::GetChargeDensity (int lev, bool local)
     return rho;
 }
 
-Real WarpXParticleContainer::sumParticleCharge(int lev, bool local) {
+Real WarpXParticleContainer::sumParticleCharge(bool local) {
 
+    const int lev = 0;
     amrex::Real total_charge = 0.0;
     for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
     {

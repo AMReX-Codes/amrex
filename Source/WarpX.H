@@ -136,16 +136,29 @@ private:
     // Singleton is used when the code is run from python
     static WarpX* m_instance;
 
-    // advance level "lev" by a single time step, electromagnetic case
+    ///
+    /// Advance the simulation by numsteps steps, electromagnetic case.
+    ///
     void EvolveEM(int numsteps);
-
-    // advance level "lev" by a single step, electrostatic case
+    
+    ///
+    /// Advance the simulation by numsteps steps, electrostatic case.
+    ///
     void EvolveES(int numsteps);
 
-    // compute the gravitational potential from rho
+    ///
+    /// Compute the gravitational potential from rho by solving Poisson's equation.
+    /// Both rho and phi are assumed to be node-centered. This method is only used
+    /// in electrostatic mode.
+    ///
     void computePhi(amrex::Array<std::unique_ptr<amrex::MultiFab> >& rho, 
                     amrex::Array<std::unique_ptr<amrex::MultiFab> >& phi) const;
 
+    ///
+    /// Compute the electric field in each direction by computing the gradient 
+    /// the potential phi using 2nd order centered differences. Both rho and phi 
+    /// are assumed to be node-centered. This method is only used in electrostatic mode.
+    ///
     void computeE(amrex::Array<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E,
                   const amrex::Array<std::unique_ptr<amrex::MultiFab> >& phi) const;
 
