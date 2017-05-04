@@ -118,10 +118,10 @@ MultiParticleContainer::Evolve (int lev,
 }
 
 void
-MultiParticleContainer::PushXES (int lev, Real dt)
+MultiParticleContainer::PushXES (Real dt)
 {
     for (auto& pc : allcontainers) {
-	pc->PushXES(lev, dt);
+	pc->PushXES(dt);
     }
 }
 

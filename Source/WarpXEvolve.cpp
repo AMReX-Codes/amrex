@@ -47,7 +47,7 @@ WarpX::EvolveES(int numsteps) {
     const int ng = 1;
     for (int lev = 0; lev <= max_level; lev++) {
         BoxArray nba = boxArray(lev);
-        nba.surroundingNodes();
+        nba.surroundingNodes(); 
         rhoNodal[lev].reset(new MultiFab(nba, dmap[lev], 1, ng));
         phiNodal[lev].reset(new MultiFab(nba, dmap[lev], 1, ng));
 
@@ -72,7 +72,7 @@ WarpX::EvolveES(int numsteps) {
         
         if (is_synchronized) {
             // on first step, push X by 0.5*dt
-            mypc->PushXES(lev, 0.5*dt[lev]);
+            mypc->PushXES(0.5*dt[lev]);
             mypc->Redistribute();
             mypc->DepositCharge(rhoNodal);
             computePhi(rhoNodal, phiNodal);
@@ -86,7 +86,7 @@ WarpX::EvolveES(int numsteps) {
         
         if (cur_time + dt[0] >= stop_time - 1.e-3*dt[0] || step == numsteps_max-1) {
             // on last step, push by only 0.5*dt to synchronize all at n+1/2
-            mypc->PushXES(lev, -0.5*dt[lev]);
+            mypc->PushXES(-0.5*dt[lev]);
             is_synchronized = true;
         } 
 

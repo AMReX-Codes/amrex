@@ -85,7 +85,7 @@ public:
     /// or when restarting from a checkpoint.
     /// This is the electrostatic version of the particle push.
     /// 
-    void PushXES (int lev, amrex::Real dt);
+    void PushXES (amrex::Real dt);
 
     ///
     /// This pushes the particle positions by one half time step.

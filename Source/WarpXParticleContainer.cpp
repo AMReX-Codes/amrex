@@ -271,9 +271,9 @@ Real WarpXParticleContainer::sumParticleCharge(int lev, bool local) {
 }
 
 void
-WarpXParticleContainer::PushXES (int lev,
-                                 Real dt)
+WarpXParticleContainer::PushXES (Real dt)
 {
+    const int lev = 0;
     BL_PROFILE("WPC::PushXES()");
 
     for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)

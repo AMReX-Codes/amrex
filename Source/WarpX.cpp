@@ -353,19 +353,15 @@ void WarpX::computePhi(Array<std::unique_ptr<MultiFab> >& rho,
     offset /= Geom(0).ProbSize();
     rho[0]->plus(-offset, 0, 1, 1);
 
-    MultiFab tmp(rho[0]->boxArray(), dmap[0], 1, 0);
-    MultiFab::Copy(tmp, *rho[0], 0, 0, 1, 0);
-    VisMF::Write(tmp, "rho/rho");
-
     phi[0]->setVal(0.0);
 
     bool nodal = true;
     bool have_rhcc = false;
     int  nc = 0;
     int stencil = ND_CROSS_STENCIL;
-    int verbose = 5;
+    int verbose = 0;
     int Ncomp = 1;
-    Array<int> mg_bc(BL_SPACEDIM, 0); // this means periodic in all directions.
+    Array<int> mg_bc(2*BL_SPACEDIM, 0); // this means periodic on all sides.
 
     MGT_Solver solver(geom, mg_bc.dataPtr(), grids, dmap, nodal,
                       stencil, have_rhcc, nc, Ncomp, verbose);
