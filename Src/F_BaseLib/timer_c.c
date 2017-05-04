@@ -1,22 +1,6 @@
 /* 
    Contains architecture specific timer routines used by bl_timer.f90
 */
-#if defined(BL_FORT_USE_UNDERSCORE)
-#define CPU_SECOND cpu_second_
-#define WALL_SECOND wall_second_
-#define CPU_SECOND_TICK cpu_second_tick_
-#define WALL_SECOND_TICK wall_second_tick_
-#elif defined(BL_FORT_USE_DBL_UNDERSCORE)
-#define CPU_SECOND cpu_second__
-#define WALL_SECOND wall_second__
-#define CPU_SECOND_TICK cpu_second_tick__
-#define WALL_SECOND_TICK wall_second_tick__
-#elif defined(BL_FORT_USE_LOWERCASE)
-#define CPU_SECOND cpu_second
-#define WALL_SECOND wall_second
-#define CPU_SECOND_TICK cpu_second_tick
-#define WALL_SECOND_TICK wall_second_tick
-#endif
 
 #if defined(_BL_ANSI_TIME)
 
@@ -24,7 +8,7 @@
 #include <time.h>
 
 void
-CPU_SECOND(double* rslt)
+cpu_second(double* rslt)
 {
   const double clock_rate = 1.0/(double)(CLOCKS_PER_SEC);
   static clock_t start;
@@ -38,7 +22,7 @@ CPU_SECOND(double* rslt)
 }
 
 void
-WALL_SECOND(double* rslt)
+wall_second(double* rslt)
 {
   static time_t start;
   static int inited = 0;
@@ -58,7 +42,7 @@ WALL_SECOND(double* rslt)
 #include <sys/resource.h>
 
 void
-CPU_SECOND(double* rslt)
+cpu_second(double* rslt)
 {
   struct rusage ru;
   getrusage(RUSAGE_SELF, &ru);
@@ -70,7 +54,7 @@ CPU_SECOND(double* rslt)
 #include <mpi.h>
 
 void
-WALL_SECOND(double* rslt)
+wall_second(double* rslt)
 {
   int fr;
   assert(  MPI_Initialized(&fr) == 0 );
@@ -78,7 +62,7 @@ WALL_SECOND(double* rslt)
 }
 #else
 void
-WALL_SECOND(double* rslt)
+wall_second(double* rslt)
 {
   struct timeval tp;
   /* cannot fail, so why check */
@@ -90,7 +74,7 @@ WALL_SECOND(double* rslt)
 
 
 void
-WALL_SECOND_TICK( double* r)
+wall_second_tick( double* r)
 {
   static double tickval = -1.0;
   double t1, t2;
@@ -101,10 +85,10 @@ WALL_SECOND_TICK( double* r)
       for (icnt=0; icnt<100; icnt++)
 	{
 	  cnt = 1000;
-	  WALL_SECOND( &t1 );
+	  wall_second( &t1 );
 	  while (cnt--) 
 	    {
-	      WALL_SECOND( &t2 );
+	      wall_second( &t2 );
 	      if (t2 > t1) break;
 	    }
 	  if (cnt && t2 > t1 && t2 - t1 < tickval)
@@ -117,7 +101,7 @@ WALL_SECOND_TICK( double* r)
 }
 
 void
-CPU_SECOND_TICK( double* r)
+cpu_second_tick( double* r)
 {
   static double tickval = -1.0;
   double t1, t2;
@@ -128,10 +112,10 @@ CPU_SECOND_TICK( double* r)
       for (icnt=0; icnt<1000; icnt++)
 	{
 	  cnt = 1000;
-	  CPU_SECOND( &t1 );
+	  cpu_second( &t1 );
 	  while (cnt--)
 	    {
-	      CPU_SECOND( &t2 );
+	      cpu_second( &t2 );
 	      if (t2 > t1) break;
 	    }
 	  if (cnt && t2 > t1 && t2 - t1 < tickval)
@@ -145,16 +129,8 @@ CPU_SECOND_TICK( double* r)
 
 #include <stdlib.h>
 
-#if defined(BL_FORT_USE_UNDERSCORE)
-#define SYS_ABORT sys_abort_
-#elif defined(BL_FORT_USE_DBL_UNDERSCORE)
-#define SYS_ABORT sys_abort__
-#elif defined(BL_FORT_USE_LOWERCASE)
-#define SYS_ABORT sys_abort
-#endif
-
 void
-SYS_ABORT()
+sys_abort()
 {
   abort();
 }

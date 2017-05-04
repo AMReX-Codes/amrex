@@ -75,6 +75,12 @@ public:
     //! Returns the cellsize for the specified coordinate direction.
     Real CellSize (int dir) const { BL_ASSERT(ok); return dx[dir]; }
 
+    //! Returns the inverse cellsize for each coordinate direction.
+    const Real* InvCellSize () const { BL_ASSERT(ok); return inv_dx; }
+
+    //! Returns the inverse cellsize for the specified coordinate direction.
+    Real InvCellSize (int dir) const { BL_ASSERT(ok); return inv_dx[dir]; }
+
     //! Returns location of cell center in specified direction.
     Real CellCenter (int point, int dir) const
     {
@@ -252,6 +258,7 @@ protected:
 
     //! Non-static data.
     Real dx[BL_SPACEDIM];
+    Real inv_dx[BL_SPACEDIM];
     bool ok;
 };
 

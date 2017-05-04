@@ -50,11 +50,23 @@ namespace amrex
 	    }
 	}
 
+        Print& SetPrecision(int p) {
+            ss.precision(p);
+            return *this;
+        }
+
 	template <typename T>
 	Print& operator<< (const T& x) {
 	    ss << x;
 	    return *this;
 	}
+
+        Print& operator<< (        std::basic_ostream<char, std::char_traits<char> >& 
+                           (*func)(std::basic_ostream<char, std::char_traits<char> >&))
+        {
+            ss << func;
+            return *this;
+        }
 
     private:
 	int rank;

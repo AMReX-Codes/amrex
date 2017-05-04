@@ -70,6 +70,7 @@ Geometry::define (const Box&     dom,
     for (int k = 0; k < BL_SPACEDIM; k++)
     {
         dx[k] = prob_domain.length(k)/(Real(domain.length(k)));
+	inv_dx[k] = 1.0/dx[k];
     }
     if (Geometry::spherical_origin_fix == 1)
     {
@@ -80,6 +81,7 @@ Geometry::define (const Box&     dom,
             for (int k = 0; k < BL_SPACEDIM; k++)
             {
                 dx[k] = prob_domain.length(k)/(Real(domain.length(k)));
+		inv_dx[k] = 1.0/dx[k];
             }
 	}
     } 
@@ -106,52 +108,37 @@ Geometry::Setup (const RealBox* rb, int coord, int* isper)
     }
 
     ParmParse pp("geometry");
-    //
-    // The default behavior is as before.  If rb and coord come
-    // in with default values, we require that user set them through pp.
-    // If not, use those coming in, and possibly override them w/pp
-    //
-    Array<Real> prob_lo(BL_SPACEDIM);
-    Array<Real> prob_hi(BL_SPACEDIM);
-    if (rb == 0  &&  coord==-1)
-    {
-        pp.get("coord_sys",coord);
-        SetCoord( (CoordType) coord );
+
+    if (coord >=0 && coord <= 2) {
+        SetCoord( (CoordType) coord );        
+    } else {
+        coord = 0;  // default is Cartesian coordinates
+        pp.query("coord_sys",coord);
+        SetCoord( (CoordType) coord );        
+    }
+
+    if (rb == nullptr) {
+        Array<Real> prob_lo(BL_SPACEDIM);
+        Array<Real> prob_hi(BL_SPACEDIM);
         pp.getarr("prob_lo",prob_lo,0,BL_SPACEDIM);
         BL_ASSERT(prob_lo.size() == BL_SPACEDIM);
         pp.getarr("prob_hi",prob_hi,0,BL_SPACEDIM);
         BL_ASSERT(prob_lo.size() == BL_SPACEDIM);
         prob_domain.setLo(prob_lo);
         prob_domain.setHi(prob_hi);
-    }
-    else
-    {
-        BL_ASSERT(rb != 0  &&  coord != -1);
-        pp.query("coord_sys",coord);
-        SetCoord( (CoordType) coord );
+    } else {
         prob_domain.setLo(rb->lo());
         prob_domain.setHi(rb->hi());
-
-        if (pp.countval("prob_lo")>0)
-        {
-            pp.queryarr("prob_lo",prob_lo,0,BL_SPACEDIM);
-            BL_ASSERT(prob_lo.size() == BL_SPACEDIM);
-            prob_domain.setLo(prob_lo);
-        }
-        if (pp.countval("prob_hi")>0)
-        {
-            pp.queryarr("prob_hi",prob_hi,0,BL_SPACEDIM);
-            BL_ASSERT(prob_hi.size() == BL_SPACEDIM);
-            prob_domain.setHi(prob_hi);
-        }
     }
+
     pp.query("spherical_origin_fix", Geometry::spherical_origin_fix);
+
     //
     // Now get periodicity info.
     //
-    if (isper == 0)
+    if (isper == nullptr)
     {
-        Array<int> is_per(BL_SPACEDIM);
+        Array<int> is_per(BL_SPACEDIM,0);
         pp.queryarr("is_periodic",is_per,0,BL_SPACEDIM);
         for (int n = 0; n < BL_SPACEDIM; n++)  
             is_periodic[n] = is_per[n];

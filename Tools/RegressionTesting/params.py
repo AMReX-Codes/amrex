@@ -91,6 +91,12 @@ def load_params(args):
     mysuite.repos["AMReX"] = repo.Repo(mysuite, rdir, "AMReX",
                                         branch_wanted=branch, hash_wanted=rhash)
 
+    # Check for Cmake build options for both AMReX and Source
+    for s in cp.sections():
+        if s == "AMReX":
+            mysuite.amrex_cmake_opts = safe_get(cp, s, "cmakeSetupOpts", default= "")
+        elif s == "source":
+            mysuite.source_cmake_opts = safe_get(cp, s, "cmakeSetupOpts", default= "")
 
     # now all the other build and source directories
     other_srcs = [s for s in cp.sections() if s.startswith("extra-")]
@@ -105,6 +111,7 @@ def load_params(args):
         rdir = mysuite.check_test_dir(safe_get(cp, s, "dir"))
         branch = convert_type(safe_get(cp, s, "branch"))
         rhash = convert_type(safe_get(cp, s, "hash"))
+
 
         build = convert_type(safe_get(cp, s, "build", default=0))
         if s == "source": build = 1
@@ -134,8 +141,7 @@ def load_params(args):
         if not s is None:
             mysuite.repos[r].comp_string = \
                 s.replace("@self@", mysuite.repos[r].dir).replace("@source@", mysuite.repos["source"].dir)
-
-
+            
     # the suite needs to know any ext_src_comp_string
     for r in mysuite.repos.keys():
         if not mysuite.repos[r].build == 1:

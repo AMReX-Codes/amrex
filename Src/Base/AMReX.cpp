@@ -120,6 +120,12 @@ amrex::Error (const char* msg)
     ParallelDescriptor::Abort();
 }
 
+void
+amrex::Error (const std::string& msg)
+{
+    Error(msg.c_str());
+}
+
 namespace
 {
   const int EOS = -1;
@@ -191,12 +197,24 @@ amrex::Abort (const char* msg)
 }
 
 void
+amrex::Abort (const std::string& msg)
+{
+    Abort(msg.c_str());
+}
+
+void
 amrex::Warning (const char* msg)
 {
     if (msg)
     {
 	amrex::Print(Print::AllProcs,std::cerr) << msg << '!' << '\n';
     }
+}
+
+void
+amrex::Warning (const std::string& msg)
+{
+    Warning(msg.c_str());
 }
 
 void
@@ -354,7 +372,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi_
 
     ParallelDescriptor::StartSubCommunicator();
 
-    mempool_init();
+    amrex_mempool_init();
 
     // For thread safety, we should do these initializations here.
     BoxArray::Initialize();
@@ -422,7 +440,7 @@ amrex::Finalize (bool finalize_parallel)
     if (amrex::system::verbose)
     {
 	int mp_min, mp_max, mp_tot;
-	mempool_get_stats(mp_min, mp_max, mp_tot);  // in MB
+	amrex_mempool_get_stats(mp_min, mp_max, mp_tot);  // in MB
 	if (ParallelDescriptor::NProcs() == 1) {
 	    if (mp_tot > 0) {
 		std::cout << "MemPool: " 

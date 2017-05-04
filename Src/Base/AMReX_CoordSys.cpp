@@ -1,5 +1,6 @@
 
 #include <iostream>
+#include <limits>
 
 #include <AMReX_CoordSys.H>
 #include <AMReX_COORDSYS_F.H>
@@ -7,7 +8,9 @@
 #include <AMReX_ParallelDescriptor.H>
 
 #if (BL_SPACEDIM==2)
-const double RZFACTOR = 2*3.14159265358979323846264338327950288;
+namespace {
+    constexpr double RZFACTOR = 2*3.14159265358979323846264338327950288;
+}
 #endif
 
 //
@@ -63,6 +66,9 @@ CoordSys::SetOffset (const Real* x_lo)
 CoordSys::CoordSys ()
 {
     D_TERM(dx[0]=0;,dx[1]=0;,dx[2]=0;)
+    D_TERM(inv_dx[0]=std::numeric_limits<Real>::infinity();,
+           inv_dx[1]=std::numeric_limits<Real>::infinity();,
+           inv_dx[2]=std::numeric_limits<Real>::infinity();)
     ok = false;
 }
 
@@ -74,6 +80,7 @@ CoordSys::define (const Real* cell_dx)
     for (int k = 0; k < BL_SPACEDIM; k++)
     {
         dx[k] = cell_dx[k];
+	inv_dx[k] = 1.0/dx[k];
     }
 }
 
@@ -615,6 +622,7 @@ CoordSys::BroadcastCoordSys (CoordSys &cSys, int fromProc, MPI_Comm comm, bool b
   ParallelDescriptor::Bcast(&coord, 1, fromProc, comm);
   ParallelDescriptor::Bcast(cSys.offset, BL_SPACEDIM, fromProc, comm);
   ParallelDescriptor::Bcast(cSys.dx, BL_SPACEDIM, fromProc, comm);
+  ParallelDescriptor::Bcast(cSys.inv_dx, BL_SPACEDIM, fromProc, comm);
   ParallelDescriptor::Bcast(&iOK, 1, fromProc, comm);
 
   if( ! bcastSource) {

@@ -4,7 +4,7 @@ import datetime
 import json
 import os
 import shutil
-
+import sys
 import test_util
 
 DO_TIMINGS_PLOTS = True
@@ -33,6 +33,8 @@ class Test(object):
         self.buildDir = ""
 
         self.extra_build_dir = ""
+
+        self.target = ""
 
         self.testSrcTree = ""
 
@@ -165,9 +167,15 @@ class Suite(object):
         self.testTopDir = ""
         self.webTopDir = ""
 
+        self.useCmake = 0
+
         # set automatically
         self.source_dir = ""
+        self.source_build_dir ="" # Cmake build dir
+        self.source_cmake_opts =""
         self.amrex_dir = ""
+        self.amrex_install_dir = "" # Cmake installation dir
+        self.amrex_cmake_opts = ""
 
         self.MPIcommand = ""
         self.MPIhost = ""
@@ -547,6 +555,7 @@ class Suite(object):
 
         return comp_string, rc
 
+
     def build_c(self, test=None, opts="", outfile=None):
 
         build_opts = ""
@@ -561,14 +570,17 @@ class Suite(object):
             if not test.extra_build_dir == "":
                 build_opts += self.repos[test.extra_build_dir].comp_string + " "
 
+            if not self.repos["source"].comp_string is None:
+                build_opts += self.repos["source"].comp_string + " "
+                
             if not test.addToCompileString == "":
                 build_opts += test.addToCompileString + " "
 
         all_opts = "{} {} {}".format(self.extra_src_comp_string, build_opts, opts)
 
-        comp_string = "{} -j{} AMREX_HOME={} {} COMP={} FCOMP={} {}".format(
+        comp_string = "{} -j{} AMREX_HOME={} {} COMP={} {}".format(
             self.MAKE, self.numMakeJobs, self.amrex_dir,
-            all_opts, self.COMP, self.FCOMP, self.add_to_c_make_command)
+            all_opts, self.COMP, self.add_to_c_make_command)
 
         self.log.log(comp_string)
         stdout, stderr, rc = test_util.run(comp_string, outfile=outfile)
@@ -621,7 +633,7 @@ class Suite(object):
 
         self.make_realclean(repo="AMReX")
 
-        tools = ["fcompare", "fboxinfo"]
+        tools = ["fcompare", "fboxinfo", "plt_compare_diff_grids"]
         if any([t for t in test_list if t.dim == 2]): tools.append("fsnapshot2d")
         if any([t for t in test_list if t.dim == 3]): tools.append("fsnapshot3d")
 
@@ -654,6 +666,151 @@ class Suite(object):
         s = json.dumps(payload)
         cmd = "curl -X POST --data-urlencode 'payload={}' {}".format(s, self.slack_webhook_url)
         test_util.run(cmd)
+
+
+
+    #######################################################
+    #        CMake utilities                              #
+    #######################################################
+    def cmake_config( self, name, path, configOpts="",  install = 0, env = None):
+        "Generate Cmake configuration"
+
+        self.log.outdent()
+        self.log.skip()
+        self.log.bold("configuring " + name +  " build...")
+        self.log.indent()
+
+        # Setup dir names
+        builddir   = path + 'builddir'
+        if install:
+            installdir = path + 'installdir'
+        else:
+            installdir = None
+
+        # Define enviroment
+        ENV = {}
+        ENV =  dict(os.environ) # Copy of current enviroment
+        ENV['FC']  = self.FCOMP
+        ENV['CXX'] = self.COMP
+
+        if env is not None: ENV.update(env)
+
+        # remove build and installation directories if present and re-make them
+        if os.path.isdir(builddir):
+            shutil.rmtree(builddir)
+        self.log.log("mkdir " + builddir)
+        os.mkdir(builddir)
+
+        if install:
+            if os.path.isdir(installdir):
+                shutil.rmtree(installdir)
+            self.log.log("mkdir " + installdir)
+            os.mkdir(installdir)
+
+        # Logfile
+        coutfile = '{}{}.cmake.log'.format( self.full_test_dir, name )
+
+        # Run cmake
+        cmd = 'cmake {} -H{} -B{} '.format(configOpts, path, builddir)
+        if install:
+            cmd += '-DCMAKE_INSTALL_PREFIX:PATH='+installdir
+
+        self.log.log(cmd)
+        stdout, stderr, rc = test_util.run(cmd, outfile=coutfile, env=ENV)
+
+        # Check exit condition
+        if not rc == 0:
+            errstr  = "\n \nERROR! Cmake configuration failed for " + name + " \n"
+            errstr += "Check " + coutfile + " for more information."
+            sys.exit(errstr)
+
+        return builddir, installdir
+
+
+    def cmake_clean( self, name, path ):
+        "Clean Cmake build and install directories"
+
+        self.log.outdent()
+        self.log.skip()
+        self.log.bold("cleaning " + name +  " Cmake directories...")
+        self.log.indent()
+
+        # Setup dir names
+        builddir   = path + 'builddir'
+        installdir = path + 'installdir'
+
+        # remove build and installation directories if present
+        if os.path.isdir(builddir):
+            shutil.rmtree(builddir)
+
+        if os.path.isdir(installdir):
+                shutil.rmtree(installdir)
+
+        return
+
+
+
+
+    def cmake_build( self, name, target, path, opts = '', env = None, outfile = None ):
+        "Build target for a repo configured via cmake"
+
+        self.log.outdent()
+        self.log.skip()
+        self.log.bold("building " + name +  "...")
+        self.log.indent()
+
+        # Set enviroment
+        ENV =  dict(os.environ) # Copy of current enviroment
+        if env is not None: ENV.update(env)
+
+        if outfile is not None:
+            coutfile = outfile
+        else:
+            coutfile = '{}{}.{}.make.log'.format( self.full_test_dir, name, target )
+
+        cmd = '{} -j{} {} {}'.format( self.MAKE, self.numMakeJobs, opts, target )
+        self.log.log(cmd)
+        stdout, stderr, rc = test_util.run(cmd, outfile=coutfile, cwd=path, env=ENV )
+
+        # make returns 0 if everything was good
+        if not rc == 0:
+            self.log.warn("build failed")
+
+        comp_string = cmd
+
+        return rc, comp_string
+
+
+
+    def build_test_cmake(self, test, opts="",  outfile=None):
+        """ build an executable with CMake build system """
+
+        env = {"AMREX_HOME":self.amrex_install_dir}
+
+        rc, comp_string = self.cmake_build( name    = test.name,
+                                            target  = test.target,
+                                            path    = self.source_build_dir,
+                                            opts    = opts,
+                                            env     = env,
+                                            outfile = outfile)
+
+        # make returns 0 if everything was good
+        if rc == 0:
+            # Find location of executable
+            for root, dirnames, filenames in os.walk(self.source_build_dir):
+                if test.target in filenames:
+                    path_to_exe = os.path.join(root, test.target)
+                    break
+
+            # Copy and rename executable to test dir
+            shutil.move("{}".format(path_to_exe),
+                        "{}/{}/{}.ex".format(self.source_dir,test.buildDir,test.name))
+        else:
+          self.log.warn("build failed")
+
+
+        return comp_string, rc
+
 
 
 def f_flag(opt, test_not=False):

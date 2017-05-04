@@ -25,7 +25,7 @@ public:
                int nc = 0,
                int ncomp = 1,
                int verbose = 0);
-
+    
   static void initialize(bool nodal);
   static void Finalize();
   static void FlushFortranOutput();
@@ -41,6 +41,10 @@ public:
   static void get_uu (MultiFab& mf, int lev, int ng);
   static void get_res (MultiFab& mf, int lev);
   static void get_gp (MultiFab& mf, int lev, int dir, Real dx);
+
+  static void set_rh_nodal (const MultiFab& mf, int lev);
+  static void set_uu_nodal (const MultiFab& mf, int lev);
+  static void get_uu_nodal (MultiFab& mf, int lev, int ng);
 
   //
   // (alpha * aa - beta * (del dot bb grad)) phi = RHS
@@ -78,6 +82,9 @@ public:
   void solve(const Array<MultiFab*>& uu, const Array<MultiFab*>& rh, const BndryData& bd,
 	     Real tol, Real abs_tol, int always_use_bnorm, 
 	     Real& final_resnorm, int need_grad_phi=0);
+
+  void solve_nodal(const Array<MultiFab*>& uu, const Array<MultiFab*>& rh,
+                   Real tol, Real abs_tol);
 
   void applyop(const Array<MultiFab*>& uu, const Array<MultiFab*>& res, const BndryData& bd);
 

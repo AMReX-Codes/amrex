@@ -8,6 +8,7 @@ module fabio_module
   use multifab_module
   use ml_boxarray_module
   use ml_multifab_module
+  use amrex_fabio_c_module
   use iso_c_binding
 
   implicit none
@@ -15,64 +16,6 @@ module fabio_module
   integer, parameter :: FABIO_DOUBLE = 1
   integer, parameter :: FABIO_SINGLE = 2
   
-
-  interface
-     subroutine fabio_close(fd)
-       integer, intent(out) :: fd
-     end subroutine fabio_close
-
-     subroutine fabio_read_skip_d(fd, offset, skip, d, count) bind(c, name='FABIO_READ_SKIP_D')
-       use iso_c_binding
-       integer(kind=c_int), intent(in) :: fd
-       integer(kind=c_long), intent(in) :: offset, skip, count
-       real(kind=c_double), intent(out) :: d(count)
-     end subroutine fabio_read_skip_d
-     subroutine fabio_read_skip_s(fd, offset, skip, s, count) bind(c, name='FABIO_READ_SKIP_S')
-       use iso_c_binding
-       integer(kind=c_int), intent(in) :: fd
-       integer(kind=c_long), intent(in) :: offset, skip, count
-       real(kind=c_float), intent(out) :: s(count)
-     end subroutine fabio_read_skip_s
-
-     subroutine fabio_read_d(fd, offset, d, count) bind(c, name='FABIO_READ_D')
-       use iso_c_binding
-       integer(kind=c_int), intent(in) :: fd
-       integer(kind=c_long), intent(in) :: offset, count
-       real(kind=c_double), intent(out) :: d(count)
-     end subroutine fabio_read_d
-     subroutine fabio_read_s(fd, offset, s, count) bind(c, name='FABIO_READ_S')
-       use iso_c_binding
-       integer(kind=c_int), intent(in) :: fd
-       integer(kind=c_long), intent(in) :: offset, count
-       real(kind=c_float), intent(out) :: s(count)
-     end subroutine fabio_read_s
-
-     !
-     ! These are used by the particle code.
-     !
-     subroutine fabio_write_raw_array_i(fd, iv, count) bind(c, name='FABIO_WRITE_RAW_ARRAY_I')
-       use iso_c_binding
-       integer(kind=c_int), intent(in) :: fd, count
-       integer(kind=c_int), intent(in) :: iv(count)
-     end subroutine fabio_write_raw_array_i
-     subroutine fabio_write_raw_array_d(fd, rv, count) bind(c, name='FABIO_WRITE_RAW_ARRAY_D')
-       use iso_c_binding
-       integer(kind=c_int), intent(in) :: fd, count
-       real(kind=c_double), intent(in) :: rv(count)
-     end subroutine fabio_write_raw_array_d
-     subroutine fabio_read_raw_array_i(fd, iv, count) bind(c, name='FABIO_READ_RAW_ARRAY_I')
-       use iso_c_binding
-       integer(kind=c_int), intent(in)    :: fd, count
-       integer(kind=c_int), intent(inout) :: iv(count)
-     end subroutine fabio_read_raw_array_i
-     subroutine fabio_read_raw_array_d(fd, rv, count) bind(c, name='FABIO_READ_RAW_ARRAY_D')
-       use iso_c_binding
-       integer(kind=c_int), intent(in)    :: fd, count
-       real(kind=c_double), intent(inout) :: rv(count)
-     end subroutine fabio_read_raw_array_d
-
-  end interface
-
   interface fabio_write
      module procedure fabio_fab_write_d
      module procedure fabio_multifab_write_d
@@ -98,12 +41,6 @@ contains
     use bl_string_module
     character(len=*), intent(in) :: dirname
     integer, intent(out), optional :: stat
-    interface
-       subroutine fabio_mkdir_str(ifilename, stat)
-         integer, intent(in) :: ifilename(*)
-         integer, intent(out) :: stat
-       end subroutine fabio_mkdir_str
-    end interface
     integer :: istr(FABIO_MAX_PATH_NAME)
     integer :: lstat
 
@@ -120,13 +57,6 @@ contains
     character(len=*), intent(in):: filename
     integer, intent(out) :: fd
     integer, intent(in), optional :: mode
-    interface
-       subroutine fabio_open_str(fd, ifilename, mode)
-         integer, intent(out) :: fd
-         integer, intent(in) :: ifilename(*)
-         integer, intent(in) :: mode
-       end subroutine fabio_open_str
-    end interface
     integer :: istr(FABIO_MAX_PATH_NAME)
     integer :: lmode
 
@@ -143,11 +73,6 @@ contains
   subroutine fabio_unlink_if_empty(filename)
     use bl_string_module
     character(len=*), intent(in):: filename
-    interface
-       subroutine fabio_unlink_if_empty_str(ifilename)
-         integer, intent(in) :: ifilename(*)
-       end subroutine fabio_unlink_if_empty_str
-    end interface
     integer :: istr(FABIO_MAX_PATH_NAME)
 
     call str2int(istr, FABIO_MAX_PATH_NAME, filename)
@@ -163,26 +88,6 @@ contains
     logical, intent(in), optional :: nodal(:)
     logical, intent(in), optional :: all
     integer, intent(in), optional :: prec
-
-    interface
-       subroutine fabio_write_raw_d(fd, offset, d, count, dm, lo, hi, nd, nc) &
-            bind(c, name='FABIO_WRITE_RAW_D')
-         use iso_c_binding
-         integer(kind=c_int), intent(in) :: fd, dm, lo(dm), hi(dm), nd(dm), nc
-         integer(kind=c_long), intent(in) :: count
-         real(kind=c_double), intent(in) :: d(count)
-         integer(kind=c_long), intent(out) :: offset
-       end subroutine fabio_write_raw_d
-       subroutine fabio_write_raw_s(fd, offset, s, count, dm, lo, hi, nd, nc) &
-            bind(c, name='FABIO_WRITE_RAW_S')
-         use iso_c_binding
-         integer(kind=c_int), intent(in) :: fd, dm, lo(dm), hi(dm), nd(dm), nc
-         integer(kind=c_long), intent(in) :: count
-         real(kind=c_float), intent(in) :: s(count)
-         integer(kind=c_long), intent(out) :: offset
-       end subroutine fabio_write_raw_s
-    end interface
-
     type(box) :: bx
     logical :: lall
     real(kind=dp_t), pointer :: fbp(:,:,:,:)

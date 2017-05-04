@@ -22,12 +22,8 @@ extern "C" {
 	dmo = new DistributionMapping(*dmi);
     }
 
-    void amrex_fi_print_distromap (const DistributionMapping* dm, int all)
+    void amrex_fi_print_distromap (const DistributionMapping* dm)
     {
-	if (all) {
-	    AllPrint() << *dm;
-	} else {
-	    Print() << *dm;
-	}
+	AllPrint() << *dm;
     }
 }

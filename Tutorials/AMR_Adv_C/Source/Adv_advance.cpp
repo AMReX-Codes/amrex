@@ -57,6 +57,14 @@ Adv::advance (Real time,
     MultiFab Sborder(grids, dmap, NUM_STATE, NUM_GROW);
     FillPatch(*this, Sborder, NUM_GROW, time, State_Type, 0, NUM_STATE);
 
+    // MF to hold the mac velocity
+    MultiFab Umac[BL_SPACEDIM];
+    for (int i = 0; i < BL_SPACEDIM; i++) {
+      BoxArray ba = S_new.boxArray();
+      ba.surroundingNodes(i);
+      Umac[i].define(ba, dmap, 1, iteration);
+    }
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -74,7 +82,7 @@ Adv::advance (Real time,
 	    for (int i = 0; i < BL_SPACEDIM ; i++) {
 		const Box& bxtmp = amrex::surroundingNodes(bx,i);
 		flux[i].resize(bxtmp,NUM_STATE);
-		uface[i].resize(amrex::grow(bxtmp,1),1);
+		uface[i].resize(amrex::grow(bxtmp, iteration), 1);
 	    }
 
 	    get_face_velocity(level, ctr_time,
@@ -83,6 +91,10 @@ Adv::advance (Real time,
 				     BL_TO_FORTRAN(uface[2])),
 			      dx, prob_lo);
 
+	    for (int i = 0; i < BL_SPACEDIM ; i++) {
+                const Box& bxtmp = mfi.grownnodaltilebox(i, iteration);
+                Umac[i][mfi].copy(uface[i], bxtmp);
+	    }
             advect(time, bx.loVect(), bx.hiVect(),
 		   BL_TO_FORTRAN_3D(statein), 
 		   BL_TO_FORTRAN_3D(stateout),
@@ -96,7 +108,7 @@ Adv::advance (Real time,
 
 	    if (do_reflux) {
 		for (int i = 0; i < BL_SPACEDIM ; i++)
-		    fluxes[i][mfi].copy(flux[i],mfi.nodaltilebox(i));	  
+		    fluxes[i][mfi].copy(flux[i],mfi.nodaltilebox(i));
 	    }
 	}
     }
@@ -111,6 +123,12 @@ Adv::advance (Real time,
 		fine->CrseInit(fluxes[i],i,0,0,NUM_STATE,-1.);
 	}
     }
+
+#ifdef PARTICLES
+    if (TracerPC) {
+      TracerPC->AdvectWithUmac(Umac, level, dt);
+    }
+#endif
 
     return dt;
 }

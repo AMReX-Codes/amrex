@@ -14,6 +14,11 @@ int      Adv::do_reflux       = 1;
 int      Adv::NUM_STATE       = 1;  // One variable in the state
 int      Adv::NUM_GROW        = 3;  // number of ghost cells
 
+#ifdef PARTICLES
+std::unique_ptr<AmrTracerParticleContainer> Adv::TracerPC =  nullptr;
+int Adv::do_tracers                       =  0;
+#endif
+
 void
 Adv::read_params ()
 {
@@ -39,7 +44,9 @@ Adv::read_params ()
 	amrex::Abort("Please set geom.is_periodic = 1 1 1");
     }
 
-
+#ifdef PARTICLES
+    pp.query("do_tracers", do_tracers);
+#endif 
 }
 
 Adv::Adv ()
@@ -91,6 +98,10 @@ Adv::initData ()
 		   ZFILL(prob_lo));
     }
 
+#ifdef PARTICLES
+    init_particles();
+#endif
+
     if (verbose && ParallelDescriptor::IOProcessor())
 	std::cout << "Done initializing the level " << level << " data " << std::endl;
 }
@@ -131,7 +142,6 @@ Adv::init ()
     FillCoarsePatch(S_new, 0, cur_time, State_Type, 0, NUM_STATE);
 }
 
-
 void
 Adv::post_timestep (int iteration)
 {
@@ -146,6 +156,29 @@ Adv::post_timestep (int iteration)
 
     if (level < finest_level)
         avgDown();
+
+#ifdef PARTICLES    
+    if (TracerPC)
+      {
+        const int ncycle = parent->nCycle(level);
+	
+        if (iteration < ncycle || level == 0)
+	  {
+            int ngrow = (level == 0) ? 0 : iteration;
+	    
+	    TracerPC->Redistribute(level, TracerPC->finestLevel(), ngrow);
+	  }
+      }
+#endif
+}
+
+void
+Adv::post_regrid (int lbase, int new_finest) {
+#ifdef PARTICLES
+  if (TracerPC && level == lbase) {
+      TracerPC->Redistribute(lbase);
+  }
+#endif
 }
 
 void
@@ -203,6 +236,33 @@ Adv::avgDown (int state_indx)
                          fine_lev.geom,geom,
                          0,S_fine.nComp(),parent->refRatio(level));
 }
+
+#ifdef PARTICLES
+void
+Adv::init_particles ()
+{
+  if (do_tracers and level == 0)
+    {
+      BL_ASSERT(TracerPC == nullptr);
+      
+      TracerPC.reset(new AmrTracerParticleContainer(parent));
+      TracerPC->do_tiling = true;
+      TracerPC->tile_size = IntVect(D_DECL(1024000,4,4));
+
+      const BoxArray& ba = TracerPC->ParticleBoxArray(0);
+      const DistributionMapping& dm = TracerPC->ParticleDistributionMap(0);
+
+      MFInfo Fab_noallocate;
+      Fab_noallocate.SetAlloc(false);
+      MultiFab dummy_mf(ba, dm, 1, 0, Fab_noallocate);
+
+      TracerPC->SetVerbose(0);
+      TracerPC->InitOnePerCell(0.5, 0.5, 0.5, 1.0, dummy_mf);
+
+      TracerPC->Redistribute();
+    }
+}
+#endif
 
 void
 Adv::errorEst (TagBoxArray& tags,

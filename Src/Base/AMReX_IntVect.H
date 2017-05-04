@@ -44,6 +44,24 @@ public:
 	}
     };
 
+    ///
+    /**
+       This is an IntVect all of whose components are equal to zero.
+    */
+    static const IntVect Zero;
+    
+    ///
+    /**
+       This is an IntVect all of whose components are equal to one.
+    */
+    static const IntVect Unit;
+
+    /**
+     Initializes Zero and Unit.
+    */
+    static int InitStatics();
+
+    ///
     /**
     * \brief Construct an IntVect whose components are all zero.
     */
@@ -90,6 +108,18 @@ public:
     const int* getVect () const& { return vect; }
     int*       getVect () &      { return vect; }
     int*       getVect () && = delete;
+
+    //! Returns true if all components are equal to the argument val.
+    bool operator== (int val) const
+    {
+        return D_TERM(vect[0] == val, && vect[1] == val, && vect[2] == val);
+    }
+
+    //! Returns true if any component is not equal to the argument val.
+    bool operator!= (int val) const
+    {
+        return D_TERM(vect[0] != val, || vect[1] != val, || vect[2] != val);
+    }
 
     //! Returns true if this is equivalent to rhs.
     bool operator== (const IntVect& rhs) const
@@ -331,6 +361,15 @@ private:
 
     int vect[BL_SPACEDIM];
 };
+
+//
+// Static initialization.  Gotta make sure there are no static object
+// definitions above here (except possibly stuff in headers).  Otherwise,
+// the danger is that some static object's constructor calls IntVect::Zero or
+// IntVect::Unit -- the very things the following definition is supposed to
+// initialize.
+//
+static int s_dummyForIntVectH = IntVect::InitStatics();
 
     /**
     * \brief Returns a basis vector in the given coordinate direction;

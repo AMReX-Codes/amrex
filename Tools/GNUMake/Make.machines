@@ -15,8 +15,8 @@ endif
 # MACHINES supported
 
 CCSE_MACHINES := angilas atragon baragon battra ebirah gamera gigan
-CCSE_MACHINES += gimantis godzilla gojira hedorah kumonga manda
-CCSE_MACHINES += megalon mothra rodan varan naphta orga
+CCSE_MACHINES += gimantis godzilla gojira hedorah kiryu kumonga manda
+CCSE_MACHINES += megalon mothra rodan varan naphta orga ghidorah
 ifeq ($(host_name), $(findstring $(host_name), $(CCSE_MACHINES)))
   which_site := ccse
   which_computer := $(host_name)
@@ -39,4 +39,14 @@ endif
 ifeq ($(findstring mira, $(host_name)), mira)
   which_site := alcf
   which_computer := mira
+endif
+
+ifeq ($(findstring merlin, $(host_name)), merlin)
+  which_site := nrel
+  which_computer := merlin
+endif
+
+ifeq ($(findstring nrel, $(host_name)), nrel)
+  which_site := nrel
+  which_computer := anymachine
 endif

@@ -1,6 +1,8 @@
 
 AMREX_BASE=EXE
 
+C$(AMREX_BASE)_headers += AMReX_ccse-mpi.H AMReX_Array.H AMReX_BaseIndex.H
+
 #
 # Utility classes.
 #
@@ -36,14 +38,14 @@ C${AMREX_BASE}_sources += AMReX_FabConv.cpp AMReX_FPC.cpp
 #
 # Index space.
 #
-C$(AMREX_BASE)_sources += AMReX_Box.cpp AMReX_IntVect.cpp AMReX_IndexType.cpp AMReX_Orientation.cpp AMReX_Periodicity.cpp
-C$(AMREX_BASE)_headers += AMReX_Box.H AMReX_IntVect.H AMReX_IndexType.H AMReX_Orientation.H AMReX_Periodicity.H
+C$(AMREX_BASE)_sources += AMReX_Box.cpp AMReX_BoxIterator.cpp AMReX_IntVect.cpp AMReX_IndexType.cpp AMReX_Orientation.cpp AMReX_Periodicity.cpp
+C$(AMREX_BASE)_headers += AMReX_Box.H AMReX_BoxIterator.H AMReX_IntVect.H AMReX_IndexType.H AMReX_Orientation.H AMReX_Periodicity.H
 
 #
 # Real space.
 #
-C$(AMREX_BASE)_sources += AMReX_RealBox.cpp 
-C$(AMREX_BASE)_headers += AMReX_RealBox.H 
+C$(AMREX_BASE)_sources += AMReX_RealBox.cpp AMReX_RealVect.cpp
+C$(AMREX_BASE)_headers += AMReX_RealBox.H   AMReX_RealVect.H
 
 #
 # Unions of rectangles.
@@ -62,18 +64,24 @@ C$(AMREX_BASE)_headers += AMReX_IArrayBox.H
 
 C$(AMREX_BASE)_headers += AMReX_Looping.H
 
+C$(AMREX_BASE)_headers += AMReX_MakeType.H
+C$(AMREX_BASE)_headers += AMReX_TypeTraits.H
+
 C$(AMREX_BASE)_sources += AMReX_BaseFab.cpp
+C$(AMREX_BASE)_headers += AMReX_BaseFab.H
+C$(AMREX_BASE)_headers += AMReX_FabFactory.H
 
 #
 # FORTRAN data defined on unions of rectangles.
 #
-C$(AMREX_BASE)_sources += AMReX_MultiFab.cpp
-C$(AMREX_BASE)_headers += AMReX_MultiFab.H
+C$(AMREX_BASE)_sources += AMReX_MultiFab.cpp AMReX_MFCopyDescriptor.cpp
+C$(AMREX_BASE)_headers += AMReX_MultiFab.H AMReX_MFCopyDescriptor.H
 
 C$(AMREX_BASE)_sources += AMReX_iMultiFab.cpp
 C$(AMREX_BASE)_headers += AMReX_iMultiFab.H
 
-C$(AMREX_BASE)_sources += AMReX_FabArray.cpp
+C$(AMREX_BASE)_sources += AMReX_FabArrayBase.cpp AMReX_MFIter.cpp
+C$(AMREX_BASE)_headers += AMReX_FabArray.H AMReX_FACopyDescriptor.H AMReX_FabArrayBase.H AMReX_MFIter.H
 
 #
 # Geometry / Coordinate system routines.
@@ -116,7 +124,10 @@ ifneq ($(BL_NO_FORT),TRUE)
 
   f90$(AMREX_BASE)_sources += AMReX_MultiFabUtil_$(DIM)d.f90
 
-  F90$(AMREX_BASE)_sources += AMReX_bl_fort_module.F90
+  F90$(AMREX_BASE)_sources += AMReX_filcc_mod.F90
+  F90$(AMREX_BASE)_sources += AMReX_omp_mod.F90
+  F90$(AMREX_BASE)_sources += AMReX_fort_mod.F90 AMReX_error_mod.F90
+  F90$(AMREX_BASE)_sources += AMReX_parmparse_mod.F90 AMReX_string_mod.F90
 endif
 
 C$(AMREX_BASE)_sources += AMReX_BLProfiler.cpp

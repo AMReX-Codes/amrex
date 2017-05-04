@@ -304,9 +304,6 @@ public:
     //! Returns true if Box is cell-centered in all indexing directions.
     bool cellCentered () const { return !btype.any(); }
 
-    //! Is the number calculated by numPts() representable in a long?
-    bool numPtsOK () const;
-
     /**
     * \brief Returns the number of points contained in the Box, else
     * abort()s if the number cannot be represented in a long.
@@ -318,9 +315,6 @@ public:
     * This is inteded for use only in diagnostic messages.
     */
     double d_numPts () const;
-
-    //! Is the number calculated by volume() representable in a long?
-    bool volumeOK () const;
 
     /**
     * \brief Return the volume, in indexing space, of region enclosed by
@@ -563,13 +557,19 @@ public:
 
     bool isSquare() const;
 
+    bool coarsenable(int refrat) const {
+        return coarsenable(IntVect(D_DECL(refrat,refrat,refrat)));
+    }
+
+    bool coarsenable(const IntVect& refrat) const
+    {
+      Box testBox = *this;
+      testBox.coarsen(refrat);
+      testBox.refine (refrat);
+      return (*this == testBox);
+    }
+
 private:
-    //! A helper function for numPtsOK() and numPts().
-    bool numPtsOK (long& N) const;
-
-    //! A helper function for volumeOK() and volume().
-    bool volumeOK (long& N) const;
-
     IntVect         smallend;
     IntVect         bigend;
     IndexType       btype;
