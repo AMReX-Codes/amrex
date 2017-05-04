@@ -57,7 +57,6 @@ namespace amrex
     EBFluxFactory factCoar(m_eblgCoar.getEBISL());
     EBFluxFactory factFine(m_eblgFine.getEBISL());
     m_coarRegister.define(m_eblgCoar.getDBL(),m_eblgCoar.getDM(), m_nComp, 0, MFInfo(), factCoar);
-    m_fineRegister.define(m_eblgFine.getDBL(),m_eblgFine.getDM(), m_nComp, 0, MFInfo(), factFine);
 
     int fake_lev_num = 1;
     IntVect refRat = m_refRat*IntVect::Unit;
@@ -75,7 +74,6 @@ namespace amrex
     BL_PROFILE("EBFastFR::setToZero");
     m_nonEBFluxReg.setVal(0.);
     EBLevelDataOps::setVal(m_coarRegister, 0.0);
-    EBLevelDataOps::setVal(m_fineRegister, 0.0);
   }
 /*******************/
   void
@@ -98,7 +96,10 @@ namespace amrex
   {
     BL_PROFILE("EBFastFR::incrementFine");
     int idir = a_fineFlux.direction();
-    m_fineRegister[a_fineMFI][idir].plus(a_fineFlux, isrc, idst, inco, a_scale);
+
+    FArrayBox& regfab = (FArrayBox&)(a_fineFlux.getSingleValuedFAB());
+    int ifab = a_fineMFI.index();
+    m_nonEBFluxReg.FineAdd(regfab, idir, ifab, isrc, idst, inco, a_scale);
   }
 /*******************/
   void
@@ -112,21 +113,23 @@ namespace amrex
     int numCoarFacesPerFine = D_TERM(1, *m_refRat, *m_refRat);
     //boxlib's flux register also does not do the sign change for you
     Real coarScale = -numCoarFacesPerFine;
-    Real fineScale = 1;
+    Geometry crse_geom(m_eblgCoar.getDomain());
+
     for(int idir = 0; idir < SpaceDim; idir++)
     {
-      shared_ptr<MultiFab> regCoarFlux, regFineFlux;
+      shared_ptr<MultiFab> regCoarFlux;
+
       EBLevelDataOps::aliasIntoMF(regCoarFlux, m_coarRegister, idir, m_eblgCoar);
-      EBLevelDataOps::aliasIntoMF(regFineFlux, m_fineRegister, idir, m_eblgFine);
       //scales already added in
-      m_nonEBFluxReg.CrseInit(*regCoarFlux, idir, isrc, idst, inco, coarScale);
-      m_nonEBFluxReg.FineAdd (*regFineFlux, idir, isrc, idst, inco, fineScale);
+      //have to use crseAdd because fine flux have already been added.
+      m_nonEBFluxReg.CrseAdd(*regCoarFlux, idir, isrc, idst, inco, coarScale, crse_geom);
     }
     shared_ptr<MultiFab> regCoarSoln; 
     EBLevelDataOps::aliasIntoMF(regCoarSoln, a_uCoar, m_eblgCoar);
-    Geometry crse_geom(m_eblgCoar.getDomain());
 
+    //don't ask.
     m_nonEBFluxReg.ClearInternalBorders(crse_geom);
+    //the "taking care of business part"
     m_nonEBFluxReg.Reflux(*regCoarSoln, a_scale, isrc, idst, inco, crse_geom);
   }
 }
