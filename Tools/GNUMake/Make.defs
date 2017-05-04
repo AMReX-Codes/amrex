@@ -119,21 +119,12 @@ else ifeq ($(lowercase_comp),$(filter $(lowercase_comp),llvm clang clang++))
   lowercase_comp = llvm
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/comps/llvm.mak...)
   include        $(AMREX_HOME)/Tools/GNUMake/comps/llvm.mak
+else ifeq ($(lowercase_comp),$(filter $(lowercase_comp),cuda))
+  lowercase_comp = cuda
+  $(info LOADING $(AMREX_HOME)/Tools/GNUMake/comps/cuda.mak...)
+  include        $(AMREX_HOME)/Tools/GNUMake/comps/cuda.mak
 else
-  $(error Unknown compiler $(COMP). Supported compilers are gnu, intel, cray, pgi, and llvm)
-endif
-
-# If we are using CUDA, then the C/C++ compiler needs to be nvcc,
-# using the requested compiler as the host code compiler.
-
-ifeq ($(USE_CUDA),TRUE)
-
-  CXXFLAGS := -ccbin=$(CXX) -Xcompiler="$(CXXFLAGS)"
-  CXX = nvcc
-
-  CFLAGS := -ccbin=$(CC) -Xcompiler="$(CFLAGS)"
-  CC = nvcc
-
+  $(error Unknown compiler $(COMP). Supported compilers are gnu, intel, cray, pgi, llvm, and cuda)
 endif
 
 ifeq ($(DEBUG),TRUE)
