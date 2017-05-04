@@ -38,15 +38,6 @@ WarpX::InitData ()
     if (restart_chkfile.empty())
     {
 	if (plot_int > 0) {
-            BoxArray nba = boxArray(0);
-            nba.surroundingNodes(); 
-            Array<std::unique_ptr<MultiFab> > rhoNodal(1);
-            Array<std::unique_ptr<MultiFab> > phiNodal(1);; 
-            rhoNodal[0].reset(new MultiFab(nba, dmap[0], 1, 1));
-            phiNodal[0].reset(new MultiFab(nba, dmap[0], 1, 1));            
-            mypc->DepositCharge(rhoNodal);
-
-            computePhi(rhoNodal, phiNodal);
 	    WritePlotFile();
 	}
 	if (check_int > 0) {
