@@ -2,6 +2,7 @@
 module bl_timer_module
 
   use bl_types
+  use amrex_timer_c_module, only: cpu_second, cpu_second_tick, wall_second, wall_second_tick
 
   implicit none
 
@@ -19,27 +20,6 @@ module bl_timer_module
      logical :: wall = .TRUE.
   end type timer
 
-  interface
-     subroutine cpu_second(s)
-       use bl_types
-       real(kind=dp_t) :: s
-     end subroutine cpu_second
-     subroutine wall_second(s)
-       use bl_types
-       real(kind=dp_t) :: s
-     end subroutine wall_second
-     subroutine cpu_second_tick(s)
-       use bl_types
-       real(kind=dp_t) :: s
-     end subroutine cpu_second_tick
-     subroutine wall_second_tick(s)
-       use bl_types
-       real(kind=dp_t) :: s
-     end subroutine wall_second_tick
-  end interface
-
-  private :: cpu_second, wall_second
- 
 contains
 
   subroutine timer_build(tm, str, wall)
