@@ -55,6 +55,10 @@ class PGroup(object):
     def addspecies(self):
         pass
 
+    def getnpid(self):
+        # --- The -3 is because the comps include the velocites
+        return _labwarpx.warpx_nComps() - 3
+    npid = property(getnpid)
 
     def getnps(self):
         return np.array([len(self.xp)], dtype='l')
@@ -104,7 +108,7 @@ class PGroup(object):
         uxp = self.getuxp(js)
         uyp = self.getuyp(js)
         uzp = self.getuzp(js)
-        return sqrt(1. - (uxp**2 + uyp**2 + uzp**2)/warpxC.c**2)
+        return np.sqrt(1. - (uxp**2 + uyp**2 + uzp**2)/_libwarpx.clight**2)
     gaminv = property(getgaminv)
 
     def getex(self, js=0):

@@ -6,6 +6,9 @@ from ctypes.util import find_library
 import numpy as np
 from numpy.ctypeslib import ndpointer
 
+# --- Is there a better way of handling constants?
+clight = 2.99792458e+8 # m/s
+
 def get_package_root():
     '''
     Get the path to the installation location (where libwarpx.so would be installed).
