@@ -31,13 +31,16 @@ namespace amrex {
 ///
 /// This is a container for particles that undergo short-range interations.
 /// In addition to the normal ParticleContainer methods, each tile contains a "ghost
-/// buffer" that is filled with the positions of the particles within 1 ghost cell of
+/// buffer" that is filled with data corresponding to the particles within 1 ghost cell of
 /// the tile boundaries. This allows the N^2 search over each pair of particles to proceed
 /// locally, instead of over the entire domain.
 ///
 /// These particles carry velocity and acceleration in addition to the usual components.
 /// In 2D, the struct is: x y vx vy ax ay id cpu
 /// In 3D: x y z vx vy vz ax ay az id cpu
+///
+/// Note: For the ghost particles, we don't communicate the integer components, only the
+/// real data.
 ///
 class ShortRangeParticleContainer
     : public ParticleContainer<2*BL_SPACEDIM>
@@ -104,7 +107,7 @@ private:
     void fillGhostsMPI(GhostCommMap& ghosts_to_comm);
 
     const int lev = 0;
-    const size_t pdata_size = BL_SPACEDIM*sizeof(RealType); // we communicate the position only for ghosts
+    const size_t pdata_size = 3*BL_SPACEDIM*sizeof(ParticleType::RealType);
     FabArray<BaseFab<int> > mask;
     std::map<PairIndex, Array<char> > ghosts;
 };

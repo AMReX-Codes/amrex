@@ -147,12 +147,12 @@ void ShortRangeParticleContainer::clearGhosts() {
 void ShortRangeParticleContainer::computeForces() {
     for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
         AoS& particles = pti.GetArrayOfStructs();
-        size_t Np = particles.size();
+        int Np = particles.size();
         int nstride = particles.dataShape().first;
         PairIndex index(pti.index(), pti.LocalTileIndex());
         int Ng = ghosts[index].size() / pdata_size;
-        amrex_compute_forces(particles.data(), nstride, Np, 
-                             (RealType*) ghosts[index].dataPtr(), Ng);
+        amrex_compute_forces(particles.data(), &Np, 
+                             ghosts[index].dataPtr(), &Ng);
     }        
 }
 
@@ -160,9 +160,9 @@ void ShortRangeParticleContainer::moveParticles(const Real dt) {
     const RealBox& prob_domain = Geom(lev).ProbDomain();
     for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
         AoS& particles = pti.GetArrayOfStructs();
-        size_t Np = particles.size();
+        int Np = particles.size();
         int nstride = particles.dataShape().first;
-        amrex_move_particles(particles.data(), nstride, Np, &dt,
+        amrex_move_particles(particles.data(), &Np, &dt,
                              prob_domain.lo(), prob_domain.hi());
     }
 }

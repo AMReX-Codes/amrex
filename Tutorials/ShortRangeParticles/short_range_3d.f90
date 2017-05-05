@@ -1,70 +1,100 @@
-  subroutine amrex_move_particles(particles, ns, np, dt, prob_lo, prob_hi) &
-       bind(c,name='amrex_move_particles')
+  module short_range_particle_module
+    use amrex_fort_module, only: amrex_real
+    use iso_c_binding ,    only: c_int
+    
+    implicit none
+    private
+    
+    public  particle_t, ghost_t
+    
+    type, bind(C)  :: particle_t
+       real(amrex_real) :: pos(3)     !< Position
+       real(amrex_real) :: vel(3)     !< Particle velocity
+       real(amrex_real) :: acc(3)     !< Particle velocity
+       integer(c_int)   :: id         !< Particle id
+       integer(c_int)   :: cpu        !< Particle cpu
+    end type particle_t
+    
+    type, bind(C)  :: ghost_t
+       real(amrex_real) :: pos(3)     !< Position
+       real(amrex_real) :: vel(3)     !< Particle velocity
+       real(amrex_real) :: acc(3)     !< Particle velocity
+    end type ghost_t
+    
+  end module short_range_particle_module
 
+  subroutine amrex_move_particles(particles, np, dt, prob_lo, prob_hi) &
+       bind(c,name='amrex_move_particles')
+    
     use iso_c_binding
     use amrex_fort_module, only : amrex_real
-    integer,          intent(in   ), value :: ns, np
-    real(amrex_real), intent(inout)        :: particles(ns, np)
-    real(amrex_real), intent(in   )        :: dt
-    real(amrex_real), intent(in   )        :: prob_lo(3), prob_hi(3)
+    use short_range_particle_module, only : particle_t
+
+    integer,          intent(in   )         :: np
+    type(particle_t), intent(inout), target :: particles(np)
+    real(amrex_real), intent(in   )         :: dt
+    real(amrex_real), intent(in   )         :: prob_lo(3), prob_hi(3)
 
     integer i
+    type(particle_t), pointer :: p
 
     do i = 1, np
+       
+       p => particles(i)
 
 !      update the particle positions / velocites
-       particles(4, i) = particles(4, i) + particles(7, i) * dt 
-       particles(5, i) = particles(5, i) + particles(8, i) * dt 
-       particles(6, i) = particles(6, i) + particles(9, i) * dt 
+       p%vel(1) = p%vel(1) + p%acc(1) * dt 
+       p%vel(2) = p%vel(2) + p%acc(2) * dt 
+       p%vel(3) = p%vel(3) + p%acc(3) * dt 
 
-
-       particles(1, i) = particles(1, i) + particles(4, i) * dt 
-       particles(2, i) = particles(2, i) + particles(5, i) * dt 
-       particles(3, i) = particles(3, i) + particles(6, i) * dt 
+       p%pos(1) = p%pos(1) + p%vel(1) * dt 
+       p%pos(2) = p%pos(2) + p%vel(2) * dt 
+       p%pos(3) = p%pos(3) + p%vel(3) * dt 
 
 !      bounce off the walls in the x...
-       do while (particles(1, i) .lt. prob_lo(1) .or. particles(1, i) .gt. prob_hi(1))
-          if (particles(1, i) .lt. prob_lo(1)) then
-             particles(1, i) = 2.d0*prob_lo(1) - particles(1, i)
+       do while (p%pos(1) .lt. prob_lo(1) .or. p%pos(1) .gt. prob_hi(1))
+          if (p%pos(1) .lt. prob_lo(1)) then
+             p%pos(1) = 2.d0*prob_lo(1) - p%pos(1)
           else
-             particles(1, i) = 2.d0*prob_hi(1) - particles(1, i)
+             p%pos(1) = 2.d0*prob_hi(1) - p%pos(1)
           end if
-          particles(4, i) = -particles(4, i)
+          p%vel(1) = -p%vel(1)
        end do
 
-!      ... y... 
-       do while (particles(2, i) .lt. prob_lo(2) .or. particles(2, i) .gt. prob_hi(2))
-          if (particles(2, i) .lt. prob_lo(2)) then
-             particles(2, i) = 2.d0*prob_lo(2) - particles(2, i)
+!      ... y ...
+       do while (p%pos(2) .lt. prob_lo(2) .or. p%pos(2) .gt. prob_hi(2))
+          if (p%pos(2) .lt. prob_lo(2)) then
+             p%pos(2) = 2.d0*prob_lo(2) - p%pos(2)
           else
-             particles(2, i) = 2.d0*prob_hi(2) - particles(2, i)
+             p%pos(2) = 2.d0*prob_hi(2) - p%pos(2)
           end if
-          particles(5, i) = -particles(5, i)
+          p%vel(2) = -p%vel(2)
        end do
 
-!      ... and z directions
-       do while (particles(3, i) .lt. prob_lo(3) .or. particles(3, i) .gt. prob_hi(3))
-          if (particles(3, i) .lt. prob_lo(3)) then
-             particles(3, i) = 2.d0*prob_lo(3) - particles(3, i)
+!      ... z directions
+       do while (p%pos(3) .lt. prob_lo(3) .or. p%pos(3) .gt. prob_hi(3))
+          if (p%pos(3) .lt. prob_lo(3)) then
+             p%pos(3) = 2.d0*prob_lo(3) - p%pos(3)
           else
-             particles(3, i) = 2.d0*prob_hi(3) - particles(3, i)
+             p%pos(3) = 2.d0*prob_hi(3) - p%pos(3)
           end if
-          particles(6, i) = -particles(6, i)
+          p%vel(3) = -p%vel(3)
        end do
 
     end do
 
   end subroutine amrex_move_particles
 
-
-  subroutine amrex_compute_forces(particles, ns, np, ghosts, ng) &
+  subroutine amrex_compute_forces(particles, np, ghosts, ng) &
        bind(c,name='amrex_compute_forces')
 
     use iso_c_binding
-    use amrex_fort_module, only : amrex_real
-    integer,          intent(in   ), value :: ns, np, ng
-    real(amrex_real), intent(inout)        :: particles(ns, np)
-    real(amrex_real), intent(in   )        :: ghosts(3, ng)
+    use amrex_fort_module,           only : amrex_real
+    use short_range_particle_module, only : particle_t, ghost_t
+        
+    integer,          intent(in   ) :: np, ng
+    type(particle_t), intent(inout) :: particles(np)
+    type(ghost_t),    intent(in   ) :: ghosts(ng)
 
     real(amrex_real) dx, dy, dz, r2, r, coef
     real(amrex_real) cutoff, min_r, mass
@@ -77,9 +107,9 @@
     do i = 1, np
 
 !      zero out the particle acceleration
-       particles(7, i) = 0.d0
-       particles(8, i) = 0.d0
-       particles(9, i) = 0.d0
+       particles(i)%acc(1) = 0.d0
+       particles(i)%acc(2) = 0.d0
+       particles(i)%acc(3) = 0.d0
 
        do j = 1, np
 
@@ -87,9 +117,9 @@
              cycle
           end if
 
-          dx = particles(1, i) - particles(1, j)
-          dy = particles(2, i) - particles(2, j)
-          dz = particles(3, i) - particles(3, j)
+          dx = particles(i)%pos(1) - particles(j)%pos(1)
+          dy = particles(i)%pos(2) - particles(j)%pos(2)
+          dz = particles(i)%pos(3) - particles(j)%pos(3)
 
           r2 = dx * dx + dy * dy + dz * dz
 
@@ -101,17 +131,17 @@
           r = sqrt(r2)
 
           coef = (1.d0 - cutoff / r) / r2 / mass
-          particles(7, i) = particles(7, i) + coef * dx
-          particles(8, i) = particles(8, i) + coef * dy
-          particles(9, i) = particles(9, i) + coef * dz
+          particles(i)%acc(1) = particles(i)%acc(1) + coef * dx
+          particles(i)%acc(2) = particles(i)%acc(2) + coef * dy
+          particles(i)%acc(3) = particles(i)%acc(3) + coef * dz
 
        end do
 
        do j = 1, ng
 
-          dx = particles(1, i) - ghosts(1, j)
-          dy = particles(2, i) - ghosts(2, j)
-          dz = particles(3, i) - ghosts(3, j)
+          dx = particles(i)%pos(1) - ghosts(j)%pos(1)
+          dy = particles(i)%pos(2) - ghosts(j)%pos(2)
+          dz = particles(i)%pos(3) - ghosts(j)%pos(3)
 
           r2 = dx * dx + dy * dy + dz * dz
 
@@ -123,11 +153,12 @@
           r = sqrt(r2)
 
           coef = (1.d0 - cutoff / r) / r2 / mass
-          particles(7, i) = particles(7, i) + coef * dx
-          particles(8, i) = particles(8, i) + coef * dy
-          particles(9, i) = particles(9, i) + coef * dz
+          particles(i)%acc(1) = particles(i)%acc(1) + coef * dx
+          particles(i)%acc(2) = particles(i)%acc(2) + coef * dy
+          particles(i)%acc(3) = particles(i)%acc(3) + coef * dz
           
       end do
     end do
 
   end subroutine amrex_compute_forces
+
