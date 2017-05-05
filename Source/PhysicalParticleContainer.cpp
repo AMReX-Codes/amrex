@@ -224,6 +224,7 @@ PhysicalParticleContainer::EvolveES (const Array<std::array<std::unique_ptr<Mult
     const int lev = 0;
 
     const auto& gm = m_gdb->Geom(lev);
+    const RealBox& prob_domain = gm.ProbDomain();
     const auto& ba = m_gdb->ParticleBoxArray(lev);
     const Real* dx  = gm.CellSize();
     const Real* plo = gm.ProbLo();
@@ -278,7 +279,8 @@ PhysicalParticleContainer::EvolveES (const Array<std::array<std::unique_ptr<Mult
             warpx_push_leapfrog(particles.data(), nstride, np,
                                 uxp.data(), uyp.data(), uzp.data(),
                                 Exp.data(), Eyp.data(), Ezp.data(),
-                                &this->charge, &this->mass, &dt);
+                                &this->charge, &this->mass, &dt,
+                                prob_domain.lo(), prob_domain.hi());
 
 	    //
 	    // Charge Deposition

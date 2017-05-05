@@ -76,7 +76,7 @@ contains
 
     fac = 0.5d0 / dx
 
-    do k    = lo(3), hi(3)
+    do k = lo(3), hi(3)
        do j = lo(2), hi(2)
           do i = lo(1), hi(1)
              
@@ -219,7 +219,8 @@ contains
   subroutine warpx_push_leapfrog(particles, ns, np,      &
                                  vx_p, vy_p, vz_p,       &                                 
                                  Ex_p, Ey_p, Ez_p,       &
-                                 charge, mass, dt)       &
+                                 charge, mass, dt,       &
+                                 prob_lo, prob_hi)       &
        bind(c,name='warpx_push_leapfrog')
     integer, value       :: ns, np
     real(amrex_real)     :: particles(ns,np)
@@ -228,7 +229,8 @@ contains
     real(amrex_real)     :: charge
     real(amrex_real)     :: mass
     real(amrex_real)     :: dt
-    
+    real(amrex_real)     :: prob_lo(3), prob_hi(3)
+   
     integer n
     real(amrex_real) fac
 
@@ -244,6 +246,36 @@ contains
        particles(2, n) = particles(2, n) + dt * vy_p(n)
        particles(3, n) = particles(3, n) + dt * vz_p(n)
               
+!      bounce off the walls in the x...
+       do while (particles(1, n) .lt. prob_lo(1) .or. particles(1, n) .gt. prob_hi(1))
+          if (particles(1, n) .lt. prob_lo(1)) then
+             particles(1, n) = 2.d0*prob_lo(1) - particles(1, n)
+          else
+             particles(1, n) = 2.d0*prob_hi(1) - particles(1, n)
+          end if
+          vx_p(n) = -vx_p(n)
+       end do
+
+!      ... y... 
+       do while (particles(2, n) .lt. prob_lo(2) .or. particles(2, n) .gt. prob_hi(2))
+          if (particles(2, n) .lt. prob_lo(2)) then
+             particles(2, n) = 2.d0*prob_lo(2) - particles(2, n)
+          else
+             particles(2, n) = 2.d0*prob_hi(2) - particles(2, n)
+          end if
+          vy_p(n) = -vy_p(n)
+       end do
+
+!      ... and z directions
+       do while (particles(3, n) .lt. prob_lo(3) .or. particles(3, n) .gt. prob_hi(3))
+          if (particles(3, n) .lt. prob_lo(3)) then
+             particles(3, n) = 2.d0*prob_lo(3) - particles(3, n)
+          else
+             particles(3, n) = 2.d0*prob_hi(3) - particles(3, n)
+          end if
+          vz_p(n) = -vz_p(n)
+       end do
+
     end do
 
   end subroutine warpx_push_leapfrog

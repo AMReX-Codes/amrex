@@ -82,7 +82,7 @@ WarpX::WarpX ()
     ReadParameters();
 
     if (max_level != 0) {
-	amrex::Abort("WaprX: max_level must be zero");
+	amrex::Abort("WarpX: max_level must be zero");
     }
 
     // Geometry on all levels has been defined already.
@@ -361,7 +361,7 @@ void WarpX::computePhi(const Array<std::unique_ptr<MultiFab> >& rho,
     MultiFab::Copy(*rhs[lev], *rho[lev], 0, 0, 1, 1); 
 
     // multiply by -1.0/ep_0
-    rhs[lev]->mult(-1.0/PhysConst::ep0, 1);
+    rhs[lev]->mult(-1.0/PhysConst::ep0, 1);        
 
     // Note - right now this does either Dirichlet 0 on all sides,
     // or periodic on all sides.
@@ -374,10 +374,19 @@ void WarpX::computePhi(const Array<std::unique_ptr<MultiFab> >& rho,
         for (int i = 0; i < 2*BL_SPACEDIM; i++) {
             mg_bc[i] = 0.0;
         }
+        MultiFab::Copy(*rhs[lev], *rho[lev], 0, 0, 1, 1); 
     } else {
         // do Dirichlet zero on all sides.
         for (int i = 0; i < 2*BL_SPACEDIM; i++) {
             mg_bc[i] = 1.0;
+        }
+        
+        // set rho to zero on boundary
+        Box domain_box = amrex::convert(Geom(lev).Domain(),
+                                        rhs[lev]->boxArray().ixType());
+        domain_box.grow(-1);
+        for (MFIter mfi(*rhs[lev]); mfi.isValid(); ++mfi){
+            (*rhs[lev])[mfi].setComplement(0.0, domain_box, 0, 1);
         }
     }
 
@@ -393,8 +402,8 @@ void WarpX::computePhi(const Array<std::unique_ptr<MultiFab> >& rho,
 
     solver.set_nodal_const_coefficients(1.0);
 
-    Real rel_tol = 1.0e-6;
-    Real abs_tol = 1.0e-6;
+    Real rel_tol = 1.0e-9;
+    Real abs_tol = 1.0e-9;
 
     solver.solve_nodal(GetArrOfPtrs(phi), GetArrOfPtrs(rhs), rel_tol, abs_tol);
 }

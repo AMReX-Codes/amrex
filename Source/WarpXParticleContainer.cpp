@@ -271,6 +271,24 @@ Real WarpXParticleContainer::sumParticleCharge(bool local) {
     return total_charge;
 }
 
+Real WarpXParticleContainer::maxParticleVelocity(bool local) {
+
+    const int lev = 0;
+    amrex::Real max_v = 0.0;
+    for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
+    {
+        auto& ux = pti.GetAttribs(PIdx::ux);
+        auto& uy = pti.GetAttribs(PIdx::uy);
+        auto& uz = pti.GetAttribs(PIdx::uz);
+        for (unsigned long i = 0; i < ux.size(); i++) {
+            max_v = std::max(max_v, sqrt(ux[i]*ux[i] + uy[i]*uy[i] + uz[i]*uz[i]));
+        }
+    }
+
+    if (!local) ParallelDescriptor::ReduceRealMax(max_v);
+    return max_v;
+}
+
 void
 WarpXParticleContainer::PushXES (Real dt)
 {

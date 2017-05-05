@@ -152,7 +152,8 @@ extern "C"
     void warpx_push_leapfrog(amrex::Real* particles, int ns, int np, 
                              amrex::Real* vx_p, amrex::Real* vy_p, amrex::Real* vz_p,
                              const amrex::Real* Ex_p, const amrex::Real* Ey_p, const amrex::Real* Ez_p,
-                             const amrex::Real* charge, const amrex::Real* mass, const amrex::Real* dt);
+                             const amrex::Real* charge, const amrex::Real* mass, const amrex::Real* dt,
+                             const amrex::Real* prob_lo, const amrex::Real* prob_hi);
 
     void warpx_push_leapfrog_positions(amrex::Real* particles, int ns, int np, 
                                        const amrex::Real* vx_p, const amrex::Real* vy_p, 

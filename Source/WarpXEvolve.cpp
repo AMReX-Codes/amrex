@@ -66,7 +66,11 @@ WarpX::EvolveES(int numsteps) {
         if (ParallelDescriptor::NProcs() > 1) {
             if (okToRegrid(step)) RegridBaseLevel();
         }
-        
+
+        const std::string& ppltfile = amrex::Concatenate("particles", istep[0], 5);
+        auto& pc = mypc->GetParticleContainer(0);
+        pc.WriteAsciiFile(ppltfile);
+
         // At initialization, particles have p^{n-1/2} and x^{n-1/2}.           
         // Beyond one step, particles have p^{n-1/2} and x^{n}.
         
@@ -83,6 +87,10 @@ WarpX::EvolveES(int numsteps) {
 
         // Evolve particles to p^{n+1/2} and x^{n+1}
         mypc->EvolveES(eFieldNodal, rhoNodal, cur_time, dt[lev]);
+
+        computePhi(rhoNodal, phiNodal);
+        phiNodal[0]->FillBoundary(Geom(0).periodicity());
+        computeE(eFieldNodal, phiNodal);
         
         if (cur_time + dt[0] >= stop_time - 1.e-3*dt[0] || step == numsteps_max-1) {
             // on last step, push by only 0.5*dt to synchronize all at n+1/2
@@ -482,6 +490,7 @@ WarpX::ComputeDt ()
     dt[0]  = cfl * 1./( std::sqrt(D_TERM(  1./(dx[0]*dx[0]),
                                          + 1./(dx[1]*dx[1]),
                                          + 1./(dx[2]*dx[2]))) * PhysConst::c );
+    dt[0] = 1.0e-10;
 
     for (int lev = 1; lev <= max_level; ++lev) {
 	dt[lev] = dt[lev-1] / nsubsteps[lev];
