@@ -59,16 +59,45 @@ contains
        ! see amrex_interpolater_module for a list of interpolaters
   end subroutine fillcoarsepatch
 
-  subroutine fill_physbc (pmf, scomp, ncomp, time) bind(c)
-    type(c_ptr), value :: pmf
+  subroutine fill_physbc (pmf, scomp, ncomp, time, pgeom) bind(c)
+    use amrex_geometry_module, only : amrex_is_all_periodic
+    use amrex_filcc_module, only : amrex_filcc
+    use bc_module, only : lo_bc, hi_bc
+    type(c_ptr), value :: pmf, pgeom
     integer(c_int), value :: scomp, ncomp
     real(amrex_real), value :: time
-    ! In this test problem, we only have periodic boundaries.
-    ! So there is noting to do.
-    
-!    type(amrex_multifab) :: mf
-!    mf = pmf
-    
+
+    type(amrex_geometry) :: geom
+    type(amrex_multifab) :: mf
+    type(amrex_mfiter) :: mfi
+    real(amrex_real), contiguous, pointer, dimension(:,:,:,:) :: p
+    integer :: plo(4), phi(4)
+
+    if (.not. amrex_is_all_periodic()) then
+       geom = pgeom
+       mf = pmf
+
+       !$omp parallel private(mfi,p,plo,phi)
+       call amrex_mfiter_build(mfi, mf, tiling=.false.)
+       do while(mfi%next())
+          p => mf%dataptr(mfi)
+          if (.not. geom%domain%contains(p)) then ! part of this box is outside the domain
+             plo = lbound(p)
+             phi = ubound(p)
+             call amrex_filcc(p, plo, phi,         & ! fortran array and bounds
+                  geom%domain%lo, geom%domain%hi,  & ! index extent of whole problem domain
+                  geom%dx,                         & ! cell size in real
+                  geom%get_physical_location(plo), & ! physical location of lower left corner
+                  lo_bc, hi_bc)                      ! bc types for each component
+
+             ! amrex_filcc doesn't fill EXT_DIR (see amrex_bc_types_module for a list of bc types
+             ! In that case, the user needs to fill it.
+          end if
+       end do
+       !$omp end parallel
+
+    end if
+ 
   end subroutine fill_physbc
 
 end module fillpatch_module

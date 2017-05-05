@@ -50,6 +50,7 @@
 #endif
 
 #include <AMReX_ArrayLim.H>
+#include <AMReX_REAL.H>
 
 typedef void BDInterpFunc(amrex::Real* bndr, ARLIM_P(blo), ARLIM_P(bhi),
                           const int* lo, const int* hi,

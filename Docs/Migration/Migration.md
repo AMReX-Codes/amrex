@@ -142,11 +142,6 @@ data,
     MFInfo info;
     info.SetAlloc(false);   // The default MFInfo is true.
 
-To build a `MultiFab` with nodal flags `IntVect nodal`,
-
-    MFInfo info;
-    info.SetNodal(nodal);  // The default MFInfo is cell-centered.
-
 `VisMF::Read` function used to only take an empty `MultiFab` built
 with the default constructor.  The function reads `BoxArray` from
 disk, builds the `MultiFab` with the `BoxArray` and a

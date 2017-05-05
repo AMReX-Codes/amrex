@@ -132,7 +132,7 @@ def doit():
                         metavar="link-invocation",
                         help="the link invocation used to link the application, including all options")
     parser.add_argument("--amrex_home", default="",
-                        metavar="/path/to/amrex",
+                        metavar="/path/to/AMReX",
                         help="the full path to the main amrex/ directory")
     parser.add_argument("--source_home", default="",
                         metavar="/path/to/source",
