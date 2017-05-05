@@ -1,8 +1,10 @@
 #include <AMReX_REAL.H>
 #include <AMReX_ArrayLim.H>
 
+#ifdef __cplusplus
 extern "C"
 {
+#endif
     void comp_asol(amrex::Real* asol      , ARLIM_P(asol_lo), ARLIM_P(asol_hi),
 		    const int* lo, const int* hi, const amrex::Real* dx, const int& ibnd,
 		    const amrex::Real* offset);
@@ -12,6 +14,8 @@ extern "C"
 
     void set_cc_coef(amrex::Real* coef     , ARLIM_P(coef_lo), ARLIM_P(coef_hi),
 		     const int* lo, const int* hi, const amrex::Real* dx, const amrex::Real& sigma, const amrex::Real& w);
+#ifdef __cplusplus
 }
+#endif
 
 

@@ -3,8 +3,11 @@
 
 #include <AMReX_BLFort.H>
 
+#ifdef __cplusplus
 extern "C"
 {
+#endif
+
   void init_phi(amrex::Real* data, const int* lo, const int* hi, const int* ng, 
 		const amrex::Real* dx, const amrex::Real* prob_lo, const amrex::Real* prob_hi);
 
@@ -30,5 +33,9 @@ extern "C"
 		  const int* dlo, const int* dhi,
 		  const amrex::Real* dx, const amrex::Real* glo, 
 		  const amrex::Real* time, const int* bc);
+
+#ifdef __cplusplus
 }
+#endif
+
 #endif

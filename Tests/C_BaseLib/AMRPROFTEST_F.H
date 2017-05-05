@@ -14,10 +14,14 @@
 #  endif
 
 
+#ifdef __cplusplus
 extern "C" {
+#endif
     void FORT_AMRPROFTEST();
     void FORT_AMRPROFTESTINT();
+#ifdef __cplusplus
 }     
+#endif
  
 #endif
 #endif

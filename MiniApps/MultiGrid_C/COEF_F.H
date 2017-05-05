@@ -31,8 +31,10 @@
 
 #include <AMReX_ArrayLim.H>
 
+#ifdef __cplusplus
 extern "C"
 {
+#endif
     void FORT_COMP_ASOL (
         amrex::Real* asol      , ARLIM_P(asol_lo), ARLIM_P(asol_hi),
         const int* lo, const int* hi, const amrex::Real* dx, const int& ibnd);
@@ -49,7 +51,9 @@ extern "C"
         amrex::Real* edge     , ARLIM_P(edge_lo), ARLIM_P(edge_hi),
         amrex::Real* coef     , ARLIM_P(coef_lo), ARLIM_P(coef_hi),
         const int* lo, const int* hi);
+#ifdef __cplusplus
 }
+#endif
 #endif
 
 #endif /*_COEF_F_H_*/
