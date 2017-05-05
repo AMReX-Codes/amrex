@@ -38,7 +38,7 @@ WarpX::InitData ()
     if (restart_chkfile.empty())
     {
 	if (plot_int > 0) {
-	    WritePlotFile();
+            WritePlotFile();
 	}
 	if (check_int > 0) {
 	    WriteCheckPointFile();

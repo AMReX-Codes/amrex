@@ -99,6 +99,10 @@ public:
     void WriteCheckPointFile () const;
     void WritePlotFile () const;
 
+    void WritePlotFileES(const amrex::Array<std::unique_ptr<amrex::MultiFab> >& rho,
+                         const amrex::Array<std::unique_ptr<amrex::MultiFab> >& phi,
+                         const amrex::Array<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E);
+
     static std::array<amrex::Real,3> CellSize (int lev);
     static std::array<amrex::Real,3> LowerCorner (const amrex::Box& bx, int lev);
 

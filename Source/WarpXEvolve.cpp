@@ -114,7 +114,7 @@ WarpX::EvolveES(int numsteps) {
             computeE(eFieldNodal, phiNodal);
             mypc->FieldGatherES(eFieldNodal);
 	    last_plot_file_step = step+1;
-	    WritePlotFile();
+	    WritePlotFileES(rhoNodal, phiNodal, eFieldNodal);
 	}
 
 	if (check_int > 0 && (step+1) % check_int == 0) {
@@ -131,7 +131,7 @@ WarpX::EvolveES(int numsteps) {
     }
 
     if (plot_int > 0 && istep[0] > last_plot_file_step && (max_time_reached || istep[0] >= max_step)) {
-	WritePlotFile();
+        WritePlotFileES(rhoNodal, phiNodal, eFieldNodal);
     }
 
     if (check_int > 0 && istep[0] > last_check_file_step && (max_time_reached || istep[0] >= max_step)) {
