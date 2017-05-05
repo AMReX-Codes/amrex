@@ -1,27 +1,99 @@
 #!/usr/bin/env python
 
+from __future__ import print_function
+
 import os
 import sys
 import argparse
-from pycparser import parse_file, c_parser, c_ast, c_generator
-
-# supported C types: char, short, int, long, float, double, and their pointer types, and void*
+from pycparser import parse_file, c_ast
 
 def typechecker(argv):
     parser = argparse.ArgumentParser()
-    parser.add_argument("--workdir",
-                        required=True)
+    parser.add_argument("--workdir", required=True)
+    parser.add_argument("--debug", action='store_true')
     script_args = parser.parse_args()
 
-    ret_type, arg_type = getFortranArg('mysub', script_args.workdir)
-    print ret_type, arg_type
+    class FuncDeclVisitor(c_ast.NodeVisitor):
+        def visit_FuncDecl(self, node):
+            check_doit(node, script_args.workdir, script_args.debug)
 
-    ret_type, arg_type = getFortranArg('myfunc', script_args.workdir)
-    print ret_type, arg_type
+    for f in os.listdir(script_args.workdir):
+        if f.endswith('-cppd.h'):
+            fname = os.path.join(script_args.workdir,f)
+            if script_args.debug:
+                print("\nChecking "+fname+"...")
+            ast = parse_file(fname)
+            v = FuncDeclVisitor()
+            v.visit(ast)
 
-    ret_type, arg_type = getFortranArg('myfunc2', script_args.workdir)
-    print ret_type, arg_type
 
+def check_doit(node, workdir, debug):
+    f_ret_type, f_arg_type = getFortranArg(node.type.declname, workdir)
+    if f_ret_type:
+        # found a fortran function with that name
+        c_ret_type = c_ast_get_type(node.type)
+        c_arg_type = []
+        for param in node.args.params:
+            typ = c_ast_get_type(param.type).split(' ')
+            if len(typ) == 1:
+                c_arg_type.append([typ[0], 'value'])
+            elif len(typ) == 2:
+                c_arg_type.append(typ)
+            else:
+                print("check_doit: how did this happen? ", typ)
+                sys.exit(1)
+        if debug:
+            print("\nFunction "+node.type.declname+": C vs. Fortran")
+            if c_to_f_type(c_ret_type) == f_ret_type:
+                print("    C return type {0} matches F {1}."
+                      .format(c_ret_type,f_ret_type))
+            else:
+                print("    C return type {0} does NOT F match {1}."
+                      .format(c_ret_type,f_ret_type))
+            if len(c_arg_type) == len(f_arg_type):
+                print("    number of arguments {0} matches {1}."
+                      .format(len(c_arg_type),len(f_arg_type)))
+            else:
+                print("    number of arguments {0} does NOT matche {1}."
+                      .format(len(c_arg_type),len(f_arg_type)))
+            for ct,ft in zip(c_arg_type, f_arg_type):
+                if c_to_f_type(ct[0]) == ft[0] and ct[1] == ft[1]:
+                    print("    C arg type {0} matches F arg type {1}."
+                          .format(ct, ft))
+                else:
+                    print("    C arg type {0} does NOT match F arg type {1}."
+                          .format(ct, ft))
+
+
+def c_to_f_type(ctyp):
+    # supported C types: char, short, int, long, float, double, void
+    if ctyp == 'char':
+        return 'INTEGER 1'
+    elif ctyp == 'short':
+        return 'INTEGER 2'
+    elif ctyp == 'int':
+        return 'INTEGER 4'
+    elif ctyp == 'long':
+        return 'INTEGER 8'  # yes, this is our assumption
+    elif ctyp == 'float':
+        return 'REAL 4'
+    elif ctyp == 'double':
+        return 'REAL 8'
+    elif ctyp == 'amrex_real':
+        return 'REAL 8'
+    elif ctyp == 'void':
+        return 'void'
+
+
+def c_ast_get_type(decl):
+    typ = type(decl)
+    if typ == c_ast.IdentifierType:
+        return ' '.join(decl.names)
+    elif typ == c_ast.PtrDecl:
+        return c_ast_get_type(decl.type) + ' pointer'
+    else:
+        return c_ast_get_type(decl.type)
+    
 def getFortranArg(funcname, workdir):
     """ given a function name and a directory for searching, return a tuple
         of function return type and list of arguments.  For example,

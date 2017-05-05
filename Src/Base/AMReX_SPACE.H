@@ -41,10 +41,13 @@
   visible to debuggers while macros are not.
 */
 
+#ifdef __cplusplus
 namespace amrex
 {
     const int SpaceDim = BL_SPACEDIM;
 }
+#endif
+
 #endif
 
 #if BL_SPACEDIM==1

@@ -237,7 +237,7 @@ $(tmpEXETempDir)/%.F90.orig: %.F90
 
 $(tmpEXETempDir)/%-cppd.h: %.H
 	@if [ ! -d $(tmpEXETempDir) ]; then mkdir -p $(tmpEXETempDir); fi
-	$(SILENT) $(CC) $(CPPFLAGS) $(includes) -E -P -c c -std=c99 $< -o $@
+	$(SILENT) $(CC) $(CPPFLAGS) $(includes) -E -P -x c -std=c99 $< -o $@
 
 check_fortran: $(fortran_ir_sources) $(fortran_fdecl_headers_cppd)
 	@if [ ! -d $(tmpEXETempDir) ]; then mkdir -p $(tmpEXETempDir); fi
