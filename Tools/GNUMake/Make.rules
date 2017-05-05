@@ -242,10 +242,7 @@ $(tmpEXETempDir)/%-cppd.h: %.H
 check_fortran: $(fortran_ir_sources) $(fortran_fdecl_headers_cppd)
 	@if [ ! -d $(tmpEXETempDir) ]; then mkdir -p $(tmpEXETempDir); fi
 	@echo "Checking Fortran iso_c_binding interface ..."
-#	$(CHECKFORT) --work_dir $(tmpEXETempDir) \
-#	--cpp "$(FORT_CPP)" \
-#        --defines "-DBL_LANG_FORT $(CPPFLAGS) $(fincludes)" \
-#        $(f90EXE_sources) $(F90EXE_sources) > $(tmpEXETempDir)/check_fortran.ou
+	$(CHECKFORT) --workdir $(tmpEXETempDir) --debug > check_fortran.ou
 
 ifeq ($(MAKECMDGOALS),check_fortran)
 -include $(tmpEXETempDir)/check_fortran.ou
