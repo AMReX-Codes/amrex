@@ -36,20 +36,20 @@ extern "C"
 {
 #endif
     void FORT_COMP_ASOL (
-        amrex::Real* asol      , ARLIM_P(asol_lo), ARLIM_P(asol_hi),
-        const int* lo, const int* hi, const amrex::Real* dx, const int& ibnd);
+        amrex_real* asol      , ARLIM_P(asol_lo), ARLIM_P(asol_hi),
+        const int* lo, const int* hi, const amrex_real* dx, const int& ibnd);
 
     void FORT_SET_ALPHA (
-        amrex::Real* alpha     , ARLIM_P(alpha_lo), ARLIM_P(alpha_hi),
-        const int* lo, const int* hi, const amrex::Real* dx);
+        amrex_real* alpha     , ARLIM_P(alpha_lo), ARLIM_P(alpha_hi),
+        const int* lo, const int* hi, const amrex_real* dx);
 
     void FORT_SET_CC_COEF (
-        amrex::Real* coef     , ARLIM_P(coef_lo), ARLIM_P(coef_hi),
-        const int* lo, const int* hi, const amrex::Real* dx, const amrex::Real& sigma, const amrex::Real& w);
+        amrex_real* coef     , ARLIM_P(coef_lo), ARLIM_P(coef_hi),
+        const int* lo, const int* hi, const amrex_real* dx, const amrex_real& sigma, const amrex_real& w);
 
     void FORT_COEF_TO_EDGES (int * dir, 
-        amrex::Real* edge     , ARLIM_P(edge_lo), ARLIM_P(edge_hi),
-        amrex::Real* coef     , ARLIM_P(coef_lo), ARLIM_P(coef_hi),
+        amrex_real* edge     , ARLIM_P(edge_lo), ARLIM_P(edge_hi),
+        amrex_real* coef     , ARLIM_P(coef_lo), ARLIM_P(coef_hi),
         const int* lo, const int* hi);
 #ifdef __cplusplus
 }

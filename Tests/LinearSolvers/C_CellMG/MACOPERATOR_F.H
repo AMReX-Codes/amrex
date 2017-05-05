@@ -32,69 +32,69 @@ extern "C"
 {
 #endif
 #if (BL_SPACEDIM == 2)
-    void FORT_MACCOEF (amrex::Real* cx, ARLIM_P(cxlo), ARLIM_P(cxhi),
-                       amrex::Real* cy, ARLIM_P(cylo), ARLIM_P(cyhi),
-                       const amrex::Real* ax, ARLIM_P(axlo), ARLIM_P(axhi),
-                       const amrex::Real* ay, ARLIM_P(aylo), ARLIM_P(ayhi),
-                       const amrex::Real* rho, ARLIM_P(rlo), ARLIM_P(rhi),
+    void FORT_MACCOEF (amrex_real* cx, ARLIM_P(cxlo), ARLIM_P(cxhi),
+                       amrex_real* cy, ARLIM_P(cylo), ARLIM_P(cyhi),
+                       const amrex_real* ax, ARLIM_P(axlo), ARLIM_P(axhi),
+                       const amrex_real* ay, ARLIM_P(aylo), ARLIM_P(ayhi),
+                       const amrex_real* rho, ARLIM_P(rlo), ARLIM_P(rhi),
                        const int* lo, const int* hi,
-                       const amrex::Real* dx);
+                       const amrex_real* dx);
 
-    void FORT_MACRHS  (const amrex::Real* ux, ARLIM_P(uxlo), ARLIM_P(uxhi),
-                       const amrex::Real* uy, ARLIM_P(uylo), ARLIM_P(uyhi),
-                       const amrex::Real* ax, ARLIM_P(axlo), ARLIM_P(axhi),
-                       const amrex::Real* ay, ARLIM_P(aylo), ARLIM_P(ayhi),
-                       const amrex::Real* vol, ARLIM_P(vlo), ARLIM_P(vhi),
-                       amrex::Real* rhs, ARLIM_P(rlo), ARLIM_P(rhi),
+    void FORT_MACRHS  (const amrex_real* ux, ARLIM_P(uxlo), ARLIM_P(uxhi),
+                       const amrex_real* uy, ARLIM_P(uylo), ARLIM_P(uyhi),
+                       const amrex_real* ax, ARLIM_P(axlo), ARLIM_P(axhi),
+                       const amrex_real* ay, ARLIM_P(aylo), ARLIM_P(ayhi),
+                       const amrex_real* vol, ARLIM_P(vlo), ARLIM_P(vhi),
+                       amrex_real* rhs, ARLIM_P(rlo), ARLIM_P(rhi),
                        const int* lo, const int* hi,
-                       const amrex::Real* scale);
+                       const amrex_real* scale);
 
     void FORT_MACUPDATE (const int *init,
-                         amrex::Real* ux, ARLIM_P(uxlo), ARLIM_P(uxhi),
-                         amrex::Real* uy, ARLIM_P(uylo), ARLIM_P(uyhi),
-                         const amrex::Real* phi, ARLIM_P(p_lo), ARLIM_P(p_hi),
-                         const amrex::Real* rho, ARLIM_P(rlo), ARLIM_P(rhi),
+                         amrex_real* ux, ARLIM_P(uxlo), ARLIM_P(uxhi),
+                         amrex_real* uy, ARLIM_P(uylo), ARLIM_P(uyhi),
+                         const amrex_real* phi, ARLIM_P(p_lo), ARLIM_P(p_hi),
+                         const amrex_real* rho, ARLIM_P(rlo), ARLIM_P(rhi),
                          const int* lo, const int* hi,
-                         const amrex::Real* dx, const amrex::Real* scale);
+                         const amrex_real* dx, const amrex_real* scale);
 #endif
 
 #if (BL_SPACEDIM == 3)
-    void FORT_MACCOEF (amrex::Real* cx, ARLIM_P(cxlo), ARLIM_P(cxhi),
-                       amrex::Real* cy, ARLIM_P(cylo), ARLIM_P(cyhi),
-                       amrex::Real* cz, ARLIM_P(czlo), ARLIM_P(czhi),
-                       const amrex::Real* ax, ARLIM_P(axlo), ARLIM_P(axhi),
-                       const amrex::Real* ay, ARLIM_P(aylo), ARLIM_P(ayhi),
-                       const amrex::Real* az, ARLIM_P(azlo), ARLIM_P(azhi),
-                       const amrex::Real* rho, ARLIM_P(rlo), ARLIM_P(rhi),
+    void FORT_MACCOEF (amrex_real* cx, ARLIM_P(cxlo), ARLIM_P(cxhi),
+                       amrex_real* cy, ARLIM_P(cylo), ARLIM_P(cyhi),
+                       amrex_real* cz, ARLIM_P(czlo), ARLIM_P(czhi),
+                       const amrex_real* ax, ARLIM_P(axlo), ARLIM_P(axhi),
+                       const amrex_real* ay, ARLIM_P(aylo), ARLIM_P(ayhi),
+                       const amrex_real* az, ARLIM_P(azlo), ARLIM_P(azhi),
+                       const amrex_real* rho, ARLIM_P(rlo), ARLIM_P(rhi),
                        const int* lo, const int* hi,
-                       const amrex::Real* dx);
+                       const amrex_real* dx);
 
-    void FORT_MACRHS  (const amrex::Real* ux, ARLIM_P(uxlo), ARLIM_P(uxhi),
-                       const amrex::Real* uy, ARLIM_P(uylo), ARLIM_P(uyhi),
-                       const amrex::Real* uz, ARLIM_P(uzlo), ARLIM_P(uzhi),
-                       const amrex::Real* ax, ARLIM_P(axlo), ARLIM_P(axhi),
-                       const amrex::Real* ay, ARLIM_P(aylo), ARLIM_P(ayhi),
-                       const amrex::Real* az, ARLIM_P(azlo), ARLIM_P(azhi),
-                       const amrex::Real* vol, ARLIM_P(vlo), ARLIM_P(vhi),
-                       amrex::Real* rhs, ARLIM_P(rlo), ARLIM_P(rhi),
+    void FORT_MACRHS  (const amrex_real* ux, ARLIM_P(uxlo), ARLIM_P(uxhi),
+                       const amrex_real* uy, ARLIM_P(uylo), ARLIM_P(uyhi),
+                       const amrex_real* uz, ARLIM_P(uzlo), ARLIM_P(uzhi),
+                       const amrex_real* ax, ARLIM_P(axlo), ARLIM_P(axhi),
+                       const amrex_real* ay, ARLIM_P(aylo), ARLIM_P(ayhi),
+                       const amrex_real* az, ARLIM_P(azlo), ARLIM_P(azhi),
+                       const amrex_real* vol, ARLIM_P(vlo), ARLIM_P(vhi),
+                       amrex_real* rhs, ARLIM_P(rlo), ARLIM_P(rhi),
                        const int* lo, const int* hi,
-                       const amrex::Real* scale);
+                       const amrex_real* scale);
 
     void FORT_MACUPDATE (const int *init,
-                         amrex::Real* ux, ARLIM_P(uxlo), ARLIM_P(uxhi),
-                         amrex::Real* uy, ARLIM_P(uylo), ARLIM_P(uyhi),
-                         amrex::Real* uz, ARLIM_P(uzlo), ARLIM_P(uzhi),
-                         const amrex::Real* phi, ARLIM_P(p_lo), ARLIM_P(p_hi),
-                         const amrex::Real* rho, ARLIM_P(rlo), ARLIM_P(rhi),
+                         amrex_real* ux, ARLIM_P(uxlo), ARLIM_P(uxhi),
+                         amrex_real* uy, ARLIM_P(uylo), ARLIM_P(uyhi),
+                         amrex_real* uz, ARLIM_P(uzlo), ARLIM_P(uzhi),
+                         const amrex_real* phi, ARLIM_P(p_lo), ARLIM_P(p_hi),
+                         const amrex_real* rho, ARLIM_P(rlo), ARLIM_P(rhi),
                          const int* lo, const int* hi,
-                         const amrex::Real* dx, const amrex::Real* scale); 
+                         const amrex_real* dx, const amrex_real* scale); 
 
 #endif
 
-    void FORT_MACSYNCRHS (amrex::Real* rhs, ARLIM_P(rlo), ARLIM_P(rhi),
+    void FORT_MACSYNCRHS (amrex_real* rhs, ARLIM_P(rlo), ARLIM_P(rhi),
                           const int* lo, const int* hi,
-                          const amrex::Real* vol, ARLIM_P(vlo), ARLIM_P(vhi),
-                          const amrex::Real* rhs_scale);
+                          const amrex_real* vol, ARLIM_P(vlo), ARLIM_P(vhi),
+                          const amrex_real* rhs_scale);
 #ifdef __cplusplus
 }
 #endif

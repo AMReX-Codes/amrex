@@ -15,7 +15,7 @@ extern "C" {
 			      const int* pmask, const int* pmap);
     void destroy_multifab_c ();
     void share_multifab_with_f (const char* fmf_name, int nc, int ng, const int* nodal);
-    void share_fab_with_f (int i, const amrex::Real* p);
+    void share_fab_with_f (int i, const amrex_real* p);
 #ifdef __cplusplus
 }
 

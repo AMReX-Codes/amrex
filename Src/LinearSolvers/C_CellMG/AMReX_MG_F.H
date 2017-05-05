@@ -74,14 +74,14 @@ extern "C"
 {
 #endif
     void FORT_AVERAGE (
-        amrex::Real* crse,       ARLIM_P(crse_lo), ARLIM_P(crse_hi),
-        const amrex::Real* fine, ARLIM_P(fine_lo), ARLIM_P(fine_hi),
+        amrex_real* crse,       ARLIM_P(crse_lo), ARLIM_P(crse_hi),
+        const amrex_real* fine, ARLIM_P(fine_lo), ARLIM_P(fine_hi),
         const int *tlo, const int *thi,
         const int *nc);
 
     void FORT_INTERP (
-        amrex::Real* fine,       ARLIM_P(fine_lo), ARLIM_P(fine_hi),
-        const amrex::Real* crse, ARLIM_P(crse_lo), ARLIM_P(crse_hi),
+        amrex_real* fine,       ARLIM_P(fine_lo), ARLIM_P(fine_hi),
+        const amrex_real* crse, ARLIM_P(crse_lo), ARLIM_P(crse_hi),
         const int *tlo, const int *thi,
         const int *nc);
 #ifdef __cplusplus

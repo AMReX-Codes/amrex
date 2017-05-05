@@ -21,10 +21,10 @@
 extern "C"
 {
 #endif
-  void FORT_SET_COEF(amrex::Real* exac, amrex::Real* alph, amrex::Real* beta, amrex::Real* rhs,
-		     const int* lo, const int* hi, const amrex::Real* prob_lo, const amrex::Real* prob_hi, 
-		     const amrex::Real* dx, const amrex::Real& a, const amrex::Real& b, 
-		     const amrex::Real& sigma, const amrex::Real& w, int& ibnd);
+  void FORT_SET_COEF(amrex_real* exac, amrex_real* alph, amrex_real* beta, amrex_real* rhs,
+		     const int* lo, const int* hi, const amrex_real* prob_lo, const amrex_real* prob_hi, 
+		     const amrex_real* dx, const amrex_real& a, const amrex_real& b, 
+		     const amrex_real& sigma, const amrex_real& w, int& ibnd);
 #ifdef __cplusplus
 }
 #endif
