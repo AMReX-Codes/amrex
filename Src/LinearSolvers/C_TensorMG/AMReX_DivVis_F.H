@@ -59,8 +59,10 @@
 
 #include <AMReX_ArrayLim.H>
 
+#ifdef __cplusplus
 extern "C"
 {
+#endif
   void FORT_DVAPPLY(
 		    const amrex::Real*u, ARLIM_P(ulo), ARLIM_P(uhi),
 		    const amrex::Real*alpha, const amrex::Real*beta,
@@ -204,7 +206,9 @@ extern "C"
 		    );
 
 
+#ifdef __cplusplus
 }
+#endif
 
 #endif
 

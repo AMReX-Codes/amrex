@@ -3,11 +3,15 @@
 
 #include <AMReX_BLFort.H>
 
+#ifdef __cplusplus
 extern "C"
 {
+#endif
     void amrex_fort_avg_nd_to_cc(const int* lo, const int* hi, const int* ncomp,
                                  BL_FORT_FAB_ARG(cc), const BL_FORT_FAB_ARG(nd));
+#ifdef __cplusplus
 }
+#endif
 
 BL_FORT_PROC_DECL(BL_AVG_EG_TO_CC, bl_avg_eg_to_cc)
   (const int* lo, const int* hi,

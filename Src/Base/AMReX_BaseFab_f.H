@@ -4,8 +4,10 @@
 #include <AMReX_REAL.H>
 #include <AMReX_ArrayLim.H>
 
+#ifdef __cplusplus
 extern "C"
 {
+#endif
     void fort_fab_copy (const int* lo, const int* hi,
 			amrex::Real* dst, const int* dlo, const int* dhi,
 			const amrex::Real* src, const int* slo, const int* shi, const int* sblo,
@@ -88,6 +90,8 @@ extern "C"
 		       const amrex::Real* x, const int* xlo, const int* xhi,
 		       const amrex::Real* y, const int* ylo, const int* yhi, const int* yblo,
 		       const int* ncomp);
+#ifdef __cplusplus
 }
+#endif
 
 #endif

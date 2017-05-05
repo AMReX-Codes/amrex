@@ -87,8 +87,10 @@
 
 #include <AMReX_ArrayLim.H>
 
+#ifdef __cplusplus
 extern "C"
 {
+#endif
     void FORT_APPLYBC(
         const int *flagden, const int *flagbc, const int *maxorder,
         amrex::Real *phi, ARLIM_P(phi_lo), ARLIM_P(phi_hi),
@@ -121,7 +123,9 @@ extern "C"
         const int *tlo, const int *thi, const int *nc,
         const int *axis
         );
+#ifdef __cplusplus
 }
+#endif
 #endif
 
 #endif /*_LO_F_H_*/

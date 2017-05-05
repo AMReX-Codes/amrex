@@ -16,7 +16,11 @@
 #error "One of BL_FORT_USE_{UPPERCASE,LOWERCASE,UNDERSCORE} must be defined"
 #endif
 
+#ifdef __cplusplus
 #define BL_FORT_PROC_DECL(A,B) extern "C" void __BL_FORT_NAME__(A,B)
+#else
+#define BL_FORT_PROC_DECL(A,B) void __BL_FORT_NAME__(A,B)
+#endif
 #define BL_FORT_PROC_CALL(A,B) __BL_FORT_NAME__(A,B)
 #define BL_FORT_PROC_NAME(A,B) __BL_FORT_NAME__(A,B)
 

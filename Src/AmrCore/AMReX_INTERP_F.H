@@ -49,8 +49,10 @@
 #include <AMReX_ArrayLim.H>
 #include <AMReX_REAL.H>
 
+#ifdef __cplusplus
 extern "C"
 {
+#endif
     void FORT_NBINTERP (const amrex::Real* crse, ARLIM_P(clo), ARLIM_P(chi),
                         ARLIM_P(cblo), ARLIM_P(cbhi),
                         amrex::Real* fine, ARLIM_P(flo), ARLIM_P(fhi),
@@ -176,7 +178,9 @@ extern "C"
 			   D_DECL(const int* lrx,const int* lry,const int* lrz),
 			   D_DECL(amrex::Real* ftmp, amrex::Real* ctmp, amrex::Real* ctmp2),
 			   const int* bc, const int* actual_comp, const int* actual_state);
+#ifdef __cplusplus
   }
+#endif
 #endif
 
 #endif /*_INTERP_NAMES_H*/

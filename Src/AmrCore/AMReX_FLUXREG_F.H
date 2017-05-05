@@ -25,8 +25,11 @@
 #include <AMReX_ArrayLim.H>
 
 #include <AMReX_REAL.H>
+
+#ifdef __cplusplus
 extern "C"
 {
+#endif
     void FORT_FRFINEADD (amrex::Real* reg,       ARLIM_P(rlo), ARLIM_P(rhi),
                          const amrex::Real* flx, ARLIM_P(flo), ARLIM_P(fhi),
                          const int* numcomp, const int* dir,
@@ -44,7 +47,9 @@ extern "C"
 			const amrex::Real* v, const int* vlo, const int*vhi,
 			const int* n, const amrex::Real* mult, 
 			const int* dir, const int* islo);
+#ifdef __cplusplus
 }
+#endif
 #endif
 
 #endif

@@ -5,8 +5,10 @@
 
 #ifdef USE_PARTICLES
 
+#ifdef __cplusplus
 extern "C"
 {
+#endif
 
     void amrex_particle_set_position (amrex::Real*, int ns, int np,
                                       D_DECL(const amrex::Real* x,
@@ -48,7 +50,9 @@ BL_FORT_PROC_DECL(PART_SUMDENSUP,part_sumdensup)
      const amrex::Real* plo, const amrex::Real* phi, const amrex::Real* dx, amrex::Real* z);
 #endif
 
+#ifdef __cplusplus
 };
+#endif
 
 #endif
 

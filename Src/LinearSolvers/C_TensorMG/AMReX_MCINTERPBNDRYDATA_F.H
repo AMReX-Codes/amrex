@@ -86,8 +86,10 @@ typedef void BDPhysDerivative(amrex::Real* bndr, ARLIM_P(blo), ARLIM_P(bhi),
 			      const int* lo, const int* hi,
 			      const amrex::Real* finefab, ARLIM_P(flo), ARLIM_P(fhi),
 			      const int* nvar, const amrex::Real* hfine);
+#ifdef __cplusplus
 extern "C"
 {
+#endif
     BDInterpFunc FORT_BDINTERPXLO;
     BDInterpFunc FORT_BDINTERPXHI;
     BDPhysDerivative FORT_BDIDERIVXLO;
@@ -107,7 +109,9 @@ extern "C"
     BDPhysDerivative FORT_BDIDERIVZHI;
 #endif    
 
+#ifdef __cplusplus
 }
+#endif
 #endif
 
 #endif

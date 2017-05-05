@@ -102,8 +102,10 @@
 
 #include <AMReX_ArrayLim.H>
 
+#ifdef __cplusplus
 extern "C"
 {
+#endif
 
 #if (BL_SPACEDIM == 1)
     void FORT_LINESOLVE (
@@ -313,7 +315,9 @@ extern "C"
         amrex::Real* zflux, ARLIM_P(zflux_lo), ARLIM_P(zflux_hi)
         );
 #endif
+#ifdef __cplusplus
 }
+#endif
 #endif
 
 #endif /*_AABBEC_F_H_*/

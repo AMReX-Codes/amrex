@@ -29,8 +29,12 @@
 #  endif
 #  endif
 
+#include <AMReX_REAL.H>
+
+#ifdef __cplusplus
 extern "C"
 {
+#endif
 #if (BL_SPACEDIM==3)
     void FORT_MAKESLICE(const amrex::Real* data1,ARLIM_P(data1l), ARLIM_P(data1h),
                         amrex::Real* data2,ARLIM_P(data2l), ARLIM_P(data2h),
@@ -42,7 +46,9 @@ extern "C"
                             amrex::Real* data_min, amrex::Real* data_max,amrex::Real* slice_val,
                             int* slice,const amrex::Real* dx);
 #endif
+#ifdef __cplusplus
 };
+#endif
 #endif
 
 #endif /*_MAKESLICE_F_H_*/

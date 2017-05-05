@@ -28,8 +28,10 @@
 
 #include <AMReX_ArrayLim.H>
 
+#ifdef __cplusplus
 extern "C"
 {
+#endif
     void FORT_APPLYBC(
 		    const int *flagden,  // 1 if want values in den
 		    const int *flagbc,   // 1 for inhomogeneous
@@ -77,7 +79,9 @@ extern "C"
 	const int *tlo, const int *thi, const int *nc,
 	const int *axis
 	);
+#ifdef __cplusplus
 }
+#endif
 #endif
 
 #endif /*_MCLO_F_H_*/

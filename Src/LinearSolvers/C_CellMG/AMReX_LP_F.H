@@ -76,8 +76,10 @@
 
 #include <AMReX_ArrayLim.H>
 
+#ifdef __cplusplus
 extern "C"
 {
+#endif
 #if (BL_SPACEDIM == 1)
     void FORT_LINESOLVE (
         amrex::Real* phi       , ARLIM_P(phi_lo),  ARLIM_P(phi_hi),
@@ -162,7 +164,9 @@ extern "C"
         const int *lo, const int *hi, const int *nc,
         const amrex::Real *h
         );
+#ifdef __cplusplus
 }
+#endif
 #endif
 
 #endif /*_LP_F_H_*/
