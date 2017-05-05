@@ -59,28 +59,28 @@ PhysicalParticleContainer::AddParticles (int lev, Box part_box) {
         {
             for (int i_part=0; i_part<num_ppc;i_part++)
             {
-              std::array<Real, 3> r;
-              plasma_injector->getPositionUnitBox(r, i_part);
+                std::array<Real, 3> r;
+                plasma_injector->getPositionUnitBox(r, i_part);
 #if ( BL_SPACEDIM == 3 )
-              Real x = tile_corner[0] + (iv[0]-boxlo[0] + r[0])*dx[0];
-              Real y = tile_corner[1] + (iv[1]-boxlo[1] + r[1])*dx[1];
-              Real z = tile_corner[2] + (iv[2]-boxlo[2] + r[2])*dx[2];
+                Real x = tile_corner[0] + (iv[0]-boxlo[0] + r[0])*dx[0];
+                Real y = tile_corner[1] + (iv[1]-boxlo[1] + r[1])*dx[1];
+                Real z = tile_corner[2] + (iv[2]-boxlo[2] + r[2])*dx[2];
 #elif ( BL_SPACEDIM == 2 )
-              Real x = tile_corner[0] + (iv[0]-boxlo[0] + r[0])*dx[0];
-              Real y = 0.;
-              Real z = tile_corner[2] + (iv[1]-boxlo[1] + r[2])*dx[2];
+                Real x = tile_corner[0] + (iv[0]-boxlo[0] + r[0])*dx[0];
+                Real y = 0.;
+                Real z = tile_corner[2] + (iv[1]-boxlo[1] + r[2])*dx[2];
 #endif
-              if (plasma_injector->insideBounds(x, y, z)) {
-                  Real weight;
-                  std::array<Real, 3> u;
-                  plasma_injector->getMomentum(u);
-                  weight = plasma_injector->getDensity(x, y, z) * scale_fac;
-                  attribs[PIdx::w ] = weight;
-                  attribs[PIdx::ux] = u[0];
-                  attribs[PIdx::uy] = u[1];
-                  attribs[PIdx::uz] = u[2];
-                  AddOneParticle(lev, grid_id, tile_id, x, y, z, attribs);
-              }
+                if (plasma_injector->insideBounds(x, y, z)) {
+                    Real weight;
+                    std::array<Real, 3> u;
+                    plasma_injector->getMomentum(u);
+                    weight = plasma_injector->getDensity(x, y, z) * scale_fac;
+                    attribs[PIdx::w ] = weight;
+                    attribs[PIdx::ux] = u[0];
+                    attribs[PIdx::uy] = u[1];
+                    attribs[PIdx::uz] = u[2];
+                    AddOneParticle(lev, grid_id, tile_id, x, y, z, attribs);
+                }
             }
         }
     }

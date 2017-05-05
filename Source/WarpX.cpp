@@ -365,7 +365,7 @@ void WarpX::computePhi(const Array<std::unique_ptr<MultiFab> >& rho,
 
     // Note - right now this does either Dirichlet 0 on all sides,
     // or periodic on all sides.
-    Array<int> mg_bc(2*BL_SPACEDIM)
+    Array<int> mg_bc(2*BL_SPACEDIM);
     if (Geometry::isAllPeriodic()) {
         // subtract off mean RHS for solvability
         Real offset = mypc->sumParticleCharge();
