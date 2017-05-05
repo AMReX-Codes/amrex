@@ -1,0 +1,57 @@
+# Maximum number of time steps
+max_step = 1000
+
+# number of grid points
+amr.n_cell =   64  64  64
+
+# Maximum allowable size of each subdomain in the problem domain;
+#    this is used to decompose the domain for parallel calculations.
+amr.max_grid_size = 16
+
+# Maximum level in hierarchy (for now must be 0, i.e., one level in total)
+amr.max_level = 0
+
+amr.plot_int = 0   # How often to write plotfiles.  "<= 0" means no plotfiles.
+
+# Geometry
+geometry.coord_sys   = 0                  # 0: Cartesian
+geometry.is_periodic = 0     0     0      # Is periodic?
+geometry.prob_lo     = -20.e-6   -20.e-6   -20.e-6    # physical domain
+geometry.prob_hi     =  20.e-6    20.e-6    20.e-6
+
+# Verbosity
+warpx.verbose = 1
+warpx.do_moving_window = 0
+warpx.moving_window_dir = x
+warpx.moving_window_v = 0.0 # in units of the speed of light
+warpx.do_electrostatic = 1
+
+# Algorithms
+algo.current_deposition = 3
+algo.charge_deposition = 0
+algo.field_gathering = 0
+algo.particle_pusher = 0
+
+# CFL
+warpx.cfl = 1.0
+warpx.plot_raw_fields = 1
+
+particles.nspecies = 1
+particles.species_names = electrons
+
+electrons.charge = -q_e
+electrons.mass = m_e
+electrons.injection_style = "NUniformPerCell"
+
+electrons.xmin = -5.93750000e-06
+electrons.xmax = -5.31250000e-06
+electrons.ymin = -3.12500000e-07
+electrons.ymax =  3.12500000e-07
+electrons.zmin = -3.12500000e-07
+electrons.zmax =  3.12500000e-07
+
+electrons.num_particles_per_cell_each_dim = 1 1 1 
+electrons.profile = constant
+electrons.density = 4.096e18  # number of electrons per m^3
+
+electrons.momentum_distribution_type = "constant"
