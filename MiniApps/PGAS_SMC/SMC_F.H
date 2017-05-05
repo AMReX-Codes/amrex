@@ -3,8 +3,10 @@
 
 #include <AMReX_BLFort.H>
 
+#ifdef __cplusplus
 extern "C"
 {
+#endif
     void derivative_stencil_init();
     void chemistry_init();
     void variables_init();
@@ -36,7 +38,9 @@ extern "C"
 			    const BL_FORT_FAB_ARG_3D(q),
 			    BL_FORT_FAB_ARG_3D(uprime),
 			    const amrex::Real* mu, const amrex::Real* xi, const amrex::Real* lam, const amrex::Real* Ddiag);
+#ifdef __cplusplus
 }
+#endif
 
 #endif
 

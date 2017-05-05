@@ -27,8 +27,10 @@
 
 #include <AMReX_ArrayLim.H>
 
+#ifdef __cplusplus
 extern "C"
 {
+#endif
 #if (BL_SPACEDIM == 2)
     void FORT_MACCOEF (amrex::Real* cx, ARLIM_P(cxlo), ARLIM_P(cxhi),
                        amrex::Real* cy, ARLIM_P(cylo), ARLIM_P(cyhi),
@@ -93,7 +95,9 @@ extern "C"
                           const int* lo, const int* hi,
                           const amrex::Real* vol, ARLIM_P(vlo), ARLIM_P(vhi),
                           const amrex::Real* rhs_scale);
+#ifdef __cplusplus
 }
+#endif
 #endif
 
 #endif /*_MACOPERATOR_F_H_*/

@@ -2,8 +2,11 @@
 #define _Adv_F_H_
 #include <AMReX_BLFort.H>
 
+#ifdef __cplusplus
 extern "C" 
 {
+#endif
+
   void get_tagging_params(const int* name, const int* namlen);
 
   void nullfill(BL_FORT_FAB_ARG_3D(state),
@@ -39,6 +42,9 @@ extern "C"
 		     BL_FORT_FAB_ARG_3D(fy),
 		     BL_FORT_FAB_ARG_3D(fz)),
 	      const amrex::Real* dx, const amrex::Real& dt);
+
+#ifdef __cplusplus
 }
+#endif
 
 #endif

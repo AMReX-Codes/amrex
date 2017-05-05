@@ -44,8 +44,10 @@
 
 #include <AMReX_ArrayLim.H>
 
+#ifdef __cplusplus
 extern "C"
 {
+#endif
     void FORT_SET_CC_COEF (
         amrex::Real* coef     , ARLIM_P(coef_lo), ARLIM_P(coef_hi),
         const int* lo, const int* hi, const amrex::Real* dx,
@@ -56,7 +58,9 @@ extern "C"
         amrex::Real* coef     , ARLIM_P(coef_lo), ARLIM_P(coef_hi),
         const int* lo, const int* hi);
 
+#ifdef __cplusplus
 }
+#endif
 #endif
 
 #endif /*_COEF_F_H_*/
