@@ -36,15 +36,15 @@ extern "C"
 {
 #endif
 #if (BL_SPACEDIM==3)
-    void FORT_MAKESLICE(const amrex::Real* data1,ARLIM_P(data1l), ARLIM_P(data1h),
-                        amrex::Real* data2,ARLIM_P(data2l), ARLIM_P(data2h),
-                        amrex::Real* data_min, amrex::Real* data_max,amrex::Real* slice_val,
-                        int* slice,const amrex::Real* dx);
+    void FORT_MAKESLICE(const amrex_real* data1,ARLIM_P(data1l), ARLIM_P(data1h),
+                        amrex_real* data2,ARLIM_P(data2l), ARLIM_P(data2h),
+                        amrex_real* data_min, amrex_real* data_max,amrex_real* slice_val,
+                        int* slice,const amrex_real* dx);
 
     void FORT_MAKEMASKSLICE(const int* data1,ARLIM_P(data1l), ARLIM_P(data1h),
                             int* data2,ARLIM_P(data2l), ARLIM_P(data2h),
-                            amrex::Real* data_min, amrex::Real* data_max,amrex::Real* slice_val,
-                            int* slice,const amrex::Real* dx);
+                            amrex_real* data_min, amrex_real* data_max,amrex_real* slice_val,
+                            int* slice,const amrex_real* dx);
 #endif
 #ifdef __cplusplus
 };

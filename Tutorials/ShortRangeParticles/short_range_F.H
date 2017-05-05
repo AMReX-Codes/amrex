@@ -7,13 +7,13 @@
 extern "C"
 {
 #endif
-    void amrex_compute_forces(const amrex::Real*, int ns, int np,
-                              const amrex::Real* ghosts, int ng);
+    void amrex_compute_forces(const amrex_real*, int ns, int np,
+                              const amrex_real* ghosts, int ng);
 
-    void amrex_move_particles(const amrex::Real*, int ns, int np,
-                              const amrex::Real* dt,
-                              const amrex::Real* problo,
-                              const amrex::Real* problhi);
+    void amrex_move_particles(const amrex_real*, int ns, int np,
+                              const amrex_real* dt,
+                              const amrex_real* problo,
+                              const amrex_real* problhi);
 #ifdef __cplusplus
 }
 #endif

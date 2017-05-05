@@ -21,20 +21,20 @@
 extern "C"
 {
     void FORT_FILLCRSE (
-	amrex::Real* crse, ARLIM_P(crse_lo), ARLIM_P(crse_hi),
-	const amrex::Real* h, const int* nc
+	amrex_real* crse, ARLIM_P(crse_lo), ARLIM_P(crse_hi),
+	const amrex_real* h, const int* nc
 	);
     void FORT_FILLFINE (
-	amrex::Real* fine, ARLIM_P(fine_lo), ARLIM_P(fine_hi),
-	const amrex::Real* h, const int* nc
+	amrex_real* fine, ARLIM_P(fine_lo), ARLIM_P(fine_hi),
+	const amrex_real* h, const int* nc
 	);
     void FORT_FILLRHS (
-	amrex::Real* fine, ARLIM_P(fine_lo), ARLIM_P(fine_hi),
-	const amrex::Real* h, const int* nc
+	amrex_real* fine, ARLIM_P(fine_lo), ARLIM_P(fine_hi),
+	const amrex_real* h, const int* nc
 	);
     void FORT_MAKEMU(
-		     amrex::Real*mu, ARLIM_P(mulo),ARLIM_P(muhi),
-		     const amrex::Real* h, int&idir );
+		     amrex_real*mu, ARLIM_P(mulo),ARLIM_P(muhi),
+		     const amrex_real* h, int&idir );
 };
 #endif
 
