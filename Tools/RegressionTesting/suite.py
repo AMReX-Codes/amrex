@@ -570,6 +570,10 @@ class Suite(object):
             if not test.extra_build_dir == "":
                 build_opts += self.repos[test.extra_build_dir].comp_string + " "
 
+            if "source" in self.repos:
+                if not self.repos["source"].comp_string is None:
+                    build_opts += self.repos["source"].comp_string + " "
+                
             if not test.addToCompileString == "":
                 build_opts += test.addToCompileString + " "
 

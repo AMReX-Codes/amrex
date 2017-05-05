@@ -35,6 +35,7 @@ module my_amr_module
 contains
 
   subroutine my_amr_init ()
+    use bc_module, only : lo_bc, hi_bc
     type(amrex_parmparse) :: pp
     integer :: ilev
 
@@ -69,6 +70,11 @@ contains
     call pp%query("cfl", cfl)
     call pp%query("do_reflux", do_reflux)
     call amrex_parmparse_destroy(pp)
+
+    if (.not. amrex_is_all_periodic()) then
+       lo_bc = amrex_bc_foextrap
+       hi_bc = amrex_bc_foextrap
+    end if
 
     allocate(stepno(0:amrex_max_level))
     stepno = 0

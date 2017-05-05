@@ -122,6 +122,7 @@ ifneq ($(BL_NO_FORT),TRUE)
 
   f90$(AMREX_BASE)_sources += AMReX_MultiFabUtil_$(DIM)d.f90
 
+  F90$(AMREX_BASE)_sources += AMReX_filcc_mod.F90
   F90$(AMREX_BASE)_sources += AMReX_omp_mod.F90
   F90$(AMREX_BASE)_sources += AMReX_fort_mod.F90 AMReX_error_mod.F90
   F90$(AMREX_BASE)_sources += AMReX_parmparse_mod.F90 AMReX_string_mod.F90

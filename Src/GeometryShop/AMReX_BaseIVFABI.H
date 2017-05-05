@@ -251,11 +251,22 @@ namespace amrex
     assert((a_comp >= 0) && (a_comp < this->m_nComp));
 
     T* dataPtr =  (T*)&(this->m_data[0]);
+    int ivof = -1;
+    bool found = false;
     for (unsigned int i=0; i<m_vofs->size(); ++i)
     {
-      if (a_vof == (*m_vofs)[i]) break;
-      dataPtr++;
+      if (a_vof == (*m_vofs)[i])
+      {
+        found = true;
+        ivof = i;
+      }
+      if(found) break;
     }
+    if(!found)
+    {
+      amrex::Error("attempt to access data from vof that is not in BaseIVFAB");
+    }
+    dataPtr += ivof;
     dataPtr += a_comp*m_vofs->size();
     return dataPtr;
   }

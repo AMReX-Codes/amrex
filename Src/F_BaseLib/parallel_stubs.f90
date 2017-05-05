@@ -256,11 +256,6 @@ module parallel
      module procedure parallel_alltoall_lv
   end interface
 
-  interface
-     subroutine sys_abort()
-     end subroutine sys_abort
-  end interface
-
   logical, private :: g_init = .False.
 
 contains
@@ -286,6 +281,7 @@ contains
   end function parallel_q
 
   subroutine parallel_abort(str)
+    use amrex_timer_c_module, only: sys_abort
     character(len=*), optional :: str
     if ( present(str) ) then
        print*, 'parallel_abort(): ', str
@@ -372,23 +368,13 @@ contains
     r = m_thread_support_level
   end function parallel_thread_support_level
   function parallel_wtime() result(r)
+    use amrex_timer_c_module, only: wall_second
     real(kind=dp_t) :: r
-    interface
-       subroutine wall_second(s)
-         use bl_types
-         real(kind=dp_t), intent(out) :: s
-       end subroutine wall_second
-    end interface
     call wall_second(r)
   end function parallel_wtime
   function parallel_wtick() result(r)
+    use amrex_timer_c_module, only: wall_second_tick
     real(kind=dp_t) :: r
-    interface
-       subroutine wall_second_tick(s)
-         use bl_types
-         real(kind=dp_t), intent(out) :: s
-       end subroutine wall_second_tick
-    end interface
     call wall_second_tick(r)
   end function parallel_wtick
 

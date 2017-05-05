@@ -27,6 +27,7 @@
 #  endif
 
 #include <AMReX_ArrayLim.H>
+#include <AMReX_REAL.H>
 
 extern "C"
 {
