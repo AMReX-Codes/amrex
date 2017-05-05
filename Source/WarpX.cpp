@@ -363,10 +363,23 @@ void WarpX::computePhi(const Array<std::unique_ptr<MultiFab> >& rho,
     // multiply by -1.0/ep_0
     rhs[lev]->mult(-1.0/PhysConst::ep0, 1);
 
-    // subtract off mean RHS for solvability
-    Real offset = mypc->sumParticleCharge();
-    offset *= (-1.0/PhysConst::ep0) / Geom(lev).ProbSize();
-    rhs[lev]->plus(-offset, 0, 1, 1);
+    // Note - right now this does either Dirichlet 0 on all sides,
+    // or periodic on all sides.
+    Array<int> mg_bc(2*BL_SPACEDIM)
+    if (Geometry::isAllPeriodic()) {
+        // subtract off mean RHS for solvability
+        Real offset = mypc->sumParticleCharge();
+        offset *= (-1.0/PhysConst::ep0) / Geom(lev).ProbSize();
+        rhs[lev]->plus(-offset, 0, 1, 1);
+        for (int i = 0; i < 2*BL_SPACEDIM; i++) {
+            mg_bc[i] = 0.0;
+        }
+    } else {
+        // do Dirichlet zero on all sides.
+        for (int i = 0; i < 2*BL_SPACEDIM; i++) {
+            mg_bc[i] = 1.0;
+        }
+    }
 
     bool nodal = true;
     bool have_rhcc = false;
@@ -374,7 +387,6 @@ void WarpX::computePhi(const Array<std::unique_ptr<MultiFab> >& rho,
     int stencil = ND_CROSS_STENCIL;
     int verbose = 0;
     int Ncomp = 1;
-    Array<int> mg_bc(2*BL_SPACEDIM, 0); // this means periodic on all sides.
 
     MGT_Solver solver(geom, mg_bc.dataPtr(), grids, dmap, nodal,
                       stencil, have_rhcc, nc, Ncomp, verbose);
