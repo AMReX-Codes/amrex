@@ -29,8 +29,10 @@
 #include <AMReX_ArrayLim.H>
 #include <AMReX_REAL.H>
 
+#ifdef __cplusplus
 extern "C"
 {
+#endif
      void FORT_SETVOL (ARLIM_P(rlo), ARLIM_P(rhi),
 		       amrex::Real* vol, ARLIM_P(vlo), ARLIM_P(vhi),
                        const amrex::Real* offset,
@@ -51,7 +53,9 @@ extern "C"
                         const amrex::Real* offset,
                         const amrex::Real* dx, const int* dir,
                         const int* coord);
+#ifdef __cplusplus
 }
+#endif
 
 #endif
 

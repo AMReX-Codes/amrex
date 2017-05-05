@@ -18,8 +18,12 @@
 #  endif
 #  endif
 
+#include <AMReX_REAL.H>
+
+#ifdef __cplusplus
 extern "C"
 {
+#endif
 
      void FORT_REYNAVG_FIRST4MOMS (const amrex::Real* src, 
                                      ARLIM_P(src_lo), ARLIM_P(src_hi),
@@ -36,7 +40,9 @@ extern "C"
                                     const int* ndst,
                                     const amrex::Real* dt,
                                     const amrex::Real* dx);
+#ifdef __cplusplus
 }
+#endif
 
 #endif
 

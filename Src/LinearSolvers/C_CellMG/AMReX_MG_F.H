@@ -69,8 +69,10 @@
 
 #include <AMReX_ArrayLim.H>
 
+#ifdef __cplusplus
 extern "C"
 {
+#endif
     void FORT_AVERAGE (
         amrex::Real* crse,       ARLIM_P(crse_lo), ARLIM_P(crse_hi),
         const amrex::Real* fine, ARLIM_P(fine_lo), ARLIM_P(fine_hi),
@@ -82,7 +84,9 @@ extern "C"
         const amrex::Real* crse, ARLIM_P(crse_lo), ARLIM_P(crse_hi),
         const int *tlo, const int *thi,
         const int *nc);
+#ifdef __cplusplus
 }
+#endif
 #endif
 
 #endif /*_MG_F_H_*/
