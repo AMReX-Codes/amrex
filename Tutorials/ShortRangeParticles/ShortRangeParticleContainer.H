@@ -67,7 +67,7 @@ public:
     ///
     /// This fills the ghost buffers for each tile with the proper data
     ///
-    void fillGhosts();
+    void fillGhosts(int ng);
 
     ///
     /// Each tile clears its ghosts, freeing the memory

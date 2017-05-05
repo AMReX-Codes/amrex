@@ -50,7 +50,7 @@ int main(int argc, char* argv[])
     for (int i = 0; i < max_step; i++) {
         if (write_particles) myPC.writeParticles(i);
         
-        myPC.fillGhosts();
+        myPC.fillGhosts(1);
         myPC.computeForces();
         myPC.clearGhosts();
 
