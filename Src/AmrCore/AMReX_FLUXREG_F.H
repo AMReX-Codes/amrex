@@ -24,6 +24,7 @@
 
 #include <AMReX_ArrayLim.H>
 
+#include <AMReX_REAL.H>
 extern "C"
 {
     void FORT_FRFINEADD (amrex::Real* reg,       ARLIM_P(rlo), ARLIM_P(rhi),

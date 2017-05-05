@@ -78,6 +78,7 @@ clean::
 	@echo Cleaning...
 	$(SILENT) $(RM) $(f77EXETempDir)/*.f $(f77EXETempDir)/*.f90 $(objEXETempDir)/*.o
 	$(SILENT) $(RM) $(f77EXETempDir)/*.f $(f77EXETempDir)/*.f90 $(objEXETempDir)/*.o
+	$(SILENT) $(RM) $(tmpEXETempDir)/*
 	$(SILENT) $(RM) *.optrpt $(objEXETempDir)/*.optrpt
 	$(SILENT) $(RM) $(executable)
 	$(SILENT) $(RM) -r $(executable).dSYM
@@ -221,6 +222,42 @@ $(depEXETempDir)/f90.depends: $(f90EXE_sources) $(F90EXE_sources)
             --cpp "$(FORT_CPP)" \
             --defines "-DBL_LANG_FORT $(CPPFLAGS) $(fincludes)" \
             --f90_preprocess "$(F90PREP)" $^ > $(depEXETempDir)/f90.depends 
+
+
+#
+# <check_fortran>
+#
+
+$(fortran_ir_sources): $(executable)
+
+# gfortran only
+$(tmpEXETempDir)/%.f90.orig: %.f90
+	@if [ ! -d $(tmpEXETempDir) ]; then mkdir -p $(tmpEXETempDir); fi
+	$(SILENT) $(F90) $(F90FLAGS) $(fincludes) -fsyntax-only -fdump-fortran-original $< > $@
+
+$(tmpEXETempDir)/%.F90.orig: %.F90
+	@if [ ! -d $(tmpEXETempDir) ]; then mkdir -p $(tmpEXETempDir); fi
+	$(SILENT) $(F90) $(F90FLAGS) -DBL_LANG_FORT $(CPPFLAGS) $(fincludes) -fsyntax-only -fdump-fortran-original $< > $@
+
+$(tmpEXETempDir)/%-cppd.h: %.H
+	@if [ ! -d $(tmpEXETempDir) ]; then mkdir -p $(tmpEXETempDir); fi
+	$(SILENT) $(CXX) $(CXXFLAGS) $(CPPFLAGS) $(includes) -E -P $< -o $@
+
+check_fortran: $(fortran_ir_sources) $(fortran_fdecl_headers_cppd)
+	@if [ ! -d $(tmpEXETempDir) ]; then mkdir -p $(tmpEXETempDir); fi
+	@echo "Checking Fortran iso_c_binding interface ..."
+#	$(CHECKFORT) --work_dir $(tmpEXETempDir) \
+#	--cpp "$(FORT_CPP)" \
+#        --defines "-DBL_LANG_FORT $(CPPFLAGS) $(fincludes)" \
+#        $(f90EXE_sources) $(F90EXE_sources) > $(tmpEXETempDir)/check_fortran.ou
+
+ifeq ($(MAKECMDGOALS),check_fortran)
+-include $(tmpEXETempDir)/check_fortran.ou
+endif
+
+#
+# </check_fortran>
+#
 
 #
 # Now load/build the dependency files.
