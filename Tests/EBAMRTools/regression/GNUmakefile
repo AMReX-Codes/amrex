@@ -26,24 +26,11 @@ include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 # I'm assuming that each of these is a stand-alone program,
 # that simply needs to link against BoxLib.
 #
-#_progs += tVisMF tDir t8BIT tFB tFAC tCArena
-#_progs += tRan
-#_progs  := tread
-#_progs  := tParmParse
-#_progs  := tCArena
-#_progs  := tBA
-#_progs  := tDM
-#_progs  := tFillFab
-#_progs  := tMF
-#_progs  := tFB
-#_progs  := tMFcopy
-#_progs  := AMRProfTestBL
-#_progs  := tFB
-#_progs  := tRABcast.cpp
 _progs  := aggpwlfpTest
 _progs  += simpleMeshRefine
 _progs  += fluxRegTest
 _progs  += regFluxRegTest
+_progs  += ebCoarseAveTest
 
 include $(AMREX_HOME)/Src/Base/Make.package
 include $(AMREX_HOME)/Src/Boundary/Make.package
