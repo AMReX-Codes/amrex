@@ -81,8 +81,10 @@ def check_doit(node, workdir, fout):
         cnt = 0
         for ctyp,ftyp in zip(c_arg_type, f_arg_type):
             cnt = cnt+1
+            # exact match, or * == type(c_ptr), value, or void* == any Fortran 'reference'
             if c_to_f_type(ctyp[0]) == ftyp[0] and ctyp[1] == ftyp[1] or \
-               ctyp[1] == "pointer" and ftyp[0] == "DERIVED c_ptr" and ftyp[1] == "value":
+               ctyp[1] == "pointer" and ftyp[0] == "DERIVED c_ptr" and ftyp[1] == "value" or \
+               ctyp[0] == "void" and ctyp[1] == "pointer" and ftyp[1] == "pointer":
                 fout.write("    arg #{0}: C type {1} matches Fortran type {2}.\n"
                            .format(cnt, ctyp, ftyp))
             else:
@@ -129,7 +131,8 @@ def c_ast_get_type(decl):
 def getFortranArg(funcname, workdir):
     """ given a function name and a directory for searching, return a tuple
         of function return type and list of arguments.  For example,
-        (INTEGER 4, [('INTERGER 4', 'value'), ('REAL 8', 'pointer')])."""
+        (INTEGER 4, [('INTERGER 4', 'value'), ('REAL 8', 'pointer')]).
+        Note that pointer here is not Fortran pointer"""
 
     debug = False
 
