@@ -2301,7 +2301,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::WriteAsciiFil
     if (ParallelDescriptor::IOProcessor())
     {
         //
-        // Have I/O processor open file and write out particle count.
+        // Have I/O processor open file and write out particle metadata.
         //
         std::ofstream File;
 
@@ -2310,7 +2310,11 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::WriteAsciiFil
         if (!File.good())
             amrex::FileOpenFailed(filename);
 
-        File << nparticles << '\n';
+        File << nparticles  << '\n';
+        File << NStructReal << '\n';
+        File << NStructInt  << '\n';
+        File << NArrayReal  << '\n';
+        File << NArrayInt   << '\n';
             
         File.flush();
 
