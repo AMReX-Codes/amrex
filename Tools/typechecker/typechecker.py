@@ -101,7 +101,7 @@ def check_doit(node, workdir, func_src, fout):
             fout.write("    number of arguments {0} matches {1}.\n"
                        .format(len(c_arg_type),len(f_arg_type)))
         else:
-            error_msg.append("    number of arguments {0} does NOT matche {1}.\n"
+            error_msg.append("    number of arguments {0} does NOT match {1}.\n"
                              .format(len(c_arg_type),len(f_arg_type)))
             fout.write(error_msg[-1])
 
