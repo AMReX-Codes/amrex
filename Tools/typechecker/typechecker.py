@@ -227,7 +227,7 @@ def getFortranArg(funcname, workdir):
                     else:
                         argattrib = 'pointer'
                     found = False
-                    func_args[argname] = (argtype, argattrib)
+                    func_args[argname] = (argtype, argattrib, argname)
                     if len(func_args) == len(arglist):
                         break
         if len(func_args) != len(arglist):
