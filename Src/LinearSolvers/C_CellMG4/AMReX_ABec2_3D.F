@@ -141,7 +141,7 @@ c
 
       integer phi_l1,phi_l2,phi_l3,phi_h1,phi_h2,phi_h3
       integer res_l1,res_l2,res_l3,res_h1,res_h2,res_h3
-      integer alpha, beta
+      REAL_T alpha, beta
       integer a_l1,  a_l2, a_l3, a_h1, a_h2, a_h3
       integer bX_l1,bX_l2,bX_l3,bX_h1,bX_h2,bX_h3
       integer bY_l1,bY_l2,bY_l3,bY_h1,bY_h2,bY_h3
