@@ -8,6 +8,7 @@ import argparse
 from pycparser import parse_file, c_ast
 
 error_found = False
+current_c_header = ''
 
 def typechecker(argv):
     parser = argparse.ArgumentParser()
@@ -25,6 +26,8 @@ def typechecker(argv):
         if f.endswith('-cppd.h'):
             fname = os.path.join(script_args.workdir,f)
             fout.write("\nChecking "+fname+"...\n")
+            global current_c_header
+            current_c_header = os.path.basename(fname.replace('-cppd.h','.H'))
             ast = parse_file(fname)
             v = FuncDeclVisitor()
             v.visit(ast)
@@ -40,7 +43,7 @@ def typechecker(argv):
 def check_doit(node, workdir, fout):
     c_funcname = node.type.declname.rstrip('_')
 
-    f_ret_type, f_arg_type = getFortranArg(c_funcname, workdir)
+    f_ret_type, f_arg_type, f_filename = getFortranArg(c_funcname, workdir)
 
     if f_ret_type:
         # found a fortran function with that name
@@ -59,7 +62,9 @@ def check_doit(node, workdir, fout):
 
         error_msg = []
 
-        error_msg.append("\nFunction "+c_funcname+": C vs. Fortran\n")
+        global current_c_header
+        error_msg.append("\nFunction "+c_funcname+" in "+current_c_header+
+                         " vs. Fortran procedure in "+f_filename+"\n")
         fout.write(error_msg[-1])
 
         if c_to_f_type(c_ret_type) == f_ret_type:
@@ -250,7 +255,7 @@ def getFortranArg(funcname, workdir):
         for a in arglist:
             arguments_type.append(func_args[a])
         
-    return return_type, arguments_type
+    return return_type, arguments_type, fname.replace('.orig','')
 
 if __name__ == "__main__":
     typechecker(sys.argv)
