@@ -221,7 +221,7 @@ $(depEXETempDir)/f90.depends: $(f90EXE_sources) $(F90EXE_sources)
 
 
 #
-# <check_fortran>
+# <typecheck>
 #
 
 $(fortran_ir_sources): $(executable)
@@ -240,22 +240,19 @@ $(tmpEXETempDir)/%.F90.orig: %.F90
 $(tmpEXETempDir)/%-cppd.h: %.H
 	@if [ ! -d $(tmpEXETempDir) ]; then mkdir -p $(tmpEXETempDir); fi
 	$(SILENT) $(CC) $(CPPFLAGS) $(includes) -E -P -x c -std=c99 $< -o $@
-	@$(SHELL) -ec 'sed -i -e '\''s/amrex::Real/$(amrex_real)/g'\'' $@; \
-	               sed -i -e '\''s/amrex_real/$(amrex_real)/g'\'' $@; \
-	               sed -i -e '\''/typedef\s*$(amrex_real)/d'\'' $@; \
+	@$(SHELL) -ec 'cat $@ | \
+	               sed -i -e '\''s/amrex::Real/$(amrex_real)/g'\'' | \
+	               sed -i -e '\''s/amrex_real/$(amrex_real)/g'\''  | \
+	               sed -i -e '\''/typedef\s*$(amrex_real)/d'\''    | \
 	               sed -i -e '\''s/\&/*/g'\'' $@'
 
-check_fortran: $(fortran_ir_sources) $(fortran_fdecl_headers_cppd)
+typecheck: $(fortran_ir_sources) $(fortran_fdecl_headers_cppd)
 	@if [ ! -d $(tmpEXETempDir) ]; then mkdir -p $(tmpEXETempDir); fi
-	@echo "Checking Fortran iso_c_binding interface ..."
-	$(CHECKFORT) --workdir $(tmpEXETempDir) --debug > check_fortran.ou
-
-ifeq ($(MAKECMDGOALS),check_fortran)
--include $(tmpEXETempDir)/check_fortran.ou
-endif
+	@echo "Checking types of Fortran procedures called from C++ ..."
+	$(CHECKFORT) --workdir $(tmpEXETempDir) --output $(tmpEXETempDir)/amrex_typecheck.ou
 
 #
-# </check_fortran>
+# </typecheck>
 #
 
 #
