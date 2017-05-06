@@ -2,6 +2,7 @@
 #define _main_F_H_ 
 
 #include <AMReX_ArrayLim.H>
+#include <AMReX_REAL.H>
 
 #if (BL_SPACEDIM == 2)
 #define FORT_FILLCRSE  fillcrse2d
@@ -18,8 +19,10 @@
 #endif
 
 #if !defined(BL_LANG_FORT)
+#ifdef __cplusplus
 extern "C"
 {
+#endif
     void FORT_FILLCRSE (
 	amrex_real* crse, ARLIM_P(crse_lo), ARLIM_P(crse_hi),
 	const amrex_real* h, const int* nc
@@ -35,7 +38,9 @@ extern "C"
     void FORT_MAKEMU(
 		     amrex_real*mu, ARLIM_P(mulo),ARLIM_P(muhi),
 		     const amrex_real* h, int&idir );
+#ifdef __cplusplus
 };
+#endif
 #endif
 
 #endif
