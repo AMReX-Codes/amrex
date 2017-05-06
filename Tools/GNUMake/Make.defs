@@ -255,7 +255,9 @@ objForExecs	= $(addprefix $(objEXETempDir)/, $(objStandalone))
 #
 
 fortran_ir_sources_alone = $(f90EXE_sources:%.f90=%.f90.orig) \
-                           $(F90EXE_sources:%.F90=%.F90.orig)
+                           $(F90EXE_sources:%.F90=%.F90.orig) \
+                           $(fEXE_sources:%.f=%.f.orig) \
+                           $(FEXE_sources:%.F=%.F.orig)
 
 fortran_ir_sources = $(addprefix $(tmpEXETempDir)/, $(fortran_ir_sources_alone))
 

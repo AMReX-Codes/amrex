@@ -38,7 +38,8 @@ def typechecker(argv):
         print("\nNo error found")
 
 def check_doit(node, workdir, fout):
-    f_ret_type, f_arg_type = getFortranArg(node.type.declname, workdir)
+    c_funcname = node.type.declname.rstrip('_')
+    f_ret_type, f_arg_type = getFortranArg(c_funcname, workdir)
     if f_ret_type:
         # found a fortran function with that name
         c_ret_type = c_ast_get_type(node.type)
@@ -55,7 +56,7 @@ def check_doit(node, workdir, fout):
 
         error_msg = []
 
-        error_msg.append("\nFunction "+node.type.declname+": C vs. Fortran\n")
+        error_msg.append("\nFunction "+c_funcname+": C vs. Fortran\n")
         fout.write(error_msg[-1])
 
         if c_to_f_type(c_ret_type) == f_ret_type:
@@ -124,11 +125,13 @@ def getFortranArg(funcname, workdir):
         of function return type and list of arguments.  For example,
         (INTEGER 4, [('INTERGER 4', 'value'), ('REAL 8', 'pointer')])."""
 
+    debug = False
+
     module_tok = "symtree: '" + funcname + "'"
     proc_tok = "procedure name = " + funcname + "\n"
     this_func = []
     for fname in os.listdir(workdir):
-        if fname.endswith(('F90.orig', 'f90.orig')):
+        if fname.endswith('.orig'):
             f = open(os.path.join(workdir,fname), 'r')
             # let's collect the text of this function into a list of strings
             in_module_block = False
@@ -167,8 +170,9 @@ def getFortranArg(funcname, workdir):
             if this_func:
                 break
 
-#    print(funcname, "this_func...")
-#    print(this_func)
+    if debug:
+        print(funcname, "this_func...")
+        print(this_func)
             
     return_type = ''
     arguments_type = []
@@ -228,10 +232,11 @@ def getFortranArg(funcname, workdir):
             print("getFortranArg: len != len", funcname, func_args, arglist)
             sys.exit(1)
 
-#        print ("-------")
-#        print(arglist)
-#        print(func_args)
-#        print ("-------")            
+        if debug:
+            print ("-------")
+            print(arglist)
+            print(func_args)
+            print ("-------")
             
         for a in arglist:
             arguments_type.append(func_args[a])

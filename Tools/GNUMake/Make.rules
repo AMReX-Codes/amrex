@@ -235,6 +235,14 @@ $(tmpEXETempDir)/%.F90.orig: %.F90
 	@if [ ! -d $(tmpEXETempDir) ]; then mkdir -p $(tmpEXETempDir); fi
 	$(SILENT) $(F90) $(F90FLAGS) -DBL_LANG_FORT $(CPPFLAGS) $(fincludes) -fsyntax-only -fdump-fortran-original $< > $@
 
+$(tmpEXETempDir)/%.f.orig: %.f
+	@if [ ! -d $(tmpEXETempDir) ]; then mkdir -p $(tmpEXETempDir); fi
+	$(SILENT) $(F90) $(FFLAGS) $(fincludes) -fsyntax-only -fdump-fortran-original $< > $@
+
+$(tmpEXETempDir)/%.F.orig: %.F
+	@if [ ! -d $(tmpEXETempDir) ]; then mkdir -p $(tmpEXETempDir); fi
+	$(SILENT) $(F90) $(FFLAGS) -DBL_LANG_FORT $(CPPFLAGS) $(fincludes) -fsyntax-only -fdump-fortran-original $< > $@
+
 # fix amrex::Real and amrex_real
 # & --> *
 $(tmpEXETempDir)/%-cppd.h: %.H
