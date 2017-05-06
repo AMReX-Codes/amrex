@@ -81,7 +81,8 @@ def check_doit(node, workdir, fout):
         cnt = 0
         for ctyp,ftyp in zip(c_arg_type, f_arg_type):
             cnt = cnt+1
-            if c_to_f_type(ctyp[0]) == ftyp[0] and ctyp[1] == ftyp[1]:
+            if c_to_f_type(ctyp[0]) == ftyp[0] and ctyp[1] == ftyp[1] or \
+               ctyp[1] == "pointer" and ftyp[0] == "DERIVED c_ptr" and ftyp[1] == "value":
                 fout.write("    arg #{0}: C type {1} matches Fortran type {2}.\n"
                            .format(cnt, ctyp, ftyp))
             else:
@@ -99,7 +100,7 @@ def check_doit(node, workdir, fout):
 def c_to_f_type(ctyp):
     # supported C types: char, short, int, long, float, double, void
     if ctyp == 'char':
-        return 'INTEGER 1'
+        return 'CHARACTER 1 1'
     elif ctyp == 'short':
         return 'INTEGER 2'
     elif ctyp == 'int':
