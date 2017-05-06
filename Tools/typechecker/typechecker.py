@@ -117,7 +117,7 @@ def c_ast_get_type(decl):
     typ = type(decl)
     if typ == c_ast.IdentifierType:
         return ' '.join(decl.names)
-    elif typ == c_ast.PtrDecl:
+    elif typ == c_ast.PtrDecl or typ == c_ast.ArrayDecl:
         return c_ast_get_type(decl.type) + ' pointer'
     else:
         return c_ast_get_type(decl.type)
