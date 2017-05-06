@@ -7,27 +7,37 @@ import sys
 import argparse
 from pycparser import parse_file, c_ast
 
+error_found = False
+
 def typechecker(argv):
     parser = argparse.ArgumentParser()
     parser.add_argument("--workdir", required=True)
-    parser.add_argument("--debug", action='store_true')
+    parser.add_argument("--output", required=True)
     script_args = parser.parse_args()
+
+    fout = open(script_args.output,'w')
 
     class FuncDeclVisitor(c_ast.NodeVisitor):
         def visit_FuncDecl(self, node):
-            check_doit(node, script_args.workdir, script_args.debug)
+            check_doit(node, script_args.workdir, fout)
 
     for f in os.listdir(script_args.workdir):
         if f.endswith('-cppd.h'):
             fname = os.path.join(script_args.workdir,f)
-            if script_args.debug:
-                print("\nChecking "+fname+"...")
+            fout.write("\nChecking "+fname+"...\n")
             ast = parse_file(fname)
             v = FuncDeclVisitor()
             v.visit(ast)
 
+    fout.close()
 
-def check_doit(node, workdir, debug):
+    global error_found
+    if error_found:
+        print("\nError found")
+    else:
+        print("\nNo error found")
+
+def check_doit(node, workdir, fout):
     f_ret_type, f_arg_type = getFortranArg(node.type.declname, workdir)
     if f_ret_type:
         # found a fortran function with that name
@@ -42,27 +52,42 @@ def check_doit(node, workdir, debug):
             else:
                 print("check_doit: how did this happen? ", typ)
                 sys.exit(1)
-        if debug:
-            print("\nFunction "+node.type.declname+": C vs. Fortran")
-            if c_to_f_type(c_ret_type) == f_ret_type:
-                print("    C return type {0} matches F {1}."
-                      .format(c_ret_type,f_ret_type))
+
+        error_msg = []
+
+        error_msg.append("\nFunction "+node.type.declname+": C vs. Fortran\n")
+        fout.write(error_msg[-1])
+
+        if c_to_f_type(c_ret_type) == f_ret_type:
+            fout.write("    C return type {0} matches F {1}.\n"
+                       .format(c_ret_type,f_ret_type))
+        else:
+            error_msg.append("    C return type {0} does NOT match F {1}.\n"
+                             .format(c_ret_type,f_ret_type))
+            fout.write(error_msg[-1])
+                
+        if len(c_arg_type) == len(f_arg_type):
+            fout.write("    number of arguments {0} matches {1}.\n"
+                       .format(len(c_arg_type),len(f_arg_type)))
+        else:
+            error_msg.append("    number of arguments {0} does NOT matche {1}.\n"
+                             .format(len(c_arg_type),len(f_arg_type)))
+            fout.write(error_msg[-1])
+
+        for ct,ft in zip(c_arg_type, f_arg_type):
+            if c_to_f_type(ct[0]) == ft[0] and ct[1] == ft[1]:
+                fout.write("    C arg type {0} matches F arg type {1}.\n"
+                           .format(ct, ft))
             else:
-                print("    C return type {0} does NOT F match {1}."
-                      .format(c_ret_type,f_ret_type))
-            if len(c_arg_type) == len(f_arg_type):
-                print("    number of arguments {0} matches {1}."
-                      .format(len(c_arg_type),len(f_arg_type)))
-            else:
-                print("    number of arguments {0} does NOT matche {1}."
-                      .format(len(c_arg_type),len(f_arg_type)))
-            for ct,ft in zip(c_arg_type, f_arg_type):
-                if c_to_f_type(ct[0]) == ft[0] and ct[1] == ft[1]:
-                    print("    C arg type {0} matches F arg type {1}."
-                          .format(ct, ft))
-                else:
-                    print("    C arg type {0} does NOT match F arg type {1}."
-                          .format(ct, ft))
+                error_msg.append("    C arg type {0} does NOT match F arg type {1}.\n"
+                                 .format(ct, ft))
+                fout.write(error_msg[-1])
+
+        global error_found
+        if len(error_msg) > 1:
+            error_found = True
+            for msg in error_msg:
+                print(msg,end='')
 
 
 def c_to_f_type(ctyp):

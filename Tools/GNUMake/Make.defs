@@ -251,7 +251,7 @@ objStandalone	= 	$(CEXE_sources:%.cpp=%.o)			\
 objForExecs	= $(addprefix $(objEXETempDir)/, $(objStandalone))
 
 #
-# <check_fortran>
+# <typecheck>
 #
 
 fortran_ir_sources_alone = $(f90EXE_sources:%.f90=%.f90.orig) \
@@ -263,7 +263,7 @@ fortran_fdecl_headers = $(filter %_f.H %_F.H,$(cEXE_headers) $(CEXE_headers) $(f
 fortran_fdecl_headers_cppd = $(addprefix $(tmpEXETempDir)/, $(fortran_fdecl_headers:%.H=%-cppd.h))
 
 #
-# </check_fortran>
+# </typecheck>
 #
 
 DEFINES	+= -DBL_SPACEDIM=$(DIM)				\
