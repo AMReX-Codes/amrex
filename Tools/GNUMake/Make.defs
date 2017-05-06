@@ -253,6 +253,12 @@ objForExecs	= $(addprefix $(objEXETempDir)/, $(objStandalone))
 #
 # <typecheck>
 #
+objForTypeCheckAlone = 	$(fEXE_sources:%.f=%.o)				\
+			$(FEXE_sources:%.F=%.o)				\
+			$(f90EXE_sources:%.f90=%.o)			\
+			$(F90EXE_sources:%.F90=%.o)
+
+objForTypeCheck      = $(addprefix $(objEXETempDir)/, $(objForTypeCheckAlone))
 
 fortran_ir_sources_alone = $(f90EXE_sources:%.f90=%.f90.orig) \
                            $(F90EXE_sources:%.F90=%.F90.orig) \

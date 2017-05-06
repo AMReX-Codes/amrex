@@ -210,6 +210,7 @@ $(depEXETempDir)/%.d: %.f
 DEP_CHECK_OPTS :=
 
 $(depEXETempDir)/f90.depends: $(f90EXE_sources) $(F90EXE_sources) 
+	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
 	@if [ ! -d $(depEXETempDir) ]; then mkdir -p $(depEXETempDir); fi
 	@if [ ! -d $(f77EXETempDir) ]; then mkdir -p $(f77EXETempDir); fi
 	@echo "Building f90/F90 dependency File ..."
@@ -224,7 +225,8 @@ $(depEXETempDir)/f90.depends: $(f90EXE_sources) $(F90EXE_sources)
 # <typecheck>
 #
 
-$(fortran_ir_sources): $(executable)
+#$(fortran_ir_sources): $(executable)
+$(fortran_ir_sources): $(objForTypeCheck)
 
 # gfortran only
 $(tmpEXETempDir)/%.f90.orig: %.f90
