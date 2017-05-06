@@ -16,11 +16,30 @@ def typechecker(argv):
     parser.add_argument("--output", required=True)
     script_args = parser.parse_args()
 
+    funcs_to_check = []
+
+    # (1) let's collect all c functions we are going to check into a list
+    class FuncDeclVisitor(c_ast.NodeVisitor):
+        def visit_FuncDecl(self, node):
+            funcs_to_check.append(node.type.declname.rstrip('_'))
+
+    for f in os.listdir(script_args.workdir):
+        if f.endswith('-cppd.h'):
+            fname = os.path.join(script_args.workdir,f)
+            ast = parse_file(fname)
+            v = FuncDeclVisitor()
+            v.visit(ast)
+
+    # (2) find out which Fortran files have the functions
+    func_src = {}
+    findFortranSources(funcs_to_check, func_src, script_args.workdir)
+
+    # (3) we visit each function declaration again
     fout = open(script_args.output,'w')
 
     class FuncDeclVisitor(c_ast.NodeVisitor):
         def visit_FuncDecl(self, node):
-            check_doit(node, script_args.workdir, fout)
+            check_doit(node, script_args.workdir, func_src, fout)
 
     for f in os.listdir(script_args.workdir):
         if f.endswith('-cppd.h'):
@@ -40,10 +59,13 @@ def typechecker(argv):
     else:
         print("\nNo error found")
 
-def check_doit(node, workdir, fout):
-    c_funcname = node.type.declname.rstrip('_')
 
-    f_ret_type, f_arg_type, f_filename = getFortranArg(c_funcname, workdir)
+def check_doit(node, workdir, func_src, fout):
+    c_funcname = node.type.declname.rstrip('_')
+    if not c_funcname in func_src.keys():
+        return
+    f_filename = func_src[c_funcname]
+    f_ret_type, f_arg_type = getFortranArg(c_funcname, os.path.join(workdir,f_filename))
 
     if f_ret_type:
         # found a fortran function with that name
@@ -64,7 +86,7 @@ def check_doit(node, workdir, fout):
 
         global current_c_header
         error_msg.append("\nFunction "+c_funcname+" in "+current_c_header+
-                         " vs. Fortran procedure in "+f_filename+"\n")
+                         " vs. Fortran procedure in "+f_filename.replace(".orig",'')+"\n")
         fout.write(error_msg[-1])
 
         if c_to_f_type(c_ret_type) == f_ret_type:
@@ -132,58 +154,79 @@ def c_ast_get_type(decl):
         return c_ast_get_type(decl.type) + ' pointer'
     else:
         return c_ast_get_type(decl.type)
+
+
+def findFortranSources(funcs, func_src, workdir):
+    for fname in os.listdir(workdir):
+        if fname.endswith('.orig'):
+            f = open(os.path.join(workdir,fname), 'r')
+            for line in f.readlines():
+                if "procedure name = " in line:
+                    pname = line.split('=')[1].strip()
+                    if pname in funcs:
+                        if pname in func_src.keys():
+                            print("two sources for", pname, "in", func_src[pname],
+                                  "and", fname)
+                            sys.exit(1)
+                        else:
+                            func_src[pname] = fname
+
     
-def getFortranArg(funcname, workdir):
-    """ given a function name and a directory for searching, return a tuple
-        of function return type and list of arguments.  For example,
-        (INTEGER 4, [('INTERGER 4', 'value'), ('REAL 8', 'pointer')]).
-        Note that pointer here is not Fortran pointer"""
+def getFortranArg(funcname, fortranfile):
+    """given a function name and a gortran tree original file, return a
+        tuple of function return type and list of arguments.  For
+        example, (INTEGER 4, [('INTERGER 4', 'value'), ('REAL 8',
+        'pointer')]).  Note that pointer here is not Fortran pointer.
+    """
 
     debug = False
 
     module_tok = "symtree: '" + funcname + "'"
     proc_tok = "procedure name = " + funcname + "\n"
     this_func = []
-    for fname in os.listdir(workdir):
-        if fname.endswith('.orig'):
-            f = open(os.path.join(workdir,fname), 'r')
-            # let's collect the text of this function into a list of strings
-            in_module_block = False
-            ws_module_block = 0
+    f = open(fortranfile, 'r')
+    # let's collect the text of this function into a list of strings
+    in_module_block = False
+    ws_module_block = 0
+    in_proced_block = False
+    ws_proced_block = 0
+    numblocks = 0
+    for line in f.readlines():
+        if line.isspace(): continue
+        num_white_spaces = len(line) - len(line.lstrip())
+        if module_tok in line and not in_proced_block:
+            this_func.append(line)
+            in_module_block = True
+            ws_module_block = num_white_spaces
             in_proced_block = False
             ws_proced_block = 0
-            for line in f.readlines():
-                if line.isspace(): continue
-                num_white_spaces = len(line) - len(line.lstrip())
-                if module_tok in line and not in_proced_block:
-                    this_func.append(line)
-                    in_module_block = True
-                    ws_module_block = num_white_spaces
-                    in_proced_block = False
-                    ws_proced_block = 0
-                    found = True
-                elif proc_tok in line and not in_module_block:
-                    this_func.append(line)
-                    in_proced_block = True
-                    ws_proced_block = num_white_spaces
-                    in_module_block = False
-                    ws_module_block = 0
-                    found = True
-                elif in_module_block:
-                    if ws_module_block < num_white_spaces:
-                        this_func.append(line)
-                    else:
-                        in_module_block = False
-                        ws_module_block = 0
-                elif in_proced_block:
-                    if ws_proced_block < num_white_spaces:
-                        this_func.append(line)
-                    else:
-                        in_proced_block = False
-                        ws_proced_block = 0
-            f.close()            
-            if this_func:
-                break
+            numblocks = numblocks + 1
+        elif proc_tok in line and not in_module_block:
+            this_func.append(line)
+            in_proced_block = True
+            ws_proced_block = num_white_spaces
+            in_module_block = False
+            ws_module_block = 0
+            numblocks = numblocks + 1
+        elif in_module_block:
+            if ws_module_block < num_white_spaces:
+                this_func.append(line)
+            else:
+                in_module_block = False
+                ws_module_block = 0
+                if numblocks == 2:
+                    break
+        elif in_proced_block:
+            if line.strip() != "code:" and ws_proced_block < num_white_spaces:
+                this_func.append(line)
+            else:
+                in_proced_block = False
+                ws_proced_block = 0
+                if numblocks == 2:
+                    break
+    f.close()            
+    if not this_func:
+        print(fortranfile, "doesn't contain", function)
 
     if debug:
         print(funcname, "this_func...")
@@ -257,7 +300,7 @@ def getFortranArg(funcname, workdir):
         for a in arglist:
             arguments_type.append(func_args[a])
         
-    return return_type, arguments_type, fname.replace('.orig','')
+    return return_type, arguments_type
 
 if __name__ == "__main__":
     typechecker(sys.argv)
