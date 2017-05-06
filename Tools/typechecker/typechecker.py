@@ -39,20 +39,23 @@ def typechecker(argv):
 
 def check_doit(node, workdir, fout):
     c_funcname = node.type.declname.rstrip('_')
+
     f_ret_type, f_arg_type = getFortranArg(c_funcname, workdir)
+
     if f_ret_type:
         # found a fortran function with that name
         c_ret_type = c_ast_get_type(node.type)
         c_arg_type = []
-        for param in node.args.params:
-            typ = c_ast_get_type(param.type).split(' ')
-            if len(typ) == 1:
-                c_arg_type.append([typ[0], 'value'])
-            elif len(typ) == 2:
-                c_arg_type.append(typ)
-            else:
-                print("check_doit: how did this happen? ", typ)
-                sys.exit(1)
+        if node.args:
+            for param in node.args.params:
+                typ = c_ast_get_type(param.type).split(' ')
+                if len(typ) == 1:
+                    c_arg_type.append([typ[0], 'value'])
+                elif len(typ) == 2:
+                    c_arg_type.append(typ)
+                else:
+                    print("check_doit: how did this happen? ", typ)
+                    sys.exit(1)
 
         error_msg = []
 
