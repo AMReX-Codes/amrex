@@ -48,6 +48,7 @@
 
 #include <AMReX_ArrayLim.H>
 #include <AMReX_REAL.H>
+#include <AMReX_SPACE.H>
 
 #ifdef __cplusplus
 extern "C"
