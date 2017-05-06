@@ -47,10 +47,10 @@
       REAL_T  f1(f1_l1:f1_h1, f1_l2:f1_h2)
       REAL_T  f2(f2_l1:f2_h1, f2_l2:f2_h2)
       REAL_T  f3(f3_l1:f3_h1, f3_l2:f3_h2)
-      REAL_T  m0(m0_l1:m0_h1, m0_l2:m0_h2)
-      REAL_T  m1(m1_l1:m1_h1, m1_l2:m1_h2)
-      REAL_T  m2(m2_l1:m2_h1, m2_l2:m2_h2)
-      REAL_T  m3(m3_l1:m3_h1, m3_l2:m3_h2)
+      integer  m0(m0_l1:m0_h1, m0_l2:m0_h2)
+      integer  m1(m1_l1:m1_h1, m1_l2:m1_h2)
+      integer  m2(m2_l1:m2_h1, m2_l2:m2_h2)
+      integer  m3(m3_l1:m3_h1, m3_l2:m3_h2)
       REAL_T  h(2)
 c
       integer  i, j, ioff, n
@@ -261,10 +261,10 @@ c
       REAL_T  f1(f1_l1:f1_h1, f1_l2:f1_h2)
       REAL_T  f2(f2_l1:f2_h1, f2_l2:f2_h2)
       REAL_T  f3(f3_l1:f3_h1, f3_l2:f3_h2)
-      REAL_T  m0(m0_l1:m0_h1, m0_l2:m0_h2)
-      REAL_T  m1(m1_l1:m1_h1, m1_l2:m1_h2)
-      REAL_T  m2(m2_l1:m2_h1, m2_l2:m2_h2)
-      REAL_T  m3(m3_l1:m3_h1, m3_l2:m3_h2)
+      integer  m0(m0_l1:m0_h1, m0_l2:m0_h2)
+      integer  m1(m1_l1:m1_h1, m1_l2:m1_h2)
+      integer  m2(m2_l1:m2_h1, m2_l2:m2_h2)
+      integer  m3(m3_l1:m3_h1, m3_l2:m3_h2)
       REAL_T  h(2)
 c
       integer  i, j, n
