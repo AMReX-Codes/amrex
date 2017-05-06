@@ -1,6 +1,8 @@
 #ifndef _Adv_F_H_
 #define _Adv_F_H_
+
 #include <AMReX_BLFort.H>
+#include <AMReX_SPACE.H>
 
 #ifdef __cplusplus
 extern "C" 

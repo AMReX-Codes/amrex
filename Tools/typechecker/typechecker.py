@@ -99,101 +99,118 @@ def getFortranArg(funcname, workdir):
         of function return type and list of arguments.  For example,
         (INTEGER 4, [('INTERGER 4', 'value'), ('REAL 8', 'pointer')])."""
 
-    # gfortran's internal parse tree look like this
-    # symtree: 'fort_fab_copy'|| symbol: 'fort_fab_copy' 
-    #   type spec : (UNKNOWN 0)
-    #   attributes: (PROCEDURE MODULE-PROC  BIND(C) SUBROUTINE)
-    #   Formal arglist: lo hi dst dlo dhi src slo shi sblo ncomp
-    # procedure name = fort_fab_copy
-    #   symtree: 'dhi'         || symbol: 'dhi'          
-    #     type spec : (INTEGER 4)
-    #     attributes: (VARIABLE  DIMENSION DUMMY(IN))
-    #     Array spec:(1 [0] AS_EXPLICIT 1 3 )
-    #   symtree: 'dlo'         || symbol: 'dlo'          
-    #     type spec : (INTEGER 4)
-    #     attributes: (VARIABLE  DIMENSION DUMMY(IN))
-    #     Array spec:(1 [0] AS_EXPLICIT 1 3 )
-    #   ...
-    #   symtree: 'fort_fab_copy'|| symbol: 'fort_fab_copy' from namespace 'basefab_nd_module'
-    #   symtree: 'hi'          || symbol: 'hi'           
-    #     type spec : (INTEGER 4)
-    #     attributes: (VARIABLE  DIMENSION DUMMY(IN))
-    #     Array spec:(1 [0] AS_EXPLICIT 1 3 )
-    #   ...
-    #   code:
-    #   ...
-
-    node_tok = "symtree: '" + funcname + "'"
-    args_tok = "Formal arglist:"
+    module_tok = "symtree: '" + funcname + "'"
     proc_tok = "procedure name = " + funcname + "\n"
-    return_type = ''
-    arguments_type = []
+    this_func = []
     for fname in os.listdir(workdir):
         if fname.endswith(('F90.orig', 'f90.orig')):
             f = open(os.path.join(workdir,fname), 'r')
-            func_found = False;
-            line = ''
-            while True:  # try to find the function
-                line = f.readline()
-                if not line:
-                    break
-                if node_tok in line:
-                    func_found = True
-                    line = f.readline() # like, type spec : (UNKNOWN 0)
-                                        # or,   type spec : (INTEGER 4)
-                    if not 'type spec :' in line:
-                        print("Why is this line not type spec? {0}".format(line))
-                        sys.exit(1)
+            # let's collect the text of this function into a list of strings
+            in_module_block = False
+            ws_module_block = 0
+            in_proced_block = False
+            ws_proced_block = 0
+            for line in f.readlines():
+                num_white_spaces = len(line) - len(line.lstrip())
+                if module_tok in line and not in_proced_block:
+                    this_func.append(line)
+                    in_module_block = True
+                    ws_module_block = num_white_spaces
+                    in_proced_block = False
+                    ws_proced_block = 0
+                    found = True
+                elif proc_tok in line and not in_module_block:
+                    this_func.append(line)
+                    in_proced_block = True
+                    ws_proced_block = num_white_spaces
+                    in_module_block = False
+                    ws_module_block = 0
+                    found = True
+                elif in_module_block:
+                    if ws_module_block < num_white_spaces:
+                        this_func.append(line)
+                    else:
+                        in_module_block = False
+                        ws_module_block = 0
+                elif in_proced_block:
+                    if ws_proced_block < num_white_spaces:
+                        this_func.append(line)
+                    else:
+                        in_proced_block = False
+                        ws_proced_block = 0
+            f.close()            
+            if this_func:
+                break
+
+#    print(funcname, "this_func...")
+#    print(this_func)
+            
+    return_type = ''
+    arguments_type = []
+    found = False
+    ws = 0
+    arglist = []
+    for line in this_func:
+        num_white_spaces = len(line) - len(line.lstrip())
+        # searching for blocks like
+        #   symtree: 'fort_fab_copy'|| symbol: 'fort_fab_copy' 
+        #     type spec : (UNKNOWN 0)
+        #     attributes: (PROCEDURE MODULE-PROC  BIND(C) SUBROUTINE)
+        #     Formal arglist: lo hi dst dlo dhi src slo shi sblo ncomp
+        if "symtree: '"+funcname+"'" in line: # e.g. 
+            found = True
+            ws = num_white_spaces
+        elif found:
+            if ws < num_white_spaces:
+                if "type spec :" in line:
                     if "UNKNOWN" in line:
                         return_type = 'void'
                     else:
                         return_type = line.split('(')[1].split(')')[0]
-                    break
-            if func_found:
-                num_white_spaces = len(line) - len(line.lstrip())
-                # we now need to find the function's formal arglist
-                # we may not find it because the funciton may not have any argument.
-                # In that case, we stop searching at the end of this block (indicated
-                # by the number of leading white space).
-                while True:
-                    line = f.readline()
-                    current_num_white_spaces = len(line) - len(line.lstrip())
-                    if current_num_white_spaces < num_white_spaces:
-                        arglist = []
-                    if args_tok in line:
-                        arglist = line.replace(args_tok, "").split()
+                elif "Formal arglist:" in line:
+                    arglist = line.replace("Formal arglist:", "").split()
+            else:
+                break
+
+    if arglist:
+        func_args = {}
+        found = False
+        argname = ''
+        argtype = ''
+        for line in this_func:
+            # search for blocks like
+            #   symtree: 'dhi'         || symbol: 'dhi'          
+            #     type spec : (INTEGER 4)
+            #     attributes: (VARIABLE  DIMENSION DUMMY(IN))
+            #     Array spec:(1 [0] AS_EXPLICIT 1 3 )
+            if "symtree: '" in line:
+                argname = line.split("'")[1]
+                if argname in arglist:
+                    found = True
+            elif found:
+                if "type spec :" in line:
+                    argtype = line.split('(')[1].split(')')[0]
+                elif "attributes:" in line: # attributes: (VARIABLE  VALUE DUMMY(IN))
+                    if "VALUE" in line:
+                        argattrib = 'value'
+                    else:
+                        argattrib = 'pointer'
+                    found = False
+                    func_args[argname] = (argtype, argattrib)
+                    if len(func_args) == len(arglist):
                         break
-                if len(arglist) > 0:
-                    while True: # need to find the procedure
-                        line = f.readline()
-                        if not line:
-                            print("Cannot find procedure" + funcname)
-                            sys.exit(1)
-                        if proc_tok in line:
-                            break
-                    func_args = {}
-                    while True: # need to build a dictionary of argument and their types
-                        line = f.readline()
-                        if "code:\n" in line:  # the code section starts after the argument section
-                            break
-                        if "symtree: '" in line:
-                            # the line should look like,    symtree: 'dhi'         || symbol: 'dhi'
-                            argname = line.split("'")[1]
-                            if argname in arglist:
-                                line = f.readline() # like,  type spec : (INTEGER 4)
-                                argtype = line.split('(')[1].split(')')[0]
-                                line = f.readline() # like,  attributes: (VARIABLE  VALUE DUMMY(IN))
-                                if "VALUE" in line:
-                                    argattrib = 'value'
-                                else:
-                                    argattrib = 'pointer'
-                                func_args[argname] = (argtype, argattrib)
-                        if len(func_args) == len(arglist):
-                            break
-                    for a in arglist:
-                        if a in func_args.keys():
-                            arguments_type.append(func_args[a])
-            f.close()
+        if len(func_args) != len(arglist):
+            print("getFortranArg: len != len", funcname, func_args, arglist)
+            sys.exit(1)
+
+#        print ("-------")
+#        print(arglist)
+#        print(func_args)
+#        print ("-------")            
+            
+        for a in arglist:
+            arguments_type.append(func_args[a])
+        
     return return_type, arguments_type
 
 if __name__ == "__main__":
