@@ -153,6 +153,7 @@ def getFortranArg(funcname, workdir):
             in_proced_block = False
             ws_proced_block = 0
             for line in f.readlines():
+                if line.isspace(): continue
                 num_white_spaces = len(line) - len(line.lstrip())
                 if module_tok in line and not in_proced_block:
                     this_func.append(line)
@@ -186,7 +187,8 @@ def getFortranArg(funcname, workdir):
 
     if debug:
         print(funcname, "this_func...")
-        print(this_func)
+        for line in this_func:
+            print(line,)
             
     return_type = ''
     arguments_type = []
