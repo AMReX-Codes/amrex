@@ -235,8 +235,10 @@ endif
 ifeq ($(PRECISION),FLOAT)
     DEFINES += -DBL_USE_FLOAT
     PrecisionSuffix := .$(PRECISION)
+    amrex_real = float
 else
     PrecisionSuffix :=
+    amrex_real = double
 endif
 
 objStandalone	= 	$(CEXE_sources:%.cpp=%.o)			\

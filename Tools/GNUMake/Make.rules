@@ -235,9 +235,15 @@ $(tmpEXETempDir)/%.F90.orig: %.F90
 	@if [ ! -d $(tmpEXETempDir) ]; then mkdir -p $(tmpEXETempDir); fi
 	$(SILENT) $(F90) $(F90FLAGS) -DBL_LANG_FORT $(CPPFLAGS) $(fincludes) -fsyntax-only -fdump-fortran-original $< > $@
 
+# fix amrex::Real and amrex_real
+# & --> *
 $(tmpEXETempDir)/%-cppd.h: %.H
 	@if [ ! -d $(tmpEXETempDir) ]; then mkdir -p $(tmpEXETempDir); fi
 	$(SILENT) $(CC) $(CPPFLAGS) $(includes) -E -P -x c -std=c99 $< -o $@
+	@$(SHELL) -ec 'sed -i -e '\''s/amrex::Real/$(amrex_real)/g'\'' $@; \
+	               sed -i -e '\''s/amrex_real/$(amrex_real)/g'\'' $@; \
+	               sed -i -e '\''/typedef\s*$(amrex_real)/d'\'' $@; \
+	               sed -i -e '\''s/\&/*/g'\'' $@'
 
 check_fortran: $(fortran_ir_sources) $(fortran_fdecl_headers_cppd)
 	@if [ ! -d $(tmpEXETempDir) ]; then mkdir -p $(tmpEXETempDir); fi
