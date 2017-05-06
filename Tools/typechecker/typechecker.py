@@ -60,10 +60,10 @@ def check_doit(node, workdir, fout):
         fout.write(error_msg[-1])
 
         if c_to_f_type(c_ret_type) == f_ret_type:
-            fout.write("    C return type {0} matches F {1}.\n"
+            fout.write("    C return type {0} matches Fortran {1}.\n"
                        .format(c_ret_type,f_ret_type))
         else:
-            error_msg.append("    C return type {0} does NOT match F {1}.\n"
+            error_msg.append("    C return type {0} does NOT match Fortran {1}.\n"
                              .format(c_ret_type,f_ret_type))
             fout.write(error_msg[-1])
                 
@@ -75,13 +75,15 @@ def check_doit(node, workdir, fout):
                              .format(len(c_arg_type),len(f_arg_type)))
             fout.write(error_msg[-1])
 
-        for ct,ft in zip(c_arg_type, f_arg_type):
-            if c_to_f_type(ct[0]) == ft[0] and ct[1] == ft[1]:
-                fout.write("    C arg type {0} matches F arg type {1}.\n"
-                           .format(ct, ft))
+        cnt = 0
+        for ctyp,ftyp in zip(c_arg_type, f_arg_type):
+            cnt = cnt+1
+            if c_to_f_type(ctyp[0]) == ftyp[0] and ctyp[1] == ftyp[1]:
+                fout.write("    arg #{0}: C type {1} matches Fortran type {2}.\n"
+                           .format(cnt, ctyp, ftyp))
             else:
-                error_msg.append("    C arg type {0} does NOT match F arg type {1}.\n"
-                                 .format(ct, ft))
+                error_msg.append("    arg #{0}: C type {1} does NOT match Fortran type {2}.\n"
+                                 .format(cnt, ctyp, ftyp))
                 fout.write(error_msg[-1])
 
         global error_found
