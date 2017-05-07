@@ -17,8 +17,10 @@
 
 #endif
 
+#ifdef __plusplus
 extern "C"
 {
+#endif
 	// Charge deposition
 	void warpx_charge_deposition(amrex::Real* rho,
             const long* np,	const amrex::Real* xp, const amrex::Real* yp, const amrex::Real* zp,	const amrex::Real* w,
@@ -164,4 +166,7 @@ extern "C"
 #endif
                             const amrex::Real* sigz1, int sigz1_lo, int sigz1_hi, 
                             const amrex::Real* sigz2, int sigz2_lo, int sigz2_hi);
+#ifdef __plusplus
 }
+#endif
+
