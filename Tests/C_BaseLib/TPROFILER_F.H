@@ -18,7 +18,7 @@
 extern "C" {
 #endif
     void FORT_TESTPROFILER ();
-    void FORT_TESTPROFILERINT ();}
+    void FORT_TESTPROFILERINT ();
 #ifdef __cplusplus
 }
 #endif     
