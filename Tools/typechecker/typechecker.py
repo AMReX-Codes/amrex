@@ -7,9 +7,6 @@ import sys
 import argparse
 from pycparser import parse_file, c_ast
 
-error_found = False
-current_c_header = ''
-
 def typechecker(argv):
     parser = argparse.ArgumentParser()
     parser.add_argument("--workdir", required=True)
@@ -37,30 +34,29 @@ def typechecker(argv):
     # (3) we visit each function declaration again
     fout = open(script_args.output,'w')
 
+    aux_info = {'numerrors':0, 'numfuncs':0, 'current_c_header':''}
+
     class FuncDeclVisitor(c_ast.NodeVisitor):
         def visit_FuncDecl(self, node):
-            check_doit(node, script_args.workdir, func_src, fout)
+            check_doit(node, script_args.workdir, func_src, fout, aux_info)
 
     for f in os.listdir(script_args.workdir):
         if f.endswith('-cppd.h'):
             fname = os.path.join(script_args.workdir,f)
             fout.write("\nChecking "+fname+"...\n")
-            global current_c_header
-            current_c_header = os.path.basename(fname.replace('-cppd.h','.H'))
+            aux_info['current_c_header'] = os.path.basename(fname.replace('-cppd.h','.H'))
             ast = parse_file(fname)
             v = FuncDeclVisitor()
             v.visit(ast)
 
     fout.close()
 
-    global error_found
-    if error_found:
-        print("\nError found")
-    else:
-        print("\nNo error found")
+    if aux_info['numerrors'] == 0:
+        print("{0} functions checked, {1} error(s) found.  More details can be found in {2}."
+              .format(aux_info['numfuncs'],aux_info['numerrors'], script_args.output))
 
 
-def check_doit(node, workdir, func_src, fout):
+def check_doit(node, workdir, func_src, fout, aux_info):
     c_funcname = node.type.declname.rstrip('_')
     if not c_funcname in func_src.keys():
         return
@@ -84,8 +80,7 @@ def check_doit(node, workdir, func_src, fout):
 
         error_msg = []
 
-        global current_c_header
-        error_msg.append("\nFunction "+c_funcname+" in "+current_c_header+
+        error_msg.append("\nFunction "+c_funcname+" in "+aux_info['current_c_header']+
                          " vs. Fortran procedure in "+f_filename.replace(".orig",'')+"\n")
         fout.write(error_msg[-1])
 
@@ -119,11 +114,13 @@ def check_doit(node, workdir, func_src, fout):
                                  .format(cnt, ctyp, ftyp))
                 fout.write(error_msg[-1])
 
-        global error_found
         if len(error_msg) > 1:
-            error_found = True
+            aux_info['numerrors'] = aux_info['numerrors']+1
             for msg in error_msg:
                 print(msg,end='')
+        # note some C declarations may not have Fortran function defined
+        # those don't count in numfuncs
+        aux_info['numfuncs'] = aux_info['numfuncs']+1
 
 
 def c_to_f_type(ctyp):
