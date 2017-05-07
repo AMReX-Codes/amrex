@@ -7,8 +7,6 @@
 extern "C"
 {
 #endif
-    void amrex_compute_forces(const amrex_real*, int ns, int np,
-                              const amrex_real* ghosts, int ng);
 
     void amrex_compute_forces(const void* particles, int* np,
                               const void* ghosts, int* ng);
