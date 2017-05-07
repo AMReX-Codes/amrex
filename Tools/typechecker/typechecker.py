@@ -51,9 +51,8 @@ def typechecker(argv):
 
     fout.close()
 
-    if aux_info['numerrors'] == 0:
-        print("{0} functions checked, {1} error(s) found.  More details can be found in {2}."
-              .format(aux_info['numfuncs'],aux_info['numerrors'], script_args.output))
+    print("{0} functions checked, {1} error(s) found.  More details can be found in {2}."
+          .format(aux_info['numfuncs'],aux_info['numerrors'], script_args.output))
 
 
 def check_doit(node, workdir, func_src, fout, aux_info):
