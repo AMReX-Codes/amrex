@@ -145,7 +145,8 @@ def c_to_f_type(ctyp):
 def c_ast_get_type(decl):
     typ = type(decl)
     if typ == c_ast.IdentifierType:
-        return ' '.join(decl.names)
+        #return ' '.join(decl.names)
+        return decl.names[0]
     elif typ == c_ast.PtrDecl or typ == c_ast.ArrayDecl:
         return c_ast_get_type(decl.type) + ' pointer'
     else:
