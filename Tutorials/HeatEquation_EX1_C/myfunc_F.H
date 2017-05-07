@@ -3,25 +3,32 @@
 
 #include <AMReX_BLFort.H>
 
+#ifdef __cplusplus
 extern "C"
 {
-  void init_phi(amrex::Real* data, const int* lo, const int* hi, const int* ng, 
-		const amrex::Real* dx, const amrex::Real* prob_lo, const amrex::Real* prob_hi);
+#endif
 
-  void compute_flux(amrex::Real* phi, const int* ng_p,
-		    amrex::Real* fluxx, 
-		    amrex::Real* fluxy,
+  void init_phi(amrex_real* data, const int* lo, const int* hi, const int* ng, 
+		const amrex_real* dx, const amrex_real* prob_lo, const amrex_real* prob_hi);
+
+  void compute_flux(amrex_real* phi, const int* ng_p,
+		    amrex_real* fluxx, 
+		    amrex_real* fluxy,
 #if (BL_SPACEDIM == 3)   
-		    amrex::Real* fluxz,
+		    amrex_real* fluxz,
 #endif
-		    const int* ng_f, const int* lo, const int* hi, const amrex::Real* dx);
+		    const int* ng_f, const int* lo, const int* hi, const amrex_real* dx);
   
-  void update_phi(amrex::Real* phiold, amrex::Real* phinew, const int* ng_p,
-		  amrex::Real* fluxx, 
-		  amrex::Real* fluxy,
+  void update_phi(amrex_real* phiold, amrex_real* phinew, const int* ng_p,
+		  amrex_real* fluxx, 
+		  amrex_real* fluxy,
 #if (BL_SPACEDIM == 3)   
-		  amrex::Real* fluxz,
+		  amrex_real* fluxz,
 #endif
-		  const int* ng_f, const int* lo, const int* hi, const amrex::Real* dx, const amrex::Real* dt);
+		  const int* ng_f, const int* lo, const int* hi, const amrex_real* dx, const amrex_real* dt);
+
+#ifdef __cplusplus
 }
+#endif
+
 #endif

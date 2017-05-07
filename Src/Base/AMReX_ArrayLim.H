@@ -4,7 +4,7 @@
 
 #include <AMReX_REAL.H>
 
-#if !defined(BL_LANG_FORT)
+#ifdef __cplusplus
 
 #include <array>
 
@@ -37,6 +37,19 @@
 
 #define BL_TO_FORTRAN_3D(x) (x).dataPtr(), ARLIM_3D((x).loVect()), ARLIM_3D((x).hiVect())
 #define BL_TO_FORTRAN_N_3D(x,n) (x).dataPtr(n), ARLIM_3D((x).loVect()), ARLIM_3D((x).hiVect())
+
+#else
+
+#if !defined(BL_LANG_FORT)
+
+/* C stuff */
+#if BL_SPACEDIM == 1
+#define ARLIM_P(x) const int*
+#elif BL_SPACEDIM == 2
+#define ARLIM_P(x) const int*, const int*
+#else
+#define ARLIM_P(x) const int*, const int*, const int*
+#endif
 
 #else
 
@@ -134,6 +147,8 @@
 
 #endif /*__STDC__==1*/
 
-#endif /*!defined(BL_LANG_FORT)*/
+#endif /*else of !defined(BL_LANG_FORT)*/
+
+#endif /*else of __cplusplus*/
 
 #endif /*BL_ARRAYLIM_H*/
