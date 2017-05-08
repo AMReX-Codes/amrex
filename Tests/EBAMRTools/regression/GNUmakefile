@@ -31,6 +31,7 @@ _progs  += simpleMeshRefine
 _progs  += fluxRegTest
 _progs  += regFluxRegTest
 _progs  += ebCoarseAveTest
+_progs  += nwoEBQuadCFITest
 
 include $(AMREX_HOME)/Src/Base/Make.package
 include $(AMREX_HOME)/Src/Boundary/Make.package
