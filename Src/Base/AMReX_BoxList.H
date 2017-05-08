@@ -3,11 +3,11 @@
 #define BL_BOXLIST_H
 
 #include <iosfwd>
-#include <list>
 
 #include <AMReX_IntVect.H>
 #include <AMReX_IndexType.H>
 #include <AMReX_Box.H>
+#include <AMReX_Array.H>
 
 namespace amrex
 {
@@ -54,8 +54,8 @@ public:
 
     friend class BoxDomain;
 
-    typedef std::list<Box>::iterator       iterator;
-    typedef std::list<Box>::const_iterator const_iterator;
+    typedef Array<Box>::iterator       iterator;
+    typedef Array<Box>::const_iterator const_iterator;
 
     //! Construct an empty BoxList with IndexType::TheCellType().
     BoxList ();
@@ -72,17 +72,17 @@ public:
     //! Make a boxList consisting of non-overlapping tile box from a single Box
     BoxList (const Box& bx, const IntVect& tilesize);
 
+    BoxList (const BoxList& rhs) = default;
+    BoxList (BoxList&& rhs) = default;
+    BoxList& operator= (const BoxList& rhs) = default;
+    BoxList& operator= (BoxList&& rhs) = default;
+
     //! Append a Box to this BoxList.
     void push_back (const Box& bn) { BL_ASSERT(ixType() == bn.ixType()); lbox.push_back(bn); }
-
-    //!  Prepend a Box to this BoxList.
-    void push_front (const Box& bn) { BL_ASSERT(ixType() == bn.ixType()); lbox.push_front(bn); }
 
     Box& front () { BL_ASSERT(!lbox.empty()); return lbox.front(); }
 
     const Box& front () const { BL_ASSERT(!lbox.empty()); return lbox.front(); }
-
-    void pop_front () { BL_ASSERT(!lbox.empty()); lbox.pop_front(); }
 
     //! Join the BoxList to ourselves.
     void join (const BoxList& blist);
@@ -90,8 +90,6 @@ public:
     //! Catenate the BoxList to ourselves. Removes entries from blist.
     void catenate (BoxList& blist);
 
-    //! Splic the BoxList to the front
-    void splice_front (BoxList& blist);
     //! Remove all Boxes from this BoxList.
     void clear ();
     //! The number of Boxes in this BoxList.
@@ -199,19 +197,20 @@ public:
     //! Applies Box::convert(IndexType) to each Box in the BoxList.
     BoxList& convert (IndexType typ);
 
+    //! Returns a reference to the Array<Box>.
+    Array<Box>& data() { return lbox; }
+    //! Returns a constant reference to the Array<Box>.
+    const Array<Box>& data() const { return lbox; }
+
 private:
     //! This is a helper function for the real complementIn().
     BoxList& complementIn_base (const Box&     b,
                                 const BoxList& bl);
     //! Core simplify routine.
     int simplify_doit (bool best);
-    //! Returns a reference to the List<Box>.
-    std::list<Box>& listBox() { return lbox; }
-    //! Returns a constant reference to the List<Box>.
-    const std::list<Box>& listBox() const { return lbox; }
 
     //! The list of Boxes.
-    std::list<Box> lbox;
+    Array<Box> lbox;
     //! The IndexType of Boxes in the BoxList.
     IndexType btype;
 
