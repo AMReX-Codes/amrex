@@ -15,38 +15,30 @@ BoxList::clear ()
     //
     // Really clear out the boxes.
     //
-    std::list<Box>().swap(lbox);
+    Array<Box>().swap(lbox);
 }
 
 void
 BoxList::join (const BoxList& blist)
 {
     BL_ASSERT(ixType() == blist.ixType());
-    std::list<Box> lb = blist.lbox;
-    lbox.splice(lbox.end(), lb);
+    lbox.insert(std::end(lbox), std::begin(blist), std::end(blist));
 }
 
 void
 BoxList::catenate (BoxList& blist)
 {
     BL_ASSERT(ixType() == blist.ixType());
-    lbox.splice(lbox.end(), blist.lbox);
-    BL_ASSERT(blist.isEmpty());
+    lbox.insert(std::end(lbox), std::begin(blist), std::end(blist));
+    blist.lbox.clear();
 }
 
-void
-BoxList::splice_front (BoxList& blist)
-{
-    BL_ASSERT(ixType() == blist.ixType());
-    lbox.splice(lbox.begin(), blist.lbox);
-    BL_ASSERT(blist.isEmpty());
-}
-
+// xxxxx remove function should be removed!
 BoxList&
 BoxList::remove (const Box& bx)
 {
     BL_ASSERT(ixType() == bx.ixType());
-    lbox.remove(bx);
+//xxxxx    lbox.remove(bx);
     return *this;
 }
 
@@ -58,9 +50,10 @@ BoxList::remove (iterator bli)
     return *this;
 }
 
+// xxxxx intersect should be made fast
 BoxList
 intersect (const BoxList& bl,
-		   const Box&     b)
+           const Box&     b)
 {
     BL_ASSERT(bl.ixType() == b.ixType());
     BoxList newbl(bl);
@@ -70,7 +63,7 @@ intersect (const BoxList& bl,
 
 BoxList
 intersect (const BoxList& bl,
-                   const BoxList& br)
+           const BoxList& br)
 {
     BL_ASSERT(bl.ixType() == br.ixType());
     BoxList newbl(bl);
@@ -80,7 +73,7 @@ intersect (const BoxList& bl,
 
 BoxList
 refine (const BoxList& bl,
-		int            ratio)
+        int            ratio)
 {
     BoxList nbl(bl);
     nbl.refine(ratio);
@@ -89,7 +82,7 @@ refine (const BoxList& bl,
 
 BoxList
 coarsen (const BoxList& bl,
-                 int            ratio)
+         int            ratio)
 {
     BoxList nbl(bl);
     nbl.coarsen(ratio);
@@ -98,7 +91,7 @@ coarsen (const BoxList& bl,
 
 BoxList
 accrete (const BoxList& bl,
-                 int            sz)
+         int            sz)
 {
     BoxList nbl(bl);
     nbl.accrete(sz);
@@ -142,10 +135,13 @@ BoxList::BoxList (const BoxArray &ba)
     lbox(),
     btype()
 {
-    if (ba.size() > 0)
+    if (ba.size() > 0) {
         btype = ba.ixType();
-    for (int i = 0, N = ba.size(); i < N; ++i)
-        push_back(ba[i]);
+    }
+    lbox.reserve(lbox.size()+ba.size());
+    for (int i = 0, N = ba.size(); i < N; ++i) {
+        lbox.push_back(ba[i]);
+    }
 }
 
 BoxList::BoxList(const Box& bx, const IntVect& tilesize)
@@ -184,16 +180,13 @@ BoxList::BoxList(const Box& bx, const IntVect& tilesize)
 bool
 BoxList::ok () const
 {
-    const_iterator bli = begin(), End = end();
-    if ( bli != End )
-    {
-        for (Box b(*bli); bli != End; ++bli)
-            if (!(bli->ok() && bli->sameType(b)))
-                return false;
+    for (const auto& b : *this) {
+        if (!b.ok()) return false;
     }
     return true;
 }
 
+// xxxxx optimization
 bool
 BoxList::isDisjoint () const
 {
@@ -297,7 +290,7 @@ BoxList::intersect (const BoxList& b)
         }
     }
 
-    *this = bl;
+    *this = std::move(bl);
 
     return *this;
 }
@@ -316,6 +309,8 @@ BoxList&
 BoxList::complementIn (const Box&     b,
                        const BoxList& bl)
 {
+    BL_PROFILE("DEBUG_bl_complementIn");
+
     BL_ASSERT(bl.ixType() == b.ixType());
 
     if (bl.size() == 0)
@@ -390,7 +385,7 @@ BoxList::complementIn_base (const Box&     b,
             if (newbli->intersects(*bli))
             {
                 diff = amrex::boxDiff(*newbli, *bli);
-                lbox.splice(lbox.begin(), diff.lbox);
+//xxxxx need to fix this                lbox.splice(lbox.begin(), diff.lbox);
                 lbox.erase(newbli++);
             }
             else
@@ -416,6 +411,8 @@ BoxList::refine (int ratio)
 BoxList&
 BoxList::refine (const IntVect& ratio)
 {
+    BL_PROFILE("DEBUG_bl_refine");
+
     for (iterator bli = begin(), End = end(); bli != End; ++bli)
     {
         bli->refine(ratio);
@@ -436,6 +433,8 @@ BoxList::coarsen (int ratio)
 BoxList&
 BoxList::coarsen (const IntVect& ratio)
 {
+    BL_PROFILE("DEBUG_bl_coarsen");
+
     for (iterator bli = begin(), End = end(); bli != End; ++bli)
     {
         bli->coarsen(ratio);
@@ -446,6 +445,8 @@ BoxList::coarsen (const IntVect& ratio)
 BoxList&
 BoxList::accrete (int sz)
 {
+    BL_PROFILE("DEBUG_bl_accrete");
+
     for (iterator bli = begin(), End = end(); bli != End; ++bli)
     {
         bli->grow(sz);
@@ -548,20 +549,22 @@ boxDiff (const Box& b1in,
 
 namespace
 {
-    struct BoxCmp
+    struct
     {
         bool operator () (const Box& lhs,
                           const Box& rhs) const
             {
                 return lhs.smallEnd() < rhs.smallEnd();
             }
-    };
+    } BoxCmp;
 }
 
 int
 BoxList::simplify (bool best)
 {
-    lbox.sort(BoxCmp());
+    BL_PROFILE("DEBUG_bl_simplify");
+
+    std::sort(lbox.begin(), lbox.end(), BoxCmp);
 
     return simplify_doit(best);
 }

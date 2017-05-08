@@ -48,8 +48,13 @@ BARef::BARef (const Box& b)
 }
 
 BARef::BARef (const BoxList& bl)
+    : m_abox(bl.data())
 { 
-    define(bl); 
+}
+
+BARef::BARef (BoxList&& bl) noexcept
+    : m_abox(std::move(bl.data()))
+{ 
 }
 
 BARef::BARef (std::istream& is)
@@ -107,14 +112,13 @@ BARef::define (const Box& bx)
 void
 BARef::define (const BoxList& bl)
 {
-    BL_ASSERT(m_abox.size() == 0);
-    const int N = bl.size();
-    resize(N);
-    int count = 0;
-    for (BoxList::const_iterator bli = bl.begin(), End = bl.end(); bli != End; ++bli)
-    {
-        m_abox[count++] = *bli;
-    }
+    m_abox = bl.data();
+}
+
+void
+BARef::define (BoxList&& bl) noexcept
+{
+    m_abox = std::move(bl.data());
 }
 
 void 
@@ -227,6 +231,17 @@ BoxArray::BoxArray (const BoxList& bl)
     type_update();
 }
 
+BoxArray::BoxArray (BoxList&& bl) noexcept
+    :
+    m_transformer(new DefaultBATransformer(bl.ixType())),
+    m_typ(bl.ixType()),
+    m_crse_ratio(IntVect::TheUnitVector()),
+    m_simple(true),
+    m_ref(std::make_shared<BARef>(std::move(bl)))
+{
+    type_update();
+}
+
 BoxArray::BoxArray (size_t n)
     :
     m_transformer(new DefaultBATransformer()),
@@ -312,6 +327,16 @@ BoxArray::define (const BoxList& bl)
 {
     clear();
     m_ref->define(bl);
+    m_crse_ratio = IntVect::TheUnitVector();
+    m_simple = true;
+    type_update();
+}
+
+void
+BoxArray::define (BoxList&& bl) noexcept
+{
+    clear();
+    m_ref->define(std::move(bl));
     m_crse_ratio = IntVect::TheUnitVector();
     m_simple = true;
     type_update();
@@ -452,7 +477,7 @@ BoxArray::maxSize (const IntVect& block_size)
     blst.maxSize(block_size);
     const int N = blst.size();
     if (size() != N) { // If size doesn't change, do nothing.
-	m_ref = std::make_shared<BARef>(blst);
+	m_ref = std::make_shared<BARef>(std::move(blst));
     }
     return *this;
 }
@@ -548,8 +573,9 @@ BoxArray::grow (int dir,
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-    for (int i = 0; i < N; i++)
+    for (int i = 0; i < N; i++) {
         m_ref->m_abox[i].grow(dir, n_cell);
+    }
     return *this;
 }
 
@@ -711,8 +737,9 @@ BoxArray::isDisjoint () const
 BoxList
 BoxArray::boxList () const
 {
-    BoxList newb;
     const int N = size();
+    BoxList newb;
+    newb.data().reserve(N);
     if (N > 0) {
 	newb.set(ixType());
 	for (int i = 0; i < N; ++i) {
@@ -756,7 +783,9 @@ BoxArray::contains (const Box& b, bool assume_disjoint_ba) const
 		result = nbx == nisects;
 	    } else {
 		BoxList bl(b.ixType());
-		for (int i = 0, N = isects.size(); i < N; i++) {
+                const int N = isects.size();
+                bl.data().reserve(N);
+		for (int i = 0; i < N; i++) {
 		    bl.push_back(isects[i].second);
 		}
 		result = bl.contains(b);
@@ -934,12 +963,12 @@ BoxArray::complement (const Box& bx) const
 
                     if (isect.ok())
                     {
-			for (BoxList::iterator bli = bl.begin(); bli != bl.end(); )
-			{
-			    BoxList diff = amrex::boxDiff(*bli, isect);
-			    bl.splice_front(diff);
-			    bl.remove(bli++);
-			}
+                        BoxList newbl(bl.ixType());
+                        for (const Box& b : bl) {
+                            const BoxList& diff = amrex::boxDiff(b, isect);
+                            newbl.join(diff);
+                        }
+                        std::swap(bl,newbl);
                     }
                 }
             }
@@ -967,14 +996,15 @@ BoxArray::clear_hash_bin () const
 void
 BoxArray::removeOverlap ()
 {
-    BL_ASSERT(ixType().cellCentered());
     BL_ASSERT(m_crse_ratio == 1);
+
+    if (! ixType().cellCentered()) {
+        amrex::Abort("BoxArray::removeOverlap() supports cell-centered only");
+    }
 
     uniqify();
 
     BARef::HashType& BoxHashMap = m_ref->hash;
-
-    BoxList bl;
 
     const Box EmptyBox;
 
@@ -999,15 +1029,14 @@ BoxArray::removeOverlap ()
 
                 Box& bx = m_ref->m_abox[isects[j].first];
 
-                bl = amrex::boxDiff(bx, isects[j].second);
+                const BoxList& bl = amrex::boxDiff(bx, isects[j].second);
 
                 bx = EmptyBox;
 
-                for (BoxList::const_iterator it = bl.begin(), End = bl.end(); it != End; ++it)
+                for (const Box& b : bl)
                 {
-                    m_ref->m_abox.push_back(*it);
-
-                    BoxHashMap[amrex::coarsen(it->smallEnd(),m_ref->crsn)].push_back(size()-1);
+                    m_ref->m_abox.push_back(b);
+                    BoxHashMap[amrex::coarsen(b.smallEnd(),m_ref->crsn)].push_back(size()-1);
                 }
             }
         }
@@ -1018,7 +1047,7 @@ BoxArray::removeOverlap ()
     //
     // We now have "holes" in our BoxArray. Make us good.
     //
-    bl.clear();
+    BoxList bl(ixType());
 
     const Box& bb = m_ref->bbox;
 
@@ -1030,12 +1059,8 @@ BoxArray::removeOverlap ()
 
         if (it != TheEnd)
         {
-            for (std::vector<int>::const_iterator v_it = it->second.begin(), v_end = it->second.end();
-                 v_it != v_end;
-                 ++v_it)
+            for (auto index : it->second)
             {
-                const int index = *v_it;
-
                 if (m_ref->m_abox[index].ok())
                 {
                     bl.push_back(m_ref->m_abox[index]);
@@ -1213,7 +1238,7 @@ boxComplement (const Box& b1in,
 
 BoxArray
 complementIn (const Box&      b,
-		      const BoxArray& ba)
+              const BoxArray& ba)
 {
     return BoxArray(amrex::complementIn(b,ba.boxList()));
 }
@@ -1252,7 +1277,7 @@ intersect (const BoxArray& lhs,
     BoxList bl(lhs[0].ixType());
     for (int i = 0, Nl = lhs.size(); i < Nl; ++i)
     {
-        BoxArray ba  = amrex::intersect(rhs, lhs[i]);
+        const BoxArray& ba = amrex::intersect(rhs, lhs[i]);
         BoxList  tmp = ba.boxList();
         bl.catenate(tmp);
     }
