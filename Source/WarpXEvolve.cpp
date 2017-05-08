@@ -490,7 +490,7 @@ WarpX::ComputeDt ()
     dt[0]  = cfl * 1./( std::sqrt(D_TERM(  1./(dx[0]*dx[0]),
                                          + 1./(dx[1]*dx[1]),
                                          + 1./(dx[2]*dx[2]))) * PhysConst::c );
-    dt[0] = 1.0e-10;
+    dt[0] = 0.5e-11;
 
     for (int lev = 1; lev <= max_level; ++lev) {
 	dt[lev] = dt[lev-1] / nsubsteps[lev];
