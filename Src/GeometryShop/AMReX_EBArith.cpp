@@ -1419,6 +1419,7 @@ namespace amrex
         order = std::min(order, derivorder);
 
         firstDSten *= a_dist[idir];
+
         a_stencil += firstDSten;
 
         VoFStencil secondDSten;

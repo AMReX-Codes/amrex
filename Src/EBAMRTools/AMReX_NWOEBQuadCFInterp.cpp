@@ -25,16 +25,25 @@ namespace amrex
   define(const EBLevelGrid &       a_eblgFine,
          const EBLevelGrid &       a_eblgCoar,
          const int         &       a_refRat,
-         const int         &       a_ghost)
+         const int         &       a_ghostCellsInData,
+         const int         &       a_ghostCellsToFill,
+         bool a_slowMode)
   {
     BL_ASSERT(a_refRat > 0);
-    BL_ASSERT(a_ghost >= 0);
+    BL_ASSERT(a_ghostCellsInData >= 0);
+    BL_ASSERT(a_ghostCellsToFill >= 0);
+    BL_ASSERT(a_ghostCellsInData >= a_ghostCellsToFill);
     BL_ASSERT(a_eblgFine.coarsenable(a_refRat));
+    m_slowMode = a_slowMode;
     m_isDefined = true;
     m_eblgFine  = a_eblgFine;
     m_eblgCoar  = a_eblgCoar;
     m_refRat    = a_refRat;
-    m_ghost     = a_ghost;
+    m_dataGhost = a_ghostCellsInData;
+    m_fillGhost = a_ghostCellsToFill;
+    
+    //need this many for the stencil
+    m_buffGhost = 2;
     defineInternals();
   }
   /***********************/
@@ -50,10 +59,19 @@ namespace amrex
     EBCellFactory factCoFi(m_eblgCoFi.getEBISL());
     //variable number does not matter here.
     int nvar = 1;
-    FabArray<EBCellFAB> proxyLevel(m_eblgFine.getDBL(),m_eblgFine.getDM(), nvar, m_ghost, MFInfo(), factFine);
-    m_bufferCoFi.define(           m_eblgCoFi.getDBL(),m_eblgCoFi.getDM(), nvar, m_ghost, MFInfo(), factCoFi);
+    FabArray<EBCellFAB> proxyLevel(m_eblgFine.getDBL(),m_eblgFine.getDM(), nvar, m_dataGhost, MFInfo(), factFine);
+    m_bufferCoFi.define(           m_eblgCoFi.getDBL(),m_eblgCoFi.getDM(), nvar, m_buffGhost, MFInfo(), factCoFi);
 
-    m_stencil.define(m_eblgFine.getDBL(), m_eblgFine.getDM());
+    if(m_slowMode)
+    {
+      m_slowStencils.define(m_eblgFine.getDBL(), m_eblgFine.getDM());
+      m_slowVoFs.define(    m_eblgFine.getDBL(), m_eblgFine.getDM());
+      
+    }
+    else
+    {
+      m_stencil.define(m_eblgFine.getDBL(), m_eblgFine.getDM());
+    }
     for(MFIter mfi(m_eblgFine.getDBL(), m_eblgFine.getDM()); mfi.isValid(); ++mfi)
     {
       std::vector< std::shared_ptr<BaseIndex  > > baseDstVoFs;
@@ -77,8 +95,16 @@ namespace amrex
 
       EBCellFAB& coarProxy = m_bufferCoFi[mfi];
       EBCellFAB& fineProxy =   proxyLevel[mfi];
-      m_stencil[mfi] = std::shared_ptr<AggStencil <EBCellFAB, EBCellFAB>  >
-        (new AggStencil<EBCellFAB, EBCellFAB >(baseDstVoFs, baseSten, coarProxy, fineProxy));
+      if(m_slowMode)
+      {
+        m_slowStencils[mfi] = allsten;
+        m_slowVoFs    [mfi] = volvec;
+      }
+      else
+      {
+        m_stencil[mfi] = std::shared_ptr<AggStencil <EBCellFAB, EBCellFAB>  >
+          (new AggStencil<EBCellFAB, EBCellFAB >(baseDstVoFs, baseSten, coarProxy, fineProxy));
+      }
     }
   }
   /***********************/
@@ -108,17 +134,40 @@ namespace amrex
   {
     BL_PROFILE("NWOEBCFI::coarseFineInterp");
 
-    //do not need to copy ghost cell data 
-    m_bufferCoFi.copy(a_phic, isrc, idst, inco, 0, 0);
-    //but we might NEED ghost cell data (just cannot assume it was correct in input.
-    m_bufferCoFi.FillBoundary();
+    //need to copy ghost cell data 
+    m_bufferCoFi.copy(a_phic, isrc, idst, inco, 0, m_buffGhost);
+    int ibox = 0;
     for(MFIter mfi(m_eblgFine.getDBL(), m_eblgFine.getDM()); mfi.isValid(); ++mfi)
     {
 
-      //false is for increment only
-      m_stencil[mfi]->apply(a_phif[mfi],
-                            m_bufferCoFi[mfi],
-                            isrc, idst, inco, false);
+      //breaking things down for debugging.
+      EBCellFAB& phifab =       a_phif[mfi];
+      EBCellFAB& buffab = m_bufferCoFi[mfi];
+      if(m_slowMode)
+      {
+
+        vector<VolIndex  >& vofs     = m_slowVoFs[mfi];
+        vector<VoFStencil>& stencils = m_slowStencils[mfi];
+        for(int ivof = 0; ivof < vofs.size(); ivof++)
+        {
+          for(int icomp = 0; icomp < inco; icomp++)
+          {
+            int srccomp = isrc + icomp;
+            int dstcomp = idst + icomp;
+
+            VoFStencil vofsten = stencils[ivof];
+            vofsten.setAllVariables(srccomp);
+            Real value = applyVoFStencil(stencils[ivof], buffab);
+            phifab(vofs[ivof], dstcomp)= value;
+          }
+        }
+      }
+      else
+      {
+        //false is for increment only
+        m_stencil[mfi]->apply(phifab,buffab, isrc, idst, inco, false);
+      }
+      ibox++;
     }
   }
 
@@ -129,6 +178,7 @@ namespace amrex
                     int isrc, int idst, int inco)
   {
     BL_PROFILE("NWOEBCFI::coarseFineInterpH");
+    BL_ASSERT(!m_slowMode);
     EBLevelDataOps::setVal(m_bufferCoFi, 0.0);
     for(MFIter mfi(m_eblgFine.getDBL(), m_eblgFine.getDM()); mfi.isValid(); ++mfi)
     {
