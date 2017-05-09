@@ -952,6 +952,8 @@ BoxArray::complement (const Box& bx) const
 
 	auto TheEnd = BoxHashMap.cend();
 
+        BoxList newbl(bl.ixType());
+
 	for (IntVect iv = cbx.smallEnd(), End = cbx.bigEnd(); 
 	     iv <= End && bl.isNotEmpty(); 
 	     cbx.next(iv))
@@ -966,7 +968,7 @@ BoxArray::complement (const Box& bx) const
 
                     if (isect.ok())
                     {
-                        BoxList newbl(bl.ixType());
+                        newbl.clear();
                         for (const Box& b : bl) {
                             const BoxList& diff = amrex::boxDiff(b, isect);
                             newbl.join(diff);
@@ -999,10 +1001,12 @@ BoxArray::clear_hash_bin () const
 void
 BoxArray::removeOverlap ()
 {
-    BL_ASSERT(m_crse_ratio == 1);
-
     if (! ixType().cellCentered()) {
         amrex::Abort("BoxArray::removeOverlap() supports cell-centered only");
+    }
+
+    if (m_crse_ratio != 1) {
+        amrex::Abort("BoxArray::removeOverlap() must have m_crse_ratio == 1");
     }
 
     uniqify();
@@ -1058,7 +1062,7 @@ BoxArray::removeOverlap ()
     }
     bl.simplify();
 
-    BoxArray nba(bl);
+    BoxArray nba(std::move(bl));
 
     *this = nba;
 
@@ -1265,8 +1269,7 @@ intersect (const BoxArray& lhs,
     for (int i = 0, Nl = lhs.size(); i < Nl; ++i)
     {
         const BoxArray& ba = amrex::intersect(rhs, lhs[i]);
-        BoxList  tmp = ba.boxList();
-        bl.catenate(tmp);
+        bl.join(ba.boxList());
     }
     return BoxArray(bl);
 }
