@@ -972,15 +972,12 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 
     BL_ASSERT(m_gdb != 0);
 
-    const int       MyProc   = ParallelDescriptor::MyProc();
-    const int       NProcs   = ParallelDescriptor::NProcs();
     const int       IOProc   = ParallelDescriptor::IOProcessorNumber();
     const Real      strttime = ParallelDescriptor::second();
     const Geometry& geom     = Geom(0);
 
     ParticleLocData pld;
     ParticleType p;
-    Real r;
 
     // This assumes level 0 since geom = m_gdb->Geom(0)
     const Real* dx  = geom.CellSize();
@@ -1001,10 +998,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     {
         Box grid = m_gdb->ParticleBoxArray(0)[mfi.index()];
         RealBox grid_box = RealBox(grid,dx,geom.ProbLo());
-
-        Real len[BL_SPACEDIM] = { D_DECL(grid_box.hi(0)-grid_box.lo(0),
-                                         grid_box.hi(1)-grid_box.lo(1),
-                                         grid_box.hi(2)-grid_box.lo(2)) };
 
         for (long icnt = 0; icnt < icount_per_box; icnt++) {
         for (long jcnt = 0; jcnt < icount_per_box; jcnt++) {
