@@ -252,12 +252,10 @@ Adv::init_particles ()
       const BoxArray& ba = TracerPC->ParticleBoxArray(0);
       const DistributionMapping& dm = TracerPC->ParticleDistributionMap(0);
 
-      MFInfo Fab_noallocate;
-      Fab_noallocate.SetAlloc(false);
-      MultiFab dummy_mf(ba, dm, 1, 0, Fab_noallocate);
+      AmrTracerParticleContainer::ParticleInitData pdata = {1.0};
 
       TracerPC->SetVerbose(0);
-      TracerPC->InitOnePerCell(0.5, 0.5, 0.5, 1.0, dummy_mf);
+      TracerPC->InitOnePerCell(0.5, 0.5, 0.5, pdata);
 
       TracerPC->Redistribute();
     }

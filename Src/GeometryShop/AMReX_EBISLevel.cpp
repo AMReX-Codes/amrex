@@ -127,6 +127,7 @@ namespace amrex
     m_domain = a_fineEBIS.m_domain;
     m_domain.coarsen(2);
     m_dx = 2.*a_fineEBIS.m_dx;
+    m_nCellMax = a_fineEBIS.m_nCellMax;
     m_origin = a_fineEBIS.m_origin;
 
     m_grids.define(m_domain);

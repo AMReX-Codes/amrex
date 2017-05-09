@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # concatenate a bunch of Fortran files, sorting them so that the modules are
 # defined before they are used
@@ -6,6 +6,7 @@
 from __future__ import print_function
 
 import sys
+import toposort
 
 if sys.version_info < (2, 7):
     sys.exit("ERROR: need python 2.7 or later for dep.py")
@@ -39,6 +40,22 @@ use_re = re.compile(r"^(\s*)([Uu][Ss][Ee])(\s+)((?:[a-z_][a-z_0-9]+))",
                     re.IGNORECASE|re.DOTALL)
 
 
+def is_sorted(files):
+    """ this should check whether the files are properly sorted"""
+    have_sorted = True
+
+    for n, currfile in enumerate(files):
+        # nothing before the current file should depend on it
+        for q in range(n):
+            prevfile = files[q]
+            for d in prevfile.needs:
+                if d in currfile.defined:
+                    have_sorted = False
+                    break
+
+    return have_sorted
+
+
 class SourceFile(object):
     """ hold information about one of the .f90/.F90 files """
 
@@ -49,6 +66,9 @@ class SourceFile(object):
 
         self.defined = self.defined_modules()
         self.needs = self.needed_modules()
+
+    def __str__(self):
+        return self.name
 
     def defined_modules(self):
         """determine what modules this file provides -- we work off of the
@@ -99,15 +119,6 @@ class SourceFile(object):
 
         return depends
 
-    def __lt__(self, other):
-        """we'll sort such that a file that defines a module comes before one
-        that needs it"""
-
-        for m in self.defined:
-            if m in other.needs:
-                return True
-        return False
-
 
 def doit(files):
     """ main routine that processes the files"""
@@ -119,12 +130,28 @@ def doit(files):
     for cf in files:
         all_files.append(SourceFile(cf))
 
-    # sort them
-    all_files.sort()
+
+    # create a dictionary where the keys are the file and the values are a
+    # set of the files it depends on
+    deps = {}
+    for f in all_files:
+        dep_files = []
+        for need in f.needs:
+            dep_files += [q.name for q in all_files if need in q.defined]
+        deps[f.name] = set(dep_files)
+
+    sorted_names = toposort.toposort_flatten(deps)
+
+    # now make it back into a list
+    sorted_files = []
+    for name in sorted_names:
+        sorted_files += [q for q in all_files if q.name == name]
+    
+    print("sort check: {}".format(is_sorted(sorted_files)))
 
     # now concatenate
     with open("mega_f.F90", "w") as mf:
-        for f in all_files:
+        for f in sorted_files:
             with open(f.name, "r") as sf:
                 lines = sf.readlines()
                 mf.writelines(lines)

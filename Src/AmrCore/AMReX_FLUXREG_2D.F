@@ -176,6 +176,7 @@ c        ::::: flux normal to Y direction
       REAL_T , intent(inout) :: s(slo(1):shi(1),slo(2):shi(2),nc)
       REAL_T , intent(in   ) :: f(flo(1):fhi(1),flo(2):fhi(2),nc)
       REAL_T , intent(in   ) :: v(vlo(1):vhi(1),vlo(2):vhi(2))
+      REAL_T bufval
       !
       integer :: i, j, n
       if (isloface .eq. 1) then
@@ -183,7 +184,8 @@ c        ::::: flux normal to Y direction
             do n = 1, nc
             do j = lo(2), hi(2)
             do i = lo(1), hi(1)
-               s(i,j,n) = s(i,j,n)-mult*f(i+1,j,n)/v(i,j)
+               bufval = f(i+1,j,n)/v(i,j)
+               s(i,j,n) = s(i,j,n)-mult*bufval
             end do
             end do
             end do
@@ -191,7 +193,8 @@ c        ::::: flux normal to Y direction
             do n = 1, nc
             do j = lo(2), hi(2)
             do i = lo(1), hi(1)
-               s(i,j,n) = s(i,j,n)-mult*f(i,j+1,n)/v(i,j)
+               bufval = f(i,j+1,n)/v(i,j)
+               s(i,j,n) = s(i,j,n)-mult*bufval
             end do
             end do
             end do
@@ -200,7 +203,8 @@ c        ::::: flux normal to Y direction
             do n = 1, nc
             do j = lo(2), hi(2)
             do i = lo(1), hi(1)
-               s(i,j,n) = s(i,j,n)+mult*f(i,j,n)/v(i,j)
+               bufval = f(i,j,n)/v(i,j)
+               s(i,j,n) = s(i,j,n)+mult*bufval
             end do
             end do
             end do

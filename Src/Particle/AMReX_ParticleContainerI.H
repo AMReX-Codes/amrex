@@ -1551,11 +1551,12 @@ ParticleContainer<NStructReal,NStructInt,NArrayReal, NArrayInt>::AddParticlesAtL
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Checkpoint (const std::string&        dir,
-                                                                               const std::string&        name,
-                                                                               bool                      is_checkpoint,
-                                                                               const Array<std::string>& real_comp_names,
-                                                                               const Array<std::string>& int_comp_names) const
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
+::Checkpoint (const std::string&        dir,
+              const std::string&        name,
+              bool                      is_checkpoint,
+              const Array<std::string>& real_comp_names,
+              const Array<std::string>& int_comp_names) const
 {
     BL_PROFILE("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Checkpoint()");
     BL_ASSERT(OK());

@@ -766,11 +766,12 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinar
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitRandom (long          icount,
-                                           unsigned long iseed,
-                                           Real          mass,
-                                           bool          serialize,
-                                           RealBox       containing_bx)
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
+InitRandom (long                    icount,
+            unsigned long           iseed,
+            const ParticleInitData& pdata,
+            bool                    serialize,
+            RealBox                 containing_bx)
 {
     BL_PROFILE("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitRandom()");
     BL_ASSERT(iseed  > 0);
@@ -839,40 +840,45 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitRandom (l
         {
             ParticleType p;
 
-            for (int i = 0; i < BL_SPACEDIM; i++)
-            {
+            for (int i = 0; i < BL_SPACEDIM; i++) {
                 p.m_rdata.pos[i] = pos[j*BL_SPACEDIM + i];
             }
 
-            if (NStructReal > 0)
-            {
-                p.m_rdata.arr[BL_SPACEDIM] = mass;
-
-                for (int i = 1; i < NStructReal; i++)
-                    //
-                    // Just zero out the rest of the data for lack of a better value.
-                    //
-                    p.m_rdata.arr[BL_SPACEDIM+i] = 0;
+            for (int i = 0; i < NStructReal; i++) {
+                p.m_rdata.arr[BL_SPACEDIM + i] = pdata.real_struct_data[i];
             }
 
-            if (!Where(p, pld))
-            {
-                amrex::Abort("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitRandom(): invalid particle");
+            if (!Where(p, pld)) {
+                amrex::Abort("ParticleContainer::InitRandom(): invalid particle");
             }
 
             BL_ASSERT(pld.m_lev >= 0 && pld.m_lev <= finestLevel());
+            std::pair<int, int> ind(pld.m_grid, pld.m_tile); 
 
             const int who = ParticleDistributionMap(pld.m_lev)[pld.m_grid];
 
-            if (who == MyProc)
-	      {
-                //
-                // We own it. Add it to the appropriate AoS at the appropriate level.
-                //
+            if (who == MyProc) {
+
+                // We own it. Add it at the appropriate level.
                 p.m_idata.id  = ParticleType::NextID();
                 p.m_idata.cpu = MyProc;
 
-                m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
+                for (int i = 0; i < NStructInt; i++) {
+                    p.m_idata.arr[BL_SPACEDIM + i] = pdata.int_struct_data[i];
+                }
+                
+                // add the struct
+                m_particles[pld.m_lev][ind].push_back(p);
+
+                // add the real...
+                for (int i = 0; i < NArrayReal; i++) {
+                    m_particles[pld.m_lev][ind].push_back_real(i, pdata.real_array_data[i]);
+                }
+
+                // ... and int array data
+                for (int i = 0; i < NArrayInt; i++) {
+                    m_particles[pld.m_lev][ind].push_back_int(i, pdata.int_array_data[i]);
+                }            
 
                 cnt++;
 	      }
@@ -880,70 +886,66 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitRandom (l
 
         BL_ASSERT(OK());
     }
-    else
-    {
-        //
+    else {
         // We'll generate the particles in parallel.
-        //
         // Each CPU will key off the given seed to get independent streams of random numbers.
-        //
         long M = icount / NProcs;
-        //
         // Processor 0 will get the slop.
-        //
-        if (MyProc == 0)
-        {
+        if (MyProc == 0) {
             M += (icount % NProcs);
         }
-
+        
         ParticleLocData pld;
 
-        for (long icnt = 0; icnt < M; icnt++)
-        {
-	  ParticleType p;
-            for (int i = 0; i < BL_SPACEDIM; i++)
-            {
-                do
-                {
+        for (long icnt = 0; icnt < M; icnt++) {
+            ParticleType p;
+            for (int i = 0; i < BL_SPACEDIM; i++) {
+                do {
                     r = amrex::Random();
                     x = geom.ProbLo(i) + (r * len[i]);
                 }
                 while (x < xlo[i] || x > xhi[i]);
-
+                
                 p.m_rdata.pos[i] = x;
-
+                
                 BL_ASSERT(p.m_rdata.pos[i] < geom.ProbHi(i));
             }
-
-            if (NStructReal > 0)
-            {
-                p.m_rdata.arr[BL_SPACEDIM] = mass;
-
-                for (int i = 1; i < NStructReal; i++)
-                    //
-                    // Just zero out the rest of the data for lack of a better value.
-                    //
-                    p.m_rdata.arr[BL_SPACEDIM+i] = 0;
+            
+            for (int i = 0; i < NStructReal; i++) {
+                p.m_rdata.arr[BL_SPACEDIM + i] = pdata.real_struct_data[i];
             }
-
+            
+            // the int struct data
             p.m_idata.id  = ParticleType::NextID();
-            p.m_idata.cpu = MyProc;
-
+            p.m_idata.cpu = ParallelDescriptor::MyProc();
+            
+            for (int i = 0; i < NStructInt; i++) {
+                p.m_idata.arr[BL_SPACEDIM + i] = pdata.int_struct_data[i];
+            }
+            
+            // locate the particle
             if (!Where(p, pld))
             {
-                amrex::Abort("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitRandom(): invalid particle");
+                amrex::Abort("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitOnePerCell(): invalid particle");
             }
-
-            BL_ASSERT(pld.m_lev >= 0 && pld.m_lev <= finestLevel());
-
-            //
-            // Add it to the appropriate AoS at the appropriate level.
-            //
-            m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
+            BL_ASSERT(pld.m_lev >= 0 && pld.m_lev <= finestLevel());            
+            std::pair<int, int> ind(pld.m_grid, pld.m_tile); 
+            
+            // add the struct
+	    m_particles[pld.m_lev][ind].push_back(p);
+            
+            // add the real...
+            for (int i = 0; i < NArrayReal; i++) {
+                m_particles[pld.m_lev][ind].push_back_real(i, pdata.real_array_data[i]);
+            }
+            
+            // ... and int array data
+            for (int i = 0; i < NArrayInt; i++) {
+                m_particles[pld.m_lev][ind].push_back_int(i, pdata.int_array_data[i]);
+            }            
         }
-        //
+
         // Let Redistribute() sort out where the particles belong.
-        //
         Redistribute();
     }
 
@@ -957,15 +959,12 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitRandom (l
     }
 }
 
-// This routine is used when we want to replicate a box for a scaling study -- 
-//   within each box the distribution is random but the particle data is replicated 
-//   across boxes within the MultiFab.
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitRandomPerBox (long          icount_per_box,
-                                                 unsigned long iseed,
-                                                 Real          mass,
-                                                 const MultiFab& particle_mf)
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
+::InitRandomPerBox (long                    icount_per_box,
+                    unsigned long           iseed,
+                    const ParticleInitData& pdata)
 {
     BL_PROFILE("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitRandomPerBox()");
     BL_ASSERT(iseed  > 0);
@@ -979,16 +978,14 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitRandomPer
     const Real      strttime = ParallelDescriptor::second();
     const Geometry& geom     = Geom(0);
 
+    ParticleLocData pld;
+    ParticleType p;
     Real r;
 
-    //
     // This assumes level 0 since geom = m_gdb->Geom(0)
-    //
     const Real* dx  = geom.CellSize();
 
-    //
     // We use exactly the same seed for every grid
-    //
     std::mt19937 mt(iseed);
     std::uniform_real_distribution<double> dist(0.0, 1.0);
 
@@ -999,10 +996,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitRandomPer
         BL_ASSERT(m_particles[lev].empty());
     }
 
-    //
     // We'll generate the particles in parallel -- but no tiling here.
-    //
-    for (MFIter mfi(particle_mf,false); mfi.isValid(); ++mfi)
+    for (MFIter mfi(*m_dummy_mf[0], false); mfi.isValid(); ++mfi)
     {
         Box grid = m_gdb->ParticleBoxArray(0)[mfi.index()];
         RealBox grid_box = RealBox(grid,dx,geom.ProbLo());
@@ -1011,61 +1006,52 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitRandomPer
                                          grid_box.hi(1)-grid_box.lo(1),
                                          grid_box.hi(2)-grid_box.lo(2)) };
 
-        ParticleLocData pld;
-
         for (long icnt = 0; icnt < icount_per_box; icnt++) {
         for (long jcnt = 0; jcnt < icount_per_box; jcnt++) {
         for (long kcnt = 0; kcnt < icount_per_box; kcnt++)
         {
-            ParticleType p;
-
-            /*for (int i = 0; i < BL_SPACEDIM; i++)
-            {
-                r = amrex::Random();
-                p.m_rdata.pos[i] = grid_box.lo(i) + (r * len[i]);
-                BL_ASSERT(p.m_rdata.pos[i] < grid_box.hi(i));
-            }*/
-
             p.pos(0) = grid_box.lo(0) + (dist(mt) + icnt) / icount_per_box;
             p.pos(1) = grid_box.lo(1) + (dist(mt) + jcnt) / icount_per_box;
             p.pos(2) = grid_box.lo(2) + (dist(mt) + kcnt) / icount_per_box;
-
+            
             for (int i = 0; i < BL_SPACEDIM; i++)
                 BL_ASSERT(p.pos(i) < grid_box.hi(i));
 
-            if (NStructReal > 0)
-            {
-                p.rdata(0) = mass;
-
-                for (int i = 1; i < NStructReal; i++)
-                    //
-                    // Just zero out the rest of the data for lack of a better value.
-                    //
-                    p.rdata(i) = 0;
+            // the real struct data
+            for (int i = 0; i < NStructReal; i++) {
+                p.m_rdata.arr[BL_SPACEDIM + i] = pdata.real_struct_data[i];
             }
 
-            p.id()   = ParticleType::NextID();
-            p.cpu() = MyProc;
-
-            if (!Where(p, pld))
-            {
-                amrex::Abort("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitRandomPerBox(): invalid particle");
+            // the int struct data
+            p.m_idata.id  = ParticleType::NextID();
+            p.m_idata.cpu = ParallelDescriptor::MyProc();
+            
+            for (int i = 0; i < NStructInt; i++) {
+                p.m_idata.arr[BL_SPACEDIM + i] = pdata.int_struct_data[i];
             }
 
-            BL_ASSERT(pld.m_lev >= 0 && pld.m_lev <= m_gdb->finestLevel());
-            //
-            // Add it to the appropriate tile in the appropriate grid at the appropriate level.
-            //
-            m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
+            // locate the particle
+            if (!Where(p, pld)) {
+                amrex::Abort("ParticleContainer::InitNRandomPerCell(): invalid particle");
+            }
+            BL_ASSERT(pld.m_lev >= 0 && pld.m_lev <= finestLevel());
+            std::pair<int, int> ind(pld.m_grid, pld.m_tile); 
+
+            // add the struct
+            m_particles[pld.m_lev][ind].push_back(p);
+            
+            // add the real...
+            for (int i = 0; i < NArrayReal; i++) {
+                m_particles[pld.m_lev][ind].push_back_real(i, pdata.real_array_data[i]);
+            }
+            
+            // ... and int array data
+            for (int i = 0; i < NArrayInt; i++) {
+                m_particles[pld.m_lev][ind].push_back_int(i, pdata.int_array_data[i]);
+            }            
+
         } } }
     }
-
-    //
-    // We still need to redistribute in order to define each particle's cell, grid and level, but this
-    //    shouldn't require any inter-node communication because the particles should already be 
-    //    in the right grid.
-    //
-    Redistribute();
 
     if (m_verbose > 1)
     {
@@ -1079,15 +1065,15 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitRandomPer
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitOnePerCell (Real x_off, Real y_off, Real z_off,
-                                                                                   Real mass, const MultiFab& particle_mf)
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
+InitOnePerCell (Real x_off, Real y_off, Real z_off, const ParticleInitData& pdata)
 {
     BL_PROFILE("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitOnePerCell()");
 
     BL_ASSERT(m_gdb != 0);
 
     // Note that x_off, y_off and z_off are the offsets from the lower left corner
-    //      in each cell as measured in units of dx, so they must be in [0,1]
+    // in each cell as measured in units of dx, so they must be in [0,1]
     BL_ASSERT(x_off >= 0. && y_off >= 0. && z_off >= 0.); 
     BL_ASSERT(x_off <= 1. && y_off <= 1. && z_off <= 1.); 
 
@@ -1095,81 +1081,67 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitOnePerCel
     const Real      strttime = ParallelDescriptor::second();
     const Geometry& geom     = Geom(0);
 
-    //
     // This assumes level 0 since geom = Geom(0)
-    //
     const Real* dx  = geom.CellSize();
 
     ParticleLocData pld;
+    ParticleType p;
 
-    //
     // We'll generate the particles in parallel -- but no tiling of the grid here.
-    //
-    for (MFIter mfi(particle_mf,false); mfi.isValid(); ++mfi)
-    {
+    for (MFIter mfi(*m_dummy_mf[0], false); mfi.isValid(); ++mfi) {
         Box grid = ParticleBoxArray(0)[mfi.index()];
         RealBox grid_box (grid,dx,geom.ProbLo());
-
+        
         for (IntVect beg = grid.smallEnd(), end=grid.bigEnd(),
-                    cell = grid.smallEnd(); cell <= end; grid.next(cell))
-        { 
-            ParticleType p;
+                 cell = grid.smallEnd(); cell <= end; grid.next(cell)) { 
 
+            // the real struct data
             D_TERM(p.m_rdata.pos[0] = grid_box.lo(0) + (x_off + cell[0]-beg[0])*dx[0];,
                    p.m_rdata.pos[1] = grid_box.lo(1) + (y_off + cell[1]-beg[1])*dx[1];,
                    p.m_rdata.pos[2] = grid_box.lo(2) + (z_off + cell[2]-beg[2])*dx[2];);
-
+            
             for (int d = 0; d < BL_SPACEDIM; ++d) {
                 BL_ASSERT(p.m_rdata.pos[d] < grid_box.hi(d));
             }
 
-            if (NStructReal > 0)
-            {
-                p.m_rdata.arr[BL_SPACEDIM] = mass;
-
-                for (int ii = 1; ii < NStructReal; ii++) {
-                    //
-                    // Just zero out the rest of the data for lack of a better value.
-                    //
-                    p.m_rdata.arr[BL_SPACEDIM+ii] = 0;
-                }
+            for (int i = 0; i < NStructReal; i++) {
+                p.m_rdata.arr[BL_SPACEDIM + i] = pdata.real_struct_data[i];
             }
 
+            // the int struct data
             p.m_idata.id  = ParticleType::NextID();
             p.m_idata.cpu = ParallelDescriptor::MyProc();
 
+            for (int i = 0; i < NStructInt; i++) {
+                p.m_idata.arr[BL_SPACEDIM + i] = pdata.int_struct_data[i];
+            }
+
+            // locate the particle
             if (!Where(p, pld))
             {
                 amrex::Abort("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitOnePerCell(): invalid particle");
             }
+            BL_ASSERT(pld.m_lev >= 0 && pld.m_lev <= finestLevel());            
+            std::pair<int, int> ind(pld.m_grid, pld.m_tile); 
 
-            BL_ASSERT(pld.m_lev >= 0 && pld.m_lev <= finestLevel());
-            //
-            // Add it to the appropriate AoS at the appropriate level.
-            //
-	    m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
-	    if (NArrayReal > 0) {
-                m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back_real(0, (Real) p.m_idata.id);
+            // add the struct
+	    m_particles[pld.m_lev][ind].push_back(p);
+
+            // add the real...
+            for (int i = 0; i < NArrayReal; i++) {
+                m_particles[pld.m_lev][ind].push_back_real(i, pdata.real_array_data[i]);
             }
-	    if (NArrayReal > 1) {
-                m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back_real(1, (Real) p.m_idata.cpu);
-            }
-	    for (int ii = 2; ii < NArrayReal; ii++) {
-                m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back_real(ii, 0.0);
-            }
+
+            // ... and int array data
+            for (int i = 0; i < NArrayInt; i++) {
+                m_particles[pld.m_lev][ind].push_back_int(i, pdata.int_array_data[i]);
+            }            
         }
     }
     
-    //
-    // We still need to redistribute in order to define each particle's cell, grid and level, but this 
-    //    shouldn't require any inter-node communication because the particles should already be in the right grid.
-    //
-    Redistribute();
-
-    if (m_verbose > 1)
-    {
+    if (m_verbose > 1) {
         Real stoptime = ParallelDescriptor::second() - strttime;
-
+        
         ParallelDescriptor::ReduceRealMax(stoptime,IOProc);
 
         amrex::Print() << "ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitOnePerCell() time: " << stoptime << '\n';
@@ -1178,7 +1150,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitOnePerCel
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitNRandomPerCell (int n_per_cell, Real mass, const MultiFab& particle_mf)
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
+InitNRandomPerCell (int n_per_cell, const ParticleInitData& pdata)
 {
     BL_PROFILE("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitNRandomPerCell()");
 
@@ -1188,12 +1161,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitNRandomPe
     const Real      strttime = ParallelDescriptor::second();
     const Geometry& geom     = Geom(0);
 
-    //
     // This assumes level 0 since geom = Geom(0)
-    //
     const Real* dx  = geom.CellSize();
-
-    Real r;
 
     resizeData();
 
@@ -1201,68 +1170,68 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitNRandomPe
         BL_ASSERT(m_particles[lev].empty());
 
     ParticleLocData pld;
+    ParticleType p;
+    Real r;
 
-    //
     // We'll generate the particles in parallel -- but no tiling here.
-    //
-    for (MFIter mfi(particle_mf,false); mfi.isValid(); ++mfi)
+    for (MFIter mfi(*m_dummy_mf[0], false); mfi.isValid(); ++mfi)
     {
         Box grid = ParticleBoxArray(0)[mfi.index()];
         RealBox grid_box (grid,dx,geom.ProbLo());
-
+        
         for (IntVect beg = grid.smallEnd(), end=grid.bigEnd(),
-                    cell = grid.smallEnd(); cell <= end; grid.next(cell))
-        { 
-            ParticleType p;
+                    cell = grid.smallEnd(); cell <= end; grid.next(cell)) { 
 
             for (int n = 0; n < n_per_cell; n++)
             {
-               for (int i = 0; i < BL_SPACEDIM; i++) {
-                   r = amrex::Random();
-                   p.m_rdata.pos[i] = grid_box.lo(i) + (r + cell[i]-beg[i])*dx[i];
-                   BL_ASSERT(p.m_rdata.pos[i] < grid_box.hi(i));
-               }
+                // the real struct data
+                for (int i = 0; i < BL_SPACEDIM; i++) {
+                    r = amrex::Random();
+                    p.m_rdata.pos[i] = grid_box.lo(i) + (r + cell[i]-beg[i])*dx[i];
+                    BL_ASSERT(p.m_rdata.pos[i] < grid_box.hi(i));
+                }
+                                
+                for (int i = 0; i < NStructReal; i++) {
+                    p.m_rdata.arr[BL_SPACEDIM + i] = pdata.real_struct_data[i];
+                }
 
-               if (NStructReal > 0)
-               {
-                   p.m_rdata.arr[BL_SPACEDIM] = mass;
-   
-                   for (int i = 1; i < NStructReal; i++) {
-                       //
-                       // Just zero out the rest of the data for lack of a better value.
-                       //
-                       p.m_rdata.arr[BL_SPACEDIM+i] = 0;
-                   }
-               }
+                // the int struct data
+                p.m_idata.id  = ParticleType::NextID();
+                p.m_idata.cpu = ParallelDescriptor::MyProc();
 
-               p.m_idata.id  = ParticleType::NextID();
-               p.m_idata.cpu = ParallelDescriptor::MyProc();
+                for (int i = 0; i < NStructInt; i++) {
+                    p.m_idata.arr[BL_SPACEDIM + i] = pdata.int_struct_data[i];
+                }
 
-               if (!Where(p, pld)) {
-                   amrex::Abort("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitNRandomPerCell(): invalid particle");
-               }
+                // locate the particle
+                if (!Where(p, pld)) {
+                    amrex::Abort("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitNRandomPerCell(): invalid particle");
+                }
+                BL_ASSERT(pld.m_lev >= 0 && pld.m_lev <= finestLevel());
+                std::pair<int, int> ind(pld.m_grid, pld.m_tile); 
 
-               BL_ASSERT(pld.m_lev >= 0 && pld.m_lev <= finestLevel());
-               //
-               // Add it to the appropriate AoS at the appropriate level.
-               //
-               m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
+                // add the struct
+                m_particles[pld.m_lev][ind].push_back(p);
+
+                // add the real...
+                for (int i = 0; i < NArrayReal; i++) {
+                    m_particles[pld.m_lev][ind].push_back_real(i, pdata.real_array_data[i]);
+                }
+
+                // ... and int array data
+                for (int i = 0; i < NArrayInt; i++) {
+                    m_particles[pld.m_lev][ind].push_back_int(i, pdata.int_array_data[i]);
+                }            
             }
         }
     }
 
-    //
-    // We still need to redistribute in order to define each particle's cell, grid and level, but this 
-    //    shouldn't require any inter-node communication because the particles should already be in the right grid.
-    //
-    Redistribute();
-
     if (m_verbose > 1)
     {
         Real stoptime = ParallelDescriptor::second() - strttime;
-
+        
         ParallelDescriptor::ReduceRealMax(stoptime,IOProc);
-
+        
         amrex::Print() << "ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitNRandomPerCell() time: " << stoptime << '\n';
     }
 }
