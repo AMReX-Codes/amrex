@@ -6,11 +6,13 @@ using namespace amrex;
 
 ShortRangeParticleContainer::ShortRangeParticleContainer(const Geometry            & geom,
                                                          const DistributionMapping & dmap,
-                                                         const BoxArray            & ba)
-    : ParticleContainer<2*BL_SPACEDIM> (geom, dmap, ba)
+                                                         const BoxArray            & ba,
+                                                         int                         nghost)
+    : ParticleContainer<2*BL_SPACEDIM> (geom, dmap, ba),
+      ng(nghost)
 {                
-    mask.define(ba, dmap, 2, 1);
-    mask.setVal(-1, 1);
+    mask.define(ba, dmap, 2, ng);
+    mask.setVal(-1, ng);
     for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi) {
         const Box& box = mfi.tilebox();
         const int grid_id = mfi.index();
@@ -66,7 +68,7 @@ void ShortRangeParticleContainer::InitParticles() {
     }
 }
 
-void ShortRangeParticleContainer::fillGhosts(int ng) {
+void ShortRangeParticleContainer::fillGhosts() {
     GhostCommMap ghosts_to_comm;
     for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
         const Box& tile_box = pti.tilebox();
@@ -334,4 +336,3 @@ void ShortRangeParticleContainer::fillGhostsMPI(GhostCommMap& ghosts_to_comm) {
     }
 #endif
 }
-
