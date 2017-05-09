@@ -120,7 +120,7 @@ BoxDomain::add (const Box& b)
 
     check.push_back(b);
 
-    for (const auto& bx : lbox)
+    for (const auto& bx : *this)
     {
         tmp.clear();
         for (auto& cbx : check)
@@ -137,8 +137,7 @@ BoxDomain::add (const Box& b)
                     check.end());
         check.insert(std::end(check), std::begin(tmp), std::end(tmp));
     }
-
-    lbox.insert(std::end(lbox), std::begin(check), std::end(check));
+    join(check);
     BL_ASSERT(ok());
 }
 
@@ -158,7 +157,7 @@ BoxDomain::rmBox (const Box& b)
 
     Array<Box> tmp;
 
-    for (auto& bx : lbox)
+    for (auto& bx : *this)
     {
         if (bx.intersects(b))
         {
@@ -167,8 +166,7 @@ BoxDomain::rmBox (const Box& b)
             bx = Box();
         }
     }
-
-    lbox.insert(std::end(lbox), std::begin(tmp), std::end(tmp));
+    join(tmp);
     return *this;
 }
 

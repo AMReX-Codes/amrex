@@ -75,28 +75,29 @@ public:
     BoxList& operator= (BoxList&& rhs) = default;
 
     //! Append a Box to this BoxList.
-    void push_back (const Box& bn) { BL_ASSERT(ixType() == bn.ixType()); lbox.push_back(bn); }
+    void push_back (const Box& bn) { BL_ASSERT(ixType() == bn.ixType()); m_lbox.push_back(bn); }
 
-    Box& front () { BL_ASSERT(!lbox.empty()); return lbox.front(); }
+    Box& front () { BL_ASSERT(!m_lbox.empty()); return m_lbox.front(); }
 
-    const Box& front () const { BL_ASSERT(!lbox.empty()); return lbox.front(); }
+    const Box& front () const { BL_ASSERT(!m_lbox.empty()); return m_lbox.front(); }
 
     //! Join the BoxList to ourselves.
     void join (const BoxList& blist);
-
+    //! Join the Array of Boxes to ourselves.    
+    void join (const Array<Box>& barr);
     //! Catenate the BoxList to ourselves. Removes entries from blist.
     void catenate (BoxList& blist);
 
     //! Remove all Boxes from this BoxList.
     void clear ();
     //! The number of Boxes in this BoxList.
-    int size () const { return lbox.size(); }
+    int size () const { return m_lbox.size(); }
 
-    iterator begin () { return lbox.begin(); }
-    const_iterator begin () const { return lbox.begin(); }
+    iterator begin () { return m_lbox.begin(); }
+    const_iterator begin () const { return m_lbox.begin(); }
 
-    iterator end () { return lbox.end(); }
-    const_iterator end () const { return lbox.end(); }
+    iterator end () { return m_lbox.end(); }
+    const_iterator end () const { return m_lbox.end(); }
     /** \brief True if this BoxList is valid; i.e. all the Boxes are
     * valid and they all have the same IndexType.  Also returns
     * true if the BoxList is empty.
@@ -107,15 +108,13 @@ public:
     //! Is this BoxList notequal to rhs?
     bool operator!= (const BoxList& rhs) const;
     //! Is this BoxList empty?
-    bool isEmpty () const { return lbox.empty(); }
+    bool isEmpty () const { return m_lbox.empty(); }
     //! Is this BoxList not empty?
-    bool isNotEmpty () const { return !lbox.empty(); }
+    bool isNotEmpty () const { return !m_lbox.empty(); }
     //! True if the set of intersecting Boxes is empty.
     bool isDisjoint () const;
     //! True if all Boxes in bl are contained in this BoxList.
     bool contains (const BoxList& bl) const;
-    //! True if all Boxes in ba are contained in this BoxList.
-    bool contains (const BoxArray& ba) const;
     //! Modify this BoxList to contain only its intersection with Box b.
     BoxList& intersect (const Box& b);
     //! Remove empty Boxes from this BoxList.
@@ -133,8 +132,7 @@ public:
     BoxList& coarsen (const IntVect& ratio);
     //! Grow each Box in the BoxList by size sz.
     BoxList& accrete  (int sz);
-
-    BoxList& accrete  (IntVect sz);
+    BoxList& accrete  (const IntVect& sz);
     //! Applies Box::shift(int,int) to each Box in the BoxList.
     BoxList& shift (int dir,
                     int nzones);
@@ -153,8 +151,6 @@ public:
     * is O(N-squared) while the other algorithm is O(N).
     */
     int simplify (bool best = false);
-    //! Merges all possible adjacent Boxes.  Returns the total number of Boxes merged.
-    int minimize ();
     //! Forces each Box in the BoxList to have sides of length <= chunk.
     BoxList& maxSize (int chunk);
     //! Forces each Box in the BoxList to have dimth side of length <= chunk[dim].
@@ -164,7 +160,7 @@ public:
     //! Returns the IndexType of Boxes in this BoxList.
     IndexType ixType () const { return btype; }
     //! Set the type of the BoxList.  It's an error if the BoxList isn't empty.
-    void set (IndexType ixtyp) { BL_ASSERT(lbox.empty()); btype = ixtyp; }
+    void set (IndexType ixtyp) { BL_ASSERT(m_lbox.empty()); btype = ixtyp; }
     /** 
     * \brief Applies surroundingNodes(Box) to each Box in BoxArray.
     * See the documentation of Box for details.
@@ -183,19 +179,19 @@ public:
     BoxList& convert (IndexType typ);
 
     //! Returns a reference to the Array<Box>.
-    Array<Box>& data() { return lbox; }
+    Array<Box>& data() { return m_lbox; }
     //! Returns a constant reference to the Array<Box>.
-    const Array<Box>& data() const { return lbox; }
+    const Array<Box>& data() const { return m_lbox; }
 
 private:
     //! This is a helper function for the real complementIn().
-    BoxList& complementIn_base (const Box&     b,
-                                const BoxList& bl);
+    void complementIn_base (const Box&     b,
+                            const std::vector<std::pair<int,Box> >& isects);
     //! Core simplify routine.
     int simplify_doit (bool best);
 
     //! The list of Boxes.
-    Array<Box> lbox;
+    Array<Box> m_lbox;
     //! The IndexType of Boxes in the BoxList.
     IndexType btype;
 
