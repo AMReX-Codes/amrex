@@ -111,6 +111,7 @@ public:
                   int             numcomp,
                   Real            mult,
                   const Geometry& geom);
+  ///in this version the area is assumed to muliplied into the flux (if not, use scale to fix)
     void CrseAdd (const MultiFab& mflx,
                   int             dir,
                   int             srccomp,
@@ -121,7 +122,8 @@ public:
     //
     // Increment flux correction with fine data.
     //
-    void FineAdd (const MultiFab& mflx,
+    ///in this version the area is assumed to muliplied into the flux (if not, use scale to fix)
+  void FineAdd (const MultiFab& mflx,
                   int             dir, 
                   int             srccomp,
                   int             destcomp,
@@ -140,6 +142,7 @@ public:
     //
     // Increment flux correction with fine data.
     //
+  ///in this version the area is assumed to muliplied into the flux (if not, use scale to fix)
     void FineAdd (const FArrayBox& flux,
                   int              dir,
                   int              boxno,
@@ -179,7 +182,7 @@ public:
                  const Geometry& crse_geom);
 
     // Set internal borders to zero
-    void ClearInternalBorders (const Geometry& geom);
+    void ClearInternalBorders (const Geometry& crse_geom);
     //
     // Write (used for writing to checkpoint)
     //

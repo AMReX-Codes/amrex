@@ -14,7 +14,6 @@
 #define _EBFASTFR_H___
 
 #include "AMReX_REAL.H"
-#include "AMReX_Vector.H"
 #include "AMReX_EBCellFAB.H"
 #include "AMReX_EBFaceFAB.H"
 #include "AMReX_EBCellFactory.H"
@@ -25,6 +24,7 @@
 #include "AMReX_LoHiSide.H"
 #include "AMReX_EBLevelGrid.H"
 #include "AMReX_LayoutData.H"
+#include "AMReX_FluxRegister.H"
 class EBIndexSpace;
 
 namespace amrex
@@ -59,7 +59,7 @@ namespace amrex
              const EBLevelGrid&       a_eblgCoar,
              const int&               a_nref,
              const int&               a_nvar,
-             bool a_forceNoEBCF = false);
+             bool a_forceNoEBCF = true);
 
     ///
     virtual ~EBFastFR()
@@ -75,7 +75,7 @@ namespace amrex
            const EBLevelGrid&       a_eblgCoar,
            const int&               a_nref,
            const int&               a_nvar,
-           bool  a_forceNoEBCF = false);
+           bool  a_forceNoEBCF = true);
 
     ///
     /**
@@ -90,14 +90,14 @@ namespace amrex
        The irregular part of this is just
        register = input flux  (instead of increment)
        To avoid double-counting.
+       The face direction is known by EBFaceFAB
     */
     virtual void
     incrementCoarse(const EBFaceFAB&      a_coarseFlux,
                     const Real&           a_scale,
-                    const MFIter   &      a_coarseMFIter   ,
-                    const Interval&       a_variables,
-                    const int&            a_dir,
-                    const Side::LoHiSide& a_sd);
+                    const MFIter   &      a_coarseMFIter,
+                    int isrc, int idst, int inco);
+
 
 
     ///
@@ -105,29 +105,13 @@ namespace amrex
     incrementFine(const EBFaceFAB&      a_fineFlux,
                   const Real&           a_scale,
                   const MFIter   &      a_fineMFIter   ,
-                  const Interval&       a_variables,
-                  const int&            a_dir,
-                  const Side::LoHiSide& a_sd);
+                  int isrc, int idst, int inco);
+
 
     ///
-    virtual void reflux(LevelData<EBCellFAB>& a_uCoarse,
-                        const Interval&       a_variables,
+    virtual void reflux(FabArray<EBCellFAB> & a_uCoarse,
                         const Real&           a_scale,
-                        bool a_multByKappaOneMinusKappa = false);
-
-    ///
-    /**
-       Increments mass array  with left-over mass
-       from reflux divergence.   this is to test this pig.
-       Ordinarily this mass would go into redistribution.   this
-       is used in the test suite to  check whether a constant
-       flux refluxed and then unrefluxed (this function) ends up
-       with a constant solution.
-       Correction at each cell = (1-kappa)refluxCorrection.
-    */
-    void incrementDensityArray(LevelData<EBCellFAB>& a_coarMass,
-                               const Interval&       a_variables,
-                               const Real&           a_scale);
+                        int isrc, int idst, int inco);
 
     ///
     bool isDefined() const
@@ -135,7 +119,6 @@ namespace amrex
         return m_isDefined;
       }
 
-    static int index(int a_dir, Side::LoHiSide a_side);
 
 
     bool hasEBCF() const
@@ -143,56 +126,15 @@ namespace amrex
         return m_hasEBCF;
       }
 
-    ///
-    /**
-       Gets the set of vofs to fill a flux for on a particular side
-       and direction that correspond to an EB/CF interface.   You still
-       need to fill all the other fluxes at the interface but you do not
-       have to do all the fancy interpolation to face centroids
-       that is needed at these key points since all the other C/F points
-       are treated as regular anyway.
-       Do not use this unless you really know what you are doing.   Really.
-       Yes this breaks encapsulation but we do some pretty ugly things
-       for performance reasons, do we not?
-    */
-    Vector<VoFIterator>& getVoFItCoar(const MFIter   &       a_dit,
-                                      const int&             a_idir,
-                                      const Side::LoHiSide&  a_sd)
-      {
-        int iloc = index(a_idir, a_sd);
-        return (m_vofiCoar[iloc])[a_dit];
-      }
-
-    ///
-    /**
-       Gets the set of vofs to fill a flux for on a particular side
-       and direction that correspond to an EB/CF interface.   You still
-       need to fill all the other fluxes at the interface but you do not
-       have to do all the fancy interpolation to face centroids
-       that is needed at these key points since all the other C/F points
-       are treated as regular anyway.
-       Do not use this unless you really know what you are doing.   Really.
-       Yes this breaks encapsulation but we do some pretty ugly things
-       for performance reasons, do we not?
-    */
-    VoFIterator& getVoFItCoFi(const MFIter   &       a_dit,
-                              const int&             a_idir,
-                              const Side::LoHiSide&  a_sd)
-      {
-        int iloc = index(a_idir, a_sd);
-        return (m_vofiCoFi[iloc])[a_dit];
-      }
-
-    ///
-    const EBLevelGrid& getEBLGCoFi() const
-      {
-        return m_eblgCoFi;
-      }
-
+    
   protected:
 
     //for the regular bits
     FluxRegister m_nonEBFluxReg;
+
+    //because amrex::FluxRegister is weird, the fluxes at the coarse level have to be stored
+    FabArray<EBFluxFAB> m_coarRegister;
+
     bool m_isDefined;
 
     EBLevelGrid       m_eblgFine;
@@ -202,13 +144,9 @@ namespace amrex
     int               m_refRat;
     int               m_nComp;
 
-    //nrefdmo is the number of fine faces per coar face
-    //this is intrinsically dimension-dependent
-    Real m_nrefdmo;
     bool m_hasEBCF;
 
 
-    bool computeHasEBCF();
   private:
     //for all the usual reasons,
     //there is no copy constructor for this class

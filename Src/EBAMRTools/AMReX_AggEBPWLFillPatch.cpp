@@ -15,6 +15,10 @@
 
 namespace amrex
 {
+  void null_deleter_sten(BaseStencil * a_sten)
+ {}
+  void null_deleter_ind(BaseIndex* a_sten)
+ {}
   /************************************/
   void
   AggEBPWLFillPatch::
@@ -159,9 +163,9 @@ namespace amrex
                
         for (int ivof= 0; ivof < a_srcVoFs[mfi].size(); ivof++)
         {
-          baseindice[ivof] =   std::shared_ptr<BaseIndex>(new   VolIndex(         a_srcVoFs[mfi][ivof]));
-          basestenlo[ivof] = std::shared_ptr<BaseStencil>(new VoFStencil(a_loStencils[idir][mfi][ivof]));
-          basestenhi[ivof] = std::shared_ptr<BaseStencil>(new VoFStencil(a_hiStencils[idir][mfi][ivof]));
+          baseindice[ivof] =   std::shared_ptr<BaseIndex>((BaseIndex*)(&a_srcVoFs[mfi][ivof]), &null_deleter_ind);
+          basestenlo[ivof] = std::shared_ptr<BaseStencil>(    &a_loStencils[idir][mfi][ivof] , &null_deleter_sten);
+          basestenhi[ivof] = std::shared_ptr<BaseStencil>(    &a_hiStencils[idir][mfi][ivof] , &null_deleter_sten);
         }
         //all the slopes are the same size so we can use any of them really
         m_stenLo[idir][mfi] = std::shared_ptr< AggStencil <EBCellFAB, BaseIVFAB<Real> > >
