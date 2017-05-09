@@ -840,13 +840,8 @@ InitRandom (long                    icount,
         {
             ParticleType p;
 
-            for (int i = 0; i < BL_SPACEDIM; i++)
-            {
+            for (int i = 0; i < BL_SPACEDIM; i++) {
                 p.m_rdata.pos[i] = pos[j*BL_SPACEDIM + i];
-            }
-
-            for (int d = 0; d < BL_SPACEDIM; ++d) {
-                BL_ASSERT(p.m_rdata.pos[d] < grid_box.hi(d));
             }
 
             for (int i = 0; i < NStructReal; i++) {
