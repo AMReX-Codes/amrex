@@ -33,24 +33,15 @@ BoxList::catenate (BoxList& blist)
     blist.lbox.clear();
 }
 
-// xxxxx remove function should be removed!
 BoxList&
-BoxList::remove (const Box& bx)
+BoxList::removeEmpty()
 {
-    BL_ASSERT(ixType() == bx.ixType());
-//xxxxx    lbox.remove(bx);
+    lbox.erase(std::remove_if(lbox.begin(), lbox.end(),
+                              [](const Box& x) { return x.isEmpty(); }),
+               lbox.end());
     return *this;
 }
 
-BoxList&
-BoxList::remove (iterator bli)
-{
-    BL_ASSERT(ixType() == bli->ixType());
-    lbox.erase(bli);
-    return *this;
-}
-
-// xxxxx intersect should be made fast
 BoxList
 intersect (const BoxList& bl,
            const Box&     b)
@@ -58,16 +49,6 @@ intersect (const BoxList& bl,
     BL_ASSERT(bl.ixType() == b.ixType());
     BoxList newbl(bl);
     newbl.intersect(b);
-    return newbl;
-}
-
-BoxList
-intersect (const BoxList& bl,
-           const BoxList& br)
-{
-    BL_ASSERT(bl.ixType() == br.ixType());
-    BoxList newbl(bl);
-    newbl.intersect(br);
     return newbl;
 }
 
@@ -114,14 +95,15 @@ BoxList::operator!= (const BoxList& rhs) const
 
 BoxList::BoxList ()
     :
-    lbox(),
-    btype(IndexType::TheCellType())
+    btype(IndexType::TheCellType()),
+    lbox()
 {}
 
 BoxList::BoxList (const Box& bx)
-    : btype(bx.ixType())
+    : 
+    lbox(1,bx),
+    btype(bx.ixType())
 {
-    push_back(bx);
 }
 
 BoxList::BoxList (IndexType _btype)
@@ -132,16 +114,9 @@ BoxList::BoxList (IndexType _btype)
 
 BoxList::BoxList (const BoxArray &ba)
     :
-    lbox(),
-    btype()
+    lbox(std::move(ba.boxList().data())),
+    btype(ba.ixType())
 {
-    if (ba.size() > 0) {
-        btype = ba.ixType();
-    }
-    lbox.reserve(lbox.size()+ba.size());
-    for (int i = 0, N = ba.size(); i < N; ++i) {
-        lbox.push_back(ba[i]);
-    }
 }
 
 BoxList::BoxList(const Box& bx, const IntVect& tilesize)
@@ -186,44 +161,10 @@ BoxList::ok () const
     return true;
 }
 
-// xxxxx optimization
 bool
 BoxList::isDisjoint () const
 {
-    for (const_iterator bli = begin(), End = end(); bli != End; ++bli)
-    {
-        const_iterator bli2 = bli;
-        //
-        // Skip the first element.
-        //
-        ++bli2;
-        for (; bli2 != End; ++bli2)
-            if (bli->intersects(*bli2))
-                return false;
-    }
-    return true;
-}
-
-bool
-BoxList::contains (const IntVect& v) const
-{
-    for (const_iterator bli = begin(), End = end(); bli != End; ++bli)
-        if (bli->contains(v))
-            return true;
-
-    return false;
-}
-
-bool
-BoxList::contains (const Box& b) const
-{
-    if (isEmpty()) return false;
-
-    BL_ASSERT(ixType() == b.ixType());
-
-    BoxList bnew = amrex::complementIn(b,*this);
-
-    return bnew.isEmpty();
+    return BoxArray(*this).isDisjoint();
 }
 
 bool
@@ -256,48 +197,27 @@ BoxList::intersect (const Box& b)
 {
     BL_ASSERT(ixType() == b.ixType());
 
-    for (iterator bli = begin(), End = end(); bli != End; )
+    for (Box& bx : lbox)
     {
-        const Box& bx = *bli & b;
-
-        if (bx.ok())
+        const Box& isect = bx & b;
+        if (isect.ok())
         {
-            *bli = bx;
-            ++bli;
+            bx = isect;
         }
         else
         {
-            lbox.erase(bli++);
-        }
-    }
-    return *this;
-}
-
-BoxList&
-BoxList::intersect (const BoxList& b)
-{
-    BL_ASSERT(ixType() == b.ixType());
-
-    BoxList bl(b.ixType());
-
-    for (iterator lhs = begin(); lhs != end(); ++lhs)
-    {
-        for (const_iterator rhs = b.begin(), End = b.end(); rhs != End; ++rhs)
-        {
-            const Box& bx = *lhs & *rhs;
-            if (bx.ok())
-                bl.push_back(bx);
+            bx = Box();
         }
     }
 
-    *this = std::move(bl);
+    removeEmpty();
 
     return *this;
 }
 
 BoxList
 complementIn (const Box&     b,
-                      const BoxList& bl)
+              const BoxList& bl)
 {
     BL_ASSERT(bl.ixType() == b.ixType());
     BoxList newb(b.ixType());
@@ -376,23 +296,23 @@ BoxList::complementIn_base (const Box&     b,
 
     push_back(b);
 
-    BoxList diff;
+    Array<Box> tmp;
 
-    for (const_iterator bli = bl.begin(), End = bl.end(); bli != End && isNotEmpty(); ++bli)
+    for (const Box& bl_box : bl)
     {
-        for (iterator newbli = lbox.begin(); newbli != lbox.end(); )
+        if (isEmpty()) break;
+        tmp.clear();
+        for (Box& this_box : lbox)
         {
-            if (newbli->intersects(*bli))
+            if (this_box.intersects(bl_box))
             {
-                diff = amrex::boxDiff(*newbli, *bli);
-//xxxxx need to fix this                lbox.splice(lbox.begin(), diff.lbox);
-                lbox.erase(newbli++);
-            }
-            else
-            {
-                ++newbli;
+                const BoxList& diff = amrex::boxDiff(this_box, bl_box);
+                tmp.insert(std::end(tmp), std::begin(diff), std::end(diff));
+                this_box = Box();
             }
         }
+        removeEmpty();
+        lbox.insert(std::end(lbox), std::begin(tmp), std::end(tmp));
     }
 
     return *this;
