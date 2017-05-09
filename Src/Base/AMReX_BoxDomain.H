@@ -114,9 +114,6 @@ public:
     using BoxList::ixType;
 
     //! Promoted from BoxList.
-    using BoxList::minimize;
-
-    //! Promoted from BoxList.
     using BoxList::simplify;
 
     //! Promoted from BoxList.

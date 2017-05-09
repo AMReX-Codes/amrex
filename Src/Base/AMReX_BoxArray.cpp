@@ -1051,27 +1051,11 @@ BoxArray::removeOverlap ()
     // We now have "holes" in our BoxArray. Make us good.
     //
     BoxList bl(ixType());
-
-    const Box& bb = m_ref->bbox;
-
-    BARef::HashType::const_iterator TheEnd = BoxHashMap.end();
-
-    for (IntVect iv = bb.smallEnd(), End = bb.bigEnd(); iv <= End; bb.next(iv))
-    {
-        BARef::HashType::const_iterator it = BoxHashMap.find(iv);
-
-        if (it != TheEnd)
-        {
-            for (auto index : it->second)
-            {
-                if (m_ref->m_abox[index].ok())
-                {
-                    bl.push_back(m_ref->m_abox[index]);
-                }
-            }
+    for (const auto& b : m_ref->m_abox) {
+        if (b.ok()) {
+            bl.push_back(b);
         }
     }
-
     bl.simplify();
 
     BoxArray nba(bl);
