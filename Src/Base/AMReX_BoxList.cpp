@@ -231,57 +231,8 @@ BoxList::complementIn (const Box&     b,
                        const BoxList& bl)
 {
     BL_PROFILE("BoxList::complementIn");
-
-    BL_ASSERT(bl.ixType() == b.ixType());
-
-    if (bl.size() == 0)
-    {
-	clear();
-	push_back(b);
-    }
-    else if (bl.size() == 1)
-    {
-        *this = amrex::boxDiff(b,bl.front());
-    }
-    else
-    {
-        clear();
-
-        const Box& mbox = bl.minimalBox();
-
-        join(amrex::boxDiff(b,mbox));
-
-        BoxArray ba(bl);
-
-        BoxList mesh(b.ixType());
-        if (mbox.ok()) {
-            mesh.push_back(mbox);
-        }
-        mesh.maxSize(BL_SPACEDIM == 3 ? 64 : 128);
-
-        std::vector< std::pair<int,Box> > isects;
-
-        for (const Box& list_bx : mesh)
-        {
-            const Box& bx = list_bx & b;
-
-            if (!bx.ok()) continue;
-
-            ba.intersections(bx,isects);
-
-            if (isects.empty())
-            {
-                push_back(bx);
-            }
-            else
-            {
-                BoxList tm(b.ixType());
-                tm.complementIn_base(bx,isects);
-                join(tm);
-            }
-        }
-    }
-
+    BoxArray ba(bl);
+    *this = std::move(ba.complement(b));
     return *this;
 }
 
