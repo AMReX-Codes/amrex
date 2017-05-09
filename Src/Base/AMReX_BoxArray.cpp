@@ -1222,7 +1222,7 @@ operator<< (std::ostream&   os,
 
 BoxArray
 boxComplement (const Box& b1in,
-		       const Box& b2)
+               const Box& b2)
 {
     return BoxArray(amrex::boxDiff(b1in, b2));
 }
@@ -1231,7 +1231,7 @@ BoxArray
 complementIn (const Box&      b,
               const BoxArray& ba)
 {
-    return amrex::complementIn(b,ba);
+    return BoxArray { ba.complement(b) };
 }
 
 BoxArray
