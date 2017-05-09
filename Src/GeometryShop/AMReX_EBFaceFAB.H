@@ -70,11 +70,13 @@ namespace amrex
     ///
     /**
        Both fabs need the same ebisBox and region.
+       negative component means nComp()
     */
     EBFaceFAB& plus(const EBFaceFAB& a_ebfab,
-                    int a_srccomp,
-                    int a_destcomp,
-                    int a_numcomp);
+                    int a_srccomp = 0,
+                    int a_destcomp= 0,
+                    int a_numcomp = -1,
+                    Real scale = 1.0);
        
        
     ///
@@ -86,11 +88,13 @@ namespace amrex
     ///
     /**
        Both fabs need the same ebisBox and region.
+       negative component means nComp()
     */
     EBFaceFAB& minus(const EBFaceFAB& a_ebfab,
-                     int a_srccomp,
-                     int a_destcomp,
-                     int a_numcomp);
+                     int a_srccomp = 0,
+                     int a_destcomp = 0,
+                     int a_numcomp = -1,
+                     Real scale = 1.0);
        
        
     ///
@@ -102,11 +106,12 @@ namespace amrex
     ///
     /**
        Both fabs need the same ebisBox and region.
+       negative component means nComp()
     */
     EBFaceFAB& mult(const EBFaceFAB& a_ebfab,
-                    int a_srccomp,
-                    int a_destcomp,
-                    int a_numcomp);
+                    int a_srccomp = 0,
+                    int a_destcomp = 0,
+                    int a_numcomp = -1);
        
        
     ///
@@ -119,11 +124,12 @@ namespace amrex
     ///
     /**
        Both fabs need the same ebisBox and region.
+       negative component means nComp()
     */
     EBFaceFAB& divide(const EBFaceFAB& a_ebfab,
-                      int a_srccomp,
-                      int a_destcomp,
-                      int a_numcomp);
+                      int a_srccomp = 0,
+                      int a_destcomp = 0,
+                      int a_numcomp= -1);
        
        
     ///

@@ -50,8 +50,8 @@ void test_assign_density(TestParams& parms)
 
     // This sets the boundary conditions to be doubly or triply periodic
     int is_per[BL_SPACEDIM];
-    for (int i = 0; i < BL_SPACEDIM; i++) 
-        is_per[i] = 1; 
+    for (int i = 0; i < BL_SPACEDIM; i++)
+        is_per[i] = 1;
 
     // This defines a Geometry object which is useful for writing the plotfiles  
     Array<Geometry> geom(nlevs);
@@ -103,11 +103,13 @@ void test_assign_density(TestParams& parms)
     bool serialize = true;
     int iseed = 451;
     Real mass = 10.0;
-    //    myPC.InitRandom(num_particles, iseed, mass, serialize, fine_box);
-    myPC.InitRandom(num_particles, iseed, mass, serialize);
+    MyParticleContainer::ParticleInitData pdata = {mass};
 
-    //myPC.AssignDensity(0, true, partMF, 0, 1, 1);
-    myPC.AssignDensityFort(0, partMF, 0, 1, nlevs-1);
+    //    myPC.InitRandom(num_particles, iseed, pdata, serialize, fine_box);
+    myPC.InitRandom(num_particles, iseed, pdata, serialize);
+
+    myPC.AssignDensity(0, true, partMF, 0, 1, 1);
+    //myPC.AssignDensityFort(0, partMF, 0, 1, nlevs-1);
 
     myPC.InterpolateFort(acceleration, 0, nlevs-1);
 
