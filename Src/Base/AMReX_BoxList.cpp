@@ -367,11 +367,11 @@ boxDiff (const Box& b1in,
 {
    BL_ASSERT(b1in.sameType(b2));
   
-   Box b1(b1in);
-   BoxList b_list(b1.ixType());
+   BoxList b_list(b1in.ixType());
 
-   if ( !b2.contains(b1) )
+   if ( !b2.contains(b1in) )
    {
+       Box b1(b1in);
        if ( !b1.intersects(b2) )
        {
            b_list.push_back(b1);
