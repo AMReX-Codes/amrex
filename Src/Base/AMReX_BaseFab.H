@@ -142,7 +142,9 @@ public:
       BL_ASSERT(domain.contains(a_iv));
 
       IntVect ivDiff = a_iv - domain.smallEnd();
+#if BL_SPACEDIM > 1
       IntVect ivSize = domain.size();
+#endif
       long offset = ivDiff[0];
 
 #if BL_SPACEDIM > 1
