@@ -4,6 +4,7 @@
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_Utility.H>
 #include <AMReX_MFIter.H>
+#include <AMReX_BaseFab.H>
 
 #ifdef BL_MEM_PROFILING
 #include <AMReX_MemProfiler.H>
@@ -782,13 +783,15 @@ BoxArray::contains (const Box& b, bool assume_disjoint_ba) const
 		}
 		result = nbx == nisects;
 	    } else {
-		BoxList bl(b.ixType());
-                const int N = isects.size();
-                bl.data().reserve(N);
-		for (int i = 0; i < N; i++) {
-		    bl.push_back(isects[i].second);
-		}
-		result = bl.contains(b);
+                Array<char> vflag(b.numPts(), 1);
+                BaseFab<char> fabflag(b, 1, vflag.data());
+                for (int i = 0, N = isects.size(); i < N; i++) {
+                    fabflag.setVal(0, isects[i].second, 0, 1);
+                }
+                for (const auto& x : vflag) {
+                    if (x == 1) return false;
+                }
+                result = true;
 	    }
         }
     }

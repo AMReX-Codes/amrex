@@ -29,9 +29,6 @@ namespace amrex
     //! Returns a BoxList defining the intersection of bl with b.
     BoxList intersect (const BoxList& bl, const Box& b);
 
-    //! Returns a BoxList defining the intersection of bl with br.
-    BoxList intersect (const BoxList& bl, const BoxList& br);
-
     //! Returns a new BoxList in which each Box is grown by the given size.
     BoxList accrete (const BoxList& bl, int sz);
 
@@ -115,27 +112,15 @@ public:
     bool isNotEmpty () const { return !lbox.empty(); }
     //! True if the set of intersecting Boxes is empty.
     bool isDisjoint () const;
-    //! True if the IntVect is within any of the Boxes in this BoxList.
-    bool contains (const IntVect& v) const;
-
-    /* \brief True if the Box is within any of the Boxes in the List.
-               The Box must also have the same IndexType as those in this
-               BoxList.
-    */
-    bool contains (const Box& b) const;
     //! True if all Boxes in bl are contained in this BoxList.
     bool contains (const BoxList& bl) const;
     //! True if all Boxes in ba are contained in this BoxList.
     bool contains (const BoxArray& ba) const;
     //! Modify this BoxList to contain only its intersection with Box b.
     BoxList& intersect (const Box& b);
-    //! Modify this BoxList to contain only its intersection with BoxList b.
-    BoxList& intersect (const BoxList& b);
-    //! Remove the Box from this BoxList.
-    BoxList& remove (const Box& bx);
-    //! Remove the pointed to Box from this BoxList.
-    BoxList& remove (iterator bli);
-    //! Creates the complement of BoxList bl in Box b.
+    //! Remove empty Boxes from this BoxList.
+    BoxList& removeEmpty();
+
     BoxList& complementIn (const Box&     b,
                            const BoxList& bl);
     //! Refine each Box in the BoxList by the ratio.
