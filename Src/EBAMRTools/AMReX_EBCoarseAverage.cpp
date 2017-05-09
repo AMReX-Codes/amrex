@@ -20,6 +20,10 @@
 
 namespace amrex
 {
+  void null_deleter_ebc_sten(BaseStencil * a_sten)
+ {}
+  void null_deleter_ebc_ind(BaseIndex* a_sten)
+ {}
 
   /************************************/
   EBCoarseAverage::
@@ -79,15 +83,15 @@ namespace amrex
       // cast from VolIndex to BaseIndex
       std::vector<std::shared_ptr<BaseIndex> >    dstVoF(vofvec.size());
       std::vector<std::shared_ptr<BaseStencil> > stencil(vofvec.size());
+      std::vector<VoFStencil>  allsten(vofvec.size());
       // fill stencils for the vofs
       for(int ivec = 0; ivec < vofvec.size(); ivec++)
       {
-        VoFStencil pointStencil;
-        definePointStencil(pointStencil, vofvec[ivec], mfi);
+        definePointStencil(allsten[ivec], vofvec[ivec], mfi);
 
         // another cast from VolIndex to BaseIndex
-        dstVoF[ivec]  = std::shared_ptr<BaseIndex  >(new  VolIndex(vofvec[ivec]));
-        stencil[ivec] = std::shared_ptr<BaseStencil>(new VoFStencil(pointStencil));
+        dstVoF[ivec]  = std::shared_ptr<BaseIndex  >((BaseIndex*)(&vofvec[ivec]), &null_deleter_ebc_ind);
+        stencil[ivec] = std::shared_ptr<BaseStencil>(            &allsten[ivec] , &null_deleter_ebc_sten);
       }
       //the fine  is the source, the coarsened fine is the destination
       m_stencil[mfi] = std::shared_ptr<AggStencil<EBCellFAB, EBCellFAB > >
