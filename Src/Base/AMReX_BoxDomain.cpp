@@ -34,8 +34,8 @@ BoxDomain::refine (int ratio)
 
 void
 refine (BoxDomain&       dest,
-		const BoxDomain& fin,
-		int              ratio)
+        const BoxDomain& fin,
+        int              ratio)
 {
     dest = fin;
     dest.refine(ratio);
@@ -43,8 +43,8 @@ refine (BoxDomain&       dest,
 
 void
 accrete (BoxDomain&       dest,
-		 const BoxDomain& fin,
-		 int              sz)
+         const BoxDomain& fin,
+         int              sz)
 {
     dest = fin;
     dest.accrete(sz);
@@ -52,8 +52,8 @@ accrete (BoxDomain&       dest,
 
 void
 coarsen (BoxDomain&       dest,
-		 const BoxDomain& fin,
-		 int              ratio)
+         const BoxDomain& fin,
+         int              ratio)
 {
     dest = fin;
     dest.coarsen(ratio);
@@ -146,8 +146,7 @@ BoxDomain::add (const BoxList& bl)
 {
     BoxList bl2 = bl;
     bl2.catenate(*this);
-    BoxList nbl = amrex::removeOverlap(bl2);
-    this->catenate(nbl);
+    join(amrex::removeOverlap(bl2));
 }
 
 BoxDomain&
@@ -166,6 +165,7 @@ BoxDomain::rmBox (const Box& b)
             bx = Box();
         }
     }
+    removeEmpty();
     join(tmp);
     return *this;
 }
