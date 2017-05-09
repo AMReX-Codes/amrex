@@ -57,7 +57,8 @@ public:
     ///
     ShortRangeParticleContainer(const Geometry            & geom, 
                                 const DistributionMapping & dmap,
-                                const BoxArray            & ba);
+                                const BoxArray            & ba,
+                                int                         nghost);
 
     ///
     /// Init one particle per cell with random velocities
@@ -67,7 +68,7 @@ public:
     ///
     /// This fills the ghost buffers for each tile with the proper data
     ///
-    void fillGhosts(int ng);
+    void fillGhosts();
 
     ///
     /// Each tile clears its ghosts, freeing the memory
@@ -107,6 +108,7 @@ private:
     void fillGhostsMPI(GhostCommMap& ghosts_to_comm);
 
     const int lev = 0;
+    int ng;
     const size_t pdata_size = 3*BL_SPACEDIM*sizeof(ParticleType::RealType);
     FabArray<BaseFab<int> > mask;
     std::map<PairIndex, Array<char> > ghosts;

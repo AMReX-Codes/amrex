@@ -42,15 +42,16 @@ int main(int argc, char* argv[])
     ba.maxSize(max_grid_size);
     
     DistributionMapping dmap(ba);
-    
-    ShortRangeParticleContainer myPC(geom, dmap, ba);
+   
+    int num_ghost = 1;
+    ShortRangeParticleContainer myPC(geom, dmap, ba, num_ghost);
 
     myPC.InitParticles();
 
     for (int i = 0; i < max_step; i++) {
         if (write_particles) myPC.writeParticles(i);
         
-        myPC.fillGhosts(1);
+        myPC.fillGhosts();
         myPC.computeForces();
         myPC.clearGhosts();
 
