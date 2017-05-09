@@ -184,9 +184,6 @@ public:
     const Array<Box>& data() const { return m_lbox; }
 
 private:
-    //! This is a helper function for the real complementIn().
-    void complementIn_base (const Box&     b,
-                            const std::vector<std::pair<int,Box> >& isects);
     //! Core simplify routine.
     int simplify_doit (bool best);
 
