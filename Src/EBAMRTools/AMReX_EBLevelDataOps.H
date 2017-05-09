@@ -15,8 +15,11 @@
 #include "AMReX_IntVect.H"
 #include "AMReX_BoxArray.H"
 #include "AMReX_FabArray.H"
+#include "AMReX_MultiFab.H"
 #include "AMReX_EBCellFAB.H"
 #include "AMReX_EBCellFactory.H"
+#include "AMReX_EBFluxFAB.H"
+#include "AMReX_EBFluxFactory.H"
 #include "AMReX_EBLevelGrid.H"
 
 
@@ -27,7 +30,7 @@ namespace amrex
   ///
   /**
      Repository of useful EB functions over a level.  All functions are static so just
-     use EBFabArrayOps::blah(...);
+     use EBLevelDataOps::blah(...);
   */
   class EBLevelDataOps
   {
@@ -40,9 +43,32 @@ namespace amrex
       {
       }
 
+    ///
+    /**
+       Take the regular pointers of the eb cell data and put it into a MF
+     */
+    static void aliasIntoMF(shared_ptr<MultiFab>      & a_regData,
+                            const FabArray<EBCellFAB> & a_ebcData,
+                            const EBLevelGrid         & a_eblg);
+
+    ///
+    /**
+       Take the regular pointers of the eb face data and put it into a MF
+     */
+    static void aliasIntoMF(shared_ptr<MultiFab>      & a_regData,
+                            const FabArray<EBFluxFAB> & a_ebfData,
+                            const int                 & a_faceDir,
+                            const EBLevelGrid         & a_eblg);
+
+    ///
+    /**
+     */
     static bool checkForBogusNumbers(const FabArray<EBCellFAB> & a_data);
 
 
+    ///
+    /**
+     */
     static void  checkData(const FabArray<EBCellFAB>&a_data, const string& label);
 
     ///
@@ -113,6 +139,13 @@ namespace amrex
                        const Real          & a_value,
                        int  a_comp = -1);
 
+    ///
+    /**
+       If comp < 0, set all components
+     */
+    static void setVal(FabArray<EBFluxFAB> & a_result,
+                       const Real          & a_value);
+
 
 
     ///
@@ -143,6 +176,8 @@ namespace amrex
 
 
     ///
+    /**
+     */
     static void axby( FabArray<EBCellFAB>&       a_lhs,
                       const FabArray<EBCellFAB>& a_x,
                       const FabArray<EBCellFAB>& a_y,
