@@ -43,9 +43,11 @@ namespace  amrex
     NWOEBQuadCFInterp(const EBLevelGrid      & a_eblgFine,
                       const EBLevelGrid      & a_eblgCoar,
                       const int              & a_refRat,
-                      const int              & a_ghostCellsInData)
+                      const int              & a_ghostCellsInData,
+                      const int              & a_ghostCellsToFill,
+                      bool a_slowMode = false)
       {
-        define(a_eblgFine, a_eblgCoar, a_refRat, a_ghostCellsInData);
+        define(a_eblgFine, a_eblgCoar, a_refRat, a_ghostCellsInData, a_ghostCellsToFill, a_slowMode);
       }
 
 
@@ -53,7 +55,9 @@ namespace  amrex
     void  define(const EBLevelGrid      & a_eblgFine,
                  const EBLevelGrid      & a_eblgCoar,
                  const int              & a_refRat,
-                 const int              & a_ghostCellsInData);
+                 const int              & a_ghostCellsInData,
+                 const int              & a_ghostCellsToFill,
+                 bool a_slowMode = false);
 
     ///
     ~NWOEBQuadCFInterp()
@@ -97,11 +101,17 @@ namespace  amrex
     EBLevelGrid m_eblgFine;
     EBLevelGrid m_eblgCoFi;
 
+    bool m_slowMode;
     int               m_refRat;
-    int               m_ghost;
+    int               m_dataGhost;
+    int               m_fillGhost;
     bool              m_isDefined;
     LayoutData<std::shared_ptr< AggStencil<EBCellFAB, EBCellFAB> > > m_stencil;
+    //for slow mode, we are just debugging so do stuff pointwise
+    LayoutData<vector<VoFStencil> > m_slowStencils;
+    LayoutData<vector<VolIndex  > >  m_slowVoFs;
     FabArray<EBCellFAB> m_bufferCoFi;
+    int m_buffGhost;
   
 
   private:
