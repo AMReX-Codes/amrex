@@ -15,9 +15,9 @@
 
 namespace amrex
 {
-  void null_deleter_nwo_vsten(BaseStencil * a_sten)
+  void null_deleter_nwo_sten(BaseStencil * a_sten)
  {}
-  void null_deleter_nwo_vof(BaseIndex* a_sten)
+  void null_deleter_nwo_ind(BaseIndex* a_sten)
  {}
   /***********************/
   void
@@ -63,15 +63,15 @@ namespace amrex
       const EBISBox  & ebisFine =   m_eblgFine.getEBISL()[ mfi];
       const EBISBox  & ebisCoFi =   m_eblgCoFi.getEBISL()[ mfi];
 
-      VoFItrator vofit(cfivs, ebisFine.getEBGraph());
+      VoFIterator vofit(cfivs, ebisFine.getEBGraph());
       const std::vector<VolIndex>& volvec = vofit.getVector();
-      a_baseDstVoFs.resize(volvec.size());
-      a_stencils.resize(   volvec.size());
+      baseDstVoFs.resize(volvec.size());
+      baseSten.resize(   volvec.size());
       std::vector<VoFStencil> allsten(volvec.size());
       for(int ivec = 0; ivec < volvec.size(); ivec++)
       {
         getStencil(allsten[ivec],  volvec[ivec], ebisFine, ebisCoFi);
-        stencils    [ivec]  = std::shared_ptr<BaseStencil>(            &allsten[ivec] , &null_deleter_nwo_sten);
+        baseSten    [ivec]  = std::shared_ptr<BaseStencil>(            &allsten[ivec] , &null_deleter_nwo_sten);
         baseDstVoFs [ivec]  = std::shared_ptr<BaseIndex  >((BaseIndex*)(&volvec[ivec]), &null_deleter_nwo_ind);
       }
 
