@@ -1227,7 +1227,7 @@ BoxArray
 complementIn (const Box&      b,
               const BoxArray& ba)
 {
-    return BoxArray(amrex::complementIn(b,ba.boxList()));
+    return amrex::complementIn(b,ba);
 }
 
 BoxArray
