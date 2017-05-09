@@ -236,35 +236,6 @@ BoxList::complementIn (const Box&     b,
     return *this;
 }
 
-void
-BoxList::complementIn_base (const Box& b,
-                            const std::vector<std::pair<int,Box> >& isects)
-{
-    clear();
-
-    push_back(b);
-
-    Array<Box> tmp;
-
-    for (const auto& int_box : isects)
-    {
-        const Box& bl_box = int_box.second;
-        if (isEmpty()) break;
-        tmp.clear();
-        for (Box& this_box : m_lbox)
-        {
-            if (this_box.intersects(bl_box))
-            {
-                const BoxList& diff = amrex::boxDiff(this_box, bl_box);
-                tmp.insert(std::end(tmp), std::begin(diff), std::end(diff));
-                this_box = Box();
-            }
-        }
-        removeEmpty();
-        join(tmp);
-    }
-}
-
 BoxList&
 BoxList::refine (int ratio)
 {
