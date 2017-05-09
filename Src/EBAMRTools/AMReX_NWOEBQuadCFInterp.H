@@ -87,12 +87,6 @@ namespace  amrex
     void defineInternals();
   
     void
-    getStencils(std::vector<std::shared_ptr< BaseStencil> >  & a_stencils, 
-                std::vector<std::shared_ptr< BaseIndex  > >  & a_baseDstVoFs,
-                const MFIter                                 & a_mfi);
-
-
-    void
     getStencil(VoFStencil           & a_stencil,
                const VolIndex       & a_vofFine,
                const EBISBox        & a_ebisFine,

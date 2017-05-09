@@ -15,6 +15,10 @@
 
 namespace amrex
 {
+  void null_deleter_nwo_vsten(BaseStencil * a_sten)
+ {}
+  void null_deleter_nwo_vof(BaseIndex* a_sten)
+ {}
   /***********************/
   void
   NWOEBQuadCFInterp::
@@ -54,36 +58,27 @@ namespace amrex
     {
       std::vector< std::shared_ptr<BaseIndex  > > baseDstVoFs;
       std::vector< std::shared_ptr<BaseStencil> > baseSten;
-      getStencils(baseSten, baseDstVoFs,  mfi);
+
+      const IntVectSet& cfivs   = (*m_eblgFine.getCFIVS())[mfi];
+      const EBISBox  & ebisFine =   m_eblgFine.getEBISL()[ mfi];
+      const EBISBox  & ebisCoFi =   m_eblgCoFi.getEBISL()[ mfi];
+
+      VoFItrator vofit(cfivs, ebisFine.getEBGraph());
+      const std::vector<VolIndex>& volvec = vofit.getVector();
+      a_baseDstVoFs.resize(volvec.size());
+      a_stencils.resize(   volvec.size());
+      std::vector<VoFStencil> allsten(volvec.size());
+      for(int ivec = 0; ivec < volvec.size(); ivec++)
+      {
+        getStencil(allsten[ivec],  volvec[ivec], ebisFine, ebisCoFi);
+        stencils    [ivec]  = std::shared_ptr<BaseStencil>(            &allsten[ivec] , &null_deleter_nwo_sten);
+        baseDstVoFs [ivec]  = std::shared_ptr<BaseIndex  >((BaseIndex*)(&volvec[ivec]), &null_deleter_nwo_ind);
+      }
 
       EBCellFAB& coarProxy = m_bufferCoFi[mfi];
       EBCellFAB& fineProxy =   proxyLevel[mfi];
       m_stencil[mfi] = std::shared_ptr<AggStencil <EBCellFAB, EBCellFAB>  >
         (new AggStencil<EBCellFAB, EBCellFAB >(baseDstVoFs, baseSten, coarProxy, fineProxy));
-    }
-  }
-  /***********************/
-  void
-  NWOEBQuadCFInterp::
-  getStencils(std::vector<std::shared_ptr< BaseStencil> >  & a_stencils, 
-              std::vector<std::shared_ptr< BaseIndex  > >  & a_baseDstVoFs,
-              const MFIter                                 & a_mfi)
-  {
-    BL_PROFILE("NWOEBCFI::getStencils");
-    const IntVectSet& cfivs   = (*m_eblgFine.getCFIVS())[a_mfi];
-    const EBISBox  & ebisFine =   m_eblgFine.getEBISL()[ a_mfi];
-    const EBISBox  & ebisCoFi =   m_eblgCoFi.getEBISL()[ a_mfi];
-
-    VoFIterator vofit(cfivs, ebisFine.getEBGraph());
-    const std::vector<VolIndex>& volvec = vofit.getVector();
-    a_baseDstVoFs.resize(volvec.size());
-    a_stencils.resize(   volvec.size());
-    for(int ivec = 0; ivec < volvec.size(); ivec++)
-    {
-      VoFStencil sten;
-      getStencil(sten,  volvec[ivec], ebisFine, ebisCoFi);
-      a_stencils    [ivec]  = std::shared_ptr<BaseStencil>(new VoFStencil(sten));
-      a_baseDstVoFs [ivec]  = std::shared_ptr<BaseIndex  >(new VolIndex(volvec[ivec]));
     }
   }
   /***********************/
