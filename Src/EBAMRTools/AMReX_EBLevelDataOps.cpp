@@ -17,12 +17,61 @@
 #include "AMReX_FaceIterator.H"
 #include "AMReX_VoFIterator.H"
 #include "AMReX_BoxIterator.H"
+#include "AMReX_DistributionMapping.H"
+#include "AMReX_Array.H"
 
 namespace amrex
 {
   //-----------------------------------------------------------------------
+
+  void 
+  EBLevelDataOps::
+  aliasIntoMF(shared_ptr<MultiFab>      & a_regData,
+              const FabArray<EBCellFAB> & a_ebcData,
+              const EBLevelGrid         & a_eblg)
+  {
+    int ngrow               = a_ebcData.nGrow();
+    int nvar                = a_ebcData.nComp();
+    BoxArray ba             = a_eblg.getDBL();
+    DistributionMapping  dm = a_eblg.getDM();
+    Array<Real*> ptrs(a_ebcData.local_size(), NULL);
+    for(MFIter mfi(ba, dm); mfi.isValid(); ++mfi)
+    {
+      const BaseFab<Real>& bf = a_ebcData[mfi].getSingleValuedFAB();
+      int ibox = mfi.LocalIndex();
+      ptrs[ibox] = (Real*)(bf.dataPtr(0));
+    }
+    a_regData = shared_ptr<MultiFab>(new MultiFab(ba, dm, nvar, ngrow, ptrs));
+  }
+
+  //-----------------------------------------------------------------------
+  void 
+  EBLevelDataOps::
+  aliasIntoMF(shared_ptr<MultiFab>      & a_regData,
+              const FabArray<EBFluxFAB> & a_ebfData,
+              const int                 & a_faceDir,
+              const EBLevelGrid         & a_eblg)
+  {
+    int ngrow               = a_ebfData.nGrow();
+    int nvar                = a_ebfData.nComp();
+    BoxArray ba             = a_eblg.getDBL();
+    IntVect indexType = IntVect::Zero;
+    indexType[a_faceDir] = 1;
+    BoxArray baFace = convert(ba, indexType);
+    DistributionMapping  dm = a_eblg.getDM();
+    Array<Real*> ptrs(a_ebfData.local_size(), NULL);
+    for(MFIter mfi(ba, dm); mfi.isValid(); ++mfi)
+    {
+      const BaseFab<Real>& bf = a_ebfData[mfi][a_faceDir].getSingleValuedFAB();
+      int ibox = mfi.LocalIndex();
+      ptrs[ibox] = (Real*)(bf.dataPtr(0));
+    }
+    a_regData = shared_ptr<MultiFab>(new MultiFab(baFace, dm, nvar, ngrow, ptrs));
+  }
+  //-----------------------------------------------------------------------
   void
-  EBLevelDataOps::checkData(const FabArray<EBCellFAB>&a_data, const string& label)
+  EBLevelDataOps::
+  checkData(const FabArray<EBCellFAB>&a_data, const string& label)
   {
     barrier();
     amrex::Print() << "==== checking " << label << " for nans and infs =====" << "\n";
@@ -40,7 +89,9 @@ namespace amrex
     barrier();
   }
   //-----------------------------------------------------------------------
-  Real EBLevelDataOps::parallelSum(const Real& a_value)
+  Real 
+  EBLevelDataOps::
+  parallelSum(const Real& a_value)
   {
     // Find the sum of all a_value's
     Real sum = a_value;
@@ -56,7 +107,9 @@ namespace amrex
     return sum;
   }
   //-----------------------------------------------------------------------
-  int  EBLevelDataOps::parallelSum(const int& a_value)
+  int  
+  EBLevelDataOps::
+  parallelSum(const int& a_value)
   {
     // Find the sum of all a_value's
     int sum = a_value;
@@ -72,7 +125,9 @@ namespace amrex
     return sum;
   }
   //-----------------------------------------------------------------------
-  long long EBLevelDataOps::parallelSum(const long long& a_value)
+  long long 
+  EBLevelDataOps::
+  parallelSum(const long long& a_value)
   {
     // Find the sum of all a_value's
     long sum = a_value;
@@ -87,7 +142,10 @@ namespace amrex
 #endif
     return sum;
   }
-  int EBLevelDataOps::parallelMin(const int& a_value)
+  //-----------------------------------------------------------------------
+  int 
+  EBLevelDataOps::
+  parallelMin(const int& a_value)
   {
     // Find the minimum of a_value's
     int val = a_value;
@@ -103,7 +161,9 @@ namespace amrex
     return val;
   }
   //-----------------------------------------------------------------------
-  int  EBLevelDataOps::parallelMax(const int& a_value)
+  int  
+  EBLevelDataOps::
+  parallelMax(const int& a_value)
   {
     // Find the maximum of a_value's
     int val = a_value;
@@ -119,7 +179,9 @@ namespace amrex
     return val;
   }
   //-----------------------------------------------------------------------
-  Real EBLevelDataOps::parallelMin(const Real& a_value)
+  Real 
+  EBLevelDataOps::
+  parallelMin(const Real& a_value)
   {
     // Find the minimum of a_value's
     Real val = a_value;
@@ -135,7 +197,9 @@ namespace amrex
     return val;
   }
   //-----------------------------------------------------------------------
-  Real EBLevelDataOps::parallelMax(const Real& a_value)
+  Real 
+  EBLevelDataOps::
+  parallelMax(const Real& a_value)
   {
     // Find the maximum of a_value's
     Real val = a_value;
@@ -153,9 +217,11 @@ namespace amrex
 
 
   //-----------------------------------------------------------------------
-  void EBLevelDataOps::setCoveredVal(FabArray<EBCellFAB>&a_data,
-                                     const int&           a_comp,
-                                     const Real&          a_value)
+  void 
+  EBLevelDataOps::
+  setCoveredVal(FabArray<EBCellFAB>&a_data,
+                const int&           a_comp,
+                const Real&          a_value)
   {
     BL_PROFILE("EBLevelDataOps::setCoveredVal(cell,comp)");
     for(MFIter mfi(a_data); mfi.isValid(); ++mfi)
@@ -165,7 +231,8 @@ namespace amrex
   }
   //-----------------------------------------------------------------------
   bool 
-  EBLevelDataOps::checkForBogusNumbers(const FabArray<EBCellFAB>&a_data)
+  EBLevelDataOps::
+  checkForBogusNumbers(const FabArray<EBCellFAB>&a_data)
   {
     //this function checks for nans and infs
     bool dataIsNANINF = false;
@@ -207,11 +274,13 @@ namespace amrex
     return dataIsNANINF;
   }
   //-----------------------------------------------------------------------
-  void EBLevelDataOps::getMaxMin(Real&                       a_maxVal,
-                                 Real&                       a_minVal,
-                                 const FabArray<EBCellFAB>& a_data,
-                                 const int&                  a_comp,
-                                 const bool&                 a_doAbs)
+  void 
+  EBLevelDataOps::
+  getMaxMin(Real&                       a_maxVal,
+            Real&                       a_minVal,
+            const FabArray<EBCellFAB>& a_data,
+            const int&                  a_comp,
+            const bool&                 a_doAbs)
   {
     BL_PROFILE("EBLevelDataOps::getMaxMin");
     //this function gets the max and min (valid) values
@@ -248,9 +317,11 @@ namespace amrex
 
 
   //-----------------------------------------------------------------------
-  void EBLevelDataOps::setVal(FabArray<EBCellFAB> & a_result,
-                              const Real          & a_value,
-                              int                   a_comp)
+  void 
+  EBLevelDataOps::
+  setVal(FabArray<EBCellFAB> & a_result,
+         const Real          & a_value,
+         int                   a_comp)
   {
     for(MFIter mfi(a_result); mfi.isValid(); ++mfi)
     {
@@ -267,11 +338,26 @@ namespace amrex
 
 
   //-----------------------------------------------------------------------
-  void EBLevelDataOps::axby( FabArray<EBCellFAB>&       a_lhs,
-                             const FabArray<EBCellFAB>& a_x,
-                             const FabArray<EBCellFAB>& a_y,
-                             const Real& a_a,
-                             const Real& a_b)
+  void 
+  EBLevelDataOps::
+  setVal(FabArray<EBFluxFAB> & a_result,
+         const Real          & a_value)
+  {
+    for(MFIter mfi(a_result); mfi.isValid(); ++mfi)
+    {
+      a_result[mfi].setVal(a_value);
+    }
+  }
+
+
+  //-----------------------------------------------------------------------
+  void 
+  EBLevelDataOps::
+  axby( FabArray<EBCellFAB>&       a_lhs,
+        const FabArray<EBCellFAB>& a_x,
+        const FabArray<EBCellFAB>& a_y,
+        const Real& a_a,
+        const Real& a_b)
   {
     for(MFIter mfi(a_lhs); mfi.isValid(); ++mfi)
     {
@@ -280,9 +366,11 @@ namespace amrex
   }
 
   //-----------------------------------------------------------------------
-  void EBLevelDataOps::assign(FabArray<EBCellFAB>& a_lhs,
-                              const FabArray<EBCellFAB>& a_rhs,
-                              const Real& a_scale)
+  void 
+  EBLevelDataOps::
+  assign(FabArray<EBCellFAB>& a_lhs,
+         const FabArray<EBCellFAB>& a_rhs,
+         const Real& a_scale)
   {
     BL_PROFILE("EBLevelDataOps::assign(to,from)");
     setVal(a_lhs, 0.);
@@ -290,9 +378,11 @@ namespace amrex
   }
 
   //-----------------------------------------------------------------------
-  void EBLevelDataOps::incr( FabArray<EBCellFAB>& a_lhs,
-                             const FabArray<EBCellFAB>& a_rhs,
-                             const Real& a_scale)
+  void 
+  EBLevelDataOps::
+  incr( FabArray<EBCellFAB>& a_lhs,
+        const FabArray<EBCellFAB>& a_rhs,
+        const Real& a_scale)
   {
     BL_PROFILE("EBLevelDataOps::incr");
     BL_ASSERT(a_lhs.nComp()  == a_rhs.nComp());
@@ -303,8 +393,10 @@ namespace amrex
     }
   }
   //-----------------------------------------------------------------------
-  void EBLevelDataOps::scale(FabArray<EBCellFAB>& a_result,
-                             const Real&           a_value)
+  void 
+  EBLevelDataOps::
+  scale(FabArray<EBCellFAB>& a_result,
+        const Real&           a_value)
   {
     BL_PROFILE("EBLevelDataOps::scale");
     for(MFIter mfi(a_result); mfi.isValid(); ++mfi)
@@ -313,7 +405,9 @@ namespace amrex
     }
   }
   //-----------------------------------------------------------------------
-  void EBLevelDataOps::kappaWeight(FabArray<EBCellFAB>& a_data)
+  void 
+  EBLevelDataOps::
+  kappaWeight(FabArray<EBCellFAB>& a_data)
   {
     BL_PROFILE("EBLevelDataOps::kappaWeight");
     for(MFIter mfi(a_data); mfi.isValid(); ++mfi)
@@ -323,7 +417,9 @@ namespace amrex
   }
 
   //-----------------------------------------------------------------------
-  void EBLevelDataOps::gatherBroadCast(Real& a_accum, Real& a_volume, const int& a_p)
+  void 
+  EBLevelDataOps::
+  gatherBroadCast(Real& a_accum, Real& a_volume, const int& a_p)
   {
     BL_PROFILE("EBLevelDataOps::gatherBroadcast1");
     //   std::vector<Real> accum(1,a_accum);

@@ -17,6 +17,10 @@
 
 namespace amrex
 {
+  void null_deleter_vsten(BaseStencil * a_sten)
+ {}
+  void null_deleter_vof(BaseIndex* a_sten)
+ {}
 //----------------------------------------------------------------------------
   void 
   EBNormalizeByVolumeFraction::
@@ -70,15 +74,16 @@ namespace amrex
       // cast from VolIndex to BaseIndex
       std::vector<std::shared_ptr<BaseIndex> >    dstVoF(vofvec.size());
       std::vector<std::shared_ptr<BaseStencil> > stencil(vofvec.size());
+      std::vector<VoFStencil> allsten(vofvec.size());
       // fill stencils for the vofs
       for(int ivec = 0; ivec < vofvec.size(); ivec++)
       {
-        VoFStencil localStencil;
-        getLocalStencil(localStencil, vofvec[ivec], mfi);
-
+        getLocalStencil(allsten[ivec], vofvec[ivec], mfi);
         // another cast from VolIndex to BaseIndex
-        dstVoF[ivec]  = std::shared_ptr<BaseIndex  >(new  VolIndex(vofvec[ivec]));
-        stencil[ivec] = std::shared_ptr<BaseStencil>(new VoFStencil(localStencil));
+        BaseIndex* baseind    = (BaseIndex*)  (& vofvec[ivec]);
+        BaseStencil* basesten = (BaseStencil*)(&allsten[ivec]);
+        dstVoF[ivec]  = std::shared_ptr<BaseIndex  >(baseind , &null_deleter_vof);
+        stencil[ivec] = std::shared_ptr<BaseStencil>(basesten, &null_deleter_vsten);
       }
       m_stencil[mfi] = std::shared_ptr<AggStencil<EBCellFAB, EBCellFAB > >
         (new AggStencil<EBCellFAB, EBCellFAB >(dstVoF, stencil, dummy[mfi], dummy[mfi]));
