@@ -12,10 +12,7 @@ namespace amrex {
 void
 BoxList::clear ()
 {
-    //
-    // Really clear out the boxes.
-    //
-    Array<Box>().swap(m_lbox);
+    m_lbox.clear();
 }
 
 void
@@ -45,7 +42,7 @@ BoxList::removeEmpty()
 {
     m_lbox.erase(std::remove_if(m_lbox.begin(), m_lbox.end(),
                                 [](const Box& x) { return x.isEmpty(); }),
-               m_lbox.end());
+                 m_lbox.end());
     return *this;
 }
 
