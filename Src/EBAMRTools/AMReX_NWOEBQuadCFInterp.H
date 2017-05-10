@@ -90,6 +90,8 @@ namespace  amrex
   protected:
     void defineInternals();
   
+    IntVectSet getCFIVS(const MFIter& a_mfi);
+
     void
     getStencil(VoFStencil           & a_stencil,
                const VolIndex       & a_vofFine,

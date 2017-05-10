@@ -76,8 +76,8 @@ namespace amrex
     {
       std::vector< std::shared_ptr<BaseIndex  > > baseDstVoFs;
       std::vector< std::shared_ptr<BaseStencil> > baseSten;
-
-      const IntVectSet& cfivs   = (*m_eblgFine.getCFIVS())[mfi];
+      IntVectSet cfivs = getCFIVS(mfi);
+      
       const EBISBox  & ebisFine =   m_eblgFine.getEBISL()[ mfi];
       const EBISBox  & ebisCoFi =   m_eblgCoFi.getEBISL()[ mfi];
 
@@ -106,6 +106,29 @@ namespace amrex
           (new AggStencil<EBCellFAB, EBCellFAB >(baseDstVoFs, baseSten, coarProxy, fineProxy));
       }
     }
+  }
+  /***********************/
+  IntVectSet
+  NWOEBQuadCFInterp::
+  getCFIVS(const MFIter& a_mfi)
+  {
+    IntVectSet cfivs;
+    if(m_fillGhost == 1)
+    {
+      cfivs   = (*m_eblgFine.getCFIVS())[a_mfi];
+    }
+    else
+    {
+      Box grownBox = m_eblgFine.getDBL()[a_mfi];
+      grownBox.grow(m_fillGhost);
+      grownBox &= m_eblgFine.getDomain();
+      cfivs = IntVectSet(grownBox);
+      for(int ibox = 0; ibox < m_eblgFine.getDBL().size(); ibox++)
+      {
+        cfivs -= m_eblgFine.getDBL()[ibox];
+      }
+    }
+    return cfivs;
   }
   /***********************/
   void
