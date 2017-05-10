@@ -1739,6 +1739,19 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             ParallelDescriptor::Barrier();
 	  }
 	
+        // Write out the header for each particle
+        if (gotsome and ParallelDescriptor::IOProcessor()) {
+            std::string HeaderFileName = LevelDir;
+            HeaderFileName += "/Particle_H";
+            std::ofstream ParticleHeader(HeaderFileName);
+            
+            ParticleBoxArray(lev).writeOn(ParticleHeader);
+            ParticleHeader << "\n";
+
+            ParticleHeader.flush();
+            ParticleHeader.close();
+        }
+        
 	MFInfo info;
 	info.SetAlloc(false);
 	MultiFab state(ParticleBoxArray(lev),
@@ -2011,8 +2024,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::WriteParticle
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Restart (const std::string& dir,
-					const std::string& file,
-					bool is_checkpoint)
+                                                                            const std::string& file,
+                                                                            bool is_checkpoint)
 {
   BL_PROFILE("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Restart()");
   BL_ASSERT(!dir.empty());
@@ -4513,11 +4526,11 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::NodalDepositi
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::moveKick (MultiFab&       acceleration,
-					 int             lev,
-					 Real            dt,
-					 Real            a_new,
-					 Real            a_half, 
-					 int             start_comp_for_accel)
+                                                                             int             lev,
+                                                                             Real            dt,
+                                                                             Real            a_new,
+                                                                             Real            a_half, 
+                                                                             int             start_comp_for_accel)
 {
     BL_PROFILE("ParticleContainer::moveKick()");
     BL_ASSERT(NStructReal >= BL_SPACEDIM+1);
