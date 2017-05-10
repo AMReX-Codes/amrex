@@ -74,23 +74,13 @@ AuxBoundaryData::initialize (const BoxArray& ba,
     {
         Box dmn = geom.Domain();
 
-        for (int d = 0; d < BL_SPACEDIM; d++)
-            if (!geom.isPeriodic(d)) 
+        for (int d = 0; d < BL_SPACEDIM; d++) {
+            if (!geom.isPeriodic(d)) {
                 dmn.grow(d,n_grow);
-
-        for (BoxList::iterator it = gcells.begin(); it != gcells.end(); )
-        {
-            const Box& isect = *it & dmn;
-
-            if (isect.ok())
-            {
-                *it++ = isect;
-            }
-            else
-            {
-                gcells.remove(it++);
             }
         }
+
+        gcells.intersect(dmn);
     }
 
     gcells.simplify();
