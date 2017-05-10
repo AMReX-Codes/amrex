@@ -60,12 +60,12 @@
       REAL_T  f3(f3_l1:f3_h1,f3_l2:f3_h2,f3_l3:f3_h3)
       REAL_T  f4(f4_l1:f4_h1,f4_l2:f4_h2,f4_l3:f4_h3)
       REAL_T  f5(f5_l1:f5_h1,f5_l2:f5_h2,f5_l3:f5_h3)
-      REAL_T  m0(m0_l1:m0_h1,m0_l2:m0_h2,m0_l3:m0_h3)
-      REAL_T  m1(m1_l1:m1_h1,m1_l2:m1_h2,m1_l3:m1_h3)
-      REAL_T  m2(m2_l1:m2_h1,m2_l2:m2_h2,m2_l3:m2_h3)
-      REAL_T  m3(m3_l1:m3_h1,m3_l2:m3_h2,m3_l3:m3_h3)
-      REAL_T  m4(m4_l1:m4_h1,m4_l2:m4_h2,m4_l3:m4_h3)
-      REAL_T  m5(m5_l1:m5_h1,m5_l2:m5_h2,m5_l3:m5_h3)
+      integer  m0(m0_l1:m0_h1,m0_l2:m0_h2,m0_l3:m0_h3)
+      integer  m1(m1_l1:m1_h1,m1_l2:m1_h2,m1_l3:m1_h3)
+      integer  m2(m2_l1:m2_h1,m2_l2:m2_h2,m2_l3:m2_h3)
+      integer  m3(m3_l1:m3_h1,m3_l2:m3_h2,m3_l3:m3_h3)
+      integer  m4(m4_l1:m4_h1,m4_l2:m4_h2,m4_l3:m4_h3)
+      integer  m5(m5_l1:m5_h1,m5_l2:m5_h2,m5_l3:m5_h3)
       REAL_T  h(3)
 c
       integer  i, j, k, ioff, n
@@ -141,7 +141,7 @@ c
 
       integer phi_l1,phi_l2,phi_l3,phi_h1,phi_h2,phi_h3
       integer res_l1,res_l2,res_l3,res_h1,res_h2,res_h3
-      integer alpha, beta
+      REAL_T alpha, beta
       integer a_l1,  a_l2, a_l3, a_h1, a_h2, a_h3
       integer bX_l1,bX_l2,bX_l3,bX_h1,bX_h2,bX_h3
       integer bY_l1,bY_l2,bY_l3,bY_h1,bY_h2,bY_h3
@@ -171,12 +171,12 @@ c
       REAL_T  f3(f3_l1:f3_h1,f3_l2:f3_h2,f3_l3:f3_h3)
       REAL_T  f4(f4_l1:f4_h1,f4_l2:f4_h2,f4_l3:f4_h3)
       REAL_T  f5(f5_l1:f5_h1,f5_l2:f5_h2,f5_l3:f5_h3)
-      REAL_T  m0(m0_l1:m0_h1,m0_l2:m0_h2,m0_l3:m0_h3)
-      REAL_T  m1(m1_l1:m1_h1,m1_l2:m1_h2,m1_l3:m1_h3)
-      REAL_T  m2(m2_l1:m2_h1,m2_l2:m2_h2,m2_l3:m2_h3)
-      REAL_T  m3(m3_l1:m3_h1,m3_l2:m3_h2,m3_l3:m3_h3)
-      REAL_T  m4(m4_l1:m4_h1,m4_l2:m4_h2,m4_l3:m4_h3)
-      REAL_T  m5(m5_l1:m5_h1,m5_l2:m5_h2,m5_l3:m5_h3)
+      integer  m0(m0_l1:m0_h1,m0_l2:m0_h2,m0_l3:m0_h3)
+      integer  m1(m1_l1:m1_h1,m1_l2:m1_h2,m1_l3:m1_h3)
+      integer  m2(m2_l1:m2_h1,m2_l2:m2_h2,m2_l3:m2_h3)
+      integer  m3(m3_l1:m3_h1,m3_l2:m3_h2,m3_l3:m3_h3)
+      integer  m4(m4_l1:m4_h1,m4_l2:m4_h2,m4_l3:m4_h3)
+      integer  m5(m5_l1:m5_h1,m5_l2:m5_h2,m5_l3:m5_h3)
       REAL_T  h(3)
 c
       integer  i, j, k, n

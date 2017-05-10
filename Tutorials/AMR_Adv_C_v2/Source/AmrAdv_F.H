@@ -2,27 +2,30 @@
 #define _Adv_F_H_
 #include <AMReX_BLFort.H>
 
+#ifdef __cplusplus
 extern "C" 
 {
-    void initdata(const int& level, const amrex::Real& time, 
+#endif
+
+    void initdata(const int& level, const amrex_real& time, 
 		  const int* lo, const int* hi,
 		  BL_FORT_FAB_ARG_3D(state),
-		  const amrex::Real* dx, const amrex::Real* problo);
+		  const amrex_real* dx, const amrex_real* problo);
 
-    void get_face_velocity(const int& level, const amrex::Real& time, 
+    void get_face_velocity(const int& level, const amrex_real& time, 
 			   D_DECL(BL_FORT_FAB_ARG(xvel),
 				  BL_FORT_FAB_ARG(yvel),
 				  BL_FORT_FAB_ARG(zvel)),
-			   const amrex::Real* dx, const amrex::Real* problo);
+			   const amrex_real* dx, const amrex_real* problo);
 
     void state_error(int* tag, const int* tag_lo, const int* tag_hi,
 		     const BL_FORT_FAB_ARG_3D(state),
 		     const int* tagval, const int* clearval,
 		     const int* lo, const int* hi,
-		     const amrex::Real* dx, const amrex::Real* problo,
-		     const amrex::Real* time, const amrex::Real* phierr);
+		     const amrex_real* dx, const amrex_real* problo,
+		     const amrex_real* time, const amrex_real* phierr);
 
-    void advect(const amrex::Real& time, const int* lo, const int*hi,
+    void advect(const amrex_real& time, const int* lo, const int*hi,
 		const BL_FORT_FAB_ARG_3D(statein),
 		BL_FORT_FAB_ARG_3D(stateout),
 		D_DECL(const BL_FORT_FAB_ARG_3D(xvel),
@@ -31,7 +34,10 @@ extern "C"
 		D_DECL(BL_FORT_FAB_ARG_3D(fx),
 		       BL_FORT_FAB_ARG_3D(fy),
 		       BL_FORT_FAB_ARG_3D(fz)),
-		const amrex::Real* dx, const amrex::Real& dt);
+		const amrex_real* dx, const amrex_real& dt);
+
+#ifdef __cplusplus
 }
+#endif
 
 #endif

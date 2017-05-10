@@ -73,27 +73,34 @@ namespace amrex
                
   EBFaceFAB&
   EBFaceFAB::plus(const EBFaceFAB& a_src,
-                  int a_srccomp,
-                  int a_dstcomp,
-                  int a_numcomp)
+                  int  a_srccomp,
+                  int  a_dstcomp,
+                  int  a_numcomp,
+                  Real a_scale)
   {
+    int numcomp = a_numcomp;
+    if(numcomp < 0)
+    {
+      numcomp = nComp();
+    }
+
     BL_ASSERT(isDefined());
     BL_ASSERT(a_src.isDefined());
     //  BL_ASSERT(m_ebisBox == a_src.m_ebisBox);
-    BL_ASSERT(a_srccomp + a_numcomp <= a_src.m_nComp);
-    BL_ASSERT(a_dstcomp + a_numcomp <= m_nComp);
+    BL_ASSERT(a_srccomp + numcomp <= a_src.m_nComp);
+    BL_ASSERT(a_dstcomp + numcomp <= m_nComp);
                
     Box locRegionFace = a_src.m_regionFace & m_regionFace;
-    Box locRegion = a_src.m_region & m_region;
-    if (!locRegion.isEmpty())
+    //Box locRegion = a_src.m_region & m_region;
+    if (!locRegionFace.isEmpty())
     {
-      for(BoxIterator bit(locRegion); bit.ok(); ++bit)
+      for(BoxIterator bit(locRegionFace); bit.ok(); ++bit)
       {
-        for(int icomp = 0; icomp < a_numcomp; icomp++)
+        for(int icomp = 0; icomp < numcomp; icomp++)
         {
           int isrc = a_srccomp + icomp;
           int idst = a_dstcomp + icomp;
-          m_regFAB(bit(), idst) += a_src.m_regFAB(bit(), isrc);
+          m_regFAB(bit(), idst) += a_scale*a_src.m_regFAB(bit(), isrc);
         }
       }
                
@@ -103,10 +110,10 @@ namespace amrex
         const FaceIndex& face = faces[iface];
         if (locRegionFace.contains(face.gridIndex(Side::Hi)))
         {
-          for (int icomp = 0; icomp < a_numcomp; ++icomp)
+          for (int icomp = 0; icomp < numcomp; ++icomp)
           {
             m_irrFAB(face, a_dstcomp+icomp) +=
-              a_src.m_irrFAB(face, a_srccomp+icomp);
+              a_scale*a_src.m_irrFAB(face, a_srccomp+icomp);
           }
         }
       }
@@ -128,31 +135,37 @@ namespace amrex
                
   EBFaceFAB&
   EBFaceFAB::minus(const EBFaceFAB& a_src,
-                   int a_srccomp,
-                   int a_dstcomp,
-                   int a_numcomp)
+                   int  a_srccomp,
+                   int  a_dstcomp,
+                   int  a_numcomp,
+                   Real a_scale)
   {
     BL_ASSERT(isDefined());
     BL_ASSERT(a_src.isDefined());
+    int numcomp = a_numcomp;
+    if(numcomp < 0)
+    {
+      numcomp = nComp();
+    }
     // (DFM 7/28/05) This assertion fails for multifluid cases
     // where this and src have been defined using different
     // factories; what we really need is a better implementation
     // of the operator== for EBISBox
     //BL_ASSERT(m_ebisBox == a_src.m_ebisBox);
-    BL_ASSERT(a_srccomp + a_numcomp <= a_src.m_nComp);
-    BL_ASSERT(a_dstcomp + a_numcomp <= m_nComp);
+    BL_ASSERT(a_srccomp + numcomp <= a_src.m_nComp);
+    BL_ASSERT(a_dstcomp + numcomp <= m_nComp);
                
     Box locRegionFace = a_src.m_regionFace & m_regionFace;
-    Box locRegion = a_src.m_region & m_region;
-    if (!locRegion.isEmpty())
+    //Box locRegion = a_src.m_region & m_region;
+    if (!locRegionFace.isEmpty())
     {
-      for(BoxIterator bit(locRegion); bit.ok(); ++bit)
+      for(BoxIterator bit(locRegionFace); bit.ok(); ++bit)
       {
-        for(int icomp = 0; icomp < a_numcomp; icomp++)
+        for(int icomp = 0; icomp < numcomp; icomp++)
         {
           int isrc = a_srccomp + icomp;
           int idst = a_dstcomp + icomp;
-          m_regFAB(bit(), idst) -= a_src.m_regFAB(bit(), isrc);
+          m_regFAB(bit(), idst) -= a_scale*a_src.m_regFAB(bit(), isrc);
         }
       }
                
@@ -162,10 +175,10 @@ namespace amrex
         const FaceIndex& face = faces[iface];
         if (locRegionFace.contains(face.gridIndex(Side::Hi)))
         {
-          for (int icomp = 0; icomp < a_numcomp; ++icomp)
+          for (int icomp = 0; icomp < numcomp; ++icomp)
           {
             m_irrFAB(face, a_dstcomp+icomp) -=
-              a_src.m_irrFAB(face, a_srccomp+icomp);
+              a_scale*a_src.m_irrFAB(face, a_srccomp+icomp);
           }
         }
       }
@@ -196,16 +209,21 @@ namespace amrex
     BL_ASSERT(isDefined());
     BL_ASSERT(a_src.isDefined());
     BL_ASSERT(m_ebisBox == a_src.m_ebisBox);
-    BL_ASSERT(a_srccomp + a_numcomp <= a_src.m_nComp);
-    BL_ASSERT(a_dstcomp + a_numcomp <= m_nComp);
+    int numcomp = a_numcomp;
+    BL_ASSERT(a_srccomp + numcomp <= a_src.m_nComp);
+    BL_ASSERT(a_dstcomp + numcomp <= m_nComp);
+    if(numcomp < 0)
+    {
+      numcomp = nComp();
+    }
                
     Box locRegionFace = a_src.m_regionFace & m_regionFace;
-    Box locRegion = a_src.m_region & m_region;
-    if (!locRegion.isEmpty())
+    //Box locRegion = a_src.m_region & m_region;
+    if (!locRegionFace.isEmpty())
     {
-      for(BoxIterator bit(locRegion); bit.ok(); ++bit)
+      for(BoxIterator bit(locRegionFace); bit.ok(); ++bit)
       {
-        for(int icomp = 0; icomp < a_numcomp; icomp++)
+        for(int icomp = 0; icomp < numcomp; icomp++)
         {
           int isrc = a_srccomp + icomp;
           int idst = a_dstcomp + icomp;
@@ -219,7 +237,7 @@ namespace amrex
         const FaceIndex& face = faces[iface];
         if (locRegionFace.contains(face.gridIndex(Side::Hi)))
         {
-          for (int icomp = 0; icomp < a_numcomp; ++icomp)
+          for (int icomp = 0; icomp < numcomp; ++icomp)
           {
             m_irrFAB(face, a_dstcomp+icomp) *=
               a_src.m_irrFAB(face, a_srccomp+icomp);
@@ -250,16 +268,21 @@ namespace amrex
     BL_ASSERT(isDefined());
     BL_ASSERT(a_src.isDefined());
     BL_ASSERT(m_ebisBox == a_src.m_ebisBox);
-    BL_ASSERT(a_srccomp + a_numcomp <= a_src.m_nComp);
-    BL_ASSERT(a_dstcomp + a_numcomp <= m_nComp);
+    int numcomp = a_numcomp;
+    BL_ASSERT(a_srccomp + numcomp <= a_src.m_nComp);
+    BL_ASSERT(a_dstcomp + numcomp <= m_nComp);
+    if(numcomp < 0)
+    {
+      numcomp = nComp();
+    }
                
     Box locRegionFace = a_src.m_regionFace & m_regionFace;
-    Box locRegion = a_src.m_region & m_region;
-    if (!locRegion.isEmpty())
+    //Box locRegion = a_src.m_region & m_region;
+    if (!locRegionFace.isEmpty())
     {
-      for(BoxIterator bit(locRegion); bit.ok(); ++bit)
+      for(BoxIterator bit(locRegionFace); bit.ok(); ++bit)
       {
-        for(int icomp = 0; icomp < a_numcomp; icomp++)
+        for(int icomp = 0; icomp < numcomp; icomp++)
         {
           int isrc = a_srccomp + icomp;
           int idst = a_dstcomp + icomp;
@@ -273,7 +296,7 @@ namespace amrex
         const FaceIndex& face = faces[iface];
         if (locRegionFace.contains(face.gridIndex(Side::Hi)))
         {
-          for (int icomp = 0; icomp < a_numcomp; ++icomp)
+          for (int icomp = 0; icomp < numcomp; ++icomp)
           {
             m_irrFAB(face, a_dstcomp+icomp) /=
               a_src.m_irrFAB(face, a_srccomp+icomp);

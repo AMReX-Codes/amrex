@@ -27,20 +27,20 @@
 
 extern "C" {
 
-    void FORT_HYPTERM(const amrex::Real *cons, ARLIM_P(cons_lo), ARLIM_P(cons_hi),
+    void FORT_HYPTERM(const amrex_real *cons, ARLIM_P(cons_lo), ARLIM_P(cons_hi),
 		      ARLIM_P(grid_lo), ARLIM_P(grid_hi),
-                      const amrex::Real *dx,
-                      const amrex::Real *qx, const amrex::Real *flux,
+                      const amrex_real *dx,
+                      const amrex_real *qx, const amrex_real *flux,
                       const int *nComp);
 
-    void FORT_HYPTERM_UNOPT(const amrex::Real *cons, ARLIM_P(cons_lo), ARLIM_P(cons_hi),
+    void FORT_HYPTERM_UNOPT(const amrex_real *cons, ARLIM_P(cons_lo), ARLIM_P(cons_hi),
 		      ARLIM_P(grid_lo), ARLIM_P(grid_hi),
-                      const amrex::Real *dx,
-                      const amrex::Real *qx, const amrex::Real *flux,
+                      const amrex_real *dx,
+                      const amrex_real *qx, const amrex_real *flux,
                       const int *nComp);
 
-    void FORT_INITDATA(const amrex::Real *cons, ARLIM_P(cons_lo), ARLIM_P(cons_hi),
-                       const amrex::Real *q, const amrex::Real *dx, const int *nComp);
+    void FORT_INITDATA(const amrex_real *cons, ARLIM_P(cons_lo), ARLIM_P(cons_hi),
+                       const amrex_real *q, const amrex_real *dx, const int *nComp);
 }
 #endif
 

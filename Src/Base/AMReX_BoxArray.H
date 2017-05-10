@@ -53,6 +53,7 @@ struct BARef
     explicit BARef (size_t size);
     explicit BARef (const Box& b);
     explicit BARef (const BoxList& bl);
+    explicit BARef (BoxList&& bl) noexcept;
     explicit BARef (std::istream& is);
     BARef (const BARef& rhs);
     BARef& operator= (const BARef& rhs) = delete;
@@ -61,6 +62,7 @@ struct BARef
 
     void define (const Box& bx);
     void define (const BoxList& bl);
+    void define (BoxList&& bl) noexcept;
     void define (std::istream& is);
     //!
     void resize (long n);
@@ -208,6 +210,7 @@ public:
 
     //! Construct a BoxArray from a BoxList.
     explicit BoxArray (const BoxList& bl);
+    explicit BoxArray (BoxList&& bl) noexcept;
 
     BoxArray (const BoxArray& rhs, const BATransformer& trans);
 
@@ -232,6 +235,7 @@ public:
     * It is an error if the BoxArray has already been initialized.
     */
     void define (const BoxList& bl);
+    void define (BoxList&& bl) noexcept;
 
     //! Remove all Boxes from the BoxArray.
     void clear ();

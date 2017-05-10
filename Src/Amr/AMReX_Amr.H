@@ -4,6 +4,7 @@
 
 #include <fstream>
 #include <memory>
+#include <list>
 
 #include <AMReX_Box.H>
 #include <AMReX_Geometry.H>

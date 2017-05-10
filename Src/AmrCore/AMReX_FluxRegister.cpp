@@ -138,7 +138,8 @@ FluxRegister::CrseInit (const MultiFab& mflx,
     {
 	const Box& bx = mfi.tilebox();
 	
-        mf[mfi].copy(mflx[mfi],bx,srccomp,bx,0,numcomp);
+        const FArrayBox& mflxFAB = mflx[mfi];
+        mf[mfi].copy(mflxFAB,bx,srccomp,bx,0,numcomp);
 
         mf[mfi].mult(mult,bx,0,numcomp);
 
