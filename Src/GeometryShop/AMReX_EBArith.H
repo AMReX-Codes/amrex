@@ -118,6 +118,8 @@ namespace amrex
        the reason for the last argument is that you might not want the stencil
        to leak over in the noExtrap direction even though you have set a_dist to zero.
        This happens in CF interpolation where you have to really worry about stencil width.
+       If orderOfPolynomial = 0,  no first or second derivative stencils included
+       If orderOfPolynomial = 1,  no second derivative stencils included
     **/
     static int
     getExtrapolationStencil(VoFStencil&     a_stencil,
@@ -125,6 +127,7 @@ namespace amrex
                             const RealVect& a_dx,
                             const VolIndex& a_startVoF,
                             const EBISBox&  a_ebisBox,
+                            int a_orderOfPolynomial = 2,
                             int a_noExtrapThisDirection = -1,
                             IntVectSet*    a_cfivsPtr = NULL,
                             int ivar = 0);
