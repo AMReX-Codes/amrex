@@ -83,14 +83,21 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies)
 void
 LaserParticleContainer::InitData ()
 {
-    const int lev = 0;
+    for (int lev = 0; lev < maxLevel(); ++lev) {
+        InitData(lev);
+    }
+}
+
+void
+LaserParticleContainer::InitData (int lev)
+{
     const Geometry& geom = Geom(lev);
     const RealBox& prob_domain = geom.ProbDomain();
 
     // spacing of laser particles in the laser plane.
     // has to be done after geometry is set up.
     Real S_X, S_Y;
-    ComputeSpacing(S_X, S_Y);
+    ComputeSpacing(lev, S_X, S_Y);
     ComputeWeightMobility(S_X, S_Y);
 
     auto Transform = [&](int i, int j) -> Array<Real>
@@ -212,7 +219,8 @@ LaserParticleContainer::InitData ()
     Array<Real> particle_uz(np, 0.0);
 
     if (Verbose()) amrex::Print() << "Adding laser particles\n";
-    AddNParticles(np, particle_x.data(), particle_y.data(), particle_z.data(),
+    AddNParticles(lev,
+                  np, particle_x.data(), particle_y.data(), particle_z.data(),
 		  particle_ux.data(), particle_uy.data(), particle_uz.data(),
 		  1, particle_w.data(), 1);
 }
@@ -360,15 +368,14 @@ void
 LaserParticleContainer::PostRestart ()
 {
     Real Sx, Sy;
-    ComputeSpacing(Sx, Sy);
+    const int lev = 0; // xxxxx
+    ComputeSpacing(lev, Sx, Sy);
     ComputeWeightMobility(Sx, Sy);
 }
 
 void
-LaserParticleContainer::ComputeSpacing (Real& Sx, Real& Sy) const
+LaserParticleContainer::ComputeSpacing (int lev, Real& Sx, Real& Sy) const
 {
-    const int lev = 0;
-
     const std::array<Real,3>& dx = WarpX::CellSize(lev);
 
     const Real eps = dx[0]*1.e-50;

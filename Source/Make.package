@@ -5,6 +5,7 @@ endif
 CEXE_sources += WarpXWrappers.cpp WarpX_py.cpp
 
 CEXE_sources += WarpX.cpp WarpXInitData.cpp WarpXEvolve.cpp WarpXIO.cpp WarpXProb.cpp WarpXRegrid.cpp
+CEXE_sources += WarpXTagging.cpp
 
 CEXE_sources += ParticleIO.cpp
 CEXE_sources += ParticleContainer.cpp WarpXParticleContainer.cpp PhysicalParticleContainer.cpp LaserParticleContainer.cpp

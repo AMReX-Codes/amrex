@@ -77,7 +77,8 @@ public:
 
     std::unique_ptr<amrex::MultiFab> GetChargeDensity(int lev, bool local = false);
 
-    void AddNParticles (int n, const amrex::Real* x, const amrex::Real* y, const amrex::Real* z,
+    void AddNParticles (int lev,
+                        int n, const amrex::Real* x, const amrex::Real* y, const amrex::Real* z,
 			const amrex::Real* vx, const amrex::Real* vy, const amrex::Real* vz,
 			int nattr, const amrex::Real* attr, int uniqueparticles);
 

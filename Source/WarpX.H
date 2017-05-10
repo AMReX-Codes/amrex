@@ -37,15 +37,6 @@ public:
 
     MultiParticleContainer& GetPartContainer () { return *mypc; }
 
-#if (BL_SPACEDIM == 3)
-    amrex::Box getIndexBox(const amrex::RealBox& real_box) const;
-    void fillSlice(amrex::Real z_coord) const;
-    void sampleAtPoints(const amrex::Array<amrex::Real>& x,
-			const amrex::Array<amrex::Real>& y,
-			const amrex::Array<amrex::Real>& z,
-			amrex::Array<amrex::Array<amrex::Real> >& result) const;
-#endif
-
     static void shiftMF(amrex::MultiFab& mf, const amrex::Geometry& geom, int num_shift, int dir);
 
     static void GotoNextLine (std::istream& is);
@@ -105,31 +96,30 @@ public:
 protected:
 
     //! Tagging cells for refinement
-    virtual void ErrorEst (int lev, amrex::TagBoxArray& tags, amrex::Real time, int /*ngrow*/) override
-        { amrex::Abort("ErrorEst: To be implemented"); }
+    virtual void ErrorEst (int lev, amrex::TagBoxArray& tags, amrex::Real time, int /*ngrow*/) final;
 
     //! Make a new level from scratch using provided BoxArray and
     //! DistributionMapping.  Only used during initialization.  Called
     //! by AmrCoreInitFromScratch.
     virtual void MakeNewLevelFromScratch (int lev, amrex::Real time, const amrex::BoxArray& ba,
-					  const amrex::DistributionMapping& dm) override;
+					  const amrex::DistributionMapping& dm) final;
 
     //! Make a new level using provided BoxArray and
     //! DistributionMapping and fill with interpolated coarse level
     //! data.  Called by AmrCore::regrid.
     virtual void MakeNewLevelFromCoarse (int lev, amrex::Real time, const amrex::BoxArray& ba,
-					 const amrex::DistributionMapping& dm) override
+					 const amrex::DistributionMapping& dm) final
         { amrex::Abort("MakeNewLevelFromCoarse: To be implemented"); }
 
     //! Remake an existing level using provided BoxArray and
     //! DistributionMapping and fill with existing fine and coarse
     //! data.  Called by AmrCore::regrid.
     virtual void RemakeLevel (int lev, amrex::Real time, const amrex::BoxArray& ba,
-			      const amrex::DistributionMapping& dm) override
+			      const amrex::DistributionMapping& dm) final
         { amrex::Abort("RemakeLevel: To be implemented"); }
 
     //! Delete level data.  Called by AmrCore::regrid.
-    virtual void ClearLevel (int lev) override;
+    virtual void ClearLevel (int lev) final;
 
 private:
 

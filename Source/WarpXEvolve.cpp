@@ -36,33 +36,36 @@ WarpX::Evolve (int numsteps)
 	// Start loop on time steps
         amrex::Print() << "\nSTEP " << step+1 << " starts ...\n";
 
-        if (ParallelDescriptor::NProcs() > 1) {
-           if (okToRegrid(step)) RegridBaseLevel();
+        const int lev = 0; //xxxxx
+
+        // At the beginning, we have B^{n-1/2} and E^{n-1/2}.
+        // Particles have p^{n-1/2} and x^{n-1/2}.
+
+        // Beyond one step, we have B^{n-1/2} and E^{n}.
+        // Particles have p^{n-1/2} and x^{n}.
+
+        if (is_synchronized) {
+            // xxxxx for all levels
+            // on first step, push E and X by 0.5*dt
+            WarpX::FillBoundaryB( lev, true );
+            EvolveE(lev, 0.5*dt[lev]);
+            mypc->PushX(lev, 0.5*dt[lev]);
+            mypc->Redistribute();  // Redistribute particles
+            is_synchronized = false;
         }
 
-	// Advance level 0 by dt
-	const int lev = 0;
-	{
-	    // At the beginning, we have B^{n-1/2} and E^{n-1/2}.
-	    // Particles have p^{n-1/2} and x^{n-1/2}.
+        for (int lev = 0; lev <= max_level; ++lev) {
+            EvolveB(lev, 0.5*dt[lev]); // We now B^{n}
+        }
 
-	    // Beyond one step, we have B^{n-1/2} and E^{n}.
-	    // Particles have p^{n-1/2} and x^{n}.
+        // xxxxx sync B
 
-	    if (is_synchronized) {
-	        // on first step, push E and X by 0.5*dt
-                WarpX::FillBoundaryB( lev, true );
-	        EvolveE(lev, 0.5*dt[lev]);
-	        mypc->PushX(lev, 0.5*dt[lev]);
-                mypc->Redistribute();  // Redistribute particles
-                is_synchronized = false;
-	    }
+        // xxxxx for all levels
+        WarpX::FillBoundaryB( lev, false );
+        WarpX::FillBoundaryE( lev, false );
 
-	    EvolveB(lev, 0.5*dt[lev]); // We now B^{n}
-
-            WarpX::FillBoundaryB( lev, false );
-            WarpX::FillBoundaryE( lev, false );
-
+        
+        for (int lev = 0; lev <= max_level; ++lev) {
 	    // Evolve particles to p^{n+1/2} and x^{n+1}
 	    // Depose current, j^{n+1/2}
 	    mypc->Evolve(lev,
@@ -70,24 +73,29 @@ WarpX::Evolve (int numsteps)
 			 *Bfield[lev][0],*Bfield[lev][1],*Bfield[lev][2],
 			 *current[lev][0],*current[lev][1],*current[lev][2], cur_time, dt[lev]);
 
+            // the sync of j should be taken out of Evolve
+
 	    EvolveB(lev, 0.5*dt[lev]); // We now B^{n+1/2}
+        }
 
-	    // Fill B's ghost cells because of the next step of evolving E.
-            WarpX::FillBoundaryB( lev, true );
+        // xxxxx for all levels
+        // Fill B's ghost cells because of the next step of evolving E.
+        WarpX::FillBoundaryB( lev, true );
 
-   	    if (cur_time + dt[0] >= stop_time - 1.e-3*dt[0] || step == numsteps_max-1) {
-   	        // on last step, push by only 0.5*dt to synchronize all at n+1/2
-	        EvolveE(lev, 0.5*dt[lev]); // We now have E^{n+1/2}
-	        mypc->PushX(lev, -0.5*dt[lev]);
-                is_synchronized = true;
-            } else {
-	        EvolveE(lev, dt[lev]); // We now have E^{n+1}
-	    }
+        // xxxxx sync B
 
-	    mypc->Redistribute();  // Redistribute particles
+        if (cur_time + dt[0] >= stop_time - 1.e-3*dt[0] || step == numsteps_max-1) {
+            // on last step, push by only 0.5*dt to synchronize all at n+1/2
+            EvolveE(lev, 0.5*dt[lev]); // We now have E^{n+1/2}
+            mypc->PushX(lev, -0.5*dt[lev]);
+            is_synchronized = true;
+        } else {
+            EvolveE(lev, dt[lev]); // We now have E^{n+1}
+        }
+        
+        mypc->Redistribute();  // Redistribute particles
 
-	    ++istep[lev];
-	}
+        ++istep[lev];
 
 	cur_time += dt[0];
 
@@ -347,14 +355,12 @@ WarpX::PushParticlesandDepose(int lev, Real cur_time)
 void
 WarpX::ComputeDt ()
 {
-    const Real* dx = geom[0].CellSize();
-    dt[0]  = cfl * 1./( std::sqrt(D_TERM(  1./(dx[0]*dx[0]),
-                                         + 1./(dx[1]*dx[1]),
-                                         + 1./(dx[2]*dx[2]))) * PhysConst::c );
-
-    for (int lev = 1; lev <= max_level; ++lev) {
-	dt[lev] = dt[lev-1] / nsubsteps[lev];
-    }
+    const Real* dx = geom[max_level].CellSize();
+    const Real deltat  = cfl * 1./( std::sqrt(D_TERM(  1./(dx[0]*dx[0]),
+                                                     + 1./(dx[1]*dx[1]),
+                                                     + 1./(dx[2]*dx[2]))) * PhysConst::c );
+    dt.resize(0);
+    dt.resize(max_level+1,deltat);
 }
 
 void

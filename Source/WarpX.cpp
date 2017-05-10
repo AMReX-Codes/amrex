@@ -77,10 +77,6 @@ WarpX::WarpX ()
 
     ReadParameters();
 
-    if (max_level != 0) {
-	amrex::Abort("WaprX: max_level must be zero");
-    }
-
     // Geometry on all levels has been defined already.
 
     // No valid BoxArray and DistributionMapping have been defined.
@@ -90,9 +86,12 @@ WarpX::WarpX ()
 
     istep.resize(nlevs_max, 0);
     nsubsteps.resize(nlevs_max, 1);
+#if 0
+    // no subcycling yet
     for (int lev = 1; lev <= maxLevel(); ++lev) {
 	nsubsteps[lev] = MaxRefRatio(lev-1);
     }
+#endif
 
     t_new.resize(nlevs_max, 0.0);
     t_old.resize(nlevs_max, -1.e100);
@@ -339,160 +338,3 @@ WarpX::LowerCorner(const Box& bx, int lev)
 #endif
 }
 
-
-#if (BL_SPACEDIM == 3)
-
-Box
-WarpX::getIndexBox(const RealBox& real_box) const
-{
-  BL_ASSERT(max_level == 0);
-
-  IntVect slice_lo, slice_hi;
-
-  D_TERM(slice_lo[0]=std::floor((real_box.lo(0) - geom[0].ProbLo(0))/geom[0].CellSize(0));,
-	 slice_lo[1]=std::floor((real_box.lo(1) - geom[0].ProbLo(1))/geom[0].CellSize(1));,
-	 slice_lo[2]=std::floor((real_box.lo(2) - geom[0].ProbLo(2))/geom[0].CellSize(2)););
-
-  D_TERM(slice_hi[0]=std::floor((real_box.hi(0) - geom[0].ProbLo(0))/geom[0].CellSize(0));,
-	 slice_hi[1]=std::floor((real_box.hi(1) - geom[0].ProbLo(1))/geom[0].CellSize(1));,
-	 slice_hi[2]=std::floor((real_box.hi(2) - geom[0].ProbLo(2))/geom[0].CellSize(2)););
-
-  return Box(slice_lo, slice_hi) & geom[0].Domain();
-}
-
-void
-WarpX::fillSlice(Real z_coord) const
-{
-  BL_ASSERT(max_level == 0);
-
-  // Get our slice and convert to index space
-  RealBox real_slice = geom[0].ProbDomain();
-  real_slice.setLo(2, z_coord);
-  real_slice.setHi(2, z_coord);
-  Box slice_box = getIndexBox(real_slice);
-
-  // define the multifab that stores slice
-  BoxArray ba = Efield[0][0]->boxArray();
-  const IndexType correct_typ(IntVect::TheZeroVector());
-  ba.convert(correct_typ);
-  const DistributionMapping& dm = dmap[0];
-  std::vector< std::pair<int, Box> > isects;
-  ba.intersections(slice_box, isects, false, 0);
-  Array<Box> boxes;
-  Array<int> procs;
-  for (int i = 0; i < isects.size(); ++i) {
-    procs.push_back(dm[isects[i].first]);
-    boxes.push_back(isects[i].second);
-  }
-  procs.push_back(ParallelDescriptor::MyProc());
-  BoxArray slice_ba(&boxes[0], boxes.size());
-  DistributionMapping slice_dmap(procs);
-  MultiFab slice(slice_ba, slice_dmap, 6, 0);
-
-  const MultiFab* mfs[6];
-  mfs[0] = Efield[0][0].get();
-  mfs[1] = Efield[0][1].get();
-  mfs[2] = Efield[0][2].get();
-  mfs[3] = Bfield[0][0].get();
-  mfs[4] = Bfield[0][1].get();
-  mfs[5] = Bfield[0][2].get();
-
-  IntVect flags[6];
-  flags[0] = WarpX::Ex_nodal_flag;
-  flags[1] = WarpX::Ey_nodal_flag;
-  flags[2] = WarpX::Ez_nodal_flag;
-  flags[3] = WarpX::Bx_nodal_flag;
-  flags[4] = WarpX::By_nodal_flag;
-  flags[5] = WarpX::Bz_nodal_flag;
-
-  // Fill the slice with sampled data
-  const Real* dx      = geom[0].CellSize();
-  const Geometry& g   = geom[0];
-  for (MFIter mfi(slice); mfi.isValid(); ++mfi) {
-    int slice_gid = mfi.index();
-    Box grid = slice_ba[slice_gid];
-    int xlo = grid.smallEnd(0), ylo = grid.smallEnd(1), zlo = grid.smallEnd(2);
-    int xhi = grid.bigEnd(0), yhi = grid.bigEnd(1), zhi = grid.bigEnd(2);
-
-    IntVect iv = grid.smallEnd();
-    ba.intersections(Box(iv, iv), isects, true, 0);
-    BL_ASSERT(!isects.empty());
-    int full_gid = isects[0].first;
-
-    for (int k = zlo; k <= zhi; k++) {
-      for (int j = ylo; j <= yhi; j++) {
-	for (int i = xlo; i <= xhi; i++) {
-	  for (int comp = 0; comp < 6; comp++) {
-	    Real x = g.ProbLo(0) + i*dx[0];
-	    Real y = g.ProbLo(1) + j*dx[1];
-	    Real z = z_coord;
-
-	    D_TERM(iv[0]=std::floor((x - g.ProbLo(0) + 0.5*g.CellSize(0)*flags[comp][0])/g.CellSize(0));,
-		   iv[1]=std::floor((y - g.ProbLo(1) + 0.5*g.CellSize(1)*flags[comp][1])/g.CellSize(1));,
-		   iv[2]=std::floor((z - g.ProbLo(2) + 0.5*g.CellSize(2)*flags[comp][2])/g.CellSize(2)););
-
-	    slice[slice_gid](IntVect(i, j, k), comp) = (*mfs[comp])[full_gid](iv);
-	  }
-	}
-      }
-    }
-  }
-}
-
-void WarpX::sampleAtPoints(const Array<Real>& x,
-			   const Array<Real>& y,
-			   const Array<Real>& z,
-			   Array<Array<Real> >& result) const {
-  BL_ASSERT((x.size() == y.size()) and (y.size() == z.size()));
-  BL_ASSERT(max_level == 0);
-
-  const MultiFab* mfs[6];
-  mfs[0] = Efield[0][0].get();
-  mfs[1] = Efield[0][1].get();
-  mfs[2] = Efield[0][2].get();
-  mfs[3] = Bfield[0][0].get();
-  mfs[4] = Bfield[0][1].get();
-  mfs[5] = Bfield[0][2].get();
-
-  IntVect flags[6];
-  flags[0] = WarpX::Ex_nodal_flag;
-  flags[1] = WarpX::Ey_nodal_flag;
-  flags[2] = WarpX::Ez_nodal_flag;
-  flags[3] = WarpX::Bx_nodal_flag;
-  flags[4] = WarpX::By_nodal_flag;
-  flags[5] = WarpX::Bz_nodal_flag;
-
-  const unsigned npoints = x.size();
-  const int ncomps = 6;
-  result.resize(ncomps);
-  for (int i = 0; i < ncomps; i++) {
-    result[i].resize(npoints, 0);
-  }
-
-  BoxArray ba = Efield[0][0]->boxArray();
-  const IndexType correct_typ(IntVect::TheZeroVector());
-  ba.convert(correct_typ);
-  std::vector< std::pair<int, Box> > isects;
-
-  IntVect iv;
-  const Geometry& g   = geom[0];
-  for (int i = 0; i < npoints; ++i) {
-    for (int comp = 0; comp < ncomps; comp++) {
-      D_TERM(iv[0]=std::floor((x[i] - g.ProbLo(0) + 0.5*g.CellSize(0)*flags[comp][0])/g.CellSize(0));,
-	     iv[1]=std::floor((y[i] - g.ProbLo(1) + 0.5*g.CellSize(1)*flags[comp][1])/g.CellSize(1));,
-	     iv[2]=std::floor((z[i] - g.ProbLo(2) + 0.5*g.CellSize(2)*flags[comp][2])/g.CellSize(2)););
-
-      ba.intersections(Box(iv, iv), isects, true, 0);
-      const int grid = isects[0].first;
-      const int who = dmap[0][grid];
-      if (who == ParallelDescriptor::MyProc()) {
-	result[comp][i] = (*mfs[comp])[grid](iv);
-      }
-    }
-  }
-
-  for (int i = 0; i < ncomps; i++) {
-    ParallelDescriptor::ReduceRealSum(result[i].dataPtr(), result[i].size());
-  }
-}
-#endif

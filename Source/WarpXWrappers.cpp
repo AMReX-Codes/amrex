@@ -92,7 +92,9 @@ extern "C"
     {
 	auto & mypc = WarpX::GetInstance().GetPartContainer();
 	auto & myspc = mypc.GetParticleContainer(speciesnumber);
-	myspc.AddNParticles(lenx, x, y, z, vx, vy, vz, nattr, attr, uniqueparticles);
+        const int lev = 0;
+        amrex::Abort("warpx_addNParticles needs to be updated to include lev argument");
+	myspc.AddNParticles(lev, lenx, x, y, z, vx, vy, vz, nattr, attr, uniqueparticles);
     }
 
     double warpx_getProbLo(int dir)

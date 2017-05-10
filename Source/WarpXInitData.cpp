@@ -49,8 +49,6 @@ WarpX::InitData ()
 void
 WarpX::InitFromScratch ()
 {
-    BL_ASSERT(max_level == 0);
-
     const Real time = 0.0;
 
     AmrCore::InitFromScratch(time);  // This will call MakeNewLevelFromScratch

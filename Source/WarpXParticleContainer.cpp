@@ -89,16 +89,13 @@ WarpXParticleContainer::AddOneParticle (ParticleTileType& particle_tile,
 }
 
 void
-WarpXParticleContainer::AddNParticles (int n, const Real* x, const Real* y, const Real* z,
+WarpXParticleContainer::AddNParticles (int lev,
+                                       int n, const Real* x, const Real* y, const Real* z,
 				       const Real* vx, const Real* vy, const Real* vz,
 				       int nattr, const Real* attr, int uniqueparticles)
 {
-    const int lev = 0;
-
     BL_ASSERT(nattr == 1);
     const Real* weight = attr;
-
-    auto npart_before = TotalNumberOfParticles();  // xxxxx move this into if (verbose > xxx)
 
     int ibegin, iend;
     if (uniqueparticles) {
@@ -150,10 +147,7 @@ WarpXParticleContainer::AddNParticles (int n, const Real* x, const Real* y, cons
         particle_tile.push_back_real(comp, np, 0.0);
     }
 
-    Redistribute();
-
-    auto npart_after = TotalNumberOfParticles();  // xxxxx move this into if (verbose > xxx)
-    amrex::Print() << "Total number of particles added: " << npart_after - npart_before << "\n";
+    Redistribute(lev, lev);
 }
 
 std::unique_ptr<MultiFab>
@@ -219,8 +213,7 @@ WarpXParticleContainer::GetChargeDensity (int lev, bool local)
 }
 
 void
-WarpXParticleContainer::PushX (int lev,
-                                  Real dt)
+WarpXParticleContainer::PushX (int lev, Real dt)
 {
     BL_PROFILE("WPC::PushX()");
     BL_PROFILE_VAR_NS("WPC::PushX::Copy", blp_copy);
