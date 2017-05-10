@@ -24,7 +24,7 @@ endif
 $(executable):	$(objForExecs)
 	@echo Linking $@ ...
 	@if [ $(USE_CUDA) == TRUE ]; then \
-		$(SILENT) $(CXX) $(includes) $(LDFLAGS) -o $@ $^ $(libraries); \
+		$(SILENT) $(FC) $(FFLAGS) $(includes) $(LDFLAGS) -o $@ $^ $(libraries); \
 	else \
 		$(SILENT) $(CXX) $(CXXFLAGS) $(CPPFLAGS) $(includes) $(LDFLAGS) -o $@ $^ $(libraries); \
 	fi
