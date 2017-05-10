@@ -60,8 +60,8 @@ namespace amrex
                std::vector<EBLevelGrid> & a_eblg,
                const Real& a_dxLev1)
   {
-    int nghostData = 2;
-    int nghost = 1;
+    int nghostData = 3;
+    int nghost = 2;
     int nvar   = 1;
     EBLevelGrid eblgFine = a_eblg[1];
     EBLevelGrid eblgCoar = a_eblg[0];
@@ -117,9 +117,7 @@ namespace amrex
     }
     int nref = 2;
     //interpolate phiC onto phiF
-    int dataGhost = 2;
-    int fillGhost = 1;
-    NWOEBQuadCFInterp interpOp(eblgFine, eblgCoar, nref,dataGhost, fillGhost , true);
+    NWOEBQuadCFInterp interpOp(eblgFine, eblgCoar, nref, nghostData, nghost, false);
 
 
     interpOp.coarseFineInterp(phiFineCalc,  phiCoarExac, 0, 0, 1);
