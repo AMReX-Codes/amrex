@@ -7,6 +7,8 @@ f90sources += bl_constants.f90
 f90sources += bl_IO.f90
 ifdef PROF
   f90sources += bl_prof.f90
+  f90sources += amrex_timer_c.f90
+  csources += timer_c.c
 else
   f90sources += bl_prof_stubs.f90
 endif

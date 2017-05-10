@@ -1,0 +1,2 @@
+CEXE_headers += f_F.H
+f90EXE_sources += f.f90

@@ -42,8 +42,9 @@ int main(int argc, char* argv[])
     ba.maxSize(max_grid_size);
     
     DistributionMapping dmap(ba);
-    
-    ShortRangeParticleContainer myPC(geom, dmap, ba);
+   
+    int num_ghost = 1;
+    ShortRangeParticleContainer myPC(geom, dmap, ba, num_ghost);
 
     myPC.InitParticles();
 

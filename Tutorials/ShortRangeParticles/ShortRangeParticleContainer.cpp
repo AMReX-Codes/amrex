@@ -6,11 +6,13 @@ using namespace amrex;
 
 ShortRangeParticleContainer::ShortRangeParticleContainer(const Geometry            & geom,
                                                          const DistributionMapping & dmap,
-                                                         const BoxArray            & ba)
-    : ParticleContainer<2*BL_SPACEDIM> (geom, dmap, ba)
+                                                         const BoxArray            & ba,
+                                                         int                         nghost)
+    : ParticleContainer<2*BL_SPACEDIM> (geom, dmap, ba),
+      ng(nghost)
 {                
-    mask.define(ba, dmap, 2, 1);
-    mask.setVal(-1, 1);
+    mask.define(ba, dmap, 2, ng);
+    mask.setVal(-1, ng);
     for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi) {
         const Box& box = mfi.tilebox();
         const int grid_id = mfi.index();
@@ -74,7 +76,7 @@ void ShortRangeParticleContainer::fillGhosts() {
         const IntVect& hi = tile_box.bigEnd();
         
         Box shrink_box = pti.tilebox();
-        shrink_box.grow(-1);
+        shrink_box.grow(-ng);
         
         auto& particles = pti.GetArrayOfStructs();
         for (unsigned i = 0; i < pti.numParticles(); ++i) {
@@ -90,9 +92,9 @@ void ShortRangeParticleContainer::fillGhosts() {
             IntVect shift = IntVect::TheZeroVector();
             for (int idim = 0; idim < BL_SPACEDIM; ++idim) {
                 if (iv[idim] == lo[idim])
-                    shift[idim] = -1;
+                    shift[idim] = -ng;
                 else if (iv[idim] == hi[idim])
-                    shift[idim] = 1;
+                    shift[idim] = ng;
             }
             
             // Based on the value of shift, we add the particle to a map to be sent
@@ -147,12 +149,12 @@ void ShortRangeParticleContainer::clearGhosts() {
 void ShortRangeParticleContainer::computeForces() {
     for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
         AoS& particles = pti.GetArrayOfStructs();
-        size_t Np = particles.size();
+        int Np = particles.size();
         int nstride = particles.dataShape().first;
         PairIndex index(pti.index(), pti.LocalTileIndex());
         int Ng = ghosts[index].size() / pdata_size;
-        amrex_compute_forces(particles.data(), nstride, Np, 
-                             (RealType*) ghosts[index].dataPtr(), Ng);
+        amrex_compute_forces(particles.data(), &Np, 
+                             ghosts[index].dataPtr(), &Ng);
     }        
 }
 
@@ -160,9 +162,9 @@ void ShortRangeParticleContainer::moveParticles(const Real dt) {
     const RealBox& prob_domain = Geom(lev).ProbDomain();
     for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
         AoS& particles = pti.GetArrayOfStructs();
-        size_t Np = particles.size();
+        int Np = particles.size();
         int nstride = particles.dataShape().first;
-        amrex_move_particles(particles.data(), nstride, Np, &dt,
+        amrex_move_particles(particles.data(), &Np, &dt,
                              prob_domain.lo(), prob_domain.hi());
     }
 }
@@ -334,4 +336,3 @@ void ShortRangeParticleContainer::fillGhostsMPI(GhostCommMap& ghosts_to_comm) {
     }
 #endif
 }
-

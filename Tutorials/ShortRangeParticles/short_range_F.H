@@ -3,16 +3,21 @@
 
 #include <AMReX_BLFort.H>
 
+#ifdef __cplusplus
 extern "C"
 {
+#endif
 
-    void amrex_compute_forces(const amrex::Real*, int ns, int np,
-                              const amrex::Real* ghosts, int ng);
+    void amrex_compute_forces(const void* particles, int* np,
+                              const void* ghosts, int* ng);
 
-    void amrex_move_particles(const amrex::Real*, int ns, int np,
+    void amrex_move_particles(const void*, int* np,
                               const amrex::Real* dt,
                               const amrex::Real* problo,
                               const amrex::Real* problhi);
+
+#ifdef __cplusplus
 }
+#endif
 
 #endif /* _COMPUTE_FORCE_F_H_ */
