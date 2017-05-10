@@ -369,8 +369,6 @@ private:
 // IntVect::Unit -- the very things the following definition is supposed to
 // initialize.
 //
-static int s_dummyForIntVectH = IntVect::InitStatics();
-
     /**
     * \brief Returns a basis vector in the given coordinate direction;
     * eg.  IntVect BASISV(1) == (0,1,0).  Note that the coordinate
