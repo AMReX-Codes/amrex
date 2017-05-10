@@ -116,6 +116,7 @@ namespace amrex
         Real rightAnsNew = exactFunc(vof.gridIndex(), dxCoar,g_coarTimeNew);
         phiCoarOldFAB(vof, 0) = rightAnsOld;
         phiCoarNewFAB(vof, 0) = rightAnsNew;
+
       }
     }
     int nref = 2;

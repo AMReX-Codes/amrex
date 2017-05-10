@@ -37,6 +37,54 @@ namespace amrex
     ~EBArith()
       {   }
 
+    static int gradIndex(int ivar, int gradDir)
+      {
+        return ivar*SpaceDim + gradDir;
+      }
+
+    ///
+    /**
+       Return true if there is a unique adjacent face in the
+       given direction.  False if either covered or multivalued.
+    */
+    static
+    bool
+    getAdjacentFace(FaceIndex           & a_adjacentFace,
+                    const FaceIndex     & a_face,
+                    const EBISBox       & a_ebisBox,
+                    const Box           & a_domain,
+                    const int           & a_idir,
+                    const Side::LoHiSide& a_side);
+    ///for hyperbolics, heaven help us all.
+    static
+    void
+    computeCoveredFaces(vector<VolIndex>&     a_coveredFace,
+                        IntVectSet&           a_coveredSets,
+                        IntVectSet&           a_irregIVS,
+                        const int&            a_idir,
+                        const Side::LoHiSide& a_sd,
+                        const EBISBox&        a_ebisBox,
+                        const Box&            a_region);
+
+    ///
+    static FaceStencil getInterpStencil(const FaceIndex&     a_face,
+                                        const IntVectSet&    a_coarseFineIVS,
+                                        const EBISBox&       a_ebisBox,
+                                        const Box          & a_domainBox);
+
+    ///
+    static void getInterpStencil2D(FaceStencil&          a_sten,
+                                   const FaceIndex&      a_face,
+                                   const IntVectSet&     a_coarseFineIVS,
+                                   const EBISBox&        a_ebisBox,
+                                   const Box          &  a_domainBox) ;
+
+    ///
+    static void getInterpStencil3D(FaceStencil&         a_sten,
+                                   const FaceIndex&     a_face,
+                                   const IntVectSet&    a_coarseFineIVS,
+                                   const EBISBox&       a_ebisBox,
+                                   const Box          & a_domainBox);
     ///
     /** Returns all vofs that can be reached from a_vof via a
         monotone path of length <= than radius
