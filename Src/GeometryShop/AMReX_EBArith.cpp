@@ -14,6 +14,461 @@
 
 namespace amrex
 {
+  void
+  EBArith::
+  computeCoveredFaces(vector<VolIndex>&     a_coveredFace,
+                      IntVectSet&           a_coveredSets,
+                      IntVectSet&           a_irregIVS,
+                      const int&            a_idir,
+                      const Side::LoHiSide& a_sd,
+                      const EBISBox&        a_ebisBox,
+                      const Box&            a_region)
+  {
+    BL_PROFILE("EBArith::computeCoveredFaces");
+    //first compute the sets where where the covered faces exist
+    //start with all irregular cells and subtract off  cells
+    //whose vofs all have faces in the given direction
+    a_irregIVS =  a_ebisBox.getIrregIVS(a_region);
+    a_coveredSets = a_irregIVS;
+    a_coveredFace.resize(0);
+    for (IVSIterator ivsit(a_irregIVS); ivsit.ok(); ++ivsit)
+    {
+      const IntVect& iv = ivsit();
+      vector<VolIndex> vofs = a_ebisBox.getVoFs(iv);
+      bool allVoFsHaveFaces = true;
+      for (int ivof = 0; ivof < vofs.size(); ivof++)
+      {
+        const VolIndex& vof = vofs[ivof];
+        vector<FaceIndex> faces = a_ebisBox.getFaces(vof, a_idir, a_sd);
+        if (faces.size() == 0)
+        {
+          allVoFsHaveFaces = false;
+          a_coveredFace.push_back(vof);
+        }
+      }
+      if (allVoFsHaveFaces)
+        a_coveredSets -= iv;
+    }
+  }
+
+  /*****************************/
+  FaceStencil
+  EBArith::
+  getInterpStencil(const FaceIndex&     a_face,
+                   const IntVectSet&    a_cfivs,
+                   const EBISBox&       a_ebisBox,
+                   const Box           & a_domainBox)
+  {
+    BL_PROFILE("EBArith::getInterpStencil");
+
+    FaceStencil sten;
+#if BL_SPACEDIM==2
+    getInterpStencil2D(sten, a_face, a_cfivs, a_ebisBox, a_domainBox);
+
+#elif BL_SPACEDIM==3
+    getInterpStencil3D(sten, a_face, a_cfivs, a_ebisBox, a_domainBox);
+#else
+    bogus_bl_spacedim_macro();
+#endif
+    //EBArith::computeInterpStencil(sten, a_face, a_ebisBox, a_domainBox, a_face.direction());
+    return sten;
+  }
+  void
+  EBArith::
+  getInterpStencil2D(FaceStencil&         a_sten,
+                     const FaceIndex&     a_face,
+                     const IntVectSet&    a_coarseFineIVS,
+                     const EBISBox&       a_ebisBox,
+                     const Box           & a_domainBox)
+  {
+    BL_PROFILE("EBArith::getInterpStencil2D");
+    BL_ASSERT(SpaceDim == 2);
+    a_sten.clear();
+    RealVect faceCentroid = a_ebisBox.centroid(a_face);
+    int faceDir = a_face.direction();
+    int tanDir = 1 - faceDir;
+    Side::LoHiSide tanFaceSide;
+    if (faceCentroid[tanDir] > 0.)
+    {
+      tanFaceSide = Side::Hi;
+    }
+    else if (faceCentroid[tanDir] < 0.)
+    {
+      tanFaceSide = Side::Lo;
+    }
+    else
+    {
+      tanFaceSide = Side::Lo;
+      // MayDay::Error("EBArith: getInterpStencil2D faceCentroid[tanDir] = 0");
+    }
+
+    FaceIndex otherFace;
+    bool uniqueFace = EBArith::getAdjacentFace(otherFace, a_face,
+                                               a_ebisBox, a_domainBox,
+                                               tanDir, tanFaceSide);
+
+    //drop order of interpolation to zero if the other face is not unique
+    //or if this face or the otherface is on the coarse fine interface
+    bool dropOrder = false;
+    dropOrder = !uniqueFace;
+    if (!dropOrder)
+    {
+      for (SideIterator sit; sit.ok(); ++sit)
+      {
+        if (a_coarseFineIVS.contains(   a_face.gridIndex(sit())) ||
+            a_coarseFineIVS.contains(otherFace.gridIndex(sit())))
+        {
+          dropOrder = true;
+        }
+      }
+    }
+
+    if (dropOrder)
+    {
+      a_sten.add(a_face, 1.0);
+    }
+    else
+    {
+      BL_ASSERT(a_face.isDefined());
+      BL_ASSERT(otherFace.isDefined());
+      Real dist = std::abs(faceCentroid[tanDir]);
+      Real thisWeight = 1.0 - dist;
+      Real otherWeight =  dist;
+      a_sten.add(a_face, thisWeight);
+      a_sten.add(otherFace, otherWeight);
+    }
+  }
+  /*****************************/
+  bool
+  EBArith::
+  getAdjacentFace(FaceIndex           & a_adjacentFace,
+                  const FaceIndex     & a_face,
+                  const EBISBox       & a_ebisBox,
+                  const Box           & a_domain,
+                  const int           & a_idir,
+                  const Side::LoHiSide& a_side)
+  {
+    BL_PROFILE("EBArith::getAdjacentFace");
+    bool uniqueFace = true;
+    int faceDir = a_face.direction();
+    VolIndex loFaceVoF = a_face.getVoF(Side::Lo);
+    VolIndex hiFaceVoF = a_face.getVoF(Side::Hi);
+    //figure out if we have the connectivity to find a face
+    //with which to interpolate.  If so,
+    //find the other face
+    if (!a_face.isBoundary())
+    {
+      vector<FaceIndex> loTanFaces = a_ebisBox.getFaces(loFaceVoF, a_idir, a_side);
+      vector<FaceIndex> hiTanFaces = a_ebisBox.getFaces(hiFaceVoF, a_idir, a_side);
+      if ((loTanFaces.size() != 1) || (hiTanFaces.size() != 1))
+      {
+        uniqueFace = false;
+      }
+      else if ((loTanFaces[0].isBoundary()) && (hiTanFaces[0].isBoundary()))
+      {
+        uniqueFace = false;
+      }
+      else
+      {
+        const FaceIndex& loTanFace = loTanFaces[0];
+        const FaceIndex& hiTanFace = hiTanFaces[0];
+        VolIndex loOtherVoF = loTanFace.getVoF(a_side);
+        VolIndex hiOtherVoF = hiTanFace.getVoF(a_side);
+        if (!(a_ebisBox.isConnected(loOtherVoF, hiOtherVoF)))
+        {
+          uniqueFace = false;
+        }
+        if (uniqueFace)
+        {
+          vector<FaceIndex> otherFaces = a_ebisBox.getFaces(loOtherVoF, faceDir, Side::Hi);
+          if (otherFaces.size() != 1)
+          {
+            uniqueFace = false;
+          }
+          else
+          {
+            a_adjacentFace = otherFaces[0];
+          }
+        }
+      }
+    } //end if !face.isBoundary
+    else
+    {
+      //boundary face.
+      IntVect loVoFiv = loFaceVoF.gridIndex();
+      IntVect hiVoFiv = hiFaceVoF.gridIndex();
+      IntVect loDomiv = a_domain.smallEnd();
+      IntVect hiDomiv = a_domain.bigEnd();
+      vector<FaceIndex> otherFaces;
+
+      if (hiVoFiv[faceDir] == loDomiv[faceDir])
+      {
+        vector<FaceIndex> hiTanFaces = a_ebisBox.getFaces(hiFaceVoF, a_idir, a_side);
+        if (hiTanFaces.size() != 1)
+        {
+          uniqueFace = false;
+        }
+        else if (hiTanFaces[0].isBoundary())
+        {
+          //in 3d,  can be a boundary in two directions
+          uniqueFace = false;
+        }
+        else
+        {
+          VolIndex hiOtherVoF = hiTanFaces[0].getVoF(a_side);
+          vector<FaceIndex> otherFaces = a_ebisBox.getFaces(hiOtherVoF, faceDir, Side::Lo);
+          if (otherFaces.size() != 1)
+          {
+            uniqueFace = false;
+          }
+          else
+          {
+            a_adjacentFace = otherFaces[0];
+          }
+        }
+
+      }
+      else if (loVoFiv[faceDir] == hiDomiv[faceDir])
+      {
+        vector<FaceIndex> loTanFaces = a_ebisBox.getFaces(loFaceVoF, a_idir, a_side);
+        if (loTanFaces.size() != 1)
+        {
+          uniqueFace = false;
+        }
+        else if (loTanFaces[0].isBoundary())
+        {
+          //in 3d,  can be a boundary in two directions
+          uniqueFace = false;
+        }
+        else
+        {
+          VolIndex loOtherVoF = loTanFaces[0].getVoF(a_side);
+          vector<FaceIndex> otherFaces = a_ebisBox.getFaces(loOtherVoF, faceDir, Side::Hi);
+          if (otherFaces.size() != 1)
+          {
+            uniqueFace = false;
+          }
+          else
+          {
+            a_adjacentFace = otherFaces[0];
+          }
+        }
+
+      }
+      else
+      {
+        amrex::Error("boundary face confusion");
+      }
+
+    }
+    return uniqueFace;
+  }
+
+  /*****************************/
+  void
+  EBArith::
+  getInterpStencil3D(FaceStencil&         a_sten,
+                     const FaceIndex&     a_face,
+                     const IntVectSet&    a_coarseFineIVS,
+                     const EBISBox&       a_ebisBox,
+                     const Box           & a_domainBox)
+  {
+    BL_PROFILE("EBArith::getInterpStencil3D");
+    BL_ASSERT(SpaceDim == 3);
+    a_sten.clear();
+
+    int faceDir = a_face.direction();
+    RealVect faceCentroid = a_ebisBox.centroid(a_face);
+    //first check to see if this is a genuinely 3d face
+    //centroid > 0 in all directions
+    bool really3D = true;
+    int izerod = 7;
+    Real tol = 1.0e-8;
+    for (int idir = 0; idir < SpaceDim; idir++)
+    {
+      if (idir != faceDir)
+      {
+        if (std::abs(faceCentroid[idir]) < tol)
+        {
+          really3D= false;
+          izerod = idir;
+        }
+      }
+    }
+    if (!really3D)
+    {
+      //use 2D stencil because we have a centroid that is zero
+      //in the given direction
+      int tanDir = 3 - izerod - faceDir;
+      Side::LoHiSide tanFaceSide;
+      if (faceCentroid[tanDir] > 0)
+        tanFaceSide = Side::Hi;
+      else
+        tanFaceSide = Side::Lo;
+
+      bool dropOrder = false;
+      FaceIndex otherFace;
+      bool uniqueFace = EBArith::getAdjacentFace(otherFace, a_face,
+                                                 a_ebisBox, a_domainBox,
+                                                 tanDir, tanFaceSide);
+      dropOrder = !uniqueFace;
+
+      if ( !dropOrder )
+      {
+        for (SideIterator sit; sit.ok(); ++sit)
+        {
+          if (a_coarseFineIVS.contains(   a_face.gridIndex(sit())) ||
+              a_coarseFineIVS.contains(otherFace.gridIndex(sit())))
+          {
+            dropOrder = true;
+          }
+        }
+      }
+
+      if (dropOrder)
+      {
+        a_sten.add(a_face, 1.0);
+      }
+      else
+      {
+        BL_ASSERT(a_face.isDefined());
+        BL_ASSERT(otherFace.isDefined());
+        Real dist = std::abs(faceCentroid[tanDir]);
+        Real thisWeight = 1 - dist;
+        Real otherWeight =  dist;
+        a_sten.add(a_face, thisWeight);
+        a_sten.add(otherFace, otherWeight);
+      }
+    }
+    else
+    {
+      int tanDirs[2];
+      Side::LoHiSide tanFaceSides[2];
+      {
+        int itan = 0;
+        for (int idir = 0; idir < 3; idir++)
+        {
+          if (idir != faceDir)
+          {
+            tanDirs[itan] = idir;
+            if (faceCentroid[tanDirs[itan]] > 0)
+              tanFaceSides[itan] = Side::Hi;
+            else
+              tanFaceSides[itan] = Side::Lo;
+            itan++;
+          }
+        }
+      }
+
+      bool dropOrder = false;
+      FaceIndex face01, face10, face11;
+      int ixDir = tanDirs[0];
+      int iyDir = tanDirs[1];
+      Side::LoHiSide xSide = tanFaceSides[0];
+      Side::LoHiSide ySide = tanFaceSides[1];
+      //figure out whether to drop order.
+      //if not,  get the faces involved
+      VolIndex vofLo = a_face.getVoF(Side::Lo);
+      VolIndex vofHi = a_face.getVoF(Side::Hi);
+
+      //first get face10 which is the in
+      //the  ixdir direction from the input face
+      if (!dropOrder)
+      {
+        bool uniqueFace10
+          = EBArith::getAdjacentFace(face10, a_face, a_ebisBox, a_domainBox, ixDir, xSide);
+        dropOrder = !uniqueFace10;
+        //now get face11 which is the in
+        //the  ixdir,iydir direction from the input face (diagonal)
+        if (uniqueFace10)
+        {
+          bool uniqueFace11
+            = EBArith::getAdjacentFace(face11, face10, a_ebisBox, a_domainBox, iyDir, ySide);
+          dropOrder = !uniqueFace11;
+        }
+      }
+      //the  ixdir,iydir direction from the input face (diagonal)
+      //now get face01 which is the in
+      //the  iydir direction from the input face
+      if (!dropOrder)
+      {
+        //first get face01 which is the in
+        //the  iydir direction from the input face
+        bool uniqueFace01
+          = EBArith::getAdjacentFace(face01, a_face, a_ebisBox, a_domainBox, iyDir, ySide);
+        dropOrder = !uniqueFace01;
+        //now get face11 which is the in
+        //the  ixdir,iydir direction from the input face (diagonal)
+        //compute temp face and see if it is the same as
+        //the one computed from the other direction.
+        //if not , drop order
+        FaceIndex face11temp;
+        if (uniqueFace01)
+        {
+          bool uniqueFace11
+            = EBArith::getAdjacentFace(face11temp, face01, a_ebisBox, a_domainBox, ixDir, xSide);
+          dropOrder = !uniqueFace11;
+          if ((!dropOrder) && !(face11temp == face11) )
+          {
+            dropOrder = true;
+          }
+        }
+
+        //finally if any of the stencil faces are in the coarse-fine interface, drop order
+        if (!dropOrder)
+        {
+          for (SideIterator sit; sit.ok(); ++sit)
+          {
+            if ((a_coarseFineIVS.contains(a_face.gridIndex(sit()))) ||
+                (a_coarseFineIVS.contains(face01.gridIndex(sit()))) ||
+                (a_coarseFineIVS.contains(face10.gridIndex(sit()))) ||
+                (a_coarseFineIVS.contains(face11.gridIndex(sit()))))
+            {
+              dropOrder = true;
+            }
+          }
+        }
+      }
+      ///////////////////////
+      //construct the stencils
+      ///////////////////////
+      if (dropOrder)
+      {
+        a_sten.add(a_face, 1.0);
+      }
+      else
+      {
+        FaceIndex face00 = a_face;
+        Real xbar = std::abs(faceCentroid[ixDir]);
+        Real ybar = std::abs(faceCentroid[iyDir]);
+        Real f00coef = 1.0 - xbar - ybar + xbar*ybar;
+        Real f10coef = xbar - xbar*ybar;
+        Real f01coef = ybar - xbar*ybar;
+        Real f11coef = xbar*ybar;
+
+        for (SideIterator sit; sit.ok(); ++sit)
+        {
+          if (!face00.isBoundary())
+            BL_ASSERT(face00.cellIndex(sit()) >= 0);
+          if (!face01.isBoundary())
+            BL_ASSERT(face01.cellIndex(sit()) >= 0);
+          if (!face10.isBoundary())
+            BL_ASSERT(face10.cellIndex(sit()) >= 0);
+          if (!face11.isBoundary())
+            BL_ASSERT(face11.cellIndex(sit()) >= 0);
+        }
+        BL_ASSERT(face00.isDefined());
+        BL_ASSERT(face01.isDefined());
+        BL_ASSERT(face10.isDefined());
+        BL_ASSERT(face11.isDefined());
+
+        a_sten.add(face00, f00coef);
+        a_sten.add(face01, f01coef);
+        a_sten.add(face10, f10coef);
+        a_sten.add(face11, f11coef);
+      }
+    }
+  }
   /*******/
   void
   EBArith::
@@ -1419,6 +1874,7 @@ namespace amrex
         order = std::min(order, derivorder);
 
         firstDSten *= a_dist[idir];
+
         a_stencil += firstDSten;
 
         VoFStencil secondDSten;
