@@ -229,7 +229,7 @@ BoxList::complementIn (const Box&     b,
 {
     BL_PROFILE("BoxList::complementIn");
     BoxArray ba(bl);
-    *this = std::move(ba.complement(b));
+    *this = std::move(ba.complementIn(b));
     return *this;
 }
 
