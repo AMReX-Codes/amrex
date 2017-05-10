@@ -139,7 +139,7 @@ private:
 
     void AllocLevelData (int lev, const amrex::BoxArray& new_grids,
                          const amrex::DistributionMapping& new_dmap);
-    void InitLevelData (int lev);
+    void InitLevelData (int lev, amrex::Real time);
 
     void InitFromCheckpoint ();
     void PostRestart ();

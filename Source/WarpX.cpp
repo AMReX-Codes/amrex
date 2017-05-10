@@ -213,7 +213,7 @@ WarpX::MakeNewLevelFromScratch (int lev, Real time, const BoxArray& new_grids,
                                 const DistributionMapping& new_dmap)
 {
     AllocLevelData(lev, new_grids, new_dmap);
-    InitLevelData(time);
+    InitLevelData(lev, time);
 }
 
 void

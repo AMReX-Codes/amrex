@@ -3,7 +3,7 @@
 using namespace amrex;
 
 void
-WarpX::InitLevelData (int lev)
+WarpX::InitLevelData (int lev, Real time)
 {
     for (int i = 0; i < 3; ++i) {
 	current[lev][i]->setVal(0.0);
