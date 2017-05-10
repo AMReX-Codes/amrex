@@ -69,9 +69,7 @@ F90FLAGS += $(GENERIC_COMP_FLAGS)
 
 ########################################################################
 
-FFLAGS   += -Mcuda=cuda8.0,nordc
-F90FLAGS += -Mcuda=cuda8.0,nordc
+FFLAGS   += -Mcuda=cuda8.0 -Mnomain
+F90FLAGS += -Mcuda=cuda8.0 -Mnomain
 
-LIBRARY_LOCATIONS += $(PGI_PATH)/lib $(CUDA_PATH)/lib64
-
-override XTRALIBS += -lcuda -lcudart -lcudafor -lcusparse -lcudaforblas -lnspgc -lpgf90 -lpgf90_rpm1 -lpgf902 -lpgf90rtl -lpgftnrtl -lpgc -lpgmp -lpgnuma
+override XTRALIBS += -lstdc++
