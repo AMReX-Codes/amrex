@@ -418,7 +418,7 @@ public:
 			bool first_only, int ng) const;
 
     //! Return box - boxarray
-    BoxList complement (const Box& b) const;
+    BoxList complementIn (const Box& b) const;
 
     //! Clear out the internal hash table used by intersections.
     void clear_hash_bin () const;

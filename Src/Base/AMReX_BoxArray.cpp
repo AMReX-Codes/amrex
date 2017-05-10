@@ -923,7 +923,7 @@ BoxArray::intersections (const Box&                         bx,
 }
 
 BoxList
-BoxArray::complement (const Box& bx) const
+BoxArray::complementIn (const Box& bx) const
 {
     BoxList bl(bx);
 
@@ -1231,7 +1231,7 @@ BoxArray
 complementIn (const Box&      b,
               const BoxArray& ba)
 {
-    return BoxArray { ba.complement(b) };
+    return BoxArray { ba.complementIn(b) };
 }
 
 BoxArray
