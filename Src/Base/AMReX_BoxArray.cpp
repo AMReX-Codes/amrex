@@ -923,7 +923,7 @@ BoxArray::intersections (const Box&                         bx,
 }
 
 BoxList
-BoxArray::complement (const Box& bx) const
+BoxArray::complementIn (const Box& bx) const
 {
     BoxList bl(bx);
 
@@ -1231,7 +1231,7 @@ BoxArray
 complementIn (const Box&      b,
               const BoxArray& ba)
 {
-    return BoxArray { ba.complement(b) };
+    return BoxArray { ba.complementIn(b) };
 }
 
 BoxArray
@@ -1299,56 +1299,43 @@ GetBndryCells (const BoxArray& ba,
     //
     const IndexType btype = ba.ixType();
 
-    BoxList bcells = ba.boxList(), gcells(btype);
-
+    BoxList bcells = ba.boxList();
     bcells.simplify();
 
     BoxArray tba(bcells);
 
-    bcells.clear();
-
+    BoxList gcells(btype);
     for (int i = 0, N = tba.size(); i < N; ++i)
     {
 	const Box& bx = tba[i];
-        bcells = amrex::boxDiff(amrex::grow(bx,ngrow),bx);
-
-	gcells.catenate(bcells);
+        gcells.join(amrex::boxDiff(amrex::grow(bx,ngrow),bx));
     }
     //
     // Now strip out intersections with original BoxArray.
     //
     std::vector< std::pair<int,Box> > isects;
 
-    for (BoxList::const_iterator it = gcells.begin(), End = gcells.end(); it != End; ++it)
-    {
-        tba.intersections(*it,isects);
+    bcells.clear();
+    BoxList pieces(btype);
 
+    for (const Box& gbx : gcells)
+    {
+        tba.intersections(gbx, isects);
         if (isects.empty())
         {
-            bcells.push_back(*it);
+            bcells.push_back(gbx);
         }
         else
         {
-            //
-            // Collect all the intersection pieces.
-            //
-            BoxList pieces(btype), leftover(btype);
-            for (int i = 0, N = isects.size(); i < N; i++)
-                pieces.push_back(isects[i].second);
-            leftover = amrex::complementIn(*it,pieces);
-            bcells.catenate(leftover);
+            pieces.clear();
+            for (const auto& isec : isects) {
+                pieces.push_back(isec.second);
+            }
+            bcells.join(amrex::complementIn(gbx,pieces));
         }
     }
 
-    //
-    // Now strip out overlaps.
-    //
-    gcells.clear();
-
     gcells = amrex::removeOverlap(bcells);
-
-    bcells.clear();
-
     gcells.simplify();
 
     return gcells;
