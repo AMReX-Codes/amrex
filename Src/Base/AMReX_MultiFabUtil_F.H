@@ -48,6 +48,12 @@ BL_FORT_PROC_DECL(BL_AVGDOWN_FACES, bl_avgdown_faces)
    BL_FORT_FAB_ARG(crse),
    const int* ratio, const int& n, const int& ncomp); 
 
+BL_FORT_PROC_DECL(BL_AVGDOWN_EDGES, bl_avgdown_edges)
+  (const int* lo, const int* hi,
+   const BL_FORT_FAB_ARG(fine),
+   BL_FORT_FAB_ARG(crse),
+   const int* ratio, const int& n, const int& ncomp); 
+
 BL_FORT_PROC_DECL(BL_AVGDOWN, bl_avgdown)
   (const int* ovlp_lo, const int* ovlp_hi,
    const BL_FORT_FAB_ARG(fine),
