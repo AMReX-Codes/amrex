@@ -117,6 +117,8 @@ public:
     bool contains (const BoxList& bl) const;
     //! Modify this BoxList to contain only its intersection with Box b.
     BoxList& intersect (const Box& b);
+    //! Modify this BoxList to contain only its intersection with BoxList bl.
+    BoxList& intersect (const BoxList& bl);
     //! Remove empty Boxes from this BoxList.
     BoxList& removeEmpty();
 
