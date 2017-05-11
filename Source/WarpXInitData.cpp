@@ -53,7 +53,8 @@ WarpX::InitFromScratch ()
 
     AmrCore::InitFromScratch(time);  // This will call MakeNewLevelFromScratch
 
-    // xxxxx should do average down on E and B field
+    AverageDownB();
+    AverageDownE();
 
     mypc->AllocData();
     mypc->InitData();

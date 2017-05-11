@@ -6,6 +6,7 @@
 #include <numeric>
 
 #include <AMReX_ParmParse.H>
+#include <AMReX_MultiFabUtil.H>
 
 #include <WarpX.H>
 #include <WarpXConst.H>
@@ -338,3 +339,43 @@ WarpX::LowerCorner(const Box& bx, int lev)
 #endif
 }
 
+void
+WarpX::AverageDownB ()
+{
+    for (int lev = finest_level; lev > 0; --lev)
+    {
+        const IntVect& ref_ratio = refRatio(lev-1);
+        const Geometry& crse_geom = Geom(lev-1);
+        const Geometry& fine_geom = Geom(lev);
+#if (BL_SPACEDIM == 3)
+        Array<const MultiFab*> fine {Bfield[lev][0].get(), Bfield[lev][1].get(), Bfield[lev][2].get()};
+#else
+        Array<const MultiFab*> fine {Bfield[lev][0].get(), Bfield[lev][2].get()};
+#endif
+        Array<std::unique_ptr<MultiFab> > crse(BL_SPACEDIM);
+        for (int idim = 0; idim < BL_SPACEDIM; ++idim) {
+            BoxArray cba = fine[idim]->boxArray();
+            const DistributionMapping& dm = fine[idim]->DistributionMap();
+            cba.coarsen(ref_ratio);
+            crse[idim].reset(new MultiFab(cba, dm, 1, 0));
+        }
+
+        amrex::average_down_faces(fine, amrex::GetArrOfPtrs(crse), ref_ratio);
+
+#if (BL_SPACEDIM == 3)
+        for (int idim = 0; idim < BL_SPACEDIM; ++idim) {
+            Bfield[lev-1][idim]->copy(*crse[idim], crse_geom.periodicity());
+        }
+#else
+        Bfield[lev-1][0]->copy(*crse[0], crse_geom.periodicity());
+        Bfield[lev-1][2]->copy(*crse[1], crse_geom.periodicity());
+        amrex::average_down(*Bfield[lev][1], *Bfield[lev-1][1], 0, 1, ref_ratio);
+#endif        
+    }
+}
+
+void
+WarpX::AverageDownE ()
+{
+
+}

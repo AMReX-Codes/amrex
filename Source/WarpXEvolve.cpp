@@ -53,12 +53,9 @@ WarpX::Evolve (int numsteps)
 
         EvolveB(0.5*dt[0]); // We now B^{n}
 
-        // xxxxx sync B
-
         // xxxxx for all levels
         //xxxxx WarpX::FillBoundaryB( lev, false );
         //xxxxx WarpX::FillBoundaryE( lev, false );
-
         
         for (int lev = 0; lev <= finest_level; ++lev) {
 	    // Evolve particles to p^{n+1/2} and x^{n+1}
@@ -80,7 +77,6 @@ WarpX::Evolve (int numsteps)
         // xxxxx for all levels
         // Fill B's ghost cells because of the next step of evolving E.
         /// WarpX::FillBoundaryB( lev, true );
-        // xxxxx sync B
 
         if (cur_time + dt[0] >= stop_time - 1.e-3*dt[0] || step == numsteps_max-1) {
             // on last step, push by only 0.5*dt to synchronize all at n+1/2
@@ -93,7 +89,7 @@ WarpX::Evolve (int numsteps)
         
         mypc->Redistribute();  // Redistribute particles
 
-        for (int lev = 0; lev <= max_level; ++lev) {
+         for (int lev = 0; lev <= max_level; ++lev) {
             ++istep[lev];
         }
 
@@ -152,6 +148,7 @@ WarpX::EvolveB (Real dt)
     for (int lev = 0; lev <= finest_level; ++lev) {
         EvolveB(lev, dt);
     }
+    AverageDownB();
 }
 
 void
@@ -233,6 +230,7 @@ WarpX::EvolveE (Real dt)
     for (int lev = 0; lev <= finest_level; ++lev) {
         EvolveE(lev, dt);
     }
+    AverageDownB();
 }
 
 void

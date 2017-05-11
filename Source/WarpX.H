@@ -130,12 +130,17 @@ private:
 
     void ReadParameters ();
 
+    // *************************************************************************
     void RegridBaseLevel ();
     bool LoadBalanceBaseLevel ();
     void splitBoxes (amrex::BoxArray& ba, amrex::Array<long>& newcost, const amrex::Array<long>& cost_in, int heavy_grid_size);
     amrex::Real getEfficiency(const amrex::DistributionMapping& dm, const amrex::Array<long>& cost);
     amrex::DistributionMapping getCostCountDM (const amrex::Array<long>& cost, const amrex::BoxArray& ba);
     bool okToRegrid(int step);
+    // *************************************************************************
+
+    void AverageDownB ();
+    void AverageDownE ();
 
     void InitFromScratch ();
 
