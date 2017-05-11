@@ -1261,8 +1261,7 @@ intersect (const BoxArray& ba,
 }
 
 BoxArray
-intersect (const BoxArray& lhs,
-           const BoxArray& rhs)
+intersect (const BoxArray& lhs, const BoxArray& rhs)
 {
     if (lhs.size() == 0 || rhs.size() == 0) return BoxArray();
     BoxList bl(lhs[0].ixType());
@@ -1272,6 +1271,18 @@ intersect (const BoxArray& lhs,
         bl.join(ba.boxList());
     }
     return BoxArray(bl);
+}
+
+BoxList
+intersect (const BoxArray& ba, const BoxList& bl)
+{
+    BoxList newbl(bl.ixType());
+    for (const Box& bx : bl)
+    {
+        const BoxArray& newba = amrex::intersect(ba, bx);
+        newbl.join(newba.boxList());
+    }
+    return newbl;
 }
 
 BoxArray

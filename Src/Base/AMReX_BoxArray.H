@@ -28,6 +28,9 @@ namespace amrex
     //! Make a BoxArray from the intersection of two BoxArrays.
     BoxArray intersect (const BoxArray& lhs, const BoxArray& rhs);
 
+    //! Make a BoxList from the intersection of BoxArray and BoxList.
+    BoxList intersect (const BoxArray& ba, const BoxList& bl);
+
     BoxArray convert (const BoxArray& ba, IndexType typ);
     BoxArray convert (const BoxArray& ba, const IntVect& typ);
 
