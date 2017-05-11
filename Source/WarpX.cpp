@@ -346,7 +346,6 @@ WarpX::AverageDownB ()
     {
         const IntVect& ref_ratio = refRatio(lev-1);
         const Geometry& crse_geom = Geom(lev-1);
-        const Geometry& fine_geom = Geom(lev);
 #if (BL_SPACEDIM == 3)
         Array<const MultiFab*> fine {Bfield[lev][0].get(), Bfield[lev][1].get(), Bfield[lev][2].get()};
 #else
@@ -377,5 +376,34 @@ WarpX::AverageDownB ()
 void
 WarpX::AverageDownE ()
 {
+    for (int lev = finest_level; lev > 0; --lev)
+    {
+        const IntVect& ref_ratio = refRatio(lev-1);
+        const Geometry& crse_geom = Geom(lev-1);
+#if (BL_SPACEDIM == 3)
+        Array<const MultiFab*> fine {Efield[lev][0].get(), Efield[lev][1].get(), Efield[lev][2].get()};
+#else
+        Array<const MultiFab*> fine {Efield[lev][0].get(), Efield[lev][2].get()};
+#endif
+        
+        Array<std::unique_ptr<MultiFab> > crse(BL_SPACEDIM);
+        for (int idim = 0; idim < BL_SPACEDIM; ++idim) {
+            BoxArray cba = fine[idim]->boxArray();
+            const DistributionMapping& dm = fine[idim]->DistributionMap();
+            cba.coarsen(ref_ratio);
+            crse[idim].reset(new MultiFab(cba, dm, 1, 0));
+        }
 
+        amrex::average_down_edges(fine, amrex::GetArrOfPtrs(crse), ref_ratio);
+
+#if (BL_SPACEDIM == 3)
+        for (int idim = 0; idim < BL_SPACEDIM; ++idim) {
+            Efield[lev-1][idim]->copy(*crse[idim], crse_geom.periodicity());
+        }
+#else
+        Efield[lev-1][0]->copy(*crse[0], crse_geom.periodicity());
+        Efield[lev-1][2]->copy(*crse[1], crse_geom.periodicity());
+//xxxxx amrex::average_down_nodes(*Efield[lev][1], *Efield[lev-1][1], 0, 1, ref_ratio);
+#endif        
+    }
 }
