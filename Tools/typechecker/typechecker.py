@@ -235,6 +235,18 @@ def getFortranArg(funcname, fortranfile):
     found = False
     ws = 0
     arglist = []
+
+    def parse_type_spec(line):
+        # The line may look like, type spec : (REAL 8 C_INTEROP)
+        #                     or  type spec : (UNKNOWN 0 C_INTEROP)
+        #                     or  type spec : (INTEGER 4)
+        #                     or  type spec : (CHARACTER 1 1 C_INTEROP ISO_C)
+        if "UNKNOWN" in line:
+            type_spec = 'void'
+        else:
+            type_spec = line.split('(')[1].split(')')[0].split('C_INTEROP')[0].strip()
+        return type_spec
+
     for line in this_func:
         num_white_spaces = len(line) - len(line.lstrip())
         # searching for blocks like
@@ -248,10 +260,7 @@ def getFortranArg(funcname, fortranfile):
         elif found:
             if ws < num_white_spaces:
                 if "type spec :" in line:
-                    if "UNKNOWN" in line:
-                        return_type = 'void'
-                    else:
-                        return_type = line.split('(')[1].split(')')[0]
+                    return_type = parse_type_spec(line)
                 elif "Formal arglist:" in line:
                     arglist = line.replace("Formal arglist:", "").split()
             else:
@@ -274,7 +283,7 @@ def getFortranArg(funcname, fortranfile):
                     found = True
             elif found:
                 if "type spec :" in line:
-                    argtype = line.split('(')[1].split(')')[0]
+                    argtype = parse_type_spec(line)
                 elif "attributes:" in line: # attributes: (VARIABLE  VALUE DUMMY(IN))
                     if "VALUE" in line:
                         argattrib = 'value'

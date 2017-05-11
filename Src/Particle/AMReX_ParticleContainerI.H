@@ -1102,6 +1102,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::CreateGhostPa
 	    // Set its id to indicate that it's a ghost.
 	    //
 	    p.m_idata.id = GhostParticleID;
+	    std::cout << "CREATING GHOST " << p.m_idata.id << std::endl;
 	    
 	    //
 	    // Store it in the AoS.
@@ -1530,6 +1531,10 @@ ParticleContainer<NStructReal,NStructInt,NArrayReal, NArrayInt>::AddParticlesAtL
                               << level+1 << '\n';
                 }
             m_particles.resize(level + 1);
+            m_dummy_mf.resize(level+1);
+            for (int lev = 0; lev < level+1; ++lev) {
+                RedefineDummyMF(lev);
+            }
         }    
 
     ParticleLocData pld;

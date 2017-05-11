@@ -1090,7 +1090,7 @@ FabArrayBase::FPinfo::FPinfo (const FabArrayBase& srcfa,
 	bx.grow(m_dstng);
 	bx &= m_dstdomain;
 
-	BoxList leftover = srcba.complement(bx);
+	BoxList leftover = srcba.complementIn(bx);
 
 	bool ismybox = (dstdm[i] == myproc);
 	for (BoxList::const_iterator bli = leftover.begin(); bli != leftover.end(); ++bli)
