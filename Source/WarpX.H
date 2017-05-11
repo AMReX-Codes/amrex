@@ -69,7 +69,9 @@ public:
     void ExchangeWithPML (amrex::MultiFab& regmf, amrex::MultiFab& pmlmf,
                           const amrex::Geometry& gm);
 
+    void EvolveE (         amrex::Real dt);
     void EvolveE (int lev, amrex::Real dt);
+    void EvolveB (         amrex::Real dt);
     void EvolveB (int lev, amrex::Real dt);
     void FillBoundaryE (int lev, bool force);
     void FillBoundaryB (int lev, bool force);

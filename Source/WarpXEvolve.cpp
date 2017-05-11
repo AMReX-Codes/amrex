@@ -36,8 +36,6 @@ WarpX::Evolve (int numsteps)
 	// Start loop on time steps
         amrex::Print() << "\nSTEP " << step+1 << " starts ...\n";
 
-        const int lev = 0; //xxxxx
-
         // At the beginning, we have B^{n-1/2} and E^{n-1/2}.
         // Particles have p^{n-1/2} and x^{n-1/2}.
 
@@ -45,57 +43,59 @@ WarpX::Evolve (int numsteps)
         // Particles have p^{n-1/2} and x^{n}.
 
         if (is_synchronized) {
-            // xxxxx for all levels
             // on first step, push E and X by 0.5*dt
-            WarpX::FillBoundaryB( lev, true );
-            EvolveE(lev, 0.5*dt[lev]);
-            mypc->PushX(lev, 0.5*dt[lev]);
+            // xxxxx WarpX::FillBoundaryB( lev, true );
+            EvolveE(0.5*dt[0]);
+            mypc->PushX(0.5*dt[0]);
             mypc->Redistribute();  // Redistribute particles
             is_synchronized = false;
         }
 
-        for (int lev = 0; lev <= max_level; ++lev) {
-            EvolveB(lev, 0.5*dt[lev]); // We now B^{n}
-        }
+        EvolveB(0.5*dt[0]); // We now B^{n}
 
         // xxxxx sync B
 
         // xxxxx for all levels
-        WarpX::FillBoundaryB( lev, false );
-        WarpX::FillBoundaryE( lev, false );
+        //xxxxx WarpX::FillBoundaryB( lev, false );
+        //xxxxx WarpX::FillBoundaryE( lev, false );
 
         
-        for (int lev = 0; lev <= max_level; ++lev) {
+        for (int lev = 0; lev <= finest_level; ++lev) {
 	    // Evolve particles to p^{n+1/2} and x^{n+1}
 	    // Depose current, j^{n+1/2}
 	    mypc->Evolve(lev,
 			 *Efield[lev][0],*Efield[lev][1],*Efield[lev][2],
 			 *Bfield[lev][0],*Bfield[lev][1],*Bfield[lev][2],
 			 *current[lev][0],*current[lev][1],*current[lev][2], cur_time, dt[lev]);
-
-            // the sync of j should be taken out of Evolve
-
-	    EvolveB(lev, 0.5*dt[lev]); // We now B^{n+1/2}
         }
+
+        EvolveB(0.5*dt[0]); // We now B^{n+1/2}
+        
+        // xxxxx the sync of j
+        // const Geometry& gm = allcontainers[0]->Geom(lev);
+        // jx.SumBoundary(gm.periodicity());
+        // jy.SumBoundary(gm.periodicity());
+        // jz.SumBoundary(gm.periodicity());
 
         // xxxxx for all levels
         // Fill B's ghost cells because of the next step of evolving E.
-        WarpX::FillBoundaryB( lev, true );
-
+        /// WarpX::FillBoundaryB( lev, true );
         // xxxxx sync B
 
         if (cur_time + dt[0] >= stop_time - 1.e-3*dt[0] || step == numsteps_max-1) {
             // on last step, push by only 0.5*dt to synchronize all at n+1/2
-            EvolveE(lev, 0.5*dt[lev]); // We now have E^{n+1/2}
-            mypc->PushX(lev, -0.5*dt[lev]);
+            EvolveE(0.5*dt[0]); // We now have E^{n+1/2}
+            mypc->PushX(-0.5*dt[0]);
             is_synchronized = true;
         } else {
-            EvolveE(lev, dt[lev]); // We now have E^{n+1}
+            EvolveE(dt[0]); // We now have E^{n+1}
         }
         
         mypc->Redistribute();  // Redistribute particles
 
-        ++istep[lev];
+        for (int lev = 0; lev <= max_level; ++lev) {
+            ++istep[lev];
+        }
 
 	cur_time += dt[0];
 
@@ -110,16 +110,16 @@ WarpX::Evolve (int numsteps)
                       << " DT = " << dt[0] << "\n";
 
 	// sync up time
-	for (int i = 0; i <= finest_level; ++i) {
+	for (int i = 0; i <= max_level; ++i) {
 	    t_new[i] = cur_time;
 	}
 
 	if (to_make_plot) {
-            WarpX::FillBoundaryB( lev, false );
-            WarpX::FillBoundaryE( lev, false );
-            mypc->FieldGather(lev,
-                              *Efield[lev][0],*Efield[lev][1],*Efield[lev][2],
-                              *Bfield[lev][0],*Bfield[lev][1],*Bfield[lev][2]);
+            // xxxxx WarpX::FillBoundaryB( lev, false );
+            // xxxxx WarpX::FillBoundaryE( lev, false );
+            //  mypc->FieldGather(lev,
+            //     *Efield[lev][0],*Efield[lev][1],*Efield[lev][2],
+            //     *Bfield[lev][0],*Bfield[lev][1],*Bfield[lev][2]);
 	    last_plot_file_step = step+1;
 	    WritePlotFile();
 	}
@@ -143,6 +143,14 @@ WarpX::Evolve (int numsteps)
 
     if (check_int > 0 && istep[0] > last_check_file_step && (max_time_reached || istep[0] >= max_step)) {
 	WriteCheckPointFile();
+    }
+}
+
+void
+WarpX::EvolveB (Real dt)
+{
+    for (int lev = 0; lev <= finest_level; ++lev) {
+        EvolveB(lev, dt);
     }
 }
 
@@ -220,6 +228,14 @@ WarpX::EvolveB (int lev, Real dt)
 }
 
 void
+WarpX::EvolveE (Real dt)
+{
+    for (int lev = 0; lev <= finest_level; ++lev) {
+        EvolveE(lev, dt);
+    }
+}
+
+void
 WarpX::EvolveE (int lev, Real dt)
 {
     BL_PROFILE("WarpX::EvolveE()");
@@ -275,7 +291,6 @@ WarpX::EvolveE (int lev, Real dt)
             const Box& tey  = mfi.tilebox(Ey_nodal_flag);
             const Box& tez  = mfi.tilebox(Ez_nodal_flag);
             
-            // xxx need to add current
             WRPX_PUSH_PML_EVEC(
                 tex.loVect(), tex.hiVect(),
                 tey.loVect(), tey.hiVect(),
@@ -391,6 +406,10 @@ WarpX::MoveWindow (bool move_j)
 {
 
     if (do_moving_window == 0) return;
+
+    if (max_level > 0) {
+        amrex::Abort("MoveWindow with mesh refinement has not been implemented");
+    }
 
     const int lev = 0;
 

@@ -147,7 +147,7 @@ WarpXParticleContainer::AddNParticles (int lev,
         particle_tile.push_back_real(comp, np, 0.0);
     }
 
-    Redistribute(lev, lev);
+    Redistribute();
 }
 
 std::unique_ptr<MultiFab>
@@ -210,6 +210,14 @@ WarpXParticleContainer::GetChargeDensity (int lev, bool local)
     if (!local) rho->SumBoundary(gm.periodicity());
     
     return rho;
+}
+
+void
+WarpXParticleContainer::PushX (Real dt)
+{
+    for (int lev = 0; lev <= finestLevel(); ++lev) {
+        PushX(lev, dt);
+    }
 }
 
 void

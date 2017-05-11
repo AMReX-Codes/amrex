@@ -26,7 +26,7 @@ WarpX::ErrorEst (int lev, TagBoxArray& tags, Real time, int /*ngrow*/)
             const IntVect& cell = bi();
             Real rsq = 0.0;
             for (int idim=0; idim<BL_SPACEDIM; ++idim) {
-                Real d = cell[idim]-ctr[idim];
+                Real d = cell[idim]-ctr[idim]+0.5;
                 rsq += d*d;
             }
             if (rsq < R*R) {

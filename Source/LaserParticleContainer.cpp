@@ -83,9 +83,7 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies)
 void
 LaserParticleContainer::InitData ()
 {
-    for (int lev = 0; lev < maxLevel(); ++lev) {
-        InitData(lev);
-    }
+    InitData(maxLevel());
 }
 
 void

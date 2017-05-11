@@ -73,6 +73,7 @@ public:
 
     void AllocData ();
 
+    void PushX (         amrex::Real dt);
     void PushX (int lev, amrex::Real dt);
 
     std::unique_ptr<amrex::MultiFab> GetChargeDensity(int lev, bool local = false);

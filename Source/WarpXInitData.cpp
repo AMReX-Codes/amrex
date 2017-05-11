@@ -53,15 +53,7 @@ WarpX::InitFromScratch ()
 
     AmrCore::InitFromScratch(time);  // This will call MakeNewLevelFromScratch
 
-    // xxxxx
-    BoxArray ba = Bfield[1][0]->boxArray();
-    ba.coarsen(2);
-    DistributionMapping dm {ba};
-    MultiFab tmp(ba, dm, 1, 0);
-    tmp.setVal(1.0);
-    Bfield[0][0]->copy(tmp);
-    VisMF::Write(*Bfield[0][0], "Bx-"+std::to_string(0));
-    amrex::Abort("xxxxx");
+    // xxxxx should do average down on E and B field
 
     mypc->AllocData();
     mypc->InitData();

@@ -79,19 +79,14 @@ MultiParticleContainer::Evolve (int lev,
     for (auto& pc : allcontainers) {
 	pc->Evolve(lev, Ex, Ey, Ez, Bx, By, Bz, jx, jy, jz, t, dt);
     }
-
-    const Geometry& gm = allcontainers[0]->Geom(lev);
-    jx.SumBoundary(gm.periodicity());
-    jy.SumBoundary(gm.periodicity());
-    jz.SumBoundary(gm.periodicity());
 }
 
 void
-MultiParticleContainer::PushX (int lev, Real dt)
+MultiParticleContainer::PushX (Real dt)
 {
 
     for (auto& pc : allcontainers) {
-	pc->PushX(lev, dt);
+	pc->PushX(dt);
     }
 }
 
