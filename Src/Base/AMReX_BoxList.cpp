@@ -212,6 +212,14 @@ BoxList::intersect (const Box& b)
     return *this;
 }
 
+BoxList&
+BoxList::intersect (const BoxList& bl)
+{
+    BL_ASSERT(ixType() == bl.ixType());
+    *this = amrex::intersect(BoxArray{*this}, bl);
+    return *this;
+}
+
 BoxList
 complementIn (const Box&     b,
               const BoxList& bl)
