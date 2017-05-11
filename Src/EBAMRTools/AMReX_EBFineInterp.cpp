@@ -13,6 +13,7 @@
 #include "AMReX_EBFineInterp.H"
 #include "AMReX_VoFIterator.H"
 #include "AMReX_EBCellFactory.H"
+#include "AMReX_EBFortND_F.H"
 
 
 namespace amrex
@@ -116,43 +117,41 @@ namespace amrex
                             int isrc, int idst, int inco)
   {
     BL_ASSERT(isDefined());
-    amrex::Abort("not implemented yet");
-#if 0
-    int nvar = idst + inco;
+
+    int nvar = isrc + inco;
     EBCellFactory factCoFi(m_eblgCoFi.getEBISL());
-    FabArray<EBCellFAB> bufferCoFi(m_eblgCoFi.getDBL(),m_eblgCoFi.getDM(), nvar, m_buffGhost, MFInfo(), factCoFi);
+    FabArray<EBCellFAB> dataCoFi(m_eblgCoFi.getDBL(),m_eblgCoFi.getDM(), nvar, m_buffGhost, MFInfo(), factCoFi);
+
     //need to copy into ghost cell data 
-    bufferCoFi.copy(a_dataCoar, isrc, idst, inco, 0, m_buffGhost);
-    a_coarData.copyTo(a_variables, m_coarsenedFineData, a_variables);
+    dataCoFi.copy(a_dataCoar, isrc, idst, inco, 0, m_buffGhost);
 
-    shared_ptr<MultiFab> regCoarData, regFineData;
+    for(MFIter mfi(m_eblgFine.getDBL(), m_eblgFine.getDM()); mfi.isValid(); ++mfi)
+    {
+      BaseFab<Real>      & regFine = a_dataFine[mfi].getSingleValuedFAB();
+      const BaseFab<Real>& regCoar =   dataCoFi[mfi].getSingleValuedFAB();
+      const Box& gridFine = m_eblgFine.getDBL()[mfi];
+      if(m_orderOfPolynomial < 1)
+      {
+        ebfnd_pwcinterp(BL_TO_FORTRAN_FAB(regFine),
+                        BL_TO_FORTRAN_FAB(regCoar),
+                        BL_TO_FORTRAN_BOX(gridFine),
+                        &m_refRat, &isrc, &idst, &inco);
+      }
+      else if(m_orderOfPolynomial < 2)
+      {
+        amrex::Abort("case not implemented");
+      }
+      else
+      {
+        amrex::Abort("case not implemented");
+      }
 
-    EBLevelDataOps::aliasIntoMF(regCoarData, a_dataCoar, m_eblgCoar);
-    EBLevelDataOps::aliasIntoMF(regFineData, a_dataFine, m_eblgFine);
-
-    //from multifab_util--this averages over all cells as if EB were not there.
-    if(m_orderOfPolynomial < 1)
-    {
-      interpolate_to_fine_pwc(*regFineData, *regCoarData, isrc, idst, inco, m_refRat);
-    }
-    else if(m_orderOfPolynomial < 2)
-    {
-      interpolate_to_fine_pwl(*regFineData, *regCoarData, isrc, idst, inco, m_refRat);
-    }
-    else
-    {
-      interpolate_to_fine_pwq(*regFineData, *regCoarData, isrc, idst, inco, m_refRat);
-    }
-
-    for (DataIterator fineit = m_coarsenedFineGrids.dataIterator();
-         fineit.ok(); ++fineit)
-    {
       //false is for increment only
-      m_stencil[mfi]->apply(a_phif[mfi],
-                            bufferCoFi[mfi],
+      m_stencil[mfi]->apply(a_dataFine[mfi],
+                              dataCoFi[mfi],
                             isrc, idst, inco, false);
     }
-#endif
+
   }
   /************************************/
 }
