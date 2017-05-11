@@ -157,27 +157,28 @@ namespace amrex
     FabArray<EBCellFAB> dataCoFi(m_eblgCoFi.getDBL(),m_eblgCoFi.getDM(), nvar, m_ghost, MFInfo(), fact);
     Box refbox(IntVect::Zero, IntVect::Zero);
     refbox.refine(m_refRat);
-
+    int ibox = 0;
     for(MFIter mfi(m_eblgFine.getDBL(), m_eblgFine.getDM()); mfi.isValid(); ++mfi)
     {
       BaseFab<Real>&       regCoar =   dataCoFi[mfi].getSingleValuedFAB();
       const BaseFab<Real>& regFine = a_dataFine[mfi].getSingleValuedFAB();
       Box coarbx = m_eblgCoFi.getDBL()[mfi];
 
-      ebfnd_average(BL_TO_FORTRAN_UG(regCoar),
-                    BL_TO_FORTRAN_UG(regFine),
-                    coarbx.loVect(), coarbx.hiVect(),
-                    refbox.loVect(), refbox.hiVect(),
+      ebfnd_average(BL_TO_FORTRAN_FAB(regCoar),
+                    BL_TO_FORTRAN_FAB(regFine),
+                    BL_TO_FORTRAN_BOX(coarbx),
+                    BL_TO_FORTRAN_BOX(refbox),
                     &m_refRat, &isrc, &idst, &inco);
 
       //now do the irregular bit
       //the false is to turn off incrementOnly
       m_stencil[mfi]->apply(dataCoFi[mfi], a_dataFine[mfi], isrc, idst, inco, false);
+      ibox++;
     }
 
     //now copy into the data holder on the designated layout
     //do not need to copy ghost data
-    a_dataCoar.copy(a_dataCoar, idst, idst, inco, 0, 0);
+    a_dataCoar.copy(dataCoFi, idst, idst, inco, 0, 0);
 
   }
 
