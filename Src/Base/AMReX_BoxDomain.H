@@ -77,6 +77,11 @@ public:
     //! Construct an empty BoxDomain of IndexType itype.
     explicit BoxDomain (IndexType itype);
 
+    BoxDomain (const BoxDomain& rhs) = default;
+    BoxDomain (BoxDomain&& rhs) = default;
+    BoxDomain& operator= (const BoxDomain& rhs) = default;
+    BoxDomain& operator= (BoxDomain&& rhs) = default;
+
     //! Add a Box to the domain.
     void add (const Box& b);
 
@@ -107,9 +112,6 @@ public:
 
     //! Promoted from BoxList.
     using BoxList::ixType;
-
-    //! Promoted from BoxList.
-    using BoxList::minimize;
 
     //! Promoted from BoxList.
     using BoxList::simplify;
