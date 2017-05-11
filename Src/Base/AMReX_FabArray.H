@@ -279,8 +279,7 @@ public:
     * \brief This function copies data from fa to this FabArray.  Each FAB
     * in fa is intersected with all FABs in this FabArray and a copy
     * is performed on the region of intersection.  The intersection
-    * is restricted to the valid region of destination and the 
-    * valid+src_nghost region of source.
+    * is restricted to the valid regions.
     */
     void copy (const FabArray<FAB>& fa,
 	       const Periodicity&   period = Periodicity::NonPeriodic(),
