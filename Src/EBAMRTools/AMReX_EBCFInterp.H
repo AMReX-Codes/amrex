@@ -32,6 +32,7 @@ namespace  amrex
   /**
      Class to fill the ghost cells over coarse-fine interfaces.  The 
      order of the polynomial used in the interpolation is adjustable.
+     Second derivatives are as far as I go, for now.
    */
   class EBCFInterp
   {
@@ -47,6 +48,7 @@ namespace  amrex
     /** makes fully defined object.   
        If orderOfPolynomial = 0,  no first or second derivative stencils included
        If orderOfPolynomial = 1,  no second derivative stencils included.
+       Second derivatives are as far as I go, for now.
        Slow mode is slow.  Don't use it unless you are stepping through a debugger.
     */
     EBCFInterp(const EBLevelGrid      & a_eblgFine,
@@ -62,6 +64,12 @@ namespace  amrex
 
 
     ///used for defining a null-defined object.  all ghost cells at the coarse-fine interface filled
+    /** makes fully defined object.   
+       If orderOfPolynomial = 0,  no first or second derivative stencils included
+       If orderOfPolynomial = 1,  no second derivative stencils included.
+       Second derivatives are as far as I go, for now.
+       Slow mode is slow.  Don't use it unless you are stepping through a debugger.
+    */
     void  define(const EBLevelGrid      & a_eblgFine,
                  const EBLevelGrid      & a_eblgCoar,
                  const int              & a_refRat,
