@@ -51,7 +51,7 @@ namespace amrex
        Equivalent to default construction followed by define().
        If orderOfPolynomial = 0,  no first or second derivative stencils included
        If orderOfPolynomial = 1,  no second derivative stencils included
-       This does not do slope limiting.
+       This does not do slope limiting.   Second derivatives are as far as I go, for now.
     */
     EBFineInterp(const EBLevelGrid   & a_eblgFine,
                  const EBLevelGrid   & a_eblgCoar,

@@ -16,6 +16,7 @@
 #include "AMReX_EBArith.H"
 #include "AMReX_EBLevelDataOps.H"
 #include "AMReX_MultiFabUtil.H"
+#include "AMReX_EBFortND_F.H"
 
 
 namespace amrex
@@ -141,11 +142,7 @@ namespace amrex
           int isrc, int idst, int inco)
   {
     BL_PROFILE("EBCoarseAverage::average(LD<EBCellFAB>)");
-    shared_ptr<MultiFab> regCoarData, regFineData;
 
-    EBLevelDataOps::aliasIntoMF(regCoarData, a_dataCoar, m_eblgCoar);
-    EBLevelDataOps::aliasIntoMF(regFineData, a_dataFine, m_eblgFine);
-    
     //the dx here better not matter so make a fake realbox
     RealVect rvlo = RealVect::Zero;
     RealVect rvhi = RealVect::Unit;
@@ -154,15 +151,26 @@ namespace amrex
     Geometry geomCoar(m_eblgCoar.getDomain(), &rb);
     Geometry geomFine(m_eblgFine.getDomain(), &rb);
     
-    //from multifab_util--this averages over all cells as if EB were not there.
-    average_down(*regFineData, *regCoarData, isrc, inco, m_refRat);
-
     //now replace that answer at the irregular cells.
     EBCellFactory fact(m_eblgCoFi.getEBISL());
     int nvar = inco+idst;
     FabArray<EBCellFAB> dataCoFi(m_eblgCoFi.getDBL(),m_eblgCoFi.getDM(), nvar, m_ghost, MFInfo(), fact);
+    Box refbox(IntVect::Zero, IntVect::Zero);
+    refbox.refine(m_refRat);
+
     for(MFIter mfi(m_eblgFine.getDBL(), m_eblgFine.getDM()); mfi.isValid(); ++mfi)
     {
+      BaseFab<Real>&       regCoar =   dataCoFi[mfi].getSingleValuedFAB();
+      const BaseFab<Real>& regFine = a_dataFine[mfi].getSingleValuedFAB();
+      Box coarbx = m_eblgCoFi.getDBL()[mfi];
+
+      ebfnd_average(BL_TO_FORTRAN_UG(regCoar),
+                    BL_TO_FORTRAN_UG(regFine),
+                    coarbx.loVect(), coarbx.hiVect(),
+                    refbox.loVect(), refbox.hiVect(),
+                    &m_refRat, &isrc, &idst, &inco);
+
+      //now do the irregular bit
       //the false is to turn off incrementOnly
       m_stencil[mfi]->apply(dataCoFi[mfi], a_dataFine[mfi], isrc, idst, inco, false);
     }

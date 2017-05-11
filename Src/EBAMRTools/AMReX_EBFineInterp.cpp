@@ -131,7 +131,18 @@ namespace amrex
     EBLevelDataOps::aliasIntoMF(regFineData, a_dataFine, m_eblgFine);
 
     //from multifab_util--this averages over all cells as if EB were not there.
-    interpolate_to_fine(*regFineData, *regCoarData, isrc, inco, m_refRat);
+    if(m_orderOfPolynomial < 1)
+    {
+      interpolate_to_fine_pwc(*regFineData, *regCoarData, isrc, idst, inco, m_refRat);
+    }
+    else if(m_orderOfPolynomial < 2)
+    {
+      interpolate_to_fine_pwl(*regFineData, *regCoarData, isrc, idst, inco, m_refRat);
+    }
+    else
+    {
+      interpolate_to_fine_pwq(*regFineData, *regCoarData, isrc, idst, inco, m_refRat);
+    }
 
     for (DataIterator fineit = m_coarsenedFineGrids.dataIterator();
          fineit.ok(); ++fineit)

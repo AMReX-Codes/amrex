@@ -172,6 +172,9 @@ public:
     //! Returns the number of components
     int nComp () const { return nvar; }
 
+  int* nCompPtr() {return &nvar;}
+  const int* nCompPtr() const {return &nvar;}
+
     //! Returns the number of points 
     long nPts () const { return numpts; }
 
