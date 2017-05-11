@@ -28,7 +28,7 @@ contains
     integer      :: fine_lo(3),fine_hi(3)
     integer      :: coarboxlo(3), coarboxhi(3)
     integer      :: refboxlo(3),   refboxhi(3)
-    real(c_real) :: numfinepercoar
+    real(c_real) :: numfinepercoar, fineval, coarval
     real(c_real) :: fine(fine_lo(1):fine_hi(1),fine_lo(2):fine_hi(2),fine_lo(3):fine_hi(3), 0:fine_nco-1)
     real(c_real) :: coar(coar_lo(1):coar_hi(1),coar_lo(2):coar_hi(2),coar_lo(3):coar_hi(3), 0:coar_nco-1)
 
@@ -54,6 +54,8 @@ contains
                          jjf = refrat*jjc + jb
                          kkf = refrat*kkc + kb
                          coar(iic,jjc,kkc, ivarc) = coar(iic, jjc, kkc,ivarc) + fine(iif, jjf, kkf, ivarf)
+                         fineval = fine(iif, jjf, kkf, ivarf)
+                         coarval = coar(iic,jjc,kkc, ivarc)
 
                       enddo
                    enddo
