@@ -33,7 +33,8 @@
 #endif
 
 #define BL_TO_FORTRAN(x) (x).dataPtr(), ARLIM((x).loVect()), ARLIM((x).hiVect())
-#define BL_TO_FORTRAN_UG(x) (x).dataPtr(), (x).loVect(), (x).hiVect(), x.nCompPtr()
+#define BL_TO_FORTRAN_FAB(x) (x).dataPtr(), ARLIM_3D((x).loVect()), ARLIM_3D((x).hiVect()), x.nCompPtr()
+#define BL_TO_FORTRAN_BOX(x) ARLIM_3D((x).loVect()), ARLIM_3D((x).hiVect())
 #define BL_TO_FORTRAN_N(x,n) (x).dataPtr(n), ARLIM((x).loVect()), ARLIM((x).hiVect())
 
 #define BL_TO_FORTRAN_3D(x) (x).dataPtr(), ARLIM_3D((x).loVect()), ARLIM_3D((x).hiVect())
