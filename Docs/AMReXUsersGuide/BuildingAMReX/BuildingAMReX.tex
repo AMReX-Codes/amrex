@@ -1,1 +1,34 @@
-In this chapter, we discuss \amrex's build system.
+
+In this chapter, we discuss \amrex's build systems.  There are three
+ways to use \amrex.  The approach used by \amrex\ developers uses GNU
+Make.  There is no installation step in this approach.  Application
+codes adopt \amrex's build system and compile \amrex\ while compiling
+their own codes.  This will be discussed in more details in
+Section~\ref{build:make}.  The second approach is to build \amrex\
+into a library and install it (Section~\ref{build:lib}).  Then an
+application code uses its own build system and links \amrex\ as an
+external library.  \amrex\ can also be built with CMake
+(Section~\ref{build:cmake}).
+
+\section{Building with GNU Make}
+\label{build:make}
+
+In this build approach, you write your own make files defining a
+number of variables and rules.  Then you invoke {\tt make} to start
+the building process.  An example of this can be found in {\tt
+  amrex/Tutorials/Basic/HelloWorld\_C}.  We will 
+
+xxxxx the variables we can set
+
+xxxxx make.package
+
+rules, help, make.machines, make.local xxx 
+
+\section{Building {\tt libamrex}}
+\label{build:lib}
+
+\section{Building with CMake}
+\label{build:cmake}
+
+\MarginPar{todo}
+
