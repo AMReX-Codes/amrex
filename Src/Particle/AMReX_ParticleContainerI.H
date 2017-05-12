@@ -1102,7 +1102,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::CreateGhostPa
 	    // Set its id to indicate that it's a ghost.
 	    //
 	    p.m_idata.id = GhostParticleID;
-	    std::cout << "CREATING GHOST " << p.m_idata.id << std::endl;
 	    
 	    //
 	    // Store it in the AoS.
