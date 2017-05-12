@@ -81,7 +81,7 @@ public:
     Box fabbox () const { return fabArray.fabbox((*index_map)[currentIndex]); }
 
     //! Increment iterator to the next tile we own.
-    void operator++ () { ++currentIndex; }
+    void operator++ ();
 
     //! Is the iterator valid i.e. is it associated with a FAB?
     bool isValid () const { return currentIndex < endIndex; }
@@ -94,6 +94,20 @@ public:
   
     //! The the number of tiles in the current grid;
     int numLocalTiles() const {return num_local_tiles ? (*num_local_tiles)[currentIndex] : 1;}
+
+#ifdef CUDA
+    //! Maintain a record of all data that have been sent to the device.
+    void addDevicePointer(void* ptr, size_t sz) const { device_pointers.push_back(ptr); device_sizes.push_back(sz); }
+
+    //! Enable transfers to and from the device.
+    void enable_device_transfers() { do_device_transfers = true; }
+
+    //! Return whether device transfers are enabled.
+    bool doDeviceTransfers() const { return do_device_transfers; }
+
+    //! Return all data from the device to the host.
+    void releaseDeviceData();
+#endif
 
     /**
     * \brief Return local index into the vector of fab pointers, m_fabs_v
@@ -125,6 +139,12 @@ protected:
     const Array<Box>* tile_array;
     const Array<int>* local_tile_index_map;
     const Array<int>* num_local_tiles;
+
+#ifdef CUDA
+    mutable Array<void*> device_pointers;
+    mutable Array<size_t> device_sizes;
+    bool do_device_transfers;
+#endif
   
     void Initialize ();
 };

@@ -725,6 +725,14 @@ const FAB&
 FabArray<FAB>::operator[] (const MFIter& mfi) const
 {
     BL_ASSERT(mfi.LocalIndex() < indexArray.size());
+#ifdef CUDA
+    if (mfi.doDeviceTransfers()) {
+	void* ptr = (*m_fabs_v[mfi.LocalIndex()]).dataPtr();
+	size_t sz = (*m_fabs_v[mfi.LocalIndex()]).nBytes();
+	mfi.addDevicePointer(ptr, sz);
+	cudaMemPrefetchAsync(ptr, sz, 0);
+    }
+#endif
     return *m_fabs_v[mfi.LocalIndex()];
 }
 
@@ -733,6 +741,14 @@ FAB&
 FabArray<FAB>::operator[] (const MFIter& mfi)
 {
     BL_ASSERT(mfi.LocalIndex() < indexArray.size());
+#ifdef CUDA
+    if (mfi.doDeviceTransfers()) {
+	void* ptr = (*m_fabs_v[mfi.LocalIndex()]).dataPtr();
+	size_t sz = (*m_fabs_v[mfi.LocalIndex()]).nBytes();
+	mfi.addDevicePointer(ptr, sz);
+	cudaMemPrefetchAsync(ptr, sz, 0);
+    }
+#endif
     return *m_fabs_v[mfi.LocalIndex()];
 }
 
