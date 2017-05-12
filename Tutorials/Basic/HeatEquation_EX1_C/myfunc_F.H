@@ -8,25 +8,28 @@ extern "C"
 {
 #endif
 
-    void init_phi(amrex_real* data, const int* lo, const int* hi, const int* ng, 
+    void init_phi(const int* lo, const int* hi,
+                  amrex_real* data, const int* dlo, const int* dhi,
                   const amrex_real* dx, const amrex_real* prob_lo, const amrex_real* prob_hi);
     
-    void compute_flux(amrex_real* phi, const int* ng_p,
-                      amrex_real* fluxx, 
-                      amrex_real* fluxy,
+    void compute_flux(const int* lo, const int* hi,
+                      amrex_real* phi, const int* philo, const int* phihi,
+                      amrex_real* fluxx, const int* fxlo, const int* fxhi,
+                      amrex_real* fluxy, const int* fylo, const int* fyhi,
 #if (BL_SPACEDIM == 3)   
-                      amrex_real* fluxz,
+                      amrex_real* fluxz, const int* fzlo, const int* fzhi,
 #endif
-                      const int* ng_f, const int* lo, const int* hi, const amrex_real* dx);
-    
-    void update_phi(amrex_real* phiold, amrex_real* phinew, const int* ng_p,
-                    amrex_real* fluxx, 
-                    amrex_real* fluxy,
+                      const amrex_real* dx);
+
+    void update_phi(const int* lo, const int* hi,
+                    amrex_real* pold, const int* polo, const int* pohi,
+                    amrex_real* pnew, const int* pnlo, const int* pnhi,
+                    amrex_real* fluxx, const int* fxlo, const int* fxhi,
+                    amrex_real* fluxy, const int* fylo, const int* fyhi,
 #if (BL_SPACEDIM == 3)   
-                    amrex_real* fluxz,
+                    amrex_real* fluxz, const int* fzlo, const int* fzhi,
 #endif
-                    const int* ng_f, const int* lo, const int* hi,
-                    const amrex_real* dx, const amrex_real* dt);
+                    const amrex_real* dx, amrex_real dt); // note dt is passed by value
 
 #ifdef __cplusplus
 }

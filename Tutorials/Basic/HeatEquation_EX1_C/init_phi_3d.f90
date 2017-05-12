@@ -1,12 +1,14 @@
-subroutine init_phi(phi, lo, hi, ng, dx, prob_lo, prob_hi) bind(C, name="init_phi")
+subroutine init_phi(lo, hi, phi, philo, phihi, dx, prob_lo, prob_hi) bind(C, name="init_phi")
+
+  use amrex_fort_module, only : amrex_real
 
   implicit none
 
-  integer          :: lo(3), hi(3), ng
-  double precision :: phi(lo(1)-ng:hi(1)+ng,lo(2)-ng:hi(2)+ng,lo(3)-ng:hi(3)+ng)
-  double precision :: dx(3) 
-  double precision :: prob_lo(3) 
-  double precision :: prob_hi(3) 
+  integer, intent(in) :: lo(3), hi(3), philo(3), phihi(3)
+  real(amrex_real), intent(inout) :: phi(philo(1):phihi(1),philo(2):phihi(2),philo(3):phihi(3))
+  real(amrex_real), intent(in   ) :: dx(3) 
+  real(amrex_real), intent(in   ) :: prob_lo(3) 
+  real(amrex_real), intent(in   ) :: prob_hi(3) 
 
   integer          :: i,j,k
   double precision :: x,y,z,r2
