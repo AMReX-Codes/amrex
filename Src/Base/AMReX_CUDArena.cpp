@@ -9,7 +9,6 @@ amrex::CUDArena::alloc (std::size_t _sz)
     void* pt;
 
     cudaMallocManaged((void**) &pt, _sz);
-    cudaDeviceSynchronize();
 
     return pt;
 }
