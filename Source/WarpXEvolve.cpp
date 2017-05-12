@@ -44,7 +44,7 @@ WarpX::Evolve (int numsteps)
 
         if (is_synchronized) {
             // on first step, push E and X by 0.5*dt
-            // xxxxx WarpX::FillBoundaryB( lev, true );
+            FillBoundaryB();
             EvolveE(0.5*dt[0]);
             mypc->PushX(0.5*dt[0]);
             mypc->Redistribute();  // Redistribute particles
@@ -53,9 +53,10 @@ WarpX::Evolve (int numsteps)
 
         EvolveB(0.5*dt[0]); // We now B^{n}
 
-        // xxxxx for all levels
-        //xxxxx WarpX::FillBoundaryB( lev, false );
-        //xxxxx WarpX::FillBoundaryE( lev, false );
+        if (WarpX::nox > 1 || WarpX::noz > 1 || WarpX::noz > 1) {
+            FillBoundaryB();
+            FillBoundaryE();
+        }
         
         for (int lev = 0; lev <= finest_level; ++lev) {
 	    // Evolve particles to p^{n+1/2} and x^{n+1}
@@ -67,16 +68,11 @@ WarpX::Evolve (int numsteps)
         }
 
         EvolveB(0.5*dt[0]); // We now B^{n+1/2}
-        
-        // xxxxx the sync of j
-        // const Geometry& gm = allcontainers[0]->Geom(lev);
-        // jx.SumBoundary(gm.periodicity());
-        // jy.SumBoundary(gm.periodicity());
-        // jz.SumBoundary(gm.periodicity());
 
-        // xxxxx for all levels
+        SyncCurrent();
+
         // Fill B's ghost cells because of the next step of evolving E.
-        /// WarpX::FillBoundaryB( lev, true );
+        FillBoundaryB();
 
         if (cur_time + dt[0] >= stop_time - 1.e-3*dt[0] || step == numsteps_max-1) {
             // on last step, push by only 0.5*dt to synchronize all at n+1/2
@@ -111,11 +107,15 @@ WarpX::Evolve (int numsteps)
 	}
 
 	if (to_make_plot) {
-            // xxxxx WarpX::FillBoundaryB( lev, false );
-            // xxxxx WarpX::FillBoundaryE( lev, false );
-            //  mypc->FieldGather(lev,
-            //     *Efield[lev][0],*Efield[lev][1],*Efield[lev][2],
-            //     *Bfield[lev][0],*Bfield[lev][1],*Bfield[lev][2]);
+            if (WarpX::nox > 1 || WarpX::noz > 1 || WarpX::noz > 1) {
+                FillBoundaryB();
+                FillBoundaryE();
+            }
+            for (int lev = 0; lev <= finest_level; ++lev) {
+                mypc->FieldGather(lev,
+                                  *Efield[lev][0],*Efield[lev][1],*Efield[lev][2],
+                                  *Bfield[lev][0],*Bfield[lev][1],*Bfield[lev][2]);
+            }
 	    last_plot_file_step = step+1;
 	    WritePlotFile();
 	}
@@ -313,48 +313,6 @@ WarpX::EvolveE (int lev, Real dt)
 }
 
 void
-WarpX::FillBoundaryE(int lev, bool force)
-{
-    if (force || WarpX::nox > 1 || WarpX::noy > 1 || WarpX::noz > 1)
-    {
-        if (do_pml && lev == 0) {
-            WarpX::ExchangeWithPML(*Efield[lev][0], *pml_E[0], geom[lev]);
-            WarpX::ExchangeWithPML(*Efield[lev][1], *pml_E[1], geom[lev]);
-            WarpX::ExchangeWithPML(*Efield[lev][2], *pml_E[2], geom[lev]);
-
-            (*pml_E[0]).FillBoundary( geom[lev].periodicity() );
-            (*pml_E[1]).FillBoundary( geom[lev].periodicity() );
-            (*pml_E[2]).FillBoundary( geom[lev].periodicity() );
-        }
-
-        (*Efield[lev][0]).FillBoundary( geom[lev].periodicity() );
-        (*Efield[lev][1]).FillBoundary( geom[lev].periodicity() );
-        (*Efield[lev][2]).FillBoundary( geom[lev].periodicity() );
-    }
-}
-
-void
-WarpX::FillBoundaryB(int lev, bool force)
-{
-    if (force || WarpX::nox > 1 || WarpX::noy > 1 || WarpX::noz > 1)
-    {
-        if (do_pml && lev == 0) {
-            WarpX::ExchangeWithPML(*Bfield[lev][0], *pml_B[0], geom[lev]);
-            WarpX::ExchangeWithPML(*Bfield[lev][1], *pml_B[1], geom[lev]);
-            WarpX::ExchangeWithPML(*Bfield[lev][2], *pml_B[2], geom[lev]);
-
-            (*pml_B[0]).FillBoundary( geom[lev].periodicity() );
-            (*pml_B[1]).FillBoundary( geom[lev].periodicity() );
-            (*pml_B[2]).FillBoundary( geom[lev].periodicity() );
-        }
-
-        (*Bfield[lev][0]).FillBoundary( geom[lev].periodicity() );
-        (*Bfield[lev][1]).FillBoundary( geom[lev].periodicity() );
-        (*Bfield[lev][2]).FillBoundary( geom[lev].periodicity() );
-    }
-}
-
-void
 WarpX::PushParticlesandDepose(int lev, Real cur_time)
 {
     // Evolve particles to p^{n+1/2} and x^{n+1}
@@ -397,58 +355,5 @@ WarpX::InjectPlasma (int num_shift, int dir)
             ppc.AddParticles(lev, particleBox);
         }
     }
-}
-
-void
-WarpX::MoveWindow (bool move_j)
-{
-
-    if (do_moving_window == 0) return;
-
-    if (max_level > 0) {
-        amrex::Abort("MoveWindow with mesh refinement has not been implemented");
-    }
-
-    const int lev = 0;
-
-    // compute the number of cells to shift
-    int dir = moving_window_dir;
-    Real new_lo[BL_SPACEDIM];
-    Real new_hi[BL_SPACEDIM];
-    const Real* current_lo = geom[lev].ProbLo();
-    const Real* current_hi = geom[lev].ProbHi();
-    const Real* dx = geom[lev].CellSize();
-    moving_window_x += moving_window_v * dt[lev];
-    int num_shift = static_cast<int>((moving_window_x - current_lo[dir]) / dx[dir]);
-
-    if (num_shift == 0) return;
-
-    // update the problem domain
-    for (int i=0; i<BL_SPACEDIM; i++) {
-        new_lo[i] = current_lo[i];
-        new_hi[i] = current_hi[i];
-    }
-    new_lo[dir] = current_lo[dir] + num_shift * dx[dir];
-    new_hi[dir] = current_hi[dir] + num_shift * dx[dir];
-    RealBox new_box(new_lo, new_hi);
-    geom[lev].ProbDomain(new_box);
-
-    // shift the mesh fields (Note - only on level 0 for now)
-    shiftMF(*Bfield[lev][0], geom[lev], num_shift, dir);
-    shiftMF(*Bfield[lev][1], geom[lev], num_shift, dir);
-    shiftMF(*Bfield[lev][2], geom[lev], num_shift, dir);
-    shiftMF(*Efield[lev][0], geom[lev], num_shift, dir);
-    shiftMF(*Efield[lev][1], geom[lev], num_shift, dir);
-    shiftMF(*Efield[lev][2], geom[lev], num_shift, dir);
-    if (move_j) {
-        shiftMF(*current[lev][0], geom[lev], num_shift, dir);
-        shiftMF(*current[lev][1], geom[lev], num_shift, dir);
-        shiftMF(*current[lev][2], geom[lev], num_shift, dir);
-    }
-
-    InjectPlasma(num_shift, dir);
-
-    // Redistribute (note - this removes particles that are outside of the box)
-    mypc->Redistribute();
 }
 

@@ -73,9 +73,20 @@ public:
     void EvolveE (int lev, amrex::Real dt);
     void EvolveB (         amrex::Real dt);
     void EvolveB (int lev, amrex::Real dt);
+
+    void PushParticlesandDepose (int lev, amrex::Real cur_time);
+
+    // Fill boundary cells including coarse/fine boundaries
+    void FillBoundaryB ();
+    void FillBoundaryE ();
     void FillBoundaryE (int lev, bool force);
     void FillBoundaryB (int lev, bool force);
-    void PushParticlesandDepose (int lev, amrex::Real cur_time);
+
+    void AverageDownB ();
+    void AverageDownE ();
+    void AverageDownCurrent ();
+
+    void SyncCurrent ();
 
     int getistep (int lev) const {return istep[lev];}
     void setistep (int lev, int ii) {istep[lev] = ii;}
@@ -138,9 +149,6 @@ private:
     amrex::DistributionMapping getCostCountDM (const amrex::Array<long>& cost, const amrex::BoxArray& ba);
     bool okToRegrid(int step);
     // *************************************************************************
-
-    void AverageDownB ();
-    void AverageDownE ();
 
     void InitFromScratch ();
 
