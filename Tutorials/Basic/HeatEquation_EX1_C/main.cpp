@@ -48,14 +48,14 @@ void advance (MultiFab& old_phi, MultiFab& new_phi,
     {
         const Box& bx = mfi.validbox();
 
-        compute_flux(old_phi[mfi].dataPtr(),
-                     &ng_p,
-                     flux[0][mfi].dataPtr(),
-                     flux[1][mfi].dataPtr(),
+        compute_flux(bx.loVect(), bx.hiVect(),
+                     BL_TO_FORTRAN_ANYD(old_phi[mfi]),
+                     BL_TO_FORTRAN_ANYD(flux[0][mfi]),
+                     BL_TO_FORTRAN_ANYD(flux[1][mfi]),
 #if (BL_SPACEDIM == 3)   
-                     flux[2][mfi].dataPtr(),
+                     BL_TO_FORTRAN_ANYD(flux[2][mfi]),
 #endif
-                     &ng_f, bx.loVect(), bx.hiVect(), &dx[0]);
+                     dx);
     }
     
     // Advance the solution one grid at a time
@@ -63,15 +63,15 @@ void advance (MultiFab& old_phi, MultiFab& new_phi,
     {
         const Box& bx = mfi.validbox();
         
-        update_phi(old_phi[mfi].dataPtr(),
-                   new_phi[mfi].dataPtr(),
-                   &ng_p,
-                   flux[0][mfi].dataPtr(),
-                   flux[1][mfi].dataPtr(),
+        update_phi(bx.loVect(), bx.hiVect(),
+                   BL_TO_FORTRAN_ANYD(old_phi[mfi]),
+                   BL_TO_FORTRAN_ANYD(new_phi[mfi]),
+                   BL_TO_FORTRAN_ANYD(flux[0][mfi]),
+                   BL_TO_FORTRAN_ANYD(flux[1][mfi]),
 #if (BL_SPACEDIM == 3)   
-                   flux[2][mfi].dataPtr(),
+                   BL_TO_FORTRAN_ANYD(flux[2][mfi]),
 #endif
-                   &ng_f, bx.loVect(), bx.hiVect(), &dx[0] , &dt);
+                   dx, dt);
     }
 }
 
@@ -151,24 +151,20 @@ void main_main ()
     DistributionMapping dm(ba);
 
     // we allocate two phi multifabs; one will store the old state, the other the new.
-    // we swap the indices each time step to avoid copies of new into old
-    std::array<MultiFab,2> phi;
-    phi[0].define(ba, dm, Ncomp, Nghost);
-    phi[1].define(ba, dm, Ncomp, Nghost);
+    MultiFab phi_old(ba, dm, Ncomp, Nghost);
+    MultiFab phi_new(ba, dm, Ncomp, Nghost);
 
-    // Initialize both to zero (just because)
-    phi[0].setVal(0.0);
-    phi[1].setVal(0.0);
+    phi_old.setVal(0.0);
+    phi_new.setVal(0.0);
 
-    // Initialize phi[init_index] by calling a Fortran routine.
+    // Initialize phi_new by calling a Fortran routine.
     // MFIter = MultiFab Iterator
-    int init_index = 0;
-    for ( MFIter mfi(phi[init_index]); mfi.isValid(); ++mfi )
+    for ( MFIter mfi(phi_new); mfi.isValid(); ++mfi )
     {
         const Box& bx = mfi.validbox();
 
-        init_phi(phi[init_index][mfi].dataPtr(),
-                 bx.loVect(), bx.hiVect(), &Nghost,
+        init_phi(bx.loVect(), bx.hiVect(),
+                 BL_TO_FORTRAN_ANYD(phi_new[mfi]),
                  geom.CellSize(), geom.ProbLo(), geom.ProbHi());
     }
 
@@ -181,7 +177,7 @@ void main_main ()
     {
         int n = 0;
         const std::string& pltfile = amrex::Concatenate("plt",n,5);
-        WriteSingleLevelPlotfile(pltfile, phi[init_index], {"phi"}, geom, time, 0);
+        WriteSingleLevelPlotfile(pltfile, phi_new, {"phi"}, geom, time, 0);
     }
 
     // build the flux multifabs
@@ -194,13 +190,12 @@ void main_main ()
         flux[dir].define(edge_ba, dm, 1, 0);
     }
 
-    int old_index = init_index;
-    for (int n = 1; n <= nsteps; n++, old_index = 1 - old_index)
+    for (int n = 1; n <= nsteps; ++n)
     {
-        int new_index = 1 - old_index;
+        MultiFab::Copy(phi_old, phi_new, 0, 0, 1, 0);
 
         // new_phi = old_phi + dt * (something)
-        advance(phi[old_index], phi[new_index], flux, dt, geom); 
+        advance(phi_old, phi_new, flux, dt, geom); 
         time = time + dt;
         
         // Tell the I/O Processor to write out which step we're doing
@@ -210,7 +205,7 @@ void main_main ()
         if (plot_int > 0 && n%plot_int == 0)
         {
             const std::string& pltfile = amrex::Concatenate("plt",n,5);
-            WriteSingleLevelPlotfile(pltfile, phi[new_index], {"phi"}, geom, time, n);
+            WriteSingleLevelPlotfile(pltfile, phi_new, {"phi"}, geom, time, n);
         }
     }
 

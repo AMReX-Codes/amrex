@@ -1,78 +1,84 @@
-subroutine compute_flux(phi, ng_p, fluxx, fluxy, fluxz, ng_f, lo, hi, dx) bind(C, name="compute_flux")
+subroutine compute_flux (lo, hi, phi, philo, phihi, &
+     fluxx, fxlo, fxhi, fluxy, fylo, fyhi, fluxz, fzlo, fzhi, &
+     dx) bind(C, name="compute_flux")
 
+  use amrex_fort_module, only : amrex_real
   implicit none
 
-  integer lo(3),hi(3),ng_p,ng_f
-  double precision   phi(lo(1)-ng_p:hi(1)+ng_p,lo(2)-ng_p:hi(2)+ng_p,lo(3)-ng_p:hi(3)+ng_p)
-  double precision fluxx(lo(1)-ng_f:hi(1)+ng_f+1,lo(2)-ng_f:hi(2)+ng_f,lo(3)-ng_f:hi(3)+ng_f)
-  double precision fluxy(lo(1)-ng_f:hi(1)+ng_f,lo(2)-ng_f:hi(2)+ng_f+1,lo(3)-ng_f:hi(3)+ng_f)
-  double precision fluxz(lo(1)-ng_f:hi(1)+ng_f,lo(2)-ng_f:hi(2)+ng_f,lo(3)-ng_f:hi(3)+ng_f+1)
-  double precision dx
+  integer lo(3), hi(3), philo(3), phihi(3), fxlo(3), fxhi(3), fylo(3), fyhi(3), fzlo(3), fzhi(3)
+  real(amrex_real), intent(in)    :: phi  (philo(1):phihi(1),philo(2):phihi(2),philo(3):phihi(3))
+  real(amrex_real), intent(inout) :: fluxx( fxlo(1): fxhi(1), fxlo(2): fxhi(2), fxlo(3): fxhi(3))
+  real(amrex_real), intent(inout) :: fluxy( fylo(1): fyhi(1), fylo(2): fyhi(2), fylo(3): fyhi(3))
+  real(amrex_real), intent(inout) :: fluxz( fzlo(1): fzhi(1), fzlo(2): fzhi(2), fzlo(3): fzhi(3))
+  real(amrex_real), intent(in)    :: dx(3)
   
   ! local variables
   integer i,j,k
 
   ! x-fluxes
-  !$omp parallel do private(i,j,k)
-  do k=lo(3),hi(3)
-     do j=lo(2),hi(2)
-        do i=lo(1),hi(1)+1
-           fluxx(i,j,k) = ( phi(i,j,k) - phi(i-1,j,k) ) / dx
+  do       k = lo(3), hi(3)
+     do    j = lo(2), hi(2)
+        do i = lo(1), hi(1)+1
+           fluxx(i,j,k) = ( phi(i,j,k) - phi(i-1,j,k) ) / dx(1)
         end do
      end do
   end do
-  !$omp end parallel do
 
   ! y-fluxes
-  !$omp parallel do private(i,j,k)
-  do k=lo(3),hi(3)
-     do j=lo(2),hi(2)+1
-        do i=lo(1),hi(1)
-           fluxy(i,j,k) = ( phi(i,j,k) - phi(i,j-1,k) ) / dx
+  do       k = lo(3), hi(3)
+     do    j = lo(2), hi(2)+1
+        do i = lo(1), hi(1)
+           fluxy(i,j,k) = ( phi(i,j,k) - phi(i,j-1,k) ) / dx(2)
         end do
      end do
   end do
-  !$omp end parallel do
 
   ! z-fluxes
-  !$omp parallel do private(i,j,k)
-  do k=lo(3),hi(3)+1
-     do j=lo(2),hi(2)
-        do i=lo(1),hi(1)
-           fluxz(i,j,k) = ( phi(i,j,k) - phi(i,j,k-1) ) / dx
+  do       k = lo(3), hi(3)+1
+     do    j = lo(2), hi(2)
+        do i = lo(1), hi(1)
+           fluxz(i,j,k) = ( phi(i,j,k) - phi(i,j,k-1) ) / dx(3)
         end do
      end do
   end do
-  !$omp end parallel do
 
 end subroutine compute_flux
 
-subroutine update_phi(phiold, phinew, ng_p, fluxx, fluxy, fluxz, ng_f, lo, hi, dx, dt) bind(C, name="update_phi")
 
-  integer          :: lo(3), hi(3), ng_p, ng_f
-  double precision :: phiold(lo(1)-ng_p:hi(1)+ng_p,lo(2)-ng_p:hi(2)+ng_p,lo(3)-ng_p:hi(3)+ng_p)
-  double precision :: phinew(lo(1)-ng_p:hi(1)+ng_p,lo(2)-ng_p:hi(2)+ng_p,lo(3)-ng_p:hi(3)+ng_p)
-  double precision ::  fluxx(lo(1)-ng_f:hi(1)+ng_f+1,lo(2)-ng_f:hi(2)+ng_f,lo(3)-ng_f:hi(3)+ng_f)
-  double precision ::  fluxy(lo(1)-ng_f:hi(1)+ng_f,lo(2)-ng_f:hi(2)+ng_f+1,lo(3)-ng_f:hi(3)+ng_f)
-  double precision ::  fluxz(lo(1)-ng_f:hi(1)+ng_f,lo(2)-ng_f:hi(2)+ng_f,lo(3)-ng_f:hi(3)+ng_f+1)
-  double precision :: dx, dt
+subroutine update_phi (lo, hi, phiold, polo, pohi, phinew, pnlo, pnhi, &
+     fluxx, fxlo, fxhi, fluxy, fylo, fyhi, fluxz, fzlo, fzhi, &
+     dx, dt) bind(C, name="update_phi")
+
+  use amrex_fort_module, only : amrex_real
+  implicit none
+
+  integer lo(3), hi(3), polo(3), pohi(3), pnlo(3), pnhi(3), &
+       fxlo(3), fxhi(3), fylo(3), fyhi(3), fzlo(3), fzhi(3)
+  real(amrex_real), intent(in)    :: phiold(polo(1):pohi(1),polo(2):pohi(2),polo(3):pohi(3))
+  real(amrex_real), intent(inout) :: phinew(pnlo(1):pnhi(1),pnlo(2):pnhi(2),pnlo(3):pnhi(3))
+  real(amrex_real), intent(in   ) :: fluxx (fxlo(1):fxhi(1),fxlo(2):fxhi(2),fxlo(3):fxhi(3))
+  real(amrex_real), intent(in   ) :: fluxy (fylo(1):fyhi(1),fylo(2):fyhi(2),fylo(3):fyhi(3))
+  real(amrex_real), intent(in   ) :: fluxz (fzlo(1):fzhi(1),fzlo(2):fzhi(2),fzlo(3):fzhi(3))
+  real(amrex_real), intent(in)    :: dx(3)
+  real(amrex_real), value         :: dt
 
   ! local variables
   integer i,j,k
+  real(amrex_real) :: dtdx(3)
 
-  !$omp parallel do private(i,j,k)
-  do k=lo(3),hi(3)
-     do j=lo(2),hi(2)
-        do i=lo(1),hi(1)
+  dtdx = dt/dx
 
-           phinew(i,j,k) = phiold(i,j,k) + dt * &
-                ( fluxx(i+1,j,k)-fluxx(i,j,k) &
-                +fluxy(i,j+1,k)-fluxy(i,j,k) &
-                +fluxz(i,j,k+1)-fluxz(i,j,k) ) / dx
+  do       k = lo(3), hi(3)
+     do    j = lo(2), hi(2)
+        do i = lo(1), hi(1)
+
+           phinew(i,j,k) = phiold(i,j,k) &
+                + dtdx(1) * (fluxx(i+1,j  ,k  ) - fluxx(i,j,k)) &
+                + dtdx(2) * (fluxy(i  ,j+1,k  ) - fluxy(i,j,k)) &
+                + dtdx(3) * (fluxz(i  ,j  ,k+1) - fluxz(i,j,k))
 
         end do
      end do
   end do
-  !$omp end parallel do
 
 end subroutine update_phi
