@@ -5,6 +5,11 @@
 
 namespace amrex {
 
+BCRec::BCRec ()
+    : bc {D_DECL(BOGUS_BC,BOGUS_BC,BOGUS_BC),
+          D_DECL(BOGUS_BC,BOGUS_BC,BOGUS_BC)}
+{ }
+
 BCRec::BCRec (D_DECL(int loX, int loY, int loZ),
               D_DECL(int hiX, int hiY, int hiZ))
 {
