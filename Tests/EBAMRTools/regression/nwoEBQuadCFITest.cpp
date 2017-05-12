@@ -24,6 +24,8 @@
 #include "AMReX_PlaneIF.H"
 #include "AMReX_SphereIF.H"
 #include "AMReX_MeshRefine.H"
+#include "AMReX_EBDebugDump.H"
+#include "AMReX_EBDebugOut.H"
 #include "AMReX_EBLevelDataOps.H"
 #include "AMReX_NWOEBQuadCFInterp.H"
 
@@ -58,21 +60,22 @@ namespace amrex
                std::vector<EBLevelGrid> & a_eblg,
                const Real& a_dxLev1)
   {
+    int nghostData = 3;
     int nghost = 2;
-    int nvar = 1;
+    int nvar   = 1;
     EBLevelGrid eblgFine = a_eblg[1];
     EBLevelGrid eblgCoar = a_eblg[0];
     Real dxCoar = a_dxLev1*2.;
     EBCellFactory factFine(a_eblg[1].getEBISL());
     EBCellFactory factCoar(a_eblg[0].getEBISL());
-    FabArray<EBCellFAB> phiFineCalc(eblgFine.getDBL(), eblgFine.getDM(), nvar, nghost, MFInfo(), factFine);
-    FabArray<EBCellFAB> phiFineExac(eblgFine.getDBL(), eblgFine.getDM(), nvar, nghost, MFInfo(), factFine);
-    FabArray<EBCellFAB> phiCoarExac(eblgCoar.getDBL(), eblgCoar.getDM(), nvar, nghost, MFInfo(), factCoar);
+    FabArray<EBCellFAB> phiFineCalc(eblgFine.getDBL(), eblgFine.getDM(), nvar, nghostData, MFInfo(), factFine);
+    FabArray<EBCellFAB> phiFineExac(eblgFine.getDBL(), eblgFine.getDM(), nvar, nghostData, MFInfo(), factFine);
+    FabArray<EBCellFAB> phiCoarExac(eblgCoar.getDBL(), eblgCoar.getDM(), nvar, nghostData, MFInfo(), factCoar);
 
     for(MFIter mfi(eblgFine.getDBL(), eblgFine.getDM()); mfi.isValid(); ++mfi)
     {
       Box valid = eblgFine.getDBL()[mfi];
-      Box grownBox = grow(valid, nghost);
+      Box grownBox = grow(valid, nghostData);
       grownBox &= eblgFine.getDomain();
       IntVectSet ivsBox(grownBox);
       phiFineCalc[mfi].setVal(0.0);
@@ -92,10 +95,11 @@ namespace amrex
       }
     }
 
+    int ibox = 0;
     for(MFIter mfi(eblgCoar.getDBL(), eblgCoar.getDM()); mfi.isValid(); ++mfi)
     {
       Box valid = eblgCoar.getDBL()[mfi];
-      Box grownBox = grow(valid, nghost);
+      Box grownBox = grow(valid, nghostData);
       grownBox &= eblgCoar.getDomain();
 
       IntVectSet ivsBox(grownBox);
@@ -108,10 +112,12 @@ namespace amrex
         Real rightAns = exactFunc(vof.gridIndex(), dxCoar);
         phiCoarExacFAB(vof, 0) = rightAns;
       }
+//      dumpEBFAB(&phiCoarExacFAB);
+      ibox++;
     }
     int nref = 2;
     //interpolate phiC onto phiF
-    NWOEBQuadCFInterp interpOp(eblgFine, eblgCoar, nref, nghost);
+    NWOEBQuadCFInterp interpOp(eblgFine, eblgCoar, nref, nghostData, nghost, false);
 
 
     interpOp.coarseFineInterp(phiFineCalc,  phiCoarExac, 0, 0, 1);
@@ -123,10 +129,12 @@ namespace amrex
       Box grownBox = grow(valid, nghost);
       grownBox &= eblgFine.getDomain();
       IntVectSet ivsBox(grownBox);
+      EBCellFAB& calcFAB = phiFineCalc[mfi];
+      EBCellFAB& exacFAB = phiFineExac[mfi];
       for (VoFIterator vofit(ivsBox, eblgFine.getEBISL()[mfi].getEBGraph()); vofit.ok(); ++vofit)
       {
         const VolIndex& vof = vofit();
-        Real diff = std::abs(phiFineCalc[mfi](vof,0)-phiFineExac[mfi](vof,0));
+        Real diff = std::abs(calcFAB(vof,0)-exacFAB(vof,0));
         a_error[mfi](vof, 0) = diff;
       }
     }
