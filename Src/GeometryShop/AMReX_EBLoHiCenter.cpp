@@ -15,6 +15,33 @@
 namespace amrex
 {
             
+  void
+  EBLoHiCenAllDirs(Box         a_loBox[BL_SPACEDIM],
+                   Box         a_hiBox[BL_SPACEDIM],
+                   Box         a_ceBox[BL_SPACEDIM],
+                   int         a_hasLo[BL_SPACEDIM],
+                   int         a_hasHi[BL_SPACEDIM],
+                   int       & a_nearAnyBoundary,
+                   const Box & a_inBox,
+                   const Box & a_domain)
+  {
+    Box entirebox; //never saw the use in this one
+    a_nearAnyBoundary = 0;
+    for(int idir = 0; idir < SpaceDim; idir++)
+    {
+      eblohicenter(a_loBox[idir], a_hasLo[idir],
+                   a_hiBox[idir], a_hasHi[idir],
+                   a_ceBox[idir], entirebox,
+                   a_inBox, a_domain, idir);
+
+      if((a_hasLo[idir]==1) || (a_hasHi[idir]==1))
+      {
+        a_nearAnyBoundary = 1;
+      }
+    }
+  }
+
+
   void getLHCBoxes(Box& a_loBox,
                    Box& a_hiBox,
                    Box& a_centerBox,

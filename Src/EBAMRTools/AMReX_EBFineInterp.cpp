@@ -13,6 +13,7 @@
 #include "AMReX_EBFineInterp.H"
 #include "AMReX_VoFIterator.H"
 #include "AMReX_EBCellFactory.H"
+#include "AMReX_EBLoHiCenter.H"
 #include "AMReX_EBFortND_F.H"
 
 
@@ -51,7 +52,7 @@ namespace amrex
   {
     BL_PROFILE("NWOEBCFI::defineInternals");
     coarsen(m_eblgCoFi, m_eblgFine, m_refRat);
-    m_eblgCoFi.setMaxRefinementRatio(m_refRat);
+    m_eblgFine.setMaxCoarseningRatio(m_refRat);
 
     EBCellFactory factFine(m_eblgFine.getEBISL());
     EBCellFactory factCoFi(m_eblgCoFi.getEBISL());
@@ -79,7 +80,7 @@ namespace amrex
       std::vector<VoFStencil> allsten(volvec.size());
       for(int ivec = 0; ivec < volvec.size(); ivec++)
       {
-        getStencil(allsten[ivec],  volvec[ivec], ebisFine, ebisCoFi);
+        getStencil(allsten[ivec],  volvec[ivec], ebisFine, ebisCoFi, mfi);
         baseSten    [ivec]  = std::shared_ptr<BaseStencil>(            &allsten[ivec] , &null_deleter_ebfi_sten);
         baseDstVoFs [ivec]  = std::shared_ptr<BaseIndex  >((BaseIndex*)(&volvec[ivec]), &null_deleter_ebfi_ind);
       }
@@ -98,13 +99,14 @@ namespace amrex
   getStencil(VoFStencil           & a_stencil,
              const VolIndex       & a_vofFine,
              const EBISBox        & a_ebisFine,
-             const EBISBox        & a_ebisCoFi)
+             const EBISBox        & a_ebisCoFi,
+             const MFIter         & a_mfi)
   {
     VolIndex fineVoF = a_vofFine;
     //the values of these do not matter as this is interpolation
     Real dxFine = 1.0;  Real dxCoar = m_refRat;
     a_stencil.clear();
-    VolIndex coarVoF = a_ebisFine.coarsen(a_vofFine);
+    VolIndex coarVoF = m_eblgFine.getEBISL().coarsen(fineVoF, m_refRat, a_mfi);
     RealVect coarLoc = EBArith::getVoFLocation(coarVoF, dxCoar, RealVect::Zero);
     RealVect fineLoc = EBArith::getVoFLocation(fineVoF, dxFine, RealVect::Zero);
     RealVect dist = fineLoc - coarLoc;
@@ -139,10 +141,58 @@ namespace amrex
       }
       else if(m_orderOfPolynomial < 2)
       {
-        amrex::Abort("case not implemented");
+#if 0
+        Box loBox [BL_SPACEDIM];
+        Box hiBox [BL_SPACEDIM];
+        Box ceBox [BL_SPACEDIM];
+        int hasLo [BL_SPACEDIM];
+        int hasHi [BL_SPACEDIM];
+        int nearAnyBoundary;
+        Box inBoxCoar = m_eblgCoFi.getDBL()[mfi];
+        Box domainCoar= m_eblgCoFi.getDomain();
+        EBLoHiCenAllDirs(loBox ,
+                         hiBox ,
+                         ceBox,
+                         hasLo ,
+                         hasHi ,
+                         nearAnyBoundary,
+                         inBoxCoar,
+                         domainCoar);
+        if(nearAnyBoundary == 0)
+        {
+          ebfnd_pwlinterp_nobound(BL_TO_FORTRAN_FAB(regFine),
+                                  BL_TO_FORTRAN_FAB(regCoar),
+                                  BL_TO_FORTRAN_BOX(gridFine),
+                                  &m_refRat, &isrc, &idst, &inco);
+        }
+        else
+        {
+
+          // first add in constant bit
+          ebfnd_pwcinterp(BL_TO_FORTRAN_FAB(regFine),
+                          BL_TO_FORTRAN_FAB(regCoar),
+                          BL_TO_FORTRAN_BOX(gridFine),
+                          &m_refRat, &isrc, &idst, &inco);
+          Box refBox(IntVect::Zero, IntVect::Zero);
+          refBox.refine(m_refRat);
+          //now increment each direction
+          for(int idir = 0; idir < SpaceDim; idir++)
+          {
+            ebfnd_pwl_incr_at_bound(BL_TO_FORTRAN_FAB(regFine),
+                                    BL_TO_FORTRAN_FAB(regCoar),
+                                    &hasLo[idir], &hasHi[idir], &idir,
+                                    BL_TO_FORTRAN_BOX(loBox[idir]),
+                                    BL_TO_FORTRAN_BOX(hiBox[idir]),
+                                    BL_TO_FORTRAN_BOX(ceBox[idir]),
+                                    BL_TO_FORTRAN_BOX(refBox),
+                                    &m_refRat, &isrc, &idst, &inco);
+          }
+        }
+#endif
       }
       else
       {
+        //because mixed derivatives suck, only doing first derivs at domain boundaries.
         amrex::Abort("case not implemented");
       }
 
