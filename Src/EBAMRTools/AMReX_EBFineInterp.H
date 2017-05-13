@@ -113,7 +113,8 @@ namespace amrex
     getStencil(VoFStencil           & a_stencil,
                const VolIndex       & a_vofFine,
                const EBISBox        & a_ebisFine,
-               const EBISBox        & a_ebisCoFi);
+               const EBISBox        & a_ebisCoFi,
+               const MFIter         & a_mfi);
     bool m_isDefined;
 
     EBLevelGrid m_eblgCoar;

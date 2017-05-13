@@ -230,7 +230,7 @@ namespace amrex
     FabArray<EBCellFAB> errorFine(eblgFine.getDBL(), eblgFine.getDM(), nvar, nghost, MFInfo(), factFine);
     FabArray<EBCellFAB> errorMedi(eblgMedi.getDBL(), eblgMedi.getDM(), nvar, nghost, MFInfo(), factMedi);
 
-    int maxOrder = 0; //got to get this to 2
+    int maxOrder = 1; //got to get this to 2
     for( int iorder = 0; iorder <= maxOrder; iorder++)
     {
       amrex::Print() << "testing interpolation with order = " << iorder << endl;
