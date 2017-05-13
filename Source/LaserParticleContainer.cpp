@@ -366,7 +366,7 @@ void
 LaserParticleContainer::PostRestart ()
 {
     Real Sx, Sy;
-    const int lev = 0; // xxxxx
+    const int lev = finestLevel();
     ComputeSpacing(lev, Sx, Sy);
     ComputeWeightMobility(Sx, Sy);
 }

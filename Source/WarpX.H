@@ -168,6 +168,8 @@ private:
     static void PackPlotDataPtrs (amrex::Array<const amrex::MultiFab*>& pmf,
 				  const std::array<std::unique_ptr<amrex::MultiFab>,3>& data);
 
+    void InitCrseFineBndryGrids (int ngrow);
+
     void InitPML ();
 
     amrex::Array<int> istep;      // which step?

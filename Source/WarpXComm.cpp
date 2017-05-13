@@ -4,15 +4,69 @@
 using namespace amrex;
 
 void
+WarpX::InitCrseFineBndryGrids (int ngrow)
+{
+    const int myproc = ParallelDescriptor::MyProc();
+
+    for (int lev = 1; lev <= finest_level; ++lev)
+    {
+        const BoxArray& ba = grids[lev];
+        const DistributionMapping& dm = dmap[lev];
+        const Geometry& gm = Geom(lev);
+
+        Box domain = gm.Domain();
+        for (int idim = 0; idim < BL_SPACEDIM; ++idim) {
+            if (Geometry::isPeriodic(idim)) {
+                domain.grow(idim, ngrow);
+            }
+        }
+
+        BoxList bl(ba.ixType());
+        Array<int> iprocs;
+        Array<int> grid_idx;
+
+        for (int i = 0, N = ba.size(); i < N; ++i)
+        {
+            Box bx = ba[i];
+            bx.grow(ngrow);
+            bx &= domain;
+
+            const BoxList& noncovered = ba.complementIn(bx);
+            for (const Box& b : noncovered) {
+                bl.push_back(b);
+                iprocs.push_back(dm[i]);
+                if (dm[i] = myproc) {
+                    grid_idx.push(i);
+                }
+            }
+        }
+
+        if (!iprocs.empty()) {
+            // define CrseFineBndryGrids
+        }
+    }
+}
+
+void
 WarpX::FillBoundaryB ()
 {
+    FillBoundaryB(0, true); // level 0
 
+    for (int lev = 1; lev <= finest_level; ++lev)
+    {
+        FillBoundaryB(lev, true);
+    }
 }
 
 void
 WarpX::FillBoundaryE ()
 {
+    FillBoundaryE(0, true); // level 0
 
+    for (int lev = 1; lev <= finest_level; ++lev)
+    {
+        FillBoundaryE(lev, true);
+    }
 }
 
 void
