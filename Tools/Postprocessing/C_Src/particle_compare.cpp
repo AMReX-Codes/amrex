@@ -1,6 +1,6 @@
 /*
 
-  This script compares the particle data stored in plt files using the 
+  This program compares the particle data stored in plt files using the 
   Checkpoint() method of the ParticleContainer. 
 
   To compile, navigate to AMREX_HOME/Tools/Postprocessing/C_Src and type
@@ -8,7 +8,7 @@
 
   Usage:
 
-      mpirun -np 4 ./particle_compare3d.gnu.MPI.ex old00000 new00000 Tracer
+      mpirun -np 4 ./particle_compare.exe old00000 new00000 Tracer
 
   This compares the particle type "Tracer" between the old00000 and 
   new00000 plt files. For this to work, the plt files must have been
@@ -25,8 +25,9 @@
 #include <cassert>
 #include <cstring>
 #include <cmath>
+#include <cstdlib>
 
-#ifdef USE_MPI
+#ifdef BL_USE_MPI
 #include <mpi.h>
 #endif
 
@@ -49,9 +50,39 @@ struct ParticleHeader {
         hdr_file_name = par_file_name + "/Header";
 
         std::ifstream file(hdr_file_name.c_str());
-        assert(file.is_open());
+        if ( not file.is_open() ) {
+#ifdef BL_USE_MPI
+            int myproc;
+            MPI_Comm_rank(MPI_COMM_WORLD, &myproc);
+#else
+            int myproc = 0;
+#endif
+            if ( myproc == 0) {
+                std::cout << "Error! Could not open file " << hdr_file_name << "." << std::endl;
+            }
+#ifdef USE_MPI
+            MPI_Finalize();
+#endif 
+            exit(1);
+        }
+
         file >> *this;
-        assert(file.good());
+        if (not file.is_open() ) {
+#ifdef BL_USE_MPI
+            int myproc;
+            MPI_Comm_rank(MPI_COMM_WORLD, &myproc);
+#else
+            int myproc = 0;
+#endif
+            if ( myproc == 0) {
+                std::cout << "File header is corrupt." << std::endl;
+            }
+#ifdef USE_MPI
+            MPI_Finalize();
+#endif 
+            exit(1);
+        }
+
         file.close();
         
         num_real = ndim + num_real_extra;
@@ -259,6 +290,13 @@ void compare_particle_chunk(const ParticleHeader& header1,
             std::memcpy(&val2, tmp2, sizeof(int));
             norms[j+header1.num_real] = std::max((double) std::abs(val2 - val1), 
                                                  norms[j+header1.num_real]);
+            if (val1 == 0) {
+                norms[header1.num_comp+j+header1.num_real] = 
+                    norms[j+header1.num_real];
+            } else {
+                norms[header1.num_comp+j+header1.num_real] = 
+                    norms[j+header1.num_real] / std::abs(val1);
+            }
             tmp1 += sizeof(int);
             tmp2 += sizeof(int);
         }
@@ -270,6 +308,11 @@ void compare_particle_chunk(const ParticleHeader& header1,
             std::memcpy(&val1, tmp1, sizeof(double));
             std::memcpy(&val2, tmp2, sizeof(double));
             norms[j] = std::max(std::abs(val2 - val1), norms[j]);
+            if (val1 == 0) {
+                norms[header1.num_comp+j] = norms[j];
+            } else {
+                norms[header1.num_comp+j] = norms[j] / std::abs(val1);
+            }
             tmp1 += sizeof(double);
             tmp2 += sizeof(double);
         }
@@ -279,7 +322,7 @@ void compare_particle_chunk(const ParticleHeader& header1,
 int main(int argc, char* argv[])
 {
 
-#ifdef USE_MPI
+#ifdef BL_USE_MPI
     MPI_Init(NULL, NULL);
 
     int nprocs, myproc;
@@ -293,12 +336,12 @@ int main(int argc, char* argv[])
     if (argc < 4) {
         if (myproc == 0)
             std::cerr << "Usage: " << argv[0] << " file1 file2 ptype" << std::endl;
-#ifdef USE_MPI
+#ifdef BL_USE_MPI
         MPI_Finalize();
 #endif
         return 1;
     }
-        
+
     std::string fn1 = argv[1];
     std::string fn2 = argv[2];
     std::string pt  = argv[3];
@@ -339,45 +382,54 @@ int main(int argc, char* argv[])
         iend = ibegin + navg;
     }
 
-#ifdef USE_MPI
+#ifdef BL_USE_MPI
     MPI_Barrier(MPI_COMM_WORLD);
 #endif
 
-    // Each proc computes the max norm of the particle data diff over its grids
-    std::vector<double> norms(header1.num_comp, 0.0);
+    // Each proc computes the max norm of the particle data diff over its grids    
+    // The first num_comp values are the abs norms, the second are the rel norms
+    std::vector<double> norms(2*header1.num_comp, 0.0);
     for (int i = ibegin; i < iend; ++i) {
         compare_particle_chunk(header1, header2, norms, 
                                levels[i], file_nums[i], 
                                particle_counts[i], offsets[i]);
     }
 
-#ifdef USE_MPI
+#ifdef BL_USE_MPI
     MPI_Barrier(MPI_COMM_WORLD);
 #endif
 
-#ifdef USE_MPI
+    std::vector<double> global_norms(2*header1.num_comp, 0.0);
+#ifdef BL_USE_MPI
     // parallel reduction
-    std::vector<double> global_norms(header1.num_comp, 0.0);
-    MPI_Reduce(norms.data(), global_norms.data(), header1.num_comp, MPI_DOUBLE, MPI_MAX, 0,
+    MPI_Reduce(norms.data(), global_norms.data(), 2*header1.num_comp, MPI_DOUBLE, MPI_MAX, 0,
                MPI_COMM_WORLD);
+#else
+    for (unsigned i = 0; i < global_norms.size(); ++i) {
+        global_norms[i] = norms[i];
+    }
 #endif
 
     // write out results
     if (myproc == 0) {
-        std::cout << "Max norm of differences: " << std::endl << std::endl;
+        std::cout << std::endl << std::endl;
         for (int i = 0; i < header1.num_comp; ++i) {
-#ifdef USE_MPI
-            std::cout << "\t" << header1.comp_names[i] << ": " << global_norms[i] << std::endl;
-#else
-            std::cout << "\t" << header1.comp_names[i] << ": " << norms[i] << std::endl;
-#endif
+            std::cout << std::left << std::setw(36) << std::setfill(' ') << std::fixed << std::setprecision(8) << header1.comp_names[i];
+            std::cout << std::left << std::setw(26) << std::setfill(' ') << std::fixed << std::setprecision(8) << global_norms[i];
+            std::cout << std::left << std::setw(26) << std::setfill(' ') << std::fixed << std::setprecision(8) << global_norms[i+header1.num_comp];
+            std::cout << std::endl;
         }
-        std::cout << std::endl;
+       std::cout << std::endl;
     }
 
-#ifdef USE_MPI
+#ifdef BL_USE_MPI
     MPI_Finalize();
 #endif
 
-    return 0;
+    int exit_code = 0;
+    for (unsigned i = 0; i < global_norms.size(); ++i) {
+        if (global_norms[i] > 0.0) exit_code = 1;
+    }
+
+    return exit_code;
 }
