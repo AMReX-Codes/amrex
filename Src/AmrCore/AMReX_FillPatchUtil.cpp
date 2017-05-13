@@ -36,8 +36,7 @@ namespace amrex
     void FillPatchSingleLevel (MultiFab& mf, Real time, 
 			       const Array<MultiFab*>& smf, const Array<Real>& stime,
 			       int scomp, int dcomp, int ncomp,
-			       const Geometry& geom, PhysBCFunctBase& physbcf,
-                               int srcghost)
+			       const Geometry& geom, PhysBCFunctBase& physbcf)
     {
 	BL_PROFILE("FillPatchSingleLevel");
 
@@ -48,7 +47,7 @@ namespace amrex
 
 	if (smf.size() == 1) 
 	{
-	    mf.copy(*smf[0], scomp, dcomp, ncomp, srcghost, mf.nGrow(), geom.periodicity());
+	    mf.copy(*smf[0], scomp, dcomp, ncomp, 0, mf.nGrow(), geom.periodicity());
 	} 
 	else if (smf.size() == 2) 
 	{
@@ -116,8 +115,7 @@ namespace amrex
 			     const Geometry& cgeom, const Geometry& fgeom, 
 			     PhysBCFunctBase& cbc, PhysBCFunctBase& fbc,
 			     const IntVect& ratio, 
-			     Interpolater* mapper, const Array<BCRec>& bcs,
-                             int csrcghost)
+			     Interpolater* mapper, const Array<BCRec>& bcs)
     {
 	BL_PROFILE("FillPatchTwoLevels");
 
@@ -142,7 +140,7 @@ namespace amrex
 	    {
 		MultiFab mf_crse_patch(fpc.ba_crse_patch, fpc.dm_crse_patch, ncomp, 0);
 		
-		FillPatchSingleLevel(mf_crse_patch, time, cmf, ct, scomp, 0, ncomp, cgeom, cbc, csrcghost);
+		FillPatchSingleLevel(mf_crse_patch, time, cmf, ct, scomp, 0, ncomp, cgeom, cbc);
 		
 		int idummy1=0, idummy2=0;
 		bool cc = fpc.ba_crse_patch.ixType().cellCentered();
