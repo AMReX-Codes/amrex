@@ -171,6 +171,20 @@ CArena::free (void* vp)
     }
 }
 
+// Device allocators are not currently implemented in CArena.
+
+void*
+CArena::alloc_device (size_t nbytes)
+{
+    void* pt = 0;
+    return pt;
+}
+
+void
+CArena::free_device (void* pt)
+{
+}
+
 size_t
 CArena::heap_space_used () const
 {

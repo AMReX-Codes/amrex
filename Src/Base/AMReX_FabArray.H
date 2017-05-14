@@ -102,7 +102,9 @@ namespace amrex {
 //
 struct MFInfo {
     bool    alloc = true;
+    bool    device = false;
     MFInfo& SetAlloc(bool a) { alloc = a; return *this; }
+    MFInfo& SetDevice(bool d) { device = d; return *this; }
 };
 
 template <class FAB>
@@ -447,6 +449,9 @@ protected:
     // ---- set of ids of fabarrays created without allocating memory
     static std::set<int> noallocFAPIds;
 
+    // for device memory
+    bool device;
+
     // for shared memory
     struct ShMem {
 	ShMem () : alloc(false), n_values(0), n_points(0)
@@ -502,7 +507,7 @@ protected:
 private:
     typedef typename std::vector<FAB*>::iterator    Iterator;
 
-    void AllocFabs (const FabFactory<FAB>& factory);
+    void AllocFabs (const FabFactory<FAB>& factory, const MFInfo& info);
 
     void FBEP_nowait (int scomp, int ncomp, const Periodicity& period, bool cross,
 		      bool enforce_periodicity_only = false);
@@ -806,7 +811,8 @@ FabArray<FAB>::setVal (value_type   val,
 
 template <class FAB>
 FabArray<FAB>::FabArray ()
-    : shmem()
+    : shmem(),
+      device(false)
 {
     m_FA_stats.recordBuild();
 }
@@ -818,7 +824,8 @@ FabArray<FAB>::FabArray (const BoxArray&            bxs,
                          int                        ngrow,
 			 const MFInfo&              info,
                          const FabFactory<FAB>&     factory)
-    : shmem()
+    : shmem(),
+      device(false)
 {
     m_FA_stats.recordBuild();
     define(bxs,dm,nvar,ngrow,info,factory);
@@ -826,10 +833,11 @@ FabArray<FAB>::FabArray (const BoxArray&            bxs,
 
 template <class FAB>
 FabArray<FAB>::FabArray (const FabArray<FAB>& rhs, MakeType maketype, int scomp, int ncomp)
-    : shmem()
+    : shmem(),
+      device(false)
 {
     m_FA_stats.recordBuild();
-    define(rhs.boxArray(), rhs.DistributionMap(), ncomp, rhs.nGrow(), MFInfo().SetAlloc(false));
+    define(rhs.boxArray(), rhs.DistributionMap(), ncomp, rhs.nGrow(), MFInfo().SetAlloc(false).SetDevice(false));
 
     if (maketype == amrex::make_alias)
     {
@@ -850,10 +858,11 @@ FabArray<FAB>::FabArray (const BoxArray&            bxs,
                          int                        nvar,
                          int                        ngrow,
                          const Array<value_type*>&  pval)
-    : shmem()
+    : shmem(),
+      device(false)
 {
     m_FA_stats.recordBuild();
-    define(bxs,dm,nvar,ngrow,MFInfo().SetAlloc(false));
+    define(bxs,dm,nvar,ngrow,MFInfo().SetAlloc(false).SetDevice(false));
 
     for (MFIter mfi(*this); mfi.isValid(); ++mfi) {
         setFab(mfi, new FAB(mfi.fabbox(),nvar,pval[mfi.LocalIndex()]));
@@ -866,6 +875,7 @@ FabArray<FAB>::FabArray (FabArray<FAB>&& rhs) noexcept
     : FabArrayBase (std::move(rhs))
     , m_fabs_v     (std::move(rhs.m_fabs_v))
     , shmem        (std::move(rhs.shmem))
+    , device       (false)
     // no need to worry about the data used in non-blocking FillBoundary.
 {
     m_FA_stats.recordBuild();
@@ -953,7 +963,7 @@ FabArray<FAB>::define (const BoxArray&            bxs,
     addThisBD();
 
     if(info.alloc) {
-        AllocFabs(factory);
+        AllocFabs(factory, info);
     }
 
     typename std::map<int, std::map<int, FabArray<FAB> *> >::iterator afapIter = 
@@ -982,7 +992,7 @@ FabArray<FAB>::define (const BoxArray&            bxs,
 
 template <class FAB>
 void
-FabArray<FAB>::AllocFabs (const FabFactory<FAB>& factory)
+FabArray<FAB>::AllocFabs (const FabFactory<FAB>& factory, const MFInfo& info)
 {
     const int n = indexArray.size();
     const int nworkers = ParallelDescriptor::TeamSize();
@@ -992,6 +1002,8 @@ FabArray<FAB>::AllocFabs (const FabFactory<FAB>& factory)
 
     FabInfo fab_info;
     fab_info.SetAlloc(alloc).SetShared(shmem.alloc);
+
+    fab_info.SetDevice(info.device);
     
 
     m_fabs_v.reserve(n);

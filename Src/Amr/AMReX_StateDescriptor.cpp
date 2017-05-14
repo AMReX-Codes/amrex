@@ -223,6 +223,7 @@ StateDescriptor::StateDescriptor ()
     id(-1),
     ncomp(0),
     ngrow(0),
+    device_copy(false),
     mapper(0),
     m_extrap(false),
     m_store_in_checkpoint(true)
@@ -242,6 +243,7 @@ StateDescriptor::StateDescriptor (IndexType                   btyp,
     id(ident),
     ncomp(num_comp),
     ngrow(nextra),
+    device_copy(false),
     mapper(interp),
     m_extrap(extrap),
     m_store_in_checkpoint(store_in_checkpoint)
