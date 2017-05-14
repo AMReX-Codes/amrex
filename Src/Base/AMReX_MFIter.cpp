@@ -341,11 +341,8 @@ MFIter::registerFab<FArrayBox>(const FArrayBox& fab) const
 void
 MFIter::releaseDeviceData() {
     if (do_device_transfers) {
-	for (int i = 0; i < registered_fabs.size(); ++i) {
-	    void* ptr = registered_fabs[i]->dataPtr();
-	    size_t sz = registered_fabs[i]->nBytes();
-	    cudaMemPrefetchAsync(ptr, sz, cudaCpuDeviceId);
-	}
+	for (int i = 0; i < registered_fabs.size(); ++i)
+	    registered_fabs[i]->toHost();
 	registered_fabs.clear();
     }
 }
