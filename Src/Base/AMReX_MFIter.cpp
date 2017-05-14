@@ -331,13 +331,6 @@ MFIter::operator++ () {
 }
 
 #ifdef CUDA
-template<>
-void
-MFIter::registerFab<FArrayBox>(const FArrayBox& fab) const
-{
-    registered_fabs.push_back(const_cast<FArrayBox*>(&fab));
-}
-
 void
 MFIter::releaseDeviceData() {
     if (do_device_transfers) {

@@ -100,6 +100,8 @@ public:
     template<class FAB>
     void registerFab(const FAB& fab) const {}
 
+    void registerFab(const FArrayBox& fab) const;
+
     //! Enable transfers to and from the device.
     void enable_device_transfers() { do_device_transfers = true; }
 
@@ -148,6 +150,13 @@ protected:
   
     void Initialize ();
 };
+
+inline
+void
+MFIter::registerFab(const FArrayBox& fab) const
+{
+    registered_fabs.push_back(const_cast<FArrayBox*>(&fab));
+}
 
 //! Iterate over ghost cells.  Lots of MFIter functions do not work.
 class MFGhostIter
