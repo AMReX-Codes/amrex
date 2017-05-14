@@ -6,9 +6,6 @@
 #include <AMReX_BaseFab.H>
 #include <AMReX_BArena.H>
 #include <AMReX_CArena.H>
-#ifdef CUDA
-#include <AMReX_CUDArena.H>
-#endif
 
 #if !defined(BL_NO_FORT)
 #include <AMReX_BaseFab_f.H>
@@ -38,14 +35,10 @@ BF_init::BF_init ()
     {
         BL_ASSERT(the_arena == 0);
 
-#ifdef CUDA
-	the_arena = new CUDArena;
-#else
 #if defined(BL_COALESCE_FABS)
         the_arena = new CArena;
 #else
         the_arena = new BArena;
-#endif
 #endif
 
 #ifdef _OPENMP

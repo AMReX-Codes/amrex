@@ -20,11 +20,6 @@ C$(AMREX_BASE)_headers += AMReX_DistributionMapping.H AMReX_ParallelDescriptor.H
 C$(AMREX_BASE)_sources += AMReX_VisMF.cpp AMReX_Arena.cpp AMReX_BArena.cpp AMReX_CArena.cpp
 C$(AMREX_BASE)_headers += AMReX_VisMF.H AMReX_Arena.H AMReX_BArena.H AMReX_CArena.H
 
-ifeq ($(USE_CUDA),TRUE)
-  C$(AMREX_BASE)_sources += AMReX_CUDArena.cpp
-  C$(AMREX_BASE)_headers += AMReX_CUDArena.H
-endif
-
 C$(AMREX_BASE)_headers += AMReX_BLProfiler.H
 
 C$(AMREX_BASE)_headers += AMReX_BLBackTrace.H
