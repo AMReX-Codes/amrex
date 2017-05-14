@@ -144,7 +144,9 @@ inline
 void
 MFIter::registerFab(const FArrayBox& fab) const
 {
-    registered_fabs.push_back(const_cast<FArrayBox*>(&fab));
+    FArrayBox* fab_p = const_cast<FArrayBox*>(&fab);
+    if (std::find(registered_fabs.begin(), registered_fabs.end(), fab_p) == registered_fabs.end())
+	registered_fabs.push_back(fab_p);
 }
 
 //! Iterate over ghost cells.  Lots of MFIter functions do not work.
