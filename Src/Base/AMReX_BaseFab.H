@@ -15,6 +15,7 @@
 #include <AMReX_Box.H>
 #include <AMReX_BoxList.H>
 #include <AMReX_CArena.H>
+#include <AMReX_Device.H>
 #include <AMReX_Looping.H>
 #include <AMReX_REAL.H>
 #include <AMReX_BLProfiler.H>
@@ -242,10 +243,22 @@ public:
     * order, with the component index coming last.   In other words,
     * dataPtr returns a pointer to all the Nth components.
     */
-    T* dataPtr (int n = 0) { BL_ASSERT(!(dptr == 0)); return &dptr[n*numpts]; }
+    T* dataPtr (int n = 0) {
+	if (Device::inDeviceLaunchRegion() && device_copy) {
+	    BL_ASSERT(!(dptr_d == 0)); return &dptr_d[n*numpts];
+	} else {
+	    BL_ASSERT(!(dptr == 0)); return &dptr[n*numpts];
+	}
+    }
 
     //! Same as above except works on const FABs.
-    const T* dataPtr (int n = 0) const { BL_ASSERT(!(dptr == 0)); return &dptr[n*numpts]; }
+    const T* dataPtr (int n = 0) const {
+	if (Device::inDeviceLaunchRegion() && device_copy) {
+	    BL_ASSERT(!(dptr_d == 0)); return &dptr_d[n*numpts];
+	} else {
+	    BL_ASSERT(!(dptr == 0)); return &dptr[n*numpts];
+	}
+    }
 
     //! Returns the pointer to the device copy.
     T* devicePtr (int n = 0) { BL_ASSERT(!(dptr_d == 0)); return &dptr_d[n*numpts]; }
