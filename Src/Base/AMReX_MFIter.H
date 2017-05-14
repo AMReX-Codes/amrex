@@ -97,9 +97,9 @@ public:
 
     //! Maintain a record of all FABs that have been sent to the device.
     template<class FAB>
-    void registerFab(const FAB& fab) const {}
+    bool registerFab(const FAB& fab) const {}
 
-    void registerFab(const FArrayBox& fab) const;
+    bool registerFab(const FArrayBox& fab) const;
 
     //! Return all data from the device to the host.
     void releaseDeviceData();
@@ -140,13 +140,18 @@ protected:
     void Initialize ();
 };
 
+// Store a FAB in our list. Return true if we registered it;
+// return false if we had already registered it.
 inline
-void
+bool
 MFIter::registerFab(const FArrayBox& fab) const
 {
     FArrayBox* fab_p = const_cast<FArrayBox*>(&fab);
-    if (std::find(registered_fabs.begin(), registered_fabs.end(), fab_p) == registered_fabs.end())
+    if (std::find(registered_fabs.begin(), registered_fabs.end(), fab_p) == registered_fabs.end()) {
 	registered_fabs.push_back(fab_p);
+	return true;
+    }
+    return false;
 }
 
 //! Iterate over ghost cells.  Lots of MFIter functions do not work.
