@@ -15,7 +15,7 @@ public:
 
     static void setDeviceLaunchRegion(bool r) { in_device_launch_region = r; }
 
-    static bool inDeviceLaunchRegion() { return in_device_launch_region; }
+    static bool inDeviceLaunchRegion() { cudaDeviceSynchronize(); return in_device_launch_region; }
 
     static bool in_device_launch_region;
 
