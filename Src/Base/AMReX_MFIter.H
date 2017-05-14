@@ -96,8 +96,9 @@ public:
     int numLocalTiles() const {return num_local_tiles ? (*num_local_tiles)[currentIndex] : 1;}
 
 #ifdef CUDA
-    //! Maintain a record of all data that have been sent to the device.
-    void addDevicePointer(void* ptr, size_t sz) const { device_pointers.push_back(ptr); device_sizes.push_back(sz); }
+    //! Maintain a record of all FABs that have been sent to the device.
+    template<class FAB>
+    void registerFab(const FAB& fab) const {}
 
     //! Enable transfers to and from the device.
     void enable_device_transfers() { do_device_transfers = true; }
@@ -141,8 +142,7 @@ protected:
     const Array<int>* num_local_tiles;
 
 #ifdef CUDA
-    mutable Array<void*> device_pointers;
-    mutable Array<size_t> device_sizes;
+    mutable Array<FArrayBox*> registered_fabs;
     bool do_device_transfers;
 #endif
   

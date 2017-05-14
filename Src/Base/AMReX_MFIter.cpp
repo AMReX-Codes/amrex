@@ -331,16 +331,22 @@ MFIter::operator++ () {
 }
 
 #ifdef CUDA
+template<>
+void
+MFIter::registerFab<FArrayBox>(const FArrayBox& fab) const
+{
+    registered_fabs.push_back(const_cast<FArrayBox*>(&fab));
+}
+
 void
 MFIter::releaseDeviceData() {
     if (do_device_transfers) {
-	for (int i = 0; i < device_pointers.size(); ++i) {
-	    void* ptr = device_pointers[i];
-	    size_t sz = device_sizes[i];
+	for (int i = 0; i < registered_fabs.size(); ++i) {
+	    void* ptr = registered_fabs[i]->dataPtr();
+	    size_t sz = registered_fabs[i]->nBytes();
 	    cudaMemPrefetchAsync(ptr, sz, cudaCpuDeviceId);
 	}
-	device_pointers.clear();
-	device_sizes.clear();
+	registered_fabs.clear();
     }
 }
 #endif

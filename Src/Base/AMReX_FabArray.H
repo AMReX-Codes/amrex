@@ -725,15 +725,16 @@ const FAB&
 FabArray<FAB>::operator[] (const MFIter& mfi) const
 {
     BL_ASSERT(mfi.LocalIndex() < indexArray.size());
+    FAB& fab = *m_fabs_v[mfi.LocalIndex()];
 #ifdef CUDA
     if (mfi.doDeviceTransfers()) {
-	void* ptr = (*m_fabs_v[mfi.LocalIndex()]).dataPtr();
-	size_t sz = (*m_fabs_v[mfi.LocalIndex()]).nBytes();
-	mfi.addDevicePointer(ptr, sz);
+	void* ptr = fab.dataPtr();
+	size_t sz = fab.nBytes();
 	cudaMemPrefetchAsync(ptr, sz, 0);
+	mfi.registerFab(fab);
     }
 #endif
-    return *m_fabs_v[mfi.LocalIndex()];
+    return fab;
 }
 
 template <class FAB>
@@ -741,15 +742,16 @@ FAB&
 FabArray<FAB>::operator[] (const MFIter& mfi)
 {
     BL_ASSERT(mfi.LocalIndex() < indexArray.size());
+    FAB& fab = *m_fabs_v[mfi.LocalIndex()];
 #ifdef CUDA
     if (mfi.doDeviceTransfers()) {
-	void* ptr = (*m_fabs_v[mfi.LocalIndex()]).dataPtr();
-	size_t sz = (*m_fabs_v[mfi.LocalIndex()]).nBytes();
-	mfi.addDevicePointer(ptr, sz);
+	void* ptr = fab.dataPtr();
+	size_t sz = fab.nBytes();
 	cudaMemPrefetchAsync(ptr, sz, 0);
+	mfi.registerFab(fab);
     }
 #endif
-    return *m_fabs_v[mfi.LocalIndex()];
+    return fab;
 }
 
 template <class FAB>
