@@ -734,7 +734,7 @@ FabArray<FAB>::operator[] (const MFIter& mfi) const
     FAB& fab = *m_fabs_v[mfi.LocalIndex()];
     if (Device::inDeviceLaunchRegion()) {
 	if (mfi.registerFab(fab))
-	    fab.toDevice(0);
+	    fab.toDevice();
     }
     return fab;
 }
@@ -747,7 +747,7 @@ FabArray<FAB>::operator[] (const MFIter& mfi)
     FAB& fab = *m_fabs_v[mfi.LocalIndex()];
     if (Device::inDeviceLaunchRegion()) {
 	if (mfi.registerFab(fab))
-	    fab.toDevice(0);
+	    fab.toDevice();
     }
     return fab;
 }
