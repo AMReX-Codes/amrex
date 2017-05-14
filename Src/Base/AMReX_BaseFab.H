@@ -247,11 +247,19 @@ public:
     //! Same as above except works on const FABs.
     const T* dataPtr (int n = 0) const { BL_ASSERT(!(dptr == 0)); return &dptr[n*numpts]; }
 
+    //! Returns the pointer to the device copy.
+    T* devicePtr (int n = 0) { BL_ASSERT(!(dptr_d == 0)); return &dptr_d[n*numpts]; }
+
+    //! Same as above exept works on const FABs.
+    const T* devicePtr (int n = 0) const { BL_ASSERT(!(dptr_d == 0)); return &dptr_d[n*numpts]; }
     
     void setPtr (T* p, long sz) { BL_ASSERT(dptr == 0 && truesize == 0); dptr = p; truesize = sz; }
 
     //! Returns true if the data for the FAB has been allocated.
     bool isAllocated () const { return dptr != 0; }
+
+    //! Returns true if the device copy of the data has been allocated.
+    bool isDeviceAllocated () const { return dptr_d != 0; }
 
     /**
     * \brief Returns a reference to the Nth component value
@@ -375,13 +383,14 @@ public:
                              int         numcomp,
                              const void* src);
 
-#ifdef CUDA
+    //! Allocates memory for the device copy.
+    void allocate_device ();
+
     //! Transfer data from the host to the device.
     void toDevice(int device);
 
     //! Transfer data from the device to the host.
     void toHost();
-#endif
 
     /**
     * \brief Perform shifts upon the domain of the BaseFab. They are
@@ -897,7 +906,9 @@ protected:
     long    numpts;   // Cached number of points in FAB.
     long    truesize; // nvar*numpts that was allocated on heap.
     T*      dptr;     // The data pointer.
+    T*      dptr_d;   // The device copy of the data pointer.
     bool    ptr_owner;// Owner of T*?
+    bool    device_copy;    // Should we have a device copy of the data?
     bool    shared_memory;  // Is the memory allocated in shared memory?
 };
 
@@ -1112,6 +1123,7 @@ BaseFab<T>::define ()
 {
     BL_ASSERT(nvar > 0);
     BL_ASSERT(dptr == 0);
+    BL_ASSERT(dptr_d == 0);
     BL_ASSERT(numpts > 0);
     BL_ASSERT(std::numeric_limits<long>::max()/nvar > numpts);
 
@@ -1141,7 +1153,9 @@ BaseFab<T>::BaseFab ()
     numpts(0),
     truesize(0),
     dptr(0),
+    dptr_d(0),
     ptr_owner(false),
+    device_copy(false),
     shared_memory(false)
 {}
 
@@ -1157,7 +1171,9 @@ BaseFab<T>::BaseFab (const Box& bx,
     numpts(bx.numPts()),
     truesize(0),
     dptr(0),
+    dptr_d(0),
     ptr_owner(false),
+    device_copy(false),
     shared_memory(shared)
 {
     if (!shared_memory && alloc) define();
@@ -1172,6 +1188,8 @@ BaseFab<T>::BaseFab (const BaseFab<T>& rhs, MakeType make_type, int scomp, int n
     numpts(rhs.numpts),
     truesize(ncomp*rhs.numpts),
     dptr(const_cast<T*>(rhs.dataPtr(scomp))),
+    dptr_d(0),
+    device_copy(false),
     ptr_owner(false),
     shared_memory(false)
 {
@@ -1197,6 +1215,8 @@ BaseFab<T>::BaseFab (const Box& bx, int ncomp, T* p)
     numpts(bx.numPts()),
     truesize(bx.numPts()*ncomp),
     dptr(p),
+    dptr_d(0),
+    device_copy(false),
     ptr_owner(false),
     shared_memory(false)
 {
@@ -1217,6 +1237,7 @@ BaseFab<T>::BaseFab (BaseFab<T>&& rhs) noexcept
     numpts(rhs.numpts),
     truesize(rhs.truesize),
     dptr(rhs.dptr),
+    dptr_d(0),
     ptr_owner(rhs.ptr_owner),
     shared_memory(rhs.shared_memory)
 {
@@ -1260,6 +1281,17 @@ BaseFab<T>::resize (const Box& b,
     }
 }
 
+// Allocates a device copy of the data.
+
+template <class T>
+void
+BaseFab<T>::allocate_device() {
+
+    device_copy = true;
+    dptr_d = static_cast<T*>(amrex::The_Arena()->alloc_device(truesize*sizeof(T)));
+
+}
+
 template <class T>
 void
 BaseFab<T>::clear ()
@@ -1283,6 +1315,9 @@ BaseFab<T>::clear ()
 		ptr->~T();
 	    }
 	    amrex::The_Arena()->free(dptr);
+
+	    if (dptr_d)
+		amrex::The_Arena()->free_device(dptr_d);
 	    
 	    if (nvar > 1) {
 		amrex::update_fab_stats(-truesize/nvar, -truesize, sizeof(T));
@@ -1292,6 +1327,7 @@ BaseFab<T>::clear ()
 	}
 
 	dptr = 0;
+	dptr_d = 0;
 	truesize = 0;
     }
 }
@@ -2732,29 +2768,38 @@ BaseFab<T>::linComb (const BaseFab<T>&  f1,
     return *this;
 }
 
-#ifdef CUDA
 template<class T>
 void
 BaseFab<T>::toDevice(int device)
 {
-    void* ptr = dataPtr();
     size_t sz = nBytes();
+#ifdef CUDA
+    if (device_copy && dptr_d && dptr) {
+	cudaMemcpyAsync(dptr_d, dptr, sz, cudaMemcpyHostToDevice);
+    } else {
 #ifdef CUDA_UM
-    cudaMemPrefetchAsync(ptr, sz, device);
+	cudaMemPrefetchAsync(dptr, sz, device);
 #endif
+    }
+#endif
+    
 }
 
 template<class T>
 void
 BaseFab<T>::toHost()
 {
-    void* ptr = dataPtr();
     size_t sz = nBytes();
+#ifdef CUDA
+    if (device_copy && dptr_d && dptr) {
+	cudaMemcpyAsync(dptr, dptr_d, sz, cudaMemcpyDeviceToHost);
+    } else {
 #ifdef CUDA_UM
-    cudaMemPrefetchAsync(ptr, sz, cudaCpuDeviceId);
+	cudaMemPrefetchAsync(dptr, sz, cudaCpuDeviceId);
+#endif
+    }
 #endif
 }
-#endif
 
     // \cond CODEGEN
     class BF_init

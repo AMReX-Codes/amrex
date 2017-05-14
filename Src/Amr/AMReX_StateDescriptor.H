@@ -181,6 +181,14 @@ public:
     //
     int nExtra () const;
     //
+    // Returns whether we have a device copy of the data.
+    //
+    bool deviceCopy () const { return device_copy; }
+    //
+    // Sets whether we should have a device copy of the data.
+    //
+    void setDeviceCopy (bool c) { device_copy = c; }
+    //
     // Returns the interpolater.
     //
     Interpolater* interp () const;
@@ -243,6 +251,7 @@ private:
     Interpolater*      mapper;   // Default interpolator
     bool               m_extrap; // Can extrapolate in time?
     bool               m_store_in_checkpoint; // Should store this in the checkpoint file?
+    bool               device_copy; // Should we have a device copy of the state data?
     Array<std::string> names;    // Printable names of components
     Array<BCRec>       bc;       // Array of bndry types for entire level
     Array<std::unique_ptr<BndryFunc> >  bc_func;  // Array of pointers to bndry fill functions
@@ -333,6 +342,10 @@ public:
                        const Array<BCRec>&               bc,
                        const StateDescriptor::BndryFunc& func,
                        Interpolater*                     interp = 0);
+    //
+    // Sets device info for indx k.
+    //
+    void setDeviceCopy(int idx, bool c) { desc[idx]->setDeviceCopy(c); }
     //
     // Returns StateDescriptor at index k.
     //
