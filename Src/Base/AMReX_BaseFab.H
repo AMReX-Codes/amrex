@@ -400,7 +400,7 @@ public:
     void allocate_device ();
 
     //! Transfer data from the host to the device.
-    void toDevice(int device);
+    void toDevice();
 
     //! Transfer data from the device to the host.
     void toHost();
@@ -2783,7 +2783,7 @@ BaseFab<T>::linComb (const BaseFab<T>&  f1,
 
 template<class T>
 void
-BaseFab<T>::toDevice(int device)
+BaseFab<T>::toDevice()
 {
     size_t sz = nBytes();
 #ifdef CUDA
@@ -2791,7 +2791,7 @@ BaseFab<T>::toDevice(int device)
 	cudaMemcpyAsync(dptr_d, dptr, sz, cudaMemcpyHostToDevice);
     } else {
 #ifdef CUDA_UM
-	cudaMemPrefetchAsync(dptr, sz, device);
+	cudaMemPrefetchAsync(dptr, sz, Device::cudaDeviceId());
 #endif
     }
 #endif

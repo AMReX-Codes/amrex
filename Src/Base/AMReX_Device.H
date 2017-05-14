@@ -17,9 +17,14 @@ public:
 
     static bool inDeviceLaunchRegion() { cudaDeviceSynchronize(); return in_device_launch_region; }
 
+#ifdef CUDA
+    static int cudaDeviceId() { return cuda_device_id; }
+#endif
+
 private:
 
     static bool in_device_launch_region;
+    static int cuda_device_id;
 
 };
 
