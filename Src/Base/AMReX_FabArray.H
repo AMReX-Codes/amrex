@@ -25,7 +25,8 @@
 #include <AMReX_Box.H>
 #include <AMReX.H>
 #include <AMReX_BoxArray.H>
-#include <AMReX_BoxDomain.H> 
+#include <AMReX_BoxDomain.H>
+#include <AMReX_Device.H>
 #include <AMReX_FabFactory.H>
 #include <AMReX_DistributionMapping.H>
 #include <AMReX_Geometry.H>
@@ -731,12 +732,10 @@ FabArray<FAB>::operator[] (const MFIter& mfi) const
 {
     BL_ASSERT(mfi.LocalIndex() < indexArray.size());
     FAB& fab = *m_fabs_v[mfi.LocalIndex()];
-#ifdef CUDA
-    if (mfi.doDeviceTransfers()) {
+    if (Device::inDeviceLaunchRegion()) {
 	fab.toDevice(0);
 	mfi.registerFab(fab);
     }
-#endif
     return fab;
 }
 
@@ -746,12 +745,10 @@ FabArray<FAB>::operator[] (const MFIter& mfi)
 {
     BL_ASSERT(mfi.LocalIndex() < indexArray.size());
     FAB& fab = *m_fabs_v[mfi.LocalIndex()];
-#ifdef CUDA
-    if (mfi.doDeviceTransfers()) {
+    if (Device::inDeviceLaunchRegion()) {
 	fab.toDevice(0);
 	mfi.registerFab(fab);
     }
-#endif
     return fab;
 }
 

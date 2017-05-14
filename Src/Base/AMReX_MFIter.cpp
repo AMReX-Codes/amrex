@@ -2,6 +2,7 @@
 #include <AMReX_MFIter.H>
 #include <AMReX_FabArray.H>
 #include <AMReX_FArrayBox.H>
+#include <AMReX_Device.H>
 
 namespace amrex {
 
@@ -11,9 +12,6 @@ MFIter::MFIter (const FabArrayBase& fabarray_,
     fabArray(fabarray_),
     tile_size((flags_ & Tiling) ? FabArrayBase::mfiter_tile_size : IntVect::TheZeroVector()),
     flags(flags_),
-#ifdef CUDA
-    do_device_transfers(false),
-#endif
     index_map(nullptr),
     local_index_map(nullptr),
     tile_array(nullptr),
@@ -29,9 +27,6 @@ MFIter::MFIter (const FabArrayBase& fabarray_,
     fabArray(fabarray_),
     tile_size((do_tiling_) ? FabArrayBase::mfiter_tile_size : IntVect::TheZeroVector()),
     flags(do_tiling_ ? Tiling : 0),
-#ifdef CUDA
-    do_device_transfers(false),
-#endif
     index_map(nullptr),
     local_index_map(nullptr),
     tile_array(nullptr),
@@ -48,9 +43,6 @@ MFIter::MFIter (const FabArrayBase& fabarray_,
     fabArray(fabarray_),
     tile_size(tilesize_),
     flags(flags_ | Tiling),
-#ifdef CUDA
-    do_device_transfers(false),
-#endif
     index_map(nullptr),
     local_index_map(nullptr),
     tile_array(nullptr),
@@ -66,9 +58,6 @@ MFIter::MFIter (const BoxArray& ba, const DistributionMapping& dm, unsigned char
     fabArray(*m_fa),
     tile_size((flags_ & Tiling) ? FabArrayBase::mfiter_tile_size : IntVect::TheZeroVector()),
     flags(flags_),
-#ifdef CUDA
-    do_device_transfers(false),
-#endif
     index_map(nullptr),
     local_index_map(nullptr),
     tile_array(nullptr),
@@ -84,9 +73,6 @@ MFIter::MFIter (const BoxArray& ba, const DistributionMapping& dm, bool do_tilin
     fabArray(*m_fa),
     tile_size((do_tiling_) ? FabArrayBase::mfiter_tile_size : IntVect::TheZeroVector()),
     flags(do_tiling_ ? Tiling : 0),
-#ifdef CUDA
-    do_device_transfers(false),
-#endif
     index_map(nullptr),
     local_index_map(nullptr),
     tile_array(nullptr),
@@ -104,9 +90,6 @@ MFIter::MFIter (const BoxArray& ba, const DistributionMapping& dm,
     fabArray(*m_fa),
     tile_size(tilesize_),
     flags(flags_ | Tiling),
-#ifdef CUDA
-    do_device_transfers(false),
-#endif
     index_map(nullptr),
     local_index_map(nullptr),
     tile_array(nullptr),
@@ -123,9 +106,7 @@ MFIter::~MFIter ()
     if ( ! (flags & NoTeamBarrier) )
 	ParallelDescriptor::MyTeam().MemoryBarrier();
 #endif
-#ifdef CUDA
     releaseDeviceData();
-#endif
 }
 
 void 
@@ -324,22 +305,18 @@ MFIter::operator++ () {
 
     ++currentIndex;
 
-#ifdef CUDA
     releaseDeviceData();
-#endif
 
 }
 
-#ifdef CUDA
 void
 MFIter::releaseDeviceData() {
-    if (do_device_transfers) {
+    if (Device::inDeviceLaunchRegion()) {
 	for (int i = 0; i < registered_fabs.size(); ++i)
 	    registered_fabs[i]->toHost();
 	registered_fabs.clear();
     }
 }
-#endif
 
 MFGhostIter::MFGhostIter (const FabArrayBase& fabarray)
     :

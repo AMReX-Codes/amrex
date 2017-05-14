@@ -95,22 +95,14 @@ public:
     //! The the number of tiles in the current grid;
     int numLocalTiles() const {return num_local_tiles ? (*num_local_tiles)[currentIndex] : 1;}
 
-#ifdef CUDA
     //! Maintain a record of all FABs that have been sent to the device.
     template<class FAB>
     void registerFab(const FAB& fab) const {}
 
     void registerFab(const FArrayBox& fab) const;
 
-    //! Enable transfers to and from the device.
-    void enable_device_transfers() { do_device_transfers = true; }
-
-    //! Return whether device transfers are enabled.
-    bool doDeviceTransfers() const { return do_device_transfers; }
-
     //! Return all data from the device to the host.
     void releaseDeviceData();
-#endif
 
     /**
     * \brief Return local index into the vector of fab pointers, m_fabs_v
@@ -143,10 +135,7 @@ protected:
     const Array<int>* local_tile_index_map;
     const Array<int>* num_local_tiles;
 
-#ifdef CUDA
     mutable Array<FArrayBox*> registered_fabs;
-    bool do_device_transfers;
-#endif
   
     void Initialize ();
 };
