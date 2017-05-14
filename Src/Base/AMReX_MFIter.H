@@ -97,7 +97,7 @@ public:
 
     //! Maintain a record of all FABs that have been sent to the device.
     template<class FAB>
-    bool registerFab(const FAB& fab) const {}
+    bool registerFab(const FAB& fab) const { return false; }
 
     bool registerFab(const FArrayBox& fab) const;
 
