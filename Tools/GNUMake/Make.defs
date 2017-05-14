@@ -74,6 +74,10 @@ ifndef USE_CUDA
   USE_CUDA = FALSE
 endif
 
+ifndef USE_CUDA_UM
+  USE_CUDA_UM = TRUE
+endif
+
 ifndef DIMENSION_AGNOSTIC
   DIMENSION_AGNOSTIC = FALSE
 endif
@@ -242,6 +246,9 @@ endif
 
 ifeq ($(USE_CUDA),TRUE)
     CPPFLAGS    += -DCUDA
+    ifeq ($(USE_CUDA_UM),TRUE)
+        CPPFLAGS    += -DCUDA_UM
+    endif
 endif
 
 ifeq ($(PRECISION),FLOAT)

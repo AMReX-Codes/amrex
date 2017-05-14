@@ -8,7 +8,11 @@ amrex::CUDArena::alloc (std::size_t _sz)
 {
     void* pt;
 
-    cudaMallocManaged((void**) &pt, _sz);
+#if (defined(CUDA) && defined(CUDA_UM))
+    cudaMallocManaged(&pt, _sz);
+#else
+    pt = operator new(_sz);
+#endif
 
     return pt;
 }
@@ -16,5 +20,9 @@ amrex::CUDArena::alloc (std::size_t _sz)
 void
 amrex::CUDArena::free (void* pt)
 {
+#if (defined(CUDA) && defined(CUDA_UM))
     cudaFree(pt);
+#else
+    operator delete(pt);
+#endif
 }
