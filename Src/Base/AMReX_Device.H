@@ -17,6 +17,8 @@ public:
 
     static bool inDeviceLaunchRegion() { cudaDeviceSynchronize(); return in_device_launch_region; }
 
+private:
+
     static bool in_device_launch_region;
 
 };
