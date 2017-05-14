@@ -374,6 +374,15 @@ public:
                              int         dstcomp,
                              int         numcomp,
                              const void* src);
+
+#ifdef CUDA
+    //! Transfer data from the host to the device.
+    void toDevice(int device);
+
+    //! Transfer data from the device to the host.
+    void toHost();
+#endif
+
     /**
     * \brief Perform shifts upon the domain of the BaseFab. They are
     * completely analogous to the corresponding Box functions.
@@ -2722,6 +2731,26 @@ BaseFab<T>::linComb (const BaseFab<T>&  f1,
     } EndForTX
     return *this;
 }
+
+#ifdef CUDA
+template<class T>
+void
+BaseFab<T>::toDevice(int device)
+{
+    void* ptr = dataPtr();
+    size_t sz = nBytes();
+    cudaMemPrefetchAsync(ptr, sz, device);
+}
+
+template<class T>
+void
+BaseFab<T>::toHost()
+{
+    void* ptr = dataPtr();
+    size_t sz = nBytes();
+    cudaMemPrefetchAsync(ptr, sz, cudaCpuDeviceId);
+}
+#endif
 
     // \cond CODEGEN
     class BF_init
