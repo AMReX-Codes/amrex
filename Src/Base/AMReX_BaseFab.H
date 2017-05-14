@@ -2739,7 +2739,9 @@ BaseFab<T>::toDevice(int device)
 {
     void* ptr = dataPtr();
     size_t sz = nBytes();
+#ifdef CUDA_UM
     cudaMemPrefetchAsync(ptr, sz, device);
+#endif
 }
 
 template<class T>
@@ -2748,7 +2750,9 @@ BaseFab<T>::toHost()
 {
     void* ptr = dataPtr();
     size_t sz = nBytes();
+#ifdef CUDA_UM
     cudaMemPrefetchAsync(ptr, sz, cudaCpuDeviceId);
+#endif
 }
 #endif
 
