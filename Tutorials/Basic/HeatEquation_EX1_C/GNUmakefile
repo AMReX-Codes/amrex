@@ -5,11 +5,8 @@ AMREX_HOME ?= ../../../
 DEBUG     = FALSE
 USE_MPI   = FALSE
 USE_OMP   = FALSE
-PROFILE   = FALSE
 COMP      = g++
 DIM       = 2
-PRECISION = DOUBLE
-EBASE     = main
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 

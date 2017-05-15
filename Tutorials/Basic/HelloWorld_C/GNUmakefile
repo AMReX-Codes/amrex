@@ -7,8 +7,6 @@ DIM	= 3
 
 COMP    = gcc
 
-PRECISION = DOUBLE
-
 USE_MPI   = FALSE
 USE_OMP   = FALSE
 
