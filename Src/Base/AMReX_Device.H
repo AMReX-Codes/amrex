@@ -2,6 +2,12 @@
 #ifndef BL_DEVICE_H
 #define BL_DEVICE_H
 
+#ifdef CUDA
+extern "C" {
+    void initialize_cuda();
+}
+#endif
+
 namespace amrex {
 
 class Device
