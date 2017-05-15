@@ -12,6 +12,7 @@
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_BLProfiler.H>
 #include <AMReX_BLFort.H>
+#include <AMReX_Device.H>
 #include <AMReX_Utility.H>
 #include <AMReX_Print.H>
 
@@ -319,6 +320,11 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi_
     amrex::Print() << "OMP initialized with "
 		   << omp_get_max_threads()
 		   << " OMP threads\n";
+#endif
+
+#ifdef CUDA
+    // Initialize CUDA streams.
+    initialize_cuda();
 #endif
 
     signal(SIGSEGV, BLBackTrace::handler); // catch seg falult
