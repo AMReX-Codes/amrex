@@ -5,7 +5,7 @@ AMREX_HOME ?= ../../../
 DEBUG     = FALSE
 USE_MPI   = FALSE
 USE_OMP   = FALSE
-COMP      = g++
+COMP      = gnu
 DIM       = 2
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
