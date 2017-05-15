@@ -1,2 +1,36 @@
-The basics
+In this chapter, we discuss the basics of \amrex.  The implementation
+source codes are in {\tt amrex/Src/Base/}.  After reading this
+chapter, one should be able to understand many of the example codes in
+{\tt amrex/Tutorials}, and one should be able to develop parallel
+single-level codes using \amrex.
+
+\section{Box, IntVect and IndexType}
+\label{sec:basics:box}
+
+In \amrex, the computational domain (on each AMR level) is decomposed
+into a union of rectangular domains.  {\tt Box} is the data
+structure for representing such rectangular domains in indexing space.
+{\tt Box} is a dimension dependent class.  It has lower and upper
+corners (represented by {\tt IntVect} and an index type
+(represented by {\tt IndexType}).
+
+\subsection{IntVect}
+
+{\idxamrex{IntVect}} is a dimension dependent class representing an
+integer vector in {\idxamrex{BL\_SPACEDIM}}-dimensional space, where {\tt
+  BL\_SPACEDIM} is the number of spatial dimension.
+
+\subsection{IndexType}
+
+\subsection{Box}
+
+\section{BaseFab and FArrayBox}
+
+\section{BoxArray}
+
+\section{DistributionMapping}
+
+\section{FabArray and MultiFab}
+
+\section{MFIter}
 
