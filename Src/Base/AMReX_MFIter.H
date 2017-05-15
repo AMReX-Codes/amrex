@@ -95,6 +95,9 @@ public:
     //! The the number of tiles in the current grid;
     int numLocalTiles() const {return num_local_tiles ? (*num_local_tiles)[currentIndex] : 1;}
 
+    //! Return a unique index associated with the current box and/or tile.
+    int uniqueIndex () const {return LocalTileIndex() + numLocalTiles() * LocalIndex();}
+
     //! Maintain a record of all FABs that have been sent to the device.
     template<class FAB>
     bool registerFab(const FAB& fab) const { return false; }
