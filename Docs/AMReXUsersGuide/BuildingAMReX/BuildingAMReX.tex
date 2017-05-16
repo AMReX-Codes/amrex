@@ -4,31 +4,146 @@ ways to use \amrex.  The approach used by \amrex\ developers uses GNU
 Make.  There is no installation step in this approach.  Application
 codes adopt \amrex's build system and compile \amrex\ while compiling
 their own codes.  This will be discussed in more details in
-Section~\ref{build:make}.  The second approach is to build \amrex\
-into a library and install it (Section~\ref{build:lib}).  Then an
+Section~\ref{sec:build:make}.  The second approach is to build \amrex\
+into a library and install it (Section~\ref{sec:build:lib}).  Then an
 application code uses its own build system and links \amrex\ as an
 external library.  \amrex\ can also be built with CMake
-(Section~\ref{build:cmake}).
+(Section~\ref{sec:build:cmake}).
 
 \section{Building with GNU Make}
-\label{build:make}
+\label{sec:build:make}
 
 In this build approach, you write your own make files defining a
 number of variables and rules.  Then you invoke {\tt make} to start
-the building process.  An example of this can be found in {\tt
-  amrex/Tutorials/Basic/HelloWorld\_C}.  We will 
+the building process.  This will result in an executable upon
+successful completion.  The temporary files generated in the building
+process are stored in a temporary directory named {\tt
+  tmp\_build\_dir}.
 
-xxxxx the variables we can set
+\subsection{Dissecting a Simple Make File}
 
-xxxxx make.package
+An example of building with GNU Make can be found in {\tt
+  amrex/Tutorials/Basic/HelloWorld\_C}.  Table~\ref{tab:makevarimp}
+shows a list of important variables.
+\begin{table}[t]
+  \centering
+  \begin{tabular}{lcc}
+    Variable & Value & Default \\
+    \hline
+    {\tt AMREX\_HOME} & Path to amrex & environment \\
+    {\tt COMP} & {\tt gnu}, {\tt cray}, {\tt intel}, {\tt llvm}, or {\tt pgi} & none \\
+    {\tt DEBUG} & {\tt TRUE} or {\tt FALSE} & {\tt TRUE} \\
+    {\tt DIM} & 1 or 2 or 3 & none \\
+    {\tt USE\_MPI} & {\tt TRUE} or {\tt FALSE} & {\tt FALSE} \\
+    {\tt USE\_OMP} & {\tt TRUE} or {\tt FALSE} & {\tt FALSE} \\
+    \hline
+  \end{tabular}
+  \caption{\label{tab:makevarimp} Important make variables}
+\end{table}
 
-rules, help, make.machines, make.local xxx 
+At the beginning of {\tt
+  amrex/Tutorials/Basic/HelloWorld\_C/GNUmakefile}, {\tt AMREX\_HOME}
+is set to the path to the top directory of \amrex.  Note that in the
+example {\tt ?=} is a conditional variable assignment operator that
+only has an effect if {\tt AMREX\_HOME} has not been defined
+(including in the environment).  One can also set it through
+environment variable.  For example in bash, one can set {\tt export
+  AMREX\_HOME=/path/to/amrex}.
+
+One must set the {\tt COMP} variable to choose a compiler.  Currently
+the list of supported compilers includes {\tt gnu}, {\tt cray}, {\tt
+  intel}, {\tt llvm}, and {\tt pgi}.  One must also set the {\tt DIM}
+variable to either 1, 2, or 3, depending on the dimensionality of the
+problem. 
+
+Variables {\tt DEBUG}, {\tt USE\_MPI} and {\tt USE\_OMP} are optional
+with default set to {\tt TRUE}, {\tt FALSE} and {\tt FALSE},
+respectively.  The meaning of these variables should be obvious.  In
+{\tt DEBUG} build, aggressive compiler optimization flags are turned
+off and assertions in \amrex\ source code are turned on.  For
+production runs, {\tt DEBUG} should be set to {\tt FALSE}.
+
+After defining these make variables, a number of files, {\tt
+  Make.defs}, {\tt Make.package} and {\tt Make.rules}, are included in
+{\tt GNUmakefile}.  \amrex\ are split into a number of packages.  An
+application code does not include every package.  In this simple
+example, we only need to include {\tt
+  \$(AMREX\_HOME)/Src/Base/Make.package}.  An application code also
+has its own {\tt Make.package} file (e.g., {\tt ./Make.package} in
+this example) to append source files to the build system using
+operator {\tt +=}.  Variables for various source files are shown
+below.
+\begin{quote}
+\begin{description}
+\item [{CEXE\_sources}] \cpp\ source files.  Note that \cpp\
+  source files are assumed to have a {\tt .cpp} extension.
+\item [{CEXE\_headers}] \cpp\ headers with {\tt .h} or {\tt .H} extension.
+\item [{cEXE\_sources}] C source files with {\tt .c} extension.
+\item [{cEXE\_headers}] C headers with {\tt .h} extension.
+\item [{f90EXE\_sources}] Free format Fortran source with {\tt
+    .f90} extension.
+\item [{F90EXE\_sources}] Free format Fortran source with {\tt
+    .F90} extension.  Note that these Fortran files will go through
+  preprocessing.
+\end{description}
+\end{quote}
+In this simple example, the extra source file, {\tt main.cpp} is in
+the current directory that is already in the build system's search
+path.  If this example has files in a subdirectory (e.g., {\tt
+  mysrcdir}), you will then need to add the following to {\tt
+  Make.package}. 
+\begin{verbatim}
+    VPATH_LOCATIONS += mysrcdir
+    INCLUDE_LOCATIONS += mysrcdir
+\end{verbatim}
+Here {\tt VPATH\_LOCATIONS} and {\tt INCLUDE\_LOCATIONS} are the search
+path for source and header files, respectively.
+
+\subsection{Tweaking Make System}
+
+The GNU Make build system is located at {\tt amrex/Tools/GNUMake}.
+You can read {\tt README.md} and the make files there for more
+information.  Here we will give a brief overview.
+
+Besides building executable, other common make commands include:
+\begin{quote}
+\begin{description}
+  \item[make clean] This removes the executable, {\tt .o} files, and
+    the temporarily generated files.  Note that one can add additional
+    targets to this rule by using the double colon (::)
+  \item[make realclean] This removes all files generated by make.
+  \item[make help] This shows the rules for compilation.
+  \item[make print-xxx] shows the value of varible {\tt xxx}.  This is
+    very useful for debugging and tweaking the make system.
+\end{description}
+\end{quote}
+
+Compiler flags are set in {\tt amrex/Tools/GNUMake/comps/}.  Note that
+variables like {\tt CC} and {\tt CFLAGS} are reset in that directory
+and their values in environment variables are disregarded. Site
+specific setups (e.g., MPI installation) are in {\tt
+  amrex/Tools/GNUMake/sites/}, which includes a generic setup in {\tt
+  Make.unknown}.  You can override the setup by having your own {\tt
+  Make.\$(host\_name)} file, where variable {\tt host\_name} is your
+host name in the make system and can be found via {\tt make
+  print-host\_name}.  You can also have a {\tt
+  amrex/Tools/GNUMake/Make.local} file to override various variables.
+See {\tt amrex/Tools/GNUMake/Make.local.template} for an example.
 
 \section{Building {\tt libamrex}}
-\label{build:lib}
+\label{sec:build:lib}
+
+If an application code already has its own elaborated build system and
+wants to use \amrex\ as an external library, this might be your
+choice.  In this approach, one runs {\tt ./configure}, followed by
+{\tt make} and {\tt make install}.  In the top \amrex\ directory, one
+can run {\tt ./configure -h} to show the various options for the {\tt
+  configure} script.  This approach is built on the \amrex\ GNU Make
+system.  Thus Section~\ref{sec:build:make} is recommended if any fine
+tuning is needed.
 
 \section{Building with CMake}
-\label{build:cmake}
+\label{sec:build:cmake}
 
 \MarginPar{todo}
 
