@@ -10,6 +10,7 @@ section_sources = Preface/Preface.tex \
                   Introduction/Introduction.tex \
                   GettingStarted/GettingStarted.tex \
                   BuildingAMReX/BuildingAMReX.tex \
+                  Basics/Basics.tex \
                   Visualization/Visualization.tex
 
 AMReXUsersGuide.pdf: AMReXUsersGuide.tex $(pdf_source) $(section_sources) $(pdf_source)

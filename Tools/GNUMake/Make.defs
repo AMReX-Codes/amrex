@@ -53,7 +53,7 @@ ifndef LAZY
 endif
 
 ifndef DIM
-  DIM = 2
+  $(error DIM must be set)
 else
   DIM := $(strip $(DIM))
 endif

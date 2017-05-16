@@ -92,21 +92,33 @@ struct ParticleHeader {
         std::string directions = "xyz";    
         for (int i = 0; i < ndim; ++i) {
             std::stringstream ss;
-            ss << "particle_position_" << directions[i];
+            ss << particle_type << "_position_" << directions[i];
             comp_names.push_back(ss.str());
         }
         
         for (int i = 0; i < num_real_extra; ++i) {
-            comp_names.push_back(real_comps[i]);
+            std::stringstream ss;
+            ss << particle_type << "_" << real_comps[i];
+            comp_names.push_back(ss.str());
         }
         
         if (is_checkpoint) {
-            comp_names.push_back("particle_id");
-            comp_names.push_back("particle_cpu");        
+            {
+                std::stringstream ss;
+                ss << particle_type << "_id";
+                comp_names.push_back(ss.str());
+            }
+            {
+                std::stringstream ss;
+                ss << particle_type << "_cpu";
+                comp_names.push_back(ss.str());
+            }
         }
         
         for (int i = 0; i < num_int_extra; ++i) {
-            comp_names.push_back(int_comps[i]);
+            std::stringstream ss;
+            ss << particle_type << "_" << int_comps[i];
+            comp_names.push_back(ss.str());
         }
     }
     
@@ -412,7 +424,8 @@ int main(int argc, char* argv[])
 
     // write out results
     if (myproc == 0) {
-        std::cout << std::endl << std::endl;
+        std::cout << std::endl << std::string(71, '-') << std::endl;
+        std::cout << pt << std::endl;
         for (int i = 0; i < header1.num_comp; ++i) {
             std::cout << std::left << std::setw(36) << std::setfill(' ') << std::fixed << std::setprecision(8) << header1.comp_names[i];
             std::cout << std::left << std::setw(26) << std::setfill(' ') << std::fixed << std::setprecision(8) << global_norms[i];
