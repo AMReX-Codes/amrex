@@ -131,6 +131,7 @@ public:
     */
     static std::ifstream *OpenStream(const std::string &fileName);
     static void CloseStream(const std::string &fileName, bool forceClose = false);
+    static void DeleteStream(const std::string &fileName);
     static void CloseAllStreams();
     static bool NoFabHeader(const VisMF::Header &hdr);
 
