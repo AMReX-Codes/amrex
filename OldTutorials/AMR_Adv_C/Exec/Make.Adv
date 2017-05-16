@@ -1,5 +1,5 @@
 AMREX_HOME ?= ../../../..
-ADR_DIR  ?= $(AMREX_HOME)/Tutorials/AMR_Adv_C
+ADR_DIR  ?= $(AMREX_HOME)/OldTutorials/AMR_Adv_C
 
 TOP := $(ADR_DIR)
 

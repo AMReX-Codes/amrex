@@ -18,7 +18,7 @@ EBASE     = testranksets
 EBASE     = nsidecarstest
 
 DO_IN_TRANSIT_ANALYSIS = TRUE
-ANALYSIS_DIR = $(AMREX_HOME)/Tutorials/Sidecar_EX1
+ANALYSIS_DIR = $(AMREX_HOME)/OldTutorials/Sidecar_EX1
 
 include ./Make.package
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
