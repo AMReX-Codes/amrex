@@ -367,7 +367,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::RedefineDummy
         m_dummy_mf[lev].reset(new MultiFab(ParticleBoxArray(lev),
                                            ParticleDistributionMap(lev),
                                            1,0,MFInfo().SetAlloc(false)));
-    }
+    };
 }  
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
@@ -1141,10 +1141,12 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Redistribute 
           }
           m_particles.resize(theEffectiveFinestLevel+1);
           m_dummy_mf.resize(theEffectiveFinestLevel+1);
-          for (int lev = 0; lev < theEffectiveFinestLevel+1; ++lev) {
-              RedefineDummyMF(lev);
-          }
       }
+
+  // It is important to do this even if we don't have more levels because we may have changed the 
+  //    grids at this level in a regrid.
+  for (int lev = 0; lev < theEffectiveFinestLevel+1; ++lev) 
+      RedefineDummyMF(lev);
   
   if (lev_max == -1)
       lev_max = theEffectiveFinestLevel;
