@@ -185,7 +185,7 @@ namespace amrex
       bool insideRegular = false;
       SphereIF sphere(radius, center, insideRegular);
       GeometryShop gshop(sphere, 0);
-      ebisPtr->define(domainFinest, origin, dxFinest, gshop);
+      ebisPtr->define(domainFinest, origin, dxFinest, gshop, maxgrid, -1);
     }
     else
     {
@@ -212,9 +212,9 @@ namespace amrex
     if(eekflag != 0) return eekflag;
 
     std::vector<EBLevelGrid> veblgCoar, veblgMedi, veblgFine;
-    getAllIrregEBLG(veblgCoar, paramsCoar);
-    getAllIrregEBLG(veblgMedi, paramsMedi);
     getAllIrregEBLG(veblgFine, paramsFine);
+    getAllIrregEBLG(veblgMedi, paramsMedi);
+    getAllIrregEBLG(veblgCoar, paramsCoar);
 
     EBLevelGrid eblgCoar = veblgCoar[0];
     EBLevelGrid eblgMedi = veblgMedi[0];

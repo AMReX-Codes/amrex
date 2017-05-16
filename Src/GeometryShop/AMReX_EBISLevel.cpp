@@ -188,7 +188,9 @@ namespace amrex
       coarEBGraph.coarsenFaces(fineEBGraph, coarRegion);
       coarEBGraph.fixFineToCoarse(fineEBGraph);
     }
-    m_graph.FillBoundary();
+    //after fixing up fine to coarse, copy info back
+    a_fineEBIS.m_graph.copy(ebgraphReCo, 0, 0, 1, 0, 0);
+    a_fineEBIS.m_graph.FillBoundary();
 
     //now deal with the data
     std::shared_ptr<FabArray<EBGraph> > graphptrCoar(&    m_graph, &null_deleter_fab_ebg);

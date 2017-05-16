@@ -1,5 +1,6 @@
 # n_cell = 40 40 40 
- n_cell = 32 32 32
+ n_cell = 8 8 8
+# n_cell = 32 32 32
 #n_cell = 64 64 64
 # n_cell = 128 128 128
 
@@ -7,11 +8,11 @@
 #the exact values assume the whole sphere is inside the domain
 
 sphere_center = 0.5 0.5 0.5
-sphere_radius = 0.4
-domain_length = 64.
+sphere_radius = 0.1
+domain_length = 1.0
 
 ref_ratio = 2 2 2 2 2
-max_grid_size = 16
+max_grid_size = 1024
 block_factor = 8 
 fill_ratio = 0.7
 buffer_size = 2

@@ -17,6 +17,16 @@
 
 namespace amrex
 {
+  void dumpDBL(const BoxArray* a_fabPtr)
+  {
+    amrex::Print() << "BoxArray contains:"  << *a_fabPtr << endl;
+    
+  }
+  void dumpBA(const BoxArray* a_fabPtr)
+  {
+    amrex::Print() << "BoxArray contains:"  << *a_fabPtr << endl;
+    
+  }
   void dumpFAB(const FArrayBox* a_fabPtr)
   {
     const FArrayBox& fab = *a_fabPtr;
