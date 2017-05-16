@@ -18,6 +18,7 @@
 #include <AMReX_Looping.H>
 #include <AMReX_REAL.H>
 #include <AMReX_BLProfiler.H>
+#include <AMReX_BoxIterator.H>
 #include <AMReX_MakeType.H>
 
 namespace amrex
@@ -336,6 +337,15 @@ public:
                       const Box&        destbox,
                       int               destcomp,
                       int               numcomp);
+
+  //for debugging
+  BaseFab<T>&
+  slowCopy(const BaseFab<T>& src,
+           const Box&        srcbox,
+           int               srccomp,
+           const Box&        destbox,
+           int               destcomp,
+           int               numcomp);
     /**
     * \brief As above, except the destination Box and the source Box
     * are taken to be the entire domain of the destination.   A copy
@@ -1052,6 +1062,33 @@ BaseFab<T>::copy (const BaseFab<T>& src,
     BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= nvar);
     performCopy(src,srcbox,srccomp,destbox,destcomp,numcomp);
+    return *this;
+}
+
+template <class T>
+BaseFab<T>&
+BaseFab<T>::slowCopy(const BaseFab<T>& src,
+                     const Box&        srcbox,
+                     int               srccomp,
+                     const Box&        destbox,
+                     int               destcomp,
+                     int               numcomp)
+{
+    BL_ASSERT(destbox.ok());
+    BL_ASSERT(srcbox.sameSize(destbox));
+    BL_ASSERT(src.box().contains(srcbox));
+    BL_ASSERT(domain.contains(destbox));
+    BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
+    BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= nvar);
+    for(BoxIterator bit(destbox); bit.ok(); ++bit)
+    {
+      for(int icomp = 0; icomp < numcomp; icomp++)
+      {
+        int isrc =  srccomp  + icomp;
+        int idst =  destcomp + icomp;
+        (*this)(bit(), idst) = src(bit(), isrc);
+      }
+    }
     return *this;
 }
 

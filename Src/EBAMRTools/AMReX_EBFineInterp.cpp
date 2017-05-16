@@ -141,7 +141,6 @@ namespace amrex
       }
       else if(m_orderOfPolynomial < 2)
       {
-#if 0
         Box loBox [BL_SPACEDIM];
         Box hiBox [BL_SPACEDIM];
         Box ceBox [BL_SPACEDIM];
@@ -173,6 +172,7 @@ namespace amrex
                           BL_TO_FORTRAN_FAB(regCoar),
                           BL_TO_FORTRAN_BOX(gridFine),
                           &m_refRat, &isrc, &idst, &inco);
+#if 0
           Box refBox(IntVect::Zero, IntVect::Zero);
           refBox.refine(m_refRat);
           //now increment each direction
@@ -187,8 +187,8 @@ namespace amrex
                                     BL_TO_FORTRAN_BOX(refBox),
                                     &m_refRat, &isrc, &idst, &inco);
           }
-        }
 #endif
+        }
       }
       else
       {

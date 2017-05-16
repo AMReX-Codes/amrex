@@ -1335,6 +1335,8 @@ namespace amrex
         
       //copy the data
       m_tag = HasIrregular;
+///do the slow one for debugging
+///      m_graph.slowCopy(*srcFabPtr, regionFrom, 0,regionTo, 0, 1);
       m_graph.copy(*srcFabPtr, regionFrom, 0,regionTo, 0, 1);
         
       //if we needed to new the basefab, clean it up
@@ -1405,9 +1407,10 @@ namespace amrex
       m_graph.resize(m_region, 1);
       for (BoxIterator bit(m_region); bit.ok(); ++bit)
       {
-        
-        Box fineBox = Box(bit(), bit());
+        const IntVect& iv = bit();
+        Box fineBox = Box(iv, iv);
         fineBox.refine(2);
+
         if (a_fineGraph.isRegular(fineBox))
         {
           m_graph(bit(), 0).defineAsRegular();
@@ -1429,6 +1432,7 @@ namespace amrex
           {
             GraphNodeImplem newImplem;
             newImplem.m_finerNodes = fineVoFSets[iset];
+
             m_graph(bit(), 0).addIrregularNode(newImplem);
             (*m_irregIVS) |= bit();
             if (m_graph(bit(), 0).size() > 1)
