@@ -82,7 +82,7 @@ enum ContourType {
   INVALIDCONTOURTYPE
 };
 
-enum FileType { INVALIDTYPE = 0, FAB, MULTIFAB, NEWPLT, NUMDBPTYPES };
+enum FileType { INVALIDTYPE = 0, FAB, MULTIFAB, NEWPLT, PROFDATA, NUMDBPTYPES };
 
 }  // end namespace Amrvis
 
