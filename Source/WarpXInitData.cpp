@@ -31,8 +31,6 @@ WarpX::InitData ()
         if (okToRegrid(0)) RegridBaseLevel();
     }
 
-    InitCrseFineBndryGrids(Bfield[0][0]->nGrow());
-
     if (do_pml) {
         InitPML();
     }
