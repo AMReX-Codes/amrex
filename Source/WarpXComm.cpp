@@ -11,17 +11,23 @@ WarpX::FillBoundaryB ()
 
     for (int lev = 1; lev <= finest_level; ++lev)
     {
-        amrex::InterpBfield( { MultiFab(*Bfield[lev-1][0], amrex::make_alias, 0, 1),
+        const IntVect& ref_ratio = refRatio(lev-1);
+
+        const std::array<MultiFab,BL_SPACEDIM> crse {
+                    MultiFab(*Bfield[lev-1][0], amrex::make_alias, 0, 1),
 #if (BL_SPACEDIM == 3)
-                               MultiFab(*Bfield[lev-1][1], amrex::make_alias, 0, 1),
+                    MultiFab(*Bfield[lev-1][1], amrex::make_alias, 0, 1),
 #endif
-                               MultiFab(*Bfield[lev-1][2], amrex::make_alias, 0, 1) },
-                             { MultiFab(*Bfield[lev  ][0], amrex::make_alias, 0, 1),
+                    MultiFab(*Bfield[lev-1][2], amrex::make_alias, 0, 1) };
+
+        std::array<MultiFab,BL_SPACEDIM> fine {
+                    MultiFab(*Bfield[lev][0], amrex::make_alias, 0, 1),
 #if (BL_SPACEDIM == 3)
-                               MultiFab(*Bfield[lev  ][1], amrex::make_alias, 0, 1),
+                    MultiFab(*Bfield[lev][1], amrex::make_alias, 0, 1),
 #endif
-                               MultiFab(*Bfield[lev  ][2], amrex::make_alias, 0, 1) },
-            Geom(lev));
+                    MultiFab(*Bfield[lev][2], amrex::make_alias, 0, 1) };
+
+        amrex::InterpCrseFineBndryBfield(crse, fine, Geom(lev-1), Geom(lev), ref_ratio[0]);
     }
 }
 
