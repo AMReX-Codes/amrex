@@ -5,9 +5,7 @@ DEBUG	= TRUE
 
 DIM	= 3
 
-COMP    = gcc
-
-PRECISION = DOUBLE
+COMP    = gnu
 
 USE_MPI   = FALSE
 USE_OMP   = FALSE
