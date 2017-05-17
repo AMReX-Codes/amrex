@@ -78,7 +78,7 @@ struct ParticleLocData
   int     m_lev  = -1;
   int     m_grid = -1;
   int     m_tile = -1;
-  IntVect m_cell {D_DECL(-1,-1,-1)};
+  IntVect m_cell {AMREX_D_DECL(-1,-1,-1)};
   Box     m_gridbox;
   Box     m_tilebox;
 };
@@ -883,11 +883,11 @@ public:
     const SoA& GetStructOfArrays () const { return GetParticleTile().GetStructOfArrays(); }
     SoA&       GetStructOfArrays ()       { return GetParticleTile().GetStructOfArrays(); }
 
-    void SetPosition (D_DECL(const Array<Real>& x,
+    void SetPosition (AMREX_D_DECL(const Array<Real>& x,
                              const Array<Real>& y,
                              const Array<Real>& z));
 
-    void GetPosition (D_DECL(Array<Real>& x,
+    void GetPosition (AMREX_D_DECL(Array<Real>& x,
                              Array<Real>& y,
                              Array<Real>& z)) const;
 

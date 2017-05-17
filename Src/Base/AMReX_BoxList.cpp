@@ -544,7 +544,7 @@ BoxList::maxSize (const IntVect& chunk)
 BoxList&
 BoxList::maxSize (int chunk)
 {
-    return maxSize(IntVect(D_DECL(chunk,chunk,chunk)));
+    return maxSize(IntVect(AMREX_D_DECL(chunk,chunk,chunk)));
 }
 
 BoxList&

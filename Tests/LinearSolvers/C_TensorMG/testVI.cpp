@@ -115,14 +115,14 @@ main (int   argc,
     // Create the BCRec's interpreted by ViscBndry objects
 #if BL_SPACEDIM==2
     Array<BCRec> pbcarray(4);
-    pbcarray[0] = BCRec(D_DECL(REFLECT_ODD,REFLECT_EVEN,EXT_DIR),
-			D_DECL(EXT_DIR,EXT_DIR,EXT_DIR));
-    pbcarray[1] = BCRec(D_DECL(REFLECT_EVEN,REFLECT_ODD,EXT_DIR),
-			D_DECL(EXT_DIR,EXT_DIR,EXT_DIR));
-    pbcarray[2] = BCRec(D_DECL(EXT_DIR,EXT_DIR,EXT_DIR),
-			D_DECL(EXT_DIR,EXT_DIR,EXT_DIR));
-    pbcarray[3] = BCRec(D_DECL(EXT_DIR,EXT_DIR,EXT_DIR),
-			D_DECL(EXT_DIR,EXT_DIR,EXT_DIR));
+    pbcarray[0] = BCRec(AMREX_D_DECL(REFLECT_ODD,REFLECT_EVEN,EXT_DIR),
+			AMREX_D_DECL(EXT_DIR,EXT_DIR,EXT_DIR));
+    pbcarray[1] = BCRec(AMREX_D_DECL(REFLECT_EVEN,REFLECT_ODD,EXT_DIR),
+			AMREX_D_DECL(EXT_DIR,EXT_DIR,EXT_DIR));
+    pbcarray[2] = BCRec(AMREX_D_DECL(EXT_DIR,EXT_DIR,EXT_DIR),
+			AMREX_D_DECL(EXT_DIR,EXT_DIR,EXT_DIR));
+    pbcarray[3] = BCRec(AMREX_D_DECL(EXT_DIR,EXT_DIR,EXT_DIR),
+			AMREX_D_DECL(EXT_DIR,EXT_DIR,EXT_DIR));
 #elif BL_SPACEDIM==3
     Array<BCRec> pbcarray(12);
 
@@ -130,24 +130,24 @@ main (int   argc,
     pbcarray[0] = BCRec(EXT_DIR,EXT_DIR,EXT_DIR,EXT_DIR,EXT_DIR,EXT_DIR);
     pbcarray[1] = BCRec(EXT_DIR,EXT_DIR,EXT_DIR,EXT_DIR,EXT_DIR,EXT_DIR);
     pbcarray[2] = BCRec(EXT_DIR,EXT_DIR,EXT_DIR,EXT_DIR,EXT_DIR,EXT_DIR);
-    pbcarray[3] = BCRec(D_DECL(EXT_DIR,EXT_DIR,EXT_DIR),
-			D_DECL(EXT_DIR,EXT_DIR,EXT_DIR));
-    pbcarray[4] = BCRec(D_DECL(EXT_DIR,EXT_DIR,EXT_DIR),
-			D_DECL(EXT_DIR,EXT_DIR,EXT_DIR));
-    pbcarray[5] = BCRec(D_DECL(EXT_DIR,EXT_DIR,EXT_DIR),
-			D_DECL(EXT_DIR,EXT_DIR,EXT_DIR));
-    pbcarray[6] = BCRec(D_DECL(EXT_DIR,EXT_DIR,EXT_DIR),
-			D_DECL(EXT_DIR,EXT_DIR,EXT_DIR));
-    pbcarray[7] = BCRec(D_DECL(EXT_DIR,EXT_DIR,EXT_DIR),
-			D_DECL(EXT_DIR,EXT_DIR,EXT_DIR));
-    pbcarray[8] = BCRec(D_DECL(EXT_DIR,EXT_DIR,EXT_DIR),
-			D_DECL(EXT_DIR,EXT_DIR,EXT_DIR));
-    pbcarray[9] = BCRec(D_DECL(EXT_DIR,EXT_DIR,EXT_DIR),
-			D_DECL(EXT_DIR,EXT_DIR,EXT_DIR));
-    pbcarray[10] = BCRec(D_DECL(EXT_DIR,EXT_DIR,EXT_DIR),
-			 D_DECL(EXT_DIR,EXT_DIR,EXT_DIR));
-    pbcarray[11] = BCRec(D_DECL(EXT_DIR,EXT_DIR,EXT_DIR),
-			 D_DECL(EXT_DIR,EXT_DIR,EXT_DIR));
+    pbcarray[3] = BCRec(AMREX_D_DECL(EXT_DIR,EXT_DIR,EXT_DIR),
+			AMREX_D_DECL(EXT_DIR,EXT_DIR,EXT_DIR));
+    pbcarray[4] = BCRec(AMREX_D_DECL(EXT_DIR,EXT_DIR,EXT_DIR),
+			AMREX_D_DECL(EXT_DIR,EXT_DIR,EXT_DIR));
+    pbcarray[5] = BCRec(AMREX_D_DECL(EXT_DIR,EXT_DIR,EXT_DIR),
+			AMREX_D_DECL(EXT_DIR,EXT_DIR,EXT_DIR));
+    pbcarray[6] = BCRec(AMREX_D_DECL(EXT_DIR,EXT_DIR,EXT_DIR),
+			AMREX_D_DECL(EXT_DIR,EXT_DIR,EXT_DIR));
+    pbcarray[7] = BCRec(AMREX_D_DECL(EXT_DIR,EXT_DIR,EXT_DIR),
+			AMREX_D_DECL(EXT_DIR,EXT_DIR,EXT_DIR));
+    pbcarray[8] = BCRec(AMREX_D_DECL(EXT_DIR,EXT_DIR,EXT_DIR),
+			AMREX_D_DECL(EXT_DIR,EXT_DIR,EXT_DIR));
+    pbcarray[9] = BCRec(AMREX_D_DECL(EXT_DIR,EXT_DIR,EXT_DIR),
+			AMREX_D_DECL(EXT_DIR,EXT_DIR,EXT_DIR));
+    pbcarray[10] = BCRec(AMREX_D_DECL(EXT_DIR,EXT_DIR,EXT_DIR),
+			 AMREX_D_DECL(EXT_DIR,EXT_DIR,EXT_DIR));
+    pbcarray[11] = BCRec(AMREX_D_DECL(EXT_DIR,EXT_DIR,EXT_DIR),
+			 AMREX_D_DECL(EXT_DIR,EXT_DIR,EXT_DIR));
 #else
     for (int i = 0; i < 12; i++)
         pbcarray[i] = phys_bc;
@@ -275,7 +275,7 @@ main (int   argc,
     
 #endif
     
-    const IntVect refRatio(D_DECL(2,2,2));
+    const IntVect refRatio(AMREX_D_DECL(2,2,2));
     const Real bgVal = 1.0;
     
 #if 1

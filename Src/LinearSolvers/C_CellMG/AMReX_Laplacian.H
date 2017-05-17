@@ -51,7 +51,7 @@ public:
     //
     // Compute flux associated with the op
     //
-    virtual void compFlux (D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflux),
+    virtual void compFlux (AMREX_D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflux),
 			   MultiFab& in, const BC_Mode& bc_mode=LinOp::Inhomogeneous_BC,
 			   int sComp=0, int dComp=0, int nComp=1, int bndComp=0) override;
     
