@@ -192,8 +192,8 @@ contains
                 yfine = dxf*(jjf + half)
                 zfine = zero
 
-                xslope = half*(coar(iic+1,jjc  ,kkc  , ivarc)-  coar(iic-1,jjc  ,kkc  , ivarc)) 
-                yslope = half*(coar(iic  ,jjc  ,kkc  , ivarc)-  coar(iic  ,jjc-1,kkc  , ivarc)) 
+                xslope = half*(coar(iic+1,jjc  ,kkc  , ivarc)-  coar(iic-1,jjc  ,kkc  , ivarc))/dxc 
+                yslope = half*(coar(iic  ,jjc  ,kkc  , ivarc)-  coar(iic  ,jjc-1,kkc  , ivarc))/dxc
                 zslope = zero
 
                 xdist = xfine - xcoar
@@ -204,7 +204,7 @@ contains
                 zcoar = dxc*(kkc + half)
                 zfine = dxf*(kkf + half)
                 zdist = zfine - zcoar
-                zslope = half*(coar(iic  ,jjc  ,kkc+1, ivarc)-  coar(iic  ,jjc  ,kkc-1, ivarc)) 
+                zslope = half*(coar(iic  ,jjc  ,kkc+1, ivarc)-  coar(iic  ,jjc  ,kkc-1, ivarc))/dxc
 #endif
                 fine(iif, jjf, kkf, ivarf) = coar(iic,jjc,kkc, ivarc) &
                      + xdist * xslope  &
@@ -424,3 +424,117 @@ contains
   end subroutine ebfnd_pwl_incr_at_bound
 
 end module ebfnd_pwlincr_at_bound_module
+
+
+module ebfnd_pwqinterp_nobound_module
+
+  !     since this is a .F90 file (instead of .f90) we run this through a C++ preprocessor
+  !     for e.g., #if (BL_SPACEDIM == 1) statements.
+
+  implicit none
+
+  public
+
+contains
+
+  ! this is piecewise linear interp all in one pass - away from boundaries
+  subroutine ebfnd_pwqinterp_nobound( &
+       fine, fine_lo, fine_hi, fine_nco,  &
+       coar, coar_lo, coar_hi, coar_nco,  &
+       fineboxlo,fineboxhi, & 
+       refrat, isrc, idst, ncomp) &
+       bind(C, name="ebfnd_pwqinterp_nobound")
+
+    use amrex_fort_module, only : amrex_spacedim, c_real=>amrex_real
+
+    implicit none
+
+    integer      :: iif,jjf,kkf,  ncomp, ivar, ivarf, ivarc
+    integer      :: iic,jjc,kkc, refrat, coar_nco, fine_nco, isrc, idst
+    integer      :: coar_lo(0:2),coar_hi(0:2)
+    integer      :: fine_lo(0:2),fine_hi(0:2)
+    integer      :: fineboxlo(0:2), fineboxhi(0:2)
+
+    real(c_real) :: fine(fine_lo(0):fine_hi(0),fine_lo(1):fine_hi(1),fine_lo(2):fine_hi(2), 0:fine_nco-1)
+    real(c_real) :: coar(coar_lo(0):coar_hi(0),coar_lo(1):coar_hi(1),coar_lo(2):coar_hi(2), 0:coar_nco-1)
+    real(c_real) :: xdist, ydist, zdist, xslope, yslope, zslope, dxf, dxc
+    real(c_real) :: xcoar, ycoar, zcoar, xfine, yfine, zfine
+    real(c_real) :: dxx, dyy, dzz, dxy, dxz, dyz
+
+    dxf = one
+    dxc = refrat
+
+    do ivar = 0, ncomp-1
+       ivarc = isrc + ivar
+       ivarf = idst + ivar
+
+       ! first do the easy bit--not near any boundaries
+       do kkf = fineboxlo(2), fineboxhi(2)
+          do jjf = fineboxlo(1), fineboxhi(1)
+             do iif = fineboxlo(0), fineboxhi(0)
+
+                iic = iif/refrat
+                jjc = jjf/refrat
+                kkc = kkf/refrat
+
+                xcoar = dxc*(iic + half)
+                ycoar = dxc*(jjc + half)
+                zcoar = zero
+
+                xfine = dxf*(iif + half)
+                yfine = dxf*(jjf + half)
+                zfine = zero
+
+                xslope = (coar(iic+1,jjc  ,kkc  , ivarc)-  coar(iic-1,jjc  ,kkc  , ivarc))/(two*dxc) 
+                yslope = (coar(iic  ,jjc  ,kkc  , ivarc)-  coar(iic  ,jjc-1,kkc  , ivarc))/(two*dxc) 
+                zslope = zero
+
+                dxx = (coar(iic+1,jjc  ,kkc  ,ivarc) + coar(iic-1,jjc  ,kkc  , ivarc)-  two*coar(iic,jjc,kkc,ivarc))/(dxc*dxc) 
+                dyy = (coar(iic  ,jjc+1,kkc  ,ivarc) + coar(iic  ,jjc-1,kkc  , ivarc)-  two*coar(iic,jjc,kkc,ivarc))/(dxc*dxc) 
+
+                dxy = ( &
+                     coar(iic+1,jjc+1,kkc  ,ivarc) + coar(iic-1,jjc-1,kkc, ivarc)- &
+                     coar(iic+1,jjc-1,kkc  ,ivarc) - coar(iic-1,jjc+1,kkc,ivarc))/(dxc*dxc) 
+                dxz = zero
+                dyz = zero
+                dzz = zero
+                xdist = xfine - xcoar
+                ydist = yfine - ycoar
+                zdist = zero
+
+#if BL_SPACEDIM == 3
+                dxz = ( &
+                     coar(iic+1,jjc  ,kkc+1,ivarc) + coar(iic-1,jjc  ,kkc-1, ivarc)- &
+                     coar(iic+1,jjc  ,kkc-1,ivarc) - coar(iic-1,jjc  ,kkc+1,ivarc))/(dxc*dxc) 
+                dyz = ( &
+                     coar(ii  ,jjc+1,kkcc+1,ivarc) + coar(iic  ,jjc-1,kkc-1, ivarc)- &
+                     coar(ii  ,jjc-1,kkcc+1,ivarc) - coar(iic  ,jjc+1,kkc-1,ivarc))/(dxc*dxc) 
+
+                zcoar = dxc*(kkc + half)
+                zfine = dxf*(kkf + half)
+                zdist = zfine - zcoar
+                zslope = half*(coar(iic  ,jjc  ,kkc+1, ivarc)-  coar(iic  ,jjc  ,kkc-1, ivarc))/(dxc*dxc) 
+                dzz = (coar(iic  ,jjc  ,kkc+1, ivarc) + coar(iic  ,jjc  ,kkc-1, ivarc)-  two*coar(iic,jjc,kkc,ivarc))/(two*dxc) 
+#endif
+                fine(iif, jjf, kkf, ivarf) = coar(iic,jjc,kkc, ivarc) &
+                     + xdist * xslope  &
+                     + ydist * yslope  &
+                     + zdist * zslope  &
+                     + half*xdist*xdist*dxx &
+                     + half*ydist*ydist*dyy &
+                     + half*zdist*zdist*dzz &
+                     + xdist*ydist*dxy &
+                     + xdist*zdist*dxz &
+                     + ydist*zdist*dyz 
+
+             enddo
+          enddo
+       enddo
+
+
+    enddo
+
+
+  end subroutine ebfnd_pwqinterp_nobound
+
+end module ebfnd_pwqinterp_nobound_module
