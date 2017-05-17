@@ -56,15 +56,15 @@ TagBox::coarsen (const IntVect& ratio, bool owner)
     Array<TagType> t(longlen,TagBox::CLEAR);
 
     int klo = 0, khi = 0, jlo = 0, jhi = 0, ilo, ihi;
-    D_TERM(ilo=flo[0]; ihi=fhi[0]; ,
+    BL_D_TERM(ilo=flo[0]; ihi=fhi[0]; ,
            jlo=flo[1]; jhi=fhi[1]; ,
            klo=flo[2]; khi=fhi[2];)
 
 #define IXPROJ(i,r) (((i)+(r)*std::abs(i))/(r) - std::abs(i))
-#define IOFF(j,k,lo,len) D_TERM(0, +(j-lo[1])*len[0], +(k-lo[2])*len[0]*len[1])
+#define IOFF(j,k,lo,len) BL_D_TERM(0, +(j-lo[1])*len[0], +(k-lo[2])*len[0]*len[1])
    
    int ratiox = 1, ratioy = 1, ratioz = 1;
-   D_TERM(ratiox = ratio[0];,
+   BL_D_TERM(ratiox = ratio[0];,
           ratioy = ratio[1];,
           ratioz = ratio[2];)
 
@@ -114,7 +114,7 @@ TagBox::buffer (int nbuff,
     const int* inlo = inside.loVect();
     const int* inhi = inside.hiVect();
     int klo = 0, khi = 0, jlo = 0, jhi = 0, ilo, ihi;
-    D_TERM(ilo=inlo[0]; ihi=inhi[0]; ,
+    BL_D_TERM(ilo=inlo[0]; ihi=inhi[0]; ,
            jlo=inlo[1]; jhi=inhi[1]; ,
            klo=inlo[2]; khi=inhi[2];)
 
@@ -122,10 +122,10 @@ TagBox::buffer (int nbuff,
     const int* len = d_length.getVect();
     const int* lo = domain.loVect();
     int ni = 0, nj = 0, nk = 0;
-    D_TERM(ni, =nj, =nk) = nbuff;
+    BL_D_TERM(ni, =nj, =nk) = nbuff;
     TagType* d = dataPtr();
 
-#define OFF(i,j,k,lo,len) D_TERM(i-lo[0], +(j-lo[1])*len[0] , +(k-lo[2])*len[0]*len[1])
+#define OFF(i,j,k,lo,len) BL_D_TERM(i-lo[0], +(j-lo[1])*len[0] , +(k-lo[2])*len[0]*len[1])
    
     for (int k = klo; k <= khi; k++)
     {
@@ -142,7 +142,7 @@ TagBox::buffer (int nbuff,
                         {
                             for (int i = -ni; i <= ni; i++)
                             {
-                                TagType* dn = d_check+ D_TERM(i, +j*len[0], +k*len[0]*len[1]);
+                                TagType* dn = d_check+ BL_D_TERM(i, +j*len[0], +k*len[0]*len[1]);
                                 if (*dn !=TagBox::SET)
                                     *dn = TagBox::BUF;
                             }
@@ -177,11 +177,11 @@ TagBox::merge (const TagBox& src)
         TagType*       dd0        = dataPtr();
 
         int klo = 0, khi = 0, jlo = 0, jhi = 0, ilo, ihi;
-        D_TERM(ilo=lo[0]; ihi=hi[0]; ,
+        BL_D_TERM(ilo=lo[0]; ihi=hi[0]; ,
                jlo=lo[1]; jhi=hi[1]; ,
                klo=lo[2]; khi=hi[2];)
 
-#define OFF(i,j,k,lo,len) D_TERM(i-lo[0], +(j-lo[1])*len[0] , +(k-lo[2])*len[0]*len[1])
+#define OFF(i,j,k,lo,len) BL_D_TERM(i-lo[0], +(j-lo[1])*len[0] , +(k-lo[2])*len[0]*len[1])
       
         for (int k = klo; k <= khi; k++)
         {
@@ -238,7 +238,7 @@ TagBox::collate (std::vector<IntVect>& ar, int start) const
     const int* lo    = domain.loVect();
     const TagType* d = dataPtr();
     int ni = 1, nj = 1, nk = 1;
-    D_TERM(ni = len[0]; , nj = len[1]; , nk = len[2];)
+    BL_D_TERM(ni = len[0]; , nj = len[1]; , nk = len[2];)
 
     for (int k = 0; k < nk; k++)
     {
@@ -246,7 +246,7 @@ TagBox::collate (std::vector<IntVect>& ar, int start) const
         {
             for (int i = 0; i < ni; i++)
             {
-                const TagType* dn = d + D_TERM(i, +j*len[0], +k*len[0]*len[1]);
+                const TagType* dn = d + BL_D_TERM(i, +j*len[0], +k*len[0]*len[1]);
                 if (*dn != TagBox::CLEAR)
                 {
                     ar[start++] = IntVect(BL_D_DECL(lo[0]+i,lo[1]+j,lo[2]+k));

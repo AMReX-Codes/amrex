@@ -73,8 +73,8 @@ getComputedValues(Real             & a_volumeCalc,
   RealVect origin = RealVect::Zero;
   gshop.fillGraph(regIrregCovered, nodes, validRegion, ghostRegion, a_domain, origin, a_dx);
   //regular volume and face area for uncut cell
-  Real regVolume = D_TERM(a_dx, *a_dx, *a_dx);
-  Real regArea   = D_TERM(1.0 , *a_dx, *a_dx);
+  Real regVolume = BL_D_TERM(a_dx, *a_dx, *a_dx);
+  Real regArea   = BL_D_TERM(1.0 , *a_dx, *a_dx);
   for (BoxIterator bit(a_domain); bit.ok(); ++bit)
     {
       const IntVect& iv = bit();

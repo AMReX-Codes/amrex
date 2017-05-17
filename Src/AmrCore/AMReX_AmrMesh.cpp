@@ -716,8 +716,8 @@ AmrMesh::ProjPeriodic (BoxList& blout, const Geometry& geom)
     int niend,njend,nkend;
     nist = njst = nkst = 0;
     niend = njend = nkend = 0;
-    D_TERM( nist , =njst , =nkst ) = -1;
-    D_TERM( niend , =njend , =nkend ) = +1;
+    BL_D_TERM( nist , =njst , =nkst ) = -1;
+    BL_D_TERM( niend , =njend , =nkend ) = +1;
 
     int ri,rj,rk;
     for (ri = nist; ri <= niend; ri++)

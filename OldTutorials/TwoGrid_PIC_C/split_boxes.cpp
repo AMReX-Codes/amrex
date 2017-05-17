@@ -32,23 +32,23 @@ splitBoxes (BoxArray& ba, Array<long>& newcost, const Array<long>& cost_in, int 
 	    const Box& bx = ba[i];
 	    const Real ct = cost[i];
 	    if (ct > cost_split &&
-		D_TERM(bx.length(0) == base_box_size,
+		BL_D_TERM(bx.length(0) == base_box_size,
 		    && bx.length(1) == base_box_size,
 		    && bx.length(2) == base_box_size))
 	    { // split it
 		BoxList bltmp(bx);
 		bltmp.maxSize(half_box_size);
-		BL_ASSERT(bltmp.size() == D_TERM(2,*2,*2));
+		BL_ASSERT(bltmp.size() == BL_D_TERM(2,*2,*2));
 		Real hct = ct / bltmp.size();
 		for (int i=0; i<bltmp.size(); i++)
 		    newcost.push_back(hct);
 		newbl.catenate(bltmp);
 	    } 
-	    else if (D_TERM(bx.length(0) == half_box_size,
+	    else if (BL_D_TERM(bx.length(0) == half_box_size,
 			 && bx.length(1) == half_box_size,
 		         && bx.length(2) == half_box_size)) 
 	    { // maybe we can merge
-		int nm = D_TERM(2,*2,*2);
+		int nm = BL_D_TERM(2,*2,*2);
 		if (i+nm-1 >= N) {
 		    // not enough boxes to merge
 		    newbl.push_back(bx);
@@ -70,7 +70,7 @@ splitBoxes (BoxArray& ba, Array<long>& newcost, const Array<long>& cost_in, int 
 		    }
 		
 		    if (samesize && 
-			D_TERM(mergedbox.length(0) == base_box_size,
+			BL_D_TERM(mergedbox.length(0) == base_box_size,
 			    && mergedbox.length(1) == base_box_size,
 			    && mergedbox.length(2) == base_box_size)) 
 		    {

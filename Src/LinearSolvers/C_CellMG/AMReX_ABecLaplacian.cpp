@@ -56,7 +56,7 @@ ABecLaplacian::norm (int nm, int level, const bool local)
     BL_ASSERT(nm == 0);
     const MultiFab& a   = aCoefficients(level);
 
-    D_TERM(const MultiFab& bX  = bCoefficients(0,level);,
+    BL_D_TERM(const MultiFab& bX  = bCoefficients(0,level);,
            const MultiFab& bY  = bCoefficients(1,level);,
            const MultiFab& bZ  = bCoefficients(2,level););
 
@@ -77,7 +77,7 @@ ABecLaplacian::norm (int nm, int level, const bool local)
 	    const Box&       tbx  = amfi.tilebox();
 	    const FArrayBox& afab = a[amfi];
 	    
-	    D_TERM(const FArrayBox& bxfab = bX[amfi];,
+	    BL_D_TERM(const FArrayBox& bxfab = bX[amfi];,
 		   const FArrayBox& byfab = bY[amfi];,
 		   const FArrayBox& bzfab = bZ[amfi];);
 	    
@@ -333,7 +333,7 @@ ABecLaplacian::compFlux (BL_D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &z
 
     const MultiFab& a = aCoefficients(level);
 
-    D_TERM(const MultiFab& bX = bCoefficients(0,level);,
+    BL_D_TERM(const MultiFab& bX = bCoefficients(0,level);,
            const MultiFab& bY = bCoefficients(1,level);,
            const MultiFab& bZ = bCoefficients(2,level););
 
@@ -344,17 +344,17 @@ ABecLaplacian::compFlux (BL_D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &z
 #endif
     for (MFIter inmfi(in,tiling); inmfi.isValid(); ++inmfi)
     {
-        D_TERM(const Box& xbx   = inmfi.nodaltilebox(0);,
+        BL_D_TERM(const Box& xbx   = inmfi.nodaltilebox(0);,
 	       const Box& ybx   = inmfi.nodaltilebox(1);,
 	       const Box& zbx   = inmfi.nodaltilebox(2););
 
         FArrayBox& infab = in[inmfi];
 
-        D_TERM(const FArrayBox& bxfab = bX[inmfi];,
+        BL_D_TERM(const FArrayBox& bxfab = bX[inmfi];,
                const FArrayBox& byfab = bY[inmfi];,
                const FArrayBox& bzfab = bZ[inmfi];);
 
-        D_TERM(FArrayBox& xfluxfab = xflux[inmfi];,
+        BL_D_TERM(FArrayBox& xfluxfab = xflux[inmfi];,
                FArrayBox& yfluxfab = yflux[inmfi];,
                FArrayBox& zfluxfab = zflux[inmfi];);
 
@@ -419,7 +419,7 @@ ABecLaplacian::Fsmooth (MultiFab&       solnL,
 #endif    
     const MultiFab& a = aCoefficients(level);
 
-    D_TERM(const MultiFab& bX = bCoefficients(0,level);,
+    BL_D_TERM(const MultiFab& bX = bCoefficients(0,level);,
            const MultiFab& bY = bCoefficients(1,level);,
            const MultiFab& bZ = bCoefficients(2,level););
 
@@ -458,7 +458,7 @@ ABecLaplacian::Fsmooth (MultiFab&       solnL,
         const FArrayBox& rhsfab  = rhsL[solnLmfi];
         const FArrayBox& afab    = a[solnLmfi];
 
-        D_TERM(const FArrayBox& bxfab = bX[solnLmfi];,
+        BL_D_TERM(const FArrayBox& bxfab = bX[solnLmfi];,
                const FArrayBox& byfab = bY[solnLmfi];,
                const FArrayBox& bzfab = bZ[solnLmfi];);
 
@@ -535,7 +535,7 @@ ABecLaplacian::Fsmooth_jacobi (MultiFab&       solnL,
 #endif    
     const MultiFab& a = aCoefficients(level);
 
-    D_TERM(const MultiFab& bX = bCoefficients(0,level);,
+    BL_D_TERM(const MultiFab& bX = bCoefficients(0,level);,
            const MultiFab& bY = bCoefficients(1,level);,
            const MultiFab& bZ = bCoefficients(2,level););
 
@@ -571,7 +571,7 @@ ABecLaplacian::Fsmooth_jacobi (MultiFab&       solnL,
         const FArrayBox& rhsfab  = rhsL[solnLmfi];
         const FArrayBox& afab    = a[solnLmfi];
 
-        D_TERM(const FArrayBox& bxfab = bX[solnLmfi];,
+        BL_D_TERM(const FArrayBox& bxfab = bX[solnLmfi];,
                const FArrayBox& byfab = bY[solnLmfi];,
                const FArrayBox& bzfab = bZ[solnLmfi];);
 
@@ -656,7 +656,7 @@ ABecLaplacian::Fapply (MultiFab&       y,
 
     const MultiFab& a   = aCoefficients(level);
 
-    D_TERM(const MultiFab& bX  = bCoefficients(0,level);,
+    BL_D_TERM(const MultiFab& bX  = bCoefficients(0,level);,
            const MultiFab& bY  = bCoefficients(1,level);,
            const MultiFab& bZ  = bCoefficients(2,level););
 
@@ -672,7 +672,7 @@ ABecLaplacian::Fapply (MultiFab&       y,
         const FArrayBox& xfab = x[ymfi];
         const FArrayBox& afab = a[ymfi];
 
-        D_TERM(const FArrayBox& bxfab = bX[ymfi];,
+        BL_D_TERM(const FArrayBox& bxfab = bX[ymfi];,
                const FArrayBox& byfab = bY[ymfi];,
                const FArrayBox& bzfab = bZ[ymfi];);
 

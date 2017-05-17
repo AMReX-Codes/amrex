@@ -2621,11 +2621,11 @@ Amr::printGridSummary (std::ostream& os,
 	    const Box& bmax = bs[imax];
 	    os << "           "
 	       << " smallest grid: "
-		D_TERM(<< bmin.length(0),
+		BL_D_TERM(<< bmin.length(0),
 		       << " x " << bmin.length(1),
 		       << " x " << bmin.length(2))
 	       << "  biggest grid: "
-		D_TERM(<< bmax.length(0),
+		BL_D_TERM(<< bmax.length(0),
 		       << " x " << bmax.length(1),
 		       << " x " << bmax.length(2))
 	       << '\n';

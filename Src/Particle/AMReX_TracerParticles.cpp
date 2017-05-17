@@ -13,11 +13,11 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
     BL_ASSERT(OK(lev, lev, umac[0].nGrow()-1));
     BL_ASSERT(lev >= 0 && lev < GetParticles().size());
 
-    D_TERM(BL_ASSERT(umac[0].nGrow() >= 1);,
+    BL_D_TERM(BL_ASSERT(umac[0].nGrow() >= 1);,
            BL_ASSERT(umac[1].nGrow() >= 1);,
            BL_ASSERT(umac[2].nGrow() >= 1););
 
-    D_TERM(BL_ASSERT(!umac[0].contains_nan());,
+    BL_D_TERM(BL_ASSERT(!umac[0].contains_nan());,
            BL_ASSERT(!umac[1].contains_nan());,
            BL_ASSERT(!umac[2].contains_nan()););
 
@@ -320,7 +320,7 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
 		      
 		      TimeStampFile << p.m_idata.id  << ' ' << p.m_idata.cpu << ' ';
 		      
-		      D_TERM(TimeStampFile << p.m_rdata.pos[0] << ' ';,
+		      BL_D_TERM(TimeStampFile << p.m_rdata.pos[0] << ' ';,
 			     TimeStampFile << p.m_rdata.pos[1] << ' ';,
 			     TimeStampFile << p.m_rdata.pos[2] << ' ';);
 		      
@@ -328,7 +328,7 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
 		      //
 		      // AdvectWithUmac stores the velocity in rdata ...
 		      //
-		      D_TERM(TimeStampFile << ' ' << p.m_rdata.arr[BL_SPACEDIM+0];,
+		      BL_D_TERM(TimeStampFile << ' ' << p.m_rdata.arr[BL_SPACEDIM+0];,
 			     TimeStampFile << ' ' << p.m_rdata.arr[BL_SPACEDIM+1];,
 			     TimeStampFile << ' ' << p.m_rdata.arr[BL_SPACEDIM+2];);
 		      

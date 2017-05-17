@@ -355,8 +355,8 @@ namespace amrex
   {
     BL_PROFILE("EBDataImplem::coarsenBoundaryAreaAndNormal");
 
-    Real faceCoarsenFactor = D_TERM(1.0, * 0.5, *0.5);
-    // Real voluCoarsenFactor = D_TERM(0.5, * 0.5, *0.5);
+    Real faceCoarsenFactor = BL_D_TERM(1.0, * 0.5, *0.5);
+    // Real voluCoarsenFactor = BL_D_TERM(0.5, * 0.5, *0.5);
 
     //A^B_xi, C = sum(A^B_xi, F/2^D-1)
     RealVect bndryAreaVec= RealVect::Zero;

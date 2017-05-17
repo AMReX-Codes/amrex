@@ -820,7 +820,7 @@ main (int   argc,
     // Write output
     //
     const int nState = BL_SPACEDIM + comps.size();
-    std::string vars = D_TERM("X"," Y"," Z");
+    std::string vars = BL_D_TERM("X"," Y"," Z");
     for (int j=0; j<comps.size(); ++j)
         vars += " " + amrData.PlotVarNames()[comps[j]];
 
@@ -853,7 +853,7 @@ main (int   argc,
         else
         {
             std::ofstream osf(outfile.c_str(),std::ios::out);
-            osf << D_TERM("VARIABLES= \"X\"", " \"Y\"", " \"Z\"");
+            osf << BL_D_TERM("VARIABLES= \"X\"", " \"Y\"", " \"Z\"");
             for (int j=0; j<comps.size(); ++j)
                 osf << " \""  << amrData.PlotVarNames()[comps[j]] << "\"";
             char buf[100];

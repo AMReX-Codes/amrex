@@ -63,7 +63,7 @@ namespace amrex
 
   Real RealVect::dotProduct(const RealVect& a_rhs) const
   {
-    return D_TERM(vect[0]*a_rhs.vect[0], +
+    return BL_D_TERM(vect[0]*a_rhs.vect[0], +
                   vect[1]*a_rhs.vect[1], +
                   vect[2]*a_rhs.vect[2]);
   }
@@ -71,13 +71,13 @@ namespace amrex
   bool
   RealVect::operator== (const RealVect& p) const
   {
-    return D_TERM(vect[0] == p[0], && vect[1] == p[1], && vect[2] == p[2]);
+    return BL_D_TERM(vect[0] == p[0], && vect[1] == p[1], && vect[2] == p[2]);
   }
 
   bool
   RealVect::operator!= (const RealVect& p) const
   {
-    return D_TERM(vect[0] != p[0], || vect[1] != p[1], || vect[2] != p[2]);
+    return BL_D_TERM(vect[0] != p[0], || vect[1] != p[1], || vect[2] != p[2]);
   }
 
   RealVect&
@@ -265,7 +265,7 @@ namespace amrex
   std::ostream&
   operator<< (std::ostream& ostr, const RealVect& p)
   {
-    ostr << "(" << D_TERM ( p[0] ,<< "," << p[1], << "," << p[2]) << ")" ;
+    ostr << "(" << BL_D_TERM ( p[0] ,<< "," << p[1], << "," << p[2]) << ")" ;
     return ostr;
   }
 

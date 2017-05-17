@@ -422,14 +422,14 @@ ABec4::compFlux (BL_D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflux),
 #endif
     for (MFIter inmfi(in,tiling); inmfi.isValid(); ++inmfi)
     {
-        D_TERM(const Box& xbx   = inmfi.nodaltilebox(0);,
+        BL_D_TERM(const Box& xbx   = inmfi.nodaltilebox(0);,
 	       const Box& ybx   = inmfi.nodaltilebox(1);,
 	       const Box& zbx   = inmfi.nodaltilebox(2););
 
         FArrayBox& infab = in[inmfi];
 	const FArrayBox& bfab = b[inmfi];
 
-        D_TERM(FArrayBox& xfluxfab = xflux[inmfi];,
+        BL_D_TERM(FArrayBox& xfluxfab = xflux[inmfi];,
                FArrayBox& yfluxfab = yflux[inmfi];,
                FArrayBox& zfluxfab = zflux[inmfi];);
 

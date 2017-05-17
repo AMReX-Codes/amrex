@@ -27,8 +27,8 @@ RealBox::RealBox (const Box&  bx,
 
 RealBox::RealBox ()
 {
-    D_TERM(xlo[0] , = xlo[1] , = xlo[2] ) = 0.;
-    D_TERM(xhi[0] , = xhi[1] , = xhi[2] ) = -1.;
+    BL_D_TERM(xlo[0] , = xlo[1] , = xlo[2] ) = 0.;
+    BL_D_TERM(xhi[0] , = xhi[1] , = xhi[2] ) = -1.;
 }
 
 RealBox::RealBox (const Real* lo,
@@ -67,7 +67,7 @@ RealBox::ok () const
 bool
 RealBox::contains (const Real* point) const
 {
-    return  D_TERM((xlo[0]-eps < point[0]) && (point[0] < xhi[0]+eps),
+    return  BL_D_TERM((xlo[0]-eps < point[0]) && (point[0] < xhi[0]+eps),
                    && (xlo[1]-eps < point[1]) && (point[1] < xhi[1]+eps),
                    && (xlo[2]-eps < point[2]) && (point[2] < xhi[2]+eps));
 }

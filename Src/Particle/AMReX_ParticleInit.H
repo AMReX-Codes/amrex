@@ -110,7 +110,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromAscii
             // We don't read in idata.id or idata.cpu.  We'll set those later
             // in a manner to guarantee the global uniqueness of the pair.
             //
-            D_TERM(ifs >> p.m_rdata.pos[0];,
+            BL_D_TERM(ifs >> p.m_rdata.pos[0];,
                    ifs >> p.m_rdata.pos[1];,
                    ifs >> p.m_rdata.pos[2];);
 
@@ -134,7 +134,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromAscii
                 {
                     amrex::AllPrint() << "BAD PARTICLE ID WOULD BE " << ParticleType::NextID() << '\n'
                                       << "BAD PARTICLE POS " 
-                                      << D_TERM(   p.m_rdata.pos[0],
+                                      << BL_D_TERM(   p.m_rdata.pos[0],
                                                 << p.m_rdata.pos[1],
                                                 << p.m_rdata.pos[2])
                                       << "\n";
@@ -163,7 +163,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromAscii
                 {
                     for (rep[0] = 1; rep[0] <= lNrep[0]; rep[0]++) 
                     {
-                        if (!(D_TERM( (rep[0] == 1), && (rep[1] == 1), && (rep[2] == 1) ) ) )
+                        if (!(BL_D_TERM( (rep[0] == 1), && (rep[1] == 1), && (rep[2] == 1) ) ) )
                         {
                             //
                             // Shift the position.
@@ -281,7 +281,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromAscii
 
         ParallelDescriptor::ReduceLongSum(num_particles, IOProcNumber);
 
-        if (D_TERM(lNrep[0] == 1, && lNrep[1] == 1, && lNrep[2] == 1))
+        if (BL_D_TERM(lNrep[0] == 1, && lNrep[1] == 1, && lNrep[2] == 1))
         {
             amrex::Print() << "Total number of particles: " << num_particles << '\n';
         }
@@ -292,7 +292,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromAscii
             ParallelDescriptor::ReduceLongSum(num_particles_read, IOProcNumber);
 
             amrex::Print() << "Replication the domain with vector           "
-                           << D_TERM(lNrep[0] << " ", << lNrep[1] << " ", << lNrep[2]) << "\n"
+                           << BL_D_TERM(lNrep[0] << " ", << lNrep[1] << " ", << lNrep[2]) << "\n"
                            << "Total number of particles read in          : " << num_particles_read << '\n'
                            << "Total number of particles after replication: " << num_particles      << '\n';
         }
@@ -586,7 +586,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinar
 
                     ifs.read((char*)&fpos[0], BL_SPACEDIM*sizeof(float));
 
-                    D_TERM(p.m_rdata.pos[0] = fpos[0];,
+                    BL_D_TERM(p.m_rdata.pos[0] = fpos[0];,
                            p.m_rdata.pos[1] = fpos[1];,
                            p.m_rdata.pos[2] = fpos[2];);
 
@@ -597,7 +597,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinar
 
                     ifs.read((char*)&dpos[0], BL_SPACEDIM*sizeof(double));
 
-                    D_TERM(p.m_rdata.pos[0] = dpos[0];,
+                    BL_D_TERM(p.m_rdata.pos[0] = dpos[0];,
                            p.m_rdata.pos[1] = dpos[1];,
                            p.m_rdata.pos[2] = dpos[2];);
                 }
@@ -653,7 +653,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinar
                     {
                         amrex::AllPrint() << "BAD PARTICLE ID WOULD BE " << ParticleType::NextID() << '\n'
                                           << "BAD PARTICLE POS " 
-                                          << D_TERM(   p.m_rdata.pos[0],
+                                          << BL_D_TERM(   p.m_rdata.pos[0],
                                                     << p.m_rdata.pos[2],
                                                     << p.m_rdata.pos[3])
                                           << "\n";
@@ -1089,7 +1089,7 @@ InitOnePerCell (Real x_off, Real y_off, Real z_off, const ParticleInitData& pdat
                  cell = grid.smallEnd(); cell <= end; grid.next(cell)) { 
 
             // the real struct data
-            D_TERM(p.m_rdata.pos[0] = grid_box.lo(0) + (x_off + cell[0]-beg[0])*dx[0];,
+            BL_D_TERM(p.m_rdata.pos[0] = grid_box.lo(0) + (x_off + cell[0]-beg[0])*dx[0];,
                    p.m_rdata.pos[1] = grid_box.lo(1) + (y_off + cell[1]-beg[1])*dx[1];,
                    p.m_rdata.pos[2] = grid_box.lo(2) + (z_off + cell[2]-beg[2])*dx[2];);
             

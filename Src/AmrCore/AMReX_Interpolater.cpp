@@ -111,7 +111,7 @@ NodeBilinear::interp (const FArrayBox&  crse,
     const int* fhi = fine.hiVect();
     const int* lo  = fine_region.loVect();
     const int* hi  = fine_region.hiVect();
-    int num_slope  = D_TERM(2,*2,*2)-1;
+    int num_slope  = BL_D_TERM(2,*2,*2)-1;
     int len0       = crse.box().length(0);
     int slp_len    = num_slope*len0;
 
@@ -186,7 +186,7 @@ CellBilinear::interp (const FArrayBox&  crse,
     const int* fhi = fine.hiVect();
     const int* lo  = fine_region.loVect();
     const int* hi  = fine_region.hiVect();
-    int num_slope  = D_TERM(2,*2,*2)-1;
+    int num_slope  = BL_D_TERM(2,*2,*2)-1;
     int len0       = crse.box().length(0);
     int slp_len    = num_slope*len0;
 
@@ -354,7 +354,7 @@ CellConservativeLinear::interp (const FArrayBox& crse,
         fvcbhi[dir] = fvcblo[dir] + fvc[dir].size() - 1;
     }
 
-    D_TERM(Real* voffx = new Real[fvc[0].size()];,
+    BL_D_TERM(Real* voffx = new Real[fvc[0].size()];,
            Real* voffy = new Real[fvc[1].size()];,
            Real* voffz = new Real[fvc[2].size()];);
 
@@ -383,7 +383,7 @@ CellConservativeLinear::interp (const FArrayBox& crse,
                       alpha.dataPtr(),cmax.dataPtr(),cmin.dataPtr(),
                       &actual_comp,&actual_state);
 
-    D_TERM(delete [] voffx;, delete [] voffy;, delete [] voffz;);
+    BL_D_TERM(delete [] voffx;, delete [] voffy;, delete [] voffz;);
 
 }
 
@@ -701,7 +701,7 @@ CellConservativeProtected::interp (const FArrayBox& crse,
         fvcbhi[dir] = fvcblo[dir] + fvc[dir].size() - 1;
     }
 
-    D_TERM(Real* voffx = new Real[fvc[0].size()];,
+    BL_D_TERM(Real* voffx = new Real[fvc[0].size()];,
            Real* voffy = new Real[fvc[1].size()];,
            Real* voffz = new Real[fvc[2].size()];);
 
@@ -731,7 +731,7 @@ CellConservativeProtected::interp (const FArrayBox& crse,
                       alpha.dataPtr(),cmax.dataPtr(),cmin.dataPtr(),
                       &actual_comp,&actual_state);
 
-    D_TERM(delete [] voffx;, delete [] voffy;, delete [] voffz;);
+    BL_D_TERM(delete [] voffx;, delete [] voffy;, delete [] voffz;);
 
 #endif /*(BL_SPACEDIM > 1)*/
 }

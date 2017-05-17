@@ -1993,7 +1993,7 @@ BaseFab<T>::maskLT (BaseFab<int>& mask,
 
     ForAllThisCBNN(T,domain,comp,1)
     {
-        int ix = D_TERM(_i, +_j*_b_len[0], +_k*_b_len[0]*_b_len[1]);
+        int ix = BL_D_TERM(_i, +_j*_b_len[0], +_k*_b_len[0]*_b_len[1]);
         if (thisR < val)
         {
             mptr[ix] = 1;
@@ -2018,7 +2018,7 @@ BaseFab<T>::maskLE (BaseFab<int>& mask,
 
     ForAllThisCBNN(T,domain,comp,1)
     {
-        int ix = D_TERM(_i, +_j*_b_len[0], +_k*_b_len[0]*_b_len[1]);
+        int ix = BL_D_TERM(_i, +_j*_b_len[0], +_k*_b_len[0]*_b_len[1]);
         if (thisR <= val)
         {
             mptr[ix] = 1;
@@ -2043,7 +2043,7 @@ BaseFab<T>::maskEQ (BaseFab<int>& mask,
 
     ForAllThisCBNN(T,domain,comp,1)
     {
-        int ix = D_TERM(_i, +_j*_b_len[0], +_k*_b_len[0]*_b_len[1]);
+        int ix = BL_D_TERM(_i, +_j*_b_len[0], +_k*_b_len[0]*_b_len[1]);
         if (thisR == val)
         {
             mptr[ix] = 1;
@@ -2068,7 +2068,7 @@ BaseFab<T>::maskGT (BaseFab<int>& mask,
 
     ForAllThisCBNN(T,domain,comp,1)
     {
-        int ix = D_TERM(_i, +_j*_b_len[0], +_k*_b_len[0]*_b_len[1]);
+        int ix = BL_D_TERM(_i, +_j*_b_len[0], +_k*_b_len[0]*_b_len[1]);
         if (thisR > val)
         {
             mptr[ix] = 1;
@@ -2093,7 +2093,7 @@ BaseFab<T>::maskGE(BaseFab<int>& mask,
 
     ForAllThisCBNN(T,domain,comp,1)
     {
-        int ix = D_TERM(_i, +_j*_b_len[0], +_k*_b_len[0]*_b_len[1]);
+        int ix = BL_D_TERM(_i, +_j*_b_len[0], +_k*_b_len[0]*_b_len[1]);
         if (thisR >= val)
         {
             mptr[ix] = 1;
@@ -2175,7 +2175,7 @@ BaseFab<T>::patternFill (int mark)
 {
     ForAllThis(T)
     {
-        thisR = D_TERM(iR*100, +jR*10, + kR) + 1000*nR + 10000*mark;
+        thisR = BL_D_TERM(iR*100, +jR*10, + kR) + 1000*nR + 10000*mark;
     } EndFor
 }
 
