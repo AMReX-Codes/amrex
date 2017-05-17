@@ -37,10 +37,10 @@ public:
     }
     /**
     * \brief Construct an IndexType given an explicit CellIndex for
-    * each direction.  D_DECL is a macro that sets the constructor
+    * each direction.  BL_D_DECL is a macro that sets the constructor
     * to take BL_SPACEDIM arguments.
     */
-    IndexType (D_DECL(CellIndex i, CellIndex j, CellIndex k))
+    IndexType (BL_D_DECL(CellIndex i, CellIndex j, CellIndex k))
     {
         itype = D_TERM(i, | (j<<1), | (k<<2));
     }
@@ -81,7 +81,7 @@ public:
     //! Return an integer representing the IndexType in direction dir.
     int operator[] (int dir) const { return test(dir); }
     //! Fill an IntVect of size BL_SPACEDIM with IndexTypes.
-    IntVect ixType () const { return IntVect(D_DECL(itype&1, (itype>>1)&1, (itype>>2)&1)); }
+    IntVect ixType () const { return IntVect(BL_D_DECL(itype&1, (itype>>1)&1, (itype>>2)&1)); }
     /**
     * \brief This static member function returns an IndexType object of value
     * IndexType::CELL.  It is provided as a convenience to our users

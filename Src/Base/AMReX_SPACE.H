@@ -78,7 +78,7 @@ namespace amrex
 #  define D_EXPR(a,b,c) ((void)((a),0))
 
 /*
-  The D_DECL(a,b,c) macro expands to a comma-separated list of
+  The BL_D_DECL(a,b,c) macro expands to a comma-separated list of
   1, 2, or all 3 of the arguments of the call, depending on the
   value of BL_SPACEDIM.  This can be used to write portable
   function calls that depend on 1, 2, or 3 arguments, corresponding
@@ -86,7 +86,7 @@ namespace amrex
 
   For example:
 
-     return IntVect(D_DECL(p[0] + s, p[1] + s, p[2] + s));
+     return IntVect(BL_D_DECL(p[0] + s, p[1] + s, p[2] + s));
 
   More explicitly, this macro evaluates to one of
 
@@ -98,7 +98,7 @@ namespace amrex
 
   corresponding to BL_SPACEDIM values of 1, 2, or 3.
 */
-#  define D_DECL(a,b,c) a
+#  define BL_D_DECL(a,b,c) a
 
 /*
   The D_TERM(a,b,c) macro expands to a whitespace-separated list of
@@ -146,14 +146,23 @@ namespace amrex
 #  define D_PICK(a,b,c) a
 #elif BL_SPACEDIM==2
 #  define D_EXPR(a,b,c) ((void)((a),(b),0))
-#  define D_DECL(a,b,c) a,b
+#  define BL_D_DECL(a,b,c) a,b
 #  define D_TERM(a,b,c) a b
 #  define D_PICK(a,b,c) b
 #elif BL_SPACEDIM==3
 #  define D_EXPR(a,b,c) ((void)((a),(b),(c),0))
-#  define D_DECL(a,b,c) a,b,c
+#  define BL_D_DECL(a,b,c) a,b,c
 #  define D_TERM(a,b,c) a b c
 #  define D_PICK(a,b,c) c
+#endif
+
+/* for backward compatibility */
+#if (BL_SPACEDIM == 1)
+#define D_DECL(a,b,c) a
+#elif (BL_SPACEDIM == 2)
+#define D_DECL(a,b,c) a,b
+#elif (BL_SPACEDIM == 3)
+#define D_DECL(a,b,c) a,b,c
 #endif
 
 #endif /*BL_SPACE_H*/

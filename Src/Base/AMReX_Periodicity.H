@@ -15,7 +15,7 @@ namespace amrex {
 class Periodicity
 {
 public:
-    Periodicity () : period(D_DECL(0,0,0)) {}
+    Periodicity () : period(BL_D_DECL(0,0,0)) {}
     explicit Periodicity (const IntVect& v) : period(v) {}
 
     bool isAnyPeriodic () const

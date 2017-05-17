@@ -33,7 +33,7 @@ public:
     public:
 	std::size_t operator()(const IntVect& vec) const
         {
-	    D_DECL(std::size_t ret0 = vec[0], ret1 = vec[1], ret2 = vec[2]);
+	    BL_D_DECL(std::size_t ret0 = vec[0], ret1 = vec[1], ret2 = vec[2]);
 #if BL_SPACEDIM == 1
 	    return ret0;
 #elif BL_SPACEDIM == 2
@@ -69,10 +69,10 @@ public:
 
     /**
     * \brief Construct an IntVect given the specific values for its
-    * coordinates.  D_DECL is a macro that sets the constructor
+    * coordinates.  BL_D_DECL is a macro that sets the constructor
     * to take BL_SPACEDIM arguments.
     */
-    IntVect (D_DECL(int i, int j, int k)) { D_EXPR(vect[0] = i, vect[1] = j, vect[2] = k); }
+    IntVect (BL_D_DECL(int i, int j, int k)) { D_EXPR(vect[0] = i, vect[1] = j, vect[2] = k); }
 
     /**
     * \brief Construct an IntVect setting the coordinates to the
@@ -193,7 +193,7 @@ public:
     //! Unary plus -- for completeness.
     const IntVect operator+ () const { return *this; }
     //! Unary Minus -- negates all components.
-    IntVect operator- () const { return IntVect(D_DECL(-vect[0], -vect[1], -vect[2] )); }
+    IntVect operator- () const { return IntVect(BL_D_DECL(-vect[0], -vect[1], -vect[2] )); }
     //! Modifies IntVect by addition of a scalar to each component.
     IntVect& operator+= (int s)
     {
@@ -237,42 +237,42 @@ public:
     //! Returns component-wise sum of IntVect and argument.
     IntVect operator+ (const IntVect& p) const
     {
-        return IntVect(D_DECL(vect[0] + p[0], vect[1] + p[1], vect[2] + p[2]));
+        return IntVect(BL_D_DECL(vect[0] + p[0], vect[1] + p[1], vect[2] + p[2]));
     }
     //! Return an IntVect that is this IntVect + s.
     IntVect operator+ (int s) const
     {
-        return IntVect(D_DECL(vect[0] + s, vect[1] + s, vect[2] + s));
+        return IntVect(BL_D_DECL(vect[0] + s, vect[1] + s, vect[2] + s));
     }
     //! Returns component-wise difference of IntVect and argument.
     IntVect operator- (const IntVect& p) const
     {
-        return IntVect(D_DECL(vect[0] - p[0], vect[1] - p[1], vect[2] - p[2]));
+        return IntVect(BL_D_DECL(vect[0] - p[0], vect[1] - p[1], vect[2] - p[2]));
     }
     //! Return an IntVect that is this IntVect - s.
     IntVect operator- (int s) const
     {
-        return IntVect(D_DECL(vect[0] - s, vect[1] - s, vect[2] - s));
+        return IntVect(BL_D_DECL(vect[0] - s, vect[1] - s, vect[2] - s));
     }
     //! Returns component-wise product of IntVect and argument.
     IntVect operator* (const IntVect& p) const
     {
-        return IntVect(D_DECL(vect[0] * p[0], vect[1] * p[1], vect[2] * p[2]));
+        return IntVect(BL_D_DECL(vect[0] * p[0], vect[1] * p[1], vect[2] * p[2]));
     }
     //! Returns component-wise product of IntVect and s.
     IntVect operator* (int s) const
     {
-        return IntVect(D_DECL(vect[0] * s, vect[1] * s, vect[2] * s));
+        return IntVect(BL_D_DECL(vect[0] * s, vect[1] * s, vect[2] * s));
     }
     //! Returns component-wise division of IntVect by argument.
     IntVect operator/ (const IntVect& p) const
     {
-        return IntVect(D_DECL(vect[0] / p[0], vect[1] / p[1], vect[2] / p[2]));
+        return IntVect(BL_D_DECL(vect[0] / p[0], vect[1] / p[1], vect[2] / p[2]));
     }
     //! Returns component-wise division of IntVect by s.
     IntVect operator/ (int s) const
     {
-        return IntVect(D_DECL(vect[0] / s, vect[1] / s, vect[2] / s));
+        return IntVect(BL_D_DECL(vect[0] / s, vect[1] / s, vect[2] / s));
     }
     //! Modifies IntVect by taking component-wise min with argument.
     IntVect& min (const IntVect& p)
@@ -419,19 +419,19 @@ static int s_dummyForIntVectH = IntVect::InitStatics();
 inline
 IntVect operator+ (int s, const IntVect& p)
 {
-    return IntVect(D_DECL(p[0] + s, p[1] + s, p[2] + s));
+    return IntVect(BL_D_DECL(p[0] + s, p[1] + s, p[2] + s));
 }
 //! Returns -p + s.
 inline
 IntVect operator- (int s, const IntVect& p)
 {
-    return IntVect(D_DECL(s - p[0], s - p[1], s - p[2]));
+    return IntVect(BL_D_DECL(s - p[0], s - p[1], s - p[2]));
 }
 //! Returns p * s.
 inline
 IntVect operator* (int s, const IntVect& p)
 {
-    return IntVect(D_DECL(s * p[0], s * p[1], s * p[2]));
+    return IntVect(BL_D_DECL(s * p[0], s * p[1], s * p[2]));
 }
 
 }

@@ -405,7 +405,7 @@ DivVis::Fsmooth (MultiFab&       solnL,
 }
 
 void 
-DivVis::compFlux (D_DECL(MultiFab& xflux, 
+DivVis::compFlux (BL_D_DECL(MultiFab& xflux, 
                          MultiFab& yflux, 
                          MultiFab& zflux), 
                   MultiFab& x)

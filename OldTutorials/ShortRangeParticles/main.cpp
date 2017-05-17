@@ -28,8 +28,8 @@ int main(int argc, char* argv[])
         real_box.setHi(n, size);
     }
 
-    IntVect domain_lo(D_DECL(0, 0, 0));
-    IntVect domain_hi(D_DECL(size - 1, size - 1, size - 1));
+    IntVect domain_lo(BL_D_DECL(0, 0, 0));
+    IntVect domain_hi(BL_D_DECL(size - 1, size - 1, size - 1));
     const Box domain(domain_lo, domain_hi);
     
     int coord = 0;

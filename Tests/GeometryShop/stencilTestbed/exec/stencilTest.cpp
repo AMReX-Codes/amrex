@@ -216,7 +216,7 @@ applyStencilAllFortran(EBCellFAB                       & a_dst,
   BoxArray ba(a_domain);
   DistributionMapping dm(ba);
   MultiFab srcMF(ba,dm,1,1);
-  IntVect tilesize(D_DECL(10240,8,32));
+  IntVect tilesize(BL_D_DECL(10240,8,32));
   const BaseFab<Real> & regSrc = a_src.getSingleValuedFAB();
   BaseFab<Real>       & regDst = a_dst.getSingleValuedFAB();
 
@@ -294,7 +294,7 @@ applyStencilAllFortran(EBCellFAB                       & a_dst,
 
       lapleb_MSD(BL_TO_FORTRAN_N(regDst,0), 
                  BL_TO_FORTRAN_N(regSrc,0),
-                 D_DECL(BL_TO_FORTRAN_N(fd[0],0),
+                 BL_D_DECL(BL_TO_FORTRAN_N(fd[0],0),
                         BL_TO_FORTRAN_N(fd[1],0),
                         BL_TO_FORTRAN_N(fd[2],0)),
                  tbx.loVect(), tbx.hiVect(), &a_dx);

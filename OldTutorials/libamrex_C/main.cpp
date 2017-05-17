@@ -18,9 +18,9 @@ int main(int argc, char* argv[])
     amrex::Initialize(argc,argv);
 
     {
-        RealBox prob_domain(D_DECL(0.,0.,0.), D_DECL(1.,1.,1.));
+        RealBox prob_domain(BL_D_DECL(0.,0.,0.), BL_D_DECL(1.,1.,1.));
         int max_level = 2;
-        Array<int> n_cell{D_DECL(64,64,64)};
+        Array<int> n_cell{BL_D_DECL(64,64,64)};
         MyAmr amr(&prob_domain, max_level, n_cell);
 
         amr.MakeNewGrids();

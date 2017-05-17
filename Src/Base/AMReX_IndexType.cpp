@@ -16,7 +16,7 @@ IndexType::setType (int       dir,
 IndexType
 IndexType::TheCellType ()
 {
-    static const IndexType Cell(D_DECL(IndexType::CELL,
+    static const IndexType Cell(BL_D_DECL(IndexType::CELL,
                                        IndexType::CELL,
                                        IndexType::CELL));
     return Cell;
@@ -25,7 +25,7 @@ IndexType::TheCellType ()
 IndexType
 IndexType::TheNodeType ()
 {
-    static const IndexType Node(D_DECL(IndexType::NODE,
+    static const IndexType Node(BL_D_DECL(IndexType::NODE,
                                        IndexType::NODE,
                                        IndexType::NODE));
     return Node;
@@ -55,7 +55,7 @@ std::istream&
 operator>> (std::istream& is,
             IndexType&    it)
 {
-    char D_DECL(t0,t1,t2);
+    char BL_D_DECL(t0,t1,t2);
 
     D_EXPR( is.ignore(BL_IGNORE_MAX, '(') >> t0,
             is.ignore(BL_IGNORE_MAX, ',') >> t1,

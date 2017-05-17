@@ -33,7 +33,7 @@ namespace amrex
 	    BL_FORT_PROC_CALL(BL_AVG_EG_TO_CC,bl_avg_eg_to_cc)
 		(bx.loVect(), bx.hiVect(),
 		 BL_TO_FORTRAN_N(cc[mfi],dcomp),
-		 D_DECL(BL_TO_FORTRAN((*edge[0])[mfi]),
+		 BL_D_DECL(BL_TO_FORTRAN((*edge[0])[mfi]),
 			BL_TO_FORTRAN((*edge[1])[mfi]),
 			BL_TO_FORTRAN((*edge[2])[mfi])));
 	}	
@@ -59,7 +59,7 @@ namespace amrex
 	    BL_FORT_PROC_CALL(BL_AVG_FC_TO_CC,bl_avg_fc_to_cc)
 		(bx.loVect(), bx.hiVect(),
 		 BL_TO_FORTRAN_N(cc[mfi],dcomp),
-		 D_DECL(BL_TO_FORTRAN((*fc[0])[mfi]),
+		 BL_D_DECL(BL_TO_FORTRAN((*fc[0])[mfi]),
 			BL_TO_FORTRAN((*fc[1])[mfi]),
 			BL_TO_FORTRAN((*fc[2])[mfi])),
 		 dx, problo, coord_type);
@@ -87,7 +87,7 @@ namespace amrex
 	    BL_FORT_PROC_CALL(BL_AVG_FC_TO_CC,bl_avg_fc_to_cc)
 		(bx.loVect(), bx.hiVect(),
 		 BL_TO_FORTRAN(cc[mfi]),
-		 D_DECL(BL_TO_FORTRAN((*fc[0])[mfi]),
+		 BL_D_DECL(BL_TO_FORTRAN((*fc[0])[mfi]),
 			BL_TO_FORTRAN((*fc[1])[mfi]),
 			BL_TO_FORTRAN((*fc[2])[mfi])),
 		 dx, problo, coord_type);
@@ -127,7 +127,7 @@ namespace amrex
 #if (BL_SPACEDIM == 3)
 		 zbx.loVect(), zbx.hiVect(),
 #endif
-		 D_DECL(BL_TO_FORTRAN((*fc[0])[mfi]),
+		 BL_D_DECL(BL_TO_FORTRAN((*fc[0])[mfi]),
 			BL_TO_FORTRAN((*fc[1])[mfi]),
 			BL_TO_FORTRAN((*fc[2])[mfi])),
 		 BL_TO_FORTRAN(cc[mfi]),

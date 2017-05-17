@@ -249,7 +249,7 @@ TagBox::collate (std::vector<IntVect>& ar, int start) const
                 const TagType* dn = d + D_TERM(i, +j*len[0], +k*len[0]*len[1]);
                 if (*dn != TagBox::CLEAR)
                 {
-                    ar[start++] = IntVect(D_DECL(lo[0]+i,lo[1]+j,lo[2]+k));
+                    ar[start++] = IntVect(BL_D_DECL(lo[0]+i,lo[1]+j,lo[2]+k));
                     count++;
                 }
             }

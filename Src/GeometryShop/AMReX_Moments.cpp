@@ -546,7 +546,7 @@ namespace amrex
            for (int k = 0; k <= a_order; ++k))
       if (D_TERM(i,+j,+k) == a_order)
         {
-          IntVect newexp(D_DECL(i,j,k));
+          IntVect newexp(BL_D_DECL(i,j,k));
           a_exponents.push_back(newexp);
         }
   }

@@ -311,15 +311,15 @@ ABecLaplacian::invalidate_b_to_level (int lev)
 }
 
 void
-ABecLaplacian::compFlux (D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflux),
+ABecLaplacian::compFlux (BL_D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflux),
 			 MultiFab& in, const BC_Mode& bc_mode,
 			 int src_comp, int dst_comp, int num_comp, int bnd_comp)
 {
-  compFlux(D_DECL(xflux, yflux, zflux), in, true, bc_mode, src_comp, dst_comp, num_comp, bnd_comp);
+  compFlux(BL_D_DECL(xflux, yflux, zflux), in, true, bc_mode, src_comp, dst_comp, num_comp, bnd_comp);
 }
 
 void
-ABecLaplacian::compFlux (D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflux),
+ABecLaplacian::compFlux (BL_D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflux),
                          MultiFab& in, bool do_ApplyBC, const BC_Mode& bc_mode,
 			 int src_comp, int dst_comp, int num_comp, int bnd_comp)
 {
