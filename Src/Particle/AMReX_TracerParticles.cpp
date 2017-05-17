@@ -13,11 +13,11 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
     BL_ASSERT(OK(lev, lev, umac[0].nGrow()-1));
     BL_ASSERT(lev >= 0 && lev < GetParticles().size());
 
-    D_TERM(BL_ASSERT(umac[0].nGrow() >= 1);,
+    AMREX_D_TERM(BL_ASSERT(umac[0].nGrow() >= 1);,
            BL_ASSERT(umac[1].nGrow() >= 1);,
            BL_ASSERT(umac[2].nGrow() >= 1););
 
-    D_TERM(BL_ASSERT(!umac[0].contains_nan());,
+    AMREX_D_TERM(BL_ASSERT(!umac[0].contains_nan());,
            BL_ASSERT(!umac[1].contains_nan());,
            BL_ASSERT(!umac[2].contains_nan()););
 
@@ -58,7 +58,7 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
 	  auto& pbox = kv.second.GetArrayOfStructs();
 	  const int n = pbox.size();
 
-	  FArrayBox* fab[BL_SPACEDIM] = { D_DECL(&((*umac_pointer[0])[grid]),
+	  FArrayBox* fab[BL_SPACEDIM] = { AMREX_D_DECL(&((*umac_pointer[0])[grid]),
 						 &((*umac_pointer[1])[grid]),
 						 &((*umac_pointer[2])[grid])) };
 
@@ -73,13 +73,13 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
 
                 const IntVect& cc_cell = Index(p, lev);
 
-                const Real len[BL_SPACEDIM] = { D_DECL((p.m_rdata.pos[0]-plo[0])/dx[0] + Real(0.5),
+                const Real len[BL_SPACEDIM] = { AMREX_D_DECL((p.m_rdata.pos[0]-plo[0])/dx[0] + Real(0.5),
                                                        (p.m_rdata.pos[1]-plo[1])/dx[1] + Real(0.5),
                                                        (p.m_rdata.pos[2]-plo[2])/dx[2] + Real(0.5)) };
 
-                const IntVect cell(D_DECL(floor(len[0]), floor(len[1]), floor(len[2])));
+                const IntVect cell(AMREX_D_DECL(floor(len[0]), floor(len[1]), floor(len[2])));
 
-                const Real frac[BL_SPACEDIM] = { D_DECL(len[0]-cell[0], len[1]-cell[1], len[2]-cell[2]) };
+                const Real frac[BL_SPACEDIM] = { AMREX_D_DECL(len[0]-cell[0], len[1]-cell[1], len[2]-cell[2]) };
 
                 for (int d = 0; d < BL_SPACEDIM; d++)
                 {
@@ -87,7 +87,7 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
 
                     ecell[d] = cc_cell[d] + 1;
 
-                    Real efrac[BL_SPACEDIM] = { D_DECL(frac[0], frac[1], frac[2]) };
+                    Real efrac[BL_SPACEDIM] = { AMREX_D_DECL(frac[0], frac[1], frac[2]) };
 
                     efrac[d] = (p.m_rdata.pos[d]-plo[d])/dx[d] - cc_cell[d];
 
@@ -156,7 +156,7 @@ TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
 
     BL_ASSERT(OnSameGrids(lev, Ucc));
 
-    int idx[BL_SPACEDIM] = {D_DECL(0,1,2)};
+    int idx[BL_SPACEDIM] = {AMREX_D_DECL(0,1,2)};
 
     for (int ipass = 0; ipass < 2; ipass++)
     {
@@ -320,7 +320,7 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
 		      
 		      TimeStampFile << p.m_idata.id  << ' ' << p.m_idata.cpu << ' ';
 		      
-		      D_TERM(TimeStampFile << p.m_rdata.pos[0] << ' ';,
+		      AMREX_D_TERM(TimeStampFile << p.m_rdata.pos[0] << ' ';,
 			     TimeStampFile << p.m_rdata.pos[1] << ' ';,
 			     TimeStampFile << p.m_rdata.pos[2] << ' ';);
 		      
@@ -328,7 +328,7 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
 		      //
 		      // AdvectWithUmac stores the velocity in rdata ...
 		      //
-		      D_TERM(TimeStampFile << ' ' << p.m_rdata.arr[BL_SPACEDIM+0];,
+		      AMREX_D_TERM(TimeStampFile << ' ' << p.m_rdata.arr[BL_SPACEDIM+0];,
 			     TimeStampFile << ' ' << p.m_rdata.arr[BL_SPACEDIM+1];,
 			     TimeStampFile << ' ' << p.m_rdata.arr[BL_SPACEDIM+2];);
 		      

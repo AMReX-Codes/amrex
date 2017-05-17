@@ -55,8 +55,8 @@ main (int   argc,
 #endif
     ParallelDescriptor::StartParallel();
 
-    Box box0(IntVect(D_DECL(0,0,0)),IntVect(D_DECL(3,3,3)));
-    Box box1(IntVect(D_DECL(4,4,4)),IntVect(D_DECL(7,7,7)));
+    Box box0(IntVect(AMREX_D_DECL(0,0,0)),IntVect(AMREX_D_DECL(3,3,3)));
+    Box box1(IntVect(AMREX_D_DECL(4,4,4)),IntVect(AMREX_D_DECL(7,7,7)));
     BoxList bl;
     bl.append(box0);
     bl.append(box1);
@@ -146,8 +146,8 @@ main (int   argc,
 #endif
     ParallelDescriptor::StartParallel();
 
-    Box box0(IntVect(D_DECL(0,0,0)),IntVect(D_DECL(3,3,3)));
-    Box box1(IntVect(D_DECL(4,4,4)),IntVect(D_DECL(7,7,7)));
+    Box box0(IntVect(AMREX_D_DECL(0,0,0)),IntVect(AMREX_D_DECL(3,3,3)));
+    Box box1(IntVect(AMREX_D_DECL(4,4,4)),IntVect(AMREX_D_DECL(7,7,7)));
     BoxList bl;
     bl.append(box0);
     bl.append(box1);

@@ -85,7 +85,7 @@ ABec2::Fsmooth (MultiFab&       solnL,
 #endif    
   const MultiFab& a = aCoefficients(level);
 
-  D_TERM(const MultiFab& bX = bCoefficients(0,level);,
+  AMREX_D_TERM(const MultiFab& bX = bCoefficients(0,level);,
          const MultiFab& bY = bCoefficients(1,level);,
          const MultiFab& bZ = bCoefficients(2,level););
 
@@ -126,7 +126,7 @@ ABec2::Fsmooth (MultiFab&       solnL,
     const FArrayBox& resfab  = resL[solnLmfi];
     const FArrayBox& afab    = a[solnLmfi];
 
-    D_TERM(const FArrayBox& bxfab = bX[solnLmfi];,
+    AMREX_D_TERM(const FArrayBox& bxfab = bX[solnLmfi];,
            const FArrayBox& byfab = bY[solnLmfi];,
            const FArrayBox& bzfab = bZ[solnLmfi];);
 
@@ -181,7 +181,7 @@ ABec2::Fsmooth_jacobi (MultiFab&       solnL,
 #endif    
   const MultiFab& a = aCoefficients(level);
 
-  D_TERM(const MultiFab& bX = bCoefficients(0,level);,
+  AMREX_D_TERM(const MultiFab& bX = bCoefficients(0,level);,
          const MultiFab& bY = bCoefficients(1,level);,
          const MultiFab& bZ = bCoefficients(2,level););
 
@@ -219,7 +219,7 @@ ABec2::Fsmooth_jacobi (MultiFab&       solnL,
     const FArrayBox& resfab  = resL[solnLmfi];
     const FArrayBox& afab    = a[solnLmfi];
 
-    D_TERM(const FArrayBox& bxfab = bX[solnLmfi];,
+    AMREX_D_TERM(const FArrayBox& bxfab = bX[solnLmfi];,
            const FArrayBox& byfab = bY[solnLmfi];,
            const FArrayBox& bzfab = bZ[solnLmfi];);
 

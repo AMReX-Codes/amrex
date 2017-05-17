@@ -1942,7 +1942,7 @@ BaseFab<T>::minIndex (const Box& subbox,
         if (thisR < _min_val)
         {
             _min_val = thisR;
-            D_EXPR(_min_loc[0] = iR,
+            AMREX_D_EXPR(_min_loc[0] = iR,
                    _min_loc[1] = jR,
                    _min_loc[2] = kR);
         }
@@ -1970,7 +1970,7 @@ BaseFab<T>::maxIndex (const Box& subbox,
         if (thisR > _max_val)
         {
             _max_val = thisR;
-            D_EXPR(_max_loc[0] = iR,
+            AMREX_D_EXPR(_max_loc[0] = iR,
                    _max_loc[1] = jR,
                    _max_loc[2] = kR);
         }
@@ -1993,7 +1993,7 @@ BaseFab<T>::maskLT (BaseFab<int>& mask,
 
     ForAllThisCBNN(T,domain,comp,1)
     {
-        int ix = D_TERM(_i, +_j*_b_len[0], +_k*_b_len[0]*_b_len[1]);
+        int ix = AMREX_D_TERM(_i, +_j*_b_len[0], +_k*_b_len[0]*_b_len[1]);
         if (thisR < val)
         {
             mptr[ix] = 1;
@@ -2018,7 +2018,7 @@ BaseFab<T>::maskLE (BaseFab<int>& mask,
 
     ForAllThisCBNN(T,domain,comp,1)
     {
-        int ix = D_TERM(_i, +_j*_b_len[0], +_k*_b_len[0]*_b_len[1]);
+        int ix = AMREX_D_TERM(_i, +_j*_b_len[0], +_k*_b_len[0]*_b_len[1]);
         if (thisR <= val)
         {
             mptr[ix] = 1;
@@ -2043,7 +2043,7 @@ BaseFab<T>::maskEQ (BaseFab<int>& mask,
 
     ForAllThisCBNN(T,domain,comp,1)
     {
-        int ix = D_TERM(_i, +_j*_b_len[0], +_k*_b_len[0]*_b_len[1]);
+        int ix = AMREX_D_TERM(_i, +_j*_b_len[0], +_k*_b_len[0]*_b_len[1]);
         if (thisR == val)
         {
             mptr[ix] = 1;
@@ -2068,7 +2068,7 @@ BaseFab<T>::maskGT (BaseFab<int>& mask,
 
     ForAllThisCBNN(T,domain,comp,1)
     {
-        int ix = D_TERM(_i, +_j*_b_len[0], +_k*_b_len[0]*_b_len[1]);
+        int ix = AMREX_D_TERM(_i, +_j*_b_len[0], +_k*_b_len[0]*_b_len[1]);
         if (thisR > val)
         {
             mptr[ix] = 1;
@@ -2093,7 +2093,7 @@ BaseFab<T>::maskGE(BaseFab<int>& mask,
 
     ForAllThisCBNN(T,domain,comp,1)
     {
-        int ix = D_TERM(_i, +_j*_b_len[0], +_k*_b_len[0]*_b_len[1]);
+        int ix = AMREX_D_TERM(_i, +_j*_b_len[0], +_k*_b_len[0]*_b_len[1]);
         if (thisR >= val)
         {
             mptr[ix] = 1;
@@ -2175,7 +2175,7 @@ BaseFab<T>::patternFill (int mark)
 {
     ForAllThis(T)
     {
-        thisR = D_TERM(iR*100, +jR*10, + kR) + 1000*nR + 10000*mark;
+        thisR = AMREX_D_TERM(iR*100, +jR*10, + kR) + 1000*nR + 10000*mark;
     } EndFor
 }
 

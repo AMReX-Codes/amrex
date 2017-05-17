@@ -420,7 +420,7 @@ iMultiFab::minIndex (int comp,
         if (ParallelDescriptor::IOProcessor())
         {
             mn  = mns[0];
-            loc = IntVect(D_DECL(locs[0],locs[1],locs[2]));
+            loc = IntVect(AMREX_D_DECL(locs[0],locs[1],locs[2]));
 
             for (int i = 1; i < NProcs; i++)
             {
@@ -430,7 +430,7 @@ iMultiFab::minIndex (int comp,
 
                     const int j = BL_SPACEDIM * i;
 
-                    loc = IntVect(D_DECL(locs[j+0],locs[j+1],locs[j+2]));
+                    loc = IntVect(AMREX_D_DECL(locs[j+0],locs[j+1],locs[j+2]));
                 }
             }
         }
@@ -506,7 +506,7 @@ iMultiFab::maxIndex (int comp,
         if (ParallelDescriptor::IOProcessor())
         {
             mx  = mxs[0];
-            loc = IntVect(D_DECL(locs[0],locs[1],locs[2]));
+            loc = IntVect(AMREX_D_DECL(locs[0],locs[1],locs[2]));
 
             for (int i = 1; i < NProcs; i++)
             {
@@ -516,7 +516,7 @@ iMultiFab::maxIndex (int comp,
 
                     const int j = BL_SPACEDIM * i;
 
-                    loc = IntVect(D_DECL(locs[j+0],locs[j+1],locs[j+2]));
+                    loc = IntVect(AMREX_D_DECL(locs[j+0],locs[j+1],locs[j+2]));
                 }
             }
         }

@@ -247,7 +247,7 @@ Adv::init_particles ()
       
       TracerPC.reset(new AmrTracerParticleContainer(parent));
       TracerPC->do_tiling = true;
-      TracerPC->tile_size = IntVect(D_DECL(1024000,4,4));
+      TracerPC->tile_size = IntVect(AMREX_D_DECL(1024000,4,4));
 
       const BoxArray& ba = TracerPC->ParticleBoxArray(0);
       const DistributionMapping& dm = TracerPC->ParticleDistributionMap(0);
