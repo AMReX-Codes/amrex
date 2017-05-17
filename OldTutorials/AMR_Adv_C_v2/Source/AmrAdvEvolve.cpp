@@ -168,7 +168,7 @@ AmrAdv::Advance (int lev, Real time, Real dt, int iteration, int ncycle)
 	    }
 
 	    get_face_velocity(lev, ctr_time,
-			      BL_D_DECL(BL_TO_FORTRAN(uface[0]),
+			      AMREX_D_DECL(BL_TO_FORTRAN(uface[0]),
 				     BL_TO_FORTRAN(uface[1]),
 				     BL_TO_FORTRAN(uface[2])),
 			      dx, prob_lo);
@@ -176,10 +176,10 @@ AmrAdv::Advance (int lev, Real time, Real dt, int iteration, int ncycle)
             advect(time, bx.loVect(), bx.hiVect(),
 		   BL_TO_FORTRAN_3D(statein), 
 		   BL_TO_FORTRAN_3D(stateout),
-		   BL_D_DECL(BL_TO_FORTRAN_3D(uface[0]),
+		   AMREX_D_DECL(BL_TO_FORTRAN_3D(uface[0]),
 			  BL_TO_FORTRAN_3D(uface[1]),
 			  BL_TO_FORTRAN_3D(uface[2])),
-		   BL_D_DECL(BL_TO_FORTRAN_3D(flux[0]), 
+		   AMREX_D_DECL(BL_TO_FORTRAN_3D(flux[0]), 
 			  BL_TO_FORTRAN_3D(flux[1]), 
 			  BL_TO_FORTRAN_3D(flux[2])), 
 		   dx, dt);
@@ -266,7 +266,7 @@ AmrAdv::EstTimeStep (int lev, bool local) const
 	    }
 
 	    get_face_velocity(lev, cur_time,
-			      BL_D_DECL(BL_TO_FORTRAN(uface[0]),
+			      AMREX_D_DECL(BL_TO_FORTRAN(uface[0]),
 				     BL_TO_FORTRAN(uface[1]),
 				     BL_TO_FORTRAN(uface[2])),
 			      dx, prob_lo);

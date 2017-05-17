@@ -373,11 +373,11 @@ LinOp::makeCoefficients (MultiFab&       cs,
     // Determine index type of incoming MultiFab.
     //
     const IndexType iType(fn.boxArray().ixType());
-    const IndexType cType(BL_D_DECL(IndexType::CELL, IndexType::CELL, IndexType::CELL));
-    const IndexType xType(BL_D_DECL(IndexType::NODE, IndexType::CELL, IndexType::CELL));
-    const IndexType yType(BL_D_DECL(IndexType::CELL, IndexType::NODE, IndexType::CELL));
+    const IndexType cType(AMREX_D_DECL(IndexType::CELL, IndexType::CELL, IndexType::CELL));
+    const IndexType xType(AMREX_D_DECL(IndexType::NODE, IndexType::CELL, IndexType::CELL));
+    const IndexType yType(AMREX_D_DECL(IndexType::CELL, IndexType::NODE, IndexType::CELL));
 #if (BL_SPACEDIM == 3)    
-    const IndexType zType(BL_D_DECL(IndexType::CELL, IndexType::CELL, IndexType::NODE));
+    const IndexType zType(AMREX_D_DECL(IndexType::CELL, IndexType::CELL, IndexType::NODE));
 #endif
 
     int cdir;

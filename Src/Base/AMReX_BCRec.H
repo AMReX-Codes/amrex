@@ -21,8 +21,8 @@ public:
     /**
     * \brief The constructor.
     */
-    BCRec (BL_D_DECL(int loX, int loY, int loZ),
-           BL_D_DECL(int hiX, int hiY, int hiZ));
+    BCRec (AMREX_D_DECL(int loX, int loY, int loZ),
+           AMREX_D_DECL(int hiX, int hiY, int hiZ));
     /**
     * \brief Another constructor.
     */

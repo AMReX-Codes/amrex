@@ -35,30 +35,30 @@ ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt>::ParIter (ContainerType&
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
-ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt>::SetPosition (BL_D_DECL(const Array<Real>& x,
+ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt>::SetPosition (AMREX_D_DECL(const Array<Real>& x,
                                                                              const Array<Real>& y,
                                                                              const Array<Real>& z))
 {
     auto& aos = GetArrayOfStructs();
-    BL_ASSERT(BL_D_TERM(x.size() == aos.size(), && x.size() == y.size(), && x.size() == z.size()));
+    BL_ASSERT(AMREX_D_TERM(x.size() == aos.size(), && x.size() == y.size(), && x.size() == z.size()));
     const auto  p     = aos.data();
     const auto& shape = aos.dataShape();
     amrex_particle_set_position(p, shape.first, shape.second,
-                                BL_D_DECL(x.data(), y.data(), z.data()));
+                                AMREX_D_DECL(x.data(), y.data(), z.data()));
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
-ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetPosition (BL_D_DECL(Array<Real>& x,
+ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetPosition (AMREX_D_DECL(Array<Real>& x,
                                                                              Array<Real>& y,
                                                                              Array<Real>& z)) const
 {
     const auto& aos = GetArrayOfStructs();
     const auto  p     = aos.data();
     const auto& shape = aos.dataShape();
-    BL_D_TERM(x.resize(shape.second);,
+    AMREX_D_TERM(x.resize(shape.second);,
            y.resize(shape.second);,
            z.resize(shape.second););
     amrex_particle_get_position(p, shape.first, shape.second,
-                                BL_D_DECL(x.data(), y.data(), z.data()));
+                                AMREX_D_DECL(x.data(), y.data(), z.data()));
 }

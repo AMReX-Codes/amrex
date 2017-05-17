@@ -110,7 +110,7 @@ namespace amrex
   {
     BL_PROFILE("EBFastFR::reflux");
     //boxlib's flux register does not scale finefaces/coarseface for you.
-    int numCoarFacesPerFine = BL_D_TERM(1, *m_refRat, *m_refRat);
+    int numCoarFacesPerFine = AMREX_D_TERM(1, *m_refRat, *m_refRat);
     //boxlib's flux register also does not do the sign change for you
     Real coarScale = -numCoarFacesPerFine;
     Geometry crse_geom(m_eblgCoar.getDomain());

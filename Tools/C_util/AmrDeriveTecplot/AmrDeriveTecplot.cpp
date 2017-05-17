@@ -29,7 +29,7 @@ struct Node
 {
     enum typeEnum{INIT=0, COVERED=1, VALID=2};
     Node()
-        : level(-1), iv(IntVect(BL_D_DECL(-1,-1,-1))), grid(-1), type(Node::INIT) {}
+        : level(-1), iv(IntVect(AMREX_D_DECL(-1,-1,-1))), grid(-1), type(Node::INIT) {}
     Node(const IntVect& idx, int lev, int grd, typeEnum typ = INIT)
       : level(lev), iv(idx), grid(grd), type(typ) {}
     inline bool operator< (const Node& rhs) const
@@ -202,7 +202,7 @@ class FABdata
 public:
     FABdata(int i, int n)
         {fab.resize(Box(IntVect::TheZeroVector(),
-                        IntVect(BL_D_DECL(i-1,0,0))),n);}
+                        IntVect(AMREX_D_DECL(i-1,0,0))),n);}
     Real& operator[](int i) {return fab.dataPtr()[i];}
     Real* dataPtr (int N = 0) {return fab.dataPtr(N);}
     const Real* dataPtr (int N = 0) const {return fab.dataPtr(N);}
@@ -375,8 +375,8 @@ main (int   argc,
         pp.getarr("box",barr,0,nx);
         int d=BL_SPACEDIM;
         BL_ASSERT(barr.size()==2*d);
-        subbox=Box(IntVect(BL_D_DECL(barr[0],barr[1],barr[2])),
-                   IntVect(BL_D_DECL(barr[d],barr[d+1],barr[d+2]))) & amrData.ProbDomain()[0];
+        subbox=Box(IntVect(AMREX_D_DECL(barr[0],barr[1],barr[2])),
+                   IntVect(AMREX_D_DECL(barr[d],barr[d+1],barr[d+2]))) & amrData.ProbDomain()[0];
 
     } else {
 
@@ -777,7 +777,7 @@ main (int   argc,
         if (connect_cc) {
             ivt.resize(1,iv);
         } else {
-            ivt.resize(BL_D_PICK(1,4,8),iv);
+            ivt.resize(AMREX_D_PICK(1,4,8),iv);
             ivt[1] += amrex::BASISV(0);
             ivt[2] = ivt[1] + amrex::BASISV(1);
             ivt[3] += amrex::BASISV(1);
@@ -820,7 +820,7 @@ main (int   argc,
     // Write output
     //
     const int nState = BL_SPACEDIM + comps.size();
-    std::string vars = BL_D_TERM("X"," Y"," Z");
+    std::string vars = AMREX_D_TERM("X"," Y"," Z");
     for (int j=0; j<comps.size(); ++j)
         vars += " " + amrData.PlotVarNames()[comps[j]];
 
@@ -839,7 +839,7 @@ main (int   argc,
 #ifdef USE_TEC_BIN_IO
             INTEGER4 Debug = 0;
             INTEGER4 VIsDouble = 1;
-            INTEGER4 EltID = BL_D_PICK(0,1,3);
+            INTEGER4 EltID = AMREX_D_PICK(0,1,3);
             TECINI((char*)"Pltfile data", (char*)vars.c_str(), (char*)outfile.c_str(), (char*)".", &Debug, &VIsDouble);
             INTEGER4 nPts = nNodesFINAL;
             TECZNE((char*)infile.c_str(), &nPts, &nElts, &EltID, (char*)block_or_point.c_str(), NULL);
@@ -853,7 +853,7 @@ main (int   argc,
         else
         {
             std::ofstream osf(outfile.c_str(),std::ios::out);
-            osf << BL_D_TERM("VARIABLES= \"X\"", " \"Y\"", " \"Z\"");
+            osf << AMREX_D_TERM("VARIABLES= \"X\"", " \"Y\"", " \"Z\"");
             for (int j=0; j<comps.size(); ++j)
                 osf << " \""  << amrData.PlotVarNames()[comps[j]] << "\"";
             char buf[100];
@@ -861,7 +861,7 @@ main (int   argc,
             osf << endl << "ZONE T=\"" << infile << " time = " << buf
                 << "\", N=" << nNodesFINAL << ", E=" << nElts << ", F=" << "FEPOINT" << " ET="
                 //<< "\", N=" << nPts << ", E=" << nElts << ", F=" << block_or_point << " ET="
-                << BL_D_PICK("POINT","QUADRILATERAL","BRICK") << endl;
+                << AMREX_D_PICK("POINT","QUADRILATERAL","BRICK") << endl;
             
             for (int i=0; i<nNodesFINAL; ++i)
             {
