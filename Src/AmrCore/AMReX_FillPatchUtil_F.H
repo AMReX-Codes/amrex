@@ -22,7 +22,7 @@ extern "C" {
 #if (BL_SPACEDIM > 2)
                                        , const amrex_real* cz, const int* czlo, const int* czhi
 #endif
-        );
+                                       , const amrex_real* dx, const int* rr);
 
 #ifdef __cplusplus
 }
