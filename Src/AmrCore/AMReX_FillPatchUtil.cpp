@@ -280,6 +280,8 @@ namespace amrex
                 cmf[idim].copy(crse[idim], 0, 0, 1, 0, 1, cgeom.periodicity());
             }
 
+            const Real* dx = cgeom.CellSize();
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -291,6 +293,7 @@ namespace amrex
 
                     Box ccbx = amrex::grow(fine[0].boxArray()[fi], ngrow);
                     ccbx.enclosedCells();
+                    ccbx.coarsen(ref_ratio).refine(ref_ratio);  // so that ccbx is coarsenable
 
                     const FArrayBox& cxfab = cmf[0][mfi];
                     bfab[0].resize(amrex::convert(ccbx,fine[0].ixType()));
@@ -309,11 +312,15 @@ namespace amrex
                                                         BL_TO_FORTRAN_ANYD(bfab[2])),
                                                  D_DECL(BL_TO_FORTRAN_ANYD(cxfab),
                                                         BL_TO_FORTRAN_ANYD(cyfab),
-                                                        BL_TO_FORTRAN_ANYD(czfab)));
+                                                        BL_TO_FORTRAN_ANYD(czfab)),
+                                                 dx, &ref_ratio);
                     for (int idim = 0; idim < BL_SPACEDIM; ++idim)
                     {
                         const BoxArray& fine_ba = fine[idim].boxArray();
-                        const BoxList& diff = amrex::boxDiff(bfab[idim].box(), fine_ba[fi]);
+                        const Box& fine_valid_box = fine_ba[fi];
+                        Box b = bfab[idim].box();
+                        b &= fine_valid_box;
+                        const BoxList& diff = amrex::boxDiff(b, fine_valid_box); // skip valid cells
                         FArrayBox& fine_fab = fine[idim][fi];
                         for (const auto& b : diff)
                         {
