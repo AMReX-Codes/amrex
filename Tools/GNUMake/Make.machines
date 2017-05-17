@@ -41,6 +41,11 @@ ifeq ($(findstring mira, $(host_name)), mira)
   which_computer := mira
 endif
 
+ifeq ($(findstring asterix, $(host_name)), asterix)
+  which_site := flash
+  which_computer := asterix
+endif
+
 ifeq ($(findstring merlin, $(host_name)), merlin)
   which_site := nrel
   which_computer := merlin

@@ -17,7 +17,7 @@ public:
     /**
     * \brief The default constructor, which does NOT set valid boundary types.
     */
-    BCRec () {}
+    BCRec ();
     /**
     * \brief The constructor.
     */
