@@ -49,7 +49,7 @@ namespace amrex
     Real scale = 1.0/dxCoar;
     Real fluxVal = 4.77;
     //all that matters is that the ratio is correct
-    Real coarArea = BL_D_TERM(1.0, *refRat, *refRat);
+    Real coarArea = AMREX_D_TERM(1.0, *refRat, *refRat);
     Real fineArea = 1.0;
     for (int idir = 0; idir < SpaceDim; idir++)
     {

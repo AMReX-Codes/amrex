@@ -330,7 +330,7 @@ namespace amrex
   {
     Real det = 0.0;
 
-    BL_D_TERM(
+    AMREX_D_TERM(
       det = a_A[0][0];,
 
       det = a_A[0][0]*a_A[1][1]
@@ -349,7 +349,7 @@ namespace amrex
   {
     Real det = 0.0;
 
-    BL_D_TERM(
+    AMREX_D_TERM(
       det = 0.0;,
 
       det = a_A[0][0];,

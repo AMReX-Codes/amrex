@@ -256,7 +256,7 @@ namespace amrex
       retval = m_data.normal(a_vof);
       Real tol = 1.0e-20;
       //this can happen if the cell is really regular
-      bool allZeros = BL_D_TERM((std::abs(retval[0]) < tol), && (std::abs(retval[1]) < tol), && (std::abs(retval[2]) < tol));
+      bool allZeros = AMREX_D_TERM((std::abs(retval[0]) < tol), && (std::abs(retval[1]) < tol), && (std::abs(retval[2]) < tol));
 
       if(allZeros)
       {

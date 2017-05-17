@@ -125,7 +125,7 @@ main (int argc, char** argv)
 
     BoxArray ba(nBoxs);
 
-    ba.set(0, Box(IntVect(BL_D_DECL(0,0,0)), IntVect(BL_D_DECL(2,2,2))));
+    ba.set(0, Box(IntVect(AMREX_D_DECL(0,0,0)), IntVect(AMREX_D_DECL(2,2,2))));
 
     for (int i = 1; i < nBoxs; i++)
     {

@@ -27,7 +27,7 @@ Box::Box (const IntVect& small,
           const int*     vec_len)
     :
     smallend(small),
-    bigend(BL_D_DECL(small[0]+vec_len[0]-1,
+    bigend(AMREX_D_DECL(small[0]+vec_len[0]-1,
                   small[1]+vec_len[1]-1,
                   small[2]+vec_len[2]-1))
 {}
@@ -214,7 +214,7 @@ Box::grow (Orientation face,
 long
 Box::numPts () const
 {
-    return BL_D_TERM( static_cast<long>(length(0)), 
+    return AMREX_D_TERM( static_cast<long>(length(0)), 
                   *static_cast<long>(length(1)),
                   *static_cast<long>(length(2)));
 }
@@ -224,13 +224,13 @@ Box::d_numPts () const
 {
     BL_ASSERT(ok());
 
-    return BL_D_TERM(double(length(0)), *double(length(1)), *double(length(2)));
+    return AMREX_D_TERM(double(length(0)), *double(length(1)), *double(length(2)));
 }
 
 long
 Box::volume () const
 {
-    return BL_D_TERM( static_cast<long>(length(0)-btype[0]), 
+    return AMREX_D_TERM( static_cast<long>(length(0)-btype[0]), 
                   *static_cast<long>(length(1)-btype[1]),
                   *static_cast<long>(length(2)-btype[2]));
 }
@@ -292,14 +292,14 @@ refine (const Box& b,
                 int        ref_ratio)
 {
     Box result = b;
-    result.refine(IntVect(BL_D_DECL(ref_ratio,ref_ratio,ref_ratio)));
+    result.refine(IntVect(AMREX_D_DECL(ref_ratio,ref_ratio,ref_ratio)));
     return result;
 }
 
 Box&
 Box::refine (int ref_ratio)
 {
-    return this->refine(IntVect(BL_D_DECL(ref_ratio,ref_ratio,ref_ratio)));
+    return this->refine(IntVect(AMREX_D_DECL(ref_ratio,ref_ratio,ref_ratio)));
 }
 
 Box
@@ -430,14 +430,14 @@ coarsen (const Box& b,
                  int        ref_ratio)
 {
     Box result = b;
-    result.coarsen(IntVect(BL_D_DECL(ref_ratio,ref_ratio,ref_ratio)));
+    result.coarsen(IntVect(AMREX_D_DECL(ref_ratio,ref_ratio,ref_ratio)));
     return result;
 }
 
 Box&
 Box::coarsen (int ref_ratio)
 {
-    return this->coarsen(IntVect(BL_D_DECL(ref_ratio,ref_ratio,ref_ratio)));
+    return this->coarsen(IntVect(AMREX_D_DECL(ref_ratio,ref_ratio,ref_ratio)));
 }
 
 Box
@@ -705,7 +705,7 @@ bool
 Box::sameSize (const Box& b) const
 {
     BL_ASSERT(sameType(b));
-    return BL_D_TERM(length(0) == b.length(0),
+    return AMREX_D_TERM(length(0) == b.length(0),
                   && length(1)==b.length(1),
                   && length(2)==b.length(2));
 }
@@ -783,14 +783,14 @@ BoxCommHelper::BoxCommHelper (const Box& bx, int* p_)
 	p = &v[0];
     }
 
-    BL_D_EXPR(p[0]               = bx.smallend[0],
+    AMREX_D_EXPR(p[0]               = bx.smallend[0],
 	   p[1]               = bx.smallend[1],
 	   p[2]               = bx.smallend[2]);
-    BL_D_EXPR(p[0+BL_SPACEDIM]   = bx.bigend[0],
+    AMREX_D_EXPR(p[0+BL_SPACEDIM]   = bx.bigend[0],
 	   p[1+BL_SPACEDIM]   = bx.bigend[1],
 	   p[2+BL_SPACEDIM]   = bx.bigend[2]);
     const IntVect& typ = bx.btype.ixType();
-    BL_D_EXPR(p[0+BL_SPACEDIM*2] = typ[0],
+    AMREX_D_EXPR(p[0+BL_SPACEDIM*2] = typ[0],
 	   p[1+BL_SPACEDIM*2] = typ[1],
 	   p[2+BL_SPACEDIM*2] = typ[2]);
 }

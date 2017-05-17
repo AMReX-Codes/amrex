@@ -55,7 +55,7 @@ corners (represented by {\tt IntVect} and an index type
 integer vector in {\idxamrex{BL\_SPACEDIM}}-dimensional space.  An
 {\tt IntVect} can be constructed as follows,
 \begin{lstlisting}[language=cpp]
-    IntVect iv(BL_D_DECL(19, 0, 5));
+    IntVect iv(AMREX_D_DECL(19, 0, 5));
 \end{lstlisting}
 Here {\tt D\_DECL} is a macro that expands {\tt D\_DECL(19,0,5)} to
 either {\tt 19} or {\tt 19,0} or {\tt 19,0,5} depending on the number
@@ -69,7 +69,7 @@ of dimensions.  The class has a static function {\tt
 lexicographical comparison.  It also has various arithmetic operators.
 For example,
 \begin{lstlisting}[language=cpp]
-    IntVect iv(BL_D_DECL(19, 0, 5));
+    IntVect iv(AMREX_D_DECL(19, 0, 5));
 \end{lstlisting}
 
 

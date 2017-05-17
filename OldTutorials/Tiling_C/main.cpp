@@ -82,7 +82,7 @@ int main(int argc, char* argv[])
 
 
     // This time we will explicitly control tile size.
-    IntVect tilesize(BL_D_DECL(10240,8,32));
+    IntVect tilesize(AMREX_D_DECL(10240,8,32));
 
 #ifdef _OPENMP
 #pragma omp parallel
