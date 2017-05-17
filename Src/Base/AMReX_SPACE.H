@@ -124,14 +124,14 @@ namespace amrex
 #  define D_TERM(a,b,c) a
 
 /*
-  The D_PICK(a,b,c) macro expands to a single result equal to the
+  The BL_D_PICK(a,b,c) macro expands to a single result equal to the
   1st, 2nd, or 3rd of the arguments of the call, depending on the value
   of BL_SPACEDIM.  This can be used to write program logic
   that depend on the value of BL_SPACEDIM.
 
   For example:
 
-     maxsize = D_PICK(1024, 128, 32);
+     maxsize = BL_D_PICK(1024, 128, 32);
 
   More explicitly, this macro evaluates to one of
 
@@ -143,26 +143,29 @@ namespace amrex
 
   corresponding to BL_SPACEDIM values of 1, 2, or 3.
 */
-#  define D_PICK(a,b,c) a
+#  define BL_D_PICK(a,b,c) a
 #elif BL_SPACEDIM==2
 #  define D_EXPR(a,b,c) ((void)((a),(b),0))
 #  define BL_D_DECL(a,b,c) a,b
 #  define D_TERM(a,b,c) a b
-#  define D_PICK(a,b,c) b
+#  define BL_D_PICK(a,b,c) b
 #elif BL_SPACEDIM==3
 #  define D_EXPR(a,b,c) ((void)((a),(b),(c),0))
 #  define BL_D_DECL(a,b,c) a,b,c
 #  define D_TERM(a,b,c) a b c
-#  define D_PICK(a,b,c) c
+#  define BL_D_PICK(a,b,c) c
 #endif
 
 /* for backward compatibility */
 #if (BL_SPACEDIM == 1)
-#define D_DECL(a,b,c) a
+#  define D_DECL(a,b,c) a
+#  define D_PICK(a,b,c) a
 #elif (BL_SPACEDIM == 2)
-#define D_DECL(a,b,c) a,b
+#  define D_DECL(a,b,c) a,b
+#  define D_PICK(a,b,c) b
 #elif (BL_SPACEDIM == 3)
-#define D_DECL(a,b,c) a,b,c
+#  define D_DECL(a,b,c) a,b,c
+#  define D_PICK(a,b,c) c
 #endif
 
 #endif /*BL_SPACE_H*/
