@@ -110,13 +110,13 @@ IntVect::TheMinVector ()
 
 IntVect::IntVect (const int *a)
 {
-    D_EXPR(vect[0] = a[0], vect[1] = a[1], vect[2] = a[2]);
+    BL_D_EXPR(vect[0] = a[0], vect[1] = a[1], vect[2] = a[2]);
 }
 
 IntVect::IntVect (const Array<int> &a)
 {
     BL_ASSERT(a.size() == BL_SPACEDIM);
-    D_EXPR(vect[0] = a[0], vect[1] = a[1], vect[2] = a[2]);
+    BL_D_EXPR(vect[0] = a[0], vect[1] = a[1], vect[2] = a[2]);
 }
 
 IntVect
@@ -241,7 +241,7 @@ operator>> (std::istream& is,
 
     if (c == '(')
     {
-        D_EXPR(is >> iv[0],
+        BL_D_EXPR(is >> iv[0],
                is.ignore(BL_IGNORE_MAX, ',') >> iv[1],
                is.ignore(BL_IGNORE_MAX, ',') >> iv[2]);
         is.ignore(BL_IGNORE_MAX, ')');

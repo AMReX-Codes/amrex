@@ -57,7 +57,7 @@ operator>> (std::istream& is,
 {
     char BL_D_DECL(t0,t1,t2);
 
-    D_EXPR( is.ignore(BL_IGNORE_MAX, '(') >> t0,
+    BL_D_EXPR( is.ignore(BL_IGNORE_MAX, '(') >> t0,
             is.ignore(BL_IGNORE_MAX, ',') >> t1,
             is.ignore(BL_IGNORE_MAX, ',') >> t2);
     is.ignore(BL_IGNORE_MAX, ')');

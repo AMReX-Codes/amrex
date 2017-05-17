@@ -650,13 +650,13 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
         const int* lo = tags[i]->box.loVect();
         const int* hi = tags[i]->box.hiVect();
         const int* tp = tags[i]->box.type().getVect();
-        D_EXPR(md[4] = lo[0],
+        BL_D_EXPR(md[4] = lo[0],
                md[5] = lo[1],
                md[6] = lo[2]);
-        D_EXPR(md[4+  BL_SPACEDIM] = hi[0],
+        BL_D_EXPR(md[4+  BL_SPACEDIM] = hi[0],
                md[5+  BL_SPACEDIM] = hi[1],
                md[6+  BL_SPACEDIM] = hi[2]);
-        D_EXPR(md[4+2*BL_SPACEDIM] = tp[0],
+        BL_D_EXPR(md[4+2*BL_SPACEDIM] = tp[0],
                md[5+2*BL_SPACEDIM] = tp[1],
                md[6+2*BL_SPACEDIM] = tp[2]);
       }
@@ -922,13 +922,13 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
 		const int* hi = tags[i]->box.hiVect();
 		const IntVect& bxtyp = tags[i]->box.type();
 		const int* tp = bxtyp.getVect();
-		D_EXPR(md[4] = lo[0],
+		BL_D_EXPR(md[4] = lo[0],
 		       md[5] = lo[1],
 		       md[6] = lo[2]);
-		D_EXPR(md[4+  BL_SPACEDIM] = hi[0],
+		BL_D_EXPR(md[4+  BL_SPACEDIM] = hi[0],
 		       md[5+  BL_SPACEDIM] = hi[1],
 		       md[6+  BL_SPACEDIM] = hi[2]);
-		D_EXPR(md[4+2*BL_SPACEDIM] = tp[0],
+		BL_D_EXPR(md[4+2*BL_SPACEDIM] = tp[0],
 		       md[5+2*BL_SPACEDIM] = tp[1],
 		       md[6+2*BL_SPACEDIM] = tp[2]);
 	    }

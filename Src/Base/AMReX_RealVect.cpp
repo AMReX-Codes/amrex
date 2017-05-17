@@ -40,24 +40,24 @@ namespace amrex
 
   RealVect::RealVect (BL_D_DECL(Real i, Real j, Real k))
   {
-    D_EXPR(vect[0] = i, vect[1] = j, vect[2] = k);
+    BL_D_EXPR(vect[0] = i, vect[1] = j, vect[2] = k);
   }
 
   RealVect::RealVect (const std::vector<Real>& vr )
   {
-    D_EXPR(vect[0]=vr[0], vect[1]=vr[1], vect[2] = vr[2]);
+    BL_D_EXPR(vect[0]=vr[0], vect[1]=vr[1], vect[2] = vr[2]);
   }
 
   RealVect::RealVect ()
   {
-    D_EXPR(vect[0]=0.0, vect[1]=0.0, vect[2] = 0.0);
+    BL_D_EXPR(vect[0]=0.0, vect[1]=0.0, vect[2] = 0.0);
   }
 
 
   RealVect&
   RealVect::operator= (const RealVect &iv)
   {
-    D_EXPR(vect[0]=iv.vect[0], vect[1]=iv.vect[1], vect[2]=iv.vect[2]);
+    BL_D_EXPR(vect[0]=iv.vect[0], vect[1]=iv.vect[1], vect[2]=iv.vect[2]);
     return *this;
   }
 
@@ -83,28 +83,28 @@ namespace amrex
   RealVect&
   RealVect::operator+= (Real s)
   {
-    D_EXPR(vect[0] += s, vect[1] += s, vect[2] += s);
+    BL_D_EXPR(vect[0] += s, vect[1] += s, vect[2] += s);
     return *this;
   }
 
   RealVect&
   RealVect::operator+= (const RealVect& p)
   {
-    D_EXPR(vect[0] += p[0], vect[1] += p[1], vect[2] += p[2]);
+    BL_D_EXPR(vect[0] += p[0], vect[1] += p[1], vect[2] += p[2]);
     return *this;
   }
 
   RealVect&
   RealVect::operator*= (Real s)
   {
-    D_EXPR(vect[0] *= s, vect[1] *= s, vect[2] *= s);
+    BL_D_EXPR(vect[0] *= s, vect[1] *= s, vect[2] *= s);
     return *this;
   }
 
   RealVect&
   RealVect::operator*= (const RealVect &p)
   {
-    D_EXPR(vect[0] *= p[0], vect[1] *= p[1], vect[2] *= p[2]);
+    BL_D_EXPR(vect[0] *= p[0], vect[1] *= p[1], vect[2] *= p[2]);
     return *this;
   }
 
@@ -132,14 +132,14 @@ namespace amrex
   RealVect&
   RealVect::operator/= (Real s)
   {
-    D_EXPR(vect[0] /= s, vect[1] /= s, vect[2] /= s);
+    BL_D_EXPR(vect[0] /= s, vect[1] /= s, vect[2] /= s);
     return *this;
   }
 
   RealVect&
   RealVect::operator/= (const RealVect& p)
   {
-    D_EXPR(vect[0] /= p[0], vect[1] /= p[1], vect[2] /= p[2]);
+    BL_D_EXPR(vect[0] /= p[0], vect[1] /= p[1], vect[2] /= p[2]);
     return *this;
   }
 

@@ -65,14 +65,14 @@ public:
     /**
     * \brief Construct an IntVect whose components are all zero.
     */
-    IntVect () { D_EXPR(vect[0] = 0, vect[1] = 0, vect[2] = 0); }
+    IntVect () { BL_D_EXPR(vect[0] = 0, vect[1] = 0, vect[2] = 0); }
 
     /**
     * \brief Construct an IntVect given the specific values for its
     * coordinates.  BL_D_DECL is a macro that sets the constructor
     * to take BL_SPACEDIM arguments.
     */
-    IntVect (BL_D_DECL(int i, int j, int k)) { D_EXPR(vect[0] = i, vect[1] = j, vect[2] = k); }
+    IntVect (BL_D_DECL(int i, int j, int k)) { BL_D_EXPR(vect[0] = i, vect[1] = j, vect[2] = k); }
 
     /**
     * \brief Construct an IntVect setting the coordinates to the
@@ -197,42 +197,42 @@ public:
     //! Modifies IntVect by addition of a scalar to each component.
     IntVect& operator+= (int s)
     {
-        D_EXPR(vect[0] += s, vect[1] += s, vect[2] += s); return *this;
+        BL_D_EXPR(vect[0] += s, vect[1] += s, vect[2] += s); return *this;
     }
     //! Modifies IntVect by component-wise addition with argument.
     IntVect& operator+= (const IntVect& p)
     {
-        D_EXPR(vect[0] += p[0], vect[1] += p[1], vect[2] += p[2]); return *this;
+        BL_D_EXPR(vect[0] += p[0], vect[1] += p[1], vect[2] += p[2]); return *this;
     }
     //! Modifies IntVect by multiplication of a scalar to each component.
     IntVect& operator*= (int s)
     {
-        D_EXPR(vect[0] *= s, vect[1] *= s, vect[2] *= s); return *this;
+        BL_D_EXPR(vect[0] *= s, vect[1] *= s, vect[2] *= s); return *this;
     }
     //! Modifies IntVect by component-wise multiplication with argument.
     IntVect& operator*= (const IntVect& p)
     {
-        D_EXPR(vect[0] *= p[0], vect[1] *= p[1], vect[2] *= p[2]); return *this;
+        BL_D_EXPR(vect[0] *= p[0], vect[1] *= p[1], vect[2] *= p[2]); return *this;
     }
     //! Modifies IntVect by division by a scalar to each component.
     IntVect& operator/= (int s)
     {
-        D_EXPR(vect[0] /= s, vect[1] /= s, vect[2] /= s); return *this;
+        BL_D_EXPR(vect[0] /= s, vect[1] /= s, vect[2] /= s); return *this;
     }
     //! Modifies IntVect by component-wise division with argument.
     IntVect& operator/= (const IntVect& p)
     {
-        D_EXPR(vect[0] /= p[0], vect[1] /= p[1], vect[2] /= p[2]); return *this;
+        BL_D_EXPR(vect[0] /= p[0], vect[1] /= p[1], vect[2] /= p[2]); return *this;
     }
     //! Modifies IntVect by subtraction of a scalar to each component.
     IntVect& operator-= (int s)
     {
-        D_EXPR(vect[0] -= s, vect[1] -= s, vect[2] -= s); return *this;
+        BL_D_EXPR(vect[0] -= s, vect[1] -= s, vect[2] -= s); return *this;
     }
     //! Modifies IntVect by component-wise subtraction with argument.
     IntVect& operator-= (const IntVect& p)
     {
-        D_EXPR(vect[0] -= p[0], vect[1] -= p[1], vect[2] -= p[2]); return *this;
+        BL_D_EXPR(vect[0] -= p[0], vect[1] -= p[1], vect[2] -= p[2]); return *this;
     }
     //! Returns component-wise sum of IntVect and argument.
     IntVect operator+ (const IntVect& p) const
@@ -277,7 +277,7 @@ public:
     //! Modifies IntVect by taking component-wise min with argument.
     IntVect& min (const IntVect& p)
     {
-        D_EXPR(vect[0] = std::min(vect[0], p.vect[0]),
+        BL_D_EXPR(vect[0] = std::min(vect[0], p.vect[0]),
                vect[1] = std::min(vect[1], p.vect[1]),
                vect[2] = std::min(vect[2], p.vect[2]));
         return *this;
@@ -285,13 +285,13 @@ public:
     //! Modifies IntVect by taking component-wise max with argument.
     IntVect& max (const IntVect& p)
     {
-        D_EXPR(vect[0] = std::max(vect[0], p.vect[0]),
+        BL_D_EXPR(vect[0] = std::max(vect[0], p.vect[0]),
                vect[1] = std::max(vect[1], p.vect[1]),
                vect[2] = std::max(vect[2], p.vect[2]));
         return *this;
     }
     //! Modify IntVect by multiplying each coordinate by s.
-    IntVect& scale (int s) { D_EXPR(vect[0] *= s, vect[1] *= s, vect[2] *= s); return *this; }
+    IntVect& scale (int s) { BL_D_EXPR(vect[0] *= s, vect[1] *= s, vect[2] *= s); return *this; }
     /**
     * \brief Modify IntVect by reflecting it in the plane defined by
     * the index ref_ix and with normal in the direction of idir.
@@ -312,7 +312,7 @@ public:
     //! Modify IntVect by adding s to each coordinate.
     IntVect& diagShift (int s)
     {
-        D_EXPR(vect[0] += s, vect[1] += s, vect[2] += s); return *this;
+        BL_D_EXPR(vect[0] += s, vect[1] += s, vect[2] += s); return *this;
     }
     //! Modify IntVect by component-wise integer projection.
     IntVect& coarsen (const IntVect& p);

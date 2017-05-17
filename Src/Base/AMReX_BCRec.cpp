@@ -13,8 +13,8 @@ BCRec::BCRec ()
 BCRec::BCRec (BL_D_DECL(int loX, int loY, int loZ),
               BL_D_DECL(int hiX, int hiY, int hiZ))
 {
-    D_EXPR(bc[0] = loX,  bc[1] = loY,  bc[2] = loZ);
-    D_EXPR(bc[BL_SPACEDIM]=hiX,  bc[BL_SPACEDIM+1]=hiY,  bc[BL_SPACEDIM+2]=hiZ);
+    BL_D_EXPR(bc[0] = loX,  bc[1] = loY,  bc[2] = loZ);
+    BL_D_EXPR(bc[BL_SPACEDIM]=hiX,  bc[BL_SPACEDIM+1]=hiY,  bc[BL_SPACEDIM+2]=hiZ);
 }
 
 BCRec::BCRec (const int* lo,
