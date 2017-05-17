@@ -1,10 +1,10 @@
 In this chapter, we present the basics of \amrex.  The implementation
-source codes are in {\tt amrex/Src/Base/}.  After reading this
-chapter, one should be able to understand many of the example codes in
-{\tt amrex/Tutorials}, and one should be able to develop single-level
-parallel codes using \amrex.  Note that \amrex\ classes and functions
-are in namespace {\tt amrex}.  For clarity, we usually drop {\tt
-  amrex::} in the example codes here.
+source codes are in {\tt amrex/Src/Base/}.  Note that \amrex\ classes
+and functions are in namespace {\tt amrex}.  For clarity, we usually
+drop {\tt amrex::} in the example codes here.  We recommend you study
+tutorials at {\tt amrex/Tutorials/Basic/} while reading this chapter.
+After reading this chapter, one should be able to develop single-level
+parallel codes using \amrex.
 
 \section{Dimensionality}
 \label{sec:basics:dim}
@@ -13,6 +13,12 @@ As we have mentioned in Chapter~\ref{Chap:BuildingAMReX}, the
 dimensionality of \amrex\ must be set at compile time.  A macro, {\tt
   BL\_SPACEDIM}, is defined to be the number of spatial dimensions.
 The coordinate directions are zero based. \MarginPar{Not in Fortran}
+
+\section{Array}
+
+\section{Real}
+
+\section{ParallelDescriptor}
 
 \section{Print}
 \label{sec:basics:print}
@@ -30,6 +36,8 @@ threads do not get mixed up.  Below are some examples.
     Print(ofs) << "Print to a file" << std::endl;
     ofs.close();
 \end{lstlisting}
+
+\section{ParmParse}
 
 \section{Box, IntVect and IndexType}
 \label{sec:basics:box}
@@ -71,17 +79,28 @@ For example,
 
 % a bit on coarsening
 
-\section{Array}
+\section{Geometry}
 
-\section{BaseFab and FArrayBox}
+% how do we set it up?
+
+\section{BaseFab, FArrayBox and IArrayBox}
+% make alias
+% resize
 
 \section{BoxArray}
 
 \section{DistributionMapping}
 
-\section{ParallelDescriptor}
+\section{FabArray, MultiFab and iMultiFab}
 
-\section{FabArray and MultiFab}
+% make alias
 
 \section{MFIter and Tiling}
 
+\section{Calling Fortan or C}
+
+\section{Physical Boundary}
+
+\section{Memory Allocation}
+
+\section{Abort, Assertion, Floating-Point Exceptions, and Backtrace}
