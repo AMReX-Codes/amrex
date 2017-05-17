@@ -107,8 +107,8 @@ main (int   argc,
     for (int n = 0; n < BL_SPACEDIM; n++)
         pp.get("hidims", hiDims[n], n);
 
-    IntVect loIV(D_DECL(loDims[0],loDims[1],loDims[2]));
-    IntVect hiIV(D_DECL(hiDims[0],hiDims[1],hiDims[2]));
+    IntVect loIV(AMREX_D_DECL(loDims[0],loDims[1],loDims[2]));
+    IntVect hiIV(AMREX_D_DECL(hiDims[0],hiDims[1],hiDims[2]));
     Box intersectBox(loIV, hiIV, IndexType::TheCellType());
 
     int nCrsRatio = pp.countval("refratio");
