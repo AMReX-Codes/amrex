@@ -33,7 +33,7 @@ public:
     //! Construct an IndexType identical to an IntVect.
     explicit IndexType (const IntVect& iv)
     {
-        itype = D_TERM((iv[0]?1:0), | ((iv[1]?1:0)<<1), | ((iv[2]?1:0)<<2));
+        itype = BL_D_TERM((iv[0]?1:0), | ((iv[1]?1:0)<<1), | ((iv[2]?1:0)<<2));
     }
     /**
     * \brief Construct an IndexType given an explicit CellIndex for
@@ -42,7 +42,7 @@ public:
     */
     IndexType (BL_D_DECL(CellIndex i, CellIndex j, CellIndex k))
     {
-        itype = D_TERM(i, | (j<<1), | (k<<2));
+        itype = BL_D_TERM(i, | (j<<1), | (k<<2));
     }
     // dtor, copy-ctor, copy-op=, move-ctor, and move-op= are compiler generated.
 

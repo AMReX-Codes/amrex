@@ -65,8 +65,8 @@ CoordSys::SetOffset (const Real* x_lo)
 
 CoordSys::CoordSys ()
 {
-    D_TERM(dx[0]=0;,dx[1]=0;,dx[2]=0;)
-    D_TERM(inv_dx[0]=std::numeric_limits<Real>::infinity();,
+    BL_D_TERM(dx[0]=0;,dx[1]=0;,dx[2]=0;)
+    BL_D_TERM(inv_dx[0]=std::numeric_limits<Real>::infinity();,
            inv_dx[1]=std::numeric_limits<Real>::infinity();,
            inv_dx[2]=std::numeric_limits<Real>::infinity();)
     ok = false;
@@ -458,10 +458,10 @@ operator<< (std::ostream&   os,
             const CoordSys& c)
 {
     os << '(' << (int) c.Coord() << ' ';
-    os << D_TERM( '(' << c.Offset(0) , <<
+    os << BL_D_TERM( '(' << c.Offset(0) , <<
                   ',' << c.Offset(1) , <<
                   ',' << c.Offset(2))  << ')';
-    os << D_TERM( '(' << c.CellSize(0) , <<
+    os << BL_D_TERM( '(' << c.CellSize(0) , <<
                   ',' << c.CellSize(1) , <<
                   ',' << c.CellSize(2))  << ')';
     os << ' ' << int(c.ok) << ")\n";
@@ -512,7 +512,7 @@ CoordSys::Volume (const Real xlo[BL_SPACEDIM],
     switch (c_sys)
     {
     case cartesian:
-        return D_TERM((xhi[0]-xlo[0]),
+        return BL_D_TERM((xhi[0]-xlo[0]),
                       *(xhi[1]-xlo[1]),
                       *(xhi[2]-xlo[2]));
 #if (BL_SPACEDIM==2)

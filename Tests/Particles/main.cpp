@@ -70,7 +70,7 @@ class StructOfArraysParticleContainer
                 p.id() = ParticleType::NextID();
                 p.cpu() = ParallelDescriptor::MyProc();
             
-                D_TERM(p.pos(0) = tile_real_box.lo(0) + (iv[0]- boxlo[0] + 0.5)*dx[0];,
+                BL_D_TERM(p.pos(0) = tile_real_box.lo(0) + (iv[0]- boxlo[0] + 0.5)*dx[0];,
                        p.pos(1) = tile_real_box.lo(1) + (iv[1]- boxlo[1] + 0.5)*dx[1];,
                        p.pos(2) = tile_real_box.lo(2) + (iv[2]- boxlo[2] + 0.5)*dx[2];);
 

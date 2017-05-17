@@ -112,24 +112,24 @@ public:
     //! Returns true if all components are equal to the argument val.
     bool operator== (int val) const
     {
-        return D_TERM(vect[0] == val, && vect[1] == val, && vect[2] == val);
+        return BL_D_TERM(vect[0] == val, && vect[1] == val, && vect[2] == val);
     }
 
     //! Returns true if any component is not equal to the argument val.
     bool operator!= (int val) const
     {
-        return D_TERM(vect[0] != val, || vect[1] != val, || vect[2] != val);
+        return BL_D_TERM(vect[0] != val, || vect[1] != val, || vect[2] != val);
     }
 
     //! Returns true if this is equivalent to rhs.
     bool operator== (const IntVect& rhs) const
     {
-        return D_TERM(vect[0] == rhs[0], && vect[1] == rhs[1], && vect[2] == rhs[2]);
+        return BL_D_TERM(vect[0] == rhs[0], && vect[1] == rhs[1], && vect[2] == rhs[2]);
     }
     //! Returns true if this is different from rhs.
     bool operator!= (const IntVect& rhs) const
     {
-        return D_TERM(vect[0] != rhs[0], || vect[1] != rhs[1], || vect[2] != rhs[2]);
+        return BL_D_TERM(vect[0] != rhs[0], || vect[1] != rhs[1], || vect[2] != rhs[2]);
     }
     //! Return ture if this is lexicographically less than rhs.
     bool operator< (const IntVect& rhs) const
@@ -164,7 +164,7 @@ public:
     */	
     bool allLT (const IntVect& rhs) const
     {
-        return D_TERM(vect[0] < rhs[0], && vect[1] < rhs[1], && vect[2] < rhs[2]);
+        return BL_D_TERM(vect[0] < rhs[0], && vect[1] < rhs[1], && vect[2] < rhs[2]);
     }
     /**
     * \brief Returns true if this is less than or equal to argument for all components.
@@ -172,7 +172,7 @@ public:
     */
     bool allLE (const IntVect& rhs) const
     {
-        return D_TERM(vect[0] <= rhs[0], && vect[1] <= rhs[1], && vect[2] <= rhs[2]);
+        return BL_D_TERM(vect[0] <= rhs[0], && vect[1] <= rhs[1], && vect[2] <= rhs[2]);
     }
     /**
     * \brief Returns true if this is greater than argument for all components.
@@ -180,7 +180,7 @@ public:
     */
     bool allGT (const IntVect& rhs) const
     {
-        return D_TERM(vect[0] > rhs[0], && vect[1] > rhs[1], && vect[2] > rhs[2]);
+        return BL_D_TERM(vect[0] > rhs[0], && vect[1] > rhs[1], && vect[2] > rhs[2]);
     }
     /**
     * \brief Returns true if this is greater than or equal to argument for all components.
@@ -188,7 +188,7 @@ public:
     */
     bool allGE (const IntVect& rhs) const
     {
-        return D_TERM(vect[0] >= rhs[0], && vect[1] >= rhs[1], && vect[2] >= rhs[2]);
+        return BL_D_TERM(vect[0] >= rhs[0], && vect[1] >= rhs[1], && vect[2] >= rhs[2]);
     }
     //! Unary plus -- for completeness.
     const IntVect operator+ () const { return *this; }

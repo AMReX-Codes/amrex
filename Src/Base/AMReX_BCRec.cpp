@@ -23,11 +23,11 @@ BCRec::BCRec (const int* lo,
     BL_ASSERT(!(lo == 0));
     BL_ASSERT(!(hi == 0));
 
-    D_TERM(bc[0] = lo[0];,
+    BL_D_TERM(bc[0] = lo[0];,
            bc[1] = lo[1];,
            bc[2] = lo[2];);
 
-    D_TERM(bc[BL_SPACEDIM+0] = hi[0];,
+    BL_D_TERM(bc[BL_SPACEDIM+0] = hi[0];,
            bc[BL_SPACEDIM+1] = hi[1];,
            bc[BL_SPACEDIM+2] = hi[2];);
 }

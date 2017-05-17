@@ -19,9 +19,9 @@ public:
     explicit Periodicity (const IntVect& v) : period(v) {}
 
     bool isAnyPeriodic () const
-	{ return D_TERM(period[0]>0, || period[1]>0, || period[2]>0); }
+	{ return BL_D_TERM(period[0]>0, || period[1]>0, || period[2]>0); }
     bool isAllPeriodic () const
-	{ return D_TERM(period[0]>0, && period[1]>0, && period[2]>0); }
+	{ return BL_D_TERM(period[0]>0, && period[1]>0, && period[2]>0); }
     bool isPeriodic (int dir) const
 	{ return period[dir]>0; }
 

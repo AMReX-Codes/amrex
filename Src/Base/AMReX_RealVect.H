@@ -576,7 +576,7 @@ inline
 Real
 RealVect::sum () const
 {
-  return D_TERM(vect[0], + vect[1], + vect[2]);
+  return BL_D_TERM(vect[0], + vect[1], + vect[2]);
 }
 
 inline
@@ -606,7 +606,7 @@ inline
 Real
 RealVect::product () const
 {
-  return D_TERM(vect[0], * vect[1], * vect[2]);
+  return BL_D_TERM(vect[0], * vect[1], * vect[2]);
 }
 
 inline
@@ -621,28 +621,28 @@ inline
 bool
 RealVect::operator< (const RealVect& p) const
 {
-  return D_TERM(vect[0] < p[0], && vect[1] < p[1], && vect[2] < p[2]);
+  return BL_D_TERM(vect[0] < p[0], && vect[1] < p[1], && vect[2] < p[2]);
 }
 
 inline
 bool
 RealVect::operator<= (const RealVect& p) const
 {
-  return D_TERM(vect[0] <= p[0], && vect[1] <= p[1], && vect[2] <= p[2]);
+  return BL_D_TERM(vect[0] <= p[0], && vect[1] <= p[1], && vect[2] <= p[2]);
 }
 
 inline
 bool
 RealVect::operator> (const RealVect& p) const
 {
-  return D_TERM(vect[0] > p[0], && vect[1] > p[1], && vect[2] > p[2]);
+  return BL_D_TERM(vect[0] > p[0], && vect[1] > p[1], && vect[2] > p[2]);
 }
 
 inline
 bool
 RealVect::operator>= (const RealVect& p) const
 {
-  return D_TERM(vect[0] >= p[0], && vect[1] >= p[1], && vect[2] >= p[2]);
+  return BL_D_TERM(vect[0] >= p[0], && vect[1] >= p[1], && vect[2] >= p[2]);
 }
 
 inline

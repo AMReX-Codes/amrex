@@ -214,7 +214,7 @@ Box::grow (Orientation face,
 long
 Box::numPts () const
 {
-    return D_TERM( static_cast<long>(length(0)), 
+    return BL_D_TERM( static_cast<long>(length(0)), 
                   *static_cast<long>(length(1)),
                   *static_cast<long>(length(2)));
 }
@@ -224,13 +224,13 @@ Box::d_numPts () const
 {
     BL_ASSERT(ok());
 
-    return D_TERM(double(length(0)), *double(length(1)), *double(length(2)));
+    return BL_D_TERM(double(length(0)), *double(length(1)), *double(length(2)));
 }
 
 long
 Box::volume () const
 {
-    return D_TERM( static_cast<long>(length(0)-btype[0]), 
+    return BL_D_TERM( static_cast<long>(length(0)-btype[0]), 
                   *static_cast<long>(length(1)-btype[1]),
                   *static_cast<long>(length(2)-btype[2]));
 }
@@ -705,7 +705,7 @@ bool
 Box::sameSize (const Box& b) const
 {
     BL_ASSERT(sameType(b));
-    return D_TERM(length(0) == b.length(0),
+    return BL_D_TERM(length(0) == b.length(0),
                   && length(1)==b.length(1),
                   && length(2)==b.length(2));
 }

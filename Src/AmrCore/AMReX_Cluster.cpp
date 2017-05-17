@@ -271,7 +271,7 @@ Cluster::chop ()
     for (int n = 0; n < m_len; n++)
     {
         const int* p = m_ar[n].getVect();
-        D_TERM( hist[0][p[0]-lo[0]]++;,
+        BL_D_TERM( hist[0][p[0]-lo[0]]++;,
                 hist[1][p[1]-lo[1]]++;,
                 hist[2][p[2]-lo[2]]++; )
      }

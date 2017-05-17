@@ -52,7 +52,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Index (const 
     IntVect iv;
     const Geometry& geom = Geom(lev);
 
-    D_TERM(iv[0]=floor((p.m_rdata.pos[0]-geom.ProbLo(0))*geom.InvCellSize(0));,
+    BL_D_TERM(iv[0]=floor((p.m_rdata.pos[0]-geom.ProbLo(0))*geom.InvCellSize(0));,
            iv[1]=floor((p.m_rdata.pos[1]-geom.ProbLo(1))*geom.InvCellSize(1));,
            iv[2]=floor((p.m_rdata.pos[2]-geom.ProbLo(2))*geom.InvCellSize(2)););
 
@@ -95,17 +95,17 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::getTileIndex(
         const IntVect& big   = box.bigEnd();
         IntVect ntiles, ivIndex, tilelo, tilehi;
 
-        D_TERM(int iv0 = std::min(std::max(iv[0], small[0]), big[0]);,
+        BL_D_TERM(int iv0 = std::min(std::max(iv[0], small[0]), big[0]);,
                int iv1 = std::min(std::max(iv[1], small[1]), big[1]);,
                int iv2 = std::min(std::max(iv[2], small[2]), big[2]););
 
-        D_TERM(tiling_1d(iv0, small[0], big[0], tile_size[0], ntiles[0], ivIndex[0], tilelo[0], tilehi[0]);,
+        BL_D_TERM(tiling_1d(iv0, small[0], big[0], tile_size[0], ntiles[0], ivIndex[0], tilelo[0], tilehi[0]);,
                tiling_1d(iv1, small[1], big[1], tile_size[1], ntiles[1], ivIndex[1], tilelo[1], tilehi[1]);,
                tiling_1d(iv2, small[2], big[2], tile_size[2], ntiles[2], ivIndex[2], tilelo[2], tilehi[2]););
 
         tbx = Box(tilelo, tilehi);
 
-        return D_TERM(ivIndex[0], + ntiles[0]*ivIndex[1], + ntiles[0]*ntiles[1]*ivIndex[2]);
+        return BL_D_TERM(ivIndex[0], + ntiles[0]*ivIndex[1], + ntiles[0]*ntiles[1]*ivIndex[2]);
     }
 }
 
@@ -203,7 +203,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::EnforcePeriod
 
             if (!isects.empty())
             {
-                D_TERM(p.m_rdata.pos[0] = p_prime.m_rdata.pos[0];,
+                BL_D_TERM(p.m_rdata.pos[0] = p_prime.m_rdata.pos[0];,
                        p.m_rdata.pos[1] = p_prime.m_rdata.pos[1];,
                        p.m_rdata.pos[2] = p_prime.m_rdata.pos[2];);
 
@@ -375,7 +375,7 @@ void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::locateParticle (ParticleType& p, ParticleLocData& pld, 
                                                                                    int lev_min, int lev_max, int nGrow) const
 {
-    bool outside = D_TERM(   p.m_rdata.pos[0] <  Geometry::ProbLo(0)
+    bool outside = BL_D_TERM(   p.m_rdata.pos[0] <  Geometry::ProbLo(0)
                           || p.m_rdata.pos[0] >= Geometry::ProbHi(0),
                           || p.m_rdata.pos[1] <  Geometry::ProbLo(1)
                           || p.m_rdata.pos[1] >= Geometry::ProbHi(1),
@@ -1503,7 +1503,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::OK (int lev_m
                         if (lev != pld.m_lev  || grid != pld.m_grid || tile != pld.m_tile)
                         {
                             amrex::AllPrint() << "PARTICLE NUMBER " << p.m_idata.id << '\n'
-                                              << "POS  " << D_TERM(p.m_rdata.pos[0], << p.m_rdata.pos[1], << p.m_rdata.pos[2]) << "\n"
+                                              << "POS  " << BL_D_TERM(p.m_rdata.pos[0], << p.m_rdata.pos[1], << p.m_rdata.pos[2]) << "\n"
                                               << "LEV  " << lev  << " " << pld.m_lev << '\n'
                                               << "GRID " << grid << " " << pld.m_grid << '\n';
                             return false;
@@ -2256,7 +2256,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::ReadParticles
 
       iptr += 2 + NStructInt;
 
-      D_TERM(p.m_rdata.pos[0] = rptr[0];,
+      BL_D_TERM(p.m_rdata.pos[0] = rptr[0];,
 	     p.m_rdata.pos[1] = rptr[1];,
 	     p.m_rdata.pos[2] = rptr[2];);
 
@@ -2379,7 +2379,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::WriteAsciiFil
 		    if (it->m_idata.id > 0) {
 
                         // write out the particle struct first... 
-                        D_TERM(File << it->m_rdata.pos[0] << ' ',
+                        BL_D_TERM(File << it->m_rdata.pos[0] << ' ',
                                << it->m_rdata.pos[1] << ' ',
                                << it->m_rdata.pos[2] << ' ');
 
@@ -2529,7 +2529,7 @@ ParticleContainer<NStructReal,NStructInt,NArrayReal, NArrayInt>::WriteCoarsenedA
                               File << it->m_idata.id  << ' ';
                               File << it->m_idata.cpu << ' ';
                               
-                              D_TERM(File << it->m_rdata.pos[0] << ' ',
+                              BL_D_TERM(File << it->m_rdata.pos[0] << ' ',
                                      << it->m_rdata.pos[1] << ' ',
                                      << it->m_rdata.pos[2] << ' ');
                               
@@ -2982,7 +2982,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignDensity
     //
     // Minimum M required.
     //
-    const int M = D_TERM(2,+2,+4);
+    const int M = BL_D_TERM(2,+2,+4);
 
     Array<int>     cgrid(M);
     Array<int>    cwhich(M),  fwhich(M);
@@ -3707,7 +3707,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignDensity
         const int       lev_index = lev - lev_min;
         const Geometry& gm        = Geom(lev);
         const Real*     dx        = gm.CellSize();
-        const Real      vol       = D_TERM(dx[0], *dx[1], *dx[2]);
+        const Real      vol       = BL_D_TERM(dx[0], *dx[1], *dx[2]);
 
         mf[lev_index]->SumBoundary(gm.periodicity());
         //
@@ -3914,7 +3914,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignDensity
 	  isenddata[ioff+0] = p.m_lev  - lev_min;
 	  isenddata[ioff+1] = p.m_grid;
 
-	  D_TERM(isenddata[ioff+2] = p.m_cell[0];,
+	  BL_D_TERM(isenddata[ioff+2] = p.m_cell[0];,
 		 isenddata[ioff+3] = p.m_cell[1];,
 		 isenddata[ioff+4] = p.m_cell[2];);
 
@@ -4129,7 +4129,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignCellDen
     // Only multiply the first component by (1/vol) because this converts mass
     // to density. If there are additional components (like velocity), we don't
     // want to divide those by volume.
-    const Real vol = D_TERM(dx[0], *dx[1], *dx[2]);
+    const Real vol = BL_D_TERM(dx[0], *dx[1], *dx[2]);
 
     mf_pointer->mult(1.0/vol, 0, 1, mf_pointer->nGrow());
 
@@ -4312,7 +4312,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignCellDen
     // Only multiply the first component by (1/vol) because this converts mass
     // to density. If there are additional components (like velocity), we don't
     // want to divide those by volume.
-    const Real vol = D_TERM(dx[0], *dx[1], *dx[2]);
+    const Real vol = BL_D_TERM(dx[0], *dx[1], *dx[2]);
 
     mf_pointer->mult(1/vol, 0, 1);
 
@@ -4501,7 +4501,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::NodalDepositi
     // to density. If there are additional components (like velocity), we don't
     // want to divide those by volume.
     //
-    const Real vol = D_TERM(dx[0], *dx[1], *dx[2]);
+    const Real vol = BL_D_TERM(dx[0], *dx[1], *dx[2]);
 
     mf_pointer->mult(1/vol,0,1);
 
@@ -4588,21 +4588,21 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::moveKick (Mul
 	      //
 	      // Define (a u)^new = (a u)^half + dt/2 grav^new
 	      //
-	      D_TERM(p.m_rdata.arr[BL_SPACEDIM+1] *= a_half;,
+	      BL_D_TERM(p.m_rdata.arr[BL_SPACEDIM+1] *= a_half;,
 		     p.m_rdata.arr[BL_SPACEDIM+2] *= a_half;,
 		     p.m_rdata.arr[BL_SPACEDIM+3] *= a_half;);
 
-	      D_TERM(p.m_rdata.arr[BL_SPACEDIM+1] += half_dt * grav[0];,
+	      BL_D_TERM(p.m_rdata.arr[BL_SPACEDIM+1] += half_dt * grav[0];,
 		     p.m_rdata.arr[BL_SPACEDIM+2] += half_dt * grav[1];,
 		     p.m_rdata.arr[BL_SPACEDIM+3] += half_dt * grav[2];);
 
-	      D_TERM(p.m_rdata.arr[BL_SPACEDIM+1] *= a_new_inv;,
+	      BL_D_TERM(p.m_rdata.arr[BL_SPACEDIM+1] *= a_new_inv;,
 		     p.m_rdata.arr[BL_SPACEDIM+2] *= a_new_inv;,
 		     p.m_rdata.arr[BL_SPACEDIM+3] *= a_new_inv;);
 
 	      if (start_comp_for_accel > BL_SPACEDIM)
                 {
-		  D_TERM(p.m_rdata.arr[BL_SPACEDIM + start_comp_for_accel  ] = grav[0];,
+		  BL_D_TERM(p.m_rdata.arr[BL_SPACEDIM + start_comp_for_accel  ] = grav[0];,
 			 p.m_rdata.arr[BL_SPACEDIM + start_comp_for_accel+1] = grav[1];,
 			 p.m_rdata.arr[BL_SPACEDIM + start_comp_for_accel+2] = grav[2];);
                 }
