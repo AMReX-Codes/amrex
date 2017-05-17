@@ -30,7 +30,8 @@ namespace amrex
          const EBLevelGrid   & a_eblgCoar,
          const int           & a_nref,
          const int           & a_ghostCellsInData,
-         int a_orderOfPolynomial)
+         int a_orderOfPolynomial,
+         bool a_slowMode)
   {
     BL_ASSERT(a_nref > 0);
     BL_ASSERT(a_eblgFine.coarsenable(a_nref));
@@ -42,7 +43,7 @@ namespace amrex
     m_orderOfPolynomial = a_orderOfPolynomial;
     m_buffGhost = 2;
     m_dataGhost = a_ghostCellsInData;
-
+    m_slowMode  = a_slowMode;
     defineInternals();
   }
   /************************************/
@@ -61,7 +62,16 @@ namespace amrex
     FabArray<EBCellFAB> proxyLevel(m_eblgFine.getDBL(),m_eblgFine.getDM(), nvar, m_dataGhost, MFInfo(), factFine);
     FabArray<EBCellFAB> bufferCoFi(m_eblgCoFi.getDBL(),m_eblgCoFi.getDM(), nvar, m_buffGhost, MFInfo(), factCoFi);
 
-    m_stencil.define(m_eblgFine.getDBL(), m_eblgFine.getDM());
+    if(m_slowMode)
+    {
+      m_slowStencils.define(m_eblgFine.getDBL(), m_eblgFine.getDM());
+      m_slowVoFs.define(    m_eblgFine.getDBL(), m_eblgFine.getDM());
+      
+    }
+    else
+    {
+      m_stencil.define(m_eblgFine.getDBL(), m_eblgFine.getDM());
+    }
 
     for(MFIter mfi(m_eblgFine.getDBL(), m_eblgFine.getDM()); mfi.isValid(); ++mfi)
     {
@@ -72,7 +82,10 @@ namespace amrex
 
       Box gridFine =m_eblgFine.getDBL()[mfi];
       IntVectSet ivsIrreg = ebisFine.getIrregIVS(gridFine);
-      
+      //need to grow this by the refinement ratio because otherwise, the coarse
+      //slope  can reach into covered cells.
+      ivsIrreg.grow(m_refRat);
+      ivsIrreg &= gridFine;
       VoFIterator vofit(ivsIrreg, ebisFine.getEBGraph());
       const std::vector<VolIndex>& volvec = vofit.getVector();
       baseDstVoFs.resize(volvec.size());
@@ -88,8 +101,16 @@ namespace amrex
       EBCellFAB& coarProxy =   bufferCoFi[mfi];
       EBCellFAB& fineProxy =   proxyLevel[mfi];
 
-      m_stencil[mfi] = std::shared_ptr<AggStencil <EBCellFAB, EBCellFAB>  >
-        (new AggStencil<EBCellFAB, EBCellFAB >(baseDstVoFs, baseSten, coarProxy, fineProxy));
+      if(m_slowMode)
+      {
+        m_slowStencils[mfi] = allsten;
+        m_slowVoFs    [mfi] = volvec;
+      }
+      else
+      {
+        m_stencil[mfi] = std::shared_ptr<AggStencil <EBCellFAB, EBCellFAB>  >
+          (new AggStencil<EBCellFAB, EBCellFAB >(baseDstVoFs, baseSten, coarProxy, fineProxy));
+      }
 
     }
   }
@@ -104,6 +125,15 @@ namespace amrex
   {
     VolIndex fineVoF = a_vofFine;
     //the values of these do not matter as this is interpolation
+
+    //begin debug
+    //IntVect iv = a_vofFine.gridIndex();
+    //int ideb = 0;
+    //if((iv[0]==30) && (iv[1]==24))
+    //{
+    //  ideb = 1;
+    //}
+    ////end debug
     Real dxFine = 1.0;  Real dxCoar = m_refRat;
     a_stencil.clear();
     VolIndex coarVoF = m_eblgFine.getEBISL().coarsen(fineVoF, m_refRat, a_mfi);
@@ -129,8 +159,11 @@ namespace amrex
 
     for(MFIter mfi(m_eblgFine.getDBL(), m_eblgFine.getDM()); mfi.isValid(); ++mfi)
     {
-      BaseFab<Real>      & regFine = a_dataFine[mfi].getSingleValuedFAB();
-      const BaseFab<Real>& regCoar =   dataCoFi[mfi].getSingleValuedFAB();
+      EBCellFAB       & dataFine = a_dataFine[mfi];
+      const EBCellFAB & dataCoar =   dataCoFi[mfi];
+
+      BaseFab<Real>      & regFine = dataFine.getSingleValuedFAB();
+      const BaseFab<Real>& regCoar = dataCoar.getSingleValuedFAB();
       const Box& gridFine = m_eblgFine.getDBL()[mfi];
       if(m_orderOfPolynomial < 1)
       {
@@ -172,10 +205,10 @@ namespace amrex
                           BL_TO_FORTRAN_FAB(regCoar),
                           BL_TO_FORTRAN_BOX(gridFine),
                           &m_refRat, &isrc, &idst, &inco);
-#if 0
+
           Box refBox(IntVect::Zero, IntVect::Zero);
           refBox.refine(m_refRat);
-          //now increment each direction
+          //now increment each direction by the slopes.
           for(int idir = 0; idir < SpaceDim; idir++)
           {
             ebfnd_pwl_incr_at_bound(BL_TO_FORTRAN_FAB(regFine),
@@ -187,7 +220,7 @@ namespace amrex
                                     BL_TO_FORTRAN_BOX(refBox),
                                     &m_refRat, &isrc, &idst, &inco);
           }
-#endif
+
         }
       }
       else
@@ -196,10 +229,32 @@ namespace amrex
         amrex::Abort("case not implemented");
       }
 
-      //false is for increment only
-      m_stencil[mfi]->apply(a_dataFine[mfi],
-                              dataCoFi[mfi],
-                            isrc, idst, inco, false);
+      if(m_slowMode)
+      {
+
+        vector<VolIndex  >& vofs     = m_slowVoFs[mfi];
+        vector<VoFStencil>& stencils = m_slowStencils[mfi];
+        for(int ivof = 0; ivof < vofs.size(); ivof++)
+        {
+          for(int icomp = 0; icomp < inco; icomp++)
+          {
+            int srccomp = isrc + icomp;
+            int dstcomp = idst + icomp;
+
+            VoFStencil vofsten = stencils[ivof];
+            vofsten.setAllVariables(srccomp);
+            Real value = applyVoFStencil(stencils[ivof], dataCoar);
+            dataFine(vofs[ivof], dstcomp)= value;
+          }
+        }
+      }
+      else
+      {
+        //false is for increment only
+        m_stencil[mfi]->apply(dataFine,
+                              dataCoar,
+                              isrc, idst, inco, false);
+      } 
     }
 
   }

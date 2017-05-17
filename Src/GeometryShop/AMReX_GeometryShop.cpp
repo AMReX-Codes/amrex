@@ -385,13 +385,20 @@ namespace amrex
     IntVectSet ivsdrop ;
     long int numCovered=0, numReg=0, numIrreg=0;
 
-    //IntVect ivdeblo(D_DECL(62,510,0));
-    //IntVect ivdebhi(D_DECL(63,513,0));
-    //Box debbox(ivdeblo, ivdebhi);
 
     for (BoxIterator bit(a_ghostRegion); bit.ok(); ++bit)
       {
         const IntVect iv =bit();
+////begin debug
+//        IntVect ivdeb(D_DECL(30,24,0));
+//        Box bdeb(ivdeb, ivdeb);
+//        bdeb.grow(1);
+//        int ideb = 0;
+//        if(bdeb.contains(iv))
+//        {
+//          ideb = 1;
+//        }
+////end debug
 
         Box miniBox(iv, iv);
         GeometryShop::InOut inout = InsideOutside(miniBox, a_domain, a_origin, a_dx);

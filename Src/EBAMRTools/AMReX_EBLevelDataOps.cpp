@@ -468,18 +468,21 @@ namespace amrex
       for(VoFIterator vofit(IntVectSet(region), ebis.getEBGraph()); vofit.ok(); ++vofit)
       {
         const VolIndex & vof = vofit();
-        Real value   = data(vof, a_comp);
+        Real value   = std::abs(data(vof, a_comp));
         Real volFrac = ebis.volFrac(vof);
         volume += volFrac;
         if(a_p == 0)
         {
           //p = 0 --- max norm
-          integral  = std::max(integral, value);
+          if(value > integral)
+          {
+            integral = value;
+          }
         }
         else if(a_p == 1)
         {
           // p = 1 L1 norm (integral |phi| dV)
-          integral += volFrac*std::abs(value);
+          integral += volFrac*value;
         }
         else if(a_p == 2)
         {
@@ -594,7 +597,7 @@ namespace amrex
     amrex::Print() << "\\begin{table}[p]" << "\n";
     amrex::Print() << "\\begin{center}" << "\n";
     amrex::Print() << "\\begin{tabular}{|cccc|} \\hline" << "\n";
-    amrex::Print() << "Variable & \t norm \t & $e_{f}$ \t& Order \t& $e_{c}$\\\\" << "\n";;
+    amrex::Print() << "Variable & \t norm \t \t & $e_{c}$ \t& Order \t& $e_{f}$\\\\" << "\n";;
     amrex::Print() << "\\hline " << "\n";
 
     for (int inorm = 0; inorm <= 2; inorm++)
