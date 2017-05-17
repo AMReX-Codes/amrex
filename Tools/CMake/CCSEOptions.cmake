@@ -82,18 +82,12 @@ endif()
 # BL_USE_ARRAYVIEW
 # BL_USE_NEWPLOTPER
 # BL_FIX_GATHERV_ERROR
-# BL_SYNC_RANTABLES
 # BL_COALESCE_FABS
 # BL_NO_FORT
 # BL_SETBUF_SIGNED_CHAR
 # BL_USE_FORT_STAR_PRECISION
 # BL_FIXHEADERDENORMS
-# BL_VISMF_MSGCHECK
-# BL_ALWAYS_FIX_DENORMALS
 # BL_NOLINEVALUES
-# BL_PROF_NOT_REG
-# BL_CWD_SIZE
-# _BL_ANSI_TIME
 
 # The following variables really should be set explicitly prior to including this file so
 # that the behavior is predictable
