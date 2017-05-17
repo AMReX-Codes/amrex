@@ -17,7 +17,7 @@ extern "C"
 	Array<int> lsarr {level_steps, level_steps+nlevs};
 	Array<IntVect> rrarr;
 	for (int lev = 0; lev < nlevs-1; ++lev) {
-	    rrarr.emplace_back(D_DECL(ref_ratio[lev],ref_ratio[lev],ref_ratio[lev]));
+	    rrarr.emplace_back(BL_D_DECL(ref_ratio[lev],ref_ratio[lev],ref_ratio[lev]));
 	}
 	amrex::WriteMultiLevelPlotfile(name, nlevs, mfarr, varnamearr, geomarr,
 				       time, lsarr, rrarr);

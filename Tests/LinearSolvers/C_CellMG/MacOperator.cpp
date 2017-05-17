@@ -237,7 +237,7 @@ MacOperator::defRHS (MultiFab* area,
 
 void
 mac_vel_update (int              init,
-                D_DECL(FArrayBox& ux,
+                BL_D_DECL(FArrayBox& ux,
                        FArrayBox& uy,
                        FArrayBox& uz),
                 const FArrayBox& phi,
@@ -311,7 +311,7 @@ MacOperator::velUpdate (MultiFab*       Vel,
         const Box& grd = Phimfi.validbox();
 
         mac_vel_update(0, 
-                       D_DECL(Vel[0][Phimfi],Vel[1][Phimfi],Vel[2][Phimfi]),
+                       BL_D_DECL(Vel[0][Phimfi],Vel[1][Phimfi],Vel[2][Phimfi]),
                        Phi[Phimfi],
                        &(Rho[Phimfi]), rho_comp,  
                        grd, 0, Phimfi.index(), dx, scale );

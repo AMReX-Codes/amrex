@@ -80,10 +80,10 @@ writePlotFile (const std::string&        dir,
 	    for (int L=0; L < grids.size(); L++)
 	    {
 		const Box& bx = grids[L];
-		grid_loc[j][L] = RealBox(D_DECL( dx[j][0]*bx.smallEnd(0),
+		grid_loc[j][L] = RealBox(BL_D_DECL( dx[j][0]*bx.smallEnd(0),
 						 dx[j][1]*bx.smallEnd(1),
 						 dx[j][2]*bx.smallEnd(2) ),
-					 D_DECL( dx[j][0]*(bx.bigEnd(0)+corr[0]),
+					 BL_D_DECL( dx[j][0]*(bx.bigEnd(0)+corr[0]),
 						 dx[j][1]*(bx.bigEnd(1)+corr[1]),
 						 dx[j][2]*(bx.bigEnd(2)+corr[2]) ));
 	    }

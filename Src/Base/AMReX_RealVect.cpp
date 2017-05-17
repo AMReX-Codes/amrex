@@ -22,9 +22,9 @@ namespace amrex
 {
 
   RealVect tm;
-  const RealVect RealVect::Unit(D_DECL(1.0,1.0,1.0));
+  const RealVect RealVect::Unit(BL_D_DECL(1.0,1.0,1.0));
 
-  const RealVect RealVect::Zero(D_DECL(0.0,0.0,0.0));
+  const RealVect RealVect::Zero(BL_D_DECL(0.0,0.0,0.0));
 
   const Real*
   RealVect::dataPtr() const
@@ -38,7 +38,7 @@ namespace amrex
     return vect;
   }
 
-  RealVect::RealVect (D_DECL(Real i, Real j, Real k))
+  RealVect::RealVect (BL_D_DECL(Real i, Real j, Real k))
   {
     D_EXPR(vect[0] = i, vect[1] = j, vect[2] = k);
   }
@@ -111,21 +111,21 @@ namespace amrex
   RealVect
   RealVect::operator* (Real s) const
   {
-    RealVect v(D_DECL(vect[0]*s, vect[1]*s, vect[2]*s));
+    RealVect v(BL_D_DECL(vect[0]*s, vect[1]*s, vect[2]*s));
     return v;
   }
 
   RealVect
   RealVect::operator- (Real s) const
   {
-    RealVect v(D_DECL(vect[0]-s, vect[1]-s, vect[2]-s));
+    RealVect v(BL_D_DECL(vect[0]-s, vect[1]-s, vect[2]-s));
     return v;
   }
 
   RealVect
   RealVect::operator+ (Real s) const
   {
-    RealVect v(D_DECL(vect[0]+s, vect[1]+s, vect[2]+s));
+    RealVect v(BL_D_DECL(vect[0]+s, vect[1]+s, vect[2]+s));
     return v;
   }
 
@@ -146,7 +146,7 @@ namespace amrex
   RealVect
   RealVect::operator/ (Real s) const
   {
-    RealVect result( D_DECL( vect[0] / s, vect[1] / s, vect[2] / s));
+    RealVect result( BL_D_DECL( vect[0] / s, vect[1] / s, vect[2] / s));
     return result ;
   }
 
@@ -211,55 +211,55 @@ namespace amrex
   operator/ (Real            s,
              const RealVect& p)
   {
-    return RealVect(D_DECL(s/p[0], s/p[1], s/p[2]));
+    return RealVect(BL_D_DECL(s/p[0], s/p[1], s/p[2]));
   }
   RealVect
   operator+ (Real            s,
              const RealVect& p)
   {
-    return RealVect(D_DECL(p[0] + s, p[1] + s, p[2] + s));
+    return RealVect(BL_D_DECL(p[0] + s, p[1] + s, p[2] + s));
   }
 
   RealVect
   operator- (Real            s,
              const RealVect& p)
   {
-    return RealVect(D_DECL(s - p[0], s - p[1], s - p[2]));
+    return RealVect(BL_D_DECL(s - p[0], s - p[1], s - p[2]));
   }
 
   RealVect
   operator* (Real            s,
              const RealVect& p)
   {
-    return RealVect(D_DECL(s * p[0], s * p[1], s * p[2]));
+    return RealVect(BL_D_DECL(s * p[0], s * p[1], s * p[2]));
   }
 
   RealVect
   operator/ (const RealVect& s,
              const RealVect& p)
   {
-    return RealVect(D_DECL(s[0] / p[0], s[1] /p[1], s[2] / p[2]));
+    return RealVect(BL_D_DECL(s[0] / p[0], s[1] /p[1], s[2] / p[2]));
   }
 
   RealVect
   operator+ (const RealVect& s,
              const RealVect& p)
   {
-    return RealVect(D_DECL(p[0] + s[0], p[1] +s[1], p[2] + s[2]));
+    return RealVect(BL_D_DECL(p[0] + s[0], p[1] +s[1], p[2] + s[2]));
   }
 
   RealVect
   operator- (const RealVect& s,
              const RealVect& p)
   {
-    return RealVect(D_DECL(s[0] - p[0], s[1] - p[1], s[2] - p[2]));
+    return RealVect(BL_D_DECL(s[0] - p[0], s[1] - p[1], s[2] - p[2]));
   }
 
   RealVect
   operator* (const RealVect& s,
              const RealVect& p)
   {
-    return RealVect(D_DECL(p[0] * s[0], p[1] *s[1], p[2] * s[2]));
+    return RealVect(BL_D_DECL(p[0] * s[0], p[1] *s[1], p[2] * s[2]));
   }
 
   std::ostream&

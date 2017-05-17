@@ -385,8 +385,8 @@ namespace amrex
     IntVectSet ivsdrop ;
     long int numCovered=0, numReg=0, numIrreg=0;
 
-    //IntVect ivdeblo(D_DECL(62,510,0));
-    //IntVect ivdebhi(D_DECL(63,513,0));
+    //IntVect ivdeblo(BL_D_DECL(62,510,0));
+    //IntVect ivdebhi(BL_D_DECL(63,513,0));
     //Box debbox(ivdeblo, ivdebhi);
 
     for (BoxIterator bit(a_ghostRegion); bit.ok(); ++bit)

@@ -6,12 +6,12 @@
 namespace amrex {
 
 BCRec::BCRec ()
-    : bc {D_DECL(BOGUS_BC,BOGUS_BC,BOGUS_BC),
-          D_DECL(BOGUS_BC,BOGUS_BC,BOGUS_BC)}
+    : bc {BL_D_DECL(BOGUS_BC,BOGUS_BC,BOGUS_BC),
+          BL_D_DECL(BOGUS_BC,BOGUS_BC,BOGUS_BC)}
 { }
 
-BCRec::BCRec (D_DECL(int loX, int loY, int loZ),
-              D_DECL(int hiX, int hiY, int hiZ))
+BCRec::BCRec (BL_D_DECL(int loX, int loY, int loZ),
+              BL_D_DECL(int hiX, int hiY, int hiZ))
 {
     D_EXPR(bc[0] = loX,  bc[1] = loY,  bc[2] = loZ);
     D_EXPR(bc[BL_SPACEDIM]=hiX,  bc[BL_SPACEDIM+1]=hiY,  bc[BL_SPACEDIM+2]=hiZ);

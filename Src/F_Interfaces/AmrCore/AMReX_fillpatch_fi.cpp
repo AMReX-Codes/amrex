@@ -54,7 +54,7 @@ extern "C"
 				  scomp, dcomp, ncomp,
 				  *cgeom, *fgeom,
 				  cbc, fbc,
-				  IntVect{D_DECL(rr,rr,rr)},
+				  IntVect{BL_D_DECL(rr,rr,rr)},
 				  interp[interp_id], bcs);
     }
 
@@ -78,7 +78,7 @@ extern "C"
                                      scomp, dcomp, ncomp,
                                      *cgeom, *fgeom,
                                      cbc, fbc,
-                                     IntVect{D_DECL(rr,rr,rr)},
+                                     IntVect{BL_D_DECL(rr,rr,rr)},
                                      interp[interp_id], bcs);
     }
 }

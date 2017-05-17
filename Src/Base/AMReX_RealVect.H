@@ -60,10 +60,10 @@ public:
   ///
   /**
      Construct a RealVect given the specific values for its
-     coordinates.  D_DECL6 is a macro that sets the constructor to
-     take CH_SPACEDIM arguments.
+     coordinates.  BL_D_DECL is a macro that sets the constructor to
+     take BL_SPACEDIM arguments.
   */
-  RealVect (D_DECL(Real i, Real j, Real k));
+  RealVect (BL_D_DECL(Real i, Real j, Real k));
 
   ///
   /**
@@ -561,7 +561,7 @@ inline
 RealVect
 RealVect::operator- () const
 {
-  return RealVect(D_DECL(-vect[0], -vect[1], -vect[2]));
+  return RealVect(BL_D_DECL(-vect[0], -vect[1], -vect[2]));
 }
 
 inline
@@ -614,7 +614,7 @@ RealVect
 scale (const RealVect& p,
        Real            s)
 {
-  return RealVect(D_DECL(s * p[0], s * p[1], s * p[2]));
+  return RealVect(BL_D_DECL(s * p[0], s * p[1], s * p[2]));
 }
 
 inline

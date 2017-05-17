@@ -123,7 +123,7 @@ NodeBilinear::interp (const FArrayBox&  crse,
 
     FORT_NBINTERP (cdat,ARLIM(clo),ARLIM(chi),ARLIM(clo),ARLIM(chi),
                    fdat,ARLIM(flo),ARLIM(fhi),ARLIM(lo),ARLIM(hi),
-                   D_DECL(&ratioV[0],&ratioV[1],&ratioV[2]),&ncomp,
+                   BL_D_DECL(&ratioV[0],&ratioV[1],&ratioV[2]),&ncomp,
                    strip.dataPtr(),&num_slope,&actual_comp,&actual_state);
 }
 
@@ -205,7 +205,7 @@ CellBilinear::interp (const FArrayBox&  crse,
 
     FORT_CBINTERP (cdat,ARLIM(clo),ARLIM(chi),ARLIM(clo),ARLIM(chi),
                    fdat,ARLIM(flo),ARLIM(fhi),ARLIM(lo),ARLIM(hi),
-                   D_DECL(&ratioV[0],&ratioV[1],&ratioV[2]),&ncomp,
+                   BL_D_DECL(&ratioV[0],&ratioV[1],&ratioV[2]),&ncomp,
                    slope.dataPtr(),&num_slope,strip.dataPtr(),&strip_lo,&strip_hi,
                    &actual_comp,&actual_state);
 }
@@ -375,11 +375,11 @@ CellConservativeLinear::interp (const FArrayBox& crse,
 #endif
                       ARLIM(csblo), ARLIM(csbhi),
                       csblo, csbhi,
-                      &ncomp,D_DECL(&ratioV[0],&ratioV[1],&ratioV[2]),
+                      &ncomp,BL_D_DECL(&ratioV[0],&ratioV[1],&ratioV[2]),
                       bc.dataPtr(), &slope_flag, &lin_limit,
-                      D_DECL(fvc[0].dataPtr(),fvc[1].dataPtr(),fvc[2].dataPtr()),
-                      D_DECL(cvc[0].dataPtr(),cvc[1].dataPtr(),cvc[2].dataPtr()),
-                      D_DECL(voffx,voffy,voffz),
+                      BL_D_DECL(fvc[0].dataPtr(),fvc[1].dataPtr(),fvc[2].dataPtr()),
+                      BL_D_DECL(cvc[0].dataPtr(),cvc[1].dataPtr(),cvc[2].dataPtr()),
+                      BL_D_DECL(voffx,voffy,voffz),
                       alpha.dataPtr(),cmax.dataPtr(),cmin.dataPtr(),
                       &actual_comp,&actual_state);
 
@@ -500,14 +500,14 @@ CellQuadratic::interp (const FArrayBox& crse,
 
     FORT_CQINTERP (fdat,ARLIM(flo),ARLIM(fhi),
                    ARLIM(fblo), ARLIM(fbhi),
-                   &ncomp,D_DECL(&ratioV[0],&ratioV[1],&ratioV[2]),
+                   &ncomp,BL_D_DECL(&ratioV[0],&ratioV[1],&ratioV[2]),
                    cdat,&clo,&chi,
                    ARLIM(cblo), ARLIM(cbhi),
                    fslo,fshi,
                    cslope.dataPtr(),&c_len,fslope,fstrip,&f_len,foff,
                    bc.dataPtr(), &slope_flag,
-                   D_DECL(fvc[0].dataPtr(),fvc[1].dataPtr(),fvc[2].dataPtr()),
-                   D_DECL(cvc[0].dataPtr(),cvc[1].dataPtr(),cvc[2].dataPtr()),
+                   BL_D_DECL(fvc[0].dataPtr(),fvc[1].dataPtr(),fvc[2].dataPtr()),
+                   BL_D_DECL(cvc[0].dataPtr(),cvc[1].dataPtr(),cvc[2].dataPtr()),
                    &actual_comp,&actual_state);
 
 #endif /*(BL_SPACEDIM > 1)*/
@@ -577,7 +577,7 @@ PCInterp::interp (const FArrayBox& crse,
 
     FORT_PCINTERP (cdat,ARLIM(clo),ARLIM(chi),cblo,cbhi,
                    fdat,ARLIM(flo),ARLIM(fhi),fblo,fbhi,
-                   &long_dir,D_DECL(&ratioV[0],&ratioV[1],&ratioV[2]),
+                   &long_dir,BL_D_DECL(&ratioV[0],&ratioV[1],&ratioV[2]),
                    &ncomp,strip.dataPtr(),&strip_lo,&strip_hi,
                    &actual_comp,&actual_state);
 }
@@ -723,11 +723,11 @@ CellConservativeProtected::interp (const FArrayBox& crse,
 #endif
                       ARLIM(csblo), ARLIM(csbhi),
                       csblo, csbhi,
-                      &ncomp,D_DECL(&ratioV[0],&ratioV[1],&ratioV[2]),
+                      &ncomp,BL_D_DECL(&ratioV[0],&ratioV[1],&ratioV[2]),
                       bc.dataPtr(), &slope_flag, &lin_limit,
-                      D_DECL(fvc[0].dataPtr(),fvc[1].dataPtr(),fvc[2].dataPtr()),
-                      D_DECL(cvc[0].dataPtr(),cvc[1].dataPtr(),cvc[2].dataPtr()),
-                      D_DECL(voffx,voffy,voffz),
+                      BL_D_DECL(fvc[0].dataPtr(),fvc[1].dataPtr(),fvc[2].dataPtr()),
+                      BL_D_DECL(cvc[0].dataPtr(),cvc[1].dataPtr(),cvc[2].dataPtr()),
+                      BL_D_DECL(voffx,voffy,voffz),
                       alpha.dataPtr(),cmax.dataPtr(),cmin.dataPtr(),
                       &actual_comp,&actual_state);
 
@@ -826,7 +826,7 @@ CellConservativeProtected::protect (const FArrayBox& crse,
                          ARLIM(cvcblo), ARLIM(cvcbhi),
 #endif
                          state_dat, ARLIM(slo), ARLIM(shi),
-                         &ncomp,D_DECL(&ratioV[0],&ratioV[1],&ratioV[2]),
+                         &ncomp,BL_D_DECL(&ratioV[0],&ratioV[1],&ratioV[2]),
                          bc.dataPtr());
 
 #endif /*(BL_SPACEDIM > 1)*/
@@ -927,8 +927,8 @@ CellConservativeQuartic::interp (const FArrayBox&  crse,
 		      cdat,ARLIM(clo),ARLIM(chi),
 		      cblo, cbhi, cb2lo, cb2hi,
 		      &ncomp,
-		      D_DECL(&ratioV[0],&ratioV[1],&ratioV[2]),
-		      D_DECL(ftmp.dataPtr(), ctmp.dataPtr(), ctmp2.dataPtr()),
+		      BL_D_DECL(&ratioV[0],&ratioV[1],&ratioV[2]),
+		      BL_D_DECL(ftmp.dataPtr(), ctmp.dataPtr(), ctmp2.dataPtr()),
 		      bc.dataPtr(),&actual_comp,&actual_state);
 }
 

@@ -35,7 +35,7 @@ Adv::estTimeStep (Real)
 	    }
 
 	    get_face_velocity(level, cur_time,
-			      D_DECL(BL_TO_FORTRAN(uface[0]),
+			      BL_D_DECL(BL_TO_FORTRAN(uface[0]),
 				     BL_TO_FORTRAN(uface[1]),
 				     BL_TO_FORTRAN(uface[2])),
 			      dx, prob_lo);

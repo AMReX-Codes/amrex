@@ -17,14 +17,14 @@ namespace amrex {
 const IntVect&
 IntVect::TheUnitVector ()
 {
-    static const IntVect Unit(D_DECL(1,1,1));
+    static const IntVect Unit(BL_D_DECL(1,1,1));
     return Unit;
 }
 
 const IntVect&
 IntVect::TheZeroVector ()
 {
-    static const IntVect Zero(D_DECL(0,0,0));
+    static const IntVect Zero(BL_D_DECL(0,0,0));
     return Zero;
 }
 
@@ -34,10 +34,10 @@ IntVect::TheZeroVector ()
 int IntVect::InitStatics()
 {
   IntVect* pz = const_cast<IntVect*>( &IntVect::Zero );
-  *pz = IntVect(D_DECL(0,0,0));
+  *pz = IntVect(BL_D_DECL(0,0,0));
 
   IntVect* pu = const_cast<IntVect*>( &IntVect::Unit );
-  *pu = IntVect(D_DECL(1,1,1));
+  *pu = IntVect(BL_D_DECL(1,1,1));
 
   // No danger of IntVect::Zero and Unit not having been allocated, as ARM section
   // 3.4 says "The initialization of nonlocal static objects in a translation unit
@@ -60,17 +60,17 @@ IntVect::TheDimensionVector (int d)
     switch (d) {
     case (0) :
     {
-	static const IntVect xdim(D_DECL(1,0,0));
+	static const IntVect xdim(BL_D_DECL(1,0,0));
 	return xdim;
     }
     case (1) :
     {
-	static const IntVect ydim(D_DECL(0,1,0));
+	static const IntVect ydim(BL_D_DECL(0,1,0));
 	return ydim;
     }
     default:
     {
-	static const IntVect zdim(D_DECL(0,0,1));
+	static const IntVect zdim(BL_D_DECL(0,0,1));
 	return zdim;
     }
     };
@@ -79,21 +79,21 @@ IntVect::TheDimensionVector (int d)
 const IntVect&
 IntVect::TheNodeVector ()
 {
-    static const IntVect Node(D_DECL(IndexType::NODE,IndexType::NODE,IndexType::NODE));
+    static const IntVect Node(BL_D_DECL(IndexType::NODE,IndexType::NODE,IndexType::NODE));
     return Node;
 }
 
 const IntVect&
 IntVect::TheCellVector ()
 {
-    static const IntVect Cell(D_DECL(IndexType::CELL,IndexType::CELL,IndexType::CELL));
+    static const IntVect Cell(BL_D_DECL(IndexType::CELL,IndexType::CELL,IndexType::CELL));
     return Cell;
 }
 
 const IntVect&
 IntVect::TheMaxVector ()
 {
-    static const IntVect mx(D_DECL(std::numeric_limits<int>::max(),
+    static const IntVect mx(BL_D_DECL(std::numeric_limits<int>::max(),
                                    std::numeric_limits<int>::max(),
                                    std::numeric_limits<int>::max()));
     return mx;
@@ -102,7 +102,7 @@ IntVect::TheMaxVector ()
 const IntVect&
 IntVect::TheMinVector ()
 {
-    static const IntVect mn(D_DECL(std::numeric_limits<int>::min(),
+    static const IntVect mn(BL_D_DECL(std::numeric_limits<int>::min(),
                                    std::numeric_limits<int>::min(),
                                    std::numeric_limits<int>::min()));
     return mn;
@@ -149,7 +149,7 @@ BASISV (int dir)
 IntVect
 scale (const IntVect& p, int s)
 {
-    return IntVect(D_DECL(s * p[0], s * p[1], s * p[2]));
+    return IntVect(BL_D_DECL(s * p[0], s * p[1], s * p[2]));
 }
 
 IntVect
@@ -166,7 +166,7 @@ reflect (const IntVect& a,
 IntVect
 diagShift (const IntVect& p, int s)
 {
-    return IntVect(D_DECL(p[0] + s, p[1] + s, p[2] + s));
+    return IntVect(BL_D_DECL(p[0] + s, p[1] + s, p[2] + s));
 }
 
 IntVect
@@ -175,7 +175,7 @@ coarsen (const IntVect& p,
 {
     BL_ASSERT(s > 0);
     IntVect v = p;
-    v.coarsen(IntVect(D_DECL(s,s,s)));
+    v.coarsen(IntVect(BL_D_DECL(s,s,s)));
     return v;
 }
 
@@ -192,7 +192,7 @@ IntVect&
 IntVect::coarsen (int s)
 {
     BL_ASSERT(s > 0);
-    return this->coarsen(IntVect(D_DECL(s,s,s)));
+    return this->coarsen(IntVect(BL_D_DECL(s,s,s)));
 }
 
 IntVect&

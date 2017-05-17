@@ -38,8 +38,8 @@ RealBox::RealBox (const Real* lo,
     D_EXPR(xhi[0] = hi[0] , xhi[1] = hi[1] , xhi[2] = hi[2]);
 }
 
-RealBox::RealBox (D_DECL(Real x0, Real y0, Real z0),
-                  D_DECL(Real x1, Real y1, Real z1))
+RealBox::RealBox (BL_D_DECL(Real x0, Real y0, Real z0),
+                  BL_D_DECL(Real x1, Real y1, Real z1))
 {
     D_EXPR(xlo[0] = x0 , xlo[1] = y0 , xlo[2] = z0);
     D_EXPR(xhi[0] = x1 , xhi[1] = y1 , xhi[2] = z1);

@@ -154,13 +154,13 @@ Particle<NReal, NInt>::CIC_Cells_Fracs_Basic (const Particle<NReal, NInt>& p,
     //
     // "cells" should be dimensioned: IntVect cells[D_TERM(2,+2,+4)]
     //
-    const Real len[BL_SPACEDIM] = { D_DECL((p.m_rdata.pos[0]-plo[0])/dx[0] + Real(0.5),
+    const Real len[BL_SPACEDIM] = { BL_D_DECL((p.m_rdata.pos[0]-plo[0])/dx[0] + Real(0.5),
                                            (p.m_rdata.pos[1]-plo[1])/dx[1] + Real(0.5),
                                            (p.m_rdata.pos[2]-plo[2])/dx[2] + Real(0.5)) };
 
-    const IntVect cell(D_DECL(floor(len[0]), floor(len[1]), floor(len[2])));
+    const IntVect cell(BL_D_DECL(floor(len[0]), floor(len[1]), floor(len[2])));
 
-    const Real frac[BL_SPACEDIM] = { D_DECL(len[0]-cell[0], len[1]-cell[1], len[2]-cell[2]) };
+    const Real frac[BL_SPACEDIM] = { BL_D_DECL(len[0]-cell[0], len[1]-cell[1], len[2]-cell[2]) };
 
     Particle<NReal, NInt>::CIC_Fracs(frac, fracs);
     Particle<NReal, NInt>::CIC_Cells(cell, cells);
@@ -187,17 +187,17 @@ Particle<NReal, NInt>::CIC_Cells_Fracs (const Particle<NReal, NInt>& p,
     //
     // The first element in fracs and cells is the lowest corner, the last is the highest.
     //
-    const Real hilen[BL_SPACEDIM] = { D_DECL((p.m_rdata.pos[0]-plo[0]+dx_part[0]/2)/dx_geom[0],
+    const Real hilen[BL_SPACEDIM] = { BL_D_DECL((p.m_rdata.pos[0]-plo[0]+dx_part[0]/2)/dx_geom[0],
                                              (p.m_rdata.pos[1]-plo[1]+dx_part[1]/2)/dx_geom[1],
                                              (p.m_rdata.pos[2]-plo[2]+dx_part[2]/2)/dx_geom[2]) };
 
-    const Real lolen[BL_SPACEDIM] = { D_DECL((p.m_rdata.pos[0]-plo[0]-dx_part[0]/2)/dx_geom[0],
+    const Real lolen[BL_SPACEDIM] = { BL_D_DECL((p.m_rdata.pos[0]-plo[0]-dx_part[0]/2)/dx_geom[0],
                                              (p.m_rdata.pos[1]-plo[1]-dx_part[1]/2)/dx_geom[1],
                                              (p.m_rdata.pos[2]-plo[2]-dx_part[2]/2)/dx_geom[2]) };
 
-    const IntVect hicell(D_DECL(floor(hilen[0]), floor(hilen[1]), floor(hilen[2])));
+    const IntVect hicell(BL_D_DECL(floor(hilen[0]), floor(hilen[1]), floor(hilen[2])));
     
-    const IntVect locell(D_DECL(floor(lolen[0]), floor(lolen[1]), floor(lolen[2])));
+    const IntVect locell(BL_D_DECL(floor(lolen[0]), floor(lolen[1]), floor(lolen[2])));
     
     const Real cell_density = D_TERM(dx_geom[0]/dx_part[0],*dx_geom[1]/dx_part[1],*dx_geom[2]/dx_part[2]);
     
@@ -460,7 +460,7 @@ Particle<NReal, NInt>::GetGravity (const FArrayBox&    gfab,
     BL_PROFILE("Particle<NReal, NInt>::GetGravity()");
     BL_ASSERT(grav != 0);
 
-    int idx[BL_SPACEDIM] = { D_DECL(0,1,2) };
+    int idx[BL_SPACEDIM] = { BL_D_DECL(0,1,2) };
 
     Particle<NReal, NInt>::Interp(p,geom,gfab,idx,grav,BL_SPACEDIM);
 }

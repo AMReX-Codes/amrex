@@ -33,11 +33,11 @@ ErrorRec::ErrorFunc::clone () const
 ErrorRec::ErrorFunc::~ErrorFunc () {}
 
 void
-ErrorRec::ErrorFunc::operator () (int* tag, D_DECL(const int&tlo0,const int&tlo1,const int&tlo2), 
-                                  D_DECL(const int&thi0,const int&thi1,const int&thi2), 
+ErrorRec::ErrorFunc::operator () (int* tag, BL_D_DECL(const int&tlo0,const int&tlo1,const int&tlo2), 
+                                  BL_D_DECL(const int&thi0,const int&thi1,const int&thi2), 
                                   const int* tagval, const int* clearval,
-                                  Real* data, D_DECL(const int&dlo0,const int&dlo1,const int&dlo2), 
-                                  D_DECL(const int&dhi0,const int&dhi1,const int&dhi2), 
+                                  Real* data, BL_D_DECL(const int&dlo0,const int&dlo1,const int&dlo2), 
+                                  BL_D_DECL(const int&dhi0,const int&dhi1,const int&dhi2), 
                                   const int* lo, const int * hi, const int* nvar,
                                   const int* domain_lo, const int* domain_hi,
                                   const Real* dx, const Real* xlo,
@@ -46,8 +46,8 @@ ErrorRec::ErrorFunc::operator () (int* tag, D_DECL(const int&tlo0,const int&tlo1
 {
     BL_ASSERT(m_func != 0);
 
-    m_func(tag,D_DECL(tlo0,tlo1,tlo2),D_DECL(thi0,thi1,thi2),
-           tagval,clearval,data,D_DECL(dlo0,dlo1,dlo2),D_DECL(dhi0,dhi1,dhi2),lo,hi,nvar,
+    m_func(tag,BL_D_DECL(tlo0,tlo1,tlo2),BL_D_DECL(thi0,thi1,thi2),
+           tagval,clearval,data,BL_D_DECL(dlo0,dlo1,dlo2),BL_D_DECL(dhi0,dhi1,dhi2),lo,hi,nvar,
            domain_lo,domain_hi,dx,xlo,prob_lo,time,level);
 }
 
@@ -89,19 +89,19 @@ ErrorRec::ErrorFunc2::~ErrorFunc2 () {}
 
 
 void
-ErrorRec::ErrorFunc2::operator () (int* tag, D_DECL(const int&tlo0,const int&tlo1,const int&tlo2), 
-                                   D_DECL(const int&thi0,const int&thi1,const int&thi2), 
+ErrorRec::ErrorFunc2::operator () (int* tag, BL_D_DECL(const int&tlo0,const int&tlo1,const int&tlo2), 
+                                   BL_D_DECL(const int&thi0,const int&thi1,const int&thi2), 
                                    const int* tagval, const int* clearval,
-                                   Real* data, D_DECL(const int&dlo0,const int&dlo1,const int&dlo2), 
-                                   D_DECL(const int&dhi0,const int&dhi1,const int&dhi2), 
+                                   Real* data, BL_D_DECL(const int&dlo0,const int&dlo1,const int&dlo2), 
+                                   BL_D_DECL(const int&dhi0,const int&dhi1,const int&dhi2), 
                                    const int* lo, const int * hi, const int* nvar,
                                    const int* domain_lo, const int* domain_hi,
                                    const Real* dx, const int* level, const Real* avg) const
 {
     BL_ASSERT(m_func != 0);
 
-    m_func(tag,D_DECL(tlo0,tlo1,tlo2),D_DECL(thi0,thi1,thi2),
-           tagval,clearval,data,D_DECL(dlo0,dlo1,dlo2),D_DECL(dhi0,dhi1,dhi2),lo,hi,nvar,
+    m_func(tag,BL_D_DECL(tlo0,tlo1,tlo2),BL_D_DECL(thi0,thi1,thi2),
+           tagval,clearval,data,BL_D_DECL(dlo0,dlo1,dlo2),BL_D_DECL(dhi0,dhi1,dhi2),lo,hi,nvar,
            domain_lo,domain_hi,dx,level,avg);
 }
 

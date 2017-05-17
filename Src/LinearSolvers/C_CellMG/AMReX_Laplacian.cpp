@@ -24,7 +24,7 @@ Laplacian::norm (int nm, int level, const bool local)
 }
 
 void
-Laplacian::compFlux (D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflux),
+Laplacian::compFlux (BL_D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflux),
 		     MultiFab& in, const BC_Mode& bc_mode,
 		     int src_comp, int dst_comp, int num_comp, int bnd_comp)
 {

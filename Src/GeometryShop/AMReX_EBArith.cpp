@@ -1494,13 +1494,13 @@ namespace amrex
         else
         {
           dropOrder = true;
-          volSten[isten] = VolIndex(IntVect(D_DECL(0,0,0)),0);
+          volSten[isten] = VolIndex(IntVect(BL_D_DECL(0,0,0)),0);
           // break;
         }
       }
       else
       {
-        volSten[isten] = VolIndex(IntVect(D_DECL(0,0,0)),0);
+        volSten[isten] = VolIndex(IntVect(BL_D_DECL(0,0,0)),0);
         dropOrder = true;
         // break;
       }

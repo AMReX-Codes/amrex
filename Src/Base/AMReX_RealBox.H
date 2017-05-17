@@ -30,8 +30,8 @@ public:
              const Real* dx,
              const Real* base);
     //! Explicit dimension specific constructors.
-    RealBox (D_DECL(Real x0, Real y0, Real z0),
-             D_DECL(Real x1, Real y1, Real z1));
+    RealBox (BL_D_DECL(Real x0, Real y0, Real z0),
+             BL_D_DECL(Real x1, Real y1, Real z1));
     //! Set epsilon used by contains() function when comparing floating point numbers.
     static void setEpsilon (Real epsilon) { eps = epsilon; }
     //! Returns epsilon.

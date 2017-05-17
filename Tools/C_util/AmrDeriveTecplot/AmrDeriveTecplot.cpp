@@ -29,7 +29,7 @@ struct Node
 {
     enum typeEnum{INIT=0, COVERED=1, VALID=2};
     Node()
-        : level(-1), iv(IntVect(D_DECL(-1,-1,-1))), grid(-1), type(Node::INIT) {}
+        : level(-1), iv(IntVect(BL_D_DECL(-1,-1,-1))), grid(-1), type(Node::INIT) {}
     Node(const IntVect& idx, int lev, int grd, typeEnum typ = INIT)
       : level(lev), iv(idx), grid(grd), type(typ) {}
     inline bool operator< (const Node& rhs) const
@@ -202,7 +202,7 @@ class FABdata
 public:
     FABdata(int i, int n)
         {fab.resize(Box(IntVect::TheZeroVector(),
-                        IntVect(D_DECL(i-1,0,0))),n);}
+                        IntVect(BL_D_DECL(i-1,0,0))),n);}
     Real& operator[](int i) {return fab.dataPtr()[i];}
     Real* dataPtr (int N = 0) {return fab.dataPtr(N);}
     const Real* dataPtr (int N = 0) const {return fab.dataPtr(N);}
@@ -375,8 +375,8 @@ main (int   argc,
         pp.getarr("box",barr,0,nx);
         int d=BL_SPACEDIM;
         BL_ASSERT(barr.size()==2*d);
-        subbox=Box(IntVect(D_DECL(barr[0],barr[1],barr[2])),
-                   IntVect(D_DECL(barr[d],barr[d+1],barr[d+2]))) & amrData.ProbDomain()[0];
+        subbox=Box(IntVect(BL_D_DECL(barr[0],barr[1],barr[2])),
+                   IntVect(BL_D_DECL(barr[d],barr[d+1],barr[d+2]))) & amrData.ProbDomain()[0];
 
     } else {
 

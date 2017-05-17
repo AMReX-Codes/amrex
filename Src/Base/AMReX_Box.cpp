@@ -27,7 +27,7 @@ Box::Box (const IntVect& small,
           const int*     vec_len)
     :
     smallend(small),
-    bigend(D_DECL(small[0]+vec_len[0]-1,
+    bigend(BL_D_DECL(small[0]+vec_len[0]-1,
                   small[1]+vec_len[1]-1,
                   small[2]+vec_len[2]-1))
 {}
@@ -292,14 +292,14 @@ refine (const Box& b,
                 int        ref_ratio)
 {
     Box result = b;
-    result.refine(IntVect(D_DECL(ref_ratio,ref_ratio,ref_ratio)));
+    result.refine(IntVect(BL_D_DECL(ref_ratio,ref_ratio,ref_ratio)));
     return result;
 }
 
 Box&
 Box::refine (int ref_ratio)
 {
-    return this->refine(IntVect(D_DECL(ref_ratio,ref_ratio,ref_ratio)));
+    return this->refine(IntVect(BL_D_DECL(ref_ratio,ref_ratio,ref_ratio)));
 }
 
 Box
@@ -430,14 +430,14 @@ coarsen (const Box& b,
                  int        ref_ratio)
 {
     Box result = b;
-    result.coarsen(IntVect(D_DECL(ref_ratio,ref_ratio,ref_ratio)));
+    result.coarsen(IntVect(BL_D_DECL(ref_ratio,ref_ratio,ref_ratio)));
     return result;
 }
 
 Box&
 Box::coarsen (int ref_ratio)
 {
-    return this->coarsen(IntVect(D_DECL(ref_ratio,ref_ratio,ref_ratio)));
+    return this->coarsen(IntVect(BL_D_DECL(ref_ratio,ref_ratio,ref_ratio)));
 }
 
 Box

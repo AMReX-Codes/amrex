@@ -42,7 +42,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromAscii
 
     resizeData();
 
-    IntVect lNrep(D_DECL(1,1,1));
+    IntVect lNrep(BL_D_DECL(1,1,1));
 
     if (Nrep != 0)
         lNrep = *Nrep;
@@ -150,7 +150,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromAscii
             how_many++;
             how_many_read++;
 
-            const Real DomSize[BL_SPACEDIM] = { D_DECL((geom.ProbHi(0)-geom.ProbLo(0))/lNrep[0],
+            const Real DomSize[BL_SPACEDIM] = { BL_D_DECL((geom.ProbHi(0)-geom.ProbLo(0))/lNrep[0],
                                                        (geom.ProbHi(1)-geom.ProbLo(1))/lNrep[1],
                                                        (geom.ProbHi(2)-geom.ProbLo(2))/lNrep[2]) };
             int rep[BL_SPACEDIM];
@@ -785,7 +785,7 @@ InitRandom (long                    icount,
     const Real      strttime = ParallelDescriptor::second();
     const Geometry& geom     = Geom(0);
 
-    Real r, x, len[BL_SPACEDIM] = { D_DECL(geom.ProbLength(0),
+    Real r, x, len[BL_SPACEDIM] = { BL_D_DECL(geom.ProbLength(0),
                                            geom.ProbLength(1),
                                            geom.ProbLength(2)) };
 

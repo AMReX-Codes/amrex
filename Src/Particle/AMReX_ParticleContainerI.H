@@ -5,7 +5,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::do_tiling = f
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 IntVect
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::tile_size   { D_DECL(1024000,8,8) };
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::tile_size   { BL_D_DECL(1024000,8,8) };
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
@@ -542,7 +542,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::MoveRandom (i
     const Real FRAC = 0.25;
     auto&       pmap              = m_particles[lev];
     const Real* dx                = Geom(lev).CellSize();
-    const Real  dist[BL_SPACEDIM] = { D_DECL(FRAC*dx[0], FRAC*dx[1], FRAC*dx[2]) };
+    const Real  dist[BL_SPACEDIM] = { BL_D_DECL(FRAC*dx[0], FRAC*dx[1], FRAC*dx[2]) };
 
     for (auto& kv : pmap) {
         auto& aos = kv.second.GetArrayOfStructs();
@@ -3951,7 +3951,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignDensity
         {
             const int     lev  = idata[0];
             const int     grd  = idata[1];
-            const IntVect cell (D_DECL(idata[2],idata[3],idata[4]));
+            const IntVect cell (BL_D_DECL(idata[2],idata[3],idata[4]));
 
             BL_ASSERT((*mf[lev]).DistributionMap()[grd] == MyProc);
 	    BL_ASSERT((*mf[lev])[grd].box().contains(cell));

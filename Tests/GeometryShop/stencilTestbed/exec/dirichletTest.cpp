@@ -216,7 +216,7 @@ applyStencilAllFortran(EBCellFAB                       & a_dst,
   BoxArray ba(a_domain);
   DistributionMapping dm(ba);
   MultiFab srcMF(ba,dm,1,1);
-  IntVect tilesize(D_DECL(10240,8,32));
+  IntVect tilesize(BL_D_DECL(10240,8,32));
 
   int num_tiles = srcMF.getTileArray(tilesize)->tileArray.size();
   std::vector<std::vector<int> > tileNodes(num_tiles);
@@ -274,7 +274,7 @@ applyStencilAllFortran(EBCellFAB                       & a_dst,
       {
         const IrregNode& node = a_nodes[tileNodes[tid][n]];
 	RealVect& normal = bndry_normals[n];
-        normal = RealVect(D_DECL(0,0,0));
+        normal = RealVect(BL_D_DECL(0,0,0));
         for (int idir=0; idir<SpaceDim; ++idir)
         {
           for (SideIterator sit; sit.ok(); ++sit)

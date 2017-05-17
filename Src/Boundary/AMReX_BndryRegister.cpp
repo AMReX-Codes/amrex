@@ -103,8 +103,8 @@ BndryBATransformer::BndryBATransformer (Orientation face, IndexType typ,
     BL_ASSERT(in_rad >  0 || out_rad >  0);
     BL_ASSERT(extent_rad >=0);
 
-    m_loshft = IntVect(D_DECL(-extent_rad,-extent_rad,-extent_rad));
-    m_hishft = IntVect(D_DECL( extent_rad, extent_rad, extent_rad));
+    m_loshft = IntVect(BL_D_DECL(-extent_rad,-extent_rad,-extent_rad));
+    m_hishft = IntVect(BL_D_DECL( extent_rad, extent_rad, extent_rad));
     m_hishft += m_nodal;
     if (m_lo_face) {
     	m_loshft[m_dir] = m_nodal[m_dir] - out_rad;
@@ -114,8 +114,8 @@ BndryBATransformer::BndryBATransformer (Orientation face, IndexType typ,
 	m_hishft[m_dir] = out_rad;
     }
 
-    m_doilo = IntVect(D_DECL(extent_rad, extent_rad, extent_rad));
-    m_doihi = IntVect(D_DECL(extent_rad, extent_rad, extent_rad));
+    m_doilo = IntVect(BL_D_DECL(extent_rad, extent_rad, extent_rad));
+    m_doihi = IntVect(BL_D_DECL(extent_rad, extent_rad, extent_rad));
     m_doihi += m_nodal;
     if (m_lo_face) {  // domain of influence in index space
 	m_doilo[m_dir] = std::max(0, out_rad - m_nodal[m_dir]);
