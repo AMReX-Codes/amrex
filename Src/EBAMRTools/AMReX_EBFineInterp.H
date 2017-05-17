@@ -52,13 +52,16 @@ namespace amrex
        If orderOfPolynomial = 0,  no first or second derivative stencils included
        If orderOfPolynomial = 1,  no second derivative stencils included
        This does not do slope limiting.   Second derivatives are as far as I go, for now.
+       Slow mode is slow.  Don't use it unless you are stepping through a debugger.
     */
     EBFineInterp(const EBLevelGrid   & a_eblgFine,
                  const EBLevelGrid   & a_eblgCoar,
                  const int           & a_nref,
                  const int           & a_ghostCellsInData,
-                 int a_orderOfPolynomial = 2)
+                 int a_orderOfPolynomial = 2,
+                 bool a_slowMode = false)
       {
+
         define(a_eblgFine, a_eblgCoar, a_nref, a_ghostCellsInData, a_orderOfPolynomial);
       }
 
@@ -68,12 +71,14 @@ namespace amrex
        If orderOfPolynomial = 0,  no first or second derivative stencils included
        If orderOfPolynomial = 1,  no second derivative stencils included
        This does not do slope limiting.
+       Slow mode is slow.  Don't use it unless you are stepping through a debugger.
     */
     void define(const EBLevelGrid   & a_eblgFine,
                 const EBLevelGrid   & a_eblgCoar,
                 const int           & a_nref,
                 const int           & a_ghostCellsInData,
-                int a_orderOfPolynomial = 2);
+                int a_orderOfPolynomial = 2,
+                bool a_slowMode = false);
 
     ///
     /**
@@ -125,6 +130,11 @@ namespace amrex
     int m_dataGhost;
     LayoutData<shared_ptr<AggStencil<EBCellFAB, EBCellFAB> > > m_stencil;
     int m_orderOfPolynomial;
+
+    //for slow mode, we are just debugging so do stuff pointwise
+    bool m_slowMode; //usually false
+    LayoutData<vector<VoFStencil> > m_slowStencils;//usually left undefined
+    LayoutData<vector<VolIndex  > >  m_slowVoFs;   //usually left undefined
   private:
     //disallowed for all the usual reasons
     EBFineInterp(const EBFineInterp& ebcin);

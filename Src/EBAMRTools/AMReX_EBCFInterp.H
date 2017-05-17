@@ -122,17 +122,17 @@ namespace  amrex
     EBLevelGrid m_eblgFine;
     EBLevelGrid m_eblgCoFi;
 
-    bool m_slowMode;
     int               m_refRat;
     int               m_dataGhost;
     int               m_fillGhost;
     bool              m_isDefined;
     LayoutData<std::shared_ptr< AggStencil<EBCellFAB, EBCellFAB> > > m_stencil;
-    //for slow mode, we are just debugging so do stuff pointwise
-    LayoutData<vector<VoFStencil> > m_slowStencils;
-    LayoutData<vector<VolIndex  > >  m_slowVoFs;
     int m_orderOfPolynomial;
     int m_buffGhost;
+    //for slow mode, we are just debugging so do stuff pointwise
+    bool m_slowMode; //usually false
+    LayoutData<vector<VoFStencil> > m_slowStencils;//usually left undefined
+    LayoutData<vector<VolIndex  > >  m_slowVoFs;   //usually left undefined
 
   private:
 

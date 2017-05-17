@@ -255,18 +255,18 @@ contains
     integer      :: coar_lo_box_lo(0:2),  coar_lo_box_hi(0:2)
     integer      :: coar_hi_box_lo(0:2),  coar_hi_box_hi(0:2)
     integer      :: coar_cen_box_lo(0:2),  coar_cen_box_hi(0:2)
-    integer      :: refboxlo(0:2),   refboxhi(0:2)
+    integer      :: refboxlo(0:2),   refboxhi(0:2), ib, jb, kb
 
     integer      :: iif,jjf,kkf,  ncomp, ivar, ivarf, ivarc
     integer      :: iic,jjc,kkc, refrat, coar_nco, fine_nco, isrc, idst
     integer      :: coar_lo(0:2),coar_hi(0:2)
     integer      :: fine_lo(0:2),fine_hi(0:2)
-    integer      :: fineboxlo(0:2), fineboxhi(0:2)
+
 
     real(c_real) :: fine(fine_lo(0):fine_hi(0),fine_lo(1):fine_hi(1),fine_lo(2):fine_hi(2), 0:fine_nco-1)
     real(c_real) :: coar(coar_lo(0):coar_hi(0),coar_lo(1):coar_hi(1),coar_lo(2):coar_hi(2), 0:coar_nco-1)
-    real(c_real) :: xdist, xslope,  dxf, dxc,  indf, indc, ib, jb, kb
-    real(c_real) :: xcoar, xfine
+    real(c_real) :: xdist, xslope,  dxf, dxc,  indf, indc
+    real(c_real) :: xcoar, xfine, finevalold, finevalnew, coarhi, coarlo
 
     dxf = one
     dxc = refrat
@@ -315,12 +315,14 @@ contains
                          xfine = dxf*(indf + half)
                          xdist = xfine - xcoar
 
-                         xslope = half*(&
-                              coar(iic+ioff,jjc+joff,kkc+koff, ivarc)- &
-                              coar(iic-ioff,jjc-joff,kkc-koff, ivarc)) 
+                         coarhi = coar(iic+ioff,jjc+joff,kkc+koff, ivarc)
+                         coarlo = coar(iic-ioff,jjc-joff,kkc-koff, ivarc)
+                         xslope = (coarhi - coarlo)/(two*dxc)
+                         finevalold = fine(iif, jjf, kkf, ivarf)
 
 
-                         fine(iif, jjf, kkf, ivarf) = fine(iif, jjf, kkf, ivarf)  + xdist * xslope
+                         finevalnew = finevalold  + xdist * xslope
+                         fine(iif, jjf, kkf, ivarf) = finevalnew
 
                       enddo
                    enddo
@@ -332,9 +334,9 @@ contains
        !now use one-sided diff for lo and hi
        if(has_hi .eq. 1) then
 
-          do kkc = coar_cen_box_lo(2),  coar_cen_box_hi(2)
-             do jjc = coar_cen_box_lo(1),  coar_cen_box_hi(1)
-                do iic = coar_cen_box_lo(0),  coar_cen_box_hi(0)
+          do kkc = coar_hi_box_lo(2),  coar_hi_box_hi(2)
+             do jjc = coar_hi_box_lo(1),  coar_hi_box_hi(1)
+                do iic = coar_hi_box_lo(0),  coar_hi_box_hi(0)
 
                    do kb = refboxlo(2), refboxhi(2)
                       do jb = refboxlo(1), refboxhi(1)
@@ -359,11 +361,10 @@ contains
                             xfine = dxf*(indf + half)
                             xdist = xfine - xcoar
 
-                            xslope = (&
-                                 coar(iic     ,jjc     ,kkc     , ivarc)- &
-                                 coar(iic-ioff,jjc-joff,kkc-koff, ivarc)) 
+                            coarhi = coar(iic     ,jjc     ,kkc     , ivarc)
+                            coarlo = coar(iic-ioff,jjc-joff,kkc-koff, ivarc)
 
-
+                            xslope = (coarhi - coarlo)/dxc
                             fine(iif, jjf, kkf, ivarf) = fine(iif, jjf, kkf, ivarf)  + xdist * xslope
 
                          enddo
@@ -376,9 +377,9 @@ contains
 
        if(has_lo .eq. 1) then
 
-          do kkc = coar_cen_box_lo(2),  coar_cen_box_hi(2)
-             do jjc = coar_cen_box_lo(1),  coar_cen_box_hi(1)
-                do iic = coar_cen_box_lo(0),  coar_cen_box_hi(0)
+          do kkc = coar_lo_box_lo(2),  coar_lo_box_hi(2)
+             do jjc = coar_lo_box_lo(1),  coar_lo_box_hi(1)
+                do iic = coar_lo_box_lo(0),  coar_lo_box_hi(0)
 
                    do kb = refboxlo(2), refboxhi(2)
                       do jb = refboxlo(1), refboxhi(1)
@@ -402,11 +403,10 @@ contains
                             xcoar = dxc*(indc + half)
                             xfine = dxf*(indf + half)
                             xdist = xfine - xcoar
+                            coarhi = coar(iic+ioff,jjc+joff,kkc+koff, ivarc)
+                            coarlo = coar(iic     ,jjc     ,kkc     , ivarc)
 
-                            xslope = (&
-                                 coar(iic+ioff,jjc+joff,kkc+koff, ivarc)- &
-                                 coar(iic     ,jjc     ,kkc     , ivarc)) 
-
+                            xslope = (coarhi - coarlo)/dxc
 
                             fine(iif, jjf, kkf, ivarf) = fine(iif, jjf, kkf, ivarf)  + xdist * xslope
 

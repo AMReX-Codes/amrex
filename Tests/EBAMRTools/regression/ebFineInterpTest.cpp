@@ -30,16 +30,14 @@ namespace amrex
                  const Real& a_dx)
   {
     Real retval;
-    Real probHi;
     ParmParse pp;
-    pp.get("domain_length",probHi);
     RealVect xloc;
     for (int idir = 0; idir < SpaceDim; idir++)
     {
       xloc[idir] = a_dx*(Real(a_iv[idir]) + 0.5);
     }
-    Real x = xloc[0]/probHi;
-    Real y = xloc[1]/probHi;
+    Real x = xloc[0];
+    Real y = xloc[1];
 
     retval = (1.0 + x*x + y*y + x*x*x + y*y*y);
     //  retval = 2.*xloc[0];
@@ -51,12 +49,13 @@ namespace amrex
   int getError(FabArray<EBCellFAB> & a_error,
                const EBLevelGrid& a_eblgFine,
                const EBLevelGrid& a_eblgCoar,
+               Real dxFine, Real dxCoar,
                int a_interpOrder)
   {
     int nghost = 0;
     int nvar = 1;
-    Real dxFine = 1.0/a_eblgFine.getDomain().size()[0];
-    Real dxCoar = 1.0/a_eblgCoar.getDomain().size()[0];
+
+
     EBCellFactory factFine(a_eblgFine.getEBISL());
     EBCellFactory factCoar(a_eblgCoar.getEBISL());
     FabArray<EBCellFAB> phiFineExac(a_eblgFine.getDBL(), a_eblgFine.getDM(), nvar, nghost, MFInfo(), factFine);
@@ -94,20 +93,31 @@ namespace amrex
     }
     int nref = 2;
     //interpolate phiC onto phiF
-    EBFineInterp aveOp(a_eblgFine, a_eblgCoar, nref, nghost, a_interpOrder);
+    bool slowMode = true;
+    EBFineInterp aveOp(a_eblgFine, a_eblgCoar, nref, nghost, a_interpOrder, slowMode);
     aveOp.interpolate(phiFineCalc, phiCoarExac, 0, 0, nvar);
 
     //error = phiF - phiFExact
     for(MFIter mfi(a_eblgFine.getDBL(), a_eblgFine.getDM()); mfi.isValid(); ++mfi)
     {
       Box valid = a_eblgFine.getDBL()[mfi];
-      Box grownBox = grow(valid, nghost);
-      grownBox &= a_eblgFine.getDomain();
-      IntVectSet ivsBox(grownBox);
+      IntVectSet ivsBox(valid);
+      const EBCellFAB& calcFAB = phiFineCalc[mfi];
+      const EBCellFAB& exacFAB = phiFineExac[mfi];
       for (VoFIterator vofit(ivsBox, a_eblgFine.getEBISL()[mfi].getEBGraph()); vofit.ok(); ++vofit)
       {
         const VolIndex& vof = vofit();
-        Real diff = std::abs(phiFineCalc[mfi](vof,0)-phiFineExac[mfi](vof,0));
+//begin debug    
+//        int ideb = 0;
+//        const IntVect& iv = vof.gridIndex();
+//        if((iv[0] == 30)  && (iv[1] == 24) )
+//        {
+//          ideb = 1;
+//        }
+//end debug
+        Real calcval = calcFAB(vof, 0);
+        Real exacval = exacFAB(vof, 0);
+        Real diff = std::abs(calcval - exacval);
         a_error[mfi](vof, 0) = diff;
       }
     }
@@ -207,6 +217,10 @@ namespace amrex
     paramsFine = paramsMedi;
     paramsFine.refine(2);
 
+    Real dxFine = paramsFine.coarsestDx;
+    Real dxMedi = paramsMedi.coarsestDx;
+    Real dxCoar = paramsCoar.coarsestDx;
+
     //and defines it using a geometryservice
     int eekflag = makeGeometry(paramsFine);
     if(eekflag != 0) return eekflag;
@@ -231,11 +245,12 @@ namespace amrex
     FabArray<EBCellFAB> errorMedi(eblgMedi.getDBL(), eblgMedi.getDM(), nvar, nghost, MFInfo(), factMedi);
 
     int maxOrder = 1; //got to get this to 2
-    for( int iorder = 0; iorder <= maxOrder; iorder++)
+
+    for( int iorder = 1; iorder <= maxOrder; iorder++)
     {
       amrex::Print() << "testing interpolation with order = " << iorder << endl;
-      getError(errorFine, eblgFine, eblgMedi, iorder);
-      getError(errorMedi, eblgMedi, eblgCoar, iorder);
+      getError(errorFine, eblgFine, eblgMedi, dxFine, dxMedi, iorder);
+      getError(errorMedi, eblgMedi, eblgCoar, dxMedi, dxCoar, iorder);
 
       EBLevelDataOps::compareError(errorFine, errorMedi, eblgFine, eblgMedi);
     }
