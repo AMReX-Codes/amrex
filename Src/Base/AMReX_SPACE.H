@@ -53,7 +53,7 @@ namespace amrex
 #if BL_SPACEDIM==1
 
 /*
-  The D_EXPR(a,b,c) macro expands to a comma expression that will
+  The BL_D_EXPR(a,b,c) macro expands to a comma expression that will
   evaluate SpaceDim of its arguments, counting from the left; i.e.
   BL_SPACEDIM==1 implies only a is evaluated, BL_SPACEDIM==2
   implies both a and b, and BL_SPACEDIM==3 implies all three
@@ -63,7 +63,7 @@ namespace amrex
            
   For example:
 
-     D_EXPR(vect[0] *= s, vect[1] *= s, vect[2] *= s);
+     BL_D_EXPR(vect[0] *= s, vect[1] *= s, vect[2] *= s);
 
   More explicitly, this macro evaluates to one of
 
@@ -75,7 +75,7 @@ namespace amrex
 
   corresponding to BL_SPACEDIM values of 1, 2, or 3.
 */
-#  define D_EXPR(a,b,c) ((void)((a),0))
+#  define BL_D_EXPR(a,b,c) ((void)((a),0))
 
 /*
   The BL_D_DECL(a,b,c) macro expands to a comma-separated list of
@@ -145,12 +145,12 @@ namespace amrex
 */
 #  define BL_D_PICK(a,b,c) a
 #elif BL_SPACEDIM==2
-#  define D_EXPR(a,b,c) ((void)((a),(b),0))
+#  define BL_D_EXPR(a,b,c) ((void)((a),(b),0))
 #  define BL_D_DECL(a,b,c) a,b
 #  define BL_D_TERM(a,b,c) a b
 #  define BL_D_PICK(a,b,c) b
 #elif BL_SPACEDIM==3
-#  define D_EXPR(a,b,c) ((void)((a),(b),(c),0))
+#  define BL_D_EXPR(a,b,c) ((void)((a),(b),(c),0))
 #  define BL_D_DECL(a,b,c) a,b,c
 #  define BL_D_TERM(a,b,c) a b c
 #  define BL_D_PICK(a,b,c) c
@@ -159,14 +159,17 @@ namespace amrex
 /* for backward compatibility */
 #if (BL_SPACEDIM == 1)
 #  define D_DECL(a,b,c) a
+#  define D_EXPR(a,b,c) ((void)((a),0))
 #  define D_PICK(a,b,c) a
 #  define D_TERM(a,b,c) a
 #elif (BL_SPACEDIM == 2)
 #  define D_DECL(a,b,c) a,b
+#  define D_EXPR(a,b,c) ((void)((a),(b),0))
 #  define D_PICK(a,b,c) b
 #  define D_TERM(a,b,c) a b
 #elif (BL_SPACEDIM == 3)
 #  define D_DECL(a,b,c) a,b,c
+#  define D_EXPR(a,b,c) ((void)((a),(b),(c),0))
 #  define D_PICK(a,b,c) c
 #  define D_TERM(a,b,c) a b c
 #endif

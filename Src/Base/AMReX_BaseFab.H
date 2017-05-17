@@ -1942,7 +1942,7 @@ BaseFab<T>::minIndex (const Box& subbox,
         if (thisR < _min_val)
         {
             _min_val = thisR;
-            D_EXPR(_min_loc[0] = iR,
+            BL_D_EXPR(_min_loc[0] = iR,
                    _min_loc[1] = jR,
                    _min_loc[2] = kR);
         }
@@ -1970,7 +1970,7 @@ BaseFab<T>::maxIndex (const Box& subbox,
         if (thisR > _max_val)
         {
             _max_val = thisR;
-            D_EXPR(_max_loc[0] = iR,
+            BL_D_EXPR(_max_loc[0] = iR,
                    _max_loc[1] = jR,
                    _max_loc[2] = kR);
         }

@@ -480,11 +480,11 @@ operator>> (std::istream& is,
     int coord;
     is.ignore(BL_IGNORE_MAX, '(') >> coord;
     c.c_sys = (CoordSys::CoordType) coord;
-    D_EXPR(is.ignore(BL_IGNORE_MAX, '(') >> c.offset[0],
+    BL_D_EXPR(is.ignore(BL_IGNORE_MAX, '(') >> c.offset[0],
            is.ignore(BL_IGNORE_MAX, ',') >> c.offset[1],
            is.ignore(BL_IGNORE_MAX, ',') >> c.offset[2]);
     is.ignore(BL_IGNORE_MAX, ')');
-    D_EXPR(is.ignore(BL_IGNORE_MAX, '(') >> c.dx[0],
+    BL_D_EXPR(is.ignore(BL_IGNORE_MAX, '(') >> c.dx[0],
            is.ignore(BL_IGNORE_MAX, ',') >> c.dx[1],
            is.ignore(BL_IGNORE_MAX, ',') >> c.dx[2]);
     is.ignore(BL_IGNORE_MAX, ')');

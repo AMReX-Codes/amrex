@@ -530,14 +530,14 @@ inline const Real& RealVect::operator[] (int i) const
 
 inline RealVect::RealVect (const RealVect &iv)
 {
-  D_EXPR(vect[0]=iv.vect[0], vect[1]=iv.vect[1], vect[2]=iv.vect[2]);
+  BL_D_EXPR(vect[0]=iv.vect[0], vect[1]=iv.vect[1], vect[2]=iv.vect[2]);
 }
 
 inline
 RealVect&
 RealVect::operator-= (Real s)
 {
-  D_EXPR(vect[0] -= s, vect[1] -= s, vect[2] -= s);
+  BL_D_EXPR(vect[0] -= s, vect[1] -= s, vect[2] -= s);
   return *this;
 }
 
@@ -545,7 +545,7 @@ inline
 RealVect&
 RealVect::operator-= (const RealVect& p)
 {
-  D_EXPR(vect[0] -= p[0], vect[1] -= p[1], vect[2] -= p[2]);
+  BL_D_EXPR(vect[0] -= p[0], vect[1] -= p[1], vect[2] -= p[2]);
 
   return *this;
 }
@@ -568,7 +568,7 @@ inline
 RealVect&
 RealVect::scale (Real s)
 {
-  D_EXPR(vect[0] *= s, vect[1] *= s, vect[2] *= s);
+  BL_D_EXPR(vect[0] *= s, vect[1] *= s, vect[2] *= s);
   return *this;
 }
 
@@ -649,7 +649,7 @@ inline
 RealVect&
 RealVect::min (const RealVect& p)
 {
-  D_EXPR(vect[0] = std::min(vect[0], p.vect[0]),
+  BL_D_EXPR(vect[0] = std::min(vect[0], p.vect[0]),
          vect[1] = std::min(vect[1], p.vect[1]),
          vect[2] = std::min(vect[2], p.vect[2]));
 
@@ -660,7 +660,7 @@ inline
 RealVect&
 RealVect::max (const RealVect& p)
 {
-  D_EXPR(vect[0] = std::max(vect[0], p.vect[0]),
+  BL_D_EXPR(vect[0] = std::max(vect[0], p.vect[0]),
          vect[1] = std::max(vect[1], p.vect[1]),
          vect[2] = std::max(vect[2], p.vect[2]));
   return *this;

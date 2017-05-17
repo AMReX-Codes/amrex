@@ -783,14 +783,14 @@ BoxCommHelper::BoxCommHelper (const Box& bx, int* p_)
 	p = &v[0];
     }
 
-    D_EXPR(p[0]               = bx.smallend[0],
+    BL_D_EXPR(p[0]               = bx.smallend[0],
 	   p[1]               = bx.smallend[1],
 	   p[2]               = bx.smallend[2]);
-    D_EXPR(p[0+BL_SPACEDIM]   = bx.bigend[0],
+    BL_D_EXPR(p[0+BL_SPACEDIM]   = bx.bigend[0],
 	   p[1+BL_SPACEDIM]   = bx.bigend[1],
 	   p[2+BL_SPACEDIM]   = bx.bigend[2]);
     const IntVect& typ = bx.btype.ixType();
-    D_EXPR(p[0+BL_SPACEDIM*2] = typ[0],
+    BL_D_EXPR(p[0+BL_SPACEDIM*2] = typ[0],
 	   p[1+BL_SPACEDIM*2] = typ[1],
 	   p[2+BL_SPACEDIM*2] = typ[2]);
 }
