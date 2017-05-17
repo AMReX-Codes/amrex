@@ -330,7 +330,5 @@ namespace amrex
                 }
             }
         }
-
-        amrex::Abort("xxxxx");
     }
 }
