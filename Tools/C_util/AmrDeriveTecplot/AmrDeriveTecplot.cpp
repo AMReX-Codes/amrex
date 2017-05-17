@@ -777,7 +777,7 @@ main (int   argc,
         if (connect_cc) {
             ivt.resize(1,iv);
         } else {
-            ivt.resize(D_PICK(1,4,8),iv);
+            ivt.resize(BL_D_PICK(1,4,8),iv);
             ivt[1] += amrex::BASISV(0);
             ivt[2] = ivt[1] + amrex::BASISV(1);
             ivt[3] += amrex::BASISV(1);
@@ -839,7 +839,7 @@ main (int   argc,
 #ifdef USE_TEC_BIN_IO
             INTEGER4 Debug = 0;
             INTEGER4 VIsDouble = 1;
-            INTEGER4 EltID = D_PICK(0,1,3);
+            INTEGER4 EltID = BL_D_PICK(0,1,3);
             TECINI((char*)"Pltfile data", (char*)vars.c_str(), (char*)outfile.c_str(), (char*)".", &Debug, &VIsDouble);
             INTEGER4 nPts = nNodesFINAL;
             TECZNE((char*)infile.c_str(), &nPts, &nElts, &EltID, (char*)block_or_point.c_str(), NULL);
@@ -861,7 +861,7 @@ main (int   argc,
             osf << endl << "ZONE T=\"" << infile << " time = " << buf
                 << "\", N=" << nNodesFINAL << ", E=" << nElts << ", F=" << "FEPOINT" << " ET="
                 //<< "\", N=" << nPts << ", E=" << nElts << ", F=" << block_or_point << " ET="
-                << D_PICK("POINT","QUADRILATERAL","BRICK") << endl;
+                << BL_D_PICK("POINT","QUADRILATERAL","BRICK") << endl;
             
             for (int i=0; i<nNodesFINAL; ++i)
             {
