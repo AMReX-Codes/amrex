@@ -15,30 +15,17 @@ using std::cerr;
 using std::endl;
 using std::strlen;
 
-#if ! (defined(BL_Linux) || defined(BL_Darwin) || defined(BL_AIX) || defined(BL_IRIX64) || defined(BL_CYGWIN_NT) || defined(BL_CRAYX1))
+#if ! (defined(BL_Linux) || defined(BL_Darwin) || defined(BL_IRIX64) || defined(BL_CYGWIN_NT) )
 #define BL_ALWAYS_FIX_DENORMALS
 #endif
 
 #ifdef BL_ALWAYS_FIX_DENORMALS
 #include <cfloat>
-#if defined(BL_CRAYX1)
-#  include <ieeefp.h>
-#endif
-#if defined(BL_T3E)
-#  include <fp.h>
-#  if (BL_USE_FLOAT)
-#    define DS_FP_CLASS fpclassify
-#  else
-#    define DS_FP_CLASS fpclassify
-#  endif
-#else
 #  if (BL_USE_FLOAT)
 #    define DS_FP_CLASS fp_classf
 #  else
 #    define DS_FP_CLASS fp_class
 #  endif
-#endif
-
 #endif
 
 #include <iostream>
@@ -1929,16 +1916,6 @@ bool AmrData::MinMax(const Box &onBox, const string &derived, int level,
       Real visMFMax(visMF[level][whichVisMF]->max(gpli.index(),
 		    whichVisMFComponent));
 #ifdef BL_ALWAYS_FIX_DENORMALS
-# if defined(BL_T3E)
-      int dsFpClassMin(DS_FP_CLASS(visMFMin));
-      if(dsFpClassMin == FP_SUBNORMAL) {
-	visMFMin = 0.0;
-      }
-      int dsFpClassMax(DS_FP_CLASS(visMFMax));
-      if(dsFpClassMax == FP_SUBNORMAL) {
-	visMFMax = 0.0;
-      }
-# else
       int dsFpClassMin(DS_FP_CLASS(visMFMin));
       if(dsFpClassMin == FP_POS_DENORM || dsFpClassMin == FP_NEG_DENORM) {
 	visMFMin = 0.0;
@@ -1947,7 +1924,6 @@ bool AmrData::MinMax(const Box &onBox, const string &derived, int level,
       if(dsFpClassMax == FP_POS_DENORM || dsFpClassMax == FP_NEG_DENORM) {
 	visMFMax = 0.0;
       }
-# endif
 #endif
       if(onBox.contains(gpli.validbox())) {
 	  dataMin = std::min(dataMin, visMFMin);
