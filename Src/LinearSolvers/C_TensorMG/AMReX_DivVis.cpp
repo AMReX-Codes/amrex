@@ -29,7 +29,7 @@ DivVis::DivVis (const BndryData& _bd,
 {
     Real _hh[BL_SPACEDIM];
 
-    D_TERM(_hh[0]=_h;, _hh[1]=_h;, _hh[2]=_h;);
+    AMREX_D_TERM(_hh[0]=_h;, _hh[1]=_h;, _hh[2]=_h;);
 
     initConstruct(_hh);
 }
@@ -299,7 +299,7 @@ DivVis::Fsmooth (MultiFab&       solnL,
 #endif
     const MultiFab& a  = aCoefficients(level);
 
-    D_TERM(const MultiFab& bX = bCoefficients(0,level);,
+    AMREX_D_TERM(const MultiFab& bX = bCoefficients(0,level);,
            const MultiFab& bY = bCoefficients(1,level);,
            const MultiFab& bZ = bCoefficients(2,level););
 
@@ -312,11 +312,11 @@ DivVis::Fsmooth (MultiFab&       solnL,
     {
 	const Box& vbx = solnLmfi.validbox();
 
-	D_TERM(const Mask& mw = mmw[solnLmfi];,
+	AMREX_D_TERM(const Mask& mw = mmw[solnLmfi];,
                const Mask& ms = mms[solnLmfi];,
                const Mask& mb = mmb[solnLmfi];);
 
-	D_TERM(const Mask& me = mme[solnLmfi];,
+	AMREX_D_TERM(const Mask& me = mme[solnLmfi];,
                const Mask& mn = mmn[solnLmfi];,
                const Mask& mt = mmt[solnLmfi];);
 
@@ -339,7 +339,7 @@ DivVis::Fsmooth (MultiFab&       solnL,
         const FArrayBox& tdbfab = tdb[solnLmfi];
 #endif
 
-        D_TERM(const FArrayBox& bxfab = bX[solnLmfi];,
+        AMREX_D_TERM(const FArrayBox& bxfab = bX[solnLmfi];,
                const FArrayBox& byfab = bY[solnLmfi];,
                const FArrayBox& bzfab = bZ[solnLmfi];);
 
@@ -405,7 +405,7 @@ DivVis::Fsmooth (MultiFab&       solnL,
 }
 
 void 
-DivVis::compFlux (D_DECL(MultiFab& xflux, 
+DivVis::compFlux (AMREX_D_DECL(MultiFab& xflux, 
                          MultiFab& yflux, 
                          MultiFab& zflux), 
                   MultiFab& x)
@@ -416,7 +416,7 @@ DivVis::compFlux (D_DECL(MultiFab& xflux,
     
     const MultiFab& a  = aCoefficients(level);
 
-    D_TERM(const MultiFab& bX = bCoefficients(0,level);,
+    AMREX_D_TERM(const MultiFab& bX = bCoefficients(0,level);,
            const MultiFab& bY = bCoefficients(1,level);,
            const MultiFab& bZ = bCoefficients(2,level););
 
@@ -452,11 +452,11 @@ DivVis::compFlux (D_DECL(MultiFab& xflux,
     {
 	const Box& vbx = xmfi.validbox();
 
-	D_TERM(const Mask& mw = mmw[xmfi];,
+	AMREX_D_TERM(const Mask& mw = mmw[xmfi];,
                const Mask& ms = mms[xmfi];,
                const Mask& mb = mmb[xmfi];);
 
-	D_TERM(const Mask& me = mme[xmfi];,
+	AMREX_D_TERM(const Mask& me = mme[xmfi];,
                const Mask& mn = mmn[xmfi];,
                const Mask& mt = mmt[xmfi];);
 
@@ -472,11 +472,11 @@ DivVis::compFlux (D_DECL(MultiFab& xflux,
         const FArrayBox& tdbfab = tdb[xmfi];
 #endif
 
-        D_TERM(const FArrayBox& bxfab = bX[xmfi];,
+        AMREX_D_TERM(const FArrayBox& bxfab = bX[xmfi];,
                const FArrayBox& byfab = bY[xmfi];,
                const FArrayBox& bzfab = bZ[xmfi];);
 
-        D_TERM(FArrayBox& xfluxfab = xflux[xmfi];,
+        AMREX_D_TERM(FArrayBox& xfluxfab = xflux[xmfi];,
                FArrayBox& yfluxfab = yflux[xmfi];,
                FArrayBox& zfluxfab = zflux[xmfi];);
 
@@ -542,7 +542,7 @@ DivVis::Fapply (MultiFab&       y,
 {
     const MultiFab& a = aCoefficients(level);
 
-    D_TERM(const MultiFab& bX = bCoefficients(0,level);,
+    AMREX_D_TERM(const MultiFab& bX = bCoefficients(0,level);,
            const MultiFab& bY = bCoefficients(1,level);,
            const MultiFab& bZ = bCoefficients(2,level););
 
@@ -578,11 +578,11 @@ DivVis::Fapply (MultiFab&       y,
     {
 	const Box& vbx = xmfi.validbox();
 
-	D_TERM(const Mask& mw = mmw[xmfi];,
+	AMREX_D_TERM(const Mask& mw = mmw[xmfi];,
                const Mask& ms = mms[xmfi];,
                const Mask& mb = mmb[xmfi];);
 
-	D_TERM(const Mask& me = mme[xmfi];,
+	AMREX_D_TERM(const Mask& me = mme[xmfi];,
                const Mask& mn = mmn[xmfi];,
                const Mask& mt = mmt[xmfi];);
 
@@ -599,7 +599,7 @@ DivVis::Fapply (MultiFab&       y,
         const FArrayBox& tdtfab = tdt[xmfi];
         const FArrayBox& tdbfab = tdb[xmfi];
 #endif
-        D_TERM(const FArrayBox& bxfab = bX[xmfi];,
+        AMREX_D_TERM(const FArrayBox& bxfab = bX[xmfi];,
                const FArrayBox& byfab = bY[xmfi];,
                const FArrayBox& bzfab = bZ[xmfi];);
 

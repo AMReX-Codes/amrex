@@ -468,7 +468,7 @@ BoxArray::CellEqual (const BoxArray& rhs) const
 BoxArray&
 BoxArray::maxSize (int block_size)
 {
-    return maxSize(IntVect(D_DECL(block_size,block_size,block_size)));
+    return maxSize(IntVect(AMREX_D_DECL(block_size,block_size,block_size)));
 }
 
 BoxArray&
@@ -486,7 +486,7 @@ BoxArray::maxSize (const IntVect& block_size)
 BoxArray&
 BoxArray::refine (int refinement_ratio)
 {
-    return refine(IntVect(D_DECL(refinement_ratio,refinement_ratio,refinement_ratio)));
+    return refine(IntVect(AMREX_D_DECL(refinement_ratio,refinement_ratio,refinement_ratio)));
 }
 
 BoxArray&
@@ -508,7 +508,7 @@ BoxArray::refine (const IntVect& iv)
 BoxArray&
 BoxArray::coarsen (int refinement_ratio)
 {
-    return coarsen(IntVect(D_DECL(refinement_ratio,refinement_ratio,refinement_ratio)));
+    return coarsen(IntVect(AMREX_D_DECL(refinement_ratio,refinement_ratio,refinement_ratio)));
 }
 
 BoxArray&
@@ -1261,8 +1261,7 @@ intersect (const BoxArray& ba,
 }
 
 BoxArray
-intersect (const BoxArray& lhs,
-           const BoxArray& rhs)
+intersect (const BoxArray& lhs, const BoxArray& rhs)
 {
     if (lhs.size() == 0 || rhs.size() == 0) return BoxArray();
     BoxList bl(lhs[0].ixType());
@@ -1272,6 +1271,18 @@ intersect (const BoxArray& lhs,
         bl.join(ba.boxList());
     }
     return BoxArray(bl);
+}
+
+BoxList
+intersect (const BoxArray& ba, const BoxList& bl)
+{
+    BoxList newbl(bl.ixType());
+    for (const Box& bx : bl)
+    {
+        const BoxArray& newba = amrex::intersect(ba, bx);
+        newbl.join(newba.boxList());
+    }
+    return newbl;
 }
 
 BoxArray

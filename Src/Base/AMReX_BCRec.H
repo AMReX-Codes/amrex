@@ -17,12 +17,12 @@ public:
     /**
     * \brief The default constructor, which does NOT set valid boundary types.
     */
-    BCRec () {}
+    BCRec ();
     /**
     * \brief The constructor.
     */
-    BCRec (D_DECL(int loX, int loY, int loZ),
-           D_DECL(int hiX, int hiY, int hiZ));
+    BCRec (AMREX_D_DECL(int loX, int loY, int loZ),
+           AMREX_D_DECL(int hiX, int hiY, int hiZ));
     /**
     * \brief Another constructor.
     */

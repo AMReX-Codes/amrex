@@ -212,6 +212,14 @@ BoxList::intersect (const Box& b)
     return *this;
 }
 
+BoxList&
+BoxList::intersect (const BoxList& bl)
+{
+    BL_ASSERT(ixType() == bl.ixType());
+    *this = amrex::intersect(BoxArray{*this}, bl);
+    return *this;
+}
+
 BoxList
 complementIn (const Box&     b,
               const BoxList& bl)
@@ -536,7 +544,7 @@ BoxList::maxSize (const IntVect& chunk)
 BoxList&
 BoxList::maxSize (int chunk)
 {
-    return maxSize(IntVect(D_DECL(chunk,chunk,chunk)));
+    return maxSize(IntVect(AMREX_D_DECL(chunk,chunk,chunk)));
 }
 
 BoxList&

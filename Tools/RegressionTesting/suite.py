@@ -108,6 +108,9 @@ class Test(object):
 
         self.customRunCmd = None
 
+        self.compareParticles = False
+        self.particleTypes = ""
+
     def __lt__(self, other):
         return self.value() < other.value()
 
@@ -627,31 +630,48 @@ class Suite(object):
 
     def build_tools(self, test_list):
 
-        self.compare_tool_dir = "{}/Tools/Postprocessing/F_Src/".format(
-            os.path.normpath(self.amrex_dir))
-
-        os.chdir(self.compare_tool_dir)
-
-        self.make_realclean(repo="AMReX")
-
-        tools = ["fcompare", "fboxinfo", "plt_compare_diff_grids"]
-        if any([t for t in test_list if t.dim == 2]): tools.append("fsnapshot2d")
-        if any([t for t in test_list if t.dim == 3]): tools.append("fsnapshot3d")
-
-        self.tools = {}
-
         self.log.skip()
         self.log.bold("building tools...")
         self.log.indent()
 
-        for t in tools:
+        self.tools = {}
+
+        self.f_compare_tool_dir = "{}/Tools/Postprocessing/F_Src/".format(
+            os.path.normpath(self.amrex_dir))
+
+        os.chdir(self.f_compare_tool_dir)
+
+        self.make_realclean(repo="AMReX")
+
+        ftools = ["fcompare", "fboxinfo", "plt_compare_diff_grids"]
+        if any([t for t in test_list if t.dim == 2]): ftools.append("fsnapshot2d")
+        if any([t for t in test_list if t.dim == 3]): ftools.append("fsnapshot3d")
+
+        for t in ftools:
             self.log.log("building {}...".format(t))
             comp_string, rc = self.build_f(target="programs={}".format(t), opts="NDEBUG=t MPI= ")
             if not rc == 0:
                 self.log.fail("unable to continue, tools not able to be built")
 
-            exe = test_util.get_recent_filename(self.compare_tool_dir, t, ".exe")
-            self.tools[t] = "{}/{}".format(self.compare_tool_dir, exe)
+            exe = test_util.get_recent_filename(self.f_compare_tool_dir, t, ".exe")
+            self.tools[t] = "{}/{}".format(self.f_compare_tool_dir, exe)
+
+        self.c_compare_tool_dir = "{}/Tools/Postprocessing/C_Src/".format(
+            os.path.normpath(self.amrex_dir))
+
+        os.chdir(self.c_compare_tool_dir)
+
+        ctools = ["particle_compare"]
+
+        for t in ctools:
+            self.log.log("building {}...".format(t))
+            comp_string, rc = self.build_c(opts="NDEBUG=t MPI= ")
+            if not rc == 0:
+                self.log.fail("unable to continue, tools not able to be built")
+
+            exe = test_util.get_recent_filename(self.c_compare_tool_dir, t, ".exe")
+
+            self.tools[t] = "{}/{}".format(self.c_compare_tool_dir, exe)
 
         self.log.outdent()
 
