@@ -266,7 +266,7 @@ AmrMesh::ChopGrids (int lev, BoxArray& ba, int target_size) const
     for (int cnt = 1; cnt <= 4; cnt *= 2)
     {
 	const int ChunkSize = max_grid_size[lev]/cnt;
-	IntVect chunk(D_DECL(ChunkSize,ChunkSize,ChunkSize));
+	IntVect chunk(AMREX_D_DECL(ChunkSize,ChunkSize,ChunkSize));
 
 	for (int j = BL_SPACEDIM-1; j >= 0 ; j--)
 	{
@@ -448,7 +448,7 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Array<BoxArray>& n
             blFcomp.simplify();
             bl_tagged.clear();
 
-            const IntVect& iv = IntVect(D_DECL(nerr/ref_ratio[levf][0],
+            const IntVect& iv = IntVect(AMREX_D_DECL(nerr/ref_ratio[levf][0],
                                                nerr/ref_ratio[levf][1],
                                                nerr/ref_ratio[levf][2]));
             blFcomp.accrete(iv);
@@ -716,8 +716,8 @@ AmrMesh::ProjPeriodic (BoxList& blout, const Geometry& geom)
     int niend,njend,nkend;
     nist = njst = nkst = 0;
     niend = njend = nkend = 0;
-    D_TERM( nist , =njst , =nkst ) = -1;
-    D_TERM( niend , =njend , =nkend ) = +1;
+    AMREX_D_TERM( nist , =njst , =nkst ) = -1;
+    AMREX_D_TERM( niend , =njend , =nkend ) = +1;
 
     int ri,rj,rk;
     for (ri = nist; ri <= niend; ri++)
