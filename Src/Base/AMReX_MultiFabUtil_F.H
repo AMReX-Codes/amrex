@@ -16,14 +16,14 @@ extern "C"
 BL_FORT_PROC_DECL(BL_AVG_EG_TO_CC, bl_avg_eg_to_cc)
   (const int* lo, const int* hi,
    BL_FORT_FAB_ARG(cc),
-   D_DECL(const BL_FORT_FAB_ARG(Ex),
+   AMREX_D_DECL(const BL_FORT_FAB_ARG(Ex),
 	  const BL_FORT_FAB_ARG(Ey),
 	  const BL_FORT_FAB_ARG(Ez)));
 
 BL_FORT_PROC_DECL(BL_AVG_FC_TO_CC, bl_avg_fc_to_cc)
   (const int* lo, const int* hi,
    BL_FORT_FAB_ARG(cc),
-   D_DECL(const BL_FORT_FAB_ARG(fx),
+   AMREX_D_DECL(const BL_FORT_FAB_ARG(fx),
 	  const BL_FORT_FAB_ARG(fy),
 	  const BL_FORT_FAB_ARG(fz)),
    const amrex_real* dx, const amrex_real* problo, const int& coord_type);
@@ -36,7 +36,7 @@ BL_FORT_PROC_DECL(BL_AVG_CC_TO_FC, bl_avg_cc_to_fc)
 #if (BL_SPACEDIM == 3)
    const int* zlo, const int* zhi,
 #endif
-   D_DECL(BL_FORT_FAB_ARG(fx),
+   AMREX_D_DECL(BL_FORT_FAB_ARG(fx),
 	  BL_FORT_FAB_ARG(fy),
 	  BL_FORT_FAB_ARG(fz)),
    const BL_FORT_FAB_ARG(cc),

@@ -107,10 +107,10 @@ MacOperator::setCoefficients (MultiFab*   area,
     //
     const int n_grow = 0;
 
-    D_TERM(MultiFab bxcoef(area[0].boxArray(),dm,area[0].nComp(),n_grow);,
+    AMREX_D_TERM(MultiFab bxcoef(area[0].boxArray(),dm,area[0].nComp(),n_grow);,
            MultiFab bycoef(area[1].boxArray(),dm,area[1].nComp(),n_grow);,
            MultiFab bzcoef(area[2].boxArray(),dm,area[2].nComp(),n_grow););
-    D_TERM(bxcoef.setVal(0);,
+    AMREX_D_TERM(bxcoef.setVal(0);,
            bycoef.setVal(0);,
            bzcoef.setVal(0););
 
@@ -160,7 +160,7 @@ MacOperator::setCoefficients (MultiFab*   area,
 #endif
     }
   
-    D_TERM(bCoefficients(bxcoef,0);,
+    AMREX_D_TERM(bCoefficients(bxcoef,0);,
            bCoefficients(bycoef,1);,
            bCoefficients(bzcoef,2););
 }
@@ -237,7 +237,7 @@ MacOperator::defRHS (MultiFab* area,
 
 void
 mac_vel_update (int              init,
-                D_DECL(FArrayBox& ux,
+                AMREX_D_DECL(FArrayBox& ux,
                        FArrayBox& uy,
                        FArrayBox& uz),
                 const FArrayBox& phi,
@@ -311,7 +311,7 @@ MacOperator::velUpdate (MultiFab*       Vel,
         const Box& grd = Phimfi.validbox();
 
         mac_vel_update(0, 
-                       D_DECL(Vel[0][Phimfi],Vel[1][Phimfi],Vel[2][Phimfi]),
+                       AMREX_D_DECL(Vel[0][Phimfi],Vel[1][Phimfi],Vel[2][Phimfi]),
                        Phi[Phimfi],
                        &(Rho[Phimfi]), rho_comp,  
                        grd, 0, Phimfi.index(), dx, scale );

@@ -232,7 +232,7 @@ public:
     //! Return the length of the Box.
     IntVect size () const
     {
-        return IntVect(D_DECL(bigend[0]-smallend[0] + 1,
+        return IntVect(AMREX_D_DECL(bigend[0]-smallend[0] + 1,
                               bigend[1]-smallend[1] + 1,
                               bigend[2]-smallend[2] + 1));
     }
@@ -558,7 +558,7 @@ public:
     bool isSquare() const;
 
     bool coarsenable(int refrat) const {
-        return coarsenable(IntVect(D_DECL(refrat,refrat,refrat)));
+        return coarsenable(IntVect(AMREX_D_DECL(refrat,refrat,refrat)));
     }
 
     bool coarsenable(const IntVect& refrat) const

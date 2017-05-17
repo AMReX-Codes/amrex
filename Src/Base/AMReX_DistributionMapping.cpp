@@ -1020,7 +1020,7 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
 
         const SFCToken& token = tokens.back();
 
-        D_TERM(maxijk = std::max(maxijk, token.m_idx[0]);,
+        AMREX_D_TERM(maxijk = std::max(maxijk, token.m_idx[0]);,
                maxijk = std::max(maxijk, token.m_idx[1]);,
                maxijk = std::max(maxijk, token.m_idx[2]););
     }
@@ -1231,7 +1231,7 @@ DistributionMapping::RRSFCDoIt (const BoxArray&          boxes,
 
         const SFCToken& token = tokens.back();
 
-        D_TERM(maxijk = std::max(maxijk, token.m_idx[0]);,
+        AMREX_D_TERM(maxijk = std::max(maxijk, token.m_idx[0]);,
                maxijk = std::max(maxijk, token.m_idx[1]);,
                maxijk = std::max(maxijk, token.m_idx[2]););
     }
@@ -1400,7 +1400,7 @@ DistributionMapping::PFCProcessorMapDoIt (const BoxArray&          boxes,
 	const Box& bx = boxes[i];
         tokens.push_back(PFCToken(i, bx.smallEnd(), wgts[i]));
         const PFCToken &token = tokens.back();
-        D_TERM(maxijk = std::max(maxijk, token.m_idx[0]);,
+        AMREX_D_TERM(maxijk = std::max(maxijk, token.m_idx[0]);,
                maxijk = std::max(maxijk, token.m_idx[1]);,
                maxijk = std::max(maxijk, token.m_idx[2]););
     }
@@ -2197,7 +2197,7 @@ DistributionMapping::InitProximityMap(bool makeMap, bool reinit)
           tFabTokens.push_back(SFCToken(i++, iv, 1.0));
           const SFCToken &token = tFabTokens.back();
 
-          D_TERM(maxijk = std::max(maxijk, token.m_idx[0]);,
+          AMREX_D_TERM(maxijk = std::max(maxijk, token.m_idx[0]);,
                  maxijk = std::max(maxijk, token.m_idx[1]);,
                  maxijk = std::max(maxijk, token.m_idx[2]););
       }

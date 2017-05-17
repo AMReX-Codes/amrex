@@ -109,8 +109,8 @@ void main_main ()
     BoxArray ba;
     Geometry geom;
     {
-        IntVect dom_lo(IntVect(D_DECL(0,0,0)));
-        IntVect dom_hi(IntVect(D_DECL(n_cell-1, n_cell-1, n_cell-1)));
+        IntVect dom_lo(IntVect(AMREX_D_DECL(0,0,0)));
+        IntVect dom_hi(IntVect(AMREX_D_DECL(n_cell-1, n_cell-1, n_cell-1)));
         Box domain(dom_lo, dom_hi);
 
         // Initialize the boxarray "ba" from the single box "bx"

@@ -58,8 +58,8 @@ int main(int argc, char* argv[])
 	pp.get("n_cell", n_cell);
 	pp.get("max_grid_size", max_grid_size);
 
-	Box domain(IntVect(D_DECL(       0,       0,       0)),
-		   IntVect(D_DECL(n_cell-1,n_cell-1,n_cell-1)));
+	Box domain(IntVect(AMREX_D_DECL(       0,       0,       0)),
+		   IntVect(AMREX_D_DECL(n_cell-1,n_cell-1,n_cell-1)));
 
 	ba.define(domain);
 	ba.maxSize(max_grid_size);
