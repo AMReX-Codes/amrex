@@ -28,7 +28,9 @@
 #define BL_FORT_FAB_ARG(A) amrex_real* A##_fab, ARLIM_P(A##_lo), ARLIM_P(A##_hi)
 #define BL_FORT_IFAB_ARG(A) int* A##_fab, ARLIM_P(A##_lo), ARLIM_P(A##_hi)
 #define BL_FORT_FAB_ARG_3D(A) amrex_real* A##_fab, const int* A##_lo, const int* A##_hi
+#define BL_FORT_FAB_ARG_ANYD(A) amrex_real* A##_fab, const int* A##_lo, const int* A##_hi
 #define BL_FORT_IFAB_ARG_3D(A) int* A##_fab, const int* A##_lo, const int* A##_hi
+#define BL_FORT_IFAB_ARG_ANYD(A) int* A##_fab, const int* A##_lo, const int* A##_hi
 
 #endif
 

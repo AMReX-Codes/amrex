@@ -169,6 +169,44 @@ subroutine bl_avgdown_faces (lo, hi, &
 end subroutine bl_avgdown_faces
 
 ! ***************************************************************************************
+! subroutine bl_avgdown_edges
+! ***************************************************************************************
+
+subroutine bl_avgdown_edges (lo, hi, &
+     f, f_l1, f_h1, &
+     c, c_l1, c_h1, &
+     ratio,idir,nc)
+
+  use amrex_fort_module, only : amrex_real
+  implicit none
+  integer          :: lo(1),hi(1)
+  integer          :: f_l1, f_h1
+  integer          :: c_l1, c_h1
+  integer          :: ratio(1), idir, nc
+  real(amrex_real) :: f(f_l1:f_h1,nc)
+  real(amrex_real) :: c(c_l1:c_h1,nc)
+
+  ! Local variables
+  integer i,n,facx,iref
+  real(amrex_real) :: facInv
+
+  facx = ratio(1)
+
+  facInv = 1.d0 / facx
+
+  do n = 1, nc
+     do i = lo(1), hi(1)
+        c(i,n) = 0._amrex_real
+        do iref = 0, facx-1
+           c(i,n) = c(i,n) + f(facx*i+iref,n)
+        end do
+        c(i,n) = c(i,n) * facInv
+     end do
+  end do
+
+end subroutine bl_avgdown_edges
+
+! ***************************************************************************************
 ! subroutine bl_avgdown - THIS VERSION DOES NOT USE VOLUME WEIGHTING
 ! ***************************************************************************************
 

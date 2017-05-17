@@ -367,7 +367,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::RedefineDummy
         m_dummy_mf[lev].reset(new MultiFab(ParticleBoxArray(lev),
                                            ParticleDistributionMap(lev),
                                            1,0,MFInfo().SetAlloc(false)));
-    }
+    };
 }  
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
@@ -1141,10 +1141,12 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Redistribute 
           }
           m_particles.resize(theEffectiveFinestLevel+1);
           m_dummy_mf.resize(theEffectiveFinestLevel+1);
-          for (int lev = 0; lev < theEffectiveFinestLevel+1; ++lev) {
-              RedefineDummyMF(lev);
-          }
       }
+
+  // It is important to do this even if we don't have more levels because we may have changed the 
+  //    grids at this level in a regrid.
+  for (int lev = 0; lev < theEffectiveFinestLevel+1; ++lev) 
+      RedefineDummyMF(lev);
   
   if (lev_max == -1)
       lev_max = theEffectiveFinestLevel;
@@ -1530,6 +1532,10 @@ ParticleContainer<NStructReal,NStructInt,NArrayReal, NArrayInt>::AddParticlesAtL
                               << level+1 << '\n';
                 }
             m_particles.resize(level + 1);
+            m_dummy_mf.resize(level+1);
+            for (int lev = 0; lev < level+1; ++lev) {
+                RedefineDummyMF(lev);
+            }
         }    
 
     ParticleLocData pld;
@@ -1739,6 +1745,19 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             ParallelDescriptor::Barrier();
 	  }
 	
+        // Write out the header for each particle
+        if (gotsome and ParallelDescriptor::IOProcessor()) {
+            std::string HeaderFileName = LevelDir;
+            HeaderFileName += "/Particle_H";
+            std::ofstream ParticleHeader(HeaderFileName);
+            
+            ParticleBoxArray(lev).writeOn(ParticleHeader);
+            ParticleHeader << "\n";
+
+            ParticleHeader.flush();
+            ParticleHeader.close();
+        }
+        
 	MFInfo info;
 	info.SetAlloc(false);
 	MultiFab state(ParticleBoxArray(lev),
@@ -2011,8 +2030,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::WriteParticle
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Restart (const std::string& dir,
-					const std::string& file,
-					bool is_checkpoint)
+                                                                            const std::string& file,
+                                                                            bool is_checkpoint)
 {
   BL_PROFILE("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Restart()");
   BL_ASSERT(!dir.empty());
@@ -4513,11 +4532,11 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::NodalDepositi
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::moveKick (MultiFab&       acceleration,
-					 int             lev,
-					 Real            dt,
-					 Real            a_new,
-					 Real            a_half, 
-					 int             start_comp_for_accel)
+                                                                             int             lev,
+                                                                             Real            dt,
+                                                                             Real            a_new,
+                                                                             Real            a_half, 
+                                                                             int             start_comp_for_accel)
 {
     BL_PROFILE("ParticleContainer::moveKick()");
     BL_ASSERT(NStructReal >= BL_SPACEDIM+1);
