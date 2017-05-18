@@ -375,6 +375,6 @@ ifneq ("$(wildcard $(AMREX_HOME)/Tools/GNUMake/Make.local)","")
 endif
 
 ifeq ($(USE_CVODE),TRUE)
-  $(info Loading $(AMREX_HOME)/Tools/GNUMake/Make.cvode...)
-  include        $(AMREX_HOME)/Tools/GNUMake/Make.cvode
+  $(info Loading $(AMREX_HOME)/Tools/GNUMake/packages/Make.cvode...)
+  include        $(AMREX_HOME)/Tools/GNUMake/packages/Make.cvode
 endif
