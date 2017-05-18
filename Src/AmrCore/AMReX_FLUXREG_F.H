@@ -24,26 +24,32 @@
 
 #include <AMReX_ArrayLim.H>
 
+#include <AMReX_REAL.H>
+
+#ifdef __cplusplus
 extern "C"
 {
-    void FORT_FRFINEADD (amrex::Real* reg,       ARLIM_P(rlo), ARLIM_P(rhi),
-                         const amrex::Real* flx, ARLIM_P(flo), ARLIM_P(fhi),
+#endif
+    void FORT_FRFINEADD (amrex_real* reg,       ARLIM_P(rlo), ARLIM_P(rhi),
+                         const amrex_real* flx, ARLIM_P(flo), ARLIM_P(fhi),
                          const int* numcomp, const int* dir,
-                         const int* ratio, const amrex::Real* mult);
+                         const int* ratio, const amrex_real* mult);
 
-    void FORT_FRFAADD (amrex::Real* reg,        ARLIM_P(rlo), ARLIM_P(rhi),
-                       const amrex::Real* flx,  ARLIM_P(flo), ARLIM_P(fhi),
-                       const amrex::Real* area, ARLIM_P(alo), ARLIM_P(ahi),
+    void FORT_FRFAADD (amrex_real* reg,        ARLIM_P(rlo), ARLIM_P(rhi),
+                       const amrex_real* flx,  ARLIM_P(flo), ARLIM_P(fhi),
+                       const amrex_real* area, ARLIM_P(alo), ARLIM_P(ahi),
                        const int* numcomp, const int* dir,
-                       const int* ratio, const amrex::Real* mult);
+                       const int* ratio, const amrex_real* mult);
 
     void FORT_FRREFLUX (const int* lo, const int* hi,
-			      amrex::Real* s, const int* slo, const int*shi,
-			const amrex::Real* f, const int* flo, const int*fhi,
-			const amrex::Real* v, const int* vlo, const int*vhi,
-			const int* n, const amrex::Real* mult, 
+			      amrex_real* s, const int* slo, const int*shi,
+			const amrex_real* f, const int* flo, const int*fhi,
+			const amrex_real* v, const int* vlo, const int*vhi,
+			const int* n, const amrex_real* mult, 
 			const int* dir, const int* islo);
+#ifdef __cplusplus
 }
+#endif
 #endif
 
 #endif

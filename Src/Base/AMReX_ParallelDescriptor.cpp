@@ -1833,27 +1833,6 @@ ParallelDescriptor::Waitsome (Array<MPI_Request>& reqs,
                               Array<MPI_Status>&  status)
 {
     BL_PROFILE_S("ParallelDescriptor::Waitsome()");
-#ifdef JEFF_TEST
-    std::vector<MPI_Request> rq;
-    for (int i = 0; i < reqs.size(); i++)
-        if (reqs[i] != MPI_REQUEST_NULL)
-            rq.push_back(reqs[i]);
-    std::vector<MPI_Status> rst(rq.size());
-
-    BL_COMM_PROFILE_WAITSOME(BLProfiler::Waitall, reqs, completed, indx, status, true);
-    BL_MPI_REQUIRE( MPI_Waitall(rq.size(), &rq[0], &rst[0]) );
-    BL_COMM_PROFILE_WAITSOME(BLProfiler::Waitall, reqs, completed, indx, status, false);
-    completed = rq.size();
-    int c = 0;
-    for ( int i = 0; i < reqs.size(); ++i )
-        if (reqs[i] != MPI_REQUEST_NULL)
-    {
-	reqs[i] = rq[c];
-	status[i] = rst[c];
-	indx[c] = i;
-	c++;
-    }
-#else
     BL_COMM_PROFILE_WAITSOME(BLProfiler::Waitsome, reqs, completed, indx, status, true);
     BL_MPI_REQUIRE( MPI_Waitsome(reqs.size(),
                                  reqs.dataPtr(),
@@ -1861,7 +1840,6 @@ ParallelDescriptor::Waitsome (Array<MPI_Request>& reqs,
                                  indx.dataPtr(),
                                  status.dataPtr()));
     BL_COMM_PROFILE_WAITSOME(BLProfiler::Waitsome, reqs, completed, indx, status, false);
-#endif
 }
 
 void

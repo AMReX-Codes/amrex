@@ -440,7 +440,7 @@ FluxRegister::Reflux (MultiFab&       mf,
     
     MultiFab volume(mf.boxArray(), mf.DistributionMap(), 1, mf.nGrow());
     
-    volume.setVal(D_TERM(dx[0],*dx[1],*dx[2]), 0, 1, mf.nGrow());
+    volume.setVal(AMREX_D_TERM(dx[0],*dx[1],*dx[2]), 0, 1, mf.nGrow());
 
     Reflux(mf,volume,scale,scomp,dcomp,ncomp,geom);
 }

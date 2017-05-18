@@ -2,6 +2,7 @@
 #include <AMReX_ParmParse.H>
 #include <AMReX_Array.H>
 #include <AMReX_REAL.H>
+#include <AMReX_Print.H>
 
 using namespace amrex;
 
@@ -39,11 +40,11 @@ extern "C"
 	*v = b;
     }
 
-    void amrex_parmparse_get_string (ParmParse* pp, const char* name, char* v, int* len)
+    void amrex_parmparse_get_string (ParmParse* pp, const char* name, char* v, int len)
     {
-      std::string b;
-      pp->get(name, b);
-      std::strncpy(v, b.c_str(), *len);
+        std::string b;
+        pp->get(name, b);
+        std::strncpy(v, b.c_str(), len);
     }
 
     void amrex_parmparse_get_intarr (ParmParse* pp, const char* name, int v[], int len)
@@ -64,6 +65,17 @@ extern "C"
 	}
     }
 
+    void amrex_parmparse_get_stringarr (ParmParse* pp, const char* name, char* v, int len, int n)
+    {
+        std::vector<std::string> b;
+        pp->getarr(name, b);
+        BL_ASSERT(n == b.size());
+        for (int i = 0; i < n; ++i) {
+            std::strncpy(v, b[i].c_str(), len);
+            v += len;
+        }
+    }
+
     void amrex_parmparse_query_int (ParmParse* pp, const char* name, int* v)
     {
 	pp->query(name, *v);
@@ -81,10 +93,10 @@ extern "C"
 	*v = b;
     }
 
-    void amrex_parmparse_query_string (ParmParse* pp, const char* name, char* v, int* len)
+    void amrex_parmparse_query_string (ParmParse* pp, const char* name, char* v, int len)
     {
       std::string b;
       pp->query(name, b);
-      std::strncpy(v, b.c_str(), *len);
+      std::strncpy(v, b.c_str(), len);
     }
 }

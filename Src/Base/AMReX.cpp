@@ -315,7 +315,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi_
 #endif
 
 #ifdef _OPENMP
-    static_assert(_OPENMP >= 201107, "OpenMP >= 3.1 is required.");
+//    static_assert(_OPENMP >= 201107, "OpenMP >= 3.1 is required.");
     amrex::Print() << "OMP initialized with "
 		   << omp_get_max_threads()
 		   << " OMP threads\n";

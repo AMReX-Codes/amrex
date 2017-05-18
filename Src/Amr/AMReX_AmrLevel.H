@@ -284,6 +284,10 @@ public:
     static const DescriptorList& get_desc_lst () { return desc_lst; }
     //! Returns list of derived variables.
     static DeriveList& get_derive_lst ();
+    //! Returns whether or not we want a post-timestep regrid.
+    int postStepRegrid () { return post_step_regrid; }
+    //! Sets a new value for the post-timestep regrid trigger.
+    void setPostStepRegrid (int new_val) { post_step_regrid = new_val; }
 
 #ifdef USE_SLABSTAT
     //! Returns list of slab stats.
@@ -384,6 +388,8 @@ protected:
 
     BoxArray              m_AreaNotToTag; //Area which shouldn't be tagged on this level.
     Box                   m_AreaToTag;    //Area which is allowed to be tagged on this level.
+
+    int                   post_step_regrid; // Whether or not to do a regrid after the timestep.
 
     bool                  levelDirectoryCreated;    // for checkpoints and plotfiles
 

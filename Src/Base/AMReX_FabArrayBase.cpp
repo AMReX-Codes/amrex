@@ -2,6 +2,7 @@
 #include <AMReX_FabArrayBase.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_Utility.H>
+#include <AMReX_Geometry.H>
 
 #ifdef BL_MEM_PROFILING
 #include <AMReX_MemProfiler.H>
@@ -21,8 +22,8 @@ IntVect FabArrayBase::mfiter_tile_size(1024000,1024000);
 #else
 IntVect FabArrayBase::mfiter_tile_size(1024000,8,8);
 #endif
-IntVect FabArrayBase::comm_tile_size(D_DECL(1024000, 8, 8));
-IntVect FabArrayBase::mfghostiter_tile_size(D_DECL(1024000, 8, 8));
+IntVect FabArrayBase::comm_tile_size(AMREX_D_DECL(1024000, 8, 8));
+IntVect FabArrayBase::mfghostiter_tile_size(AMREX_D_DECL(1024000, 8, 8));
 
 int FabArrayBase::nFabArrays(0);
 
@@ -30,11 +31,13 @@ FabArrayBase::TACache              FabArrayBase::m_TheTileArrayCache;
 FabArrayBase::FBCache              FabArrayBase::m_TheFBCache;
 FabArrayBase::CPCache              FabArrayBase::m_TheCPCache;
 FabArrayBase::FPinfoCache          FabArrayBase::m_TheFillPatchCache;
+FabArrayBase::CFinfoCache          FabArrayBase::m_TheCrseFineCache;
 
 FabArrayBase::CacheStats           FabArrayBase::m_TAC_stats("TileArrayCache");
 FabArrayBase::CacheStats           FabArrayBase::m_FBC_stats("FBCache");
 FabArrayBase::CacheStats           FabArrayBase::m_CPC_stats("CopyCache");
 FabArrayBase::CacheStats           FabArrayBase::m_FPinfo_stats("FillPatchCache");
+FabArrayBase::CacheStats           FabArrayBase::m_CFinfo_stats("CrseFineCache");
 
 std::map<FabArrayBase::BDKey, int> FabArrayBase::m_BD_count;
 
@@ -115,6 +118,10 @@ FabArrayBase::Initialize ()
     MemProfiler::add(m_FPinfo_stats.name, std::function<MemProfiler::MemInfo()>
 		     ([] () -> MemProfiler::MemInfo {
 			 return {m_FPinfo_stats.bytes, m_FPinfo_stats.bytes_hwm};
+		     }));
+    MemProfiler::add(m_CFinfo_stats.name, std::function<MemProfiler::MemInfo()>
+		     ([] () -> MemProfiler::MemInfo {
+			 return {m_CFinfo_stats.bytes, m_CFinfo_stats.bytes_hwm};
 		     }));
 #endif
 }
@@ -1090,7 +1097,7 @@ FabArrayBase::FPinfo::FPinfo (const FabArrayBase& srcfa,
 	bx.grow(m_dstng);
 	bx &= m_dstdomain;
 
-	BoxList leftover = srcba.complement(bx);
+	BoxList leftover = srcba.complementIn(bx);
 
 	bool ismybox = (dstdm[i] == myproc);
 	for (BoxList::const_iterator bli = leftover.begin(); bli != leftover.end(); ++bli)
@@ -1216,6 +1223,122 @@ FabArrayBase::flushFPinfo (bool no_assertion)
     }
 }
 
+FabArrayBase::CFinfo::CFinfo (const FabArrayBase& finefa,
+                              const Geometry&     finegm,
+                              int                 ng)
+    : m_fine_bdk (finefa.getBDKey()),
+      m_ng       (ng),
+      m_nuse     (0)
+{
+    BL_PROFILE("CFinfo::CFinfo()");
+    
+    m_fine_domain = Domain(finegm, ng);
+
+    const BoxArray& fba = amrex::convert(finefa.boxArray(), IndexType::TheCellType());
+    const DistributionMapping& fdm = finefa.DistributionMap();
+
+    BoxList bl(fba.ixType());
+    Array<int> iprocs;
+    const int myproc = ParallelDescriptor::MyProc();
+
+    for (int i = 0, N = fba.size(); i < N; ++i)
+    {
+        Box bx = fba[i];
+        bx.grow(m_ng);
+        bx &= m_fine_domain;
+
+        const BoxList& noncovered = fba.complementIn(bx);
+        for (const Box& b : noncovered) {
+            bl.push_back(b);
+            iprocs.push_back(fdm[i]);
+            if (fdm[i] == myproc) {
+                fine_grid_idx.push_back(i);
+            }
+        }
+    }
+
+    if (!iprocs.empty())
+    {
+        ba_cfb.define(bl);
+        dm_cfb.define(iprocs);
+    }
+}
+
+Box
+FabArrayBase::CFinfo::Domain (const Geometry& geom, int ng)
+{
+    Box bx = geom.Domain();
+    for (int idim = 0; idim < BL_SPACEDIM; ++idim) {
+        if (Geometry::isPeriodic(idim)) {
+            bx.grow(idim, ng);
+        }
+    }
+    return bx;
+}
+
+long
+FabArrayBase::CFinfo::bytes () const
+{
+    long cnt = sizeof(FabArrayBase::CFinfo);
+    cnt += sizeof(Box) * ba_cfb.capacity();
+    cnt += sizeof(int) * (dm_cfb.capacity() + fine_grid_idx.capacity());
+    return cnt;
+}
+
+const FabArrayBase::CFinfo&
+FabArrayBase::TheCFinfo (const FabArrayBase& finefa,
+                         const Geometry&     finegm,
+                         int                 ng)
+{
+    BL_PROFILE("FabArrayBase::TheCFinfo()");
+
+    const BDKey& key = finefa.getBDKey();
+    auto er_it = m_TheCrseFineCache.equal_range(key);
+    for (auto it = er_it.first; it != er_it.second; ++it)
+    {
+        if (it->second->m_fine_bdk    == key                        &&
+            it->second->m_fine_domain == CFinfo::Domain(finegm, ng) &&
+            it->second->m_ng          == ng)
+        {
+            ++(it->second->m_nuse);
+            m_CFinfo_stats.recordUse();
+            return *(it->second);
+        }
+    }
+
+    // Have to build a new one
+    CFinfo* new_cfinfo = new CFinfo(finefa, finegm, ng);
+
+#ifdef BL_MEM_PROFILING
+    m_CFinfo_stats.bytes += new_fpc->bytes();
+    m_CFinfo_stats.bytes_hwm = std::max(m_CFinfo_stats.bytes_hwm, m_CFinfo_stats.bytes);
+#endif
+
+    new_cfinfo->m_nuse = 1;
+    m_CFinfo_stats.recordBuild();
+    m_CFinfo_stats.recordUse();
+
+    m_TheCrseFineCache.insert(er_it.second, CFinfoCache::value_type(key,new_cfinfo));
+
+    return *new_cfinfo;
+}
+
+void
+FabArrayBase::flushCFinfo (bool no_assertion)
+{
+    BL_ASSERT(no_assertion || getBDKey() == m_bdkey);
+    auto er_it = m_TheCrseFineCache.equal_range(m_bdkey);
+    for (auto it = er_it.first; it != er_it.second; ++it)
+    {
+#ifdef BL_MEM_PROFILING
+        m_CFinfo_stats.bytes -= it->second-bytes();
+#endif
+        m_CFinfo_stats.recordErase(it->second->m_nuse);
+        delete it->second;
+    }
+    m_TheCrseFineCache.erase(er_it.first, er_it.second);
+}
+
 void
 FabArrayBase::Finalize ()
 {
@@ -1230,6 +1353,7 @@ FabArrayBase::Finalize ()
 	m_FBC_stats.print();
 	m_CPC_stats.print();
 	m_FPinfo_stats.print();
+	m_CFinfo_stats.print();
     }
 
     initialized = false;
@@ -1244,10 +1368,8 @@ FabArrayBase::getTileArray (const IntVect& tilesize) const
 #pragma omp critical(gettilearray)
 #endif
     {
-      if(getBDKey() != m_bdkey)
-      {
-        amrex::Error("mismatch in getBDKey");
-      }
+        BL_ASSERT(getBDKey() == m_bdkey);
+
         const IntVect& crse_ratio = boxArray().crseRatio();
 	p = &FabArrayBase::m_TheTileArrayCache[m_bdkey][std::pair<IntVect,IntVect>(tilesize,crse_ratio)];
 	if (p->nuse == -1) {
@@ -1439,6 +1561,7 @@ FabArrayBase::clearThisBD (bool no_assertion)
 		// and DistributionMapping, erase it from caches.
 		flushTileArray(IntVect::TheZeroVector(), no_assertion);
 		flushFPinfo(no_assertion);
+		flushCFinfo(no_assertion);
 		flushFB(no_assertion);
 		flushCPC(no_assertion);
 	    }

@@ -69,7 +69,7 @@ public:
     //! Returns the overall size of the domain by multiplying the ProbLength's together
     static Real ProbSize ()
     {
-        return D_TERM(prob_domain.length(0),*prob_domain.length(1),*prob_domain.length(2));
+        return AMREX_D_TERM(prob_domain.length(0),*prob_domain.length(1),*prob_domain.length(2));
     }
     //! Returns length of problem domain in specified dimension.
     static Real ProbLength (int dir) { return prob_domain.length(dir); }
@@ -121,18 +121,18 @@ public:
     //! Is domain periodic in any direction?
     static bool isAnyPeriodic ()
     {
-        return D_TERM(isPeriodic(0),||isPeriodic(1),||isPeriodic(2));
+        return AMREX_D_TERM(isPeriodic(0),||isPeriodic(1),||isPeriodic(2));
     }
     //! Is domain periodic in all directions?
     static bool isAllPeriodic ()
     {
-        return D_TERM(isPeriodic(0),&&isPeriodic(1),&&isPeriodic(2));
+        return AMREX_D_TERM(isPeriodic(0),&&isPeriodic(1),&&isPeriodic(2));
     }
     //! What's period in specified direction?
     int period (int dir) const { BL_ASSERT(is_periodic[dir]); return domain.length(dir); }
 
     Periodicity periodicity () const {
-	return Periodicity(IntVect(D_DECL(domain.length(0) * is_periodic[0],
+	return Periodicity(IntVect(AMREX_D_DECL(domain.length(0) * is_periodic[0],
 					  domain.length(1) * is_periodic[1],
 					  domain.length(2) * is_periodic[2])));
     }

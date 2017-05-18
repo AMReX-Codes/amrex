@@ -129,67 +129,71 @@
 
 #include <AMReX_ArrayLim.H>
 
+#ifdef __cplusplus
 extern "C"
 {
+#endif
     void FORT_APPLYBC4(
         const int *flagden, const int *flagbc, const int *maxorder,
-        amrex::Real *phi, ARLIM_P(phi_lo), ARLIM_P(phi_hi),
+        amrex_real *phi, ARLIM_P(phi_lo), ARLIM_P(phi_hi),
         const int *cdr,
         const int *bct,
-        const amrex::Real *bcl,
-        const amrex::Real *bcval, ARLIM_P(bcval_lo), ARLIM_P(bcval_hi),
+        const amrex_real *bcl,
+        const amrex_real *bcval, ARLIM_P(bcval_lo), ARLIM_P(bcval_hi),
         const int *mask,   ARLIM_P(mask_lo),  ARLIM_P(mask_hi), 
-        amrex::Real *den,         ARLIM_P(den_lo),   ARLIM_P(den_hi),
+        amrex_real *den,         ARLIM_P(den_lo),   ARLIM_P(den_hi),
         const int *lo, const int *hi, const int *nc,
-        const amrex::Real *h
+        const amrex_real *h
         );
 
     void FORT_APPLYBC4_TOUCHUP(
-        amrex::Real *phi, ARLIM_P(phi_lo), ARLIM_P(phi_hi),
+        amrex_real *phi, ARLIM_P(phi_lo), ARLIM_P(phi_hi),
         const int *lo, const int *hi, const int *nc);
 
     void FORT_ADOTX(
-        amrex::Real *y      , ARLIM_P(y_lo), ARLIM_P(y_hi),
-        const amrex::Real *x, ARLIM_P(x_lo), ARLIM_P(x_hi),
-        const amrex::Real* alpha, const amrex::Real* beta,
-        const amrex::Real* a, ARLIM_P(a_lo), ARLIM_P(a_hi),
-        const amrex::Real* b, ARLIM_P(b_lo), ARLIM_P(b_hi),
+        amrex_real *y      , ARLIM_P(y_lo), ARLIM_P(y_hi),
+        const amrex_real *x, ARLIM_P(x_lo), ARLIM_P(x_hi),
+        const amrex_real* alpha, const amrex_real* beta,
+        const amrex_real* a, ARLIM_P(a_lo), ARLIM_P(a_hi),
+        const amrex_real* b, ARLIM_P(b_lo), ARLIM_P(b_hi),
         const int *lo, const int *hi, const int *nc,
-        const amrex::Real *h
+        const amrex_real *h
         );
     
     void FORT_FLUX(
-        const amrex::Real *x, ARLIM_P(x_lo), ARLIM_P(x_hi),
-        const amrex::Real* alpha, const amrex::Real* beta,
-        const amrex::Real* a, ARLIM_P(a_lo), ARLIM_P(a_hi),
-        const amrex::Real* b, ARLIM_P(b_lo), ARLIM_P(b_hi),
+        const amrex_real *x, ARLIM_P(x_lo), ARLIM_P(x_hi),
+        const amrex_real* alpha, const amrex_real* beta,
+        const amrex_real* a, ARLIM_P(a_lo), ARLIM_P(a_hi),
+        const amrex_real* b, ARLIM_P(b_lo), ARLIM_P(b_hi),
         const int *nc,
-        const amrex::Real *h,
+        const amrex_real *h,
         const int *xlo, const int *xhi,
-        const amrex::Real* xflux, ARLIM_P(xflux_lo), ARLIM_P(xflux_hi)
+        const amrex_real* xflux, ARLIM_P(xflux_lo), ARLIM_P(xflux_hi)
 #if (BL_SPACEDIM >= 2)
         ,const int *ylo, const int *yhi
-        ,const amrex::Real* yflux, ARLIM_P(yflux_lo), ARLIM_P(yflux_hi)
+        ,const amrex_real* yflux, ARLIM_P(yflux_lo), ARLIM_P(yflux_hi)
 #endif
 #if (BL_SPACEDIM == 3)
         ,const int *zlo, const int *zhi
-        ,const amrex::Real* zflux, ARLIM_P(zflux_lo), ARLIM_P(zflux_hi)
+        ,const amrex_real* zflux, ARLIM_P(zflux_lo), ARLIM_P(zflux_hi)
 #endif
         );
 
       void FORT_CA2CC(const int* lo, const int* hi,
-                      const amrex::Real* ca, ARLIM_P(ca_lo), ARLIM_P(ca_hi),
-                      amrex::Real*       cc, ARLIM_P(cc_lo), ARLIM_P(cc_hi),
+                      const amrex_real* ca, ARLIM_P(ca_lo), ARLIM_P(ca_hi),
+                      amrex_real*       cc, ARLIM_P(cc_lo), ARLIM_P(cc_hi),
                       const int* nc);
       void FORT_CC2CA(const int* lo, const int* hi,
-                      const amrex::Real* cc, ARLIM_P(cc_lo), ARLIM_P(cc_hi),
-                      amrex::Real*       ca, ARLIM_P(ca_lo), ARLIM_P(ca_hi),
+                      const amrex_real* cc, ARLIM_P(cc_lo), ARLIM_P(cc_hi),
+                      amrex_real*       ca, ARLIM_P(ca_lo), ARLIM_P(ca_hi),
                       const int* nc);
       void FORT_LO_CC2EC(const int* lo, const int* hi,
-                         const amrex::Real* cc, ARLIM_P(cc_lo), ARLIM_P(cc_hi),
-                         amrex::Real*       ca, ARLIM_P(ca_lo), ARLIM_P(ca_hi),
+                         const amrex_real* cc, ARLIM_P(cc_lo), ARLIM_P(cc_hi),
+                         amrex_real*       ca, ARLIM_P(ca_lo), ARLIM_P(ca_hi),
                          const int* nc, const int* dir, const int* isharm);
+#ifdef __cplusplus
 }
+#endif
 #endif
 
 #endif /*_AABBEC4_F_H_*/

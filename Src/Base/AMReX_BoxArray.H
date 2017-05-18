@@ -28,6 +28,9 @@ namespace amrex
     //! Make a BoxArray from the intersection of two BoxArrays.
     BoxArray intersect (const BoxArray& lhs, const BoxArray& rhs);
 
+    //! Make a BoxList from the intersection of BoxArray and BoxList.
+    BoxList intersect (const BoxArray& ba, const BoxList& bl);
+
     BoxArray convert (const BoxArray& ba, IndexType typ);
     BoxArray convert (const BoxArray& ba, const IntVect& typ);
 
@@ -53,6 +56,7 @@ struct BARef
     explicit BARef (size_t size);
     explicit BARef (const Box& b);
     explicit BARef (const BoxList& bl);
+    explicit BARef (BoxList&& bl) noexcept;
     explicit BARef (std::istream& is);
     BARef (const BARef& rhs);
     BARef& operator= (const BARef& rhs) = delete;
@@ -61,6 +65,7 @@ struct BARef
 
     void define (const Box& bx);
     void define (const BoxList& bl);
+    void define (BoxList&& bl) noexcept;
     void define (std::istream& is);
     //!
     void resize (long n);
@@ -208,6 +213,7 @@ public:
 
     //! Construct a BoxArray from a BoxList.
     explicit BoxArray (const BoxList& bl);
+    explicit BoxArray (BoxList&& bl) noexcept;
 
     BoxArray (const BoxArray& rhs, const BATransformer& trans);
 
@@ -232,6 +238,7 @@ public:
     * It is an error if the BoxArray has already been initialized.
     */
     void define (const BoxList& bl);
+    void define (BoxList&& bl) noexcept;
 
     //! Remove all Boxes from the BoxArray.
     void clear ();
@@ -414,7 +421,7 @@ public:
 			bool first_only, int ng) const;
 
     //! Return box - boxarray
-    BoxList complement (const Box& b) const;
+    BoxList complementIn (const Box& b) const;
 
     //! Clear out the internal hash table used by intersections.
     void clear_hash_bin () const;
