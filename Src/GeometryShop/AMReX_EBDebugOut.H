@@ -30,6 +30,9 @@ namespace amrex
   void dumpFAB(const FArrayBox* a_fabPtr);
 
   ///
+  void dumpDBL(const BoxArray* a_fabPtr);
+
+  ///
   void dumpBFR(const BaseFab<Real>* a_fabPtr);
 
   ///
