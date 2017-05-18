@@ -39,9 +39,9 @@ namespace amrex
     Real x = xloc[0];
     Real y = xloc[1];
 
-    retval = (1.0 + x*x + y*y + x*x*x + y*y*y);
+    //retval = (1.0 + x*x + y*y + x*x*x + y*y*y);
     //  retval = 2.*xloc[0];
-    //retval  = x;
+    retval  = x;
     //  retval = xloc[0]*xloc[0];
     return retval;
   }
@@ -244,9 +244,9 @@ namespace amrex
     FabArray<EBCellFAB> errorFine(eblgFine.getDBL(), eblgFine.getDM(), nvar, nghost, MFInfo(), factFine);
     FabArray<EBCellFAB> errorMedi(eblgMedi.getDBL(), eblgMedi.getDM(), nvar, nghost, MFInfo(), factMedi);
 
-    int maxOrder = 1; //got to get this to 2
+    int maxOrder = 2; //got to get this to 2
 
-    for( int iorder = 1; iorder <= maxOrder; iorder++)
+    for( int iorder = 0; iorder <= maxOrder; iorder++)
     {
       amrex::Print() << "testing interpolation with order = " << iorder << endl;
       getError(errorFine, eblgFine, eblgMedi, dxFine, dxMedi, iorder);

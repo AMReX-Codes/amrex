@@ -513,9 +513,14 @@ contains
                 zcoar = dxc*(kkc + half)
                 zfine = dxf*(kkf + half)
                 zdist = zfine - zcoar
-                zslope = half*(coar(iic  ,jjc  ,kkc+1, ivarc)-  coar(iic  ,jjc  ,kkc-1, ivarc))/(dxc*dxc) 
-                dzz = (coar(iic  ,jjc  ,kkc+1, ivarc) + coar(iic  ,jjc  ,kkc-1, ivarc)-  two*coar(iic,jjc,kkc,ivarc))/(two*dxc) 
+                zslope = half*(coar(iic  ,jjc  ,kkc+1, ivarc)-  coar(iic  ,jjc  ,kkc-1, ivarc))/(two*dxc) 
+                dzz = (coar(iic  ,jjc  ,kkc+1, ivarc) + coar(iic  ,jjc  ,kkc-1, ivarc)-  two*coar(iic,jjc,kkc,ivarc))/(dxc*dxc) 
 #endif
+!               begin debug
+                dxx = zero
+                dyy = zero
+                dxy = zero
+!               end debug                
                 fine(iif, jjf, kkf, ivarf) = coar(iic,jjc,kkc, ivarc) &
                      + xdist * xslope  &
                      + ydist * yslope  &
