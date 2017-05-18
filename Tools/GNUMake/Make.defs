@@ -303,6 +303,7 @@ fincludes	= $(includes)
 fmoddir         = $(objEXETempDir)
 
 CPPFLAGS	+= $(DEFINES)
+CPPFLAGS := $(addprefix $(CPP_PREFIX), $(CPPFLAGS))
 
 libraries	= $(LIBRARIES) $(XTRALIBS)
 

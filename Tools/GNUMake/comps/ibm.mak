@@ -49,7 +49,7 @@ endif
 
 CXXFLAGS += -std=c++1y
 CFLAGS   += -std=c99
-F90FLAGS += -qlanglvl=2008std
+F90FLAGS += -qlanglvl=extended
 
 FFLAGS   += -qmoddir=$(fmoddir) -I $(fmoddir)
 F90FLAGS += -qmoddir=$(fmoddir) -I $(fmoddir)
@@ -68,3 +68,4 @@ CFLAGS   += $(GENERIC_COMP_FLAGS)
 FFLAGS   += $(GENERIC_COMP_FLAGS)
 F90FLAGS += $(GENERIC_COMP_FLAGS)
 
+CPP_PREFIX = -WF,
