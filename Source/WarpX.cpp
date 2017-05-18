@@ -293,6 +293,19 @@ WarpX::LowerCorner(const Box& bx, int lev)
 #endif
 }
 
+std::array<Real,3>
+WarpX::UpperCorner(const Box& bx, int lev)
+{
+    const auto& gm = GetInstance().Geom(lev);
+    const RealBox grid_box{bx, gm.CellSize(), gm.ProbLo()};
+    const Real* xyzmax = grid_box.hi();
+#if (BL_SPACEDIM == 3)
+    return { xyzmax[0], xyzmax[1], xyzmax[2] };
+#elif (BL_SPACEDIM == 2)
+    return { xyzmax[0], 1.e100, xyzmax[1] };
+#endif
+}
+
 void
 WarpX::ComputeDivB (MultiFab& divB, int dcomp, const Array<const MultiFab*>& B, const Real* dx)
 {

@@ -362,15 +362,43 @@ LaserParticleContainer::Evolve (int lev,
                 const IntVect& ref_ratio = m_gdb->refRatio(lev);
                 const std::array<Real,3>& dx_fine = WarpX::CellSize(lev+1);
 
-//                pti.intersections(*jx, *jy, *jz, fab_bnd);
+                this->intersections(box, *jx_bnd, *jy_bnd, *jz_bnd, fab_bnd);
                     
                 for (const auto& fb : fab_bnd)
                 {
                     const Box& box_bnd = fb.first;
-                    long np_bnd = 0;
+                    const std::array<Real,3>& xyzmin_bnd = WarpX::LowerCorner(box_bnd, lev+1);
+                    const std::array<Real,3>& xyzmax_bnd = WarpX::UpperCorner(box_bnd, lev+1);
+                    
+                    xp_bnd.resize(0);
+                    yp_bnd.resize(0);
+                    zp_bnd.resize(0);
+                    giv_bnd.resize(0);
+                    uxp_bnd.resize(0);
+                    uyp_bnd.resize(0);
+                    uzp_bnd.resize(0);
+                    wp_bnd.resize(0);
+                    for (int i = 0; i < np; ++i)
+                    {
+                        if (xp[i] >= xyzmin_bnd[0] && xp[i] <= xyzmax_bnd[0] &&
+                            yp[i] >= xyzmin_bnd[1] && yp[i] <= xyzmax_bnd[1] &&
+                            zp[i] >= xyzmin_bnd[2] && zp[i] <= xyzmax_bnd[2])
+                        {
+                            xp_bnd.push_back(xp[i]);
+                            yp_bnd.push_back(yp[i]);
+                            zp_bnd.push_back(zp[i]);
+                            giv_bnd.push_back(giv[i]);
+                            uxp_bnd.push_back(uxp[i]);
+                            uyp_bnd.push_back(uyp[i]);
+                            uzp_bnd.push_back(uzp[i]);
+                            wp_bnd.push_back(wp[i]);
+                        }
+                    }
+
+                    long np_bnd = xp_bnd.size();
 
                     const Box& fab_ccbx = amrex::enclosedCells(fb.second[0]->box());
-                    const std::array<Real,3>& xyzmin_bnd = WarpX::LowerCorner(fab_ccbx, lev+1);
+                    const std::array<Real,3>& xyzmin_fab = WarpX::LowerCorner(fab_ccbx, lev+1);
                     
                     warpx_current_deposition(
                         fb.second[0]->dataPtr(), &ngJ, fb.second[0]->length(),
@@ -379,7 +407,7 @@ LaserParticleContainer::Evolve (int lev,
                         &np_bnd, xp_bnd.data(), yp_bnd.data(), zp_bnd.data(),
                         uxp_bnd.data(), uyp_bnd.data(), uzp_bnd.data(),
                         giv_bnd.data(), wp_bnd.data(), &this->charge,
-                        &xyzmin_bnd[0], &xyzmin_bnd[1], &xyzmin_bnd[2],
+                        &xyzmin_fab[0], &xyzmin_fab[1], &xyzmin_fab[2],
                         &dt, &dx_fine[0], &dx_fine[1], &dx_fine[2],
                         &WarpX::nox,&WarpX::noy,&WarpX::noz,
                         &lvect,&WarpX::current_deposition_algo);
@@ -394,6 +422,8 @@ LaserParticleContainer::Evolve (int lev,
             BL_PROFILE_VAR_STOP(blp_copy);
 	}
     }
+
+    
 
 }
 

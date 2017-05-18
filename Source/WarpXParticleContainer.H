@@ -107,6 +107,10 @@ protected:
 
     amrex::Real charge;
     amrex::Real mass;
+
+    static void intersections(const amrex::Box& bx,
+                              amrex::MultiFab& mfx, amrex::MultiFab& mfy, amrex::MultiFab& mfz,
+                              amrex::Array<std::pair<amrex::Box,std::array<amrex::FArrayBox*,3> > >& isects);
 };
 
 #endif

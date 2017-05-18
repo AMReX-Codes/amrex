@@ -265,3 +265,24 @@ WarpXParticleContainer::PushX (int lev, Real dt)
         BL_PROFILE_VAR_STOP(blp_copy);
     }
 }
+
+void
+WarpXParticleContainer::intersections(const Box& bx,
+                                      MultiFab& mfx, MultiFab& mfy, MultiFab& mfz,
+                                      Array<std::pair<Box,std::array<FArrayBox*,3> > >& isects)
+{
+    BL_ASSERT(bx.cellCentered());
+
+    isects.resize(0);
+
+    unsigned char flag = MFIter::AllBoxes;
+    for (MFIter mfi(mfx, flag); mfi.isValid(); ++mfi)
+    {
+        Box cc = amrex::enclosedCells(mfi.validbox());
+        cc &= bx;
+        if (cc.ok())
+        {
+            isects.push_back({cc, {&mfx[mfi], &mfy[mfi], &mfz[mfi]}});
+        }
+    }
+}
