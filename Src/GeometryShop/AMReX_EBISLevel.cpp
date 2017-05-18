@@ -186,9 +186,13 @@ namespace amrex
       EBGraph      & coarEBGraph = m_graph[mfi];
       const Box    & coarRegion  = mfi.validbox();
       coarEBGraph.coarsenFaces(fineEBGraph, coarRegion);
-      coarEBGraph.fixFineToCoarse(fineEBGraph);
+      coarEBGraph.fixFineToCoarse(fineEBGraph, coarRegion);
     }
-    m_graph.FillBoundary();
+    //after fixing up fine to coarse, copy info back
+    int numGhost = a_fineEBIS.m_graph.nGrow();
+
+    a_fineEBIS.m_graph.copy(ebgraphReCo, 0, 0, 1, 0, numGhost);
+
 
     //now deal with the data
     std::shared_ptr<FabArray<EBGraph> > graphptrCoar(&    m_graph, &null_deleter_fab_ebg);

@@ -827,15 +827,16 @@ namespace amrex
     }
     else if (m_tag == HasIrregular)
     {
-      assert(m_region.contains(a_box));
-      assert(m_domain.contains(a_box));
-      BoxIterator bit(a_box);
+      Box region = m_region & a_box;
+      region &= m_domain;
+      
       retval = true;
-      for (bit.reset(); bit.ok() && retval; ++bit)
+      for (BoxIterator bit(region); bit.ok() ; ++bit)
       {
         if (!isRegular(bit()))
         {
           retval = false;
+          break;
         }
       }
     }
@@ -1231,140 +1232,146 @@ namespace amrex
   {
     assert(isDefined());
 
-    setDomain(a_source.m_domain);
-    m_region &= m_domain;
+    Box testbox = m_region & a_srcbox;
+    if(!testbox.isEmpty())
+    {
+      setDomain(a_source.m_domain);
+      m_region &= m_domain;
 
-    Box regionTo  = a_destbox;
-    Box regionFrom= a_srcbox;
-    if (isRegular(regionTo) && a_source.isRegular(regionFrom))
-    {
-      return *this;
-    }
-    else if (isCovered(regionTo) && a_source.isCovered(regionFrom))
-    {
-      return *this;
-    }
-    else if (a_source.isCovered(regionFrom) && regionTo.contains(m_region))
-    {
-      setToAllCovered();
-      return *this;
-    }
-    else if (a_source.isRegular(regionFrom) && regionTo.contains(m_region))
-    {
-      setToAllRegular();
-      return *this;
-    }
-    else if (isAllRegular() && a_source.isAllCovered())
-    {
-      //define the basefab as all regular and set the region to
-      //covered in the intersection
-      m_tag = HasIrregular;
-      if (m_irregIVS != NULL) delete m_irregIVS;
-      if (m_multiIVS != NULL) delete m_multiIVS;
-      m_multiIVS = new IntVectSet();
-      m_irregIVS = new IntVectSet();
-      m_graph.resize(m_region, 1);
-      GraphNode regularNode;
-      regularNode.defineAsRegular();
-      m_graph.setVal(regularNode);
-      Box interBox = m_region & regionTo;
-      for (BoxIterator bit(interBox); bit.ok(); ++bit)
+      Box regionTo  = testbox;
+      Box regionFrom= testbox;
+      if (isRegular(regionTo) && a_source.isRegular(regionFrom))
       {
-        m_graph(bit(), 0).defineAsCovered();
+        return *this;
       }
-    }
-    else if (isAllCovered() && a_source.isAllRegular())
-    {
-      //define the basefab as all covered and set the region to
-      //regular in the intersection
-      m_tag = HasIrregular;
-      if (m_irregIVS != NULL) delete m_irregIVS;
-      if (m_multiIVS != NULL) delete m_multiIVS;
-      m_multiIVS = new IntVectSet();
-      m_irregIVS = new IntVectSet();
-      m_graph.resize(m_region, 1);
-      GraphNode  coveredNode;
-      coveredNode.defineAsCovered();
-      m_graph.setVal(coveredNode);
-      Box interBox = m_region & regionTo;
-      for (BoxIterator bit(interBox); bit.ok(); ++bit)
+      else if (isCovered(regionTo) && a_source.isCovered(regionFrom))
       {
-        m_graph(bit(), 0).defineAsRegular();
+        return *this;
       }
-    }
-    else
-    {
-      //one or both has irregular cells.
-      //because i am sick of combinatorics,
-      //use basefab copy to transfer the data.
-        
-      //see if we need to generate a source fab
-      BaseFab<GraphNode>* srcFabPtr;
-      bool needToDelete;
-      if (a_source.hasIrregular())
+      else if (a_source.isCovered(regionFrom) && regionTo.contains(m_region))
       {
-        srcFabPtr = (BaseFab<GraphNode>*)&a_source.m_graph;
-        needToDelete = false;
+        setToAllCovered();
+        return *this;
       }
-      else
+      else if (a_source.isRegular(regionFrom) && regionTo.contains(m_region))
       {
-        needToDelete = true;
-        srcFabPtr = new BaseFab<GraphNode>(regionFrom, 1);
-        GraphNode srcVal;
-        if (a_source.isAllRegular())
-        {
-          srcVal.defineAsRegular();
-        }
-        else
-        {
-          //this really has to be true
-          assert(a_source.isAllCovered());
-          srcVal.defineAsCovered();
-        }
-        srcFabPtr->setVal(srcVal);
+        setToAllRegular();
+        return *this;
       }
-      //define our graph if i need to. leave alone otherwise
-      if (isAllRegular() || isAllCovered())
+      else if (isAllRegular() && a_source.isAllCovered())
       {
+        //define the basefab as all regular and set the region to
+        //covered in the intersection
+        m_tag = HasIrregular;
         if (m_irregIVS != NULL) delete m_irregIVS;
         if (m_multiIVS != NULL) delete m_multiIVS;
         m_multiIVS = new IntVectSet();
         m_irregIVS = new IntVectSet();
         m_graph.resize(m_region, 1);
-      }
-        
-      //copy the data
-      m_tag = HasIrregular;
-      m_graph.copy(*srcFabPtr, regionFrom, 0,regionTo, 0, 1);
-        
-      //if we needed to new the basefab, clean it up
-      if (needToDelete)
-      {
-        delete srcFabPtr;
-      }
-    }
-    //  now fix up the IntVectSets to match the information
-    if (a_source.hasIrregular())
-    {
-      IntVectSet ivsInterIrreg = (*a_source.m_irregIVS);
-      ivsInterIrreg &= regionTo;
-      ivsInterIrreg &= m_region;
-        
-      if (!ivsInterIrreg.isEmpty())
-      {
-        if (m_irregIVS == NULL)
+        GraphNode regularNode;
+        regularNode.defineAsRegular();
+        m_graph.setVal(regularNode);
+        Box interBox = m_region & regionTo;
+        for (BoxIterator bit(interBox); bit.ok(); ++bit)
         {
-          m_irregIVS = new IntVectSet();
-          m_multiIVS = new IntVectSet();
+          m_graph(bit(), 0).defineAsCovered();
         }
-        for (IVSIterator it(ivsInterIrreg); it.ok(); ++it)
+      }
+      else if (isAllCovered() && a_source.isAllRegular())
+      {
+        //define the basefab as all covered and set the region to
+        //regular in the intersection
+        m_tag = HasIrregular;
+        if (m_irregIVS != NULL) delete m_irregIVS;
+        if (m_multiIVS != NULL) delete m_multiIVS;
+        m_multiIVS = new IntVectSet();
+        m_irregIVS = new IntVectSet();
+        m_graph.resize(m_region, 1);
+        GraphNode  coveredNode;
+        coveredNode.defineAsCovered();
+        m_graph.setVal(coveredNode);
+        Box interBox = m_region & regionTo;
+        for (BoxIterator bit(interBox); bit.ok(); ++bit)
         {
-          IntVect iv = it();
-          (*m_irregIVS) |= iv;
-          if (numVoFs(iv) > 1) // this will be correct since we already
-            // did a m_graph copy operation
+          m_graph(bit(), 0).defineAsRegular();
+        }
+      }
+      else
+      {
+        //one or both has irregular cells.
+        //because i am sick of combinatorics,
+        //use basefab copy to transfer the data.
+        
+        //see if we need to generate a source fab
+        BaseFab<GraphNode>* srcFabPtr;
+        bool needToDelete;
+        if (a_source.hasIrregular())
+        {
+          srcFabPtr = (BaseFab<GraphNode>*)&a_source.m_graph;
+          needToDelete = false;
+        }
+        else
+        {
+          needToDelete = true;
+          srcFabPtr = new BaseFab<GraphNode>(regionFrom, 1);
+          GraphNode srcVal;
+          if (a_source.isAllRegular())
           {
-            (*m_multiIVS) |= iv;
+            srcVal.defineAsRegular();
+          }
+          else
+          {
+            //this really has to be true
+            assert(a_source.isAllCovered());
+            srcVal.defineAsCovered();
+          }
+          srcFabPtr->setVal(srcVal);
+        }
+        //define our graph if i need to. leave alone otherwise
+        if (isAllRegular() || isAllCovered())
+        {
+          if (m_irregIVS != NULL) delete m_irregIVS;
+          if (m_multiIVS != NULL) delete m_multiIVS;
+          m_multiIVS = new IntVectSet();
+          m_irregIVS = new IntVectSet();
+          m_graph.resize(m_region, 1);
+        }
+        
+        //copy the data
+        m_tag = HasIrregular;
+///do the slow one for debugging
+///      m_graph.slowCopy(*srcFabPtr, regionFrom, 0,regionTo, 0, 1);
+        m_graph.copy(*srcFabPtr, regionFrom, 0,regionTo, 0, 1);
+        
+        //if we needed to new the basefab, clean it up
+        if (needToDelete)
+        {
+          delete srcFabPtr;
+        }
+      }
+      //  now fix up the IntVectSets to match the information
+      if (a_source.hasIrregular())
+      {
+        IntVectSet ivsInterIrreg = (*a_source.m_irregIVS);
+        ivsInterIrreg &= regionTo;
+        ivsInterIrreg &= m_region;
+        
+        if (!ivsInterIrreg.isEmpty())
+        {
+          if (m_irregIVS == NULL)
+          {
+            m_irregIVS = new IntVectSet();
+            m_multiIVS = new IntVectSet();
+          }
+          for (IVSIterator it(ivsInterIrreg); it.ok(); ++it)
+          {
+            IntVect iv = it();
+            (*m_irregIVS) |= iv;
+            if (numVoFs(iv) > 1) // this will be correct since we already
+              // did a m_graph copy operation
+            {
+              (*m_multiIVS) |= iv;
+            }
           }
         }
       }
@@ -1379,13 +1386,13 @@ namespace amrex
               const Box&           a_coarRegion)
   {
     //this also defines the boxes
-    m_region = a_coarRegion;
+//    m_region = a_coarRegion;
     m_domain = a_fineGraph.getDomain();
     m_domain.coarsen(2);
     m_region &= m_domain;
     m_isDomainSet = true;
     m_isDefined = true;
-    Box refRegion = m_region;
+    Box refRegion = a_coarRegion;
     refRegion.refine(2);
     if (a_fineGraph.isCovered(refRegion))
     {
@@ -1403,11 +1410,12 @@ namespace amrex
       m_multiIVS = new IntVectSet();
       m_irregIVS = new IntVectSet();
       m_graph.resize(m_region, 1);
-      for (BoxIterator bit(m_region); bit.ok(); ++bit)
+      for (BoxIterator bit(a_coarRegion); bit.ok(); ++bit)
       {
-        
-        Box fineBox = Box(bit(), bit());
+        const IntVect& iv = bit();
+        Box fineBox = Box(iv, iv);
         fineBox.refine(2);
+
         if (a_fineGraph.isRegular(fineBox))
         {
           m_graph(bit(), 0).defineAsRegular();
@@ -1429,6 +1437,7 @@ namespace amrex
           {
             GraphNodeImplem newImplem;
             newImplem.m_finerNodes = fineVoFSets[iset];
+
             m_graph(bit(), 0).addIrregularNode(newImplem);
             (*m_irregIVS) |= bit();
             if (m_graph(bit(), 0).size() > 1)
@@ -1633,11 +1642,11 @@ namespace amrex
   }
         
   /*******************************/
-  void EBGraphImplem::fixFineToCoarse(EBGraphImplem& a_fineGraph) const
+  void EBGraphImplem::fixFineToCoarse(EBGraphImplem& a_fineGraph, const Box& a_coarRegion) const
   {
     if (hasIrregular())
     {
-      for (BoxIterator bit(m_region); bit.ok(); ++bit)
+      for (BoxIterator bit(a_coarRegion); bit.ok(); ++bit)
       {
         if (isIrregular(bit()))
         {

@@ -27,7 +27,7 @@
 #include "AMReX_EBDebugDump.H"
 #include "AMReX_EBDebugOut.H"
 #include "AMReX_EBLevelDataOps.H"
-#include "AMReX_NWOEBQuadCFInterp.H"
+#include "AMReX_EBCFInterp.H"
 
 namespace amrex
 {
@@ -117,7 +117,7 @@ namespace amrex
     }
     int nref = 2;
     //interpolate phiC onto phiF
-    NWOEBQuadCFInterp interpOp(eblgFine, eblgCoar, nref, nghostData, nghost, false);
+    EBCFInterp interpOp(eblgFine, eblgCoar, nref, nghostData, nghost);
 
 
     interpOp.coarseFineInterp(phiFineCalc,  phiCoarExac, 0, 0, 1);
