@@ -193,7 +193,7 @@ contains
                 zfine = zero
 
                 xslope = half*(coar(iic+1,jjc  ,kkc  , ivarc)-  coar(iic-1,jjc  ,kkc  , ivarc))/dxc 
-                yslope = half*(coar(iic  ,jjc  ,kkc  , ivarc)-  coar(iic  ,jjc-1,kkc  , ivarc))/dxc
+                yslope = half*(coar(iic  ,jjc+1,kkc  , ivarc)-  coar(iic  ,jjc-1,kkc  , ivarc))/dxc
                 zslope = zero
 
                 xdist = xfine - xcoar
@@ -458,8 +458,8 @@ contains
     real(c_real) :: fine(fine_lo(0):fine_hi(0),fine_lo(1):fine_hi(1),fine_lo(2):fine_hi(2), 0:fine_nco-1)
     real(c_real) :: coar(coar_lo(0):coar_hi(0),coar_lo(1):coar_hi(1),coar_lo(2):coar_hi(2), 0:coar_nco-1)
     real(c_real) :: xdist, ydist, zdist, xslope, yslope, zslope, dxf, dxc
-    real(c_real) :: xcoar, ycoar, zcoar, xfine, yfine, zfine
-    real(c_real) :: dxx, dyy, dzz, dxy, dxz, dyz
+    real(c_real) :: xcoar, ycoar, zcoar, xfine, yfine, zfine, coarval, finevalnew
+    real(c_real) :: dxx, dyy, dzz, dxy, dxz, dyz, coarhix, coarhiy, coarhiz,coarlox, coarloy, coarloz
 
     dxf = one
     dxc = refrat
@@ -484,17 +484,28 @@ contains
                 xfine = dxf*(iif + half)
                 yfine = dxf*(jjf + half)
                 zfine = zero
-
-                xslope = (coar(iic+1,jjc  ,kkc  , ivarc)-  coar(iic-1,jjc  ,kkc  , ivarc))/(two*dxc) 
-                yslope = (coar(iic  ,jjc  ,kkc  , ivarc)-  coar(iic  ,jjc-1,kkc  , ivarc))/(two*dxc) 
+                
+                coarhix = coar(iic+1,jjc  ,kkc  , ivarc)
+                coarlox = coar(iic-1,jjc  ,kkc  , ivarc)
+                coarhiy = coar(iic  ,jjc+1,kkc  , ivarc)
+                coarloy = coar(iic  ,jjc-1,kkc  , ivarc)
+                coarhiz = 0
+                coarloz = 0
+                xslope = (coarhix - coarlox)/(two*dxc) 
+                yslope = (coarhiy - coarloy)/(two*dxc) 
                 zslope = zero
 
-                dxx = (coar(iic+1,jjc  ,kkc  ,ivarc) + coar(iic-1,jjc  ,kkc  , ivarc)-  two*coar(iic,jjc,kkc,ivarc))/(dxc*dxc) 
-                dyy = (coar(iic  ,jjc+1,kkc  ,ivarc) + coar(iic  ,jjc-1,kkc  , ivarc)-  two*coar(iic,jjc,kkc,ivarc))/(dxc*dxc) 
+                dxx = (  coar(iic+1,jjc  ,kkc  ,ivarc) &
+                     +   coar(iic-1,jjc  ,kkc  ,ivarc)-  &
+                     two*coar(iic  ,jjc  ,kkc  ,ivarc))/(dxc*dxc) 
+                dyy = (  coar(iic  ,jjc+1,kkc  ,ivarc) &
+                     +   coar(iic  ,jjc-1,kkc  ,ivarc)-  &
+                     two*coar(iic  ,jjc  ,kkc  ,ivarc))/(dxc*dxc) 
 
-                dxy = ( &
-                     coar(iic+1,jjc+1,kkc  ,ivarc) + coar(iic-1,jjc-1,kkc, ivarc)- &
-                     coar(iic+1,jjc-1,kkc  ,ivarc) - coar(iic-1,jjc+1,kkc,ivarc))/(dxc*dxc) 
+                dxy = (coar(iic+1,jjc+1,kkc ,ivarc) &
+                     + coar(iic-1,jjc-1,kkc, ivarc) &
+                     - coar(iic+1,jjc-1,kkc ,ivarc) &
+                     - coar(iic-1,jjc+1,kkc, ivarc))/(four*dxc*dxc) 
                 dxz = zero
                 dyz = zero
                 dzz = zero
@@ -503,17 +514,21 @@ contains
                 zdist = zero
 
 #if BL_SPACEDIM == 3
-                dxz = ( &
-                     coar(iic+1,jjc  ,kkc+1,ivarc) + coar(iic-1,jjc  ,kkc-1, ivarc)- &
-                     coar(iic+1,jjc  ,kkc-1,ivarc) - coar(iic-1,jjc  ,kkc+1,ivarc))/(dxc*dxc) 
-                dyz = ( &
-                     coar(ii  ,jjc+1,kkcc+1,ivarc) + coar(iic  ,jjc-1,kkc-1, ivarc)- &
-                     coar(ii  ,jjc-1,kkcc+1,ivarc) - coar(iic  ,jjc+1,kkc-1,ivarc))/(dxc*dxc) 
+                coarhiz = coar(iic  ,jjc  ,kkc+1, ivarc)
+                coarloz = coar(iic  ,jjc  ,kkc-1, ivarc)
+                zslope = (coarhiz - coarloz)/(two*dxc) 
+                dxz = (coar(iic+1,jjc  ,kkc+1,ivarc) &
+                     + coar(iic-1,jjc  ,kkc-1,ivarc) &
+                     - coar(iic+1,jjc  ,kkc-1,ivarc) &
+                     - coar(iic-1,jjc  ,kkc+1,ivarc))/(four*dxc*dxc) 
+                dyz = (coar(iic  ,jjc+1,kkc+1,ivarc)&
+                     + coar(iic  ,jjc-1,kkc-1,ivarc)&
+                     - coar(iic  ,jjc-1,kkc+1,ivarc) &
+                     - coar(iic  ,jjc+1,kkc-1,ivarc))/(four*dxc*dxc) 
 
                 zcoar = dxc*(kkc + half)
                 zfine = dxf*(kkf + half)
                 zdist = zfine - zcoar
-                zslope = half*(coar(iic  ,jjc  ,kkc+1, ivarc)-  coar(iic  ,jjc  ,kkc-1, ivarc))/(two*dxc) 
                 dzz = (coar(iic  ,jjc  ,kkc+1, ivarc) + coar(iic  ,jjc  ,kkc-1, ivarc)-  two*coar(iic,jjc,kkc,ivarc))/(dxc*dxc) 
 #endif
 !               begin debug
@@ -521,7 +536,8 @@ contains
                 dyy = zero
                 dxy = zero
 !               end debug                
-                fine(iif, jjf, kkf, ivarf) = coar(iic,jjc,kkc, ivarc) &
+                coarval = coar(iic,jjc,kkc, ivarc) 
+                finevalnew = coarval &
                      + xdist * xslope  &
                      + ydist * yslope  &
                      + zdist * zslope  &
@@ -531,6 +547,7 @@ contains
                      + xdist*ydist*dxy &
                      + xdist*zdist*dxz &
                      + ydist*zdist*dyz 
+                fine(iif, jjf, kkf, ivarf) = finevalnew
 
              enddo
           enddo
