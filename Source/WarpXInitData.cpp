@@ -35,7 +35,8 @@ WarpX::InitData ()
         const int ng = current[lev+1][0]->nGrow();
         cfbndry[lev].reset(new WarpXCrseFineBndry(boxArray(lev), boxArray(lev+1),
                                                   DistributionMap(lev), DistributionMap(lev+1),
-                                                  Geom(lev), Geom(lev+1), ng));
+                                                  Geom(lev), Geom(lev+1),
+                                                  refRatio(lev), ng));
     }
 
     if (do_pml) {

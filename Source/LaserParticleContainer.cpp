@@ -246,6 +246,10 @@ LaserParticleContainer::Evolve (int lev,
     {
 	Array<Real> xp, yp, zp, giv, plane_Xp, plane_Yp, amplitude_E;
 
+        Array<Real> xp_bnd, yp_bnd, zp_bnd, giv_bnd;
+        Array<Real> uxp_bnd, uyp_bnd, uzp_bnd, wp_bnd;
+        Array<std::pair<Box,std::array<FArrayBox*,3> > > fab_bnd;
+
         for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
 	{
 	    const Box& box = pti.validbox();
@@ -341,17 +345,46 @@ LaserParticleContainer::Evolve (int lev,
 	    long lvect = 8;
 	    BL_PROFILE_VAR_START(blp_pxr_cd);
 	    warpx_current_deposition(
-        jxfab.dataPtr(), &ngJ, jxfab.length(),
-        jyfab.dataPtr(), &ngJ, jyfab.length(),
-        jzfab.dataPtr(), &ngJ, jzfab.length(),
-	    &np, xp.data(), yp.data(), zp.data(),
-	    uxp.data(), uyp.data(), uzp.data(),
-	    giv.data(), wp.data(), &this->charge,
-	    &xyzmin[0], &xyzmin[1], &xyzmin[2],
-	    &dt, &dx[0], &dx[1], &dx[2],
-	    &WarpX::nox,&WarpX::noy,&WarpX::noz,
-	    &lvect,&WarpX::current_deposition_algo);
+                jxfab.dataPtr(), &ngJ, jxfab.length(),
+                jyfab.dataPtr(), &ngJ, jyfab.length(),
+                jzfab.dataPtr(), &ngJ, jzfab.length(),
+                &np, xp.data(), yp.data(), zp.data(),
+                uxp.data(), uyp.data(), uzp.data(),
+                giv.data(), wp.data(), &this->charge,
+                &xyzmin[0], &xyzmin[1], &xyzmin[2],
+                &dt, &dx[0], &dx[1], &dx[2],
+                &WarpX::nox,&WarpX::noy,&WarpX::noz,
+                &lvect,&WarpX::current_deposition_algo);
 	    BL_PROFILE_VAR_STOP(blp_pxr_cd);
+
+            if (jx_bnd)
+            {
+                const IntVect& ref_ratio = m_gdb->refRatio(lev);
+                const std::array<Real,3>& dx_fine = WarpX::CellSize(lev+1);
+
+//                pti.intersections(*jx, *jy, *jz, fab_bnd);
+                    
+                for (const auto& fb : fab_bnd)
+                {
+                    const Box& box_bnd = fb.first;
+                    long np_bnd = 0;
+
+                    const Box& fab_ccbx = amrex::enclosedCells(fb.second[0]->box());
+                    const std::array<Real,3>& xyzmin_bnd = WarpX::LowerCorner(fab_ccbx, lev+1);
+                    
+                    warpx_current_deposition(
+                        fb.second[0]->dataPtr(), &ngJ, fb.second[0]->length(),
+                        fb.second[1]->dataPtr(), &ngJ, fb.second[1]->length(),
+                        fb.second[2]->dataPtr(), &ngJ, fb.second[2]->length(),
+                        &np_bnd, xp_bnd.data(), yp_bnd.data(), zp_bnd.data(),
+                        uxp_bnd.data(), uyp_bnd.data(), uzp_bnd.data(),
+                        giv_bnd.data(), wp_bnd.data(), &this->charge,
+                        &xyzmin_bnd[0], &xyzmin_bnd[1], &xyzmin_bnd[2],
+                        &dt, &dx_fine[0], &dx_fine[1], &dx_fine[2],
+                        &WarpX::nox,&WarpX::noy,&WarpX::noz,
+                        &lvect,&WarpX::current_deposition_algo);
+                }
+            }
 
 	    //
 	    // copy particle data back

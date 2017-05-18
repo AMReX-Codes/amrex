@@ -107,6 +107,18 @@ public:
     static std::array<amrex::Real,3> CellSize (int lev);
     static std::array<amrex::Real,3> LowerCorner (const amrex::Box& bx, int lev);
 
+    static amrex::IntVect Bx_nodal_flag;
+    static amrex::IntVect By_nodal_flag;
+    static amrex::IntVect Bz_nodal_flag;
+
+    static amrex::IntVect Ex_nodal_flag;
+    static amrex::IntVect Ey_nodal_flag;
+    static amrex::IntVect Ez_nodal_flag;
+
+    static amrex::IntVect jx_nodal_flag;
+    static amrex::IntVect jy_nodal_flag;
+    static amrex::IntVect jz_nodal_flag;
+
 protected:
 
     //! Tagging cells for refinement
@@ -246,18 +258,6 @@ private:
     bool plot_raw_fields = false;
 
     bool is_synchronized = true;
-
-    static amrex::IntVect Bx_nodal_flag;
-    static amrex::IntVect By_nodal_flag;
-    static amrex::IntVect Bz_nodal_flag;
-
-    static amrex::IntVect Ex_nodal_flag;
-    static amrex::IntVect Ey_nodal_flag;
-    static amrex::IntVect Ez_nodal_flag;
-
-    static amrex::IntVect jx_nodal_flag;
-    static amrex::IntVect jy_nodal_flag;
-    static amrex::IntVect jz_nodal_flag;
 };
 
 #endif

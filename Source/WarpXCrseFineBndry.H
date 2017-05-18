@@ -13,11 +13,12 @@ public:
                         const amrex::DistributionMapping& fine_dm,
                         const amrex::Geometry& crse_gm,
                         const amrex::Geometry& fine_gm,
+                        const amrex::IntVect& ref_ratio,
                         int ngrow);
 
-    amrex::MultiFab* GetJx () { return &jx_crse_layout; }
-    amrex::MultiFab* GetJy () { return &jy_crse_layout; }
-    amrex::MultiFab* GetJz () { return &jz_crse_layout; }
+    amrex::MultiFab* GetJxCrse () { return &jx_crse_layout; }
+    amrex::MultiFab* GetJyCrse () { return &jy_crse_layout; }
+    amrex::MultiFab* GetJzCrse () { return &jz_crse_layout; }
 
 private:
     amrex::BoxArray ba_fine_layout;

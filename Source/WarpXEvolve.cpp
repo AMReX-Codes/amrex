@@ -62,9 +62,9 @@ WarpX::Evolve (int numsteps)
 	    // Evolve particles to p^{n+1/2} and x^{n+1}
 	    // Depose current, j^{n+1/2}
 
-            MultiFab* pjx_bnd = (lev == finest_level) ? nullptr : cfbndry[lev]->GetJx();
-            MultiFab* pjy_bnd = (lev == finest_level) ? nullptr : cfbndry[lev]->GetJy();
-            MultiFab* pjz_bnd = (lev == finest_level) ? nullptr : cfbndry[lev]->GetJz();
+            MultiFab* pjx_bnd = (lev == finest_level) ? nullptr : cfbndry[lev]->GetJxCrse();
+            MultiFab* pjy_bnd = (lev == finest_level) ? nullptr : cfbndry[lev]->GetJyCrse();
+            MultiFab* pjz_bnd = (lev == finest_level) ? nullptr : cfbndry[lev]->GetJzCrse();
 
 	    mypc->Evolve(lev,
 			 *Efield[lev][0],*Efield[lev][1],*Efield[lev][2],
