@@ -362,13 +362,18 @@ LaserParticleContainer::Evolve (int lev,
                 const IntVect& ref_ratio = m_gdb->refRatio(lev);
                 const std::array<Real,3>& dx_fine = WarpX::CellSize(lev+1);
 
-                this->intersections(box, *jx_bnd, *jy_bnd, *jz_bnd, fab_bnd);
+                this->intersections(amrex::refine(box, ref_ratio),
+                                    *jx_bnd, *jy_bnd, *jz_bnd, fab_bnd);
                     
                 for (const auto& fb : fab_bnd)
                 {
                     const Box& box_bnd = fb.first;
                     const std::array<Real,3>& xyzmin_bnd = WarpX::LowerCorner(box_bnd, lev+1);
                     const std::array<Real,3>& xyzmax_bnd = WarpX::UpperCorner(box_bnd, lev+1);
+
+                    const Box& fab_ccbx = amrex::grow(amrex::enclosedCells(fb.second[0]->box()),-ngJ);
+                    const std::array<Real,3>& xyzmin_fab = WarpX::LowerCorner(fab_ccbx, lev+1);
+//                    const std::array<Real,3>& xyzmax_fab = WarpX::UpperCorner(fab_ccbx, lev+1);
                     
                     xp_bnd.resize(0);
                     yp_bnd.resize(0);
@@ -380,9 +385,9 @@ LaserParticleContainer::Evolve (int lev,
                     wp_bnd.resize(0);
                     for (int i = 0; i < np; ++i)
                     {
-                        if (xp[i] >= xyzmin_bnd[0] && xp[i] <= xyzmax_bnd[0] &&
-                            yp[i] >= xyzmin_bnd[1] && yp[i] <= xyzmax_bnd[1] &&
-                            zp[i] >= xyzmin_bnd[2] && zp[i] <= xyzmax_bnd[2])
+                        if (xp[i] >= xyzmin_bnd[0] && xp[i] < xyzmax_bnd[0] &&
+                            yp[i] >= xyzmin_bnd[1] && yp[i] < xyzmax_bnd[1] &&
+                            zp[i] >= xyzmin_bnd[2] && zp[i] < xyzmax_bnd[2])
                         {
                             xp_bnd.push_back(xp[i]);
                             yp_bnd.push_back(yp[i]);
@@ -397,20 +402,20 @@ LaserParticleContainer::Evolve (int lev,
 
                     long np_bnd = xp_bnd.size();
 
-                    const Box& fab_ccbx = amrex::enclosedCells(fb.second[0]->box());
-                    const std::array<Real,3>& xyzmin_fab = WarpX::LowerCorner(fab_ccbx, lev+1);
-                    
-                    warpx_current_deposition(
-                        fb.second[0]->dataPtr(), &ngJ, fb.second[0]->length(),
-                        fb.second[1]->dataPtr(), &ngJ, fb.second[1]->length(),
-                        fb.second[2]->dataPtr(), &ngJ, fb.second[2]->length(),
-                        &np_bnd, xp_bnd.data(), yp_bnd.data(), zp_bnd.data(),
-                        uxp_bnd.data(), uyp_bnd.data(), uzp_bnd.data(),
-                        giv_bnd.data(), wp_bnd.data(), &this->charge,
-                        &xyzmin_fab[0], &xyzmin_fab[1], &xyzmin_fab[2],
-                        &dt, &dx_fine[0], &dx_fine[1], &dx_fine[2],
-                        &WarpX::nox,&WarpX::noy,&WarpX::noz,
-                        &lvect,&WarpX::current_deposition_algo);
+                    if (np_bnd > 0)
+                    {
+                        warpx_current_deposition(
+                            fb.second[0]->dataPtr(), &ngJ, fb.second[0]->length(),
+                            fb.second[1]->dataPtr(), &ngJ, fb.second[1]->length(),
+                            fb.second[2]->dataPtr(), &ngJ, fb.second[2]->length(),
+                            &np_bnd, xp_bnd.data(), yp_bnd.data(), zp_bnd.data(),
+                            uxp_bnd.data(), uyp_bnd.data(), uzp_bnd.data(),
+                            giv_bnd.data(), wp_bnd.data(), &this->charge,
+                            &xyzmin_fab[0], &xyzmin_fab[1], &xyzmin_fab[2],
+                            &dt, &dx_fine[0], &dx_fine[1], &dx_fine[2],
+                            &WarpX::nox,&WarpX::noy,&WarpX::noz,
+                            &lvect,&WarpX::current_deposition_algo);
+                    }
                 }
             }
 
@@ -422,9 +427,6 @@ LaserParticleContainer::Evolve (int lev,
             BL_PROFILE_VAR_STOP(blp_copy);
 	}
     }
-
-    
-
 }
 
 void
