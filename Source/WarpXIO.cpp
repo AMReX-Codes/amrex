@@ -465,11 +465,7 @@ WarpX::WritePlotFile () const
             if (plot_divb)
             {
                 PackPlotDataPtrs(srcmf, Bfield[lev]);
-#if (BL_SPACEDIM == 3)
                 ComputeDivB(*mf[lev], dcomp, srcmf, Geom(lev).CellSize());
-#elif (BL_SPACEDIM == 2)
-                amrex::Abort("TODO: 2d plot_divb");
-#endif                
                 if (lev == 0)
                 {
                     varnames.push_back("divB");
