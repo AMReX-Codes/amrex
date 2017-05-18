@@ -110,9 +110,6 @@ int main (int argc, char* argv[])
       geom.define(domain,&real_box,coord,is_periodic);
     }
 
-    // define dx[]
-    const Real* dx = geom.CellSize();
-
     // Ncomp = number of components for each array
     int Ncomp  = 1;
 
