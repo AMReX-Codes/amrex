@@ -9,14 +9,6 @@
 #include "AMReX_FLUXREG_F.H"
 #include "AMReX_ArrayLim.H"
 
-#if defined(BL_USE_FLOAT) || defined(BL_T3E) || defined(BL_CRAY)
-#define  BL_USE_FLOAT_CONST
-#define  onetominuseight 1.0e-8
-#else
-#define  BL_USE_DOUBLE_CONST
-#define  onetominuseight 1.0d-8
-#endif
-
 #define SDIM 3
 
 c ::: -----------------------------------------------------------
