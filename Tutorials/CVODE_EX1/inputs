@@ -8,3 +8,5 @@ cvode_meth = 2
 cvode_itmeth = 2
 
 write_plotfile = 1
+
+do_tiling = 0
