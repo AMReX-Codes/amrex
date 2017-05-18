@@ -121,7 +121,6 @@ int main (int argc, char* argv[])
     // Create MultiFab with no ghost cells.
     MultiFab mf(ba, dm, Ncomp, 0);
 
-    // Compute fluxes one grid at a time
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
