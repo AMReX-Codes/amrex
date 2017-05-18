@@ -23,6 +23,7 @@ int main (int argc, char* argv[])
 
     int n_cell, max_grid_size, is_periodic[BL_SPACEDIM];
     int cvode_meth, cvode_itmeth, write_plotfile;
+    bool do_tiling;
 
     // inputs parameters
     {
@@ -47,6 +48,7 @@ int main (int argc, char* argv[])
       pp.get("cvode_itmeth",cvode_itmeth);
 
       pp.get("write_plotfile",write_plotfile);
+      pp.get("do_tiling",do_tiling);
     }
 
     if (cvode_meth < 1)
@@ -123,13 +125,16 @@ int main (int argc, char* argv[])
     MultiFab mf(ba, dm, Ncomp, 0);
 
     // Compute fluxes one grid at a time
-    for ( MFIter mfi(mf); mfi.isValid(); ++mfi )
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for ( MFIter mfi(mf, do_tiling); mfi.isValid(); ++mfi )
     {
-      const Box& bx = mfi.validbox();
+      const Box& tbx = mfi.tilebox();
 
       integrate_ode(mf[mfi].dataPtr(),
-        bx.loVect(),
-        bx.hiVect(),
+        tbx.loVect(),
+        tbx.hiVect(),
         &cvode_meth,
         &cvode_itmeth);
     }
