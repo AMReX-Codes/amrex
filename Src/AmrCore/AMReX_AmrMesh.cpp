@@ -97,7 +97,13 @@ AmrMesh::InitAmrMesh (int max_level_in, const Array<int>& n_cell_in, std::vector
 
     pp.query("n_proper",n_proper);
     pp.query("grid_eff",grid_eff);
-    pp.queryarr("n_error_buf",n_error_buf,0,max_level);
+    int cnt = pp.countval("n_error_buf"); 
+    if (cnt > 0) {
+        pp.getarr("n_error_buf",n_error_buf);
+        for (int i = cnt; i < nlev; ++i) {
+            n_error_buf[i] = n_error_buf[cnt-1];
+        }
+    }
 
     // Read in the refinement ratio IntVects as integer BL_SPACEDIM-tuples.
     if (max_level > 0)
@@ -108,9 +114,9 @@ AmrMesh::InitAmrMesh (int max_level_in, const Array<int>& n_cell_in, std::vector
 
         int got_vect = pp.queryarr("ref_ratio_vect",ratios_vect,0,nratios_vect);
 
-        Array<int> ratios(max_level);
+        Array<int> ratios;
 
-        const int got_int = pp.queryarr("ref_ratio",ratios,0,max_level);
+        const int got_int = pp.queryarr("ref_ratio",ratios);
    
         if (got_int == 1 && got_vect == 1)
         {
@@ -127,10 +133,18 @@ AmrMesh::InitAmrMesh (int max_level_in, const Array<int>& n_cell_in, std::vector
         }
         else if (got_int == 1)
         {
-            for (int i = 0; i < max_level; i++)
+            const int ncnt = ratios.size();
+            for (int i = 0; i < ncnt && i < max_level; ++i)
             {
-                for (int n = 0; n < BL_SPACEDIM; n++)
+                for (int n = 0; n < BL_SPACEDIM; n++) {
                     ref_ratio[i][n] = ratios[i];
+                }
+            }
+            for (int i = ncnt; i < max_level; ++i)
+            {
+                for (int n = 0; n < BL_SPACEDIM; n++) {
+                    ref_ratio[i][n] = ratios.back();
+                }
             }
         }
         else
@@ -151,37 +165,21 @@ AmrMesh::InitAmrMesh (int max_level_in, const Array<int>& n_cell_in, std::vector
     }
 
     // Read in max_grid_size.  Use defaults if not explicitly defined.
-    int cnt = pp.countval("max_grid_size");
-    if (cnt == 1)
-    {
-        // Set all values to the single available value.
-        int the_max_grid_size = 0;
-        pp.get("max_grid_size",the_max_grid_size);
-        for (int i = 0; i <= max_level; ++i) {
-            max_grid_size[i] = the_max_grid_size;
+    cnt = pp.countval("max_grid_size");
+    if (cnt > 0) {
+        pp.getarr("max_grid_size",max_grid_size);
+        for (int i = cnt; i < nlev; ++i) {
+            max_grid_size[i] = max_grid_size[cnt-1];
         }
-    }
-    else if (cnt > 1)
-    {
-        // Otherwise we expect a vector of max_grid_size values.
-        pp.getarr("max_grid_size",max_grid_size,0,max_level+1);
     }
 
     // Read in the blocking_factors.  Use defaults if not explicitly defined.
     cnt = pp.countval("blocking_factor");
-    if (cnt == 1)
-    {
-        // Set all values to the single available value.
-        int the_blocking_factor = 0;
-        pp.get("blocking_factor",the_blocking_factor);
-        for (int i = 0; i <= max_level; ++i) {
-            blocking_factor[i] = the_blocking_factor;
+    if (cnt > 0) {
+        pp.getarr("blocking_factor",blocking_factor);
+        for (int i = cnt; i < nlev; ++i) {
+            blocking_factor[i] = blocking_factor[cnt-1];
         }
-    }
-    else if (cnt > 1)
-    {
-        // Otherwise we expect a vector of blocking factors.
-        pp.getarr("blocking_factor",blocking_factor,0,max_level+1);
     }
 
     // Read computational domain and set geometry.
@@ -268,7 +266,7 @@ AmrMesh::ChopGrids (int lev, BoxArray& ba, int target_size) const
     for (int cnt = 1; cnt <= 4; cnt *= 2)
     {
 	const int ChunkSize = max_grid_size[lev]/cnt;
-	IntVect chunk(D_DECL(ChunkSize,ChunkSize,ChunkSize));
+	IntVect chunk(AMREX_D_DECL(ChunkSize,ChunkSize,ChunkSize));
 
 	for (int j = BL_SPACEDIM-1; j >= 0 ; j--)
 	{
@@ -450,7 +448,7 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Array<BoxArray>& n
             blFcomp.simplify();
             bl_tagged.clear();
 
-            const IntVect& iv = IntVect(D_DECL(nerr/ref_ratio[levf][0],
+            const IntVect& iv = IntVect(AMREX_D_DECL(nerr/ref_ratio[levf][0],
                                                nerr/ref_ratio[levf][1],
                                                nerr/ref_ratio[levf][2]));
             blFcomp.accrete(iv);
@@ -718,8 +716,8 @@ AmrMesh::ProjPeriodic (BoxList& blout, const Geometry& geom)
     int niend,njend,nkend;
     nist = njst = nkst = 0;
     niend = njend = nkend = 0;
-    D_TERM( nist , =njst , =nkst ) = -1;
-    D_TERM( niend , =njend , =nkend ) = +1;
+    AMREX_D_TERM( nist , =njst , =nkst ) = -1;
+    AMREX_D_TERM( niend , =njend , =nkend ) = +1;
 
     int ri,rj,rk;
     for (ri = nist; ri <= niend; ri++)

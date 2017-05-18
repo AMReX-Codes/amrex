@@ -540,13 +540,13 @@ namespace amrex
   void  Moments::listOfMoments(const int&       a_order,
                                std::vector<IntVect>& a_exponents)
   {
-    D_TERM(
+    AMREX_D_TERM(
            for (int i = 0; i <= a_order; ++i),
            for (int j = 0; j <= a_order; ++j),
            for (int k = 0; k <= a_order; ++k))
-      if (D_TERM(i,+j,+k) == a_order)
+      if (AMREX_D_TERM(i,+j,+k) == a_order)
         {
-          IntVect newexp(D_DECL(i,j,k));
+          IntVect newexp(AMREX_D_DECL(i,j,k));
           a_exponents.push_back(newexp);
         }
   }

@@ -5,11 +5,16 @@
 
 namespace amrex {
 
-BCRec::BCRec (D_DECL(int loX, int loY, int loZ),
-              D_DECL(int hiX, int hiY, int hiZ))
+BCRec::BCRec ()
+    : bc {AMREX_D_DECL(BOGUS_BC,BOGUS_BC,BOGUS_BC),
+          AMREX_D_DECL(BOGUS_BC,BOGUS_BC,BOGUS_BC)}
+{ }
+
+BCRec::BCRec (AMREX_D_DECL(int loX, int loY, int loZ),
+              AMREX_D_DECL(int hiX, int hiY, int hiZ))
 {
-    D_EXPR(bc[0] = loX,  bc[1] = loY,  bc[2] = loZ);
-    D_EXPR(bc[BL_SPACEDIM]=hiX,  bc[BL_SPACEDIM+1]=hiY,  bc[BL_SPACEDIM+2]=hiZ);
+    AMREX_D_EXPR(bc[0] = loX,  bc[1] = loY,  bc[2] = loZ);
+    AMREX_D_EXPR(bc[BL_SPACEDIM]=hiX,  bc[BL_SPACEDIM+1]=hiY,  bc[BL_SPACEDIM+2]=hiZ);
 }
 
 BCRec::BCRec (const int* lo,
@@ -18,11 +23,11 @@ BCRec::BCRec (const int* lo,
     BL_ASSERT(!(lo == 0));
     BL_ASSERT(!(hi == 0));
 
-    D_TERM(bc[0] = lo[0];,
+    AMREX_D_TERM(bc[0] = lo[0];,
            bc[1] = lo[1];,
            bc[2] = lo[2];);
 
-    D_TERM(bc[BL_SPACEDIM+0] = hi[0];,
+    AMREX_D_TERM(bc[BL_SPACEDIM+0] = hi[0];,
            bc[BL_SPACEDIM+1] = hi[1];,
            bc[BL_SPACEDIM+2] = hi[2];);
 }

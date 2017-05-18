@@ -33,7 +33,7 @@ namespace amrex
 	    BL_FORT_PROC_CALL(BL_AVG_EG_TO_CC,bl_avg_eg_to_cc)
 		(bx.loVect(), bx.hiVect(),
 		 BL_TO_FORTRAN_N(cc[mfi],dcomp),
-		 D_DECL(BL_TO_FORTRAN((*edge[0])[mfi]),
+		 AMREX_D_DECL(BL_TO_FORTRAN((*edge[0])[mfi]),
 			BL_TO_FORTRAN((*edge[1])[mfi]),
 			BL_TO_FORTRAN((*edge[2])[mfi])));
 	}	
@@ -59,7 +59,7 @@ namespace amrex
 	    BL_FORT_PROC_CALL(BL_AVG_FC_TO_CC,bl_avg_fc_to_cc)
 		(bx.loVect(), bx.hiVect(),
 		 BL_TO_FORTRAN_N(cc[mfi],dcomp),
-		 D_DECL(BL_TO_FORTRAN((*fc[0])[mfi]),
+		 AMREX_D_DECL(BL_TO_FORTRAN((*fc[0])[mfi]),
 			BL_TO_FORTRAN((*fc[1])[mfi]),
 			BL_TO_FORTRAN((*fc[2])[mfi])),
 		 dx, problo, coord_type);
@@ -87,7 +87,7 @@ namespace amrex
 	    BL_FORT_PROC_CALL(BL_AVG_FC_TO_CC,bl_avg_fc_to_cc)
 		(bx.loVect(), bx.hiVect(),
 		 BL_TO_FORTRAN(cc[mfi]),
-		 D_DECL(BL_TO_FORTRAN((*fc[0])[mfi]),
+		 AMREX_D_DECL(BL_TO_FORTRAN((*fc[0])[mfi]),
 			BL_TO_FORTRAN((*fc[1])[mfi]),
 			BL_TO_FORTRAN((*fc[2])[mfi])),
 		 dx, problo, coord_type);
@@ -127,7 +127,7 @@ namespace amrex
 #if (BL_SPACEDIM == 3)
 		 zbx.loVect(), zbx.hiVect(),
 #endif
-		 D_DECL(BL_TO_FORTRAN((*fc[0])[mfi]),
+		 AMREX_D_DECL(BL_TO_FORTRAN((*fc[0])[mfi]),
 			BL_TO_FORTRAN((*fc[1])[mfi]),
 			BL_TO_FORTRAN((*fc[2])[mfi])),
 		 BL_TO_FORTRAN(cc[mfi]),
@@ -283,7 +283,7 @@ namespace amrex
 
 // *************************************************************************************************************
 
-    // Average fine face-based MultiFab onto crse fine-centered MultiFab.
+    // Average fine face-based MultiFab onto crse face-based MultiFab.
     // This routine assumes that the crse BoxArray is a coarsened version of the fine BoxArray.
     void average_down_faces (const Array<const MultiFab*>& fine, const Array<MultiFab*>& crse,
 			     const IntVect& ratio)
@@ -303,6 +303,34 @@ namespace amrex
                 const Box& tbx = mfi.tilebox();
 
                 BL_FORT_PROC_CALL(BL_AVGDOWN_FACES,bl_avgdown_faces)
+                    (tbx.loVect(),tbx.hiVect(),
+                     BL_TO_FORTRAN((*fine[n])[mfi]),
+                     BL_TO_FORTRAN((*crse[n])[mfi]),
+                     ratio.getVect(),n,ncomp);
+            }
+        }
+    }
+
+    //! Average fine edge-based MultiFab onto crse edge-based MultiFab.
+    //! This routine assumes that the crse BoxArray is a coarsened version of the fine BoxArray.
+    void average_down_edges (const Array<const MultiFab*>& fine, const Array<MultiFab*>& crse,
+                             const IntVect& ratio)
+    {
+	BL_ASSERT(crse.size()  == BL_SPACEDIM);
+	BL_ASSERT(fine.size()  == BL_SPACEDIM);
+	BL_ASSERT(crse[0]->nComp() == fine[0]->nComp());
+
+	int ncomp = crse[0]->nComp();
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+        for (int n=0; n<BL_SPACEDIM; ++n) {
+            for (MFIter mfi(*crse[n],true); mfi.isValid(); ++mfi)
+            {
+                const Box& tbx = mfi.tilebox();
+
+                BL_FORT_PROC_CALL(BL_AVGDOWN_EDGES,bl_avgdown_edges)
                     (tbx.loVect(),tbx.hiVect(),
                      BL_TO_FORTRAN((*fine[n])[mfi]),
                      BL_TO_FORTRAN((*crse[n])[mfi]),

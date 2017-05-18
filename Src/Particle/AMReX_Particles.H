@@ -78,7 +78,7 @@ struct ParticleLocData
   int     m_lev  = -1;
   int     m_grid = -1;
   int     m_tile = -1;
-  IntVect m_cell {D_DECL(-1,-1,-1)};
+  IntVect m_cell {AMREX_D_DECL(-1,-1,-1)};
   Box     m_gridbox;
   Box     m_tilebox;
 };
@@ -203,7 +203,6 @@ struct Particle
                                 Array<Real>&                 fracs,
                                 Array<IntVect>&              cells);
 };
-
 
 template <int NReal, int NInt>
 class ArrayOfStructs {
@@ -399,6 +398,27 @@ private:
     SoA m_soa_tile;
 };
 
+///
+/// This struct is used to pass initial data into the various Init methods
+/// of the particle container. That data should be initialized in the order
+/// real struct data, int struct data, real array data, int array data. 
+/// If fewer components are specified than the sum of the template parameters,
+/// the extra values will be set to zero. If more components are specified, it 
+/// is a compile-time error.
+///
+/// Example usage:
+///
+///     ParticleInitType<0, 2, 4, 1> pdata = {7, 9, 1.5, 2.5, 3.5, 4.5, 11}; 
+///
+template<int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+struct ParticleInitType
+{
+    double real_struct_data[NStructReal];
+    int    int_struct_data[NStructInt];
+    double real_array_data[NArrayReal];
+    int    int_array_data[NArrayInt];
+};
+
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt> class ParIter;
 
 template <int NStructReal, int NStructInt=0, int NArrayReal=0, int NArrayInt=0>
@@ -414,6 +434,7 @@ public:
     using RealType = typename Particle<NStructReal, NStructInt>::RealType;
 
     using ParticleTileType = ParticleTile<NStructReal, NStructInt, NArrayReal, NArrayInt>;
+    using ParticleInitData = ParticleInitType<NStructReal, NStructInt, NArrayReal, NArrayInt>;
 
     // A single level worth of particles is indexed (grid id, tile id)
     // for both SoA and AoS data.
@@ -537,11 +558,51 @@ public:
     void InitFromAsciiFile (const std::string& file, int extradata, const IntVect* Nrep = 0);
     void InitFromBinaryFile (const std::string& file, int extradata);
     void InitFromBinaryMetaFile (const std::string& file, int extradata);
-    void InitRandom (long icount, unsigned long iseed, Real particleMass, bool serialize = false, RealBox bx = RealBox());
-    void InitRandomPerBox (long icount, unsigned long iseed, Real particleMass, const MultiFab& particle_mf);
+    
+    ///
+    /// This initializes the particle container with icount randomly distributed 
+    /// particles. If serialize is true, then the particles will all be generated
+    /// on the IO Process, and the particle positions will be broadcast to all 
+    /// other process. If serialize is false, then the particle positions will be
+    /// randomly generated in parallel, which each process using the random seed
+    /// iseed + MyProc. The particles can be constrained to lie within the RealBox
+    /// bx, if so desired. The default is the full domain.
+    ///
+    void InitRandom (long icount, unsigned long iseed, 
+                     const ParticleInitData& mass,
+                     bool serialize = false, RealBox bx = RealBox());
+
+    ///
+    /// This initializes the container with icount randomly distributed particles
+    /// per box, using the random seed iseed. All the particles have the same data
+    /// and attributes, which are passed using the pdata struct.
+    ///
+    /// This routine is used when we want to replicate a box for a scaling study -- 
+    /// within each box the distribution is random but the particle data is replicated 
+    /// across all boxes in the container. The boxes are assumed to be those 
+    /// on the coarsest level.
+    ///
+    void InitRandomPerBox (long icount, unsigned long iseed, const ParticleInitData& pdata);
+    
+    ///
+    /// This initializes the particle container with one particle per cell, 
+    /// where the other particle data and attributes are all contant. The 
+    /// coarsest level is used to generate the particle positions. The particle
+    /// variable values are passed in through the pdata struct. The parameters
+    /// x_off, y_off, and z_off represent offsets between 0 and 1 that show
+    /// where inside the cells to place the particles. 0.5 means cell centered.
+    ///
     void InitOnePerCell (Real x_off, Real y_off, Real z_off,
-                         Real particleMass, const MultiFab& particle_mf);
-    void InitNRandomPerCell (int n_per_cell, Real particleMass, const MultiFab& particle_mf);
+                         const ParticleInitData& pdata);
+
+    ///
+    /// This initializes the particle container with n_per_cell randomly
+    /// distributed particles per cell, where the other particle data and
+    /// and attributes are all constant. The cells on the coarsest level 
+    /// are used to generate the particle positions. The particle variable
+    /// values are passed in through the pdata struct.
+    ///
+    void InitNRandomPerCell (int n_per_cell, const ParticleInitData& pdata);
 
     void GetParticleIDs        (Array<int> & part_ids);
     void GetParticleCPU        (Array<int> & part_cpu);
@@ -822,11 +883,11 @@ public:
     const SoA& GetStructOfArrays () const { return GetParticleTile().GetStructOfArrays(); }
     SoA&       GetStructOfArrays ()       { return GetParticleTile().GetStructOfArrays(); }
 
-    void SetPosition (D_DECL(const Array<Real>& x,
+    void SetPosition (AMREX_D_DECL(const Array<Real>& x,
                              const Array<Real>& y,
                              const Array<Real>& z));
 
-    void GetPosition (D_DECL(Array<Real>& x,
+    void GetPosition (AMREX_D_DECL(Array<Real>& x,
                              Array<Real>& y,
                              Array<Real>& z)) const;
 

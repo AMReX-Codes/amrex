@@ -1,0 +1,106 @@
+In this chapter, we present the basics of \amrex.  The implementation
+source codes are in {\tt amrex/Src/Base/}.  Note that \amrex\ classes
+and functions are in namespace {\tt amrex}.  For clarity, we usually
+drop {\tt amrex::} in the example codes here.  We recommend you study
+tutorials at {\tt amrex/Tutorials/Basic/} while reading this chapter.
+After reading this chapter, one should be able to develop single-level
+parallel codes using \amrex.
+
+\section{Dimensionality}
+\label{sec:basics:dim}
+
+As we have mentioned in Chapter~\ref{Chap:BuildingAMReX}, the
+dimensionality of \amrex\ must be set at compile time.  A macro, {\tt
+  BL\_SPACEDIM}, is defined to be the number of spatial dimensions.
+The coordinate directions are zero based. \MarginPar{Not in Fortran}
+
+\section{Array}
+
+\section{Real}
+
+\section{ParallelDescriptor}
+
+\section{Print}
+\label{sec:basics:print}
+
+\amrex\ provides classes for printing messages to standard output or
+any \cpp\ {\tt ostream}.  The main reason one should use them instead
+of {\tt std::cout} is that messages from multiple processes or
+threads do not get mixed up.  Below are some examples.
+\begin{lstlisting}[language=cpp]
+    Print() <<  "x = " << x << "\n"; // Print on I/O processor
+
+    AllPrint() << "Every process prints\n";  // Print on every process
+
+    std::ofstream ofs("my.txt", std::ofstream::out);
+    Print(ofs) << "Print to a file" << std::endl;
+    ofs.close();
+\end{lstlisting}
+
+\section{ParmParse}
+
+\section{Box, IntVect and IndexType}
+\label{sec:basics:box}
+
+In \amrex, the computational domain (on each AMR level) is decomposed
+into a union of rectangular domains.  {\tt Box} is the data
+structure for representing such rectangular domains in indexing space.
+{\tt Box} is a dimension dependent class.  It has lower and upper
+corners (represented by {\tt IntVect} and an index type
+(represented by {\tt IndexType}).
+
+\subsection{IntVect}
+
+{\idxamrex{IntVect}} is a dimension dependent class representing an
+integer vector in {\idxamrex{BL\_SPACEDIM}}-dimensional space.  An
+{\tt IntVect} can be constructed as follows,
+\begin{lstlisting}[language=cpp]
+    IntVect iv(AMREX_D_DECL(19, 0, 5));
+\end{lstlisting}
+Here {\tt D\_DECL} is a macro that expands {\tt D\_DECL(19,0,5)} to
+either {\tt 19} or {\tt 19,0} or {\tt 19,0,5} depending on the number
+of dimensions.  The class has a static function {\tt
+  IntVect::TheZeroVector()} returning the zero vector, {\tt
+  IntVect::TheUnitVector()} returning the unit vector, and {\tt
+  TheDimensionVector(int dir)} returning a reference to a constant
+{\tt IntVect} that is zero except in the {\tt dir}-direction.  {\tt
+  IntVect} has a number of relational operators, {\tt ==}, {\tt !=},
+{\tt <}, {\tt <=}, {\tt >}, and {\tt >=} that can be used for
+lexicographical comparison.  It also has various arithmetic operators.
+For example,
+\begin{lstlisting}[language=cpp]
+    IntVect iv(AMREX_D_DECL(19, 0, 5));
+\end{lstlisting}
+
+
+\subsection{IndexType}
+
+\subsection{Box}
+
+% a bit on coarsening
+
+\section{Geometry}
+
+% how do we set it up?
+
+\section{BaseFab, FArrayBox and IArrayBox}
+% make alias
+% resize
+
+\section{BoxArray}
+
+\section{DistributionMapping}
+
+\section{FabArray, MultiFab and iMultiFab}
+
+% make alias
+
+\section{MFIter and Tiling}
+
+\section{Calling Fortan or C}
+
+\section{Physical Boundary}
+
+\section{Memory Allocation}
+
+\section{Abort, Assertion, Floating-Point Exceptions, and Backtrace}
