@@ -21,7 +21,7 @@ int main (int argc, char* argv[])
 
     std::cout << std::setprecision(15);
 
-    int n_cell, max_grid_size, is_periodic[BL_SPACEDIM];
+    int n_cell, max_grid_size;
     int cvode_meth, cvode_itmeth, write_plotfile;
     bool do_tiling;
 
