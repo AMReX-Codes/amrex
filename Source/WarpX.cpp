@@ -298,7 +298,7 @@ WarpX::ComputeDivB (MultiFab& divB, int dcomp, const Array<const MultiFab*>& B, 
     for (MFIter mfi(divB, true); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.tilebox();
-        warpx_compute_divb(bx.loVect(), bx.hiVect(),
+        WARPX_COMPUTE_DIVB(bx.loVect(), bx.hiVect(),
                            BL_TO_FORTRAN_N_ANYD(divB[mfi],dcomp),
                            D_DECL(BL_TO_FORTRAN_ANYD((*B[0])[mfi]),
                                   BL_TO_FORTRAN_ANYD((*B[1])[mfi]),
