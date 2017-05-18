@@ -112,12 +112,15 @@ else ifeq ($(lowercase_comp),cray)
 else ifeq ($(lowercase_comp),pgi)
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/comps/pgi.mak...)
   include        $(AMREX_HOME)/Tools/GNUMake/comps/pgi.mak
+else ifeq ($(lowercase_comp),ibm)
+  $(info Loading $(AMREX_HOME)/Tools/GNUMake/comps/ibm.mak...)
+  include        $(AMREX_HOME)/Tools/GNUMake/comps/ibm.mak
 else ifeq ($(lowercase_comp),$(filter $(lowercase_comp),llvm clang clang++))
   lowercase_comp = llvm
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/comps/llvm.mak...)
   include        $(AMREX_HOME)/Tools/GNUMake/comps/llvm.mak
 else
-  $(error Unknown compiler $(COMP). Supported compilers are gnu, intel, cray, pgi, and llvm)
+  $(error Unknown compiler $(COMP). Supported compilers are gnu, intel, cray, pgi, ibm, and llvm)
 endif
 
 ifeq ($(MAKECMDGOALS),check_fortran)
@@ -300,6 +303,7 @@ fincludes	= $(includes)
 fmoddir         = $(objEXETempDir)
 
 CPPFLAGS	+= $(DEFINES)
+F_CPPFLAGS := $(addprefix $(CPP_PREFIX), $(CPPFLAGS))
 
 libraries	= $(LIBRARIES) $(XTRALIBS)
 
