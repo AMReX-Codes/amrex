@@ -51,6 +51,33 @@ contains
 
   end subroutine warpx_compute_E
 
+
+  subroutine warpx_compute_divb (lo, hi, divB, dlo, dhi, &
+       Bx, xlo, xhi, By, ylo, yhi, Bz, zlo, zhi, dx) bind(c)
+    integer, intent(in) :: lo(3),hi(3),dlo(3),dhi(3),xlo(3),xhi(3),ylo(3),yhi(3),zlo(3),zhi(3)
+    real(amrex_real), intent(in) :: dx(3)
+    real(amrex_real), intent(in   ) :: Bx  (xlo(1):xhi(1),xlo(2):xhi(2),xlo(3):xhi(3))
+    real(amrex_real), intent(in   ) :: By  (ylo(1):yhi(1),ylo(2):yhi(2),ylo(3):yhi(3))
+    real(amrex_real), intent(in   ) :: Bz  (zlo(1):zhi(1),zlo(2):zhi(2),zlo(3):zhi(3))
+    real(amrex_real), intent(inout) :: divB(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3))
+
+    integer :: i,j,k
+    real(amrex_real) :: dxinv(3)
+
+    dxinv = 1.d0/dx
+
+    do       k = lo(3), hi(3)
+       do    j = lo(2), hi(2)
+          do i = lo(1), hi(1)
+             divB(i,j,k) = dxinv(1) * (Bx(i+1,j  ,k  ) - Bx(i,j,k)) &
+                  +        dxinv(2) * (Bx(i  ,j+1,k  ) - By(i,j,k)) &
+                  +        dxinv(3) * (Bx(i  ,j  ,k+1) - Bz(i,j,k))
+          end do
+       end do
+    end do
+  end subroutine warpx_compute_divb
+
+
   subroutine warpx_push_pml_bvec_3d (xlo, xhi, ylo, yhi, zlo, zhi, &
        &                             Ex, Exlo, Exhi, &
        &                             Ey, Eylo, Eyhi, &

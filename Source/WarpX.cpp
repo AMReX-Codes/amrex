@@ -5,11 +5,17 @@
 #include <cmath>
 #include <numeric>
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 #include <AMReX_ParmParse.H>
 #include <AMReX_MultiFabUtil.H>
 
 #include <WarpX.H>
 #include <WarpXConst.H>
+
+#include <WarpX_f.H>
 
 using namespace amrex;
 
@@ -184,6 +190,14 @@ WarpX::ReadParameters ()
 	pp.query("use_laser", use_laser);
 
         pp.query("plot_raw_fields", plot_raw_fields);
+        if (ParallelDescriptor::NProcs() == 1) {
+            plot_proc_number = false;
+        }
+        pp.query("plot_part_per_cell", plot_part_per_cell);
+        pp.query("plot_part_per_grid", plot_part_per_grid);
+        pp.query("plot_part_per_proc", plot_part_per_proc);
+        pp.query("plot_proc_number"  , plot_proc_number);
+        pp.query("plot_divb"         , plot_divb);
     }
 
     {
@@ -275,3 +289,20 @@ WarpX::LowerCorner(const Box& bx, int lev)
 #endif
 }
 
+void
+WarpX::ComputeDivB (MultiFab& divB, int dcomp, const Array<const MultiFab*>& B, const Real* dx)
+{
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(divB, true); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.tilebox();
+        warpx_compute_divb(bx.loVect(), bx.hiVect(),
+                           BL_TO_FORTRAN_N_ANYD(divB[mfi],dcomp),
+                           D_DECL(BL_TO_FORTRAN_ANYD((*B[0])[mfi]),
+                                  BL_TO_FORTRAN_ANYD((*B[1])[mfi]),
+                                  BL_TO_FORTRAN_ANYD((*B[2])[mfi])),
+                           dx);
+    }
+}

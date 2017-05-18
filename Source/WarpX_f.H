@@ -131,6 +131,13 @@ extern "C"
 			  BL_FORT_FAB_ARG_3D(Ez),
 			  const amrex::Real* dx);
 
+    void warpx_compute_divb (const int* lo, const int* hi,
+                             BL_FORT_FAB_ARG_ANYD(divb),
+                             D_DECL(const BL_FORT_FAB_ARG_ANYD(Bx),
+                                    const BL_FORT_FAB_ARG_ANYD(By),
+                                    const BL_FORT_FAB_ARG_ANYD(Bz)),
+                             const amrex::Real* dx);
+
     void WRPX_PUSH_PML_BVEC(const int* xlo, const int* xhi,
                             const int* ylo, const int* yhi,
                             const int* zlo, const int* zhi,
@@ -166,6 +173,7 @@ extern "C"
 #endif
                             const amrex::Real* sigz1, int sigz1_lo, int sigz1_hi, 
                             const amrex::Real* sigz2, int sigz2_lo, int sigz2_hi);
+
 #ifdef __cplusplus
 }
 #endif

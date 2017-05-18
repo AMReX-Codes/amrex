@@ -170,6 +170,10 @@ private:
 
     void InitPML ();
 
+    static void ComputeDivB (amrex::MultiFab& divB, int dcomp,
+                             const amrex::Array<const amrex::MultiFab*>& B,
+                             const amrex::Real* dx);
+
     amrex::Array<int> istep;      // which step?
     amrex::Array<int> nsubsteps;  // how many substeps on each level?
 
@@ -231,6 +235,11 @@ private:
     int check_int = -1;
     int plot_int = -1;
 
+    bool plot_part_per_cell = true;
+    bool plot_part_per_grid = true;
+    bool plot_part_per_proc = true;
+    bool plot_proc_number   = true;
+    bool plot_divb          = false;
     bool plot_raw_fields = false;
 
     bool is_synchronized = true;

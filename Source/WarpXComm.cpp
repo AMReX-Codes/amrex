@@ -28,6 +28,8 @@ WarpX::FillBoundaryB ()
                     MultiFab(*Bfield[lev][2], amrex::make_alias, 0, 1) };
 
         amrex::InterpCrseFineBndryBfield(crse, fine, Geom(lev-1), Geom(lev), ref_ratio[0]);
+
+        FillBoundaryB(lev, true);
     }
 }
 
@@ -38,6 +40,7 @@ WarpX::FillBoundaryE ()
 
     for (int lev = 1; lev <= finest_level; ++lev)
     {
+        // xxxxx TODO: interp E field
         FillBoundaryE(lev, true);
     }
 }
