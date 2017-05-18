@@ -68,16 +68,21 @@ MultiParticleContainer::FieldGather (int lev,
 
 void
 MultiParticleContainer::Evolve (int lev,
-			     const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
-			     const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz,
-			     MultiFab& jx, MultiFab& jy, MultiFab& jz, Real t, Real dt)
+                                const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
+                                const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz,
+                                MultiFab& jx, MultiFab& jy, MultiFab& jz,
+                                MultiFab* jx_bnd, MultiFab* jy_bnd, MultiFab* jz_bnd,
+                                Real t, Real dt)
 {
     jx.setVal(0.0);
     jy.setVal(0.0);
     jz.setVal(0.0);
+    if (jx_bnd) jx_bnd->setVal(0.0);
+    if (jy_bnd) jy_bnd->setVal(0.0);
+    if (jz_bnd) jz_bnd->setVal(0.0);
 
     for (auto& pc : allcontainers) {
-	pc->Evolve(lev, Ex, Ey, Ez, Bx, By, Bz, jx, jy, jz, t, dt);
+	pc->Evolve(lev, Ex, Ey, Ez, Bx, By, Bz, jx, jy, jz, jx_bnd, jy_bnd, jz_bnd, t, dt);
     }
 }
 

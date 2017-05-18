@@ -61,10 +61,17 @@ WarpX::Evolve (int numsteps)
         for (int lev = 0; lev <= finest_level; ++lev) {
 	    // Evolve particles to p^{n+1/2} and x^{n+1}
 	    // Depose current, j^{n+1/2}
+
+            MultiFab* pjx_bnd = (lev == finest_level) ? nullptr : cfbndry[lev]->GetJx();
+            MultiFab* pjy_bnd = (lev == finest_level) ? nullptr : cfbndry[lev]->GetJy();
+            MultiFab* pjz_bnd = (lev == finest_level) ? nullptr : cfbndry[lev]->GetJz();
+
 	    mypc->Evolve(lev,
 			 *Efield[lev][0],*Efield[lev][1],*Efield[lev][2],
 			 *Bfield[lev][0],*Bfield[lev][1],*Bfield[lev][2],
-			 *current[lev][0],*current[lev][1],*current[lev][2], cur_time, dt[lev]);
+			 *current[lev][0],*current[lev][1],*current[lev][2],
+                         pjx_bnd, pjy_bnd, pjz_bnd,
+                         cur_time, dt[lev]);
         }
 
         EvolveB(0.5*dt[0]); // We now B^{n+1/2}
@@ -320,7 +327,9 @@ WarpX::PushParticlesandDepose(int lev, Real cur_time)
     mypc->Evolve(lev,
 		 *Efield[lev][0],*Efield[lev][1],*Efield[lev][2],
 		 *Bfield[lev][0],*Bfield[lev][1],*Bfield[lev][2],
-		 *current[lev][0],*current[lev][1],*current[lev][2], cur_time, dt[lev]);
+		 *current[lev][0],*current[lev][1],*current[lev][2],
+                 nullptr, nullptr, nullptr, // xxxxx is this the right thing to do?
+                 cur_time, dt[lev]);
 }
 
 void

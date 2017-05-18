@@ -14,6 +14,7 @@
 #include <AMReX_Print.H>
 
 #include <ParticleContainer.H>
+#include <WarpXCrseFineBndry.H>
 
 /*! A test class */
 
@@ -188,6 +189,8 @@ private:
     amrex::Array<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > current;
     amrex::Array<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Efield;
     amrex::Array<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Bfield;
+
+    amrex::Array<std::unique_ptr<WarpXCrseFineBndry> > cfbndry;
 
     // PML  xxxxx for now let's only consider single level
     int do_pml = 0;

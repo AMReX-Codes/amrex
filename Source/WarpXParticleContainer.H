@@ -67,7 +67,9 @@ public:
     virtual void Evolve (int lev,
 			 const amrex::MultiFab& Ex, const amrex::MultiFab& Ey, const amrex::MultiFab& Ez,
 			 const amrex::MultiFab& Bx, const amrex::MultiFab& By, const amrex::MultiFab& Bz,
-			 amrex::MultiFab& jx, amrex::MultiFab& jy, amrex::MultiFab& jz, amrex::Real t, amrex::Real dt) = 0;
+			 amrex::MultiFab& jx, amrex::MultiFab& jy, amrex::MultiFab& jz,
+                         amrex::MultiFab* jx_bnd, amrex::MultiFab* jy_bnd, amrex::MultiFab* jz_bnd,
+                         amrex::Real t, amrex::Real dt) = 0;
 
     virtual void PostRestart () = 0;
 

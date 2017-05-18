@@ -110,6 +110,7 @@ WarpX::WarpX ()
     current.resize(nlevs_max);
     Efield.resize(nlevs_max);
     Bfield.resize(nlevs_max);
+    cfbndry.resize(nlevs_max-1);
 }
 
 WarpX::~WarpX ()
@@ -238,6 +239,9 @@ WarpX::ClearLevel (int lev)
 	current[lev][i].reset();
 	Efield [lev][i].reset();
 	Bfield [lev][i].reset();
+    }
+    if (lev < max_level) {
+        cfbndry[lev].reset();
     }
 }
 

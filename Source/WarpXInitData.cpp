@@ -31,6 +31,13 @@ WarpX::InitData ()
         if (okToRegrid(0)) RegridBaseLevel();
     }
 
+    for (int lev = 0; lev < finestLevel(); ++lev) {
+        const int ng = current[lev+1][0]->nGrow();
+        cfbndry[lev].reset(new WarpXCrseFineBndry(boxArray(lev), boxArray(lev+1),
+                                                  DistributionMap(lev), DistributionMap(lev+1),
+                                                  Geom(lev), Geom(lev+1), ng));
+    }
+
     if (do_pml) {
         InitPML();
     }
