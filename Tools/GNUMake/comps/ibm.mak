@@ -49,7 +49,7 @@ endif
 
 CXXFLAGS += -std=c++1y
 CFLAGS   += -std=c99
-F90FLAGS += -qlanglvl=extended
+F90FLAGS += -qlanglvl=extended -qxlf2003=polymorphic
 
 FFLAGS   += -qmoddir=$(fmoddir) -I $(fmoddir)
 F90FLAGS += -qmoddir=$(fmoddir) -I $(fmoddir)
