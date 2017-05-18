@@ -96,7 +96,7 @@ applyStencilAllFortran(EBCellFAB                       & a_dst,
   BoxArray ba(a_domain);
   DistributionMapping dm(ba);
   MultiFab srcMF(ba,dm,1,1);
-  IntVect tilesize(D_DECL(10240,8,32));
+  IntVect tilesize(AMREX_D_DECL(10240,8,32));
 
   BL_PROFILE_VAR_START(fp);
   int num_tiles = srcMF.getTileArray(tilesize)->tileArray.size();
@@ -167,7 +167,7 @@ applyStencilAllFortran(EBCellFAB                       & a_dst,
         {
           has_eb[tid] = true;
 
-          RealVect normal(D_DECL(0,0,0));
+          RealVect normal(AMREX_D_DECL(0,0,0));
           for (int idir=0; idir<SpaceDim; ++idir)
           {
             for (SideIterator sit; sit.ok(); ++sit)
@@ -261,14 +261,14 @@ applyStencilAllFortran(EBCellFAB                       & a_dst,
           {
             int idxs[SpaceDim];
             ifs.read((char*)(idxs), SpaceDim * sizeof(int));
-            IntVect iv(D_DECL(idxs[0],idxs[1],idxs[2]));
+            IntVect iv(AMREX_D_DECL(idxs[0],idxs[1],idxs[2]));
             
             Real ap;
             ifs.read((char*)(&ap), sizeof(Real));
 
             Real c[SpaceDim];
             ifs.read((char*)(c), SpaceDim * sizeof(Real));
-            RealVect cent(D_DECL(c[0],c[1],c[2]));
+            RealVect cent(AMREX_D_DECL(c[0],c[1],c[2]));
 
             faceData[idir][i][iv] = FaceData(cent, ap);
           }
@@ -303,17 +303,17 @@ applyStencilAllFortran(EBCellFAB                       & a_dst,
           {
             int idxs[SpaceDim];
             ifs.read((char*)(idxs), SpaceDim * sizeof(int));
-            IntVect iv(D_DECL(idxs[0],idxs[1],idxs[2]));
+            IntVect iv(AMREX_D_DECL(idxs[0],idxs[1],idxs[2]));
             
             Real val;
             ifs.read((char*)(&val), sizeof(Real));
 
             Real c[SpaceDim];
             ifs.read((char*)(c), SpaceDim * sizeof(Real));
-            RealVect normal(D_DECL(c[0],c[1],c[2]));
+            RealVect normal(AMREX_D_DECL(c[0],c[1],c[2]));
 
             ifs.read((char*)(c), SpaceDim * sizeof(Real));
-            RealVect centroid(D_DECL(c[0],c[1],c[2]));
+            RealVect centroid(AMREX_D_DECL(c[0],c[1],c[2]));
 
             bndryData[i][iv] = EBBndryData(normal, centroid, val);
           }
@@ -380,7 +380,7 @@ applyStencilAllFortran(EBCellFAB                       & a_dst,
         lapleb_MSD(BL_TO_FORTRAN_N(a_dst,0), 
                    BL_TO_FORTRAN_N(a_src,0),
                    BL_TO_FORTRAN_N(cd,0),
-                   D_DECL(BL_TO_FORTRAN_N(fd[0],0),
+                   AMREX_D_DECL(BL_TO_FORTRAN_N(fd[0],0),
                           BL_TO_FORTRAN_N(fd[1],0),
                           BL_TO_FORTRAN_N(fd[2],0)),
                    tbx.loVect(), tbx.hiVect(), &a_dx);

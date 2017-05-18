@@ -170,7 +170,9 @@ void test_assign_density(TestParams& parms)
   bool serialize = true;
   int iseed = 451;
   Real mass = 10.0;
-  myPC.InitRandom(num_particles, iseed, mass, serialize);
+
+  MyParticleContainer::ParticleInitData pdata = {mass};
+  myPC.InitRandom(num_particles, iseed, pdata, serialize);
   myPC.AssignCellDensitySingleLevelFort(0, partMF, 0, 1, 0);
   
   myPC.InterpolateSingleLevelFort(acceleration, 0);

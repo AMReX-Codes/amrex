@@ -41,16 +41,19 @@
   visible to debuggers while macros are not.
 */
 
+#ifdef __cplusplus
 namespace amrex
 {
     const int SpaceDim = BL_SPACEDIM;
 }
 #endif
 
+#endif
+
 #if BL_SPACEDIM==1
 
 /*
-  The D_EXPR(a,b,c) macro expands to a comma expression that will
+  The AMREX_D_EXPR(a,b,c) macro expands to a comma expression that will
   evaluate SpaceDim of its arguments, counting from the left; i.e.
   BL_SPACEDIM==1 implies only a is evaluated, BL_SPACEDIM==2
   implies both a and b, and BL_SPACEDIM==3 implies all three
@@ -60,7 +63,7 @@ namespace amrex
            
   For example:
 
-     D_EXPR(vect[0] *= s, vect[1] *= s, vect[2] *= s);
+     AMREX_D_EXPR(vect[0] *= s, vect[1] *= s, vect[2] *= s);
 
   More explicitly, this macro evaluates to one of
 
@@ -72,10 +75,10 @@ namespace amrex
 
   corresponding to BL_SPACEDIM values of 1, 2, or 3.
 */
-#  define D_EXPR(a,b,c) ((void)((a),0))
+#  define AMREX_D_EXPR(a,b,c) ((void)((a),0))
 
 /*
-  The D_DECL(a,b,c) macro expands to a comma-separated list of
+  The AMREX_D_DECL(a,b,c) macro expands to a comma-separated list of
   1, 2, or all 3 of the arguments of the call, depending on the
   value of BL_SPACEDIM.  This can be used to write portable
   function calls that depend on 1, 2, or 3 arguments, corresponding
@@ -83,7 +86,7 @@ namespace amrex
 
   For example:
 
-     return IntVect(D_DECL(p[0] + s, p[1] + s, p[2] + s));
+     return IntVect(AMREX_D_DECL(p[0] + s, p[1] + s, p[2] + s));
 
   More explicitly, this macro evaluates to one of
 
@@ -95,10 +98,10 @@ namespace amrex
 
   corresponding to BL_SPACEDIM values of 1, 2, or 3.
 */
-#  define D_DECL(a,b,c) a
+#  define AMREX_D_DECL(a,b,c) a
 
 /*
-  The D_TERM(a,b,c) macro expands to a whitespace-separated list of
+  The AMREX_D_TERM(a,b,c) macro expands to a whitespace-separated list of
   1, 2, or all 3 of the arguments of the call, depending on the value
   of BL_SPACEDIM.  This can be used to write program logic
   that depend on 1, 2, or 3 arguments, corresponding to
@@ -106,7 +109,7 @@ namespace amrex
 
   For example:
 
-     return D_TERM(len[0], *len[1], *len[2]);
+     return AMREX_D_TERM(len[0], *len[1], *len[2]);
 
   More explicitly, this macro evaluates to one of
 
@@ -118,17 +121,17 @@ namespace amrex
 
   corresponding to BL_SPACEDIM values of 1, 2, or 3.
 */
-#  define D_TERM(a,b,c) a
+#  define AMREX_D_TERM(a,b,c) a
 
 /*
-  The D_PICK(a,b,c) macro expands to a single result equal to the
+  The AMREX_D_PICK(a,b,c) macro expands to a single result equal to the
   1st, 2nd, or 3rd of the arguments of the call, depending on the value
   of BL_SPACEDIM.  This can be used to write program logic
   that depend on the value of BL_SPACEDIM.
 
   For example:
 
-     maxsize = D_PICK(1024, 128, 32);
+     maxsize = AMREX_D_PICK(1024, 128, 32);
 
   More explicitly, this macro evaluates to one of
 
@@ -140,17 +143,35 @@ namespace amrex
 
   corresponding to BL_SPACEDIM values of 1, 2, or 3.
 */
-#  define D_PICK(a,b,c) a
+#  define AMREX_D_PICK(a,b,c) a
 #elif BL_SPACEDIM==2
-#  define D_EXPR(a,b,c) ((void)((a),(b),0))
-#  define D_DECL(a,b,c) a,b
-#  define D_TERM(a,b,c) a b
-#  define D_PICK(a,b,c) b
+#  define AMREX_D_EXPR(a,b,c) ((void)((a),(b),0))
+#  define AMREX_D_DECL(a,b,c) a,b
+#  define AMREX_D_TERM(a,b,c) a b
+#  define AMREX_D_PICK(a,b,c) b
 #elif BL_SPACEDIM==3
-#  define D_EXPR(a,b,c) ((void)((a),(b),(c),0))
+#  define AMREX_D_EXPR(a,b,c) ((void)((a),(b),(c),0))
+#  define AMREX_D_DECL(a,b,c) a,b,c
+#  define AMREX_D_TERM(a,b,c) a b c
+#  define AMREX_D_PICK(a,b,c) c
+#endif
+
+/* for backward compatibility */
+#if (BL_SPACEDIM == 1)
+#  define D_DECL(a,b,c) a
+#  define D_EXPR(a,b,c) ((void)((a),0))
+#  define D_PICK(a,b,c) a
+#  define D_TERM(a,b,c) a
+#elif (BL_SPACEDIM == 2)
+#  define D_DECL(a,b,c) a,b
+#  define D_EXPR(a,b,c) ((void)((a),(b),0))
+#  define D_PICK(a,b,c) b
+#  define D_TERM(a,b,c) a b
+#elif (BL_SPACEDIM == 3)
 #  define D_DECL(a,b,c) a,b,c
-#  define D_TERM(a,b,c) a b c
+#  define D_EXPR(a,b,c) ((void)((a),(b),(c),0))
 #  define D_PICK(a,b,c) c
+#  define D_TERM(a,b,c) a b c
 #endif
 
 #endif /*BL_SPACE_H*/

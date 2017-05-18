@@ -24,7 +24,7 @@ extern "C"
 				    int scomp, int dcomp, int ncomp, const Geometry* geom, 
                                     FPhysBC::fill_physbc_funptr_t fill)
     {
-        FPhysBC pbc(fill);
+        FPhysBC pbc(fill, geom);
 	amrex::FillPatchSingleLevel(*mf, time, Array<MultiFab*>{smf, smf+ns}, 
 				    Array<Real>{stime, stime+ns},
 				    scomp, dcomp, ncomp, *geom, pbc);
@@ -46,15 +46,15 @@ extern "C"
 	    bcs.emplace_back(lo_bc[i], hi_bc[i]);
 	}
 
-        FPhysBC cbc(cfill);
-        FPhysBC fbc(ffill);
+        FPhysBC cbc(cfill, cgeom);
+        FPhysBC fbc(ffill, fgeom);
 	amrex::FillPatchTwoLevels(*mf, time,
 				  Array<MultiFab*>{cmf, cmf+nc}, Array<Real>{ct, ct+nc},
 				  Array<MultiFab*>{fmf, fmf+nf}, Array<Real>{ft, ft+nf},
 				  scomp, dcomp, ncomp,
 				  *cgeom, *fgeom,
 				  cbc, fbc,
-				  IntVect{D_DECL(rr,rr,rr)},
+				  IntVect{AMREX_D_DECL(rr,rr,rr)},
 				  interp[interp_id], bcs);
     }
 
@@ -72,13 +72,13 @@ extern "C"
 	    bcs.emplace_back(lo_bc[i], hi_bc[i]);
 	}
 
-        FPhysBC cbc(cfill);
-        FPhysBC fbc(ffill);
+        FPhysBC cbc(cfill, cgeom);
+        FPhysBC fbc(ffill, fgeom);
         amrex::InterpFromCoarseLevel(*mf, time, *cmf, 
                                      scomp, dcomp, ncomp,
                                      *cgeom, *fgeom,
                                      cbc, fbc,
-                                     IntVect{D_DECL(rr,rr,rr)},
+                                     IntVect{AMREX_D_DECL(rr,rr,rr)},
                                      interp[interp_id], bcs);
     }
 }

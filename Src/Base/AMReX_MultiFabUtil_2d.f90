@@ -191,6 +191,71 @@ subroutine bl_avgdown_faces (lo, hi, &
 end subroutine bl_avgdown_faces
 
 ! ***************************************************************************************
+! subroutine bl_avgdown_edges
+! ***************************************************************************************
+
+subroutine bl_avgdown_edges (lo, hi, &
+     f, f_l1, f_l2, f_h1, f_h2, &
+     c, c_l1, c_l2, c_h1, c_h2, &
+     ratio, idir,nc)
+
+  use amrex_fort_module, only : amrex_real
+  implicit none
+  integer          :: lo(2),hi(2)
+  integer          :: f_l1, f_l2, f_h1, f_h2
+  integer          :: c_l1, c_l2, c_h1, c_h2
+  integer          :: ratio(3), idir,nc
+  real(amrex_real) :: f(f_l1:f_h1, f_l2:f_h2, nc)
+  real(amrex_real) :: c(c_l1:c_h1, c_l2:c_h2, nc)
+
+  ! Local variables
+  integer i,j,n,facx,facy,iref,jref, ii, jj
+  real(amrex_real) :: facInv
+
+  facx = ratio(1)
+  facy = ratio(2)
+
+  if (idir .eq. 0) then
+
+     facInv = 1.d0 / facx
+
+     do n = 1, nc
+        do j     = lo(2), hi(2)
+           jj    = j * facy
+           do i  = lo(1), hi(1)
+              ii = i * facx
+              c(i,j,n) = 0.d0
+              do iref = 0, facx-1
+                 c(i,j,n) = c(i,j,n) + f(ii+iref,jj,n)
+              end do
+              c(i,j,n) = c(i,j,n) * facInv
+           end do
+        end do
+     end do
+
+  else 
+
+     facInv = 1.d0 / facy
+
+     do n = 1, nc
+        do j     = lo(2), hi(2)
+           jj    = j * facy
+           do i  = lo(1), hi(1)
+              ii = i * facx
+              c(i,j,n) = 0.d0
+              do jref = 0,facy-1
+                 c(i,j,n) = c(i,j,n) + f(ii,jj+jref,n)
+              end do
+              c(i,j,n) = c(i,j,n) *facInv
+           end do
+        end do
+     end do
+
+  end if
+
+end subroutine bl_avgdown_edges
+
+! ***************************************************************************************
 ! subroutine bl_avgdown - THIS VERISON DOES NOT DO VOLUME WEIGHTING
 ! ***************************************************************************************
 

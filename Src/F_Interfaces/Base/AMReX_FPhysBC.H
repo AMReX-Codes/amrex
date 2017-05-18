@@ -10,9 +10,9 @@ class FPhysBC
     : public PhysBCFunctBase
 {
 public:
-    using fill_physbc_funptr_t = void(*)(MultiFab* mf, int scomp, int ncomp, Real time);
+    using fill_physbc_funptr_t = void(*)(MultiFab* mf, int scomp, int ncomp, Real time, const Geometry* geom);
 
-    FPhysBC (fill_physbc_funptr_t fill) : fill_physbc(fill) {}
+    FPhysBC (fill_physbc_funptr_t fill, const Geometry* geom_) : fill_physbc(fill), geom(geom_) {}
 
     virtual ~FPhysBC () {}
     virtual void FillBoundary (MultiFab& mf, int scomp, int ncomp, Real time) override;
@@ -20,6 +20,7 @@ public:
 
 private:
     fill_physbc_funptr_t fill_physbc = nullptr;
+    const Geometry* geom = nullptr;
 };
 
 }

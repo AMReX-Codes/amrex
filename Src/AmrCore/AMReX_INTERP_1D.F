@@ -403,6 +403,7 @@ c ::: .....::::: strip out a fine grid slope vector
      $		                fslo, fshi, cslope, clen, fslope, fdat,
      $                          flen, voff, bc, limslope,
      $                          fvcx, cvcx,
+     $                          cmax, cmin, alpha,
      $                          actual_comp,actual_state)
 
       implicit none
@@ -423,6 +424,7 @@ c ::: .....::::: strip out a fine grid slope vector
       REAL_T voff(flen)
       REAL_T fvcx(fb_l1:fb_h1+1)
       REAL_T cvcx(cb_l1:cb_h1+1)
+      REAL_T cmax, cmin, alpha
 #if 0
 #define bclo(i,n) bc(i,1,n)
 #define bchi(i,n) bc(i,2,n)

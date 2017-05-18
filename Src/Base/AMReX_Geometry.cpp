@@ -20,7 +20,7 @@ namespace amrex {
 //
 int     Geometry::spherical_origin_fix = 0;
 RealBox Geometry::prob_domain;
-bool    Geometry::is_periodic[BL_SPACEDIM] = {D_DECL(0,0,0)};
+bool    Geometry::is_periodic[BL_SPACEDIM] = {AMREX_D_DECL(0,0,0)};
 
 std::ostream&
 operator<< (std::ostream&   os,
@@ -252,8 +252,8 @@ Geometry::periodicShift (const Box&      target,
     int niend,njend,nkend;
     nist = njst = nkst = 0;
     niend = njend = nkend = 0;
-    D_TERM( nist , =njst , =nkst ) = -1;
-    D_TERM( niend , =njend , =nkend ) = +1;
+    AMREX_D_TERM( nist , =njst , =nkst ) = -1;
+    AMREX_D_TERM( niend , =njend , =nkend ) = +1;
 
     int ri,rj,rk;
     for (ri = nist; ri <= niend; ri++)
@@ -296,7 +296,7 @@ Geometry::periodicShift (const Box&      target,
                 //
                 if (target.intersects(locsrc))
                 {
-                    out.push_back(IntVect(D_DECL(ri*domain.length(0),
+                    out.push_back(IntVect(AMREX_D_DECL(ri*domain.length(0),
                                                  rj*domain.length(1),
                                                  rk*domain.length(2))));
                 }

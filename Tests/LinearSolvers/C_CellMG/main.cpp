@@ -211,7 +211,7 @@ main (int argc, char* argv[])
       if (ParallelDescriptor::IOProcessor())
           std::cout << "Building grids bases on n_cell = " << ncells << std::endl;
       
-      dmn = Box(IntVect(D_DECL(0,0,0)),IntVect(D_DECL(ncells-1,ncells-1,ncells-1)));
+      dmn = Box(IntVect(AMREX_D_DECL(0,0,0)),IntVect(AMREX_D_DECL(ncells-1,ncells-1,ncells-1)));
 
       int maxgrid = -1 ; pp.query("max_grid_size", maxgrid);
 
