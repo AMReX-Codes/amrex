@@ -57,6 +57,7 @@ FPC::NativeRealDescriptor ()
     defined(i386) || \
     defined(__i386__) || \
     defined(__amd64__) || \
+    defined(__LITTLE_ENDIAN__) || \
     defined(__x86_64)
 #ifdef BL_USE_FLOAT
     static const RealDescriptor nrd(ieee_float, reverse_float_order, 4);
@@ -71,7 +72,6 @@ FPC::NativeRealDescriptor ()
     defined(__ppc__) || \
     defined(__ppc64__) || \
     defined(_SX)   || \
-    defined(__LITTLE_ENDIAN__) || \
     defined(powerpc) || \
     defined(__hpux)
 #ifdef BL_USE_FLOAT
@@ -92,6 +92,7 @@ FPC::Native32RealDescriptor ()
     defined(i386) || \
     defined(__i386__) || \
     defined(__amd64__) || \
+    defined(__LITTLE_ENDIAN__) || \
     defined(__x86_64)
     static const RealDescriptor n32rd(ieee_float, reverse_float_order, 4);
 #endif
@@ -102,7 +103,6 @@ FPC::Native32RealDescriptor ()
     defined(__ppc__) || \
     defined(__ppc64__) || \
     defined(_SX)   || \
-    defined(__LITTLE_ENDIAN__) || \
     defined(powerpc) || \
     defined(__hpux)
     static const RealDescriptor n32rd(ieee_float, normal_float_order, 4);
