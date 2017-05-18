@@ -141,7 +141,7 @@ $(objEXETempDir)/%.o: %.f90
 $(objEXETempDir)/%.o: %.F90
 	@echo Compiling $*.F90 ...
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
-	$(SILENT) $(F90CACHE) $(F90) $(F90FLAGS) $(CPP_PREFIX)-DBL_LANG_FORT $(F_CPPFLAGS) $(fincludes) -c $< $(FORT_EXE_OUTPUT_OPTION)
+	$(SILENT) $(F90CACHE) $(F90) $(F90FLAGS) -DBL_LANG_FORT $(CPPFLAGS) $(fincludes) -c $< $(FORT_EXE_OUTPUT_OPTION)
 
 #
 # Rules for dependencies in bare object files.
@@ -235,7 +235,7 @@ $(tmpEXETempDir)/%.f90.orig: %.f90
 
 $(tmpEXETempDir)/%.F90.orig: %.F90
 	@if [ ! -d $(tmpEXETempDir) ]; then mkdir -p $(tmpEXETempDir); fi
-	$(SILENT) $(F90) $(F90FLAGS) $(CPP_PREFIX)-DBL_LANG_FORT $(F_CPPFLAGS) $(fincludes) -fsyntax-only -fdump-fortran-original $< > $@
+	$(SILENT) $(F90) $(F90FLAGS) -DBL_LANG_FORT $(CPPFLAGS) $(fincludes) -fsyntax-only -fdump-fortran-original $< > $@
 
 $(tmpEXETempDir)/%.f.orig: %.f
 	@if [ ! -d $(tmpEXETempDir) ]; then mkdir -p $(tmpEXETempDir); fi
@@ -318,7 +318,7 @@ help:
 	@echo "The rule for compiling foo.cpp  is: \$$(CXX) \$$(CXXFLAGS) \$$(CPPFLAGS) \$$(includes) -c foo.o foo.cpp"
 	@echo "The rule for compiling foo.c    is: \$$(CC) \$$(CFLAGS) \$$(CPPFLAGS) \$$(includes) -c foo.o foo.c"
 	@echo "The rule for compiling foo.f90  is: \$$(F90) \$$(F90FLAGS) \$$(fincludes) -c foo.o foo.f90"
-	@echo "The rule for compiling foo.F90  is: \$$(F90) \$$(F90FLAGS) \$$(F_CPPFLAGS) \$$(fincludes) -c foo.o foo.F90"
+	@echo "The rule for compiling foo.F90  is: \$$(F90) \$$(F90FLAGS) \$$(CPPFLAGS) \$$(fincludes) -c foo.o foo.F90"
 	@echo "The rule for compiling foo.[fF] is: \$$(FC) \$$(FFLAGS) \$$(fincludes) -c foo.o foo.f"
 	@echo "    Note that .F files are preprocessed with cpp into .f files before being compiled."
 	@echo "The rule for linking            is: \$$(CXX) \$$(CXXFLAGS) \$$(CPPFLAGS) \$$(includes) \$$(LDFLAGS) -o \$$(executable) *.o \$$(libraries)"
@@ -329,7 +329,7 @@ help:
 	@echo "    FC         = $(FC)"
 	@echo "    F90        = $(F90)"
 	@echo "    CPPFLAGS   = $(CPPFLAGS)"
-	@echo "    F_CPPFLAGS = $(F_CPPFLAGS)"
+	@echo "    CPPFLAGS   = $(CPPFLAGS)"
 	@echo "    CXXFLAGS   = $(CXXFLAGS)"
 	@echo "    CFLAGS     = $(CFLAGS)"
 	@echo "    includes   = $(includes)"

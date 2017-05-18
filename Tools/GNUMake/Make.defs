@@ -86,6 +86,7 @@ FORTLINK  	= UNDERSCORE
 FORT_CPP        = cpp -E -traditional-cpp -P
 FORTPREP  	= perl $(AMREX_HOME)/Tools/C_scripts/strip72 -c
 F90PREP  	= cat  # a placeholder in case we have to write something later
+CPP_PREFIX      = 
 MKDEP		= perl $(AMREX_HOME)/Tools/C_scripts/mkdep
 MODDEP		= $(AMREX_HOME)/Tools/F_scripts/dep.py
 CHECKFORT       = $(AMREX_HOME)/Tools/typechecker/typechecker.py
