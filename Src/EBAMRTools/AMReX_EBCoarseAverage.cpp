@@ -129,7 +129,7 @@ namespace amrex
       }
       else
       {
-        int numFineCellsPerCoarse = D_TERM(m_refRat, *m_refRat, *m_refRat);
+        int numFineCellsPerCoarse = AMREX_D_TERM(m_refRat, *m_refRat, *m_refRat);
         a_sten *= (1.0/Real(numFineCellsPerCoarse));
       }
     }

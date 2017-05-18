@@ -74,6 +74,7 @@ clean::
 	@echo Cleaning...
 	$(SILENT) $(RM) $(f77EXETempDir)/*.f $(f77EXETempDir)/*.f90 $(objEXETempDir)/*.o
 	$(SILENT) $(RM) $(f77EXETempDir)/*.f $(f77EXETempDir)/*.f90 $(objEXETempDir)/*.o
+	$(SILENT) $(RM) $(tmpEXETempDir)/*
 	$(SILENT) $(RM) *.optrpt $(objEXETempDir)/*.optrpt
 	$(SILENT) $(RM) $(executable)
 	$(SILENT) $(RM) -r $(executable).dSYM
@@ -209,6 +210,7 @@ $(depEXETempDir)/%.d: %.f
 DEP_CHECK_OPTS :=
 
 $(depEXETempDir)/f90.depends: $(f90EXE_sources) $(F90EXE_sources) 
+	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
 	@if [ ! -d $(depEXETempDir) ]; then mkdir -p $(depEXETempDir); fi
 	@if [ ! -d $(f77EXETempDir) ]; then mkdir -p $(f77EXETempDir); fi
 	@echo "Building f90/F90 dependency File ..."
@@ -217,6 +219,50 @@ $(depEXETempDir)/f90.depends: $(f90EXE_sources) $(F90EXE_sources)
             --cpp "$(FORT_CPP)" \
             --defines "-DBL_LANG_FORT $(CPPFLAGS) $(fincludes)" \
             --f90_preprocess "$(F90PREP)" $^ > $(depEXETempDir)/f90.depends 
+
+
+#
+# <typecheck>
+#
+
+#$(fortran_ir_sources): $(executable)
+$(fortran_ir_sources): $(objForTypeCheck)
+
+# gfortran only
+$(tmpEXETempDir)/%.f90.orig: %.f90
+	@if [ ! -d $(tmpEXETempDir) ]; then mkdir -p $(tmpEXETempDir); fi
+	$(SILENT) $(F90) $(F90FLAGS) $(fincludes) -fsyntax-only -fdump-fortran-original $< > $@
+
+$(tmpEXETempDir)/%.F90.orig: %.F90
+	@if [ ! -d $(tmpEXETempDir) ]; then mkdir -p $(tmpEXETempDir); fi
+	$(SILENT) $(F90) $(F90FLAGS) -DBL_LANG_FORT $(CPPFLAGS) $(fincludes) -fsyntax-only -fdump-fortran-original $< > $@
+
+$(tmpEXETempDir)/%.f.orig: %.f
+	@if [ ! -d $(tmpEXETempDir) ]; then mkdir -p $(tmpEXETempDir); fi
+	$(SILENT) $(F90) $(FFLAGS) $(fincludes) -fsyntax-only -fdump-fortran-original $< > $@
+
+$(tmpEXETempDir)/%.F.orig: %.F
+	@if [ ! -d $(tmpEXETempDir) ]; then mkdir -p $(tmpEXETempDir); fi
+	$(SILENT) $(F90) $(FFLAGS) -DBL_LANG_FORT $(CPPFLAGS) $(fincludes) -fsyntax-only -fdump-fortran-original $< > $@
+
+# fix amrex::Real and amrex_real
+# & --> *
+$(tmpEXETempDir)/%-cppd.h: %.H
+	@if [ ! -d $(tmpEXETempDir) ]; then mkdir -p $(tmpEXETempDir); fi
+	$(SILENT) $(CC) $(CPPFLAGS) $(includes) -E -P -x c -std=c99 $< -o $@
+	@$(SHELL) -ec 'sed -i -e '\''s/amrex::Real/$(amrex_real)/g'\'' $@ ; \
+	               sed -i -e '\''s/amrex_real/$(amrex_real)/g'\''  $@ ; \
+	               sed -i -e '\''/typedef\s*$(amrex_real)/d'\''    $@ ; \
+	               sed -i -e '\''s/\&/*/g'\'' $@'
+
+typecheck: $(fortran_ir_sources) $(fortran_fdecl_headers_cppd)
+	@if [ ! -d $(tmpEXETempDir) ]; then mkdir -p $(tmpEXETempDir); fi
+	@echo "Checking types of Fortran procedures called from C++ ..."
+	$(CHECKFORT) --workdir $(tmpEXETempDir) --output $(tmpEXETempDir)/amrex_typecheck.ou
+
+#
+# </typecheck>
+#
 
 #
 # Now load/build the dependency files.
@@ -262,7 +308,9 @@ endif
 # e.g. libraries, simply do "make print-libraries".  This will
 # print out the value.
 print-%:
-	@echo $* is $($*)
+	@echo $* is '$($*)'
+	@echo '    origin = $(origin $*)'
+	@echo '     value = $(value  $*)'
 
 .PHONY: help
 help:
@@ -280,6 +328,7 @@ help:
 	@echo "    CC         = $(CC)"
 	@echo "    FC         = $(FC)"
 	@echo "    F90        = $(F90)"
+	@echo "    CPPFLAGS   = $(CPPFLAGS)"
 	@echo "    CPPFLAGS   = $(CPPFLAGS)"
 	@echo "    CXXFLAGS   = $(CXXFLAGS)"
 	@echo "    CFLAGS     = $(CFLAGS)"

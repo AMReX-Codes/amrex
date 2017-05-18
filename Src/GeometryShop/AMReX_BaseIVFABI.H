@@ -94,7 +94,7 @@ namespace amrex
                      int               numcomp)
   {
 //    int istop = 0;
-//    IntVect ivdeb(D_DECL(17,3,0));
+//    IntVect ivdeb(AMREX_D_DECL(17,3,0));
 //    if(srcbox.contains(ivdeb))
 //    {
 //      istop =1;

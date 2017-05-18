@@ -242,6 +242,7 @@ contains
 
   subroutine p_start(a)
     use bl_error_module
+    use amrex_timer_c_module
     type(activation_n), intent(inout) :: a
     if ( a%running ) call bl_error("P_START: should not be be running before start")
     if ( wall ) then
@@ -254,6 +255,7 @@ contains
 
   subroutine p_stop(a)
     use bl_error_module
+    use amrex_timer_c_module    
     type(activation_n), intent(inout) :: a
     real(dp_t) :: time
     if ( .not. a%running ) call bl_error("P_STOP: should be be running before start")

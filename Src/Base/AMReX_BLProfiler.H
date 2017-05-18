@@ -1,5 +1,5 @@
-#ifndef _BL_PROFILER_H_
-#define _BL_PROFILER_H_
+#ifndef BL_PROFILER_H_
+#define BL_PROFILER_H_
 
 #ifdef BL_PROFILING
 

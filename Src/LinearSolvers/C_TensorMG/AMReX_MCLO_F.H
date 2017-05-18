@@ -28,17 +28,19 @@
 
 #include <AMReX_ArrayLim.H>
 
+#ifdef __cplusplus
 extern "C"
 {
+#endif
     void FORT_APPLYBC(
 		    const int *flagden,  // 1 if want values in den
 		    const int *flagbc,   // 1 for inhomogeneous
 		    const int *maxorder, // maxorder of interpolant
-		    amrex::Real *phi, ARLIM_P(phi_lo), ARLIM_P(phi_hi),
+		    amrex_real *phi, ARLIM_P(phi_lo), ARLIM_P(phi_hi),
 		    const int *cdir,
 		    const int *bct,
-		    const amrex::Real *bcl,
-		    const amrex::Real *bcval, ARLIM_P(bcval_lo), ARLIM_P(bcval_hi),
+		    const amrex_real *bcl,
+		    const amrex_real *bcval, ARLIM_P(bcval_lo), ARLIM_P(bcval_hi),
 #if BL_SPACEDIM==2
 		    const int *mask,   ARLIM_P(mask_lo),  ARLIM_P(mask_hi), 
 		    const int *maskp,  ARLIM_P(maskp_lo),  ARLIM_P(maskp_hi), 
@@ -51,33 +53,35 @@ extern "C"
 		    const int *maskt,  ARLIM_P(maskt_lo),  ARLIM_P(maskt_hi), 
 		    const int *maskb,  ARLIM_P(maskb_lo),  ARLIM_P(maskb_hi), 
 #endif
-		    amrex::Real *den,         ARLIM_P(den_lo),   ARLIM_P(den_hi),
-		    const amrex::Real *exttd, ARLIM_P(exttd_lo), ARLIM_P(exttd_hi),
-		    amrex::Real *tander,      ARLIM_P(tander_lo),ARLIM_P(tander_hi),
+		    amrex_real *den,         ARLIM_P(den_lo),   ARLIM_P(den_hi),
+		    const amrex_real *exttd, ARLIM_P(exttd_lo), ARLIM_P(exttd_hi),
+		    amrex_real *tander,      ARLIM_P(tander_lo),ARLIM_P(tander_hi),
 		    const int *lo, const int *hi, 
 		    const int *nc,
-		    const amrex::Real *h
+		    const amrex_real *h
 		    );
     void FORT_AVERAGECC (
-	amrex::Real* crseX,       ARLIM_P(crseX_lo), ARLIM_P(crseX_hi),
-	const amrex::Real* fineX, ARLIM_P(fineX_lo), ARLIM_P(fineX_hi),
+	amrex_real* crseX,       ARLIM_P(crseX_lo), ARLIM_P(crseX_hi),
+	const amrex_real* fineX, ARLIM_P(fineX_lo), ARLIM_P(fineX_hi),
 	const int *tlo, const int *thi, const int *nc
 	);
 
     void FORT_AVERAGEEC (
-	amrex::Real* crseX,       ARLIM_P(crseX_lo), ARLIM_P(crseX_hi),
-	const amrex::Real* fineX, ARLIM_P(fineX_lo), ARLIM_P(fineX_hi),
+	amrex_real* crseX,       ARLIM_P(crseX_lo), ARLIM_P(crseX_hi),
+	const amrex_real* fineX, ARLIM_P(fineX_lo), ARLIM_P(fineX_hi),
 	const int *tlo, const int *thi, const int *nc,
 	const int *axis
 	);
 
     void FORT_HARMONIC_AVERAGEEC (
-	amrex::Real* crseX,       ARLIM_P(crseX_lo), ARLIM_P(crseX_hi),
-	const amrex::Real* fineX, ARLIM_P(fineX_lo), ARLIM_P(fineX_hi),
+	amrex_real* crseX,       ARLIM_P(crseX_lo), ARLIM_P(crseX_hi),
+	const amrex_real* fineX, ARLIM_P(fineX_lo), ARLIM_P(fineX_hi),
 	const int *tlo, const int *thi, const int *nc,
 	const int *axis
 	);
+#ifdef __cplusplus
 }
+#endif
 #endif
 
 #endif /*_MCLO_F_H_*/

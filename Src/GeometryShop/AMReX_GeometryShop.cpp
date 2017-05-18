@@ -385,7 +385,6 @@ namespace amrex
     IntVectSet ivsdrop ;
     long int numCovered=0, numReg=0, numIrreg=0;
 
-
     for (BoxIterator bit(a_ghostRegion); bit.ok(); ++bit)
       {
         const IntVect iv =bit();

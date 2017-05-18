@@ -1,4 +1,4 @@
-// This solves (alpha * a - beta * (del dot b grad)) phi = rhs using MGT_Sover,
+// This solves (alpha * a - beta * (del dot b grad)) phi = rhs using MGT_Solver,
 // which in turn uses Fortran multigrid solver F_MG.  Here a, phi and rhs are 
 // cell-centered arrays (i.e., MultiFab), alpha and beta is a scalar, and b is
 // face-centered array represented by BL_SPACEDIM face-centered MultiFabs.
@@ -18,7 +18,7 @@
 //
 // Step 3:
 //   Use one of the set_bc functions to pass in multigrid boundary conditions
-//   and set boundary values.  Here the valuse in mg_bc should match the ones in
+//   and set boundary values.  Here the values in mg_bc should match the ones in
 //   F_MG/mg_cpp_f.h.  For periodic boundaries, it can set to either BC_PER 
 //   (i.e., -1) or BC_INT (i.e., 0).
 //
@@ -33,7 +33,7 @@
 // Step 6: OPTIONAL
 //   Call get_fluxes to get fluxes (i.e., -beta b grad phi).  The need_grad_phi 
 //   flag in last step must be 1.  Note that grad_phi is Array with BL_SPACEDIM
-//   face-cented MultiFab pointerss or Array<Array> in case of multiple levels.
+//   face-centered MultiFab pointers or Array<Array> in case of multiple levels.
 //
 // If one only wants to test a solution by computing residual without actually
 // solving the problem, or apply the operator.  Replace Step 5 with a call to 

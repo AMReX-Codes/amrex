@@ -59,18 +59,20 @@
 
 #include <AMReX_ArrayLim.H>
 
+#ifdef __cplusplus
 extern "C"
 {
-  void FORT_DVAPPLY(
-		    const amrex::Real*u, ARLIM_P(ulo), ARLIM_P(uhi),
-		    const amrex::Real*alpha, const amrex::Real*beta,
-		    const amrex::Real*a, ARLIM_P(alo),   ARLIM_P(ahi),
-		    const amrex::Real*muX, ARLIM_P(muXlo), ARLIM_P(muXhi),
-		    const amrex::Real*muY, ARLIM_P(muYlo), ARLIM_P(muYhi),
-#if (BL_SPACEDIM > 2)
-		    const amrex::Real*muZ, ARLIM_P(muZlo), ARLIM_P(muZhi),
 #endif
-		    amrex::Real*out, ARLIM_P(outlo), ARLIM_P(outhi),
+  void FORT_DVAPPLY(
+		    const amrex_real*u, ARLIM_P(ulo), ARLIM_P(uhi),
+		    const amrex_real*alpha, const amrex_real*beta,
+		    const amrex_real*a, ARLIM_P(alo),   ARLIM_P(ahi),
+		    const amrex_real*muX, ARLIM_P(muXlo), ARLIM_P(muXhi),
+		    const amrex_real*muY, ARLIM_P(muYlo), ARLIM_P(muYhi),
+#if (BL_SPACEDIM > 2)
+		    const amrex_real*muZ, ARLIM_P(muZlo), ARLIM_P(muZhi),
+#endif
+		    amrex_real*out, ARLIM_P(outlo), ARLIM_P(outhi),
 		    const int*maskn, ARLIM_P(masknlo), ARLIM_P(masknhi),
 		    const int*maske, ARLIM_P(maskelo), ARLIM_P(maskehi),
 		    const int*maskw, ARLIM_P(maskwlo), ARLIM_P(maskwhi),
@@ -79,35 +81,35 @@ extern "C"
 		    const int*maskt, ARLIM_P(masktlo), ARLIM_P(maskthi),
 		    const int*maskb, ARLIM_P(maskblo), ARLIM_P(maskbhi),
 #endif
-		    const amrex::Real*trandern,
+		    const amrex_real*trandern,
 		    ARLIM_P(trandernlo),ARLIM_P(trandernhi),
-		    const amrex::Real*trandere,
+		    const amrex_real*trandere,
 		    ARLIM_P(tranderelo),ARLIM_P(tranderehi),
-		    const amrex::Real*tranderw,
+		    const amrex_real*tranderw,
 		    ARLIM_P(tranderwlo),ARLIM_P(tranderwhi),
-		    const amrex::Real*tranders,
+		    const amrex_real*tranders,
 		    ARLIM_P(tranderslo),ARLIM_P(trandershi),
 #if (BL_SPACEDIM > 2)
-		    const amrex::Real*trandert,
+		    const amrex_real*trandert,
 		    ARLIM_P(trandertlo),ARLIM_P(tranderthi),
-		    const amrex::Real*tranderb,
+		    const amrex_real*tranderb,
 		    ARLIM_P(tranderblo),ARLIM_P(tranderbhi),
 #endif
-		    const int* lo, const int* hi, const amrex::Real* h);
+		    const int* lo, const int* hi, const amrex_real* h);
 
   void FORT_DVFLUX(
-		   const amrex::Real*u, ARLIM_P(ulo), ARLIM_P(uhi),
-		   const amrex::Real*alpha, const amrex::Real*beta,
-		   const amrex::Real*a, ARLIM_P(alo),   ARLIM_P(ahi),
-		   const amrex::Real*muX, ARLIM_P(muXlo), ARLIM_P(muXhi),
-		   const amrex::Real*muY, ARLIM_P(muYlo), ARLIM_P(muYhi),
+		   const amrex_real*u, ARLIM_P(ulo), ARLIM_P(uhi),
+		   const amrex_real*alpha, const amrex_real*beta,
+		   const amrex_real*a, ARLIM_P(alo),   ARLIM_P(ahi),
+		   const amrex_real*muX, ARLIM_P(muXlo), ARLIM_P(muXhi),
+		   const amrex_real*muY, ARLIM_P(muYlo), ARLIM_P(muYhi),
 #if BL_SPACEDIM>2
-		   const amrex::Real*muZ, ARLIM_P(muZlo), ARLIM_P(muZhi),
+		   const amrex_real*muZ, ARLIM_P(muZlo), ARLIM_P(muZhi),
 #endif
-		   amrex::Real*xflux, ARLIM_P(xfluxlo), ARLIM_P(xfluxhi),
-		   amrex::Real*yflux, ARLIM_P(yfluxlo), ARLIM_P(yfluxhi),
+		   amrex_real*xflux, ARLIM_P(xfluxlo), ARLIM_P(xfluxhi),
+		   amrex_real*yflux, ARLIM_P(yfluxlo), ARLIM_P(yfluxhi),
 #if BL_SPACEDIM>2
-		   amrex::Real*zflux, ARLIM_P(zfluxlo), ARLIM_P(zfluxhi),
+		   amrex_real*zflux, ARLIM_P(zfluxlo), ARLIM_P(zfluxhi),
 #endif
 		   const int*maskn, ARLIM_P(masknlo), ARLIM_P(masknhi),
 		   const int*maske, ARLIM_P(maskelo), ARLIM_P(maskehi),
@@ -117,72 +119,72 @@ extern "C"
 		   const int*maskt, ARLIM_P(masktlo), ARLIM_P(maskthi),
 		   const int*maskb, ARLIM_P(maskblo), ARLIM_P(maskbhi),
 #endif
-		   const amrex::Real*trandern,
+		   const amrex_real*trandern,
 		   ARLIM_P(trandernlo),ARLIM_P(trandernhi),
-		   const amrex::Real*trandere,
+		   const amrex_real*trandere,
 		   ARLIM_P(tranderelo),ARLIM_P(tranderehi),
-		   const amrex::Real*tranderw,
+		   const amrex_real*tranderw,
 		   ARLIM_P(tranderwlo),ARLIM_P(tranderwhi),
-		   const amrex::Real*tranders,
+		   const amrex_real*tranders,
 		   ARLIM_P(tranderslo),ARLIM_P(trandershi),
 #if BL_SPACEDIM>2
-		   const amrex::Real*trandert,
+		   const amrex_real*trandert,
 		   ARLIM_P(trandertlo),ARLIM_P(tranderthi),
-		   const amrex::Real*tranderb,
+		   const amrex_real*tranderb,
 		   ARLIM_P(tranderblo),ARLIM_P(tranderbhi),
 #endif
-		   const int* lo, const int* hi, const amrex::Real* h);
+		   const int* lo, const int* hi, const amrex_real* h);
 
   void FORT_GSRB(
-		 amrex::Real* u, ARLIM_P(ulo), ARLIM_P(uhi),
-		 const amrex::Real* rhs, ARLIM_P(rhslo), ARLIM_P(rhshi),
-		 amrex::Real* alpha, amrex::Real* beta,
-		 const amrex::Real* a, ARLIM_P(alo), ARLIM_P(ahi),
-		 const amrex::Real* muX, ARLIM_P(muXlo), ARLIM_P(muXhi),
-		 const amrex::Real* muY, ARLIM_P(muYlo), ARLIM_P(muYhi),
+		 amrex_real* u, ARLIM_P(ulo), ARLIM_P(uhi),
+		 const amrex_real* rhs, ARLIM_P(rhslo), ARLIM_P(rhshi),
+		 amrex_real* alpha, amrex_real* beta,
+		 const amrex_real* a, ARLIM_P(alo), ARLIM_P(ahi),
+		 const amrex_real* muX, ARLIM_P(muXlo), ARLIM_P(muXhi),
+		 const amrex_real* muY, ARLIM_P(muYlo), ARLIM_P(muYhi),
 #if BL_SPACEDIM>2
-		 const amrex::Real* muZ, ARLIM_P(muZlo), ARLIM_P(muZhi),
+		 const amrex_real* muZ, ARLIM_P(muZlo), ARLIM_P(muZhi),
 #endif
 		 const int* maskn, ARLIM_P(masknlo), ARLIM_P(masknhi),
-		 const amrex::Real* fn, ARLIM_P(fnlo), ARLIM_P(fnhi),
+		 const amrex_real* fn, ARLIM_P(fnlo), ARLIM_P(fnhi),
 		 const int* maske, ARLIM_P(maskelo), ARLIM_P(maskehi),
-		 const amrex::Real* fe, ARLIM_P(felo), ARLIM_P(fehi),
+		 const amrex_real* fe, ARLIM_P(felo), ARLIM_P(fehi),
 		 const int* maskw, ARLIM_P(maskwlo), ARLIM_P(maskwhi),
-		 const amrex::Real* fw, ARLIM_P(fwlo), ARLIM_P(fwhi),
+		 const amrex_real* fw, ARLIM_P(fwlo), ARLIM_P(fwhi),
 		 const int* masks, ARLIM_P(maskslo), ARLIM_P(maskshi),
-		 const amrex::Real* fs, ARLIM_P(fslo), ARLIM_P(fshi),
+		 const amrex_real* fs, ARLIM_P(fslo), ARLIM_P(fshi),
 #if BL_SPACEDIM>2
 		 const int* maskt, ARLIM_P(masktlo), ARLIM_P(maskthi),
-		 const amrex::Real* ft, ARLIM_P(ftlo), ARLIM_P(fthi),
+		 const amrex_real* ft, ARLIM_P(ftlo), ARLIM_P(fthi),
 		 const int* maskb, ARLIM_P(maskblo), ARLIM_P(maskbhi),
-		 const amrex::Real* fb, ARLIM_P(fblo), ARLIM_P(fbhi),
+		 const amrex_real* fb, ARLIM_P(fblo), ARLIM_P(fbhi),
 #endif
-		 const amrex::Real* trandern, 
+		 const amrex_real* trandern, 
 		 ARLIM_P(trandernlo), ARLIM_P(trandernhi),
-		 const amrex::Real* trandere, 
+		 const amrex_real* trandere, 
 		 ARLIM_P(tranderelo), ARLIM_P(tranderehi),
-		 const amrex::Real* tranderw, 
+		 const amrex_real* tranderw, 
 		 ARLIM_P(tranderwlo), ARLIM_P(tranderwhi),
-		 const amrex::Real* tranders, 
+		 const amrex_real* tranders, 
 		 ARLIM_P(tranderslo), ARLIM_P(trandershi),
 #if BL_SPACEDIM>2
-		 const amrex::Real* trandert, 
+		 const amrex_real* trandert, 
 		 ARLIM_P(trandertlo), ARLIM_P(tranderthi),
-		 const amrex::Real* tranderb, 
+		 const amrex_real* tranderb, 
 		 ARLIM_P(tranderblo), ARLIM_P(tranderbhi),
 #endif
 		 const int* lo, const int* hi,
-		 const amrex::Real* h, int &nc, int &phaseflag);
+		 const amrex_real* h, int &nc, int &phaseflag);
 		 
   void FORT_APPLYBC(
 		    const int *flagden,  // 1 if want values in den
 		    const int *flagbc,   // 1 for inhomogeneous
 		    const int *maxorder, // maxorder of interpolant
-		    amrex::Real *phi, ARLIM_P(phi_lo), ARLIM_P(phi_hi),
+		    amrex_real *phi, ARLIM_P(phi_lo), ARLIM_P(phi_hi),
 		    const int *cdir,
 		    const int *bct,
-		    const amrex::Real *bcl,
-		    const amrex::Real *bcval, ARLIM_P(bcval_lo), ARLIM_P(bcval_hi),
+		    const amrex_real *bcl,
+		    const amrex_real *bcval, ARLIM_P(bcval_lo), ARLIM_P(bcval_hi),
 #if BL_SPACEDIM==2
 		    const int *mask,   ARLIM_P(mask_lo),  ARLIM_P(mask_hi), 
 		    const int *maskp,   ARLIM_P(maskp_lo),  ARLIM_P(maskp_hi), 
@@ -195,16 +197,18 @@ extern "C"
 		    const int *maskt,   ARLIM_P(maskt_lo),  ARLIM_P(maskt_hi), 
 		    const int *maskb,   ARLIM_P(maskb_lo),  ARLIM_P(maskb_hi), 
 #endif
-		    amrex::Real *den,         ARLIM_P(den_lo),   ARLIM_P(den_hi),
-		    const amrex::Real *exttd, ARLIM_P(exttd_lo), ARLIM_P(exttd_hi),
-		    amrex::Real *tander,      ARLIM_P(tander_lo),ARLIM_P(tander_hi),
+		    amrex_real *den,         ARLIM_P(den_lo),   ARLIM_P(den_hi),
+		    const amrex_real *exttd, ARLIM_P(exttd_lo), ARLIM_P(exttd_hi),
+		    amrex_real *tander,      ARLIM_P(tander_lo),ARLIM_P(tander_hi),
 		    const int *lo, const int *hi, 
 		    const int *nc,
-		    const amrex::Real *h
+		    const amrex_real *h
 		    );
 
 
+#ifdef __cplusplus
 }
+#endif
 
 #endif
 

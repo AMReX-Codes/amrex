@@ -1759,6 +1759,9 @@ Amr::timeStep (int  level,
     //      when regridding is called with possible lbase > level.
     which_level_being_advanced = level;
 
+    // Update so that by default, we don't force a post-step regrid.
+    amr_level[level]->setPostStepRegrid(0);
+
     //
     // Allow regridding of level 0 calculation on restart.
     //
@@ -1854,6 +1857,29 @@ Amr::timeStep (int  level,
 #ifdef USE_SLABSTAT
     AmrLevel::get_slabstat_lst().update(*amr_level[level],time,dt_level[level]);
 #endif
+
+    // If the level signified that it wants a regrid after the advance has
+    // occurred, do that now.
+
+    if (amr_level[level]->postStepRegrid()) {
+
+	int old_finest = finest_level;
+
+	regrid(level, time);
+
+	if (old_finest < finest_level)
+	{
+	    //
+	    // The new levels will not have valid time steps.
+	    //
+	    for (int k = old_finest + 1; k <= finest_level; ++k)
+	    {
+		dt_level[k] = dt_level[k-1] / n_cycle[k];
+	    }
+	}
+
+    }
+
     //
     // Advance grids at higher level.
     //
@@ -2595,11 +2621,11 @@ Amr::printGridSummary (std::ostream& os,
 	    const Box& bmax = bs[imax];
 	    os << "           "
 	       << " smallest grid: "
-		D_TERM(<< bmin.length(0),
+		AMREX_D_TERM(<< bmin.length(0),
 		       << " x " << bmin.length(1),
 		       << " x " << bmin.length(2))
 	       << "  biggest grid: "
-		D_TERM(<< bmax.length(0),
+		AMREX_D_TERM(<< bmax.length(0),
 		       << " x " << bmax.length(1),
 		       << " x " << bmax.length(2))
 	       << '\n';
