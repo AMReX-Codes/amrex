@@ -100,9 +100,9 @@ public:
 
     //! Maintain a record of all FABs that have been sent to the device.
     template<class FAB>
-    bool registerFab(const FAB& fab) const { return false; }
+    bool registerFab(const FAB& fab, int idx = -1) const { return false; }
 
-    bool registerFab(const FArrayBox& fab) const;
+    bool registerFab(const FArrayBox& fab, int idx = -1) const;
 
     //! Return all data from the device to the host.
     void releaseDeviceData();
@@ -139,6 +139,7 @@ protected:
     const Array<int>* num_local_tiles;
 
     mutable Array<FArrayBox*> registered_fabs;
+    mutable Array<int> registered_fabs_indices;
   
     void Initialize ();
 };
@@ -147,11 +148,12 @@ protected:
 // return false if we had already registered it.
 inline
 bool
-MFIter::registerFab(const FArrayBox& fab) const
+MFIter::registerFab(const FArrayBox& fab, int idx) const
 {
     FArrayBox* fab_p = const_cast<FArrayBox*>(&fab);
     if (std::find(registered_fabs.begin(), registered_fabs.end(), fab_p) == registered_fabs.end()) {
 	registered_fabs.push_back(fab_p);
+	registered_fabs_indices.push_back(idx);
 	return true;
     }
     return false;

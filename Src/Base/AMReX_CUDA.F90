@@ -47,7 +47,11 @@ contains
 
     integer :: idx
 
-    stream_from_index = MOD(idx, max_cuda_streams) + 1
+    if (idx < 0) then
+       stream_from_index = 0
+    else
+       stream_from_index = MOD(idx, max_cuda_streams) + 1
+    endif
 
   end function stream_from_index
 
@@ -141,9 +145,9 @@ contains
 
 
 
-  subroutine gpu_htod_memcpy_async(p_d, p_h, sz) bind(c, name='gpu_htod_memcpy_async')
+  subroutine gpu_htod_memcpy_async(p_d, p_h, sz, idx) bind(c, name='gpu_htod_memcpy_async')
 
-    use cudafor, only: cudaMemcpyAsync, cudaMemcpyHostToDevice, c_devptr
+    use cudafor, only: cudaMemcpyAsync, cudaMemcpyHostToDevice, c_devptr, cuda_stream_kind
     use iso_c_binding, only: c_ptr, c_size_t
 
     implicit none
@@ -151,16 +155,20 @@ contains
     type(c_devptr), value :: p_d
     type(c_ptr), value :: p_h
     integer(c_size_t) :: sz
+    integer :: idx
 
+    integer :: s
     integer :: cudaResult
 
-    cudaResult = cudaMemcpyAsync(p_d, p_h, sz, cudaMemcpyHostToDevice, 0)
+    s = stream_from_index(idx)
+
+    cudaResult = cudaMemcpyAsync(p_d, p_h, sz, cudaMemcpyHostToDevice, cuda_streams(s))
 
   end subroutine gpu_htod_memcpy_async
 
 
 
-  subroutine gpu_dtoh_memcpy_async(p_h, p_d, sz) bind(c, name='gpu_dtoh_memcpy_async')
+  subroutine gpu_dtoh_memcpy_async(p_h, p_d, sz, idx) bind(c, name='gpu_dtoh_memcpy_async')
 
     use cudafor, only: cudaMemcpyAsync, cudaMemcpyDeviceToHost, c_devptr
     use iso_c_binding, only: c_ptr, c_size_t
@@ -170,16 +178,20 @@ contains
     type(c_ptr), value :: p_h
     type(c_devptr), value :: p_d
     integer(c_size_t) :: sz
+    integer :: idx
 
+    integer :: s
     integer :: cudaResult
 
-    cudaResult = cudaMemcpyAsync(p_h, p_d, sz, cudaMemcpyDeviceToHost, 0)
+    s = stream_from_index(idx)
+
+    cudaResult = cudaMemcpyAsync(p_h, p_d, sz, cudaMemcpyDeviceToHost, cuda_streams(s))
 
   end subroutine gpu_dtoh_memcpy_async
 
 
 
-  subroutine gpu_htod_memprefetch_async(p, sz) bind(c, name='gpu_htod_memprefetch_async')
+  subroutine gpu_htod_memprefetch_async(p, sz, idx) bind(c, name='gpu_htod_memprefetch_async')
 
     use cudafor, only: cudaMemPrefetchAsync, c_devptr
     use iso_c_binding, only: c_size_t
@@ -188,16 +200,20 @@ contains
 
     type(c_devptr) :: p
     integer(c_size_t) :: sz
+    integer :: idx
 
+    integer :: s
     integer :: cudaResult
 
-    cudaResult = cudaMemPrefetchAsync(p, sz, cuda_device_id, 0)
+    s = stream_from_index(idx)
+
+    cudaResult = cudaMemPrefetchAsync(p, sz, cuda_device_id, cuda_streams(s))
 
   end subroutine gpu_htod_memprefetch_async
 
 
 
-  subroutine gpu_dtoh_memprefetch_async(p, sz) bind(c, name='gpu_dtoh_memprefetch_async')
+  subroutine gpu_dtoh_memprefetch_async(p, sz, idx) bind(c, name='gpu_dtoh_memprefetch_async')
 
     use cudafor, only: cudaMemPrefetchAsync, c_devptr, cudaCpuDeviceId
     use iso_c_binding, only: c_size_t
@@ -206,10 +222,14 @@ contains
 
     type(c_devptr) :: p
     integer(c_size_t) :: sz
+    integer :: idx
 
+    integer :: s
     integer :: cudaResult
 
-    cudaResult = cudaMemPrefetchAsync(p, sz, cudaCpuDeviceId, 0)
+    s = stream_from_index(idx)
+
+    cudaResult = cudaMemPrefetchAsync(p, sz, cudaCpuDeviceId, cuda_streams(s))
 
   end subroutine gpu_dtoh_memprefetch_async
 

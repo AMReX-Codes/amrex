@@ -313,8 +313,9 @@ void
 MFIter::releaseDeviceData() {
     if (Device::inDeviceLaunchRegion()) {
 	for (int i = 0; i < registered_fabs.size(); ++i)
-	    registered_fabs[i]->toHost();
+	    registered_fabs[i]->toHost(registered_fabs_indices[i]);
 	registered_fabs.clear();
+	registered_fabs_indices.clear();
     }
 }
 
