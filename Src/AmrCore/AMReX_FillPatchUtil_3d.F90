@@ -21,7 +21,7 @@ subroutine amrex_interp_div_free_bfield (lo, hi, bx, bxlo, bxhi, by, bylo, byhi,
   real(amrex_real) :: coe_a0, coe_ax, coe_ay, coe_az, coe_axx, coe_axy, coe_axz
   real(amrex_real) :: coe_b0, coe_bx, coe_by, coe_bz, coe_bxy, coe_byy, coe_byz
   real(amrex_real) :: coe_c0, coe_cx, coe_cy, coe_cz, coe_cxz, coe_cyz, coe_czz
-  real(amrex_real), parameter :: theta = 1.d0 ! 1: minmod, j2: MC
+  real(amrex_real), parameter :: theta = 2.d0 ! 1: minmod, 2: MC
 
   clo = cxlo+1
   chi = cxhi-1
