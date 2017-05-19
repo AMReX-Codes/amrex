@@ -28,39 +28,58 @@
 namespace  amrex
 {
 
-/// Quadratic coarse-fine interpolation utility 
-  class NWOEBQuadCFInterp
+  ///
+  /**
+     Class to fill the ghost cells over coarse-fine interfaces.  The 
+     order of the polynomial used in the interpolation is adjustable.
+     Second derivatives are as far as I go, for now.
+   */
+  class EBCFInterp
   {
   public:
 
     ///  
-    NWOEBQuadCFInterp()
+    EBCFInterp()
       {
         m_isDefined = false;
       }
 
-    /// makes fully defined object.   all ghost cells at the coarse-fine interface filled
-    NWOEBQuadCFInterp(const EBLevelGrid      & a_eblgFine,
-                      const EBLevelGrid      & a_eblgCoar,
-                      const int              & a_refRat,
-                      const int              & a_ghostCellsInData,
-                      const int              & a_ghostCellsToFill,
-                      bool a_slowMode = false)
+    /// 
+    /** makes fully defined object.   
+       If orderOfPolynomial = 0,  no first or second derivative stencils included
+       If orderOfPolynomial = 1,  no second derivative stencils included.
+       Second derivatives are as far as I go, for now.
+       Slow mode is slow.  Don't use it unless you are stepping through a debugger.
+    */
+    EBCFInterp(const EBLevelGrid      & a_eblgFine,
+               const EBLevelGrid      & a_eblgCoar,
+               const int              & a_refRat,
+               const int              & a_ghostCellsInData,
+               const int              & a_ghostCellsToFill,
+               int  a_orderOfPolynomial = 2,
+               bool a_slowMode = false)
       {
         define(a_eblgFine, a_eblgCoar, a_refRat, a_ghostCellsInData, a_ghostCellsToFill, a_slowMode);
       }
 
 
     ///used for defining a null-defined object.  all ghost cells at the coarse-fine interface filled
+    /** makes fully defined object.   
+       If orderOfPolynomial = 0,  no first or second derivative stencils included
+       If orderOfPolynomial = 1,  no second derivative stencils included.
+       Second derivatives are as far as I go, for now.
+       Slow mode is slow.  Don't use it unless you are stepping through a debugger.
+    */
     void  define(const EBLevelGrid      & a_eblgFine,
                  const EBLevelGrid      & a_eblgCoar,
                  const int              & a_refRat,
                  const int              & a_ghostCellsInData,
                  const int              & a_ghostCellsToFill,
+                 int  a_orderOfPolynomial = 2,
                  bool a_slowMode = false);
 
     ///
-    ~NWOEBQuadCFInterp()
+    ~EBCFInterp()
       {  }
 
     ///
@@ -103,27 +122,26 @@ namespace  amrex
     EBLevelGrid m_eblgFine;
     EBLevelGrid m_eblgCoFi;
 
-    bool m_slowMode;
     int               m_refRat;
     int               m_dataGhost;
     int               m_fillGhost;
     bool              m_isDefined;
     LayoutData<std::shared_ptr< AggStencil<EBCellFAB, EBCellFAB> > > m_stencil;
-    //for slow mode, we are just debugging so do stuff pointwise
-    LayoutData<vector<VoFStencil> > m_slowStencils;
-    LayoutData<vector<VolIndex  > >  m_slowVoFs;
-    FabArray<EBCellFAB> m_bufferCoFi;
+    int m_orderOfPolynomial;
     int m_buffGhost;
-  
+    //for slow mode, we are just debugging so do stuff pointwise
+    bool m_slowMode; //usually false
+    LayoutData<vector<VoFStencil> > m_slowStencils;//usually left undefined
+    LayoutData<vector<VolIndex  > >  m_slowVoFs;   //usually left undefined
 
   private:
 
 
     //disallowed for all the usual reasons
-    NWOEBQuadCFInterp(NWOEBQuadCFInterp& a_input);
+    EBCFInterp(EBCFInterp& a_input);
 
     //disallowed for all the usual reasons
-    void operator=(NWOEBQuadCFInterp& a_input);
+    void operator=(EBCFInterp& a_input);
 
 
   };

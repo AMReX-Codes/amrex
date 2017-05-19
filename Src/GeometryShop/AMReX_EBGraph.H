@@ -278,7 +278,8 @@ namespace amrex
         
         
     //fix fineVoF->coarseVoF information of the input
-    void fixFineToCoarse(EBGraphImplem& a_fineEBIS) const;
+    void fixFineToCoarse(EBGraphImplem& a_fineEBIS,
+                         const Box    & a_coarRegion) const;
         
     //don't ask
     std::vector<int>
@@ -691,7 +692,8 @@ namespace amrex
                       const Box    & a_region);
         
     //fix fineVoF->coarseVoF information of the input
-    void fixFineToCoarse(EBGraph& a_fineEBIS) const;
+    void fixFineToCoarse(EBGraph      & a_fineEBIS,
+                         const Box    & a_coarRegion) const;
         
     //don't ask
     std::vector<int>
@@ -955,9 +957,10 @@ namespace amrex
   }
   /*******************************/
   inline void EBGraph::
-  fixFineToCoarse(EBGraph& a_fineEBIS) const
+  fixFineToCoarse(EBGraph  & a_fineEBIS,
+                  const Box& a_coarRegion) const
   {
-    m_implem->fixFineToCoarse(*a_fineEBIS.m_implem);
+    m_implem->fixFineToCoarse(*a_fineEBIS.m_implem, a_coarRegion);
   }
   /*******************************/
   inline std::vector<FaceIndex>
