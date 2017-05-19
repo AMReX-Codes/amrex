@@ -2,6 +2,8 @@
 #include <WarpX.H>
 #include <AMReX_FillPatchUtil.H>
 
+#include <cstdlib>
+
 using namespace amrex;
 
 void
@@ -181,5 +183,43 @@ WarpX::SyncCurrent ()
             cfbndry[lev-1]->AddCurrent(*current[lev][0], *current[lev][1], *current[lev][2]);
         }
     }
+
+    SumFineBoundaryToCrseCurrent();
+
     AverageDownCurrent();
 }
+
+void
+WarpX::SumFineBoundaryToCrseCurrent ()
+{
+    // xxxxx TODO this function can be optimized
+
+    for (int lev = 0; lev < finest_level; ++lev)
+    {
+        const IntVect& ref_ratio = refRatio(lev);
+        int ngf = current[lev+1][0]->nGrow();
+        std::div_t dv = std::div(ngf, ref_ratio[0]);
+        int ngc = (dv.rem) ? dv.quot+1 : dv.quot;
+        BoxArray cfba = boxArray(lev+1);
+        cfba.coarsen(ref_ratio);
+
+        Array<std::unique_ptr<MultiFab> > cfj(3);
+        const DistributionMapping& fdm = DistributionMap(lev+1);
+        cfj[0].reset(new MultiFab(amrex::convert(cfba,jx_nodal_flag),fdm,1,ngc));
+        cfj[1].reset(new MultiFab(amrex::convert(cfba,jy_nodal_flag),fdm,1,ngc));
+        cfj[2].reset(new MultiFab(amrex::convert(cfba,jz_nodal_flag),fdm,1,ngc));
+
+#if (BL_SPACEDIM == 3)
+        Array<const MultiFab*> fine {current[lev+1][0].get(), current[lev+1][1].get(), current[lev+1][2].get()};
+#else
+        // xxxxx TODO 2D to be implemented
+#endif
+        amrex::average_down_edges(fine, amrex::GetArrOfPtrs(cfj), ref_ratio, ngc);
+
+        const auto& period = Geom(lev).periodicity();
+        current[lev][0]->copy(*cfj[0], 0, 0, 1, ngc, 0, period, FabArrayBase::ADD);
+        current[lev][1]->copy(*cfj[1], 0, 0, 1, ngc, 0, period, FabArrayBase::ADD);
+        current[lev][2]->copy(*cfj[2], 0, 0, 1, ngc, 0, period, FabArrayBase::ADD);
+    }
+}
+

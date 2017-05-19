@@ -87,6 +87,7 @@ public:
     void AverageDownE ();
     void AverageDownCurrent ();
     void SyncCurrent ();
+    void SumFineBoundaryToCrseCurrent ();
 
     int getistep (int lev) const {return istep[lev];}
     void setistep (int lev, int ii) {istep[lev] = ii;}
