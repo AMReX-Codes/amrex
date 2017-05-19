@@ -2,9 +2,19 @@
 #ifndef BL_DEVICE_H
 #define BL_DEVICE_H
 
+#include <cstdlib>
+
 #ifdef CUDA
 extern "C" {
     void initialize_cuda();
+    void gpu_malloc(void** p, const std::size_t* sz);
+    void gpu_malloc_managed(void** p, const std::size_t* sz);
+    void gpu_free(void* p);
+    void gpu_synchronize();
+    void gpu_htod_memcpy_async(void* p_d, void* p_h, const std::size_t* sz);
+    void gpu_dtoh_memcpy_async(void* p_h, void* p_d, const std::size_t* sz);
+    void gpu_htod_memprefetch_async(void* p, const std::size_t* sz);
+    void gpu_dtoh_memprefetch_async(void* p, const std::size_t* sz);
 }
 #endif
 
@@ -23,7 +33,7 @@ public:
 
     static bool inDeviceLaunchRegion() {
 #ifdef CUDA
-      cudaDeviceSynchronize(); 
+      gpu_synchronize();
 #endif
       return in_device_launch_region; 
     }

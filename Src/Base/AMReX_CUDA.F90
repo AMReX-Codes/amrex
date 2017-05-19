@@ -87,4 +87,144 @@ contains
 
   end subroutine threads_and_blocks
 
+
+
+  subroutine gpu_malloc(x, sz) bind(c, name='gpu_malloc')
+
+    use cudafor, only: cudaMalloc, c_devptr
+    use iso_c_binding, only: c_size_t
+
+    implicit none
+
+    type(c_devptr) :: x
+    integer(c_size_t) :: sz
+
+    integer :: cudaResult
+
+    cudaResult = cudaMalloc(x, sz)
+
+  end subroutine gpu_malloc
+
+
+
+  subroutine gpu_malloc_managed(x, sz) bind(c, name='gpu_malloc_managed')
+
+    use cudafor, only: cudaMallocManaged, cudaMemAttachGlobal, c_devptr
+    use iso_c_binding, only: c_size_t
+
+    implicit none
+
+    type(c_devptr) :: x
+    integer(c_size_t) :: sz
+
+    integer :: cudaResult
+
+    cudaResult = cudaMallocManaged(x, sz, cudaMemAttachGlobal)
+
+  end subroutine gpu_malloc_managed
+
+
+
+  subroutine gpu_free(x) bind(c, name='gpu_free')
+
+    use cudafor, only: cudaFree, c_devptr
+
+    implicit none
+
+    type(c_devptr), value :: x
+
+    integer :: cudaResult
+
+    cudaResult = cudaFree(x)
+
+  end subroutine gpu_free
+
+
+
+  subroutine gpu_htod_memcpy_async(p_d, p_h, sz) bind(c, name='gpu_htod_memcpy_async')
+
+    use cudafor, only: cudaMemcpyAsync, cudaMemcpyHostToDevice, c_devptr
+    use iso_c_binding, only: c_ptr, c_size_t
+
+    implicit none
+
+    type(c_devptr), value :: p_d
+    type(c_ptr), value :: p_h
+    integer(c_size_t) :: sz
+
+    integer :: cudaResult
+
+    cudaResult = cudaMemcpyAsync(p_d, p_h, sz, cudaMemcpyHostToDevice, 0)
+
+  end subroutine gpu_htod_memcpy_async
+
+
+
+  subroutine gpu_dtoh_memcpy_async(p_h, p_d, sz) bind(c, name='gpu_dtoh_memcpy_async')
+
+    use cudafor, only: cudaMemcpyAsync, cudaMemcpyDeviceToHost, c_devptr
+    use iso_c_binding, only: c_ptr, c_size_t
+
+    implicit none
+
+    type(c_ptr), value :: p_h
+    type(c_devptr), value :: p_d
+    integer(c_size_t) :: sz
+
+    integer :: cudaResult
+
+    cudaResult = cudaMemcpyAsync(p_h, p_d, sz, cudaMemcpyDeviceToHost, 0)
+
+  end subroutine gpu_dtoh_memcpy_async
+
+
+
+  subroutine gpu_htod_memprefetch_async(p, sz) bind(c, name='gpu_htod_memprefetch_async')
+
+    use cudafor, only: cudaMemPrefetchAsync, c_devptr
+    use iso_c_binding, only: c_size_t
+
+    implicit none
+
+    type(c_devptr) :: p
+    integer(c_size_t) :: sz
+
+    integer :: cudaResult
+
+    cudaResult = cudaMemPrefetchAsync(p, sz, cuda_device_id, 0)
+
+  end subroutine gpu_htod_memprefetch_async
+
+
+
+  subroutine gpu_dtoh_memprefetch_async(p, sz) bind(c, name='gpu_dtoh_memprefetch_async')
+
+    use cudafor, only: cudaMemPrefetchAsync, c_devptr, cudaCpuDeviceId
+    use iso_c_binding, only: c_size_t
+
+    implicit none
+
+    type(c_devptr) :: p
+    integer(c_size_t) :: sz
+
+    integer :: cudaResult
+
+    cudaResult = cudaMemPrefetchAsync(p, sz, cudaCpuDeviceId, 0)
+
+  end subroutine gpu_dtoh_memprefetch_async
+
+
+
+  subroutine gpu_synchronize() bind(c, name='gpu_synchronize')
+
+    use cudafor, only: cudaDeviceSynchronize
+
+    implicit none
+
+    integer :: cudaResult
+
+    cudaResult = cudaDeviceSynchronize();
+
+  end subroutine gpu_synchronize
+
 end module cuda_module

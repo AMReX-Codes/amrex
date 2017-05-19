@@ -2788,10 +2788,10 @@ BaseFab<T>::toDevice()
     size_t sz = nBytes();
 #ifdef CUDA
     if (device_copy && dptr_d && dptr) {
-	cudaMemcpyAsync(dptr_d, dptr, sz, cudaMemcpyHostToDevice);
+	gpu_htod_memcpy_async(dptr_d, dptr, &sz);
     } else {
 #ifdef CUDA_UM
-	cudaMemPrefetchAsync(dptr, sz, Device::cudaDeviceId());
+	gpu_htod_memprefetch_async(dptr, &sz);
 #endif
     }
 #endif
@@ -2805,10 +2805,10 @@ BaseFab<T>::toHost()
     size_t sz = nBytes();
 #ifdef CUDA
     if (device_copy && dptr_d && dptr) {
-	cudaMemcpyAsync(dptr, dptr_d, sz, cudaMemcpyDeviceToHost);
+	gpu_dtoh_memcpy_async(dptr, dptr_d, &sz);
     } else {
 #ifdef CUDA_UM
-	cudaMemPrefetchAsync(dptr, sz, cudaCpuDeviceId);
+	gpu_dtoh_memprefetch_async(dptr, &sz);
 #endif
     }
 #endif
