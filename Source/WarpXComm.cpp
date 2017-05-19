@@ -174,17 +174,11 @@ WarpX::SyncCurrent ()
     for (int lev = finest_level; lev >= 0; --lev)
     {
         const auto& period = Geom(lev).periodicity();
-        const int ng = current[lev][0]->nGrow();
         current[lev][0]->SumBoundary(period);
         current[lev][1]->SumBoundary(period);
         current[lev][2]->SumBoundary(period);
         if (lev > 0) {
-            const auto& jx_bnd = cfbndry[lev-1]->GetJx();
-            const auto& jy_bnd = cfbndry[lev-1]->GetJy();
-            const auto& jz_bnd = cfbndry[lev-1]->GetJz();
-            current[lev][0]->copy(jx_bnd, 0, 0, 1, ng, 0, period, FabArrayBase::ADD);
-            current[lev][1]->copy(jy_bnd, 0, 0, 1, ng, 0, period, FabArrayBase::ADD);
-            current[lev][2]->copy(jz_bnd, 0, 0, 1, ng, 0, period, FabArrayBase::ADD);
+            cfbndry[lev-1]->AddCurrent(*current[lev][0], *current[lev][1], *current[lev][2]);
         }
     }
     AverageDownCurrent();

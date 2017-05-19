@@ -228,8 +228,7 @@ LaserParticleContainer::Evolve (int lev,
 				const MultiFab&, const MultiFab&, const MultiFab&,
 				const MultiFab&, const MultiFab&, const MultiFab&,
 				MultiFab& jx, MultiFab& jy, MultiFab& jz,
-                                MultiFab* jx_bnd, MultiFab* jy_bnd, MultiFab* jz_bnd,
-                                Real t, Real dt)
+                                WarpXCrseFineBndry* cfb, Real t, Real dt)
 {
     BL_PROFILE("Laser::Evolve()");
     BL_PROFILE_VAR_NS("Laser::Evolve::Copy", blp_copy);
@@ -353,14 +352,13 @@ LaserParticleContainer::Evolve (int lev,
                 &lvect,&WarpX::current_deposition_algo);
 	    BL_PROFILE_VAR_STOP(blp_pxr_cd);
 
-            if (jx_bnd)
+            if (cfb)
             {
                 const IntVect& ref_ratio = m_gdb->refRatio(lev);
                 const std::array<Real,3>& dx_fine = WarpX::CellSize(lev+1);
 
-                Array<std::pair<Box,std::array<FArrayBox*,3> > > fab_bnd;
-                this->intersections(amrex::refine(box, ref_ratio),
-                                    *jx_bnd, *jy_bnd, *jz_bnd, fab_bnd);
+                const Array<std::pair<Box,std::array<FArrayBox*,3> > >& fab_bnd
+                    = cfb->intersections(amrex::refine(box, ref_ratio));
                 const int Nisects = fab_bnd.size();
 
                 Array<Array<Real> > xp_bnd(Nisects), yp_bnd(Nisects), zp_bnd(Nisects), giv_bnd(Nisects);

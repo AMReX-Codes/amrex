@@ -12,13 +12,14 @@ WarpXCrseFineBndry::WarpXCrseFineBndry (const amrex::BoxArray& crse_ba,
                                         const amrex::Geometry& fine_gm,
                                         const amrex::IntVect& ref_ratio,
                                         int ngrow)
+: m_fine_geom(fine_gm)
 {
     MultiFab fmf(fine_ba, fine_dm, 1, 0, MFInfo().SetAlloc(false));
     // ngrow+1 is needed so the can include particles that could deposit current on the face.
     const FabArrayBase::CFinfo& cfinfo = FabArrayBase::TheCFinfo(fmf, fine_gm, ngrow+1);
 
-    ba_fine_layout = cfinfo.ba_cfb;
-    dm_fine_layout = cfinfo.dm_cfb;
+    BoxArray ba_fine_layout = cfinfo.ba_cfb;
+    DistributionMapping dm_fine_layout = cfinfo.dm_cfb;
 
     BoxList bl(fine_ba.ixType());
     Array<int> iproc;
@@ -37,8 +38,8 @@ WarpXCrseFineBndry::WarpXCrseFineBndry (const amrex::BoxArray& crse_ba,
         }
     }
 
-    ba_crse_layout.define(bl);
-    dm_crse_layout.define(iproc);
+    BoxArray ba_crse_layout(bl);
+    DistributionMapping dm_crse_layout(iproc);
     
     jx_crse_layout.define(amrex::convert(ba_crse_layout,WarpX::jx_nodal_flag),
                           dm_crse_layout, 1, ngrow);
@@ -46,4 +47,45 @@ WarpXCrseFineBndry::WarpXCrseFineBndry (const amrex::BoxArray& crse_ba,
                           dm_crse_layout, 1, ngrow);
     jz_crse_layout.define(amrex::convert(ba_crse_layout,WarpX::jz_nodal_flag),
                           dm_crse_layout, 1, ngrow);
+}
+
+
+Array<std::pair<Box,std::array<FArrayBox*,3> > >
+WarpXCrseFineBndry::intersections(const Box& bx)
+{
+    BL_ASSERT(bx.cellCentered());
+
+    Array<std::pair<Box,std::array<FArrayBox*,3> > > isects;
+
+    unsigned char flag = MFIter::AllBoxes;
+    for (MFIter mfi(jx_crse_layout, flag); mfi.isValid(); ++mfi)
+    {
+        Box cc = amrex::enclosedCells(mfi.validbox());
+        cc &= bx;
+        if (cc.ok())
+        {
+            isects.push_back({cc, { &jx_crse_layout[mfi],
+                                    &jy_crse_layout[mfi],
+                                    &jz_crse_layout[mfi] } });
+        }
+    }
+    return isects;
+}
+
+void
+WarpXCrseFineBndry::AddCurrent (MultiFab& jx, MultiFab& jy, MultiFab& jz) const
+{
+    const auto& period = m_fine_geom.periodicity();
+    const int ng = jx_crse_layout.nGrow();
+    jx.copy(jx_crse_layout, 0, 0, 1, ng, 0, period, FabArrayBase::ADD);
+    jy.copy(jy_crse_layout, 0, 0, 1, ng, 0, period, FabArrayBase::ADD);
+    jz.copy(jz_crse_layout, 0, 0, 1, ng, 0, period, FabArrayBase::ADD);
+}
+
+void
+WarpXCrseFineBndry::setVal (Real v)
+{
+    jx_crse_layout.setVal(v);
+    jy_crse_layout.setVal(v);
+    jz_crse_layout.setVal(v);
 }

@@ -5,6 +5,7 @@
 
 #include <AMReX_Particles.H>
 #include <AMReX_AmrCore.H>
+#include <WarpXCrseFineBndry.H>
 
 struct PIdx
 {
@@ -68,8 +69,7 @@ public:
 			 const amrex::MultiFab& Ex, const amrex::MultiFab& Ey, const amrex::MultiFab& Ez,
 			 const amrex::MultiFab& Bx, const amrex::MultiFab& By, const amrex::MultiFab& Bz,
 			 amrex::MultiFab& jx, amrex::MultiFab& jy, amrex::MultiFab& jz,
-                         amrex::MultiFab* jx_bnd, amrex::MultiFab* jy_bnd, amrex::MultiFab* jz_bnd,
-                         amrex::Real t, amrex::Real dt) = 0;
+                         WarpXCrseFineBndry* cfb, amrex::Real t, amrex::Real dt) = 0;
 
     virtual void PostRestart () = 0;
 
@@ -107,10 +107,6 @@ protected:
 
     amrex::Real charge;
     amrex::Real mass;
-
-    static void intersections(const amrex::Box& bx,
-                              amrex::MultiFab& mfx, amrex::MultiFab& mfy, amrex::MultiFab& mfz,
-                              amrex::Array<std::pair<amrex::Box,std::array<amrex::FArrayBox*,3> > >& isects);
 };
 
 #endif

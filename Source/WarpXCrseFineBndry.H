@@ -16,16 +16,15 @@ public:
                         const amrex::IntVect& ref_ratio,
                         int ngrow);
 
-    amrex::MultiFab& GetJx () { return jx_crse_layout; }
-    amrex::MultiFab& GetJy () { return jy_crse_layout; }
-    amrex::MultiFab& GetJz () { return jz_crse_layout; }
+    amrex::Array<std::pair<amrex::Box,std::array<amrex::FArrayBox*,3> > >
+    intersections (const amrex::Box& bx);    
+
+    void AddCurrent (amrex::MultiFab& jx, amrex::MultiFab& jy, amrex::MultiFab& jz) const;
+
+    void setVal (amrex::Real v);
 
 private:
-    amrex::BoxArray ba_fine_layout;
-    amrex::DistributionMapping dm_fine_layout;
-
-    amrex::BoxArray ba_crse_layout;
-    amrex::DistributionMapping dm_crse_layout;
+    const amrex::Geometry m_fine_geom;
     amrex::MultiFab jx_crse_layout;
     amrex::MultiFab jy_crse_layout;
     amrex::MultiFab jz_crse_layout;
