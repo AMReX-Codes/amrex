@@ -6,31 +6,35 @@ using namespace amrex;
 
 void ElectrostaticParticleContainer::InitParticles() {
 
-    ParticleType p;
+    if ( ParallelDescriptor::MyProc() == ParallelDescriptor::IOProcessorNumber() ) {
 
-    p.id()   = ParticleType::NextID();
-    p.cpu()  = ParallelDescriptor::MyProc(); 
-    
-    p.pos(0) = -5.0e-6; 
-    p.pos(1) =  0.0;
-    p.pos(2) =  0.0;
+        ParticleType p;
 
-    std::array<Real,PIdx::nattribs> attribs;
-    attribs[PIdx::w] = 1.0;
-    attribs[PIdx::vx] = 0.0;
-    attribs[PIdx::vy] = 0.0;
-    attribs[PIdx::vz] = 0.0;
-    attribs[PIdx::Ex] = 0.0;
-    attribs[PIdx::Ey] = 0.0;
-    attribs[PIdx::Ez] = 0.0;
+        p.id()   = ParticleType::NextID();
+        p.cpu()  = ParallelDescriptor::MyProc(); 
+        
+        p.pos(0) = -5.0e-6; 
+        p.pos(1) =  0.0;
+        p.pos(2) =  0.0;
+        
+        std::array<Real,PIdx::nattribs> attribs;
+        attribs[PIdx::w] = 1.0;
+        attribs[PIdx::vx] = 0.0;
+        attribs[PIdx::vy] = 0.0;
+        attribs[PIdx::vz] = 0.0;
+        attribs[PIdx::Ex] = 0.0;
+        attribs[PIdx::Ey] = 0.0;
+        attribs[PIdx::Ez] = 0.0;
+        
+        // Add to level 0, grid 0, and tile 0
+        // Redistribute() will move it to the proper place.
+        std::pair<int,int> key {0,0};
+        auto& particle_tile = GetParticles(0)[key];
+        
+        particle_tile.push_back(p);
+        particle_tile.push_back_real(attribs);
 
-    // Add to level 0, grid 0, and tile 0
-    // Redistribute() will move it to the proper place.
-    std::pair<int,int> key {0,0};
-    auto& particle_tile = GetParticles(0)[key];
-
-    particle_tile.push_back(p);
-    particle_tile.push_back_real(attribs);
+    }
 
     Redistribute();
 }
