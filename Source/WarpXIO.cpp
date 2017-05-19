@@ -415,38 +415,39 @@ WarpX::WritePlotFile () const
                 dcomp += 1;
             }
 
-            const Array<long>* nig = nullptr;
-            if (plot_part_per_grid)
+            if (plot_part_per_grid || plot_part_per_proc)
             {
-                // MultiFab containing number of particles per grid (stored as constant for all cells in each grid)
                 const Array<long>& npart_in_grid = mypc->NumberOfParticlesInGrid(lev);
-                nig = &npart_in_grid;
-                for (MFIter mfi(*mf[lev]); mfi.isValid(); ++mfi) {
-                    (*mf[lev])[mfi].setVal(static_cast<Real>(npart_in_grid[mfi.index()]), dcomp);
-                }
-                if (lev == 0)
-                {
-                    varnames.push_back("part_per_grid");
-                }
-                dcomp += 1;
-            }
 
-            if (plot_part_per_proc)
-            {
-                // MultiFab containing number of particles per process (stored as constant for all cells in each grid)
-                long n_per_proc = 0;
-                const Array<long>& npart_in_grid = (nig) ? *nig : mypc->NumberOfParticlesInGrid(lev);
-                for (MFIter mfi(*mf[lev]); mfi.isValid(); ++mfi) {
-                    n_per_proc += npart_in_grid[mfi.index()];
-                }
-                for (MFIter mfi(*mf[lev]); mfi.isValid(); ++mfi) {
-                    (*mf[lev])[mfi].setVal(static_cast<Real>(n_per_proc), dcomp);
-                }
-                if (lev == 0)
+                if (plot_part_per_grid)
                 {
-                    varnames.push_back("part_per_proc");
+                    // MultiFab containing number of particles per grid (stored as constant for all cells in each grid)
+                    for (MFIter mfi(*mf[lev]); mfi.isValid(); ++mfi) {
+                        (*mf[lev])[mfi].setVal(static_cast<Real>(npart_in_grid[mfi.index()]), dcomp);
+                    }
+                    if (lev == 0)
+                    {
+                        varnames.push_back("part_per_grid");
+                    }
+                    dcomp += 1;
                 }
-                dcomp += 1;
+
+                if (plot_part_per_proc)
+                {
+                    // MultiFab containing number of particles per process (stored as constant for all cells in each grid)
+                    long n_per_proc = 0;
+                    for (MFIter mfi(*mf[lev]); mfi.isValid(); ++mfi) {
+                        n_per_proc += npart_in_grid[mfi.index()];
+                    }
+                    for (MFIter mfi(*mf[lev]); mfi.isValid(); ++mfi) {
+                        (*mf[lev])[mfi].setVal(static_cast<Real>(n_per_proc), dcomp);
+                    }
+                    if (lev == 0)
+                    {
+                        varnames.push_back("part_per_proc");
+                    }
+                    dcomp += 1;
+                }
             }
 
             if (plot_proc_number)

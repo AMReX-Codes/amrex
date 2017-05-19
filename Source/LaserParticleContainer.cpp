@@ -246,10 +246,6 @@ LaserParticleContainer::Evolve (int lev,
     {
 	Array<Real> xp, yp, zp, giv, plane_Xp, plane_Yp, amplitude_E;
 
-        Array<Real> xp_bnd, yp_bnd, zp_bnd, giv_bnd;
-        Array<Real> uxp_bnd, uyp_bnd, uzp_bnd, wp_bnd;
-        Array<std::pair<Box,std::array<FArrayBox*,3> > > fab_bnd;
-
         for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
 	{
 	    const Box& box = pti.validbox();
@@ -362,55 +358,62 @@ LaserParticleContainer::Evolve (int lev,
                 const IntVect& ref_ratio = m_gdb->refRatio(lev);
                 const std::array<Real,3>& dx_fine = WarpX::CellSize(lev+1);
 
+                Array<std::pair<Box,std::array<FArrayBox*,3> > > fab_bnd;
                 this->intersections(amrex::refine(box, ref_ratio),
                                     *jx_bnd, *jy_bnd, *jz_bnd, fab_bnd);
-                    
-                for (const auto& fb : fab_bnd)
-                {
-                    const Box& box_bnd = fb.first;
-                    const std::array<Real,3>& xyzmin_bnd = WarpX::LowerCorner(box_bnd, lev+1);
-                    const std::array<Real,3>& xyzmax_bnd = WarpX::UpperCorner(box_bnd, lev+1);
+                const int Nisects = fab_bnd.size();
 
-                    const Box& fab_ccbx = amrex::grow(amrex::enclosedCells(fb.second[0]->box()),-ngJ);
-                    const std::array<Real,3>& xyzmin_fab = WarpX::LowerCorner(fab_ccbx, lev+1);
-//                    const std::array<Real,3>& xyzmax_fab = WarpX::UpperCorner(fab_ccbx, lev+1);
-                    
-                    xp_bnd.resize(0);
-                    yp_bnd.resize(0);
-                    zp_bnd.resize(0);
-                    giv_bnd.resize(0);
-                    uxp_bnd.resize(0);
-                    uyp_bnd.resize(0);
-                    uzp_bnd.resize(0);
-                    wp_bnd.resize(0);
-                    for (int i = 0; i < np; ++i)
+                Array<Array<Real> > xp_bnd(Nisects), yp_bnd(Nisects), zp_bnd(Nisects), giv_bnd(Nisects);
+                Array<Array<Real> > uxp_bnd(Nisects), uyp_bnd(Nisects), uzp_bnd(Nisects), wp_bnd(Nisects);
+
+                for (int i = 0; i < np; ++i)
+                {
+                    for (int j = 0; j < Nisects; ++j)
                     {
+                        const Box& box_bnd = fab_bnd[j].first;
+                        const std::array<Real,3>& xyzmin_bnd = WarpX::LowerCorner(box_bnd, lev+1);
+                        const std::array<Real,3>& xyzmax_bnd = WarpX::UpperCorner(box_bnd, lev+1);
+
                         if (xp[i] >= xyzmin_bnd[0] && xp[i] < xyzmax_bnd[0] &&
                             yp[i] >= xyzmin_bnd[1] && yp[i] < xyzmax_bnd[1] &&
                             zp[i] >= xyzmin_bnd[2] && zp[i] < xyzmax_bnd[2])
                         {
-                            xp_bnd.push_back(xp[i]);
-                            yp_bnd.push_back(yp[i]);
-                            zp_bnd.push_back(zp[i]);
-                            giv_bnd.push_back(giv[i]);
-                            uxp_bnd.push_back(uxp[i]);
-                            uyp_bnd.push_back(uyp[i]);
-                            uzp_bnd.push_back(uzp[i]);
-                            wp_bnd.push_back(wp[i]);
+                            xp_bnd[j].push_back(xp[i]);
+                            yp_bnd[j].push_back(yp[i]);
+                            zp_bnd[j].push_back(zp[i]);
+                            giv_bnd[j].push_back(giv[i]);
+                            uxp_bnd[j].push_back(uxp[i]);
+                            uyp_bnd[j].push_back(uyp[i]);
+                            uzp_bnd[j].push_back(uzp[i]);
+                            wp_bnd[j].push_back(wp[i]);
+                            // intersections can overlap
+                            // so we need to make sure a particle can be added to at most one of the intersection piece
+                            break; 
                         }
                     }
+                }
 
+                for (int j = 0; j < Nisects; ++j)
+                {
                     long np_bnd = xp_bnd.size();
 
                     if (np_bnd > 0)
                     {
+                        FArrayBox& fb_x = *(fab_bnd[j].second[0]);
+                        FArrayBox& fb_y = *(fab_bnd[j].second[1]);
+                        FArrayBox& fb_z = *(fab_bnd[j].second[2]);
+
+                        const Box& fab_ccbx = amrex::grow(amrex::enclosedCells(fb_x.box()),-ngJ);
+                        const std::array<Real,3>& xyzmin_fab = WarpX::LowerCorner(fab_ccbx, lev+1);
+                        // const std::array<Real,3>& xyzmax_fab = WarpX::UpperCorner(fab_ccbx, lev+1);
+
                         warpx_current_deposition(
-                            fb.second[0]->dataPtr(), &ngJ, fb.second[0]->length(),
-                            fb.second[1]->dataPtr(), &ngJ, fb.second[1]->length(),
-                            fb.second[2]->dataPtr(), &ngJ, fb.second[2]->length(),
-                            &np_bnd, xp_bnd.data(), yp_bnd.data(), zp_bnd.data(),
-                            uxp_bnd.data(), uyp_bnd.data(), uzp_bnd.data(),
-                            giv_bnd.data(), wp_bnd.data(), &this->charge,
+                            fb_x.dataPtr(), &ngJ, fb_x.length(),
+                            fb_y.dataPtr(), &ngJ, fb_y.length(),
+                            fb_z.dataPtr(), &ngJ, fb_z.length(),
+                            &np_bnd, xp_bnd[j].data(), yp_bnd[j].data(), zp_bnd[j].data(),
+                            uxp_bnd[j].data(), uyp_bnd[j].data(), uzp_bnd[j].data(),
+                            giv_bnd[j].data(), wp_bnd[j].data(), &this->charge,
                             &xyzmin_fab[0], &xyzmin_fab[1], &xyzmin_fab[2],
                             &dt, &dx_fine[0], &dx_fine[1], &dx_fine[2],
                             &WarpX::nox,&WarpX::noy,&WarpX::noz,
