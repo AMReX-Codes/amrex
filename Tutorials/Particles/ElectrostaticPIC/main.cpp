@@ -122,37 +122,44 @@ void computePhi(ScalarMeshData& rhs, ScalarMeshData& phi,
     int stencil = ND_CROSS_STENCIL;
     int verbose = 0;
     Array<int> mg_bc(2*BL_SPACEDIM, 1); // this means Dirichlet
-    Real rel_tol = 1.0e-6;
-    Real abs_tol = 1.0e-6;
+    Real rel_tol = 1.0e-9;
+    Real abs_tol = 1.0e-9;
 
-    Array<Geometry>            level_geom(1);
-    Array<BoxArray>            level_grids(1);
-    Array<DistributionMapping> level_dm(1);
-    Array<MultiFab*>           level_phi(1);
-    Array<MultiFab*>           level_rhs(1);
+    MGT_Solver solver(geom, mg_bc.dataPtr(), grids, dm, nodal,
+                      stencil, have_rhcc, nc, Ncomp, verbose);
     
-    for (int lev = 0; lev < num_levels; ++lev) {
-        level_phi[0]   = phi[lev].get();
-        level_rhs[0]   = rhs[lev].get();
-        level_geom[0]  = geom[lev];
-        level_grids[0] = grids[lev];
-        level_dm[0]    = dm[lev];
+    solver.set_nodal_const_coefficients(1.0);
+    
+    solver.solve_nodal(amrex::GetArrOfPtrs(phi), amrex::GetArrOfPtrs(rhs), rel_tol, abs_tol);
+    
+    // Array<Geometry>            level_geom(1);
+    // Array<BoxArray>            level_grids(1);
+    // Array<DistributionMapping> level_dm(1);
+    // Array<MultiFab*>           level_phi(1);
+    // Array<MultiFab*>           level_rhs(1);
+    
+    // for (int lev = 0; lev < num_levels; ++lev) {
+    //     level_phi[0]   = phi[lev].get();
+    //     level_rhs[0]   = rhs[lev].get();
+    //     level_geom[0]  = geom[lev];
+    //     level_grids[0] = grids[lev];
+    //     level_dm[0]    = dm[lev];
         
-        MGT_Solver solver(level_geom, mg_bc.dataPtr(), level_grids, 
-                          level_dm, nodal,
-                          stencil, have_rhcc, nc, Ncomp, verbose);
+    //     MGT_Solver solver(level_geom, mg_bc.dataPtr(), level_grids, 
+    //                       level_dm, nodal,
+    //                       stencil, have_rhcc, nc, Ncomp, verbose);
         
-        solver.set_nodal_const_coefficients(1.0);
+    //     solver.set_nodal_const_coefficients(1.0);
         
-        solver.solve_nodal(level_phi, level_rhs, rel_tol, abs_tol);
+    //     solver.solve_nodal(level_phi, level_rhs, rel_tol, abs_tol);
 
-        if (lev < num_levels-1) {
-            amrex::InterpFromCoarseLevel(*phi[lev+1], 0.0, *phi[lev],
-                                         0, 0, 1, geom[lev], geom[lev+1],
-                                         cphysbc, fphysbc,
-                                         IntVect(2, 2, 2), &mapper, bcs);
-        }
-    }
+    //     if (lev < num_levels-1) {
+    //         amrex::InterpFromCoarseLevel(*phi[lev+1], 0.0, *phi[lev],
+    //                                      0, 0, 1, geom[lev], geom[lev+1],
+    //                                      cphysbc, fphysbc,
+    //                                      IntVect(2, 2, 2), &mapper, bcs);
+    //     }
+    // }
 }
 
 int main(int argc, char* argv[])
@@ -262,7 +269,9 @@ int main(int argc, char* argv[])
         
         computeE(eField, phi, geom);
 
-        WritePlotFile(rhs, phi, eField, myPC, geom, step);
+        //        WritePlotFile(rhs, phi, eField, myPC, geom, step);
+
+        myPC.FieldGather(eField);
 
         myPC.writeParticles(step);
         
