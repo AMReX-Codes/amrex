@@ -216,6 +216,10 @@ WarpX::SumFineBoundaryToCrseCurrent ()
 #endif
         amrex::average_down_edges(fine, amrex::GetArrOfPtrs(cfj), ref_ratio, ngc);
 
+        cfj[0]->setVal(0.0, 0, 1, 0);
+        cfj[1]->setVal(0.0, 0, 1, 0);
+        cfj[2]->setVal(0.0, 0, 1, 0);
+
         const auto& period = Geom(lev).periodicity();
         current[lev][0]->copy(*cfj[0], 0, 0, 1, ngc, 0, period, FabArrayBase::ADD);
         current[lev][1]->copy(*cfj[1], 0, 0, 1, ngc, 0, period, FabArrayBase::ADD);
