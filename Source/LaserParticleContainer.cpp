@@ -395,7 +395,7 @@ LaserParticleContainer::Evolve (int lev,
 
                 for (int j = 0; j < Nisects; ++j)
                 {
-                    long np_bnd = xp_bnd.size();
+                    long np_bnd = xp_bnd[j].size();
 
                     if (np_bnd > 0)
                     {
