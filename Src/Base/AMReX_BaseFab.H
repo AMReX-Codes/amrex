@@ -399,11 +399,11 @@ public:
     //! Allocates memory for the device copy.
     void allocate_device ();
 
-    //! Transfer data from the host to the device.
-    void toDevice();
+    //! Transfer data from the host to the device on the stream corresponding to MFIter index idx.
+    void toDevice(int idx = -1);
 
-    //! Transfer data from the device to the host.
-    void toHost();
+    //! Transfer data from the device to the host on the stream corresponding to MFIter index idx.
+    void toHost(int idx = -1);
 
     /**
     * \brief Perform shifts upon the domain of the BaseFab. They are
@@ -2783,15 +2783,15 @@ BaseFab<T>::linComb (const BaseFab<T>&  f1,
 
 template<class T>
 void
-BaseFab<T>::toDevice()
+BaseFab<T>::toDevice(int idx)
 {
     size_t sz = nBytes();
 #ifdef CUDA
     if (device_copy && dptr_d && dptr) {
-	gpu_htod_memcpy_async(dptr_d, dptr, &sz);
+	gpu_htod_memcpy_async(dptr_d, dptr, &sz, &idx);
     } else {
 #ifdef CUDA_UM
-	gpu_htod_memprefetch_async(dptr, &sz);
+	gpu_htod_memprefetch_async(dptr, &sz, &idx);
 #endif
     }
 #endif
@@ -2800,15 +2800,15 @@ BaseFab<T>::toDevice()
 
 template<class T>
 void
-BaseFab<T>::toHost()
+BaseFab<T>::toHost(int idx)
 {
     size_t sz = nBytes();
 #ifdef CUDA
     if (device_copy && dptr_d && dptr) {
-	gpu_dtoh_memcpy_async(dptr, dptr_d, &sz);
+	gpu_dtoh_memcpy_async(dptr, dptr_d, &sz, &idx);
     } else {
 #ifdef CUDA_UM
-	gpu_dtoh_memprefetch_async(dptr, &sz);
+	gpu_dtoh_memprefetch_async(dptr, &sz, &idx);
 #endif
     }
 #endif

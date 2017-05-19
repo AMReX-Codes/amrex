@@ -732,8 +732,9 @@ FabArray<FAB>::operator[] (const MFIter& mfi) const
     BL_ASSERT(mfi.LocalIndex() < indexArray.size());
     FAB& fab = *m_fabs_v[mfi.LocalIndex()];
     if (Device::inDeviceLaunchRegion()) {
-	if (mfi.registerFab(fab))
-	    fab.toDevice();
+	int idx = mfi.tileIndex();
+	if (mfi.registerFab(fab, idx))
+	    fab.toDevice(idx);
     }
     return fab;
 }
@@ -745,8 +746,9 @@ FabArray<FAB>::operator[] (const MFIter& mfi)
     BL_ASSERT(mfi.LocalIndex() < indexArray.size());
     FAB& fab = *m_fabs_v[mfi.LocalIndex()];
     if (Device::inDeviceLaunchRegion()) {
-	if (mfi.registerFab(fab))
-	    fab.toDevice();
+	int idx = mfi.tileIndex();
+	if (mfi.registerFab(fab, idx))
+	    fab.toDevice(idx);
     }
     return fab;
 }
