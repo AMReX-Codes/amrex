@@ -17,7 +17,8 @@ extern "C"
                      const amrex::Real* weights, 
                      const amrex::Real* charge,
                      amrex::Real* rho, const int* lo, const int* hi,
-                     const amrex::Real* plo, const amrex::Real* dx);
+                     const amrex::Real* plo, const amrex::Real* dx,
+                     const int* ng);
     
     void interpolate_cic(const amrex::Real* particles, int ns, int np,
                          amrex::Real* Ex_p, amrex::Real* Ey_p, amrex::Real* Ez_p,
