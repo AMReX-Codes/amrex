@@ -57,7 +57,7 @@ ElectrostaticParticleContainer::DepositCharge(ScalarMeshData& rho) {
         tmp[lev]->setVal(0.0);
     }
 
-    const int ng = 1;
+    const int ng = rho[0]->nGrow();
     for (int lev = 0; lev < num_levels; ++lev) {       
 
         rho[lev]->setVal(0.0, ng);
@@ -130,6 +130,7 @@ ElectrostaticParticleContainer::
 FieldGather(const VectorMeshData& E) {
 
     const int num_levels = E.size();
+    const int ng = E[0][0]->nGrow();
 
     for (int lev = 0; lev < num_levels; ++lev) {
         const auto& gm = m_gdb->Geom(lev);
@@ -166,7 +167,7 @@ FieldGather(const VectorMeshData& E) {
             interpolate_cic(particles.data(), nstride, np,
                             Exp.data(), Eyp.data(), Ezp.data(),
                             exfab.dataPtr(), eyfab.dataPtr(), ezfab.dataPtr(),
-                            box.loVect(), box.hiVect(), plo, dx);
+                            box.loVect(), box.hiVect(), plo, dx, &ng);
         }
     }
 };
@@ -176,7 +177,8 @@ ElectrostaticParticleContainer::
 Evolve(const VectorMeshData& E, ScalarMeshData& rho, const Real& dt) {
     
     const int num_levels = E.size();
-    
+    const int ng = E[0][0]->nGrow();
+
     for (int lev = 0; lev < num_levels; ++lev) {
         
         const auto& gm = m_gdb->Geom(lev);
@@ -224,7 +226,7 @@ Evolve(const VectorMeshData& E, ScalarMeshData& rho, const Real& dt) {
             interpolate_cic(particles.data(), nstride, np, 
                             Exp.data(), Eyp.data(), Ezp.data(),
                             exfab.dataPtr(), eyfab.dataPtr(), ezfab.dataPtr(),
-                            box.loVect(), box.hiVect(), plo, dx);
+                            box.loVect(), box.hiVect(), plo, dx, &ng);
             
             //
             // Particle Push
@@ -242,6 +244,8 @@ void ElectrostaticParticleContainer::pushX(const Real& dt) {
 
     int finest_level = finestLevel();
     for (int lev = 0; lev <= finestLevel(); ++lev) {    
+        const auto& gm = m_gdb->Geom(lev);
+        const RealBox& prob_domain = gm.ProbDomain();
         for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
             auto& particles = pti.GetArrayOfStructs();
             int nstride = particles.dataShape().first;
@@ -253,7 +257,9 @@ void ElectrostaticParticleContainer::pushX(const Real& dt) {
             auto& vzp = attribs[PIdx::vz];
             
             push_leapfrog_positions(particles.data(), nstride, np,
-                                    vxp.data(), vyp.data(), vzp.data(), &dt);
+                                    vxp.data(), vyp.data(), vzp.data(), 
+                                    &dt, prob_domain.lo(), prob_domain.hi());
+
         }
     }
 }
