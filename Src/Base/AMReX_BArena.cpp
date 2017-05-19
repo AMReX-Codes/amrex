@@ -1,5 +1,6 @@
 
 #include <AMReX_BArena.H>
+#include <AMReX_Device.H>
 
 void*
 amrex::BArena::alloc (std::size_t _sz)
@@ -7,7 +8,7 @@ amrex::BArena::alloc (std::size_t _sz)
     void* pt;
 
 #if (defined(CUDA) && defined(CUDA_UM))
-    cudaMallocManaged(&pt, _sz);
+    gpu_malloc_managed(&pt, &_sz);
 #else
     pt = operator new(_sz);
 #endif
@@ -19,7 +20,7 @@ void
 amrex::BArena::free (void* pt)
 {
 #if (defined(CUDA) && defined(CUDA_UM))
-    cudaFree(pt);
+    gpu_free(pt);
 #else
     operator delete(pt);
 #endif
@@ -31,7 +32,7 @@ amrex::BArena::alloc_device (std::size_t _sz)
     void* pt = 0;
 
 #ifdef CUDA
-    cudaMalloc(&pt, _sz);
+    gpu_malloc(&pt, &_sz);
 #endif
 
     return pt;
@@ -41,6 +42,6 @@ void
 amrex::BArena::free_device (void* pt)
 {
 #ifdef CUDA
-    cudaFree(pt);
+    gpu_free(pt);
 #endif
 }
