@@ -34,7 +34,12 @@ ifeq ($(USE_MPI),TRUE)
   CXX = mpicxx
   FC  = mpif77
   F90 = mpif90
-  LIBRARIES += -lmpichf90
+  LIBRARIES += -lmpi_mpifh
+endif
+
+ifeq ($(lowercase_comp),gnu)
+  override XTRALIBS := -lgfortran
 endif
 
 endif
+

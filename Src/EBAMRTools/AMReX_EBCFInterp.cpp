@@ -9,7 +9,7 @@
  *
  */
 
-#include "AMReX_NWOEBQuadCFInterp.H"
+#include "AMReX_EBCFInterp.H"
 #include "AMReX_EBArith.H"
 #include "AMReX_EBLevelDataOps.H"
 
@@ -21,12 +21,13 @@ namespace amrex
  {}
   /***********************/
   void
-  NWOEBQuadCFInterp::
+  EBCFInterp::
   define(const EBLevelGrid &       a_eblgFine,
          const EBLevelGrid &       a_eblgCoar,
          const int         &       a_refRat,
          const int         &       a_ghostCellsInData,
          const int         &       a_ghostCellsToFill,
+         int  a_orderOfPolynomial,
          bool a_slowMode)
   {
     BL_ASSERT(a_refRat > 0);
@@ -34,6 +35,7 @@ namespace amrex
     BL_ASSERT(a_ghostCellsToFill >= 0);
     BL_ASSERT(a_ghostCellsInData >= a_ghostCellsToFill);
     BL_ASSERT(a_eblgFine.coarsenable(a_refRat));
+    m_orderOfPolynomial = a_orderOfPolynomial;
     m_slowMode = a_slowMode;
     m_isDefined = true;
     m_eblgFine  = a_eblgFine;
@@ -48,7 +50,7 @@ namespace amrex
   }
   /***********************/
   void 
-  NWOEBQuadCFInterp::
+  EBCFInterp::
   defineInternals()
   {
     BL_PROFILE("NWOEBCFI::defineInternals");
@@ -60,7 +62,7 @@ namespace amrex
     //variable number does not matter here.
     int nvar = 1;
     FabArray<EBCellFAB> proxyLevel(m_eblgFine.getDBL(),m_eblgFine.getDM(), nvar, m_dataGhost, MFInfo(), factFine);
-    m_bufferCoFi.define(           m_eblgCoFi.getDBL(),m_eblgCoFi.getDM(), nvar, m_buffGhost, MFInfo(), factCoFi);
+    FabArray<EBCellFAB> bufferCoFi(m_eblgCoFi.getDBL(),m_eblgCoFi.getDM(), nvar, m_buffGhost, MFInfo(), factCoFi);
 
     if(m_slowMode)
     {
@@ -93,7 +95,7 @@ namespace amrex
         baseDstVoFs [ivec]  = std::shared_ptr<BaseIndex  >((BaseIndex*)(&volvec[ivec]), &null_deleter_nwo_ind);
       }
 
-      EBCellFAB& coarProxy = m_bufferCoFi[mfi];
+      EBCellFAB& coarProxy =   bufferCoFi[mfi];
       EBCellFAB& fineProxy =   proxyLevel[mfi];
       if(m_slowMode)
       {
@@ -109,7 +111,7 @@ namespace amrex
   }
   /***********************/
   IntVectSet
-  NWOEBQuadCFInterp::
+  EBCFInterp::
   getCFIVS(const MFIter& a_mfi)
   {
     IntVectSet cfivs;
@@ -132,7 +134,7 @@ namespace amrex
   }
   /***********************/
   void
-  NWOEBQuadCFInterp::
+  EBCFInterp::
   getStencil(VoFStencil           & a_stencil,
              const VolIndex       & a_vofFine,
              const EBISBox        & a_ebisFine,
@@ -146,26 +148,29 @@ namespace amrex
     RealVect coarLoc = EBArith::getVoFLocation(coarVoF, dxCoar, RealVect::Zero);
     RealVect fineLoc = EBArith::getVoFLocation(fineVoF, dxFine, RealVect::Zero);
     RealVect dist = fineLoc - coarLoc;
-    EBArith::getExtrapolationStencil(a_stencil, dist, dxCoar*RealVect::Unit, coarVoF, a_ebisCoFi);
+    EBArith::getExtrapolationStencil(a_stencil, dist, dxCoar*RealVect::Unit, coarVoF, a_ebisCoFi, m_orderOfPolynomial);
   }  
   /***********************/
   void 
-  NWOEBQuadCFInterp::
+  EBCFInterp::
   coarseFineInterp(FabArray<EBCellFAB>&       a_phif,
                    const FabArray<EBCellFAB>& a_phic,
                    int isrc, int idst, int inco)
   {
     BL_PROFILE("NWOEBCFI::coarseFineInterp");
 
+    int nvar = idst + inco;
+    EBCellFactory factCoFi(m_eblgCoFi.getEBISL());
+    FabArray<EBCellFAB> bufferCoFi(m_eblgCoFi.getDBL(),m_eblgCoFi.getDM(), nvar, m_buffGhost, MFInfo(), factCoFi);
     //need to copy ghost cell data 
-    m_bufferCoFi.copy(a_phic, isrc, idst, inco, 0, m_buffGhost);
+    bufferCoFi.copy(a_phic, isrc, idst, inco, 0, m_buffGhost);
     int ibox = 0;
     for(MFIter mfi(m_eblgFine.getDBL(), m_eblgFine.getDM()); mfi.isValid(); ++mfi)
     {
 
       //breaking things down for debugging.
-      EBCellFAB& phifab =       a_phif[mfi];
-      EBCellFAB& buffab = m_bufferCoFi[mfi];
+      EBCellFAB& phifab =     a_phif[mfi];
+      EBCellFAB& buffab = bufferCoFi[mfi];
       if(m_slowMode)
       {
 
@@ -196,19 +201,22 @@ namespace amrex
 
   /***********************/
   void 
-  NWOEBQuadCFInterp::
+  EBCFInterp::
   coarseFineInterpH(FabArray<EBCellFAB> & a_phif,
                     int isrc, int idst, int inco)
   {
     BL_PROFILE("NWOEBCFI::coarseFineInterpH");
     BL_ASSERT(!m_slowMode);
-    EBLevelDataOps::setVal(m_bufferCoFi, 0.0);
+    int nvar = idst + inco;
+    EBCellFactory factCoFi(m_eblgCoFi.getEBISL());
+    FabArray<EBCellFAB> bufferCoFi(m_eblgCoFi.getDBL(),m_eblgCoFi.getDM(), nvar, m_buffGhost, MFInfo(), factCoFi);
+    EBLevelDataOps::setVal(bufferCoFi, 0.0);
     for(MFIter mfi(m_eblgFine.getDBL(), m_eblgFine.getDM()); mfi.isValid(); ++mfi)
     {
 
       //false is for increment only
       m_stencil[mfi]->apply(a_phif[mfi],
-                            m_bufferCoFi[mfi],
+                            bufferCoFi[mfi],
                             isrc, idst, inco, false);
     }
 
