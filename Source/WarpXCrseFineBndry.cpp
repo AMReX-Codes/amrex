@@ -32,6 +32,8 @@ WarpXCrseFineBndry::WarpXCrseFineBndry (const amrex::BoxArray& crse_ba,
             const Box& b = amrex::refine(isec.second, ref_ratio);
             bl.push_back(b);
             iproc.push_back(crse_dm[isec.first]);
+
+            
         }
     }
 

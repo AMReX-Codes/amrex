@@ -124,14 +124,26 @@ WarpX::AverageDownB ()
 void
 WarpX::AverageDownE ()
 {
+    AverageDownEorCurrent(Efield);
+}
+
+void
+WarpX::AverageDownCurrent ()
+{
+    AverageDownEorCurrent(current);
+}
+
+void
+WarpX::AverageDownEorCurrent (Array<std::array<std::unique_ptr<amrex::MultiFab>,3> >& data)
+{
     for (int lev = finest_level; lev > 0; --lev)
     {
         const IntVect& ref_ratio = refRatio(lev-1);
-        const Geometry& crse_geom = Geom(lev-1);
+        const auto& crse_period = Geom(lev-1).periodicity();
 #if (BL_SPACEDIM == 3)
-        Array<const MultiFab*> fine {Efield[lev][0].get(), Efield[lev][1].get(), Efield[lev][2].get()};
+        Array<const MultiFab*> fine {data[lev][0].get(), data[lev][1].get(), data[lev][2].get()};
 #else
-        Array<const MultiFab*> fine {Efield[lev][0].get(), Efield[lev][2].get()};
+        Array<const MultiFab*> fine {data[lev][0].get(), data[lev][2].get()};
 #endif
         
         Array<std::unique_ptr<MultiFab> > crse(BL_SPACEDIM);
@@ -146,27 +158,34 @@ WarpX::AverageDownE ()
 
 #if (BL_SPACEDIM == 3)
         for (int idim = 0; idim < BL_SPACEDIM; ++idim) {
-            Efield[lev-1][idim]->copy(*crse[idim], crse_geom.periodicity());
+            data[lev-1][idim]->copy(*crse[idim], crse_period);
         }
 #else
-        Efield[lev-1][0]->copy(*crse[0], crse_geom.periodicity());
-        Efield[lev-1][2]->copy(*crse[1], crse_geom.periodicity());
-//xxxxx amrex::average_down_nodes(*Efield[lev][1], *Efield[lev-1][1], 0, 1, ref_ratio);
+        data[lev-1][0]->copy(*crse[0], crse_period);
+        data[lev-1][2]->copy(*crse[1], crse_period);
+//xxxxx amrex::average_down_nodes(*data[lev][1], *data[lev-1][1], 0, 1, ref_ratio);
 #endif        
     }
 }
 
 void
-WarpX::AverageDownCurrent ()
-{
-
-}
-
-void
 WarpX::SyncCurrent ()
 {
-    for (int lev = 0; lev < finest_level; ++lev)
+    for (int lev = finest_level; lev >= 0; --lev)
     {
-        
+        const auto& period = Geom(lev).periodicity();
+        const int ng = current[lev][0]->nGrow();
+        current[lev][0]->SumBoundary(period);
+        current[lev][1]->SumBoundary(period);
+        current[lev][2]->SumBoundary(period);
+        if (lev > 0) {
+            const auto& jx_bnd = cfbndry[lev-1]->GetJx();
+            const auto& jy_bnd = cfbndry[lev-1]->GetJy();
+            const auto& jz_bnd = cfbndry[lev-1]->GetJz();
+            current[lev][0]->copy(jx_bnd, 0, 0, 1, ng, 0, period, FabArrayBase::ADD);
+            current[lev][1]->copy(jy_bnd, 0, 0, 1, ng, 0, period, FabArrayBase::ADD);
+            current[lev][2]->copy(jz_bnd, 0, 0, 1, ng, 0, period, FabArrayBase::ADD);
+        }
     }
+    AverageDownCurrent();
 }

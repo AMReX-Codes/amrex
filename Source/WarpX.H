@@ -86,7 +86,6 @@ public:
     void AverageDownB ();
     void AverageDownE ();
     void AverageDownCurrent ();
-
     void SyncCurrent ();
 
     int getistep (int lev) const {return istep[lev];}
@@ -187,6 +186,8 @@ private:
     static void ComputeDivB (amrex::MultiFab& divB, int dcomp,
                              const amrex::Array<const amrex::MultiFab*>& B,
                              const amrex::Real* dx);
+
+    void AverageDownEorCurrent (amrex::Array<std::array<std::unique_ptr<amrex::MultiFab>,3> >& data);
 
     amrex::Array<int> istep;      // which step?
     amrex::Array<int> nsubsteps;  // how many substeps on each level?
