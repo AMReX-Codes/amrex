@@ -46,7 +46,8 @@ contains
   end subroutine compute_E_nodal
 
   subroutine deposit_cic(particles, ns, np,                     &
-                         weights, charge, rho, lo, hi, plo, dx) &
+                         weights, charge, rho, lo, hi, plo, dx, &
+                         ng)                                    &
        bind(c,name='deposit_cic')
     integer, value       :: ns, np
     real(amrex_real)     :: particles(ns,np)
@@ -54,7 +55,8 @@ contains
     real(amrex_real)     :: charge
     integer              :: lo(3)
     integer              :: hi(3)
-    real(amrex_real)     :: rho(lo(1)-1:hi(1)+1, lo(2)-1:hi(2)+1, lo(3)-1:hi(3)+1)
+    integer              :: ng
+    real(amrex_real)     :: rho(lo(1)-ng:hi(1)+ng, lo(2)-ng:hi(2)+ng, lo(3)-ng:hi(3)+ng)
     real(amrex_real)     :: plo(3)
     real(amrex_real)     :: dx(3)
 
@@ -200,7 +202,7 @@ contains
        particles(1, n) = particles(1, n) + dt * vx_p(n)
        particles(2, n) = particles(2, n) + dt * vy_p(n)
        particles(3, n) = particles(3, n) + dt * vz_p(n)
-              
+
 !      bounce off the walls in the x...
        do while (particles(1, n) .lt. prob_lo(1) .or. particles(1, n) .gt. prob_hi(1))
           if (particles(1, n) .lt. prob_lo(1)) then

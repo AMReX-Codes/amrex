@@ -76,16 +76,29 @@ void WritePlotFile(const ScalarMeshData& rhs,
 void computeE(      VectorMeshData& E,
               const ScalarMeshData& phi, 
               const Array<Geometry>& geom) {
-    const int lev = 0;
-    const auto& gm = geom[0];
-    const Real* dx = gm.CellSize();
-    for (MFIter mfi(*phi[lev]); mfi.isValid(); ++mfi) {
-        const Box& bx = mfi.validbox();
-        compute_E_nodal(bx.loVect(), bx.hiVect(),
-                        (*phi[lev])[mfi].dataPtr(),
-                        (*E[lev][0])[mfi].dataPtr(),
-                        (*E[lev][1])[mfi].dataPtr(),
-                        (*E[lev][2])[mfi].dataPtr(), dx);
+
+    const int num_levels = E.size();
+
+    for (int lev = 0; lev < num_levels; ++lev) {
+
+        const auto& gm = geom[lev];
+        const Real* dx = gm.CellSize();
+
+        phi[lev]->FillBoundary(gm.periodicity());
+
+        for (MFIter mfi(*phi[lev]); mfi.isValid(); ++mfi) {
+            const Box& bx = mfi.validbox();
+
+            compute_E_nodal(bx.loVect(), bx.hiVect(),
+                            (*phi[lev])[mfi].dataPtr(),
+                            (*E[lev][0])[mfi].dataPtr(),
+                            (*E[lev][1])[mfi].dataPtr(),
+                            (*E[lev][2])[mfi].dataPtr(), dx);
+        }
+
+        E[lev][0]->FillBoundary(gm.periodicity());
+        E[lev][1]->FillBoundary(gm.periodicity());
+        E[lev][2]->FillBoundary(gm.periodicity());
     }
 }
 
@@ -107,7 +120,7 @@ void computePhi(ScalarMeshData& rhs, ScalarMeshData& phi,
     int  nc = 0;
     int Ncomp = 1;
     int stencil = ND_CROSS_STENCIL;
-    int verbose = 5;    
+    int verbose = 0;
     Array<int> mg_bc(2*BL_SPACEDIM, 1); // this means Dirichlet
     Real rel_tol = 1.0e-6;
     Real abs_tol = 1.0e-6;
@@ -124,7 +137,7 @@ void computePhi(ScalarMeshData& rhs, ScalarMeshData& phi,
         level_geom[0]  = geom[lev];
         level_grids[0] = grids[lev];
         level_dm[0]    = dm[lev];
-
+        
         MGT_Solver solver(level_geom, mg_bc.dataPtr(), level_grids, 
                           level_dm, nodal,
                           stencil, have_rhcc, nc, Ncomp, verbose);
@@ -212,7 +225,6 @@ int main(int argc, char* argv[])
     
     int Nghost = 1;
     int Ncomp  = 1;
-    IntVect nodal_flag = IntVect::TheUnitVector();
     
     Array<DistributionMapping> dm(num_levels);
     Array<std::unique_ptr<MultiFab> > phi(num_levels);
@@ -242,9 +254,22 @@ int main(int argc, char* argv[])
 
     myPC.InitParticles();
 
-    WritePlotFile(rhs, phi, eField, myPC, geom, 0);
+    for (int step = 0; step <= max_step; ++step) {
 
-    myPC.writeParticles(0);
+        myPC.DepositCharge(rhs);
+
+        computePhi(rhs, phi, grids, dm, geom);
+        
+        computeE(eField, phi, geom);
+
+        WritePlotFile(rhs, phi, eField, myPC, geom, step);
+
+        myPC.writeParticles(step);
+        
+        myPC.Evolve(eField, rhs, dt);
+
+        myPC.Redistribute();        
+    }
     
     amrex::Finalize();
 }
