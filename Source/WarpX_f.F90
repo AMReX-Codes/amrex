@@ -102,6 +102,87 @@ contains
   end subroutine warpx_compute_divb_2d
 
 
+  subroutine warpx_wgt_avgdown_current_3d (dir, crse, clo, chi, fine, flo, fhi) &
+       bind(c,name='warpx_wgt_avgdown_current_3d')
+    integer, intent(in) :: dir, clo(3), chi(3), flo(3), fhi(3)
+    real(amrex_real), intent(inout) :: crse(clo(1):chi(1),clo(2):chi(2),clo(3):chi(3))
+    real(amrex_real), intent(in   ) :: fine(flo(1):fhi(1),flo(2):fhi(2),flo(3):fhi(3))
+
+    integer, parameter :: ratio = 2
+    real, parameter :: volavg_fac = 1.d0/8.d0
+    integer :: i, j, k, ii, jj, kk
+
+    if (dir == 0) then
+
+       do       k = clo(3), chi(3)
+          kk = k*ratio
+          do    j = clo(2), chi(2)
+             jj = j*ratio
+             do i = clo(1), chi(1)
+                ii = i*ratio
+                crse(i,j,k) = volavg_fac * &
+                     ( (fine(ii,jj,kk)  &
+                     + 0.5d0 *(fine(ii,jj-1,kk  )+fine(ii,jj+1,kk  ) &
+                     +         fine(ii,jj  ,kk-1)+fine(ii,jj  ,kk+1)) &
+                     + 0.25d0*(fine(ii,jj-1,kk-1)+fine(ii,jj-1,kk+1) &
+                     +         fine(ii,jj+1,kk-1)+fine(ii,jj+1,kk+1))) &
+                     + (fine(ii+1,jj,kk)  &
+                     + 0.5d0 *(fine(ii+1,jj-1,kk  )+fine(ii+1,jj+1,kk  ) &
+                     +         fine(ii+1,jj  ,kk-1)+fine(ii+1,jj  ,kk+1)) &
+                     + 0.25d0*(fine(ii+1,jj-1,kk-1)+fine(ii+1,jj-1,kk+1) &
+                     +         fine(ii+1,jj+1,kk-1)+fine(ii+1,jj+1,kk+1))))
+             end do
+          end do
+       end do
+
+    else if (dir == 1) then
+
+       do       k = clo(3), chi(3)
+          kk = k*ratio
+          do    j = clo(2), chi(2)
+             jj = j*ratio
+             do i = clo(1), chi(1)
+                ii = i*ratio
+                crse(i,j,k) = 0.d0
+#if 0
+                crse(i,j,k) = volavg_fac * &
+                     ( (fine(ii,jj,kk)  &
+                     + 0.5d0 *(fine(ii-1,jj,kk  )+fine(ii+1,jj,kk  ) &
+                     +         fine(ii  ,jj,kk-1)+fine(ii  ,jj,kk+1)) &
+                     + 0.25d0
+#endif
+             end do
+          end do
+       end do
+                     
+    else
+
+       do       k = clo(3), chi(3)
+          kk = k*ratio
+          do    j = clo(2), chi(2)
+             jj = j*ratio
+             do i = clo(1), chi(1)
+                ii = i*ratio
+                crse(i,j,k) = 0.d0
+             end do
+          end do
+       end do
+
+    end if
+
+  end subroutine warpx_wgt_avgdown_current_3d
+
+
+  subroutine warpx_wgt_avgdown_current_2d (dir, crse, clo, chi, fine, flo, fhi) &
+       bind(c,name='warpx_wgt_avgdown_current_2d')
+    integer, intent(in) :: dir, clo(2), chi(2), flo(2), fhi(2)
+    real(amrex_real), intent(inout) :: crse(clo(1):chi(1),clo(2):chi(2))
+    real(amrex_real), intent(in   ) :: fine(flo(1):fhi(1),flo(2):fhi(2))
+    
+    stop "warpx_wgt_avgdown_current_2d not implemented"
+  end subroutine warpx_wgt_avgdown_current_2d
+
+
   subroutine warpx_push_pml_bvec_3d (xlo, xhi, ylo, yhi, zlo, zhi, &
        &                             Ex, Exlo, Exhi, &
        &                             Ey, Eylo, Eyhi, &

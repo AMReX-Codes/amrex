@@ -4,6 +4,7 @@
 #if (BL_SPACEDIM == 3)
 
 #define WARPX_COMPUTE_DIVB               warpx_compute_divb_3d
+#define WARPX_WGT_AVGDOWN_CURRENT        warpx_wgt_avgdown_current_3d
 
 #define WRPX_PXR_PUSH_BVEC               warpx_pxr_push_em3d_bvec
 #define WRPX_PXR_PUSH_EVEC               warpx_pxr_push_em3d_evec
@@ -13,6 +14,7 @@
 #elif (BL_SPACEDIM == 2)
 
 #define WARPX_COMPUTE_DIVB               warpx_compute_divb_2d
+#define WARPX_WGT_AVGDOWN_CURRENT        warpx_wgt_avgdown_current_3d
 
 #define WRPX_PXR_PUSH_BVEC               warpx_pxr_push_em2d_bvec
 #define WRPX_PXR_PUSH_EVEC               warpx_pxr_push_em2d_evec
@@ -141,6 +143,11 @@ extern "C"
                                     const BL_FORT_FAB_ARG_ANYD(By),
                                     const BL_FORT_FAB_ARG_ANYD(Bz)),
                              const amrex::Real* dx);
+
+    void WARPX_WGT_AVGDOWN_CURRENT (const int* dir,
+                                    BL_FORT_FAB_ARG_ANYD(crse),
+                                    const BL_FORT_FAB_ARG_ANYD(fine));
+                                    
 
     void WRPX_PUSH_PML_BVEC(const int* xlo, const int* xhi,
                             const int* ylo, const int* yhi,

@@ -1,7 +1,9 @@
 
 #include <WarpX.H>
 #include <AMReX_FillPatchUtil.H>
+#include <WarpX_f.H>
 
+#include <algorithm>
 #include <cstdlib>
 
 using namespace amrex;
@@ -210,15 +212,12 @@ WarpX::SumFineBoundaryToCrseCurrent ()
         cfj[2].reset(new MultiFab(amrex::convert(cfba,jz_nodal_flag),fdm,1,ngc));
 
 #if (BL_SPACEDIM == 3)
-        Array<const MultiFab*> fine {current[lev+1][0].get(), current[lev+1][1].get(), current[lev+1][2].get()};
+        for (int idim = 0; idim < BL_SPACEDIM; ++idim) {
+            WgtAvgDownCurrent(idim, *cfj[idim], *current[lev+1][idim], ref_ratio[0]);
+        }
 #else
         // xxxxx TODO 2D to be implemented
 #endif
-        amrex::average_down_edges(fine, amrex::GetArrOfPtrs(cfj), ref_ratio, ngc);
-
-        cfj[0]->setVal(0.0, 0, 1, 0);
-        cfj[1]->setVal(0.0, 0, 1, 0);
-        cfj[2]->setVal(0.0, 0, 1, 0);
 
         const auto& period = Geom(lev).periodicity();
         current[lev][0]->copy(*cfj[0], 0, 0, 1, ngc, 0, period, FabArrayBase::ADD);
@@ -227,3 +226,36 @@ WarpX::SumFineBoundaryToCrseCurrent ()
     }
 }
 
+
+void
+WarpX::WgtAvgDownCurrent (int dir, MultiFab& cj, const MultiFab& fj, int ref_ratio)
+{
+    BL_ASSERT(ref_ratio == 2);
+
+    int ngf = fj.nGrow();
+    int ngc = cj.nGrow();
+    
+    int ng_extra = std::max(ngc*ref_ratio,0);
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    {
+        FArrayBox gfab;
+        for (MFIter mfi(cj); mfi.isValid(); ++mfi)
+        {
+            FArrayBox& cfab = cj[mfi];
+            const FArrayBox* ffab = &(fj[mfi]);
+            if (ng_extra > 0) {
+                const Box& fbx = ffab->box();
+                const Box& gbx = amrex::grow(fbx,ng_extra);
+                gfab.resize(gbx);
+                gfab.setVal(0.0);
+                gfab.copy(*ffab, fbx, 0, fbx, 0, 1);
+                ffab = &gfab;
+            }
+
+            WARPX_WGT_AVGDOWN_CURRENT(&dir, BL_TO_FORTRAN_ANYD(cfab),
+                                      BL_TO_FORTRAN_ANYD(*ffab));
+        }
+    }
+}
