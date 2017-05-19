@@ -1,6 +1,6 @@
 from .Bucket import Bucket
 
-particles = Bucket('particles')
+particles = Bucket('particles', nspecies=0, species_names='')
 
 electrons = Bucket('electrons')
 electrons.charge = "-q_e"

@@ -56,8 +56,7 @@ class PGroup(object):
         pass
 
     def getnpid(self):
-        # --- The -3 is because the comps include the velocites
-        return _labwarpx.warpx_nComps() - 3
+        return _labwarpx.get_nattr()
     npid = property(getnpid)
 
     def getnps(self):
