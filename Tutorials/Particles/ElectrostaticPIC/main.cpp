@@ -78,6 +78,14 @@ void computeE(      VectorMeshData& E,
               const Array<Geometry>& geom) {
 
     const int num_levels = E.size();
+    const int finest_level = num_levels - 1;
+
+    // info for coarse/fine interpolation
+    PhysBCFunct cphysbc, fphysbc;
+    int lo_bc[] = {INT_DIR, INT_DIR, INT_DIR};
+    int hi_bc[] = {INT_DIR, INT_DIR, INT_DIR};
+    Array<BCRec> bcs(1, BCRec(lo_bc, hi_bc));
+    NodeBilinear mapper;
 
     for (int lev = 0; lev < num_levels; ++lev) {
 
@@ -85,6 +93,12 @@ void computeE(      VectorMeshData& E,
         const Real* dx = gm.CellSize();
 
         phi[lev]->FillBoundary(gm.periodicity());
+
+        if (lev < finest_level) {
+            amrex::InterpFromCoarseLevel(*phi[lev+1], 0.0, *phi[lev], 0, 0, 1, 
+                                         geom[lev], geom[lev+1], cphysbc, fphysbc,
+                                         IntVect(2, 2, 2), &mapper, bcs);
+        }
 
         for (MFIter mfi(*phi[lev]); mfi.isValid(); ++mfi) {
             const Box& bx = mfi.validbox();
@@ -108,6 +122,10 @@ void computePhi(ScalarMeshData& rhs, ScalarMeshData& phi,
                 Array<Geometry>& geom) {
 
     int num_levels = rhs.size();
+
+    for (int lev = 0; lev < num_levels; ++lev) {
+        phi[lev]->setVal(0.0);
+    }
     
     PhysBCFunct cphysbc, fphysbc;
     int lo_bc[] = {INT_DIR, INT_DIR, INT_DIR};   
