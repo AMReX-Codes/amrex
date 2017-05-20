@@ -354,6 +354,13 @@ LaserParticleContainer::Evolve (int lev,
                 &lvect,&WarpX::current_deposition_algo);
 	    BL_PROFILE_VAR_STOP(blp_pxr_cd);
 
+	    //
+	    // copy particle data back
+	    //
+	    BL_PROFILE_VAR_START(blp_copy);
+            pti.SetPosition(xp, yp, zp);
+            BL_PROFILE_VAR_STOP(blp_copy);
+            
             if (b4f)
             {
                 const Box& fbx = amrex::refine(box,m_gdb->refRatio(lev));
@@ -425,13 +432,6 @@ LaserParticleContainer::Evolve (int lev,
                     b4c->addFrom(jx_bnd,jy_bnd,jz_bnd);
                 }
             }
-
-	    //
-	    // copy particle data back
-	    //
-	    BL_PROFILE_VAR_START(blp_copy);
-            pti.SetPosition(xp, yp, zp);
-            BL_PROFILE_VAR_STOP(blp_copy);
 	}
     }
 }
