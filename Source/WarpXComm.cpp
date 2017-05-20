@@ -44,7 +44,24 @@ WarpX::FillBoundaryE ()
 
     for (int lev = 1; lev <= finest_level; ++lev)
     {
-        // xxxxx TODO: interp E field
+        const IntVect& ref_ratio = refRatio(lev-1);
+
+        const std::array<MultiFab,BL_SPACEDIM> crse {
+                    MultiFab(*Efield[lev-1][0], amrex::make_alias, 0, 1),
+#if (BL_SPACEDIM == 3)
+                    MultiFab(*Efield[lev-1][1], amrex::make_alias, 0, 1),
+#endif
+                    MultiFab(*Efield[lev-1][2], amrex::make_alias, 0, 1) };
+
+        std::array<MultiFab,BL_SPACEDIM> fine {
+                    MultiFab(*Efield[lev][0], amrex::make_alias, 0, 1),
+#if (BL_SPACEDIM == 3)
+                    MultiFab(*Efield[lev][1], amrex::make_alias, 0, 1),
+#endif
+                    MultiFab(*Efield[lev][2], amrex::make_alias, 0, 1) };
+
+        amrex::InterpCrseFineBndryEfield(crse, fine, Geom(lev-1), Geom(lev), ref_ratio[0]);
+
         FillBoundaryE(lev, true);
     }
 }
