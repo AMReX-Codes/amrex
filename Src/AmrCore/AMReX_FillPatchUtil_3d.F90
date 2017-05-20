@@ -175,3 +175,22 @@ subroutine amrex_interp_div_free_bfield (lo, hi, bx, bxlo, bxhi, by, bylo, byhi,
   call bl_deallocate(dCzdy)
 
 end subroutine amrex_interp_div_free_bfield
+
+
+subroutine amrex_interp_efield (lo, hi, ex, exlo, exhi, ey, eylo, eyhi, ez, ezlo, ezhi, &
+     cx, cxlo, cxhi, cy, cylo, cyhi, cz, czlo, czhi, dx, rr) bind(c)
+  use amrex_fort_module, only : amrex_real
+  use mempool_module
+  implicit none
+
+  integer, intent(in) :: lo(3), hi(3), exlo(3), exhi(3), eylo(3), eyhi(3), ezlo(3), ezhi(3), &
+       cxlo(3), cxhi(3), cylo(3), cyhi(3), czlo(3), czhi(3), rr
+  real(amrex_real), intent(in) :: dx(3)
+  real(amrex_real), intent(inout) :: ex(exlo(1):exhi(1),exlo(2):exhi(2),exlo(3):exhi(3))
+  real(amrex_real), intent(inout) :: ey(eylo(1):eyhi(1),eylo(2):eyhi(2),eylo(3):eyhi(3))
+  real(amrex_real), intent(inout) :: ez(ezlo(1):ezhi(1),ezlo(2):ezhi(2),ezlo(3):ezhi(3))
+  real(amrex_real), intent(in   ) :: cx(cxlo(1):cxhi(1),cxlo(2):cxhi(2),cxlo(3):cxhi(3))
+  real(amrex_real), intent(in   ) :: cy(cylo(1):cyhi(1),cylo(2):cyhi(2),cylo(3):cyhi(3))
+  real(amrex_real), intent(in   ) :: cz(czlo(1):czhi(1),czlo(2):czhi(2),czlo(3):czhi(3))
+
+end subroutine amrex_interp_efield
