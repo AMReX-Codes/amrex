@@ -497,7 +497,7 @@ contains
   end subroutine knapsack_pf
 
   subroutine make_sfc(iorder, bxs)
-    use sfc_module
+    use sfc_module, only: dm, boxkeys, mpower, pbxs
     use box_module
     use sort_i_module
     use bl_error_module
