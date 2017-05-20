@@ -69,7 +69,8 @@ public:
 			 const amrex::MultiFab& Ex, const amrex::MultiFab& Ey, const amrex::MultiFab& Ez,
 			 const amrex::MultiFab& Bx, const amrex::MultiFab& By, const amrex::MultiFab& Bz,
 			 amrex::MultiFab& jx, amrex::MultiFab& jy, amrex::MultiFab& jz,
-                         WarpXCrseFineBndry* cfb, amrex::Real t, amrex::Real dt) = 0;
+                         WarpXBndryForFine* b4f, WarpXBndryForCrse* b4c,
+                         amrex::Real t, amrex::Real dt) = 0;
 
     virtual void PostRestart () = 0;
 

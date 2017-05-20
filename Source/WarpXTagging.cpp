@@ -15,7 +15,7 @@ WarpX::ErrorEst (int lev, TagBoxArray& tags, Real time, int /*ngrow*/)
     IntVect ctr = sz / 2;
 
     // for testing, let's tag a sphere with a radius of
-    const Real R = 0.25*std::min({D_DECL(sz[0],sz[1],sz[2])});
+    const Real R = 0.025*std::min({D_DECL(sz[0],sz[1],sz[2])});
 
     for (MFIter mfi(tags); mfi.isValid(); ++mfi)
     {

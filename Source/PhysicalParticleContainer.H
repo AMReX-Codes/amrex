@@ -35,7 +35,8 @@ public:
 			 amrex::MultiFab& jx,
                          amrex::MultiFab& jy,
                          amrex::MultiFab& jz,
-                         WarpXCrseFineBndry* cfb,
+                         WarpXBndryForFine* b4f,
+                         WarpXBndryForCrse* b4c,
                          amrex::Real t,
                          amrex::Real dt) final;
 

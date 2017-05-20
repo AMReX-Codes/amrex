@@ -228,7 +228,8 @@ LaserParticleContainer::Evolve (int lev,
 				const MultiFab&, const MultiFab&, const MultiFab&,
 				const MultiFab&, const MultiFab&, const MultiFab&,
 				MultiFab& jx, MultiFab& jy, MultiFab& jz,
-                                WarpXCrseFineBndry* cfb, Real t, Real dt)
+                                WarpXBndryForFine* b4f, WarpXBndryForCrse* b4c,
+                                Real t, Real dt)
 {
     BL_PROFILE("Laser::Evolve()");
     BL_PROFILE_VAR_NS("Laser::Evolve::Copy", blp_copy);
@@ -244,6 +245,7 @@ LaserParticleContainer::Evolve (int lev,
 
     {
 	Array<Real> xp, yp, zp, giv, plane_Xp, plane_Yp, amplitude_E;
+        FArrayBox jx_bnd, jy_bnd, jz_bnd;
 
         for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
 	{
@@ -352,71 +354,75 @@ LaserParticleContainer::Evolve (int lev,
                 &lvect,&WarpX::current_deposition_algo);
 	    BL_PROFILE_VAR_STOP(blp_pxr_cd);
 
-            if (cfb)
+            if (b4f)
             {
-                const IntVect& ref_ratio = m_gdb->refRatio(lev);
-                const std::array<Real,3>& dx_fine = WarpX::CellSize(lev+1);
-
-                const Array<std::pair<Box,std::array<FArrayBox*,3> > >& fab_bnd
-                    = cfb->intersections(amrex::refine(box, ref_ratio));
-                const int Nisects = fab_bnd.size();
-
-                Array<Array<Real> > xp_bnd(Nisects), yp_bnd(Nisects), zp_bnd(Nisects), giv_bnd(Nisects);
-                Array<Array<Real> > uxp_bnd(Nisects), uyp_bnd(Nisects), uzp_bnd(Nisects), wp_bnd(Nisects);
-
-                for (int i = 0; i < np; ++i)
+                const Box& fbx = amrex::refine(box,m_gdb->refRatio(lev));
+                if (b4f->intersects(fbx))
                 {
-                    for (int j = 0; j < Nisects; ++j)
-                    {
-                        const Box& box_bnd = fab_bnd[j].first;
-                        const std::array<Real,3>& xyzmin_bnd = WarpX::LowerCorner(box_bnd, lev+1);
-                        const std::array<Real,3>& xyzmax_bnd = WarpX::UpperCorner(box_bnd, lev+1);
+                    Box bx_jx = fbx;
+                    bx_jx.convert(WarpX::jx_nodal_flag).grow(ngJ);
+                    Box bx_jy = fbx;
+                    bx_jy.convert(WarpX::jy_nodal_flag).grow(ngJ);
+                    Box bx_jz = fbx;
+                    bx_jz.convert(WarpX::jz_nodal_flag).grow(ngJ);
+                    jx_bnd.resize(bx_jx);
+                    jy_bnd.resize(bx_jy);
+                    jz_bnd.resize(bx_jz);
+                    jx_bnd.setVal(0.0);
+                    jy_bnd.setVal(0.0);
+                    jz_bnd.setVal(0.0);
+                    const std::array<Real,3>& dx_fine = WarpX::CellSize(lev+1);
+                    const std::array<Real,3>& xyzmin_fine = WarpX::LowerCorner(fbx, lev+1);
 
-                        if (xp[i] >= xyzmin_bnd[0] && xp[i] < xyzmax_bnd[0] &&
-                            yp[i] >= xyzmin_bnd[1] && yp[i] < xyzmax_bnd[1] &&
-                            zp[i] >= xyzmin_bnd[2] && zp[i] < xyzmax_bnd[2])
-                        {
-                            xp_bnd[j].push_back(xp[i]);
-                            yp_bnd[j].push_back(yp[i]);
-                            zp_bnd[j].push_back(zp[i]);
-                            giv_bnd[j].push_back(giv[i]);
-                            uxp_bnd[j].push_back(uxp[i]);
-                            uyp_bnd[j].push_back(uyp[i]);
-                            uzp_bnd[j].push_back(uzp[i]);
-                            wp_bnd[j].push_back(wp[i]);
-                            // intersections can overlap
-                            // so we need to make sure a particle can be added to at most one of the intersection piece
-                            break; 
-                        }
-                    }
+                    warpx_current_deposition(
+                        jx_bnd.dataPtr(), &ngJ, jx_bnd.length(),
+                        jy_bnd.dataPtr(), &ngJ, jy_bnd.length(),
+                        jz_bnd.dataPtr(), &ngJ, jz_bnd.length(),
+                        &np, xp.data(), yp.data(), zp.data(),
+                        uxp.data(), uyp.data(), uzp.data(),
+                        giv.data(), wp.data(), &this->charge,
+                        &xyzmin_fine[0], &xyzmin_fine[1], &xyzmin_fine[2],
+                        &dt, &dx_fine[0], &dx_fine[1], &dx_fine[2],
+                        &WarpX::nox,&WarpX::noy,&WarpX::noz,
+                        &lvect,&WarpX::current_deposition_algo);
+
+                    b4f->addFrom(jx_bnd,jy_bnd,jz_bnd);
                 }
+            }
 
-                for (int j = 0; j < Nisects; ++j)
+            if (b4c)
+            {
+                const Box& cbx = amrex::coarsen(box,m_gdb->refRatio(lev-1));
+                if (b4c->intersects(cbx))
                 {
-                    long np_bnd = xp_bnd[j].size();
+                    Box bx_jx = cbx;
+                    bx_jx.convert(WarpX::jx_nodal_flag).grow(ngJ);
+                    Box bx_jy = cbx;
+                    bx_jy.convert(WarpX::jy_nodal_flag).grow(ngJ);
+                    Box bx_jz = cbx;
+                    bx_jz.convert(WarpX::jz_nodal_flag).grow(ngJ);
+                    jx_bnd.resize(bx_jx);
+                    jy_bnd.resize(bx_jy);
+                    jz_bnd.resize(bx_jz);
+                    jx_bnd.setVal(0.0);
+                    jy_bnd.setVal(0.0);
+                    jz_bnd.setVal(0.0);
+                    const std::array<Real,3>& dx_crse = WarpX::CellSize(lev-1);
+                    const std::array<Real,3>& xyzmin_crse = WarpX::LowerCorner(cbx, lev-1);
 
-                    if (np_bnd > 0)
-                    {
-                        FArrayBox& fb_x = *(fab_bnd[j].second[0]);
-                        FArrayBox& fb_y = *(fab_bnd[j].second[1]);
-                        FArrayBox& fb_z = *(fab_bnd[j].second[2]);
+                    warpx_current_deposition(
+                        jx_bnd.dataPtr(), &ngJ, jx_bnd.length(),
+                        jy_bnd.dataPtr(), &ngJ, jy_bnd.length(),
+                        jz_bnd.dataPtr(), &ngJ, jz_bnd.length(),
+                        &np, xp.data(), yp.data(), zp.data(),
+                        uxp.data(), uyp.data(), uzp.data(),
+                        giv.data(), wp.data(), &this->charge,
+                        &xyzmin_crse[0], &xyzmin_crse[1], &xyzmin_crse[2],
+                        &dt, &dx_crse[0], &dx_crse[1], &dx_crse[2],
+                        &WarpX::nox,&WarpX::noy,&WarpX::noz,
+                        &lvect,&WarpX::current_deposition_algo);
 
-                        const Box& fab_ccbx = amrex::grow(amrex::enclosedCells(fb_x.box()),-ngJ);
-                        const std::array<Real,3>& xyzmin_fab = WarpX::LowerCorner(fab_ccbx, lev+1);
-                        // const std::array<Real,3>& xyzmax_fab = WarpX::UpperCorner(fab_ccbx, lev+1);
-
-                        warpx_current_deposition(
-                            fb_x.dataPtr(), &ngJ, fb_x.length(),
-                            fb_y.dataPtr(), &ngJ, fb_y.length(),
-                            fb_z.dataPtr(), &ngJ, fb_z.length(),
-                            &np_bnd, xp_bnd[j].data(), yp_bnd[j].data(), zp_bnd[j].data(),
-                            uxp_bnd[j].data(), uyp_bnd[j].data(), uzp_bnd[j].data(),
-                            giv_bnd[j].data(), wp_bnd[j].data(), &this->charge,
-                            &xyzmin_fab[0], &xyzmin_fab[1], &xyzmin_fab[2],
-                            &dt, &dx_fine[0], &dx_fine[1], &dx_fine[2],
-                            &WarpX::nox,&WarpX::noy,&WarpX::noz,
-                            &lvect,&WarpX::current_deposition_algo);
-                    }
+                    b4c->addFrom(jx_bnd,jy_bnd,jz_bnd);
                 }
             }
 

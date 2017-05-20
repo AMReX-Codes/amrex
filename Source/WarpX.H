@@ -87,7 +87,6 @@ public:
     void AverageDownE ();
     void AverageDownCurrent ();
     void SyncCurrent ();
-    void SumFineBoundaryToCrseCurrent ();
 
     int getistep (int lev) const {return istep[lev];}
     void setistep (int lev, int ii) {istep[lev] = ii;}
@@ -190,8 +189,6 @@ private:
 
     void AverageDownEorCurrent (amrex::Array<std::array<std::unique_ptr<amrex::MultiFab>,3> >& data);
 
-    void WgtAvgDownCurrent (int dir, amrex::MultiFab& cj, const amrex::MultiFab& fj, int ref_ratio);
-
     amrex::Array<int> istep;      // which step?
     amrex::Array<int> nsubsteps;  // how many substeps on each level?
 
@@ -207,7 +204,8 @@ private:
     amrex::Array<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Efield;
     amrex::Array<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Bfield;
 
-    amrex::Array<std::unique_ptr<WarpXCrseFineBndry> > cfbndry;
+    amrex::Array<std::unique_ptr<WarpXBndryForFine> > bndry4fine;
+    amrex::Array<std::unique_ptr<WarpXBndryForCrse> > bndry4crse;
 
     // PML  xxxxx for now let's only consider single level
     int do_pml = 0;

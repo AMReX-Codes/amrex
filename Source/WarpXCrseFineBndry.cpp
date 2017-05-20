@@ -4,15 +4,17 @@
 
 using namespace amrex;
 
-WarpXCrseFineBndry::WarpXCrseFineBndry (const amrex::BoxArray& crse_ba,
-                                        const amrex::BoxArray& fine_ba,
-                                        const amrex::DistributionMapping& crse_dm,
-                                        const amrex::DistributionMapping& fine_dm,
-                                        const amrex::Geometry& crse_gm,
-                                        const amrex::Geometry& fine_gm,
-                                        const amrex::IntVect& ref_ratio,
-                                        int ngrow)
-: m_fine_geom(fine_gm)
+WarpXBndryForFine::WarpXBndryForFine (const amrex::BoxArray& crse_ba,
+                                      const amrex::BoxArray& fine_ba,
+                                      const amrex::DistributionMapping& crse_dm,
+                                      const amrex::DistributionMapping& fine_dm,
+                                      const amrex::Geometry& crse_gm,
+                                      const amrex::Geometry& fine_gm,
+                                      const amrex::IntVect& ref_ratio,
+                                      int ngrow)
+  : m_fine_geom(fine_gm),
+    m_ref_ratio(ref_ratio),
+    m_ngrow(ngrow)
 {
     MultiFab fmf(fine_ba, fine_dm, 1, 0, MFInfo().SetAlloc(false));
     // ngrow+1 is needed so the can include particles that could deposit current on the face.
@@ -38,54 +40,166 @@ WarpXCrseFineBndry::WarpXCrseFineBndry (const amrex::BoxArray& crse_ba,
         }
     }
 
-    BoxArray ba_crse_layout(bl);
-    DistributionMapping dm_crse_layout(iproc);
+    BoxArray ba(bl);
+    DistributionMapping dm(iproc);
     
-    jx_crse_layout.define(amrex::convert(ba_crse_layout,WarpX::jx_nodal_flag),
-                          dm_crse_layout, 1, ngrow);
-    jy_crse_layout.define(amrex::convert(ba_crse_layout,WarpX::jy_nodal_flag),
-                          dm_crse_layout, 1, ngrow);
-    jz_crse_layout.define(amrex::convert(ba_crse_layout,WarpX::jz_nodal_flag),
-                          dm_crse_layout, 1, ngrow);
+    jx.define(amrex::convert(ba,WarpX::jx_nodal_flag), dm, 1, ngrow);
+    jy.define(amrex::convert(ba,WarpX::jy_nodal_flag), dm, 1, ngrow);
+    jz.define(amrex::convert(ba,WarpX::jz_nodal_flag), dm, 1, ngrow);
 }
 
-
-Array<std::pair<Box,std::array<FArrayBox*,3> > >
-WarpXCrseFineBndry::intersections(const Box& bx)
+bool
+WarpXBndryForFine::intersects (const Box& bx) const
 {
     BL_ASSERT(bx.cellCentered());
-
-    Array<std::pair<Box,std::array<FArrayBox*,3> > > isects;
-
     unsigned char flag = MFIter::AllBoxes;
-    for (MFIter mfi(jx_crse_layout, flag); mfi.isValid(); ++mfi)
+    for (MFIter mfi(jx, flag); mfi.isValid(); ++mfi)
     {
-        Box cc = amrex::enclosedCells(mfi.validbox());
-        cc &= bx;
-        if (cc.ok())
-        {
-            isects.push_back({cc, { &jx_crse_layout[mfi],
-                                    &jy_crse_layout[mfi],
-                                    &jz_crse_layout[mfi] } });
-        }
+        const Box& cc = amrex::enclosedCells(mfi.validbox());
+        if (cc.intersects(bx)) return true;
     }
-    return isects;
+    return false;
 }
 
 void
-WarpXCrseFineBndry::AddCurrent (MultiFab& jx, MultiFab& jy, MultiFab& jz) const
+WarpXBndryForFine::addFrom (amrex::FArrayBox& jx_in, amrex::FArrayBox& jy_in, amrex::FArrayBox& jz_in)
+{
+    unsigned char flag = MFIter::AllBoxes;
+    for (MFIter mfi(jx, flag); mfi.isValid(); ++mfi)
+    {
+        FArrayBox& dst = jx[mfi];
+        FArrayBox& src = jx_in;
+        Box bx = dst.box();
+        bx &= src.box();
+        dst.plus(src,bx,bx,0,0);
+        src.setVal(0.0,bx,0);  // to avoid being added to another fab
+    }
+
+    for (MFIter mfi(jy, flag); mfi.isValid(); ++mfi)
+    {
+        FArrayBox& dst = jy[mfi];
+        FArrayBox& src = jy_in;
+        Box bx = dst.box();
+        bx &= src.box();
+        dst.plus(src,bx,bx,0,0);
+        src.setVal(0.0,bx,0);  // to avoid being added to another fab
+    }
+
+    for (MFIter mfi(jz, flag); mfi.isValid(); ++mfi)
+    {
+        FArrayBox& dst = jz[mfi];
+        FArrayBox& src = jz_in;
+        Box bx = dst.box();
+        bx &= src.box();
+        dst.plus(src,bx,bx,0,0);
+        src.setVal(0.0,bx,0);  // to avoid being added to another fab
+    }
+}
+
+void
+WarpXBndryForFine::addTo (MultiFab& jx_out, MultiFab& jy_out, MultiFab& jz_out) const
 {
     const auto& period = m_fine_geom.periodicity();
-    const int ng = jx_crse_layout.nGrow();
-    jx.copy(jx_crse_layout, 0, 0, 1, ng, 0, period, FabArrayBase::ADD);
-    jy.copy(jy_crse_layout, 0, 0, 1, ng, 0, period, FabArrayBase::ADD);
-    jz.copy(jz_crse_layout, 0, 0, 1, ng, 0, period, FabArrayBase::ADD);
+    const int ng = jx.nGrow();
+    jx_out.copy(jx, 0, 0, 1, ng, 0, period, FabArrayBase::ADD);
+    jy_out.copy(jy, 0, 0, 1, ng, 0, period, FabArrayBase::ADD);
+    jz_out.copy(jz, 0, 0, 1, ng, 0, period, FabArrayBase::ADD);
 }
 
 void
-WarpXCrseFineBndry::setVal (Real v)
+WarpXBndryForFine::setVal (Real v)
 {
-    jx_crse_layout.setVal(v);
-    jy_crse_layout.setVal(v);
-    jz_crse_layout.setVal(v);
+    jx.setVal(v);
+    jy.setVal(v);
+    jz.setVal(v);
+}
+
+WarpXBndryForCrse::WarpXBndryForCrse (const amrex::BoxArray& crse_ba,
+                                      const amrex::BoxArray& fine_ba,
+                                      const amrex::DistributionMapping& crse_dm,
+                                      const amrex::DistributionMapping& fine_dm,
+                                      const amrex::Geometry& crse_gm,
+                                      const amrex::Geometry& fine_gm,
+                                      const amrex::IntVect& ref_ratio,
+                                      int ngrow)
+: m_crse_geom(crse_gm),
+    m_ref_ratio(ref_ratio),
+    m_ngrow(ngrow)
+{
+    MultiFab fmf(fine_ba, fine_dm, 1, 0, MFInfo().SetAlloc(false));
+    const FabArrayBase::CFinfo& cfinfo = FabArrayBase::TheCFinfo(fmf, fine_gm, ngrow*ref_ratio[0]);
+
+    BoxArray ba = cfinfo.ba_cfb;
+    ba.coarsen(ref_ratio);
+
+    jx.define(amrex::convert(ba,WarpX::jx_nodal_flag), cfinfo.dm_cfb, 1, 0);
+    jy.define(amrex::convert(ba,WarpX::jy_nodal_flag), cfinfo.dm_cfb, 1, 0);
+    jz.define(amrex::convert(ba,WarpX::jz_nodal_flag), cfinfo.dm_cfb, 1, 0);
+}
+
+void
+WarpXBndryForCrse::setVal (Real v)
+{
+    jx.setVal(v);
+    jy.setVal(v);
+    jz.setVal(v);
+}
+
+bool
+WarpXBndryForCrse::intersects (const Box& bx_in) const
+{
+    const Box& bx = amrex::grow(bx_in, m_ngrow);
+    BL_ASSERT(bx.cellCentered());
+    unsigned char flag = MFIter::AllBoxes;
+    for (MFIter mfi(jx, flag); mfi.isValid(); ++mfi)
+    {
+        const Box& cc = amrex::enclosedCells(mfi.validbox());
+        if (cc.intersects(bx)) return true;
+    }
+    return false;
+}
+
+void
+WarpXBndryForCrse::addFrom (amrex::FArrayBox& jx_in, amrex::FArrayBox& jy_in, amrex::FArrayBox& jz_in)
+{
+    unsigned char flag = MFIter::AllBoxes;
+    for (MFIter mfi(jx, flag); mfi.isValid(); ++mfi)
+    {
+        FArrayBox& dst = jx[mfi];
+        FArrayBox& src = jx_in;
+        Box bx = dst.box();
+        bx &= src.box();
+        dst.plus(src,bx,bx,0,0);
+        src.setVal(0.0,bx,0);  // to avoid being added to another fab
+    }
+
+    for (MFIter mfi(jy, flag); mfi.isValid(); ++mfi)
+    {
+        FArrayBox& dst = jy[mfi];
+        FArrayBox& src = jy_in;
+        Box bx = dst.box();
+        bx &= src.box();
+        dst.plus(src,bx,bx,0,0);
+        src.setVal(0.0,bx,0);  // to avoid being added to another fab
+    }
+
+    for (MFIter mfi(jz, flag); mfi.isValid(); ++mfi)
+    {
+        FArrayBox& dst = jz[mfi];
+        FArrayBox& src = jz_in;
+        Box bx = dst.box();
+        bx &= src.box();
+        dst.plus(src,bx,bx,0,0);
+        src.setVal(0.0,bx,0);  // to avoid being added to another fab
+    }
+}
+
+void
+WarpXBndryForCrse::addTo (MultiFab& jx_out, MultiFab& jy_out, MultiFab& jz_out) const
+{
+    const auto& period = m_crse_geom.periodicity();
+    const int ng = jx.nGrow();
+    jx_out.copy(jx, 0, 0, 1, ng, 0, period, FabArrayBase::ADD);
+    jy_out.copy(jy, 0, 0, 1, ng, 0, period, FabArrayBase::ADD);
+    jz_out.copy(jz, 0, 0, 1, ng, 0, period, FabArrayBase::ADD);
 }

@@ -65,7 +65,8 @@ WarpX::Evolve (int numsteps)
 			 *Efield[lev][0],*Efield[lev][1],*Efield[lev][2],
 			 *Bfield[lev][0],*Bfield[lev][1],*Bfield[lev][2],
 			 *current[lev][0],*current[lev][1],*current[lev][2],
-                         cfbndry[lev].get(), cur_time, dt[lev]);
+                         bndry4fine[lev].get(), bndry4crse[lev].get(),
+                         cur_time, dt[lev]);
         }
 
         EvolveB(0.5*dt[0]); // We now B^{n+1/2}
@@ -322,7 +323,8 @@ WarpX::PushParticlesandDepose(int lev, Real cur_time)
 		 *Efield[lev][0],*Efield[lev][1],*Efield[lev][2],
 		 *Bfield[lev][0],*Bfield[lev][1],*Bfield[lev][2],
 		 *current[lev][0],*current[lev][1],*current[lev][2],
-                 cfbndry[lev].get(), cur_time, dt[lev]);
+                 bndry4fine[lev].get(), bndry4crse[lev].get(),
+                 cur_time, dt[lev]);
 }
 
 void

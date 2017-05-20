@@ -182,80 +182,14 @@ WarpX::SyncCurrent ()
         current[lev][1]->SumBoundary(period);
         current[lev][2]->SumBoundary(period);
         if (lev > 0) {
-            cfbndry[lev-1]->AddCurrent(*current[lev][0], *current[lev][1], *current[lev][2]);
+            bndry4fine[lev-1]->addTo(*current[lev][0], *current[lev][1], *current[lev][2]);
+        }
+        if (lev < finest_level) {
+            bndry4crse[lev+1]->addTo(*current[lev][0], *current[lev][1], *current[lev][2]);
         }
     }
-
-    SumFineBoundaryToCrseCurrent();
 
     AverageDownCurrent();
 }
 
-void
-WarpX::SumFineBoundaryToCrseCurrent ()
-{
-    // xxxxx TODO this function can be optimized
 
-    for (int lev = 0; lev < finest_level; ++lev)
-    {
-        const IntVect& ref_ratio = refRatio(lev);
-        int ngf = current[lev+1][0]->nGrow();
-        std::div_t dv = std::div(ngf, ref_ratio[0]);
-        int ngc = (dv.rem) ? dv.quot+1 : dv.quot;
-        BoxArray cfba = boxArray(lev+1);
-        cfba.coarsen(ref_ratio);
-
-        Array<std::unique_ptr<MultiFab> > cfj(3);
-        const DistributionMapping& fdm = DistributionMap(lev+1);
-        cfj[0].reset(new MultiFab(amrex::convert(cfba,jx_nodal_flag),fdm,1,ngc));
-        cfj[1].reset(new MultiFab(amrex::convert(cfba,jy_nodal_flag),fdm,1,ngc));
-        cfj[2].reset(new MultiFab(amrex::convert(cfba,jz_nodal_flag),fdm,1,ngc));
-
-#if (BL_SPACEDIM == 3)
-        for (int idim = 0; idim < BL_SPACEDIM; ++idim) {
-            WgtAvgDownCurrent(idim, *cfj[idim], *current[lev+1][idim], ref_ratio[0]);
-        }
-#else
-        // xxxxx TODO 2D to be implemented
-#endif
-
-        const auto& period = Geom(lev).periodicity();
-        current[lev][0]->copy(*cfj[0], 0, 0, 1, ngc, 0, period, FabArrayBase::ADD);
-        current[lev][1]->copy(*cfj[1], 0, 0, 1, ngc, 0, period, FabArrayBase::ADD);
-        current[lev][2]->copy(*cfj[2], 0, 0, 1, ngc, 0, period, FabArrayBase::ADD);
-    }
-}
-
-
-void
-WarpX::WgtAvgDownCurrent (int dir, MultiFab& cj, const MultiFab& fj, int ref_ratio)
-{
-    BL_ASSERT(ref_ratio == 2);
-
-    int ngf = fj.nGrow();
-    int ngc = cj.nGrow();
-    
-    int ng_extra = std::max(ngc*ref_ratio,0);
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-    {
-        FArrayBox gfab;
-        for (MFIter mfi(cj); mfi.isValid(); ++mfi)
-        {
-            FArrayBox& cfab = cj[mfi];
-            const FArrayBox* ffab = &(fj[mfi]);
-            if (ng_extra > 0) {
-                const Box& fbx = ffab->box();
-                const Box& gbx = amrex::grow(fbx,ng_extra);
-                gfab.resize(gbx);
-                gfab.setVal(0.0);
-                gfab.copy(*ffab, fbx, 0, fbx, 0, 1);
-                ffab = &gfab;
-            }
-
-            WARPX_WGT_AVGDOWN_CURRENT(&dir, BL_TO_FORTRAN_ANYD(cfab),
-                                      BL_TO_FORTRAN_ANYD(*ffab));
-        }
-    }
-}

@@ -71,14 +71,16 @@ MultiParticleContainer::Evolve (int lev,
                                 const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
                                 const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz,
                                 MultiFab& jx, MultiFab& jy, MultiFab& jz,
-                                WarpXCrseFineBndry* cfb, Real t, Real dt)
+                                WarpXBndryForFine* b4f, WarpXBndryForCrse* b4c,
+                                Real t, Real dt)
 {
     jx.setVal(0.0);
     jy.setVal(0.0);
     jz.setVal(0.0);
-    if (cfb) cfb->setVal(0.0);
+    if (b4f) b4f->setVal(0.0);
+    if (b4c) b4c->setVal(0.0);
     for (auto& pc : allcontainers) {
-	pc->Evolve(lev, Ex, Ey, Ez, Bx, By, Bz, jx, jy, jz, cfb, t, dt);
+	pc->Evolve(lev, Ex, Ey, Ez, Bx, By, Bz, jx, jy, jz, b4f, b4c, t, dt);
     }
 }
 
