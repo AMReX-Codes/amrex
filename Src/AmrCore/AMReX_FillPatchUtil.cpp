@@ -247,10 +247,11 @@ namespace amrex
     }
 
     // B fields are assumed to be on staggered grids.
-    void InterpCrseFineBndryBfield (const std::array<MultiFab,BL_SPACEDIM>& crse,
-                                    std::array<MultiFab,BL_SPACEDIM>& fine,
-                                    const Geometry& cgeom, const Geometry& fgeom,
-                                    int ref_ratio)
+    void InterpCrseFineBndryEMfield (InterpEM_t interp_type,
+                                     const std::array<MultiFab,BL_SPACEDIM>& crse,
+                                     std::array<MultiFab,BL_SPACEDIM>& fine,
+                                     const Geometry& cgeom, const Geometry& fgeom,
+                                     int ref_ratio)
     {
         BL_ASSERT(ref_ratio == 2);
 
@@ -306,14 +307,33 @@ namespace amrex
                     bfab[2].resize(amrex::convert(ccbx,fine[2].ixType()));
 #endif
                     // interpolate from cmf to fmf
-                    amrex_interp_div_free_bfield(ccbx.loVect(), ccbx.hiVect(),
-                                                 D_DECL(BL_TO_FORTRAN_ANYD(bfab[0]),
-                                                        BL_TO_FORTRAN_ANYD(bfab[1]),
-                                                        BL_TO_FORTRAN_ANYD(bfab[2])),
-                                                 D_DECL(BL_TO_FORTRAN_ANYD(cxfab),
-                                                        BL_TO_FORTRAN_ANYD(cyfab),
-                                                        BL_TO_FORTRAN_ANYD(czfab)),
-                                                 dx, &ref_ratio);
+                    if (interp_type == InterpB)
+                    {
+                        amrex_interp_div_free_bfield(ccbx.loVect(), ccbx.hiVect(),
+                                                     D_DECL(BL_TO_FORTRAN_ANYD(bfab[0]),
+                                                            BL_TO_FORTRAN_ANYD(bfab[1]),
+                                                            BL_TO_FORTRAN_ANYD(bfab[2])),
+                                                     D_DECL(BL_TO_FORTRAN_ANYD(cxfab),
+                                                            BL_TO_FORTRAN_ANYD(cyfab),
+                                                            BL_TO_FORTRAN_ANYD(czfab)),
+                                                     dx, &ref_ratio);
+                    }
+                    else if (interp_type == InterpE)
+                    {
+                        amrex_interp_efield(ccbx.loVect(), ccbx.hiVect(),
+                                            D_DECL(BL_TO_FORTRAN_ANYD(bfab[0]),
+                                                   BL_TO_FORTRAN_ANYD(bfab[1]),
+                                                   BL_TO_FORTRAN_ANYD(bfab[2])),
+                                            D_DECL(BL_TO_FORTRAN_ANYD(cxfab),
+                                                   BL_TO_FORTRAN_ANYD(cyfab),
+                                                   BL_TO_FORTRAN_ANYD(czfab)),
+                                            dx, &ref_ratio);
+                    }
+                    else
+                    {
+                        amrex::Abort("InterpCrseFineBndryEMfield: unknown interp_type");
+                    }
+                    
                     for (int idim = 0; idim < BL_SPACEDIM; ++idim)
                     {
                         const BoxArray& fine_ba = fine[idim].boxArray();
