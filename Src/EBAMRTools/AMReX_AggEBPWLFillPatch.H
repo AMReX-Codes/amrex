@@ -27,9 +27,9 @@ namespace amrex
 {
 ///
 /**
-   Fills one layer of fine level ghost cells
-   by piecewise linear interpolation
-   from the coarse level.
+   This is a  ghost cell filler that fills by
+   piecewise linear interpolation.  The slopes used in filling
+   the ghost cells are limited by delta min mod limiting.
 */
   class AggEBPWLFillPatch
   {

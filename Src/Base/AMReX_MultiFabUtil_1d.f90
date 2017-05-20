@@ -244,6 +244,36 @@ subroutine bl_avgdown (lo,hi,&
 end subroutine bl_avgdown
 
 ! ***************************************************************************************
+! subroutine bl_avgdown_nodes
+! ***************************************************************************************
+
+subroutine bl_avgdown_nodes (lo,hi,&
+     fine,f_l1,f_h1, &
+     crse,c_l1,c_h1, &
+     lrat,ncomp)
+  
+  use amrex_fort_module, only : amrex_real
+  implicit none
+  
+  integer f_l1,f_h1
+  integer c_l1,c_h1
+  integer lo(1), hi(1)
+  integer lrat(1), ncomp
+  real(amrex_real) fine(f_l1:f_h1,ncomp)
+  real(amrex_real) crse(c_l1:c_h1,ncomp)
+  
+  integer :: i, ii, n
+  
+  do n = 1, ncomp
+     do i = lo(1), hi(1)
+        ii = i * lrat(1)
+        crse(i,n) = fine(ii, n)
+     end do
+  end do
+  
+end subroutine bl_avgdown_nodes
+
+! ***************************************************************************************
 ! subroutine bl_avgdown_with_vol
 ! ***************************************************************************************
 

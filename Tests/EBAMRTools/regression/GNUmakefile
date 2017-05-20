@@ -32,6 +32,7 @@ _progs  += fluxRegTest
 _progs  += regFluxRegTest
 _progs  += ebCoarseAveTest
 _progs  += nwoEBQuadCFITest
+_progs  += ebFineInterpTest
 
 include $(AMREX_HOME)/Src/Base/Make.package
 include $(AMREX_HOME)/Src/Boundary/Make.package

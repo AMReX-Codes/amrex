@@ -339,6 +339,31 @@ namespace amrex
         }
     }
 
+    //! Average fine node-based MultiFab onto crse node-based MultiFab.
+    //! This routine assumes that the crse BoxArray is a coarsened version of the fine BoxArray.
+    void average_down_nodal (const MultiFab& fine, MultiFab& crse, const IntVect& ratio)
+    {
+        BL_ASSERT(fine.is_nodal());
+        BL_ASSERT(crse.is_nodal());
+	BL_ASSERT(crse.nComp() == fine.nComp());
+
+	int ncomp = crse.nComp();
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+        for (MFIter mfi(crse,true); mfi.isValid(); ++mfi)
+            {
+                const Box& tbx = mfi.tilebox();
+                
+                BL_FORT_PROC_CALL(BL_AVGDOWN_NODES,bl_avgdown_nodes)
+                    (tbx.loVect(),tbx.hiVect(),
+                     BL_TO_FORTRAN(fine[mfi]),
+                     BL_TO_FORTRAN(crse[mfi]),
+                     ratio.getVect(),&ncomp);
+            }
+    }
+
 // *************************************************************************************************************
 
     void fill_boundary(MultiFab& mf, const Geometry& geom, bool cross)

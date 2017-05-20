@@ -10,54 +10,39 @@
  *
  */
 
-#ifndef _ALLREGULARSERVICE_H_
-#define _ALLREGULARSERVICE_H_
+#ifndef _EBDebugDump___H_
+#define _EBDebugDump___H_
 
-#include "AMReX_GeometryService.H"
+#include "AMReX_EBDebugOut.H"
 
 namespace amrex
 {
 
-/// A geometry service that is always regular.
-/**
- */
-  class AllRegularService: public GeometryService
+  void dontCallThisFunctionEver()
   {
-  public:
-    AllRegularService();
 
-    virtual ~AllRegularService();
+    dumpFAB(NULL);
 
-    ///
-    /**
-       Return true if every cell in region is regular at the
-       refinement described by dx.
-    */
-    virtual bool isRegular(const Box& a_region,
-                           const Box& a_domain,
-                           const RealVect& a_origin,
-                           const Real& a_dx) const;
+    dumpDBL(NULL);
 
-    ///
-    /**
-       Return true if every cell in region is covered at the
-       refinement described by dx.
-    */
-    virtual bool isCovered(const Box& a_region,
-                           const Box& a_domain,
-                           const RealVect& a_origin,
-                           const Real& a_dx) const;
+    dumpBFR(NULL);
 
-    ///
-    /**
-     */
-    virtual void fillGraph(BaseFab<int>&        a_regIrregCovered,
-                           std::vector<IrregNode>&   a_nodes,
-                           const Box&           a_validRegion,
-                           const Box&           a_ghostRegion,
-                           const Box& a_domain,
-                           const RealVect&      a_origin,
-                           const Real&          a_dx) const;
-  };
+    dumpBFI(NULL);
+ 
+    dumpBA(NULL);
+
+    dumpIVS(NULL);
+
+    dumpBox(NULL);
+
+    dumpEBFAB(NULL);
+
+    dumpIVFAB(NULL);
+    
+    dumpEBFace(NULL);
+  }
+  
 }
+
 #endif
+

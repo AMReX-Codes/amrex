@@ -57,8 +57,8 @@ public:
                                    const Array<int>                 & rr)
         : ParticleContainer<0, 0, PIdx::nattribs> (geom, dmap, ba, rr) 
         {
-            charge = PhysConst::q_e;
-            mass   = PhysConst::m_e;
+            charge = -PhysConst::q_e;
+            mass   =  PhysConst::m_e;
         }
     
     void InitParticles();

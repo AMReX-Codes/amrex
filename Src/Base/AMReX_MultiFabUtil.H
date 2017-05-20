@@ -26,6 +26,10 @@ namespace amrex
     //! This routine assumes that the crse BoxArray is a coarsened version of the fine BoxArray.
     void average_down_edges (const Array<const MultiFab*>& fine, const Array<MultiFab*>& crse, const IntVect& ratio);
 
+    //! Average fine node-based MultiFab onto crse node-centered MultiFab.
+    //! This routine assumes that the crse BoxArray is a coarsened version of the fine BoxArray.
+    void average_down_nodal(const MultiFab& S_fine, MultiFab& S_crse, const IntVect& ratio);
+
     //! Average fine cell-based MultiFab onto crse cell-centered MultiFab using volume-weighting.
     //! This routine DOES NOT assume that the crse BoxArray is a coarsened version of the fine BoxArray.
     void average_down(const MultiFab& S_fine, MultiFab& S_crse, const Geometry& fine_geom, const Geometry& crse_geom,
