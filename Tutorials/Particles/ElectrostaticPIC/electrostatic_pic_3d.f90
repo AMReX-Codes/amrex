@@ -45,8 +45,25 @@ contains
 
   end subroutine compute_E_nodal
 
+! This routine computes the charge density due to the particles using cloud-in-cell 
+! deposition. The Fab rho is assumed to be node-centered.
+!
+! Arguments:
+!     particles : a pointer to the particle array-of-structs 
+!     ns        : the stride length of particle struct (the size of the struct in number of reals)
+!     np        : the number of particles
+!     weights   : the particle weights
+!     charge    : the charge of this particle species
+!     rho       : a Fab that will contain the charge density on exit
+!     lo        : a pointer to the lo corner of this valid box for rho, in index space
+!     hi        : a pointer to the hi corner of this valid box for rho, in index space
+!     plo       : the real position of the left-hand corner of the problem domain
+!     dx        : the mesh spacing
+!     ng        : the number of ghost cells in rho
+!
   subroutine deposit_cic(particles, ns, np,                     &
-                         weights, charge, rho, lo, hi, plo, dx) &
+                         weights, charge, rho, lo, hi, plo, dx, &
+                         ng)                                    &
        bind(c,name='deposit_cic')
     integer, value       :: ns, np
     real(amrex_real)     :: particles(ns,np)
@@ -54,7 +71,8 @@ contains
     real(amrex_real)     :: charge
     integer              :: lo(3)
     integer              :: hi(3)
-    real(amrex_real)     :: rho(lo(1)-1:hi(1)+1, lo(2)-1:hi(2)+1, lo(3)-1:hi(3)+1)
+    integer              :: ng
+    real(amrex_real)     :: rho(lo(1)-ng:hi(1)+ng, lo(2)-ng:hi(2)+ng, lo(3)-ng:hi(3)+ng)
     real(amrex_real)     :: plo(3)
     real(amrex_real)     :: dx(3)
 
@@ -101,19 +119,38 @@ contains
 
   end subroutine deposit_cic
 
+! This routine interpolates the electric field to the particle positions
+! using cloud-in-cell interpolation. The electric fields are assumed to be
+! node-centered.
+!
+! Arguments:
+!     particles : a pointer to the particle array-of-structs 
+!     ns        : the stride length of particle struct (the size of the struct in number of reals)
+!     np        : the number of particles
+!     Ex_p      : the electric field in the x-direction at the particle positions (output)
+!     Ey_p      : the electric field in the y-direction at the particle positions (output)
+!     Ez_p      : the electric field in the z-direction at the particle positions (output)
+!     Ex, Ey, Ez: Fabs conting the electric field on the mesh
+!     lo        : a pointer to the lo corner of this valid box, in index space
+!     hi        : a pointer to the hi corner of this valid box, in index space
+!     plo       : the real position of the left-hand corner of the problem domain
+!     dx        : the mesh spacing
+!     ng        : the number of ghost cells for the E-field
+!
   subroutine interpolate_cic(particles, ns, np,      &
                              Ex_p, Ey_p, Ez_p,       &
                              Ex,   Ey,   Ez,         &
-                             lo, hi, plo, dx)        &
+                             lo, hi, plo, dx, ng)    &
        bind(c,name='interpolate_cic')
     integer, value       :: ns, np
     real(amrex_real)     :: particles(ns,np)
     real(amrex_real)     :: Ex_p(np), Ey_p(np), Ez_p(np)
+    integer              :: ng
     integer              :: lo(3)
     integer              :: hi(3)
-    real(amrex_real)     :: Ex(lo(1)-1:hi(1)+1, lo(2)-1:hi(2)+1, lo(3)-1:hi(3)+1)
-    real(amrex_real)     :: Ey(lo(1)-1:hi(1)+1, lo(2)-1:hi(2)+1, lo(3)-1:hi(3)+1)
-    real(amrex_real)     :: Ez(lo(1)-1:hi(1)+1, lo(2)-1:hi(2)+1, lo(3)-1:hi(3)+1)
+    real(amrex_real)     :: Ex(lo(1)-ng:hi(1)+ng, lo(2)-ng:hi(2)+ng, lo(3)-ng:hi(3)+ng)
+    real(amrex_real)     :: Ey(lo(1)-ng:hi(1)+ng, lo(2)-ng:hi(2)+ng, lo(3)-ng:hi(3)+ng)
+    real(amrex_real)     :: Ez(lo(1)-ng:hi(1)+ng, lo(2)-ng:hi(2)+ng, lo(3)-ng:hi(3)+ng)
     real(amrex_real)     :: plo(3)
     real(amrex_real)     :: dx(3)
 
@@ -171,6 +208,28 @@ contains
 
   end subroutine interpolate_cic
 
+!
+! This routine updates the particle positions and velocities using the 
+! leapfrog time integration algorithm, given the electric fields at the
+! particle positions. It also enforces specular reflection off the domain
+! walls.
+!
+! Arguments:
+!     particles : a pointer to the particle array-of-structs 
+!     ns        : the stride length of particle struct (the size of the struct in number of reals)
+!     np        : the number of particles
+!     xx_p      : the electric field in the x-direction at the particle positions
+!     vy_p      : the electric field in the y-direction at the particle positions
+!     vz_p      : the electric field in the z-direction at the particle positions
+!     Ex_p      : the electric field in the x-direction at the particle positions
+!     Ey_p      : the electric field in the y-direction at the particle positions
+!     Ez_p      : the electric field in the z-direction at the particle positions
+!     charge    : the charge of this particle species
+!     mass      : the mass of this particle species
+!     dt        : the time step
+!     prob_lo   : the left-hand corner of the problem domain
+!     prob_hi   : the right-hand corner of the problem domain
+!
   subroutine push_leapfrog(particles, ns, np,      &
                            vx_p, vy_p, vz_p,       &                                 
                            Ex_p, Ey_p, Ez_p,       &
@@ -200,7 +259,7 @@ contains
        particles(1, n) = particles(1, n) + dt * vx_p(n)
        particles(2, n) = particles(2, n) + dt * vy_p(n)
        particles(3, n) = particles(3, n) + dt * vz_p(n)
-              
+
 !      bounce off the walls in the x...
        do while (particles(1, n) .lt. prob_lo(1) .or. particles(1, n) .gt. prob_hi(1))
           if (particles(1, n) .lt. prob_lo(1)) then
@@ -235,14 +294,32 @@ contains
 
   end subroutine push_leapfrog
 
+!
+! This routine advances the particle positions using the current
+! velocity. This is needed to desynchronize the particle positions
+! from the velocities after particle initialization.
+!
+! Arguments:
+!     particles : a pointer to the particle array-of-structs 
+!     ns        : the stride length of particle struct (the size of the struct in number of reals)
+!     np        : the number of particles
+!     xx_p      : the electric field in the x-direction at the particle positions
+!     vy_p      : the electric field in the y-direction at the particle positions
+!     vz_p      : the electric field in the z-direction at the particle positions
+!     dt        : the time step
+!     prob_lo   : the left-hand corner of the problem domain
+!     prob_hi   : the right-hand corner of the problem domain
+!
   subroutine push_leapfrog_positions(particles, ns, np,      &
-                                     vx_p, vy_p, vz_p, dt)   &
+                                     vx_p, vy_p, vz_p, dt,   &
+                                     prob_lo, prob_hi)       &
        bind(c,name='push_leapfrog_positions')
     integer, value       :: ns, np
     real(amrex_real)     :: particles(ns,np)
     real(amrex_real)     :: vx_p(np), vy_p(np), vz_p(np)
     real(amrex_real)     :: dt
-    
+    real(amrex_real)     :: prob_lo(3), prob_hi(3)
+
     integer n
 
     do n = 1, np
@@ -250,6 +327,36 @@ contains
        particles(1, n) = particles(1, n) + dt * vx_p(n)
        particles(2, n) = particles(2, n) + dt * vy_p(n)
        particles(3, n) = particles(3, n) + dt * vz_p(n)
+
+!      bounce off the walls in the x...
+       do while (particles(1, n) .lt. prob_lo(1) .or. particles(1, n) .gt. prob_hi(1))
+          if (particles(1, n) .lt. prob_lo(1)) then
+             particles(1, n) = 2.d0*prob_lo(1) - particles(1, n)
+          else
+             particles(1, n) = 2.d0*prob_hi(1) - particles(1, n)
+          end if
+          vx_p(n) = -vx_p(n)
+       end do
+
+!      ... y... 
+       do while (particles(2, n) .lt. prob_lo(2) .or. particles(2, n) .gt. prob_hi(2))
+          if (particles(2, n) .lt. prob_lo(2)) then
+             particles(2, n) = 2.d0*prob_lo(2) - particles(2, n)
+          else
+             particles(2, n) = 2.d0*prob_hi(2) - particles(2, n)
+          end if
+          vy_p(n) = -vy_p(n)
+       end do
+
+!      ... and z directions
+       do while (particles(3, n) .lt. prob_lo(3) .or. particles(3, n) .gt. prob_hi(3))
+          if (particles(3, n) .lt. prob_lo(3)) then
+             particles(3, n) = 2.d0*prob_lo(3) - particles(3, n)
+          else
+             particles(3, n) = 2.d0*prob_hi(3) - particles(3, n)
+          end if
+          vz_p(n) = -vz_p(n)
+       end do
               
     end do
 

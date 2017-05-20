@@ -359,9 +359,12 @@ namespace amrex
     {
       if ( m_ebisBox.isMultiValued(a_ndin.gridIndex()))
       {
+        BL_ASSERT(m_irrFAB.getIVS().contains(a_ndin.gridIndex()));
         returnval = &(m_irrFAB(a_ndin,a_nVarLoc));
-      } else
+      } 
+      else
       {
+        BL_ASSERT(m_regFAB.box().contains(a_ndin.gridIndex()));
         returnval = &(m_regFAB(a_ndin.gridIndex(), a_nVarLoc));
       }
     }

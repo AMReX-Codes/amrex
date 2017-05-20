@@ -1828,7 +1828,7 @@ namespace amrex
       a_distanceAlongLine[iinter] = sqrt(a_distanceAlongLine[iinter]);
 
       int order = getExtrapolationStencil(a_pointStencils[iinter], extrapDist,
-                                          a_dx, centerVoF, a_ebisBox, nMaxDir,
+                                          a_dx, centerVoF, a_ebisBox, 2, nMaxDir,
                                           NULL, a_ivar);
 
       //the returned order is the order of the derivs taken.  can tolerate 1 or 2
@@ -1849,12 +1849,21 @@ namespace amrex
                           const RealVect& a_dx,
                           const VolIndex& a_startVoF,
                           const EBISBox&  a_ebisBox,
+                          int a_orderOfPolynomial,
                           int a_noExtrapThisDir,
                           IntVectSet*    a_cfivsPtr,
                           int ivar)
   {
     BL_PROFILE("EBArith::getExtrapolationStencil");
     int order = 2;
+////begin debug    
+//    int ideb = 0;
+//    const IntVect& iv = a_startVoF.gridIndex();
+//    if((iv[0] == 30)  && (iv[1] == 24) )
+//    {
+//      ideb = 1;
+//    }
+////end debug
     a_stencil.clear();
 
     //zeroth order Taylor series
@@ -1865,7 +1874,7 @@ namespace amrex
     int derivorder;
     for (int idir = 0; idir < SpaceDim; idir++)
     {
-      if (idir != a_noExtrapThisDir)
+      if ((idir != a_noExtrapThisDir) && (a_orderOfPolynomial > 0))
       {
         VoFStencil firstDSten;
         derivorder = EBArith::getFirstDerivStencil(firstDSten,
@@ -1877,17 +1886,39 @@ namespace amrex
 
         a_stencil += firstDSten;
 
-        VoFStencil secondDSten;
-        derivorder = EBArith::getSecondDerivStencil(secondDSten,
-                                                    a_startVoF, a_ebisBox,
-                                                    idir, a_dx[idir], a_cfivsPtr, ivar);
-        order = std::min(order, derivorder);
-        secondDSten *= (0.5*a_dist[idir]*a_dist[idir]);
-        a_stencil += secondDSten;
-      }
+        if (a_orderOfPolynomial > 1)
+        {
+          VoFStencil secondDSten;
+          derivorder = EBArith::getSecondDerivStencil(secondDSten,
+                                                      a_startVoF, a_ebisBox,
+                                                      idir, a_dx[idir], a_cfivsPtr, ivar);
+          order = std::min(order, derivorder);
+          secondDSten *= (0.5*a_dist[idir]*a_dist[idir]);
+          a_stencil += secondDSten;
+
 #if BL_SPACEDIM==3
-      int dir1, dir2;
-      EBArith::getDir1Dir2(dir1, dir2, idir);
+          int dir1, dir2;
+          EBArith::getDir1Dir2(dir1, dir2, idir);
+          if ((dir1 != a_noExtrapThisDir) && (dir2 != a_noExtrapThisDir))
+          {
+            VoFStencil mixedDSten;
+            derivorder = EBArith::getMixedDerivStencil(mixedDSten,
+                                                       a_startVoF, a_ebisBox,
+                                                       dir1, dir2, a_dx[dir1], a_dx[dir2], a_cfivsPtr, ivar);
+            order = std::min(order, derivorder);
+            mixedDSten *= (a_dist[dir1]*a_dist[dir2]);
+            a_stencil += mixedDSten;
+          }
+#endif
+        }
+      }
+    }
+
+#if BL_SPACEDIM==2
+    if (a_orderOfPolynomial > 1)
+    {
+      int dir1 = 0;
+      int dir2 = 1;
       if ((dir1 != a_noExtrapThisDir) && (dir2 != a_noExtrapThisDir))
       {
         VoFStencil mixedDSten;
@@ -1898,21 +1929,6 @@ namespace amrex
         mixedDSten *= (a_dist[dir1]*a_dist[dir2]);
         a_stencil += mixedDSten;
       }
-#endif
-    }
-
-#if BL_SPACEDIM==2
-    int dir1 = 0;
-    int dir2 = 1;
-    if ((dir1 != a_noExtrapThisDir) && (dir2 != a_noExtrapThisDir))
-    {
-      VoFStencil mixedDSten;
-      derivorder = EBArith::getMixedDerivStencil(mixedDSten,
-                                                 a_startVoF, a_ebisBox,
-                                                 dir1, dir2, a_dx[dir1], a_dx[dir2], a_cfivsPtr, ivar);
-      order = std::min(order, derivorder);
-      mixedDSten *= (a_dist[dir1]*a_dist[dir2]);
-      a_stencil += mixedDSten;
     }
 #endif
 
