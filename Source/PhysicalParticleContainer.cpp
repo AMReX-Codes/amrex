@@ -17,12 +17,15 @@ PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core, int isp
     mass = plasma_injector->getMass();
 }
 
-void PhysicalParticleContainer::InitData() {
+void PhysicalParticleContainer::InitData()
+{
     AddParticles(0); // Note - only one level right now
+    Redistribute();  // We then redistribute
 }
 
 void
-PhysicalParticleContainer::AddParticles (int lev, Box part_box) {
+PhysicalParticleContainer::AddParticles (int lev, Box part_box)
+{
     BL_PROFILE("PhysicalParticleContainer::AddParticles()");
 
     if ( not plasma_injector->doInjection() ) return;
