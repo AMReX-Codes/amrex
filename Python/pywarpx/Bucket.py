@@ -4,23 +4,28 @@ class Bucket(object):
     The purpose of this class is to be a named bucket for holding attributes.
     This attributes will be concatenated into a string and passed into argv during initialization.
     """
-    def __init__(self, instancename):
+    def __init__(self, instancename, **defaults):
         self._localsetattr('instancename', instancename)
-        self._localsetattr('argvattrs', [])
+        self._localsetattr('argvattrs', {})
+        self.argvattrs.update(defaults)
 
     def _localsetattr(self, name, value):
         object.__setattr__(self, name, value)
 
     def __setattr__(self, name, value):
-        self.argvattrs.append(name)
-        #self.__dict__[name] = value
-        object.__setattr__(self, name, value)
+        self.argvattrs[name] = value
+
+    def __getattr__(self, name):
+        try:
+            return self.argvattrs[name]
+        except KeyError:
+            return object.__getattr__(self, name)
 
     def attrlist(self):
         "Concatenate the attributes into a string"
         result = []
-        for attr in self.argvattrs:
-            attrstring = '{0}.{1}={2} '.format(self.instancename, attr, getattr(self, attr))
+        for attr, value in self.argvattrs.iteritems():
+            attrstring = '{0}.{1}={2} '.format(self.instancename, attr, value)
             result += [attrstring]
         return result
 
