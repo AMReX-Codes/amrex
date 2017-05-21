@@ -185,6 +185,7 @@ subroutine amrex_interp_efield (lo, hi, ex, exlo, exhi, ey, eylo, eyhi, ez, ezlo
 
   integer, intent(in) :: lo(3), hi(3), exlo(3), exhi(3), eylo(3), eyhi(3), ezlo(3), ezhi(3), &
        cxlo(3), cxhi(3), cylo(3), cyhi(3), czlo(3), czhi(3), rr
+
   real(amrex_real), intent(in) :: dx(3)
   real(amrex_real), intent(inout) :: ex(exlo(1):exhi(1),exlo(2):exhi(2),exlo(3):exhi(3))
   real(amrex_real), intent(inout) :: ey(eylo(1):eyhi(1),eylo(2):eyhi(2),eylo(3):eyhi(3))
@@ -193,4 +194,128 @@ subroutine amrex_interp_efield (lo, hi, ex, exlo, exhi, ey, eylo, eyhi, ez, ezlo
   real(amrex_real), intent(in   ) :: cy(cylo(1):cyhi(1),cylo(2):cyhi(2),cylo(3):cyhi(3))
   real(amrex_real), intent(in   ) :: cz(czlo(1):czhi(1),czlo(2):czhi(2),czlo(3):czhi(3))
 
+  integer :: i, j, k, ic, jc, kc
+  integer :: clo(3), chi(3)
+  real(amrex_real) :: c1, c2, c3, dc
+  real(amrex_real), pointer, contiguous :: tmpx(:,:,:), tmpy(:,:,:), tmpz(:,:,:)
+  real(amrex_real), parameter :: theta = 2.d0 ! 1: minmod, 2: MC
+
+  clo = cxlo+1
+  chi(1) = cxhi(1)-1
+  chi(2:3) = cxhi(2:3)-2  ! nodal in y and z for Ex
+  ! clo and chi are cell centered
+
+  call bl_allocate(tmpx,clo(1)-1,chi(1)+1,clo(2)*2,chi(2)*2+2,clo(3)*2,chi(3)*2+2)
+  call bl_allocate(tmpy,clo(1)*2,chi(1)*2+2,clo(2)-1,chi(2)+1,clo(3)*2,chi(3)*2+2)
+  call bl_allocate(tmpz,clo(1)*2,chi(1)*2+2,clo(2)*2,chi(2)*2+2,clo(3)-1,chi(3)+1)
+
+  do       kc = clo(3)  , chi(3)+1
+     do    jc = clo(2)  , chi(2)+1
+        do ic = clo(1)-1, chi(1)+1
+           tmpx(ic,jc*2,kc*2) = cx(ic,jc,kc)
+        end do
+        if (jc .lt. chi(2)+1) then
+           do ic = clo(1)-1, chi(1)+1
+              tmpx(ic,jc*2+1,kc*2) = 0.5d0*(cx(ic,jc,kc)+cx(ic,jc+1,kc))
+           end do
+        end if
+     end do
+  end do
+
+  do       k  = clo(3)*2+1, chi(3)*2+1, 2
+     do    j  = clo(2)*2  , chi(2)*2+2
+        do ic = clo(1)-1  , chi(1)+1
+           tmpx(ic,j,k) = 0.5d0*(tmpx(ic,j,k-1)+tmpx(ic,j,k+1))
+        end do
+     end do
+  end do
+           
+  do       k  = clo(3)*2,chi(3)*2+2
+     do    j  = clo(2)*2,chi(2)*2+2
+        do ic = clo(1)  ,chi(1)
+           c1 = theta*(tmpx(ic  ,j,k) - tmpx(ic-1,j,k))
+           c2 = 0.5d0*(tmpx(ic+1,j,k) - tmpx(ic-1,j,k))
+           c3 = theta*(tmpx(ic+1,j,k) - tmpx(ic  ,j,k))
+           dc = 0.25d0*(sign(1.d0,c1)+sign(1.d0,c2))*(sign(1.d0,c1)+sign(1.d0,c3)) &
+                *min(abs(c1),abs(c2),abs(c3))
+
+           ex(ic*2  ,j,k) = tmpx(ic,j,k) - 0.25d0*dc
+           ex(ic*2+1,j,k) = tmpx(ic,j,k) + 0.25d0*dc
+        end do
+     end do
+  end do
+
+  ! ey
+  do       kc = clo(3)  , chi(3)+1
+     do    jc = clo(2)-1, chi(2)+1
+        do ic = clo(1)  , chi(1)
+           tmpy(ic*2  ,jc,kc*2) = cy(ic,jc,kc)
+           tmpy(ic*2+1,jc,kc*2) = 0.5d0*(cy(ic,jc,kc)+cy(ic+1,jc,kc))
+        end do
+        ic = chi(1)+1
+        tmpy(ic*2,jc,kc*2) = cy(ic,jc,kc)        
+     end do
+  end do
+
+  do       k  = clo(3)*2+1, chi(3)*2+1, 2
+     do    jc = clo(2)-1  , chi(2)+1
+        do i  = clo(1)*2  , chi(1)*2+2
+           tmpy(i,jc,k) = 0.5d0*(tmpy(i,jc,k-1)+tmpy(i,jc,k+1))
+        end do
+     end do
+  end do
+  
+  do       k  = clo(3)*2, chi(3)*2+2
+     do    jc = clo(2)  , chi(2)
+        do i  = clo(1)*2, chi(1)*2+2
+           c1 = theta*(tmpy(i,jc  ,k) - tmpy(i,jc-1,k))
+           c2 = 0.5d0*(tmpy(i,jc+1,k) - tmpy(i,jc-1,k))
+           c3 = theta*(tmpy(i,jc+1,k) - tmpy(i,jc  ,k))
+           dc = 0.25d0*(sign(1.d0,c1)+sign(1.d0,c2))*(sign(1.d0,c1)+sign(1.d0,c3)) &
+                *min(abs(c1),abs(c2),abs(c3))
+
+           ey(i,jc*2  ,k) = tmpy(i,jc,k) - 0.25d0*dc
+           ey(i,jc*2+1,k) = tmpy(i,jc,k) + 0.25d0*dc
+        end do
+     end do
+  end do
+
+  
+  ! ez
+  do       kc = clo(3)-1, chi(3)+1
+     do    jc = clo(2)  , chi(2)+1
+        do ic = clo(1)  , chi(1)
+           tmpz(ic*2  ,jc*2,kc) = cz(ic,jc,kc)
+           tmpz(ic*2+1,jc*2,kc) = 0.5d0*(cz(ic,jc,kc)+cz(ic+1,jc,kc))
+        end do
+        ic = chi(1)+1
+        tmpz(ic*2,jc*2,kc) = cz(ic,jc,kc)
+     end do
+
+     do    j = clo(2)*2+1, chi(2)*2+1, 2
+        do i = clo(1)*2  , chi(1)*2+2
+           tmpz(i,j,kc) = 0.5d0*(tmpz(i,j-1,kc)+tmpz(i,j+1,kc))
+        end do
+     end do
+  end do
+
+  do       kc = clo(3)  , chi(3)
+     do    j  = clo(2)*2, chi(2)*2+2
+        do i  = clo(1)*2, clo(1)*2+2
+           c1 = theta*(tmpz(i,j,kc  ) - tmpz(i,j,kc-1))
+           c2 = 0.5d0*(tmpz(i,j,kc+1) - tmpz(i,j,kc-1))
+           c3 = theta*(tmpz(i,j,kc+1) - tmpz(i,j,kc  ))
+           dc = 0.25d0*(sign(1.d0,c1)+sign(1.d0,c2))*(sign(1.d0,c1)+sign(1.d0,c3)) &
+                *min(abs(c1),abs(c2),abs(c3))
+
+           ez(i,j,kc*2  ) = tmpz(i,j,kc) - 0.25d0*dc
+           ez(i,j,kc*2+1) = tmpz(i,j,kc) + 0.25d0*dc
+        end do
+     end do
+  end do
+  
+  call bl_deallocate(tmpx)
+  call bl_deallocate(tmpy)
+  call bl_deallocate(tmpz)
+  
 end subroutine amrex_interp_efield
