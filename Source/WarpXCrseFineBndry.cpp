@@ -71,8 +71,10 @@ WarpXBndryForFine::addFrom (amrex::FArrayBox& jx_in, amrex::FArrayBox& jy_in, am
         FArrayBox& src = jx_in;
         Box bx = dst.box();
         bx &= src.box();
-        dst.plus(src,bx,bx,0,0);
-        src.setVal(0.0,bx,0);  // to avoid being added to another fab
+        if (bx.ok()) {
+            dst.plus(src,bx,bx,0,0);
+            src.setVal(0.0,bx,0);  // to avoid being added to another fab
+        }
     }
 
     for (MFIter mfi(jy, flag); mfi.isValid(); ++mfi)
@@ -81,8 +83,10 @@ WarpXBndryForFine::addFrom (amrex::FArrayBox& jx_in, amrex::FArrayBox& jy_in, am
         FArrayBox& src = jy_in;
         Box bx = dst.box();
         bx &= src.box();
-        dst.plus(src,bx,bx,0,0);
-        src.setVal(0.0,bx,0);  // to avoid being added to another fab
+        if (bx.ok()) {
+            dst.plus(src,bx,bx,0,0);
+            src.setVal(0.0,bx,0);  // to avoid being added to another fab
+        }
     }
 
     for (MFIter mfi(jz, flag); mfi.isValid(); ++mfi)
@@ -91,8 +95,10 @@ WarpXBndryForFine::addFrom (amrex::FArrayBox& jx_in, amrex::FArrayBox& jy_in, am
         FArrayBox& src = jz_in;
         Box bx = dst.box();
         bx &= src.box();
-        dst.plus(src,bx,bx,0,0);
-        src.setVal(0.0,bx,0);  // to avoid being added to another fab
+        if (bx.ok()) {
+            dst.plus(src,bx,bx,0,0);
+            src.setVal(0.0,bx,0);  // to avoid being added to another fab
+        }
     }
 }
 
@@ -169,8 +175,10 @@ WarpXBndryForCrse::addFrom (amrex::FArrayBox& jx_in, amrex::FArrayBox& jy_in, am
         FArrayBox& src = jx_in;
         Box bx = dst.box();
         bx &= src.box();
-        dst.plus(src,bx,bx,0,0);
-        src.setVal(0.0,bx,0);  // to avoid being added to another fab
+        if (bx.ok()) {
+            dst.plus(src,bx,bx,0,0);
+            src.setVal(0.0,bx,0);  // to avoid being added to another fab
+        }
     }
 
     for (MFIter mfi(jy, flag); mfi.isValid(); ++mfi)
@@ -179,8 +187,10 @@ WarpXBndryForCrse::addFrom (amrex::FArrayBox& jx_in, amrex::FArrayBox& jy_in, am
         FArrayBox& src = jy_in;
         Box bx = dst.box();
         bx &= src.box();
-        dst.plus(src,bx,bx,0,0);
-        src.setVal(0.0,bx,0);  // to avoid being added to another fab
+        if (bx.ok()) {
+            dst.plus(src,bx,bx,0,0);
+            src.setVal(0.0,bx,0);  // to avoid being added to another fab
+        }
     }
 
     for (MFIter mfi(jz, flag); mfi.isValid(); ++mfi)
@@ -189,8 +199,10 @@ WarpXBndryForCrse::addFrom (amrex::FArrayBox& jx_in, amrex::FArrayBox& jy_in, am
         FArrayBox& src = jz_in;
         Box bx = dst.box();
         bx &= src.box();
-        dst.plus(src,bx,bx,0,0);
-        src.setVal(0.0,bx,0);  // to avoid being added to another fab
+        if (bx.ok()) {
+            dst.plus(src,bx,bx,0,0);
+            src.setVal(0.0,bx,0);  // to avoid being added to another fab
+        }
     }
 }
 
