@@ -1,7 +1,8 @@
 In this chapter, we present the basics of \amrex.  The implementation
 source codes are in {\tt amrex/Src/Base/}.  Note that \amrex\ classes
 and functions are in namespace {\tt amrex}.  For clarity, we usually
-drop {\tt amrex::} in the example codes here.  We recommend you study
+drop {\tt amrex::} in the example codes here.  It is also assumed that
+headers have been properly {\tt include}d.  We recommend you study
 tutorials at {\tt amrex/Tutorials/Basic/} while reading this chapter.
 After reading this chapter, one should be able to develop single-level
 parallel codes using \amrex.
@@ -11,14 +12,61 @@ parallel codes using \amrex.
 
 As we have mentioned in Chapter~\ref{Chap:BuildingAMReX}, the
 dimensionality of \amrex\ must be set at compile time.  A macro, {\tt
-  BL\_SPACEDIM}, is defined to be the number of spatial dimensions.
+  AMREX\_SPACEDIM}, is defined to be the number of spatial
+dimensions.  C++ codes can also use the {\tt amrex::SpaceDim}
+variable.  Fortran codes can use either the macro and preprocessing or
+do 
+\begin{verbatim}
+    use amrex_fort_module, only : amrex_spacedim
+\end{verbatim}
 The coordinate directions are zero based. \MarginPar{Not in Fortran}
 
 \section{Array}
 
+{\tt Array} class is derived from {\tt std::vector}.  The only
+difference between {\tt Array} and {\tt std::vector} is that {\tt
+  Array::operator[]} provides bound checking when compiled with {\tt
+  DEBUG=TRUE}. 
+
 \section{Real}
 
+\amrex\ can be compiled to use either double precision (which is the
+default) or single precision.  {\tt amrex::Real} is {\tt typedef}'d to
+either {\tt double} or {\tt float}.  C codes can use {\tt
+  amrex\_real}.  The data type is accessible in Fortran codes via
+\begin{verbatim}
+    use amrex_fort_module, only : amrex_real
+\end{verbatim}
+
 \section{ParallelDescriptor}
+
+\amrex\ users do not need to use MPI directly.  Parallel communication
+is often handled by the data abstraction classes (e.g., {\tt
+  MultiFab}; Section~\ref{sec:basics:multifab}).  In addition, \amrex\
+has provided {\tt namespace ParallelDesriptor}.  The frequently used
+functions are 
+\begin{lstlisting}[language=cpp]
+    int myproc = ParallelDescriptor::MyProc();  // Return the rank
+
+    int nprocs = ParallelDescriptor::NProcs();  // Return the number of processes
+ 
+    if (ParallelDescriptor::IOProcessor()) {
+
+        // Only the I/O process executes this
+    }
+
+    int ioproc = ParallelDescriptor::IOProcessorNumber();  // I/O rank
+
+    ParallelDescriptor::Barrier();
+
+    // Broadcast 100 ints from the I/O Processor
+    Array<int> a(100);
+    ParallelDescriptor::Bcast(a.data(), a.size(),
+                        ParallelDescriptor::IOProcessorNumber())
+
+    // See AMReX_ParallelDescriptor.H for many other Reduce functions 
+    ParallelDescriptor::ReduceRealSum(x);
+\end{lstlisting}
 
 \section{Print}
 \label{sec:basics:print}
@@ -30,6 +78,10 @@ threads do not get mixed up.  Below are some examples.
 \begin{lstlisting}[language=cpp]
     Print() <<  "x = " << x << "\n"; // Print on I/O processor
 
+    Real pi = std::atan(1.0)*4.0;
+    // Print on rank 3 with precision of 17 digits
+    Print(3).SetPrecision(17) << pi << "\n";
+
     AllPrint() << "Every process prints\n";  // Print on every process
 
     std::ofstream ofs("my.txt", std::ofstream::out);
@@ -38,6 +90,68 @@ threads do not get mixed up.  Below are some examples.
 \end{lstlisting}
 
 \section{ParmParse}
+
+{\tt ParmParse} is a class providing a database for the storage and
+retrieval of command-line and input-file arguments.  When {\tt
+  amrex::Initialize()} is called, the first command-line argument
+after the executable name (if there is one and it does not contain
+character {\tt =}) is taken to be the inputs file, and the contents in
+the file are used to initialized the {\tt ParmParse} database.  The
+rest of the command-line arguments are also parsed by {\tt ParmParse}.
+The format of the inputs file is a series of definitions in the form
+of {\tt prefix.name = value value ...}.  For each line, texts after a
+{\tt \#} are comments.  Here is an example inputs file.
+\begin{verbatim}
+nsteps    = 100               # integer
+nsteps    = 1000              # nsteps appears a second time
+dt        = 0.03              # floating point number
+ncells    = 128 64 32         # a list of 3 ints
+xrange    = -0.5 0.5          # a list of 2 reals
+title     = "Three Kingdoms"  # a string
+hydro.cfl = 0.8               # with prefix, hydro 
+\end{verbatim}
+The following code shows how to use {\tt ParmParse} to get the values.
+\begin{lstlisting}[language=cpp]
+    ParmParse pp;
+    
+    int nsteps = 0;
+    pp.query("nsteps", nsteps);
+    amrex::Print() << nsteps << "\n";  // 1000
+
+    Real dt;
+    pp.get("dt", dt);  // runtime error if dt is not in inputs
+
+    Array<int> numcells;
+    // A different name say 'numcells' can be used
+    pp.getarr("ncells", numcells);
+    amrex::Print() << numcells.size() << "\n";  // 3
+
+    Array<Real> xr {-1.0, 1.0};
+    if (!queryarr("xrange", xr)) {
+        amrex::Print() << "Cannot find xrange in inputs, "
+                       << "so the default {-1.0,1.0} will be used\n";
+    }
+
+    std::string title;
+    query("title", title);  // query string
+
+    ParmParse pph("hydro");  // with prefix 'hydro'
+    Real cfl;
+    pph.get("cfl", cfl);    // get parameter with prefix
+\end{lstlisting}
+Note that when there are multiple definitions for a parameter {\tt
+  ParamParse} by default returns the last one.  The difference between
+{\tt query} and {\tt get} should also be noted.  It is a runtime error
+if {\tt get} fails to get the value, whereas {\tt query} returns an
+error code without generating a runtime error that will abort the run.
+If it is sometimes convenient to override parameters with command-line
+arguments without modifying the inputs file.  The command-line
+arguments after the inputs file are added later to the database and
+are therefore used be default.  For example, one can run with
+\begin{verbatim}
+    myexecutable myinputsfile ncells="64 32 16" hydro.cfl=0.9
+\end{verbatim}
+to change the value of {\tt ncells} and {\tt hydro.cfl}.
 
 \section{Box, IntVect and IndexType}
 \label{sec:basics:box}
@@ -52,7 +166,7 @@ corners (represented by {\tt IntVect} and an index type
 \subsection{IntVect}
 
 {\idxamrex{IntVect}} is a dimension dependent class representing an
-integer vector in {\idxamrex{BL\_SPACEDIM}}-dimensional space.  An
+integer vector in {\idxamrex{AMREX\_SPACEDIM}}-dimensional space.  An
 {\tt IntVect} can be constructed as follows,
 \begin{lstlisting}[language=cpp]
     IntVect iv(AMREX_D_DECL(19, 0, 5));
@@ -92,6 +206,7 @@ For example,
 \section{DistributionMapping}
 
 \section{FabArray, MultiFab and iMultiFab}
+\label{sec:basics:multifab}
 
 % make alias
 
