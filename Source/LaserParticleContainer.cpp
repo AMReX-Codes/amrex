@@ -77,6 +77,17 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies)
 	u_X = CrossProduct({0., 1., 0.}, nvec);
 	u_Y = {0., 1., 0.};
 #endif
+
+        prob_domain = Geometry::ProbDomain();
+        {
+            Array<Real> lo, hi;
+            if (pp.queryarr("prob_lo", lo)) {
+                prob_domain.setLo(lo);
+            }
+            if (pp.queryarr("prob_hi", hi)) {
+                prob_domain.setHi(hi);
+            }
+        }
     }
 }
 
@@ -89,9 +100,6 @@ LaserParticleContainer::InitData ()
 void
 LaserParticleContainer::InitData (int lev)
 {
-    const Geometry& geom = Geom(lev);
-    const RealBox& prob_domain = geom.ProbDomain();
-
     // spacing of laser particles in the laser plane.
     // has to be done after geometry is set up.
     Real S_X, S_Y;

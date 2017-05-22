@@ -49,6 +49,9 @@ private:
     amrex::Real profile_t_peak         = std::numeric_limits<amrex::Real>::quiet_NaN();
     amrex::Real profile_focal_distance = std::numeric_limits<amrex::Real>::quiet_NaN();
 
+    // laser particle domain
+    amrex::RealBox prob_domain;
+
     void ComputeSpacing (int lev, amrex::Real& Sx, amrex::Real& Sy) const;
     void ComputeWeightMobility (amrex::Real Sx, amrex::Real Sy);
     void InitData (int lev);
