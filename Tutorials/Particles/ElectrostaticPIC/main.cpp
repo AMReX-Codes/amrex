@@ -80,31 +80,16 @@ void computeE(      VectorMeshData& E,
     const int num_levels = E.size();
     const int finest_level = num_levels - 1;
 
-    // info for coarse/fine interpolation
-    PhysBCFunct cphysbc, fphysbc;
-    int lo_bc[] = {INT_DIR, INT_DIR, INT_DIR};
-    int hi_bc[] = {INT_DIR, INT_DIR, INT_DIR};
-    Array<BCRec> bcs(1, BCRec(lo_bc, hi_bc));
-    NodeBilinear mapper;
-
     for (int lev = 0; lev < num_levels; ++lev) {
 
         const auto& gm = geom[lev];
         const Real* dx = gm.CellSize();
 
-        phi[lev]->FillBoundary(gm.periodicity());
-
-        if (lev < finest_level) {
-            amrex::InterpFromCoarseLevel(*phi[lev+1], 0.0, *phi[lev], 0, 0, 1, 
-                                         geom[lev], geom[lev+1], cphysbc, fphysbc,
-                                         IntVect(2, 2, 2), &mapper, bcs);
-        }
-
         for (MFIter mfi(*phi[lev]); mfi.isValid(); ++mfi) {
             const Box& bx = mfi.validbox();
 
             compute_E_nodal(bx.loVect(), bx.hiVect(),
-                            (*phi[lev])[mfi].dataPtr(),
+                            (*phi[lev] )[mfi].dataPtr(),
                             (*E[lev][0])[mfi].dataPtr(),
                             (*E[lev][1])[mfi].dataPtr(),
                             (*E[lev][2])[mfi].dataPtr(), dx);
@@ -149,7 +134,34 @@ void computePhi(ScalarMeshData& rhs, ScalarMeshData& phi,
     solver.set_nodal_const_coefficients(1.0);
     
     solver.solve_nodal(amrex::GetArrOfPtrs(phi), amrex::GetArrOfPtrs(rhs), rel_tol, abs_tol);
-    
+
+    for (int lev = 0; lev < num_levels; ++lev) {
+        const auto& gm = geom[lev];
+        phi[lev]->FillBoundary(gm.periodicity());
+    }
+        
+    for (int lev = 0; lev < num_levels-1; ++lev) {
+        // info for coarse/fine interpolation
+        PhysBCFunct cphysbc, fphysbc;
+        int lo_bc[] = {INT_DIR, INT_DIR, INT_DIR};
+        int hi_bc[] = {INT_DIR, INT_DIR, INT_DIR};
+        Array<BCRec> bcs(1, BCRec(lo_bc, hi_bc));
+        NodeBilinear mapper;
+
+        MultiFab tmp(phi[lev+1]->boxArray(), phi[lev+1]->DistributionMap(), 1, 1);
+                    Array<MultiFab*> crse(1);
+            crse[0] = phi[lev].get();
+            Array<Real> ctime(1, 0.0);
+            Array<Real> ftime(1, 0.0);            
+            Array<MultiFab*> fine(1);
+            fine[0] = phi[lev+1].get();
+            amrex::FillPatchTwoLevels(tmp, 0.0, crse, ctime, fine, ftime, 
+                                      0, 0, 1, 
+                                      geom[lev], geom[lev+1], cphysbc, fphysbc,
+                                      IntVect(2, 2, 2), &mapper, bcs);
+            MultiFab::Copy(*phi[lev+1], tmp, 0, 0, 1, 1);
+    }
+
     // Array<Geometry>            level_geom(1);
     // Array<BoxArray>            level_grids(1);
     // Array<DistributionMapping> level_dm(1);
