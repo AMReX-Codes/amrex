@@ -279,6 +279,7 @@ fortran_fdecl_headers_cppd = $(addprefix $(tmpEXETempDir)/, $(fortran_fdecl_head
 #
 
 DEFINES	+= -DBL_SPACEDIM=$(DIM)				\
+           -DAMREX_SPACEDIM=$(DIM)                      \
            -DBL_FORT_USE_$(FORTLINK)			\
            -DBL_$(shell uname)
 

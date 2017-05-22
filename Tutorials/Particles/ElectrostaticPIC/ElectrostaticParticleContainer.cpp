@@ -218,7 +218,6 @@ Evolve(const VectorMeshData& E, ScalarMeshData& rho, const Real& dt) {
             const FArrayBox& exfab  = (*E[lev][0])[pti];
             const FArrayBox& eyfab  = (*E[lev][1])[pti];
             const FArrayBox& ezfab  = (*E[lev][2])[pti];
-            FArrayBox&       rhofab = (*rho[lev])[pti];
             
             Exp.assign(np,0.0);
             Eyp.assign(np,0.0);
