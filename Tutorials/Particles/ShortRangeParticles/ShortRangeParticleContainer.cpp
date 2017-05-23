@@ -139,13 +139,7 @@ void ShortRangeParticleContainer::fillGhosts() {
 
 void ShortRangeParticleContainer::clearGhosts() 
 {
-    for (auto kv:ghosts)
-    {
-        const int grid_id = kv.first.first;
-        const int tile_id = kv.first.second;
-        auto& ghost_particles = ghosts[std::make_pair(grid_id, tile_id)];
-        Array<char>().swap(ghost_particles);
-    }
+    ghosts.clear();
 }
 
 void ShortRangeParticleContainer::computeForces() {
