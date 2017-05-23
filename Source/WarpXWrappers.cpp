@@ -175,22 +175,6 @@ extern "C"
         return data;
     }
 
-    double* warpx_getPMLSigma(int dir, int* size) {
-        auto & sig = WarpX::GetInstance().getPMLSigma(dir);
-        *size = sig.size();
-        return (double*) sig.dataPtr();
-    }
-
-    double* warpx_getPMLSigmaStar(int dir, int* size) {
-        auto & sig = WarpX::GetInstance().getPMLSigmaStar(dir);
-        *size = sig.size();
-        return (double*) sig.dataPtr();
-    }
-
-    void warpx_ComputePMLFactors(int lev, double dt) {
-        WarpX::GetInstance().ComputePMLFactors(lev, dt);
-    }
-
     void warpx_ComputeDt () {
         WarpX& warpx = WarpX::GetInstance();
         warpx.ComputeDt ();

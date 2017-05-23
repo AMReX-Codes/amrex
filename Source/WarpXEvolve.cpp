@@ -42,6 +42,8 @@ WarpX::Evolve (int numsteps)
         // Beyond one step, we have B^{n-1/2} and E^{n}.
         // Particles have p^{n-1/2} and x^{n}.
 
+#if 0
+        // xxxxx
         if (is_synchronized) {
             // on first step, push E and X by 0.5*dt
             FillBoundaryB();
@@ -50,22 +52,19 @@ WarpX::Evolve (int numsteps)
             mypc->Redistribute();  // Redistribute particles
             is_synchronized = false;
         }
+#endif
 
         EvolveB(0.5*dt[0]); // We now B^{n}
 
-        if (WarpX::nox > 1 || WarpX::noz > 1 || WarpX::noz > 1) {
-            FillBoundaryB();
-            FillBoundaryE();
-        }
-        
+        UpdateAuxiliaryData(); // This will also fill the boundary of fine and coarse patches
+
         for (int lev = 0; lev <= finest_level; ++lev) {
 	    // Evolve particles to p^{n+1/2} and x^{n+1}
 	    // Depose current, j^{n+1/2}
 	    mypc->Evolve(lev,
-			 *Efield[lev][0],*Efield[lev][1],*Efield[lev][2],
-			 *Bfield[lev][0],*Bfield[lev][1],*Bfield[lev][2],
-			 *current[lev][0],*current[lev][1],*current[lev][2],
-                         bndry4fine[lev].get(), bndry4crse[lev].get(),
+			 *Efield_aux[lev][0],*Efield_aux[lev][1],*Efield_aux[lev][2],
+			 *Bfield_aux[lev][0],*Bfield_aux[lev][1],*Bfield_aux[lev][2],
+			 *current_fp[lev][0],*current_fp[lev][1],*current_fp[lev][2],
                          cur_time, dt[lev]);
         }
 
@@ -76,12 +75,15 @@ WarpX::Evolve (int numsteps)
         // Fill B's ghost cells because of the next step of evolving E.
         FillBoundaryB();
 
+#if 0
         if (cur_time + dt[0] >= stop_time - 1.e-3*dt[0] || step == numsteps_max-1) {
             // on last step, push by only 0.5*dt to synchronize all at n+1/2
             EvolveE(0.5*dt[0]); // We now have E^{n+1/2}
             mypc->PushX(-0.5*dt[0]);
             is_synchronized = true;
         } else {
+#endif
+        {
             EvolveE(dt[0]); // We now have E^{n+1}
         }
         
@@ -113,11 +115,14 @@ WarpX::Evolve (int numsteps)
                 FillBoundaryB();
                 FillBoundaryE();
             }
+// xxxxx
+#if 0
             for (int lev = 0; lev <= finest_level; ++lev) {
                 mypc->FieldGather(lev,
                                   *Efield[lev][0],*Efield[lev][1],*Efield[lev][2],
                                   *Bfield[lev][0],*Bfield[lev][1],*Bfield[lev][2]);
             }
+#endif
 	    last_plot_file_step = step+1;
 	    WritePlotFile();
 	}
@@ -150,7 +155,6 @@ WarpX::EvolveB (Real dt)
     for (int lev = 0; lev <= finest_level; ++lev) {
         EvolveB(lev, dt);
     }
-    AverageDownB();
 }
 
 void
@@ -168,7 +172,7 @@ WarpX::EvolveB (int lev, Real dt)
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for ( MFIter mfi(*Bfield[lev][0],true); mfi.isValid(); ++mfi )
+    for ( MFIter mfi(*Bfield_fp[lev][0],true); mfi.isValid(); ++mfi )
     {
         const Box& tbx  = mfi.tilebox(Bx_nodal_flag);
         const Box& tby  = mfi.tilebox(By_nodal_flag);
@@ -179,16 +183,49 @@ WarpX::EvolveB (int lev, Real dt)
 	    tbx.loVect(), tbx.hiVect(),
 	    tby.loVect(), tby.hiVect(),
 	    tbz.loVect(), tbz.hiVect(),
-	    BL_TO_FORTRAN_3D((*Efield[lev][0])[mfi]),
-	    BL_TO_FORTRAN_3D((*Efield[lev][1])[mfi]),
-	    BL_TO_FORTRAN_3D((*Efield[lev][2])[mfi]),
-	    BL_TO_FORTRAN_3D((*Bfield[lev][0])[mfi]),
-	    BL_TO_FORTRAN_3D((*Bfield[lev][1])[mfi]),
-	    BL_TO_FORTRAN_3D((*Bfield[lev][2])[mfi]),
+	    BL_TO_FORTRAN_3D((*Efield_fp[lev][0])[mfi]),
+	    BL_TO_FORTRAN_3D((*Efield_fp[lev][1])[mfi]),
+	    BL_TO_FORTRAN_3D((*Efield_fp[lev][2])[mfi]),
+	    BL_TO_FORTRAN_3D((*Bfield_fp[lev][0])[mfi]),
+	    BL_TO_FORTRAN_3D((*Bfield_fp[lev][1])[mfi]),
+	    BL_TO_FORTRAN_3D((*Bfield_fp[lev][2])[mfi]),
 	    &dtsdx[0], &dtsdx[1], &dtsdx[2],
 	    &norder);
     }
 
+    if (lev > 0)
+    {
+        const std::array<Real,3>& dx = WarpX::CellSize(lev-1);
+        const std::array<Real,3> dtsdx {dt/dx[0], dt/dx[1], dt/dx[2]};
+        
+        // Loop through the grids, and over the tiles within each grid
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+        for ( MFIter mfi(*Bfield_cp[lev][0],true); mfi.isValid(); ++mfi )
+        {
+            const Box& tbx  = mfi.tilebox(Bx_nodal_flag);
+            const Box& tby  = mfi.tilebox(By_nodal_flag);
+            const Box& tbz  = mfi.tilebox(Bz_nodal_flag);
+            
+            // Call picsar routine for each tile
+            WRPX_PXR_PUSH_BVEC(
+                tbx.loVect(), tbx.hiVect(),
+                tby.loVect(), tby.hiVect(),
+                tbz.loVect(), tbz.hiVect(),
+                BL_TO_FORTRAN_3D((*Efield_cp[lev][0])[mfi]),
+                BL_TO_FORTRAN_3D((*Efield_cp[lev][1])[mfi]),
+                BL_TO_FORTRAN_3D((*Efield_cp[lev][2])[mfi]),
+                BL_TO_FORTRAN_3D((*Bfield_cp[lev][0])[mfi]),
+                BL_TO_FORTRAN_3D((*Bfield_cp[lev][1])[mfi]),
+                BL_TO_FORTRAN_3D((*Bfield_cp[lev][2])[mfi]),
+                &dtsdx[0], &dtsdx[1], &dtsdx[2],
+                &norder);
+        }
+    }
+
+    // xxxxx
+#if 0
     if (do_pml && lev == 0)
     {
 
@@ -224,6 +261,7 @@ WarpX::EvolveB (int lev, Real dt)
                 );
         }
     }
+#endif
 }
 
 void
@@ -232,7 +270,6 @@ WarpX::EvolveE (Real dt)
     for (int lev = 0; lev <= finest_level; ++lev) {
         EvolveE(lev, dt);
     }
-    AverageDownE();
 }
 
 void
@@ -252,7 +289,7 @@ WarpX::EvolveE (int lev, Real dt)
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for ( MFIter mfi(*Efield[lev][0],true); mfi.isValid(); ++mfi )
+    for ( MFIter mfi(*Efield_fp[lev][0],true); mfi.isValid(); ++mfi )
     {
 	const Box& tex  = mfi.tilebox(Ex_nodal_flag);
 	const Box& tey  = mfi.tilebox(Ey_nodal_flag);
@@ -263,20 +300,59 @@ WarpX::EvolveE (int lev, Real dt)
 	    tex.loVect(), tex.hiVect(),
 	    tey.loVect(), tey.hiVect(),
 	    tez.loVect(), tez.hiVect(),
-	    BL_TO_FORTRAN_3D((*Efield[lev][0])[mfi]),
-	    BL_TO_FORTRAN_3D((*Efield[lev][1])[mfi]),
-	    BL_TO_FORTRAN_3D((*Efield[lev][2])[mfi]),
-	    BL_TO_FORTRAN_3D((*Bfield[lev][0])[mfi]),
-	    BL_TO_FORTRAN_3D((*Bfield[lev][1])[mfi]),
-	    BL_TO_FORTRAN_3D((*Bfield[lev][2])[mfi]),
-	    BL_TO_FORTRAN_3D((*current[lev][0])[mfi]),
-	    BL_TO_FORTRAN_3D((*current[lev][1])[mfi]),
-	    BL_TO_FORTRAN_3D((*current[lev][2])[mfi]),
+	    BL_TO_FORTRAN_3D((*Efield_fp[lev][0])[mfi]),
+	    BL_TO_FORTRAN_3D((*Efield_fp[lev][1])[mfi]),
+	    BL_TO_FORTRAN_3D((*Efield_fp[lev][2])[mfi]),
+	    BL_TO_FORTRAN_3D((*Bfield_fp[lev][0])[mfi]),
+	    BL_TO_FORTRAN_3D((*Bfield_fp[lev][1])[mfi]),
+	    BL_TO_FORTRAN_3D((*Bfield_fp[lev][2])[mfi]),
+	    BL_TO_FORTRAN_3D((*current_fp[lev][0])[mfi]),
+	    BL_TO_FORTRAN_3D((*current_fp[lev][1])[mfi]),
+	    BL_TO_FORTRAN_3D((*current_fp[lev][2])[mfi]),
 	    &mu_c2_dt,
 	    &dtsdx_c2[0], &dtsdx_c2[1], &dtsdx_c2[2],
 	    &norder);
     }
 
+    if (lev > 0)
+    {
+        const std::array<Real,3>& dx = WarpX::CellSize(lev-1);
+        const Real mu_c2_dt = (PhysConst::mu0*PhysConst::c*PhysConst::c) * dt;
+        const Real foo = (PhysConst::c*PhysConst::c) * dt;
+        const std::array<Real,3> dtsdx_c2 {foo/dx[0], foo/dx[1], foo/dx[2]};
+        
+        // Loop through the grids, and over the tiles within each grid
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+        for ( MFIter mfi(*Efield_cp[lev][0],true); mfi.isValid(); ++mfi )
+        {
+            const Box& tex  = mfi.tilebox(Ex_nodal_flag);
+            const Box& tey  = mfi.tilebox(Ey_nodal_flag);
+            const Box& tez  = mfi.tilebox(Ez_nodal_flag);
+            
+            // Call picsar routine for each tile
+            WRPX_PXR_PUSH_EVEC(
+                tex.loVect(), tex.hiVect(),
+                tey.loVect(), tey.hiVect(),
+                tez.loVect(), tez.hiVect(),
+                BL_TO_FORTRAN_3D((*Efield_cp[lev][0])[mfi]),
+                BL_TO_FORTRAN_3D((*Efield_cp[lev][1])[mfi]),
+                BL_TO_FORTRAN_3D((*Efield_cp[lev][2])[mfi]),
+                BL_TO_FORTRAN_3D((*Bfield_cp[lev][0])[mfi]),
+                BL_TO_FORTRAN_3D((*Bfield_cp[lev][1])[mfi]),
+                BL_TO_FORTRAN_3D((*Bfield_cp[lev][2])[mfi]),
+                BL_TO_FORTRAN_3D((*current_cp[lev][0])[mfi]),
+                BL_TO_FORTRAN_3D((*current_cp[lev][1])[mfi]),
+                BL_TO_FORTRAN_3D((*current_cp[lev][2])[mfi]),
+                &mu_c2_dt,
+                &dtsdx_c2[0], &dtsdx_c2[1], &dtsdx_c2[2],
+                &norder);
+        }
+    }
+
+// xxxxx
+#if 0
     if (do_pml && lev == 0)
     {
 
@@ -312,6 +388,7 @@ WarpX::EvolveE (int lev, Real dt)
                 );
         }
     }
+#endif
 }
 
 void
@@ -319,12 +396,15 @@ WarpX::PushParticlesandDepose(int lev, Real cur_time)
 {
     // Evolve particles to p^{n+1/2} and x^{n+1}
     // Depose current, j^{n+1/2}
+// xxxxx
+#if 0
     mypc->Evolve(lev,
 		 *Efield[lev][0],*Efield[lev][1],*Efield[lev][2],
 		 *Bfield[lev][0],*Bfield[lev][1],*Bfield[lev][2],
 		 *current[lev][0],*current[lev][1],*current[lev][2],
                  bndry4fine[lev].get(), bndry4crse[lev].get(),
                  cur_time, dt[lev]);
+#endif
 }
 
 void

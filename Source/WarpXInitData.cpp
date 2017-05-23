@@ -31,25 +31,9 @@ WarpX::InitData ()
         if (okToRegrid(0)) RegridBaseLevel();
     }
 
-    for (int lev = 0; lev < finestLevel(); ++lev) {
-        const int ng = current[lev+1][0]->nGrow();
-        bndry4fine[lev].reset(new WarpXBndryForFine(boxArray(lev), boxArray(lev+1),
-                                                    DistributionMap(lev), DistributionMap(lev+1),
-                                                    Geom(lev), Geom(lev+1),
-                                                    refRatio(lev), ng));
-    }
-
-    for (int lev = 1; lev <= finestLevel(); ++lev) {
-        const int ng = current[lev][0]->nGrow();
-        bndry4crse[lev].reset(new WarpXBndryForCrse(boxArray(lev-1), boxArray(lev),
-                                                    DistributionMap(lev-1), DistributionMap(lev),
-                                                    Geom(lev-1), Geom(lev),
-                                                    refRatio(lev-1), ng));
-    }
-
-    if (do_pml) {
-        InitPML();
-    }
+//xxxxx    if (do_pml) {
+//        InitPML();
+//    }
 
     if (restart_chkfile.empty())
     {
@@ -68,9 +52,6 @@ WarpX::InitFromScratch ()
     const Real time = 0.0;
 
     AmrCore::InitFromScratch(time);  // This will call MakeNewLevelFromScratch
-
-    AverageDownB();
-    AverageDownE();
 
     mypc->AllocData();
     mypc->InitData();

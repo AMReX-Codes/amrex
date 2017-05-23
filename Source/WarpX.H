@@ -14,7 +14,7 @@
 #include <AMReX_Print.H>
 
 #include <ParticleContainer.H>
-#include <WarpXCrseFineBndry.H>
+#include <WarpXPML.H>
 
 /*! A test class */
 
@@ -55,20 +55,13 @@ public:
 
     static bool use_laser;
 
-    const amrex::MultiFab& getcurrent (int lev, int direction) {return *current[lev][direction];}
-    const amrex::MultiFab& getEfield (int lev, int direction) {return *Efield[lev][direction];}
-    const amrex::MultiFab& getBfield (int lev, int direction) {return *Bfield[lev][direction];}
+    // xxxxx
+    const amrex::MultiFab& getcurrent (int lev, int direction) {return *current_fp[lev][direction];}
+    const amrex::MultiFab& getEfield (int lev, int direction) {return *Efield_fp[lev][direction];}
+    const amrex::MultiFab& getBfield (int lev, int direction) {return *Bfield_fp[lev][direction];}
 
     void ComputeDt ();
     void MoveWindow (bool move_j);
-
-    const amrex::Array<amrex::Real>& getPMLSigma(int dir) {return pml_sigma[dir];};
-    const amrex::Array<amrex::Real>& getPMLSigmaStar(int dir) {return pml_sigma_star[dir];};
-    void ComputePMLFactors (int lev, amrex::Real dt);
-    void ComputePMLFactorsE (int lev, amrex::Real dt);
-    void ComputePMLFactorsB (int lev, amrex::Real dt);
-    void ExchangeWithPML (amrex::MultiFab& regmf, amrex::MultiFab& pmlmf,
-                          const amrex::Geometry& gm);
 
     void EvolveE (         amrex::Real dt);
     void EvolveE (int lev, amrex::Real dt);
@@ -76,6 +69,8 @@ public:
     void EvolveB (int lev, amrex::Real dt);
 
     void PushParticlesandDepose (int lev, amrex::Real cur_time);
+
+    void UpdateAuxiliaryData ();
 
     // Fill boundary cells including coarse/fine boundaries
     void FillBoundaryB ();
@@ -181,8 +176,6 @@ private:
     static void PackPlotDataPtrs (amrex::Array<const amrex::MultiFab*>& pmf,
 				  const std::array<std::unique_ptr<amrex::MultiFab>,3>& data);
 
-    void InitPML ();
-
     static void ComputeDivB (amrex::MultiFab& divB, int dcomp,
                              const amrex::Array<const amrex::MultiFab*>& B,
                              const amrex::Real* dx);
@@ -199,31 +192,27 @@ private:
     // Particle container
     std::unique_ptr<MultiParticleContainer> mypc;
 
-    // Fields: First array for level, second for direction
-    amrex::Array<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > current;
-    amrex::Array<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Efield;
-    amrex::Array<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Bfield;
-
-    amrex::Array<std::unique_ptr<WarpXBndryForFine> > bndry4fine;
-    amrex::Array<std::unique_ptr<WarpXBndryForCrse> > bndry4crse;
-
-    // PML  xxxxx for now let's only consider single level
-    int do_pml = 0;
-    int pml_ncell = 10;
-    amrex::BoxArray pml_ba;
-    amrex::DistributionMapping pml_dm;
-    std::array<std::unique_ptr<amrex::MultiFab>,3> pml_E;
-    std::array<std::unique_ptr<amrex::MultiFab>,3> pml_B;
     //
-    struct PMLSigma : amrex::Array<amrex::Real>
-    {
-        int lo() const { return m_lo; }
-        int hi() const { return m_hi; }
-        int m_lo, m_hi;
-    };
-    std::array<PMLSigma,BL_SPACEDIM> pml_sigma, pml_sigma_star; // sigma/epsilon, sigma_star/mu
-    std::array<PMLSigma,BL_SPACEDIM> pml_sigma_fac1, pml_sigma_fac2, 
-                                     pml_sigma_star_fac1, pml_sigma_star_fac2;
+    // Fields: First array for level, second for direction
+    //
+
+    // Full solution
+    amrex::Array<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Efield_aux;
+    amrex::Array<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Bfield_aux;
+
+    // Fine patch
+    amrex::Array<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > current_fp;
+    amrex::Array<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Efield_fp;
+    amrex::Array<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Bfield_fp;
+
+    // Coarse patch
+    amrex::Array<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > current_cp;
+    amrex::Array<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Efield_cp;
+    amrex::Array<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Bfield_cp;
+
+    // PML
+    amrex::Array<std::unique_ptr<WarpXPML> > PML_fp;
+    amrex::Array<std::unique_ptr<WarpXPML> > PML_cp;
 
     // Moving window parameters
     int do_moving_window  = 0;

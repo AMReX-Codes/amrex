@@ -6,7 +6,8 @@ using namespace amrex;
 void
 WarpX::MoveWindow (bool move_j)
 {
-
+// xxxxx
+#if 0
     if (do_moving_window == 0) return;
 
     if (max_level > 0) {
@@ -54,6 +55,7 @@ WarpX::MoveWindow (bool move_j)
 
     // Redistribute (note - this removes particles that are outside of the box)
     mypc->Redistribute();
+#endif
 }
 
 void

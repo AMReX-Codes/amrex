@@ -236,7 +236,6 @@ LaserParticleContainer::Evolve (int lev,
 				const MultiFab&, const MultiFab&, const MultiFab&,
 				const MultiFab&, const MultiFab&, const MultiFab&,
 				MultiFab& jx, MultiFab& jy, MultiFab& jz,
-                                WarpXBndryForFine* b4f, WarpXBndryForCrse* b4c,
                                 Real t, Real dt)
 {
     BL_PROFILE("Laser::Evolve()");
@@ -368,78 +367,6 @@ LaserParticleContainer::Evolve (int lev,
 	    BL_PROFILE_VAR_START(blp_copy);
             pti.SetPosition(xp, yp, zp);
             BL_PROFILE_VAR_STOP(blp_copy);
-            
-            if (b4f)
-            {
-                const Box& fbx = amrex::refine(box,m_gdb->refRatio(lev));
-                if (b4f->intersects(fbx))
-                {
-                    Box bx_jx = fbx;
-                    bx_jx.convert(WarpX::jx_nodal_flag).grow(ngJ);
-                    Box bx_jy = fbx;
-                    bx_jy.convert(WarpX::jy_nodal_flag).grow(ngJ);
-                    Box bx_jz = fbx;
-                    bx_jz.convert(WarpX::jz_nodal_flag).grow(ngJ);
-                    jx_bnd.resize(bx_jx);
-                    jy_bnd.resize(bx_jy);
-                    jz_bnd.resize(bx_jz);
-                    jx_bnd.setVal(0.0);
-                    jy_bnd.setVal(0.0);
-                    jz_bnd.setVal(0.0);
-                    const std::array<Real,3>& dx_fine = WarpX::CellSize(lev+1);
-                    const std::array<Real,3>& xyzmin_fine = WarpX::LowerCorner(fbx, lev+1);
-
-                    warpx_current_deposition(
-                        jx_bnd.dataPtr(), &ngJ, jx_bnd.length(),
-                        jy_bnd.dataPtr(), &ngJ, jy_bnd.length(),
-                        jz_bnd.dataPtr(), &ngJ, jz_bnd.length(),
-                        &np, xp.data(), yp.data(), zp.data(),
-                        uxp.data(), uyp.data(), uzp.data(),
-                        giv.data(), wp.data(), &this->charge,
-                        &xyzmin_fine[0], &xyzmin_fine[1], &xyzmin_fine[2],
-                        &dt, &dx_fine[0], &dx_fine[1], &dx_fine[2],
-                        &WarpX::nox,&WarpX::noy,&WarpX::noz,
-                        &lvect,&WarpX::current_deposition_algo);
-
-                    b4f->addFrom(jx_bnd,jy_bnd,jz_bnd);
-                }
-            }
-
-            if (b4c)
-            {
-                const Box& cbx = amrex::coarsen(box,m_gdb->refRatio(lev-1));
-                if (b4c->intersects(cbx))
-                {
-                    Box bx_jx = cbx;
-                    bx_jx.convert(WarpX::jx_nodal_flag).grow(ngJ);
-                    Box bx_jy = cbx;
-                    bx_jy.convert(WarpX::jy_nodal_flag).grow(ngJ);
-                    Box bx_jz = cbx;
-                    bx_jz.convert(WarpX::jz_nodal_flag).grow(ngJ);
-                    jx_bnd.resize(bx_jx);
-                    jy_bnd.resize(bx_jy);
-                    jz_bnd.resize(bx_jz);
-                    jx_bnd.setVal(0.0);
-                    jy_bnd.setVal(0.0);
-                    jz_bnd.setVal(0.0);
-                    const std::array<Real,3>& dx_crse = WarpX::CellSize(lev-1);
-                    const std::array<Real,3>& xyzmin_crse = WarpX::LowerCorner(cbx, lev-1);
-
-                    warpx_current_deposition(
-                        jx_bnd.dataPtr(), &ngJ, jx_bnd.length(),
-                        jy_bnd.dataPtr(), &ngJ, jy_bnd.length(),
-                        jz_bnd.dataPtr(), &ngJ, jz_bnd.length(),
-                        &np, xp.data(), yp.data(), zp.data(),
-                        uxp.data(), uyp.data(), uzp.data(),
-                        giv.data(), wp.data(), &this->charge,
-                        &xyzmin_crse[0], &xyzmin_crse[1], &xyzmin_crse[2],
-                        &dt, &dx_crse[0], &dx_crse[1], &dx_crse[2],
-                        &WarpX::nox,&WarpX::noy,&WarpX::noz,
-                        &lvect,&WarpX::current_deposition_algo);
-
-                    b4c->addFrom(jx_bnd,jy_bnd,jz_bnd);
-                }
-            }
 	}
     }
 }

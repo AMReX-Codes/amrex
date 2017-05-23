@@ -11,6 +11,8 @@ const int debug_lb = 0;
 void
 WarpX::RegridBaseLevel ()
 {
+// xxxxx
+#if 0
     int lev = 0;
 
     Array<std::unique_ptr<MultiFab>> old_current;
@@ -50,6 +52,7 @@ WarpX::RegridBaseLevel ()
          Efield[lev][i]->copy( *old_Efield[i], 0, 0,  Bfield[lev][i]->nComp()); 
        }
     }
+#endif
 }
 
 bool

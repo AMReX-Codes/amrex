@@ -95,6 +95,8 @@ WarpX::WriteWarpXHeader(const std::string& name) const
 void
 WarpX::WriteCheckPointFile() const
 {
+// xxxxx
+#if 0
     BL_PROFILE("WarpX::WriteCheckPointFile()");
 
     const std::string& checkpointname = amrex::Concatenate(check_file,istep[0]);
@@ -135,6 +137,8 @@ WarpX::WriteCheckPointFile() const
                          amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "jz"));
         }
 
+//xxxxx
+#if 0
         if (do_pml) {
             const int lev = 0;
             VisMF::Write(*pml_E[0],
@@ -150,15 +154,20 @@ WarpX::WriteCheckPointFile() const
             VisMF::Write(*pml_B[2],
                          amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "pml_Bz"));
         }
+#endif
     }
 
     mypc->Checkpoint(checkpointname, "particle", true);
+#endif
 }
 
 
 void
 WarpX::InitFromCheckpoint ()
 {
+// xxxxx
+#if 0
+
     BL_PROFILE("WarpX::InitFromCheckpoint()");
 
     amrex::Print() << "  Restart from checkpoint " << restart_chkfile << "\n";
@@ -305,6 +314,8 @@ WarpX::InitFromCheckpoint ()
         }
     }
 
+// xxxxx
+#if 0
     if (do_pml)
     {
         InitPML();
@@ -324,16 +335,20 @@ WarpX::InitFromCheckpoint ()
         VisMF::Read(*pml_B[2],
                     amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "pml_Bz"));
     }
+#endif
 
     // Initilize particles
     mypc->AllocData();
     mypc->Restart(restart_chkfile, "particle");
+#endif
 }
 
 
 void
 WarpX::WritePlotFile () const
 {
+// xxxxx
+#if 0
     BL_PROFILE("WarpX::WritePlotFile()");
 
     const std::string& plotfilename = amrex::Concatenate(plot_file,istep[0]);
@@ -547,6 +562,7 @@ WarpX::WritePlotFile () const
     WriteJobInfo(plotfilename);
 
     WriteWarpXHeader(plotfilename);
+#endif
 }
 
 void

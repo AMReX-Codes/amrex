@@ -1,9 +1,11 @@
 
 #include <WarpX.H>
 #include <WarpXConst.H>
+#include <WarpXPML.H>
 
 using namespace amrex;
 
+#if 0
 void
 WarpX::InitPML ()
 {
@@ -244,3 +246,5 @@ WarpX::ExchangeWithPML (MultiFab& regmf, MultiFab& pmlmf, const Geometry& gm)
         }
     }
 }
+
+#endif
