@@ -50,15 +50,10 @@ namespace amrex
 	    }
 	}
 
-        // return floating point precision
-        int Precision() {
-	  return os.precision();
-        }
-
-        // set AND return floating point precision
-        int Precision(int p) {
-	  return os.precision(p);
-        }
+        Print& SetPrecision(int p) {
+            ss.precision(p);
+            return *this;
+	}
 
 	template <typename T>
 	Print& operator<< (const T& x) {
