@@ -262,7 +262,10 @@ namespace amrex
 
         if (ngrow == 0) return;
 
-        const auto& cfinfo = FabArrayBase::TheCFinfo(fine[0], fgeom, ngrow);
+        bool include_periodic = true;
+        bool include_physbndry = false;
+        const auto& cfinfo = FabArrayBase::TheCFinfo(fine[0], fgeom, ngrow,
+                                                     include_periodic, include_physbndry);
 
         if (! cfinfo.ba_cfb.empty())
         {
