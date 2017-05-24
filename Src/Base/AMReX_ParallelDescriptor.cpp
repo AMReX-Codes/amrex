@@ -344,6 +344,46 @@ ParallelDescriptor::EndParallel ()
     BL_MPI_REQUIRE( MPI_Finalize() );
 }
 
+/* Define variables `m_nProcs_sub' and `m_MyCommSubColor' */
+void
+ParallelDescriptor::init_clr_vars()
+{
+  if (m_nProcs_comp < m_nCommColors)
+  {
+    amrex::Abort("Need `nProcs >= nColors'");
+  }
+  /* Number of proc.'s per color */
+  m_nProcs_sub = m_nProcs_comp/m_nCommColors;
+  /* Remaining proc.'s */
+  int const numRemProcs = m_nProcs_comp-m_nCommColors*m_nProcs_sub;
+  /* All numbers of proc.'s per color */
+  Array<int> allNumProcsPerClr(m_nCommColors,m_nProcs_sub);
+  for (int clr = 0; clr < numRemProcs; ++clr)
+  {
+    /* Distribute remaining proc.'s */
+    ++(allNumProcsPerClr[clr]);
+  }
+  /* All first proc.'s */
+  Array<int> allFirstProcs(m_nCommColors,0);
+  for (int clr = 1; clr < m_nCommColors; ++clr)
+  {
+    allFirstProcs[clr] =
+      allFirstProcs[clr-1]+allNumProcsPerClr[clr-1];
+  }
+  /* My proc. must be larger than my first proc. */
+  int clr = 0; int myClr = -1;
+  while (clr < m_nCommColors && MyProc() > allFirstProcs[clr]-1)
+  {
+    ++clr; ++myClr;
+  }
+  /* Possibly adjust number of proc.'s per color */
+  m_nProcs_sub = allNumProcsPerClr[myClr];
+  /* Define `Color' */
+  m_MyCommSubColor = Color(myClr);
+
+  return;
+} /* `init_clr_vars( ...' */
+
 void
 ParallelDescriptor::SetNProcsSidecars (const Array<int> &compRanksInAll,
                                        const Array<Array<int> > &sidecarRanksInAll, bool printRanks)
@@ -587,12 +627,11 @@ ParallelDescriptor::SetNProcsSidecars (const Array<int> &compRanksInAll,
 
     // ---- recreate the color sub communicator
     if(m_nCommColors > 1) {
-      m_nProcs_sub = m_nProcs_comp / m_nCommColors;
-      if (m_nProcs_sub * m_nCommColors != m_nProcs_comp) {
-        amrex::Abort("# of processors is not divisible by amrex.ncolors");
-      }
-      m_MyCommSubColor  = Color(MyProc()/m_nProcs_sub);
-      m_MyCommCompColor = Color(m_nCommColors);  // special color for CommComp color
+      /* Define variables `m_nProcs_sub' and `m_MyCommSubColor' */
+      init_clr_vars();
+
+      /* Special color for `CommComp's color */
+      m_MyCommCompColor = Color(m_nCommColors); 
 
       BL_MPI_REQUIRE( MPI_Comm_split(Communicator(), m_MyCommSubColor.to_int(), MyProc(), &m_comm_sub) );
       BL_MPI_REQUIRE( MPI_Comm_rank(m_comm_sub, &m_MyId_sub) );
@@ -603,7 +642,6 @@ ParallelDescriptor::SetNProcsSidecars (const Array<int> &compRanksInAll,
       m_comm_sub    = Communicator();
       m_MyId_sub    = MyProc();
     }
-
 
     // ---- more error checking
     if(m_MyId_all     == myId_undefined ||
@@ -705,7 +743,8 @@ ParallelDescriptor::StartSubCommunicator ()
     ParmParse pp("amrex");
     pp.query("ncolors", m_nCommColors);
 
-    if (m_nCommColors > 1) {
+    if (m_nCommColors > 1)
+    {
 
 #if defined(BL_USE_MPI3) || defined(BL_USE_UPCXX)
 	//    m_nCommColors = 1;
@@ -718,15 +757,14 @@ ParallelDescriptor::StartSubCommunicator ()
 	amrex::Abort("amrex.ncolors > 1 not supported for LAZY=TRUE");
 #endif
 
-	m_nProcs_sub = m_nProcs_comp / m_nCommColors;
-	if (m_nProcs_sub * m_nCommColors != m_nProcs_comp) {
-	    amrex::Abort("# of processors is not divisible by amrex.ncolors");
-	}
-	m_MyCommSubColor  = Color(MyProc()/m_nProcs_sub);
-	m_MyCommCompColor = Color(m_nCommColors);  // special color for CommComp color
+      /* Define variables `m_nProcs_sub' and `m_MyCommSubColor' */
+      init_clr_vars();
 
-	BL_MPI_REQUIRE( MPI_Comm_split(Communicator(), m_MyCommSubColor.to_int(), MyProc(), &m_comm_sub) );
-	BL_MPI_REQUIRE( MPI_Comm_rank(m_comm_sub, &m_MyId_sub) );
+      /* Special color for `CommComp's color */
+      m_MyCommCompColor = Color(m_nCommColors); 
+
+      BL_MPI_REQUIRE( MPI_Comm_split(Communicator(), m_MyCommSubColor.to_int(), MyProc(), &m_comm_sub) );
+      BL_MPI_REQUIRE( MPI_Comm_rank(m_comm_sub, &m_MyId_sub) );
     } else {
 	m_nCommColors = 1;
 	m_nProcs_sub  = NProcs();
