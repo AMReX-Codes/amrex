@@ -148,119 +148,79 @@ WarpX::UpdateAuxiliaryData ()
 void
 WarpX::FillBoundaryB ()
 {
-// xxxxx
-#if 0
-    FillBoundaryB(0, true); // level 0
-
-    for (int lev = 1; lev <= finest_level; ++lev)
+    for (int lev = 0; lev <= finest_level; ++lev)
     {
-        const IntVect& ref_ratio = refRatio(lev-1);
-
-        const std::array<MultiFab,BL_SPACEDIM> crse {
-                    MultiFab(*Bfield[lev-1][0], amrex::make_alias, 0, 1),
-#if (BL_SPACEDIM == 3)
-                    MultiFab(*Bfield[lev-1][1], amrex::make_alias, 0, 1),
-#endif
-                    MultiFab(*Bfield[lev-1][2], amrex::make_alias, 0, 1) };
-
-        std::array<MultiFab,BL_SPACEDIM> fine {
-                    MultiFab(*Bfield[lev][0], amrex::make_alias, 0, 1),
-#if (BL_SPACEDIM == 3)
-                    MultiFab(*Bfield[lev][1], amrex::make_alias, 0, 1),
-#endif
-                    MultiFab(*Bfield[lev][2], amrex::make_alias, 0, 1) };
-
-        amrex::InterpCrseFineBndryEMfield(amrex::InterpB, crse, fine, Geom(lev-1), Geom(lev), ref_ratio[0]);
-
-        FillBoundaryB(lev, true);
+        FillBoundaryB(lev);
     }
-#endif
 }
 
 void
 WarpX::FillBoundaryE ()
 {
-// xxxxx
-#if 0
-    FillBoundaryE(0, true); // level 0
-
-    for (int lev = 1; lev <= finest_level; ++lev)
+    for (int lev = 0; lev <= finest_level; ++lev)
     {
-        const IntVect& ref_ratio = refRatio(lev-1);
-
-        const std::array<MultiFab,BL_SPACEDIM> crse {
-                    MultiFab(*Efield[lev-1][0], amrex::make_alias, 0, 1),
-#if (BL_SPACEDIM == 3)
-                    MultiFab(*Efield[lev-1][1], amrex::make_alias, 0, 1),
-#endif
-                    MultiFab(*Efield[lev-1][2], amrex::make_alias, 0, 1) };
-
-        std::array<MultiFab,BL_SPACEDIM> fine {
-                    MultiFab(*Efield[lev][0], amrex::make_alias, 0, 1),
-#if (BL_SPACEDIM == 3)
-                    MultiFab(*Efield[lev][1], amrex::make_alias, 0, 1),
-#endif
-                    MultiFab(*Efield[lev][2], amrex::make_alias, 0, 1) };
-
-        amrex::InterpCrseFineBndryEMfield(amrex::InterpE, crse, fine, Geom(lev-1), Geom(lev), ref_ratio[0]);
-
-        FillBoundaryE(lev, true);
+        FillBoundaryE(lev);
     }
-#endif
 }
 
 void
-WarpX::FillBoundaryE(int lev, bool force)
+WarpX::FillBoundaryE(int lev)
 {
-// xxxxx
+    const auto& period = Geom(lev).periodicity();
 #if 0
-    if (force || WarpX::nox > 1 || WarpX::noy > 1 || WarpX::noz > 1)
-    {
-// xxxxx
-#if 0
-        if (do_pml && lev == 0) {
-            WarpX::ExchangeWithPML(*Efield[lev][0], *pml_E[0], geom[lev]);
-            WarpX::ExchangeWithPML(*Efield[lev][1], *pml_E[1], geom[lev]);
-            WarpX::ExchangeWithPML(*Efield[lev][2], *pml_E[2], geom[lev]);
-
-            (*pml_E[0]).FillBoundary( geom[lev].periodicity() );
-            (*pml_E[1]).FillBoundary( geom[lev].periodicity() );
-            (*pml_E[2]).FillBoundary( geom[lev].periodicity() );
-        }
-#endif
-
-        (*Efield[lev][0]).FillBoundary( geom[lev].periodicity() );
-        (*Efield[lev][1]).FillBoundary( geom[lev].periodicity() );
-        (*Efield[lev][2]).FillBoundary( geom[lev].periodicity() );
+    // xxxxx
+    if (do_pml && lev == 0) {
+        WarpX::ExchangeWithPML(*Efield[lev][0], *pml_E[0], geom[lev]);
+        WarpX::ExchangeWithPML(*Efield[lev][1], *pml_E[1], geom[lev]);
+        WarpX::ExchangeWithPML(*Efield[lev][2], *pml_E[2], geom[lev]);
+        
+        (*pml_E[0]).FillBoundary( geom[lev].periodicity() );
+        (*pml_E[1]).FillBoundary( geom[lev].periodicity() );
+        (*pml_E[2]).FillBoundary( geom[lev].periodicity() );
     }
 #endif
+
+    (*Efield_fp[lev][0]).FillBoundary( period );
+    (*Efield_fp[lev][1]).FillBoundary( period );
+    (*Efield_fp[lev][2]).FillBoundary( period );
+
+    if (lev > 0)
+    {
+        const auto& cperiod = Geom(lev-1).periodicity();
+        (*Efield_cp[lev][0]).FillBoundary(cperiod);
+        (*Efield_cp[lev][1]).FillBoundary(cperiod);
+        (*Efield_cp[lev][2]).FillBoundary(cperiod);
+    }
 }
 
 void
-WarpX::FillBoundaryB(int lev, bool force)
+WarpX::FillBoundaryB(int lev)
 {
+    const auto& period = Geom(lev).periodicity();
 // xxxxx
 #if 0
-    if (force || WarpX::nox > 1 || WarpX::noy > 1 || WarpX::noz > 1)
-    {
-// xxxxx
-#if 0
-        if (do_pml && lev == 0) {
-            WarpX::ExchangeWithPML(*Bfield[lev][0], *pml_B[0], geom[lev]);
-            WarpX::ExchangeWithPML(*Bfield[lev][1], *pml_B[1], geom[lev]);
-            WarpX::ExchangeWithPML(*Bfield[lev][2], *pml_B[2], geom[lev]);
-
-            (*pml_B[0]).FillBoundary( geom[lev].periodicity() );
-            (*pml_B[1]).FillBoundary( geom[lev].periodicity() );
-            (*pml_B[2]).FillBoundary( geom[lev].periodicity() );
-        }
-#endif
-
-        (*Bfield[lev][0]).FillBoundary( geom[lev].periodicity() );
-        (*Bfield[lev][1]).FillBoundary( geom[lev].periodicity() );
-        (*Bfield[lev][2]).FillBoundary( geom[lev].periodicity() );
+    if (do_pml && lev == 0) {
+        WarpX::ExchangeWithPML(*Bfield[lev][0], *pml_B[0], geom[lev]);
+        WarpX::ExchangeWithPML(*Bfield[lev][1], *pml_B[1], geom[lev]);
+        WarpX::ExchangeWithPML(*Bfield[lev][2], *pml_B[2], geom[lev]);
+        
+        (*pml_B[0]).FillBoundary( geom[lev].periodicity() );
+        (*pml_B[1]).FillBoundary( geom[lev].periodicity() );
+        (*pml_B[2]).FillBoundary( geom[lev].periodicity() );
     }
 #endif
+
+    (*Bfield_fp[lev][0]).FillBoundary(period);
+    (*Bfield_fp[lev][1]).FillBoundary(period);
+    (*Bfield_fp[lev][2]).FillBoundary(period);
+
+    if (lev > 0)
+    {
+        const auto& cperiod = Geom(lev-1).periodicity();
+        (*Bfield_cp[lev][0]).FillBoundary(cperiod);
+        (*Bfield_cp[lev][1]).FillBoundary(cperiod);
+        (*Bfield_cp[lev][2]).FillBoundary(cperiod);
+    }
 }
 
 void

@@ -111,10 +111,7 @@ WarpX::Evolve (int numsteps)
 	}
 
 	if (to_make_plot) {
-            if (WarpX::nox > 1 || WarpX::noz > 1 || WarpX::noz > 1) {
-                FillBoundaryB();
-                FillBoundaryE();
-            }
+            UpdateAuxiliaryData();
 // xxxxx
 #if 0
             for (int lev = 0; lev <= finest_level; ++lev) {

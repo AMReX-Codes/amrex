@@ -75,8 +75,8 @@ public:
     // Fill boundary cells including coarse/fine boundaries
     void FillBoundaryB ();
     void FillBoundaryE ();
-    void FillBoundaryE (int lev, bool force);
-    void FillBoundaryB (int lev, bool force);
+    void FillBoundaryE (int lev);
+    void FillBoundaryB (int lev);
 
     void AverageDownB ();
     void AverageDownE ();

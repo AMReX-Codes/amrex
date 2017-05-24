@@ -192,13 +192,13 @@ extern "C"
         WarpX& warpx = WarpX::GetInstance();
         warpx.EvolveB (lev, dt);
     }
-    void warpx_FillBoundaryE (int lev, bool force) {
+    void warpx_FillBoundaryE (int lev) {
         WarpX& warpx = WarpX::GetInstance();
-        warpx.FillBoundaryE (lev, force);
+        warpx.FillBoundaryE (lev);
     }
-    void warpx_FillBoundaryB (int lev, bool force) {
+    void warpx_FillBoundaryB (int lev) {
         WarpX& warpx = WarpX::GetInstance();
-        warpx.FillBoundaryB (lev, force);
+        warpx.FillBoundaryB (lev);
     }
     void warpx_PushParticlesandDepose (int lev, double cur_time) {
         WarpX& warpx = WarpX::GetInstance();

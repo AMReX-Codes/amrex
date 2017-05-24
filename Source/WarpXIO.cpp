@@ -347,8 +347,6 @@ WarpX::InitFromCheckpoint ()
 void
 WarpX::WritePlotFile () const
 {
-// xxxxx
-#if 0
     BL_PROFILE("WarpX::WritePlotFile()");
 
     const std::string& plotfilename = amrex::Concatenate(plot_file,istep[0]);
@@ -372,7 +370,7 @@ WarpX::WritePlotFile () const
 	    mf[lev].reset(new MultiFab(grids[lev], dmap[lev], ncomp, ngrow));
 
 	    Array<const MultiFab*> srcmf(BL_SPACEDIM);
-	    PackPlotDataPtrs(srcmf, current[lev]);
+	    PackPlotDataPtrs(srcmf, current_fp[lev]);
 	    int dcomp = 0;
 	    amrex::average_edge_to_cellcenter(*mf[lev], dcomp, srcmf);
 #if (BL_SPACEDIM == 2)
@@ -387,11 +385,11 @@ WarpX::WritePlotFile () const
             }
 	    dcomp += 3;
 
-	    PackPlotDataPtrs(srcmf, Efield[lev]);
+	    PackPlotDataPtrs(srcmf, Efield_aux[lev]);
 	    amrex::average_edge_to_cellcenter(*mf[lev], dcomp, srcmf);
 #if (BL_SPACEDIM == 2)
 	    MultiFab::Copy(*mf[lev], *mf[lev], dcomp+1, dcomp+2, 1, ngrow);
-            amrex::average_node_to_cellcenter(*mf[lev], dcomp+1, *Efield[lev][1], 0, 1);
+            amrex::average_node_to_cellcenter(*mf[lev], dcomp+1, *Efield_aux[lev][1], 0, 1);
 #endif
             if (lev == 0)
             {
@@ -401,11 +399,11 @@ WarpX::WritePlotFile () const
             }
 	    dcomp += 3;
 
-	    PackPlotDataPtrs(srcmf, Bfield[lev]);
+	    PackPlotDataPtrs(srcmf, Bfield_aux[lev]);
 	    amrex::average_face_to_cellcenter(*mf[lev], dcomp, srcmf);
 #if (BL_SPACEDIM == 2)
 	    MultiFab::Copy(*mf[lev], *mf[lev], dcomp+1, dcomp+2, 1, ngrow);
-            MultiFab::Copy(*mf[lev], *Bfield[lev][1], 0, dcomp+1, 1, ngrow);
+            MultiFab::Copy(*mf[lev], *Bfield_aux[lev][1], 0, dcomp+1, 1, ngrow);
 #endif
             if (lev == 0)
             {
@@ -480,7 +478,7 @@ WarpX::WritePlotFile () const
 
             if (plot_divb)
             {
-                PackPlotDataPtrs(srcmf, Bfield[lev]);
+                PackPlotDataPtrs(srcmf, Bfield_aux[lev]);
                 ComputeDivB(*mf[lev], dcomp, srcmf, Geom(lev).CellSize());
                 if (lev == 0)
                 {
@@ -510,25 +508,25 @@ WarpX::WritePlotFile () const
         {
             const DistributionMapping& dm = DistributionMap(lev);
 
-            MultiFab Ex( Efield[lev][0]->boxArray(), dm, 1, 0);
-            MultiFab Ey( Efield[lev][1]->boxArray(), dm, 1, 0);
-            MultiFab Ez( Efield[lev][2]->boxArray(), dm, 1, 0);
-            MultiFab Bx( Bfield[lev][0]->boxArray(), dm, 1, 0);
-            MultiFab By( Bfield[lev][1]->boxArray(), dm, 1, 0);
-            MultiFab Bz( Bfield[lev][2]->boxArray(), dm, 1, 0);
-            MultiFab jx(current[lev][0]->boxArray(), dm, 1, 0);
-            MultiFab jy(current[lev][1]->boxArray(), dm, 1, 0);
-            MultiFab jz(current[lev][2]->boxArray(), dm, 1, 0);
+            MultiFab Ex(Efield_aux[lev][0]->boxArray(), dm, 1, 0);
+            MultiFab Ey(Efield_aux[lev][1]->boxArray(), dm, 1, 0);
+            MultiFab Ez(Efield_aux[lev][2]->boxArray(), dm, 1, 0);
+            MultiFab Bx(Bfield_aux[lev][0]->boxArray(), dm, 1, 0);
+            MultiFab By(Bfield_aux[lev][1]->boxArray(), dm, 1, 0);
+            MultiFab Bz(Bfield_aux[lev][2]->boxArray(), dm, 1, 0);
+            MultiFab jx(current_fp[lev][0]->boxArray(), dm, 1, 0);
+            MultiFab jy(current_fp[lev][1]->boxArray(), dm, 1, 0);
+            MultiFab jz(current_fp[lev][2]->boxArray(), dm, 1, 0);
 
-            MultiFab::Copy(Ex, *Efield[lev][0], 0, 0, 1, 0);
-            MultiFab::Copy(Ey, *Efield[lev][1], 0, 0, 1, 0);
-            MultiFab::Copy(Ez, *Efield[lev][2], 0, 0, 1, 0);
-            MultiFab::Copy(Bx, *Bfield[lev][0], 0, 0, 1, 0);
-            MultiFab::Copy(By, *Bfield[lev][1], 0, 0, 1, 0);
-            MultiFab::Copy(Bz, *Bfield[lev][2], 0, 0, 1, 0);
-            MultiFab::Copy(jx,*current[lev][0], 0, 0, 1, 0);
-            MultiFab::Copy(jy,*current[lev][1], 0, 0, 1, 0);
-            MultiFab::Copy(jz,*current[lev][2], 0, 0, 1, 0);
+            MultiFab::Copy(Ex, *Efield_aux[lev][0], 0, 0, 1, 0);
+            MultiFab::Copy(Ey, *Efield_aux[lev][1], 0, 0, 1, 0);
+            MultiFab::Copy(Ez, *Efield_aux[lev][2], 0, 0, 1, 0);
+            MultiFab::Copy(Bx, *Bfield_aux[lev][0], 0, 0, 1, 0);
+            MultiFab::Copy(By, *Bfield_aux[lev][1], 0, 0, 1, 0);
+            MultiFab::Copy(Bz, *Bfield_aux[lev][2], 0, 0, 1, 0);
+            MultiFab::Copy(jx, *current_fp[lev][0], 0, 0, 1, 0);
+            MultiFab::Copy(jy, *current_fp[lev][1], 0, 0, 1, 0);
+            MultiFab::Copy(jz, *current_fp[lev][2], 0, 0, 1, 0);
 
             VisMF::Write(Ex, amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Ex"));
             VisMF::Write(Ey, amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Ey"));
@@ -562,7 +560,6 @@ WarpX::WritePlotFile () const
     WriteJobInfo(plotfilename);
 
     WriteWarpXHeader(plotfilename);
-#endif
 }
 
 void

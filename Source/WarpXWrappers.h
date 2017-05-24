@@ -63,8 +63,8 @@ extern "C" {
 
   void warpx_EvolveE (int lev, double dt);
   void warpx_EvolveB (int lev, double dt);
-  void warpx_FillBoundaryE (int lev, bool force);
-  void warpx_FillBoundaryB (int lev, bool force);
+  void warpx_FillBoundaryE (int lev);
+  void warpx_FillBoundaryB (int lev);
   void warpx_PushParticlesandDepose (int lev, double cur_time);
 
   int warpx_getistep (int lev);
