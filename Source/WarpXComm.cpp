@@ -1,8 +1,8 @@
 
 #include <WarpX.H>
-#include <AMReX_FillPatchUtil.H>
-#include <AMReX_FillPatchUtil_F.H>
 #include <WarpX_f.H>
+
+#include <AMReX_FillPatchUtil_F.H>
 
 #include <algorithm>
 #include <cstdlib>
@@ -350,36 +350,57 @@ WarpX::AverageDownEorCurrent (Array<std::array<std::unique_ptr<amrex::MultiFab>,
 void
 WarpX::SyncCurrent ()
 {
-
-            // Restrict fine patch current onto the coarse patch
-
-            // sumBoundary????
-
-            // Add fine level's coarse patch current onto this level's fine patch
-
-
-// xxxxx
-#if 0
-    for (int lev = finest_level; lev >= 0; --lev)
+    // Restrict fine patch current onto the coarse patch, before fine patch SumBoundary
+    for (int lev = 1; lev <= finest_level; ++lev) 
     {
-        const auto& period = Geom(lev).periodicity();
-        current[lev][0]->SumBoundary(period);
-        current[lev][1]->SumBoundary(period);
-        current[lev][2]->SumBoundary(period);
+        current_cp[lev][0]->setVal(0.0);
+        current_cp[lev][1]->setVal(0.0);
+        current_cp[lev][2]->setVal(0.0);
+      
+        const IntVect& ref_ratio = refRatio(lev-1);
 
-        // xxxxx
-#if 0
-        if (lev > 0) {
-            bndry4fine[lev-1]->addTo(*current[lev][0], *current[lev][1], *current[lev][2]);
-        }
-        if (lev < finest_level) {
-            bndry4crse[lev+1]->addTo(*current[lev][0], *current[lev][1], *current[lev][2]);
-        }
+        const int ngf = current_fp[lev][0]->nGrow();
+        const IntVect& ngc = amrex::coarsen({ngf,ngf,ngf}, ref_ratio);
+
+#if (BL_SPACEDIM == 3)
+        Array<const MultiFab*> fine { current_fp[lev][0].get(),
+                                      current_fp[lev][1].get(),
+                                      current_fp[lev][2].get() };
+        Array<      MultiFab*> crse { current_cp[lev][0].get(),
+                                      current_cp[lev][1].get(),
+                                      current_cp[lev][2].get() };
+        amrex::average_down_edges(fine, crse, ref_ratio, ngc[0]);
+#else (BL_SPACEDIM == 2)
+        amrex::Abort("2D SyncCurrent: todo");
 #endif
     }
 
-    AverageDownCurrent();
-#endif
+    // Sum up fine patch
+    for (int lev = 0; lev <= finest_level; ++lev)
+    {
+        const auto& period = Geom(lev).periodicity();
+        current_fp[lev][0]->SumBoundary(period);
+        current_fp[lev][1]->SumBoundary(period);
+        current_fp[lev][2]->SumBoundary(period);
+    }
+
+    // Add fine level's coarse patch to coarse level's fine patch
+    for (int lev = 0; lev < finest_level; ++lev)
+    {
+        const auto& period = Geom(lev).periodicity();
+        const int ngsrc = current_cp[lev+1][0]->nGrow();
+        const int ngdst = 0;
+        current_fp[lev][0]->copy(*current_cp[lev+1][0],0,0,1,ngsrc,ngdst,period,FabArrayBase::ADD);
+        current_fp[lev][1]->copy(*current_cp[lev+1][1],0,0,1,ngsrc,ngdst,period,FabArrayBase::ADD);
+        current_fp[lev][2]->copy(*current_cp[lev+1][2],0,0,1,ngsrc,ngdst,period,FabArrayBase::ADD);
+    }
+
+    // Sum up coarse patch
+    for (int lev = 1; lev <= finest_level; ++lev)
+    {
+        const auto& period = Geom(lev).periodicity();
+        current_cp[lev][0]->SumBoundary(period);
+        current_cp[lev][1]->SumBoundary(period);
+        current_cp[lev][2]->SumBoundary(period);
+    }
 }
-
-
