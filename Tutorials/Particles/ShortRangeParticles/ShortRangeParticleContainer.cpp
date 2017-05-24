@@ -137,13 +137,9 @@ void ShortRangeParticleContainer::fillGhosts() {
     fillGhostsMPI(ghosts_to_comm);
 }
 
-void ShortRangeParticleContainer::clearGhosts() {
-    for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
-        const int grid_id = pti.index();
-        const int tile_id = pti.LocalTileIndex();
-        auto& ghost_particles = ghosts[std::make_pair(grid_id, tile_id)];
-        Array<char>().swap(ghost_particles);
-    }
+void ShortRangeParticleContainer::clearGhosts() 
+{
+    ghosts.clear();
 }
 
 void ShortRangeParticleContainer::computeForces() {
