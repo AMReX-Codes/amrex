@@ -22,7 +22,7 @@ namespace amrex
 	    : rank(ParallelDescriptor::IOProcessorNumber())
 	    , comm(ParallelDescriptor::Communicator())
 	    , os(os_)
-	    {}
+	    { ss.precision(os.precision()); }
 
     /**
     * \brief Print on all processors of the default communicator
@@ -32,7 +32,7 @@ namespace amrex
 	    : rank(rank_)
 	    , comm(ParallelDescriptor::Communicator())
 	    , os(os_)
-	    {}
+	    { ss.precision(os.precision()); }
 
     /**   
     * \brief Print on process rank_ of communicator comm_
@@ -42,7 +42,7 @@ namespace amrex
 	    : rank(rank_)
 	    , comm(comm_)
 	    , os(os_)
-	    {}
+	    { ss.precision(os.precision()); }
 
 	~Print () {
 	    if (rank == AllProcs || rank == ParallelDescriptor::MyProc(comm)) {
@@ -53,11 +53,11 @@ namespace amrex
         Print& SetPrecision(int p) {
             ss.precision(p);
             return *this;
-        }
+	}
 
 	template <typename T>
 	Print& operator<< (const T& x) {
-	    ss << x;
+            ss << x;
 	    return *this;
 	}
 
