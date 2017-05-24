@@ -301,7 +301,7 @@ subroutine amrex_interp_efield (lo, hi, ex, exlo, exhi, ey, eylo, eyhi, ez, ezlo
 
   do       kc = clo(3)  , chi(3)
      do    j  = clo(2)*2, chi(2)*2+2
-        do i  = clo(1)*2, clo(1)*2+2
+        do i  = clo(1)*2, chi(1)*2+2
            c1 = theta*(tmpz(i,j,kc  ) - tmpz(i,j,kc-1))
            c2 = 0.5d0*(tmpz(i,j,kc+1) - tmpz(i,j,kc-1))
            c3 = theta*(tmpz(i,j,kc+1) - tmpz(i,j,kc  ))
