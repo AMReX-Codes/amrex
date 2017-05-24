@@ -56,7 +56,7 @@ class PGroup(object):
         pass
 
     def getnpid(self):
-        return _labwarpx.get_nattr()
+        return _libwarpx.get_nattr()
     npid = property(getnpid)
 
     def getnps(self):
@@ -100,7 +100,9 @@ class PGroup(object):
     uzp = property(getuzp)
 
     def getpid(self, js=0):
-        return _libwarpx.get_particle_id(js)[self.igroup]
+        id = _libwarpx.get_particle_id(js)[self.igroup]
+        pid = np.array([id]).T
+        return pid
     pid = property(getpid)
 
     def getgaminv(self, js=0):

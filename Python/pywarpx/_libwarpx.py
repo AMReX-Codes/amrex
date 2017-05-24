@@ -134,7 +134,7 @@ def get_nattr():
 
     '''
     # --- The -3 is because the comps include the velocites
-    return _labwarpx.warpx_nComps() - 3
+    return libwarpx.warpx_nComps() - 3
 
 def amrex_init(argv):
     # --- Construct the ctype list of strings to pass in
