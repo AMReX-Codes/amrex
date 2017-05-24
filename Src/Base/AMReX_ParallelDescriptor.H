@@ -211,6 +211,10 @@ namespace ParallelDescriptor
         return (m_MyId_comp >= 0);
     }
 
+    /* Define variables `m_nProcs_sub' and `m_MyCommSubColor' */
+    void
+    init_clr_vars();
+
     /**
     * \brief This sets the number of MPI ranks in the sidecar and
     * initializes nProcs, MyId, groups, and communicators
