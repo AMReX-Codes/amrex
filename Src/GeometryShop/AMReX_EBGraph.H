@@ -740,6 +740,7 @@ namespace amrex
         
     ///
     /**
+       This resizes the BaseFab to cover getRegion
        1 = regular
        0 = irregular
        -1 = covered

@@ -896,8 +896,10 @@ namespace amrex
   /*******************************/
   void EBGraph::fillIntMask(BaseFab<int>& a_mask) const
   {
-    a_mask.resize(getRegion(), 1);
-    for(BoxIterator boxit(getRegion()); boxit.ok(); ++boxit)
+    Box interiorRegion = getRegion();
+    interiorRegion &= getDomain();
+    a_mask.resize(interiorRegion, 1);
+    for(BoxIterator boxit(interiorRegion); boxit.ok(); ++boxit)
     {
       const IntVect& iv = boxit();
       if(isRegular(iv))
