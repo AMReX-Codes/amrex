@@ -137,6 +137,7 @@ namespace ParallelDescriptor
     extern int m_nProcs_all;
     extern int m_nProcs_comp;
     extern int m_nProcs_sub;
+    extern Array<int> m_nProcs_color;
     extern Array<int> m_nProcs_sidecar;
     extern int nSidecars;
     extern int inWhichSidecar;
@@ -634,7 +635,7 @@ namespace ParallelDescriptor
 	if (color == DefaultColor()) {
 	    return NProcs();
 	} else if (color.valid()) {
-	    return m_nProcs_sub; 
+	    return m_nProcs_color[color.to_int()];
 	} else {
 	    return 0;
 	}
@@ -649,16 +650,12 @@ namespace ParallelDescriptor
 	    return MPI_COMM_NULL;
 	}
     }
-    inline int Translate(int rc, Color color) // Given rc, rank in colored comm, return rank in CommComp
-    {
-	if (color == DefaultColor()) {
-	    return rc;
-	} else if (color.valid()) {
-	    return NProcs(color) * color.to_int() + rc;
-	} else {
-	    return MPI_PROC_NULL;
-	}
-    }
+
+    /* Given `rk_clrd', i.e. the rank in the colored `comm', return the
+    rank in the global `CommComp' */
+    int
+    Translate(int rk_clrd,Color clr);
+
     inline bool
     IOProcessor (Color color)
     {

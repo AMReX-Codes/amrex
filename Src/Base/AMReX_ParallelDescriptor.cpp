@@ -66,6 +66,8 @@ namespace ParallelDescriptor
     int m_nProcs_all     = nProcs_undefined;
     int m_nProcs_comp    = nProcs_undefined;
     int m_nProcs_sub     = nProcs_undefined;
+    Array<int> m_nProcs_color;
+    Array<int> m_first_procs_color;
     Array<int> m_nProcs_sidecar;
     int nSidecars = 0;
     int inWhichSidecar = notInSidecar;
@@ -98,6 +100,8 @@ namespace ParallelDescriptor
     int m_nProcs_all     = 1;
     int m_nProcs_comp    = 1;
     int m_nProcs_sub     = 1;
+    Array<int> m_nProcs_color;
+    Array<int> m_first_procs_color;
     Array<int> m_nProcs_sidecar;
     int nSidecars = 0;
     int inWhichSidecar = notInSidecar;
@@ -344,6 +348,25 @@ ParallelDescriptor::EndParallel ()
     BL_MPI_REQUIRE( MPI_Finalize() );
 }
 
+/* Given `rk_clrd', i.e. the rank in the colored `comm', return the
+rank in the global `CommComp' */
+int
+ParallelDescriptor::Translate(int rk_clrd,Color clr)
+{
+  if (clr == DefaultColor())
+  {
+    return rk_clrd;
+  }
+  else if (clr.valid())
+  {
+    return m_first_procs_color[clr.to_int()]+rk_clrd;
+  }
+  else
+  {
+    return MPI_PROC_NULL;
+  }
+}
+
 /* Define variables `m_nProcs_sub' and `m_MyCommSubColor' */
 void
 ParallelDescriptor::init_clr_vars()
@@ -357,27 +380,38 @@ ParallelDescriptor::init_clr_vars()
   /* Remaining proc.'s */
   int const numRemProcs = m_nProcs_comp-m_nCommColors*m_nProcs_sub;
   /* All numbers of proc.'s per color */
-  Array<int> allNumProcsPerClr(m_nCommColors,m_nProcs_sub);
-  for (int clr = 0; clr < numRemProcs; ++clr)
-  {
-    /* Distribute remaining proc.'s */
-    ++(allNumProcsPerClr[clr]);
-  }
+  m_nProcs_color.resize(m_nCommColors);
   /* All first proc.'s */
-  Array<int> allFirstProcs(m_nCommColors,0);
-  for (int clr = 1; clr < m_nCommColors; ++clr)
+  m_first_procs_color.resize(m_nCommColors);
+  /* Assign values */
+  for (int clr = 0; clr < m_nCommColors; ++clr)
   {
-    allFirstProcs[clr] =
-      allFirstProcs[clr-1]+allNumProcsPerClr[clr-1];
+    /* All numbers of proc.'s per color (default value) */
+    m_nProcs_color[clr] = m_nProcs_sub;
+    /* All first proc.'s (default value) */
+    m_first_procs_color[clr] = 0;
+    /* All numbers of proc.'s per color (final value) */
+    if (clr < numRemProcs)
+    {
+      /* Distribute remaining proc.'s */
+      ++(m_nProcs_color[clr]);
+    }
+    /* All first proc.'s (final value) */
+    if (clr > 0)
+    {
+      /* Add the previous `clr's `nProc's */
+      m_first_procs_color[clr] =
+        m_first_procs_color[clr-1]+m_nProcs_color[clr-1];
+    }
   }
   /* My proc. must be larger than my first proc. */
   int clr = 0; int myClr = -1;
-  while (clr < m_nCommColors && MyProc() > allFirstProcs[clr]-1)
+  while (clr < m_nCommColors && MyProc() > m_first_procs_color[clr]-1)
   {
     ++clr; ++myClr;
   }
   /* Possibly adjust number of proc.'s per color */
-  m_nProcs_sub = allNumProcsPerClr[myClr];
+  m_nProcs_sub = m_nProcs_color[myClr];
   /* Define `Color' */
   m_MyCommSubColor = Color(myClr);
 
@@ -629,7 +663,6 @@ ParallelDescriptor::SetNProcsSidecars (const Array<int> &compRanksInAll,
     if(m_nCommColors > 1) {
       /* Define variables `m_nProcs_sub' and `m_MyCommSubColor' */
       init_clr_vars();
-
       /* Special color for `CommComp's color */
       m_MyCommCompColor = Color(m_nCommColors); 
 
@@ -759,7 +792,6 @@ ParallelDescriptor::StartSubCommunicator ()
 
       /* Define variables `m_nProcs_sub' and `m_MyCommSubColor' */
       init_clr_vars();
-
       /* Special color for `CommComp's color */
       m_MyCommCompColor = Color(m_nCommColors); 
 
