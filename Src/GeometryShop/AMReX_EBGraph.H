@@ -744,7 +744,7 @@ namespace amrex
        0 = irregular
        -1 = covered
     */
-    //void fillIntMask(BaseFab<int>& a_mask) const;
+    void fillIntMask(BaseFab<int>& a_mask) const;
         
         
     ///
