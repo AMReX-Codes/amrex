@@ -69,3 +69,7 @@ FFLAGS   += $(GENERIC_COMP_FLAGS)
 F90FLAGS += $(GENERIC_COMP_FLAGS)
 
 CPP_PREFIX = -WF,
+
+override XTRALIBS += -L $(OLCF_XLF_ROOT)/lib -lxlf90 -lm  -lxlfmath
+
+FORTLINK := LOWERCASE
