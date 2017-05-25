@@ -6,12 +6,14 @@
 
 struct SigmaBox
 {
-    SigmaBox (const amrex::Box& box, const amrex::Box& grid_box, const amrex::Real* dx, int ng);
+    SigmaBox (const amrex::Box& a_box, const amrex::Box& grid_box, const amrex::Real* dx, int ncell);
 
     std::array<amrex::Array<amrex::Real>,BL_SPACEDIM> sigma;      // sigma/epsilon
     std::array<amrex::Array<amrex::Real>,BL_SPACEDIM> sigma_star; // sigma_star/mu
     std::array<amrex::Array<amrex::Real>,BL_SPACEDIM> sigma_fac1, sigma_fac2;
     std::array<amrex::Array<amrex::Real>,BL_SPACEDIM> sigma_star_fac1, sigma_star_fac2;
+
+    amrex::Box box;
 };
 
 namespace amrex {
@@ -19,17 +21,17 @@ namespace amrex {
     class FabFactory<SigmaBox>
     {
     public:
-        FabFactory<SigmaBox> (const BoxArray& ba, const Real* dx, int ng) 
-            : m_ba(ba), m_dx(dx), m_ng(ng) {}
+        FabFactory<SigmaBox> (const BoxArray& ba, const Real* dx, int ncell) 
+            : m_ba(ba), m_dx(dx), m_ncell(ncell) {}
         virtual SigmaBox* create (const Box& box, int ncomps,
                                   const FabInfo& info, int box_index) const final
             { 
-                return new SigmaBox(box, m_ba[box_index], m_dx, m_ng);
+                return new SigmaBox(box, m_ba[box_index], m_dx, m_ncell);
             }
     private:
         const BoxArray& m_ba;
         const Real* m_dx;
-        int m_ng;
+        int m_ncell;
     };
 }
 
@@ -38,7 +40,7 @@ class SigmaBoxArray
 {
 public:
     SigmaBoxArray(const amrex::BoxArray& ba, const amrex::DistributionMapping& dm,
-                  const amrex::Real* dx, int ng);
+                  const amrex::Real* dx, int ncell);
 };
 
 class PML
@@ -46,7 +48,7 @@ class PML
 public:
     PML (const amrex::BoxArray& ba, const amrex::DistributionMapping& dm, 
          const amrex::Geometry* geom, const amrex::Geometry* cgeom,
-         int ng, int ref_ratio);
+         int ncell, int ref_ratio);
 
 private:
     amrex::MultiFab m_mf;

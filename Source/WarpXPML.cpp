@@ -1,38 +1,78 @@
 
 #include <WarpXPML.H>
 #include <WarpX.H>
+#include <WarpXConst.H>
 
 using namespace amrex;
 
-SigmaBox::SigmaBox (const Box& box, const Box& grid_box, const Real* dx, int ng)
+SigmaBox::SigmaBox (const Box& a_box, const Box& grid_box, const Real* dx, int ncell)
+    : box(a_box)
+{
+    BL_ASSERT(box.cellCentered());
+    BL_ASSERT(grid_box.cellCentered());
+    const IntVect& sz = box.size();
+    const int* lo  =      box.loVect();
+    const int* hi  =      box.hiVect();
+    const int* glo = grid_box.loVect();
+    const int* ghi = grid_box.hiVect();
+    for (int idim = 0; idim < BL_SPACEDIM; ++idim) {
+        sigma     [idim].resize(sz[idim]+1, 0.);
+        sigma_star[idim].resize(sz[idim]  , 0.);
+
+        sigma_fac1     [idim].resize(sz[idim]+1,0.);
+        sigma_fac2     [idim].resize(sz[idim]+1,0.);
+        sigma_star_fac1[idim].resize(sz[idim]  ,0.);
+        sigma_star_fac2[idim].resize(sz[idim]  ,0.);
+
+        const Real fac = 4.0*PhysConst::c/(dx[idim]*static_cast<Real>(ncell*ncell));
+
+        // lo side
+        for (int i = lo[idim], end=std::min(hi[idim]+1,glo[idim]); i < end; ++i)
+        {
+            Real offset = static_cast<Real>(glo[idim]-i);
+            sigma[idim][i-lo[idim]] = fac*(offset*offset);
+
+            offset -= 0.5;
+            sigma_star[idim][i-lo[idim]] = fac*(offset*offset);
+        }
+
+        // hi side
+        for (int i = std::max(ghi[idim]+1,lo[idim]); i <= hi[idim]; ++i)
+        {
+            Real offset = static_cast<Real>(i-ghi[idim]);
+            sigma[idim][i-lo[idim]+1] = fac*(offset*offset);
+            
+            offset -= 0.5;
+            sigma_star[idim][i-lo[idim]] = fac*(offset*offset);
+        }
+    }
+}
+
+SigmaBoxArray::SigmaBoxArray (const BoxArray& ba, const DistributionMapping& dm,
+                              const Real* dx, int ncell)
+    : FabArray<SigmaBox>(ba,dm,1,0,MFInfo(),
+                         FabFactory<SigmaBox>(ba,dx,ncell))
 {
     
 }
 
-SigmaBoxArray::SigmaBoxArray (const BoxArray& ba, const DistributionMapping& dm,
-                              const Real* dx, int ng)
-    : FabArray<SigmaBox>(ba,dm,1,0,MFInfo(),
-                         FabFactory<SigmaBox>(ba,dx,ng))
-{
-}
-
 PML::PML (const BoxArray& a_ba, const DistributionMapping& a_dm, 
           const Geometry* geom, const Geometry* cgeom,
-          int ng, int ref_ratio)
+          int ncell, int ref_ratio)
     : m_mf(a_ba, a_dm, 1, 0, MFInfo().SetAlloc(false)),
-      m_cfinfo(FabArrayBase::TheCFinfo(m_mf,*geom,ng,false,true)),
+      m_cfinfo(FabArrayBase::TheCFinfo(m_mf,*geom,ncell,false,true)),
       m_geom(geom),
       m_cgeom(cgeom)
 {
     const BoxArray& ba = m_cfinfo.ba_cfb;
     const DistributionMapping& dm = m_cfinfo.dm_cfb;
 
-    pml_E_fp[0].reset(new MultiFab(amrex::convert(ba,WarpX::Ex_nodal_flag), dm, 2, ng));
-    pml_E_fp[1].reset(new MultiFab(amrex::convert(ba,WarpX::Ey_nodal_flag), dm, 2, ng));
-    pml_E_fp[2].reset(new MultiFab(amrex::convert(ba,WarpX::Ez_nodal_flag), dm, 2, ng));
-    pml_B_fp[0].reset(new MultiFab(amrex::convert(ba,WarpX::Bx_nodal_flag), dm, 2, ng));
-    pml_B_fp[1].reset(new MultiFab(amrex::convert(ba,WarpX::By_nodal_flag), dm, 2, ng));
-    pml_B_fp[2].reset(new MultiFab(amrex::convert(ba,WarpX::Bz_nodal_flag), dm, 2, ng));
+    pml_E_fp[0].reset(new MultiFab(amrex::convert(ba,WarpX::Ex_nodal_flag), dm, 2, 0));
+    pml_E_fp[1].reset(new MultiFab(amrex::convert(ba,WarpX::Ey_nodal_flag), dm, 2, 0));
+    pml_E_fp[2].reset(new MultiFab(amrex::convert(ba,WarpX::Ez_nodal_flag), dm, 2, 0));
+    pml_B_fp[0].reset(new MultiFab(amrex::convert(ba,WarpX::Bx_nodal_flag), dm, 2, 1));
+    pml_B_fp[1].reset(new MultiFab(amrex::convert(ba,WarpX::By_nodal_flag), dm, 2, 1));
+    pml_B_fp[2].reset(new MultiFab(amrex::convert(ba,WarpX::Bz_nodal_flag), dm, 2, 1));
 
     pml_E_fp[0]->setVal(0.0);
     pml_E_fp[1]->setVal(0.0);
@@ -41,19 +81,19 @@ PML::PML (const BoxArray& a_ba, const DistributionMapping& a_dm,
     pml_B_fp[1]->setVal(0.0);
     pml_B_fp[2]->setVal(0.0);
 
-    sigba_fp.reset(new SigmaBoxArray(ba, dm, geom->CellSize(), ng));
+    sigba_fp.reset(new SigmaBoxArray(ba, dm, geom->CellSize(), ncell));
 
     if (cgeom)
     {
         BoxArray cba = ba;
         cba.coarsen(ref_ratio);
 
-        pml_E_cp[0].reset(new MultiFab(amrex::convert(cba,WarpX::Ex_nodal_flag), dm, 2, ng));
-        pml_E_cp[1].reset(new MultiFab(amrex::convert(cba,WarpX::Ey_nodal_flag), dm, 2, ng));
-        pml_E_cp[2].reset(new MultiFab(amrex::convert(cba,WarpX::Ez_nodal_flag), dm, 2, ng));
-        pml_B_cp[0].reset(new MultiFab(amrex::convert(cba,WarpX::Bx_nodal_flag), dm, 2, ng));
-        pml_B_cp[1].reset(new MultiFab(amrex::convert(cba,WarpX::By_nodal_flag), dm, 2, ng));
-        pml_B_cp[2].reset(new MultiFab(amrex::convert(cba,WarpX::Bz_nodal_flag), dm, 2, ng));
+        pml_E_cp[0].reset(new MultiFab(amrex::convert(cba,WarpX::Ex_nodal_flag), dm, 2, 0));
+        pml_E_cp[1].reset(new MultiFab(amrex::convert(cba,WarpX::Ey_nodal_flag), dm, 2, 0));
+        pml_E_cp[2].reset(new MultiFab(amrex::convert(cba,WarpX::Ez_nodal_flag), dm, 2, 0));
+        pml_B_cp[0].reset(new MultiFab(amrex::convert(cba,WarpX::Bx_nodal_flag), dm, 2, 1));
+        pml_B_cp[1].reset(new MultiFab(amrex::convert(cba,WarpX::By_nodal_flag), dm, 2, 1));
+        pml_B_cp[2].reset(new MultiFab(amrex::convert(cba,WarpX::Bz_nodal_flag), dm, 2, 1));
         
         pml_E_cp[0]->setVal(0.0);
         pml_E_cp[1]->setVal(0.0);
@@ -62,7 +102,7 @@ PML::PML (const BoxArray& a_ba, const DistributionMapping& a_dm,
         pml_B_cp[1]->setVal(0.0);
         pml_B_cp[2]->setVal(0.0);
 
-        sigba_cp.reset(new SigmaBoxArray(cba, dm, cgeom->CellSize(), ng));
+        sigba_cp.reset(new SigmaBoxArray(cba, dm, cgeom->CellSize(), ncell));
     }
 
 }
