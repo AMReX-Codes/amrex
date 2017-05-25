@@ -1,9 +1,71 @@
 
-#include <WarpX.H>
-#include <WarpXConst.H>
 #include <WarpXPML.H>
+#include <WarpX.H>
 
 using namespace amrex;
+
+SigmaBox::SigmaBox (const Box& box, const Box& grid_box, const Real* dx, int ng)
+{
+    
+}
+
+SigmaBoxArray::SigmaBoxArray (const BoxArray& ba, const DistributionMapping& dm,
+                              const Real* dx, int ng)
+    : FabArray<SigmaBox>(ba,dm,1,0,MFInfo(),
+                         FabFactory<SigmaBox>(ba,dx,ng))
+{
+}
+
+PML::PML (const BoxArray& a_ba, const DistributionMapping& a_dm, 
+          const Geometry* geom, const Geometry* cgeom,
+          int ng, int ref_ratio)
+    : m_mf(a_ba, a_dm, 1, 0, MFInfo().SetAlloc(false)),
+      m_cfinfo(FabArrayBase::TheCFinfo(m_mf,*geom,ng,false,true)),
+      m_geom(geom),
+      m_cgeom(cgeom)
+{
+    const BoxArray& ba = m_cfinfo.ba_cfb;
+    const DistributionMapping& dm = m_cfinfo.dm_cfb;
+
+    pml_E_fp[0].reset(new MultiFab(amrex::convert(ba,WarpX::Ex_nodal_flag), dm, 2, ng));
+    pml_E_fp[1].reset(new MultiFab(amrex::convert(ba,WarpX::Ey_nodal_flag), dm, 2, ng));
+    pml_E_fp[2].reset(new MultiFab(amrex::convert(ba,WarpX::Ez_nodal_flag), dm, 2, ng));
+    pml_B_fp[0].reset(new MultiFab(amrex::convert(ba,WarpX::Bx_nodal_flag), dm, 2, ng));
+    pml_B_fp[1].reset(new MultiFab(amrex::convert(ba,WarpX::By_nodal_flag), dm, 2, ng));
+    pml_B_fp[2].reset(new MultiFab(amrex::convert(ba,WarpX::Bz_nodal_flag), dm, 2, ng));
+
+    pml_E_fp[0]->setVal(0.0);
+    pml_E_fp[1]->setVal(0.0);
+    pml_E_fp[2]->setVal(0.0);
+    pml_B_fp[0]->setVal(0.0);
+    pml_B_fp[1]->setVal(0.0);
+    pml_B_fp[2]->setVal(0.0);
+
+    sigba_fp.reset(new SigmaBoxArray(ba, dm, geom->CellSize(), ng));
+
+    if (cgeom)
+    {
+        BoxArray cba = ba;
+        cba.coarsen(ref_ratio);
+
+        pml_E_cp[0].reset(new MultiFab(amrex::convert(cba,WarpX::Ex_nodal_flag), dm, 2, ng));
+        pml_E_cp[1].reset(new MultiFab(amrex::convert(cba,WarpX::Ey_nodal_flag), dm, 2, ng));
+        pml_E_cp[2].reset(new MultiFab(amrex::convert(cba,WarpX::Ez_nodal_flag), dm, 2, ng));
+        pml_B_cp[0].reset(new MultiFab(amrex::convert(cba,WarpX::Bx_nodal_flag), dm, 2, ng));
+        pml_B_cp[1].reset(new MultiFab(amrex::convert(cba,WarpX::By_nodal_flag), dm, 2, ng));
+        pml_B_cp[2].reset(new MultiFab(amrex::convert(cba,WarpX::Bz_nodal_flag), dm, 2, ng));
+        
+        pml_E_cp[0]->setVal(0.0);
+        pml_E_cp[1]->setVal(0.0);
+        pml_E_cp[2]->setVal(0.0);
+        pml_B_cp[0]->setVal(0.0);
+        pml_B_cp[1]->setVal(0.0);
+        pml_B_cp[2]->setVal(0.0);
+
+        sigba_cp.reset(new SigmaBoxArray(cba, dm, cgeom->CellSize(), ng));
+    }
+
+}
 
 #if 0
 void

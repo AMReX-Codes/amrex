@@ -1,27 +1,71 @@
 #ifndef WARPX_PML_H_
 #define WARPX_PML_H_
 
-class WarpXPML
-{
+#include <AMReX_MultiFab.H>
+#include <AMReX_Geometry.H>
 
+struct SigmaBox
+{
+    SigmaBox (const amrex::Box& box, const amrex::Box& grid_box, const amrex::Real* dx, int ng);
+
+    std::array<amrex::Array<amrex::Real>,BL_SPACEDIM> sigma;      // sigma/epsilon
+    std::array<amrex::Array<amrex::Real>,BL_SPACEDIM> sigma_star; // sigma_star/mu
+    std::array<amrex::Array<amrex::Real>,BL_SPACEDIM> sigma_fac1, sigma_fac2;
+    std::array<amrex::Array<amrex::Real>,BL_SPACEDIM> sigma_star_fac1, sigma_star_fac2;
+};
+
+namespace amrex {
+    template<>
+    class FabFactory<SigmaBox>
+    {
+    public:
+        FabFactory<SigmaBox> (const BoxArray& ba, const Real* dx, int ng) 
+            : m_ba(ba), m_dx(dx), m_ng(ng) {}
+        virtual SigmaBox* create (const Box& box, int ncomps,
+                                  const FabInfo& info, int box_index) const final
+            { 
+                return new SigmaBox(box, m_ba[box_index], m_dx, m_ng);
+            }
+    private:
+        const BoxArray& m_ba;
+        const Real* m_dx;
+        int m_ng;
+    };
+}
+
+class SigmaBoxArray
+    : amrex::FabArray<SigmaBox>
+{
+public:
+    SigmaBoxArray(const amrex::BoxArray& ba, const amrex::DistributionMapping& dm,
+                  const amrex::Real* dx, int ng);
+};
+
+class PML
+{
+public:
+    PML (const amrex::BoxArray& ba, const amrex::DistributionMapping& dm, 
+         const amrex::Geometry* geom, const amrex::Geometry* cgeom,
+         int ng, int ref_ratio);
+
+private:
+    amrex::MultiFab m_mf;
+    const amrex::FabArrayBase::CFinfo& m_cfinfo;
+    const amrex::Geometry* m_geom;
+    const amrex::Geometry* m_cgeom;
+
+    std::array<std::unique_ptr<amrex::MultiFab>,BL_SPACEDIM> pml_E_fp;
+    std::array<std::unique_ptr<amrex::MultiFab>,BL_SPACEDIM> pml_B_fp;
+
+    std::array<std::unique_ptr<amrex::MultiFab>,BL_SPACEDIM> pml_E_cp;
+    std::array<std::unique_ptr<amrex::MultiFab>,BL_SPACEDIM> pml_B_cp;
+
+    std::unique_ptr<SigmaBoxArray> sigba_fp;
+    std::unique_ptr<SigmaBoxArray> sigba_cp;
 };
 
 
 #if 0
-        // PML
-        if (Geometry::isAllPeriodic()) {
-            do_pml = 0;  // no PML for all periodic boundaries
-        } else {
-            pp.query("do_pml", do_pml);
-            pp.query("pml_ncell", pml_ncell);
-        }
-
-
-
-    amrex::BoxArray pml_ba;
-    amrex::DistributionMapping pml_dm;
-    std::array<std::unique_ptr<amrex::MultiFab>,3> pml_E;
-    std::array<std::unique_ptr<amrex::MultiFab>,3> pml_B;
     //
     std::array<PMLSigma,BL_SPACEDIM> pml_sigma, pml_sigma_star; // sigma/epsilon, sigma_star/mu
     std::array<PMLSigma,BL_SPACEDIM> pml_sigma_fac1, pml_sigma_fac2, 

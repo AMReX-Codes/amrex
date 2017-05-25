@@ -118,8 +118,7 @@ WarpX::WarpX ()
     Efield_cp.resize(nlevs_max);
     Bfield_cp.resize(nlevs_max);
 
-    PML_fp.resize(nlevs_max);
-    PML_cp.resize(nlevs_max);
+    pml.resize(nlevs_max);
 }
 
 WarpX::~WarpX ()
@@ -190,6 +189,9 @@ WarpX::ReadParameters ()
 	}
 
 	pp.query("use_laser", use_laser);
+
+        pp.query("do_pml", do_pml);
+        pp.query("pml_ncell", pml_ncell);
 
         pp.query("plot_raw_fields", plot_raw_fields);
         if (ParallelDescriptor::NProcs() == 1) {

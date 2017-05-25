@@ -211,8 +211,9 @@ private:
     amrex::Array<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Bfield_cp;
 
     // PML
-    amrex::Array<std::unique_ptr<WarpXPML> > PML_fp;
-    amrex::Array<std::unique_ptr<WarpXPML> > PML_cp;
+    int do_pml = 1;
+    int pml_ncell = 10;
+    amrex::Array<std::unique_ptr<PML> > pml;
 
     // Moving window parameters
     int do_moving_window  = 0;
