@@ -2012,6 +2012,12 @@ void ParallelDescriptor::Abort (int s, bool backtrace)
     }
 }
 
+int
+ParallelDescriptor::Translate(int rk_clrd,Color clr)
+{
+    return 0;
+}
+
 const char* ParallelDescriptor::ErrorString (int) { return ""; }
 
 void ParallelDescriptor::Barrier (const std::string &message) {}
@@ -2482,5 +2488,6 @@ ParallelDescriptor::MPIOneSided ()
 
     return do_onesided;
 }
+
 
 }
