@@ -10,6 +10,11 @@
 #include "writePlotFile.H"
 #include "myfunc_F.H"
 
+// This tutorial demonstrates how to use CVODE to integrate a single ODE per
+// cell, where the Jacobian matrix is not provided by the user. If using Newton
+// iteration to integrate the ODE, CVODE will construct a Jacobian by numerical
+// differentiation.
+
 using namespace amrex;
 
 int main (int argc, char* argv[])
