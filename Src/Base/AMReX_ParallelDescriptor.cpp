@@ -381,29 +381,19 @@ ParallelDescriptor::init_clr_vars()
   /* Remaining proc.'s */
   int const numRemProcs = m_nProcs_comp-m_nCommColors*m_nProcs_sub;
   /* All numbers of proc.'s per color */
-  m_num_procs_clr.resize(m_nCommColors);
-  /* All first proc.'s */
-  m_first_procs_clr.resize(m_nCommColors);
-  /* Assign values */
-  for (int clr = 0; clr < m_nCommColors; ++clr)
+  m_num_procs_clr.resize(m_nCommColors,m_nProcs_sub);
+  /* Distribute remaining proc.'s */
+  for (int clr = 0; clr < numRemProcs; ++clr)
   {
-    /* All numbers of proc.'s per color (default value) */
-    m_num_procs_clr[clr] = m_nProcs_sub;
-    /* All first proc.'s (default value) */
-    m_first_procs_clr[clr] = 0;
-    /* All numbers of proc.'s per color (final value) */
-    if (clr < numRemProcs)
-    {
-      /* Distribute remaining proc.'s */
-      ++(m_num_procs_clr[clr]);
-    }
-    /* All first proc.'s (final value) */
-    if (clr > 0)
-    {
-      /* Add the previous `clr's `nProc's */
+    ++(m_num_procs_clr[clr]);
+  }
+  /* All first proc.'s */
+  m_first_procs_clr.resize(m_nCommColors,0);
+  /* Add the previous `clr's `nProc's */
+  for (int clr = 1; clr < m_nCommColors; ++clr)
+  {
       m_first_procs_clr[clr] =
         m_first_procs_clr[clr-1]+m_num_procs_clr[clr-1];
-    }
   }
   /* My proc. must be larger than my first proc. */
   int clr = 0; int myClr = -1;
@@ -672,6 +662,8 @@ ParallelDescriptor::SetNProcsSidecars (const Array<int> &compRanksInAll,
       BL_MPI_REQUIRE( MPI_Comm_rank(m_comm_sub, &m_MyId_sub) );
     } else {
       m_nProcs_sub  = NProcs();
+      m_num_procs_clr.resize(1,0);
+      m_first_procs_clr.resize(1,0);
       m_MyCommSubColor = Color(0);
       m_MyCommCompColor = Color(0);
       m_comm_sub    = Communicator();
@@ -803,6 +795,8 @@ ParallelDescriptor::StartSubCommunicator ()
     } else {
 	m_nCommColors = 1;
 	m_nProcs_sub  = NProcs();
+  m_num_procs_clr.resize(1,0);
+  m_first_procs_clr.resize(1,0);
 	m_MyCommSubColor = Color(0);
 	m_MyCommCompColor = Color(0);
 	m_comm_sub    = Communicator();
@@ -1968,6 +1962,8 @@ ParallelDescriptor::StartSubCommunicator ()
 {
     m_nCommColors = 1;
     m_nProcs_sub  = 1;
+    m_num_procs_clr.resize(1,0);
+    m_first_procs_clr.resize(1,0);
     m_MyCommSubColor = Color(0);
     m_MyCommCompColor = Color(0);
     m_comm_sub    = 0;
