@@ -3,10 +3,15 @@
 #include <WarpX.H>
 #include <WarpXConst.H>
 
+#include <algorithm>
+
+#include <omp.h>
+
 using namespace amrex;
 
-SigmaBox::SigmaBox (const Box& a_box, const Box& grid_box, const Real* dx, int ncell)
-    : box(a_box)
+SigmaBox::SigmaBox (const Box& a_box, const Box& a_grid_box, const Real* dx, int ncell)
+    : box(a_box),
+      grid_box(a_grid_box)
 {
     BL_ASSERT(box.cellCentered());
     BL_ASSERT(grid_box.cellCentered());
@@ -16,13 +21,13 @@ SigmaBox::SigmaBox (const Box& a_box, const Box& grid_box, const Real* dx, int n
     const int* glo = grid_box.loVect();
     const int* ghi = grid_box.hiVect();
     for (int idim = 0; idim < BL_SPACEDIM; ++idim) {
-        sigma     [idim].resize(sz[idim]+1, 0.);
-        sigma_star[idim].resize(sz[idim]  , 0.);
+        sigma     [idim].resize(sz[idim]+1, 0.0);
+        sigma_star[idim].resize(sz[idim]  , 0.0);
 
-        sigma_fac1     [idim].resize(sz[idim]+1,0.);
-        sigma_fac2     [idim].resize(sz[idim]+1,0.);
-        sigma_star_fac1[idim].resize(sz[idim]  ,0.);
-        sigma_star_fac2[idim].resize(sz[idim]  ,0.);
+        sigma_fac1     [idim].resize(sz[idim]+1, 1.0);
+        sigma_fac2     [idim].resize(sz[idim]+1     );
+        sigma_star_fac1[idim].resize(sz[idim]  , 1.0);
+        sigma_star_fac2[idim].resize(sz[idim]       );
 
         const Real fac = 4.0*PhysConst::c/(dx[idim]*static_cast<Real>(ncell*ncell));
 
@@ -48,12 +53,76 @@ SigmaBox::SigmaBox (const Box& a_box, const Box& grid_box, const Real* dx, int n
     }
 }
 
+void
+SigmaBox::ComputePMLFactorsB (const Real* dx, Real dt)
+{
+    const std::array<Real,BL_SPACEDIM> dtsdx {D_DECL(dt/dx[0], dt/dx[1], dt/dx[2])};
+
+    const int* lo  =      box.loVect();
+    const int* hi  =      box.hiVect();
+    const int* glo = grid_box.loVect();
+    const int* ghi = grid_box.hiVect();
+
+    for (int idim = 0; idim < BL_SPACEDIM; ++idim)
+    {
+        std::fill(sigma_star_fac2[idim].begin(), sigma_star_fac2[idim].end(), dtsdx[idim]);
+
+        // lo side
+        for (int i = lo[idim], end=std::min(hi[idim]+1,glo[idim]); i < end; ++i)
+        {
+            int ii = i-lo[idim];
+            sigma_star_fac1[idim][ii] = std::exp(-sigma_star[idim][ii]*dt);
+            sigma_star_fac2[idim][ii] = (1.0-sigma_star_fac1[idim][ii])
+                                      / (sigma_star[idim][ii]*dt) * dtsdx[idim];
+        }
+
+        // hi side
+        for (int i = std::max(ghi[idim]+1,lo[idim]); i <= hi[idim]; ++i)
+        {
+            int ii = i-lo[idim];
+            sigma_star_fac1[idim][ii] = std::exp(-sigma_star[idim][ii]*dt);
+            sigma_star_fac2[idim][ii] = (1.0-sigma_star_fac1[idim][ii])
+                                      / (sigma_star[idim][ii]*dt) * dtsdx[idim];
+        }
+    }
+}
+
+void
+SigmaBox::ComputePMLFactorsE (const Real* dx, Real dt)
+{
+
+}
+
 SigmaBoxArray::SigmaBoxArray (const BoxArray& ba, const DistributionMapping& dm,
                               const Real* dx, int ncell)
     : FabArray<SigmaBox>(ba,dm,1,0,MFInfo(),
                          FabFactory<SigmaBox>(ba,dx,ncell))
 {
     
+}
+
+void
+SigmaBoxArray::ComputePMLFactorsB (const Real* dx, Real dt)
+{
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(*this); mfi.isValid(); ++mfi)
+    {
+        (*this)[mfi].ComputePMLFactorsB(dx, dt);
+    }
+}
+
+void
+SigmaBoxArray::ComputePMLFactorsE (const Real* dx, Real dt)
+{
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(*this); mfi.isValid(); ++mfi)
+    {
+        (*this)[mfi].ComputePMLFactorsE(dx, dt);
+    }
 }
 
 PML::PML (const BoxArray& a_ba, const DistributionMapping& a_dm, 
@@ -107,122 +176,21 @@ PML::PML (const BoxArray& a_ba, const DistributionMapping& a_dm,
 
 }
 
+void
+PML::ComputePMLFactorsB (amrex::Real dt)
+{
+    if (sigba_fp) sigba_fp->ComputePMLFactorsB(m_geom->CellSize(), dt);
+    if (sigba_cp) sigba_cp->ComputePMLFactorsB(m_cgeom->CellSize(), dt);
+}
+
+void
+PML::ComputePMLFactorsE (amrex::Real dt)
+{
+    if (sigba_fp) sigba_fp->ComputePMLFactorsE(m_geom->CellSize(), dt);
+    if (sigba_cp) sigba_cp->ComputePMLFactorsE(m_cgeom->CellSize(), dt);
+}
+
 #if 0
-void
-WarpX::InitPML ()
-{
-    if (!do_pml) return;
-
-    const Geometry& gm0 = Geom(0);
-    const Box& domainbox = gm0.Domain();
-    Box grownbox = domainbox;
-    for (int i = 0; i < BL_SPACEDIM; ++i) {
-        if (!Geometry::isPeriodic(i)) {
-            grownbox.grow(i,pml_ncell);
-        }
-    }
-
-    int block_size = maxGridSize(0);
-    while (block_size < pml_ncell) {
-        block_size += blockingFactor(0);
-    }
-
-    Array<IntVect> shift;
-    {
-        int len[3] = {0,0,0};
-        int jmp[3] = {1,1,1};
-
-        for (int i = 0; i < BL_SPACEDIM; ++i) {
-            if (!Geometry::isPeriodic(i)) {
-                len[i] = jmp[i] = domainbox.length(i);
-            }
-        }
-
-        for (int i = -len[0]; i <= len[0]; i += jmp[0]) {
-        for (int j = -len[1]; j <= len[1]; j += jmp[1]) {
-        for (int k = -len[2]; k <= len[2]; k += jmp[2]) {
-            if (i != 0 || j != 0 || k!= 0) {
-                shift.push_back(IntVect(D_DECL(i,j,k)));
-            }
-        }
-        }
-        }
-    }
-
-    BoxList bl;
-    for (const IntVect& iv : shift) {
-        Box bbx = domainbox;
-        bbx.shift(iv);
-        bbx &= grownbox;
-        BoxList bltmp(bbx);
-        bltmp.maxSize(block_size);
-        bl.catenate(bltmp);
-    }
-    pml_ba.define(bl);
-    
-    // xxxxx for now let's just use a simple distributionmapping
-    pml_dm.RoundRobinProcessorMap(pml_ba.size(), ParallelDescriptor::NProcs());
-
-    const int ng = Efield[0][0]->nGrow();
-    pml_E[0].reset(new MultiFab(amrex::convert(pml_ba,Ex_nodal_flag),pml_dm,2,ng));
-    pml_E[1].reset(new MultiFab(amrex::convert(pml_ba,Ey_nodal_flag),pml_dm,2,ng));
-    pml_E[2].reset(new MultiFab(amrex::convert(pml_ba,Ez_nodal_flag),pml_dm,2,ng));
-    pml_B[0].reset(new MultiFab(amrex::convert(pml_ba,Bx_nodal_flag),pml_dm,2,ng));
-    pml_B[1].reset(new MultiFab(amrex::convert(pml_ba,By_nodal_flag),pml_dm,2,ng));
-    pml_B[2].reset(new MultiFab(amrex::convert(pml_ba,Bz_nodal_flag),pml_dm,2,ng));
-
-    pml_E[0]->setVal(0.0);
-    pml_E[1]->setVal(0.0);
-    pml_E[2]->setVal(0.0);
-    pml_B[0]->setVal(0.0);
-    pml_B[1]->setVal(0.0);
-    pml_B[2]->setVal(0.0);
-
-    {
-        const Real* dx = gm0.CellSize();
-        const int* dlo = domainbox.loVect();
-        const int* dhi = domainbox.hiVect();
-        const int* glo = grownbox.loVect();
-        const int* ghi = grownbox.hiVect();
-        const IntVect& sz = grownbox.size();
-        for (int idim = 0; idim < BL_SPACEDIM; ++idim) {
-            pml_sigma     [idim].resize(sz[idim]+1, 0.0);
-            pml_sigma_star[idim].resize(sz[idim]  , 0.0);
-            pml_sigma     [idim].m_lo = glo[idim];
-            pml_sigma     [idim].m_hi = ghi[idim]+1;
-            pml_sigma_star[idim].m_lo = glo[idim];
-            pml_sigma_star[idim].m_hi = ghi[idim];
-
-            const Real fac = 4.0*PhysConst::c/(dx[idim]*static_cast<Real>(pml_ncell*pml_ncell));
-
-            for (int ind = glo[idim]; ind < dlo[idim]; ++ind) {
-                Real offset = static_cast<Real>(dlo[idim] - ind);
-                pml_sigma[idim][ind-glo[idim]] = fac*(offset*offset);
-            }
-            for (int ind = dhi[idim]+2; ind < ghi[idim]+2; ++ind) {
-                Real offset = static_cast<Real>(ind - (dhi[idim]+1));
-                pml_sigma[idim][ind-glo[idim]] = fac*(offset*offset);
-            }
-
-            for (int icc = glo[idim]; icc < dlo[idim]; ++icc) {
-                Real offset = static_cast<Real>(dlo[idim] - icc) - 0.5;
-                pml_sigma_star[idim][icc-glo[idim]] = fac*(offset*offset);
-            }
-            for (int icc = dhi[idim]+1; icc < ghi[idim]+1; ++icc) {
-                Real offset = static_cast<Real>(icc - dhi[idim]) - 0.5;
-                pml_sigma_star[idim][icc-glo[idim]] = fac*(offset*offset);                
-            }
-        }
-    }
-}
-
-
-void
-WarpX::ComputePMLFactors (int lev, Real dt)
-{
-    ComputePMLFactorsE(lev, dt);
-    ComputePMLFactorsB(lev, dt);
-}
 
 void
 WarpX::ComputePMLFactorsE (int lev, Real dt)

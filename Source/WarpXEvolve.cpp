@@ -221,7 +221,11 @@ WarpX::EvolveB (int lev, Real dt)
         }
     }
 
-    // xxxxx
+    if (do_pml)
+    {
+        pml[lev]->ComputePMLFactorsB(dt);
+    }
+
 #if 0
     if (do_pml && lev == 0)
     {
@@ -346,6 +350,11 @@ WarpX::EvolveE (int lev, Real dt)
                 &dtsdx_c2[0], &dtsdx_c2[1], &dtsdx_c2[2],
                 &norder);
         }
+    }
+
+    if (do_pml)
+    {
+        pml[lev]->ComputePMLFactorsE(dt);
     }
 
 // xxxxx

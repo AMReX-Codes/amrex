@@ -8,12 +8,16 @@ struct SigmaBox
 {
     SigmaBox (const amrex::Box& a_box, const amrex::Box& grid_box, const amrex::Real* dx, int ncell);
 
+    void ComputePMLFactorsB (const amrex::Real* dx, amrex::Real dt);
+    void ComputePMLFactorsE (const amrex::Real* dx, amrex::Real dt);
+
     std::array<amrex::Array<amrex::Real>,BL_SPACEDIM> sigma;      // sigma/epsilon
     std::array<amrex::Array<amrex::Real>,BL_SPACEDIM> sigma_star; // sigma_star/mu
     std::array<amrex::Array<amrex::Real>,BL_SPACEDIM> sigma_fac1, sigma_fac2;
     std::array<amrex::Array<amrex::Real>,BL_SPACEDIM> sigma_star_fac1, sigma_star_fac2;
 
     amrex::Box box;
+    amrex::Box grid_box;
 };
 
 namespace amrex {
@@ -41,6 +45,8 @@ class SigmaBoxArray
 public:
     SigmaBoxArray(const amrex::BoxArray& ba, const amrex::DistributionMapping& dm,
                   const amrex::Real* dx, int ncell);
+    void ComputePMLFactorsB (const amrex::Real* dx, amrex::Real dt);
+    void ComputePMLFactorsE (const amrex::Real* dx, amrex::Real dt);
 };
 
 class PML
@@ -49,6 +55,9 @@ public:
     PML (const amrex::BoxArray& ba, const amrex::DistributionMapping& dm, 
          const amrex::Geometry* geom, const amrex::Geometry* cgeom,
          int ncell, int ref_ratio);
+
+    void ComputePMLFactorsB (amrex::Real dt);
+    void ComputePMLFactorsE (amrex::Real dt);
 
 private:
     amrex::MultiFab m_mf;
