@@ -66,8 +66,8 @@ namespace ParallelDescriptor
     int m_nProcs_all     = nProcs_undefined;
     int m_nProcs_comp    = nProcs_undefined;
     int m_nProcs_sub     = nProcs_undefined;
-    Array<int> m_nProcs_color;
-    Array<int> m_first_procs_color;
+    Array<int> m_num_procs_clr;
+    Array<int> m_first_procs_clr;
     Array<int> m_nProcs_sidecar;
     int nSidecars = 0;
     int inWhichSidecar = notInSidecar;
@@ -100,8 +100,8 @@ namespace ParallelDescriptor
     int m_nProcs_all     = 1;
     int m_nProcs_comp    = 1;
     int m_nProcs_sub     = 1;
-    Array<int> m_nProcs_color;
-    Array<int> m_first_procs_color;
+    Array<int> m_num_procs_clr;
+    Array<int> m_first_procs_clr;
     Array<int> m_nProcs_sidecar;
     int nSidecars = 0;
     int inWhichSidecar = notInSidecar;
@@ -359,7 +359,7 @@ ParallelDescriptor::Translate(int rk_clrd,Color clr)
   }
   else if (clr.valid())
   {
-    return m_first_procs_color[clr.to_int()]+rk_clrd;
+    return m_first_procs_clr[clr.to_int()]+rk_clrd;
   }
   else
   {
@@ -367,7 +367,8 @@ ParallelDescriptor::Translate(int rk_clrd,Color clr)
   }
 }
 
-/* Define variables `m_nProcs_sub' and `m_MyCommSubColor' */
+/* Define variables `m_nProcs_sub', `m_MyCommSubColor',
+`m_num_procs_clr', and `m_first_procs_clr' */
 void
 ParallelDescriptor::init_clr_vars()
 {
@@ -380,38 +381,38 @@ ParallelDescriptor::init_clr_vars()
   /* Remaining proc.'s */
   int const numRemProcs = m_nProcs_comp-m_nCommColors*m_nProcs_sub;
   /* All numbers of proc.'s per color */
-  m_nProcs_color.resize(m_nCommColors);
+  m_num_procs_clr.resize(m_nCommColors);
   /* All first proc.'s */
-  m_first_procs_color.resize(m_nCommColors);
+  m_first_procs_clr.resize(m_nCommColors);
   /* Assign values */
   for (int clr = 0; clr < m_nCommColors; ++clr)
   {
     /* All numbers of proc.'s per color (default value) */
-    m_nProcs_color[clr] = m_nProcs_sub;
+    m_num_procs_clr[clr] = m_nProcs_sub;
     /* All first proc.'s (default value) */
-    m_first_procs_color[clr] = 0;
+    m_first_procs_clr[clr] = 0;
     /* All numbers of proc.'s per color (final value) */
     if (clr < numRemProcs)
     {
       /* Distribute remaining proc.'s */
-      ++(m_nProcs_color[clr]);
+      ++(m_num_procs_clr[clr]);
     }
     /* All first proc.'s (final value) */
     if (clr > 0)
     {
       /* Add the previous `clr's `nProc's */
-      m_first_procs_color[clr] =
-        m_first_procs_color[clr-1]+m_nProcs_color[clr-1];
+      m_first_procs_clr[clr] =
+        m_first_procs_clr[clr-1]+m_num_procs_clr[clr-1];
     }
   }
   /* My proc. must be larger than my first proc. */
   int clr = 0; int myClr = -1;
-  while (clr < m_nCommColors && MyProc() > m_first_procs_color[clr]-1)
+  while (clr < m_nCommColors && MyProc() > m_first_procs_clr[clr]-1)
   {
     ++clr; ++myClr;
   }
   /* Possibly adjust number of proc.'s per color */
-  m_nProcs_sub = m_nProcs_color[myClr];
+  m_nProcs_sub = m_num_procs_clr[myClr];
   /* Define `Color' */
   m_MyCommSubColor = Color(myClr);
 
@@ -661,7 +662,8 @@ ParallelDescriptor::SetNProcsSidecars (const Array<int> &compRanksInAll,
 
     // ---- recreate the color sub communicator
     if(m_nCommColors > 1) {
-      /* Define variables `m_nProcs_sub' and `m_MyCommSubColor' */
+      /* Define variables `m_nProcs_sub', `m_MyCommSubColor',
+      `m_num_procs_clr', and `m_first_procs_clr' */
       init_clr_vars();
       /* Special color for `CommComp's color */
       m_MyCommCompColor = Color(m_nCommColors); 
@@ -790,7 +792,8 @@ ParallelDescriptor::StartSubCommunicator ()
 	amrex::Abort("amrex.ncolors > 1 not supported for LAZY=TRUE");
 #endif
 
-      /* Define variables `m_nProcs_sub' and `m_MyCommSubColor' */
+      /* Define variables `m_nProcs_sub', `m_MyCommSubColor',
+      `m_num_procs_clr', and `m_first_procs_clr' */
       init_clr_vars();
       /* Special color for `CommComp's color */
       m_MyCommCompColor = Color(m_nCommColors); 

@@ -137,7 +137,8 @@ namespace ParallelDescriptor
     extern int m_nProcs_all;
     extern int m_nProcs_comp;
     extern int m_nProcs_sub;
-    extern Array<int> m_nProcs_color;
+    extern Array<int> m_num_procs_clr;
+    extern Array<int> m_first_procs_clr;
     extern Array<int> m_nProcs_sidecar;
     extern int nSidecars;
     extern int inWhichSidecar;
@@ -635,7 +636,7 @@ namespace ParallelDescriptor
 	if (color == DefaultColor()) {
 	    return NProcs();
 	} else if (color.valid()) {
-	    return m_nProcs_color[color.to_int()];
+	    return m_num_procs_clr[color.to_int()];
 	} else {
 	    return 0;
 	}
