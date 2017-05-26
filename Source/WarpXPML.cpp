@@ -15,12 +15,16 @@ SigmaBox::SigmaBox (const Box& a_box, const Box& a_grid_box, const Real* dx, int
 {
     BL_ASSERT(box.cellCentered());
     BL_ASSERT(grid_box.cellCentered());
+
     const IntVect& sz = box.size();
+
     const int* lo  =      box.loVect();
     const int* hi  =      box.hiVect();
     const int* glo = grid_box.loVect();
     const int* ghi = grid_box.hiVect();
-    for (int idim = 0; idim < BL_SPACEDIM; ++idim) {
+
+    for (int idim = 0; idim < BL_SPACEDIM; ++idim)
+    {
         sigma     [idim].resize(sz[idim]+1, 0.0);
         sigma_star[idim].resize(sz[idim]  , 0.0);
 
@@ -90,16 +94,45 @@ SigmaBox::ComputePMLFactorsB (const Real* dx, Real dt)
 void
 SigmaBox::ComputePMLFactorsE (const Real* dx, Real dt)
 {
+    const std::array<Real,BL_SPACEDIM> dtsdx {D_DECL(dt/dx[0], dt/dx[1], dt/dx[2])};
+    
+    const Real c2 = PhysConst::c*PhysConst::c;
+    const std::array<Real,BL_SPACEDIM> dtsdx_c2 {D_DECL(dtsdx[0]*c2, dtsdx[1]*c2, dtsdx[2]*c2)};
 
+    const int* lo  =      box.loVect();
+    const int* hi  =      box.hiVect();
+    const int* glo = grid_box.loVect();
+    const int* ghi = grid_box.hiVect();
+
+    for (int idim = 0; idim < BL_SPACEDIM; ++idim)
+    {
+        std::fill(sigma_fac2[idim].begin(), sigma_fac2[idim].end(), dtsdx_c2[idim]);
+
+        // lo side
+        for (int i = lo[idim], end=std::min(hi[idim]+1,glo[idim]); i < end; ++i)
+        {
+            int ii = i-lo[idim];
+            sigma_fac1[idim][ii] = std::exp(-sigma[idim][ii]*dt);
+            sigma_fac2[idim][ii] = (1.0-sigma_fac1[idim][ii])
+                / (sigma[idim][ii]*dt) * dtsdx_c2[idim];
+        }
+
+        // hi side
+        for (int i = std::max(ghi[idim]+1,lo[idim]); i <= hi[idim]; ++i)
+        {
+            int ii = i-lo[idim]+1;
+            sigma_fac1[idim][ii] = std::exp(-sigma[idim][ii]*dt);
+            sigma_fac2[idim][ii] = (1.0-sigma_fac1[idim][ii])
+                / (sigma[idim][ii]*dt) * dtsdx_c2[idim];            
+        }
+    }
 }
 
 SigmaBoxArray::SigmaBoxArray (const BoxArray& ba, const DistributionMapping& dm,
                               const Real* dx, int ncell)
     : FabArray<SigmaBox>(ba,dm,1,0,MFInfo(),
                          FabFactory<SigmaBox>(ba,dx,ncell))
-{
-    
-}
+{}
 
 void
 SigmaBoxArray::ComputePMLFactorsB (const Real* dx, Real dt)
