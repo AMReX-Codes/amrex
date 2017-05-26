@@ -17,18 +17,63 @@
 #include "AMReX_VoFIterator.H"
 #include "AMReX_IrregNode.H"
 #include "AMReX_PolyGeom.H"
+#include "AMReX_Utility.H"
+#include <string>
+#include "AMReX_Utility.H"
+#include <iostream>
+#include <sstream>
 
 
 namespace amrex
 {
+  ///
+  void 
+  EBIndexSpace::
+  write(const string& a_filename) const
+  {
+//    //this creates the directory of all the stuff
+//    UtilCreateCleanDirectory(a_filename, true);
+//    writeHeader(a_filename);
+//    for(int ilev = 0; ilev < m_nlevels; ilev++)
+//    {
+//      string levdirname = a_filename + "_lev_" + EBArith::convertInt(ilev);
+//      UtilCreateCleanDirectory(a_filename, true);
+//      m_ebisLevel[ilev]->write(levdirname);
+//    }
+  }
 
 
-  void EBIndexSpace::define(const Box              & a_domain,
-                            const RealVect         & a_origin,
-                            const Real             & a_dx,
-                            const GeometryService  & a_geoserver,
-                            int                      a_nCellMax,
-                            int                      a_maxCoarsenings)
+  ///
+  void 
+  EBIndexSpace::
+  read(const string& a_filename)
+  {
+    
+  }
+
+  ///
+  void 
+  EBIndexSpace::
+  writeHeader(const string& a_filename) const
+  {
+  }
+
+  ///
+  void 
+  EBIndexSpace::
+  readHeader(const string& a_filename)
+  {
+    
+  }
+  ///
+  void 
+  EBIndexSpace::
+  define(const Box              & a_domain,
+         const RealVect         & a_origin,
+         const Real             & a_dx,
+         const GeometryService  & a_geoserver,
+         int                      a_nCellMax,
+         int                      a_maxCoarsenings)
   {
     BL_PROFILE("EBIndexSpace::define_geoserver_domain0");
 
