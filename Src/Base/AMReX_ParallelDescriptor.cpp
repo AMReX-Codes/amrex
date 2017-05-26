@@ -380,14 +380,18 @@ ParallelDescriptor::init_clr_vars()
   m_nProcs_sub = m_nProcs_comp/m_nCommColors;
   /* Remaining proc.'s */
   int const numRemProcs = m_nProcs_comp-m_nCommColors*m_nProcs_sub;
-  /* All numbers of proc.'s per color */
+  /* All numbers of proc.'s per color (clear) */
+  m_num_procs_clr.clear();
+  /* All numbers of proc.'s per color (init.) */
   m_num_procs_clr.resize(m_nCommColors,m_nProcs_sub);
   /* Distribute remaining proc.'s */
   for (int clr = 0; clr < numRemProcs; ++clr)
   {
     ++(m_num_procs_clr[clr]);
   }
-  /* All first proc.'s */
+  /* All first proc.'s (clear) */
+  m_first_procs_clr.clear();
+  /* All first proc.'s (init.) */
   m_first_procs_clr.resize(m_nCommColors,0);
   /* Add the previous `clr's `nProc's */
   for (int clr = 1; clr < m_nCommColors; ++clr)
@@ -2008,6 +2012,12 @@ void ParallelDescriptor::Abort (int s, bool backtrace)
     }
 }
 
+int
+ParallelDescriptor::Translate(int rk_clrd,Color clr)
+{
+    return 0;
+}
+
 const char* ParallelDescriptor::ErrorString (int) { return ""; }
 
 void ParallelDescriptor::Barrier (const std::string &message) {}
@@ -2478,5 +2488,6 @@ ParallelDescriptor::MPIOneSided ()
 
     return do_onesided;
 }
+
 
 }

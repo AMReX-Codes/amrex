@@ -10,6 +10,8 @@ vpath %.cpp  $(FINAL_VPATH_LOCATIONS)
 vpath %.h    $(FINAL_VPATH_LOCATIONS)
 vpath %.H    $(FINAL_VPATH_LOCATIONS)
 
+FINAL_CPPFLAGS := $(addprefix $(CPP_PREFIX), $(CPPFLAGS))
+
 # Suppress display of executed commands.  Default verbose
 SILENT =
 ifeq ($(VERBOSE),OFF)
@@ -23,7 +25,7 @@ endif
 #
 $(executable):	$(objForExecs)
 	@echo Linking $@ ...
-	$(SILENT) $(CXX) $(CXXFLAGS) $(CPPFLAGS) $(includes) $(LDFLAGS) -o $@ $^ $(libraries)
+	$(SILENT) $(CXX) $(CXXFLAGS) $(FINAL_CPPFLAGS) $(includes) $(LDFLAGS) -o $@ $^ $(libraries)
 #	@echo SUCCESS
 
 
@@ -64,7 +66,7 @@ install_fortran_modules:
 $(amrexIncludeDir)/AMReX_Config.H: FORCE
 	@echo Generating AMReX_config.H ...
 	@if [ ! -d $(amrexIncludeDir) ]; then mkdir -p $(amrexIncludeDir); fi
-	@ $(MKCONFIG) --defines "$(CPPFLAGS)" --undefine "BL_LANG_FORT" \
+	@ $(MKCONFIG) --defines "$(FINAL_CPPFLAGS)" --undefine "BL_LANG_FORT" \
 	              --comp "$(lowercase_comp)" \
 	              --allow-different-compiler "$(ALLOW_DIFFERENT_COMP)" \
 	              --use-omp "$(USE_OMP)" \
@@ -141,7 +143,7 @@ $(objEXETempDir)/%.o: %.f90
 $(objEXETempDir)/%.o: %.F90
 	@echo Compiling $*.F90 ...
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
-	$(SILENT) $(F90CACHE) $(F90) $(F90FLAGS) -DBL_LANG_FORT $(CPPFLAGS) $(fincludes) -c $< $(FORT_EXE_OUTPUT_OPTION)
+	$(SILENT) $(F90CACHE) $(F90) $(F90FLAGS) $(CPP_PREFIX)-DBL_LANG_FORT $(FINAL_CPPFLAGS) $(fincludes) -c $< $(FORT_EXE_OUTPUT_OPTION)
 
 #
 # Rules for dependencies in bare object files.
@@ -235,7 +237,7 @@ $(tmpEXETempDir)/%.f90.orig: %.f90
 
 $(tmpEXETempDir)/%.F90.orig: %.F90
 	@if [ ! -d $(tmpEXETempDir) ]; then mkdir -p $(tmpEXETempDir); fi
-	$(SILENT) $(F90) $(F90FLAGS) -DBL_LANG_FORT $(CPPFLAGS) $(fincludes) -fsyntax-only -fdump-fortran-original $< > $@
+	$(SILENT) $(F90) $(F90FLAGS) $(CPP_PREFIX)-DBL_LANG_FORT $(FINAL_CPPFLAGS) $(fincludes) -fsyntax-only -fdump-fortran-original $< > $@
 
 $(tmpEXETempDir)/%.f.orig: %.f
 	@if [ ! -d $(tmpEXETempDir) ]; then mkdir -p $(tmpEXETempDir); fi
@@ -243,13 +245,13 @@ $(tmpEXETempDir)/%.f.orig: %.f
 
 $(tmpEXETempDir)/%.F.orig: %.F
 	@if [ ! -d $(tmpEXETempDir) ]; then mkdir -p $(tmpEXETempDir); fi
-	$(SILENT) $(F90) $(FFLAGS) -DBL_LANG_FORT $(CPPFLAGS) $(fincludes) -fsyntax-only -fdump-fortran-original $< > $@
+	$(SILENT) $(F90) $(FFLAGS) $(CPP_PREFIX)-DBL_LANG_FORT $(FINAL_CPPFLAGS) $(fincludes) -fsyntax-only -fdump-fortran-original $< > $@
 
 # fix amrex::Real and amrex_real
 # & --> *
 $(tmpEXETempDir)/%-cppd.h: %.H
 	@if [ ! -d $(tmpEXETempDir) ]; then mkdir -p $(tmpEXETempDir); fi
-	$(SILENT) $(CC) $(CPPFLAGS) $(includes) -E -P -x c -std=c99 $< -o $@
+	$(SILENT) $(CC) $(FINAL_CPPFLAGS) $(includes) -E -P -x c -std=c99 $< -o $@
 	@$(SHELL) -ec 'sed -i -e '\''s/amrex::Real/$(amrex_real)/g'\'' $@ ; \
 	               sed -i -e '\''s/amrex_real/$(amrex_real)/g'\''  $@ ; \
 	               sed -i -e '\''/typedef\s*$(amrex_real)/d'\''    $@ ; \
@@ -315,13 +317,13 @@ print-%:
 .PHONY: help
 help:
 	@echo ""
-	@echo "The rule for compiling foo.cpp  is: \$$(CXX) \$$(CXXFLAGS) \$$(CPPFLAGS) \$$(includes) -c foo.o foo.cpp"
-	@echo "The rule for compiling foo.c    is: \$$(CC) \$$(CFLAGS) \$$(CPPFLAGS) \$$(includes) -c foo.o foo.c"
+	@echo "The rule for compiling foo.cpp  is: \$$(CXX) \$$(CXXFLAGS) \$$(FINAL_CPPFLAGS) \$$(includes) -c foo.o foo.cpp"
+	@echo "The rule for compiling foo.c    is: \$$(CC) \$$(CFLAGS) \$$(FINAL_CPPFLAGS) \$$(includes) -c foo.o foo.c"
 	@echo "The rule for compiling foo.f90  is: \$$(F90) \$$(F90FLAGS) \$$(fincludes) -c foo.o foo.f90"
-	@echo "The rule for compiling foo.F90  is: \$$(F90) \$$(F90FLAGS) \$$(CPPFLAGS) \$$(fincludes) -c foo.o foo.F90"
+	@echo "The rule for compiling foo.F90  is: \$$(F90) \$$(F90FLAGS) \$$(FINAL_CPPFLAGS) \$$(fincludes) -c foo.o foo.F90"
 	@echo "The rule for compiling foo.[fF] is: \$$(FC) \$$(FFLAGS) \$$(fincludes) -c foo.o foo.f"
 	@echo "    Note that .F files are preprocessed with cpp into .f files before being compiled."
-	@echo "The rule for linking            is: \$$(CXX) \$$(CXXFLAGS) \$$(CPPFLAGS) \$$(includes) \$$(LDFLAGS) -o \$$(executable) *.o \$$(libraries)"
+	@echo "The rule for linking            is: \$$(CXX) \$$(CXXFLAGS) \$$(FINAL_CPPFLAGS) \$$(includes) \$$(LDFLAGS) -o \$$(executable) *.o \$$(libraries)"
 	@echo ""
 	@echo "Here the variables are set to:"
 	@echo "    CXX        = $(CXX)"
@@ -329,7 +331,7 @@ help:
 	@echo "    FC         = $(FC)"
 	@echo "    F90        = $(F90)"
 	@echo "    CPPFLAGS   = $(CPPFLAGS)"
-	@echo "    CPPFLAGS   = $(CPPFLAGS)"
+	@echo "    FINAL_CPPFLAGS   = $(FINAL_CPPFLAGS)"
 	@echo "    CXXFLAGS   = $(CXXFLAGS)"
 	@echo "    CFLAGS     = $(CFLAGS)"
 	@echo "    includes   = $(includes)"
