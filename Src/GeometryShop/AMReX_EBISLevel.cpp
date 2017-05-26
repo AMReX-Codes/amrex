@@ -20,10 +20,45 @@
 #include "AMReX_PolyGeom.H"
 #include "AMReX_EBDataFactory.H"
 #include "AMReX_FaceIterator.H"
+#include "AMReX_FabArrayIO.H"
 
 
 namespace amrex
 {
+  void 
+  EBISLevel::
+  write(const string& a_filename) const
+  {
+    //this creates the directory of all the stuff
+    UtilCreateCleanDirectory(a_filename, true);
+    writeHeader(a_filename);
+    string graphdirname = a_filename + "_graph";
+    string  datadirname = a_filename + "_data";
+    UtilCreateCleanDirectory(graphdirname, true);
+    UtilCreateCleanDirectory( datadirname, true);
+  }
+
+
+  void 
+  EBISLevel::
+  writeHeader(const string& a_filename) const
+  {
+  }
+
+  void 
+  EBISLevel::
+  read(const string& a_filename)
+  {
+    
+
+  }
+
+  void 
+  EBISLevel::
+  readHeader(const string& a_filename)
+  {
+  }
+    
   void null_deleter_fab_ebg(FabArray<EBGraph>* a_ptr)
   {
   }

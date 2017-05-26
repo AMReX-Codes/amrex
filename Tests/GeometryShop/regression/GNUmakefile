@@ -43,6 +43,7 @@ include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 _progs  += ebnormalizeTest
 _progs  += levelRedistTest
 _progs  += dataArith
+_progs  += fabio
 
 include $(AMREX_HOME)/Src/Base/Make.package
 include $(AMREX_HOME)/Src/Boundary/Make.package
