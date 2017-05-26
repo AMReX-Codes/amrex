@@ -46,26 +46,25 @@ is often handled by the data abstraction classes (e.g., {\tt
 has provided {\tt namespace ParallelDesriptor}.  The frequently used
 functions are 
 \begin{lstlisting}[language=cpp]
-    int myproc = ParallelDescriptor::MyProc();  // Return the rank
-
-    int nprocs = ParallelDescriptor::NProcs();  // Return the number of processes
+ int myproc = ParallelDescriptor::MyProc();  // Return the rank
  
-    if (ParallelDescriptor::IOProcessor()) {
-
-        // Only the I/O process executes this
-    }
-
-    int ioproc = ParallelDescriptor::IOProcessorNumber();  // I/O rank
-
-    ParallelDescriptor::Barrier();
-
-    // Broadcast 100 ints from the I/O Processor
-    Array<int> a(100);
-    ParallelDescriptor::Bcast(a.data(), a.size(),
-                        ParallelDescriptor::IOProcessorNumber())
-
-    // See AMReX_ParallelDescriptor.H for many other Reduce functions 
-    ParallelDescriptor::ReduceRealSum(x);
+ int nprocs = ParallelDescriptor::NProcs();  // Return the number of processes
+ 
+ if (ParallelDescriptor::IOProcessor()) { 
+     // Only the I/O process executes this
+ }
+ 
+ int ioproc = ParallelDescriptor::IOProcessorNumber();  // I/O rank
+ 
+ ParallelDescriptor::Barrier();
+ 
+ // Broadcast 100 ints from the I/O Processor
+ Array<int> a(100);
+ ParallelDescriptor::Bcast(a.data(), a.size(),
+                     ParallelDescriptor::IOProcessorNumber())
+ 
+ // See AMReX_ParallelDescriptor.H for many other Reduce functions 
+ ParallelDescriptor::ReduceRealSum(x);
 \end{lstlisting}
 
 \section{Print}
@@ -76,17 +75,17 @@ any \cpp\ {\tt ostream}.  The main reason one should use them instead
 of {\tt std::cout} is that messages from multiple processes or
 threads do not get mixed up.  Below are some examples.
 \begin{lstlisting}[language=cpp]
-    Print() <<  "x = " << x << "\n"; // Print on I/O processor
-
-    Real pi = std::atan(1.0)*4.0;
-    // Print on rank 3 with precision of 17 digits
-    Print(3).SetPrecision(17) << pi << "\n";
-
-    AllPrint() << "Every process prints\n";  // Print on every process
-
-    std::ofstream ofs("my.txt", std::ofstream::out);
-    Print(ofs) << "Print to a file" << std::endl;
-    ofs.close();
+ Print() <<  "x = " << x << "\n"; // Print on I/O processor
+ 
+ Real pi = std::atan(1.0)*4.0;
+ // Print on rank 3 with precision of 17 digits
+ Print(3).SetPrecision(17) << pi << "\n";
+ 
+ AllPrint() << "Every process prints\n";  // Print on every process
+ 
+ std::ofstream ofs("my.txt", std::ofstream::out);
+ Print(ofs) << "Print to a file" << std::endl;
+ ofs.close();
 \end{lstlisting}
 
 \section{ParmParse}
@@ -112,32 +111,32 @@ hydro.cfl = 0.8               # with prefix, hydro
 \end{verbatim}
 The following code shows how to use {\tt ParmParse} to get the values.
 \begin{lstlisting}[language=cpp]
-    ParmParse pp;
-    
-    int nsteps = 0;
-    pp.query("nsteps", nsteps);
-    amrex::Print() << nsteps << "\n";  // 1000
-
-    Real dt;
-    pp.get("dt", dt);  // runtime error if dt is not in inputs
-
-    Array<int> numcells;
-    // A different name say 'numcells' can be used
-    pp.getarr("ncells", numcells);
-    amrex::Print() << numcells.size() << "\n";  // 3
-
-    Array<Real> xr {-1.0, 1.0};
-    if (!queryarr("xrange", xr)) {
-        amrex::Print() << "Cannot find xrange in inputs, "
-                       << "so the default {-1.0,1.0} will be used\n";
-    }
-
-    std::string title;
-    query("title", title);  // query string
-
-    ParmParse pph("hydro");  // with prefix 'hydro'
-    Real cfl;
-    pph.get("cfl", cfl);    // get parameter with prefix
+ ParmParse pp;
+ 
+ int nsteps = 0;
+ pp.query("nsteps", nsteps);
+ amrex::Print() << nsteps << "\n";  // 1000
+ 
+ Real dt;
+ pp.get("dt", dt);  // runtime error if dt is not in inputs
+ 
+ Array<int> numcells;
+ // A different name say 'numcells' can be used
+ pp.getarr("ncells", numcells);
+ amrex::Print() << numcells.size() << "\n";  // 3
+ 
+ Array<Real> xr {-1.0, 1.0};
+ if (!queryarr("xrange", xr)) {
+     amrex::Print() << "Cannot find xrange in inputs, "
+                    << "so the default {-1.0,1.0} will be used\n";
+ }
+ 
+ std::string title;
+ query("title", title);  // query string
+ 
+ ParmParse pph("hydro");  // with prefix 'hydro'
+ Real cfl;
+ pph.get("cfl", cfl);    // get parameter with prefix
 \end{lstlisting}
 Note that when there are multiple definitions for a parameter {\tt
   ParamParse} by default returns the last one.  The difference between
@@ -161,7 +160,8 @@ into a union of rectangular domains.  {\tt Box} is the data
 structure for representing such rectangular domains in indexing space.
 {\tt Box} is a dimension dependent class.  It has lower and upper
 corners (represented by {\tt IntVect} and an index type
-(represented by {\tt IndexType}).
+(represented by {\tt IndexType}).  There are no floating-point data in
+the object.
 
 \subsection{IntVect}
 
@@ -169,33 +169,224 @@ corners (represented by {\tt IntVect} and an index type
 integer vector in {\idxamrex{AMREX\_SPACEDIM}}-dimensional space.  An
 {\tt IntVect} can be constructed as follows,
 \begin{lstlisting}[language=cpp]
-    IntVect iv(AMREX_D_DECL(19, 0, 5));
+ IntVect iv(AMREX_D_DECL(19, 0, 5));
 \end{lstlisting}
-Here {\tt D\_DECL} is a macro that expands {\tt D\_DECL(19,0,5)} to
-either {\tt 19} or {\tt 19,0} or {\tt 19,0,5} depending on the number
-of dimensions.  The class has a static function {\tt
-  IntVect::TheZeroVector()} returning the zero vector, {\tt
-  IntVect::TheUnitVector()} returning the unit vector, and {\tt
-  TheDimensionVector(int dir)} returning a reference to a constant
-{\tt IntVect} that is zero except in the {\tt dir}-direction.  {\tt
-  IntVect} has a number of relational operators, {\tt ==}, {\tt !=},
-{\tt <}, {\tt <=}, {\tt >}, and {\tt >=} that can be used for
-lexicographical comparison.  It also has various arithmetic operators.
-For example,
+Here {\tt AMREX\_D\_DECL} is a macro that expands {\tt
+  AMREX\_D\_DECL(19,0,5)} to either {\tt 19} or {\tt 19,0} or {\tt
+  19,0,5} depending on the number of dimensions.  The data can be
+accessed via {\tt operator[]}, and the internal data pointer can be
+returned by function {\tt getVect}.  For example
 \begin{lstlisting}[language=cpp]
-    IntVect iv(AMREX_D_DECL(19, 0, 5));
+ for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+     amrex::Print() << "iv[" << idim << "] = " << iv[idim] << "\n";
+ }
+ const int * p = iv.getVect();  // This can be passed to Fortran/C as an array
 \end{lstlisting}
 
+The class has a static function {\tt TheZeroVector()} returning the
+zero vector, {\tt TheUnitVector()} returning the unit vector, and {\tt
+  TheDimensionVector (int dir)} returning a reference to a constant
+{\tt IntVect} that is zero except in the {\tt dir}-direction.  Note
+the direction is zero-based.  {\tt IntVect} has a number of relational
+operators, {\tt ==}, {\tt !=}, {\tt <}, {\tt <=}, {\tt >}, and {\tt
+  >=} that can be used for lexicographical comparison (e.g., key of
+{\tt std::map}), and a class {\tt IntVect::shift\_hasher} that can be
+used as a hash function (e.g., for {\tt std::unordered\_map}).  It
+also has various arithmetic operators.  For example,
+\begin{lstlisting}[language=cpp]
+ IntVect iv(AMREX_D_DECL(19, 0, 5));
+ IntVect iv2((AMREX_D_DECL(4, 8, 0));
+ iv += iv2;  // iv is now (23,8,5)
+ iv *= 2;    // iv is now (46,16,10);
+\end{lstlisting}
+
+In AMR codes, one often needs to do refinement and coarsening on {\tt
+  IntVect}.  The refinement operation can be done with the
+multiplication operation.  However, the coarsening requires care
+because of the rounding towards zero behavior of integer division in
+Fortran, C and C++.  For example {\tt int i = -1/2} gives {\tt i =
+  0}, and what we want is usually {\tt i = -1}.  Thus, one should use
+the {\tt coarsen} functions:
+\begin{lstlisting}[language=cpp]
+  IntVect iv(AMREX_D_DECL(127,127,127));
+  IntVect coarsening_ratio(AMREX_D_DECL(2,2,2));
+  iv.coarsen(2);                 // Coarsen each component by 2
+  iv.coarsen(coarsening_ratio);  // Component-wise coarsening
+  const auto& iv2 = amrex::coarsen(iv, 2); // Return an IntVect w/o modifying iv
+  IntVect iv3 = amrex::coarsen(iv, coarsening_return); // iv not modified
+\end{lstlisting}
+
+Finally, we note that {\tt operator<<} is overloaded for {\tt
+  IntVect} and therefore one can call
+\begin{lstlisting}[language=cpp]
+  amrex::Print() << iv << "\n";
+  std::cout << iv << "\n";
+\end{lstlisting}
 
 \subsection{IndexType}
 
+This class defines an index as being cell based or node based in
+each dimension.  The default constructor defines a cell based type in
+all directions.  One can also construct an {\tt IndexType} with an
+{\tt IntVect} with zero and one representing cell and node,
+respectively.
+\begin{lstlisting}[language=cpp]
+ // Node in x-direction and cell based in y and z-directions
+ // (i.e., x-face of numerical cells)
+ IndexType xface(IntVect{AMREX_D_DECL(1,0,0)});
+\end{lstlisting}
+The class provides various functions including
+\begin{lstlisting}[language=cpp]
+ // True if the IndexType is cell based in all directions.
+ bool cellCentered () const;
+
+ // True if the IndexType is cell based in dir-direction.
+ bool cellCentered (int dir) const;
+
+ // True if the IndexType is node based in all directions.
+ bool nodeCentered () const;
+
+ // True if the IndexType is node based in dir-direction.
+ bool nodeCentered (int dir) const;
+\end{lstlisting}
+
+Index type is a very important concept in \amrex.  It is a way of
+representing the notion of indices $i$ and $i+1/2$.  
+
 \subsection{Box}
 
-% a bit on coarsening
+A {\tt Box} is an abstraction for defining discrete regions of {\tt
+  AMREX\_SPACEDIM}-dimensional indexing space.  {\tt Box}es have an
+{\tt IndexType} and two {\tt IntVect}s representing the lower and
+upper corners.  Boxes can exist in positive and negative indexing
+space.   Typical ways of defining a {\tt Box} are
+\begin{lstlisting}[language=cpp]
+ IntVect lo(AMREX_D_DECL(64,64,64));
+ IntVect hi(AMREX_D_DECL(127,127,127));
+ IndexType typ({AMREX_D_DECL(1,1,1)});
+ Box cc(lo,hi);        // By default, Box is cell based.
+ Box nd(lo,hi+1,typ);  // Construct a nodal Box.
+ Print() << "A cell-centered Box " << cc << "\n";
+ Print() << "An all nodal Box    " << nd << "\n";
+\end{lstlisting}
+Depending the dimensionality, the output of the code above is
+\begin{verbatim}
+  A cell-centered Box ((64,64,64) (127,127,127) (0,0,0))
+  An all nodal Box    ((64,64,64) (128,128,128) (1,1,1))
+\end{verbatim}
+For simplicity, we will assume it is 3D for the rest of this section.
+In the output, three integer tuples for each box are the lower corner
+indices, upper corner indices, and the index types.  Note that {\tt 0}
+and {\tt 1} denote cell and node, respecitively.  For each tuple like
+{\tt (64,64,64)}, the 3 numbers are for 3 directions.  The two {\tt
+  Box}es in the code above represent different indexing views of the
+same domain of $64^3$ cells.  Note that in \amrex\ convention, the
+lower side of a cell has the same integer value as the cell centered
+index.  That is if we consider a cell based index represent $i$, the
+nodal index with the same integer value represents $i-1/2$.  
+
+There are a number of ways of converting a {\tt Box} from one type to
+another.
+\begin{lstlisting}[language=cpp]
+  Box b0 ({64,64,64}, {127,127}); // Index type: (cell, cell, cell)
+
+  Box b1 = surroundingNodes(b0);  // A new Box with type (node, node, node)
+  Print() << b1;                  // ((64,64,64) (128,128,128) (1,1,1))
+  Print() << b0;                  // Still ((64,64,64) (127,127,127) (0,0,0))
+
+  Box b2 = enclosedCells(b1);     // A new Box with type (node, node, node)
+  if (b2 == b0) {                 // Yes, they are identical.
+     Print() << "b0 and b2 are identical!\n";
+  }
+
+  Box b3 = convert(b0, {0,1,0});  // A new Box with type (cell, node, cell)
+  Print() << b3;                  // ((64,64,64) (127,128,127) (0,1,0))
+
+  b3.convert({0,0,1});            // Convert b0 to type (cell, cell, node)
+  Print() << b3;                  // ((64,64,64) (127,127,128) (0,0,1))
+
+  b3.surroundingNodes();          //  Exercise for you
+  b3.enclosedCells();             //  Exercise for you
+\end{lstlisting}
+
+The internal data of {\tt Box} can be accessed via various member functions.
+Examples are
+\begin{lstlisting}[language=cpp]
+  const IntVect& smallEnd () const&;  // Get the small end of the Box
+  int bigEnd (int dir) const;         // Get the big end in dir direction
+  const int* loVect () const&;        // Get a const pointer to the lower end
+  const int* hiVect () const&;        // Get a const pointer to the upper end
+\end{lstlisting}
+
+{\tt Box}es can be refined and coarsened.  Refinement or coarsening
+does not change the index type.  Some examples are shown below.
+\begin{lstlisting}[language=cpp]
+  Box ccbx ({16,16,16}, {31,31,31});
+  ccbx.refine(2);
+  Print() << ccbx;                   // ((32,32,32) (63,63,63) (0,0,0))
+  Print() << ccbx.coarsen(2);        // ((16,16,16) (31,31,31) (0,0,0))
+
+  Box ndbx ({16,16,16}, {32,32,32}, {1,1,1});
+  ndbx.refine(2);
+  Print() << ndbx;                   // ((32,32,32) (64,64,64) (1,1,1))
+  Print() << ndbx.coarsen(2);        // ((16,16,16) (32,32,32) (1,1,1))
+
+  Box facebx ({16,16,16}, {32,31,31}, {1,0,0});
+  facebx.refine(2);
+  Print() << facebx;                 // ((32,32,32) (64,63,63) (1,0,0))
+  Print() << facebx.coarsen(2);      // ((16,16,16) (32,31,31) (1,0,0))
+
+  Box uncoarsenable ({16,16,16}, {30,30,30});
+  print() << uncoarsenable.coarsen(2); // ({8,8,8}, {15,15,15});
+  print() << uncoarsenable.refine(2);  // ({16,16,16}, {31,31,31});
+                                       // Different from the original!
+\end{lstlisting}
+Note that refinement and coarsening behaviors depend on the indexing
+type.  One should think the refinement and coarsening in AMR context
+that refined or coarsened {\tt Box} still covers the same physical
+domain.  {\tt Box uncoarsenable} in the example above is considered
+uncoarsenable because its coarsened version does not cover the same
+physical domain in the AMR context.
+
+{\tt Box}es can grow and they can grow in all directions or just one
+direction.  There are a number of {\tt grow} functions.  Some are
+member functions of the {\tt Box} class and others are non-member
+functions in the {\tt amrex} namespace. 
+
+{\tt Box} class provides the following member functions testing if a {\tt
+  Box} or {\tt IntVect} is contained within this {\tt Box}.  Note that
+it is a runtime error if the two {\tt Box}es have different types.
+\begin{lstlisting}[language=cpp]
+  bool contains (const Box& b) const;
+  bool strictly_contains (const Box& b) const;
+  bool contains (const IntVect& p) const;
+  bool strictly_contains (const IntVect& p) const;
+\end{lstlisting}
+
+A common operation is the intersection of two {\tt Box}es like in the
+following examples.
+\begin{lstlisting}[language=cpp]
+  Box b0 ({16,16,16}, {31,31,31});
+  Box b1 ({ 0, 0,30}, {23,23,63});
+  if (b0.intersects(b1)) {                  // true
+      Print() << "b0 and b1 intersect.\n"; 
+  }
+
+  Box b2 = b0 & b1;     // b0 and b1 unchanged
+  Print() << b2;        // ((16,16,30) (23,23,31) (0,0,0))
+
+  Box b3 = surroundingNodes(b0) & surroundingNodes(b1); // b0 and b1 unchanged
+  Print() << b3;        // ((16,16,30) (24,24,32) (1,1,1))
+
+  b0 &= b2;             // b2 unchanged
+  Print() << b0;        // ((16,16,30) (23,23,31) (0,0,0))
+
+  b0 &= b3;             // Runtime error because of type mismatch!
+\end{lstlisting}
 
 \section{Geometry}
 
-% how do we set it up?
+how do we set it up?
 
 \section{BaseFab, FArrayBox and IArrayBox}
 % make alias
@@ -215,6 +406,8 @@ For example,
 \section{Calling Fortan or C}
 
 \section{Physical Boundary}
+
+\section{I/O}
 
 \section{Memory Allocation}
 
