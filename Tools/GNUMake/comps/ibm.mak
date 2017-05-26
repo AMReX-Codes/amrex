@@ -70,6 +70,7 @@ F90FLAGS += $(GENERIC_COMP_FLAGS)
 
 CPP_PREFIX = -WF,
 
-override XTRALIBS += -L $(OLCF_XLF_ROOT)/lib -lxlf90 -lm  -lxlfmath
+#override XTRALIBS += 
+override XTRALIBS = $(shell mpifort -showme:link) -L $(OLCF_XLF_ROOT)/lib -lxlf90_r -lm  -lxlfmath
 
 FORTLINK := LOWERCASE
