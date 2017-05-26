@@ -291,6 +291,7 @@ PML::Exchange (MultiFab& pml, MultiFab& reg)
 {
     const Array<int>& ridx = m_cfinfo.fine_grid_idx;
     const int ngr = reg.nGrow();
+    const int ngp = pml.nGrow();
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -301,14 +302,15 @@ PML::Exchange (MultiFab& pml, MultiFab& reg)
         FArrayBox& rfab = reg[ridx[mfi.LocalIndex()]];
         const Box& pbx = pfab.box();
         const Box& rbx = rfab.box();
-        const Box& vbx = amrex::grow(rbx, -ngr);
-        const BoxList& bl = amrex::boxDiff(pbx & rbx, vbx);
+        const Box& vrbx = amrex::grow(rbx, -ngr);
+        const Box& vpbx = amrex::grow(pbx, -ngp);
+        const BoxList& bl = amrex::boxDiff(vpbx & rbx, vrbx);
         for (const Box& bx: bl)
         {
             rfab.linComb(pfab, bx, 0, pfab, bx, 1, 1.0, 1.0, bx, 0, 1);
         }
 
-        const Box& bx = pbx & vbx;
+        const Box& bx = pbx & vrbx;
         if (bx.ok()) {
             pfab.copy(rfab, bx, 0, bx, 0, 1);
             pfab.setVal(0.0, bx, 1, 1);

@@ -27,6 +27,8 @@ WarpX::UpdateAuxiliaryData ()
                                { Bfield_cp[lev][0].get(),
                                  Bfield_cp[lev][1].get(),
                                  Bfield_cp[lev][2].get() });
+
+            pml[lev]->FillBoundary();
         }
     }
 
@@ -55,7 +57,6 @@ WarpX::UpdateAuxiliaryData ()
             dBx.copy(*Bfield_aux[lev-1][0], 0, 0, 1, 0, ng, crse_period);
             dBy.copy(*Bfield_aux[lev-1][1], 0, 0, 1, 0, ng, crse_period);
             dBz.copy(*Bfield_aux[lev-1][2], 0, 0, 1, 0, ng, crse_period);
-            // xxxxx PML stuff?
             Bfield_cp[lev][0]->FillBoundary(crse_period);
             Bfield_cp[lev][1]->FillBoundary(crse_period);
             Bfield_cp[lev][2]->FillBoundary(crse_period);
@@ -112,7 +113,6 @@ WarpX::UpdateAuxiliaryData ()
             dEx.copy(*Efield_aux[lev-1][0], 0, 0, 1, 0, ng, crse_period);
             dEy.copy(*Efield_aux[lev-1][1], 0, 0, 1, 0, ng, crse_period);
             dEz.copy(*Efield_aux[lev-1][2], 0, 0, 1, 0, ng, crse_period);
-            // xxxxx PML stuff?
             Efield_cp[lev][0]->FillBoundary(crse_period);
             Efield_cp[lev][1]->FillBoundary(crse_period);
             Efield_cp[lev][2]->FillBoundary(crse_period);
