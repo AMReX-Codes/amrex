@@ -4,10 +4,9 @@
 #include <AMReX_ParmParse.H>
 #include <AMReX_Geometry.H>
 #include <AMReX_MultiFab.H>
-#include <AMReX_VisMF.H>
 #include <AMReX_Print.H>
+#include <AMReX_PlotFileUtil.H>
 
-#include "writePlotFile.H"
 #include "myfunc_F.H"
 
 // This tutorial demonstrates how to use CVODE to integrate a single ODE per
@@ -142,8 +141,12 @@ int main (int argc, char* argv[])
 
     if (write_plotfile)
     {
-      const std::string& pltfile = "PLT_OUTPUT";
-      writePlotFile(pltfile, mf, geom, time);
+      amrex::WriteSingleLevelPlotfile("PLT_OUTPUT",
+                                      mf,
+                                      {"y1"},
+                                      geom,
+                                      time,
+                                      0);
     }
 
     // Call the timer again and compute the maximum difference between the start time and stop time
