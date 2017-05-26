@@ -4,11 +4,21 @@
 #include <AMReX_ParmParse.H>
 #include <AMReX_Geometry.H>
 #include <AMReX_MultiFab.H>
-#include <AMReX_VisMF.H>
 #include <AMReX_Print.H>
+#include <AMReX_PlotFileUtil.H>
 
-#include "writePlotFile.H"
 #include "myfunc_F.H"
+
+// This tutorial demonstrates how to use CVODE to integrate a system of 3
+// coupled ODEs per cell. It repeats the ODE integration twice, once with the
+// analytic Jacobian matrix defined by the user, and again with no Jacobian
+// matrix; in the latter case, CVODE constructs the Jacobian (assuming Newton
+// iteration is used) by numerical differentiation. The latter case should be
+// slower than the former, due to the additional computational expense of
+// building and rebuilding the Jacobian during the iteration.
+//
+// The system of equations is taken from the fcvRoberts_dns.f example code in
+// CVODE.
 
 using namespace amrex;
 
@@ -16,8 +26,8 @@ int main (int argc, char* argv[])
 {
     amrex::Initialize(argc,argv);
 
-    // What time is it now?  We'll use this to compute total run time.
-    Real strt_time = ParallelDescriptor::second();
+    Real strt_time, stop_time;
+    const int IOProc = ParallelDescriptor::IOProcessorNumber();
 
     std::cout << std::setprecision(15);
 
@@ -111,7 +121,7 @@ int main (int argc, char* argv[])
     }
 
     // Ncomp = number of components for each array
-    int Ncomp  = 1;
+    int Ncomp  = 3;
 
     // time = starting time in the simulation
     Real time = 0.0;
@@ -121,6 +131,8 @@ int main (int argc, char* argv[])
     // Create MultiFab with no ghost cells.
     MultiFab mf(ba, dm, Ncomp, 0);
 
+    amrex::Print() << "Solving ODEs without a user-supplied Jacobian ..." << std::endl;
+    strt_time = ParallelDescriptor::second();
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -128,27 +140,58 @@ int main (int argc, char* argv[])
     {
       const Box& tbx = mfi.tilebox();
 
-      integrate_ode(mf[mfi].dataPtr(),
+      integrate_ode_no_jac(mf[mfi].dataPtr(),
         tbx.loVect(),
         tbx.hiVect(),
+        &Ncomp,
         &cvode_meth,
         &cvode_itmeth);
     }
+    stop_time = ParallelDescriptor::second();
+    ParallelDescriptor::ReduceRealMax(stop_time,IOProc);
+    // Tell the I/O Processor to write out the "run time"
+    amrex::Print() << "Time = " << stop_time - strt_time << std::endl;
 
     if (write_plotfile)
     {
-      const std::string& pltfile = "PLT_OUTPUT";
-      writePlotFile(pltfile, mf, geom, time);
+      amrex::WriteSingleLevelPlotfile("PLT_OUTPUT_NO_JAC",
+                                      mf,
+                                      {"y1", "y2", "y3"},
+                                      geom,
+                                      time,
+                                      0);
     }
 
-    // Call the timer again and compute the maximum difference between the start time and stop time
-    //   over all processors
-    Real stop_time = ParallelDescriptor::second() - strt_time;
-    const int IOProc = ParallelDescriptor::IOProcessorNumber();
-    ParallelDescriptor::ReduceRealMax(stop_time,IOProc);
+    amrex::Print() << "Solving ODEs with a user-supplied Jacobian ..." << std::endl;
+    strt_time = ParallelDescriptor::second();
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for ( MFIter mfi(mf, do_tiling); mfi.isValid(); ++mfi )
+    {
+      const Box& tbx = mfi.tilebox();
 
+      integrate_ode_with_jac(mf[mfi].dataPtr(),
+        tbx.loVect(),
+        tbx.hiVect(),
+        &Ncomp,
+        &cvode_meth,
+        &cvode_itmeth);
+    }
+    stop_time = ParallelDescriptor::second();
+    ParallelDescriptor::ReduceRealMax(stop_time,IOProc);
     // Tell the I/O Processor to write out the "run time"
-    amrex::Print() << "Run time = " << stop_time << std::endl;
+    amrex::Print() << "Time = " << stop_time - strt_time << std::endl;
+
+    if (write_plotfile)
+    {
+      amrex::WriteSingleLevelPlotfile("PLT_OUTPUT_WITH_JAC",
+                                      mf,
+                                      {"y1", "y2", "y3"},
+                                      geom,
+                                      time,
+                                      0);
+    }
 
     amrex::Finalize();
     return 0;
