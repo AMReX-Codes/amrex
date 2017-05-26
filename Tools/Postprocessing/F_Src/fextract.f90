@@ -413,7 +413,7 @@ program fextract3d
   endif
 
 
- 998 format("# 1-d slice in ", a1 "-direction, file: ", a)
+ 998 format("# 1-d slice in ", a1, "-direction, file: ", a)
  999 format("# time = ", g24.12)
 1000 format("#",100(a24,1x))
 1001 format(1x, 100(g24.12,1x))
