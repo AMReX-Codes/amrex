@@ -5,7 +5,7 @@
     implicit none
     private
     
-    public  particle_t, ghost_t
+    public  particle_t, neighbor_t
     
     type, bind(C)  :: particle_t
        real(amrex_real) :: pos(2)     !< Position
@@ -15,11 +15,11 @@
        integer(c_int)   :: cpu        !< Particle cpu
     end type particle_t
     
-    type, bind(C)  :: ghost_t
+    type, bind(C)  :: neighbor_t
        real(amrex_real) :: pos(2)     !< Position
        real(amrex_real) :: vel(2)     !< Particle velocity
        real(amrex_real) :: acc(2)     !< Particle velocity
-    end type ghost_t
+    end type neighbor_t
     
   end module short_range_particle_module
   
@@ -73,16 +73,16 @@
 
   end subroutine amrex_move_particles
 
-  subroutine amrex_compute_forces(particles, np, ghosts, ng) &
+  subroutine amrex_compute_forces(particles, np, neighbors, nn) &
        bind(c,name='amrex_compute_forces')
 
     use iso_c_binding
     use amrex_fort_module,           only : amrex_real
-    use short_range_particle_module, only : particle_t, ghost_t
+    use short_range_particle_module, only : particle_t, neighbor_t
         
-    integer,          intent(in   ) :: np, ng
+    integer,          intent(in   ) :: np, nn
     type(particle_t), intent(inout) :: particles(np)
-    type(ghost_t),    intent(in   ) :: ghosts(ng)
+    type(neighbor_t), intent(in   ) :: neighbors(nn)
 
     real(amrex_real) dx, dy, r2, r, coef
     real(amrex_real) cutoff, min_r, mass
@@ -122,10 +122,10 @@
 
        end do
 
-       do j = 1, ng
+       do j = 1, nn
 
-          dx = particles(i)%pos(1) - ghosts(j)%pos(1)
-          dy = particles(i)%pos(2) - ghosts(j)%pos(2)
+          dx = particles(i)%pos(1) - neighbors(j)%pos(1)
+          dy = particles(i)%pos(2) - neighbors(j)%pos(2)
 
           r2 = dx * dx + dy * dy
 
