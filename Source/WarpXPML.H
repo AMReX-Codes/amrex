@@ -99,6 +99,11 @@ public:
     const SigmaBoxArray& GetSigmaBoxArray_cp () const 
         { return *sigba_cp; }
 
+    void Exchange (const std::array<amrex::MultiFab*,3>& E_fp,
+                   const std::array<amrex::MultiFab*,3>& B_fp,
+                   const std::array<amrex::MultiFab*,3>& E_cp,
+                   const std::array<amrex::MultiFab*,3>& B_cp);
+
 private:
     amrex::MultiFab m_mf;
     const amrex::FabArrayBase::CFinfo& m_cfinfo;
@@ -113,34 +118,8 @@ private:
 
     std::unique_ptr<SigmaBoxArray> sigba_fp;
     std::unique_ptr<SigmaBoxArray> sigba_cp;
+
+    void Exchange (amrex::MultiFab& pml, amrex::MultiFab& reg);
 };
-
-
-#if 0
-    //
-    std::array<PMLSigma,BL_SPACEDIM> pml_sigma, pml_sigma_star; // sigma/epsilon, sigma_star/mu
-    std::array<PMLSigma,BL_SPACEDIM> pml_sigma_fac1, pml_sigma_fac2, 
-                                     pml_sigma_star_fac1, pml_sigma_star_fac2;
-
-    int pml_ncell = 10;
-
-    struct PMLSigma : amrex::Array<amrex::Real>
-    {
-        int lo() const { return m_lo; }
-        int hi() const { return m_hi; }
-        int m_lo, m_hi;
-    };
-
-
-    const amrex::Array<amrex::Real>& getPMLSigma(int dir) {return pml_sigma[dir];};
-    const amrex::Array<amrex::Real>& getPMLSigmaStar(int dir) {return pml_sigma_star[dir];};
-    void ComputePMLFactors (int lev, amrex::Real dt);
-    void ComputePMLFactorsE (int lev, amrex::Real dt);
-    void ComputePMLFactorsB (int lev, amrex::Real dt);
-    void ExchangeWithPML (amrex::MultiFab& regmf, amrex::MultiFab& pmlmf,
-                          const amrex::Geometry& gm);
-
-    void InitPML ();
-#endif
 
 #endif

@@ -3,6 +3,8 @@
 #include <WarpX.H>
 #include <WarpXConst.H>
 
+#include <AMReX_Print.H>
+
 #include <algorithm>
 
 #include <omp.h>
@@ -261,132 +263,55 @@ PML::GetB_cp ()
     return {pml_B_cp[0].get(), pml_B_cp[1].get(), pml_B_cp[2].get()};
 }
 
-
-#if 0
-
 void
-WarpX::ComputePMLFactorsE (int lev, Real dt)
+PML::Exchange (const std::array<amrex::MultiFab*,3>& E_fp,
+               const std::array<amrex::MultiFab*,3>& B_fp,
+               const std::array<amrex::MultiFab*,3>& E_cp,
+               const std::array<amrex::MultiFab*,3>& B_cp)
 {
-    const Real* dx = Geom(lev).CellSize();
-
-    const std::array<Real,BL_SPACEDIM> dtsdx {D_DECL(dt/dx[0], dt/dx[1], dt/dx[2])};
-
-    const Real c2 = PhysConst::c*PhysConst::c;
-    const std::array<Real,BL_SPACEDIM> dtsdx_c2 {D_DECL(dtsdx[0]*c2, dtsdx[1]*c2, dtsdx[2]*c2)};
-
-    for (int idim = 0; idim < BL_SPACEDIM; ++idim)
+    Exchange(*pml_E_fp[0], *E_fp[0]);
+    Exchange(*pml_E_fp[1], *E_fp[1]);
+    Exchange(*pml_E_fp[2], *E_fp[2]);
+    Exchange(*pml_B_fp[0], *B_fp[0]);
+    Exchange(*pml_B_fp[1], *B_fp[1]);
+    Exchange(*pml_B_fp[2], *B_fp[2]);
+    if (E_cp[0])
     {
-        pml_sigma_fac1[idim].assign(pml_sigma[idim].size(), 1.0);
-        pml_sigma_fac2[idim].assign(pml_sigma[idim].size(), dtsdx_c2[idim]);
-        pml_sigma_fac1[idim].m_lo = pml_sigma[idim].m_lo;
-        pml_sigma_fac1[idim].m_hi = pml_sigma[idim].m_hi;
-        pml_sigma_fac2[idim].m_lo = pml_sigma[idim].m_lo;
-        pml_sigma_fac2[idim].m_hi = pml_sigma[idim].m_hi;
-
-        if (!Geometry::isPeriodic(idim))
-        {
-            for (int i = 0; i < pml_ncell; ++i)
-            {
-                pml_sigma_fac1[idim][i] = std::exp(-pml_sigma[idim][i]*dt);
-                pml_sigma_fac2[idim][i] = (1.0-pml_sigma_fac1[idim][i])
-                    / (pml_sigma[idim][i]*dt) * dtsdx_c2[idim];
-            }
-
-            for (int iiii = 0; iiii < pml_ncell; ++iiii)
-            {
-                int i = (iiii - pml_ncell) + static_cast<int>(pml_sigma_fac1[idim].size());
-                pml_sigma_fac1[idim][i] = std::exp(-pml_sigma[idim][i]*dt);
-                pml_sigma_fac2[idim][i] = (1.0-pml_sigma_fac1[idim][i])
-                    / (pml_sigma[idim][i]*dt) * dtsdx_c2[idim];
-            }
-        }
+        Exchange(*pml_E_fp[0], *E_fp[0]);
+        Exchange(*pml_E_fp[1], *E_fp[1]);
+        Exchange(*pml_E_fp[2], *E_fp[2]);
+        Exchange(*pml_B_fp[0], *B_fp[0]);
+        Exchange(*pml_B_fp[1], *B_fp[1]);
+        Exchange(*pml_B_fp[2], *B_fp[2]);
     }
 }
 
 void
-WarpX::ComputePMLFactorsB (int lev, Real dt)
+PML::Exchange (MultiFab& pml, MultiFab& reg)
 {
-    const Real* dx = Geom(lev).CellSize();
+    const Array<int>& ridx = m_cfinfo.fine_grid_idx;
+    const int ngr = reg.nGrow();
 
-    const std::array<Real,BL_SPACEDIM> dtsdx {D_DECL(dt/dx[0], dt/dx[1], dt/dx[2])};
-
-    for (int idim = 0; idim < BL_SPACEDIM; ++idim)
-    {
-        pml_sigma_star_fac1[idim].assign(pml_sigma_star[idim].size(), 1.0);
-        pml_sigma_star_fac2[idim].assign(pml_sigma_star[idim].size(), dtsdx[idim]);
-        pml_sigma_star_fac1[idim].m_lo = pml_sigma_star[idim].m_lo;
-        pml_sigma_star_fac1[idim].m_hi = pml_sigma_star[idim].m_hi;
-        pml_sigma_star_fac2[idim].m_lo = pml_sigma_star[idim].m_lo;
-        pml_sigma_star_fac2[idim].m_hi = pml_sigma_star[idim].m_hi;
-        
-        if (!Geometry::isPeriodic(idim))
-        {
-            for (int i = 0; i < pml_ncell; ++i)
-            {
-                pml_sigma_star_fac1[idim][i] = std::exp(-pml_sigma_star[idim][i]*dt);
-                pml_sigma_star_fac2[idim][i] = (1.0-pml_sigma_star_fac1[idim][i])
-                    / (pml_sigma_star[idim][i]*dt) * dtsdx[idim];
-            }
-
-            for (int iiii = 0; iiii < pml_ncell; ++iiii)
-            {
-                int i = (iiii - pml_ncell) + static_cast<int>(pml_sigma_star_fac1[idim].size());
-
-                pml_sigma_star_fac1[idim][i] = std::exp(-pml_sigma_star[idim][i]*dt);
-                pml_sigma_star_fac2[idim][i] = (1.0-pml_sigma_star_fac1[idim][i])
-                    / (pml_sigma_star[idim][i]*dt) * dtsdx[idim];
-            }
-        }
-    }
-}
-
-void
-WarpX::ExchangeWithPML (MultiFab& regmf, MultiFab& pmlmf, const Geometry& gm)
-{
-    if (!do_pml) return;
-
-    // Copy from PML to regular data
-
-    MultiFab totpmlmf(pmlmf.boxArray(), pmlmf.DistributionMap(), 1, 0);
-    MultiFab::LinComb(totpmlmf, 1.0, pmlmf, 0, 1.0, pmlmf, 1, 0, 1, 0);
-
-    MultiFab tmpregmf(regmf.boxArray(), regmf.DistributionMap(), 1, regmf.nGrow());
-    tmpregmf.copy(totpmlmf, 0, 0, 1, 0, regmf.nGrow(), gm.periodicity());
-
-    Box dom = gm.Domain();
-    dom.convert(regmf.ixType());
-    for (int idim=0; idim < BL_SPACEDIM; ++idim) {
-        if (Geometry::isPeriodic(idim)) {
-            dom.grow(idim, regmf.nGrow());
-        }
-    }
-    
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for (MFIter mfi(regmf); mfi.isValid(); ++mfi)
+    for (MFIter mfi(pml); mfi.isValid(); ++mfi)
     {
-        const BoxList& bl = amrex::boxDiff(mfi.fabbox(), dom);
-        for (const Box& bx : bl)
+        FArrayBox& pfab = pml[mfi];
+        FArrayBox& rfab = reg[ridx[mfi.LocalIndex()]];
+        const Box& pbx = pfab.box();
+        const Box& rbx = rfab.box();
+        const Box& vbx = amrex::grow(rbx, -ngr);
+        const BoxList& bl = amrex::boxDiff(pbx & rbx, vbx);
+        for (const Box& bx: bl)
         {
-            regmf[mfi].copy(tmpregmf[mfi], bx, 0, bx, 0, 1);
+            rfab.linComb(pfab, bx, 0, pfab, bx, 1, 1.0, 1.0, bx, 0, 1);
         }
-    }
 
-    // Copy from regular data to PML's first component
-    pmlmf.copy (regmf, 0, 0, 1, 0, pmlmf.nGrow(), gm.periodicity());
-    // Zero out the second component
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-    for (MFIter mfi(pmlmf); mfi.isValid(); ++mfi)
-    {
-        Box bx = mfi.fabbox();
-        bx &= dom;
+        const Box& bx = pbx & vbx;
         if (bx.ok()) {
-            pmlmf[mfi].setVal(0.0, bx, 1, 1);
+            pfab.copy(rfab, bx, 0, bx, 0, 1);
+            pfab.setVal(0.0, bx, 1, 1);
         }
     }
 }
-
-#endif

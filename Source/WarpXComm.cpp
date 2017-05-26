@@ -12,8 +12,26 @@ using namespace amrex;
 void
 WarpX::UpdateAuxiliaryData ()
 {
+    if (do_pml) {
+        for (int lev = 0; lev <= finest_level; ++lev)
+        {
+            pml[lev]->Exchange({ Efield_fp[lev][0].get(),
+                                 Efield_fp[lev][1].get(),
+                                 Efield_fp[lev][2].get() },
+                               { Bfield_fp[lev][0].get(),
+                                 Bfield_fp[lev][1].get(),
+                                 Bfield_fp[lev][2].get() },
+                               { Efield_cp[lev][0].get(),
+                                 Efield_cp[lev][1].get(),
+                                 Efield_cp[lev][2].get() },
+                               { Bfield_cp[lev][0].get(),
+                                 Bfield_cp[lev][1].get(),
+                                 Bfield_cp[lev][2].get() });
+        }
+    }
+
     for (int lev = 0; lev <= finest_level; ++lev)
-    {// xxxxx pml stuff???
+    {
         const auto& period = Geom(lev).periodicity();
         Bfield_fp[lev][0]->FillBoundary(period);
         Bfield_fp[lev][1]->FillBoundary(period);
