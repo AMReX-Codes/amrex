@@ -315,3 +315,20 @@ PML::Exchange (MultiFab& pml, MultiFab& reg)
         }
     }
 }
+
+void
+PML::FillBoundary ()
+{
+    const auto& period = m_geom->periodicity();
+    pml_B_fp[0]->FillBoundary(period);
+    pml_B_fp[1]->FillBoundary(period);
+    pml_B_fp[2]->FillBoundary(period);
+    
+    if (pml_B_cp[0])
+    {
+        const auto& period = m_cgeom->periodicity();
+        pml_B_cp[0]->FillBoundary(period);
+        pml_B_cp[1]->FillBoundary(period);
+        pml_B_cp[2]->FillBoundary(period);
+    }
+}

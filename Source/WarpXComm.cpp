@@ -215,18 +215,24 @@ void
 WarpX::FillBoundaryB(int lev)
 {
     const auto& period = Geom(lev).periodicity();
-// xxxxx
-#if 0
-    if (do_pml && lev == 0) {
-        WarpX::ExchangeWithPML(*Bfield[lev][0], *pml_B[0], geom[lev]);
-        WarpX::ExchangeWithPML(*Bfield[lev][1], *pml_B[1], geom[lev]);
-        WarpX::ExchangeWithPML(*Bfield[lev][2], *pml_B[2], geom[lev]);
-        
-        (*pml_B[0]).FillBoundary( geom[lev].periodicity() );
-        (*pml_B[1]).FillBoundary( geom[lev].periodicity() );
-        (*pml_B[2]).FillBoundary( geom[lev].periodicity() );
+
+    if (do_pml)
+    {
+        pml[lev]->Exchange({ Efield_fp[lev][0].get(),
+                             Efield_fp[lev][1].get(),
+                             Efield_fp[lev][2].get() },
+                           { Bfield_fp[lev][0].get(),
+                             Bfield_fp[lev][1].get(),
+                             Bfield_fp[lev][2].get() },
+                           { Efield_cp[lev][0].get(),
+                             Efield_cp[lev][1].get(),
+                             Efield_cp[lev][2].get() },
+                           { Bfield_cp[lev][0].get(),
+                             Bfield_cp[lev][1].get(),
+                             Bfield_cp[lev][2].get() });
+
+        pml[lev]->FillBoundary();
     }
-#endif
 
     (*Bfield_fp[lev][0]).FillBoundary(period);
     (*Bfield_fp[lev][1]).FillBoundary(period);

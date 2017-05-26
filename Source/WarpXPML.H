@@ -104,6 +104,8 @@ public:
                    const std::array<amrex::MultiFab*,3>& E_cp,
                    const std::array<amrex::MultiFab*,3>& B_cp);
 
+    void FillBoundary ();
+
 private:
     amrex::MultiFab m_mf;
     const amrex::FabArrayBase::CFinfo& m_cfinfo;
