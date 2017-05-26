@@ -119,20 +119,20 @@ subroutine amrex_interp_div_free_bfield (lo, hi, bx, bxlo, bxhi, by, bylo, byhi,
            coe_byy = -0.5d0*(coe_axy+coe_cyz)
            coe_czz = -0.5d0*(coe_axz+coe_byz)
 
-           coe_a0 = 0.5d0*(Cx(i+1,j,k)+Cx(i,j,k)) - coe_axx*0.25d0*dxinv(1)*dxinv(1)
-           coe_b0 = 0.5d0*(Cy(i,j+1,k)+Cy(i,j,k)) - coe_byy*0.25d0*dxinv(2)*dxinv(2)
-           coe_c0 = 0.5d0*(Cz(i,j,k+1)+Cz(i,j,k)) - coe_czz*0.25d0*dxinv(3)*dxinv(3)
+           coe_a0 = 0.5d0*(Cx(i+1,j,k)+Cx(i,j,k)) - coe_axx*0.25d0*dx(1)*dx(1)
+           coe_b0 = 0.5d0*(Cy(i,j+1,k)+Cy(i,j,k)) - coe_byy*0.25d0*dx(2)*dx(2)
+           coe_c0 = 0.5d0*(Cz(i,j,k+1)+Cz(i,j,k)) - coe_czz*0.25d0*dx(3)*dx(3)
 
            ir = i*rr
            jr = j*rr
            kr = k*rr
 
            do kk = 0, rr-1
-              z = (kk*rrinv-0.25d0) * dxinv(3)
+              z = (kk*rrinv-0.25d0) * dx(3)
               do jj = 0, rr-1
-                 y = (jj*rrinv-0.25d0) * dxinv(2)
+                 y = (jj*rrinv-0.25d0) * dx(2)
                  do ii = 0, rr
-                    x = (ii*rrinv-0.5d0) * dxinv(1)
+                    x = (ii*rrinv-0.5d0) * dx(1)
                     Bx(ir+ii,jr+jj,kr+kk) = coe_a0 + coe_ax*x + coe_ay*y + coe_az*z &
                          + coe_axx*x*x + coe_axy*x*y + coe_axz*x*z
                  end do
@@ -140,11 +140,11 @@ subroutine amrex_interp_div_free_bfield (lo, hi, bx, bxlo, bxhi, by, bylo, byhi,
            end do
 
            do kk = 0, rr-1
-              z = (kk*rrinv-0.25d0) * dxinv(3)
+              z = (kk*rrinv-0.25d0) * dx(3)
               do jj = 0, rr
-                 y = (jj*rrinv-0.5d0) * dxinv(2)
+                 y = (jj*rrinv-0.5d0) * dx(2)
                  do ii = 0, rr-1
-                    x = (ii*rrinv-0.25d0) * dxinv(1)
+                    x = (ii*rrinv-0.25d0) * dx(1)
                     By(ir+ii,jr+jj,kr+kk) = coe_b0 + coe_bx*x + coe_by*y + coe_bz*z &
                          + coe_bxy*x*y + coe_byy*y*y + coe_byz*y*z
                  end do
@@ -152,11 +152,11 @@ subroutine amrex_interp_div_free_bfield (lo, hi, bx, bxlo, bxhi, by, bylo, byhi,
            end do
 
            do kk = 0, rr
-              z = (kk*rrinv-0.5d0) * dxinv(3)
+              z = (kk*rrinv-0.5d0) * dx(3)
               do jj = 0, rr-1
-                 y = (jj*rrinv-0.25d0) * dxinv(2)
+                 y = (jj*rrinv-0.25d0) * dx(2)
                  do ii = 0, rr-1
-                    x = (ii*rrinv-0.25d0) * dxinv(1)
+                    x = (ii*rrinv-0.25d0) * dx(1)
                     Bz(ir+ii,jr+jj,kr+kk) = coe_c0 + coe_cx*x + coe_cy*y + coe_cz*z &
                          + coe_cxz*x*z + coe_cyz*y*z + coe_czz*z*z
                  end do
@@ -301,7 +301,7 @@ subroutine amrex_interp_efield (lo, hi, ex, exlo, exhi, ey, eylo, eyhi, ez, ezlo
 
   do       kc = clo(3)  , chi(3)
      do    j  = clo(2)*2, chi(2)*2+2
-        do i  = clo(1)*2, clo(1)*2+2
+        do i  = clo(1)*2, chi(1)*2+2
            c1 = theta*(tmpz(i,j,kc  ) - tmpz(i,j,kc-1))
            c2 = 0.5d0*(tmpz(i,j,kc+1) - tmpz(i,j,kc-1))
            c3 = theta*(tmpz(i,j,kc+1) - tmpz(i,j,kc  ))

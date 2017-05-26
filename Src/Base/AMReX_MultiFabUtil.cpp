@@ -286,7 +286,7 @@ namespace amrex
     // Average fine face-based MultiFab onto crse face-based MultiFab.
     // This routine assumes that the crse BoxArray is a coarsened version of the fine BoxArray.
     void average_down_faces (const Array<const MultiFab*>& fine, const Array<MultiFab*>& crse,
-			     const IntVect& ratio)
+			     const IntVect& ratio, int ngcrse)
     {
 	BL_ASSERT(crse.size()  == BL_SPACEDIM);
 	BL_ASSERT(fine.size()  == BL_SPACEDIM);
@@ -300,7 +300,7 @@ namespace amrex
         for (int n=0; n<BL_SPACEDIM; ++n) {
             for (MFIter mfi(*crse[n],true); mfi.isValid(); ++mfi)
             {
-                const Box& tbx = mfi.tilebox();
+                const Box& tbx = mfi.growntilebox(ngcrse);
 
                 BL_FORT_PROC_CALL(BL_AVGDOWN_FACES,bl_avgdown_faces)
                     (tbx.loVect(),tbx.hiVect(),
@@ -314,7 +314,7 @@ namespace amrex
     //! Average fine edge-based MultiFab onto crse edge-based MultiFab.
     //! This routine assumes that the crse BoxArray is a coarsened version of the fine BoxArray.
     void average_down_edges (const Array<const MultiFab*>& fine, const Array<MultiFab*>& crse,
-                             const IntVect& ratio)
+                             const IntVect& ratio, int ngcrse)
     {
 	BL_ASSERT(crse.size()  == BL_SPACEDIM);
 	BL_ASSERT(fine.size()  == BL_SPACEDIM);
@@ -328,7 +328,7 @@ namespace amrex
         for (int n=0; n<BL_SPACEDIM; ++n) {
             for (MFIter mfi(*crse[n],true); mfi.isValid(); ++mfi)
             {
-                const Box& tbx = mfi.tilebox();
+                const Box& tbx = mfi.growntilebox(ngcrse);
 
                 BL_FORT_PROC_CALL(BL_AVGDOWN_EDGES,bl_avgdown_edges)
                     (tbx.loVect(),tbx.hiVect(),
@@ -341,7 +341,7 @@ namespace amrex
 
     //! Average fine node-based MultiFab onto crse node-based MultiFab.
     //! This routine assumes that the crse BoxArray is a coarsened version of the fine BoxArray.
-    void average_down_nodal (const MultiFab& fine, MultiFab& crse, const IntVect& ratio)
+    void average_down_nodal (const MultiFab& fine, MultiFab& crse, const IntVect& ratio, int ngcrse)
     {
         BL_ASSERT(fine.is_nodal());
         BL_ASSERT(crse.is_nodal());
@@ -354,7 +354,7 @@ namespace amrex
 #endif
         for (MFIter mfi(crse,true); mfi.isValid(); ++mfi)
             {
-                const Box& tbx = mfi.tilebox();
+                const Box& tbx = mfi.growntilebox(ngcrse);
                 
                 BL_FORT_PROC_CALL(BL_AVGDOWN_NODES,bl_avgdown_nodes)
                     (tbx.loVect(),tbx.hiVect(),
