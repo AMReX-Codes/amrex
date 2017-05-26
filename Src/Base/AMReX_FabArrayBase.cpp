@@ -592,8 +592,6 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa)
     const DistributionMapping& dm       = fa.DistributionMap();
     const Array<int>&          imap     = fa.IndexArray();
 
-    BL_ASSERT(amrex::convert(ba,IndexType::TheCellType()).isDisjoint());
-
     // For local copy, all workers in the same team will have the identical copy of tags
     // so that they can share work.  But for remote communication, they are all different.
     
@@ -647,13 +645,6 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa)
 	check_local = true;
     }
 
-    if (typ.cellCentered()) {
-	m_threadsafe_loc = true;
-	m_threadsafe_rcv = true;
-	check_local = false;
-	check_remote = false;
-    }
-    
     for (int i = 0; i < nlocal; ++i)
     {
 	const int   krcv = imap[i];
