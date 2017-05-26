@@ -1,0 +1,48 @@
+CVODE is a solver suite for ordinary differential equations, and is part of the
+open-source SUNDIALS package developed at Lawrence Livermore National
+Laboratory. The SUNDIALS home page is here:
+
+https://computation.llnl.gov/projects/sundials
+
+CVODE contains solvers for stiff and non-stiff ODEs, and as such is well suited
+for solving e.g., the complex chemistry networks in combustion simulations, or
+the nuclear reaction networks in astrophysical simulations. Most of CVODE is
+written in C, but many functions also come with a Fortran interface. To use
+CVODE in an AMReX application, follow these steps:
+
+1.) Obtain the CVODE source code, which is hosted here:
+
+https://computation.llnl.gov/projects/sundials/sundials-software
+
+You can either download the complete SUNDIALS package, or just the CVODE
+components.
+
+2.) Unpack the CVODE/SUNDIALS tarball, and create a new "build" directory (it
+can be anywhere).
+
+3.) Navigate to your build directory, and type
+
+cmake \
+  -DFCMIX_ENABLE:BOOL=ON \
+  -DCMAKE_INSTALL_PREFIX:PATH=/path/to/install/dir \
+  /path/to/cvode/or/sundials/top/level/source/dir
+
+The "FCMIX_ENABLE" option tells CMake to build the Fortran interfaces (they are
+disabled by default). The CMAKE_INSTALL_DIR option tells CMake where to install
+the libraries. Note that CMake will attempt to deduce your compilers
+automatically, but respects certain environment variables if they are defined,
+such as CC (for the C compiler), CXX (for the C++ compiler), and FC (for the
+Fortran compiler). So one may modify the above CMake invocation to be something
+like the following:
+
+CC=/path/to/gcc \
+CXX=/path/to/g++ \
+FC=/path/to/gfortran \
+cmake -DFCMIX_ENABLE:BOOL=ON \
+  -DCMAKE_INSTALL_PREFIX:PATH=/path/to/install/dir \
+  /path/to/cvode/or/sundials/top/level/source/dir
+
+4.) Write your application using the CVODE Fortran interface (called FCVODE),
+and in your GNUmakefile, add "USE_CVODE = TRUE", which will link the CVODE
+libraries. Note that you must define the CVODE_LIB_DIR environment variable to
+point to the location where the libraries are installed.
