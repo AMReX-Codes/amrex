@@ -48,7 +48,7 @@ endif
 ########################################################################
 
 CXXFLAGS += -std=c++1y
-CFLAGS   += -std=c99
+CFLAGS   += -std=gnu99
 F90FLAGS += -qlanglvl=extended -qxlf2003=polymorphic
 
 FFLAGS   += -qmoddir=$(fmoddir) -I $(fmoddir)
@@ -69,3 +69,8 @@ FFLAGS   += $(GENERIC_COMP_FLAGS)
 F90FLAGS += $(GENERIC_COMP_FLAGS)
 
 CPP_PREFIX = -WF,
+
+#override XTRALIBS += 
+override XTRALIBS = $(shell mpifort -showme:link) -L $(OLCF_XLF_ROOT)/lib -lxlf90_r -lm  -lxlfmath
+
+FORTLINK := LOWERCASE
