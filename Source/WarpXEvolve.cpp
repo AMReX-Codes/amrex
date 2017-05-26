@@ -162,44 +162,39 @@ WarpX::EvolveB (int lev, Real dt)
     // Parameters of the solver: order and mesh spacing
     const int norder = 2;
 
-    const std::array<Real,3>& dx = WarpX::CellSize(lev);
-    const std::array<Real,3> dtsdx {dt/dx[0], dt/dx[1], dt/dx[2]};
+    int npatches = (lev == 0) ? 1 : 2;
 
-    // Loop through the grids, and over the tiles within each grid
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-    for ( MFIter mfi(*Bfield_fp[lev][0],true); mfi.isValid(); ++mfi )
+    for (int ipatch = 0; ipatch < npatches; ++ipatch)
     {
-        const Box& tbx  = mfi.tilebox(Bx_nodal_flag);
-        const Box& tby  = mfi.tilebox(By_nodal_flag);
-        const Box& tbz  = mfi.tilebox(Bz_nodal_flag);
-
-	// Call picsar routine for each tile
-	WRPX_PXR_PUSH_BVEC(
-	    tbx.loVect(), tbx.hiVect(),
-	    tby.loVect(), tby.hiVect(),
-	    tbz.loVect(), tbz.hiVect(),
-	    BL_TO_FORTRAN_3D((*Efield_fp[lev][0])[mfi]),
-	    BL_TO_FORTRAN_3D((*Efield_fp[lev][1])[mfi]),
-	    BL_TO_FORTRAN_3D((*Efield_fp[lev][2])[mfi]),
-	    BL_TO_FORTRAN_3D((*Bfield_fp[lev][0])[mfi]),
-	    BL_TO_FORTRAN_3D((*Bfield_fp[lev][1])[mfi]),
-	    BL_TO_FORTRAN_3D((*Bfield_fp[lev][2])[mfi]),
-	    &dtsdx[0], &dtsdx[1], &dtsdx[2],
-	    &norder);
-    }
-
-    if (lev > 0)
-    {
-        const std::array<Real,3>& dx = WarpX::CellSize(lev-1);
+        int patch_level = (ipatch == 0) ? lev : lev-1;
+        const std::array<Real,3>& dx = WarpX::CellSize(patch_level);
         const std::array<Real,3> dtsdx {dt/dx[0], dt/dx[1], dt/dx[2]};
         
+        MultiFab *Ex, *Ey, *Ez, *Bx, *By, *Bz;
+        if (ipatch == 0)
+        {
+            Ex = Efield_fp[lev][0].get();
+            Ey = Efield_fp[lev][1].get();
+            Ez = Efield_fp[lev][2].get();
+            Bx = Bfield_fp[lev][0].get();
+            By = Bfield_fp[lev][1].get();
+            Bz = Bfield_fp[lev][2].get();
+        }
+        else
+        {
+            Ex = Efield_cp[lev][0].get();
+            Ey = Efield_cp[lev][1].get();
+            Ez = Efield_cp[lev][2].get();
+            Bx = Bfield_cp[lev][0].get();
+            By = Bfield_cp[lev][1].get();
+            Bz = Bfield_cp[lev][2].get();
+        }
+
         // Loop through the grids, and over the tiles within each grid
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-        for ( MFIter mfi(*Bfield_cp[lev][0],true); mfi.isValid(); ++mfi )
+        for ( MFIter mfi(*Bx,true); mfi.isValid(); ++mfi )
         {
             const Box& tbx  = mfi.tilebox(Bx_nodal_flag);
             const Box& tby  = mfi.tilebox(By_nodal_flag);
@@ -210,12 +205,12 @@ WarpX::EvolveB (int lev, Real dt)
                 tbx.loVect(), tbx.hiVect(),
                 tby.loVect(), tby.hiVect(),
                 tbz.loVect(), tbz.hiVect(),
-                BL_TO_FORTRAN_3D((*Efield_cp[lev][0])[mfi]),
-                BL_TO_FORTRAN_3D((*Efield_cp[lev][1])[mfi]),
-                BL_TO_FORTRAN_3D((*Efield_cp[lev][2])[mfi]),
-                BL_TO_FORTRAN_3D((*Bfield_cp[lev][0])[mfi]),
-                BL_TO_FORTRAN_3D((*Bfield_cp[lev][1])[mfi]),
-                BL_TO_FORTRAN_3D((*Bfield_cp[lev][2])[mfi]),
+                BL_TO_FORTRAN_3D((*Ex)[mfi]),
+                BL_TO_FORTRAN_3D((*Ey)[mfi]),
+                BL_TO_FORTRAN_3D((*Ez)[mfi]),
+                BL_TO_FORTRAN_3D((*Bx)[mfi]),
+                BL_TO_FORTRAN_3D((*By)[mfi]),
+                BL_TO_FORTRAN_3D((*Bz)[mfi]),
                 &dtsdx[0], &dtsdx[1], &dtsdx[2],
                 &norder);
         }
@@ -224,45 +219,37 @@ WarpX::EvolveB (int lev, Real dt)
     if (do_pml)
     {
         pml[lev]->ComputePMLFactorsB(dt);
-    }
 
-#if 0
-    if (do_pml && lev == 0)
-    {
-
-        ComputePMLFactorsB(lev, dt);
-
+        for (int ipatch = 0; ipatch < npatches; ++ipatch)
+        {
+            const auto& pml_B = (ipatch==0) ? pml[lev]->GetB_fp() : pml[lev]->GetB_cp();
+            const auto& pml_E = (ipatch==0) ? pml[lev]->GetE_fp() : pml[lev]->GetE_cp();
+            const auto& sigba = (ipatch==0) ? pml[lev]->GetSigmaBoxArray_fp()
+                                            : pml[lev]->GetSigmaBoxArray_cp();
+            
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-        for ( MFIter mfi(*pml_B[0],true); mfi.isValid(); ++mfi )
-        {
-            const Box& tbx  = mfi.tilebox(Bx_nodal_flag);
-            const Box& tby  = mfi.tilebox(By_nodal_flag);
-            const Box& tbz  = mfi.tilebox(Bz_nodal_flag);
-
-            WRPX_PUSH_PML_BVEC(
-                tbx.loVect(), tbx.hiVect(),
-                tby.loVect(), tby.hiVect(),
-                tbz.loVect(), tbz.hiVect(),
-                BL_TO_FORTRAN_3D((*pml_E[0])[mfi]),
-                BL_TO_FORTRAN_3D((*pml_E[1])[mfi]),
-                BL_TO_FORTRAN_3D((*pml_E[2])[mfi]),
-                BL_TO_FORTRAN_3D((*pml_B[0])[mfi]),
-                BL_TO_FORTRAN_3D((*pml_B[1])[mfi]),
-                BL_TO_FORTRAN_3D((*pml_B[2])[mfi]),
-                pml_sigma_star_fac1[0].data(),pml_sigma_star_fac1[0].lo(),pml_sigma_star_fac1[0].hi(),
-                pml_sigma_star_fac2[0].data(),pml_sigma_star_fac2[0].lo(),pml_sigma_star_fac2[0].hi(),
-                pml_sigma_star_fac1[1].data(),pml_sigma_star_fac1[1].lo(),pml_sigma_star_fac1[1].hi(),
-                pml_sigma_star_fac2[1].data(),pml_sigma_star_fac2[1].lo(),pml_sigma_star_fac2[1].hi()
-#if (BL_SPACEDIM == 3)
-               ,pml_sigma_star_fac1[2].data(),pml_sigma_star_fac1[2].lo(),pml_sigma_star_fac1[2].hi(),
-                pml_sigma_star_fac2[2].data(),pml_sigma_star_fac2[2].lo(),pml_sigma_star_fac2[2].hi()
-#endif
-                );
+            for ( MFIter mfi(*pml_B[0],true); mfi.isValid(); ++mfi )
+            {
+                const Box& tbx  = mfi.tilebox(Bx_nodal_flag);
+                const Box& tby  = mfi.tilebox(By_nodal_flag);
+                const Box& tbz  = mfi.tilebox(Bz_nodal_flag);
+                
+                WRPX_PUSH_PML_BVEC(
+                    tbx.loVect(), tbx.hiVect(),
+                    tby.loVect(), tby.hiVect(),
+                    tbz.loVect(), tbz.hiVect(),
+                    BL_TO_FORTRAN_3D((*pml_E[0])[mfi]),
+                    BL_TO_FORTRAN_3D((*pml_E[1])[mfi]),
+                    BL_TO_FORTRAN_3D((*pml_E[2])[mfi]),
+                    BL_TO_FORTRAN_3D((*pml_B[0])[mfi]),
+                    BL_TO_FORTRAN_3D((*pml_B[1])[mfi]),
+                    BL_TO_FORTRAN_3D((*pml_B[2])[mfi]),
+                    WRPX_PML_SIGMA_STAR_TO_FORTRAN(sigba[mfi]));
+            }
         }
     }
-#endif
 }
 
 void
@@ -280,72 +267,67 @@ WarpX::EvolveE (int lev, Real dt)
 
     // Parameters of the solver: order and mesh spacing
     const int norder = 2;
-
-    const std::array<Real,3>& dx = WarpX::CellSize(lev);
     const Real mu_c2_dt = (PhysConst::mu0*PhysConst::c*PhysConst::c) * dt;
     const Real foo = (PhysConst::c*PhysConst::c) * dt;
-    const std::array<Real,3> dtsdx_c2 {foo/dx[0], foo/dx[1], foo/dx[2]};
 
-  // Loop through the grids, and over the tiles within each grid
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-    for ( MFIter mfi(*Efield_fp[lev][0],true); mfi.isValid(); ++mfi )
+    int npatches = (lev == 0) ? 1 : 2;
+
+    for (int ipatch = 0; ipatch < npatches; ++ipatch)
     {
-	const Box& tex  = mfi.tilebox(Ex_nodal_flag);
-	const Box& tey  = mfi.tilebox(Ey_nodal_flag);
-	const Box& tez  = mfi.tilebox(Ez_nodal_flag);
-
-        // Call picsar routine for each tile
-	WRPX_PXR_PUSH_EVEC(
-	    tex.loVect(), tex.hiVect(),
-	    tey.loVect(), tey.hiVect(),
-	    tez.loVect(), tez.hiVect(),
-	    BL_TO_FORTRAN_3D((*Efield_fp[lev][0])[mfi]),
-	    BL_TO_FORTRAN_3D((*Efield_fp[lev][1])[mfi]),
-	    BL_TO_FORTRAN_3D((*Efield_fp[lev][2])[mfi]),
-	    BL_TO_FORTRAN_3D((*Bfield_fp[lev][0])[mfi]),
-	    BL_TO_FORTRAN_3D((*Bfield_fp[lev][1])[mfi]),
-	    BL_TO_FORTRAN_3D((*Bfield_fp[lev][2])[mfi]),
-	    BL_TO_FORTRAN_3D((*current_fp[lev][0])[mfi]),
-	    BL_TO_FORTRAN_3D((*current_fp[lev][1])[mfi]),
-	    BL_TO_FORTRAN_3D((*current_fp[lev][2])[mfi]),
-	    &mu_c2_dt,
-	    &dtsdx_c2[0], &dtsdx_c2[1], &dtsdx_c2[2],
-	    &norder);
-    }
-
-    if (lev > 0)
-    {
-        const std::array<Real,3>& dx = WarpX::CellSize(lev-1);
-        const Real mu_c2_dt = (PhysConst::mu0*PhysConst::c*PhysConst::c) * dt;
-        const Real foo = (PhysConst::c*PhysConst::c) * dt;
+        int patch_level = (ipatch == 0) ? lev : lev-1;
+        const std::array<Real,3>& dx = WarpX::CellSize(patch_level);
         const std::array<Real,3> dtsdx_c2 {foo/dx[0], foo/dx[1], foo/dx[2]};
+
+        MultiFab *Ex, *Ey, *Ez, *Bx, *By, *Bz, *jx, *jy, *jz;
+        if (ipatch == 0)
+        {
+            Ex = Efield_fp[lev][0].get();
+            Ey = Efield_fp[lev][1].get();
+            Ez = Efield_fp[lev][2].get();
+            Bx = Bfield_fp[lev][0].get();
+            By = Bfield_fp[lev][1].get();
+            Bz = Bfield_fp[lev][2].get();
+            jx = current_fp[lev][0].get();
+            jy = current_fp[lev][1].get();
+            jz = current_fp[lev][2].get();
+        }
+        else
+        {
+            Ex = Efield_cp[lev][0].get();
+            Ey = Efield_cp[lev][1].get();
+            Ez = Efield_cp[lev][2].get();
+            Bx = Bfield_cp[lev][0].get();
+            By = Bfield_cp[lev][1].get();
+            Bz = Bfield_cp[lev][2].get();
+            jx = current_cp[lev][0].get();
+            jy = current_cp[lev][1].get();
+            jz = current_cp[lev][2].get();
+        }
         
         // Loop through the grids, and over the tiles within each grid
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-        for ( MFIter mfi(*Efield_cp[lev][0],true); mfi.isValid(); ++mfi )
+        for ( MFIter mfi(*Ex,true); mfi.isValid(); ++mfi )
         {
             const Box& tex  = mfi.tilebox(Ex_nodal_flag);
             const Box& tey  = mfi.tilebox(Ey_nodal_flag);
             const Box& tez  = mfi.tilebox(Ez_nodal_flag);
-            
+
             // Call picsar routine for each tile
             WRPX_PXR_PUSH_EVEC(
                 tex.loVect(), tex.hiVect(),
                 tey.loVect(), tey.hiVect(),
                 tez.loVect(), tez.hiVect(),
-                BL_TO_FORTRAN_3D((*Efield_cp[lev][0])[mfi]),
-                BL_TO_FORTRAN_3D((*Efield_cp[lev][1])[mfi]),
-                BL_TO_FORTRAN_3D((*Efield_cp[lev][2])[mfi]),
-                BL_TO_FORTRAN_3D((*Bfield_cp[lev][0])[mfi]),
-                BL_TO_FORTRAN_3D((*Bfield_cp[lev][1])[mfi]),
-                BL_TO_FORTRAN_3D((*Bfield_cp[lev][2])[mfi]),
-                BL_TO_FORTRAN_3D((*current_cp[lev][0])[mfi]),
-                BL_TO_FORTRAN_3D((*current_cp[lev][1])[mfi]),
-                BL_TO_FORTRAN_3D((*current_cp[lev][2])[mfi]),
+                BL_TO_FORTRAN_3D((*Ex)[mfi]),
+                BL_TO_FORTRAN_3D((*Ey)[mfi]),
+                BL_TO_FORTRAN_3D((*Ez)[mfi]),
+                BL_TO_FORTRAN_3D((*Bx)[mfi]),
+                BL_TO_FORTRAN_3D((*By)[mfi]),
+                BL_TO_FORTRAN_3D((*Bz)[mfi]),
+                BL_TO_FORTRAN_3D((*jx)[mfi]),
+                BL_TO_FORTRAN_3D((*jy)[mfi]),
+                BL_TO_FORTRAN_3D((*jz)[mfi]),
                 &mu_c2_dt,
                 &dtsdx_c2[0], &dtsdx_c2[1], &dtsdx_c2[2],
                 &norder);
@@ -355,46 +337,37 @@ WarpX::EvolveE (int lev, Real dt)
     if (do_pml)
     {
         pml[lev]->ComputePMLFactorsE(dt);
-    }
 
-// xxxxx
-#if 0
-    if (do_pml && lev == 0)
-    {
-
-        ComputePMLFactorsE(lev, dt);
+        for (int ipatch = 0; ipatch < npatches; ++ipatch)
+        {
+            const auto& pml_B = (ipatch==0) ? pml[lev]->GetB_fp() : pml[lev]->GetB_cp();
+            const auto& pml_E = (ipatch==0) ? pml[lev]->GetE_fp() : pml[lev]->GetE_cp();
+            const auto& sigba = (ipatch==0) ? pml[lev]->GetSigmaBoxArray_fp()
+                                            : pml[lev]->GetSigmaBoxArray_cp();
 
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-        for ( MFIter mfi(*pml_E[0],true); mfi.isValid(); ++mfi )
-        {
-            const Box& tex  = mfi.tilebox(Ex_nodal_flag);
-            const Box& tey  = mfi.tilebox(Ey_nodal_flag);
-            const Box& tez  = mfi.tilebox(Ez_nodal_flag);
-            
-            WRPX_PUSH_PML_EVEC(
-                tex.loVect(), tex.hiVect(),
-                tey.loVect(), tey.hiVect(),
-                tez.loVect(), tez.hiVect(),
-                BL_TO_FORTRAN_3D((*pml_E[0])[mfi]),
-                BL_TO_FORTRAN_3D((*pml_E[1])[mfi]),
-                BL_TO_FORTRAN_3D((*pml_E[2])[mfi]),
-                BL_TO_FORTRAN_3D((*pml_B[0])[mfi]),
-                BL_TO_FORTRAN_3D((*pml_B[1])[mfi]),
-                BL_TO_FORTRAN_3D((*pml_B[2])[mfi]),
-                pml_sigma_fac1[0].data(),pml_sigma_fac1[0].lo(),pml_sigma_fac1[0].hi(),
-                pml_sigma_fac2[0].data(),pml_sigma_fac2[0].lo(),pml_sigma_fac2[0].hi(),
-                pml_sigma_fac1[1].data(),pml_sigma_fac1[1].lo(),pml_sigma_fac1[1].hi(),
-                pml_sigma_fac2[1].data(),pml_sigma_fac2[1].lo(),pml_sigma_fac2[1].hi()
-#if (BL_SPACEDIM == 3)
-               ,pml_sigma_fac1[2].data(),pml_sigma_fac1[2].lo(),pml_sigma_fac1[2].hi(),
-                pml_sigma_fac2[2].data(),pml_sigma_fac2[2].lo(),pml_sigma_fac2[2].hi()
-#endif
-                );
+            for ( MFIter mfi(*pml_E[0],true); mfi.isValid(); ++mfi )
+            {
+                const Box& tex  = mfi.tilebox(Ex_nodal_flag);
+                const Box& tey  = mfi.tilebox(Ey_nodal_flag);
+                const Box& tez  = mfi.tilebox(Ez_nodal_flag);
+                
+                WRPX_PUSH_PML_EVEC(
+                    tex.loVect(), tex.hiVect(),
+                    tey.loVect(), tey.hiVect(),
+                    tez.loVect(), tez.hiVect(),
+                    BL_TO_FORTRAN_3D((*pml_E[0])[mfi]),
+                    BL_TO_FORTRAN_3D((*pml_E[1])[mfi]),
+                    BL_TO_FORTRAN_3D((*pml_E[2])[mfi]),
+                    BL_TO_FORTRAN_3D((*pml_B[0])[mfi]),
+                    BL_TO_FORTRAN_3D((*pml_B[1])[mfi]),
+                    BL_TO_FORTRAN_3D((*pml_B[2])[mfi]),
+                    WRPX_PML_SIGMA_TO_FORTRAN(sigba[mfi]));
+            }
         }
     }
-#endif
 }
 
 void

@@ -4,6 +4,35 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_Geometry.H>
 
+#if (BL_SPACEDIM == 3)
+
+#define WRPX_PML_SIGMA_STAR_TO_FORTRAN(x)  \
+    (x).sigma_star_fac1[0].data(), (x).sigma_star_fac1[0].m_lo, (x).sigma_star_fac1[0].m_hi, \
+    (x).sigma_star_fac2[0].data(), (x).sigma_star_fac2[0].m_lo, (x).sigma_star_fac2[0].m_hi, \
+    (x).sigma_star_fac1[1].data(), (x).sigma_star_fac1[1].m_lo, (x).sigma_star_fac1[1].m_hi, \
+    (x).sigma_star_fac2[1].data(), (x).sigma_star_fac2[1].m_lo, (x).sigma_star_fac2[1].m_hi, \
+    (x).sigma_star_fac1[2].data(), (x).sigma_star_fac1[2].m_lo, (x).sigma_star_fac1[2].m_hi, \
+    (x).sigma_star_fac2[2].data(), (x).sigma_star_fac2[2].m_lo, (x).sigma_star_fac2[2].m_hi
+
+#define WRPX_PML_SIGMA_TO_FORTRAN(x)  \
+    (x).sigma_fac1[0].data(), (x).sigma_fac1[0].m_lo, (x).sigma_fac1[0].m_hi, \
+    (x).sigma_fac2[0].data(), (x).sigma_fac2[0].m_lo, (x).sigma_fac2[0].m_hi, \
+    (x).sigma_fac1[1].data(), (x).sigma_fac1[1].m_lo, (x).sigma_fac1[1].m_hi, \
+    (x).sigma_fac2[1].data(), (x).sigma_fac2[1].m_lo, (x).sigma_fac2[1].m_hi, \
+    (x).sigma_fac1[2].data(), (x).sigma_fac1[2].m_lo, (x).sigma_fac1[2].m_hi, \
+    (x).sigma_fac2[2].data(), (x).sigma_fac2[2].m_lo, (x).sigma_fac2[2].m_hi
+
+#else
+
+#endif
+
+struct Sigma : amrex::Array<amrex::Real>
+{
+    int lo() const { return m_lo; }
+    int hi() const { return m_hi; }
+    int m_lo, m_hi;
+};
+
 struct SigmaBox
 {
     SigmaBox (const amrex::Box& a_box, const amrex::Box& grid_box, const amrex::Real* dx, int ncell);
@@ -11,10 +40,10 @@ struct SigmaBox
     void ComputePMLFactorsB (const amrex::Real* dx, amrex::Real dt);
     void ComputePMLFactorsE (const amrex::Real* dx, amrex::Real dt);
 
-    std::array<amrex::Array<amrex::Real>,BL_SPACEDIM> sigma;      // sigma/epsilon
-    std::array<amrex::Array<amrex::Real>,BL_SPACEDIM> sigma_star; // sigma_star/mu
-    std::array<amrex::Array<amrex::Real>,BL_SPACEDIM> sigma_fac1, sigma_fac2;
-    std::array<amrex::Array<amrex::Real>,BL_SPACEDIM> sigma_star_fac1, sigma_star_fac2;
+    std::array<Sigma,BL_SPACEDIM> sigma;      // sigma/epsilon
+    std::array<Sigma,BL_SPACEDIM> sigma_star; // sigma_star/mu
+    std::array<Sigma,BL_SPACEDIM> sigma_fac1, sigma_fac2;
+    std::array<Sigma,BL_SPACEDIM> sigma_star_fac1, sigma_star_fac2;
 
     amrex::Box box;
     amrex::Box grid_box;
@@ -40,7 +69,7 @@ namespace amrex {
 }
 
 class SigmaBoxArray
-    : amrex::FabArray<SigmaBox>
+    : public amrex::FabArray<SigmaBox>
 {
 public:
     SigmaBoxArray(const amrex::BoxArray& ba, const amrex::DistributionMapping& dm,
@@ -59,17 +88,28 @@ public:
     void ComputePMLFactorsB (amrex::Real dt);
     void ComputePMLFactorsE (amrex::Real dt);
 
+    std::array<amrex::MultiFab*,3> GetE_fp ();
+    std::array<amrex::MultiFab*,3> GetB_fp ();
+    std::array<amrex::MultiFab*,3> GetE_cp ();
+    std::array<amrex::MultiFab*,3> GetB_cp ();
+
+    const SigmaBoxArray& GetSigmaBoxArray_fp () const 
+        { return *sigba_fp; }
+
+    const SigmaBoxArray& GetSigmaBoxArray_cp () const 
+        { return *sigba_cp; }
+
 private:
     amrex::MultiFab m_mf;
     const amrex::FabArrayBase::CFinfo& m_cfinfo;
     const amrex::Geometry* m_geom;
     const amrex::Geometry* m_cgeom;
 
-    std::array<std::unique_ptr<amrex::MultiFab>,BL_SPACEDIM> pml_E_fp;
-    std::array<std::unique_ptr<amrex::MultiFab>,BL_SPACEDIM> pml_B_fp;
+    std::array<std::unique_ptr<amrex::MultiFab>,3> pml_E_fp;
+    std::array<std::unique_ptr<amrex::MultiFab>,3> pml_B_fp;
 
-    std::array<std::unique_ptr<amrex::MultiFab>,BL_SPACEDIM> pml_E_cp;
-    std::array<std::unique_ptr<amrex::MultiFab>,BL_SPACEDIM> pml_B_cp;
+    std::array<std::unique_ptr<amrex::MultiFab>,3> pml_E_cp;
+    std::array<std::unique_ptr<amrex::MultiFab>,3> pml_B_cp;
 
     std::unique_ptr<SigmaBoxArray> sigba_fp;
     std::unique_ptr<SigmaBoxArray> sigba_cp;

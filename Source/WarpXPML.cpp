@@ -33,6 +33,20 @@ SigmaBox::SigmaBox (const Box& a_box, const Box& a_grid_box, const Real* dx, int
         sigma_star_fac1[idim].resize(sz[idim]  , 1.0);
         sigma_star_fac2[idim].resize(sz[idim]       );
 
+        sigma     [idim].m_lo = lo[idim];
+        sigma     [idim].m_hi = hi[idim]+1;
+        sigma_star[idim].m_lo = lo[idim];
+        sigma_star[idim].m_hi = hi[idim];
+
+        sigma_fac1     [idim].m_lo = lo[idim];
+        sigma_fac1     [idim].m_hi = hi[idim]+1;
+        sigma_fac2     [idim].m_lo = lo[idim];
+        sigma_fac2     [idim].m_hi = hi[idim]+1;
+        sigma_star_fac1[idim].m_lo = lo[idim];
+        sigma_star_fac1[idim].m_hi = hi[idim];
+        sigma_star_fac2[idim].m_lo = lo[idim];
+        sigma_star_fac2[idim].m_hi = hi[idim];
+
         const Real fac = 4.0*PhysConst::c/(dx[idim]*static_cast<Real>(ncell*ncell));
 
         // lo side
@@ -222,6 +236,31 @@ PML::ComputePMLFactorsE (amrex::Real dt)
     if (sigba_fp) sigba_fp->ComputePMLFactorsE(m_geom->CellSize(), dt);
     if (sigba_cp) sigba_cp->ComputePMLFactorsE(m_cgeom->CellSize(), dt);
 }
+
+std::array<MultiFab*,3>
+PML::GetE_fp ()
+{
+    return {pml_E_fp[0].get(), pml_E_fp[1].get(), pml_E_fp[2].get()};
+}
+
+std::array<MultiFab*,3>
+PML::GetB_fp ()
+{
+    return {pml_B_fp[0].get(), pml_B_fp[1].get(), pml_B_fp[2].get()};
+}
+
+std::array<MultiFab*,3>
+PML::GetE_cp ()
+{
+    return {pml_E_cp[0].get(), pml_E_cp[1].get(), pml_E_cp[2].get()};
+}
+
+std::array<MultiFab*,3>
+PML::GetB_cp ()
+{
+    return {pml_B_cp[0].get(), pml_B_cp[1].get(), pml_B_cp[2].get()};
+}
+
 
 #if 0
 
