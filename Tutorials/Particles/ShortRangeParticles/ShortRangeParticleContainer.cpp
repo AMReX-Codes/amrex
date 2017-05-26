@@ -7,12 +7,12 @@ using namespace amrex;
 ShortRangeParticleContainer::ShortRangeParticleContainer(const Geometry            & geom,
                                                          const DistributionMapping & dmap,
                                                          const BoxArray            & ba,
-                                                         int                         nghost)
+                                                         int                         ncells)
     : ParticleContainer<2*BL_SPACEDIM> (geom, dmap, ba),
-      ng(nghost)
+      num_neighbor_cells(ncells)
 {                
-    mask.define(ba, dmap, 2, ng);
-    mask.setVal(-1, ng);
+    mask.define(ba, dmap, 2, num_neighbor_cells);
+    mask.setVal(-1, num_neighbor_cells);
     for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi) {
         const Box& box = mfi.tilebox();
         const int grid_id = mfi.index();
@@ -20,7 +20,7 @@ ShortRangeParticleContainer::ShortRangeParticleContainer(const Geometry         
         mask.setVal(grid_id, box, 0, 1);
         mask.setVal(tile_id, box, 1, 1);
     }
-    mask.FillBoundary();
+    mask.FillBoundary(geom.periodicity());
 }
 
 void ShortRangeParticleContainer::InitParticles() {
@@ -68,15 +68,15 @@ void ShortRangeParticleContainer::InitParticles() {
     }
 }
 
-void ShortRangeParticleContainer::fillGhosts() {
-    GhostCommMap ghosts_to_comm;
+void ShortRangeParticleContainer::fillNeighbors() {
+    NeighborCommMap neighbors_to_comm;
     for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
         const Box& tile_box = pti.tilebox();
         const IntVect& lo = tile_box.smallEnd();
         const IntVect& hi = tile_box.bigEnd();
         
         Box shrink_box = pti.tilebox();
-        shrink_box.grow(-ng);
+        shrink_box.grow(-num_neighbor_cells);
         
         auto& particles = pti.GetArrayOfStructs();
         for (unsigned i = 0; i < pti.numParticles(); ++i) {
@@ -92,9 +92,9 @@ void ShortRangeParticleContainer::fillGhosts() {
             IntVect shift = IntVect::TheZeroVector();
             for (int idim = 0; idim < BL_SPACEDIM; ++idim) {
                 if (iv[idim] == lo[idim])
-                    shift[idim] = -ng;
+                    shift[idim] = -num_neighbor_cells;
                 else if (iv[idim] == hi[idim])
-                    shift[idim] = ng;
+                    shift[idim] = num_neighbor_cells;
             }
             
             // Based on the value of shift, we add the particle to a map to be sent
@@ -106,7 +106,7 @@ void ShortRangeParticleContainer::fillGhosts() {
                 IntVect neighbor_cell = iv;
                 neighbor_cell.shift(idim, shift[idim]);
                 BL_ASSERT(mask[pti].box().contains(neighbor_cell));
-                packGhostParticle(neighbor_cell, mask[pti], p, ghosts_to_comm);
+                packNeighborParticle(neighbor_cell, mask[pti], p, neighbors_to_comm);
             }
             
             // Now add the particle to the "edge" neighbors
@@ -117,7 +117,7 @@ void ShortRangeParticleContainer::fillGhosts() {
                         neighbor_cell.shift(idim, shift[idim]);
                         neighbor_cell.shift(jdim, shift[jdim]);
                         BL_ASSERT(mask[pti].box().contains(neighbor_cell));
-                        packGhostParticle(neighbor_cell, mask[pti], p, ghosts_to_comm);
+                        packNeighborParticle(neighbor_cell, mask[pti], p, neighbors_to_comm);
                     }
                 }
             }
@@ -128,18 +128,18 @@ void ShortRangeParticleContainer::fillGhosts() {
                 IntVect neighbor_cell = iv;
                 neighbor_cell.shift(shift);
                 BL_ASSERT(mask[pti].box().contains(neighbor_cell));
-                packGhostParticle(neighbor_cell, mask[pti], p, ghosts_to_comm);
+                packNeighborParticle(neighbor_cell, mask[pti], p, neighbors_to_comm);
             }
 #endif
         }
     }
     
-    fillGhostsMPI(ghosts_to_comm);
+    fillNeighborsMPI(neighbors_to_comm);
 }
 
-void ShortRangeParticleContainer::clearGhosts() 
+void ShortRangeParticleContainer::clearNeighbors() 
 {
-    ghosts.clear();
+    neighbors.clear();
 }
 
 void ShortRangeParticleContainer::computeForces() {
@@ -148,9 +148,9 @@ void ShortRangeParticleContainer::computeForces() {
         int Np = particles.size();
         int nstride = particles.dataShape().first;
         PairIndex index(pti.index(), pti.LocalTileIndex());
-        int Ng = ghosts[index].size() / pdata_size;
+        int Nn = neighbors[index].size() / pdata_size;
         amrex_compute_forces(particles.data(), &Np, 
-                             ghosts[index].dataPtr(), &Ng);
+                             neighbors[index].dataPtr(), &Nn);
     }        
 }
 
@@ -170,33 +170,57 @@ void ShortRangeParticleContainer::writeParticles(int n) {
     WriteAsciiFile(pltfile);
 }
 
-void ShortRangeParticleContainer::packGhostParticle(const IntVect& neighbor_cell,
-                                                    const BaseFab<int>& mask,
-                                                    const ParticleType& p,
-                                                    GhostCommMap& ghosts_to_comm) {
+void ShortRangeParticleContainer::applyPeriodicShift(ParticleType& p,
+                                                     const IntVect& neighbor_cell) {
+
+    const Periodicity& periodicity = Geom(lev).periodicity();
+    if (not periodicity.isAnyPeriodic()) return;
+
+    const Box& domain = Geom(lev).Domain();
+    const IntVect& lo = domain.smallEnd();
+    const IntVect& hi = domain.bigEnd();
+    const RealBox& prob_domain = Geom(lev).ProbDomain();
+
+    for (int dir = 0; dir < BL_SPACEDIM; ++dir) {
+        if (not periodicity.isPeriodic(dir)) continue;
+        if (neighbor_cell[dir] < lo[dir]) {
+            p.pos(dir) += prob_domain.length(dir);
+        } 
+        else if (neighbor_cell[dir] > hi[dir]) {
+            p.pos(dir) -= prob_domain.length(dir);
+        }
+    }
+}
+
+void ShortRangeParticleContainer::packNeighborParticle(const IntVect& neighbor_cell,
+                                                       const BaseFab<int>& mask,
+                                                       const ParticleType& p,
+                                                       NeighborCommMap& neighbors_to_comm) {
     const int neighbor_grid = mask(neighbor_cell, 0);
     if (neighbor_grid >= 0) {
         const int who = ParticleDistributionMap(lev)[neighbor_grid];
         const int MyProc = ParallelDescriptor::MyProc();
         const int neighbor_tile = mask(neighbor_cell, 1);
         PairIndex dst_index(neighbor_grid, neighbor_tile);
+        ParticleType particle = p;
+        applyPeriodicShift(particle, neighbor_cell);
         if (who == MyProc) {
-            size_t old_size = ghosts[dst_index].size();
-            size_t new_size = ghosts[dst_index].size() + pdata_size;
-            ghosts[dst_index].resize(new_size);
-            std::memcpy(&ghosts[dst_index][old_size], &p, pdata_size);
+            size_t old_size = neighbors[dst_index].size();
+            size_t new_size = neighbors[dst_index].size() + pdata_size;
+            neighbors[dst_index].resize(new_size);
+            std::memcpy(&neighbors[dst_index][old_size], &particle, pdata_size);
         } else {
-            GhostCommTag tag(who, neighbor_grid, neighbor_tile);
-            Array<char>& buffer = ghosts_to_comm[tag];
+            NeighborCommTag tag(who, neighbor_grid, neighbor_tile);
+            Array<char>& buffer = neighbors_to_comm[tag];
             size_t old_size = buffer.size();
             size_t new_size = buffer.size() + pdata_size;
             buffer.resize(new_size);
-            std::memcpy(&buffer[old_size], &p, pdata_size);
+            std::memcpy(&buffer[old_size], &particle, pdata_size);
         }
     }
 }
 
-void ShortRangeParticleContainer::fillGhostsMPI(GhostCommMap& ghosts_to_comm) {
+void ShortRangeParticleContainer::fillNeighborsMPI(NeighborCommMap& neighbors_to_comm) {
 
 #ifdef BL_USE_MPI
     const int MyProc = ParallelDescriptor::MyProc();
@@ -204,7 +228,7 @@ void ShortRangeParticleContainer::fillGhostsMPI(GhostCommMap& ghosts_to_comm) {
     
     // count the number of tiles to be sent to each proc
     std::map<int, int> tile_counts;
-    for (const auto& kv: ghosts_to_comm) {
+    for (const auto& kv: neighbors_to_comm) {
         tile_counts[kv.first.proc_id] += 1;
     }
     
@@ -213,13 +237,13 @@ void ShortRangeParticleContainer::fillGhostsMPI(GhostCommMap& ghosts_to_comm) {
     // the buffer will be packed like:
     // ntiles, gid1, tid1, size1, data1....  gid2, tid2, size2, data2... etc. 
     std::map<int, Array<char> > send_data;
-    for (const auto& kv: ghosts_to_comm) {
+    for (const auto& kv: neighbors_to_comm) {
         Array<char>& buffer = send_data[kv.first.proc_id];
         buffer.resize(sizeof(int));
         std::memcpy(&buffer[0], &tile_counts[kv.first.proc_id], sizeof(int));
     }
     
-    for (auto& kv : ghosts_to_comm) {
+    for (auto& kv : neighbors_to_comm) {
         int data_size = kv.second.size();
         Array<char>& buffer = send_data[kv.first.proc_id];
         size_t old_size = buffer.size();
@@ -307,7 +331,7 @@ void ShortRangeParticleContainer::fillGhostsMPI(GhostCommMap& ghosts_to_comm) {
         ParallelDescriptor::Send(kv.second.data(), Cnt, Who, SeqNum);
     }
     
-    // unpack the received data and put them into the proper ghost buffers
+    // unpack the received data and put them into the proper neighbor buffers
     if (nrcvs > 0) {
         BL_MPI_REQUIRE( MPI_Waitall(nrcvs, rreqs.data(), stats.data()) );
         for (int i = 0; i < nrcvs; ++i) {
@@ -323,10 +347,10 @@ void ShortRangeParticleContainer::fillGhostsMPI(GhostCommMap& ghosts_to_comm) {
                 if (size == 0) continue;
                 
                 PairIndex dst_index(gid, tid);
-                size_t old_size = ghosts[dst_index].size();
-                size_t new_size = ghosts[dst_index].size() + size;
-                ghosts[dst_index].resize(new_size);
-                std::memcpy(&ghosts[dst_index][old_size], buffer, size); buffer += size;
+                size_t old_size = neighbors[dst_index].size();
+                size_t new_size = neighbors[dst_index].size() + size;
+                neighbors[dst_index].resize(new_size);
+                std::memcpy(&neighbors[dst_index][old_size], buffer, size); buffer += size;
             }
         }
     }
