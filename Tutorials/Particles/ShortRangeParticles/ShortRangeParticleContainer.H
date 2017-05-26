@@ -92,6 +92,12 @@ public:
     void writeParticles(int n);
 
 private:
+    
+    ///
+    /// Apply periodic shift to particle position, so naive distance calculation
+    /// between neighbors and regular particles will be correct.
+    ///
+    void applyPeriodicShift(ParticleType& p, const IntVect& neighbor_cell);
 
     ///
     /// Pack a particle's data into the proper neighbor buffer, or put it into

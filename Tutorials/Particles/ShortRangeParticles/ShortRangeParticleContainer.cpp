@@ -20,7 +20,7 @@ ShortRangeParticleContainer::ShortRangeParticleContainer(const Geometry         
         mask.setVal(grid_id, box, 0, 1);
         mask.setVal(tile_id, box, 1, 1);
     }
-    mask.FillBoundary();
+    mask.FillBoundary(geom.periodicity());
 }
 
 void ShortRangeParticleContainer::InitParticles() {
@@ -170,6 +170,28 @@ void ShortRangeParticleContainer::writeParticles(int n) {
     WriteAsciiFile(pltfile);
 }
 
+void ShortRangeParticleContainer::applyPeriodicShift(ParticleType& p,
+                                                     const IntVect& neighbor_cell) {
+
+    const Periodicity& periodicity = Geom(lev).periodicity();
+    if (not periodicity.isAnyPeriodic()) return;
+
+    const Box& domain = Geom(lev).Domain();
+    const IntVect& lo = domain.smallEnd();
+    const IntVect& hi = domain.bigEnd();
+    const RealBox& prob_domain = Geom(lev).ProbDomain();
+
+    for (int dir = 0; dir < BL_SPACEDIM; ++dir) {
+        if (not periodicity.isPeriodic(dir)) continue;
+        if (neighbor_cell[dir] < lo[dir]) {
+            p.pos(dir) += prob_domain.length(dir);
+        } 
+        else if (neighbor_cell[dir] > hi[dir]) {
+            p.pos(dir) -= prob_domain.length(dir);
+        }
+    }
+}
+
 void ShortRangeParticleContainer::packGhostParticle(const IntVect& neighbor_cell,
                                                     const BaseFab<int>& mask,
                                                     const ParticleType& p,
@@ -180,18 +202,20 @@ void ShortRangeParticleContainer::packGhostParticle(const IntVect& neighbor_cell
         const int MyProc = ParallelDescriptor::MyProc();
         const int neighbor_tile = mask(neighbor_cell, 1);
         PairIndex dst_index(neighbor_grid, neighbor_tile);
+        ParticleType particle = p;
+        applyPeriodicShift(particle, neighbor_cell);
         if (who == MyProc) {
             size_t old_size = ghosts[dst_index].size();
             size_t new_size = ghosts[dst_index].size() + pdata_size;
             ghosts[dst_index].resize(new_size);
-            std::memcpy(&ghosts[dst_index][old_size], &p, pdata_size);
+            std::memcpy(&ghosts[dst_index][old_size], &particle, pdata_size);
         } else {
             GhostCommTag tag(who, neighbor_grid, neighbor_tile);
             Array<char>& buffer = ghosts_to_comm[tag];
             size_t old_size = buffer.size();
             size_t new_size = buffer.size() + pdata_size;
             buffer.resize(new_size);
-            std::memcpy(&buffer[old_size], &p, pdata_size);
+            std::memcpy(&buffer[old_size], &particle, pdata_size);
         }
     }
 }
