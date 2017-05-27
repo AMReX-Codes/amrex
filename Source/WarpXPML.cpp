@@ -145,9 +145,9 @@ SigmaBox::ComputePMLFactorsE (const Real* dx, Real dt)
 }
 
 SigmaBoxArray::SigmaBoxArray (const BoxArray& ba, const DistributionMapping& dm,
-                              const Real* dx, int ncell)
+                              const std::map<int,Box>& grid_bxs, const Real* dx, int ncell)
     : FabArray<SigmaBox>(ba,dm,1,0,MFInfo(),
-                         FabFactory<SigmaBox>(ba,dx,ncell))
+                         FabFactory<SigmaBox>(grid_bxs,dx,ncell))
 {}
 
 void
@@ -199,7 +199,15 @@ PML::PML (const BoxArray& a_ba, const DistributionMapping& a_dm,
     pml_B_fp[1]->setVal(0.0);
     pml_B_fp[2]->setVal(0.0);
 
-    sigba_fp.reset(new SigmaBoxArray(ba, dm, geom->CellSize(), ncell));
+    std::map<int,Box> bxs;
+    for (MFIter mfi(*pml_E_fp[0]); mfi.isValid(); ++mfi)
+    {
+        int i = mfi.index();
+        int li = mfi.LocalIndex();
+        bxs[i] = a_ba[m_cfinfo.fine_grid_idx[li]];
+    }
+
+    sigba_fp.reset(new SigmaBoxArray(ba, dm, bxs, geom->CellSize(), ncell));
 
     if (cgeom)
     {
@@ -220,7 +228,13 @@ PML::PML (const BoxArray& a_ba, const DistributionMapping& a_dm,
         pml_B_cp[1]->setVal(0.0);
         pml_B_cp[2]->setVal(0.0);
 
-        sigba_cp.reset(new SigmaBoxArray(cba, dm, cgeom->CellSize(), ncell));
+        std::map<int,Box> cbxs;
+        for (const auto& kv : bxs)
+        {
+            cbxs[kv.first] = amrex::coarsen(kv.second,ref_ratio);
+        }
+
+        sigba_cp.reset(new SigmaBoxArray(cba, dm, cbxs, cgeom->CellSize(), ncell));
     }
 
 }

@@ -4,6 +4,8 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_Geometry.H>
 
+#include <map>
+
 #if (BL_SPACEDIM == 3)
 
 #define WRPX_PML_SIGMA_STAR_TO_FORTRAN(x)  \
@@ -54,15 +56,15 @@ namespace amrex {
     class FabFactory<SigmaBox>
     {
     public:
-        FabFactory<SigmaBox> (const BoxArray& ba, const Real* dx, int ncell) 
-            : m_ba(ba), m_dx(dx), m_ncell(ncell) {}
+        FabFactory<SigmaBox> (const std::map<int,Box>& grid_bxs, const Real* dx, int ncell) 
+            : m_grid_bxs(grid_bxs), m_dx(dx), m_ncell(ncell) {}
         virtual SigmaBox* create (const Box& box, int ncomps,
                                   const FabInfo& info, int box_index) const final
             { 
-                return new SigmaBox(box, m_ba[box_index], m_dx, m_ncell);
+                return new SigmaBox(box, m_grid_bxs.at(box_index), m_dx, m_ncell);
             }
     private:
-        const BoxArray& m_ba;
+        const std::map<int,Box>& m_grid_bxs;
         const Real* m_dx;
         int m_ncell;
     };
@@ -73,6 +75,7 @@ class SigmaBoxArray
 {
 public:
     SigmaBoxArray(const amrex::BoxArray& ba, const amrex::DistributionMapping& dm,
+                  const std::map<int,amrex::Box>& grid_bxs, 
                   const amrex::Real* dx, int ncell);
     void ComputePMLFactorsB (const amrex::Real* dx, amrex::Real dt);
     void ComputePMLFactorsE (const amrex::Real* dx, amrex::Real dt);
