@@ -110,8 +110,6 @@ public:
     void FillBoundary ();
 
 private:
-    amrex::MultiFab m_mf;
-    const amrex::FabArrayBase::CFinfo& m_cfinfo;
     const amrex::Geometry* m_geom;
     const amrex::Geometry* m_cgeom;
 

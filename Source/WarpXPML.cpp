@@ -177,13 +177,38 @@ SigmaBoxArray::ComputePMLFactorsE (const Real* dx, Real dt)
 PML::PML (const BoxArray& a_ba, const DistributionMapping& a_dm, 
           const Geometry* geom, const Geometry* cgeom,
           int ncell, int ref_ratio)
-    : m_mf(a_ba, a_dm, 1, 0, MFInfo().SetAlloc(false)),
-      m_cfinfo(FabArrayBase::TheCFinfo(m_mf,*geom,ncell,false,true)),
-      m_geom(geom),
+    : m_geom(geom),
       m_cgeom(cgeom)
 {
-    const BoxArray& ba = m_cfinfo.ba_cfb;
-    const DistributionMapping& dm = m_cfinfo.dm_cfb;
+    BoxArray ba;
+    {
+        Box domain = geom->Domain();
+        for (int idim = 0; idim < BL_SPACEDIM; ++idim) {
+            if ( ! Geometry::isPeriodic(idim) ) {
+                domain.grow(idim, ncell);
+            }
+        }
+
+        BoxList bl;
+        for (int i = 0, N = a_ba.size(); i < N; ++i)
+        {
+            Box bx = a_ba[i];
+            bx.grow(ncell);
+            bx &= domain;
+
+            const BoxList& noncovered = a_ba.complementIn(bx);
+            for (const Box& b : noncovered) {
+                bl.push_back(b);
+            }
+        }
+
+        ba.define(bl);
+        ba.removeOverlap(false);
+    }
+
+    amrex::Print() << "PML ba = " << ba ;
+
+    DistributionMapping dm{ba};
 
     pml_E_fp[0].reset(new MultiFab(amrex::convert(ba,WarpX::Ex_nodal_flag), dm, 2, 0));
     pml_E_fp[1].reset(new MultiFab(amrex::convert(ba,WarpX::Ey_nodal_flag), dm, 2, 0));
@@ -204,7 +229,7 @@ PML::PML (const BoxArray& a_ba, const DistributionMapping& a_dm,
     {
         int i = mfi.index();
         int li = mfi.LocalIndex();
-        bxs[i] = a_ba[m_cfinfo.fine_grid_idx[li]];
+//xxxxx        bxs[i] = a_ba[m_cfinfo.fine_grid_idx[li]];
     }
 
     sigba_fp.reset(new SigmaBoxArray(ba, dm, bxs, geom->CellSize(), ncell));
@@ -303,7 +328,8 @@ PML::Exchange (const std::array<amrex::MultiFab*,3>& E_fp,
 void
 PML::Exchange (MultiFab& pml, MultiFab& reg)
 {
-    const Array<int>& ridx = m_cfinfo.fine_grid_idx;
+// xxxxxx    const Array<int>& ridx = m_cfinfo.fine_grid_idx;
+    Array<int> ridx;
     const int ngr = reg.nGrow();
     const int ngp = pml.nGrow();
 
