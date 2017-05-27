@@ -144,7 +144,7 @@ public:
     /**
     * \brief Operations to be done after restart.
     */
-    virtual void post_restart ();
+    virtual void post_restart () {};
     /**
     * \brief Operations to be done after regridding (like avgDown).
     * This is a pure virtual function and hence MUST be
