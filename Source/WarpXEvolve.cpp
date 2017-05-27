@@ -224,8 +224,8 @@ WarpX::EvolveB (int lev, Real dt)
         {
             const auto& pml_B = (ipatch==0) ? pml[lev]->GetB_fp() : pml[lev]->GetB_cp();
             const auto& pml_E = (ipatch==0) ? pml[lev]->GetE_fp() : pml[lev]->GetE_cp();
-            const auto& sigba = (ipatch==0) ? pml[lev]->GetSigmaBoxArray_fp()
-                                            : pml[lev]->GetSigmaBoxArray_cp();
+            const auto& sigba = (ipatch==0) ? pml[lev]->GetMultiSigmaBox_fp()
+                                            : pml[lev]->GetMultiSigmaBox_cp();
             
 #ifdef _OPENMP
 #pragma omp parallel
@@ -342,8 +342,8 @@ WarpX::EvolveE (int lev, Real dt)
         {
             const auto& pml_B = (ipatch==0) ? pml[lev]->GetB_fp() : pml[lev]->GetB_cp();
             const auto& pml_E = (ipatch==0) ? pml[lev]->GetE_fp() : pml[lev]->GetE_cp();
-            const auto& sigba = (ipatch==0) ? pml[lev]->GetSigmaBoxArray_fp()
-                                            : pml[lev]->GetSigmaBoxArray_cp();
+            const auto& sigba = (ipatch==0) ? pml[lev]->GetMultiSigmaBox_fp()
+                                            : pml[lev]->GetMultiSigmaBox_cp();
 
 #ifdef _OPENMP
 #pragma omp parallel

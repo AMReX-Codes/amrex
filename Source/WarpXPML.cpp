@@ -11,29 +11,23 @@
 
 using namespace amrex;
 
-SigmaBox::SigmaBox (const Box& a_box, const Box& a_grid_box, const Real* dx, int ncell)
-    : box(a_box),
-      grid_box(a_grid_box)
+SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int ncell)
 {
     BL_ASSERT(box.cellCentered());
-    BL_ASSERT(grid_box.cellCentered());
 
     const IntVect& sz = box.size();
-
-    const int* lo  =      box.loVect();
-    const int* hi  =      box.hiVect();
-    const int* glo = grid_box.loVect();
-    const int* ghi = grid_box.hiVect();
+    const int*     lo = box.loVect();
+    const int*     hi = box.hiVect();
 
     for (int idim = 0; idim < BL_SPACEDIM; ++idim)
     {
         sigma     [idim].resize(sz[idim]+1, 0.0);
         sigma_star[idim].resize(sz[idim]  , 0.0);
 
-        sigma_fac1     [idim].resize(sz[idim]+1, 1.0);
-        sigma_fac2     [idim].resize(sz[idim]+1     );
-        sigma_star_fac1[idim].resize(sz[idim]  , 1.0);
-        sigma_star_fac2[idim].resize(sz[idim]       );
+        sigma_fac1     [idim].resize(sz[idim]+1);
+        sigma_fac2     [idim].resize(sz[idim]+1);
+        sigma_star_fac1[idim].resize(sz[idim]  );
+        sigma_star_fac2[idim].resize(sz[idim]  );
 
         sigma     [idim].m_lo = lo[idim];
         sigma     [idim].m_hi = hi[idim]+1;
@@ -48,27 +42,126 @@ SigmaBox::SigmaBox (const Box& a_box, const Box& a_grid_box, const Real* dx, int
         sigma_star_fac1[idim].m_hi = hi[idim];
         sigma_star_fac2[idim].m_lo = lo[idim];
         sigma_star_fac2[idim].m_hi = hi[idim];
+    }
 
-        const Real fac = 4.0*PhysConst::c/(dx[idim]*static_cast<Real>(ncell*ncell));
+    Array<Real> fac(BL_SPACEDIM);
+    for (int idim = 0; idim < BL_SPACEDIM; ++idim) {
+        fac[idim] = 4.0*PhysConst::c/(dx[idim]*static_cast<Real>(ncell*ncell));
+    }
 
-        // lo side
-        for (int i = lo[idim], end=std::min(hi[idim]+1,glo[idim]); i < end; ++i)
+    const std::vector<std::pair<int,Box> >& isects = grids.intersections(box, false, ncell);
+
+    for (const auto& kv : isects)
+    {
+        const Box& grid_box = grids[kv.first];
+        const int* glo = grid_box.loVect();
+        const int* ghi = grid_box.hiVect();
+
+        for (int idim = 0; idim < BL_SPACEDIM; ++idim)
         {
-            Real offset = static_cast<Real>(glo[idim]-i);
-            sigma[idim][i-lo[idim]] = fac*(offset*offset);
+            // lo side
+            for (int i = lo[idim], end=std::min(hi[idim]+1,glo[idim]); i <= end; ++i)
+            {
+                Real offset = static_cast<Real>(glo[idim]-i);
+                sigma[idim][i-lo[idim]] = fac[idim]*(offset*offset);
+            }
+            for (int i = lo[idim], end=std::min(hi[idim],glo[idim]-1); i <= end; ++i)
+            {
+                Real offset = static_cast<Real>(glo[idim]-i) - 0.5;
+                sigma_star[idim][i-lo[idim]] = fac[idim]*(offset*offset);
+            }
 
-            offset -= 0.5;
-            sigma_star[idim][i-lo[idim]] = fac*(offset*offset);
+            // hi side
+            for (int i = std::max(ghi[idim]+1,lo[idim]); i <= hi[idim]+1; ++i)
+            {
+                Real offset = static_cast<Real>(i-ghi[idim]-1);
+                sigma[idim][i-lo[idim]] = fac[idim]*(offset*offset);
+            }
+            for (int i = std::max(ghi[idim]+1,lo[idim]); i <= hi[idim]; ++i)
+            {                
+                Real offset = static_cast<Real>(i-ghi[idim]) - 0.5;
+                sigma_star[idim][i-lo[idim]] = fac[idim]*(offset*offset);
+            }
         }
+    }
 
-        // hi side
-        for (int i = std::max(ghi[idim]+1,lo[idim]); i <= hi[idim]; ++i)
+    // second pass
+    for (const auto& kv : isects)
+    {
+        const Box& grid_box = grids[kv.first];
+        for (int idim = 0; idim < BL_SPACEDIM; ++idim)
         {
-            Real offset = static_cast<Real>(i-ghi[idim]);
-            sigma[idim][i-lo[idim]+1] = fac*(offset*offset);
-            
-            offset -= 0.5;
-            sigma_star[idim][i-lo[idim]] = fac*(offset*offset);
+            for (int orientation = 0; orientation < 2; ++orientation)
+            {
+                const Box& adjbx = (orientation == 0)
+                    ? amrex::adjCellLo(grid_box, idim, ncell)
+                    : amrex::adjCellHi(grid_box, idim, ncell);
+
+                const Box& overlap = adjbx & box;
+                if (overlap.ok())
+                {
+                    const int* olo = overlap.loVect();
+                    const int* ohi = overlap.hiVect();
+                    for (int jdim = 0; jdim < BL_SPACEDIM; ++jdim)
+                    {
+                        if (jdim != idim)
+                        {
+                            for (int i = olo[jdim]; i <= ohi[jdim]; ++i) {
+                                sigma[jdim][i-lo[jdim]] = 0.0;
+                                sigma_star[jdim][i-lo[jdim]] = 0.0;
+                            }
+                            sigma[jdim][ohi[jdim]+1-lo[jdim]] = 0.0;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // third pass
+    for (const auto& kv : isects)
+    {
+        const Box& grid_box = grids[kv.first];
+        const int* glo = grid_box.loVect();
+        const int* ghi = grid_box.hiVect();
+
+        for (int idim = 0; idim < BL_SPACEDIM; ++idim)
+        {
+            const Box& adjlobx = amrex::adjCellLo(grid_box, idim, ncell);
+            const Box& ovllobx = adjlobx & box;
+            if (ovllobx.ok())
+            {
+                const int* olo = ovllobx.loVect();
+                const int* ohi = ovllobx.hiVect();
+                for (int i = olo[idim]; i <= ohi[idim]+1; ++i)
+                {
+                    Real offset = static_cast<Real>(glo[idim]-i);
+                    sigma[idim][i-lo[idim]] = fac[idim]*(offset*offset);
+                }
+                for (int i = olo[idim]; i <= ohi[idim]; ++i)
+                {
+                    Real offset = static_cast<Real>(glo[idim]-i) - 0.5;
+                    sigma_star[idim][i-lo[idim]] = fac[idim]*(offset*offset);
+                }
+            }
+
+            const Box& adjhibx = amrex::adjCellHi(grid_box, idim, ncell);
+            const Box& ovlhibx = adjhibx & box;
+            if (ovlhibx.ok())
+            {
+                const int* olo = ovlhibx.loVect();
+                const int* ohi = ovlhibx.hiVect();
+                for (int i = olo[idim]; i <= ohi[idim]+1; ++i)
+                {
+                    Real offset = static_cast<Real>(i-ghi[idim]-1);
+                    sigma[idim][i-lo[idim]] = fac[idim]*(offset*offset);
+                }
+                for (int i = olo[idim]; i <= ohi[idim]; ++i)
+                {
+                    Real offset = static_cast<Real>(i-ghi[idim]) - 0.5;
+                    sigma_star[idim][i-lo[idim]] = fac[idim]*(offset*offset);
+                }
+            }
         }
     }
 }
@@ -78,31 +171,21 @@ SigmaBox::ComputePMLFactorsB (const Real* dx, Real dt)
 {
     const std::array<Real,BL_SPACEDIM> dtsdx {D_DECL(dt/dx[0], dt/dx[1], dt/dx[2])};
 
-    const int* lo  =      box.loVect();
-    const int* hi  =      box.hiVect();
-    const int* glo = grid_box.loVect();
-    const int* ghi = grid_box.hiVect();
-
     for (int idim = 0; idim < BL_SPACEDIM; ++idim)
     {
-        std::fill(sigma_star_fac2[idim].begin(), sigma_star_fac2[idim].end(), dtsdx[idim]);
-
-        // lo side
-        for (int i = lo[idim], end=std::min(hi[idim]+1,glo[idim]); i < end; ++i)
+        for (int i = 0, N = sigma_star[idim].size(); i < N; ++i)
         {
-            int ii = i-lo[idim];
-            sigma_star_fac1[idim][ii] = std::exp(-sigma_star[idim][ii]*dt);
-            sigma_star_fac2[idim][ii] = (1.0-sigma_star_fac1[idim][ii])
-                                      / (sigma_star[idim][ii]*dt) * dtsdx[idim];
-        }
-
-        // hi side
-        for (int i = std::max(ghi[idim]+1,lo[idim]); i <= hi[idim]; ++i)
-        {
-            int ii = i-lo[idim];
-            sigma_star_fac1[idim][ii] = std::exp(-sigma_star[idim][ii]*dt);
-            sigma_star_fac2[idim][ii] = (1.0-sigma_star_fac1[idim][ii])
-                                      / (sigma_star[idim][ii]*dt) * dtsdx[idim];
+            if (sigma_star[idim][i] == 0.0)
+            {
+                sigma_star_fac1[idim][i] = 1.0;
+                sigma_star_fac2[idim][i] = dtsdx[idim];
+            }
+            else
+            {
+                sigma_star_fac1[idim][i] = std::exp(-sigma_star[idim][i]*dt);
+                sigma_star_fac2[idim][i] = (1.0-sigma_star_fac1[idim][i])
+                    / (sigma_star[idim][i]*dt) * dtsdx[idim];
+            }
         }
     }
 }
@@ -115,44 +198,38 @@ SigmaBox::ComputePMLFactorsE (const Real* dx, Real dt)
     const Real c2 = PhysConst::c*PhysConst::c;
     const std::array<Real,BL_SPACEDIM> dtsdx_c2 {D_DECL(dtsdx[0]*c2, dtsdx[1]*c2, dtsdx[2]*c2)};
 
-    const int* lo  =      box.loVect();
-    const int* hi  =      box.hiVect();
-    const int* glo = grid_box.loVect();
-    const int* ghi = grid_box.hiVect();
-
     for (int idim = 0; idim < BL_SPACEDIM; ++idim)
     {
-        std::fill(sigma_fac2[idim].begin(), sigma_fac2[idim].end(), dtsdx_c2[idim]);
-
-        // lo side
-        for (int i = lo[idim], end=std::min(hi[idim]+1,glo[idim]); i < end; ++i)
+        for (int i = 0, N = sigma[idim].size(); i < N; ++i)
         {
-            int ii = i-lo[idim];
-            sigma_fac1[idim][ii] = std::exp(-sigma[idim][ii]*dt);
-            sigma_fac2[idim][ii] = (1.0-sigma_fac1[idim][ii])
-                / (sigma[idim][ii]*dt) * dtsdx_c2[idim];
-        }
-
-        // hi side
-        for (int i = std::max(ghi[idim]+1,lo[idim]); i <= hi[idim]; ++i)
-        {
-            int ii = i-lo[idim]+1;
-            sigma_fac1[idim][ii] = std::exp(-sigma[idim][ii]*dt);
-            sigma_fac2[idim][ii] = (1.0-sigma_fac1[idim][ii])
-                / (sigma[idim][ii]*dt) * dtsdx_c2[idim];            
+            if (sigma[idim][i] == 0.0)
+            {
+                sigma_fac1[idim][i] = 1.0;
+                sigma_fac2[idim][i] = dtsdx_c2[idim];
+            }
+            else
+            {
+                sigma_fac1[idim][i] = std::exp(-sigma[idim][i]*dt);
+                sigma_fac2[idim][i] = (1.0-sigma_fac1[idim][i])
+                    / (sigma[idim][i]*dt) * dtsdx_c2[idim];
+            }
         }
     }
 }
 
-SigmaBoxArray::SigmaBoxArray (const BoxArray& ba, const DistributionMapping& dm,
-                              const std::map<int,Box>& grid_bxs, const Real* dx, int ncell)
+MultiSigmaBox::MultiSigmaBox (const BoxArray& ba, const DistributionMapping& dm,
+                              const BoxArray& grid_ba, const Real* dx, int ncell)
     : FabArray<SigmaBox>(ba,dm,1,0,MFInfo(),
-                         FabFactory<SigmaBox>(grid_bxs,dx,ncell))
+                         FabFactory<SigmaBox>(grid_ba,dx,ncell))
 {}
 
 void
-SigmaBoxArray::ComputePMLFactorsB (const Real* dx, Real dt)
+MultiSigmaBox::ComputePMLFactorsB (const Real* dx, Real dt)
 {
+    if (dt == dt_B) return;
+
+    dt_B = dt;
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -163,8 +240,12 @@ SigmaBoxArray::ComputePMLFactorsB (const Real* dx, Real dt)
 }
 
 void
-SigmaBoxArray::ComputePMLFactorsE (const Real* dx, Real dt)
+MultiSigmaBox::ComputePMLFactorsE (const Real* dx, Real dt)
 {
+    if (dt == dt_E) return;
+
+    dt_E = dt;
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -174,40 +255,13 @@ SigmaBoxArray::ComputePMLFactorsE (const Real* dx, Real dt)
     }
 }
 
-PML::PML (const BoxArray& a_ba, const DistributionMapping& a_dm, 
+PML::PML (const BoxArray& grid_ba, const DistributionMapping& grid_dm, 
           const Geometry* geom, const Geometry* cgeom,
           int ncell, int ref_ratio)
     : m_geom(geom),
       m_cgeom(cgeom)
 {
-    BoxArray ba;
-    {
-        Box domain = geom->Domain();
-        for (int idim = 0; idim < BL_SPACEDIM; ++idim) {
-            if ( ! Geometry::isPeriodic(idim) ) {
-                domain.grow(idim, ncell);
-            }
-        }
-
-        BoxList bl;
-        for (int i = 0, N = a_ba.size(); i < N; ++i)
-        {
-            Box bx = a_ba[i];
-            bx.grow(ncell);
-            bx &= domain;
-
-            const BoxList& noncovered = a_ba.complementIn(bx);
-            for (const Box& b : noncovered) {
-                bl.push_back(b);
-            }
-        }
-
-        ba.define(bl);
-        ba.removeOverlap(false);
-    }
-
-    amrex::Print() << "PML ba = " << ba ;
-
+    const BoxArray& ba = MakeBoxArray(*geom, grid_ba, ncell);
     DistributionMapping dm{ba};
 
     pml_E_fp[0].reset(new MultiFab(amrex::convert(ba,WarpX::Ex_nodal_flag), dm, 2, 0));
@@ -224,27 +278,22 @@ PML::PML (const BoxArray& a_ba, const DistributionMapping& a_dm,
     pml_B_fp[1]->setVal(0.0);
     pml_B_fp[2]->setVal(0.0);
 
-    std::map<int,Box> bxs;
-    for (MFIter mfi(*pml_E_fp[0]); mfi.isValid(); ++mfi)
-    {
-        int i = mfi.index();
-        int li = mfi.LocalIndex();
-//xxxxx        bxs[i] = a_ba[m_cfinfo.fine_grid_idx[li]];
-    }
-
-    sigba_fp.reset(new SigmaBoxArray(ba, dm, bxs, geom->CellSize(), ncell));
+    sigba_fp.reset(new MultiSigmaBox(ba, dm, grid_ba, geom->CellSize(), ncell));
 
     if (cgeom)
     {
-        BoxArray cba = ba;
-        cba.coarsen(ref_ratio);
+        BoxArray grid_cba = grid_ba;
+        grid_cba.coarsen(ref_ratio);
+        const BoxArray& cba = MakeBoxArray(*cgeom, grid_cba, ncell);
 
-        pml_E_cp[0].reset(new MultiFab(amrex::convert(cba,WarpX::Ex_nodal_flag), dm, 2, 0));
-        pml_E_cp[1].reset(new MultiFab(amrex::convert(cba,WarpX::Ey_nodal_flag), dm, 2, 0));
-        pml_E_cp[2].reset(new MultiFab(amrex::convert(cba,WarpX::Ez_nodal_flag), dm, 2, 0));
-        pml_B_cp[0].reset(new MultiFab(amrex::convert(cba,WarpX::Bx_nodal_flag), dm, 2, 1));
-        pml_B_cp[1].reset(new MultiFab(amrex::convert(cba,WarpX::By_nodal_flag), dm, 2, 1));
-        pml_B_cp[2].reset(new MultiFab(amrex::convert(cba,WarpX::Bz_nodal_flag), dm, 2, 1));
+        DistributionMapping cdm{cba};
+
+        pml_E_cp[0].reset(new MultiFab(amrex::convert(cba,WarpX::Ex_nodal_flag), cdm, 2, 0));
+        pml_E_cp[1].reset(new MultiFab(amrex::convert(cba,WarpX::Ey_nodal_flag), cdm, 2, 0));
+        pml_E_cp[2].reset(new MultiFab(amrex::convert(cba,WarpX::Ez_nodal_flag), cdm, 2, 0));
+        pml_B_cp[0].reset(new MultiFab(amrex::convert(cba,WarpX::Bx_nodal_flag), cdm, 2, 1));
+        pml_B_cp[1].reset(new MultiFab(amrex::convert(cba,WarpX::By_nodal_flag), cdm, 2, 1));
+        pml_B_cp[2].reset(new MultiFab(amrex::convert(cba,WarpX::Bz_nodal_flag), cdm, 2, 1));
         
         pml_E_cp[0]->setVal(0.0);
         pml_E_cp[1]->setVal(0.0);
@@ -253,15 +302,39 @@ PML::PML (const BoxArray& a_ba, const DistributionMapping& a_dm,
         pml_B_cp[1]->setVal(0.0);
         pml_B_cp[2]->setVal(0.0);
 
-        std::map<int,Box> cbxs;
-        for (const auto& kv : bxs)
-        {
-            cbxs[kv.first] = amrex::coarsen(kv.second,ref_ratio);
-        }
-
-        sigba_cp.reset(new SigmaBoxArray(cba, dm, cbxs, cgeom->CellSize(), ncell));
+        sigba_cp.reset(new MultiSigmaBox(cba, cdm, grid_cba, cgeom->CellSize(), ncell));
     }
 
+}
+
+BoxArray
+PML::MakeBoxArray (const amrex::Geometry& geom, const amrex::BoxArray& grid_ba, int ncell)
+{
+    Box domain = geom.Domain();
+    for (int idim = 0; idim < BL_SPACEDIM; ++idim) {
+        if ( ! Geometry::isPeriodic(idim) ) {
+            domain.grow(idim, ncell);
+        }
+    }
+    
+    BoxList bl;
+    for (int i = 0, N = grid_ba.size(); i < N; ++i)
+        {
+            Box bx = grid_ba[i];
+            bx.grow(ncell);
+            bx &= domain;
+            
+            const BoxList& noncovered = grid_ba.complementIn(bx);
+            for (const Box& b : noncovered) {
+                bl.push_back(b);
+            }
+        }
+    
+    BoxArray ba(bl);
+    ba.removeOverlap();
+    ba.maxSize(64);
+
+    return ba;
 }
 
 void

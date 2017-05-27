@@ -4,8 +4,6 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_Geometry.H>
 
-#include <map>
-
 #if (BL_SPACEDIM == 3)
 
 #define WRPX_PML_SIGMA_STAR_TO_FORTRAN(x)  \
@@ -37,7 +35,8 @@ struct Sigma : amrex::Array<amrex::Real>
 
 struct SigmaBox
 {
-    SigmaBox (const amrex::Box& a_box, const amrex::Box& grid_box, const amrex::Real* dx, int ncell);
+    SigmaBox (const amrex::Box& box, const amrex::BoxArray& grids,
+              const amrex::Real* dx, int ncell);
 
     void ComputePMLFactorsB (const amrex::Real* dx, amrex::Real dt);
     void ComputePMLFactorsE (const amrex::Real* dx, amrex::Real dt);
@@ -46,9 +45,6 @@ struct SigmaBox
     std::array<Sigma,BL_SPACEDIM> sigma_star; // sigma_star/mu
     std::array<Sigma,BL_SPACEDIM> sigma_fac1, sigma_fac2;
     std::array<Sigma,BL_SPACEDIM> sigma_star_fac1, sigma_star_fac2;
-
-    amrex::Box box;
-    amrex::Box grid_box;
 };
 
 namespace amrex {
@@ -56,29 +52,29 @@ namespace amrex {
     class FabFactory<SigmaBox>
     {
     public:
-        FabFactory<SigmaBox> (const std::map<int,Box>& grid_bxs, const Real* dx, int ncell) 
-            : m_grid_bxs(grid_bxs), m_dx(dx), m_ncell(ncell) {}
+        FabFactory<SigmaBox> (const BoxArray& grid_ba, const Real* dx, int ncell) 
+            : m_grids(grid_ba), m_dx(dx), m_ncell(ncell) {}
         virtual SigmaBox* create (const Box& box, int ncomps,
                                   const FabInfo& info, int box_index) const final
-            { 
-                return new SigmaBox(box, m_grid_bxs.at(box_index), m_dx, m_ncell);
-            }
+            { return new SigmaBox(box, m_grids, m_dx, m_ncell); }
     private:
-        const std::map<int,Box>& m_grid_bxs;
+        const BoxArray& m_grids;
         const Real* m_dx;
         int m_ncell;
     };
 }
 
-class SigmaBoxArray
+class MultiSigmaBox
     : public amrex::FabArray<SigmaBox>
 {
 public:
-    SigmaBoxArray(const amrex::BoxArray& ba, const amrex::DistributionMapping& dm,
-                  const std::map<int,amrex::Box>& grid_bxs, 
-                  const amrex::Real* dx, int ncell);
+    MultiSigmaBox(const amrex::BoxArray& ba, const amrex::DistributionMapping& dm,
+                  const amrex::BoxArray& grid_ba, const amrex::Real* dx, int ncell);
     void ComputePMLFactorsB (const amrex::Real* dx, amrex::Real dt);
     void ComputePMLFactorsE (const amrex::Real* dx, amrex::Real dt);
+private:
+    amrex::Real dt_B = -1.e10;
+    amrex::Real dt_E = -1.e10;
 };
 
 class PML
@@ -96,10 +92,10 @@ public:
     std::array<amrex::MultiFab*,3> GetE_cp ();
     std::array<amrex::MultiFab*,3> GetB_cp ();
 
-    const SigmaBoxArray& GetSigmaBoxArray_fp () const 
+    const MultiSigmaBox& GetMultiSigmaBox_fp () const 
         { return *sigba_fp; }
 
-    const SigmaBoxArray& GetSigmaBoxArray_cp () const 
+    const MultiSigmaBox& GetMultiSigmaBox_cp () const 
         { return *sigba_cp; }
 
     void Exchange (const std::array<amrex::MultiFab*,3>& E_fp,
@@ -119,8 +115,11 @@ private:
     std::array<std::unique_ptr<amrex::MultiFab>,3> pml_E_cp;
     std::array<std::unique_ptr<amrex::MultiFab>,3> pml_B_cp;
 
-    std::unique_ptr<SigmaBoxArray> sigba_fp;
-    std::unique_ptr<SigmaBoxArray> sigba_cp;
+    std::unique_ptr<MultiSigmaBox> sigba_fp;
+    std::unique_ptr<MultiSigmaBox> sigba_cp;
+
+    static amrex::BoxArray MakeBoxArray (const amrex::Geometry& geom,
+                                         const amrex::BoxArray& grid_ba, int ncell);
 
     void Exchange (amrex::MultiFab& pml, amrex::MultiFab& reg);
 };
