@@ -202,6 +202,10 @@ WarpX::ReadParameters ()
         pp.query("plot_part_per_proc", plot_part_per_proc);
         pp.query("plot_proc_number"  , plot_proc_number);
         pp.query("plot_divb"         , plot_divb);
+
+        if (maxLevel() > 0) {
+            pp.query("plot_finepatch", plot_finepatch);
+        }
     }
 
     {

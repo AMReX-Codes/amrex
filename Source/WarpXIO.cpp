@@ -362,7 +362,8 @@ WarpX::WritePlotFile () const
             + static_cast<int>(plot_part_per_grid)
             + static_cast<int>(plot_part_per_proc)
             + static_cast<int>(plot_proc_number)
-            + static_cast<int>(plot_divb);
+            + static_cast<int>(plot_divb)
+            + static_cast<int>(plot_finepatch)*6;
 
 	for (int lev = 0; lev <= finest_level; ++lev)
 	{
@@ -485,6 +486,37 @@ WarpX::WritePlotFile () const
                     varnames.push_back("divB");
                 }                
                 dcomp += 1;
+            }
+
+            if (plot_finepatch)
+            {
+                PackPlotDataPtrs(srcmf, Efield_fp[lev]);
+                amrex::average_edge_to_cellcenter(*mf[lev], dcomp, srcmf);
+#if (BL_SPACEDIM == 2)
+                MultiFab::Copy(*mf[lev], *mf[lev], dcomp+1, dcomp+2, 1, ngrow);
+                amrex::average_node_to_cellcenter(*mf[lev], dcomp+1, *Efield_fp[lev][1], 0, 1);
+#endif
+                if (lev == 0)
+                {
+                    varnames.push_back("Ex_fp");
+                    varnames.push_back("Ey_fp");
+                    varnames.push_back("Ez_fp");
+                }
+                dcomp += 3;
+                
+                PackPlotDataPtrs(srcmf, Bfield_fp[lev]);
+                amrex::average_face_to_cellcenter(*mf[lev], dcomp, srcmf);
+#if (BL_SPACEDIM == 2)
+                MultiFab::Copy(*mf[lev], *mf[lev], dcomp+1, dcomp+2, 1, ngrow);
+                MultiFab::Copy(*mf[lev], *Bfield_fp[lev][1], 0, dcomp+1, 1, ngrow);
+#endif
+                if (lev == 0)
+                {
+                    varnames.push_back("Bx_fp");
+                    varnames.push_back("By_fp");
+                    varnames.push_back("Bz_fp");
+                }
+                dcomp += 3;
             }
 
             BL_ASSERT(dcomp == ncomp);

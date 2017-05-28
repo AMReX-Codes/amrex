@@ -248,7 +248,8 @@ private:
     bool plot_part_per_proc = true;
     bool plot_proc_number   = true;
     bool plot_divb          = false;
-    bool plot_raw_fields = false;
+    bool plot_finepatch     = false;
+    bool plot_raw_fields    = false;
 
     bool is_synchronized = true;
 };
