@@ -1,5 +1,6 @@
 
 #include <AMReX_FillPatchUtil.H>
+#include <AMReX_FillPatchUtil_F.H>
 #include <cmath>
 
 #ifdef _OPENMP
@@ -243,5 +244,114 @@ namespace amrex
 	}
 
 	fbc.FillBoundary(mf, dcomp, ncomp, time);
+    }
+
+    // B fields are assumed to be on staggered grids.
+    void InterpCrseFineBndryEMfield (InterpEM_t interp_type,
+                                     const std::array<MultiFab,BL_SPACEDIM>& crse,
+                                     std::array<MultiFab,BL_SPACEDIM>& fine,
+                                     const Geometry& cgeom, const Geometry& fgeom,
+                                     int ref_ratio)
+    {
+        BL_ASSERT(ref_ratio == 2);
+
+        int ngrow = fine[0].nGrow();
+        for (int idim = 1; idim < BL_SPACEDIM; ++idim) {
+            BL_ASSERT(ngrow == fine[idim].nGrow());
+        }
+
+        if (ngrow == 0) return;
+
+        bool include_periodic = true;
+        bool include_physbndry = false;
+        const auto& cfinfo = FabArrayBase::TheCFinfo(fine[0], fgeom, ngrow,
+                                                     include_periodic, include_physbndry);
+
+        if (! cfinfo.ba_cfb.empty())
+        {
+            std::array<MultiFab, BL_SPACEDIM> cmf;
+            for (int idim = 0; idim < BL_SPACEDIM; ++idim)
+            {
+                const BoxArray& fine_ba = fine[idim].boxArray();
+                BoxArray fba = cfinfo.ba_cfb;
+                fba.convert(fine_ba.ixType());
+                BoxArray cba = fba;
+                cba.coarsen(ref_ratio);
+                const DistributionMapping& dm = cfinfo.dm_cfb;
+
+                cmf[idim].define(cba, dm, 1, 1);
+
+                cmf[idim].copy(crse[idim], 0, 0, 1, 0, 1, cgeom.periodicity());
+            }
+
+            const Real* dx = cgeom.CellSize();
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+            {
+                std::array<FArrayBox,BL_SPACEDIM> bfab;
+                for (MFIter mfi(cmf[0]); mfi.isValid(); ++mfi)
+                {
+                    const int fi = cfinfo.fine_grid_idx[mfi.LocalIndex()];
+
+                    Box ccbx = amrex::grow(fine[0].boxArray()[fi], ngrow);
+                    ccbx.enclosedCells();
+                    ccbx.coarsen(ref_ratio).refine(ref_ratio);  // so that ccbx is coarsenable
+
+                    const FArrayBox& cxfab = cmf[0][mfi];
+                    bfab[0].resize(amrex::convert(ccbx,fine[0].ixType()));
+#if (BL_SPACEDIM > 1)
+                    const FArrayBox& cyfab = cmf[1][mfi];
+                    bfab[1].resize(amrex::convert(ccbx,fine[1].ixType()));
+#endif
+#if (BL_SPACEDIM > 2)
+                    const FArrayBox& czfab = cmf[2][mfi];
+                    bfab[2].resize(amrex::convert(ccbx,fine[2].ixType()));
+#endif
+                    // interpolate from cmf to fmf
+                    if (interp_type == InterpB)
+                    {
+                        amrex_interp_div_free_bfield(ccbx.loVect(), ccbx.hiVect(),
+                                                     D_DECL(BL_TO_FORTRAN_ANYD(bfab[0]),
+                                                            BL_TO_FORTRAN_ANYD(bfab[1]),
+                                                            BL_TO_FORTRAN_ANYD(bfab[2])),
+                                                     D_DECL(BL_TO_FORTRAN_ANYD(cxfab),
+                                                            BL_TO_FORTRAN_ANYD(cyfab),
+                                                            BL_TO_FORTRAN_ANYD(czfab)),
+                                                     dx, &ref_ratio);
+                    }
+                    else if (interp_type == InterpE)
+                    {
+                        amrex_interp_efield(ccbx.loVect(), ccbx.hiVect(),
+                                            D_DECL(BL_TO_FORTRAN_ANYD(bfab[0]),
+                                                   BL_TO_FORTRAN_ANYD(bfab[1]),
+                                                   BL_TO_FORTRAN_ANYD(bfab[2])),
+                                            D_DECL(BL_TO_FORTRAN_ANYD(cxfab),
+                                                   BL_TO_FORTRAN_ANYD(cyfab),
+                                                   BL_TO_FORTRAN_ANYD(czfab)),
+                                            dx, &ref_ratio);
+                    }
+                    else
+                    {
+                        amrex::Abort("InterpCrseFineBndryEMfield: unknown interp_type");
+                    }
+                    
+                    for (int idim = 0; idim < BL_SPACEDIM; ++idim)
+                    {
+                        const BoxArray& fine_ba = fine[idim].boxArray();
+                        const Box& fine_valid_box = fine_ba[fi];
+                        Box b = bfab[idim].box();
+                        b &= fine_valid_box;
+                        const BoxList& diff = amrex::boxDiff(b, fine_valid_box); // skip valid cells
+                        FArrayBox& fine_fab = fine[idim][fi];
+                        for (const auto& b : diff)
+                        {
+                            fine_fab.copy(bfab[idim], b, 0, b, 0, 1);
+                        }
+                    }
+                }
+            }
+        }
     }
 }

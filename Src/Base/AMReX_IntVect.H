@@ -93,7 +93,7 @@ public:
     int& operator[] (int i) { BL_ASSERT(i>=0 && i < BL_SPACEDIM); return vect[i]; }
 
     //! Returns the i'th coordinate of the IntVect.
-    int operator[] (int i) const { BL_ASSERT(i>=0 && i < BL_SPACEDIM); return vect[i]; }
+    const int& operator[] (int i) const { BL_ASSERT(i>=0 && i < BL_SPACEDIM); return vect[i]; }
 
     //! Set i'th coordinate of IntVect to val.
     IntVect& setVal (int i, int val)

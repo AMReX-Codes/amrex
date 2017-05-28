@@ -9,7 +9,7 @@ extern "C"
 #endif
 
     void amrex_compute_forces(const void* particles, int* np,
-                              const void* ghosts, int* ng);
+                              const void* ghosts, int* nn);
 
     void amrex_move_particles(const void*, int* np,
                               const amrex::Real* dt,

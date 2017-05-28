@@ -3530,7 +3530,7 @@ contains
           cp => cp%next
           i = i+1
        end do
-       call flush(6)
+       flush(6)
     end if
   end subroutine layout_copyassoc_print
 

@@ -7,10 +7,8 @@ DIM          = 2
 
 COMP         = g++
 
-DEBUG        = FALSE
 DEBUG        = TRUE
 
-USE_MPI      = TRUE
 USE_MPI      = FALSE
 
 PROFILE       = TRUE
