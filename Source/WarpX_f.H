@@ -4,6 +4,7 @@
 #if (BL_SPACEDIM == 3)
 
 #define WARPX_COMPUTE_DIVB               warpx_compute_divb_3d
+#define WARPX_SYNC_CURRENT               warpx_sync_current_3d
 
 #define WRPX_PXR_PUSH_BVEC               warpx_pxr_push_em3d_bvec
 #define WRPX_PXR_PUSH_EVEC               warpx_pxr_push_em3d_evec
@@ -13,6 +14,7 @@
 #elif (BL_SPACEDIM == 2)
 
 #define WARPX_COMPUTE_DIVB               warpx_compute_divb_2d
+#define WARPX_SYNC_CURRENT               warpx_sync_current_2d
 
 #define WRPX_PXR_PUSH_BVEC               warpx_pxr_push_em2d_bvec
 #define WRPX_PXR_PUSH_EVEC               warpx_pxr_push_em2d_evec
@@ -178,6 +180,11 @@ extern "C"
                             const amrex::Real* sigz1, int sigz1_lo, int sigz1_hi, 
                             const amrex::Real* sigz2, int sigz2_lo, int sigz2_hi);
 
+    void WARPX_SYNC_CURRENT (const int* lo, const int* hi,
+                             BL_FORT_FAB_ARG_ANYD(crse),
+                             const BL_FORT_FAB_ARG_ANYD(fine),
+                             const int* dir);
+    
 #ifdef __cplusplus
 }
 #endif

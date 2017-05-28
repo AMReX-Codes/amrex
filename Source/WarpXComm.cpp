@@ -343,17 +343,14 @@ WarpX::SyncCurrent ()
       
         const IntVect& ref_ratio = refRatio(lev-1);
 
-        const int ngf = current_fp[lev][0]->nGrow();
-        const IntVect& ngc = amrex::coarsen({ngf,ngf,ngf}, ref_ratio);
-
 #if (BL_SPACEDIM == 3)
-        Array<const MultiFab*> fine { current_fp[lev][0].get(),
-                                      current_fp[lev][1].get(),
-                                      current_fp[lev][2].get() };
-        Array<      MultiFab*> crse { current_cp[lev][0].get(),
-                                      current_cp[lev][1].get(),
-                                      current_cp[lev][2].get() };
-        amrex::average_down_edges(fine, crse, ref_ratio, ngc[0]);
+        std::array<const MultiFab*,3> fine { current_fp[lev][0].get(),
+                                             current_fp[lev][1].get(),
+                                             current_fp[lev][2].get() };
+        std::array<      MultiFab*,3> crse { current_cp[lev][0].get(),
+                                             current_cp[lev][1].get(),
+                                             current_cp[lev][2].get() };
+        SyncCurrent(fine, crse, ref_ratio[0]);
 #else
         amrex::Abort("2D SyncCurrent: todo");
 #endif
@@ -388,3 +385,36 @@ WarpX::SyncCurrent ()
         current_cp[lev][2]->SumBoundary(period);
     }
 }
+
+void
+WarpX::SyncCurrent (const std::array<const amrex::MultiFab*,BL_SPACEDIM>& fine,
+                    const std::array<      amrex::MultiFab*,BL_SPACEDIM>& crse,
+                    int ref_ratio)
+{
+    BL_ASSERT(ref_ratio == 2);
+    int ng = fine[0]->nGrow()/ref_ratio;
+
+#ifdef _OPEMP
+#pragma omp parallel
+#endif
+    {
+        FArrayBox ffab;
+        for (int idim = 0; idim < BL_SPACEDIM; ++idim)
+        {
+            for (MFIter mfi(*crse[idim],true); mfi.isValid(); ++mfi)
+            {
+                const Box& bx = mfi.growntilebox(ng);
+                Box fbx = amrex::grow(amrex::refine(bx,ref_ratio),1);
+                ffab.resize(fbx);
+                fbx &= (*fine[idim])[mfi].box();
+                ffab.setVal(0.0);
+                ffab.copy((*fine[idim])[mfi], fbx, 0, fbx, 0, 1);
+                WARPX_SYNC_CURRENT(bx.loVect(), bx.hiVect(),
+                                   BL_TO_FORTRAN_ANYD((*crse[idim])[mfi]),
+                                   BL_TO_FORTRAN_ANYD(ffab),
+                                   &idim);
+            }
+        }
+    }
+}
+
