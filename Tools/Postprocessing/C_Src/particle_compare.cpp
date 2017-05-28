@@ -427,9 +427,9 @@ int main(int argc, char* argv[])
         std::cout << std::endl << std::string(71, '-') << std::endl;
         std::cout << pt << std::endl;
         for (int i = 0; i < header1.num_comp; ++i) {
-            std::cout << std::left << std::setw(36) << std::setfill(' ') << std::fixed << std::setprecision(8) << header1.comp_names[i];
-            std::cout << std::left << std::setw(26) << std::setfill(' ') << std::fixed << std::setprecision(8) << global_norms[i];
-            std::cout << std::left << std::setw(26) << std::setfill(' ') << std::fixed << std::setprecision(8) << global_norms[i+header1.num_comp];
+            std::cout << std::scientific << std::left << std::setw(36) << std::setfill(' ') << std::setprecision(8) << header1.comp_names[i];
+            std::cout << std::scientific << std::left << std::setw(22) << std::setfill(' ') << std::setprecision(8) << global_norms[i];
+            std::cout << std::scientific << std::left << std::setw(22) << std::setfill(' ') << std::setprecision(8) << global_norms[i+header1.num_comp];
             std::cout << std::endl;
         }
        std::cout << std::endl;

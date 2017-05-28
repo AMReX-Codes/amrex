@@ -94,6 +94,7 @@ FORTLINK  	= UNDERSCORE
 FORT_CPP        = cpp -E -traditional-cpp -P
 FORTPREP  	= perl $(AMREX_HOME)/Tools/C_scripts/strip72 -c
 F90PREP  	= cat  # a placeholder in case we have to write something later
+CPP_PREFIX      = 
 MKDEP		= perl $(AMREX_HOME)/Tools/C_scripts/mkdep
 MODDEP		= $(AMREX_HOME)/Tools/F_scripts/dep.py
 CHECKFORT       = $(AMREX_HOME)/Tools/typechecker/typechecker.py
@@ -120,6 +121,9 @@ else ifeq ($(lowercase_comp),cray)
 else ifeq ($(lowercase_comp),pgi)
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/comps/pgi.mak...)
   include        $(AMREX_HOME)/Tools/GNUMake/comps/pgi.mak
+else ifeq ($(lowercase_comp),ibm)
+  $(info Loading $(AMREX_HOME)/Tools/GNUMake/comps/ibm.mak...)
+  include        $(AMREX_HOME)/Tools/GNUMake/comps/ibm.mak
 else ifeq ($(lowercase_comp),$(filter $(lowercase_comp),llvm clang clang++))
   lowercase_comp = llvm
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/comps/llvm.mak...)
@@ -129,7 +133,7 @@ else ifeq ($(lowercase_comp),$(filter $(lowercase_comp),cuda))
   $(info LOADING $(AMREX_HOME)/Tools/GNUMake/comps/cuda.mak...)
   include        $(AMREX_HOME)/Tools/GNUMake/comps/cuda.mak
 else
-  $(error Unknown compiler $(COMP). Supported compilers are gnu, intel, cray, pgi, llvm, and cuda)
+  $(error Unknown compiler $(COMP). Supported compilers are gnu, intel, cray, pgi, ibm, llvm, and cuda)
 endif
 
 ifeq ($(MAKECMDGOALS),check_fortran)
@@ -294,6 +298,7 @@ fortran_fdecl_headers_cppd = $(addprefix $(tmpEXETempDir)/, $(fortran_fdecl_head
 #
 
 DEFINES	+= -DBL_SPACEDIM=$(DIM)				\
+           -DAMREX_SPACEDIM=$(DIM)                      \
            -DBL_FORT_USE_$(FORTLINK)			\
            -DBL_$(shell uname)
 
@@ -391,4 +396,9 @@ endif
 ifneq ("$(wildcard $(AMREX_HOME)/Tools/GNUMake/Make.local)","")
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/Make.local...)
   include        $(AMREX_HOME)/Tools/GNUMake/Make.local
+endif
+
+ifeq ($(USE_CVODE),TRUE)
+  $(info Loading $(AMREX_HOME)/Tools/GNUMake/packages/Make.cvode...)
+  include        $(AMREX_HOME)/Tools/GNUMake/packages/Make.cvode
 endif

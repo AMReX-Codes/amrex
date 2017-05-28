@@ -9,8 +9,6 @@
 #include "AMReX_INTERPBNDRYDATA_F.H"
 #include "AMReX_ArrayLim.H"
 
-#define USE_REORG_VERSION
-      
 #define SDIM 1
 #define NUMDERIV 2
       

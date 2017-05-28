@@ -2048,19 +2048,7 @@ DistributionMapping::GetProcName() {
 
 int
 DistributionMapping::GetProcNumber() {
-#ifdef BL_HOPPER
-  std::string procName(GetProcName());
-  return(atoi(procName.substr(3, std::string::npos).c_str()));
-#else
-#ifdef BL_SIM_HOPPER
-  //static int procNumber = (100 * ParallelDescriptor::MyProc()) % 6527;
-  static int procNumber = ParallelDescriptor::MyProc();
-  std::cout << ParallelDescriptor::MyProc() << "||procNumber = " << procNumber << std::endl;
-  return(procNumber);
-#else
   return(ParallelDescriptor::MyProc());
-#endif
-#endif
 }
 
 
@@ -2116,39 +2104,11 @@ DistributionMapping::InitProximityMap(bool makeMap, bool reinit)
     bool bRandomClusters(false);
     Box tBox;
     FArrayBox tFab;
-#ifdef BL_SIM_HOPPER
-    std::ifstream ifs("topolcoords.simhopper.3d.fab");
-#else
     std::ifstream ifs("topolcoords.3d.fab");
-#endif
     if( ! ifs.good() && ! bRandomClusters) {
       std::cerr << "**** In DistributionMapping::InitProximityMap():  "
                 << "cannot open topolcoords.3d.fab   using defaults." << std::endl;
 
-#ifdef BL_SIM_HOPPER
-      // set a reasonable default
-#if (BL_SPACEDIM == 1)
-      tBox = Box(IntVect(0), IntVect(3263), IntVect(0));
-#elif (BL_SPACEDIM == 2)
-      tBox = Box(IntVect(0,0), IntVect(16,191), IntVect(0,0));
-#else
-      tBox = Box(IntVect(0,0,0), IntVect(16,7,23), IntVect(0,0,0));
-#endif
-      tFab.resize(tBox, 2);
-      tFab.setVal(-1.0);
-      int i(0);
-      for(IntVect iv(tBox.smallEnd()); iv <= tBox.bigEnd(); tBox.next(iv)) {
-        tFab(iv, 0) = i++;
-        tFab(iv, 1) = i++;
-      }
-
-#ifdef BL_SIM_HOPPER_MAKE_TCFAB
-      std::ofstream ostFab("topolcoords.simhopper.3d.fab");
-      tFab.writeOn(ostFab);
-      ostFab.close();
-#endif
-
-#else
       // dont use proximity mapping
       for(int i(0); i < proximityMap.size(); ++i) {
         proximityMap[i] = i;
@@ -2156,7 +2116,6 @@ DistributionMapping::InitProximityMap(bool makeMap, bool reinit)
       for(int i(0); i < proximityOrder.size(); ++i) {
         proximityOrder[i] = i;
       }
-#endif
 
     } else if(bRandomClusters) {
       if(proximityMap.size() != proximityOrder.size()) {

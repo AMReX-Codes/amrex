@@ -1,0 +1,5 @@
+CVODE_LIB_DIR ?= $(HOME)/cvode/lib
+
+LIBRARIES += -L$(CVODE_LIB_DIR) -lsundials_fcvode
+LIBRARIES += -L$(CVODE_LIB_DIR) -lsundials_cvode
+LIBRARIES += -L$(CVODE_LIB_DIR) -lsundials_fnvecserial -lsundials_nvecserial

@@ -1142,28 +1142,25 @@ BoxArray::getHashMap () const
             // Calculate the bounding box & maximum extent of the boxes.
             //
 	    IntVect maxext = IntVect::TheUnitVector();
+            Box boundingbox = m_ref->m_abox[0];
 
 	    const int N = size();
 	    for (int i = 0; i < N; ++i)
             {
                 const Box& bx = m_ref->m_abox[i];
                 maxext = amrex::max(maxext, bx.size());
+                boundingbox.minBox(bx);
             }
-
-	    IntVect lob = IntVect::TheMaxVector();
-	    IntVect hib = IntVect::TheMinVector();
 
             for (int i = 0; i < N; i++)
             {
                 const IntVect& crsnsmlend 
 		    = amrex::coarsen(m_ref->m_abox[i].smallEnd(),maxext);
                 BoxHashMap[crsnsmlend].push_back(i);
-		lob = amrex::min(lob, crsnsmlend);
-		hib = amrex::max(hib, crsnsmlend);
             }
 
             m_ref->crsn = maxext;
-            m_ref->bbox = Box(lob,hib);
+            m_ref->bbox =boundingbox.coarsen(maxext);
 	    
 #ifdef BL_MEM_PROFILING
 	    m_ref->updateMemoryUsage_hash(1);

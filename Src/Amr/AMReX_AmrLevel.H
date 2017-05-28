@@ -142,10 +142,9 @@ public:
     */
     virtual void postCoarseTimeStep (Real time);
     /**
-    * \brief Operations to be done after restart.  This is a pure virtual
-    * function and hence MUST be implemented by derived classes.
+    * \brief Operations to be done after restart.
     */
-    virtual  void post_restart () = 0;
+    virtual void post_restart () {};
     /**
     * \brief Operations to be done after regridding (like avgDown).
     * This is a pure virtual function and hence MUST be
