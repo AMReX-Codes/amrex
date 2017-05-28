@@ -401,34 +401,36 @@ PML::Exchange (const std::array<amrex::MultiFab*,3>& E_fp,
 void
 PML::Exchange (MultiFab& pml, MultiFab& reg)
 {
-// xxxxxx    const Array<int>& ridx = m_cfinfo.fine_grid_idx;
-    Array<int> ridx;
     const int ngr = reg.nGrow();
     const int ngp = pml.nGrow();
+    const auto& period = m_geom->periodicity();
+
+    MultiFab totpmlmf(pml.boxArray(), pml.DistributionMap(), 1, 0);
+    MultiFab::LinComb(totpmlmf, 1.0, pml, 0, 1.0, pml, 1, 0, 1, 0);
+
+    MultiFab tmpregmf(reg.boxArray(), reg.DistributionMap(), 2, ngr);
+    MultiFab::Copy(tmpregmf, reg, 0, 0, 1, ngr);
+    tmpregmf.copy(totpmlmf, 0, 0, 1, 0, ngr, period);
 
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for (MFIter mfi(pml); mfi.isValid(); ++mfi)
+    for (MFIter mfi(reg); mfi.isValid(); ++mfi)
     {
-        FArrayBox& pfab = pml[mfi];
-        FArrayBox& rfab = reg[ridx[mfi.LocalIndex()]];
-        const Box& pbx = pfab.box();
-        const Box& rbx = rfab.box();
-        const Box& vrbx = amrex::grow(rbx, -ngr);
-        const Box& vpbx = amrex::grow(pbx, -ngp);
-        const BoxList& bl = amrex::boxDiff(vpbx & rbx, vrbx);
-        for (const Box& bx: bl)
+        const FArrayBox& src = tmpregmf[mfi];
+        FArrayBox& dst = reg[mfi];
+        const BoxList& bl = amrex::boxDiff(dst.box(), mfi.validbox());
+        for (const Box& bx : bl)
         {
-            rfab.linComb(pfab, bx, 0, pfab, bx, 1, 1.0, 1.0, bx, 0, 1);
-        }
-
-        const Box& bx = pbx & vrbx;
-        if (bx.ok()) {
-            pfab.copy(rfab, bx, 0, bx, 0, 1);
-            pfab.setVal(0.0, bx, 1, 1);
+            dst.copy(src, bx, 0, bx, 0, 1);
         }
     }
+
+    // Copy from regular data to PML's first component
+    // Zero out the second component
+    MultiFab::Copy(tmpregmf,reg,0,0,1,0);
+    tmpregmf.setVal(0.0, 1, 1, 0);
+    pml.copy (tmpregmf, 0, 0, 2, 0, ngp, period);
 }
 
 void
