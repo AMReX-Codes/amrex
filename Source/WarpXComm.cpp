@@ -354,7 +354,7 @@ WarpX::SyncCurrent ()
                                       current_cp[lev][1].get(),
                                       current_cp[lev][2].get() };
         amrex::average_down_edges(fine, crse, ref_ratio, ngc[0]);
-#else (BL_SPACEDIM == 2)
+#else
         amrex::Abort("2D SyncCurrent: todo");
 #endif
     }
