@@ -16,14 +16,23 @@
 
 namespace amrex
 {
+  string
+  FAIOElement::
+  getFilename(const int& a_fileid)
+  {
+    string retval = string("data_") + EBArith::convertInt(a_fileid);
+    return retval;
+  }
+
   ///
   FAIOElement::
-  FAIOElement (int a_fileid, long a_head, int a_boxid)
+  FAIOElement (int a_fileid, long a_head, int a_boxid, long a_boxlen)
   {
     m_procid = a_fileid;
     m_head   = a_head;
     m_boxid  = a_boxid;
-    m_filename = string("data") + EBArith::convertInt(a_fileid);
+    m_boxlen = a_boxlen;
+    m_filename = getFilename(a_fileid);
   }
 
   ///
@@ -39,7 +48,7 @@ namespace amrex
   FAIOElement::
   linearSize() const
   {
-    int retval = sizeof(long) + 2*sizeof(int);
+    int retval = 2*sizeof(long) + 2*sizeof(int);
     return retval;
   }
 
@@ -55,6 +64,8 @@ namespace amrex
     intbuf++;
     long* longbuf = (long*)(intbuf);
     *longbuf = m_head;
+    longbuf++;
+    *longbuf = m_boxlen;
   }
 
   ///
@@ -69,6 +80,8 @@ namespace amrex
     intbuf++;
     long* longbuf = (long*)(intbuf);
     m_head = *longbuf;
+    longbuf++;
+    m_boxlen = *longbuf;
   }
 
   ///write a header to   disk in ascii
@@ -79,6 +92,7 @@ namespace amrex
     a_os << a_elem.m_procid   << "   ";
     a_os << a_elem.m_head     << "   ";
     a_os << a_elem.m_boxid    << "   ";
+    a_os << a_elem.m_boxlen    << "   ";
     return a_os;
   }
 
@@ -90,6 +104,7 @@ namespace amrex
     a_is >> a_elem.m_procid  ;
     a_is >> a_elem.m_head    ;
     a_is >> a_elem.m_boxid   ;
+    a_is >> a_elem.m_boxlen   ;
     return a_is;
   }
 }

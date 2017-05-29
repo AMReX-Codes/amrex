@@ -31,8 +31,11 @@ namespace amrex
   {
   public:
 
+    //every proc has its own file
+    static string getFilename(const int& a_procid);
+
     ///
-    FAIOElement (int a_fileid, long a_head, int a_boxid);
+    FAIOElement (int a_fileid, long a_head, int a_boxid, long a_boxlen);
     FAIOElement ()
       {
       }
@@ -53,6 +56,7 @@ namespace amrex
     int         m_procid;  // used to create the filename
     long        m_head;    // Offset to start of FAB in file.
     int         m_boxid;   // integer into the box array
+    long        m_boxlen;  //size of this box's data
   };
 
   ///write a header to   disk in ascii
@@ -75,9 +79,9 @@ namespace amrex
         vector<FAIOElement> localElements(a_data.local_size());
         int ielem  = 0;
         int offset = 0;
-        int startcomp = 0; int endcomp = a_data.nComp();  
+        int startComp = 0; int numComp = a_data.nComp();  
 
-
+        m_nComp = numComp;
         for(MFIter mfi(a_data); mfi.isValid(); ++mfi) 
         {
           int boxid   = mfi.index();
@@ -85,8 +89,8 @@ namespace amrex
           //anything more flexible requires a bunch of communication
           int filenum = procID();
           Box valid   = mfi.validbox();
-          int numBytesThisBox = a_data[mfi].nBytes(valid, startcomp, endcomp);
-          localElements[ielem] = FAIOElement(filenum, offset, boxid);
+          long numBytesThisBox = a_data[mfi].nBytesFull(valid, startComp, numComp);
+          localElements[ielem] = FAIOElement(filenum, offset, boxid, numBytesThisBox);
           ielem++;
           offset += numBytesThisBox;
         }
@@ -108,7 +112,7 @@ namespace amrex
 
     BoxArray                   m_ba;        
     std::vector<FAIOElement>   m_vecElem;   
-
+    int m_nComp;
   private:
     //no weak construction
     FAIOHeader();
@@ -119,12 +123,13 @@ namespace amrex
   std::ostream& 
   operator<< (std::ostream& a_os, FAIOHeader<T>& a_hd)
   {
-    a_os << a_hd.m_ba         << endl;
-    a_os << a_hd.m_vecElem.size() << endl;
+    a_os << a_hd.m_nComp      << endl;
+      a_os << a_hd.m_vecElem.size() << endl;
     for(int ivec = 0; ivec < a_hd.m_vecElem.size(); ivec++)
     {
       a_os << a_hd.m_vecElem[ivec] << endl;
     }
+    a_os << a_hd.m_ba         << endl;
     return a_os;
   }
 
@@ -133,7 +138,7 @@ namespace amrex
   std::istream& 
   operator>> (std::istream& a_is, FAIOHeader<T>& a_hd)
   {
-    a_is >> a_hd.m_ba;
+    a_is >> a_hd.m_nComp;
     int isize;
     a_is >> isize;
     a_hd.m_vecElem.resize(isize);
@@ -141,6 +146,10 @@ namespace amrex
     {
       a_is >> a_hd.m_vecElem[ivec];
     }
+    //why box array has to be weird, who knows?
+    //putting this last because it probably leaves the is in the wrong
+    //place
+    a_hd.m_ba.readFrom(a_is);
     return a_is;
   }
 
@@ -150,82 +159,109 @@ namespace amrex
      anything more flexible requires a bunch of communication
   */
   template <class T >
-    class FabArrayIO
-    {
-    public:
-      ///
-      static void
-      write(const FabArray<T>&    a_data,
-            const std::string&    a_directory_name)
+  class FabArrayIO
+  {
+  public:
+    /// write to disk.  one file per proc
+    static void
+    write(const FabArray<T>&    a_data,
+          const std::string&    a_directory_name)
+      {
+        BL_PROFILE("FabArrayIO::write");
+        BL_ASSERT(a_directory_name[a_directory_name.length() - 1] != '/');
+
+        UtilCreateCleanDirectory(a_directory_name, true);
+
+        //first make and write the header.  This is the only blocking bit of this
+        FAIOHeader<T> header(a_data);
+        string filename = a_directory_name + string("/headerfile");
+        std::ofstream headerfile;
+        headerfile.open(filename.c_str(), std::ios::out | std::ios::trunc);
+        headerfile << header << std::endl;
+        headerfile.flush();
+        headerfile.close();
+
+        //now allocate all the big string of bytes to write to disk. 
+        //first we need to find the size.  Since every proc writes to its 
+        //own file, we only need to allocate once and write once and there
+        // is no communication here
+        size_t totallength = 0;
+        int startComp = 0; int numComp = a_data.nComp();
+        for(MFIter mfi(a_data); mfi.isValid(); ++mfi) 
         {
-          BL_PROFILE("FabArrayIO::write");
-          BL_ASSERT(a_directory_name[a_directory_name.length() - 1] != '/');
-
-          UtilCreateCleanDirectory(a_directory_name, true);
-        
-          FAIOHeader<T> header(a_data);
-          string filename = a_directory_name + string("/headerfile");
-          std::ofstream headerfile;
-          headerfile.open(filename.c_str(), std::ios::out | std::ios::trunc);
-          headerfile << header << std::endl;
-          headerfile.flush();
-          headerfile.close();
-
-//        int coordinatorProc(ParallelDescriptor::IOProcessorNumber());
-//        long bytesWritten(0);
-//
-//        FabArrayIO<T>::Header hdr(mf);
-//
-//        std::string filePrefix(mf_name + FabFileSuffix);
-//
-//        NFilesIter nfi(nOutFiles, filePrefix, groupSets, setBuf);
-//
-//        for( ; nfi.ReadyToWrite(); ++nfi) 
-//        {
-//	  // ---- find the total number of bytes including fab headers if needed
-//          const FABio &fio = FArrayBox::getFABio();
-//          int whichRDBytes(whichRD->numBytes()), nFABs(0);
-//          long writeDataItems(0), writeDataSize(0);
-//          for(MFIter mfi(mf); mfi.isValid(); ++mfi) 
-//          {
-//	    const FArrayBox &fab = mf[mfi];
-//	    bytesWritten += fab.box().numPts() * mf.nComp() * whichRDBytes;
-//	    ++nFABs;
-//	  }
-//	  char *allFabData(nullptr);
-//	  bool canCombineFABs(false);
-//
-//          allFabData = new(std::nothrow) char[bytesWritten];
-//
-//          long writePosition(0);
-//          for(MFIter mfi(mf); mfi.isValid(); ++mfi) 
-//          {
-//            int hLength(0);
-//            const FArrayBox &fab = mf[mfi];
-//            writeDataItems = fab.box().numPts() * mf.nComp();
-//            writeDataSize = writeDataItems * whichRDBytes;
-//            char *afPtr = allFabData + writePosition;
-//              
-//            memcpy(afPtr + hLength, fab.dataPtr(), writeDataSize);
-//
-//            writePosition += hLength + writeDataSize;
-//          }
-//          nfi.Stream().write(allFabData, bytesWritten);
-//          nfi.Stream().flush();
-//          delete [] allFabData;
-//        }
-//
-//
-//        VisMF::FindOffsets(mf, filePrefix, hdr, groupSets, currentVersion,
-//                           useDynamicSetSelection, nfi);
-//
-//        bytesWritten += VisMF::WriteHeader(mf_name, hdr, coordinatorProc);
-//
-//        delete whichRD;
-//
-//        return bytesWritten;
+          Box valid = mfi.validbox();
+          size_t boxlen = a_data[mfi].nBytesFull(valid, startComp, numComp);
+          totallength += boxlen;
         }
+        char* outbuf = new char[totallength];
+        string datafilename = a_directory_name + string("/") + FAIOElement::getFilename(procID());
 
-    };
+        //now do the actual write.  Again, since every proc as its own file,
+        //I can do a simple open and close of the file
+        std::fstream fileStream;
+        fileStream.open(datafilename.c_str(),
+                        std::ios::out | std::ios::trunc | std::ios::binary);
+          
+        //no need for fancy seeks. this ought to work just
+        //putting one in after the next
+        char* movingBuf = outbuf;
+        for(MFIter mfi(a_data); mfi.isValid(); ++mfi) 
+        {
+          Box valid = mfi.validbox();
+          size_t boxlen = a_data[mfi].nBytesFull(valid,  startComp, numComp);
+          a_data[mfi].copyToMemFull(valid, startComp, numComp, movingBuf);
+          movingBuf += boxlen;
+        }
+        fileStream.write(outbuf, totallength);
+        fileStream.flush();
+        fileStream.close();
+
+        delete[] outbuf;
+      }
+
+
+    ///read from disk
+    static void
+    read(FabArray<T>      &    a_data,
+         const std::string&    a_directory_name)
+      {
+        BL_PROFILE("FabArrayIO::read");
+        UtilCreateCleanDirectory(a_directory_name, true);
+
+        //first make and write the header.  This is the only blocking bit of this
+        FAIOHeader<T> header(a_data);
+        string filename = a_directory_name + string("/headerfile");
+        std::ifstream headerfile;
+        headerfile.open(filename.c_str(), std::ios::in);
+        headerfile >> header;
+        headerfile.close();
+
+        //define with default factory and have the I/O fill in the holders
+        DistributionMapping dm(header.m_ba);
+        //only valid data written, only valid data read
+        a_data.define(header.m_ba, dm,  header.m_nComp, 0);
+        int startComp = 0; int numComp = a_data.nComp();
+        for(MFIter mfi(a_data); mfi.isValid(); ++mfi) 
+        {
+          int baindex = mfi.index();
+          const FAIOElement& elem = header.m_vecElem[baindex];
+          string datafile = a_directory_name + "/" + elem.m_filename;
+          //cannot do this one in one fell swoop because distribution may have changed
+          std::fstream fileStream;
+          fileStream.open(datafile.c_str(),          
+                          std::ios::in | std::ios::trunc | std::ios::binary);
+          size_t boxsize = elem.m_boxlen;
+          char*  inbuf = new char[boxsize];
+          fileStream.read(inbuf, boxsize);
+          Box valid = mfi.validbox();
+          a_data[mfi].copyFromMemFull(valid, startComp, numComp, inbuf);
+          fileStream.flush();
+          fileStream.close();
+          delete[] inbuf;
+        }
+                      
+      }
+
+  };
 }
 #endif

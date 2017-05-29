@@ -93,7 +93,83 @@ namespace amrex
     retval += m_irrFAB.nBytes(bx, start_comp, ncomps);
     return retval;
   }
+
+
+  /*************/
+  template <class T>
+  std::size_t 
+  BaseEBCellFAB<T>::
+  nBytesFull(const Box& bx, int start_comp, int ncomps) const
+  {
+    BL_PROFILE("BaseEBCellFAB::size");
+    size_t retval = 0;
+    retval += m_ebisBox.getEBGraph().nBytes(bx, start_comp, ncomps);
+    retval += m_ebisBox.getEBData( ).nBytes(bx, start_comp, ncomps);
+    retval +=  this->nBytes(bx, start_comp, ncomps);
+
+    return retval;
+  }
       
+  /*************/
+  template <class T>
+  std::size_t 
+  BaseEBCellFAB<T>::
+  copyToMemFull(const Box& srcbox,
+                int        srccomp,
+                int        numcomp,
+                void*      dst) const
+  {
+    BL_PROFILE("BaseEBCellFAB::linearOut");
+    unsigned char* buffer = (unsigned char*) dst;
+    size_t retval = 0;
+    size_t incrval  = 0;
+    incrval = m_ebisBox.getEBGraph().copyToMem(srcbox, srccomp, numcomp, buffer);
+    buffer += incrval;
+    retval += incrval;
+    incrval = m_ebisBox.getEBData().copyToMem(srcbox, srccomp, numcomp, buffer);
+    buffer += incrval;
+    retval += incrval;
+    incrval = m_regFAB.copyToMem(srcbox, srccomp, numcomp, buffer);
+    buffer += incrval;
+    retval += incrval;
+    incrval = m_irrFAB.copyToMem(srcbox, srccomp, numcomp, buffer);
+    buffer += incrval;
+    retval += incrval;
+    return retval;
+  }
+  /*************/
+  template <class T>
+  std::size_t 
+  BaseEBCellFAB<T>::
+  copyFromMemFull(const Box&  dstbox,
+               int         dstcomp,
+               int         numcomp,
+               const void* src)
+  {
+    BL_PROFILE("BaseEBCellFAB::linearIn");
+    unsigned char* buffer = (unsigned char*) src;
+    size_t retval = 0;
+    size_t incrval = 0;
+    EBGraph graph(dstbox, 1);
+    incrval =    graph.copyFromMem(dstbox, dstcomp, numcomp, buffer);
+    buffer += incrval;
+    retval += incrval;
+    EBData data;
+    data.define(graph, dstbox);
+    incrval =     data.copyFromMem(dstbox, dstcomp, numcomp, buffer);
+    buffer += incrval;
+    retval += incrval;
+    EBISBox ebisBox(graph, data);
+    this->define(ebisBox, dstbox, numcomp);
+    incrval = m_regFAB.copyFromMem(dstbox, dstcomp, numcomp, buffer);
+    buffer += incrval;
+    retval += incrval;
+    incrval = m_irrFAB.copyFromMem(dstbox, dstcomp, numcomp, buffer);
+    buffer += incrval;
+    retval += incrval;
+
+    return retval;
+  }
   /*************/
   template <class T>
   std::size_t 
