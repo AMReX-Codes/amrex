@@ -128,10 +128,9 @@ int testIO()
   DistributionMapping dm(ba);
   EBLevelGrid eblg(ba, dm, domain, 2);
   int ncomp = 1;
-  int nfiles = ba.size()/2;
   EBCellFactory  ebcellfact(eblg.getEBISL());
   FabArray<EBCellFAB>        cell1(ba, dm,  ncomp, 0, MFInfo(), ebcellfact);
-  FabArrayIO<EBCellFAB>::write(cell1, "ebcellfab_data.plt", nfiles);
+  FabArrayIO<EBCellFAB>::write(cell1, string("ebcellfab_data.plt"));
 
   return 0;
 }
