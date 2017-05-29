@@ -121,7 +121,7 @@ private:
     static amrex::BoxArray MakeBoxArray (const amrex::Geometry& geom,
                                          const amrex::BoxArray& grid_ba, int ncell);
 
-    void Exchange (amrex::MultiFab& pml, amrex::MultiFab& reg);
+    static void Exchange (amrex::MultiFab& pml, amrex::MultiFab& reg, const amrex::Geometry& geom);
 };
 
 #endif

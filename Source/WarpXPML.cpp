@@ -381,29 +381,29 @@ PML::Exchange (const std::array<amrex::MultiFab*,3>& E_fp,
                const std::array<amrex::MultiFab*,3>& E_cp,
                const std::array<amrex::MultiFab*,3>& B_cp)
 {
-    Exchange(*pml_E_fp[0], *E_fp[0]);
-    Exchange(*pml_E_fp[1], *E_fp[1]);
-    Exchange(*pml_E_fp[2], *E_fp[2]);
-    Exchange(*pml_B_fp[0], *B_fp[0]);
-    Exchange(*pml_B_fp[1], *B_fp[1]);
-    Exchange(*pml_B_fp[2], *B_fp[2]);
+    Exchange(*pml_E_fp[0], *E_fp[0], *m_geom);
+    Exchange(*pml_E_fp[1], *E_fp[1], *m_geom);
+    Exchange(*pml_E_fp[2], *E_fp[2], *m_geom);
+    Exchange(*pml_B_fp[0], *B_fp[0], *m_geom);
+    Exchange(*pml_B_fp[1], *B_fp[1], *m_geom);
+    Exchange(*pml_B_fp[2], *B_fp[2], *m_geom);
     if (E_cp[0])
     {
-        Exchange(*pml_E_fp[0], *E_fp[0]);
-        Exchange(*pml_E_fp[1], *E_fp[1]);
-        Exchange(*pml_E_fp[2], *E_fp[2]);
-        Exchange(*pml_B_fp[0], *B_fp[0]);
-        Exchange(*pml_B_fp[1], *B_fp[1]);
-        Exchange(*pml_B_fp[2], *B_fp[2]);
+        Exchange(*pml_E_cp[0], *E_cp[0], *m_cgeom);
+        Exchange(*pml_E_cp[1], *E_cp[1], *m_cgeom);
+        Exchange(*pml_E_cp[2], *E_cp[2], *m_cgeom);
+        Exchange(*pml_B_cp[0], *B_cp[0], *m_cgeom);
+        Exchange(*pml_B_cp[1], *B_cp[1], *m_cgeom);
+        Exchange(*pml_B_cp[2], *B_cp[2], *m_cgeom);
     }
 }
 
 void
-PML::Exchange (MultiFab& pml, MultiFab& reg)
+PML::Exchange (MultiFab& pml, MultiFab& reg, const Geometry& geom)
 {
     const int ngr = reg.nGrow();
     const int ngp = pml.nGrow();
-    const auto& period = m_geom->periodicity();
+    const auto& period = geom.periodicity();
 
     MultiFab totpmlmf(pml.boxArray(), pml.DistributionMap(), 1, 0);
     MultiFab::LinComb(totpmlmf, 1.0, pml, 0, 1.0, pml, 1, 0, 1, 0);
