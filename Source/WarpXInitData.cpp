@@ -31,6 +31,11 @@ WarpX::InitData ()
         if (okToRegrid(0)) RegridBaseLevel();
     }
 
+    if (ParallelDescriptor::IOProcessor()) {
+        std::cout << "\nGrids Summary:\n";
+        printGridSummary(std::cout, 0, finestLevel());
+    }
+
     if (do_pml) {
         pml[0].reset(new PML(boxArray(0), DistributionMap(0), &Geom(0), nullptr, pml_ncell, 0));
         for (int lev = 1; lev <= finest_level; ++lev)
