@@ -133,10 +133,12 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
             {
                 corners.push_back(kv.first);
             }
+#if 0
             else
             {
                 amrex::Abort("SigmaBox::SigmaBox(): box not contained");
             }
+#endif
         }
 
         if (direct_faces.size() > 1)
