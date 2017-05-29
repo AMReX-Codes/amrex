@@ -319,20 +319,44 @@ PML::MakeBoxArray (const amrex::Geometry& geom, const amrex::BoxArray& grid_ba, 
     
     BoxList bl;
     for (int i = 0, N = grid_ba.size(); i < N; ++i)
-        {
-            Box bx = grid_ba[i];
-            bx.grow(ncell);
-            bx &= domain;
-            
-            const BoxList& noncovered = grid_ba.complementIn(bx);
-            for (const Box& b : noncovered) {
-                bl.push_back(b);
+    {
+        const Box& grid_bx = grid_ba[i];
+        const IntVect& grid_bx_sz = grid_bx.size();
+        BL_ASSERT(grid_bx.shortside() > ncell);
+
+        Box bx = grid_bx;
+        bx.grow(ncell);
+        bx &= domain;
+        
+        Array<Box> bndryboxes;
+        for (int kk = -1; kk <= 1; ++kk) {
+            for (int jj = -1; jj <= 1; ++jj) {
+                for (int ii = -1; ii <= 1; ++ii) {
+                    if (ii != 0 || jj != 0 || kk != 0) {
+                        Box b = grid_bx;
+                        b.shift(grid_bx_sz * IntVect{ii,jj,kk});
+                        b &= bx;
+                        if (b.ok()) {
+                            bndryboxes.push_back(b);
+                        }
+                    } 
+                }
             }
         }
     
+        const BoxList& noncovered = grid_ba.complementIn(bx);
+        for (const Box& b : noncovered) {
+            for (const auto& bb : bndryboxes) {
+                Box ib = b & bb;
+                if (ib.ok()) {
+                    bl.push_back(ib);
+                }
+            }
+        }
+    }
+    
     BoxArray ba(bl);
-    ba.removeOverlap();
-    ba.maxSize(64);
+    ba.removeOverlap(false);
 
     return ba;
 }
