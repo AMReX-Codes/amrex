@@ -205,6 +205,7 @@ WarpX::ReadParameters ()
 
         if (maxLevel() > 0) {
             pp.query("plot_finepatch", plot_finepatch);
+            pp.query("plot_crsepatch", plot_crsepatch);
         }
     }
 

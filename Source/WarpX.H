@@ -253,6 +253,7 @@ private:
     bool plot_proc_number   = true;
     bool plot_divb          = false;
     bool plot_finepatch     = false;
+    bool plot_crsepatch     = false;
     bool plot_raw_fields    = false;
 
     bool is_synchronized = true;
