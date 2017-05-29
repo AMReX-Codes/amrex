@@ -522,10 +522,12 @@ WarpX::WritePlotFile () const
             BL_ASSERT(dcomp == ncomp);
 	}
 
+#if 0
         for (int lev = finest_level; lev > 0; --lev)
         {
             amrex::average_down(*mf[lev], *mf[lev-1], 0, ncomp, refRatio(lev-1));
         }
+#endif
     
 	amrex::WriteMultiLevelPlotfile(plotfilename, finest_level+1, 
                                        amrex::GetArrOfConstPtrs(mf),
