@@ -427,7 +427,7 @@ public:
     void clear_hash_bin () const;
 
     //! Change the BoxArray to one with no overlap and then simplify it (see the simplify function in BoxList).
-    void removeOverlap ();
+    void removeOverlap (bool simplify=true);
 
     //! whether two BoxArrays share the same data
     static bool SameRefs (const BoxArray& lhs, const BoxArray& rhs) { return lhs.m_ref == rhs.m_ref; }
