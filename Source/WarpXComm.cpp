@@ -10,24 +10,42 @@
 using namespace amrex;
 
 void
+WarpX::ExchangeWithPML ()
+{
+    if (do_pml) {
+        for (int lev = 0; lev <= finest_level; ++lev)
+        {
+            ExchangeWithPML(lev);
+        }
+    }
+}
+
+void
+WarpX::ExchangeWithPML (int lev)
+{
+    if (do_pml) {
+        pml[lev]->Exchange({ Efield_fp[lev][0].get(),
+                             Efield_fp[lev][1].get(),
+                             Efield_fp[lev][2].get() },
+                           { Bfield_fp[lev][0].get(),
+                             Bfield_fp[lev][1].get(),
+                             Bfield_fp[lev][2].get() },
+                           { Efield_cp[lev][0].get(),
+                             Efield_cp[lev][1].get(),
+                             Efield_cp[lev][2].get() },
+                           { Bfield_cp[lev][0].get(),
+                             Bfield_cp[lev][1].get(),
+                             Bfield_cp[lev][2].get() });
+    }
+}
+
+void
 WarpX::UpdateAuxiliaryData ()
 {
     if (do_pml) {
         for (int lev = 0; lev <= finest_level; ++lev)
         {
-            pml[lev]->Exchange({ Efield_fp[lev][0].get(),
-                                 Efield_fp[lev][1].get(),
-                                 Efield_fp[lev][2].get() },
-                               { Bfield_fp[lev][0].get(),
-                                 Bfield_fp[lev][1].get(),
-                                 Bfield_fp[lev][2].get() },
-                               { Efield_cp[lev][0].get(),
-                                 Efield_cp[lev][1].get(),
-                                 Efield_cp[lev][2].get() },
-                               { Bfield_cp[lev][0].get(),
-                                 Bfield_cp[lev][1].get(),
-                                 Bfield_cp[lev][2].get() });
-
+            ExchangeWithPML(lev);
             pml[lev]->FillBoundary();
         }
     }
@@ -185,18 +203,11 @@ void
 WarpX::FillBoundaryE(int lev)
 {
     const auto& period = Geom(lev).periodicity();
-#if 0
-    // xxxxx
-    if (do_pml && lev == 0) {
-        WarpX::ExchangeWithPML(*Efield[lev][0], *pml_E[0], geom[lev]);
-        WarpX::ExchangeWithPML(*Efield[lev][1], *pml_E[1], geom[lev]);
-        WarpX::ExchangeWithPML(*Efield[lev][2], *pml_E[2], geom[lev]);
-        
-        (*pml_E[0]).FillBoundary( geom[lev].periodicity() );
-        (*pml_E[1]).FillBoundary( geom[lev].periodicity() );
-        (*pml_E[2]).FillBoundary( geom[lev].periodicity() );
+
+    if (do_pml) {
+        ExchangeWithPML(lev);
+        pml[lev]->FillBoundaryE();
     }
-#endif
 
     (*Efield_fp[lev][0]).FillBoundary( period );
     (*Efield_fp[lev][1]).FillBoundary( period );
@@ -218,20 +229,8 @@ WarpX::FillBoundaryB(int lev)
 
     if (do_pml)
     {
-        pml[lev]->Exchange({ Efield_fp[lev][0].get(),
-                             Efield_fp[lev][1].get(),
-                             Efield_fp[lev][2].get() },
-                           { Bfield_fp[lev][0].get(),
-                             Bfield_fp[lev][1].get(),
-                             Bfield_fp[lev][2].get() },
-                           { Efield_cp[lev][0].get(),
-                             Efield_cp[lev][1].get(),
-                             Efield_cp[lev][2].get() },
-                           { Bfield_cp[lev][0].get(),
-                             Bfield_cp[lev][1].get(),
-                             Bfield_cp[lev][2].get() });
-
-        pml[lev]->FillBoundary();
+        ExchangeWithPML(lev);
+        pml[lev]->FillBoundaryB();
     }
 
     (*Bfield_fp[lev][0]).FillBoundary(period);

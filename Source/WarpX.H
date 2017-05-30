@@ -78,6 +78,9 @@ public:
     void FillBoundaryE (int lev);
     void FillBoundaryB (int lev);
 
+    void ExchangeWithPML ();
+    void ExchangeWithPML (int lev);
+
     void AverageDownB ();
     void AverageDownE ();
     void AverageDownCurrent ();

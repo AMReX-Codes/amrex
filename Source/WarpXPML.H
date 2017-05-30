@@ -104,6 +104,8 @@ public:
                    const std::array<amrex::MultiFab*,3>& B_cp);
 
     void FillBoundary ();
+    void FillBoundaryE ();
+    void FillBoundaryB ();
 
 private:
     const amrex::Geometry* m_geom;

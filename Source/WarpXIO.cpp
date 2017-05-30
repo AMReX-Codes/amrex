@@ -559,12 +559,12 @@ WarpX::WritePlotFile () const
                 MultiFab jy(current_fp[lev][1]->boxArray(), dm, 1, 0);
                 MultiFab jz(current_fp[lev][2]->boxArray(), dm, 1, 0);
                 
-                MultiFab::Copy(Ex, *Efield_aux[lev][0], 0, 0, 1, 0);
-                MultiFab::Copy(Ey, *Efield_aux[lev][1], 0, 0, 1, 0);
-                MultiFab::Copy(Ez, *Efield_aux[lev][2], 0, 0, 1, 0);
-                MultiFab::Copy(Bx, *Bfield_aux[lev][0], 0, 0, 1, 0);
-                MultiFab::Copy(By, *Bfield_aux[lev][1], 0, 0, 1, 0);
-                MultiFab::Copy(Bz, *Bfield_aux[lev][2], 0, 0, 1, 0);
+                MultiFab::Copy(Ex, *Efield_fp[lev][0], 0, 0, 1, 0);
+                MultiFab::Copy(Ey, *Efield_fp[lev][1], 0, 0, 1, 0);
+                MultiFab::Copy(Ez, *Efield_fp[lev][2], 0, 0, 1, 0);
+                MultiFab::Copy(Bx, *Bfield_fp[lev][0], 0, 0, 1, 0);
+                MultiFab::Copy(By, *Bfield_fp[lev][1], 0, 0, 1, 0);
+                MultiFab::Copy(Bz, *Bfield_fp[lev][2], 0, 0, 1, 0);
                 MultiFab::Copy(jx, *current_fp[lev][0], 0, 0, 1, 0);
                 MultiFab::Copy(jy, *current_fp[lev][1], 0, 0, 1, 0);
                 MultiFab::Copy(jz, *current_fp[lev][2], 0, 0, 1, 0);

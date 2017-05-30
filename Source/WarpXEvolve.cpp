@@ -54,6 +54,8 @@ WarpX::Evolve (int numsteps)
         }
 #endif
 
+        ExchangeWithPML();
+
         EvolveB(0.5*dt[0]); // We now B^{n}
 
         UpdateAuxiliaryData(); // This will also fill the boundary of fine and coarse patches

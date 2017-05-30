@@ -532,6 +532,19 @@ PML::Exchange (MultiFab& pml, MultiFab& reg, const Geometry& geom)
 void
 PML::FillBoundary ()
 {
+    FillBoundaryE();
+    FillBoundaryB();
+}
+
+void
+PML::FillBoundaryE ()
+{
+    // no ghost cells
+}
+
+void
+PML::FillBoundaryB ()
+{
     const auto& period = m_geom->periodicity();
     pml_B_fp[0]->FillBoundary(period);
     pml_B_fp[1]->FillBoundary(period);
