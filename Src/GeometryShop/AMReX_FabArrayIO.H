@@ -72,24 +72,23 @@ namespace amrex
   class FAIOHeader
   {
   public:
-    
+
+    ///for writes, need to be able define the header
     FAIOHeader(const FabArray<T> & a_data)
       {
         m_ba = a_data.boxArray();
         vector<FAIOElement> localElements(a_data.local_size());
         int ielem  = 0;
         int offset = 0;
-        int startComp = 0; int numComp = a_data.nComp();  
 
-        m_nComp = numComp;
+        m_nComp = a_data.nComp();
         for(MFIter mfi(a_data); mfi.isValid(); ++mfi) 
         {
           int boxid   = mfi.index();
           //writes one file per proc
           //anything more flexible requires a bunch of communication
           int filenum = procID();
-          Box valid   = mfi.validbox();
-          long numBytesThisBox = a_data[mfi].nBytesFull(valid, startComp, numComp);
+          long numBytesThisBox = a_data[mfi].nBytesFull();
           localElements[ielem] = FAIOElement(filenum, offset, boxid, numBytesThisBox);
           ielem++;
           offset += numBytesThisBox;
@@ -110,12 +109,16 @@ namespace amrex
         std::sort(m_vecElem.begin(), m_vecElem.end()); //this should get them in the same order as the boxarray
       }
 
+    ///For reads, need null construction
+    FAIOHeader()
+      {
+      }
+
     BoxArray                   m_ba;        
     std::vector<FAIOElement>   m_vecElem;   
     int m_nComp;
   private:
-    //no weak construction
-    FAIOHeader();
+
   };
 
   ///write a header to   disk in ascii
@@ -124,12 +127,12 @@ namespace amrex
   operator<< (std::ostream& a_os, FAIOHeader<T>& a_hd)
   {
     a_os << a_hd.m_nComp      << endl;
-      a_os << a_hd.m_vecElem.size() << endl;
+    a_os << a_hd.m_vecElem.size() << endl;
     for(int ivec = 0; ivec < a_hd.m_vecElem.size(); ivec++)
     {
       a_os << a_hd.m_vecElem[ivec] << endl;
     }
-    a_os << a_hd.m_ba         << endl;
+    a_hd.m_ba.writeOn(a_os);
     return a_os;
   }
 
@@ -149,7 +152,7 @@ namespace amrex
     //why box array has to be weird, who knows?
     //putting this last because it probably leaves the is in the wrong
     //place
-    a_hd.m_ba.readFrom(a_is);
+    readBoxArray(a_hd.m_ba, a_is, false);
     return a_is;
   }
 
@@ -186,11 +189,10 @@ namespace amrex
         //own file, we only need to allocate once and write once and there
         // is no communication here
         size_t totallength = 0;
-        int startComp = 0; int numComp = a_data.nComp();
+
         for(MFIter mfi(a_data); mfi.isValid(); ++mfi) 
         {
-          Box valid = mfi.validbox();
-          size_t boxlen = a_data[mfi].nBytesFull(valid, startComp, numComp);
+          size_t boxlen = a_data[mfi].nBytesFull();
           totallength += boxlen;
         }
         char* outbuf = new char[totallength];
@@ -207,9 +209,8 @@ namespace amrex
         char* movingBuf = outbuf;
         for(MFIter mfi(a_data); mfi.isValid(); ++mfi) 
         {
-          Box valid = mfi.validbox();
-          size_t boxlen = a_data[mfi].nBytesFull(valid,  startComp, numComp);
-          a_data[mfi].copyToMemFull(valid, startComp, numComp, movingBuf);
+          size_t boxlen = a_data[mfi].nBytesFull();
+          a_data[mfi].copyToMemFull(movingBuf);
           movingBuf += boxlen;
         }
         fileStream.write(outbuf, totallength);
@@ -226,10 +227,8 @@ namespace amrex
          const std::string&    a_directory_name)
       {
         BL_PROFILE("FabArrayIO::read");
-        UtilCreateCleanDirectory(a_directory_name, true);
-
         //first make and write the header.  This is the only blocking bit of this
-        FAIOHeader<T> header(a_data);
+        FAIOHeader<T> header;
         string filename = a_directory_name + string("/headerfile");
         std::ifstream headerfile;
         headerfile.open(filename.c_str(), std::ios::in);
@@ -238,9 +237,8 @@ namespace amrex
 
         //define with default factory and have the I/O fill in the holders
         DistributionMapping dm(header.m_ba);
-        //only valid data written, only valid data read
         a_data.define(header.m_ba, dm,  header.m_nComp, 0);
-        int startComp = 0; int numComp = a_data.nComp();
+
         for(MFIter mfi(a_data); mfi.isValid(); ++mfi) 
         {
           int baindex = mfi.index();
@@ -253,8 +251,8 @@ namespace amrex
           size_t boxsize = elem.m_boxlen;
           char*  inbuf = new char[boxsize];
           fileStream.read(inbuf, boxsize);
-          Box valid = mfi.validbox();
-          a_data[mfi].copyFromMemFull(valid, startComp, numComp, inbuf);
+
+          a_data[mfi].copyFromMemFull(inbuf);
           fileStream.flush();
           fileStream.close();
           delete[] inbuf;

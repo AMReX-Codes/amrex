@@ -99,13 +99,24 @@ namespace amrex
   template <class T>
   std::size_t 
   BaseEBCellFAB<T>::
-  nBytesFull(const Box& bx, int start_comp, int ncomps) const
+  nBytesFull() const
   {
-    BL_PROFILE("BaseEBCellFAB::size");
+    BL_PROFILE("BaseEBCellFAB::nbytesfull");
     size_t retval = 0;
-    retval += m_ebisBox.getEBGraph().nBytes(bx, start_comp, ncomps);
-    retval += m_ebisBox.getEBData( ).nBytes(bx, start_comp, ncomps);
-    retval +=  this->nBytes(bx, start_comp, ncomps);
+    //first the meta data
+    //ncomp
+    retval += sizeof(int);
+    //region and regfab region
+    retval += m_region.linearSize();
+    retval += m_regFAB.box().linearSize();
+
+    //these make the ebisbox
+    retval +=  m_ebisBox.getEBGraph().nBytesFull();
+    retval +=  m_ebisBox.getEBData( ).nBytesFull();
+    //from the above we can call define
+    //now for the data
+    retval +=  m_regFAB.nBytes(m_regFAB.box(), 0, nComp());
+    retval +=  m_irrFAB.nBytes(      m_region, 0, nComp());
 
     return retval;
   }
@@ -114,25 +125,48 @@ namespace amrex
   template <class T>
   std::size_t 
   BaseEBCellFAB<T>::
-  copyToMemFull(const Box& srcbox,
-                int        srccomp,
-                int        numcomp,
-                void*      dst) const
+  copyToMemFull(void*      dst) const
   {
-    BL_PROFILE("BaseEBCellFAB::linearOut");
-    unsigned char* buffer = (unsigned char*) dst;
+    BL_PROFILE("BaseEBCellFAB::copyToMemFull");
     size_t retval = 0;
+    //first the meta data
+    //ncomp
+    int* intbuf = (int *) dst;
+    *intbuf = m_regFAB.nComp();    
+    intbuf++;
+    retval += sizeof(int);
     size_t incrval  = 0;
-    incrval = m_ebisBox.getEBGraph().copyToMem(srcbox, srccomp, numcomp, buffer);
+
+    //back to byte stream 
+    unsigned char* buffer = (unsigned char*) intbuf;
+    //region and box for fab
+    Box  regfabbox = m_regFAB.box();
+
+    m_region.linearOut(buffer);
+    incrval = m_region.linearSize();
     buffer += incrval;
     retval += incrval;
-    incrval = m_ebisBox.getEBData().copyToMem(srcbox, srccomp, numcomp, buffer);
+
+    regfabbox.linearOut(buffer);
+    incrval = regfabbox.linearSize();
     buffer += incrval;
     retval += incrval;
-    incrval = m_regFAB.copyToMem(srcbox, srccomp, numcomp, buffer);
+
+
+    //these make the ebisbox
+    incrval =  m_ebisBox.getEBGraph().copyToMemFull(buffer);
     buffer += incrval;
     retval += incrval;
-    incrval = m_irrFAB.copyToMem(srcbox, srccomp, numcomp, buffer);
+    incrval =  m_ebisBox.getEBData( ).copyToMemFull(buffer);
+    buffer += incrval;
+    retval += incrval;
+    //from the above we can call define
+    //now for the data
+
+    incrval =  m_regFAB.copyToMem(regfabbox, 0, nComp(), buffer);
+    buffer += incrval;
+    retval += incrval;
+    incrval =  m_irrFAB.copyToMem( m_region, 0, nComp(), buffer);
     buffer += incrval;
     retval += incrval;
     return retval;
@@ -141,33 +175,61 @@ namespace amrex
   template <class T>
   std::size_t 
   BaseEBCellFAB<T>::
-  copyFromMemFull(const Box&  dstbox,
-               int         dstcomp,
-               int         numcomp,
-               const void* src)
+  copyFromMemFull(const void* src)
   {
-    BL_PROFILE("BaseEBCellFAB::linearIn");
-    unsigned char* buffer = (unsigned char*) src;
+    BL_PROFILE("BaseEBCellFAB::copyFromMemFull");
+
     size_t retval = 0;
-    size_t incrval = 0;
-    EBGraph graph(dstbox, 1);
-    incrval =    graph.copyFromMem(dstbox, dstcomp, numcomp, buffer);
-    buffer += incrval;
-    retval += incrval;
-    EBData data;
-    data.define(graph, dstbox);
-    incrval =     data.copyFromMem(dstbox, dstcomp, numcomp, buffer);
-    buffer += incrval;
-    retval += incrval;
-    EBISBox ebisBox(graph, data);
-    this->define(ebisBox, dstbox, numcomp);
-    incrval = m_regFAB.copyFromMem(dstbox, dstcomp, numcomp, buffer);
-    buffer += incrval;
-    retval += incrval;
-    incrval = m_irrFAB.copyFromMem(dstbox, dstcomp, numcomp, buffer);
+
+    //first the meta data
+    //ncomp
+    int* intbuf = (int *) src;
+    int ncomp = *intbuf;
+    *intbuf = m_regFAB.nComp();    
+    intbuf++;
+    retval += sizeof(int);
+
+    unsigned char* buffer = (unsigned char*) intbuf;
+    Box region;
+    Box regfabbox;
+    size_t incrval  = 0;
+
+    //back to byte stream 
+    region.linearIn(buffer);
+    incrval = m_region.linearSize();
     buffer += incrval;
     retval += incrval;
 
+    regfabbox.linearIn(buffer);
+    incrval = regfabbox.linearSize();
+    buffer += incrval;
+    retval += incrval;
+
+    //these make the ebisbox
+    EBGraph ebgraph;
+    EBData  ebdata;
+    incrval =  ebgraph.copyFromMemFull(buffer);
+    buffer += incrval;
+    retval += incrval;
+    incrval =   ebdata.copyFromMemFull(buffer);
+    buffer += incrval;
+    retval += incrval;
+    //from the above we can call define
+    EBISBox ebisBox(ebgraph, ebdata);
+    //need to send regfabbox because that is what defines the reg fab
+    //the region is intersected with the domain
+    this->define(ebisBox, regfabbox, ncomp);
+
+    BL_ASSERT(m_regFAB.box() == regfabbox);
+    BL_ASSERT(        region == getRegion());
+
+    //now for the data 
+    incrval =  m_regFAB.copyFromMem(regfabbox, 0, ncomp, buffer);
+    buffer += incrval;
+    retval += incrval;
+    incrval =  m_irrFAB.copyFromMem(region   , 0, ncomp, buffer);
+    buffer += incrval;
+    retval += incrval;
     return retval;
   }
   /*************/
