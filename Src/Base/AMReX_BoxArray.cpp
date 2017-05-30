@@ -999,7 +999,7 @@ BoxArray::clear_hash_bin () const
 // Currently this assumes your Boxes are cell-centered.
 //
 void
-BoxArray::removeOverlap ()
+BoxArray::removeOverlap (bool simplify)
 {
     if (! ixType().cellCentered()) {
         amrex::Abort("BoxArray::removeOverlap() supports cell-centered only");
@@ -1060,7 +1060,10 @@ BoxArray::removeOverlap ()
             bl.push_back(b);
         }
     }
-    bl.simplify();
+    
+    if (simplify) {
+        bl.simplify();
+    }
 
     BoxArray nba(std::move(bl));
 
