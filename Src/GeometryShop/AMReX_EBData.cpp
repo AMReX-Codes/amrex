@@ -714,35 +714,61 @@ namespace amrex
 /*******************************/
   std::size_t 
   EBDataImplem::
-  nBytes (const Box& bx, int start_comp, int ncomps) const
+  nBytes (const Box& bx, int a_srccomp, int a_ncomps) const
   {
-    amrex::Error("not implemented");
-    return 0;
+    size_t retval = m_volData.nBytes(bx, 0, V_VOLNUMBER);
+    for(int idir = 0; idir < SpaceDim; idir++)
+    {
+      retval += m_faceData[idir].nBytes(bx, 0, F_FACENUMBER);
+    }
+    return retval;
   }
 /*******************************/
 
   std::size_t 
   EBDataImplem::
-  copyToMem (const Box& srcbox,
+  copyToMem (const Box& bx,
              int        srccomp,
-             int        numcomp,
+             int        ncomps,
              void*      dst) const
   {
-    amrex::Error("not implemented");
-    return 0;
+    size_t retval = 0;
+    unsigned char* buf = (unsigned char*) dst;
+    size_t incrval = m_volData.copyToMem(bx, 0, V_VOLNUMBER, buf);
+    retval += incrval;
+    buf    += incrval;
+
+    for(int idir = 0; idir < SpaceDim; idir++)
+    {
+      retval += m_faceData[idir].copyToMem(bx, 0, F_FACENUMBER, buf);
+      retval += incrval;
+      buf    += incrval;
+    }
+    return retval;
   }
 
 /*******************************/
 
   std::size_t 
   EBDataImplem::
-  copyFromMem (const Box&  dstbox,
+  copyFromMem (const Box&  bx,
                int         dstcomp,
                int         numcomp,
                const void* src)
   {
-    amrex::Error("not implemented");
-    return 0;
+    size_t retval = 0;
+    unsigned char* buf = (unsigned char*) src;
+    size_t incrval = m_volData.copyFromMem(bx, 0, V_VOLNUMBER, buf);
+    retval += incrval;
+    buf    += incrval;
+
+    for(int idir = 0; idir < SpaceDim; idir++)
+    {
+      retval += m_faceData[idir].copyFromMem(bx, 0, F_FACENUMBER, buf);
+      retval += incrval;
+      buf    += incrval;
+    }
+    return retval;
   }
 
 /*******************************/

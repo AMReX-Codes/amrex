@@ -218,7 +218,7 @@ namespace amrex
     std::size_t nBytes (const Box& bx, int start_comp, int ncomps) const;
 
     ///this includes all meta data
-    std::size_t nBytesFull(const Box& bx, int start_comp, int ncomps) const;
+    std::size_t nBytesFull() const;
 
     ///this is for copy and fillboundary when meta data is already filled
     std::size_t copyToMem (const Box& srcbox,
@@ -228,10 +228,7 @@ namespace amrex
 
 
     ///this includes all meta data
-    std::size_t copyToMemFull(const Box& srcbox,
-                              int        srccomp,
-                              int        numcomp,
-                              void*      dst) const;
+    std::size_t copyToMemFull(void*      dst) const;
 
 
     ///this is for copy and fillboundary when meta data is already filled
@@ -241,10 +238,7 @@ namespace amrex
                              const void* src);
 
     ///this includes all meta data
-    std::size_t copyFromMemFull(const Box&  dstbox,
-                                int         dstcomp,
-                                int         numcomp,
-                                const void* src);
+    std::size_t copyFromMemFull(const void* src);
 
 
     ///invalid but necessary for leveldata to compile
