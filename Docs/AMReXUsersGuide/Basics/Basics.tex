@@ -5,7 +5,8 @@ drop {\tt amrex::} in the example codes here.  It is also assumed that
 headers have been properly {\tt include}d.  We recommend you study
 tutorials at {\tt amrex/Tutorials/Basic/} while reading this chapter.
 After reading this chapter, one should be able to develop single-level
-parallel codes using \amrex.
+parallel codes using \amrex.  It should also be noted that this is not
+a comprehensive reference manual.
 
 \section{Dimensionality}
 \label{sec:basics:dim}
@@ -79,7 +80,11 @@ threads do not get mixed up.  Below are some examples.
  
  Real pi = std::atan(1.0)*4.0;
  // Print on rank 3 with precision of 17 digits
+ // SetPrecision does not modify cout's floating-point decimal precision setting.
  Print(3).SetPrecision(17) << pi << "\n";
+
+ int oldprec = std::cout.precision(10);
+ Print() << pi << "\n";  // Print with 10 digits
  
  AllPrint() << "Every process prints\n";  // Print on every process
  
@@ -363,8 +368,8 @@ it is a runtime error if the two {\tt Box}es have different types.
   bool strictly_contains (const IntVect& p) const;
 \end{lstlisting}
 
-A common operation is the intersection of two {\tt Box}es like in the
-following examples.
+Another very common operation is the intersection of two {\tt Box}es
+like in the following examples.
 \begin{lstlisting}[language=cpp]
   Box b0 ({16,16,16}, {31,31,31});
   Box b1 ({ 0, 0,30}, {23,23,63});
@@ -384,11 +389,124 @@ following examples.
   b0 &= b3;             // Runtime error because of type mismatch!
 \end{lstlisting}
 
-\section{Geometry}
+\section{RealBox and Geometry}
 
-how do we set it up?
+A {\tt RealBox} stores the physical location in floating-point numbers
+of the lower and upper corners of a rectangular domain.
+
+{\tt Geometry} class describes problem domain and coordinate system
+for rectangular problem domains.  A {\tt Geometry} object can be
+constructed with
+\begin{lstlisting}[language=cpp]
+  explicit Geometry (const Box&     dom,
+                     const RealBox* rb     = nullptr,
+                     int            coord  = -1,
+                     int*           is_per = nullptr);
+\end{lstlisting}
+Here the constructor takes a {\tt Box} specifying the indexing space
+domain, an optional argument of {\tt RealBox} pointer specifying the
+physical domain, an optional {\tt int} specifying coordinate system
+type, and an optional {\tt int *} specifying periodicity.  If a {\tt
+  RealBox} is not given, \amrex\ will construct one based on {\tt
+  ParmParse} parameters, {\tt geometry.prob\_lo} and {\tt
+  geometry.prob\_hi}, where each of the parameter is an array of {\tt
+  AMREX\_SPACEDIM} real numbers.  It's a runtime error if this fails.
+The optional argument for coordinate system is an integer type with
+valid values being 0 (Cartesian), or 1 (cylindrical), or 2
+(spherical).  If it is invalid as in the case of the default argument
+value, \amrex\ will query the {\tt ParmParse} database for {\tt
+  geometry.coord\_sys} and use it if one is found.  If it cannot find
+the parameter, the coordinate system is set to 0 (i.e., Cartesian
+coordinates).  {\tt Geometry} class has the concept of periodicity.
+An optional argument can be passed specifying periodicity in each
+dimension.  If it is not given, the domain is assumed to be
+non-periodic unless there is the {\tt ParmParse} integer array
+parameter {\tt geometry.is\_periodic} with {\tt 0} denoting
+non-periodic and {\tt 1} denoting periodic.  Below is an example of
+defining a {\tt Geometry} for a periodic rectangular domain of
+$[-1.0,1.0]$ in each direction discretized with $64$ numerical cells
+in each direction.
+\begin{lstlisting}[language=cpp]
+  int n_cell = 64;
+
+  // This defines a Box with n_cell cells in each direction.
+  Box domain(IntVect{AMREX_D_DECL(       0,        0,        0)},
+             IntVect{AMREX_D_DECL(n_cell-1, n_cell-1, n_cell-1)});
+
+  // This defines the physical box, [-1,1] in each direction.
+  RealBox real_box({AMREX_D_DECL(-1.0,-1.0,-1.0)},
+                   {AMREX_D_DECL( 1.0, 1.0, 1.0)});
+  
+  // This says we are using Cartesian coordinates
+  int coord = 0;
+  
+  // This sets the boundary conditions to be doubly or triply periodic
+  std::array<int,AMREX_SPACEDIM> is_periodic {AMREX_D_DECL(1,1,1)};
+  
+  // This defines a Geometry object
+  Geometry geom(domain, &real_box, coord, is_periodic.data());
+\end{lstlisting}
+
+A {\tt Geometry} object can return various information of the physical
+domain and the indexing space domain.  For example,
+\begin{lstlisting}[language=cpp]
+  const Real* problo = geom.ProbLo();  // Lower corner of the physical domain
+  Real yhi = geom.ProbHi(1);           // y-direction upper corner
+  const Real* dx = geom.CellSize();    // Cell size for each direction
+  const Box& domain = geom.Domain();   // Index domain
+  bool is_per = geom.isPeriodic(0);    // Is periodic in x-direction?
+\end{lstlisting}
+
 
 \section{BaseFab, FArrayBox and IArrayBox}
+
+\amrex\ is a block-structured AMR framework.  Although AMR introduces
+irregularity to the data and algorithms, there is regularity at the
+block/{\tt Box} level due to rectangular domain and the data structure
+at the {\tt Box} level is conceptually simple.  {\tt BaseFab} is a
+class template for multi-dimensional array-like data structure on a
+{\tt Box}.  The dimensionality of the array is {\tt AMREX\_SPACEDIM}
+plus one.  The additional dimensional is for the number of components.
+The data are internally stored in a contiguous block of memory in
+Fortran array order (i.e., column-major order) for
+$(x,y,z,\mathrm{component})$, and each component also occupies a
+contiguous block of memory because of the ordering.  For example, a
+{\tt BaseFab<Real>} with 4 components defined on a three-dimensional
+{\tt Box(IntVect\{-4,8,32\},IntVect\{32,64,48\})} is like a Fortran
+array of {\tt real(amrex\_real), dimension(-4:32,8:64,32:48,0:3)}.
+Note that the convention in \cpp\ part of \amrex\ is the component
+index is zero based.
+
+Most applications do not use {\tt BaseFab} directly, but utilize
+specialized classes (e.g., {\tt FArrayBox} and {\tt IArrayBox})
+derived from {\tt BaseFab}.  These derived classes also obtain many
+{\tt BaseFab} member functions via inheritance.  Below is a list of
+some commonly used functions in {\tt BaseFab} class.
+\begin{lstlisting}[language=cpp]
+  const Box& box() const;  // Box where this is defined
+  int nComp() const;       // Number of components
+  T* dataPtr(int n=0);     // Data pointer to the nth component
+                           // T is template parameter (e.g., Real)
+  const T* dataPtr(int n=0) const; // const version
+  void setVal(T x);        // Set all data to x
+  // Set the sub-region specified by bx to value x starting
+  // from component nstart.  ncomp is the total number of component to
+  // be set.
+  void setVal(T x, const Box& bx, int nstart, int ncomp);
+\end{lstlisting}
+
+
+% copy
+
+% min max
+
+% plus, minus
+
+% saxpy
+
+% [](IntVect) avoid but could be useful
+
+% copy ... 
 % make alias
 % resize
 

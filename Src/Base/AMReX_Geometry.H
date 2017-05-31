@@ -39,9 +39,9 @@ public:
     Geometry ();
     //! Constructor taking the rectangular domain.
     explicit Geometry (const Box&     dom,
-		       const RealBox* rb     =  0,
+		       const RealBox* rb     =  nullptr,
 		       int            coord  = -1,
-		       int*           is_per =  0);
+		       int*           is_per =  nullptr);
 
     ~Geometry () = default;
     Geometry (const Geometry& rhs) = default;
