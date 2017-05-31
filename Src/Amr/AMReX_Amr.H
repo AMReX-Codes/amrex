@@ -4,6 +4,7 @@
 
 #include <fstream>
 #include <memory>
+#include <list>
 
 #include <AMReX_Box.H>
 #include <AMReX_Geometry.H>
@@ -359,10 +360,6 @@ protected:
     void printGridInfo (std::ostream& os,
                         int           min_lev,
                         int           max_lev);
-
-    void printGridSummary (std::ostream& os,
-                           int           min_lev,
-                           int           max_lev);
 
     void setRecordGridInfo (const std::string&);
 

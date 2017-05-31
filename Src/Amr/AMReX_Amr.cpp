@@ -1759,6 +1759,9 @@ Amr::timeStep (int  level,
     //      when regridding is called with possible lbase > level.
     which_level_being_advanced = level;
 
+    // Update so that by default, we don't force a post-step regrid.
+    amr_level[level]->setPostStepRegrid(0);
+
     //
     // Allow regridding of level 0 calculation on restart.
     //
@@ -1854,6 +1857,29 @@ Amr::timeStep (int  level,
 #ifdef USE_SLABSTAT
     AmrLevel::get_slabstat_lst().update(*amr_level[level],time,dt_level[level]);
 #endif
+
+    // If the level signified that it wants a regrid after the advance has
+    // occurred, do that now.
+
+    if (amr_level[level]->postStepRegrid()) {
+
+	int old_finest = finest_level;
+
+	regrid(level, time);
+
+	if (old_finest < finest_level)
+	{
+	    //
+	    // The new levels will not have valid time steps.
+	    //
+	    for (int k = old_finest + 1; k <= finest_level; ++k)
+	    {
+		dt_level[k] = dt_level[k-1] / n_cycle[k];
+	    }
+	}
+
+    }
+
     //
     // Advance grids at higher level.
     //
@@ -2512,98 +2538,6 @@ Amr::printGridInfo (std::ostream& os,
 
             os << ":: " << map[k] << '\n';
         }
-    }
-
-    os << std::endl; // Make sure we flush!
-}
-
-void
-Amr::printGridSummary (std::ostream& os,
-                       int           min_lev,
-                       int           max_lev)
-{
-    for (int lev = min_lev; lev <= max_lev; lev++)
-    {
-        const BoxArray&           bs      = amr_level[lev]->boxArray();
-        int                       numgrid = bs.size();
-        long                      ncells  = amr_level[lev]->countCells();
-        double                    ntot    = Geom(lev).Domain().d_numPts();
-        Real                      frac    = 100.0*(Real(ncells) / ntot);
-
-        os << "  Level "
-           << lev
-           << "   "
-           << numgrid
-           << " grids  "
-           << ncells
-           << " cells  "
-           << frac
-           << " % of domain"
-           << '\n';
-
-	if (numgrid > 1) {
-	    long vmin = std::numeric_limits<long>::max();
-	    long vmax = -1;
-	    int lmax = -1;
-	    int smin = std::numeric_limits<int>::max();
-	    int imax, imin;
-#ifdef _OPENMP
-#pragma omp parallel
-#endif	    
-	    {
-		long vmin_this = std::numeric_limits<long>::max();
-		long vmax_this = -1;
-		int lmax_this = -1;
-		int smin_this = std::numeric_limits<int>::max();
-		int imax_this, imin_this;
-#ifdef _OPENMP
-#pragma omp for
-#endif	    	    
-		for (int k = 0; k < numgrid; k++) {
-		    const Box& bx = bs[k];
-		    long v = bx.volume();
-		    int ss = bx.shortside();
-		    int ls = bx.longside();
-		    if (v < vmin_this || (v == vmin_this && ss < smin_this)) {
-			vmin_this = v;
-			smin_this = ss;
-			imin_this = k;
-		    }
-		    if (v > vmax_this || (v == vmax_this && ls > lmax_this)) {
-			vmax_this = v;
-			lmax_this = ls;
-			imax_this = k;
-		    }
-		}
-#ifdef _OPENMP
-#pragma omp critical (amr_prtgs)
-#endif	    	    
-		{
-		    if (vmin_this < vmin || (vmin_this == vmin && smin_this < smin)) {
-			vmin = vmin_this;
-			smin = smin_this;
-			imin = imin_this;
-		    }
-		    if (vmax_this > vmax || (vmax_this == vmax && lmax_this > lmax)) {
-			vmax = vmax_this;
-			lmax = lmax_this;
-			imax = imax_this;
-		    }
-		}
-	    }
-	    const Box& bmin = bs[imin];
-	    const Box& bmax = bs[imax];
-	    os << "           "
-	       << " smallest grid: "
-		D_TERM(<< bmin.length(0),
-		       << " x " << bmin.length(1),
-		       << " x " << bmin.length(2))
-	       << "  biggest grid: "
-		D_TERM(<< bmax.length(0),
-		       << " x " << bmax.length(1),
-		       << " x " << bmax.length(2))
-	       << '\n';
-	}
     }
 
     os << std::endl; // Make sure we flush!

@@ -22,7 +22,7 @@ namespace amrex
               const Box                 &  a_probDom)
   {
     a_cfivs.define(a_grids, a_dm);
-    for (MFIter mfi(a_cfivs); mfi.isValid(); ++mfi)
+    for (MFIter mfi(a_grids, a_dm); mfi.isValid(); ++mfi)
     {
       Box grownBox = mfi.validbox();
       grownBox.grow(1);

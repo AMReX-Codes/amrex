@@ -1,6 +1,6 @@
 
-#ifndef BL_REAL_H
-#define BL_REAL_H
+#ifndef AMREX_REAL_H
+#define AMREX_REAL_H
 
 #ifdef BL_USE_FLOAT
 #  undef BL_USE_DOUBLE

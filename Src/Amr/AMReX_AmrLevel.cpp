@@ -111,6 +111,8 @@ AmrLevel::AmrLevel (Amr&            papa,
 
     if (parent->useFixedCoarseGrids()) constructAreaNotToTag();
 
+    post_step_regrid = 0;
+
     finishConstructor();
 }
 
@@ -172,6 +174,8 @@ AmrLevel::restart (Amr&          papa,
     }
  
     if (parent->useFixedCoarseGrids()) constructAreaNotToTag();
+
+    post_step_regrid = 0;
 
     finishConstructor();
 }

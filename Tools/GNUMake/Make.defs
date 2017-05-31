@@ -53,7 +53,7 @@ ifndef LAZY
 endif
 
 ifndef DIM
-  DIM = 2
+  $(error DIM must be set)
 else
   DIM := $(strip $(DIM))
 endif
@@ -86,8 +86,10 @@ FORTLINK  	= UNDERSCORE
 FORT_CPP        = cpp -E -traditional-cpp -P
 FORTPREP  	= perl $(AMREX_HOME)/Tools/C_scripts/strip72 -c
 F90PREP  	= cat  # a placeholder in case we have to write something later
+CPP_PREFIX      = 
 MKDEP		= perl $(AMREX_HOME)/Tools/C_scripts/mkdep
 MODDEP		= $(AMREX_HOME)/Tools/F_scripts/dep.py
+CHECKFORT       = $(AMREX_HOME)/Tools/typechecker/typechecker.py
 MKCONFIG        = $(AMREX_HOME)/Tools/libamrex/mkconfig.py
 
 RANLIB          = ranlib
@@ -111,12 +113,21 @@ else ifeq ($(lowercase_comp),cray)
 else ifeq ($(lowercase_comp),pgi)
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/comps/pgi.mak...)
   include        $(AMREX_HOME)/Tools/GNUMake/comps/pgi.mak
+else ifeq ($(lowercase_comp),ibm)
+  $(info Loading $(AMREX_HOME)/Tools/GNUMake/comps/ibm.mak...)
+  include        $(AMREX_HOME)/Tools/GNUMake/comps/ibm.mak
 else ifeq ($(lowercase_comp),$(filter $(lowercase_comp),llvm clang clang++))
   lowercase_comp = llvm
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/comps/llvm.mak...)
   include        $(AMREX_HOME)/Tools/GNUMake/comps/llvm.mak
 else
-  $(error Unknown compiler $(COMP). Supported compilers are gnu, intel, cray, pgi, and llvm)
+  $(error Unknown compiler $(COMP). Supported compilers are gnu, intel, cray, pgi, ibm, and llvm)
+endif
+
+ifeq ($(MAKECMDGOALS),check_fortran)
+  ifneq ($(lowercase_comp),gnu)
+    $(error make check_fortran only works with COMP=gnu)
+  endif
 endif
 
 ifeq ($(DEBUG),TRUE)
@@ -228,8 +239,10 @@ endif
 ifeq ($(PRECISION),FLOAT)
     DEFINES += -DBL_USE_FLOAT
     PrecisionSuffix := .$(PRECISION)
+    amrex_real = float
 else
     PrecisionSuffix :=
+    amrex_real = double
 endif
 
 objStandalone	= 	$(CEXE_sources:%.cpp=%.o)			\
@@ -241,7 +254,32 @@ objStandalone	= 	$(CEXE_sources:%.cpp=%.o)			\
 
 objForExecs	= $(addprefix $(objEXETempDir)/, $(objStandalone))
 
+#
+# <typecheck>
+#
+objForTypeCheckAlone = 	$(fEXE_sources:%.f=%.o)				\
+			$(FEXE_sources:%.F=%.o)				\
+			$(f90EXE_sources:%.f90=%.o)			\
+			$(F90EXE_sources:%.F90=%.o)
+
+objForTypeCheck      = $(addprefix $(objEXETempDir)/, $(objForTypeCheckAlone))
+
+fortran_ir_sources_alone = $(f90EXE_sources:%.f90=%.f90.orig) \
+                           $(F90EXE_sources:%.F90=%.F90.orig) \
+                           $(fEXE_sources:%.f=%.f.orig) \
+                           $(FEXE_sources:%.F=%.F.orig)
+
+fortran_ir_sources = $(addprefix $(tmpEXETempDir)/, $(fortran_ir_sources_alone))
+
+fortran_fdecl_headers = $(filter %_f.H %_F.H,$(cEXE_headers) $(CEXE_headers) $(f90EXE_headers) $(F90EXE_headers) $(fEXE_headers) $(FEXE_headers))
+fortran_fdecl_headers_cppd = $(addprefix $(tmpEXETempDir)/, $(fortran_fdecl_headers:%.H=%-cppd.h))
+
+#
+# </typecheck>
+#
+
 DEFINES	+= -DBL_SPACEDIM=$(DIM)				\
+           -DAMREX_SPACEDIM=$(DIM)                      \
            -DBL_FORT_USE_$(FORTLINK)			\
            -DBL_$(shell uname)
 
@@ -282,6 +320,7 @@ TmpBuildDir     = tmp_build_dir
 depEXETempDir	= $(TmpBuildDir)/d/$(optionsSuffix).EXE
 objEXETempDir   = $(TmpBuildDir)/o/$(optionsSuffix).EXE
 f77EXETempDir	= $(TmpBuildDir)/f/$(optionsSuffix).EXE
+tmpEXETempDir	= $(TmpBuildDir)/t/$(optionsSuffix).EXE
 
 amrexlib = $(objEXETempDir)/libamrex.a
 
@@ -338,4 +377,9 @@ endif
 ifneq ("$(wildcard $(AMREX_HOME)/Tools/GNUMake/Make.local)","")
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/Make.local...)
   include        $(AMREX_HOME)/Tools/GNUMake/Make.local
+endif
+
+ifeq ($(USE_CVODE),TRUE)
+  $(info Loading $(AMREX_HOME)/Tools/GNUMake/packages/Make.cvode...)
+  include        $(AMREX_HOME)/Tools/GNUMake/packages/Make.cvode
 endif

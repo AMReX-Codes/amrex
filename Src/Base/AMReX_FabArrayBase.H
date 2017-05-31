@@ -19,6 +19,7 @@ namespace amrex {
 
 class MFIter;
 class MFGhostIter;
+class Geometry;
 
 class FabArrayBase
 {
@@ -325,6 +326,50 @@ public:
 				    const BoxConverter& coarsener);
 
     void flushFPinfo (bool no_assertion=false);
+
+    //
+    // coarse/fine boundary
+    //
+    struct CFinfo
+    {
+        CFinfo (const FabArrayBase& finefa,
+                const Geometry&     finegm,
+                int                 ng,
+                bool                include_periodic,
+                bool                include_physbndry);
+
+        long bytes () const;
+
+        static Box Domain (const Geometry& geom, int ng,
+                           bool include_periodic, bool include_physbndry);
+
+        BoxArray            ba_cfb;
+        DistributionMapping dm_cfb;
+        Array<int>          fine_grid_idx; // local array
+        //
+        BDKey               m_fine_bdk;
+        Box                 m_fine_domain;
+        int                 m_ng;
+        bool                m_include_periodic;
+        bool                m_include_physbndry;
+        //
+        int                 m_nuse;
+    };
+
+    using CFinfoCache = std::multimap<BDKey,FabArrayBase::CFinfo*>;
+    using CFinfoCacheIter = CFinfoCache::iterator;
+
+    static CFinfoCache m_TheCrseFineCache;
+
+    static CacheStats m_CFinfo_stats;
+
+    static const CFinfo& TheCFinfo (const FabArrayBase& finefa,
+                                    const Geometry&     finegm,
+                                    int                 ng,
+                                    bool                include_periodic,
+                                    bool                include_physbndry);
+
+    void flushCFinfo (bool no_assertion=false);
 
     //
     // parallel copy or add

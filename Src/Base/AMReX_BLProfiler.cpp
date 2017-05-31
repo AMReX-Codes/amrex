@@ -144,21 +144,7 @@ void BLProfiler::Initialize() {
     procNumber = ParallelDescriptor::MyProc();
   } else {
     procName = cProcName;
-#ifdef BL_HOPPER
-    procNumber = atoi(procName.substr(3, std::string::npos).c_str());
-#else
-#ifdef BL_SIM_HOPPER
-    //procNumber = (100 * ParallelDescriptor::MyProc()) % 6527;
     procNumber = ParallelDescriptor::MyProc();
-    std::stringstream pname;
-    pname << "nid" << procNumber;
-    procName = pname.str();
-    amrex::Print(Print::AllProcs) << ParallelDescriptor::MyProc() << "::procNumber = " << procNumber
-				  << "  procName = " << procName << "\n";
-#else
-    procNumber = ParallelDescriptor::MyProc();
-#endif
-#endif
   }
   //std::cout << myProc << ":::: " << procName << "  len =  " << resultLen << std::endl;
 

@@ -81,7 +81,7 @@ namespace amrex
                   const Real                      &   a_gridEfficiency,
                   const Box                       &   a_coarsestDomain)
   {
-    RealBox prob_domain(D_DECL(0.,0.,0.), D_DECL(1.,1.,1.));
+    RealBox prob_domain(AMREX_D_DECL(0.,0.,0.), AMREX_D_DECL(1.,1.,1.));
 
     Array<int> n_cell(SpaceDim);
     IntVect domsize =  a_coarsestDomain.size();

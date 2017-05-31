@@ -33,14 +33,7 @@ const char* path_sep_str = "/";
 
 #include <sys/types.h>
 #include <sys/times.h>
-#ifdef BL_AIX
-#undef _XOPEN_SOURCE_EXTENDED
-#define _XOPEN_SOURCE_EXTENDED 1
-#endif
 #include <sys/time.h>
-#ifdef BL_AIX
-#undef _XOPEN_SOURCE_EXTENDED
-#endif
 #include <sys/param.h>
 #include <unistd.h>
 

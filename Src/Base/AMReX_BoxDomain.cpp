@@ -17,8 +17,8 @@ BoxDomain::intersect (const Box& b)
 
 void
 intersect (BoxDomain&       dest,
-		   const BoxDomain& fin,
-		   const Box&       b)
+           const BoxDomain& fin,
+           const Box&       b)
 {
    dest = fin;
    dest.intersect(b);
@@ -34,8 +34,8 @@ BoxDomain::refine (int ratio)
 
 void
 refine (BoxDomain&       dest,
-		const BoxDomain& fin,
-		int              ratio)
+        const BoxDomain& fin,
+        int              ratio)
 {
     dest = fin;
     dest.refine(ratio);
@@ -43,8 +43,8 @@ refine (BoxDomain&       dest,
 
 void
 accrete (BoxDomain&       dest,
-		 const BoxDomain& fin,
-		 int              sz)
+         const BoxDomain& fin,
+         int              sz)
 {
     dest = fin;
     dest.accrete(sz);
@@ -52,8 +52,8 @@ accrete (BoxDomain&       dest,
 
 void
 coarsen (BoxDomain&       dest,
-		 const BoxDomain& fin,
-		 int              ratio)
+         const BoxDomain& fin,
+         int              ratio)
 {
     dest = fin;
     dest.coarsen(ratio);
@@ -107,9 +107,8 @@ BoxDomain::BoxDomain (IndexType _ctype)
 
 BoxDomain::BoxDomain (const Box& bx)
     :
-    BoxList(bx.ixType())
+    BoxList(bx)
 {
-    add(bx);
 }
 
 void
@@ -117,37 +116,28 @@ BoxDomain::add (const Box& b)
 {
     BL_ASSERT(b.ixType() == ixType());
 
-    std::list<Box> tmp, check;
+    Array<Box> tmp, check;
 
     check.push_back(b);
 
-    for (iterator bli = lbox.begin(), End = lbox.end(); bli != End; ++bli)
+    for (const auto& bx : *this)
     {
-        for (iterator ci = check.begin(), Cend = check.end(); ci != Cend; )
+        tmp.clear();
+        for (auto& cbx : check)
         {
-            if (ci->intersects(*bli))
+            if (cbx.intersects(bx))
             {
-                //
-                // Remove c from the check list, compute the
-                // part of it that is outside bln and collect
-                // those boxes in the tmp list.
-                //
-                BoxList tmpbl(amrex::boxDiff(*ci, *bli));
-                tmp.splice(tmp.end(), tmpbl.listBox());
-                check.erase(ci++);
-            }
-            else
-            {
-                ++ci;
+                const BoxList& tmpbl = amrex::boxDiff(cbx, bx);
+                tmp.insert(std::end(tmp), std::begin(tmpbl), std::end(tmpbl));
+                cbx = Box();
             }
         }
-        check.splice(check.end(), tmp);
+        check.erase(std::remove_if(check.begin(), check.end(),
+                                   [](const Box& x) { return x.isEmpty(); }),
+                    check.end());
+        check.insert(std::end(check), std::begin(tmp), std::end(tmp));
     }
-    //
-    // At this point, the only thing left in the check list
-    // are boxes that nowhere intersect boxes in the domain.
-    //
-    lbox.splice(lbox.end(), check);
+    join(check);
     BL_ASSERT(ok());
 }
 
@@ -156,8 +146,7 @@ BoxDomain::add (const BoxList& bl)
 {
     BoxList bl2 = bl;
     bl2.catenate(*this);
-    BoxList nbl = amrex::removeOverlap(bl2);
-    this->catenate(nbl);
+    join(amrex::removeOverlap(bl2));
 }
 
 BoxDomain&
@@ -165,22 +154,19 @@ BoxDomain::rmBox (const Box& b)
 {
     BL_ASSERT(b.ixType() == ixType());
 
-    std::list<Box> tmp;
+    Array<Box> tmp;
 
-    for (std::list<Box>::iterator bli = lbox.begin(), End = lbox.end(); bli != End; )
+    for (auto& bx : *this)
     {
-        if (bli->intersects(b))
+        if (bx.intersects(b))
         {
-            BoxList tmpbl(amrex::boxDiff(*bli,b));
-            tmp.splice(tmp.end(), tmpbl.listBox());
-            lbox.erase(bli++);
-        }
-        else
-        {
-            ++bli;
+            const BoxList& tmpbl = amrex::boxDiff(bx,b);
+            tmp.insert(std::end(tmp), std::begin(tmpbl), std::end(tmpbl));
+            bx = Box();
         }
     }
-    lbox.splice(lbox.end(), tmp);
+    removeEmpty();
+    join(tmp);
     return *this;
 }
 

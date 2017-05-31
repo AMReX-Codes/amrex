@@ -1,6 +1,6 @@
 
-#ifndef BL_CCSE_MPP
-#define BL_CCSE_MPP
+#ifndef BL_CCSE_MPI_H_
+#define BL_CCSE_MPI_H_
 
 //
 // This header encapsulates the MPI header.
