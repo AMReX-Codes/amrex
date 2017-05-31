@@ -36,6 +36,13 @@
       CXXFLAGS += -noacc
     endif
 
+    ifdef CUDA
+      F90FLAGS += -Mcuda
+      FFLAGS += -Mcuda
+      CFLAGS += -Mcuda
+      CXXFLAGS += -Mcuda
+    endif
+
     ifdef NDEBUG
       # Disable debug symbols on PGI for now
       ifndef ACC
